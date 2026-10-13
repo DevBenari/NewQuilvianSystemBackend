@@ -11,6 +11,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
             builder.ToTable("InpBedReservation", "public");
 
             builder.HasKey(x => x.Id);
+            builder.Property(x => x.CancellationReason).HasMaxLength(500);
+            builder.HasOne<QuilvianSystemBackend.Models.ApplicationUser>().WithMany().HasForeignKey(x => x.CancelledByUserId).OnDelete(DeleteBehavior.Restrict);
 
 
             builder.Property(x => x.ReservationStatus).HasConversion<int>();

@@ -1852,3 +1852,321 @@ Diturunkan agent dari keputusan dan fakta source. Kedelapannya **disetujui** lew
 | 6 | `Down()` migration berpenjaga | Jejak override tidak boleh hilang diam-diam (pola `BE-IGD-053`, `060`) | `Down()` polos |
 | 7 | Alias `GET …/options` dihapus | Nol pemakai; dua nama untuk satu perilaku membingungkan kontrak | Dibiarkan |
 | 8 | Kelompok di luar jadwal dibatasi 50 baris dan dapat dicari | Mengikuti batas yang sudah ada di source; perawat mengetik nama bila tidak tampil | Tanpa batas |
+
+## 17. Form Permintaan Rawat Inap dari IGD — 12 Oktober 2026 (**Rencana (belum tersedia)**)
+
+Desain target untuk `EPIC IGD-15` (`IGD-DEC-267`…`293`). Status bagian ini: **`approved`** (`IGD-DEC-294`, Rizki Gunawan, 12 Oktober 2026); bagian
+yang menyentuh Rawat Inap dan Billing ditandai **butuh persetujuan pemiliknya** (`IGD-OQ-128`). Masukan: decision log bagian
+*Form Permintaan Rawat Inap dari IGD — 12 Oktober 2026*; [gate](evidence/2026-10-12-gate-form-permintaan-rawat-inap.md)
+(`PARTIALLY_READY`); [arsitektur domain](evidence/2026-10-12-arsitektur-domain-form-permintaan-rawat-inap.md) revisi `1`
+(`DOMAIN_ARCHITECTURE_PARTIAL`, disahkan `IGD-DEC-292`); capability map suplemen 3.7 (backend `6a1c6cf9`, frontend
+`03b057c03`). Bentuk blueprint tetap `SINGLE`.
+
+**Inti desain.** Dua aggregate dengan satu titik serah (`ARC-RI-01`):
+
+1. **Form Permintaan Rawat Inap** — milik IGD, tabel baru `EmgAdmissionRequest` beserta riwayatnya. Hidup dari *Draf*
+   sampai *Ditandatangani*.
+2. **Permintaan admisi** — milik Rawat Inap, tabel yang sudah ada `InpAdmissionReferral`, **diperluas** untuk sumber IGD.
+   Lahir tepat saat form ditandatangani, dalam satu transaksi database dengan tanda tangan.
+
+Sesudah ditandatangani, keadaan form yang dilihat pengguna (*Terkirim*, *Selesai*, *Dibatalkan*) **dibaca** dari
+permintaan admisi — tidak disalin balik — sehingga keduanya tidak pernah berbeda pendapat.
+
+**Tanpa `Program.cs`.** Logika form ditaruh pada `EmergencyDispositionService` yang sudah terdaftar, sebagai berkas
+`partial` baru; Rawat Inap membaca rincian form lewat method `public static` pada service yang sama (pola
+`EmergencyVisitService.PeriksaJenisEncounter`). Controller baru tidak memerlukan registrasi. Satu-satunya registrasi yang
+bertambah adalah dua `DbSet` di `ApplicationDbContext`.
+
+Keberlakuan QBE: `NEW CODE` untuk model, enum, DTO, controller, configuration, dan berkas `partial` baru; `TOUCHED LEGACY`
+untuk `EmergencyDispositionService` (kata `partial`, konstruktor), `EmergencyDispositionController.UpdateDispositionStatus`
+(penahanan dan batal otomatis), `EmgDispositionType`, `InpAdmissionReferral` beserta service, controller, DTO, dan
+configuration-nya, `InpEpisodeService` (pesan), `BillingInpatientEventReceiver` (penahanan penautan).
+
+### 17.1 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai | Dibuat ulang di IGD |
+| --- | --- | --- | --- |
+| Form Permintaan Rawat Inap, riwayat keadaannya, salinan beku, atestasi | **IGD** | Ditulis | Ya — konsep baru milik IGD (`ARC-RI-01`) |
+| Tindak lanjut, jenis tindak lanjut (`EmgDisposition`, `EmgDispositionType`) | IGD | Dibaca; jenis tindak lanjut bertambah satu kolom | — |
+| Penugasan DPJP IGD (`EmgDoctorAssignment`) | IGD | Dibaca — siapa DPJP aktif | — |
+| Permintaan admisi (`InpAdmissionReferral`) | **Rawat Inap** | Ditulis lewat service Rawat Inap; tabel diperluas | **Tidak** — perluasan, butuh persetujuan pemilik Rawat Inap |
+| Episode rawat inap (`InpEpisode`) | Rawat Inap | Tidak disentuh | Tidak |
+| Pasien (`MstPatient`) | Patient Management | Dibaca | **Tidak** |
+| Alergi (`TrxPatientAllergy`), diagnosis (`TrxPatientDiagnosis`) | Clinical Management | Dibaca | **Tidak** |
+| Penjamin kunjungan (`RegPatientEncounter`, `RegPatientEncounterGuarantor`; konteks `EncounterInsuranceService`) | Registrasi / Clinical | Dibaca | **Tidak** |
+| Hak kelas penjamin (`MstPatientInsurance.ClassName`) | Patient Management | Dibaca sebagai teks | **Tidak** |
+| Unit layanan, kelas perawatan, jadwal dokter (`MstServiceUnit`, `MstPatientClass`, `MstDoctorSchedule`) | Master Data | Dibaca | **Tidak** |
+| Dokter (`MstDoctor`), akun → dokter (`ApplicationUser.DoctorId`) | Human Resource / Identity | Dibaca | **Tidak** |
+| Tautan invoice (`BilInvoiceEncounterLink`) | Billing | Tidak dibuat untuk sumber IGD sampai `IGD-OQ-129` (`IGD-DEC-293`) | **Tidak** |
+
+### 17.2 Class diagram
+
+**Konteks IGD — form.**
+
+```mermaid
+classDiagram
+    class EmergencyAdmissionRequestController {
+        <<Baru · IGD>>
+        +GetByVisit(emergencyVisitId)
+        +GetById(id)
+        +Create(CreateEmergencyAdmissionRequestRequest)
+        +UpdateDraft(id, UpdateEmergencyAdmissionRequestRequest)
+        +RequestSignature(id, RowVersionRequest)
+        +GetPendingSignature()
+        +Sign(id, RowVersionRequest, idempotencyKey)
+        +Return(id, ReturnEmergencyAdmissionRequestRequest)
+        +Cancel(id, CancelEmergencyAdmissionRequestRequest)
+        +GetPrintData(id)
+        +GetInpatientDoctorOptions(serviceUnitId, search)
+    }
+    class EmergencyDispositionService {
+        <<Diperbarui · IGD · partial>>
+        +BuatPermintaanRawatInapAsync(request, actor, ct)
+        +SimpanDrafPermintaanAsync(id, request, actor, ct)
+        +MintaTandaTanganAsync(id, rowVersion, actor, ct)
+        +TandatanganiPermintaanAsync(id, rowVersion, actor, perangkat, ip, ct)
+        +KembalikanPermintaanAsync(id, catatan, rowVersion, actor, ct)
+        +BatalkanPermintaanAsync(id, alasan, rowVersion, actor, ct)
+        +BatalkanPermintaanKarenaTindakLanjutAsync(dispositionId, alasan, actor, ct)
+        +PeriksaPermintaanSebelumJalankanAsync(disposition, ct) string?
+        +AmbilPerluTandaTanganAsync(actor, ct)
+        +AmbilPilihanDpjpRawatInapAsync(serviceUnitId, search, ct)
+        +BacaRingkasanPermintaanRawatInapAsync(db, requestId, ct)$ ringkasan
+        -BentukSalinanBekuAsync(form, ct) string
+        -AmbilDpjpIgdAktifAsync(visitId, ct)
+    }
+    class EmgAdmissionRequest {
+        <<Baru · IGD>>
+        +Guid EmergencyVisitId
+        +Guid DispositionId
+        +Guid EncounterId
+        +Guid PatientId
+        +EmergencyAdmissionRequestStatus Status
+        +Guid? RequestedServiceUnitId
+        +Guid? RequestedPatientClassId
+        +Guid? ProposedInpatientDoctorId
+        +int EstimatedLengthOfStayDays
+        +bool IsCito
+        +bool NeedsIntensiveCare
+        +bool NeedsIsolation
+        +bool NeedsOxygenSupport
+        +bool NeedsSpecialMonitoring
+        +string? ClinicalIndication
+        +string? CarePlanInstruction
+        +Guid? SignedByDoctorId
+        +string? SnapshotJson
+        +Guid RowVersion
+    }
+    class EmgAdmissionRequestEvent {
+        <<Baru · IGD>>
+        +Guid AdmissionRequestId
+        +EmergencyAdmissionRequestEventType EventType
+        +EmergencyAdmissionRequestStatus? FromStatus
+        +EmergencyAdmissionRequestStatus ToStatus
+        +Guid ActorUserId
+        +DateTime OccurredAt
+        +string? Note
+    }
+    class EmgDispositionType {
+        <<Diperbarui · IGD master>>
+        +bool RequiresAdmissionRequest
+    }
+    class EmergencyDispositionController {
+        <<Diperbarui · IGD>>
+        +UpdateDispositionStatus(id, request)
+    }
+    EmergencyAdmissionRequestController --> EmergencyDispositionService
+    EmergencyDispositionController --> EmergencyDispositionService
+    EmergencyDispositionService --> EmgAdmissionRequest
+    EmgAdmissionRequest "1" --> "*" EmgAdmissionRequestEvent
+    EmgAdmissionRequest --> EmgDispositionType : lewat tindak lanjut
+```
+
+**Konteks Rawat Inap — permintaan admisi (butuh persetujuan pemilik Rawat Inap).**
+
+```mermaid
+classDiagram
+    class InpAdmissionReferral {
+        <<Diperbarui · Rawat Inap>>
+        +InpAdmissionReferralSourceKind SourceKind
+        +Guid? OprCaseId
+        +Guid? EmergencyAdmissionRequestId
+        +Guid PrimarySurgeonId
+        +Guid? RequestedServiceUnitId
+        +Guid? RequestedPatientClassId
+        +bool IsCito
+        +InpAdmissionReferralCancellationSource? CancellationSource
+    }
+    class InpAdmissionReferralService {
+        <<Diperbarui · Rawat Inap>>
+        +BuatDariIgdAsync(form, actor, ct)
+        +BatalkanDariIgdAsync(requestId, alasan, sumber, actor, ct)
+        +BatalkanOlehPetugasAdmisiAsync(id, alasan, rowVersion, actor, ct)
+        +AmbilKeadaanUntukIgdAsync(requestIds, ct)
+        +GetPagedAsync(query, ct)
+        +CheckForAdmissionAsync(patientId, referralId, ct)
+    }
+    class InpatientAdmissionReferralController {
+        <<Diperbarui · Rawat Inap>>
+        +GetPaged(query)
+        +GetById(id)
+        +Cancel(id, CancelAdmissionReferralRequest)
+    }
+    class BillingInpatientEventReceiver {
+        <<Diperbarui · Billing>>
+        -EnsureEncounterLinksAsync(episodeId, invoiceId, receiptId, ct)
+    }
+    InpatientAdmissionReferralController --> InpAdmissionReferralService
+    InpAdmissionReferralService --> InpAdmissionReferral
+    BillingInpatientEventReceiver ..> InpAdmissionReferral : hanya SourceKind kamar pulih
+```
+
+### 17.3 Penjelasan class
+
+| Class | Status | Lokasi file | Fungsi |
+| --- | --- | --- | --- |
+| `EmgAdmissionRequest` | Baru | `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgAdmissionRequest.cs` | Form Permintaan Rawat Inap: isian perawat, keadaan, atestasi, salinan beku |
+| `EmgAdmissionRequestEvent` | Baru | `…/EmergencyInstallationManagement/Models/EmgAdmissionRequestEvent.cs` | Riwayat tambah-saja setiap perpindahan keadaan form beserta catatan/alasan (G-06) |
+| `EmergencyAdmissionRequestStatus` | Baru | `…/EmergencyInstallationManagement/Enums/EmergencyAdmissionRequestStatus.cs` | `Draft = 1`, `AwaitingSignature = 2`, `Signed = 3`, `Cancelled = 4`; bawaan `Draft` |
+| `EmergencyAdmissionRequestEventType` | Baru | `…/EmergencyInstallationManagement/Enums/EmergencyAdmissionRequestEventType.cs` | `Opened = 1`, `SignatureRequested = 2`, `Returned = 3`, `Signed = 4`, `Cancelled = 5`, `CancelledAfterSend = 6`, `AutoCancelled = 7` |
+| `EmergencyAdmissionRequestDtos` | Baru | `…/EmergencyInstallationManagement/DTOs/EmergencyAdmissionRequestDtos.cs` | DTO pada §17.10 |
+| `EmergencyAdmissionRequestController` | Baru | `…/EmergencyInstallationManagement/Controllers/EmergencyAdmissionRequestController.cs` | Route `emergency-admission-requests`; memakai `EmergencyDispositionService`; `[AccessController]` resource `EmergencyAdmissionRequest` |
+| `EmergencyDispositionService` | Diperbarui | `…/Services/EmergencyDispositionService.cs` (kata `partial`, konstruktor menerima `InpAdmissionReferralService`) dan **berkas baru** `…/Services/EmergencyDispositionService.AdmissionRequest.cs` | Seluruh perintah form. Membuka transaksi pada *Tandatangani*, *Batalkan* sesudah terkirim, dan batal otomatis |
+| `EmergencyDispositionController` | Diperbarui | `…/Controllers/EmergencyDispositionController.cs` | `UpdateDispositionStatus`: *Executed* untuk jenis `RequiresAdmissionRequest` memanggil `PeriksaPermintaanSebelumJalankanAsync`; *Cancelled* memanggil `BatalkanPermintaanKarenaTindakLanjutAsync` di transaksi yang sama |
+| `EmgDispositionType` | Diperbarui | `…/EmergencyInstallationManagement/MasterData/Models/EmgDispositionType.cs` | Kolom `RequiresAdmissionRequest` (G-10) |
+| `EmgAdmissionRequestConfiguration`, `EmgAdmissionRequestEventConfiguration` | Baru | `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/` | Relasi, index, check constraint pada §17.5 |
+| `ApplicationDbContext` | Diperbarui | `Repositories/ApplicationDbContext.cs` | `DbSet<EmgAdmissionRequest> EmgAdmissionRequests`, `DbSet<EmgAdmissionRequestEvent> EmgAdmissionRequestEvents` |
+| `InpAdmissionReferral` | Diperbarui — **persetujuan Rawat Inap** | `Areas/HealthServices/InPatientManagement/Models/InpAdmissionReferral.cs` | Sumber IGD; kolom pada §17.5 |
+| `InpAdmissionReferralSourceKind`, `InpAdmissionReferralCancellationSource` | Baru — **persetujuan Rawat Inap** | `…/InPatientManagement/Enums/InpAdmissionReferralStatus.cs` (berkas enum yang sama) | `RecoveryRoom = 1`, `Emergency = 2`; `RecoveryDecisionChanged = 1`, `EmergencyNurse = 2`, `EmergencyDispositionCancelled = 3`, `AdmissionOfficer = 4` |
+| `InpAdmissionReferralService` | Diperbarui — **persetujuan Rawat Inap** | `…/InPatientManagement/Services/InpAdmissionReferralService.cs` | Buat/batal dari IGD — menyimpan di dalam transaksi yang dibuka IGD, tidak membuka transaksi sendiri (§17.7), batal oleh petugas admisi, urutan CITO, pesan `409` netral |
+| `InpatientAdmissionReferralController`, `InpatientAdmissionReferralDtos` | Diperbarui — **persetujuan Rawat Inap** | `…/InPatientManagement/Controllers/`, `…/DTOs/` | `POST /{id}/cancel`; ruas sumber IGD pada response |
+| `InpAdmissionReferralConfiguration` | Diperbarui — **persetujuan Rawat Inap** | `Repositories/Configurations/HealthServices/InPatientManagement/` | Kolom, FK, check constraint baru |
+| `InpEpisodeService` | Diperbarui — **persetujuan Rawat Inap** | `…/InPatientManagement/Services/InpEpisodeService.cs` | Hanya teks pesan `INP-ADM-REF-001` (melalui `CheckForAdmissionAsync`) |
+| `BillingInpatientEventReceiver` | Diperbarui — **persetujuan owner Billing** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingInpatientEventReceiver.cs` | `EnsureEncounterLinksAsync` hanya membaca permintaan bersumber kamar pulih (`IGD-DEC-293`) |
+
+### 17.4 Arsitektur folder
+
+```text
+Areas/HealthServices/EmergencyInstallationManagement/
+├── Controllers/
+│   ├── EmergencyAdmissionRequestController.cs            # Baru
+│   └── EmergencyDispositionController.cs                 # Diperbarui — penahanan Jalankan, batal otomatis
+├── DTOs/EmergencyAdmissionRequestDtos.cs                 # Baru
+├── Enums/
+│   ├── EmergencyAdmissionRequestStatus.cs                # Baru
+│   └── EmergencyAdmissionRequestEventType.cs             # Baru
+├── MasterData/Models/EmgDispositionType.cs               # Diperbarui — namespace master IGD tetap utang teknis lama
+├── Models/
+│   ├── EmgAdmissionRequest.cs                            # Baru
+│   └── EmgAdmissionRequestEvent.cs                       # Baru
+└── Services/
+    ├── EmergencyDispositionService.cs                    # Diperbarui — partial, konstruktor
+    └── EmergencyDispositionService.AdmissionRequest.cs   # Baru
+Areas/HealthServices/InPatientManagement/                 # seluruhnya butuh persetujuan pemilik Rawat Inap
+├── Controllers/InpatientAdmissionReferralController.cs   # Diperbarui
+├── DTOs/InpatientAdmissionReferralDtos.cs                # Diperbarui
+├── Enums/InpAdmissionReferralStatus.cs                   # Diperbarui — dua enum baru
+├── Models/InpAdmissionReferral.cs                        # Diperbarui
+└── Services/
+    ├── InpAdmissionReferralService.cs                    # Diperbarui
+    └── InpEpisodeService.cs                              # Diperbarui — pesan saja
+Areas/HealthServices/BillingManagement/Billing/Services/
+└── BillingInpatientEventReceiver.cs                      # Diperbarui — butuh persetujuan owner Billing
+Repositories/
+├── ApplicationDbContext.cs                               # Diperbarui — dua DbSet
+└── Configurations/HealthServices/
+    ├── EmergencyInstallationManagement/
+    │   ├── EmgAdmissionRequestConfiguration.cs           # Baru
+    │   ├── EmgAdmissionRequestEventConfiguration.cs      # Baru
+    │   └── EmgDispositionTypeConfiguration.cs            # Diperbarui bila kolom perlu nilai bawaan basis data
+    └── InPatientManagement/InpAdmissionReferralConfiguration.cs  # Diperbarui
+Migrations/                                               # dua migration — §17.6, dibuat Rizki
+```
+
+### 17.5 Status model dan kolom yang berubah
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `EmgAdmissionRequest` | Baru | Seluruh kolom — kamus data §10 | `CreateTable` |
+| `EmgAdmissionRequestEvent` | Baru | Seluruh kolom — kamus data §10 | `CreateTable` |
+| `EmgDispositionType` | Diperbarui | `RequiresAdmissionRequest` `boolean NOT NULL DEFAULT false` | `AddColumn` + pengisian `true` untuk baris berkode `RANAP` |
+| `InpAdmissionReferral` | Diperbarui | `OprCaseId` `uuid` → **boleh kosong**; baru `SourceKind` `integer NOT NULL DEFAULT 1`; `EmergencyAdmissionRequestId` `uuid NULL` FK → `EmgAdmissionRequest` `Restrict`; `RequestedServiceUnitId` `uuid NULL` FK → `MstServiceUnit` `Restrict`; `RequestedPatientClassId` `uuid NULL` FK → `MstPatientClass` `Restrict`; `IsCito` `boolean NOT NULL DEFAULT false`; `CancellationSource` `integer NULL`. Check constraint baru `CK_InpAdmissionReferral_Source`: sumber kamar pulih wajib `OprCaseId`; sumber IGD wajib `EmergencyAdmissionRequestId`, `RequestedServiceUnitId`, `RequestedPatientClassId`. Unique index baru `UX_InpAdmissionReferral_EmergencyRequest` pada `EmergencyAdmissionRequestId` (bila terisi). Index baru `IX_InpAdmissionReferral_Status_Cito_RequestedAt` | `AlterColumn` (melonggarkan), `AddColumn` ×5, `AddForeignKey` ×3, check constraint, dua index. Baris lama otomatis `SourceKind = 1` |
+| `InpAdmissionReferral.PrimarySurgeonId` | Sudah ada — **arti diperjelas** | Tidak berubah; tetap wajib. Arti menurut kode: *"Usulan DPJP awal; petugas admisi tetap memilih"*. Sumber IGD mengisinya dengan DPJP rawat inap usulan. Nama kolom yang menyebut "surgeon" untuk baris IGD dicatat sebagai **utang teknis** — mengganti namanya memutus DTO Rawat Inap dan diserahkan ke pemilik Rawat Inap | Nol |
+
+### 17.6 Rencana migration
+
+Dua migration, dibuat dan diterapkan **Rizki** (agent berhenti sebelum `dotnet ef migrations add`), berurutan:
+
+| Urutan | Nama usulan | Isi | Tanpa henti layanan? | Pengisian data lama | Mundur |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | `AddEmergencyAdmissionRequest` | Dua tabel baru IGD; kolom `EmgDispositionType.RequiresAdmissionRequest`; `UPDATE … SET "RequiresAdmissionRequest" = true WHERE "Code" = 'RANAP'` | Ya — tabel baru dan kolom berbawaan | Jenis tindak lanjut berkode `RANAP` diberi tanda; lingkungan dengan kode lain diatur admin lewat layar master (`IGD-UNK-24`) | `Down()` berpenjaga: menolak bila `EmgAdmissionRequest` sudah berisi baris |
+| 2 | `ExtendInpatientAdmissionReferralForEmergency` | Perubahan `InpAdmissionReferral` di §17.5 | Ya — melonggarkan kolom dan menambah kolom berbawaan | `SourceKind = 1` untuk seluruh baris lama lewat nilai bawaan | `Down()` berpenjaga: menolak bila ada baris `SourceKind = 2` atau `OprCaseId` kosong |
+
+Migration 2 bergantung pada migration 1 (FK ke tabel IGD). Keduanya mengikuti preseden uji `Up→Down→Up` di basis data
+terpisah, atau dikecualikan atas keputusan pemilik seperti `IGD-DEC-260`.
+
+### 17.7 Transaksi, konkurensi, dan idempotensi
+
+| Perintah | Transaksi | Penjaga |
+| --- | --- | --- |
+| Buat form | Satu transaksi; kunci *advisory* per kunjungan IGD (pola `EmergencyEpisodeRule` `:228`) | Satu form aktif per kunjungan; satu permintaan `Pending` per pasien |
+| Simpan draf, minta TTD, kembalikan | Satu `SaveChanges` | `RowVersion` form |
+| **Tandatangani** | Bacaan modul lain (pasien, alergi, diagnosis, penjamin, akun penanda tangan) dilakukan **sebelum** transaksi; lalu satu transaksi: kunci per kunjungan → periksa ulang status, `RowVersion`, tindak lanjut masih *Confirmed*, penanda tangan = DPJP aktif → simpan form *Signed* + salinan beku + atestasi + kejadian → `InpAdmissionReferralService.BuatDariIgdAsync` (memakai transaksi yang sama) → commit | `RowVersion`; header `Idempotency-Key` — kiriman ulang dengan kunci yang sama mengembalikan hasil pertama; unique `UX_InpAdmissionReferral_EmergencyRequest` sebagai penjaga terakhir |
+| Batalkan sesudah terkirim | Satu transaksi: kejadian form + `BatalkanDariIgdAsync` | Permintaan harus `Pending`; `RowVersion` permintaan |
+| Batal otomatis karena tindak lanjut batal | Di dalam transaksi `UpdateDispositionStatus` yang sudah ada | — |
+| Petugas admisi membatalkan | Transaksi milik Rawat Inap | `RowVersion` permintaan |
+
+Bila pembuatan permintaan admisi gagal, tanda tangan ikut batal; form tetap *Menunggu TTD* (gagal tertutup).
+
+### 17.8 Rencana data master awal
+
+| Master | Isi minimum | Sumber nilai |
+| --- | --- | --- |
+| `EmgDispositionType.RequiresAdmissionRequest` | `true` untuk jenis tindak lanjut rawat inap di tiap lingkungan; seeder mengisi `RANAP` | Pemilik — dicek per lingkungan tanpa agent mengubah data (`IGD-UNK-24`) |
+| Hak akses `EmergencyAdmissionRequest` dan `InpatientAdmissionReferral : Cancel` | Diberikan ke peran sesuai permission §11 | Pengurus Akses Role — bukan agent (`IGD-DEC-291`) |
+| `MstDoctorSchedule` per unit rawat inap | Jadwal dokter di unit rawat inap bila ingin daftar DPJP usulan tersaring | Pemilik jadwal; tanpa jadwal, daftar jatuh ke semua dokter aktif (`IGD-DEC-286`) |
+| `MstPatientClass.IsForInpatient`, `MstServiceUnit.ServiceUnitType = Inpatient` | Sudah dipakai admisi hari ini | Sudah ada |
+
+### 17.9 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Status *Draf*/*Menunggu TTD* pada `InpAdmissionReferral` | Rawat Inap akan memegang alur kerja IGD (`ARC-RI-01`, `IGD-DEC-292`) |
+| Salinan status *Terkirim/Selesai/Dibatalkan* di tabel form | Dua sumber yang bisa berbeda; status pasca-kirim dibaca dari permintaan |
+| Service baru `EmergencyAdmissionRequestService` | Menuntut baris `AddScoped` di `Program.cs`; ditolak pemilik sejak 28 Agustus 2026 |
+| Gambar tanda tangan, PIN, atau kata sandi ulang | `IGD-DEC-272` |
+| Kolom "dokter tujuan TTD" | *Perlu TTD* dihitung dari DPJP aktif; pengalihan otomatis memindahkan permintaan (`IGD-DEC-274`) |
+| Nomor form tersendiri | Tidak diminta; cetakan memakai nomor kunjungan IGD dan waktu tanda tangan |
+| Tabel kebutuhan khusus | Daftar tetap empat nilai (`IGD-DEC-284`); empat kolom boolean cukup dan mudah disaring |
+| Perbandingan hak kelas penjamin | `IGD-DEC-287` |
+| Notifikasi ke dokter atau petugas admisi | `IGD-DEC-288`, gate G-07 |
+| Log cetak ulang | Tidak diminta (`ARC-RI-03`) |
+| `OriginEncounterId` | Ditunda `IGD-DEC-276` |
+| Penanda "tidak ada alergi" | Clinical tidak menyimpannya (`IGD-FACT-117`); form hanya dapat menulis "Belum ada data alergi" — titipan untuk pemilik Clinical |
+
+### 17.10 DTO
+
+| DTO | Jenis | Ruas |
+| --- | --- | --- |
+| `CreateEmergencyAdmissionRequestRequest` | Create | `dispositionId` |
+| `UpdateEmergencyAdmissionRequestRequest` | Update | `requestedServiceUnitId`, `requestedPatientClassId`, `proposedInpatientDoctorId`, `estimatedLengthOfStayDays`, `isCito`, `needsIntensiveCare`, `needsIsolation`, `needsOxygenSupport`, `needsSpecialMonitoring`, `clinicalIndication`, `carePlanInstruction`, `rowVersion` |
+| `RowVersionRequest` | Status | `rowVersion` (dipakai minta TTD dan tandatangani) |
+| `ReturnEmergencyAdmissionRequestRequest` | Status | `note`, `rowVersion` |
+| `CancelEmergencyAdmissionRequestRequest` | Status | `reason`, `rowVersion` |
+| `EmergencyAdmissionRequestResponse` | Response | API §12.3 |
+| `EmergencyAdmissionRequestSummary` | Response | Baris daftar *Perlu TTD* dan riwayat per kunjungan |
+| `EmergencyAdmissionRequestPrintResponse` | Response | Isi cetak dari salinan beku |
+| `EmergencyInpatientDoctorOption` | Option | `doctorId`, `doctorName`, `specialistName`, `isScheduledInUnit` |
+| `CancelAdmissionReferralRequest` (Rawat Inap) | Status | `reason`, `rowVersion` |
+
+### 17.11 Pilihan desain yang disetujui (`IGD-DEC-294`)
+
+| No | Pilihan | Usulan | Alasan |
+| ---: | --- | --- | --- |
+| 1 | Isian wajib sebelum *Minta TTD* | Unit, kelas, DPJP usulan, lama rawat, Indikasi Klinis wajib; Rencana Perawatan, CITO, dan kebutuhan khusus opsional | Petugas admisi butuh lima isian itu untuk membuka admisi; spesifikasi analis tidak menyebut mana yang wajib |
+| 2 | DPJP usulan diperiksa server | Server hanya menerima dokter dari daftar yang sama dengan layar (berjadwal di unit, atau semua dokter aktif bila unit tanpa jadwal) | Daftar dan penjaga tidak boleh beda pendapat — prinsip yang sama dengan `IGD-DEC-141` |
+| 3 | Tindak lanjut `RANAP` dibatalkan sesudah admisi dibuka dari permintaannya | **Ditolak** `409` — admisi dibatalkan dulu di Rawat Inap | `IGD-DEC-280` hanya mengatur permintaan `Pending`; membatalkan keputusan klinis ketika episode sudah dibuka meninggalkan episode tanpa dasar |
+| 4 | Form untuk kunjungan tanpa pasien atau encounter | Ditolak `409` | Admisi membutuhkan pasien; pasien tanpa identitas pun sudah punya `Patient` sejak encounter-first |
+| 5 | Pengenal jenis tindak lanjut rawat inap | Kolom master `RequiresAdmissionRequest`, bukan kode teks | G-10; kode berbeda antar lingkungan (`IGD-UNK-24`) |
+| 6 | Alergi kosong | Ditulis *"Belum ada data alergi"*, tidak pernah *"Tidak ada alergi"* | `IGD-FACT-117` |
+| 7 | Isian Unit Layanan sementara | Wajib diisi dan aktif; aturan tipe unit **ditahan** sampai `IGD-OQ-127` dan **tidak** boleh dibangun lebih dulu | `IGD-DEC-270` — tidak diasumsikan |

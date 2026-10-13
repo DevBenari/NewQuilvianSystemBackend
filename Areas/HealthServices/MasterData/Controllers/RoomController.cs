@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
@@ -20,7 +22,7 @@ using ResponseRoomPagedResult =
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 {
-    [ApiController]
+    [ApiController, ServiceFilter(typeof(InpBedOperationFilter))]
     [Authorize]
     [Route("api/v1/health-services/master-data/rooms")]
     [AccessController(
@@ -40,14 +42,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         private const int RoomCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
-        private readonly LoggerService _loggerService;
+        private readonly LoggerService _loggerService; private readonly BedMutationService _bedMutation;
+        private readonly RoomMasterWriteService _bedWriter;
 
         public RoomController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService, BedMutationService bedMutation, RoomMasterWriteService bedWriter)
         {
             _dbContext = dbContext;
-            _loggerService = loggerService;
+            _loggerService = loggerService; _bedMutation = bedMutation; _bedWriter = bedWriter;
         }
 
         [HttpGet("filters/metadata")]
@@ -319,6 +322,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var data = MapDetailResponse(entity, actorNames);
 
+            data.AffectedBedVersions = await _bedMutation.VersionsAsync("Room", id);
             return Ok(ApiResponse<RoomDetailResponse>.Ok(
                 data,
                 "Detail room berhasil diambil."
@@ -356,7 +360,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, HttpContext.RequestAborted);
 
             var generatedRoomCode = await GenerateRoomCodeAsync();
             var codeValidation = await ValidateGeneratedRoomCodeAsync(generatedRoomCode);
@@ -439,111 +443,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("Room", "Update")]
         public async Task<IActionResult> UpdateRoom(Guid id, [FromBody] UpdateRoomRequest request)
         {
-            var entity = await _dbContext.Set<MstRoom>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Room tidak ditemukan."
-                ));
-            }
-
-            if (entity.ServiceUnitId != request.ServiceUnitId)
-            {
-                var isUsedByDoctorSchedule = await _dbContext.Set<MstDoctorSchedule>()
-                    .AsNoTracking()
-                    .AnyAsync(x => x.RoomId == id && !x.IsDelete);
-
-                var isUsedByEncounter = await _dbContext.Set<RegPatientEncounter>()
-                    .AsNoTracking()
-                    .AnyAsync(x => x.RoomId == id && !x.IsDelete);
-
-                if (isUsedByDoctorSchedule || isUsedByEncounter)
-                {
-                    return BadRequest(ApiResponse<object>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        "Service unit room tidak dapat diubah karena room sudah digunakan oleh jadwal dokter atau encounter pasien."
-                    ));
-                }
-            }
-
-            var validation = await ValidateCreateUpdateRequestAsync(
-                excludeId: id,
-                serviceUnitId: request.ServiceUnitId,
-                patientClassId: request.PatientClassId,
-                roomName: request.RoomName,
-                roomType: request.RoomType,
-                roomNumber: request.RoomNumber,
-                capacity: request.Capacity,
-                isForMale: request.IsForMale,
-                isForFemale: request.IsForFemale,
-                isForNewborn: request.IsForNewborn
-            );
-
-            if (!validation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data room tidak valid."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.ServiceUnitId = request.ServiceUnitId;
-            entity.PatientClassId = NormalizeNullableGuid(request.PatientClassId);
-            entity.RoomName = request.RoomName.Trim();
-            entity.RoomType = request.RoomType;
-            entity.RoomNumber = NormalizeNullableText(request.RoomNumber);
-            entity.LocationName = NormalizeNullableText(request.LocationName);
-            entity.FloorName = NormalizeNullableText(request.FloorName);
-            entity.Capacity = request.Capacity;
-            entity.IsForMale = request.IsForMale;
-            entity.IsForFemale = request.IsForFemale;
-            entity.IsForNewborn = request.IsForNewborn;
-            entity.IsIsolationRoom = request.IsIsolationRoom;
-            entity.IsIntensiveCare = request.IsIntensiveCare;
-            entity.IsOdcRoom = request.IsOdcRoom;
-            entity.IsAvailableForAdmission = request.IsAvailableForAdmission;
-            entity.SortOrder = request.SortOrder;
-            entity.Description = NormalizeNullableText(request.Description);
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
-
-            var response = new RoomUpdateResponse
-            {
-                Id = entity.Id,
-                ServiceUnitId = entity.ServiceUnitId,
-                PatientClassId = entity.PatientClassId,
-                RoomCode = entity.RoomCode,
-                RoomName = entity.RoomName,
-                RoomType = entity.RoomType,
-                RoomTypeName = BuildEnumLabel(entity.RoomType),
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime,
-                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
-                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Room.UpdateRoom",
-                "Mengubah data room.",
-                response
-            );
-
-            return Ok(ApiResponse<RoomUpdateResponse>.Ok(
-                response,
-                "Room berhasil diperbarui."
-            ));
+            try { return await _bedMutation.ExecuteAsync("Room", "Update", id, request ?? new(), () => _bedWriter.UpdateRoomAsync(id, request), HttpContext.RequestAborted); }
+            catch (MasterWriteRejectedException e) { return e.Result; }
         }
 
         [HttpPatch("{id:guid}/status")]
@@ -553,59 +454,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("Room", "Update")]
         public async Task<IActionResult> UpdateRoomStatus(Guid id, [FromBody] UpdateRoomStatusRequest request)
         {
-            var entity = await _dbContext.Set<MstRoom>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Room tidak ditemukan."
-                ));
-            }
-
-            if (request.IsActive)
-            {
-                var validation = await ValidateRoomCanBeActivatedAsync(entity.ServiceUnitId, entity.PatientClassId);
-                if (!validation.IsValid)
-                {
-                    return BadRequest(ApiResponse<object>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        validation.ErrorMessage ?? "Room tidak dapat diaktifkan."
-                    ));
-                }
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
-
-            var response = new RoomUpdateResponse
-            {
-                Id = entity.Id,
-                ServiceUnitId = entity.ServiceUnitId,
-                PatientClassId = entity.PatientClassId,
-                RoomCode = entity.RoomCode,
-                RoomName = entity.RoomName,
-                RoomType = entity.RoomType,
-                RoomTypeName = BuildEnumLabel(entity.RoomType),
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime,
-                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
-                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
-            };
-
-            return Ok(ApiResponse<RoomUpdateResponse>.Ok(
-                response,
-                "Status room berhasil diperbarui."
-            ));
+            try { return await _bedMutation.ExecuteAsync("Room", "Status", id, request ?? new(), () => _bedWriter.UpdateRoomStatusAsync(id, request), HttpContext.RequestAborted); }
+            catch (MasterWriteRejectedException e) { return e.Result; }
         }
 
         [HttpDelete("{id:guid}")]
@@ -616,92 +466,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [AccessPermission("Room", "Delete")]
         public async Task<IActionResult> DeleteRoom(Guid id, [FromBody] DeleteRoomRequest? request = null)
         {
-            var entity = await _dbContext.Set<MstRoom>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Room tidak ditemukan."
-                ));
-            }
-
-            var isUsedByBed = await _dbContext.Set<MstBed>()
-                .AnyAsync(x => x.RoomId == id && !x.IsDelete);
-
-            if (isUsedByBed)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Room tidak dapat dihapus karena sudah digunakan oleh bed."
-                ));
-            }
-
-            var isUsedByDoctorSchedule = await _dbContext.Set<MstDoctorSchedule>()
-                .AsNoTracking()
-                .AnyAsync(x => x.RoomId == id && !x.IsDelete);
-
-            if (isUsedByDoctorSchedule)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Room tidak dapat dihapus karena sudah digunakan oleh jadwal dokter."
-                ));
-            }
-
-            var isUsedByEncounter = await _dbContext.Set<RegPatientEncounter>()
-                .AsNoTracking()
-                .AnyAsync(x => x.RoomId == id && !x.IsDelete);
-
-            if (isUsedByEncounter)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Room tidak dapat dihapus karena sudah digunakan oleh encounter pasien."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsDelete = true;
-            entity.IsActive = false;
-            entity.DeleteDateTime = now;
-            entity.DeleteBy = actorUserId;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
-            {
-                entity.Description = request.DeleteReason.Trim();
-            }
-
-            await _dbContext.SaveChangesAsync();
-
-            var actorNames = await GetActorNameMapAsync(new[] { entity.DeleteBy });
-
-            var response = new RoomDeleteResponse
-            {
-                Id = entity.Id,
-                RoomCode = entity.RoomCode,
-                RoomName = entity.RoomName,
-                DeleteDateTime = entity.DeleteDateTime,
-                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
-                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "Room.DeleteRoom",
-                "Menghapus data room.",
-                response
-            );
-
-            return Ok(ApiResponse<RoomDeleteResponse>.Ok(
-                response,
-                "Room berhasil dihapus."
-            ));
+            try { return await _bedMutation.ExecuteAsync("Room", "Delete", id, request ?? new(), () => _bedWriter.DeleteRoomAsync(id, request), HttpContext.RequestAborted); }
+            catch (MasterWriteRejectedException e) { return e.Result; }
         }
 
         private IQueryable<MstRoom> BuildBaseQuery()

@@ -129,7 +129,7 @@ public sealed class BillingArReportGroupResponse
 }
 
 /// <summary>
-/// Ringkasan keseluruhan atas seluruh data yang memenuhi filter (monitoring counter & nominal terpisah).
+/// Ringkasan keseluruhan atas seluruh data yang memenuhi filter (monitoring counter dan nominal terpisah).
 /// </summary>
 public sealed class BillingArReportSummaryResponse
 {

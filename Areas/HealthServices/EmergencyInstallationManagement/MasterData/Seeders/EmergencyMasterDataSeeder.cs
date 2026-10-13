@@ -389,7 +389,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var definitions = new[]
             {
                 new DispositionTypeDefinition("PULANG", "Pulang", false, false, 10),
-                new DispositionTypeDefinition("RANAP", "Rawat inap", true, false, 20),
+                new DispositionTypeDefinition("RANAP", "Rawat inap", true, false, 20, true),
                 new DispositionTypeDefinition("INTENSIF", "Pindah ICU atau kamar operasi", true, false, 30),
                 new DispositionTypeDefinition("RUJUK", "Rujuk ke fasilitas kesehatan lain", false, true, 40),
                 new DispositionTypeDefinition("MENINGGAL", "Meninggal", false, false, 50),
@@ -425,6 +425,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     RequiresDestinationServiceUnit = d.RequiresDestinationServiceUnit,
                     RequiresReferralFacility = d.RequiresReferralFacility,
                     ClosesEmergencyVisit = true,
+                    RequiresAdmissionRequest = d.RequiresAdmissionRequest,
                     Sequence = d.Sequence,
                     IsActive = true,
                     CreateDateTime = now,
@@ -533,7 +534,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             string Name,
             bool RequiresDestinationServiceUnit,
             bool RequiresReferralFacility,
-            int Sequence);
+            int Sequence,
+            bool RequiresAdmissionRequest = false);
     }
 
     /// <summary>

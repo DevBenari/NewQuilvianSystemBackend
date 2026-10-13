@@ -1,0 +1,1148 @@
+{
+  "planning_id": "BM-DEL-20261011-01",
+  "blueprint_id": "RWI-BP-001",
+  "scope": "episode-rawat-inap/bed-management",
+  "revision": 1,
+  "captured_on": "2026-10-11",
+  "status": "APPROVED_BACKEND_IMPLEMENTATION_PARTIAL",
+  "approved_by": "Pengguna melalui instruksi eksplisit sesi",
+  "approved_at": "2026-10-11",
+  "implementation_lock": true,
+  "contract_version": "0.12.0",
+  "revisions": {
+    "decision": 46,
+    "requirement_gate": "1.12",
+    "module_map": 6,
+    "child_manifest": 11,
+    "impact_scan": 1
+  },
+  "hash_convention": "SHA256 byte file aktual; read-only; tidak menormalkan source",
+  "source_states": [
+    {
+      "repo": "NewQuilvianSystemBackend",
+      "head": "db85bede83c0ddbc9aaa412c576f2c3fd7447492",
+      "status": []
+    },
+    {
+      "repo": "QuilvianSystemFrontendDev",
+      "head": "5aa2c7c70754e6131e4243b5ea3ee5f768b7a5d2",
+      "status": [
+        "M package-lock.json",
+        " M yarn.lock"
+      ]
+    }
+  ],
+  "frontend_external_lockfiles": [
+    {
+      "file": "package-lock.json",
+      "sha256": "626dfb1c92cf4e40a33f031b65f577a40e9d14cd70ac53d79206d11ffb0ebfc7"
+    },
+    {
+      "file": "yarn.lock",
+      "sha256": "0ae3f55f6b083867691dc2b1b7676341814ecdad0e87be84b9054ae370ae978e"
+    }
+  ],
+  "input_files": [
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/00-interview-decisions.md",
+      "sha256": "41dd035d62e7804dff7e796712e25410152fae8e67b9444257ba73e0a6a30b3d"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/evidence/02-requirement-completeness-gate.md",
+      "sha256": "418066b0f721717fcb44392efc2d410b474987e030ea49352368e90a628dab2a"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/02-module-map.md",
+      "sha256": "d503f8016d14a7dda6afe3d3579496d113d93811dcda4bf014ea06a71da34d9f"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/01-existing-capability-map.md",
+      "sha256": "44d3bdc9059b45d6b41bdebba973b0afc50a84dbb187f8a1ef0709b5d7ccecf9"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/evidence/bed-management-impact-scan-20261011.md",
+      "sha256": "68ccb413da7a3398e944a2505e8d22890298ba5bad2258d223f9dbd351ed7079"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/evidence/bed-management-source-snapshot-20261011.json",
+      "sha256": "7faa06ba0dca2c4aa6dfb47510be966d467629bab87f8cfd181cd513bbd3bc45"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/testing/bed-management-design-validation.md",
+      "sha256": "66e3d6c7a7eda93d477a801e5adea4cdd6a5e2110ed0da0487d1e611d00a7d92"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/02-backend-architecture.md",
+      "sha256": "110761fb71f7dbfabea35ae394229805a97230c32c3493585f7c8175a0cb16ee"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/data/data-dictionary.md",
+      "sha256": "d660c2b8e260a5d45eced4c900b63416a43e09b39ed6c98ba67372901e3c9bd3"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/api-contract.md",
+      "sha256": "07efda0575841b26c3b21207ef0a193949908e081b42367638dd3361c1c404ca"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/state-transition-matrix.md",
+      "sha256": "78a286e0f8441dd626c5e9fb6687ecdc549d7410d8e7867a1cdc45a12bd274e5"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/validation-matrix.md",
+      "sha256": "a8a225a84f51b9a1e455285edfc0458c830ef1775d59f767d6e49e1664bf1dce"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/permission-audit-matrix.md",
+      "sha256": "893c0c2d24e8ed3de0f25b42aec853d5b05e22bc89c0acf06371e6949f680960"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/contracts/integration-contract.md",
+      "sha256": "894f8df47fed471d167110375d0511d3af3a1ace94262ef47a7f4cb0ecddca31"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/03-frontend-architecture.md",
+      "sha256": "41a0bb7c341b0be4c1f140278c760fd5edcebc89b4c822af53c2d57ed5d0b26b"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/testing/acceptance-test-matrix.md",
+      "sha256": "8306cf781b25ce251ee781599306cc762a5c82edf3e3b39e8e849bdd5d6c2ca5"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/00-alur-utama.md",
+      "sha256": "51f97afcc472607e96f350d785d0b066e4d833dd4bfe2c06127127787ba2ec6d"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/09-bed-reservation-release.md",
+      "sha256": "b8a967e51464947f8af5c72a204643503951a9f9f279e4224b0ed9eaa2bcf857"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/10-bed-transfer.md",
+      "sha256": "97771fe2f1e9bd60bac9237f5036e55b45834c728d69f2a3fe204f01f05604d5"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/11-bed-cleaning-readiness.md",
+      "sha256": "f077535b933af60a1ba816991c3f4e5eb244577634829445261b3f2b8e192ca0"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/12-bed-closure-reopen.md",
+      "sha256": "d2b4e6b7375e23257c4b3b2a3f65a1d1752c2bf6d9f0905cd1e99e98cf9ee27e"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/13-bed-usage-history-correction.md",
+      "sha256": "3a054a8516ebf953982c18add7a9c5cdf22e9ae6d74af1486ea4021e830b6b68"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/flowcharts/14-bed-uncertain-outcome.md",
+      "sha256": "13d7bf111fdfaf26505cd343d7f64cff6709244ecf05d673a4728a7d31d8a2d4"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/04-prd-to-mvp.md",
+      "sha256": "74d6aedf3b2165e111243e064ba32a93331b38fea5a3cf9c9308a618d35e09de"
+    }
+  ],
+  "manifest_snapshots_before_roadmap_registration": [
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/blueprint-manifest.md",
+      "sha256": "f963a8c24cc0313b668a6d351d49c0aed48c74bb4d404cde9b88fb43c363e9fd"
+    },
+    {
+      "file": "NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/episode-rawat-inap/blueprint-manifest.md",
+      "sha256": "3cede3696b99594af79cbd52ec85146eb44b756895e23ba1bc505594098b56b1"
+    }
+  ],
+  "provenance": {
+    "design_backend_head": "c5d3b5bfdc15c014a2399d904d7c4c2207505905",
+    "current_backend_head": "db85bede83c0ddbc9aaa412c576f2c3fd7447492",
+    "change_from_design_head": "Dokumen blueprint saja; fingerprint source diperiksa ulang pada validasi planning.",
+    "historical_audit": "Arsip audit/fingerprint62 tidak tersedia; tidak dianggap terverifikasi. Impact scan dan snapshot47 current dipakai.",
+    "trace_key": "scope + decision_revision + input_sha256 + requirement_or_decision_id",
+    "decision_input_sha256": "41dd035d62e7804dff7e796712e25410152fae8e67b9444257ba73e0a6a30b3d"
+  },
+  "gate": {
+    "id": "BM-A",
+    "status": "CLOSED_BACKEND",
+    "owner": "Muhammad Hamzah/pemilik berwenang",
+    "reason": "Persetujuan eksplisit pengguna 2026-10-11 untuk seluruh roadmap backend; hash24/24 sesuai. Persetujuan implementasi frontend belum diberikan."
+  },
+  "tasks": [
+    {
+      "id": "BE-RWI-208",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BM-A"
+      ],
+      "fr": [
+        "FR-BM-003",
+        "FR-BM-004",
+        "FR-BM-005",
+        "FR-BM-006",
+        "FR-BM-010",
+        "FR-BM-011"
+      ],
+      "decisions": [
+        "RWI-DEC-281",
+        "RWI-DEC-282",
+        "RWI-DEC-286",
+        "RWI-DEC-288",
+        "RWI-DEC-289",
+        "RWI-DEC-293"
+      ],
+      "acceptance": [
+        "RWI-AC-398",
+        "RWI-AC-407",
+        "RWI-AC-410",
+        "RWI-AC-415",
+        "RWI-AC-421",
+        "RWI-AC-425"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-208.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-209",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BM-A"
+      ],
+      "fr": [
+        "FR-BM-001",
+        "FR-BM-002",
+        "FR-BM-005",
+        "FR-BM-006",
+        "FR-BM-009",
+        "FR-BM-011"
+      ],
+      "decisions": [
+        "RWI-DEC-278",
+        "RWI-DEC-280",
+        "RWI-DEC-287",
+        "RWI-DEC-291",
+        "RWI-DEC-293"
+      ],
+      "acceptance": [
+        "RWI-AC-416",
+        "RWI-AC-417",
+        "RWI-AC-423",
+        "RWI-AC-425"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-209.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-210",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-208",
+        "BE-RWI-209"
+      ],
+      "fr": [
+        "FR-BM-002",
+        "FR-BM-004",
+        "FR-BM-007",
+        "FR-BM-008",
+        "FR-BM-010",
+        "FR-BM-012"
+      ],
+      "decisions": [
+        "RWI-DEC-285",
+        "RWI-DEC-288",
+        "RWI-DEC-289",
+        "RWI-DEC-290"
+      ],
+      "acceptance": [
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-422",
+        "RWI-AC-424"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-210.md",
+      "card_criteria_traced": 5,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-211",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-210"
+      ],
+      "fr": [
+        "FR-BM-001",
+        "FR-BM-002",
+        "FR-BM-008"
+      ],
+      "decisions": [
+        "RWI-DEC-274",
+        "RWI-DEC-285",
+        "RWI-DEC-287",
+        "RWI-DEC-289",
+        "RWI-DEC-292"
+      ],
+      "acceptance": [
+        "RWI-AC-396",
+        "RWI-AC-397",
+        "RWI-AC-398",
+        "RWI-AC-416",
+        "RWI-AC-417",
+        "RWI-AC-420",
+        "RWI-AC-424"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-211.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-212",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-210"
+      ],
+      "fr": [
+        "FR-BM-003",
+        "FR-BM-004"
+      ],
+      "decisions": [
+        "RWI-DEC-281",
+        "RWI-DEC-283",
+        "RWI-DEC-288",
+        "RWI-DEC-289"
+      ],
+      "acceptance": [
+        "RWI-AC-408",
+        "RWI-AC-413",
+        "RWI-AC-418",
+        "RWI-AC-419",
+        "RWI-AC-421"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-212.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-213",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-212"
+      ],
+      "fr": [
+        "FR-BM-003",
+        "FR-BM-004",
+        "FR-BM-010",
+        "FR-BM-011"
+      ],
+      "decisions": [
+        "RWI-DEC-281",
+        "RWI-DEC-284",
+        "RWI-DEC-286",
+        "RWI-DEC-289"
+      ],
+      "acceptance": [
+        "RWI-AC-402",
+        "RWI-AC-407",
+        "RWI-AC-415",
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-426"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-213.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-214",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-210"
+      ],
+      "fr": [
+        "FR-BM-005"
+      ],
+      "decisions": [
+        "RWI-DEC-278",
+        "RWI-DEC-282",
+        "RWI-DEC-287",
+        "RWI-DEC-288",
+        "RWI-DEC-293"
+      ],
+      "acceptance": [
+        "RWI-AC-406",
+        "RWI-AC-410",
+        "RWI-AC-416",
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-425"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-214.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-215",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-214"
+      ],
+      "fr": [
+        "FR-BM-006",
+        "FR-BM-008"
+      ],
+      "decisions": [
+        "RWI-DEC-280",
+        "RWI-DEC-282",
+        "RWI-DEC-285",
+        "RWI-DEC-287",
+        "RWI-DEC-293"
+      ],
+      "acceptance": [
+        "RWI-AC-409",
+        "RWI-AC-410",
+        "RWI-AC-411",
+        "RWI-AC-421",
+        "RWI-AC-425"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-215.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-216",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-210"
+      ],
+      "fr": [
+        "FR-BM-007",
+        "FR-BM-008"
+      ],
+      "decisions": [
+        "RWI-DEC-285",
+        "RWI-DEC-288",
+        "RWI-DEC-289"
+      ],
+      "acceptance": [
+        "RWI-AC-412",
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-424"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-216.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-217",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-216"
+      ],
+      "fr": [
+        "FR-BM-007",
+        "FR-BM-008",
+        "FR-BM-009"
+      ],
+      "decisions": [
+        "RWI-DEC-277",
+        "RWI-DEC-285",
+        "RWI-DEC-289",
+        "RWI-DEC-291"
+      ],
+      "acceptance": [
+        "RWI-AC-405",
+        "RWI-AC-412",
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-424"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-217.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-218",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-211"
+      ],
+      "fr": [
+        "FR-BM-009"
+      ],
+      "decisions": [
+        "RWI-DEC-275",
+        "RWI-DEC-276",
+        "RWI-DEC-277",
+        "RWI-DEC-284",
+        "RWI-DEC-291"
+      ],
+      "acceptance": [
+        "RWI-AC-399",
+        "RWI-AC-403",
+        "RWI-AC-404",
+        "RWI-AC-405",
+        "RWI-AC-423"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-218.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-219",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-213",
+        "BE-RWI-218"
+      ],
+      "fr": [
+        "FR-BM-004",
+        "FR-BM-009",
+        "FR-BM-010"
+      ],
+      "decisions": [
+        "RWI-DEC-275",
+        "RWI-DEC-276",
+        "RWI-DEC-284",
+        "RWI-DEC-288",
+        "RWI-DEC-289",
+        "RWI-DEC-290"
+      ],
+      "acceptance": [
+        "RWI-AC-399",
+        "RWI-AC-400",
+        "RWI-AC-401",
+        "RWI-AC-403",
+        "RWI-AC-404",
+        "RWI-AC-414",
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-422"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-219.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-220",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-213"
+      ],
+      "fr": [
+        "FR-BM-011",
+        "FR-BM-012"
+      ],
+      "decisions": [
+        "RWI-DEC-286",
+        "RWI-DEC-287",
+        "RWI-DEC-288"
+      ],
+      "acceptance": [
+        "RWI-AC-402",
+        "RWI-AC-415",
+        "RWI-AC-416",
+        "RWI-AC-418"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-220.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "BE-RWI-221",
+      "layer": "backend",
+      "status": "PARTIAL",
+      "dependencies": [
+        "BE-RWI-212"
+      ],
+      "fr": [
+        "FR-BM-003",
+        "FR-BM-004"
+      ],
+      "decisions": [
+        "RWI-DEC-281",
+        "RWI-DEC-283",
+        "RWI-DEC-289",
+        "RWI-DEC-290"
+      ],
+      "acceptance": [
+        "RWI-AC-408",
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-422"
+      ],
+      "verification_status": "STATIC_PASS_RUNTIME_NOT_RUN",
+      "report": "../task/report/backend/BE-RWI-221.md",
+      "card_criteria_traced": 4,
+      "card_criteria_fully_proven": 0
+    },
+    {
+      "id": "FE-RWI-231",
+      "layer": "frontend",
+      "status": "BLOCKED",
+      "dependencies": [
+        "BE-RWI-211"
+      ],
+      "fr": [
+        "FR-BM-001",
+        "FR-BM-002",
+        "FR-BM-004"
+      ],
+      "decisions": [
+        "RWI-DEC-274",
+        "RWI-DEC-287",
+        "RWI-DEC-289",
+        "RWI-DEC-290",
+        "RWI-DEC-292"
+      ],
+      "acceptance": [
+        "RWI-AC-396",
+        "RWI-AC-397",
+        "RWI-AC-398",
+        "RWI-AC-416",
+        "RWI-AC-417",
+        "RWI-AC-420",
+        "RWI-AC-422",
+        "RWI-AC-424"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "id": "FE-RWI-232",
+      "layer": "frontend",
+      "status": "BLOCKED",
+      "dependencies": [
+        "FE-RWI-231",
+        "BE-RWI-213"
+      ],
+      "fr": [
+        "FR-BM-003",
+        "FR-BM-004"
+      ],
+      "decisions": [
+        "RWI-DEC-281",
+        "RWI-DEC-283",
+        "RWI-DEC-288",
+        "RWI-DEC-289",
+        "RWI-DEC-290"
+      ],
+      "acceptance": [
+        "RWI-AC-407",
+        "RWI-AC-408",
+        "RWI-AC-413",
+        "RWI-AC-418",
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-422",
+        "RWI-AC-426"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "id": "FE-RWI-233",
+      "layer": "frontend",
+      "status": "BLOCKED",
+      "dependencies": [
+        "FE-RWI-231",
+        "BE-RWI-215"
+      ],
+      "fr": [
+        "FR-BM-005",
+        "FR-BM-006"
+      ],
+      "decisions": [
+        "RWI-DEC-278",
+        "RWI-DEC-280",
+        "RWI-DEC-282",
+        "RWI-DEC-287",
+        "RWI-DEC-293"
+      ],
+      "acceptance": [
+        "RWI-AC-406",
+        "RWI-AC-409",
+        "RWI-AC-410",
+        "RWI-AC-411",
+        "RWI-AC-416",
+        "RWI-AC-417",
+        "RWI-AC-421",
+        "RWI-AC-425"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "id": "FE-RWI-234",
+      "layer": "frontend",
+      "status": "BLOCKED",
+      "dependencies": [
+        "FE-RWI-231",
+        "BE-RWI-217"
+      ],
+      "fr": [
+        "FR-BM-007",
+        "FR-BM-008"
+      ],
+      "decisions": [
+        "RWI-DEC-285",
+        "RWI-DEC-288",
+        "RWI-DEC-289"
+      ],
+      "acceptance": [
+        "RWI-AC-412",
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-424"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "id": "FE-RWI-235",
+      "layer": "frontend",
+      "status": "BLOCKED",
+      "dependencies": [
+        "FE-RWI-231",
+        "BE-RWI-219"
+      ],
+      "fr": [
+        "FR-BM-002",
+        "FR-BM-009",
+        "FR-BM-010"
+      ],
+      "decisions": [
+        "RWI-DEC-275",
+        "RWI-DEC-276",
+        "RWI-DEC-277",
+        "RWI-DEC-284",
+        "RWI-DEC-289",
+        "RWI-DEC-291",
+        "RWI-DEC-292"
+      ],
+      "acceptance": [
+        "RWI-AC-399",
+        "RWI-AC-400",
+        "RWI-AC-401",
+        "RWI-AC-403",
+        "RWI-AC-404",
+        "RWI-AC-405",
+        "RWI-AC-414",
+        "RWI-AC-420",
+        "RWI-AC-423"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "id": "FE-RWI-236",
+      "layer": "frontend",
+      "status": "BLOCKED",
+      "dependencies": [
+        "FE-RWI-231",
+        "BE-RWI-220"
+      ],
+      "fr": [
+        "FR-BM-011",
+        "FR-BM-012"
+      ],
+      "decisions": [
+        "RWI-DEC-286",
+        "RWI-DEC-287",
+        "RWI-DEC-288",
+        "RWI-DEC-292"
+      ],
+      "acceptance": [
+        "RWI-AC-402",
+        "RWI-AC-415",
+        "RWI-AC-416",
+        "RWI-AC-417",
+        "RWI-AC-418"
+      ],
+      "verification_status": "NOT_RUN"
+    },
+    {
+      "id": "FE-RWI-237",
+      "layer": "frontend",
+      "status": "BLOCKED",
+      "dependencies": [
+        "FE-RWI-231",
+        "BE-RWI-221"
+      ],
+      "fr": [
+        "FR-BM-003",
+        "FR-BM-004"
+      ],
+      "decisions": [
+        "RWI-DEC-283",
+        "RWI-DEC-289",
+        "RWI-DEC-290",
+        "RWI-DEC-293"
+      ],
+      "acceptance": [
+        "RWI-AC-408",
+        "RWI-AC-419",
+        "RWI-AC-421",
+        "RWI-AC-422",
+        "RWI-AC-425"
+      ],
+      "verification_status": "NOT_RUN"
+    }
+  ],
+  "endpoint_ownership": [
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/bed-management/metadata",
+      "tag": "Health Services / Inpatient Management / Bed Management",
+      "task_id": "BE-RWI-211",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/bed-management/monitoring",
+      "tag": "Health Services / Inpatient Management / Bed Management",
+      "task_id": "BE-RWI-211",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/bed-management/beds/{bedId}/cleaning-attempts",
+      "tag": "Health Services / Inpatient Management / Bed Management",
+      "task_id": "BE-RWI-214",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/bed-management/usage-history",
+      "tag": "Health Services / Inpatient Management / Bed Management",
+      "task_id": "BE-RWI-220",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/bed-management/operations/{key}",
+      "tag": "Health Services / Inpatient Management / Bed Management",
+      "task_id": "BE-RWI-210",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/health-services/inpatient-management/bed-management/beds/{bedId}/cleaning-attempts",
+      "tag": "Health Services / Inpatient Management / Bed Management",
+      "task_id": "BE-RWI-214",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PATCH",
+      "path": "api/v1/health-services/inpatient-management/bed-management/cleaning-attempts/{attemptId}/complete",
+      "tag": "Health Services / Inpatient Management / Bed Management",
+      "task_id": "BE-RWI-214",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/health-services/inpatient-management/bed-management/beds/{bedId}/readiness-verifications",
+      "tag": "Health Services / Inpatient Management / Bed Management",
+      "task_id": "BE-RWI-215",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/bed-occupancies/available-beds",
+      "tag": "Health Services / Inpatient Management / Bed Occupancy",
+      "task_id": "BE-RWI-211",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/bed-occupancies/bed-board",
+      "tag": "Health Services / Inpatient Management / Bed Occupancy",
+      "task_id": "BE-RWI-211",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/bed-occupancies/transfer-context",
+      "tag": "Health Services / Inpatient Management / Bed Occupancy",
+      "task_id": "BE-RWI-218",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/health-services/inpatient-management/bed-occupancies/reservations",
+      "tag": "Health Services / Inpatient Management / Bed Occupancy",
+      "task_id": "BE-RWI-212",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PATCH",
+      "path": "api/v1/health-services/inpatient-management/bed-occupancies/reservations/{id}/cancel",
+      "tag": "Health Services / Inpatient Management / Bed Occupancy",
+      "task_id": "BE-RWI-212",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/health-services/inpatient-management/bed-occupancies/placements",
+      "tag": "Health Services / Inpatient Management / Bed Occupancy",
+      "task_id": "BE-RWI-213",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/health-services/inpatient-management/bed-occupancies/placements/transfer",
+      "tag": "Health Services / Inpatient Management / Bed Occupancy",
+      "task_id": "BE-RWI-219",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/health-services/inpatient-management/bed-occupancies/placements/{placementId}/corrections",
+      "tag": "Health Services / Inpatient Management / Bed Occupancy",
+      "task_id": "BE-RWI-220",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/bed-occupancies/placements/by-episode/{episodeId}",
+      "tag": "Health Services / Inpatient Management / Bed Occupancy",
+      "task_id": "BE-RWI-220",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/health-services/master-data/beds/",
+      "tag": "Health Services / Master Data / Bed",
+      "task_id": "BE-RWI-216",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PUT",
+      "path": "api/v1/health-services/master-data/beds/{id}",
+      "tag": "Health Services / Master Data / Bed",
+      "task_id": "BE-RWI-216",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PATCH",
+      "path": "api/v1/health-services/master-data/beds/{id}/status",
+      "tag": "Health Services / Master Data / Bed",
+      "task_id": "BE-RWI-216",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PATCH",
+      "path": "api/v1/health-services/master-data/beds/{id}/availability",
+      "tag": "Health Services / Master Data / Bed",
+      "task_id": "BE-RWI-216",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/health-services/master-data/beds/{id}",
+      "tag": "Health Services / Master Data / Bed",
+      "task_id": "BE-RWI-216",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/health-services/inpatient-management/discharges/{episodeId}/record-departure",
+      "tag": "Health Services / Inpatient Management / Inpatient Discharge",
+      "task_id": "BE-RWI-213",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/reports/room-transfers",
+      "tag": "Health Services / Inpatient Management / Inpatient Report",
+      "task_id": "BE-RWI-220",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/inpatient-management/reports/room-transfers/export",
+      "tag": "Health Services / Inpatient Management / Inpatient Report",
+      "task_id": "BE-RWI-220",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PUT",
+      "path": "api/v1/health-services/master-data/rooms/{id}",
+      "tag": "Health Services / Master Data / Room",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PATCH",
+      "path": "api/v1/health-services/master-data/rooms/{id}/status",
+      "tag": "Health Services / Master Data / Room",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/health-services/master-data/rooms/{id}",
+      "tag": "Health Services / Master Data / Room",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PUT",
+      "path": "api/v1/health-services/master-data/service-units/{id}",
+      "tag": "Health Services / Master Data / Service Unit",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PATCH",
+      "path": "api/v1/health-services/master-data/service-units/{id}/status",
+      "tag": "Health Services / Master Data / Service Unit",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/health-services/master-data/service-units/{id}",
+      "tag": "Health Services / Master Data / Service Unit",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PUT",
+      "path": "api/v1/health-services/master-data/patient-classes/{id}",
+      "tag": "Health Services / Master Data / Patient Class",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "PATCH",
+      "path": "api/v1/health-services/master-data/patient-classes/{id}/status",
+      "tag": "Health Services / Master Data / Patient Class",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "DELETE",
+      "path": "api/v1/health-services/master-data/patient-classes/{id}",
+      "tag": "Health Services / Master Data / Patient Class",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "POST",
+      "path": "api/v1/health-services/inpatient-management/admission-transfers/admit",
+      "tag": "[Tags(\"Health Services / Inpatient Management / Inpatient Admission Transfer\")]",
+      "task_id": "BE-RWI-221",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/master-data/beds/{id}",
+      "tag": "Health Services / Master Data / Bed",
+      "task_id": "BE-RWI-216",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/master-data/rooms/{id}",
+      "tag": "Health Services / Master Data / Room",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/master-data/service-units/{id}",
+      "tag": "Health Services / Master Data / Service Unit",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    },
+    {
+      "method": "GET",
+      "path": "api/v1/health-services/master-data/patient-classes/{id}",
+      "tag": "Health Services / Master Data / Patient Class",
+      "task_id": "BE-RWI-217",
+      "contract": "0.12.0 DRAFT"
+    }
+  ],
+  "approval_timezone": "Asia/Jakarta",
+  "approval_evidence": {
+    "statement": "saya setujui semua roadmap tersebut",
+    "scope": "Seluruh task backend BE-RWI-208–221 pada backend-roadmap-bed-management.md",
+    "constraints": [
+      "Tanpa dotnet build",
+      "Tanpa pembuatan atau eksekusi migration; pengguna mengerjakan mandiri"
+    ],
+    "frontend_implementation_authorized": false
+  },
+  "implementation_lock_scope": "backend",
+  "backend_validation": {
+    "date": "2026-10-11",
+    "input_hashes_matched": 24,
+    "input_hash_mismatches": 0,
+    "qbe_files": 61,
+    "qbe_violations": 0,
+    "qbe_reviews": 0,
+    "csharp_files": 61,
+    "csharp_parser_errors": 0,
+    "endpoint_mappings": 39,
+    "endpoint_errors": 0,
+    "diff_check_errors": 0,
+    "build": "NOT_RUN_USER_EXCLUDED",
+    "migration": "NOT_CREATED_NOT_RUN_USER_EXCLUDED",
+    "runtime": "NOT_RUN",
+    "automated_backend_test": "NOT_APPLICABLE",
+    "readiness": "PARTIAL"
+  },
+  "technical_deltas": [
+    {
+      "tasks": [
+        "BE-RWI-208",
+        "BE-RWI-210",
+        "BE-RWI-215"
+      ],
+      "change": "InpBedLifecycleEvent.EvidenceReference nullable varchar(200) mempertahankan bukti keputusan verifikasi termasuk Rejected; pengguna menyertakan pada migration mandiri.",
+      "business_policy_changed": false
+    },
+    {
+      "tasks": [
+        "BE-RWI-209",
+        "BE-RWI-212"
+      ],
+      "change": "Opsi akun sistem expiry nyata dan referensi assignment; kosong secara default tanpa seed.",
+      "business_policy_changed": false
+    },
+    {
+      "tasks": [
+        "BE-RWI-216",
+        "BE-RWI-217"
+      ],
+      "change": "Writer master yang memengaruhi bed diekstrak ke empat service; validator/mapper/envelope existing dipertahankan.",
+      "business_policy_changed": false
+    },
+    {
+      "tasks": [
+        "BE-RWI-221"
+      ],
+      "change": "Action admit pada controller terpisah dengan route/Tag existing dan metadata resource InpatientEpisode agar permission Create selaras.",
+      "business_policy_changed": false
+    }
+  ]
+}

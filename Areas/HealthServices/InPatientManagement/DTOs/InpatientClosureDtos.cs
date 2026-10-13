@@ -230,6 +230,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class RecordDepartureRequest
     {
+        public Guid ExpectedPlacementId { get; set; } public long ExpectedBedVersion { get; set; }
         public bool ClearanceWarningAcknowledged { get; set; }
         /// <summary>
         /// Waktu pasien meninggalkan ruangan. Dikosongkan berarti sekarang. Tidak boleh

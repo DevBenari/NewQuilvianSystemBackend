@@ -24,6 +24,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public bool ClosesEmergencyVisit { get; set; } = true;
 
+        public bool RequiresAdmissionRequest { get; set; }
+
         public int Sequence { get; set; }
 
         [MaxLength(1000)]
