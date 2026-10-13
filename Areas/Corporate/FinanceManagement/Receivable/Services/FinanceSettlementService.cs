@@ -123,7 +123,7 @@ public sealed class FinanceSettlementService
                 PatientId = row.pat?.Id ?? row.r.DebtorReferenceId,
                 PatientName = row.pat?.FullName ?? (!string.IsNullOrWhiteSpace(row.debtorResolvedName) ? row.debtorResolvedName : "Pasien Umum"),
                 MedicalRecordNumber = row.pat?.MedicalRecordNumber ?? "-",
-                EncounterNumber = row.enc?.EncounterNumber,
+                EncounterNumber = row.encounterNumber,
                 DebtorType = row.r.DebtorType,
                 DebtorReferenceId = row.r.DebtorReferenceId,
                 DebtorName = row.debtorResolvedName ?? "-",
@@ -194,7 +194,7 @@ public sealed class FinanceSettlementService
                          {
                              r,
                              inv,
-                             enc,
+                             encounterNumber = enc != null ? enc.EncounterNumber : null,
                              pat,
                              emp,
                              debtorResolvedName = comp != null ? comp.CompanyGuarantorName
@@ -224,7 +224,7 @@ public sealed class FinanceSettlementService
             PatientId = row.pat?.Id ?? row.r.DebtorReferenceId,
             PatientName = row.pat?.FullName ?? row.debtorResolvedName ?? "Pasien",
             MedicalRecordNumber = row.pat?.MedicalRecordNumber ?? "-",
-            EncounterNumber = row.enc?.EncounterNumber,
+            EncounterNumber = row.encounterNumber,
             DebtorType = row.r.DebtorType,
             DebtorReferenceId = row.r.DebtorReferenceId,
             DebtorName = row.debtorResolvedName ?? "-",
@@ -732,7 +732,7 @@ public sealed class FinanceSettlementService
     {
         public FinReceivable r { get; set; } = null!;
         public BilInvoice? inv { get; set; }
-        public RegPatientEncounter? enc { get; set; }
+        public string? encounterNumber { get; set; }
         public MstPatient? pat { get; set; }
         public MstEmployee? emp { get; set; }
         public MstCompanyGuarantor? comp { get; set; }
@@ -808,7 +808,7 @@ public sealed class FinanceSettlementService
                         {
                             r = r,
                             inv = inv,
-                            enc = enc,
+                            encounterNumber = enc != null ? enc.EncounterNumber : null,
                             pat = pat,
                             emp = emp,
                             comp = comp,
@@ -842,7 +842,7 @@ public sealed class FinanceSettlementService
                 (x.batchNumber != null && x.batchNumber.ToUpper().Contains(search)) ||
                 (x.pat != null && x.pat.FullName.ToUpper().Contains(search)) ||
                 (x.pat != null && x.pat.MedicalRecordNumber.ToUpper().Contains(search)) ||
-                (x.enc != null && x.enc.EncounterNumber.ToUpper().Contains(search)) ||
+                (x.encounterNumber != null && x.encounterNumber.ToUpper().Contains(search)) ||
                 (x.comp != null && x.comp.CompanyGuarantorName.ToUpper().Contains(search)) ||
                 (x.ins != null && x.ins.InsuranceProviderName.ToUpper().Contains(search)) ||
                 (x.emp != null && x.emp.FullName.ToUpper().Contains(search)));

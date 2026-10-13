@@ -1068,3 +1068,526 @@ Angka versi **tidak** dinaikkan. Bagian ini catatan keadaan, bukan kontrak baru.
    - Bila cicilan atas pegawai yang salah sempat terpotong pada penggajian sebelumnya, Finance mengirim event pembalikan angsuran ke HR.
    - HR menyisipkan penyesuaian gaji net (*reimbursement adjustment*) pada slip gaji pegawai yang salah di periode penggajian berikutnya. Finance tidak mengeluarkan uang kas manual.
 
+
+---
+
+# AMENDMENT REVISI 19 — Piutang Manfaat Karyawan: Kontrak Plafon Benefit dan Verifikasi Tanggungan (`FIN-INTEGRATION-1.9`)
+
+```yaml
+contract_version: FIN-INTEGRATION-1.9
+last_changed_in: Revisi 19 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance dan HR (pengguna sesi); konfirmasi pemilik Billing dan Registrasi belum turun
+approved_at: 2026-10-13
+owner: Pemilik Finance (Product/Domain), bersama pemilik HR, Billing, dan Registrasi
+input_revision: 18
+input_hash: eb29c5dbe78097fc   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 19
+input_decisions: FIN-DEC-183..205 (sudah ada); FIN-DEC-206..210 (baru, 13 Oktober 2026)
+compatibility_impact: lihat bagian R.7 — satu koreksi atas INT-FIN-BIL-001 (§P.1); selebihnya tambahan
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
+domain_architecture_readiness_reason: >
+  hospital-domain-architect tidak dijalankan. Batas domain (Billing, HR, Registrasi, Finance), kepemilikan data,
+  dan dampak billing sudah diputuskan oleh pemilik masing-masing pada Revisi 18 (FIN-DEC-183..202) dan
+  dipertegas pada sesi 13 Oktober 2026 (FIN-DEC-204..210). Tidak ada keputusan klinis di rumpun ini.
+```
+
+| Field | Nilai |
+|---|---|
+| Sifat | Kontrak **approved sisi pemilik Finance dan HR** (13 Oktober 2026, `FIN-DEC-212`). Menutup `FIN-OQ-105`. **Konfirmasi pemilik Billing dan Registrasi belum turun**; perilaku pada sisi mereka tetap menunggu konfirmasi itu |
+| Yang baru | `INT-REG-HR-001` (Registrasi → HR) dan `INT-BIL-HR-001` (Billing → HR) |
+| Yang dikoreksi | `INT-FIN-BIL-001` (§`P.1`) — jumlah baris, identitas pemilik manfaat, status awal, panjang kolom (bagian `R.4`) |
+| Yang tidak berubah | `INT-FIN-HR-001`, `INT-HR-FIN-001`, `INT-HR-FIN-002`, `INT-HR-FIN-003`, `INT-BIL-FIN-002` (§`P.2`..`P.6`) |
+
+---
+
+## R.0 Peta kontrak
+
+| Kontrak | Arah | Media | Pemicu | Status |
+|---|---|---|---|---|
+| `INT-REG-HR-001` | Registrasi → HR (baca) | Layanan HR dipanggil dalam proses yang sama | Petugas mencari pegawai, memilih keluarga, menerbitkan kartu, mendaftarkan kunjungan | **Baru** |
+| `INT-BIL-HR-001` | Billing → HR (baca, pakai, kembalikan) | Layanan HR dipanggil di dalam transaksi finalisasi Billing | Pratinjau dan finalisasi tagihan; koreksi atau pembatalan tagihan | **Baru** |
+| `INT-FIN-BIL-001` | Billing → Finance | Tabel serah terima `BilArHandoff` | Finalisasi tagihan | **Dikoreksi** (`R.4`) |
+
+**Mengapa layanan dalam proses yang sama, bukan HTTP.** Seluruh modul berjalan dalam satu aplikasi dan satu
+`ApplicationDbContext`. Pola yang sudah dipakai: `BillingArApHandoffService.StageHandoffsForFinalizationAsync`
+menambahkan baris ke context yang sama, sedangkan `BillingFinalizationService` memegang batas transaksi dan
+`SaveChanges`. Layanan HR di bawah ini mengikuti pola itu: ia **tidak membuka transaksi sendiri** pada operasi
+`pakai` dan `kembalikan`. Akibatnya, pengurangan plafon dan penerbitan serah terima **berhasil bersama atau gagal bersama**.
+
+---
+
+## R.1 Istilah dan identitas
+
+| Istilah | Arti | Contoh (data samaran) |
+|---|---|---|
+| Pemilik manfaat | Pegawai yang menanggung. Identitasnya `MstEmployee.Id`. Nama kolomnya `BenefitOwnerId` | Pegawai "Budi" |
+| Orang yang ditanggung | Pegawai sendiri **atau** satu tanggungan. Saldo plafon melekat pada orang ini (`FIN-DEC-207`) | Budi, atau anaknya "Sari" |
+| Jenis orang | `ENROLLMENT` (pegawai sendiri; saldo di `TrxEmployeeBenefitEnrollment`) atau `DEPENDENT` (tanggungan; saldo di `TrxEmployeeBenefitDependent`) | Budi = `ENROLLMENT`; Sari = `DEPENDENT` |
+| Enrollment layanan RS | Enrollment berstatus `Active` milik pegawai pada plan yang jenis benefitnya `BenefitCategory = 'Medical'` dan `IsClaimBased = false` (usulan baseline, `FIN-OQ-109`) | Plan "Benefit Medis Pegawai RS" |
+| Kode hubungan baku | `SELF`, `SPOUSE`, `CHILD`, `PARENT`, `OTHER` | — |
+
+### R.1.1 Pemetaan teks hubungan HR ke kode baku (usulan baseline, `FIN-OQ-109`)
+
+`WfpFamilyMember.Relationship` adalah teks bebas (maksimum 100 karakter). Pilihan pada layar HR saat ini:
+`Spouse`, `Child`, `Father`, `Mother`, `Sibling`, `Guardian`, `Other`.
+
+| Teks di HR | Kode baku |
+|---|---|
+| (pegawai sendiri; tidak ada baris keluarga) | `SELF` |
+| `Spouse` | `SPOUSE` |
+| `Child` | `CHILD` |
+| `Father`, `Mother` | `PARENT` |
+| `Sibling`, `Guardian`, `Other`, dan setiap nilai lain yang tidak dikenal | `OTHER` |
+
+### R.1.2 Hubungan yang boleh ditanggung menurut `CoverageType` plan (`FIN-DEC-207`)
+
+| `CoverageType` | `SELF` | `SPOUSE` | `CHILD` | `PARENT` | `OTHER` |
+|---|:---:|:---:|:---:|:---:|:---:|
+| `Individual` | Ya | Tidak | Tidak | Tidak | Tidak |
+| `EmployeeAndSpouse` | Ya | Ya | Tidak | Tidak | Tidak |
+| `EmployeeAndChildren` | Ya | Tidak | Ya | Tidak | Tidak |
+| `Family` | Ya | Ya | Ya | Ya | Ya |
+
+`Family` membolehkan semua hubungan, **tetapi tetap hanya orang yang sudah diverifikasi HR** (`FIN-DEC-201`, `FIN-DEC-204`).
+Jumlah tanggungan aktif tidak boleh melebihi `MaximumDependents` pada plan.
+
+---
+
+## R.2 `INT-REG-HR-001` — Pencarian Pegawai dan Verifikasi Tanggungan (`Registrasi → HR`)
+
+**Tujuan.** Petugas Registrasi memilih pegawai dari data HR (bukan mengetik bebas), memilih anggota keluarga, dan
+langsung tahu apakah orang itu **sudah terdaftar** sebagai tanggungan benefit (`FIN-DEC-199`, `FIN-DEC-204`).
+
+| Properti | Spesifikasi |
+|---|---|
+| Pemicu | (1) kartu penjamin internal dibuat atau diubah; (2) kunjungan didaftarkan memakai kartu itu |
+| Sifat | **Hanya membaca.** Tidak mengubah data HR |
+| Idempotensi | Tidak berlaku (tanpa efek samping) |
+| Data saldo | **Tidak pernah dikembalikan ke Registrasi.** Registrasi hanya tahu layak atau tidak (`FIN-DEC-202`) |
+| Kegagalan | Bila HR tidak dapat dibaca, kartu **tidak diterbitkan**; petugas diberi pesan dan jalur Pasien Umum |
+
+### R.2.1 Operasi `CariPegawai`
+
+| Masukan | Aturan |
+|---|---|
+| `keyword` | Wajib, **minimal 3 karakter**; dicocokkan ke NIP, NIK, dan nama |
+| `maxResults` | Maksimum 20; bila lebih, petugas diminta mengetik lebih spesifik |
+
+| Keluaran per baris | Keterangan |
+|---|---|
+| `employeeId` | `MstEmployee.Id` |
+| `employeeNumber` | NIP |
+| `nationalIdMasked` | NIK **tersamar**: empat digit pertama dan empat digit terakhir, sisanya `•` (usulan privasi; pemilik HR boleh melonggarkan) |
+| `fullName` | Nama pegawai |
+| `organizationUnitName` | Unit kerja |
+| `hasActiveMedicalEnrollment` | Ya/Tidak, agar petugas langsung tahu pegawai punya benefit aktif atau tidak |
+
+Hanya pegawai **aktif** dan tidak terhapus. Tidak ada data lain (gaji, alamat, kontak) yang keluar dari HR.
+
+### R.2.2 Operasi `DaftarKeluarga`
+
+Masukan: `employeeId`. Keluaran per anggota keluarga **aktif**: `familyMemberId`, `fullName`, `relationshipCode`
+(`R.1.1`), `ageYears`, `identityMasked`, `dependentVerification` (`VERIFIED`, `REQUESTED`, `NOT_REGISTERED`,
+`REJECTED`, `ENDED`), dan `coveredByPlan` (Ya/Tidak menurut `R.1.2`).
+
+### R.2.3 Operasi `PeriksaKelayakan`
+
+Masukan: `employeeId`, `familyMemberId` (kosong bila pegawai sendiri), `serviceDate`.
+
+**Urutan pemeriksaan** (berhenti pada kegagalan pertama):
+
+1. Pegawai ada dan aktif.
+2. Tepat **satu** enrollment layanan RS berstatus `Active` yang masa berlakunya mencakup `serviceDate`.
+3. Bila pegawai sendiri: lolos (saldo di enrollment).
+4. Bila keluarga: anggota keluarga ada, aktif, dan milik **pegawai yang sama**.
+5. Hubungan anggota keluarga dibolehkan `CoverageType` plan (`R.1.2`).
+6. Ada tanggungan benefit pada enrollment itu dengan status `Verified`, `IsEligible`, `IsCovered`, dan masa berlakunya mencakup `serviceDate`.
+
+| Kode alasan | Arti | Pesan bagi petugas Registrasi | Yang memperbaiki |
+|---|---|---|---|
+| `OK` | Layak | — | — |
+| `EMPLOYEE_NOT_FOUND` | Pegawai tidak ada atau tidak aktif | "Pegawai tidak ditemukan atau sudah tidak aktif di HR." | HR |
+| `ENROLLMENT_NOT_ACTIVE` | Tidak ada benefit layanan RS aktif pada tanggal layanan | "Pegawai belum memiliki benefit layanan RS yang aktif. Daftarkan sebagai Pasien Umum atau hubungi HR." | HR |
+| `ENROLLMENT_AMBIGUOUS` | Lebih dari satu enrollment layanan RS aktif | "Data benefit pegawai ganda di HR. Hubungi HR sebelum melanjutkan." | HR |
+| `FAMILY_MEMBER_NOT_FOUND` | Anggota keluarga tidak ada atau bukan milik pegawai ini | "Anggota keluarga tidak terdaftar pada pegawai ini di HR." | HR |
+| `FAMILY_MEMBER_INACTIVE` | Anggota keluarga tidak aktif | "Anggota keluarga ini sudah tidak aktif di HR." | HR |
+| `RELATIONSHIP_NOT_COVERED` | `CoverageType` plan tidak mencakup hubungan ini | "Jenis hubungan keluarga ini tidak ditanggung oleh plan benefit pegawai." | HR (ganti plan) |
+| `DEPENDENT_NOT_REGISTERED` | Belum ada tanggungan benefit | "Pasien belum terdaftar sebagai tanggungan benefit pegawai. Daftarkan di HR terlebih dahulu atau daftarkan sebagai Pasien Umum." | HR |
+| `DEPENDENT_NOT_VERIFIED` | Ada, tetapi belum diverifikasi | "Pendaftaran tanggungan pasien belum diverifikasi HR." | HR |
+| `DEPENDENT_NOT_ELIGIBLE` | Ditolak atau tidak layak/ditanggung | "Pasien tidak ditanggung benefit pegawai menurut HR." | HR |
+| `DEPENDENT_OUT_OF_PERIOD` | Di luar masa berlaku | "Masa berlaku tanggungan pasien tidak mencakup tanggal layanan." | HR |
+| `HR_UNAVAILABLE` | Pembacaan HR gagal | "Data HR belum dapat dibaca. Coba lagi, atau daftarkan sebagai Pasien Umum." | Teknis |
+
+Keluaran saat `OK`: `employeeId`, `familyMemberId`, `relationshipCode`, `benefitPersonKind`, `benefitPersonId`,
+`enrollmentId`, `planCode`, `planName`, `coverageType`, `effectiveStartDate`, `effectiveEndDate`. **Tanpa saldo.**
+
+**Aturan kunci: kode hubungan ditentukan sistem, bukan dikirim klien.** Kartu pasien menyimpan
+`BenefitRelationship` dari `relationshipCode` hasil pemeriksaan ini. Klien hanya mengirim `employeeId` dan
+`familyMemberId`. Dengan begitu petugas tidak bisa memilih "anak" untuk orang yang di HR tercatat "paman".
+
+**Contoh.**
+
+| Kasus | Hasil |
+|---|---|
+| Sari, anak Budi; terdaftar `Child`, tanggungan `Verified`, plan `Family`, berlaku 1 Jan–31 Des 2026; layanan 13 Okt 2026 | `OK`, `CHILD`, `DEPENDENT` |
+| Pak Andi, paman, tidak ada di HR | Tidak bisa dipilih (bukan anggota keluarga Budi); kartu internal tidak diterbitkan |
+| Sari terdaftar, tetapi tanggungan masih `REQUESTED` | `DEPENDENT_NOT_VERIFIED`; kartu ditolak |
+| Budi sendiri, enrollment berakhir 30 Sep 2026; layanan 13 Okt | `ENROLLMENT_NOT_ACTIVE`; didaftarkan Pasien Umum tunai (`FIN-DEC-209`) |
+
+---
+
+## R.3 `INT-BIL-HR-001` — Baca, Pakai, dan Kembalikan Plafon (`Billing → HR`)
+
+**Tujuan.** Billing mengetahui sisa plafon yang sah saat menghitung dua porsi, mengurangi tepat sekali saat tagihan
+final, dan mengembalikannya bila tagihan dikoreksi atau dibatalkan (`FIN-DEC-185`, `FIN-DEC-202`, `FIN-DEC-205`).
+
+| Properti | Spesifikasi |
+|---|---|
+| Pemilik saldo | HR. Billing tidak pernah menulis langsung ke tabel benefit |
+| Pemilik transaksi | Billing (`BillingFinalizationService`) untuk `pakai` dan `kembalikan` |
+| Kunci idempotensi | `sourceHandoffKey` = `HandoffKey` baris serah terima `PAYER` pada invoice itu |
+| Cakupan saldo | **Per orang** (`FIN-DEC-207`): pegawai sendiri memakai saldo enrollment; tiap tanggungan memakai saldo barisnya sendiri |
+| Yang dikurangi | **Hanya porsi `PAYER`** (porsi yang ditanggung RS Benefit). Kelebihan di atas plafon dan porsi pilihan pegawai **tidak** mengurangi plafon |
+
+### R.3.1 Operasi `BacaPlafon`
+
+Masukan: `employeeId`, `familyMemberId` (kosong bila pegawai sendiri), `asOfDate` (tanggal layanan).
+Keluaran: `isUsable`, `reasonCode`, `benefitPersonKind`, `benefitPersonId`, `limitAmount`, `usedAmount`,
+`remainingAmount`, `planCode`. Bila `isUsable = false`, `reasonCode` memakai daftar pada `R.2.3`
+(tanpa `OK`). Pemeriksaan kelayakan yang sama dengan `R.2.3` dijalankan **ulang** di sini karena masa berlaku
+bisa berakhir antara pendaftaran dan finalisasi.
+
+### R.3.2 Operasi `PakaiPlafon`
+
+Masukan: `sourceHandoffKey`, `invoiceId`, `benefitPersonKind`, `benefitPersonId`, `amount` (> 0).
+
+| Hasil | Arti | Kode HTTP bila dipetakan ke API | Akibat pada finalisasi |
+|---|---|:---:|---|
+| `APPLIED` | Saldo berkurang sebesar `amount`; satu baris mutasi `USE` tertulis | `200` | Lanjut |
+| `ALREADY_APPLIED` | Kunci sama, nominal sama; **tidak ada perubahan** | `200` | Lanjut (pengulangan aman) |
+| `KEY_CONFLICT` | Kunci sama, nominal **berbeda** | `409` | Finalisasi dibatalkan; dilaporkan sebagai galat data |
+| `INSUFFICIENT` | `amount` melebihi sisa saat ini (membawa sisa terkini) | `422` | Billing menghitung ulang dari sisa terkini (maksimal satu kali), lalu gagal bila masih tidak cukup |
+| `NOT_USABLE` | Orang tidak lagi layak (`R.3.1`) | `422` | Finalisasi **ditahan** (`R.3.4`) |
+
+Pengurangan memakai **satu pernyataan pembaruan bersyarat** yang hanya berhasil bila `RemainingAmount >= amount`,
+sehingga dua finalisasi bersamaan untuk orang yang sama tidak pernah membuat saldo negatif.
+
+### R.3.3 Operasi `KembalikanPlafon`
+
+Masukan: `sourceHandoffKey`, `reason`.
+
+| Hasil | Arti |
+|---|---|
+| `RETURNED` | Saldo bertambah sebesar nominal mutasi `USE` aslinya (selalu **penuh**); satu baris mutasi `RETURN` tertulis |
+| `ALREADY_RETURNED` | Sudah pernah dikembalikan; tidak ada perubahan |
+| `NOT_FOUND` | Tidak ada mutasi `USE` dengan kunci itu (tidak ada yang dikembalikan) |
+
+Satu mutasi `USE` hanya dapat dikembalikan **satu kali**. Serah terima pengganti (misalnya koreksi salah orang)
+membawa `HandoffKey` baru, sehingga pemakaian berikutnya memakai kunci baru dan tidak bentrok.
+
+### R.3.4 Urutan di dalam transaksi finalisasi
+
+| # | Langkah | Bila gagal |
+|---:|---|---|
+| 1 | Billing memeriksa kunjungan memakai kartu internal yang bertaut ke pegawai | Bukan kunjungan internal: jalur lama, kontrak ini tidak dipakai |
+| 2 | `BacaPlafon` | `isUsable = false`: finalisasi **ditahan** dan petugas melihat alasannya; tagihan menunggu konfirmasi manual HR (flowchart `01-alur-piutang-manfaat-karyawan-end-to-end.md` tahap 2). **Tidak** ada pembulatan ke "semua ditanggung RS" atau "semua ditanggung pegawai" |
+| 3 | Billing menghitung dua porsi (`R.4.2`) | Penjamin kedua (`ExcessAmount` > 0): ditolak, kombinasi belum didukung |
+| 4 | Billing menambahkan baris serah terima ke context (`PAYER` bila porsi RS > 0; `EMPLOYEE_BENEFIT` bila total tanggungan pegawai > 0) | — |
+| 5 | `PakaiPlafon` sebesar porsi `PAYER` (dilewati bila porsi RS = 0) | `INSUFFICIENT`: ulangi dari langkah 2 sekali; `KEY_CONFLICT`: batalkan |
+| 6 | `SaveChanges` | Gagal: **seluruhnya** dibatalkan; plafon tidak berkurang |
+
+### R.3.5 Contoh
+
+Sisa plafon Sari Rp 3.000.000 (aturan penjamin RS Benefit menanggung 100%).
+
+| Peristiwa | Porsi RS | Porsi pegawai | Sisa plafon |
+|---|---:|---:|---:|
+| Tagihan A Rp 2.000.000 final | Rp 2.000.000 | Rp 0 | Rp 1.000.000 |
+| Tagihan B Rp 2.500.000 final | Rp 1.000.000 | Rp 1.500.000 | Rp 0 |
+| Tagihan B difinalisasi ulang (jaringan putus) | tetap | tetap | Rp 0 |
+| Tagihan A dikoreksi, `KembalikanPlafon` | — | — | Rp 2.000.000 |
+| Tagihan C Rp 1.000.000 final (setelah A kembali) | Rp 1.000.000 | Rp 0 | Rp 1.000.000 |
+
+---
+
+## R.4 Koreksi atas `INT-FIN-BIL-001` (`Billing → Finance`, menggantikan §`P.1`)
+
+### R.4.1 Hal yang dikoreksi
+
+| # | §`P.1` semula | Menjadi | Dasar |
+|---:|---|---|---|
+| 1 | "Tepat DUA baris per invoice" | **Satu atau dua baris** (`PAYER` dan/atau `EMPLOYEE_BENEFIT`), tidak pernah baris bernilai nol. Baris `PATIENT_GUARANTOR` untuk pasien pulang tanpa bayar tetap mungkin, sehingga paling banyak tiga baris | `CK_BilArHandoff_Amount`: `Amount > 0` (`BilArHandoffConfiguration.cs:19`); `FIN-DEC-210` |
+| 2 | `BenefitOwnerId` = `EmployeeId` / `WorkforceProfileId` | `BenefitOwnerId` = **`MstEmployee.Id`** | Seluruh kode Finance memakainya demikian (`FinanceReceivableMigrationService.cs:198`, `FinanceReceivablePayrollSyncService.cs:78-82`, `FinanceSettlementService.cs:187`) |
+| 3 | `HandoffStatus = "PENDING"` | Status awal `Created` (`BillingHandoffStatuses.Created`) | `BillingArApHandoffService.cs:54,91` |
+| 4 | `BenefitRelationship` 50 karakter di Billing, 30 di Finance | **50 karakter di kedua sisi** (kolom Finance diperlebar; tidak merusak data) | `BilArHandoff.cs:29`, `FinReceivable.cs:52` |
+| 5 | Nominal baris pegawai = "kelebihan di atas plafon" | Nominal = kelebihan di atas plafon **ditambah** porsi yang dipilih pegawai untuk dijadikan utang (`R.4.3`) | `FIN-DEC-208` |
+
+### R.4.2 Rumus pembagian
+
+Notasi: `C` = porsi yang ditanggung penjamin RS Benefit menurut aturan penjamin yang sudah ada
+(`BillingCoverageDecision.PrimaryAmount`); `S` = sisa plafon hasil `BacaPlafon`; `K` = sisa tagihan pasien di luar `C`
+(co-pay dan item di luar cakupan, yang belum dibayar); `D` = nominal pilihan pegawai (`R.4.3`), `0 ≤ D ≤ K`.
+
+| Besaran | Rumus | Menjadi |
+|---|---|---|
+| Porsi RS Benefit `P` | `min(C, S)` | Baris `PAYER`, `DebtorReferenceId` = penjamin "RS Benefit" |
+| Kelebihan di atas plafon `E` | `C − P` | Bagian dari baris `EMPLOYEE_BENEFIT` |
+| Pilihan pegawai `D` | dipilih pegawai (`R.4.3`) | Bagian dari baris `EMPLOYEE_BENEFIT`; **bukan** pembayaran tunai |
+| Baris `EMPLOYEE_BENEFIT` | `E + D` | `BenefitOwnerId`, `BenefitRelationship` terisi |
+| Dibayar tunai di kasir | `K − D` | Alur pembayaran kasir yang sudah ada |
+| Pengurangan plafon | `P` | `PakaiPlafon` (`R.3.2`) |
+
+Baris `PAYER` tidak diterbitkan bila `P = 0`; baris `EMPLOYEE_BENEFIT` tidak diterbitkan bila `E + D = 0`.
+
+| Contoh (aturan RS Benefit menanggung) | `C` | `S` | `K` | `D` | `PAYER` | `EMPLOYEE_BENEFIT` | Tunai |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 100% dari Rp 5.000.000, plafon kurang | 5.000.000 | 3.000.000 | 0 | 0 | 3.000.000 | 2.000.000 | 0 |
+| 80% dari Rp 5.000.000; pegawai bayar co-pay tunai | 4.000.000 | 3.000.000 | 1.000.000 | 0 | 3.000.000 | 1.000.000 | 1.000.000 |
+| Sama, tetapi pegawai menjadikan co-pay utang | 4.000.000 | 3.000.000 | 1.000.000 | 1.000.000 | 3.000.000 | 2.000.000 | 0 |
+| Plafon habis | 5.000.000 | 0 | 0 | 0 | tidak terbit | 5.000.000 | 0 |
+| Plafon cukup | 2.000.000 | 3.000.000 | 0 | 0 | 2.000.000 | tidak terbit | 0 |
+| Plafon cukup, pegawai menjadikan co-pay Rp 400.000 utang | 2.000.000 | 3.000.000 | 400.000 | 400.000 | 2.000.000 | 400.000 | 0 |
+
+### R.4.3 Pilihan pegawai atas bagian di luar kelebihan plafon (`FIN-DEC-208`)
+
+**Aturan.** Untuk bagian tagihan pasien di luar `C` (co-pay dan item di luar cakupan), **pegawai sendiri yang memilih**:
+membayar lunas di kasir, atau menjadikannya utang pegawai. Kasir **mencatat** pilihan itu; kasir tidak memutuskan.
+Pilihan dinyatakan sebagai nominal `D`: `0` berarti lunas di kasir, `K` berarti seluruhnya utang, nilai di antaranya
+berarti sebagian (superset dari pilihan dua arah; ditandai untuk dikonfirmasi pemilik, lihat `FIN-OQ-108`).
+
+| Aturan | Ketentuan |
+|---|---|
+| Berlaku untuk | Hanya kunjungan berpenjamin internal dengan pemilik manfaat yang valid |
+| Batas | `0 ≤ D ≤ K`; tidak boleh melebihi sisa tagihan pasien yang belum dibayar |
+| Utang atas nama | **Pegawai pemilik manfaat**, walaupun yang berobat anaknya |
+| Setelah dipilih | Menjadi bagian baris `EMPLOYEE_BENEFIT`; Finance tidak membedakannya dari kelebihan plafon dan dapat dicicil (`FIN-DEC-165`) |
+| Jejak | Kolom `BilArHandoff.DeferredPatientAmount` (hanya pada baris `EMPLOYEE_BENEFIT`) menyimpan `D` agar bisa dibedakan dari `E` saat audit |
+| Tidak dapat diubah | Setelah tagihan final. Perubahan hanya lewat koreksi (`INT-BIL-FIN-002`) |
+| Kelebihan di atas plafon `E` | Tetap menjadi piutang pegawai (`FIN-DEC-164`). Pegawai tetap boleh melunasinya sekaligus di kasir lewat Finance (`FIN-DEC-165`) |
+
+**Pertanyaan terbuka `FIN-OQ-108`.** Bila yang berobat bukan pegawai (misalnya anaknya), apakah persetujuan pegawai
+harus dicatat (siapa dan kapan)? Sampai dijawab, kontrak ini hanya mengunci bahwa utang tercatat atas nama pegawai.
+
+### R.4.4 Penjaga
+
+| Kondisi | Perilaku |
+|---|---|
+| Ada penjamin kedua (`ExcessAmount` > 0) pada kunjungan berpenjamin internal | Finalisasi **ditolak**; kombinasi ini belum didukung |
+| Jumlah baris serah terima tidak sama dengan `C + D` | Finalisasi dibatalkan sebagai galat invarian |
+| Finalisasi diulang untuk invoice yang sama | Tidak menggandakan baris (unik `(InvoiceId, DebtorType)`) dan tidak mengurangi plafon dua kali |
+
+---
+
+## R.5 Kegagalan, pengulangan, dan rekonsiliasi
+
+| Situasi | Perilaku | Idempoten? |
+|---|---|:---:|
+| HR tidak terbaca saat `BacaPlafon` | Finalisasi ditahan; petugas diminta konfirmasi manual HR | Ya |
+| Jaringan putus setelah transaksi berhasil, klien mengulang | Finalisasi kembali sebagai pengulangan (`IsReplay`); plafon tidak berubah | Ya |
+| Dua finalisasi bersamaan untuk orang yang sama | Salah satu mendapat `INSUFFICIENT` dan menghitung ulang | Ya |
+| Koreksi salah orang | `KembalikanPlafon` untuk kunci lama, serah terima pengganti memakai kunci baru | Ya |
+| Enrollment dibatalkan HR setelah finalisasi | Mutasi `USE` yang sudah terjadi tidak berubah; hanya pemakaian baru yang ditolak | Ya |
+
+**Rekonsiliasi (invarian).** Untuk setiap orang yang ditanggung: `UsedAmount = jumlah mutasi USE − jumlah mutasi RETURN`
+dan `RemainingAmount = LimitAmount − UsedAmount`. Selisih adalah galat data yang harus dilaporkan dan diperbaiki HR;
+sistem **tidak** memperbaikinya diam-diam.
+
+---
+
+## R.6 Keamanan dan privasi
+
+| Hal | Aturan |
+|---|---|
+| NIK | Tersamar pada pencarian dan daftar keluarga; **tidak** masuk log |
+| Nama pegawai dan keluarga | Tidak masuk log; log hanya memuat ID, jenis operasi, dan hasil |
+| Saldo plafon | Hanya terbaca oleh Billing dan HR; **tidak** oleh Registrasi (`FIN-DEC-202`) |
+| Hubungan keluarga | Kolom sensitif (`BenefitRelationship`); tidak dipakai sebagai contoh data asli |
+| Hak akses | `EmployeeBenefitLookup : Read` untuk Registrasi; `BillingFinalization : Create` untuk finalisasi (lihat `contracts/permission-audit-matrix.md` bagian `R`) |
+
+---
+
+## R.7 Dampak kompatibilitas
+
+| Yang berubah | Pengguna terdampak | Kompatibel mundur? |
+|---|---|:---:|
+| Baris `PAYER`/`EMPLOYEE_BENEFIT` boleh hanya satu | `FinanceBillingIntakeService` | Ya — intake sudah memproses baris satu per satu |
+| Kolom baru `BilArHandoff.DeferredPatientAmount` (default 0) | Billing | Ya — nilai bawaan 0 |
+| Kolom `FinReceivable.BenefitRelationship` diperlebar 30 → 50 | Finance | Ya |
+| Kartu pasien dan snapshot kunjungan: kolom baru nullable | Registrasi, Patient Management | Ya — kartu lama tetap sah tanpa tautan |
+| Dua operasi HR baru | HR | Tambahan |
+| Intake Finance, cicilan, payroll, clearance, pelunasan internal | — | **Tidak berubah** |
+
+## R.8 Traceability
+
+| Keputusan | Bagian | Task |
+|---|---|---|
+| `FIN-DEC-183`, `184`, `185` | `R.4` | `BE-FIN-107` |
+| `FIN-DEC-199`, `201`, `204`, `209` | `R.2` | `BE-FIN-105`, `BE-FIN-106` |
+| `FIN-DEC-202`, `205`, `207` | `R.3` | `BE-FIN-103`, `BE-FIN-104`, `BE-FIN-107`, `BE-FIN-108` (`107` membaca dan membagi; `108` memakai dan mengembalikan) |
+| `FIN-DEC-208` | `R.4.3` | `BE-FIN-107`, `FE-FIN-047` |
+| `FIN-DEC-210` | `R.4.1` | `BE-FIN-107` |
+
+## R.9 Yang sengaja tidak dikontrakkan
+
+| Yang dipertimbangkan | Alasan |
+|---|---|
+| Pengembalian plafon sebagian | Pengembalian selalu penuh sebesar mutasi `USE`; koreksi nominal dilakukan lewat pembalikan lalu serah terima pengganti |
+| Registrasi memotong atau menulis saldo | Ditolak (`FIN-DEC-202`) |
+| Billing menulis langsung ke tabel benefit HR | Ditolak: HR pemegang saldo; Billing hanya memanggil layanan |
+| Notifikasi ke pegawai tentang pemakaian plafon | Belum dibahas; tidak mengubah model |
+| Penjamin kedua pada kunjungan berpenjamin internal | Di luar cakupan; ditolak oleh penjaga `R.4.4` |
+| Klaim benefit (`TrxBenefitClaim*`) | Di luar `EPIC FIN-04` |
+
+---
+
+# AMENDMENT REVISI 20 — Jembatan Manual Potong Gaji, Persetujuan Pegawai, dan Koreksi `PayrollRunId` (`FIN-INTEGRATION-1.10`)
+
+```yaml
+contract_version: FIN-INTEGRATION-1.10
+last_changed_in: Revisi 20 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance, HR, dan Billing (pengguna sesi); konfirmasi pemilik Registrasi belum turun
+approved_at: 2026-10-13
+owner: Pemilik Finance (Product/Domain), bersama pemilik HR dan Billing
+input_revision: 19
+input_hash: 1180a57b12011633   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 20
+input_decisions: FIN-DEC-214..222
+compatibility_impact: lihat S.7 — dua koreksi atas kontrak approved (P.3/FIN-API-1.9 P.1.1 dan R.4.3); selebihnya tambahan
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN (alasan sama dengan FIN-INTEGRATION-1.9)
+```
+
+| Field | Nilai |
+|---|---|
+| Sifat | Kontrak **approved** pemilik Finance, HR, dan Billing (13 Oktober 2026, `FIN-DEC-223`). Mengubah sebagian kontrak yang sudah `approved` (`FIN-INTEGRATION-1.9`), sehingga dibuat sebagai versi baru, **bukan** suntingan |
+| Yang baru | `INT-FIN-PAY-001` — jembatan manual potong gaji (bagian `S.1`..`S.4`) |
+| Yang dikoreksi | `INT-HR-FIN-001` (`P.3`): `payrollRunId` opsional (`S.5`); `INT-FIN-BIL-001` (`R.4.3`): nama pemberi persetujuan (`S.6`) |
+| Yang tidak berubah | Seluruh bagian `R` lainnya; `P.1`, `P.2`, `P.4`..`P.6` |
+
+---
+
+## S.0 Mengapa jembatan ini ada
+
+Potong gaji otomatis menunggu mesin payroll run HR yang belum ada (`FIN-DEC-214`). Sampai mesin itu aktif, pemilik
+memutuskan cicilan tetap boleh disetujui dan gaji dipotong pada penggajian yang berjalan di luar sistem; Finance
+mencatat hasilnya secara manual per periode (`FIN-DEC-215`). Jembatan ini mengikat empat hal: bagaimana penggajian
+mengetahui jadwal (`FIN-DEC-219`), bagaimana hasil masuk (`FIN-DEC-221`), kendalinya (`FIN-DEC-220`), dan kapan
+jembatan berhenti (`FIN-DEC-222`).
+
+**Prinsip utama: satu inti pencatatan.** Jalur manual dan jalur mesin memakai **inti pencatatan hasil yang sama**
+(yang hari ini dipakai `POST .../payroll-results`), sehingga aturan pelimpahan tunggakan, idempotensi, dan mutasi
+`POTONGAN-GAJI` tidak pernah berbeda antara keduanya.
+
+## S.1 Jadwal potongan per periode (`FIN-DEC-219`)
+
+| Properti | Spesifikasi |
+|---|---|
+| Arah | Finance → petugas penggajian (berkas, bukan antarsistem) |
+| Isi | Setiap angsuran pada perjanjian berstatus `DISETUJUI` yang `DeductionPeriod`-nya sama dengan periode diminta dan statusnya `DIJADWALKAN` |
+| Nominal terutang | `OutstandingAmount` baris itu = `ScheduledAmount + CarriedOverAmount − PaidAmount` (sudah termasuk tunggakan yang dilimpahkan) |
+| Kolom | Kode angsuran (`PlanNumber`-`InstallmentNumber`), NIP, nama pegawai, unit, nomor piutang, angsuran ke-, nominal terjadwal, tunggakan terbawa, nominal terutang; ditambah dua kolom kosong untuk diisi penggajian: **status** dan **nominal terpotong** |
+| Bentuk | Excel (sekaligus templat unggah hasil) dan PDF (arsip/serah terima) |
+| Hak akses | Membaca jadwal: Finance |
+
+**Contoh.** Cicilan Budi Rp 1.000.000 per bulan. Juli gagal, Agustus gagal. Jadwal September menampilkan Budi dengan
+terjadwal Rp 1.000.000, tunggakan terbawa Rp 2.000.000, terutang **Rp 3.000.000**. Baris Juli dan Agustus (`TERTUNGGAK`)
+**tidak** muncul lagi, karena sisanya sudah dilimpahkan ke September.
+
+## S.2 Batch hasil potongan (`FIN-DEC-220`, `221`)
+
+**Siklus.** Unggah → divalidasi per baris → diajukan dengan bukti → disahkan oleh orang lain → diterapkan ke saldo.
+
+| Aturan | Ketentuan |
+|---|---|
+| Satu batch per periode | Satu batch `REGULER` aktif (`DRAFT`, `DIAJUKAN`, atau `DISAHKAN`) per periode. Batch yang ditolak atau dibatalkan boleh diganti batch baru |
+| Periode payroll | Batch membawa `DeductionPeriod` (`YYYY-MM`) **dan** `PayrollPeriodId` (master periode payroll HR yang sudah ada) yang bulannya sama. `PayrollPeriodId` adalah kunci idempotensi inti pencatatan |
+| Pencocokan baris | Kode angsuran **dan** NIP wajib cocok dengan pemilik manfaat angsuran itu. Salah satu saja tidak cukup |
+| Status dan nominal | `BERHASIL` ⇒ nominal = terutang; `SEBAGIAN` ⇒ 0 < nominal < terutang; `GAGAL` ⇒ nominal 0 |
+| Kelengkapan | **Setiap** angsuran pada jadwal periode itu wajib muncul tepat sekali (yang tidak dipotong ditulis `GAGAL`). Tanpa ini, tunggakan tidak akan pernah dilimpahkan |
+| Total kontrol | Pengaju mengisi total potongan menurut laporan penggajian; harus sama dengan jumlah nominal terpotong pada berkas |
+| Bukti | Nomor laporan penggajian dan lampiran laporan (memakai mekanisme bukti transaksi Finance yang sudah ada, jenis `LAPORAN-PENGGAJIAN`) wajib saat diajukan |
+| Baris tidak valid | Batch dengan satu baris tidak valid **tidak dapat diajukan**; perbaiki berkas lalu unggah ulang |
+| Pengesahan | Oleh orang **berbeda** dari pengaju. Seluruh baris diterapkan dalam **satu transaksi**: semua berhasil atau tidak ada yang berubah |
+| Penerapan | Tiap baris diterapkan lewat inti pencatatan yang sama dengan `payroll-results` (`payrollRunId` kosong) |
+
+**Contoh.** Periode September 2026, tiga angsuran terjadwal: Budi terutang Rp 3.000.000, Sari Rp 500.000, Ani Rp 750.000.
+Berkas: Budi `SEBAGIAN` Rp 1.500.000; Sari `BERHASIL` Rp 500.000; Ani `GAGAL` Rp 0. Total kontrol Rp 2.000.000 = jumlah berkas.
+Setelah disahkan: piutang Budi turun Rp 1.500.000 dan sisa Rp 1.500.000 dilimpahkan ke Oktober; Sari lunas untuk September;
+seluruh Rp 750.000 milik Ani dilimpahkan ke Oktober.
+
+## S.3 Koreksi berotorisasi (`FIN-DEC-222`)
+
+| Aturan | Ketentuan |
+|---|---|
+| Kapan | Bila hasil yang sudah disahkan ternyata salah (misalnya laporan penggajian direvisi) |
+| Bentuk | Batch `KOREKSI` untuk satu periode yang **sudah** punya batch `REGULER` `DISAHKAN`; berisi hanya baris yang dikoreksi, dengan nominal yang **benar** |
+| Alasan | Wajib |
+| Penyetuju | Pejabat dengan hak khusus pengesahan koreksi; tetap berbeda dari pengaju |
+| Penerapan | Sistem menghitung selisih (benar − tercatat). Selisih positif: tambahan potongan (`POTONGAN-GAJI`). Selisih negatif: **pembalikan** (`PEMBALIKAN-POTONGAN-GAJI`), saldo piutang dan angsuran naik kembali. Tunggakan yang sudah dilimpahkan ke angsuran berikutnya ikut disesuaikan |
+| Batas | Hanya bila angsuran berikutnya pada perjanjian yang sama **belum** menerima hasil. Bila sudah, koreksi ditolak dan ditangani lewat penyesuaian piutang yang sudah ada |
+| Restitusi | Koreksi ini **bukan** restitusi salah orang; restitusi tetap lewat payroll HR (`FIN-DEC-195`) |
+
+**Contoh.** September tercatat Budi terpotong Rp 1.500.000, padahal laporan revisi menyebut Rp 1.200.000. Koreksi: selisih
+−Rp 300.000 → mutasi pembalikan Rp 300.000; piutang Budi naik Rp 300.000; tunggakan Oktober naik dari Rp 1.500.000 menjadi
+Rp 1.800.000 (Oktober belum menerima hasil, jadi koreksi diizinkan).
+
+## S.4 Peralihan ke mesin payroll (`FIN-DEC-222`)
+
+| Aturan | Ketentuan |
+|---|---|
+| Penanda | Satu nilai aktif "periode pertama yang ditangani mesin" (`AutomaticFromPeriod`, `YYYY-MM`), disimpan sebagai master Finance berversi |
+| Sebelum ada nilai | Seluruh periode memakai jalur manual |
+| Jalur manual | Batch `REGULER` **dan** `KOREKSI` untuk periode ≥ `AutomaticFromPeriod` ditolak |
+| Jalur mesin | Hasil dari mesin (`payroll-results` dengan `payrollRunId` terisi) untuk periode < `AutomaticFromPeriod` ditolak |
+| Penetapan | Pejabat Finance, setelah pemilik HR menyatakan mesin siap; alasan wajib; tidak boleh mundur ke periode yang sudah punya batch manual `DISAHKAN` |
+
+**Contoh.** Mesin siap untuk Januari 2027. `AutomaticFromPeriod = 2027-01`. Batch manual Desember 2026 masih bisa diajukan dan
+dikoreksi; batch manual Januari 2027 ditolak; hasil mesin untuk Desember 2026 ditolak.
+
+## S.5 Koreksi `INT-HR-FIN-001` (§`P.3`) dan `FIN-API-1.9` §`P.1.1`
+
+| Semula | Menjadi | Dasar |
+|---|---|---|
+| `payrollRunId` wajib | `payrollRunId` **opsional**. Terisi = hasil jalur mesin; kosong = hasil jalur manual (lewat batch `S.2`) | Kode: `PayrollResultRequest.PayrollRunId` bertipe `Guid?` (`FinanceReceivablePayrollResultDtos.cs:13`) |
+| — | Pemanggil langsung tanpa `payrollRunId` hanya sah bila datang dari pengesahan batch; panggilan HTTP langsung tanpa `payrollRunId` ditolak setelah jembatan aktif | Mencegah jalan pintas melewati kendali `S.2` |
+
+## S.6 Koreksi `INT-FIN-BIL-001` (§`R.4.3`): nama pemberi persetujuan (`FIN-DEC-218`)
+
+| Aturan | Ketentuan |
+|---|---|
+| Kapan wajib | `D` (pilihan utang) lebih dari 0 **dan** hubungan bukan `SELF` |
+| Isi | Nama orang yang menyetujui utang dibuat atas nama pegawai (teks bebas, maksimal 200 karakter). Waktu = waktu finalisasi (tercatat otomatis) |
+| Tempat | Satu kolom pada baris serah terima `EMPLOYEE_BENEFIT`; Finance tidak membacanya |
+| Hak akses | `BillingFinalization : Create` yang sudah ada; tanpa butir baru |
+
+**Contoh.** Sari (anak Budi) berobat; sisa co-pay Rp 400.000 dijadikan utang. Kasir wajib mengisi nama pemberi persetujuan,
+misalnya "Budi (pegawai, via telepon)". Bila Budi sendiri yang berobat, isian ini tidak diwajibkan.
+
+## S.7 Dampak kompatibilitas
+
+| Yang berubah | Terdampak | Kompatibel mundur? |
+|---|---|:---:|
+| `payrollRunId` opsional | Penerima hasil potongan | Ya — kode sudah begitu |
+| Penolakan panggilan langsung tanpa `payrollRunId` setelah jembatan aktif | Pemanggil manual non-batch | Tidak, disengaja |
+| Kolom nama persetujuan pada `BilArHandoff` (nullable) | Billing | Ya |
+| Inti pencatatan dipisah agar bisa berjalan dalam transaksi luar | `FinanceReceivablePayrollSyncService` | Ya — perilaku endpoint tidak berubah |
+| Tabel dan endpoint jembatan | Finance | Tambahan |
+
+## S.8 Traceability
+
+| Keputusan | Bagian |
+|---|---|
+| `FIN-DEC-215`, `219` | `S.0`, `S.1` |
+| `FIN-DEC-220`, `221` | `S.2` |
+| `FIN-DEC-222` | `S.3`, `S.4` |
+| `FIN-DEC-218` | `S.6` |
+| Fakta kode `PayrollRunId` | `S.5` |
+
+## S.9 Yang sengaja tidak dikontrakkan
+
+| Yang dipertimbangkan | Alasan |
+|---|---|
+| Input hasil satu per satu di layar | Ditolak `FIN-DEC-221` |
+| Pengesahan sebagian baris | Ditolak: total harus cocok dengan laporan penggajian; batch utuh atau tidak sama sekali |
+| Menulis jadwal ke input variabel HR selama jembatan | Penggajian di luar sistem tidak membacanya (`FIN-DEC-219`); `BE-FIN-094` tetap untuk tahap mesin |
+| Koreksi lintas beberapa periode berurutan | Hanya angsuran yang berikutnya belum menerima hasil; selebihnya lewat penyesuaian piutang yang ada |
+| Peralihan mundur | Tidak boleh mundur ke periode yang sudah punya batch manual disahkan |

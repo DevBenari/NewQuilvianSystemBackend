@@ -6403,3 +6403,442 @@ Perubahan saldo manual, endpoint tulis (POST/PUT/PATCH/DELETE), dan migration sk
 ini murni laporan; perbaikan/penyesuaian saldo tetap lewat proses resmi V2 (reversal, adjustment,
 write-off) di modul Receivable yang sudah ada, bukan lewat Settlement AR.
 
+
+
+---
+
+## R. Amandemen 13 Oktober 2026 (Revisi 19) — Arsitektur Backend Plafon Benefit per Orang, Verifikasi Tanggungan, dan Pilihan Pegawai (`EPIC FIN-04`)
+
+```yaml
+last_changed_in: Revisi 19 (13 Oktober 2026)
+status: draft
+input_revision: 18
+input_hash: 0e4abbee89f282ab   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 19
+input_decisions: FIN-DEC-183..205; FIN-DEC-206..210 (baru)
+input_contracts: FIN-INTEGRATION-1.9; FIN-API-1.10; FIN-STATE-1.9; FIN-VAL-1.12; FIN-PERM-1.11 (seluruhnya draft)
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN (alasan pada FIN-INTEGRATION-1.9)
+```
+
+### R.1 Scope dan rujukan keputusan
+
+Revisi ini menutup tiga ruang kosong yang ditemukan audit 13 Oktober 2026: HR belum punya layanan plafon,
+Registrasi belum menautkan pasien ke pegawai, dan Billing belum membagi dua porsi. **Finance tidak berubah**
+selain satu kolom (`BenefitRelationship` diperlebar).
+
+| Keputusan | Pengaruh pada arsitektur |
+|---|---|
+| `FIN-DEC-204` | Kartu internal hanya terbit bila anggota keluarga aktif **dan** tanggungan terverifikasi |
+| `FIN-DEC-205` | Billing mengurangi plafon di HR dalam transaksi finalisasi, idempoten per serah terima `PAYER` |
+| `FIN-DEC-206` | Slice HR (Benefit, Payroll, Offboarding) dibuka; wewenang tulis tetap eksplisit per task |
+| `FIN-DEC-207` | Saldo per orang; `CoverageType` menentukan hubungan yang boleh |
+| `FIN-DEC-208` | Pegawai memilih bayar lunas di kasir atau menjadikan utang atas bagian di luar kelebihan plafon |
+| `FIN-DEC-209` | Pegawai tanpa enrollment aktif ditolak penjamin internal |
+| `FIN-DEC-210` | Baris serah terima bernilai nol tidak diterbitkan (satu sampai tiga baris) |
+
+### R.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai amandemen ini | Dibuat ulang |
+|---|---|:---:|---|
+| Pegawai (`MstEmployee`) dan anggota keluarga (`WfpFamilyMember`) | HR | Ya | Tidak |
+| Master jenis dan plan benefit | HR | Ya | Tidak |
+| Enrollment dan tanggungan benefit beserta saldo | HR | Ya | Tidak (hanya constraint) |
+| **Buku mutasi plafon** | **HR** | Ya | **Ya, baru** (`HrdBenefitBalanceMovement`) |
+| Kartu pasien–penjamin (`MstPatientCompanyGuarantor`) | Patient Management | Ya | Tidak (tiga kolom ditambah) |
+| Snapshot penjamin kunjungan | Registration | Ya | Tidak (tiga kolom ditambah) |
+| Aturan cakupan penjamin dan hasil kalkulasi (`PrimaryAmount`) | Billing | Ya | Tidak |
+| Serah terima piutang (`BilArHandoff`) | Billing | Ya | Tidak (satu kolom ditambah) |
+| Piutang pegawai dan piutang RS Benefit (`FinReceivable`) | Finance | Ya | Tidak (satu kolom diperlebar) |
+| Saldo plafon **di Billing atau Registrasi** | — | Tidak | **Tidak dibuat** (`FIN-DEC-202`) |
+
+### R.3 Bounded context, invariant, dan batas transaksi
+
+| Konteks | Aggregate root | Invariant | Batas transaksi |
+|---|---|---|---|
+| HR / Benefit | Enrollment (memegang tanggungan) | `RemainingAmount ≥ 0`; `Used + Remaining = Limit`; satu enrollment layanan RS aktif per pegawai per periode | Satu `SaveChanges` per tindakan lifecycle |
+| HR / Buku mutasi | Mutasi plafon | Hanya menambah; `(SourceHandoffKey, MovementType)` unik; satu `USE` dikembalikan sekali | **Ikut transaksi Billing** pada `pakai` dan `kembalikan` |
+| Registrasi | Kartu penjamin | Tautan pegawai/keluarga konsisten dengan hubungan; hubungan ditentukan sistem | Satu `SaveChanges` per simpan kartu |
+| Billing | Finalisasi invoice | Σ baris serah terima = `C + D`; tidak ada baris bernilai nol; plafon berkurang tepat `P` | `BillingFinalizationService` memegang transaksi dan `SaveChanges` |
+
+### R.4 Alur teknis
+
+1. **Kartu.** Controller kartu → `RegistrationEmployeeBenefitLookupService` → `EmployeeBenefitEligibilityService` (`PeriksaKelayakan`). Bila `OK`, kartu menyimpan `EmployeeId`, `FamilyMemberId`, dan hubungan hasil pemeriksaan.
+2. **Kunjungan.** `EncounterPaymentSourceService` menyalin tiga kolom kartu ke snapshot kunjungan.
+3. **Pratinjau finalisasi.** Controller → `BillingEmployeeBenefitSplitService.PreviewAsync` → `EmployeeBenefitBalanceService.BacaPlafon`. Tidak mengubah data.
+4. **Finalisasi.** `BillingFinalizationService` membuka transaksi → `BillingEmployeeBenefitSplitService` menghitung `P`, `E`, `D` → `BillingArApHandoffService.StageHandoffsForFinalizationAsync` menambahkan baris → `EmployeeBenefitBalanceService.PakaiPlafon` (pembaruan bersyarat atomik + satu mutasi `USE`) → `SaveChanges`.
+5. **Koreksi.** `EmployeeBenefitBalanceService.KembalikanPlafon` untuk kunci lama; serah terima pengganti memakai kunci baru (`BE-FIN-109`).
+
+### R.5 Class diagram
+
+**Konteks HR — enrollment, tanggungan, dan buku mutasi.**
+
+```mermaid
+classDiagram
+    class MstBenefitPlan {
+        +CoverageType
+        +CoverageLimitAmount
+        +MaximumDependents
+    }
+    class TrxEmployeeBenefitEnrollment {
+        +EnrollmentStatus
+        +CoverageLimitAmount
+        +UsedAmount
+        +RemainingAmount
+    }
+    class TrxEmployeeBenefitDependent {
+        +DependentStatus
+        +IsEligible
+        +IsCovered
+        +RemainingAmount
+    }
+    class WfpFamilyMember {
+        +Relationship
+        +IsActive
+    }
+    class HrdBenefitBalanceMovement {
+        +MovementType
+        +SourceHandoffKey
+        +Amount
+        +BalanceBefore
+        +BalanceAfter
+    }
+    class EmployeeBenefitBalanceService {
+        +BacaPlafon()
+        +PakaiPlafon()
+        +KembalikanPlafon()
+    }
+    class EmployeeBenefitEligibilityService {
+        +CariPegawai()
+        +DaftarKeluarga()
+        +PeriksaKelayakan()
+    }
+    MstBenefitPlan "1" --> "*" TrxEmployeeBenefitEnrollment
+    TrxEmployeeBenefitEnrollment "1" --> "*" TrxEmployeeBenefitDependent
+    WfpFamilyMember "1" --> "*" TrxEmployeeBenefitDependent
+    TrxEmployeeBenefitEnrollment "1" --> "*" HrdBenefitBalanceMovement
+    TrxEmployeeBenefitDependent "1" --> "*" HrdBenefitBalanceMovement
+    EmployeeBenefitBalanceService ..> HrdBenefitBalanceMovement
+    EmployeeBenefitEligibilityService ..> TrxEmployeeBenefitDependent
+```
+
+**Konteks Registrasi dan Billing — tautan kartu, pembagian porsi, dan serah terima.**
+
+```mermaid
+classDiagram
+    class MstPatientCompanyGuarantor {
+        +EmployeeId
+        +FamilyMemberId
+        +BenefitRelationship
+    }
+    class RegPatientEncounterGuarantor {
+        +EmployeeIdSnapshot
+        +FamilyMemberIdSnapshot
+        +BenefitRelationshipSnapshot
+    }
+    class BilArHandoff {
+        +DebtorType
+        +Amount
+        +BenefitOwnerId
+        +BenefitRelationship
+        +DeferredPatientAmount
+    }
+    class BillingEmployeeBenefitSplitService {
+        +PreviewAsync()
+        +ComputeAsync()
+    }
+    class BillingFinalizationService
+    class BillingArApHandoffService
+    class FinReceivable {
+        +BenefitOwnerId
+        +BenefitRelationship
+    }
+    MstPatientCompanyGuarantor ..> RegPatientEncounterGuarantor : disalin saat registrasi
+    BillingFinalizationService ..> BillingEmployeeBenefitSplitService
+    BillingFinalizationService ..> BillingArApHandoffService
+    BillingArApHandoffService ..> BilArHandoff
+    BilArHandoff ..> FinReceivable : diproses intake Finance
+```
+
+### R.6 Penjelasan setiap class
+
+**Model**
+
+| Class | Status | Lokasi file | Keterangan |
+|---|---|---|---|
+| `HrdBenefitBalanceMovement` | **Baru** | `Areas/Corporate/HumanResource/BenefitManagement/Models/HrdBenefitBalanceMovement.cs` | Buku mutasi plafon (kamus data 9.2) |
+| `TrxEmployeeBenefitEnrollment`, `TrxEmployeeBenefitDependent` | Diperbarui (constraint dan indeks, nol kolom) | `.../BenefitManagement/Models/` | Legacy `Trx*`; **bukan** ditiru untuk model baru |
+| `MstPatientCompanyGuarantor` | Diperbarui (3 kolom) | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatientCompanyGuarantor.cs` | |
+| `RegPatientEncounterGuarantor` | Diperbarui (3 kolom) | `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounterGuarantor.cs` | |
+| `BilArHandoff` | Diperbarui (1 kolom; komentar `BenefitOwnerId` diperbaiki) | `Areas/HealthServices/BillingManagement/Billing/Models/BilArHandoff.cs` | |
+| `FinReceivable` | Diperbarui (panjang kolom) | `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivable.cs` | |
+
+**Service**
+
+| Class | Status | Lokasi file | Fungsi utama | Dipanggil siapa | Membuka transaksi? |
+|---|---|---|---|---|:---:|
+| `EmployeeBenefitEnrollmentService` | **Baru** | `Areas/Corporate/HumanResource/BenefitManagement/Services/` | CRUD dan lifecycle enrollment | `EmployeeBenefitEnrollmentController` | Ya |
+| `EmployeeBenefitDependentService` | **Baru** | idem | Daftar, ajukan, verifikasi, tolak, akhiri tanggungan | `EmployeeBenefitDependentController` | Ya |
+| `EmployeeBenefitEligibilityService` | **Baru** | idem | `CariPegawai`, `DaftarKeluarga`, `PeriksaKelayakan` (`INT-REG-HR-001`); dipakai juga `BacaPlafon` | `RegistrationEmployeeBenefitLookupService`, `EmployeeBenefitBalanceService` | Tidak |
+| `EmployeeBenefitBalanceService` | **Baru** | idem | `BacaPlafon`, `PakaiPlafon`, `KembalikanPlafon` (`INT-BIL-HR-001`) | `BillingEmployeeBenefitSplitService`, `BillingFinalizationService` | **Tidak** pada `pakai`/`kembalikan` (ikut transaksi Billing) |
+| `RegistrationEmployeeBenefitLookupService` | **Baru** | `Areas/HealthServices/RegistrationManagement/Services/` | Adapter sempit sisi Registrasi ke layanan HR (pola `RegistrationBillingCoverageAdapter`) | `EmployeeBenefitLookupController`, layanan kartu penjamin | Tidak |
+| `BillingEmployeeBenefitSplitService` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Services/` | Menghitung `P`, `E`, `D`, tunai; pratinjau tanpa mengubah data | `BillingFinalizationService`, `BillingFinalizationsController` | Tidak |
+| `BillingArApHandoffService` | Diperbarui | `.../Billing/Services/BillingArApHandoffService.cs` | `StageHandoffsForFinalizationAsync` menerbitkan `EMPLOYEE_BENEFIT` dan `PAYER` hasil pembagian | `BillingFinalizationService` | Tidak |
+| `BillingFinalizationService` | Diperbarui | `.../Billing/Services/` | Memanggil pembagian, menyimpan baris, memanggil `PakaiPlafon` dalam satu transaksi | `BillingFinalizationsController` | Ya (sudah) |
+| `EncounterPaymentSourceService` | Diperbarui | `Areas/HealthServices/RegistrationManagement/Services/EncounterPaymentSourceService.cs` | Menyalin tiga kolom kartu ke snapshot; mengosongkannya bersama snapshot lain (baris 457-458, 508-509) | Alur registrasi kunjungan | Ya (sudah) |
+
+**Controller**
+
+| Class | Status | Lokasi file | Service yang dipakai | Atribut akses |
+|---|---|---|---|---|
+| `EmployeeBenefitEnrollmentController` | **Baru** | `Areas/Corporate/HumanResource/BenefitManagement/Controllers/` | `EmployeeBenefitEnrollmentService` | `[AccessController("CORPORATE_HUMAN_RESOURCE_BENEFIT_ENROLLMENT", ...)]` |
+| `EmployeeBenefitDependentController` | **Baru** | idem | `EmployeeBenefitDependentService` | `[AccessController("CORPORATE_HUMAN_RESOURCE_BENEFIT_DEPENDENT", ...)]` |
+| `EmployeeBenefitLookupController` | **Baru** | `Areas/HealthServices/RegistrationManagement/Controllers/` | `RegistrationEmployeeBenefitLookupService` | `[AccessController("HEALTH_SERVICE_REGISTRATION_EMPLOYEE_BENEFIT_LOOKUP", ...)]` |
+| `PatientCompanyGuarantorController` | Diperbarui (DTO) | `Areas/HealthServices/PatientManagement/MasterData/Controllers/` | Layanan yang sudah ada + `RegistrationEmployeeBenefitLookupService` | Tetap |
+| `BillingFinalizationsController` | Diperbarui (DTO) | `Areas/HealthServices/BillingManagement/Billing/Controllers/` | `BillingFinalizationService`, `BillingEmployeeBenefitSplitService` | Tetap |
+
+**DTO dan konstanta** — ditulis pada `contracts/api-contract.md` bagian `R`. Berkas: `EmployeeBenefitEnrollmentDtos.cs`,
+`EmployeeBenefitDependentDtos.cs`, `EmployeeBenefitEligibilityDtos.cs` (HR/`BenefitManagement/DTOs/`, **Baru**);
+`BillingFinalizationDtos.cs` (Diperbarui). Konstanta status, jenis mutasi, kode hubungan, dan kode alasan:
+`HrBenefitConstants.cs` (HR/`BenefitManagement/Constants/`, **Baru**).
+
+### R.7 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/BenefitManagement/
+├── Models/                          # entity legacy Trx* — utang teknis, jangan ditiru modul baru
+│   ├── TrxEmployeeBenefitEnrollment.cs      (Diperbarui: constraint)
+│   ├── TrxEmployeeBenefitDependent.cs       (Diperbarui: constraint)
+│   └── HrdBenefitBalanceMovement.cs         (Baru; prefix Hrd)
+├── Controllers/                     (Baru)
+│   ├── EmployeeBenefitEnrollmentController.cs
+│   └── EmployeeBenefitDependentController.cs
+├── Services/                        (Baru)
+│   ├── EmployeeBenefitEnrollmentService.cs
+│   ├── EmployeeBenefitDependentService.cs
+│   ├── EmployeeBenefitEligibilityService.cs
+│   └── EmployeeBenefitBalanceService.cs
+├── DTOs/                            (Baru)
+└── Constants/                       (Baru)
+    └── HrBenefitConstants.cs
+
+Areas/HealthServices/RegistrationManagement/
+├── Controllers/EmployeeBenefitLookupController.cs               (Baru)
+└── Services/
+    ├── RegistrationEmployeeBenefitLookupService.cs              (Baru)
+    └── EncounterPaymentSourceService.cs                         (Diperbarui)
+
+Areas/HealthServices/BillingManagement/Billing/Services/
+├── BillingEmployeeBenefitSplitService.cs                        (Baru)
+├── BillingArApHandoffService.cs                                 (Diperbarui)
+└── BillingFinalizationService.cs                                (Diperbarui)
+
+Repositories/Configurations/
+├── Corporate/HumanResource/BenefitManagement/
+│   ├── HrdBenefitBalanceMovementConfiguration.cs                (Baru)
+│   ├── TrxEmployeeBenefitEnrollmentConfiguration.cs             (Diperbarui)
+│   └── TrxEmployeeBenefitDependentConfiguration.cs              (Diperbarui)
+├── Corporate/FinanceManagement/Receivable/FinReceivableConfiguration.cs   (Diperbarui)
+└── HealthServices/BillingManagement/Billing/BilArHandoffConfiguration.cs  (Diperbarui)
+```
+
+Pendaftaran DI: seluruh service HR, adapter Registrasi, dan `BillingEmployeeBenefitSplitService` didaftarkan `AddScoped`
+(`Program.cs` atau `BillingManagementServiceCollectionExtensions.cs`, mengikuti pola terdekat). `DbSet<HrdBenefitBalanceMovement>`
+ditambahkan di `ApplicationDbContext`.
+
+### R.8 Status model dan rencana migration
+
+| Urutan | Nama migration (usulan) | Isi | Tanpa downtime? | Pengisian data lama | Langkah mundur |
+|---:|---|---|:---:|---|---|
+| 1 | `AddHrBenefitBalanceMovementAndConstraints` | Tabel `HrdBenefitBalanceMovement`; check constraint saldo dan indeks unik terfilter pada enrollment dan tanggungan | Ya (tabel baru; constraint cepat bila tabel kecil/kosong) | Tidak ada. **Pra-periksa:** kueri menghitung baris `TrxEmployeeBenefit*` dengan `UsedAmount < 0` atau `RemainingAmount < 0` atau duplikat terbuka; harus nol sebelum diterapkan | `Down()` menghapus tabel, constraint, dan indeks |
+| 2 | `AddEmployeeLinkToPatientCompanyGuarantor` | Tiga kolom nullable pada kartu dan tiga pada snapshot kunjungan; check constraint dan indeks | Ya | Tidak ada (kartu lama tanpa tautan) | `Down()` menghapus kolom |
+| 3 | `AddDeferredPatientAmountToBilArHandoff` | Kolom `DeferredPatientAmount` (bawaan 0) dan check constraint | Ya | Bawaan 0 untuk baris lama | `Down()` menghapus kolom |
+| 4 | `WidenFinReceivableBenefitRelationship` | `BenefitRelationship` 30 → 50 | Ya | Tidak ada | `Down()` mengembalikan 30 (aman selama nilai ≤ 30 karakter) |
+
+Migration 3 **menyusul** `20261010022402_AddEmployeeBenefitColumnsToBilArHandoff` yang belum diterapkan (`GATE-01`).
+Migration 1, 2, dan 4 saling bebas. Pembuatan file migration memerlukan wewenang task; menerapkannya ke database adalah
+tindakan pemilik (`dotnet ef database update`), bukan agent.
+
+### R.9 Rencana data master awal
+
+Lihat kamus data bagian 9.9. Tanpa jenis benefit `Medical`, plan berplafon, dan penjamin "RS Benefit", modul ini tidak dapat dipakai.
+
+### R.10 Invariant dan batas transaksi
+
+1. `RemainingAmount` tidak pernah negatif, dijaga oleh pembaruan bersyarat atomik **dan** check constraint.
+2. `Used = Σ USE − Σ RETURN` untuk setiap orang (rekonsiliasi `FIN-INTEGRATION-1.9` `R.5`).
+3. Pengurangan plafon dan penerbitan serah terima berada dalam **satu** transaksi finalisasi; salah satu gagal, keduanya batal.
+4. Tidak ada baris serah terima bernilai nol; Σ baris = `C + D`.
+5. Registrasi tidak pernah membaca atau menulis saldo.
+6. Finance menyalin `Amount` apa adanya dan tidak mengetahui rincian `E` dan `D`.
+
+### R.11 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Tabel saldo plafon di Billing atau Registrasi | Saldo otoritatif hanya di HR (`FIN-DEC-202`); salinan akan basi |
+| Endpoint HTTP untuk `pakai` dan `kembalikan` | Dipanggil dalam transaksi Billing; endpoint publik membuka celah pengurangan di luar finalisasi |
+| Tabel pilihan pegawai terpisah di Billing | Cukup `DeferredPatientAmount` pada baris serah terima; satu tempat, satu kebenaran |
+| Saldo bersama keluarga (pool) | Ditolak (`FIN-DEC-207`) |
+| `WfpDependent` sebagai sumber kelayakan | Itu data profil kepegawaian; kelayakan benefit ada di `TrxEmployeeBenefitDependent` (`FIN-DEC-204`) |
+| Salinan data keluarga di Registrasi | Cukup `Guid` rujukan dan snapshot historis; data keluarga tetap milik HR |
+| Hak akses terpisah untuk pilihan pegawai | Belum diputuskan (`FIN-OQ-108`); memakai `BillingFinalization : Create` |
+| Pengembalian plafon sebagian | Selalu penuh; koreksi nominal lewat pembalikan dan serah terima pengganti |
+| Normalisasi nama `Trx*` → `Hrd*` pada enrollment dan tanggungan | Task tersendiri dengan persetujuan pemilik arsitektur backend (`QBE-NAM-003`) |
+
+
+---
+
+## S. Amandemen 13 Oktober 2026 (Revisi 20) — Arsitektur Jembatan Manual Potong Gaji dan Persetujuan Pegawai
+
+```yaml
+last_changed_in: Revisi 20 (13 Oktober 2026)
+status: draft
+input_revision: 19
+input_hash: 8bde7fd74bb5147e   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 20
+input_decisions: FIN-DEC-214..FIN-DEC-222
+input_contracts: FIN-INTEGRATION-1.10; FIN-API-1.11; FIN-STATE-1.10; FIN-VAL-1.13; FIN-PERM-1.12 (seluruhnya draft)
+designs: FIN-DES-105 (satu inti pencatatan hasil potongan), FIN-DES-106 (batch hasil potongan), FIN-DES-107 (koreksi berselisih), FIN-DES-108 (master peralihan)
+```
+
+### S.1 Keputusan desain
+
+| ID | Desain | Alasan | Alternatif yang ditolak |
+|---|---|---|---|
+| `FIN-DES-105` | **Satu inti pencatatan hasil.** Logika di `FinanceReceivablePayrollSyncService.ProcessResultAsync` dipisah menjadi inti `ApplyResultCoreAsync` yang **tidak** membuka transaksi sendiri; endpoint `payroll-results` dan pengesahan batch sama-sama memanggil inti itu | Aturan pelimpahan tunggakan, idempotensi `LastPayrollPeriodId`, dan mutasi tidak boleh berbeda antara jalur manual dan mesin | Menulis logika kedua untuk jalur manual (dua sumber kebenaran) |
+| `FIN-DES-106` | **Batch dua tabel** (`FinPayrollDeductionBatch`, `FinPayrollDeductionBatchItem`) dengan pengesahan atomik; kunci per angsuran diambil berurutan menurut `InstallmentId` dalam satu transaksi | Total harus cocok dengan laporan penggajian; urutan kunci mencegah deadlock | Pengesahan baris per baris dengan transaksi masing-masing |
+| `FIN-DES-107` | **Koreksi berselisih**: inti `ApplyCorrectionCoreAsync` menerapkan selisih (positif `POTONGAN-GAJI`, negatif `PEMBALIKAN-POTONGAN-GAJI`) dan menyesuaikan `CarriedOverAmount` angsuran berikutnya, hanya bila angsuran berikutnya belum menerima hasil | Idempotensi `LastPayrollPeriodId` membuat inti pencatatan biasa memperlakukan periode yang sama sebagai pengulangan, sehingga koreksi butuh jalur sendiri | Membatalkan seluruh batch lalu mengunggah ulang (merusak riwayat) |
+| `FIN-DES-108` | **Master peralihan berversi** `MstPayrollDeductionCutover` mengikuti pola `MstDirectPaymentThreshold` | Satu nilai aktif, riwayat tercatat, tanpa konfigurasi berkas | Konfigurasi `appsettings` (tidak terlacak, tidak beralasan) |
+
+### S.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai | Dibuat ulang |
+|---|---|:---:|---|
+| Angsuran dan saldo piutang | Finance | Ya | Tidak |
+| **Batch dan baris hasil potongan** | **Finance / Receivable** | Ya | **Ya, baru** |
+| **Nilai peralihan ke mesin** | **Finance / Master Data** | Ya | **Ya, baru** |
+| Bukti transaksi | Finance / Collection | Ya | Tidak (satu jenis bukti baru) |
+| Periode payroll | HR | Ya (baca) | Tidak |
+| Laporan penggajian | Penggajian di luar sistem | Sebagai bukti berkas | Tidak |
+| Serah terima piutang | Billing | Ya | Tidak (satu kolom) |
+
+### S.3 Invariant dan batas transaksi
+
+1. Pengesahan batch: **satu** transaksi; seluruh baris diterapkan atau tidak sama sekali.
+2. Σ `DeductedAmount` batch = `ControlTotalAmount`; batch `REGULER` memuat seluruh angsuran terjadwal periode itu.
+3. Satu batch `REGULER` aktif per periode; satu nilai peralihan aktif.
+4. Jalur manual hanya untuk periode < `AutomaticFromPeriod`; jalur mesin hanya untuk periode ≥ nilai itu.
+5. Pengaju ≠ pengesah (check constraint).
+6. Koreksi tidak pernah menyentuh angsuran yang berikutnya sudah menerima hasil.
+
+### S.4 Class diagram
+
+```mermaid
+classDiagram
+    class FinPayrollDeductionBatch {
+        +BatchNumber
+        +DeductionPeriod
+        +PayrollPeriodId
+        +BatchType
+        +Status
+        +ControlTotalAmount
+        +ProofId
+    }
+    class FinPayrollDeductionBatchItem {
+        +InstallmentCode
+        +EmployeeNumber
+        +ResultStatus
+        +DeductedAmount
+        +DeltaAmount
+        +ValidationStatus
+    }
+    class FinReceivableInstallment {
+        +DeductionPeriod
+        +OutstandingAmount
+        +LastPayrollPeriodId
+    }
+    class FinTransactionProof
+    class MstPayrollDeductionCutover {
+        +AutomaticFromPeriod
+        +IsActive
+    }
+    class FinancePayrollDeductionBatchService {
+        +GetScheduleAsync()
+        +UploadAsync()
+        +SubmitAsync()
+        +ApproveAsync()
+    }
+    class FinanceReceivablePayrollSyncService {
+        +ProcessResultAsync()
+        +ApplyResultCoreAsync()
+        +ApplyCorrectionCoreAsync()
+    }
+    FinPayrollDeductionBatch "1" --> "*" FinPayrollDeductionBatchItem
+    FinPayrollDeductionBatchItem "*" --> "0..1" FinReceivableInstallment
+    FinPayrollDeductionBatch "*" --> "0..1" FinTransactionProof
+    FinancePayrollDeductionBatchService ..> FinanceReceivablePayrollSyncService : inti pencatatan
+    FinancePayrollDeductionBatchService ..> MstPayrollDeductionCutover
+    FinanceReceivablePayrollSyncService ..> MstPayrollDeductionCutover
+```
+
+### S.5 Penjelasan class
+
+| Class | Jenis | Status | Lokasi file | Fungsi / keterangan | Membuka transaksi? |
+|---|---|---|---|---|:---:|
+| `FinPayrollDeductionBatch`, `FinPayrollDeductionBatchItem` | Model | **Baru** | `Areas/Corporate/FinanceManagement/Receivable/Models/` | Kamus data 10.2, 10.3 | — |
+| `MstPayrollDeductionCutover` | Model | **Baru** | `Areas/Corporate/FinanceManagement/MasterData/Models/` | Kamus data 10.4 | — |
+| `BilArHandoff` | Model | Diperbarui | `.../BillingManagement/Billing/Models/` | + `DeferredConsentGivenBy` | — |
+| `FinancePayrollDeductionBatchService` | Service | **Baru** | `.../Receivable/Services/` | Jadwal dan ekspor; unggah dan validasi per baris; ajukan; sahkan (atomik); koreksi; tolak; batal | Ya (sahkan) |
+| `FinanceReceivablePayrollSyncService` | Service | Diperbarui | `.../Receivable/Services/` | Dipecah: `ProcessResultAsync` tetap untuk endpoint (membuka transaksi lalu memanggil inti); `ApplyResultCoreAsync` dan `ApplyCorrectionCoreAsync` tanpa transaksi; penjaga `FIN-VAL-287`, `288` | Ya (endpoint) / Tidak (inti) |
+| `PayrollDeductionCutoverService` | Service | **Baru** | `Areas/Corporate/FinanceManagement/MasterData/Services/` | Baca dan tetapkan nilai peralihan | Ya |
+| `FinanceTransactionProofService` | Service | Sudah ada | `.../Collection/Services/` | Unggah bukti jenis `LAPORAN-PENGGAJIAN` | Ya |
+| `FinancePayrollDeductionBatchesController` | Controller | **Baru** | `.../Receivable/Controllers/` | `[AccessController("CORPORATE_FINANCE_MANAGEMENT_RECEIVABLE_PAYROLL_DEDUCTION_BRIDGE", ...)]` | — |
+| `PayrollDeductionCutoverController` | Controller | **Baru** | `Areas/Corporate/FinanceManagement/MasterData/Controllers/` | `[AccessController("CORPORATE_FINANCE_MANAGEMENT_MASTER_DATA_PAYROLL_DEDUCTION_CUTOVER", ...)]` | — |
+| `FinanceReceivablesPayrollController` | Controller | Diperbarui | `.../Receivable/Controllers/` | Penolakan panggilan tanpa `PayrollRunId` (`FIN-VAL-287`) | — |
+| `BillingFinalizationService`, `BillingEmployeeBenefitSplitService` | Service | Diperbarui (di atas Revisi 19) | `.../Billing/Services/` | Isian dan penjaga nama pemberi persetujuan | Ya (sudah) |
+| `FinReceivableMovementTypes`, `FinTransactionProofTypes` | Konstanta | Diperbarui | Model masing-masing | + `PEMBALIKAN-POTONGAN-GAJI`; + `LAPORAN-PENGGAJIAN` | — |
+| `FinancePayrollDeductionDtos.cs`, `PayrollDeductionCutoverDtos.cs` | DTO | **Baru** | `DTOs/` modul masing-masing | `FIN-API-1.11` `S.1.1`, `S.2` | — |
+
+### S.6 Arsitektur folder
+
+```text
+Areas/Corporate/FinanceManagement/
+├── Receivable/
+│   ├── Models/FinPayrollDeductionBatch.cs                    (Baru)
+│   ├── Models/FinPayrollDeductionBatchItem.cs                (Baru)
+│   ├── Services/FinancePayrollDeductionBatchService.cs       (Baru)
+│   ├── Services/FinanceReceivablePayrollSyncService.cs       (Diperbarui: inti dipisah)
+│   ├── Controllers/FinancePayrollDeductionBatchesController.cs (Baru)
+│   ├── Controllers/FinanceReceivablesPayrollController.cs    (Diperbarui)
+│   └── DTOs/FinancePayrollDeductionDtos.cs                   (Baru)
+└── MasterData/
+    ├── Models/MstPayrollDeductionCutover.cs                  (Baru)
+    ├── Services/PayrollDeductionCutoverService.cs            (Baru)
+    ├── Controllers/PayrollDeductionCutoverController.cs      (Baru)
+    └── DTOs/PayrollDeductionCutoverDtos.cs                   (Baru)
+
+Repositories/Configurations/Corporate/FinanceManagement/
+├── Receivable/FinPayrollDeductionBatchConfiguration.cs        (Baru)
+├── Receivable/FinPayrollDeductionBatchItemConfiguration.cs    (Baru)
+└── MasterData/MstPayrollDeductionCutoverConfiguration.cs      (Baru)
+```
+
+Lokasi `MasterData/Services/` dan `MasterData/Configurations/` diperiksa terhadap pola `DirectPaymentThreshold` saat QBE preflight.
+DI: tiga service baru `AddScoped` di `Program.cs` bersama service Finance lain (baris 400-416).
+
+### S.7 Rencana migration
+
+| Urutan | Nama (usulan) | Isi | Tanpa downtime? | Data lama | Langkah mundur |
+|---:|---|---|:---:|---|---|
+| 5 | `AddFinancePayrollDeductionBridge` | Dua tabel batch, satu tabel master peralihan, constraint, indeks | Ya | Tidak ada | `Down()` menghapus ketiga tabel |
+| 6 | `AddDeferredConsentToBilArHandoff` | Kolom `DeferredConsentGivenBy` dan `CK_BilArHandoff_Consent` | Ya | Baris lama: `DeferredPatientAmount = 0`, lolos constraint | `Down()` menghapus kolom dan constraint |
+
+Nomor urut melanjutkan migration 1-4 Revisi 19. Migration 6 menyusul migration 3 (`AddDeferredPatientAmountToBilArHandoff`).
+
+### S.8 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Logika pencatatan kedua untuk jalur manual | `FIN-DES-105` |
+| Tabel jadwal potongan tersimpan | Jadwal dihitung dari angsuran; tabel salinan akan basi |
+| FK lintas area ke `MstPayrollPeriod` | Pola Finance merujuk HR lewat `Guid` logis; keabsahan diperiksa service |
+| Layar input hasil satu per satu | `FIN-DEC-221` |
+| Endpoint koreksi tanpa batch | Koreksi wajib lewat batch `KOREKSI` beralasan dan disahkan pejabat |

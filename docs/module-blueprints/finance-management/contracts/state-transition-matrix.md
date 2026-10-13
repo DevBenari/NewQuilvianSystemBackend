@@ -721,3 +721,137 @@ Seluruh perpindahan status pada bagian O.2 (`DIJADWALKAN` -> `TERBAYAR` / `TERBA
 1. Pemicu perpindahan berasal dari penerimaan hasil payroll otomatis `POST /receivables/installments/payroll-results` (`INT-HR-FIN-001`, `FIN-DEC-191`).
 2. Transisi pembatalan `FinReceivable` ke `CANCELLED` kini juga dipicu oleh serah terima pembalik `BilHandoffAdjustment` (`REVERSAL`) saat terjadi koreksi salah orang (`INT-BIL-FIN-002`, `FIN-DEC-187`, `FIN-DEC-200`).
 
+
+---
+
+# AMENDMENT REVISI 19 — Piutang Manfaat Karyawan: Status Enrollment, Tanggungan, Plafon, dan Pilihan Pegawai (`FIN-STATE-1.9`)
+
+```yaml
+contract_version: FIN-STATE-1.9
+last_changed_in: Revisi 19 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance dan HR (pengguna sesi); konfirmasi pemilik Billing dan Registrasi belum turun
+approved_at: 2026-10-13
+input_revision: 00-interview-decisions.md (FIN-DEC-204..FIN-DEC-210)
+input_hash: de4d92a3ab4cd160   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 19
+```
+
+Nilai status enrollment dan tanggungan mengikuti kolom yang **sudah ada** pada model
+(`EnrollmentStatus` bawaan `Draft`; `DependentStatus` bawaan `Draft`; kolom jejak `SubmittedAt`, `ApprovedAt`,
+`ActivatedAt`, `CancelledAt`, `RequestedAt`, `VerifiedAt`). Daftar nilai di bawah adalah **usulan** karena model hanya
+menyimpan teks bebas; dikunci bersama kontrak ini.
+
+## R.1 Enrollment benefit pegawai (`TrxEmployeeBenefitEnrollment`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (baru) | Buat | `Draft` | Pemegang `EmployeeBenefitEnrollment : Create` | Plan aktif, pegawai aktif | `422` |
+| `Draft` | Ajukan | `Submitted` | Pemegang `Submit` | Isian wajib lengkap | `422` |
+| `Submitted` | Setujui | `Approved` | Pemegang `Approve` — **berbeda** dari pengaju | Pengaju ≠ penyetuju | `403` / `422` |
+| `Approved` | Aktifkan | `Active` | Pemegang `Activate` | Batas plafon plan > 0; belum ada enrollment layanan RS aktif yang masa berlakunya berimpit (`FIN-VAL-249`, `250`) | `422` |
+| `Active` | Habis masa berlaku | `Expired` | Sistem (berdasarkan `EffectiveEndDate`) | Tanggal berlaku terlewati | — |
+| `Draft`, `Submitted`, `Approved`, `Active` | Batalkan | `Cancelled` | Pemegang `Cancel` | Alasan wajib | `422` |
+| `Cancelled`, `Expired` | Apa pun | — | — | Status akhir | `409` |
+
+**Transisi tidak sah (ditolak `409`):** `Active` → `Draft`; `Cancelled` → `Active`; `Expired` → `Active`;
+`Submitted` → `Active` (melewati persetujuan); pemakaian plafon pada status selain `Active`.
+
+**Dampak pada saldo.** `Active` menetapkan `RemainingAmount` = batas plafon plan. `Cancelled` atau `Expired`
+tidak menghapus mutasi yang sudah terjadi; hanya pemakaian baru yang ditolak (`NOT_USABLE`).
+
+## R.2 Tanggungan benefit (`TrxEmployeeBenefitDependent`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (baru) | Daftarkan | `Draft` | Pemegang `EmployeeBenefitDependent : Create` | Anggota keluarga aktif milik pegawai yang sama; hubungan dibolehkan plan; belum melebihi `MaximumDependents` (`FIN-VAL-251`..`253`) | `422` |
+| `Draft` | Ajukan verifikasi | `Requested` | Pemegang `Request` | — | `409` |
+| `Requested` | Verifikasi | `Verified` | Pemegang `Verify` | Masa berlaku dan batas plafon > 0 terisi (`FIN-VAL-254`); saldo awal = batas plafon | `422` |
+| `Requested` | Tolak | `Rejected` | Pemegang `Reject` | Alasan wajib | `422` |
+| `Verified` | Akhiri | `Ended` | Pemegang `End` | Tanggal akhir dan alasan wajib | `422` |
+| `Rejected`, `Ended` | Apa pun | — | — | Status akhir. Mengajukan ulang = membuat tanggungan baru | `409` |
+
+**Transisi tidak sah:** `Draft` → `Verified` (melewati pengajuan); `Verified` → `Requested`; `Ended` → `Verified`.
+Hanya status **`Verified`** yang membuat orang itu layak memakai penjamin internal (`FIN-DEC-204`).
+
+## R.3 Pemakaian plafon per serah terima (buku mutasi, hanya menambah)
+
+Mutasi tidak pernah diubah atau dihapus. "Status" di bawah **dihitung** dari ada tidaknya mutasi `USE` dan `RETURN`
+untuk satu `sourceHandoffKey`.
+
+| Dari keadaan | Tindakan | Ke keadaan | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (belum ada) | Pakai | `TERPAKAI` | Sistem Billing, dalam transaksi finalisasi | Nominal > 0; sisa ≥ nominal; orang layak | `INSUFFICIENT` (`422`) atau `NOT_USABLE` (`422`) |
+| `TERPAKAI` | Pakai (kunci sama, nominal sama) | `TERPAKAI` (tidak berubah) | Sistem Billing | — | — (aman diulang) |
+| `TERPAKAI` | Pakai (kunci sama, nominal beda) | — | — | — | `KEY_CONFLICT` (`409`) |
+| `TERPAKAI` | Kembalikan | `DIKEMBALIKAN` | Sistem Billing | Ada mutasi `USE` yang belum dikembalikan | `NOT_FOUND` |
+| `DIKEMBALIKAN` | Kembalikan | `DIKEMBALIKAN` (tidak berubah) | Sistem Billing | — | — (aman diulang) |
+| `DIKEMBALIKAN` | Pakai (kunci sama) | — | — | Kunci yang sudah pernah dikembalikan tidak dipakai lagi; pemakaian berikutnya memakai serah terima pengganti dengan kunci baru | `KEY_CONFLICT` (`409`) |
+
+## R.4 Pilihan pegawai atas bagian di luar kelebihan plafon (pada finalisasi tagihan)
+
+Pilihan ini bukan status tersimpan terpisah; ia terbaca dari nilai `DeferredPatientAmount` pada baris serah terima.
+Keadaannya dihitung:
+
+| Nilai `D` | Keadaan | Arti |
+|---|---|---|
+| `0` | Lunas di kasir | Seluruh sisa tagihan pasien dibayar tunai |
+| `0 < D < K` | Sebagian utang | `D` menjadi utang pegawai, `K − D` dibayar tunai |
+| `D = K` | Seluruhnya utang | Tidak ada pembayaran tunai atas bagian ini |
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| Belum final | Catat pilihan | Pilihan tercatat pada pratinjau | Pemegang `BillingFinalization : Create` | `0 ≤ D ≤ K`; kunjungan berpenjamin internal (`FIN-VAL-262`, `263`) | `422` |
+| Pilihan tercatat | Finalisasi | Pilihan **terkunci** pada baris `EMPLOYEE_BENEFIT` | Pemegang `BillingFinalization : Create` | Plafon terbaca (`FIN-VAL-264`) | `422` |
+| Terkunci | Ubah | — | — | — | Hanya lewat koreksi `INT-BIL-FIN-002`; langsung ditolak `409` |
+
+## R.5 Dampak pada status kartu piutang yang sudah ada
+
+Tidak ada status baru pada `FinReceivable`. Baris `EMPLOYEE_BENEFIT` yang lahir dari pilihan pegawai memakai
+status dan transisi yang sama dengan piutang pegawai lain (`FinReceivableStatuses`, `FIN-STATE-1.7`/`1.8`),
+termasuk perjanjian cicilan.
+
+---
+
+# AMENDMENT REVISI 20 — Status Batch Hasil Potongan dan Peralihan ke Mesin Payroll (`FIN-STATE-1.10`)
+
+```yaml
+contract_version: FIN-STATE-1.10
+last_changed_in: Revisi 20 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance, HR, dan Billing (pengguna sesi); konfirmasi pemilik Registrasi belum turun
+approved_at: 2026-10-13
+input_revision: 00-interview-decisions.md (FIN-DEC-215, 220..222)
+input_hash: 46eb10da4033faf1   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 20
+```
+
+## S.1 Batch hasil potongan (`FinPayrollDeductionBatch`)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (baru) | Unggah | `DRAFT` | Pemegang `FinancePayrollDeductionBatch : Create` | Periode valid; belum ada batch `REGULER` aktif untuk periode itu; periode sebelum peralihan | `409` / `422` |
+| `DRAFT` | Ajukan | `DIAJUKAN` | Pemegang `Submit` | Nol baris tidak valid; kelengkapan terpenuhi; total kontrol cocok; nomor dan bukti laporan ada | `422` |
+| `DIAJUKAN` | Sahkan (`REGULER`) | `DISAHKAN` | Pemegang `Approve`, **bukan** pengaju | Seluruh baris berhasil diterapkan dalam satu transaksi | `403` / `422` (tidak ada perubahan saldo) |
+| `DIAJUKAN` | Sahkan (`KOREKSI`) | `DISAHKAN` | Pemegang `ApproveCorrection`, **bukan** pengaju | Sama, ditambah batas koreksi | `403` / `422` |
+| `DIAJUKAN` | Tolak | `DITOLAK` | Pemegang `Reject` | Alasan wajib | `422` |
+| `DRAFT`, `DIAJUKAN` | Batalkan | `DIBATALKAN` | Pemegang `Cancel` | Alasan wajib | `422` |
+| `DISAHKAN`, `DITOLAK`, `DIBATALKAN` | Apa pun | — | — | Status akhir. Kesalahan pada batch `DISAHKAN` diperbaiki lewat batch `KOREKSI` | `409` |
+
+**Transisi tidak sah:** `DRAFT` → `DISAHKAN` (melewati pengajuan); `DISAHKAN` → `DRAFT`; `DITOLAK` → `DIAJUKAN` (ajukan batch baru);
+pengesahan sebagian baris.
+
+**Dampak pada angsuran.** Pengesahan memindahkan angsuran dengan aturan yang sudah ada (`FIN-STATE-1.8` `O.2`):
+`DIJADWALKAN` → `TERBAYAR` / `TERBAYAR_SEBAGIAN` / `TERTUNGGAK`. Koreksi dapat mengembalikan `TERBAYAR` ke `TERBAYAR_SEBAGIAN`
+atau `TERTUNGGAK` bila selisihnya negatif.
+
+## S.2 Peralihan ke mesin payroll (`MstPayrollDeductionCutover`)
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| Tanpa nilai | Tetapkan | Nilai aktif `AutomaticFromPeriod` | Pemegang `PayrollDeductionCutover : Create` | Alasan wajib | `422` |
+| Nilai aktif | Tetapkan nilai baru | Nilai baru aktif; lama nonaktif | idem | Tidak mundur ke periode yang sudah punya batch manual `DISAHKAN` | `422` |
+
+| Periode dibanding `AutomaticFromPeriod` | Jalur manual | Jalur mesin |
+|---|:---:|:---:|
+| Lebih awal | Diizinkan (termasuk koreksi) | Ditolak |
+| Sama atau lebih akhir | Ditolak | Diizinkan |
+| Belum ada nilai | Diizinkan | Ditolak (mesin belum ada) |

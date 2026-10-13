@@ -9,8 +9,19 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
     {
         public void Configure(EntityTypeBuilder<TrxEmployeeBenefitEnrollment> entity)
         {
-            entity.ToTable("TrxEmployeeBenefitEnrollment", "public");
+            entity.ToTable("TrxEmployeeBenefitEnrollment", "public", table =>
+            {
+                // BE-FIN-103, kamus data 9.3: saldo plafon tidak pernah negatif.
+                table.HasCheckConstraint(
+                    "CK_TrxEmployeeBenefitEnrollment_Balance",
+                    "\"UsedAmount\" >= 0 AND \"RemainingAmount\" >= 0");
+                // FIN-VAL-271: penyetuju MUST berbeda dari pengaju.
+                table.HasCheckConstraint(
+                    "CK_TrxEmployeeBenefitEnrollment_MakerChecker",
+                    "\"ApprovedByUserId\" IS NULL OR \"SubmittedByUserId\" IS NULL OR \"ApprovedByUserId\" <> \"SubmittedByUserId\"");
+            });
             entity.HasKey(x => x.Id);
+            entity.Property(x => x.RowVersion).IsConcurrencyToken();
 
             entity.Property(x => x.EnrollmentDate).HasColumnType("timestamp with time zone");
             entity.Property(x => x.EffectiveStartDate).HasColumnType("timestamp with time zone");
@@ -88,6 +99,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 .HasFilter("\"IsDelete\" = false");
 
             entity.HasIndex(x => new { x.WorkforceProfileId, x.BenefitPlanId, x.EnrollmentStatus });
+
+            // BE-FIN-103, kamus data 9.3: satu enrollment terbuka per pegawai per plan.
+            entity.HasIndex(x => new { x.WorkforceProfileId, x.BenefitPlanId })
+                .IsUnique()
+                .HasFilter("\"EnrollmentStatus\" IN ('Draft','Submitted','Approved','Active') AND \"IsDelete\" = false")
+                .HasDatabaseName("UX_TrxEmployeeBenefitEnrollment_OpenPerPlan");
 
             entity.HasIndex(x => new { x.EffectiveStartDate, x.EffectiveEndDate, x.IsActive });
 

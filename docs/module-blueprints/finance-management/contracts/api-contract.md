@@ -1358,3 +1358,254 @@ bagian Q). Seluruh endpoint read-only, hak akses `FinanceReceivable : Read`.
 **`FinanceSettlementPagedResponse`:** `PageNumber`, `PageSize`, `TotalData`, `TotalPage`,
 `Items: List<FinanceSettlementRowResponse>`, `Summary: FinanceSettlementSummaryResponse`.
 
+
+---
+
+# AMENDMENT REVISI 19 — Piutang Manfaat Karyawan: Endpoint Benefit HR, Pencarian Registrasi, dan Pilihan Pegawai di Finalisasi (`FIN-API-1.10`)
+
+```yaml
+contract_version: FIN-API-1.10
+last_changed_in: Revisi 19 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance dan HR (pengguna sesi); konfirmasi pemilik Billing dan Registrasi belum turun
+approved_at: 2026-10-13
+input_revision: 00-interview-decisions.md (FIN-DEC-204..FIN-DEC-210)
+input_hash: 26341af71b53f253   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 19
+input_contracts: FIN-INTEGRATION-1.9 (draft)
+```
+
+Seluruh endpoint pada bagian ini **belum ada di kode**. Setiap baris berstatus
+**`Rencana (belum tersedia)`**, kecuali baris yang tertulis `Diperbarui` (endpoint sudah ada, bentuknya bertambah).
+Path ditulis relatif terhadap *Base URL*. Nilai `[AccessPermission]` mengikuti kolom **Hak akses**, dan itu satu-satunya
+tempat pemetaan endpoint ke hak akses (lihat `permission-audit-matrix.md` bagian `R`).
+
+> Huruf bagian `R` dipakai seragam pada seluruh berkas kontrak Revisi 19. Bagian `Q` pada berkas ini sudah terpakai
+> oleh Settlement AR V2.
+
+## R.1 `[Tags("Corporate / Human Resource / Benefit Management / Employee Benefit Enrollment")]`
+
+Base URL: `api/v1/corporate/human-resource/benefit-management/employee-benefit-enrollments`
+Contract version: `FIN-API-1.10` — status `approved` (sisi pemilik Finance dan HR)
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `` | Daftar enrollment berpaging dengan saringan pegawai, plan, dan status | `EmployeeBenefitEnrollment : Read` | `EmployeeBenefitEnrollmentPagedQuery` | `ApiResponse<PagedResult<EmployeeBenefitEnrollmentListResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Rincian enrollment beserta tanggungan dan saldo | `EmployeeBenefitEnrollment : Read` | — | `ApiResponse<EmployeeBenefitEnrollmentResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/by-employee/{employeeId}` | Ringkasan benefit layanan RS satu pegawai (enrollment aktif, tanggungan, saldo per orang) | `EmployeeBenefitEnrollment : Read` | — | `ApiResponse<EmployeeBenefitSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/movements` | Buku mutasi plafon enrollment itu (pemakaian dan pengembalian) | `EmployeeBenefitEnrollment : Read` | `BenefitMovementPagedQuery` | `ApiResponse<PagedResult<BenefitMovementResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `` | Membuat enrollment berstatus `Draft` | `EmployeeBenefitEnrollment : Create` | `CreateEmployeeBenefitEnrollmentRequest` | `ApiResponse<EmployeeBenefitEnrollmentResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah enrollment selama masih `Draft` | `EmployeeBenefitEnrollment : Update` | `UpdateEmployeeBenefitEnrollmentRequest` | `ApiResponse<EmployeeBenefitEnrollmentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/submit` | Mengajukan enrollment | `EmployeeBenefitEnrollment : Submit` | `EnrollmentTransitionRequest` | `ApiResponse<EmployeeBenefitEnrollmentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/approve` | Menyetujui enrollment (pemegang hak berbeda dari pengaju) | `EmployeeBenefitEnrollment : Approve` | `EnrollmentTransitionRequest` | `ApiResponse<EmployeeBenefitEnrollmentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/activate` | Mengaktifkan enrollment; saldo awal diambil dari batas plafon plan | `EmployeeBenefitEnrollment : Activate` | `EnrollmentTransitionRequest` | `ApiResponse<EmployeeBenefitEnrollmentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan enrollment; alasan wajib | `EmployeeBenefitEnrollment : Cancel` | `EnrollmentCancelRequest` | `ApiResponse<EmployeeBenefitEnrollmentResponse>` | **Rencana (belum tersedia)** |
+
+**Kode status.** `200` berhasil. `201` enrollment dibuat. `400` isian tidak lengkap atau formatnya salah.
+`403` pengguna tidak punya hak akses untuk tindakan ini. `404` enrollment tidak ditemukan. `409` data berubah
+oleh petugas lain (`RowVersion` tidak cocok) atau transisi status tidak sah. `422` aturan bisnis dilanggar
+(lihat `validation-matrix.md` `FIN-VAL-249`..`FIN-VAL-253`).
+
+### R.1.1 DTO Enrollment
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `CreateEmployeeBenefitEnrollmentRequest` | Create | `EmployeeId` (Guid, wajib), `BenefitPlanId` (Guid, wajib), `EnrollmentDate` (date, wajib), `EffectiveStartDate` (date, wajib), `EffectiveEndDate` (date, opsional), `Notes` (string(500), opsional) |
+| `UpdateEmployeeBenefitEnrollmentRequest` | Update | Field `Create` kecuali `EmployeeId` dan `BenefitPlanId`; `RowVersion` (Guid, wajib) |
+| `EnrollmentTransitionRequest` | Status | `RowVersion` (Guid, wajib), `Notes` (string(500), opsional) |
+| `EnrollmentCancelRequest` | Status | `RowVersion` (Guid, wajib), `CancellationReason` (string(500), **wajib**) |
+| `EmployeeBenefitEnrollmentListResponse` | Response | `Id`, `EnrollmentNumber`, `EmployeeId`, `EmployeeNumber`, `EmployeeName`, `BenefitPlanCode`, `BenefitPlanName`, `EnrollmentStatus`, `EffectiveStartDate`, `EffectiveEndDate`, `RemainingAmount`, `ActiveDependentCount` |
+| `EmployeeBenefitEnrollmentResponse` | Response | Seluruh field `ListResponse` ditambah `CoverageType`, `CoverageLimitAmount`, `UsedAmount`, `MaximumDependents`, `RowVersion`, jejak pengajuan/persetujuan/aktivasi, dan `Dependents: List<EmployeeBenefitDependentResponse>` |
+| `EmployeeBenefitSummaryResponse` | Response | `EmployeeId`, `HasActiveMedicalEnrollment`, `EnrollmentId`, `PlanName`, `CoverageType`, `Persons: List<BenefitPersonBalanceResponse>` |
+| `BenefitPersonBalanceResponse` | Response | `BenefitPersonKind`, `BenefitPersonId`, `PersonName`, `RelationshipCode`, `LimitAmount`, `UsedAmount`, `RemainingAmount`, `Status` |
+| `BenefitMovementResponse` | Response | `Id`, `MovementType`, `Amount`, `BalanceBefore`, `BalanceAfter`, `InvoiceNumber`, `OccurredAt`, `ReversesMovementId` |
+| `EmployeeBenefitEnrollmentPagedQuery` | PagedQuery | `Search`, `EmployeeId`, `BenefitPlanId`, `EnrollmentStatus`, `PageNumber` (default 1), `PageSize` (default 10, maksimum 50) |
+| `BenefitMovementPagedQuery` | PagedQuery | `MovementType`, `From`, `To`, `PageNumber`, `PageSize` |
+
+---
+
+## R.2 `[Tags("Corporate / Human Resource / Benefit Management / Employee Benefit Dependent")]`
+
+Base URL: `api/v1/corporate/human-resource/benefit-management/employee-benefit-enrollments/{enrollmentId}/dependents`
+Contract version: `FIN-API-1.10` — status `approved` (sisi pemilik Finance dan HR)
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `` | Daftar tanggungan pada satu enrollment | `EmployeeBenefitDependent : Read` | — | `ApiResponse<List<EmployeeBenefitDependentResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `` | Mendaftarkan satu anggota keluarga sebagai tanggungan (`Draft`) | `EmployeeBenefitDependent : Create` | `CreateEmployeeBenefitDependentRequest` | `ApiResponse<EmployeeBenefitDependentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/request-verification` | Mengajukan tanggungan untuk diverifikasi | `EmployeeBenefitDependent : Request` | `DependentTransitionRequest` | `ApiResponse<EmployeeBenefitDependentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/verify` | Memverifikasi tanggungan; menetapkan masa berlaku dan batas plafon | `EmployeeBenefitDependent : Verify` | `VerifyEmployeeBenefitDependentRequest` | `ApiResponse<EmployeeBenefitDependentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/reject` | Menolak tanggungan; alasan wajib | `EmployeeBenefitDependent : Reject` | `RejectEmployeeBenefitDependentRequest` | `ApiResponse<EmployeeBenefitDependentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/end` | Mengakhiri tanggungan yang sudah terverifikasi | `EmployeeBenefitDependent : End` | `EndEmployeeBenefitDependentRequest` | `ApiResponse<EmployeeBenefitDependentResponse>` | **Rencana (belum tersedia)** |
+
+**Kode status.** Sama dengan `R.1`. `422` mencakup: anggota keluarga bukan milik pegawai itu, hubungan tidak dibolehkan
+`CoverageType`, melebihi `MaximumDependents` (`FIN-VAL-251`..`FIN-VAL-253`).
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `CreateEmployeeBenefitDependentRequest` | Create | `FamilyMemberId` (Guid, wajib), `Description` (string(500), opsional). **Tidak** menerima kode hubungan: diturunkan dari data keluarga (`INT-REG-HR-001` `R.1.1`) |
+| `DependentTransitionRequest` | Status | `RowVersion` (Guid, wajib) |
+| `VerifyEmployeeBenefitDependentRequest` | Status | `RowVersion` (Guid, wajib), `EffectiveStartDate` (date, wajib), `EffectiveEndDate` (date, opsional), `CoverageLimitAmount` (decimal, wajib, > 0), `VerificationNotes` (string(500), opsional) |
+| `RejectEmployeeBenefitDependentRequest` | Status | `RowVersion` (Guid, wajib), `EligibilityReason` (string(500), **wajib**) |
+| `EndEmployeeBenefitDependentRequest` | Status | `RowVersion` (Guid, wajib), `EffectiveEndDate` (date, wajib), `Reason` (string(500), **wajib**) |
+| `EmployeeBenefitDependentResponse` | Response | `Id`, `FamilyMemberId`, `FullName`, `RelationshipCode`, `DependentStatus`, `IsEligible`, `IsCovered`, `EffectiveStartDate`, `EffectiveEndDate`, `LimitAmount`, `UsedAmount`, `RemainingAmount`, `VerifiedAt`, `RowVersion` |
+
+---
+
+## R.3 `[Tags("Health Services / Registration Management / Employee Benefit Lookup")]`
+
+Base URL: `api/v1/health-services/registration-management/employee-benefit-lookups`
+Contract version: `FIN-API-1.10` — status `approved` (sisi pemilik Finance dan HR)
+Hak akses: `ControllerName = "EmployeeBenefitLookup"`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/employees` | Mencari pegawai aktif dengan NIP, NIK, atau nama (minimal 3 karakter, maksimum 20 hasil) | `EmployeeBenefitLookup : Read` | `?search=` | `ApiResponse<List<EmployeeLookupResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/employees/{employeeId}/family-members` | Daftar anggota keluarga aktif beserta status verifikasi tanggungan | `EmployeeBenefitLookup : Read` | — | `ApiResponse<List<FamilyMemberLookupResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/eligibility` | Memeriksa apakah orang itu layak memakai penjamin internal pada tanggal layanan | `EmployeeBenefitLookup : Read` | `?employeeId=&familyMemberId=&serviceDate=` | `ApiResponse<BenefitEligibilityResponse>` | **Rencana (belum tersedia)** |
+
+**Kode status.** `200` berhasil (termasuk hasil "tidak layak", yang dijelaskan oleh `reasonCode`, bukan galat). `400`
+kata kunci kurang dari 3 karakter atau `serviceDate` tidak valid. `403` tanpa hak akses. `503` data HR belum dapat
+dibaca (`HR_UNAVAILABLE`); petugas diarahkan mengulang atau mendaftarkan sebagai Pasien Umum.
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `EmployeeLookupResponse` | Response | `EmployeeId`, `EmployeeNumber`, `NationalIdMasked`, `FullName`, `OrganizationUnitName`, `HasActiveMedicalEnrollment` |
+| `FamilyMemberLookupResponse` | Response | `FamilyMemberId`, `FullName`, `RelationshipCode`, `AgeYears`, `IdentityMasked`, `DependentVerification`, `CoveredByPlan` |
+| `BenefitEligibilityResponse` | Response | `IsEligible`, `ReasonCode`, `Message`, `RelationshipCode`, `BenefitPersonKind`, `BenefitPersonId`, `EnrollmentId`, `PlanCode`, `PlanName`, `CoverageType`, `EffectiveStartDate`, `EffectiveEndDate`. **Tanpa saldo** |
+
+---
+
+## R.4 `[Tags("Health Services / Patient Management / Master Data / Patient Company Guarantor")]` — `Diperbarui`
+
+Base URL: `api/v1/health-services/patient-management/master-data/patient-company-guarantors` (sudah ada)
+
+Endpoint pembuatan dan perubahan kartu **sudah ada**. Yang bertambah adalah isi DTO. Perubahan ini berstatus
+**`Rencana (belum tersedia)`**.
+
+| Perubahan | Rincian |
+|---|---|
+| Request `Create`/`Update` | + `EmployeeId` (Guid, opsional), + `FamilyMemberId` (Guid, opsional). **Tidak ada** field kode hubungan: sistem mengisinya dari `PeriksaKelayakan` |
+| Aturan | Bila kartu dibuat untuk penjamin internal ("RS Benefit"), `EmployeeId` **wajib** dan kelayakan harus `OK` (`FIN-VAL-259`). Kartu penjamin perusahaan biasa tidak berubah |
+| Response | + `EmployeeId`, `FamilyMemberId`, `BenefitRelationship` (hanya-baca) |
+| Kode `422` | Pesan mengikuti kode alasan `INT-REG-HR-001` `R.2.3` |
+
+---
+
+## R.5 `[Tags("Health Services / Billing Management / Billing / Finalizations")]` — `Diperbarui`
+
+Base URL: `api/v1/health-services/billing-management/billing/finalizations` (sudah ada)
+
+| Method | Path | Perubahan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `invoices/{invoiceId}/preview` | Response `FinalizationPreviewResponse` bertambah blok `EmployeeBenefitSplit` (tidak ada bila bukan kunjungan berpenjamin internal) | `BillingFinalization : Read` (tetap) | **Rencana (belum tersedia)** |
+| `POST` | `invoices/{invoiceId}` | Request `FinalizeInvoiceRequest` bertambah `EmployeeReceivableChoiceAmount`; response `FinalizationResponse` bertambah `EmployeeBenefitSplit` | `BillingFinalization : Create` (tetap) | **Rencana (belum tersedia)** |
+| `GET` | `{id}/handoffs`, `invoices/{invoiceId}/handoffs` | Response menampilkan baris `EMPLOYEE_BENEFIT` dan `DeferredPatientAmount` | `BillingFinalization : Read` (tetap) | **Rencana (belum tersedia)** |
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `FinalizeInvoiceRequest` (bertambah) | Create | `EmployeeReceivableChoiceAmount` (decimal, opsional, bawaan 0, `>= 0`) — nominal `D` pada `INT-BIL-HR-001` `R.4.3`. `0` = lunas di kasir |
+| `EmployeeBenefitSplitResponse` | Response | `IsEmployeeBenefitVisit`, `BenefitOwnerName`, `RelationshipCode`, `CoveredByRuleAmount` (`C`), `RemainingAllowanceAmount` (`S`), `RsBenefitAmount` (`P`), `ExcessOverAllowanceAmount` (`E`), `PatientPortionAmount` (`K`), `ChoiceAmount` (`D`), `EmployeeReceivableAmount` (`E + D`), `CashAtCashierAmount` (`K − D`), `IsUsable`, `BlockingReasonCode`, `BlockingMessage` |
+
+**Seluruh angka dihitung backend.** Layar tidak boleh menghitung `P`, `E`, atau `E + D` sendiri
+(`FIN-DEC-185`, kebijakan nol perhitungan finansial di klien).
+
+**Kode status tambahan pada `POST`.** `409` plafon berubah oleh finalisasi lain dan hasil hitung ulang masih tidak
+cukup, atau kunci pemakaian bentrok. `422` finalisasi ditahan karena data benefit belum dapat dipastikan (`FIN-VAL-264`),
+nominal pilihan melebihi sisa tagihan pasien (`FIN-VAL-262`), atau kombinasi penjamin kedua (`FIN-VAL-265`).
+
+---
+
+## R.6 Finance — tidak ada endpoint baru
+
+`POST /receivables/separation-notice` sudah didefinisikan pada `FIN-API-1.9` bagian `P.1` dan **belum ada di kode**
+(pencarian `separation` pada `Areas/Corporate/FinanceManagement` nol hasil). Pekerjaannya ada pada `BE-FIN-113`
+dan **tidak** diubah oleh revisi ini.
+
+---
+
+# AMENDMENT REVISI 20 — Jembatan Manual Potong Gaji, Master Peralihan, dan Dua Koreksi (`FIN-API-1.11`)
+
+```yaml
+contract_version: FIN-API-1.11
+last_changed_in: Revisi 20 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance, HR, dan Billing (pengguna sesi); konfirmasi pemilik Registrasi belum turun
+approved_at: 2026-10-13
+input_revision: 00-interview-decisions.md (FIN-DEC-214..FIN-DEC-222)
+input_hash: f60a8e3eb8241649   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 20
+input_contracts: FIN-INTEGRATION-1.10 (draft)
+```
+
+Seluruh endpoint baru berstatus **`Rencana (belum tersedia)`**. Kolom **Hak akses** adalah satu-satunya pemetaan endpoint ke hak akses.
+
+## S.1 `[Tags("Corporate / Finance Management / Receivable / Payroll Deduction Bridge")]`
+
+Base URL: `api/v1/corporate/finance-management/payroll-deduction`
+Contract version: `FIN-API-1.11` — status `approved`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/schedule` | Jadwal potongan satu periode beserta total | `FinancePayrollDeductionBatch : Read` | `?period=YYYY-MM` | `ApiResponse<DeductionScheduleResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/schedule/export/excel` | Ekspor jadwal ke Excel; berkas yang sama menjadi templat unggah hasil | `FinancePayrollDeductionBatch : Read` | `?period=YYYY-MM` | Berkas `.xlsx` | **Rencana (belum tersedia)** |
+| `GET` | `/schedule/export/pdf` | Ekspor jadwal ke PDF untuk serah terima | `FinancePayrollDeductionBatch : Read` | `?period=YYYY-MM` | Berkas `.pdf` | **Rencana (belum tersedia)** |
+| `GET` | `/batches` | Daftar batch hasil potongan berpaging | `FinancePayrollDeductionBatch : Read` | `DeductionBatchPagedQuery` | `ApiResponse<PagedResult<DeductionBatchListResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/batches/{id}` | Rincian batch beserta baris dan hasil validasinya | `FinancePayrollDeductionBatch : Read` | — | `ApiResponse<DeductionBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/batches` | Mengunggah berkas hasil; membuat batch `DRAFT` dan memvalidasi tiap baris | `FinancePayrollDeductionBatch : Create` | `UploadDeductionBatchRequest` (multipart) | `ApiResponse<DeductionBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/batches/{id}/submit` | Mengajukan batch dengan nomor dan bukti laporan penggajian | `FinancePayrollDeductionBatch : Submit` | `SubmitDeductionBatchRequest` | `ApiResponse<DeductionBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/batches/{id}/approve` | Mengesahkan batch `REGULER` dan menerapkan seluruh baris dalam satu transaksi | `FinancePayrollDeductionBatch : Approve` | `DeductionBatchTransitionRequest` | `ApiResponse<DeductionBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/batches/{id}/approve-correction` | Mengesahkan batch `KOREKSI` | `FinancePayrollDeductionBatch : ApproveCorrection` | `DeductionBatchTransitionRequest` | `ApiResponse<DeductionBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/batches/{id}/reject` | Menolak batch yang diajukan; alasan wajib | `FinancePayrollDeductionBatch : Reject` | `RejectDeductionBatchRequest` | `ApiResponse<DeductionBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/batches/{id}/cancel` | Membatalkan batch `DRAFT` atau `DIAJUKAN`; alasan wajib | `FinancePayrollDeductionBatch : Cancel` | `CancelDeductionBatchRequest` | `ApiResponse<DeductionBatchResponse>` | **Rencana (belum tersedia)** |
+
+**Kode status.** `200` berhasil. `201` batch dibuat (termasuk bila ada baris tidak valid; rinciannya per baris). `400` berkas
+tidak terbaca, kolom wajib hilang, atau periode tidak berformat `YYYY-MM`. `403` tanpa hak akses, atau pengaju mencoba
+mengesahkan sendiri. `404` batch tidak ditemukan. `409` data berubah oleh petugas lain (`RowVersion`), transisi status tidak sah,
+atau sudah ada batch `REGULER` aktif untuk periode itu. `422` aturan bisnis dilanggar (`FIN-VAL-272`..`288`), termasuk periode
+yang sudah ditangani mesin.
+
+### S.1.1 DTO
+
+| Nama class | Jenis | Field |
+|---|---|---|
+| `DeductionScheduleResponse` | Response | `Period`, `PayrollPeriodId` (bila master periode payroll untuk bulan itu ada), `TotalDueAmount`, `RowCount`, `Rows: List<DeductionScheduleRowResponse>` |
+| `DeductionScheduleRowResponse` | Response | `InstallmentId`, `InstallmentCode`, `EmployeeNumber`, `EmployeeName`, `OrganizationUnitName`, `ReceivableNumber`, `InstallmentNumber`, `ScheduledAmount`, `CarriedOverAmount`, `DueAmount` |
+| `UploadDeductionBatchRequest` | Create | `File` (`IFormFile`, wajib, `.xlsx`/`.csv`, maksimal 2.000 baris), `Period` (string(7), wajib), `PayrollPeriodId` (Guid, wajib), `BatchType` (`REGULER`/`KOREKSI`, wajib), `ControlTotalAmount` (decimal, wajib, ≥ 0), `CorrectionReason` (string(500), wajib bila `KOREKSI`) |
+| `SubmitDeductionBatchRequest` | Status | `RowVersion` (Guid, wajib), `PayrollReportNumber` (string(100), wajib), `ProofId` (Guid, wajib; hasil unggah bukti jenis `LAPORAN-PENGGAJIAN` lewat endpoint bukti transaksi yang sudah ada) |
+| `DeductionBatchTransitionRequest` | Status | `RowVersion` (Guid, wajib), `Notes` (string(500), opsional) |
+| `RejectDeductionBatchRequest` / `CancelDeductionBatchRequest` | Status | `RowVersion` (Guid, wajib), `Reason` (string(500), **wajib**) |
+| `DeductionBatchListResponse` | Response | `Id`, `BatchNumber`, `Period`, `BatchType`, `Status`, `ControlTotalAmount`, `TotalDeductedAmount`, `TotalRows`, `InvalidRows`, `SubmittedAt`, `ApprovedAt` |
+| `DeductionBatchResponse` | Response | Seluruh field `ListResponse` ditambah `PayrollPeriodId`, `PayrollReportNumber`, `ProofId`, `CorrectionReason`, `RejectionReason`, pelaku tiap langkah, `RowVersion`, `Items: List<DeductionBatchItemResponse>`, `MissingScheduledInstallments: List<DeductionScheduleRowResponse>` |
+| `DeductionBatchItemResponse` | Response | `RowNumber`, `InstallmentCode`, `EmployeeNumber`, `EmployeeName`, `ResultStatus`, `DeductedAmount`, `DueAmount`, `PreviousDeductedAmount`, `DeltaAmount`, `ValidationStatus`, `ValidationMessage`, `AppliedAt` |
+| `DeductionBatchPagedQuery` | PagedQuery | `Period`, `BatchType`, `Status`, `PageNumber` (bawaan 1), `PageSize` (bawaan 10, maksimal 50) |
+
+## S.2 `[Tags("Corporate / Finance Management / Master Data / Payroll Deduction Cutover")]`
+
+Base URL: `api/v1/corporate/finance-management/master-data/payroll-deduction-cutovers`
+Contract version: `FIN-API-1.11` — status `approved`. Pola mengikuti `DirectPaymentThresholdController` (satu nilai aktif berversi).
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/current` | Nilai peralihan yang aktif (kosong bila jembatan masih berlaku untuk semua periode) | `PayrollDeductionCutover : Read` | — | `ApiResponse<PayrollDeductionCutoverResponse?>` | **Rencana (belum tersedia)** |
+| `GET` | `` | Riwayat nilai peralihan | `PayrollDeductionCutover : Read` | — | `ApiResponse<List<PayrollDeductionCutoverResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `` | Menetapkan periode pertama yang ditangani mesin; versi lama dinonaktifkan | `PayrollDeductionCutover : Create` | `SetPayrollDeductionCutoverRequest` | `ApiResponse<PayrollDeductionCutoverResponse>` | **Rencana (belum tersedia)** |
+
+`SetPayrollDeductionCutoverRequest`: `AutomaticFromPeriod` (string(7), wajib), `ChangeReason` (string(500), wajib), `ExpectedRowVersion` (Guid, opsional).
+`PayrollDeductionCutoverResponse`: `Id`, `AutomaticFromPeriod`, `ChangeReason`, `IsActive`, `CreatedBy`, `CreatedAt`, `RowVersion`.
+**Kode status:** `422` bila periode mundur ke periode yang sudah punya batch manual `DISAHKAN` (`FIN-VAL-286`).
+
+## S.3 `[Tags("Corporate / Finance Management / Receivable / Payroll Sync")]` — koreksi `FIN-API-1.9` §`P.1.1`
+
+| Field | Semula | Menjadi |
+|---|---|---|
+| `SyncPayrollResultRequest.PayrollRunId` | Guid, wajib | Guid, **opsional** — sesuai kode (`PayrollResultRequest.PayrollRunId` `Guid?`) |
+| Perilaku tambahan | — | Panggilan HTTP langsung **tanpa** `PayrollRunId` ditolak `422` (`FIN-VAL-287`); hasil manual hanya masuk lewat pengesahan batch `S.1`. Panggilan **dengan** `PayrollRunId` untuk periode sebelum peralihan ditolak `422` (`FIN-VAL-288`). **Rencana (belum tersedia)** |
+
+## S.4 `[Tags("Health Services / Billing Management / Billing / Finalizations")]` — tambahan pada `R.5`
+
+| Nama class | Perubahan |
+|---|---|
+| `FinalizeInvoiceRequest` | + `EmployeeReceivableConsentGivenBy` (string(200), opsional; **wajib** bila `EmployeeReceivableChoiceAmount` > 0 dan hubungan bukan `SELF`) |
+| `EmployeeBenefitSplitResponse` | + `RequiresConsent` (bool) |
+| Respons serah terima | + `DeferredConsentGivenBy` pada baris `EMPLOYEE_BENEFIT` |
+
+**Kode status tambahan:** `422` nama pemberi persetujuan kosong padahal wajib (`FIN-VAL-289`). Status: **Rencana (belum tersedia)**.
