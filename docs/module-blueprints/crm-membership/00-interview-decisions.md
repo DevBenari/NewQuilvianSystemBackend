@@ -5,10 +5,10 @@
 | Blueprint ID | `crm-membership` |
 | Revision | `1` |
 | Status | `draft` |
-| Mode | Closure pass (pass 2) |
+| Mode | Amendment pass (pass 3) |
 | Product/domain owner | Yoga Aji Pratama |
-| Backend SHA | `36422a4d` (branch `yoga`), diaudit di `01-existing-capability-map.md` |
-| Frontend SHA | `9aba9929d`, diaudit di `01-existing-capability-map.md` |
+| Backend SHA | `36422a4d` (branch `yoga`), diaudit di `01-existing-capability-map.md`; impact scan `1aecf642` |
+| Frontend SHA | `9aba9929d`, diaudit di `01-existing-capability-map.md`; impact scan `f1e5e273a` |
 | Sumber masukan | PDF "Pendaftaran membership pasien prioritas" (12 Okt 2026, 10:47) dan PDF "Pendaftaran pasien prioritas IGD" (12 Okt 2026, 14:19) |
 
 > **Catatan audit:** scope dikunci sebelum capability map ada. Audit menyusul pada 2026-10-13
@@ -83,6 +83,13 @@ antrean, kasir) dapat mengenali pasien itu sebagai pasien prioritas.
 | `CRM-DEC-021` | Decision | Membership yang dibuat dengan aturan lama dan tidak punya bukti bayar iuran ditandai **Perlu Verifikasi** saat aturan baru dipasang. Selama itu pasien terbaca Reguler. Petugas CRM memverifikasi satu per satu: **diakui** (diberi tanggal mulai dan berakhir yang sah, lalu Aktif) atau **dibatalkan** dengan alasan. Jumlah data baru diketahui lewat pengecekan DB dengan izin terpisah. Contoh: membership Gold lama milik pasien X tanpa tagihan iuran menjadi Perlu Verifikasi. CRM mengonfirmasi pembayaran lewat arsip lama, lalu mengakuinya dengan masa berlaku 1 Mar 2026 s.d. 28 Feb 2027 | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Closure pass; menutup `CRM-OQ-009` |
 | `CRM-DEC-022` | Decision | Setelah membership berstatus Aktif, **pasien, tingkat, dan tanggal berlaku tidak dapat diubah**. Yang boleh diubah CRM hanya catatan. Salah pasien atau salah tingkat diselesaikan lewat pembatalan salah input (`CRM-DEC-013`) lalu pendaftaran ulang. Perubahan tingkat yang sah lewat upgrade (`CRM-DEC-012`). Contoh: membership Gold tercatat atas nama Dika padahal pembelinya Ibu Sari. CRM tidak boleh mengganti pemiliknya. CRM membatalkan sebagai salah input (refund bila diskon belum terpakai), lalu mendaftarkan Gold untuk Ibu Sari | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Closure pass; menutup `CRM-CONF-008` bersama `CRM-DEC-013` |
 | `CRM-DEC-023` | Decision | Nomor member **dibuat otomatis** oleh sistem saat pendaftaran disimpan, unik, dan tidak diketik petugas. Setiap pendaftaran, termasuk upgrade dan perpanjangan, mendapat nomor baru. Format final ditentukan saat desain, contoh ilustrasi `MBR-2610-000123` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Closure pass |
+| `CRM-DEC-024` | Decision | **Perpanjangan sebelum habis disambung** setelah periode lama. Pendaftaran perpanjangan mengikuti alur biasa (Menunggu Pembayaran, batal otomatis 7 hari). Setelah iuran lunas, statusnya **Terjadwal** dan otomatis menjadi Aktif pada hari setelah periode lama berakhir. Perpanjangan paling cepat dibuka **30 hari** sebelum tanggal berakhir, dan angka 30 dapat diubah sebagai pengaturan. Selama masa sambungan, pasien boleh punya satu baris Aktif dan satu baris Terjadwal, tetapi tetap hanya satu yang Aktif (melengkapi `CRM-DEC-012`). Contoh: Gold berlaku s.d. 12 Okt 2027. Perpanjangan dibuka 12 Sep 2027, dan iuran lunas 1 Okt 2027, sehingga periode baru Terjadwal 13 Okt 2027 s.d. 12 Okt 2028 dan menjadi Aktif otomatis pada 13 Okt 2027 pukul 00.00 WIB. Perpanjangan pada 1 Sep 2027 ditolak karena belum masuk jendela 30 hari | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Amendment pass; menutup `DEC-CRM-004` |
+| `CRM-DEC-025` | Decision | Bila member yang punya periode **Terjadwal** melakukan upgrade atau berhenti sebelum periode itu mulai, periode Terjadwal **dibatalkan dengan refund iuran penuh** lewat kasir, karena belum ada hari maupun manfaat yang terpakai. Periode Aktif mengikuti aturan biasa: upgrade sesuai `CRM-DEC-012`, berhenti tanpa refund sesuai `CRM-DEC-013`. Contoh: Gold Aktif s.d. 12 Okt 2027 dan Gold Terjadwal 13 Okt 2027 s.d. 12 Okt 2028 (iuran Rp 2.400.000, angka samaran). Pada 5 Okt 2027 pasien upgrade ke Platinum dan iurannya lunas. Akibatnya Gold Aktif menjadi `Upgraded`, Gold Terjadwal dibatalkan dan Rp 2.400.000 dikembalikan, lalu Platinum Aktif 5 Okt 2027 s.d. 4 Okt 2028 | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Amendment pass |
+| `CRM-DEC-026` | Decision | Bila penjamin kunjungan berubah sebelum tagihan final, diskon member **dihitung ulang otomatis mengikuti penjamin pada saat tagihan difinalkan**. Pribadi sepenuhnya mendapat diskon, sedangkan kunjungan dengan asuransi atau perusahaan tidak mendapat diskon (`CRM-DEC-016`). Setiap pencabutan atau pemberian diskon tercatat sebagai riwayat (siapa, kapan, sebab). Setelah final, perubahan penjamin mengikuti aturan koreksi billing yang berlaku. Contoh: konsultasi Rp 500.000 untuk member Gold (diskon 10%). Saat pribadi, tagihan Rp 450.000. Kasir menambahkan asuransi sebelum final, sehingga diskon dicabut dan tagihan ke asuransi Rp 500.000. Kebalikannya, asuransi dilepas sebelum final, sehingga diskon diterapkan lagi dan tagihan Rp 450.000 | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Amendment pass; menutup `DEC-CRM-002`; titik sentuh `billing-kasir` |
+| `CRM-DEC-027` | Decision | Kelompok diskon ditentukan dari **asal item tagihan** yang sudah ada di billing: `CONSULTATION` = konsultasi, `PROCEDURE` = tindakan, `LABORATORY` = laboratorium, `RADIOLOGY` = radiologi, `PHARMACY` = farmasi, dan biaya pendaftaran/administrasi = pendaftaran. Item lain (kamar operasi `OPERATING_ROOM`, pemakaian alat `EQUIPMENT_USAGE`, item ad-hoc `ADHOC`/`ADHOC_CATALOG`, kamar rawat) **tidak didiskon**. Tidak ada master pemetaan baru. Contoh: member Gold dengan diskon konsultasi 10%, farmasi 5%. Konsultasi Rp 300.000 didiskon Rp 30.000, obat Rp 200.000 didiskon Rp 10.000, dan item ad-hoc Rp 50.000 tidak didiskon. Total diskon Rp 40.000, tagihan Rp 510.000 | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Amendment pass; menutup `DEC-CRM-003`; asal item: `BillingBridgeSourceDomains` (`BillingClinicalChargeBridgeService.cs:761-772@1aecf642`) |
+| `CRM-DEC-028` | Decision | Diskon member berlaku untuk **semua jenis kunjungan**: rawat jalan, IGD, dan rawat inap, selama dibayar pribadi sepenuhnya (`CRM-DEC-016`), dengan pemetaan item yang sama (`CRM-DEC-027`). Kamar rawat tetap tidak didiskon. Sejalan dengan PDF IGD poin 7. Contoh: rawat inap pribadi member Gold (farmasi 5%), obat Rp 1.000.000 didiskon Rp 50.000, dan kamar Rp 3.000.000 tidak didiskon | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Ditanyakan saat arsitektur domain (`DEC-CRM-005`) |
+| `CRM-DEC-029` | Decision | Empat usulan desain disetujui: (1) urutan tingkat untuk upgrade **Silver < Gold < Platinum < Executive** mengikuti `PriorityLevel` (menutup `AG-04`); (2) petugas CRM boleh membatalkan pendaftaran **Menunggu Pembayaran** dengan alasan wajib, dan tagihan iurannya ikut dibatalkan; (3) data lama yang **diakui** dengan tanggal akhir yang sudah lewat langsung berstatus **Kedaluwarsa**; (4) jendela perpanjangan 30 hari dan batas bayar 7 hari disimpan di **konfigurasi aplikasi** (dapat diubah tanpa ubah kode, perlu restart) | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Review blueprint revision 1 |
+| `CRM-DEC-030` | Decision | Blueprint revision 1 **disetujui**. Perencanaan delivery dilakukan **terbatas** pada `MVP-0` s.d. `MVP-2` (`EPIC CRM-01` s.d. `CRM-07`). Owner menerima bahwa rilis ini belum bisa mengaktifkan member baru. Member lama tetap bisa aktif lewat verifikasi. `EPIC CRM-08`/`09` direncanakan setelah `DEC-CRM-001` diputuskan | Yoga Aji Pratama | `approved` | Yoga Aji Pratama, 2026-10-13 | Review blueprint revision 1 |
 | `CRM-CONF-001` | Conflict | PDF menaruh **Membership Discount** sebagai cara bayar. Keputusan rawat jalan yang sudah terkunci menetapkan diskon membership sebagai potongan harga **sebelum** pembagian penjamin, bukan sebagai penjamin/cara bayar. Contoh: tagihan Rp 1.000.000, diskon Gold 10%. Menurut aturan RJ, tagihan bersih menjadi Rp 900.000 lalu dibayar pasien atau asuransi. Menurut PDF, diskon tercatat sebagai "pembayaran" Rp 100.000 | Yoga Aji Pratama | ditutup oleh `CRM-DEC-008` | Yoga Aji Pratama, 2026-10-13 | `rawat-jalan/00-interview-decisions.md:201,216` |
 | `CRM-CONF-002` | Conflict | Daftar tingkat di PDF (5) berbeda dari enum source (8: ditambah Corporate, Family, Other) | Yoga Aji Pratama | ditutup oleh `CRM-DEC-006` | Yoga Aji Pratama, 2026-10-13 | `CRM-FACT-003` |
 
@@ -133,6 +140,9 @@ antrean, kasir) dapat mengenali pasien itu sebagai pasien prioritas.
 | Aktif | Tanggal akhir lewat | Kedaluwarsa | Sistem | Tidak diperpanjang | Berakhir 12 Okt 2027, 13 Okt sudah Reguler |
 | Aktif | Upgrade lunas | Upgraded (lama) + Aktif (baru) | Petugas CRM + kasir | Iuran tingkat baru lunas | Silver ditutup, Gold mulai 13 Okt 2026 |
 | Aktif | Berhenti atas permintaan pasien | Cancelled, tanpa refund | Petugas CRM | Alasan wajib | — |
+| Menunggu Pembayaran (perpanjangan) | Iuran lunas | Terjadwal | Kasir (memicu lewat pelunasan) | Dalam jendela 30 hari sebelum periode lama berakhir | Lunas 1 Okt 2027, periode 13 Okt 2027 s.d. 12 Okt 2028 |
+| Terjadwal | Periode lama berakhir | Aktif | Sistem | — | 13 Okt 2027 00.00 WIB |
+| Terjadwal | Upgrade atau berhenti sebelum mulai | Cancelled, refund penuh | Petugas CRM + kasir | Alasan wajib | Upgrade ke Platinum 5 Okt 2027 |
 | Aktif | Pembatalan salah input | Cancelled, refund penuh | Petugas CRM + kasir | Alasan wajib, belum ada diskon terpakai | Platinum keliru, padahal pasien membeli Gold |
 | Data lama tanpa bukti bayar | Aturan baru dipasang | Perlu Verifikasi | Sistem (sekali saat migrasi aturan) | Tidak ada tagihan iuran lunas | Gold lama milik pasien X |
 | Perlu Verifikasi | Diakui CRM | Aktif | Petugas CRM | Tanggal mulai dan berakhir sah diisi | Berlaku 1 Mar 2026 s.d. 28 Feb 2027 |
@@ -179,6 +189,10 @@ antrean, kasir) dapat mengenali pasien itu sebagai pasien prioritas.
 16. Nomor member terisi otomatis dan unik. Isian nomor dari request diabaikan atau ditolak.
 17. Membership lama tanpa tagihan iuran lunas terbaca Perlu Verifikasi, dan pasiennya terbaca Reguler.
 18. Perpanjangan pada tingkat yang sama setelah kedaluwarsa diterima.
+19. Perpanjangan lebih dari 30 hari sebelum tanggal berakhir ditolak. Perpanjangan yang lunas di dalam jendela berstatus Terjadwal dan menjadi Aktif otomatis pada hari setelah periode lama berakhir.
+20. Upgrade atau berhenti saat ada periode Terjadwal membatalkan periode itu dengan refund penuh.
+21. Menambahkan asuransi sebelum tagihan final mencabut diskon member. Melepasnya mengembalikan diskon. Keduanya tercatat di riwayat.
+22. Diskon hanya mengenai item berasal konsultasi, tindakan, laboratorium, radiologi, farmasi, dan biaya pendaftaran, sesuai persen tingkat. Item kamar operasi, alat, ad-hoc, dan kamar rawat tidak didiskon.
 
 ## Amendment yang diteruskan ke modul lain
 
@@ -216,6 +230,12 @@ antrean, kasir) dapat mengenali pasien itu sebagai pasien prioritas.
 | `CRM-OQ-008` | ~~Ditutup oleh `CRM-DEC-018`~~ Apakah rute `POST /kiosk` (kiosk membuat membership) ditutup demi `CRM-DEC-011` (`CRM-CONF-007`)? | Yoga Aji Pratama + owner `kiosk` | `DESIGN` |
 | `CRM-OQ-009` | ~~Ditutup oleh `CRM-DEC-021`~~ Membership lama yang sudah tersimpan berstatus Aktif tanpa bukti bayar: diakui apa adanya atau diverifikasi ulang? Butuh pengecekan DB dengan izin terpisah (`CRM-CAP-015`) | Yoga Aji Pratama | `IMPLEMENTATION` |
 
+| `DEC-CRM-002` | ~~Ditutup oleh `CRM-DEC-026`~~ Penjamin berubah di tengah kunjungan setelah diskon diterapkan (`02-requirement-completeness-assessment.md`) | Yoga Aji Pratama | `DESIGN` slice S4 (diskon) |
+| `DEC-CRM-003` | ~~Ditutup oleh `CRM-DEC-027`~~ Pemetaan enam kelompok diskon tier ke kategori item tagihan | Yoga Aji Pratama | `DESIGN` slice S4 (diskon) |
+| `DEC-CRM-004` | ~~Ditutup oleh `CRM-DEC-024`~~ Perpanjangan sebelum masa berlaku habis: periode baru mulai kapan | Yoga Aji Pratama | `DESIGN` slice S1b |
+
+| `CRM-OQ-010` | Bagaimana billing mengenali item "biaya pendaftaran/administrasi" untuk kelompok diskon pendaftaran (`CRM-DEC-027`)? Pertanyaan fakta source, dijawab saat desain lewat penelusuran `AdministrationFeeCalculationService` | Desain (titik sentuh `billing-kasir`) | `DESIGN` S4, tidak memblokir keputusan |
+
 **Blocker desain:** tidak ada blocker untuk keseluruhan desain. Satu ketergantungan parsial:
 `CRM-OQ-005`, yaitu persetujuan owner `billing-kasir` atas tagihan iuran non-kunjungan. Desain
 boleh berjalan, dan bagian aktivasi-setelah-lunas serta refund iuran ditandai bergantung pada
@@ -226,5 +246,13 @@ persetujuan itu.
 | Pass | Tanggal | Mode | Ringkasan |
 |---|---|---|---|
 | 1 | 2026-10-13 | Scope pass | Scope dikunci. 16 keputusan disetujui owner. Dua conflict (diskon sebagai cara bayar, daftar tingkat) ditutup. Wallet ditunda |
+| 3f | 2026-10-13 | Approval roadmap + registry | Roadmap r1 `approved` oleh Yoga Aji Pratama. Baris registry folder `PatientManagement/Membership` (`Pat`) ditambahkan atas persetujuan Muhammad Hamzah (`BE-CRM-000` selesai) |
+| 3e | 2026-10-13 | Perencanaan delivery | `roadmap/` r1 `draft`: 13 task BE (`BE-CRM-000` s.d. `023`, dua ⛔), 7 task FE, 8 coverage gap terkait `DEC-CRM-001`/`AG-01`/`AG-03` |
+| 3d | 2026-10-13 | Approval | Blueprint revision 1 `approved` (`CRM-DEC-030`), empat usulan disetujui (`CRM-DEC-029`). Perencanaan terbatas MVP-0..2 |
+| 3c | 2026-10-13 | Desain blueprint | Blueprint revision 1 (`draft`): `02` s.d. `04`, `erd/`, `contracts/`, `testing/`, `blueprint-manifest.md`. Development lock menunggu `DEC-CRM-001` |
+| 3b | 2026-10-13 | Arsitektur domain | `03-domain-architecture.md` revision 1: `DOMAIN_ARCHITECTURE_PARTIAL` (S1a, S1b, S3, S4, S5 siap; S2 terblokir `DEC-CRM-001`) |
+| 3a | 2026-10-13 | Arsitektur domain | `DEC-CRM-005` (jenis kunjungan yang mendapat diskon) muncul saat pemodelan dan ditutup oleh `CRM-DEC-028` |
+| 3 | 2026-10-13 | Amendment pass | Impact scan BE `1aecf642`/FE `f1e5e273a` menemukan definisi "member aktif" kedua di antrean RJ (`CRM-CAP-016`). `CRM-DEC-024` s.d. `CRM-DEC-027` menutup `DEC-CRM-002` s.d. `DEC-CRM-004`. Permintaan amendment billing diperluas (refund Terjadwal, penerapan diskon) |
+| 2a | 2026-10-13 | Requirement gate | `PARTIALLY_READY`: S1a, S3, S5 siap. S1b, S2, S4 menunggu `DEC-CRM-001` s.d. `DEC-CRM-004` |
 | 2 | 2026-10-13 | Closure pass | 7 keputusan baru (`CRM-DEC-017` s.d. `CRM-DEC-023`). `CRM-OQ-007`/`008`/`009` ditutup, `CRM-CONF-003` s.d. `CRM-CONF-008` dipetakan ke keputusan. Permintaan amendment billing diajukan |
 | 1a | 2026-10-13 | Audit (trace) | Capability map revision 1. `CRM-FACT-005` dikoreksi oleh `CRM-FACT-007`. `CRM-OQ-005`/`006` terjawab. Muncul `CRM-OQ-007` s.d. `CRM-OQ-009` |

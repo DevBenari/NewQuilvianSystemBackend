@@ -10,6 +10,7 @@
 | Frontend SHA | `9aba9929d` |
 | Contract version | Belum ada (blueprint belum punya kontrak target) |
 | Tanggal audit | 2026-10-13 |
+| Impact scan | 2026-10-13 terhadap BE `1aecf642` / FE `f1e5e273a` (lihat bagian akhir) |
 | Sifat | Read-only. Tidak ada source, database, atau runtime yang diubah atau dijalankan |
 
 ## Batas Audit
@@ -142,3 +143,35 @@ Peta ini dianggap basi dan perlu impact scan terbatas bila salah satu berikut be
 - `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoice.cs`, `BillingDiscountService.cs`, `BillingSettlementService.cs`;
 - `Program.cs` (policy `KioskRead`), `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`;
 - FE `src/app/health-services/patient-management/master-data/patient-memberships/**`, slice membership, `src/utils/menu-sidebar/menu-items.jsx`.
+
+## Impact Scan 2026-10-13 (BE `36422a4d` → `1aecf642`, FE `9aba9929d` → `f1e5e273a`)
+
+Ada 78 commit backend di antaranya. Pemeriksaan dibatasi pada daftar pemicu di atas.
+
+| Area | Berubah? | Dampak |
+|---|---|---|
+| `PatientMembershipController`, `MstPatientMembership`, `MstPatient` | Tidak | `CRM-CONF-003` s.d. `CRM-CONF-008` tetap berlaku |
+| `PatientController` | Ya (pilot rekonsiliasi MRN RSMMC dan pemindaian kartu asuransi) | Pencarian pasien (`CRM-CAP-005`) tidak terdampak |
+| `MstMembershipTier` | Ya, commit `77caf434` | Kolom baru `QueueAudience` (Regular/Member, bawaan Member) dan `PublicDisplayMode` (Default/FullName/MaskedName/QueueNumberOnly), milik keputusan rawat jalan `RJ-DOC-DEC-055`/`057` |
+| Billing (`BilInvoice`, diskon, settlement) | Tidak relevan (hanya deposit dan AR handoff) | `CRM-CAP-008` s.d. `CRM-CAP-010` tetap |
+| `Program.cs` | Ya, tetapi tidak menyentuh policy `KioskRead` | `CRM-CONF-007` tetap |
+| FE patient-memberships dan slice | Tidak | `CRM-CAP-007` tetap. Menu sidebar dirombak tanpa entri membership atau CRM |
+
+### Perubahan status kemampuan
+
+| ID | Sebelum | Sesudah | Bukti |
+|---|---|---|---|
+| `CRM-CAP-011` antrean prioritas | Missing | **Reuse with adapter** (milik rawat jalan) | `Areas/HealthServices/RegistrationManagement/Services/OutpatientQueueClassificationService.cs:55-104@1aecf642` mengisi `IsPriorityQueue`, `PriorityLevel`, dan `QueueAudienceSnapshot` dari membership aktif |
+| `CRM-CAP-016` (baru) | — | **Conflict** | Ada **dua definisi "member aktif"**. (1) `MstPatient.ActivePatientMembershipId`/`IsMember` yang dihitung dari `IsActive && IsPrimary` saja (`CRM-CAP-004`). (2) `OutpatientQueueClassificationService` yang memeriksa `MembershipStatus == Active`, `JoinDate`, `ExpiredDate` per tanggal kunjungan, dan tier aktif. Definisi kedua lebih dekat ke `CRM-DEC-005`. Keduanya bisa memberi jawaban berbeda untuk pasien yang sama |
+
+Contoh dampak `CRM-CAP-016`: Gold milik pasien X berakhir 12 Okt 2027. Pada 1 Jan 2028,
+antrean RJ menganggapnya Reguler (benar), tetapi nurse station masih menampilkan "Pasien
+Membership Gold" (salah).
+
+Catatan untuk desain (slice S3):
+
+- Penentuan "member aktif" perlu satu sumber milik membership yang dipakai semua konsumen, termasuk antrean RJ.
+- `OutpatientQueueClassificationService` membandingkan `ExpiredDate.Value.Date` dengan tanggal kunjungan. Bila tanggal disimpan UTC, ada risiko meleset 7 jam terhadap batas tanggal WIB (`CRM-GAP-008`).
+- Status baru Menunggu Pembayaran dan Perlu Verifikasi otomatis tidak terbaca sebagai member oleh layanan ini, karena hanya `Active` yang lolos. Ini sudah sesuai `CRM-DEC-004` dan `CRM-DEC-021`.
+- `QueueAudience` per tier bertumpang dengan `CRM-DEC-015` (manfaat antrean sama untuk semua tingkat berbayar). Tidak bertentangan selama keempat tier diisi `Member` dan `PriorityQueue = true`. Itu urusan isian master, bukan keputusan baru.
+
