@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `17` — 2026-10-09: `AC-323`..`AC-325` (rencana ulang sesudah wadah dibatalkan, putaran 29, `r46` `approved` lewat `LAB-REQ-023`). Sebelumnya `16` — amandemen 2026-10-09: lapis uji `AC-318`..`AC-322` (CITO dari pemesanan sampai ke pemeriksaan, putaran 28, `LAB-API-v1` `r45` `approved` lewat `LAB-REQ-022`). Sebelumnya `15` — amandemen 2026-10-08 (ketiga): lapis uji `AC-294`..`AC-301` dan `VAL-154` (BR-140 Beranda, kontrak usulan `LAB-REQ-021`). Sebelumnya `14` — amandemen 2026-10-08 (kedua): `AC-314`..`AC-317` (putaran 27, kontrak usulan `LAB-REQ-020`). Sebelumnya `13` —amandemen 2026-10-08: `AC-302`..`AC-313` (BR-141, kontrak usulan `LAB-REQ-019`). Sebelumnya `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `18` — 2026-10-14: uji `T-V1-01`..`T-V1-10` untuk kolom tabel v1 (`r47`) dan kartu halaman hasil v1 (`r48`) dengan akun asli dr. Bima dan Gilang, seluruhnya lulus. Sebelumnya `17` — 2026-10-09: `AC-323`..`AC-325` (rencana ulang sesudah wadah dibatalkan, putaran 29, `r46` `approved` lewat `LAB-REQ-023`). Sebelumnya `16` — amandemen 2026-10-09: lapis uji `AC-318`..`AC-322` (CITO dari pemesanan sampai ke pemeriksaan, putaran 28, `LAB-API-v1` `r45` `approved` lewat `LAB-REQ-022`). Sebelumnya `15` — amandemen 2026-10-08 (ketiga): lapis uji `AC-294`..`AC-301` dan `VAL-154` (BR-140 Beranda, kontrak usulan `LAB-REQ-021`). Sebelumnya `14` — amandemen 2026-10-08 (kedua): `AC-314`..`AC-317` (putaran 27, kontrak usulan `LAB-REQ-020`). Sebelumnya `13` —amandemen 2026-10-08: `AC-302`..`AC-313` (BR-141, kontrak usulan `LAB-REQ-019`). Sebelumnya `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1048,3 +1048,24 @@ Kontrak `LAB-API-v1` `r45` — **`approved` 2026-10-09** lewat `LAB-REQ-022`. De
 | `AC-323` | Unit BE | Leukosit Cito berpenanda; wadah dibatalkan; rencana ulang → Cito, penanda sama | ✅ Harness `BE-LAB-95` |
 | `AC-324` | Unit BE | Hemoglobin dicabut (berpenanda), permintaan Cito; wadah dibatalkan; rencana ulang → Routine berpenanda | ✅ Harness `BE-LAB-95` |
 | `AC-325` | Unit BE | Pendahulu tanpa penanda + permintaan Cito → Cito kosong; tanpa pendahulu → permintaan; ambil ulang dengan pemeriksaan lama tanpa penanda → permintaan | ✅ Harness `BE-LAB-95` |
+
+## Amandemen 2026-10-14 — Kolom tabel v1 (`r47`) dan kartu halaman hasil v1 (`r48`)
+
+Kontrak `LAB-API-v1` `r47` **`approved` 2026-10-09** lewat `LAB-REQ-024`; `r48` **`approved` susulan 2026-10-14** lewat
+`LAB-REQ-025`. Kedua permintaan tidak menurunkan nomor AC, jadi uji di bawah memakai nomor `T-V1-*`. Seluruhnya **baca-saja**
+terhadap devYoga dengan akun asli dr. Bima (Kepala Instalasi) dan Gilang (Analis); penjaga tulis mencatat nol permintaan tulis.
+
+| Uji | Lapis | Cara | Keadaan 2026-10-14 |
+|---|---|---|---|
+| `T-V1-01` | HTTP | Daftar pantau PK, PA, Mikro memuat kedelapan ruas `r47` dan `orderedProcedures` | ✅ Gilang — PK 11, PA 4, Mikro 7 pesanan |
+| `T-V1-02` | HTTP | Daftar pantau ditolak bagi jabatan tanpa `LabMonitoring : Read` | ✅ dr. Bima `403` |
+| `T-V1-03` | HTTP | `GET /lab-orders/{id}` memuat kedelapan ruas `r48` | ✅ 8/8 pada `LAB-RSMMC-000001`, `000009`, `000014`, `000024`, kedua akun |
+| `T-V1-04` | HTTP | `resultEnteredByName` pada jalur hasil PK | ✅ *Vina Aprilianti* pada `000001`; kosong bila hasil belum diisi |
+| `T-V1-05` | HTTP | Jalur hasil PK menolak order Mikro/PA | ✅ `422` *"Order ini bukan Patologi Klinik"* — sesuai |
+| `T-V1-06` | Peramban | Kartu halaman hasil PK, Mikro, PA cocok dengan API (Kelas, Penjamin, Poli/Kamar, DPJP, tanggal WIB, Penanggung Jawab Analis) | ✅ kedua akun |
+| `T-V1-07` | Peramban | Daftar Pasien Lab: kolom v1 ada, tiga kolom lama tidak ada; baris `000024` memuat CITO, dua pemeriksaan, penjamin, user order | ✅ Gilang |
+| `T-V1-08` | Peramban | Hasil dan Riwayat: Email, Poliklinik, *Terkirim ke Pasien* "Belum Terkirim" | ✅ Gilang |
+| `T-V1-09` | Peramban | Penerimaan Sampling v1 terbuka | ✅ Gilang. Unit Layanan kosong (`service-units/options` `403`) — temuan lama |
+| `T-V1-10` | Unit FE | `tests/unit/lab-v1-parity-rules.test.mjs` | ✅ 20/20 |
+
+Peramban total **54/54**. Belum diuji: Simpan sungguhan pada Penerimaan Sampling v1, karena menulis data.
