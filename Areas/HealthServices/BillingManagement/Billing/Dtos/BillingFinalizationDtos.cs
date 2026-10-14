@@ -31,7 +31,8 @@ public sealed class FinalizationPreviewResponse
     /// <summary>
     /// Kode penahan finalisasi yang dapat dibaca mesin — kontrak <c>integrasi-billing</c>
     /// <c>1.1.0</c> API 3.9: <c>BIL-FIN-020</c> invoice "perlu diperiksa",
-    /// <c>BIL-FIN-021</c> masih ada layanan "tarif belum ada".
+    /// <c>BIL-FIN-021</c> masih ada layanan "tarif belum ada", <c>BIL-FIN-022</c> masih ada pelayanan
+    /// eligible yang belum masuk invoice (<c>BE-BKC-FIX-021</c>).
     /// </summary>
     public IReadOnlyList<string> BlockingCodes { get; set; } = [];
 

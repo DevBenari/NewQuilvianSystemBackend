@@ -584,3 +584,13 @@ kwitansi yang menyatakan tagihan lunas padahal masih bersisa Rp 250.000.
 Trace `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`. Tests: `BIL-AT-159`–`BIL-AT-168`.
 
 
+
+---
+
+## Delta 12 Oktober 2026 — `BIL-FIN-022` (`BE-BKC-FIX-021`)
+
+| Kode | Aturan | Jalur | Pengecualian | Pelepas |
+| --- | --- | --- | --- | --- |
+| `BIL-FIN-022` | Invoice tidak dapat difinalkan normal selama kunjungannya masih punya pelayanan layak tagih yang belum menjadi item: efek folio `Pending`/`Failed`/`ReconciliationRequired` (selain `TARIFF_NOT_FOUND` = `BIL-FIN-021`) atau fakta klinis tagih yang belum diterima folio | Finalisasi manual normal, selesaikan tanpa kewajiban pasien, tutup otomatis sesudah lunas | Departure exception (`BKC-DEC-033`); efek `NotApplicable` (gratis, tidak billable, tahap belum eligible) tidak pernah menahan | Kirim ulang berhasil (`Synced`) atau diselesaikan di antrean rekonsiliasi (`Resolved`) |
+
+Rencana: [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-11.

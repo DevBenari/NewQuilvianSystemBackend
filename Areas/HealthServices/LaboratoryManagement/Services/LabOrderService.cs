@@ -530,7 +530,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     EncounterType = x.Encounter != null ? x.Encounter.EncounterType.ToString() : null,
                     ServiceUnitName = x.Encounter != null && x.Encounter.ServiceUnit != null
                         ? x.Encounter.ServiceUnit.ServiceUnitName
-                        : null
+                        : null,
+
+                    // r48 — kartu info halaman hasil v1. Sub-query/navigasi dalam proyeksi yang sama.
+                    ClinicName = x.Encounter != null && x.Encounter.Clinic != null
+                        ? x.Encounter.Clinic.ClinicName
+                        : null,
+                    RoomName = x.Encounter != null && x.Encounter.Room != null
+                        ? x.Encounter.Room.RoomName
+                        : null,
+                    PatientClassName = x.Encounter != null && x.Encounter.PatientClass != null
+                        ? x.Encounter.PatientClass.PatientClassName
+                        : null,
+                    PaymentType = x.Encounter != null ? x.Encounter.PaymentType.ToString() : null,
+                    PayerName = _dbContext.RegPatientEncounterGuarantors
+                        .Where(g => g.EncounterId == x.EncounterId && !g.IsDelete && g.IsActive)
+                        .OrderByDescending(g => g.IsPrimary)
+                        .ThenBy(g => g.Priority)
+                        .Select(g => g.PaymentSourceNameSnapshot)
+                        .FirstOrDefault(),
+                    ReferringDoctorName = x.Encounter == null
+                        ? null
+                        : x.Encounter.Doctor != null
+                            ? x.Encounter.Doctor.FullName
+                            : x.Encounter.ReferralDoctor != null
+                                ? x.Encounter.ReferralDoctor.DoctorName
+                                : null,
+                    FirstCollectedAt = _dbContext.LabSpecimens
+                        .Where(s => s.LabOrderId == x.Id && !s.IsDelete && s.CollectedAt.HasValue)
+                        .Min(s => s.CollectedAt),
+                    FirstExaminedAt = _dbContext.LabExaminations
+                        .Where(e => e.LabOrderId == x.Id && !e.IsDelete && e.ExaminedAt.HasValue)
+                        .Min(e => e.ExaminedAt)
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 

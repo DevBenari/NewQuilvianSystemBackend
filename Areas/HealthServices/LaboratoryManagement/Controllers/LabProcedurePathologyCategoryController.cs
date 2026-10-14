@@ -48,6 +48,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _labProcedurePathologyCategoryService = labProcedurePathologyCategoryService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabProcedurePathologyCategoryFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Procedure Pathology Category", Description = "Melihat daftar, ringkasan, detail, dan usulan penggolongan jenis pemeriksaan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyCategory", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabProcedurePathologyCategory();
+
+            return Ok(ApiResponse<LabProcedurePathologyCategoryFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring penggolongan jenis pemeriksaan berhasil diambil."));
+        }
+
+        // Ringkasan. `unmappedProcedure` adalah alasan endpoint ini ada: ia angka pekerjaan yang
+        // tersisa bagi kepala instalasi, dan penahan yang FE-LAB-28 tunggu.
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabProcedurePathologyCategorySummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Procedure Pathology Category", Description = "Melihat daftar, ringkasan, detail, dan usulan penggolongan jenis pemeriksaan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyCategory", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labProcedurePathologyCategoryService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabProcedurePathologyCategorySummaryResponse>.Ok(
+                result, "Ringkasan penggolongan jenis pemeriksaan berhasil diambil."));
+        }
+
         // Daftar jenis pemeriksaan yang sudah digolongkan, beserta golongannya.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabProcedurePathologyCategoryResponse>>), StatusCodes.Status200OK)]
@@ -129,6 +155,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // =============================================================
         // Baseline data induk yang dilengkapi 2026-09-23 — `LAB-API-v1` r32.
         //
+        // `filters/metadata` dan `summary` dari baseline ini ditaruh paling awal controller
+        // supaya tampil teratas di Swagger (permintaan pemilik modul 2026-10-13).
+        //
         // TIGA endpoint, bukan empat. `PATCH /{id}/status` nol berlaku di sini sebab
         // `LabProcedurePathologyCategory` nol punya `IsActive` — ia baris pemetaan, bukan data
         // induk berstatus — dan `GET /options` nol dibangun sebab nol satu pun layar memilih
@@ -137,32 +166,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // `hasOptionsEndpoint`, supaya layar membacanya alih-alih menyimpulkannya dari endpoint
         // yang menjawab 404.
         // =============================================================
-
-        [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<LabProcedurePathologyCategoryFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Procedure Pathology Category", Description = "Melihat daftar, ringkasan, detail, dan usulan penggolongan jenis pemeriksaan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabPathologyCategory", "Read")]
-        public IActionResult GetFilterMetadata()
-        {
-            var result = LabFilterMetadataFactory.LabProcedurePathologyCategory();
-
-            return Ok(ApiResponse<LabProcedurePathologyCategoryFilterMetadataResponse>.Ok(
-                result, "Metadata penyaring penggolongan jenis pemeriksaan berhasil diambil."));
-        }
-
-        // Ringkasan. `unmappedProcedure` adalah alasan endpoint ini ada: ia angka pekerjaan yang
-        // tersisa bagi kepala instalasi, dan penahan yang FE-LAB-28 tunggu.
-        [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<LabProcedurePathologyCategorySummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Procedure Pathology Category", Description = "Melihat daftar, ringkasan, detail, dan usulan penggolongan jenis pemeriksaan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabPathologyCategory", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
-        {
-            var result = await _labProcedurePathologyCategoryService.GetSummaryAsync(cancellationToken);
-
-            return Ok(ApiResponse<LabProcedurePathologyCategorySummaryResponse>.Ok(
-                result, "Ringkasan penggolongan jenis pemeriksaan berhasil diambil."));
-        }
 
         // Jalur detail. Tanpa ini, formulir ubah yang dibuka lewat tautan langsung atau sesudah
         // halaman disegarkan nol punya cara memuat barisnya — dan gagalnya DIAM.
@@ -189,10 +192,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
-        /// <summary>
-        /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang
-        /// tepat, tanpa membocorkan detail exception ke pemanggil.
-        /// </summary>
         private async Task<IActionResult> ExecuteAsync(
             Func<Task<LabProcedurePathologyCategoryResponse>> action,
             string successMessage)

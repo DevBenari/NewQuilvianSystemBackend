@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -638,7 +638,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (!hasTariff)
             {
                 messages.Add(coverage.CoverageStatus == "ConfigurationMissing"
-                    ? "Tarif rumah sakit untuk obat ini belum tersedia pada scope encounter."
+                    ? "Tarif sesuai kelas kamar maupun tarif umum obat belum tersedia. Lengkapi tarif sebelum menyimpan resep."
                     : coverage.ErrorMessage ?? "Tarif obat belum dapat digunakan.");
             }
 

@@ -57,14 +57,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             "Status kunjungan gawat darurat tidak dapat diubah dari sini. " +
             "Tutup lewat layar IGD: tandai pasien pergi sebelum ditriage, atau selesaikan/batalkan kunjungan IGD-nya.";
 
-        /// <summary>
-        /// Saklar pemblokir "satu pasien satu kunjungan aktif" (RJ-DOC-REV-BE-007/008).
-        /// Ditangguhkan sementara oleh RJ-DOC-DEC-026: bawaannya <c>false</c>, sehingga pendaftaran
-        /// tidak ditolak karena kunjungan lama yang belum selesai. Isi <c>true</c> untuk
-        /// menghidupkan kembali aturan tanpa perubahan kode.
-        /// </summary>
-        private const string BlockActiveEncounterConfigKey = "HealthServices:Registration:BlockActiveEncounter";
-
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly QueueRealtimeService _queueRealtimeService;
@@ -114,8 +106,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     dbContext, new EmployeeBenefitEligibilityService(dbContext), loggerService);
         }
 
+        /// <summary>
+        /// Saklar pemblokir "satu pasien satu kunjungan aktif" (RJ-DOC-REV-BE-007/008,
+        /// RJ-DOC-DEC-026). Isi <c>true</c> untuk menghidupkan aturan tanpa perubahan kode. Saklar,
+        /// aturan, dan kalimatnya tinggal di <see cref="OutpatientEncounterRules"/> karena ikut
+        /// dibaca pemeriksaan kelayakan admisi rawat inap (<c>ISSUE-EPS-010</c>).
+        /// </summary>
         private bool IsActiveEncounterBlockEnabled =>
-            _configuration?.GetValue(BlockActiveEncounterConfigKey, false) ?? false;
+            OutpatientEncounterRules.IsActiveEncounterBlockEnabled(_configuration);
 
         [HttpGet("admin/filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterFilterMetadataResponse>), StatusCodes.Status200OK)]
@@ -1704,27 +1702,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return query;
         }
 
-        private sealed record ActiveEncounterInfo(string EncounterNumber, DateTime EncounterDate);
-
         /// <summary>
         /// Kunjungan Rawat Jalan berklinik yang masih menghalangi pendaftaran, tanggal berapa pun
-        /// (RJ-DOC-REV-BE-007), memakai <see cref="OutpatientEncounterRules.WhereBlocksRegistration"/>.
-        /// Kunjungan status 7-8, penunjang tanpa klinik, IGD, dan Rawat Inap tidak menghalangi
-        /// (RJ-DOC-DEC-019, RJ-DOC-DEC-022).
+        /// (RJ-DOC-REV-BE-007), memakai <see cref="OutpatientEncounterRules.FindBlockingEncounterAsync"/>.
         /// </summary>
-        private Task<ActiveEncounterInfo?> FindActiveEncounterAsync(Guid patientId) =>
-            _dbContext.Set<RegPatientEncounter>()
-                .AsNoTracking()
-                .WhereBlocksRegistration(_dbContext)
-                .Where(x => x.PatientId == patientId)
-                .OrderByDescending(x => x.EncounterDate)
-                .Select(x => new ActiveEncounterInfo(x.EncounterNumber, x.EncounterDate))
-                .FirstOrDefaultAsync(HttpContext.RequestAborted);
+        private Task<BlockingEncounterInfo?> FindActiveEncounterAsync(Guid patientId) =>
+            OutpatientEncounterRules.FindBlockingEncounterAsync(_dbContext, patientId, HttpContext.RequestAborted);
 
-        private static string BuildActiveEncounterMessage(ActiveEncounterInfo kunjungan) =>
-            $"Pasien masih memiliki kunjungan aktif bernomor {kunjungan.EncounterNumber} " +
-            $"tanggal {kunjungan.EncounterDate.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("id-ID"))}. " +
-            "Selesaikan atau batalkan kunjungan tersebut sebelum mendaftar ke poliklinik atau layanan lain.";
+        private static string BuildActiveEncounterMessage(BlockingEncounterInfo kunjungan) =>
+            OutpatientEncounterRules.BuildActiveEncounterMessage(kunjungan);
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateRequestAsync(
             PatientEncounterCreateRequest request,

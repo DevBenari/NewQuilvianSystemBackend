@@ -26,6 +26,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public string? PhoneNumber { get; set; }
 
         public string? Email { get; set; }
+
+        /// <summary>URL logo resmi rumah sakit untuk kop surat.</summary>
+        public string? LogoUrl { get; set; }
     }
 
     /// <summary>Ringkasan ruang kerja tanpa rupiah (<c>BE-RWI-195</c>).</summary>

@@ -87,15 +87,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         }
 
         /// <summary>Papan ketersediaan tempat tidur per unit layanan dan kamar.</summary>
+        /// <remarks>
+        /// <c>roomId</c>, <c>patientClassId</c>, dan <c>search</c> opsional, sama dengan
+        /// <c>available-beds</c> (BE-RWI-228). Tanpa parameter, jawabannya tidak berubah.
+        /// </remarks>
         [HttpGet("bed-board")]
         [ProducesResponseType(typeof(ApiResponse<BedBoardResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Inpatient Bed Occupancy", Description = "Melihat papan ketersediaan tempat tidur", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("InpatientBedOccupancy", "Read")]
         public async Task<IActionResult> GetBedBoard(
             [FromQuery] Guid? serviceUnitId,
+            [FromQuery] Guid? roomId,
+            [FromQuery] Guid? patientClassId,
+            [FromQuery] string? search,
             CancellationToken cancellationToken = default)
         {
-            var result = await _bedOccupancyService.GetBedBoardAsync(serviceUnitId, cancellationToken);
+            var result = await _bedOccupancyService.GetBedBoardAsync(serviceUnitId, roomId, patientClassId, search, cancellationToken);
 
             return Ok(ApiResponse<BedBoardResponse>.Ok(
                 result,
@@ -395,7 +402,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         /// </summary>
         private IActionResult FromFailure(InpBedOccupancyOperationResult result)
         {
-            object? errors = result.Failures.Count > 0 ? result.Failures : null;
+            object? errors = result.Failures.Count > 0
+                ? result.Failures
+                : !string.IsNullOrWhiteSpace(result.Code)
+                    ? new { code = result.Code }
+                    : null;
 
             return result.Status switch
             {

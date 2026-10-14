@@ -232,10 +232,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                     ? "Jenis specimen berhasil diaktifkan."
                     : "Jenis specimen berhasil dinonaktifkan.");
 
-        /// <summary>
-        /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang
-        /// tepat, tanpa membocorkan detail exception ke pemanggil.
-        /// </summary>
         private async Task<IActionResult> ExecuteAsync(
             Func<Task<LabSpecimenTypeResponse>> action,
             string successMessage)

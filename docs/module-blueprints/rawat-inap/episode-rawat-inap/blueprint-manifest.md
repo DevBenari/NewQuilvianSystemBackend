@@ -570,3 +570,24 @@ Permintaan pengguna menjalankan plan-module-delivery ditangani sebagai **perenca
 | [roadmap/bed-management-delivery-lock.json](./roadmap/bed-management-delivery-lock.json) | DRAFT/FORWARD-TEST rev1 | 1d78636725038c2c32c216035a6c0cb14a6662515499eff12d21952276097260 |
 
 Pemeriksaan aktual dan gap bukti dicatat pada [traceability delivery](./roadmap/requirement-traceability-bed-management.md). Tidak ada approval baru yang diinferensikan, source aplikasi/lockfile yang ditulis, migration/database yang dijalankan, atau Git mutation. Tabel artefak desain14.3/14.8 tidak berubah.
+
+## 16. Delta PLAN-REPAIR-DOK-006 — Kelas perawatan mengikuti kamar ★ 13 Oktober 2026
+
+**Status: `SELESAI`** — task sub-modul ini ditutup 13 Oktober 2026. Plan, issue, dan kontrak milik `dokter-rawat-inap`; register lengkapnya pada [dokter-rawat-inap bagian 11](../dokter-rawat-inap/blueprint-manifest.md). Amandemen desain dan delivery pada bagian 13–15 tidak berubah. Uji UI/runtime belum dilakukan.
+
+| Field | Nilai |
+| --- | --- |
+| Plan / kontrak | [PLAN-REPAIR-DOK-006](../dokter-rawat-inap/docs/plan-repair/plan-repair-006-kelas-perawatan-dan-cakupan-asuransi.md) / [RWI-KELAS-006-1.0](../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112` |
+| Task | ✅ BE-RWI-224 (FIX-DOK-006-02), ✅ FE-RWI-240 (FIX-DOK-006-06) |
+| Source | Implementasi di-commit `8551291f` / `2d0a6890e`; perbaikan penutupan 2 baris `EncounterInsuranceService.cs` belum di-commit |
+| Amandemen hulu sub-modul ini | `03-frontend-architecture.md`, `05-skema-tampilan.md`, `contracts/api-contract.md`, `contracts/integration-contract.md`, `contracts/validation-matrix.md` |
+
+| Artefak relatif | Status | SHA256 byte working copy (CRLF) saat penutupan |
+| --- | --- | --- |
+| [roadmap/backend-roadmap-kelas-perawatan.md](./roadmap/backend-roadmap-kelas-perawatan.md) | revision `1`; BE-RWI-224 ✅ | `6d13021089bd46bd6ee3fce0dc198f6e74298b72d86adbf6e8eb24c2e9291b6f` |
+| [roadmap/frontend-roadmap-kelas-perawatan.md](./roadmap/frontend-roadmap-kelas-perawatan.md) | revision `1`; FE-RWI-240 ✅ | `170c2c3885a6e0c83ff66206efcdf241a986f4e54eec4ff2dade3867443e4caa` |
+| [roadmap/requirement-traceability-kelas-perawatan.md](./roadmap/requirement-traceability-kelas-perawatan.md) | FIX-DOK-006-02/06 ✅ | `43ea53bf3b545e9ee5ff0158244ff5d6c9710f6de48a154bff07e763a0a8ca1a` |
+| [task/report/backend/BE-RWI-224.md](./task/report/backend/BE-RWI-224.md) | ✅ | `3fd6f241c4f16bc70ce186e0521bad81e9182742d0dd6fcfe4c53142679dc2f9` |
+| [task/report/frontend/FE-RWI-240.md](./task/report/frontend/FE-RWI-240.md) | ✅ | `794c220b6496103fb4c08a0ecc3ae94addc4af9e2d91eceaa2024561165871aa` |
+
+ID task RWI terpakai sampai BE-RWI-226 dan FE-RWI-240; tetap pindai ulang ruang ID global sebelum alokasi berikutnya.

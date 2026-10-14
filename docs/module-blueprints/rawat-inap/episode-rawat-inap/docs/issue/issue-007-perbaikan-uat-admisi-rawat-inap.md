@@ -8,7 +8,7 @@ blueprint_id: RWI-BP-001
 layar: "Admisi Rawat Inap — Langkah 1 Jenis Kunjungan & Langkah 5 Deposit (FE-INP-03, FE-INP-20)"
 sumber_laporan: "Laporan UAT Admisi Rawat Inap 12 Oktober 2026: 3 butir temuan (UAT-ADM-001, UAT-ADM-002, UAT-ADM-003)"
 tanggal_issue: "2026-10-12"
-status: DALAM_PERBAIKAN
+status: SELESAI
 keparahan_tertinggi: High
 source_sha_backend: "9a108c6422e12e06080ca7dfccee0063a57dfa04 (MHamzah)"
 source_sha_frontend: "3f8cb2facce438969ffa95a0cd172b5ebde7a333 (HamzahV2)"

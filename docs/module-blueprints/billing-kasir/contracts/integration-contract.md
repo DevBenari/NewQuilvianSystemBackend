@@ -492,3 +492,20 @@ rujukan padahal tidak ada.
 Trace `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`, `CAP-BIL-09`. Tests: `BIL-AT-159`–`BIL-AT-168`.
 
 
+
+---
+
+## Delta 12 Oktober 2026 — Producer klinis ke invoice (`PLAN-REPAIR-BKC-001`, `BKC-DEC-135`..`140`)
+
+| Sumber (`SourceContext`) | Domain invoice / status tagih | Milestone | Granularitas | Tarif | Koreksi | Task |
+| --- | --- | --- | --- | --- | --- | --- |
+| `Prescription` | `PHARMACY` / `PRESCRIBED` (rajal, IGD), `DISPENSED` (ranap) | Finalisasi resep; revisi saat diserahkan | Satu baris per resep | Σ obat reguler + **Σ bahan racikan** (`PricingQuantity` × tarif obat), tanpa jasa racik (`BKC-DEC-136`) | Retur obat reguler otomatis; retur bahan racikan adjustment manual | `BE-BKC-FIX-015` |
+| — | — | — | — | **Pengirim langsung `PrescriptionBillingChargeProducer` dihapus**; fakta → folio → jembatan adalah satu-satunya jalur tagihan resep | — | `BE-BKC-FIX-015` |
+| `DrugUsage` (**baru**) | `CONSUMABLE` / `USED` | Pemakaian **dicatat** (stok berkurang); draft tidak | Satu baris per butir pemakaian | Tarif obat/alkes berlaku; tanpa tarif → `TARIFF_NOT_FOUND` | Retur → fakta `DrugReturn` per butir; penyerahan resep `NOT_BILLABLE` (`BKC-DEC-138`) | `BE-BKC-FIX-017` |
+| `BloodBank` | `BLOOD_BANK` / `COMPLETED` (**kini diteruskan ke invoice**) | Tindakan `Recorded` → `Completed` | Satu baris per tindakan, bukan per kantong | `MstTariff` berlaku (tarif tindakan, lalu tarif tindakan rujukan) | Tanpa void normal; adjustment (`BKC-DEC-140`) | `BE-BKC-FIX-018` |
+| `Procedure` | `PROCEDURE` / `PERFORMED` | **Semua** jalur yang menyimpan tindakan `Completed` (`ExecuteImmediately`, tindakan keperawatan IGD, pemulihan `AlreadyExecuted`) | Per tindakan | Tidak berubah | Tidak berubah | `BE-BKC-FIX-019` |
+| Semua sumber kandidat | — | Kunjungan **IGD** kini dijembatani ke invoice kunjungan IGD; konsolidasi ranap lewat tautan invoice (`BKC-DEC-139`) | — | — | — | `BE-BKC-FIX-016` |
+| `NursingIntervention` | — | **Ditunda** (`BKC-DEC-135`) | — | — | — | — |
+| Gizi | — | **Tidak ditagih terpisah** (`BKC-DEC-137`) | — | — | — | — |
+
+Keadaan penagihan per sumber dapat dibaca modul produsen lewat `BillingClinicalChargeBridgeService.GetChargeStateAsync` (`NOT_SENT`, `NOT_RECEIVED`, `WAITING_FOR_BILLING`, `IN_INVOICE`, `NOT_CHARGED`, `NEEDS_REVIEW`, `RESOLVED_MANUALLY`). Fakta lama yang sudah `NotApplicable` tidak diproses ulang otomatis. Rencana: [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md).

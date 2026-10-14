@@ -140,6 +140,14 @@ public sealed class BillingFinalizationService
                 throw new BillingFinalizationBlockedException(
                     "Masih ada layanan yang tarifnya belum diatur. Lengkapi master tarif sebelum memfinalkan.",
                     readiness);
+            // BE-BKC-FIX-021: finalisasi normal tertahan oleh pelayanan yang belum masuk invoice.
+            // Departure exception (meninggal, transfer darurat, APS) tidak ditahan — BKC-DEC-033;
+            // tagihan yang menyusul diajukan sebagai adjustment seperti late charge lain.
+            if (!isDepartureException
+                && readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.PendingClinicalCharge))
+                throw new BillingFinalizationBlockedException(
+                    "Masih ada pelayanan yang belum masuk invoice. Selesaikan antrean rekonsiliasi sebelum memfinalkan.",
+                    readiness);
             if (!readiness.AllOrdersComplete || !readiness.CalculationCurrent)
                 throw new BillingFinalizationBlockedException(
                     "Invoice belum siap difinalisasi.", readiness);
@@ -354,6 +362,11 @@ public sealed class BillingFinalizationService
                 throw new BillingFinalizationBlockedException(
                     "Invoice belum memiliki hasil perhitungan terkini.",
                     readiness);
+            // BE-BKC-FIX-021: penahan yang sama dengan finalisasi manual normal.
+            if (readiness.BlockingCodes.Count > 0)
+                throw new BillingFinalizationBlockedException(
+                    readiness.BlockingReasons.LastOrDefault() ?? "Invoice belum siap diselesaikan.",
+                    readiness);
             if (readiness.Outstanding > 0 || calculation.PatientAmount > 0)
                 throw new BillingFinalizationBlockedException(
                     "Invoice memiliki kewajiban pasien; gunakan alur pembayaran normal.",
@@ -462,6 +475,12 @@ public sealed class BillingFinalizationService
             return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup karena masih terdapat order yang belum selesai.");
         if (!readiness.CalculationCurrent)
             return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup karena hasil kalkulasi belum terkini.");
+        // BE-BKC-FIX-021: penutupan otomatis memakai penahan yang sama dengan finalisasi manual.
+        if (readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.PendingClinicalCharge))
+            return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup karena masih ada pelayanan yang belum masuk invoice.");
+        if (readiness.BlockingCodes.Count > 0)
+            return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup: " +
+                (readiness.BlockingReasons.LastOrDefault() ?? "invoice perlu diperiksa."));
         if (readiness.Outstanding > 0)
             return (false, "Pembayaran berhasil, tetapi sisa tagihan pasien belum lunas.");
 
@@ -684,6 +703,12 @@ public sealed class BillingFinalizationService
         var calculationCurrent = await IsCalculationCurrentAsync(invoice.Id, calculation, cancellationToken);
         var outstanding = await _closureService.CalculateOutstandingAsync(invoice, calculation, cancellationToken);
         var hasTariffNotFound = await HasTariffNotFoundAsync(invoice, calculation, cancellationToken);
+        // BE-BKC-FIX-021 / ISSUE-BKC-001 T1: pelayanan eligible yang belum menjadi item tidak dapat
+        // diperiksa lewat item invoice. "Tarif belum ada" sudah punya kode sendiri, jadi tidak
+        // dihitung dua kali di sini.
+        var pendingChargeCount = (await BillingPendingChargeQuery.CountByEncounterAsync(
+                _dbContext, [invoice.EncounterId], cancellationToken, excludeTariffNotFound: true))
+            .GetValueOrDefault(invoice.EncounterId);
 
         EmployeeBenefitSplitCalculationResult? splitResult = null;
         if (_splitService is not null)
@@ -716,6 +741,14 @@ public sealed class BillingFinalizationService
         {
             blockingReasons.Add("Masih ada layanan yang tarifnya belum diatur. Lengkapi master tarif sebelum memfinalkan.");
             blockingCodes.Add(BillingFinalizationBlockingCodes.TariffNotFound);
+        }
+        if (pendingChargeCount > 0)
+        {
+            blockingReasons.Add(
+                $"Masih ada {pendingChargeCount} pelayanan yang sudah layak ditagih tetapi belum masuk invoice " +
+                "(menunggu diteruskan, gagal, atau perlu ditinjau). Kirim ulang atau selesaikan lewat antrean " +
+                "rekonsiliasi sebelum memfinalkan.");
+            blockingCodes.Add(BillingFinalizationBlockingCodes.PendingClinicalCharge);
         }
 
         if (splitResult is not null)
@@ -993,6 +1026,12 @@ public static class BillingFinalizationBlockingCodes
 
     /// <summary>Masih ada layanan "tarif belum ada" (<c>VAL-RWF-17</c>).</summary>
     public const string TariffNotFound = "BIL-FIN-021";
+
+    /// <summary>
+    /// Masih ada pelayanan eligible yang belum menjadi item invoice — menunggu diteruskan, gagal,
+    /// atau perlu ditinjau (<c>BE-BKC-FIX-021</c>, <c>ISSUE-BKC-001</c> T1).
+    /// </summary>
+    public const string PendingClinicalCharge = "BIL-FIN-022";
 }
 
 public abstract class BillingFinalizationException : Exception

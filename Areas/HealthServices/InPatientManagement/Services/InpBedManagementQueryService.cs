@@ -19,61 +19,171 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
     };
     public async Task<BedOperationalResponse> ProjectAsync(MstBed bed, CancellationToken ct = default)
     {
-        var room = await db.Set<MstRoom>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == bed.RoomId, ct);
-        var unit = room == null ? null : await db.Set<MstServiceUnit>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == room.ServiceUnitId, ct);
-        var cls = room?.PatientClassId == null ? null : await db.Set<MstPatientClass>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == room.PatientClassId, ct);
-        var root = await db.Set<InpBedReadiness>().AsNoTracking().SingleOrDefaultAsync(x => x.BedId == bed.Id, ct);
-        var placement = await db.Set<InpBedPlacement>().AsNoTracking().FirstOrDefaultAsync(x => x.BedId == bed.Id && x.EndDateTime == null && !x.IsDelete, ct);
-        var reservation = await db.Set<InpBedReservation>().AsNoTracking().FirstOrDefaultAsync(x => x.BedId == bed.Id && x.ReservationStatus == InpBedReservationStatus.Active && !x.IsDelete && x.ExpiresAt > DateTime.UtcNow, ct);
-        var valid = !bed.IsDelete && bed.IsActive && bed.IsReservable && room is { IsDelete: false, IsActive: true, IsAvailableForAdmission: true } &&
-            unit is { IsDelete: false, IsActive: true } && cls is { IsDelete: false, IsActive: true };
-        var closed = bed.BedStatus is BedStatus.Maintenance or BedStatus.Blocked or BedStatus.Inactive or BedStatus.Unknown ||
-            !Enum.IsDefined(bed.BedStatus);
-        var code = placement != null ? "Occupied" : reservation != null ? "Reserved" :
-            !valid || closed ? "Unavailable" : root?.State switch
-            {
-                InpBedReadinessState.Ready when bed.BedStatus == BedStatus.Available => "Available",
-                InpBedReadinessState.WaitingCleaning => "WaitingCleaning",
-                InpBedReadinessState.Cleaning or InpBedReadinessState.AwaitingVerification => "Cleaning",
-                _ => "Unavailable"
-            };
-        var response = new BedOperationalResponse
-        {
-            RawBedStatus = (int)bed.BedStatus, BedId = bed.Id, BedCode = bed.BedCode, BedName = bed.BedName, RoomId = bed.RoomId,
-            RoomName = room?.RoomName, RawRoomCode = room?.RoomCode, RawRoomCapacity = room?.Capacity ?? 0, ServiceUnitId = room?.ServiceUnitId ?? Guid.Empty,
-            PatientClassId = room?.PatientClassId, PatientClassName = cls?.PatientClassName,
-            IsIsolationBed = bed.IsIsolationBed, IsForNewborn = bed.IsForNewborn,
-            StatusCode = code, StatusLabel = StatusLabels[code], IsBookable = code == "Available",
-            OperationalVersion = root?.Version ?? 1, CycleId = root?.CycleId ?? Guid.Empty,
-            CleaningPhase = code == "Cleaning" ? root?.State == InpBedReadinessState.AwaitingVerification ? "AwaitingVerification" : "InProgress" : null,
-            ConflictCode = (placement != null && reservation != null && placement.EpisodeId != reservation.EpisodeId) || (placement != null && (bed.BedStatus != BedStatus.Occupied || !valid)) ||
-                (reservation != null && (bed.BedStatus != BedStatus.Reserved || !valid)) ? "ADMINISTRATIVE_CONFLICT" : null
-        };
-        if (!valid) response.BlockReasonCodes.Add("MASTER_INVALID");
-        if (closed) response.BlockReasonCodes.Add("BED_UNAVAILABLE");
-        if (root?.State != InpBedReadinessState.Ready) response.BlockReasonCodes.Add("BED_NOT_READY");
-        var episodeId = placement?.EpisodeId ?? reservation?.EpisodeId;
-        if (episodeId.HasValue && await access.CanReadIdentityAsync(episodeId.Value, response.ServiceUnitId, ct))
-        {
-            var ep = await db.Set<InpEpisode>().AsNoTracking().Where(x => x.Id == episodeId).Select(x => new { x.Id, x.EpisodeNumber, Name = x.Patient == null ? null : x.Patient.FullName }).SingleAsync(ct);
-            response.HoldingContext = new() { EpisodeId = ep.Id, EpisodeNumber = ep.EpisodeNumber, PatientName = ep.Name, ReservationId = reservation?.Id, ReservationExpiresAt = reservation?.ExpiresAt };
-        }
-        foreach (var action in new[] { "StartCleaning", "CompleteCleaning", "VerifyReadiness" })
-        {
-            if (!(await access.UnitsAsync("InpatientBedManagement:" + action, ct)).Contains(response.ServiceUnitId)) continue;
-            try
-            {
-                access.WorkflowAssignment(response.ServiceUnitId, "InpatientBedManagement:" + action);
-                if (placement == null && reservation == null && !closed && valid &&
-                    (action == "StartCleaning" && root?.State == InpBedReadinessState.WaitingCleaning ||
-                     action == "CompleteCleaning" && root?.State == InpBedReadinessState.Cleaning ||
-                     action == "VerifyReadiness" && root?.State is InpBedReadinessState.Unverified or InpBedReadinessState.AwaitingVerification))
-                    response.AvailableActions.Add(action);
-            }
-            catch (InpBedOperationException) { }
-        }
-        return response;
+        var list = await ProjectManyAsync([bed], ct);
+        return list[0];
     }
+
+    public async Task<List<BedOperationalResponse>> ProjectManyAsync(IReadOnlyList<MstBed> beds, CancellationToken ct = default)
+        => (await ProjectBatchAsync(beds, ct)).Rows;
+
+    /// <summary>
+    /// Proyeksi status operasional bed beserta data yang dimuatnya, supaya pemanggil seperti
+    /// pencarian bed dan kelayakan penempatan tidak memuat ulang kesiapan, pemesanan,
+    /// penempatan, unit, dan kelas yang sama (BE-RWI-228). Isi <see cref="BedProjectionBatch.Rows"/>
+    /// identik dengan <see cref="ProjectManyAsync"/>.
+    /// </summary>
+    internal async Task<BedProjectionBatch> ProjectBatchAsync(IReadOnlyList<MstBed> beds, CancellationToken ct = default)
+    {
+        if (beds.Count == 0) return new BedProjectionBatch();
+
+        var bedIds = beds.Select(x => x.Id).Distinct().ToList();
+        var roomIds = beds.Select(x => x.RoomId).Distinct().ToList();
+
+        // Kamar yang sudah ikut dimuat pemanggil (Include tanpa pelacakan) dipakai langsung;
+        // hanya yang belum ada yang dibaca dari database. Kamar terlacak tidak dipakai supaya
+        // perubahan yang belum disimpan tidak ikut terbaca.
+        var rooms = new Dictionary<Guid, MstRoom>();
+        foreach (var bed in beds)
+        {
+            if (bed.Room != null && bed.Room.Id == bed.RoomId && db.Entry(bed.Room).State == EntityState.Detached)
+                rooms[bed.RoomId] = bed.Room;
+        }
+
+        var missingRoomIds = roomIds.Where(x => !rooms.ContainsKey(x)).ToList();
+        if (missingRoomIds.Count > 0)
+        {
+            var loadedRooms = await db.Set<MstRoom>().AsNoTracking()
+                .Where(x => missingRoomIds.Contains(x.Id))
+                .ToListAsync(ct);
+            foreach (var room in loadedRooms) rooms[room.Id] = room;
+        }
+
+        var unitIds = rooms.Values.Select(x => x.ServiceUnitId).Distinct().ToList();
+        var classIds = rooms.Values.Where(x => x.PatientClassId.HasValue).Select(x => x.PatientClassId!.Value).Distinct().ToList();
+
+        var units = await db.Set<MstServiceUnit>().AsNoTracking()
+            .Where(x => unitIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, ct);
+
+        var classes = await db.Set<MstPatientClass>().AsNoTracking()
+            .Where(x => classIds.Contains(x.Id))
+            .ToDictionaryAsync(x => x.Id, ct);
+
+        var roots = await db.Set<InpBedReadiness>().AsNoTracking()
+            .Where(x => bedIds.Contains(x.BedId))
+            .ToDictionaryAsync(x => x.BedId, ct);
+
+        var placements = await db.Set<InpBedPlacement>().AsNoTracking()
+            .Where(x => bedIds.Contains(x.BedId) && x.EndDateTime == null && !x.IsDelete)
+            .ToDictionaryAsync(x => x.BedId, ct);
+
+        var nowUtc = DateTime.UtcNow;
+        var reservations = await db.Set<InpBedReservation>().AsNoTracking()
+            .Where(x => bedIds.Contains(x.BedId) && x.ReservationStatus == InpBedReservationStatus.Active && !x.IsDelete && x.ExpiresAt > nowUtc)
+            .ToDictionaryAsync(x => x.BedId, ct);
+
+        var epIds = placements.Values.Select(x => x.EpisodeId)
+            .Concat(reservations.Values.Select(x => x.EpisodeId))
+            .Distinct().ToList();
+
+        Dictionary<Guid, (Guid Id, string EpisodeNumber, string? Name, Guid ServiceUnitId, bool IsDelete)> episodes = [];
+        if (epIds.Count > 0)
+        {
+            var epList = await db.Set<InpEpisode>().AsNoTracking()
+                .Where(x => epIds.Contains(x.Id))
+                .Select(x => new { x.Id, x.EpisodeNumber, Name = x.Patient == null ? null : x.Patient.FullName, x.ServiceUnitId, x.IsDelete })
+                .ToListAsync(ct);
+            episodes = epList.ToDictionary(x => x.Id, x => (x.Id, x.EpisodeNumber, x.Name, x.ServiceUnitId, x.IsDelete));
+        }
+
+        // Unit per aksi pembersihan dimuat hanya bila ada bed bebas dalam keadaan kesiapan yang
+        // relevan. Pada papan biasa hampir semua bed Ready atau terpakai, sehingga tiga cek hak
+        // akses beserta daftar unitnya tidak perlu dijalankan sama sekali (BE-RWI-228).
+        var actionUnits = new Dictionary<string, List<Guid>>();
+
+        var responses = new List<BedOperationalResponse>(beds.Count);
+        foreach (var bed in beds)
+        {
+            rooms.TryGetValue(bed.RoomId, out var room);
+            MstServiceUnit? unit = null;
+            if (room != null) units.TryGetValue(room.ServiceUnitId, out unit);
+            MstPatientClass? cls = null;
+            if (room?.PatientClassId != null) classes.TryGetValue(room.PatientClassId.Value, out cls);
+
+            roots.TryGetValue(bed.Id, out var root);
+            placements.TryGetValue(bed.Id, out var placement);
+            reservations.TryGetValue(bed.Id, out var reservation);
+
+            var valid = !bed.IsDelete && bed.IsActive && bed.IsReservable && room is { IsDelete: false, IsActive: true, IsAvailableForAdmission: true } &&
+                unit is { IsDelete: false, IsActive: true } && cls is { IsDelete: false, IsActive: true };
+            var closed = bed.BedStatus is BedStatus.Maintenance or BedStatus.Blocked or BedStatus.Inactive or BedStatus.Unknown ||
+                !Enum.IsDefined(bed.BedStatus);
+            var code = placement != null ? "Occupied" : reservation != null ? "Reserved" :
+                !valid || closed ? "Unavailable" : root?.State switch
+                {
+                    InpBedReadinessState.Ready when bed.BedStatus == BedStatus.Available => "Available",
+                    InpBedReadinessState.WaitingCleaning => "WaitingCleaning",
+                    InpBedReadinessState.Cleaning or InpBedReadinessState.AwaitingVerification => "Cleaning",
+                    _ => "Unavailable"
+                };
+            var response = new BedOperationalResponse
+            {
+                RawBedStatus = (int)bed.BedStatus, BedId = bed.Id, BedCode = bed.BedCode, BedName = bed.BedName, RoomId = bed.RoomId,
+                RoomName = room?.RoomName, RawRoomCode = room?.RoomCode, RawRoomCapacity = room?.Capacity ?? 0, ServiceUnitId = room?.ServiceUnitId ?? Guid.Empty,
+                PatientClassId = room?.PatientClassId, PatientClassName = cls?.PatientClassName,
+                IsIsolationBed = bed.IsIsolationBed, IsForNewborn = bed.IsForNewborn,
+                StatusCode = code, StatusLabel = StatusLabels[code], IsBookable = code == "Available",
+                OperationalVersion = root?.Version ?? 1, CycleId = root?.CycleId ?? Guid.Empty,
+                CleaningPhase = code == "Cleaning" ? root?.State == InpBedReadinessState.AwaitingVerification ? "AwaitingVerification" : "InProgress" : null,
+                ConflictCode = (placement != null && reservation != null && placement.EpisodeId != reservation.EpisodeId) || (placement != null && (bed.BedStatus != BedStatus.Occupied || !valid)) ||
+                    (reservation != null && (bed.BedStatus != BedStatus.Reserved || !valid)) ? "ADMINISTRATIVE_CONFLICT" : null
+            };
+            if (!valid) response.BlockReasonCodes.Add("MASTER_INVALID");
+            if (closed) response.BlockReasonCodes.Add("BED_UNAVAILABLE");
+            if (root?.State != InpBedReadinessState.Ready) response.BlockReasonCodes.Add("BED_NOT_READY");
+            var episodeId = placement?.EpisodeId ?? reservation?.EpisodeId;
+            if (episodeId.HasValue && episodes.TryGetValue(episodeId.Value, out var ep))
+            {
+                if (await access.CanReadLoadedIdentityAsync(response.ServiceUnitId, ep.ServiceUnitId, ep.IsDelete, ct))
+                {
+                    response.HoldingContext = new() { EpisodeId = ep.Id, EpisodeNumber = ep.EpisodeNumber, PatientName = ep.Name, ReservationId = reservation?.Id, ReservationExpiresAt = reservation?.ExpiresAt };
+                }
+            }
+            var freeForHousekeeping = placement == null && reservation == null && !closed && valid;
+            foreach (var action in CleaningActions)
+            {
+                if (!freeForHousekeeping || !ReadinessAllows(action, root?.State)) continue;
+                if (!actionUnits.TryGetValue(action, out var allowedUnits))
+                {
+                    allowedUnits = await access.UnitsAsync("InpatientBedManagement:" + action, ct);
+                    actionUnits[action] = allowedUnits;
+                }
+                if (!allowedUnits.Contains(response.ServiceUnitId)) continue;
+                try
+                {
+                    access.WorkflowAssignment(response.ServiceUnitId, "InpatientBedManagement:" + action);
+                    response.AvailableActions.Add(action);
+                }
+                catch (InpBedOperationException) { }
+            }
+            responses.Add(response);
+        }
+        return new BedProjectionBatch
+        {
+            Rows = responses, Roots = roots, Placements = placements, Reservations = reservations, Units = units, Classes = classes
+        };
+    }
+
+    private static readonly string[] CleaningActions = ["StartCleaning", "CompleteCleaning", "VerifyReadiness"];
+
+    private static bool ReadinessAllows(string action, InpBedReadinessState? state) => action switch
+    {
+        "StartCleaning" => state == InpBedReadinessState.WaitingCleaning,
+        "CompleteCleaning" => state == InpBedReadinessState.Cleaning,
+        "VerifyReadiness" => state is InpBedReadinessState.Unverified or InpBedReadinessState.AwaitingVerification,
+        _ => false
+    };
+
     public async Task<BedMonitoringResponse> MonitoringAsync(BedMonitoringQuery query, string operation = "InpatientBedManagement:Read", CancellationToken ct = default)
     {
         if (query.Status != null && !StatusLabels.ContainsKey(query.Status))
@@ -82,20 +192,23 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
         var source = db.Set<MstBed>().AsNoTracking().Where(x => !x.IsDelete && x.Room != null && units.Contains(x.Room.ServiceUnitId));
         if (query.ServiceUnitId.HasValue) source = source.Where(x => x.Room!.ServiceUnitId == query.ServiceUnitId);
         if (query.RoomId.HasValue) source = source.Where(x => x.RoomId == query.RoomId);
+        if (query.PatientClassId.HasValue) source = source.Where(x => x.Room!.PatientClassId == query.PatientClassId);
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var term = query.Search.Trim().ToLowerInvariant();
             source = source.Where(x => x.BedCode.ToLower().Contains(term) || x.BedName.ToLower().Contains(term) || x.Room!.RoomName.ToLower().Contains(term));
         }
         var beds = await source.OrderBy(x => x.BedCode).ToListAsync(ct);
-        var rows = new List<BedOperationalResponse>();
-        foreach (var b in beds) { var row = await ProjectAsync(b, ct); if (query.Status == null || row.StatusCode == query.Status) rows.Add(row); }
+        var projection = await ProjectBatchAsync(beds, ct);
+        var allRows = projection.Rows;
+        var rows = query.Status == null ? allRows : allRows.Where(x => x.StatusCode == query.Status).ToList();
         var result = new BedMonitoringResponse { AsOfUtc = DateTime.UtcNow };
         result.Counts = new() { Total = rows.Count, Available = rows.Count(x => x.StatusCode == "Available"),
             Occupied = rows.Count(x => x.StatusCode == "Occupied"), Reserved = rows.Count(x => x.StatusCode == "Reserved"),
             WaitingCleaning = rows.Count(x => x.StatusCode == "WaitingCleaning"), Cleaning = rows.Count(x => x.StatusCode == "Cleaning"),
             Unavailable = rows.Count(x => x.StatusCode == "Unavailable") };
-        var unitNames = await db.Set<MstServiceUnit>().AsNoTracking().Where(x => units.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.ServiceUnitName, ct);
+        // Nama unit dari data proyeksi; setiap baris sudah berada pada unit dalam cakupan (BE-RWI-228).
+        var unitNames = projection.Units.ToDictionary(x => x.Key, x => x.Value.ServiceUnitName);
         result.ServiceUnits = rows.GroupBy(x => x.ServiceUnitId).Select(g => new BedMonitoringUnit
         {
             Id = g.Key, Name = unitNames.GetValueOrDefault(g.Key),
@@ -163,3 +276,13 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
     }
 }
 
+/// <summary>Hasil <see cref="InpBedManagementQueryService.ProjectBatchAsync"/>: baris status beserta data yang dimuatnya.</summary>
+internal sealed class BedProjectionBatch
+{
+    public List<BedOperationalResponse> Rows { get; init; } = [];
+    public Dictionary<Guid, InpBedReadiness> Roots { get; init; } = [];
+    public Dictionary<Guid, InpBedPlacement> Placements { get; init; } = [];
+    public Dictionary<Guid, InpBedReservation> Reservations { get; init; } = [];
+    public Dictionary<Guid, MstServiceUnit> Units { get; init; } = [];
+    public Dictionary<Guid, MstPatientClass> Classes { get; init; } = [];
+}

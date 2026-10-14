@@ -1286,6 +1286,11 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("AnnualFeeAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("BenefitDescription")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -96067,11 +96072,21 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("ActivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CancellationCategory")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
@@ -96089,6 +96104,14 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTime?>("ExpiredDate")
                         .HasColumnType("date");
+
+                    b.Property<decimal>("FeeAmountSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<Guid?>("FeeChargeReferenceId")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
@@ -96147,7 +96170,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("MembershipStatus")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
-                        .HasDefaultValue(1);
+                        .HasDefaultValue(7);
 
                     b.Property<Guid>("MembershipTierId")
                         .HasColumnType("uuid");
@@ -96159,10 +96182,28 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTimeOffset?>("PaymentDueAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("PeriodStartDate")
+                        .HasColumnType("date");
+
                     b.Property<int>("PointBalance")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
                         .HasDefaultValue(0);
+
+                    b.Property<Guid?>("PreviousPatientMembershipId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RegistrationType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
 
                     b.Property<decimal>("TotalSpendAmount")
                         .ValueGeneratedOnAdd()
@@ -96188,13 +96229,33 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PatientId");
 
-                    b.HasIndex("PatientId", "IsPrimary")
-                        .IsUnique()
-                        .HasFilter("\"IsPrimary\" = true AND \"IsActive\" = true AND \"IsDelete\" = false");
+                    b.HasIndex("PreviousPatientMembershipId");
+
+                    b.HasIndex("MembershipStatus", "ExpiredDate");
+
+                    b.HasIndex("MembershipStatus", "PaymentDueAt");
+
+                    b.HasIndex("MembershipStatus", "PeriodStartDate");
 
                     b.HasIndex("MembershipTierId", "MembershipStatus", "IsActive", "IsDelete");
 
                     b.HasIndex("PatientId", "MembershipStatus", "IsActive", "IsDelete");
+
+                    b.HasIndex(new[] { "FeeChargeReferenceId" }, "UX_MstPatientMembership_FeeChargeReferenceId")
+                        .IsUnique()
+                        .HasFilter("\"FeeChargeReferenceId\" IS NOT NULL");
+
+                    b.HasIndex(new[] { "PatientId" }, "UX_MstPatientMembership_Patient_Active")
+                        .IsUnique()
+                        .HasFilter("\"MembershipStatus\" = 1 AND \"IsDelete\" = false");
+
+                    b.HasIndex(new[] { "PatientId" }, "UX_MstPatientMembership_Patient_Pending")
+                        .IsUnique()
+                        .HasFilter("\"MembershipStatus\" = 7 AND \"IsDelete\" = false");
+
+                    b.HasIndex(new[] { "PatientId" }, "UX_MstPatientMembership_Patient_Scheduled")
+                        .IsUnique()
+                        .HasFilter("\"MembershipStatus\" = 8 AND \"IsDelete\" = false");
 
                     b.ToTable("MstPatientMembership", "public");
                 });
@@ -96328,6 +96389,87 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("PatientId", "IsEmergencyContact", "IsResponsiblePerson", "IsActive", "IsDelete");
 
                     b.ToTable("MstPatientRelationship", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Models.PatMembershipStatusHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActionCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("FromStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NewNotes")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OldNotes")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<Guid>("PatientMembershipId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ToStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientMembershipId", "OccurredAt");
+
+                    b.ToTable("PatMembershipStatusHistory", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstPrescriptionReviewCriterion", b =>
@@ -128996,9 +129138,16 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientMembership", "PreviousPatientMembership")
+                        .WithMany()
+                        .HasForeignKey("PreviousPatientMembershipId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("MembershipTier");
 
                     b.Navigation("Patient");
+
+                    b.Navigation("PreviousPatientMembership");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientRelationship", b =>
@@ -129017,6 +129166,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Patient");
 
                     b.Navigation("RelatedPatient");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Models.PatMembershipStatusHistory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientMembership", "PatientMembership")
+                        .WithMany("StatusHistories")
+                        .HasForeignKey("PatientMembershipId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PatientMembership");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstPrescriptionTemplate", b =>
@@ -132773,6 +132933,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Items");
 
                     b.Navigation("SiteMarks");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientMembership", b =>
+                {
+                    b.Navigation("StatusHistories");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.MstPrescriptionReviewCriterion", b =>
