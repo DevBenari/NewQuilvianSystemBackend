@@ -11,7 +11,7 @@
 | Trace | `FIN-DEC-094`, `FIN-OQ-040` (terjawab: Kasir, Parkir, Tenant); `03-frontend-architecture.md` §17.2 (`FIN-LYR-AR-18`), §18.1 |
 | Contract version | `FIN-API-1.4` (perluasan `ReceivableAgingQuery`) — `approved` 1 Oktober 2026 |
 | Wewenang UI | `FIN-DEC-094` (struktur menu V1, grup tingkat 2 "Umur Piutang (A/R Aging)", rute `/finance/receivable/aging`, butir hak akses `FinanceReceivable : Read`). Tata letak, warna, ikon tetap `DEV_DISCRETION` |
-| Dependency | `FE-FIN-016` 🟡 (grup menu "Transaksi A/R"); `BE-FIN-055` [BE] ✅ (perluasan query backend selesai 1 Oktober 2026, `dotnet build` PASS dikonfirmasi pengguna) |
+| Dependency | `FE-FIN-016` ✅ (grup menu "Transaksi A/R"); `BE-FIN-055` [BE] ✅ (perluasan query backend selesai 1 Oktober 2026, `dotnet build` PASS dikonfirmasi pengguna) |
 | Klasifikasi | `LIGHT` — satu repository frontend (skor 0); 3 berkas diubah (skor 0); nol berkas baru (skor 0); nol endpoint baru, pemanggilan endpoint governed yang sudah ada (skor 0); database — tidak relevan frontend (skor 0); keamanan/auth — nol resource/action baru (skor 0); UI/workflow — reuse penuh layar existing dengan perbaikan ketahanan endpoint (skor 0). Total 0 → `LIGHT` |
 | Task mode | `FRONTEND MODE` — target tulis `QuilvianSystemFrontendDev`; backend `NewQuilvianSystemBackend` dibaca read-only untuk verifikasi DTO dan kontrak, serta pembaruan laporan dan roadmap |
 | Target tulis | `QuilvianSystemFrontendDev` — `src/app/finance/receivable/aging/page.jsx`, `src/components/view/finance/receivable/aging/finance-ar-aging-view.jsx`, `src/utils/menu-sidebar/menu-items.jsx`, dan laporan ini |

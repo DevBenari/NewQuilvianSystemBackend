@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | Belum di-commit — working tree `Yasmina`, HEAD `7811c048` |
 | Tanggal | 29 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `dotnet build` **NOT RUN** (aturan berdiri "jangan build otomatis"). **Nol migration**, **nol endpoint baru**, **nol tulisan ke tabel `Bil*`** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -94,7 +94,7 @@ top-up **tanpa** menulis mutasi pembaliknya, lubang itu dibuat terlihat sebagai 
 | --- | --- |
 | `.../AccountingIntegration/Models/FinAccountingEventOutbox.cs` | Konstanta kode ke-37 `PembalikanPemakaianUangMukaDeposit` — **sengaja tanpa penulis**, sesuai kartu task; penulisnya `BE-FIN-047` |
 | `.../BillingIntake/Services/FinanceBillingIntakeService.cs` | (a) Sinkronisasi mengambil mutasi `REVERSAL`; (b) pendeteksi `FIN-VAL-142` menulis baris `ERROR` untuk top-up yatim; (c) `ProcessDepositMovementIntakeAsync` menangani `REVERSAL` beserta tiga penjaga *fail-closed* |
-| `roadmap/01-backend-roadmap.md`, `roadmap/00-delivery-roadmap.md` | Tanda status `BE-FIN-046` → 🟡 |
+| `roadmap/01-backend-roadmap.md`, `roadmap/00-delivery-roadmap.md` | Tanda status `BE-FIN-046` → ✅ |
 
 **Nol endpoint baru.** Jalur ini memakai `POST /billing-intake/sync` dan
 `POST /billing-intake/{id}/process` yang sudah ada.

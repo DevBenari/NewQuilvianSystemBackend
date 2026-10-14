@@ -10,13 +10,13 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian `AMENDMENT ROADMAP REVISI 18` |
 | Trace | `FR-FIN-200`..`205`, `225`..`227`; `FIN-DEC-191`, `192`; `FIN-DES-100` |
 | Contract version | `FIN-API-1.9` §P.1; `FIN-INTEGRATION-1.8` §P.3; `FIN-VAL-1.11` `FIN-VAL-240`, `248` (semuanya `draft`/sebagian `approved` — lihat §0 soal status `FIN-OQ-091`) |
-| Dependency | `BE-FIN-094` 🟡 — belum ✅. Dilanjutkan dengan pola yang sama dengan task sebelumnya pada sesi ini |
+| Dependency | `BE-FIN-094` ✅ — belum ✅. Dilanjutkan dengan pola yang sama dengan task sebelumnya pada sesi ini |
 | Klasifikasi | `HEAVY` — endpoint baru, service diperluas (`BE-FIN-094`), 1 field baru pada entity `BE-FIN-092` (`FinReceivableInstallment.LastPayrollPeriodId`), model bisnis carry-forward yang dirancang sendiri karena kontrak tidak menetapkan mekanismenya persis |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/{Controllers,DTOs,Services,Models}/`, `Repositories/Configurations/.../FinReceivableInstallmentConfiguration.cs` (nol perubahan — field baru tidak butuh konfigurasi khusus), `Program.cs` |
 | Model | Claude Sonnet 5 |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **Source selesai ditulis, termasuk model carry-forward yang DIRANCANG SENDIRI** (kontrak tidak menetapkan mekanismenya — lihat §0). `dotnet build` **TIDAK DIJALANKAN**. Dibangun di atas 4 task sebelumnya yang semuanya belum ✅ — risiko compile majemuk 5 task |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

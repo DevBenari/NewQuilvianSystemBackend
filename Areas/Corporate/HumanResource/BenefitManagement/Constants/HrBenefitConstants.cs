@@ -127,6 +127,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public const string HrUnavailable = "HR_UNAVAILABLE";
     }
 
+    /// <summary>Status verifikasi tanggungan yang dilihat Registrasi (FIN-INTEGRATION-1.9 R.2.2).</summary>
+    public static class BenefitDependentVerificationCodes
+    {
+        public const string Verified = "VERIFIED";
+        public const string Requested = "REQUESTED";
+        public const string NotRegistered = "NOT_REGISTERED";
+        public const string Rejected = "REJECTED";
+        public const string Ended = "ENDED";
+    }
+
+    /// <summary>Batas pencarian pegawai untuk Registrasi (FIN-VAL-268, FIN-VAL-269).</summary>
+    public static class EmployeeLookupLimits
+    {
+        public const int MinimumKeywordLength = 3;
+        public const int MaximumResults = 20;
+    }
+
     /// <summary>Hasil PakaiPlafon (FIN-INTEGRATION-1.9 R.3.2).</summary>
     public static class BenefitUseResults
     {

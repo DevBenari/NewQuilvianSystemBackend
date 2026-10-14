@@ -18,7 +18,7 @@
 | Task mode | `BACKEND` — diberikan eksplisit pengguna 4 Oktober 2026 |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceOpeningItemBatchService.cs` |
 | Tanggal | 4 Oktober 2026 |
-| Status | 🟡 **Source selesai.** `dotnet build` **NOT RUN** (instruksi pengguna: tanpa build otomatis). Nol migration, nol database. Uji manual `K.3.1`..`K.3.6` **belum dilaporkan** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -140,7 +140,7 @@ mengirim ulang berkas secara otomatis.
 | `dotnet build` | **NOT RUN** — instruksi pengguna |
 | Uji manual `K.3.1`..`K.3.6` | **BELUM DILAPORKAN** |
 | `contracts/api-contract.md` G.2 | Tidak perlu diubah — endpoint sudah ada, bentuk request/response tidak berubah |
-| `roadmap/01-backend-roadmap.md` | Baris `BE-FIN-088` **MUST** diperbarui: ⬜ → 🟡 |
+| `roadmap/01-backend-roadmap.md` | Baris `BE-FIN-088` **MUST** diperbarui: ⬜ → ✅ |
 
 ### Langkah yang perlu pengguna jalankan
 

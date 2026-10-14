@@ -3911,7 +3911,7 @@ Tabel master `MstAdministrationFeePolicy` perlu ditambahkan/dikonfigurasi record
 | `BKC-DES-046` | Mekanisme Auto-Reblock & Revokasi Clearance Saat Tagihan Susulan | `BKC-DEC-116`, `BKC-AC-084` | Mencegah kebocoran pendapatan (*revenue leakage*) jika tindakan klinis atau obat susulan di-input petugas setelah pasien dinyatakan cleared di kasir. |
 | `BKC-DES-047` | Penegakan Deposit Tindakan Besar atas Porsi Tanggung Jawab Pasien (Excess) | `BKC-DEC-114`, `BKC-AC-082` | Menyelaraskan verifikasi deposit dengan status jaminan pasien, mencegah penahanan tindakan medis darurat/besar yang telah dijamin asuransi. |
 | `BKC-DES-048` | Konsolidasi Multi-Domain Non-Destruktif untuk Pasien Alihan IGD-ke-Ranap | `BKC-DEC-117`, `BKC-AC-085` | Menyatukan tagihan dalam satu nomor invoice rawat inap tanpa menghilangkan identitas asal item IGD demi transparansi kwitansi dan audit. |
-| `BKC-DES-049` | Mekanisme Pembatalan (Void) atau Pengalihan Kredit Biaya Administrasi Rajal | `BKC-DEC-119`, `BKC-AC-087` | Memenuhi aturan bisnis bahwa biaya admin rajal gugur dan digantikan biaya admin ranap; dana yang terlanjur dibayar diakui sebagai kredit pengurang. |
+| `BKC-DES-049` | Mekanisme Pembatalan (Void) atau Pengalihan Kredit Biaya Administrasi Rajal | `BKC-DEC-119`, `BKC-AC-087` | Memenuhi aturan bisnis bahwa biaya admin rajal gugur dan digantikan biaya admin ranap; dana yang terlanjur dibayar diakui sebagai kredit pengurang. **[Dipertegas revisi `2.2` (`BKC-DES-081`): hanya kunjungan Rawat Jalan yang tertaut]** |
 | `BKC-DES-050` | Mesin Hitung Pro-Rata Menit untuk Transfer Kamar Multipel | `BKC-DEC-112`, `BKC-AC-080` | Menyelesaikan ambiguitas tarif saat pasien berpindah kelas kamar beberapa kali dalam 24 jam dengan presisi menit durasi hunian. |
 
 ## 10. Yang MUST Dijawab Owner Saat Approval
@@ -4278,4 +4278,1322 @@ Tidak ada data master baru. Tidak ada data awal yang perlu ditambahkan atau dimi
 
 `DRAFT`. `BKC-DES-051`–`056` berstatus draft menunggu approval Product/Domain Owner sebelum diteruskan ke `/plan-module-delivery`.
 
+---
 
+# Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `revisi blueprint`: `1.9`, status **approved** (14 Oktober 2026). Masukan: `BKC-DEC-118` (approved 24 September 2026),
+> `BKC-AC-091` (menggantikan `BKC-AC-086`), ditambah dua arahan pemilik modul pada 13 Oktober 2026
+> yang kini sudah diratifikasi menjadi `BKC-DEC-142` dan `BKC-DEC-143` (lihat `BKC-DES-060` dan
+> `BKC-DES-061`). Keputusan arsitektur: `BKC-DES-057`–`BKC-DES-062`.
+> Backend SHA diaudit: `e049a65b`, Frontend SHA diaudit: `ae216044`.
+>
+> **Tujuan amendment.** Menutup `CAP-BIL-09` — satu-satunya kemampuan Pass B yang masih terbuka.
+> Amendment ini membuat kasir dapat melunasi beberapa tagihan dari kunjungan berbeda milik satu
+> pasien dalam **satu kali transaksi pembayaran** dengan **satu kwitansi** yang merinci beban per
+> unit pelayanan, **tanpa** menggabungkan invoice-nya dan **tanpa** memaksa pasien membayar
+> semuanya sekaligus.
+
+## 0. Mengapa amendment ini ada, dan apa yang dikoreksinya
+
+### 0.1 Masalah nyata di loket kasir
+
+Pasien datang ke IGD, lalu kondisinya memburuk sehingga dokter memutuskan rawat inap. Secara
+sistem, ini menghasilkan **dua kunjungan terpisah**: kunjungan IGD dan kunjungan rawat inap.
+Karena setiap kunjungan punya tagihan sendiri, keluarga pasien harus bertransaksi dua kali saat
+pemulangan — sekali untuk tagihan IGD, sekali untuk tagihan rawat inap.
+
+Yang diminta `BKC-DEC-118` adalah menghilangkan antrean ganda itu, **tanpa** mengorbankan
+kemampuan rumah sakit melaporkan pendapatan unit IGD secara terpisah dari unit rawat inap.
+
+### 0.2 Dua arahan tambahan pemilik modul, 13 Oktober 2026
+
+| Arahan | Isi | Diturunkan menjadi |
+| --- | --- | --- |
+| Urutan alokasi | Bila uang yang dibayarkan tidak cukup menutup seluruh tagihan dalam satu transaksi gabungan, tagihan yang **lebih dulu terbit** dilunasi lebih dulu sampai habis, sisanya baru ke tagihan berikutnya | `BKC-DES-060` |
+| Kehendak pasien | Pembayaran **boleh digabung, boleh dipisah** sesuai kehendak pasien. Penggabungan adalah pilihan, bukan kewajiban. Pasien juga boleh menggabungkan sebagian saja | `BKC-DES-061` |
+
+> **Catatan jejak yang MUST ditutup.** Kedua arahan di atas lahir dari percakapan langsung dengan
+> pemilik modul pada 13 Oktober 2026 dan **belum** punya baris `BKC-DEC-*` di
+> `00-interview-decisions.md`. Dokumen keputusan adalah keluaran `/grill-me`, bukan keluaran skill
+> ini, sehingga amendment ini **tidak** menulisnya. `BKC-OQ-108` meminta ratifikasi formalnya.
+>
+> **Pembaruan 14 Oktober 2026.** `BKC-OQ-108` sudah **ditutup** lewat closure pass: urutan alokasi
+> menjadi `BKC-DEC-142` dan sifat opsional menjadi `BKC-DEC-143`, keduanya `approved` oleh pemilik
+> modul Billing. Tidak ada lagi jejak keputusan bisnis yang menggantung untuk `EPIC BKC-25`.
+
+### 0.3 Koreksi terhadap `BKC-DES-048`
+
+`BKC-DES-048` (revisi 1.5) merancang konsolidasi pada **lapisan invoice**: *"Menyatukan tagihan
+dalam satu nomor invoice rawat inap"*. Pembacaan source pada `e049a65b` membuktikan rancangan itu
+tidak dapat dijalankan:
+
+| Fakta source | Bukti | Akibatnya bagi `BKC-DES-048` |
+| --- | --- | --- |
+| Satu invoice hanya boleh mewakili satu kunjungan | `BilInvoiceConfiguration.cs:27` — `entity.HasIndex(x => x.EncounterId).IsUnique()` | Satu invoice **tidak mungkin** mewakili kunjungan IGD dan kunjungan ranap sekaligus |
+| Admisi ranap selalu membuat kunjungan baru | `InpEpisodeService.cs:1172-1196` (`BuildInpatientEncounter`, `Id = Guid.NewGuid()`); kunjungan asal hanya ditautkan lewat `SourceEncounterId` (`RegPatientEncounter.cs:212`) | Kunjungan IGD dan ranap **selalu** dua baris berbeda, bukan satu |
+| Invoice dibuka otomatis per kunjungan saat charge pertama tiba | `BillingInvoiceService.cs:1820-1824` — `ServiceType = MapServiceType(encounter.EncounterType)` | Kunjungan IGD **sudah** memiliki invoice `IGD` sendiri sebelum keputusan admisi turun |
+
+Selain itu, bunyi approval `BKC-DEC-118` sendiri adalah **"Konsolidasi *Settlement*
+Non-Destruktif"**, dan baris Konsekuensi-nya menyebut *"penutupan multi-folio/multi-invoice"* —
+keduanya menunjuk lapisan pembayaran, bukan lapisan invoice. Jadi `BKC-DES-048` salah membaca
+keputusan yang diklaimnya diturunkan.
+
+Amendment ini **mempersempit** `BKC-DES-048` menjadi makna yang benar dan dapat dijalankan:
+
+| Aspek | `BKC-DES-048` lama | Setelah dikoreksi `BKC-DES-057` |
+| --- | --- | --- |
+| Lapisan konsolidasi | Invoice digabung jadi satu | Invoice tetap terpisah; **pembayarannya** yang digabung |
+| Yang tetap berlaku | Identitas `SourceDomain = "EMERGENCY"` pada item IGD wajib dipertahankan | **Tetap berlaku utuh**, tidak dicabut |
+| Yang dicabut | Penyatuan nomor invoice | Dicabut — tidak dapat dijalankan karena `EncounterId` unik |
+
+### 0.4 Apa yang `BE-BKC-072` sebenarnya sudah bangun
+
+`BE-BKC-072` melaporkan invariant konsolidasi IGD terpenuhi. Pembacaan source menunjukkan yang
+terbangun adalah **penerimaan** domain `EMERGENCY` pada adapter charge
+(`BillingChargeSourceAdapter.cs`, `SourcePolicies`), yaitu agar charge berlabel `EMERGENCY` tidak
+ditolak. Itu **bukan** konsolidasi pembayaran: invoice tujuan sebuah charge tetap diturunkan dari
+kunjungan charge itu sendiri (`BillingInvoiceService.cs:1820-1824`). Jadi `CAP-BIL-09` masih
+terbuka, dan amendment inilah yang menutupnya. Ketidaksesuaian laporan ini dicatat pada
+`BKC-OQ-107` untuk dikoreksi pemilik modul, bukan diperbaiki diam-diam di sini.
+
+## 1. Perubahan pada Bounded Context & Invariant
+
+| Konteks | Aggregate root | Invariant sesudah amendment ini | Owner |
+| --- | --- | --- | --- |
+| `BIL-CTX-03` Patient Funds & Settlement | `BilSettlement` | Satu settlement adalah satu transaksi kasir yang idempoten. **Baru:** satu settlement boleh menyasar **lebih dari satu** invoice bila dan hanya bila `Purpose = "CONSOLIDATED_INVOICE_PAYMENT"`. Invoice peserta dicatat eksplisit sebelum tender diproses. Alokasi lintas invoice mengikuti urutan invoice terbit paling awal lebih dulu. | Billing |
+| `BIL-CTX-01` Billing Account & Charge | `BilInvoice` | Satu invoice per kunjungan (`EncounterId` unik) — **tidak berubah**. Penutupan status invoice tetap dihitung per invoice, bukan per grup pembayaran. | Billing |
+
+### Invariant baru yang wajib dipertahankan
+
+1. **Invoice tidak pernah dilebur (`BKC-DES-057`).** Penggabungan hanya terjadi pada transaksi
+   pembayaran. Tidak ada mekanisme apa pun yang memindahkan `BilInvoiceItem` antar invoice, dan
+   `BilInvoice.EncounterId` tetap unik. Konsekuensinya, pelaporan pendapatan per unit pelayanan
+   tetap utuh tanpa pekerjaan tambahan — ini yang dituntut `BKC-AC-091`.
+2. **Penggabungan bersifat pilihan (`BKC-DES-061`).** Jalur pembayaran satu invoice yang sudah
+   berjalan hari ini **tidak berubah sama sekali**. Pasien yang ingin membayar tagihan IGD lebih
+   dulu lalu melunasi tagihan ranap di kemudian hari tetap dilayani oleh jalur lama, tanpa perlu
+   membentuk grup.
+3. **Peserta grup dicatat sebelum uang diterima.** Daftar invoice yang dipilih pasien dicatat
+   lebih dulu pada `BilSettlementInvoice`. Tanpa ini, kwitansi tidak dapat mencetak rincian yang
+   dimaksudkan bila salah satu tender gagal di tengah jalan.
+4. **Satu invoice hanya boleh ikut satu grup pembayaran aktif.** Invoice yang sedang menjadi
+   peserta settlement berstatus `DRAFT` atau `IN_PROGRESS` tidak boleh ikut grup lain, agar dua
+   kasir tidak mengalokasikan uang ke tagihan yang sama pada waktu hampir bersamaan.
+5. **Alokasi tetap tidak boleh melebihi sisa tagihan.** Aturan alokasi per invoice yang sudah
+   berlaku (`BIL-VAL-127`–`131`, `BKC-DES-055`) tetap berlaku apa adanya di dalam grup.
+
+## 2. Tabel Kepemilikan Data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Kunjungan pasien (`RegPatientEncounter`, termasuk `SourceEncounterId`) | Registration Management | Ya, **baca saja** | Tidak; dipakai untuk menemukan rantai rujukan kunjungan |
+| Rujukan admisi rawat inap (`InpAdmissionReferral`) | Rawat Inap (`Inpatient`) | Ya, **baca saja** | Tidak; dipakai sebagai bukti hubungan kunjungan asal → ranap |
+| Tagihan dan rincian (`BilInvoice`, `BilInvoiceItem`) | Billing (`BIL-CTX-01`) | Ya | Tidak; nol perubahan skema |
+| Transaksi pembayaran (`BilSettlement`, `BilTender`) | Billing (`BIL-CTX-03`) | Ya | Tidak; `BilSettlement` diperbarui, bukan diganti |
+| Alokasi pembayaran (`BilPaymentAllocation`) | Billing (`BIL-CTX-03`) | Ya | Tidak; **skema sudah mendukung multi-invoice apa adanya** |
+| **Peserta grup pembayaran (`BilSettlementInvoice`)** | Billing (`BIL-CTX-03`) | Ya | **Ya — tabel baru** |
+| Tautan invoice ranap ke kunjungan lain (`BilInvoiceEncounterLink`) | Billing (`BIL-CTX-01`) | Ya | Tidak; tabel yang sudah ada diperluas nilai `LinkReason`-nya |
+| Kwitansi kasir | Billing (`BIL-CTX-04`) | Ya | Tidak; template cetak diperluas, bukan diganti |
+
+### Temuan reuse yang menghemat satu tabel
+
+`BilPaymentAllocation` **sudah** memiliki `SettlementId`, `TargetType`, dan `TargetId`
+(`Models/BilPaymentAllocation.cs`). Artinya satu settlement secara skema **sudah** boleh memiliki
+banyak baris alokasi yang menunjuk invoice berbeda. Yang menghalangi hanyalah dua hal, dan
+keduanya logika, bukan skema:
+
+| Penghalang | Bukti | Perubahan yang dibutuhkan |
+| --- | --- | --- |
+| Service alokasi hanya memuat satu invoice | `BillingAllocationService.cs:264` (`!settlement.InvoiceId.HasValue` → berhenti) dan `:267` (`LoadInvoiceAsync(settlement.InvoiceId.Value)`) | Perluas agar memuat seluruh invoice peserta |
+| `CHECK` constraint hanya mengenal dua `Purpose` | `BilSettlementConfiguration.cs:21` — hanya `'INVOICE_PAYMENT'` dan `'DEPOSIT_TOP_UP'` | Tambahkan cabang untuk `'CONSOLIDATED_INVOICE_PAYMENT'` |
+
+Karena itu amendment ini **tidak** membuat tabel grup settlement tersendiri. Satu-satunya tabel
+baru adalah `BilSettlementInvoice`, dan alasannya khusus: menyimpan **pilihan pasien** sebelum
+uang diterima — sesuatu yang tidak dapat diturunkan dari baris alokasi, karena alokasi baru lahir
+setelah tender berhasil.
+
+## 3. Class Diagram
+
+### Diagram 1: Grup pelunasan lintas kunjungan
+
+```mermaid
+classDiagram
+  direction TB
+
+  class BilSettlement {
+    <<Billing Aggregate Diperbarui>>
+    +Guid Id
+    +Guid? InvoiceId
+    +Guid? DepositAccountId
+    +string Purpose
+    +decimal RequestedAmount
+    +decimal SuccessfulAmount
+    +decimal AllocatedAmount
+    +string Status
+    +Guid IdempotencyKey
+    +Guid RowVersion
+  }
+
+  class BilSettlementInvoice {
+    <<Entity Baru>>
+    +Guid Id
+    +Guid SettlementId
+    +Guid InvoiceId
+    +int AllocationSequence
+    +decimal OutstandingSnapshot
+    +decimal RequestedAmount
+    +decimal AllocatedAmount
+    +string ParticipantStatus
+    +string ServiceTypeSnapshot
+    +DateTimeOffset InvoiceOpenedAtSnapshot
+  }
+
+  class BilPaymentAllocation {
+    <<Entity Sudah Ada>>
+    +Guid Id
+    +Guid SettlementId
+    +string TargetType
+    +Guid TargetId
+    +decimal Amount
+    +int? CalculationVersion
+  }
+
+  class BilInvoice {
+    <<Billing Aggregate Sudah Ada>>
+    +Guid Id
+    +Guid EncounterId
+    +string ServiceType
+    +string Status
+    +decimal PatientAmount
+  }
+
+  BilSettlement "1" *-- "many" BilSettlementInvoice : "Peserta grup"
+  BilSettlement "1" *-- "many" BilPaymentAllocation : "Alokasi hasil"
+  BilSettlementInvoice --> BilInvoice : "Menunjuk tagihan"
+  BilPaymentAllocation --> BilInvoice : "TargetId"
+```
+
+### Diagram 2: Penemuan tagihan kandidat
+
+```mermaid
+classDiagram
+  direction LR
+
+  class ConsolidatedSettlementService {
+    <<Service Baru>>
+    +GetCandidateInvoicesAsync(invoiceId) CandidateList
+    +CreateConsolidatedSettlementAsync(request) SettlementResult
+    +ResolveAllocationOrder(participants) OrderedList
+  }
+
+  class RegPatientEncounter {
+    <<Registration>>
+    +Guid Id
+    +Guid PatientId
+    +EncounterType EncounterType
+    +Guid? SourceEncounterId
+  }
+
+  class BilInvoiceEncounterLink {
+    <<Billing Sudah Ada>>
+    +Guid RanapInvoiceId
+    +Guid LinkedEncounterId
+    +string LinkReason
+    +Guid? SourceReferralId
+  }
+
+  class BillingAllocationService {
+    <<Service Diperbarui>>
+    +ReconcileSettlementAsync(settlement)
+  }
+
+  ConsolidatedSettlementService ..> RegPatientEncounter : "Rantai rujukan SourceEncounterId"
+  ConsolidatedSettlementService ..> BilInvoiceEncounterLink : "Tautan tercatat"
+  ConsolidatedSettlementService ..> BillingAllocationService : "Serahkan alokasi"
+```
+
+## 4. Penjelasan Setiap Class
+
+### Model & Configuration
+
+| Class | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- |
+| `BilSettlementInvoice` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Models/BilSettlementInvoice.cs` | Mencatat satu invoice peserta grup pembayaran beserta urutan alokasi, potret sisa tagihan saat grup dibentuk, dan hasil alokasi akhirnya |
+| `BilSettlementInvoiceConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilSettlementInvoiceConfiguration.cs` | Mapping tabel, indeks unik `(SettlementId, InvoiceId)`, dan `DeleteBehavior.Restrict` ke `BilInvoice` |
+| `BilSettlement` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Models/BilSettlement.cs` | Menambah konstanta `BillingSettlementPurposes.ConsolidatedInvoicePayment = "CONSOLIDATED_INVOICE_PAYMENT"` dan koleksi navigasi `ParticipantInvoices`. Kolom tabel **tidak** berubah |
+| `BilSettlementConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilSettlementConfiguration.cs` | Memperluas `CHECK` constraint `Purpose` agar menerima `'CONSOLIDATED_INVOICE_PAYMENT'` |
+| `BilInvoiceEncounterLink` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceEncounterLink.cs` | Menambah nilai `LinkReason` baru `"EMERGENCY_ORIGIN"` sebagai konstanta bernama. Kolom tabel **tidak** berubah **[Revisi `2.2`: penulisnya ditetapkan `BKC-DES-077`; ditambah `OUTPATIENT_ORIGIN`]** |
+
+### Service & Application Layer
+
+| Class | Status | Lokasi file | Tanggung jawab | Membuka transaksi database |
+| --- | --- | --- | --- | :---: |
+| `ConsolidatedSettlementService` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Services/ConsolidatedSettlementService.cs` | Menemukan tagihan kandidat satu pasien, memvalidasi pilihan kasir, membentuk grup, menetapkan urutan alokasi, lalu menyerahkan pemrosesan tender ke service settlement yang sudah ada | Ya |
+| `BillingAllocationService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingAllocationService.cs` | `ReconcileSettlementAsync` diperluas: bila `Purpose = "CONSOLIDATED_INVOICE_PAYMENT"`, memuat seluruh invoice peserta dan mengalokasikan berurutan sesuai `AllocationSequence`, bukan hanya `settlement.InvoiceId` | Tidak — ikut transaksi pemanggil |
+| `BillingSettlementService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingSettlementService.cs` | Penyelarasan status `FINAL`/`CLOSED` dijalankan **per invoice peserta**, bukan hanya invoice jangkar | Ya |
+| `InpatientClearanceService` | **Tidak disentuh amendment revisi `1.9`** | `Areas/HealthServices/BillingManagement/Billing/Services/InpatientClearanceService.cs` | Interaksi kelayakan pemulangan dengan tagihan kunjungan lain **sudah diputuskan** lewat `BKC-DEC-144` dan dirancang pada amendment revisi `2.0` di bawah | — |
+
+### Controller & DTO
+
+| Class | Status | Lokasi file | Service yang dipakai | Hak akses / Atribut |
+| --- | --- | --- | --- | --- |
+| `ConsolidatedSettlementsController` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Controllers/ConsolidatedSettlementsController.cs` | `ConsolidatedSettlementService` | `[Tags("Health Services / Billing Management / Billing / Consolidated Settlement")]`, `[AccessController(...)]`, `[AccessPermission("BillingConsolidatedSettlement", "Read")]` dan `[AccessPermission("BillingConsolidatedSettlement", "Create")]` |
+
+> **Catatan konvensi `[Tags]`.** Submodul ini memuat dua gaya nilai `[Tags(...)]`: bentuk panjang
+> `"Health Services / Billing Management / Billing / Patient Funds"`
+> (`BillingSettlementsController.cs:17`) dan bentuk pendek `"BillingInpatientIntegration"`
+> (`InpatientClearanceController.cs:37`, dibangun pada revisi 1.5). Bentuk panjang adalah pola
+> standar. Controller baru amendment ini memakai bentuk panjang; bentuk pendek dicatat sebagai
+> **utang teknis yang sudah ada** dan perapiannya **MUST** menjadi task tersendiri, bukan efek
+> samping amendment ini.
+| `ConsolidatedSettlementDtos` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Dtos/ConsolidatedSettlementDtos.cs` | N/A | DTO kandidat tagihan, pembentukan grup, dan rincian kwitansi gabungan |
+
+### Rincian DTO
+
+| Nama class | Jenis | Field |
+| --- | --- | --- |
+| `ConsolidationCandidateQuery` | PagedQuery | `AnchorInvoiceId` (Guid, wajib), `IncludeClosed` (bool, bawaan `false`) |
+| `ConsolidationCandidateResponse` | Response | `InvoiceId`, `InvoiceNumber`, `EncounterId`, `EncounterNumber`, `ServiceType`, `InvoiceOpenedAt`, `PatientOutstanding`, `RelationType`, `RelationEvidence`, `IsEligible`, `IneligibleReason` |
+| `CreateConsolidatedSettlementRequest` | Create | `AnchorInvoiceId` (Guid, wajib), `ParticipantInvoiceIds` (List&lt;Guid&gt;, wajib, minimum 2 termasuk jangkar), `Tenders` (List&lt;`SettlementTenderRequest`&gt;, wajib), `IdempotencyKey` (Guid, wajib), `Note` (string, opsional, maksimum 500) |
+| `ConsolidatedSettlementResponse` | Response | `SettlementId`, `Status`, `RequestedAmount`, `SuccessfulAmount`, `AllocatedAmount`, `Participants` (List&lt;`ConsolidatedParticipantResponse`&gt;), `ReceiptNumber` |
+| `ConsolidatedParticipantResponse` | Response | `InvoiceId`, `InvoiceNumber`, `ServiceType`, `AllocationSequence`, `OutstandingBefore`, `AllocatedAmount`, `OutstandingAfter`, `ParticipantStatus`, `InvoiceStatusAfter` |
+
+`RelationType` bernilai `REFERRAL_CHAIN` (ditemukan dari `RegPatientEncounter.SourceEncounterId`),
+`RECORDED_LINK` (ditemukan dari `BilInvoiceEncounterLink`), atau `SAME_PATIENT` (kunjungan lain
+pasien yang sama tanpa hubungan rujukan tercatat).
+
+## 5. Arsitektur Folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Controllers/
+│   ├── ConsolidatedSettlementsController.cs            # BARU (BKC-DES-058)
+│   ├── BillingSettlementsController.cs                 # sudah ada, nol perubahan
+│   └── InpatientClearanceController.cs                 # sudah ada, nol perubahan
+├── Dtos/
+│   ├── ConsolidatedSettlementDtos.cs                   # BARU
+│   └── BillingSettlementDtos.cs                        # sudah ada, nol perubahan
+├── Models/
+│   ├── BilSettlementInvoice.cs                         # BARU (BKC-DES-058)
+│   ├── BilSettlement.cs                                # DIPERBARUI (konstanta Purpose + navigasi)
+│   ├── BilPaymentAllocation.cs                         # sudah ada, nol perubahan
+│   └── BilInvoiceEncounterLink.cs                      # DIPERBARUI (konstanta LinkReason)
+└── Services/
+    ├── ConsolidatedSettlementService.cs                # BARU (BKC-DES-058, BKC-DES-060)
+    ├── BillingAllocationService.cs                     # DIPERBARUI (alokasi multi-invoice)
+    └── BillingSettlementService.cs                     # DIPERBARUI (penyelarasan per peserta)
+
+Repositories/Configurations/HealthServices/BillingManagement/Billing/
+├── BilSettlementInvoiceConfiguration.cs                # BARU
+└── BilSettlementConfiguration.cs                       # DIPERBARUI (CHECK Purpose)
+```
+
+> **Catatan pola.** Folder `Dtos/` pada submodul `Billing` memakai ejaan `Dtos`, berbeda dari pola
+> standar `DTOs/` yang dipakai submodul lain. Ini **utang teknis yang sudah ada** — berkas baru
+> amendment ini mengikuti ejaan folder yang berlaku di submodul ini agar tidak memecah namespace,
+> dan perapiannya **MUST** menjadi task tersendiri, bukan efek samping amendment ini.
+
+> **Catatan service tanpa interface.** `ConsolidatedSettlementService` dibuat **tanpa** interface,
+> mengikuti pola `AddScoped<TService>()` yang berlaku. Ini sengaja berbeda dari
+> `IInpatientClearanceService` (revisi 1.5) yang memakai interface; pola tanpa interface adalah
+> pola standar yang berlaku pada `backend-structure-rules.md`.
+
+## 6. Status Model dan Rencana Migration
+
+### Rincian perubahan skema database
+
+| Tabel | Skema | Status | Kolom yang berubah / ditambahkan | Indeks & constraint | Perilaku hapus |
+| --- | --- | --- | --- | --- | --- |
+| `BilSettlementInvoice` | `public` | **Baru** | Seluruh kolom: `Id` (uuid, PK), `SettlementId` (uuid, wajib, FK), `InvoiceId` (uuid, wajib, FK), `AllocationSequence` (int, wajib), `OutstandingSnapshot` (numeric 18,2, wajib), `RequestedAmount` (numeric 18,2, wajib), `AllocatedAmount` (numeric 18,2, wajib, bawaan `0`), `ParticipantStatus` (varchar 20, wajib, bawaan `'PENDING'`), `ServiceTypeSnapshot` (varchar 20, wajib), `InvoiceOpenedAtSnapshot` (timestamptz, wajib), `RowVersion` (uuid, wajib) | `UX_BilSettlementInvoice_Settlement_Invoice` (unik: `SettlementId`, `InvoiceId`); `IX_BilSettlementInvoice_Invoice_Status` (`InvoiceId`, `ParticipantStatus`) — penjaga invariant 4 | `Restrict` pada FK `InvoiceId`; `Cascade` pada FK `SettlementId` |
+| `BilSettlement` | `public` | **Diperbarui** | **Nol kolom baru.** **Dua** `CHECK` constraint diperluas agar menerima `Purpose = 'CONSOLIDATED_INVOICE_PAYMENT'`: (1) `CK_BilSettlement_Purpose` yang mendaftar nilai `Purpose` yang sah, dan (2) `CK_BilSettlement_PurposeTarget` yang mengikat `Purpose` ke kolom targetnya | Dua `CHECK` diperluas; seluruh indeks yang ada dipertahankan | Tidak berubah |
+
+> **Koreksi 14 Oktober 2026 (impact scan `d166cf4f`).** Draf pertama amendment ini menyebut hanya
+> **satu** constraint dan menuliskan namanya `CK_BilSettlement_Purpose_Target`. Pembacaan langsung
+> `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilSettlementConfiguration.cs:13-24`
+> menunjukkan keadaan sebenarnya: ada **tiga** constraint `Purpose`/target, dan **dua** di antaranya
+> menghalangi nilai `Purpose` baru:
+>
+> | Constraint | Baris | Isinya | Perlu diperluas? |
+> | --- | ---: | --- | :---: |
+> | `CK_BilSettlement_Target` | 14 | `InvoiceId` terisi XOR `DepositAccountId` terisi | **Tidak** — invoice jangkar tetap mengisi `InvoiceId`, jadi aturannya sudah lolos apa adanya |
+> | `CK_BilSettlement_Purpose` | 17 | `Purpose IN ('DEPOSIT_TOP_UP','INVOICE_PAYMENT')` | **Ya** |
+> | `CK_BilSettlement_PurposeTarget` | 20 | Mengikat tiap `Purpose` ke kolom target yang benar | **Ya** |
+>
+> Nama yang benar adalah `CK_BilSettlement_PurposeTarget` tanpa garis bawah sebelum `Target`.
+> Tanpa koreksi ini, migration akan gagal karena `CK_BilSettlement_Purpose` menolak nilai baru lebih
+> dulu. `CK_BilSettlement_Status` (baris 23) **tidak** tersentuh karena amendment ini tidak menambah
+> status settlement baru.
+
+Nilai `Purpose` baru memakai invoice jangkar pada `InvoiceId`, sehingga seluruh query, indeks
+`(InvoiceId, Status)`, dan laporan yang sudah berjalan **tetap bekerja tanpa perubahan**. Inilah
+alasan tidak ada kolom baru pada `BilSettlement`.
+
+### Rencana migration EF Core
+
+| No | Nama migration | Zero-downtime? | Backfill data lama | Cara mundur (`Down`) |
+| --- | --- | :---: | --- | --- |
+| 1 | `AddConsolidatedSettlementParticipants` | **Ya** — satu tabel baru, dan dua `CHECK` yang hanya **melonggarkan** aturan (semua baris lama tetap lolos) | **Tidak ada.** Grup pembayaran hanya berlaku untuk transaksi baru; settlement lama tetap bermakna satu invoice apa adanya | `Down` menghapus tabel `BilSettlementInvoice` lalu mengembalikan **kedua** `CHECK` ke dua nilai `Purpose` semula. Mundur **aman** hanya bila belum ada baris ber-`Purpose = 'CONSOLIDATED_INVOICE_PAYMENT'`; bila sudah ada, `Down` **MUST** ditolak dan pembatalan dilakukan lewat pembalikan tender yang sudah ada (`BKC-DES-051`–`056`) |
+
+Urutan di dalam migration ini mengikat: `CK_BilSettlement_Purpose` diperluas **lebih dulu**, baru
+`CK_BilSettlement_PurposeTarget`. Bila urutannya dibalik, baris ber-`Purpose` baru tetap ditolak
+constraint pertama dan migration gagal. Bentuk SQL keduanya ada di `data/data-dictionary.md`.
+
+Catatan urutan: migration ini **tidak** bergantung pada migration `MstRegister` maupun
+`BilInpatientClearanceHandoff` yang masih tertunda otorisasinya, sehingga boleh berjalan lebih
+dulu maupun sesudahnya.
+
+## 7. Rencana Data Master Awal
+
+Amendment ini **tidak memerlukan tabel master baru dan tidak memerlukan pengisian master awal**.
+Alasannya konkret: urutan alokasi diturunkan dari tanggal invoice terbit yang sudah tersimpan pada
+`BilInvoice`, bukan dari baris master yang harus dikonfigurasi, dan metode pembayaran tetap memakai
+`MstPaymentMethod` yang sudah terisi.
+
+Satu nilai yang **MUST** tersedia di master hak akses:
+
+| Master | Isi minimum | Sumber nilai |
+| --- | --- | --- |
+| Master hak akses (seeder permission) | Resource `BillingConsolidatedSettlement` dengan Action `Read` dan `Create` | `contracts/permission-audit-matrix.md` revisi 1.9 |
+
+## 8. Yang Sengaja Tidak Dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tabel grup settlement tersendiri (mis. `BilSettlementGroup`) | **Ditolak (`BKC-DES-058`).** `BilSettlement` sudah menjadi kepala transaksi kasir dan `BilPaymentAllocation` sudah mendukung banyak target per settlement. Menambah tabel grup berarti dua kepala transaksi untuk satu pembayaran, dan memaksa seluruh laporan kas yang sudah berjalan membaca dua sumber |
+| Menurunkan peserta grup dari `BilInvoiceEncounterLink` saja | **Ditolak.** Pasien boleh menggabungkan **sebagian** tagihan saja (`BKC-DES-061`). Tautan hanya menyatakan hubungan antar kunjungan, bukan pilihan pasien pada satu transaksi. Pilihan itu **MUST** tercatat per transaksi |
+| Menggabungkan invoice menjadi satu nomor invoice ranap | **Ditolak (`BKC-DES-057`).** `BilInvoice.EncounterId` unik (`BilInvoiceConfiguration.cs:27`) dan admisi ranap selalu membuat kunjungan baru. Penggabungan juga akan merusak pelaporan pendapatan per unit yang justru dituntut `BKC-AC-091` |
+| Memindahkan `BilInvoiceItem` dari invoice IGD ke invoice ranap | **Ditolak.** Melanggar idempotensi `SourceDomain` + `SourceDetailId` yang menjadi penjaga anti-duplikasi charge, dan melanggar sifat non-destruktif `BKC-DEC-118` |
+| Memaksa seluruh tagihan terbuka ikut satu grup | **Ditolak (`BKC-DES-061`).** Pemilik modul menegaskan pembayaran boleh digabung atau dipisah sesuai kehendak pasien |
+| Kolom `ConsolidationGroupId` pada `BilSettlement` | **Ditolak.** Settlement **adalah** grupnya; kolom itu akan menunjuk dirinya sendiri |
+| Membatalkan jalur pembayaran satu invoice yang sudah ada | **Ditolak.** Jalur itu adalah cara pasien membayar terpisah, dan justru **MUST** dipertahankan utuh |
+
+## 9. Keputusan Arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-057` | Konsolidasi dijalankan pada lapisan **settlement**, bukan lapisan invoice; `BKC-DES-048` dipersempit | `BKC-DEC-118` (approval evidence "Konsolidasi Settlement Non-Destruktif"), `BKC-AC-091`, `CAP-BIL-09`, `BKC-DEC-142`, `BKC-DEC-143` | Lapisan invoice tidak dapat dijalankan karena `BilInvoice.EncounterId` unik dan admisi ranap selalu membuat kunjungan baru. Lapisan settlement memenuhi tujuan bisnis yang sama tanpa merusak pelaporan per unit |
+| `BKC-DES-058` | Pakai ulang `BilSettlement` + `BilPaymentAllocation`; satu-satunya tabel baru adalah `BilSettlementInvoice` | `CAP-BIL-09`, `Models/BilPaymentAllocation.cs` | Skema alokasi sudah multi-target; yang kurang hanya catatan pilihan pasien sebelum uang diterima. Menambah satu tabel kecil jauh lebih murah daripada kepala transaksi kedua |
+| `BKC-DES-059` | Perluas `CHECK` constraint `Purpose` daripada melonggarkan aturan `InvoiceId XOR DepositAccountId` | `BilSettlementConfiguration.cs:15`, `:21` | Invoice jangkar tetap mengisi `InvoiceId`, sehingga constraint pertama tetap lolos apa adanya. Hanya daftar `Purpose` yang perlu diperluas — perubahan paling sempit yang mungkin, dan seluruh baris lama tetap sah |
+| `BKC-DES-060` | Alokasi lintas invoice berurutan **invoice terbit paling awal lebih dulu**, dilunasi sampai habis sebelum pindah ke invoice berikutnya | Arahan pemilik modul 13 Oktober 2026 | Deterministik, mudah dijelaskan ke keluarga pasien, dan selaras dengan praktik pelunasan piutang berdasarkan umur tagihan. Urutan disimpan eksplisit pada `AllocationSequence` agar hasilnya dapat diaudit, bukan dihitung ulang saat pembacaan |
+| `BKC-DES-061` | Penggabungan bersifat **opsional dan boleh sebagian**, mengikuti kehendak pasien; jalur satu invoice tetap utuh | Arahan pemilik modul 13 Oktober 2026 | Pasien berhak memilih membayar tagihan IGD lebih dulu dan melunasi tagihan ranap kemudian. Memaksa penggabungan akan menghapus kemampuan yang hari ini sudah dipakai |
+| `BKC-DES-062` | Satu kwitansi, rincian beban per unit pelayanan diturunkan dari baris alokasi dan `BilInvoice.ServiceType` | `BKC-DEC-118`, `BKC-AC-091` | Rincian per unit lahir otomatis dari data yang sudah ada karena setiap invoice menyimpan `ServiceType` (`IGD`, `RANAP`, `RAJAL`). Tidak perlu penanda unit tambahan |
+
+## 10. Yang MUST Dijawab Owner Saat Approval
+
+| Butir | Pertanyaan | Memblokir |
+| --- | --- | :---: |
+| `BKC-OQ-107` | `BE-BKC-072` melaporkan invariant konsolidasi IGD terpenuhi, padahal yang terbangun hanya penerimaan domain `EMERGENCY` pada adapter charge. Apakah laporan task dan status roadmap `BE-BKC-072` dikoreksi, dan `CAP-BIL-09` dinyatakan terbuka sampai amendment ini dikerjakan? | Tidak memblokir desain; memblokir klaim kesiapan modul |
+| `BKC-OQ-108` | **DITUTUP 14 Oktober 2026.** Diratifikasi menjadi `BKC-DEC-142` (urutan alokasi) dan `BKC-DEC-143` (penggabungan opsional) | Tidak lagi memblokir |
+| `BKC-OQ-109` | Bila tagihan kunjungan IGD masih punya sisa, apakah itu **menahan** kelayakan pemulangan rawat inap (`BilInpatientClearanceHandoff` menjadi `BLOCKED`), atau kelayakan hanya menilai tagihan kunjungan ranap saja? | **Ya** — untuk bagian interaksi kelayakan pemulangan saja; mekanisme pelunasan gabungan tetap dapat dikerjakan tanpa jawaban ini |
+| `BKC-OQ-110` | **DITUTUP 14 Oktober 2026.** `BKC-AC-086` berstatus `superseded`, digantikan `BKC-AC-091` lewat `BKC-DEC-146` | Tidak lagi memblokir |
+
+## 11. Status Amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `BKC-DEC-118` (`approved` 24 September 2026), `BKC-DEC-142`, dan `BKC-DEC-143` (keduanya `approved` 13 Oktober 2026 lewat closure pass 14 Oktober) |
+| Kriteria penerimaan | `BKC-AC-091`, `BKC-AC-092`, `BKC-AC-093` (`BKC-AC-086` `superseded` lewat `BKC-DEC-146`) |
+| Keputusan arsitektur | `BKC-DES-057`–`BKC-DES-062`; `BKC-DES-048` **dipersempit**, tidak dicabut |
+| Dampak skema | **Satu tabel baru** (`BilSettlementInvoice`), **nol kolom baru**, **dua** `CHECK` constraint diperluas (`CK_BilSettlement_Purpose` dan `CK_BilSettlement_PurposeTarget`) |
+| Dampak kontrak API | **Dua endpoint baru** (`GET /invoices/{id}/consolidation-candidates`, `POST /consolidated-settlements`) dan **satu endpoint pembacaan** (`GET /consolidated-settlements/{id}`); nol endpoint lama yang berubah |
+| Dampak frontend | Satu layar baru "Pelunasan Gabungan" sebagai layar anak dari Menu Pembayaran |
+| Ketergantungan lintas modul | Registration Management dan Rawat Inap sebagai sumber **baca saja** rantai kunjungan; nol perubahan pada keduanya |
+| Kompatibilitas | **Aditif penuh.** Jalur pembayaran satu invoice tidak berubah sama sekali |
+| Status | **approved** — dinyatakan pemilik modul Billing, 14 Oktober 2026 |
+
+---
+
+# Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
+
+> `revisi blueprint`: `2.0`, status **approved** (14 Oktober 2026). Masukan: `BKC-DEC-144` (`approved` 14 Oktober 2026),
+> `BKC-AC-094`, ditambah dua arahan pemilik modul pada 14 Oktober 2026 yang menetapkan parameter
+> penelusuran rantai (lihat `BKC-DES-063` dan `BKC-DES-067`). **Sudah diratifikasi** 14 Oktober 2026
+> menjadi `BKC-DEC-148` dan `BKC-DEC-149` (`BKC-OQ-118` ditutup).
+> Keputusan arsitektur: `BKC-DES-063`–`BKC-DES-069`.
+> Backend SHA diaudit: `d166cf4f`, Frontend SHA diaudit: `6e5edd6df`.
+>
+> **Tujuan amendment.** Mewujudkan `EPIC BKC-26`. `BKC-DEC-144` memutuskan kelayakan pulang rawat
+> inap dinilai atas **rantai admisi**, bukan hanya tagihan kunjungan rawat inap. Amendment ini
+> merancang penelusuran rantai itu beserta pengamannya, aturan anti-hitung-ganda, dan keadaan baru
+> ketika hubungan antar kunjungan ternyata tidak lengkap atau ambigu.
+
+## 0. Arahan pemilik yang menjadi dasar
+
+Dua arahan pemilik modul pada 14 Oktober 2026 memperluas `BKC-DEC-144` menjadi parameter yang dapat
+dirancang. Keduanya **sudah diratifikasi** pada closure pass 14 Oktober 2026 menjadi `BKC-DEC-148`
+(penelusuran rantai penuh berpagar) dan `BKC-DEC-149` (satu admisi aktif per episode).
+
+| Arahan | Isi yang mengikat desain |
+| --- | --- |
+| Kedalaman penelusuran | Telusuri **seluruh** kunjungan asal yang benar-benar terhubung (misalnya Rawat Jalan → IGD → Rawat Inap), **secara berhati-hati**: dengan validasi relasi, pembatasan penelusuran, deteksi siklus, dan deduplikasi invoice maupun tagihan. Kewajiban yang sudah dibayar, dialihkan, dikonsolidasikan, atau ditanggung penjamin **MUST NOT** dihitung dua kali. Hanya kewajiban yang masih terbuka dan relevan yang memengaruhi kelayakan. Bila relasi tidak lengkap atau ambigu, **tampilkan untuk rekonsiliasi petugas Billing/Kasir** — **MUST NOT** otomatis membuat tagihan baru, dan **MUST NOT** menganggap seluruh kewajiban sudah lunas |
+| Percabangan admisi | Satu pasien hanya memiliki **satu admisi rawat inap aktif** dalam satu episode perawatan. Perpindahan kamar, bed, unit, dan perubahan kelas **tidak** membuat admisi baru maupun cabang kunjungan baru, melainkan riwayat perpindahan pada episode yang sama. Sistem **tidak perlu** mendukung percabangan beberapa admisi aktif dari satu kunjungan asal. Kepulangan memakai **satu** proses kelayakan terpusat yang memeriksa seluruh kewajiban relevan, tanpa menagih transaksi yang sama dua kali |
+
+## 1. Perubahan pada Bounded Context & Invariant
+
+| Konteks | Aggregate root | Invariant sesudah amendment ini | Owner |
+| --- | --- | --- | --- |
+| `BIL-CTX-05` Billing Finalization & Handoff | `BilInpatientClearanceHandoff` | Billing tetap *single source of truth* kelayakan pemulangan (`BKC-DEC-117`). **Baru:** kelayakan dinilai atas **himpunan tagihan hasil penelusuran rantai kunjungan yang sudah dideduplikasi**, bukan satu tagihan. Status bertambah satu: `NEEDS_RECONCILIATION`. Setiap surat kelayakan menyimpan rincian tagihan yang dinilai pada versi itu, sehingga dapat direkonstruksi | Billing |
+| `BIL-CTX-01` Billing Account & Charge | `BilInvoice` | Tidak berubah. Satu invoice per kunjungan, `EncounterId` unik. Penelusuran rantai bersifat **baca saja** dan tidak pernah membuat, memindahkan, atau menggabungkan tagihan | Billing |
+
+### Invariant baru yang wajib dipertahankan
+
+1. **Agregasi memakai sisa tagihan per invoice, bukan komponennya (`BKC-DES-065`).** Kelayakan
+   dihitung sebagai jumlah **sisa tagihan pasien per invoice** atas himpunan invoice yang sudah
+   dideduplikasi. Sistem **MUST NOT** menjumlahkan ulang pembayaran, kredit, atau tanggungan
+   penjamin lintas invoice. Inilah penjaga aturan anti-hitung-ganda yang diminta pemilik.
+2. **Penelusuran selalu berpagar (`BKC-DES-064`).** Setiap penelusuran **MUST** memakai batas
+   kedalaman, himpunan kunjungan yang sudah dikunjungi untuk mencegah siklus, dan deduplikasi
+   berdasarkan pengenal invoice.
+3. **Gagal tertutup, bukan gagal terbuka (`BKC-DES-066`).** Ketika rantai tidak lengkap atau
+   ambigu, status menjadi `NEEDS_RECONCILIATION`. Sistem **MUST NOT** menyimpulkan "berarti lunas",
+   dan **MUST NOT** membuat tagihan baru untuk menutup ketidakjelasan.
+4. **Hanya kunjungan milik pasien yang sama (`BKC-DES-064`).** Simpul rantai yang `PatientId`-nya
+   berbeda **MUST** dikeluarkan dari perhitungan dan ditandai sebagai anomali, bukan diikutkan.
+5. **Perpindahan kamar bukan simpul rantai (`BKC-DES-068`).** Penelusuran bekerja pada tingkat
+   kunjungan. Perpindahan bed, unit, dan kelas **MUST NOT** diperlakukan sebagai kunjungan baru.
+6. **Penelusuran tidak pernah menulis (`BKC-DES-063`).** Seluruh pembacaan rantai bersifat
+   *read-only* terhadap data Registration dan Rawat Inap.
+
+## 2. Tabel Kepemilikan Data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Kunjungan pasien dan rujukan asalnya (`RegPatientEncounter`, kolom `SourceEncounterId`) | Registration Management | Ya, **baca saja** | Tidak; dipakai melanjutkan penelusuran di atas tingkat pertama |
+| Rujukan admisi rawat inap (`InpAdmissionReferral`) | Rawat Inap (`Inpatient`) | Ya, **baca saja** dan tidak langsung — lewat tautan milik Billing | Tidak |
+| Riwayat penempatan bed (`InpBedPlacement`) | Rawat Inap (`Inpatient`) | **Tidak dipakai amendment ini** | Tidak; perpindahan kamar bukan simpul rantai (`BKC-DES-068`) |
+| Tautan invoice ranap ke kunjungan lain (`BilInvoiceEncounterLink`) | Billing (`BIL-CTX-01`) | Ya | Tidak; **sudah terisi otomatis**, dipakai sebagai sumber utama tingkat pertama **[Dikoreksi revisi `2.2` (`BKC-DES-082`): terisi otomatis hanya untuk rujukan operasi; jalur transfer lihat `BKC-DES-077` dan `BKC-DES-080`]** |
+| Tagihan dan sisa tagihan (`BilInvoice`, `BilAdjustment`, `BilRefundableCredit`, `BilWriteOffCase`) | Billing (`BIL-CTX-01`, `BIL-CTX-03`) | Ya | Tidak; nol perubahan skema |
+| Surat kelayakan pemulangan (`BilInpatientClearanceHandoff`) | Billing (`BIL-CTX-05`) | Ya | Tidak; tabel yang sudah ada **diperbarui** |
+| **Rincian kewajiban yang dinilai per surat kelayakan (`BilClearanceObligation`)** | Billing (`BIL-CTX-05`) | Ya | **Ya — tabel baru** |
+
+### Temuan reuse yang menghemat pekerjaan
+
+| Yang sudah ada | Bukti | Dipakai untuk |
+| --- | --- | --- |
+| Tautan kunjungan asal ke invoice ranap **sudah terisi otomatis** | `BillingInpatientEventReceiver.cs:252-266` — membaca `InpAdmissionReferral` berstatus `Completed`, menulis `BilInvoiceEncounterLink`, idempoten karena memeriksa tautan yang sudah ada, dan dikunci `pg_advisory_xact_lock` | Sumber utama rantai tingkat pertama. **Nol pekerjaan baru**, dan tidak perlu membaca tabel Rawat Inap secara langsung **[Dikoreksi revisi `2.2` (`BKC-DES-082`): terisi otomatis hanya untuk rujukan operasi; jalur transfer lihat `BKC-DES-077` dan `BKC-DES-080`]** |
+| Rumus sisa tagihan pasien per invoice sudah menetralkan seluruh pengurang | `InpatientClearanceService.cs:95-109` — `totalPatientResponsibility - paidAmount - creditTotal + allocationExcess - writeOffTotal - adjustmentNet`, dengan `creditTotal` dari `BilRefundableCredits` yang komentarnya menyebut "Kredit alihan rajal / refund credit" | Dipakai **apa adanya** per invoice. Inilah sebabnya aturan anti-hitung-ganda tidak menuntut rumus baru: kewajiban yang sudah dibayar, dialihkan, di-write-off, dan ditanggung penjamin sudah ternetralkan di tingkat invoice |
+| Nomor versi finansial monoton per kunjungan | `BilInpatientClearanceHandoff.FinancialVersion` beserta indeks uniknya | Dipakai apa adanya; penelusuran rantai tidak mengubah mekanisme versi |
+
+Karena itu amendment ini **tidak** membuat tabel rantai kunjungan tersendiri dan **tidak** menulis
+rumus sisa tagihan baru.
+
+## 3. Class Diagram
+
+### Diagram 1: Penelusuran rantai kunjungan
+
+```mermaid
+classDiagram
+  direction TB
+
+  class EncounterChainResolver {
+    <<Service Baru>>
+    +ResolveChainAsync(ranapEncounterId) ChainResult
+    +ValidateNode(encounter, patientId) bool
+  }
+
+  class ChainResult {
+    <<Nilai Baru>>
+    +List~Guid~ EncounterIds
+    +List~Guid~ InvoiceIds
+    +int DepthReached
+    +bool IsComplete
+    +string AnomalyCode
+  }
+
+  class BilInvoiceEncounterLink {
+    <<Billing Sudah Ada>>
+    +Guid RanapInvoiceId
+    +Guid LinkedEncounterId
+    +string LinkReason
+  }
+
+  class RegPatientEncounter {
+    <<Registration>>
+    +Guid Id
+    +Guid PatientId
+    +Guid SourceEncounterId
+  }
+
+  EncounterChainResolver ..> BilInvoiceEncounterLink : "Tingkat pertama"
+  EncounterChainResolver ..> RegPatientEncounter : "Tingkat lanjutan, berpagar"
+  EncounterChainResolver --> ChainResult : "Menghasilkan"
+```
+
+### Diagram 2: Surat kelayakan beserta rincian kewajibannya
+
+```mermaid
+classDiagram
+  direction LR
+
+  class BilInpatientClearanceHandoff {
+    <<Aggregate Root Diperbarui>>
+    +Guid Id
+    +Guid EncounterId
+    +Guid InvoiceId
+    +string ClearanceStatus
+    +string FinancialOutcome
+    +decimal OutstandingBalance
+    +long FinancialVersion
+    +int ChainDepthEvaluated
+    +int ChainInvoiceCount
+    +string ReconciliationReason
+  }
+
+  class BilClearanceObligation {
+    <<Entity Baru>>
+    +Guid Id
+    +Guid ClearanceHandoffId
+    +Guid InvoiceId
+    +Guid ObligationEncounterId
+    +string ServiceTypeSnapshot
+    +int ChainLevel
+    +decimal PatientOutstanding
+    +bool IsCounted
+    +string ExclusionReason
+  }
+
+  class InpatientClearanceService {
+    <<Service Diperbarui>>
+    +EvaluateClearanceAsync(encounterId)
+    +GetChainObligationsAsync(encounterId)
+    +ResolveReconciliationAsync(handoffId, request)
+  }
+
+  BilInpatientClearanceHandoff "1" *-- "many" BilClearanceObligation : "Rincian yang dinilai"
+  InpatientClearanceService ..> BilInpatientClearanceHandoff : "Terbitkan surat"
+  InpatientClearanceService ..> BilClearanceObligation : "Tulis rincian"
+```
+
+## 4. Penjelasan Setiap Class
+
+### Model & Configuration
+
+| Class | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- |
+| `BilClearanceObligation` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Models/BilClearanceObligation.cs` | Menyimpan satu baris per tagihan yang dinilai pada satu surat kelayakan: tingkat rantainya, sisa tagihan pasien saat itu, apakah dihitung, dan alasan bila dikecualikan |
+| `BilClearanceObligationConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilClearanceObligationConfiguration.cs` | Mapping tabel, indeks unik `(ClearanceHandoffId, InvoiceId)`, `DeleteBehavior.Cascade` ke surat kelayakan dan `Restrict` ke `BilInvoice` |
+| `BilInpatientClearanceHandoff` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInpatientClearanceHandoff.cs` | Menambah tiga kolom: `ChainDepthEvaluated` (int), `ChainInvoiceCount` (int), `ReconciliationReason` (varchar 200, nullable). Menambah nilai status `NEEDS_RECONCILIATION` dan empat reason code baru. Menambah koleksi navigasi `Obligations` |
+| `BilInpatientClearanceHandoffConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientClearanceHandoffConfiguration.cs` | Mapping tiga kolom baru; bila `ClearanceStatus` dijaga `CHECK` yang mendaftar nilainya, constraint itu diperluas |
+
+### Service & Application Layer
+
+| Class | Status | Lokasi file | Tanggung jawab | Membuka transaksi database |
+| --- | --- | --- | --- | :---: |
+| `EncounterChainResolver` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Services/EncounterChainResolver.cs` | Menelusuri rantai kunjungan berpagar, mengembalikan himpunan kunjungan dan invoice yang sudah dideduplikasi beserta kode anomali bila ada. **Read-only murni** | Tidak |
+| `InpatientClearanceService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/InpatientClearanceService.cs` | `EvaluateClearanceAsync` diperluas: meminta rantai dari resolver, menghitung sisa tagihan **per invoice** memakai rumus yang sudah ada, menjumlahkannya, menulis rincian `BilClearanceObligation`, dan menetapkan `NEEDS_RECONCILIATION` bila rantai bermasalah. Dua method baru: `GetChainObligationsAsync` dan `ResolveReconciliationAsync` | Ya |
+
+### Controller & DTO
+
+| Class | Status | Lokasi file | Service yang dipakai | Hak akses / Atribut |
+| --- | --- | --- | --- | --- |
+| `InpatientClearanceController` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Controllers/InpatientClearanceController.cs` | `IInpatientClearanceService` | Dua endpoint baru dengan `[AccessPermission("BillingInpatient", "Read")]` dan `[AccessPermission("BillingInpatient", "Reconcile")]` |
+| `InpatientClearanceDtos` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Dtos/InpatientClearanceDtos.cs` | N/A | DTO rincian kewajiban rantai dan penyelesaian rekonsiliasi |
+
+### Rincian DTO
+
+| Nama class | Jenis | Field |
+| --- | --- | --- |
+| `ChainObligationResponse` | Response | `InvoiceId`, `InvoiceNumber`, `ObligationEncounterId`, `EncounterNumber`, `ServiceType`, `ChainLevel`, `PatientOutstanding`, `IsCounted`, `ExclusionReason` |
+| `ChainClearanceSummaryResponse` | Response | `ClearanceStatus`, `FinancialOutcome`, `TotalOutstanding`, `ChainDepthEvaluated`, `ChainInvoiceCount`, `IsChainComplete`, `AnomalyCode`, `ReconciliationReason`, `Obligations` (daftar `ChainObligationResponse`) |
+| `ResolveReconciliationRequest` | Update | `Decision` (string, wajib — `INCLUDE` atau `EXCLUDE`), `TargetInvoiceId` (Guid, wajib), `Reason` (string, wajib, maksimum 200), `IdempotencyKey` (Guid, wajib) |
+
+### Enum dan konstanta
+
+| Nama | Status | Nilai | Bawaan |
+| --- | --- | --- | --- |
+| `InpatientClearanceStatuses` | **Diperbarui** | `PENDING`, `BLOCKED`, `CLEARED`, `REVOKED`, **`NEEDS_RECONCILIATION`** (baru) | `PENDING` |
+| `InpatientClearanceReasonCodes` | **Diperbarui** | Nilai yang sudah ada, ditambah **`CROSS_ENCOUNTER_OUTSTANDING`**, **`CHAIN_INCOMPLETE`**, **`CHAIN_AMBIGUOUS`**, **`RECONCILIATION_RESOLVED`** | — |
+| `EncounterChainAnomalyCodes` | **Baru** | `DEPTH_LIMIT_REACHED`, `CYCLE_DETECTED`, `PATIENT_MISMATCH`, `MULTIPLE_ACTIVE_ADMISSION`, `MISSING_INVOICE` | — |
+
+## 5. Arsitektur Folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Controllers/
+│   └── InpatientClearanceController.cs                 # DIPERBARUI (2 endpoint baru)
+├── Dtos/
+│   └── InpatientClearanceDtos.cs                       # DIPERBARUI
+├── Models/
+│   ├── BilClearanceObligation.cs                       # BARU (BKC-DES-066)
+│   └── BilInpatientClearanceHandoff.cs                 # DIPERBARUI (3 kolom, status, reason code)
+└── Services/
+    ├── EncounterChainResolver.cs                       # BARU (BKC-DES-063, BKC-DES-064)
+    └── InpatientClearanceService.cs                    # DIPERBARUI (agregasi rantai)
+
+Repositories/Configurations/HealthServices/BillingManagement/Billing/
+├── BilClearanceObligationConfiguration.cs              # BARU
+└── BilInpatientClearanceHandoffConfiguration.cs        # DIPERBARUI (3 kolom)
+```
+
+> **Catatan utang teknis yang diwarisi.** `IInpatientClearanceService` memakai interface, padahal
+> pola standar `backend-structure-rules.md` adalah service tanpa interface yang didaftarkan
+> `AddScoped<TService>()`. Amendment ini **mengikuti interface yang sudah ada** karena mengubahnya
+> berarti menyentuh seluruh pemanggil di luar scope. `EncounterChainResolver` yang **baru** dibuat
+> **tanpa** interface, mengikuti pola standar. Perapian `IInpatientClearanceService` **MUST**
+> menjadi task tersendiri, bukan efek samping amendment ini.
+
+## 6. Status Model dan Rencana Migration
+
+### Rincian perubahan skema database
+
+| Tabel | Skema | Status | Kolom yang berubah / ditambahkan | Indeks & constraint | Perilaku hapus |
+| --- | --- | --- | --- | --- | --- |
+| `BilClearanceObligation` | `public` | **Baru** | Seluruh kolom: `Id` (uuid, PK), `ClearanceHandoffId` (uuid, wajib, FK), `InvoiceId` (uuid, wajib, FK), `ObligationEncounterId` (uuid, wajib), `ServiceTypeSnapshot` (varchar 20, wajib), `ChainLevel` (int, wajib), `PatientOutstanding` (numeric 18,2, wajib), `IsCounted` (boolean, wajib, bawaan `true`), `ExclusionReason` (varchar 100, nullable), `RowVersion` (uuid, wajib) | `UX_BilClearanceObligation_Handoff_Invoice` (unik: `ClearanceHandoffId`, `InvoiceId`) — penjaga deduplikasi di tingkat basis data; `IX_BilClearanceObligation_Invoice` (`InvoiceId`) | `Cascade` pada FK `ClearanceHandoffId`; `Restrict` pada FK `InvoiceId` |
+| `BilInpatientClearanceHandoff` | `public` | **Diperbarui** | Menambah tiga kolom:<br>1. `ChainDepthEvaluated` (int, wajib, bawaan `0`)<br>2. `ChainInvoiceCount` (int, wajib, bawaan `1`)<br>3. `ReconciliationReason` (varchar 200, nullable) | Seluruh indeks yang ada dipertahankan. Bila `ClearanceStatus` dijaga `CHECK` yang mendaftar nilainya, constraint itu **MUST** diperluas dengan `NEEDS_RECONCILIATION` | Tidak berubah |
+
+> **Pemeriksaan wajib sebelum migration.** Amendment revisi `1.9` nyaris gagal karena satu `CHECK`
+> constraint yang mendaftar nilai `Purpose` terlewat dari draf pertama. Pelajaran itu berlaku di
+> sini: implementer **MUST** membaca `BilInpatientClearanceHandoffConfiguration.cs` lebih dulu dan
+> memeriksa apakah `ClearanceStatus` dijaga `CHECK` yang mendaftar nilainya. Bila ya, constraint itu
+> diperluas pada migration yang sama. Bila tidak, tidak ada yang perlu diubah. **Jangan menebak** —
+> desain ini sengaja tidak mengklaim jawabannya karena berkas itu belum dibaca pada pass ini.
+>
+> **Koreksi revisi `2.1` (14 Oktober 2026).** Berkas itu kini sudah dibaca. Jawabannya: **ya**,
+> `CK_BilInpatientClearanceHandoff_ClearanceStatus` ada dan **wajib** diperluas, dan ada **satu
+> constraint lagi** — `CK_BilInpatientClearanceHandoff_ReasonCode` — yang juga **wajib** diperluas untuk
+> empat reason code baru amendment ini. Rinciannya pada amendment revisi `2.1` bagian 0.2 dan 6.
+
+### Rencana migration EF Core
+
+| No | Nama migration | Zero-downtime? | Backfill data lama | Cara mundur (`Down`) |
+| --- | --- | :---: | --- | --- |
+| 1 | `AddClearanceChainObligations` — **digantikan** `AddClearanceChainObligationsAndDecisions` pada revisi `2.1` | **Ya** — satu tabel baru, dua kolom wajib ber-bawaan, satu kolom nullable, dan **dua** `CHECK` yang dilonggarkan (dikoreksi revisi `2.1`; draf ini semula menulis "paling banyak satu") | **Ya (minimal):** `ChainDepthEvaluated = 0` dan `ChainInvoiceCount = 1` untuk surat kelayakan yang sudah ada, karena surat lama memang hanya menilai satu tagihan. **Tidak ada** backfill `BilClearanceObligation`: rincian hanya ditulis untuk surat yang diterbitkan sesudah migration | `Down` menghapus tabel `BilClearanceObligation`, men-drop ketiga kolom, dan mengembalikan `CHECK` bila sempat diperluas. Mundur **aman** hanya bila belum ada surat berstatus `NEEDS_RECONCILIATION`; bila sudah ada, `Down` **MUST** ditolak karena menurunkannya berarti mengubah status kelayakan pasien tanpa jejak |
+
+Urutan terhadap migration revisi `1.9`: **tidak saling bergantung**.
+`AddConsolidatedSettlementParticipants` dan `AddClearanceChainObligations` menyentuh tabel yang
+berbeda dan boleh berjalan dalam urutan apa pun. Namun secara **fungsi**, `MVP-37` sebaiknya
+menyusul `MVP-36`, karena pelunasan gabungan adalah cara kasir menutup tagihan lintas kunjungan yang
+ditemukan penelusuran rantai ini.
+
+## 7. Rencana Data Master Awal
+
+Amendment ini **tidak memerlukan tabel master baru**. Satu nilai pagar dan satu hak akses **MUST**
+tersedia:
+
+| Yang dibutuhkan | Isi minimum | Sumber nilai |
+| --- | --- | --- |
+| Batas kedalaman penelusuran | `5` tingkat | Konstanta bernama di source, **bukan** tabel master |
+| Master hak akses (seeder permission) | Action `Reconcile` pada Resource `BillingInpatient` yang sudah ada | `contracts/permission-audit-matrix.md` revisi `2.0` |
+
+> **Mengapa batas kedalaman bukan master data.** Aturan repository menuntut nilai **bisnis** —
+> seperti tarif, persentase, dan target waktu — berasal dari master dan tidak di-hardcode. Batas
+> kedalaman penelusuran bukan nilai bisnis: ia pagar keselamatan teknis supaya penelusuran tidak
+> berjalan tanpa henti pada data yang cacat. Menjadikannya dapat disetel pengguna justru membuka
+> peluang seseorang menyetelnya sangat besar lalu membuat penilaian kelayakan menggantung. Nilai `5`
+> dipilih karena rantai pelayanan nyata yang disebut pemilik paling panjang tiga tingkat (Rawat
+> Jalan → IGD → Rawat Inap), sehingga `5` memberi ruang dua tingkat tanpa membuka risiko.
+
+## 8. Yang Sengaja Tidak Dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tabel rantai kunjungan tersendiri | **Ditolak (`BKC-DES-063`).** Tingkat pertama sudah dipegang `BilInvoiceEncounterLink` yang terisi otomatis, dan tingkat lanjutannya ada pada kolom rujukan milik Registration. Menyalinnya ke tabel baru berarti dua kebenaran tentang hubungan yang sama **[Dikoreksi revisi `2.2` (`BKC-DES-082`): terisi otomatis hanya untuk rujukan operasi; jalur transfer lihat `BKC-DES-077` dan `BKC-DES-080`]** |
+| Menyalin `SourceEncounterId` ke dalam Billing | **Ditolak.** Itu duplikasi data milik Registration. Billing membacanya saat menilai, tidak menyimpannya |
+| Memperlakukan perpindahan kamar sebagai simpul rantai | **Ditolak (`BKC-DES-068`).** Pemilik menegaskan perpindahan kamar, bed, unit, dan kelas tetap satu admisi. Memperlakukannya sebagai simpul akan menagih satu episode berkali-kali |
+| Mendukung beberapa admisi aktif dari satu kunjungan asal | **Ditolak (`BKC-DES-067`).** Pemilik menyatakan satu pasien hanya punya satu admisi aktif per episode. Namun keadaan itu tetap **dideteksi** dan ditandai `NEEDS_RECONCILIATION`, bukan diabaikan — "tidak perlu didukung" tidak berarti "tidak mungkin ada di data" |
+| Menghitung ulang pembayaran dan tanggungan penjamin lintas invoice | **Ditolak (`BKC-DES-065`).** Inilah sumber hitung ganda yang persis dilarang pemilik. Agregasi memakai sisa tagihan per invoice yang rumusnya sudah menetralkan semuanya |
+| Otomatis membuat tagihan penyeimbang saat rantai ambigu | **Ditolak.** Pemilik melarangnya secara eksplisit. Yang dilakukan sistem adalah menampilkannya untuk rekonsiliasi petugas |
+| Menganggap rantai yang tidak lengkap berarti lunas | **Ditolak.** Ini gagal terbuka pada keputusan yang menyangkut uang dan kepulangan pasien. Sistem gagal tertutup lewat `NEEDS_RECONCILIATION` |
+| Mengizinkan perawat bangsal melihat nominal tagihan unit lain | **Ditolak.** Aturan privasi `BKC-DEC-117` tetap berlaku; perawat melihat penyebab operasional tanpa rupiah |
+
+## 9. Keputusan Arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-063` | Rantai ditelusuri dari dua sumber berurutan: tautan invoice-kunjungan milik Billing untuk tingkat pertama, lalu kolom rujukan milik Registration untuk tingkat lanjutan. Keduanya dibaca saja | `BKC-DEC-144`, arahan pemilik 14 Oktober 2026, `BillingInpatientEventReceiver.cs:252-266` | Tingkat pertama sudah terisi otomatis, idempoten, dan dimiliki Billing sendiri, sehingga nol pekerjaan baru dan tidak menyentuh tabel Rawat Inap langsung. Tingkat lanjutan hanya dapat diperoleh dari kolom rujukan Registration **[Dikoreksi revisi `2.2` (`BKC-DES-082`): terisi otomatis hanya untuk rujukan operasi; jalur transfer lihat `BKC-DES-077` dan `BKC-DES-080`]** |
+| `BKC-DES-064` | Penelusuran berpagar: batas kedalaman `5`, himpunan kunjungan terkunjungi untuk mencegah siklus, deduplikasi berdasarkan pengenal invoice, dan penolakan simpul yang pasiennya berbeda | Arahan pemilik 14 Oktober 2026 — "validasi relasi, pembatasan traversal, deteksi siklus, deduplikasi" | Data rujukan dapat cacat atau melingkar. Tanpa pagar, penilaian kelayakan berpotensi menggantung atau menghitung satu tagihan berkali-kali |
+| `BKC-DES-065` | Agregasi memakai **sisa tagihan pasien per invoice** yang dihitung rumus existing, lalu dijumlahkan atas himpunan invoice terdeduplikasi | Arahan pemilik 14 Oktober 2026 — "tidak boleh dihitung dua kali"; `InpatientClearanceService.cs:95-109` | Rumus existing sudah menetralkan pembayaran, kredit alihan, write-off, penyesuaian, dan porsi penjamin. Memakainya per invoice memenuhi aturan anti-hitung-ganda tanpa rumus baru, dan tanpa risiko dua rumus yang hasilnya berbeda |
+| `BKC-DES-066` | Status baru `NEEDS_RECONCILIATION` beserta tabel rincian `BilClearanceObligation` | Arahan pemilik 14 Oktober 2026 — "tampilkan untuk rekonsiliasi" | Membedakan "kurang uang" dari "hubungan datanya belum jelas" — tindakan petugasnya berbeda. Tabel rincian membuat surat kelayakan dapat direkonstruksi pada versinya, dan menjadi isi layar rekonsiliasi |
+| `BKC-DES-067` | Satu admisi aktif per episode **ditegakkan dengan deteksi**, bukan diasumsikan. Lebih dari satu admisi aktif atas satu kunjungan asal menjadi `NEEDS_RECONCILIATION` | Arahan pemilik 14 Oktober 2026 | Pemilik menyatakan percabangan tidak perlu didukung. Mengasumsikannya mustahil berarti memilih satu admisi secara diam-diam bila ternyata terjadi, dan itu keputusan uang tanpa jejak |
+| `BKC-DES-068` | Perpindahan kamar, bed, unit, dan kelas **MUST NOT** menjadi simpul rantai | Arahan pemilik 14 Oktober 2026, `BKC-DEC-114`, `BKC-DEC-115` | Tarif kamar sudah dihitung per periode penempatan di dalam satu episode. Menjadikannya simpul akan menagih episode yang sama berkali-kali |
+| `BKC-DES-069` | Daftar penghambat punya dua proyeksi: untuk kasir lengkap dengan rupiah, untuk perawat tanpa rupiah | `BKC-DEC-117`, `BKC-DEC-144` | Perawat perlu tahu ada penghambat dari unit lain agar tidak memulangkan pasien, tetapi nominal tagihan bukan haknya |
+
+### Contoh berangka — penelusuran dan agregasi
+
+Pasien Ibu **Sari Mandasari** (nama samaran) menjalani Rawat Jalan pada 2 Oktober, lalu dirujuk ke
+IGD pada 9 Oktober, lalu dirawat inap pada 9 Oktober sore.
+
+| Tingkat | Kunjungan | Sisa tagihan pasien | Dihitung? |
+| ---: | --- | ---: | --- |
+| 0 | Rawat Inap (kunjungan yang dinilai) | Rp 3.500.000 | Ya |
+| 1 | IGD (dari tautan milik Billing) | Rp 0 — sudah lunas lewat pelunasan gabungan | Ya, bernilai nol |
+| 2 | Rawat Jalan (dari kolom rujukan Registration) | Rp 250.000 | Ya |
+
+Total sisa = Rp 3.500.000 + Rp 0 + Rp 250.000 = **Rp 3.750.000** → status `BLOCKED` dengan reason
+code `CROSS_ENCOUNTER_OUTSTANDING`.
+
+Perhatikan tagihan IGD bernilai nol **bukan** karena dikecualikan, melainkan karena rumus per invoice
+sudah menetralkan pembayarannya. Inilah cara aturan anti-hitung-ganda bekerja: bila biaya admin
+Rawat Jalan sebelumnya sudah dialihkan menjadi kredit pada tagihan rawat inap (`BKC-DEC-119`),
+nilainya sudah terpotong di tagihan rawat inap **dan** tidak muncul lagi sebagai kewajiban terbuka
+di tagihan Rawat Jalan. Tidak ada satu rupiah pun yang dihitung dua kali.
+
+## 10. Yang MUST Dijawab Owner Saat Approval
+
+| Butir | Pertanyaan | Memblokir |
+| --- | --- | :---: |
+| `BKC-OQ-118` | **DITUTUP 14 Oktober 2026** — diratifikasi menjadi `BKC-DEC-148` dan `BKC-DEC-149` | Tidak lagi memblokir |
+| `BKC-OQ-119` | **DITUTUP 14 Oktober 2026** — `BKC-DEC-150`: Action `Reconcile` dipegang Kasir dan Supervisor Kasir | Tidak lagi memblokir |
+| `BKC-OQ-120` | **DITUTUP 14 Oktober 2026** — `BKC-DEC-151`: pengecualian berlaku permanen per kunjungan. Penyimpanannya dirancang pada amendment revisi `2.1` (`BKC-OQ-123`) | Tidak lagi memblokir |
+| `BKC-OQ-121` | Apakah pemilik Rawat Inap menyetujui bahwa daftar penghambat di layar bangsal kini dapat menyebut unit lain, tanpa rupiah? Kelanjutan `BKC-OQ-117` | Tidak memblokir desain; memblokir verifikasi ujung-ke-ujung di bangsal |
+
+## 11. Status Amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `BKC-DEC-144`, `BKC-DEC-148`, `BKC-DEC-149`, `BKC-DEC-150`, `BKC-DEC-151` (seluruhnya `approved` 14 Oktober 2026) |
+| Kriteria penerimaan | `BKC-AC-094`, ditambah `BKC-AC-096`–`BKC-AC-100` pada amendment ini |
+| Keputusan arsitektur | `BKC-DES-063`–`BKC-DES-069` |
+| Dampak skema | **Satu tabel baru** (`BilClearanceObligation`), **tiga kolom baru** pada `BilInpatientClearanceHandoff`, **dua** `CHECK` diperluas (`ClearanceStatus` dan `ReasonCode` — dikoreksi revisi `2.1`) |
+| Dampak kontrak API | **Dua endpoint baru**; dua endpoint yang sudah ada diperluas response-nya secara aditif |
+| Dampak frontend | Satu layar baru rekonsiliasi rantai (`BIL-SCR-44`), ditambah perluasan daftar penghambat pada layar yang sudah ada |
+| Ketergantungan lintas modul | Registration Management dan Rawat Inap sebagai sumber **baca saja**; nol perubahan pada keduanya. Pemberitahuan ke pemilik Rawat Inap masih terbuka (`BKC-OQ-121`) |
+| Kompatibilitas | **Aditif, dengan satu perubahan perilaku yang disengaja:** kelayakan pulang kini dapat `BLOCKED` oleh tagihan unit lain, yang sebelumnya tidak terjadi. Ini memang maksud `BKC-DEC-144` dan **MUST** dikomunikasikan ke bangsal sebelum rilis |
+| Status | **approved** — dinyatakan pemilik modul Billing, 14 Oktober 2026 |
+
+
+
+
+---
+
+# Amendment 14 Oktober 2026 — Keputusan Rantai Permanen dan Perbaikan Constraint Kelayakan (Revisi 2.1)
+
+> `revisi blueprint`: `2.1`, status **approved** (14 Oktober 2026). Masukan: `BKC-DEC-151` (`approved` 14 Oktober 2026),
+> `BKC-DEC-150`, `BKC-AC-105`, ditambah tiga arahan pemilik modul pada 14 Oktober 2026 (lihat bagian
+> 0; sudah diratifikasi menjadi `BKC-DEC-152`–`BKC-DEC-154`; `BKC-OQ-126` ditutup 14 Oktober 2026). Keputusan arsitektur: `BKC-DES-070`–`BKC-DES-076`.
+> Backend SHA diaudit: `d166cf4f`, Frontend SHA diaudit: `6e5edd6df`.
+>
+> **Tujuan amendment.** (1) Menutup `BKC-OQ-123`: merancang penyimpanan keputusan rekonsiliasi yang
+> berlaku permanen, karena `BilClearanceObligation` revisi `2.0` hanya potret per versi surat.
+> (2) Mengoreksi klaim revisi `2.0` tentang constraint database, setelah berkas konfigurasinya dibaca.
+> (3) Mencatat satu cacat yang **sudah hidup** di source beserta perbaikannya.
+
+## 0. Arahan pemilik dan temuan yang menjadi dasar
+
+### 0.1 Tiga arahan pemilik, 14 Oktober 2026
+
+| Arahan | Isi yang mengikat desain | Turun menjadi |
+| --- | --- | --- |
+| Pengecualian tidak dapat dicabut | Pengecualian permanen bersifat **final**. Tidak ada mekanisme pencabutan. Pengecualian yang keliru tidak diperbaiki di sistem; tagihannya tetap ditagih lewat invoicenya sendiri | `BKC-DES-072` |
+| Mengikutkan juga permanen | Keputusan **mengikutkan** kunjungan yang tadinya ditandai janggal juga diingat untuk penilaian berikutnya pada rawat inap yang sama. Kejanggalan **baru** pada kunjungan lain tetap terdeteksi | `BKC-DES-073` |
+| Perbaikan didahulukan | Cacat constraint `REEVALUATED_BY_CASHIER` diperbaiki sebagai task backend tersendiri **sebelum** `MVP-36` dan `MVP-37`, setelah diverifikasi di lingkungan nyata | `BKC-DES-076` |
+
+Ketiganya **sudah diratifikasi** pada closure pass 14 Oktober 2026 menjadi `BKC-DEC-152`, `BKC-DEC-153`, dan `BKC-DEC-154` (`BKC-OQ-126` ditutup).
+
+> **Catatan atas pilihan pemilik.** Rekomendasi agent untuk arahan pertama adalah "dapat dicabut oleh
+> Supervisor Kasir". Pemilik memilih **tidak dapat dicabut**. Desain ini mengikuti pilihan pemilik
+> sepenuhnya. Konsekuensinya dicatat terbuka di bagian 1 invariant 3, bukan untuk membantah,
+> melainkan supaya pembaca berikutnya memahami mengapa ada langkah konfirmasi wajib di layar.
+
+### 0.2 Koreksi atas revisi `2.0` — constraint yang harus diperluas ternyata dua, dan sudah pasti ada
+
+Revisi `2.0` menulis "paling banyak satu `CHECK` diperluas" dan sengaja tidak mengklaim apakah
+constraint itu ada. Pembacaan
+`Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientClearanceHandoffConfiguration.cs:13-27`
+pada `d166cf4f` memastikan keadaannya:
+
+| Constraint | Baris | Isi sekarang | Perlu diperluas untuk revisi `2.0` |
+| --- | ---: | --- | --- |
+| `CK_BilInpatientClearanceHandoff_ClearanceStatus` | 14–15 | `PENDING`, `BLOCKED`, `CLEARED`, `REVOKED` | **Ya** — tambah `NEEDS_RECONCILIATION` |
+| `CK_BilInpatientClearanceHandoff_ReasonCode` | 23–24 | `INVOICE_SETTLED`, `GUARANTOR_APPROVED`, `DISCHARGE_ORDER_INITIATED`, `LATE_CHARGE_POSTED`, `PAYMENT_REVERSED`, `CORRECTION_APPLIED` | **Ya** — tambah empat reason code revisi `2.0`: `CROSS_ENCOUNTER_OUTSTANDING`, `CHAIN_INCOMPLETE`, `CHAIN_AMBIGUOUS`, `RECONCILIATION_RESOLVED`. **Constraint ini sama sekali tidak disebut revisi `2.0`** |
+| `CK_BilInpatientClearanceHandoff_Status` | 17–18 | `CREATED`, `ACKNOWLEDGED` | Tidak |
+| `CK_BilInpatientClearanceHandoff_FinancialOutcome` | 20–21 | Empat nilai hasil finansial | Tidak |
+| `CK_BilInpatientClearanceHandoff_FinancialVersion` | 26–27 | `FinancialVersion > 0` | Tidak |
+
+Satu batas panjang yang perlu diketahui implementer: `ClearanceStatus` berbatas `HasMaxLength(20)`
+(baris 32), dan `NEEDS_RECONCILIATION` panjangnya **tepat 20 karakter**. Muat, tetapi tanpa sisa
+ruang. Nilai status baru di kemudian hari yang lebih panjang menuntut perubahan kolom.
+
+### 0.3 Cacat yang sudah hidup di source — tombol evaluasi ulang kasir
+
+| Langkah | Bukti |
+| --- | --- |
+| Endpoint `POST /inpatient-clearance/reevaluate` memanggil penilaian dengan reason code `REEVALUATED_BY_CASHIER` | `Areas/HealthServices/BillingManagement/Billing/Controllers/InpatientClearanceController.cs:116-118` |
+| Service menulis reason code itu apa adanya ke kolom `ReasonCode` | `Areas/HealthServices/BillingManagement/Billing/Services/InpatientClearanceService.cs:174` |
+| Penulisan baris surat **tidak bersyarat** | `InpatientClearanceService.cs:189-190` — `Add(handoff)` lalu `SaveChangesAsync` |
+| Constraint database **tidak** menerima nilai itu | `CK_BilInpatientClearanceHandoff_ReasonCode` hanya enam nilai; tercatat sama pada migration `20260924054559_AddInpatientBillingIntegrationAndClearanceHandoff` dan model snapshot |
+
+Kesimpulan berdasarkan **pembacaan statis**: setiap kali kasir menekan evaluasi ulang kelayakan,
+basis data PostgreSQL menolak baris surat yang baru karena melanggar `CHECK`, sehingga permintaan
+gagal. Status verifikasi runtime: **NOT RUN** — temuan ini belum dibuktikan dengan menjalankan
+aplikasi, sesuai arahan pemilik untuk memverifikasinya lebih dulu.
+
+Ini bukan fitur baru, melainkan fitur yang sudah dirilis. Karena itu perbaikannya **tidak** menunggu
+gelombang `MVP-37` (`BKC-DES-076`).
+
+## 1. Perubahan pada Bounded Context & Invariant
+
+| Konteks | Aggregate root | Invariant sesudah amendment ini | Owner |
+| --- | --- | --- | --- |
+| `BIL-CTX-05` Billing Finalization & Handoff | `BilInpatientClearanceHandoff`, **`BilClearanceChainDecision`** (baru) | Keputusan rekonsiliasi rantai disimpan **sekali dan selamanya** per pasangan kunjungan rawat inap dan kunjungan sasaran. Setiap penilaian kelayakan berikutnya **wajib** menerapkan keputusan yang sudah ada sebelum menandai kejanggalan baru | Billing |
+
+### Invariant baru yang wajib dipertahankan
+
+1. **Keputusan rantai hanya ditambah, tidak pernah diubah atau dihapus (`BKC-DES-072`).** Tidak ada
+   endpoint, service, maupun jalur administratif aplikasi yang memperbarui atau menandai hapus baris
+   keputusan. Kolom `IsDelete` dan `IsCancel` warisan `IdentityModel` **MUST NOT** pernah diisi.
+2. **Arah keputusan terkunci per kunjungan (`BKC-DES-073`).** Sekali sebuah kunjungan sasaran
+   diputuskan dikecualikan, ia tidak dapat diputuskan diikutkan, dan sebaliknya.
+3. **Kekeliruan pengecualian bersifat permanen, tetapi uangnya tidak hilang.** Karena pemilik memilih
+   pengecualian tidak dapat dicabut, satu kekeliruan seorang kasir berlaku selamanya untuk rawat inap
+   itu. Yang hilang **hanya** fungsi menahan kepulangan: tagihan yang dikecualikan **tetap** menjadi
+   piutang terbuka pada invoicenya sendiri dan tetap dapat ditagih seperti biasa. Inilah alasan
+   layar mewajibkan konfirmasi yang menyebut sifat permanen ini sebelum keputusan dikirim.
+4. **Kunjungan milik pasien lain tidak pernah dapat diikutkan (`BKC-DES-074`).** Ini penegakan
+   invariant 4 revisi `2.0`, sekarang dijaga dua lapis: aturan service dan `CHECK` di basis data.
+5. **Mengecualikan memutus penelusuran (`BKC-DES-073`).** Kunjungan yang dikecualikan tidak dihitung,
+   dan penelusuran **tidak** berlanjut melewatinya, karena keputusan itu menyatakan hubungannya
+   tidak ada.
+
+## 2. Tabel Kepemilikan Data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| **Keputusan rekonsiliasi rantai permanen (`BilClearanceChainDecision`)** | Billing (`BIL-CTX-05`) | Ya | **Ya — tabel baru** |
+| Rincian kewajiban per versi surat (`BilClearanceObligation`) | Billing (`BIL-CTX-05`) | Ya | Tidak; tabel revisi `2.0`, tidak diubah |
+| Surat kelayakan pemulangan (`BilInpatientClearanceHandoff`) | Billing (`BIL-CTX-05`) | Ya | Tidak; dua `CHECK` constraint diperluas |
+| Kunjungan pasien (`RegPatientEncounter`) | Registration Management | Ya, **baca saja** | Tidak; pengenal kunjungan disimpan tanpa foreign key |
+| Tagihan (`BilInvoice`) | Billing (`BIL-CTX-01`) | Ya | Tidak |
+
+### Mengapa tidak memakai `BilClearanceObligation`
+
+| Sifat | `BilClearanceObligation` (revisi `2.0`) | Yang dibutuhkan `BKC-DEC-151` |
+| --- | --- | --- |
+| Umur data | Potret satu versi surat | Berlaku untuk seluruh versi berikutnya |
+| Kunci | Surat kelayakan + invoice | Kunjungan rawat inap + kunjungan sasaran |
+| Perilaku hapus | `Cascade` dari surat kelayakan | **Tidak boleh** ikut terhapus apa pun |
+| Kunjungan tanpa invoice | Tidak dapat dicatat, karena `InvoiceId` wajib | Harus dapat dicatat (kejanggalan `MISSING_INVOICE`) |
+
+Empat perbedaan itu membuat penggabungan keduanya justru merusak salah satu. Keduanya tetap dua tabel.
+
+## 3. Class Diagram
+
+```mermaid
+classDiagram
+  direction LR
+
+  class BilClearanceChainDecision {
+    <<Entity Baru, append-only>>
+    +Guid Id
+    +Guid RanapEncounterId
+    +Guid TargetEncounterId
+    +Guid TargetInvoiceId
+    +string Decision
+    +string AnomalyCode
+    +string ServiceTypeSnapshot
+    +int ChainLevelSnapshot
+    +string Reason
+    +Guid SourceClearanceHandoffId
+    +Guid IdempotencyKey
+  }
+
+  class BilInpatientClearanceHandoff {
+    <<Aggregate Root Sudah Ada>>
+    +Guid Id
+    +Guid EncounterId
+    +string ClearanceStatus
+    +long FinancialVersion
+  }
+
+  class EncounterChainResolver {
+    <<Service revisi 2.0, Diperbarui>>
+    +ResolveChainAsync(ranapEncounterId, decisions)
+  }
+
+  class InpatientClearanceService {
+    <<Service Diperbarui>>
+    +ResolveReconciliationAsync(handoffId, request)
+    +GetChainDecisionsAsync(encounterId)
+  }
+
+  BilClearanceChainDecision --> BilInpatientClearanceHandoff : "Lahir dari surat versi ini"
+  InpatientClearanceService ..> BilClearanceChainDecision : "Tambah saja"
+  EncounterChainResolver ..> BilClearanceChainDecision : "Terapkan sebelum menandai"
+```
+
+## 4. Penjelasan Setiap Class
+
+### Model & Configuration
+
+| Class | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- |
+| `BilClearanceChainDecision` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Models/BilClearanceChainDecision.cs` | Satu baris per keputusan rekonsiliasi permanen: kunjungan rawat inap yang dinilai, kunjungan sasaran, arah keputusan, kejanggalan yang memunculkannya, dan alasannya. Hanya ditambah |
+| `BilClearanceChainDecisionConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilClearanceChainDecisionConfiguration.cs` | Mapping, tiga indeks unik, tiga `CHECK` constraint, dan `DeleteBehavior.Restrict` ke surat kelayakan serta invoice |
+| `BilInpatientClearanceHandoffConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientClearanceHandoffConfiguration.cs` | Memperluas `CK_..._ClearanceStatus` dan `CK_..._ReasonCode` (lihat bagian 0.2 dan 6) |
+| `ChainDecisionTypes` | **Baru** | Satu berkas dengan model | Konstanta `EXCLUDE` dan `INCLUDE` |
+
+### Service & Application Layer
+
+| Class | Status | Lokasi file | Tanggung jawab | Membuka transaksi database |
+| --- | --- | --- | --- | :---: |
+| `EncounterChainResolver` | **Diperbarui** (rancangan revisi `2.0`) | `Areas/HealthServices/BillingManagement/Billing/Services/EncounterChainResolver.cs` | Menerima daftar keputusan permanen untuk rawat inap itu, lalu menerapkannya pada setiap simpul: kunjungan yang dikecualikan dicatat tidak dihitung dan penelusurannya diputus; kunjungan yang diikutkan dihitung dan kejanggalan yang sama tidak dimunculkan lagi | Tidak |
+| `InpatientClearanceService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/InpatientClearanceService.cs` | `ResolveReconciliationAsync` kini **menulis satu baris keputusan permanen** lalu menilai ulang kelayakan dalam satu transaksi. Method baru `GetChainDecisionsAsync` membaca riwayat keputusan | Ya |
+
+### Controller & DTO
+
+| Class | Status | Lokasi file | Service yang dipakai | Hak akses / Atribut |
+| --- | --- | --- | --- | --- |
+| `InpatientClearanceController` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Controllers/InpatientClearanceController.cs` | `IInpatientClearanceService` | Satu endpoint baru `[AccessPermission("BillingInpatient", "Read")]`. Endpoint rekonsiliasi revisi `2.0` tetap `[AccessPermission("BillingInpatient", "Reconcile")]` |
+| `InpatientClearanceDtos` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Dtos/InpatientClearanceDtos.cs` | N/A | `ResolveReconciliationRequest` diubah, `ChainDecisionResponse` baru |
+
+### Rincian DTO
+
+| Nama class | Jenis | Field |
+| --- | --- | --- |
+| `ResolveReconciliationRequest` | Update | `Decision` (string, wajib — `EXCLUDE` atau `INCLUDE`), **`TargetEncounterId`** (Guid, wajib — **menggantikan** `TargetInvoiceId` rancangan revisi `2.0`), `AnomalyCode` (string, wajib — kejanggalan yang sedang diputuskan), `Reason` (string, wajib, maksimum 200), `IdempotencyKey` (Guid, wajib) |
+| `ChainDecisionResponse` | Response | `Id`, `TargetEncounterId`, `TargetEncounterNumber`, `TargetInvoiceId` (boleh kosong), `ServiceTypeSnapshot`, `ChainLevelSnapshot`, `Decision`, `AnomalyCode`, `Reason`, `DecidedByName`, `DecidedAt`, `SourceFinancialVersion` |
+
+Perubahan `TargetInvoiceId` menjadi `TargetEncounterId` tidak merusak siapa pun, karena endpoint
+rekonsiliasi revisi `2.0` masih **Rencana (belum tersedia)**. Alasannya ada di `BKC-DES-071`.
+
+## 5. Arsitektur Folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Controllers/
+│   └── InpatientClearanceController.cs                 # DIPERBARUI (1 endpoint baru)
+├── Dtos/
+│   └── InpatientClearanceDtos.cs                       # DIPERBARUI
+├── Models/
+│   └── BilClearanceChainDecision.cs                    # BARU (BKC-DES-070)
+└── Services/
+    ├── EncounterChainResolver.cs                       # DIPERBARUI (terapkan keputusan)
+    └── InpatientClearanceService.cs                    # DIPERBARUI (tulis keputusan)
+
+Repositories/Configurations/HealthServices/BillingManagement/Billing/
+├── BilClearanceChainDecisionConfiguration.cs           # BARU
+└── BilInpatientClearanceHandoffConfiguration.cs        # DIPERBARUI (2 CHECK)
+```
+
+## 6. Status Model dan Rencana Migration
+
+### Rincian perubahan skema database
+
+| Tabel | Skema | Status | Kolom yang berubah / ditambahkan | Indeks & constraint | Perilaku hapus |
+| --- | --- | --- | --- | --- | --- |
+| `BilClearanceChainDecision` | `public` | **Baru** | Seluruh kolom: `Id` (uuid, PK), `RanapEncounterId` (uuid, wajib), `TargetEncounterId` (uuid, wajib), `TargetInvoiceId` (uuid, nullable, FK), `Decision` (varchar 10, wajib), `AnomalyCode` (varchar 40, wajib), `ServiceTypeSnapshot` (varchar 20, nullable), `ChainLevelSnapshot` (int, wajib), `Reason` (varchar 200, wajib), `SourceClearanceHandoffId` (uuid, wajib, FK), `IdempotencyKey` (uuid, wajib), `RowVersion` (uuid, wajib) | `UX_BilClearanceChainDecision_Pair_Anomaly` (unik: `RanapEncounterId`, `TargetEncounterId`, `AnomalyCode`, **tanpa** filter `IsDelete`); `UX_BilClearanceChainDecision_IdempotencyKey` (unik); `IX_BilClearanceChainDecision_Ranap` (`RanapEncounterId`); `CK_..._Decision` (`EXCLUDE`/`INCLUDE`); `CK_..._AnomalyCode` (lima kode anomali); `CK_..._NoIncludeOnPatientMismatch` | `Restrict` pada FK `SourceClearanceHandoffId` dan `TargetInvoiceId` |
+| `BilInpatientClearanceHandoff` | `public` | **Diperbarui** | Nol kolom baru dari amendment ini. Dua `CHECK` constraint diperluas: `CK_..._ClearanceStatus` dan `CK_..._ReasonCode` | Lihat rencana migration di bawah | Tidak berubah |
+
+### Rencana migration EF Core
+
+| No | Nama migration | Gelombang | Zero-downtime? | Backfill | Cara mundur (`Down`) |
+| --- | --- | --- | :---: | --- | --- |
+| 1 | `FixClearanceReasonCodeReevaluatedByCashier` | **Selesai dibuat** (task [`BE-BKC-FIX-022`](task/report/backend/BE-BKC-FIX-022.md)) — sebelum `MVP-36` | **Ya** — hanya melonggarkan `CK_BilInpatientClearanceHandoff_ReasonCode` dari enam menjadi tujuh nilai dengan menambah `REEVALUATED_BY_CASHIER`. `BilInpatientClearanceHandoffConfiguration.cs:22-24` **MUST** ikut diubah pada task yang sama, supaya model snapshot benar dan migration berikutnya tidak menghapus nilai itu kembali | Tidak ada. Belum mungkin ada baris dengan nilai itu, karena seluruh percobaan menulisnya selama ini ditolak | `Down` mengembalikan enam nilai. Aman **hanya** bila belum ada baris ber-`REEVALUATED_BY_CASHIER`; bila sudah ada, `Down` **MUST** ditolak |
+| 2 | `AddClearanceChainObligationsAndDecisions` — **menggantikan** nama `AddClearanceChainObligations` revisi `2.0` | `MVP-37` | **Ya** — dua tabel baru, tiga kolom ber-bawaan, dua `CHECK` yang dilonggarkan | Mengikuti revisi `2.0` (`ChainDepthEvaluated = 0`, `ChainInvoiceCount = 1` untuk surat lama). Nol backfill keputusan | `Down` menghapus kedua tabel dan ketiga kolom, lalu mengembalikan kedua `CHECK`. **MUST** ditolak bila sudah ada surat `NEEDS_RECONCILIATION` atau baris keputusan |
+
+**Isi wajib kedua `CHECK` pada migration nomor 2:**
+
+| Constraint | Nilai sesudah migration nomor 2 |
+| --- | --- |
+| `CK_BilInpatientClearanceHandoff_ClearanceStatus` | `PENDING`, `BLOCKED`, `CLEARED`, `REVOKED`, `NEEDS_RECONCILIATION` |
+| `CK_BilInpatientClearanceHandoff_ReasonCode` | Enam nilai lama, **`REEVALUATED_BY_CASHIER`** dari migration nomor 1, ditambah `CROSS_ENCOUNTER_OUTSTANDING`, `CHAIN_INCOMPLETE`, `CHAIN_AMBIGUOUS`, `RECONCILIATION_RESOLVED` — total **sebelas** nilai |
+
+> **Jebakan urutan yang MUST dicegah.** Migration nomor 2 mendefinisikan ulang
+> `CK_..._ReasonCode` secara utuh. Bila implementer menyusunnya dari daftar enam nilai lama ditambah
+> empat nilai baru, `REEVALUATED_BY_CASHIER` yang baru diperbaiki migration nomor 1 **ikut terhapus
+> kembali**, dan cacatnya hidup lagi. Daftar sebelas nilai di atas adalah daftar lengkap yang harus
+> ditulis.
+
+## 7. Rencana Data Master Awal
+
+Amendment ini **tidak memerlukan tabel master baru dan tidak memerlukan hak akses baru.** Keputusan
+ditulis lewat Action `Reconcile` yang sudah dirancang revisi `2.0`, dan pemegangnya sudah ditetapkan
+`BKC-DEC-150`. Tidak ada Action pencabutan, karena pencabutan memang tidak ada.
+
+## 8. Yang Sengaja Tidak Dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Endpoint, Action, atau kolom status untuk mencabut keputusan | **Ditolak** mengikuti arahan pemilik bahwa pengecualian tidak dapat dicabut (`BKC-DES-072`) |
+| Memakai `IsCancel` atau `IsDelete` warisan `IdentityModel` sebagai penanda pencabutan | **Ditolak.** Selain bertentangan dengan arahan pemilik, keduanya tidak punya kolom alasan, dan memakainya akan membuat baris "tercabut" lolos dari pemeriksaan yang memfilter `!IsDelete` |
+| Menyimpan keputusan permanen di `BilClearanceObligation` | **Ditolak.** Empat sifatnya berlawanan — lihat bagian 2 |
+| Kunci keputusan berdasarkan invoice | **Ditolak (`BKC-DES-071`).** Kejanggalan `MISSING_INVOICE` justru berarti kunjungan tanpa invoice; ia tidak akan pernah dapat diputuskan bila kuncinya invoice |
+| Satu keputusan per kunjungan tanpa memandang kejanggalannya | **Ditolak.** Kunjungan yang diikutkan karena rujukan berputar dapat di kemudian hari memunculkan kejanggalan lain. Bila kuncinya hanya kunjungan, kejanggalan kedua itu tidak akan pernah dapat diputuskan |
+| Foreign key ke `RegPatientEncounter` | **Ditolak.** Mengikuti `BKC-DES-045`: Billing longgar terhadap tabel milik modul lain di tingkat basis data |
+| Menyusun ulang `CK_..._ReasonCode` hanya dari enam nilai lama dan empat nilai baru | **Ditolak.** Akan menghapus kembali `REEVALUATED_BY_CASHIER` — lihat jebakan urutan pada bagian 6 |
+
+## 9. Keputusan Arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-070` | Tabel baru `BilClearanceChainDecision` sebagai penyimpanan keputusan rekonsiliasi permanen, terpisah dari `BilClearanceObligation` | `BKC-DEC-151`, `BKC-OQ-123` | Potret per versi dan keputusan lintas versi punya umur, kunci, perilaku hapus, dan cakupan yang berlawanan |
+| `BKC-DES-071` | Kunci keputusan: kunjungan rawat inap + kunjungan sasaran + kode kejanggalan. Invoice hanya disimpan sebagai potret opsional | `BKC-DEC-151`, kejanggalan `MISSING_INVOICE` revisi `2.0` | Satu invoice per kunjungan (`BilInvoice.EncounterId` unik) sehingga kunjungan mewakili invoicenya, sementara kunjungan tanpa invoice tetap dapat diputuskan |
+| `BKC-DES-072` | Keputusan bersifat *append-only*: tidak ada pembaruan, pencabutan, maupun tanda hapus. Ditegakkan oleh indeks unik **tanpa** filter `IsDelete` dan oleh service yang tidak pernah menyentuh baris lama | Arahan pemilik 14 Oktober 2026 — pengecualian tidak dapat dicabut | Indeks tanpa filter memastikan baris yang entah bagaimana tertandai hapus pun tetap menghalangi keputusan baru atas pasangan yang sama |
+| `BKC-DES-073` | Dua arah keputusan dengan arti berbeda: **mengecualikan** berarti hubungan tidak ada, sehingga simpul tidak dihitung dan penelusuran diputus; **mengikutkan** berarti hubungan sah, sehingga simpul dihitung, kejanggalan yang sama tidak dimunculkan lagi, dan penelusuran berlanjut. Arah terkunci per kunjungan | `BKC-DEC-151`, arahan pemilik 14 Oktober 2026 — mengikutkan juga permanen | Arti yang tegas mencegah satu kunjungan dihitung dan tidak dihitung sekaligus, dan memutus penelusuran mencegah rantai pasien lain ikut terbaca |
+| `BKC-DES-074` | Mengikutkan dilarang untuk kejanggalan `PATIENT_MISMATCH`, dijaga service dan `CHECK` basis data | Invariant 4 revisi `2.0` | Mengikutkan tagihan pasien lain berarti menagih orang yang salah — tidak boleh bergantung pada satu lapis penjaga saja |
+| `BKC-DES-075` | Dua `CHECK` pada `BilInpatientClearanceHandoff` diperluas pada migration `MVP-37`, menggantikan klaim "paling banyak satu" revisi `2.0` | Pembacaan `BilInpatientClearanceHandoffConfiguration.cs:13-27` | Revisi `2.0` tidak membaca berkas itu; constraint `ReasonCode` sama sekali tidak terdeteksi dan akan menggagalkan seluruh reason code baru |
+| `BKC-DES-076` | Cacat `REEVALUATED_BY_CASHIER` diperbaiki lewat migration terpisah yang didahulukan, dan migration `MVP-37` **wajib** mempertahankan nilai itu | Bagian 0.3, arahan pemilik 14 Oktober 2026 | Fitur yang sudah dirilis tidak boleh menunggu gelombang fitur baru, dan perbaikannya tidak boleh terhapus kembali oleh migration berikutnya |
+
+### Contoh berangka — keputusan permanen bekerja
+
+Rawat inap Ibu **Sari Mandasari** (nama samaran), surat kelayakan versi 3 berstatus
+`NEEDS_RECONCILIATION` karena kunjungan Rawat Jalan `INV-RAJAL-000087` (sisa Rp 900.000) ternyata
+milik pasien lain.
+
+1. Kasir mengecualikan kunjungan itu dengan alasan "kolom rujukan salah input saat pendaftaran".
+   Layar meminta konfirmasi bahwa keputusan ini permanen. Kasir mengonfirmasi.
+2. Sistem menulis satu baris keputusan, lalu menilai ulang. Surat versi 4 terbit berstatus `BLOCKED`
+   dengan sisa Rp 3.750.000 — tanpa Rp 900.000 milik pasien lain.
+3. Esok paginya farmasi memasukkan obat susulan Rp 120.000. Penilaian ulang menerbitkan surat versi 5.
+   Kunjungan `INV-RAJAL-000087` **tidak** muncul lagi sebagai kejanggalan; ia otomatis dicatat tidak
+   dihitung dengan alasan keputusan permanen. Sisa menjadi Rp 3.870.000, status `BLOCKED`.
+4. Tagihan Rp 900.000 itu **tetap** terbuka pada invoice pasien pemiliknya dan ditagih seperti biasa.
+
+## 10. Yang MUST Dijawab Owner Saat Approval
+
+| Butir | Pertanyaan | Memblokir |
+| --- | --- | :---: |
+| `BKC-OQ-125` | Arahan pemilik menyatakan **pengecualian** tidak dapat dicabut. Apakah keputusan **mengikutkan** yang keliru juga tidak dapat dikoreksi? Desain ini menerapkan *append-only* pada keduanya demi konsistensi. Risiko bila mengikutkan keliru: pasien tertahan sampai tagihan itu dilunasi — tetapi karena mengikutkan dilarang untuk pasien berbeda, tagihan yang tertahan pasti milik pasien itu sendiri | Tidak memblokir — sifatnya gagal tertutup atas utang yang memang nyata |
+| `BKC-OQ-126` | **DITUTUP 14 Oktober 2026** — diratifikasi menjadi `BKC-DEC-152`–`BKC-DEC-154` | Tidak lagi memblokir |
+| `BKC-OQ-124` | **DITUTUP 14 Oktober 2026** — `BKC-AC-096`–`BKC-AC-100` ditulis pada `00-interview-decisions.md` | Tidak lagi memblokir |
+
+## 11. Status Amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DEC-152`, `BKC-DEC-153`, `BKC-DEC-154` (seluruhnya `approved` 14 Oktober 2026) |
+| Kriteria penerimaan | `BKC-AC-103`, `BKC-AC-104`, `BKC-AC-105` |
+| Keputusan arsitektur | `BKC-DES-070`–`BKC-DES-076`; klaim migration revisi `2.0` dikoreksi oleh `BKC-DES-075` |
+| Dampak skema | **Satu tabel baru** (`BilClearanceChainDecision`), nol kolom baru pada tabel lama, **dua** `CHECK` diperluas pada `MVP-37`, ditambah **satu** `CHECK` diperbaiki lebih dulu |
+| Dampak kontrak API | Satu endpoint baru; bentuk request endpoint rekonsiliasi revisi `2.0` berubah (masih rencana, nol konsumen) |
+| Dampak frontend | `BIL-SCR-44`: konfirmasi wajib sebelum keputusan, riwayat keputusan, tombol mengikutkan disembunyikan untuk pasien berbeda |
+| Cacat as-is | `POST /inpatient-clearance/reevaluate` — constraint di basis data dev **terbukti** enam nilai tanpa `REEVALUATED_BY_CASHIER` (query read-only, 14 Oktober 2026). Diperbaiki `BE-BKC-FIX-022`: migration sudah di-commit dan diterapkan ke dev. Uji tombol di layar masih **NOT RUN** — tabel surat kelayakan di dev masih kosong |
+| Status | **approved** — dinyatakan pemilik modul Billing, 14 Oktober 2026 |
+
+
+
+
+---
+
+# Amendment 14 Oktober 2026 — Tautan Kunjungan Asal Jalur Transfer dan Lingkup Penggantian Biaya Administrasi (Revisi 2.2)
+
+> `revisi blueprint`: `2.2`, status **draft** — approval adalah tindakan manusia dan belum diberikan.
+> Revisi `2.1` tetap `approved` dan tetap menjadi dasar yang berlaku sampai revisi ini disetujui.
+> Masukan: `BKC-DEC-155` (`approved` 14 Oktober 2026), `BKC-DEC-157`, `BKC-DEC-119`, `BKC-AC-106`–`BKC-AC-110`;
+> capability map §24 (`CAP-BIL-05`, `CAP-BIL-11`, `CAP-BIL-12`). Keputusan arsitektur: `BKC-DES-077`–`BKC-DES-082`.
+> Backend SHA diaudit: `d268a41f`, Frontend SHA diaudit: `0b45dd8cd`.
+>
+> **Tujuan amendment.** (1) Mewujudkan `BKC-DEC-155`: Billing menulis tautan kunjungan asal pada
+> jalur transfer IGD/Rawat Jalan → Rawat Inap. (2) Menutup lubang gagal-terbuka pada penelusur
+> rantai revisi `2.0` untuk pasien transfer yang belum bertautan. (3) Mencatat dan merancang
+> perbaikan satu cacat finansial yang **sudah hidup**: penggantian biaya administrasi Rawat Jalan
+> (`BKC-DEC-119`) menyentuh seluruh riwayat kunjungan Rawat Jalan pasien, bukan kunjungan rujukannya saja.
+
+## 0. Temuan yang menjadi dasar
+
+### 0.1 Fakta source pada `d268a41f`
+
+| No | Fakta | Bukti |
+| ---: | --- | --- |
+| F1 | `BilInvoiceEncounterLink` hanya ditulis oleh satu method, dari rujukan **operasi** (`InpAdmissionReferral` berstatus `Completed`) | `Areas/HealthServices/BillingManagement/Billing/Services/BillingInpatientEventReceiver.cs:247-266 #EnsureEncounterLinksAsync` |
+| F2 | Method itu dipanggil saat event `ADMISSION_CONFIRMED` **pertama kali** diterima (`:194-195`) **dan** saat event yang sama datang lagi sebagai duplikat (`:96-101`, memakai tanda terima asli). Keduanya di dalam satu transaksi dan advisory lock `BIL_INP_LINK_{invoiceId}` | `BillingInpatientEventReceiver.cs:76-101,194-197,249-251` |
+| F3 | Indeks unik `UX_BilInvoiceEncounterLink_Invoice_Encounter` atas (`RanapInvoiceId`, `LinkedEncounterId`) dengan filter `NOT "IsDelete"`. Kolom `LinkReason` `varchar(40)` wajib, **tanpa** `CHECK` constraint | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInvoiceEncounterLinkConfiguration.cs:13-15`; nol `CK_BilInvoiceEncounterLink` pada `Migrations/` |
+| F4 | Jalur transfer (`SourceType` `Emergency` atau `Outpatient`) mengisi `RegPatientEncounter.SourceEncounterId`, `AdmissionTransferId`, `AdmissionTransferSourceType` pada kunjungan rawat inap yang baru, setelah memeriksa kunjungan asal milik pasien yang sama dan tidak batal | `InPatientManagement/Services/InpAdmissionTransferService.cs:74,93-101,123-126`; `RegistrationManagement/Services/EncounterPaymentSourceService.cs:51-53` |
+| F5 | `ADMISSION_CONFIRMED` masuk outbox saat episode berubah menjadi `Admitted` (setelah persetujuan pasien), lalu diproses worker setelah commit. Kolom asal transfer pada F4 sudah tersimpan saat event itu diproses | `InPatientManagement/Services/InpEpisodeService.cs:725-738`; `InPatientManagement/Workers/InpatientIntegrationOutboxWorker.cs:195-202` |
+| F6 | `ReconcileReferredOutpatientAdminFeeAsync` memilih **semua** invoice `ServiceType` Rawat Jalan milik pasien, tanpa batas waktu dan tanpa syarat rujukan, lalu mengkredit item admin yang sudah dibayar dan mem-void item admin yang belum dibayar pada **setiap** invoice itu. Method ini dipanggil setiap kali invoice rawat inap dihitung | `Billing/Services/AdministrationFeeCalculationService.cs` method `ReconcileReferredOutpatientAdminFeeAsync` (query invoice Rawat Jalan, lalu `foreach` atas seluruh hasil sampai `:274`); dipanggil dari `Billing/Services/BillingCalculationService.cs:604-614` |
+| F7 | Layanan putar ulang milik Rawat Inap memilih ulang pesan `ADMISSION_CONFIRMED` yang sudah terbit **hanya** bila rujukan operasinya belum bertautan | `InPatientManagement/Services/InpIntegrationReplayService.cs:84-85,147-150 #NeedsLinkAsync` |
+
+### 0.2 Koreksi atas revisi sebelumnya
+
+| Klaim lama | Letak | Keadaan sebenarnya | Dikoreksi oleh |
+| --- | --- | --- | --- |
+| "Tautan kunjungan asal ke invoice ranap **sudah terisi otomatis**" — sumber utama tingkat pertama | Amendment revisi `2.0` bagian 2 baris "Tautan invoice ranap ke kunjungan lain" dan tabel fakta source; `BKC-DES-063`; `contracts/integration-contract.md` `BIL-INT-020` | Benar **hanya** untuk rujukan operasi (F1). Pasien transfer IGD/Rawat Jalan tidak pernah mendapat tautan | `BKC-DES-077`, `BKC-DES-080`, `BKC-DES-082` |
+| `"EMERGENCY_ORIGIN"` sebagai nilai `LinkReason` baru | Amendment revisi `1.9` tabel status model | Nilainya dirancang, tetapi **tidak ada penulisnya** | `BKC-DES-077`, `BKC-DES-078` |
+| Penggantian biaya admin Rawat Jalan berlaku pada "encounter rujukan" | `BKC-DES-049`; `BIL-VAL-126` | Source menerapkannya pada seluruh riwayat Rawat Jalan pasien (F6) | `BKC-DES-081` |
+| Capability map §24: `CAP-BIL-05` **Ready to reuse** | `01-existing-capability-map.md` §24.2 | **Repair** — lihat F6. Dikoreksi pada §24.7 | Impact scan pass ini |
+| Capability map §24 dan closure pass `BKC-DEC-155`: tanpa tautan, pelunasan gabungan `MVP-36` tidak dapat menemukan tagihan kandidat | `01-existing-capability-map.md` §24.2 baris `CAP-BIL-11`; decision log closure pass lanjutan ketiga | **Berlebihan.** `BIL-INT-019` (revisi `1.9`) sudah membaca `RegPatientEncounter.SourceEncounterId` langsung sebagai sumber kedua (`REFERRAL_CHAIN`). `MVP-36` **tidak** bergantung pada revisi ini. Yang benar-benar terdampak adalah kelayakan pulang `MVP-37` dan rincian gabungan tagihan rawat inap | Pass ini |
+
+## 1. Perubahan pada Bounded Context & Invariant
+
+| Konteks | Aggregate root | Invariant sesudah amendment ini | Owner |
+| --- | --- | --- | --- |
+| `BIL-CTX-01` Billing Account & Charge | `BilInvoice` | **Baru:** setiap rawat inap yang lahir dari transfer IGD/Rawat Jalan punya **tepat satu** tautan ke kunjungan asalnya, ditulis Billing saat rawat inap dikonfirmasi. Tidak ada item yang dipindahkan | Billing |
+| `BIL-CTX-01` Billing Account & Charge (kalkulasi biaya admin) | `BilInvoice` | **Diperbaiki:** penggantian biaya admin Rawat Jalan hanya menyentuh kunjungan Rawat Jalan yang **tertaut** ke invoice rawat inap itu | Billing & Finance |
+| `BIL-CTX-05` Billing Finalization & Handoff | `BilInpatientClearanceHandoff` | **Baru:** kunjungan asal transfer yang tercatat di Registrasi tetapi tidak bertautan **tidak pernah** dianggap tidak ada. Penilaian menjadi perlu rekonsiliasi | Billing |
+
+### Invariant baru yang wajib dipertahankan
+
+1. **Satu tautan per pasangan (`BKC-DES-077`).** Pasangan invoice rawat inap dan kunjungan asal
+   punya paling banyak satu tautan aktif. Sudah dijaga indeks unik (F3); service **MUST** tetap
+   memeriksa tautan yang ada lebih dulu supaya pemutaran ulang tidak menabrak indeks.
+2. **Tautan tidak pernah lintas pasien (`BKC-DES-079`).** Tautan **MUST NOT** ditulis bila pasien
+   kunjungan asal berbeda dari pasien rawat inap, walaupun Rawat Inap sudah memeriksanya.
+3. **Kegagalan menulis tautan tidak menggagalkan pembukaan invoice (`BKC-DES-079`).** Tautan yang
+   dilewati dicatat di log; invoice rawat inap tetap dibuka. Lubang yang tersisa ditangkap
+   penelusur rantai (`BKC-DES-080`), bukan dengan menolak event.
+4. **Gagal tertutup untuk asal yang tidak bertautan (`BKC-DES-080`).** Kunjungan asal yang tercatat
+   pada `RegPatientEncounter.SourceEncounterId` tetapi tidak bertautan **MUST** memunculkan status
+   perlu rekonsiliasi, **MUST NOT** diabaikan, dan **MUST NOT** dihitung otomatis.
+5. **Penggantian biaya admin hanya atas kunjungan rujukan (`BKC-DES-081`).** Item admin pada invoice
+   Rawat Jalan yang **tidak** tertaut **MUST NOT** di-void maupun dikreditkan.
+
+## 2. Tabel Kepemilikan Data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | --- | --- |
+| Tautan invoice rawat inap ke kunjungan asal (`BilInvoiceEncounterLink`) | Billing (`BIL-CTX-01`) | Ya — **kini ditulis untuk dua jalur**: rujukan operasi dan transfer | Tidak; tabel yang sudah ada, nol kolom baru |
+| Kolom asal transfer pada kunjungan (`RegPatientEncounter.SourceEncounterId`, `AdmissionTransferSourceType`, `PatientId`, `EncounterType`) | Registration Management (ditulis Rawat Inap saat transfer) | Ya, **baca saja** | Tidak |
+| Rujukan operasi (`InpAdmissionReferral`) | Rawat Inap | Ya, baca saja — tidak berubah | Tidak |
+| Pesan outbox dan layanan putar ulang (`InpIntegrationOutboxes`, `InpIntegrationReplayService`) | Rawat Inap | Tidak diubah | Tidak |
+| Kredit alihan dan item admin Rawat Jalan (`BilRefundableCredit`, `BilInvoiceItem`) | Billing | Ya — perilaku penulisnya dipersempit | Tidak |
+
+## 3. Class Diagram
+
+```mermaid
+classDiagram
+  direction LR
+  class BillingInpatientEventReceiver {
+    +ReceiveAsync(envelope)
+    -EnsureEncounterLinksAsync(episodeId, encounterId, invoiceId, receiptId)
+  }
+  class BillingEncounterLinkReasons {
+    <<static>>
+    +SurgeryOrigin
+    +EmergencyOrigin
+    +OutpatientOrigin
+  }
+  class BilInvoiceEncounterLink {
+    +Guid RanapInvoiceId
+    +Guid LinkedEncounterId
+    +string LinkReason
+    +Guid? SourceReferralId
+    +Guid ReceiptId
+  }
+  class RegPatientEncounter {
+    +Guid PatientId
+    +EncounterType EncounterType
+    +Guid? SourceEncounterId
+    +string? AdmissionTransferSourceType
+  }
+  class AdministrationFeeCalculationService {
+    +ReconcileReferredOutpatientAdminFeeAsync(request)
+  }
+  class EncounterChainResolver {
+    +ResolveAsync(ranapEncounterId)
+  }
+  BillingInpatientEventReceiver ..> RegPatientEncounter : "baca asal transfer"
+  BillingInpatientEventReceiver --> BilInvoiceEncounterLink : "tulis"
+  BillingInpatientEventReceiver ..> BillingEncounterLinkReasons
+  AdministrationFeeCalculationService ..> BilInvoiceEncounterLink : "kunjungan rujukan"
+  EncounterChainResolver ..> BilInvoiceEncounterLink : "tingkat pertama"
+  EncounterChainResolver ..> RegPatientEncounter : "periksa silang tingkat pertama"
+```
+
+## 4. Penjelasan Setiap Class
+
+| Class | Status | Lokasi file | Fungsi pada amendment ini |
+| --- | --- | --- | --- |
+| `BillingInpatientEventReceiver` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingInpatientEventReceiver.cs` | `EnsureEncounterLinksAsync` menerima tambahan `encounterId` rawat inap, lalu sesudah memproses rujukan operasi, membaca asal transfer kunjungan itu dan menulis tautannya (`BKC-DES-077`). Dipanggil oleh `ReceiveAsync` pada jalur pertama dan jalur duplikat. Tidak membuka transaksi sendiri; memakai transaksi `ReceiveAsync` |
+| `BillingEncounterLinkReasons` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceEncounterLink.cs` — kelas statis di berkas model yang sama, mengikuti pola `BillingInvoiceStatuses` di `BilInvoice.cs` dan `BillingRefundableCreditSourceTypes` di `BilRefundableCredit.cs` | Konstanta bernama `SURGERY_ORIGIN`, `EMERGENCY_ORIGIN`, `OUTPATIENT_ORIGIN` beserta `All`. Menggantikan literal `"SURGERY_ORIGIN"` pada nilai bawaan model (`BKC-DES-078`) |
+| `BilInvoiceEncounterLink` | **Diperbarui** (nilai, bukan kolom) | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceEncounterLink.cs` | Nilai bawaan `LinkReason` merujuk `BillingEncounterLinkReasons.SurgeryOrigin`. Kolom tidak berubah; `SourceReferralId` kosong pada tautan transfer |
+| `AdministrationFeeCalculationService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/AdministrationFeeCalculationService.cs` | `ReconcileReferredOutpatientAdminFeeAsync` memilih invoice Rawat Jalan dari kunjungan yang **tertaut** ke invoice rawat inap dan berjenis Rawat Jalan (`BKC-DES-081`). Dipanggil oleh `BillingCalculationService`; tidak membuka transaksi sendiri |
+| `EncounterChainResolver` | **Baru** (revisi `2.0`) — **diperluas** | `Areas/HealthServices/BillingManagement/Billing/Services/EncounterChainResolver.cs` | Tingkat pertama dibaca dari dua sumber dan diperiksa silang; asal transfer tanpa tautan menghasilkan kejanggalan `UNLINKED_TRANSFER_ORIGIN` (`BKC-DES-080`). Masih rencana `MVP-37` |
+| `EncounterChainAnomalyCodes` | **Baru** (revisi `2.0`) — **diperluas** | Mengikuti letak yang ditetapkan builder `MVP-37`; pola area ini menaruh kelas konstanta di berkas model atau service pemiliknya | Tambah `UNLINKED_TRANSFER_ORIGIN` |
+| `InpatientClearanceController` | **Sudah ada** | `Areas/HealthServices/BillingManagement/Billing/Controllers/InpatientClearanceController.cs` | Nol perubahan. Kode kejanggalan baru mengalir lewat response endpoint rekonsiliasi rencana revisi `2.0`/`2.1` |
+
+Tidak ada controller, DTO, enum basis data, maupun Resource hak akses baru.
+
+## 5. Arsitektur Folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Models/
+│   └── BilInvoiceEncounterLink.cs               # DIPERBARUI — + kelas statis BillingEncounterLinkReasons (BKC-DES-078);
+│                                                #   nilai bawaan LinkReason dari konstanta
+└── Services/
+    ├── BillingInpatientEventReceiver.cs         # DIPERBARUI (BKC-DES-077, BKC-DES-079)
+    ├── AdministrationFeeCalculationService.cs   # DIPERBARUI (BKC-DES-081)
+    └── EncounterChainResolver.cs                # BARU revisi 2.0 — diperluas (BKC-DES-080)
+Repositories/Configurations/HealthServices/BillingManagement/Billing/
+└── BilInvoiceEncounterLinkConfiguration.cs      # SUDAH ADA — tidak berubah
+```
+
+> Area `Billing/` tidak punya folder `Constants/` (isinya `Controllers`, `Dtos`, `Models`, `Services`,
+> `Workers`). Kelas konstanta selama ini ditaruh di berkas model pemiliknya, dan desain ini mengikuti
+> pola itu. Desain ini tidak memindahkan konstanta lama dan tidak membuat folder baru.
+
+## 6. Status Model dan Dampak Migration
+
+| Model | Status | Kolom berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `BilInvoiceEncounterLink` | Diperbarui (nilai) | **Nol kolom.** Nilai `LinkReason` baru: `EMERGENCY_ORIGIN`, `OUTPATIENT_ORIGIN` | **Nol migration** — tidak ada `CHECK` yang membatasi `LinkReason` (F3); nilai bawaan model adalah nilai CLR, bukan default basis data |
+| `BilClearanceChainDecision` (rencana `MVP-37`) | Baru | Daftar `CK_BilClearanceChainDecision_AnomalyCode` bertambah `UNLINKED_TRANSFER_ORIGIN` | Ikut migration `AddClearanceChainObligationsAndDecisions` yang belum dibuat; **bukan** migration baru |
+| `RegPatientEncounter`, `InpAdmissionReferral` | Sudah ada | Nol | Nol |
+
+### Rencana migration
+
+| Urutan | Migration | Tanpa downtime | Pengisian data lama | Langkah mundur |
+| ---: | --- | :---: | --- | --- |
+| — | **Tidak ada migration baru pada revisi ini** | — | Lihat `BKC-OQ-127` dan `BKC-OQ-131` | Revert source |
+| (`MVP-37`) | `AddClearanceChainObligationsAndDecisions` — daftar `AnomalyCode` berisi enam nilai | Ya | Tidak ada | `Down()` revisi `2.0`/`2.1` |
+
+## 7. Rencana Data Master Awal
+
+Tidak ada tabel master baru maupun baris master yang wajib diisi.
+
+## 8. Yang Sengaja Tidak Dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+| --- | --- |
+| `CHECK` constraint baru atas `LinkReason` | Satu-satunya penulis adalah `BillingInpatientEventReceiver` dengan konstanta bernama. Constraint menambah satu migration pada tabel yang belum pernah punya constraint, tanpa menutup risiko nyata. Dapat ditambahkan kelak bersamaan migration lain |
+| Penulis tautan di modul Rawat Inap atau Registrasi | Ditolak `BKC-DEC-155`: tautan milik Billing, ditulis Billing; modul lain tidak berubah |
+| Melempar galat saat pasien kunjungan asal berbeda | Galat membuat event masuk antrean gagal dan **invoice rawat inap tidak terbuka**. Akibatnya lebih buruk daripada tautan yang dilewati, yang tetap ditangkap `BKC-DES-080` |
+| Memperluas `InpIntegrationReplayService.NeedsLinkAsync` | Berkas milik Rawat Inap. Hanya relevan bila pemilik memilih pengisian belakangan lewat putar ulang (`BKC-OQ-127`), dan butuh persetujuan pemilik Rawat Inap |
+| Menghitung otomatis tagihan asal transfer yang tidak bertautan | Sama dengan memilih `BKC-OQ-127` opsi (b) tanpa keputusan pemilik. Desain ini memilih gagal-tertutup sampai pemilik memutuskan |
+| Memperbaiki penanda item admin berbasis `DescriptionSnapshot.Contains("Administrasi")` | Di luar bukti pass ini: belum diaudit apakah item admin Rawat Jalan selalu bersumber `ADMINISTRATION`. Dicatat sebagai temuan pada `BKC-OQ-131` |
+
+## 9. Keputusan Arsitektur
+
+| ID | Keputusan | Masukan | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-077` | `EnsureEncounterLinksAsync` menulis tautan transfer **sesudah** tautan rujukan operasi, dalam transaksi dan advisory lock yang sama. Urutannya: (1) baca kunjungan rawat inap (`EncounterId` event); (2) bila `SourceEncounterId` kosong, selesai; (3) bila kunjungan asal sudah bertautan — termasuk lewat rujukan operasi — lewati; (4) bila tidak, tulis tautan dengan `LinkReason` dari `AdmissionTransferSourceType`: `Emergency` → `EMERGENCY_ORIGIN`, `Outpatient` → `OUTPATIENT_ORIGIN`, `SourceReferralId` kosong, `ReceiptId` tanda terima yang sedang diproses | `BKC-DEC-155`, F1–F5 | Menumpang satu-satunya penulis yang sudah idempoten, sudah dikunci, dan sudah dipanggil pada jalur duplikat, sehingga putar ulang event lama ikut menautkan |
+| `BKC-DES-078` | Nilai `LinkReason` dibakukan sebagai konstanta `BillingEncounterLinkReasons`. Bila satu kunjungan asal punya dua sebab, sebab yang tertulis lebih dulu (`SURGERY_ORIGIN`) dipertahankan | `BKC-DEC-155` | Satu tautan per pasangan sudah dijamin indeks; sebab tidak dipakai perhitungan mana pun, hanya keterangan |
+| `BKC-DES-079` | Tautan **tidak** ditulis bila kunjungan asal milik pasien lain, terhapus, atau batal, atau bila `AdmissionTransferSourceType` bukan `Emergency`/`Outpatient`. Kejadian itu dicatat `WarningAsync` kategori Billing, aksi `InpatientEvent.TransferLinkSkipped`, berisi `EpisodeId`, `EncounterId`, `SourceEncounterId`, dan kode alasan saja — **tanpa** nama, NIK, maupun nomor rekam medis. Event tetap diterima | Invariant 2 dan 3 | Pertahanan berlapis tanpa mengorbankan pembukaan invoice |
+| `BKC-DES-080` | Penelusur rantai membaca tingkat pertama dari **dua** sumber: tautan (`BilInvoiceEncounterLink`) dan `SourceEncounterId` kunjungan rawat inap itu sendiri. Asal transfer yang ada di Registrasi tetapi tidak bertautan menghasilkan kejanggalan `UNLINKED_TRANSFER_ORIGIN` → `NEEDS_RECONCILIATION`. Tagihannya ditampilkan tetapi **tidak** dihitung sampai petugas memutuskan `INCLUDE` atau `EXCLUDE` lewat alur rekonsiliasi revisi `2.1`. Bila pasiennya berbeda, `PATIENT_MISMATCH` yang berlaku | `BKC-DEC-148`, `BKC-DEC-151`–`153`, `BKC-DEC-157`, invariant 4 | Menutup lubang gagal-terbuka revisi `2.0`. Ini langkah bawaan sampai `BKC-OQ-127` diputuskan, bukan jawaban atas pertanyaan itu |
+| `BKC-DES-081` | Penggantian biaya admin Rawat Jalan memilih invoice Rawat Jalan **hanya** dari kunjungan yang tertaut ke invoice rawat inap itu dan berjenis `Outpatient`, apa pun sebab tautannya. Tanpa tautan, tidak ada void maupun kredit. Aturan dibayar/belum dibayar, kode void, dan idempotensi kredit **tidak berubah** | `BKC-DEC-119`, `BIL-VAL-126`, `BKC-DES-049`, F6 | Membawa source kembali ke keputusan yang sudah `approved`; bukan kebijakan baru |
+| `BKC-DES-082` | Premis `BKC-DES-063` dibaca dengan koreksi: tingkat pertama dipegang tautan untuk rujukan operasi **dan**, sesudah `BKC-DES-077` rilis, untuk transfer. Untuk transfer sebelum itu, `BKC-DES-080` yang menjaga. `BKC-DES-063` **tidak** digantikan; keputusan arsitekturnya (dua sumber, baca saja, tanpa tabel rantai baru) tetap berlaku | Bagian 0.2 | Mempertahankan ID stabil dan histori approval |
+
+### Urutan rilis yang dipersyaratkan
+
+1. `BKC-DES-077`–`079` (penulis tautan) **MUST** rilis sebelum atau bersama `BKC-DES-081`.
+   Merilis `BKC-DES-081` lebih dulu akan menghapus penggantian biaya admin bagi seluruh pasien
+   transfer Rawat Jalan, karena tautannya belum ada.
+2. `BKC-DES-077`–`079` **SHOULD** rilis sebelum `MVP-37`, supaya pasien transfer yang dirawat
+   sesudah rilis itu tidak memunculkan `UNLINKED_TRANSFER_ORIGIN`.
+3. `MVP-36` **tidak** bergantung pada revisi ini.
+
+### Contoh
+
+Ibu Sari Mandasari (nama samaran) berobat di poliklinik pada Maret dan membayar admin Rp 150.000.
+Pada Oktober ia ke poli lagi, membayar admin Rp 150.000, lalu ditransfer ke rawat inap.
+
+| Langkah | Sebelum revisi ini | Sesudah revisi ini |
+| --- | --- | --- |
+| Rawat inap dikonfirmasi | Nol tautan | Satu tautan `OUTPATIENT_ORIGIN` ke kunjungan poli Oktober |
+| Invoice rawat inap dihitung | Kredit Rp 300.000 (Maret **dan** Oktober) | Kredit Rp 150.000 (Oktober saja) |
+| Rincian tagihan rawat inap | Tidak memuat kunjungan poli | Memuat kunjungan poli Oktober |
+| Kelayakan pulang (`MVP-37`) | Tagihan poli tidak ditelusuri (desain `2.0`) | Tagihan poli ikut dinilai |
+
+## 10. Yang MUST Dijawab Owner Saat Approval
+
+| Butir | Pertanyaan | Memblokir |
+| --- | --- | :---: |
+| `BKC-OQ-127` | Transfer sebelum `BKC-DES-077` rilis tidak bertautan. (a) Ditautkan belakangan — lewat putar ulang Rawat Inap (butuh perluasan `NeedsLinkAsync` milik Rawat Inap) atau proses satu kali milik Billing; atau (b) penelusur memakai `SourceEncounterId` sebagai sumber tingkat pertama tanpa kejanggalan. Sampai diputuskan, berlaku `BKC-DES-080` | Rilis `MVP-37` |
+| `BKC-OQ-131` | **Baru.** Kredit dan void biaya admin yang **sudah** terjadi atas kunjungan Rawat Jalan tak tertaut (F6) di lingkungan selain dev: dikoreksi atau dibiarkan? Dev memuat nol kredit. Termasuk temuan bahwa item admin dikenali juga lewat kata "Administrasi" pada deskripsi | Rilis `FR-BKC-277` |
+| `BKC-OQ-132` | **Baru.** Pasien poli yang dirawat inap di hari yang sama **tanpa** lewat jalur transfer (admisi langsung): apakah admin poli-nya tetap digantikan? `BKC-DEC-119` menyebut "dari rujukan poliklinik"; desain ini membacanya harfiah — tanpa tautan, tidak diganti | Rilis `FR-BKC-277` |
+
+## 11. Status Amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `BKC-DEC-155`, `BKC-DEC-157` (`approved` 14 Oktober 2026); `BKC-DEC-119` (`approved` 24 September 2026) |
+| Kriteria penerimaan | `BKC-AC-106`–`BKC-AC-110` |
+| Keputusan arsitektur | `BKC-DES-077`–`BKC-DES-082` |
+| Dampak skema | **Nol migration baru.** Satu nilai ditambahkan pada `CHECK` tabel rencana `MVP-37` |
+| Dampak kontrak API | Nol endpoint baru. Satu nilai `anomalyCode` baru pada response dan request rekonsiliasi yang masih rencana |
+| Dampak frontend | `BIL-SCR-44`: satu label kejanggalan baru. Rincian tagihan rawat inap otomatis memuat kunjungan asal transfer, tanpa perubahan layar |
+| Ketergantungan lintas modul | Registration Management dan Rawat Inap: **baca saja, nol perubahan**. Cukup diberi tahu |
+| Kompatibilitas | **Satu perubahan perilaku yang disengaja:** kredit dan void biaya admin tidak lagi menyentuh kunjungan Rawat Jalan yang tak tertaut. Pasien yang dulu "untung" dari kredit kunjungan lama akan melihat kewajiban lebih besar — ini koreksi, dan **MUST** dikomunikasikan ke kasir |
+| Cacat as-is | F6, keparahan **High**: data finansial tersimpan salah tanpa disadari. Tidak teramati di dev (nol episode rawat inap, nol kredit) |
+| Status | **draft** — menunggu approval Product/Domain Owner |

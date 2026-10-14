@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian "REV-4 — AR Invoice Agregat dan Potongan AR" |
 | Trace | `FIN-DEC-049`, `055`, `058`, `062`; `FIN-DES-048`..`050`, **`052`** (AMENDMENT REVISI 6, pemecahan kode); `FR-FIN-093`..`095`, `099` |
 | Contract version | `FIN-API-1.2` §C.2/C.3 (`locked` 26 September 2026); `FIN-STATE-1.3` §C.4; `FIN-VAL-1.4` `FIN-VAL-118`, `119`, `121`, `128`, `129`, `137` (`locked`/`approved` 28 September 2026, `FIN-VAL-1.5`); `FIN-INTEGRATION-1.6` §5.10.2 kode 32-35 |
-| Dependency | `BE-FIN-038` 🟡 (skema `FinReceiptDeduction` — source & berkas migration selesai 29 September 2026, eksekusi migration tertunda; task ini murni menulis lewat skema itu, bukan mengubahnya) |
+| Dependency | `BE-FIN-038` ✅ (skema `FinReceiptDeduction` — source & berkas migration selesai 29 September 2026, eksekusi migration tertunda; task ini murni menulis lewat skema itu, bukan mengubahnya) |
 | Klasifikasi | `MEDIUM` — satu repository (skor 0); 8 berkas diperiksa domain terdekat (skor 0), namun >8 total dibaca lintas kontrak (skor 1); 4 berkas diubah (skor 1); logika bisnis sedang — validasi berlapis + kode kejadian bercabang per `DeductionType` (skor 1); kontrak API — nol endpoint baru, satu endpoint diperluas aditif + satu endpoint baru sederhana (skor 1); database — nol perubahan skema (skor 0); keamanan/auth — nol resource baru, reuse `Receipt : Read` (skor 0); UI/workflow — nol dampak (skor 0). Total 4 → `MEDIUM` |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Collection/{Dtos,Services,Controllers}/**` (diperbarui, mengubah service yang sudah berjalan), `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinAccountingEventOutbox.cs` (tambah 4 konstanta), `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` (tanda status) |
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Belum di-commit — lihat Status Git bagian 7 (working tree `Yasmina`, HEAD `7811c048`) |
 | Tanggal | 29 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `dotnet build` **sengaja tidak dijalankan** — instruksi eksplisit pengguna pada task ini ("tanpa build automatis"). Nol migration disentuh — task ini murni menulis lewat skema `BE-FIN-038` |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -117,7 +117,7 @@ ini **tidak pernah** menulis kolom `FinReceivable` secara langsung, seluruhnya l
 | `Areas/Corporate/FinanceManagement/Collection/Dtos/FinanceReceiptDtos.cs` | Tambah `ReceiptDeductionLineRequestDto`; `AllocationLineRequestDto` bertambah field `Deductions` (opsional); tambah `ReceiptDeductionResponse` |
 | `Areas/Corporate/FinanceManagement/Collection/Services/FinanceReceiptService.cs` | **Diperbarui — mengubah service yang sudah berjalan.** `AllocationLineRequest` (record) bertambah parameter opsional `Deductions`; tambah record `ReceiptDeductionLineRequest`; `AllocateAsync` memvalidasi dan mencatat potongan per baris + menerbitkan kejadian; `ReverseAllocationAsync` ikut membalik potongan pada alokasi yang dibalik; tambah `GetDeductionsAsync` (baca) dan `GenerateDeductionNumber` |
 | `Areas/Corporate/FinanceManagement/Collection/Controllers/FinanceReceiptsController.cs` | **Diperbarui.** `Allocate` memetakan `Deductions` dari DTO ke service; tambah `GET /{id}/deductions`; tambah `MapDeduction` |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-040` → 🟡 di seluruh titik kemunculan |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-040` → ✅ di seluruh titik kemunculan |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 

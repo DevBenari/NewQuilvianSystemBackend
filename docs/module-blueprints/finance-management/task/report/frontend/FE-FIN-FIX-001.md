@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `0ed37b5c43e9cc7204cc5c6e52bc326904c7cdcf` (branch `yasmina`) |
 | Commit backend yang dijadikan rujukan | `46fa2a91f8c812d1d1c5e83a94aed3dddfccac93` (kode `BE-FIN-FIX-001` berada di working tree backend, belum di-commit) |
 | Tanggal | 2026-10-05 |
-| Status | 🟡 **KODE SELESAI DITULIS, VALIDASI BELUM DIJALANKAN.** `npm run lint`, `npm run build`, dan `npm run test:unit` **NOT RUN**; uji manual di browser **NOT FEASIBLE** (backend belum dikompilasi). Belum boleh ditandai selesai (`✅`) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

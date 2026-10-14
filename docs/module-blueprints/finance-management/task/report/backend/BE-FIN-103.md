@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `c6ca3042` (branch `Yasmina`, upstream `origin/Yasmina`; working tree memuat perubahan pemilik yang belum di-commit, tidak disentuh) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — source selesai; `dotnet build` **NOT RUN** dan file migration **belum dibuat** (preferensi pemilik: tidak menjalankan build/migration otomatis) |
+| Status | ✅ **Selesai** — source selesai; `dotnet build` dan migrasi `20261013055556_TableHrdBenefitBalanceMovements` dijalankan pemilik dan dilaporkan berhasil (13 Oktober 2026). Verifikasi manual runtime belum dijalankan |
 
 ### Backend Governance Preflight
 
@@ -107,7 +107,7 @@ pemeriksaan kelayakan (`BE-FIN-106`) dan pemakaian plafon (`BE-FIN-104`, `108`).
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | 18 endpoint baru (bagian 4). Delta terhadap `FIN-API-1.10`: lihat bagian 7 |
-| Database | Dua kolom baru, tiga check constraint baru, dua indeks unik baru, satu filter indeks diubah. **File migration belum dibuat; belum diterapkan.** Lihat bagian 5 |
+| Database | Dua kolom baru, tiga check constraint baru, dua indeks unik baru, satu filter indeks diubah. **Migration `20261013055556_TableHrdBenefitBalanceMovements` dibuat dan diterapkan pemilik (dilaporkan berhasil).** Lihat bagian 5 |
 | Keamanan/Auth | Dua resource hak akses baru (`EmployeeBenefitEnrollment`, `EmployeeBenefitDependent`) di modul Akses Role `HUMAN_RESOURCE_BENEFIT_MANAGEMENT`; maker-checker ditegakkan service dan database; log tanpa nama, NIK, atau tanggal lahir |
 
 ## 4. Dokumentasi endpoint
@@ -154,9 +154,9 @@ Base URL: `api/v1/corporate/human-resource/benefit-management/employee-benefit-e
 | QBE preflight | Tidak ada entity baru; tidak ada nama `Trx*` baru; controller tidak mengakses context | `PASS` | Bagian *Backend Governance Preflight* |
 | Pencocokan hak akses: `ControllerName` = argumen 1 `[AccessPermission]`; argumen 1 `[AccessAction]` = argumen 2 `[AccessPermission]`; `AccessType` hanya Read/Create/Update | Cocok pada 18 endpoint | `PASS` | Review berkas controller |
 | Review diff dan scope | Hanya berkas pada 3.2; perubahan pemilik lain di working tree tidak disentuh | `PASS` | `git diff --stat` |
-| `dotnet restore` / `dotnet build` | — | `NOT RUN` | Preferensi pemilik: build hanya bila diminta. **Wajib dijalankan pemilik sebelum task ditandai ✅** |
-| Pembuatan file migration | — | `NOT RUN` | Lihat perintah di bawah |
-| Verifikasi kontrak dan proses bisnis runtime | — | `NOT RUN` | Menunggu build dan migration |
+| `dotnet restore` / `dotnet build` | Dijalankan pemilik dan dilaporkan **berhasil** (13 Oktober 2026); keluarannya tidak dilihat agent | `PASS` (dilaporkan pemilik) | Laporan pemilik pada sesi 13 Oktober 2026 |
+| Pembuatan dan penerapan migration | Migration `20261013055556_TableHrdBenefitBalanceMovements` (memuat `RowVersion`, tiga check constraint, dua indeks unik, filter indeks diubah, dan tabel buku mutasi `BE-FIN-104`) dibuat dan diterapkan pemilik; dilaporkan berhasil | `PASS` (dilaporkan pemilik) | Berkas ada di `Migrations/` |
+| Verifikasi kontrak dan proses bisnis runtime | — | `NOT RUN` | Uji manual belum dijalankan |
 
 Uji manual: `REQUIRED` (setelah build dan migration).
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`.
@@ -187,10 +187,10 @@ Ketiganya harus nol baris/nol. Kolom `RowVersion` baru akan terisi nilai bawaan 
 | 1. Pegawai yang di-enroll ke plan berplafon Rp 10.000.000 punya `RemainingAmount` Rp 10.000.000 | Terpenuhi di source, belum terbukti runtime | `EmployeeBenefitEnrollmentService.ActivateAsync` |
 | 2. Dependent tidak bisa diverifikasi tanpa `FamilyMemberId` yang valid dan aktif | Terpenuhi di source | `CreateAsync` mewajibkan anggota keluarga aktif milik pegawai yang sama; verifikasi hanya dari `Requested` |
 | 3. Melebihi `MaximumDependents` ditolak | Terpenuhi di source | `EmployeeBenefitDependentService.CreateAsync` |
-| 4. Dependent di luar masa berlaku tidak dihitung eligible | **Sebagian** | Masa berlaku disimpan saat verifikasi; penilaian terhadap tanggal layanan ada pada pemeriksaan kelayakan `BE-FIN-106` |
+| 4. Dependent di luar masa berlaku tidak dihitung eligible | Terpenuhi di source | Masa berlaku disimpan saat verifikasi; penilaian terhadap tanggal layanan dilakukan `EmployeeBenefitEligibilityService.CheckAsync` (`BE-FIN-104`) dan hasilnya `DEPENDENT_OUT_OF_PERIOD` |
 | 5. Hak akses enrollment terpisah dari hak akses master data | Terpenuhi di source | Resource `EmployeeBenefitEnrollment`/`EmployeeBenefitDependent`, terpisah dari `BenefitPlan` |
 | DoD: preflight selesai | Terpenuhi | Bagian preflight |
-| DoD: build PASS atas permintaan pemilik | **Belum** | `NOT RUN` |
+| DoD: build PASS atas permintaan pemilik | Terpenuhi (dilaporkan pemilik) | Build berhasil |
 | DoD: kontrak API cocok | Terpenuhi dengan delta tercatat | Bagian 7 |
 | DoD: laporan tracked | Terpenuhi | Berkas ini |
 
@@ -201,9 +201,9 @@ Ketiganya harus nol baris/nol. Kolom `RowVersion` baru akan terisi nilai bawaan 
 | Delta kontrak (`FIN-API-1.10`, `FIN-PERM-1.11`, kamus data 9.3) | (1) Kolom `RowVersion` ditambahkan pada kedua tabel; kontrak mewajibkan `RowVersion` di request, tetapi kamus data 9.3 menulis "nol kolom baru". (2) Endpoint `filters/metadata`, `summary`, dan `status-history` ditambahkan sesuai standar endpoint transaksi; riwayat status diturunkan dari kolom jejak model. (3) `GET /{id}/movements` **tidak** dibuat; buku mutasinya milik `BE-FIN-104`. (4) Field `Description` pada pendaftaran tanggungan tidak dibuat karena model tidak punya kolomnya. (5) Argumen pertama `[AccessController]` memakai kode modul `HUMAN_RESOURCE_BENEFIT_MANAGEMENT` mengikuti pola HR, bukan kode per controller yang tertulis di `FIN-PERM-1.11` `R.2`. (6) Filter indeks unik lama pada tanggungan dipersempit agar pendaftaran ulang setelah ditolak atau diakhiri mungkin. (7) Status `Expired` tidak dipasang otomatis; respons membawa `IsWithinEffectivePeriod` |
 | Tafsiran yang perlu dikonfirmasi pemilik HR | `MaximumDependents = 0` dibaca "tidak ada tanggungan diizinkan" (selaras `BenefitTypeController`) |
 | Masalah yang diketahui | Pemeriksaan "benefit layanan RS ganda" berjalan di service karena butuh data jenis benefit; tidak dapat berupa indeks database |
-| Risiko tersisa | Kode belum pernah dikompilasi; migration belum ada sehingga endpoint akan gagal di database sampai migration diterapkan |
+| Risiko tersisa | Uji manual runtime belum dijalankan; keluaran build dan migrasi tidak dilihat agent |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Berkas task: ` M` dua model, dua konfigurasi, `Program.cs`; `??` folder `Constants/`, `Controllers/`, `DTOs/`, `Services/` di `BenefitManagement`, dan laporan ini. Perubahan lain di working tree milik pemilik dan tidak disentuh |
 | `requirement-traceability.md` | Tidak ada pada blueprint ini; traceability dipegang tabel di roadmap. Tidak dibuat berkas baru tanpa diminta |
-| Langkah berikutnya | Pemilik menjalankan `dotnet build` dan `dotnet ef migrations add`, lalu menerapkan migration; setelah itu task dapat dinaikkan ke ✅. Task yang terbuka karenanya: `BE-FIN-104` (bersama persetujuan kontrak yang sudah ada) dan `BE-FIN-106` (setelah `BE-FIN-105`) |
+| Langkah berikutnya | `BE-FIN-104` dan `BE-FIN-106` sudah dikerjakan di atas task ini |

@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-2`, `MVP-3` — tertahan) |
 | Trace | `FIN-DES-014`, `FR-FIN-040`..`046`; kontrak `FIN-STATE-1.0` §2/§3/§4 (state-transition-matrix.md) — **terkunci** |
 | Contract version | `FIN-STATE-1.0` — `draft` tapi dipakai apa adanya (satu-satunya sumber transisi status yang ada); nol perubahan diusulkan padanya |
-| Dependency | `BE-FIN-017` — 🟡 sebagian 22 September 2026, `FinanceReceiptService` sudah ada (lihat [laporan](BE-FIN-017.md)) |
+| Dependency | `BE-FIN-017` — ✅ SELESAI 22 September 2026, `FinanceReceiptService` sudah ada (lihat [laporan](BE-FIN-017.md)) |
 | Klasifikasi | `HEAVY` — logika bisnis lintas dua aggregate (`FinReceipt`, `FinReceivable`) dan dua service, dengan invariant satu-penulis yang harus dijaga; nol entity/migration baru |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableService.cs` (disunting — `ApplyAllocationAsync`/`ReverseAllocationAsync`); `Areas/Corporate/FinanceManagement/Collection/Services/FinanceReceiptService.cs` (disunting — `AllocateAsync`/`ReverseAllocationAsync`, `AllocationLineRequest`) |

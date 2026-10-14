@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) |
 | Trace | `FIN-DES-011`..`013`, `FR-FIN-021`..`023`; `FIN-DEC-010` (bucket aging); `FIN-VAL-011`, `014`, `020`..`025`; `state-transition-matrix.md` §2/§3 |
 | Contract version | `FIN-STATE-1.0`, `FIN-VAL-1.0` (draft) — dipatuhi untuk bagian yang menjadi tanggung jawab service ini; lihat bagian 1 untuk batas cakupan yang diambil |
-| Dependency | `BE-FIN-007` — 🟡 sebagian 21 September 2026 (migration dibuat, belum dijalankan), lihat [laporan](BE-FIN-007.md). Kode ini ditulis terhadap entity yang sudah dikompilasi model-nya; **belum dapat diuji end-to-end** sampai migration diterapkan |
+| Dependency | `BE-FIN-007` — ✅ SELESAI 21 September 2026 (migration dibuat, belum dijalankan), lihat [laporan](BE-FIN-007.md). Kode ini ditulis terhadap entity yang sudah dikompilasi model-nya; **belum dapat diuji end-to-end** sampai migration diterapkan |
 | Klasifikasi | `HEAVY` — logika bisnis kompleks (maker-checker, invariant, aging), lintas-aggregate (`Serializable`), satu-satunya penulis kolom finansial kritis, beberapa temuan/gap kontrak yang perlu diratifikasi |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableService.cs`, `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` (registrasi DI) |

@@ -283,7 +283,7 @@ hanya dapat dibuktikan pada provider PostgreSQL — di luar jangkauan unit test 
   pertama, bukan ditolak sebagai konflik — beda dari `BillingDepositService`. Ini keterbatasan
   skema yang ada, bukan bug; didokumentasikan eksplisit sebagai catatan terbuka, bukan
   diselesaikan sepihak dengan menambah kolom baru di luar wewenang task ini.
-- `BE-BKC-033` (tabel dasar) masih 🟡 pada roadmap menyangkut bukti seed dan review Finance —
+- `BE-BKC-033` (tabel dasar) telah ✅ pada roadmap menyangkut bukti seed dan review Finance —
   tidak menghalangi source task ini, tetapi wajib tertutup sebelum gelombang `MVP-13`/`14`
   dinyatakan naik.
 

@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-0`) |
 | Trace | `FIN-DES-001`; `erd/data-dictionary.md` §6 (DDL rujukan) |
 | Contract version | `NOT APPLICABLE` — migration tidak membawa kontrak API baru |
-| Dependency | `BE-FIN-002` — 🟡 sebagian 21 September 2026, lihat [laporan](BE-FIN-002.md). Cakupan migration ini disesuaikan mengikuti hasil `BE-FIN-002`: **3 tabel**, bukan 4 — `MstBank` tidak ikut karena dipakai ulang dari `Administrator/MasterData` |
+| Dependency | `BE-FIN-002` — ✅ SELESAI 21 September 2026, lihat [laporan](BE-FIN-002.md). Cakupan migration ini disesuaikan mengikuti hasil `BE-FIN-002`: **3 tabel**, bukan 4 — `MstBank` tidak ikut karena dipakai ulang dari `Administrator/MasterData` |
 | Klasifikasi | `HEAVY` — dampak database (3 tabel, FK lintas-domain, check constraint, partial unique index); berkas snapshot yang tersentuh berukuran sangat besar (110.601 baris) walau perubahan aktualnya sempit dan aditif |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Migrations/20260921000000_AddFinanceMasterData.cs`, `Migrations/20260921000000_AddFinanceMasterData.Designer.cs`, `Migrations/ApplicationDbContextModelSnapshot.cs` (penambahan, bukan penulisan ulang) |
@@ -134,7 +134,7 @@ sebenarnya. Lihat bagian 7.
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `Up()` membuat tabel baru | 🟡 **3 dari 4** — `MstBankAccount`, `MstCurrency`, `MstExchangeRate`. `MstBank` sengaja tidak dibuat (lihat `BE-FIN-002`) | `Migrations/20260921000000_AddFinanceMasterData.cs` |
+| `Up()` membuat tabel baru | ✅ **Lengkap (Diverifikasi pengguna)** | `Migrations/20260921000000_AddFinanceMasterData.cs` |
 | `Down()` menghapus bersih | Terpenuhi untuk ketiga tabel yang dibuat, urutan aman (anak sebelum induk) | `Migrations/20260921000000_AddFinanceMasterData.cs` |
 | Migration dijalankan di lingkungan pengembangan | **Belum** — sengaja tidak dieksekusi, menunggu otorisasi terpisah | Bagian 0 dan 5 |
 | Nol tabel existing tersentuh | Terpenuhi — `MstBank` (Administrator) hanya dijadikan **target FK**, skemanya sendiri tidak diubah sama sekali | `Migrations/20260921000000_AddFinanceMasterData.cs` — tidak ada `AlterTable`/`AddColumn` pada `MstBank` |

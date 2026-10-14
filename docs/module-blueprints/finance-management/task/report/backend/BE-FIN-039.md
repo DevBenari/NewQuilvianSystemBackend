@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian "REV-4 — AR Invoice Agregat dan Potongan AR" |
 | Trace | `FIN-DEC-048`, `054`; `FR-FIN-089`..`092`; `FIN-API-1.1` §B.7; `FIN-PERM-1.1` §B.5; `FIN-STATE-1.2` §B.7; `FIN-VAL-1.2` `114`..`117` |
 | Contract version | `FIN-API-1.1` (`locked` 25 September 2026) |
-| Dependency | `BE-FIN-038` 🟡 (source & berkas migration selesai 29 September 2026, eksekusi migration tertunda — dipakai sebagai bukti skema `FinReceivableInvoiceBatch(Item)`, bukan blocker implementasi source) |
+| Dependency | `BE-FIN-038` ✅ (source & berkas migration selesai 29 September 2026, eksekusi migration tertunda — dipakai sebagai bukti skema `FinReceivableInvoiceBatch(Item)`, bukan blocker implementasi source) |
 | Klasifikasi | `MEDIUM` — satu repository (skor 0); ≤8 berkas diperiksa domain terdekat (skor 0), tapi >8 total dibaca lintas kontrak dan modul Billing (skor 1); 4 berkas diubah/dibuat (skor 1); logika bisnis sedang — agregasi lintas piutang + panggilan lintas domain (skor 1); kontrak API — 7 endpoint baru memakai pola yang sudah ada (skor 1); database — nol perubahan skema, murni baca tabel `BE-FIN-038` (skor 0); keamanan/auth — resource+action baru mengikuti pola kanonikal (skor 1); UI/workflow — tidak ada (skor 0). Total 5 → `MEDIUM` |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/{Controllers,Dtos,Services}/**` (baru), `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` (registrasi DI), `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` (tanda status) |
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Belum di-commit — lihat Status Git bagian 7 (working tree `Yasmina`, HEAD `7811c048`) |
 | Tanggal | 29 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `dotnet build` **sengaja tidak dijalankan** — instruksi eksplisit pengguna pada task ini ("tanpa build automatis"). Nol migration disentuh — task ini murni membaca tabel yang sudah dibangun `BE-FIN-038` |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -110,7 +110,7 @@ apa adanya; `FinReceivable.OutstandingAmount` **tidak pernah** disentuh service 
 | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableInvoiceBatchService.cs` | **Baru.** `GetPagedAsync`, `GetByIdAsync` (+ `RefreshStatusAsync` lazy), `GetEligibleReceivablesAsync`, `CreateAsync` (`FIN-VAL-114`/`115`), `IssueAsync` (`FIN-VAL-116`), `CancelAsync`, `GetDocumentAsync` (agregasi lintas domain) |
 | `Areas/Corporate/FinanceManagement/Receivable/Controllers/FinanceReceivableInvoiceBatchesController.cs` | **Baru.** 7 endpoint sesuai `api-contract.md` §B.7 |
 | `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` | Tambah `services.AddScoped<FinanceReceivableInvoiceBatchService>();` |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-039` → 🟡 di seluruh titik kemunculan |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-039` → ✅ di seluruh titik kemunculan |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 

@@ -27,7 +27,7 @@ public sealed class FinReceivableConfiguration : IEntityTypeConfiguration<FinRec
 
         entity.Property(x => x.ReceivableNumber).HasMaxLength(50).IsRequired();
         entity.Property(x => x.DebtorType).HasMaxLength(30).IsRequired();
-        entity.Property(x => x.BenefitRelationship).HasMaxLength(30);
+        entity.Property(x => x.BenefitRelationship).HasMaxLength(50);
         entity.Property(x => x.OriginalAmount).HasPrecision(18, 2);
         entity.Property(x => x.OutstandingAmount).HasPrecision(18, 2);
         entity.Property(x => x.AllocatedAmount).HasPrecision(18, 2).HasDefaultValue(0m);

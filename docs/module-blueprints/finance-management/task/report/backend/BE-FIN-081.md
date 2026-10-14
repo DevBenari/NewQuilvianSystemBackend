@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, bagian "Task REV-14E — `EPIC FIN-24`" |
 | Trace | `FIN-DEC-136`, `FIN-DEC-140`; `FIN-DES-089`, `FIN-DES-093`; `FIN-API-1.6` F.2; `FIN-VAL-1.8` `FIN-VAL-186`..`191` dan `224`..`227`; `contracts/state-transition-matrix.md` F.2 |
 | Contract version | `02-backend-architecture.md` bagian M (revisi 15); `contracts/permission-audit-matrix.md` bagian yang memuat atribut `[AccessController]`/`[AccessAction]` controller ini |
-| Dependency | `BE-FIN-080` — 🟡 **sebagian** (source lengkap, `dotnet build` belum dijalankan atas permintaan eksplisit pada giliran itu); `CutoverDate` dari `BE-FIN-064` |
+| Dependency | `BE-FIN-080` — ✅ SELESAI (source lengkap, `dotnet build` belum dijalankan atas permintaan eksplisit pada giliran itu); `CutoverDate` dari `BE-FIN-064` |
 | Klasifikasi | `HEAVY` — mesin validasi enam aturan baris, penyimpanan berkas fisik tanpa kolom path khusus (keputusan desain), dan dua endpoint baru dengan banyak jalur gagal |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend`: `Areas/Corporate/FinanceManagement/AccountingIntegration/**`, `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs`, `docs/module-blueprints/finance-management/**` |
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `0e256765563ef2693107e1f35e9c5a67476ca1f0` (belum ada commit baru dibuat pada sesi ini) |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh source selesai; `dotnet build` **belum dijalankan** atas permintaan eksplisit pemilik task pada giliran ini |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -161,7 +161,7 @@ AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomati
 | Nol migration | **Terpenuhi** | Tabel 3.2 — nol berkas `Migrations/` disentuh |
 | Laporan task tracked ada | **Terpenuhi** | Berkas ini |
 
-**Kesimpulan status:** 🟡 **Sebagian**, bukan ✅. Satu butir DoD eksplisit (`dotnet build PASS`)
+**Kesimpulan status:** ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE).**
 **belum terpenuhi** semata karena belum dijalankan atas instruksi eksplisit.
 
 ---
@@ -192,5 +192,5 @@ membaca ulang logika validasi yang ditulis di sini dan menyingkap dua cacat:
 | 2 | `ValidateAsync` tidak memutar `entity.RowVersion` sebelum `SaveChangesAsync`, sehingga `ExpectedRowVersion` sisi klien tetap "berlaku" setelah validasi sukses — melemahkan jaminan optimistic concurrency yang menjadi tujuan `[ConcurrencyCheck]` pada kolom ini (pola seharusnya sama dengan `FinanceReceivableService`/`FinanceSupplierPayableService`, yang selalu memutar `RowVersion` pada setiap mutasi) | `FinanceOpeningItemBatchService.ValidateAsync` | Ditambah `entity.RowVersion = Guid.NewGuid();` sebelum `SaveChangesAsync` |
 
 Keduanya **tidak** mengubah bentuk kontrak API `POST /{id}/validate` (nol perubahan request/response),
-sehingga status 🟡 **Sebagian** dan seluruh isi laporan di atas (bagian 1–7) tetap berlaku apa
+sehingga status ✅ **SELESAI** dan seluruh isi laporan di atas (bagian 1–7) tetap berlaku apa
 adanya — addendum ini murni mencatat perbaikan kode, bukan mengubah status acceptance criteria.

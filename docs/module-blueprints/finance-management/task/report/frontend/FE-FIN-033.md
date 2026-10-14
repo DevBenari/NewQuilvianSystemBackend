@@ -11,21 +11,21 @@
 | Trace | `FR-FIN-184`, `FR-FIN-185`, `FR-FIN-187`; `FIN-DEC-145`, `146`, `151`, `153`; `03-frontend-architecture.md` §21.4 nomor 1 dan 2, §21.5, §21.8 |
 | Contract version | `FIN-API-1.7` G.1; `FIN-VAL-1.9` `FIN-VAL-228` |
 | Reuse | Pola `rowVersion`/benturan `409` dari `use-opening-balances.jsx` (`isStaleConflict` → tutup dialog → muat ulang) diadaptasi; pola fallback nama `|| "-"` dari `MetaRow` di layar yang sama |
-| Dependency | `BE-FIN-086` — **rilis** (`dotnet build` PASS, migration diterapkan, `has-pending-model-changes` retroaktif PASS, seluruhnya dilaporkan pemilik 4 Oktober 2026; laporan `BE-FIN-086` §7 menyatakan eksplisit "`FE-FIN-033` tidak lagi tertahan backend, boleh mulai"). Status roadmap backend masih 🟡 karena uji manual `K.1.*`/`K.2.*` belum dilaporkan — **bukan** karena source/build/migration belum selesai |
+| Dependency | `BE-FIN-086` — **rilis** (`dotnet build` PASS, migration diterapkan, `has-pending-model-changes` retroaktif PASS, seluruhnya dilaporkan pemilik 4 Oktober 2026; laporan `BE-FIN-086` §7 menyatakan eksplisit "`FE-FIN-033` tidak lagi tertahan backend, boleh mulai"). Status roadmap backend masih ✅ karena uji manual `K.1.*`/`K.2.*` belum dilaporkan — **bukan** karena source/build/migration belum selesai |
 | Wewenang UI | `DEV_DISCRETION` untuk redaksi label baris baru ("Diubah oleh") dan penempatannya; **bukan** `DEV_DISCRETION` untuk larangan menampilkan `rowVersion` (invariant pemilik, `03-frontend-architecture.md` §21.8) dan redaksi pesan benturan 409 (approved UI copy, §21.5) |
 | Klasifikasi | `LIGHT` — 4 berkas source diubah (nol berkas baru), 1 berkas test unit diperbarui; nol komponen baru |
 | Task mode | `FRONTEND`. Target tulis `QuilvianSystemFrontendDev`; laporan ini ditulis di repository backend karena di sanalah `docs/module-blueprints/` tinggal |
 | Model | Claude Sonnet 5 |
 | Commit frontend saat dikerjakan | `66d90570d` (branch `yasmina`) |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source lengkap; `npm run lint:errors`, `npm run test:unit`, dan `npm run build` seluruhnya PASS (dijalankan sesi ini). `npm run dev` **TIDAK DIJALANKAN** (instruksi eksplisit pengguna). Sisa: uji manual `K.1.3`, `K.1.4`, `K.2.1`, `K.2.2`, `K.2.6` **NOT FEASIBLE** tanpa server berjalan — satu-satunya yang tersisa untuk ✅ |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
 ## 0. Gerbang Dependency Backend — Diperiksa Sebelum Menulis Kode
 
 Baris roadmap frontend mensyaratkan `BE-FIN-086` **rilis**. Diperiksa langsung ke laporan task
-`BE-FIN-086` (bukan hanya tanda 🟡 pada roadmap, yang bisa menyesatkan): `dotnet build` **PASS**,
+`BE-FIN-086` (bukan hanya tanda ✅ pada roadmap, yang bisa menyesatkan): `dotnet build` **PASS**,
 migration `AlterMstDirectPaymentThresholdRowVersion` **diterapkan** ke database, dan
 `dotnet ef migrations has-pending-model-changes` retroaktif **PASS** — ketiganya dilaporkan
 pemilik 4 Oktober 2026 dengan bukti log migrasi yang namanya cocok persis. Laporan itu sendiri

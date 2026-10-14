@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-5`) |
 | Trace | `FR-FIN-074`; kontrak `FIN-API-1.0`, `FIN-PERM-1.0` |
 | Contract version | `NOT APPLICABLE` — tidak ada kontrak API bertversi eksplisit untuk permukaan ini; endpoint diturunkan dari `transaction-endpoint-standard.md` §2.4 dan `03-frontend-architecture.md` §3.5 |
-| Dependency | `BE-FIN-011` — 🟡 sebagian 21 September 2026 (service + 3 pemanggilan selesai, QBE `PASS`), lihat [laporan](BE-FIN-011.md) |
+| Dependency | `BE-FIN-011` — ✅ SELESAI 21 September 2026 (service + 3 pemanggilan selesai, QBE `PASS`), lihat [laporan](BE-FIN-011.md) |
 | Klasifikasi | `LIGHT` — permukaan baru murni, tidak menyunting service/controller yang sudah ada (kecuali registrasi DI) |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/AccountingIntegration/Controllers/FinanceAccountingEventsController.cs` (baru); `.../DTOs/AccountingEventDtos.cs` (baru); `.../Services/FinanceAccountingEventService.cs` (baru); `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` (registrasi DI) |

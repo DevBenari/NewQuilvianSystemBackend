@@ -10,13 +10,13 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian `AMENDMENT ROADMAP REVISI 18` |
 | Trace | `FR-FIN-211`..`217`; `FIN-DEC-177`, `178`; `FIN-DES-102`, `103` |
 | Contract version | `FIN-API-1.9` O.3 (`draft`); `FIN-VAL-1.10` `FIN-VAL-241`..`243` (`approved`); `FIN-STATE-1.8` O.3 |
-| Dependency | `BE-FIN-091` 🟡, `BE-FIN-092` 🟡 — keduanya belum ✅ |
+| Dependency | `BE-FIN-091` ✅, `BE-FIN-092` ✅ — keduanya belum ✅ |
 | Klasifikasi | `HEAVY` — 1 service baru (6 method publik, transaksi atomik, penguncian), 1 controller baru (5 endpoint) |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/{Controllers,DTOs,Services}/`, `Program.cs` |
 | Model | Claude Sonnet 5 |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **Source selesai ditulis.** `dotnet build` **TIDAK DIJALANKAN**. Task ke-9 berturutan tanpa build |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

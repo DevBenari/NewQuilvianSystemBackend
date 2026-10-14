@@ -660,6 +660,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstExchangeRate> MstExchangeRates { get; set; }
         // BE-FIN-074, FIN-DES-086: ambang nilai pembayaran langsung, master berjejak satu baris aktif.
         public DbSet<MstDirectPaymentThreshold> MstDirectPaymentThresholds { get; set; }
+        // BE-FIN-110, BE-FIN-115, FIN-DEC-222, FIN-DES-108: master peralihan periode pertama yang ditangani mesin payroll.
+        public DbSet<MstPayrollDeductionCutover> MstPayrollDeductionCutovers { get; set; }
         // BE-FIN-005, FIN-DES-008: satu pintu masuk seluruh fakta dari Billing. Migration
         // AddFinanceBillingIntake (BE-FIN-007) dibuat tangan, belum dijalankan. Service konsumen
         // (FinanceBillingIntakeService) belum ada task pemilik eksplisit.
@@ -679,6 +681,9 @@ namespace QuilvianSystemBackend.Repositories
         // AddFinanceReceivableInstallmentAndBenefitSettlement dibuat via CLI EF Core, belum diterapkan.
         public DbSet<FinReceivableInstallmentPlan> FinReceivableInstallmentPlans { get; set; }
         public DbSet<FinReceivableInstallment> FinReceivableInstallments { get; set; }
+        // BE-FIN-117, FIN-DES-106, FIN-DEC-220: batch hasil potongan gaji manual per periode.
+        public DbSet<FinPayrollDeductionBatch> FinPayrollDeductionBatches { get; set; }
+        public DbSet<FinPayrollDeductionBatchItem> FinPayrollDeductionBatchItems { get; set; }
         // BE-FIN-092, FIN-DES-102: pelunasan internal berkala porsi benefit yang ditanggung RS.
         public DbSet<FinBenefitSettlement> FinBenefitSettlements { get; set; }
         public DbSet<FinBenefitSettlementItem> FinBenefitSettlementItems { get; set; }

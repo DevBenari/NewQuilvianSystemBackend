@@ -9,6 +9,8 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Repositories;
@@ -46,6 +48,7 @@ public sealed class FinanceBillingIntakeService
     private readonly FinanceReceiptService _receiptService;
     private readonly FinanceSubledgerMovementService _subledgerMovementService;
     private readonly IFinanceReceivableNumberGenerator _numberGenerator;
+    private readonly PayrollRestitutionService _payrollRestitutionService;
 
     public FinanceBillingIntakeService(
         ApplicationDbContext dbContext,
@@ -53,7 +56,8 @@ public sealed class FinanceBillingIntakeService
         FinanceAccountingOutboxService accountingOutboxService,
         FinanceReceiptService receiptService,
         FinanceSubledgerMovementService subledgerMovementService,
-        IFinanceReceivableNumberGenerator numberGenerator)
+        IFinanceReceivableNumberGenerator numberGenerator,
+        PayrollRestitutionService payrollRestitutionService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
@@ -61,6 +65,7 @@ public sealed class FinanceBillingIntakeService
         _receiptService = receiptService;
         _subledgerMovementService = subledgerMovementService;
         _numberGenerator = numberGenerator;
+        _payrollRestitutionService = payrollRestitutionService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -140,10 +145,22 @@ public sealed class FinanceBillingIntakeService
             .ToListAsync(cancellationToken))
             .ToLookup(x => x.HandoffType, x => x.SourceHandoffKey);
 
+        // BE-FIN-109, BE-FIN-097: Handoff pengganti koreksi salah orang diolah lewat intake tipe ADJUSTMENT
+        // (ProcessArAdjustmentIntakeAsync) bersamaan dengan pembatalan piutang lama melalui CorrelationId yang sama.
+        // Handoff pengganti ini tidak disinkronkan terpisah sebagai tipe AR agar tidak terjadi duplikasi atau konflik intake.
+        var replacementHandoffCorrelationIds = (await _dbContext.BilHandoffAdjustments.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .Select(x => x.CorrelationId)
+            .ToListAsync(cancellationToken))
+            .ToHashSet();
+
         var arCandidates = await _dbContext.BilArHandoffs.AsNoTracking()
             .Where(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created)
             .ToListAsync(cancellationToken);
-        var arToCreate = arCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.Ar].Contains(x.HandoffKey)).ToList();
+        var arToCreate = arCandidates
+            .Where(x => !existingKeysByType[FinBillingHandoffTypes.Ar].Contains(x.HandoffKey)
+                     && !replacementHandoffCorrelationIds.Contains(x.CorrelationId))
+            .ToList();
 
         // BE-FIN-097, FIN-DEC-187: hanya BilHandoffAdjustment yang menunjuk handoff EMPLOYEE_BENEFIT
         // yang relevan bagi Finance (koreksi pemilik manfaat salah orang) — penyesuaian Billing lain
@@ -1160,6 +1177,51 @@ public sealed class FinanceBillingIntakeService
                         referenceNumber: oldReceivable.ReceivableNumber,
                         notes: $"Pembatalan piutang — {adjustment.Reason} (BE-FIN-097)",
                         cancellationToken: cancellationToken);
+                }
+
+                // BE-FIN-111, AC 1, AC 2, AC 3 (FIN-DEC-195, FIN-INTEGRATION-1.8 §P.6 butir 3):
+                // Periksa apakah piutang lama memiliki cicilan yang terlanjur terpotong dari pegawai yang salah.
+                var oldPlans = await _dbContext.FinReceivableInstallmentPlans
+                    .Include(p => p.Installments)
+                    .Where(p => p.ReceivableId == oldReceivable.Id && !p.IsDelete)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var oldPlan in oldPlans)
+                {
+                    var totalPaid = oldPlan.Installments.Where(x => !x.IsDelete).Sum(x => x.PaidAmount);
+
+                    foreach (var inst in oldPlan.Installments.Where(x => !x.IsDelete && x.Status != FinReceivableInstallmentStatuses.Dibatalkan))
+                    {
+                        inst.Status = FinReceivableInstallmentStatuses.Dibatalkan;
+                        inst.OutstandingAmount = 0m;
+                        inst.UpdateDateTime = DateTime.UtcNow;
+                        inst.UpdateBy = actorUserId;
+                    }
+
+                    if (oldPlan.Status != FinReceivableInstallmentPlanStatuses.Dibatalkan)
+                    {
+                        oldPlan.Status = FinReceivableInstallmentPlanStatuses.Dibatalkan;
+                        oldPlan.CancelReason = $"Dibatalkan akibat koreksi serah terima AR Billing: {adjustment.Reason}";
+                        oldPlan.UpdateDateTime = DateTime.UtcNow;
+                        oldPlan.UpdateBy = actorUserId;
+                    }
+
+                    var targetEmployeeId = oldReceivable.BenefitOwnerId ?? oldReceivable.DebtorReferenceId;
+                    if (totalPaid > 0 && targetEmployeeId.HasValue)
+                    {
+                        // Potongan gaji yang terlanjur diambil dari pegawai yang salah dikembalikan lewat slip gaji periode berikutnya di HR.
+                        // Finance TIDAK mengeluarkan kas manual untuk restitusi ini (FIN-DEC-195).
+                        await _payrollRestitutionService.ProcessRestitutionAsync(new PayrollRestitutionRequest
+                        {
+                            EmployeeId = targetEmployeeId.Value,
+                            Amount = totalPaid,
+                            SourceId = oldReceivable.Id,
+                            SourceType = "FinanceReceivableCorrection",
+                            Reason = $"Penyesuaian restitusi salah potong cicilan piutang RS akibat koreksi debitur ({oldReceivable.ReceivableNumber})",
+                            CorrelationId = adjustment.CorrelationId.ToString(),
+                            ActorUserId = actorUserId
+                        }, cancellationToken);
+                    }
                 }
             }
 
