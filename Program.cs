@@ -1118,6 +1118,11 @@ try
     if (runBackgroundJobs)
     {
         builder.Services.AddHostedService<KioskEncounterClosureHostedService>();
+        // crm-membership BE-CRM-020: kedaluwarsa, mulai periode Terjadwal, batal tidak dibayar, dan
+        // penyelarasan status member pasien. Bawaan menyala (PatientMembership:Lifecycle:Enabled).
+        builder.Services.Configure<PatientMembershipLifecycleOptions>(
+            builder.Configuration.GetSection(PatientMembershipLifecycleOptions.SectionName));
+        builder.Services.AddHostedService<PatientMembershipLifecycleHostedService>();
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
         builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
         builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
