@@ -46,7 +46,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             encounter.SourceEncounterId = sourceEncounterId;
             encounter.AdmissionTransferId = transferId;
             encounter.AdmissionTransferSourceType = sourceType;
-            encounter.PaymentSource = new RegPatientEncounterGuarantor
+            var paymentSource = new RegPatientEncounterGuarantor
             {
                 EncounterId = encounter.Id, PatientId = encounter.PatientId,
                 PaymentSourceNumber = await _numbers.AllocatePaymentSourceNumberAsync(cancellationToken),
@@ -55,6 +55,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 IsPrimary = true, Priority = 1, CreateBy = command.ActorUserId,
                 CreateDateTime = DateTime.UtcNow
             };
+            encounter.PaymentSource = paymentSource;
+            _dbContext.RegPatientEncounterGuarantors.Add(paymentSource);
             encounter.PaymentMethodId = command.PaymentMethodId;
             await _dbContext.SaveChangesAsync(cancellationToken);
             return command.PaymentType == EncounterPaymentType.Cash ? null

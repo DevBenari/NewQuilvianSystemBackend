@@ -601,3 +601,9 @@ karena dibentuk sumber yang sama (`InpPresentEpisodeInfo.RejectionMessage`,
 
 Permintaan Kamar Pulih yang menunggu (`VAL-RWF-87`/`88`) ikut dibaca endpoint yang sama dengan kode `INP-ADM-REF-001`/`002`.
 Rujukan: [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) `FIX-EPS-010-01`, `-02`.
+
+## Amandemen admisi bayi -> RWI-BAYI-016-1.0, 14 Oktober 2026
+
+Metadata bayi mewajibkan master IsNewborn dan MotherPatientId, source/careMode/careSource/pref valid, nominal nonnegatif. Ibu/episode cocok; referensi historis yang sama dipertahankan. Bayi wajib boks, dewasa ditolak pada boks. RoomingIn/intensif dari rencana ditegakkan selama Draft; isolasi existing. Placement pertama mensyaratkan GeneralConsent Completed dengan signature Parent/Guardian.
+
+Detail dan batas mengikuti [kontrak admisi bayi](newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.

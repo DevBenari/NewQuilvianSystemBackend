@@ -1083,3 +1083,7 @@ Metadata backend belum menyediakan key transfer; evidence historis tidak diekspo
 ## Koreksi bukti admisi transfer ? EPS-006, 12 Oktober 2026
 
 FR-RI-187-192 dan BE-RWI-206/207, FE-RWI-227-230: 🟡 implementasi diperbaiki, bukti integrasi PostgreSQL belum tersedia. Gunakan [traceability slice](requirement-traceability-admisi-transfer-igd.md), [amandemen](../contracts/admission-transfer-repair-006.md), dan [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md); klaim COMPLETED_PROVEN historis tidak berlaku sebagai sign-off runtime.
+
+## Amandemen admisi bayi ? 14 Oktober 2026
+
+PLAN-REPAIR-EPS-016 untuk pasien baru/lama dilacak terpisah pada [traceability admisi bayi](requirement-traceability-admisi-bayi-016.md). BE-RWI-231 ✅ selesai source/build; FE-RWI-245 🟡 source/browser lulus, packaging standalone tertahan ENOSPC. Tidak mengubah status historis requirement revision lain atau mengklaim integrasi PostgreSQL/Billing selesai.

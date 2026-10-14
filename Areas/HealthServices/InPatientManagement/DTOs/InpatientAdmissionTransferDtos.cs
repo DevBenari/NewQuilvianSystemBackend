@@ -41,8 +41,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>"Emergency" atau "Outpatient".</summary>
         public string SourceType { get; set; } = "Emergency";
 
-        /// <summary>ID kunjungan IGD asal.</summary>
-        public Guid EmergencyVisitId { get; set; }
+        /// <summary>ID kunjungan IGD asal jika transfer bersumber dari IGD.</summary>
+        public Guid? EmergencyVisitId { get; set; }
 
         /// <summary>Nomor kunjungan IGD yang terbaca manusia (misal EMG-20261010-0012).</summary>
         public string EmergencyVisitNumber { get; set; } = string.Empty;

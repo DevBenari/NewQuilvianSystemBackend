@@ -1203,3 +1203,9 @@ untuk pasien yang sedang hadir, sebelum kunjungan atau episode apa pun ditulis. 
 datang dari `POST /bed-occupancies/reservations`, sesudah kunjungan dan episode `Draft` tersimpan. Implementasi
 `BE-RWI-230` (backend) dan `FE-RWI-244` (langkah 1 dan pemeriksaan ulang di Pilih Bed). Rujukan:
 [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md).
+
+## Amandemen admisi bayi -> RWI-BAYI-016-1.0, 14 Oktober 2026
+
+POST/PUT/detail episode diperluas dengan newbornAdmission opsional; available-beds menerima subject/kebutuhan sebelum episode dan memakai metadata server setelah episode; bed-board menerima IsForNewborn. Tidak mengubah endpoint transaksi/operation/permission existing.
+
+Detail dan batas mengikuti [kontrak admisi bayi](newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
