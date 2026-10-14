@@ -1673,7 +1673,7 @@ sekali — ini murni penambahan kolom/section baru di sebelahnya.
 
 # Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
 
-> `revisi blueprint`: `1.9`, status **draft**. Masukan: `BKC-DEC-118`, `BKC-AC-086`,
+> `revisi blueprint`: `1.9`, status **draft**. Masukan: `BKC-DEC-118`, `BKC-AC-091`, `BKC-DEC-142`, `BKC-DEC-143`,
 > `BKC-DES-057`–`BKC-DES-062`. Frontend SHA diaudit: `ae216044`.
 > Endpoint yang dipakai: lihat `contracts/api-contract.md` amendment revisi 1.9 — ketiganya masih
 > berlabel **Rencana (belum tersedia)**, sehingga pekerjaan frontend **MUST** menunggu backend.
@@ -1682,17 +1682,17 @@ sekali — ini murni penambahan kolom/section baru di sebelahnya.
 
 | ID layar | Nama layar | Status | Peran sasaran |
 |---|---|---|---|
-| `FE-BKC-43` | Pelunasan Gabungan Lintas Kunjungan | **Baru** | Kasir, Supervisor Kasir |
-| `FE-BKC-09` | Menu Pembayaran (sudah ada) | **Diperbarui** | Kasir, Supervisor Kasir |
+| `BIL-SCR-43` | Pelunasan Gabungan Lintas Kunjungan | **Baru** | Kasir, Supervisor Kasir |
+| `BIL-SCR-42` | Menu Pembayaran (sudah ada) | **Diperbarui** | Kasir, Supervisor Kasir |
 
 ## 2. Peta Butir Menu
 
-`FE-BKC-43` **sengaja tidak mendapat butir menu tersendiri**, dan dinyatakan sebagai **layar
+`BIL-SCR-43` **sengaja tidak mendapat butir menu tersendiri**, dan dinyatakan sebagai **layar
 anak**:
 
 | Layar | Jenis | Jalan masuknya | Route | Butir hak akses |
 |---|---|---|---|---|
-| `FE-BKC-43` Pelunasan Gabungan | Layar anak | Dari `FE-BKC-09` Menu Pembayaran, lewat tombol "Bayar Gabungan dengan Tagihan Lain" | `/health-services/billing-management/billing/invoices/[slug]/pembayaran-gabungan` | `BillingConsolidatedSettlement : Read` untuk membuka, `BillingConsolidatedSettlement : Create` untuk memproses |
+| `BIL-SCR-43` Pelunasan Gabungan | Layar anak | Dari `BIL-SCR-42` Menu Pembayaran, lewat tombol "Bayar Gabungan dengan Tagihan Lain" | `/health-services/billing-management/billing/invoices/[slug]/pembayaran-gabungan` | `BillingConsolidatedSettlement : Read` untuk membuka, `BillingConsolidatedSettlement : Create` untuk memproses |
 
 Alasan tidak diberi butir menu: layar ini **selalu** butuh satu tagihan jangkar sebagai titik
 awal. Butir menu tingkat atas akan membuka layar tanpa tagihan jangkar, yaitu keadaan yang tidak
@@ -1703,15 +1703,15 @@ Nol perubahan pada `src/utils/menu-sidebar/menu-items.jsx`. Ini disebutkan ekspl
 pernah terjadi lima halaman `billing-management` selesai namun tak terjangkau sampai
 `FE-BKC-MENU-001` dikerjakan sebagai task tersendiri — pada amendment ini keterjangkauan dijamin
 lewat tombol di layar induk, dan pemasangan tombol itu **MUST** menjadi acceptance criteria task
-`FE-BKC-43`, bukan pekerjaan yang menganggur.
+`BIL-SCR-43`, bukan pekerjaan yang menganggur.
 
 Nama tombol, ikon, penempatan, serta apakah layar ini dibuka sebagai halaman penuh, modal, atau
 drawer tetap `DEV_DISCRETION`.
 
-## 3. Skema Fitur `FE-BKC-43` — Pelunasan Gabungan
+## 3. Skema Fitur `BIL-SCR-43` — Pelunasan Gabungan
 
 ```text
-+- Pelunasan Gabungan - Ny. Sari Mandasari ------------------ FE-BKC-43 -+
++- Pelunasan Gabungan - Ny. Sari Mandasari ------------------ BIL-SCR-43 -+
 | Tagihan jangkar: INV-RANAP-000412   Unit: RANAP                       |
 | Sisa tagihan jangkar: Rp 8.000.000                                    |
 +-----------------------------------------------------------------------+
@@ -1738,7 +1738,7 @@ drawer tetap `DEV_DISCRETION`.
 +--------------------------- [Batal] [Proses Pembayaran Gabungan] ------+
 ```
 
-### Tabel wilayah `FE-BKC-43`
+### Tabel wilayah `BIL-SCR-43`
 
 | Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
 |---|---|---|---|---|
@@ -1756,11 +1756,11 @@ drawer tetap `DEV_DISCRETION`.
 > `POST`. Bila keduanya berbeda — misalnya karena biaya susulan masuk di sela waktu — layar
 > **MUST** menampilkan hasil dari backend, bukan perkiraan tadi.
 
-## 4. Perubahan pada `FE-BKC-09` Menu Pembayaran
+## 4. Perubahan pada `BIL-SCR-42` Menu Pembayaran
 
 | Yang berubah | Isi | Sumber data | Butir hak akses |
 |---|---|---|---|
-| Satu tombol baru | "Bayar Gabungan dengan Tagihan Lain", menuju `FE-BKC-43` | — | `BillingConsolidatedSettlement : Read` |
+| Satu tombol baru | "Bayar Gabungan dengan Tagihan Lain", menuju `BIL-SCR-43` | — | `BillingConsolidatedSettlement : Read` |
 | Penanda jumlah tagihan lain | Angka kecil pada tombol, menandai ada berapa tagihan lain yang masih bersisa | `GET /invoices/{id}/consolidation-candidates` | `BillingConsolidatedSettlement : Read` |
 
 Tombol ini **MUST** disembunyikan bila daftar kandidat kosong, agar kasir tidak membuka layar yang
@@ -1771,7 +1771,7 @@ pasti kosong. Seluruh bagian lain Menu Pembayaran — termasuk jalur pembayaran 
 
 Diturunkan dari `contracts/permission-audit-matrix.md` amendment revisi 1.9, bukan dikarang ulang.
 
-| Peran | Membuka `FE-BKC-43` | Memilih tagihan peserta | Memproses pembayaran | Mencetak ulang kwitansi |
+| Peran | Membuka `BIL-SCR-43` | Memilih tagihan peserta | Memproses pembayaran | Mencetak ulang kwitansi |
 |---|:---:|:---:|:---:|:---:|
 | Kasir | Ya | Ya | Ya | Ya |
 | Supervisor Kasir | Ya | Ya | Ya | Ya |
@@ -1815,6 +1815,252 @@ Diturunkan dari `contracts/permission-audit-matrix.md` amendment revisi 1.9, buk
 
 | Kebutuhan frontend | Menunggu |
 |---|---|
-| Seluruh `FE-BKC-43` | **Ketiga endpoint backend** pada `contracts/api-contract.md` revisi 1.9 — masih **Rencana (belum tersedia)**. Frontend **MUST NOT** dimulai sebelum backend tersedia, karena nol endpoint existing yang dapat dipakai sebagai pengganti |
-| Tombol pada `FE-BKC-09` | `GET /invoices/{id}/consolidation-candidates` |
+| Seluruh `BIL-SCR-43` | **Ketiga endpoint backend** pada `contracts/api-contract.md` revisi 1.9 — masih **Rencana (belum tersedia)**. Frontend **MUST NOT** dimulai sebelum backend tersedia, karena nol endpoint existing yang dapat dipakai sebagai pengganti |
+| Tombol pada `BIL-SCR-42` | `GET /invoices/{id}/consolidation-candidates` |
 | Seeder hak akses `BillingConsolidatedSettlement` | **MUST** terpasang lebih dulu, kalau tidak seluruh layar akan ditolak kode `403` meski kodenya sudah benar |
+
+
+---
+
+# Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
+
+> `revisi blueprint`: `2.0`, status **draft**. Masukan: `BKC-DEC-144`, `BKC-AC-094`,
+> `BKC-DES-063`–`BKC-DES-069`. Frontend SHA diaudit: `6e5edd6df`.
+> Endpoint yang dipakai: lihat `contracts/api-contract.md` amendment revisi `2.0` — dua endpoint baru
+> masih berlabel **Rencana (belum tersedia)**, sehingga pekerjaan frontend **MUST** menunggu backend.
+
+## 1. Kebutuhan Layar
+
+| ID layar | Nama layar | Status | Peran sasaran |
+|---|---|---|---|
+| `BIL-SCR-44` | Rekonsiliasi Rangkaian Kunjungan | **Baru** | Petugas Billing, Supervisor Kasir |
+| `BIL-SCR-41` | Consumer Handoffs Kasir (sudah ada) | **Diperbarui** | Kasir, Supervisor Kasir |
+
+## 2. Peta Butir Menu
+
+`BIL-SCR-44` **sengaja tidak mendapat butir menu tersendiri**, dan dinyatakan sebagai **layar anak**:
+
+| Layar | Jenis | Jalan masuknya | Route | Butir hak akses |
+|---|---|---|---|---|
+| `BIL-SCR-44` Rekonsiliasi Rangkaian Kunjungan | Layar anak | Dari `BIL-SCR-41` Consumer Handoffs, lewat baris pasien berstatus perlu rekonsiliasi | `/health-services/billing-management/billing/consumer-handoffs/[slug]/rekonsiliasi-kunjungan` | `BillingInpatient : Read` untuk membuka, `BillingInpatient : Reconcile` untuk memutuskan |
+
+Alasan tidak diberi butir menu: layar ini selalu membutuhkan satu surat kelayakan sebagai titik
+awal. Butir menu tingkat atas akan membukanya tanpa konteks, yaitu keadaan yang tidak punya makna.
+
+Nol perubahan pada `src/utils/menu-sidebar/menu-items.jsx`. Keterjangkauan dijamin lewat baris pada
+layar induk, dan pemasangan jalan masuk itu **MUST** menjadi acceptance criteria task `BIL-SCR-44`.
+
+Nama tombol, ikon, penempatan, serta apakah layar ini dibuka sebagai halaman penuh, modal, atau
+drawer tetap `DEV_DISCRETION`.
+
+## 3. Skema Fitur `BIL-SCR-44` — Rekonsiliasi Rangkaian Kunjungan
+
+```text
++- Rekonsiliasi Rangkaian Kunjungan - Ny. Sari Mandasari ---- BIL-SCR-44 -+
+| Status kelayakan: PERLU REKONSILIASI                                   |
+| Sebab: Penelusuran berhenti pada batas aman                            |
+| Kedalaman tertelusuri: 5 tingkat   Tagihan ditemukan: 4                |
++------------------------------------------------------------------------+
+| Kewajiban yang ditemukan:                                              |
+| Tkt | No. Tagihan        | Unit  | Sisa Pasien  | Dihitung | Aksi       |
+|  0  | INV-RANAP-000412   | RANAP |  3.500.000   | Ya       | [Kecualikan]|
+|  1  | INV-IGD-000311     | IGD   |          0   | Ya       | [Kecualikan]|
+|  2  | INV-RAJAL-000120   | RAJAL |    250.000   | Ya       | [Kecualikan]|
+|  3  | INV-RAJAL-000087   | RAJAL |    900.000   | Tidak    | [Ikutkan]   |
+|     |  ^ pasien berbeda                                                |
++------------------------------------------------------------------------+
+| Total yang menahan kepulangan: Rp 3.750.000                            |
++------------------------------------------------------------------------+
+| memuat -> kerangka baris pada tabel kewajiban                          |
+| kosong -> "Tidak ada kewajiban yang ditemukan pada rangkaian ini."     |
+| gagal  -> "Rincian kewajiban gagal dimuat."        [Coba lagi]         |
++------------------------- [Kembali] [Selesaikan Rekonsiliasi] ----------+
+```
+
+### Tabel wilayah `BIL-SCR-44`
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala | Nama pasien, status kelayakan, sebab perlu rekonsiliasi, kedalaman tertelusuri, jumlah tagihan ditemukan | `GET /inpatient-clearance/encounter/{encounterId}/obligations` | `BillingInpatient : Read` | Gagal → seluruh layar diganti pesan beserta tombol coba lagi |
+| Tabel kewajiban | Tingkat rangkaian, nomor tagihan, unit layanan, sisa tagihan pasien, penanda dihitung atau tidak, dan alasan bila tidak dihitung | Field `obligations` pada response yang sama | `BillingInpatient : Read` | Kosong → "Tidak ada kewajiban yang ditemukan pada rangkaian ini." |
+| Tombol per baris | Ikutkan atau Kecualikan satu tagihan | `POST /inpatient-clearance/{id}/resolve-reconciliation` | `BillingInpatient : Reconcile` | Tombol **MUST** disembunyikan bagi petugas tanpa hak `Reconcile`, bukan ditampilkan lalu ditolak kode `403` |
+| Kolom alasan | Wajib diisi saat mengikutkan atau mengecualikan | Dikirim pada field `Reason` | `BillingInpatient : Reconcile` | Kosong → tombol Selesaikan dinonaktifkan beserta keterangan bahwa alasan wajib diisi |
+| Total | Jumlah kewajiban yang dihitung | Field `totalOutstanding` | `BillingInpatient : Read` | — |
+| Tombol Selesaikan | Mengirim keputusan rekonsiliasi | `POST /inpatient-clearance/{id}/resolve-reconciliation` | `BillingInpatient : Reconcile` | Dinonaktifkan selama permintaan berjalan |
+| Tombol Kembali | Kembali ke Consumer Handoffs tanpa menyimpan apa pun | — | — | — |
+
+> **Catatan yang mengikat.** Baris dengan penanda tidak dihitung **MUST** tetap ditampilkan beserta
+> alasannya, bukan disembunyikan. Petugas perlu tahu sistem menemukan tagihan itu dan sengaja tidak
+> memakainya — menyembunyikannya membuat petugas menyimpulkan sistem melewatkannya.
+
+## 4. Perubahan pada `BIL-SCR-41` Consumer Handoffs Kasir
+
+| Yang berubah | Isi | Sumber data | Butir hak akses |
+|---|---|---|---|
+| Nilai status baru | Baris pasien dapat berstatus perlu rekonsiliasi, dibedakan dari tertahan | Field `clearanceStatus` pada response handoff yang sudah ada | `BillingInpatient : Read` |
+| Jalan masuk ke `BIL-SCR-44` | Baris berstatus perlu rekonsiliasi dapat dibuka | — | `BillingInpatient : Read` |
+| Kolom jumlah tagihan | Menampilkan berapa tagihan yang dinilai pada rangkaian | Field `ChainInvoiceCount` | `BillingInpatient : Read` |
+
+Status perlu rekonsiliasi **MUST** dibedakan secara visual dari status tertahan, karena tindakan
+petugasnya berbeda: tertahan berarti menagih uang, perlu rekonsiliasi berarti memeriksa data lebih
+dulu. Cara membedakannya — warna, ikon, atau label — tetap `DEV_DISCRETION`.
+
+## 5. Proyeksi untuk Perawat Bangsal
+
+Ini bagian paling sensitif pada amendment ini, dan aturannya **mengikat**, bukan `DEV_DISCRETION`.
+
+| Yang **boleh** dilihat perawat | Yang **MUST NOT** dilihat perawat |
+|---|---|
+| Status kelayakan, termasuk nilai perlu rekonsiliasi | Nominal rupiah apa pun |
+| Daftar unit layanan yang masih punya penghambat, misalnya "ada tagihan belum lunas di IGD" | Sisa tagihan per unit |
+| Penanda bahwa penghambat berasal dari unit lain | Nomor tagihan dan rincian layanannya |
+
+Alasannya: perawat perlu tahu **mengapa** pasien belum boleh pulang agar tidak memulangkannya, tetapi
+nominal tagihan bukan haknya. Aturan ini berlaku sejak `BKC-DEC-117` dan tidak dilonggarkan di sini.
+Pengujiannya eksplisit pada `BIL-AT-175`.
+
+## 6. Aksi per Peran
+
+Diturunkan dari `contracts/permission-audit-matrix.md` amendment revisi `2.0`.
+
+| Peran | Membuka `BIL-SCR-44` | Melihat rincian rupiah | Memutuskan rekonsiliasi |
+|---|:---:|:---:|:---:|
+| Supervisor Kasir | Ya | Ya | Ya |
+| Petugas Billing | Ya | Ya | **Tidak** (`BKC-DEC-150`) |
+| Kasir | Ya | Ya | **Ya** (`BKC-DEC-150`) |
+| Finance / AR | Ya | Ya | Tidak |
+| Perawat bangsal | Tidak | **Tidak** | Tidak |
+
+## 7. Penanganan Keadaan
+
+| Keadaan | Perilaku yang mengikat |
+|---|---|
+| Memuat | Tabel kewajiban menampilkan kerangka baris. Tombol keputusan dinonaktifkan selama pemuatan |
+| Kosong | "Tidak ada kewajiban yang ditemukan pada rangkaian ini." Layar tetap menampilkan sebab perlu rekonsiliasi |
+| Gagal | "Rincian kewajiban gagal dimuat." beserta tombol coba lagi |
+| Data basi | Bila backend menolak dengan kode `409` karena surat sudah berpindah versi, layar menampilkan bahwa penilaian sudah diperbarui lalu memuat ulang. Keputusan yang belum terkirim **MUST NOT** dikirim diam-diam ke versi baru |
+| Pengiriman ganda | Tombol Selesaikan dinonaktifkan sejak permintaan dikirim. `IdempotencyKey` dibentuk sekali saat layar dibuka dan dipakai ulang pada percobaan ulang |
+| Status berubah saat layar terbuka | Bila penilaian ulang terjadi di latar dan statusnya sudah bukan perlu rekonsiliasi, layar memberi tahu bahwa rekonsiliasi tidak lagi dibutuhkan dan menawarkan kembali ke layar induk |
+
+## 8. Kewenangan UI
+
+| Keputusan | Kewenangan |
+|---|---|
+| Keberadaan setiap wilayah layar dan sumber datanya | **Mengikat** |
+| Baris tidak dihitung tetap ditampilkan beserta alasannya | **Mengikat** |
+| Nominal rupiah tidak pernah masuk proyeksi perawat | **Mengikat** — privasi, `BKC-DEC-117` |
+| Alasan wajib diisi sebelum keputusan dikirim | **Mengikat** — `BIL-VAL-144` |
+| Status perlu rekonsiliasi dibedakan dari tertahan | **Mengikat** pada keberadaan pembedanya; bentuk pembedanya `DEV_DISCRETION` |
+| Halaman penuh, modal, atau drawer | `DEV_DISCRETION` |
+| Warna, ikon, jarak, dan component library | `DEV_DISCRETION` |
+
+## 9. Dependency Pengerjaan
+
+| Kebutuhan frontend | Menunggu |
+|---|---|
+| Seluruh `BIL-SCR-44` | **Dua endpoint backend** pada `contracts/api-contract.md` revisi `2.0` — masih **Rencana (belum tersedia)** |
+| Tombol keputusan pada `BIL-SCR-44` | **Terjawab** — `BKC-DEC-150`: tombol tampil untuk Kasir dan Supervisor Kasir |
+| Proyeksi perawat bangsal | `BKC-OQ-121` — persetujuan pemilik Rawat Inap atas daftar penghambat yang menyebut unit lain |
+| Seeder hak akses Action `Reconcile` | **MUST** terpasang lebih dulu, kalau tidak layar akan ditolak kode `403` meski kodenya benar |
+
+
+---
+
+# Amendment 14 Oktober 2026 — Keputusan Rantai Permanen (Revisi 2.1)
+
+> `revisi blueprint`: `2.1`, status **draft**. Masukan: `BKC-DEC-150`, `BKC-DEC-151`,
+> `BKC-DES-070`–`BKC-DES-074`. Frontend SHA diaudit: `6e5edd6df`.
+> Endpoint yang dipakai: `contracts/api-contract.md` amendment revisi `2.1` — masih **Rencana (belum
+> tersedia)**.
+
+## 1. Kebutuhan Layar
+
+| ID layar | Nama layar | Status |
+|---|---|---|
+| `BIL-SCR-44` | Rekonsiliasi Rangkaian Kunjungan | **Diperbarui** — dari rancangan revisi `2.0` |
+
+Nol layar baru dan nol butir menu baru. Peta butir menu revisi `2.0` tetap berlaku: `BIL-SCR-44` adalah
+layar anak dari `BIL-SCR-41` Consumer Handoffs.
+
+## 2. Skema Fitur `BIL-SCR-44` — sesudah revisi `2.1`
+
+```text
++- Rekonsiliasi Rangkaian Kunjungan - Ny. Sari Mandasari ----- BIL-SCR-44 -+
+| Status kelayakan: PERLU REKONSILIASI      Surat versi: 3                |
++-------------------------------------------------------------------------+
+| Kewajiban yang ditemukan:                                               |
+| Tkt | No. Tagihan       | Unit  | Sisa     | Kejanggalan     | Aksi       |
+|  0  | INV-RANAP-000412  | RANAP | 3.500.000| -               | -          |
+|  1  | INV-IGD-000311    | IGD   |        0 | Rujukan berputar| [Ikutkan]  |
+|     |                   |       |          |                 | [Kecualikan]|
+|  2  | INV-RAJAL-000087  | RAJAL |  900.000 | Pasien berbeda  | [Kecualikan]|
+|     |  ^ tombol Ikutkan tidak tersedia untuk pasien berbeda               |
++-------------------------------------------------------------------------+
+| Keputusan permanen yang sudah berlaku:                                  |
+| Kunjungan        | Keputusan   | Oleh       | Waktu        | Alasan      |
+| (kosong)                                                                |
++------------------------------------------------- [Kembali] -------------+
+
+Saat tombol Kecualikan ditekan:
++- Konfirmasi Keputusan Permanen ----------------------------------------+
+| Anda akan mengecualikan INV-RAJAL-000087 (RAJAL) dari penilaian         |
+| kelayakan pulang rawat inap ini.                                        |
+|                                                                         |
+| Keputusan ini PERMANEN dan TIDAK DAPAT DICABUT oleh siapa pun.          |
+| Tagihan tersebut tetap menjadi piutang di invoicenya sendiri, tetapi    |
+| tidak akan lagi menahan kepulangan pasien ini.                          |
+|                                                                         |
+| Alasan (wajib): [.................................................]    |
+| Jangan menulis diagnosis atau keluhan pasien di kolom ini.              |
+|                                                                         |
+|                                   [Batal]  [Ya, kecualikan permanen]    |
++-------------------------------------------------------------------------+
+```
+
+### Tabel wilayah — yang berubah dari revisi `2.0`
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kolom Kejanggalan | Kode kejanggalan per baris, dalam bahasa petugas: "Rujukan berputar", "Pasien berbeda", "Rantai terlalu panjang", "Lebih dari satu admisi aktif", "Tagihan tidak ditemukan" | Response rincian kewajiban revisi `2.0` | `BillingInpatient : Read` | Baris tanpa kejanggalan menampilkan tanda strip dan tanpa tombol |
+| Tombol Ikutkan | Menetapkan keputusan mengikutkan | `POST /inpatient-clearance/{id}/resolve-reconciliation` | `BillingInpatient : Reconcile` | **MUST** disembunyikan untuk baris berkejanggalan "Pasien berbeda" (`BKC-DES-074`), dan untuk peran tanpa `Reconcile` |
+| Tombol Kecualikan | Membuka **konfirmasi wajib** sebelum keputusan dikirim | Endpoint yang sama | `BillingInpatient : Reconcile` | Disembunyikan untuk peran tanpa `Reconcile` |
+| Konfirmasi keputusan permanen | Menyebut tagihan, unitnya, sifat permanen, dan bahwa tagihan tetap menjadi piutang di invoicenya | — | `BillingInpatient : Reconcile` | Tombol kirim nonaktif selama alasan kosong |
+| Riwayat keputusan permanen | Kunjungan, arah keputusan, nama petugas, waktu, dan alasan | `GET /inpatient-clearance/encounter/{encounterId}/chain-decisions` | `BillingInpatient : Read` | Kosong → "Belum ada keputusan permanen untuk rawat inap ini." Gagal → "Riwayat keputusan gagal dimuat." beserta tombol coba lagi |
+| Baris yang sudah diputuskan | Menampilkan keputusan beserta pemutusnya, **tanpa** tombol aksi apa pun | Response riwayat keputusan | `BillingInpatient : Read` | — |
+
+## 3. Aturan yang mengikat
+
+| Aturan | Kewenangan | Sebab |
+|---|---|---|
+| Kalimat konfirmasi **MUST** menyebut kata "permanen" dan "tidak dapat dicabut", serta bahwa tagihan tetap menjadi piutang di invoicenya sendiri | **Mengikat** | Pemilik memilih pengecualian tidak dapat dicabut; konfirmasi inilah satu-satunya kesempatan petugas berhenti sebelum keputusan berlaku selamanya |
+| Konfirmasi **MUST** muncul juga untuk keputusan Ikutkan, dengan bunyi yang menyebut sifat permanennya | **Mengikat** | Keputusan Ikutkan juga permanen (`BKC-DES-073`) |
+| Tombol Ikutkan tidak pernah tampil untuk kunjungan milik pasien lain | **Mengikat** | `BKC-DES-074` |
+| Baris yang sudah punya keputusan tidak menampilkan tombol apa pun | **Mengikat** | Keputusan tidak dapat dibalik (`BIL-VAL-149`) |
+| Petunjuk agar kolom alasan tidak memuat diagnosis atau keluhan | **Mengikat** | Privasi — kolom `Reason` adalah teks bebas |
+| Bentuk konfirmasi: dialog, halaman, atau langkah tersendiri | `DEV_DISCRETION` | — |
+| Warna, ikon, dan penempatan riwayat keputusan | `DEV_DISCRETION` | — |
+
+## 4. Penanganan Keadaan Tambahan
+
+| Keadaan | Perilaku yang mengikat |
+|---|---|
+| Ditolak `409` karena keputusan sudah ada (`BIL-VAL-147`) | Layar menampilkan bahwa kunjungan ini sudah diputuskan, lalu memuat ulang riwayat keputusan supaya petugas melihat siapa yang memutuskan. Layar **MUST NOT** menawarkan "coba lagi" untuk keputusan yang sama |
+| Ditolak `422` karena arah berlawanan (`BIL-VAL-149`) | Layar menampilkan keputusan yang sudah berlaku beserta pemutusnya |
+| Pengiriman ganda | `IdempotencyKey` dibentuk sekali per pembukaan konfirmasi; penekanan berulang mengirim kunci yang sama sehingga hanya satu keputusan lahir |
+
+## 5. Aksi per Peran — sesudah `BKC-DEC-150`
+
+| Peran | Membuka `BIL-SCR-44` | Melihat rincian rupiah | Menetapkan keputusan permanen | Membaca riwayat keputusan |
+|---|:---:|:---:|:---:|:---:|
+| Kasir | Ya | Ya | **Ya** | Ya |
+| Supervisor Kasir | Ya | Ya | Ya | Ya |
+| Petugas Billing | Ya | Ya | **Tidak** | Ya |
+| Finance / AR | Ya | Ya | Tidak | Ya |
+| Perawat bangsal | Tidak | Tidak | Tidak | Tidak |
+
+## 6. Dependency Pengerjaan
+
+| Kebutuhan frontend | Menunggu |
+|---|---|
+| Riwayat keputusan dan konfirmasi | Endpoint revisi `2.1` — masih **Rencana (belum tersedia)** |
+| Tombol evaluasi ulang yang sudah ada di layar kasir | Perbaikan constraint `REEVALUATED_BY_CASHIER` — **nol perubahan frontend**, tombolnya tidak perlu diubah; begitu backend diperbaiki, tombol itu berfungsi |

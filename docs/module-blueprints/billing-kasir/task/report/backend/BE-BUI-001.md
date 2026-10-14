@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `d6cdfaf9fda8889d6fe73db1e97cc28c4f022852` (branch `Yasmina`) |
 | Tanggal | 2026-09-25 |
-| Status | 🟡 **SEBAGIAN — build lulus, verifikasi manual belum.** Source selesai persis sesuai scope roadmap. `dotnet build` dijalankan pengguna sendiri dan **lulus**, dikonfirmasi 25 September 2026. Empat kasus acceptance criteria (nol/sebagian/seluruh item tercover; payer non-`INSURANCE`) baru terverifikasi lewat analisis statis (pembacaan kode) — **belum** diuji manual nyata terhadap `GET /{id}/edit-context` dengan data invoice sungguhan. Build sukses memenuhi satu baris Definition of Done, bukan seluruhnya — lihat §5 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

@@ -11,7 +11,7 @@
 | Trace | `BKC-DEC-112`, `BKC-DEC-113`, `BKC-DEC-114`, `BKC-DEC-117`, `BKC-DEC-119`, `BKC-DEC-120`, `BKC-DES-043`, `BKC-DES-047`, `BKC-DES-049`, `FR-BKC-241`, `FR-BKC-242`, `FR-BKC-243`, `FR-BKC-244`, `FR-BKC-246`, `FR-BKC-247`, `FR-BKC-248`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 3 |
 | Contract version | `BIL-API-1.4`, `BIL-STATE-1.3` — keduanya `approved` |
 | Wewenang UI | Terkunci: keberadaan panel ringkasan rawat inap saat invoice bertipe `RANAP`, kosakata badge kelayakan (`CLEARED`, `BLOCKED`, `REVOKED`, `PENDING`), warna indikator, teks peringatan Auto-Reblock, batas plafon administrasi Rp6.000.000, penanda badge `[IGD]`. `DEV_DISCRETION`: tata letak kartu grid, margin, padding, dan ikon dekoratif |
-| Dependency | `[BE] BE-BKC-076` — 🟡 selesai 24 September 2026 (controller integrasi rawat inap menyediakan endpoint ringkasan billing ranap dan evaluasi clearance). Lihat [laporan](../backend/BE-BKC-076.md) |
+| Dependency | `[BE] BE-BKC-076` — ✅ selesai 24 September 2026 (controller integrasi rawat inap menyediakan endpoint ringkasan billing ranap dan evaluasi clearance). Lihat [laporan](../backend/BE-BKC-076.md) |
 | Klasifikasi | `MEDIUM` — integrasi inquiry summary ranap, visualisasi financial clearance 4-state, animasi auto-reblock pulsating warning, rincian durasi hunian kamar pro-rata menit & tarif bertingkat, rincian biaya administrasi 7% cap Rp6.000.000, rincian kredit administrasi rawat jalan, dan penandaan visual badge `[IGD]` |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` — berkas komponen panel, hook, constants, slice, view menu pembayaran, view detail invoice, tabel item invoice, styling module, dan unit test. Laporan ini ditulis di `NewQuilvianSystemBackend` sesuai wewenang lintas repository sempit yang diberikan `AGENTS.md` frontend § Pelaporan Task Modul |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `0f022e0c45dd0b941ba83b01e2923944de49b201` |
 | Commit backend yang dijadikan rujukan | `59910dc0ac04c7e99de36f9b299e3024c6f86a39` |
 | Tanggal | 24 September 2026 |
-| Status | 🟡 **SEBAGIAN — source dan validasi statis selesai penuh; 6/6 unit test lulus; npm run build lulus (exit code 0).** Seluruh acceptance criteria terpetakan ke source kode. Yang masih menahan `✅` adalah uji visual interaktif manual ter-autentikasi pada backend runtime aktif. |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

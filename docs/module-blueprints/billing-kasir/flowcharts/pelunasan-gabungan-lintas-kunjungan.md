@@ -1,6 +1,7 @@
 # Alur Pelunasan Gabungan Lintas Kunjungan
 
-Masukan `BKC-DEC-118`, `BKC-AC-086`, dan keputusan arsitektur `BKC-DES-057`–`BKC-DES-062`.
+Masukan `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, dan keputusan arsitektur
+`BKC-DES-057`–`BKC-DES-062`.
 Status **draft**, 13 Oktober 2026.
 
 Dokumen ini memetakan urutan kerja petugas kasir ketika satu pasien memiliki tagihan dari

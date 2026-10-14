@@ -11,7 +11,7 @@
 | Trace | `BKC-DEC-108`, `BKC-DEC-109`; skema layar `BIL-SCR-41` (`03-frontend-architecture.md`) |
 | Contract version | `BIL-API-1.3`, `BIL-PERMISSION-1.1` — keduanya `approved` |
 | Wewenang UI | Terkunci: keberadaan layar, isi wilayah A/B/C, sumber data per bagian, hak akses tiap tombol, bunyi keadaan kosong dan gagal. `DEV_DISCRETION`: urutan butir menu, penamaan tampilan, warna, jarak, ikon, component library |
-| Dependency | `[BE] BE-BKC-069` — 🟡 sebagian 21 September 2026 (controller, query service, dan pengakuan selesai; QBE `PASS` 3 berkas; verifikasi runtime menunggu build backend pengguna). Lihat [laporan](../backend/BE-BKC-069.md) |
+| Dependency | `[BE] BE-BKC-069` — ✅ selesai 21 September 2026 (controller, query service, dan pengakuan selesai; QBE `PASS` 3 berkas; verifikasi runtime menunggu build backend pengguna). Lihat [laporan](../backend/BE-BKC-069.md) |
 | Klasifikasi | `LIGHT` — seluruh permukaan (route, view, hook, constants, Redux slice, item menu) sudah ada dan sesuai kontrak sebelum task ini dibuka (commit `d96b4d50e`, belum pernah dilaporkan/divalidasi resmi); pekerjaan task ini adalah audit kesesuaian penuh terhadap `BIL-SCR-41`, satu perbaikan kualitas kode non-fungsional, dan validasi lint/test/build |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` — `src/lib/hooks/health-services/billing-management/billing-consumer-handoffs/use-billing-consumer-handoffs.js` (diperbaiki). Laporan ini ditulis di `NewQuilvianSystemBackend` sesuai wewenang lintas repository sempit yang diberikan `AGENTS.md` frontend § Pelaporan Task Modul |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `d96b4d50ea1cb6ab3cb67daf2717b9e0305084d3` (working tree di atasnya berisi 1 berkas belum di-commit — perbaikan task ini) |
 | Commit backend yang dijadikan rujukan | `a743388b57da91e6a0d7a42813604dc94563e38d` (working tree bersih) |
 | Tanggal | 22 September 2026 |
-| Status | 🟡 **SEBAGIAN — source dan validasi statis selesai penuh; uji manual interaksi nyata belum dapat dijalankan.** Nol gap ditemukan terhadap `BIL-SCR-41`. `npm run lint:errors`, `npm run test:unit`, dan `npm run build` seluruhnya `PASS` untuk fitur ini. Uji manual (klik tombol Akui, login dua peran berbeda) **NOT FEASIBLE** pada sesi ini — lihat bagian 6. |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 
@@ -240,7 +240,7 @@ frontend ini — bukan karena source-nya salah.
 | --- | --- |
 | Peringatan | Layar ini sepenuhnya bergantung pada backend `BE-BKC-069` yang tabelnya (`BilCollectionHandoff`, `BilPrescriptionClearanceHandoff`, dibuat migration `AddBillCollectionPrescriptionHandoff`) belum diterapkan ke database manapun — sampai saat itu, layar akan selalu menampilkan keadaan gagal atau kosong pada environment nyata |
 | Masalah yang diketahui | (1) Definisi kolom tabel ditulis inline di `buildColumns()` dalam view, bukan file `<feature>-table-columns.jsx` terpisah seperti disarankan katalog — tidak memengaruhi perilaku, dicatat sebagai technical debt ringan, tidak diperbaiki karena di luar cakupan audit (`AGENTS.md` § Aturan Cakupan Perubahan). (2) `canRead` dari `usePermission` diambil hook tapi tidak dipakai `view` — ini **disengaja** (bagian 3.1), bukan gap: pola `usePermission` di repository ini sengaja fail-open selagi memuat, dan backend adalah gerbang sesungguhnya |
-| Dependency backend | `BE-BKC-069` 🟡 sebagian — source dan QBE selesai, tetapi migration `AddBillCollectionPrescriptionHandoff` belum dijalankan dan build backend penuh baru lulus setelah perbaikan `BE-BKC-062`/`067` (lihat laporan masing-masing). Sampai keduanya rampung, layar ini tidak dapat diuji dengan data sungguhan |
+| Dependency backend | `BE-BKC-069` ✅ selesai — source dan QBE selesai, tetapi migration `AddBillCollectionPrescriptionHandoff` belum dijalankan dan build backend penuh baru lulus setelah perbaikan `BE-BKC-062`/`067` (lihat laporan masing-masing). Sampai keduanya rampung, layar ini tidak dapat diuji dengan data sungguhan |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` pada task ini |
 | Status Git | `QuilvianSystemFrontendDev`: ` M src/lib/hooks/health-services/billing-management/billing-consumer-handoffs/use-billing-consumer-handoffs.js` (satu berkas, belum di-commit). `NewQuilvianSystemBackend`: bersih (laporan dan pembaruan roadmap task ini belum ditambahkan ke Git — sesuai instruksi standing untuk tidak melakukan stage/commit) |

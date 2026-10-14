@@ -594,3 +594,98 @@ Trace `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`. Tests: `BIL-AT-159`–`BIL-A
 | `BIL-FIN-022` | Invoice tidak dapat difinalkan normal selama kunjungannya masih punya pelayanan layak tagih yang belum menjadi item: efek folio `Pending`/`Failed`/`ReconciliationRequired` (selain `TARIFF_NOT_FOUND` = `BIL-FIN-021`) atau fakta klinis tagih yang belum diterima folio | Finalisasi manual normal, selesaikan tanpa kewajiban pasien, tutup otomatis sesudah lunas | Departure exception (`BKC-DEC-033`); efek `NotApplicable` (gratis, tidak billable, tahap belum eligible) tidak pernah menahan | Kirim ulang berhasil (`Synced`) atau diselesaikan di antrean rekonsiliasi (`Resolved`) |
 
 Rencana: [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-11.
+
+
+---
+
+## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
+
+> `last_changed_in`: `BIL-VALIDATION-1.7` atas `BIL-VALIDATION-1.6` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-144`, `BKC-DES-063`–`BKC-DES-069`. Backend SHA: `d166cf4f`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `BIL-VAL-141` | Penelusuran rantai kunjungan | Penelusuran mencapai batas kedalaman sementara masih ada kunjungan asal yang belum diperiksa | "Penelusuran kunjungan berhenti pada batas aman. Masih ada kunjungan asal yang belum diperiksa, jadi kelayakan pulang perlu diperiksa petugas Billing." | — (bukan penolakan; menetapkan status `NEEDS_RECONCILIATION`) |
+| `BIL-VAL-142` | Penelusuran rantai kunjungan | Rantai rujukan berputar, yaitu sebuah kunjungan ditemukan dua kali pada jalur yang sama | "Hubungan antar kunjungan pasien ini saling menunjuk, jadi tidak dapat ditelusuri otomatis. Perlu diperiksa petugas Billing." | — (menetapkan status `NEEDS_RECONCILIATION`) |
+| `BIL-VAL-143` | Penelusuran rantai kunjungan | Ditemukan kunjungan asal yang pasiennya berbeda dari pasien yang dinilai | "Ada kunjungan terkait yang ternyata milik pasien lain. Kunjungan itu tidak dihitung dan perlu diperiksa petugas Billing." | — (kunjungan dikecualikan, `IsCounted` bernilai `false`, status `NEEDS_RECONCILIATION`) |
+| `BIL-VAL-144` | Penyelesaian rekonsiliasi | Alasan dibiarkan kosong | "Alasan wajib diisi supaya keputusan ini dapat dipertanggungjawabkan." | `400` |
+| `BIL-VAL-145` | Penulisan rincian kewajiban | Sebuah tagihan ditandai tidak dihitung tetapi alasannya kosong | "Tagihan yang dikecualikan wajib punya alasan." | `422` |
+| `BIL-VAL-146` | Penyelesaian rekonsiliasi | Tagihan yang hendak dikecualikan tidak berada dalam rantai kunjungan pasien ini | "Tagihan ini tidak termasuk dalam rangkaian kunjungan pasien, jadi tidak perlu dikecualikan." | `422` |
+
+### Contoh berangka untuk `BIL-VAL-141`
+
+Batas kedalaman penelusuran adalah 5 tingkat. Seorang pasien memiliki rantai rujukan 7 tingkat
+akibat data rujukan yang keliru diisi berulang.
+
+Penelusuran berhenti di tingkat 5, menghitung sisa tagihan dari 5 tagihan yang ditemukan, lalu
+menetapkan status `NEEDS_RECONCILIATION` dengan keterangan bahwa masih ada kunjungan yang belum
+diperiksa. Sistem **tidak** menyimpulkan tagihan sudah lunas, dan **tidak** membuat tagihan baru.
+Kasir melihat 5 tagihan yang sudah ditemukan beserta sisanya, lalu memeriksa sisa rantainya secara
+manual.
+
+### Contoh berangka untuk `BIL-VAL-143`
+
+Penelusuran menemukan kunjungan asal yang ternyata milik pasien lain, karena kolom rujukan terisi
+keliru saat pendaftaran. Tagihan kunjungan itu bersisa Rp 900.000.
+
+Sistem **tidak** menambahkan Rp 900.000 ke kewajiban pasien yang sedang dinilai. Baris itu tetap
+dicatat pada rincian surat dengan penanda tidak dihitung dan alasan "pasien berbeda", sehingga
+petugas melihat bahwa sistem menemukannya dan sengaja tidak memakainya. Status menjadi
+`NEEDS_RECONCILIATION` agar kekeliruan data rujukan itu diperbaiki, bukan dibiarkan.
+
+### Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Menolak penilaian kelayakan ketika rantai bermasalah | Penilaian tetap berjalan dan tetap menghasilkan angka dari tagihan yang berhasil ditemukan. Yang berubah hanya statusnya menjadi `NEEDS_RECONCILIATION`. Menolak sama sekali membuat kasir kehilangan informasi yang sudah ada |
+| Membuat tagihan penyeimbang saat rantai ambigu | Dilarang eksplisit oleh pemilik pada arahan 14 Oktober 2026 |
+| Menganggap rantai tidak lengkap berarti lunas | Gagal terbuka pada keputusan yang menyangkut uang dan kepulangan pasien |
+| Memblokir kepulangan karena tagihan kunjungan di luar rantai | `BKC-DEC-144` membatasi penilaian pada rantai admisi. Tagihan poliklinik lama yang tidak berkaitan **MUST NOT** menahan kepulangan |
+
+Trace `BKC-DEC-144`, `BKC-DES-063`–`BKC-DES-069`. Tests: `BIL-AT-169`–`BIL-AT-178`.
+
+
+---
+
+## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen (Revisi 2.1)
+
+> `last_changed_in`: `BIL-VALIDATION-1.8` atas `BIL-VALIDATION-1.7` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-151`, `BKC-DES-071`–`BKC-DES-074`. Backend SHA: `d166cf4f`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `BIL-VAL-147` | Penetapan keputusan rekonsiliasi | Kunjungan dan kejanggalan yang sama sudah pernah diputuskan, dengan `IdempotencyKey` berbeda | "Kunjungan ini sudah diputuskan sebelumnya dan keputusan itu tidak dapat diubah. Muat ulang layar untuk melihat keputusannya." | `409` |
+| `BIL-VAL-148` | Penetapan keputusan rekonsiliasi | Keputusan mengikutkan untuk kunjungan yang ternyata milik pasien lain | "Kunjungan milik pasien lain tidak dapat diikutkan. Pilih kecualikan bila memang bukan bagian dari perawatan pasien ini." | `422` |
+| `BIL-VAL-149` | Penetapan keputusan rekonsiliasi | Kunjungan itu sudah punya keputusan dengan arah berlawanan | "Kunjungan ini sudah diputuskan untuk dikecualikan atau diikutkan, dan keputusan itu tidak dapat dibalik." | `422` |
+| `BIL-VAL-150` | Penetapan keputusan rekonsiliasi | Kejanggalan yang dirujuk tidak ditemukan pada kunjungan itu di surat versi yang sedang direkonsiliasi | "Kejanggalan ini tidak ada pada kunjungan tersebut. Muat ulang layar lalu ulangi." | `422` |
+
+### Contoh berangka untuk `BIL-VAL-147`
+
+Pukul 09.00 Kasir A mengecualikan kunjungan Rawat Jalan milik pasien lain pada surat versi 3. Pukul
+09.02, Kasir B yang masih membuka layar lama ikut menekan kecualikan atas kunjungan yang sama.
+
+Permintaan Kasir B ditolak `409` karena keputusan untuk pasangan kunjungan dan kejanggalan itu sudah
+ada. Nol baris kedua tertulis. Bila Kasir A sendiri yang menekan tombol dua kali karena koneksi
+lambat, permintaan kedua membawa `IdempotencyKey` yang sama dan mendapat `200` dengan hasil yang
+sama — bukan penolakan, dan bukan keputusan kedua.
+
+### Contoh berangka untuk `BIL-VAL-149`
+
+Pada rawat inap yang sama, kunjungan IGD sudah diikutkan karena rujukan berputar yang ternyata sah.
+Esok harinya tagihan susulan memicu penilaian ulang, dan petugas shift berikutnya mencoba
+mengecualikan kunjungan IGD itu. Permintaan ditolak `422`. Arah keputusan atas kunjungan itu untuk
+rawat inap ini sudah terkunci.
+
+Keputusan berlaku **per rawat inap**. Bila pasien kelak dirawat inap lagi sebagai admisi baru, itu
+kunjungan rawat inap yang berbeda, dan keputusan lama tidak terbawa.
+
+### Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Persetujuan dua orang sebelum mengecualikan | Tidak diminta pemilik. Penjaganya adalah konfirmasi wajib di layar dan jejak audit |
+| Batas waktu "masa tenang" untuk membatalkan keputusan | Bertentangan dengan arahan bahwa pengecualian tidak dapat dicabut |
+
+Trace `BKC-DEC-151`, `BKC-DES-071`–`BKC-DES-074`. Tests: `BIL-AT-179`–`BIL-AT-188`.

@@ -1114,7 +1114,7 @@ lalu membayar tunai Rp 6.000.000:
 ```
 
 Potongan response yang diharapkan — perhatikan rincian per unit layanan yang tetap terpisah,
-sesuai `BKC-AC-086`:
+sesuai `BKC-AC-091`:
 
 ```json
 {
@@ -1172,5 +1172,186 @@ sebagian (`BKC-DES-061`).
 | Endpoint pembatalan grup tersendiri | Pembatalan memakai mekanisme pembalikan tender yang sudah ada (`BKC-DES-051`–`056`); membuat jalur pembatalan kedua berisiko menghasilkan dua catatan kas yang berbeda untuk satu kejadian |
 | Endpoint untuk mengubah urutan pelunasan | Urutan ditetapkan sistem dari tanggal tagihan terbit (`BKC-DES-060`), bukan dipilih petugas. Membuatnya dapat diubah petugas berarti membuka celah pengaturan alokasi secara manual tanpa jejak keputusan |
 
-Trace `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`, `CAP-BIL-09`. Tests: lihat
+Trace `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`–`BKC-DES-062`, `CAP-BIL-09`. Tests: lihat
 `testing/acceptance-test-matrix.md` amendment revisi 1.9 (`BIL-AT-159`–`BIL-AT-168`).
+
+
+---
+
+## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
+
+> `last_changed_in`: `BIL-API-1.7` atas `BIL-API-1.6` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `input_revision`: `BKC-DEC-144`, `BKC-DEC-148`, `BKC-DEC-149` (arahan 14 Oktober 2026 yang sudah diratifikasi).
+> Masukan arsitektur: `BKC-DES-063`–`BKC-DES-069`. Backend SHA diaudit: `d166cf4f`.
+> Dampak kompatibilitas: **aditif pada bentuk kontrak**, dengan satu **perubahan perilaku yang
+> disengaja** — endpoint kelayakan yang sudah ada kini dapat mengembalikan status
+> `NEEDS_RECONCILIATION`, dan `BLOCKED` karena tagihan unit lain.
+
+### Health Services / Billing Management / Billing / Inpatient Integration
+
+Base URL: `api/v1/health-services/billing-management/billing`
+Contract version: `BIL-API-1.7` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/inpatient-clearance/encounter/{encounterId}/obligations` | Menampilkan seluruh tagihan dalam rantai kunjungan pasien beserta sisa masing-masing, supaya kasir tahu tagihan mana yang menahan kepulangan | `BillingInpatient : Read` | — | `ApiResponse<ChainClearanceSummaryResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/inpatient-clearance/{id}/resolve-reconciliation` | Petugas Billing atau Kasir menyatakan hubungan antar kunjungan sudah diperiksa, lalu memilih mengikutkan atau mengecualikan satu tagihan beserta alasannya | `BillingInpatient : Reconcile` | `ResolveReconciliationRequest` (body) | `ApiResponse<ChainClearanceSummaryResponse>` | **Rencana (belum tersedia)** |
+
+#### Endpoint yang sudah ada dan response-nya diperluas
+
+| Method | Path | Perubahan | Dampak kompatibilitas |
+|---|---|---|---|
+| `POST` | `/inpatient-clearance/reevaluate` | Bentuk request **tidak berubah**. Penilaiannya kini mencakup rantai kunjungan, sehingga status hasilnya dapat bernilai `NEEDS_RECONCILIATION` dan sisa tagihannya dapat memuat tagihan unit lain | **Aditif pada bentuk, berubah pada perilaku.** Konsumen yang hanya mengenal empat status lama **MUST** diperbarui agar tidak membaca `NEEDS_RECONCILIATION` sebagai keadaan tidak dikenal |
+| `GET` | `/invoices/encounter/{encounterId}/inpatient-summary` | Menambah field `ChainInvoiceCount`, `IsChainComplete`, dan daftar penghambat per unit layanan **tanpa nominal rupiah** | **Aditif, non-breaking.** Konsumen lama yang mengabaikan field baru tidak terpengaruh |
+| `GET` | `/inpatient-clearance/encounter/{encounterId}/latest` | Menambah field `ChainDepthEvaluated`, `ChainInvoiceCount`, dan `ReconciliationReason` | **Aditif, non-breaking** |
+
+#### Arti kode status bagi pengguna
+
+| Kode | Artinya bagi petugas |
+|---|---|
+| `200` | Permintaan berhasil dibaca, atau rekonsiliasi berhasil diselesaikan |
+| `400` | Isian yang dikirim tidak lengkap atau formatnya salah, misalnya alasan rekonsiliasi dibiarkan kosong |
+| `403` | Petugas tidak punya hak akses. Menyelesaikan rekonsiliasi menuntut hak khusus yang berbeda dari hak membaca |
+| `404` | Surat kelayakan atau tagihan yang dimaksud tidak ditemukan |
+| `409` | Surat kelayakan sudah berpindah ke versi yang lebih baru sejak layar dibuka. Petugas memuat ulang lalu mengulangi |
+| `422` | Permintaan ditolak aturan bisnis, misalnya mengecualikan tagihan yang tidak berada dalam rantai, atau menyelesaikan rekonsiliasi pada surat yang statusnya bukan `NEEDS_RECONCILIATION` |
+
+#### Contoh response pembacaan rantai kewajiban
+
+Pasien Ibu **Sari Mandasari** (nama samaran) menjalani Rawat Jalan 2 Oktober, dirujuk ke IGD
+9 Oktober, lalu dirawat inap 9 Oktober sore:
+
+```json
+{
+  "success": true,
+  "data": {
+    "clearanceStatus": "BLOCKED",
+    "financialOutcome": null,
+    "totalOutstanding": 3750000.00,
+    "chainDepthEvaluated": 2,
+    "chainInvoiceCount": 3,
+    "isChainComplete": true,
+    "anomalyCode": null,
+    "reconciliationReason": null,
+    "obligations": [
+      { "invoiceNumber": "INV-RANAP-000412", "serviceType": "RANAP", "chainLevel": 0,
+        "patientOutstanding": 3500000.00, "isCounted": true, "exclusionReason": null },
+      { "invoiceNumber": "INV-IGD-000311", "serviceType": "IGD", "chainLevel": 1,
+        "patientOutstanding": 0.00, "isCounted": true, "exclusionReason": null },
+      { "invoiceNumber": "INV-RAJAL-000120", "serviceType": "RAJAL", "chainLevel": 2,
+        "patientOutstanding": 250000.00, "isCounted": true, "exclusionReason": null }
+    ]
+  }
+}
+```
+
+Tagihan IGD bernilai nol **bukan** karena dikecualikan, melainkan karena pembayarannya sudah
+menetralkan sisanya. Inilah bentuk nyata aturan anti-hitung-ganda: tagihan tetap tampil agar petugas
+melihat seluruh rantai, tetapi tidak menambah kewajiban.
+
+#### Contoh response saat rantai bermasalah
+
+```json
+{
+  "success": true,
+  "data": {
+    "clearanceStatus": "NEEDS_RECONCILIATION",
+    "totalOutstanding": 3500000.00,
+    "chainDepthEvaluated": 5,
+    "chainInvoiceCount": 4,
+    "isChainComplete": false,
+    "anomalyCode": "DEPTH_LIMIT_REACHED",
+    "reconciliationReason": "Penelusuran berhenti pada batas kedalaman, masih ada kunjungan asal yang belum diperiksa."
+  }
+}
+```
+
+Status ini **bukan** `CLEARED` dan **bukan** `BLOCKED`. Artinya sistem belum yakin, sehingga petugas
+Billing atau Kasir memeriksa hubungan antar kunjungan lebih dulu.
+
+### Yang Sengaja Tidak Menjadi Endpoint
+
+| Yang ditolak | Alasan |
+|---|---|
+| Endpoint untuk menyetel batas kedalaman penelusuran | Batas kedalaman adalah pagar keselamatan teknis, bukan nilai bisnis. Menjadikannya dapat disetel membuka peluang penelusuran menggantung |
+| Endpoint untuk membuat tagihan penyeimbang saat rantai ambigu | Dilarang eksplisit oleh pemilik. Yang disediakan adalah jalur rekonsiliasi, bukan jalur membuat tagihan |
+| Endpoint penelusuran rantai yang berdiri sendiri, lepas dari penilaian kelayakan | Rantai hanya bermakna dalam konteks penilaian kelayakan. Endpoint lepas akan menjadi kemampuan tanpa pemilik aturan bisnis |
+
+Trace `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`. Tests: lihat
+`testing/acceptance-test-matrix.md` amendment revisi `2.0` (`BIL-AT-169`–`BIL-AT-178`).
+
+
+---
+
+## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen dan Perbaikan Constraint (Revisi 2.1)
+
+> `last_changed_in`: `BIL-API-1.8` atas `BIL-API-1.7` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `input_revision`: `BKC-DEC-150`, `BKC-DEC-151`, ditambah tiga arahan pemilik 14 Oktober 2026
+> (`BKC-OQ-126`). Masukan arsitektur: `BKC-DES-070`–`BKC-DES-076`. Backend SHA: `d166cf4f`.
+> Dampak kompatibilitas: **aditif** untuk endpoint yang sudah berjalan. Satu endpoint rencana
+> revisi `2.0` berubah bentuk request-nya; tidak merusak siapa pun karena belum ada konsumennya.
+
+### Health Services / Billing Management / Billing / Inpatient Integration
+
+Base URL: `api/v1/health-services/billing-management/billing`
+Contract version: `BIL-API-1.8` — status `draft`
+
+> Judul grup di atas adalah grup tujuan. Controller yang ada saat ini memakai nilai pendek
+> `[Tags("BillingInpatientIntegration")]` (`InpatientClearanceController.cs:37`), utang teknis yang
+> sudah tercatat pada amendment revisi `1.9`. Selama belum dirapikan, endpoint di bawah tampil di
+> Swagger pada grup `BillingInpatientIntegration`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/inpatient-clearance/encounter/{encounterId}/chain-decisions` | Menampilkan seluruh keputusan rekonsiliasi permanen untuk satu rawat inap: kunjungan mana yang dikecualikan atau diikutkan, oleh siapa, kapan, dan mengapa | `BillingInpatient : Read` | — | `ApiResponse<List<ChainDecisionResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/inpatient-clearance/{id}/resolve-reconciliation` | Menetapkan satu keputusan rekonsiliasi **permanen**, lalu menilai ulang kelayakan | `BillingInpatient : Reconcile` | `ResolveReconciliationRequest` (body) — **diubah**, lihat di bawah | `ApiResponse<ChainClearanceSummaryResponse>` | **Rencana (belum tersedia)** |
+
+#### Perubahan bentuk request rekonsiliasi dibanding revisi `2.0`
+
+| Field | Revisi `2.0` | Revisi `2.1` | Alasan |
+|---|---|---|---|
+| `TargetInvoiceId` | Wajib | **Dihapus** | Kunjungan tanpa invoice (`MISSING_INVOICE`) tidak dapat diputuskan bila kuncinya invoice (`BKC-DES-071`) |
+| `TargetEncounterId` | — | **Wajib, baru** | Kunci keputusan yang sebenarnya |
+| `AnomalyCode` | — | **Wajib, baru** | Satu kunjungan dapat punya lebih dari satu kejanggalan; keputusan berlaku untuk kejanggalan yang disebut |
+| `Decision`, `Reason`, `IdempotencyKey` | Ada | Tidak berubah | — |
+
+#### Arti kode status bagi pengguna
+
+| Kode | Artinya bagi petugas |
+|---|---|
+| `200` | Keputusan tersimpan permanen dan kelayakan sudah dinilai ulang. Pengiriman ulang dengan `IdempotencyKey` yang sama juga mendapat `200` dengan hasil yang sama, bukan keputusan kedua |
+| `400` | Isian tidak lengkap, misalnya alasan kosong |
+| `403` | Petugas tidak memegang hak `BillingInpatient : Reconcile`. Sesuai `BKC-DEC-150`, hak ini hanya untuk Kasir dan Supervisor Kasir |
+| `404` | Surat kelayakan atau kunjungan sasaran tidak ditemukan |
+| `409` | Kunjungan ini sudah diputuskan sebelumnya untuk kejanggalan yang sama. **Keputusan tidak dapat diubah.** Atau surat sudah berpindah versi sejak layar dibuka |
+| `422` | Ditolak aturan bisnis: mengikutkan kunjungan milik pasien lain, membalik arah keputusan yang sudah ada, merujuk kejanggalan yang tidak ada pada kunjungan itu, atau kunjungan di luar rantai |
+
+#### Contoh permintaan
+
+```json
+{
+  "decision": "EXCLUDE",
+  "targetEncounterId": "4d2e9b10-0000-0000-0000-0000000rajal87",
+  "anomalyCode": "PATIENT_MISMATCH",
+  "reason": "Kolom rujukan salah input saat pendaftaran",
+  "idempotencyKey": "9a01c2d3-0000-0000-0000-000000000k21"
+}
+```
+
+### Endpoint yang sudah ada — status cacat
+
+| Method | Path | Keadaan | Tindakan |
+|---|---|---|---|
+| `POST` | `/inpatient-clearance/reevaluate` | **Kemungkinan besar gagal hari ini.** Reason code `REEVALUATED_BY_CASHIER` yang dikirim endpoint ini tidak diterima `CK_BilInpatientClearanceHandoff_ReasonCode`, sehingga basis data menolak baris surat baru. Bukti statis: `InpatientClearanceController.cs:118`, `InpatientClearanceService.cs:174`. Runtime: **NOT RUN** | Diperbaiki migration perbaikan yang **didahulukan**, sebelum `MVP-36`. Bentuk request dan response **tidak** berubah |
+
+### Yang Sengaja Tidak Menjadi Endpoint
+
+| Yang ditolak | Alasan |
+|---|---|
+| Endpoint pencabutan keputusan | Pemilik menetapkan pengecualian tidak dapat dicabut (`BKC-DES-072`) |
+| Endpoint pengubahan keputusan | Sama; keputusan bersifat *append-only* |
+| Endpoint penghapusan keputusan | Sama; baris keputusan tidak pernah ditandai hapus |
+
+Trace `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-076`. Tests: `BIL-AT-179`–`BIL-AT-188`.

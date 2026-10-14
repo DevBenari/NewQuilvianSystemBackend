@@ -157,7 +157,14 @@ public sealed class ExitClearanceService
             };
         }).ToList();
 
-        return PagedResult<ExitClearanceListResponse>.Create(listResponses, page, pageSize, totalItems);
+        return new PagedResult<ExitClearanceListResponse>
+        {
+            PageNumber = page,
+            PageSize = pageSize,
+            TotalData = totalItems,
+            TotalPage = (int)Math.Ceiling(totalItems / (double)pageSize),
+            Items = listResponses
+        };
     }
 
     public async Task<ExitClearanceDetailResponse> GetDetailAsync(Guid id, CancellationToken cancellationToken)
@@ -286,7 +293,7 @@ public sealed class ExitClearanceService
 
         await _loggerService.AuditAsync(LogCategory, "ExitClearance.Created",
             $"Exit clearance {clearance.ClearanceNumber} dibuat untuk pegawai {separation.EmployeeId}. Status Finance Bebas Tanggungan: {isFinanceCleared}.",
-            new { clearance.Id, separation.Id, EmployeeId = separation.EmployeeId, IsFinanceCleared = isFinanceCleared });
+            new { ClearanceId = clearance.Id, SeparationId = separation.Id, EmployeeId = separation.EmployeeId, IsFinanceCleared = isFinanceCleared });
 
         return await GetDetailAsync(clearance.Id, cancellationToken);
     }

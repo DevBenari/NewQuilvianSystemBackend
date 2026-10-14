@@ -2025,7 +2025,7 @@ Nomor gelombang menyambung gelombang `REV-19` (`BE-FIN-103`, `105` = 1; `104`, `
 | `FR-FIN-254`..`256`, `FIN-DEC-220`, `221` | `BE-FIN-117` 🟡, `FE-FIN-049`, `FE-FIN-050` | `FIN-INTEGRATION-1.10` `S.2` | `O.2.1`..`O.2.8` |
 | `FR-FIN-256`, `260`, `FIN-DES-105` | `BE-FIN-114` 🟡 | `FIN-INTEGRATION-1.10` `S.5` | `O.4.2`, `O.4.4` |
 | `FR-FIN-257`, `FIN-DEC-222` | `BE-FIN-118` 🟡, `FE-FIN-050` | `FIN-INTEGRATION-1.10` `S.3` | `O.3.1`..`O.3.3` |
-| `FR-FIN-258`, `FIN-DEC-222` | `BE-FIN-115` 🟡, `FE-FIN-051` | `FIN-INTEGRATION-1.10` `S.4` | `O.4.1`, `O.4.3` |
+| `FR-FIN-258`, `FIN-DEC-222` | `BE-FIN-115` 🟡, `FE-FIN-051` 🟡 | `FIN-INTEGRATION-1.10` `S.4` | `O.4.1`, `O.4.3` |
 | `FR-FIN-259`, `FIN-DEC-218` | `BE-FIN-119`, `FE-FIN-047` | `FIN-INTEGRATION-1.10` `S.6` | `O.5.1`, `O.5.2` |
 | `FIN-DEC-214`, `216`, `217` | `BE-FIN-110` 🟡 | `FIN-INTEGRATION-1.8` `P.2`, `P.3` | `BE-FIN-110` butir 1-4 |
 

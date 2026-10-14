@@ -646,7 +646,7 @@ Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`.
 
 > `last_changed_in`: `BIL-STATE-1.6` atas `BIL-STATE-1.5` — status **draft**.
 > Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
-> Masukan: `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `e049a65b`.
+> Masukan: `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `d166cf4f`.
 
 ### Status peserta grup pembayaran (`BilSettlementInvoice.ParticipantStatus`)
 
@@ -690,5 +690,97 @@ ada. Satu transaksi gabungan dapat menutup satu tagihan dan membiarkan tagihan l
 `FINAL` — lihat contoh berangka pada
 `flowcharts/pelunasan-gabungan-lintas-kunjungan.md`. Tidak ada status baru pada `BilInvoice`.
 
-Trace `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`. Tests: `BIL-AT-159`–`BIL-AT-168`.
+Trace `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`–`BKC-DES-062`. Tests: `BIL-AT-159`–`BIL-AT-168`.
 
+
+
+---
+
+## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
+
+> `last_changed_in`: `BIL-STATE-1.7` atas `BIL-STATE-1.6` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`. Backend SHA: `d166cf4f`.
+
+### Status kelayakan pemulangan — satu nilai baru
+
+Nilai yang sudah berlaku: `PENDING`, `BLOCKED`, `CLEARED`, `REVOKED`. Amendment ini menambah satu.
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `PENDING` | Penilaian kelayakan dijalankan dan rantai terbaca lengkap, seluruh tagihan dalam rantai lunas | `CLEARED` | Sistem Billing | Jumlah sisa tagihan pasien atas seluruh tagihan rantai yang dihitung bernilai nol | — |
+| `PENDING` | Penilaian dijalankan dan masih ada sisa tagihan pada rantai | `BLOCKED` | Sistem Billing | Jumlah sisa tagihan lebih besar dari nol. Reason code `CROSS_ENCOUNTER_OUTSTANDING` bila penyebabnya tagihan unit lain | — |
+| `PENDING` | Penilaian dijalankan tetapi rantai tidak lengkap atau ambigu | **`NEEDS_RECONCILIATION`** | Sistem Billing | Penelusuran menghasilkan kode anomali apa pun | Sistem **MUST NOT** menyimpulkan `CLEARED`; gagal tertutup |
+| `BLOCKED` | Seluruh tagihan rantai dilunasi | `CLEARED` | Sistem Billing | Jumlah sisa tagihan menjadi nol | — |
+| `CLEARED` | Tagihan susulan masuk pada salah satu tagihan dalam rantai | `REVOKED` | Sistem Billing | Sisa tagihan rantai kembali lebih besar dari nol. Reason code `LATE_CHARGE_POSTED` | — |
+| **`NEEDS_RECONCILIATION`** | Petugas menyatakan hubungan sudah diperiksa, memilih mengikutkan atau mengecualikan tagihan beserta alasannya | `BLOCKED` atau `CLEARED` | Petugas dengan hak `BillingInpatient : Reconcile` | Alasan wajib terisi. Status akhir diturunkan dari hasil hitung ulang sesudah keputusan petugas | Permintaan tanpa alasan ditolak (`BIL-VAL-144`) |
+| **`NEEDS_RECONCILIATION`** | Penilaian dijalankan ulang dan ternyata rantai sudah terbaca lengkap, misalnya karena data rujukan sudah dilengkapi petugas pendaftaran | `BLOCKED` atau `CLEARED` | Sistem Billing | Nol kode anomali pada penelusuran baru | — |
+| `REVOKED` | Tagihan susulan dilunasi | `CLEARED` | Sistem Billing | Jumlah sisa tagihan rantai kembali nol | — |
+
+### Transisi yang tidak sah
+
+| Transisi | Mengapa tidak sah | Akibatnya bila dipaksakan |
+|---|---|---|
+| `NEEDS_RECONCILIATION` → `CLEARED` tanpa rekonsiliasi dan tanpa penilaian ulang | Status itu justru berarti sistem belum yakin. Melompat ke `CLEARED` berarti memulangkan pasien atas dasar data yang diketahui tidak lengkap | Pasien pulang dengan tagihan yang mungkin masih bersisa, tanpa ada yang memeriksanya |
+| `CLEARED` → `NEEDS_RECONCILIATION` | Surat yang sudah terbit tidak diturunkan menjadi "belum yakin". Bila ada tagihan susulan, jalurnya `REVOKED` | Bangsal menerima dua makna berbeda untuk satu kejadian |
+| Menyelesaikan rekonsiliasi pada surat yang statusnya bukan `NEEDS_RECONCILIATION` | Tidak ada yang perlu direkonsiliasi | Jejak audit memuat keputusan petugas atas persoalan yang tidak ada |
+| Mengecualikan tagihan yang tidak berada dalam rantai | Tagihan di luar rantai memang tidak pernah dihitung | Petugas tampak mengecualikan sesuatu yang tidak berpengaruh, menyesatkan audit |
+| Mengubah `ChainLevel` atau `PatientOutstanding` pada rincian surat yang sudah terbit | Keduanya potret fakta pada versi surat itu | Surat lama tidak lagi dapat direkonstruksi saat sengketa |
+
+### Nama status yang sebaris dengan flowchart
+
+Node keadaan pada `flowcharts/kelayakan-pulang-lintas-kunjungan.md` memakai nama yang sama persis
+dengan tabel ini: `PENDING`, `BLOCKED`, `CLEARED`, `REVOKED`, dan `NEEDS_RECONCILIATION`.
+
+### Status invoice tidak berubah
+
+Amendment ini **tidak** menambah atau mengubah status `BilInvoice` sama sekali. Penelusuran rantai
+bersifat baca saja dan tidak pernah mengubah status tagihan.
+
+Trace `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`. Tests: `BIL-AT-169`–`BIL-AT-178`.
+
+
+---
+
+## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen (Revisi 2.1)
+
+> `last_changed_in`: `BIL-STATE-1.8` atas `BIL-STATE-1.7` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-151`, `BKC-DES-072`, `BKC-DES-073`. Backend SHA: `d166cf4f`.
+
+### Keputusan rantai — hanya satu transisi yang sah
+
+Baris `BilClearanceChainDecision` tidak punya kolom status. Ia hanya punya satu kejadian sah:
+kelahirannya.
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| Belum ada keputusan | Petugas mengecualikan kunjungan | `EXCLUDE` | Kasir atau Supervisor Kasir (`BKC-DEC-150`) | Surat berstatus `NEEDS_RECONCILIATION`; kunjungan berada di rantai; kejanggalan yang disebut memang ada pada kunjungan itu; alasan terisi | Ditolak `422` atau `400` (`BIL-VAL-144`, `146`, `150`) |
+| Belum ada keputusan | Petugas mengikutkan kunjungan | `INCLUDE` | Kasir atau Supervisor Kasir | Syarat sama, ditambah kejanggalannya **bukan** `PATIENT_MISMATCH` | Ditolak `422` (`BIL-VAL-148`) |
+| `INCLUDE` untuk satu kejanggalan | Kunjungan yang sama memunculkan kejanggalan **lain** lalu diikutkan juga | `INCLUDE` baris kedua | Kasir atau Supervisor Kasir | Arah sama dengan keputusan yang sudah ada | — |
+
+### Transisi yang tidak sah
+
+| Transisi | Mengapa tidak sah | Penjaganya |
+|---|---|---|
+| `EXCLUDE` → dicabut | Pemilik menetapkan pengecualian final | Tidak ada endpoint pencabutan; baris tidak pernah diperbarui |
+| `EXCLUDE` → `INCLUDE` pada kunjungan yang sama | Membalik keputusan sama dengan mencabutnya | `BIL-VAL-149` |
+| `INCLUDE` → `EXCLUDE` pada kunjungan yang sama | Sama. Konsisten dengan `BKC-OQ-125` yang menerapkan *append-only* pada kedua arah | `BIL-VAL-149` |
+| Keputusan kedua untuk kunjungan dan kejanggalan yang sama | Keputusan sudah ditetapkan | Indeks unik `UX_..._Pair_Anomaly` — kode `409` (`BIL-VAL-147`) |
+| Menandai hapus baris keputusan | Akan menjadi pencabutan terselubung | Service tidak pernah mengisi `IsDelete`; indeks unik tanpa filter `IsDelete` tetap menghalangi keputusan ulang |
+| `INCLUDE` atas `PATIENT_MISMATCH` | Menagih orang yang salah | `BIL-VAL-148` dan `CK_..._NoIncludeOnPatientMismatch` |
+
+### Pengaruh keputusan pada status kelayakan
+
+Keputusan rekonsiliasi **tidak** menambah status kelayakan baru. Setelah keputusan tersimpan, sistem
+menilai ulang dan status berpindah sesuai tabel amendment revisi `2.0`:
+
+| Keadaan sesudah keputusan diterapkan | Status surat versi berikutnya |
+|---|---|
+| Nol kejanggalan tersisa, nol kewajiban terbuka | `CLEARED` |
+| Nol kejanggalan tersisa, masih ada kewajiban | `BLOCKED` |
+| Masih ada kejanggalan lain yang belum diputuskan | Tetap `NEEDS_RECONCILIATION` |
+
+Reason code surat baru: `RECONCILIATION_RESOLVED`.
+
+Trace `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-074`. Tests: `BIL-AT-179`–`BIL-AT-188`.

@@ -476,7 +476,7 @@ Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `BIL-VAL-127`–`133`, `BIL-
 
 > `last_changed_in`: `BIL-TEST-1.7` atas `BIL-TEST-1.6` — status **draft**.
 > Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
-> Masukan: `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`, `BIL-VAL-134`–`140`,
+> Masukan: `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`–`BKC-DES-062`, `BIL-VAL-134`–`140`,
 > `BIL-INT-019`. Backend SHA: `e049a65b`.
 
 | ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
@@ -497,9 +497,75 @@ Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `BIL-VAL-127`–`133`, `BIL-
 | Hal | Sebab | Penggantinya sementara |
 |---|---|---|
 | Uji ujung-ke-ujung di peramban | Belum ada satu pun spesifikasi end-to-end Billing, dan environment ter-autentikasi belum tersedia — keadaan yang sudah tercatat sejak `FE-BKC-010` | Uji integrasi tingkat service ditambah pemeriksaan manual ter-autentikasi oleh kasir saat UAT |
-| Interaksi dengan kelayakan pemulangan | Menunggu `BKC-OQ-109`; aturan bisnisnya belum diputuskan | Tidak ada; bagian ini **MUST NOT** diuji sebelum keputusannya turun agar test tidak mengunci perilaku yang belum disetujui |
+| Interaksi dengan kelayakan pemulangan | **Sudah diputuskan** lewat `BKC-DEC-144` (14 Oktober 2026) dan dirancang pada amendment revisi `2.0` | Skenario ujinya ada di amendment revisi `2.0` (`BIL-AT-169`–`BIL-AT-178`) |
 | Rekonsiliasi penerimaan kas oleh Finance | Menunggu `BKC-OQ-111` | Pemeriksaan bahwa baris alokasi per invoice benar-benar tertulis, sebagai bahan rekonsiliasi |
 
-Trace `BKC-DEC-118`, `BKC-AC-086`, `BKC-DES-057`–`BKC-DES-062`, `BIL-VAL-134`–`140`, `BIL-INT-019`.
+Trace `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`–`BKC-DES-062`, `BIL-VAL-134`–`140`, `BIL-INT-019`.
 
 
+
+
+---
+
+## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
+
+> `last_changed_in`: `BIL-TEST-1.8` atas `BIL-TEST-1.7` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`, `BIL-VAL-141`–`146`,
+> `BIL-INT-020`. Backend SHA: `d166cf4f`.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-169` | `FR-BKC-259` | **Jalur berhasil.** Rantai Rawat Jalan → IGD → Rawat Inap; sisa Rp 3.500.000 (ranap), Rp 0 (IGD, sudah lunas), Rp 250.000 (rajal) | Integrasi | Status `BLOCKED` dengan reason code `CROSS_ENCOUNTER_OUTSTANDING`; sisa total Rp 3.750.000; tiga baris rincian dengan `ChainLevel` 0, 1, 2 |
+| `BIL-AT-170` | `FR-BKC-259` | **Jalur berhasil.** Seluruh tagihan dalam rantai lunas | Integrasi | Status `CLEARED`; sisa total nol; `ChainInvoiceCount` sesuai jumlah tagihan yang ditemukan |
+| `BIL-AT-171` | `FR-BKC-260` | **Anti-hitung-ganda.** Biaya admin rawat jalan sudah dibayar lalu dialihkan menjadi kredit pada tagihan rawat inap (`BKC-DEC-119`) | Unit + integrasi | Nominal admin itu **hanya** mengurangi tagihan rawat inap, dan **tidak** muncul lagi sebagai kewajiban terbuka pada tagihan rawat jalan. Selisih total terhadap perhitungan manual bernilai nol rupiah |
+| `BIL-AT-172` | `FR-BKC-261` | **Jalur gagal.** Rantai rujukan berputar: kunjungan A menunjuk B, B menunjuk A | Unit | Penelusuran berhenti tanpa menggantung; kode anomali `CYCLE_DETECTED`; status `NEEDS_RECONCILIATION`; nol tagihan terhitung dua kali |
+| `BIL-AT-173` | `FR-BKC-261` | **Jalur gagal.** Rantai lebih panjang dari batas kedalaman | Unit | Kode anomali `DEPTH_LIMIT_REACHED`; status `NEEDS_RECONCILIATION`; penilaian **tetap** menghasilkan angka dari tagihan yang sudah ditemukan, bukan galat dan bukan nol |
+| `BIL-AT-174` | `FR-BKC-262` | **Jalur gagal.** Kunjungan asal ternyata milik pasien lain, tagihannya bersisa Rp 900.000 | Unit | Rp 900.000 **tidak** masuk total; baris rincian tercatat dengan `IsCounted` bernilai `false` dan alasan terisi; kode anomali `PATIENT_MISMATCH`; status `NEEDS_RECONCILIATION` |
+| `BIL-AT-175` | `FR-BKC-263` | **Privasi.** Proyeksi daftar penghambat yang dibaca perawat bangsal diperiksa | Integrasi | Response perawat memuat unit layanan dan penanda penghambat, dan **nol** field bernominal rupiah. Response kasir memuat rupiah. Keduanya dari sumber yang sama |
+| `BIL-AT-176` | `FR-BKC-264` | **Rekonsiliasi.** Petugas menyelesaikan surat `NEEDS_RECONCILIATION` dengan mengecualikan satu tagihan beserta alasan | Integrasi | Status berpindah ke `BLOCKED` atau `CLEARED` sesuai hitung ulang; alasan dan identitas petugas tersimpan; surat versi sebelumnya tetap dapat dibaca utuh |
+| `BIL-AT-177` | `FR-BKC-265` | **Jalur gagal.** Rekonsiliasi dicoba pada surat yang statusnya `CLEARED` | Unit | Ditolak kode `422`; nol perubahan status; nol baris audit keputusan |
+| `BIL-AT-178` | `FR-BKC-266` | **Regresi.** Pasien tanpa kunjungan asal sama sekali, hanya ada tagihan rawat inap | Regresi | Perilaku **identik** dengan sebelum amendment: status dan sisa tagihan sama seperti penilaian satu tagihan; `ChainInvoiceCount` bernilai `1`; nol anomali |
+
+### Yang belum dapat diuji dan sebabnya
+
+| Hal | Sebab | Penggantinya sementara |
+|---|---|---|
+| Uji ujung-ke-ujung di peramban | Belum ada spesifikasi end-to-end Billing dan environment ter-autentikasi belum tersedia — keadaan yang sudah tercatat sejak `FE-BKC-010` | Uji integrasi tingkat service ditambah pemeriksaan manual ter-autentikasi saat UAT |
+| Konsumsi status `NEEDS_RECONCILIATION` di layar bangsal | Menunggu `BKC-OQ-121`, yaitu persetujuan pemilik Rawat Inap | Pemeriksaan bahwa proyeksi perawat benar bentuknya (`BIL-AT-175`), tanpa menguji tampilannya di bangsal |
+| Kewenangan Action `Reconcile` per peran | **Terjawab** lewat `BKC-DEC-150` | Diuji pada amendment revisi `2.1` (`BIL-AT-185`): Kasir dan Supervisor Kasir berhasil, Petugas Billing dan Finance/AR ditolak `403` |
+| Kebenaran isi alasan rekonsiliasi | Tidak dapat diuji mesin | Jejak audit diperiksa manual saat tinjauan berkala |
+
+Trace `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`, `BIL-VAL-141`–`146`, `BIL-INT-020`.
+
+
+---
+
+## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen dan Perbaikan Constraint (Revisi 2.1)
+
+> `last_changed_in`: `BIL-TEST-1.9` atas `BIL-TEST-1.8` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-076`, `BIL-VAL-147`–`150`.
+> Backend SHA: `d166cf4f`.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-179` | `FR-BKC-267` | **Permanen.** Kunjungan dikecualikan pada surat versi 3, lalu tagihan susulan memicu versi 4 | Integrasi | Versi 4 **tidak** memuat kejanggalan atas kunjungan itu; baris rinciannya tercatat tidak dihitung dengan alasan keputusan permanen. Status `BLOCKED` atau `CLEARED`, bukan `NEEDS_RECONCILIATION` |
+| `BIL-AT-180` | `FR-BKC-268` | **Memutus penelusuran.** Kunjungan tingkat 2 dikecualikan, dan ia punya kunjungan asal tingkat 3 bersisa Rp 400.000 | Unit | Kunjungan tingkat 3 **tidak** muncul pada rincian dan Rp 400.000 **tidak** masuk total |
+| `BIL-AT-181` | `FR-BKC-267` | **Mengikutkan permanen.** Rujukan berputar diikutkan pada versi 3; versi 4 dinilai | Integrasi | Kejanggalan `CYCLE_DETECTED` atas kunjungan itu **tidak** muncul lagi. Kejanggalan **baru** pada kunjungan lain tetap muncul |
+| `BIL-AT-182` | `FR-BKC-269` | **Jalur gagal.** Keputusan kedua untuk kunjungan dan kejanggalan yang sama, `IdempotencyKey` berbeda | Integrasi (konkurensi) | Ditolak `409` (`BIL-VAL-147`); nol baris kedua. Dengan `IdempotencyKey` yang sama: `200` dan hasil identik |
+| `BIL-AT-183` | `FR-BKC-269` | **Jalur gagal.** Membalik keputusan mengikutkan menjadi mengecualikan | Unit | Ditolak `422` (`BIL-VAL-149`); nol perubahan |
+| `BIL-AT-184` | `FR-BKC-270` | **Jalur gagal.** Mengikutkan kunjungan `PATIENT_MISMATCH` | Unit + basis data | Ditolak `422` oleh service (`BIL-VAL-148`). Bila service dilewati, basis data menolak lewat `CK_BilClearanceChainDecision_NoIncludeOnPatientMismatch` |
+| `BIL-AT-185` | `FR-BKC-271` | **Hak akses.** Kasir, Supervisor Kasir, Petugas Billing, dan Finance/AR masing-masing mencoba menetapkan keputusan | Integrasi | Kasir dan Supervisor Kasir berhasil; Petugas Billing dan Finance/AR ditolak `403`. Keempatnya dapat membaca riwayat keputusan |
+| `BIL-AT-186` | `FR-BKC-267` | **Kunjungan tanpa invoice.** Kejanggalan `MISSING_INVOICE` diputuskan | Integrasi | Keputusan tersimpan dengan `TargetInvoiceId` kosong; penilaian berikutnya tidak menandainya lagi |
+| `BIL-AT-187` | `FR-BKC-272` | **Perbaikan cacat.** Kasir menekan evaluasi ulang kelayakan | Integrasi + regresi | Surat baru tersimpan dengan reason code `REEVALUATED_BY_CASHIER`, nol pelanggaran `CHECK`. Test ini **MUST** ditulis gagal lebih dulu di environment yang belum diperbaiki, untuk membuktikan cacatnya nyata |
+| `BIL-AT-188` | `FR-BKC-269` | **Penjaga tanda hapus.** Baris keputusan ditandai hapus langsung di basis data, lalu keputusan baru untuk pasangan yang sama dikirim | Basis data | Keputusan baru tetap ditolak indeks unik, karena indeks tidak memfilter `IsDelete` |
+
+### Yang belum dapat diuji dan sebabnya
+
+| Hal | Sebab | Penggantinya sementara |
+|---|---|---|
+| Bukti runtime cacat `REEVALUATED_BY_CASHIER` | Temuan baru berasal dari pembacaan source; pemilik meminta verifikasi di lingkungan nyata lebih dulu | `BIL-AT-187` ditulis gagal lebih dulu, atau verifikasi lewat `/diagnose-module-issue` |
+| Kebenaran isi alasan keputusan | Tidak dapat diuji mesin | Tinjauan jejak audit berkala |
+
+Trace `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-076`, `BIL-VAL-147`–`150`.

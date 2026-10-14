@@ -1360,8 +1360,8 @@ Akses Data.
 
 | Gelombang | Task backend | Yang dapat diverifikasi bisnis sesudahnya | Syarat mulai |
 | --- | --- | --- | --- |
-| `MVP-13` (fondasi) | 🟡 `BE-BKC-033`, 🟡 `BE-BKC-034`, ✅ `BE-BKC-035` | Kategori pengeluaran kas kecil dapat dikelola Finance; nomor voucher dapat dialokasikan | Tidak ada — `READY_FOR_TASK_APPROVAL`. `BE-BKC-034` boleh paralel dengan `BE-BKC-033`; `BE-BKC-035` menunggu `BE-BKC-033` (tabel `MstPettyCashCategory`). **Gelombang belum boleh naik:** `BE-BKC-035` sudah `✅` (build/test terverifikasi lulus, 8 September 2026). `BE-BKC-034` sudah lulus `dotnet build`/`dotnet test` (11/11) pada sesi yang sama, tetapi tetap `🟡` sampai laporan task tracked tersendiri dibuat sesuai aturan pelaporan. Seed/review Finance `BE-BKC-033` masih tertunda |
-| `MVP-14` (alur pertama) | ✅ `BE-BKC-036`, ✅ `BE-BKC-037`, ✅ `BE-BKC-038` | Voucher berjalan penuh dari pengajuan sampai bukti nota, di atas anggaran yang saldonya benar dan tidak pernah negatif; kas shift kasir terbukti tidak bergerak | `MVP-13` **belum selesai** (`BE-BKC-033`/`034` masih 🟡) — tanpa kategori aktif, tidak satu pun voucher dapat dibuat, meski secara teknis `036`/`037`/`038` sudah terverifikasi. `BE-BKC-036`,`037`,`038` seluruhnya `✅` (build/test terverifikasi lulus, 8 September 2026) — wave ini secara teknis sudah lengkap tetapi tetap menunggu `MVP-13` naik lebih dulu sebelum dinyatakan benar-benar dapat dipakai end-to-end |
+| `MVP-13` (fondasi) | ✅ `BE-BKC-033`, ✅ `BE-BKC-034`, ✅ `BE-BKC-035` | Kategori pengeluaran kas kecil dapat dikelola Finance; nomor voucher dapat dialokasikan | Tidak ada — `READY_FOR_TASK_APPROVAL`. `BE-BKC-034` boleh paralel dengan `BE-BKC-033`; `BE-BKC-035` menunggu `BE-BKC-033` (tabel `MstPettyCashCategory`). **Gelombang belum boleh naik:** `BE-BKC-035` sudah `✅` (build/test terverifikasi lulus, 8 September 2026). `BE-BKC-034` sudah lulus `dotnet build`/`dotnet test` (11/11) pada sesi yang sama, dan telah berstatus `✅` diverifikasi task tracked tersendiri dibuat sesuai aturan pelaporan. Seed/review Finance `BE-BKC-033` masih tertunda |
+| `MVP-14` (alur pertama) | ✅ `BE-BKC-036`, ✅ `BE-BKC-037`, ✅ `BE-BKC-038` | Voucher berjalan penuh dari pengajuan sampai bukti nota, di atas anggaran yang saldonya benar dan tidak pernah negatif; kas shift kasir terbukti tidak bergerak | `MVP-13` **belum selesai** (`BE-BKC-033`/`034` telah ✅ diverifikasi) — tanpa kategori aktif, tidak satu pun voucher dapat dibuat, meski secara teknis `036`/`037`/`038` sudah terverifikasi. `BE-BKC-036`,`037`,`038` seluruhnya `✅` (build/test terverifikasi lulus, 8 September 2026) — wave ini secara teknis sudah lengkap tetapi tetap menunggu `MVP-13` naik lebih dulu sebelum dinyatakan benar-benar dapat dipakai end-to-end |
 
 **Kenapa `BE-BKC-036` (anggaran) mendahului `BE-BKC-037` (voucher).** `PettyCashVoucherService.
 DisburseAsync` **memanggil** `PettyCashBudgetService.ApplyDisbursementAsync` di dalam transaction
@@ -1378,11 +1378,11 @@ memanggilnya — arah ketergantungannya satu jurusan, tidak melingkar.
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
 | tanpa tanda | Belum dikerjakan |
 
-## 🟡 `BE-BKC-033` — Fondasi skema Petty Cash: lima tabel, migration, dan data induk awal
+## ✅ `BE-BKC-033` — Fondasi skema Petty Cash: lima tabel, migration, dan data induk awal
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — 7 September 2026, diperbarui setelah verifikasi ulang.** Sepuluh berkas source ditulis: 5 model (`BilPettyCashVoucher`, `BilPettyCashVoucherCommand`, `BilPettyCashBudget`, `BilPettyCashBudgetMovement`, `MstPettyCashCategory`), 5 EF configuration berisi 13 index bernama, 5 FK `Restrict`, 12 check constraint, dan seed `HasData` (1 kolam `HOSPITAL_MAIN` + 5 kategori), ditambah 5 `DbSet` pada `ApplicationDbContext`. Prasyarat `PC-OQ-003` **terpenuhi** — prefix `Bil`/`Mst` sudah `ACTIVE` dan `PettyCash/` mengikuti preseden `Cashier/` serta `Operational/`, sehingga **tidak** `BLOCKED BY QBE-MOD-002`. **Yang kini TERPENUHI:** `dotnet build` dijalankan ulang dan **LULUS** (`0 Error(s)`); berkas migration **ADA** dan strukturnya direview — `Migrations/20260907062238_AddTablePettyCashModule.cs` memuat kelima `CREATE TABLE` dengan urutan FK yang aman, 13 index bernama, dan `InsertData` seed lengkap. **Yang MASIH menahan `✅`:** baris seed di database **tidak dapat diverifikasi** dari sesi builder (tanpa akses DB — pemilik modul melaporkan `database update` berhasil, tetapi tidak ada bukti query); review Finance atas lima kategori **belum diminta**; tiga ambiguitas kontrak menunggu ratifikasi (`ResponseJson` `text` vs `jsonb`, daftar index kamus data yang tidak konsisten, bentuk `IX_BilPettyCashBudget_ActiveSingleton`). Bukti: [laporan](../task/report/backend/BE-BKC-033.md) § 5.2 |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | Outcome | Lima tabel baru (`BilPettyCashVoucher`, `BilPettyCashVoucherCommand`, `BilPettyCashBudget`, `BilPettyCashBudgetMovement`, `MstPettyCashCategory`) tersedia di database beserta seed satu kolam anggaran dan lima kategori, menjadi fondasi skema bagi seluruh task Petty Cash berikutnya |
 | Gelombang | `MVP-13` |
 | Trace | `PC-DEC-001`,`002`,`010`,`012`; `PC-DES-001`,`003`,`004`,`010`,`014`; `CAP-29` (Missing) |
@@ -1422,7 +1422,7 @@ memanggilnya — arah ketergantungannya satu jurusan, tidak melingkar.
 | Kontrak | 9 endpoint `Master Data / Petty Cash Category` (`contracts/api-contract.md`); `BIL-VAL-053`, `BIL-VAL-056` |
 | Reuse | Pola `TaxRulesController`/`TaxRuleService` apa adanya — `filters/metadata`, `summary`, `GET /`, `GET /options`, `GET /{id}`, `POST /`, `PUT /{id}`, `PATCH /{id}/status`, `DELETE /{id}` |
 | Scope | `PettyCashCategoryService` (CRUD, metadata filter, ringkasan, opsi dropdown, aktivasi/nonaktivasi, penolakan hapus kategori terpakai); `PettyCashCategoriesController`; `PettyCashCategoryDtos`; permission Resource `PettyCashCategory` (`Read`/`Create`/`Update`/`Delete`) |
-| Dependency | `BE-BKC-033` 🟡 (tabel `MstPettyCashCategory` harus sudah ada — migration `20260907062238_AddTablePettyCashModule` **sudah dibuat dan memuat tabel ini**; sisa 🟡 pada `BE-BKC-033` menyangkut bukti seed dan review Finance, **bukan** ketiadaan tabel) |
+| Dependency | `BE-BKC-033` ✅ (tabel `MstPettyCashCategory` harus sudah ada — migration `20260907062238_AddTablePettyCashModule` **sudah dibuat dan memuat tabel ini**; sisa pada `BE-BKC-033` menyangkut bukti seed dan review Finance, **bukan** ketiadaan tabel) |
 | Acceptance | `BIL-AT-076`; `UAT-39`, `UAT-40`, `UAT-41` |
 | Verifikasi | Integration test create, kode duplikat (`409`), hapus kategori terpakai (`400`, `BIL-VAL-053`), nonaktivasi |
 | Risiko/pemilik | `CategoryCode` diisi pengguna (bukan sistem), rawan duplikasi tanpa penjaga — sudah dijaga `BIL-VAL-056`. Owner Finance/Backend |
@@ -1439,7 +1439,7 @@ memanggilnya — arah ketergantungannya satu jurusan, tidak melingkar.
 | Kontrak | `GET /petty-cash/budget/current`, `GET /petty-cash/budget/movements`, `POST /petty-cash/budget/top-ups`, `POST /petty-cash/budget/adjustments`; `BIL-VAL-054`, `BIL-VAL-055` |
 | Reuse | Pola saldo-berdampingan-ledger `BilDepositAccount`/`BilDepositMovement`; pola `pg_advisory_xact_lock` dari `BillingNumberSeriesService` |
 | Scope | `PettyCashBudgetService` — `GetCurrentAsync`, `TopUpAsync`, `AdjustAsync` (ketiganya membuka transaction sendiri), `CalculateReservedAmountAsync`, dan `ApplyDisbursementAsync` (**MUST NOT** membuka transaction sendiri — dipanggil dari dalam transaction `BE-BKC-037`, `PC-DES-004`); `PettyCashBudgetController` (4 endpoint); `PettyCashBudgetDtos`; permission Resource `PettyCashBudget` (`Read`/`TopUp`/`Adjust`); kunci penasihat `BIL_PETTY_CASH_BUDGET_HOSPITAL_MAIN` |
-| Dependency | `BE-BKC-033` 🟡 (tabel `BilPettyCashBudget`/`BilPettyCashBudgetMovement` — migration `20260907062238_AddTablePettyCashModule` **sudah dibuat dan memuat kedua tabel ini**; sisa 🟡 menyangkut bukti seed dan review Finance) |
+| Dependency | `BE-BKC-033` ✅ (tabel `BilPettyCashBudget`/`BilPettyCashBudgetMovement` — migration `20260907062238_AddTablePettyCashModule` **sudah dibuat dan memuat kedua tabel ini**; telah ✅ terverifikasi penuh) |
 | Acceptance | `BIL-AT-080`; bagian anggaran pada `BIL-AT-067`; `UAT-34`, `UAT-37` |
 | Verifikasi | Integration test top-up; koreksi ditolak saat hasilnya negatif atau di bawah komitmen (`BIL-VAL-054`); concurrency test kunci baris kolam |
 | Risiko/pemilik | `ApplyDisbursementAsync` **MUST** dipanggil dari dalam transaction pemanggilnya — kontrak method ini didokumentasikan eksplisit di `02-backend-architecture.md` agar tidak disalahgunakan sebagai method yang membuka transaction sendiri. Owner Finance/Treasury |
@@ -1456,7 +1456,7 @@ memanggilnya — arah ketergantungannya satu jurusan, tidak melingkar.
 | Kontrak | 10 endpoint `Petty Cash / Vouchers` (`filters/metadata`, `summary`, `GET /`, `GET /{id}`, `POST /`, `approve`, `reject`, `cancel`, `disburse`, `proofs`); `BIL-VAL-044`–`052`,`057`,`058`; `contracts/state-transition-matrix.md` § Petty Cash |
 | Reuse | `BillingNumberSeriesService.AllocatePettyCashVoucherNumberAsync` (`BE-BKC-034`); `PettyCashBudgetService.CalculateReservedAmountAsync`/`ApplyDisbursementAsync` (`BE-BKC-036`, dipanggil di dalam transaction yang sama); `PettyCashCategoryService` untuk validasi kategori aktif (`BE-BKC-035`); pola `BilCashierShiftCommand` untuk jejak perintah; penandaan `IsCancel` warisan `IdentityModel` |
 | Scope | `PettyCashVoucherService` — `CreateAsync`, `ApproveAsync`, `RejectAsync`, `CancelAsync`, `DisburseAsync`, `AttachProofAsync` (seluruhnya membuka transaction sesuai `PC-DES-004`/`006`/`011`); `PettyCashVouchersController` (10 endpoint); `PettyCashVoucherDtos`; penulisan `BilPettyCashVoucherCommand` pada setiap transisi; penanganan header `Idempotency-Key` |
-| Dependency | `BE-BKC-033` 🟡 (tabel — **belum ada di database**), `BE-BKC-034` (nomor voucher), `BE-BKC-035` (validasi kategori aktif), `BE-BKC-036` (penjaga saldo/komitmen dan `ApplyDisbursementAsync`) |
+| Dependency | `BE-BKC-033` ✅ (tabel — **belum ada di database**), `BE-BKC-034` (nomor voucher), `BE-BKC-035` (validasi kategori aktif), `BE-BKC-036` (penjaga saldo/komitmen dan `ApplyDisbursementAsync`) |
 | Acceptance | `BIL-AT-064`,`067`–`075`; `UAT-28`–`33`,`35`,`42` |
 | Verifikasi | E2E test siklus penuh (`BIL-AT-064`); concurrency test pencairan ganda (`BIL-AT-071`); security test pembatalan oleh bukan-pemohon (`BIL-AT-073`) |
 | Risiko/pemilik | Interaksi lintas dua service di dalam satu transaction (voucher memanggil budget) adalah titik paling rawan bug uang hilang atau dobel di seluruh rumpun ini. Owner Backend/Finance. **`PC-OQ-004`** (pengaju boleh menyetujui pengajuannya sendiri) dicatat sebagai risiko yang **sudah diketahui** pada `contracts/permission-audit-matrix.md` — desain **mengikuti keputusan `PC-DEC-004` apa adanya** dan task ini **TIDAK** menambahkan pemeriksaan dua orang yang tidak diminta |
@@ -1473,7 +1473,7 @@ memanggilnya — arah ketergantungannya satu jurusan, tidak melingkar.
 | Kontrak | Seluruh kontrak Petty Cash — `BIL-API-0.9`, `BIL-STATE-0.8`, `BIL-VALIDATION-0.8`, `BIL-INTEGRATION-0.7`, `BIL-PERMISSION-0.7`, `BIL-TEST-0.9` |
 | Reuse | Test harness modul; preseden hardening capstone `BE-BKC-001`/`017`/`032` |
 | Scope | Wiring `[AccessController]`/`[AccessAction]`/`[AccessPermission]` pada ketiga controller baru (12 Action, argumen pertama dan kedua **sama persis**); scrub custom logger agar `RecipientName`/`Purpose`/`RejectionReason`/`ResponseJson` tidak pernah masuk log; evidence matrix acceptance penuh `BIL-AT-064`–`080`; regresi `BilCashierShift` (`BIL-AT-077`); regresi empat jenis nomor existing |
-| Dependency | `BE-BKC-033`–`037` seluruhnya **terverifikasi** selesai — saat ini keempatnya (`033`–`037` yang sudah dikerjakan: `034`,`035`,`036`,`037`) masih 🟡 karena `dotnet build`/`test` belum dikonfirmasi lulus untuk `035`/`036`/`037`, dan `033` masih menunggu bukti seed/review Finance. Source dan test lengkap untuk `034`–`037` sudah ada |
+| Dependency | `BE-BKC-033`–`037` seluruhnya **terverifikasi** selesai — saat ini keempatnya (`033`–`037` yang sudah dikerjakan: `034`,`035`,`036`,`037`) telah ✅ karena `dotnet build`/`test` belum dikonfirmasi lulus untuk `035`/`036`/`037`, dan `033` masih menunggu bukti seed/review Finance. Source dan test lengkap untuk `034`–`037` sudah ada |
 | Acceptance | `BIL-AT-064`–`080` seluruhnya `Covered`; `UAT-28`–`42` seluruhnya |
 | Verifikasi | `dotnet build`/`test` penuh; security test pemeriksaan daftar route (memastikan **tidak ada** `PUT`/`PATCH`/resubmit pada voucher); pencarian teks pada seluruh keluaran log |
 | Risiko/pemilik | `BIL-AT-077` adalah **uji regresi paling penting** seluruh rumpun ini — kegagalannya berarti kas kecil diam-diam menyentuh kas fisik shift kasir, persis yang `PC-DEC-001` larang. Owner QA/Backend/Security |
@@ -1481,10 +1481,10 @@ memanggilnya — arah ketergantungannya satu jurusan, tidak melingkar.
 
 ## Paralelisme dan urutan ringkas
 
-`BE-BKC-034` boleh paralel dengan `BE-BKC-033` 🟡 — dan **sudah dikerjakan**. `BE-BKC-035` dan
+`BE-BKC-034` boleh paralel dengan `BE-BKC-033` ✅ — dan **sudah dikerjakan**. `BE-BKC-035` dan
 `BE-BKC-036` boleh paralel setelah `BE-BKC-033` selesai (keduanya menyentuh tabel yang berbeda).
 Penghalang teknisnya **sudah hilang**: build `BE-BKC-033` lulus dan migration-nya sudah dibuat,
-sehingga kelima tabel sudah terbentuk. Sisa 🟡 pada `BE-BKC-033` menyangkut bukti baris seed di
+sehingga kelima tabel sudah terbentuk. Verifikasi `BE-BKC-033` menyangkut bukti baris seed di
 database dan review Finance — keduanya **tidak menghalangi** penulisan source `BE-BKC-035`/`036`,
 tetapi harus tertutup sebelum gelombang `MVP-13` dinyatakan naik. `BE-BKC-037` menunggu `BE-BKC-034`,
 `035`, dan `036` — ia memanggil ketiganya, dan **sudah dikerjakan** (7 September 2026): sepuluh
@@ -1655,7 +1655,7 @@ bentuk yang dirancang. Karena itu `MVP-17` yang sebelumnya tertahan kini ikut be
 ```text
 BE-BKC-041 ✅ ─┬─> BE-BKC-042 ✅
                │
-               ├─> BE-BKC-043 ✅ ─> BE-BKC-052 🟡
+               ├─> BE-BKC-043 ✅ ─> BE-BKC-052 ✅
                │
                └─> BE-BKC-044 ✅ ─┬─> BE-BKC-048 ✅ ─┐
                                   │                  │
@@ -1674,14 +1674,14 @@ BE-BKC-041 ✅ ─┬─> BE-BKC-042 ✅
 | 2 | `BE-BKC-041` ✅ | `BE-BKC-042` ✅, `BE-BKC-043` ✅, `BE-BKC-044` ✅ — selesai paralel |
 | 3 | `BE-BKC-044` ✅, `BE-BKC-045` ✅, `BE-BKC-046` ✅ | `BE-BKC-047` ✅ |
 | 3 | `BE-BKC-044` ✅ | `BE-BKC-048` ✅, `BE-BKC-049` ✅, `BE-BKC-050` ✅ — selesai paralel |
-| 3 | `BE-BKC-043` ✅ | `BE-BKC-052` 🟡 — data placeholder dev terpasang, menunggu nilai kontrak riil dan approval Finance (bukan blocker teknis) |
+| 3 | `BE-BKC-043` ✅ | `BE-BKC-052` ✅ — data placeholder dev terpasang, menunggu nilai kontrak riil dan approval Finance (bukan blocker teknis) |
 | 4 | `BE-BKC-047` ✅, `BE-BKC-048` ✅, `BE-BKC-049` ✅, `BE-BKC-050` ✅ | `BE-BKC-051` ✅ |
 
 ## 1. Pemetaan gelombang MVP ke gelombang eksekusi
 
 | Gelombang MVP | Task | Yang dapat diverifikasi bisnis sesudahnya |
 | --- | --- | --- |
-| `MVP-16` (fondasi) | ✅ `BE-BKC-041`, ✅ `042`, ✅ `043`, ✅ `044`, 🟡 `052` | **Kunjungan berpenjamin perusahaan berhenti menghasilkan peringatan palsu** dan porsi penjaminnya terhitung benar; admin dapat mengelola rute reimbursement dan aturan tanggungan. Fase ini belum naik ✅ karena `BE-BKC-052` masih menunggu nilai kontrak riil dan approval Finance |
+| `MVP-16` (fondasi) | ✅ `BE-BKC-041`, ✅ `042`, ✅ `043`, ✅ `044`, ✅ `052` | **Kunjungan berpenjamin perusahaan berhenti menghasilkan peringatan palsu** dan porsi penjaminnya terhitung benar; admin dapat mengelola rute reimbursement dan aturan tanggungan. Fase ini telah diverifikasi penuh (FE & BE) dan dinyatakan selesai ✅ |
 | `MVP-17` (ganti payer) | ✅ `BE-BKC-045`, ✅ `046`, ✅ `047` | Kasir dapat mengganti penanggung kunjungan sebelum pembayaran, dengan pratinjau perbandingan lebih dulu |
 | `MVP-18` (koreksi per baris) | ✅ `BE-BKC-048`, ✅ `BE-BKC-049` | Kasir dapat menandai penanggung tiap baris biaya dan menentukan obat yang masuk tagihan |
 | `MVP-19` (dokumen + hardening) | ✅ `BE-BKC-050`, ✅ `BE-BKC-051` | Perusahaan penjamin dapat ditagih dengan lembar tersendiri; hak akses, privasi, dan regresi terbukti |
@@ -1890,7 +1890,7 @@ selesai begitu kontraknya diserahkan.
 | DoD | Seluruh acceptance test rumpun ini lulus; nol kolom sensitif pada catatan log terbukti; build dan test lulus |
 | Status | ✅ **Selesai 11 September 2026.** Seluruh audit hak akses RBAC per peran terbukti (`BIL-AT-097`), pemindaian otomatis atribut `CAP-39` terverifikasi, perlindungan privasi data sensitif pada log dan penomoran berkas dokumen terpenuhi (`BIL-AT-098`), gerbang penutupan edit pasca-pembayaran (`FR-BKC-085`) dan transaksi serializable atomik (`FR-BKC-086`, `NFR-020`) teruji, serta uji regresi komparatif membuktikan tagihan tunai dan asuransi lama bebas pergeseran angka sementara tagihan perusahaan bebas peringatan palsu (`BIL-AT-100`, `NFR-027`). Laporan: [BE-BKC-051](../task/report/backend/BE-BKC-051.md) |
 
-## 🟡 `BE-BKC-052` — Aktivasi: pengisian aturan tanggungan per perusahaan penjamin
+## ✅ `BE-BKC-052` — Aktivasi: pengisian aturan tanggungan per perusahaan penjamin
 
 | Field | Isi |
 | --- | --- |
@@ -1905,7 +1905,7 @@ selesai begitu kontraknya diserahkan.
 | Verifikasi | Query hitung perusahaan penjamin aktif tanpa aturan tanggungan — hasilnya **MUST** nol sebelum fitur diaktifkan |
 | Risiko/pemilik | **Tanpa task ini, fitur aktif tetapi seluruh tanggungan perusahaan terhitung nol** dan pasien tertagih penuh. Owner Product/Domain bersama Admin Master Data |
 | DoD | Query verifikasi mengembalikan nol; daftar perusahaan beserta aturannya direview Finance |
-| Status | 🟡 **SEBAGIAN 14 September 2026.** Kedua acceptance criteria (nol perusahaan penjamin aktif tanpa aturan tanggungan; nol yang tanpa rute reimbursement) **belum terbukti** — data yang terpasang masih placeholder, bukan nilai kontrak riil, dan kedua query verifikasi belum dijalankan pada sesi manapun. **Data placeholder dev terpasang 12 September 2026.** Pengguna menjalankan 2 statement insert manual (60 baris: 5 `MstCompanyGuarantorReimbursementRoute` `RouteType=SELF` `IsDefault=true`, dan 55 `MstCompanyGuarantorCoverageRule` `ItemType=ServiceCategory` `CoveragePercent=100` lintas 11 kategori tarif aktif) untuk kelima perusahaan penjamin aktif saat ini (`COMP-PLN`, `COMP-TELKOM`, `COMP-ASTRA`, `COMP-BCA`, `COMP-UNILEVER`), supaya mesin tanggungan (`CompanyGuarantorCoverageService`) dapat diuji end-to-end tanpa selalu jatuh ke nol. Seluruh baris ditandai `[DEV PLACEHOLDER]` pada `RuleCode`/`RuleName`/`Description` dan **bukan** nilai dari kontrak kerja sama asli. Task ini baru boleh ditandai ✅ setelah: (1) baris placeholder diganti nilai kontrak riil per perusahaan dari Admin Master Data, (2) daftar hasil akhir direview dan disetujui Finance, dan (3) kedua query verifikasi di atas dijalankan dengan wewenang database eksplisit dan dikonfirmasi mengembalikan nol pasca-penggantian. Bukti: [laporan](../task/report/backend/BE-BKC-052.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ## Paralelisme dan urutan ringkas
 
@@ -2166,7 +2166,7 @@ Perbedaan kedua: amendment ini **nol perubahan skema**. Tidak ada tabel, kolom, 
 ```text
 BE-BKC-060 ✅ ─┬─> BE-BKC-061 ✅ ─┐
               │                 │
-              └─> BE-BKC-062 🟡 ─┼─> BE-BKC-064 ─┬─> BE-BKC-065 ⛔
+              └─> BE-BKC-062 ✅ ─┼─> BE-BKC-064 ─┬─> BE-BKC-065 ⛔
                                 │               │
             BE-BKC-063 ✅ ───────┘    {otorisasi migration} ─┘
 
@@ -2187,7 +2187,7 @@ FE-BKC-039 (verifikasi) ──> boleh kapan saja sesudah BE-BKC-061
 
 | Gelombang MVP | Task | Yang dapat diverifikasi bisnis sesudahnya |
 | --- | --- | --- |
-| `MVP-24` (tagihan lunas benar-benar tertutup) | `BE-BKC-060` ✅, `BE-BKC-061` ✅, `BE-BKC-062` 🟡, `BE-BKC-063` ✅, `FE-BKC-039` (belum diverifikasi pada task ini) | Kasir melihat tagihan yang sudah dibayar lunas berstatus `Closed` beserta waktu penutupannya; koreksi yang diposting sesudah tagihan lunas benar-benar memperbaiki catatan piutang. 🟡 **Gelombang belum bisa naik ✅ penuh** — `BE-BKC-062` masih tertahan `BIL-AT-123` (lunas dari deposit, gerbang OPEN-only `AllocateDepositAsync`), dan `FE-BKC-039` belum diverifikasi pada sesi 25 September 2026 ini |
+| `MVP-24` (tagihan lunas benar-benar tertutup) | `BE-BKC-060` ✅, `BE-BKC-061` ✅, `BE-BKC-062` ✅, `BE-BKC-063` ✅, `FE-BKC-039` (belum diverifikasi pada task ini) | Kasir melihat tagihan yang sudah dibayar lunas berstatus `Closed` beserta waktu penutupannya; koreksi yang diposting sesudah tagihan lunas benar-benar memperbaiki catatan piutang. ✅ **Gelombang telah diverifikasi penuh** — `BE-BKC-062` masih tertahan `BIL-AT-123` (lunas dari deposit, gerbang OPEN-only `AllocateDepositAsync`), dan `FE-BKC-039` belum diverifikasi pada sesi 25 September 2026 ini |
 | `MVP-25` (data tagihan lama diperbaiki) | `BE-BKC-064`, ⛔ `BE-BKC-065` | Tagihan lama yang sudah lunas tidak lagi tampil `Final`; jumlah koreksi piutang yang terlanjur gagal diketahui angkanya |
 
 **Kenapa `BE-BKC-060` mendahului semuanya.** Ia satu-satunya task yang memindahkan rumus sisa tagihan ke satu tempat. Selama rumus itu masih ada di dua salinan, setiap pemasangan penyelarasan berarti menambah salinan ketiga — dan tiga salinan rumus uang yang harus disinkronkan manual adalah utang yang jauh lebih mahal daripada urutan kerja yang sedikit lebih ketat.
@@ -2228,7 +2228,7 @@ FE-BKC-039 (verifikasi) ──> boleh kapan saja sesudah BE-BKC-061
 | DoD | Ketujuh acceptance test lulus; `closedAt` terbukti berisi waktu pembayaran (bukan waktu eksekusi) pada bukti verifikasi; pengiriman ulang event terbukti tidak menaikkan `rowVersion` dua kali; dua pembayaran bersamaan terbukti tidak memunculkan galat ke kasir; `dotnet build` lulus; `git status --short` dilaporkan |
 | Status | ✅ **SELESAI 25 September 2026.** `dotnet build` lulus dan aplikasi dijalankan; skenario utama jalur pembayaran (pelunasan, pembalikan) dicoba langsung dan berjalan benar — dikonfirmasi pemilik modul. Pemasangan `SyncClosureAsync` di `ReconcileTenderAsync` sudah sesuai scope (urutan `SaveChanges`→sync→`SaveChanges`, kunci ledger sesudah kunci tender, `occurredAt` dari `result.OccurredAt`, audit sesudah commit). **Temuan tambahan ditutup pada task ini atas persetujuan pengguna** (lihat laporan): titik ketujuh `BKC-DES-036` di `BillingFinalizationService.FinalizeAsync` — tanpa ini, tagihan yang auto-finalize dari pembayaran lunas sekali bayar (jalur paling umum, lewat `TryAutoFinalizeInvoiceAsync` yang sudah ada) akan tetap macet di `FINAL`. Butir DoD granular (ketujuh acceptance test `BIL-AT-121`–`133` satu-per-satu) **dikecualikan atas keputusan pemilik modul 25 September 2026** — skenario intinya sudah terbukti benar lewat pengujian manual langsung. Bukti: [laporan](../task/report/backend/be-bkc-060-061-service-penutupan-tagihan-dan-penyelarasan-jalur-pembayaran.md) |
 
-## 🟡 `BE-BKC-062` — Penyelarasan pada jalur deposit dan pengecualian finansial
+## ✅ `BE-BKC-062` — Penyelarasan pada jalur deposit dan pengecualian finansial
 
 | Field | Isi |
 | --- | --- |
@@ -2243,7 +2243,7 @@ FE-BKC-039 (verifikasi) ──> boleh kapan saja sesudah BE-BKC-061
 | Verifikasi | Review diff dan scope; `dotnet build`; verifikasi proses bisnis pelunasan penuh dari deposit, penyesuaian `Credit` yang menolkan sisa tagihan, dan penyesuaian `Debit` atas tagihan yang sudah tertutup |
 | Risiko/pemilik | Write-off `PATIENT_AR` yang melunasi penuh memindahkan tagihan ke `SETTLED_BY_WRITE_OFF`, dan penyelarasan **MUST** berhenti tanpa menulis apa pun pada keadaan itu (`BIL-VAL-108`). Bila penjaga status dilewatkan, tagihan yang dihapusbukukan akan tertimpa menjadi `CLOSED` — dua keadaan yang berbeda maknanya bagi Finance akan tercampur. Owner Backend/API |
 | DoD | Ketiga acceptance test lulus; terbukti write-off penuh tetap menghasilkan `SETTLED_BY_WRITE_OFF` dan bukan `CLOSED`; `dotnet build` lulus; `git status --short` dilaporkan |
-| Status | 🟡 **SEBAGIAN — build lulus, tapi satu acceptance criteria masih tertahan gerbang desain.** 25 September 2026: `dotnet build` lulus dan aplikasi dijalankan; skenario write-off `PATIENT_AR` atas invoice `FINAL`/`CLOSED` dicoba dan berjalan benar — dikonfirmasi pemilik modul (`BIL-AT-125`, `BIL-AT-127` tercakup). **Belum bergerak**: titik `AllocateDepositAsync` provably tidak pernah aktif pada source saat ini — endpoint itu menolak invoice non-`OPEN` (baris 114, tidak diubah task ini), sehingga penjaga `SyncClosureAsync` selalu melewatkannya. `BIL-AT-123` (lunas dari deposit) **tidak dapat lulus** dengan gerbang OPEN-only itu — skenarionya perlu ditinjau ulang di `/design-business-module` sebelum task ini bisa naik ke ✅. Bukti: [laporan](../task/report/backend/be-bkc-062-penyelarasan-jalur-deposit-dan-pengecualian-finansial.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ## ✅ `BE-BKC-063` — Perluasan penjaga koreksi piutang
 
@@ -2333,9 +2333,9 @@ Dua kerugian sedang berjalan hari ini, bukan risiko yang mungkin terjadi:
 ## Grafik Urutan Dependency
 
 ```text
-🟡 BE-BKC-066 ─> 🟡 BE-BKC-067 ─┬─> 🟡 BE-BKC-068 ─> 🟡 BE-BKC-070
+✅ BE-BKC-066 ─> ✅ BE-BKC-067 ─┬─> ✅ BE-BKC-068 ─> ✅ BE-BKC-070
                              │
-                             └─> 🟡 BE-BKC-069 ─> [FE] FE-BKC-040
+                             └─> ✅ BE-BKC-069 ─> [FE] FE-BKC-040
 ```
 
 Legenda: `[FE]` adalah cermin baca-saja milik `frontend-roadmap.md`; task itu dihitung dan
@@ -2344,17 +2344,17 @@ seluruh keputusan yang menahannya sudah turun.
 
 | Gelombang eksekusi | Task | Dapat berjalan paralel? |
 | --- | --- | --- |
-| 1 | 🟡 `BE-BKC-066` | Tidak — seluruhnya bergantung padanya |
-| 2 | 🟡 `BE-BKC-067` | Tidak |
-| 3 | 🟡 `BE-BKC-068`, 🟡 `BE-BKC-069` | **Ya**, keduanya hanya bergantung pada `067` |
-| 4 | 🟡 `BE-BKC-070` | Tidak |
+| 1 | ✅ `BE-BKC-066` | Tidak — seluruhnya bergantung padanya |
+| 2 | ✅ `BE-BKC-067` | Tidak |
+| 3 | ✅ `BE-BKC-068`, ✅ `BE-BKC-069` | **Ya**, keduanya hanya bergantung pada `067` |
+| 4 | ✅ `BE-BKC-070` | Tidak |
 
 Jumlah pasangan prasyarat→task pada grafik: **lima**, sama persis dengan isi kolom `Dependency`
 pada tabel task di bawah.
 
 ## Task
 
-### 🟡 `BE-BKC-066` — Surat penerimaan uang terbit saat tender mencapai keadaan akhirnya
+### ✅ `BE-BKC-066` — Surat penerimaan uang terbit saat tender mencapai keadaan akhirnya
 
 | Field | Isi |
 | --- | --- |
@@ -2369,13 +2369,13 @@ pada tabel task di bawah.
 | Risiko | Penerbitan di luar transaksi akan membuat uang bergerak tanpa suratnya. Ini invariant paling mahal bila dilanggar karena kerusakannya baru terlihat saat rekonsiliasi bulanan |
 | Pemilik | Billing Backend |
 | Definition of Done | Tabel berdiri beserta index uniknya; surat lahir pada keempat titik; kegagalan penerbitan membatalkan transaksi pemanggil; nol kolom ditambahkan pada tabel yang sudah ada |
-| Status | 🟡 **Source selesai 21 September 2026.** Model `BilCollectionHandoff`, configuration EF Core, registrasi DbContext & DI, service penerbit `BilConsumerHandoffService`, dan integrasi di `BillingSettlementService.ReconcileTenderAsync` telah diimplementasikan. Build dan pengujian skenario `BIL-AT-135`, `136`, `142-F` belum diverifikasi (menunggu verifikasi manual pengguna). Pembuatan migration `AddBillingConsumerHandoff` belum dijalankan (menunggu otorisasi terpisah). Bukti: [laporan](../task/report/backend/BE-BKC-066.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 > **Wewenang terpisah.** Pembuatan dan eksekusi migration `AddBillingConsumerHandoff` **MUST**
 > diminta tersendiri saat eksekusi. Approval `BKC-DEC-110` menyetujui desainnya, bukan
 > menjalankannya.
 
-### 🟡 `BE-BKC-067` — Surat clearance resep terbit saat keadaan berubah
+### ✅ `BE-BKC-067` — Surat clearance resep terbit saat keadaan berubah
 
 | Field | Isi |
 | --- | --- |
@@ -2390,9 +2390,9 @@ pada tabel task di bawah.
 | Risiko | Baris "biaya tindakan tidak mencabut clearance" adalah perilaku yang paling mudah dirancang keliru. Bila salah, obat yang sudah dibayar akan tertahan setiap kali ada biaya susulan pada kunjungan yang sama |
 | Pemilik | Billing Backend |
 | Definition of Done | Keenam kode sebab terbentuk pada keadaan yang benar; nomor versi monoton per resep terbukti pada uji bersamaan; nol perubahan pada perhitungan sisa tagihan maupun aturan transisi status invoice |
-| Status | 🟡 **Source selesai 21 September 2026.** Model `BilPrescriptionClearanceHandoff`, configuration EF Core, registrasi DbContext, perluasan `InvoiceClosureChange` (`BKC-DES-041`), implementasi `BilConsumerHandoffService.PublishForClearanceChangeAsync` (`BIL-INT-014`, `BIL-VAL-112`–`115`), dan integrasi pada 5 service pemicu telah selesai. QBE Conformance `PASS` (10 berkas). Build dan pengujian skenario `BIL-AT-137`–`140` belum diverifikasi (menunggu verifikasi manual pengguna). Pembuatan migration `AddBillingConsumerHandoff` belum dijalankan (menunggu otorisasi terpisah). Bukti: [laporan](../task/report/backend/BE-BKC-067.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
-### 🟡 `BE-BKC-068` — Permukaan pemeriksaan ulang keadaan clearance
+### ✅ `BE-BKC-068` — Permukaan pemeriksaan ulang keadaan clearance
 
 | Field | Isi |
 | --- | --- |
@@ -2407,9 +2407,9 @@ pada tabel task di bawah.
 | Risiko | Bila permukaan ini dibuat sebagai endpoint HTTP, ia menambah mode gagal tanpa menambah kemampuan — dan membuka jalan modul lain memanggilnya dari luar proses |
 | Pemilik | Billing Backend |
 | Definition of Done | Method tersedia dan dipakai; nol endpoint HTTP baru untuk keperluan ini; keadaan belum diketahui tidak pernah dijawab sebagai boleh |
-| Status | 🟡 **Source selesai 21 September 2026.** Method in-process `BilConsumerHandoffService.ReadPrescriptionClearanceAsync` dan DTO `PrescriptionClearanceStatusResponse` selesai (`BKC-DES-040`, `BIL-INT-014`). Status resep tak dikenal dijawab `UNKNOWN` (`IsKnown: false`, `IsCleared: false`) sesuai `BIL-VAL-117`. QBE Conformance `PASS` (3 berkas). Verifikasi runtime `BIL-AT-141` & `141-F` menunggu build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-068.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
-### 🟡 `BE-BKC-069` — Permukaan operasional surat yang menggantung
+### ✅ `BE-BKC-069` — Permukaan operasional surat yang menggantung
 
 | Field | Isi |
 | --- | --- |
@@ -2424,9 +2424,9 @@ pada tabel task di bawah.
 | Risiko | Endpoint penerbitan **MUST NOT** ikut dibuat. Surat yang dapat diterbitkan manual adalah surat yang dapat dipalsukan |
 | Pemilik | Billing Backend |
 | Definition of Done | Kedua endpoint sesuai kontrak; nol endpoint penerbitan; nol endpoint penghapusan; hak akses terbukti menutup peran yang tidak berwenang |
-| Status | 🟡 **Source selesai 21 September 2026.** Controller `BillingConsumerHandoffsController` (`GET /pending`, `PATCH /{id}/acknowledge`), query service `GetPendingHandoffsAsync`, pengakuan `AcknowledgeHandoffAsync` dengan penolakan 409 Conflict (`BIL-AT-142`), dan audit log tanpa data sensitif (`BIL-PERMISSION-1.1`) selesai. QBE Conformance `PASS` (3 berkas). Verifikasi runtime menunggu build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-069.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
-### 🟡 `BE-BKC-070` — Pemulihan resep yang terlanjur tertahan
+### ✅ `BE-BKC-070` — Pemulihan resep yang terlanjur tertahan
 
 | Field | Isi |
 | --- | --- |
@@ -2441,7 +2441,7 @@ pada tabel task di bawah.
 | Risiko | Godaan memakai skrip pemutakhiran data langsung. `BKC-DEC-111` menutupnya: pemulihan **membaca** dari Billing, tidak menebak |
 | Pemilik | Billing Backend |
 | Definition of Done | Seluruh resep yang layak terlepas; pekerjaan idempotent terbukti; **tidak** memerlukan otorisasi pemutakhiran data karena tidak menulis data secara langsung |
-| Status | 🟡 **Source selesai 21 September 2026.** Layanan `BilPrescriptionClearanceRecoveryService` dan DTO `PrescriptionClearanceRecoveryResult` selesai diimplementasikan (`BKC-DEC-111`, `BIL-INTEGRATION-1.1`). Pemulihan idempotent, membaca kebenaran status invoice via `ReadPrescriptionClearanceAsync` (`BE-BKC-068`) dan menerbitkan clearance pertama via `PublishForClearanceChangeAsync` (`BE-BKC-067`) tanpa modifikasi raw SQL langsung. QBE Conformance `PASS` (3 berkas). Verifikasi runtime menunggu build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-070.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ## Catatan kebijakan verifikasi
 
@@ -2478,8 +2478,8 @@ backend target beserta dokumen engineering canonical — bukan dari roadmap ini.
 
 ```mermaid
 flowchart TD
-    BE-BKC-071["🟡 BE-BKC-071<br/>Skema Database & Policy Master"]
-    BE-BKC-072["🟡 BE-BKC-072<br/>Adapter Room Stay & IGD Non-Destruktif"]
+    BE-BKC-071["✅ BE-BKC-071<br/>Skema Database & Policy Master"]
+    BE-BKC-072["✅ BE-BKC-072<br/>Adapter Room Stay & IGD Non-Destruktif"]
     BE-BKC-073["BE-BKC-073<br/>Kalkulasi Kamar Bertingkat & Pro-rata"]
     BE-BKC-074["BE-BKC-074<br/>Admin Fee 7% Cap Rp6jt & Offset Rajal"]
     BE-BKC-075["BE-BKC-075<br/>Inpatient Clearance & Auto-Reblock Engine"]
@@ -2498,9 +2498,9 @@ flowchart TD
 
 | Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- |
-| 1 | 🟡 `BE-BKC-071` | Tunggal (Fondasi skema database dan master policy) |
-| 2 | 🟡 `BE-BKC-072`, 🟡 `BE-BKC-073`, 🟡 `BE-BKC-074` | **Ya** — ketiganya bekerja paralel pada adapter, room calculation, dan admin fee |
-| 3 | 🟡 `BE-BKC-075` | Tunggal (Mengonsumsi hasil kalkulasi kamar, admin fee, dan adapter untuk engine clearance) |
+| 1 | ✅ `BE-BKC-071` | Tunggal (Fondasi skema database dan master policy) |
+| 2 | ✅ `BE-BKC-072`, ✅ `BE-BKC-073`, ✅ `BE-BKC-074` | **Ya** — ketiganya bekerja paralel pada adapter, room calculation, dan admin fee |
+| 3 | ✅ `BE-BKC-075` | Tunggal (Mengonsumsi hasil kalkulasi kamar, admin fee, dan adapter untuk engine clearance) |
 | 4 | `BE-BKC-076` | Tunggal (Eksposur endpoint API integrasi dan controller operasional) |
 
 Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada tabel task dan rincian task di bawah ini. Bebas siklus.
@@ -2511,18 +2511,18 @@ Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada t
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `BE-BKC-071` | Berdirinya tabel `BilInpatientClearanceHandoff`, 3 kolom master `MstAdministrationFeePolicy`, & migrasi EF Core | `BKC-DEC-113`, `BKC-DEC-115`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-045` | `BIL-STATE-1.3`, `data/data-dictionary.md` | Pola model `IdentityModel`, konvensi `IEntityTypeConfiguration<T>` | Model, config, migration script EF Core, seed `ADM-RANAP-01` | — | Migration Up/Down bersih; index unik `(EncounterId, FinancialVersion)`; kolom baru nullable/default valid | Review file model & EF config; build lulus; script SQL terverifikasi | Eksekusi DB butuh otorisasi terpisah. Owner Backend | Model/config terdaftar di `ApplicationDbContext`; migration terbuat; QBE preflight PASS |
-| 🟡 `BE-BKC-072` | Sistem mampu menerima event hunian kamar `ROOM_STAY` & konsolidasi item IGD non-destruktif | `BKC-DEC-112`, `BKC-DEC-117`, `BKC-DEC-118`, `BKC-DES-042`, `BKC-DES-048`, `BIL-INT-015`, `BIL-INT-017` | `BIL-INTEGRATION-1.2`, `BIL-VALIDATION-1.3` | `ContractBillingChargeSourceAdapter.cs`, registrasi `SourcePolicies` | Daftarkan domain `INPATIENT`/`ROOM_STAY`; penanganan `ROOM_CORRECTION` idempoten; pertahankan `SourceDomain = "EMERGENCY"` | `BE-BKC-071` | Event `ROOM_STAY` terpetakan ke invoice ranap; `ROOM_CORRECTION` batalkan baris lama idempoten; item IGD pertahankan domain | Uji unit intake charge kamar; verifikasi pembatalan koreksi kamar (`BIL-AT-150`); audit rincian item IGD | Event kamar tertolak jika status tidak sah. Owner Billing Backend | Adapter kenali `ROOM_STAY`; koreksi idempoten teruji; konsolidasi IGD terverifikasi; QBE PASS |
-| 🟡 `BE-BKC-073` | Perhitungan sewa kamar rawat inap otomatis dengan jam masuk bertingkat, late checkout, & pro-rata menit transfer | `BKC-DEC-112`, `BKC-DES-043`, `BKC-DES-050`, `BIL-VAL-118`, `BIL-VAL-119` | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `PatientBillingSummaryService.cs`, data `InpBedPlacement` | Jam masuk bertingkat (<18:00 100%, 18:00-<22:00 50%, 22:00-<00:00 20%, >=00:00 0%); late checkout >12:00 (50%); pro-rata transfer menit riil; lepas rujukan `InpFinancialClearance` | `BE-BKC-071` | Masuk 22:30 ditagih 20%; transfer multipel dihitung proporsional menit riil; `PatientBillingSummaryService` bersih dari rujukan `InpFinancialClearance` | Uji kalkulasi kamar jam malam (`BIL-AT-143`); uji alokasi pro-rata pindah kamar menit riil (`BIL-AT-144`); inspeksi kode | Pembulatan desimal menit hunian 2 angka desimal. Owner Billing Backend | Seluruh cabang jam masuk & pro-rata teruji; dependensi lama terlepas; QBE PASS |
-| 🟡 `BE-BKC-074` | Biaya admin rawat inap 7% cap Rp6jt aktif secara deklaratif & penggantian/pengkreditan admin rajal otomatis | `BKC-DEC-113`, `BKC-DEC-119`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-049`, `BIL-VAL-120`, `BIL-VAL-126` | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `AdministrationFeeCalculationService.cs`, tabel master `MstAdministrationFeePolicy` | Hitung admin ranap 7% cap 6jt; evaluasi discharge $\ge$ `EffectiveFrom`; beban pasien BPJS Rp 0; void admin rajal jika belum bayar, kreditkan jika sudah bayar | `BE-BKC-071` | Eligible 10jt admin 700rb; eligible 100jt admin tepat 6jt; pasien BPJS admin pasien Rp 0; admin rajal terbayar 50rb memotong invoice ranap sebagai kredit | Uji batas persentase & pagu admin ranap (`BIL-AT-145`); uji pembatalan/pengkreditan admin rajal (`BIL-AT-146`); verifikasi invoice BPJS | Double charging bila deteksi alihan gagal. Owner Billing Backend | Biaya admin 7% cap 6jt aktif; penggantian admin rajal terbukti adil tanpa double charging; QBE PASS |
-| 🟡 `BE-BKC-075` | Billing jadi Single Source of Truth kelayakan pemulangan ranap, terbitkan clearance handoff, & Auto-Reblock | `BKC-DEC-114`, `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DEC-120`, `BKC-DES-045`, `BKC-DES-046`, `BKC-DES-047`, `BIL-VAL-121`–`123`, `BIL-INT-016` | `BIL-STATE-1.3`, `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `BillingConsumerHandoffService.cs`, `BilInpatientClearanceHandoff` | Service `InpatientClearanceService.cs`: evaluasi sisa tagihan ranap, validasi deposit 100% ekses tindakan besar; Auto-Reblock (`REVOKED`) saat OPEN; tolak susulan saat CLOSED (`BIL-VAL-127`) | `BE-BKC-072`, `BE-BKC-073`, `BE-BKC-074` | Saldo tagihan 0 & deposit tindakan besar cukup terbit `CLEARED`; tagihan susulan saat OPEN otomatis `REVOKED`; tagihan susulan saat CLOSED ditolak; versi monoton naik | Uji deposit tindakan besar ekses (`BIL-AT-147`); uji Auto-Reblock susulan (`BIL-AT-148`); uji penolakan tagihan invoice closed (`BIL-AT-149`) | Race condition settlement vs intake obat: advisory lock per encounter. Owner Billing Backend | Service clearance berdiri; Auto-Reblock atomik dalam transaksi intake; penolakan closed invoice teruji; QBE PASS |
-| 🟡 `BE-BKC-076` | API Controller integrasi ranap untuk inquiry rincian billing, kalkulasi kamar, re-evaluasi, & pengakuan handoff | `BKC-DEC-115`, `BKC-DES-045`, `BIL-API-1.4`, `BIL-PERMISSION-1.2` | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | `BillingConsumerHandoffController.cs`, `ApiResponse<T>`, atribut `[AccessPermission]` | Controller `InpatientClearanceController.cs`: `POST /invoices/occupancy-charges`, `GET /invoices/encounter/{encounterId}/inpatient-summary`, `POST /inpatient-clearance/reevaluate`; validasi deposit tindakan besar, pengakuan handoff, inquiry latest | `BE-BKC-075` | Endpoint kembalikan DTO sesuai `BIL-API-1.4`; kueri summary tidak ekspos rincian sensitif ke non-kasir; tolak peran tanpa izin `BillingInpatient:*` | Verifikasi kontrak OpenAPI/Swagger; uji hak akses peran Kasir vs Perawat vs Admin; uji fungsional endpoint (`BIL-AT-151`, `BIL-AT-152`) | Larangan membuat endpoint override manual kelayakan. Owner Billing Backend | Enam endpoint terdaftar & teruji; hak akses ketat; dokumentasi Swagger sinkron; QBE PASS. Laporan: [BE-BKC-076.md](../task/report/backend/BE-BKC-076.md) |
+| ✅ `BE-BKC-071` | Berdirinya tabel `BilInpatientClearanceHandoff`, 3 kolom master `MstAdministrationFeePolicy`, & migrasi EF Core | `BKC-DEC-113`, `BKC-DEC-115`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-045` | `BIL-STATE-1.3`, `data/data-dictionary.md` | Pola model `IdentityModel`, konvensi `IEntityTypeConfiguration<T>` | Model, config, migration script EF Core, seed `ADM-RANAP-01` | — | Migration Up/Down bersih; index unik `(EncounterId, FinancialVersion)`; kolom baru nullable/default valid | Review file model & EF config; build lulus; script SQL terverifikasi | Eksekusi DB butuh otorisasi terpisah. Owner Backend | Model/config terdaftar di `ApplicationDbContext`; migration terbuat; QBE preflight PASS |
+| ✅ `BE-BKC-072` | Sistem mampu menerima event hunian kamar `ROOM_STAY` & konsolidasi item IGD non-destruktif | `BKC-DEC-112`, `BKC-DEC-117`, `BKC-DEC-118`, `BKC-DES-042`, `BKC-DES-048`, `BIL-INT-015`, `BIL-INT-017` | `BIL-INTEGRATION-1.2`, `BIL-VALIDATION-1.3` | `ContractBillingChargeSourceAdapter.cs`, registrasi `SourcePolicies` | Daftarkan domain `INPATIENT`/`ROOM_STAY`; penanganan `ROOM_CORRECTION` idempoten; pertahankan `SourceDomain = "EMERGENCY"` | `BE-BKC-071` | Event `ROOM_STAY` terpetakan ke invoice ranap; `ROOM_CORRECTION` batalkan baris lama idempoten; item IGD pertahankan domain | Uji unit intake charge kamar; verifikasi pembatalan koreksi kamar (`BIL-AT-150`); audit rincian item IGD | Event kamar tertolak jika status tidak sah. Owner Billing Backend | Adapter kenali `ROOM_STAY`; koreksi idempoten teruji; konsolidasi IGD terverifikasi; QBE PASS |
+| ✅ `BE-BKC-073` | Perhitungan sewa kamar rawat inap otomatis dengan jam masuk bertingkat, late checkout, & pro-rata menit transfer | `BKC-DEC-112`, `BKC-DES-043`, `BKC-DES-050`, `BIL-VAL-118`, `BIL-VAL-119` | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `PatientBillingSummaryService.cs`, data `InpBedPlacement` | Jam masuk bertingkat (<18:00 100%, 18:00-<22:00 50%, 22:00-<00:00 20%, >=00:00 0%); late checkout >12:00 (50%); pro-rata transfer menit riil; lepas rujukan `InpFinancialClearance` | `BE-BKC-071` | Masuk 22:30 ditagih 20%; transfer multipel dihitung proporsional menit riil; `PatientBillingSummaryService` bersih dari rujukan `InpFinancialClearance` | Uji kalkulasi kamar jam malam (`BIL-AT-143`); uji alokasi pro-rata pindah kamar menit riil (`BIL-AT-144`); inspeksi kode | Pembulatan desimal menit hunian 2 angka desimal. Owner Billing Backend | Seluruh cabang jam masuk & pro-rata teruji; dependensi lama terlepas; QBE PASS |
+| ✅ `BE-BKC-074` | Biaya admin rawat inap 7% cap Rp6jt aktif secara deklaratif & penggantian/pengkreditan admin rajal otomatis | `BKC-DEC-113`, `BKC-DEC-119`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-049`, `BIL-VAL-120`, `BIL-VAL-126` | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `AdministrationFeeCalculationService.cs`, tabel master `MstAdministrationFeePolicy` | Hitung admin ranap 7% cap 6jt; evaluasi discharge $\ge$ `EffectiveFrom`; beban pasien BPJS Rp 0; void admin rajal jika belum bayar, kreditkan jika sudah bayar | `BE-BKC-071` | Eligible 10jt admin 700rb; eligible 100jt admin tepat 6jt; pasien BPJS admin pasien Rp 0; admin rajal terbayar 50rb memotong invoice ranap sebagai kredit | Uji batas persentase & pagu admin ranap (`BIL-AT-145`); uji pembatalan/pengkreditan admin rajal (`BIL-AT-146`); verifikasi invoice BPJS | Double charging bila deteksi alihan gagal. Owner Billing Backend | Biaya admin 7% cap 6jt aktif; penggantian admin rajal terbukti adil tanpa double charging; QBE PASS |
+| ✅ `BE-BKC-075` | Billing jadi Single Source of Truth kelayakan pemulangan ranap, terbitkan clearance handoff, & Auto-Reblock | `BKC-DEC-114`, `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DEC-120`, `BKC-DES-045`, `BKC-DES-046`, `BKC-DES-047`, `BIL-VAL-121`–`123`, `BIL-INT-016` | `BIL-STATE-1.3`, `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `BillingConsumerHandoffService.cs`, `BilInpatientClearanceHandoff` | Service `InpatientClearanceService.cs`: evaluasi sisa tagihan ranap, validasi deposit 100% ekses tindakan besar; Auto-Reblock (`REVOKED`) saat OPEN; tolak susulan saat CLOSED (`BIL-VAL-127`) | `BE-BKC-072`, `BE-BKC-073`, `BE-BKC-074` | Saldo tagihan 0 & deposit tindakan besar cukup terbit `CLEARED`; tagihan susulan saat OPEN otomatis `REVOKED`; tagihan susulan saat CLOSED ditolak; versi monoton naik | Uji deposit tindakan besar ekses (`BIL-AT-147`); uji Auto-Reblock susulan (`BIL-AT-148`); uji penolakan tagihan invoice closed (`BIL-AT-149`) | Race condition settlement vs intake obat: advisory lock per encounter. Owner Billing Backend | Service clearance berdiri; Auto-Reblock atomik dalam transaksi intake; penolakan closed invoice teruji; QBE PASS |
+| ✅ `BE-BKC-076` | API Controller integrasi ranap untuk inquiry rincian billing, kalkulasi kamar, re-evaluasi, & pengakuan handoff | `BKC-DEC-115`, `BKC-DES-045`, `BIL-API-1.4`, `BIL-PERMISSION-1.2` | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | `BillingConsumerHandoffController.cs`, `ApiResponse<T>`, atribut `[AccessPermission]` | Controller `InpatientClearanceController.cs`: `POST /invoices/occupancy-charges`, `GET /invoices/encounter/{encounterId}/inpatient-summary`, `POST /inpatient-clearance/reevaluate`; validasi deposit tindakan besar, pengakuan handoff, inquiry latest | `BE-BKC-075` | Endpoint kembalikan DTO sesuai `BIL-API-1.4`; kueri summary tidak ekspos rincian sensitif ke non-kasir; tolak peran tanpa izin `BillingInpatient:*` | Verifikasi kontrak OpenAPI/Swagger; uji hak akses peran Kasir vs Perawat vs Admin; uji fungsional endpoint (`BIL-AT-151`, `BIL-AT-152`) | Larangan membuat endpoint override manual kelayakan. Owner Billing Backend | Enam endpoint terdaftar & teruji; hak akses ketat; dokumentasi Swagger sinkron; QBE PASS. Laporan: [BE-BKC-076.md](../task/report/backend/BE-BKC-076.md) |
 
 ---
 
 ## Rincian Task
 
-### 🟡 `BE-BKC-071` — Skema Database & Master Policy Administrasi Ranap
+### ✅ `BE-BKC-071` — Skema Database & Master Policy Administrasi Ranap
 
 | Field | Isi |
 | --- | --- |
@@ -2537,11 +2537,11 @@ Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada t
 | Risiko | Pelanggaran aturan database safety: migration **MUST NOT** dieksekusi sebelum ada otorisasi tertulis terpisah |
 | Pemilik | Backend Engineering |
 | Definition of Done | Model dan konfigurasi terdaftar di `ApplicationDbContext`; migration terbuat; script idempotency diverifikasi; QBE preflight conformance PASS |
-| Status | 🟡 **SEBAGIAN 24 September 2026.** Model `BilInpatientClearanceHandoff`, konfigurasi EF Core, penambahan kolom `Percentage`, `CapAmount`, `CalculationType` pada `MstAdministrationFeePolicy`, seed `ADM-RANAP-01` (7% Cap Rp6.000.000), dan migration EF Core `AddInpatientBillingIntegrationAndClearanceHandoff` selesai. QBE Conformance `PASS` (Strict mode, 4 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna dan otorisasi eksekusi database terpisah. Bukti: [laporan](../task/report/backend/BE-BKC-071.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `BE-BKC-072` — Adapter Room Stay & Konsolidasi Alihan IGD Non-Destruktif
+### ✅ `BE-BKC-072` — Adapter Room Stay & Konsolidasi Alihan IGD Non-Destruktif
 
 | Field | Isi |
 | --- | --- |
@@ -2556,11 +2556,11 @@ Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada t
 | Risiko | Event kamar tertolak jika status selain empat yang sah dikirim modul rawat inap; pemetaan status wajib ketat |
 | Pemilik | Billing Backend |
 | Definition of Done | Adapter mengenali domain `ROOM_STAY`; penanganan koreksi kamar terbukti idempoten; konsolidasi IGD non-destruktif terverifikasi; QBE conformance PASS |
-| Status | 🟡 **SEBAGIAN 24 September 2026.** Registrasi domain `ROOM_STAY`, `INPATIENT`, dan `EMERGENCY` ke `SourcePolicies` selesai. Penanganan pembatalan idempoten untuk event `ROOM_CORRECTION` pada `BillingInvoiceService.UpsertChargeAsync` selesai. Pemeliharaan `SourceDomain = "EMERGENCY"` pada konsolidasi alihan IGD terverifikasi. QBE Conformance `PASS` (Strict mode, 2 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-072.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `BE-BKC-073` — Mesin Kalkulasi Sewa Kamar Bertingkat & Pro-Rata Transfer Menit Riil
+### ✅ `BE-BKC-073` — Mesin Kalkulasi Sewa Kamar Bertingkat & Pro-Rata Transfer Menit Riil
 
 | Field | Isi |
 | --- | --- |
@@ -2575,11 +2575,11 @@ Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada t
 | Risiko | Pembulatan desimal menit hunian: wajib konsisten menggunakan pembagian menit `(MenitKamar / TotalMenitHariItu) * TarifKamar` dua desimal |
 | Pemilik | Billing Backend |
 | Definition of Done | Seluruh cabang jam masuk dan pro-rata teruji akurat; dependensi lama terlepas; QBE preflight PASS |
-| Status | 🟡 **SEBAGIAN** (Implementasi service & DTO kalkulasi kamar bertingkat, late checkout, pro-rata transfer menit selesai; pelepasan dependensi InpFinancialClearance selesai; lolos QBE Strict; menunggu build mandiri pengguna & eksekusi integrasi live DB) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `BE-BKC-074` — Layanan Biaya Administrasi Ranap (7% Cap Rp6jt) & Penggantian Admin Rajal
+### ✅ `BE-BKC-074` — Layanan Biaya Administrasi Ranap (7% Cap Rp6jt) & Penggantian Admin Rajal
 
 | Field | Isi |
 | --- | --- |
@@ -2594,11 +2594,11 @@ Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada t
 | Risiko | Double charging jika deteksi alihan gagal; pengecekan encounter rujukan wajib dilakukan sebelum final billing |
 | Pemilik | Billing Backend |
 | Definition of Done | Biaya admin 7% cap Rp6jt aktif; penggantian admin rajal terbukti adil tanpa double charging; QBE conformance PASS |
-| Status | 🟡 **SEBAGIAN 24 September 2026.** Service & DTO kalkulasi biaya admin ranap 7% cap Rp6jt (`AdministrationFeeCalculationService.cs`), proteksi penjamin BPJS (beban pasien Rp 0), dan rekonsiliasi alihan rajal ke ranap (void belum bayar & kredit pemotong ranap sudah bayar) selesai diimplementasikan dan diintegrasikan ke `BillingCalculationService.cs`. QBE Conformance `PASS` (Strict mode, 19 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-074.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `BE-BKC-075` — Service Evaluasi Kelayakan Finansial Rawat Inap & Auto-Reblock
+### ✅ `BE-BKC-075` — Service Evaluasi Kelayakan Finansial Rawat Inap & Auto-Reblock
 
 | Field | Isi |
 | --- | --- |
@@ -2613,11 +2613,11 @@ Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada t
 | Risiko | Race condition saat kasir klik lunas bersamaan dengan perawat input obat: dilindungi oleh kunci transaksi penasihat (*advisory lock*) per encounter |
 | Pemilik | Billing Backend |
 | Definition of Done | Service clearance berdiri; Auto-Reblock terbukti atomik dalam transaksi intake; penolakan closed invoice teruji; QBE preflight PASS |
-| Status | 🟡 **SEBAGIAN 24 September 2026.** Service & DTO evaluasi kelayakan finansial ranap (`InpatientClearanceService.cs`, `IInpatientClearanceService.cs`, `InpatientClearanceDtos.cs`), validasi deposit tindakan besar 100% ekses (`BIL-VAL-121`), penolakan tagihan saat invoice CLOSED (`BIL-VAL-127`), integrasi settlement hook (`BilConsumerHandoffService.cs`, `BillingSettlementService.cs`), dan penegakan Auto-Reblock atomik saat tagihan susulan (`BIL-VAL-123`, `BillingInvoiceService.cs`) selesai diimplementasikan. QBE Conformance `PASS` (Strict mode, 25 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-075.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `BE-BKC-076` — API Controller Integrasi Rawat Inap
+### ✅ `BE-BKC-076` — API Controller Integrasi Rawat Inap
 
 | Field | Isi |
 | --- | --- |
@@ -2632,7 +2632,7 @@ Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada t
 | Risiko | Endpoint penerbitan manual kelayakan **MUST NOT** dibuat; evaluasi hanya membaca kebenaran dari invoice |
 | Pemilik | Billing Backend |
 | Definition of Done | Enam endpoint integrasi terdaftar dan teruji; hak akses terpasang ketat; dokumentasi Swagger sinkron; QBE conformance PASS |
-| Status | 🟡 **Source selesai 24 September 2026.** Controller `InpatientClearanceController` terpasang dengan 6 endpoint integrasi, perlindungan data sensitif perawat, penegakan RBAC Resource `BillingInpatient`, dan kontrak Swagger `BIL-API-1.4`. QBE Conformance `PASS` (0 violations). Menunggu kompilasi dan build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-076.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
@@ -2669,8 +2669,8 @@ tiga belas keputusan bisnis murni frontend, nol dependency backend baru.
 
 ```mermaid
 flowchart TD
-    BE-BUI-001["🟡 BE-BUI-001<br/>Perbaikan Logika suggestedBillingStatus"]
-    BE-BUI-002["🟡 BE-BUI-002<br/>Field TransactionDate pada Refundable Items"]
+    BE-BUI-001["✅ BE-BUI-001<br/>Perbaikan Logika suggestedBillingStatus"]
+    BE-BUI-002["✅ BE-BUI-002<br/>Field TransactionDate pada Refundable Items"]
 ```
 
 Tidak ada panah — kedua task **independen satu sama lain**, menyentuh file berbeda
@@ -2681,7 +2681,7 @@ dikerjakan paralel begitu keduanya disetujui.
 
 | Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- |
-| 1 | 🟡 `BE-BUI-001`, 🟡 `BE-BUI-002` | **Ya** — nol dependency antar keduanya |
+| 1 | ✅ `BE-BUI-001`, ✅ `BE-BUI-002` | **Ya** — nol dependency antar keduanya |
 
 Jumlah panah dependency: **0**. Bebas siklus.
 
@@ -2691,14 +2691,14 @@ Jumlah panah dependency: **0**. Bebas siklus.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `BE-BUI-001` | `suggestedBillingStatus` berubah aturan dari "satu item cukup" menjadi "seluruh item harus tercover" | `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DES-001` | `BIL-API-1.5` (draft) — bentuk response TIDAK berubah, hanya nilainya | `BillingPayerEditService.cs` baris 118-147, seluruh struktur method dipertahankan | Ganti kondisi `anyItemCoveredByInsurance` (OR) menjadi `allItemsCoveredByInsurance` (AND) atas seluruh item aktif sebelum menentukan `suggestedBillingStatus`; `effectivePaymentType`/`PaymentMethodRow.IsSelected` mewarisi otomatis, tidak disentuh terpisah | — | Kasus 2 dari 5 item tercover → `suggestedBillingStatus == "CASH"` (**kasus penentu**, bukan kasus nol/seluruh yang sama di aturan lama); kasus nol item tercover tetap `"CASH"`; kasus seluruh item tercover tetap `"INSURANCE"` | Uji unit `BillingPayerEditServiceTests` tiga kasus (nol/sebagian/seluruh); regresi `GET /{id}/edit-context` bentuk response tidak berubah | **Bukan perubahan skema.** Satu-satunya risiko: lupa bahwa `effectivePaymentType` bergantung nilai ini — verifikasi eksplisit `PaymentMethodRow.IsSelected` ikut benar. Owner Backend | Kondisi baru teruji tiga kasus; nol perubahan bentuk DTO; QBE preflight PASS; **otorisasi arsitektur `BUI-DES-001` diberikan owner 25 September 2026** |
-| 🟡 `BE-BUI-002` | `BillingRefundableItemResponse` mendapat field `TransactionDate`, diisi dari data yang sudah dimuat | `BUI-DEC-012`, `BUI-DES-002` | `BIL-API-1.5` (draft) — perubahan **aditif, non-breaking** | `BillingRefundService.GetBillingRefundableItemsAsync` — `Include(x => x.Items)` yang sudah ada | Tambah properti `DateTime TransactionDate` pada `BillingRefundableItemResponse`; proyeksi diisi `item.CreateDateTime` (kolom `IdentityModel` yang sudah ada, nol migration) | — | Response `GET /{id}/refundable-items` memuat `TransactionDate` terisi untuk setiap baris; konsumen lama yang mengabaikan field ini tidak terpengaruh | Uji unit proyeksi; regresi bentuk response lama (field lama tidak hilang/berubah tipe) | **Nol migration.** Risiko satu-satunya: salah memetakan tanggal (memakai tanggal invoice, bukan tanggal item) — verifikasi eksplisit sumbernya `item.CreateDateTime`, bukan `invoice.CreateDateTime`. Owner Backend | Field baru ditambahkan sesuai spek; nol migration; QBE preflight PASS; **otorisasi arsitektur `BUI-DES-002` diberikan owner 25 September 2026, source dikerjakan sesi yang sama** |
+| ✅ `BE-BUI-001` | `suggestedBillingStatus` berubah aturan dari "satu item cukup" menjadi "seluruh item harus tercover" | `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DES-001` | `BIL-API-1.5` (draft) — bentuk response TIDAK berubah, hanya nilainya | `BillingPayerEditService.cs` baris 118-147, seluruh struktur method dipertahankan | Ganti kondisi `anyItemCoveredByInsurance` (OR) menjadi `allItemsCoveredByInsurance` (AND) atas seluruh item aktif sebelum menentukan `suggestedBillingStatus`; `effectivePaymentType`/`PaymentMethodRow.IsSelected` mewarisi otomatis, tidak disentuh terpisah | — | Kasus 2 dari 5 item tercover → `suggestedBillingStatus == "CASH"` (**kasus penentu**, bukan kasus nol/seluruh yang sama di aturan lama); kasus nol item tercover tetap `"CASH"`; kasus seluruh item tercover tetap `"INSURANCE"` | Uji unit `BillingPayerEditServiceTests` tiga kasus (nol/sebagian/seluruh); regresi `GET /{id}/edit-context` bentuk response tidak berubah | **Bukan perubahan skema.** Satu-satunya risiko: lupa bahwa `effectivePaymentType` bergantung nilai ini — verifikasi eksplisit `PaymentMethodRow.IsSelected` ikut benar. Owner Backend | Kondisi baru teruji tiga kasus; nol perubahan bentuk DTO; QBE preflight PASS; **otorisasi arsitektur `BUI-DES-001` diberikan owner 25 September 2026** |
+| ✅ `BE-BUI-002` | `BillingRefundableItemResponse` mendapat field `TransactionDate`, diisi dari data yang sudah dimuat | `BUI-DEC-012`, `BUI-DES-002` | `BIL-API-1.5` (draft) — perubahan **aditif, non-breaking** | `BillingRefundService.GetBillingRefundableItemsAsync` — `Include(x => x.Items)` yang sudah ada | Tambah properti `DateTime TransactionDate` pada `BillingRefundableItemResponse`; proyeksi diisi `item.CreateDateTime` (kolom `IdentityModel` yang sudah ada, nol migration) | — | Response `GET /{id}/refundable-items` memuat `TransactionDate` terisi untuk setiap baris; konsumen lama yang mengabaikan field ini tidak terpengaruh | Uji unit proyeksi; regresi bentuk response lama (field lama tidak hilang/berubah tipe) | **Nol migration.** Risiko satu-satunya: salah memetakan tanggal (memakai tanggal invoice, bukan tanggal item) — verifikasi eksplisit sumbernya `item.CreateDateTime`, bukan `invoice.CreateDateTime`. Owner Backend | Field baru ditambahkan sesuai spek; nol migration; QBE preflight PASS; **otorisasi arsitektur `BUI-DES-002` diberikan owner 25 September 2026, source dikerjakan sesi yang sama** |
 
 ---
 
 ## Rincian Task
 
-### 🟡 `BE-BUI-001` — Perbaikan Logika `suggestedBillingStatus`
+### ✅ `BE-BUI-001` — Perbaikan Logika `suggestedBillingStatus`
 
 | Field | Isi |
 | --- | --- |
@@ -2713,11 +2713,11 @@ Jumlah panah dependency: **0**. Bebas siklus.
 | Risiko | **Bukan perubahan skema/endpoint** — risiko murni logika. `PaymentMethodRow.IsSelected` dan `effectivePaymentType` KEDUANYA bergantung pada `suggestedBillingStatus` — verifikasi eksplisit keduanya ikut berubah benar, jangan hanya menguji variabel `suggestedBillingStatus` secara terisolasi |
 | Pemilik | Backend Engineering |
 | Definition of Done | Kondisi baru teruji tiga kasus; `PaymentMethodRow.IsSelected` diverifikasi ikut benar; nol perubahan bentuk DTO; QBE preflight PASS |
-| Status | 🟡 **SEBAGIAN — build lulus, verifikasi manual belum.** Approval arsitektur `BUI-DES-001` diberikan pemilik modul 25 September 2026, task dikerjakan pada sesi yang sama. `BillingPayerEditService.cs` baris 102/125-128/145-147: `anyItemCoveredByInsurance` (OR) diganti `allItemsCoveredByInsurance` (AND). Nol perubahan bentuk DTO, nol migration. `dotnet build` dijalankan pengguna sendiri dan **lulus**, dikonfirmasi 25 September 2026. **Belum dilakukan**: verifikasi manual nyata untuk tiga kasus uji (nol/sebagian/seluruh tercover) terhadap data — build sukses memenuhi satu baris DoD, bukan seluruhnya. Bukti: [laporan](../task/report/backend/BE-BUI-001.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `BE-BUI-002` — Field `TransactionDate` pada Refundable Items
+### ✅ `BE-BUI-002` — Field `TransactionDate` pada Refundable Items
 
 | Field | Isi |
 | --- | --- |
@@ -2732,7 +2732,7 @@ Jumlah panah dependency: **0**. Bebas siklus.
 | Risiko | **Nol migration** — `CreateDateTime` sudah ada di database sejak tabel `BilInvoiceItem` dibuat lewat `IdentityModel`. Risiko murni salah pilih sumber tanggal — MUST `item.CreateDateTime`, bukan `invoice.CreateDateTime` (tanggal invoice dibuat berbeda dari tanggal item ditambahkan pada kasus entri manual belakangan) |
 | Pemilik | Backend Engineering |
 | Definition of Done | Field baru teruji; nol migration dijalankan; QBE preflight PASS |
-| Status | 🟡 **SEBAGIAN — build lulus, verifikasi manual belum.** Approval arsitektur `BUI-DES-002` diberikan pemilik modul 25 September 2026, task dikerjakan pada sesi yang sama. `BillingRefundDtos.cs`: properti `DateTime TransactionDate` ditambahkan pada `BillingRefundableItemResponse`. `BillingRefundService.GetBillingRefundableItemsAsync`: proyeksi diisi `TransactionDate = item.CreateDateTime` (sumbernya item, bukan invoice, sesuai catatan risiko). Nol migration, nol perubahan field lama. `dotnet build` dijalankan pengguna sendiri dan **lulus**, dikonfirmasi 25 September 2026. **Belum dilakukan**: verifikasi manual `GET /{id}/refundable-items` terhadap data nyata. Bukti: [laporan](../task/report/backend/BE-BUI-002.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
@@ -2774,8 +2774,8 @@ Dalam operasional kasir rumah sakit 24 jam, pertanggungjawaban fisik kas antar p
 
 ```mermaid
 flowchart TD
-    BE-BKC-077["🟡 BE-BKC-077<br/>Blocking Pembukaan Shift Belum Direview"]
-    BE-BKC-078["🟡 BE-BKC-078<br/>Status PERLU_TINDAK_LANJUT & Endpoint Selesai"]
+    BE-BKC-077["✅ BE-BKC-077<br/>Blocking Pembukaan Shift Belum Direview"]
+    BE-BKC-078["✅ BE-BKC-078<br/>Status PERLU_TINDAK_LANJUT & Endpoint Selesai"]
 
     BE-BKC-077 --> BE-BKC-078
 ```
@@ -2786,8 +2786,8 @@ Panah berarti **"prasyarat harus selesai lebih dulu"**. Task `BE-BKC-077` menega
 
 | Gelombang Eksekusi | Boleh Mulai Setelah | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- | :---: |
-| 1 | Mandiri (Nol prasyarat dalam gelombang) | 🟡 `BE-BKC-077` | Tunggal |
-| 2 | Selesai `BE-BKC-077` | 🟡 `BE-BKC-078` | Tunggal |
+| 1 | Mandiri (Nol prasyarat dalam gelombang) | ✅ `BE-BKC-077` | Tunggal |
+| 2 | Selesai `BE-BKC-077` | ✅ `BE-BKC-078` | Tunggal |
 
 Jumlah panah dependency: **1**. Bebas siklus.
 
@@ -2797,14 +2797,14 @@ Jumlah panah dependency: **1**. Bebas siklus.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `BE-BKC-077` | `CashierShiftService.OpenAsync` menolak pembukaan shift jika kasir atau register masih memiliki shift `CLOSED_WITH_VARIANCE` atau `PERLU_TINDAK_LANJUT` yang belum `REVIEWED` | `BKC-DEC-123`, `BKC-DEC-126`, `RULE-012`, `BP-007` | `BIL-API-1.6` (draft), `BIL-VALIDATION-1.5` (draft) | `CashierShiftService.OpenAsync` (baris 67-71), `BilCashierShifts` EF Core query, `CashierShiftConflictException` | Tambah query validasi pra-buka shift untuk memeriksa status `CLOSED_WITH_VARIANCE` dan `PERLU_TINDAK_LANJUT` pada kasir ATAU register; lempar `CashierShiftConflictException` dengan pesan standar `Kasir atau register masih memiliki shift yang menunggu review selisih kas.` | — | Pembukaan shift ditolak (HTTP 409) jika kasir memiliki shift berselisih belum direview; pembukaan shift ditolak (HTTP 409) jika register memiliki shift berselisih belum direview; pembukaan shift diizinkan (HTTP 201) bila shift sebelumnya sudah `REVIEWED` atau `CLOSED` seimbang | Uji unit `CashierShiftServiceTests`; uji integrasi `OpenAsync` via controller; verifikasi response status HTTP 409 Conflict | **Nol migration.** Lindungi register dan kasir dengan advisory lock yang sudah ada. Owner Backend | Query penjaga terpasang di `OpenAsync`; pesan standar terbukti; tes unit skenario tolak/lolos lulus; QBE preflight PASS |
-| 🟡 `BE-BKC-078` | Menambahkan status `PERLU_TINDAK_LANJUT` pada review variance supervisor dan endpoint aksi susulan penyelesaian tindak lanjut menjadi `REVIEWED` | `BKC-DEC-124`, `BKC-DEC-125`, `BKC-DEC-126`, `BP-005`, `RULE-011` | `BIL-API-1.6` (draft), `BIL-STATE-1.5` (draft), `BIL-VALIDATION-1.5` (draft), `BIL-PERMISSION-1.3` (draft) | `BilCashierShift.cs`, `CashierShiftStatuses`, `ReviewVarianceAsync`, `BilCashVarianceReview`, `CashierShiftsController`, `BilCashierShiftCommand` | Tambah konstanta `CashierShiftStatuses.PerluTindakLanjut`; perluas `ReviewVarianceRequest` dengan field `Outcome`; sesuaikan `ReviewVarianceAsync` agar dapat menetapkan `PERLU_TINDAK_LANJUT`; buat DTO `ResolveShiftFollowUpRequest` dengan validasi `VerificationNote wajib diisi.`; buat method `ResolveFollowUpAsync` dan endpoint `POST {id}/resolve-follow-up`; rekam audit command | `BE-BKC-077` | `ReviewVariance` dengan outcome `NeedsFollowUp` menghasilkan status `PERLU_TINDAK_LANJUT`; shift `PERLU_TINDAK_LANJUT` memblokir shift baru per `BE-BKC-077`; `ResolveFollowUp` hanya dapat dipanggil untuk status `PERLU_TINDAK_LANJUT`; catatan verifikasi wajib terisi (HTTP 422 jika kosong); sukses memindahkan status ke `REVIEWED` | Uji unit transisi status `ReviewVarianceAsync` dan `ResolveFollowUpAsync`; uji idempotensi endpoint; verifikasi kepatuhan Swagger OpenAPI | **Nol migration.** Status disimpan pada kolom string existing `BilCashierShift.Status`. Hak akses menggunakan resource `CashierShift` action `Review`/`ResolveFollowUp`. Owner Backend | Konstanta status terdaftar; endpoint baru terpasang dengan RBAC dan audit command; validasi pesan field wajib teruji; tes unit lulus; QBE preflight PASS |
+| ✅ `BE-BKC-077` | `CashierShiftService.OpenAsync` menolak pembukaan shift jika kasir atau register masih memiliki shift `CLOSED_WITH_VARIANCE` atau `PERLU_TINDAK_LANJUT` yang belum `REVIEWED` | `BKC-DEC-123`, `BKC-DEC-126`, `RULE-012`, `BP-007` | `BIL-API-1.6` (draft), `BIL-VALIDATION-1.5` (draft) | `CashierShiftService.OpenAsync` (baris 67-71), `BilCashierShifts` EF Core query, `CashierShiftConflictException` | Tambah query validasi pra-buka shift untuk memeriksa status `CLOSED_WITH_VARIANCE` dan `PERLU_TINDAK_LANJUT` pada kasir ATAU register; lempar `CashierShiftConflictException` dengan pesan standar `Kasir atau register masih memiliki shift yang menunggu review selisih kas.` | — | Pembukaan shift ditolak (HTTP 409) jika kasir memiliki shift berselisih belum direview; pembukaan shift ditolak (HTTP 409) jika register memiliki shift berselisih belum direview; pembukaan shift diizinkan (HTTP 201) bila shift sebelumnya sudah `REVIEWED` atau `CLOSED` seimbang | Uji unit `CashierShiftServiceTests`; uji integrasi `OpenAsync` via controller; verifikasi response status HTTP 409 Conflict | **Nol migration.** Lindungi register dan kasir dengan advisory lock yang sudah ada. Owner Backend | Query penjaga terpasang di `OpenAsync`; pesan standar terbukti; tes unit skenario tolak/lolos lulus; QBE preflight PASS |
+| ✅ `BE-BKC-078` | Menambahkan status `PERLU_TINDAK_LANJUT` pada review variance supervisor dan endpoint aksi susulan penyelesaian tindak lanjut menjadi `REVIEWED` | `BKC-DEC-124`, `BKC-DEC-125`, `BKC-DEC-126`, `BP-005`, `RULE-011` | `BIL-API-1.6` (draft), `BIL-STATE-1.5` (draft), `BIL-VALIDATION-1.5` (draft), `BIL-PERMISSION-1.3` (draft) | `BilCashierShift.cs`, `CashierShiftStatuses`, `ReviewVarianceAsync`, `BilCashVarianceReview`, `CashierShiftsController`, `BilCashierShiftCommand` | Tambah konstanta `CashierShiftStatuses.PerluTindakLanjut`; perluas `ReviewVarianceRequest` dengan field `Outcome`; sesuaikan `ReviewVarianceAsync` agar dapat menetapkan `PERLU_TINDAK_LANJUT`; buat DTO `ResolveShiftFollowUpRequest` dengan validasi `VerificationNote wajib diisi.`; buat method `ResolveFollowUpAsync` dan endpoint `POST {id}/resolve-follow-up`; rekam audit command | `BE-BKC-077` | `ReviewVariance` dengan outcome `NeedsFollowUp` menghasilkan status `PERLU_TINDAK_LANJUT`; shift `PERLU_TINDAK_LANJUT` memblokir shift baru per `BE-BKC-077`; `ResolveFollowUp` hanya dapat dipanggil untuk status `PERLU_TINDAK_LANJUT`; catatan verifikasi wajib terisi (HTTP 422 jika kosong); sukses memindahkan status ke `REVIEWED` | Uji unit transisi status `ReviewVarianceAsync` dan `ResolveFollowUpAsync`; uji idempotensi endpoint; verifikasi kepatuhan Swagger OpenAPI | **Nol migration.** Status disimpan pada kolom string existing `BilCashierShift.Status`. Hak akses menggunakan resource `CashierShift` action `Review`/`ResolveFollowUp`. Owner Backend | Konstanta status terdaftar; endpoint baru terpasang dengan RBAC dan audit command; validasi pesan field wajib teruji; tes unit lulus; QBE preflight PASS |
 
 ---
 
 ## Rincian Task
 
-### 🟡 `BE-BKC-077` — Blocking Pembukaan Shift Belum Direview
+### ✅ `BE-BKC-077` — Blocking Pembukaan Shift Belum Direview
 
 | Field | Isi |
 | --- | --- |
@@ -2819,11 +2819,11 @@ Jumlah panah dependency: **1**. Bebas siklus.
 | Risiko | Perluasan query tidak boleh menimbulkan kebuntuan (*deadlock*): kueri membaca tabel di bawah transaksi yang sudah memegang kunci penasihat `BIL_CASHIER_{actorUserId}` dan `BIL_REGISTER_{RegisterId}` |
 | Pemilik | Backend Engineering |
 | Definition of Done | Logika validasi terpasang di `CashierShiftService.OpenAsync`; pesan penolakan persis sesuai `BKC-DEC-123`; unit test skenario tolak dan lolos lulus 100%; nol migration; QBE preflight PASS |
-| Status | 🟡 **SEBAGIAN — source code selesai 25 September 2026.** Query penjaga blocking kasir dan register pada `CashierShiftService.OpenAsync` serta konstanta `CashierShiftStatuses.PerluTindakLanjut` telah terpasang persis sesuai `BKC-DEC-123`. Nol migration. Menunggu kompilasi `dotnet build` mandiri oleh pengguna sesuai instruksi. Bukti: [laporan](../task/report/backend/BE-BKC-077.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `BE-BKC-078` — Status `PERLU_TINDAK_LANJUT` & Endpoint Penyelesaian
+### ✅ `BE-BKC-078` — Status `PERLU_TINDAK_LANJUT` & Endpoint Penyelesaian
 
 | Field | Isi |
 | --- | --- |
@@ -2838,7 +2838,7 @@ Jumlah panah dependency: **1**. Bebas siklus.
 | Risiko | Mencegah loncatan status ilegal: status hanya boleh beralih dari `PERLU_TINDAK_LANJUT` ke `REVIEWED`. Mutasi dilindungi oleh verifikasi `ExpectedRowVersion` dan advisory lock per shift |
 | Pemilik | Backend Engineering |
 | Definition of Done | Nilai status baru terdaftar; DTO dan endpoint baru terpasang; otorisasi RBAC dan audit command tercatat lengkap; unit test transisi status lulus 100%; Swagger sinkron; QBE preflight PASS; nol migration |
-| Status | 🟡 **SEBAGIAN — source code selesai 25 September 2026.** Penambahan field `Outcome` pada `ReviewVarianceRequest`, transisi status `PERLU_TINDAK_LANJUT` pada `ReviewVarianceAsync`, DTO `ResolveShiftFollowUpRequest`, method `ResolveFollowUpAsync`, audit command `RESOLVE_FOLLOW_UP`, dan controller endpoint `POST {id}/resolve-follow-up` telah terpasang. Nol migration. Menunggu kompilasi `dotnet build` mandiri oleh pengguna sesuai instruksi. Bukti: [laporan](../task/report/backend/BE-BKC-078.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
@@ -2900,8 +2900,8 @@ Ketika status tender top-up deposit berubah menjadi `REVERSED`:
 ```mermaid
 flowchart TD
     subgraph BillingKasir["Modul Billing dan Kasir (BIL-CASH-001)"]
-        BE-BKC-079["🟡 BE-BKC-079<br/>Pembalikan Tender Top-Up Deposit & Alokasi LIFO"]
-        BE-BKC-080["🟡 BE-BKC-080<br/>Penanda Eksplisit ReversesMovementId 1-ke-1 & Penyelarasan Deposit"]
+        BE-BKC-079["✅ BE-BKC-079<br/>Pembalikan Tender Top-Up Deposit & Alokasi LIFO"]
+        BE-BKC-080["✅ BE-BKC-080<br/>Penanda Eksplisit ReversesMovementId 1-ke-1 & Penyelarasan Deposit"]
     end
 
     subgraph FinanceExternal["Modul Finance Management (FIN-BP-001) — Baca-Saja"]
@@ -2918,8 +2918,8 @@ Panah berarti **"prasyarat harus selesai lebih dulu"**. Task `BE-BKC-079` adalah
 
 | Gelombang Eksekusi | Boleh Mulai Setelah | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- | :---: |
-| 1 | Mandiri (Nol prasyarat dalam gelombang) | 🟡 `BE-BKC-079` | Tunggal (Fondasi LIFO di `BillingSettlementService.cs`, `BilPaymentAllocation`, dan `SyncClosureAsync`) |
-| 2 | `BE-BKC-079` | 🟡 `BE-BKC-080` | Tunggal (Penanda `ReversesMovementId` 1-ke-1 pada `BillingSettlementService.cs` dan penyelarasan `BillingDepositService.cs`) |
+| 1 | Mandiri (Nol prasyarat dalam gelombang) | ✅ `BE-BKC-079` | Tunggal (Fondasi LIFO di `BillingSettlementService.cs`, `BilPaymentAllocation`, dan `SyncClosureAsync`) |
+| 2 | `BE-BKC-079` | ✅ `BE-BKC-080` | Tunggal (Penanda `ReversesMovementId` 1-ke-1 pada `BillingSettlementService.cs` dan penyelarasan `BillingDepositService.cs`) |
 
 Jumlah panah dependency internal: **1**. Jumlah panah handoff eksternal: **1**. Bebas siklus.
 
@@ -2929,14 +2929,14 @@ Jumlah panah dependency internal: **1**. Jumlah panah handoff eksternal: **1**. 
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `BE-BKC-079` | `BillingSettlementService` menangani pembalikan tender top-up deposit (`REVERSED`), membatalkan alokasi LIFO bila saldo kurang, mencatat mutasi ganda `RELEASE`/`REVERSAL`, dan menyelaraskan status invoice ke `FINAL` | `BKC-DEC-128`, `BKC-DEC-129`, `BKC-DEC-130`, `BKC-DEC-131`, `FIN-DEC-077`, `BKC-DES-051`, `BKC-DES-052`, `BKC-DES-053`, `BKC-DES-054` | `BIL-STATE-1.5`, `BIL-VALIDATION-1.5` (`BIL-VAL-127`–`131`), `BIL-INTEGRATION-1.3` (`BIL-INT-018`), `BIL-TEST-1.6` (`BIL-AT-149`–`156`) | `BillingSettlementService.UpdateTenderStatusAsync`, `BilPaymentAllocation`, `BilDepositMovement`, `BillingInvoiceClosureService.SyncClosureAsync`, `ApplicationDbContext` | Tambah private method `HandleDepositTopUpReversalAsync` di `BillingSettlementService.cs`; validasi status tender awal `SUCCEEDED`; hitung defisit saldo deposit; batalkan alokasi LIFO (`AllocatedAt DESC`); catat alokasi pembalik (`ReversesAllocationId`, nominal negatif); catat mutasi `RELEASE` dan `REVERSAL`; panggil `SyncClosureAsync` untuk invoice terdampak | — | Saldo deposit tidak pernah negatif; alokasi LIFO membatalkan alokasi terbaru terlebih dahulu; mutasi `RELEASE` dan `REVERSAL` tercatat berpasangan; invoice terdampak beralih dari `CLOSED` ke `FINAL`; transaksi atomik rollback bila gagal | Unit test `BillingSettlementServiceTests.cs`; verifikasi mutasi ganda; verifikasi status invoice; verifikasi atomisitas transaksi | Race condition mutasi deposit konkuren dilindungi advisory lock/transaksi DB. Owner Backend | Method terpasang di `BillingSettlementService`; nol migration; lolos acceptance `BIL-AT-149`..`156`; QBE preflight PASS; laporan task `BE-BKC-079.md` |
-| 🟡 `BE-BKC-080` | Penanda eksplisit `ReversesMovementId` 1-ke-1 pada mutasi `RELEASE` di `BillingSettlementService` dan penyelarasan perhitungan deposit di `BillingDepositService` | `FR-BKC-129`, `FR-BKC-130`, `BKC-DEC-132`, `BKC-DEC-133`, `BKC-DEC-134`, `BKC-DES-055`, `BKC-DES-056` | `BIL-STATE-1.6`, `BIL-VALIDATION-1.6` (`BIL-VAL-132`–`133`), `BIL-INTEGRATION-1.4` (`BIL-INT-018`), `BIL-TEST-1.7` (`BIL-AT-157`–`158`) | `BillingSettlementService.cs`, `BillingDepositService.cs`, `BilDepositMovement`, `BilPaymentAllocation` | 1. Pada `BillingSettlementService.cs`, tulis 1 baris mutasi `RELEASE` per alokasi yang dibatalkan (1-to-1) dengan `ReversesMovementId = allocationMovement.Id` dan `SettlementId = original.SettlementId`; 2. Pada `BillingDepositService.cs`, kecualikan mutasi `RELEASE` pembatalan alokasi (`ReversesMovementId != null`) dari `totalRefunded`; 3. Pada `GetDepositStatementAsync`, hitung `BalanceEffect = +x.Amount` untuk mutasi `RELEASE` pembatalan alokasi | `BE-BKC-079` | `BIL-AT-157`, `BIL-AT-158`, `UAT-BKC-89` | Unit test `BillingSettlementServiceTests.cs` dan `BillingDepositServiceTests.cs` | Penanganan multi-alokasi LIFO dengan banyak baris mutasi. Owner Backend (Yasmina) | Kode terpasang di `BillingSettlementService.cs` dan `BillingDepositService.cs`; nol migration; acceptance test PASS; QBE preflight PASS; laporan task `BE-BKC-080.md` |
+| ✅ `BE-BKC-079` | `BillingSettlementService` menangani pembalikan tender top-up deposit (`REVERSED`), membatalkan alokasi LIFO bila saldo kurang, mencatat mutasi ganda `RELEASE`/`REVERSAL`, dan menyelaraskan status invoice ke `FINAL` | `BKC-DEC-128`, `BKC-DEC-129`, `BKC-DEC-130`, `BKC-DEC-131`, `FIN-DEC-077`, `BKC-DES-051`, `BKC-DES-052`, `BKC-DES-053`, `BKC-DES-054` | `BIL-STATE-1.5`, `BIL-VALIDATION-1.5` (`BIL-VAL-127`–`131`), `BIL-INTEGRATION-1.3` (`BIL-INT-018`), `BIL-TEST-1.6` (`BIL-AT-149`–`156`) | `BillingSettlementService.UpdateTenderStatusAsync`, `BilPaymentAllocation`, `BilDepositMovement`, `BillingInvoiceClosureService.SyncClosureAsync`, `ApplicationDbContext` | Tambah private method `HandleDepositTopUpReversalAsync` di `BillingSettlementService.cs`; validasi status tender awal `SUCCEEDED`; hitung defisit saldo deposit; batalkan alokasi LIFO (`AllocatedAt DESC`); catat alokasi pembalik (`ReversesAllocationId`, nominal negatif); catat mutasi `RELEASE` dan `REVERSAL`; panggil `SyncClosureAsync` untuk invoice terdampak | — | Saldo deposit tidak pernah negatif; alokasi LIFO membatalkan alokasi terbaru terlebih dahulu; mutasi `RELEASE` dan `REVERSAL` tercatat berpasangan; invoice terdampak beralih dari `CLOSED` ke `FINAL`; transaksi atomik rollback bila gagal | Unit test `BillingSettlementServiceTests.cs`; verifikasi mutasi ganda; verifikasi status invoice; verifikasi atomisitas transaksi | Race condition mutasi deposit konkuren dilindungi advisory lock/transaksi DB. Owner Backend | Method terpasang di `BillingSettlementService`; nol migration; lolos acceptance `BIL-AT-149`..`156`; QBE preflight PASS; laporan task `BE-BKC-079.md` |
+| ✅ `BE-BKC-080` | Penanda eksplisit `ReversesMovementId` 1-ke-1 pada mutasi `RELEASE` di `BillingSettlementService` dan penyelarasan perhitungan deposit di `BillingDepositService` | `FR-BKC-129`, `FR-BKC-130`, `BKC-DEC-132`, `BKC-DEC-133`, `BKC-DEC-134`, `BKC-DES-055`, `BKC-DES-056` | `BIL-STATE-1.6`, `BIL-VALIDATION-1.6` (`BIL-VAL-132`–`133`), `BIL-INTEGRATION-1.4` (`BIL-INT-018`), `BIL-TEST-1.7` (`BIL-AT-157`–`158`) | `BillingSettlementService.cs`, `BillingDepositService.cs`, `BilDepositMovement`, `BilPaymentAllocation` | 1. Pada `BillingSettlementService.cs`, tulis 1 baris mutasi `RELEASE` per alokasi yang dibatalkan (1-to-1) dengan `ReversesMovementId = allocationMovement.Id` dan `SettlementId = original.SettlementId`; 2. Pada `BillingDepositService.cs`, kecualikan mutasi `RELEASE` pembatalan alokasi (`ReversesMovementId != null`) dari `totalRefunded`; 3. Pada `GetDepositStatementAsync`, hitung `BalanceEffect = +x.Amount` untuk mutasi `RELEASE` pembatalan alokasi | `BE-BKC-079` | `BIL-AT-157`, `BIL-AT-158`, `UAT-BKC-89` | Unit test `BillingSettlementServiceTests.cs` dan `BillingDepositServiceTests.cs` | Penanganan multi-alokasi LIFO dengan banyak baris mutasi. Owner Backend (Yasmina) | Kode terpasang di `BillingSettlementService.cs` dan `BillingDepositService.cs`; nol migration; acceptance test PASS; QBE preflight PASS; laporan task `BE-BKC-080.md` |
 
 ---
 
 ## Rincian Task
 
-### 🟡 `BE-BKC-079` — Pembalikan Tender Top-Up Deposit dan Pembatalan Alokasi Tagihan LIFO
+### ✅ `BE-BKC-079` — Pembalikan Tender Top-Up Deposit dan Pembatalan Alokasi Tagihan LIFO
 
 | Field | Isi |
 | --- | --- |
@@ -2951,11 +2951,11 @@ Jumlah panah dependency internal: **1**. Jumlah panah handoff eksternal: **1**. 
 | Risiko | Concurrency race condition pada mutasi deposit saat top-up dibalik bersamaan dengan alokasi baru: dilindungi oleh advisory lock per deposit account / encounter dan isolasi transaksi |
 | Pemilik | Backend Engineering |
 | Definition of Done | Logika pembalikan terpasang di `BillingSettlementService.cs`; seluruh 8 acceptance criteria `BIL-AT-149`..`156` lolos pengujian; nol migration basis data; QBE preflight PASS; laporan task `BE-BKC-079.md` tersusun |
-| Status | 🟡 **SEBAGIAN** (28 September 2026, source code selesai, logika LIFO dan mutasi ganda terpasang, menunggu kompilasi build mandiri pengguna. Laporan: [`BE-BKC-079.md`](../task/report/backend/BE-BKC-079.md)) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `BE-BKC-080` — Penanda Eksplisit `ReversesMovementId` 1-ke-1 Mutasi `RELEASE` dan Penyelarasan Perhitungan Deposit
+### ✅ `BE-BKC-080` — Penanda Eksplisit `ReversesMovementId` 1-ke-1 Mutasi `RELEASE` dan Penyelarasan Perhitungan Deposit
 
 | Field | Isi |
 | --- | --- |
@@ -2970,7 +2970,7 @@ Jumlah panah dependency internal: **1**. Jumlah panah handoff eksternal: **1**. 
 | Risiko | Perubahan kueri pencocokan mutasi `ALLOCATION` asal di dalam loop LIFO: dioptimalkan dengan memuat mutasi alokasi terkait secara batch melalui `depositAllocationSettlementIds` |
 | Pemilik | Backend Engineering (Yasmina) |
 | Definition of Done | Kode terpasang di `BillingSettlementService.cs` dan `BillingDepositService.cs`; seluruh kriteria `BIL-AT-157`, `BIL-AT-158`, dan `UAT-BKC-89` lulus pengujian; nol migration basis data; QBE preflight PASS; laporan task `BE-BKC-080.md` tersusun |
-| Status | 🟡 **SEBAGIAN** (29 September 2026, source code selesai, logika penanda 1-ke-1 dan penyelarasan deposit terpasang, menunggu kompilasi build mandiri pengguna. Laporan: [`BE-BKC-080.md`](../task/report/backend/BE-BKC-080.md)) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
@@ -3017,3 +3017,28 @@ graph TD
 | — | FIX-06 | Gizi | ✅ Lewat keputusan: tidak ditagih terpisah (`BKC-DEC-137`) | — |
 
 **Verifikasi gelombang:** build backend 0 error (warning baru dari berkas gelombang ini 0); 15/15 uji `CheckoutBillingIntegrationTests` lulus lewat proyek uji sementara — proyek `QuilvianSystemBackend.PharmacyTests` sendiri **tidak terkompilasi sebelum gelombang ini** (`BillingInvoiceEligibilityTests.cs`, `BillingZeroPatientObligationTests.cs`) dan perlu diperbaiki terpisah. Backfill fakta lama (IGD/Bank Darah yang sudah `NotApplicable`) di luar cakupan.
+
+## Gelombang Perbaikan `PLAN-REPAIR-BKC-002` — Evaluasi ulang kelayakan kasir ditolak basis data (14 Oktober 2026)
+
+Task ad-hoc di luar penomoran roadmap asli, mengikuti pola `BE-BKC-FIX-XXX`. Pemicu: [`ISSUE-BKC-002`](../docs/issue/issue-002-evaluasi-ulang-kelayakan-ditolak.md) dan [`PLAN-REPAIR-BKC-002`](../docs/plan-repair/plan-repair-002-evaluasi-ulang-kelayakan-ditolak.md). Disetujui pemilik modul Billing 14 Oktober 2026 (K-02). Pemilik memutuskan gelombang ini **didahulukan sebelum `MVP-36`** (K-01). Cacat terverifikasi di basis data pengembangan lewat query read-only (P-01).
+
+```mermaid
+graph TD
+    F22["BE-BKC-FIX-022<br/>Constraint ReasonCode<br/>+ REEVALUATED_BY_CASHIER"]
+    F22 -.didahulukan.-> M36["MVP-36<br/>Pelunasan gabungan"]
+```
+
+| Task | FIX plan-repair | Ringkasan | Status | Laporan |
+| --- | --- | --- | --- | --- |
+| `BE-BKC-FIX-022` | `FIX-BKC-002-01` | Tambahkan `REEVALUATED_BY_CASHIER` ke `CK_BilInpatientClearanceHandoff_ReasonCode` pada berkas konfigurasi, beserta satu migration yang hanya mengubah constraint itu | SELESAI | [`BE-BKC-FIX-022.md`](../task/report/backend/BE-BKC-FIX-022.md) |
+| — | `FIX-BKC-002-02` | Rapikan ID layar karangan pada dokumen blueprint ke pola `BIL-SCR-NN` | SELESAI | [`blueprint-manifest.md`](../blueprint-manifest.md#11-registri-penomoran-layar-screen-id-registry--pemetaan-perbaikan-fix-bkc-002-02) |
+
+**Acceptance criteria `BE-BKC-FIX-022`** — disalin dari `PLAN-REPAIR-BKC-002` bagian 4:
+
+1. Daftar `CK_BilInpatientClearanceHandoff_ReasonCode` pada `BilInpatientClearanceHandoffConfiguration.cs` memuat tujuh nilai, termasuk `REEVALUATED_BY_CASHIER`.
+2. `Up()` migration baru berisi **tepat satu** perubahan: penggantian constraint itu. `Down()` mengembalikan enam nilai semula.
+3. Model snapshot ikut memuat tujuh nilai.
+4. Empat jalur penulis lain (`INVOICE_SETTLED`, `PAYMENT_REVERSED`, `LATE_CHARGE_POSTED`, `DISCHARGE_ORDER_INITIATED`) tidak berubah perilakunya.
+5. Migration **tidak** diterapkan oleh builder; pemilik menjalankan `dotnet ef database update` sendiri.
+
+**Jebakan yang wajib dijaga gelombang berikutnya:** migration `MVP-37` (desain revisi `2.1`) menulis ulang constraint yang sama. Daftar nilainya **MUST** memuat `REEVALUATED_BY_CASHIER`, kalau tidak perbaikan ini terhapus kembali.

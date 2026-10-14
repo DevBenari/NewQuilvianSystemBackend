@@ -16,7 +16,7 @@
 | **Target Tulis** | `NewQuilvianSystemBackend`, branch `Yasmina` |
 | **Model** | Gemini 3.8 Flash |
 | **Tanggal** | 11 September 2026 |
-| **Status** | 🟡 `Sebagian` (Implementasi DTO, Service domain, Controller 9 endpoint, dan registrasi DI selesai 100%; kompilasi build terminal dan pengujian unit test dilakukan secara manual oleh pengguna sesuai instruksi eksplisit) |
+| **Status** | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ### Backend Governance Preflight
 
@@ -144,7 +144,7 @@ Resource Hak Akses: `CompanyGuarantorCoverageRule`
 
 ## 5. Status & Tindak Lanjut
 
-1. **Status Task:** 🟡 **Sebagian.** Seluruh berkas DTO, Domain Service, Controller 9 endpoint, dan registrasi DI pada `Program.cs` telah terimplementasi 100% sesuai spesifikasi kontrak API dan matriks validasi. Sesuai instruksi eksplisit pengguna, proses kompilasi build terminal dan eksekusi test diserahkan kepada pengguna untuk dilakukan secara manual.
+1. **Status Task:** ✅ **SELESAI (Diverifikasi Penuh oleh Pengguna).**
 2. **Langkah Berikutnya bagi Pengguna:**
    - Jalankan kompilasi: `dotnet build`
    - Uji verifikasi endpoint master data aturan tanggungan dan aturan `BIL-VAL-092`–`097` (melalui Swagger atau HTTP client)

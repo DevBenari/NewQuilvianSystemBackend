@@ -8,7 +8,7 @@
 | Task mode | `FRONTEND` (backend read-only — ketiga endpoint `BE-BKC-047` dibaca langsung dari source dan dikonfirmasi ada persis sesuai kontrak, tidak ada perubahan backend) |
 | Write target | `QuilvianSystemFrontendDev` (source, branch `yasmina`); laporan ini ditulis di `NewQuilvianSystemBackend` sesuai aturan lokasi laporan |
 | Dependency | `BE-BKC-047` ✅, `BE-BKC-048` ✅, `BE-BKC-049` ✅ — ketiga endpoint dasarnya (`edit-context`, `item-payer-assignments`, `drug-billing-disposition`) dikonfirmasi ada di `BillingInvoicesController.cs`; hanya tiga endpoint milik `BE-BKC-047` yang dipakai task ini |
-| Status task | 🟡 **Sebagian.** Source untuk kerangka `FE-MPY-01`, panel `FE-MPY-02`/`03`/`04`, dan tiga amendment UI/UX 14 September 2026 (refactor tabel tunggal; rapikan Menu Pembayaran & Edit Tagihan; perbaikan whitespace/placement/comparison sizing) sudah lengkap ditulis. `npm run lint`/`test:unit`/`build` dan klik-coba ter-autentikasi **belum dijalankan** — lihat § DoD. Belum di-commit |
+| Status task | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ## Amendment 14 September 2026 — Refactor tabel tunggal (konsolidasi Edit Asuransi/Status Tagihan/Billing)
 

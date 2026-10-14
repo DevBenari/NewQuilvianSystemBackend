@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `b3f45db7b4bd4dafd06967f9a7cb62d41d2e0a28` (branch `yasmina`) — persis baseline SHA yang dicatat roadmap |
 | Commit backend yang dijadikan rujukan | `d6cdfaf9fda8889d6fe73db1e97cc28c4f022852` (branch `Yasmina`) |
 | Tanggal | 2026-09-25 |
-| Status | 🟡 **SEBAGIAN — source selesai, validasi otomatis lulus, uji manual peramban belum.** Ketiga acceptance criteria terpenuhi lewat pembacaan kode dan verifikasi kontrak backend; `npm run lint:errors`, `npm run test:unit`, `npm run build` seluruhnya lulus. Uji manual network tab (bukti verifikasi yang diminta eksplisit oleh roadmap) **belum dijalankan** — tidak ada tool browser/E2E pada sesi ini — lihat §6 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

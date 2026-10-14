@@ -139,7 +139,7 @@ public sealed class BillingEmployeeBenefitSplitService
         var relationshipCode = benefitGuarantor.BenefitRelationshipSnapshot ?? "SELF";
 
         // Baca saldo plafon otoritatif dari HR (R.3.1 / INT-BIL-HR-001)
-        var asOfDate = invoice.InvoiceDate ?? DateTimeOffset.UtcNow;
+        var asOfDate = (invoice.InvoiceDate ?? DateTimeOffset.UtcNow).UtcDateTime;
         BenefitBalanceReadResult balanceResult;
         try
         {
@@ -152,7 +152,7 @@ public sealed class BillingEmployeeBenefitSplitService
         }
         catch (Exception ex)
         {
-            await _loggerService.ErrorAsync(LogCategory, "Gagal membaca saldo benefit HR.", ex);
+            await _loggerService.ErrorAsync(LogCategory, "ReadBalance", "Gagal membaca saldo benefit HR.", ex);
             if (isFinalizing)
             {
                 throw new BillingFinalizationValidationException(
