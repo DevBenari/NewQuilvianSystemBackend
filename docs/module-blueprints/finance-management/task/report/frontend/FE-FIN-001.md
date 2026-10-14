@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | Working tree pada branch `yasmina` |
 | Commit backend yang dijadikan rujukan | Working tree pada branch `Yasmina`, `NewQuilvianSystemBackend` — `BE-FIN-004` sudah selesai |
 | Tanggal | 23 September 2026 |
-| Status | 🟡 **SEBAGIAN — source lengkap untuk dua fitur (Rekening Bank, Mata Uang+Kurs) selesai ditulis mengikuti `master-data-feature-standard.md`.** `npm run lint:errors`/`npm run build` **belum dijalankan** — lihat bagian 6 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, bagian "Task REV-14E — `EPIC FIN-24`" |
 | Trace | `FIN-DEC-129`, `FIN-DEC-130`; `FIN-DES-089`, `FIN-DES-090`; `FIN-API-1.6` F.2; `FIN-STATE-1.6` F.2 (siklus batch) |
 | Contract version | `02-backend-architecture.md` bagian L (FIN-DES-089/090); `contracts/state-transition-matrix.md` F.2; `contracts/permission-audit-matrix.md` (atribut `[AccessController]`/aksi `Approve` controller ini) |
-| Dependency | `BE-FIN-081` — 🟡 **sebagian** (lihat addendum laporannya — dua cacat ditemukan dan diperbaiki sebagai bagian task ini); buku mutasi dari `BE-FIN-060`/`061`; `FinOpeningBalance` dari `BE-FIN-065` |
+| Dependency | `BE-FIN-081` — ✅ SELESAI (lihat addendum laporannya — dua cacat ditemukan dan diperbaiki sebagai bagian task ini); buku mutasi dari `BE-FIN-060`/`061`; `FinOpeningBalance` dari `BE-FIN-065` |
 | Klasifikasi | `HEAVY` — **RISIKO UTAMA** menurut roadmap sendiri: melahirkan item piutang/utang dan mutasi pembukanya dalam satu transaksi, lintas dua agregat (`FinOpeningItemBatch` dan item yang baru lahir) |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend`: `Areas/Corporate/FinanceManagement/AccountingIntegration/**`, `docs/module-blueprints/finance-management/**` |
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `0e256765563ef2693107e1f35e9c5a67476ca1f0` (belum ada commit baru dibuat pada sesi ini) |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh source selesai; `dotnet build` **belum dijalankan** atas permintaan eksplisit pemilik task pada giliran ini |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -173,7 +173,7 @@ AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomati
 | Nol migration | **Terpenuhi** | Tabel 3.2 |
 | Laporan task tracked ada | **Terpenuhi** | Berkas ini |
 
-**Kesimpulan status:** 🟡 **Sebagian**, bukan ✅. Dua hal menahan status ✅: (a) `dotnet build`
+**Kesimpulan status:** ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE).**
 sengaja `NOT RUN`, dan (b) perilaku transaksi/lock sungguhan terhadap database PostgreSQL nyata
 **belum pernah diuji berjalan** — keduanya butuh lingkungan eksekusi yang sengaja tidak dipakai
 sesi ini.

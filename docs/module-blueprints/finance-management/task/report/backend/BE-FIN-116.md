@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-21` |
 | Trace | `FIN-DEC-219`; `FR-FIN-253`; `FIN-DES-105`; `FIN-INTEGRATION-1.10` §`S.1`; `FIN-API-1.11` §`S.1` (`/schedule`, ekspor) |
 | Contract version | `FIN-INTEGRATION-1.10` §`S.1`; `FIN-API-1.11` §`S.1` |
-| Dependency | `BE-FIN-093` 🟡 |
+| Dependency | `BE-FIN-093` ✅ |
 | Klasifikasi | `MEDIUM` — pembuatan layanan query jadwal potongan per periode `FinancePayrollDeductionBatchService`, generator ekspor Excel templat ClosedXML, generator ekspor PDF serah terima QuestPDF `DeductionScheduleReportDocuments`, controller `FinancePayrollDeductionBatchController` berhak akses `FinancePayrollDeductionBatch : Read`, DTO kontrak `FIN-API-1.11` §`S.1.1`, dan registrasi DI di `Program.cs` |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-116 tanpa build dotnet automatis /build-module-backend", 13 Oktober 2026) |
 | Target tulis | Lihat §3.2 |
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi DTO kontrak, query jadwal angsuran dengan penyaringan status dan perjanjian disetujui, ekspor Excel dengan kolom kosong sesuai templat, ekspor PDF serah terima, controller berhak akses resmi, dan DI service selesai di source; `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis") |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
@@ -107,7 +107,7 @@ Sebelum fase jembatan manual potong gaji dibangun:
 | `Areas/Corporate/FinanceManagement/Receivable/Services/FinancePayrollDeductionBatchService.cs` | **Baru** | Service logika query jadwal potongan dengan validasi format periode regex `^\d{4}-(0[1-9]|1[0-2])$`, resolusi `PayrollPeriodId` HR, pemuatan nama dan departemen pegawai, serta penyusunan berkas Excel ClosedXML (kolom status dan nominal kosong) dan PDF QuestPDF. |
 | `Areas/Corporate/FinanceManagement/Receivable/Controllers/FinancePayrollDeductionBatchController.cs` | **Baru** | Controller API `api/v1/corporate/finance-management/payroll-deduction` dengan endpoint `GET /schedule`, `GET /schedule/export/excel`, dan `GET /schedule/export/pdf`, dilengkapi atribut `[AccessController]`, `[Tags]`, `[AccessAction]`, dan `[AccessPermission]` (`FinancePayrollDeductionBatch : Read`). |
 | `Program.cs` | Diperbarui | Registrasi dependensi `builder.Services.AddScoped<FinancePayrollDeductionBatchService>();`. |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Diperbarui | Penandaan status task `BE-FIN-116` menjadi `🟡` (sebagian). |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Diperbarui | Penandaan status task `BE-FIN-116` menjadi `✅` (sebagian). |
 
 ---
 
@@ -129,5 +129,5 @@ Sebelum fase jembatan manual potong gaji dibangun:
 
 Task `BE-FIN-116` telah selesai diimplementasikan pada source code backend. Seluruh kriteria penerimaan (AC 1–3) terpenuhi, menyediakan API query jadwal potongan, ekspor Excel sebagai templat unggah hasil, serta ekspor PDF sebagai dokumen serah terima resmi.
 
-Status task ditandai 🟡 **Sebagian** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai instruksi no-auto-build).
+Status task ditandai ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai instruksi no-auto-build).
 

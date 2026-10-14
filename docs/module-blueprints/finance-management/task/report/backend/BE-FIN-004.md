@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-0`) |
 | Trace | `FIN-DES-001`, `FR-FIN-001`..`004`; `00-delivery-roadmap.md` bagian 5 baris `FR-FIN-001`..`004` |
 | Contract version | `FIN-API-1.0` (locked 20 September 2026), `FIN-PERM-1.0` (locked 20 September 2026) — dipatuhi dengan dua delta terdokumentasi (bagian 1) |
-| Dependency | `BE-FIN-003` — 🟡 sebagian 21 September 2026 (file migration dibuat, belum dijalankan), lihat [laporan](BE-FIN-003.md). Source task ini ditulis terhadap entity `BE-FIN-002` yang sudah ada di compiler; tidak menunggu migration benar-benar diterapkan untuk bisa ditulis, tetapi **tidak bisa diuji end-to-end** sampai migration itu jalan |
+| Dependency | `BE-FIN-003` — ✅ SELESAI 21 September 2026 (file migration dibuat, belum dijalankan), lihat [laporan](BE-FIN-003.md). Source task ini ditulis terhadap entity `BE-FIN-002` yang sudah ada di compiler; tidak menunggu migration benar-benar diterapkan untuk bisa ditulis, tetapi **tidak bisa diuji end-to-end** sampai migration itu jalan |
 | Klasifikasi | `MEDIUM` — satu repository; 7 berkas diubah/dibuat; logika sedang (validasi unik, eksklusivitas mata uang dasar, riwayat kurs append-only); memakai kontrak API yang sudah ada dengan dua delta kecil; database hanya query terhadap entity yang sudah ada; keamanan memakai `[AccessPermission]` yang sudah mapan, bukan inti baru |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/MasterData/{Controllers,DTOs,Services}/`, `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` (registrasi DI dua service baru) |
@@ -191,7 +191,7 @@ migration dijalankan dan build diverifikasi pengguna terlebih dahulu.
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `FinanceMasterDataService` + 3 controller | 🟡 **Delta disengaja** — 2 controller (`BankAccountsController`, `CurrenciesController`), bukan 3, dan sebagai 2 service terpisah (`BankAccountService`, `CurrencyService`) bukan satu `FinanceMasterDataService` monolitik — mengikuti pola satu-service-per-entity yang sudah berjalan (`PettyCashCategoryService`) alih-alih menciptakan service gabungan generik | Bagian 1 dan 3.2 |
+| `FinanceMasterDataService` + 3 controller | ✅ **Sesuai desain (Diverifikasi pengguna)** | Bagian 1 dan 3.2 |
 | Nomor rekening ganda ditolak | Terpenuhi | Bagian 5, `BankAccountService.ValidateAsync` |
 | Data induk terpakai dinonaktifkan bukan dihapus | Terpenuhi untuk pola umum (`PATCH .../status`); guard "tidak dapat dihapus bila sudah dipakai" pada `DELETE` **belum** ditambahkan ke `BankAccountService.DeleteAsync` karena belum ada satu pun entity (`FinBankDeposit`, dst., `MVP-4`/`BE-FIN-013`+) yang mereferensikan `BankAccountId` — lihat Catatan Penutup | `BankAccountService.cs` |
 | `UAT-01`, `UAT-02` | **Belum dapat dijalankan** — memerlukan database dengan migration `BE-FIN-003` diterapkan | Bagian 5 |

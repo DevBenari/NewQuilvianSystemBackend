@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` §3 (tabel task baris 92) dan §4 (`POST-MVP`) |
 | Trace | `FIN-DES-025`, `FIN-CAP-021`, `FR-FIN-075`; kontrak `FIN-API-1.0` §payable |
 | Contract version | `FIN-API-1.0` terkunci; ERD `erd/data-dictionary.md` Amendment revisi 2 (§A.1, §A.2, §A.5, §A.6) |
-| Dependency | `BE-FIN-020` — 🟡 sebagian (selesai); Medical Fee `BE-MDF-014` (`MdfFinanceHandoff`) — **BLOCKED** (modul Medical Fee belum dimulai di source backend) |
+| Dependency | `BE-FIN-020` — ✅ SELESAI (selesai); Medical Fee `BE-MDF-014` (`MdfFinanceHandoff`) — **BLOCKED** (modul Medical Fee belum dimulai di source backend) |
 | Klasifikasi | `MEDIUM` — dua entity baru (`FinMedicalServicePayable`, `FinMedicalServicePayableItem`), dua EF Core configurations, penambahan navigasi & relasi FK pada `FinPaymentAllocation` dan `FinPayableAdjustment`, handwritten migration `AddFinanceMedicalServicePayable`, pembaruan DbContext & model snapshot |
 | Task mode | `BACKEND` |
 | Target tulis | `Areas/Corporate/FinanceManagement/Payable/Models/FinMedicalServicePayable.cs` (baru), `FinMedicalServicePayableItem.cs` (baru), `FinPaymentAllocation.cs` (disunting), `FinPayableAdjustment.cs` (disunting); `Repositories/Configurations/Corporate/FinanceManagement/Payable/FinMedicalServicePayableConfiguration.cs` (baru), `FinMedicalServicePayableItemConfiguration.cs` (baru), `FinPaymentAllocationConfiguration.cs` (disunting), `FinPayableAdjustmentConfiguration.cs` (disunting); `Repositories/ApplicationDbContext.cs` (disunting); `Migrations/20260922130000_AddFinanceMedicalServicePayable.cs` + `.Designer.cs` (baru); `Migrations/ApplicationDbContextModelSnapshot.cs` (disunting) |
 | Model | Antigravity |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `a743388b57da91e6a0d7a42813604dc94563e38d` |
 | Tanggal | 22 September 2026 |
-| Status | 🟡 **SEBAGIAN — model domain, EF Core configuration, relasi navigasi polimorfik, DbSet, handwritten migration, dan model snapshot selesai; QBE PASS. Alur konsumsi / intake penyerahan otomatis dari Medical Fee (BE-MDF-014) tetap BLOCKED.** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

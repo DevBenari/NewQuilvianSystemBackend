@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-19` (dirumuskan ulang `REV-21`) |
 | Trace | `FIN-DEC-169`, `170`, `193`, `194`; `FR-FIN-206`..`210`, `228`..`230`; `FIN-INTEGRATION-1.8` §`P.4`, §`P.5` (`INT-HR-FIN-002`, `INT-HR-FIN-003`) |
 | Contract version | `FIN-INTEGRATION-1.8` §`P.4`, §`P.5`; `FIN-API-1.9` O.4; `FIN-VAL-1.10` `FIN-VAL-244`, `245` |
-| Dependency | `BE-FIN-096` 🟡, `BE-FIN-113` 🟡, `{FIN-OQ-104}` ✅ |
+| Dependency | `BE-FIN-096` ✅, `BE-FIN-113` ✅, `{FIN-OQ-104}` ✅ |
 | Klasifikasi | `HEAVY` — integrasi lintas modul HR Lifecycle Management dan Finance Receivable: engine exit clearance (`ExitClearanceService`), controller API (`ExitClearanceController`), DTO checklist tanpa bypass manual (`ExitClearanceDtos`), gerbang validasi penyelesaian, inisiasi otomatis clearance dan pengiriman notifikasi pemisahan (`ResignationLifecycleHandoffService`), serta penerimaan notifikasi pemisahan di Finance (`FinanceReceivableSeparationNoticeService`) |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-112 tanpa build dotnet automatis /build-module-backend", 13 Oktober 2026) |
 | Target tulis | Lihat §3.2 |
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi logika penegakan gerbang bebas tanggungan, pencegahan edit manual `IsFinanceCleared`, penolakan penyelesaian saat bersisa piutang, pembukaan kunci saat saldo 0, inisiasi clearance otomatis saat handoff separation, dan dispatch notifikasi pemisahan ke Finance telah selesai di source (8 berkas); `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis") |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
@@ -117,5 +117,5 @@ Task `BE-FIN-112` menutup seluruh kesenjangan di atas secara komprehensif.
 
 Implementasi backend task `BE-FIN-112` telah selesai di source code. Gerbang berhenti kerja (*exit clearance*) HR kini terlindungi penuh oleh status bebas tanggungan Finance, dan notifikasi pemisahan pegawai terhubung otomatis.
 
-Status task ditandai 🟡 **Sebagian** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai aturan no-auto-build).
+Status task ditandai ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai aturan no-auto-build).
 

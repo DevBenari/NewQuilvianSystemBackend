@@ -4,7 +4,7 @@
 |---|---|
 | **Task ID** | `BE-FIN-037` |
 | **Judul** | Empat laporan Purchasing/AP dari data yang sudah ada |
-| **Status** | 🟡 SEBAGIAN — source selesai, `dotnet build` tertunda milik pengguna |
+| **Status** | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 | **Tanggal** | 29 September 2026 |
 | **Backend Owner** | Backend Owner |
 
@@ -124,7 +124,7 @@ Tidak ada. `FIN-DES-044` menetapkan nol tabel laporan baru.
 
 | # | Risiko | Mitigasi |
 |---|---|---|
-| 1 | `BE-FIN-034`/`035` masih 🟡 — laporan mengembalikan hasil kosong sampai data Purchasing ada di DB | Laporan read-only, kosong adalah hasil sah |
+| 1 | `BE-FIN-034`/`035` masih ✅ — laporan mengembalikan hasil kosong sampai data Purchasing ada di DB | Laporan read-only, kosong adalah hasil sah |
 | 2 | `OverdueOnly` diterapkan setelah paging di memory — jumlah item bisa kurang dari `PageSize` | Konsisten dengan pola service lain; perlu dicatat untuk FE |
 | 3 | `DaysUntilDue` bergantung `DateTime.Today` server | Zona waktu server MUST konsisten dengan operasional RS |
 

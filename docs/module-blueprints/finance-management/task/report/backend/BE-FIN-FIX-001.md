@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5.5 |
 | Commit backend saat dikerjakan | `46fa2a91f8c812d1d1c5e83a94aed3dddfccac93` (branch `Yasmina`, working tree bersih sebelum task) |
 | Tanggal | 2026-10-05; dikoreksi 2026-10-06 |
-| Status | 🟡 **KODE SELESAI DITULIS, VALIDASI BELUM DIJALANKAN.** `dotnet build` `NOT RUN`; tidak ada pengujian dengan data. Belum boleh ditandai selesai (`✅`) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 | Koreksi 2026-10-06 | Pemilik modul Finance mengoreksi cakupan "Belum Dibuat": piutang berstatus `SETTLED` (lunas dibayar, termasuk gabungan asuransi + excess tunai) yang belum pernah digabung Batch Tagihan semula sengaja disembunyikan — keputusan 5 Oktober yang ternyata salah. Status pembayaran dan status pembuatan AR/Invoice adalah dua hal terpisah; piutang lunas tetap perlu bisa dibuatkan AR/Invoice-nya. Lihat bagian 2 dan 3.2 untuk detail perubahan |
 
 ---

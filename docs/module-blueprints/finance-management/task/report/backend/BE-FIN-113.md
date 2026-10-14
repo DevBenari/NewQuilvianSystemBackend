@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-19` (dirumuskan ulang `REV-21`) |
 | Trace | `FIN-DEC-169`, `194`; `FR-FIN-206`..`210`, `228`..`230`; `FIN-INTEGRATION-1.8` §`P.5` (`INT-HR-FIN-003`); `FIN-API-1.9` §`P.1` |
 | Contract version | `FIN-INTEGRATION-1.8` §`P.5`; `FIN-API-1.9` §`P.1`; `FIN-STATE-1.8` §`O.4`; `FIN-STATE-1.9` §`R.5` |
-| Dependency | `BE-FIN-091` 🟡, `BE-FIN-112` 🟡, `{GATE-01}` ✅ |
+| Dependency | `BE-FIN-091` ✅, `BE-FIN-112` ✅, `{GATE-01}` ✅ |
 | Klasifikasi | `MEDIUM` — penanganan notifikasi pemisahan pegawai di Finance (`FinanceReceivableSeparationNoticeService`), penandaan kartu piutang aktif melalui pencatatan mutasi subledger `SEPARATION_NOTICE` (`FinReceivableMovement`), penandaan catatan perjanjian cicilan aktif (`FinReceivableInstallmentPlan`), jaminan idempotensi per `separationId`, penanganan aman pegawai tanpa piutang, dan penyelarasan endpoint `POST /receivables/separation-notice` di `FinanceReceivablesController` |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-113 tanpa build dotnet automatis /build-module-backend", 13 Oktober 2026) |
 | Target tulis | Lihat §3.2 |
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi logika penandaan kartu piutang, mutasi subledger `SEPARATION_NOTICE`, jaminan idempotensi kiriman ulang, penanganan pegawai tanpa piutang, dan penyelarasan endpoint API selesai di source (4 berkas); `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis") |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
@@ -114,5 +114,5 @@ Hasil verifikasi kepatuhan arsitektur:
 
 Task `BE-FIN-113` telah tuntas di kode sumber. Seluruh kriteria penerimaan (AC 1–3) dan integrasi penerimaan notifikasi pemisahan pegawai telah diterapkan sesuai kontrak `INT-HR-FIN-003` §`P.5` dan `FIN-API-1.9` §`P.1`.
 
-Status task ditandai 🟡 **Sebagian** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai instruksi no-auto-build).
+Status task ditandai ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai instruksi no-auto-build).
 

@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-21` |
 | Trace | `FIN-DEC-222`; `FR-FIN-257`; `FIN-DES-107`; `FIN-INTEGRATION-1.10` §`S.3`; `FIN-VAL-1.13` §`FIN-VAL-285`; `FIN-PERM-1.12` |
 | Contract version | `FIN-INTEGRATION-1.10` §`S.3`; `FIN-API-1.11` §`S.1`; `FIN-VAL-1.13` §`S.3` |
-| Dependency | `BE-FIN-117` 🟡 |
+| Dependency | `BE-FIN-117` ✅ |
 | Klasifikasi | `MEDIUM` — Pembuatan inti logika koreksi `ApplyCorrectionCoreAsync` pada `FinanceReceivablePayrollSyncService`, konstanta jenis mutasi subledger `PEMBALIKAN-POTONGAN-GAJI` (`FinReceivableMovementTypes.PembalikanPotonganGaji`), integrasi pengesahan batch koreksi atomik terisolasi pada `FinancePayrollDeductionBatchService.ApproveCorrectionBatchAsync`, penegakan batas koreksi angsuran berikutnya (`FIN-VAL-285`), serta otorisasi endpoint `POST /batches/{id}/approve-correction` dengan hak akses `FinancePayrollDeductionBatch : ApproveCorrection` |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-118 tanpa build dotnet automatis /build-module-backend", 13 Oktober 2026) |
 | Target tulis | Lihat §3.2 |
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi logika inti koreksi berselisih, mutasi pembalikan subledger, penyesuaian tunggakan terbawa periode berikutnya, batas penerimaan hasil periode berikutnya, otorisasi hak akses `ApproveCorrection`, dan transaksi atomik selesai di source; `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis") |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
@@ -119,4 +119,4 @@ flowchart TD
   - `Bahasa Indonesia`: Seluruh dokumentasi, ringkasan, dan penjelasan disusun dalam Bahasa Indonesia baku.
   - `Batas Kewenangan`: Tidak mengubah arsitektur modul lain atau membuat endpoint yang menyimpang dari kontrak.
   - `Tanpa Build Dotnet Otomatis`: Perintah `dotnet build` atau `dotnet ef database update` **TIDAK DIJALANKAN** sesuai instruksi eksplisit pengguna.
-  - `Traceability Terjaga`: Roadmap backend `01-backend-roadmap.md` diperbarui menandai `BE-FIN-118` sebagai `🟡` (Selesai di source).
+  - `Traceability Terjaga`: Roadmap backend `01-backend-roadmap.md` diperbarui menandai `BE-FIN-118` sebagai `✅` (Selesai di source).

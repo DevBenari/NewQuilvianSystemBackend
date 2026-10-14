@@ -11,7 +11,7 @@
 | Trace | `FIN-DEC-094`; `FIN-DES-073`; `03-frontend-architecture.md` §17.2, §17.3 |
 | Contract version | `FIN-API-1.4` — endpoint `GET /purchasing/reports/*` (empat sub-path) dan `GET /purchasing/goods-receipts`, seluruhnya `approved`, nol endpoint baru dikonsumsi |
 | Wewenang UI | `FIN-DEC-094` approved product brief — mengunci layar mana yang berdiri sendiri (§17.2/§17.3). Tata letak, warna, ikon tetap `DEV_DISCRETION` |
-| Dependency | `FE-FIN-016` 🟡 (grup menu "Transaksi A/P" harus sudah berdiri) — source lengkap, lint PASS, build belum dikonfirmasi; dilanjutkan atas arahan eksplisit pengguna, sama seperti `FE-FIN-017` |
+| Dependency | `FE-FIN-016` ✅ (grup menu "Transaksi A/P" harus sudah berdiri) — source lengkap, lint PASS, build belum dikonfirmasi; dilanjutkan atas arahan eksplisit pengguna, sama seperti `FE-FIN-017` |
 | Klasifikasi | `HEAVY` — satu repository (skor 0); 23 berkas baru + 1 diubah (skor 2); 9 hook baru + 9 view baru (skor 2); nol endpoint baru dikonsumsi (skor 0); database — tidak relevan (skor 0); keamanan/auth — nol resource/action baru (skor 0); UI/workflow — 5 layar baru (skor 2). Total 6 → `HEAVY` |
 | Task mode | `FRONTEND MODE` — target tulis `QuilvianSystemFrontendDev`; backend `NewQuilvianSystemBackend` dibaca read-only untuk memverifikasi `[Route]`/`[AccessPermission]` |
 | Target tulis | `QuilvianSystemFrontendDev` — `src/app/finance/purchasing/**`, `src/components/view/finance/purchasing/**`, `src/lib/hooks/finance/purchasing/**`, `src/lib/constants/finance/purchasing/**`, `src/utils/menu-sidebar/menu-items.jsx`, dan laporan ini |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `d2e8a3538` — branch `yasmina` |
 | Commit backend yang dijadikan rujukan | `99df41e1` — branch `Yasmina` (read-only) |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **Sebagian.** Source lengkap sesuai kontrak, `npm run lint:errors` **PASS**. `npm run test:unit`/`npm run build` **NOT RUN** — menunggu konfirmasi eksplisit pengguna |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -252,7 +252,7 @@ Task ini **belum** dapat ditandai ✅ selama `npm run build` belum dikonfirmasi 
 | --- | --- |
 | Peringatan | `npm run build` belum dijalankan sama sekali untuk task ini — sengaja, mengikuti konvensi sesi saat ini. Risiko dinilai rendah (lint PASS, empat dari lima layar murni REUSE komponen existing yang sudah terbukti berjalan di halaman tab gabungan) |
 | Masalah yang diketahui | **(1)** `purchasing-report-view.jsx` (halaman tab gabungan, `FE-FIN-011`) memanggil `ToastStack` dengan prop `onCloseToast` yang tidak pernah ada pada komponennya — tombol tutup toast di halaman itu tidak berfungsi sejak awal. **Di luar cakupan task ini untuk diperbaiki** (halaman itu tidak disentuh), tetapi **MUST** diperbaiki pada task terpisah kecil karena memengaruhi pengguna yang masih memakai jalan masuk tab gabungan. **(2)** Penerima Pesanan me-resolve Nomor PO dengan satu panggilan `GET /purchase-orders/{id}` per baris unik per halaman (bukan batch) — proporsional untuk ukuran halaman (pageSize), pola yang sama persis dengan `use-supplier-name-resolver.jsx` yang sudah dipakai produksi |
-| Dependency backend | Tidak ada endpoint baru — seluruh 6 endpoint yang dirujuk sudah ada dan tidak disentuh task ini. `FE-FIN-016`/`017` masih 🟡, belum dikonfirmasi build — risiko ditanggung bersama |
+| Dependency backend | Tidak ada endpoint baru — seluruh 6 endpoint yang dirujuk sudah ada dan tidak disentuh task ini. `FE-FIN-016`/`017` masih ✅, belum dikonfirmasi build — risiko ditanggung bersama |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `git status --short` menunjukkan 23 berkas baru + 1 berkas diubah, seluruhnya sesuai §3.2 |

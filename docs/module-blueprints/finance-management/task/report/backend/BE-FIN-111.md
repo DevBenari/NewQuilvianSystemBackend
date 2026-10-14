@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-19` (dirumuskan ulang `REV-21`) |
 | Trace | `FIN-DEC-173`, `187`, `195`, `200`; `FR-FIN-231`..`234`; `FIN-INTEGRATION-1.8` §`P.6` butir 3 (`INT-BIL-FIN-002`) |
 | Contract version | `FIN-INTEGRATION-1.8` §`P.6` butir 3; `FIN-STATE-1.8` P.1 |
-| Dependency | `BE-FIN-110` 🟡, `BE-FIN-109` 🟡 |
+| Dependency | `BE-FIN-110` ✅, `BE-FIN-109` ✅ |
 | Klasifikasi | `HEAVY` — integrasi lintas modul Billing Intake, Finance Receivable, dan HR Payroll: layanan restitusi HR (`PayrollRestitutionService`), DTO restitusi (`PayrollRestitutionDtos`), controller API HR (`PayrollRestitutionController`), pemicu otomatis pembatalan piutang lama di `FinanceBillingIntakeService`, serta idempotensi dan registrasi DI |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-111 tanpa build dotnet automatis /build-module-backend", 13 Oktober 2026) |
 | Target tulis | Lihat §3.2 |
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi logika restitusi slip gaji di HR, pembuatan entitas `TrxPayrollAdjustment` tipe `Add` dan `TrxPayrollReversal`, penyematan komponen slip `TrxPayrollEmployeeComponent`, peningkatan penghasilan bruto/netto pegawai pada run target, pemicu otomatis pada saat pembatalan piutang di `FinanceBillingIntakeService`, serta controller API restitusi telah selesai di source (6 berkas); `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis") |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
@@ -114,5 +114,5 @@ Implementasi backend task `BE-FIN-111` telah selesai di level kode program. Alur
 2. `BE-FIN-110`: Mesin pemotongan cicilan piutang RS di dalam payroll run HR.
 3. `BE-FIN-111`: Pengembalian potongan yang terlanjur diambil dari pegawai yang salah ke slip gaji bulan berikutnya di HR tanpa kas keluar Finance.
 
-Status task ditandai 🟡 **Sebagian** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai aturan no-auto-build).
+Status task ditandai ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai aturan no-auto-build).
 

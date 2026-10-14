@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian "Gelombang eksekusi — `REV-4`" |
 | Trace | `FIN-DEC-047`, `061`; `FR-FIN-085` (penerbitan), `FR-FIN-098`; `FIN-API-1.2` §B.5 (kecuali `apply`, dicabut); `FIN-STATE-1.2` §B.5; `FIN-STATE-1.3` §C.2; `FIN-VAL-1.2` `110`, `111`; `FIN-INTEGRATION-1.3` §5.9 kode 28 |
 | Contract version | `FIN-API-1.1` (base, `locked` 25 September 2026) diperluas AMENDMENT REVISI 4/5 — belum ada nomor versi API baru khusus task ini |
-| Dependency | `BE-FIN-034` 🟡 (source selesai 26 September 2026, `dotnet build` tertunda milik pengguna — dipakai sebagai bukti kontrak `FinPurchasingInvoice`, bukan dipanggil langsung) |
+| Dependency | `BE-FIN-034` ✅ (source selesai 26 September 2026, `dotnet build` tertunda milik pengguna — dipakai sebagai bukti kontrak `FinPurchasingInvoice`, bukan dipanggil langsung) |
 | Klasifikasi | `MEDIUM` — satu repository (skor 0); ≤8 berkas diperiksa dari domain terdekat tapi lebih dari 8 total dibaca lintas kontrak (skor 1); 5 berkas diubah/dibuat (skor 1); logika bisnis sedang — lifecycle 3 status + transaksi dengan efek samping (skor 1); kontrak API — endpoint tambahan memakai pola yang sudah ada (skor 1); database — nol perubahan schema, hanya insert ke tabel yang sudah ada BE-FIN-030 (skor 0); keamanan/auth — action/permission baru mengikuti pola (skor 1); UI/workflow — tidak ada (skor 0). Total 5 → `MEDIUM` |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Purchasing/**` (service, controller, DTO baru), `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinAccountingEventOutbox.cs` (tambah 1 konstanta), `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` (registrasi DI), `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` (tanda status) |
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Belum di-commit — lihat Status Git bagian 7 (working tree `Yasmina`, HEAD `45f2bb7c`) |
 | Tanggal | 28 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `dotnet build` **sengaja tidak dijalankan** atas instruksi eksplisit pengguna ("jangan lakukan build otomatis") — bukan kegagalan, tertunda menunggu pengguna |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -115,7 +115,7 @@ deposit di dalam pembayaran (`BE-FIN-036`).
 | `Areas/Corporate/FinanceManagement/Purchasing/Dtos/FinanceSupplierReturnDtos.cs` | **Baru.** Request/response DTO retur dan deposit, `SupplierReturnDepositQuery` |
 | `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinAccountingEventOutbox.cs` | Tambah satu konstanta `FinAccountingEventTypeCodes.ReturPembelian = "RETUR-PEMBELIAN"` (kode ke-28) |
 | `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` | Tambah `services.AddScoped<FinanceSupplierReturnService>();` — satu-satunya tempat registrasi DI service Finance di repository ini |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-035` → 🟡 di seluruh titik kemunculan (kartu task, grafik dependency, tabel gelombang `R4-7`/`R4-8`); pembaruan blocker `BE-FIN-036` (`BE-FIN-035` tidak lagi menahan, `BE-FIN-041` tetap menahan) |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-035` → ✅ di seluruh titik kemunculan (kartu task, grafik dependency, tabel gelombang `R4-7`/`R4-8`); pembaruan blocker `BE-FIN-036` (`BE-FIN-035` tidak lagi menahan, `BE-FIN-041` tetap menahan) |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 

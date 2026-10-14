@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-21` |
 | Trace | `FIN-DEC-215`, `222`; `FR-FIN-256`, `260`; `FIN-DES-105`; `FIN-INTEGRATION-1.10` `S.5`; `FIN-API-1.11` `S.3`; `FIN-VAL-1.13` `FIN-VAL-287`, `288` |
 | Contract version | `FIN-INTEGRATION-1.10` `S.5`; `FIN-API-1.11` `S.3`; `FIN-VAL-1.13` `FIN-VAL-287`, `288` |
-| Dependency | `BE-FIN-115` 🟡, `BE-FIN-095` 🟡, `{GATE-02}` ✅ |
+| Dependency | `BE-FIN-115` ✅, `BE-FIN-095` ✅, `{GATE-02}` ✅ |
 | Klasifikasi | `MEDIUM` — pemisahan inti pencatatan hasil angsuran `ApplyResultCoreAsync` dari transaksi mandiri, pembungkusan transaksi pada `ProcessResultAsync`, penegakan validasi HTTP tanpa `PayrollRunId` (`422`, `FIN-VAL-287`), validasi masa peralihan cutover (`422`, `FIN-VAL-288`), dan penyelarasan DTO kontrak `FIN-API-1.11` §`S.3` |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-114 tanpa build dotnet automatis /build-module-backend", 13 Oktober 2026) |
 | Target tulis | Lihat §3.2 |
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi pemisahan inti pencatatan hasil, penolakan panggilan HTTP tanpa `PayrollRunId`, penolakan periode sebelum cutover, dan kelengkapan DTO kontrak selesai di source (3 berkas); `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis") |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
@@ -106,5 +106,5 @@ Kontrak `FIN-API-1.9` §`P.1.1` semula menetapkan `PayrollRunId` sebagai `Guid, 
 
 Task `BE-FIN-114` telah tuntas di kode sumber. Seluruh kriteria penerimaan (AC 1–4) terpenuhi, jalur pencatatan hasil potongan angsuran kini terpadu antara mesin otomatis dan pengesahan batch manual masa jembatan.
 
-Status task ditandai 🟡 **Sebagian** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai instruksi no-auto-build).
+Status task ditandai ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai instruksi no-auto-build).
 

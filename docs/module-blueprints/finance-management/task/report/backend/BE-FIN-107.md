@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-19` |
 | Trace | `FIN-DEC-164`, `183`, `184`, `185`, `186`, `198`, `202`, `205`, `207`, `208`, `210`, `218`, `230`; `FR-FIN-220`..`222`, `246`..`248`, `250`..`252`; `FIN-INTEGRATION-1.9` `R.3`, `R.4`; `FIN-API-1.10` `R.5`; `FIN-VAL-262`, `264`, `265`, `289`; `BE-FIN-119` |
 | Contract version | `FIN-INTEGRATION-1.9` `R.4`, `FIN-API-1.10` `R.5` |
-| Dependency | `BE-FIN-091` 🟡, `BE-FIN-104` ✅, `BE-FIN-106` 🟡, `{GATE-01}` ✅ |
+| Dependency | `BE-FIN-091` ✅, `BE-FIN-104` ✅, `BE-FIN-106` ✅, `{GATE-01}` ✅ |
 | Klasifikasi | `HEAVY` — skor 12: berkas diubah/baru 11 (2), logika pembagian porsi dan alur finalisasi inti billing kritis (2), kontrak API baru & DTO berubah (2), dampak schema: kolom baru, check constraint baru, dan pelebaran kolom (2), dampak serah terima keuangan AR/AP (2) |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan FE-FIN-107 tanpa build dotnet /build-module-backend" dikonfirmasi ke `BE-FIN-107`, 13 Oktober 2026), fokus pada Billing Management dan Finance AR/AP |
 | Target tulis | Lihat 3.2 |
 | Model | Claude Sonnet 5.5 |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh source code backend selesai diimplementasikan (termasuk pembagian dua porsi, pencatatan pilihan pegawai $D$, consent $D$, mitigasi penjamin kedua, pencegahan baris nol, dan perluasan serah terima AR/AP); `dotnet build` **NOT RUN** oleh agent (instruksi pemilik); migration `AddDeferredPatientAmountAndWidenBenefitRelationship` menunggu dieksekusi oleh pemilik |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 

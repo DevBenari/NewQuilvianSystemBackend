@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-21` |
 | Trace | `FIN-DEC-220`, `221`; `FR-FIN-254`..`256`; `FIN-DES-106`; `FIN-INTEGRATION-1.10` §`S.2`; `FIN-API-1.11` §`S.1`; `FIN-STATE-1.10` §`S.1`; `FIN-VAL-1.13` §`FIN-VAL-272`..`284`, `286`; `FIN-PERM-1.12` |
 | Contract version | `FIN-INTEGRATION-1.10` §`S.2`; `FIN-API-1.11` §`S.1`; `FIN-STATE-1.10` §`S.1`; `FIN-VAL-1.13` §`S.1`..`S.3` |
-| Dependency | `BE-FIN-114` 🟡, `BE-FIN-115` 🟡, `BE-FIN-116` 🟡 |
+| Dependency | `BE-FIN-114` ✅, `BE-FIN-115` ✅, `BE-FIN-116` ✅ |
 | Klasifikasi | `HIGH` — Pembuatan dua tabel batch (`FinPayrollDeductionBatch` dan `FinPayrollDeductionBatchItem`), konfigurasi EF Core dengan check constraints dan unique filtered index, DbSets di `ApplicationDbContext`, penambahan jenis bukti `LAPORAN-PENGGAJIAN` pada `FinTransactionProofTypes`, berkas migration `20261013143000_AddFinancePayrollDeductionBatch.cs`, exception domain, perluasan `FinancePayrollDeductionBatchService` (unggah berkas Excel/CSV, validasi per baris, pengajuan wajib bukti, pengesahan atomik Serializable dengan advisory lock berurutan, pembatalan, penolakan, kueri daftar berpaging dan rincian lengkap), serta perluasan controller dengan 11 endpoint berhak akses resmi |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-117 tanpa build dotnet automatis /build-module-backend", 13 Oktober 2026) |
 | Target tulis | Lihat §3.2 |
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi model, konfigurasi EF Core, DbSets, berkas migrasi, exceptions, service batch dengan transaksi atomik dan maker-checker, controller dengan 11 endpoint berhak akses resmi, dan DTOs telah selesai di source; `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis") |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
@@ -140,5 +140,5 @@ flowchart TD
   - `Bahasa Indonesia`: Seluruh dokumentasi, ringkasan, dan penjelasan disusun dalam Bahasa Indonesia baku.
   - `Batas Kewenangan`: Tidak mengarang entitas baru di luar blueprint yang disetujui.
   - `Tanpa Build Dotnet Otomatis`: Perintah `dotnet build` atau `dotnet ef database update` **TIDAK DIJALANKAN** sesuai instruksi eksplisit pengguna.
-  - `Traceability Terjaga`: Roadmap backend `01-backend-roadmap.md` diperbarui menandai `BE-FIN-117` sebagai `🟡` (Selesai di source).
+  - `Traceability Terjaga`: Roadmap backend `01-backend-roadmap.md` diperbarui menandai `BE-FIN-117` sebagai `✅` (Selesai di source).
 

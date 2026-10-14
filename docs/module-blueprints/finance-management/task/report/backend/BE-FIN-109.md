@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-19` |
 | Trace | `FIN-DEC-173`, `187`, `195`, `200`; `FIN-INTEGRATION-1.8` §`P.6` (`INT-BIL-FIN-002`); `FR-FIN-231`..`234` |
 | Contract version | `FIN-INTEGRATION-1.8` §`P.6` (`INT-BIL-FIN-002`), `FIN-INTEGRATION-1.9` `R.3` (`INT-BIL-HR-001`) |
-| Dependency | `BE-FIN-107` 🟡, `BE-FIN-108` 🟡, `BE-FIN-097` 🟡 |
+| Dependency | `BE-FIN-107` ✅, `BE-FIN-108` ✅, `BE-FIN-097` ✅ |
 | Klasifikasi | `HEAVY` — menuntaskan blocker lintas modul `BE-FIN-097`, alur Berita Acara Koreksi resmi post-finalisasi, transaksi serializable Billing ke HR & Finance, mutasi pembalik `BilHandoffAdjustment`, serah terima pengganti `BilArHandoff`, pemulihan dan pemotongan plafon benefit HR |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-109 tanpa build dotnet automatis /build-module-backend", 13 Oktober 2026) |
 | Target tulis | Lihat 3.2 |
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi Berita Acara Koreksi, serah terima pembalik, serah terima pengganti, pemulihan dan pemakaian plafon HR, serta eliminasi duplikasi intake Finance selesai diimplementasikan di source; `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis"); verifikasi runtime menunggu eksekusi bersama pemilik |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 

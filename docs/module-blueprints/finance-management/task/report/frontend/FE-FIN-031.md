@@ -11,12 +11,12 @@
 | Trace | `FR-FIN-163`..`165`; `FIN-DEC-134`; `FIN-DES-086`; `03-frontend-architecture.md` 19.2 nomor 10 |
 | Contract version | `FIN-API-1.6` F.4 (`contract_status: approved 2026-10-02`); `FIN-PERM-1.8` H.1; `FIN-PERM-1.7` G.5; `FIN-VAL-1.8` `FIN-VAL-197`, `205`, `206` |
 | Wewenang UI | Frontend Owner — **sebagian tertahan** `FIN-OQ-080` (apakah angka ambang ditampilkan kepada staf AR/AP belum diputuskan) dan `FIN-OQ-079` (menu). **Mengikat:** alasan kosong dicegah di layar; `404` dinyatakan sebagai seluruh pembayaran langsung sedang ditolak; layar tidak menjanjikan jenjang persetujuan. `DEV_DISCRETION`: tata letak kartu dan form, warna |
-| Dependency | `BE-FIN-076` 🟡 (dua endpoint ambang; source lengkap; pengguna melaporkan `dotnet build` sukses setelah task ini ditulis). Penerapan migration `AddFinanceTransactionProofAndDirectPaymentThreshold` (tabel `MstDirectPaymentThreshold`) **tidak dikonfirmasi** dalam sesi ini |
+| Dependency | `BE-FIN-076` ✅ (dua endpoint ambang; source lengkap; pengguna melaporkan `dotnet build` sukses setelah task ini ditulis). Penerapan migration `AddFinanceTransactionProofAndDirectPaymentThreshold` (tabel `MstDirectPaymentThreshold`) **tidak dikonfirmasi** dalam sesi ini |
 | Klasifikasi | `MEDIUM` — 1 rute baru, 1 view, 1 hook, 1 slice, 1 berkas konstanta, 1 berkas utilitas, 1 CSS Module, 1 unit test, 1 registrasi store |
 | Task mode | `FRONTEND MODE` — target tulis `QuilvianSystemFrontendDev`; backend dibaca read-only (tidak diubah); laporan dan bukti roadmap ditulis di repository backend |
 | Branch | `yasmina` (upstream `origin/yasmina`); penetapan eksplisit pemegang modul belum dikonfirmasi, sama seperti task sebelumnya |
 | Tanggal | 3 Oktober 2026 |
-| Status | 🟡 **Sebagian.** Source lengkap sesuai kontrak. `npm run lint:errors`, `npm run test:unit`, `npm run build` **NOT RUN** (standing instruction: dijalankan manual oleh pengguna). Verifikasi manual UI **NOT FEASIBLE** dari sesi ini (§7). Keputusan `FIN-OQ-080` masih terbuka dan layar menahan diri (§6) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -189,7 +189,7 @@ Status "Terpenuhi (source)" = terpenuhi menurut pembacaan kode; **belum teramati
 
 ### Temuan di luar cakupan (`UNRELATED EXISTING ISSUE`, tidak diperbaiki)
 
-- `BE-FIN-076` melaporkan status 🟡 dengan `dotnet build` NOT RUN pada roadmap; pengguna kemudian melaporkan build sukses, tetapi laporan itu belum diperbarui. Bukan wewenang task frontend.
+- `BE-FIN-076` melaporkan status ✅ dengan `dotnet build` NOT RUN pada roadmap; pengguna kemudian melaporkan build sukses, tetapi laporan itu belum diperbarui. Bukan wewenang task frontend.
 
 ---
 

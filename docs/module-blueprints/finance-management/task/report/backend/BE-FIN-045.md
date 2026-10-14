@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | Belum di-commit — working tree `Yasmina`, HEAD `7811c048` |
 | Tanggal | 29 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `dotnet build` **NOT RUN** (aturan berdiri "jangan build otomatis"). **Nol migration** — task ini tidak menyentuh skema sama sekali |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -100,7 +100,7 @@ aktif** dan memang belum boleh aktif — lihat bagian 7.
 | --- | --- |
 | `.../BillingIntake/Services/FinanceBillingIntakeService.cs` | **Baru**: `SyncCashierShiftClosureMarkersAsync` + record hasil `CashierShiftClosureMarkerSyncResult`. Nol method lama diubah |
 | `.../BillingIntake/Controllers/FinanceBillingIntakeController.cs` | **Baru**: `POST /cashier-shift-closure-markers/sync`, memakai aksi `Sync` yang sudah ada |
-| `roadmap/01-backend-roadmap.md`, `roadmap/00-delivery-roadmap.md` | Tanda status `BE-FIN-045` → 🟡 |
+| `roadmap/01-backend-roadmap.md`, `roadmap/00-delivery-roadmap.md` | Tanda status `BE-FIN-045` → ✅ |
 
 ### 3.3 Keputusan bentuk teknis, dan kenapa bentuk lain ditolak
 

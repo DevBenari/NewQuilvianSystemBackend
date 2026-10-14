@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` revisi 8, bagian 3 & 4 |
 | Trace | Keputusan bisnis `FIN-DEC-030`; keputusan arsitektur `FIN-DES-058`; arsitektur backend `02-backend-architecture.md` bagian B.6 dan E.9; aturan validasi `FIN-VAL-1.4` `FIN-VAL-078`; matriks transisi status `FIN-STATE-1.3` §9 (transisi migrasi satu kali); pengujian `FIN-TEST-1.5` §D.1 baris terakhir dan §8a baris `FIN-VAL-078` |
 | Contract version | `FIN-STATE-1.3`, `FIN-INTEGRATION-1.6`, `FIN-VAL-1.5`, `FIN-TEST-1.6` — seluruhnya `approved` |
-| Dependency | Otorisasi pembacaan database (diberikan pengguna 29 September 2026); `BE-FIN-025` ✅; `BE-FIN-044` 🟡 (penghentian penulisan nama pendek); skema tabel outbox `FinAccountingEventOutbox` (`BE-FIN-010` ✅) |
+| Dependency | Otorisasi pembacaan database (diberikan pengguna 29 September 2026); `BE-FIN-025` ✅; `BE-FIN-044` ✅ (penghentian penulisan nama pendek); skema tabel outbox `FinAccountingEventOutbox` (`BE-FIN-010` ✅) |
 | Klasifikasi | `MEDIUM` — audit data operasional dan verifikasi manual database; berkas dibuat 1 (`BE-FIN-026.md`); berkas diperbarui 2 (`01-backend-roadmap.md`, `00-delivery-roadmap.md`); nol modifikasi skema DDL |
 | Task mode | `BACKEND` (`TOUCHED LEGACY` / `OPERATIONAL DATA AUDIT`) |
 | Target tulis | `NewQuilvianSystemBackend` — audit fisik terhadap database PostgreSQL `QuilvianNewDevYasmina`, penyusunan rekomendasi operasional bagi Finance/Product Owner, laporan task, dan roadmap modul |

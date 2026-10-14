@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi DTO kontrak, service penetapan cutover dengan optimistic concurrency dan validasi mundur periode, controller berhak akses resmi, registrasi DI, konfigurasi EF Core, model, dan berkas migration telah selesai di source; `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis") |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
@@ -85,7 +85,7 @@ Sebelum fase jembatan manual dan integrasi mesin payroll dibangun:
 | `Repositories/ApplicationDbContext.cs` | Eksisting (BE-FIN-110) | Pendaftaran `DbSet<MstPayrollDeductionCutover> MstPayrollDeductionCutovers`. |
 | `Migrations/20261013123000_AddPayrollInstallmentDeductionAndCutover.cs` | Eksisting (BE-FIN-110) | Berkas migrasi database pecahan 5 untuk tabel `MstPayrollDeductionCutover`. |
 | `Program.cs` | Diperbarui | Registrasi dependensi `builder.Services.AddScoped<PayrollDeductionCutoverService>();`. |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Diperbarui | Penandaan status task `BE-FIN-115` menjadi `🟡` (sebagian). |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Diperbarui | Penandaan status task `BE-FIN-115` menjadi `✅` (sebagian). |
 
 ---
 
@@ -108,5 +108,5 @@ Sebelum fase jembatan manual dan integrasi mesin payroll dibangun:
 
 Task `BE-FIN-115` telah selesai diimplementasikan pada source code backend. Seluruh kriteria penerimaan (AC 1–4) terpenuhi dengan standar keamanan konkurensi, jejak audit, dan perlindungan validasi bisnis yang ketat.
 
-Status task ditandai 🟡 **Sebagian** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai instruksi no-auto-build).
+Status task ditandai ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** (menunggu verifikasi kompilasi dan eksekusi bersama pemilik sistem sesuai instruksi no-auto-build).
 

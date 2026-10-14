@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-19` |
 | Trace | `FIN-DEC-202`, `205`; `FIN-INTEGRATION-1.9` `R.3` (`INT-BIL-HR-001`), `R.4.1`; `FR-FIN-244`, `245`, `249` |
 | Contract version | `FIN-INTEGRATION-1.9` `R.3` (`INT-BIL-HR-001`) |
-| Dependency | `BE-FIN-107` 🟡, `BE-FIN-104` ✅ |
+| Dependency | `BE-FIN-107` ✅, `BE-FIN-104` ✅ |
 | Klasifikasi | `MEDIUM` — berkas diubah 3 (1), logika transaksi atomik in-process Billing ke HR dengan batas transaksi tunggal (2), penanganan idempotensi dan isolasi serializable PostgreSQL (2), dampak koreksi & pembalikan piutang (2) |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-108 tanpa build dotnet /build-module-backend", 13 Oktober 2026), fokus pada Billing Finalization, Serah Terima AR/AP, dan Benefit Management HR |
 | Target tulis | Lihat 3.2 |
 | Model | Claude Sonnet 5.5 |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh source code integrasi pemotongan dan pengembalian plafon HR selesai diimplementasikan di bawah batas transaksi atomik serializable; `dotnet build` **NOT RUN** oleh agent (instruksi pemilik); verifikasi runtime menunggu eksekusi bersama pemilik |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 

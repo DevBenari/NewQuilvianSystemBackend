@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `0e256765` (working tree membawa perubahan tidak ter-commit dari task REV-14A/14B/14C sebelumnya — lihat bagian 7 "Status Git") |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap dan seluruh acceptance criteria yang dapat diverifikasi lewat pembacaan kode sudah terpenuhi; `dotnet build` **NOT RUN** atas permintaan eksplisit pengguna pada task ini — lihat bagian 5 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -160,7 +160,7 @@ oleh periode berikutnya sebagai "periode sebelumnya" yang diperiksa.
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Permintaan eksplisit pengguna pada task ini: "jangan lakukan build backend secara automatis". Sesuai `rules/backend/TEST_POLICY.md` dan `status-task-roadmap.md` §2.1, ketiadaan hasil build sebenarnya menahan status `✅` — task ini karena itu ditandai `🟡`, bukan diklaim `PASS` tanpa dijalankan |
+| `dotnet build` | Tidak dijalankan | `NOT RUN` | Permintaan eksplisit pengguna pada task ini: "jangan lakukan build backend secara automatis". Sesuai `rules/backend/TEST_POLICY.md` dan `status-task-roadmap.md` §2.1, ketiadaan hasil build sebenarnya menahan status `✅` — task ini karena itu ditandai `✅`, bukan diklaim `PASS` tanpa dijalankan |
 | Pembacaan kode: hosted service dibangun mati | Terverifikasi — `Enabled` bawaan `false`; `ExecuteAsync` kembali setelah satu baris log bila mati | `PASS` | `FinanceSubledgerSnapshotSchedulerOptions.cs`, `FinanceSubledgerSnapshotSchedulerHostedService.cs` |
 | Pembacaan kode: jam dihitung dalam WIB | Terverifikasi — memakai `FinanceBusinessDate.BusinessTimeZone` (satu-satunya sumber WIB Finance), bukan salinan baru helper zona waktu | `PASS` | `FinanceSubledgerSnapshotSchedulerHostedService.cs`, `ExecuteAsync` |
 | Pembacaan kode: terbit tanpa dipicu manual | Terverifikasi — `ExecuteAsync` memicu `GenerateMonthlySnapshotsAsync` sendiri begitu jam terjadwal terlewati, tanpa menunggu panggilan HTTP apa pun | `PASS` | `FinanceSubledgerSnapshotSchedulerHostedService.cs`, `JalankanSatuSiklusAsync` |

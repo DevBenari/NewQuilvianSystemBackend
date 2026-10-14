@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-19` (dirumuskan ulang `REV-21`) |
 | Trace | `FIN-DEC-163`, `167`, `168`, `179`, `190`..`192`, `214`, `216`, `217`, `222`; `FR-FIN-224`..`227` |
 | Contract version | `FIN-INTEGRATION-1.8` §`P.2`, §`P.3` (dikoreksi `FIN-INTEGRATION-1.10` §`S.5`); `FIN-INTEGRATION-1.10` §`S.4`; `FIN-VAL-1.13` `FIN-VAL-287`, `288` |
-| Dependency | `BE-FIN-094` 🟡, `BE-FIN-095` 🟡, `{FIN-OQ-104}` ✅, `{FIN-OQ-106}` ✅ sebagian, `{GATE-01}` ✅, `{GATE-02}` ✅, `{GATE-03}`, `{FIN-OQ-111}` |
+| Dependency | `BE-FIN-094` ✅, `BE-FIN-095` ✅, `{FIN-OQ-104}` ✅, `{FIN-OQ-106}` ✅ sebagian, `{GATE-01}` ✅, `{GATE-02}` ✅, `{GATE-03}`, `{FIN-OQ-111}` |
 | Klasifikasi | `HEAVY` — integrasi lintas modul HR Payroll dan Finance Receivable: mesin potongan cicilan di HR (`PayrollInstallmentDeductionService`), master batas potongan gaji bersih (`MaxNetSalaryPercentage`), master cutover peralihan (`MstPayrollDeductionCutover`), pemisahan inti `ApplyResultCoreAsync`, validasi panggilan manual (`FIN-VAL-287`) dan peralihan (`FIN-VAL-288`) |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("kerjakan BE-FIN-110 tanpa build dotnet automatis /build-module-backend", 13 Oktober 2026) |
 | Target tulis | Lihat §2.2 |
 | Model | Claude Sonnet 3.7 / Antigravity |
 | Commit backend saat dikerjakan | `cf8e1c2e` (branch `Yasmina`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh implementasi logika mesin potongan cicilan HR, batas persentase gaji bersih pada `MstDeductionType`, model cutover `MstPayrollDeductionCutover`, pemisahan inti pencatatan hasil `ApplyResultCoreAsync`, penegakan validasi `FIN-VAL-287` dan `FIN-VAL-288`, serta endpoint eksekusi potongan telah selesai diimplementasikan di source (10 berkas); `dotnet build` **NOT RUN** oleh agent (instruksi pemilik: "tanpa build dotnet automatis"); file migration disiapkan menunggu eksekusi bersama pemilik |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
