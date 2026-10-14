@@ -25,17 +25,21 @@ Yang **belum** terjadi, dan karena itu modul belum boleh dipakai perawat atau do
 
 1. Tabel-tabelnya belum pernah dibuat di database mana pun. Migration sudah ditulis tetapi
    sengaja belum dijalankan, karena menjalankan migration memerlukan izin terpisah.
-2. Belum ada satu pun layar frontend yang memakai modul ini.
+2. ~~Belum ada satu pun layar frontend yang memakai modul ini.~~ **TIDAK LAGI BERLAKU per 14
+   Oktober 2026.** Sebelas layar Operasi sudah ada (daftar/detail/form kasus, jadwal, persiapan,
+   pelaksanaan, recovery, material, integrasi, laporan), beserta 10 service dan 11 halaman
+   app-router. Lihat `fe-acceptance-evidence.md`.
 3. Tiga sambungan ke modul lain — Farmasi/Inventory, Billing, dan unit tujuan pasien —
    belum punya pemilik yang ditunjuk, sehingga pengirimannya berhenti di antrean.
 
 | Aspek | Kesiapan | Dasar perhitungan |
 | --- | --- | --- |
 | Fondasi (entity, configuration, migration) | 13 dari 13 entity terbukti | Seluruh `Opr*` punya model, configuration, dan migration |
+| Migration terlihat EF | 315 dari 316 | Diperbaiki 14 Okt: `20260929000000` kehilangan `[DbContext]` sehingga kontrak outbox tidak pernah terbentuk |
 | Backend | 11 dari 11 task ditulis | `BE-OPR-001` sampai `BE-OPR-011` |
-| Frontend | 0 dari 9 task | `FE-OPR-001` sampai `FE-OPR-009` belum dimulai |
-| Integrasi dan runtime | 0 dari 6 terbukti | Belum ada eksekusi database dan belum ada consumer nyata |
-| Cakupan pengujian | 129 test, 0 gagal | 117 test modul Operasi, 12 test modul Farmasi |
+| Frontend | **1 dari 9 task `DONE`; 8 `IN PROGRESS`** | Diaudit 14 Okt 2026 terhadap source dan uji. Source kesembilan task ada; acceptance baru terbukti pada `FE-OPR-004`. Rinciannya di `fe-acceptance-evidence.md` |
+| Integrasi dan runtime | **backend terbukti runtime; consumer belum ada** | 14 Okt 2026: `start`→catatan operasi→anestesi→implan+serial→recovery→handover `Sent`, 3 laporan `200`, outbox 12/12 `EventId` unik dengan idempotency terbukti. Consumer Billing/Inventory tetap belum ada |
+| Cakupan pengujian | **backend 120/120 hijau**; frontend 10 pemeriksaan hardening lulus + 7 uji `FE-OPR-004` | Angka 129 sebelumnya sudah usang. E2E Playwright dijalankan pertama kali 14 Okt: **10 gagal**, dua cacat perkakas uji dicatat di `fe-acceptance-evidence.md` |
 
 ---
 
