@@ -20,12 +20,12 @@
 ## Grafik Dependency
 
 ```text
-FE-CRM-001 ─┬─> FE-CRM-003 (butuh BE-CRM-011, BE-CRM-014)
-            ├─> FE-CRM-004 (butuh BE-CRM-023)
-            └─> FE-CRM-005 (butuh BE-CRM-012, BE-CRM-013)
+FE-CRM-001 ✅ ─┬─> FE-CRM-003 ✅ (butuh BE-CRM-011, BE-CRM-014)
+            ├─> FE-CRM-004 ✅ (butuh BE-CRM-023)
+            └─> FE-CRM-005 ✅ (butuh BE-CRM-012, BE-CRM-013)
 FE-CRM-002 (mandiri)
 FE-CRM-006 (butuh BE-CRM-003)
-FE-CRM-007 (butuh BE-CRM-015)
+FE-CRM-007 ✅ (butuh BE-CRM-015)
 FE-CRM-001 dirilis bersama BE-CRM-015
 ```
 
@@ -36,7 +36,9 @@ FE-CRM-001 dirilis bersama BE-CRM-015
 
 ## Rincian Task
 
-### `FE-CRM-001` — Lapisan data ke rute `/admin`
+### `FE-CRM-001` ✅ — Lapisan data ke rute `/admin`
+
+Lapisan data selesai 2026-10-13 (7 uji unit, lint, build lulus). `AT-24`/`UAT-14` lulus 2026-10-14 dengan akun petugas CRM sungguhan (Pendaftaran / Customer Service, diberi izin CRM di Role Access) terhadap backend lokal; 404 rute tingkat lama di formulir pendaftaran ditemukan dan diperbaiki. Tetap dirilis bersama `BE-CRM-015`. Laporan: [`task/report/frontend/FE-CRM-001.md`](../task/report/frontend/FE-CRM-001.md).
 
 | Field | Isi |
 |---|---|
@@ -51,7 +53,9 @@ FE-CRM-001 dirilis bersama BE-CRM-015
 | Risiko/pemilik | Rilis tidak bersamaan dengan backend membuat halaman putus. Pemilik: Yoga |
 | DoD | Kriteria terbukti |
 
-### `FE-CRM-002` — Menu CRM
+### `FE-CRM-002` ✅ — Menu CRM
+
+Menu selesai 2026-10-13 (3 uji unit, lint, build lulus). E2E dua peran lulus dengan izin disuapkan; akun petugas CRM sungguhan belum ada. Laporan: [`task/report/frontend/FE-CRM-002.md`](../task/report/frontend/FE-CRM-002.md).
 
 | Field | Isi |
 |---|---|
@@ -66,7 +70,9 @@ FE-CRM-001 dirilis bersama BE-CRM-015
 | Risiko/pemilik | — |
 | DoD | Kriteria terbukti |
 
-### `FE-CRM-003` — Pendaftaran Membership
+### `FE-CRM-003` ✅ — Pendaftaran Membership
+
+Layar selesai 2026-10-13 (11 uji unit, 6 skenario E2E dengan API tiruan termasuk `UAT-03`/`UAT-04`, lint, build lulus). `UAT-03`/`UAT-04` lulus terhadap backend lokal 2026-10-14 (superadmin; rincian di laporan `FE-CRM-005` §6.1). Petugas CRM juga butuh `MembershipTier : Read` untuk pilihan tingkat. Laporan: [`task/report/frontend/FE-CRM-003.md`](../task/report/frontend/FE-CRM-003.md).
 
 | Field | Isi |
 |---|---|
@@ -81,7 +87,9 @@ FE-CRM-001 dirilis bersama BE-CRM-015
 | Risiko/pemilik | — |
 | DoD | Kriteria terbukti |
 
-### `FE-CRM-004` — Daftar Membership
+### `FE-CRM-004` ✅ — Daftar Membership
+
+Layar selesai 2026-10-13 di halaman yang sebelumnya placeholder (9 uji unit, 4 skenario E2E dengan API tiruan termasuk `UAT-01`, lint, build lulus). Label status Indonesia kini ditentukan frontend dari angka status, karena backend mengirim nama Inggris; ini juga memperbaiki panel hasil `FE-CRM-003`. `UAT-01` lulus terhadap backend lokal 2026-10-14 atas data lama yang disemai (laporan `FE-CRM-005` §6.1). Laporan: [`task/report/frontend/FE-CRM-004.md`](../task/report/frontend/FE-CRM-004.md).
 
 | Field | Isi |
 |---|---|
@@ -96,7 +104,9 @@ FE-CRM-001 dirilis bersama BE-CRM-015
 | Risiko/pemilik | — |
 | DoD | Kriteria terbukti |
 
-### `FE-CRM-005` — Detail dan aksi
+### `FE-CRM-005` ✅ — Detail dan aksi
+
+Layar selesai 2026-10-14 (12 uji unit, 11 skenario E2E dengan API tiruan termasuk `UAT-05`, `UAT-08`, `UAT-09`, `UAT-15`, juga lulus di lebar 390 px; lint, build lulus). Halaman `[slug]/update` dialihkan ke detail; editor lama dan thunk `PUT`/`DELETE`/`PATCH status` dihapus. `UAT-05`, `UAT-08`, `UAT-09`, `UAT-15` lulus terhadap backend lokal 2026-10-14 dengan superadmin dan data lama yang disemai; temuan UAT (notifikasi tanpa warna) diperbaiki. Tombol per izin juga terbukti dengan akun petugas CRM non-administrator (`AT-24`). Laporan: [`task/report/frontend/FE-CRM-005.md`](../task/report/frontend/FE-CRM-005.md).
 
 | Field | Isi |
 |---|---|
@@ -111,7 +121,9 @@ FE-CRM-001 dirilis bersama BE-CRM-015
 | Risiko/pemilik | — |
 | DoD | Kriteria terbukti |
 
-### `FE-CRM-006` — Iuran di form tingkat
+### `FE-CRM-006` ✅ — Iuran di form tingkat
+
+Isian Nominal Iuran selesai 2026-10-13 (6 uji unit, lint, build lulus). Isian berupa teks Rupiah (titik = ribuan, koma = sen). E2E simpan, detail, dan buka ulang lulus dengan API tiruan. Laporan: [`task/report/frontend/FE-CRM-006.md`](../task/report/frontend/FE-CRM-006.md).
 
 | Field | Isi |
 |---|---|
@@ -126,7 +138,9 @@ FE-CRM-001 dirilis bersama BE-CRM-015
 | Risiko/pemilik | — |
 | DoD | Kriteria terbukti |
 
-### `FE-CRM-007` — Formulir pasien berhenti mengirim status member
+### `FE-CRM-007` ✅ — Formulir pasien berhenti mengirim status member
+
+Selesai 2026-10-14 (5 uji unit, 4 skenario E2E dengan API tiruan termasuk `UAT-11` dan simpan pasien baru IGD; lint, build lulus). Isian member dihapus dari formulir master pasien dan formulir pasien baru (dipakai bersama IGD, Rawat Jalan, Rawat Inap); payload tidak lagi membawa `isMember`/tier/membership aktif. Penangan lepas-centang kartu tambahan yang rusak sejak merge `3f8cb2fac` dipulihkan. `UAT-11` lulus terhadap backend lokal 2026-10-14 (master pasien dan pasien baru IGD tersimpan `IsMember=false`). Laporan: [`task/report/frontend/FE-CRM-007.md`](../task/report/frontend/FE-CRM-007.md).
 
 | Field | Isi |
 |---|---|

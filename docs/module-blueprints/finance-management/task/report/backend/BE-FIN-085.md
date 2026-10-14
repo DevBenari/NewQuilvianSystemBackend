@@ -10,12 +10,12 @@
 | Roadmap | **Belum terdaftar.** Baris task pada `roadmap/01-backend-roadmap.md` belum ditulis karena wewenang tulis artefak blueprint tidak diberikan pada giliran ini (§7) |
 | Trace | `FR-FIN-168`, `FR-FIN-169`; `FIN-DEC-136`, `FIN-DEC-140`; `FIN-DES-093`; `FIN-STATE-1.6` F.2 (baris "Mengunggah ulang berkas"); `FIN-VAL-192` |
 | Contract version | `FIN-STATE-1.6` F.2 (sudah memuat tindakan unggah ulang); `FIN-API-1.6` F.2 **belum** memuat endpoint-nya (§7); `FIN-VAL-1.7` `FIN-VAL-192` |
-| Dependency | `BE-FIN-081` 🟡, `BE-FIN-082` 🟡 (source lengkap; pengguna melaporkan `dotnet build` sukses setelah task itu ditulis) |
+| Dependency | `BE-FIN-081` ✅, `BE-FIN-082` ✅ (source lengkap; pengguna melaporkan `dotnet build` sukses setelah task itu ditulis) |
 | Klasifikasi | `MEDIUM` — 3 berkas diubah, 1 endpoint baru, **refactor** metode unggah yang sudah ada; database tidak disentuh |
 | Task mode | `BACKEND` — diberikan eksplisit pengguna 3 Oktober 2026 (hanya backend source; artefak kontrak/blueprint **tidak** diberikan) |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/AccountingIntegration/` |
 | Tanggal | 3 Oktober 2026 |
-| Status | 🟡 **Source selesai.** `dotnet build` **NOT RUN** (instruksi pengguna: tidak membangun otomatis). Tidak ada migration dan tidak ada perubahan skema. **Belum pernah dikompilasi** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

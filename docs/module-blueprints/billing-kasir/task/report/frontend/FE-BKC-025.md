@@ -7,7 +7,7 @@
 | Task type | Frontend, perluasan alur yang sudah ada (bukan layar/route baru — modal detail dari layar monitoring `FE-BKC-023`) |
 | Task mode | `FRONTEND` (backend read-only — kontrak `GET /petty-cash/vouchers/{id}` sudah dikunci dan diverifikasi `BE-BKC-037`, tidak ada perubahan backend) |
 | Write target | `QuilvianSystemFrontendDev` (source, branch `yasmina`); laporan ini ditulis di `NewQuilvianSystemBackend` sesuai aturan lokasi laporan |
-| Dependency | `FE-BKC-023` — 🟡 SEBAGIAN (titik masuk klik dua kali pada baris, sekarang disediakan task ini). `BE-BKC-037` — `✅`, `dotnet test` (17/17) terverifikasi 8 September 2026 |
+| Dependency | `FE-BKC-023` — ✅ SELESAI (titik masuk klik dua kali pada baris, sekarang disediakan task ini). `BE-BKC-037` — `✅`, `dotnet test` (17/17) terverifikasi 8 September 2026 |
 | Status task | Source selesai untuk seluruh Scope task ini. **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — verifikasi akan dilakukan manual oleh pengguna sendiri. Belum di-commit |
 
 ## Ringkasan untuk pembaca umum

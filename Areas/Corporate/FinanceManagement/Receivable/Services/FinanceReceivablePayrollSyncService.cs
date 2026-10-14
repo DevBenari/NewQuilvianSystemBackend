@@ -279,132 +279,22 @@ public sealed class FinanceReceivablePayrollSyncService
     public async Task<PayrollResultResponse> ProcessResultAsync(
         PayrollResultRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
+        // FIN-VAL-287: Panggilan langsung ke penerima hasil potongan tanpa PayrollRunId MUST ditolak; hasil manual hanya lewat batch.
+        if (request.PayrollRunId is null || request.PayrollRunId == Guid.Empty)
+        {
+            throw new PayrollResultValidationException("Hasil potongan manual wajib melalui batch hasil potongan.");
+        }
+
         IDbContextTransaction? transaction = null;
         try
         {
             transaction = await BeginTransactionAsync(cancellationToken);
             await AcquireLockAsync($"FIN_INSTALLMENT_PAYROLL_RESULT_{request.InstallmentId:N}", cancellationToken);
 
-            var installment = await _dbContext.FinReceivableInstallments
-                .SingleOrDefaultAsync(x => x.Id == request.InstallmentId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("InstallmentId tidak ditemukan di Finance.");
+            var result = await ApplyResultCoreAsync(request, actorUserId, cancellationToken);
 
-            // FIN-VAL-240: kiriman ulang PERSIS (InstallmentId, PayrollPeriodId) yang sama -> 200 idempoten, nol perubahan.
-            if (installment.LastPayrollPeriodId == request.PayrollPeriodId)
-            {
-                return new PayrollResultResponse
-                {
-                    InstallmentId = installment.Id,
-                    InstallmentStatus = installment.Status,
-                    OutstandingAmount = installment.OutstandingAmount,
-                    IsIdempotentReplay = true
-                };
-            }
-
-            // Kontrak: "422 - Status angsuran sudah dibatalkan atau bukan dalam status menunggu
-            // pembayaran." Menunggu pembayaran = masih bersisa dan belum dibatalkan.
-            if (installment.Status is FinReceivableInstallmentStatuses.Terbayar or FinReceivableInstallmentStatuses.Dibatalkan)
-                throw new PayrollResultValidationException(
-                    $"Status angsuran sudah {installment.Status} sehingga tidak dapat menerima hasil potongan baru.");
-
-            if (request.Status == PayrollResultStatuses.Sebagian && request.DeductedAmount <= 0)
-                throw new PayrollResultValidationException(
-                    "Hasil pemotongan sebagian wajib memiliki nominal terpotong lebih besar dari nol."); // FIN-VAL-248
-
-            var deductedAmount = request.Status == PayrollResultStatuses.Gagal ? 0m : request.DeductedAmount;
-
-            // FIN-VAL-239: nominal terpotong MUST NOT melebihi sisa angsuran periode itu.
-            if (deductedAmount > installment.OutstandingAmount)
-                throw new PayrollResultValidationException(
-                    $"Nominal potongan {deductedAmount:N2} melebihi sisa angsuran {installment.OutstandingAmount:N2} pada periode {installment.DeductionPeriod}.");
-
-            var wasDijadwalkan = installment.Status == FinReceivableInstallmentStatuses.Dijadwalkan;
-            var receivable = await ResolveReceivableAsync(installment, cancellationToken);
-            var now = DateTimeOffset.UtcNow;
-
-            if (deductedAmount > 0)
-            {
-                var balanceBefore = receivable.OutstandingAmount;
-                receivable.OutstandingAmount -= deductedAmount;
-                // CK_FinReceivable_Balance: OriginalAmount = Outstanding + Allocated + Adjusted +
-                // WrittenOff. Potongan gaji bukan ALOKASI-PENERIMAAN (nol FinReceiptAllocation),
-                // tetapi formula MEWAJIBKAN penurunan Outstanding diimbangi salah satu dari ketiga
-                // bucket lain. AllocatedAmount dipilih (bukan Adjusted/WrittenOff — keduanya
-                // bermakna koreksi/penghapusan, bukan pelunasan) — keputusan desain task ini,
-                // kontrak tidak menetapkannya, dicatat laporan task.
-                receivable.AllocatedAmount += deductedAmount;
-                if (receivable.Status == FinReceivableStatuses.Outstanding || receivable.Status == FinReceivableStatuses.Partial)
-                {
-                    receivable.Status = receivable.OutstandingAmount == 0 ? FinReceivableStatuses.Settled : FinReceivableStatuses.Partial;
-                }
-                receivable.UpdateDateTime = DateTime.UtcNow;
-                receivable.UpdateBy = actorUserId;
-                receivable.RowVersion = Guid.NewGuid();
-
-                // FIN-DEC-191: mutasi POTONGAN-GAJI (BE-FIN-092) mengurangi saldo piutang.
-                await _subledgerMovementService.RecordReceivableMovementAsync(
-                    receivable: receivable,
-                    movementType: FinReceivableMovementTypes.PotonganGaji,
-                    deltaAmount: -deductedAmount,
-                    balanceBefore: balanceBefore,
-                    occurredAt: request.ExecutionTimestamp,
-                    actorUserId: actorUserId,
-                    correlationId: receivable.CorrelationId,
-                    causationId: installment.Id,
-                    referenceNumber: receivable.ReceivableNumber,
-                    notes: $"Potongan gaji angsuran ke-{installment.InstallmentNumber} ({request.Status}) — {request.Notes}",
-                    cancellationToken: cancellationToken);
-            }
-
-            installment.PaidAmount += deductedAmount;
-            installment.OutstandingAmount -= deductedAmount;
-            installment.LastResultAt = now;
-            installment.LastPayrollPeriodId = request.PayrollPeriodId;
-            installment.UpdateDateTime = DateTime.UtcNow;
-            installment.UpdateBy = actorUserId;
-            installment.RowVersion = Guid.NewGuid();
-
-            installment.Status = installment.OutstandingAmount == 0
-                ? FinReceivableInstallmentStatuses.Terbayar
-                : request.Status == PayrollResultStatuses.Sebagian
-                    ? FinReceivableInstallmentStatuses.TerbayarSebagian
-                    : FinReceivableInstallmentStatuses.Tertunggak;
-
-            // Pelimpahan tepat sekali, hanya saat baris ini PERTAMA KALI meninggalkan DIJADWALKAN.
-            if (wasDijadwalkan && installment.OutstandingAmount > 0)
-            {
-                var next = await _dbContext.FinReceivableInstallments
-                    .Where(x => !x.IsDelete && x.PlanId == installment.PlanId && x.InstallmentNumber == installment.InstallmentNumber + 1)
-                    .SingleOrDefaultAsync(cancellationToken);
-                if (next is not null)
-                {
-                    next.CarriedOverAmount += installment.OutstandingAmount;
-                    next.OutstandingAmount += installment.OutstandingAmount;
-                    next.UpdateDateTime = DateTime.UtcNow;
-                    next.UpdateBy = actorUserId;
-                    next.RowVersion = Guid.NewGuid();
-                }
-                else
-                {
-                    await _loggerService.AuditAsync(LogCategory, "Result.NoNextInstallment",
-                        $"Sisa Rp {installment.OutstandingAmount:N2} tidak dapat dilimpahkan — ini angsuran terakhir pada perjanjian (FIN-OQ-092 belum terjawab penuh untuk kasus ini). InstallmentId={installment.Id}",
-                        new { InstallmentId = installment.Id, Remaining = installment.OutstandingAmount });
-                }
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
-            await _loggerService.AuditAsync(LogCategory, "Result.Processed",
-                $"Hasil potongan payroll dicatat. InstallmentId={installment.Id} Status={request.Status} Deducted={deductedAmount:N2}",
-                new { InstallmentId = installment.Id, request.Status, Deducted = deductedAmount, ActorUserId = actorUserId });
-
-            return new PayrollResultResponse
-            {
-                InstallmentId = installment.Id,
-                InstallmentStatus = installment.Status,
-                OutstandingAmount = installment.OutstandingAmount,
-                IsIdempotentReplay = false
-            };
+            return result;
         }
         catch
         {
@@ -415,6 +305,321 @@ public sealed class FinanceReceivablePayrollSyncService
         {
             if (transaction is not null) await transaction.DisposeAsync();
         }
+    }
+
+    /// <summary>
+    /// Inti penerapan hasil potongan gaji ke angsuran Finance (BE-FIN-110, BE-FIN-114).
+    /// Dapat dipanggil di dalam transaksi mesin payroll HR (in-process) maupun dibungkus ProcessResultAsync.
+    /// Menegakkan FIN-VAL-288 (penolakan periode sebelum peralihan), FIN-VAL-240 (idempotensi),
+    /// FIN-VAL-239 (batas nominal), FIN-VAL-248 (nominal sebagian), mutasi subledger, dan pelimpahan sisa tunggakan.
+    /// </summary>
+    public async Task<PayrollResultResponse> ApplyResultCoreAsync(
+        PayrollResultRequest request, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var installment = await _dbContext.FinReceivableInstallments
+            .SingleOrDefaultAsync(x => x.Id == request.InstallmentId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("InstallmentId tidak ditemukan di Finance.");
+
+        // FIN-VAL-288: Hasil mesin (PayrollRunId terisi) untuk periode sebelum peralihan ditolak (AC 4).
+        if (request.PayrollRunId.HasValue && request.PayrollRunId.Value != Guid.Empty)
+        {
+            var cutover = await _dbContext.MstPayrollDeductionCutovers.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, cancellationToken);
+            if (cutover is not null && string.CompareOrdinal(installment.DeductionPeriod, cutover.AutomaticFromPeriod) < 0)
+            {
+                throw new PayrollResultValidationException($"Periode {installment.DeductionPeriod} masih memakai pencatatan manual.");
+            }
+        }
+
+        // FIN-VAL-240: kiriman ulang PERSIS (InstallmentId, PayrollPeriodId) yang sama -> 200 idempoten, nol perubahan.
+        if (installment.LastPayrollPeriodId == request.PayrollPeriodId)
+        {
+            return new PayrollResultResponse
+            {
+                InstallmentId = installment.Id,
+                InstallmentStatus = installment.Status,
+                OutstandingAmount = installment.OutstandingAmount,
+                PaidAmount = installment.PaidAmount,
+                CarriedOverToNextPeriod = 0m,
+                IsIdempotentReplay = true,
+                ProcessedAt = DateTimeOffset.UtcNow
+            };
+        }
+
+        // Kontrak: "422 - Status angsuran sudah dibatalkan atau bukan dalam status menunggu
+        // pembayaran." Menunggu pembayaran = masih bersisa dan belum dibatalkan.
+        if (installment.Status is FinReceivableInstallmentStatuses.Terbayar or FinReceivableInstallmentStatuses.Dibatalkan)
+            throw new PayrollResultValidationException(
+                $"Status angsuran sudah {installment.Status} sehingga tidak dapat menerima hasil potongan baru.");
+
+        if (request.Status == PayrollResultStatuses.Sebagian && request.DeductedAmount <= 0)
+            throw new PayrollResultValidationException(
+                "Hasil pemotongan sebagian wajib memiliki nominal terpotong lebih besar dari nol."); // FIN-VAL-248
+
+        var deductedAmount = request.Status == PayrollResultStatuses.Gagal ? 0m : request.DeductedAmount;
+
+        // FIN-VAL-239: nominal terpotong MUST NOT melebihi sisa angsuran periode itu.
+        if (deductedAmount > installment.OutstandingAmount)
+            throw new PayrollResultValidationException(
+                $"Nominal potongan {deductedAmount:N2} melebihi sisa angsuran {installment.OutstandingAmount:N2} pada periode {installment.DeductionPeriod}.");
+
+        var wasDijadwalkan = installment.Status == FinReceivableInstallmentStatuses.Dijadwalkan;
+        var receivable = await ResolveReceivableAsync(installment, cancellationToken);
+        var now = DateTimeOffset.UtcNow;
+
+        if (deductedAmount > 0)
+        {
+            var balanceBefore = receivable.OutstandingAmount;
+            receivable.OutstandingAmount -= deductedAmount;
+            // CK_FinReceivable_Balance: OriginalAmount = Outstanding + Allocated + Adjusted + WrittenOff.
+            receivable.AllocatedAmount += deductedAmount;
+            if (receivable.Status == FinReceivableStatuses.Outstanding || receivable.Status == FinReceivableStatuses.Partial)
+            {
+                receivable.Status = receivable.OutstandingAmount == 0 ? FinReceivableStatuses.Settled : FinReceivableStatuses.Partial;
+            }
+            receivable.UpdateDateTime = DateTime.UtcNow;
+            receivable.UpdateBy = actorUserId;
+            receivable.RowVersion = Guid.NewGuid();
+
+            // FIN-DEC-191: mutasi POTONGAN-GAJI (BE-FIN-092) mengurangi saldo piutang.
+            await _subledgerMovementService.RecordReceivableMovementAsync(
+                receivable: receivable,
+                movementType: FinReceivableMovementTypes.PotonganGaji,
+                deltaAmount: -deductedAmount,
+                balanceBefore: balanceBefore,
+                occurredAt: request.ExecutionTimestamp,
+                actorUserId: actorUserId,
+                correlationId: receivable.CorrelationId,
+                causationId: installment.Id,
+                referenceNumber: receivable.ReceivableNumber,
+                notes: $"Potongan gaji angsuran ke-{installment.InstallmentNumber} ({request.Status}) — {request.Notes}",
+                cancellationToken: cancellationToken);
+        }
+
+        installment.PaidAmount += deductedAmount;
+        installment.OutstandingAmount -= deductedAmount;
+        installment.LastResultAt = now;
+        installment.LastPayrollPeriodId = request.PayrollPeriodId;
+        installment.UpdateDateTime = DateTime.UtcNow;
+        installment.UpdateBy = actorUserId;
+        installment.RowVersion = Guid.NewGuid();
+
+        installment.Status = installment.OutstandingAmount == 0
+            ? FinReceivableInstallmentStatuses.Terbayar
+            : request.Status == PayrollResultStatuses.Sebagian
+                ? FinReceivableInstallmentStatuses.TerbayarSebagian
+                : FinReceivableInstallmentStatuses.Tertunggak;
+
+        // Pelimpahan tepat sekali, hanya saat baris ini PERTAMA KALI meninggalkan DIJADWALKAN (AC 1).
+        if (wasDijadwalkan && installment.OutstandingAmount > 0)
+        {
+            var next = await _dbContext.FinReceivableInstallments
+                .Where(x => !x.IsDelete && x.PlanId == installment.PlanId && x.InstallmentNumber == installment.InstallmentNumber + 1)
+                .SingleOrDefaultAsync(cancellationToken);
+            if (next is not null)
+            {
+                next.CarriedOverAmount += installment.OutstandingAmount;
+                next.OutstandingAmount += installment.OutstandingAmount;
+                next.UpdateDateTime = DateTime.UtcNow;
+                next.UpdateBy = actorUserId;
+                next.RowVersion = Guid.NewGuid();
+            }
+            else
+            {
+                await _loggerService.AuditAsync(LogCategory, "Result.NoNextInstallment",
+                    $"Sisa Rp {installment.OutstandingAmount:N2} tidak dapat dilimpahkan — ini angsuran terakhir pada perjanjian. InstallmentId={installment.Id}",
+                    new { InstallmentId = installment.Id, Remaining = installment.OutstandingAmount });
+            }
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await _loggerService.AuditAsync(LogCategory, "Result.Processed",
+            $"Hasil potongan payroll dicatat. InstallmentId={installment.Id} Status={request.Status} Deducted={deductedAmount:N2}",
+            new { InstallmentId = installment.Id, request.Status, Deducted = deductedAmount, ActorUserId = actorUserId });
+
+        return new PayrollResultResponse
+        {
+            InstallmentId = installment.Id,
+            InstallmentStatus = installment.Status,
+            OutstandingAmount = installment.OutstandingAmount,
+            PaidAmount = installment.PaidAmount,
+            CarriedOverToNextPeriod = (wasDijadwalkan && installment.OutstandingAmount > 0) ? installment.OutstandingAmount : 0m,
+            IsIdempotentReplay = false,
+            ProcessedAt = now
+        };
+    }
+
+    /// <summary>
+    /// Inti penerapan koreksi hasil potongan gaji (BE-FIN-118, FIN-DEC-222, FIN-DES-107, FIN-VAL-285).
+    /// Menerapkan selisih (positif POTONGAN-GAJI, negatif PEMBALIKAN-POTONGAN-GAJI), menyesuaikan saldo kartu piutang
+    /// dan angsuran, serta menyesuaikan CarriedOverAmount angsuran berikutnya bila belum menerima hasil.
+    /// Tidak membuka transaksi sendiri agar dapat dipanggil di dalam transaksi atomik batch pengesahan koreksi.
+    /// </summary>
+    public async Task<PayrollResultResponse> ApplyCorrectionCoreAsync(
+        Guid installmentId,
+        decimal newDeductedAmount,
+        string newResultStatus,
+        Guid actorUserId,
+        string? notes,
+        CancellationToken cancellationToken)
+    {
+        var installment = await _dbContext.FinReceivableInstallments
+            .Include(x => x.Plan)
+            .SingleOrDefaultAsync(x => x.Id == installmentId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("InstallmentId tidak ditemukan di Finance.");
+
+        // FIN-VAL-286: Koreksi manual untuk periode >= peralihan mesin ditolak
+        var cutover = await _dbContext.MstPayrollDeductionCutovers.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.IsActive && !x.IsDelete, cancellationToken);
+        if (cutover is not null && string.CompareOrdinal(installment.DeductionPeriod, cutover.AutomaticFromPeriod) >= 0)
+        {
+            throw new PayrollResultValidationException(
+                $"Periode {installment.DeductionPeriod} sudah ditangani mesin payroll; pencatatan manual tidak diizinkan.");
+        }
+
+        // FIN-VAL-285: Angsuran berikutnya pada perjanjian yang sama MUST belum menerima hasil (AC 2)
+        var next = await _dbContext.FinReceivableInstallments
+            .Where(x => !x.IsDelete && x.PlanId == installment.PlanId && x.InstallmentNumber == installment.InstallmentNumber + 1)
+            .SingleOrDefaultAsync(cancellationToken);
+
+        if (next is not null && (next.Status != FinReceivableInstallmentStatuses.Dijadwalkan || next.PaidAmount > 0))
+        {
+            var code = installment.Plan is not null ? $"{installment.Plan.PlanNumber}-{installment.InstallmentNumber}" : installment.Id.ToString();
+            throw new PayrollResultValidationException(
+                $"Koreksi angsuran {code} tidak dapat dilakukan karena angsuran berikutnya sudah menerima hasil. Gunakan penyesuaian piutang.");
+        }
+
+        var maxDue = installment.ScheduledAmount + installment.CarriedOverAmount;
+        if (newDeductedAmount > maxDue)
+        {
+            throw new PayrollResultValidationException(
+                $"Nominal potongan {newDeductedAmount:N2} melebihi sisa angsuran {maxDue:N2} pada periode {installment.DeductionPeriod}.");
+        }
+
+        if (newResultStatus == PayrollResultStatuses.Sebagian && newDeductedAmount <= 0)
+        {
+            throw new PayrollResultValidationException(
+                "Hasil pemotongan sebagian wajib memiliki nominal terpotong lebih besar dari nol.");
+        }
+
+        if (newResultStatus == PayrollResultStatuses.Gagal)
+        {
+            newDeductedAmount = 0m;
+        }
+
+        var previousDeducted = installment.PaidAmount;
+        var delta = newDeductedAmount - previousDeducted;
+        var receivable = await ResolveReceivableAsync(installment, cancellationToken);
+        var now = DateTimeOffset.UtcNow;
+
+        if (delta < 0)
+        {
+            // Pembalikan potongan (AC 1): saldo piutang naik kembali
+            var reversalAmount = -delta;
+            var balanceBefore = receivable.OutstandingAmount;
+            receivable.OutstandingAmount += reversalAmount;
+            receivable.AllocatedAmount -= reversalAmount;
+            if (receivable.Status == FinReceivableStatuses.Settled)
+            {
+                receivable.Status = FinReceivableStatuses.Partial;
+            }
+            receivable.UpdateDateTime = DateTime.UtcNow;
+            receivable.UpdateBy = actorUserId;
+            receivable.RowVersion = Guid.NewGuid();
+
+            // Mutasi subledger PEMBALIKAN-POTONGAN-GAJI (AC 1)
+            await _subledgerMovementService.RecordReceivableMovementAsync(
+                receivable: receivable,
+                movementType: FinReceivableMovementTypes.PembalikanPotonganGaji,
+                deltaAmount: reversalAmount,
+                balanceBefore: balanceBefore,
+                occurredAt: now,
+                actorUserId: actorUserId,
+                correlationId: receivable.CorrelationId,
+                causationId: installment.Id,
+                referenceNumber: receivable.ReceivableNumber,
+                notes: $"Pembalikan potongan gaji angsuran ke-{installment.InstallmentNumber} ({newResultStatus}) — {notes}",
+                cancellationToken: cancellationToken);
+
+            // Tunggakan periode berikutnya naik menyesuaikan pembalikan (AC 1)
+            if (next is not null)
+            {
+                next.CarriedOverAmount += reversalAmount;
+                next.OutstandingAmount += reversalAmount;
+                next.UpdateDateTime = DateTime.UtcNow;
+                next.UpdateBy = actorUserId;
+                next.RowVersion = Guid.NewGuid();
+            }
+        }
+        else if (delta > 0)
+        {
+            // Tambahan potongan: saldo piutang turun
+            var additionalAmount = delta;
+            var balanceBefore = receivable.OutstandingAmount;
+            receivable.OutstandingAmount -= additionalAmount;
+            receivable.AllocatedAmount += additionalAmount;
+            if (receivable.Status == FinReceivableStatuses.Outstanding || receivable.Status == FinReceivableStatuses.Partial)
+            {
+                receivable.Status = receivable.OutstandingAmount == 0 ? FinReceivableStatuses.Settled : FinReceivableStatuses.Partial;
+            }
+            receivable.UpdateDateTime = DateTime.UtcNow;
+            receivable.UpdateBy = actorUserId;
+            receivable.RowVersion = Guid.NewGuid();
+
+            // Mutasi subledger POTONGAN-GAJI
+            await _subledgerMovementService.RecordReceivableMovementAsync(
+                receivable: receivable,
+                movementType: FinReceivableMovementTypes.PotonganGaji,
+                deltaAmount: -additionalAmount,
+                balanceBefore: balanceBefore,
+                occurredAt: now,
+                actorUserId: actorUserId,
+                correlationId: receivable.CorrelationId,
+                causationId: installment.Id,
+                referenceNumber: receivable.ReceivableNumber,
+                notes: $"Tambahan potongan gaji angsuran ke-{installment.InstallmentNumber} ({newResultStatus}) — {notes}",
+                cancellationToken: cancellationToken);
+
+            // Tunggakan periode berikutnya berkurang
+            if (next is not null)
+            {
+                next.CarriedOverAmount = Math.Max(0m, next.CarriedOverAmount - additionalAmount);
+                next.OutstandingAmount = Math.Max(0m, next.OutstandingAmount - additionalAmount);
+                next.UpdateDateTime = DateTime.UtcNow;
+                next.UpdateBy = actorUserId;
+                next.RowVersion = Guid.NewGuid();
+            }
+        }
+
+        installment.PaidAmount = newDeductedAmount;
+        installment.OutstandingAmount = installment.ScheduledAmount + installment.CarriedOverAmount - installment.PaidAmount;
+        installment.LastResultAt = now;
+        installment.UpdateDateTime = DateTime.UtcNow;
+        installment.UpdateBy = actorUserId;
+        installment.RowVersion = Guid.NewGuid();
+
+        installment.Status = installment.OutstandingAmount == 0
+            ? FinReceivableInstallmentStatuses.Terbayar
+            : newDeductedAmount > 0
+                ? FinReceivableInstallmentStatuses.TerbayarSebagian
+                : FinReceivableInstallmentStatuses.Tertunggak;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _loggerService.AuditAsync(LogCategory, "Correction.Processed",
+            $"Koreksi hasil potongan dicatat. InstallmentId={installment.Id} Status={newResultStatus} NewDeducted={newDeductedAmount:N2} Delta={delta:N2}",
+            new { InstallmentId = installment.Id, Status = newResultStatus, NewDeducted = newDeductedAmount, Delta = delta, ActorUserId = actorUserId });
+
+        return new PayrollResultResponse
+        {
+            InstallmentId = installment.Id,
+            InstallmentStatus = installment.Status,
+            OutstandingAmount = installment.OutstandingAmount,
+            PaidAmount = installment.PaidAmount,
+            CarriedOverToNextPeriod = next is not null ? next.CarriedOverAmount : 0m,
+            IsIdempotentReplay = false,
+            ProcessedAt = now
+        };
     }
 
     private async Task<FinReceivable> ResolveReceivableAsync(FinReceivableInstallment installment, CancellationToken cancellationToken)

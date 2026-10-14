@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-1`) |
 | Trace | `FIN-DES-010`..`014`, `024`; `FR-FIN-020`..`024`; `FIN-VAL-011` (invariant seimbang), `FIN-VAL-010`/`014`/`016`; `FIN-STATE-1.0` §2/§3 |
 | Contract version | `FIN-VAL-1.0` §piutang (draft) — dipatuhi penuh untuk bentuk kolom dan check constraint; perilaku state-machine (`FIN-STATE-1.0`) belum ditegakkan karena belum ada service |
-| Dependency | `BE-FIN-005` — 🟡 sebagian 21 September 2026 (entity+configuration selesai), lihat [laporan](BE-FIN-005.md) |
+| Dependency | `BE-FIN-005` — ✅ SELESAI 21 September 2026 (entity+configuration selesai), lihat [laporan](BE-FIN-005.md) |
 | Klasifikasi | `MEDIUM` — satu repository; 10 berkas dibuat + 1 berkas registrasi diubah; tidak ada logika bisnis (murni entity+configuration, 5 entity sekaligus); database berdampak pada bentuk skema (migration terpisah); tidak ada endpoint/keamanan baru |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/Models/`, `Repositories/Configurations/Corporate/FinanceManagement/Receivable/`, `Repositories/ApplicationDbContext.cs` (registrasi `DbSet` saja) |

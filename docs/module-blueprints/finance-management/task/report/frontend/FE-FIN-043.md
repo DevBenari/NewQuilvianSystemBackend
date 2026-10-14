@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `46a1549dcc3b9f5359d132e501dec567ec826e17` (branch `yasmina`), ditambah perubahan task ini di atasnya |
 | Commit backend yang dijadikan rujukan | `845dabf918f28c6326aecdbcb89a1e2297367265` (branch `Yasmina`), ditambah `BE-FIN-101` |
 | Tanggal | 2026-10-11 |
-| Status | 🟡 **Sebagian** — source selesai, lint PASS, `npm run build` PASS; verifikasi peramban manual **NOT FEASIBLE** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

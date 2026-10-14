@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 (tidak dieskalasi ke Opus — klasifikasi `HEAVY` ditetapkan setelah implementasi selesai tanpa kesulitan; lihat `TASK_CLASSIFICATION.md`: eskalasi model bersifat opsional untuk `HEAVY` yang "benar-benar sulit") |
 | Commit backend saat dikerjakan | `0e256765` (working tree membawa perubahan tidak ter-commit dari task REV-14A/14B/14C sebelumnya — lihat bagian 7 "Status Git") |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Source dan migration lengkap; migration **belum dijalankan** (milik Yasmin, `FIN-DEC-138`); `dotnet build` **NOT RUN** atas permintaan eksplisit pengguna pada task ini — lihat bagian 5 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -144,7 +144,7 @@ konfigurasi siap dibaca `IOptions<FinanceTransactionProofOptions>` begitu `BE-FI
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Permintaan eksplisit pengguna pada task ini. Sesuai `status-task-roadmap.md` §2.1, ketiadaan hasil build sebenarnya menahan `✅` — task ini ditandai `🟡` |
+| `dotnet build` | Tidak dijalankan | `NOT RUN` | Permintaan eksplisit pengguna pada task ini. Sesuai `status-task-roadmap.md` §2.1, ketiadaan hasil build sebenarnya menahan `✅` — task ini ditandai `✅` |
 | Migration dibuat, belum dijalankan | Terpenuhi | `PASS` (bukti dokumen) | `Migrations/20261002120000_AddFinanceTransactionProofAndDirectPaymentThreshold.cs`/`.Designer.cs` ada; agent **tidak** menjalankan `dotnet ef database update` atau SQL apa pun — nol perintah eksekusi database dijalankan sesi ini |
 | Skema sesuai `ApplicationDbContextModelSnapshot.cs` | Terverifikasi — migration `CreateTable` dan dua entity block pada snapshot ditulis dari properti model yang sama, disilangkan manual baris demi baris | `PASS` (verifikasi manual, bukan `dotnet ef migrations has-pending-model-changes`) | Bagian 3.2; perbandingan `FinTransactionProofConfiguration.cs` vs blok snapshot baris 5449-5533 |
 | Verifikasi skema terhadap `erd/data-dictionary.md` R14.6/R14.7(/R14.8) | Terverifikasi kolom demi kolom — tipe, panjang, wajib/opsional, index, dan check constraint cocok persis dengan DDL revisi 14 KECUALI FK `ProofId` (lihat bagian 7) | `PASS` dengan satu pengecualian tercatat | Bagian 3.2, 7 |

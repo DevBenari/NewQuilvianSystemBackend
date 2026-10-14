@@ -88,7 +88,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [MaxLength(500)]
         public string? QrCodePath { get; set; }
 
-        public bool IsMember { get; set; } = true;
+        /// <summary>Proyeksi status member; hanya ditulis PatientMembershipStatusResolver (crm-membership J1).</summary>
+        public bool IsMember { get; set; } = false;
 
         public Guid? DefaultMembershipTierId { get; set; }
 

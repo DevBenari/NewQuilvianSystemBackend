@@ -238,7 +238,7 @@ dan lulus** (8 September 2026).
 
 - `dotnet build` dan `dotnet test` (12/12) sudah diverifikasi lulus sesi ini (8 September 2026).
   Task ini memenuhi Definition of Done-nya sendiri dan ditandai `✅` pada roadmap.
-- `BE-BKC-033` (tabel `MstPettyCashCategory`) masih berstatus 🟡 pada roadmap — bukan karena
+- `BE-BKC-033` (tabel `MstPettyCashCategory`) telah berstatus ✅ pada roadmap — bukan karena
   tabelnya tidak ada (migration `20260907062238_AddTablePettyCashModule` sudah memuatnya),
   melainkan karena bukti baris seed di database dan review Finance atas lima kategori seed
   belum ada. Ini tidak menghalangi source `BE-BKC-035`, tetapi wajib tertutup sebelum

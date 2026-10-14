@@ -23,6 +23,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
         // Terisi hanya bila ReasonCode = OK. Tanpa saldo (R.2.3).
         public Guid EmployeeId { get; set; }
+
+        /// <summary>
+        /// NIP dan nama pegawai dari HR. Hanya untuk pemanggil di dalam proses (label kartu internal,
+        /// FIN-INTEGRATION-1.9 R.2 butir "EmployeeNumber dan EmployeeName diisi dari data HR");
+        /// tidak diteruskan ke respons API pemeriksaan kelayakan.
+        /// </summary>
+        public string? EmployeeNumber { get; set; }
+        public string? EmployeeName { get; set; }
         public Guid? FamilyMemberId { get; set; }
         public string? RelationshipCode { get; set; }
         public string? BenefitPersonKind { get; set; }
@@ -33,5 +41,50 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public string? CoverageType { get; set; }
         public DateTime? EffectiveStartDate { get; set; }
         public DateTime? EffectiveEndDate { get; set; }
+
+        /// <summary>
+        /// NIK, nama lengkap, dan tanggal lahir orang yang bersangkutan (pegawai atau keluarga)
+        /// untuk pencocokan identitas dengan pasien registrasi (FIN-DEC-228).
+        /// </summary>
+        public string? TargetPersonNationalId { get; set; }
+        public string? TargetPersonFullName { get; set; }
+        public DateTime? TargetPersonBirthDate { get; set; }
+    }
+
+    /// <summary>Satu baris hasil CariPegawai (R.2.1). Hanya data yang dibutuhkan petugas Registrasi.</summary>
+    public sealed class EmployeeSearchItem
+    {
+        public Guid EmployeeId { get; set; }
+        public string EmployeeNumber { get; set; } = string.Empty;
+
+        /// <summary>NIK tersamar: empat digit pertama dan empat terakhir, sisanya "•".</summary>
+        public string NationalIdMasked { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string? OrganizationUnitName { get; set; }
+        public bool HasActiveMedicalEnrollment { get; set; }
+    }
+
+    public sealed class EmployeeSearchResult
+    {
+        public List<EmployeeSearchItem> Items { get; set; } = new();
+
+        /// <summary>True bila ada lebih banyak pegawai cocok daripada batas (FIN-VAL-269).</summary>
+        public bool IsTruncated { get; set; }
+    }
+
+    /// <summary>Satu baris hasil DaftarKeluarga (R.2.2).</summary>
+    public sealed class FamilyMemberEligibilityItem
+    {
+        public Guid FamilyMemberId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string RelationshipCode { get; set; } = string.Empty;
+        public int? AgeYears { get; set; }
+        public string? IdentityMasked { get; set; }
+
+        /// <summary>VERIFIED, REQUESTED, NOT_REGISTERED, REJECTED, atau ENDED.</summary>
+        public string DependentVerification { get; set; } = string.Empty;
+
+        /// <summary>Apakah CoverageType plan pegawai mencakup hubungan ini (R.1.2).</summary>
+        public bool CoveredByPlan { get; set; }
     }
 }

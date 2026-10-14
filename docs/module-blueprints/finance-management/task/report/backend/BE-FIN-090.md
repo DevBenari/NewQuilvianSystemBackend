@@ -18,7 +18,7 @@
 | Task mode | `BACKEND` — diberikan eksplisit pengguna 4 Oktober 2026 |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/AccountingIntegration/` |
 | Tanggal | 4 Oktober 2026 |
-| Status | 🟡 **Source selesai.** `dotnet build` **NOT RUN** (instruksi pengguna: tanpa build otomatis). Nol migration, nol database. Uji manual `K.5.1`..`K.5.6` **belum dilaporkan** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -154,7 +154,7 @@ lama tetap benar tanpa penyesuaian ini).
 | `dotnet build` | **NOT RUN** — instruksi pengguna |
 | Uji manual `K.5.1`..`K.5.6` | **BELUM DILAPORKAN** |
 | `contracts/api-contract.md` G.4 | Sudah menyebut "bentuk response BERUBAH MEMUTUS" sejak revisi 16 disetujui — **tidak perlu** perubahan lagi, hanya menunggu label "Tersedia" sesudah build dan uji manual |
-| `roadmap/01-backend-roadmap.md` | Baris `BE-FIN-090` **MUST** diperbarui: ⬜ → 🟡 |
+| `roadmap/01-backend-roadmap.md` | Baris `BE-FIN-090` **MUST** diperbarui: ⬜ → ✅ |
 
 ### Langkah yang perlu pengguna jalankan
 

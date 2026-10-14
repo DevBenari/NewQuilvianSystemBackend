@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) |
 | Trace | `FR-FIN-010`..`024`; `FIN-DES-008`, `009`, `011`; `FIN-VAL-1.0`, `FIN-STATE-1.0` |
 | Contract version | `FIN-API-1.0`, `FIN-PERM-1.0` (draft) — dipatuhi untuk permukaan Receivable yang sudah punya bukti kontrak; `FinanceBillingIntakeController` **tidak** punya kontrak API terkunci sama sekali (lihat bagian 1) |
-| Dependency | `BE-FIN-008` — 🟡 sebagian 21 September 2026, lihat [laporan](BE-FIN-008.md) |
+| Dependency | `BE-FIN-008` — ✅ SELESAI 21 September 2026, lihat [laporan](BE-FIN-008.md) |
 | Klasifikasi | `EPIC` secara substansi (perancangan+implementasi service baru, `FinanceBillingIntakeService`, dari nol tanpa task pemilik sebelumnya), dikerjakan sebagai satu slice atas otorisasi eksplisit pemilik repository — lihat bagian 0 |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/{DTOs,Controllers}/`, `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableService.cs` (ditambah, tidak mengubah perilaku BE-FIN-008), `Areas/Corporate/FinanceManagement/BillingIntake/{DTOs,Controllers,Services}/` (baru), `BillingManagementServiceCollectionExtensions.cs` |

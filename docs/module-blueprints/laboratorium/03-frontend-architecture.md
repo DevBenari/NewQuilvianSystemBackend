@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `16` — amandemen 2026-10-08: Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — amandemen 2026-10-07 (kedua): pemilih dokter pemeriksa memakai daftar Lab (BR-139). Sebelumnya `14` — amandemen 2026-10-07: urutan Konfirmasi v1 (BR-138) dan pencatatan susulan putaran 22 (menu, aksi baris). Sebelumnya `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
+| Revision | `17` — pencatatan susulan 2026-10-14: kolom tabel dan halaman hasil mengikuti v1 (`r47`, `r48`; `LAB-REQ-024`, `LAB-REQ-025`), bagian terakhir dokumen. Sebelumnya `16` — amandemen 2026-10-08: Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — amandemen 2026-10-07 (kedua): pemilih dokter pemeriksa memakai daftar Lab (BR-139). Sebelumnya `14` — amandemen 2026-10-07: urutan Konfirmasi v1 (BR-138) dan pencatatan susulan putaran 22 (menu, aksi baris). Sebelumnya `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
 | Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
@@ -1682,3 +1682,41 @@ Nol route, nol menu, nol izin baru. Nama berkas baru `DEV_DISCRETION`.
 | Tabel *Data booking* berhalaman v1 | 10 terbaru tanpa halaman (`LAB-DEC-209`); daftar lengkap ada di Daftar Pasien Lab |
 | Status koneksi dan pembaruan otomatis | `LAB-DEC-210` |
 | Lencana CITO di tabel terbaru | Tidak diminta `LAB-DEC-209`; lencana daftar pasien juga sedang bercacat (`02-backend-architecture.md` 28.8) |
+
+## Pencatatan susulan 2026-10-14 — Kolom tabel dan halaman hasil mengikuti v1 (`r47`, `r48`)
+
+**Wewenang:** `LAB-EVD-013` (paritas v1); `LAB-REQ-024` butir 2–3 (susunan kolom *"samakan persis v1"*, *Terkirim ke Pasien*
+berisi "Belum Terkirim"); `LAB-REQ-025` (kartu halaman hasil). Kodenya sudah ada lebih dulu (FE `9aba9929d`, 2026-10-13).
+Nol route, nol menu, nol izin baru.
+
+### Layar yang berubah
+
+| Layar | Perubahan |
+|---|---|
+| Daftar Pasien Lab PK, PA, Mikro | Kolom v1: Order (CITO ditandai di sini), Tanggal (Sampling/Pemeriksaan), Pasien (beserta email), Nama Pemeriksaan (seluruh daftar terpesan), Kunjungan / Poli, Penjamin, User Order. **Dicabut:** Wadah Layak, Kesegeraan, Diminta. Kolom *Keadaan Order* Mikro (`FE-LAB-43`) tetap |
+| Hasil dan Riwayat PK, PA, Mikro | Kolom Email, Poliklinik, Selesai Pemeriksaan; *Terkirim ke Pasien* berisi "Belum Terkirim" sampai layanan WhatsApp berdiri |
+| Halaman hasil PK, Mikro, PA | Kartu *Informasi Pasien* dan *Informasi Pemeriksaan* bersusunan v1, termasuk Penanggung Jawab Analis dan Dokter Konfirmator |
+| Penerimaan Sampling/Specimen | Bagian pemeriksaan dan pencarian pasien terdaftar bersusunan v1 |
+
+### Berkas
+
+| Berkas | Keadaan |
+|---|---|
+| `src/components/view/health-services/laboratory-management/lab-monitoring/lab-result-v1-layout.jsx` | Baru — kartu informasi halaman hasil |
+| `src/lib/hooks/health-services/laboratory-management/lab-result-v1-rules.js` | Baru — fungsi murni isian kartu |
+| `src/lib/hooks/health-services/laboratory-management/lab-monitoring-rules.js` | Baru — fungsi murni kolom v1 |
+| `src/components/view/health-services/laboratory-management/lab-specimen-receptions/lab-reception-examination-section.jsx` | Baru |
+| `src/lib/hooks/health-services/laboratory-management/lab-reception-rules.js`, `use-lab-reception-patient-lookup.jsx` | Baru |
+| `src/components/view/health-services/laboratory-management/lab-monitoring/lab-monitoring-table-columns.jsx` | Diperbarui — kolom v1 |
+| `lab-clinical-pathology-result-view.jsx`, `microbiology/lab-microbiology-workspace-view.jsx`, `-result-form.jsx`, `-result-panel.jsx`, `anatomic-pathology/lab-pathology-report-view.jsx` | Diperbarui — memakai susunan v1 |
+| `src/style/.../lab-monitoring/lab-result-v1.module.css`, `.../lab-specimen-receptions/lab-specimen-reception.module.css` | Baru |
+| `tests/unit/lab-v1-parity-rules.test.mjs` | Baru — 20 uji, lulus 2026-10-14 |
+
+### Yang TIDAK dibangun
+
+| Hal | Alasan |
+|---|---|
+| Pengiriman hasil WhatsApp dan status konfirmasi dokter lewat WhatsApp | Menunggu layanan WhatsApp (`LAB-REQ-024` bagian 3) |
+| Pemilih Unit Layanan bagi Analis pada Penerimaan Sampling | `service-units/options` `403` bagi Analis; keputusan izinnya belum diambil (temuan 2026-10-09) |
+
+**Bukti:** peramban 54/54 dengan akun asli dr. Bima dan Gilang, 2026-10-14 — `roadmap/frontend-roadmap.md` bagian 0.3.

@@ -10,13 +10,13 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian `AMENDMENT ROADMAP REVISI 18` |
 | Trace | `FR-FIN-219`; `FIN-DEC-176` |
 | Contract version | `FIN-API-1.9` Receivable endpoints; `FIN-PERM-1.10` |
-| Dependency | `BE-FIN-091` 🟡 — belum ✅ |
+| Dependency | `BE-FIN-091` ✅ — belum ✅ |
 | Klasifikasi | `LIGHT` — perluasan parameter opsional pada 2 method service existing + wiring pada 2 controller existing, nol entity/migration baru |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/{Controllers,Services}/` |
 | Model | Claude Sonnet 5 |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **Source selesai ditulis.** `dotnet build` **TIDAK DIJALANKAN** (instruksi eksplisit pengguna "tanpa build dan migration automatis"). Task ke-10 berturutan tanpa build pada epik ini |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

@@ -10,13 +10,13 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian `AMENDMENT ROADMAP REVISI 18` |
 | Trace | `FR-FIN-192`..`199`; `FIN-DEC-165`, `166`; `FIN-DES-099` |
 | Contract version | `FIN-API-1.9` O.2 (`draft`); `FIN-VAL-1.10` `FIN-VAL-230`..`238` (`approved`); `FIN-STATE-1.8` O.1 |
-| Dependency | `BE-FIN-091` 🟡, `BE-FIN-092` 🟡 — **keduanya belum ✅** dan belum pernah dikompilasi. Dilanjutkan atas konfirmasi eksplisit pengguna pada sesi ini (opsi "lanjutkan source-only, tetap tanpa build") setelah risikonya disampaikan |
+| Dependency | `BE-FIN-091` ✅, `BE-FIN-092` ✅ — **keduanya belum ✅** dan belum pernah dikompilasi. Dilanjutkan atas konfirmasi eksplisit pengguna pada sesi ini (opsi "lanjutkan source-only, tetap tanpa build") setelah risikonya disampaikan |
 | Klasifikasi | `HEAVY` — 1 service baru (7 method publik, transaksi + locking + maker-checker), 1 controller baru (7 endpoint), 1 berkas DTO baru (13 class), pendaftaran DI baru. Nol migration (nol perubahan schema) |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/{Controllers,DTOs,Services}/`, `Program.cs` |
 | Model | Claude Sonnet 5 |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **Source selesai ditulis. `dotnet build` TIDAK DIJALANKAN** (instruksi eksplisit pengguna). Dibangun di atas `BE-FIN-091`/`BE-FIN-092` yang juga belum pernah dikompilasi — risiko compile error majemuk tiga task, disadari dan diterima pengguna secara eksplisit. Temuan signifikan: **seluruh service `Corporate/FinanceManagement` tampak tidak terdaftar DI di `Program.cs`** — lihat bagian 3 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

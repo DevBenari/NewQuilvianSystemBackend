@@ -10,13 +10,13 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian `AMENDMENT ROADMAP REVISI 18` |
 | Trace | `FR-FIN-206`..`210`, `228`..`230`; `FIN-DEC-170`, `193`; `FIN-DES-101` |
 | Contract version | `FIN-API-1.9` O.4; `FIN-INTEGRATION-1.8` §P.4; `FIN-VAL-1.10` `FIN-VAL-244`, `245` |
-| Dependency | `BE-FIN-091` 🟡 — belum ✅. Tidak genap bermasalah untuk task ini: `FinReceivable.BenefitOwnerId`/`DebtorType` yang dipakai sudah ada sejak `BE-FIN-079`, bukan hasil `BE-FIN-091` |
+| Dependency | `BE-FIN-091` ✅ — belum ✅. Tidak genap bermasalah untuk task ini: `FinReceivable.BenefitOwnerId`/`DebtorType` yang dipakai sudah ada sejak `BE-FIN-079`, bukan hasil `BE-FIN-091` |
 | Klasifikasi | `LIGHT` — murni baca, nol transaksi, nol entity baru, nol migration. 2 endpoint menempel pada controller existing, nol resource hak akses baru |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/{Controllers,DTOs,Services}/`, `Program.cs` |
 | Model | Claude Sonnet 5 |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **Source selesai ditulis.** `dotnet build` **TIDAK DIJALANKAN**. Task paling ringan dan paling sedikit asumsi pada sesi ini — murni mengikuti kontrak `FIN-API-1.9` O.4 apa adanya, nol keputusan desain baru yang perlu diresmikan |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -26,7 +26,7 @@
 
 **QBE ID yang berlaku:** QBE-SVC-001 (controller tidak menyentuh `ApplicationDbContext`, seluruh query lewat service), QBE-DTO-001 (`EmployeeClearanceResponse` bukan entity, murni hasil hitung), QBE-PERM-001 (`[AccessAction]`/`[AccessPermission]` dipakai ulang persis dari endpoint `Read` existing — `ControllerName` sama, nol resource baru, sesuai `02-backend-architecture.md` O.5.9).
 
-**Kenapa task ini tidak benar-benar tersandera `BE-FIN-091` 🟡.** Dependency roadmap menyebut `BE-FIN-091`, tetapi field yang dipakai (`FinReceivable.BenefitOwnerId`, `.DebtorType`, `FinReceivableDebtorTypes.EmployeeBenefit`, `FinReceivableStatuses.Outstanding/Partial`) semuanya sudah ada di source sejak `BE-FIN-079` (jauh sebelum sesi ini) — diverifikasi langsung ke `FinReceivable.cs`. `BE-FIN-091` hanya menambah JALUR PENGISIAN data itu dari Billing; skema dan nilainya sendiri sudah berdiri independen. Risiko compile majemuk tetap ada (lihat bagian 3), tetapi bukan karena task ini bergantung pada kebenaran `BE-FIN-091`.
+**Kenapa task ini tidak benar-benar tersandera `BE-FIN-091` ✅.** Dependency roadmap menyebut `BE-FIN-091`, tetapi field yang dipakai (`FinReceivable.BenefitOwnerId`, `.DebtorType`, `FinReceivableDebtorTypes.EmployeeBenefit`, `FinReceivableStatuses.Outstanding/Partial`) semuanya sudah ada di source sejak `BE-FIN-079` (jauh sebelum sesi ini) — diverifikasi langsung ke `FinReceivable.cs`. `BE-FIN-091` hanya menambah JALUR PENGISIAN data itu dari Billing; skema dan nilainya sendiri sudah berdiri independen. Risiko compile majemuk tetap ada (lihat bagian 3), tetapi bukan karena task ini bergantung pada kebenaran `BE-FIN-091`.
 
 ---
 

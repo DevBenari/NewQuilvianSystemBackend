@@ -22,11 +22,20 @@ public sealed class BilArHandoffConfiguration : IEntityTypeConfiguration<BilArHa
             table.HasCheckConstraint(
                 "CK_BilArHandoff_BenefitOwner",
                 "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NOT NULL) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL)");
+            // BE-FIN-107, FIN-DEC-208, FIN-DEC-210, BE-FIN-119: check constraint DeferredPatientAmount dan Consent
+            table.HasCheckConstraint(
+                "CK_BilArHandoff_Deferred",
+                "\"DeferredPatientAmount\" >= 0 AND \"DeferredPatientAmount\" <= \"Amount\" AND (\"DebtorType\" = 'EMPLOYEE_BENEFIT' OR \"DeferredPatientAmount\" = 0)");
+            table.HasCheckConstraint(
+                "CK_BilArHandoff_Consent",
+                "\"DeferredPatientAmount\" = 0 OR \"BenefitRelationship\" = 'SELF' OR \"DeferredConsentGivenBy\" IS NOT NULL");
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.DebtorType).HasMaxLength(30).IsRequired();
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
         entity.Property(x => x.Amount).HasPrecision(18, 2);
+        entity.Property(x => x.DeferredPatientAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+        entity.Property(x => x.DeferredConsentGivenBy).HasMaxLength(200);
         entity.Property(x => x.BenefitRelationship).HasMaxLength(50);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
         entity.Property(x => x.DueDate).HasColumnType("timestamp with time zone");

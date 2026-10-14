@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `a73f5593` (branch `Yasmina`). Working tree juga memuat perubahan `BE-FIN-104` yang belum di-commit; tidak saling tumpang tindih |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — source selesai; `dotnet build` **NOT RUN** (pemilik meminta tanpa build); file migration **belum dibuat** |
+| Status | ✅ **Selesai** — source selesai; `dotnet build` dan migrasi `20261013055825_AddEmployeeLinkToPatientCompanyGuarantor` dijalankan pemilik dan dilaporkan berhasil (13 Oktober 2026). Verifikasi manual runtime belum dijalankan |
 
 ### Backend Governance Preflight
 
@@ -94,7 +94,7 @@ saja); `EncounterInsuranceService.cs` dan `BillingPayerEditService.cs` (pembaca,
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | Respons daftar dan rincian kartu (`/patient-company-guarantors`) mendapat tiga field baru yang **hanya-baca**. Request simpan kartu **tidak** berubah, sehingga klien tidak bisa mengisinya. Tidak ada endpoint baru |
-| Database | Enam kolom nullable, satu check constraint, dua FK, tiga indeks. **File migration belum dibuat; belum diterapkan.** Kartu dan kunjungan lama tetap sah tanpa backfill (`FIN-DEC-186`) |
+| Database | Enam kolom nullable, satu check constraint, dua FK, tiga indeks. **Migration `20261013055825_AddEmployeeLinkToPatientCompanyGuarantor` dibuat dan diterapkan pemilik (dilaporkan berhasil).** Kartu dan kunjungan lama tetap sah tanpa backfill (`FIN-DEC-186`) |
 | Keamanan dan privasi | Ketiga kolom bertanda sensitif. Tidak ada log baru; log yang ada di controller kartu dan service ganti penanggung tidak memuat kolom baru (payload create memakai `PatientCompanyGuarantorCreateResponse` yang terpisah; payload update dan hapus memilih field secara eksplisit) |
 
 ## 4. Dokumentasi endpoint
@@ -119,9 +119,9 @@ Base URL: `api/v1/health-services/patient-management/master-data/patient-company
 | Request simpan kartu tidak memuat field tautan | Field hanya ada di kelas respons; pembuatan kartu memakai penugasan field eksplisit | `PASS` | `PatientCompanyGuarantorDtos.cs`, controller baris 493 |
 | Payload log tidak memuat kolom sensitif baru | Terpenuhi | `PASS` | Review seluruh panggilan `_loggerService` di controller kartu |
 | Review diff dan scope | 8 berkas, 117 baris ditambah, 1 baris diubah (`ToTable`); akhir baris CRLF dipertahankan | `PASS` | `git diff --stat` |
-| `dotnet restore` / `dotnet build` | — | `NOT RUN` | Pemilik meminta tanpa build. **Wajib dijalankan sebelum task ditandai ✅** |
-| Pembuatan file migration | `20261013055825_AddEmployeeLinkToPatientCompanyGuarantor` — dibuat **di luar sesi agent** pukul 12:58 dengan nama `ProbeCheck2`, lalu atas permintaan pemilik diganti nama oleh agent (nama berkas `.cs` dan `.Designer.cs`, nama class, dan ID pada atribut `[Migration]`; timestamp dipertahankan agar urutan tetap). Isinya cocok dengan task ini: 6 kolom, 3 indeks, `CK_MstPatientCompanyGuarantor_BenefitLink`, 2 FK | `DONE` (oleh pemilik; diganti nama oleh agent) | Berkas migration; **belum diterapkan** ke database |
-| Uji manual registrasi dan ganti penanggung | — | `NOT RUN` | Memerlukan build dan migration |
+| `dotnet restore` / `dotnet build` | Dijalankan pemilik dan dilaporkan **berhasil** (13 Oktober 2026); keluarannya tidak dilihat agent | `PASS` (dilaporkan pemilik) | Laporan pemilik pada sesi 13 Oktober 2026 |
+| Pembuatan dan penerapan migration | `20261013055825_AddEmployeeLinkToPatientCompanyGuarantor` — dibuat di luar sesi agent pukul 12:58 dengan nama `ProbeCheck2`, lalu atas permintaan pemilik diganti nama oleh agent (berkas `.cs` dan `.Designer.cs`, nama class, dan ID pada atribut `[Migration]`; timestamp dipertahankan agar urutan tetap). Diterapkan pemilik; dilaporkan berhasil. Isinya cocok dengan task ini: 6 kolom, 3 indeks, `CK_MstPatientCompanyGuarantor_BenefitLink`, 2 FK | `PASS` (dilaporkan pemilik) | Berkas ada di `Migrations/` |
+| Uji manual registrasi dan ganti penanggung | — | `NOT RUN` | Belum dijalankan |
 
 Uji manual: `REQUIRED` — registrasi dengan kartu lama (snapshot kosong), registrasi dengan kartu bertautan (setelah
 `BE-FIN-106` atau pengisian manual di database dev), ganti penanggung ke tunai (snapshot kosong).
@@ -151,7 +151,7 @@ ketiga kolom kartu lama bernilai `NULL`.
 | DoD: preflight selesai | Terpenuhi | Bagian preflight |
 | DoD: file migration siap | Terpenuhi | `20261013055825_AddEmployeeLinkToPatientCompanyGuarantor` |
 | DoD: laporan tracked | Terpenuhi | Berkas ini |
-| Verifikasi roadmap: `dotnet build` atas permintaan pemilik | **Belum** | `NOT RUN` |
+| Verifikasi roadmap: `dotnet build` atas permintaan pemilik | Terpenuhi (dilaporkan pemilik) | Build berhasil |
 
 ## 7. Catatan penutup
 
@@ -161,9 +161,9 @@ ketiga kolom kartu lama bernilai `NULL`.
 | Delta terhadap kamus data | Indeks kartu dibuat **terfilter** (`IS NOT NULL`) karena hampir semua kartu tidak bertaut; ditambah indeks `FamilyMemberId` agar FK tidak memicu pemindaian penuh saat anggota keluarga dihapus HR |
 | Temuan di luar lingkup (tidak diperbaiki) | `EncounterPaymentSourceService` jalur ganti penanggung ke kartu perusahaan menyalin `EffectiveStartDate`/`EffectiveEndDate` kartu (kolom `date`, `Kind=Unspecified`) apa adanya ke kolom snapshot `timestamptz`. `PatientEncounterController` mengonversinya dengan `ToUtcDate` dan berkomentar bahwa tanpa konversi itu `SaveChanges` gagal (500). Kemungkinan cacat yang sama ada di jalur ganti penanggung bila kartu punya masa berlaku; perlu dikonfirmasi saat uji manual dan diperbaiki pemilik Registrasi/Billing |
 | Temuan di luar lingkup (tidak diperbaiki) | Log `CreatePatientCompanyGuarantor` dan `SetPatientCompanyGuarantorPrimaryFromKiosk` memuat seluruh `PatientCompanyGuarantorCreateResponse`, termasuk nama pasien dan nomor karyawan. Bukan dari task ini; dicatat untuk pemilik Patient Management (`QBE-LOG-001`) |
-| Risiko tersisa | Kode belum pernah dikompilasi. Konfirmasi pemilik Registrasi atas `FIN-DEC-204` dan `209` belum turun; tidak memengaruhi task ini (aturan "harus terdaftar" ada di `BE-FIN-106`) |
+| Risiko tersisa | Uji manual runtime belum dijalankan. Konfirmasi pemilik Registrasi atas `FIN-DEC-204` dan `209` belum turun; tidak memengaruhi task ini (aturan "harus terdaftar" ada di `BE-FIN-106`) |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE`. Satu percobaan menjalankan skrip edit lewat heredoc gagal di parser shell sebelum menulis apa pun; diulang dengan skrip berkas |
 | Status Git | ` M` delapan berkas pada 3.2; `??` laporan ini. Perubahan `BE-FIN-104` yang belum di-commit tetap ada dan tidak disentuh |
 | `requirement-traceability.md` | Tidak ada pada blueprint ini; traceability dipegang tabel di roadmap |
-| Langkah berikutnya | Pemilik menjalankan `dotnet build` dan membuat migration. `BE-FIN-106` (pencarian pegawai, aturan "harus terdaftar", pengisian tautan kartu) kini hanya menunggu build/migration `BE-FIN-103` dan task ini |
+| Langkah berikutnya | `BE-FIN-106` sudah dikerjakan di atas task ini |

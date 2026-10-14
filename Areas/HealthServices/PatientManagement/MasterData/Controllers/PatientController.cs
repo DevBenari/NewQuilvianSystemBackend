@@ -564,9 +564,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     DistrictId = NormalizeNullableGuid(request.DistrictId),
                     PostalCodeId = NormalizeNullableGuid(request.PostalCodeId),
                     PhotoPath = null,
-                    IsMember = request.IsMember,
-                    DefaultMembershipTierId = NormalizeNullableGuid(request.DefaultMembershipTierId),
-                    ActivePatientMembershipId = NormalizeNullableGuid(request.ActivePatientMembershipId),
+                    // crm-membership BE-CRM-015: status member adalah proyeksi yang hanya ditulis
+                    // PatientMembershipStatusResolver; nilai dari request diabaikan.
+                    IsMember = false,
+                    DefaultMembershipTierId = null,
+                    ActivePatientMembershipId = null,
                     IsNewborn = request.IsNewborn,
                     MotherPatientId = NormalizeNullableGuid(request.MotherPatientId),
                     BirthOrder = request.BirthOrder,
@@ -873,9 +875,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             entity.CityId = NormalizeNullableGuid(request.CityId);
             entity.DistrictId = NormalizeNullableGuid(request.DistrictId);
             entity.PostalCodeId = NormalizeNullableGuid(request.PostalCodeId);
-            entity.IsMember = request.IsMember;
-            entity.DefaultMembershipTierId = NormalizeNullableGuid(request.DefaultMembershipTierId);
-            entity.ActivePatientMembershipId = NormalizeNullableGuid(request.ActivePatientMembershipId);
+            // crm-membership BE-CRM-015: IsMember, DefaultMembershipTierId, dan ActivePatientMembershipId
+            // tidak lagi diubah lewat formulir pasien (proyeksi milik PatientMembershipStatusResolver).
             entity.IsNewborn = request.IsNewborn;
             entity.MotherPatientId = NormalizeNullableGuid(request.MotherPatientId);
             entity.BirthOrder = request.BirthOrder;
