@@ -37,6 +37,8 @@ public sealed class BilArHandoffConfiguration : IEntityTypeConfiguration<BilArHa
         entity.Property(x => x.DeferredPatientAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.DeferredConsentGivenBy).HasMaxLength(200);
         entity.Property(x => x.BenefitRelationship).HasMaxLength(50);
+        entity.Property(x => x.FinancingChoice).HasMaxLength(50).IsRequired(false);
+        entity.Property(x => x.DeferredConsentNotes).HasMaxLength(500).IsRequired(false);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
         entity.Property(x => x.DueDate).HasColumnType("timestamp with time zone");
         entity.Property(x => x.CreatedAt).HasColumnType("timestamp with time zone");

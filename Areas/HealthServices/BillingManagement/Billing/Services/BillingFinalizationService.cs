@@ -52,12 +52,22 @@ public sealed class BillingFinalizationService
 
     public async Task<FinalizationPreviewResponse> PreviewAsync(
         Guid invoiceId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        decimal? choiceAmount = null,
+        string? consentGivenBy = null,
+        string? financingChoice = null,
+        decimal? employeeDeferredAmount = null)
     {
         var invoice = await _dbContext.BilInvoices.AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
-        return await BuildReadinessAsync(invoice, cancellationToken);
+        return await BuildReadinessAsync(
+            invoice,
+            cancellationToken,
+            choiceAmount: choiceAmount,
+            consentGivenBy: consentGivenBy,
+            financingChoice: financingChoice,
+            employeeDeferredAmount: employeeDeferredAmount);
     }
 
     public async Task<FinalizationResponse> FinalizeAsync(
@@ -101,10 +111,13 @@ public sealed class BillingFinalizationService
                             prior.Invoice,
                             replayCalculation,
                             prior.OutstandingAtFinalization,
-                            request.EmployeeReceivableChoiceAmount ?? 0m,
+                            request.EmployeeDeferredAmount ?? request.EmployeeReceivableChoiceAmount ?? 0m,
                             request.EmployeeReceivableConsentGivenBy,
                             isFinalizing: false,
-                            cancellationToken);
+                            cancellationToken,
+                            financingChoice: request.FinancingChoice,
+                            employeeDeferredAmount: request.EmployeeDeferredAmount,
+                            consentNotes: request.EmployeeReceivableConsentNotes);
                         replayResponse.EmployeeBenefitSplit = replaySplit?.Response;
                     }
                 }
@@ -128,7 +141,13 @@ public sealed class BillingFinalizationService
                     code: "STALE_INVOICE_ROW_VERSION",
                     currentRowVersion: invoice.RowVersion);
 
-            var readiness = await BuildReadinessAsync(invoice, cancellationToken);
+            var readiness = await BuildReadinessAsync(
+                invoice,
+                cancellationToken,
+                choiceAmount: request.EmployeeDeferredAmount ?? request.EmployeeReceivableChoiceAmount ?? 0m,
+                consentGivenBy: request.EmployeeReceivableConsentGivenBy,
+                financingChoice: request.FinancingChoice,
+                employeeDeferredAmount: request.EmployeeDeferredAmount);
             var isDepartureException = !string.IsNullOrWhiteSpace(request.DepartureReason);
             // BE-RWI-155 / INV-RWF-08 / VAL-RWF-16: invoice "perlu diperiksa" tidak pernah
             // difinalkan, termasuk lewat departure exception.
@@ -165,10 +184,13 @@ public sealed class BillingFinalizationService
                     invoice,
                     calculation,
                     readiness.Outstanding,
-                    choiceAmount: request.EmployeeReceivableChoiceAmount ?? 0m,
+                    choiceAmount: request.EmployeeDeferredAmount ?? request.EmployeeReceivableChoiceAmount ?? 0m,
                     consentGivenBy: request.EmployeeReceivableConsentGivenBy,
                     isFinalizing: true,
-                    cancellationToken);
+                    cancellationToken: cancellationToken,
+                    financingChoice: request.FinancingChoice,
+                    employeeDeferredAmount: request.EmployeeDeferredAmount,
+                    consentNotes: request.EmployeeReceivableConsentNotes);
             }
 
             var effectiveOutstanding = splitResult is not null
@@ -678,7 +700,11 @@ public sealed class BillingFinalizationService
 
     private async Task<FinalizationPreviewResponse> BuildReadinessAsync(
         BilInvoice invoice,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        decimal? choiceAmount = null,
+        string? consentGivenBy = null,
+        string? financingChoice = null,
+        decimal? employeeDeferredAmount = null)
     {
         if (invoice.CurrentCalculationVersion <= 0)
             return new FinalizationPreviewResponse
@@ -717,11 +743,18 @@ public sealed class BillingFinalizationService
                 invoice,
                 calculation,
                 outstanding,
-                choiceAmount: 0m,
-                consentGivenBy: null,
+                choiceAmount: employeeDeferredAmount ?? choiceAmount ?? 0m,
+                consentGivenBy: consentGivenBy,
                 isFinalizing: false,
-                cancellationToken);
+                cancellationToken: cancellationToken,
+                financingChoice: financingChoice,
+                employeeDeferredAmount: employeeDeferredAmount,
+                consentNotes: null);
         }
+
+        var effectiveOutstanding = splitResult is not null
+            ? splitResult.PatientRemainingAmount
+            : outstanding;
 
         var blockingReasons = new List<string>();
         var blockingCodes = new List<string>();
@@ -729,7 +762,7 @@ public sealed class BillingFinalizationService
             blockingReasons.Add("Semua order harus selesai sebelum invoice difinalkan.");
         if (!calculationCurrent)
             blockingReasons.Add("Tagihan berubah; hitung ulang sebelum finalisasi.");
-        if (outstanding > 0)
+        if (effectiveOutstanding > 0)
             blockingReasons.Add(
                 "Tanggung jawab pasien belum lunas; ajukan write-off/adjustment atau catat departure exception untuk melanjutkan.");
         if (invoice.RequiresReview)
@@ -766,7 +799,7 @@ public sealed class BillingFinalizationService
             AllOrdersComplete = allOrdersComplete,
             CalculationCurrent = calculationCurrent,
             Outstanding = outstanding,
-            IsReadyForNormalFinalization = allOrdersComplete && calculationCurrent && outstanding == 0
+            IsReadyForNormalFinalization = allOrdersComplete && calculationCurrent && effectiveOutstanding == 0
                 && blockingCodes.Count == 0,
             BlockingReasons = blockingReasons,
             BlockingCodes = blockingCodes,

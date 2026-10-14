@@ -32,11 +32,23 @@ public sealed class BillingFinalizationsController : ControllerBase
     [AccessAction("Preview", "Preview Billing Finalization Readiness", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("BillingFinalization", "Read")]
     [ProducesResponseType(typeof(ApiResponse<FinalizationPreviewResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Preview(Guid invoiceId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Preview(
+        Guid invoiceId,
+        [FromQuery] decimal? choiceAmount,
+        [FromQuery] string? consentGivenBy,
+        [FromQuery] string? financingChoice,
+        [FromQuery] decimal? employeeDeferredAmount,
+        CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _service.PreviewAsync(invoiceId, cancellationToken);
+            var result = await _service.PreviewAsync(
+                invoiceId,
+                cancellationToken,
+                choiceAmount: choiceAmount,
+                consentGivenBy: consentGivenBy,
+                financingChoice: financingChoice,
+                employeeDeferredAmount: employeeDeferredAmount);
             return Ok(ApiResponse<FinalizationPreviewResponse>.Ok(
                 result, "Checklist kesiapan finalisasi berhasil diambil."));
         }

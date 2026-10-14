@@ -1330,43 +1330,33 @@ Notasi: `C` = porsi yang ditanggung penjamin RS Benefit menurut aturan penjamin 
 
 | Besaran | Rumus | Menjadi |
 |---|---|---|
-| Porsi RS Benefit `P` | `min(C, S)` | Baris `PAYER`, `DebtorReferenceId` = penjamin "RS Benefit" |
-| Kelebihan di atas plafon `E` | `C − P` | Bagian dari baris `EMPLOYEE_BENEFIT` |
-| Pilihan pegawai `D` | dipilih pegawai (`R.4.3`) | Bagian dari baris `EMPLOYEE_BENEFIT`; **bukan** pembayaran tunai |
-| Baris `EMPLOYEE_BENEFIT` | `E + D` | `BenefitOwnerId`, `BenefitRelationship` terisi |
-| Dibayar tunai di kasir | `K − D` | Alur pembayaran kasir yang sudah ada |
-| Pengurangan plafon | `P` | `PakaiPlafon` (`R.3.2`) |
+| Porsi RS Benefit `P` | `min(C, S)` | Baris `PAYER`, `DebtorReferenceId` = penjamin "RS Benefit" (hanya jika `FinancingChoice = EMPLOYEE_BENEFIT`) |
+| Kelebihan di atas plafon `E` | `C − P` | Masuk ke total kewajiban pasien `(E + K)`; dapat dibayar langsung di kasir atau ditangguhkan dengan persetujuan |
+| Sisa Pasien / Co-Pay `K` | tagihan di luar cakupan aturan penjamin | Masuk ke total kewajiban pasien `(E + K)` |
+| Pilihan Penangguhan Pegawai `D` | dipilih pegawai/pasien (`0 ≤ D ≤ E + K`) | Baris `EMPLOYEE_BENEFIT`; **hanya diterbitkan bila `D > 0`** |
+| Dibayar langsung di kasir (Direct Pay) | `(E + K) − D` | Settlement kasir (Cash / Transfer / QRIS / EDC); **tidak menghasilkan AR** |
+| Pengurangan plafon HR | `P` | `PakaiPlafon` (`R.3.2`); **tidak berkurang bila memilih `GENERAL_SELF_PAY`** |
 
-Baris `PAYER` tidak diterbitkan bila `P = 0`; baris `EMPLOYEE_BENEFIT` tidak diterbitkan bila `E + D = 0`.
+> **Ketentuan Baru Pembiayaan & AR Karyawan (Section 2, 7, 17):**
+> 1. **Pilihan Eksplisit (`FinancingChoice`)**: Pasien (pegawai atau keluarga eligible) wajib memilih antara `EMPLOYEE_BENEFIT` atau `GENERAL_SELF_PAY`. Benefit tidak pernah otomatis dikonsumsi. Jika memilih `GENERAL_SELF_PAY`, plafon HR tidak dipakai (`P = 0`), seluruh tagihan dibayar mandiri, dan tidak ada AR Karyawan.
+> 2. **Kelebihan Plafon (`E`) Tidak Otomatis Menjadi AR**: Kelebihan di atas plafon `E = C - P` dapat dibayar langsung secara tunai/transfer di kasir, ditangguhkan seluruhnya menjadi AR Karyawan, atau dipecah sebagian dengan persetujuan pegawai.
+> 3. **Penerbitan Baris Handoff**: Baris `PAYER` diterbitkan hanya bila `P > 0`. Baris `EMPLOYEE_BENEFIT` diterbitkan hanya bila `D > 0` (sebesar nominal ditangguhkan). Jika tagihan diselesaikan penuh secara langsung (`D = 0`), tidak ada baris AR Karyawan yang dibentuk.
 
-| Contoh (aturan RS Benefit menanggung) | `C` | `S` | `K` | `D` | `PAYER` | `EMPLOYEE_BENEFIT` | Tunai |
-|---|---:|---:|---:|---:|---:|---:|---:|
-| 100% dari Rp 5.000.000, plafon kurang | 5.000.000 | 3.000.000 | 0 | 0 | 3.000.000 | 2.000.000 | 0 |
-| 80% dari Rp 5.000.000; pegawai bayar co-pay tunai | 4.000.000 | 3.000.000 | 1.000.000 | 0 | 3.000.000 | 1.000.000 | 1.000.000 |
-| Sama, tetapi pegawai menjadikan co-pay utang | 4.000.000 | 3.000.000 | 1.000.000 | 1.000.000 | 3.000.000 | 2.000.000 | 0 |
-| Plafon habis | 5.000.000 | 0 | 0 | 0 | tidak terbit | 5.000.000 | 0 |
-| Plafon cukup | 2.000.000 | 3.000.000 | 0 | 0 | 2.000.000 | tidak terbit | 0 |
-| Plafon cukup, pegawai menjadikan co-pay Rp 400.000 utang | 2.000.000 | 3.000.000 | 400.000 | 400.000 | 2.000.000 | 400.000 | 0 |
+| Contoh Skenario Pelayanan Rp 2.000.000 | `C` | `S` | `P` | `E` | `K` | `D` (Deferred) | `PAYER` | `EMPLOYEE_BENEFIT` | Bayar Langsung (Kasir) |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| A. Bayar tunai penuh (Self-Pay) | 2.000.000 | 1.500.000 | 0 | 0 | 2.000.000 | 0 | tidak terbit | tidak terbit | 2.000.000 |
+| B. Benefit Rp 1.5jt, sisa bayar langsung | 2.000.000 | 1.500.000 | 1.500.000 | 500.000 | 0 | 0 | 1.500.000 | tidak terbit | 500.000 |
+| C. Benefit Rp 1.5jt, sisa ditangguhkan | 2.000.000 | 1.500.000 | 1.500.000 | 500.000 | 0 | 500.000 | 1.500.000 | 500.000 | 0 |
+| D. Benefit Rp 1.5jt, bayar Rp 200rb, tangguhkan Rp 300rb | 2.000.000 | 1.500.000 | 1.500.000 | 500.000 | 0 | 300.000 | 1.500.000 | 300.000 | 200.000 |
 
-### R.4.3 Pilihan pegawai atas bagian di luar kelebihan plafon (`FIN-DEC-208`)
+### R.4.3 Pilihan penangguhan pegawai atas seluruh kewajiban pasien (`FIN-DEC-208`, Section 7)
 
-**Aturan.** Untuk bagian tagihan pasien di luar `C` (co-pay dan item di luar cakupan), **pegawai sendiri yang memilih**:
-membayar lunas di kasir, atau menjadikannya utang pegawai. Kasir **mencatat** pilihan itu; kasir tidak memutuskan.
-Pilihan dinyatakan sebagai nominal `D`: `0` berarti lunas di kasir, `K` berarti seluruhnya utang, nilai di antaranya
-berarti sebagian (superset dari pilihan dua arah; ditandai untuk dikonfirmasi pemilik, lihat `FIN-OQ-108`).
-
-| Aturan | Ketentuan |
-|---|---|
-| Berlaku untuk | Hanya kunjungan berpenjamin internal dengan pemilik manfaat yang valid |
-| Batas | `0 ≤ D ≤ K`; tidak boleh melebihi sisa tagihan pasien yang belum dibayar |
-| Utang atas nama | **Pegawai pemilik manfaat**, walaupun yang berobat anaknya |
-| Setelah dipilih | Menjadi bagian baris `EMPLOYEE_BENEFIT`; Finance tidak membedakannya dari kelebihan plafon dan dapat dicicil (`FIN-DEC-165`) |
-| Jejak | Kolom `BilArHandoff.DeferredPatientAmount` (hanya pada baris `EMPLOYEE_BENEFIT`) menyimpan `D` agar bisa dibedakan dari `E` saat audit |
-| Tidak dapat diubah | Setelah tagihan final. Perubahan hanya lewat koreksi (`INT-BIL-FIN-002`) |
-| Kelebihan di atas plafon `E` | Tetap menjadi piutang pegawai (`FIN-DEC-164`). Pegawai tetap boleh melunasinya sekaligus di kasir lewat Finance (`FIN-DEC-165`) |
-
-**Pertanyaan terbuka `FIN-OQ-108`.** Bila yang berobat bukan pegawai (misalnya anaknya), apakah persetujuan pegawai
-harus dicatat (siapa dan kapan)? Sampai dijawab, kontrak ini hanya mengunci bahwa utang tercatat atas nama pegawai.
+**Aturan.** Untuk total kewajiban pasien `(E + K)` (kelebihan plafon ditambah co-pay/item di luar cakupan):
+1. **Pilihan Bebas Pegawai/Pasien**: Membayar langsung di kasir (Cash/Transfer), menangguhkan seluruhnya menjadi AR Karyawan (potong gaji/cicilan), atau membagi sebagian.
+2. **Persetujuan Tertulis untuk Keluarga**: Bila pasien bukan pegawai sendiri (pasangan, anak, orang tua), penangguhan `D > 0` wajib menyertakan identitas pemberi persetujuan (`EmployeeReceivableConsentGivenBy`) dan catatan nomor referensi persetujuan (`EmployeeReceivableConsentNotes`).
+3. **Pemisahan Identitas Debitur vs Pasien**: Debitur pada `FinReceivable` selalu **Pegawai Pemilik Manfaat** (`BenefitOwnerId`), sedangkan pasien penerima layanan dicatat pada rincian (`FinReceivableItem.PatientId`).
+4. **Handoff & AR Separation**: Bila `D = 0`, tidak ada `BilArHandoff` dengan `EMPLOYEE_BENEFIT` yang diterbitkan dan saldo piutang pegawai tidak pernah terbentuk di Finance.
+5. **Koreksi Debitur**: Jika terjadi salah penetapan debitur pegawai, koreksi dilakukan melalui `CorrectBenefitDebtor` dengan Berita Acara resmi, dan restitusi salah potong diselesaikan lewat payroll periode berikutnya di HR tanpa pengeluaran kas manual dari Finance.
 
 ### R.4.4 Penjaga
 
