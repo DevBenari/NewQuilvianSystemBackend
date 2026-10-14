@@ -1673,7 +1673,7 @@ sekali — ini murni penambahan kolom/section baru di sebelahnya.
 
 # Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
 
-> `revisi blueprint`: `1.9`, status **draft**. Masukan: `BKC-DEC-118`, `BKC-AC-091`, `BKC-DEC-142`, `BKC-DEC-143`,
+> `revisi blueprint`: `1.9`, status **approved** (14 Oktober 2026). Masukan: `BKC-DEC-118`, `BKC-AC-091`, `BKC-DEC-142`, `BKC-DEC-143`,
 > `BKC-DES-057`–`BKC-DES-062`. Frontend SHA diaudit: `ae216044`.
 > Endpoint yang dipakai: lihat `contracts/api-contract.md` amendment revisi 1.9 — ketiganya masih
 > berlabel **Rencana (belum tersedia)**, sehingga pekerjaan frontend **MUST** menunggu backend.
@@ -1824,7 +1824,7 @@ Diturunkan dari `contracts/permission-audit-matrix.md` amendment revisi 1.9, buk
 
 # Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
 
-> `revisi blueprint`: `2.0`, status **draft**. Masukan: `BKC-DEC-144`, `BKC-AC-094`,
+> `revisi blueprint`: `2.0`, status **approved** (14 Oktober 2026). Masukan: `BKC-DEC-144`, `BKC-AC-094`,
 > `BKC-DES-063`–`BKC-DES-069`. Frontend SHA diaudit: `6e5edd6df`.
 > Endpoint yang dipakai: lihat `contracts/api-contract.md` amendment revisi `2.0` — dua endpoint baru
 > masih berlabel **Rencana (belum tersedia)**, sehingga pekerjaan frontend **MUST** menunggu backend.
@@ -1968,7 +1968,7 @@ Diturunkan dari `contracts/permission-audit-matrix.md` amendment revisi `2.0`.
 
 # Amendment 14 Oktober 2026 — Keputusan Rantai Permanen (Revisi 2.1)
 
-> `revisi blueprint`: `2.1`, status **draft**. Masukan: `BKC-DEC-150`, `BKC-DEC-151`,
+> `revisi blueprint`: `2.1`, status **approved** (14 Oktober 2026). Masukan: `BKC-DEC-150`, `BKC-DEC-151`,
 > `BKC-DES-070`–`BKC-DES-074`. Frontend SHA diaudit: `6e5edd6df`.
 > Endpoint yang dipakai: `contracts/api-contract.md` amendment revisi `2.1` — masih **Rencana (belum
 > tersedia)**.
@@ -2064,3 +2064,42 @@ Saat tombol Kecualikan ditekan:
 |---|---|
 | Riwayat keputusan dan konfirmasi | Endpoint revisi `2.1` — masih **Rencana (belum tersedia)** |
 | Tombol evaluasi ulang yang sudah ada di layar kasir | Perbaikan constraint `REEVALUATED_BY_CASHIER` — **nol perubahan frontend**, tombolnya tidak perlu diubah; begitu backend diperbaiki, tombol itu berfungsi |
+
+
+
+
+---
+
+# Amendment 14 Oktober 2026 — Kode Kejanggalan Asal Transfer (Revisi 2.2)
+
+> `revisi blueprint`: `2.2`, status **draft**. Masukan: `BKC-DES-080`, `BIL-API-1.9`. Backend SHA `d268a41f`, Frontend SHA `0b45dd8cd`.
+
+## 1. Peta Butir Menu
+
+Nol butir menu baru dan nol layar baru. `BIL-SCR-44` tetap dijangkau dari layar induk revisi `2.0`.
+
+## 2. Perubahan pada `BIL-SCR-44` — Rekonsiliasi Rantai Kunjungan
+
+```text
++------------------------------------------------------------------------+
+| No | Invoice          | Unit | Sisa (Rp) | Kejanggalan          | Aksi    |
+|----|------------------|------|-----------|----------------------|---------|
+|  1 | INV-IGD-000418   | IGD  | 1.500.000 | Asal transfer belum  | [Ikutkan]   |
+|    |                  |      |           | tertaut              | [Kecualikan]|
++------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Kolom Kejanggalan | Label baru **"Asal transfer belum tertaut"** untuk `UNLINKED_TRANSFER_ORIGIN`, di samping lima label revisi `2.0` | `GET /inpatient-clearance/encounter/{encounterId}/obligations` | `BillingInpatient : Read` | Tidak berubah |
+| Tombol Ikutkan dan Kecualikan | **Keduanya** tersedia untuk kejanggalan ini, karena pasiennya pasti sama | `POST /inpatient-clearance/{id}/resolve-reconciliation` | `BillingInpatient : Reconcile` | Tidak berubah; konfirmasi permanen revisi `2.1` berlaku |
+| Kode tak dikenal | Kode di luar daftar label **MUST** tampil apa adanya dengan label "Kejanggalan lain", bukan disembunyikan | — | — | — |
+
+Bunyi label adalah usulan desain dan tunduk pada persetujuan pemilik. Warna, ikon, dan letak tetap `DEV_DISCRETION`.
+
+## 3. Ringkasan Tagihan Pasien
+
+Item tagihan kunjungan asal transfer ikut tergabung pada ringkasan tagihan, karena penggabungan
+terjadi di backend (`PatientBillingSummaryService.Breakdown.cs:100-118`). Nol perubahan frontend.
+Daftar `LinkedEncounters` pada response itu belum dibaca frontend (nol kemunculan pada `src/`);
+menampilkannya **tidak** diwajibkan revisi ini.

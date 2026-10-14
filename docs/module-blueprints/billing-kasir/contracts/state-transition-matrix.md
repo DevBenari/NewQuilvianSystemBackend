@@ -644,8 +644,8 @@ Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`.
 
 ## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
 
-> `last_changed_in`: `BIL-STATE-1.6` atas `BIL-STATE-1.5` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-STATE-1.6` atas `BIL-STATE-1.5` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `d166cf4f`.
 
 ### Status peserta grup pembayaran (`BilSettlementInvoice.ParticipantStatus`)
@@ -698,8 +698,8 @@ Trace `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`�
 
 ## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
 
-> `last_changed_in`: `BIL-STATE-1.7` atas `BIL-STATE-1.6` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-STATE-1.7` atas `BIL-STATE-1.6` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`. Backend SHA: `d166cf4f`.
 
 ### Status kelayakan pemulangan — satu nilai baru
@@ -744,8 +744,8 @@ Trace `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`. Tests: `BIL-AT
 
 ## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen (Revisi 2.1)
 
-> `last_changed_in`: `BIL-STATE-1.8` atas `BIL-STATE-1.7` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-STATE-1.8` atas `BIL-STATE-1.7` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-151`, `BKC-DES-072`, `BKC-DES-073`. Backend SHA: `d166cf4f`.
 
 ### Keputusan rantai — hanya satu transisi yang sah
@@ -784,3 +784,24 @@ menilai ulang dan status berpindah sesuai tabel amendment revisi `2.0`:
 Reason code surat baru: `RECONCILIATION_RESOLVED`.
 
 Trace `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-074`. Tests: `BIL-AT-179`–`BIL-AT-188`.
+
+
+
+---
+
+## Amendment 14 Oktober 2026 — Asal Transfer Tanpa Tautan (Revisi 2.2)
+
+> `last_changed_in`: `BIL-STATE-1.9` atas `BIL-STATE-1.8` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DES-080`, `BKC-DEC-157`. Backend SHA: `d268a41f`.
+
+Nol status baru dan nol transisi baru. Yang bertambah adalah **satu sebab** masuk ke
+`NEEDS_RECONCILIATION`, beserta keputusan yang sah atasnya.
+
+| Kejanggalan | Kapan muncul | Status surat | Keputusan yang sah | Bila tidak diputuskan |
+|---|---|---|---|---|
+| `UNLINKED_TRANSFER_ORIGIN` (**baru**) | Kunjungan rawat inap mencatat kunjungan asal transfer milik pasien yang sama, tetapi tidak ada tautan invoice ke kunjungan itu | `NEEDS_RECONCILIATION` | `INCLUDE` — tagihan kunjungan asal dihitung; atau `EXCLUDE` — tidak dihitung dan penelusuran tidak melewatinya. Keduanya permanen (`BKC-DEC-152`, `BKC-DEC-157`) | Surat tetap `NEEDS_RECONCILIATION`; **tidak pernah** menjadi `CLEARED` |
+| `PATIENT_MISMATCH` | Kunjungan asal transfer milik pasien lain | `NEEDS_RECONCILIATION` | Hanya `EXCLUDE` | Tidak berubah dari revisi `2.0`/`2.1`; **mendahului** `UNLINKED_TRANSFER_ORIGIN` |
+
+Transisi tidak sah pada revisi `2.1` berlaku penuh untuk kejanggalan baru ini, termasuk larangan
+membalik `INCLUDE` menjadi `EXCLUDE`.

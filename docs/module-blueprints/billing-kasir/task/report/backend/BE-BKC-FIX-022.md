@@ -10,7 +10,7 @@
 | Keputusan | Opsi A (Perluas daftar literal pada berkas konfigurasi EF Core, buat satu migration mandiri, lengkapi metadata designer, dan perbarui model snapshot) |
 | Target tulis | `NewQuilvianSystemBackend` |
 | Tanggal | 2026-10-14 |
-| Status | ✅ **Source, Migration, dan Snapshot selesai**. Build mandiri oleh pemilik. Penerapan basis data (`dotnet ef database update`) diserahkan kepada pemilik. |
+| Status | 🟡 **Source, migration, dan snapshot selesai; migration sudah diterapkan pemilik ke basis data dev.** Belum tercatat: hasil `dotnet build` (dijalankan pemilik, tidak dijalankan agent) dan uji tombol Evaluasi Ulang di layar |
 
 ---
 
@@ -19,7 +19,7 @@
 Pada modul Billing dan Kasir alur Rawat Inap, petugas kasir memiliki wewenang untuk melakukan evaluasi ulang kelayakan kepulangan pasien rawat inap melalui tombol **Evaluasi Ulang** pada daftar surat kelayakan modul konsumen (`BIL-SCR-41`). Tombol ini memanggil endpoint:
 `POST /api/v1/health-services/billing-management/billing/inpatient-clearance/reevaluate`
 
-Layanan backend `InpatientClearanceService.ReevaluateClearanceAsync` secara terancang menggunakan kode alasan:
+Action `ReevaluateClearance` pada `InpatientClearanceController` memanggil `InpatientClearanceService.EvaluateClearanceAsync` dengan kode alasan:
 `InpatientClearanceReasonCodes.ReevaluatedByCashier` bernilai string `"REEVALUATED_BY_CASHIER"`.
 
 Namun pada skema basis data PostgreSQL yang diterapkan sebelumnya (migrasi `20260924054559_AddInpatientBillingIntegrationAndClearanceHandoff`), batasan pemeriksaan skema (*CHECK constraint*):
@@ -98,6 +98,21 @@ Base URL: `/api/v1/health-services/billing-management/billing/inpatient-clearanc
 - **Pemeriksaan Statis:** Berkas konfigurasi, migrasi, designer, dan snapshot telah diverifikasi keselarasan sintaksis dan penamaan tipe C#.
 
 ---
+
+### Catatan verifikasi tambahan, 14 Oktober 2026
+
+| Pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| Constraint di basis data dev sesudah migration diterapkan | `CK_BilInpatientClearanceHandoff_ReasonCode` memuat `REEVALUATED_BY_CASHIER` (query read-only) | `PASS` |
+| Migration `20261014100000_FixClearanceReasonCodeReevaluatedByCashier` tercatat di `__EFMigrationsHistory` dev | Ada | `PASS` |
+| `Up()` hanya mengganti satu constraint; `Down()` mengembalikan enam nilai | Dibaca langsung pada berkas | `PASS` |
+| Selisih `ApplicationDbContextModelSnapshot.cs` terhadap cadangan sebelum task | Satu baris constraint (+ penanda BOM baris 1); perubahan payroll dan employee benefit milik pemilik tidak terpengaruh | `PASS` |
+| Source tumpuan (`InpatientClearanceService`, `InpatientClearanceController`, konfigurasi settlement/invoice) tidak berubah sejak `d166cf4f` | Nol selisih | `PASS` |
+| `dotnet build` | Dijalankan pemilik; hasilnya belum dilaporkan kepada agent | `NOT RUN` oleh agent |
+| Tombol Evaluasi Ulang berhasil menyimpan surat versi baru | Tabel `BilInpatientClearanceHandoff` di dev **masih kosong**, sehingga belum ada bukti tombol itu pernah berhasil | `NOT RUN` |
+
+Kriteria roadmap 1–5 terpenuhi pada tingkat source dan migration. Yang menahan tanda `✅`: hasil build
+dan uji tombol di layar.
 
 ## 6. Peringatan untuk Gelombang Berikutnya
 

@@ -457,7 +457,7 @@ Trace `BKC-DEC-106`–`109`, `PHA-DEC-067`, `PHA-DEC-068`. Tests `BIL-AT-135`–
 | `BIL-VAL-123` | Pencabutan izin pulang saat tagihan susulan (Auto-Reblock) | Intake tagihan baru pasca-clearance | Tagihan baru masuk pada invoice rawat inap berstatus `CLEARED` | Status izin pulang dicabut otomatis karena ada tagihan pelayanan susulan. Pasien wajib menyelesaikan selisih tagihan di kasir |
 | `BIL-VAL-124` | Integritas rincian alihan IGD | Konsolidasi tagihan rawat inap | Invoice rawat inap memuat rincian tindakan/obat gawat darurat | *Invariant sistem* — rincian biaya IGD tetap berstatus `EMERGENCY` dan tidak boleh ditimpa menjadi rawat inap |
 | `BIL-VAL-125` | Koreksi penempatan kamar idempoten | Penerimaan event `ROOM_CORRECTION` | Data bed/kamar dikoreksi oleh bangsal | Tagihan kamar sebelumnya dibatalkan otomatis dan tagihan baru dihitung ulang berdasarkan kamar yang benar |
-| `BIL-VAL-126` | Pembatalan atau pengalihan biaya admin rajal | Alihan pasien rawat jalan ke rawat inap | Pasien memiliki tagihan admin rajal pada encounter rujukan | Biaya administrasi rawat jalan dibatalkan dan digantikan biaya administrasi rawat inap; pembayaran yang sudah masuk dialihkan sebagai kredit tagihan |
+| `BIL-VAL-126` | Pembatalan atau pengalihan biaya admin rajal | Alihan pasien rawat jalan ke rawat inap | Pasien memiliki tagihan admin rajal pada encounter rujukan | Biaya administrasi rawat jalan dibatalkan dan digantikan biaya administrasi rawat inap; pembayaran yang sudah masuk dialihkan sebagai kredit tagihan **[Dipertegas `BIL-VALIDATION-1.9`: hanya kunjungan Rawat Jalan yang tertaut]** |
 
 ### Contoh Kasus Validasi Nyata di Rumah Sakit
 
@@ -537,8 +537,8 @@ Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`. Tests: `BIL-AT-149`–`BIL-A
 
 ## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
 
-> `last_changed_in`: `BIL-VALIDATION-1.6` atas `BIL-VALIDATION-1.5` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-VALIDATION-1.6` atas `BIL-VALIDATION-1.5` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `e049a65b`.
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
@@ -600,8 +600,8 @@ Rencana: [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-c
 
 ## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
 
-> `last_changed_in`: `BIL-VALIDATION-1.7` atas `BIL-VALIDATION-1.6` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-VALIDATION-1.7` atas `BIL-VALIDATION-1.6` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-144`, `BKC-DES-063`–`BKC-DES-069`. Backend SHA: `d166cf4f`.
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
@@ -650,8 +650,8 @@ Trace `BKC-DEC-144`, `BKC-DES-063`–`BKC-DES-069`. Tests: `BIL-AT-169`–`BIL-A
 
 ## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen (Revisi 2.1)
 
-> `last_changed_in`: `BIL-VALIDATION-1.8` atas `BIL-VALIDATION-1.7` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-VALIDATION-1.8` atas `BIL-VALIDATION-1.7` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-151`, `BKC-DES-071`–`BKC-DES-074`. Backend SHA: `d166cf4f`.
 
 | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
@@ -689,3 +689,27 @@ kunjungan rawat inap yang berbeda, dan keputusan lama tidak terbawa.
 | Batas waktu "masa tenang" untuk membatalkan keputusan | Bertentangan dengan arahan bahwa pengecualian tidak dapat dicabut |
 
 Trace `BKC-DEC-151`, `BKC-DES-071`–`BKC-DES-074`. Tests: `BIL-AT-179`–`BIL-AT-188`.
+
+
+
+---
+
+## Amendment 14 Oktober 2026 — Lingkup Penggantian Biaya Administrasi (Revisi 2.2)
+
+> `last_changed_in`: `BIL-VALIDATION-1.9` atas `BIL-VALIDATION-1.8` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-119`, `BKC-DES-081`. Backend SHA: `d268a41f`.
+
+### Penegasan `BIL-VAL-126`
+
+| Field | Sebelum | Sesudah |
+|---|---|---|
+| Kondisi | "Pasien memiliki tagihan admin rajal pada encounter rujukan" | Invoice Rawat Jalan milik kunjungan yang **tertaut** ke invoice rawat inap ini (`BilInvoiceEncounterLink`) **dan** berjenis `Outpatient` memuat item admin |
+| Bukan kondisi | — (tidak ditulis) | Kunjungan Rawat Jalan lain milik pasien yang sama yang **tidak** tertaut, berapa pun tanggalnya |
+| Hasil | Tidak berubah: belum dibayar → item di-void `SUPERSEDED_BY_INPATIENT_ADMISSION`; sudah dibayar → kredit alihan | Tidak berubah |
+
+**Contoh.** Pasien dengan kunjungan poli Maret (sudah dibayar, admin Rp 150.000) dan kunjungan poli
+Oktober yang ditransfer ke rawat inap (admin Rp 150.000 sudah dibayar) menerima kredit
+**Rp 150.000**, bukan Rp 300.000.
+
+Nol aturan validasi baru. `UNLINKED_TRANSFER_ORIGIN` tunduk pada `BIL-VAL-147`–`BIL-VAL-150` apa adanya.

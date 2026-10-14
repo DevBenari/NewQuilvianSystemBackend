@@ -297,4 +297,5 @@ kecil.
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-14 | Issue dibuat dari temuan `/design-business-module` revisi `2.1`: 1 butir, 2 temuan tambahan. Runtime belum diverifikasi | `diagnose-module-issue` |
+| 2026-10-14 | Perbaikan dikerjakan pemilik; migration diterapkan ke dev. Status issue **tetap** `DALAM_PERBAIKAN` sampai tombol Evaluasi Ulang teruji berhasil di layar — tabel surat kelayakan dev masih kosong | `diagnose-module-issue` |
 | 2026-10-14 | P-01 terjawab: constraint di basis data terbukti enam nilai tanpa `REEVALUATED_BY_CASHIER`; tabel surat kelayakan kosong. Status bukti `ISS-BKC-002-01` naik menjadi `SUDAH-VERIFIKASI` di basis data. K-02 diputuskan pemilik: kedua perbaikan disetujui. Status issue menjadi `DALAM_PERBAIKAN` | Agent atas perintah pemilik |

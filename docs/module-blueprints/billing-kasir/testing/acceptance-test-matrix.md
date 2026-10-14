@@ -474,8 +474,8 @@ Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `BIL-VAL-127`–`133`, `BIL-
 
 ## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
 
-> `last_changed_in`: `BIL-TEST-1.7` atas `BIL-TEST-1.6` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-TEST-1.7` atas `BIL-TEST-1.6` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`–`BKC-DES-062`, `BIL-VAL-134`–`140`,
 > `BIL-INT-019`. Backend SHA: `e049a65b`.
 
@@ -509,8 +509,8 @@ Trace `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`�
 
 ## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
 
-> `last_changed_in`: `BIL-TEST-1.8` atas `BIL-TEST-1.7` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-TEST-1.8` atas `BIL-TEST-1.7` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`, `BIL-VAL-141`–`146`,
 > `BIL-INT-020`. Backend SHA: `d166cf4f`.
 
@@ -543,8 +543,8 @@ Trace `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`, `BIL-VAL-141`�
 
 ## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen dan Perbaikan Constraint (Revisi 2.1)
 
-> `last_changed_in`: `BIL-TEST-1.9` atas `BIL-TEST-1.8` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-TEST-1.9` atas `BIL-TEST-1.8` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-076`, `BIL-VAL-147`–`150`.
 > Backend SHA: `d166cf4f`.
 
@@ -569,3 +569,30 @@ Trace `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`, `BIL-VAL-141`�
 | Kebenaran isi alasan keputusan | Tidak dapat diuji mesin | Tinjauan jejak audit berkala |
 
 Trace `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-076`, `BIL-VAL-147`–`150`.
+
+
+
+---
+
+## Amendment 14 Oktober 2026 — Tautan Kunjungan Asal Jalur Transfer dan Lingkup Penggantian Biaya Admin (Revisi 2.2)
+
+> `last_changed_in`: `BIL-TEST-2.0` atas `BIL-TEST-1.9` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-AC-106`–`BKC-AC-110`, `BKC-DES-077`–`BKC-DES-081`. Backend SHA: `d268a41f`.
+> Jenis "Integrasi" dan "Manual" berarti verifikasi runtime dan bukti tercatat; backend tidak memelihara project test otomatis (`rules/backend/TEST_POLICY.md`).
+
+| ID | Requirement | Skenario | Jenis | Hasil yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-189` | `FR-BKC-273` | Pasien IGD dengan tagihan Rp 1.500.000 ditransfer, lalu rawat inap dikonfirmasi | Integrasi | Satu tautan `EMERGENCY_ORIGIN`, `SourceReferralId` kosong (`BKC-AC-106`) |
+| `BIL-AT-190` | `FR-BKC-273` | Pasien poli ditransfer, lalu rawat inap dikonfirmasi | Integrasi | Satu tautan `OUTPATIENT_ORIGIN` (`BKC-AC-107`) |
+| `BIL-AT-191` | `FR-BKC-273` | Event `ADMISSION_CONFIRMED` yang sama diproses dua kali | Integrasi | Tetap satu tautan (`BKC-AC-108`) |
+| `BIL-AT-192` | `FR-BKC-273` | Pasien dirawat inap langsung tanpa transfer | Integrasi | Nol tautan; rincian tagihan identik dengan sebelumnya (`BKC-AC-109`) |
+| `BIL-AT-193` | `FR-BKC-274` | Kunjungan asal transfer ternyata milik pasien lain (data disiapkan langsung) | Integrasi | Nol tautan; satu peringatan `InpatientEvent.TransferLinkSkipped` tanpa nama atau nomor rekam medis; invoice rawat inap tetap terbuka |
+| `BIL-AT-194` | `FR-BKC-273` | Kunjungan asal yang sama juga punya rujukan operasi | Integrasi | Satu tautan saja, sebab `SURGERY_ORIGIN` |
+| `BIL-AT-195` | `FR-BKC-275` | Transfer lama tanpa tautan; event `ADMISSION_CONFIRMED`-nya diputar ulang | Integrasi | Tautan tertulis memakai tanda terima asli; tidak ada tanda terima baru |
+| `BIL-AT-196` | `FR-BKC-276` | Transfer lama tanpa tautan dinilai kelayakannya | Integrasi | `UNLINKED_TRANSFER_ORIGIN`, status `NEEDS_RECONCILIATION`, **bukan** `CLEARED`; tagihan asal tampil dengan `isCounted` `false` |
+| `BIL-AT-197` | `FR-BKC-276` | Kasir mengikutkan kejanggalan `UNLINKED_TRANSFER_ORIGIN`, lalu mencoba mengecualikannya | Integrasi | Tagihan asal dihitung; percobaan membalik ditolak dan nol baris keputusan berubah (`BKC-AC-110`) |
+| `BIL-AT-198` | `FR-BKC-276` | Asal transfer tanpa tautan milik pasien lain | Integrasi | Hanya `PATIENT_MISMATCH` yang muncul; `INCLUDE` ditolak |
+| `BIL-AT-199` | `FR-BKC-277` | Pasien dengan kunjungan poli Maret yang sudah dibayar, lalu poli Oktober yang ditransfer dan sudah dibayar | Integrasi | Kredit alihan Rp 150.000 dari kunjungan Oktober saja |
+| `BIL-AT-200` | `FR-BKC-277` | Pasien dengan kunjungan poli terbuka yang tidak tertaut, lalu dirawat inap langsung | Integrasi | Nol item di-void, nol kredit |
+| `BIL-AT-201` | `FR-BKC-273` | Ringkasan tagihan pasien rawat inap sesudah transfer IGD | Manual | Item tagihan IGD ikut tergabung pada rincian |

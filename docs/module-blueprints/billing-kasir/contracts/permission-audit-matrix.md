@@ -526,8 +526,8 @@ Trace `BUI-DEC-013`.
 
 ## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
 
-> `last_changed_in`: `BIL-PERMISSION-1.3` atas `BIL-PERMISSION-1.2` — status **draft**.
-> Owner: Security Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-PERMISSION-1.3` atas `BIL-PERMISSION-1.2` — status **approved** (14 Oktober 2026).
+> Owner: Security Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi; Security Owner belum menyatakan terpisah · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `e049a65b`.
 
 Pemetaan endpoint ke hak akses **tidak** didaftar ulang di sini; ia dipegang kolom `Hak akses`
@@ -593,8 +593,8 @@ Trace `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`.
 
 ## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
 
-> `last_changed_in`: `BIL-PERMISSION-1.4` atas `BIL-PERMISSION-1.3` — status **draft**.
-> Owner: Security Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-PERMISSION-1.4` atas `BIL-PERMISSION-1.3` — status **approved** (14 Oktober 2026).
+> Owner: Security Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi; Security Owner belum menyatakan terpisah · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-144`, `BKC-DEC-117`, `BKC-DES-063`–`BKC-DES-069`. Backend SHA: `d166cf4f`.
 
 Pemetaan endpoint ke hak akses **tidak** didaftar ulang di sini; ia dipegang kolom `Hak akses` pada
@@ -661,8 +661,8 @@ Trace `BKC-DEC-144`, `BKC-DEC-117`, `BKC-DES-069`.
 
 ## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen (Revisi 2.1)
 
-> `last_changed_in`: `BIL-PERMISSION-1.5` atas `BIL-PERMISSION-1.4` — status **draft**.
-> Owner: Security Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-PERMISSION-1.5` atas `BIL-PERMISSION-1.4` — status **approved** (14 Oktober 2026).
+> Owner: Security Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi; Security Owner belum menyatakan terpisah · `approved_at`: 2026-10-14.
 > Masukan: `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-072`. Backend SHA: `d166cf4f`.
 
 ### Nol Resource dan nol Action baru

@@ -1229,7 +1229,7 @@ Nol migrasi EF Core baru dan nol skrip DDL SQL baru pada revisi ini.
 
 ## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
 
-> `last_changed_in`: revisi blueprint `1.9`, status **draft**. Masukan: `BKC-DEC-118`, `BKC-AC-091`,
+> `last_changed_in`: revisi blueprint `1.9`, status **approved** (14 Oktober 2026). Masukan: `BKC-DEC-118`, `BKC-AC-091`,
 > `BKC-DES-057`–`BKC-DES-062`. Backend SHA diaudit: `e049a65b`.
 > Jejak keputusan bisnis: `BKC-DEC-142` dan `BKC-DEC-143`, keduanya `approved` (`BKC-OQ-108` ditutup 14 Oktober 2026).
 
@@ -1299,7 +1299,7 @@ sudah berjalan tetap bekerja tanpa perubahan apa pun.
 | Nilai | Status | Artinya |
 |---|---|---|
 | `SURGERY_ORIGIN` | Sudah ada | Tautan lahir dari rujukan operasi |
-| `EMERGENCY_ORIGIN` | **Baru** | Tautan lahir dari alihan pasien IGD ke rawat inap |
+| `EMERGENCY_ORIGIN` | **Baru** | Tautan lahir dari alihan pasien IGD ke rawat inap **[Revisi `2.2`: penulisnya ditetapkan `BKC-DES-077`]** |
 
 Tidak ada perubahan kolom. Nilai baru ini hanya ditambahkan sebagai konstanta bernama agar
 pencarian tagihan kandidat punya bukti hubungan yang tercatat, bukan hanya dugaan dari kesamaan
@@ -1383,7 +1383,7 @@ mengikuti konvensi yang sudah berlaku.
 
 ## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
 
-> `last_changed_in`: revisi blueprint `2.0`, status **draft**. Masukan: `BKC-DEC-144`, `BKC-AC-094`,
+> `last_changed_in`: revisi blueprint `2.0`, status **approved** (14 Oktober 2026). Masukan: `BKC-DEC-144`, `BKC-AC-094`,
 > `BKC-DES-063`–`BKC-DES-069`. Backend SHA diaudit: `d166cf4f`.
 > Jejak keputusan bisnis: `BKC-DEC-148`–`BKC-DEC-151`, seluruhnya `approved` (`BKC-OQ-118`–`120` ditutup 14 Oktober 2026).
 
@@ -1395,7 +1395,7 @@ mengikuti konvensi yang sudah berlaku.
 |---|---|---|---|
 | `BilClearanceObligation` | Billing (`BIL-CTX-05`) | **Baru** | Satu baris per tagihan yang dinilai pada satu surat kelayakan pemulangan |
 | `BilInpatientClearanceHandoff` | Billing (`BIL-CTX-05`) | **Diperbarui** | Tiga kolom baru; satu nilai status baru |
-| `BilInvoiceEncounterLink` | Billing (`BIL-CTX-01`) | **Sudah ada** | Dibaca sebagai sumber rantai tingkat pertama. Kolom kunci: `RanapInvoiceId` (FK), `LinkedEncounterId` (FK), `LinkReason`, `SourceReferralId` (FK) — lihat `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceEncounterLink.cs` |
+| `BilInvoiceEncounterLink` | Billing (`BIL-CTX-01`) | **Sudah ada** | Dibaca sebagai sumber rantai tingkat pertama. Kolom kunci: `RanapInvoiceId` (FK), `LinkedEncounterId` (FK), `LinkReason`, `SourceReferralId` (FK) — lihat `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceEncounterLink.cs` **[Dikoreksi revisi `2.2` (`BKC-DES-082`): terisi otomatis hanya untuk rujukan operasi; jalur transfer lihat `BKC-DES-077` dan `BKC-DES-080`]** |
 | `RegPatientEncounter` | Registration Management | **Sudah ada** | Dibaca saja untuk tingkat lanjutan. Kolom kunci: `Id` (PK), `PatientId` (FK), `EncounterType`, `SourceEncounterId` — lihat `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounter.cs` |
 | `BilInvoice` | Billing (`BIL-CTX-01`) | **Sudah ada** | Dibaca untuk sisa tagihan per kunjungan. Kolom kunci: `Id` (PK), `EncounterId` (FK, unik), `ServiceType`, `Status`, `PatientAmount` |
 
@@ -1507,9 +1507,9 @@ tidaknya penghambat, mengikuti `BKC-DEC-117` dan `BKC-DES-069`.
 
 ## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen dan Perbaikan Constraint (Revisi 2.1)
 
-> `last_changed_in`: revisi blueprint `2.1`, status **draft**. Masukan: `BKC-DEC-151`, `BKC-DEC-150`,
+> `last_changed_in`: revisi blueprint `2.1`, status **approved** (14 Oktober 2026). Masukan: `BKC-DEC-151`, `BKC-DEC-150`,
 > `BKC-DES-070`–`BKC-DES-076`. Backend SHA diaudit: `d166cf4f`.
-> Jejak keputusan bisnis yang belum diratifikasi: `BKC-OQ-126`.
+> Jejak keputusan bisnis: `BKC-DEC-152`–`BKC-DEC-154`, seluruhnya `approved` (`BKC-OQ-126` ditutup 14 Oktober 2026).
 
 ### Status Skema Database
 
@@ -1642,3 +1642,51 @@ Nol kolom bertanda **Sensitif**. Kolom `Reason` berisi teks bebas petugas, sehin
 pada keterangan hubungan kunjungan; layar **MUST** memberi petunjuk agar petugas tidak menulis
 diagnosis atau keluhan pasien di sana. Payload log tetap memuat `EntityId`, controller, action, dan
 status saja — isi `Reason` **MUST NOT** masuk payload log.
+
+
+
+---
+
+## Amendment 14 Oktober 2026 — Tautan Kunjungan Asal Jalur Transfer (Revisi 2.2)
+
+> `last_changed_in`: revisi blueprint `2.2`, status **draft**. Masukan: `BKC-DEC-155`, `BKC-DES-077`–`BKC-DES-081`. Backend SHA: `d268a41f`.
+> Nol tabel baru dan nol kolom baru.
+
+### `BilInvoiceEncounterLink` — **Sudah ada**, nilai bertambah
+
+Pemilik: Billing (`BIL-CTX-01`). Model: `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceEncounterLink.cs`.
+Konfigurasi: `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInvoiceEncounterLinkConfiguration.cs`.
+
+| Kolom kunci | Tipe | Wajib | Aturan pada revisi ini | Sensitif |
+|---|---|---|---|---|
+| `RanapInvoiceId` | `uuid` | Ya | FK `BilInvoice.Id`, `Restrict` | Tidak |
+| `LinkedEncounterId` | `uuid` | Ya | FK `RegPatientEncounter.Id`, `Restrict`. Unik bersama `RanapInvoiceId` selama `NOT "IsDelete"` | Tidak |
+| `LinkReason` | `varchar(40)` | Ya | Tanpa `CHECK`; diisi dari `BillingEncounterLinkReasons` | Tidak |
+| `SourceReferralId` | `uuid` | Tidak | Terisi untuk `SURGERY_ORIGIN`; **kosong** untuk tautan transfer | Tidak |
+| `ReceiptId` | `uuid` | Ya | Tanda terima event yang sedang diproses; untuk event duplikat, tanda terima aslinya | Tidak |
+
+| Nilai `LinkReason` | Status | Penulis | Arti |
+|---|---|---|---|
+| `SURGERY_ORIGIN` | Sudah ada | `EnsureEncounterLinksAsync`, dari `InpAdmissionReferral` | Rawat inap lahir dari rujukan operasi |
+| `EMERGENCY_ORIGIN` | Dirancang revisi `1.9`; **penulisnya baru ditetapkan di sini** | `EnsureEncounterLinksAsync`, dari asal transfer `Emergency` | Rawat inap lahir dari transfer IGD |
+| `OUTPATIENT_ORIGIN` | **Baru** | `EnsureEncounterLinksAsync`, dari asal transfer `Outpatient` | Rawat inap lahir dari transfer Rawat Jalan |
+
+### `BilClearanceChainDecision` — rencana `MVP-37`, satu nilai `CHECK` bertambah
+
+Constraint pada skema rencana revisi `2.1` berubah menjadi:
+
+```sql
+CONSTRAINT "CK_BilClearanceChainDecision_AnomalyCode" CHECK ("AnomalyCode" IN (
+    'DEPTH_LIMIT_REACHED', 'CYCLE_DETECTED', 'PATIENT_MISMATCH',
+    'MULTIPLE_ACTIVE_ADMISSION', 'MISSING_INVOICE', 'UNLINKED_TRANSFER_ORIGIN'))
+```
+
+Kolom `AnomalyCode` (`varchar(40)`) cukup untuk nilai baru (24 karakter). Constraint
+`CK_BilClearanceChainDecision_NoIncludeOnPatientMismatch` tidak berubah.
+
+### Kolom lain yang dibaca
+
+| Tabel | Pemilik | Kolom | Dipakai untuk |
+|---|---|---|---|
+| `RegPatientEncounter` | Registration Management | `SourceEncounterId`, `AdmissionTransferSourceType`, `PatientId`, `EncounterType`, `IsDelete`, `IsCancel` | Menulis tautan transfer; periksa silang tingkat pertama |
+| `BilInvoice` | Billing | `EncounterId`, `ServiceType` | Memilih invoice Rawat Jalan untuk penggantian biaya admin |

@@ -3024,14 +3024,14 @@ Task ad-hoc di luar penomoran roadmap asli, mengikuti pola `BE-BKC-FIX-XXX`. Pem
 
 ```mermaid
 graph TD
-    F22["BE-BKC-FIX-022<br/>Constraint ReasonCode<br/>+ REEVALUATED_BY_CASHIER"]
+    F22["🟡 BE-BKC-FIX-022<br/>Constraint ReasonCode<br/>+ REEVALUATED_BY_CASHIER"]
     F22 -.didahulukan.-> M36["MVP-36<br/>Pelunasan gabungan"]
 ```
 
 | Task | FIX plan-repair | Ringkasan | Status | Laporan |
 | --- | --- | --- | --- | --- |
-| `BE-BKC-FIX-022` | `FIX-BKC-002-01` | Tambahkan `REEVALUATED_BY_CASHIER` ke `CK_BilInpatientClearanceHandoff_ReasonCode` pada berkas konfigurasi, beserta satu migration yang hanya mengubah constraint itu | SELESAI | [`BE-BKC-FIX-022.md`](../task/report/backend/BE-BKC-FIX-022.md) |
-| — | `FIX-BKC-002-02` | Rapikan ID layar karangan pada dokumen blueprint ke pola `BIL-SCR-NN` | SELESAI | [`blueprint-manifest.md`](../blueprint-manifest.md#11-registri-penomoran-layar-screen-id-registry--pemetaan-perbaikan-fix-bkc-002-02) |
+| `BE-BKC-FIX-022` | `FIX-BKC-002-01` | Tambahkan `REEVALUATED_BY_CASHIER` ke `CK_BilInpatientClearanceHandoff_ReasonCode` pada berkas konfigurasi, beserta satu migration yang hanya mengubah constraint itu | 🟡 SEBAGIAN (14-10-2026) — 5 dari 5 kriteria roadmap terpenuhi di source dan migration; migration sudah diterapkan ke dev. Belum tercatat: hasil `dotnet build` dan uji tombol di layar | [`BE-BKC-FIX-022.md`](../task/report/backend/BE-BKC-FIX-022.md) |
+| — | `FIX-BKC-002-02` | Rapikan ID layar karangan pada dokumen blueprint ke pola `BIL-SCR-NN` | ✅ SELESAI (14-10-2026) | [`blueprint-manifest.md`](../blueprint-manifest.md#11-registri-penomoran-layar-screen-id-registry--pemetaan-perbaikan-fix-bkc-002-02) |
 
 **Acceptance criteria `BE-BKC-FIX-022`** — disalin dari `PLAN-REPAIR-BKC-002` bagian 4:
 

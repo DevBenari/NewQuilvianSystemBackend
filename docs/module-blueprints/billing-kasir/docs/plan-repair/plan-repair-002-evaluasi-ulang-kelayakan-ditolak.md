@@ -15,10 +15,10 @@ basis_source_frontend: "6e5edd6df (yasmina)"
 
 | ID perbaikan | Menutup | Ringkasan | Area | Prioritas | Task ID | Status | Bukti |
 | --- | --- | --- | --- | :---: | --- | --- | --- |
-| `FIX-BKC-002-01` | `ISS-BKC-002-01` | Tambahkan `REEVALUATED_BY_CASHIER` ke constraint kode alasan surat kelayakan, beserta berkas konfigurasinya | BE | 1 | `BE-BKC-FIX-022` | SELESAI | [`BE-BKC-FIX-022.md`](../../task/report/backend/BE-BKC-FIX-022.md) |
-| `FIX-BKC-002-02` | `ISS-BKC-002-T2` | Ganti ID layar karangan pada amendment revisi `1.9`–`2.1` dengan pola `BIL-SCR-NN` | Dokumen blueprint | 1 | — (perbaikan dokumen, bukan task builder) | SELESAI | Tabel registri di `blueprint-manifest.md` |
+| `FIX-BKC-002-01` | `ISS-BKC-002-01` | Tambahkan `REEVALUATED_BY_CASHIER` ke constraint kode alasan surat kelayakan, beserta berkas konfigurasinya | BE | 1 | `BE-BKC-FIX-022` | 🟡 SEBAGIAN — 3 dari 6 acceptance criteria terpenuhi (nomor 1, 5, 6). Nomor 2, 3, 4 menunggu uji tombol di layar | [`BE-BKC-FIX-022.md`](../../task/report/backend/BE-BKC-FIX-022.md) |
+| `FIX-BKC-002-02` | `ISS-BKC-002-T2` | Ganti ID layar karangan pada amendment revisi `1.9`–`2.1` dengan pola `BIL-SCR-NN` | Dokumen blueprint | 1 | — (perbaikan dokumen, bukan task builder) | ✅ SELESAI | Tabel registri di `blueprint-manifest.md` |
 
-**Ringkasan: 2 dari 2 perbaikan selesai.**
+**Ringkasan: 1 dari 2 perbaikan selesai; 1 sebagian (menunggu uji tombol di layar).**
 
 `ISS-BKC-002-T1` sengaja tidak mendapat perbaikan; alasannya pada issue bagian 6.
 
@@ -236,4 +236,5 @@ Setelah kedua perbaikan selesai:
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-14 | Rencana dibuat: 2 perbaikan, keduanya menunggu persetujuan; `FIX-BKC-002-01` juga menunggu verifikasi runtime | `diagnose-module-issue` |
+| 2026-10-14 | Pemilik mengerjakan kedua perbaikan. Diverifikasi agent: migration sudah di-commit (`d268a41f`) dan diterapkan ke dev; constraint memuat `REEVALUATED_BY_CASHIER`; ID layar karangan nol di dokumen desain. Register dirapikan: `FIX-BKC-002-01` 🟡 karena tabel surat kelayakan dev masih kosong sehingga tombol belum teruji; `FIX-BKC-002-02` ✅. `status_rencana` tetap `DISETUJUI` | `diagnose-module-issue` |
 | 2026-10-14 | P-01 terjawab (constraint terbukti enam nilai). K-02: pemilik menyetujui kedua perbaikan. `FIX-BKC-002-01` didaftarkan sebagai `BE-BKC-FIX-022`. `status_rencana` menjadi `DISETUJUI` | Agent atas perintah pemilik |

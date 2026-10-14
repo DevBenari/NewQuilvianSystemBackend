@@ -1063,8 +1063,8 @@ Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Tests: lihat
 
 ## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
 
-> `last_changed_in`: `BIL-API-1.6` atas `BIL-API-1.5` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-API-1.6` atas `BIL-API-1.5` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > `input_revision`: `00-interview-decisions.md` `BKC-DEC-118` + arahan pemilik 13 Oktober 2026.
 > Masukan arsitektur: `BKC-DES-057`–`BKC-DES-062`. Backend SHA diaudit: `e049a65b`.
 > Dampak kompatibilitas: **aditif penuh** — nol endpoint lama berubah bentuk, nol field lama
@@ -1180,8 +1180,8 @@ Trace `BKC-DEC-118`, `BKC-DEC-142`, `BKC-DEC-143`, `BKC-AC-091`, `BKC-DES-057`�
 
 ## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
 
-> `last_changed_in`: `BIL-API-1.7` atas `BIL-API-1.6` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-API-1.7` atas `BIL-API-1.6` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > `input_revision`: `BKC-DEC-144`, `BKC-DEC-148`, `BKC-DEC-149` (arahan 14 Oktober 2026 yang sudah diratifikasi).
 > Masukan arsitektur: `BKC-DES-063`–`BKC-DES-069`. Backend SHA diaudit: `d166cf4f`.
 > Dampak kompatibilitas: **aditif pada bentuk kontrak**, dengan satu **perubahan perilaku yang
@@ -1286,10 +1286,10 @@ Trace `BKC-DEC-144`, `BKC-AC-094`, `BKC-DES-063`–`BKC-DES-069`. Tests: lihat
 
 ## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen dan Perbaikan Constraint (Revisi 2.1)
 
-> `last_changed_in`: `BIL-API-1.8` atas `BIL-API-1.7` — status **draft**.
-> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> `last_changed_in`: `BIL-API-1.8` atas `BIL-API-1.7` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
 > `input_revision`: `BKC-DEC-150`, `BKC-DEC-151`, ditambah tiga arahan pemilik 14 Oktober 2026
-> (`BKC-OQ-126`). Masukan arsitektur: `BKC-DES-070`–`BKC-DES-076`. Backend SHA: `d166cf4f`.
+> (diratifikasi `BKC-DEC-152`–`BKC-DEC-154`). Masukan arsitektur: `BKC-DES-070`–`BKC-DES-076`. Backend SHA: `d166cf4f`.
 > Dampak kompatibilitas: **aditif** untuk endpoint yang sudah berjalan. Satu endpoint rencana
 > revisi `2.0` berubah bentuk request-nya; tidak merusak siapa pun karena belum ada konsumennya.
 
@@ -1355,3 +1355,61 @@ Contract version: `BIL-API-1.8` — status `draft`
 | Endpoint penghapusan keputusan | Sama; baris keputusan tidak pernah ditandai hapus |
 
 Trace `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-076`. Tests: `BIL-AT-179`–`BIL-AT-188`.
+
+
+
+---
+
+## Amendment 14 Oktober 2026 — Kode Kejanggalan Asal Transfer (Revisi 2.2)
+
+> `last_changed_in`: `BIL-API-1.9` atas `BIL-API-1.8` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DES-080`. Backend SHA: `d268a41f`.
+> Kompatibilitas: **aditif** — satu nilai baru pada himpunan nilai `anomalyCode`. Nol endpoint baru, nol field baru. Ketiga endpoint di bawah masih **Rencana (belum tersedia)**, sehingga nol konsumen terdampak.
+
+### `[Tags("BillingInpatientIntegration")]`
+
+Base URL: `api/v1/health-services/billing-management/billing`
+
+| Method | Path | Kegunaan | Hak akses | Perubahan | Status |
+|---|---|---|---|---|---|
+| `GET` | `/inpatient-clearance/encounter/{encounterId}/obligations` | Rincian tagihan dalam rantai kunjungan | `BillingInpatient : Read` | `anomalyCode` per baris dapat bernilai `UNLINKED_TRANSFER_ORIGIN` | Rencana (belum tersedia) |
+| `POST` | `/inpatient-clearance/{id}/resolve-reconciliation` | Menetapkan keputusan rekonsiliasi permanen | `BillingInpatient : Reconcile` | `AnomalyCode` request menerima `UNLINKED_TRANSFER_ORIGIN`, dengan `Decision` `INCLUDE` atau `EXCLUDE` | Rencana (belum tersedia) |
+| `GET` | `/inpatient-clearance/encounter/{encounterId}/chain-decisions` | Riwayat keputusan permanen | `BillingInpatient : Read` | `anomalyCode` dapat bernilai `UNLINKED_TRANSFER_ORIGIN` | Rencana (belum tersedia) |
+
+Contoh response rincian kewajiban, mengikuti bentuk revisi `2.0` (nol field baru):
+
+```json
+{
+  "success": true,
+  "data": {
+    "clearanceStatus": "NEEDS_RECONCILIATION",
+    "financialOutcome": null,
+    "totalOutstanding": 2000000.00,
+    "chainDepthEvaluated": 1,
+    "chainInvoiceCount": 2,
+    "isChainComplete": false,
+    "anomalyCode": "UNLINKED_TRANSFER_ORIGIN",
+    "reconciliationReason": "Kunjungan asal transfer tercatat di Registrasi tetapi belum tertaut ke tagihan rawat inap.",
+    "obligations": [
+      { "invoiceNumber": "INV-RANAP-000207", "serviceType": "RANAP", "chainLevel": 0,
+        "patientOutstanding": 2000000.00, "isCounted": true, "exclusionReason": null },
+      { "invoiceNumber": "INV-IGD-000418", "serviceType": "IGD", "chainLevel": 1,
+        "patientOutstanding": 1500000.00, "isCounted": false,
+        "exclusionReason": "Asal transfer belum tertaut; menunggu keputusan kasir" }
+    ]
+  }
+}
+```
+
+Tagihan IGD Rp 1.500.000 tampil tetapi belum masuk `totalOutstanding`. Setelah kasir memilih
+mengikutkan, total menjadi Rp 3.500.000 dan status dinilai ulang.
+
+| Kode status | Kapan |
+|---|---|
+| `200` | Rincian atau riwayat terbaca |
+| `422` | `INCLUDE` atas `PATIENT_MISMATCH` (`BIL-VAL-148`), atau kejanggalan yang disebut tidak ada pada surat (`BIL-VAL-150`) — tidak berubah |
+| `409` | Keputusan kedua untuk kunjungan dan kejanggalan yang sama (`BIL-VAL-147`) — tidak berubah |
+
+Nol perubahan pada endpoint yang sudah tersedia. `BillingInpatientEventReceiver` tidak punya
+endpoint HTTP; ia dipanggil `InpatientIntegrationOutboxWorker`.
