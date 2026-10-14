@@ -364,3 +364,9 @@ transaksi database sungguhan, bukan koordinasi antarlayanan.
 | Pemetaan | `PrescribedByWorkforceId` = `MstDoctor.WorkforceProfileId` dokter pemberi instruksi; bila dokter atau ahli gizi menulis sendiri, dari profil tenaga kerja akun login |
 | Status verifikasi | `Pending` bila penginput bukan penetap; `NotRequired` bila penetap menulis sendiri |
 | Yang tidak diubah | Aturan modul Gizi lain, termasuk alasan wajib saat mengganti diet aktif (`GIZ010`) |
+
+---
+
+## Delta 12 Oktober 2026 — `INT-KEP-05` tetap ditunda (`BKC-DEC-135`)
+
+Audit `ISSUE-BKC-001` mengonfirmasi intervensi billable masih `Pending` tanpa pengirim. Pemilik memilih **menunda** penagihan intervensi (K-01): keadaan `INT-KEP-05` di atas tetap berlaku. Tindakan perawat yang bertarif ditagih lewat order Tindakan. Bila dibuka kelak, butuh tautan tarif pada master Tindakan Harian Keperawatan dan penahan duplikasi terhadap order Tindakan. Rencana: [`PLAN-REPAIR-BKC-001`](../../../billing-kasir/docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-01.

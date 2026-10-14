@@ -640,3 +640,9 @@ Ketika tender pembayaran yang mendanai top-up deposit (`Settlement.Purpose == "D
 
 Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`.
 
+
+---
+
+## Delta 12 Oktober 2026 — Penahan transisi `OPEN → FINAL`
+
+Transisi normal `OPEN → FINAL` (manual, tanpa kewajiban pasien, dan penutupan otomatis sesudah lunas) kini juga menuntut **tidak ada pelayanan layak tagih yang belum masuk invoice** (`BIL-FIN-022`, `BE-BKC-FIX-021`). Departure exception tidak berubah. Rencana: [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-11.

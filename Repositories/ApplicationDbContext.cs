@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
@@ -426,6 +427,7 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
         public DbSet<TrxEmployeeBenefitEnrollment> TrxEmployeeBenefitEnrollments { get; set; }
         public DbSet<TrxEmployeeBenefitDependent> TrxEmployeeBenefitDependents { get; set; }
+        public DbSet<HrdBenefitBalanceMovement> HrdBenefitBalanceMovements { get; set; }
         public DbSet<TrxEmployeeInsuranceEnrollment> TrxEmployeeInsuranceEnrollments { get; set; }
         public DbSet<TrxBenefitClaim> TrxBenefitClaims { get; set; }
         public DbSet<TrxBenefitClaimItem> TrxBenefitClaimItems { get; set; }
@@ -590,6 +592,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstMembershipTier> MstMembershipTiers { get; set; }
         public DbSet<MstPatient> MstPatients { get; set; }
         public DbSet<MstPatientMembership> MstPatientMemberships { get; set; }
+        public DbSet<PatMembershipStatusHistory> PatMembershipStatusHistories { get; set; }
         public DbSet<MstPatientIdentityDocument> MstPatientIdentityDocuments { get; set; }
         public DbSet<MstPatientRelationship> MstPatientRelationships { get; set; }
         public DbSet<MstPatientEmergencyContact> MstPatientEmergencyContacts { get; set; }
@@ -668,8 +671,17 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
         public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
         public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        public DbSet<FinReceivableWriteOffProposal> FinReceivableWriteOffProposals { get; set; }
+        public DbSet<FinReceivableWriteOffProposalItem> FinReceivableWriteOffProposalItems { get; set; }
         // BE-FIN-058, FIN-DES-079: buku mutasi piutang.
         public DbSet<FinReceivableMovement> FinReceivableMovements { get; set; }
+        // BE-FIN-092, FIN-DES-099: perjanjian angsuran piutang pegawai. Migration
+        // AddFinanceReceivableInstallmentAndBenefitSettlement dibuat via CLI EF Core, belum diterapkan.
+        public DbSet<FinReceivableInstallmentPlan> FinReceivableInstallmentPlans { get; set; }
+        public DbSet<FinReceivableInstallment> FinReceivableInstallments { get; set; }
+        // BE-FIN-092, FIN-DES-102: pelunasan internal berkala porsi benefit yang ditanggung RS.
+        public DbSet<FinBenefitSettlement> FinBenefitSettlements { get; set; }
+        public DbSet<FinBenefitSettlementItem> FinBenefitSettlementItems { get; set; }
         // BE-FIN-038, FIN-DES-041: Batch Tagihan AR ke penjamin. Migration
         // AddArInvoiceBatchAndReceiptDeduction — berkas migration MENUNGGU otorisasi terpisah
         // (prasyarat #10 01-backend-roadmap.md), belum dibuat pada task ini.
@@ -690,6 +702,10 @@ namespace QuilvianSystemBackend.Repositories
         // FinReceivableMovement/FinSupplierPayableMovement MASIH belum ber-FK ke tabel ini — lihat
         // laporan task BE-FIN-074 bagian 7.
         public DbSet<FinTransactionProof> FinTransactionProofs { get; set; }
+        // Ayat Silang (Unidentified Payer Receipt / Cross-Entry)
+        public DbSet<FinCrossEntry> FinCrossEntries { get; set; }
+        public DbSet<FinCrossEntryTransaction> FinCrossEntryTransactions { get; set; }
+        public DbSet<FinCrossEntryDocument> FinCrossEntryDocuments { get; set; }
         // BE-FIN-010, FIN-DES-017..019: kotak keluar kejadian Finance -> Accounting (transactional
         // outbox). Migration AddFinanceAccountingOutbox dibuat tangan, belum dijalankan. Worker
         // pengiriman (FIN-DES-020) dan endpoint penerima Accounting belum ada (FIN-CAP-018) — di
@@ -861,6 +877,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpNurseAssignment> InpNurseAssignments { get; set; }
         public DbSet<InpBedReservation> InpBedReservations { get; set; }
         public DbSet<InpBedPlacement> InpBedPlacements { get; set; }
+        public DbSet<InpBedReadiness> InpBedReadinesses { get; set; }
+        public DbSet<InpBedCleaningAttempt> InpBedCleaningAttempts { get; set; }
+        public DbSet<InpBedLifecycleEvent> InpBedLifecycleEvents { get; set; }
+        public DbSet<InpBedOperationReceipt> InpBedOperationReceipts { get; set; }
         public DbSet<InpDischargeSummary> InpDischargeSummaries { get; set; }
         public DbSet<InpDischargeSummaryRevision> InpDischargeSummaryRevisions { get; set; }
         public DbSet<InpClearanceMark> InpClearanceMarks { get; set; }
@@ -1093,6 +1113,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgEncounterReconciliationRun> EmgEncounterReconciliationRuns { get; set; }
         public DbSet<EmgEncounterReconciliationItem> EmgEncounterReconciliationItems { get; set; }
         public DbSet<EmgDuplicateEpisodeOverride> EmgDuplicateEpisodeOverrides { get; set; }
+        public DbSet<EmgAdmissionRequest> EmgAdmissionRequests { get; set; }
+        public DbSet<EmgAdmissionRequestEvent> EmgAdmissionRequestEvents { get; set; }
         #endregion
 
         #endregion
@@ -1220,6 +1242,9 @@ namespace QuilvianSystemBackend.Repositories
         private void StampEpisodeVersions()
         {
             ChangeTracker.DetectChanges();
+            if (ChangeTracker.Entries().Any(x => (x.Entity is InpBedLifecycleEvent || x.Entity is InpBedOperationReceipt) &&
+                (x.State == EntityState.Modified || x.State == EntityState.Deleted)))
+                throw new InvalidOperationException("Lifecycle event dan operation receipt bersifat append-only.");
             foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
                 entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
         }

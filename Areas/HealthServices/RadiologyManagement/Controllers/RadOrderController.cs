@@ -130,15 +130,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                 "Order radiologi berhasil dibuat.",
                 StatusCodes.Status201Created);
 
-        /// <summary>
-        /// Dokter pemberi instruksi memverifikasi pesanan radiologi rawat inap yang dibuat perawat —
-        /// <c>BE-RWI-104</c>, api-contract 0.6.0 bagian 12.12.
-        /// </summary>
-        /// <remarks>
-        /// Hak akses baru <c>RadOrder : Verify</c>, disetujui pemilik modul lewat <c>RWI-DEC-153</c>.
-        /// Jawaban: <c>200</c>; <c>403</c> bukan pemberi instruksi; <c>404</c>; <c>409</c> sudah
-        /// diverifikasi atau tidak memerlukan verifikasi.
-        /// </remarks>
+        // Dokter pemberi instruksi memverifikasi pesanan radiologi rawat inap yang dibuat perawat —
+        // `BE-RWI-104`, api-contract 0.6.0 bagian 12.12.
+        //
+        // Hak akses baru `RadOrder : Verify`, disetujui pemilik modul lewat `RWI-DEC-153`.
+        // Jawaban: `200`; `403` bukan pemberi instruksi; `404`; `409` sudah
+        // diverifikasi atau tidak memerlukan verifikasi.
         [HttpPut("{id:guid}/verify-instruction")]
         [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
@@ -152,9 +149,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             Execute(() => _radOrderService.VerifyInstructionAsync(id, cancellationToken),
                 "Instruksi order radiologi berhasil diverifikasi.");
 
-        /// <summary>
-        /// Pesanan radiologi yang menunggu verifikasi dokter login — <c>BE-RWI-104</c>.
-        /// </summary>
+        // Pesanan radiologi yang menunggu verifikasi dokter login — `BE-RWI-104`.
         [HttpGet("instruction-verification-worklist")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<RadOrderInstructionVerificationItemResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]

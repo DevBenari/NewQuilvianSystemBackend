@@ -166,3 +166,138 @@ public sealed class ReversedAllocationRowResponse
     public DateTimeOffset ReversedAt { get; set; }
 }
 
+/// <summary>
+/// Parameter kueri filter dan paginasi untuk daftar Canceled AR Payment Sessions (Receivable AR Canceled).
+/// Mendukung pencarian server-side, rentang tanggal transaksi pembayaran original, penjamin, tipe kunjungan, dan nomor invoice.
+/// </summary>
+public sealed class CanceledArPaymentQuery
+{
+    public string? Search { get; set; }
+    public DateOnly? StartDate { get; set; }
+    public DateOnly? EndDate { get; set; }
+    public Guid? DebtorReferenceId { get; set; }
+    public string? VisitType { get; set; }
+    public string? InvoiceNumber { get; set; }
+    public string? SortBy { get; set; }
+    public string? SortDirection { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 10;
+}
+
+/// <summary>
+/// Satu baris sesi pembayaran AR yang dibatalkan (1 payment session = 1 row).
+/// Merepresentasikan satu transaksi pembayaran yang kemudian direverse/dibatalkan.
+/// </summary>
+public sealed class CanceledArPaymentRowResponse
+{
+    public Guid SessionId { get; set; }
+    public Guid ReceiptId { get; set; }
+    public string ReceiptNumber { get; set; } = string.Empty;
+    public Guid? BatchId { get; set; }
+    public string InvoiceNumber { get; set; } = "-";
+    public Guid? DebtorReferenceId { get; set; }
+    public string CompanyName { get; set; } = "-";
+    public string? VisitType { get; set; }
+    public DateTimeOffset PaymentDate { get; set; }
+    public decimal TotalTagihan { get; set; }
+    public decimal TotalDiterima { get; set; }
+    public decimal HistoricalRemaining { get; set; }
+    public string Keterangan { get; set; } = "-";
+    public string Status { get; set; } = "Canceled";
+    public DateTimeOffset ReversedAt { get; set; }
+    public Guid ReversedBy { get; set; }
+    public string ReversedByName { get; set; } = "-";
+    public string FollowUpStatus { get; set; } = "Belum Diposting Ulang";
+}
+
+/// <summary>
+/// Ringkasan agregat 4 metrik untuk daftar Canceled AR Payment Sessions berdasarkan seluruh filter aktif.
+/// </summary>
+public sealed class CanceledArPaymentSummaryResponse
+{
+    public int TransactionCount { get; set; }
+    public decimal TotalTagihan { get; set; }
+    public decimal TotalBayar { get; set; }
+    public decimal TotalSisa { get; set; }
+}
+
+/// <summary>
+/// Rincian lengkap sesi pembayaran AR yang dibatalkan untuk halaman Detail Receivable AR Canceled.
+/// </summary>
+public sealed class CanceledArPaymentDetailResponse
+{
+    public Guid SessionId { get; set; }
+    public Guid ReceiptId { get; set; }
+    public string ReceiptNumber { get; set; } = string.Empty;
+    public Guid? BatchId { get; set; }
+    public string InvoiceNumber { get; set; } = "-";
+    public Guid? DebtorReferenceId { get; set; }
+    public string CompanyName { get; set; } = "-";
+    public string? VisitType { get; set; }
+    public DateTimeOffset PaymentDate { get; set; }
+    public int PaymentSequenceNumber { get; set; } = 1;
+    public DateTimeOffset ReversedAt { get; set; }
+    public Guid ReversedBy { get; set; }
+    public string ReversedByName { get; set; } = "-";
+    public string PaymentSource { get; set; } = "CASH_BANK"; // CASH_BANK | AYAT_SILANG
+    public Guid? BankAccountId { get; set; }
+    public string? BankAccountNumber { get; set; }
+    public string? BankAccountName { get; set; }
+    public string? BankName { get; set; }
+    public Guid? CrossEntryId { get; set; }
+    public string? CrossEntryNumber { get; set; }
+    public string? CrossEntryStatus { get; set; }
+    public decimal TotalTagihan { get; set; }
+    public decimal TotalDiterima { get; set; }
+    public decimal HistoricalRemaining { get; set; }
+    public string? CurrentBatchStatus { get; set; }
+    public string? BatchCancelReason { get; set; }
+    public bool CanReapply { get; set; }
+    public string? ReapplyBlockedReason { get; set; }
+    public Guid ReceiptRowVersion { get; set; }
+    public Guid? BatchRowVersion { get; set; }
+    public string? Note { get; set; }
+    public decimal ReceiptAmount { get; set; }
+    public decimal ReceiptUnallocatedAmount { get; set; }
+    public decimal TotalDiscount { get; set; }
+    public decimal OtherReceiptAmount { get; set; }
+    public string FollowUpStatus { get; set; } = "Belum Diposting Ulang";
+    public List<CanceledArPaymentMemberDetailResponse> Members { get; set; } = [];
+    public List<CanceledArPaymentDeductionResponse> Deductions { get; set; } = [];
+}
+
+/// <summary>
+/// Rincian tagihan per pasien / piutang dalam sesi pembayaran yang dibatalkan.
+/// </summary>
+public sealed class CanceledArPaymentMemberDetailResponse
+{
+    public Guid ReceivableId { get; set; }
+    public string ReceivableNumber { get; set; } = string.Empty;
+    public string PatientName { get; set; } = "-";
+    public string MedicalRecordNumber { get; set; } = "-";
+    public string BillingNumber { get; set; } = "-";
+    public string RegistrationNumber { get; set; } = "-";
+    public DateOnly? InvoiceDate { get; set; }
+    public DateOnly? DueDate { get; set; }
+    public string? DueDatePeriod { get; set; }
+    public decimal OriginalAmount { get; set; }
+    public decimal OriginalPaidAmount { get; set; }
+    public decimal HistoricalRemainingAmount { get; set; }
+    public decimal CurrentOutstandingAmount { get; set; }
+    public decimal CurrentAllocatedAmount { get; set; }
+    public bool WasFullyPaid { get; set; }
+    public string? Note { get; set; }
+}
+
+/// <summary>
+/// Rincian potongan (PPh23, Biaya Admin Bank) yang melekat pada alokasi sesi pembayaran original.
+/// </summary>
+public sealed class CanceledArPaymentDeductionResponse
+{
+    public string DeductionType { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
+    public string? Reason { get; set; }
+    public string? ReferenceNumber { get; set; }
+}
+
+

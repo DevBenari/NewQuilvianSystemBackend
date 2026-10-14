@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs
 {
@@ -196,7 +196,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [MaxLength(100)]
         public string? IdentityNumber { get; set; }
 
-        [MaxLength(30)]
+        [MaxLength(13, ErrorMessage = "Nomor telepon kontak darurat maksimal 13 karakter numerik.")]
+        [RegularExpression(@"^[0-9]+$", ErrorMessage = "Nomor telepon kontak darurat hanya boleh berisi angka.")]
         public string? PhoneNumber { get; set; }
 
         [MaxLength(30)]

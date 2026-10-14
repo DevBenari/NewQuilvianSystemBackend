@@ -16,10 +16,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     public class EncounterPaymentSourceService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly PatientEncounterNumberService _numbers;
 
-        public EncounterPaymentSourceService(ApplicationDbContext dbContext)
+        public EncounterPaymentSourceService(ApplicationDbContext dbContext, PatientEncounterNumberService numbers)
         {
             _dbContext = dbContext;
+            _numbers = numbers;
+        }
+
+        /// <summary>Inisialisasi penjamin admisi dalam transaksi orchestrator pemanggil.</summary>
+        public async Task<EncounterPaymentSourceSwitchResult?> InitializeAdmissionAsync(
+            EncounterPaymentSourceSwitchCommand command, Guid sourceEncounterId,
+            Guid transferId, string sourceType, CancellationToken cancellationToken)
+        {
+            var encounter = await _dbContext.RegPatientEncounters
+                .SingleAsync(x => x.Id == command.EncounterId, cancellationToken);
+            if (encounter.PaymentSource != null)
+                throw new InvalidOperationException("Sumber pembayaran admisi sudah tersedia.");
+            if (command.PaymentType == EncounterPaymentType.Cash &&
+                (command.PatientInsuranceId.HasValue || command.PatientCompanyGuarantorId.HasValue))
+                throw new ArgumentException("Pembayaran tunai tidak boleh disertai kartu penjamin.");
+            if (command.PaymentType != EncounterPaymentType.Cash && command.PaymentMethodId.HasValue)
+                throw new ArgumentException("Metode tunai tidak boleh disertai penjamin.");
+            if (command.PaymentMethodId.HasValue && !await _dbContext.MstPaymentMethods
+                .AnyAsync(x => x.Id == command.PaymentMethodId && x.IsActive && !x.IsDelete && !x.IsCancel
+                    && !x.IsInsurance && !x.IsCompanyGuarantor, cancellationToken))
+                throw new ArgumentException("Metode pembayaran tidak aktif atau tidak sesuai.");
+
+            encounter.SourceEncounterId = sourceEncounterId;
+            encounter.AdmissionTransferId = transferId;
+            encounter.AdmissionTransferSourceType = sourceType;
+            encounter.PaymentSource = new RegPatientEncounterGuarantor
+            {
+                EncounterId = encounter.Id, PatientId = encounter.PatientId,
+                PaymentSourceNumber = await _numbers.AllocatePaymentSourceNumberAsync(cancellationToken),
+                PaymentType = EncounterPaymentType.Cash, PaymentSourceNameSnapshot = "Tunai",
+                PaymentMethodId = command.PaymentMethodId, IsEligible = true,
+                IsPrimary = true, Priority = 1, CreateBy = command.ActorUserId,
+                CreateDateTime = DateTime.UtcNow
+            };
+            encounter.PaymentMethodId = command.PaymentMethodId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            return command.PaymentType == EncounterPaymentType.Cash ? null
+                : await SwitchPaymentSourceAsync(command, cancellationToken);
         }
 
         /// <summary>
@@ -417,6 +456,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 paymentSource.CompanyGuarantorCodeSnapshot = guarantor.CompanyGuarantorCode;
                 paymentSource.EmployeeNumberSnapshot = card.EmployeeNumber;
                 paymentSource.EmployeeNameSnapshot = card.EmployeeName;
+                // BE-FIN-105, FIN-DEC-198: tautan HR disalin persis dari kartu baru.
+                paymentSource.EmployeeIdSnapshot = card.EmployeeId;
+                paymentSource.FamilyMemberIdSnapshot = card.FamilyMemberId;
+                paymentSource.BenefitRelationshipSnapshot = card.BenefitRelationship;
                 paymentSource.BenefitPlanCodeSnapshot = card.BenefitPlanCode;
                 paymentSource.PlanNameSnapshot = card.BenefitPlanName;
                 paymentSource.ClassNameSnapshot = card.ClassName;
@@ -468,6 +511,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             entity.CompanyGuarantorCodeSnapshot = null;
             entity.EmployeeNumberSnapshot = null;
             entity.EmployeeNameSnapshot = null;
+            entity.EmployeeIdSnapshot = null;
+            entity.FamilyMemberIdSnapshot = null;
+            entity.BenefitRelationshipSnapshot = null;
         }
     }
 

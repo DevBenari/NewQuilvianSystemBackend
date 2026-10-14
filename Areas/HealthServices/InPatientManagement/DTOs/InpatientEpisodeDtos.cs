@@ -43,6 +43,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>Kelas perawatan yang ditagihkan. Wajib berlaku untuk rawat inap.</summary>
         public Guid PatientClassId { get; set; }
 
+        /// <summary>Bed pilihan admisi. Bila diisi, kelas dibaca ulang dari kamar oleh server.</summary>
+        public Guid? SelectedBedId { get; set; }
+
         /// <summary>
         /// Dokter penanggung jawab pelayanan pertama. Wajib sejak detik pertama — episode
         /// tanpa DPJP tidak boleh pernah tersimpan (<c>INV-INP-03</c>).
@@ -132,7 +135,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class InpatientEpisodeDetailResponse
     {
-        public int Version { get; set; }
+        public Guid? SourceEncounterId { get; set; }
+        public Guid? AdmissionTransferId { get; set; }
+        public string? AdmissionTransferSourceType { get; set; }
+        public BedReservationResponse? TransferReservation { get; set; }
+        public QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos.DepositResponse? TransferDeposit { get; set; }
+        public BedOperationMeta? OperationMeta { get; set; } public int Version { get; set; }
         public Guid Id { get; set; }
 
         public string EpisodeNumber { get; set; } = string.Empty;

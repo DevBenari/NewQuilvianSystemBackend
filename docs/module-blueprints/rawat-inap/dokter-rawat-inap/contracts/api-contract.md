@@ -817,3 +817,10 @@ Base URL: `api/v1/health-services/clinical-management/patient-procedures`
 | `GET` | `/master-options` | Katalog tindakan | `PatientProcedure : Read` | Ditambah `careSetting` (`Outpatient` bawaan, `Inpatient`) dan `audience` (`Doctor` bawaan, `Nurse`) | Tetap | **Diubah** |
 
 `careSetting=Inpatient` menyaring `IsAvailableForInpatient`. `audience=Nurse` tidak menyaring `IsDoctorAction`. Pemanggil lama tanpa parameter mendapat hasil yang sama persis.
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Katalog prescribing-drugs mempertahankan seluruh item klinis valid lintas kelas. Respons existing memuat CoverageStatus, IsCoverageApplicable, TariffId, CanSelect dan alasan readiness. Tarif sesuai/umum tidak tersedia menghasilkan ConfigurationMissing dan pemilihan/simpan resep ditahan. Konteks klinis membawa timestamp ServiceOccurredAt selain ServiceDate. Tidak menambah endpoint katalog baru.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

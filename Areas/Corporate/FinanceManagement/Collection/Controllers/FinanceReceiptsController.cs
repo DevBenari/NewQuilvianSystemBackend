@@ -74,6 +74,58 @@ public sealed class FinanceReceiptsController : ControllerBase
         Ok(ApiResponse<PagedResult<ReversedAllocationRowResponse>>.Ok(
             await _service.GetReversedAllocationsAsync(request, cancellationToken), "Daftar alokasi yang dibalik berhasil diambil."));
 
+    [HttpGet("canceled-ar-payments")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<CanceledArPaymentRowResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCanceledArPayments([FromQuery] CanceledArPaymentQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<PagedResult<CanceledArPaymentRowResponse>>.Ok(
+            await _service.GetCanceledArPaymentSessionsAsync(request, cancellationToken), "Daftar pembatalan pembayaran AR berhasil diambil."));
+
+    [HttpGet("canceled-ar-payments/summary")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CanceledArPaymentSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCanceledArPaymentSummary([FromQuery] CanceledArPaymentQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<CanceledArPaymentSummaryResponse>.Ok(
+            await _service.GetCanceledArPaymentSummaryAsync(request, cancellationToken), "Ringkasan pembatalan pembayaran AR berhasil diambil."));
+
+    [HttpGet("canceled-ar-payments/{sessionId:guid}")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<CanceledArPaymentDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCanceledArPaymentDetail(Guid sessionId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var detail = await _service.GetCanceledArPaymentDetailAsync(sessionId, cancellationToken);
+            return Ok(ApiResponse<CanceledArPaymentDetailResponse>.Ok(detail, "Detail pembatalan pembayaran AR berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(404, exception.Message));
+        }
+    }
+
+    [HttpGet("canceled-ar-payments/export/excel")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    public async Task<IActionResult> ExportCanceledArPaymentsExcel([FromQuery] CanceledArPaymentQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _service.ExportCanceledArPaymentsExcelAsync(request, cancellationToken);
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", $"receivable-ar-canceled-{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx");
+    }
+
+    [HttpGet("canceled-ar-payments/export/pdf")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    public async Task<IActionResult> ExportCanceledArPaymentsPdf([FromQuery] CanceledArPaymentQuery request, CancellationToken cancellationToken)
+    {
+        var bytes = await _service.ExportCanceledArPaymentsPdfAsync(request, cancellationToken);
+        return File(bytes, "application/pdf", $"receivable-ar-canceled-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf");
+    }
+
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceReceipt", "Read")]

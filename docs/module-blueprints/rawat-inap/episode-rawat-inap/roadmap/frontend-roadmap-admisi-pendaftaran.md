@@ -1,0 +1,207 @@
+# Roadmap Frontend — Episode Rawat Inap, Amandemen Admisi Pendaftaran
+
+| Field | Nilai |
+|---|---|
+| Roadmap | `episode-rawat-inap/roadmap/frontend-roadmap-admisi-pendaftaran.md` — revision `1` |
+| Blueprint | `RWI-BP-001` revision `10`, sub-modul `episode-rawat-inap`, kontrak **`0.11.0` `approved`** 2026-10-10 atas instruksi pengguna "setujui dan lakukan /plan-module-delivery" |
+| Status roadmap | **`APPROVED`** — disetujui pengguna 10 Oktober 2026 sebagai turunan rencana delivery resmi atas amandemen alur admisi pendaftaran revisi Tim Analisis Bisnis (Mba Ilma) |
+| Ditulis | 10 Oktober 2026 oleh `plan-module-delivery` |
+| Masukan dan approval | `03-frontend-architecture.md` revision `0.11`, `05-skema-tampilan.md` revision `0.7` (bagian 3.0 s.d. 3.16), `04-prd-to-mvp.md` bagian 25, `contracts/validation-matrix.md` bagian 16 (`VAL-ADM-01` s.d. `05`), `00-interview-decisions.md` revision `40` (`RWI-DEC-267` s.d. `273`, `RWI-AC-388` s.d. `395`) |
+| Keputusan | `RWI-DEC-267` (No HP Kontak Darurat max 13 digit), `RWI-DEC-268` (Default Ranap Service Unit), `RWI-DEC-269` (Rujukan Teks Ringkas), `RWI-DEC-270` (3 Kategori Pasien), `RWI-DEC-271` (Split Screen Pasien Lama), `RWI-DEC-272` (Dedicated Step Persetujuan & TTD Digital), `RWI-DEC-273` (Invariant Penanda Tangan Bayi) |
+| Source SHA | Frontend `dd2cbf7c` / branch `HamzahV2`; Backend `fdf85a07` / branch `MHamzah` |
+| Deret ID | `FE-RWI-222` s.d. `FE-RWI-226`; `FE-RWI-241` dan `FE-RWI-242` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) (`FIX-EPS-008-02`, `-03`, disetujui pemilik); `FE-RWI-243` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) (`FIX-EPS-009-01`, `-02`, disetujui pemilik lewat laporan yang sama); `FE-RWI-244` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) (`FIX-EPS-010-02`, disetujui pemilik lewat laporan yang sama) |
+| Roadmap pendamping | `backend-roadmap-admisi-pendaftaran.md`, `requirement-traceability-admisi-pendaftaran.md` |
+
+---
+
+## 1. Prinsip dan Kebijakan Rekayasa Frontend
+
+1. **Kepatuhan Kebijakan Pengujian.** Mengikuti `rules/frontend/test-policy.md`: bukti utama verifikasi frontend meliputi pengujian fungsional kontrol interaktif, pencegahan regresi lint (`npm run lint`), build produksi Next.js App Router (`npm run build`), serta pengujian unit untuk logika alur (stepper step matching, masking input 13 digit, invariant penanda tangan).
+2. **Kewenangan UI Mengikat:**
+   - **Alur Pasien Baru 12 Langkah:** (1) Jenis Kunjungan (Umum/Rujukan), (2) Kategori Pasien (3 opsi), (3) Pendaftaran (Kontak Darurat max 13 digit), (4) Pembayaran, (5) Deposit, (6) Dokter & Isolasi (Unit Tujuan disembunyikan), (7) Pilih Tempat Tidur, (8) Booking Tempat Tidur, (9) Konfirmasi, (10) Form Persetujuan & TTD Digital, (11) Cetak Persetujuan, (12) Cetak Kartu Pasien Baru.
+   - **Alur Pasien Lama 10 Langkah:** (1) Split Layout Pencarian & Verifikasi Pasien, (2) Jenis Kunjungan & Kategori, (3) Pembayaran, (4) Deposit, (5) Dokter & Isolasi, (6) Pilih Tempat Tidur, (7) Booking Tempat Tidur, (8) Konfirmasi, (9) Form Persetujuan & TTD Digital, (10) Cetak Persetujuan.
+   - **Kanvas TTD Digital:** Memanfaatkan library komponen kanvas tanda tangan interaktif (`react-signature-canvas`) dengan fungsi bersihkan, kunci tanda tangan, dan ekspor Base64 PNG.
+   - **Invariant Hukum Bayi Baru Lahir:** Pilihan penanda tangan pada kategori Bayi Baru Lahir secara mutlak mengunci opsi "Orang Tua / Wali" dan menonaktifkan (*disabled*) pilihan "Pasien Sendiri".
+   - **Workspace PPRI:** Tab General Consent berstatus *read-only / print-ready* mengambil formulir dan tanda tangan digital yang sudah disimpan pada admisi tanpa membuka form pengisian baru.
+3. **Pemberian Wewenang Eksekusi:** Setiap task dikerjakan oleh skill `build-module-frontend` (**tepat 1 task approved per eksekusi**). Prasyarat backend `[BE]` wajib berstatus selesai sebelum task frontend yang bergantung padanya dimulai.
+
+---
+
+## 2. Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    subgraph backendPrereq[Prasyarat Backend]
+        BE204["BE-RWI-204: Validasi Kontak Darurat & Default Ranap"]
+        BE205["BE-RWI-205: Persistence Persetujuan & Invariant Bayi"]
+        BE227["✅ BE-RWI-227: Edit Persetujuan Berversi & Riwayat"]
+    end
+
+    subgraph frontend[Roadmap Frontend: Amandemen Admisi Pendaftaran]
+        FE222["FE-RWI-222: Input Masking Kontak Darurat 13 Digit & Sembunyikan Unit Tujuan"]
+        FE223["FE-RWI-223: Langkah 1 & 2 Pasien Baru (Jenis Kunjungan & 3 Kategori)"]
+        FE224["FE-RWI-224: Langkah 1 & 2 Pasien Lama (Split Layout Cari & Verifikasi)"]
+        FE225["FE-RWI-225: Langkah Dedicated Form Persetujuan & Kanvas TTD Digital Interaktif"]
+        FE226["FE-RWI-226: Cetak Persetujuan Admisi & General Consent Workspace PPRI Print-Ready"]
+        FE241["✅ FE-RWI-241: Edit Persetujuan General Consent (Mode Lihat & Edit)"]
+        FE242["✅ FE-RWI-242: Panel Riwayat Perubahan General Consent"]
+        FE243["✅ FE-RWI-243: Pilih Bed — Unit Mengikuti Bed & Alasan Galat Tampil"]
+        FE244["✅ FE-RWI-244: Langkah 1 Pasien Lama — Kelayakan Admisi (Sedang Dirawat, Kunjungan Aktif)"]
+
+        FE222 --> FE223
+        FE223 --> FE224
+        FE224 --> FE225
+        FE225 --> FE226
+        FE226 --> FE241
+        FE241 --> FE242
+        FE224 --> FE243
+        FE224 --> FE244
+    end
+
+    BE204 -.->|Kunci kontrak| FE222
+    BE205 -.->|Kunci endpoint simpan TTD| FE225
+    BE227 -.->|Kunci endpoint revisi & riwayat| FE241
+```
+
+---
+
+## 3. Register Task Frontend
+
+| Task ID | Outcome | Requirement / Decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance Criteria | Verifikasi | Risiko / Pemilik | Definition of Done (DoD) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| [`FE-RWI-222`](../task/report/frontend/FE-RWI-222.md) ✅ | Input No HP kontak darurat membatasi maks 13 karakter numerik dan langkah Dokter tidak menampilkan dropdown unit tujuan serta otomatis mengirim ServiceUnit ranap | `FR-RI-179`, `FR-RI-183`, `RWI-DEC-267`, `RWI-DEC-268` | `05-skema-tampilan.md` 3.2A, 3.2F, Validation Matrix `0.11.0` (`VAL-ADM-01`, `VAL-ADM-02`) | `inpatient-admission-registration-step.jsx`, `inpatient-admission-doctor-step.jsx` | Masking input numerik `maxLength={13}`, helper text peringatan, penghapusan elemen `<select>` unit tujuan pada tampilan langkah Dokter | `BE-RWI-204` [BE] | `RWI-AC-388`, `RWI-AC-389` | Uji ketik form kontak darurat (huruf dicegah, >13 digit dicegah); inspeksi DOM langkah dokter memastikan dropdown unit tujuan tidak dirender dan payload memuat default ranap | Kebiasaan petugas memilih unit / Mba Ilma | ✅ **Selesai 10 Oktober 2026.** Seluruh AC terbukti; input kontak darurat terkunci maks 13 digit numerik; dropdown unit disembunyikan; [laporan](../task/report/frontend/FE-RWI-222.md) |
+| [`FE-RWI-223`](../task/report/frontend/FE-RWI-223.md) ✅ | Langkah 1 Pasien Baru menampilkan opsi Umum & Rujukan teks ringkas tanpa upload fisik, dan Langkah 2 menyaring kategori pasien menjadi tepat 3 opsi | `FR-RI-180`, `FR-RI-181`, `RWI-DEC-269`, `RWI-DEC-270` | `05-skema-tampilan.md` 3.2A, 3.2B, Validation Matrix `0.11.0` (`VAL-ADM-03`) | Stepper `inpatient-admission-flow-constants.jsx`, `inpatient-admission-view.jsx` | Komponen Jenis Kunjungan baru, form 5 atribut rujukan teks, pembaruan urutan 12 langkah PB, filter 3 kartu kategori (Umum, Bayi, Pegawai) | `FE-RWI-222` | `RWI-AC-390`, `RWI-AC-391` | Uji klik Umum (langsung lanjut ke langkah 2); uji klik Rujukan (form 5 atribut tampil dan divalidasi); uji tampilan 3 kartu kategori pasien | Format data rujukan teks / Mba Ilma | ✅ **Selesai 10 Oktober 2026.** Seluruh AC terbukti; stepper 12 langkah PB aktif; form 5 atribut rujukan teks tervalidasi; filter 3 kategori selesai; [laporan](../task/report/frontend/FE-RWI-223.md) |
+| [`FE-RWI-224`](../task/report/frontend/FE-RWI-224.md) ✅ | Langkah 1 Pasien Lama menggabungkan form pencarian dan verifikasi data identitas ke dalam 1 tampilan split screen, dan Langkah 2 menentukan jenis kunjungan serta kategori | `FR-RI-182`, `RWI-DEC-271` | `05-skema-tampilan.md` 3.2E, `03-frontend-architecture.md` 2A & 3A | `inpatient-admission-existing-patient-step.jsx`, stepper 10 langkah PL | Refactoring form pencarian (kanan) & kartu identitas (kiri) dalam 1 layar, tombol Ganti Pasien, penyesuaian stepper 10 langkah PL | `FE-RWI-223` | `RWI-AC-392` | Uji pencarian No RM/NIK (hasil langsung muncul di panel kiri tanpa pindah langkah); tombol Ganti Pasien mereset pencarian; tombol Lanjut mengarah ke Langkah 2 | Tata letak pada layar tablet / Tim UX | ✅ **Selesai 10 Oktober 2026.** Seluruh AC terbukti; alur 10 langkah PL terverifikasi; split screen responsif; [laporan](../task/report/frontend/FE-RWI-224.md) |
+| [`FE-RWI-225`](../task/report/frontend/FE-RWI-225.md) ✅ | Langkah Mandiri Form Persetujuan Rawat Inap & kanvas Tanda Tangan Digital interaktif dengan tombol bersihkan, kunci TTD, serta penegakan invariant penguncian wali untuk bayi baru lahir | `FR-RI-184`, `FR-RI-185`, `RWI-DEC-272`, `RWI-DEC-273` | `05-skema-tampilan.md` 3.2C, 3.2D, Validation Matrix `0.11.0` (`VAL-ADM-04`, `VAL-ADM-05`) | `react-signature-canvas`, `InpatientConsentForm`, base features Quilvian | Komponen `InpatientAdmissionConsentFormStep.jsx`, integrasi kanvas TTD, tombol Clear & Kunci, radio penanda tangan, penonaktifan radio Diri Sendiri untuk bayi | `FE-RWI-224`, `BE-RWI-205` [BE] | `RWI-AC-393`, `RWI-AC-394` | Uji gambar TTD pada kanvas via mouse/touch; uji tombol Bersihkan; uji tombol Kunci; uji kategori Bayi Baru Lahir (opsi Pasien Sendiri otomatis disabled dan terkunci ke Wali) | Responsivitas kanvas di tablet sentuh / Tim FE | ✅ **Selesai 10 Oktober 2026.** Seluruh AC terbukti; payload consent & citra base64 terkirim sukses ke backend `BE-RWI-205`; tombol lanjut aktif setelah TTD terkunci; unit test lulus; [laporan](../task/report/frontend/FE-RWI-225.md) |
+| [`FE-RWI-226`](../task/report/frontend/FE-RWI-226.md) ✅ | Integrasi citra TTD digital pada lembar cetak persetujuan admisi dan penyelarasan tab General Consent Workspace PPRI menjadi read-only / print-ready tanpa form re-input | `FR-RI-186`, `RWI-DEC-272` | `05-skema-tampilan.md` 3.2C, `03-frontend-architecture.md` 2A & 14.4.3, Flowchart Bagian 3 | `inpatient-consent-form.jsx`, `inpatient-admission-print-steps.jsx`, tab General Consent PPRI | Render citra base64 di atas kurung nama penanda tangan pada `inpatient-consent-form.jsx`, penyesuaian tab General Consent PPRI membaca data consent admisi yang tersimpan | `FE-RWI-225` | `RWI-AC-395` | Pratinjau cetak admisi memuat TTD digital; buka Workspace PPRI episode terkait verifikasi tab General Consent langsung menampilkan dokumen ber-TTD siap cetak tanpa form isian | Kompatibilitas CSS cetak `@media print` / Tim Admisi & PPRI | ✅ **Selesai 10 Oktober 2026.** Seluruh AC terbukti; dokumen persetujuan tercetak memuat tanda tangan digital; tidak ada form isian ganda di PPRI; unit test lulus; [laporan](../task/report/frontend/FE-RWI-226.md) |
+| [`FE-RWI-241`](../task/report/frontend/FE-RWI-241.md) ✅ | Tab Formulir General Consent punya mode lihat dan mode Edit Persetujuan; koreksi tersimpan sebagai versi baru; panduan rawat inap dan hubungan pada cetakan berasal dari data tersimpan | `ISS-EPS-008-01`, `-T1`, `-T2`; permintaan pemilik 13-10-2026 | [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) bagian 3.2–3.3, `FIX-EPS-008-02`; kontrak `BE-RWI-227` | `AdmissionRadioGroup`, `BaseTextField`, `BaseTextAreaField`, `BaseButton`, `StatusBadge`, `InformationAlert`, `react-signature-canvas` | Section General Consent, form edit baru, utility edit, hook, service | `BE-RWI-227`, `FE-RWI-226` | 9 butir `FIX-EPS-008-02` | ESLint, unit test utility, build; uji layar oleh pemilik | Kanvas tanda tangan pada tablet / Tim PPRI | ✅ **Selesai 13 Oktober 2026 (source, lint, unit, build).** ESLint quiet 0 error; unit 15/15 PASS; `npm run build` PASS (492 halaman); 9/9 AC terpetakan ke source; uji layar `NOT FEASIBLE` (backend lokal masih DLL lama), dikecualikan atas keputusan pemilik; [laporan](../task/report/frontend/FE-RWI-241.md) |
+| [`FE-RWI-242`](../task/report/frontend/FE-RWI-242.md) ✅ | Panel Riwayat Perubahan General Consent: versi, pengubah, waktu, alasan, dan isian yang berubah | `ISS-EPS-008-02` | `PLAN-REPAIR-EPS-008` `FIX-EPS-008-03`; `GET …/admission-workspace/general-consent/history` (`BE-RWI-227`) | `InformationAlert`, `StatusBadge`, `BaseButton` | Panel riwayat di tab Formulir General Consent | `BE-RWI-227`, `FE-RWI-241` | 3 butir `FIX-EPS-008-03` | ESLint, build; uji layar oleh pemilik | — | ✅ **Selesai 13 Oktober 2026 (source, lint, unit, build).** ESLint 0 error; unit 16/16 PASS; `npm run build` PASS (492 halaman); 3/3 AC terpetakan ke source; uji layar `NOT FEASIBLE` (backend lokal masih DLL lama), dikecualikan atas keputusan pemilik; [laporan](../task/report/frontend/FE-RWI-242.md) |
+| [`FE-RWI-243`](../task/report/frontend/FE-RWI-243.md) ✅ | Langkah Pilih Bed kembali dapat dilanjutkan: unit dan kelas admisi mengikuti kamar bed terpilih, unit bawaan tidak hilang saat pasien dipilih, dan alasan kegagalan titik tulis 1 tampil apa adanya | `ISS-EPS-009-01`, `-02`, `-T4`; `RWI-DEC-268`; laporan pemilik 13-10-2026 | [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) bagian 3.2, `FIX-EPS-009-01`, `-02`; kontrak `RWI-KELAS-006-1.0` (`SelectedBedId`) | Pola unit/kelas dari bed pada `buildTransferAdmissionPayload`; `InformationAlert` | `inpatient-admission-encounter-utils.jsx`, `use-inpatient-admission-doctor.jsx`, `use-inpatient-admission-bed.jsx`, test `inpatient-class-coverage` | `FE-RWI-240` (sudah ada) | 4 butir `FIX-EPS-009-01` + 3 butir `FIX-EPS-009-02` | Test unit terarah, ESLint, build; uji layar oleh pemilik | Bed pada unit bukan rawat inap ditolak server / Tim Admisi | ✅ **Selesai 13 Oktober 2026 (source dan test unit terarah).** 7/7 AC terpetakan ke source; unit `inpatient-class-coverage` 6/6 PASS; ESLint dan `npm run build` `NOT RUN` karena `node_modules` tidak ada di repository saat dikerjakan; uji layar `NOT RUN`; dikecualikan atas keputusan pemilik 10-09-2026 (build dijalankan pemilik); [laporan](../task/report/frontend/FE-RWI-243.md) |
+| [`FE-RWI-244`](../task/report/frontend/FE-RWI-244.md) ✅ | Langkah 1 Pasien Lama dan Informasi Pasien (Kamar Pulih) menolak pasien yang sedang dirawat, berkunjungan aktif, atau berpermintaan Kamar Pulih dengan kalimat server dan tombol tindak lanjut; Pilih Bed memeriksa ulang sebelum kunjungan dibuat | `ISS-EPS-010-01`, `-02`, `-03`, `-T1`, `-T2`, `-T3`; `RWI-DEC-297`; laporan pemilik 13-10-2026 | [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) bagian 3, `FIX-EPS-010-02`; kontrak `GET /episodes/admission-eligibility` (`BE-RWI-230`) | `BasePatientVerificationCard` `badgeText`, `InformationAlert` + `BaseButton` (pola alert NIK terdaftar), `buildInpatientEpisodeTransferRoute`, `buildInpatientAdmissionResumeRoute` | Hook `use-inpatient-admission-eligibility.jsx`, util `inpatient-admission-eligibility-utils.js`, komponen `inpatient-admission-eligibility-notice.jsx`, langkah Pasien Lama, view admisi, `use-inpatient-admission-doctor.jsx`, test unit | `BE-RWI-230` ✅ | 9 butir `FIX-EPS-010-02` | Test unit, ESLint, build; uji layar oleh pemilik sesudah backend dijalankan ulang | Langkah 1 *fail-closed* selama backend lama berjalan / Tim Admisi | ✅ **Selesai 13 Oktober 2026 (source, lint, unit, build).** 9/9 AC terpetakan ke source; unit baru 8/8 PASS, suite 2832/2802/30 tanpa regresi; ESLint 0 error (`npx eslint src --quiet` exit 0); build 492 halaman PASS; uji layar `NOT FEASIBLE` (backend runtime belum memuat `BE-RWI-230`), dikecualikan atas keputusan pemilik; [laporan](../task/report/frontend/FE-RWI-244.md) |
+
+---
+
+## 4. Rincian Spesifikasi Task Frontend
+
+### 4.1 `FE-RWI-222` — Validasi Kontak Darurat 13 Digit & Penyembunyian Unit Tujuan
+- **Komponen Target:** `inpatient-admission-registration-step.jsx` dan `inpatient-admission-doctor-step.jsx`.
+- **Perubahan Fungsional:**
+  1. Pada formulir kontak darurat keluarga pasien, tambahkan handler `onChange` yang memfilter karakter non-numerik (`value.replace(/\D/g, '')`) dan batasi panjang input dengan atribut `maxLength={13}`.
+  2. Tambahkan pesan bantuan (*helper text*) di bawah input: `"Maksimal 13 digit angka (contoh: 081234567890)"`.
+  3. Pada langkah Dokter, hapus elemen rendering dropdown Unit Layanan Rawat Inap (`<ResourceFilterSelect>` atau `<select>` untuk unit). State form otomatis mengikat `serviceUnitId` default Instalasi Rawat Inap, sehingga petugas admisi tidak perlu dan tidak dapat memilih unit layanan secara manual.
+
+---
+
+### 4.2 `FE-RWI-223` — Langkah 1 & 2 Pasien Baru: Jenis Kunjungan & Kategori Pasien
+- **Komponen Target:** `inpatient-admission-flow-constants.jsx`, `inpatient-admission-view.jsx`, dan komponen baru `inpatient-admission-visit-type-step.jsx`.
+- **Perubahan Fungsional:**
+  1. Perbarui definisi stepper Pasien Baru menjadi 12 langkah:
+     - Langkah 1: `visit-type` ("Jenis Kunjungan")
+     - Langkah 2: `patient-type` ("Kategori Pasien")
+     - Langkah 3 s.d. 12: Langkah pendaftaran, pembayaran, deposit, dokter, tempat tidur, konfirmasi, formulir persetujuan, cetak persetujuan, dan kartu pasien.
+  2. Implementasikan layar Langkah 1: Dua kartu radio interaktif:
+     - **Kunjungan Umum:** Menampilkan ikon kedatangan mandiri dan deskripsi singkat. Memilih opsi ini mengaktifkan tombol `"Lanjut ke Kategori Pasien"`.
+     - **Kunjungan Rujukan:** Memilih opsi ini membuka panel form input teks ringkas berisi 5 field:
+       - Nomor Rujukan (Teks, wajib)
+       - Tanggal & Waktu Rujukan (Date & Time Picker, wajib)
+       - Faskes Perujuk (Teks, wajib)
+       - Dokter Perujuk Luar (Teks, opsional)
+       - Diagnosa Rujukan (Teks/Textarea, wajib)
+       - *Catatan:* Tidak ada tombol/field upload berkas fisik.
+  3. Implementasikan layar Langkah 2: Saring daftar pilihan kategori pasien menjadi tepat 3 opsi:
+     - `Umum` (Pasien Umum/Pribadi)
+     - `Bayi Baru Lahir` (Neonatus — memunculkan seleksi episode ibu)
+     - `Pegawai` (Karyawan/Pegawai RS)
+
+---
+
+### 4.3 `FE-RWI-224` — Langkah 1 & 2 Pasien Lama: Split Layout Terpadu
+- **Komponen Target:** `inpatient-admission-existing-patient-step.jsx`, `inpatient-admission-flow-constants.jsx`.
+- **Perubahan Fungsional:**
+  1. Perbarui definisi stepper Pasien Lama menjadi 10 langkah:
+     - Langkah 1: `existing-patient-split` ("Pencarian & Verifikasi Pasien")
+     - Langkah 2: `visit-category` ("Jenis Kunjungan & Kategori")
+     - Langkah 3 s.d. 10: Pembayaran, deposit, dokter, tempat tidur, konfirmasi, formulir persetujuan, dan cetak persetujuan.
+  2. Rancang antarmuka Langkah 1 dalam 2 kolom (*split screen layout*):
+     - **Kolom Kanan:** Input pencarian Nomor Rekam Medis (No. RM) atau NIK, tombol `"Cari Pasien"`, dan indikator loading.
+     - **Kolom Kiri:** Kartu ringkasan identitas pasien yang ditemukan (No. RM, NIK, Nama Lengkap, Jenis Kelamin, Tanggal Lahir, Alamat, Status Kepesertaan Asuransi).
+     - Jika pasien belum dicari/ditemukan, kolom kiri menampilkan ilustrasi kosong (*empty state*): `"Masukkan No. RM atau NIK di kolom kanan untuk memverifikasi data pasien"`.
+     - Jika data sudah terverifikasi, tampil tombol `"Ganti Pasien"` (mereset pencarian) dan tombol `"Lanjut ke Jenis Kunjungan"`.
+  3. Implementasikan layar Langkah 2: Menyajikan pilihan Jenis Kunjungan (Umum / Rujukan Teks) dan Kategori Pasien Lama dalam 1 tampilan terintegrasi.
+
+---
+
+### 4.4 `FE-RWI-225` — Langkah Dedicated Form Persetujuan & Kanvas TTD Digital
+- **Komponen Target:** Komponen baru `inpatient-admission-consent-form-step.jsx`, terpasang pada Langkah 10 PB dan Langkah 9 PL.
+- **Pustaka Pendukung:** `react-signature-canvas`.
+- **Perubahan Fungsional:**
+  1. Tampilkan 12 butir klausul persetujuan umum rawat inap (*General Consent*) dengan checkbox persetujuan tercentang default.
+  2. Blok Pilihan Penanda Tangan:
+     - Opsi Radio: `Pasien Sendiri`, `Orang Tua / Wali`, `Suami / Istri`, `Keluarga Lainnya`.
+     - Isian: Nama Penanda Tangan, NIK, Hubungan, Nomor Telepon.
+  3. **Penegakan Invariant Bayi Baru Lahir (`INV-ADM-01`):**
+     - Jika pasien berkategori `Bayi Baru Lahir`, radio `Pasien Sendiri` otomatis dinonaktifkan (`disabled = true`).
+     - Radio default terpilih adalah `Orang Tua / Wali`.
+     - Muncul banner pemberitahuan hukum medis: `"Pasien merupakan Bayi Baru Lahir. Penandatanganan wajib dilakukan oleh Orang Tua atau Wali yang sah."`
+  4. Kanvas Tanda Tangan Digital:
+     - Area kanvas dengan garis batas jelas, latar belakang putih bersih, dan placeholder `"Bubuhkan tanda tangan pasien / wali di dalam kotak ini"`.
+     - Tombol `"Bersihkan Tanda Tangan"`: Mereset kanvas.
+     - Tombol `"Kunci Tanda Tangan"`: Mengunci kanvas agar tidak sengaja tercoret kembali dan mengonversi citra kanvas ke Data URL PNG Base64.
+  5. Pengiriman Data: Tombol `"Simpan & Lanjut ke Cetak"` memanggil `POST /api/v1/inpatient-admissions/{episodeId}/consent` (`BE-RWI-205`). Setelah sukses, alur berlanjut ke langkah pratinjau cetak.
+
+---
+
+### 4.5 `FE-RWI-226` — Penyelarasan Cetak Persetujuan & Workspace PPRI (Print-Ready)
+- **Komponen Target:** `inpatient-consent-form.jsx`, `InpatientAdmissionConsentStep`, dan tab General Consent Workspace PPRI (`admission-workspace/sections/documents/`).
+- **Perubahan Fungsional:**
+  1. Perbarui `inpatient-consent-form.jsx` pada bagian footer tanda tangan:
+     - Jika data tanda tangan digital (`signatureImageBase64`) dan nama penanda tangan tersedia, render citra tanda tangan (`<img src={signatureImageBase64} alt="Tanda Tangan Digital" />`) di atas kurung nama penanda tangan.
+     - Render nama terang penanda tangan di dalam kurung: `( ${signerName} )`.
+     - Sertakan label hubungan penanda tangan dan tanggal/waktu penandatanganan digital.
+  2. Pada Langkah Cetak Admisi (Langkah 11 PB / 10 PL): Lembar persetujuan otomatis menampilkan tanda tangan digital yang baru saja dibuat pada Langkah 10/9 dan siap langsung dicetak lewat dialog print peramban.
+  3. Pada Workspace PPRI:
+     - Menu/Tab General Consent untuk episode yang telah disetujui memanggil `GET /api/v1/inpatient-admissions/{episodeId}/consent` (`BE-RWI-205`).
+     - Tampilan berstatus **murni siap cetak (*read-only / print-ready*)**: Menampilkan dokumen terisi lengkap beserta tanda tangan digital pasien/wali yang dibuat saat admisi.
+     - Tidak ada form input aktif, tidak ada tombol simpan ganda, dan tidak ada kanvas tanda tangan ulang yang membingungkan petugas PPRI (`RWI-AC-395`).
+     - **Catatan 13 Oktober 2026:** sifat *read-only* ini diubah atas permintaan pemilik oleh `FE-RWI-241` (Edit Persetujuan berversi) dan `FE-RWI-242` (Riwayat Perubahan), lihat [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md).
+
+### 4.6 ✅ `FE-RWI-241` — Edit Persetujuan General Consent (Mode Lihat & Edit)
+
+| Field | Nilai |
+|---|---|
+| Status | ✅ SELESAI — 13 Oktober 2026 (source, lint, unit, build). ESLint quiet 0 error; unit 15/15 PASS; build 492 halaman PASS; uji layar `NOT FEASIBLE` (backend lokal masih DLL lama), dikecualikan atas keputusan pemilik |
+| Asal | [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) `FIX-EPS-008-02` |
+| Tujuan | Petugas PPRI dapat mengoreksi persetujuan bertanda tangan; setiap simpan menjadi versi baru beralasan; panduan dan hubungan pada cetakan berasal dari data tersimpan |
+| Skema | Rencana perbaikan bagian 3.2 (mode lihat) dan 3.3 (mode edit) |
+| Contoh | NIK Ny. Rina salah satu angka → Edit Persetujuan → ubah NIK → alasan "NIK penanda tangan salah ketik saat admisi" → Simpan → lencana "Versi 2" |
+| Laporan | [Laporan FE-RWI-241](../task/report/frontend/FE-RWI-241.md) |
+
+### 4.7 ✅ `FE-RWI-242` — Panel Riwayat Perubahan General Consent
+
+| Field | Nilai |
+|---|---|
+| Status | ✅ SELESAI — 13 Oktober 2026 (source, lint, unit, build). ESLint 0 error; unit 16/16 PASS; build 492 halaman PASS; uji layar `NOT FEASIBLE`, dikecualikan atas keputusan pemilik. [Laporan FE-RWI-242](../task/report/frontend/FE-RWI-242.md) |
+| Asal | `PLAN-REPAIR-EPS-008` `FIX-EPS-008-03` |
+| Tujuan | Menampilkan siapa, kapan, alasan, dan isian apa yang berubah pada setiap versi persetujuan |
+| Endpoint | `GET …/admission-workspace/general-consent/history` (`InpatientAdmissionDocument : Read`) |
+| Contoh | "Versi 2 · Aktif · 13 Okt 2026 10.15 · Dewi — No. Identitas: …98 → …99"; "Versi 1 · Digantikan · Sari — Dibuat pada langkah admisi" |
+
+### 4.8 ✅ `FE-RWI-243` — Pilih Bed: unit mengikuti bed dan alasan galat tampil
+
+| Field | Nilai |
+|---|---|
+| Status | ✅ SELESAI — 13 Oktober 2026 (source dan test unit terarah). Unit 6/6 PASS; ESLint dan build `NOT RUN` (`node_modules` tidak ada), uji layar `NOT RUN`, dikecualikan atas keputusan pemilik 10-09-2026. [Laporan FE-RWI-243](../task/report/frontend/FE-RWI-243.md) |
+| Asal | [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) `FIX-EPS-009-01`, `FIX-EPS-009-02` |
+| Tujuan | Tombol Lanjut ke Pemesanan tidak lagi buntu; kunjungan dan episode dibuat dengan unit dan kelas kamar bed terpilih; alasan kegagalan apa pun terbaca di langkah Pilih Bed |
+| Contoh | Bed `RI-201-A` (Rawat Inap, Kelas II) → `POST /patient-encounters/admin` dan `POST /episodes` dengan unit Rawat Inap, Kelas II, `selectedBedId` RI-201-A → Booking Bed |
+
+### 4.9 ✅ `FE-RWI-244` — Langkah 1 Pasien Lama memeriksa kelayakan admisi
+
+| Field | Nilai |
+|---|---|
+| Status | ✅ SELESAI — 13 Oktober 2026 (source, lint, unit, build). Unit baru 8/8 PASS; ESLint 0 error; build 492 halaman PASS; uji layar `NOT FEASIBLE` sampai backend `BE-RWI-230` dijalankan, dikecualikan atas keputusan pemilik. [Laporan FE-RWI-244](../task/report/frontend/FE-RWI-244.md) |
+| Asal | [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) `FIX-EPS-010-02` |
+| Tujuan | Pasien yang sedang dirawat, masih punya kunjungan aktif, atau punya permintaan Kamar Pulih berhenti di langkah 1 dengan alasan dan jalan keluarnya; tidak ada lagi admisi ganda "Sedang Disiapkan" |
+| Endpoint | `GET …/episodes/admission-eligibility` (`InpatientEpisode : Read`) |
+| Contoh | Tn. Umar dirawat di Kamar 02 BED 001 → badge "Sedang Dirawat", alert "… pakai perpindahan, bukan admisi baru." + Pindah Tempat Tidur; Lanjut tidak maju |
+

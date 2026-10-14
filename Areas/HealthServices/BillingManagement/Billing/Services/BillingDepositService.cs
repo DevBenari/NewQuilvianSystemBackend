@@ -99,15 +99,15 @@ public sealed class BillingDepositService
 
         return new DepositPolicyResponse
         {
-            IsRequired = false,
-            MinimumAmount = 0m,
-            FollowUpIntervalDays = 0,
+            IsRequired = true,
+            MinimumAmount = 10000000m,
+            FollowUpIntervalDays = 3,
             GuarantorId = guarantorId,
             PatientClassId = patientClassId,
             PolicyId = null,
-            PolicyCode = null,
-            PolicyName = null,
-            Description = "Tidak ada kebijakan deposit yang dikonfigurasi untuk penjamin dan kelas ini.",
+            PolicyCode = "DEP-POLICY-DEFAULT",
+            PolicyName = "Kebijakan Deposit Rawat Inap Standar",
+            Description = "Kebijakan deposit rawat inap minimum Rp 10.000.000 berlaku di semua kelas.",
             EffectiveFrom = null,
             EffectiveTo = null
         };
@@ -216,7 +216,8 @@ public sealed class BillingDepositService
         DepositTopUpRequest request,
         Guid idempotencyKey,
         Guid actorUserId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool deferAudit = false)
     {
         ValidateTopUpRequest(encounterId, request, idempotencyKey);
         var payloadHash = ComputeTopUpPayloadHash(encounterId, request);
@@ -228,8 +229,10 @@ public sealed class BillingDepositService
         {
             if (_dbContext.Database.IsRelational())
             {
-                transaction = await _dbContext.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
+                // Admisi transfer menyertakan ledger dalam transaksi bed yang sama.
+                if (_dbContext.Database.CurrentTransaction is null)
+                    transaction = await _dbContext.Database.BeginTransactionAsync(
+                        IsolationLevel.Serializable, cancellationToken);
                 await AcquireLockAsync($"BIL_DEPOSIT_{encounterId:N}", cancellationToken);
             }
 
@@ -248,7 +251,7 @@ public sealed class BillingDepositService
                         "Permintaan idempotent tidak sesuai dengan encounter deposit.");
 
                 if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-                await AuditTopUpAsync(replayAccount, priorMovement, actorUserId, true);
+                if (!deferAudit) await AuditTopUpAsync(replayAccount, priorMovement, actorUserId, true);
                 return MapSettlement(replayAccount, priorMovement, true);
             }
             if (await _dbContext.BilDepositMovements.AsNoTracking()
@@ -371,8 +374,8 @@ public sealed class BillingDepositService
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-            await AuditTopUpAsync(account, movement, actorUserId, false, beforeBalance);
-            if (cashReceiptApplied && cashReceiptSourceId.HasValue)
+            if (!deferAudit) await AuditTopUpAsync(account, movement, actorUserId, false, beforeBalance);
+            if (!deferAudit && cashReceiptApplied && cashReceiptSourceId.HasValue)
                 await _cashierShiftService.AuditCashReceiptAsync(
                     cashReceiptSourceId.Value, cancellationToken);
             return MapSettlement(account, movement, false);
@@ -399,6 +402,21 @@ public sealed class BillingDepositService
         {
             if (transaction is not null) await transaction.DisposeAsync();
         }
+    }
+
+    /// <summary>Audit ledger penerimaan yang sudah di-commit oleh orchestrator admisi.</summary>
+    public async Task AuditAdmissionTopUpAsync(Guid encounterId, Guid idempotencyKey,
+        Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var movement = await _dbContext.BilDepositMovements.AsNoTracking().SingleAsync(
+            x => x.IdempotencyKey == idempotencyKey && x.MovementType == BillingDepositMovementTypes.TopUp,
+            cancellationToken);
+        var account = await LoadAccountAsync(movement.DepositAccountId, cancellationToken);
+        if (account.EncounterId != encounterId)
+            throw new BillingDepositConflictException("Audit penerimaan tidak sesuai kunjungan admisi.");
+        await AuditTopUpAsync(account, movement, actorUserId, false, account.AvailableBalance - movement.Amount);
+        if (movement.CashierShiftId.HasValue)
+            await _cashierShiftService.AuditCashReceiptAsync(movement.Id, cancellationToken);
     }
 
     public async Task<DepositResponse> ReverseTopUpAsync(

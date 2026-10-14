@@ -45,6 +45,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _service = service;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabResultReasonFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Result Correction Reason", Description = ReadDescription, AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabResultCorrectionReason", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabResultReason();
+
+            return Ok(ApiResponse<LabResultReasonFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring alasan pengembalian hasil berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabResultReasonSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Result Correction Reason", Description = ReadDescription, AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabResultCorrectionReason", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _service.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabResultReasonSummaryResponse>.Ok(
+                result, "Ringkasan alasan pengembalian hasil berhasil diambil."));
+        }
+
         // Daftar untuk layar pengelolaan kepala instalasi. Memuat yang nonaktif juga, sebab
         // tanpa itu baris yang dinonaktifkan nol akan pernah dapat diaktifkan kembali.
         [HttpGet]
@@ -72,30 +96,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
             return Ok(ApiResponse<PagedResult<LabResultReasonOptionResponse>>.Ok(
                 result, "Pilihan alasan pengembalian hasil berhasil diambil."));
-        }
-
-        [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<LabResultReasonFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Result Correction Reason", Description = ReadDescription, AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabResultCorrectionReason", "Read")]
-        public IActionResult GetFilterMetadata()
-        {
-            var result = LabFilterMetadataFactory.LabResultReason();
-
-            return Ok(ApiResponse<LabResultReasonFilterMetadataResponse>.Ok(
-                result, "Metadata penyaring alasan pengembalian hasil berhasil diambil."));
-        }
-
-        [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<LabResultReasonSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Result Correction Reason", Description = ReadDescription, AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabResultCorrectionReason", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
-        {
-            var result = await _service.GetSummaryAsync(cancellationToken);
-
-            return Ok(ApiResponse<LabResultReasonSummaryResponse>.Ok(
-                result, "Ringkasan alasan pengembalian hasil berhasil diambil."));
         }
 
         [HttpGet("{id:guid}")]

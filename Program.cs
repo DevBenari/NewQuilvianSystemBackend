@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using QuilvianSystemBackend.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -61,6 +61,7 @@ using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Controllers;
 using QuilvianSystemBackend.Responses;
 using System.Threading.RateLimiting;
@@ -90,6 +91,8 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegrat
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 // BE-FIN-074: Konfigurasi bukti pembayaran langsung Finance (FIN-DES-092).
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
+// BE-FIN-093: Perjanjian cicilan piutang manfaat karyawan (FIN-DES-099).
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
@@ -108,6 +111,11 @@ try
     // atribut baru mengulang cacat yang sama.
     CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
     CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
+    // Report Canceled Invoice V2 (export PDF) — organisasi wajib memenuhi syarat QuestPDF
+    // Community License (pendapatan kotor tahunan di bawah USD 1 juta, bukan sektor publik/
+    // perusahaan publik) sebelum deployment produksi. Dikonfirmasi oleh pemilik produk.
+    QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
 
     var builder = WebApplication.CreateBuilder(args);
 
@@ -384,6 +392,30 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    // BE-FIN-093: belum terdaftar sebelum task ini. Temuan: FinanceBillingIntakeService dan
+    // tampaknya sebagian besar service Corporate/FinanceManagement lain juga TIDAK terdaftar di
+    // sini (diverifikasi grep "AddScoped<Finance" pada berkas ini: nol hasil) walau controller dan
+    // using-nya sudah ada — nol dotnet build pernah membuktikannya, karena build sukses tidak
+    // membuktikan DI terselesaikan saat runtime. Dicatat di laporan task, TIDAK diperbaiki di sini
+    // untuk service lain — di luar cakupan BE-FIN-093.
+    builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
+    // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
+    builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
+        builder.Configuration.GetSection("Finance:ReceivablePayrollSync"));
+    // BE-FIN-095: FinanceSubledgerMovementService dibutuhkan FinanceReceivablePayrollSyncService
+    // (mutasi POTONGAN-GAJI) — juga belum terdaftar sebelum task ini, temuan yang sama dengan BE-FIN-093 §3.A.
+    builder.Services.AddScoped<FinanceSubledgerMovementService>();
+    builder.Services.AddScoped<FinanceReceivablePayrollSyncService>();
+    // BE-FIN-096: murni baca, nol dependency tambahan selain ApplicationDbContext.
+    builder.Services.AddScoped<FinanceReceivableClearanceService>();
+    // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
+    builder.Services.AddScoped<FinanceReceivableMigrationService>();
+    builder.Services.AddScoped<IFinanceReceivableNumberGenerator, FinanceReceivableNumberGenerator>();
+    builder.Services.AddScoped<FinanceBenefitSettlementService>();
+    builder.Services.AddScoped<FinanceBillingArReportService>();
+    builder.Services.AddScoped<FinanceReceivableAgingReportService>();
+    builder.Services.AddScoped<FinanceSettlementService>();
+    builder.Services.AddScoped<FinanceReceivablePaymentReportService>();
     builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
     builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();
@@ -452,6 +484,9 @@ try
     // RJ-DOC-REV-BE-015 — klasifikasi dan alokator nomor antrean Rawat Jalan (kiosk dan petugas).
     builder.Services.AddScoped<OutpatientQueueClassificationService>();
     builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
+    // crm-membership BE-CRM-010 — satu aturan "member aktif" untuk seluruh konsumen.
+    builder.Services.AddScoped<PatientMembershipStatusResolver>();
+    builder.Services.AddScoped<PatientMembershipService>();
     builder.Services.Configure<OutpatientQueueNumberOptions>(
         builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName));
 
@@ -473,6 +508,7 @@ try
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<DoctorQueuePatientContextService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services.InpServiceClassResolver>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     // RJ-DOC-REV-BE-013 — penyimpanan foto kartu penjamin pasien hasil scan.
     builder.Services.AddScoped<PatientPayerCardImageService>();
@@ -482,7 +518,6 @@ try
     builder.Services.AddScoped<PrescriptionNumberService>();
     builder.Services.AddScoped<PrescriptionSummaryService>();
     builder.Services.AddScoped<PrescriptionWorkflowService>();
-    builder.Services.AddScoped<PrescriptionBillingChargeProducer>();
     builder.Services.AddScoped<PrescriptionWorkspaceService>();
     builder.Services.AddScoped<PrescriptionTemplateService>();
     builder.Services.AddScoped<PrescriptionValidationService>();
@@ -657,6 +692,19 @@ try
     builder.Services.AddScoped<InpSettingService>();
     builder.Services.AddScoped<InpEpisodeNumberService>();
     builder.Services.AddScoped<InpBedOccupancyService>();
+    builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>, QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptionsValidator>();
+    builder.Services.AddOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>().Bind(builder.Configuration.GetSection("BedManagement")).ValidateOnStart();
+    builder.Services.AddScoped<InpBedAccessService>();
+    builder.Services.AddScoped<InpBedMutationCoordinator>();
+    builder.Services.AddScoped<InpBedManagementQueryService>();
+    builder.Services.AddScoped<InpBedClassComparisonService>();
+    builder.Services.AddScoped<InpBedReadinessService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMutationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMasterWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.RoomMasterWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.ServiceUnitMasterWriteService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.PatientClassMasterWriteService>();
+    builder.Services.AddScoped<InpBedOperationFilter>();
     builder.Services.AddScoped<InpEpisodeService>();
     builder.Services.AddScoped<InpDischargeService>();
     builder.Services.AddScoped<CliWsdObservationService>();
@@ -687,6 +735,8 @@ try
     builder.Services.AddScoped<InpPatientLocationQuery>();
     // BE-RWI-181: permintaan admisi dari kamar pulih (dipanggil OK dan admisi).
     builder.Services.AddScoped<InpAdmissionReferralService>();
+    // BE-RWI-206 & BE-RWI-207: antrean dan eksekusi admisi transfer pasien IGD dan Poliklinik.
+    builder.Services.AddScoped<InpAdmissionTransferService>();
     // BE-RWI-184 (P2): laporan transfer ruangan dari linimasa penempatan bed.
     builder.Services.AddScoped<InpRoomTransferReportService>();
 
@@ -709,6 +759,7 @@ try
     builder.Services.AddScoped<InpAdmissionSignatureService>();
     builder.Services.AddScoped<InpAdmissionPrintService>();
     builder.Services.AddScoped<InpAdmissionWorkspaceQueryService>();
+    builder.Services.AddScoped<InpatientAdmissionConsentService>();
 
     // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
     // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.
@@ -835,6 +886,12 @@ try
     builder.Services.AddScoped<ResignationWorkflowLifecycleService>();
     builder.Services.AddScoped<ResignationWorkflowIntegrationService>();
     builder.Services.AddScoped<ResignationLifecycleHandoffService>();
+
+    // BE-FIN-103 (FIN-API-1.10 R.1, R.2): enrollment dan tanggungan benefit pegawai.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitBalanceService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();

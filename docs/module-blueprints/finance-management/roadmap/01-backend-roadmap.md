@@ -1332,25 +1332,25 @@ Gelombang **`REV-18`** adalah rencana pengiriman mandiri (*dedicated release wav
 ```mermaid
 flowchart TD
     subgraph REV_18B1["Gelombang REV-18B1: Fondasi Skema & Intake Serah Terima"]
-        BE_FIN_091["BE-FIN-091<br/>Intake Serah Terima 2 Baris Billing"]
-        BE_FIN_092["BE-FIN-092<br/>Model & Migration Skema Basis Data"]
+        BE_FIN_091["BE-FIN-091 🟡<br/>Intake Serah Terima 2 Baris Billing"]
+        BE_FIN_092["BE-FIN-092 🟡<br/>Model & Migration Skema Basis Data"]
     end
 
     subgraph REV_18B2["Gelombang REV-18B2: Perjanjian Cicilan, Clearance, Pelunasan & Migrasi"]
-        BE_FIN_093["BE-FIN-093<br/>Layanan & API Perjanjian Angsuran"]
-        BE_FIN_096["BE-FIN-096<br/>Layanan & API Bebas Tanggungan"]
-        BE_FIN_098["BE-FIN-098<br/>Layanan & API Migrasi Batch NIP"]
-        BE_FIN_099["BE-FIN-099<br/>Layanan & API Pelunasan Internal"]
-        BE_FIN_100["BE-FIN-100<br/>Filter Jenis Debitur Laporan AR"]
+        BE_FIN_093["BE-FIN-093 🟡<br/>Layanan & API Perjanjian Angsuran"]
+        BE_FIN_096["BE-FIN-096 🟡<br/>Layanan & API Bebas Tanggungan"]
+        BE_FIN_098["BE-FIN-098 🟡<br/>Layanan & API Migrasi Batch NIP"]
+        BE_FIN_099["BE-FIN-099 🟡<br/>Layanan & API Pelunasan Internal"]
+        BE_FIN_100["BE-FIN-100 🟡<br/>Filter Jenis Debitur Laporan AR"]
     end
 
     subgraph REV_18B3["Gelombang REV-18B3: Sinkronisasi Outbound Payroll HR"]
-        BE_FIN_094["BE-FIN-094<br/>Integrasi Outbound ke TrxPayrollVariableInput"]
+        BE_FIN_094["BE-FIN-094 🟡<br/>Integrasi Outbound ke TrxPayrollVariableInput"]
     end
 
     subgraph REV_18B4["Gelombang REV-18B4: Inbound Webhook Payroll & Koreksi Reversal"]
-        BE_FIN_095["BE-FIN-095<br/>Inbound Webhook Hasil Payroll & Notifikasi"]
-        BE_FIN_097["BE-FIN-097<br/>Reversal Handoff & Koreksi Salah Orang"]
+        BE_FIN_095["BE-FIN-095 🟡<br/>Inbound Webhook Hasil Payroll & Notifikasi"]
+        BE_FIN_097["BE-FIN-097 🟡<br/>Reversal Handoff & Koreksi Salah Orang"]
     end
 
     BE_FIN_091 --> BE_FIN_093
@@ -1373,10 +1373,10 @@ flowchart TD
 
 | Gelombang | Boleh Mulai Setelah | Task Backend | Keterangan |
 |---|---|---|---|
-| `REV-18B1` | Persetujuan Rilis REV-18 | `BE-FIN-091`, `BE-FIN-092` | Fondasi skema database dan adapter serah terima Billing 2 baris |
-| `REV-18B2` | `REV-18B1` Selesai | `BE-FIN-093`, `BE-FIN-096`, `BE-FIN-098`, `BE-FIN-099`, `BE-FIN-100` | Logika domain cicilan, clearance, pelunasan internal benefit, dan laporan |
-| `REV-18B3` | `BE-FIN-093` Selesai | `BE-FIN-094` | Ekspor jadwal angsuran ke input variabel penggajian HR |
-| `REV-18B4` | `BE-FIN-094` Selesai | `BE-FIN-095`, `BE-FIN-097` | Webhook inbound hasil payroll, penumpukan tunggakan, dan alur reversal |
+| `REV-18B1` | Persetujuan Rilis REV-18 | `BE-FIN-091` 🟡, `BE-FIN-092` 🟡 | Fondasi skema database dan adapter serah terima Billing 2 baris |
+| `REV-18B2` | `REV-18B1` Selesai | `BE-FIN-093` 🟡, `BE-FIN-096` 🟡, `BE-FIN-098` 🟡, `BE-FIN-099` 🟡, `BE-FIN-100` 🟡 | Logika domain cicilan, clearance, pelunasan internal benefit, dan laporan |
+| `REV-18B3` | `BE-FIN-093` Selesai | `BE-FIN-094` 🟡 | Ekspor jadwal angsuran ke input variabel penggajian HR |
+| `REV-18B4` | `BE-FIN-094` Selesai | `BE-FIN-095` 🟡, `BE-FIN-097` 🟡 | Webhook inbound hasil payroll, penumpukan tunggakan, dan alur reversal |
 
 ---
 
@@ -1384,16 +1384,16 @@ flowchart TD
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `BE-FIN-091` | Serah terima tagihan manfaat karyawan 2 baris dari Billing dikonsumsi dengan aman ke piutang pegawai dan piutang penjamin internal | `FR-FIN-220`..`222`; `FIN-DEC-183`..`186`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.1; `FIN-VAL-1.11` `FIN-VAL-247`; `FIN-STATE-1.8` | `FinanceReceivableIntakeService`, `BilArHandoff`, `CK_FinReceivable_EmployeeBenefit_BenefitOwnerId` | Konsumsi baris `EMPLOYEE_BENEFIT` menyalin `BenefitOwnerId` & `BenefitRelationship`, nominal kelebihan di atas plafon; baris `PAYER` menyalin porsi benefit RS | — | `M.1.1`..`M.1.5`; baris tanpa `BenefitOwnerId` ditolak `422`; constraint database ditegakkan | Unit/Integration test; log verifikasi | Backend Owner. QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend | Build PASS, unit test PASS, laporan task tracked |
-| `BE-FIN-092` | Model entitas dan migration skema basis data perjanjian cicilan dan pelunasan internal terpasang rapi tanpa downtime | `FR-FIN-193`, `212`; `FIN-DEC-165`, `177`; `FIN-DES-099`, `102` | `data/data-dictionary.md` Bagian O; `02-backend-architecture.md` P.11 | `ApplicationDbContext`, `IdentityModel`, `FinReceivableMovement` | 4 entitas baru (`FinReceivableInstallmentPlan`, `FinReceivableInstallment`, `FinBenefitSettlement`, `FinBenefitSettlementItem`), 2 nilai mutasi baru; 1 migration | — | `L.7.1`..`L.7.2`; tabel terpasang dengan FK, index, dan check constraint; nol data lama rusak | `dotnet ef migrations`, DDL script review | Backend Owner. Eksekusi migrasi fisik menunggu otorisasi pemilik | Migration file created, snapshot konsisten, laporan task tracked |
-| `BE-FIN-093` | Petugas Finance dapat mengajukan, menyetujui (maker-checker keras), dan membatalkan perjanjian cicilan piutang pegawai | `FR-FIN-192`..`199`; `FIN-DEC-165`, `166`; `FIN-DES-099` | `FIN-API-1.9` O.1; `FIN-VAL-1.10` `FIN-VAL-230`..`238`; `FIN-STATE-1.8` O.1 | `FinanceReceivableInstallmentPlanService`, `FinanceReceivableInstallmentPlansController` | API CRUD, maker-checker check constraint pengaju != penyetuju, pembangkitan jadwal angsuran | `BE-FIN-091`, `BE-FIN-092` | `L.1.1`..`L.1.7`, `L.2.1`..`L.2.6`, `L.8.1`; pengaju tidak boleh menyetujui sendiri | Uji integrasi API; uji check constraint DB | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test PASS, laporan task tracked |
-| `BE-FIN-094` | Jadwal angsuran yang disetujui otomatis terbit ke modul Payroll HR sebagai input variabel penggajian | `FR-FIN-224`; `FIN-DEC-190`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.2 | `FinanceReceivablePayrollSyncService`, `TrxPayrollVariableInput` | Event/service penulisan input variabel gaji membawa `SourceType = 'FinanceReceivableInstallment'` dan `SourceId = InstallmentId` | `BE-FIN-093` | `M.2.1`; baris jadwal tercatat akurat di payroll run periode terkait | Uji integrasi database inter-module | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, verifikasi penulisan data variabel, laporan task |
-| `BE-FIN-095` | Finance menerima laporan hasil potongan payroll HR secara otomatis dan idempoten, menumpuk sisa ke periode berikutnya | `FR-FIN-200`..`205`, `225`..`227`; `FIN-DEC-191`, `192`; `FIN-DES-100` | `FIN-API-1.9` §P.1; `FIN-INTEGRATION-1.8` §P.3; `FIN-VAL-1.11` `FIN-VAL-240`, `248` | `FinanceReceivablesPayrollController`, `FinanceReceivablePayrollSyncService` | Endpoint `POST /receivables/installments/payroll-results`, pengecekan idempoten `(InstallmentId, PayrollPeriodId)`, mutasi `POTONGAN-GAJI`, notifikasi pemisahan | `BE-FIN-094` | `M.2.2`..`M.2.4`, `L.3.1`..`L.3.8`, `L.8.3`; kiriman ganda tidak memotong saldo 2 kali | Uji webhook ganda, simulasi potongan sebagian | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test idempotensi, laporan task tracked |
-| `BE-FIN-096` | Layanan perhitungan status bebas tanggungan perorangan dan kolektif tersedia untuk konsumsi Finance dan Exit Clearance HR | `FR-FIN-206`..`210`, `228`..`230`; `FIN-DEC-170`, `193`; `FIN-DES-101` | `FIN-API-1.9` O.4; `FIN-INTEGRATION-1.8` §P.4; `FIN-VAL-1.10` `FIN-VAL-244`, `245` | `FinanceReceivableClearanceService`, `FinanceReceivablesController` | Endpoint `GET /receivables/clearance/{benefitOwnerId}` dan `POST /receivables/clearance/batch` (max 100), kalkulasi saldo dinamis murni baca | `BE-FIN-091` | `M.3.1`..`M.3.2`, `L.4.1`..`L.4.7`; status dihitung dari saldo aktif, nol kolom tersimpan | Uji clearance pegawai berpiutang vs lunas | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test PASS, laporan task tracked |
-| `BE-FIN-097` | Serah terima pembalik Billing diolah untuk membatalkan piutang lama, menerbitkan piutang baru, dan memicu restitusi payroll | `FR-FIN-231`..`234`; `FIN-DEC-187`, `195`, `200`; `02-backend-architecture.md` P.7 | `FIN-INTEGRATION-1.8` §P.6; `FIN-STATE-1.8` P.1 | `FinanceReceivableIntakeService`, `BilHandoffAdjustment` | Konsumsi penyesuaian pembalik, pembatalan kartu piutang lama (`CANCELLED`), penerbitan kartu baru, event restitusi ke HR | `BE-FIN-091`, `BE-FIN-095` | `M.4.1`..`M.4.3`; integritas audit terjaga tanpa edit manual debitur | Uji skenario koreksi salah orang | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test koreksi, laporan task tracked |
-| `BE-FIN-098` | Batch impor saldo lama piutang karyawan divalidasi ke NIP master pegawai HR dan dipetakan ke identitas debitur | `FR-FIN-235`..`237`; `FIN-DEC-196`; `02-backend-architecture.md` P.8 | `FIN-API-1.9` §P.2; `FIN-VAL-1.11` `FIN-VAL-246`; `FIN-PERM-1.10` P.2 | `FinanceReceivableMigrationController`, `FinanceReceivableMigrationService` | Endpoint `POST /receivables/migration-batches/employee`, validasi NIP ke `MstEmployee`, pemetaan Guid `BenefitOwnerId` | `BE-FIN-091` | `M.5.1`..`M.5.3`; baris dengan NIP tidak valid ditolak `422`, batch tervalidasi utuh | Uji impor CSV dengan NIP valid & invalid | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test validasi NIP, laporan task |
-| `BE-FIN-099` | Layanan penutupan berkala porsi benefit rumah sakit (hitung awal, draf, terbitkan atomic, batalkan) beroperasi penuh | `FR-FIN-211`..`217`; `FIN-DEC-177`, `178`; `FIN-DES-102`, `103` | `FIN-API-1.9` O.2; `FIN-VAL-1.10` `FIN-VAL-241`..`243`; `FIN-STATE-1.8` O.3 | `FinanceBenefitSettlementService`, `FinanceBenefitSettlementsController` | API hitung awal non-mutasi, pembuatan draf, penerbitan atomic dalam 1 transaksi DB, pembatalan dengan mutasi pembalik | `BE-FIN-091`, `BE-FIN-092` | `L.5.1`..`L.5.14`; seluruh kartu tertutup atomic, penutupan sebagian dicegah | Uji siklus pelunasan internal dan rollback | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test atomisitas, laporan task |
-| `BE-FIN-100` | Saringan jenis debitur `EMPLOYEE_BENEFIT` terpasang pada daftar piutang, kalkulasi aging AR, dan laporan rekapitulasi AR | `FR-FIN-219`; `FIN-DEC-176`; `02-backend-architecture.md` O.7 | `FIN-API-1.9` Receivable endpoints; `FIN-PERM-1.10` | `FinanceReceivableService`, `FinanceReceivablesController` | Tambahan filter `DebtorType = EMPLOYEE_BENEFIT` pada query daftar AR, laporan rekapitulasi, dan bucket umur piutang | `BE-FIN-091` | `L.6.4`; piutang karyawan tersaring akurat, nol data tercampur penjamin reguler | Uji filter jenis debitur pada laporan | Backend Owner. QBE preflight diselesaikan saat eksekusi | Build PASS, unit test filter, laporan task |
+| 🟡 `BE-FIN-091` | Serah terima tagihan manfaat karyawan 2 baris dari Billing dikonsumsi dengan aman ke piutang pegawai dan piutang penjamin internal | `FR-FIN-220`..`222`; `FIN-DEC-183`..`186`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.1; `FIN-VAL-1.11` `FIN-VAL-247`; `FIN-STATE-1.8` | `FinanceBillingIntakeService.ProcessArIntakeAsync` (nama source sebenarnya — berbeda dari `FinanceReceivableIntakeService` di baris ini), `BilArHandoff`, `CK_FinReceivable_BenefitOwner` (nama source sebenarnya — berbeda dari `CK_FinReceivable_EmployeeBenefit_BenefitOwnerId` di baris ini) | Konsumsi baris `EMPLOYEE_BENEFIT` menyalin `BenefitOwnerId` & `BenefitRelationship`, nominal kelebihan di atas plafon; baris `PAYER` menyalin porsi benefit RS | — | `M.1.1`..`M.1.5`; baris tanpa `BenefitOwnerId` ditolak `422`; constraint database ditegakkan | Unit/Integration test; log verifikasi | Backend Owner. QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend | 🟡 **SEBAGIAN, 10 Oktober 2026.** `M.1.3`..`M.1.5` terpetakan ke source (konsumsi + validasi 422 + check constraint ganda). `M.1.1`..`M.1.2` **belum terpenuhi** — keduanya milik `BillingArApHandoffService` (emisi 2 baris di Billing), di luar wewenang task ini. Migration `AddEmployeeBenefitColumnsToBilArHandoff` **dibuat, belum diterapkan**. `dotnet build` **NOT RUN** (instruksi eksplisit pengguna). Bukti: [laporan BE-FIN-091](../task/report/backend/BE-FIN-091.md) |
+| 🟡 `BE-FIN-092` | Model entitas dan migration skema basis data perjanjian cicilan dan pelunasan internal terpasang rapi tanpa downtime | `FR-FIN-193`, `212`; `FIN-DEC-165`, `177`; `FIN-DES-099`, `102` | `data/data-dictionary.md` Bagian O; `02-backend-architecture.md` P.11 | `ApplicationDbContext`, `IdentityModel`, `FinReceivableMovement` | 4 entitas baru (`FinReceivableInstallmentPlan`, `FinReceivableInstallment`, `FinBenefitSettlement`, `FinBenefitSettlementItem`), 2 nilai mutasi baru; 1 migration | — | `L.7.1`..`L.7.2`; tabel terpasang dengan FK, index, dan check constraint; nol data lama rusak | `dotnet ef migrations`, DDL script review | Backend Owner. Eksekusi migrasi fisik menunggu otorisasi pemilik | 🟡 **SEBAGIAN, 10 Oktober 2026.** Keempat model + configuration selesai ditulis. Migration `AddFinanceReceivableInstallmentAndBenefitSettlement` **belum dibuat** dan `dotnet build` **NOT RUN** (instruksi eksplisit pengguna "tanpa build dan migration automatis"). Source belum pernah dikompilasi. Temuan: unique-terfilter lintas tabel pada `FinBenefitSettlementItem.ReceivableId` tidak dapat diwujudkan sebagai DB constraint, diserahkan ke service `BE-FIN-099`. Bukti: [laporan BE-FIN-092](../task/report/backend/BE-FIN-092.md) |
+| 🟡 `BE-FIN-093` | Petugas Finance dapat mengajukan, menyetujui (maker-checker keras), dan membatalkan perjanjian cicilan piutang pegawai | `FR-FIN-192`..`199`; `FIN-DEC-165`, `166`; `FIN-DES-099` | `FIN-API-1.9` O.1; `FIN-VAL-1.10` `FIN-VAL-230`..`238`; `FIN-STATE-1.8` O.1 | `FinanceReceivableInstallmentPlanService`, `FinanceReceivableInstallmentPlansController` | API CRUD, maker-checker check constraint pengaju != penyetuju, pembangkitan jadwal angsuran | `BE-FIN-091` 🟡, `BE-FIN-092` 🟡 | `L.1.1`..`L.1.7`, `L.2.1`..`L.2.6`, `L.8.1`; pengaju tidak boleh menyetujui sendiri | Uji integrasi API; uji check constraint DB | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** 7 endpoint + service selesai ditulis di atas dependency yang belum ✅. `dotnet build` **NOT RUN**. `L.1.7` dan `L.2.5` `NOT APPLICABLE` (lihat laporan §3). **Temuan signifikan:** rumpun service `Corporate/FinanceManagement` tampak tidak terdaftar DI di `Program.cs` — lihat laporan §3.A. Bukti: [laporan BE-FIN-093](../task/report/backend/BE-FIN-093.md) |
+| 🟡 `BE-FIN-094` | Jadwal angsuran yang disetujui otomatis terbit ke modul Payroll HR sebagai input variabel penggajian | `FR-FIN-224`; `FIN-DEC-190`; `FIN-DES-100` | `FIN-INTEGRATION-1.8` §P.2 | `FinanceReceivablePayrollSyncService`, `TrxPayrollVariableInput` | Event/service penulisan input variabel gaji membawa `SourceType = 'FinanceReceivableInstallment'` dan `SourceId = InstallmentId` | `BE-FIN-093` 🟡 | `M.2.1`; baris jadwal tercatat akurat di payroll run periode terkait | Uji integrasi database inter-module | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Kontrak §P.2 TIDAK dapat diimplementasikan apa adanya (field mapping tidak cocok source, HR belum punya mesin payroll run) — diganti adapter sempit resolve-or-create `TrxPayrollRun`/`TrxPayrollRunEmployee`, wewenang cross-module eksplisit pengguna. `dotnet build` **NOT RUN**. **MUST diresmikan HR Owner** sebagai amandemen kontrak, bukan dianggap final. Bukti: [laporan BE-FIN-094](../task/report/backend/BE-FIN-094.md) |
+| 🟡 `BE-FIN-095` | Finance menerima laporan hasil potongan payroll HR secara otomatis dan idempoten, menumpuk sisa ke periode berikutnya | `FR-FIN-200`..`205`, `225`..`227`; `FIN-DEC-191`, `192`; `FIN-DES-100` | `FIN-API-1.9` §P.1; `FIN-INTEGRATION-1.8` §P.3; `FIN-VAL-1.11` `FIN-VAL-240`, `248` | `FinanceReceivablesPayrollController`, `FinanceReceivablePayrollSyncService` | Endpoint `POST /receivables/installments/payroll-results`, pengecekan idempoten `(InstallmentId, PayrollPeriodId)`, mutasi `POTONGAN-GAJI`, notifikasi pemisahan | `BE-FIN-094` 🟡 | `M.2.2`..`M.2.4`, `L.3.1`..`L.3.8`, `L.8.3`; kiriman ganda tidak memotong saldo 2 kali | Uji webhook ganda, simulasi potongan sebagian | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Endpoint + service selesai ditulis, termasuk model carry-forward yang DIRANCANG SENDIRI (kontrak tidak menetapkan mekanismenya persis) — **MUST diresmikan Finance/HR Owner**. Status `FIN-OQ-091` tidak konsisten antar dokumen blueprint (bukti basi). `dotnet build` **NOT RUN**. Bukti: [laporan BE-FIN-095](../task/report/backend/BE-FIN-095.md) |
+| 🟡 `BE-FIN-096` | Layanan perhitungan status bebas tanggungan perorangan dan kolektif tersedia untuk konsumsi Finance dan Exit Clearance HR | `FR-FIN-206`..`210`, `228`..`230`; `FIN-DEC-170`, `193`; `FIN-DES-101` | `FIN-API-1.9` O.4; `FIN-INTEGRATION-1.8` §P.4; `FIN-VAL-1.10` `FIN-VAL-244`, `245` | `FinanceReceivableClearanceService`, `FinanceReceivablesController` | Endpoint `GET /receivables/clearance/{benefitOwnerId}` dan `GET /receivables/clearance` (batch, max 100 — kontrak `api-contract.md` O.4 memakai `GET`+query, bukan `POST /batch` seperti ditulis baris ini; diikuti `api-contract.md` sebagai sumber lebih rinci), kalkulasi saldo dinamis murni baca | `BE-FIN-091` 🟡 (lihat laporan §0 — dependency ini tidak signifikan untuk task ini) | `M.3.1`..`M.3.2`, `L.4.1`..`L.4.7`; status dihitung dari saldo aktif, nol kolom tersimpan | Uji clearance pegawai berpiutang vs lunas | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source selesai, `dotnet build` **NOT RUN**. Task paling ringan pada gelombang ini — murni baca, nol keputusan desain baru. Bukti: [laporan BE-FIN-096](../task/report/backend/BE-FIN-096.md) |
+| 🟡 `BE-FIN-097` | Serah terima pembalik Billing diolah untuk membatalkan piutang lama, menerbitkan piutang baru, dan memicu restitusi payroll | `FR-FIN-231`..`234`; `FIN-DEC-187`, `195`, `200`; `02-backend-architecture.md` P.7 | `FIN-INTEGRATION-1.8` §P.6; `FIN-STATE-1.8` P.1 | `FinanceBillingIntakeService` (nama source sebenarnya), `BilHandoffAdjustment` | Konsumsi penyesuaian pembalik, pembatalan kartu piutang lama (`CANCELLED`), penerbitan kartu baru, event restitusi ke HR | `BE-FIN-091` 🟡, `BE-FIN-095` 🟡 | `M.4.1`..`M.4.3`; integritas audit terjaga tanpa edit manual debitur | Uji skenario koreksi salah orang | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Pembatalan piutang lama terpenuhi struktural. **Blocker cross-module ditemukan**: Billing belum punya jalur penerbitan BilArHandoff pengganti untuk skenario salah-orang — fitur tidak dapat berfungsi penuh sampai itu dibangun (di luar wewenang task ini). Restitusi payroll NOT IMPLEMENTED. `dotnet build` NOT RUN. Bukti: [laporan BE-FIN-097](../task/report/backend/BE-FIN-097.md) |
+| 🟡 `BE-FIN-098` | Batch impor saldo lama piutang karyawan divalidasi ke NIP master pegawai HR dan dipetakan ke identitas debitur | `FR-FIN-235`..`237`; `FIN-DEC-196`; `02-backend-architecture.md` P.8 | `FIN-API-1.9` §P.2; `FIN-VAL-1.11` `FIN-VAL-246`; `FIN-PERM-1.10` P.2 | `FinanceReceivableMigrationController`, `FinanceReceivableMigrationService` | Endpoint `POST /receivables/migration-batches/employee`, validasi NIP ke `MstEmployee`, pemetaan Guid `BenefitOwnerId` | `BE-FIN-091` 🟡 | `M.5.1`..`M.5.3`; baris dengan NIP tidak valid ditolak `422`, batch tervalidasi utuh | Uji impor CSV dengan NIP valid & invalid | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source selesai sebagai service berdiri sendiri (keputusan eksplisit pengguna — lihat laporan §0, `FinanceOpeningItemBatchService` existing TIDAK disentuh). `dotnet build` NOT RUN. Bukti: [laporan BE-FIN-098](../task/report/backend/BE-FIN-098.md) |
+| 🟡 `BE-FIN-099` | Layanan penutupan berkala porsi benefit rumah sakit (hitung awal, draf, terbitkan atomic, batalkan) beroperasi penuh | `FR-FIN-211`..`217`; `FIN-DEC-177`, `178`; `FIN-DES-102`, `103` | `FIN-API-1.9` O.2; `FIN-VAL-1.10` `FIN-VAL-241`..`243`; `FIN-STATE-1.8` O.3 | `FinanceBenefitSettlementService`, `FinanceBenefitSettlementsController` | API hitung awal non-mutasi, pembuatan draf, penerbitan atomic dalam 1 transaksi DB, pembatalan dengan mutasi pembalik | `BE-FIN-091` 🟡, `BE-FIN-092` 🟡 | `L.5.1`..`L.5.14`; seluruh kartu tertutup atomic, penutupan sebagian dicegah | Uji siklus pelunasan internal dan rollback | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Service (preview/create/post/cancel/paged/detail) + controller (5 endpoint) selesai ditulis di atas dependency yang belum ✅. `GetEligibleItemsAsync` menegakkan unique-terfilter lintas tabel `FinBenefitSettlementItem.ReceivableId` di lapis service (temuan `BE-FIN-092`, DB tidak bisa). `dotnet build` **NOT RUN**. Kriteria eligibility piutang berbasis `RecognizedAt` dalam bulan periode adalah interpretasi saya — **MUST dikonfirmasi Finance Owner**. Bukti: [laporan BE-FIN-099](../task/report/backend/BE-FIN-099.md) |
+| 🟡 `BE-FIN-100` | Saringan jenis debitur `EMPLOYEE_BENEFIT` terpasang pada daftar piutang, kalkulasi aging AR, dan laporan rekapitulasi AR | `FR-FIN-219`; `FIN-DEC-176`; `02-backend-architecture.md` O.7 | `FIN-API-1.9` Receivable endpoints; `FIN-PERM-1.10` | `FinanceReceivableService`, `FinanceReceivablesController` | Tambahan filter `DebtorType = EMPLOYEE_BENEFIT` pada query daftar AR, laporan rekapitulasi, dan bucket umur piutang | `BE-FIN-091` 🟡 | `L.6.4`; piutang karyawan tersaring akurat, nol data tercampur penjamin reguler | Uji filter jenis debitur pada laporan | Backend Owner. QBE preflight diselesaikan saat eksekusi | 🟡 **SEBAGIAN, 10 Oktober 2026.** Filter `debtorType` diperluas ke `GetSummaryAsync`/`GetReportSummaryAsync` dan diwiring konsisten pada kedua controller (termasuk memperbaiki gap legacy `FinanceArController.GetAging` yang mengabaikan parameter `BE-FIN-055`). Daftar piutang sudah berfungsi sejak sebelum task ini (diverifikasi baca). `dotnet build` **NOT RUN**. Interpretasi "tiga laporan AR" (Ringkasan/Aging/Rekapitulasi) — **MUST dikonfirmasi Finance Owner**. Bukti: [laporan BE-FIN-100](../task/report/backend/BE-FIN-100.md) |
 
 ---
 
@@ -1437,7 +1437,606 @@ flowchart TD
 | # | Prasyarat | Status |
 |:--:|---|:---:|
 | 1 | Approval Blueprint Revisi 18 | ✅ **DIBERIKAN** (Yasmin, 6 Oktober 2026) |
-| 2 | Migration Billing `AddEmployeeBenefitColumnsToBilArHandoff` | 🟡 Menahan eksekusi runtime `BE-FIN-091` |
-| 3 | Otorisasi eksekusi migrasi database `BE-FIN-092` | 🟡 Milik pemilik repository |
+| 2 | Migration Billing `AddEmployeeBenefitColumnsToBilArHandoff` | 🟡 File migration dibuat 10 Oktober 2026 oleh `BE-FIN-091` (wewenang cross-module eksplisit pengguna — lihat §0 [laporan BE-FIN-091](../task/report/backend/BE-FIN-091.md)), **belum diterapkan** ke database. Tetap menahan eksekusi runtime `BE-FIN-091` sampai pemilik menjalankan `dotnet ef database update` |
+| 3 | Otorisasi eksekusi migrasi database `BE-FIN-092` | 🟡 Milik pemilik repository. Model dan configuration selesai 10 Oktober 2026, tetapi file migration `AddFinanceReceivableInstallmentAndBenefitSettlement` itu sendiri **belum dibuat** — instruksi eksplisit pengguna "tanpa build dan migration automatis". Lihat [laporan BE-FIN-092](../task/report/backend/BE-FIN-092.md) |
 | 4 | QBE preflight check & audit invariant | Wajib dijalankan pada permulaan tiap task |
 
+---
+
+## Perbaikan `ISSUE-FIN-001` — Laporan AR dan Report AR Created
+
+Dokumen issue: [`../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md`](../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md`](../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut untuk `FIX-FIN-001-01` dan `FIX-FIN-001-03`.
+
+### Backend Governance Preflight
+
+| Field | Nilai |
+| --- | --- |
+| Area | Corporate |
+| Module / Submodule | FinanceManagement / Receivable |
+| Owner / Prefix | `Fin` (`MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 15, status `ACTIVE`) |
+| Applicability | `TOUCHED LEGACY` — memperbaiki method pada service yang sudah ada, nol entity/model/table baru |
+| QBE ID berlaku | Tidak ada QBE baru yang terpicu (nol model baru, nol endpoint baru, nol migration) |
+
+### 🟡 `BE-FIN-101` — Perbaiki dua nama kolom SQL salah dan urutan baca reader/koneksi pada Laporan AR
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai untuk `FIX-FIN-001-01` dan `FIX-FIN-001-03`; [laporan](../task/report/backend/BE-FIN-101.md). `dotnet build` **NOT RUN** — instruksi eksplisit pemilik pada sesi ini: "jangan lakukan build dotnet secara automatis". Merujuk `ISS-FIN-001-01`, `ISS-FIN-001-02`, `ISS-FIN-001-T1` |
+| **Gelombang** | Di luar gelombang — task perbaikan bug pasca-laporan pemilik, `PLAN-REPAIR-FIN-001` |
+| **Wewenang** | `PLAN-REPAIR-FIN-001` bagian 4 (`FIX-FIN-001-01`, `FIX-FIN-001-03`), disetujui pemilik 11 Oktober 2026 |
+
+**Bisnis prosesnya.** Petugas Finance yang membuka Laporan AR tidak lagi mendapat "Terjadi kesalahan pada server" — laporan tagihan Billing ke Finance AR kembali dapat dibuka, disaring, dan diekspor. Menyaring laporan dengan satu Penjamin tertentu juga tidak lagi berisiko gagal akibat urutan baca database yang salah.
+
+**Acceptance criteria.**
+
+1. `GET /api/v1/corporate/finance-management/receivables/reports/billing-ar` (tanpa saringan) mengembalikan HTTP 200, bukan 500/42703.
+2. `ORDER BY` pada `LATERAL JOIN` `FinBillingHandoffIntake` dan `FinReceivableInvoiceBatch` memakai `"CreateDateTime"` (kolom asli `IdentityModel`), bukan `"CreatedAt"`.
+3. Menyaring dengan `payerId` tertentu mengembalikan `summary.PayerName` berisi nama penjamin yang benar, tanpa galat koneksi/reader tambahan.
+4. Seluruh nilai ringkasan dan daftar lain (jumlah invoice, nominal, status) tidak berubah dari logika sebelumnya — perbaikan ini murni nama kolom dan urutan eksekusi, nol perubahan hasil hitung.
+
+**Bukti verifikasi.** Pembacaan source sebelum/sesudah (diff dua method: `BuildFromWhereClause`, `ExecuteSummaryQueryAsync`); penelusuran migration snapshot terbaru (`Migrations/20261010115612_...Designer.cs`) untuk mengonfirmasi nama kolom `CreateDateTime` pada kedua tabel.
+
+**Yang dikecualikan.** `dotnet build`/`dotnet run` **NOT RUN**, sesuai instruksi eksplisit pemilik pada sesi ini — menunggu konfirmasi terpisah sebelum dijalankan. Uji manual terhadap database sungguhan (bagian 14 laporan asli pemilik: tanpa saringan, per penjamin, per jenis kunjungan, per periode, per status Billing/handoff/Invoice AR, paginasi, ekspor Excel/PDF) **NOT RUN** — menunggu `dotnet build` dan environment database yang sama.
+
+**Risiko.** Rendah untuk kebenaran (perbaikan nama kolom literal dan penataan ulang urutan baris, nol logika bisnis disentuh). Risiko tersisa murni administratif: task ini belum dapat ditandai ✅ sampai `dotnet build` dan uji manual terhadap database sungguhan dikonfirmasi pemilik.
+
+**Definition of Done.** `dotnet build` **PASS** (menunggu konfirmasi pemilik); uji manual keempat endpoint Laporan AR dengan kombinasi saringan pada plan-repair bagian 8 **PASS**; laporan tracked ada; roadmap dan traceability diperbarui.
+
+---
+
+## Perbaikan `ISSUE-FIN-002` — Settlement AR
+
+Dokumen issue: [`../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "Kerjakan semua lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut (Opsi (a): tetapkan implementasi V2 Settlement AR sebagai desain resmi) untuk `FIX-FIN-002-01` dan `FIX-FIN-002-02`. P-02 (stack trace asli) terjawab bukan dari pelapor, melainkan ditemukan langsung pada `Logs/quilvian-backend-20261011.json` oleh agent pelaksana.
+
+### Backend Governance Preflight
+
+| Field | Nilai |
+| --- | --- |
+| Area | Corporate |
+| Module / Submodule | FinanceManagement / Receivable |
+| Owner / Prefix | `Fin` (`MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 15, status `ACTIVE`) |
+| Applicability | `TOUCHED LEGACY` — memperbaiki method pada service yang sudah ada, nol entity/model/table baru |
+| QBE ID berlaku | Tidak ada QBE baru yang terpicu (nol model baru, nol endpoint baru, nol migration) |
+
+### 🟡 `BE-FIN-102` — Perbaiki HTTP 500 Settlement AR (translasi EF) dan duplikasi baris invoice batch
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai untuk `FIX-FIN-002-01` dan `FIX-FIN-002-02`; [laporan](../task/report/backend/BE-FIN-102.md). `dotnet build`/`dotnet run` **NOT RUN** — instruksi eksplisit pemilik pada sesi ini: "jangan lakukan build dotnet secara automatis". Merujuk `ISS-FIN-002-01`, `ISS-FIN-002-02` |
+| **Gelombang** | Di luar gelombang — task perbaikan bug pasca-laporan pemilik, `PLAN-REPAIR-FIN-002` |
+| **Wewenang** | `PLAN-REPAIR-FIN-002` bagian 4 (`FIX-FIN-002-01`, `FIX-FIN-002-02`), disetujui pemilik 11 Oktober 2026 |
+
+**Bisnis prosesnya.** Petugas Finance yang membuka Settlement AR kategori apa pun tidak lagi
+mendapat "Terjadi kesalahan pada server" saat mengurutkan berdasarkan nama pasien (urutan
+default) atau mencari dengan kata kunci bebas. Piutang yang pernah mengalami pembatalan/
+penerbitan ulang batch invoice tidak lagi tampil dua kali pada daftar maupun ringkasan.
+
+**Acceptance criteria.**
+
+1. `GET /api/v1/corporate/finance-management/receivables/settlement?category=COMPANY&pageNumber=1&pageSize=10&sortBy=patientName&sortDirection=asc` mengembalikan HTTP 200, bukan 500.
+2. Request yang sama dengan tambahan `search=<kata kunci>` juga mengembalikan HTTP 200.
+3. `ApplySorting` dan filter `Search` tidak lagi merujuk `x.debtorResolvedName` pada klausa yang berjalan sebelum materialisasi — dihitung ulang langsung dari `x.pat`/`x.comp`/`x.ins`/`x.emp`.
+4. `batchSubquery` menyaring `!IsDelete`; piutang dengan membership batch ganda (satu soft-delete, satu aktif) tampil tepat satu kali.
+5. Nol perubahan kontrak API, DTO, atau skema database.
+
+**Bukti verifikasi.** Pembacaan source sebelum/sesudah (`SettlementQueryRow`, proyeksi,
+`ApplySorting`, filter `Search`, `batchSubquery`); `Logs/quilvian-backend-20261011.json` sebagai
+bukti exception asli sebelum perbaikan.
+
+**Yang dikecualikan.** `dotnet build`/`dotnet run` **NOT RUN**, sesuai instruksi eksplisit
+pemilik pada sesi ini — menunggu konfirmasi terpisah sebelum dijalankan. Uji manual terhadap
+database sungguhan (request yang dilaporkan, variasi `search`, data uji membership batch ganda)
+**NOT RUN** — menunggu `dotnet build` dan environment database yang sama.
+
+**Risiko.** Rendah untuk kebenaran (perubahan menghitung ulang ekspresi yang sudah ada di file
+yang sama, nol logika bisnis baru). Risiko tersisa murni administratif: task ini belum dapat
+ditandai ✅ sampai `dotnet build` dan uji manual terhadap database sungguhan dikonfirmasi
+pemilik.
+
+**Definition of Done.** `dotnet build` **PASS** (menunggu konfirmasi pemilik); uji manual
+request yang dilaporkan beserta variasi `search` dan data uji membership batch ganda pada
+plan-repair bagian 8 **PASS**; laporan tracked ada; roadmap dan traceability diperbarui.
+
+
+---
+
+# AMENDMENT ROADMAP REVISI 19 — Penutupan Gap Implementasi `EPIC FIN-04` (Piutang Manfaat Karyawan)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-19
+blueprint_revision: 19   # draft (Revisi 19 menulis FIN-INTEGRATION-1.9); revisi 18 tetap approved
+roadmap_status: disetujui pemilik 13 Oktober 2026; kontrak FIN-INTEGRATION-1.9 approved sisi Finance dan HR (FIN-DEC-212); konfirmasi Billing dan Registrasi menunggu
+decisions: [FIN-DEC-161..FIN-DEC-210]   # FIN-DEC-204..210 baru, 13 Oktober 2026
+open_questions: [FIN-OQ-106, FIN-OQ-108, FIN-OQ-109]   # FIN-OQ-104 dan 107 CLOSED; FIN-OQ-105 CLOSED sebagai draft kontrak
+contract_versions_berlaku: [FIN-INTEGRATION-1.8, FIN-API-1.9, FIN-VAL-1.11, FIN-STATE-1.8, FIN-PERM-1.10]
+contract_versions_approved: [FIN-INTEGRATION-1.9, FIN-API-1.10, FIN-STATE-1.9, FIN-VAL-1.12, FIN-PERM-1.11]   # approved sisi Finance dan HR, 13 Oktober 2026
+contract_versions_draft: [FIN-TEST-1.13, FIN-MVP-1.14]
+source_sha: tidak tersedia (folder kerja bukan repository git); bukti dibaca langsung dari working tree 13 Oktober 2026
+input_hash: tidak dihitung
+task_range_backend: BE-FIN-103..BE-FIN-113
+tanggal: 13 Oktober 2026
+```
+
+## Sifat Gelombang Ini
+
+`REV-18` menyelesaikan **sisi Finance** dari piutang karyawan. Audit kemampuan 13 Oktober 2026
+menemukan tiga hal yang masih kurang, dan `REV-19` memecahnya menjadi task:
+
+1. **Piutang belum bisa lahir.** Registrasi belum menautkan pasien ke pegawai dan keluarganya, Billing
+   belum menerbitkan dua baris serah terima, dan HR belum punya layanan untuk sisa plafon.
+2. **Potong gaji belum tertutup.** Finance sudah punya endpoint penerima hasil potongan, tetapi HR belum
+   punya mesin yang memotong dan mengirim hasilnya.
+3. **Gerbang berhenti kerja belum terpasang.** `TrxExitClearance.IsFinanceCleared` hanya kolom; tidak ada
+   yang mengisi atau membacanya.
+
+Aturan gelombang ini: **nol source aplikasi diubah** oleh dokumen ini, **tidak ada task yang ditandai
+selesai**, dan **tidak ada builder yang dijalankan** sebelum pemilik menyetujui rencana dan memberi wewenang
+tulis per task. Pengerjaan lintas modul (HR, Billing, Registrasi) memakai pola `REV-18`: wewenang
+lintas modul **harus eksplisit** dari pemilik pada tiap task.
+
+### Legenda tanda status
+
+| Tanda | Arti |
+|:---:|---|
+| ✅ | Acceptance criteria dan DoD sudah terbukti |
+| 🟡 | Source sudah ada tetapi kriterianya belum terbukti penuh |
+| ⛔ | Tertahan keputusan atau gerbang (nama penahannya disebut) |
+| tanpa tanda | Belum disentuh |
+
+---
+
+## Pembaruan REV-19.1 — Sesudah Persetujuan Pemilik dan Penulisan `FIN-INTEGRATION-1.9` (13 Oktober 2026)
+
+| # | Yang berubah | Dasar | Dampak pada roadmap |
+|---:|---|---|---|
+| 1 | Pemilik **menyetujui rencana `REV-19`** | Pernyataan langsung pemilik, 13 Oktober 2026 | `roadmap_status` menjadi disetujui; task tetap tertahan oleh gerbangnya masing-masing |
+| 2 | `FIN-OQ-104` **CLOSED**: slice HR (Benefit, Payroll, Offboarding) dibuka | `FIN-DEC-206` | Node `FIN-OQ-104` bertanda ✅ pada grafik dan tidak lagi menahan `BE-FIN-103`, `110`, `112` |
+| 3 | `FIN-OQ-105` **CLOSED sebagai draft**: `FIN-INTEGRATION-1.9` ditulis | `contracts/integration-contract.md` bagian `R` | Node `FIN-OQ-105` tetap ⛔ sampai pemilik **menyetujui** kontrak. `BE-FIN-103` **kini bergantung** pada persetujuan itu karena endpoint HR-nya hanya terdefinisi di `FIN-API-1.10` (draft): pasangan dependency naik dari 27 menjadi **28** |
+| 4 | `BE-FIN-105` **dipersempit** menjadi skema dan salinan snapshot; pencarian pegawai dan aturan "harus terdaftar" dipindah ke `BE-FIN-106` | Agar `BE-FIN-105` tidak bergantung pada kontrak yang belum disetujui | `BE-FIN-105` tetap satu-satunya task gelombang 1 |
+| 5 | `BE-FIN-107` menampung **pilihan pegawai** (`FIN-DEC-208`), kolom `DeferredPatientAmount`, dan koreksi §`P.1` | `FIN-DEC-208`, `210` | Cakupan `BE-FIN-107` bertambah; `BE-FIN-107` **tidak boleh dirilis tanpa `BE-FIN-108`** |
+| 6 | `FIN-DEC-207`: saldo per orang; `FIN-DEC-209`: pegawai tanpa enrollment ditolak; `FIN-OQ-107` **CLOSED** | `FIN-DEC-207`, `209` | Aturan `BE-FIN-103`, `104`, `106` terkunci |
+| 7 | `G-TR-01` **ditutup**: `FR-FIN-238`..`252` ditetapkan | `04-prd-to-mvp.md` bagian 72 | Kolom traceability memuat nomor `FR` |
+| 8 | Pertanyaan baru: `FIN-OQ-108` (siapa mencatat pilihan; persetujuan pegawai), `FIN-OQ-109` (kategori benefit layanan RS; pemetaan hubungan) | Log keputusan 13 Oktober 2026 (sesi lanjutan) | Tidak memblokir `BE-FIN-105`; `FIN-OQ-109` perlu dijawab pemilik HR sebelum `BE-FIN-103`/`106` dieksekusi |
+
+---
+
+## Pembaruan REV-19.2 — Persetujuan Kontrak dan Gerbang (13 Oktober 2026, sesi `grill-me`)
+
+| # | Yang berubah | Dasar | Dampak pada roadmap |
+|---:|---|---|---|
+| 1 | `FIN-INTEGRATION-1.9`, `FIN-API-1.10`, `FIN-STATE-1.9`, `FIN-VAL-1.12`, `FIN-PERM-1.11` **disetujui** sisi pemilik Finance dan HR; `FIN-OQ-105` ✅ | `FIN-DEC-212` | Kontrak tidak lagi menahan `BE-FIN-103`, `104`, `106`, `107`, `108`. Konfirmasi pemilik Billing dan Registrasi tetap menunggu |
+| 2 | `GATE-01` ✅: build sukses, dua migration diterapkan | `FIN-DEC-213` (laporan pemilik) | `BE-FIN-107`, `110`, `113` tidak lagi tertahan `GATE-01` |
+| 3 | `FIN-OQ-106` terjawab sebagian: mesin payroll run dibangun HR di sistem ini | `FIN-DEC-214` | `BE-FIN-110` **tertahan mesin yang belum ada**; perlu dipecah. Pemecahan dikerjakan `plan-module-delivery`, bukan di sini |
+| 4 | `FIN-DEC-210` disetujui; tafsiran `FIN-DEC-208` dan `FIN-OQ-109` dikonfirmasi | Log keputusan, sesi `grill-me` | Tidak mengubah dependency |
+| 5 | **Jembatan manual potong gaji** sampai mesin payroll ada: ekspor jadwal per periode; unggah dan pengesahan hasil dengan pengaju–penyetuju dan bukti; terkunci per periode setelah mesin aktif | `FIN-DEC-215`, `219`..`222` | **Belum ada task** pada roadmap ini. Perlu revisi kontrak lalu `plan-module-delivery` |
+| 6 | Pilihan "jadikan utang" untuk pasien selain pegawai wajib mencatat nama pemberi persetujuan | `FIN-DEC-218` | Menambah cakupan `BE-FIN-107` dan `FE-FIN-047` **setelah** kontrak direvisi |
+| 7 | Urutan dan batas potongan piutang RS di mesin payroll (sesudah potongan wajib; persentase gaji bersih) | `FIN-DEC-216`, `217`; `FIN-OQ-111` terbuka | Menjadi aturan mesin payroll HR yang akan dipisahkan dari `BE-FIN-110` |
+
+**Wewenang tulis lintas modul tetap per task.** Dengan kontrak disetujui, task yang tidak lagi tertahan gerbang dan **siap dimulai begitu
+pemilik memberi wewenang tulis lintas modul eksplisit**: `BE-FIN-105`, `BE-FIN-103` (gelombang 1), lalu `BE-FIN-104` dan `BE-FIN-106`
+(gelombang 2). `BE-FIN-107` menyusul `BE-FIN-104`, `106`, dan `BE-FIN-091` 🟡; `BE-FIN-107` dan `BE-FIN-108` dirilis bersamaan.
+
+---
+
+## Ringkasan Audit Kemampuan — Dasar Rencana Ini (13 Oktober 2026)
+
+| # | Kebutuhan | Status | Bukti ringkas | Ditutup oleh |
+|---:|---|---|---|---|
+| 1 | Registrasi menautkan pasien ke pegawai dan hubungan keluarga | `Missing` | `RegPatientEncounterGuarantor.cs:113` hanya menyimpan nomor dan nama karyawan sebagai teks; kartu pasien tidak punya `Guid` pegawai maupun jenis hubungan | `BE-FIN-105`, `BE-FIN-106` |
+| 2 | Billing memecah dua porsi dan menerbitkan dua serah terima | `Missing` | `BillingArApHandoffService.cs:45,77` hanya menerbitkan `PatientGuarantor` dan `Payer` | `BE-FIN-107` |
+| 3 | Sumber dan pemakaian sisa plafon | `Missing` di HR | Sumber sudah diputuskan (`FIN-DEC-185`, `202`), tetapi `TrxEmployeeBenefitEnrollment`/`TrxEmployeeBenefitDependent` hanya model: nol controller, nol service | `BE-FIN-103`, `104`, `108` |
+| 4 | Finance: intake, cicilan, pelunasan, penutupan subsidi RS, migrasi saldo | `Ready to reuse` (belum pernah dikompilasi) | `FinanceBillingIntakeService.cs:465`, `Program.cs:400-416`, `FinanceSettlementService.cs:769` | `REV-18` (menunggu `GATE-01`) |
+| 5 | HR memotong gaji dan melapor ke Finance | `Missing` di HR | `PayrollManagement` hanya berisi Models dan Controllers; tidak ada yang memanggil `payroll-results` | `BE-FIN-110` |
+| 6 | HR membaca status bebas tanggungan | `Missing` | `TrxExitClearance.cs:26` hanya kolom | `BE-FIN-112` |
+| 7 | Finance menerima notifikasi pemisahan pegawai | `Missing` | Pencarian `separation-notice`/`SeparationNotice`/`SEPARATION_PENDING` pada `Areas/` nol hasil | `BE-FIN-113` |
+| 8 | Koreksi salah orang dan restitusi potongan | `Missing` sebagian | Finance membatalkan piutang lama; Billing tak punya jalur serah terima pengganti; restitusi belum ada | `BE-FIN-109`, `BE-FIN-111` |
+| 9 | Layar frontend | `Missing` | Tidak ada source maupun laporan untuk `FE-FIN-038..041` | `FE-FIN-038..041` (`REV-18`), `FE-FIN-045..048` |
+
+---
+
+## Bisnis Proses yang Ditutup — Pasien Keluarga Karyawan Berobat
+
+**Tujuan.** Tagihan pasien keluarga karyawan dibagi dengan benar antara subsidi RS (sesuai sisa plafon)
+dan tanggungan pegawai, lalu piutang pegawai bisa dicicil lewat potong gaji.
+
+**Pelaku.**
+
+| Pelaku | Tugas |
+|---|---|
+| Petugas HR | Mendaftarkan pegawai ke plan benefit, mendaftarkan dan memverifikasi anggota keluarga |
+| Petugas Registrasi | Mencari pegawai, memilih anggota keluarga, menerbitkan kartu penjamin internal |
+| Sistem Billing | Membaca sisa plafon, membagi tagihan, menerbitkan dua serah terima, mengurangi plafon |
+| Petugas Finance | Menerima piutang, mengajukan cicilan, menutup subsidi RS berkala |
+| Pejabat penyetuju Finance | Menyetujui cicilan (bukan orang yang sama dengan pengaju) |
+| Payroll HR | Memotong gaji sesuai jadwal dan melaporkan hasilnya |
+
+**Pemicu.** Pasien keluarga karyawan mendaftar berobat.
+
+**Prasyarat.** Pegawai punya enrollment benefit aktif. Pasien terdaftar di HR sebagai anggota keluarga
+aktif **dan** tanggungan benefit yang sudah diverifikasi (`FIN-DEC-204`).
+
+**Langkah utama.**
+
+1. Petugas Registrasi mengetik NIP, NIK, atau nama pegawai pada kolom pencarian (bukan mengetik nomor karyawan bebas).
+2. Petugas memilih pegawai, lalu memilih anggota keluarga yang akan berobat.
+3. Sistem memeriksa syarat `FIN-DEC-204`. Bila lolos, kartu penjamin internal terbit dan menyimpan tautan pegawai, tautan anggota keluarga, serta kode hubungan.
+4. Pelayanan medis berjalan. Saat tagihan siap difinalisasi, Billing membaca sisa plafon pasien dari HR.
+5. Billing membagi tagihan: porsi yang masuk plafon menjadi serah terima atas penjamin "RS Benefit", sisanya menjadi serah terima atas pegawai.
+6. Dalam transaksi finalisasi yang sama, Billing mengurangi sisa plafon di HR (`FIN-DEC-205`).
+7. Finance mencatat dua kartu piutang. Pegawai memilih lunas atau cicilan potong gaji.
+8. Cicilan disetujui pejabat; jadwalnya terbit ke Payroll HR; HR memotong gaji dan melapor ke Finance.
+9. Finance menutup porsi subsidi RS secara berkala lewat pelunasan internal.
+
+**Aturan bisnis dengan contoh.**
+
+| Aturan | Contoh (data samaran) |
+|---|---|
+| Piutang pegawai = kelebihan di atas sisa plafon (`FIN-DEC-164`) | Tagihan Rp 5.000.000, sisa plafon Rp 3.000.000. Porsi RS Benefit Rp 3.000.000, porsi pegawai Rp 2.000.000. Jumlahnya tetap Rp 5.000.000. |
+| Sisa plafon habis: seluruh tagihan jadi tanggungan pegawai | Tagihan Rp 1.000.000, sisa Rp 0. Porsi pegawai Rp 1.000.000. Baris RS Benefit bernilai Rp 0 **tidak** diterbitkan — usulan, menunggu `FIN-OQ-105`. |
+| Plafon dikurangi sekali per invoice | Invoice yang sama difinalisasi ulang karena jaringan putus: sisa plafon tetap, tidak berkurang dua kali. |
+| Orang yang belum terdaftar ditolak | Pak Andi (paman) tidak ada di HR. Kartu internal ditolak; didaftarkan sebagai Pasien Umum tunai. |
+
+**Perubahan status pemakaian plafon (indikatif, dikunci pada `FIN-INTEGRATION-1.9`).**
+
+| Dari | Tindakan | Ke | Siapa | Syarat |
+|---|---|---|---|---|
+| (belum ada) | Finalisasi invoice | `TERPAKAI` | Sistem Billing | Invoice belum pernah mengurangi plafon |
+| `TERPAKAI` | Finalisasi ulang invoice yang sama | `TERPAKAI` (tidak berubah) | Sistem Billing | Kunci `InvoiceId` sama |
+| `TERPAKAI` | Koreksi atau pembatalan invoice | `DIKEMBALIKAN` | Sistem Billing | Ada serah terima pembalik |
+
+**Jalur tidak normal.** HR tidak dapat dibaca saat finalisasi (perilaku **belum diputuskan**, `FIN-OQ-105`);
+pasien salah pegawai (alur koreksi `BE-FIN-109`); gaji tidak cukup (status `SEBAGIAN` atau `GAGAL`,
+tunggakan terbawa, `FIN-DEC-168`/`179`); pegawai berhenti dengan sisa piutang (gerbang `BE-FIN-112`).
+
+**Hasil akhir.** Piutang pegawai lunas atau tercatat sebagai cicilan berjalan; piutang RS Benefit ditutup
+berkala; saldo plafon di HR akurat per orang.
+
+---
+
+## Koreksi Bukti Basi dan Ketidakcocokan yang Ditemukan
+
+| # | Temuan | Bukti | Tindak lanjut |
+|---:|---|---|---|
+| K-01 | Roadmap `BE-FIN-092` dan prasyarat #3 `REV-18` menyebut migration `AddFinanceReceivableInstallmentAndBenefitSettlement` **belum dibuat** | `Migrations/20261010115612_AddFinanceReceivableInstallmentAndBenefitSettlement.cs` dan `.Designer.cs` **ada** | Perbarui teks pada penandaan ulang `BE-FIN-092`. Status penerapan ke database: `Unknown` |
+| K-02 | Laporan `BE-FIN-093` §3.A menyebut service Finance tampak tidak terdaftar di DI | `Program.cs:400-416` mendaftarkan service cicilan, payroll sync, clearance, migrasi, benefit settlement, dan settlement | Perbarui laporan `BE-FIN-093` |
+| K-03 | Header `integration-contract.md` (`FIN-INTEGRATION-1.8`) tertulis `draft`, sedangkan `blueprint-manifest.md` menyatakan disetujui 6 Oktober 2026 | `integration-contract.md` baris 910 vs `blueprint-manifest.md` `approval_revision_18` | Selaraskan header kontrak dengan manifest |
+| K-04 | Teks `P.1` menyebut `BenefitOwnerId` = `EmployeeId` / `WorkforceProfileId`; kode Finance memakai `MstEmployee.Id` | Lihat anotasi pada log keputusan | Ditulis pada `FIN-INTEGRATION-1.9` `R.4.1` (draft); komentar `BilArHandoff.cs:25` diperbaiki oleh `BE-FIN-107` |
+| K-05 | Teks `P.1` menyebut `HandoffStatus = "PENDING"`; kode memakai `BillingHandoffStatuses.Created` | `BillingArApHandoffService.cs:54,91` | Ditulis pada `FIN-INTEGRATION-1.9` `R.4.1` (draft) |
+| K-06 | `BilArHandoff.BenefitRelationship` maksimum 50 karakter, `FinReceivable.BenefitRelationship` maksimum 30 | `BilArHandoff.cs:29`, `FinReceivable.cs:52` | Kode baku (`SELF`, `SPOUSE`, `CHILD`, `PARENT`, `OTHER`) aman, tetapi batasnya tidak dijaga; diselaraskan di `BE-FIN-107` |
+| K-07 | Baris `BE-FIN-095` menyebut "notifikasi pemisahan", tetapi endpoint `separation-notice` tidak ditemukan | Pencarian `Areas/` nol hasil | Ditangani `BE-FIN-113` |
+
+---
+
+## Grafik Urutan Dependency — REV-19 Backend
+
+Roadmap ini sudah memakai grafik Mermaid sejak `REV-18`; satu berkas tidak boleh memuat dua bentuk grafik
+sekaligus, sehingga `REV-19` tetap Mermaid. Karena total node melebihi 15, grafik dipecah per slice dan
+diawali ringkasan antar-slice. Node berbentuk segi enam adalah keputusan atau gerbang.
+
+**Ringkasan antar-slice.**
+
+```mermaid
+flowchart LR
+    SA["Slice A<br/>Fondasi HR Benefit dan Registrasi<br/>BE-FIN-103..106"]
+    SB["Slice B<br/>Billing<br/>BE-FIN-107..109"]
+    SC["Slice C<br/>Payroll, Restitusi, Gerbang Berhenti<br/>BE-FIN-110..113"]
+    SA --> SB
+    SB --> SC
+```
+
+**Slice A — Fondasi HR Benefit dan Registrasi.**
+
+```mermaid
+flowchart LR
+    OQ104{{"FIN-OQ-104 ✅<br/>Slice HR dibuka (FIN-DEC-206)"}}
+    OQ105{{"FIN-OQ-105 ✅<br/>FIN-INTEGRATION-1.9 disetujui (FIN-DEC-212)"}}
+    BE103["BE-FIN-103 🟡<br/>HR: enrollment dan verifikasi keluarga"]
+    BE104["BE-FIN-104 🟡<br/>HR: baca, pakai, kembalikan plafon"]
+    BE105["BE-FIN-105 🟡<br/>Registrasi: skema tautan kartu dan salinan snapshot"]
+    BE106["BE-FIN-106 ⛔<br/>Registrasi: pencarian pegawai dan aturan harus terdaftar"]
+    OQ104 --> BE103
+    OQ105 --> BE103
+    BE103 --> BE104
+    OQ105 --> BE104
+    BE105 --> BE106
+    BE103 --> BE106
+    OQ105 --> BE106
+```
+
+**Slice B — Billing.** `[REV-18]` dan `[Slice A]` adalah cermin baca-saja; tandanya disalin dari pemiliknya.
+
+```mermaid
+flowchart LR
+    M091["BE-FIN-091 🟡 [REV-18]"]
+    M097["BE-FIN-097 🟡 [REV-18]"]
+    M104["BE-FIN-104 🟡 [Slice A]"]
+    M106["BE-FIN-106 ⛔ [Slice A]"]
+    G01{{"GATE-01 ✅<br/>Baseline kompilasi REV-18"}}
+    BE107["BE-FIN-107 ⛔<br/>Billing: baca plafon, pecah dua porsi, dua serah terima"]
+    BE108["BE-FIN-108 ⛔<br/>Billing: pakai plafon saat final, kembalikan saat koreksi"]
+    BE109["BE-FIN-109 ⛔<br/>Billing: serah terima pengganti dan Berita Acara Koreksi"]
+    M091 --> BE107
+    M104 --> BE107
+    M106 --> BE107
+    G01 --> BE107
+    BE107 --> BE108
+    M104 --> BE108
+    BE107 --> BE109
+    M097 --> BE109
+```
+
+**Slice C — Payroll, Restitusi, dan Gerbang Berhenti Kerja.**
+
+```mermaid
+flowchart LR
+    M091["BE-FIN-091 🟡 [REV-18]"]
+    M094["BE-FIN-094 🟡 [REV-18]"]
+    M095["BE-FIN-095 🟡 [REV-18]"]
+    M096["BE-FIN-096 🟡 [REV-18]"]
+    M109["BE-FIN-109 ⛔ [Slice B]"]
+    OQ104{{"FIN-OQ-104 ✅"}}
+    OQ106{{"FIN-OQ-106 ✅ sebagian<br/>Mesin payroll di sistem ini (FIN-DEC-214); mesinnya belum ada"}}
+    G01{{"GATE-01 ✅"}}
+    G02{{"GATE-02 ✅<br/>Diratifikasi (FIN-DEC-225)"}}
+    G03{{"GATE-03 ⛔<br/>Mesin payroll run HR tersedia"}}
+    OQ111{{"FIN-OQ-111 ⛔<br/>Nilai batas potongan"}}
+    BE110["BE-FIN-110 ⛔<br/>Potongan cicilan di dalam mesin payroll HR"]
+    BE111["BE-FIN-111 ⛔<br/>Restitusi potongan salah orang"]
+    BE112["BE-FIN-112 ⛔<br/>HR Offboarding: gerbang bebas tanggungan"]
+    BE113["BE-FIN-113 ⛔<br/>Finance: terima notifikasi pemisahan pegawai"]
+    M094 --> BE110
+    M095 --> BE110
+    OQ104 --> BE110
+    OQ106 --> BE110
+    G01 --> BE110
+    G02 --> BE110
+    G03 --> BE110
+    OQ111 --> BE110
+    BE110 --> BE111
+    M109 --> BE111
+    M096 --> BE112
+    BE113 --> BE112
+    OQ104 --> BE112
+    M091 --> BE113
+    G01 --> BE113
+```
+
+**Pemeriksaan konsistensi.** Pasangan prasyarat → task: Slice A **7**, Slice B **8**, Slice C **15**; total
+**30** (ditambah Slice D **9** pada `REV-21`: **39**). Jumlah entri kolom `Dependency` pada tabel task `REV-19` dan `REV-21` juga **39**. Grafik bebas siklus.
+
+---
+
+## Tabel Gelombang Eksekusi — REV-19 Backend
+
+| Gelombang | Boleh mulai setelah | Task |
+|---:|---|---|
+| 1 | — | `BE-FIN-105` 🟡 (butuh wewenang tulis lintas modul eksplisit dari pemilik) |
+| — | ⛔ menunggu persetujuan `FIN-INTEGRATION-1.9` (`FIN-OQ-105`); `FIN-OQ-104` ✅ | `BE-FIN-103` 🟡 |
+| — | ⛔ menunggu `BE-FIN-103` 🟡 dan `FIN-OQ-105` | `BE-FIN-104` 🟡 |
+| — | ⛔ menunggu `BE-FIN-105` 🟡, `BE-FIN-103` 🟡, dan `FIN-OQ-105` | `BE-FIN-106` |
+| — | ⛔ menunggu `GATE-01`, `BE-FIN-104` 🟡, `BE-FIN-106`, dan `BE-FIN-091` 🟡 | `BE-FIN-107` |
+| — | ⛔ menunggu `BE-FIN-107` dan `BE-FIN-104` 🟡 | `BE-FIN-108` |
+| — | ⛔ menunggu `BE-FIN-107` dan `BE-FIN-097` 🟡 | `BE-FIN-109` |
+| — | ⛔ menunggu `GATE-03` (mesin payroll HR), `FIN-OQ-111`, `BE-FIN-094` 🟡, `BE-FIN-095` 🟡 (`GATE-02` ✅) | `BE-FIN-110` |
+| — | ⛔ menunggu `BE-FIN-110` dan `BE-FIN-109` | `BE-FIN-111` |
+| — | ⛔ menunggu `BE-FIN-113` dan `BE-FIN-096` 🟡 (`FIN-OQ-104` ✅) | `BE-FIN-112` |
+| — | ⛔ menunggu `GATE-01` dan `BE-FIN-091` 🟡 | `BE-FIN-113` |
+
+**Jalan tercepat membuka rencana ini:** `GATE-01` (tindakan pemilik, tanpa menunggu pihak lain) membuka `BE-FIN-113` dan lewat itu
+`BE-FIN-112`; persetujuan `FIN-INTEGRATION-1.9` (`FIN-OQ-105`) membuka `BE-FIN-103` dan seluruh jalur plafon. `FIN-OQ-104` sudah terjawab.
+
+---
+
+## Prasyarat dan Gerbang — REV-19 Backend
+
+| ID | Isi | Pemilik | Status |
+|---|---|---|:---:|
+| `GATE-01` | **Baseline kompilasi `REV-18`.** Pemilik meminta atau menjalankan `dotnet build`, memperbaiki galat yang muncul, lalu menerapkan migration `20261010022402_AddEmployeeBenefitColumnsToBilArHandoff` dan `20261010115612_AddFinanceReceivableInstallmentAndBenefitSettlement` ke database dev. Seluruh source `REV-18` belum pernah dikompilasi bersama; agent **tidak** menjalankan build maupun migration secara otomatis | Pemilik repository | ⛔ |
+| `GATE-02` ✅ (`FIN-DEC-225`, 13 Oktober 2026) | **Ratifikasi amandemen kontrak.** Pemilik Finance dan HR meresmikan hasil `BE-FIN-094` (adapter `TrxPayrollRun`), `BE-FIN-095` (model penumpukan tunggakan), `BE-FIN-099` (kriteria `RecognizedAt`), dan `BE-FIN-100` (tiga laporan AR) yang ditandai `MUST diresmikan` | Pemilik Finance, pemilik HR | ⛔ |
+| `FIN-OQ-104` | Wewenang dan pembukaan tiga slice HR | Pemilik HR | **CLOSED** — `FIN-DEC-206` (13 Oktober 2026) |
+| `FIN-OQ-105` | Persetujuan `FIN-INTEGRATION-1.9` | Finance + Billing + HR + Registrasi | Draft ditulis 13 Oktober 2026; **menunggu persetujuan** |
+| `FIN-OQ-106` | Bentuk mesin potongan payroll HR (`HRD-Q-10`, `HRD-Q-11`) | Pemilik HR / Payroll | `OPEN` |
+| `FIN-OQ-108` | Siapa yang boleh mencatat pilihan pegawai, dan apakah persetujuan pegawai dicatat bila pasien bukan pegawai | Billing + Finance | `OPEN` (tidak memblokir `BE-FIN-105`) |
+| `FIN-OQ-109` | Kategori benefit untuk layanan RS dan pemetaan teks hubungan keluarga ke kode baku | Pemilik HR | `OPEN` (usulan baseline pada `FIN-INTEGRATION-1.9` `R.1`) |
+| Wewenang tulis lintas modul | Per task, pemilik menyatakan eksplisit repositori dan modul yang boleh ditulis, mengikuti pola `REV-18` (`BE-FIN-091`, `BE-FIN-094`) | Pemilik | Diminta saat tiap task dimulai |
+| Registry kepemilikan modul | Folder `BenefitManagement` dan tabel baru (ledger pemakaian plafon) harus terdaftar sebelum file model pertama dibuat (`QBE-MOD-002`, `QBE-MOD-003`) | Pemilik registry | Diperiksa saat eksekusi |
+
+---
+
+## Tabel Task REV-19 Backend
+
+Setiap handoff implementasi backend: **QBE preflight dan kesesuaian engineering diselesaikan pada waktu
+eksekusi** dari `AGENTS.md` backend target dan dokumen engineering canonical (`BACKEND_ENGINEERING_CONTRACT.md`,
+`MODULE_OWNERSHIP_PREFIX_REGISTRY.md`). Verifikasi backend yang dipetakan: QBE preflight/conformance, review
+diff dan cakupan, `dotnet restore` dan `dotnet build` (hanya setelah pemilik memintanya), verifikasi kontrak
+API, verifikasi proses bisnis, dan verifikasi manual/runtime bila relevan. Tidak ada task pengujian otomatis.
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 🟡 `BE-FIN-103` | Petugas HR dapat mendaftarkan pegawai ke plan benefit, lalu mendaftarkan dan memverifikasi anggota keluarga yang ditanggung, sehingga tiap orang punya plafon dan sisa plafon yang jelas | `FIN-DEC-185`, `189`, `201`, `202`, `204`; blueprint HR slice `S-D3` (`BLOCKED`) | `FIN-INTEGRATION-1.9` `R.2`, `R.3` (**draft**); `FIN-API-1.10` `R.1`, `R.2` (**draft**); `FIN-PERM-1.11` (**draft**) | `TrxEmployeeBenefitEnrollment`, `TrxEmployeeBenefitDependent`, `MstBenefitPlan.CoverageLimitAmount`, `WfpFamilyMember`, `WfpDependent`, pola controller `WorkforceCore` | Controller, service, dan DTO enrollment (status mengikuti kolom model) dan dependent (verifikasi); saldo awal diambil dari `CoverageLimitAmount` plan; aturan `MaximumDependents`; tautan `FamilyMemberId`. **Di luar cakupan:** klaim (`TrxBenefitClaim*`) dan asuransi (`TrxEmployeeInsuranceEnrollment`) | `{FIN-OQ-104}` ✅, `{FIN-OQ-105}` ✅ | 1. Pegawai yang di-enroll ke plan berplafon Rp 10.000.000 punya `RemainingAmount` Rp 10.000.000. 2. Dependent tidak bisa diverifikasi tanpa `FamilyMemberId` yang valid dan aktif. 3. Melebihi `MaximumDependents` ditolak. 4. Dependent di luar masa berlaku tidak dihitung eligible. 5. Hak akses enrollment terpisah dari hak akses master data | QBE preflight; review diff; verifikasi kontrak API; verifikasi proses bisnis; `dotnet build` hanya atas permintaan pemilik | Pemilik HR. **Risiko:** membuka slice `BLOCKED` milik pemilik HR; aturan ratchet nama `Trx*` → `Hrd*` ditentukan preflight | Preflight selesai; build PASS atas permintaan pemilik; kontrak API cocok; laporan tracked. 🟡 **SEBAGIAN, 13 Oktober 2026.** 18 endpoint (12 enrollment, 6 tanggungan), 2 service, DTO, konstanta, kolom `RowVersion`, 3 check constraint, 2 indeks unik baru selesai ditulis. `dotnet build` **NOT RUN** oleh agent (preferensi pemilik); file migration `20261013055556_TableHrdBenefitBalanceMovements` dibuat di luar sesi agent (13 Oktober 2026, 12:55), **belum diterapkan**. AC 1, 2, 3, 5 terpenuhi di source, belum terbukti runtime; AC 4 sebagian (penilaian terhadap tanggal layanan ada pada `BE-FIN-106`). DoD yang belum: build PASS. Bukti: [laporan BE-FIN-103](../task/report/backend/BE-FIN-103.md) |
+| 🟡 `BE-FIN-104` | Billing dapat bertanya "berapa sisa plafon orang ini", mengurangi saat tagihan final, dan mengembalikan bila dikoreksi — tanpa pengurangan ganda | `FIN-DEC-185`, `202`, `205` | `FIN-INTEGRATION-1.9` `R.3` (**draft**) | `TrxEmployeeBenefitDependent.UsedAmount`/`RemainingAmount`, `TrxEmployeeBenefitEnrollment`, pola idempotensi kunci per invoice yang sudah ada | Layanan HR in-process: baca sisa, pakai (kunci `InvoiceId`), kembalikan; ledger pemakaian per invoice (entity baru; wajib terdaftar di registry); kontrol konkurensi per orang | `BE-FIN-103` 🟡, `{FIN-OQ-105}` ✅ | 1. Sisa Rp 3.000.000, pakai Rp 3.000.000 untuk invoice A: sisa Rp 0. 2. Pakai invoice A lagi: sisa tetap Rp 0, jawaban sukses (idempoten). 3. Kembalikan invoice A: sisa Rp 3.000.000. 4. Pakai melebihi sisa ditolak `422`. 5. Dua finalisasi bersamaan untuk orang yang sama: tidak ada pengurangan melebihi saldo | QBE preflight; review diff; verifikasi kontrak; verifikasi proses bisnis; `dotnet build` atas permintaan pemilik | Pemilik HR. **Risiko:** konkurensi saldo; entity baru butuh entri registry | Preflight selesai; kontrak cocok; laporan tracked. 🟡 **SEBAGIAN, 13 Oktober 2026.** Layanan `EmployeeBenefitBalanceService` (baca, pakai, kembalikan; in-process), `EmployeeBenefitEligibilityService.CheckAsync`, entity `HrdBenefitBalanceMovement` (5 check constraint, 2 indeks unik), dan `GET /{id}/movements` selesai ditulis. `dotnet build` **NOT RUN** oleh agent (pemilik meminta tanpa build); file migration `20261013055556_TableHrdBenefitBalanceMovements` (bersama `BE-FIN-103`) dibuat di luar sesi agent, **belum diterapkan**. AC 1–5 terpenuhi di source, belum terbukti runtime; AC 4 berupa hasil `INSUFFICIENT` yang dipetakan `422` oleh pemanggil. DoD yang belum: build atas permintaan pemilik. Bukti: [laporan BE-FIN-104](../task/report/backend/BE-FIN-104.md) |
+| 🟡 `BE-FIN-105` | Kartu pasien dan data kunjungan dapat menyimpan tautan pasti ke pegawai dan anggota keluarga beserta kode hubungan, tanpa mengubah perilaku kartu yang sudah ada | `FIN-DEC-197`, `198`, `199`; `FR-FIN-241` | `FIN-INTEGRATION-1.8` (keputusan `R1`..`R3` disetujui); `data/data-dictionary.md` bagian 9.4 dan 9.5 | `MstPatientCompanyGuarantor`, `RegPatientEncounterGuarantor` (kolom snapshot), `EncounterPaymentSourceService` (penyalinan kartu ke kunjungan, baris 457-458, reset 508-509) | Tiga kolom nullable pada kartu (`EmployeeId`, `FamilyMemberId`, `BenefitRelationship`) dan tiga snapshot pada kunjungan; check constraint dan indeks; file migration (tidak diterapkan); `EncounterPaymentSourceService` menyalin ketiganya; DTO respons kartu menampilkan ketiganya (hanya-baca). **Di luar cakupan:** pencarian pegawai, pemeriksaan kelayakan, dan aturan "harus terdaftar" (ada pada `BE-FIN-106`); perilaku simpan kartu **tidak berubah** | — | 1. Kartu lama tanpa tautan tetap terbaca dan tersimpan seperti semula. 2. Ketiga kolom kartu kosong semua, atau terisi konsisten (`SELF` tanpa `FamilyMemberId`), ditegakkan database. 3. Kunjungan yang memakai kartu bertautan menyalin ketiga snapshot persis dari kartu; kartu tanpa tautan menghasilkan snapshot kosong. 4. Snapshot dikosongkan bersama snapshot lain saat sumber pembayaran dilepas. 5. Tidak ada kolom sensitif yang masuk log | QBE preflight; review diff; verifikasi proses bisnis; `dotnet build` atas permintaan pemilik | Pemilik Registrasi dan Patient Management. **Risiko:** menyentuh alur registrasi inti; FK lintas area bisa ditolak preflight (dikerjakan sebagai `Guid` tanpa FK) | Preflight selesai; file migration siap; laporan tracked. 🟡 **SEBAGIAN, 13 Oktober 2026.** Tiga kolom tautan HR pada kartu (FK `Restrict` ke `MstEmployee`/`WfpFamilyMember`, `CK_MstPatientCompanyGuarantor_BenefitLink`, indeks terfilter), tiga snapshot pada kunjungan (tanpa FK), penyalinan di registrasi dan ganti penanggung, pengosongan saat sumber dilepas, dan tiga field hanya-baca di respons kartu selesai ditulis (8 berkas). `dotnet build` **NOT RUN** oleh agent (pemilik meminta tanpa build). File migration `20261013055825_AddEmployeeLinkToPatientCompanyGuarantor` dibuat di luar sesi agent (12:58, semula bernama `ProbeCheck2`, diganti nama atas permintaan pemilik) dan isinya cocok; **belum diterapkan**. AC 1–5 terpenuhi di source, belum terbukti runtime. Bukti: [laporan BE-FIN-105](../task/report/backend/BE-FIN-105.md) |
+| ⛔ `BE-FIN-106` | Petugas Registrasi mencari pegawai dan keluarganya dari data HR, dan kartu penjamin internal hanya terbit bila orangnya benar-benar terdaftar dan terverifikasi; bila tidak, ditolak dan pasien didaftarkan sebagai Pasien Umum tunai | `FIN-DEC-199`, `201`, `204`, `207`, `209`; `FR-FIN-238`..`240` | `FIN-INTEGRATION-1.9` `R.2` (**draft**); `FIN-API-1.10` `R.3`, `R.4` (**draft**); `FIN-VAL-1.12` (**draft**) | `BE-FIN-103`, `BE-FIN-105`, pencarian pegawai `EmployeeController` (`reuse with adapter`: hak akses HR), `WfpFamilyMember`, `TrxEmployeeBenefitDependent` | `EmployeeBenefitLookupController`, `RegistrationEmployeeBenefitLookupService`, dan `EmployeeBenefitEligibilityService` (`CariPegawai`, `DaftarKeluarga`, `PeriksaKelayakan`); validasi saat kartu dibuat atau diubah dan saat kunjungan memakai kartu; kode hubungan diisi sistem dari hasil pemeriksaan; pesan penolakan yang jelas | `BE-FIN-105` 🟡, `BE-FIN-103` 🟡, `{FIN-OQ-105}` ✅ | 1. Mengetik "198" menampilkan pegawai aktif yang cocok (NIK tersamar, maksimum 20); "19" ditolak `400`. 2. Sari terdaftar dan terverifikasi: kartu terbit, hubungan `CHILD`. 3. Pak Andi tidak terdaftar: ditolak "Pasien belum terdaftar sebagai tanggungan pegawai di HR. Daftarkan di HR terlebih dahulu atau daftarkan sebagai Pasien Umum." 4. Tanggungan belum terverifikasi atau di luar masa berlaku: ditolak dengan pesan berbeda. 5. Pegawai tanpa enrollment aktif ditolak (`FIN-DEC-209`). 6. Klien yang mengirim kode hubungan ditolak `400`. 7. Pencarian hanya mengembalikan NIP, NIK tersamar, nama, dan unit | QBE preflight; review diff; verifikasi kontrak API; verifikasi proses bisnis | Pemilik Registrasi + HR. **Risiko:** butir hak akses baru `EmployeeBenefitLookup : Read`; konfirmasi `FIN-DEC-204` dan `209` dari pemilik Registrasi belum turun; `FIN-OQ-109` | Preflight selesai; kontrak cocok; laporan tracked |
+| ⛔ `BE-FIN-107` | Saat tagihan pasien berpenjamin internal difinalisasi, Billing membaca plafon, membagi porsi RS Benefit dan porsi pegawai, mencatat pilihan pegawai atas sisa tagihan pasien, dan menerbitkan satu atau dua baris serah terima | `FIN-DEC-164`, `183`, `184`, `185`, `186`, `198`, `202`, `205`, `207`, `208`, `210`; `FR-FIN-220`..`222`, `246`..`248`, `250`..`252` | `FIN-INTEGRATION-1.8` §`P.1` yang dikoreksi `FIN-INTEGRATION-1.9` `R.3`, `R.4` (**draft**); `FIN-API-1.10` `R.5` (**draft**) | `BillingArApHandoffService.StageHandoffsForFinalizationAsync`, `BilArHandoff` (kolom sudah ada), `BillingCalculationService` dan `BillingCoverageAdapter` (`PrimaryAmount`), `FinalizeInvoiceRequest`, `FinalizationPreviewResponse`, `FinanceBillingIntakeService` (konsumen), `BE-FIN-091` | Menuntaskan `M.1.1`..`M.1.2` dari `BE-FIN-091`: `BillingEmployeeBenefitSplitService` (`P = min(C, S)`, `E = C − P`, `D`); pratinjau `EmployeeBenefitSplit`; field `EmployeeReceivableChoiceAmount`; kolom `DeferredPatientAmount` beserta constraint dan migration; baris nol tidak diterbitkan; `BenefitOwnerId` = `MstEmployee.Id`; finalisasi ditahan bila plafon tidak terbaca; penjamin kedua ditolak; memperbaiki komentar `BilArHandoff.cs:25`; memperlebar `FinReceivable.BenefitRelationship` ke 50 (migration 4). **Pemakaian plafon ada pada `BE-FIN-108`** | `BE-FIN-091` 🟡, `BE-FIN-104` 🟡, `BE-FIN-106`, `{GATE-01}` ✅ | 1. Cakupan Rp 5.000.000 (100%), sisa Rp 3.000.000: `PAYER` Rp 3.000.000 dan `EMPLOYEE_BENEFIT` Rp 2.000.000. 2. Cakupan 80% dari Rp 5.000.000, sisa Rp 3.000.000, `D = 0`: `PAYER` Rp 3.000.000, `EMPLOYEE_BENEFIT` Rp 1.000.000, tunai Rp 1.000.000. 3. Kasus yang sama dengan `D = Rp 1.000.000`: `EMPLOYEE_BENEFIT` Rp 2.000.000, tunai Rp 0, `DeferredPatientAmount` Rp 1.000.000. 4. Sisa Rp 0: tanpa baris `PAYER`; sisa melebihi cakupan: tanpa baris `EMPLOYEE_BENEFIT` kecuali `D` lebih dari 0; tidak pernah ada baris `Amount = 0`. 5. `D` melebihi sisa tagihan pasien ditolak `422`. 6. Plafon tidak terbaca: finalisasi ditahan, nol baris. 7. Penjamin kedua ditolak. 8. Kunjungan non-internal: perilaku lama tidak berubah. 9. Finalisasi ulang tidak menggandakan baris | QBE preflight; review diff; verifikasi kontrak API; verifikasi proses bisnis; `dotnet build` atas permintaan pemilik | Pemilik Billing. **Risiko:** mengubah jalur finalisasi inti; **tidak boleh dirilis tanpa `BE-FIN-108`** (tanpa pengurangan plafon, kunjungan kedua membaca plafon yang sama); pilihan "sebagian" belum dikonfirmasi pemilik Billing (`FIN-DEC-208`) | Preflight selesai; kontrak cocok; laporan tracked |
+| ⛔ `BE-FIN-108` | Plafon di HR berkurang tepat satu kali saat tagihan final dan kembali saat tagihan dikoreksi atau dibatalkan | `FIN-DEC-202`, `205` | `FIN-INTEGRATION-1.9` `R.3` (**draft**) | `BE-FIN-104`, `BillingFinalizationService` (pemegang transaksi finalisasi) | Panggil `pakai` dari `BE-FIN-104` di dalam transaksi finalisasi yang sama dengan penerbitan serah terima (satu gagal, keduanya batal); panggil `kembalikan` saat pembatalan invoice atau serah terima pembalik | `BE-FIN-107`, `BE-FIN-104` 🟡 | 1. Sisa Rp 3.000.000, tagihan A Rp 2.000.000 final: sisa Rp 1.000.000. 2. Tagihan B Rp 2.500.000 berikutnya: porsi RS Rp 1.000.000, porsi pegawai Rp 1.500.000, sisa Rp 0. 3. Tagihan A dikoreksi: Rp 2.000.000 kembali. 4. Finalisasi diulang karena jaringan putus: sisa tidak berubah. 5. Serah terima gagal terbit: plafon tidak berkurang | QBE preflight; review diff; verifikasi proses bisnis; `dotnet build` atas permintaan pemilik | Pemilik Billing + HR. **Risiko:** pemilik transaksi finalisasi harus tetap satu; dirilis **bersamaan** dengan `BE-FIN-107` | Preflight selesai; laporan tracked |
+| ⛔ `BE-FIN-109` | Salah memilih pegawai bisa dikoreksi lewat serah terima pembalik dan serah terima pengganti, tanpa edit manual debitur | `FIN-DEC-173`, `187`, `195`, `200`; `FR-FIN-231`..`234` | `FIN-INTEGRATION-1.8` §`P.6` | `BilHandoffAdjustment`, "Ganti Penanggung" yang ada (perilaku `FIN-CAP-078` masih `Unknown`), `FinanceBillingIntakeService` (sudah membatalkan piutang lama), `BE-FIN-097` | Berita Acara Koreksi; serah terima pembalik; serah terima pengganti atas pegawai yang benar; pemulihan plafon orang yang salah dan pemakaian plafon orang yang benar lewat `BE-FIN-104`/`108`; menuntaskan blocker `BE-FIN-097` | `BE-FIN-107`, `BE-FIN-097` 🟡 | 1. Kunjungan salah dari pegawai A ke B: piutang A `CANCELLED`, piutang B terbit. 2. Plafon A pulih, plafon B terpakai. 3. Nilai pada kartu piutang tidak bisa diubah manual. 4. Sebelum tagihan final: koreksi lewat "Ganti Penanggung" tanpa Berita Acara | QBE preflight; review diff; verifikasi proses bisnis; `dotnet build` atas permintaan pemilik | Pemilik Billing. **Risiko:** `FIN-CAP-078` `Unknown`; bagian restitusi ada di `BE-FIN-111` | Preflight selesai; laporan tracked |
+| ⛔ `BE-FIN-110` | Potongan cicilan berjalan **di dalam mesin payroll run HR** dan hasilnya terkirim otomatis ke Finance | `FIN-DEC-163`, `167`, `168`, `179`, `190`..`192`, `214`, `216`, `217`; `FR-FIN-224`..`227` | `FIN-INTEGRATION-1.8` §`P.2`, §`P.3` (dikoreksi `FIN-INTEGRATION-1.10` §`S.5`); `FIN-INTEGRATION-1.10` §`S.4` | `TrxPayrollVariableInput`, `TrxPayrollRun`, `TrxPayrollRunEmployee`, `MstDeductionType` (`IsStatutory`, `Priority`, `AllowPartialDeduction`), inti `ApplyResultCoreAsync` (`BE-FIN-114`), adapter `BE-FIN-094` | **Dirumuskan ulang `REV-21`:** hanya bagian potongan cicilan di dalam mesin: jenis potongan "Piutang RS" (kategori `Loan`, prioritas terendah, `FIN-DEC-216`), batas persentase gaji bersih (kolom batas baru, `FIN-DEC-217`), potong sebagian, kirim hasil dengan `PayrollRunId`; meresmikan adapter `BE-FIN-094`. **Mesin payroll run (gaji, pajak, netto) bukan task ini** — pekerjaan HR `S-B5` (`GATE-03`) | `BE-FIN-094` 🟡, `BE-FIN-095` 🟡, `{FIN-OQ-104}` ✅, `{FIN-OQ-106}` ✅ sebagian, `{GATE-01}` ✅, `{GATE-02}` ✅, `{GATE-03}`, `{FIN-OQ-111}` | 1. Cicilan Rp 1.000.000 gagal dua bulan, bulan ketiga terutang Rp 3.000.000, batas mengizinkan Rp 1.500.000: `SEBAGIAN` Rp 1.500.000, sisa terbawa. 2. Potongan wajib dan potongan berjalan dipotong lebih dulu. 3. Kiriman ulang tidak memotong saldo dua kali. 4. Hasil untuk periode sebelum peralihan ditolak | QBE preflight; review diff; verifikasi kontrak; verifikasi proses bisnis | Pemilik HR. **Risiko:** bergantung penuh pada mesin payroll yang belum didesain | Preflight; laporan tracked |
+| ⛔ `BE-FIN-111` | Potongan gaji yang terlanjur diambil dari pegawai yang salah dikembalikan lewat slip gaji periode berikutnya, tanpa kas keluar manual dari Finance | `FIN-DEC-195`; `FR-FIN-231`..`234` | `FIN-INTEGRATION-1.8` §`P.6` butir 3 | `BE-FIN-097` (bagian restitusi `NOT IMPLEMENTED`), `TrxPayrollAdjustment`, `TrxPayrollReversal` | Event pembalikan angsuran dari Finance; penyesuaian penambah gaji pada slip periode berikutnya di HR | `BE-FIN-110`, `BE-FIN-109` | 1. Rp 1.000.000 terpotong dari pegawai A yang salah: slip bulan depan A bertambah Rp 1.000.000 berlabel penyesuaian restitusi. 2. Finance tidak mengeluarkan kas. 3. Event yang sama dua kali: restitusi hanya sekali | QBE preflight; review diff; verifikasi proses bisnis; `dotnet build` atas permintaan pemilik | Pemilik HR + Finance | Preflight selesai; laporan tracked |
+| ⛔ `BE-FIN-112` | HR tidak dapat menyelesaikan exit clearance pegawai yang masih punya piutang; statusnya dihitung dari Finance, bukan diisi tangan | `FIN-DEC-169`, `170`, `193`, `194`; `FR-FIN-206`..`210`, `228`..`230` | `FIN-INTEGRATION-1.8` §`P.4`, §`P.5` | `TrxExitClearance.IsFinanceCleared`, `FinanceReceivableClearanceService`, `TrxEmployeeSeparation`, `ResignationLifecycleHandoffService` | HR memanggil clearance Finance saat memeriksa atau menutup `TrxExitClearance`, mengisi flag dari hasil, menolak penutupan bila belum bebas, dan mengirim notifikasi pemisahan saat `TrxEmployeeSeparation` dibuat; tidak ada jalur membuka kunci manual | `BE-FIN-096` 🟡, `BE-FIN-113`, `{FIN-OQ-104}` ✅ | 1. Pegawai bersisa Rp 1.500.000: exit clearance terkunci "Belum bebas tanggungan". 2. Setelah lunas tunai dan saldo 0, pemeriksaan ulang: terbuka. 3. Flag tidak bisa diubah lewat input manual | QBE preflight; review diff; verifikasi kontrak API; verifikasi proses bisnis | Pemilik HR. **Risiko:** `TrxExitClearance` dan lifecycle HR masih skema tanpa service; ratchet nama `Trx*` → `Hrd*` | Preflight selesai; laporan tracked |
+| ⛔ `BE-FIN-113` | Finance menerima pemberitahuan bahwa pegawai akan berhenti, lalu menandai piutang aktifnya agar dipetakan sisa kewajibannya | `FIN-DEC-169`, `194` | `FIN-INTEGRATION-1.8` §`P.5` | `FinReceivable`, `FinReceivableMovement`, pola controller `FinanceReceivablesController` | `POST /receivables/separation-notice` idempoten per `separationId`; penanda `SEPARATION_PENDING` pada kartu piutang pegawai bersangkutan. Bila nilai itu tidak ada pada `FIN-STATE-1.8`, task berhenti dan melapor, tidak menambah status sendiri | `BE-FIN-091` 🟡, `{GATE-01}` ✅ | 1. Pemberitahuan atas pegawai berpiutang menandai kartunya. 2. Pemberitahuan yang sama dua kali tidak menggandakan mutasi. 3. Pegawai tanpa piutang: sukses tanpa perubahan | QBE preflight; review diff; verifikasi kontrak API; `dotnet build` atas permintaan pemilik | Pemilik Finance. **Risiko:** nilai status belum tentu ada pada kontrak state | Preflight selesai; laporan tracked |
+
+### Permukaan API — `Rencana (belum tersedia)`
+
+Bentuk rinci (path, hak akses, DTO, kode status) ada pada `contracts/api-contract.md` bagian `R` (`FIN-API-1.10`, **draft**).
+Tabel ini hanya ringkasan; bila berbeda, kontrak yang berlaku.
+
+| Pemilik | Grup `[Tags(...)]` | Base URL | Task |
+|---|---|---|---|
+| HR | `Corporate / Human Resource / Benefit Management / Employee Benefit Enrollment` | `api/v1/corporate/human-resource/benefit-management/employee-benefit-enrollments` | `BE-FIN-103` |
+| HR | `Corporate / Human Resource / Benefit Management / Employee Benefit Dependent` | `.../employee-benefit-enrollments/{enrollmentId}/dependents` | `BE-FIN-103` |
+| HR | (layanan dalam proses, **bukan** endpoint) | `BacaPlafon`, `PakaiPlafon`, `KembalikanPlafon` | `BE-FIN-104`, `BE-FIN-108` |
+| Registrasi | `Health Services / Registration Management / Employee Benefit Lookup` | `api/v1/health-services/registration-management/employee-benefit-lookups` | `BE-FIN-106` |
+| Patient Management | `Health Services / Patient Management / Master Data / Patient Company Guarantor` (diperbarui) | `api/v1/health-services/patient-management/master-data/patient-company-guarantors` | `BE-FIN-105`, `BE-FIN-106` |
+| Billing | `Health Services / Billing Management / Billing / Finalizations` (diperbarui) | `api/v1/health-services/billing-management/billing/finalizations` | `BE-FIN-107` |
+| Finance | `Corporate / Finance Management / Receivable / Payroll Sync` (sudah dikontrakkan pada `FIN-API-1.9` `P.1`) | path `/receivables/separation-notice` | `BE-FIN-113` |
+
+---
+
+## Traceability Backend REV-19
+
+| Requirement / Keputusan | Task Backend Pembawa | Kontrak Terkait | Kriteria Penerimaan |
+|---|---|---|---|
+| `FR-FIN-242`, `243`, `FIN-DEC-185`, `189`, `201`, `202`, `204` | `BE-FIN-103` | `FIN-INTEGRATION-1.9` (draft) | `BE-FIN-103` butir 1-5 |
+| `FR-FIN-244`, `245`, `249`, `FIN-DEC-185`, `202`, `205`, `207` | `BE-FIN-104`, `BE-FIN-108` | `FIN-INTEGRATION-1.9` (draft) | `BE-FIN-104` butir 1-5; `BE-FIN-108` butir 1-5 |
+| `FR-FIN-241`, `FIN-DEC-197`, `198`, `199` | `BE-FIN-105` | `FIN-INTEGRATION-1.8` | `BE-FIN-105` butir 1-5 |
+| `FR-FIN-238`..`240`, `FIN-DEC-201`, `204`, `209` | `BE-FIN-106` | `FIN-INTEGRATION-1.9` (draft) | `BE-FIN-106` butir 1-5 |
+| `FR-FIN-220`..`222`, `246`..`248`, `250`..`252`, `FIN-DEC-183`..`186`, `208`, `210` | `BE-FIN-107` (menuntaskan `BE-FIN-091`) | `FIN-INTEGRATION-1.8` §`P.1` | `BE-FIN-107` butir 1-5 |
+| `FR-FIN-231`..`234`, `FIN-DEC-173`, `187`, `195`, `200` | `BE-FIN-109`, `BE-FIN-111` (menuntaskan `BE-FIN-097`) | `FIN-INTEGRATION-1.8` §`P.6` | `BE-FIN-109` butir 1-4; `BE-FIN-111` butir 1-3 |
+| `FR-FIN-224`..`227`, `FIN-DEC-190`..`192` | `BE-FIN-110` (menuntaskan `BE-FIN-094`, `095`) | `FIN-INTEGRATION-1.8` §`P.2`, §`P.3` | `BE-FIN-110` butir 1-3 |
+| `FR-FIN-206`..`210`, `228`..`230`, `FIN-DEC-169`, `170`, `193`, `194` | `BE-FIN-112`, `BE-FIN-113` | `FIN-INTEGRATION-1.8` §`P.4`, §`P.5` | `BE-FIN-112` butir 1-3; `BE-FIN-113` butir 1-3 |
+
+**Gap traceability yang dinyatakan terbuka.**
+
+| # | Gap | Tindak lanjut |
+|---:|---|---|
+| G-TR-01 | `FIN-DEC-204`..`210` semula belum punya `FR-FIN-*` | **Ditutup 13 Oktober 2026.** `FR-FIN-238`..`252` ada pada `04-prd-to-mvp.md` bagian 72 (`FIN-MVP-1.14`, draft) |
+| G-TR-02 | `FIN-INTEGRATION-1.9` dan kontrak turunannya sudah ditulis sebagai `draft` (13 Oktober 2026) tetapi belum disetujui, sehingga kolom `Kontrak` pada `BE-FIN-103`, `104`, `106`, `107`, `108` belum mengacu ke versi yang terkunci | Persetujuan pemilik (`FIN-OQ-105`) |
+| G-TR-03 | Bukti verifikasi runtime untuk seluruh `REV-18` belum ada (`dotnet build` `NOT RUN`) | `GATE-01` |
+
+---
+
+## Task yang Sengaja TIDAK Dibuat pada REV-19 Backend
+
+| Yang Dipertimbangkan | Alasan Ditolak |
+|---|---|
+| Task menulis pengujian unit, integrasi, atau proyek test | Kebijakan backend (`TEST_POLICY`): tidak dimunculkan otomatis kecuali pemilik memintanya |
+| Memotong `RemainingLimitAmount` pada kartu pasien | Ditolak (`FIN-DEC-202`): kolom itu catatan manual, saldo otoritatif ada di HR |
+| Backfill kartu pasien lama dengan tautan pegawai | Ditolak (selaras `FIN-DEC-186`): kartu lama tetap sah tanpa tautan; rekonsiliasi dilakukan manual |
+| Jurnal beban benefit ke Accounting | Menunggu `FIN-OQ-103`; penutupan di Finance berdiri sendiri (`S7a`) |
+| Klaim benefit (`TrxBenefitClaim*`) dan asuransi pegawai | Di luar `EPIC FIN-04` |
+| Pengaturan atau kalkulasi plafon di Finance | Ditolak (`FIN-DEC-164`, `185`) |
+| Menggandakan task `REV-18` (`BE-FIN-091`, `093`..`100`) | Sudah ada; `REV-19` hanya merujuk dan menuntaskan sisanya |
+
+---
+
+# AMENDMENT ROADMAP REVISI 21 — Jembatan Manual Potong Gaji, Pemecahan `BE-FIN-110`, dan Isian Persetujuan (`EPIC FIN-04`)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-21
+blueprint_revision: 20   # approved pemilik Finance, HR, dan Billing, 13 Oktober 2026 (FIN-DEC-223)
+roadmap_status: disetujui untuk direncanakan; task tetap menunggu gerbang dan wewenang tulis per task
+decisions: [FIN-DEC-161..FIN-DEC-224]
+designs: [FIN-DES-105..FIN-DES-108]
+contract_versions_approved: [FIN-INTEGRATION-1.10, FIN-API-1.11, FIN-STATE-1.10, FIN-VAL-1.13, FIN-PERM-1.12, FIN-TEST-1.14, FIN-MVP-1.15]
+source_sha: tidak tersedia (bukan repository git)
+task_range_backend: BE-FIN-114..BE-FIN-119; BE-FIN-110 dirumuskan ulang
+tanggal: 13 Oktober 2026
+```
+
+## Sifat Gelombang Ini
+
+Revisi 20 menetapkan **jembatan manual potong gaji** sampai mesin payroll run HR aktif (`FIN-DEC-215`), dan mesin itu sendiri
+dibangun HR di sistem ini (`FIN-DEC-214`). `REV-21` melakukan tiga hal:
+
+1. **Memecah `BE-FIN-110`.** Task itu kini hanya bagian potongan cicilan di dalam mesin payroll. Mesin payroll run (gaji, pajak,
+   netto) adalah pekerjaan HR `S-B5` dan digambar sebagai gerbang `GATE-03`, **bukan** task roadmap ini.
+2. **Menambah enam task jembatan** (`BE-FIN-114`..`119`) dan tiga task layar (`FE-FIN-049`..`051`).
+3. **Menyambungkan isian persetujuan pegawai** (`FIN-DEC-218`) sebagai `BE-FIN-119` dan perluasan `FE-FIN-047`.
+
+Grafik tetap Mermaid karena berkas ini sudah Mermaid. Setiap handoff backend: **QBE preflight dan kesesuaian engineering
+diselesaikan pada waktu eksekusi** dari `AGENTS.md` backend dan dokumen engineering canonical. Tidak ada task pengujian otomatis.
+
+---
+
+## Grafik Urutan Dependency — REV-21 Backend (Slice D: Jembatan Manual)
+
+Perubahan pada Slice C (`REV-19`): `BE-FIN-110` kini juga menunggu `{GATE-03}` dan `{FIN-OQ-111}` (lihat grafik Slice C yang sudah diperbarui).
+
+```mermaid
+flowchart LR
+    M093["BE-FIN-093 🟡 [REV-18]"]
+    M095["BE-FIN-095 🟡 [REV-18]"]
+    M107["BE-FIN-107 ⛔ [Slice B]"]
+    G02{{"GATE-02 ✅<br/>Diratifikasi (FIN-DEC-225)"}}
+    BE115["BE-FIN-115<br/>Master peralihan ke mesin payroll"]
+    BE116["BE-FIN-116<br/>Jadwal potongan per periode dan ekspor"]
+    BE114["BE-FIN-114 ⛔<br/>Inti pencatatan hasil dipisah; penjaga jalur"]
+    BE117["BE-FIN-117 ⛔<br/>Batch hasil potongan: unggah sampai sahkan"]
+    BE118["BE-FIN-118 ⛔<br/>Koreksi berselisih"]
+    BE119["BE-FIN-119 ⛔<br/>Isian nama pemberi persetujuan"]
+    BE115 --> BE114
+    M095 --> BE114
+    G02 --> BE114
+    M093 --> BE116
+    BE114 --> BE117
+    BE115 --> BE117
+    BE116 --> BE117
+    BE117 --> BE118
+    M107 --> BE119
+```
+
+**Pemeriksaan konsistensi.** Slice D **9** pasangan. Ditambah Slice A **7**, Slice B **8**, Slice C **15** (`REV-19`, diperbarui) = **39**,
+sama dengan jumlah entri kolom `Dependency` pada tabel task `REV-19` dan `REV-21`. Bebas siklus.
+
+## Tabel Gelombang Eksekusi — REV-21 Backend
+
+Nomor gelombang menyambung gelombang `REV-19` (`BE-FIN-103`, `105` = 1; `104`, `106` = 2; `107` = 3; `108`, `109` = 4).
+
+| Gelombang | Boleh mulai setelah | Task |
+|---:|---|---|
+| 1 | — | `BE-FIN-115` |
+| 1 | `BE-FIN-093` 🟡 naik ke ✅ | `BE-FIN-116` |
+| 2 | `BE-FIN-115` (`GATE-02` ✅ `FIN-DEC-225`; `BE-FIN-095` 🟡) | `BE-FIN-114` |
+| — | ⛔ menunggu `BE-FIN-114`, `BE-FIN-115`, `BE-FIN-116` | `BE-FIN-117` |
+| — | ⛔ menunggu `BE-FIN-117` | `BE-FIN-118` |
+| 4 | `BE-FIN-107` | `BE-FIN-119` |
+
+`BE-FIN-110` (dirumuskan ulang) tetap tercantum sekali, pada tabel gelombang `REV-19`.
+
+**Jalan tercepat:** ratifikasi `GATE-02` (tindakan pemilik, tanpa kode) membuka seluruh jalur jembatan begitu `BE-FIN-115` selesai.
+
+## Prasyarat dan Gerbang Baru
+
+| ID | Isi | Pemilik | Status |
+|---|---|---|:---:|
+| `GATE-03` | Mesin payroll run HR (perhitungan gaji, potongan, netto, kunci, setujui) tersedia. Direncanakan di blueprint HR `S-B5`, **bukan** roadmap ini | Pemilik HR | ⛔ |
+| `FIN-OQ-111` | Nilai persentase batas potongan dan dasar "gaji bersih" | Pemilik HR | `OPEN` |
+| `GATE-02` | (sudah ada) Ratifikasi `BE-FIN-094`, `095`, `099`, `100`. Kini juga menahan jembatan, karena jembatan memakai model pelimpahan `BE-FIN-095` | Pemilik Finance dan HR | ⛔ |
+
+## Tabel Task REV-21 Backend
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `BE-FIN-115` | Pejabat Finance dapat menetapkan periode pertama yang ditangani mesin payroll, dengan riwayat dan alasan | `FIN-DEC-222`; `FR-FIN-258`; `FIN-DES-108` | `FIN-INTEGRATION-1.10` `S.4`; `FIN-API-1.11` `S.2`; `FIN-STATE-1.10` `S.2` | Pola `MstDirectPaymentThreshold` dan `DirectPaymentThresholdController` | `MstPayrollDeductionCutover` (model, configuration, migration `AddPayrollDeductionCutover` — pecahan migration 5), service, controller, hak akses `PayrollDeductionCutover : Read, Create` | — | 1. Tanpa nilai: endpoint `current` kosong. 2. Tetapkan `2027-01` dengan alasan: aktif; versi lama nonaktif. 3. Mundur ke periode yang punya batch manual disahkan ditolak `422` (diaktifkan setelah `BE-FIN-117` ada). 4. Alasan kosong ditolak | QBE preflight; review diff; verifikasi kontrak API; `dotnet build` atas permintaan pemilik | Pemilik Finance | Preflight; file migration siap; laporan tracked |
+| `BE-FIN-116` | Finance dapat melihat dan mengekspor jadwal potongan per periode, termasuk tunggakan terbawa, sebagai templat unggah | `FIN-DEC-219`; `FR-FIN-253` | `FIN-INTEGRATION-1.10` `S.1`; `FIN-API-1.11` `S.1` (`/schedule`, ekspor) | `FinReceivableInstallment`, `FinReceivableInstallmentPlan`, pola ekspor Excel/PDF Finance (laporan AR) | Query jadwal (angsuran `DIJADWALKAN` pada perjanjian `DISETUJUI`), ekspor Excel (kolom status dan nominal terpotong kosong) dan PDF; hak akses `FinancePayrollDeductionBatch : Read` | `BE-FIN-093` 🟡 | 1. Cicilan Rp 1.000.000 gagal Juli dan Agustus: jadwal September menampilkan terutang Rp 3.000.000; baris Juli dan Agustus tidak muncul. 2. Perjanjian `MENUNGGU` tidak muncul. 3. Excel berisi kolom status dan nominal terpotong kosong | QBE preflight; review diff; verifikasi kontrak; verifikasi manual ekspor | Pemilik Finance | Preflight; laporan tracked |
+| ⛔ `BE-FIN-114` | Jalur manual dan jalur mesin memakai satu inti pencatatan hasil, dan jalur yang salah ditolak | `FIN-DEC-215`, `222`; `FR-FIN-256`, `260`; `FIN-DES-105` | `FIN-INTEGRATION-1.10` `S.5`; `FIN-API-1.11` `S.3`; `FIN-VAL-1.13` `FIN-VAL-287`, `288` | `FinanceReceivablePayrollSyncService.ProcessResultAsync`, `FinanceReceivablesPayrollController` | Pisahkan `ApplyResultCoreAsync` (tanpa transaksi sendiri); `ProcessResultAsync` tetap membungkusnya; tolak panggilan HTTP tanpa `PayrollRunId`; tolak hasil mesin untuk periode sebelum peralihan; koreksi teks kontrak `PayrollRunId` opsional | `BE-FIN-115`, `BE-FIN-095` 🟡, `{GATE-02}` ✅ | 1. Perilaku endpoint dengan `PayrollRunId` tidak berubah (pengulangan aman, pelimpahan sama). 2. Tanpa `PayrollRunId`: `422`. 3. Peralihan `2027-01`, hasil mesin Desember 2026: `422`. 4. Inti dapat dipanggil dua kali dalam satu transaksi luar tanpa membuka transaksi bersarang | QBE preflight; review diff; verifikasi kontrak; verifikasi proses bisnis | Pemilik Finance. **Risiko:** menyentuh jalur yang dipakai `BE-FIN-095`; model pelimpahan harus sudah diratifikasi (`GATE-02`) | Preflight; laporan tracked |
+| ⛔ `BE-FIN-117` | Hasil potongan per periode masuk lewat unggah berkas, divalidasi, diajukan dengan bukti, dan disahkan orang lain secara atomik | `FIN-DEC-220`, `221`; `FR-FIN-254`..`256`; `FIN-DES-106` | `FIN-INTEGRATION-1.10` `S.2`; `FIN-API-1.11` `S.1`; `FIN-STATE-1.10` `S.1`; `FIN-VAL-1.13` `FIN-VAL-272`..`284`, `286`; `FIN-PERM-1.12` | `FinTransactionProof` + `FinanceTransactionProofService` (jenis `LAPORAN-PENGGAJIAN`), pola impor berbasis NIP (`FinanceReceivableMigrationService`), number-series Finance | `FinPayrollDeductionBatch`, `FinPayrollDeductionBatchItem` (model, configuration, migration `AddFinancePayrollDeductionBatch` — pecahan migration 5); service unggah, validasi, ajukan, sahkan (kunci berurutan, satu transaksi), tolak, batal; controller; hak akses `FinancePayrollDeductionBatch` | `BE-FIN-114`, `BE-FIN-115`, `BE-FIN-116` | 1. Berkas benar tiga baris: semua `VALID`. 2. Baris Ani dihapus: tidak dapat diajukan (`FIN-VAL-278`). 3. Total kontrol beda: ditolak. 4. Pengaju mengesahkan: `403`. 5. Satu baris gagal saat pengesahan: tidak ada saldo berubah. 6. Budi terpotong Rp 1.500.000 dari Rp 3.000.000: sisa Rp 1.500.000 muncul di jadwal Oktober. 7. Batch reguler kedua untuk periode sama: `409`. 8. Periode ≥ peralihan: `422` | QBE preflight; review diff; verifikasi kontrak; verifikasi proses bisnis | Pemilik Finance. **Risiko:** pengesahan atomik pada banyak angsuran; urutan kunci wajib | Preflight; file migration siap; laporan tracked |
+| ⛔ `BE-FIN-118` | Hasil yang sudah disahkan dapat dikoreksi pejabat dengan alasan, termasuk pembalikan | `FIN-DEC-222`; `FR-FIN-257`; `FIN-DES-107` | `FIN-INTEGRATION-1.10` `S.3`; `FIN-VAL-1.13` `FIN-VAL-285` | `BE-FIN-117`, `FinanceSubledgerMovementService` | `ApplyCorrectionCoreAsync`; batch `KOREKSI`; mutasi `PEMBALIKAN-POTONGAN-GAJI`; penyesuaian `CarriedOverAmount` angsuran berikutnya; hak `ApproveCorrection` | `BE-FIN-117` | 1. Tercatat Rp 1.500.000, benar Rp 1.200.000: pembalikan Rp 300.000; tunggakan Oktober Rp 1.800.000. 2. Oktober sudah menerima hasil: ditolak `422`. 3. Penyelia tanpa `ApproveCorrection`: `403` | QBE preflight; review diff; verifikasi proses bisnis | Pemilik Finance | Preflight; laporan tracked |
+| ⛔ `BE-FIN-119` | Utang atas nama pegawai untuk pasien bukan pegawai selalu mencatat siapa yang menyetujui | `FIN-DEC-218`; `FR-FIN-259` | `FIN-INTEGRATION-1.10` `S.6`; `FIN-API-1.11` `S.4`; `FIN-VAL-1.13` `FIN-VAL-289` | `BE-FIN-107` (`FinalizeInvoiceRequest`, `EmployeeBenefitSplitResponse`), `BilArHandoff` | Kolom `DeferredConsentGivenBy` dan `CK_BilArHandoff_Consent` (migration 6); field permintaan; `RequiresConsent` pada pratinjau | `BE-FIN-107` | 1. Anak berobat, utang Rp 400.000, nama kosong: `422`. 2. Pegawai sendiri, nama kosong: diterima. 3. Nama tidak masuk log | QBE preflight; review diff; verifikasi kontrak | Pemilik Billing | Preflight; file migration siap; laporan tracked |
+
+**`BE-FIN-110` dirumuskan ulang** pada tabel task `REV-19` (baris aslinya diganti, bukan digandakan).
+
+## Traceability REV-21
+
+| Requirement / Keputusan | Task | Kontrak | Kriteria |
+|---|---|---|---|
+| `FR-FIN-253`, `FIN-DEC-219` | `BE-FIN-116`, `FE-FIN-049` | `FIN-API-1.11` `S.1` | `O.1.1`, `O.1.2` |
+| `FR-FIN-254`..`256`, `FIN-DEC-220`, `221` | `BE-FIN-117`, `FE-FIN-049`, `FE-FIN-050` | `FIN-INTEGRATION-1.10` `S.2` | `O.2.1`..`O.2.8` |
+| `FR-FIN-256`, `260`, `FIN-DES-105` | `BE-FIN-114` | `FIN-INTEGRATION-1.10` `S.5` | `O.4.2`, `O.4.4` |
+| `FR-FIN-257`, `FIN-DEC-222` | `BE-FIN-118`, `FE-FIN-050` | `FIN-INTEGRATION-1.10` `S.3` | `O.3.1`..`O.3.3` |
+| `FR-FIN-258`, `FIN-DEC-222` | `BE-FIN-115`, `FE-FIN-051` | `FIN-INTEGRATION-1.10` `S.4` | `O.4.1`, `O.4.3` |
+| `FR-FIN-259`, `FIN-DEC-218` | `BE-FIN-119`, `FE-FIN-047` | `FIN-INTEGRATION-1.10` `S.6` | `O.5.1`, `O.5.2` |
+| `FIN-DEC-214`, `216`, `217` | `BE-FIN-110` | `FIN-INTEGRATION-1.8` `P.2`, `P.3` | `BE-FIN-110` butir 1-4 |
+
+**Gap traceability.** Tidak ada requirement Revisi 20 tanpa task. `GATE-03` (mesin payroll) tidak punya task di roadmap ini secara sengaja: pemiliknya blueprint HR.
+
+## Yang Sengaja TIDAK Dibuat
+
+| Yang dipertimbangkan | Alasan |
+|---|---|
+| Task membangun mesin payroll run | Milik blueprint HR `S-B5` (`GATE-03`) |
+| Satu task besar untuk seluruh jembatan | Dipecah agar master, jadwal, inti, batch, dan koreksi dapat diverifikasi sendiri |
+| Task pengujian otomatis | Kebijakan backend |
+| Restitusi salah orang selama jembatan | `BE-FIN-111` tetap menunggu mesin; selama jembatan, restitusi dikerjakan penggajian di luar sistem atas pemberitahuan Finance (prosedur, bukan kode) |

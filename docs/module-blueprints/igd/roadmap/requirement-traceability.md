@@ -999,3 +999,69 @@ disposisi `Executed` (`BE-IGD-062`).
 | `IGD-OQ-102`, `IGD-OQ-103` | **Dijawab** 11 Oktober 2026 | — |
 | `IGD-OQ-099` | `open` | Tidak |
 | `IGD-UNK-18` | Terbuka per lingkungan | Rilis, bukan pengembangan |
+
+## `EPIC IGD-15` — Form Permintaan Rawat Inap dari IGD (`MVP-11`, perencanaan 12 Oktober 2026)
+
+| Butir | Isi |
+| --- | --- |
+| Snapshot source | Backend `rizkiG` `6a1c6cf9`, frontend `RizkiV2` `03b057c03` |
+| Kontrak | API **`0.17.1`** §12 (metode `POST`, `IGD-DEC-300`), validation **`0.16.0`** §14, state **`0.11.0`** §11, permission/audit **`0.10.0`** §11, integration **`0.8.0`** §9 — `approved`; hash di manifest bagian 0p |
+| Approval | `IGD-DEC-294`, `297` — Rizki Gunawan, 12 Oktober 2026; titik sentuh Rawat Inap dan Billing disetujui lisan pemiliknya (`IGD-DEC-299`) |
+| Desain turunan | `02-backend-architecture.md` §17; `03-frontend-architecture.md` §17; `04-prd-to-mvp.md` §12; `erd/data-dictionary.md` §10; `testing/acceptance-test-matrix.md`; `flowcharts/permintaan-rawat-inap.md` |
+| Task | Backend R3.18: `BE-IGD-072`…`075`; frontend R3.16: `FE-IGD-059`…`062` |
+
+### Task
+
+| Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| `BE-IGD-072` | `FR-IGD-109`…`112`, `115`; `IGD-DEC-268`, `271`, `273`, `274`, `278`, `282`…`292` | Form IGD dari draf sampai *Menunggu TTD*; migration 1 | API §12.2–12.3; val §14 aturan 1–14, 17, 19, 26; state §11.1 | — | ✅ | ✅ | 🟡 source, migration, build 12 Oktober 2026 — [laporan](../task/report/backend/BE-IGD-072.md) | 🟡 putaran A 12/14; A-11 diulang |
+| `BE-IGD-073` | `FR-IGD-113`, `115`; `IGD-DEC-275`, `276`, `279`, `288` | Permintaan admisi bersumber IGD di Rawat Inap; migration 2 | API §12.4; val §14 aturan 20–22; state §11.3 | `BE-IGD-072` | ✅ | ✅ | — | — |
+| `BE-IGD-074` | `FR-IGD-112`…`116`; `IGD-DEC-272`, `275`, `277`, `280`, `281` | Tanda tangan dan pengiriman satu transaksi; penahanan *Jalankan*; batal; cetak | API §12.2, §12.5; val §14 aturan 13–16, 18, 19, 23–25; state §11 | `BE-IGD-072`, `073` | ✅ | ✅ | — | — |
+| `BE-IGD-075` | `IGD-DEC-293` | Penautan invoice ditahan untuk sumber IGD | Integration §9 | `BE-IGD-073` | ✅ | ✅ | — | — |
+| `FE-IGD-059` | `FR-IGD-109`…`112`, `115` | Panel dan form perawat | API §12.2–12.3; val §14 | `BE-IGD-072` | ✅ | ✅ | 🟡 kode 12 Oktober 2026, ESLint 0 error; build belum — [laporan](../task/report/frontend/FE-IGD-059.md) | 🟡 putaran A 12/14; A-11 diulang |
+| `FE-IGD-060` | `FR-IGD-112` | *Perlu TTD* dan dialog dokter | API §12.2; val §14 aturan 13–18 | `BE-IGD-072`, `074` | ✅ | ✅ | — | — |
+| `FE-IGD-061` | `FR-IGD-114`…`116` | Status pasca-kirim, *Jalankan*, batal, cetak | API §12.2, §12.5; state §11.2 | `BE-IGD-074`, `FE-IGD-059` | ✅ | ✅ | — | — |
+| `FE-IGD-062` | `FR-IGD-113`, `115` | Layar admisi Rawat Inap | API §12.4 | `BE-IGD-073` | ✅ | ✅ | — | — |
+
+### Requirement ke task dan uji
+
+| Requirement | Backend | Frontend | Uji | Keadaan |
+| --- | --- | --- | --- | --- |
+| `FR-IGD-109` buat form dari tindak lanjut terkonfirmasi | `BE-IGD-072` | `FE-IGD-059` | `AT-IGD-221`, `222` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-110` data pasien baca-saja, beku saat TTD | `BE-IGD-072`, `074` | `FE-IGD-059` | `AT-IGD-221`, `234` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-111` isian penempatan | `BE-IGD-072` | `FE-IGD-059` | `AT-IGD-223`, `224` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-112` minta TTD, *Perlu TTD*, tandatangani, kembalikan | `BE-IGD-072`, `074` | `FE-IGD-059`, `060` | `AT-IGD-225`…`227` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-113` permintaan admisi bersumber IGD | `BE-IGD-073`, `074` | `FE-IGD-062` | `AT-IGD-225`, `229`, `230`, `235` | Direncanakan |
+| `FR-IGD-114` penahanan *Jalankan* | `BE-IGD-074` | `FE-IGD-061` | `AT-IGD-228`, `231` | Direncanakan |
+| `FR-IGD-115` tiga jalan pembatalan | `BE-IGD-072`, `073`, `074` | `FE-IGD-059`, `061`, `062` | `AT-IGD-231`…`233` | Sebagian — putaran A 12 Oktober 2026: 12/14 skenario terbukti, A-11 diulang; build FE belum |
+| `FR-IGD-116` cetak | `BE-IGD-074` | `FE-IGD-061` | `AT-IGD-234` | Direncanakan |
+| `FR-IGD-117` aturan tipe Unit Layanan | — | — | — | **Coverage gap** — `OPEN DECISION` `IGD-OQ-127` |
+| `FR-IGD-118` penautan tagihan IGD | — (`BE-IGD-075` hanya menahan) | — | — | **Coverage gap** — `OPEN DECISION` `IGD-OQ-129` |
+| DoD PRD §12.5 butir 7 (tagihan IGD tidak ditautkan) | `BE-IGD-075` | — | Uji API regresi | Direncanakan |
+| DoD PRD §12.5 butir 11 (hak akses lewat pengurus Akses Role) | — | — | Log uji tanpa SuperAdmin | Langkah operasional, bukan task |
+| DoD PRD §12.5 butir 12 (persetujuan Rawat Inap dan Billing) | — | — | — | Lunas — `IGD-DEC-299` |
+
+### Keputusan ke task
+
+| Keputusan | Status | Task |
+| --- | --- | --- |
+| `IGD-DEC-267`…`270` scope, pengisi, TTD digital, Unit Layanan tidak diasumsikan | `approved` (`269` `superseded`) | Seluruh R3.18/R3.16 |
+| `IGD-DEC-271`, `277` kaitan dengan tindak lanjut, penahanan *Jalankan* | `approved` | `BE-IGD-072`, `074`; `FE-IGD-059`, `061` |
+| `IGD-DEC-272`…`274`, `285`, `291` tanda tangan, tempat, DPJP, kembalikan, hak akses | `approved` | `BE-IGD-072`, `074`; `FE-IGD-060` |
+| `IGD-DEC-275`, `276`, `279`, `288` wadah, admisi manual, batal admisi, CITO | `approved` (sisi IGD) | `BE-IGD-073`; `FE-IGD-062` |
+| `IGD-DEC-278`, `280`, `281` koreksi, batal otomatis, cetak | `approved` | `BE-IGD-072`, `074`; `FE-IGD-059`, `061` |
+| `IGD-DEC-282`…`284`, `286`, `287`, `289`, `290` isian | `approved` | `BE-IGD-072`; `FE-IGD-059` |
+| `IGD-DEC-292` arsitektur domain | `approved` | Seluruh |
+| `IGD-DEC-293` tahan penautan invoice | `approved` sementara | `BE-IGD-075` |
+| `IGD-DEC-294` desain dan sebelas pilihan desain | `approved` | Seluruh |
+
+### Pertanyaan terbuka
+
+| ID | Keadaan | Menahan |
+| --- | --- | --- |
+| `IGD-OQ-127` | `open` — analis | `FR-IGD-117` |
+| `IGD-OQ-128` | **Dijawab** `IGD-DEC-299` (12 Oktober 2026) | — |
+| `IGD-OQ-129` | `open` — owner Billing | `FR-IGD-118` |
+| `IGD-UNK-24` | Per lingkungan | Rilis |
+| `IGD-UNK-25` | `open` | Tidak (tanpa aturan silang) |
+| Prioritas terhadap Billing IGD | Ditanyakan pemilik sebelum build | Mulai build |

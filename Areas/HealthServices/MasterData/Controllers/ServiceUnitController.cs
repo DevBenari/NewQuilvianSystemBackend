@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
@@ -20,7 +22,7 @@ using ResponseServiceUnitPagedResult =
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 {
-    [ApiController]
+    [ApiController, ServiceFilter(typeof(InpBedOperationFilter))]
     [Authorize]
     [Route("api/v1/health-services/master-data/service-units")]
     [AccessController(
@@ -40,14 +42,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         private const int ServiceUnitCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
-        private readonly LoggerService _loggerService;
+        private readonly LoggerService _loggerService; private readonly BedMutationService _bedMutation;
+        private readonly ServiceUnitMasterWriteService _bedWriter;
 
         public ServiceUnitController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService, BedMutationService bedMutation, ServiceUnitMasterWriteService bedWriter)
         {
             _dbContext = dbContext;
-            _loggerService = loggerService;
+            _loggerService = loggerService; _bedMutation = bedMutation; _bedWriter = bedWriter;
         }
 
         [HttpGet("filters/metadata")]
@@ -355,6 +358,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var data = MapDetailResponse(entity, actorNames);
 
+            data.AffectedBedVersions = await _bedMutation.VersionsAsync("ServiceUnit", id);
             return Ok(ApiResponse<ServiceUnitDetailResponse>.Ok(
                 data,
                 "Detail service unit berhasil diambil."
@@ -390,7 +394,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, HttpContext.RequestAborted);
 
             var generatedServiceUnitCode = await GenerateServiceUnitCodeAsync();
 
@@ -467,79 +471,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             Guid id,
             [FromBody] UpdateServiceUnitRequest request)
         {
-            var entity = await _dbContext.Set<MstServiceUnit>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Service unit tidak ditemukan."
-                ));
-            }
-
-            var validation = await ValidateRequestAsync(
-                excludeId: id,
-                request: request
-            );
-
-            if (!validation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data service unit tidak valid."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.ServiceUnitName = request.ServiceUnitName.Trim();
-            entity.ServiceUnitType = request.ServiceUnitType;
-            entity.ShortName = NormalizeNullableText(request.ShortName);
-            entity.LocationName = NormalizeNullableText(request.LocationName);
-            entity.FloorName = NormalizeNullableText(request.FloorName);
-            entity.IsAvailableForRegistration = request.IsAvailableForRegistration;
-            entity.IsAvailableForKiosk = request.IsAvailableForKiosk;
-            entity.IsAvailableForAppointment = request.IsAvailableForAppointment;
-            entity.IsAvailableForBloodOrder = request.IsAvailableForBloodOrder;
-            entity.IsQueueRequired = request.IsQueueRequired;
-            entity.IsDoctorRequired = request.IsDoctorRequired;
-            entity.IsScreeningRequired = request.IsScreeningRequired;
-            entity.SortOrder = request.SortOrder;
-            entity.Description = NormalizeNullableText(request.Description);
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
-
-            var result = new ServiceUnitUpdateResponse
-            {
-                Id = entity.Id,
-                ServiceUnitCode = entity.ServiceUnitCode,
-                ServiceUnitName = entity.ServiceUnitName,
-                ServiceUnitType = entity.ServiceUnitType,
-                ServiceUnitTypeName = BuildServiceUnitTypeLabel(entity.ServiceUnitType),
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime,
-                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
-                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "ServiceUnit.UpdateServiceUnit",
-                "Mengubah data service unit.",
-                result
-            );
-
-            return Ok(ApiResponse<ServiceUnitUpdateResponse>.Ok(
-                result,
-                "Service unit berhasil diperbarui."
-            ));
+            try { return await _bedMutation.ExecuteAsync("ServiceUnit", "Update", id, request ?? new(), () => _bedWriter.UpdateServiceUnitAsync(id, request), HttpContext.RequestAborted); }
+            catch (MasterWriteRejectedException e) { return e.Result; }
         }
 
         [HttpPatch("{id:guid}/status")]
@@ -557,45 +490,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             Guid id,
             [FromBody] UpdateServiceUnitStatusRequest request)
         {
-            var entity = await _dbContext.Set<MstServiceUnit>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Service unit tidak ditemukan."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-
-            var actorNames = await GetActorNameMapAsync(new[] { entity.UpdateBy });
-
-            var result = new ServiceUnitUpdateResponse
-            {
-                Id = entity.Id,
-                ServiceUnitCode = entity.ServiceUnitCode,
-                ServiceUnitName = entity.ServiceUnitName,
-                ServiceUnitType = entity.ServiceUnitType,
-                ServiceUnitTypeName = BuildServiceUnitTypeLabel(entity.ServiceUnitType),
-                IsActive = entity.IsActive,
-                UpdateDateTime = entity.UpdateDateTime,
-                UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
-                UpdateByName = GetActorName(actorNames, entity.UpdateBy)
-            };
-
-            return Ok(ApiResponse<ServiceUnitUpdateResponse>.Ok(
-                result,
-                "Status service unit berhasil diperbarui."
-            ));
+            try { return await _bedMutation.ExecuteAsync("ServiceUnit", "Status", id, request ?? new(), () => _bedWriter.UpdateServiceUnitStatusAsync(id, request), HttpContext.RequestAborted); }
+            catch (MasterWriteRejectedException e) { return e.Result; }
         }
 
         [HttpDelete("{id:guid}")]
@@ -614,92 +510,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             Guid id,
             [FromBody] DeleteServiceUnitRequest? request = null)
         {
-            var entity = await _dbContext.Set<MstServiceUnit>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Service unit tidak ditemukan."
-                ));
-            }
-
-            var isUsedByClinic = await _dbContext.Set<MstClinic>()
-                .AnyAsync(x => x.ServiceUnitId == id && !x.IsDelete);
-
-            if (isUsedByClinic)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Service unit tidak dapat dihapus karena sudah digunakan oleh clinic."
-                ));
-            }
-
-            var isUsedByRoom = await _dbContext.Set<MstRoom>()
-                .AsNoTracking()
-                .AnyAsync(x => x.ServiceUnitId == id && !x.IsDelete);
-
-            if (isUsedByRoom)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Service unit tidak dapat dihapus karena sudah digunakan oleh room."
-                ));
-            }
-
-            var isUsedByDoctorSchedule = await _dbContext.Set<MstDoctorSchedule>()
-                .AsNoTracking()
-                .AnyAsync(x => x.ServiceUnitId == id && !x.IsDelete);
-
-            if (isUsedByDoctorSchedule)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Service unit tidak dapat dihapus karena sudah digunakan oleh jadwal dokter."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsDelete = true;
-            entity.IsActive = false;
-            entity.DeleteDateTime = now;
-            entity.DeleteBy = actorUserId;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
-            {
-                entity.Description = request.DeleteReason.Trim();
-            }
-
-            await _dbContext.SaveChangesAsync();
-
-            var actorNames = await GetActorNameMapAsync(new[] { entity.DeleteBy });
-
-            var result = new ServiceUnitDeleteResponse
-            {
-                Id = entity.Id,
-                ServiceUnitCode = entity.ServiceUnitCode,
-                ServiceUnitName = entity.ServiceUnitName,
-                DeleteDateTime = entity.DeleteDateTime,
-                DeleteBy = entity.DeleteBy == Guid.Empty ? null : (Guid?)entity.DeleteBy,
-                DeleteByName = GetActorName(actorNames, entity.DeleteBy)
-            };
-
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "ServiceUnit.DeleteServiceUnit",
-                "Menghapus data service unit.",
-                result
-            );
-
-            return Ok(ApiResponse<ServiceUnitDeleteResponse>.Ok(
-                result,
-                "Service unit berhasil dihapus."
-            ));
+            try { return await _bedMutation.ExecuteAsync("ServiceUnit", "Delete", id, request ?? new(), () => _bedWriter.DeleteServiceUnitAsync(id, request), HttpContext.RequestAborted); }
+            catch (MasterWriteRejectedException e) { return e.Result; }
         }
 
         private IQueryable<MstServiceUnit> BuildBaseQuery()

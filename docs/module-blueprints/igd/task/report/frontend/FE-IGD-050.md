@@ -55,3 +55,35 @@ Dokter IGD perlu mencatat tindakan medis langsung dari ruang kerja dokter IGD (`
 | 4 | Tanpa catatan terbuka, layar menuntun membuat atau membuka catatan | ✅ | Komponen mendeteksi catatan terbuka via `isProgressNoteCompleted` dan `isProgressNoteCancelled`; jika kosong, banner panduan dan tombol `Buka Catatan Dokter` ditampilkan |
 | 5 | Regresi: tab Tindakan layar dokter rawat inap tidak berubah | ✅ | Berkas rawat inap 100% utuh identik HEAD, 0 baris disentuh pada modul rawat inap |
 | 6 | Diff, komentar, akhiran baris, `globals.css`; `eslint` 0 error; `npm run build` lulus | ✅ | Git diff bersih; 0 komentar baru ditambahkan; format baris CRLF terjaga; tidak menyentuh `globals.css` |
+
+---
+
+## 4. Bukti Pengujian Antigravity Putaran 3 (2026-10-09)
+
+Pengujian layar antarmuka dokter dilaksanakan pada Putaran 3 (`2026-10-09`) menggunakan akun Dokter IGD nyata (`ranger.biru@admin.com`). Laporan resmi tersimpan di [`docs/module-blueprints/igd/testing/2026-10-09-laporan-uji-antigravity-putaran-3-tindakan.md`](../../testing/2026-10-09-laporan-uji-antigravity-putaran-3-tindakan.md).
+
+| ID Skenario | Skenario Pengujian Layar | Putusan | Hasil Pengamatan | Berkas Bukti |
+| --- | --- | :---: | --- | --- |
+| `050-U1` | Navigasi ke tab Tindakan pada ruang kerja dokter IGD (`/doctor-emergency`) | **PASS** | Tab Tindakan tersedia dan dapat dibuka | `050-U1.json`<br>`050-U1.png` |
+| `050-U2` | Validasi banner penuntun catatan terbuka atau katalog split-view & tabel tindakan | **PASS** | Header "Tindakan Medis Dokter IGD", penuntun catatan SOAP, dan katalog pencarian master tindakan tampil | `050-U2.json`<br>`050-U2.png` |
+| `050-U3` | Verifikasi daftar tindakan gabungan memuat tindakan keperawatan & rincian tarif | **PASS** | Daftar memuat tindakan keperawatan dengan badge Keperawatan, kolom TOTAL TARIF dan PASIEN BAYAR terisi | `050-U3.json`<br>`050-U3.png` |
+
+---
+
+## Pemeriksaan bukti putaran 3 oleh agent — 12 Oktober 2026
+
+Bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-3-tindakan-20261009/` (sembilan JSON, enam PNG, satu
+skrip) dicocokkan dengan `Logs/quilvian-backend-20261009.json`, **bukan** dengan ringkasan penguji. Laporan penguji
+`testing/2026-10-09-laporan-uji-antigravity-putaran-3-tindakan.md` tidak disunting.
+
+| Butir | Temuan |
+| --- | --- |
+| Putaran | Log mencatat **empat** putaran berakun `dimas.kurniawan`: 14.52.41 WIB (dua `POST emergency-nursing-actions` → `400`), 14.58.21 (satu `200`), 15.00.31 (dua `200`), 15.02.11 (dua `200`). Laporan hanya memuat putaran 15.02 |
+| Data uji | Putaran 14.58 dan 15.00 ikut membuat dua tindakan keperawatan di pasien uji (RM 00-00-00-19); karena itu daftar memuat tiga tindakan |
+| `069-A1`…`A3` | Putaran 15.02 cocok dengan log: `POST` pertama membuat tindakan, `POST` kedua dengan kunci yang sama mengembalikan ID yang sama, `GET ?encounterId=` memuat tindakan keperawatan. Ruas status pada catatan jaringan JSON kosong (`undefined`). Klaim "8 dari 8 acceptance" pada roadmap tidak diperiksa per butir — yang terbukti adalah tiga skenario ini |
+| `050-U1`…`U3`, `051-U1`…`U3` | Kelima PNG berlencana **"N"** di pojok kiri bawah — layar dilayani `next dev`, bukan hasil build. `050-U1`, `U2`, `U3` satu berkas yang sama (md5 `c106a81f…`); `051-U1`, `U2` satu berkas yang sama. Gambar `050-U3` menampilkan segmen *Formulir Tindakan*, bukan daftar berlencana Keperawatan yang diklaim. Aturan PASS `051-U2` dan `051-U3` memakai "salah satu" elemen |
+| Aturan uji | Akun nyata dari variabel lingkungan; nol sandi literal, nol SQL, nol *Simpan Akses*; sesi SuperAdmin berakhir 14.39.49, sebelum putaran pertama |
+| Di luar laporan | Akun dokter `ranger.biru` ditolak `403` pada `GET …/patient-allergies/active-alerts` (tiga kali) — layar dokter menampilkan *"Alergi gagal dimuat"*; urusan pengurus Akses Role. Daftar tindakan perawat menampilkan teks mentah *"NotApplicable"* di bawah biaya |
+
+**Putusan pemilik:** `BE-IGD-069` **disahkan dengan penyimpangan tercatat** (`IGD-DEC-295`); `FE-IGD-050` dan `FE-IGD-051`
+**dibuka kembali 🟡** — uji ulang pada hasil build (`IGD-DEC-296`).

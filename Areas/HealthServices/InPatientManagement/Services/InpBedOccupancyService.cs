@@ -39,9 +39,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     /// tidur, memesan, atau menempatkan pasien — <c>RWI-DEC-007</c>.
     /// </para>
     /// </remarks>
-    public class InpBedOccupancyService
+    public partial class InpBedOccupancyService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly InpBedMutationCoordinator _bedCoordinator;
+        private readonly InpBedAccessService _bedAccess;
+        private readonly InpBedManagementQueryService _bedQueries;
+        private readonly InpBedClassComparisonService _bedClasses;
         private readonly InpSettingService _settingService;
         private readonly InpEpisodeService _episodeService;
         private readonly IInpIntegrationOutboxService _outboxService;
@@ -66,14 +70,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InpEpisodeService episodeService,
             IInpIntegrationOutboxService outboxService,
             CliTransferHandoverService transferHandoverService,
-            ILogger<InpBedOccupancyService> logger)
+            ILogger<InpBedOccupancyService> logger, InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess, InpBedManagementQueryService bedQueries, InpBedClassComparisonService bedClasses)
         {
             _dbContext = dbContext;
             _settingService = settingService;
             _episodeService = episodeService;
             _outboxService = outboxService;
             _transferHandoverService = transferHandoverService;
-            _logger = logger;
+            _logger = logger; _bedCoordinator = bedCoordinator; _bedAccess = bedAccess; _bedQueries = bedQueries; _bedClasses = bedClasses;
         }
 
         // =====================================================================
@@ -94,6 +98,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             CancellationToken cancellationToken = default)
         {
             query ??= new AvailableBedQuery();
+            if (query.EpisodeId.HasValue) await _bedAccess.RequireEpisodeAsync(query.EpisodeId.Value, "InpatientBedOccupancy:Read", cancellationToken);
+            var scopedUnits = await _bedAccess.UnitsAsync("InpatientBedOccupancy:Read", cancellationToken);
 
             await ExpireDueReservationsAsync(cancellationToken);
 
@@ -122,7 +128,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             IQueryable<MstBed> bedQuery = _dbContext.Set<MstBed>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive);
+                .Where(x => !x.IsDelete && x.IsActive && x.Room != null && scopedUnits.Contains(x.Room.ServiceUnitId));
 
             if (query.RoomId.HasValue && query.RoomId.Value != Guid.Empty)
             {
@@ -168,51 +174,63 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .ToListAsync(cancellationToken);
 
             var eligible = new List<MstBed>();
-
-            // BE-RWI-069. Alasan penolakan sudah dihitung untuk setiap bed kandidat di bawah,
-            // lalu selama ini dibuang. Menyimpannya tidak menambah satu pun query: daftar ini
-            // diisi dari hasil pemeriksaan yang sama, bukan dari pemeriksaan kedua.
             var ineligible = new List<IneligibleBedResponse>();
-
-            // Tanpa episode, empat dari sembilan aturan tidak dapat dinilai sama sekali,
-            // sehingga alasan yang terkirim akan menyesatkan. Daftar penolakan karena itu
-            // hanya disusun ketika episodenya benar-benar ada.
             var collectIneligible = query.IncludeIneligible && episode != null;
+            Dictionary<Guid, BedOperationalResponse> opMap = [];
+            BedProjectionBatch? projection = null;
 
-            foreach (var candidate in candidates)
+            if (candidates.Count > 0)
             {
-                if (candidate.Room == null || candidate.Room.IsDelete || !candidate.Room.IsActive)
-                {
-                    continue;
-                }
+                // BE-RWI-228: kesiapan, pemesanan aktif, penempatan aktif, unit, dan kelas sudah
+                // dimuat proyeksi status; dipakai ulang di sini alih-alih dibaca ulang dari database.
+                projection = await _bedQueries.ProjectBatchAsync(candidates, cancellationToken);
+                opMap = projection.Rows.ToDictionary(x => x.BedId);
 
-                var evaluation = await EvaluatePlacementEligibilityAsync(
-                    episode,
-                    patient,
-                    candidate,
-                    candidate.Room,
-                    InpPlacementContext.Search,
-                    cancellationToken);
-
-                if (evaluation.IsEligible)
+                foreach (var candidate in candidates)
                 {
-                    eligible.Add(candidate);
-                    continue;
-                }
-
-                if (collectIneligible)
-                {
-                    ineligible.Add(new IneligibleBedResponse
+                    if (candidate.Room == null || candidate.Room.IsDelete || !candidate.Room.IsActive)
                     {
-                        BedId = candidate.Id,
-                        BedCode = candidate.BedCode,
-                        BedName = candidate.BedName,
-                        BedNumber = candidate.BedNumber,
-                        RoomId = candidate.RoomId,
-                        RoomCode = candidate.Room.RoomCode,
-                        RoomName = candidate.Room.RoomName,
-                        Failures = evaluation.Failures
-                    });
+                        continue;
+                    }
+
+                    opMap.TryGetValue(candidate.Id, out var operational);
+                    projection.Roots.TryGetValue(candidate.Id, out var root);
+                    IReadOnlyList<InpBedReservation>? bedReservations =
+                        projection.Reservations.TryGetValue(candidate.Id, out var reservation) ? [reservation] : null;
+                    IReadOnlyList<InpBedPlacement>? bedPlacements =
+                        projection.Placements.TryGetValue(candidate.Id, out var placement) ? [placement] : null;
+
+                    var evaluation = EvaluatePlacementEligibilityCore(
+                        episode,
+                        patient,
+                        candidate,
+                        candidate.Room,
+                        InpPlacementContext.Search,
+                        operational ?? new BedOperationalResponse(),
+                        root,
+                        bedReservations,
+                        bedPlacements);
+
+                    if (evaluation.IsEligible)
+                    {
+                        eligible.Add(candidate);
+                        continue;
+                    }
+
+                    if (collectIneligible)
+                    {
+                        ineligible.Add(new IneligibleBedResponse
+                        {
+                            BedId = candidate.Id,
+                            BedCode = candidate.BedCode,
+                            BedName = candidate.BedName,
+                            BedNumber = candidate.BedNumber,
+                            RoomId = candidate.RoomId,
+                            RoomCode = candidate.Room.RoomCode,
+                            RoomName = candidate.Room.RoomName,
+                            Failures = evaluation.Failures
+                        });
+                    }
                 }
             }
 
@@ -242,7 +260,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 })
                 .ToList();
 
-            await FillServiceUnitAndClassNamesAsync(items, cancellationToken);
+            if (projection != null)
+            {
+                foreach (var item in items)
+                {
+                    item.ServiceUnitName = projection.Units.TryGetValue(item.ServiceUnitId, out var unit)
+                        ? unit.ServiceUnitName
+                        : null;
+
+                    if (item.PatientClassId.HasValue)
+                    {
+                        item.PatientClassName = projection.Classes.TryGetValue(item.PatientClassId.Value, out var patientClass)
+                            ? patientClass.PatientClassName
+                            : null;
+                    }
+                }
+            }
+
+            Guid? sourceClass = null;
+            if (episode != null && items.Any(x => x.PatientClassId.HasValue))
+            {
+                sourceClass = await _dbContext.Set<InpBedPlacement>().AsNoTracking()
+                    .Where(x => x.EpisodeId == episode.Id && x.EndDateTime == null && !x.IsDelete)
+                    .Select(x => (Guid?)x.PatientClassId)
+                    .SingleOrDefaultAsync(cancellationToken);
+            }
+
+            foreach (var item in items)
+            {
+                if (opMap.TryGetValue(item.BedId, out var op))
+                {
+                    item.OperationalVersion = op.OperationalVersion; item.CycleId = op.CycleId; item.StatusCode = op.StatusCode;
+                    item.StatusLabel = op.StatusLabel; item.CleaningPhase = op.CleaningPhase; item.IsBookable = op.IsBookable;
+                }
+                if (sourceClass.HasValue && item.PatientClassId.HasValue)
+                {
+                    item.ComparisonResult = await _bedClasses.CompareAsync(sourceClass.Value, item.PatientClassId.Value, cancellationToken);
+                    item.AllowedManualCategories = item.ComparisonResult is null or "Unknown" ? [] : [item.ComparisonResult];
+                }
+            }
 
             return new AvailableBedPagedResult
             {
@@ -264,180 +320,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <c>MstBed.BedStatus</c>. Salinan itu tetap ditampilkan supaya selisih antara catatan
         /// dan salinan terlihat orang, bukan supaya dipercaya.
         /// </remarks>
-        public async Task<BedBoardResponse> GetBedBoardAsync(
-            Guid? serviceUnitId,
-            CancellationToken cancellationToken = default)
-        {
-            await ExpireDueReservationsAsync(cancellationToken);
-            var activeReservationCutoff = DateTime.UtcNow;
-
-            IQueryable<MstRoom> roomQuery = _dbContext.Set<MstRoom>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive);
-
-            if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
-            {
-                roomQuery = roomQuery.Where(x => x.ServiceUnitId == serviceUnitId.Value);
-            }
-            else
-            {
-                roomQuery = roomQuery.Where(x =>
-                    x.ServiceUnit != null &&
-                    x.ServiceUnit.ServiceUnitType == ServiceUnitType.Inpatient);
-            }
-
-            var rooms = await roomQuery
-                .Select(x => new
-                {
-                    x.Id,
-                    x.RoomCode,
-                    x.RoomName,
-                    x.ServiceUnitId,
-                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
-                    x.PatientClassId,
-                    PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
-                    x.Capacity
-                })
-                .ToListAsync(cancellationToken);
-
-            var roomIds = rooms.Select(x => x.Id).ToList();
-
-            var beds = await _dbContext.Set<MstBed>()
-                .AsNoTracking()
-                .Where(x => !x.IsDelete && roomIds.Contains(x.RoomId))
-                .OrderBy(x => x.BedName)
-                .Select(x => new
-                {
-                    x.Id,
-                    x.RoomId,
-                    x.BedCode,
-                    x.BedName,
-                    x.BedStatus,
-                    x.IsIsolationBed,
-                    x.IsForNewborn
-                })
-                .ToListAsync(cancellationToken);
-
-            var bedIds = beds.Select(x => x.Id).ToList();
-
-            var placements = await _dbContext.Set<InpBedPlacement>()
-                .AsNoTracking()
-                .Where(x => x.EndDateTime == null && !x.IsDelete && bedIds.Contains(x.BedId))
-                .Select(x => new
-                {
-                    x.BedId,
-                    x.EpisodeId,
-                    EpisodeNumber = x.Episode != null ? x.Episode.EpisodeNumber : null,
-                    PatientName = x.Episode != null && x.Episode.Patient != null
-                        ? x.Episode.Patient.FullName
-                        : null
-                })
-                .ToListAsync(cancellationToken);
-
-            var reservations = await _dbContext.Set<InpBedReservation>()
-                .AsNoTracking()
-                .Where(x =>
-                    x.ReservationStatus == InpBedReservationStatus.Active &&
-                    x.ExpiresAt > activeReservationCutoff &&
-                    !x.IsDelete &&
-                    bedIds.Contains(x.BedId))
-                .Select(x => new
-                {
-                    x.Id,
-                    x.BedId,
-                    x.EpisodeId,
-                    x.ExpiresAt,
-                    EpisodeNumber = x.Episode != null ? x.Episode.EpisodeNumber : null,
-                    PatientName = x.Episode != null && x.Episode.Patient != null
-                        ? x.Episode.Patient.FullName
-                        : null
-                })
-                .ToListAsync(cancellationToken);
-
-            var board = new BedBoardResponse();
-
-            foreach (var unitGroup in rooms
-                .GroupBy(x => new { x.ServiceUnitId, x.ServiceUnitName })
-                .OrderBy(x => x.Key.ServiceUnitName))
-            {
-                var unit = new BedBoardServiceUnitResponse
-                {
-                    ServiceUnitId = unitGroup.Key.ServiceUnitId,
-                    ServiceUnitName = unitGroup.Key.ServiceUnitName
-                };
-
-                foreach (var room in unitGroup.OrderBy(x => x.RoomName))
-                {
-                    var roomResponse = new BedBoardRoomResponse
-                    {
-                        RoomId = room.Id,
-                        RoomCode = room.RoomCode,
-                        RoomName = room.RoomName,
-                        PatientClassId = room.PatientClassId,
-                        PatientClassName = room.PatientClassName,
-                        Capacity = room.Capacity
-                    };
-
-                    foreach (var bed in beds.Where(x => x.RoomId == room.Id))
-                    {
-                        var placement = placements.FirstOrDefault(x => x.BedId == bed.Id);
-                        var reservation = reservations.FirstOrDefault(x => x.BedId == bed.Id);
-
-                        var bedResponse = new BedBoardBedResponse
-                        {
-                            BedId = bed.Id,
-                            BedCode = bed.BedCode,
-                            BedName = bed.BedName,
-                            BedStatus = (int)bed.BedStatus,
-                            BedStatusName = bed.BedStatus.ToString(),
-                            IsOccupied = placement != null,
-                            IsReserved = placement == null && reservation != null,
-                            IsIsolationBed = bed.IsIsolationBed,
-                            IsForNewborn = bed.IsForNewborn,
-                            HoldingEpisodeId = placement?.EpisodeId ?? reservation?.EpisodeId,
-                            HoldingEpisodeNumber = placement?.EpisodeNumber ?? reservation?.EpisodeNumber,
-                            PatientName = placement?.PatientName ?? reservation?.PatientName,
-                            ReservationId = placement == null ? reservation?.Id : null,
-                            ReservationExpiresAt = placement == null ? reservation?.ExpiresAt : null
-                        };
-
-                        roomResponse.Beds.Add(bedResponse);
-
-                        unit.TotalBed++;
-
-                        if (bedResponse.IsOccupied)
-                        {
-                            unit.TotalOccupied++;
-                        }
-                        else if (bedResponse.IsReserved)
-                        {
-                            unit.TotalReserved++;
-                        }
-                        else if (IsBedClosed(bed.BedStatus))
-                        {
-                            unit.TotalUnavailable++;
-                        }
-                        else
-                        {
-                            unit.TotalAvailable++;
-                        }
-                    }
-
-                    unit.Rooms.Add(roomResponse);
-                }
-
-                board.ServiceUnits.Add(unit);
-
-                board.TotalBed += unit.TotalBed;
-                board.TotalAvailable += unit.TotalAvailable;
-                board.TotalOccupied += unit.TotalOccupied;
-                board.TotalReserved += unit.TotalReserved;
-                board.TotalUnavailable += unit.TotalUnavailable;
-            }
-
-            return board;
-        }
-
         /// <summary>
         /// Memesan tempat tidur untuk satu episode <c>Draft</c>. Pemesanan mengunci tempat
         /// tidur selama <c>MstInpatientSetting.BedReservationMinutes</c>, lalu gugur sendiri.
@@ -448,7 +330,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// Pemesanan yang sudah terlanjur dibuat tetap memakai batas yang berlaku saat ia
         /// dibuat, karena <c>ExpiresAt</c> disimpan pada barisnya.
         /// </remarks>
-        public async Task<InpBedOccupancyOperationResult> ReserveBedAsync(
+        internal async Task<InpBedOccupancyOperationResult> ReserveBedCoreAsync(
             ReserveBedRequest request,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
@@ -478,6 +360,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Pemesanan tempat tidur hanya dapat dilakukan sebelum pasien ditempatkan.");
             }
 
+            // BE-RWI-012 — INV-INP-10. Pasien yang sudah aktif dirawat tidak dapat memesan bed baru.
+            var present = await _episodeService.FindPresentEpisodeAsync(
+                episode.PatientId,
+                episode.Id,
+                cancellationToken);
+
+            if (present != null)
+            {
+                return InpBedOccupancyOperationResult.Conflict(
+                    present.RejectionMessage,
+                    "PATIENT_ALREADY_ADMITTED");
+            }
+
             var context = await LoadBedContextAsync(request.BedId, cancellationToken);
 
             if (context == null)
@@ -494,7 +389,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .FirstOrDefaultAsync(
                     x =>
                         x.EpisodeId == episode.Id &&
-                        x.ReservationStatus == InpBedReservationStatus.Active &&
+                        x.ReservationStatus == InpBedReservationStatus.Active && x.ExpiresAt > DateTime.UtcNow &&
                         !x.IsDelete,
                     cancellationToken);
 
@@ -528,8 +423,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var setting = await _settingService.GetEffectiveSettingAsync(cancellationToken);
             var now = DateTime.UtcNow;
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -550,6 +444,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 };
 
                 _dbContext.Set<InpBedReservation>().Add(reservation);
+
+                // Draft mengikuti kamar yang benar-benar dipesan, termasuk setelah memilih ulang.
+                episode.PatientClassId = ResolveBilledPatientClassId(context.Room, episode);
+                episode.UpdateDateTime = now;
+                episode.UpdateBy = actorUserId;
 
                 await WriteBedStatusCopyAsync(
                     context.Bed.Id,
@@ -580,7 +479,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         /// <summary>Membatalkan pemesanan sebelum dipakai.</summary>
-        public async Task<InpBedOccupancyOperationResult> CancelReservationAsync(
+        internal async Task<InpBedOccupancyOperationResult> CancelReservationCoreAsync(
             Guid reservationId,
             CancelReservationRequest? request,
             Guid actorUserId,
@@ -602,12 +501,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var now = DateTime.UtcNow;
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
-                reservation.ReservationStatus = InpBedReservationStatus.Cancelled;
+                reservation.CancellationReason = request!.Reason!.Trim(); reservation.CancelledByUserId = actorUserId; reservation.ReservationStatus = InpBedReservationStatus.Cancelled;
                 reservation.ReleasedAt = now;
                 reservation.IsActive = false;
                 reservation.UpdateDateTime = now;
@@ -645,49 +543,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// 11:16 menemukannya bebas. Tidak ada satu pun proses yang berjalan di antara kedua
         /// pembacaan itu — yang menggugurkannya adalah pembacaan kedua itu sendiri.
         /// </remarks>
-        public async Task<int> ExpireDueReservationsAsync(
-            CancellationToken cancellationToken = default)
+        public Task<int> ExpireDueReservationsAsync(CancellationToken cancellationToken = default)
         {
-            var now = DateTime.UtcNow;
-
-            var due = await _dbContext.Set<InpBedReservation>()
-                .Where(x =>
-                    x.ReservationStatus == InpBedReservationStatus.Active &&
-                    !x.IsDelete &&
-                    x.ExpiresAt <= now)
-                .ToListAsync(cancellationToken);
-
-            if (due.Count == 0)
-            {
-                return 0;
-            }
-
-            foreach (var reservation in due)
-            {
-                reservation.ReservationStatus = InpBedReservationStatus.Expired;
-                reservation.ReleasedAt = now;
-                reservation.IsActive = false;
-                reservation.UpdateDateTime = now;
-                reservation.UpdateBy = Guid.Empty;
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            foreach (var reservation in due)
-            {
-                await ReleaseBedStatusCopyAsync(
-                    reservation.BedId,
-                    Guid.Empty,
-                    null,
-                    now,
-                    cancellationToken);
-            }
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return due.Count;
+            // Core di dalam coordinator sudah mengevaluasi bed yang terlibat; GET memakai akun sistem sah.
+            return _dbContext.Database.CurrentTransaction != null ? Task.FromResult(0) : _bedCoordinator.ExpireScopedAsync("InpatientBedOccupancy:Read", cancellationToken);
         }
-
         // =====================================================================
         // BE-RWI-011 — Penempatan pasien
         // =====================================================================
@@ -716,7 +576,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// syaratnya belum ada pada source hari ini.
         /// </para>
         /// </remarks>
-        public async Task<InpBedOccupancyOperationResult> PlacePatientAsync(
+        internal async Task<InpBedOccupancyOperationResult> PlacePatientCoreAsync(
             PlacePatientRequest request,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
@@ -758,7 +618,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (present != null)
             {
-                return InpBedOccupancyOperationResult.Conflict(present.RejectionMessage);
+                return InpBedOccupancyOperationResult.Conflict(
+                    present.RejectionMessage,
+                    "PATIENT_ALREADY_ADMITTED");
             }
 
             var context = await LoadBedContextAsync(request.BedId, cancellationToken);
@@ -787,8 +649,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var now = DateTime.UtcNow;
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -820,7 +681,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         x =>
                             x.BedId == context.Bed.Id &&
                             x.EpisodeId == episode.Id &&
-                            x.ReservationStatus == InpBedReservationStatus.Active &&
+                            x.ReservationStatus == InpBedReservationStatus.Active && x.ExpiresAt > DateTime.UtcNow &&
                             !x.IsDelete,
                         cancellationToken);
 
@@ -855,6 +716,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     CreateBy = actorUserId
                 };
 
+                placement.LocationSnapshotJson = await _bedQueries.SnapshotAsync(placement, cancellationToken); await _bedCoordinator.InvalidateAsync(placement.BedId, actorUserId, null, cancellationToken);
                 _dbContext.Set<InpBedPlacement>().Add(placement);
 
                 await WriteBedStatusCopyAsync(
@@ -946,7 +808,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// riwayat penempatan dapat menunjukkan 2 hari kelas 2 lalu 2 hari kelas 1.
         /// </para>
         /// </remarks>
-        public async Task<InpBedOccupancyOperationResult> TransferAsync(
+        internal async Task<InpBedOccupancyOperationResult> TransferCoreAsync(
             TransferPatientRequest request,
             Guid actorUserId,
             Guid? actorDoctorId,
@@ -1071,8 +933,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var reason = request.TransferReason.Trim();
             var previousBedId = currentPlacement.BedId;
 
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -1120,7 +981,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitId = context.Room.ServiceUnitId,
                     PatientClassId = ResolveBilledPatientClassId(context.Room, episode),
                     SequenceNumber = lastSequence + 1,
-                    Version = currentPlacement.Version + 1,
+                    Version = currentPlacement.Version + 1, TransferCategory = (InpBedTransferCategory)request.ManualTransferCategory, TransferFromPlacementId = currentPlacement.Id,
                     StartDateTime = now,
                     EndDateTime = null,
                     TransferReason = reason,
@@ -1132,6 +993,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     CreateBy = actorUserId
                 };
 
+                placement.LocationSnapshotJson = await _bedQueries.SnapshotAsync(placement, cancellationToken); await _bedCoordinator.InvalidateAsync(placement.BedId, actorUserId, null, cancellationToken);
                 _dbContext.Set<InpBedPlacement>().Add(placement);
 
                 await WriteBedStatusCopyAsync(
@@ -1177,7 +1039,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 // BE-RWI-183 / INV-RWF-33: transfer ke unit lain membuat dokumen serah terima klinis
                 // SESUDAH commit. Gagal tidak pernah membatalkan transfer yang sudah sah; dokumennya
                 // dibuat ulang oleh pengecekan saat daftar serah terima dibaca.
-                if (currentPlacement.ServiceUnitId != placement.ServiceUnitId)
+                if (_dbContext.Database.CurrentTransaction == null && currentPlacement.ServiceUnitId != placement.ServiceUnitId)
                 {
                     try
                     {
@@ -1236,7 +1098,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// sama, misalnya koreksi kelas saja.
         /// </para>
         /// </remarks>
-        public async Task<InpPlacementCorrectionResult> ApplyPlacementCorrectionAsync(
+        internal async Task<InpPlacementCorrectionResult> ApplyPlacementCorrectionCoreAsync(
             Guid placementId,
             CorrectPlacementRequest request,
             Guid actorUserId,
@@ -1421,7 +1283,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 newPatientClassId = request.CorrectedPatientClassId.Value;
             }
 
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, cancellationToken);
 
             try
             {
@@ -1493,6 +1355,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     CreateBy = actorUserId
                 };
 
+                correction.TransferCategory = target.TransferCategory;
+                correction.TransferFromPlacementId = target.TransferFromPlacementId;
+                correction.LocationSnapshotJson = bedChanged || newPatientClassId != target.PatientClassId
+                    ? await _bedQueries.SnapshotAsync(correction, cancellationToken) : target.LocationSnapshotJson;
                 _dbContext.Set<InpBedPlacement>().Add(correction);
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -1500,7 +1366,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
                 if (bedChanged && isActivePlacement)
                 {
-                    await WriteBedStatusCopyAsync(newBedId, BedStatus.Occupied, actorUserId, now, cancellationToken);
+                    await _bedCoordinator.InvalidateAsync(newBedId, actorUserId, null, cancellationToken); await WriteBedStatusCopyAsync(newBedId, BedStatus.Occupied, actorUserId, now, cancellationToken);
                     await ReleaseBedStatusCopyAsync(target.BedId, episode.Id, actorUserId, now, cancellationToken);
                 }
 
@@ -1554,9 +1420,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             Guid episodeId,
             CancellationToken cancellationToken = default)
         {
-            var rows = await _dbContext.Set<InpBedPlacement>()
+            var allowedUnits = await _bedAccess.UnitsAsync(_bedCoordinator.LastOperationName ?? "InpatientBedOccupancy:Read", cancellationToken); var rows = await _dbContext.Set<InpBedPlacement>()
                 .AsNoTracking()
-                .Where(x => x.EpisodeId == episodeId && !x.IsDelete)
+                .Where(x => x.EpisodeId == episodeId && !x.IsDelete && allowedUnits.Contains(x.ServiceUnitId))
                 .OrderBy(x => x.SequenceNumber)
                 .Select(x => new BedPlacementResponse
                 {
@@ -1582,7 +1448,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     IsCurrent = x.EndDateTime == null,
                     // BE-RWI-154 / kontrak integrasi-billing 1.1.0 API 3.4 — transfer dan koreksi
                     // salah catat dapat dibedakan pada riwayat.
-                    Version = x.Version,
+                    Version = x.Version, TransferCategory = (int?)x.TransferCategory, TransferFromPlacementId = x.TransferFromPlacementId, LocationSnapshotJson = x.LocationSnapshotJson, ContextSource = x.LocationSnapshotJson == null ? "LegacyStoredIds" : "StoredSnapshot", IsEffectiveForBilling = x.SupersededByCorrectionId == null,
                     CorrectsPlacementId = x.CorrectsPlacementId,
                     SupersededByCorrectionId = x.SupersededByCorrectionId,
                     IsCorrection = x.CorrectsPlacementId != null
@@ -1591,6 +1457,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             foreach (var row in rows)
             {
+                if (row.LocationSnapshotJson != null)
+                {
+                    using var snapshot = System.Text.Json.JsonDocument.Parse(row.LocationSnapshotJson);
+                    var loc = snapshot.RootElement;
+                    string? Read(string name) => loc.TryGetProperty(name, out var v) && v.ValueKind == System.Text.Json.JsonValueKind.String ? v.GetString() : null;
+                    row.BedCode = Read("BedCode"); row.BedName = Read("BedName"); row.RoomName = Read("RoomName");
+                    row.ServiceUnitName = Read("ServiceUnitName"); row.PatientClassName = Read("PatientClassName");
+                }
                 row.EndReasonName = row.EndReason.HasValue
                     ? ((InpBedPlacementEndReason)row.EndReason.Value).ToString()
                     : null;
@@ -1604,7 +1478,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             Guid placementId,
             CancellationToken cancellationToken = default)
         {
-            var rows = await _dbContext.Set<InpBedPlacement>()
+            var allowedUnits = await _bedAccess.UnitsAsync(_bedCoordinator.LastOperationName ?? "InpatientBedOccupancy:Read", cancellationToken); var rows = await _dbContext.Set<InpBedPlacement>()
                 .AsNoTracking()
                 .Where(x => x.Id == placementId)
                 .Select(x => x.EpisodeId)
@@ -1642,7 +1516,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ExpiresAt = x.ExpiresAt,
                     ReservationStatus = (int)x.ReservationStatus,
                     ReservedByUserId = x.ReservedByUserId,
-                    ReleasedAt = x.ReleasedAt
+                    ReleasedAt = x.ReleasedAt, CancellationReason = x.CancellationReason, CancelledByUserId = x.CancelledByUserId
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -1702,8 +1576,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InpPlacementContext context,
             CancellationToken cancellationToken = default)
         {
+            // BE-RWI-228: kesiapan, pemesanan, dan penempatan diambil dari data proyeksi yang sama.
+            var projection = await _bedQueries.ProjectBatchAsync([bed], cancellationToken);
+            var operational = projection.Rows[0];
+            projection.Roots.TryGetValue(bed.Id, out var root);
+            IReadOnlyList<InpBedReservation> reservations =
+                projection.Reservations.TryGetValue(bed.Id, out var reservation) ? [reservation] : [];
+            IReadOnlyList<InpBedPlacement> placements =
+                projection.Placements.TryGetValue(bed.Id, out var placement) ? [placement] : [];
+
+            return EvaluatePlacementEligibilityCore(episode, patient, bed, room, context, operational, root, reservations, placements);
+        }
+
+        internal InpPlacementEligibilityResult EvaluatePlacementEligibilityCore(
+            InpEpisode? episode,
+            MstPatient? patient,
+            MstBed bed,
+            MstRoom room,
+            InpPlacementContext context,
+            BedOperationalResponse operational,
+            InpBedReadiness? root,
+            IReadOnlyList<InpBedReservation>? bedReservations,
+            IReadOnlyList<InpBedPlacement>? bedPlacements)
+        {
             var result = new InpPlacementEligibilityResult();
+            if (!room.PatientClassId.HasValue || room.PatientClassId.Value == Guid.Empty)
+            {
+                result.Add(1, "ROOM_CLASS_MISSING", "Kamar belum memiliki kelas perawatan. Lengkapi kelas kamar sebelum memesan atau menempatkan pasien.", 422);
+            }
             var episodeId = episode?.Id ?? Guid.Empty;
+            var ownReservation = episode != null && (bedReservations?.Any(x => x.EpisodeId == episode.Id) ?? false);
+            if (!operational.IsBookable && !(ownReservation && operational.StatusCode == "Reserved" && root?.State == InpBedReadinessState.Ready && operational.ConflictCode == null))
+                result.Add(1, "BED_NOT_READY", "Bed belum siap atau masih dipegang. Muat ulang kesiapan bed.", 422);
 
             // --- Aturan 1: tempat tidur aktif dan tidak sedang ditutup -------------------
             if (bed.IsDelete || !bed.IsActive)
@@ -1726,15 +1630,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             }
 
             // --- Aturan 2 dan 3: tempat tidur tidak dipegang episode lain -----------------
-            var otherReservation = await _dbContext.Set<InpBedReservation>()
-                .AsNoTracking()
-                .AnyAsync(
-                    x =>
-                        x.BedId == bed.Id &&
-                        x.EpisodeId != episodeId &&
-                        x.ReservationStatus == InpBedReservationStatus.Active &&
-                        !x.IsDelete,
-                    cancellationToken);
+            var otherReservation = bedReservations?.Any(x => x.EpisodeId != episodeId) ?? false;
 
             if (otherReservation)
             {
@@ -1745,15 +1641,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     409);
             }
 
-            var otherPlacement = await _dbContext.Set<InpBedPlacement>()
-                .AsNoTracking()
-                .AnyAsync(
-                    x =>
-                        x.BedId == bed.Id &&
-                        x.EpisodeId != episodeId &&
-                        x.EndDateTime == null &&
-                        !x.IsDelete,
-                    cancellationToken);
+            var otherPlacement = bedPlacements?.Any(x => x.EpisodeId != episodeId) ?? false;
 
             if (otherPlacement)
             {
@@ -1771,15 +1659,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             // dan pemesanan yang sudah gugur tidak menghalangi apa pun — RWI-RULE-015.
             if (episodeId != Guid.Empty)
             {
-                result.ReusableReservationExists = await _dbContext.Set<InpBedReservation>()
-                    .AsNoTracking()
-                    .AnyAsync(
-                        x =>
-                            x.BedId == bed.Id &&
-                            x.EpisodeId == episodeId &&
-                            x.ReservationStatus == InpBedReservationStatus.Active &&
-                            !x.IsDelete,
-                        cancellationToken);
+                result.ReusableReservationExists = ownReservation;
             }
 
             // Tanpa episode, pemeriksaan berhenti di sini. Empat aturan berikutnya menyangkut
@@ -1893,6 +1773,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return null;
             }
 
+            await _bedCoordinator.LockHierarchyAsync([placement.BedId], null, null, null, cancellationToken);
+            await _dbContext.Entry(placement).ReloadAsync(cancellationToken);
+            if (placement.EndDateTime != null) return null;
             placement.EndDateTime = now;
             placement.EndReason = endReason;
             placement.EndedByUserId = actorUserId;
@@ -1968,12 +1851,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var bed = await _dbContext.Set<MstBed>()
                 .FirstOrDefaultAsync(x => x.Id == bedId, cancellationToken);
 
-            if (bed == null || IsBedClosed(bed.BedStatus))
+            if (bed == null)
             {
                 return;
             }
 
-            bed.BedStatus = status;
+            if (IsBedClosed(bed.BedStatus)) return; bed.BedStatus = status;
             bed.UpdateDateTime = now;
             bed.UpdateBy = actorUserId;
         }
@@ -1992,7 +1875,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var bed = await _dbContext.Set<MstBed>()
                 .FirstOrDefaultAsync(x => x.Id == bedId, cancellationToken);
 
-            if (bed == null || IsBedClosed(bed.BedStatus))
+            if (bed == null)
             {
                 return;
             }
@@ -2011,7 +1894,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         x =>
                             x.BedId == bedId &&
                             x.EpisodeId != releasingEpisodeId &&
-                            x.ReservationStatus == InpBedReservationStatus.Active &&
+                            x.ReservationStatus == InpBedReservationStatus.Active && x.ExpiresAt > DateTime.UtcNow &&
                             !x.IsDelete,
                         cancellationToken);
 
@@ -2020,7 +1903,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return;
             }
 
-            bed.BedStatus = BedStatus.Available;
+            var released = _dbContext.ChangeTracker.Entries<InpBedPlacement>()
+                .Where(x => x.Entity.BedId == bedId && x.Entity.EpisodeId == releasingEpisodeId && x.Entity.EndDateTime != null && x.Entity.SupersededByCorrectionId == null)
+                .Select(x => x.Entity).OrderByDescending(x => x.EndDateTime).FirstOrDefault();
+            var root = await _bedCoordinator.RootAsync(bedId, actorUserId ?? _bedAccess.ActorId, cancellationToken);
+            if (released != null)
+            {
+                var before = root.State;
+                await _bedCoordinator.InvalidateAsync(bedId, actorUserId ?? _bedAccess.ActorId, released.Id, cancellationToken);
+                root.Version++;
+                _dbContext.Set<InpBedLifecycleEvent>().Add(new() { ReadinessId = root.Id, CycleId = root.CycleId,
+                    PlacementId = released.Id, Action = "UsedBedReleased", BeforeState = before, AfterState = root.State,
+                    ActorUserId = actorUserId ?? _bedAccess.ActorId, CreateBy = actorUserId ?? _bedAccess.ActorId,
+                    OccurredAtUtc = now, RecordedAtUtc = DateTime.UtcNow });
+            }
+            if (bed.BedStatus is not (BedStatus.Maintenance or BedStatus.Blocked or BedStatus.Inactive or BedStatus.Unknown)) bed.BedStatus = root.State == InpBedReadinessState.Ready ? BedStatus.Available : BedStatus.Cleaning;
             bed.UpdateDateTime = now;
             bed.UpdateBy = actorUserId ?? Guid.Empty;
         }
@@ -2050,55 +1947,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             return new BedWithRoom { Bed = bed, Room = room };
         }
 
-        private async Task FillServiceUnitAndClassNamesAsync(
-            List<AvailableBedResponse> items,
-            CancellationToken cancellationToken)
-        {
-            if (items.Count == 0)
-            {
-                return;
-            }
-
-            var serviceUnitIds = items
-                .Select(x => x.ServiceUnitId)
-                .Where(x => x != Guid.Empty)
-                .Distinct()
-                .ToList();
-
-            var patientClassIds = items
-                .Where(x => x.PatientClassId.HasValue && x.PatientClassId.Value != Guid.Empty)
-                .Select(x => x.PatientClassId!.Value)
-                .Distinct()
-                .ToList();
-
-            var serviceUnits = await _dbContext.Set<MstServiceUnit>()
-                .AsNoTracking()
-                .Where(x => serviceUnitIds.Contains(x.Id))
-                .Select(x => new { x.Id, x.ServiceUnitName })
-                .ToListAsync(cancellationToken);
-
-            var patientClasses = await _dbContext.Set<MstPatientClass>()
-                .AsNoTracking()
-                .Where(x => patientClassIds.Contains(x.Id))
-                .Select(x => new { x.Id, x.PatientClassName })
-                .ToListAsync(cancellationToken);
-
-            foreach (var item in items)
-            {
-                item.ServiceUnitName = serviceUnits
-                    .FirstOrDefault(x => x.Id == item.ServiceUnitId)?.ServiceUnitName;
-
-                if (item.PatientClassId.HasValue)
-                {
-                    item.PatientClassName = patientClasses
-                        .FirstOrDefault(x => x.Id == item.PatientClassId.Value)?.PatientClassName;
-                }
-            }
-        }
-
         /// <summary>
         /// Kelas yang ditagihkan selama satu penempatan: mengikuti kamar yang ditempati bila
-        /// kamarnya memang punya kelas, dan jatuh kembali ke kelas pada episode bila tidak.
+        /// kamarnya memiliki kelas. Kamar tanpa kelas ditolak pada pemeriksaan kelayakan.
         /// </summary>
         /// <remarks>
         /// Dasarnya <c>RWI-DEC-013</c>: pasien yang pindah dari kamar kelas 2 ke kamar kelas 1
@@ -2109,7 +1960,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         {
             return room.PatientClassId.HasValue && room.PatientClassId.Value != Guid.Empty
                 ? room.PatientClassId.Value
-                : episode.PatientClassId;
+                : throw new InvalidOperationException("Kamar belum memiliki kelas perawatan. Lengkapi kelas kamar sebelum menempatkan pasien.");
         }
 
         private static bool IsBedClosed(BedStatus status)
@@ -2247,18 +2098,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             string message,
             List<PlacementEligibilityFailureResponse>? failures = null,
             Guid? reservationId = null,
-            Guid? placementId = null)
+            Guid? placementId = null,
+            string? code = null)
         {
             Status = status;
             Message = message;
             Failures = failures ?? new List<PlacementEligibilityFailureResponse>();
             ReservationId = reservationId;
             PlacementId = placementId;
+            Code = code;
         }
 
         public InpEpisodeOperationStatus Status { get; }
 
         public string Message { get; }
+
+        public string? Code { get; }
 
         /// <summary>
         /// Daftar aturan Kelayakan Penempatan yang gagal. Kosong untuk penolakan yang bukan
@@ -2281,20 +2136,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 reservationId,
                 placementId);
 
-        public static InpBedOccupancyOperationResult Invalid(string message)
-            => new(InpEpisodeOperationStatus.Invalid, message);
+        public static InpBedOccupancyOperationResult Invalid(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.Invalid, message, code: code);
 
-        public static InpBedOccupancyOperationResult NotFound(string message)
-            => new(InpEpisodeOperationStatus.NotFound, message);
+        public static InpBedOccupancyOperationResult NotFound(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.NotFound, message, code: code);
 
-        public static InpBedOccupancyOperationResult Conflict(string message)
-            => new(InpEpisodeOperationStatus.Conflict, message);
+        public static InpBedOccupancyOperationResult Conflict(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.Conflict, message, code: code);
 
-        public static InpBedOccupancyOperationResult BusinessRuleRejected(string message)
-            => new(InpEpisodeOperationStatus.BusinessRuleRejected, message);
+        public static InpBedOccupancyOperationResult BusinessRuleRejected(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.BusinessRuleRejected, message, code: code);
 
-        public static InpBedOccupancyOperationResult Forbidden(string message)
-            => new(InpEpisodeOperationStatus.Forbidden, message);
+        public static InpBedOccupancyOperationResult Forbidden(string message, string? code = null)
+            => new(InpEpisodeOperationStatus.Forbidden, message, code: code);
 
         /// <summary>
         /// Menyusun penolakan dari hasil Kelayakan Penempatan, lengkap dengan daftar aturan
@@ -2310,7 +2165,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             return new InpBedOccupancyOperationResult(
                 status,
                 evaluation.PrimaryMessage,
-                evaluation.Failures.ToList());
+                evaluation.Failures.ToList(),
+                code: evaluation.Failures.FirstOrDefault()?.Code);
         }
     }
 }

@@ -9,18 +9,18 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 |---|---|
 | `submodule_slug` | `episode-rawat-inap` |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
-| `revision` | **`9`** — amandemen Workspace PPRI pada bagian 12, ditulis 2026-10-07, **disetujui 2026-10-08 lewat `RWI-DEC-265`**. Sebelumnya **`8`** — Finishing Rawat Inap pada bagian 11, **disetujui 2026-10-02 lewat `RWI-DEC-221`**. Sebelumnya: **`7`** — satu angka, dipegang tingkat modul. Amandemen terbatas penyelarasan `PRD-RWI-V2-001` pada bagian 10 |
-| `status` | **`approved`** — amandemen revision `9` / kontrak `0.11.0` **disetujui Muhammad Hamzah 2026-10-08 lewat `RWI-DEC-265`** (bagian 12); `draft` sejak 2026-10-07. Roadmap Workspace PPRI berstatus `DRAFT`. Riwayat: **`approved`** — amandemen revision `8` / kontrak `0.10.0` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**. Sebelumnya: **`approved`** — amandemen terbatas revision `7` / kontrak `0.9.0` **disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`**; ditulis 2026-09-15. Sebelumnya `approved`: revision `6` beserta kontrak `0.8.0` disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105`; revision `4` 2026-08-24 lewat `RWI-DEC-074`; revision `3` lewat `RWI-DEC-067` |
-| `contract_versions` | **`0.11.0`** — **`approved` 2026-10-08 lewat `RWI-DEC-265`**, bagian 12.1; task Workspace PPRI (`BE-RWI-185` s.d. `203`, `FE-RWI-210` s.d. `221`) berpegang padanya. Task Finishing tetap berpegang pada **`0.10.0`** — **`approved` 2026-10-02 lewat `RWI-DEC-221`**, bagian 11.1. Sebelumnya: **`0.9.0`** — **`approved` 2026-09-16 lewat `RWI-DEC-150`**, bagian 10.1. `0.8.0` `approved` 2026-09-11 |
-| `upstream_realignment` | **`REALIGNED_APPROVED` sejak 2026-09-16** lewat `RWI-DEC-150`; `REALIGNED_DRAFT` sejak 2026-09-15 — amandemen terbatas bagian 10 menyerap permintaan `PRD-RWI-V2-001` terhadap sub-modul ini: census dokter, penugasan pendukung, resume delapan bagian, akibat penutupan. Kemampuan lain sub-modul ini dinyatakan tidak terdampak. Sebelumnya: terdampak sebagian, dicatat 2026-09-14 |
+| `revision` | **`11`** — draft Bed Management, bagian14, 10 Oktober2026. Riwayat metadata: **`10`** — amandemen Alur Admisi Pendaftaran pada bagian 13, ditulis 2026-10-10, **disetujui 2026-10-10 atas instruksi pengguna "setujui dan lakukan /plan-module-delivery"**, menyerap revisi tim analisis bisnis (Mba Ilma) via `RWI-DEC-267` s.d. `RWI-DEC-273` dan `RWI-AC-388` s.d. `RWI-AC-395`. Sebelumnya **`9`** — amandemen Workspace PPRI pada bagian 12, ditulis 2026-10-07, **disetujui 2026-10-08 lewat `RWI-DEC-265`**. Sebelumnya **`8`** — Finishing Rawat Inap (`approved`, `RWI-DEC-221`) |
+| `status` | **`draft`** — Bed Management belum disetujui; content approval lama tetap pada scope sebelumnya. Riwayat metadata: **`approved`** — amandemen revision `10` / kontrak `0.11.0` disetujui pengguna 10 Oktober 2026 (bagian 13). Riwayat: **`approved`** — amandemen revision `9` / kontrak `0.11.0` **disetujui Muhammad Hamzah 2026-10-08 lewat `RWI-DEC-265`** (bagian 12); revision `8` / kontrak `0.10.0` **disetujui 2026-10-02 lewat `RWI-DEC-221`** |
+| `contract_versions` | **`0.12.0`** — satu set target Bed Management, draft; sumber kebenaran current. Riwayat metadata: **`0.11.0`** — amandemen alur admisi pendaftaran (`approved` 10 Oktober 2026); Workspace PPRI (`approved` 2026-10-08 lewat `RWI-DEC-265`); Finishing tetap berpegang pada **`0.10.0`** (`approved` 2026-10-02 lewat `RWI-DEC-221`) |
+| `upstream_realignment` | **`REALIGNED_APPROVED` sejak 2026-09-16** lewat `RWI-DEC-150` |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###` |
-| `approved_by` | **Muhammad Hamzah** — Product/Domain owner, ditunjuk `RWI-DEC-061` |
-| `approved_at` | **`2026-10-08`** untuk revision `9` / kontrak `0.11.0` lewat `RWI-DEC-265`; **`2026-10-02`** untuk revision `8` / kontrak `0.10.0` lewat `RWI-DEC-221`; **`2026-09-16`** untuk revision `7` / kontrak `0.9.0` lewat `RWI-DEC-150`; `2026-09-11` untuk revision `6` / kontrak `0.8.0`; `2026-08-24` untuk revision `4` |
-| `rumpun kemampuan` | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan |
-| `kemampuan` | **16** — `CAP-001` s.d. `CAP-011`, `CAP-017`, `CAP-018`, `CAP-019`, `CAP-026`, `CAP-028`, sesuai `RWI-DEC-083`; **ditambah Workspace PPRI** `CAP-RWA-01` s.d. `CAP-RWA-17` tanpa `CAP-RWA-04` (`RWI-DEC-227`) |
+| `approved_by` | null untuk revision11. Riwayat metadata: **Muhammad Hamzah** (Product/Domain owner, `RWI-DEC-061`) / Pengguna |
+| `approved_at` | null untuk revision11. Riwayat metadata: **`2026-10-10`** untuk revision `10` / kontrak `0.11.0` (Alur Admisi Pendaftaran); **`2026-10-08`** untuk revision `9` / kontrak `0.11.0` lewat `RWI-DEC-265`; **`2026-10-02`** untuk revision `8` / kontrak `0.10.0` lewat `RWI-DEC-221` |
+| `rumpun kemampuan` | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan, admisi & consent |
+| `kemampuan` | **16** — `CAP-001` s.d. `CAP-011`, `CAP-017`, `CAP-018`, `CAP-019`, `CAP-026`, `CAP-028`, sesuai `RWI-DEC-083`; **ditambah Workspace PPRI** `CAP-RWA-01` s.d. `CAP-RWA-17` tanpa `CAP-RWA-04` (`RWI-DEC-227`); **ditambah Amandemen Admisi & Digital Consent** (`RWI-DEC-267` s.d. `273`) |
 | `uji pemecahan` | **5/5** syarat `bentuk-blueprint.md` bagian 4.1 |
-| `design_snapshot_at` | `2026-08-24` untuk revision `4`; migrasi bentuk 2026-09-02 tidak mengubah isi desain |
-| `updated_at` | `2026-10-08` — approval revision `9` / kontrak `0.11.0` (`RWI-DEC-265`), hash approval, dan roadmap Workspace PPRI `DRAFT` (bagian 12). Sebelumnya `2026-10-07` — amandemen Workspace PPRI ditulis sebagai `draft`. Sebelumnya `2026-10-05` — pembaruan bukti build dan penerapan migration dari output pengguna |
+| `design_snapshot_at` | 2026-10-10 untuk Bed Management; Riwayat metadata: `2026-08-24` untuk revision `4`; migrasi bentuk 2026-09-02 |
+| `updated_at` | 2026-10-10 — amandemen Bed Management draft; Riwayat metadata: `2026-10-10` — persetujuan amandemen alur admisi pendaftaran (revisi Mba Ilma: `RWI-DEC-267` s.d. `RWI-DEC-273`). Sebelumnya `2026-10-08` — approval revision `9` / kontrak `0.11.0` (`RWI-DEC-265`) |
 
 **Bukti migration diperbarui 5 Oktober 2026.** Build project melalui `dotnet ef database update` berhasil dan `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.` menurut output pengguna. Cakupan aktual: `I1` + `I2`, `K8` + `E4`, `E5`, `E6`, dan `E7`; enam task pemilik perubahan skema. [Bukti lengkap](task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026). `I1`/`I2` dikemas sebagai satu migration gabungan; catatan kesesuaian kriteria ada di `BE-RWI-149`. Nama database/lingkungan tidak disebut; API, regresi, rollback, frontend, data seeder, serta kesiapan rilis belum dibuktikan output ini. Revision, snapshot SHA desain, kontrak, artifact hash persetujuan, dan approval roadmap dipertahankan.
 
@@ -410,3 +410,184 @@ Hash lima belas artefak desain di atas adalah hash **saat approval** 8 Oktober 2
 | `roadmap` | `roadmap/backend-roadmap-workspace-ppri.md` (`BE-RWI-185` s.d. `203`), `roadmap/frontend-roadmap-workspace-ppri.md` (`FE-RWI-210` s.d. `221`), `roadmap/requirement-traceability-workspace-ppri.md` — revision `1`, `DRAFT`, ditulis 2026-10-08 |
 | `blocking_questions` | Tidak ada untuk `RWA-MVP-0` s.d. `RWA-MVP-2`; `RWI-OQ-126`, `127` ditutup `RWI-DEC-266`. Di luar gelombang: `DEC-INP-020` (`BE-RWI-203`, `FE-RWI-221`), `DEC-INP-003` (`EPIC-RWA-02`, `13`). Tidak memblokir pembangunan: `RWI-OQ-128` (`BE-RWI-190`) dan `129` (`BE-RWI-191`) dengan cadangan aman; `RWI-OQ-121`, `123`, `125`; `RWI-OQ-124` memblokir UAT saja |
 | `next_owner` | Muhammad Hamzah: approval kedua roadmap Workspace PPRI (`DRAFT`); meneruskan `RWI-OQ-128` ke pemilik `RegistrationManagement` dan `RWI-OQ-129` ke Yasmina. Sesudah approval roadmap → `build-module-backend` gelombang 1 (`BE-RWI-185`, `187`, `188`, `189`); frontend dimulai sesudah prasyarat `[BE]`-nya ✅ (`FE-RWI-210`, `211` menunggu `BE-RWI-186`; `FE-RWI-212` menunggu `BE-RWI-195`). ID bebas berikutnya: `BE-RWI-204`, `FE-RWI-222` |
+
+---
+
+## 13. Amandemen Alur Admisi Pendaftaran ★ Revisi Mba Ilma (`RWI-DEC-267` s.d. `RWI-DEC-273`)
+
+Ditulis 10 Oktober 2026 sebagai respon atas evaluasi alur admisi pendaftaran oleh tim analisis bisnis (Mba Ilma). **Status: `approved`** — disetujui pengguna 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery".
+
+### 13.1 Perubahan Desain dan Kontrak
+
+| Artefak Terkait | Revision | Status | Cakupan Perubahan |
+|---|:---:|:---:|---|
+| [`05-skema-tampilan.md`](./05-skema-tampilan.md) | `0.7` | `approved` | Alur PB 12 langkah & PL 10 langkah; rujukan ringkas teks; 3 kategori pasien; kontak darurat max 13 digit; split layout PL; unit tujuan sembunyi; *dedicated step* Form Persetujuan & TTD Digital; pratinjau siap cetak |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.11` | `approved` | Penataan 12 langkah PB & 10 langkah PL; 4 titik tulis; invariant hukum penanda tangan bayi; General Consent PPRI *print-ready* tanpa re-input (`RWI-AC-395`) |
+| [`flowcharts/00-alur-utama.md`](./flowcharts/00-alur-utama.md) | — | `approved` | Penambahan Bagian 0: Alur Admisi Pendaftaran Terpadu; penyelarasan Bagian 3 PPRI General Consent |
+| [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.11.0` | `approved` | Penambahan `VAL-ADM-01` s.d. `VAL-ADM-05` (kontak darurat 13 digit, kelengkapan rujukan, default ranap, TTD digital, invariant penanda tangan bayi) |
+| [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.11.0` | `approved` | Penambahan Bagian 25: Amandemen Alur Admisi Pendaftaran (`FR-RI-179` s.d. `FR-RI-186` dan `RWI-AC-388` s.d. `RWI-AC-395`) |
+| [`roadmap/backend-roadmap-admisi-pendaftaran.md`](./roadmap/backend-roadmap-admisi-pendaftaran.md) | revision `1` | `APPROVED` | 2 task backend: `BE-RWI-204` (kontak darurat 13 digit & default ranap), `BE-RWI-205` (persistence persetujuan & TTD digital, invariant bayi) |
+| [`roadmap/frontend-roadmap-admisi-pendaftaran.md`](./roadmap/frontend-roadmap-admisi-pendaftaran.md) | revision `1` | `APPROVED` | 5 task frontend: `FE-RWI-222` s.d. `FE-RWI-226` (masking kontak darurat, alur 12 langkah PB, split layout 10 langkah PL, kanvas TTD digital, print-ready PPRI) |
+| [`roadmap/requirement-traceability-admisi-pendaftaran.md`](./roadmap/requirement-traceability-admisi-pendaftaran.md) | revision `1` | `APPROVED` | Matriks ketertelusuran penuh 8 FR, 7 keputusan bisnis, dan 8 kriteria penerimaan tanpa coverage gap |
+
+### 13.2 Dampak Dependency dan Roadmap
+- Perubahan ini tidak merusak tabel entitas backend yang sudah ada; penambahan data digital signature dan rujukan ringkas melengkapi state admisi dan dokumen persetujuan.
+- Roadmap delivery telah dibentuk ke dalam vertical slice independen berukuran kecil: 2 task backend (`BE-RWI-204`, `BE-RWI-205`) dan 5 task frontend (`FE-RWI-222` s.d. `FE-RWI-226`).
+- Tidak ada blocking questions terbuka untuk amandemen ini. Seluruh kriteria penerimaan memiliki penanggung jawab task terarah.
+
+### 13.3 Handoff ke Implementasi
+- **Next Owner:**
+  - Backend: `build-module-backend` untuk task `BE-RWI-204` (prasyarat kontrak) lalu `BE-RWI-205`.
+  - Frontend: `build-module-frontend` untuk task `FE-RWI-222` (dimulai setelah `BE-RWI-204` selesai), berlanjut hingga `FE-RWI-226`.
+- **ID Bebas Berikutnya:**
+  - Backend: `BE-RWI-206`
+  - Frontend: `FE-RWI-227`
+
+## 14. Amandemen Bed Management — 10 Oktober 2026
+
+**Current revision11: draft.** Set kontrak current hanya ditetapkan field `contract_versions` di atas; setiap file merujuk set ini lewat `last_changed_in`. Previous approval revision10/0.11.0 berlaku pada isi sebelumnya, bukan amandemen Bed Management. `approved_by: null`, `approved_at: null`. Tidak ada source aplikasi, migration, database, deployment atau Git mutation di fase ini.
+
+### 14.1 Masukan dan hash
+
+| Input | Revision/readiness | SHA256 |
+| --- | --- | --- |
+| ../00-interview-decisions.md | 46; DEC-274–294 product closed, AC-396–426 | 41dd035d62e7804dff7e796712e25410152fae8e67b9444257ba73e0a6a30b3d |
+| ../evidence/02-requirement-completeness-gate.md | 1.12; BM-RCG-20261010-01; enam bounded capabilities READY_FOR_DOMAIN_DESIGN | 418066b0f721717fcb44392efc2d410b474987e030ea49352368e90a628dab2a |
+| Audit historis: artifacts/bed-management/01-existing-capability-map.md | BM-AUD-20261010-01 rev1; arsip tidak tersedia pada sesi11 Oktober2026, hash ini tidak diverifikasi ulang | 50e0e1525804260331d3a830fb379532f802a3ff31e43cd3b4df4416fa42f38b |
+| ../02-module-map.md | 6 draft; section9 Bed Management | d503f8016d14a7dda6afe3d3579496d113d93811dcda4bf014ea06a71da34d9f |
+| Previous child manifest snapshot | revision10 approved; input history before amendment | b661259ee1812418ab0e78bc03b7c0f6dc19dda05f5bfe18b6c847843d568a8c |
+
+Input links: [decisions](../00-interview-decisions.md), [gate](../evidence/02-requirement-completeness-gate.md), [impact scan current](../evidence/bed-management-impact-scan-20261011.md), [module map](../02-module-map.md). `input_hash` tiap artefak Bed Management merujuk tabel ini beserta14.8; PRD26.1 memuat hash artefak teknis saat diturunkan. Audit asli dan snapshot manifest sebelum desain merupakan provenance historis, bukan berkas yang tersedia untuk validasi ulang. `DOMAIN_ARCHITECTURE_NOT_RUN` khusus BM: gate siap untuk bounded design langsung; arsitektur domain old scope lain tetap berlaku.
+
+### 14.2 Owner, authority dan approval
+
+| Kewenangan | Pemilik/batas | Bukti |
+| --- | --- | --- |
+| Produk/domain/API | Muhammad Hamzah | DEC-061; produk BM DEC-274–294; desain target draft |
+| MasterData | Seluruh tim MasterData; bukan satu pengembang saja | DEC-193/FACT-070; proof class BM-G01 |
+| Frontend | Batas menu/tab/status dikonfirmasi produk, cosmetics DEV_DISCRETION | DEC-292; FE15 PROPOSED visual |
+| HK/perawat/PPI | Fungsi yang dipilih produk; nama/shift/SOP actual belum terbukti | BM-G02; tidak AI-approve SOP |
+| Security/privacy/access | Pemilik privacy OPEN; actual grant/scope belum terbukti | BM-G03; deny default |
+| Approved_by / approved_at current | null / null | Approval manusia belum diberikan untuk amandemen ini |
+
+### 14.3 Artefak current dan hash
+
+Hash berikut mendeteksi drift pada **draft current**, disinkronkan11 Oktober2026 memakai SHA256 byte file aktual. Snapshot source menyimpan hash LF tambahan untuk membedakan perubahan akhir baris; file source tidak dinormalisasi. Tabel hash lama pada bagian terdahulu adalah bukti versi terdahulu. Manifest ini tidak menghitung hash dirinya sendiri. Contract set baru tidak mengubah last_changed_in pada extra contract lain yang tidak disentuh.
+
+| Artefak relatif | Status / last_changed_in | SHA256 |
+| --- | --- | --- |
+| 02-backend-architecture.md | draft / 0.12.0 | 110761fb71f7dbfabea35ae394229805a97230c32c3493585f7c8175a0cb16ee |
+| data/data-dictionary.md | draft / 0.12.0 | d660c2b8e260a5d45eced4c900b63416a43e09b39ed6c98ba67372901e3c9bd3 |
+| contracts/api-contract.md | draft / 0.12.0 | 07efda0575841b26c3b21207ef0a193949908e081b42367638dd3361c1c404ca |
+| contracts/state-transition-matrix.md | draft / 0.12.0 | 78a286e0f8441dd626c5e9fb6687ecdc549d7410d8e7867a1cdc45a12bd274e5 |
+| contracts/validation-matrix.md | draft / 0.12.0 | a8a225a84f51b9a1e455285edfc0458c830ef1775d59f767d6e49e1664bf1dce |
+| contracts/permission-audit-matrix.md | draft / 0.12.0 | 893c0c2d24e8ed3de0f25b42aec853d5b05e22bc89c0acf06371e6949f680960 |
+| contracts/integration-contract.md | draft / 0.12.0 | 894f8df47fed471d167110375d0511d3af3a1ace94262ef47a7f4cb0ecddca31 |
+| 03-frontend-architecture.md | draft / 0.12.0 | 41a0bb7c341b0be4c1f140278c760fd5edcebc89b4c822af53c2d57ed5d0b26b |
+| testing/acceptance-test-matrix.md | draft / 0.12.0 | 8306cf781b25ce251ee781599306cc762a5c82edf3e3b39e8e849bdd5d6c2ca5 |
+| flowcharts/00-alur-utama.md | draft / 0.12.0 | 51f97afcc472607e96f350d785d0b066e4d833dd4bfe2c06127127787ba2ec6d |
+| flowcharts/09-bed-reservation-release.md | draft / 0.12.0 | b8a967e51464947f8af5c72a204643503951a9f9f279e4224b0ed9eaa2bcf857 |
+| flowcharts/10-bed-transfer.md | draft / 0.12.0 | 97771fe2f1e9bd60bac9237f5036e55b45834c728d69f2a3fe204f01f05604d5 |
+| flowcharts/11-bed-cleaning-readiness.md | draft / 0.12.0 | f077535b933af60a1ba816991c3f4e5eb244577634829445261b3f2b8e192ca0 |
+| flowcharts/12-bed-closure-reopen.md | draft / 0.12.0 | d2b4e6b7375e23257c4b3b2a3f65a1d1752c2bf6d9f0905cd1e99e98cf9ee27e |
+| flowcharts/13-bed-usage-history-correction.md | draft / 0.12.0 | 3a054a8516ebf953982c18add7a9c5cdf22e9ae6d74af1486ea4021e830b6b68 |
+| flowcharts/14-bed-uncertain-outcome.md | draft / 0.12.0 | 13d7bf111fdfaf26505cd343d7f64cff6709244ecf05d673a4728a7d31d8a2d4 |
+| 04-prd-to-mvp.md | draft / 0.12.0 | 74d6aedf3b2165e111243e064ba32a93331b38fea5a3cf9c9308a618d35e09de |
+
+### 14.4 Scope, compatibility dan supersession
+
+BM-CG01 monitoring,02 reservation/release,03 transfer,04 readiness software workflow,05 closure/reopen,06 usage history. Epic BM-01..06, FR-BM-001..012, UAT-701..712, NFR-701..706. Mapping31AC pada testing22, sourcecap BM-CAP-01..17 pada modulemap9; BM-CAP-06 dan alternatif two-phase/offline/checklist/tariff engine di luar MVP.
+
+DEC-281/282 menyupersede hanya aturan bed used release yang dahulu Available. Raw enum BedStatus0..7 tetap; source target memakai readiness substate untuk enam status BA. Tetap TTL120m server, one-step atomic transfer, existing DPJP/folio/eligibility, correction versions dan Billing canonical1.1.0. Same Grade dipilih manual, kelas official proof tidak ditebak.
+
+Perubahan request mutation (key/versions/category/reason) memerlukan coordinated cutover semua consumers. Parent/child approval old tidak membuat amandemen approved; task/roadmap lama tetap terikat baseline/task kontraknya masing-masing. Tidak membuat roadmap/task baru atau menandai kesiapan runtime.
+
+### 14.5 Activation gates dan readiness
+
+| Gate | Bukti belum tersedia | Dampak spesifik |
+| --- | --- | --- |
+| BM-G01 | Arah/isi/equivalence urutan kelas actual | Comparison lintas kelas fail-closed sampai proof; same valid class ID tetap dapat Same |
+| BM-G02 | SOP cleaning/inspection/downtime dan assignment nyata | Aktivasi aksi HK/verifier/reconcile bergantung SOP; tidak checklist buatan |
+| BM-G03 | Permissions/accounts/unit-bed-episode scopes/privacy actual | Grant/identity dibatasi, OperationalOnly PHI-free; unknown deny |
+| BM-G04 | Repairs F01–07, API/PG/integrasi/migration/UI/UAT proof | Tidak menyatakan siap runtime; source audit/65 old tests bukan target proof |
+
+Tidak ada product OPEN DECISION tersisa. Gate fakta tidak dibuka ulang sebagai wawancara; slice lain yang tidak bergantung dapat didesain/direncanakan setelah approval desain. Jika proof baru mengubah lifecycle/data/authority, lakukan focused reassessment pada slice terkait. Development lock memerlukan approval manusia; produksi memerlukan gates yang relevan.
+
+### 14.6 Validasi desain dan batas bukti
+
+Catatan sesi10 Oktober menyebut20 bagian PRD,31AC,12UAT,9diagram, pemeriksaan sejarah, dan62fingerprint yang cocok. Catatan itu bersifat historis; daftar62 asli tidak tersedia untuk dijalankan ulang. Sesi11 Oktober memeriksa ulang dokumen current dan47fingerprint source pilihan pada HEAD terbaru, mempertahankan keputusan/gate/capability map root, serta memperbarui inventaris menjadi39endpoint dengan wrapper admisi transfer IGD. Mermaid rendering dan aplikasi/API/PostgreSQL/migration/UAT runtime **NOT_RUN**. Hasil aktual dan batas pemeriksaan ada pada [laporan validasi](./testing/bed-management-design-validation.md).
+
+### 14.7 Supplement bukti source
+
+| Source backend tambahan dibaca | SHA256 snapshot desain |
+| --- | --- |
+| Areas/HealthServices/MasterData/Controllers/RoomController.cs | ea4e84c98dcf4f1384add868f431ab6ab629ee6b38c69d261621218337fb794a |
+| Areas/HealthServices/MasterData/Controllers/ServiceUnitController.cs | 541dd37182d46e9a565642ac7cdaa894325bb4a0f32f469ebab047ee425979b8 |
+| Areas/HealthServices/MasterData/Controllers/PatientClassController.cs | 7d5838c242f27957ae818f79fee6a9b819140f16daf80f8c70bc5f655a603b59 |
+| Repositories/Configurations/HealthServices/MstBedConfiguration.cs | 5673d6bd77a9a41605b90fec8def0c062e58aed2a348ff247ebd7c6cfc23a0a5 |
+| Models/ApplicationUser.cs | 214a431732b187a98f4e618d20defeebcc6938069f38b6d3e413bd5aec90f45b |
+
+Source tambahan digunakan untuk memastikan hierarchy writer actual, path EF config MasterData dan ApplicationUser. Catatan sesi10 Oktober menyebut fingerprints original62 tetap unchanged; daftar aslinya tidak tersedia untuk diperiksa ulang pada sesi11 Oktober. Audit as-is dan decision log tidak ditulis ulang.
+
+### 14.8 Bukti finalisasi11 Oktober2026
+
+Current impact scan memakai BE `c5d3b5bfdc15c014a2399d904d7c4c2207505905`, FE `5aa2c7c70754e6131e4243b5ea3ee5f768b7a5d2`. Working tree awal kedua repository bersih; perubahan sesi ini hanya dokumen blueprint. Klaim62fingerprint pada14.7 adalah catatan sesi lama dan tidak dianggap hasil pemeriksaan ulang. Snapshot baru memuat47source terpilih dan3masukan hulu.
+
+Penyempurnaan draft: wrapper reserve internal `InpAdmissionTransferService` masuk M3/API13.8/backend14.14; nama event Billing diperbaiki ke BED_OCCUPIED/OCCUPANCY_CORRECTED; allowlist ResultKind kamus data diselaraskan dengan master hierarchy. Scope produk/31AC/approval/kontrak target0.12.0 tetap. Tidak menulis atau menjalankan implementasi.
+
+| Artefak relatif | Status | SHA256 byte aktual |
+| --- | --- | --- |
+| ../evidence/bed-management-impact-scan-20261011.md | draft / BM-IMP-20261011-01 rev1 | 68ccb413da7a3398e944a2505e8d22890298ba5bad2258d223f9dbd351ed7079 |
+| ../evidence/bed-management-source-snapshot-20261011.json | snapshot source current; bukan fingerprint62 lama | 7faa06ba0dca2c4aa6dfb47510be966d467629bab87f8cfd181cd513bbd3bc45 |
+| testing/bed-management-design-validation.md | laporan validasi current; runtime NOT_RUN | 66e3d6c7a7eda93d477a801e5adea4cdd6a5e2110ed0da0487d1e611d00a7d92 |
+
+Approval manusia belum diberikan untuk amandemen. Sesudah pemilik menyetujui draft dan kontraknya, langkah berikutnya `plan-module-delivery`; BM-G01–04 tetap dependency aktivasi operasi yang relevan. Dokumen upstream dengan link artifacts lama dipertahankan read-only; status arsip yang tidak tersedia dijelaskan pada bukti current, tidak disamarkan sebagai tautan yang lulus.
+
+## 15. Delivery Bed Management — 11 Oktober 2026
+
+Permintaan pengguna menjalankan plan-module-delivery ditangani sebagai **perencanaan DRAFT/FORWARD-TEST** menurut pengecualian skill untuk task BLOCKED. Permintaan planning tidak dicatat sebagai approval amandemen. Revision desain child11/parent10 dan contract set target0.12.0 tetap; approved_by/approved_at amandemen tetap null. Status sebelumnya pada14.8 adalah keadaan saat finalisasi desain; registrasi ini mencatat fase planning berikutnya.
+
+| Field | Nilai |
+| --- | --- |
+| planning_id / revision / status | BM-DEL-20261011-01 / 1 / DRAFT/FORWARD-TEST |
+| Task backend | 14 task BE-RWI-208–221; seluruhnya ⛔ BM-A |
+| Task frontend | 7 task FE-RWI-231–237; seluruhnya ⛔ BM-A |
+| Gate BM-A | Approval manusia atas amandemen/desain/kontrak0.12.0 serta roadmap/task terkait dan revalidasi hash; owner Muhammad Hamzah/pemilik berwenang |
+| Dependency / coverage | Grafik teks29 pasangan;12FR,6NFR,31AC,21decision,12UAT dan39endpoint terpetakan |
+| Source SHA BE / FE saat planning | db85bede83c0ddbc9aaa412c576f2c3fd7447492 / 5aa2c7c70754e6131e4243b5ea3ee5f768b7a5d2 |
+| Hash/provenance | Snapshot24 input dan manifest sebelum registrasi pada delivery-lock. Diff dari design HEAD c5d3b5b hanya20 dokumen;47fingerprint source diperiksa ulang. Lock draft bukan implementation lock |
+| Scope trace | Bed Management decision46 + input SHA256; DEC/AC/label0.12.0 yang dipakai ulang roadmap admisi IGD lama tidak memberi approval atau bukti slice ini |
+| Gate penerapan | BM-G01–04 tetap terbuka dan spesifik per slice; bukan approval source/role/database/runtime |
+| Laporan task / runtime | Belum ada laporan implementasi; build/API/PostgreSQL/migration/browser/UAT NOT_RUN |
+| Next handoff | Sesudah approval/relock dan authority execution: BE-RWI-208/209 terlebih dahulu; FE-RWI-231 setelah BE-RWI-211 terbukti; tidak menjalankan builder pada planning ini |
+| ID bebas sesudah alokasi ini | BE-RWI-222; FE-RWI-238. Tetap scan ulang saat alokasi berikutnya |
+
+| Artefak relatif | Status | SHA256 byte aktual |
+| --- | --- | --- |
+| [roadmap/backend-roadmap-bed-management.md](./roadmap/backend-roadmap-bed-management.md) | DRAFT/FORWARD-TEST rev1 | 017f44850a2e3888f956a298f787b548b60788f7cb44c2209d29cc5113ea95f6 |
+| [roadmap/frontend-roadmap-bed-management.md](./roadmap/frontend-roadmap-bed-management.md) | DRAFT/FORWARD-TEST rev1 | 5716d1ef007ecb593615f148332c70b6c3d1aa50d4083cb4488bdcb11ebb6a6e |
+| [roadmap/requirement-traceability-bed-management.md](./roadmap/requirement-traceability-bed-management.md) | DRAFT/FORWARD-TEST rev1 | 9445e15f8a784226e198696710265a299e493c69a1251503df97f1cf07a11139 |
+| [roadmap/bed-management-delivery-lock.json](./roadmap/bed-management-delivery-lock.json) | DRAFT/FORWARD-TEST rev1 | 1d78636725038c2c32c216035a6c0cb14a6662515499eff12d21952276097260 |
+
+Pemeriksaan aktual dan gap bukti dicatat pada [traceability delivery](./roadmap/requirement-traceability-bed-management.md). Tidak ada approval baru yang diinferensikan, source aplikasi/lockfile yang ditulis, migration/database yang dijalankan, atau Git mutation. Tabel artefak desain14.3/14.8 tidak berubah.
+
+## 16. Delta PLAN-REPAIR-DOK-006 — Kelas perawatan mengikuti kamar ★ 13 Oktober 2026
+
+**Status: `SELESAI`** — task sub-modul ini ditutup 13 Oktober 2026. Plan, issue, dan kontrak milik `dokter-rawat-inap`; register lengkapnya pada [dokter-rawat-inap bagian 11](../dokter-rawat-inap/blueprint-manifest.md). Amandemen desain dan delivery pada bagian 13–15 tidak berubah. Uji UI/runtime belum dilakukan.
+
+| Field | Nilai |
+| --- | --- |
+| Plan / kontrak | [PLAN-REPAIR-DOK-006](../dokter-rawat-inap/docs/plan-repair/plan-repair-006-kelas-perawatan-dan-cakupan-asuransi.md) / [RWI-KELAS-006-1.0](../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112` |
+| Task | ✅ BE-RWI-224 (FIX-DOK-006-02), ✅ FE-RWI-240 (FIX-DOK-006-06) |
+| Source | Implementasi di-commit `8551291f` / `2d0a6890e`; perbaikan penutupan 2 baris `EncounterInsuranceService.cs` belum di-commit |
+| Amandemen hulu sub-modul ini | `03-frontend-architecture.md`, `05-skema-tampilan.md`, `contracts/api-contract.md`, `contracts/integration-contract.md`, `contracts/validation-matrix.md` |
+
+| Artefak relatif | Status | SHA256 byte working copy (CRLF) saat penutupan |
+| --- | --- | --- |
+| [roadmap/backend-roadmap-kelas-perawatan.md](./roadmap/backend-roadmap-kelas-perawatan.md) | revision `1`; BE-RWI-224 ✅ | `6d13021089bd46bd6ee3fce0dc198f6e74298b72d86adbf6e8eb24c2e9291b6f` |
+| [roadmap/frontend-roadmap-kelas-perawatan.md](./roadmap/frontend-roadmap-kelas-perawatan.md) | revision `1`; FE-RWI-240 ✅ | `170c2c3885a6e0c83ff66206efcdf241a986f4e54eec4ff2dade3867443e4caa` |
+| [roadmap/requirement-traceability-kelas-perawatan.md](./roadmap/requirement-traceability-kelas-perawatan.md) | FIX-DOK-006-02/06 ✅ | `43ea53bf3b545e9ee5ff0158244ff5d6c9710f6de48a154bff07e763a0a8ca1a` |
+| [task/report/backend/BE-RWI-224.md](./task/report/backend/BE-RWI-224.md) | ✅ | `3fd6f241c4f16bc70ce186e0521bad81e9182742d0dd6fcfe4c53142679dc2f9` |
+| [task/report/frontend/FE-RWI-240.md](./task/report/frontend/FE-RWI-240.md) | ✅ | `794c220b6496103fb4c08a0ecc3ae94addc4af9e2d91eceaa2024561165871aa` |
+
+ID task RWI terpakai sampai BE-RWI-226 dan FE-RWI-240; tetap pindai ulang ruang ID global sebelum alokasi berikutnya.

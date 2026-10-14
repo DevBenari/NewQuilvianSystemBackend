@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegrat
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Readers;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -59,19 +60,22 @@ public sealed class FinanceOpeningItemBatchService
     private readonly FinanceSubledgerMovementService _movementService;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<FinanceOpeningItemBatchService> _logger;
+    private readonly IFinanceReceivableNumberGenerator _numberGenerator;
 
     public FinanceOpeningItemBatchService(
         ApplicationDbContext dbContext,
         IEnumerable<IOpeningItemFileReader> readers,
         FinanceSubledgerMovementService movementService,
         IWebHostEnvironment environment,
-        ILogger<FinanceOpeningItemBatchService> logger)
+        ILogger<FinanceOpeningItemBatchService> logger,
+        IFinanceReceivableNumberGenerator numberGenerator)
     {
         _dbContext = dbContext;
         _readers = readers;
         _movementService = movementService;
         _environment = environment;
         _logger = logger;
+        _numberGenerator = numberGenerator;
     }
 
     /// <summary>
@@ -646,7 +650,7 @@ public sealed class FinanceOpeningItemBatchService
         var receivable = new FinReceivable
         {
             Id = Guid.NewGuid(),
-            ReceivableNumber = GenerateReceivableNumber(),
+            ReceivableNumber = await _numberGenerator.GenerateAsync(actorUserId, cancellationToken),
             OpeningItemBatchId = batch.Id,
             DebtorType = debtorType,
             OriginalAmount = amount,
@@ -975,11 +979,7 @@ public sealed class FinanceOpeningItemBatchService
         return candidate.Length <= 50 ? candidate : candidate[..50];
     }
 
-    private static string GenerateReceivableNumber()
-    {
-        var candidate = $"AR-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
-        return candidate.Length <= 50 ? candidate : candidate[..50];
-    }
+    // Penomoran piutang kini dialokasikan resmi melalui IFinanceReceivableNumberGenerator (AR-YYYYMMDD0001).
 
     private static string GeneratePayableNumber()
     {

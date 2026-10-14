@@ -1229,3 +1229,162 @@ input_revision: 00-interview-decisions.md (FIN-DEC-189..FIN-DEC-202)
 1. **Kiriman Payroll**: Tercatat logger sistem (`EntityId = InstallmentId`, status, nominal potong). **NOL** data nominal gaji pokok pegawai yang masuk ke log.
 2. **Unggahan Migrasi**: Tercatat nama batch, jumlah baris berhasil/gagal, dan total nominal kontrol.
 
+
+---
+
+# AMENDMENT REVISI 19 — Piutang Manfaat Karyawan: Hak Akses Benefit HR, Pencarian Registrasi, dan Pilihan Pegawai (`FIN-PERM-1.11`)
+
+```yaml
+contract_version: FIN-PERM-1.11
+last_changed_in: Revisi 19 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance dan HR (pengguna sesi); konfirmasi pemilik Billing dan Registrasi belum turun
+approved_at: 2026-10-13
+input_revision: 00-interview-decisions.md (FIN-DEC-204..FIN-DEC-210)
+input_hash: e2e7139b4944fd1d   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 19
+```
+
+Berkas ini tidak mendaftar ulang endpoint. Pemetaan endpoint ke hak akses ada pada kolom **Hak akses**
+`contracts/api-contract.md` bagian `R`. Yang ditulis di sini adalah yang tidak dapat diturunkan dari daftar endpoint.
+
+## R.1 Resource dan Action Tambahan
+
+| Resource | Action | Kegunaan |
+|---|---|---|
+| `EmployeeBenefitEnrollment` | `Read`, `Create`, `Update`, `Submit`, `Approve`, `Activate`, `Cancel` | Mengelola enrollment benefit pegawai di HR |
+| `EmployeeBenefitDependent` | `Read`, `Create`, `Request`, `Verify`, `Reject`, `End` | Mendaftarkan dan memverifikasi tanggungan benefit |
+| `EmployeeBenefitLookup` | `Read` | Pencarian pegawai dan pemeriksaan kelayakan oleh Registrasi |
+| `BillingFinalization` | `Create` (sudah ada) | Juga mencakup pencatatan pilihan pegawai pada finalisasi — **tidak** ada butir hak akses baru |
+| `PatientCompanyGuarantor` | `Create`, `Update` (sudah ada) | Juga mencakup penautan kartu ke pegawai dan keluarga |
+
+Penambahan baris `Resource`/`Action` ke seeder hak akses adalah bagian pekerjaan task backend yang membuat controller-nya.
+Aturan "jangan menyelesaikan masalah visibilitas FE dengan melemahkan otorisasi backend" tetap berlaku.
+
+## R.2 Atribut Controller Baru
+
+Nilai `SortOrder` ditetapkan saat eksekusi mengikuti nomor urut kosong berikutnya pada seeder.
+
+```csharp
+[AccessController("CORPORATE_HUMAN_RESOURCE_BENEFIT_ENROLLMENT",
+    "Corporate Human Resource Benefit Enrollment", "Enrollment Benefit Pegawai",
+    AreaName = "Corporate", ControllerName = "EmployeeBenefitEnrollment",
+    Description = "Enrollment benefit pegawai dan buku mutasi plafon", SortOrder = /* ditetapkan saat eksekusi */)]
+```
+
+```csharp
+[AccessController("CORPORATE_HUMAN_RESOURCE_BENEFIT_DEPENDENT",
+    "Corporate Human Resource Benefit Dependent", "Tanggungan Benefit Pegawai",
+    AreaName = "Corporate", ControllerName = "EmployeeBenefitDependent",
+    Description = "Pendaftaran dan verifikasi tanggungan benefit", SortOrder = /* ditetapkan saat eksekusi */)]
+```
+
+```csharp
+[AccessController("HEALTH_SERVICE_REGISTRATION_EMPLOYEE_BENEFIT_LOOKUP",
+    "Health Service Registration Employee Benefit Lookup", "Pencarian Pegawai Benefit",
+    AreaName = "HealthServices", ControllerName = "EmployeeBenefitLookup",
+    Description = "Pencarian pegawai dan pemeriksaan kelayakan penjamin internal", SortOrder = /* ditetapkan saat eksekusi */)]
+```
+
+## R.3 Peta peran ke butir hak akses
+
+| Peran rumah sakit | Butir hak akses |
+|---|---|
+| Petugas benefit HR | `EmployeeBenefitEnrollment : Read, Create, Update, Submit`; `EmployeeBenefitDependent : Read, Create, Request` |
+| Pejabat benefit HR | `EmployeeBenefitEnrollment : Read, Approve, Activate, Cancel`; `EmployeeBenefitDependent : Read, Verify, Reject, End` |
+| Petugas Registrasi | `EmployeeBenefitLookup : Read`; `PatientCompanyGuarantor : Create, Update` |
+| Kasir Billing | `BillingFinalization : Read, Create` (sudah ada) |
+| Petugas Finance | Tidak ada butir baru; tidak membaca saldo plafon |
+
+## R.4 Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Kewenangan | Penjaga | Yang **tidak** dijaga | Risiko |
+|---|---|---|---|
+| Pengaju ≠ penyetuju enrollment | Pemberian hak berbeda peran, ditegakkan juga di service | Satu orang memegang dua peran | Enrollment disetujui oleh pembuatnya. Hak `Submit` dan `Approve` **MUST** diberikan ke peran berbeda |
+| Saldo plafon hanya terlihat Billing dan HR | Respons Registrasi tidak memuat saldo | Petugas Registrasi yang juga berperan Billing | Saldo terlihat dari layar Billing, bukan dari layar Registrasi — dapat diterima |
+| Pilihan pegawai (jadikan utang) | `BillingFinalization : Create` saja | Siapa yang boleh mencatat pilihan; tidak ada butir hak akses terpisah | Kasir mana pun yang boleh finalisasi dapat mencatat pilihan atas nama pegawai. Penjagaan ada pada jejak audit; bila pemilik menginginkan hak terpisah, tambahkan butir baru pada revisi berikutnya (`FIN-OQ-108`) |
+| Pengurangan plafon oleh Billing | Layanan HR hanya dapat dipanggil dari alur finalisasi | Pemanggilan lain di kode | Tinjauan kode: layanan tidak diekspos sebagai endpoint |
+
+## R.5 Jejak audit
+
+| Kejadian | Pencatatan |
+|---|---|
+| Buat, ubah, dan setiap perpindahan status enrollment dan tanggungan | Logger sistem (`EntityId`, jenis operasi, status baru) dan kolom jejak pada model |
+| Pemakaian dan pengembalian plafon | **Buku mutasi** (`HrdBenefitBalanceMovement`) — tahan lama, hanya menambah, tidak dihapus. Memuat saldo sebelum dan sesudah |
+| Pilihan pegawai pada finalisasi | `DeferredPatientAmount` pada baris serah terima beserta pelaku finalisasi |
+| Pencarian pegawai | Logger **tanpa** kata kunci dan **tanpa** hasil; hanya jumlah hasil |
+
+## R.6 Kolom sensitif dan masa simpan
+
+| Kolom | Penanda | Aturan |
+|---|---|---|
+| `MstPatientCompanyGuarantor.EmployeeId`, `FamilyMemberId`, `BenefitRelationship` | Sensitif | Tidak masuk log; tidak dipakai sebagai contoh berisi data asli |
+| `RegPatientEncounterGuarantor.EmployeeIdSnapshot`, `FamilyMemberIdSnapshot`, `BenefitRelationshipSnapshot` | Sensitif | Sama |
+| NIK dan nama pada respons pencarian | Sensitif | NIK tersamar; tidak masuk log |
+| Saldo dan mutasi plafon | Finansial | Hanya Billing dan HR; masa simpan mengikuti kebijakan data keuangan rumah sakit (belum ditetapkan; tidak dihapus oleh sistem) |
+
+---
+
+# AMENDMENT REVISI 20 — Hak Akses Jembatan Manual Potong Gaji (`FIN-PERM-1.12`)
+
+```yaml
+contract_version: FIN-PERM-1.12
+last_changed_in: Revisi 20 (13 Oktober 2026)
+status: approved
+approved_by: Pemilik Finance, HR, dan Billing (pengguna sesi); konfirmasi pemilik Registrasi belum turun
+approved_at: 2026-10-13
+input_revision: 00-interview-decisions.md (FIN-DEC-218, 220..222)
+input_hash: f2fec7d9698146aa   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 20
+```
+
+## S.1 Resource dan Action Tambahan
+
+| Resource | Action | Kegunaan |
+|---|---|---|
+| `FinancePayrollDeductionBatch` | `Read`, `Create`, `Submit`, `Approve`, `ApproveCorrection`, `Reject`, `Cancel` | Jadwal potongan, unggah dan pengesahan hasil potongan manual |
+| `PayrollDeductionCutover` | `Read`, `Create` | Menetapkan periode pertama yang ditangani mesin payroll |
+| `BillingFinalization` | `Create` (sudah ada) | Mencakup isian nama pemberi persetujuan (`FIN-DEC-218`); tanpa butir baru |
+
+## S.2 Atribut Controller Baru
+
+Nilai `SortOrder` ditetapkan saat eksekusi mengikuti nomor urut kosong berikutnya pada seeder.
+
+```csharp
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_RECEIVABLE_PAYROLL_DEDUCTION_BRIDGE",
+    "Corporate Finance Management Receivable Payroll Deduction Bridge", "Potong Gaji Manual",
+    AreaName = "Corporate", ControllerName = "FinancePayrollDeductionBatch",
+    Description = "Jadwal potongan per periode dan batch hasil potongan manual", SortOrder = /* ditetapkan saat eksekusi */)]
+```
+
+```csharp
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_MASTER_DATA_PAYROLL_DEDUCTION_CUTOVER",
+    "Corporate Finance Management Payroll Deduction Cutover", "Peralihan Potong Gaji ke Mesin Payroll",
+    AreaName = "Corporate", ControllerName = "PayrollDeductionCutover",
+    Description = "Periode pertama yang ditangani mesin payroll", SortOrder = /* ditetapkan saat eksekusi */)]
+```
+
+## S.3 Peta peran
+
+| Peran | Butir hak akses |
+|---|---|
+| Staf piutang Finance | `FinancePayrollDeductionBatch : Read, Create, Submit, Cancel` |
+| Penyelia piutang Finance | `FinancePayrollDeductionBatch : Read, Approve, Reject` |
+| Pejabat Finance | `FinancePayrollDeductionBatch : Read, ApproveCorrection, Reject`; `PayrollDeductionCutover : Read, Create` |
+| Petugas penggajian (HR) | Tidak ada butir pada sistem ini selama jembatan; menerima berkas jadwal dari Finance |
+
+## S.4 Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Kewenangan | Penjaga | Yang tidak dijaga | Risiko |
+|---|---|---|---|
+| Pengaju ≠ pengesah batch | Pemberian hak berbeda peran **dan** check constraint `SubmittedBy <> ApprovedBy` | — | Rendah |
+| Hasil yang dicatat sama dengan potongan nyata | Bukti laporan penggajian, total kontrol, kelengkapan, dua orang | Laporan penggajian yang memang salah | Ditangani koreksi berotorisasi |
+| Penetapan peralihan setelah mesin benar-benar siap | Alasan wajib; hak hanya pejabat | Penetapan terlalu dini | Batch manual periode itu tertolak; nilai dapat dimajukan, tidak dapat dimundurkan melewati batch disahkan |
+
+## S.5 Jejak audit dan kolom sensitif
+
+| Kejadian / kolom | Aturan |
+|---|---|
+| Unggah, ajukan, sahkan, tolak, batalkan batch; tetapkan peralihan | Logger sistem (`EntityId`, status) dan kolom pelaku pada model |
+| Penerapan baris | Mutasi `POTONGAN-GAJI` / `PEMBALIKAN-POTONGAN-GAJI` (tahan lama) |
+| Berkas dan bukti laporan penggajian | Disimpan lewat mekanisme bukti transaksi; **tidak** masuk log |
+| NIP dan nama pada baris batch | Sensitif; tidak masuk log |
+| `BilArHandoff.DeferredConsentGivenBy` | Sensitif (nama orang); tidak masuk log |
