@@ -184,6 +184,10 @@ public sealed class OperatingRoomHarness : IDisposable
             typeof(ClinicalMilestoneFactProducer),
             typeof(InpatientClinicalContextService),
             typeof(InsuranceCoverageService),
+            // Dependensi konstruktor EncounterInsuranceService sejak sinkronisasi integration
+            // 14 Oktober 2026. Tanpa pendaftaran ini DI gagal merakitnya dan uji transisi
+            // keadaan berhenti di resolusi service, bukan di aturan domainnya.
+            typeof(InpServiceClassResolver),
             typeof(EncounterInsuranceService),
             typeof(NursingActorService),
             typeof(BillingFolioService),
