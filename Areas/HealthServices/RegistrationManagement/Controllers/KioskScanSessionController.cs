@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -43,13 +44,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly PatientMembershipStatusResolver _membershipStatusResolver;
 
         public KioskScanSessionController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            PatientMembershipStatusResolver membershipStatusResolver)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _membershipStatusResolver = membershipStatusResolver;
         }
 
         [HttpGet("admin/filters/metadata")]
@@ -1006,10 +1010,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             if (!string.IsNullOrWhiteSpace(normalizedMemberNumber))
             {
+                // crm-membership BE-CRM-021: hanya membership yang Aktif hari ini (aturan tunggal J1).
+                var activeMembershipIds = _membershipStatusResolver
+                    .QueryActiveOn(_membershipStatusResolver.GetTodayWib())
+                    .Select(x => x.Id);
+
                 var patientFromMembership = await _dbContext.Set<MstPatientMembership>()
                     .Where(x =>
-                        !x.IsDelete &&
-                        x.IsActive &&
+                        activeMembershipIds.Contains(x.Id) &&
                         x.MemberNumber.ToLower() == normalizedMemberNumber &&
                         x.Patient != null &&
                         x.Patient.IsActive &&

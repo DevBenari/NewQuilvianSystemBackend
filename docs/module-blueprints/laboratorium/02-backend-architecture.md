@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `20` — bagian 30, 2026-10-09: rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1), kontrak usulan `LAB-REQ-023`. Sebelumnya `19` — bagian 29, 2026-10-09: CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`), kontrak usulan `LAB-REQ-022`. Sebelumnya `18` — bagian 28, 2026-10-08: data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
+| Revision | `21` — bagian 31, 2026-10-14: pencatatan susulan ruas baca v1 `r47`/`r48` (kontrak `approved` lewat `LAB-REQ-024` dan `LAB-REQ-025`). Sebelumnya `20` — bagian 30, 2026-10-09: rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1), kontrak usulan `LAB-REQ-023`. Sebelumnya `19` — bagian 29, 2026-10-09: CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`), kontrak usulan `LAB-REQ-022`. Sebelumnya `18` — bagian 28, 2026-10-08: data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -5031,10 +5031,39 @@ Nol migration: migration `BE-LAB-94` tidak diubah (butir 4).
 | Harness InMemory | Rencana ulang: pendahulu `Cito` berpenanda → salin; pencabutan berpenanda → `Routine` berpenanda; pendahulu tanpa penanda + permintaan `Cito` → `Cito` kosong; tanpa pendahulu → permintaan | `AC-323`..`AC-325` |
 | Harness InMemory | Ambil ulang: regresi 18 uji `BE-LAB-94` + pemeriksaan lama tanpa penanda (Routine lama, permintaan Cito) → `Cito` | butir 3 |
 
+## 31. Pencatatan susulan 2026-10-14 — Ruas baca v1: kolom tabel (`r47`) dan kartu halaman hasil (`r48`)
+
+**Kontrak** `LAB-API-v1` `r47` (bagian 42, `approved` 2026-10-09 lewat `LAB-REQ-024`) dan `r48` (bagian 43, `approved` susulan
+2026-10-14 lewat `LAB-REQ-025`). **Nol tabel, nol kolom, nol migration, nol endpoint, nol izin.** Kodenya sudah ada lebih dulu
+(BE `36422a4d`, 2026-10-13). Bagian ini mencatat rancangannya sesudah kode, tanpa mengubah kode.
+
+### 31.1 Yang dibaca
+
+| Respons | Ruas | Sumber | Jalur |
+|---|---|---|---|
+| `LabMonitoringItemResponse` (`r47`) | `patientEmail`, `clinicName`, `serviceUnitName`, `payerName`, `requestedByName`, `firstCollectedAt`, `firstExaminedAt`, `orderedProcedures` | `MstPatient`, kunjungan, `RegPatientEncounterGuarantor`, pengguna peminta, `LabSpecimen.CollectedAt`, `LabExamination.ExaminedAt`, `LabOrderedProcedure` | `LabMonitoringService`, ketiga daftar pantau |
+| `LabOrderDetailResponse` (`r48`) | `clinicName`, `roomName`, `patientClassName`, `paymentType`, `payerName`, `referringDoctorName`, `firstCollectedAt`, `firstExaminedAt` | Navigasi `Encounter` dan tiga sub-query satu baris | `LabOrderService.GetDetailAsync` saja |
+| `LabExaminationResultFormResponse` (`r48`) | `resultEnteredByName` | Nama `ResultEnteredByUserId`, ikut kueri nama berkelompok `BE-LAB-76` | `LabExaminationService` |
+
+### 31.2 Aturan rancangan
+
+| Aturan | Isi |
+|---|---|
+| Satu order terbaca sama di semua layar | `payerName`, `firstCollectedAt`, dan `firstExaminedAt` memakai sumber dan urutan yang sama pada daftar pantau dan rincian order |
+| `orderedProcedures` dari permintaan | Dibaca dari `LabOrderedProcedure`, bukan `LabExamination`, supaya pesanan tanpa wadah tetap memuat daftar pemeriksaannya |
+| Dokter Perujuk / DPJP | Dokter internal kunjungan lebih dulu; dokter perujuk luar bila kosong |
+| Kinerja | Tanpa kueri per baris: daftar pantau memakai sub-query di dalam proyeksi, jalur hasil memakai kueri nama yang sudah ada |
+
+### 31.3 Bukti
+
+HTTP baca-saja 2026-10-14 dengan akun asli dr. Bima dan Gilang terhadap devYoga: `r47` lolos pada tiga disiplin, `r48` 8/8 ruas
+pada empat pesanan, dan `resultEnteredByName` terisi. Rinciannya ada di `testing/acceptance-test-matrix.md`, amandemen 2026-10-14.
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 21 | 2026-10-14 | **Ruas baca v1 dibukukan susulan** (bagian 31): `r47` daftar pantau dan `r48` kartu halaman hasil. Kodenya sudah ada lebih dulu (BE `36422a4d`, 2026-10-13). Nol tabel/kolom/migration/endpoint/izin. Bukti HTTP 2026-10-14 dengan akun asli dr. Bima dan Gilang | `draft` |
 | 20 | 2026-10-09 | **Rencana ulang sesudah wadah dibatalkan dirancang** (bagian 30), menurunkan `LAB-DEC-229` (putaran 29, temuan T1 `BE-LAB-94`). Satu aturan untuk rencana pertama, rencana ulang, dan ambil ulang: pendahulu **berpenanda** → salin; selain itu → permintaan. Nol tabel/kolom/endpoint/izin/migration; kontrak usulan `r46` (`LAB-REQ-023`) | `draft` |
 | 19 | 2026-10-09 | **CITO dari pemesanan sampai ke pemeriksaan dirancang** (bagian 29); **kontrak `r45` `approved` 2026-10-09 lewat `LAB-REQ-022`**, butir 4 menambah langkah 3 perbaikan data (29.6), menurunkan `LAB-DEC-225`..`LAB-DEC-228` (putaran 28). Wadah pertama mewarisi `Urgency` permintaan dengan penanda kosong; wadah pengganti mewarisi keadaan terakhir pemeriksaan lama beserta penanda; tambah manual tetap `Routine`. Satu record privat `LabExaminationPlan`, nol tabel/kolom/endpoint/izin; satu migration data `BackfillLabExaminationUrgencyFromOrderedProcedure` (idempoten, `Down` berpenanda `ReasonCode = 'LAB-CONFLICT-019'`). Hitung kering dev 2026-10-09: 0 baris (permintaan CITO) dan 0 baris (pengganti yang kehilangan *Tandai Cito*). Nol berkas frontend. 28.8 ditandai *diputuskan* | `draft` |
 | 18 | 2026-10-08 | **Data ringkasan Beranda Lab dirancang** (bagian 28), menurunkan `LAB-DEC-204`..`LAB-DEC-211` (BR-140, putaran 25). Keempat bahan audit dijawab dari kode: CITO pesanan dari **dua sumber** (`LabOrderedProcedure` dan `LabExamination`); *hasil menunggu validasi* = antrean validasi tahap *Menunggu Validasi* tanpa penyaring (PK dan Mikro; PA menunggu `S4e`); **tiga endpoint baca baru**, `summary` tidak berubah; batas hari/tahun WIB lewat `AppDateTimeHelper`. Satu service baru, satu pengangkatan kueri antrean tanpa perubahan perilaku. **Nol tabel, nol kolom, nol index, nol migration.** Satu cacat as-is dicatat: CITO dari pemesanan hilang saat wadah direncanakan (28.8, usulan `LAB-CONFLICT-019`) — tidak diperbaiki di sini. Kontrak usulan `LAB-REQ-021` | `draft` |

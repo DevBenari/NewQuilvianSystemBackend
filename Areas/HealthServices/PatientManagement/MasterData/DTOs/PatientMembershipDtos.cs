@@ -169,49 +169,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string Label { get; set; } = string.Empty;
     }
 
-    public class CreatePatientMembershipRequest
-    {
-        [Required]
-        public Guid PatientId { get; set; }
-
-        [Required]
-        public Guid MembershipTierId { get; set; }
-
-        [Required]
-        [MaxLength(50)]
-        public string MemberNumber { get; set; } = string.Empty;
-
-        public MembershipStatus MembershipStatus { get; set; } = MembershipStatus.Active;
-
-        public DateTime JoinDate { get; set; } = DateTime.UtcNow;
-
-        public DateTime? ExpiredDate { get; set; }
-
-        public bool IsPrimary { get; set; } = true;
-
-        public bool IsAutoCreated { get; set; } = false;
-
-        public bool IsCreatedFromKiosk { get; set; } = false;
-
-        public bool IsCreatedFromAdmission { get; set; } = false;
-
-        public bool IsCreatedByMarketing { get; set; } = false;
-
-        public int PointBalance { get; set; } = 0;
-
-        public decimal TotalSpendAmount { get; set; } = 0;
-
-        public DateTime? LastUpgradeDate { get; set; }
-
-        public DateTime? LastDowngradeDate { get; set; }
-
-        [MaxLength(250)]
-        public string? UpgradeDowngradeReason { get; set; }
-
-        [MaxLength(250)]
-        public string? Notes { get; set; }
-    }
-
     /// <summary>
     /// Pendaftaran membership baru oleh CRM (BE-CRM-011). Status, tanggal, dan nomor member
     /// diisi sistem; field lain di body diabaikan (CRM-DEC-022, CRM-DEC-023).
@@ -228,33 +185,140 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string? Notes { get; set; }
     }
 
-    public class UpdatePatientMembershipRequest : CreatePatientMembershipRequest
-    {
-        public bool IsActive { get; set; } = true;
-    }
-
-    public class UpdatePatientMembershipStatusRequest
-    {
-        public bool IsActive { get; set; }
-    }
-
-    public class DeletePatientMembershipRequest
+    /// <summary>Perpanjangan membership Aktif dengan tingkat yang sama (BE-CRM-012, CRM-DEC-024).</summary>
+    public class RenewPatientMembershipRequest
     {
         [MaxLength(250)]
-        public string? DeleteReason { get; set; }
+        public string? Notes { get; set; }
+
+        /// <summary>RowVersion membership Aktif yang sedang ditampilkan (VAL-17).</summary>
+        [Required]
+        public Guid ExpectedRowVersion { get; set; }
     }
 
-    public class PatientMembershipCreateResponse
+    /// <summary>Upgrade membership Aktif ke tingkat yang lebih tinggi (BE-CRM-012, CRM-DEC-012).</summary>
+    public class UpgradePatientMembershipRequest
+    {
+        [Required]
+        public Guid MembershipTierId { get; set; }
+
+        [MaxLength(250)]
+        public string? Notes { get; set; }
+
+        [Required]
+        public Guid ExpectedRowVersion { get; set; }
+    }
+
+    /// <summary>Pembatalan oleh petugas CRM (BE-CRM-013, CRM-DEC-013).</summary>
+    public class CancelPatientMembershipRequest
+    {
+        [Required]
+        public MembershipCancellationCategory Category { get; set; }
+
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+
+        [Required]
+        public Guid ExpectedRowVersion { get; set; }
+    }
+
+    /// <summary>Keputusan atas membership lama berstatus Perlu Verifikasi (BE-CRM-013, CRM-DEC-021).</summary>
+    public class VerifyLegacyPatientMembershipRequest
+    {
+        [Required]
+        public MembershipVerificationDecision Decision { get; set; }
+
+        /// <summary>Wajib bila diakui. Tanggal kalender WIB.</summary>
+        public DateTime? PeriodStartDate { get; set; }
+
+        /// <summary>Wajib bila diakui. Tanggal akhir periode, inklusif.</summary>
+        public DateTime? PeriodEndDate { get; set; }
+
+        /// <summary>Wajib (10–500 karakter) bila ditolak.</summary>
+        [MaxLength(500)]
+        public string? Reason { get; set; }
+
+        [Required]
+        public Guid ExpectedRowVersion { get; set; }
+    }
+
+    /// <summary>Ubah catatan — satu-satunya ubah setelah tersimpan (BE-CRM-013, CRM-DEC-022).</summary>
+    public class UpdatePatientMembershipNotesRequest
+    {
+        [MaxLength(250)]
+        public string? Notes { get; set; }
+
+        [Required]
+        public Guid ExpectedRowVersion { get; set; }
+    }
+
+    public class PatientMembershipStatusHistoryResponse
     {
         public Guid Id { get; set; }
-        public Guid PatientId { get; set; }
-        public string PatientFullName { get; set; } = string.Empty;
-        public Guid MembershipTierId { get; set; }
-        public string TierName { get; set; } = string.Empty;
+        public MembershipStatus? FromStatus { get; set; }
+        public MembershipStatus ToStatus { get; set; }
+        public string ActionCode { get; set; } = string.Empty;
+        public MembershipChangeSource Source { get; set; }
+        public Guid? ActorUserId { get; set; }
+        public string? ActorName { get; set; }
+        public DateTimeOffset OccurredAt { get; set; }
+        public string? Reason { get; set; }
+        public Guid? ReferenceId { get; set; }
+        public string? OldNotes { get; set; }
+        public string? NewNotes { get; set; }
+    }
+
+    /// <summary>Pencarian pasien untuk pendaftaran membership (BE-CRM-014, CRM-DEC-010).</summary>
+    public class PatientMembershipLookupQuery
+    {
+        /// <summary>No. RM, NIK, atau No. Telp; minimal 3 karakter.</summary>
+        public string? Keyword { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class PatientMembershipActiveSummaryResponse
+    {
+        public Guid PatientMembershipId { get; set; }
         public string MemberNumber { get; set; } = string.Empty;
-        public MembershipStatus MembershipStatus { get; set; }
-        public string MembershipStatusName { get; set; } = string.Empty;
-        public bool IsPrimary { get; set; }
-        public bool IsActive { get; set; }
+        public Guid MembershipTierId { get; set; }
+        public string TierCode { get; set; } = string.Empty;
+        public string TierName { get; set; } = string.Empty;
+        public MembershipTierType TierType { get; set; }
+        public DateTime PeriodStartDate { get; set; }
+        public DateTime PeriodEndDate { get; set; }
+    }
+
+    public class PatientMembershipLookupResponse
+    {
+        public Guid PatientId { get; set; }
+        public string MedicalRecordNumber { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public DateTime? BirthDate { get; set; }
+
+        /// <summary>NIK tersamar, contoh <c>3174********0001</c>.</summary>
+        public string? IdentityNumberMasked { get; set; }
+
+        /// <summary>No. Telp tersamar, contoh <c>0812*****123</c>.</summary>
+        public string? PhoneNumberMasked { get; set; }
+
+        public bool IsMember { get; set; }
+        public PatientMembershipActiveSummaryResponse? ActiveMembership { get; set; }
+        public string? PendingMemberNumber { get; set; }
+        public DateTimeOffset? PendingPaymentDueAt { get; set; }
+    }
+
+    public class PatientActiveMembershipResponse
+    {
+        public Guid PatientId { get; set; }
+
+        /// <summary>Tanggal kalender WIB yang ditanyakan.</summary>
+        public DateTime Date { get; set; }
+
+        public bool IsMember { get; set; }
+        public PatientMembershipActiveSummaryResponse? ActiveMembership { get; set; }
     }
 }
