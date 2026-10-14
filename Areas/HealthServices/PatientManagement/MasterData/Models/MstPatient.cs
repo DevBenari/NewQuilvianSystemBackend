@@ -1,5 +1,6 @@
 ﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -67,6 +68,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public Guid? CountryId { get; set; }
 
+        /// <summary>Kewarganegaraan (RJ-REG-DEC-006). <c>null</c> untuk data lama.</summary>
+        public PatientCitizenship? Citizenship { get; set; }
+
+        /// <summary>Negara asal; hanya diisi untuk WNA (RJ-REG-DEC-006).</summary>
+        public Guid? NationalityCountryId { get; set; }
+
         public Guid? ProvinceId { get; set; }
 
         public Guid? CityId { get; set; }
@@ -117,6 +124,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public bool IsActive { get; set; } = true;
 
         public MstCountry? Country { get; set; }
+
+        public MstCountry? NationalityCountry { get; set; }
 
         public MstProvince? Province { get; set; }
 

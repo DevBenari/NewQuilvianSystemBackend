@@ -14,6 +14,28 @@
 > alokasi, financial action, rekonsiliasi, klaim, pembayaran, dan settlement adalah
 > `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE`.
 
+## Revisi Pendaftaran RJ V2 — scope Registration `RJ-REG` (`CURRENT STATE` 14 Oktober 2026)
+
+Roadmap: [roadmap/registration-revision-roadmap.md](roadmap/registration-revision-roadmap.md) — 12 requirement,
+13 task (5 BE, 8 FE), keputusan `RJ-REG-DEC-001`..`009`. Snapshot: backend `a52b3c98` (`sukmagp`) dan frontend
+`70b3735d` (`sukmagpV2`) + working tree belum di-commit. Dua migration diterapkan ke `QuilvianNewDevSukma`
+(`20261014044508_AddPatientCitizenship`, `20261014050013_AddEncounterRescheduleHistory`).
+
+Progres **per scope, tidak dijumlahkan** (metodologi: jumlah task bertanda `✅` pada roadmap pemilik scope;
+hanya scope Registration diverifikasi ulang dalam pekerjaan ini):
+
+| Scope | Roadmap | Status task | Diverifikasi ulang 14 Okt? |
+| --- | --- | --- | --- |
+| **Registration** (`RJ-REG`) | [registration-revision-roadmap.md](roadmap/registration-revision-roadmap.md) | **13/13 ✅** — 12/12 requirement `TESTED` / `UAT_PENDING`, 0 `DONE`, 0 `BLOCKED` | Ya — build, QBE, runtime HTTP, uji layar |
+| **Doctor / Clinical** (`RJ-DOC`) | [roadmap/doctor-consultation-roadmap.md](roadmap/doctor-consultation-roadmap.md) | Task inti 4/14 ✅ (`INT` 2/2, `BE` 2/7, `FE` 0/4, `VER` 0/1); 40 baris amandemen `RJ-DOC-REV-*` ✅ | Tidak — angka dari roadmap |
+| **E2E** (`RJ-E2E`) | [roadmap/e2e-backend-roadmap.md](roadmap/e2e-backend-roadmap.md), [roadmap/e2e-frontend-roadmap.md](roadmap/e2e-frontend-roadmap.md) | BE 14/14 ✅, FE 3/3 ✅ | Tidak |
+| **Billing** (`RJ-BIL`) | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | `HISTORICAL SNAPSHOT` — perlu verifikasi ulang pemilik Billing (lihat di bawah) | Tidak — wewenang pemilik Billing |
+
+Yang masih terbuka pada scope Registration: centang action baru di Akses Role
+(`OutpatientEncounter : Update`, `OutpatientAppointment : Read/Reschedule`), isi master negara (DB uji hanya
+Indonesia), kebijakan antivirus unggahan, `PhotoPath` publik lama (di luar scope), UAT perangkat fisik,
+migration ke DB master saat rilis.
+
 ## Status per scope — audit `2026-08-31`
 
 `CURRENT STATE`. Diaudit terhadap backend `HEAD` `801a4f5` cabang `sukmagp` dan frontend `HEAD`

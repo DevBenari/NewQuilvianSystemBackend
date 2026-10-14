@@ -170,6 +170,18 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasForeignKey(x => x.CountryId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // RJ-REG-DEC-006: kewarganegaraan dan negara asal WNA.
+            entity.Property(x => x.Citizenship)
+                .HasConversion<int>()
+                .IsRequired(false);
+
+            entity.HasOne(x => x.NationalityCountry)
+                .WithMany()
+                .HasForeignKey(x => x.NationalityCountryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.NationalityCountryId);
+
             entity.HasOne(x => x.Province)
                 .WithMany()
                 .HasForeignKey(x => x.ProvinceId)
