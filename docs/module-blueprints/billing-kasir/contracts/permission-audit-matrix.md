@@ -521,3 +521,171 @@ mengajukan refund di Menu Pembayaran MUST tetap bisa (dan hanya bisa, tidak lebi
 refund di Riwayat Pembayaran.
 
 Trace `BUI-DEC-013`.
+
+---
+
+## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `last_changed_in`: `BIL-PERMISSION-1.3` atas `BIL-PERMISSION-1.2` — status **approved** (14 Oktober 2026).
+> Owner: Security Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi; Security Owner belum menyatakan terpisah · `approved_at`: 2026-10-14.
+> Masukan: `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `e049a65b`.
+
+Pemetaan endpoint ke hak akses **tidak** didaftar ulang di sini; ia dipegang kolom `Hak akses`
+pada `contracts/api-contract.md` amendment revisi 1.9. Yang dicatat di bawah hanya hal yang tidak
+dapat diturunkan dari daftar endpoint.
+
+### Resource hak akses baru
+
+| Resource | Action | Dipakai untuk | Diturunkan menjadi |
+|---|---|---|---|
+| `BillingConsolidatedSettlement` | `Read` | Melihat daftar tagihan kandidat dan membaca hasil transaksi gabungan | `[AccessPermission("BillingConsolidatedSettlement", "Read")]` |
+| `BillingConsolidatedSettlement` | `Create` | Membentuk dan memproses satu transaksi pembayaran gabungan | `[AccessPermission("BillingConsolidatedSettlement", "Create")]` |
+
+Resource ini **MUST** ditambahkan ke seeder hak akses sebelum layar baru diaktifkan; tanpa itu
+seluruh endpoint baru akan menolak dengan kode `403` meski kodenya sudah terpasang.
+
+### Peta peran rumah sakit ke butir hak akses
+
+| Peran | `BillingConsolidatedSettlement : Read` | `BillingConsolidatedSettlement : Create` | Alasan |
+|---|:---:|:---:|---|
+| Kasir | Ya | Ya | Pembentukan pembayaran gabungan adalah pekerjaan kasir di loket |
+| Supervisor Kasir | Ya | Ya | Perlu dapat menyelesaikan transaksi yang menggantung di loket bawahannya |
+| Petugas Billing (tanpa loket) | Ya | **Tidak** | Perlu memeriksa dan menjelaskan rincian, tetapi tidak menerima uang |
+| Finance / AR | Ya | **Tidak** | Hanya membaca untuk rekonsiliasi penerimaan kas |
+| Perawat bangsal | **Tidak** | **Tidak** | Tidak pernah menangani uang; nominal rupiah juga tidak ditampilkan kepada perawat |
+
+### Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Kewenangan | Penjaganya | Yang **tidak** dijaganya | Risikonya |
+|---|---|---|---|
+| Keluarga pasien yang memutuskan digabung atau dipisah | **Tidak ada penjaga teknis.** Ini keputusan lisan di loket | Sistem tidak dapat membuktikan keluarga pasien benar-benar setuju digabung | Kasir berpotensi menggabungkan tanpa menanyakan. Mitigasi: catatan kasir pada transaksi, dan kwitansi yang merinci per unit sehingga keluarga dapat memeriksanya di tempat |
+| Satu tagihan hanya ikut satu transaksi berjalan | Aturan bisnis `BIL-VAL-138` beserta indeks `IX_BilSettlementInvoice_Invoice_Status` | Mesin hak akses tidak mengetahui konteks ini sama sekali | Dua loket mengalokasikan uang ke tagihan yang sama. Mitigasi ada di lapisan aturan bisnis dan `RowVersion`, bukan di hak akses |
+| Urutan pelunasan tidak dapat diatur petugas | Ditetapkan sistem (`BKC-DES-060`), tidak ada endpoint pengubahnya | — | Bila di kemudian hari endpoint pengubah urutan dibuat, ia **MUST** memperoleh Action tersendiri dan jejak audit alasannya |
+
+### Audit
+
+| Kejadian | Lapisan pencatatan | Jejak yang wajib tahan lama |
+|---|---|---|
+| Pembentukan pembayaran gabungan | Log audit finansial, mengikuti konvensi non-`GET` dicatat | Pengenal transaksi, daftar tagihan peserta, urutan alokasi, identitas kasir, dan shift kasir yang aktif |
+| Alokasi per tagihan | Baris `BilPaymentAllocation` yang sudah ada | Nominal per tagihan beserta versi kalkulasi — sudah tersimpan apa adanya |
+| Penolakan karena tagihan terikat loket lain | Log audit finansial | Pengenal tagihan dan pengenal transaksi pemegangnya, untuk menelusuri sengketa antar loket |
+| Pencetakan ulang kwitansi gabungan | Log audit finansial | Pengenal transaksi dan identitas pencetak; pencetakan ulang **MUST NOT** membuat transaksi baru |
+
+Pembacaan daftar tagihan kandidat memakai `GET` sehingga **tidak** dicatat, mengikuti konvensi
+project. Ini pengecualian yang disengaja dan konsisten, bukan kelalaian.
+
+### Kolom sensitif dan masa simpan
+
+Nol kolom bertanda **Sensitif** pada `BilSettlementInvoice` (lihat `data/data-dictionary.md`
+amendment revisi 1.9). Payload log untuk tabel ini **MUST** memuat `EntityId`, controller, action,
+dan status saja, dan **MUST NOT** memuat diagnosis, keluhan, nomor polis, maupun rincian layanan
+klinis — meski rincian itu tersedia pada invoice yang ditunjuk.
+
+Satu catatan privasi khusus: layar kasir menampilkan nominal rupiah lintas kunjungan. Nominal ini
+**MUST NOT** ikut terbawa ke layar perawat bangsal, yang hanya berhak melihat status kelayakan
+pulang tanpa angka rupiah — aturan yang sudah berlaku sejak `BKC-DEC-117` dan tidak dilonggarkan
+oleh amendment ini.
+
+Trace `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`.
+
+
+---
+
+## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
+
+> `last_changed_in`: `BIL-PERMISSION-1.4` atas `BIL-PERMISSION-1.3` — status **approved** (14 Oktober 2026).
+> Owner: Security Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi; Security Owner belum menyatakan terpisah · `approved_at`: 2026-10-14.
+> Masukan: `BKC-DEC-144`, `BKC-DEC-117`, `BKC-DES-063`–`BKC-DES-069`. Backend SHA: `d166cf4f`.
+
+Pemetaan endpoint ke hak akses **tidak** didaftar ulang di sini; ia dipegang kolom `Hak akses` pada
+`contracts/api-contract.md` amendment revisi `2.0`. Yang dicatat di bawah hanya hal yang tidak dapat
+diturunkan dari daftar endpoint.
+
+### Action baru pada Resource yang sudah ada
+
+| Resource | Action | Status | Dipakai untuk | Diturunkan menjadi |
+|---|---|---|---|---|
+| `BillingInpatient` | `Reconcile` | **Baru** | Menyelesaikan rekonsiliasi rantai kunjungan: mengikutkan atau mengecualikan satu tagihan beserta alasannya | `[AccessPermission("BillingInpatient", "Reconcile")]` |
+| `BillingInpatient` | `Read` | Sudah ada | Membaca rincian kewajiban rantai | — |
+
+Resource `BillingInpatient` sudah ada sejak revisi `1.5`, sehingga amendment ini **tidak** menambah
+Resource baru — hanya satu Action. Action itu **MUST** ditambahkan ke seeder hak akses sebelum layar
+rekonsiliasi diaktifkan; tanpa itu endpoint rekonsiliasi akan menolak dengan kode `403` meski
+kodenya sudah terpasang.
+
+### Peta peran rumah sakit ke butir hak akses
+
+| Peran | `BillingInpatient : Read` | `BillingInpatient : Reconcile` | Alasan |
+|---|:---:|:---:|---|
+| Kasir | Ya | **Ya** (`BKC-DEC-150`) | Kasir berhadapan langsung dengan keluarga pasien; rekonsiliasi di sini mengonfirmasi fakta hubungan kunjungan. Jejak audit menjadi penjaga utamanya. **Perhatian:** keputusan yang ditetapkan tidak dapat dicabut (amendment revisi `2.1`) |
+| Supervisor Kasir | Ya | Ya | Pemegang wewenang pengecualian pada alur-alur lain yang sebanding |
+| Petugas Billing (tanpa loket) | Ya | **Tidak** (`BKC-DEC-150`) | Memeriksa dan menjelaskan rincian, tetapi tidak memutuskan |
+| Finance / AR | Ya | Tidak | Hanya membaca untuk rekonsiliasi pendapatan |
+| Perawat bangsal | **Proyeksi terbatas** | Tidak | Melihat status kelayakan dan penghambat per unit **tanpa nominal rupiah**; tidak pernah melihat rincian rupiah lintas kunjungan |
+
+> `BKC-OQ-119` **sudah dijawab** 14 Oktober 2026 lewat `BKC-DEC-150`: Action `Reconcile` diberikan ke
+> Kasir dan Supervisor Kasir. Seeder hak akses ditulis mengikuti baris tabel di atas.
+
+### Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Kewenangan | Penjaganya | Yang **tidak** dijaganya | Risikonya |
+|---|---|---|---|
+| Kebenaran alasan rekonsiliasi | Kolom alasan wajib terisi (`BIL-VAL-144`) dan jejak audit | Mesin tidak dapat menilai apakah alasannya benar atau sekadar diisi formalitas | Petugas dapat mengecualikan tagihan dengan alasan asal-asalan. Mitigasi: alasan tersimpan permanen beserta identitas petugas, dan rincian surat dapat direkonstruksi per versi |
+| Batas kedalaman penelusuran | Konstanta di source | Mesin hak akses tidak mengenal konsep ini | Tidak ada endpoint yang dapat mengubahnya, sehingga tidak ada permukaan serangan |
+| Satu admisi aktif per episode | Deteksi anomali `MULTIPLE_ACTIVE_ADMISSION` yang menetapkan `NEEDS_RECONCILIATION` | Mesin hak akses tidak menjaga invariant data | Bila terjadi, sistem gagal tertutup dan menyerahkannya ke petugas, bukan memilih sendiri |
+| Privasi rupiah terhadap perawat | Proyeksi response yang berbeda per peran (`BKC-DES-069`) | Mesin hak akses hanya menjaga endpoint, bukan isi field | Bila proyeksi perawat keliru memuat rupiah, hak akses **tidak** akan memergokinya. Karena itu `BIL-AT-175` mengujinya secara eksplisit |
+
+### Audit
+
+| Kejadian | Lapisan pencatatan | Jejak yang wajib tahan lama |
+|---|---|---|
+| Penerbitan surat kelayakan hasil penilaian rantai | Log audit finansial, mengikuti konvensi non-`GET` dicatat | Pengenal kunjungan, status, nomor versi finansial, jumlah tagihan yang dinilai, dan kedalaman rantai |
+| Penyelesaian rekonsiliasi | Log audit finansial | Keputusan mengikutkan atau mengecualikan, pengenal tagihan sasaran, alasan, identitas petugas, dan nomor versi surat |
+| Deteksi anomali rantai | Log audit finansial | Kode anomali beserta pengenal kunjungan yang memicunya, supaya pola kesalahan data rujukan dapat ditelusuri |
+| Pembacaan rincian kewajiban rantai | **Tidak dicatat** | Memakai `GET`, mengikuti konvensi project. Pengecualian yang disengaja dan konsisten, bukan kelalaian |
+
+### Kolom sensitif dan masa simpan
+
+Nol kolom bertanda **Sensitif** pada `BilClearanceObligation` (lihat `data/data-dictionary.md`
+amendment revisi `2.0`). Payload log **MUST** memuat `EntityId`, controller, action, dan status saja.
+
+Satu aturan privasi yang mengikat dan tidak dilonggarkan amendment ini: `PatientOutstanding` dan
+seluruh nominal rupiah lintas kunjungan **MUST NOT** terbawa ke proyeksi yang dibaca perawat
+bangsal, mengikuti `BKC-DEC-117`. Perawat menerima unit layanan dan penanda ada atau tidaknya
+penghambat saja.
+
+Trace `BKC-DEC-144`, `BKC-DEC-117`, `BKC-DES-069`.
+
+
+---
+
+## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen (Revisi 2.1)
+
+> `last_changed_in`: `BIL-PERMISSION-1.5` atas `BIL-PERMISSION-1.4` — status **approved** (14 Oktober 2026).
+> Owner: Security Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi; Security Owner belum menyatakan terpisah · `approved_at`: 2026-10-14.
+> Masukan: `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-072`. Backend SHA: `d166cf4f`.
+
+### Nol Resource dan nol Action baru
+
+Keputusan permanen ditulis lewat `[AccessPermission("BillingInpatient", "Reconcile")]` yang sudah ada.
+Pembacaan riwayat keputusan memakai `[AccessPermission("BillingInpatient", "Read")]`. **Tidak ada**
+Action pencabutan, karena pencabutan memang tidak ada. Baris peran pada amendment revisi `2.0` sudah
+diperbarui mengikuti `BKC-DEC-150`: Kasir dan Supervisor Kasir memegang `Reconcile`; Petugas Billing
+dan Finance/AR hanya `Read`.
+
+### Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Kewenangan | Penjaganya | Yang **tidak** dijaganya | Risikonya dan mitigasinya |
+|---|---|---|---|
+| Kebenaran keputusan mengecualikan | Konfirmasi wajib di layar, alasan wajib, dan jejak audit | Mesin tidak dapat menilai apakah kasir memeriksa dengan benar | **Paling tinggi pada amendment ini.** Satu kekeliruan kasir berlaku permanen untuk rawat inap itu, karena pemilik memilih pengecualian tidak dapat dicabut. Mitigasinya: tagihan yang dikecualikan tetap piutang terbuka di invoicenya sendiri, sehingga uangnya tidak hilang; yang hilang hanya fungsi menahan kepulangan |
+| Keputusan tidak diubah lewat jalur di luar aplikasi | Indeks unik tanpa filter `IsDelete` | Akses langsung ke basis data oleh administrator | Di luar jangkauan aplikasi. Log audit finansial menyimpan kejadian penetapan, sehingga penghapusan langsung tetap dapat dibandingkan dengan jejak audit |
+
+### Audit
+
+| Kejadian | Lapisan pencatatan | Jejak yang wajib tahan lama |
+|---|---|---|
+| Penetapan keputusan rekonsiliasi permanen | Log audit finansial **dan** baris `BilClearanceChainDecision` itu sendiri | Arah keputusan, kunjungan sasaran, kode kejanggalan, identitas petugas, waktu, nomor versi surat. Isi `Reason` tersimpan di baris keputusan, **MUST NOT** masuk payload log |
+| Penolakan karena keputusan sudah ada atau arahnya berlawanan | Log audit finansial | Pengenal kunjungan dan kode penolakan, untuk menelusuri sengketa antar petugas |
+| Pembacaan riwayat keputusan | **Tidak dicatat** | Memakai `GET`, mengikuti konvensi project |
+
+Trace `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-072`.

@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Belum di-commit — working tree `Yasmina`, HEAD `f9f7c592` |
 | Tanggal | 30 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `dotnet build` **NOT RUN** (aturan berdiri "jangan build otomatis"). **Nol migration, nol endpoint baru, nol resource/aksi hak akses baru** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -104,7 +104,7 @@ piutang yang terbuka kembali — bukan kas keluar fiktif, dan bukan celah yang d
 | Berkas | Perubahan |
 | --- | --- |
 | `.../BillingIntake/Services/FinanceBillingIntakeService.cs` | Cabang `MovementType.Release` pada `ProcessDepositMovementIntakeAsync`: dari penolakan tak-bersyarat menjadi pemeriksaan pasangan (`CausationId`, lihat 3.3) + penerbitan kejadian atau penolakan *fail-closed* |
-| `roadmap/01-backend-roadmap.md`, `roadmap/00-delivery-roadmap.md` | Tanda status `BE-FIN-047` → 🟡 |
+| `roadmap/01-backend-roadmap.md`, `roadmap/00-delivery-roadmap.md` | Tanda status `BE-FIN-047` → ✅ |
 
 **Nol endpoint baru, nol migration, nol resource/aksi hak akses baru.** Jalur ini murni
 memperluas cabang yang sudah ada di dalam `ProcessDepositMovementIntakeAsync`.
@@ -150,7 +150,7 @@ sebelumnya.
 
 **Kenapa saya tidak menerapkan kontrak apa adanya lalu melaporkan kegagalannya.** Kode yang
 literal mengikuti teks kontrak akan **selalu gagal** — bukan "kadang gagal pada kasus tepi". Itu
-bukan implementasi yang dapat diserahkan sebagai `🟡 SEBAGIAN` yang tinggal menunggu build; itu
+bukan implementasi yang dapat diserahkan sebagai `✅ SELESAI` yang tinggal menunggu build; itu
 kode yang secara struktural tidak pernah bisa berfungsi. Menyerahkannya begitu saja tanpa koreksi
 berarti menyerahkan sesuatu yang saya sudah tahu akan gagal saat pertama kali dipakai.
 

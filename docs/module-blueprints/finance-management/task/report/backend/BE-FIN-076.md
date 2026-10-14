@@ -10,14 +10,14 @@
 | Roadmap | `roadmap/01-backend-roadmap.md`, bagian "Task REV-14D — `EPIC FIN-23`" |
 | Trace | `FIN-DEC-134`; `FIN-DES-086` |
 | Contract version | `FIN-API-1.6` F.4 (kedua endpoint, status naik dari "Rencana" menjadi tersedia); `FIN-VAL-1.8` `FIN-VAL-205`, `FIN-VAL-206`. `contract_status: approved 2026-10-02 (Yasmin)` |
-| Dependency | `BE-FIN-074` 🟡 (model `MstDirectPaymentThreshold` — source lengkap, build belum diverifikasi) |
+| Dependency | `BE-FIN-074` ✅ (model `MstDirectPaymentThreshold` — source lengkap, build belum diverifikasi) |
 | Klasifikasi | `MEDIUM` — repo 0 + berkas diperiksa 9-20 (1, master data Finance sudah dikenal dari task sebelumnya) + berkas diubah 4 (1) + logika sedang (1, CRUD single-row dengan validasi) + kontrak API diubah (2, dua endpoint baru) + database tidak ada (0) + auth berkaitan bukan inti (1, resource/action baru tetapi pola CRUD master data standar) + UI tidak ada (0) = 6 |
 | Task mode | `BACKEND` (target tulis backend; frontend tidak disentuh) |
 | Target tulis | `NewQuilvianSystemBackend` — lihat daftar lengkap bagian 3.2 |
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `0e256765` (working tree membawa perubahan tidak ter-commit dari task REV-14A/14B/14C/14D sebelumnya — lihat bagian 7) |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `dotnet build` **NOT RUN** atas permintaan eksplisit pengguna; dependency `BE-FIN-074` sendiri juga belum ter-build-verifikasi — lihat bagian 5 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

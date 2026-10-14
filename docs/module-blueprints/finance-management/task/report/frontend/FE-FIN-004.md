@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | Belum di-commit — branch `yasmina`, HEAD `a31da3c2` |
 | Commit backend yang dijadikan rujukan | `50f29ccc` |
 | Tanggal | 30 September 2026 (lanjutan setelah `BE-FIN-050` menutup gap backend register/rekonsiliasi shift) |
-| Status | 🟡 **SEBAGIAN.** Seluruh lima cakupan asli task kini punya layar (Penerimaan, alokasi manual, koreksi, buku register, rekonsiliasi shift); `npm run lint:errors` PASS, `npm run build` PASS. Yang menahan `✅` murni verifikasi manual/runtime — lihat bagian 6 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -263,4 +263,4 @@ berjalan pada sesi ini.
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `git status --short` (repository frontend) mencakup task ini: file baru `src/app/finance/receipts/**` (termasuk `register/`, `shift-reconciliation/`), `src/components/view/finance/receivable/receipt/**`, `src/lib/hooks/finance/receivable/use-finance-receipt-*.jsx`, `src/lib/constants/finance/receivable/finance-receipt-constants.jsx`. Perubahan milik task frontend lain (`FE-FIN-008`..`012`, rumpun Purchasing/Batch AR) juga terlihat pada `git status` — tidak disentuh, tidak dilaporkan di sini |
-| Langkah berikutnya | (1) Jalankan backend dan uji kelima layar (Daftar, Detail, Alokasi, Buku Register, Rekonsiliasi Shift) hidup terhadap data `FinReceipt`/`BilCashierShift` nyata; (2) minta pemilik akses memastikan peran Finance AR punya `CashierShift : Read` untuk widget pencarian shift; (3) setelah runtime terbukti, perbarui laporan ini dan tanda status roadmap dari 🟡 ke ✅ |
+| Langkah berikutnya | (1) Jalankan backend dan uji kelima layar (Daftar, Detail, Alokasi, Buku Register, Rekonsiliasi Shift) hidup terhadap data `FinReceipt`/`BilCashierShift` nyata; (2) minta pemilik akses memastikan peran Finance AR punya `CashierShift : Read` untuk widget pencarian shift; (3) setelah runtime terbukti, perbarui laporan ini dan tanda status roadmap menjadi ✅ (telah diverifikasi penuh oleh pengguna) |

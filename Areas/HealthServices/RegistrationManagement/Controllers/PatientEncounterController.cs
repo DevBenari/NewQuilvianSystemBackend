@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
@@ -65,6 +66,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly OutpatientQueueClassificationService _queueClassificationService;
         private readonly OutpatientQueueNumberAllocator _queueNumberAllocator;
         private readonly EncounterReferralService _encounterReferralService;
+        private readonly RegistrationEmployeeBenefitLookupService _employeeBenefitLookup;
 
         /// <summary>Batas body unggah surat rujukan: 10 berkas x 5 MB + cadangan multipart.</summary>
         private const long ReferralUploadRequestLimitBytes = 55L * 1024 * 1024;
@@ -84,7 +86,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             IConfiguration? configuration = null,
             OutpatientQueueClassificationService? queueClassificationService = null,
             OutpatientQueueNumberAllocator? queueNumberAllocator = null,
-            EncounterReferralService? encounterReferralService = null)
+            EncounterReferralService? encounterReferralService = null,
+            RegistrationEmployeeBenefitLookupService? employeeBenefitLookupService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -97,6 +100,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _configuration = configuration;
             _encounterReferralService = encounterReferralService
                 ?? new EncounterReferralService(dbContext, configuration ?? new ConfigurationBuilder().Build());
+            // BE-FIN-106: parameter opsional supaya konstruktor lama (harness uji) tetap sah.
+            _employeeBenefitLookup = employeeBenefitLookupService
+                ?? new RegistrationEmployeeBenefitLookupService(
+                    dbContext, new EmployeeBenefitEligibilityService(dbContext), loggerService);
         }
 
         /// <summary>
@@ -2309,6 +2316,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ToUtcDate(companyGuarantor.EffectiveEndDate.Value) < encounterDay)
             {
                 return (null, "Penjamin perusahaan sudah kedaluwarsa pada tanggal kunjungan.");
+            }
+
+            // BE-FIN-106, FIN-DEC-204: kartu atas penjamin internal (RS Benefit) hanya sah bila pegawai atau
+            // anggota keluarganya terdaftar dan terverifikasi di HR pada tanggal kunjungan. Gagal tertutup
+            // bila HR tidak dapat dibaca; petugas diarahkan mendaftarkan sebagai Pasien Umum.
+            var benefitCheck = await _employeeBenefitLookup.ValidateCardForServiceAsync(
+                companyGuarantor.CompanyGuarantorId,
+                companyGuarantor.EmployeeId,
+                companyGuarantor.FamilyMemberId,
+                encounterDate,
+                HttpContext?.RequestAborted ?? CancellationToken.None);
+
+            if (!benefitCheck.IsValid)
+            {
+                return (null, benefitCheck.Message);
             }
 
             return (companyGuarantor, null);

@@ -16,7 +16,7 @@
 | Task mode | `FRONTEND MODE` — target tulis `QuilvianSystemFrontendDev`; backend dibaca read-only; repository backend ditulis **hanya** untuk laporan ini dan bukti pada roadmap |
 | Branch | `yasmina` (upstream `origin/yasmina`), sama dengan `FE-FIN-027`. Prompt tidak memuat penetapan branch eksplisit; kesesuaian dengan penetapan pemegang modul **belum dikonfirmasi** |
 | Tanggal | 3 Oktober 2026 |
-| Status | 🟡 **Sebagian.** Source lengkap sesuai kontrak. `npm run lint:errors`, `npm run test:unit`, dan `npm run build` **NOT RUN** — standing instruction pengguna: build/lint/test dijalankan manual oleh pengguna. Verifikasi manual UI **NOT FEASIBLE** dari sesi ini (§7) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

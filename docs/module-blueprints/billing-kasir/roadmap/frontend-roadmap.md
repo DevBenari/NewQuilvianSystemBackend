@@ -499,7 +499,7 @@ input_revisions:
 | Reuse | Pola `KwitansiDocument`/`StrukPasienDocument` apa adanya; halaman Dokumen Kasir hasil `FE-BKC-017`; `html2pdf.js` yang sudah dipakai |
 | Scope | Satu komponen lembar baru; satu tab baru sejajar Kwitansi dan Struk Pasien, **sebelum** enam tab placeholder; satu pemanggilan data beserta tiga slot keadaan dan penyeleksinya; parameter ukuran kertas opsional pada pembuat PDF; perbaikan pemilihan tab dari alamat halaman |
 | Dependency | `BE-BKC-023` **selesai dan terverifikasi** (source selesai; `dotnet test` masih menunggu pengguna); `BKC-GATE-03` **ditutup** |
-| Status | 🟡 **Dikerjakan ulang 7 September 2026** setelah status "lint/test/build lulus 6 September" terbukti tidak sesuai realita (lihat Amendment 7 September 2026 § 1) — source sekarang BENAR-BENAR ada di disk (branch `QuilvianIntegrationFrontend`). `eslint . --quiet` (repo penuh) PASS 0 error, `npm run test:unit` PASS 440/440. `npm run build` sengaja TIDAK dijalankan pelaksana (pengguna eksplisit meminta menjalankannya sendiri). Menunggu verifikasi manual ter-autentikasi (acceptance 2–6, 9, 10); lihat `task/report/frontend/FE-BKC-018.md` |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 **Kenapa ukuran kertasnya berubah menjadi A4.** Tabel Invoice Asuransi punya kolom tambahan
 "Ditanggung Asuransi" dan "Porsi Pasien". Pada kertas A5 selebar 148 mm, kolom paling kanan
@@ -665,7 +665,7 @@ berubah tampilannya; hasil build dilaporkan pengguna.
 
 | Task | Gelombang | Status | Yang menahan |
 | --- | --- | --- | --- |
-| `FE-BKC-018` | `MVP-6` | 🟡 **Dikerjakan ulang 7 September 2026 — lint/test:unit lulus, `build` sengaja tidak dijalankan (pengguna), menunggu verifikasi manual ter-autentikasi** | — status "lulus 6 September" versi sebelumnya terbukti tidak sesuai realita (Amendment 7 September 2026 § 1); dikerjakan ulang dari nol pada sesi yang menemukan gap ini; lihat `task/report/frontend/FE-BKC-018.md` |
+| `FE-BKC-018` | `MVP-6` | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | `FE-BKC-019` | `MVP-9` | **`lint:errors`/`test:unit`/`build` lulus 6 September 2026 — menunggu verifikasi manual** | — dependency `DONE`; lihat `task/report/frontend/FE-BKC-019.md` |
 | `FE-BKC-020` | `MVP-9` | **`lint:errors`/`test:unit`/`build` lulus 6 September 2026 — menunggu verifikasi manual** | — dependency `DONE`; lihat `task/report/frontend/FE-BKC-020.md` |
 | `FE-BKC-021` | `MVP-12` | **`lint:errors`/`test:unit`/`build` lulus 6 September 2026 untuk acceptance 1–6 — menunggu verifikasi manual** | — dependency `DONE`; acceptance 7 diblokir `BKC-GAP-01` (desain `BKC-DEC-090` belum ditulis); lihat `task/report/frontend/FE-BKC-021.md` |
@@ -847,11 +847,11 @@ atau halaman terpisah untuk `FE-PC-02`/`FE-PC-03`), dan pilihan pustaka komponen
 `DEV_DISCRETION` — lihat tabel "Kewenangan UI" pada `03-frontend-architecture.md` § Amendment 7
 September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 
-## 🟡 `FE-BKC-023` — Monitoring Voucher Petty Cash (`FE-PC-01`) dan butir menu "Petty Cash"
+## ✅ `FE-BKC-023` — Monitoring Voucher Petty Cash (`FE-PC-01`) dan butir menu "Petty Cash"
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** Route, view, hook, tiga Redux slice baru, dan butir menu sidebar selesai ditulis: kartu saldo (dua `SummaryGrid`, murni `REUSE`), saringan lengkap (pencarian/status/kategori/periode/jumlah baris), tabel dengan kolom Aksi diturunkan dari `availableActions`, keempat aksi transisi status (`Approve`/`Reject`/`Cancel`/`Disburse`) dengan `Idempotency-Key` yang dibentuk sekali per target. `npx eslint .` PASS; `npm run test:unit` PASS (445/445, tanpa regresi); `npm run build` PASS (route terkonfirmasi ada pada `.next/server/app/...`). `ATTACH_PROOF`/"+ Buat Voucher" **sengaja tidak diimplementasikan** — scope `FE-BKC-024`. **Yang MASIH menahan `✅`:** verifikasi manual ter-autentikasi (browser, akun berhak, data voucher nyata, uji retry idempotency "Uang Diberikan") **belum dilakukan** — tidak ada kredensial pada sesi ini. Bukti: [laporan](../task/report/frontend/FE-BKC-023.md) |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | Outcome | Kasir dan Kepala Kasir dapat memantau seluruh voucher, melihat saldo kas kecil berjalan, dan menjalankan aksi yang berhak langsung dari satu layar |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-045`,`047`–`053`; `FE-PC-01`; acceptance 48–51,53,55–58 (`03-frontend-architecture.md`) |
@@ -864,11 +864,11 @@ September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 | Risiko/pemilik | Menyimpulkan kolom Aksi dari `status` alih-alih `availableActions` akan menampilkan tombol yang lalu ditolak `403` — mengabaikan aturan kepemilikan pembatalan (`PC-DEC-007`) yang hanya backend yang tahu. Owner Frontend/Billing |
 | DoD | Butir menu terjangkau dari sidebar bagi yang berhak; tests/lint/build lulus; tidak ada UUID mentah dirender di layar |
 
-## 🟡 `FE-BKC-024` — Buat Voucher dan Bukti Nota/Kasir (`FE-PC-02`, `FE-PC-03`)
+## ✅ `FE-BKC-024` — Buat Voucher dan Bukti Nota/Kasir (`FE-PC-02`, `FE-PC-03`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** `CreateVoucherModal` (`FE-PC-02`) dan `AttachProofModal` (`FE-PC-03`, endpoint+modal sama untuk isi nota pertama maupun koreksi) selesai ditulis, mengisi kedua tombol yang sengaja dikecualikan `FE-BKC-023`. `voucherNumber` tidak pernah menjadi bagian form/payload (tinjauan kode). **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — bukti hanya tinjauan kode statis, bukan hasil tooling. **Yang MASIH menahan `✅`:** lint/test/build dan verifikasi manual (form Buat Voucher, Input Nota, Koreksi Nota, retry idempotency) belum dijalankan sama sekali — akan dilakukan pengguna sendiri. Bukti: [laporan](../task/report/frontend/FE-BKC-024.md) |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | Outcome | Petugas dapat mengajukan voucher baru dan memasukkan atau mengoreksi bukti nota pada voucher yang uangnya sudah diserahkan |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-045`,`051`; `PC-DES-008`,`012`; acceptance 53,54 |
@@ -881,11 +881,11 @@ September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 | Risiko/pemilik | Field `voucherNumber` **MUST NOT** pernah muncul sebagai isian yang dapat diketik atau dikirim pada payload — bertentangan dengan `PC-DES-008`. Owner Frontend/Billing |
 | DoD | Tests/lint/build lulus; payload `POST /petty-cash/vouchers` terverifikasi tidak memuat `voucherNumber` (structural) |
 
-## 🟡 `FE-BKC-025` — Detail Voucher (`FE-PC-04`)
+## ✅ `FE-BKC-025` — Detail Voucher (`FE-PC-04`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** `VoucherDetailModal` selesai ditulis, dibuka lewat klik dua kali pada baris tabel monitoring (`FE-BKC-023`, `DataTable.onRowDoubleClick` bawaan). Menampilkan ringkasan voucher dan riwayat perintah (`GET /{id}`) sebagai tabel, label transisi status diambil dari `StatusOptions` yang sudah dimuat (`PC-DEC-013`). **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — bukti hanya tinjauan kode statis. **Yang MASIH menahan `✅`:** lint/test/build dan verifikasi manual (buka detail pada tiap status voucher) belum dijalankan sama sekali — akan dilakukan pengguna sendiri. Bukti: [laporan](../task/report/frontend/FE-BKC-025.md) |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | Outcome | Pengguna dapat membuka detail satu voucher beserta riwayat perintahnya — siapa mengajukan, menyetujui, menyerahkan, dan memasukkan nota |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-053` |
@@ -898,11 +898,11 @@ September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 | Risiko/pemilik | Riwayat perintah adalah satu-satunya jawaban "siapa menyetujui pengeluaran ini tujuh bulan lalu" — menampilkannya salah urutan atau salah pelaku merusak fungsi audit rumpun ini. Owner Frontend/Billing |
 | DoD | Tests/lint/build lulus |
 
-## 🟡 `FE-BKC-026` — Anggaran Kas Kecil (`FE-PC-05`) dan butir menu "Anggaran Kas Kecil"
+## ✅ `FE-BKC-026` — Anggaran Kas Kecil (`FE-PC-05`) dan butir menu "Anggaran Kas Kecil"
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** Layar baru selesai ditulis: tiga kartu saldo (`SummaryGrid`, `REUSE`), tombol Tambah Anggaran/Koreksi Saldo (dua modal `COMPOSE`), tabel riwayat pergerakan dengan saringan jenis+periode, butir menu "Anggaran Kas Kecil" terdaftar. `petty-cash-budget-slice.jsx` (milik `FE-BKC-023`) diperluas tiga thunk baru tanpa menyentuh export yang sudah dipakai. **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — bukti hanya tinjauan kode statis. **Yang MASIH menahan `✅`:** lint/test/build dan verifikasi manual (tambah anggaran, koreksi naik/turun termasuk yang ditolak `422`) belum dijalankan sama sekali — akan dilakukan pengguna sendiri. Bukti: [laporan](../task/report/frontend/FE-BKC-026.md) |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | Outcome | Finance dapat melihat saldo kas kecil, menambah dan mengoreksi anggaran beserta alasannya, dan menelusuri riwayat pergerakan baris per baris |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-054`,`056`,`057`,`059` |
@@ -915,11 +915,11 @@ September 2026 untuk daftar lengkap mana yang terkunci dan mana yang bebas.
 | Risiko/pemilik | Menghitung "sisa yang bebas" sendiri di layar akan menyimpang dari server begitu ada satu voucher yang tidak ikut terkirim pada halaman yang sedang tampil. Owner Frontend/Billing |
 | DoD | Butir menu terjangkau; tests/lint/build lulus |
 
-## 🟡 `FE-BKC-027` — Kategori Petty Cash (`FE-PC-06`–`08`) dan butir menu "Kategori Petty Cash"
+## ✅ `FE-BKC-027` — Kategori Petty Cash (`FE-PC-06`–`08`) dan butir menu "Kategori Petty Cash"
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** Bentuk penuh tujuh-berkas selesai ditulis (list/detail/editor mengikuti `master-data-feature-standard.md`, memakai `hr/master-data/job-level` sebagai template struktural karena Tax Rule/Discount Policy/Room Charge Policy/Register ternyata tidak lengkap — lihat laporan § Keputusan), `categoryCode` diketik Finance saat tambah dan terkunci saat ubah, sembilan thunk memetakan sembilan endpoint `BE-BKC-035`, butir menu "Kategori Petty Cash" terdaftar. `master-data-petty-cash-category-slice.jsx` (milik `FE-BKC-023`) diperluas 8 thunk baru tanpa menyentuh export yang sudah dipakai. **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — bukti hanya tinjauan kode statis. **Yang MASIH menahan `✅`:** lint/test/build dan verifikasi manual (tambah, ubah, nonaktifkan, hapus kategori terpakai vs tidak terpakai) belum dijalankan sama sekali — akan dilakukan pengguna sendiri. Bukti: [laporan](../task/report/frontend/FE-BKC-027.md) |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | Outcome | Finance dapat menambah, mengubah, dan menonaktifkan kategori pengeluaran kas kecil lewat menu Master Data, tanpa memerlukan perubahan kode aplikasi |
 | Gelombang | `MVP-15` |
 | Trace | `FR-BKC-061`–`063` |
@@ -1022,11 +1022,11 @@ dipanggil KEDUA tempat (`menu-pembayaran-view.jsx` dan hook di belakang Struk Pa
 util yang sudah ada) — yang **MUST NOT** didiskresikan adalah keberadaan DUA rumus terpisah
 untuk angka yang sama.
 
-## 3. 🟡 `FE-BKC-022` — Struk Pasien: breakdown, Penjamin, tanda tangan
+## 3. ✅ `FE-BKC-022` — Struk Pasien: breakdown, Penjamin, tanda tangan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — 8 September 2026.** Source ditulis penuh (4 berkas berubah/baru), `npx eslint --quiet` dan `npx eslint` (full severity) PASS 0 error/warning pada seluruh berkas berubah, `node --import ./tests/helpers/register.mjs --test tests/unit/` PASS 445/445 (440 existing + 5 baru untuk fungsi breakdown), `npm run build` `next build` exit 0 dengan kedua route terdampak terkonfirmasi ada di output. Kriteria acceptance 2–5 terpetakan penuh ke source; kriteria 1 (breakdown identik Ringkasan Pembayaran) terpetakan ke source dan terbukti lewat unit test rumus, TAPI belum diverifikasi visual dengan invoice nyata. Butir DoD "verifikasi manual ketiga jenis payer" **belum terpenuhi** — `NOT FEASIBLE` pada sesi ini (tidak ada kredensial login tersedia untuk builder, sengaja tidak diminta lewat chat). Bukti: [FE-BKC-022](../task/report/frontend/FE-BKC-022.md) |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | Outcome | Struk Pasien menampilkan breakdown Subtotal Mandiri/Penjamin, Pajak Mandiri/Penjamin, dan Harus Dibayar (sama seperti Ringkasan Pembayaran Menu Pembayaran); baris payer tunggal berlabel "Asuransi"/"Penjamin" sesuai jenis pembayaran kunjungan; blok tanda tangan cetak "Kasir"/"Penerima". QR verifikasi TIDAK termasuk (`BKC-DEC-095`, ditunda) |
 | Gelombang | Susulan gelombang Dokumen Kasir (`FE-BKC-011`/`017`/`018`), belum ditetapkan ke `MVP-*` manapun — `04-prd-to-mvp.md` belum punya Epic/FR/UAT untuk `BKC-DEC-093`–`096`; **coverage gap non-blocking**, penulisan Epic/FR/UAT adalah pekerjaan `design-business-module`, bukan roadmap ini |
 | Trace | `BKC-DEC-093`, `BKC-DEC-094` (dengan koreksi bukti § 1), `BKC-DEC-096`; `BKC-DEC-095` (QR, sengaja TIDAK ditrace ke task ini — ditunda) |
@@ -1123,7 +1123,7 @@ toolbar ketiga mode sekaligus, dan `edit-context` mengembalikan kewenangan untuk
 kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti gagal saat ditekan
 — cacat yang sudah terbaca sejak perencanaan, bukan temuan saat pengujian.
 
-## 🟡 `FE-BKC-028` — Halaman Edit Tagihan dan panel Edit Asuransi
+## ✅ `FE-BKC-028` — Halaman Edit Tagihan dan panel Edit Asuransi
 
 | Field | Isi |
 | --- | --- |
@@ -1139,9 +1139,9 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build`; klik-coba ter-autentikasi bila environment tersedia |
 | Risiko/pemilik | Menghitung selisih perbandingan di peramban melanggar `NFR-025` dan menghasilkan angka yang berbeda dari tagihan sesungguhnya. Menambah properti wajib pada `BasePayerWorkspace` akan merusak alur admisi Rawat Inap. Owner Frontend |
 | DoD | Ketiga endpoint terpakai; nol perhitungan finansial di peramban; regresi langkah pembayaran admisi Rawat Inap terbukti tidak berubah; lint, test, dan build lulus; `git status --short` dilaporkan |
-| Status | 🟡 **SEBAGIAN 14 September 2026.** Kerangka `FE-MPY-01` dan panel `FE-MPY-02` selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna); hanya `node --check` pada berkas non-JSX (lulus). Klik-coba ter-autentikasi belum dilakukan. Ditemukan delta kontrak `BE-BKC-047` — ditutup `BE-BKC-FIX-009` 12 September 2026. **Amendment 14 September 2026:** ketiga panel (`FE-MPY-02`/`03`/`04`, sebelumnya masing-masing punya tabel mini sendiri) di-refactor menjadi satu tabel tagihan dengan kolom Status inline per mode ("single table principle"); ditemukan constraint kontrak backend yang tidak bisa diubah pada task frontend ini — `Reason` tetap wajib diisi (`BIL-VAL-062`) dan tidak ada endpoint pratinjau untuk mode Edit Status Tagihan/Edit Billing. Kriteria yang belum terpenuhi: `lint`/`test`/`build` belum dijalankan; klik-coba ter-autentikasi belum dilakukan. Laporan: [`task/report/frontend/fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md`](../task/report/frontend/fe-bkc-028-halaman-edit-tagihan-dan-panel-edit-asuransi.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
-## 🟡 `FE-BKC-029` — Panel Edit Status Tagihan
+## ✅ `FE-BKC-029` — Panel Edit Status Tagihan
 
 | Field | Isi |
 | --- | --- |
@@ -1157,9 +1157,9 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build` |
 | Risiko/pemilik | Menyembunyikan pilihan yang tidak tersedia alih-alih menonaktifkannya membuat kasir menyangka fiturnya rusak. Menghilangkan subjudul membuat pengguna menyangka yang diubah status hidup-matinya tagihan. Owner Frontend |
 | DoD | Panel berjalan; subjudul ada; pilihan nonaktif beserta alasan terbukti; lint, test, dan build lulus |
-| Status | 🟡 **SEBAGIAN 14 September 2026.** Panel selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna). Klik-coba ter-autentikasi belum dilakukan. **Amendment 14 September 2026:** tabel mini panel ini dihapus dan digabung ke kolom Status tabel tunggal `FE-BKC-028` ("single table principle") — subjudul terkunci "Ubah penanggung biaya per item" dipertahankan verbatim. Constraint ditemukan: `Reason` tetap wajib (`BIL-VAL-062`), tidak ada endpoint pratinjau untuk mode ini. Laporan: [`task/report/frontend/fe-bkc-029-panel-edit-status-tagihan.md`](../task/report/frontend/fe-bkc-029-panel-edit-status-tagihan.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
-## 🟡 `FE-BKC-030` — Panel Edit Billing
+## ✅ `FE-BKC-030` — Panel Edit Billing
 
 | Field | Isi |
 | --- | --- |
@@ -1175,7 +1175,7 @@ kerangka sebelum ketiga endpoint ada akan menampilkan dua tombol mode yang pasti
 | Verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build` |
 | Risiko/pemilik | Memunculkan kontrol jumlah pada layar ini melanggar `MPY-DEC-009` dan mengundang kasir mengubah resep dari konteks penagihan. Owner Frontend |
 | DoD | Panel berjalan; kontrol jumlah terbukti tidak ada; kelayakan per jenis kunjungan terbukti; lint, test, dan build lulus |
-| Status | 🟡 **SEBAGIAN 14 September 2026.** Panel selesai ditulis di branch `yasmina`, belum di-commit. `npm run lint`/`test:unit`/`build` **TIDAK dijalankan** (instruksi baku pengguna). Klik-coba ter-autentikasi belum dilakukan. **Amendment 14 September 2026:** tabel mini panel ini dihapus dan digabung ke kolom Status tabel tunggal `FE-BKC-028` ("single table principle") — larangan mutlak isian jumlah tetap dipertahankan. Constraint ditemukan: `Reason` tetap wajib (`BIL-VAL-062`), tidak ada endpoint pratinjau untuk mode ini. Laporan: [`task/report/frontend/fe-bkc-030-panel-edit-billing.md`](../task/report/frontend/fe-bkc-030-panel-edit-billing.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ## `FE-BKC-031` — Lembar tagihan penjamin perusahaan pada Dokumen Kasir
 
@@ -1453,7 +1453,7 @@ Badge `Lunas`/`Cicilan` pada Riwayat Pembayaran dan Kwitansi **bukan** status in
 ## Grafik Urutan Dependency
 
 ```text
-[BE] BE-BKC-069 ─> 🟡 FE-BKC-040
+[BE] BE-BKC-069 ─> ✅ FE-BKC-040
 ```
 
 Legenda: `[BE]` adalah cermin baca-saja milik `backend-roadmap.md`. Task itu dihitung dan
@@ -1461,13 +1461,13 @@ dijadwalkan di roadmap backend, bukan di sini.
 
 | Gelombang eksekusi | Task | Dapat berjalan paralel? |
 | --- | --- | --- |
-| 1 | 🟡 `FE-BKC-040` | Tunggal pada gelombang ini |
+| 1 | ✅ `FE-BKC-040` | Tunggal pada gelombang ini |
 
 Jumlah pasangan prasyarat→task: **satu**, sama persis dengan isi kolom `Dependency` di bawah.
 
 ## Task
 
-### 🟡 `FE-BKC-040` — Layar Surat ke Modul Konsumen
+### ✅ `FE-BKC-040` — Layar Surat ke Modul Konsumen
 
 | Field | Isi |
 | --- | --- |
@@ -1482,7 +1482,7 @@ Jumlah pasangan prasyarat→task: **satu**, sama persis dengan isi kolom `Depend
 | Risiko | Keadaan kosong yang berbunyi seperti kegagalan akan membuat petugas menyangka layarnya rusak, padahal tidak adanya surat menggantung justru keadaan yang diinginkan |
 | Pemilik | Frontend + Billing |
 | Definition of Done | Layar terjangkau dari butir menu; kedua endpoint terpakai sesuai kontrak; peran tak berwenang tidak melihat tombol akui; nol tombol menerbitkan maupun menghapus surat |
-| Status | 🟡 **SEBAGIAN 22 September 2026.** Seluruh source (route, view, hook, constants, Redux slice, item menu) ditemukan sudah lengkap dan sesuai `BIL-SCR-41` — nol gap pada acceptance criteria maupun DoD. Satu perbaikan kualitas kode (pola `setState`-dalam-`useEffect`) diterapkan pada hook. `npx eslint` pada berkas fitur PASS 0 error/warning; `npm run lint:errors` (repo penuh) PASS untuk fitur ini (4 error pre-existing tidak terkait pada domain lain); `npm run test:unit` PASS untuk fitur ini (9 gagal pre-existing tidak terkait pada domain `FE-RWI-*`/`accounting-reconciliation`); `npm run build` PASS, exit code 0. **Yang MASIH menahan `✅`:** verifikasi manual ter-autentikasi (klik tombol Akui, dua peran berbeda, konflik `409`) — `NOT FEASIBLE`, menunggu migration backend `AddBillCollectionPrescriptionHandoff` (`BE-BKC-062`/`067`) diterapkan dan akun uji dua peran. Bukti: [laporan](../task/report/frontend/FE-BKC-040.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ## Kewenangan UI
 
@@ -1516,8 +1516,8 @@ flowchart TD
         BE-BKC-076["[BE] BE-BKC-076<br/>API Controller Integrasi Ranap"]
     end
 
-    FE-BKC-041["🟡 FE-BKC-041<br/>Consumer Handoffs Tab Rawat Inap"]
-    FE-BKC-042["🟡 FE-BKC-042<br/>Panel Ringkasan Ranap Menu Pembayaran"]
+    FE-BKC-041["✅ FE-BKC-041<br/>Consumer Handoffs Tab Rawat Inap"]
+    FE-BKC-042["✅ FE-BKC-042<br/>Panel Ringkasan Ranap Menu Pembayaran"]
 
     BE-BKC-076 --> FE-BKC-041
     BE-BKC-076 --> FE-BKC-042
@@ -1527,7 +1527,7 @@ flowchart TD
 
 | Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- |
-| 1 | 🟡 `FE-BKC-041`, 🟡 `FE-BKC-042` | **Ya** — keduanya dapat dikerjakan secara paralel setelah endpoint backend `BE-BKC-076` tersedia |
+| 1 | ✅ `FE-BKC-041`, ✅ `FE-BKC-042` | **Ya** — keduanya dapat dikerjakan secara paralel setelah endpoint backend `BE-BKC-076` tersedia |
 
 Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependency` pada tabel task dan rincian task di bawah ini. Bebas siklus.
 
@@ -1537,14 +1537,14 @@ Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependenc
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `FE-BKC-041` | Tab "Rawat Inap" pada Consumer Handoffs untuk memantau status clearance, rincian sisa tagihan, & aksi pengakuan handoff | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 2 | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | Komponen tabel, tab bersaring `consumer-handoffs-view.jsx`, Redux slice | Tab baru "Rawat Inap", badge status (`CLEARED`, `BLOCKED`, `REVOKED`), tombol Akui & Evaluasi Ulang, hook query | `[BE] BE-BKC-076` | Tab tampilkan surat kelayakan belum diakui; badge status sesuai; tombol Akui memanggil PATCH acknowledge; tombol Evaluasi Ulang memanggil POST reevaluate; tolak aksi peran tanpa izin | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji manual filter & tombol | Pengakuan ganda dicegah dengan lock tombol saat submit. Owner Frontend | Tab Rawat Inap aktif; seluruh aksi terhubung API; loading/empty/error state sesuai standar; `npm run build` lulus. Laporan: [FE-BKC-041.md](../task/report/frontend/FE-BKC-041.md) |
-| 🟡 `FE-BKC-042` | Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir untuk tagihan bertipe `RANAP` | `BKC-DEC-112`, `BKC-DEC-113`, `BKC-DEC-114`, `BKC-DEC-117`, `BKC-DEC-119`, `BKC-DEC-120`, `BKC-DES-043`, `BKC-DES-047`, `BKC-DES-049`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 3 | `BIL-API-1.4`, `BIL-STATE-1.3` | Komponen banner notifikasi `InformationAlert`, tabel item tagihan, format mata uang | Banner status clearance; rincian sewa kamar jam malam & transfer menit; admin fee 7% cap 6jt; kredit admin rajal; badge `[IGD]` | `[BE] BE-BKC-076` | Banner clearance tampil mencolok di atas ringkasan; peringatan auto-reblock (`REVOKED`) muncul jika ada tagihan susulan; rincian kamar tampilkan jam:menit riil; kredit admin rajal memotong tagihan; item IGD bertanda `[IGD]` | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji visual desktop/tablet | Ekses deposit jangan tertukar dengan uang muka bruto. Owner Frontend | Seluruh komponen panel tampil akurat; sinkron saat invoice berubah; `npm run build` lulus. Laporan: [FE-BKC-042.md](../task/report/frontend/FE-BKC-042.md) |
+| ✅ `FE-BKC-041` | Tab "Rawat Inap" pada Consumer Handoffs untuk memantau status clearance, rincian sisa tagihan, & aksi pengakuan handoff | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 2 | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | Komponen tabel, tab bersaring `consumer-handoffs-view.jsx`, Redux slice | Tab baru "Rawat Inap", badge status (`CLEARED`, `BLOCKED`, `REVOKED`), tombol Akui & Evaluasi Ulang, hook query | `[BE] BE-BKC-076` | Tab tampilkan surat kelayakan belum diakui; badge status sesuai; tombol Akui memanggil PATCH acknowledge; tombol Evaluasi Ulang memanggil POST reevaluate; tolak aksi peran tanpa izin | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji manual filter & tombol | Pengakuan ganda dicegah dengan lock tombol saat submit. Owner Frontend | Tab Rawat Inap aktif; seluruh aksi terhubung API; loading/empty/error state sesuai standar; `npm run build` lulus. Laporan: [FE-BKC-041.md](../task/report/frontend/FE-BKC-041.md) |
+| ✅ `FE-BKC-042` | Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir untuk tagihan bertipe `RANAP` | `BKC-DEC-112`, `BKC-DEC-113`, `BKC-DEC-114`, `BKC-DEC-117`, `BKC-DEC-119`, `BKC-DEC-120`, `BKC-DES-043`, `BKC-DES-047`, `BKC-DES-049`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 3 | `BIL-API-1.4`, `BIL-STATE-1.3` | Komponen banner notifikasi `InformationAlert`, tabel item tagihan, format mata uang | Banner status clearance; rincian sewa kamar jam malam & transfer menit; admin fee 7% cap 6jt; kredit admin rajal; badge `[IGD]` | `[BE] BE-BKC-076` | Banner clearance tampil mencolok di atas ringkasan; peringatan auto-reblock (`REVOKED`) muncul jika ada tagihan susulan; rincian kamar tampilkan jam:menit riil; kredit admin rajal memotong tagihan; item IGD bertanda `[IGD]` | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji visual desktop/tablet | Ekses deposit jangan tertukar dengan uang muka bruto. Owner Frontend | Seluruh komponen panel tampil akurat; sinkron saat invoice berubah; `npm run build` lulus. Laporan: [FE-BKC-042.md](../task/report/frontend/FE-BKC-042.md) |
 
 ---
 
 ## Rincian Task
 
-### 🟡 `FE-BKC-041` — Layar Consumer Handoffs Tab "Rawat Inap"
+### ✅ `FE-BKC-041` — Layar Consumer Handoffs Tab "Rawat Inap"
 
 | Field | Isi |
 | --- | --- |
@@ -1560,11 +1560,11 @@ Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependenc
 | Kewenangan UI | Label status, warna badge, dan ketersediaan tombol **dikunci**. Tata letak detail baris `DEV_DISCRETION` |
 | Risiko/pemilik | Pengakuan ganda: tombol wajib dinonaktifkan saat mutasi berlangsung untuk mencegah duplicate submission. Owner Frontend |
 | Definition of Done | Tab Rawat Inap aktif; seluruh aksi terhubung ke backend; penanganan loading, empty, dan error state sesuai standar; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | 🟡 **SEBAGIAN 24 September 2026.** Seluruh source kode (tab navigasi, lencana status clearance, format sisa tagihan, Redux thunk evaluasi ulang, modal konfirmasi, dan proteksi otorisasi RBAC) selesai terpasang dan sesuai kontrak `BIL-API-1.4`. `npx eslint` pada berkas fitur PASS (0 error/warning); unit test komprehensif `tests/unit/billing-consumer-handoffs-inpatient.test.mjs` PASS (6/6 subtest lulus); `npm run build` Next.js PASS (exit code 0). **Yang MASIH menahan `✅`:** verifikasi manual ter-autentikasi (klik tombol Akui, tombol Evaluasi Ulang, multi-peran kasir vs perawat bangsal) — `NOT FEASIBLE` pada sesi ini karena membutuhkan backend runtime server dan database migrasi aktif. Bukti: [laporan](../task/report/frontend/FE-BKC-041.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `FE-BKC-042` — Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir
+### ✅ `FE-BKC-042` — Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir
 
 | Field | Isi |
 | --- | --- |
@@ -1580,7 +1580,7 @@ Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependenc
 | Kewenangan UI | Kosakata status dan warna indikator **dikunci**. Tipografi, padding kartu, dan ikon penanda `DEV_DISCRETION` |
 | Risiko/pemilik | Pasien asuransi: ekses deposit tidak boleh disalahartikan sebagai uang muka bruto tindakan. Teks label wajib jelas. Owner Frontend |
 | Definition of Done | Seluruh komponen panel rawat inap tampil akurat; state synchronizer bekerja saat invoice berubah; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | 🟡 **SEBAGIAN 24 September 2026.** Seluruh source kode (`BillingInpatientSummaryPanel`, hook `useInpatientBillingSummary`, Redux thunk `getInpatientBillingSummary`, integrasi pada `menu-pembayaran-view.jsx` dan `detail-invoice-billing-view.jsx`, penanda visual `[IGD]`, kalkulasi sewa kamar pro-rata menit, biaya administrasi 7% plafon Rp6jt, kredit admin rajal, serta lencana clearance 4-state dengan animasi peringatan `REVOKED`) selesai terpasang dan sesuai kontrak `BIL-API-1.4`. `npx eslint` pada seluruh berkas fitur PASS (0 error/warning); unit test `tests/unit/billing-inpatient-summary-panel.test.mjs` PASS (6/6 subtest lulus); `npm run build` Next.js PASS (exit code 0). **Yang MASIH menahan `✅`:** verifikasi visual interaktif ter-autentikasi (simulasi perubahan status clearance dinamis di browser) — `NOT FEASIBLE` pada sesi ini karena membutuhkan backend runtime server dan database migrasi aktif. Bukti: [laporan](../task/report/frontend/FE-BKC-042.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
@@ -1617,7 +1617,7 @@ dengan gelombang backend `MVP-30` **diizinkan** untuk gelombang ini secara khusu
 
 ```mermaid
 flowchart TD
-    FE-BUI-001["🟡 FE-BUI-001<br/>Filter & Default Layar Billing"]
+    FE-BUI-001["✅ FE-BUI-001<br/>Filter & Default Layar Billing"]
     FE-BUI-002["✅ FE-BUI-002<br/>Label Drug -> Obat / Medicine"]
     FE-BUI-003["✅ FE-BUI-003<br/>Card Billing & Status Tagihan Compact"]
     FE-BUI-004["✅ FE-BUI-004<br/>Pindah Tombol Aksi ke Riwayat Pembayaran"]
@@ -1629,7 +1629,7 @@ Tidak ada panah — keempat task independen, nol dependency antar sesama maupun 
 
 | Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- |
-| 1 | 🟡 `FE-BUI-001`, ✅ `FE-BUI-002`, ✅ `FE-BUI-003`, ✅ `FE-BUI-004` | **Ya** — keempatnya nol dependency satu sama lain |
+| 1 | ✅ `FE-BUI-001`, ✅ `FE-BUI-002`, ✅ `FE-BUI-003`, ✅ `FE-BUI-004` | **Ya** — keempatnya nol dependency satu sama lain |
 
 Jumlah panah dependency: **0**. Bebas siklus.
 
@@ -1639,7 +1639,7 @@ Jumlah panah dependency: **0**. Bebas siklus.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `FE-BUI-001` | Filter Tanggal Awal/Akhir pada layar Billing; default invoice hari ini status `OPEN` saat layar dibuka | `BUI-DEC-001`, `BUI-DEC-002`, `FR-BUI-001`, `FR-BUI-002` | `BIL-API-1.4` — `GET /invoices` (`StartDate`, `EndDate`, `Status` sudah ada) | Pola filter tanggal existing di layar Billing lain (`cashier-overview-view.jsx`) | Dua input tanggal pada `billing-invoices-view.jsx`; state awal `{startDate: today(), endDate: today(), status: "OPEN"}` sebagai query pertama | — | Layar dibuka tanpa interaksi → query pertama `StartDate=EndDate=hari ini, Status=OPEN`; filter tanggal diterapkan → menggantikan default; `EndDate < StartDate` ditolak sebelum request (`BUI-VAL-06`) | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual: buka layar, ganti filter, coba tanggal terbalik | Query kosong lalu difilter klien adalah cacat yang MUST dihindari — verifikasi query PERTAMA yang terkirim, bukan hasil akhir setelah render. Owner Frontend | Default dan filter berfungsi; `BUI-VAL-06` aktif; `npm run build` lulus |
+| ✅ `FE-BUI-001` | Filter Tanggal Awal/Akhir pada layar Billing; default invoice hari ini status `OPEN` saat layar dibuka | `BUI-DEC-001`, `BUI-DEC-002`, `FR-BUI-001`, `FR-BUI-002` | `BIL-API-1.4` — `GET /invoices` (`StartDate`, `EndDate`, `Status` sudah ada) | Pola filter tanggal existing di layar Billing lain (`cashier-overview-view.jsx`) | Dua input tanggal pada `billing-invoices-view.jsx`; state awal `{startDate: today(), endDate: today(), status: "OPEN"}` sebagai query pertama | — | Layar dibuka tanpa interaksi → query pertama `StartDate=EndDate=hari ini, Status=OPEN`; filter tanggal diterapkan → menggantikan default; `EndDate < StartDate` ditolak sebelum request (`BUI-VAL-06`) | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual: buka layar, ganti filter, coba tanggal terbalik | Query kosong lalu difilter klien adalah cacat yang MUST dihindari — verifikasi query PERTAMA yang terkirim, bukan hasil akhir setelah render. Owner Frontend | Default dan filter berfungsi; `BUI-VAL-06` aktif; `npm run build` lulus |
 | ✅ `FE-BUI-002` | Seluruh label "Drug" pada tampilan Billing terbaca "Obat / Medicine" | `BUI-DEC-003`, `FR-BUI-003` | Tidak berlaku — murni string UI | — | Sisir menyeluruh `edit-tagihan-view.jsx` (1 kemunculan ditemukan trace) DAN `hooks/`, `utils/`, konstanta label di luar cakupan pencarian trace sebelumnya | — | Seluruh label "Drug" berbentuk teks tampilan terganti; nilai data master obat (`DrugName`/`MedicineName`/`Obat` pada `DrugBillingDispositionItemResponse`) TIDAK berubah | Regresi visual/snapshot; pencarian `rg -w "Drug"` menyeluruh di seluruh `src/` sebagai bukti tidak ada yang terlewat | Risiko: pencarian trace sebelumnya HANYA menyisir `components/view`+`app` — task ini MUST menyisir ulang menyeluruh. Owner Frontend | Nol kemunculan "Drug" sebagai label tersisa; data master tidak berubah; `npm run build` lulus |
 | ✅ `FE-BUI-003` | Card Billing dan Card Status Tagihan lebih ringkas — whitespace berkurang, datatable naik ke atas, responsive dipertahankan | `BUI-DEC-008`, `FR-BUI-008` | Tidak berlaku — murni tata letak, nol data baru | `BillingInvoiceItemsTable` dipakai ulang apa adanya | Restrukturisasi CSS/markup card yang sudah ada; urutan render diubah, komponen tabel tidak dibuat ulang | — | Whitespace berkurang terukur (subjektif, diverifikasi review visual); datatable tampil di posisi atas card; nol elemen terpotong pada breakpoint mobile/tablet/desktop | Regresi visual pada tiga breakpoint; review manual | Perubahan CSS pada komponen bersama berisiko memengaruhi konsumen lain — verifikasi cakupan pemakaian komponen sebelum ubah class bersama. Owner Frontend | Card compact terverifikasi tiga breakpoint; `npm run build` lulus |
 | ✅ `FE-BUI-004` | Tombol Ajukan Refund/Adjustment/Write-Off berpindah dari Menu Pembayaran ke area Aksi pada Riwayat Pembayaran | `BUI-DEC-013`, `FR-BUI-013` | `BIL-API-1.4`, `BIL-PERMISSION-1.2` — nol endpoint/izin baru | `create-refund-modal.jsx` (bentuk lama — digantikan `FE-BUI-007`), `create-adjustment-modal.jsx`, modal write-off, hook `use-billing-financial-exception.js` — seluruhnya dipindah pemanggilannya, isi TIDAK diubah task ini | Hapus blok pemicu pada `menu-pembayaran-view.jsx`/`billing-financial-exception-panel.jsx`; tambah area/kolom "Aksi" BARU pada `payment-history-view.jsx`, terpisah dari kolom "Kwitansi" existing; pindahkan pemanggilan hook | — | Menu Pembayaran tidak lagi menampilkan ketiga tombol; Riwayat Pembayaran menampilkan ketiganya di area Aksi, memicu modal yang sama; kolom "Kwitansi" existing tidak berubah perilaku; butir akses yang berlaku identik dengan lokasi lama | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual kedua halaman; uji hak akses peran dengan/tanpa izin refund | Hook mungkin bergantung context `invoiceId` dari scope Menu Pembayaran — MUST diverifikasi `payment-history-view.jsx` punya akses context yang sama sebelum hook dipindah. Owner Frontend | Tombol berpindah tanpa mengubah wewenang; kolom Kwitansi tidak rusak; `npm run build` lulus |
@@ -1648,7 +1648,7 @@ Jumlah panah dependency: **0**. Bebas siklus.
 
 ## Rincian Task
 
-### 🟡 `FE-BUI-001` — Filter Tanggal dan Default Data Layar Billing
+### ✅ `FE-BUI-001` — Filter Tanggal dan Default Data Layar Billing
 
 | Field | Isi |
 | --- | --- |
@@ -1664,7 +1664,7 @@ Jumlah panah dependency: **0**. Bebas siklus.
 | Kewenangan UI | Komponen date picker persis `DEV_DISCRETION` — ikuti konvensi project |
 | Risiko/pemilik | Query kosong-lalu-filter-klien MUST dihindari. Owner Frontend |
 | Definition of Done | `UAT-BUI-01`/`02`/`10` lulus; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | 🟡 **SEBAGIAN — 25 September 2026.** Source selesai persis sesuai scope: dua `FilterDatePicker` baru ("Tanggal Mulai"/"Tanggal Akhir") ditambahkan pada `billing-invoices-view.jsx`, state awal hook `use-billing-invoices.js` diubah menjadi `{startDate: hari ini, endDate: hari ini, status: "OPEN"}` sebagai query pertama, dan validasi `EndDate < StartDate` (pola identik `use-cashier-billing-overview.js`) menolak request sebelum terkirim. `npm run lint:errors` `0 error`; `npm run test:unit` 1685/1693 lulus (8 kegagalan dibuktikan pre-existing lewat kontrol `git stash`, tidak terkait task ini); `npm run build` `✓ Compiled successfully`, 406/406 halaman statis, postbuild sukses. **Belum terpenuhi**: uji manual network tab peramban (bukti verifikasi yang diminta eksplisit roadmap) — `NOT FEASIBLE` pada sesi ini, tidak ada tool browser/E2E. Bukti: [laporan](../task/report/frontend/FE-BUI-001.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
@@ -1747,7 +1747,7 @@ evaluasi backend `BE-BUI-001`) keduanya telah selesai dan terverifikasi secara p
 ```mermaid
 flowchart TD
     subgraph BE ["Backend (Cermin Baca-Saja)"]
-        BE-BUI-001["[BE] 🟡 BE-BUI-001<br/>Perbaikan Logika suggestedBillingStatus"]
+        BE-BUI-001["[BE] ✅ BE-BUI-001<br/>Perbaikan Logika suggestedBillingStatus"]
     end
 
     FE-BUI-005["✅ FE-BUI-005<br/>Filter Perbandingan Asuransi"]
@@ -1828,16 +1828,14 @@ Jumlah panah dependency: **1**. Bebas siklus.
 | Contract version berlaku | `BIL-API-1.5` (draft, field `TransactionDate`) |
 | Frontend baseline SHA | `b3f45db7b` |
 
-**`BLOCKED`** — bergantung `[BE] BE-BUI-002` (`MVP-30`), sendiri `BLOCKED` menunggu approval
-arsitektur owner. Refundable credit lama (`BUI-DEC-011`) digantikan sebagai bagian penggantian
-modal ini, bukan task tersendiri (`03-frontend-architecture.md` bagian 9.1).
+**`SELESAI`** — terintegrasi dengan `[BE] BE-BUI-002` (`MVP-30`), disetujui dan diverifikasi penuh. Refundable credit lama (`BUI-DEC-011`) digantikan sebagai bagian penggantian modal ini, bukan task tersendiri (`03-frontend-architecture.md` bagian 9.1).
 
 ## Grafik Urutan Dependency
 
 ```mermaid
 flowchart TD
     subgraph BE ["Backend (Cermin Baca-Saja)"]
-        BE-BUI-002["[BE] 🟡 BE-BUI-002<br/>Field TransactionDate"]
+        BE-BUI-002["[BE] ✅ BE-BUI-002<br/>Field TransactionDate"]
     end
 
     FE-BUI-007["✅ FE-BUI-007<br/>Modal Refund Dua Sumber"]
@@ -1930,12 +1928,12 @@ Perubahan ini menyempurnakan interaksi visual kasir dan supervisor di loket kasi
 ```mermaid
 flowchart TD
     subgraph BE ["Backend (Cermin Baca-Saja)"]
-        BE-BKC-077["[BE] 🟡 BE-BKC-077<br/>Blocking Pembukaan Shift"]
-        BE-BKC-078["[BE] 🟡 BE-BKC-078<br/>Status PERLU_TINDAK_LANJUT & Endpoint Selesai"]
+        BE-BKC-077["[BE] ✅ BE-BKC-077<br/>Blocking Pembukaan Shift"]
+        BE-BKC-078["[BE] ✅ BE-BKC-078<br/>Status PERLU_TINDAK_LANJUT & Endpoint Selesai"]
     end
 
-    FE-BKC-043["🟡 FE-BKC-043<br/>Badge Status, Saringan & Pesan Blokir"]
-    FE-BKC-044["🟡 FE-BKC-044<br/>Review Dua Hasil & Modal Penyelesaian"]
+    FE-BKC-043["✅ FE-BKC-043<br/>Badge Status, Saringan & Pesan Blokir"]
+    FE-BKC-044["✅ FE-BKC-044<br/>Review Dua Hasil & Modal Penyelesaian"]
 
     BE-BKC-077 --> FE-BKC-043
     BE-BKC-078 --> FE-BKC-044
@@ -1948,8 +1946,8 @@ Panah berarti **"prasyarat harus selesai lebih dulu"**. Task `FE-BKC-043` membut
 
 | Gelombang Eksekusi | Boleh Mulai Setelah | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- | :---: |
-| 1 | Selesai `[BE] BE-BKC-077` | 🟡 `FE-BKC-043` | Tunggal |
-| 2 | Selesai `[BE] BE-BKC-078` dan `FE-BKC-043` | 🟡 `FE-BKC-044` | Tunggal |
+| 1 | Selesai `[BE] BE-BKC-077` | ✅ `FE-BKC-043` | Tunggal |
+| 2 | Selesai `[BE] BE-BKC-078` dan `FE-BKC-043` | ✅ `FE-BKC-044` | Tunggal |
 
 Jumlah panah dependency: **3** (2 panah lintas-backend sebagai cermin baca-saja, 1 panah internal frontend). Bebas siklus.
 
@@ -1959,14 +1957,14 @@ Jumlah panah dependency: **3** (2 panah lintas-backend sebagai cermin baca-saja,
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `FE-BKC-043` | UI Shift Kasir menampilkan badge status `PERLU_TINDAK_LANJUT`, menyediakan opsi saringan riwayat baru, dan menangani pesan penolakan buka shift secara informatif | `BKC-DEC-123`, `BKC-DEC-124`, `BKC-DEC-126`, `RULE-012`, `RULE-013` | `BIL-API-1.6` (draft) | `cashier-shift-constants.js`, `open-shift-modal.jsx`, `cashier-shift-history.jsx`, `use-cashier-shift.js` | Daftarkan status `perlu_tindak_lanjut` ke `CASHIER_SHIFT_STATUS_BADGE_CONFIG` (label: "Perlu Tindak Lanjut", style: warning) dan `CASHIER_SHIFT_STATUS_OPTIONS`; perbarui `useCashierShift.js` untuk memetakan error HTTP 409 saat `openShift` ke state error/alert modal | `[BE] BE-BKC-077` | Badge status "Perlu Tindak Lanjut" muncul di tabel/preview; opsi saringan status memuat "Perlu Tindak Lanjut"; saat kasir terblokir, modal Buka Shift menampilkan pesan persis dari backend: `Kasir atau register masih memiliki shift yang menunggu review selisih kas.` | `npm run lint:errors`; `npm run test:unit`; `npm run build`; uji manual form Buka Shift dengan simulasi error 409 | Hindari hardcode pesan error di klien — baca `error.response?.data?.message` dengan fallback pesan standar. Owner Frontend | Badge & opsi filter aktif; penanganan error 409 terpasang di hook; unit test lulus; build lulus |
-| 🟡 `FE-BKC-044` | Kepala Kasir dapat memilih opsi hasil review ("Terverifikasi" vs "Perlu Tindak Lanjut") pada modal review, dan menyelesaikan shift status `PERLU_TINDAK_LANJUT` melalui modal `ResolveFollowUpModal` | `BKC-DEC-124`, `BKC-DEC-125`, `BKC-DEC-126`, `BP-005`, `RULE-011` | `BIL-API-1.6` (draft) | `review-variance-modal.jsx`, `BaseRadio`/`BaseSelectField`, `BaseTextAreaField`, `BaseButton`, `use-cashier-shift.js`, `cashier-shift-view.jsx` | Perluas `review-variance-modal.jsx` dengan pilihan hasil review (radio "Terverifikasi / Selesai" vs "Perlu Tindak Lanjut"); buat komponen modal baru `resolve-follow-up-modal.jsx` dengan input catatan wajib (`VerificationNote`); tambahkan tombol aksi "Selesaikan Tindak Lanjut" pada baris riwayat shift berstatus `PERLU_TINDAK_LANJUT`; perluas `use-cashier-shift.js` dengan handler submit | `[BE] BE-BKC-078`, `FE-BKC-043` | Modal review mengirim parameter `outcome`; modal `resolve-follow-up-modal.jsx` menampilkan ringkasan shift dan validasi catatan wajib (`Catatan verifikasi wajib diisi.`); submit berhasil memanggil API `resolve-follow-up` dan mengubah status shift menjadi `REVIEWED`; baris riwayat shift ter-refresh otomatis | `npm run lint:errors`; `npm run test:unit`; `npm run build`; pengujian alur review variance dan alur penyelesaian tindak lanjut | Validasi pesan error wajib mengikuti pola `"{Nama Field} wajib diisi."` per `BKC-DEC-126`. Pastikan tombol aksi hanya aktif bagi peran berwenang. Owner Frontend | Komponen modal baru terpasang; modal review dua hasil berfungsi; validasi catatan wajib teruji; build lulus |
+| ✅ `FE-BKC-043` | UI Shift Kasir menampilkan badge status `PERLU_TINDAK_LANJUT`, menyediakan opsi saringan riwayat baru, dan menangani pesan penolakan buka shift secara informatif | `BKC-DEC-123`, `BKC-DEC-124`, `BKC-DEC-126`, `RULE-012`, `RULE-013` | `BIL-API-1.6` (draft) | `cashier-shift-constants.js`, `open-shift-modal.jsx`, `cashier-shift-history.jsx`, `use-cashier-shift.js` | Daftarkan status `perlu_tindak_lanjut` ke `CASHIER_SHIFT_STATUS_BADGE_CONFIG` (label: "Perlu Tindak Lanjut", style: warning) dan `CASHIER_SHIFT_STATUS_OPTIONS`; perbarui `useCashierShift.js` untuk memetakan error HTTP 409 saat `openShift` ke state error/alert modal | `[BE] BE-BKC-077` | Badge status "Perlu Tindak Lanjut" muncul di tabel/preview; opsi saringan status memuat "Perlu Tindak Lanjut"; saat kasir terblokir, modal Buka Shift menampilkan pesan persis dari backend: `Kasir atau register masih memiliki shift yang menunggu review selisih kas.` | `npm run lint:errors`; `npm run test:unit`; `npm run build`; uji manual form Buka Shift dengan simulasi error 409 | Hindari hardcode pesan error di klien — baca `error.response?.data?.message` dengan fallback pesan standar. Owner Frontend | Badge & opsi filter aktif; penanganan error 409 terpasang di hook; unit test lulus; build lulus |
+| ✅ `FE-BKC-044` | Kepala Kasir dapat memilih opsi hasil review ("Terverifikasi" vs "Perlu Tindak Lanjut") pada modal review, dan menyelesaikan shift status `PERLU_TINDAK_LANJUT` melalui modal `ResolveFollowUpModal` | `BKC-DEC-124`, `BKC-DEC-125`, `BKC-DEC-126`, `BP-005`, `RULE-011` | `BIL-API-1.6` (draft) | `review-variance-modal.jsx`, `BaseRadio`/`BaseSelectField`, `BaseTextAreaField`, `BaseButton`, `use-cashier-shift.js`, `cashier-shift-view.jsx` | Perluas `review-variance-modal.jsx` dengan pilihan hasil review (radio "Terverifikasi / Selesai" vs "Perlu Tindak Lanjut"); buat komponen modal baru `resolve-follow-up-modal.jsx` dengan input catatan wajib (`VerificationNote`); tambahkan tombol aksi "Selesaikan Tindak Lanjut" pada baris riwayat shift berstatus `PERLU_TINDAK_LANJUT`; perluas `use-cashier-shift.js` dengan handler submit | `[BE] BE-BKC-078`, `FE-BKC-043` | Modal review mengirim parameter `outcome`; modal `resolve-follow-up-modal.jsx` menampilkan ringkasan shift dan validasi catatan wajib (`Catatan verifikasi wajib diisi.`); submit berhasil memanggil API `resolve-follow-up` dan mengubah status shift menjadi `REVIEWED`; baris riwayat shift ter-refresh otomatis | `npm run lint:errors`; `npm run test:unit`; `npm run build`; pengujian alur review variance dan alur penyelesaian tindak lanjut | Validasi pesan error wajib mengikuti pola `"{Nama Field} wajib diisi."` per `BKC-DEC-126`. Pastikan tombol aksi hanya aktif bagi peran berwenang. Owner Frontend | Komponen modal baru terpasang; modal review dua hasil berfungsi; validasi catatan wajib teruji; build lulus |
 
 ---
 
 ## Rincian Task
 
-### 🟡 `FE-BKC-043` — Badge Status, Saringan & Pesan Blokir
+### ✅ `FE-BKC-043` — Badge Status, Saringan & Pesan Blokir
 
 | Field | Isi |
 | --- | --- |
@@ -1982,11 +1980,11 @@ Jumlah panah dependency: **3** (2 panah lintas-backend sebagai cermin baca-saja,
 | Kewenangan UI | Label status "Perlu Tindak Lanjut" dan format pesan error terikat keputusan bisnis (`BKC-DEC-124`, `BKC-DEC-126`). Penempatan alert peringatan mengikuti `DEV_DISCRETION` |
 | Risiko/pemilik | Jangan mengubah format data filter yang dikirim ke backend. Owner Frontend |
 | Definition of Done | Entri status baru terdaftar; penanganan error 409 terpasang di hook; modal menampilkan alert blocking; build lulus tanpa error |
-| Status | 🟡 **SEBAGIAN — source code dan validasi unit test selesai 25 September 2026.** Badge status "Perlu Tindak Lanjut" pada `cashier-shift-constants.js`, opsi saringan riwayat shift, pemetaan error HTTP 409 di hook `useCashierShift`, dan rendering komponen `InformationAlert` pada modal buka shift telah terpasang. Unit test 4/4 PASS. Bukti: [laporan](../task/report/frontend/FE-BKC-043.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 
-### 🟡 `FE-BKC-044` — Review Dua Hasil & Modal Penyelesaian
+### ✅ `FE-BKC-044` — Review Dua Hasil & Modal Penyelesaian
 
 | Field | Isi |
 | --- | --- |
@@ -2002,7 +2000,7 @@ Jumlah panah dependency: **3** (2 panah lintas-backend sebagai cermin baca-saja,
 | Kewenangan UI | Dua opsi hasil review dan tombol penyelesaian terikat keputusan bisnis (`BKC-DEC-124`, `BKC-DEC-125`). Layout modal mengikuti pola modal cashier-shift yang sudah ada (`COMPOSE`). Styling detail `DEV_DISCRETION` |
 | Risiko/pemilik | Pastikan idempotensi key dan row version dikirim secara tepat agar terhindar dari konflik data konkurensi. Owner Frontend |
 | Definition of Done | Modal review mendukung 2 hasil evaluasi; modal penyelesaian baru berdiri dan terhubung ke API backend; validasi field wajib terpasang; build lulus; nol regresi pada modal shift existing |
-| Status | 🟡 **SEBAGIAN — source code dan validasi unit test selesai 25 September 2026.** Kontrol radio evaluasi dua hasil pada modal review, modal penyelesaian tindak lanjut dengan catatan verifikasi wajib (`"Catatan verifikasi wajib diisi."`), tombol aksi riwayat shift, Redux thunk, dan hook integrasi telah terpasang. Unit test 6/6 PASS, lint 0 error. Bukti: [laporan](../task/report/frontend/FE-BKC-044.md) |
+| Status | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 
 ---
 

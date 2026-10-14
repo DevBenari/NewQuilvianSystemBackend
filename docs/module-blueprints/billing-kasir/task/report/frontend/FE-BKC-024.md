@@ -7,7 +7,7 @@
 | Task type | Frontend, perluasan alur yang sudah ada (bukan layar baru — mengisi dua celah yang sengaja dikecualikan `FE-BKC-023`) |
 | Task mode | `FRONTEND` (backend read-only — kontrak `POST /petty-cash/vouchers` dan `POST /petty-cash/vouchers/{id}/proofs` sudah dikunci dan diverifikasi `BE-BKC-037`, tidak ada perubahan backend) |
 | Write target | `QuilvianSystemFrontendDev` (source, branch `yasmina`); laporan ini ditulis di `NewQuilvianSystemBackend` sesuai aturan lokasi laporan |
-| Dependency | `FE-BKC-023` — 🟡 SEBAGIAN (titik masuk tombol "+ Buat Voucher"/"Input Nota", sekarang disediakan task ini). `BE-BKC-037` — `✅`, `dotnet test` (17/17) terverifikasi 8 September 2026. `BE-BKC-035` (opsi kategori) — `✅`, `dotnet test` (12/12) terverifikasi tanggal yang sama |
+| Dependency | `FE-BKC-023` — ✅ SELESAI (titik masuk tombol "+ Buat Voucher"/"Input Nota", sekarang disediakan task ini). `BE-BKC-037` — `✅`, `dotnet test` (17/17) terverifikasi 8 September 2026. `BE-BKC-035` (opsi kategori) — `✅`, `dotnet test` (12/12) terverifikasi tanggal yang sama |
 | Status task | Source selesai untuk seluruh Scope task ini (`FE-PC-02` + `FE-PC-03`). **Atas permintaan eksplisit pengguna, `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini** — verifikasi akan dilakukan manual oleh pengguna sendiri. Belum di-commit |
 
 ## Ringkasan untuk pembaca umum

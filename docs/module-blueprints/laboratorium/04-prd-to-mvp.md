@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `19` — bagian 31, pencatatan susulan kolom tabel v1 dan halaman hasil v1 (`r47`, `r48`), 2026-10-14 — `LAB-REQ-024`, `LAB-REQ-025`. Sebelumnya `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1844,3 +1844,22 @@ rencana ulang → Hemoglobin **tetap biasa** (permintaan CITO tidak menghidupkan
 
 **Definition of Done tambahan:** `LAB-REQ-023` disetujui — **ya** (2026-10-09); `BE-LAB-95` harness `AC-323`..`AC-325` + regresi
 `BE-LAB-94` hijau — **ya** (24/24, 2026-10-09).
+
+## 31. Pencatatan susulan 2026-10-14 — Kolom tabel v1 dan halaman hasil v1 (`r47`, `r48`)
+
+**Kontrak** `LAB-API-v1` `r47` (`LAB-REQ-024`, 2026-10-09) dan `r48` (`LAB-REQ-025`, susulan 2026-10-14). **Nol tabel, nol
+kolom, nol migration.** Kodenya sudah ada lebih dulu (BE `36422a4d`, FE `9aba9929d`, 2026-10-13). Tidak melahirkan nomor
+task; tercatat di `backend-roadmap.md` dan `frontend-roadmap.md` bagian 0.3.
+
+| Epic | Perubahan | Disposisi | Bukti |
+|---|---|---|---|
+| `EPIC-LAB-18` Daftar Pasien Lab | Kolom tabel *"samakan persis v1"* | `EXTEND` | Peramban 2026-10-14, Gilang |
+| Hasil dan Riwayat (bagian 27) | Kolom Email, Poliklinik, *Terkirim ke Pasien* "Belum Terkirim" | `EXTEND` | Peramban 2026-10-14, Gilang |
+| `EPIC-LAB-14`..`EPIC-LAB-16` halaman hasil | Kartu *Informasi Pasien*/*Informasi Pemeriksaan* v1 | `EXTEND` | HTTP dan peramban 2026-10-14, dr. Bima dan Gilang |
+| `EPIC-LAB-11` Penerimaan Sampling/Specimen | Bagian pemeriksaan dan pencarian pasien v1 | `EXTEND` | Peramban 2026-10-14 (layar terbuka; tanpa Simpan) |
+
+**Masih ditunda:** pengiriman hasil WhatsApp (`S17`); Unit Layanan bagi Analis pada Penerimaan Sampling (keputusan izin).
+
+**Definition of Done tambahan:** `LAB-REQ-024` disetujui — **ya** (2026-10-09); `LAB-REQ-025` disetujui — **ya** (2026-10-14,
+susulan); uji unit `lab-v1-parity-rules` — **ya** (20/20); verifikasi peramban dengan akun asli — **ya** (54/54, 2026-10-14);
+Simpan sungguhan pada Penerimaan Sampling v1 — **belum** (uji baca-saja).
