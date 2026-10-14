@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -58,6 +60,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private readonly QueueRealtimeService _queueRealtimeService;
         private readonly LoggerService _loggerService;
         private readonly EncounterReferralService _encounterReferralService;
+        private readonly DoctorCertificateService _doctorCertificateService;
 
         public OutpatientEncounterListService(
             ApplicationDbContext dbContext,
@@ -65,9 +68,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             AccessPermissionService accessPermissionService,
             QueueRealtimeService queueRealtimeService,
             LoggerService loggerService,
-            EncounterReferralService encounterReferralService)
+            EncounterReferralService encounterReferralService,
+            DoctorCertificateService doctorCertificateService)
         {
             _encounterReferralService = encounterReferralService;
+            _doctorCertificateService = doctorCertificateService;
             _dbContext = dbContext;
             _scopeService = scopeService;
             _accessPermissionService = accessPermissionService;
@@ -274,6 +279,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// dengan <c>PATCH /patient-encounters/{id}/cancel</c>; <c>EncounterStatus</c> tidak diubah.
         /// Notifikasi antrean dikirim setelah commit; kegagalannya tidak membatalkan pembatalan.
         /// </remarks>
+        /// <summary>
+        /// Pantauan Surat Pengantar Rawat Inap satu kunjungan dalam cakupan pengguna (baca saja).
+        /// Kunjungan di luar cakupan dijawab <c>404</c>.
+        /// </summary>
+        public async Task<OutpatientInpatientAdmissionMonitorResponse> GetInpatientAdmissionMonitorAsync(
+            ClaimsPrincipal user,
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var scope = await ResolveScopeOrThrowAsync(user, cancellationToken);
+
+            var visible = await BuildScopedQuery(scope).AnyAsync(x => x.Id == id, cancellationToken);
+            if (!visible)
+                throw new OutpatientEncounterNotFoundException();
+
+            return await _doctorCertificateService.GetInpatientAdmissionMonitorAsync(id, cancellationToken);
+        }
+
         public async Task<OutpatientEncounterCancelResponse> CancelAsync(
             ClaimsPrincipal user,
             Guid id,

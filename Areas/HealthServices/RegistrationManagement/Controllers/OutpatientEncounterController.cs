@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Attributes;
@@ -14,7 +15,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Arketipe transaksi: worklist.</b> Tiga <c>GET</c> baca bercakupan dan satu aksi
+    /// <b>Arketipe transaksi: worklist.</b> <c>GET</c> baca bercakupan dan satu aksi
     /// <c>PATCH /{id}/cancel</c> (RJ-DOC-REV-BE-010). Tidak ada <c>GET /options</c>,
     /// <c>PATCH /{id}/status</c>, maupun <c>DELETE</c>.
     /// </para>
@@ -84,6 +85,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             ExecuteAsync(async () => Ok(ApiResponse<OutpatientEncounterFilterMetadataResponse>.Ok(
                 await _listService.GetFilterMetadataAsync(User, cancellationToken),
                 "Metadata filter pasien rawat jalan berhasil diambil.")));
+
+        /// <summary>
+        /// Pantauan Surat Pengantar Rawat Inap kunjungan: surat dari dokter, tanda tangan elektronik
+        /// dokter, status pengajuan, dan nomor episode bila sudah diadmisi. Baca saja — penerbitan
+        /// dan pembatalan tetap milik Dokter Penanggung Jawab di Klinis Dokter.
+        /// </summary>
+        [HttpGet("{id:guid}/inpatient-admission")]
+        [ProducesResponseType(typeof(ApiResponse<OutpatientInpatientAdmissionMonitorResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Outpatient Encounter", Description = "Melihat pengajuan rawat inap kunjungan rawat jalan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OutpatientEncounter", "Read")]
+        public Task<IActionResult> GetInpatientAdmission(
+            Guid id,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(async () => Ok(ApiResponse<OutpatientInpatientAdmissionMonitorResponse>.Ok(
+                await _listService.GetInpatientAdmissionMonitorAsync(User, id, cancellationToken),
+                "Pengajuan rawat inap berhasil diambil.")));
 
         /// <summary>Membatalkan satu kunjungan yang menggantung.</summary>
         /// <remarks>

@@ -87,6 +87,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <summary>Peringatan kelengkapan dokumen admisi pada Detail Episode (<c>BE-RWI-195</c>, <c>INT-RWA-13</c>).</summary>
         private readonly InpAdmissionCompletenessEvaluator _admissionCompleteness;
 
+        /// <summary>
+        /// Saklar kunjungan aktif milik pendaftaran, dibaca pemeriksaan kelayakan admisi
+        /// (<c>BE-RWI-230</c>).
+        /// </summary>
+        private readonly IConfiguration _configuration;
+
         /// <remarks>
         /// <b>Arah dependency dibalik pada `BE-RWI-011`.</b> Sampai `BE-RWI-008`, service ini
         /// menerima <c>InpBedOccupancyService</c> tanpa pernah memakainya. Sejak penempatan
@@ -103,7 +109,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InpEpisodeNumberService episodeNumberService,
             IInpIntegrationOutboxService outboxService,
             InpAdmissionReferralService admissionReferralService,
-            InpAdmissionCompletenessEvaluator admissionCompleteness)
+            InpAdmissionCompletenessEvaluator admissionCompleteness,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
             _settingService = settingService;
@@ -111,6 +118,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _outboxService = outboxService;
             _admissionReferralService = admissionReferralService;
             _admissionCompleteness = admissionCompleteness;
+            _configuration = configuration;
         }
 
         // =====================================================================
@@ -166,6 +174,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return InpEpisodeOperationResult.Invalid("Pasien belum dipilih.");
             }
 
+            // BE-RWI-230 / INV-INP-10 — pasien yang sedang hadir tidak pernah dapat diadmisi ulang,
+            // jadi ditolak sebelum apa pun ditulis. Tanpa penjaga ini admisi baru sempat membuat
+            // kunjungan dan episode Draft yang baru ditolak pada pemesanan bed, lalu tertinggal
+            // sebagai admisi ganda "Sedang Disiapkan" (ISSUE-EPS-010).
+            var present = await FindPresentEpisodeAsync(request.PatientId, Guid.Empty, cancellationToken);
+
+            if (present != null)
+            {
+                return InpEpisodeOperationResult.FromStatus(
+                    InpEpisodeOperationStatus.Conflict,
+                    present.RejectionMessage,
+                    PatientAlreadyAdmittedCode);
+            }
+
             // BE-RWI-181 / VAL-RWF-87, VAL-RWF-88: pasien yang punya permintaan admisi Pending dari
             // kamar pulih wajib diadmisikan dari permintaan itu; permintaan yang dirujuk harus Pending
             // dan milik pasien yang sama. Permintaannya diselesaikan pada transaksi admisi di bawah.
@@ -192,6 +214,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 return InpEpisodeOperationResult.Invalid(
                     "Dokter penanggung jawab yang dipilih tidak ditemukan atau tidak aktif.");
+            }
+
+            if (request.SelectedBedId.HasValue)
+            {
+                var selectedRoom = await _dbContext.Set<MstBed>().AsNoTracking()
+                    .Where(x => x.Id == request.SelectedBedId.Value && !x.IsDelete && x.IsActive &&
+                        x.Room != null && !x.Room.IsDelete && x.Room.IsActive)
+                    .Select(x => new { x.Room!.PatientClassId, x.Room.ServiceUnitId })
+                    .SingleOrDefaultAsync(cancellationToken);
+                if (selectedRoom?.PatientClassId == null || selectedRoom.PatientClassId == Guid.Empty)
+                    return InpEpisodeOperationResult.Invalid("Kamar yang dipilih belum memiliki kelas perawatan aktif.");
+                if (selectedRoom.ServiceUnitId != Guid.Empty && selectedRoom.ServiceUnitId != request.ServiceUnitId)
+                {
+                    request.ServiceUnitId = selectedRoom.ServiceUnitId;
+                }
+                request.PatientClassId = selectedRoom.PatientClassId.Value;
             }
 
             var contextCheck = await ValidateServiceUnitAndPatientClassAsync(
@@ -282,10 +320,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (otherDraft != null)
             {
-                warnings.Add(
-                    $"Pasien ini punya admisi lain yang sedang disiapkan, yaitu " +
-                    $"{otherDraft.EpisodeNumber} sejak {otherDraft.CreateDateTime:dd MMMM yyyy HH:mm}. " +
-                    "Lanjutkan bila memang admisi terpisah, atau batalkan yang lama lebih dulu.");
+                warnings.Add(BuildOtherDraftWarning(otherDraft.EpisodeNumber, otherDraft.CreateDateTime));
             }
 
             var now = DateTime.UtcNow;
@@ -434,6 +469,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Isian admisi hanya dapat diubah selama pasien belum ditempatkan.",
                     episode);
             }
+
+            var reservedRoom = await _dbContext.Set<InpBedReservation>().AsNoTracking()
+                .Where(x => x.EpisodeId == episodeId && !x.IsDelete &&
+                    x.ReservationStatus == InpBedReservationStatus.Active && x.ExpiresAt > DateTime.UtcNow)
+                .OrderByDescending(x => x.CreateDateTime)
+                .Select(x => new { x.Bed!.Room!.PatientClassId, x.Bed.Room.ServiceUnitId })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (reservedRoom != null)
+            {
+                if (!reservedRoom.PatientClassId.HasValue || reservedRoom.PatientClassId.Value == Guid.Empty)
+                    return InpEpisodeOperationResult.Invalid("Kamar yang dipesan belum memiliki kelas perawatan.");
+                if (reservedRoom.ServiceUnitId != Guid.Empty && reservedRoom.ServiceUnitId != request.ServiceUnitId)
+                {
+                    request.ServiceUnitId = reservedRoom.ServiceUnitId;
+                }
+            }
+            // Kelas tidak dapat diganti melalui isian konfirmasi admisi.
+            request.PatientClassId = reservedRoom?.PatientClassId ?? episode.PatientClassId;
 
             var contextCheck = await ValidateServiceUnitAndPatientClassAsync(
                 request.ServiceUnitId,
@@ -737,6 +790,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             try
             {
+                // BE-RWI-229 — dua pembacaan bersamaan (mis. GET /episodes dan /episodes/summary)
+                // dapat sama-sama menemukan Draft ini lewat batas. Tanpa kunci baris keduanya
+                // menulis riwayat bernomor sama dan yang kalah jatuh 500 pada
+                // IX_InpStatusHistory_EpisodeId_SequenceNumber. Pembaca kedua kini menunggu,
+                // lalu melihat episode yang sudah Cancelled dan tidak menulis apa pun.
+                if (!await LockDraftStillDueAsync(episode, cancellationToken))
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return false;
+                }
+
                 await CancelEpisodeInternalAsync(
                     episode,
                     SystemExpiryReason,
@@ -756,6 +820,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 await transaction.RollbackAsync(cancellationToken);
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Mengunci baris episode di dalam transaksi pengguguran, membaca ulang nilainya, lalu
+        /// memastikan episode masih <c>Draft</c> dan masih lewat batas waktu.
+        /// </summary>
+        /// <remarks>
+        /// Polanya sama dengan <c>InpBedMutationCoordinator.LockAsync</c> dan
+        /// <c>InpBedOccupancyService.LockBedRowAsync</c>. Penguncian hanya dijalankan pada
+        /// penyedia relasional; provider InMemory tidak mengenal <c>FOR UPDATE</c>, sehingga di
+        /// sana pemeriksaan awal pemanggil tetap berlaku apa adanya.
+        /// </remarks>
+        private async Task<bool> LockDraftStillDueAsync(
+            InpEpisode episode,
+            CancellationToken cancellationToken)
+        {
+            if (!_dbContext.Database.IsRelational())
+            {
+                return true;
+            }
+
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT 1 FROM public.\"InpEpisode\" WHERE \"Id\" = {0} FOR UPDATE",
+                new object[] { episode.Id },
+                cancellationToken);
+
+            await _dbContext.Entry(episode).ReloadAsync(cancellationToken);
+
+            if (episode.EpisodeStatus != InpEpisodeStatus.Draft)
+            {
+                return false;
+            }
+
+            var setting = await _settingService.GetEffectiveSettingAsync(cancellationToken);
+            var lastTouchedAt = episode.UpdateDateTime ?? episode.CreateDateTime;
+
+            return DateTime.UtcNow > lastTouchedAt.AddHours(setting.DraftEpisodeExpiryHours);
         }
 
         /// <summary>

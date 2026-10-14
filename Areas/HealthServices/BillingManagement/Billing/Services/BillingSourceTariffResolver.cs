@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Repositories;
@@ -39,6 +41,8 @@ public sealed class BillingSourceTariffResolver
             BillingBridgeSourceDomains.Pharmacy => await ResolvePharmacyAsync(request, cancellationToken),
             BillingBridgeSourceDomains.OperatingRoom => await ResolveOperatingRoomAsync(request, cancellationToken),
             BillingBridgeSourceDomains.EquipmentUsage => await ResolveEquipmentUsageAsync(request, cancellationToken),
+            BillingBridgeSourceDomains.BloodBank => await ResolveBloodBankAsync(request, cancellationToken),
+            BillingBridgeSourceDomains.Consumable => await ResolveConsumableAsync(request, cancellationToken),
             _ => BillingTariffResolution.Pending(
                 BillingBridgeCodes.SourcePendingSupport,
                 $"Penetapan tarif untuk {request.SourceDomain} belum tersedia pada jembatan.")
@@ -58,6 +62,70 @@ public sealed class BillingSourceTariffResolver
         var tariff = candidates.OrderByDescending(x => (x.PatientClassId != null ? 2 : 0) + (x.ClinicId != null ? 1 : 0))
             .ThenBy(x => x.TariffCode, StringComparer.Ordinal).FirstOrDefault();
         return Build(tariff, request.FactQuantity ?? usage.BilledUnits ?? 0);
+    }
+
+    /// <summary>
+    /// Tindakan Bank Darah (<c>BE-BKC-FIX-018</c>, K-06, <c>DEC-BD-016</c>): satu baris per tindakan
+    /// selesai, berapa pun kantongnya. Harga dibaca ulang dari <see cref="MstTariff"/> yang berlaku
+    /// pada waktu tindakan — rujukan tarif yang dibekukan Bank Darah dipakai lebih dulu, lalu tarif
+    /// tindakan rujukannya — bukan dari <c>TariffAmountSnapshot</c> klinis, sama seperti sumber lain.
+    /// </summary>
+    private async Task<BillingTariffResolution> ResolveBloodBankAsync(
+        BillingTariffResolutionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.SourceItemId is not { } procedureId || procedureId == Guid.Empty)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Tindakan Bank Darah tidak dikenali.");
+
+        var procedure = await _dbContext.Set<BbkBloodBankProcedure>().AsNoTracking()
+            .Where(x => x.Id == procedureId && x.BloodOrderId == request.SourceAggregateId && !x.IsDelete)
+            .Select(x => new { x.TariffId, x.ProcedureRefId, x.PatientClassId })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (procedure is null)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Tindakan Bank Darah sumber tidak ditemukan.");
+
+        var patientClassId = procedure.PatientClassId != Guid.Empty ? procedure.PatientClassId : request.PatientClassId;
+        var tariff = await FindTariffAsync(
+            procedure.TariffId, procedure.ProcedureRefId, request.EncounterClinicId,
+            patientClassId, request.OccurredAt, cancellationToken);
+        return Build(tariff, 1m);
+    }
+
+    /// <summary>
+    /// Pemakaian obat/BMHP tanpa resep (<c>BE-BKC-FIX-017</c>, K-04): satu baris per butir pemakaian,
+    /// jumlah dari fakta (jumlah yang benar-benar dicatat, atau sisa setelah retur), harga dari tarif
+    /// obat/alkes yang berlaku pada waktu pemakaian. Pemakaian yang menempel pada resep tidak
+    /// pernah ditagih dari sini — penyerahan resep sudah ditagih lewat sumber resep.
+    /// </summary>
+    private async Task<BillingTariffResolution> ResolveConsumableAsync(
+        BillingTariffResolutionRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.SourceItemId is not { } itemId || itemId == Guid.Empty)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Butir pemakaian tidak dikenali.");
+
+        var item = await _dbContext.PhmDrugUsageItems.AsNoTracking()
+            .Where(x => x.Id == itemId && x.DrugUsageId == request.SourceAggregateId && !x.IsDelete)
+            .Select(x => new { x.DrugId, x.Quantity, x.DrugUsage!.PrescriptionId, x.DrugUsage.Status })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (item is null)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Butir pemakaian obat sumber tidak ditemukan.");
+        if (item.PrescriptionId is not null)
+            return BillingTariffResolution.NotBillable(BillingBridgeCodes.NotBillable,
+                "Pemakaian ini adalah penyerahan resep; tagihannya mengikuti resep.");
+        if (item.Status is not (DrugUsageStatus.NotBilled or DrugUsageStatus.Billed))
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceRejected,
+                "Pemakaian belum dicatat; draft tidak ditagihkan.");
+
+        var tariff = await FindDrugTariffAsync(
+            null, item.DrugId, request.EncounterClinicId, request.PatientClassId,
+            request.OccurredAt, cancellationToken);
+        if (tariff is null)
+            return BillingTariffResolution.Rejected(
+                BillingBridgeCodes.TariffNotFound,
+                "Tarif obat/alkes pemakaian ini belum tersedia pada tanggal pemakaian. Lengkapi tarif, lalu kirim ulang.");
+
+        return Build(tariff, request.FactQuantity is > 0 ? request.FactQuantity.Value : item.Quantity);
     }
 
     private async Task<BillingTariffResolution> ResolveProcedureAsync(
@@ -219,6 +287,15 @@ public sealed class BillingSourceTariffResolver
     /// Tahap 1 memakai jumlah yang diresepkan untuk item yang tidak dihentikan; tahap 2 memakai
     /// jumlah yang benar-benar diserahkan (<see cref="BillingTariffResolutionRequest.DispensedQuantities"/>).
     /// Satu obat tanpa tarif membuat seluruh resep masuk antrean — tidak pernah ditagih sebagian.
+    /// <para>
+    /// Racikan (<c>BE-BKC-FIX-015</c>, keputusan pemilik K-02, 12 Oktober 2026): setiap bahan
+    /// racikan aktif ditagih <c>PricingQuantity</c> × tarif obat bahan itu — nilai yang sama dengan
+    /// yang selama ini ditagih jalur langsung lewat <c>TotalPrice</c> resep. Jasa racik belum
+    /// ditagih. Penyerahan per bahan belum dicatat Farmasi, sehingga bahan racikan ikut ditagih
+    /// pada tahap yang sedang berlaku (tahap 1 rawat jalan/IGD; tahap 2 rawat inap, yaitu saat
+    /// resepnya diserahkan) dengan jumlah yang diresepkan. Retur bahan racikan memakai adjustment
+    /// manual.
+    /// </para>
     /// </summary>
     private async Task<BillingTariffResolution> ResolvePharmacyAsync(
         BillingTariffResolutionRequest request,
@@ -231,14 +308,16 @@ public sealed class BillingSourceTariffResolver
         if (prescription is null)
             return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Resep sumber tidak ditemukan.");
 
-        // Racikan belum punya jalur penyerahan per bahan maupun aturan harga yang disetujui.
-        // Menagih resep tanpa racikannya berarti menagih sebagian, jadi seluruh resep ditahan.
-        var hasCompound = await _dbContext.PhmPrescriptionCompounds.AsNoTracking()
-            .AnyAsync(x => x.PrescriptionId == request.SourceAggregateId && x.IsActive && !x.IsDelete, cancellationToken);
-        if (hasCompound)
-            return BillingTariffResolution.Rejected(
-                BillingBridgeCodes.SourceRejected,
-                "Resep memuat racikan yang belum dapat ditagih otomatis. Tagihkan manual lewat rekonsiliasi.");
+        var compoundIngredients = await (
+                from ingredient in _dbContext.PhmPrescriptionCompoundItems.AsNoTracking()
+                join compound in _dbContext.PhmPrescriptionCompounds.AsNoTracking()
+                    on ingredient.PrescriptionCompoundId equals compound.Id
+                where compound.PrescriptionId == request.SourceAggregateId
+                    && compound.IsActive && !compound.IsDelete && !compound.IsCancel
+                    && ingredient.IsActive && !ingredient.IsDelete && !ingredient.IsCancel
+                orderby compound.CompoundName, ingredient.DrugNameSnapshot
+                select new { ingredient.DrugId, ingredient.TariffId, ingredient.PricingQuantity, ingredient.DrugNameSnapshot, compound.CompoundName })
+            .ToListAsync(cancellationToken);
 
         var items = await _dbContext.PhmPrescriptionItems.AsNoTracking()
             .Where(x => x.PrescriptionId == request.SourceAggregateId && !x.IsDelete)
@@ -267,6 +346,23 @@ public sealed class BillingSourceTariffResolver
 
             firstTariff ??= tariff;
             total += quantity * tariff.NormalPrice;
+        }
+
+        foreach (var ingredient in compoundIngredients)
+        {
+            if (ingredient.PricingQuantity <= 0) continue;
+
+            var tariff = await FindDrugTariffAsync(
+                ingredient.TariffId, ingredient.DrugId, request.EncounterClinicId, request.PatientClassId,
+                request.OccurredAt, cancellationToken);
+            if (tariff is null)
+                return BillingTariffResolution.Rejected(
+                    BillingBridgeCodes.TariffNotFound,
+                    Truncate($"Tarif bahan racikan {ingredient.DrugNameSnapshot} ({ingredient.CompoundName}) belum tersedia " +
+                        "pada tanggal pelayanan. Seluruh resep ditahan; lengkapi tarif, lalu kirim ulang.", 1000));
+
+            firstTariff ??= tariff;
+            total += ingredient.PricingQuantity * tariff.NormalPrice;
         }
 
         if (firstTariff is null)

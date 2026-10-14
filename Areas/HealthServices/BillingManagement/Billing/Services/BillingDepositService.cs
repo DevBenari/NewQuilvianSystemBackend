@@ -99,15 +99,15 @@ public sealed class BillingDepositService
 
         return new DepositPolicyResponse
         {
-            IsRequired = false,
-            MinimumAmount = 0m,
-            FollowUpIntervalDays = 0,
+            IsRequired = true,
+            MinimumAmount = 10000000m,
+            FollowUpIntervalDays = 3,
             GuarantorId = guarantorId,
             PatientClassId = patientClassId,
             PolicyId = null,
-            PolicyCode = null,
-            PolicyName = null,
-            Description = "Tidak ada kebijakan deposit yang dikonfigurasi untuk penjamin dan kelas ini.",
+            PolicyCode = "DEP-POLICY-DEFAULT",
+            PolicyName = "Kebijakan Deposit Rawat Inap Standar",
+            Description = "Kebijakan deposit rawat inap minimum Rp 10.000.000 berlaku di semua kelas.",
             EffectiveFrom = null,
             EffectiveTo = null
         };

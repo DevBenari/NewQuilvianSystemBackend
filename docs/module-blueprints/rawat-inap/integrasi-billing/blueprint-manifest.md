@@ -115,3 +115,20 @@ SHA-256 di atas adalah **hash saat approval 2 Oktober 2026** (`RWI-DEC-221`) dan
 | `approval_status` | **`approved`** — `approved_by` Muhammad Hamzah, `approved_at` 2026-10-02, lewat `RWI-DEC-221` |
 | `blocking_questions` | **Nol.** Tidak ada gerbang persetujuan modul tetangga (`RWI-DEC-210`) |
 | `next_owner` | ~~Approval pemilik atas kontrak `1.1.0` (Muhammad Hamzah & Yasmina)~~ **selesai 2026-10-02 (`RWI-DEC-221`)** → ~~`plan-module-delivery`~~ **roadmap Finishing revision `1` `DRAFT` ditulis 2026-10-02** (`BE-RWI-146` s.d. `159`, `FE-RWI-166` s.d. `171`). Roadmap kontrak `1.0.0` tidak diubah; task yang dicabut kontrak `1.1.0` (`BE-RWI-133`, `BE-RWI-134`, `FE-RWI-097` s.d. `FE-RWI-100`) tercatat pada roadmap Finishing. Langkah berikutnya: approval pemilik atas roadmap, lalu `build-module-backend` dan `build-module-frontend` mengikuti tabel gelombang |
+
+## 3. Delta PLAN-REPAIR-DOK-006 — Kelas per komponen tagihan ★ 13 Oktober 2026
+
+**Status: `SELESAI`** — task sub-modul ini ditutup 13 Oktober 2026. Plan, issue, dan kontrak milik `dokter-rawat-inap`; register lengkapnya pada [dokter-rawat-inap bagian 11](../dokter-rawat-inap/blueprint-manifest.md). Kontrak `1.1.0` pada bagian 2 tidak berubah. Kalkulasi Billing pada data nyata belum diuji.
+
+| Field | Nilai |
+| --- | --- |
+| Plan / kontrak | [PLAN-REPAIR-DOK-006](../dokter-rawat-inap/docs/plan-repair/plan-repair-006-kelas-perawatan-dan-cakupan-asuransi.md) / [RWI-KELAS-006-1.0](../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112` |
+| Task | ✅ BE-RWI-225 (FIX-DOK-006-02/04); dependency ✅ BE-RWI-224 dan ✅ BE-RWI-223 |
+| Source | Implementasi di-commit `8551291f` |
+| Amandemen hulu sub-modul ini | `contracts/integration-contract.md` |
+
+| Artefak relatif | Status | SHA256 byte working copy (CRLF) saat penutupan |
+| --- | --- | --- |
+| [roadmap/backend-roadmap-kelas-perawatan.md](./roadmap/backend-roadmap-kelas-perawatan.md) | revision `1`; BE-RWI-225 ✅ | `36c15d8321d252b9897d859d574af12679f728d3693cc6f4a3b0db0335ecab28` |
+| [roadmap/requirement-traceability-kelas-perawatan.md](./roadmap/requirement-traceability-kelas-perawatan.md) | FIX-DOK-006-02/04 ✅ | `e6f61505cbf738436d400bc0159afab241763f594d90cf897a6532ebf1925623` |
+| [task/report/backend/BE-RWI-225.md](./task/report/backend/BE-RWI-225.md) | ✅ | `ef366d00bd890f358c8de82c7a116429a82e3a12af43d4bdf407cca622244932` |

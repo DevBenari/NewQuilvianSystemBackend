@@ -850,6 +850,8 @@ Controller: `InpatientAdmissionDocumentController`, `ControllerName = "Inpatient
 | `GET` | `/summary/amounts` | Status deposit berupiah dan peringatan jatuh tempo berupiah | `InpatientAdmissionDocument : ViewAmount` | — | `ApiResponse<AdmissionWorkspaceAmountsResponse>` | **Rencana (belum tersedia)** |
 | `GET` | `/letterhead` | Kop surat dari profil rumah sakit; dipakai juga langkah 8 alur admisi untuk Surat Persetujuan 12 butir. Boleh untuk episode status apa pun | `InpatientAdmissionDocument : Read` | — | `ApiResponse<LetterheadResponse>` | **Rencana (belum tersedia)** |
 | `GET` | `/general-consent/print-data` | Data cetak Surat Persetujuan 12 butir dan Formulir General Consent V1: pasien, kamar, tipe kamar, calon penanda tangan. **Tanpa tulis apa pun** (`RWI-DEC-233`) | `InpatientAdmissionDocument : Read` | — | `ApiResponse<GeneralConsentPrintDataResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/general-consent/revisions` | Edit Persetujuan: versi aktif menjadi `Superseded`, versi baru beralasan menjadi `Completed` (`RWI-DEC-295`, `BE-RWI-227`). 400 alasan/nama/`RowVersion`; 404 belum ada persetujuan; 409 diubah petugas lain atau episode tertutup; 422 `BAYI_PENANDATANGAN_WAJIB_WALI`, `TTD_BARU_WAJIB`, `TIDAK_ADA_PERUBAHAN` | `InpatientAdmissionDocument : Update` | `InpatientAdmissionConsentRevisionRequest` | `ApiResponse<InpatientAdmissionConsentResponse>` | Tersedia di source 13-10-2026 (`BE-RWI-227`) |
+| `GET` | `/general-consent/history` | Riwayat semua versi persetujuan, terbaru di atas, beserta pengubah, alasan, dan isian yang berubah | `InpatientAdmissionDocument : Read` | — | `ApiResponse<List<InpatientAdmissionConsentHistoryResponse>>` | Tersedia di source 13-10-2026 (`BE-RWI-227`) |
 | `GET` | `/prefill/{documentType}` | Isian bawaan sebelum dokumen dibuat | `InpatientAdmissionDocument : Read` | `documentType` | `ApiResponse<AdmissionDocumentPrefillResponse>` | **Rencana (belum tersedia)** |
 | `GET` | `/documents` | Daftar dokumen episode, termasuk versi lama bila diminta | `InpatientAdmissionDocument : Read` | query `type?`, `includeHistory` (bawaan `false`) | `ApiResponse<List<AdmissionDocumentSummaryResponse>>` | **Rencana (belum tersedia)** |
 | `GET` | `/documents/{documentId}` | Satu dokumen lengkap, tanpa rupiah | `InpatientAdmissionDocument : Read` | — | `ApiResponse<AdmissionDocumentResponse>` | **Rencana (belum tersedia)** |
@@ -1165,3 +1167,39 @@ Writer menjalankan komposisi transaksi backend14.14; lookup receipt actor/key/ha
 GET antrean/detail membedakan Emergency dan Outpatient. POST /admission-transfers/admit tetap 201 dan mengembalikan detail episode, OperationMeta, TransferReservation, TransferDeposit serta relasi asal. ExpectedBedVersion dan Idempotency-Key wajib; tidak ada route episodes/open-from-transfer.
 
 [Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+`POST /api/v1/health-services/inpatient-management/episodes` menambah `OpenAdmissionRequest.SelectedBedId` opsional untuk kompatibilitas. Klien baru mengirimnya; server membaca ulang kelas/unit kamar dan menolak konteks tidak sah. Field PatientClassId lama tetap ada, tetapi tidak menjadi input manual UI. `PUT /episodes/{id}` mempertahankan kelas episode atau menggunakan kamar reservasi aktif; kiriman kelas manual tidak mengubahnya. Booking menyelaraskan kelas draft dengan kamar pilihan. Detail Swagger delta dan status respons ada pada kontrak tertaut.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-009 — 2026-10-13
+
+`GET /api/v1/health-services/inpatient-management/bed-occupancies/bed-board` menerima parameter query opsional
+`roomId?`, `patientClassId?`, dan `search?` di samping `serviceUnitId?`. Penyaringnya sama dengan
+`available-beds`: kamar, kelas kamar, serta kode/nama bed atau nama kamar tanpa beda huruf besar-kecil. Ringkasan
+angka dihitung dari bed yang tersaring. Tanpa parameter baru jawabannya tidak berubah; bentuk response tidak berubah.
+`GET /bed-management/monitoring` ikut menerima `patientClassId?` (`BedMonitoringQuery.PatientClassId`).
+Implementasi `BE-RWI-228`; baris adapter `GET /bed-board` pada tabel Bed Management di atas dibaca bersama amandemen ini.
+
+`POST /patient-encounters/admin` dan `POST /episodes` pada admisi biasa mengirim `serviceUnitId` unit kamar bed
+terpilih (sama dengan jalur transfer), sehingga syarat "sesuai unit" pada `SelectedBedId` (`RWI-KELAS-006-1.0`)
+selalu terpenuhi. Implementasi `FE-RWI-243`. Rujukan: [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md).
+
+## Amandemen PLAN-REPAIR-EPS-010 — 2026-10-13
+
+**Baru:** `GET /api/v1/health-services/inpatient-management/episodes/admission-eligibility?patientId={guid}&admissionReferralId={guid?}`
+— hak `InpatientEpisode : Read`. Jawaban `ApiResponse<InpatientAdmissionEligibilityResponse>`: `patientId`, `canContinue`,
+`blockingCode?`, `message?`, `blockers[] { code, message }`, `presentEpisode? { episodeId, episodeNumber, locationText }`,
+`activeEncounter? { encounterNumber, encounterDate }`, `draftEpisode? { episodeId, episodeNumber, createdAt,
+hasActiveReservation }`, `warnings[]`. Kode penghalang: `PATIENT_ALREADY_ADMITTED`, `INP-ADM-REF-001`, `INP-ADM-REF-002`,
+`ACTIVE_ENCOUNTER_EXISTS`. Galat: 400 "Pasien belum dipilih."; 404 "Pasien tidak ditemukan atau tidak aktif.". Pembacaan
+ini dapat menggugurkan Draft milik pasien yang sudah lewat batas, sama seperti `GET /episodes`.
+
+**Berubah:** `POST /episodes` (dan admisi transfer yang memanggilnya) menolak 409 `errors.code = "PATIENT_ALREADY_ADMITTED"`
+untuk pasien yang sedang hadir, sebelum kunjungan atau episode apa pun ditulis. Sebelumnya penolakan yang sama baru
+datang dari `POST /bed-occupancies/reservations`, sesudah kunjungan dan episode `Draft` tersimpan. Implementasi
+`BE-RWI-230` (backend) dan `FE-RWI-244` (langkah 1 dan pemeriksaan ulang di Pilih Bed). Rujukan:
+[`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md).

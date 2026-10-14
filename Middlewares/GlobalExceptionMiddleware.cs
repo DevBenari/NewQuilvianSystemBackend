@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Net;
 using System.Text.Json;
@@ -21,6 +21,15 @@ namespace QuilvianSystemBackend.Middlewares
             try
             {
                 await _next(context);
+            }
+            catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+            {
+                // Permintaan dibatalkan oleh klien (misalnya browser berganti halaman atau memutus koneksi).
+                // Keadaan ini bukan kesalahan internal server sehingga tidak dicatat sebagai unhandled crash 500.
+                if (!context.Response.HasStarted)
+                {
+                    context.Response.StatusCode = 499; // Client Closed Request
+                }
             }
             catch (Exception ex)
             {

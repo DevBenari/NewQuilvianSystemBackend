@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -10,8 +11,10 @@ using System.Security.Claims;
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controllers
 {
     /// <summary>
-    /// Surat dokter rawat jalan — RJ-DOC-REV-BE-004. Surat sakit, surat sehat, dan surat rujukan,
-    /// beserta riwayatnya. Surat terbit tidak dihapus; ia dibatalkan lewat aksi <c>cancel</c>.
+    /// Surat dokter rawat jalan — RJ-DOC-REV-BE-004. Surat sakit, surat sehat, surat rujukan, dan
+    /// Surat Pengantar Rawat Inap beserta riwayatnya. Surat terbit tidak dihapus; ia dibatalkan
+    /// lewat aksi <c>cancel</c>. Surat Pengantar Rawat Inap hanya dapat diterbitkan dan dibatalkan
+    /// oleh Dokter Penanggung Jawab kunjungan, dan langsung menjadi pengajuan Admisi Transfer.
     /// </summary>
     [ApiController]
     [Authorize]
@@ -66,9 +69,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         public async Task<IActionResult> GetReferralTargets(
             [FromQuery] string? search,
             [FromQuery] int take = 30,
+            [FromQuery] string? certificateType = null,
             CancellationToken ct = default)
         {
-            var result = await _service.GetReferralTargetsAsync(search, take, ct);
+            DoctorCertificateType? type = null;
+            if (!string.IsNullOrWhiteSpace(certificateType))
+            {
+                type = DoctorCertificateService.ParseType(certificateType);
+                if (type == null) return UnknownTypeResult();
+            }
+
+            var result = await _service.GetReferralTargetsAsync(search, take, type, ct);
             return Ok(ApiResponse<List<DoctorCertificateReferralTargetOption>>.Ok(result, "Pilihan tujuan rujukan berhasil diambil."));
         }
 
@@ -77,9 +88,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Read", "Read Doctor Certificate", Description = "Melihat surat dokter aktif pada antrean", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("DoctorCertificate", "Read")]
-        public async Task<IActionResult> GetActiveByQueue(Guid queueId, CancellationToken ct = default)
+        public async Task<IActionResult> GetActiveByQueue(
+            Guid queueId,
+            [FromQuery] string? certificateType = null,
+            CancellationToken ct = default)
         {
-            var result = await _service.GetActiveByQueueAsync(queueId, ct);
+            DoctorCertificateType? type = null;
+            if (!string.IsNullOrWhiteSpace(certificateType))
+            {
+                type = DoctorCertificateService.ParseType(certificateType);
+                if (type == null) return UnknownTypeResult();
+            }
+
+            var result = await _service.GetActiveByQueueAsync(queueId, type, ct);
             if (result == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
@@ -113,7 +134,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [AccessPermission("DoctorCertificate", "Create")]
         public async Task<IActionResult> Create([FromBody] SaveDoctorCertificateRequest request, CancellationToken ct = default)
         {
-            var result = await _service.CreateAsync(request, GetCurrentUserId(), ct);
+            var result = await _service.CreateAsync(request, User, GetCurrentUserId(), ct);
             return ToActionResult(result);
         }
 
@@ -137,9 +158,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [AccessPermission("DoctorCertificate", "Cancel")]
         public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelDoctorCertificateRequest request, CancellationToken ct = default)
         {
-            var result = await _service.CancelAsync(id, request, GetCurrentUserId(), ct);
+            var result = await _service.CancelAsync(id, request, User, GetCurrentUserId(), ct);
             return ToActionResult(result);
         }
+
+        private BadRequestObjectResult UnknownTypeResult() =>
+            BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Jenis surat dokter tidak dikenali."));
 
         private IActionResult ToActionResult(DoctorCertificateService.Result result)
         {

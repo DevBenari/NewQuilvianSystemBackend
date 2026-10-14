@@ -801,3 +801,10 @@ Tidak ada butir menu baru. Seluruhnya layar anak:
 | Laci ringkasan | `FE-INP-28` mode baca-saja (tanpa tombol Terima/Tolak) | `GET …/cases/{id}/post-operative-summary` | `OperatingRoomCase : Read` | Laporan draft → "Laporan operasi belum final" |
 
 Bentuk penanda dan laci `DEV_DISCRETION` (`RWI-FE-006`).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Lencana resep memakai status eksplisit CoverageStatus/IsCoverageApplicable. NotCovered tidak mengunci item bertarif sah; ConfigurationMissing berbeda dari penolakan tanggungan. Khusus resep, keputusan K-02 menggantikan teks lama “harga tidak menahan kirim”: tarif sesuai atau umum wajib tersedia sebelum resep disimpan. Katalog tetap lintas kelas. Pesanan tindakan/Lab/Radiologi mengikuti kontrak existing.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
