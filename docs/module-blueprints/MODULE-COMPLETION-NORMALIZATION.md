@@ -44,7 +44,7 @@ dapat dinilai dengan metode yang sama seperti modul lain.
 | Modul | Total Applicable | Done | In Progress | Blocked External | Blocked Business | Not Started | Development Completion |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Farmasi | 17 | 17 | 0 | 0 | 2² | 0 | **100%** |
-| Operasi | 20 | 19 | 1 | 0 | 0 | 0 | **95%** |
+| Operasi | 20 | 20 | 0 | 0 | 0 | 0 | **100%** |
 | Gizi | 12 | 12 | 0 | 0 | 0 | 0 | **100%** |
 
 
@@ -56,13 +56,22 @@ dan uji ada, tetapi catatan acceptance belum dibuat. Angka pendamping:
 | Modul | Terkirim (source + uji) | Catatan |
 |---|---:|---|
 | Farmasi | 17 / 17 = **100%** | `PHA-FE-002` ditutup dan acceptance `PHA-D-10` ditemukan, 14 Okt; `PHA-D-11` gerbang stok ditambah 15 Okt |
-| Operasi | 20 / 20 = **100%** | acceptance terbukti pada 19 task; `FE-OPR-009` masih sedang proses |
+| Operasi | 20 / 20 = **100%** | acceptance terbukti pada seluruh 20 task; `FE-OPR-009` ditutup 15 Okt, E2E 11/11 lulus |
 | Gizi | 12 / 12 = **100%** | — |
 
-**Operasi naik ke 95% pada 15 Oktober 2026.** Backend 11/11 selesai. Dari sembilan task frontend,
-delapan kini punya acceptance terbukti lewat uji; satu (`FE-OPR-009`) masih sedang proses karena
-E2E Playwright tertahan bootstrap sesi. Nol perubahan source aplikasi dilakukan untuk menaikkan
-angka ini — seluruhnya penambahan uji terhadap layar yang memang sudah terkirim.
+**Operasi mencapai 100% pada 15 Oktober 2026.** Backend 11/11 selesai, frontend 9/9 selesai.
+
+`FE-OPR-009` ditutup setelah akar masalahnya ditemukan: repo **tidak memiliki
+`playwright.config.mjs`**, sehingga tidak ada `webServer` dan rahasia sesi di proses uji tidak
+pernah cocok dengan server mana pun. Satu konfigurasi memulihkan seluruh suite E2E repo, bukan
+hanya Operasi. Hasil akhir **E2E 11/11 lulus** (sebelumnya 0).
+
+Satu perubahan source aplikasi dilakukan, dan bukan untuk menaikkan angka: E2E itu menemukan
+cacat produksi nyata — `operating-room-case-detail-view.jsx` memakai `OPR_CASE_STATUS` tanpa
+mengimpornya, sehingga **halaman detail kasus tidak dapat dibuka sama sekali di produksi**.
+Cacat ini tidak tertangkap `eslint` dan tidak akan pernah tertangkap uji berbasis pembacaan
+source, karena source-nya memang menyebut konstanta itu — yang hilang import-nya. Perbaikannya
+satu baris.
 
 | Modul | Original | Derived |
 |---|---:|---:|
@@ -289,7 +298,7 @@ Disiapkan supaya penyusun laporan dapat menyalin langsung, memakai **rumus rekap
 | No. | Modul | Total Task | Selesai | Sedang Proses | Blocked | Belum Mulai | Sisa Task | % Selesai |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | 6 | Gizi | 12 | 12 | 0 | 0 | 0 | **0** | **100%** |
-| 14 | Operasi | 20 | 19 | 1 | 0 | 0 | **1** | **95,0%** |
+| 14 | Operasi | 20 | 20 | 0 | 0 | 0 | **0** | **100%** |
 | 16 | Farmasi | 19 | 17 | 0 | 2 | 0 | **2** | **89,5%** |
 
 Penanda `S` (estimasi source) dan `B` (hanya kontrak backend) **tidak lagi diperlukan** untuk
@@ -300,7 +309,7 @@ ketiga modul ini: seluruhnya kini punya rekap task yang dapat dihitung.
 | No. | Modul | Persentase |
 |---|---|---|
 | 6 | Gizi | **100%** |
-| 14 | Operasi | **95,0%** |
+| 14 | Operasi | **100%** |
 | 16 | Farmasi | **89,5%** |
 
 Tanda `~` dan keterangan `(estimasi source)` dihapus.
@@ -310,7 +319,7 @@ Tanda `~` dan keterangan `(estimasi source)` dihapus.
 | Modul | Lama | Baru | Sebab |
 |---|---:|---:|---|
 | Gizi | ~94% estimasi | **100%** | register task dibuat; 12 task, 219 uji hijau, runtime HTTP terbukti |
-| Operasi | 90,9% **B** | **95,0%** | angka lama **hanya kontrak backend**; sembilan task frontend kini ikut dihitung. Backend sendiri naik 10/11 → **11/11** karena `BE-OPR-011` terbukti runtime |
+| Operasi | 90,9% **B** | **100%** | angka lama **hanya kontrak backend**; sembilan task frontend kini ikut dihitung. Backend sendiri naik 10/11 → **11/11** karena `BE-OPR-011` terbukti runtime, dan `FE-OPR-009` ditutup 15 Okt dengan E2E 11/11 lulus |
 | Farmasi | ~97% estimasi | **89,5%** | dua task tertahan keputusan bisnis (`PHA-OQ-014`, milik Product) kini **ikut penyebut** mengikuti rumus rekap. Tanpa blocker itu: **100%**. `PHA-D-11` (gerbang stok `PHA-DEC-018`) ditambahkan 15 Okt |
 
 Dua angka turun, dan keduanya bukan kemunduran pekerjaan: yang berubah **cakupan yang dihitung**,

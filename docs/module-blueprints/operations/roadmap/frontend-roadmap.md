@@ -17,6 +17,6 @@ Semua task frontend memakai `opr-api-v1` dan tidak boleh mengubah kontrak backen
 | `FE-OPR-006` | Pencatatan material/implant | `OPS-REQ-007` | **SELESAI** | `operating-room-screen-acceptance`: batch/serial wajib untuk implan |
 | `FE-OPR-007` | Monitoring integrasi | `OPS-REQ-007/010` | **SELESAI** | `operating-room-screen-acceptance`: payload tidak ditampilkan |
 | `FE-OPR-008` | Laporan Operasi | `OPS-REQ-011` | **SELESAI** | `operating-room-screen-acceptance`: filter, paging, kosong, galat |
-| `FE-OPR-009` | E2E dan hardening frontend | Semua | **SEDANG PROSES** | hardening 10 lulus; E2E Playwright tertahan bootstrap sesi — `testing/fe-acceptance-evidence.md` |
+| `FE-OPR-009` | E2E dan hardening frontend | Semua | **SELESAI** | hardening 10 lulus; **E2E Playwright 11/11 lulus** 15 Okt — `testing/fe-acceptance-evidence.md` |
 
 Setiap task frontend memerlukan `TASK MODE: FRONTEND` dan backend dibaca sebagai source of truth.
