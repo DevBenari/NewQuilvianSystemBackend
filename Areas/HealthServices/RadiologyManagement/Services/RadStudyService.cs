@@ -792,6 +792,220 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         }
 
         /* ================================================================ *
+         * Tandai perlu diulang, tahan, lanjutkan, batalkan — BE-RAD-17
+         * ================================================================ */
+
+        /// <summary>
+        /// Status yang boleh ditahan: seluruhnya sebelum acquisition dimulai.
+        ///
+        /// <c>RAD-STATE-001</c> bagian 2 hanya menyebut "beberapa status". Acquisition yang sedang
+        /// berjalan sengaja tidak termasuk — mesin yang sudah menyala diselesaikan atau dihentikan
+        /// lewat <c>abort-acquisition</c>, tempat sebab dan bagian yang sempat dikerjakan dicatat.
+        /// Menahannya akan menyembunyikan paparan yang sudah terjadi di balik status sementara.
+        /// </summary>
+        private static readonly RadStudyStatus[] StatusDapatDitahan =
+        {
+            RadStudyStatus.Planned,
+            RadStudyStatus.PatientVerified,
+            RadStudyStatus.SafetyCleared,
+        };
+
+        /// <summary>
+        /// Status yang boleh dibatalkan: sebelum <c>AcquisitionStarted</c>, termasuk study yang
+        /// sedang ditahan — penahanan hanya mungkin dari status sebelum acquisition.
+        /// </summary>
+        private static readonly RadStudyStatus[] StatusDapatDibatalkan =
+        {
+            RadStudyStatus.Planned,
+            RadStudyStatus.PatientVerified,
+            RadStudyStatus.SafetyCleared,
+            RadStudyStatus.OnHold,
+        };
+
+        /// <summary>
+        /// Menandai study yang mutunya ditolak sebagai perlu diulang.
+        ///
+        /// Penandaan ini tidak membuat study baru. Study pengulangan tetap dibuat lewat
+        /// <see cref="RepeatStudyAsync"/>, yang wajib membawa sebab dan alasannya sendiri. Yang
+        /// berubah di sini hanya status study asal — supaya daftar kerja dapat membedakan citra
+        /// yang ditolak dan belum diputuskan dari yang sudah diputuskan untuk diulang.
+        /// </summary>
+        public async Task<RadOperationResult<RadStudyResponse>> MarkRepeatRequiredAsync(
+            Guid studyId,
+            RadStudyTransitionRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+
+            var study = await LoadStudyAsync(studyId, cancellationToken);
+            if (study == null)
+            {
+                return RadOperationResult<RadStudyResponse>.NotFound(
+                    RadErrorCodes.StudyNotFound, "Study radiologi tidak ditemukan.");
+            }
+
+            if (study.StudyStatus != RadStudyStatus.QualityRejected)
+            {
+                return RadOperationResult<RadStudyResponse>.Conflict(
+                    RadErrorCodes.InvalidTransition,
+                    $"Hanya study yang mutunya ditolak yang dapat ditandai perlu diulang; " +
+                    $"study ini berstatus {study.StudyStatus}.");
+            }
+
+            var from = study.StudyStatus;
+            study.StudyStatus = RadStudyStatus.RepeatRequired;
+            Touch(study, actorUserId, now);
+
+            AddHistory(study.RadOrder!, study, "Study.MarkRepeatRequired", from.ToString(),
+                study.StudyStatus.ToString(), null, Bersihkan(request?.Reason), actorUserId, now);
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+
+            return RadOperationResult<RadStudyResponse>.Success(MapStudy(study));
+        }
+
+        /// <summary>
+        /// Menahan study sementara, dengan status sebelumnya disimpan pada kolomnya sendiri.
+        /// </summary>
+        public async Task<RadOperationResult<RadStudyResponse>> HoldAsync(
+            Guid studyId,
+            RadStudyTransitionRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+
+            var study = await LoadStudyAsync(studyId, cancellationToken);
+            if (study == null)
+            {
+                return RadOperationResult<RadStudyResponse>.NotFound(
+                    RadErrorCodes.StudyNotFound, "Study radiologi tidak ditemukan.");
+            }
+
+            if (!StatusDapatDitahan.Contains(study.StudyStatus))
+            {
+                return RadOperationResult<RadStudyResponse>.Conflict(
+                    RadErrorCodes.InvalidTransition,
+                    $"Study berstatus {study.StudyStatus} tidak dapat ditahan. Penahanan hanya " +
+                    "berlaku sebelum acquisition dimulai.");
+            }
+
+            var from = study.StudyStatus;
+            study.StatusBeforeHold = from;
+            study.StudyStatus = RadStudyStatus.OnHold;
+            Touch(study, actorUserId, now);
+
+            AddHistory(study.RadOrder!, study, "Study.Hold", from.ToString(),
+                study.StudyStatus.ToString(), null, Bersihkan(request?.Reason), actorUserId, now);
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+
+            return RadOperationResult<RadStudyResponse>.Success(MapStudy(study));
+        }
+
+        /// <summary>
+        /// Melanjutkan study yang ditahan, kembali ke status sebelum penahanan.
+        ///
+        /// Status tujuan dibaca dari <c>StatusBeforeHold</c>, bukan ditebak dari riwayat — sama
+        /// dengan pesanan. Study yang ditahan sesudah lolos gerbang kembali sebagai
+        /// <c>SafetyCleared</c>; gerbangnya tetap dinilai ulang saat acquisition dimulai, sehingga
+        /// jeda penahanan tidak pernah melewatkan perubahan aturan atau jawaban.
+        /// </summary>
+        public async Task<RadOperationResult<RadStudyResponse>> ResumeAsync(
+            Guid studyId,
+            RadStudyTransitionRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+
+            var study = await LoadStudyAsync(studyId, cancellationToken);
+            if (study == null)
+            {
+                return RadOperationResult<RadStudyResponse>.NotFound(
+                    RadErrorCodes.StudyNotFound, "Study radiologi tidak ditemukan.");
+            }
+
+            if (study.StudyStatus != RadStudyStatus.OnHold)
+            {
+                return RadOperationResult<RadStudyResponse>.Conflict(
+                    RadErrorCodes.InvalidTransition,
+                    $"Hanya study berstatus OnHold yang dapat dilanjutkan; study ini berstatus " +
+                    $"{study.StudyStatus}.");
+            }
+
+            var from = study.StudyStatus;
+            study.StudyStatus = study.StatusBeforeHold ?? RadStudyStatus.Planned;
+            study.StatusBeforeHold = null;
+            Touch(study, actorUserId, now);
+
+            AddHistory(study.RadOrder!, study, "Study.Resume", from.ToString(),
+                study.StudyStatus.ToString(), null, Bersihkan(request?.Reason), actorUserId, now);
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+
+            return RadOperationResult<RadStudyResponse>.Success(MapStudy(study));
+        }
+
+        /// <summary>
+        /// Membatalkan study yang acquisition-nya belum pernah dimulai. Alasan wajib.
+        ///
+        /// Penjaga <c>AcquisitionStartedAt</c> diperiksa di samping status, mengikuti pembatalan
+        /// pesanan: study yang pernah menyinari pasien tidak boleh berakhir sebagai "dibatalkan",
+        /// karena itu menghapus jejak paparan yang sudah terjadi.
+        /// </summary>
+        public async Task<RadOperationResult<RadStudyResponse>> CancelAsync(
+            Guid studyId,
+            RadStudyTransitionRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+
+            var alasan = Bersihkan(request?.Reason);
+            if (alasan == null)
+            {
+                return RadOperationResult<RadStudyResponse>.Validation(
+                    RadErrorCodes.ReasonRequired,
+                    "Pembatalan study wajib disertai alasan.");
+            }
+
+            var study = await LoadStudyAsync(studyId, cancellationToken);
+            if (study == null)
+            {
+                return RadOperationResult<RadStudyResponse>.NotFound(
+                    RadErrorCodes.StudyNotFound, "Study radiologi tidak ditemukan.");
+            }
+
+            if (!StatusDapatDibatalkan.Contains(study.StudyStatus) ||
+                study.AcquisitionStartedAt != null)
+            {
+                return RadOperationResult<RadStudyResponse>.Conflict(
+                    RadErrorCodes.InvalidTransition,
+                    $"Study berstatus {study.StudyStatus} tidak dapat dibatalkan. Pembatalan hanya " +
+                    "berlaku sebelum acquisition dimulai; acquisition yang sudah berjalan " +
+                    "dihentikan lewat penghentian acquisition.");
+            }
+
+            var from = study.StudyStatus;
+            study.StudyStatus = RadStudyStatus.Cancelled;
+            study.StatusBeforeHold = null;
+            study.ClosureReason = alasan;
+            Touch(study, actorUserId, now);
+
+            AddHistory(study.RadOrder!, study, "Study.Cancel", from.ToString(),
+                study.StudyStatus.ToString(), null, alasan, actorUserId, now);
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+
+            return RadOperationResult<RadStudyResponse>.Success(MapStudy(study));
+        }
+
+        private static string? Bersihkan(string? teks) =>
+            string.IsNullOrWhiteSpace(teks) ? null : teks.Trim();
+
+        /* ================================================================ *
          * Konsumsi bahan
          * ================================================================ */
 
@@ -1303,6 +1517,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 ProcedureId = study.ProcedureId,
                 ModalityId = study.ModalityId,
                 StudyStatus = study.StudyStatus.ToString(),
+                StatusBeforeHold = study.StatusBeforeHold?.ToString(),
+                ClosureReason = study.ClosureReason,
                 PatientVerifiedAt = study.PatientVerifiedAt,
                 SafetyClearedAt = study.SafetyClearedAt,
                 SafetyRuleVersionAtClearance = study.SafetyRuleVersionAtClearance,

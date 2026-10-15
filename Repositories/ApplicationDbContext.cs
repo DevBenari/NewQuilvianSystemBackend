@@ -1086,6 +1086,10 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<RadAcquisitionConsumption> RadAcquisitionConsumptions { get; set; }
 
+        public DbSet<RadOrderImage> RadOrderImages { get; set; }
+
+        public DbSet<RadReportTemplate> RadReportTemplates { get; set; }
+
         public DbSet<RadTransitionHistory> RadTransitionHistories { get; set; }
 
         public DbSet<RadReport> RadReports { get; set; }

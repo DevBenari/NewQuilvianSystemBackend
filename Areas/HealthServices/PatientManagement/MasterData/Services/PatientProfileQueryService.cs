@@ -69,6 +69,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     ProvinceName = x.Province != null ? x.Province.ProvinceName : null,
                     PostalCode = x.PostalCode != null ? x.PostalCode.PostalCode : null,
                     x.IsNewborn,
+                    x.BirthOrder,
                     x.MotherPatientId,
                     MotherName = x.MotherPatient != null ? x.MotherPatient.FullName : null
                 })
@@ -104,6 +105,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ProvinceName = Clean(row.ProvinceName),
                 PostalCode = Clean(row.PostalCode),
                 IsNewborn = row.IsNewborn,
+                BirthOrder = row.BirthOrder,
                 MotherPatientId = row.MotherPatientId,
                 MotherName = Clean(row.MotherName),
                 // Pasien tanpa No. RM tidak punya isi QR; tidak ada nomor pengganti yang dikarang.
@@ -270,6 +272,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string? PostalCode { get; init; }
 
         public bool IsNewborn { get; init; }
+
+        public int? BirthOrder { get; init; }
 
         public Guid? MotherPatientId { get; init; }
 

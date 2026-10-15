@@ -148,6 +148,13 @@ public partial class InpAdmissionTransferService(
 
         if (request.DepositAmount > 0)
         {
+            var trackedEpisode = await _dbContext.Set<InpEpisode>().FirstOrDefaultAsync(x => x.Id == episode.Id, cancellationToken);
+            if (trackedEpisode != null)
+            {
+                trackedEpisode.PlannedDepositAmount = request.DepositAmount.Value;
+                episode.PlannedDepositAmount = request.DepositAmount.Value;
+            }
+
             if (request.DepositPaymentMethodId.HasValue)
             {
                 // Deposit Dibayar Langsung Saat Admisi Transfer (Jalur penerimaan uang tunai/kartu)

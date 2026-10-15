@@ -24,7 +24,7 @@ public partial class InpAdmissionTransferService
                 && x.DestinationServiceUnit.ServiceUnitType == ServiceUnitType.Inpatient)
             .Select(x => new InpatientAdmissionTransferItemResponse
             {
-                TransferId = x.Id, SourceType = "Emergency", EmergencyVisitId = x.EmergencyVisit!.Id,
+                TransferId = x.Id, SourceType = "Emergency", EmergencyVisitId = (Guid?)x.EmergencyVisit!.Id,
                 EmergencyVisitNumber = x.EmergencyVisit.EmergencyVisitNumber,
                 SourceEncounterId = x.EmergencyVisit.EncounterId,
                 SourceEncounterNumber = _dbContext.RegPatientEncounters.Where(e => e.Id == x.EmergencyVisit.EncounterId).Select(e => e.EncounterNumber).FirstOrDefault(),
@@ -57,7 +57,7 @@ public partial class InpAdmissionTransferService
                 && !p.IsDelete && !_dbContext.Set<EmgVisit>().Any(v => v.EncounterId == e.Id && !v.IsDelete)
             select new InpatientAdmissionTransferItemResponse
             {
-                TransferId = c.Id, SourceType = "Outpatient", EmergencyVisitId = Guid.Empty,
+                TransferId = c.Id, SourceType = "Outpatient", EmergencyVisitId = (Guid?)null,
                 EmergencyVisitNumber = "", SourceEncounterId = e.Id, SourceEncounterNumber = e.EncounterNumber,
                 PatientId = p.Id, PatientName = p.FullName, MedicalRecordNumber = p.MedicalRecordNumber,
                 BirthDate = p.BirthDate,

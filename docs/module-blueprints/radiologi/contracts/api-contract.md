@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `RAD-API-001` |
-| Revision | `11` |
+| Revision | `17` |
 | Status | `approved` |
 | Backend SHA | `50ccf615` |
 | Input | `RAD-ARCH-BE-001`, `RAD-DA-001-r1` |
@@ -203,6 +203,129 @@
 > endpoint baru tidak mengubah yang sudah ada. Frontend `FE-RAD-13` yang mengambil isi per bacaan
 > lewat `GET /{id}` tetap berjalan apa adanya; penyederhanaannya menjadi task tersendiri.
 
+> **Amandemen revision 12 — 2026-10-14. Ditulis pelaksana `BE-RAD-17`, atas instruksi pemilik
+> modul Yoga Aji Pratama 2026-10-14 untuk membuka dan mengerjakan task itu.** Empat endpoint baru
+> pada grup *Rad Study*, menjalankan empat transisi `RAD-STATE-001` bagian 2 yang sampai kini
+> tidak punya jalan — ditemukan `FE-RAD-09` bagian 4.1.
+>
+> | Endpoint | Transisi | Hak akses | Alasan |
+> | --- | --- | --- | --- |
+> | `POST /{id}/mark-repeat-required` | `QualityRejected` → `RepeatRequired` | `RadStudy : Repeat` (sudah ada) | Opsional |
+> | `POST /{id}/hold` | `Planned`, `PatientVerified`, `SafetyCleared` → `OnHold` | `RadStudy : Hold` (**baru**) | Opsional |
+> | `POST /{id}/resume` | `OnHold` → status sebelum ditahan | `RadStudy : Hold` (**baru**) | Opsional |
+> | `POST /{id}/cancel` | `Planned`, `PatientVerified`, `SafetyCleared`, `OnHold` → `Cancelled` | `RadStudy : Cancel` (**baru**) | **Wajib** |
+>
+> Keempatnya memakai `RadStudyTransitionRequest` (`Reason`, maksimal 1.000 huruf; body boleh
+> kosong kecuali pada pembatalan) dan membalas `ApiResponse<RadStudyResponse>`. Transisi yang
+> tidak sah dibalas **`409`** dengan kode `RAD_INVALID_TRANSITION`, sesuai bagian 4 dan
+> `RAD-STATE-001`; alasan pembatalan yang kosong dibalas `400` dengan `RAD_REASON_REQUIRED`.
+>
+> **Keputusan pelaksana yang perlu diketahui pemilik.**
+>
+> 1. **"Beberapa status" pada penahanan dibaca sebagai seluruh status sebelum acquisition.**
+>    Acquisition yang sedang berjalan diselesaikan atau dihentikan lewat `abort-acquisition`,
+>    tempat sebab dan bagian yang sempat dikerjakan dicatat. Bila penahanan sesudah acquisition
+>    diinginkan, cukup memperluas daftar statusnya di service.
+> 2. **Pembatalan juga menolak study yang `AcquisitionStartedAt`-nya terisi**, walaupun statusnya
+>    tampak awal — penjaga yang sama dengan pembatalan pesanan.
+> 3. **`RadStudy : Hold` dan `RadStudy : Cancel` adalah dua hak akses baru**, mengikuti pasangannya
+>    pada pesanan (`RadOrder : Hold`, `RadOrder : Cancel`). Keduanya otomatis terdaftar saat
+>    aplikasi dinyalakan, tetapi **belum diberikan kepada jabatan mana pun** — admin perlu
+>    mencentangnya pada layar Akses Role.
+> 4. **Selisih yang diketahui.** Transisi study lama (`verify-patient`, `complete-acquisition`,
+>    `abort-acquisition`, `decide-quality`, `repeat`) membalas transisi tidak sah dengan `400`, bukan
+>    `409`. Tidak disentuh task ini; menyelaraskannya mengubah perilaku endpoint yang sudah dipakai
+>    `FE-RAD-08` dan `FE-RAD-09`.
+>
+> **`RadStudyResponse` bertambah dua field**: `StatusBeforeHold` (terisi hanya selama `OnHold`) dan
+> `ClosureReason` (alasan pembatalan). Keduanya kolom yang sudah ada di tabel `RadStudy` sejak
+> migration awal — **tidak ada perubahan schema maupun migration**.
+>
+> **Kompatibilitas: aman.** Endpoint baru tidak mengubah yang sudah ada, dan dua field response
+> bersifat tambahan.
+
+> **Amandemen revision 13 — 2026-10-15.** Menyusul `BE-RAD-18` (paritas v1, `RAD-EVD-001`,
+> `RAD-DEC-018`). Seluruhnya pada `GET /` dan `POST /` grup *Rad Order*; tidak ada endpoint baru.
+>
+> 1. **`POST /`** — `CreateRadOrderRequest.RequiresPreparation` (boleh kosong, kosong = tidak):
+>    penanda tab *Pasien Persiapan* v1. Kolom baru `RadOrder.RequiresPreparation` (`boolean`, bawaan
+>    `false`) lewat migration `20261014094349_AddRadOrderRequiresPreparation`.
+> 2. **`GET /` menerima tiga penyaring baru** (total 22): `onlyPreparation`; `examinationDay`
+>    (`today` / `notToday`, dihitung pada kalender **WIB**, tanggal pemeriksaan = `ScheduledAt` bila
+>    ada, selain itu `RequestedAt`, lalu `CreateDateTime`); dan `excludeCancelled` (menyembunyikan
+>    pesanan batal dan ditolak). Ketiganya terbit pada `GET /filters/metadata`.
+> 3. **`RadOrderListResponse` bertambah** `ExaminationDate`, `RequiresPreparation`, `StudyNumbers`,
+>    `DiagnosisText`, `RequestedByName`, `ConfirmedAt`, `ConfirmedByName`, `PaymentStatus`,
+>    `IsPaymentCleared` — kolom Daftar Pasien v1. `ConfirmedAt` dipindah dari rincian ke baris
+>    daftar; karena rincian mewarisi baris daftar, nama dan isinya di `GET /{id}` tidak berubah.
+>    `PaymentStatus` memakai aturan baca Lab (`LAB-API-v1` r43) apa adanya.
+>
+> Kolom tambahan diisi lewat satu kueri berkelompok per kolom untuk seluruh halaman, bukan
+> per baris. **Kompatibilitas: aman** — penyaring opsional, field response tambahan.
+
+> **Amandemen revision 14 — 2026-10-15.** Menyusul `BE-RAD-19` (Beranda Radiologi v1, `RAD-EVD-001`
+> bagian 2.1). Satu endpoint baru, baca saja: **`GET /rad-orders/dashboard`** (`RadOrder : Read`) →
+> `ApiResponse<RadDashboardResponse>`. Cakupan 30 hari kalender WIB terakhir menurut
+> `RequestedAt ?? CreateDateTime`; pesanan `Draft` tidak dihitung. Isinya: kartu (total, RJ, RI, IGD,
+> lunas — aturan Lab r43), status pantauan (Menunggu = Requested/Accepted/Scheduled; Diproses =
+> InProgress/OnHold/CancelRequested; Selesai; Dibatalkan = Cancelled/Rejected; CITO), `DailyOrders`
+> tepat 30 butir termasuk hari kosong, `Composition` (rujukan dihitung lebih dulu seperti v1), dan
+> lima pesanan terbaru tanpa batas cakupan. Identitas pasien hanya dibaca untuk lima baris itu.
+> **Kompatibilitas: aman** — endpoint baru, tanpa schema.
+
+> **Amandemen revision 15 — 2026-10-15.** Menyusul `BE-RAD-20` (Detail Pasien Radiologi v1,
+> `RAD-DEC-021`, `RAD-EVD-001` bagian 7.1).
+>
+> 1. **`PUT /rad-orders/{id}/assignment`** (`RadOrder : Update`) — `RadOrderAssignmentRequest`
+>    `{ radiographerUserId?, examiningDoctorId? }` → `RadOrderDetailResponse`. Isian kosong mengosongkan.
+>    `400 RAD_ASSIGNEE_NOT_FOUND` bila petugas/dokter tidak ada atau nonaktif; `409
+>    RAD_ASSIGNMENT_NOT_CHANGEABLE` pada pesanan batal/ditolak. Tercatat `Order.Assign` di riwayat.
+>    Kolom baru `RadOrder.RadiographerUserId` (FK `AspNetUsers`) dan `ExaminingDoctorId` (FK `MstDoctor`),
+>    migration `AddRadOrderAssignment`.
+> 2. **`GET /rad-orders/examiner-doctor-options`** dan **`GET /rad-orders/radiographer-options`**
+>    (`RadOrder : Update`) — `PagedResult`, query `search`, `pageNumber`, `pageSize` (1–50). Milik
+>    Radiologi karena `doctors/options` SDM dijaga `KioskRead` (pola Lab `FE-LAB-50` T2).
+> 3. **`RadOrderListResponse` bertambah** `RadiographerUserId/Name`, `ExaminingDoctorId/Name`,
+>    `PatientPhoneNumber` (`WhatsAppNumber` ?? `PhoneNumber`, untuk Kirim Hasil `wa.me`) dan
+>    `TariffAmount` (tampilan Rincian Pasien dari `MstTariff` yang berlaku; kelas pasien didahulukan;
+>    **kosong bila belum diatur, tidak pernah 0**). `GET /{id}` kini ikut melengkapi kolom v1.
+>
+> **Kompatibilitas: aman** — field dan endpoint tambahan.
+
+> **Amandemen revision 16 — 2026-10-15.** Menyusul `BE-RAD-22` (Unggah Gambar, Form Hasil v1,
+> `RAD-DEC-021`). Tabel baru `RadOrderImage` (metadata; migration `AddRadOrderImage`), berkas di
+> `FileStorage:PrivateRootPath/radiology-images/{orderId}/` — wajib di luar folder publik.
+>
+> | Method | Path | Hak akses | Catatan |
+> |---|---|---|---|
+> | `GET` | `/{id}/images` | `RadOrder : Read` | `List<RadOrderImageResponse>` |
+> | `POST` | `/{id}/images` | `RadOrder : Update` | multipart `files[]` (+ `radStudyId` opsional). JPG/PNG dibaca dari isi; ≤ `FileStorage:MaxRadiologyImageSizeMb` (bawaan 10) per berkas; ≤ 20 aktif per pesanan. `400 RAD_IMAGE_INVALID`, `409 RAD_IMAGE_NOT_CHANGEABLE` (pesanan batal/ditolak) |
+> | `GET` | `/{id}/images/{imageId}/content` | `RadOrder : Read` | Isi biner, `Cache-Control: private, no-store`; `404 RAD_IMAGE_NOT_FOUND` |
+> | `DELETE` | `/{id}/images/{imageId}` | `RadOrder : Update` | Hapus lunak; berkas fisik dibiarkan untuk jejak |
+>
+> Unggah dan hapus tercatat `Order.ImageAdded`/`Order.ImageRemoved` di `RadTransitionHistory`.
+> Bukan PACS (`RAD-OPEN-013` tetap bertanda). **Kompatibilitas: aman.**
+
+> **Amandemen revision 17 — 2026-10-15.** Menyusul `BE-RAD-24`..`BE-RAD-26` (fitur v1 bertanda yang dibangun,
+> `RAD-DEC-022`). Migration `AddRadReportTemplateAndFilmPrint`: kolom `RadOrder.PrintFilm` (`boolean`, bawaan
+> `false`) dan tabel `RadReportTemplate`.
+>
+> | Method | Path | Hak akses | Catatan |
+> |---|---|---|---|
+> | `GET` | `rad-orders/reports/examination-statistics` | `RadOrder : Read` | Query `startDate`, `endDate` (`yyyy-MM-dd`, WIB; kosong = 30 hari; ≤ 366 hari; `400` bila tidak sah). `RadOperationalReportResponse<RadExaminationStatisticRow>` |
+> | `GET` | `rad-orders/reports/referrers` | `RadOrder : Read` | Per dokter pemberi instruksi, atau per akun pemesan bila kosong. `…<RadReferrerRow>` |
+> | `GET` | `rad-orders/reports/company-patients` | `RadOrder : Read` | Hanya penjamin perusahaan. `…<RadOrderReportRow>` |
+> | `GET` | `rad-orders/reports/daily` | `RadOrder : Read` | Satu baris per tanggal WIB, termasuk hari kosong. `…<RadDailyExaminationRow>` |
+> | `GET` | `rad-orders/reports/per-item` | `RadOrder : Read` | ≤ 5.000 baris; `IsTruncated` bila terpotong. `…<RadOrderReportRow>` |
+> | `GET` | `rad-orders/reports/procedure-tariffs` | `RadOrder : Read` | `List<RadProcedureTariffRow>` — pemeriksaan `IsRadiology` beserta `MstTariff`-nya |
+> | `PUT` | `rad-orders/{id}/procedure` | `RadOrder : Update` | `RadOrderChangeProcedureRequest { ProcedureId, ModalityId?, Reason }`. Hanya `Requested`/`Accepted`/`Scheduled` tanpa study aktif; `409 RAD_PROCEDURE_NOT_CHANGEABLE`. Jejak `Order.ChangeProcedure` |
+> | `PUT` | `rad-orders/{id}/film-print` | `RadOrder : Update` | `RadOrderFilmPrintRequest { PrintFilm }`. Jejak `Order.FilmPrint` bila berubah |
+> | `GET` | `rad-reports/templates` | `RadReport : Read` | Query `modalityId`, `procedureId`, `onlyActive`, `search`. Template umum ikut tersaji |
+> | `POST`/`PUT`/`DELETE` | `rad-reports/templates[/{id}]` | `RadReport : Validate` | `RadReportTemplateRequest`; kode diubah ke huruf besar dan unik; hapus lunak. `404 RAD_TEMPLATE_NOT_FOUND` |
+>
+> `GET /rad-orders/{id}` dan baris daftar memuat `PrintFilm`. **Kompatibilitas: aman** — endpoint dan field
+> tambahan. **Urutan rilis:** kode ini memetakan `RadOrder.PrintFilm`, jadi migration wajib diterapkan bersama.
+
 Endpoint yang **belum ada di kode** diberi label `Rencana (belum tersedia)`. Yang tidak berlabel
 sudah dapat dipakai sekarang.
 
@@ -251,6 +374,10 @@ Contract version: `v1` — status **berjalan**
 | `POST` | `/{id}/decide-quality` | Menyatakan citra layak atau tidak | `RadStudy : Quality` | `RadAcquisitionQualityRequest` | `ApiResponse<RadStudyActionResult>` | Tersedia |
 | `POST` | `/{id}/repeat` | Membuat study pengulangan | `RadStudy : Repeat` | `RadRepeatStudyRequest` | `ApiResponse<RadStudyResponse>` | Tersedia |
 | `POST` | `/{id}/consumptions` | Mencatat bahan terpakai | `RadStudy : Consumption` | `RadConsumptionRequest` | `ApiResponse<RadConsumptionResponse>` | Tersedia |
+| `POST` | `/{id}/mark-repeat-required` | Menandai study yang mutunya ditolak sebagai perlu diulang | `RadStudy : Repeat` | `RadStudyTransitionRequest` | `ApiResponse<RadStudyResponse>` | **Tersedia sejak revision 12** (`BE-RAD-17`) |
+| `POST` | `/{id}/hold` | Menahan study sebelum acquisition | `RadStudy : Hold` | `RadStudyTransitionRequest` | `ApiResponse<RadStudyResponse>` | **Tersedia sejak revision 12** (`BE-RAD-17`) |
+| `POST` | `/{id}/resume` | Melanjutkan study yang ditahan | `RadStudy : Hold` | `RadStudyTransitionRequest` | `ApiResponse<RadStudyResponse>` | **Tersedia sejak revision 12** (`BE-RAD-17`) |
+| `POST` | `/{id}/cancel` | Membatalkan study sebelum acquisition, alasan wajib | `RadStudy : Cancel` | `RadStudyTransitionRequest` | `ApiResponse<RadStudyResponse>` | **Tersedia sejak revision 12** (`BE-RAD-17`) |
 
 ---
 
@@ -265,6 +392,10 @@ Contract version: `v2` — status `draft`
 |---|---|---|---|---|---|---|
 | `GET` | `/worklist` | **Daftar kerja petugas pada satu alat**, pesanan cito di urutan atas | `RadOrder : Read` | Query: `modalityId` wajib, `date`, `status` | `ApiResponse<List<RadWorklistItemResponse>>` | Tersedia sejak `BE-RAD-13` |
 | `PUT` | `/{id}/urgency` | Mengubah penanda cito setelah pesanan dibuat | `RadOrder : Update` | `RadOrderUrgencyRequest` | `ApiResponse<RadOrderDetailResponse>` | Tersedia sejak `BE-RAD-13` |
+| `GET` | `/dashboard` | **Beranda Radiologi v1** — angka 30 hari WIB terakhir dan lima pesanan terbaru | `RadOrder : Read` | — | `ApiResponse<RadDashboardResponse>` | Tersedia sejak `BE-RAD-19` |
+| `PUT` | `/{id}/assignment` | Petugas Radiologi dan Dokter Pemeriksa — Detail Pasien v1 | `RadOrder : Update` | `RadOrderAssignmentRequest` | `ApiResponse<RadOrderDetailResponse>` | Tersedia sejak `BE-RAD-20` |
+| `GET` | `/examiner-doctor-options` | Pilihan Dokter Pemeriksa | `RadOrder : Update` | Query `search`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<RadExaminerDoctorOptionResponse>>` | Tersedia sejak `BE-RAD-20` |
+| `GET` | `/radiographer-options` | Pilihan Petugas Radiologi | `RadOrder : Update` | Query `search`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<RadRadiographerOptionResponse>>` | Tersedia sejak `BE-RAD-20` |
 
 **Perubahan pada endpoint yang sudah ada:**
 
@@ -277,6 +408,8 @@ Contract version: `v2` — status `draft`
 | `GET /` | Menerima `limit`, bawaannya `200` dan paling banyak `1000`. Daftar ini belum memakai `PagedResult` — perpindahannya tetap task tersendiri karena merusak bentuk response — sehingga batas baris inilah yang menjaga pencarian se-rumah-sakit tetap terbatas | **Aman.** Bawaannya jauh di atas jumlah pesanan satu kunjungan mana pun, sehingga pemanggil lama tidak menyentuhnya. `GET /episodes/{episodeId}` sengaja tetap tanpa batas |
 | `GET /` | Menerima 19 parameter penyaring dan pengurutan: `encounterId`, `patientId`, `medicalRecordNumber`, `encounterNumber`, `orderNumber`, `studyNumber`, `startDate`, `endDate`, `encounterType`, `serviceUnitId`, `roomId`, `modalityId`, `procedureId`, `orderStatus`, `onlyUrgent`, `onlyScheduled`, `scheduledFrom`, `scheduledTo`, `search`. Daftarnya juga terbit pada `GET /filters/metadata` | **Aman.** Seluruh parameter opsional; `encounterId`, `sortBy`, dan `sortDirection` tetap bernama sama sehingga pemanggil lama tidak berubah. **Berjalan sejak `RAD-CONF-001` bagian 8** |
 | `POST /` | Pesanan baru mendapat `OrderNumber` berbentuk `RAD-ORD-yyMMddHHmmss-XXXXXX`, dijaga index unik | **Aman.** Dibentuk server; pemanggil tidak mengirim apa pun. **Berjalan sejak `RAD-CONF-001` bagian 8** |
+| `POST /` | `CreateRadOrderRequest` menerima `RequiresPreparation` yang boleh kosong, bawaannya `false` | **Aman.** **Berjalan sejak `BE-RAD-18`** — butuh migration `AddRadOrderRequiresPreparation` |
+| `GET /` | Tiga penyaring tambahan `onlyPreparation`, `examinationDay` (`today`/`notToday`, WIB), `excludeCancelled`; baris memuat kolom v1 `ExaminationDate`, `RequiresPreparation`, `StudyNumbers`, `DiagnosisText`, `RequestedByName`, `ConfirmedAt`, `ConfirmedByName`, `PaymentStatus`, `IsPaymentCleared` | **Aman.** Penyaring opsional, field tambahan. **Berjalan sejak `BE-RAD-18`** — amandemen revision 13 |
 
 > **Mengapa `GET /worklist` diletakkan pada controller pesanan, bukan controller study.**
 > Daftar kerja dimulai dari pesanan yang sudah diterima tetapi belum tentu punya study. Kalau

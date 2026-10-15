@@ -37,7 +37,7 @@ public partial class InpAdmissionTransferService
             await deposits.AuditAdmissionTopUpAsync(episode.EncounterId, episode.Id, actorUserId, cancellationToken);
         if (!meta.IsReplay)
             await loggerService.AuditAsync("HealthServices.InPatient.AdmissionTransfer", "AdmissionTransfer.Created",
-                "Admisi transfer dan penerimaan deposit terkait tersimpan atomik.",
+                "Admisi transfer dan rencana deposit tersimpan atomik.",
                 new { EpisodeId = episode.Id, episode.EncounterId, ActorUserId = actorUserId, meta.ResultEntityId });
         var outcome = InpEpisodeOperationResult.Success(episode, "Admisi transfer dan reservasi tersimpan. Lanjutkan persetujuan pasien.");
         outcome.OperationMeta = meta;

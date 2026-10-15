@@ -85,6 +85,87 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public int BelumDikerjakan { get; set; }
     }
 
+    /// <summary>
+    /// Angka Beranda Radiologi v1 — <c>BE-RAD-19</c>, <c>RAD-EVD-001</c> bagian 2.1.
+    /// </summary>
+    /// <remarks>
+    /// Cakupan: 30 hari kalender WIB terakhir termasuk hari ini, menurut waktu pesanan diminta.
+    /// Pesanan <c>Draft</c> belum dihitung karena belum dikirim ke Radiologi.
+    /// </remarks>
+    public class RadDashboardResponse
+    {
+        public DateTime GeneratedAt { get; set; }
+
+        /// <summary>Tanggal WIB pertama cakupan, <c>yyyy-MM-dd</c>.</summary>
+        public string PeriodStartDate { get; set; } = string.Empty;
+
+        /// <summary>Tanggal WIB terakhir cakupan (hari ini), <c>yyyy-MM-dd</c>.</summary>
+        public string PeriodEndDate { get; set; } = string.Empty;
+
+        // Kartu — Total Booking, Rawat Jalan, Rawat Inap, Pemeriksaan Lunas.
+        public int TotalOrderCount { get; set; }
+        public int OutpatientOrderCount { get; set; }
+        public int InpatientOrderCount { get; set; }
+        public int EmergencyOrderCount { get; set; }
+
+        /// <summary>Pesanan yang kunjungannya berstatus pembayaran <c>Paid</c> (aturan Lab r43).</summary>
+        public int PaidOrderCount { get; set; }
+
+        // Status yang perlu dipantau.
+        /// <summary>Diminta, diterima, atau dijadwalkan.</summary>
+        public int WaitingOrderCount { get; set; }
+
+        /// <summary>Sedang dikerjakan, ditahan, atau menunggu persetujuan batal.</summary>
+        public int InProgressOrderCount { get; set; }
+
+        public int CompletedOrderCount { get; set; }
+
+        /// <summary>Dibatalkan atau ditolak.</summary>
+        public int CancelledOrderCount { get; set; }
+
+        public int UrgentOrderCount { get; set; }
+
+        /// <summary>Tepat 30 butir, urut dari tanggal tertua, termasuk hari tanpa pesanan.</summary>
+        public List<RadDashboardDailyResponse> DailyOrders { get; set; } = new();
+
+        /// <summary>
+        /// Komposisi pasien. Kunjungan rujukan dihitung sebagai Rujukan lebih dulu, seperti v1;
+        /// sisanya menurut jenis kunjungan.
+        /// </summary>
+        public RadDashboardCompositionResponse Composition { get; set; } = new();
+
+        /// <summary>Lima pesanan terbaru, tanpa batas cakupan 30 hari.</summary>
+        public List<RadDashboardRecentOrderResponse> RecentOrders { get; set; } = new();
+    }
+
+    public class RadDashboardDailyResponse
+    {
+        /// <summary>Tanggal WIB, <c>yyyy-MM-dd</c>.</summary>
+        public string Date { get; set; } = string.Empty;
+
+        public int OrderCount { get; set; }
+    }
+
+    public class RadDashboardCompositionResponse
+    {
+        public int Outpatient { get; set; }
+        public int Inpatient { get; set; }
+        public int Emergency { get; set; }
+        public int Referral { get; set; }
+    }
+
+    public class RadDashboardRecentOrderResponse
+    {
+        public Guid RadOrderId { get; set; }
+        public string OrderNumber { get; set; } = string.Empty;
+        public string? PatientName { get; set; }
+        public string? MedicalRecordNumber { get; set; }
+        public string? EncounterType { get; set; }
+        public string OrderStatus { get; set; } = string.Empty;
+        public bool IsUrgent { get; set; }
+        public DateTime OrderedAt { get; set; }
+    }
+
     // =========================================================================
     // Rad Study
     // =========================================================================

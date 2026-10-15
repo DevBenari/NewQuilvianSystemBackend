@@ -126,6 +126,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 }
             }
 
+            if (episode == null && query.PatientId.HasValue)
+            {
+                patient = await _dbContext.Set<MstPatient>().AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == query.PatientId.Value && !x.IsDelete && x.IsActive, cancellationToken);
+                if (patient == null) throw new InpBedOperationException(422, "PATIENT_NOT_FOUND", "Pasien belum dapat diverifikasi.");
+                episode = new InpEpisode
+                {
+                    PatientId = patient.Id, MotherEpisodeId = query.MotherEpisodeId,
+                    NewbornCareMode = query.NewbornCareMode,
+                    RequiresNeonatalIntensiveCare = query.RequiresIntensiveCare,
+                    RequiresIsolation = query.RequiresIsolation
+                };
+            }
+            var motherRoomId = patient?.IsNewborn == true
+                ? await InpNewbornAdmissionRules.FindMotherRoomAsync(_dbContext, episode?.MotherEpisodeId, patient.MotherPatientId, cancellationToken)
+                : null;
+
             IQueryable<MstBed> bedQuery = _dbContext.Set<MstBed>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && x.Room != null && scopedUnits.Contains(x.Room.ServiceUnitId));
@@ -209,7 +226,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         operational ?? new BedOperationalResponse(),
                         root,
                         bedReservations,
-                        bedPlacements);
+                        bedPlacements, motherRoomId);
 
                     if (evaluation.IsEligible)
                     {
@@ -633,6 +650,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var patient = await _dbContext.Set<MstPatient>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == episode.PatientId, cancellationToken);
+
+            if (patient?.IsNewborn == true && !await _dbContext.Set<InpAdmissionDocument>().AsNoTracking()
+                .AnyAsync(d => d.EpisodeId == episode.Id && !d.IsDelete &&
+                    d.DocumentType == InpAdmissionDocumentType.GeneralConsent && d.Status == InpAdmissionDocumentStatus.Completed &&
+                    d.Signatures.Any(s => !s.IsDelete && s.Slot == InpAdmissionSignatureSlot.PatientOrFamily &&
+                        (s.SignerRelationship == InpAdmissionPartyRelationship.Parent || s.SignerRelationship == InpAdmissionPartyRelationship.Guardian)), cancellationToken))
+                return InpBedOccupancyOperationResult.BusinessRuleRejected("Persetujuan orang tua atau wali bayi harus tersimpan sebelum mengaktifkan penempatan.", "NEWBORN_CONSENT_REQUIRED");
 
             var evaluation = await EvaluatePlacementEligibilityAsync(
                 episode,
@@ -1585,7 +1609,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             IReadOnlyList<InpBedPlacement> placements =
                 projection.Placements.TryGetValue(bed.Id, out var placement) ? [placement] : [];
 
-            return EvaluatePlacementEligibilityCore(episode, patient, bed, room, context, operational, root, reservations, placements);
+            var motherRoomId = patient?.IsNewborn == true
+                ? await InpNewbornAdmissionRules.FindMotherRoomAsync(_dbContext, episode?.MotherEpisodeId, patient.MotherPatientId, cancellationToken)
+                : null;
+            return EvaluatePlacementEligibilityCore(episode, patient, bed, room, context, operational, root, reservations, placements, motherRoomId);
         }
 
         internal InpPlacementEligibilityResult EvaluatePlacementEligibilityCore(
@@ -1597,7 +1624,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             BedOperationalResponse operational,
             InpBedReadiness? root,
             IReadOnlyList<InpBedReservation>? bedReservations,
-            IReadOnlyList<InpBedPlacement>? bedPlacements)
+            IReadOnlyList<InpBedPlacement>? bedPlacements,
+            Guid? motherRoomId = null)
         {
             var result = new InpPlacementEligibilityResult();
             if (!room.PatientClassId.HasValue || room.PatientClassId.Value == Guid.Empty)
@@ -1661,6 +1689,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 result.ReusableReservationExists = ownReservation;
             }
+
+            foreach (var failure in InpNewbornAdmissionRules.ValidateBed(episode, patient, bed, room, motherRoomId))
+                result.Add(10, failure.Code, failure.Message, 422);
 
             // Tanpa episode, pemeriksaan berhenti di sini. Empat aturan berikutnya menyangkut
             // pasien dan kebutuhan isolasinya, dan keduanya milik episode.

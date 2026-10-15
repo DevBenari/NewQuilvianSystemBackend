@@ -108,6 +108,20 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Radio
                 .HasForeignKey(x => x.InstructionVerifiedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // BE-RAD-20 — Petugas Radiologi dan Dokter Pemeriksa (Detail Pasien Radiologi v1).
+            builder.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(x => x.RadiographerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne<MstDoctor>()
+                .WithMany()
+                .HasForeignKey(x => x.ExaminingDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(x => x.RadiographerUserId);
+            builder.HasIndex(x => x.ExaminingDoctorId);
+
             // Daftar tunggu verifikasi membaca "pesanan Pending milik dokter ini".
             builder.HasIndex(x => new { x.InstructingDoctorId, x.InstructionVerificationStatus });
             builder.HasIndex(x => x.InstructionVerifiedByUserId);

@@ -9,7 +9,7 @@ using QuilvianSystemBackend.Enums;
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
 {
     /// <summary>
-    /// Bagian baca <see cref="InpEpisodeService"/> — daftar, ringkasan, dan metadata penyaring
+    /// Bagian baca <see cref="InpEpisodeService"/> â€” daftar, ringkasan, dan metadata penyaring
     /// layar episode. Diisi task <c>BE-RWI-009</c>.
     /// </summary>
     /// <remarks>
@@ -20,8 +20,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     ///
     /// <para>
     /// <b>Tiga batas yang mengikat seluruh method di sini.</b> Pertama, setiap query memakai
-    /// <c>AsNoTracking</c> dan projection langsung ke DTO. Kedua, kolom sensitif —
-    /// <c>Notes</c> dan <c>IsolationNote</c> — tidak pernah ikut pada daftar mana pun; ia
+    /// <c>AsNoTracking</c> dan projection langsung ke DTO. Kedua, kolom sensitif â€”
+    /// <c>Notes</c> dan <c>IsolationNote</c> â€” tidak pernah ikut pada daftar mana pun; ia
     /// hanya muncul pada detail. Ketiga, lokasi pasien selalu dibaca dari
     /// <c>InpBedPlacement</c>, tidak pernah dari kolom pada episode.
     /// </para>
@@ -35,7 +35,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <b>Kedaluwarsa dijalankan lebih dulu.</b> Episode <c>Draft</c> yang telantar
         /// dibatalkan pada saat dibaca, bukan oleh program penjadwal. Bila daftar ini membaca
         /// tabel tanpa menjalankan perhitungan itu, layar akan menampilkan admisi yang
-        /// sesungguhnya sudah gugur — dan petugas akan mencoba melanjutkannya lalu ditolak
+        /// sesungguhnya sudah gugur â€” dan petugas akan mencoba melanjutkannya lalu ditolak
         /// tanpa mengerti kenapa.
         /// </remarks>
         public async Task<InpatientEpisodePagedResult> GetEpisodeListAsync(
@@ -235,7 +235,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// </summary>
         /// <remarks>
         /// <b>Hanya pembacaan.</b> Tidak ada endpoint yang dapat mengubah maupun menghapus
-        /// baris riwayat, dan ketiadaan itu disengaja — api contract bagian 8 dan
+        /// baris riwayat, dan ketiadaan itu disengaja â€” api contract bagian 8 dan
         /// <c>RWI-RULE-031</c> aturan 5.
         ///
         /// <para>
@@ -248,7 +248,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         ///
         /// <para>
         /// Riwayat tetap terbaca setelah episode <c>Closed</c>. Tidak ada penyaringan status di
-        /// sini sama sekali — justru episode yang sudah ditutup yang paling sering ditelusuri
+        /// sini sama sekali â€” justru episode yang sudah ditutup yang paling sering ditelusuri
         /// auditor.
         /// </para>
         /// </remarks>
@@ -483,6 +483,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                             !x.Patient.IsDelete &&
                             x.Patient.Gender == Gender.Female);
 
+            if (query.MotherPatientId.HasValue) episodes = episodes.Where(x => x.PatientId == query.MotherPatientId.Value);
+
             if (query.ExcludeChildPatientId.HasValue && query.ExcludeChildPatientId.Value != Guid.Empty)
             {
                 episodes = episodes.Where(x => x.PatientId != query.ExcludeChildPatientId.Value);
@@ -516,6 +518,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         .OrderByDescending(p => p.SequenceNumber)
                         .Select(p => new
                         {
+                            RoomId = p.RoomId,
                             BedCode = p.Bed != null ? p.Bed.BedCode : null,
                             RoomName = p.Room != null ? p.Room.RoomName : null
                         })
@@ -533,6 +536,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 AdmittedAt = x.AdmittedAt,
                 ServiceUnitId = x.ServiceUnitId,
                 ServiceUnitName = x.ServiceUnitName,
+                RoomId = x.CurrentPlacement?.RoomId,
                 RoomName = x.CurrentPlacement?.RoomName,
                 BedCode = x.CurrentPlacement?.BedCode
             }).ToList();

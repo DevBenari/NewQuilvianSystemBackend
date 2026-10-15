@@ -108,6 +108,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models
         /// <summary>Kapan pesanan ini ditandai cito. Kosong ketika tidak cito.</summary>
         public DateTime? UrgentMarkedAt { get; set; }
 
+        /// <summary>
+        /// Pasien membutuhkan persiapan sebelum pemeriksaan, misalnya puasa atau persiapan kontras —
+        /// tab *Pasien Persiapan* v1 (<c>RAD-EVD-001</c>, <c>BE-RAD-18</c>).
+        /// </summary>
+        /// <remarks>
+        /// Bawaannya <c>false</c> dengan alasan yang sama dengan <see cref="IsUrgent"/>: pesanan lama
+        /// dan pemanggil yang tidak mengenal penanda ini tetap sah.
+        /// </remarks>
+        public bool RequiresPreparation { get; set; }
+
+        /// <summary>
+        /// Petugas Radiologi yang menangani pesanan — pilihan pada Detail Pasien Radiologi v1
+        /// (<c>BE-RAD-20</c>, <c>RAD-EVD-001</c> bagian 7.1). Akun pengguna, bukan data tenaga kerja.
+        /// </summary>
+        public Guid? RadiographerUserId { get; set; }
+
+        /// <summary>
+        /// Dokter Pemeriksa pesanan — pilihan per pemeriksaan pada Detail Pasien v1. Satu pesanan V2
+        /// memuat satu pemeriksaan, sehingga disimpan pada pesanan. Pengesahan bacaan tetap milik
+        /// dokter radiolog (<c>RAD-DEC-003</c>); penunjukan ini tidak memberi hak mengesahkan.
+        /// </summary>
+        public Guid? ExaminingDoctorId { get; set; }
+
+        /// <summary>
+        /// Centang *Cetak Film* Detail Pasien v1 (<c>BE-RAD-25</c>): hasil pemeriksaan ini dicetak ke film.
+        /// Jumlah film yang terpakai tetap dicatat sebagai bahan terpakai jenis <c>Film</c>.
+        /// </summary>
+        public bool PrintFilm { get; set; }
+
         // =====================================================================
         // BE-RWI-104 / migration R8 — kamus data 0.5 bagian 13.11, RWI-DEC-153.
         //
