@@ -27,6 +27,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     {
         public Guid Id { get; set; }
 
+        /// <summary>
+        /// Berkas tersimpan di penyimpanan privat dan dibuka lewat
+        /// <c>GET admin/{id}/content</c> (RJ-REG-REV-BE-004), bukan lewat <see cref="FilePath"/>.
+        /// </summary>
+        public bool HasPrivateFile { get; set; }
+
         public Guid PatientId { get; set; }
 
         public string PatientCode { get; set; } = string.Empty;
@@ -258,5 +264,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public bool IsVerified { get; set; }
 
         public bool IsActive { get; set; }
+    }
+
+    /// <summary>
+    /// Unggah berkas dokumen identitas ke penyimpanan privat (RJ-REG-REV-BE-004).
+    /// <see cref="ReplaceDocumentId"/> wajib diisi bila pasien sudah punya dokumen berkas aktif.
+    /// </summary>
+    public class PatientIdentityDocumentUploadRequest
+    {
+        public Guid PatientId { get; set; }
+
+        [MaxLength(50)]
+        public string? IdentityType { get; set; }
+
+        [MaxLength(100)]
+        public string? IdentityNumber { get; set; }
+
+        public Guid? ReplaceDocumentId { get; set; }
+
+        public IFormFile? File { get; set; }
+    }
+
+    public class PatientIdentityDocumentUploadResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid PatientId { get; set; }
+
+        public Guid? ReplacedDocumentId { get; set; }
     }
 }

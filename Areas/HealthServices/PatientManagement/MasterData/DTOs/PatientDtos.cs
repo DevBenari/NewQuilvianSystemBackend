@@ -1,5 +1,6 @@
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Helpers;
 using System.ComponentModel.DataAnnotations;
@@ -77,6 +78,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public Guid? CountryId { get; set; }
 
         public string? CountryName { get; set; }
+
+        /// <summary>Kewarganegaraan (RJ-REG-DEC-006); <c>null</c> untuk data lama.</summary>
+        public PatientCitizenship? Citizenship { get; set; }
+
+        public string? CitizenshipName { get; set; }
+
+        public Guid? NationalityCountryId { get; set; }
+
+        public string? NationalityCountryName { get; set; }
 
         public Guid? ProvinceId { get; set; }
 
@@ -367,6 +377,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string? Address { get; set; }
 
         public Guid? CountryId { get; set; }
+
+        /// <summary>
+        /// Kewarganegaraan (RJ-REG-DEC-006). Opsional: pemanggil lama (Kiosk, IGD) tidak
+        /// mengirimnya. Pada <c>PUT</c>, nilai <c>null</c> mempertahankan nilai tersimpan.
+        /// </summary>
+        public PatientCitizenship? Citizenship { get; set; }
+
+        /// <summary>Negara asal; wajib bila <see cref="Citizenship"/> = WNA, diabaikan untuk WNI.</summary>
+        public Guid? NationalityCountryId { get; set; }
 
         public Guid? ProvinceId { get; set; }
 
