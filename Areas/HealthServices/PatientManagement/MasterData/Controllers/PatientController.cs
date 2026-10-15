@@ -221,7 +221,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             [FromQuery] string? search,
             [FromQuery] string? medicalRecordNumber = null,
             [FromQuery] string? identityNumber = null,
-            [FromQuery] DateTime? birthDate = null,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -245,7 +244,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             query = ApplyDateFilter(query, startDate, endDate, customPeriod);
             query = ApplyRelationFilter(query, defaultMembershipTierId);
-            query = ApplyStandardFilter(query, isActive, search, medicalRecordNumber, identityNumber, birthDate);
+            query = ApplyStandardFilter(query, isActive, search, medicalRecordNumber, identityNumber);
 
             if (birthDateFilter.HasValue)
             {
@@ -335,26 +334,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             [FromQuery] string? search,
             [FromQuery] string? medicalRecordNumber = null,
             [FromQuery] string? identityNumber = null,
-            [FromQuery] DateTime? birthDate = null,
+            [FromQuery] string? birthDate = null,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
             return await GetPatients(
-                startDate,
-                endDate,
-                customPeriod,
-                defaultMembershipTierId,
-                true,
-                search,
-                medicalRecordNumber,
-                identityNumber,
-                birthDate,
-                sortBy,
-                sortDirection,
-                pageNumber,
-                pageSize
+                startDate: startDate,
+                endDate: endDate,
+                customPeriod: customPeriod,
+                defaultMembershipTierId: defaultMembershipTierId,
+                isActive: true,
+                search: search,
+                medicalRecordNumber: medicalRecordNumber,
+                identityNumber: identityNumber,
+                sortBy: sortBy,
+                sortDirection: sortDirection,
+                pageNumber: pageNumber,
+                pageSize: pageSize,
+                birthDate: birthDate
             );
         }
 
@@ -2105,8 +2104,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             bool? isActive,
             string? search,
             string? medicalRecordNumber = null,
-            string? identityNumber = null,
-            DateTime? birthDate = null)
+            string? identityNumber = null)
         {
             if (isActive.HasValue)
             {
@@ -2129,13 +2127,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             {
                 var idKeyword = identityNumber.Trim();
                 query = query.Where(x => x.IdentityNumber != null && x.IdentityNumber.Contains(idKeyword));
-            }
-
-            if (birthDate.HasValue)
-            {
-                var bStart = DateTime.SpecifyKind(birthDate.Value.Date, DateTimeKind.Utc);
-                var bEnd = bStart.AddDays(1);
-                query = query.Where(x => x.BirthDate.HasValue && x.BirthDate.Value >= bStart && x.BirthDate.Value < bEnd);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
