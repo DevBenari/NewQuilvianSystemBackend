@@ -178,16 +178,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string VerificationCode { get; set; } = string.Empty;
     }
 
-    /// <summary>Pantauan Surat Pengantar Rawat Inap satu kunjungan untuk perawat Rawat Jalan.</summary>
-    public class OutpatientInpatientAdmissionMonitorResponse
-    {
-        public Guid EncounterId { get; set; }
-        /// <summary><c>NotIssued</c>, <c>Submitted</c>, <c>Admitted</c>, atau <c>Cancelled</c>.</summary>
-        public string Status { get; set; } = "NotIssued";
-        public string StatusName { get; set; } = string.Empty;
-        public DoctorCertificateResponse? Letter { get; set; }
-    }
-
     public class DoctorCertificateReferralResponse
     {
         public DateTime? AdmissionDate { get; set; }

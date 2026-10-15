@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -50,6 +51,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     public class OutpatientEncounterListService
     {
         public const string CancelAction = "Cancel";
+
+        /// <summary>Nilai opsi Status untuk Booking; klien mengirimnya sebagai <c>bookingOnly=true</c>.</summary>
+        public const string BookingStatusValue = "booking";
         private const int MaxRangeDays = 31;
         private const int MaxCancelReasonLength = 250;
         private const string LogCategory = "HealthServices.RegistrationManagement";
@@ -60,7 +64,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private readonly QueueRealtimeService _queueRealtimeService;
         private readonly LoggerService _loggerService;
         private readonly EncounterReferralService _encounterReferralService;
-        private readonly DoctorCertificateService _doctorCertificateService;
 
         public OutpatientEncounterListService(
             ApplicationDbContext dbContext,
@@ -68,11 +71,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             AccessPermissionService accessPermissionService,
             QueueRealtimeService queueRealtimeService,
             LoggerService loggerService,
-            EncounterReferralService encounterReferralService,
-            DoctorCertificateService doctorCertificateService)
+            EncounterReferralService encounterReferralService)
         {
             _encounterReferralService = encounterReferralService;
-            _doctorCertificateService = doctorCertificateService;
             _dbContext = dbContext;
             _scopeService = scopeService;
             _accessPermissionService = accessPermissionService;
@@ -90,8 +91,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             var query = ApplyFilters(BuildScopedQuery(scope), request, today, includeStatus: true);
             var referralRequiredFrom = _encounterReferralService.ReferralDetailRequiredFrom;
-
-            query = ApplyReferralStatusFilter(query, request.ReferralStatus, referralRequiredFrom);
 
             var pageNumber = Math.Max(1, request.PageNumber);
             var pageSize = Math.Clamp(request.PageSize, 1, 100);
@@ -114,11 +113,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     ClinicName = x.Clinic != null ? x.Clinic.ClinicName : string.Empty,
                     x.DoctorId,
                     DoctorName = x.Doctor != null ? x.Doctor.FullName : null,
+                    ScheduleSessionName = x.DoctorSchedule != null ? x.DoctorSchedule.SessionName : null,
+                    ScheduleStartTime = x.DoctorSchedule != null ? (TimeSpan?)x.DoctorSchedule.StartTime : null,
+                    ScheduleEndTime = x.DoctorSchedule != null ? (TimeSpan?)x.DoctorSchedule.EndTime : null,
                     PaymentSourceName = x.PaymentSource != null ? x.PaymentSource.PaymentSourceNameSnapshot : null,
                     x.PaymentType,
+                    x.CreateDateTime,
+                    x.CreateBy,
+                    x.UpdateDateTime,
+                    x.UpdateBy,
                     x.EncounterStatus,
                     x.IsCancel,
                     IsCompleted = x.CompletedAt != null,
+                    // Subquery atas aturan yang sama dengan saringan, supaya definisi Booking tetap satu.
+                    IsBooking = _dbContext.Set<RegPatientEncounter>()
+                        .Where(OutpatientEncounterRules.IsBookingState)
+                        .Any(b => b.Id == x.Id),
                     HasActiveConsultation = _dbContext.Set<TrxDoctorConsultation>()
                         .Any(c => c.EncounterId == x.Id && !c.IsDelete && !c.IsCancel),
                     x.IsReferral,
@@ -131,6 +141,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             var canCancelPermission = await _accessPermissionService.HasAccessAsync(
                 user, ClinicalActorScopeService.ResourceName, CancelAction);
+
+            var actorIds = rows
+                .SelectMany(x => new[] { x.CreateBy, x.UpdateBy })
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+            var actorNames = actorIds.Count == 0
+                ? new Dictionary<Guid, string?>()
+                : (await _dbContext.Users.AsNoTracking()
+                    .Where(u => actorIds.Contains(u.Id))
+                    .Select(u => new { u.Id, u.DisplayName, u.UserName })
+                    .ToListAsync(cancellationToken))
+                    .ToDictionary(u => u.Id, u => string.IsNullOrWhiteSpace(u.DisplayName) ? u.UserName : u.DisplayName);
+
+            var fallbackSchedules = await LoadFallbackSchedulesAsync(
+                rows.Where(x => x.ScheduleStartTime == null && x.DoctorId.HasValue)
+                    .Select(x => (x.DoctorId!.Value, x.ClinicId))
+                    .ToList(),
+                cancellationToken);
 
             var items = rows.Select(x =>
             {
@@ -149,12 +178,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     ClinicName = x.ClinicName,
                     DoctorId = x.DoctorId,
                     DoctorName = x.DoctorName,
+                    ScheduleLabel = BuildScheduleLabel(x.ScheduleSessionName, x.ScheduleStartTime, x.ScheduleEndTime)
+                        ?? BuildFallbackScheduleLabel(fallbackSchedules, x.DoctorId, x.ClinicId, x.EncounterDate),
                     PaymentLabel = !string.IsNullOrWhiteSpace(x.PaymentSourceName)
                         ? x.PaymentSourceName!
                         : GetDisplayName(x.PaymentType),
+                    CreatedAt = x.CreateDateTime,
+                    CreatedByName = actorNames.GetValueOrDefault(x.CreateBy),
+                    UpdatedAt = x.UpdateDateTime,
+                    UpdatedByName = actorNames.GetValueOrDefault(x.UpdateBy),
                     EncounterStatus = (int)x.EncounterStatus,
                     EncounterStatusName = GetDisplayName(x.EncounterStatus),
                     IsCancelled = x.IsCancel,
+                    IsBooking = x.IsBooking,
                     IsHanging = isBlocking && x.EncounterDate < today,
                     HasActiveConsultation = x.HasActiveConsultation,
                     CanCancel = canCancelPermission && blockedReason == null,
@@ -222,6 +258,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             var statusOptions = Enum.GetValues<EncounterStatus>()
                 .Select(x => new OutpatientEncounterOptionResponse { Value = ((int)x).ToString(), Label = GetDisplayName(x) })
+                .Prepend(new OutpatientEncounterOptionResponse { Value = BookingStatusValue, Label = "Booking" })
                 .ToList();
 
             List<OutpatientEncounterOptionResponse> clinicOptions;
@@ -279,24 +316,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// dengan <c>PATCH /patient-encounters/{id}/cancel</c>; <c>EncounterStatus</c> tidak diubah.
         /// Notifikasi antrean dikirim setelah commit; kegagalannya tidak membatalkan pembatalan.
         /// </remarks>
-        /// <summary>
-        /// Pantauan Surat Pengantar Rawat Inap satu kunjungan dalam cakupan pengguna (baca saja).
-        /// Kunjungan di luar cakupan dijawab <c>404</c>.
-        /// </summary>
-        public async Task<OutpatientInpatientAdmissionMonitorResponse> GetInpatientAdmissionMonitorAsync(
-            ClaimsPrincipal user,
-            Guid id,
-            CancellationToken cancellationToken = default)
-        {
-            var scope = await ResolveScopeOrThrowAsync(user, cancellationToken);
-
-            var visible = await BuildScopedQuery(scope).AnyAsync(x => x.Id == id, cancellationToken);
-            if (!visible)
-                throw new OutpatientEncounterNotFoundException();
-
-            return await _doctorCertificateService.GetInpatientAdmissionMonitorAsync(id, cancellationToken);
-        }
-
         public async Task<OutpatientEncounterCancelResponse> CancelAsync(
             ClaimsPrincipal user,
             Guid id,
@@ -471,32 +490,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 : OutpatientReferralStatuses.Complete;
         }
 
-        private IQueryable<RegPatientEncounter> ApplyReferralStatusFilter(
-            IQueryable<RegPatientEncounter> query,
-            string? referralStatus,
-            DateTime requiredFrom)
-        {
-            if (string.IsNullOrWhiteSpace(referralStatus))
-                return query;
-
-            var referrals = _dbContext.Set<RegEncounterReferral>().Where(r => !r.IsDelete);
-
-            return referralStatus.Trim() switch
-            {
-                OutpatientReferralStatuses.NotReferral => query.Where(x => !x.IsReferral),
-                OutpatientReferralStatuses.Incomplete => query.Where(x =>
-                    x.IsReferral &&
-                    (referrals.Any(r => r.PatientEncounterId == x.Id && !r.IsComplete) ||
-                     (!referrals.Any(r => r.PatientEncounterId == x.Id) && x.EncounterDate >= requiredFrom))),
-                OutpatientReferralStatuses.Complete => query.Where(x =>
-                    x.IsReferral &&
-                    (referrals.Any(r => r.PatientEncounterId == x.Id && r.IsComplete) ||
-                     (!referrals.Any(r => r.PatientEncounterId == x.Id) && x.EncounterDate < requiredFrom))),
-                _ => throw new OutpatientEncounterValidationException(
-                    "Saringan status rujukan tidak valid. Gunakan NotReferral, Complete, atau Incomplete.")
-            };
-        }
-
         private static IQueryable<RegPatientEncounter> ApplyFilters(
             IQueryable<RegPatientEncounter> query,
             OutpatientEncounterListQuery request,
@@ -551,6 +544,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 query = query.Where(x => statuses.Contains(x.EncounterStatus));
             }
 
+            if (includeStatus && request.BookingOnly)
+                query = query.Where(OutpatientEncounterRules.IsBookingState);
+
             // Bagi pengguna tanpa hak lihat semua, kedua saringan ini hanya mempersempit cakupan.
             if (request.ClinicId.HasValue && request.ClinicId.Value != Guid.Empty)
             {
@@ -591,6 +587,88 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         {
             var value = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("user_id");
             return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
+        }
+
+        private sealed record ScheduleSlot(
+            Guid DoctorId,
+            Guid ClinicId,
+            DayOfWeek PracticeDay,
+            DateTime? PracticeDate,
+            DateTime? EffectiveStartDate,
+            DateTime? EffectiveEndDate,
+            string? SessionName,
+            TimeSpan StartTime,
+            TimeSpan EndTime);
+
+        /// <summary>
+        /// Jadwal praktik aktif dokter di klinik kunjungan, untuk kunjungan yang tidak menyimpan
+        /// <c>DoctorScheduleId</c> (pendaftaran lama, kiosk, atau appointment tanpa sesi).
+        /// </summary>
+        private async Task<List<ScheduleSlot>> LoadFallbackSchedulesAsync(
+            List<(Guid DoctorId, Guid ClinicId)> pairs,
+            CancellationToken cancellationToken)
+        {
+            if (pairs.Count == 0)
+                return new List<ScheduleSlot>();
+
+            var doctorIds = pairs.Select(p => p.DoctorId).Distinct().ToList();
+            var clinicIds = pairs.Select(p => p.ClinicId).Distinct().ToList();
+
+            return await _dbContext.Set<MstDoctorSchedule>().AsNoTracking()
+                .Where(x => !x.IsDelete &&
+                            x.ScheduleStatus == DoctorScheduleStatus.Active &&
+                            doctorIds.Contains(x.DoctorId) &&
+                            clinicIds.Contains(x.ClinicId))
+                .Select(x => new ScheduleSlot(
+                    x.DoctorId, x.ClinicId, x.PracticeDay, x.PracticeDate,
+                    x.EffectiveStartDate, x.EffectiveEndDate, x.SessionName, x.StartTime, x.EndTime))
+                .ToListAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Jam praktik dokter pada hari kunjungan: jadwal bertanggal khusus bila ada, selain itu
+        /// jadwal mingguan hari yang sama dalam masa berlakunya. Beberapa sesi digabung urut jam.
+        /// </summary>
+        private static string? BuildFallbackScheduleLabel(
+            List<ScheduleSlot> schedules,
+            Guid? doctorId,
+            Guid clinicId,
+            DateTime encounterDate)
+        {
+            if (!doctorId.HasValue || schedules.Count == 0)
+                return null;
+
+            var date = encounterDate.Date;
+            var candidates = schedules
+                .Where(x => x.DoctorId == doctorId.Value && x.ClinicId == clinicId)
+                .Where(x => (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= date) &&
+                            (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= date))
+                .ToList();
+
+            var specific = candidates.Where(x => x.PracticeDate.HasValue && x.PracticeDate.Value.Date == date).ToList();
+            var slots = specific.Count > 0
+                ? specific
+                : candidates.Where(x => !x.PracticeDate.HasValue && x.PracticeDay == date.DayOfWeek).ToList();
+
+            var labels = slots
+                .OrderBy(x => x.StartTime)
+                .Select(x => BuildScheduleLabel(x.SessionName, x.StartTime, x.EndTime))
+                .Where(x => x != null)
+                .Distinct()
+                .ToList();
+
+            return labels.Count == 0 ? null : string.Join(", ", labels);
+        }
+
+        private static string? BuildScheduleLabel(string? sessionName, TimeSpan? start, TimeSpan? end)
+        {
+            var parts = new List<string?>
+            {
+                sessionName,
+                start.HasValue && end.HasValue ? $"{start.Value:hh\\:mm}–{end.Value:hh\\:mm}" : null
+            }.Where(p => !string.IsNullOrWhiteSpace(p)).ToList();
+
+            return parts.Count == 0 ? null : string.Join(" · ", parts);
         }
 
         private static string GetDisplayName<TEnum>(TEnum value) where TEnum : struct, Enum

@@ -661,7 +661,7 @@ component, token, pola master data `hr/master-data/job-level`) → `DEV_DISCRETI
 | Institusi Perujuk | 3 | Pelayanan Kesehatan → Master Data | `/health-services/master-data/referral-institutions` (+ `create`, `[slug]`, `[slug]/update`) | Master Institusi Perujuk | `ReferralInstitution : Read` |
 | Dokter Perujuk | 3 | Pelayanan Kesehatan → Master Data | `/health-services/master-data/referral-doctors` (+ `create`, `[slug]`, `[slug]/update`) | Master Dokter Perujuk | `ReferralDoctor : Read` |
 | — (layar anak) | — | Pendaftaran Pasien Rawat Jalan | sama | Step *Data Rujukan* | `PatientEncounter : Create` |
-| — (layar anak) | — | Daftar Kunjungan RJ (`/health-services/registration-management/outpatient-encounters`) | sama | Form *Lengkapi / Koreksi Rujukan* (aksi baris) | `PatientEncounter : Update` |
+| — (layar anak) | — | Daftar Kunjungan RJ (`/health-services/registration-management/outpatient-encounters`) | sama | ~~Form *Lengkapi / Koreksi Rujukan* (aksi baris)~~ — dicabut 15 Okt 2026; hanya badge *Rujukan belum lengkap* | `PatientEncounter : Update` |
 | — (layar anak) | — | Kiosk Pasien Lama / Baru | sama | Step *Data Rujukan* Kiosk | Akun perangkat Kiosk |
 
 Letak butir di dalam grup Master Data mengikuti urutan alfabet grup yang ada (`DEV_DISCRETION`).
@@ -726,7 +726,7 @@ menampilkan scan wajib.
 |---|---|---|---|
 | Kolom/badge | `StatusBadge` "Rujukan belum lengkap" (warning) bila `referralStatus = Incomplete` | `GET /outpatient-encounters` | `PatientEncounter : Read` |
 | Filter | Status rujukan: Semua / Lengkap / Belum lengkap | Query `referralStatus` | — |
-| Aksi baris | *Lengkapi Rujukan* / *Koreksi Rujukan* (bila rujukan, tidak terkunci) | `GET/PUT …/referral`, berkas | `PatientEncounter : Update` |
+| ~~Aksi baris~~ (dicabut 15 Okt 2026: tanpa kolom Aksi; detail lewat klik ganda) | ~~*Lengkapi Rujukan* / *Koreksi Rujukan*~~ | `GET/PUT …/referral`, berkas | `PatientEncounter : Update` |
 | Form | Wilayah A, B (unit tujuan **baca saja**), C; unduh surat lewat endpoint berizin | idem | Terkunci → baca saja + "Konsultasi dokter sudah dimulai" |
 
 Bentuk form (modal, drawer, atau halaman anak) mengikuti pola aksi baris yang sudah dipakai layar

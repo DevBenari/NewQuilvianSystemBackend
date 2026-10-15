@@ -19,19 +19,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public List<int>? EncounterStatus { get; set; }
 
+        /// <summary>Hanya kunjungan Booking (<see cref="Services.OutpatientEncounterRules.IsBookingState"/>).</summary>
+        public bool BookingOnly { get; set; }
+
         public Guid? ClinicId { get; set; }
 
         public Guid? DoctorId { get; set; }
 
         [MaxLength(100)]
         public string? Search { get; set; }
-
-        /// <summary>
-        /// Saringan status rujukan (RJ-DOC-REV-BE-018): <c>NotReferral</c>, <c>Complete</c>, atau
-        /// <c>Incomplete</c>. Kosong = semua.
-        /// </summary>
-        [MaxLength(20)]
-        public string? ReferralStatus { get; set; }
 
         [Range(1, int.MaxValue)]
         public int PageNumber { get; set; } = 1;
@@ -52,10 +48,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string ClinicName { get; set; } = string.Empty;
         public Guid? DoctorId { get; set; }
         public string? DoctorName { get; set; }
+
+        /// <summary>Sesi dan jam praktik jadwal dokter, mis. <c>Pagi · 08:00–12:00</c>.</summary>
+        public string? ScheduleLabel { get; set; }
         public string PaymentLabel { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public string? CreatedByName { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string? UpdatedByName { get; set; }
         public int EncounterStatus { get; set; }
         public string EncounterStatusName { get; set; } = string.Empty;
         public bool IsCancelled { get; set; }
+
+        /// <summary>Didaftarkan sebelum hari kunjungan dan pasien belum datang.</summary>
+        public bool IsBooking { get; set; }
         public bool IsHanging { get; set; }
         public bool HasActiveConsultation { get; set; }
         public bool CanCancel { get; set; }

@@ -517,7 +517,7 @@ try
     builder.Services.AddScoped<ClinicalActorScopeService>();
     builder.Services.AddScoped<OutpatientEncounterListService>();
     builder.Services.AddScoped<OutpatientEncounterDetailService>();
-    builder.Services.AddScoped<OutpatientAppointmentService>();
+    builder.Services.AddScoped<OutpatientEncounterScheduleService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.PatientIdentityDocumentFileService>();
     builder.Services.Configure<KioskEncounterClosureOptions>(
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));

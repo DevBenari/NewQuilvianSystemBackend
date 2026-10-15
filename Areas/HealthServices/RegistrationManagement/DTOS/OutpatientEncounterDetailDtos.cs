@@ -18,6 +18,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool IsWalkIn { get; set; }
         public bool IsFromKiosk { get; set; }
         public bool IsCancelled { get; set; }
+
+        /// <summary>Didaftarkan sebelum hari kunjungan dan pasien belum datang.</summary>
+        public bool IsBooking { get; set; }
         public DateTime? CancelledAt { get; set; }
         public string? CancelReason { get; set; }
         public DateTime RegisteredAt { get; set; }
@@ -29,6 +32,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid? DoctorId { get; set; }
         public string? DoctorName { get; set; }
         public string? DoctorSpecialistName { get; set; }
+        public Guid? DoctorScheduleId { get; set; }
         public string? ScheduleLabel { get; set; }
 
         public string? QueueCode { get; set; }
@@ -51,6 +55,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         /// <summary>Alasan edit ditutup oleh status kunjungan; <c>null</c> bila status mengizinkan.</summary>
         public string? EditBlockedReason { get; set; }
+
+        /// <summary>Hak Update dan keadaan kunjungan mengizinkan ganti tanggal/sesi praktik (dokter tetap).</summary>
+        public bool CanChangeSchedule { get; set; }
+
+        /// <summary>Alasan ganti jadwal ditutup; <c>null</c> bila boleh.</summary>
+        public string? ScheduleChangeBlockedReason { get; set; }
+
+        /// <summary>Hak <c>OutpatientEncounter : Cancel</c> dan status mengizinkan pembatalan.</summary>
+        public bool CanCancel { get; set; }
+
+        /// <summary>Alasan pembatalan ditutup; <c>null</c> bila status mengizinkan.</summary>
+        public string? CancelBlockedReason { get; set; }
 
         public DateTime? UpdateDateTime { get; set; }
     }
@@ -96,5 +112,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid? NationalityCountryId { get; set; }
 
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Tanggal kunjungan baru (<c>yyyy-MM-dd</c>). Diisi bersama <see cref="DoctorScheduleId"/>
+        /// untuk mengganti jadwal; keduanya kosong = jadwal tidak diubah.
+        /// </summary>
+        public string? VisitDate { get; set; }
+
+        /// <summary>Sesi praktik baru milik dokter yang sama di poliklinik kunjungan.</summary>
+        public Guid? DoctorScheduleId { get; set; }
+    }
+
+    /// <summary>Satu jadwal tersedia (tanggal + sesi praktik) dokter kunjungan.</summary>
+    public class OutpatientEncounterScheduleOptionResponse
+    {
+        /// <summary><c>yyyy-MM-dd|doctorScheduleId</c>.</summary>
+        public string Value { get; set; } = string.Empty;
+        public string VisitDate { get; set; } = string.Empty;
+        public Guid DoctorScheduleId { get; set; }
+        public string Label { get; set; } = string.Empty;
+        public int MaxPatientQuota { get; set; }
+        public int UsedPatientQuota { get; set; }
+
+        /// <summary>Jadwal yang sedang dipakai kunjungan pada tanggal itu.</summary>
+        public bool IsCurrent { get; set; }
     }
 }

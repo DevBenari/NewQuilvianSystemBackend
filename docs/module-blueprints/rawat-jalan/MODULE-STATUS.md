@@ -32,7 +32,7 @@ hanya scope Registration diverifikasi ulang dalam pekerjaan ini):
 | **Billing** (`RJ-BIL`) | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | `HISTORICAL SNAPSHOT` — perlu verifikasi ulang pemilik Billing (lihat di bawah) | Tidak — wewenang pemilik Billing |
 
 Yang masih terbuka pada scope Registration: centang action baru di Akses Role
-(`OutpatientEncounter : Update`, `OutpatientAppointment : Read/Reschedule`), isi master negara (DB uji hanya
+(`OutpatientEncounter : Update`; `OutpatientAppointment` dicabut 15 Okt 2026), isi master negara (DB uji hanya
 Indonesia), kebijakan antivirus unggahan, `PhotoPath` publik lama (di luar scope), UAT perangkat fisik,
 migration ke DB master saat rilis.
 

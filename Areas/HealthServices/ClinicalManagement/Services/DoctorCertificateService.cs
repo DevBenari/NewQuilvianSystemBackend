@@ -202,43 +202,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             return entity == null ? null : await ToDetailResponseAsync(entity, ct);
         }
 
-        /// <summary>
-        /// Pantauan Surat Pengantar Rawat Inap satu kunjungan: surat terbit terbaru, atau surat batal
-        /// terbaru bila tidak ada yang terbit. Pemeriksaan cakupan pengguna dilakukan pemanggil.
-        /// </summary>
-        public async Task<OutpatientInpatientAdmissionMonitorResponse> GetInpatientAdmissionMonitorAsync(
-            Guid encounterId,
-            CancellationToken ct)
-        {
-            var entity = await _dbContext.CliDoctorCertificates.AsNoTracking()
-                .Where(x =>
-                    x.EncounterId == encounterId &&
-                    !x.IsDelete &&
-                    x.CertificateType == DoctorCertificateType.InpatientAdmissionLetter)
-                .OrderBy(x => x.CertificateStatus == DoctorCertificateStatus.Issued ? 0 : 1)
-                .ThenByDescending(x => x.CreateDateTime)
-                .FirstOrDefaultAsync(ct);
-
-            if (entity == null)
-            {
-                return new OutpatientInpatientAdmissionMonitorResponse
-                {
-                    EncounterId = encounterId,
-                    Status = "NotIssued",
-                    StatusName = "Surat Pengantar Rawat Inap belum diterbitkan dokter"
-                };
-            }
-
-            var letter = await ToDetailResponseAsync(entity, ct);
-            return new OutpatientInpatientAdmissionMonitorResponse
-            {
-                EncounterId = encounterId,
-                Status = letter.InpatientAdmission!.SubmissionStatus,
-                StatusName = letter.InpatientAdmission.SubmissionStatusName,
-                Letter = letter
-            };
-        }
-
         /// <remarks>
         /// Jenis <see cref="DoctorCertificateType.InpatientAdmissionLetter"/> membatasi pilihan pada
         /// unit layanan bertipe <c>Inpatient</c>, tanpa klinik.

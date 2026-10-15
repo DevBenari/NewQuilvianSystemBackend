@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
@@ -36,13 +37,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private readonly EncounterReferralService _encounterReferralService;
         private readonly LoggerService _loggerService;
 
+        private readonly OutpatientEncounterScheduleService _scheduleService;
+
         public OutpatientEncounterDetailService(
             ApplicationDbContext dbContext,
             OutpatientEncounterListService listService,
             AccessPermissionService accessPermissionService,
             EncounterReferralService encounterReferralService,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            OutpatientEncounterScheduleService scheduleService)
         {
+            _scheduleService = scheduleService;
             _dbContext = dbContext;
             _listService = listService;
             _accessPermissionService = accessPermissionService;
@@ -92,7 +97,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         .Where(q => q.EncounterId == x.Id && !q.IsDelete && !q.IsCancel)
                         .OrderByDescending(q => q.CreateDateTime)
                         .Select(q => (DateTime?)q.QueueDate)
-                        .FirstOrDefault()
+                        .FirstOrDefault(),
+                    IsBooking = _dbContext.Set<RegPatientEncounter>()
+                        .Where(OutpatientEncounterRules.IsBookingState)
+                        .Any(b => b.Id == x.Id),
+                    HasActiveConsultation = _dbContext.Set<TrxDoctorConsultation>()
+                        .Any(c => c.EncounterId == x.Id && !c.IsDelete && !c.IsCancel)
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -104,6 +114,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var canUpdate = await _accessPermissionService.HasAccessAsync(
                 user, ClinicalActorScopeService.ResourceName, UpdateAction);
             var blockedReason = GetEditBlockedReason(encounter);
+            var scheduleBlockedReason = blockedReason ?? await _scheduleService.GetBlockedReasonAsync(encounter, cancellationToken);
+            var canCancelPermission = await _accessPermissionService.HasAccessAsync(
+                user, ClinicalActorScopeService.ResourceName, OutpatientEncounterListService.CancelAction);
+            var cancelBlockedReason = OutpatientEncounterListService.GetCancelBlockedReason(
+                encounter.EncounterStatus, encounter.IsCancel, encounter.CompletedAt != null, row.HasActiveConsultation);
 
             return new OutpatientEncounterDetailResponse
             {
@@ -117,6 +132,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 IsWalkIn = encounter.IsWalkIn,
                 IsFromKiosk = encounter.IsFromKiosk,
                 IsCancelled = encounter.IsCancel,
+                IsBooking = row.IsBooking,
                 CancelledAt = encounter.CancelledAt,
                 CancelReason = encounter.CancelReason,
                 RegisteredAt = encounter.RegisteredAt,
@@ -127,6 +143,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 DoctorId = encounter.DoctorId,
                 DoctorName = row.DoctorName,
                 DoctorSpecialistName = row.DoctorSpecialistName,
+                DoctorScheduleId = encounter.DoctorScheduleId,
                 ScheduleLabel = BuildScheduleLabel(row.ScheduleSessionName, row.ScheduleStartTime, row.ScheduleEndTime, row.SchedulePracticeLocation),
                 QueueCode = row.QueueCode,
                 QueueStatusName = row.QueueStatus.HasValue ? GetDisplayName(row.QueueStatus.Value) : null,
@@ -160,6 +177,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 },
                 CanEdit = canUpdate && blockedReason == null,
                 EditBlockedReason = blockedReason,
+                CanChangeSchedule = canUpdate && scheduleBlockedReason == null,
+                ScheduleChangeBlockedReason = scheduleBlockedReason,
+                CanCancel = canCancelPermission && cancelBlockedReason == null,
+                CancelBlockedReason = cancelBlockedReason,
                 UpdateDateTime = encounter.UpdateDateTime
             };
         }
@@ -237,6 +258,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var now = DateTime.UtcNow;
             var changedFields = new List<string>();
             Guid patientId;
+            OutpatientEncounterScheduleService.ScheduleChange? scheduleChange;
 
             await using (var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken))
             {
@@ -284,6 +306,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     patient.UpdateBy = actorUserId;
                 }
 
+                // Ganti tanggal/sesi praktik dokter yang sama; dokter tidak dapat diganti.
+                scheduleChange = await _scheduleService.ApplyAsync(
+                    encounter, request.VisitDate, request.DoctorScheduleId, actorUserId, now, cancellationToken);
+                if (scheduleChange != null)
+                    changedFields.Add("Schedule");
+
                 if (!string.Equals(encounter.Notes, notes, StringComparison.Ordinal))
                 {
                     encounter.Notes = notes;
@@ -296,9 +324,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 await transaction.CommitAsync(cancellationToken);
             }
 
+            if (scheduleChange != null)
+                await _scheduleService.NotifyAsync(scheduleChange, actorUserId);
+
             if (changedFields.Count > 0)
             {
-                // Tanpa nilai lama/baru: kontak dan alamat adalah data pribadi.
+                // Tanpa nilai lama/baru kontak dan alamat (data pribadi); jadwal dicatat lengkap.
                 await _loggerService.AuditAsync(LogCategory, "UpdateOutpatientEncounterRegistrationData",
                     "Data pendaftaran kunjungan rawat jalan diperbarui.",
                     new
@@ -308,7 +339,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         Controller = "OutpatientEncounter",
                         Action = UpdateAction,
                         ActorUserId = actorUserId,
-                        ChangedFields = changedFields
+                        ChangedFields = changedFields,
+                        OldEncounterDate = scheduleChange?.OldEncounterDate,
+                        OldDoctorScheduleId = scheduleChange?.OldDoctorScheduleId,
+                        NewEncounterDate = scheduleChange != null ? request.VisitDate : null,
+                        NewDoctorScheduleId = scheduleChange != null ? request.DoctorScheduleId : null
                     });
             }
 

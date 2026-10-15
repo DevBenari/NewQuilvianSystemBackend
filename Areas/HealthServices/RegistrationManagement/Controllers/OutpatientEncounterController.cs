@@ -42,11 +42,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     {
         private readonly OutpatientEncounterListService _listService;
         private readonly OutpatientEncounterDetailService _detailService;
+        private readonly OutpatientEncounterScheduleService _scheduleService;
 
         public OutpatientEncounterController(
             OutpatientEncounterListService listService,
-            OutpatientEncounterDetailService detailService)
+            OutpatientEncounterDetailService detailService,
+            OutpatientEncounterScheduleService scheduleService)
         {
+            _scheduleService = scheduleService;
             _listService = listService;
             _detailService = detailService;
         }
@@ -108,18 +111,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 "Detail kunjungan rawat jalan berhasil diambil.")));
 
         /// <summary>
-        /// Mengubah kontak pasien, kewarganegaraan, dan catatan kunjungan (RJ-REG-DEC-005).
+        /// Jadwal tersedia dokter kunjungan (dokter dan poliklinik tetap) mulai besok sampai 30 hari
+        /// ke depan — tanggal + sesi praktik yang kuotanya belum penuh — untuk ganti jadwal di form Perbarui.
+        /// </summary>
+        [HttpGet("{id:guid}/schedule-options")]
+        [ProducesResponseType(typeof(ApiResponse<List<OutpatientEncounterScheduleOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Outpatient Encounter Registration Data", Description = "Mengubah kontak pasien, kewarganegaraan, catatan, dan jadwal kunjungan dari Daftar Pasien Rawat Jalan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("OutpatientEncounter", "Update")]
+        public Task<IActionResult> GetScheduleOptions(
+            Guid id,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(async () => Ok(ApiResponse<List<OutpatientEncounterScheduleOptionResponse>>.Ok(
+                await _scheduleService.GetAvailableSlotsAsync(User, id, cancellationToken),
+                "Jadwal praktik dokter berhasil diambil.")));
+
+        /// <summary>
+        /// Mengubah kontak pasien, kewarganegaraan, catatan kunjungan (RJ-REG-DEC-005), serta
+        /// tanggal dan sesi praktik kunjungan.
         /// </summary>
         /// <remarks>
-        /// Hanya untuk kunjungan sebelum <c>Sedang Konsultasi</c> yang belum batal/selesai.
-        /// Identitas pasien, status, poli, dan dokter tidak dapat diubah lewat endpoint ini.
+        /// Hanya untuk kunjungan sebelum <c>Sedang Konsultasi</c> yang belum batal/selesai; ganti
+        /// jadwal hanya sebelum pasien datang dan diproses. Identitas pasien, status, poli, dan
+        /// dokter tidak dapat diubah lewat endpoint ini.
         /// </remarks>
         [HttpPatch("{id:guid}/registration-data")]
         [ProducesResponseType(typeof(ApiResponse<OutpatientEncounterDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Outpatient Encounter Registration Data", Description = "Mengubah kontak pasien, kewarganegaraan, dan catatan kunjungan dari Daftar Pasien Rawat Jalan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessAction("Update", "Update Outpatient Encounter Registration Data", Description = "Mengubah kontak pasien, kewarganegaraan, catatan, dan jadwal kunjungan dari Daftar Pasien Rawat Jalan", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("OutpatientEncounter", "Update")]
         public Task<IActionResult> UpdateRegistrationData(
             Guid id,
@@ -128,24 +150,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             ExecuteAsync(async () => Ok(ApiResponse<OutpatientEncounterDetailResponse>.Ok(
                 await _detailService.UpdateRegistrationDataAsync(User, id, request, cancellationToken),
                 "Data pendaftaran kunjungan berhasil diperbarui.")));
-
-        /// <summary>
-        /// Pantauan Surat Pengantar Rawat Inap kunjungan: surat dari dokter, tanda tangan elektronik
-        /// dokter, status pengajuan, dan nomor episode bila sudah diadmisi. Baca saja — penerbitan
-        /// dan pembatalan tetap milik Dokter Penanggung Jawab di Klinis Dokter.
-        /// </summary>
-        [HttpGet("{id:guid}/inpatient-admission")]
-        [ProducesResponseType(typeof(ApiResponse<OutpatientInpatientAdmissionMonitorResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Outpatient Encounter", Description = "Melihat pengajuan rawat inap kunjungan rawat jalan", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("OutpatientEncounter", "Read")]
-        public Task<IActionResult> GetInpatientAdmission(
-            Guid id,
-            CancellationToken cancellationToken = default) =>
-            ExecuteAsync(async () => Ok(ApiResponse<OutpatientInpatientAdmissionMonitorResponse>.Ok(
-                await _listService.GetInpatientAdmissionMonitorAsync(User, id, cancellationToken),
-                "Pengajuan rawat inap berhasil diambil.")));
 
         /// <summary>Membatalkan satu kunjungan yang menggantung.</summary>
         /// <remarks>
