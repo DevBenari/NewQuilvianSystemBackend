@@ -13,7 +13,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing/finalizations")]
 [AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING_FINALIZATION", "Health Service Billing Management", "Billing Finalizations",
-    AreaName = "HealthServices", ControllerName = "BillingFinalizations", Description = "Readiness checklist and one-time invoice finalization with departure exception", SortOrder = 6)]
+    AreaName = "HealthServices", ControllerName = "BillingFinalization", Description = "Readiness checklist and one-time invoice finalization with departure exception", SortOrder = 6)]
 [Tags("Health Services / Billing Management / Billing / Finalizations")]
 public sealed class BillingFinalizationsController : ControllerBase
 {
@@ -146,6 +146,46 @@ public sealed class BillingFinalizationsController : ControllerBase
             return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
         }
     }
+
+    /// <summary>
+    /// Mengoreksi pemilik manfaat salah orang pada tagihan yang sudah final lewat Berita Acara Koreksi resmi
+    /// (BE-FIN-109; FIN-DEC-173, FIN-DEC-187, FIN-DEC-195, FIN-DEC-200; FR-FIN-231..234; INT-BIL-FIN-002 §P.6).
+    /// </summary>
+    [HttpPost("invoices/{invoiceId:guid}/correct-benefit-debtor")]
+    [AccessAction("CorrectBenefitDebtor", "Correct Benefit Debtor By Official Report", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("BillingFinalization", "CorrectBenefitDebtor")]
+    [ProducesResponseType(typeof(ApiResponse<CorrectBenefitDebtorResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> CorrectBenefitDebtor(
+        [FromRoute] Guid invoiceId,
+        [FromBody] CorrectBenefitDebtorRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _handoffService.CorrectBenefitDebtorAsync(
+                invoiceId, request, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<CorrectBenefitDebtorResponse>.Ok(
+                result, result.Message));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingFinalizationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(ApiResponse<object>.Fail(
+                StatusCodes.Status400BadRequest, exception.Message));
+        }
+    }
+
 
     private static ApiResponse<T> Success<T>(T data, int statusCode, string message) => new()
     {

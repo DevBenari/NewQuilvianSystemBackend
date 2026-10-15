@@ -10,13 +10,13 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian `AMENDMENT ROADMAP REVISI 18` |
 | Trace | `FR-FIN-231`..`234`; `FIN-DEC-187`, `195`, `200`; `02-backend-architecture.md` P.7 |
 | Contract version | `FIN-INTEGRATION-1.8` §P.6 (`draft`); `FIN-STATE-1.8` P.1 |
-| Dependency | `BE-FIN-091` 🟡, `BE-FIN-095` 🟡 — keduanya belum ✅ |
+| Dependency | `BE-FIN-091` ✅, `BE-FIN-095` ✅ — keduanya belum ✅ |
 | Klasifikasi | `HEAVY` — mengaktifkan `HandoffType` yang sudah ada tapi dorman, menyentuh skema persetujuan Billing-Finance, menemukan blocker cross-module baru |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/BillingIntake/Services/FinanceBillingIntakeService.cs` (diperluas) |
 | Model | Claude Sonnet 5 |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN secara struktural.** Langkah 1-2 kontrak (`batalkan lama, terbitkan baru`) diimplementasikan, tetapi **tidak akan pernah benar-benar berjalan** sampai Billing membangun jalur penerbitan `BilArHandoff` pengganti (lihat §0 — blocker baru, dicatat eksplisit). Langkah 3 (restitusi payroll) **TIDAK diimplementasikan**, bukan diam-diam dilewatkan. `dotnet build` **TIDAK DIJALANKAN** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

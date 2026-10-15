@@ -27,6 +27,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
         public decimal DefaultAmount { get; set; }
         public decimal DefaultPercentage { get; set; }
         public decimal? MaximumAmount { get; set; }
+        public decimal? MaxNetSalaryPercentage { get; set; }
         public bool IsRecurring { get; set; }
         public bool IsStatutory { get; set; }
         public bool IsPreTax { get; set; }
@@ -142,6 +143,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
 
         [Range(0, double.MaxValue)]
         public decimal? MaximumAmount { get; set; }
+
+        [Range(0, 100)]
+        public decimal? MaxNetSalaryPercentage { get; set; }
 
         public bool IsRecurring { get; set; } = true;
 

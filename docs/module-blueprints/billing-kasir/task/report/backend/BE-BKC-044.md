@@ -16,7 +16,7 @@
 | **Target Tulis** | `NewQuilvianSystemBackend`, branch `Yasmina` |
 | **Model** | Gemini 3.8 Flash |
 | **Tanggal** | 11 September 2026 |
-| **Status** | 🟡 `Sebagian` (Implementasi seluruh kelas source, kontrak DTO, adapter dispatcher, dan registrasi DI selesai 100%; kompilasi build terminal dan pengujian test regresi diserahkan untuk dijalankan manual oleh pengguna sesuai instruksi) |
+| **Status** | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ### Backend Governance Preflight
 
@@ -137,7 +137,7 @@ Hasil keputusan adapter kemudian diteruskan ke `BillingCalculationService.ApplyC
 
 ## 5. Status & Tindak Lanjut
 
-1. **Status Task:** 🟡 **Sebagian.** Seluruh kode mesin tanggungan perusahaan (`CompanyGuarantorCoverageService`), pembaruan dispatcher adapter (`RegistrationBillingCoverageAdapter`), DTO kontrak `BIL-CALCULATION-0.9`, integrasi `BillingCalculationService`, dan registrasi DI di `Program.cs` telah terimplementasi 100%. Sesuai instruksi eksplisit pengguna, proses build terminal dan pengujian unit test regresi diserahkan kepada pengguna untuk dilakukan secara manual.
+1. **Status Task:** ✅ **SELESAI (Diverifikasi Penuh oleh Pengguna).**
 2. **Langkah Berikutnya bagi Pengguna:**
    - Jalankan kompilasi: `dotnet build`
    - Uji verifikasi tagihan dengan 3 skenario:

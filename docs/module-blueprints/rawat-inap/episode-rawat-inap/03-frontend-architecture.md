@@ -1431,3 +1431,9 @@ Cabang transfer: URL menyimpan patientId, transferId, sourceType dan episodeId h
 Alur admisi tidak membaca kelas dari hook pembayaran. `resolveInpatientAdmissionRoom` memvalidasi kelas/unit bed; `doctor.submit({selectedBed})` baru menulis sesudah bed dipilih; `bed.prepareBooking` menahan klik ganda dan kegagalan. Episode ID disimpan pada URL untuk resume. Konfirmasi tidak mengedit kelas; transfer memakai kelas target bed, deposit memakai kelas episode server bila sudah tersedia.
 
 Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen admisi bayi -> RWI-BAYI-016-1.0, 14 Oktober 2026
+
+Entry new/existing kategori bayi memakai komposisi domain khusus dengan hook/DTO yang sama. View -> hook domain -> Axios service -> util/constants tetap pola existing. Entry transfer/kamar pulih tidak didesain ulang oleh scope ini. Konteks bayi/payer terkunci setelah Draft dan koreksi harus berwenang.
+
+Detail dan batas mengikuti [kontrak admisi bayi](contracts/newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.

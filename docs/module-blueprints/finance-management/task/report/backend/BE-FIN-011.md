@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-5`) |
 | Trace | `FIN-DES-017`..`019`; `FR-FIN-070`..`072`; kontrak `FIN-INTEGRATION-1.0` |
 | Contract version | `NOT APPLICABLE` — tidak ada Controller/DTO API pada task ini |
-| Dependency | `BE-FIN-010` — 🟡 sebagian 21 September 2026 (entity+configuration+migration tertulis, belum dijalankan), lihat [laporan](BE-FIN-010.md) |
+| Dependency | `BE-FIN-010` — ✅ SELESAI 21 September 2026 (entity+configuration+migration tertulis, belum dijalankan), lihat [laporan](BE-FIN-010.md) |
 | Klasifikasi | `HEAVY` — mengubah alur transaksi 2 service yang sudah selesai (`BE-FIN-008`/`009`); **perluasan lingkup atas otorisasi eksplisit** (bagian 0) |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/AccountingIntegration/Services/FinanceAccountingOutboxService.cs` (baru); `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableService.cs` (disunting); `Areas/Corporate/FinanceManagement/BillingIntake/Services/FinanceBillingIntakeService.cs` (disunting); `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` (registrasi DI) |

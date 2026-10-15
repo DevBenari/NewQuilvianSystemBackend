@@ -35,16 +35,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         displayName: "Outpatient Encounter",
         AreaName = "HealthServices",
         ControllerName = "OutpatientEncounter",
-        Description = "Daftar Pasien Rawat Jalan bercakupan dokter/perawat dan pembatalan kunjungan menggantung",
+        Description = "Daftar Pasien Rawat Jalan bercakupan dokter/perawat, detail, edit data pendaftaran, dan pembatalan kunjungan menggantung",
         SortOrder = 3)]
     [Tags("Health Services / Registration Management / Outpatient Encounter")]
     public class OutpatientEncounterController : ControllerBase
     {
         private readonly OutpatientEncounterListService _listService;
+        private readonly OutpatientEncounterDetailService _detailService;
 
-        public OutpatientEncounterController(OutpatientEncounterListService listService)
+        public OutpatientEncounterController(
+            OutpatientEncounterListService listService,
+            OutpatientEncounterDetailService detailService)
         {
             _listService = listService;
+            _detailService = detailService;
         }
 
         /// <summary>Daftar kunjungan Rawat Jalan berklinik dalam cakupan pengguna, berhalaman.</summary>
@@ -85,6 +89,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             ExecuteAsync(async () => Ok(ApiResponse<OutpatientEncounterFilterMetadataResponse>.Ok(
                 await _listService.GetFilterMetadataAsync(User, cancellationToken),
                 "Metadata filter pasien rawat jalan berhasil diambil.")));
+
+        /// <summary>
+        /// Detail satu kunjungan dalam cakupan pengguna: data kunjungan, antrean, pembayaran,
+        /// dan data pasien (RJ-REG-REV-BE-003). Di luar cakupan dijawab <c>404</c>.
+        /// </summary>
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<OutpatientEncounterDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Outpatient Encounter", Description = "Melihat detail kunjungan rawat jalan dalam cakupan pengguna", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OutpatientEncounter", "Read")]
+        public Task<IActionResult> GetDetail(
+            Guid id,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(async () => Ok(ApiResponse<OutpatientEncounterDetailResponse>.Ok(
+                await _detailService.GetDetailAsync(User, id, cancellationToken),
+                "Detail kunjungan rawat jalan berhasil diambil.")));
+
+        /// <summary>
+        /// Mengubah kontak pasien, kewarganegaraan, dan catatan kunjungan (RJ-REG-DEC-005).
+        /// </summary>
+        /// <remarks>
+        /// Hanya untuk kunjungan sebelum <c>Sedang Konsultasi</c> yang belum batal/selesai.
+        /// Identitas pasien, status, poli, dan dokter tidak dapat diubah lewat endpoint ini.
+        /// </remarks>
+        [HttpPatch("{id:guid}/registration-data")]
+        [ProducesResponseType(typeof(ApiResponse<OutpatientEncounterDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Outpatient Encounter Registration Data", Description = "Mengubah kontak pasien, kewarganegaraan, dan catatan kunjungan dari Daftar Pasien Rawat Jalan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("OutpatientEncounter", "Update")]
+        public Task<IActionResult> UpdateRegistrationData(
+            Guid id,
+            [FromBody] OutpatientEncounterRegistrationDataUpdateRequest? request,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(async () => Ok(ApiResponse<OutpatientEncounterDetailResponse>.Ok(
+                await _detailService.UpdateRegistrationDataAsync(User, id, request, cancellationToken),
+                "Data pendaftaran kunjungan berhasil diperbarui.")));
 
         /// <summary>
         /// Pantauan Surat Pengantar Rawat Inap kunjungan: surat dari dokter, tanda tangan elektronik

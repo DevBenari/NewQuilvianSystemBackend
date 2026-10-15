@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Belum di-commit — lihat Status Git bagian 7 (working tree `Yasmina`, HEAD `7811c048`) |
 | Tanggal | 29 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source dan berkas migration selesai; otorisasi pembuatan berkas migration diberikan eksplisit pengguna 29 September 2026 (menjawab prasyarat #10 yang sebelumnya "belum" untuk task ini). `dotnet build` **sengaja tidak dijalankan** — instruksi eksplisit pengguna pada task ini ("tanpa build automatis"). Eksekusi migration ke database **belum diminta** — wewenang terpisah dari pembuatan berkas |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -106,7 +106,7 @@ disiapkan di sini adalah bentuk data yang akan dipakai proses bisnis itu:
 | `Migrations/20260929120000_AddArInvoiceBatchAndReceiptDeduction.cs` | **Baru.** `Up()`: `CreateTable` × 3 + `CreateIndex` × 11. `Down()`: `DropTable` urutan FK terbalik |
 | `Migrations/20260929120000_AddArInvoiceBatchAndReceiptDeduction.Designer.cs` | **Baru.** Bentuk ringkas, sumber kebenaran model tetap `ApplicationDbContextModelSnapshot.cs` |
 | `Migrations/ApplicationDbContextModelSnapshot.cs` | Tambah 3 entity (properties + relationships + navigation sesuai pola tiga-pass berkas ini) |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-038` → 🟡; prasyarat #10 diperbarui — otorisasi pembuatan berkas migration **diberikan** 29 September 2026 |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-038` → ✅; prasyarat #10 diperbarui — otorisasi pembuatan berkas migration **diberikan** 29 September 2026 |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 

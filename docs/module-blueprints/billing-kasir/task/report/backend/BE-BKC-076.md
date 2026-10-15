@@ -425,7 +425,7 @@ Final result: PASS
 
 ## Status Task & Kesiapan Frontend
 
-- **Status Backend `BE-BKC-076`:** 🟡 **SEBAGIAN (Source Selesai, Menunggu Build Mandiri Pengguna)**
+- **Status Backend `BE-BKC-076`:** ✅ **SELESAI (Diverifikasi Penuh oleh Pengguna)**
 - **Kesiapan Frontend:**
   - Selesainya `BE-BKC-076` membuka jalan bagi pengerjaan paralel dua task frontend pada gelombang `MVP-29`:
     1. **`FE-BKC-041`**: Tab "Rawat Inap" pada Consumer Handoffs (`/billing/consumer-handoffs`) untuk memantau status clearance, daftar sisa tagihan, tombol "Akui", dan tombol "Evaluasi Ulang".

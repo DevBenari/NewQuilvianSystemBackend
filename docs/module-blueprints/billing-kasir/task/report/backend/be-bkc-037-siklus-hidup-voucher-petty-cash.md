@@ -304,7 +304,7 @@ dibuktikan pada provider PostgreSQL, di luar jangkauan unit test `InMemory`.
   perilakunya** (tidak dijabarkan rinci pada kontrak) — frontend diharapkan mengirim
   `startDate`/`endDate` langsung untuk sementara. Dicatat sebagai keputusan proporsional, bukan
   kelalaian, karena tidak ada acceptance test yang menuntut logika periode bernama.
-- **`BE-BKC-033`** (tabel dasar) masih 🟡 pada roadmap menyangkut bukti seed dan review Finance —
+- **`BE-BKC-033`** (tabel dasar) telah ✅ pada roadmap menyangkut bukti seed dan review Finance —
   tidak menghalangi source task ini, tetapi wajib tertutup sebelum gelombang `MVP-14` dinyatakan
   naik.
 - **`BIL-AT-077`** (regresi `BilCashierShift` tidak bergerak akibat voucher) **belum** diuji pada

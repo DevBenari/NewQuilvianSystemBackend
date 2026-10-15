@@ -15,7 +15,7 @@
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend/Areas/HealthServices/BillingManagement/Cashier/Models/BilCashierShiftCommand.cs`, `NewQuilvianSystemBackend/Areas/HealthServices/BillingManagement/Cashier/Dtos/CashierShiftDtos.cs`, `NewQuilvianSystemBackend/Areas/HealthServices/BillingManagement/Cashier/Services/CashierShiftService.cs`, `NewQuilvianSystemBackend/Areas/HealthServices/BillingManagement/Cashier/Controllers/CashierShiftsController.cs` |
 | Tanggal | 2026-09-25 |
-| Status | 🟡 **SEBAGIAN — source code selesai, menunggu kompilasi build mandiri dan verifikasi manual pengguna.** Penambahan field `Outcome` pada `ReviewVarianceRequest`, transisi status `PERLU_TINDAK_LANJUT` pada `ReviewVarianceAsync`, DTO `ResolveShiftFollowUpRequest`, method `ResolveFollowUpAsync`, audit command `RESOLVE_FOLLOW_UP`, dan controller endpoint `POST {id}/resolve-follow-up` telah terpasang lengkap. Kompilasi `dotnet build` diserahkan kepada pengguna sesuai instruksi. |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

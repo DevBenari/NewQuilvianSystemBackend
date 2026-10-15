@@ -18,7 +18,7 @@
 | Model | Claude Sonnet 5 |
 | Commit frontend saat dikerjakan | `66d90570d` (branch `yasmina`) |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `npm run lint:errors`, `npm run test:unit`, `npm run build` seluruhnya PASS (dijalankan sesi ini). `npm run dev` **TIDAK DIJALANKAN** — satu-satunya sisa adalah pemeriksaan menu manual sebagai pemegang hak dan yang tidak berhak (§7) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

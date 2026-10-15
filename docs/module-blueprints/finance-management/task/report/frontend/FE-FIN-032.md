@@ -11,12 +11,12 @@
 | Trace | `FR-FIN-167`..`170`, `FR-FIN-178`, `FR-FIN-181`..`183`; `FIN-DEC-129`, `136`, `140`; `FIN-DES-089`, `090`, `093`; `03-frontend-architecture.md` 19.2 nomor 9 dan 20.2 |
 | Contract version | `FIN-API-1.6` F.2 (`contract_status: approved 2026-10-02`); `FIN-STATE-1.6` F.2; `FIN-VAL-1.7` `FIN-VAL-186`..`196`; `FIN-VAL-1.8` `FIN-VAL-224`..`226`; `FIN-PERM-1.7` G.5 |
 | Wewenang UI | Frontend Owner — **sebagian tertahan** `FIN-OQ-079` (menu). **Mengikat:** unduh templat menuntut jenis **dan** format; pemilih unggah **tidak** meminta format; galat baris selalu membawa nomor baris dan dapat disalin/diunduh; penolakan rekonsiliasi menampilkan kedua angka berdampingan; asal format batch ditampilkan; pilihan XLSX pada unduh templat nonaktif sampai `BE-FIN-083`. `DEV_DISCRETION`: tata letak, warna |
-| Dependency | `BE-FIN-082` 🟡 (daftar, rincian, nyatakan, setujui, tolak), `BE-FIN-081` 🟡 (unggah, validasi), `BE-FIN-080` 🟡 (templat CSV). Seluruhnya source lengkap; pengguna melaporkan `dotnet build` sukses setelah task itu ditulis. **`BE-FIN-083` (pembaca XLSX) belum ada**, tertahan `FIN-OQ-081`. Penerapan migration `AddFinanceOpeningItemMigration` **tidak dikonfirmasi** dalam sesi ini |
+| Dependency | `BE-FIN-082` ✅ (daftar, rincian, nyatakan, setujui, tolak), `BE-FIN-081` ✅ (unggah, validasi), `BE-FIN-080` ✅ (templat CSV). Seluruhnya source lengkap; pengguna melaporkan `dotnet build` sukses setelah task itu ditulis. **`BE-FIN-083` (pembaca XLSX) belum ada**, tertahan `FIN-OQ-081`. Penerapan migration `AddFinanceOpeningItemMigration` **tidak dikonfirmasi** dalam sesi ini |
 | Klasifikasi | `HIGH` — 1 rute, 1 view + 4 komponen turunan, 1 hook, 1 slice, 1 service, 1 berkas konstanta, 1 berkas utilitas, 1 CSS Module, 1 unit test, 2 perubahan kecil pada berkas existing; unggah berkas, unduh berkas, dan dua tindakan yang tidak dapat ditarik |
 | Task mode | `FRONTEND MODE` — target tulis `QuilvianSystemFrontendDev`; backend dibaca read-only (tidak diubah); laporan dan bukti roadmap ditulis di repository backend |
 | Branch | `yasmina` (upstream `origin/yasmina`); penetapan eksplisit pemegang modul belum dikonfirmasi, sama seperti task sebelumnya |
 | Tanggal | 3 Oktober 2026 |
-| Status | 🟡 **Sebagian.** Source lengkap sesuai kontrak dan keputusan pemilik 3 Oktober 2026 (unggah ulang). Backend `BE-FIN-085` ikut berubah dan **belum dikompilasi**. `npm run lint:errors`, `npm run test:unit`, `npm run build` **NOT RUN** (standing instruction: dijalankan manual oleh pengguna). Verifikasi manual UI **NOT FEASIBLE** dari sesi ini (§8). Jalur XLSX tidak dapat dibuktikan end-to-end karena `BE-FIN-083` belum ada |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -234,7 +234,7 @@ Status "Terpenuhi (source)" = terpenuhi menurut pembacaan kode; **belum teramati
 ### Temuan di luar cakupan (`UNRELATED EXISTING ISSUE`, tidak diperbaiki)
 
 - `subledger-control-accounts-view.jsx` (`FE-FIN-027`) memberi `DataFilter` prop `searchValue`, sedangkan komponen itu membaca `searchKeyword`; kolom pencarian pada layar itu kemungkinan tidak terkendali.
-- `BE-FIN-079`..`082` masih berstatus 🟡 pada roadmap backend sementara pengguna melaporkan build sukses; belum diperbarui. Bukan wewenang task frontend.
+- `BE-FIN-079`..`082` telah berstatus ✅ pada roadmap backend sementara pengguna melaporkan build sukses; belum diperbarui. Bukan wewenang task frontend.
 
 ---
 

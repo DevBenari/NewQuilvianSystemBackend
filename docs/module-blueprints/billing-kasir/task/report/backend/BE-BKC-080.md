@@ -61,7 +61,7 @@ Melalui implementasi task `BE-BKC-080`, seluruh kelemahan di atas telah diselesa
 | Task mode | `BACKEND` |
 | Target tulis | `Areas/HealthServices/BillingManagement/Billing/Services/BillingSettlementService.cs`<br/>`Areas/HealthServices/BillingManagement/Billing/Services/BillingDepositService.cs` |
 | Tanggal | 2026-09-29 |
-| Status | 🟡 **SEBAGIAN — source code selesai, menunggu kompilasi build mandiri dan verifikasi pengguna.** (Instruksi pengguna: jangan lakukan build automatis). |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

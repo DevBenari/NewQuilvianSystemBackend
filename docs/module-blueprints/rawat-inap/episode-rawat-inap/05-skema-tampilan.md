@@ -1864,3 +1864,9 @@ Dirawat", "Kunjungan Aktif", "Permintaan Kamar Pulih", "Ada Admisi Disiapkan", "
 Tipe Pasien"), dengan permintaan Kamar Pulih yang sedang dipakai tidak dihitung sebagai penghalang. Langkah Pilih Bed
 (3.9) memeriksa ulang kelayakan sebelum kunjungan dibuat; penolakannya tampil pada alert langkah itu tanpa permintaan
 tulis apa pun. Skema sebelum-sesudah ada pada [`PLAN-REPAIR-EPS-010`](docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) bagian 3.
+
+## Amandemen admisi bayi -> RWI-BAYI-016-1.0, 14 Oktober 2026
+
+Bayi pada pasien baru dan pasien lama memakai Konteks -> Identitas -> Perawatan/DPJP -> Penjamin/Penagihan -> Deposit kondisional -> Penempatan/Pemesanan -> Persetujuan Wali -> Tinjau/Aktifkan -> Dokumen. Sembilan tahap (delapan tanpa deposit) menggantikan tahap umum hanya untuk cabang bayi. Skema rinci tetap BAYI-S01 sampai S09 pada plan repair 016.
+
+Detail dan batas mengikuti [kontrak admisi bayi](contracts/newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.

@@ -67,6 +67,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
 
         public Guid? MotherEpisodeId { get; set; }
 
+        [MaxLength(20)] public string? NewbornAdmissionSource { get; set; }
+        [MaxLength(20)] public string? NewbornCareMode { get; set; }
+        [MaxLength(200)] public string? NewbornCareSource { get; set; }
+        public bool RequiresNeonatalIntensiveCare { get; set; }
+        [MaxLength(20)] public string? FamilyBillingPreference { get; set; }
+        public decimal? PlannedDepositAmount { get; set; }
+
         public bool RequiresIsolation { get; set; } = false;
 
         public InpIsolationSource? IsolationSource { get; set; }

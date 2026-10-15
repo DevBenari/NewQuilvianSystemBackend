@@ -223,7 +223,7 @@ sendiri.
   jangkauan unit test `InMemory`, konsisten dengan keterbatasan yang sudah didokumentasikan
   `BE-BKC-034`/`036`.
 - `BE-BKC-033` (tabel dasar) dan `BE-BKC-034` (penomoran, source+test lengkap tapi belum punya
-  laporan task tersendiri) masih 🟡 pada roadmap — **tidak menghalangi** task ini (permission
+  laporan task tersendiri) telah ✅ pada roadmap — **tidak menghalangi** task ini (permission
   wiring, privasi log, dan regresi kas shift sama sekali tidak bergantung pada status keduanya),
   tetapi tetap tercatat sebagai gerbang MVP-13 yang belum tertutup.
 - Ditemukan **satu berkas frontend** (`docs/module-blueprints/billing-kasir/roadmap/frontend-roadmap.md`)

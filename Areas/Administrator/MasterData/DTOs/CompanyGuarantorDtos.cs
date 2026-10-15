@@ -54,6 +54,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsNeedApprovalForDrug { get; set; }
         public bool IsCoverageLimitedByEmployeeGrade { get; set; }
         public bool IsAllowExcessPaymentByPatient { get; set; }
+        public bool IsEmployeeBenefitGuarantor { get; set; }
         public decimal? CreditLimitAmount { get; set; }
         public decimal? CurrentOutstandingAmount { get; set; }
         public int PaymentDueDays { get; set; }
@@ -103,6 +104,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsNeedApprovalForDrug { get; set; }
         public bool IsCoverageLimitedByEmployeeGrade { get; set; }
         public bool IsAllowExcessPaymentByPatient { get; set; }
+        public bool IsEmployeeBenefitGuarantor { get; set; }
         public decimal? CreditLimitAmount { get; set; }
         public decimal? CurrentOutstandingAmount { get; set; }
         public int PaymentDueDays { get; set; }
@@ -256,6 +258,13 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public bool IsCoverageLimitedByEmployeeGrade { get; set; } = true;
 
         public bool IsAllowExcessPaymentByPatient { get; set; } = true;
+
+        /// <summary>
+        /// BE-FIN-106: menandai penjamin internal (RS Benefit). Kosong berarti tidak diubah pada
+        /// pembaruan (agar form lama yang belum mengirim field ini tidak menghapus penanda) dan
+        /// false pada pembuatan. Paling banyak satu penjamin yang boleh bertanda.
+        /// </summary>
+        public bool? IsEmployeeBenefitGuarantor { get; set; }
 
         [Range(0, 999999999999)]
         public decimal? CreditLimitAmount { get; set; }

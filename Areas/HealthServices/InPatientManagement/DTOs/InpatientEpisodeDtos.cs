@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// apa adanya sebagai jangkar episode.
     /// </description></item>
     /// <item><description>
-    /// Petugas tidak menunjuk kunjungan apa pun — inilah jalur pasien datang langsung.
+    /// Petugas tidak menunjuk kunjungan apa pun â€” inilah jalur pasien datang langsung.
     /// Sistem membuat kunjungan bertipe rawat inap sendiri, di dalam proses admisi yang sama.
     /// Petugas tidak diminta mengisi form kedua (<c>RWI-AC-009</c>).
     /// </description></item>
@@ -47,7 +47,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public Guid? SelectedBedId { get; set; }
 
         /// <summary>
-        /// Dokter penanggung jawab pelayanan pertama. Wajib sejak detik pertama — episode
+        /// Dokter penanggung jawab pelayanan pertama. Wajib sejak detik pertama â€” episode
         /// tanpa DPJP tidak boleh pernah tersimpan (<c>INV-INP-03</c>).
         /// </summary>
         public Guid DoctorId { get; set; }
@@ -63,6 +63,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// episode ibu <b>tidak</b> menutup episode bayinya.
         /// </remarks>
         public Guid? MotherEpisodeId { get; set; }
+
+        public InpatientNewbornAdmissionContext? NewbornAdmission { get; set; }
 
         /// <summary>Catatan admisi. Kolom sensitif; tidak boleh masuk payload logger.</summary>
         [MaxLength(1000)]
@@ -85,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <b>Yang sengaja tidak ada di sini.</b> Pasien dan kunjungan adalah jangkar episode dan
     /// tidak dapat ditukar lewat endpoint ini: menukarnya berarti episode yang lain, bukan
     /// koreksi isian. Salah pilih pasien dibetulkan dengan membatalkan admisi lalu membuka
-    /// admisi baru — persis contoh pada <c>RWI-RULE-004</c>. Pengalihan DPJP juga tidak di
+    /// admisi baru â€” persis contoh pada <c>RWI-RULE-004</c>. Pengalihan DPJP juga tidak di
     /// sini; ia punya endpoint bermakna sendiri dan meninggalkan riwayat penugasan.
     /// </remarks>
     public class UpdateAdmissionRequest
@@ -98,10 +100,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         /// <summary>
         /// Episode ibu, bila episode ini adalah bayi rawat gabung. Boleh diubah selagi episode
-        /// masih <c>Draft</c> — hubungan ibu dan bayi kadang baru diketahui setelah admisi
+        /// masih <c>Draft</c> â€” hubungan ibu dan bayi kadang baru diketahui setelah admisi
         /// dibuka.
         /// </summary>
         public Guid? MotherEpisodeId { get; set; }
+
+        public InpatientNewbornAdmissionContext? NewbornAdmission { get; set; }
 
         /// <summary>Catatan admisi. Kolom sensitif; tidak boleh masuk payload logger.</summary>
         [MaxLength(1000)]
@@ -219,6 +223,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>Episode ibu, bila episode ini adalah bayi rawat gabung.</summary>
         public Guid? MotherEpisodeId { get; set; }
 
+        public InpatientNewbornAdmissionContext? NewbornAdmission { get; set; }
+
         public string? MotherEpisodeNumber { get; set; }
 
         public string? MotherPatientName { get; set; }
@@ -230,7 +236,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         /// <summary>
         /// Lokasi pasien saat ini, selalu dibaca dari baris <c>InpBedPlacement</c> yang masih
-        /// aktif — bukan dari kolom pada episode.
+        /// aktif â€” bukan dari kolom pada episode.
         /// </summary>
         public InpatientEpisodeCurrentLocationResponse? CurrentLocation { get; set; }
 
@@ -275,6 +281,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </summary>
     public class ActiveMotherListQuery
     {
+        public Guid? MotherPatientId { get; set; }
         public string? Search { get; set; }
 
         public Guid? ExcludeChildPatientId { get; set; }
@@ -289,6 +296,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </summary>
     public class ActiveMotherItemResponse
     {
+        public Guid? RoomId { get; set; }
         public Guid EpisodeId { get; set; }
 
         public string EpisodeNumber { get; set; } = string.Empty;

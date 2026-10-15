@@ -107,7 +107,7 @@ Seluruh tabel memakai schema `public`, nama tabel tunggal PascalCase, dan `DbSet
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
 | `SettlementNumber` | `string(50)` | Ya | — | **Unique** | — | — | Tidak | Pola `PLB-yyyyMMdd-<guid>`, dialokasikan service |
 | `AccountingPeriodCode` | `string(7)` | Ya | — | **Unique terfilter** `(AccountingPeriodCode, DebtorReferenceId)` untuk `Status <> 'DIBATALKAN'` | — | — | Tidak | Periode yang ditutup, bentuk `YYYY-MM` |
-| `DebtorReferenceId` | `Guid` | Ya | — | bagian unique di atas | Master penjamin milik **Administrator** — asuransi atau perusahaan | — | Tidak | Penjamin internal yang ditutup, dipilih operator (`FIN-DES-104`). Master mana yang dipakai dilacak `FIN-OQ-102` |
+| `DebtorReferenceId` | `Guid` | Ya | — | bagian unique di atas | Master penjamin perusahaan milik **Administrator** (`MstCompanyGuarantor`) bertanda `IsEmployeeBenefitGuarantor = true` | — | Tidak | Penjamin internal yang ditutup, dipilih operator (`FIN-DES-104`). Diratifikasi oleh `FIN-DEC-227` (menutup `FIN-OQ-102`) |
 | `TotalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Jumlah seluruh baris anaknya. **MUST** lebih besar dari nol |
 | `ItemCount` | `int` | Ya | — | — | — | — | Tidak | Jumlah kartu piutang yang ditutup. **MUST** lebih besar dari nol |
 | `Status` | `string(30)` | Ya | `DRAF` | Index `(Status, AccountingPeriodCode)` | — | — | Tidak | `DRAF`, `DITERBITKAN`, `DIBATALKAN`. Dibatasi `CK_FinBenefitSettlement_Status` |
@@ -399,7 +399,7 @@ Finance **tidak** membaca kolom ini; Finance hanya menyalin `Amount`.
 |---|---|---|
 | `MstBenefitType` | Sekurang-kurangnya satu jenis dengan `BenefitCategory = 'Medical'` dan `IsClaimBased = false` | Kebijakan benefit rumah sakit (pemilik HR) |
 | `MstBenefitPlan` | Sekurang-kurangnya satu plan atas jenis itu dengan `CoverageType`, `CoverageLimitAmount` > 0, dan `MaximumDependents` | Kebijakan benefit rumah sakit (pemilik HR) |
-| `MstCompanyGuarantor` | Satu penjamin internal "RS Benefit" | `FIN-OQ-102` (Administrator) |
+| `MstCompanyGuarantor` | Sekurang-kurangnya satu penjamin perusahaan bertanda `IsEmployeeBenefitGuarantor = true` | `FIN-DEC-227` (Administrator) |
 
 Tanpa ketiganya, tidak ada pegawai yang dapat di-enroll dan seluruh kunjungan pegawai jatuh ke Pasien Umum.
 Nilai batas plafon **MUST** berasal dari master plan, **MUST NOT** di-hardcode di controller maupun frontend.
@@ -516,3 +516,44 @@ Model: `Areas/Corporate/FinanceManagement/MasterData/Models/MstPayrollDeductionC
 |---|---|---|
 | `MstPayrollPeriod` (HR, sudah ada) | Satu baris per bulan yang akan dipotong, aktif | Kalender penggajian (pemilik HR), lewat `PayrollPeriodController` yang sudah ada |
 | `MstPayrollDeductionCutover` | Kosong | Diisi pejabat Finance saat mesin payroll siap |
+
+---
+
+## 11. Perubahan Skema Revisi 21 — Penanda Penjamin Internal dan Tautan Pegawai HR
+
+```yaml
+last_changed_in: Revisi 21 (13 Oktober 2026)
+status: approved
+input_revision: 00-interview-decisions.md (FIN-DEC-227..FIN-DEC-230)
+input_hash: 7d14ac2b8911f930
+```
+
+### 11.1 `MstCompanyGuarantor` (Diperbarui)
+
+Model: `Areas/Administrator/MasterData/Models/MstCompanyGuarantor.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Sensitif | Keterangan |
+|---|---|:---:|---|---|:---:|---|
+| `IsEmployeeBenefitGuarantor` | `bool` | Ya | `false` | Index terfilter `WHERE "IsEmployeeBenefitGuarantor" = true AND "IsDelete" = false` | Tidak | Penanda penjamin internal benefit karyawan RS (`FIN-DEC-227`). Menutup `FIN-OQ-102` |
+
+### 11.2 `MstPatientCompanyGuarantor` (Diperbarui)
+
+Model: `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatientCompanyGuarantor.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Relasi | Sensitif | Keterangan |
+|---|---|:---:|---|---|:---:|---|
+| `EmployeeId` | `Guid?` | Bersyarat | `NULL` | FK → `MstEmployee.Id` | Tidak | Wajib terisi jika penjamin bertanda internal (`FIN-VAL-259`). NIK pasien wajib cocok dengan NIK pegawai untuk hubungan `SELF` (`FIN-DEC-228`) |
+| `FamilyMemberId` | `Guid?` | Bersyarat | `NULL` | FK → `WfpFamilyMember.Id` | Tidak | Diisi bila pasien adalah anggota keluarga tanggungan. NIK wajib cocok bila ada; bila belum ada (anak/bayi baru lahir), nama lengkap dan tanggal lahir wajib cocok dengan HR (`FIN-DEC-228`) |
+| `BenefitRelationship` | `string(50)?` | Bersyarat | `NULL` | — | Tidak | Hubungan benefit hasil penentuan sistem (`SELF`, `SPOUSE`, `CHILD`, `PARENT`, `OTHER`). Klien dilarang mengirim manual (`FIN-VAL-260`) |
+
+### 11.3 `RegPatientEncounterGuarantor` (Diperbarui)
+
+Model: `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounterGuarantor.cs`
+(Didukung migrasi `20261013055825_AddEmployeeLinkToPatientCompanyGuarantor`)
+
+| Kolom | Tipe | Wajib | Bawaan | Sensitif | Keterangan |
+|---|---|:---:|---|:---:|---|
+| `EmployeeIdSnapshot` | `Guid?` | Tidak | `NULL` | Tidak | Snapshot ID pegawai HR saat penjamin ditautkan ke kunjungan |
+| `FamilyMemberIdSnapshot` | `Guid?` | Tidak | `NULL` | Tidak | Snapshot ID anggota keluarga HR saat kunjungan didaftarkan |
+| `BenefitRelationshipSnapshot` | `string(50)?` | Tidak | `NULL` | Tidak | Snapshot hubungan benefit saat kunjungan didaftarkan |
+

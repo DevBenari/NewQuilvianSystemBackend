@@ -8,7 +8,7 @@
 | Task mode | `FRONTEND` (backend read-only — endpoint dan aturan validasi `BE-BKC-048` dibaca langsung dari source, tidak ada perubahan backend) |
 | Write target | `QuilvianSystemFrontendDev` (source, branch `yasmina`); laporan ini ditulis di `NewQuilvianSystemBackend` sesuai aturan lokasi laporan |
 | Dependency | `FE-BKC-028` (kerangka halaman — source selesai, lihat laporannya), `BE-BKC-048` ✅ (`PUT /{id}/item-payer-assignments`, dikonfirmasi ada persis sesuai kontrak beserta seluruh aturan validasinya dibaca dari `BillingPayerEditService.UpdateItemPayerAssignmentsAsync`) |
-| Status task | 🟡 **Sebagian.** Source semula selesai; lihat **Amendment 14 September 2026** di bawah untuk perubahan struktural setelahnya. `npm run lint`/`test:unit`/`build` TIDAK dijalankan sesi ini. Belum di-commit |
+| Status task | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ## Amendment 14 September 2026 — tabel mini dihapus, digabung ke `FE-BKC-028`
 
