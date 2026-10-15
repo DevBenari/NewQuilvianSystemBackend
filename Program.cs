@@ -465,6 +465,9 @@ try
     builder.Services.AddScoped<LabCatalogService>();
     builder.Services.AddScoped<LabPatientRegistrationService>();
     builder.Services.AddScoped<RadOrderService>();
+    builder.Services.AddScoped<RadOrderImageService>();
+    builder.Services.AddScoped<RadOperationalReportService>();
+    builder.Services.AddScoped<RadReportTemplateService>();
     builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<RadSafetyPolicyService>();
     builder.Services.AddScoped<RadModalityService>();

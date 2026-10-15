@@ -47,6 +47,11 @@ keputusan asal, ia lahir dari selera, bukan kebutuhan.
 | `RAD-DEC-013` | Penanda cito pada pesanan | `BE-RAD-12` dan `BE-RAD-13` **selesai 2026-09-11** | `FE-RAD-05`, `FE-RAD-07` | AC-39 s/d AC-42. **AC-42 terpenuhi** — penanda tercatat pelakunya dan waktunya, dibuktikan `RadOrderUrgencyTests`; 259 uji radiologi lulus. **AC-39 dan AC-41 juga terpenuhi** lewat `RadWorklistTests`. AC-40 penyajian layar, milik `FE-RAD-05` dan `FE-RAD-07` |
 | `RAD-DEC-014` | Kepemilikan modul pada Yoga Aji Pratama | Tata kelola, bukan task | — | Manifest revision 9 |
 | `RAD-DEC-015` | Peran dikenali lewat hak akses penanda | `BE-RAD-08` **selesai 2026-09-11**, `BE-RAD-14` **selesai 2026-09-11** | `FE-RAD-11` | `RAD-PERM-001` bagian 9. **Penghalang terbuka**: `RadReport : ActAsRadiologist` tidak didaftarkan `AccessMenuSeeder` karena sengaja tanpa endpoint, sehingga belum dapat diberikan kepada peran mana pun — perlu diselesaikan `BE-RAD-09` |
+| `RAD-DEC-018` | Layar ikut v1, pengaman V2 tetap (`RAD-EVD-001`) | `BE-RAD-18` **selesai 2026-10-15 — batas verifikasi** | `FE-RAD-14` **selesai 2026-10-15 — batas verifikasi**, `FE-RAD-15`, `FE-RAD-16`, `FE-RAD-17` | Daftar Pasien dan Riwayat v1 berjalan terhadap API tiruan 31/31; 41/41 uji Radiologi backend. Terhadap backend sungguhan menunggu migration `AddRadOrderRequiresPreparation` |
+| `RAD-DEC-019` | Gerbang keselamatan tetap fail-closed | — (tidak ada kode baru) | `FE-RAD-14` membuka konsol study yang sudah ada | Aksi *Buka Pemeriksaan* mengarah ke konsol `FE-RAD-08`, sehingga gerbang tetap dilalui |
+| `RAD-DEC-021` | Semua keputusan paritas mengikuti v1 | `BE-RAD-20` **selesai 2026-10-15 — batas verifikasi**; `BE-RAD-21` dibatalkan; `BE-RAD-23` tanpa backend | `FE-RAD-17` **selesai 2026-10-15 — batas verifikasi**; `FE-RAD-15` ditutup | Jawaban per butir di `RAD-EVD-001` 7.1. API tiruan 63/63; 53/53 uji Radiologi backend |
+| `RAD-DEC-022` | Alur v1 tanpa fitur V2 dipasang bertanda | `BE-RAD-24`, `BE-RAD-25`, `BE-RAD-26` **selesai 2026-10-15 — batas verifikasi** | `FE-RAD-17`; `FE-RAD-18` **selesai 2026-10-15 — batas verifikasi** | Penanda "Fitur belum tersedia" + alur v1 kini tinggal Setup → Kategori/Parameter, tab Pasien Luar, PACS, AI. Unggah Gambar dicabut 2026-10-15 (`BE-RAD-22`); laporan operasional, Tarif Tindakan, Template Hasil, Ubah Pemeriksaan, Cetak Film dicabut 2026-10-15 (`BE-RAD-24`..`26`). 71/71 uji backend; API tiruan 86/86. Menunggu migration `AddRadReportTemplateAndFilmPrint` |
+| `RAD-DEC-020` | Cakupan fitur v1 seluruhnya | `BE-RAD-19` **selesai 2026-10-15 — batas verifikasi**; `BE-RAD-20`..`BE-RAD-23` tertahan | `FE-RAD-16` **selesai 2026-10-15 — batas verifikasi**; `FE-RAD-15`, `FE-RAD-17` tertahan | Beranda berjalan. Tertahan: PACS dan unggah gambar (`RAD-OPEN-013`), AI (`RAD-OPEN-014`), WhatsApp (`RAD-OPEN-015`), kunci Lunas (`RAD-OPEN-016`), tarif Rekap Billing (`RAD-OPEN-017`), Petugas/Dokter Pemeriksa (`RAD-DEC-012`) |
 
 ---
 
@@ -83,10 +88,10 @@ Menghubungkan `01-existing-capability-map.md` dengan pekerjaan yang direncanakan
 | Slice | Nama | Task backend | Task frontend |
 |---|---|---|---|
 | `S1` | Pesanan radiologi | `BE-RAD-12` **selesai 2026-09-11** — penanda cito ditambahkan tanpa merusak satu pun pemanggil lama | `FE-RAD-05`, `FE-RAD-06` |
-| `S2` | Study dan pengambilan citra | — | `FE-RAD-08`, `FE-RAD-09` |
+| `S2` | Study dan pengambilan citra | `BE-RAD-17` (tahan, lanjutkan, batalkan — 2026-10-14) | `FE-RAD-08`, `FE-RAD-09` |
 | `S3` | Penilaian gerbang keselamatan | `BE-RAD-06` **selesai 2026-09-10** | `FE-RAD-08` |
 | `S4` | Pengelolaan aturan keselamatan | `BE-RAD-01` s/d `BE-RAD-03` **selesai 2026-09-10**, `BE-RAD-15` | `FE-RAD-04` |
-| `S6` | Mutu, pengulangan, penghentian | — | `FE-RAD-09` |
+| `S6` | Mutu, pengulangan, penghentian | `BE-RAD-17` (tandai perlu diulang — 2026-10-14) | `FE-RAD-09` |
 | `S7` | Pencatatan pemakaian bahan | — | `FE-RAD-09` |
 | `S8` | Fakta kelayakan tagih | — | — |
 | `S9` | Hasil bacaan radiolog | `BE-RAD-07`, `BE-RAD-08`, dan `BE-RAD-09` **selesai 2026-09-11** — backend slice ini lengkap | `FE-RAD-10`, `FE-RAD-11` |
@@ -167,3 +172,9 @@ Dari `04-prd-to-mvp.md` bagian 19.
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
 | 1 | 2026-09-10 | Traceability pertama. 15 keputusan, 19 kemampuan, 14 slice, 14 UAT, dan 16 butir Definition of Done dipetakan ke 28 task. | `draft` |
+| 2 | 2026-10-14 | `BE-RAD-17` ditambahkan pada `S2` dan `S6`: empat transisi `RAD-STATE-001` bagian 2 yang ditemukan `FE-RAD-09` bagian 4.1 kini punya endpoint dan tombol. Bukti: laporan `BE-RAD-17` dan `FE-RAD-09` bagian 11. | `draft` |
+| 3 | 2026-10-15 | Keputusan paritas v1 `RAD-DEC-018`..`RAD-DEC-020` (`RAD-EVD-001`) dipetakan ke `BE-RAD-18`..`BE-RAD-23` dan `FE-RAD-14`..`FE-RAD-17`. Bukti: laporan `BE-RAD-18` dan `FE-RAD-14`. | `draft` |
+| 4 | 2026-10-15 | `BE-RAD-19` + `FE-RAD-16` (Beranda) dipetakan ke `RAD-DEC-020`; penahan `RAD-OPEN-016`, `RAD-OPEN-017`, dan tinjauan ulang `RAD-DEC-012` dicatat. | `draft` |
+| 5 | 2026-10-15 | `RAD-DEC-021`/`RAD-DEC-022` dipetakan; seluruh penahan paritas terjawab oleh perilaku v1 (`RAD-EVD-001` 7.1). | `draft` |
+| 6 | 2026-10-15 | Penutup paritas: `BE-RAD-22` dibangun, tiga migration Radiologi diterapkan ke devYoga; keadaan akhir di `RAD-EVD-001` 7.3. | `draft` |
+| 7 | 2026-10-15 | `BE-RAD-24`..`26` dan `FE-RAD-18` dipetakan ke `RAD-DEC-022` — fitur bertanda yang dapat dibangun; sisa penanda dicatat. | `draft` |
