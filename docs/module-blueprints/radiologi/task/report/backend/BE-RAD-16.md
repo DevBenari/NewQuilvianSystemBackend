@@ -284,3 +284,13 @@ Tidak ada migration yang dibuat maupun dieksekusi. Tidak ada eksekusi database l
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
 | 1 | 2026-09-14 | Laporan dibuat. 4 berkas source diubah, 1 kontrak diamandemen. Build 0 error tanpa warning baru. Menutup celah `EnsurePendingReportAsync` yang tidak pernah dipanggil, menambah `GET /by-patient/{patientId}`, dan membawa `Impression` pada pembacaan yang berpusat pada pasien. **Dua dari tiga penghalang yang diminta ternyata sudah selesai sejak 2026-09-11**; koreksinya dicatat pada bagian 7.1. **Proyek uji tidak ada di repository**, sehingga verifikasi terbatas pada build dan penelusuran source. | `draft` |
+
+---
+
+## Penutupan batas verifikasi — 2026-10-15
+
+Proyek uji `Tests/QuilvianSystemBackend.RadiologyTests` kini aktif. `RadReportPendingTests.cs` (3 uji) membuktikan
+`EnsurePendingReportAsync`: study bermutu layak melahirkan bacaan `Pending`; panggilan kedua tidak melahirkan bacaan
+kedua; study yang mutunya belum dinilai atau ditolak tidak melahirkan bacaan (`RAD_STUDY_QUALITY_NOT_DECIDED`,
+`RAD_STUDY_NOT_USABLE`). Kunci penasihat PostgreSQL diganti `SELECT 1` oleh interceptor uji SQLite; kode produksi
+tidak diubah. Uji Radiologi seluruhnya 63/63. Status task: **Selesai**.

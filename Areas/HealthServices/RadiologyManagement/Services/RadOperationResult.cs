@@ -286,5 +286,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// mendahulukannya tidak mendahulukan apa pun.
         /// </summary>
         public const string UrgencyNotChangeable = "RAD_URGENCY_NOT_CHANGEABLE";
+
+        /// <summary>Petugas Radiologi atau Dokter Pemeriksa tidak ditemukan atau nonaktif (<c>BE-RAD-20</c>).</summary>
+        public const string AssigneeNotFound = "RAD_ASSIGNEE_NOT_FOUND";
+
+        /// <summary>Penunjukan tidak dapat diubah pada pesanan batal atau ditolak (<c>BE-RAD-20</c>).</summary>
+        public const string AssignmentNotChangeable = "RAD_ASSIGNMENT_NOT_CHANGEABLE";
+
+        /// <summary>Gambar bukan JPG/PNG, terlalu besar, terlalu banyak, atau penyimpanan belum dikonfigurasi (<c>BE-RAD-22</c>).</summary>
+        public const string ImageInvalid = "RAD_IMAGE_INVALID";
+
+        /// <summary>Gambar tidak ditemukan atau berkasnya hilang dari penyimpanan (<c>BE-RAD-22</c>).</summary>
+        public const string ImageNotFound = "RAD_IMAGE_NOT_FOUND";
+
+        /// <summary>Gambar pesanan batal/ditolak tidak dapat diubah (<c>BE-RAD-22</c>).</summary>
+        public const string ImageNotChangeable = "RAD_IMAGE_NOT_CHANGEABLE";
+
+        /// <summary>Pemeriksaan tidak dapat diubah: status lanjut atau sudah punya study aktif (<c>BE-RAD-25</c>).</summary>
+        public const string ProcedureNotChangeable = "RAD_PROCEDURE_NOT_CHANGEABLE";
+
+        /// <summary>Template hasil tidak ditemukan (<c>BE-RAD-26</c>).</summary>
+        public const string TemplateNotFound = "RAD_TEMPLATE_NOT_FOUND";
     }
 }

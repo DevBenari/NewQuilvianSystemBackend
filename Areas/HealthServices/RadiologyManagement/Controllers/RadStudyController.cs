@@ -206,6 +206,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             Execute(() => _radStudyService.RecordConsumptionAsync(id, request, cancellationToken),
                 "Konsumsi bahan berhasil dicatat.");
 
+        // Empat transisi RAD-STATE-001 bagian 2 yang sebelumnya tidak punya jalan — BE-RAD-17.
+        // Body boleh kosong kecuali pembatalan, yang wajib membawa alasan.
+
+        [HttpPost("{id:guid}/mark-repeat-required")]
+        [ProducesResponseType(typeof(ApiResponse<RadStudyResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Repeat", "Repeat Rad Study", Description = "Menandai study yang mutunya ditolak sebagai perlu diulang", AccessType = AccessTypes.Create, SortOrder = 7)]
+        [AccessPermission("RadStudy", "Repeat")]
+        public Task<IActionResult> MarkRepeatRequired(
+            Guid id, [FromBody] RadStudyTransitionRequest? request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radStudyService.MarkRepeatRequiredAsync(id, request, cancellationToken),
+                "Study ditandai perlu diulang.");
+
+        [HttpPost("{id:guid}/hold")]
+        [ProducesResponseType(typeof(ApiResponse<RadStudyResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Hold", "Hold Rad Study", Description = "Menahan study radiologi sementara", AccessType = AccessTypes.Update, SortOrder = 9)]
+        [AccessPermission("RadStudy", "Hold")]
+        public Task<IActionResult> Hold(
+            Guid id, [FromBody] RadStudyTransitionRequest? request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radStudyService.HoldAsync(id, request, cancellationToken),
+                "Study radiologi berhasil ditahan.");
+
+        [HttpPost("{id:guid}/resume")]
+        [ProducesResponseType(typeof(ApiResponse<RadStudyResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Hold", "Hold Rad Study", Description = "Melanjutkan study radiologi yang ditahan", AccessType = AccessTypes.Update, SortOrder = 9)]
+        [AccessPermission("RadStudy", "Hold")]
+        public Task<IActionResult> Resume(
+            Guid id, [FromBody] RadStudyTransitionRequest? request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radStudyService.ResumeAsync(id, request, cancellationToken),
+                "Study radiologi berhasil dilanjutkan.");
+
+        [HttpPost("{id:guid}/cancel")]
+        [ProducesResponseType(typeof(ApiResponse<RadStudyResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Cancel", "Cancel Rad Study", Description = "Membatalkan study radiologi sebelum acquisition dimulai", AccessType = AccessTypes.Update, SortOrder = 10)]
+        [AccessPermission("RadStudy", "Cancel")]
+        public Task<IActionResult> Cancel(
+            Guid id, [FromBody] RadStudyTransitionRequest? request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radStudyService.CancelAsync(id, request, cancellationToken),
+                "Study radiologi berhasil dibatalkan.");
+
         /// <summary>
         /// Memetakan hasil tindakan menjadi status HTTP.
         ///
