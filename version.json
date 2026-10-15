@@ -1,5 +1,41 @@
 {
-  "backendVersion": "0.5.0",
-  "releaseName": "Quilvian Integration Release 0.5.0",
-  "description": "Integration release for Blood Bank Management and the shared Number Series platform capability, with Radiology Management reporting, order urgency and numbering, Billing deposit policy and payment account master data, plus Laboratory, Clinical, Pharmacy and Registration stabilization. Includes canonical Reg/Phm table-prefix normalization and EF migration metadata repairs."
+  "backendVersion": "0.17.0",
+  "releaseMetadata": {
+    "generatedBy": "Quilvian Release Generator",
+    "migrations": [
+      "20261013051652_ExtendPatientMembershipLifecycle.cs",
+      "20261013052442_AddPatientMembershipStatusUniqueIndexes.cs",
+      "20261013055556_TableHrdBenefitBalanceMovements.cs",
+      "20261013055825_AddEmployeeLinkToPatientCompanyGuarantor.cs",
+      "20261013083000_AddReceivableWriteOffProposalV2.cs"
+    ],
+    "migrationCount": 5,
+    "generatedAt": "2026-10-13T07:54:59",
+    "features": [
+      "Microbiology Workflow",
+      "Susceptibility Management",
+      "Specimen Management",
+      "Laboratory Master Data",
+      "Result Validation",
+      "Billing Workflow",
+      "Finance Workflow",
+      "Pharmacy Workflow",
+      "Radiology Workflow"
+    ],
+    "modules": [
+      "Administrator Management",
+      "Billing Management",
+      "Clinical Management",
+      "Finance Management",
+      "Human Resource Management",
+      "Inpatient Management",
+      "Laboratory Management",
+      "Patient Management",
+      "Pharmacy Management",
+      "Radiology Management",
+      "Registration Management"
+    ]
+  },
+  "description": "Release 0.17.0 enhances Administrator Management, Billing Management, Clinical Management, Finance Management, Human Resource Management, Inpatient Management, Laboratory Management, Patient Management, Pharmacy Management, Radiology Management, Registration Management capabilities. Includes improvements across Microbiology Workflow, Susceptibility Management, Specimen Management, Laboratory Master Data, Result Validation, Billing Workflow, Finance Workflow, Pharmacy Workflow, Radiology Workflow. Includes 5 database migration update(s).",
+  "releaseName": "Quilvian 0.17.0 - Enterprise Platform Enhancement"
 }

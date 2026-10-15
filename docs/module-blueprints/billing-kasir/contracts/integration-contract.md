@@ -446,4 +446,175 @@ Penyelarasan ini menutup secara permanen celah `FIN-OQ-034` (`evidence/17`) dan 
 
 Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `FIN-DEC-077`, `FIN-DEC-080`..`081`. Tests `BIL-AT-149`–`BIL-AT-158`.
 
+---
 
+## Amendment 13 Oktober 2026 — Pelunasan Gabungan Lintas Kunjungan (Revisi 1.9)
+
+> `last_changed_in`: `BIL-INTEGRATION-1.4` atas `BIL-INTEGRATION-1.3` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
+> Masukan: `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`. Backend SHA: `e049a65b`.
+
+### `BIL-INT-019` — Pembacaan rantai kunjungan untuk menemukan tagihan kandidat
+
+| Aspek | Ketentuan |
+|---|---|
+| Arah | Billing **membaca** dari Registration Management dan Rawat Inap |
+| Sifat | Pemanggilan dalam proses (*in-process*) lewat `ApplicationDbContext`, bukan HTTP — konsisten dengan `BIL-INT-010`–`012` dan `BKC-DES-040` karena keduanya satu assembly |
+| Yang dibaca | `RegPatientEncounter`: `Id`, `PatientId`, `EncounterType`, `SourceEncounterId`. `InpAdmissionReferral`: `SourceEncounterId`. `BilInvoiceEncounterLink`: `RanapInvoiceId`, `LinkedEncounterId`, `LinkReason` |
+| Yang **tidak** ditulis | Billing **MUST NOT** menulis ke tabel milik Registration Management maupun Rawat Inap. Amendment ini nol perubahan pada kedua modul itu |
+| Kegagalan | Bila rantai kunjungan tidak dapat dibaca, pencarian tagihan kandidat mengembalikan daftar kosong, **bukan** galat. Kasir tetap dapat memproses pembayaran satu tagihan |
+| Idempotensi | Pembacaan bersifat murni (*read-only*), tidak punya efek samping, sehingga aman dipanggil berulang |
+
+### Cara tagihan kandidat ditemukan
+
+Tiga sumber hubungan dibaca berurutan, dan hasilnya digabung tanpa duplikat:
+
+| Urutan | Sumber hubungan | Nilai `RelationType` | Kekuatan bukti |
+|---:|---|---|---|
+| 1 | `BilInvoiceEncounterLink` — tautan yang memang sudah dicatat sistem | `RECORDED_LINK` | Terkuat; hubungan sudah tercatat beserta sebabnya pada `LinkReason` |
+| 2 | `RegPatientEncounter.SourceEncounterId` — rantai rujukan kunjungan | `REFERRAL_CHAIN` | Kuat; membuktikan kunjungan ranap memang lahir dari kunjungan IGD atau poliklinik |
+| 3 | Kunjungan lain pasien yang sama yang tagihannya masih bersisa | `SAME_PATIENT` | Paling lemah; hanya kesamaan pasien, tanpa hubungan rujukan |
+
+Hasil `SAME_PATIENT` **MUST** tetap ditampilkan kepada kasir, bukan disembunyikan, karena
+keluarga pasien berhak menggabungkan tagihan apa pun milik pasien yang sama (`BKC-DES-061`).
+Yang dibedakan hanya keterangan hubungannya di layar, supaya kasir tidak salah menduga ada
+rujukan padahal tidak ada.
+
+### Dampak pada konsumen hilir
+
+| Konsumen | Dampak | Tindakan yang dibutuhkan |
+|---|---|---|
+| Finance / AR (`BilArHandoff`) | **Nol perubahan bentuk.** Penerbitan fakta piutang tetap per invoice, karena invoice tidak dilebur | Tidak ada |
+| Finance / Penerimaan kas (`BilCollectionHandoff`) | Satu transaksi gabungan menghasilkan **satu** fakta penerimaan kas, dengan rincian alokasi per invoice yang sudah tersedia pada baris alokasi | Verifikasi pembacaan rincian alokasi oleh Finance — `BKC-OQ-111` |
+| Rawat Inap (kelayakan pemulangan) | Belum ditentukan apakah sisa tagihan kunjungan IGD menahan kelayakan pulang | Menunggu `BKC-OQ-109`; amendment ini **tidak** mengubah `InpatientClearanceService` |
+| Farmasi (`BilPrescriptionClearanceHandoff`) | **Nol perubahan.** Kelayakan resep tetap dinilai per invoice | Tidak ada |
+
+Trace `BKC-DEC-118`, `BKC-DES-057`–`BKC-DES-062`, `CAP-BIL-09`. Tests: `BIL-AT-159`–`BIL-AT-168`.
+
+
+
+---
+
+## Delta 12 Oktober 2026 — Producer klinis ke invoice (`PLAN-REPAIR-BKC-001`, `BKC-DEC-135`..`140`)
+
+| Sumber (`SourceContext`) | Domain invoice / status tagih | Milestone | Granularitas | Tarif | Koreksi | Task |
+| --- | --- | --- | --- | --- | --- | --- |
+| `Prescription` | `PHARMACY` / `PRESCRIBED` (rajal, IGD), `DISPENSED` (ranap) | Finalisasi resep; revisi saat diserahkan | Satu baris per resep | Σ obat reguler + **Σ bahan racikan** (`PricingQuantity` × tarif obat), tanpa jasa racik (`BKC-DEC-136`) | Retur obat reguler otomatis; retur bahan racikan adjustment manual | `BE-BKC-FIX-015` |
+| — | — | — | — | **Pengirim langsung `PrescriptionBillingChargeProducer` dihapus**; fakta → folio → jembatan adalah satu-satunya jalur tagihan resep | — | `BE-BKC-FIX-015` |
+| `DrugUsage` (**baru**) | `CONSUMABLE` / `USED` | Pemakaian **dicatat** (stok berkurang); draft tidak | Satu baris per butir pemakaian | Tarif obat/alkes berlaku; tanpa tarif → `TARIFF_NOT_FOUND` | Retur → fakta `DrugReturn` per butir; penyerahan resep `NOT_BILLABLE` (`BKC-DEC-138`) | `BE-BKC-FIX-017` |
+| `BloodBank` | `BLOOD_BANK` / `COMPLETED` (**kini diteruskan ke invoice**) | Tindakan `Recorded` → `Completed` | Satu baris per tindakan, bukan per kantong | `MstTariff` berlaku (tarif tindakan, lalu tarif tindakan rujukan) | Tanpa void normal; adjustment (`BKC-DEC-140`) | `BE-BKC-FIX-018` |
+| `Procedure` | `PROCEDURE` / `PERFORMED` | **Semua** jalur yang menyimpan tindakan `Completed` (`ExecuteImmediately`, tindakan keperawatan IGD, pemulihan `AlreadyExecuted`) | Per tindakan | Tidak berubah | Tidak berubah | `BE-BKC-FIX-019` |
+| Semua sumber kandidat | — | Kunjungan **IGD** kini dijembatani ke invoice kunjungan IGD; konsolidasi ranap lewat tautan invoice (`BKC-DEC-139`) | — | — | — | `BE-BKC-FIX-016` |
+| `NursingIntervention` | — | **Ditunda** (`BKC-DEC-135`) | — | — | — | — |
+| Gizi | — | **Tidak ditagih terpisah** (`BKC-DEC-137`) | — | — | — | — |
+
+Keadaan penagihan per sumber dapat dibaca modul produsen lewat `BillingClinicalChargeBridgeService.GetChargeStateAsync` (`NOT_SENT`, `NOT_RECEIVED`, `WAITING_FOR_BILLING`, `IN_INVOICE`, `NOT_CHARGED`, `NEEDS_REVIEW`, `RESOLVED_MANUALLY`). Fakta lama yang sudah `NotApplicable` tidak diproses ulang otomatis. Rencana: [`PLAN-REPAIR-BKC-001`](../docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md).
+
+
+---
+
+## Amendment 14 Oktober 2026 — Kelayakan Pulang Lintas Kunjungan (Revisi 2.0)
+
+> `last_changed_in`: `BIL-INTEGRATION-1.5` atas `BIL-INTEGRATION-1.4` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
+> Masukan: `BKC-DEC-144`, `BKC-DES-063`–`BKC-DES-069`. Backend SHA: `d166cf4f`.
+
+### `BIL-INT-020` — Pembacaan rantai kunjungan untuk penilaian kelayakan pemulangan
+
+| Aspek | Ketentuan |
+|---|---|
+| Arah | Billing **membaca**. Nol penulisan ke modul lain |
+| Sifat | Pemanggilan dalam proses lewat `ApplicationDbContext`, bukan HTTP — konsisten dengan `BIL-INT-010`–`012`, `BIL-INT-019`, dan `BKC-DES-040` karena satu assembly |
+| Sumber tingkat pertama | `BilInvoiceEncounterLink` — **milik Billing sendiri**, sudah terisi otomatis oleh `BillingInpatientEventReceiver.cs:252-266` dari `InpAdmissionReferral` berstatus `Completed` **[Dikoreksi revisi `2.2` (`BKC-DES-082`): terisi otomatis hanya untuk rujukan operasi; jalur transfer lihat `BKC-DES-077` dan `BKC-DES-080`]** |
+| Sumber tingkat lanjutan | `RegPatientEncounter.SourceEncounterId` — milik Registration Management, dibaca saja |
+| Yang **tidak** dibaca | `InpBedPlacement`. Perpindahan kamar bukan simpul rantai (`BKC-DES-068`) |
+| Pagar | Batas kedalaman 5 tingkat, himpunan kunjungan terkunjungi untuk mencegah siklus, deduplikasi berdasarkan pengenal invoice, dan penolakan simpul yang pasiennya berbeda |
+| Kegagalan | Bila rantai tidak dapat dibaca utuh, penilaian **tetap berjalan** atas tagihan yang berhasil ditemukan, lalu statusnya `NEEDS_RECONCILIATION`. Bukan galat, dan bukan pula dianggap lunas |
+| Idempotensi | Pembacaan bersifat murni tanpa efek samping, sehingga aman dipanggil berulang. Penilaian ulang menghasilkan surat kelayakan versi baru, mengikuti mekanisme `FinancialVersion` yang sudah berlaku |
+
+### Mengapa tingkat pertama memakai tautan milik Billing, bukan tabel Rawat Inap
+
+| Pilihan | Kelebihan | Kekurangan | Dipakai? |
+|---|---|---|---|
+| `BilInvoiceEncounterLink` (milik Billing) | Sudah terisi otomatis, idempoten, dikunci advisory lock, dan dimiliki Billing sendiri sehingga tidak menambah ketergantungan lintas modul | Hanya satu tingkat secara konstruksi | **Ya**, untuk tingkat pertama **[Dikoreksi revisi `2.2` (`BKC-DES-082`): terisi otomatis hanya untuk rujukan operasi; jalur transfer lihat `BKC-DES-077` dan `BKC-DES-080`]** |
+| `InpAdmissionReferral` (milik Rawat Inap) | Sumber aslinya | Menambah ketergantungan Billing pada tabel Rawat Inap, padahal datanya sudah disalin ke tautan milik Billing | Tidak |
+| `RegPatientEncounter.SourceEncounterId` (milik Registration) | Satu-satunya jalan untuk tingkat di atas pertama | Pengisiannya belum seragam di semua jalur pendaftaran, sehingga rantai dapat terputus | **Ya**, hanya untuk tingkat lanjutan, dan ketidaklengkapannya ditangani lewat `NEEDS_RECONCILIATION` |
+
+### Dampak pada konsumen hilir
+
+| Konsumen | Dampak | Tindakan yang dibutuhkan |
+|---|---|---|
+| Rawat Inap — layar pemulangan bangsal | **Berubah perilakunya.** Status kelayakan kini dapat `BLOCKED` karena tagihan unit lain, dan dapat bernilai `NEEDS_RECONCILIATION` yang sebelumnya tidak ada | Konsumen **MUST** mengenali nilai status baru. Daftar penghambat yang ditampilkan ke perawat memuat unit layanan **tanpa nominal rupiah** (`BKC-DES-069`). Persetujuan pemilik Rawat Inap masih terbuka (`BKC-OQ-121`) |
+| Finance / AR | **Nol perubahan.** Penerbitan fakta piutang tetap per invoice | Tidak ada |
+| Farmasi | **Nol perubahan.** Kelayakan resep tetap dinilai per invoice | Tidak ada |
+| Registration Management | **Nol perubahan skema maupun kontrak.** Kolom rujukannya dibaca saja | Tidak ada. Namun ketidakseragaman pengisian `SourceEncounterId` menjadi sebab paling sering munculnya `NEEDS_RECONCILIATION`, dan perbaikannya milik Registration — dicatat sebagai `BKC-OQ-122` |
+
+### Sinyal keluar yang sudah ada
+
+Mekanisme penerbitan sinyal kelayakan ke Rawat Inap **tidak berubah bentuknya**. Yang berubah hanya
+isi: status dapat bernilai `NEEDS_RECONCILIATION`, dan daftar penghambat dapat menyebut unit lain.
+Nomor versi finansial tetap naik monoton per kunjungan, sehingga konsumen tetap dapat menolak surat
+berversi lebih tua seperti sebelumnya.
+
+Trace `BKC-DEC-144`, `BKC-DES-063`–`BKC-DES-069`, `BIL-INT-019`. Tests: `BIL-AT-169`–`BIL-AT-178`.
+
+
+---
+
+## Amendment 14 Oktober 2026 — Keputusan Rantai Permanen (Revisi 2.1)
+
+> `last_changed_in`: `BIL-INTEGRATION-1.6` atas `BIL-INTEGRATION-1.5` — status **approved** (14 Oktober 2026).
+> Owner: Billing Owner · `approved_by`: Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi · `approved_at`: 2026-10-14.
+> Masukan: `BKC-DES-070`, `BKC-DES-073`. Backend SHA: `d166cf4f`.
+
+### Perubahan pada `BIL-INT-020`
+
+| Aspek | Ketentuan tambahan |
+|---|---|
+| Sumber ketiga | `BilClearanceChainDecision` — **milik Billing sendiri**, dibaca sebelum penelusuran dimulai |
+| Urutan penerapan | Keputusan permanen diterapkan **sebelum** kejanggalan ditandai. Kunjungan yang sudah dikecualikan tidak ditelusuri melewatinya; kunjungan yang sudah diikutkan tidak ditandai ulang untuk kejanggalan yang sama |
+| Modul lain | **Nol perubahan.** Registration Management dan Rawat Inap tetap hanya dibaca. Tabel keputusan tidak dibaca modul lain mana pun |
+| Sinyal ke Rawat Inap | Bentuk dan mekanismenya tidak berubah. Keputusan rekonsiliasi hanya memengaruhi status surat versi berikutnya, yang terkirim lewat sinyal yang sudah ada |
+
+Trace `BKC-DES-070`, `BKC-DES-073`, `BIL-INT-020`.
+
+
+
+---
+
+## Amendment 14 Oktober 2026 — Tautan Kunjungan Asal Jalur Transfer (Revisi 2.2)
+
+> `last_changed_in`: `BIL-INTEGRATION-1.7` atas `BIL-INTEGRATION-1.6` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DEC-155`, `BKC-DES-077`–`BKC-DES-080`. Backend SHA: `d268a41f`.
+> Kompatibilitas: **aditif**. Nol perubahan pada Registration Management dan Rawat Inap.
+
+### `BIL-INT-021` — Pembacaan asal transfer saat rawat inap dikonfirmasi
+
+| Aspek | Ketentuan |
+|---|---|
+| Arah | Billing **membaca** dari Registration Management |
+| Pemicu | Event `ADMISSION_CONFIRMED` dari outbox Rawat Inap — diterima pertama kali **atau** datang lagi sebagai duplikat |
+| Sifat | Pemanggilan dalam proses lewat `ApplicationDbContext`, di dalam transaksi `BillingInpatientEventReceiver.ReceiveAsync` yang sudah ada. Nol HTTP, nol lock baru |
+| Yang dibaca | `RegPatientEncounter` kunjungan rawat inap: `Id`, `PatientId`, `SourceEncounterId`, `AdmissionTransferSourceType`. Kunjungan asal: `Id`, `PatientId`, `EncounterType`, `IsDelete`, `IsCancel` |
+| Yang ditulis | Hanya `BilInvoiceEncounterLink` milik Billing |
+| Yang **tidak** ditulis | Billing **MUST NOT** menulis ke `RegPatientEncounter`, `InpAdmissionReferral`, maupun `InpIntegrationOutboxes` |
+| Kegagalan | Kunjungan asal pasien lain, terhapus, batal, atau jenis sumber tak dikenal → tautan dilewati, peringatan dicatat, **event tetap diterima** dan invoice rawat inap tetap terbuka (`BKC-DES-079`) |
+| Idempotensi | Tautan yang sudah ada dilewati; indeks unik `UX_BilInvoiceEncounterLink_Invoice_Encounter` menjadi penjaga terakhir |
+| Data lama | Transfer sebelum rilis tidak otomatis bertautan. Putar ulang event `ADMISSION_CONFIRMED` menautkannya, tetapi layanan putar ulang milik Rawat Inap saat ini hanya memilih ulang event yang rujukan operasinya belum bertautan (`InpIntegrationReplayService.cs:84-85,147-150`). Keputusannya `BKC-OQ-127` |
+
+| `AdmissionTransferSourceType` | `LinkReason` yang ditulis |
+|---|---|
+| `Emergency` | `EMERGENCY_ORIGIN` |
+| `Outpatient` | `OUTPATIENT_ORIGIN` |
+| Nilai lain atau kosong | Tidak ada tautan |
+
+### Perubahan pada `BIL-INT-020`
+
+| Aspek | Sebelum (revisi `2.0`/`2.1`) | Sesudah (revisi `2.2`) |
+|---|---|---|
+| Sumber tingkat pertama | `BilInvoiceEncounterLink` saja | `BilInvoiceEncounterLink` **ditambah** `SourceEncounterId` kunjungan rawat inap itu sendiri, diperiksa silang |
+| Asal transfer tanpa tautan | Tidak terbaca — rawat inap dianggap tanpa kunjungan asal (**gagal terbuka**) | Kejanggalan `UNLINKED_TRANSFER_ORIGIN` → `NEEDS_RECONCILIATION` (**gagal tertutup**) |
+| Tingkat lanjutan | `RegPatientEncounter.SourceEncounterId` | Tidak berubah |
+
+Trace `BKC-DEC-155`, `BKC-DES-077`–`BKC-DES-080`, `CAP-BIL-11`. Tests: `BIL-AT-189`–`BIL-AT-198`.

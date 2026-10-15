@@ -1,5 +1,7 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using QuilvianSystemBackend.Repositories;
 
 #nullable disable
 
@@ -26,8 +28,16 @@ namespace QuilvianSystemBackend.Migrations
     /// supaya migration tetap terlihat EF ketika proyek dibangun dengan
     /// <c>-p:SkipMigrationMetadata=true</c>.
     /// </para>
+    /// <para>
+    /// <c>[DbContext]</c> WAJIB ikut ditulis. EF menyaring migration dengan membandingkan
+    /// <c>DbContextAttribute.ContextType</c> terhadap context yang aktif, sehingga migration yang
+    /// hanya membawa <c>[Migration]</c> tidak terlihat sama sekali — tanpa satu pun peringatan
+    /// build. Sebelum perbaikan ini, kelima kolom dan indeks di bawah tidak pernah ikut pada
+    /// basis data yang dibangun dari migration.
+    /// </para>
     /// </remarks>
-    [Microsoft.EntityFrameworkCore.Migrations.Migration("20260929000000_AddOperatingRoomOutboxEventContract")]
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20260929000000_AddOperatingRoomOutboxEventContract")]
     public partial class AddOperatingRoomOutboxEventContract : Migration
     {
         /// <inheritdoc />

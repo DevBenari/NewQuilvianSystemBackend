@@ -95,9 +95,21 @@ public partial class InpBedOccupancyService
         return new() { EpisodeId = episodeId, SourcePlacementId = p.Id, SourcePlacementVersion = p.Version,
             SourceBed = await _bedQueries.ProjectAsync(bed, ct), LocationSnapshotJson = p.LocationSnapshotJson, AsOfUtc = DateTime.UtcNow };
     }
-    public async Task<BedBoardResponse> GetBedBoardAsync(Guid? serviceUnitId, CancellationToken cancellationToken = default)
+    /// <remarks>
+    /// BE-RWI-228 / PLAN-REPAIR-EPS-009: penyaring kamar, kelas, dan pencarian bersifat opsional dan
+    /// sama dengan <c>available-beds</c>, sehingga kartu dan angka papan mengikuti penyaring layar.
+    /// Tanpa penyaring, jawabannya tidak berubah.
+    /// </remarks>
+    public async Task<BedBoardResponse> GetBedBoardAsync(Guid? serviceUnitId, Guid? roomId = null, Guid? patientClassId = null,
+        string? search = null, CancellationToken cancellationToken = default)
     {
-        var m = await _bedQueries.MonitoringAsync(new() { ServiceUnitId = serviceUnitId }, "InpatientBedOccupancy:Read", cancellationToken);
+        var m = await _bedQueries.MonitoringAsync(new()
+        {
+            ServiceUnitId = serviceUnitId == Guid.Empty ? null : serviceUnitId,
+            RoomId = roomId == Guid.Empty ? null : roomId,
+            PatientClassId = patientClassId == Guid.Empty ? null : patientClassId,
+            Search = string.IsNullOrWhiteSpace(search) ? null : search
+        }, "InpatientBedOccupancy:Read", cancellationToken);
         return new()
         {
             TotalBed = m.Counts.Total, TotalAvailable = m.Counts.Available, TotalOccupied = m.Counts.Occupied,
@@ -135,7 +147,8 @@ public partial class InpBedOccupancyService
         if (r.Status == InpEpisodeOperationStatus.Success) return;
         var status = r.Status switch { InpEpisodeOperationStatus.Invalid => 400, InpEpisodeOperationStatus.Forbidden => 403,
             InpEpisodeOperationStatus.NotFound => 404, InpEpisodeOperationStatus.Conflict => 409, _ => 422 };
-        throw new InpBedOperationException(status, r.Failures.FirstOrDefault()?.Code ?? "BED_NOT_READY", r.Message);
+        var defaultCode = status == 409 ? "PATIENT_ALREADY_ADMITTED" : "BED_NOT_READY";
+        throw new InpBedOperationException(status, r.Code ?? r.Failures.FirstOrDefault()?.Code ?? defaultCode, r.Message);
     }
 }
 

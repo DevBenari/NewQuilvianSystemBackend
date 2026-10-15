@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Enums;
@@ -41,13 +42,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<KioskPatientLookupService> _logger;
+        private readonly PatientMembershipStatusResolver _membershipStatusResolver;
 
         public KioskPatientLookupService(
             ApplicationDbContext dbContext,
-            ILogger<KioskPatientLookupService> logger)
+            ILogger<KioskPatientLookupService> logger,
+            PatientMembershipStatusResolver membershipStatusResolver)
         {
             _dbContext = dbContext;
             _logger = logger;
+            _membershipStatusResolver = membershipStatusResolver;
         }
 
         public async Task<KioskPatientLookupServiceResult> LookupAsync(
@@ -194,9 +198,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                 case KioskPatientLookupSearchType.MemberNumber:
                 {
-                    var fromMembership = _dbContext.Set<MstPatientMembership>()
-                        .AsNoTracking()
-                        .Where(x => !x.IsDelete && x.IsActive && x.MemberNumber.ToLower() == value)
+                    // crm-membership BE-CRM-021: hanya membership yang Aktif hari ini (aturan tunggal J1).
+                    var fromMembership = _membershipStatusResolver
+                        .QueryActiveOn(_membershipStatusResolver.GetTodayWib())
+                        .Where(x => x.MemberNumber.ToLower() == value)
                         .Select(x => x.PatientId);
 
                     var fromInsurance = _dbContext.Set<MstPatientInsurance>()

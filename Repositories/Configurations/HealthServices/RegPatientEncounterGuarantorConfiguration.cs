@@ -113,6 +113,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.Notes)
                 .HasMaxLength(500);
 
+            // BE-FIN-105, kamus data 9.5: salinan historis, sengaja tanpa FK.
+            entity.Property(x => x.EmployeeIdSnapshot)
+                .IsRequired(false);
+
+            entity.Property(x => x.FamilyMemberIdSnapshot)
+                .IsRequired(false);
+
+            entity.Property(x => x.BenefitRelationshipSnapshot)
+                .HasMaxLength(50)
+                .IsRequired(false);
+
             // =========================
             // IDENTITY MODEL
             // =========================
@@ -212,6 +223,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.PatientCompanyGuarantorId);
 
             entity.HasIndex(x => x.CompanyGuarantorId);
+
+            entity.HasIndex(x => x.EmployeeIdSnapshot)
+                .HasFilter("\"EmployeeIdSnapshot\" IS NOT NULL")
+                .HasDatabaseName("IX_RegPatientEncounterGuarantor_EmployeeIdSnapshot");
 
             entity.HasIndex(x => new
             {

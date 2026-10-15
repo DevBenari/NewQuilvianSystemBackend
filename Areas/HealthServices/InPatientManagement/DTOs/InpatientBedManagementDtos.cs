@@ -22,6 +22,8 @@ public class BedMonitoringQuery
 {
     public Guid? ServiceUnitId { get; set; }
     public Guid? RoomId { get; set; }
+    /// <summary>Opsional; menyaring bed lewat kelas kamarnya (BE-RWI-228).</summary>
+    public Guid? PatientClassId { get; set; }
     public string? Status { get; set; }
     [MaxLength(100)] public string? Search { get; set; }
 }

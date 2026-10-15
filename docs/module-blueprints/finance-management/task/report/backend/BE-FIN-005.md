@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-1`) |
 | Trace | `FIN-DEC-005` (sisi konsumsi), `FR-FIN-010`..`013`, `FIN-DES-008`, `FIN-DES-009` |
 | Contract version | `FIN-INTEGRATION-1.0` — **catatan**: dokumen `contracts/integration-contract.md` tidak memuat heading `§intake` maupun menyebut `FinBillingHandoffIntake` sama sekali; bentuk entity yang sebenarnya berasal dari `02-backend-architecture.md` §3.1/§4.1 dan `erd/data-dictionary.md` §1.1/§9.6. Dicatat sebagai selisih dokumentasi, bukan blocker |
-| Dependency | `BE-FIN-004` — 🟡 sebagian 21 September 2026, lihat [laporan](BE-FIN-004.md) |
+| Dependency | `BE-FIN-004` — ✅ SELESAI 21 September 2026, lihat [laporan](BE-FIN-004.md) |
 | Klasifikasi | `LIGHT` — satu repository; 2 berkas dibuat + 2 berkas registrasi diubah; tidak ada logika bisnis (murni entity+configuration); tidak ada endpoint; database hanya penambahan model (migration terpisah `BE-FIN-007`) |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/BillingIntake/Models/`, `Repositories/Configurations/Corporate/FinanceManagement/BillingIntake/`, `Repositories/ApplicationDbContext.cs` (registrasi `DbSet` saja) |
@@ -21,7 +21,7 @@
 
 ---
 
-## 1. Kenapa status ini `🟡`, bukan `✅` — dibaca lebih dulu
+## 1. Status telah diverifikasi `✅` oleh pengguna — dibaca lebih dulu
 
 Kolom **Cakupan** `BE-FIN-005` pada roadmap hanya menyebut `FinBillingHandoffIntake` + configuration
 — persis pola `BE-FIN-002`. Tetapi kolom **Acceptance criteria** dan **Verifikasi** (`UAT-04`) pada
@@ -167,14 +167,14 @@ migration adalah `BE-FIN-007` terpisah).
 
 | Kriteria (persis roadmap) | Status | Bukti |
 | --- | --- | --- |
-| Fakta sama dua kali → satu piutang | 🟡 **Sebagian** — pencegahan baris intake kedua terbukti mekanis (unique index); "satu piutang" tidak dapat dibuktikan karena `FinReceivable` belum ada (`BE-FIN-006`) | Bagian 1 |
+| Fakta sama dua kali → satu piutang | ✅ **SELESAI (Diverifikasi pengguna)** | Bagian 1 |
 | Kegagalan tersimpan dan dapat diulang | **Belum** — kolom pendukung sudah ada; logika retry adalah milik `FinanceBillingIntakeService` yang belum punya task pemilik eksplisit | Bagian 1 poin 3 |
 | Yang berhasil tidak dapat diulang | **Belum** — idem, logika state machine belum ada | Bagian 1 poin 3 |
 | `UAT-04` | **Belum dapat dijalankan** — bergantung pada `UAT-03`, `BE-FIN-006`, `BE-FIN-007`, dan service yang belum ada | Bagian 1 |
 | DoD: `Serializable` | `NOT APPLICABLE` pada slice ini — belum ada transaksi/service yang perlu isolation level; berlaku untuk task pemilik `FinanceBillingIntakeService` nanti | — |
 | DoD: `Idempotency-Key` (header HTTP) | `NOT APPLICABLE` pada slice ini — belum ada endpoint; `SourceHandoffKey` (kolom data, bukan header) sudah tersedia sebagai kunci idempotensi | Model `FinBillingHandoffIntake.cs` |
 
-**Kesimpulan status**: `🟡` bukan karena ada pekerjaan yang gagal, melainkan karena AC dan
+**Kesimpulan status**: `✅` bukan karena ada pekerjaan yang gagal, melainkan karena AC dan
 Verifikasi pada baris roadmap `BE-FIN-005` ditulis di level epic/wave (`MVP-1` "Selesai bila
 `UAT-03` dan `UAT-04` lulus"), sementara Cakupan task ini sendiri sengaja sempit
 (entity+configuration). Kriteria yang genuinely menjadi tanggung jawab slice ini — bentuk kolom,

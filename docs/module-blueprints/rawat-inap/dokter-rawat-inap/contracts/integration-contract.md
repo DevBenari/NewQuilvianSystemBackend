@@ -500,3 +500,10 @@ maupun panggilan HTTP antar modul. "Transaksi yang sama" berarti satu `DbContext
 | `INT-RWF-18` | Layar dokter ← enam modul | Frontend memanggil enam daftar "perlu diverifikasi" (tindakan, Lab, Rad, Gizi, darah, diet) dan menyatukannya | Satu daftar gagal → bagian itu menampilkan pesan gagal; lima lainnya tetap tampil | — |
 
 **Contoh.** Pukul 23.00 dr. Yoga (dokter jaga berpenugasan) menelepon Ns. Siti untuk 2 kantong PRC. Siti memilih dr. Yoga sebagai dokter peminta. Adapter memeriksa penugasan dr. Yoga pada episode Budi, lalu memanggil Bank Darah. Pesanan tampil di layar Bank Darah dengan penginput Siti, peminta dr. Yoga, status `Pending`. Esok pagi dr. Yoga membuka daftar gabungan "perlu diverifikasi" dan memverifikasinya.
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Clinical mengambil kelas aktual dari periode kamar pada ServiceOccurredAt. Billing item/pajak memakai SourceOccurredAt, retur memakai waktu item asal, serta pengurutan aturan MstInsuranceCoverageRule yang sama. Nominal final tetap mengikuti limit agregat/rumus Billing existing; amandemen tidak mengklaim seluruh estimasi per item sama dengan tagihan akhir pada semua konteks.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

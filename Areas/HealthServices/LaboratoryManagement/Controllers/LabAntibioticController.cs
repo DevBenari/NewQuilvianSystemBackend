@@ -43,6 +43,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             _labAntibioticService = labAntibioticService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabAntibioticFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar, ringkasan, pilihan, dan detail antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabAntibiotic", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabAntibiotic();
+
+            return Ok(ApiResponse<LabAntibioticFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring antibiotik pada panel uji berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabAntibioticSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar, ringkasan, pilihan, dan detail antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabAntibiotic", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labAntibioticService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabAntibioticSummaryResponse>.Ok(
+                result, "Ringkasan antibiotik pada panel uji berhasil diambil."));
+        }
+
         // Daftar antibiotik untuk layar pengelolaan kepala instalasi. Memuat yang nonaktif juga.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabAntibioticResponse>>), StatusCodes.Status200OK)]
@@ -103,37 +127,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labAntibioticService.UpdateAsync(id, request, cancellationToken),
                 "Antibiotik berhasil diubah.");
 
-        /// <summary>
-        /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang
-        /// tepat, tanpa membocorkan detail exception ke pemanggil.
-        /// </summary>
         // =============================================================
         // Baseline data induk yang dilengkapi 2026-09-22 — `LAB-API-v1` r31.
+        //
+        // `filters/metadata` dan `summary` dari baseline ini ditaruh paling awal controller
+        // supaya tampil teratas di Swagger (permintaan pemilik modul 2026-10-13).
         // =============================================================
-
-        [HttpGet("filters/metadata")]
-        [ProducesResponseType(typeof(ApiResponse<LabAntibioticFilterMetadataResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar, ringkasan, pilihan, dan detail antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabAntibiotic", "Read")]
-        public IActionResult GetFilterMetadata()
-        {
-            var result = LabFilterMetadataFactory.LabAntibiotic();
-
-            return Ok(ApiResponse<LabAntibioticFilterMetadataResponse>.Ok(
-                result, "Metadata penyaring antibiotik pada panel uji berhasil diambil."));
-        }
-
-        [HttpGet("summary")]
-        [ProducesResponseType(typeof(ApiResponse<LabAntibioticSummaryResponse>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar, ringkasan, pilihan, dan detail antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
-        [AccessPermission("LabAntibiotic", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
-        {
-            var result = await _labAntibioticService.GetSummaryAsync(cancellationToken);
-
-            return Ok(ApiResponse<LabAntibioticSummaryResponse>.Ok(
-                result, "Ringkasan antibiotik pada panel uji berhasil diambil."));
-        }
 
         // Jalur detail. Tanpa ini, formulir ubah yang dibuka lewat tautan langsung atau sesudah
         // halaman disegarkan nol punya cara memuat barisnya — dan gagalnya DIAM.

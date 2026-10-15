@@ -4040,3 +4040,47 @@ Daftar endpoint existing tetap merujuk [inventaris Swagger pada audit bagian 6](
 ## Amandemen lokal EPS-006 - 12 Oktober 2026
 
 Pengguna meminta seluruh plan-repair-006 admisi transfer diselesaikan pada backend MHamzah dan frontend HamzahV2. Rekomendasi K-01, K-02 dan K-03 dipakai sebagai keputusan implementasi: satu orchestrator pada booking; surat InpatientReferral Issued untuk poli; sumber pembayaran/relasi oleh Registrasi dan deposit oleh Billing. Selesai administratif membutuhkan consent tersimpan, reservasi terpisah dari kedatangan fisik. Tidak mencabut IGD-DEC-067, tidak memakai ulang ID keputusan RWI-DEC-274/275/276 milik Bed Management, dan tidak mengubah versi global blueprint. [Kontrak EPS-006](episode-rawat-inap/contracts/admission-transfer-repair-006.md). Database update dan deployment tidak dijalankan.
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+A-01 sampai A-05 dan K-01/K-02/K-03 pada PLAN-REPAIR-DOK-006 sudah disetujui untuk dilaksanakan. Kelas aktual memakai periode penempatan pada waktu layanan, terpisah dari hak polis. Tidak ada input kelas pada pembayaran/asuransi atau konfirmasi admisi. Semua item klinis tetap tampil. Khusus resep, gunakan tarif umum kompatibel bila tarif sesuai tidak ada; tahan resep bila keduanya tidak tersedia. Ketentuan khusus resep ini menggantikan perluasan RWI-DEC-218 yang dahulu membolehkan resep tanpa tarif. Kontrak tindakan/penunjang tetap berlaku.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-008 — 2026-10-13
+
+Pemilik sistem meminta General Consent di Workspace PPRI menjadi form edit atas persetujuan yang sudah diisi dan ditandatangani pada langkah admisi, dengan riwayat siapa yang mengubah. Analisis dan rencana: [ISSUE-EPS-008](episode-rawat-inap/docs/issue/issue-008-edit-riwayat-general-consent.md), [PLAN-REPAIR-EPS-008](episode-rawat-inap/docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md).
+
+| ID | Jenis | Isi | Pemilik | Status | Disetujui | Sumber |
+|---|---|---|---|---|---|---|
+| `RWI-DEC-295` | Decision | **Persetujuan umum yang sudah tersimpan dapat dikoreksi dari Workspace PPRI sebagai versi baru beralasan; versi lama tidak pernah ditimpa dan tampil di Riwayat Perubahan.** Koreksi memakai rantai versi `InpAdmissionDocument` yang sama dengan Versi Koreksi dokumen admisi lain (`RWI-DEC-240`): versi lama `Superseded`, versi baru `Completed`, alasan 10–500 karakter, hak `InpatientAdmissionDocument : Update`, hanya pada episode berjalan. Simpan ulang dari langkah admisi dengan isi berbeda juga menjadi versi baru beralasan otomatis; isi sama tidak membuat versi. Panduan rawat inap ikut tersimpan dan berversi. Merevisi sifat *read-only* pada `RWI-AC-395` dan `05-skema-tampilan.md` aturan 4 langkah persetujuan. **Contoh:** versi 1 Ny. Rina (istri) disimpan Sari 09.40 dengan NIK salah satu angka; Dewi mengoreksi pukul 10.15 beralasan "NIK penanda tangan salah ketik saat admisi" → versi 2 aktif, versi 1 tetap terbaca beserta tanda tangannya, riwayat menampilkan "No. Identitas: …98 → …99 oleh Dewi" | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-10-13 ("tolong di perbaiki ya") | Permintaan pemilik 13-10-2026; `RWI-DEC-240`, `RWI-DEC-236` butir 3 |
+| `RWI-DEC-296` | Decision | **Koreksi memakai tanda tangan lama, kecuali jenis penanda tangan berganti; tanda tangan baru boleh dibubuhkan kapan pun.** Berganti jenis (misalnya `Spouse` → `Family`) berarti orangnya berbeda, sehingga tanpa tanda tangan baru koreksi ditolak `TTD_BARU_WAJIB`. Tanda tangan lama beserta waktunya tetap pada versi lama. **Contoh:** memperbaiki NIK Ny. Rina tidak meminta tanda tangan ulang; mengganti penanda tangan menjadi Andi (anak) mewajibkan Andi menandatangani di kanvas | Muhammad Hamzah | `approved` sebagai bawaan rekomendasi K-01; dapat diubah pemilik tanpa mengubah struktur data | Muhammad Hamzah, 2026-10-13 (rencana disetujui bersama rekomendasinya) | `PLAN-REPAIR-EPS-008` K-01 |
+
+| ID | Kriteria penerimaan | Sumber |
+|---|---|---|
+| `RWI-AC-427` | Persetujuan bertanda tangan + pemegang `InpatientAdmissionDocument : Update` + episode `Admitted` → tombol "Edit Persetujuan" tampil di tab Formulir General Consent; episode `Closed` atau tanpa hak `Update` → tidak tampil | `RWI-DEC-295` |
+| `RWI-AC-428` | Koreksi beralasan "salah" ditolak 400 "Alasan perubahan minimal 10 karakter."; beralasan valid → versi lama `Superseded` utuh, versi baru `Completed` menunjuk versi lama | `RWI-DEC-295` |
+| `RWI-AC-429` | Dua petugas mengoreksi dari versi yang sama: yang kedua ditolak 409 `INP-ADM-DOC-004`, versi aktif tetap satu | `RWI-DEC-295` |
+| `RWI-AC-430` | Ganti jenis penanda tangan tanpa tanda tangan baru → 422 `TTD_BARU_WAJIB`; dengan tanda tangan baru → berhasil dan riwayat mencatat "Tanda tangan diganti" | `RWI-DEC-296` |
+| `RWI-AC-431` | Riwayat Perubahan menampilkan setiap versi terbaru di atas dengan status, waktu, nama pengubah, alasan, dan "label: lama → baru"; versi 1 tertulis "Dibuat pada langkah admisi"; terbaca oleh pemegang `Read` tanpa `Update` | `RWI-DEC-295` |
+
+Bukti pelaksanaan: `BE-RWI-227`, `FE-RWI-241`, `FE-RWI-242` (register di `PLAN-REPAIR-EPS-008` bagian 1). Bagian lama yang menyatakan General Consent Workspace PPRI *read-only* untuk persetujuan bertanda tangan digital digantikan oleh amandemen ini; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-010 — 2026-10-13
+
+Pemilik sistem melaporkan pasien yang sudah dirawat dan menempati tempat tidur tetap dapat melewati langkah 1 Pasien Lama, lalu menambahkan bahwa pasien yang masih punya kunjungan aktif juga tidak boleh lanjut. Analisis dan rencana: [ISSUE-EPS-010](episode-rawat-inap/docs/issue/issue-010-pasien-lama-sudah-dirawat-lolos.md), [PLAN-REPAIR-EPS-010](episode-rawat-inap/docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md).
+
+| ID | Jenis | Isi | Pemilik | Status | Disetujui | Sumber |
+|---|---|---|---|---|---|---|
+| `RWI-DEC-297` | Decision | **Kelayakan admisi diperiksa sejak langkah 1, bukan baru di Pilih Bed.** Tombol Lanjut pada langkah 1 Pasien Lama (dan Informasi Pasien jalur Kamar Pulih) menolak pasien yang (a) sedang dirawat — episode `Admitted`, atau `DischargePending` yang kepergiannya belum dicatat (`RWI-DEC-054`), (b) masih punya kunjungan rawat jalan aktif menurut aturan pendaftaran yang sama (saklar `HealthServices:Registration:BlockActiveEncounter`), atau (c) punya permintaan admisi Kamar Pulih yang menunggu (`VAL-RWF-87`). Jalan keluarnya ditunjukkan di layar: perpindahan tempat tidur dari Detail Episode, menyelesaikan/membatalkan kunjungan atau jalur Transfer IGD/Poli, dan jalur Kamar Pulih. Server juga menolak `POST /episodes` untuk pasien yang sedang hadir sebelum menulis apa pun. Admisi lain yang masih `Draft` **tetap peringatan**, bukan penolakan (keputusan lama dipertahankan; `PLAN-REPAIR-EPS-010` K-01). **Contoh:** Tn. Umar dirawat di Kamar 02 BED 001; petugas mencari No. RM-nya lalu menekan Lanjut → layar tetap di langkah 1 dengan kalimat "… Bila memang pindah kamar, pakai perpindahan, bukan admisi baru." dan tombol Pindah Tempat Tidur; Daftar Pasien Rawat Inap tidak bertambah baris "Sedang Disiapkan" | Muhammad Hamzah | `approved` | Muhammad Hamzah, 2026-10-13 ("jika sudah terdaftar tidak boleh lanjut… agar tidak terjadi duplikat"; "kunjungan aktif… tidak bisa di lanjut") | Laporan pemilik 13-10-2026; `RWI-DEC-054`; RJ-DOC-REV-BE-007 |
+
+| ID | Kriteria penerimaan | Sumber |
+|---|---|---|
+| `RWI-AC-432` | Pasien `Admitted` dipilih di langkah 1 → badge "Sedang Dirawat", alert berisi nomor episode dan lokasinya, tombol "Pindah Tempat Tidur" membuka bagian Perpindahan Tempat Tidur di Detail Episode; Lanjut tidak maju. `POST /episodes` untuk pasien yang sama → 409 `PATIENT_ALREADY_ADMITTED` tanpa kunjungan/episode yang tertulis | `RWI-DEC-297` |
+| `RWI-AC-433` | Pasien dengan kunjungan rawat jalan berklinik Draft–Sedang Konsultasi yang belum batal/selesai (saklar hidup) → langkah 1 menolak dengan kalimat yang sama persis dengan penolakan `POST /patient-encounters/admin`; saklar mati → tidak menghalangi | `RWI-DEC-297` |
+| `RWI-AC-434` | Pasien dengan admisi lain yang masih `Draft` → peringatan dengan tombol "Lanjutkan Admisi {nomor}"; tombol Lanjut tetap maju | `RWI-DEC-297` |
+| `RWI-AC-435` | Pasien yang menjadi `Admitted` sesudah langkah 1 → "Lanjut ke Pemesanan" di Pilih Bed menampilkan penolakan dan tidak mengirim `POST /patient-encounters/admin` maupun `POST /episodes` | `RWI-DEC-297` |
+
+Bukti pelaksanaan: `BE-RWI-230`, `FE-RWI-244` (register di `PLAN-REPAIR-EPS-010` bagian 1). Bagian 3.5.1 `05-skema-tampilan.md` ("Lanjut aktif bila tepat 1 pasien terverifikasi, lalu maju") dan `02-backend-architecture.md` §1.5 (lapis 1 `INV-INP-10` hanya "sebelum menempatkan pasien") dibaca bersama amandemen ini; bagian lain tetap berlaku.
+

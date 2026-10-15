@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `46a1549dcc3b9f5359d132e501dec567ec826e17` (branch `yasmina`) |
 | Commit backend yang dijadikan rujukan | `845dabf918f28c6326aecdbcb89a1e2297367265` (branch `Yasmina`) |
 | Tanggal | 2026-10-11 |
-| Status | 🟡 **Sebagian** — source selesai, lint PASS, `npm run build` **PASS** (dijalankan atas instruksi eksplisit pemilik pada permintaan lanjutan); verifikasi peramban manual tetap **NOT FEASIBLE** (server dev tidak dijalankan) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

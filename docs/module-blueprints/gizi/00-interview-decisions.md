@@ -452,3 +452,9 @@ berjalan.
 | Menanamkan rumus energi, protein, lemak, karbohidrat, atau cairan yang tidak diserahkan pemilik proses | Satu rumus keliru berdampak pada seluruh pasien sekaligus, dan kekeliruannya sulit terlihat karena hasilnya tetap tampak masuk akal. Lihat `GIZ-OQ-007` |
 | Menetapkan batas wajar klinis parameter selain yang sudah ada | Batas energi 1–10000 kkal berasal dari aturan `GIZ006` yang sudah disepakati. Batas protein, lemak, karbohidrat, dan cairan belum ditetapkan siapa pun |
 | Menerjemahkan `GIZ-DEC-014` menjadi permission atau jabatan baru | Isi master jabatan adalah data; menebaknya melanggar aturan pemetaan jabatan berbasis bukti |
+
+---
+
+## Catatan lintas modul 12 Oktober 2026 — Penagihan Gizi (`BKC-DEC-137`)
+
+Pemilik Billing memutuskan konsultasi/asuhan Gizi **tidak ditagih terpisah** (termasuk paket kamar/layanan); pengecualian ditagih kasir lewat biaya katalog. Tidak ada producer tagihan dari modul Gizi. Selaras butir di luar scope pada baris 40 dokumen ini. Rencana: [`PLAN-REPAIR-BKC-001`](../billing-kasir/docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-06.

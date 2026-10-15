@@ -341,3 +341,10 @@ rentang → `400` sampai rentang "< 150" ditambahkan.
 | `VAL-RWF-66` | Status tanggungan | `ItemIds` kosong | "Pilih sekurang-kurangnya satu pemeriksaan." | `400` |
 | `VAL-RWF-67` | Perkiraan harga | Pemanggil tidak memegang hak membuat pesanan jenis itu | — (bukan penolakan) — `PriceStatus = NOT_PERMITTED`, tanpa field harga | `200` |
 | `VAL-RWF-68` | Perkiraan harga | Tarif tidak dapat diresolusi | "Tarif belum tersedia" — pesanan tetap boleh dikirim (`RWI-DEC-218` butir 4, `RWI-DEC-220` butir 5) | `200` |
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Aturan cakupan cocok hanya untuk kelas sama atau umum. Khusus kelas menang pada sasaran item setara; tidak ada hierarki otomatis. NotCovered tetap sah untuk resep bertarif; tanpa tarif sesuai/umum invalid. Harga tarif nol yang sah dibuktikan TariffId. Item aktif, dosis, satuan dan permission tetap divalidasi. Label ConfigurationMissing/Unknown berarti Belum dapat ditentukan.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

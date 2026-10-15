@@ -75,6 +75,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         private readonly InpAdmissionDocumentService _documentService;
         private readonly InpAdmissionSignatureService _signatureService;
         private readonly InpAdmissionPrintService _printService;
+        private readonly InpatientAdmissionConsentService _consentService;
         private readonly LoggerService _loggerService;
 
         public InpatientAdmissionDocumentController(
@@ -83,6 +84,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             InpAdmissionDocumentService documentService,
             InpAdmissionSignatureService signatureService,
             InpAdmissionPrintService printService,
+            InpatientAdmissionConsentService consentService,
             LoggerService loggerService)
         {
             _queryService = queryService;
@@ -90,6 +92,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             _documentService = documentService;
             _signatureService = signatureService;
             _printService = printService;
+            _consentService = consentService;
             _loggerService = loggerService;
         }
 
@@ -139,6 +142,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [AccessPermission("InpatientAdmissionDocument", "Read")]
         public async Task<IActionResult> GetGeneralConsentPrintData(Guid episodeId, CancellationToken cancellationToken = default)
             => FromResult(await _queryService.GetGeneralConsentPrintDataAsync(episodeId, cancellationToken));
+
+        // =====================================================================
+        // BE-RWI-227 — Edit Persetujuan berversi dan Riwayat Perubahan (PLAN-REPAIR-EPS-008)
+        // =====================================================================
+
+        /// <summary>
+        /// Edit Persetujuan: versi aktif menjadi <c>Superseded</c>, versi baru beralasan menjadi aktif.
+        /// Isi persetujuan, NIK, dan alasan tidak masuk logger.
+        /// </summary>
+        [HttpPost("general-consent/revisions")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientAdmissionConsentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Update Inpatient Admission Document", Description = UpdateDescription, AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("InpatientAdmissionDocument", "Update")]
+        public async Task<IActionResult> ReviseGeneralConsent(
+            Guid episodeId,
+            [FromBody] InpatientAdmissionConsentRevisionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _consentService.ReviseConsentAsync(
+                episodeId, request, User.GetUserId(), cancellationToken);
+
+            return await LogAndReturnAsync(result, "ReviseGeneralConsent", "Membuat versi koreksi persetujuan rawat inap.", x => x.ConsentId);
+        }
+
+        /// <summary>Riwayat seluruh versi persetujuan, terbaru di atas: pengubah, waktu, alasan, dan isian yang berubah.</summary>
+        [HttpGet("general-consent/history")]
+        [ProducesResponseType(typeof(ApiResponse<List<InpatientAdmissionConsentHistoryResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Read", "Read Inpatient Admission Document", Description = ReadDescription, AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientAdmissionDocument", "Read")]
+        public async Task<IActionResult> GetGeneralConsentHistory(Guid episodeId, CancellationToken cancellationToken = default)
+            => FromResult(await _consentService.GetConsentHistoryAsync(episodeId, cancellationToken));
 
         // =====================================================================
         // BE-RWI-194, 199, 201, 202 — Isian bawaan dan dokumen

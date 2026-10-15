@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
@@ -426,6 +427,7 @@ namespace QuilvianSystemBackend.Repositories
         #region CORPORATE - HUMAN RESOURCE - BENEFIT MANAGEMENT
         public DbSet<TrxEmployeeBenefitEnrollment> TrxEmployeeBenefitEnrollments { get; set; }
         public DbSet<TrxEmployeeBenefitDependent> TrxEmployeeBenefitDependents { get; set; }
+        public DbSet<HrdBenefitBalanceMovement> HrdBenefitBalanceMovements { get; set; }
         public DbSet<TrxEmployeeInsuranceEnrollment> TrxEmployeeInsuranceEnrollments { get; set; }
         public DbSet<TrxBenefitClaim> TrxBenefitClaims { get; set; }
         public DbSet<TrxBenefitClaimItem> TrxBenefitClaimItems { get; set; }
@@ -590,6 +592,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstMembershipTier> MstMembershipTiers { get; set; }
         public DbSet<MstPatient> MstPatients { get; set; }
         public DbSet<MstPatientMembership> MstPatientMemberships { get; set; }
+        public DbSet<PatMembershipStatusHistory> PatMembershipStatusHistories { get; set; }
         public DbSet<MstPatientIdentityDocument> MstPatientIdentityDocuments { get; set; }
         public DbSet<MstPatientRelationship> MstPatientRelationships { get; set; }
         public DbSet<MstPatientEmergencyContact> MstPatientEmergencyContacts { get; set; }
@@ -657,6 +660,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstExchangeRate> MstExchangeRates { get; set; }
         // BE-FIN-074, FIN-DES-086: ambang nilai pembayaran langsung, master berjejak satu baris aktif.
         public DbSet<MstDirectPaymentThreshold> MstDirectPaymentThresholds { get; set; }
+        // BE-FIN-110, BE-FIN-115, FIN-DEC-222, FIN-DES-108: master peralihan periode pertama yang ditangani mesin payroll.
+        public DbSet<MstPayrollDeductionCutover> MstPayrollDeductionCutovers { get; set; }
         // BE-FIN-005, FIN-DES-008: satu pintu masuk seluruh fakta dari Billing. Migration
         // AddFinanceBillingIntake (BE-FIN-007) dibuat tangan, belum dijalankan. Service konsumen
         // (FinanceBillingIntakeService) belum ada task pemilik eksplisit.
@@ -668,12 +673,17 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
         public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
         public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        public DbSet<FinReceivableWriteOffProposal> FinReceivableWriteOffProposals { get; set; }
+        public DbSet<FinReceivableWriteOffProposalItem> FinReceivableWriteOffProposalItems { get; set; }
         // BE-FIN-058, FIN-DES-079: buku mutasi piutang.
         public DbSet<FinReceivableMovement> FinReceivableMovements { get; set; }
         // BE-FIN-092, FIN-DES-099: perjanjian angsuran piutang pegawai. Migration
         // AddFinanceReceivableInstallmentAndBenefitSettlement dibuat via CLI EF Core, belum diterapkan.
         public DbSet<FinReceivableInstallmentPlan> FinReceivableInstallmentPlans { get; set; }
         public DbSet<FinReceivableInstallment> FinReceivableInstallments { get; set; }
+        // BE-FIN-117, FIN-DES-106, FIN-DEC-220: batch hasil potongan gaji manual per periode.
+        public DbSet<FinPayrollDeductionBatch> FinPayrollDeductionBatches { get; set; }
+        public DbSet<FinPayrollDeductionBatchItem> FinPayrollDeductionBatchItems { get; set; }
         // BE-FIN-092, FIN-DES-102: pelunasan internal berkala porsi benefit yang ditanggung RS.
         public DbSet<FinBenefitSettlement> FinBenefitSettlements { get; set; }
         public DbSet<FinBenefitSettlementItem> FinBenefitSettlementItems { get; set; }
@@ -907,6 +917,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<RegEncounterReferral> RegEncounterReferrals { get; set; }
         public DbSet<RegEncounterReferralDocument> RegEncounterReferralDocuments { get; set; }
         public DbSet<RegEncounterReferralRevision> RegEncounterReferralRevisions { get; set; }
+        public DbSet<RegEncounterReschedule> RegEncounterReschedules { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
         public DbSet<TrxDoctorConsultation> TrxDoctorConsultations { get; set; }
         public DbSet<TrxPatientDiagnosis> TrxPatientDiagnoses { get; set; }

@@ -88,6 +88,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 "Daftar episode ibu aktif berhasil diambil."));
         }
 
+        /// <summary>
+        /// Memeriksa apakah pasien boleh dibukakan admisi baru, sebelum petugas mengisi
+        /// langkah-langkah admisi. Ditambahkan pada BE-RWI-230 (ISSUE-EPS-010).
+        /// </summary>
+        /// <remarks>
+        /// Penghalangnya episode yang sedang hadir (409 <c>PATIENT_ALREADY_ADMITTED</c> pada
+        /// pemesanan bed dan pembukaan admisi), permintaan Kamar Pulih yang menunggu, dan
+        /// kunjungan rawat jalan aktif milik pendaftaran. Kalimatnya sama persis dengan
+        /// penolakan tulisnya. Admisi lain yang masih <c>Draft</c> dilaporkan sebagai peringatan.
+        /// Pembacaan ini dapat menggugurkan Draft yang sudah lewat batas, seperti daftar episode.
+        /// </remarks>
+        [HttpGet("admission-eligibility")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientAdmissionEligibilityResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Memeriksa kelayakan pasien sebelum admisi rawat inap dibuka", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetAdmissionEligibility(
+            [FromQuery] InpatientAdmissionEligibilityQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            if (query.PatientId == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien belum dipilih."));
+            }
+
+            var result = await _episodeService.GetAdmissionEligibilityAsync(query, cancellationToken);
+
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Pasien tidak ditemukan atau tidak aktif."));
+            }
+
+            return Ok(ApiResponse<InpatientAdmissionEligibilityResponse>.Ok(
+                result,
+                result.CanContinue
+                    ? "Pasien dapat dilanjutkan ke admisi."
+                    : "Pasien belum dapat diadmisi."));
+        }
+
         /// <summary>Mengambil pilihan penyaring beserta nilai bawaannya untuk layar daftar.</summary>
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeFilterMetadataResponse>), StatusCodes.Status200OK)]

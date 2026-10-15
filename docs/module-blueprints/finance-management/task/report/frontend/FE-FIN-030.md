@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `0b54fdce6` — branch `yasmina` |
 | Commit backend yang dijadikan rujukan | `0e2567655` — branch `Yasmina` (read-only untuk source; ditulis untuk dokumentasi blueprint) |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **Sebagian.** Source lengkap sesuai kontrak target `FIN-API-1.6`, `npm run lint:errors` **PASS**. `npm run build` **NOT RUN** (menunggu konfirmasi eksplisit pengguna). Verifikasi jalur `400`/`409`/`413`/`503`/`404`/`422` **NOT FEASIBLE** — `BE-FIN-075`/`077`/`078` belum diimplementasikan, endpoint `POST /transaction-proofs` belum ada untuk dipanggil |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

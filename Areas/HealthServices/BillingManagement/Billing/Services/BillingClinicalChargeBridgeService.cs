@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -54,6 +54,53 @@ public sealed partial class BillingClinicalChargeBridgeService
             : state?.InvoiceSyncStatus == BillingInvoiceSyncStatus.Synced ? "RECOGNIZED" : "PENDING";
     }
 
+    /// <summary>
+    /// Keadaan penagihan terakhir satu sumber klinis sampai invoice (<c>BE-BKC-FIX-015</c>,
+    /// <c>BE-BKC-FIX-017</c>). Membedakan "fakta belum diterima Billing", "menunggu diteruskan",
+    /// "masuk invoice", "tidak ditagih", dan "perlu ditinjau" — empat keadaan yang sebelumnya
+    /// sering terbaca sebagai satu (ISSUE-BKC-001 bagian 8).
+    /// </summary>
+    /// <param name="sourceContext">Konteks sumber pada kontrak Billing.</param>
+    /// <param name="sourceAggregateId">Agregat sumber, mis. resep atau pemakaian.</param>
+    /// <param name="sourceItemId">Butir sumber; kosong untuk sumber per agregat.</param>
+    /// <param name="cancellationToken">Token pembatalan.</param>
+    public async Task<BillingSourceChargeState> GetChargeStateAsync(
+        string sourceContext,
+        Guid sourceAggregateId,
+        Guid? sourceItemId,
+        CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+        var fact = await db.Set<CliClinicalMilestoneFact>().AsNoTracking()
+            .Where(x => x.SourceContext == sourceContext && x.SourceAggregateId == sourceAggregateId
+                && x.SourceItemId == sourceItemId && !x.IsDelete)
+            .OrderByDescending(x => x.MilestoneFactVersion)
+            .Select(x => new { x.MilestoneFactId, x.MilestoneFactVersion })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (fact is null)
+            return new BillingSourceChargeState(BillingSourceChargeStates.NotSent, null, null);
+
+        var effect = await db.Set<BilProcessingEffect>().AsNoTracking()
+            .Where(x => x.MilestoneFactId == fact.MilestoneFactId && x.MilestoneFactVersion == fact.MilestoneFactVersion
+                && x.SourceContext == sourceContext && !x.IsDelete)
+            .Select(x => new { x.InvoiceSyncStatus, x.InvoiceSyncErrorCode, x.InvoiceSyncErrorMessage })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (effect is null)
+            return new BillingSourceChargeState(BillingSourceChargeStates.NotReceived, null, null);
+
+        var state = effect.InvoiceSyncStatus switch
+        {
+            BillingInvoiceSyncStatus.Synced => BillingSourceChargeStates.InInvoice,
+            BillingInvoiceSyncStatus.Resolved => BillingSourceChargeStates.ResolvedManually,
+            BillingInvoiceSyncStatus.NotApplicable => BillingSourceChargeStates.NotCharged,
+            BillingInvoiceSyncStatus.ReconciliationRequired => BillingSourceChargeStates.NeedsReview,
+            _ => BillingSourceChargeStates.WaitingForBilling
+        };
+        return new BillingSourceChargeState(state, effect.InvoiceSyncErrorCode, effect.InvoiceSyncErrorMessage);
+    }
+
     /// <summary>Konteks folio yang menjadi calon penerusan ke invoice Rawat Jalan (V2.7.1).</summary>
     public static bool IsCandidateSourceContext(string? sourceContext) =>
         sourceContext is BillingSourceContract.ProcedureSourceContext
@@ -63,7 +110,11 @@ public sealed partial class BillingClinicalChargeBridgeService
             or BillingSourceContract.ConsultationSourceContext
             // BE-RWI-179: komponen biaya Kamar Operasi (anestesi, sewa kamar operasi, bahan).
             or BillingSourceContract.OperatingRoomSourceContext
-            or BillingSourceContract.EquipmentUsageSourceContext;
+            or BillingSourceContract.EquipmentUsageSourceContext
+            // BE-BKC-FIX-018 / K-06: fakta Bank Darah per tindakan (DEC-BD-016) diteruskan ke invoice.
+            or BillingSourceContract.BloodBankSourceContext
+            // BE-BKC-FIX-017 / K-04: pemakaian obat/BMHP tanpa resep, per butir.
+            or BillingSourceContract.DrugUsageSourceContext;
 
     /// <summary>
     /// Meneruskan efek bila statusnya <c>Pending</c> atau <c>Failed</c>. Efek dengan status lain
@@ -136,14 +187,21 @@ public sealed partial class BillingClinicalChargeBridgeService
         // tagih yang sama seperti rawat jalan (tindakan saat Completed, Lab saat spesimen diterima,
         // Radiologi saat kualitas citra diputuskan, obat saat diserahkan — RWI-DEC-195). Invoice
         // tujuannya invoice kunjungan itu sendiri, yang untuk rawat inap berlabel RANAP.
-        if (encounter.EncounterType is not (EncounterType.Outpatient or EncounterType.Inpatient))
-            return SyncPlan.Done(SyncOutcome.NotApplicable(BillingBridgeCodes.NotOutpatient, "Kunjungan bukan Rawat Jalan maupun Rawat Inap."));
+        //
+        // BE-BKC-FIX-016 / K-05: kunjungan IGD ikut dijembatani dengan titik tagih rawat jalan
+        // (BKC-DEC-079 menyamakan IGD dengan rawat jalan; IGD-DEC-246/247 menuntut tindakan dan
+        // obat IGD tampil di kasir seketika). Tujuannya tetap invoice kunjungan IGD itu sendiri;
+        // pasien yang naik rawat inap menggabungkannya lewat tautan invoice (BKC-DEC-118), bukan
+        // dengan memindahkan item — sehingga tidak ada tagihan ganda maupun item yang pindah pemilik.
+        if (encounter.EncounterType is not (EncounterType.Outpatient or EncounterType.Inpatient or EncounterType.Emergency))
+            return SyncPlan.Done(SyncOutcome.NotApplicable(BillingBridgeCodes.NotOutpatient, "Kunjungan bukan Rawat Jalan, IGD, maupun Rawat Inap."));
 
         var domain = MapDomain(effect.SourceContext);
 
         if (domain is not (BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Laboratory
             or BillingBridgeSourceDomains.Radiology or BillingBridgeSourceDomains.Consultation
-            or BillingBridgeSourceDomains.Pharmacy or BillingBridgeSourceDomains.OperatingRoom or BillingBridgeSourceDomains.EquipmentUsage))
+            or BillingBridgeSourceDomains.Pharmacy or BillingBridgeSourceDomains.OperatingRoom or BillingBridgeSourceDomains.EquipmentUsage
+            or BillingBridgeSourceDomains.BloodBank or BillingBridgeSourceDomains.Consumable))
             return SyncPlan.Done(SyncOutcome.StayPending(BillingBridgeCodes.SourcePendingSupport, $"Penerusan {domain} belum tersedia pada jembatan.", domain));
 
         var fact = await db.Set<CliClinicalMilestoneFact>().AsNoTracking()
@@ -213,10 +271,12 @@ public sealed partial class BillingClinicalChargeBridgeService
             .FirstOrDefaultAsync(cancellationToken);
 
         var resolver = services.GetRequiredService<BillingSourceTariffResolver>();
+        var serviceClass = await services.GetRequiredService<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services.InpServiceClassResolver>()
+            .ResolveAsync(encounter.Id, DateTime.SpecifyKind(effect.OccurredAt, DateTimeKind.Utc), cancellationToken);
         var tariff = await resolver.ResolveAsync(
             new BillingTariffResolutionRequest(
                 domain, fact.SourceAggregateId, fact.SourceItemId, fact.Quantity,
-                encounter.ClinicId, encounter.PatientClassId, DateTime.SpecifyKind(effect.OccurredAt, DateTimeKind.Utc),
+                encounter.ClinicId, serviceClass.Id, DateTime.SpecifyKind(effect.OccurredAt, DateTimeKind.Utc),
                 dispensedQuantities),
             cancellationToken);
 
@@ -633,6 +693,8 @@ public sealed partial class BillingClinicalChargeBridgeService
         BillingSourceContract.ConsultationSourceContext => BillingBridgeSourceDomains.Consultation,
         BillingSourceContract.OperatingRoomSourceContext => BillingBridgeSourceDomains.OperatingRoom,
         BillingSourceContract.EquipmentUsageSourceContext => BillingBridgeSourceDomains.EquipmentUsage,
+        BillingSourceContract.BloodBankSourceContext => BillingBridgeSourceDomains.BloodBank,
+        BillingSourceContract.DrugUsageSourceContext => BillingBridgeSourceDomains.Consumable,
         _ => sourceContext.ToUpperInvariant()
     };
 
@@ -693,6 +755,10 @@ public sealed partial class BillingClinicalChargeBridgeService
         // BE-RWI-179: komponen OK hanya ditagih saat kasus Completed (INV-RWF-30).
         BillingBridgeSourceDomains.OperatingRoom => "COMPLETED",
         BillingBridgeSourceDomains.EquipmentUsage => "COMPLETED",
+        // BE-BKC-FIX-018: tindakan Bank Darah ditagih saat Recorded → Completed (DEC-BD-016).
+        BillingBridgeSourceDomains.BloodBank => "COMPLETED",
+        // BE-BKC-FIX-017: pemakaian nonresep ditagih saat dicatat (stok berkurang), bukan saat draft.
+        BillingBridgeSourceDomains.Consumable => "USED",
         _ => "PERFORMED"
     };
 
@@ -769,6 +835,40 @@ public static class BillingBridgeSourceDomains
     /// <summary>Komponen biaya Kamar Operasi (<c>BE-RWI-179</c>); butirnya per komponen.</summary>
     public const string OperatingRoom = "OPERATING_ROOM";
     public const string EquipmentUsage = "EQUIPMENT_USAGE";
+
+    /// <summary>Tindakan Bank Darah (<c>BE-BKC-FIX-018</c>); butirnya per tindakan, bukan per kantong.</summary>
+    public const string BloodBank = "BLOOD_BANK";
+
+    /// <summary>Pemakaian obat/BMHP tanpa resep (<c>BE-BKC-FIX-017</c>); butirnya per baris pemakaian.</summary>
+    public const string Consumable = "CONSUMABLE";
+}
+
+/// <summary>Keadaan penagihan satu sumber klinis, dibaca oleh modul produsen untuk ditampilkan.</summary>
+public sealed record BillingSourceChargeState(string State, string? Code, string? Message);
+
+/// <summary>Nilai <see cref="BillingSourceChargeState.State"/>.</summary>
+public static class BillingSourceChargeStates
+{
+    /// <summary>Belum ada fakta yang diterbitkan untuk sumber ini.</summary>
+    public const string NotSent = "NOT_SENT";
+
+    /// <summary>Fakta tercatat tetapi belum diterima folio Billing.</summary>
+    public const string NotReceived = "NOT_RECEIVED";
+
+    /// <summary>Diterima folio; menunggu atau sedang dicoba ulang diteruskan ke invoice.</summary>
+    public const string WaitingForBilling = "WAITING_FOR_BILLING";
+
+    /// <summary>Item invoice (atau adjustment) sudah terbentuk.</summary>
+    public const string InInvoice = "IN_INVOICE";
+
+    /// <summary>Sengaja tidak ditagih: gratis, tidak billable, atau tahapnya belum eligible.</summary>
+    public const string NotCharged = "NOT_CHARGED";
+
+    /// <summary>Masuk antrean rekonsiliasi, mis. tarif belum ada.</summary>
+    public const string NeedsReview = "NEEDS_REVIEW";
+
+    /// <summary>Diselesaikan manual lewat antrean rekonsiliasi.</summary>
+    public const string ResolvedManually = "RESOLVED_MANUALLY";
 }
 
 /// <summary>Kode sebab pada antrean rekonsiliasi — validation matrix V2.</summary>

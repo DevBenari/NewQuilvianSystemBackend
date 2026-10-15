@@ -3,8 +3,9 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `114` — `BE-LAB-94` naik ✅ `SELESAI` sesudah cek layar `MVP-14c` langkah 5 di devYoga, 2026-10-09. Sebelumnya `113` — `BE-LAB-95` ✅ `SELESAI` (harness 24/24); `MVP-14a` beserta susulannya selesai pada kode, 2026-10-09, bagian 6at. Sebelumnya `112` — `BE-LAB-95` ⏳ `SIAP DIKERJAKAN` (rencana ulang sesudah wadah dibatalkan, `r46` `approved`), 2026-10-09, bagian 6at.4. Sebelumnya `111` — `BE-LAB-94` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `MVP-14a` selesai pada kode, 2026-10-09, bagian 6at. Sebelumnya `110` — gelombang `MVP-14` (CITO dari pemesanan sampai ke pemeriksaan, putaran 28): `BE-LAB-94` ⏳ `SIAP DIKERJAKAN`, langkah rilis `MVP-14c`, 2026-10-09, bagian 6at. Sebelumnya `109` — `BE-LAB-93` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `MVP-13a` selesai pada kode, 2026-10-08, bagian 6as. Sebelumnya `108` — `BE-LAB-92` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-93` siap dikerjakan, 2026-10-08, bagian 6as. Sebelumnya `107` — gelombang `MVP-13` (`EPIC-LAB-19` Beranda Lab, BR-140): `BE-LAB-92` ⏳, `BE-LAB-93` ⏳, langkah rilis `MVP-13c`, 2026-10-08, bagian 6as. Sebelumnya `106` — `BE-LAB-91` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`, 2026-10-07, bagian 6ar.4. Sebelumnya `105` — `MVP-12` diperluas: `BE-LAB-91` ⏳ (daftar dokter pemeriksa, jejak konfirmasi rincian, `r41`); langkah rilis 6ar.2 menjadi serempak, 2026-10-07, bagian 6ar.4. Sebelumnya `104` — `BE-LAB-90` naik ✅; langkah rilis `MVP-12c` langkah 2 terlaksana di dev; dua temuan (T1 respons detail, T2 pemilih dokter), 2026-10-07, bagian 6ar.1–6ar.2. Sebelumnya `103` — `BE-LAB-90` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`, 2026-10-07, bagian 6ar.1. Sebelumnya `102` — gelombang `MVP-12` (`EPIC-LAB-18`, urutan Konfirmasi v1) ditambahkan 2026-10-07, bagian 6ar: `BE-LAB-90` ⏳ melebur `BE-LAB-89` ❌; langkah rilis `MVP-12c`. Sebelumnya `101` — `BE-LAB-89` ditambahkan ⏳ (penolakan `start-process` ke `409`, tidak memblokir), 2026-10-07, bagian 6aq. Sebelumnya `100` — `BE-LAB-73`, `74`, `75` naik ✅ dengan bukti HTTP asli di devYoga, 2026-10-06. Sebelumnya `99` — `BE-LAB-78` naik ✅ (HTTP asli + baris `S4` Mikrobiologi pada harness), 2026-10-06. Sebelumnya `98` — Mikrobiologi lulus uji nyata di dev (6al.5), 2026-10-06. Sebelumnya `97` — temuan uji: langkah rilis 4 `MVP-9d`/`MVP-10c` wajib memuat `LabOrder : Read` dan `LabExamination : Read`; PK lulus uji nyata di dev, 2026-10-06. Sebelumnya `96` — setup uji langkah rilis `MVP-9d`/`MVP-10c` di devYoga (langkah 1–4 disetujui pemilik modul); temuan katalog HR untuk `LAB-COORD-016`, 2026-10-06. Sebelumnya `95` — `BE-LAB-88` ✅ `SELESAI` (Spesifik Specimen pada respons specimen, `r39`), 2026-10-06, bagian 6ap. Sebelumnya `94` — `BE-LAB-88` ditambahkan ✅ `SIAP DIKERJAKAN` (Spesifik Specimen pada respons specimen, `r39`, `LAB-DEC-167`), 2026-10-06, bagian 6ap. Sebelumnya `93` — `BE-LAB-87` ✅ `SELESAI` (identitas pasien pada rincian order, `r38`), 2026-10-01, bagian 6ao. Sebelumnya `92` — langkah rilis `MVP-8a` 6aj.5 langkah 1 dan 3 terlaksana di dev, 2026-10-01. Sebelumnya `91` — `AC-221` `BE-LAB-67` terbukti dengan akun analis asli; 22 migration tertunda modul lain diterapkan ke `QuilvianNewDevYoga`, 2026-10-01, bagian 6aj.1. Sebelumnya `90` — langkah rilis `MVP-11c` langkah 1 dan 3 terlaksana di dev, 2026-09-30, bagian 6an.7. Sebelumnya `89` — `BE-LAB-80` ✅ `SELESAI`; **`MVP-10a` selesai pada kode**, 2026-09-30, bagian 6al.3. Sebelumnya `88` — `BE-LAB-79` ✅ `SELESAI`, 2026-09-30, bagian 6al.2. Sebelumnya `87` — `BE-LAB-78` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-79` dan `BE-LAB-80` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6al.1-6al.3. Sebelumnya `86` — `BE-LAB-86` ✅ `SELESAI`; **`MVP-11a` selesai pada kode**, 2026-09-30, bagian 6an.5. Sebelumnya `85` — `BE-LAB-85` ✅ `SELESAI`; `BE-LAB-86` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.4-6an.5. Sebelumnya `84` — `BE-LAB-84` ✅ `SELESAI`, migration `AddLabSpecimenDecidedAtIndex` diterapkan ke database dev; `BE-LAB-85` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.3-6an.4. Sebelumnya `83` — `BE-LAB-83` ✅ `SELESAI`; `BE-LAB-84` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.2-6an.3. Sebelumnya `82` — `BE-LAB-82` ✅ `SELESAI`; `BE-LAB-83` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.1-6an.2. Sebelumnya `81` — `BE-LAB-81` ✅ `SELESAI`; gelombang `MVP-9e` selesai pada kode, 2026-09-30, bagian 6am.1-6am.2. Sebelumnya `80` — `BE-LAB-77` ✅ `SELESAI`; `BE-LAB-78` dan `BE-LAB-82` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6ak.8, 6al.1, dan 6an.1. Sebelumnya `79` — `BE-LAB-76` ✅ `SELESAI`; `BE-LAB-77` dan `BE-LAB-81` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.7-6ak.8 dan 6am.1. Sebelumnya `78` — `BE-LAB-75` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-76` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.6-6ak.7. Sebelumnya `77` — `BE-LAB-74` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-75` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.5-6ak.6. Sebelumnya `76` — `BE-LAB-73` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-74` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.4-6ak.5. Sebelumnya `75` — `BE-LAB-72` ✅ `SELESAI`; `BE-LAB-73` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.3-6ak.4. Sebelumnya `74` — verifikasi runtime susulan 2026-09-29 sore: migration Hemodialisa dan `BE-LAB-70` diterapkan ke database dev atas instruksi pemilik modul; `BE-LAB-68`..`71` ✅ `SELESAI`; `BE-LAB-67` tetap ⚠ dengan batas tinggal `AC-221`/`AC-222`; kedua daftar alasan terisi, bagian 6aj.1-6aj.3 dan 6ak.1-6ak.2. Sebelumnya `73` — `BE-LAB-71` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-73` kini hanya menunggu `BE-LAB-72`, 2026-09-29, bagian 6ak.2 dan 6ak.4. Sebelumnya `72` — `BE-LAB-70` ⚠ `SELESAI SEBAGIAN` (migration belum diterapkan); `LaboratoryResult = 15`; `BE-LAB-71` dan `BE-LAB-72` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.1-6ak.3. Sebelumnya `71` — `BE-LAB-69` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; backend `MVP-8` berdiri pada kode; `BE-LAB-70` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.3 dan 6ak.1. Sebelumnya `70` — `BE-LAB-68` ⚠ `SELESAI DENGAN BATAS VERIFIKASI` dan `BE-LAB-69` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.2-6aj.3. Sebelumnya `69` — `BE-LAB-67` ⚠ `SELESAI DENGAN BATAS VERIFIKASI` dan `BE-LAB-68` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.1-6aj.2. Sebelumnya `68` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28, bagian 6an: `BE-LAB-82`..`BE-LAB-86` dan langkah rilis `MVP-11c`. Sebelumnya `67` — `r36`/`r14`/`r7` disetujui; `BE-LAB-81` direncanakan sebagai gelombang `MVP-9e`, 2026-09-25, bagian 6am.0. Sebelumnya `66` — keputusan `LAB-DEC-154`..`156` diturunkan 2026-09-25 malam, bagian 6am; `BE-LAB-81` `BLOCKED`. Sebelumnya `65` — gelombang `MVP-10` ditambahkan 2026-09-25, bagian 6al. Sebelumnya `64` — gelombang `MVP-9` ditambahkan 2026-09-25, bagian 6ak; `BE-LAB-68` diperluas. Sebelumnya `63` — gelombang `MVP-8` ditambahkan 2026-09-24, bagian 6aj. *Baris ini sempat tertinggal di `57` sementara riwayat sudah sampai `62`; dirapikan 2026-09-24* |
+| Roadmap revision | `117` — verifikasi HTTP `r47`/`r48` dengan akun asli dr. Bima dan Gilang dicatat di bagian 0.3, 2026-10-14. Sebelumnya `116` — kontrak `r48` `approved` susulan lewat `LAB-REQ-025` (`api-contract.md` bagian 43); baris `r48` di bagian 0.3 naik menjadi **Selesai**, 2026-10-14. Sebelumnya `115` — bagian **0** *Ringkasan Task Backend dan Status* ditambahkan per 2026-10-14: 101 nomor task — 91 selesai, 4 selesai dengan batas verifikasi, 1 selesai dengan temuan, 1 tertahan, 2 dilebur, 2 dibatalkan — beserta pekerjaan tanpa nomor task (`r42`, `r43`, `r47`, `r48`). Sebelumnya `114` — `BE-LAB-94` naik ✅ `SELESAI` sesudah cek layar `MVP-14c` langkah 5 di devYoga, 2026-10-09. Sebelumnya `113` — `BE-LAB-95` ✅ `SELESAI` (harness 24/24); `MVP-14a` beserta susulannya selesai pada kode, 2026-10-09, bagian 6at. Sebelumnya `112` — `BE-LAB-95` ⏳ `SIAP DIKERJAKAN` (rencana ulang sesudah wadah dibatalkan, `r46` `approved`), 2026-10-09, bagian 6at.4. Sebelumnya `111` — `BE-LAB-94` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `MVP-14a` selesai pada kode, 2026-10-09, bagian 6at. Sebelumnya `110` — gelombang `MVP-14` (CITO dari pemesanan sampai ke pemeriksaan, putaran 28): `BE-LAB-94` ⏳ `SIAP DIKERJAKAN`, langkah rilis `MVP-14c`, 2026-10-09, bagian 6at. Sebelumnya `109` — `BE-LAB-93` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `MVP-13a` selesai pada kode, 2026-10-08, bagian 6as. Sebelumnya `108` — `BE-LAB-92` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-93` siap dikerjakan, 2026-10-08, bagian 6as. Sebelumnya `107` — gelombang `MVP-13` (`EPIC-LAB-19` Beranda Lab, BR-140): `BE-LAB-92` ⏳, `BE-LAB-93` ⏳, langkah rilis `MVP-13c`, 2026-10-08, bagian 6as. Sebelumnya `106` — `BE-LAB-91` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`, 2026-10-07, bagian 6ar.4. Sebelumnya `105` — `MVP-12` diperluas: `BE-LAB-91` ⏳ (daftar dokter pemeriksa, jejak konfirmasi rincian, `r41`); langkah rilis 6ar.2 menjadi serempak, 2026-10-07, bagian 6ar.4. Sebelumnya `104` — `BE-LAB-90` naik ✅; langkah rilis `MVP-12c` langkah 2 terlaksana di dev; dua temuan (T1 respons detail, T2 pemilih dokter), 2026-10-07, bagian 6ar.1–6ar.2. Sebelumnya `103` — `BE-LAB-90` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`, 2026-10-07, bagian 6ar.1. Sebelumnya `102` — gelombang `MVP-12` (`EPIC-LAB-18`, urutan Konfirmasi v1) ditambahkan 2026-10-07, bagian 6ar: `BE-LAB-90` ⏳ melebur `BE-LAB-89` ❌; langkah rilis `MVP-12c`. Sebelumnya `101` — `BE-LAB-89` ditambahkan ⏳ (penolakan `start-process` ke `409`, tidak memblokir), 2026-10-07, bagian 6aq. Sebelumnya `100` — `BE-LAB-73`, `74`, `75` naik ✅ dengan bukti HTTP asli di devYoga, 2026-10-06. Sebelumnya `99` — `BE-LAB-78` naik ✅ (HTTP asli + baris `S4` Mikrobiologi pada harness), 2026-10-06. Sebelumnya `98` — Mikrobiologi lulus uji nyata di dev (6al.5), 2026-10-06. Sebelumnya `97` — temuan uji: langkah rilis 4 `MVP-9d`/`MVP-10c` wajib memuat `LabOrder : Read` dan `LabExamination : Read`; PK lulus uji nyata di dev, 2026-10-06. Sebelumnya `96` — setup uji langkah rilis `MVP-9d`/`MVP-10c` di devYoga (langkah 1–4 disetujui pemilik modul); temuan katalog HR untuk `LAB-COORD-016`, 2026-10-06. Sebelumnya `95` — `BE-LAB-88` ✅ `SELESAI` (Spesifik Specimen pada respons specimen, `r39`), 2026-10-06, bagian 6ap. Sebelumnya `94` — `BE-LAB-88` ditambahkan ✅ `SIAP DIKERJAKAN` (Spesifik Specimen pada respons specimen, `r39`, `LAB-DEC-167`), 2026-10-06, bagian 6ap. Sebelumnya `93` — `BE-LAB-87` ✅ `SELESAI` (identitas pasien pada rincian order, `r38`), 2026-10-01, bagian 6ao. Sebelumnya `92` — langkah rilis `MVP-8a` 6aj.5 langkah 1 dan 3 terlaksana di dev, 2026-10-01. Sebelumnya `91` — `AC-221` `BE-LAB-67` terbukti dengan akun analis asli; 22 migration tertunda modul lain diterapkan ke `QuilvianNewDevYoga`, 2026-10-01, bagian 6aj.1. Sebelumnya `90` — langkah rilis `MVP-11c` langkah 1 dan 3 terlaksana di dev, 2026-09-30, bagian 6an.7. Sebelumnya `89` — `BE-LAB-80` ✅ `SELESAI`; **`MVP-10a` selesai pada kode**, 2026-09-30, bagian 6al.3. Sebelumnya `88` — `BE-LAB-79` ✅ `SELESAI`, 2026-09-30, bagian 6al.2. Sebelumnya `87` — `BE-LAB-78` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-79` dan `BE-LAB-80` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6al.1-6al.3. Sebelumnya `86` — `BE-LAB-86` ✅ `SELESAI`; **`MVP-11a` selesai pada kode**, 2026-09-30, bagian 6an.5. Sebelumnya `85` — `BE-LAB-85` ✅ `SELESAI`; `BE-LAB-86` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.4-6an.5. Sebelumnya `84` — `BE-LAB-84` ✅ `SELESAI`, migration `AddLabSpecimenDecidedAtIndex` diterapkan ke database dev; `BE-LAB-85` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.3-6an.4. Sebelumnya `83` — `BE-LAB-83` ✅ `SELESAI`; `BE-LAB-84` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.2-6an.3. Sebelumnya `82` — `BE-LAB-82` ✅ `SELESAI`; `BE-LAB-83` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.1-6an.2. Sebelumnya `81` — `BE-LAB-81` ✅ `SELESAI`; gelombang `MVP-9e` selesai pada kode, 2026-09-30, bagian 6am.1-6am.2. Sebelumnya `80` — `BE-LAB-77` ✅ `SELESAI`; `BE-LAB-78` dan `BE-LAB-82` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6ak.8, 6al.1, dan 6an.1. Sebelumnya `79` — `BE-LAB-76` ✅ `SELESAI`; `BE-LAB-77` dan `BE-LAB-81` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.7-6ak.8 dan 6am.1. Sebelumnya `78` — `BE-LAB-75` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-76` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.6-6ak.7. Sebelumnya `77` — `BE-LAB-74` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-75` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.5-6ak.6. Sebelumnya `76` — `BE-LAB-73` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-74` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.4-6ak.5. Sebelumnya `75` — `BE-LAB-72` ✅ `SELESAI`; `BE-LAB-73` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.3-6ak.4. Sebelumnya `74` — verifikasi runtime susulan 2026-09-29 sore: migration Hemodialisa dan `BE-LAB-70` diterapkan ke database dev atas instruksi pemilik modul; `BE-LAB-68`..`71` ✅ `SELESAI`; `BE-LAB-67` tetap ⚠ dengan batas tinggal `AC-221`/`AC-222`; kedua daftar alasan terisi, bagian 6aj.1-6aj.3 dan 6ak.1-6ak.2. Sebelumnya `73` — `BE-LAB-71` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-73` kini hanya menunggu `BE-LAB-72`, 2026-09-29, bagian 6ak.2 dan 6ak.4. Sebelumnya `72` — `BE-LAB-70` ⚠ `SELESAI SEBAGIAN` (migration belum diterapkan); `LaboratoryResult = 15`; `BE-LAB-71` dan `BE-LAB-72` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.1-6ak.3. Sebelumnya `71` — `BE-LAB-69` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; backend `MVP-8` berdiri pada kode; `BE-LAB-70` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.3 dan 6ak.1. Sebelumnya `70` — `BE-LAB-68` ⚠ `SELESAI DENGAN BATAS VERIFIKASI` dan `BE-LAB-69` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.2-6aj.3. Sebelumnya `69` — `BE-LAB-67` ⚠ `SELESAI DENGAN BATAS VERIFIKASI` dan `BE-LAB-68` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.1-6aj.2. Sebelumnya `68` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28, bagian 6an: `BE-LAB-82`..`BE-LAB-86` dan langkah rilis `MVP-11c`. Sebelumnya `67` — `r36`/`r14`/`r7` disetujui; `BE-LAB-81` direncanakan sebagai gelombang `MVP-9e`, 2026-09-25, bagian 6am.0. Sebelumnya `66` — keputusan `LAB-DEC-154`..`156` diturunkan 2026-09-25 malam, bagian 6am; `BE-LAB-81` `BLOCKED`. Sebelumnya `65` — gelombang `MVP-10` ditambahkan 2026-09-25, bagian 6al. Sebelumnya `64` — gelombang `MVP-9` ditambahkan 2026-09-25, bagian 6ak; `BE-LAB-68` diperluas. Sebelumnya `63` — gelombang `MVP-8` ditambahkan 2026-09-24, bagian 6aj. *Baris ini sempat tertinggal di `57` sementara riwayat sudah sampai `62`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
+| Ringkasan status task | **Bagian 0** — per 2026-10-14 |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
 | Tanggal | 2026-09-02; **gelombang `MVP-5a` ditambahkan 2026-09-14** |
@@ -20,6 +21,170 @@
 > **Dokumen ini bukan izin menulis kode.** Ia daftar pekerjaan beserta syaratnya. Satu task baru
 > boleh dikerjakan setelah disetujui satu per satu, lewat
 > `quilvian-engineering-skills:build-module-backend`.
+
+---
+
+## 0. Ringkasan Task Backend dan Status — per 2026-10-14
+
+> **Mulai baca status dari sini.** Bagian ini menggantikan papan **6ag** (per 2026-09-23, sampai
+> `BE-LAB-66`) dan tabel **7** (per 2026-09-17) sebagai tempat membaca status. Kedua bagian lama
+> tetap ada sebagai riwayat. Status diambil dari laporan di [`task/report/backend/`](../task/report/backend/)
+> lalu dicocokkan dengan baris **Status** pada blok task di dokumen ini. Rinciannya tetap ada pada
+> blok task dan laporannya.
+
+**Arti status:**
+
+| Status | Arti |
+|---|---|
+| **Selesai** | Kode selesai dan seluruh DoD terbukti |
+| **Selesai — batas verifikasi** | Kode, uji, dan build selesai. Satu butir pembuktian masih menunggu akun, data, atau izin. Kodenya tidak perlu disentuh lagi |
+| **Selesai — dengan temuan** | Pekerjaan selesai. Sebagian AC terbantah, dan itu dicatat sebagai temuan |
+| **Tertahan** | Belum dikerjakan. Penahannya keputusan atau pengadaan di luar tim rekayasa |
+| **Dilebur** | Cakupannya masuk ke task lain. Nomornya tidak dipakai ulang |
+| **Dibatalkan** | Dicabut keputusan. Tidak ada kode yang ditulis |
+
+### 0.1 Angka pokok
+
+| Golongan | Jumlah | Task |
+|---|---:|---|
+| Nomor task backend | **101** | `BE-LAB-01`..`BE-LAB-95` (95) dan `BE-EXT-01`, `02`, `03`, `04`, `04b`, `05` (6) |
+| **Selesai** | **91** | Seluruh nomor lain |
+| Selesai — batas verifikasi | **4** | `BE-LAB-67`, `BE-LAB-91`, `BE-LAB-92`, `BE-LAB-93` |
+| Selesai — dengan temuan | **1** | `BE-LAB-49` |
+| Tertahan | **1** | `BE-LAB-41` |
+| Dilebur | **2** | `BE-LAB-45` → `BE-LAB-53`; `BE-LAB-89` → `BE-LAB-90` |
+| Dibatalkan | **2** | `BE-LAB-23`, `BE-LAB-46` |
+| **Siap dikerjakan** | **0** | Belum ada task backend bernomor yang terbuka |
+
+91 + 4 + 1 + 1 + 2 + 2 = **101**.
+
+### 0.2 Seluruh task menurut gelombang
+
+| Task | Judul | Gelombang | Status | Catatan |
+|---|---|---|---|---|
+| `BE-LAB-01` | Kolom disiplin pada pesanan laboratorium | `MVP-0` | **Selesai** | [laporan](../task/report/backend/BE-LAB-01.md) |
+| `BE-LAB-02` | Tabel batas nilai dan pilihan hasil | `MVP-0` | **Selesai** | [laporan](../task/report/backend/BE-LAB-02.md) |
+| `BE-LAB-03` | Riwayat dan pengajuan perubahan batas kritis | `MVP-0` | **Selesai** | [laporan](../task/report/backend/BE-LAB-03.md) |
+| `BE-LAB-04` | Endpoint pengelolaan batas nilai | `MVP-0` | **Selesai** | [laporan](../task/report/backend/BE-LAB-04.md) |
+| `BE-LAB-05` | Endpoint pengajuan dan persetujuan batas kritis | `MVP-0` | **Selesai** | Peran penyetuju `LabCriticalBound : Approve` belum ditetapkan manajemen |
+| `BE-LAB-06` | Pengelolaan alasan penolakan sampel | `MVP-0` | **Selesai** | Pemegang `LabRejectionReason : SystemFlag` belum ditetapkan manajemen |
+| `BE-LAB-07` | Katalog, harga, dan cakupan penjamin — baca saja | `MVP-0` | **Selesai** | [laporan](../task/report/backend/BE-LAB-07.md) |
+| `BE-EXT-01` | [Master Data] Kolom disiplin pada `MstProcedure` | `MVP-0` | **Selesai** | Nilai per katalog menunggu daftar penggolongan dari pihak klinis |
+| `BE-LAB-17` | Metadata penyaring dan rekap untuk kelima grup | `MVP-0` | **Selesai** | [laporan](../task/report/backend/BE-LAB-17.md) |
+| `BE-LAB-18` | Penyaring, pengurutan, dan pagination daftar pesanan | `MVP-0` | **Selesai** | [laporan](../task/report/backend/BE-LAB-18.md) |
+| `BE-LAB-19` | `LEGACY MIGRATION`: normalisasi dua tabel `Trx*` | `MVP-0` | **Selesai** | [laporan](../task/report/backend/BE-LAB-19.md) |
+| `BE-EXT-02` | [Master Data] Dua data induk perujuk | `MVP-1` | **Selesai** | [laporan](../task/report/backend/BE-EXT-02.md) |
+| `BE-EXT-03` | [Registrasi] Penunjuk perujuk pada kunjungan dan kontrak pemanggilan | `MVP-1` | **Selesai** | Pelaksana `INT-05` dibangun bersama `BE-LAB-08` |
+| `BE-LAB-08` | Endpoint pendaftaran pasien laboratorium | `MVP-1` | **Selesai** | [laporan](../task/report/backend/BE-LAB-08.md) |
+| `BE-LAB-09` | Entity pemeriksaan terpesan | `MVP-1` | **Selesai** | [laporan](../task/report/backend/BE-LAB-09.md) |
+| `BE-LAB-16` | Endpoint pemeriksaan terpesan | `MVP-1` | **Selesai** | [laporan](../task/report/backend/BE-LAB-16.md) |
+| `BE-LAB-10` | Penanda cito dan duplo per pemeriksaan | `MVP-1` | **Selesai** | [laporan](../task/report/backend/BE-LAB-10.md) |
+| `BE-LAB-11` | Migration pemisahan wadah dan pemeriksaan | `MVP-2` | **Selesai** | [laporan](../task/report/backend/BE-LAB-11.md) |
+| `BE-LAB-12` | Endpoint wadah: rencana, layak, tolak | `MVP-2` | **Selesai** | [laporan](../task/report/backend/BE-LAB-12.md) |
+| `BE-LAB-13` | Fakta kelayakan tagih per pemeriksaan | `MVP-2` | **Selesai** | [laporan](../task/report/backend/BE-LAB-13.md) |
+| `BE-LAB-14` | Daftar kerja dan pemantauan keterlambatan cito | `MVP-3` | **Selesai** | [laporan](../task/report/backend/BE-LAB-14.md) |
+| `BE-LAB-15` | Monitoring tiga disiplin | `MVP-3` | **Selesai** | [laporan](../task/report/backend/BE-LAB-15.md) |
+| `BE-LAB-20` | Data induk jenis specimen | `MVP-5a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-20.md) |
+| `BE-LAB-21` | Jenis dan volume pada wadah | `MVP-5a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-21.md) |
+| `BE-LAB-22` | Waktu penerimaan fisik | `MVP-5a` | **Selesai** | Laporannya masih menulis *sebagian*; ditutup penuh 2026-09-17 oleh `BE-LAB-37` |
+| `BE-LAB-23` | Jumlah pemeriksaan memperbanyak baris | `MVP-5a` | **Dibatalkan** | `LAB-DEC-038` dicabut `LAB-DEC-050`, 2026-09-14 |
+| `BE-LAB-24` | Penguncian daftar pemeriksaan pada jalur hapus | `MVP-5a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-24.md) |
+| `BE-LAB-25` | Daftar pantau pemakaian `Lainnya` | `MVP-5a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-25.md) |
+| `BE-LAB-26` | Tabel pemeriksaan terpesan | `MVP-5b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-26.md) |
+| `BE-LAB-27` | Endpoint pemesanan per disiplin | `MVP-5b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-27.md) |
+| `BE-LAB-28` | Wadah hanya memuat yang dipesan | `MVP-5b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-28.md) |
+| `BE-LAB-29` | Disiplin diturunkan pada endpoint pesanan lama | `MVP-5b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-29.md) |
+| `BE-EXT-04` | [Registrasi] Kiosk mengetahui tujuan layanan | `MVP-5b` | **Selesai** | [laporan](../task/report/backend/BE-EXT-04.md) |
+| `BE-EXT-04b` | [Registrasi] Jalur tulis tujuan layanan pada sesi kiosk | `MVP-5b` | **Selesai** | [laporan](../task/report/backend/BE-EXT-04b.md) |
+| `BE-EXT-05` | [Registrasi] Kunjungan dari kiosk dan penutupan otomatisnya | `MVP-5b` | **Selesai** | [laporan](../task/report/backend/BE-EXT-05.md) |
+| `BE-LAB-30` | Status `Confirmed` dan tiga kolomnya | `MVP-5c` | **Selesai** | [laporan](../task/report/backend/BE-LAB-30.md) |
+| `BE-LAB-31` | Endpoint konfirmasi pesanan | `MVP-5c` | **Selesai** | [laporan](../task/report/backend/BE-LAB-31.md) |
+| `BE-LAB-32` | Pembatalan pesanan wajib beralasan | `MVP-5c` | **Selesai** | [laporan](../task/report/backend/BE-LAB-32.md) |
+| `BE-LAB-33` | Ruas respons konfirmasi pada daftar dan detail pesanan | `MVP-5d` | **Selesai** | [laporan](../task/report/backend/BE-LAB-33.md) |
+| `BE-LAB-34` | Ruas konfirmasi pada daftar pantau | `MVP-5d` | **Selesai** | [laporan](../task/report/backend/BE-LAB-34.md) |
+| `BE-LAB-35` | Daftar pemeriksaan terpesan pada detail pesanan | `MVP-5e` | **Selesai** | [laporan](../task/report/backend/BE-LAB-35.md) |
+| `BE-LAB-36` | Kolom nomor order beserta layanan alokasinya | `MVP-5f` | **Selesai** | [laporan](../task/report/backend/BE-LAB-36.md) |
+| `BE-LAB-37` | `r16`: nomor order terbaca dan waktu pengambilan | `MVP-5g` | **Selesai** | [laporan](../task/report/backend/BE-LAB-37.md) |
+| `BE-LAB-38` | `r17`: daftar penerimaan lintas pesanan | `MVP-5g` | **Selesai** | [laporan](../task/report/backend/BE-LAB-38.md) |
+| `BE-LAB-39` | Penyaring NIK dan Kategori Periode (`r18`) | `BR-50` | **Selesai** | Dilaporkan bersama `FE-LAB-20` — [laporan](../task/report/backend/BE-LAB-39.md) |
+| `BE-LAB-40` | Ikon gender pada kolom Pasien (`r19`) | `BR-50` | **Selesai** | Laporannya di dalam `BE-LAB-39.md` bagian 6 |
+| `BE-LAB-41` | Penyimpanan pengiriman hasil ke pasien | `S5`/`S6` | **Tertahan** | `LAB-COORD-011` (gerbang pesan dan pembangkit PDF) dan `DEC-LAB-011`. Penahannya bukan kode — bagian 6h-B |
+| `BE-LAB-42` | Label Lab dan Label Goldar (`r20`) | `BR-50` | **Selesai** | Laporannya di dalam `BE-LAB-39.md` |
+| `BE-LAB-43` | Pengisian hasil pemeriksaan (`S4a`) | `S4a` | **Selesai** | Dilaporkan bersama `FE-LAB-23` — [laporan](../task/report/backend/BE-LAB-43.md) |
+| `BE-LAB-44` | Dua data induk: `LabOrganism` dan `LabAntibiotic` | `MVP-6` | **Selesai** | [laporan](../task/report/backend/BE-LAB-44.md) |
+| `BE-LAB-45` | Perluasan bentuk hasil dan empat kolom `LabExamination` | `MVP-6` | **Dilebur** | Masuk `BE-LAB-53`, 2026-09-21 — bagian 6m |
+| `BE-LAB-46` | Jalur pengisian hasil Patologi Anatomi (rancangan lama) | `MVP-6` | **Dibatalkan** | Digantikan `BE-LAB-50`..`52`, 2026-09-18 |
+| `BE-LAB-47` | Dua tabel Mikrobiologi beserta index parsialnya | `MVP-6` | **Selesai** | [laporan](../task/report/backend/BE-LAB-47.md) |
+| `BE-LAB-48` | Jalur pengisian hasil Mikrobiologi | `MVP-6` | **Selesai** | [laporan](../task/report/backend/BE-LAB-48.md) |
+| `BE-LAB-49` | Pembuktian index parsial: hapus lalu pilih ulang | `MVP-6` | **Selesai — dengan temuan** | `AC-115` terbukti separuh; temuannya (`LAB-CONFLICT-011`) ditutup 2026-09-22 — bagian 6aa |
+| `BE-LAB-50` | Empat data induk Patologi Anatomi | `MVP-6b1` | **Selesai** | [laporan](../task/report/backend/BE-LAB-50.md) |
+| `BE-LAB-51` | Laporan Patologi Anatomi dan konteks klinis | `MVP-6b1` | **Selesai** | [laporan](../task/report/backend/BE-LAB-51.md) |
+| `BE-LAB-52` | Jalur laporan Patologi Anatomi | `MVP-6b2` | **Selesai** | [laporan](../task/report/backend/BE-LAB-52.md) |
+| `BE-LAB-53` | Enam kolom `LabExamination` dan enum status temuan | `MVP-7` | **Selesai** | Termasuk cakupan `BE-LAB-45` — [laporan](../task/report/backend/BE-LAB-53.md) |
+| `BE-LAB-54` | `finalize`, `reopen`, dan `consultation` | `MVP-7` | **Selesai** | [laporan](../task/report/backend/BE-LAB-54.md) |
+| `BE-LAB-55` | Data induk Spesifik Specimen | `MVP-7` | **Selesai** | [laporan](../task/report/backend/BE-LAB-55.md) |
+| `BE-LAB-56` | Aturan kritis dan evaluatornya | `MVP-7` | **Selesai** | [laporan](../task/report/backend/BE-LAB-56.md) |
+| `BE-LAB-57` | `LabFieldChangeLog` dan koreksi specimen | `MVP-7` | **Selesai** | [laporan](../task/report/backend/BE-LAB-57.md) |
+| `BE-LAB-58` | Ruas turunan pada jalur baca hasil | `MVP-7` | **Selesai** | [laporan](../task/report/backend/BE-LAB-58.md) |
+| `BE-LAB-59` | Pilihan dokter konfirmator beserta jalur jatuhnya | `MVP-7` | **Selesai** | [laporan](../task/report/backend/BE-LAB-59.md) |
+| `BE-LAB-60` | Data induk breakpoint dan kandungan cakram | `MVP-7b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-60.md) |
+| `BE-LAB-61` | Penghitung interpretasi dan penimpaannya | `MVP-7b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-61.md) |
+| `BE-LAB-62` | Profil Mikrobiologi katalog | `MVP-7b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-62.md) |
+| `BE-LAB-63` | Pengaturan disiplin dan nomor cetak | `MVP-7b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-63.md) |
+| `BE-LAB-64` | Permukaan baseline dua data induk Mikrobiologi (prasyarat `FE-LAB-34`) | susulan `MVP-7b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-64.md) |
+| `BE-LAB-65` | Permukaan baseline `LabOrganism` dan `LabAntibiotic` (prasyarat `FE-LAB-24`) | susulan `MVP-6` | **Selesai** | [laporan](../task/report/backend/BE-LAB-65.md) |
+| `BE-LAB-66` | Permukaan baseline tiga data induk Patologi Anatomi | susulan `MVP-6b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-66.md) |
+| `BE-LAB-67` | Izin hasil tersendiri dan route netral disiplin | `MVP-8a` | **Selesai — batas verifikasi** | `AC-222` menunggu admin memberi `LabExaminationResult : Update` (langkah rilis 6aj.5) |
+| `BE-LAB-68` | Penjaga hasil Final | `MVP-8a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-68.md) |
+| `BE-LAB-69` | Jalur baca per order dan penanda rujukan | `MVP-8b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-69.md) |
+| `BE-LAB-70` | Skema validasi dan rilis | `MVP-9a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-70.md) |
+| `BE-LAB-71` | Dua data induk alasan | `MVP-9a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-71.md) |
+| `BE-LAB-72` | Pembaca kewenangan dari kredensial Human Resource | `MVP-9a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-72.md) |
+| `BE-LAB-73` | Validasi hasil dan penjaga Reopen | `MVP-9b` | **Selesai** | Terbukti lewat HTTP asli 2026-10-06 — [laporan](../task/report/backend/BE-LAB-73.md) |
+| `BE-LAB-74` | Rilis, pendaftaran rekam medis, dan penjaga batal | `MVP-9b` | **Selesai** | Terbukti lewat HTTP asli 2026-10-06 — [laporan](../task/report/backend/BE-LAB-74.md) |
+| `BE-LAB-75` | *Kembalikan ke analis* | `MVP-9b` | **Selesai** | Terbukti lewat HTTP asli 2026-10-06 — [laporan](../task/report/backend/BE-LAB-75.md) |
+| `BE-LAB-76` | Ruas baca: pengesah, keadaan hasil, label order | `MVP-9b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-76.md) |
+| `BE-LAB-77` | Antrean validasi dan Daftar Kerja | `MVP-9b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-77.md) |
+| `BE-LAB-81` | Penjaga penyelesaian order | `MVP-9e` | **Selesai** | [laporan](../task/report/backend/BE-LAB-81.md) |
+| `BE-LAB-78` | Validasi, rilis, dan pengembalian menerima Mikrobiologi | `MVP-10a` | **Selesai** | Terbukti lewat HTTP asli 2026-10-06 — [laporan](../task/report/backend/BE-LAB-78.md) |
+| `BE-LAB-79` | Pengesah pada respons hasil Mikrobiologi dan label order Mikrobiologi | `MVP-10a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-79.md) |
+| `BE-LAB-80` | Antrean validasi dua disiplin | `MVP-10a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-80.md) |
+| `BE-LAB-82` | Batas waktu cito dan disiplin yang dapat dirilis di satu tempat | `MVP-11a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-82.md) |
+| `BE-LAB-83` | Laporan jumlah pemeriksaan, penyaring periode, dan izin laporan | `MVP-11a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-83.md) |
+| `BE-LAB-84` | Laporan penolakan wadah dan index waktu keputusan | `MVP-11a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-84.md) |
+| `BE-LAB-85` | Laporan waktu penyelesaian | `MVP-11a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-85.md) |
+| `BE-LAB-86` | Unduhan CSV ketiga laporan dan pencatatannya | `MVP-11a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-86.md) |
+| `BE-LAB-87` | Identitas pasien pada rincian order (`LAB-DEC-166`) | susulan `MVP-8c` | **Selesai** | [laporan](../task/report/backend/BE-LAB-87.md) |
+| `BE-LAB-88` | Spesifik Specimen pada respons specimen (`LAB-DEC-167`) | susulan `MVP-7` | **Selesai** | [laporan](../task/report/backend/BE-LAB-88.md) |
+| `BE-LAB-89` | `start-process` menolak status selain `Accepted` dengan `409` | susulan putaran 22 | **Dilebur** | Masuk `BE-LAB-90`, 2026-10-07 (`LAB-REQ-016` butir 3) |
+| `BE-LAB-90` | Konfirmasi pada pesanan yang wadahnya layak, Proses wajib terkonfirmasi, izin Konfirmasi tersendiri | `MVP-12a` | **Selesai** | Termasuk cakupan `BE-LAB-89` — [laporan](../task/report/backend/BE-LAB-90.md) |
+| `BE-LAB-91` | Daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian | `MVP-12a` | **Selesai — batas verifikasi** | `403` endpoint baru belum diamati di runtime; perlu akun tanpa izin `Confirm` |
+| `BE-LAB-92` | Ringkasan hari ini dan pesanan terbaru Beranda | `MVP-13a` | **Selesai — batas verifikasi** | `403` belum diamati di runtime |
+| `BE-LAB-93` | Ringkasan tahunan Beranda dan `VAL-154` | `MVP-13a` | **Selesai — batas verifikasi** | `403` belum diamati di runtime |
+| `BE-LAB-94` | Pemeriksaan mewarisi CITO saat wadah direncanakan dan diambil ulang, beserta perbaikan data lama | `MVP-14a` | **Selesai** | Migration data diterapkan ke devYoga; cek layar 2026-10-09 — [laporan](../task/report/backend/BE-LAB-94.md) |
+| `BE-LAB-95` | Rencana ulang sesudah wadah dibatalkan dan pendahulu tanpa penanda | `MVP-14a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-95.md) |
+
+### 0.3 Pekerjaan backend tanpa nomor task
+
+Pekerjaan berikut sudah ada di kode tetapi tidak punya nomor `BE-LAB-*` maupun laporan di
+`task/report/backend/`. Bukti diambil dari commit dan manifest.
+
+| Pekerjaan | Kontrak | Tanggal / commit | Status | Catatan |
+|---|---|---|---|---|
+| Alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141, `LAB-EVD-013`): `kiosk/pending-by-patient`, `kiosk-encounters`, ruas respons baru, dua `409` `start-process`, perbaikan status `Confirmed` di kiosk | `r42` (`LAB-REQ-019`) | 2026-10-08, `6564e04d` | **Selesai** | Kode ada di `LabOrderController` dan `LabPatientRegistrationController` |
+| Lingkup kunci Lunas: `paymentStatus` `Deferred`, `start-process` lolos bagi Rawat Inap dan IGD | `r43` (`LAB-REQ-020`) | 2026-10-08 | **Selesai** | Harness InMemory 11/11 (manifest rev 108); `LabPaymentClearanceRules` |
+| Kolom tabel v1 pada daftar pantau: delapan ruas baca baru pada `LabMonitoringItemResponse` | `r47` (`LAB-REQ-024`) | 2026-10-13, `36422a4d` | **Selesai** | Kontrak di `api-contract.md` bagian 42. Uji 2026-10-14 dengan akun asli dr. Bima (Kepala Instalasi) dan Gilang (Analis), baca-saja (penjaga tulis: nol permintaan tulis): HTTP `200` dengan kedelapan ruas pada ketiga disiplin (PK 11, PA 4, Mikro 7 pesanan) untuk Gilang; dr. Bima `403` — jabatannya tanpa `LabMonitoring : Read`, sesuai |
+| Kartu *Informasi Pasien*/*Informasi Pemeriksaan* halaman hasil v1: delapan ruas pada rincian order (poli, kamar, kelas, jenis bayar, penjamin, dokter perujuk/DPJP, tanggal sampling, tanggal pemeriksaan), serta `resultEnteredByName` | `r48` ([`LAB-REQ-025`](../approval-requests/2026-10-14-permintaan-kartu-info-halaman-hasil-v1.md)) | 2026-10-13, `36422a4d` | **Selesai** | Kontrak `approved` susulan 2026-10-14, `api-contract.md` bagian 43. Kode tidak berubah. Uji 2026-10-14 dengan akun asli dr. Bima (Kepala Instalasi) dan Gilang (Analis), baca-saja (penjaga tulis: nol permintaan tulis): `GET /lab-orders/{id}` 8/8 ruas pada `LAB-RSMMC-000001`, `000009`, `000014`, `000024` untuk kedua akun; `resultEnteredByName` = *Vina Aprilianti* pada `000001` |
+| Deskripsi `<summary>` Swagger dicabut dari controller Lab | — | 2026-10-13, `bf5e98b5` | **Selesai** | Kerapian, tanpa perubahan perilaku |
+
+### 0.4 Yang masih terbuka di luar task bernomor
+
+- **`BE-LAB-41`** tetap tertahan oleh `LAB-COORD-011` dan `DEC-LAB-011`. Tidak satu pun penahannya berupa kode.
+- **Batas verifikasi** `BE-LAB-67`, `91`, `92`, `93` dapat ditutup tanpa mengubah kode: beri
+  `LabExaminationResult : Update` (langkah rilis 6aj.5), lalu amati `403` dengan akun yang tidak memegang izinnya.
+- ~~Kontrak `r48` perlu disetujui dan ditulis~~ — **ditutup 2026-10-14**: `LAB-REQ-025` disetujui, `api-contract.md` bagian 43.
+- **Langkah rilis** (`MVP-8a`, `9d`, `10c`, `11c`, `12c`, `13c`, `14c`) bukan task programmer. Statusnya tetap
+  dibaca pada bagian masing-masing: 6aj.5, 6ak.10, 6al.5, 6an.7, 6ar.2, 6as.3, 6at.2.
 
 ---
 
@@ -2784,6 +2949,8 @@ halaman kedua, dan kategori Patologi Anatomi lain — **keempatnya belum pernah 
 (`LAB-OPEN-039`). Menebaknya mengulang persis kesalahan `LAB-DEC-116`.
 ## 7. Ringkasan Status Task
 
+> **Riwayat per 2026-09-17.** Status terkini ada di bagian **0** (per 2026-10-14).
+
 | Task | Gelombang | Slice | Status rencana | Penahan spesifik |
 |---|---|---|---|---|
 | `BE-LAB-26` ✅ | `MVP-5b` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-15. Tabel berdiri dan diterapkan ke `QuilvianNewDevYoga`; unique parsial ditolak `23505`, `Restrict` ditolak `23503` **terisolasi beserta langkah kontrolnya**; jalur `Down` lalu `Up` terbukti — [laporan](../task/report/backend/BE-LAB-26.md) | Tidak ada. `LabExamination` terbukti tidak berubah satu baris pun |
@@ -2966,6 +3133,9 @@ kelalaian.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 117 | 2026-10-14 | **Verifikasi HTTP `r47` dan `r48` dengan akun asli** (dr. Bima, Gilang), baca-saja di backend lokal terhadap devYoga: daftar pantau 8 ruas `r47` pada tiga disiplin (Gilang `200`; dr. Bima `403` sesuai izin jabatannya); rincian order 8/8 ruas `r48` pada empat pesanan dan `resultEnteredByName` terisi, untuk kedua akun. Jalur `by-order/{id}/results` menjawab `422` untuk Mikro/PA — sesuai, jalur itu khusus Patologi Klinik. Nol permintaan tulis | `DRAFT` |
+| 116 | 2026-10-14 | **Kontrak `r48` dibukukan.** Pemilik modul menyetujui `LAB-REQ-025` (kartu informasi halaman hasil v1, persetujuan susulan atas kode 2026-10-13); `api-contract.md` bagian 43 ditulis. Bagian 0.3: baris `r48` naik dari *Selesai pada kode — kontrak belum dibukukan* menjadi **Selesai**. Bagian 0.4: butir `r48` ditutup | `DRAFT` |
+| 115 | 2026-10-14 | **Bagian 0 *Ringkasan Task Backend dan Status* ditambahkan** di awal dokumen. Status seluruh 101 nomor task (`BE-LAB-01`..`95`, `BE-EXT-01`..`05`) diambil dari laporan dan baris Status blok task: 91 selesai, 4 selesai dengan batas verifikasi (`BE-LAB-67`, `91`, `92`, `93`), 1 selesai dengan temuan (`BE-LAB-49`), 1 tertahan (`BE-LAB-41`), 2 dilebur (`BE-LAB-45`, `89`), 2 dibatalkan (`BE-LAB-23`, `46`). Bagian 0.3 mencatat pekerjaan tanpa nomor task: `r42` dan `r43` (2026-10-08), `r47` dan `r48` (2026-10-13, commit `36422a4d`). **`r48` ada di kode tetapi belum dibukukan di `api-contract.md`.** Papan 6ag dan tabel 7 ditandai riwayat | `DRAFT` |
 | 114 | 2026-10-09 | **`BE-LAB-94` naik ✅ `SELESAI`** — **Cek layar 2026-10-09 (MVP-14c langkah 5, izin pemilik)**: satu pesanan uji `LAB-RSMMC-000024` (superadmin, kunjungan `ENC-RSMMC-00177`, Hemoglobin CITO + Leukosit biasa), *Terima Sampling* oleh analis **Gilang** sampai *Received* (plan `201`, collect `200`, receive `200`; tanpa Layak, tanpa tagihan). Daftar Pasien PK: Kesegeraan *Biasa* → **Memuat CITO**; saringan *Cito* memuatnya; Nota tercetak *Hemoglobin CITO* / *Leukosit Biasa*; Daftar Kerja: Hemoglobin CITO baris 2, Leukosit baris 9; *Hanya Cito* memuat Hemoglobin saja; API: Hemoglobin `Cito` penanda `null`. `AC-319` sisi layar tetap bukti harness (tanpa Layak atas pilihan pemilik) | `DRAFT` |
 | 113 | 2026-10-09 | **`BE-LAB-95` ✅ `SELESAI`** ([`BE-LAB-95.md`](../task/report/backend/BE-LAB-95.md)): rencana ulang sesudah wadah dibatalkan mewarisi pendahulu berpenanda; pendahulu tanpa penanda (rencana ulang dan ambil ulang) membaca permintaan. Harness 24/24 (6 baru + 18 regresi `BE-LAB-94`), build 0 error, nol migration. Temuan T1 tertutup pada kode | `DRAFT` |
 | 112 | 2026-10-09 | **`BE-LAB-95` ditambahkan — bagian 6at.4** dari `02-backend-architecture.md` bagian 30 atas `LAB-API-v1` `r46` **`approved` 2026-10-09** (`LAB-REQ-023`, *"setuju kelima butir"*). Menutup temuan T1 `BE-LAB-94`. Nol migration, nol task frontend | `DRAFT` |
@@ -4446,6 +4616,8 @@ dari endpoint yang menjawab `404`.
 ---
 
 ## 6ag. Papan kendali status task backend — 2026-09-23
+
+> **Riwayat per 2026-09-23.** Sejak 2026-10-14 status dibaca di bagian **0**, yang mencakup `BE-LAB-01`..`BE-LAB-95`.
 
 > **Bagian ini dimaksudkan sebagai SATU tempat membaca status, dan sengaja menggantikan kebiasaan
 > menyimpulkan status dari blok task.** Sapuan 6ab sudah membuktikan blok task dapat tertinggal;

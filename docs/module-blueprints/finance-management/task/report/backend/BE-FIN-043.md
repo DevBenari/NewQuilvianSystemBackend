@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) |
 | Trace | `FIN-DEC-047`, `FIN-DEC-061`, `FIN-DEC-067`, **`FIN-DEC-068`**; `FIN-DES-055`; `02-backend-architecture.md` §E.9-E.10 |
 | Contract version | `FIN-INTEGRATION-1.6` §5.10.2 kode 36; `FIN-VAL-1.5` `FIN-VAL-133`, `135`, `136`, `143`; `erd/data-dictionary.md` |
-| Dependency | `BE-FIN-030` 🟡, `BE-FIN-031` 🟡, `BE-FIN-035` 🟡 — seluruhnya source selesai; task ini menulis di atasnya |
+| Dependency | `BE-FIN-030` ✅, `BE-FIN-031` ✅, `BE-FIN-035` ✅ — seluruhnya source selesai; task ini menulis di atasnya |
 | Klasifikasi | `MEDIUM` — satu repository (skor 0); ≤8 berkas diperiksa domain terdekat (skor 0), >8 total dibaca lintas kontrak/desain (skor 1); 7 berkas diubah + 2 berkas migration baru (skor 1); logika bisnis sedang — dua aturan validasi baru + pemisahan nilai kejadian (skor 1); kontrak API — nol endpoint baru, dua DTO diperluas aditif (skor 1); database — satu kolom + satu check constraint pada tabel yang sudah berjalan (skor 1); keamanan/auth — nol perubahan (skor 0); UI/workflow — nol (skor 0). Total 5 → `MEDIUM` |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Purchasing/**`, `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinAccountingEventOutbox.cs`, `Repositories/Configurations/Corporate/FinanceManagement/Purchasing/**`, `Migrations/**`, `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` (tanda status) |
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | Belum di-commit — working tree `Yasmina`, HEAD `7811c048` |
 | Tanggal | 29 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source dan berkas migration selesai; otorisasi pembuatan berkas migration diberikan eksplisit pengguna 29 September 2026. `dotnet build` **NOT RUN** (aturan berdiri "jangan build otomatis"). Eksekusi migration ke database **belum diminta** — wewenang terpisah |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -108,7 +108,7 @@ deposit tetap sebesar pokok, dan nol kejadian PPN terbit.
 | `Areas/Corporate/FinanceManagement/Purchasing/Controllers/FinanceSupplierReturnsController.cs` | Meneruskan `request.PPNAmount`; dua pemetaan response membawa `PPNAmount` |
 | `Migrations/20260929130000_AddPPNAmountToFinSupplierReturn.cs` + `.Designer.cs` | **Baru** — kolom + check constraint, `Down()` membalik keduanya |
 | `Migrations/ApplicationDbContextModelSnapshot.cs` | Properti `PPNAmount` pada blok `FinSupplierReturn` + check constraint pada `ToTable` |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-043` → 🟡 |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-043` → ✅ |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 
@@ -202,4 +202,4 @@ Task ini **belum** dapat ditandai `✅` — dua butir validasi terakhir belum te
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `M` tujuh berkas (model, configuration, DTO, service, controller, konstanta outbox, snapshot) + `??` dua berkas migration + `??` laporan ini |
-| Langkah berikutnya | (1) `dotnet build`; (2) otorisasi dan eksekusi migration `AddPPNAmountToFinSupplierReturn` — perhatikan ia mensyaratkan `AddPurchasingApRumpun` (`BE-FIN-031`) sudah dieksekusi lebih dulu karena tabelnya lahir di sana; (3) uji runtime `FIN-TEST` rumpun retur; (4) `BE-FIN-044` sudah 🟡 dan `BE-FIN-045`/`046`/`047` bebas dikerjakan — tidak bergantung pada task ini |
+| Langkah berikutnya | (1) `dotnet build`; (2) otorisasi dan eksekusi migration `AddPPNAmountToFinSupplierReturn` — perhatikan ia mensyaratkan `AddPurchasingApRumpun` (`BE-FIN-031`) sudah dieksekusi lebih dulu karena tabelnya lahir di sana; (3) uji runtime `FIN-TEST` rumpun retur; (4) `BE-FIN-044` sudah ✅ dan `BE-FIN-045`/`046`/`047` bebas dikerjakan — tidak bergantung pada task ini |

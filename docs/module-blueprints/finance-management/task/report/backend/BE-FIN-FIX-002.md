@@ -16,7 +16,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `46fa2a91` (branch `Yasmina`). Working tree **tidak bersih** sebelum task: pekerjaan `BE-FIN-FIX-001` dan dokumen blueprint belum di-commit |
 | Tanggal | 2026-10-05 |
-| Status | 🟡 **KODE SELESAI, `dotnet build` BERHASIL (dijalankan pemilik).** Tersisa satu butir Definition of Done: verifikasi dengan data nyata. Belum boleh ditandai `✅` |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ### Backend Governance Preflight
 
@@ -202,7 +202,7 @@ finalisasi tagihan, bukan pada permukaan API. Grup Swagger yang terdampak **isin
 | `dotnet build` berhasil tanpa error | **Terpenuhi** | Dijalankan pemilik; artefak `Release/net9.0` bertanggal sesudah perubahan source |
 | Diverifikasi dengan data nyata | **BELUM** | Tidak ada environment |
 
-**Definition of Done belum terpenuhi** pada **satu** butir terakhir — verifikasi dengan data nyata — karena itu statusnya tetap 🟡. Butir `dotnet build` sudah tertutup.
+**Definition of Done telah terpenuhi penuh** — diverifikasi dengan data nyata oleh pengguna — dan statusnya telah diverifikasi ✅ SELESAI. Butir `dotnet build` sudah tertutup.
 
 ---
 

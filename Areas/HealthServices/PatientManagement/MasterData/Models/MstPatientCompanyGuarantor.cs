@@ -82,6 +82,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public bool IsActive { get; set; } = true;
 
+        // BE-FIN-105, FIN-DEC-198/199, kamus data 9.4: tautan pasti ke data HR untuk kartu
+        // penjamin internal. Ketiganya kosong untuk kartu biasa. Hanya-baca bagi klien; diisi
+        // layanan kelayakan (BE-FIN-106). Kolom sensitif: tidak boleh masuk log.
+
+        /// <summary>MstEmployee.Id pegawai pemilik benefit.</summary>
+        public Guid? EmployeeId { get; set; }
+
+        /// <summary>WfpFamilyMember.Id bila pasiennya anggota keluarga; kosong bila pegawai sendiri.</summary>
+        public Guid? FamilyMemberId { get; set; }
+
+        /// <summary>SELF, SPOUSE, CHILD, PARENT, atau OTHER (FIN-INTEGRATION-1.9 R.1.1).</summary>
+        [MaxLength(50)]
+        public string? BenefitRelationship { get; set; }
+
         public MstPatient? Patient { get; set; }
 
         public MstCompanyGuarantor? CompanyGuarantor { get; set; }

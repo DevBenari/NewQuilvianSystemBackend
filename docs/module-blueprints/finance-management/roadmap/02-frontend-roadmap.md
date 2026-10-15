@@ -122,16 +122,16 @@ pemantauan — ditambah **merapikan** yang sudah ada untuk Petty Cash.
 | Tanda | Artinya |
 | :---: | --- |
 | ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
-| 🟡 | Sebagian. Source-nya sudah ada, tetapi acceptance criteria belum terbukti penuh. **Belum selesai** |
+| ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task (diverifikasi penuh) |
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
 | tanpa tanda | Belum dikerjakan |
 
 ```text
-BE-FIN-004 ✅ [BE] ─> FE-FIN-001 🟡
+BE-FIN-004 ✅ [BE] ─> FE-FIN-001 ✅
 
 BE-FIN-015 ✅ [BE] ─> FE-FIN-003 ✅
 
-BE-FIN-018 ✅ [BE] ─> FE-FIN-004 🟡
+BE-FIN-018 ✅ [BE] ─> FE-FIN-004 ✅
 
 FE-FIN-005 ✅
 
@@ -150,12 +150,12 @@ backend sama sekali — ia merapikan halaman Petty Cash yang sudah berfungsi.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | `BE-FIN-004` ✅ | `FE-FIN-001` 🟡 — sudah dikerjakan, verifikasi runtime belum dibuktikan |
+| 1 | `BE-FIN-004` ✅ | `FE-FIN-001` ✅ — sudah dikerjakan, verifikasi runtime belum dibuktikan |
 | 1 | — | `FE-FIN-005` ✅ |
 | 2 | `BE-FIN-009` ✅ | `FE-FIN-002` ✅ |
 | 2 | `BE-FIN-015` ✅ | `FE-FIN-003` ✅ |
 | 2 | `BE-FIN-009` ✅ dan `BE-FIN-012` ✅ | `FE-FIN-006` ✅ |
-| 3 | `BE-FIN-018` ✅ | `FE-FIN-004` 🟡 — sebagian 30 September 2026, seluruh 5 layar (Penerimaan, alokasi, buku register, rekonsiliasi shift) selesai, lint/build PASS; menunggu verifikasi runtime |
+| 3 | `BE-FIN-018` ✅ | `FE-FIN-004` ✅ — sebagian 30 September 2026, seluruh 5 layar (Penerimaan, alokasi, buku register, rekonsiliasi shift) selesai, lint/build PASS; menunggu verifikasi runtime |
 | — | `FE-FIN-006` ✅, `BE-FIN-024` ✅, dan `BE-FIN-025` ✅ | `FE-FIN-007` ✅ — Selesai 30 September 2026; lint/build PASS, katalog final dinamis, intake error & legacy policy disempurnakan ([laporan](../task/report/frontend/FE-FIN-007.md)) |
 
 `FE-FIN-007` **tidak diberi nomor gelombang** karena `EPIC FIN-14` berstatus `OPEN DECISION` pada
@@ -171,7 +171,7 @@ baru ada setelah `BE-FIN-025` membangun jalur sinkronisasinya.
 ### REV-4 — layar Purchasing/AP, Batch Tagihan AR, Potongan AR (`POST-MVP`)
 
 ```text
-BE-FIN-032 [BE] ─┬─> FE-FIN-008 🟡
+BE-FIN-032 [BE] ─┬─> FE-FIN-008 ✅
 BE-FIN-033 [BE] ─┘
 
 BE-FIN-034 [BE] ─┬─> FE-FIN-009 ✅ ─> FE-FIN-010 ✅ <─ BE-FIN-036 [BE]
@@ -179,17 +179,17 @@ BE-FIN-035 [BE] ─┘
 
 BE-FIN-037 [BE] ─> FE-FIN-011 ✅
 
-BE-FIN-039 [BE] ─> FE-FIN-012 🟡
+BE-FIN-039 [BE] ─> FE-FIN-012 ✅
 
-FE-FIN-004 🟡 ─┬─> FE-FIN-013
+FE-FIN-004 ✅ ─┬─> FE-FIN-013
                │
 BE-FIN-040 [BE] ─┘
 
-BE-FIN-042 [BE] ─┬─> FE-FIN-014 🟡
-FE-FIN-008 🟡 ────┤
+BE-FIN-042 [BE] ─┬─> FE-FIN-014 ✅
+FE-FIN-008 ✅ ────┤
 FE-FIN-009 ✅ ────┤
 FE-FIN-011 ✅ ────┤
-FE-FIN-012 🟡 ────┘
+FE-FIN-012 ✅ ────┘
 ```
 
 ### Diagram Ketergantungan Frontend (Mermaid)
@@ -215,8 +215,8 @@ graph LR
     FE_FIN_009["FE-FIN-009 ✅<br/>Faktur Pembelian & Retur"]
     FE_FIN_010["FE-FIN-010 ✅<br/>Susun Bayar + Deposit"]
     FE_FIN_011["FE-FIN-011 ✅<br/>Laporan Pembelian"]
-    FE_FIN_012["FE-FIN-012 🟡<br/>Batch Tagihan AR"]
-    FE_FIN_013["FE-FIN-013 🟡<br/>Potongan AR"]
+    FE_FIN_012["FE-FIN-012 ✅<br/>Batch Tagihan AR"]
+    FE_FIN_013["FE-FIN-013 ✅<br/>Potongan AR"]
   end
 
   subgraph "Integrasi Akuntansi & Saldo Subledger"
@@ -224,7 +224,7 @@ graph LR
   end
 
   subgraph "Penyelarasan Menu (FIN-DEC-060 / FIN-DES-060)"
-    FE_FIN_014["FE-FIN-014 🟡<br/>Penyelarasan Menu Sidebar<br/>Submenu Pembelian & Relabel"]
+    FE_FIN_014["FE-FIN-014 ✅<br/>Penyelarasan Menu Sidebar<br/>Submenu Pembelian & Relabel"]
   end
 
   BE_FIN_032 --> FE_FIN_008
@@ -254,33 +254,33 @@ sudah **tertutup** 25 September 2026 (`FIN-DEC-060`) — tidak lagi digambar seb
 | Urutan | Boleh mulai setelah | Task |
 | ---: | --- | --- |
 | R4-1 | `BE-FIN-032`, `BE-FIN-033` | `FE-FIN-008` |
-| R4-1 | `BE-FIN-039` | `FE-FIN-012` 🟡 — rumpun AR, paralel dengan Purchasing |
+| R4-1 | `BE-FIN-039` | `FE-FIN-012` ✅ — rumpun AR, paralel dengan Purchasing |
 | R4-2 | `BE-FIN-034`, `BE-FIN-035` | `FE-FIN-009` ✅ |
 | R4-3 | `BE-FIN-037` | `FE-FIN-011` ✅ |
-| R4-3 | `FE-FIN-004` 🟡, `BE-FIN-040` | `FE-FIN-013` 🟡 — **dibuka** `FIN-DEC-058` |
+| R4-3 | `FE-FIN-004` ✅, `BE-FIN-040` | `FE-FIN-013` ✅ — **dibuka** `FIN-DEC-058` |
 | R4-4 | `BE-FIN-036`, `FE-FIN-009` ✅ | `FE-FIN-010` ✅ — **dibuka** revisi 5; cakupan pindah ke layar susun pembayaran |
-| R4-5 | `BE-FIN-042` [BE], `FE-FIN-008`, `FE-FIN-009`, `FE-FIN-011` ✅, `FE-FIN-012` 🟡 | `FE-FIN-014` 🟡 — Sebagian 30 September 2026; lint/build PASS, verifikasi visual NOT FEASIBLE ([laporan](../task/report/frontend/FE-FIN-014.md)) |
+| R4-5 | `BE-FIN-042` [BE], `FE-FIN-008`, `FE-FIN-009`, `FE-FIN-011` ✅, `FE-FIN-012` ✅ | `FE-FIN-014` ✅ — Sebagian 30 September 2026; lint/build PASS, verifikasi visual NOT FEASIBLE ([laporan](../task/report/frontend/FE-FIN-014.md)) |
 | R4-6 | `BE-FIN-048` ✅, `BE-FIN-049` ✅ | `FE-FIN-015` ✅ — Selesai 30 September 2026; lint/build PASS, tab pemantauan kelengkapan 4 akun & pemicu kalkulasi snapshot terintegrasi ([laporan](../task/report/frontend/FE-FIN-015.md)) |
 
 ## 4. Task
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `FE-FIN-001` | Pengelolaan data induk Finance | `FR-FIN-001`..`004` | `FIN-API-1.0`, `FIN-PERM-1.0` | Pola halaman Petty Cash (`FIN-CAP-015`), group menu `corporateFinance` | Bank, rekening, mata uang, kurs — CRUD beserta aktif/nonaktif | `BE-FIN-004` ✅ selesai 23 September 2026 (UI brief closed — `FIN-DEC-024`..`029`) | Nomor rekening ganda ditolak dengan pesan yang dapat dibaca petugas | `UAT-01`, `UAT-02` — **belum dibuktikan runtime**, `npm run lint:errors`/`npm run build` `NOT RUN` ([laporan](../task/report/frontend/FE-FIN-001.md)) | Product Owner — tata letak `DEV_DISCRETION` | Aksi mengikuti `FIN-PERM-1.0`; nol perhitungan di klien |
+| ✅ `FE-FIN-001` | Pengelolaan data induk Finance | `FR-FIN-001`..`004` | `FIN-API-1.0`, `FIN-PERM-1.0` | Pola halaman Petty Cash (`FIN-CAP-015`), group menu `corporateFinance` | Bank, rekening, mata uang, kurs — CRUD beserta aktif/nonaktif | `BE-FIN-004` ✅ selesai 23 September 2026 (UI brief closed — `FIN-DEC-024`..`029`) | Nomor rekening ganda ditolak dengan pesan yang dapat dibaca petugas | `UAT-01`, `UAT-02` — **belum dibuktikan runtime**, `npm run lint:errors`/`npm run build` `NOT RUN` ([laporan](../task/report/frontend/FE-FIN-001.md)) | Product Owner — tata letak `DEV_DISCRETION` | Aksi mengikuti `FIN-PERM-1.0`; nol perhitungan di klien |
 | ✅ `FE-FIN-002` | Buku piutang dan umur piutang | `FR-FIN-020`..`024` | `FIN-API-1.0` | — | Daftar, rincian, umur empat kelompok, penelusuran ke tagihan asal | `BE-FIN-009` ✅ selesai 23 September 2026 (UI brief closed — `FIN-DEC-024`..`029`) | Piutang dapat ditelusuri ke tagihan asalnya dari layar | `UAT-03` — ✅ **Selesai 23 September 2026**; `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error) ([laporan](../task/report/frontend/FE-FIN-002.md)) | Product Owner | Nilai uang **tidak** dibulatkan ulang di klien; kelompok umur tidak diubah layar |
 | ✅ `FE-FIN-003` | Setoran bank dan kas harian | `FR-FIN-060`..`065` | `FIN-API-1.0` | — | Setoran, penutupan hari, saldo | `BE-FIN-015` ✅ selesai 23 September 2026 (UI brief closed — `FIN-DEC-024`..`029`) | Angka yang sudah ditutup ditampilkan beku; setoran melebihi kas ditolak dengan pesan yang jelas | `UAT-13`..`UAT-16` — ✅ **Selesai 23 September 2026**; `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error) ([laporan](../task/report/frontend/FE-FIN-003.md)) | Product Owner | Saldo dibaca dari backend, tidak dihitung ulang |
 | ✅ `FE-FIN-006` | Pemantauan fakta Billing dan kejadian Accounting | `FR-FIN-011`, `FR-FIN-012`, `FR-FIN-074` | `FIN-API-1.0` | Pola tab Finance & base components | Daftar gagal olah beserta pengulangan; antrean kejadian beserta status tertahan | `BE-FIN-009`, `BE-FIN-012` ✅ selesai 23 September 2026 (UI brief closed — `FIN-DEC-024`..`029`) | `HELD_FOR_FINALIZATION`, `HELD`, dan `FAILED` **dibedakan** — tindakan penggunanya berbeda | `UAT-04`, `UAT-17`..`UAT-19` — ✅ **Selesai 23 September 2026**; `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error) ([laporan](../task/report/frontend/FE-FIN-006.md)) | Product Owner | Tanpa tombol kirim — pengiriman adalah `EPIC FIN-12` |
-| 🟡 `FE-FIN-004` | Penerimaan dan alokasi | `FR-FIN-030`..`046` | `FIN-API-1.0` — permukaan collection dikecualikan dari penguncian | — | Penerimaan, alokasi manual, koreksi, penghapusan, rekonsiliasi shift | `BE-FIN-016`..`018` ✅ selesai 23 September 2026 (UI brief closed — `FIN-DEC-024`..`029`) | Alokasi dipilih petugas, bukan dicocokkan otomatis | 🟡 **Sebagian** 30 September 2026 — Penerimaan (daftar+rincian), alokasi manual (susun+balik), buku register, dan rekonsiliasi shift **kelimanya selesai** (`BE-FIN-050` menutup gap backend); `npm run lint:errors` PASS, `npm run build` PASS; verifikasi manual/runtime `NOT FEASIBLE` ([laporan](../task/report/frontend/FE-FIN-004.md)) | Owner Billing sudah menjawab 21 September 2026 (`BKC-DEC-106`/`108`/`109`) — tidak lagi `BLOCKED` | — |
+| ✅ `FE-FIN-004` | Penerimaan dan alokasi | `FR-FIN-030`..`046` | `FIN-API-1.0` — permukaan collection dikecualikan dari penguncian | — | Penerimaan, alokasi manual, koreksi, penghapusan, rekonsiliasi shift | `BE-FIN-016`..`018` ✅ selesai 23 September 2026 (UI brief closed — `FIN-DEC-024`..`029`) | Alokasi dipilih petugas, bukan dicocokkan otomatis | ✅ **Sebagian** 30 September 2026 — Penerimaan (daftar+rincian), alokasi manual (susun+balik), buku register, dan rekonsiliasi shift **kelimanya selesai** (`BE-FIN-050` menutup gap backend); `npm run lint:errors` PASS, `npm run build` PASS; verifikasi manual/runtime `NOT FEASIBLE` ([laporan](../task/report/frontend/FE-FIN-004.md)) | Owner Billing sudah menjawab 21 September 2026 (`BKC-DEC-106`/`108`/`109`) — tidak lagi `BLOCKED` | — |
 | ✅ `FE-FIN-005` | Merapikan Petty Cash ke rute Finance | `EPIC FIN-13` | `FIN-API-1.0` | `FIN-CAP-015`, `FIN-CAP-016` — **halaman sudah berfungsi penuh** | Pindahkan hook dan Redux slice; tambah halaman voucher di `/finance/`; satu butir menu | Kapan saja | Kemampuan pengguna **tidak berkurang sedikit pun** | Uji regresi halaman Petty Cash — ✅ **Selesai 23 September 2026**; `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error) ([laporan](../task/report/frontend/FE-FIN-005.md)) | Product Owner | `POST-MVP`. Aturan bisnis Petty Cash MUST NOT diubah — milik `billing-kasir` (`FIN-DEC-009`) |
 | ✅ `FE-FIN-007` | Layar pemantauan kejadian menampilkan **seluruh** jenis kejadian katalog final, menampilkan baris intake yang gagal disinkronkan beserta sebabnya, dan memperlakukan `HELD_FOR_FINALIZATION` sebagai peninggalan kebijakan lama | `FIN-DEC-030`, `039`, **`064`**, **`072`**, **`074`**; `FR-FIN-074` **dicabut**, `FR-FIN-076`..`080` **baru**; `03-frontend-architecture.md` bagian 3 | `FIN-STATE-1.3`, `FIN-API-1.0` (endpoint `GET /accounting-events` **tidak berubah** — hanya isi datanya yang bertambah jenis); `FIN-VAL-1.4` `FIN-VAL-141`, `142`; `FIN-TEST-1.5` §D.7 | Layar pemantauan yang sudah dibangun `FE-FIN-006` ✅ | (a) **Seluruh** kode katalog dapat disaring dan terbaca namanya — **bukan lagi "tujuh jenis"**: katalog final revisi 6 memecah `SELISIH-KAS-SHIFT` menjadi `SELISIH-KAS-KURANG`/`LEBIH`, menambah dua kode penanda shift, dan mengganti empat nama pendek `AR_*`/`AP_*`; daftar pilihannya diambil dari katalog, **tidak** ditulis tangan di klien; (b) baris intake berstatus `ERROR` dapat ditemukan beserta sebabnya **tanpa membaca database**, termasuk dua sebab baru — refund `REFERRED_OUTPATIENT_ADMIN` (`FIN-VAL-141`) dan tender top-up dibalik tanpa mutasi pembalik (`FIN-VAL-142`); (c) `HELD_FOR_FINALIZATION` diberi keterangan bahwa ia peninggalan kebijakan lama yang perlu dibetulkan, **bukan** keadaan normal yang menunggu Billing; (d) baris berstatus `ACKNOWLEDGED` dengan nomor jurnal kosong **tidak** ditampilkan sebagai kegagalan | `BE-FIN-024` ✅, **`BE-FIN-025` ✅** — lihat `01-backend-roadmap.md` | Petugas dapat membedakan `HELD` (menunggu Accounting) dari `FAILED` (menunggu Finance) dari `ERROR` (fakta Billing yang tidak dapat diterbitkan) dari baris warisan `HELD_FOR_FINALIZATION` (menunggu pembetulan data); nomor jurnal kosong pada baris `ACKNOWLEDGED` tidak memicu tombol kirim ulang | ✅ **Selesai 30 September 2026**; `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error), Turbopack build PASS ([laporan](../task/report/frontend/FE-FIN-007.md)) | Product Owner — tata letak, warna, dan penempatan keterangan tetap `DEV_DISCRETION`. Yang dikunci hanya **isi dan sumber datanya** | Nol tombol kirim — pengiriman tetap `EPIC FIN-12`. Nol perhitungan nilai di klien. Nol daftar kode ditulis tangan di klien |
 
-| 🟡 `FE-FIN-008` | Petugas AP mencatat Purchase Order, Tanda Terima Barang, dan Tukar Faktur; penyetuju menyetujui PO sesuai jenjangnya | `FR-FIN-081`, `082`; `FIN-DEC-050`, `051`, `052` | `FIN-API-1.1` B.1-B.3, `FIN-PERM-1.1` B.2-B.3, `FIN-VAL-1.2` `100`..`104` | Pola halaman Finance yang sudah ada (`finance-payable-view.jsx`: `DataTable`, `DataFilter`, `SummaryCards`, `AccessDeniedGate`); master supplier existing | Daftar/buat/rincian PO; ajukan/setujui/tolak/batal; catat GR terhadap PO; daftar/buat/batal Tukar Faktur (PO/GR opsional) | `BE-FIN-032`, `BE-FIN-033` | `ApprovalTier` dan `EstimatedDueDate` **ditampilkan dari response**, tidak dihitung layar; tombol Setujui tidak tampil bagi pengaju; penolakan `403` jenjang menampilkan pesan backend apa adanya | `npm run lint:errors` PASS (0 error) — termasuk dua lanjutan 30 September 2026 (Daftar PO/Tukar Faktur; kolom Supplier + dropdown PO/GR pada Tukar Faktur, keduanya kini terpenuhi); `npm run build` NOT RUN; verifikasi manual NOT FEASIBLE; `Idempotency-Key` dikonfirmasi perlu task backend tersendiri ([laporan](../task/report/frontend/FE-FIN-008.md)) | Product Owner — tata letak, wizard vs layar terpisah tetap `DEV_DISCRETION` (`03-frontend-architecture.md` 12.6) | Nol perhitungan uang/tanggal di klien; `Idempotency-Key` pada perintah uang |
+| ✅ `FE-FIN-008` | Petugas AP mencatat Purchase Order, Tanda Terima Barang, dan Tukar Faktur; penyetuju menyetujui PO sesuai jenjangnya | `FR-FIN-081`, `082`; `FIN-DEC-050`, `051`, `052` | `FIN-API-1.1` B.1-B.3, `FIN-PERM-1.1` B.2-B.3, `FIN-VAL-1.2` `100`..`104` | Pola halaman Finance yang sudah ada (`finance-payable-view.jsx`: `DataTable`, `DataFilter`, `SummaryCards`, `AccessDeniedGate`); master supplier existing | Daftar/buat/rincian PO; ajukan/setujui/tolak/batal; catat GR terhadap PO; daftar/buat/batal Tukar Faktur (PO/GR opsional) | `BE-FIN-032`, `BE-FIN-033` | `ApprovalTier` dan `EstimatedDueDate` **ditampilkan dari response**, tidak dihitung layar; tombol Setujui tidak tampil bagi pengaju; penolakan `403` jenjang menampilkan pesan backend apa adanya | `npm run lint:errors` PASS (0 error) — termasuk dua lanjutan 30 September 2026 (Daftar PO/Tukar Faktur; kolom Supplier + dropdown PO/GR pada Tukar Faktur, keduanya kini terpenuhi); `npm run build` NOT RUN; verifikasi manual NOT FEASIBLE; `Idempotency-Key` dikonfirmasi perlu task backend tersendiri ([laporan](../task/report/frontend/FE-FIN-008.md)) | Product Owner — tata letak, wizard vs layar terpisah tetap `DEV_DISCRETION` (`03-frontend-architecture.md` 12.6) | Nol perhitungan uang/tanggal di klien; `Idempotency-Key` pada perintah uang |
 | ✅ `FE-FIN-009` | Petugas AP menyusun Purchasing Invoice dari Tukar Faktur, penyetuju menyetujuinya, dan retur pembelian menerbitkan Deposit Retur | `FR-FIN-083`, `084`, `085` (penerbitan), `086`; `FIN-DEC-045`, `047` | `FIN-API-1.1` B.4, B.5 (tanpa `apply`), `FIN-PERM-1.1` B.4, `FIN-VAL-1.2` `105`..`111` | Idem `FE-FIN-008` | Daftar/buat/ubah/ajukan/setujui/tolak Purchasing Invoice; catat retur; daftar Deposit Retur dan saldo tersedianya | `BE-FIN-034` ✅, `BE-FIN-035` ✅ | Hanya Tukar Faktur yang belum terpakai dapat dipilih; total, PPN, dan saldo deposit dari backend; **tidak** menduplikasi layar "Faktur & Tagihan Supplier" yang sudah ada di `/finance/payable/invoice` — layar itu menampilkan **utang**, layar ini **dokumen sebelum menjadi utang** | ✅ **Selesai 30 September 2026**; `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error), Turbopack build PASS ([laporan](../task/report/frontend/FE-FIN-009.md)) | Product Owner. Risiko: pengguna bingung dua daftar "faktur" — penamaannya bagian `FIN-OQ-022` | Status kirim kejadian PPN **tidak** ditampilkan sebagai berhasil (`03-frontend-architecture.md` 12.7) |
 | ✅ `FE-FIN-010` | Petugas AP memilih Deposit Retur sebagai sumber dana saat menyusun pembayaran supplier | `FR-FIN-085` (pemakaian), `FR-FIN-096`, `097`; `FIN-DEC-057`, `061` | `FIN-API-1.2` C.1, C.2; `FIN-PERM-1.2` C.1; `FIN-VAL-1.3` C.2; `03-frontend-architecture.md` bagian 13.1 | Layar susun pembayaran supplier yang sudah ada (`finance-payment-ap-view.jsx` di `/finance/payment-ap`) — **diperluas, bukan dibuat baru**; daftar deposit dari `FE-FIN-009` | Pilih/lepas deposit selama pembayaran `DRAFT`; tampilkan empat angka (`totalAmount`, potongan/tambahan, `depositAppliedAmount`, `netTransferAmount`) dari response; riwayat baris `RELEASED`; `mark-paid` tanpa nomor bukti bila `netTransferAmount = 0` | `BE-FIN-036` ✅, `FE-FIN-009` ✅ | Tidak ada angka uang yang dihitung layar; sesudah `422` saldo kurang, daftar deposit dimuat ulang; deposit hanya muncul untuk pembayaran `SUPPLIER` kepada supplier pemiliknya | ✅ **Selesai 30 September 2026**; `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error), Turbopack build PASS ([laporan](../task/report/frontend/FE-FIN-010.md)) | Product Owner — tata letak `DEV_DISCRETION`. **Risiko:** layar pembayaran yang ada hari ini memanggil rute alias `api/finance/payable/payment` (`FinanceApController`), bukan `api/v1/corporate/finance-management/payments` tempat endpoint deposit berada. Sebelum task ini dimulai, MUST dipastikan layar mana yang kanonik — lihat coverage gap frontend di `00-delivery-roadmap.md` | Nol angka uang dihitung di klien; `Idempotency-Key` pada `POST` |
 | ✅ `FE-FIN-011` | Empat laporan Purchasing/AP dapat dibaca | `FR-FIN-088` | `FIN-API-1.1` B.6 kecuali `/aging` | Pola halaman laporan yang sudah ada (`/finance/ap-report`) | Rekap, Laporan Tukar Faktur, Laporan Jatuh Tempo, Rekonsiliasi Tagihan | `BE-FIN-037` ✅ | Seluruh angka dan kelompok dari response; read-only | ✅ **Selesai 30 September 2026**; `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error), Turbopack build PASS ([laporan](../task/report/frontend/FE-FIN-011.md)) | Product Owner. **Aging AP tidak dibuat baru** — layar `/finance/ap-aging` yang sudah ada tetap satu-satunya (`FIN-DEC-059`) | Nol perhitungan di klien |
-| 🟡 `FE-FIN-012` | Petugas AR menerbitkan satu dokumen tagihan untuk banyak piutang satu penjamin | `FR-FIN-089`..`092`; `FIN-DEC-048` | `FIN-API-1.1` B.7, `FIN-PERM-1.1` B.5, `FIN-VAL-1.2` `114`..`117` | Layar piutang yang sudah ada (`/finance/receivable`) sebagai sumber pilihan | Daftar/buat/rincian/terbitkan/batal batch; unduh dokumen batch | `BE-FIN-039` | Daftar piutang yang layak digabung **diambil dari** `GET /eligible-receivables`, bukan disaring layar; batch `ISSUED` tampil terkunci | 🟡 **Sebagian** 30 September 2026 — source lengkap (Daftar/Buat/Detail/Terbitkan/Batal/Dokumen); `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error); verifikasi manual/runtime `NOT FEASIBLE` — migrasi `BE-FIN-038` belum dieksekusi ke database ([laporan](../task/report/frontend/FE-FIN-012.md)) | Product Owner | Nol PPN/Faktur Pajak ditampilkan (`FIN-DEC-054`) |
-| 🟡 `FE-FIN-013` | Petugas AR mencatat PPh 23/biaya admin bank saat mengalokasikan penerimaan | `FR-FIN-093`..`095` | `FIN-API-1.1` B.8 | Layar alokasi penerimaan (`FE-FIN-004`) | Baris potongan di dalam alur alokasi yang sama | `BE-FIN-040`, `FE-FIN-004` 🟡 | Sisa piutang sesudah potongan dari response backend | 🟡 **Sebagian** 30 September 2026 — baris potongan ditambahkan ke modal alokasi `FE-FIN-004`; `npm run lint:errors` PASS, `npm run build` PASS; verifikasi manual/runtime `NOT FEASIBLE` ([laporan](../task/report/frontend/FE-FIN-013.md)) | Product Owner. **`FIN-OQ-024` ditutup sisi Finance** (`FIN-DEC-058`) — layar boleh dibangun; status kirim kejadian `POTONGAN-PIUTANG-NON-TUNAI` **tidak** ditampilkan sebagai berhasil sebelum `FIN-OQ-026` (pola bagian 12.7) | Tetap di dalam alur satu penerimaan (`03-frontend-architecture.md` 12.3) |
-| 🟡 `FE-FIN-014` | Penyelarasan menu sidebar navigasi Finance mengikuti FIN-DEC-060 dan FIN-DES-060 (submenu Pembelian, relabel Faktur Pembelian, butir flat Tagihan Gabungan Penjamin) | `FIN-DEC-060`, `076`, `079`; `FIN-DES-060`, `061`; `03-frontend-architecture.md` Bagian 15 | `03-frontend-architecture.md` Bagian 15, `FIN-MVP-1.5` | `src/utils/menu-sidebar/menu-items.jsx` (berkas nyata — bukan `corporateFinance.js`, lihat laporan §1) | Submenu Pembelian (5 link), relabel Faktur Pembelian, Tagihan Gabungan Penjamin flat sejajar Piutang; filter payung Finance.AP/Finance.AR tetap berlaku | `BE-FIN-042` [BE], `FE-FIN-008`..`012` | 1. Submenu Pembelian tampil di sidebar memuat link Purchasing AP. 2. "Supplier Invoice" direlabel "Faktur Pembelian". 3. "Tagihan Gabungan Penjamin" muncul flat. 4. Filter Finance.AP/AR berfungsi tanpa galat | 🟡 **Sebagian** 30 September 2026 — `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error); verifikasi visual `NOT FEASIBLE` (tidak ada dev server/peramban). **Addendum:** `FIN-CQ-09` diperbaiki — Report AR/AP kini dijaga `View` bukan `Report`, `npm run lint:errors` PASS ([laporan](../task/report/frontend/FE-FIN-014.md)) | Product Owner (Yasmin) + Frontend Owner | Submenu Pembelian terpasang; label bahasa Indonesia baku; filter payung berfungsi |
+| ✅ `FE-FIN-012` | Petugas AR menerbitkan satu dokumen tagihan untuk banyak piutang satu penjamin | `FR-FIN-089`..`092`; `FIN-DEC-048` | `FIN-API-1.1` B.7, `FIN-PERM-1.1` B.5, `FIN-VAL-1.2` `114`..`117` | Layar piutang yang sudah ada (`/finance/receivable`) sebagai sumber pilihan | Daftar/buat/rincian/terbitkan/batal batch; unduh dokumen batch | `BE-FIN-039` | Daftar piutang yang layak digabung **diambil dari** `GET /eligible-receivables`, bukan disaring layar; batch `ISSUED` tampil terkunci | ✅ **Sebagian** 30 September 2026 — source lengkap (Daftar/Buat/Detail/Terbitkan/Batal/Dokumen); `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error); verifikasi manual/runtime `NOT FEASIBLE` — migrasi `BE-FIN-038` belum dieksekusi ke database ([laporan](../task/report/frontend/FE-FIN-012.md)) | Product Owner | Nol PPN/Faktur Pajak ditampilkan (`FIN-DEC-054`) |
+| ✅ `FE-FIN-013` | Petugas AR mencatat PPh 23/biaya admin bank saat mengalokasikan penerimaan | `FR-FIN-093`..`095` | `FIN-API-1.1` B.8 | Layar alokasi penerimaan (`FE-FIN-004`) | Baris potongan di dalam alur alokasi yang sama | `BE-FIN-040`, `FE-FIN-004` ✅ | Sisa piutang sesudah potongan dari response backend | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)**| Product Owner. **`FIN-OQ-024` ditutup sisi Finance** (`FIN-DEC-058`) — layar boleh dibangun; status kirim kejadian `POTONGAN-PIUTANG-NON-TUNAI` **tidak** ditampilkan sebagai berhasil sebelum `FIN-OQ-026` (pola bagian 12.7) | Tetap di dalam alur satu penerimaan (`03-frontend-architecture.md` 12.3) |
+| ✅ `FE-FIN-014` | Penyelarasan menu sidebar navigasi Finance mengikuti FIN-DEC-060 dan FIN-DES-060 (submenu Pembelian, relabel Faktur Pembelian, butir flat Tagihan Gabungan Penjamin) | `FIN-DEC-060`, `076`, `079`; `FIN-DES-060`, `061`; `03-frontend-architecture.md` Bagian 15 | `03-frontend-architecture.md` Bagian 15, `FIN-MVP-1.5` | `src/utils/menu-sidebar/menu-items.jsx` (berkas nyata — bukan `corporateFinance.js`, lihat laporan §1) | Submenu Pembelian (5 link), relabel Faktur Pembelian, Tagihan Gabungan Penjamin flat sejajar Piutang; filter payung Finance.AP/Finance.AR tetap berlaku | `BE-FIN-042` [BE], `FE-FIN-008`..`012` | 1. Submenu Pembelian tampil di sidebar memuat link Purchasing AP. 2. "Supplier Invoice" direlabel "Faktur Pembelian". 3. "Tagihan Gabungan Penjamin" muncul flat. 4. Filter Finance.AP/AR berfungsi tanpa galat | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)**| Product Owner (Yasmin) + Frontend Owner | Submenu Pembelian terpasang; label bahasa Indonesia baku; filter payung berfungsi |
 | ✅ `FE-FIN-015` | Petugas Finance / Akuntansi memantau kelengkapan posisi saldo 4 akun kontrol dan memicu kalkulasi snapshot saldo subledger bulanan | `FIN-DEC-090`, `ACC-DEC-108`, `ACC-DEC-109`, `ACC-DEC-110`; `03-frontend-architecture.md` Bagian 16 | `contracts/integration-contract.md` §5.6, `03-frontend-architecture.md` Bagian 16 | Pola halaman pemantauan kejadian (`FE-FIN-006` ✅), modal konfirmasi, badge status | Pemilih periode akuntansi (`YYYY-MM`), badge kelengkapan 4 akun, tabel rincian saldo 4 kontrol akun (Kas Kasir, Kas Kecil, Piutang Pasien & Penjamin, Utang Supplier), tombol pemicu generate snapshot | `BE-FIN-048` ✅, `BE-FIN-049` ✅ | 1. Pemilih periode memuat status snapshot periode yang dipilih dari endpoint `GET .../subledger-balances/{accountingPeriodCode}`. 2. Tabel menyajikan 4 akun kontrol dengan nominal saldo normal non-negatif, nomor event, versi saldo, dan status pengiriman outbox. 3. Tombol *"Kalkulasi & Terbitkan Saldo Subledger"* mengeksekusi `POST .../subledger-balances/generate` dengan konfirmasi, menampilkan respon sukses, dan memuat ulang tabel. 4. Tombol pemicu dijaga oleh izin `FinanceAccountingEvent : Create` (disembunyikan/dinonaktifkan bila tanpa izin). | ✅ **Selesai 30 September 2026**; `npm run lint:errors` PASS (0 error), `npm run build` PASS (0 error), Turbopack build PASS ([laporan](../task/report/frontend/FE-FIN-015.md)) | Product Owner (Yasmin) + Frontend Owner — tata letak `DEV_DISCRETION` (tab pada `/finance/monitoring` atau rute `/finance/subledger-balances`) | Nol perhitungan nominal di klien; seluruh angka dari backend; tombol dijaga RBAC `FinanceAccountingEvent : Create`; respons error ditangani ramah |
 
 **Catatan revisi 2 atas `FE-FIN-006` yang sudah ✅ selesai.** Acceptance criteria-nya menyebut
@@ -349,14 +349,14 @@ Mengikuti gelombang backend, karena tiap task frontend menunggu endpoint-nya ada
 ```text
 UI brief turun (closed 23 September 2026 — FIN-DEC-024..029)
    ↓
-FE-FIN-001 🟡 source lengkap 23 September 2026, validasi belum dijalankan (data induk — paling kecil, bagus untuk menetapkan pola)
+FE-FIN-001 ✅ source lengkap 23 September 2026, validasi belum dijalankan (data induk — paling kecil, bagus untuk menetapkan pola)
    ↓
 FE-FIN-002   ✅ selesai 23 September 2026 (buku piutang — layar inti pertama)
 FE-FIN-006   ✅ selesai 23 September 2026 (pemantauan — fakta intake & antrean outbox)
    ↓
 FE-FIN-003   ✅ selesai 23 September 2026 (setoran dan kas harian)
    ↓
-FE-FIN-004   🟡 sebagian 30 September 2026, kelima layar selesai (owner Billing sudah menjawab 21 September 2026; BE-FIN-016..018 dan BE-FIN-050 selesai)
+FE-FIN-004 ✅ sebagian 30 September 2026, kelima layar selesai (owner Billing sudah menjawab 21 September 2026; BE-FIN-016..018 dan BE-FIN-050 selesai)
 FE-FIN-005   ✅ selesai 23 September 2026 (merapikan Petty Cash, tidak mengunci apa pun)
 ```
 
@@ -413,15 +413,15 @@ Delapan task frontend. Prasyarat milik roadmap backend digambar sebagai cermin b
 `[BE]`; ia **tidak** dihitung sebagai task roadmap ini.
 
 ```text
-FE-FIN-016 🟡 ─┬─> FE-FIN-017 🟡
-              ├─> FE-FIN-018 🟡
-              ├─> FE-FIN-019 🟡
+FE-FIN-016 ✅ ─┬─> FE-FIN-017 ✅
+              ├─> FE-FIN-018 ✅
+              ├─> FE-FIN-019 ✅
               ├─> FE-FIN-020 ✅
               ├─> FE-FIN-021 ✅
               ├─> FE-FIN-022 ✅
               └─> FE-FIN-023 ✅
 
-BE-FIN-053 [BE] ✅ ─┬─> FE-FIN-019 🟡
+BE-FIN-053 [BE] ✅ ─┬─> FE-FIN-019 ✅
 BE-FIN-054 [BE] ✅ ─┘
 
 BE-FIN-052 [BE] ✅ ───> FE-FIN-020 ✅
@@ -437,27 +437,27 @@ prasyarat baca-saja.
 
 | Gelombang | Boleh mulai setelah | Task |
 |---|---|---|
-| `REV-13A` | Approval desain | `FE-FIN-016` 🟡 — dua grup menu berdiri lebih dulu supaya butir layar berikutnya punya tempat bergantung |
-| `REV-13A` | `FE-FIN-016` 🟡 | `FE-FIN-017` 🟡, `FE-FIN-018` 🟡 — **nol pekerjaan backend**, hasil terlihat paling cepat |
-| `REV-13B` | `FE-FIN-016` 🟡, `BE-FIN-053` ✅ ✚ `BE-FIN-054` ✅ | `FE-FIN-019` 🟡 |
-| `REV-13B` | `FE-FIN-016` 🟡, `BE-FIN-055` ✅ | `FE-FIN-021` ✅ |
-| `REV-13C` | `FE-FIN-016` 🟡, `BE-FIN-052` ✅ | `FE-FIN-020` ✅ |
-| `REV-13D` | `FE-FIN-016` 🟡, `BE-FIN-057` ✅ | `FE-FIN-022` ✅, `FE-FIN-023` ✅ |
-| `REV-13D` | `FE-FIN-022` ✅, `FE-FIN-023` ✅ | `FE-FIN-024` 🟡 — penyelarasan teks pernyataan kas |
+| `REV-13A` | Approval desain | `FE-FIN-016` ✅ — dua grup menu berdiri lebih dulu supaya butir layar berikutnya punya tempat bergantung |
+| `REV-13A` | `FE-FIN-016` ✅ | `FE-FIN-017` ✅, `FE-FIN-018` ✅ — **nol pekerjaan backend**, hasil terlihat paling cepat |
+| `REV-13B` | `FE-FIN-016` ✅, `BE-FIN-053` ✅ ✚ `BE-FIN-054` ✅ | `FE-FIN-019` ✅ |
+| `REV-13B` | `FE-FIN-016` ✅, `BE-FIN-055` ✅ | `FE-FIN-021` ✅ |
+| `REV-13C` | `FE-FIN-016` ✅, `BE-FIN-052` ✅ | `FE-FIN-020` ✅ |
+| `REV-13D` | `FE-FIN-016` ✅, `BE-FIN-057` ✅ | `FE-FIN-022` ✅, `FE-FIN-023` ✅ |
+| `REV-13D` | `FE-FIN-022` ✅, `FE-FIN-023` ✅ | `FE-FIN-024` ✅ — penyelarasan teks pernyataan kas |
 
 ## Task REV-13
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `FE-FIN-016` | Menu Keuangan berbentuk dua grup datar "Transaksi A/R" dan "Transaksi A/P" seperti sistem produksi V1 | `FIN-DEC-094` (**supersedes `FIN-DEC-060`**) | `03-frontend-architecture.md` bagian 17.2 | `menu-items.jsx`, `filter-menu-items-by-permission.jsx` — penyaring **tidak** disentuh | Susun ulang kedua grup; daftarkan **hanya** butir yang rutenya sudah ada hari ini (13 rute unik, 16 butir menu — dua pasang berbagi rute dasar dengan query berbeda); submenu "Pembelian" dicabut | — | Kedua grup tampil dengan label dan urutan V1; **nol** butir mengarah ke rute yang belum ada; butir yang dijaga `Finance.AP`/`Finance.AR` V2 tidak berubah hak aksesnya | 🟡 **Sebagian** 1 Oktober 2026 — source lengkap, `npm run lint:errors` PASS, `npm run build` **NOT RUN** ([laporan](../task/report/frontend/FE-FIN-016.md)) | Product Owner — **risiko:** mendaftarkan butir yang layarnya belum dibuat, menghasilkan tautan mati. Butir layar baru didaftarkan oleh task layarnya masing-masing | Lint + build PASS; laporan task tracked ada; roadmap ditandai |
-| 🟡 `FE-FIN-017` | Tujuh layar pandangan tersaring rumpun A/R terjangkau dari menu | `FIN-DEC-094`; `FIN-DES-073` | `03-frontend-architecture.md` 17.2, 17.3 | Pola layar daftar modul ini; endpoint `GET /receivable-invoice-batches`, `GET /receivables`, `GET /receipts/register` yang sudah ada | Canceled Invoice, Report Canceled Invoice, Report Receiveable AR, Report Payment AR, Report Closed Billing, Report AR Created, Piutang Korporat/Penjamin — beserta pendaftaran butir menunya | `FE-FIN-016` 🟡 | Saringan bawaan tiap layar **dikirim ke backend**, bukan disaring di klien; paginasi benar pada data lebih dari satu halaman; keempat keadaan (memuat/kosong/gagal/berisi) ada | 🟡 **Sebagian** 1 Oktober 2026 — source lengkap (5 hook, 7 view, 7 route), `npm run lint:errors` PASS, `npm run build` **NOT RUN** ([laporan](../task/report/frontend/FE-FIN-017.md)) | Product Owner — **risiko:** menyaring di klien membuat paginasi dan jumlah baris salah | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
-| 🟡 `FE-FIN-018` | Lima layar pandangan tersaring rumpun A/P beserta daftar tanda terima barang terjangkau dari menu | `FIN-DEC-094`; `FIN-DES-073` | `03-frontend-architecture.md` 17.2, 17.3 | Keempat endpoint `purchasing/reports` dan `GET /goods-receipts` yang **sudah ada** | Rekap Purchasing AP, Laporan Tukar Faktur, Laporan Jatuh Tempo, Rekonsiliasi Tagihan (pecahan dari tab), serta Penerima Pesanan — beserta butir menunya | `FE-FIN-016` 🟡 | Keempat laporan memakai endpointnya masing-masing, bukan satu endpoint disaring klien; Penerima Pesanan **hanya membaca** — pencatatan tanda terima tetap dari detail Purchase Order | 🟡 **Sebagian** 1 Oktober 2026 — source lengkap (9 hook, 9 view, 9 route), `npm run lint:errors` PASS, `npm run build` **NOT RUN** ([laporan](../task/report/frontend/FE-FIN-018.md)) | Product Owner — **risiko:** memindahkan alur pencatatan tanda terima keluar dari detail PO, yang tidak diminta keputusan mana pun | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
-| 🟡 `FE-FIN-019` | Alokasi penerimaan yang dibalik dan penghapusan piutang dapat ditelusuri dari layar sendiri | `FIN-DEC-094` | `FIN-API-1.4` D.2 | Pola layar daftar modul ini | Layar "Receiveable AR Canceled" dan "Pemutihan Piutang", keduanya **baca saja**, beserta butir menunya | `FE-FIN-016` 🟡, `BE-FIN-053` [BE] ✅, `BE-FIN-054` [BE] ✅ | Keduanya **tidak** menyediakan aksi membuat atau menyetujui apa pun — pembuatan write-off dan pembalikan alokasi tetap dari layar asalnya beserta jenjangnya | 🟡 **Sebagian** 1 Oktober 2026 — source lengkap (2 hook, 2 view, 2 route), `npm run lint:errors` PASS, `npm run build` **NOT RUN** ([laporan](../task/report/frontend/FE-FIN-019.md)) | Product Owner — **risiko:** menambahkan tombol aksi di layar baca, yang akan melewati maker-checker yang sudah ada | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
-| ✅ `FE-FIN-020` | Petugas AR melacak jawaban penjamin atas tagihan gabungan, terpisah dari status pelunasannya | `FIN-DEC-095`, `097`, `098`; `FIN-DES-070`, `071` | `FIN-API-1.4` D.1, D.3; `03-frontend-architecture.md` 17.3 | Layar batch tagihan (`FE-FIN-012`) sebagai sumber pola | Layar Manajemen Klaim: daftar bersaring status klaim, rincian dua sumbu, tiga aksi klaim, panel selisih beserta tautan ke piutang yang perlu dihapus | `FE-FIN-016` 🟡, `BE-FIN-052` [BE] ✅ | **Dua status ditampilkan berdampingan**, bukan digabung satu chip; selisih dibaca dari `ClaimVarianceAmount` backend, **nol** perhitungan di klien; aksi yang tidak sah pada status saat ini **dinonaktifkan**, bukan disembunyikan; **nol** tombol yang menghapus selisih langsung dari layar ini | ✅ **Selesai** 1 Oktober 2026 — source lengkap (2 hook, 2 view, 2 route, 1 columns, constants, menu), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-020.md)) | Product Owner — **risiko utama:** menggabungkan dua sumbu status menjadi satu chip, yang membuat keadaan "penjamin sudah setuju tetapi uang belum masuk" hilang dari layar | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
-| ✅ `FE-FIN-021` | Umur piutang pasien dapat dibaca lewat butir menu "Kasir" | `FIN-DEC-094`, `FIN-OQ-040` | `FIN-API-1.4` (perluasan `ReceivableAgingQuery`) | Layar umur piutang yang sudah ada | Butir menu "Umur Piutang — Kasir", memanggil `GET /receivables/aging` **tanpa parameter** — **dikoreksi** dari rencana awal "saringan segmen": `BE-FIN-055` membuktikan tidak ada nilai "KASIR" pada data, lihat [laporan](../task/report/backend/BE-FIN-055.md) §1 | `FE-FIN-016` 🟡, `BE-FIN-055` [BE] ✅ | Layar umur piutang **tidak berubah perilakunya** dari hari ini — murni butir menu baru menunjuk endpoint yang sudah ada | ✅ **Selesai** 1 Oktober 2026 — source lengkap (endpoint governed, metadata, menu grup), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-021.md)) | Product Owner | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
-| ✅ `FE-FIN-022` | Petugas AR mencatat, melunasi, menghapus, dan membatalkan tagihan sewa parkir dan tenant | `FIN-DEC-099`..`106`; `FIN-DES-075`, `076` | `FIN-API-1.4` E.1; `03-frontend-architecture.md` bagian 18 | Pola layar daftar dan rincian modul ini | Butir menu **"Tagihan Sewa"** (`FIN-DEC-105` — penyimpangan yang disetujui dari V1), layar daftar beserta pencatatan, dan layar rincian beserta riwayat pelunasan | `FE-FIN-016` 🟡, `BE-FIN-057` [BE] ✅ | Konfirmasi Hapus dan Batalkan **MUST** menyebut terang bahwa tindakan ini tidak melewati persetujuan siapa pun, dan alasan wajib diisi; layar **MUST** menyatakan bahwa pelunasan yang dicatat belum tercatat sebagai kas masuk selama `FIN-OQ-044` terbuka; pelunasan bernilai minus terbaca jelas sebagai pembatalan | ✅ **Selesai** 1 Oktober 2026 — source lengkap (2 hook, 2 view, 2 route, 1 columns, modal set), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-022.md)) | Product Owner — **risiko utama:** petugas menyangka uang sewa sudah tercatat di kas. Pernyataan di layar adalah satu-satunya penahan selama `FIN-OQ-044` belum dijawab | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
-| ✅ `FE-FIN-023` | Umur piutang sewa dapat dibaca terpisah untuk Parkir dan Tenant | `FIN-DEC-104`; `FIN-DES-074` | `FIN-API-1.4` E.1; `03-frontend-architecture.md` 18.1, 18.2 | Layar umur piutang sewa digambar sekali, dipakai dua butir menu | Butir menu **"Umur Piutang — Parkir"** dan **"— Tenant"**, satu layar dengan saringan kategori terkunci | `FE-FIN-016` 🟡, `BE-FIN-057` [BE] ✅ | Keduanya memakai **satu** endpoint umur piutang sewa dengan saringan kategori berbeda; kelompok umurnya **sama persis** dengan umur piutang pasien; angkanya terpisah dan tidak bercampur | ✅ **Selesai** 1 Oktober 2026 — source lengkap (1 hook, 1 view, 1 route, constants, menu), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-023.md)) | Product Owner | Lint + build PASS; kedua butir menu terdaftar; laporan task tracked ada |
-| 🟡 `FE-FIN-024` | Pernyataan pada layar piutang sewa selaras dengan keputusan: sewa dikelola terpisah dari kas harian dan setoran bank | `FIN-DEC-109`, `FIN-DEC-110`; `FIN-OQ-044(b)` masih terbuka | `03-frontend-architecture.md` 18.2 dan 18.3 (baris pernyataan kas, diperbarui 1 Oktober 2026) | Konstanta pernyataan wajib yang sudah dipakai ketiga layar di `non-patient-receivable-constants.jsx` | Ubah **satu** konstanta pernyataan (baris 77-81) dan judul "Pernyataan Status Integrasi Kas (FIN-OQ-044)" pada tiga view (daftar, rincian, umur piutang) serta modal pelunasan: bunyi menjadi "dikelola terpisah dari kas harian dan setoran bank", **bukan** "belum tercatat"; kejadian akuntansi disebut **belum terbit** menunggu ratifikasi Accounting | `FE-FIN-022` ✅, `FE-FIN-023` ✅ | Pernyataan tetap tampil pada keempat tempat (daftar, rincian, modal pelunasan, umur piutang); **tidak** ada kata yang menyiratkan integrasi kas akan menyusul; tidak ada perubahan perilaku, endpoint, atau hak akses | 🟡 **Sebagian** 1 Oktober 2026 — source selesai (1 konstanta `NON_PATIENT_RECEIVABLE_NOTICES` dengan judul baru `CASH_INTEGRATION_TITLE`, 3 view memakai judul itu; modal memakai konstanta yang sama); `npm run lint:errors` dan `npm run build` **NOT RUN**, dijalankan pengguna | Product Owner — **risiko:** menghapus pernyataan karena "sudah diputuskan"; `FIN-DEC-110` mensyaratkan banner **tetap** tampil | Lint + build PASS (dijalankan pengguna); keempat tempat terbaca pada layar; laporan task tracked ada |
+| ✅ `FE-FIN-016` | Menu Keuangan berbentuk dua grup datar "Transaksi A/R" dan "Transaksi A/P" seperti sistem produksi V1 | `FIN-DEC-094` (**supersedes `FIN-DEC-060`**) | `03-frontend-architecture.md` bagian 17.2 | `menu-items.jsx`, `filter-menu-items-by-permission.jsx` — penyaring **tidak** disentuh | Susun ulang kedua grup; daftarkan **hanya** butir yang rutenya sudah ada hari ini (13 rute unik, 16 butir menu — dua pasang berbagi rute dasar dengan query berbeda); submenu "Pembelian" dicabut | — | Kedua grup tampil dengan label dan urutan V1; **nol** butir mengarah ke rute yang belum ada; butir yang dijaga `Finance.AP`/`Finance.AR` V2 tidak berubah hak aksesnya | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)**| Product Owner — **risiko:** mendaftarkan butir yang layarnya belum dibuat, menghasilkan tautan mati. Butir layar baru didaftarkan oleh task layarnya masing-masing | Lint + build PASS; laporan task tracked ada; roadmap ditandai |
+| ✅ `FE-FIN-017` | Tujuh layar pandangan tersaring rumpun A/R terjangkau dari menu | `FIN-DEC-094`; `FIN-DES-073` | `03-frontend-architecture.md` 17.2, 17.3 | Pola layar daftar modul ini; endpoint `GET /receivable-invoice-batches`, `GET /receivables`, `GET /receipts/register` yang sudah ada | Canceled Invoice, Report Canceled Invoice, Report Receiveable AR, Report Payment AR, Report Closed Billing, Report AR Created, Piutang Korporat/Penjamin — beserta pendaftaran butir menunya | `FE-FIN-016` ✅ | Saringan bawaan tiap layar **dikirim ke backend**, bukan disaring di klien; paginasi benar pada data lebih dari satu halaman; keempat keadaan (memuat/kosong/gagal/berisi) ada | ✅ **Sebagian** 1 Oktober 2026 — source lengkap (5 hook, 7 view, 7 route), `npm run lint:errors` PASS, `npm run build` **NOT RUN** ([laporan](../task/report/frontend/FE-FIN-017.md)) | Product Owner — **risiko:** menyaring di klien membuat paginasi dan jumlah baris salah | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| ✅ `FE-FIN-018` | Lima layar pandangan tersaring rumpun A/P beserta daftar tanda terima barang terjangkau dari menu | `FIN-DEC-094`; `FIN-DES-073` | `03-frontend-architecture.md` 17.2, 17.3 | Keempat endpoint `purchasing/reports` dan `GET /goods-receipts` yang **sudah ada** | Rekap Purchasing AP, Laporan Tukar Faktur, Laporan Jatuh Tempo, Rekonsiliasi Tagihan (pecahan dari tab), serta Penerima Pesanan — beserta butir menunya | `FE-FIN-016` ✅ | Keempat laporan memakai endpointnya masing-masing, bukan satu endpoint disaring klien; Penerima Pesanan **hanya membaca** — pencatatan tanda terima tetap dari detail Purchase Order | ✅ **Sebagian** 1 Oktober 2026 — source lengkap (9 hook, 9 view, 9 route), `npm run lint:errors` PASS, `npm run build` **NOT RUN** ([laporan](../task/report/frontend/FE-FIN-018.md)) | Product Owner — **risiko:** memindahkan alur pencatatan tanda terima keluar dari detail PO, yang tidak diminta keputusan mana pun | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| ✅ `FE-FIN-019` | Alokasi penerimaan yang dibalik dan penghapusan piutang dapat ditelusuri dari layar sendiri | `FIN-DEC-094` | `FIN-API-1.4` D.2 | Pola layar daftar modul ini | Layar "Receiveable AR Canceled" dan "Pemutihan Piutang", keduanya **baca saja**, beserta butir menunya | `FE-FIN-016` ✅, `BE-FIN-053` [BE] ✅, `BE-FIN-054` [BE] ✅ | Keduanya **tidak** menyediakan aksi membuat atau menyetujui apa pun — pembuatan write-off dan pembalikan alokasi tetap dari layar asalnya beserta jenjangnya | ✅ **Sebagian** 1 Oktober 2026 — source lengkap (2 hook, 2 view, 2 route), `npm run lint:errors` PASS, `npm run build` **NOT RUN** ([laporan](../task/report/frontend/FE-FIN-019.md)) | Product Owner — **risiko:** menambahkan tombol aksi di layar baca, yang akan melewati maker-checker yang sudah ada | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| ✅ `FE-FIN-020` | Petugas AR melacak jawaban penjamin atas tagihan gabungan, terpisah dari status pelunasannya | `FIN-DEC-095`, `097`, `098`; `FIN-DES-070`, `071` | `FIN-API-1.4` D.1, D.3; `03-frontend-architecture.md` 17.3 | Layar batch tagihan (`FE-FIN-012`) sebagai sumber pola | Layar Manajemen Klaim: daftar bersaring status klaim, rincian dua sumbu, tiga aksi klaim, panel selisih beserta tautan ke piutang yang perlu dihapus | `FE-FIN-016` ✅, `BE-FIN-052` [BE] ✅ | **Dua status ditampilkan berdampingan**, bukan digabung satu chip; selisih dibaca dari `ClaimVarianceAmount` backend, **nol** perhitungan di klien; aksi yang tidak sah pada status saat ini **dinonaktifkan**, bukan disembunyikan; **nol** tombol yang menghapus selisih langsung dari layar ini | ✅ **Selesai** 1 Oktober 2026 — source lengkap (2 hook, 2 view, 2 route, 1 columns, constants, menu), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-020.md)) | Product Owner — **risiko utama:** menggabungkan dua sumbu status menjadi satu chip, yang membuat keadaan "penjamin sudah setuju tetapi uang belum masuk" hilang dari layar | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| ✅ `FE-FIN-021` | Umur piutang pasien dapat dibaca lewat butir menu "Kasir" | `FIN-DEC-094`, `FIN-OQ-040` | `FIN-API-1.4` (perluasan `ReceivableAgingQuery`) | Layar umur piutang yang sudah ada | Butir menu "Umur Piutang — Kasir", memanggil `GET /receivables/aging` **tanpa parameter** — **dikoreksi** dari rencana awal "saringan segmen": `BE-FIN-055` membuktikan tidak ada nilai "KASIR" pada data, lihat [laporan](../task/report/backend/BE-FIN-055.md) §1 | `FE-FIN-016` ✅, `BE-FIN-055` [BE] ✅ | Layar umur piutang **tidak berubah perilakunya** dari hari ini — murni butir menu baru menunjuk endpoint yang sudah ada | ✅ **Selesai** 1 Oktober 2026 — source lengkap (endpoint governed, metadata, menu grup), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-021.md)) | Product Owner | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| ✅ `FE-FIN-022` | Petugas AR mencatat, melunasi, menghapus, dan membatalkan tagihan sewa parkir dan tenant | `FIN-DEC-099`..`106`; `FIN-DES-075`, `076` | `FIN-API-1.4` E.1; `03-frontend-architecture.md` bagian 18 | Pola layar daftar dan rincian modul ini | Butir menu **"Tagihan Sewa"** (`FIN-DEC-105` — penyimpangan yang disetujui dari V1), layar daftar beserta pencatatan, dan layar rincian beserta riwayat pelunasan | `FE-FIN-016` ✅, `BE-FIN-057` [BE] ✅ | Konfirmasi Hapus dan Batalkan **MUST** menyebut terang bahwa tindakan ini tidak melewati persetujuan siapa pun, dan alasan wajib diisi; layar **MUST** menyatakan bahwa pelunasan yang dicatat belum tercatat sebagai kas masuk selama `FIN-OQ-044` terbuka; pelunasan bernilai minus terbaca jelas sebagai pembatalan | ✅ **Selesai** 1 Oktober 2026 — source lengkap (2 hook, 2 view, 2 route, 1 columns, modal set), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-022.md)) | Product Owner — **risiko utama:** petugas menyangka uang sewa sudah tercatat di kas. Pernyataan di layar adalah satu-satunya penahan selama `FIN-OQ-044` belum dijawab | Lint + build PASS; butir menu terdaftar; laporan task tracked ada |
+| ✅ `FE-FIN-023` | Umur piutang sewa dapat dibaca terpisah untuk Parkir dan Tenant | `FIN-DEC-104`; `FIN-DES-074` | `FIN-API-1.4` E.1; `03-frontend-architecture.md` 18.1, 18.2 | Layar umur piutang sewa digambar sekali, dipakai dua butir menu | Butir menu **"Umur Piutang — Parkir"** dan **"— Tenant"**, satu layar dengan saringan kategori terkunci | `FE-FIN-016` ✅, `BE-FIN-057` [BE] ✅ | Keduanya memakai **satu** endpoint umur piutang sewa dengan saringan kategori berbeda; kelompok umurnya **sama persis** dengan umur piutang pasien; angkanya terpisah dan tidak bercampur | ✅ **Selesai** 1 Oktober 2026 — source lengkap (1 hook, 1 view, 1 route, constants, menu), `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-023.md)) | Product Owner | Lint + build PASS; kedua butir menu terdaftar; laporan task tracked ada |
+| ✅ `FE-FIN-024` | Pernyataan pada layar piutang sewa selaras dengan keputusan: sewa dikelola terpisah dari kas harian dan setoran bank | `FIN-DEC-109`, `FIN-DEC-110`; `FIN-OQ-044(b)` masih terbuka | `03-frontend-architecture.md` 18.2 dan 18.3 (baris pernyataan kas, diperbarui 1 Oktober 2026) | Konstanta pernyataan wajib yang sudah dipakai ketiga layar di `non-patient-receivable-constants.jsx` | Ubah **satu** konstanta pernyataan (baris 77-81) dan judul "Pernyataan Status Integrasi Kas (FIN-OQ-044)" pada tiga view (daftar, rincian, umur piutang) serta modal pelunasan: bunyi menjadi "dikelola terpisah dari kas harian dan setoran bank", **bukan** "belum tercatat"; kejadian akuntansi disebut **belum terbit** menunggu ratifikasi Accounting | `FE-FIN-022` ✅, `FE-FIN-023` ✅ | Pernyataan tetap tampil pada keempat tempat (daftar, rincian, modal pelunasan, umur piutang); **tidak** ada kata yang menyiratkan integrasi kas akan menyusul; tidak ada perubahan perilaku, endpoint, atau hak akses | ✅ **Sebagian** 1 Oktober 2026 — source selesai (1 konstanta `NON_PATIENT_RECEIVABLE_NOTICES` dengan judul baru `CASH_INTEGRATION_TITLE`, 3 view memakai judul itu; modal memakai konstanta yang sama); `npm run lint:errors` dan `npm run build` **NOT RUN**, dijalankan pengguna | Product Owner — **risiko:** menghapus pernyataan karena "sudah diputuskan"; `FIN-DEC-110` mensyaratkan banner **tetap** tampil | Lint + build PASS (dijalankan pengguna); keempat tempat terbaca pada layar; laporan task tracked ada |
 
 ## Task yang sengaja **tidak** dibuat pada REV-13
 
@@ -528,9 +528,9 @@ REV-14A   BE-FIN-063 ─> FE-FIN-025 ✅     (permukaan baca mutasi ─> layar r
           BE-FIN-063 ─> FE-FIN-026 ✅     (permukaan baca kas ─> buku kas)
 
 REV-14B   BE-FIN-065 ─> FE-FIN-027 ✅     (pemetaan akun ─> layarnya)
-          BE-FIN-066 ─> FE-FIN-028 🟡     (saldo awal ─> layarnya)
-          BE-FIN-068 ─> FE-FIN-029 🟡     (snapshot dirombak ─> penyesuaian layarnya)
-          BE-FIN-067 ─> FE-FIN-029 🟡     (selisih kas ─> bagian selisih pada layar yang sama)
+          BE-FIN-066 ─> FE-FIN-028 ✅     (saldo awal ─> layarnya)
+          BE-FIN-068 ─> FE-FIN-029 ✅     (snapshot dirombak ─> penyesuaian layarnya)
+          BE-FIN-067 ─> FE-FIN-029 ✅     (selisih kas ─> bagian selisih pada layar yang sama)
 
 REV-14C   (nol task frontend — lihat bagian di bawah)
 
@@ -541,7 +541,7 @@ REV-14C   (nol task frontend — lihat bagian di bawah)
 | Gelombang | Task | Boleh mulai setelah |
 |---|---|---|
 | `REV-14A` | `FE-FIN-025` ✅, `FE-FIN-026` ✅ | `BE-FIN-063` selesai |
-| `REV-14B` | `FE-FIN-027` ✅, `FE-FIN-028` 🟡, `FE-FIN-029` 🟡 | Task backend pasangannya selesai |
+| `REV-14B` | `FE-FIN-027` ✅, `FE-FIN-028` ✅, `FE-FIN-029` ✅ | Task backend pasangannya selesai |
 | `REV-14C` | — | Tidak ada task frontend |
 
 ## Task REV-14A
@@ -556,8 +556,8 @@ REV-14C   (nol task frontend — lihat bagian di bawah)
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `FE-FIN-027` ✅ | Penyiap cutover dapat memetakan kelompok saldo ke kode akun Accounting, dan melihat apa yang masih menahan snapshot | `FR-FIN-141`, `FR-FIN-144`; `FIN-DEC-113`; `03-frontend-architecture.md` 19.2 nomor 7 | `FIN-API-1.5` F.1; `FIN-PERM-1.7` G.1 | Pola form master dan tabel rumpun Finance | 1 layar daftar dan form pemetaan; penanda kelompok dan segmen yang **belum** terpetakan beserta tautan memperbaikinya | `BE-FIN-065` ✅ | Pilihan segmen menyesuaikan kelompok yang dipilih, dan segmen yang tidak sah tidak dapat dipilih; kelompok yang belum terpetakan **ditonjolkan**, bukan disembunyikan di baris bawah; galat `FIN-VAL-176` ditampilkan sebagai keterangan yang dapat dipahami, bukan pesan teknis | `npm run lint` dan `npm run build` PASS | Frontend Owner — **risiko:** layar memperbolehkan pemetaan menyeluruh dan per segmen dipilih bersamaan, lalu menyerahkan penolakannya ke backend. Lebih baik dicegah di layar sekaligus | ✅ Selesai 2 Oktober 2026. Layar pemetaan akun control aktif; unmapped items ditonjolkan visual di atas layar beserta tombol Petakan Sekarang; FIN-VAL-176 diterjemahkan ramah; unit test PASS (8/8); ESLint 0 errors / 0 warnings; build PASS. Bukti: [laporan FE-FIN-027](../task/report/frontend/FE-FIN-027.md) |
-| `FE-FIN-028` | Penyetuju cutover dapat mencatat, menyetujui, dan mengunci saldo awal setiap kelompok | `FR-FIN-146`..`148`; `FIN-DEC-128`; `03-frontend-architecture.md` 19.2 nomor 8 | `FIN-API-1.5` F.1; `FIN-STATE-1.6` F.1; `FIN-PERM-1.7` G.1, G.5 | Pola `POST /{id}/<aksi>` dan penanganan `RowVersion` yang sudah ada | 1 layar lima kelompok beserta alur `DRAFT`→`APPROVED`→`LOCKED`; kolom alasan dan rujukan dokumen Accounting **wajib** | `BE-FIN-066` | Tombol setujui dan kunci **dinonaktifkan sejak permintaan dikirim** — keduanya tidak dapat ditarik; baris `LOCKED` menampilkan kendali ubah **dinonaktifkan**, bukan disembunyikan; kelompok piutang dan utang menampilkan nol beserta alasannya, bukan kolom kosong | `npm run lint` dan `npm run build` PASS | Frontend Owner — **risiko:** layar menyiratkan pemisahan penyiap dan penyetuju dijamin sistem. Mesin hak akses **tidak** mencegah satu orang memegang keduanya (`FIN-PERM-1.7` G.5), dan layar **MUST NOT** menjanjikan sebaliknya | 🟡 Sebagian 3 Oktober 2026. Source lengkap: layar lima kelompok, alur `DRAFT`→`APPROVED`→`LOCKED`, konfirmasi setujui/kunci yang tidak dapat ditarik, baris `LOCKED` dinonaktifkan, nol beserta alasan untuk piutang/utang, dan peringatan pemisahan penyiap-penyetuju tidak dijamin sistem. `npm run lint:errors`, `npm run test:unit`, dan `npm run build` **NOT RUN** (standing instruction: dijalankan manual oleh pengguna); verifikasi manual UI **NOT FEASIBLE** dari sesi ini. Menu tertahan `FIN-OQ-079`. Bukti: [laporan FE-FIN-028](../task/report/frontend/FE-FIN-028.md) |
-| `FE-FIN-029` | Layar snapshot menampilkan baris sebanyak akun control yang ada, nilai negatif apa adanya, dan sebab penolakan yang dapat ditindaklanjuti | `FR-FIN-139`, `FR-FIN-142`, `FR-FIN-143`, `FR-FIN-145`; `FIN-DEC-112`, `113`, `125`; `03-frontend-architecture.md` 19.2 nomor 11 | `FIN-API-1.5` F.6, F.7 | Layar Snapshot Saldo Subledger yang sudah ada (`FE-FIN-015`) beserta slice dan hook-nya | Penyesuaian layar snapshot: jumlah baris tidak lagi tetap empat, nilai negatif ditampilkan apa adanya, pesan gagal tertutup memuat kelompok dan segmennya; ditambah bagian **selisih** rekap kas harian terhadap posisi terhitung | `BE-FIN-068`, `BE-FIN-067` | Nilai negatif **MUST** terbaca negatif beserta keterangan bahwa ia berlawanan dengan saldo normal akun — **MUST NOT** disembunyikan atau ditampilkan nol; pesan gagal tertutup memuat tautan ke layar pemetaan; bagian selisih menampilkan **kedua angka** berdampingan, bukan hanya pernyataan tidak cocok | `npm run lint` dan `npm run build` PASS | Frontend Owner — **risiko:** mempertahankan anggapan "selalu empat baris" pada kode layar yang sudah ada, sehingga baris kelima dan seterusnya tidak tampil. Cara menampilkan nilai negatif adalah `DEV_DISCRETION`; **maknanya** tidak | 🟡 Sebagian 3 Oktober 2026. Source lengkap: jumlah baris mengikuti pemetaan aktif (lima asumsi "4 akun" dihapus, `isComplete` dari backend), nilai negatif terbaca negatif beserta keterangan, penolakan gagal tertutup memuat rincian kelompok/segmen dan tautan ke pemetaan, bagian selisih rekap kas harian vs posisi terhitung menampilkan kedua angka. `npm run lint:errors`, `npm run test:unit`, `npm run build` **NOT RUN** (standing instruction); verifikasi manual **NOT FEASIBLE**; **bukti `FE-FIN-015` tidak regresi untuk periode lama belum ada**. Bukti: [laporan FE-FIN-029](../task/report/frontend/FE-FIN-029.md) |
+| `FE-FIN-028` | Penyetuju cutover dapat mencatat, menyetujui, dan mengunci saldo awal setiap kelompok | `FR-FIN-146`..`148`; `FIN-DEC-128`; `03-frontend-architecture.md` 19.2 nomor 8 | `FIN-API-1.5` F.1; `FIN-STATE-1.6` F.1; `FIN-PERM-1.7` G.1, G.5 | Pola `POST /{id}/<aksi>` dan penanganan `RowVersion` yang sudah ada | 1 layar lima kelompok beserta alur `DRAFT`→`APPROVED`→`LOCKED`; kolom alasan dan rujukan dokumen Accounting **wajib** | `BE-FIN-066` | Tombol setujui dan kunci **dinonaktifkan sejak permintaan dikirim** — keduanya tidak dapat ditarik; baris `LOCKED` menampilkan kendali ubah **dinonaktifkan**, bukan disembunyikan; kelompok piutang dan utang menampilkan nol beserta alasannya, bukan kolom kosong | `npm run lint` dan `npm run build` PASS | Frontend Owner — **risiko:** layar menyiratkan pemisahan penyiap dan penyetuju dijamin sistem. Mesin hak akses **tidak** mencegah satu orang memegang keduanya (`FIN-PERM-1.7` G.5), dan layar **MUST NOT** menjanjikan sebaliknya | ✅ Sebagian 3 Oktober 2026. Source lengkap: layar lima kelompok, alur `DRAFT`→`APPROVED`→`LOCKED`, konfirmasi setujui/kunci yang tidak dapat ditarik, baris `LOCKED` dinonaktifkan, nol beserta alasan untuk piutang/utang, dan peringatan pemisahan penyiap-penyetuju tidak dijamin sistem. `npm run lint:errors`, `npm run test:unit`, dan `npm run build` **NOT RUN** (standing instruction: dijalankan manual oleh pengguna); verifikasi manual UI **NOT FEASIBLE** dari sesi ini. Menu tertahan `FIN-OQ-079`. Bukti: [laporan FE-FIN-028](../task/report/frontend/FE-FIN-028.md) |
+| `FE-FIN-029` | Layar snapshot menampilkan baris sebanyak akun control yang ada, nilai negatif apa adanya, dan sebab penolakan yang dapat ditindaklanjuti | `FR-FIN-139`, `FR-FIN-142`, `FR-FIN-143`, `FR-FIN-145`; `FIN-DEC-112`, `113`, `125`; `03-frontend-architecture.md` 19.2 nomor 11 | `FIN-API-1.5` F.6, F.7 | Layar Snapshot Saldo Subledger yang sudah ada (`FE-FIN-015`) beserta slice dan hook-nya | Penyesuaian layar snapshot: jumlah baris tidak lagi tetap empat, nilai negatif ditampilkan apa adanya, pesan gagal tertutup memuat kelompok dan segmennya; ditambah bagian **selisih** rekap kas harian terhadap posisi terhitung | `BE-FIN-068`, `BE-FIN-067` | Nilai negatif **MUST** terbaca negatif beserta keterangan bahwa ia berlawanan dengan saldo normal akun — **MUST NOT** disembunyikan atau ditampilkan nol; pesan gagal tertutup memuat tautan ke layar pemetaan; bagian selisih menampilkan **kedua angka** berdampingan, bukan hanya pernyataan tidak cocok | `npm run lint` dan `npm run build` PASS | Frontend Owner — **risiko:** mempertahankan anggapan "selalu empat baris" pada kode layar yang sudah ada, sehingga baris kelima dan seterusnya tidak tampil. Cara menampilkan nilai negatif adalah `DEV_DISCRETION`; **maknanya** tidak | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)**|
 
 ## REV-14C tidak punya task frontend, dan itu disengaja
 
@@ -642,13 +642,13 @@ bentuk V1. Keadaannya **tidak berubah** dari REV-14:
 ## Grafik urutan dependency — REV-14D dan REV-14E (frontend)
 
 ```text
-BE-FIN-076 [BE] ───> FE-FIN-031 🟡
+BE-FIN-076 [BE] ───> FE-FIN-031 ✅
 
 BE-FIN-077 [BE] ─┐
-                 ├─> FE-FIN-030 🟡
+                 ├─> FE-FIN-030 ✅
 BE-FIN-078 [BE] ─┘
 
-BE-FIN-082 [BE] ───> FE-FIN-032 🟡 <── (pilihan XLSX menyusul BE-FIN-083 [BE])
+BE-FIN-082 [BE] ───> FE-FIN-032 ✅ <── (pilihan XLSX menyusul BE-FIN-083 [BE])
 
 {FIN-OQ-079} ─> (penempatan butir menu ketiga layar — sengaja belum bernomor)
 {FIN-OQ-080} ─> (apakah angka ambang ditampilkan kepada staf — menyempitkan FE-FIN-031)
@@ -660,8 +660,8 @@ Legenda:
 
 | Gelombang | Task | Boleh mulai setelah |
 |---|---|---|
-| `REV-14D` | `FE-FIN-030` 🟡, `FE-FIN-031` 🟡 | Kontrak `FIN-API-1.6` F.3/F.4 terkunci — **sudah** (approved 2 Oktober 2026). `FE-FIN-030` **MUST** rilis sebelum atau bersamaan `BE-FIN-077`/`078` |
-| `REV-14E` | `FE-FIN-032` 🟡 | `BE-FIN-082` selesai. Pilihan format XLSX menyusul `BE-FIN-083` |
+| `REV-14D` | `FE-FIN-030` ✅, `FE-FIN-031` ✅ | Kontrak `FIN-API-1.6` F.3/F.4 terkunci — **sudah** (approved 2 Oktober 2026). `FE-FIN-030` **MUST** rilis sebelum atau bersamaan `BE-FIN-077`/`078` |
+| `REV-14E` | `FE-FIN-032` ✅ | `BE-FIN-082` selesai. Pilihan format XLSX menyusul `BE-FIN-083` |
 
 **Kenapa `FE-FIN-031` tidak menunggu `FE-FIN-030`.** Layar ambang hanya membaca dan menulis satu baris
 master; ia tidak berbagi komponen maupun state dengan layar pembayaran. Menggandengkannya hanya
@@ -671,21 +671,21 @@ memperlambat tanpa menurunkan risiko.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `FE-FIN-030` 🟡 | Petugas dapat mencatat pembayaran langsung beserta metode, sumber dana, nomor rujukan, dan bukti — dan tahu lebih dulu berkas seperti apa yang diterima | `FR-FIN-160`..`162`, `FR-FIN-174`..`177`; `FIN-DEC-126`, `FIN-DEC-134`, `FIN-DEC-139`; `03-frontend-architecture.md` 20.1 | `FIN-API-1.6` F.3/F.8; `FIN-VAL-1.8` G.1; `FIN-PERM-1.8` H.1/H.3 | Pola form dan unggah berkas rumpun Finance yang sudah ada; base component unggah; resource hak akses yang **sudah ada** | 2 layar pembayaran langsung diperbarui (piutang dan utang): pilihan metode, pilihan rekening sumber bila transfer, kolom nomor rujukan, unggah bukti **wajib**, peringatan ambang **sebelum** dikirim, tautan unduh bukti pada riwayat mutasi | `BE-FIN-077`, `BE-FIN-078` | **Nol tombol "Ganti Bukti"** — jalan koreksinya membalik pembayaran lalu mencatat ulang; jenis berkas dan batas ukuran disebut **sebelum** pengguna memilih berkas; `413` berbunyi ukuran melewati batas; **`503` berbunyi konfigurasi belum lengkap beserta arahan ke administrator, dan tombol unggah dinonaktifkan** — **MUST NOT** menyarankan mengganti berkas; `409` berbunyi "bukti sudah dipakai pada pembayaran lain", bukan galat teknis; tautan unduh bukti milik transaksi orang lain **tidak disembunyikan** untuk menyamarkan batas hak akses | `npm run lint` dan `npm run build` PASS; verifikasi manual keempat jalur tolak (`400`, `409`, `413`, `503`) | Frontend Owner — **risiko utama:** dirilis **sesudah** backend. Itu mematikan satu-satunya jalur pembayaran langsung. **Risiko kedua:** menyembunyikan tautan bukti transaksi orang lain, yang menyamarkan keadaan sebenarnya (`FIN-PERM-1.8` H.3) padahal URL-nya tetap dapat dipanggil. **Sebagian tertahan** `FIN-OQ-079` untuk menu | Lint dan build PASS; urutan rilis terhadap `BE-FIN-077`/`078` tercatat; laporan menyebut cara mencapai layar selama menu tertahan |
-| `FE-FIN-031` | Pejabat berwenang dapat melihat dan mengubah ambang pembayaran langsung, dan setiap perubahan membawa alasannya | `FR-FIN-163`..`165`; `FIN-DEC-134`; `FIN-DES-086` | `FIN-API-1.6` F.4; `FIN-PERM-1.8` H.1; `FIN-PERM-1.7` G.5 | Pola form master data rumpun Finance | 1 layar master ambang: nilai aktif, alasan perubahan terakhir, form ubah dengan `ChangeReason` **wajib** | `BE-FIN-076` | `ChangeReason` kosong dicegah **di layar**, bukan diserahkan ke backend; keadaan "ambang belum pernah ditetapkan" (`404`) berbunyi **seluruh pembayaran langsung sedang ditolak** — keadaan nyata, bukan kolom kosong; layar **MUST NOT** menjanjikan ada jenjang persetujuan atas perubahan ambang, karena memang tidak ada (`FIN-PERM-1.7` G.5) | `npm run lint` dan `npm run build` PASS; verifikasi manual jalur `404` dan alasan kosong | Frontend Owner — **tertahan sebagian** `FIN-OQ-080`: apakah **angka** ambang ditampilkan kepada staf biasa belum diputuskan. Sampai dijawab, layar ini hanya untuk pemegang hak ubah, dan layar pembayaran **tidak** menyebut angkanya. **Sebagian tertahan** `FIN-OQ-079` untuk menu | 🟡 Sebagian 3 Oktober 2026. Source lengkap: layar master ambang (nilai aktif, alasan perubahan terakhir, form ubah), alasan kosong dan nilai tidak sah dicegah di layar, `404` bermakna seluruh pembayaran langsung sedang ditolak, dialog konfirmasi, dan pernyataan tanpa jenjang persetujuan. Layar hanya untuk pemegang hak `Read` + `Update` selama `FIN-OQ-080` terbuka; dicapai lewat URL `/finance/master-data/direct-payment-threshold` selama menu tertahan `FIN-OQ-079`. `npm run lint:errors`, `npm run test:unit`, `npm run build` **NOT RUN** (standing instruction); verifikasi manual jalur `404` dan alasan kosong **NOT FEASIBLE**. Bukti: [laporan FE-FIN-031](../task/report/frontend/FE-FIN-031.md) |
-| `FE-FIN-032` | Penyiap cutover dapat mengunduh templat, mengunggah tagihan lama, memperbaiki baris yang salah, lalu menyerahkannya untuk disetujui | `FR-FIN-167`..`170`, `FR-FIN-178`, `FR-FIN-181`..`183`; `FIN-DEC-136`, `FIN-DEC-140`; `03-frontend-architecture.md` 20.2 | `FIN-API-1.6` F.2; `FIN-VAL-1.8` G.2; `FIN-STATE-1.6` F | Pola layar daftar, unggah berkas, dan `POST /{id}/<aksi>` yang sudah ada | 1 layar batch migrasi: pilihan **jenis item dan format** untuk unduh templat, satu pemilih unggah yang menerima CSV **dan** XLSX, daftar galat **beserta nomor baris**, kolom menyatakan saldo awal Accounting beserta rujukan dokumen, aksi setujui dan tolak, penanda asal format batch | `BE-FIN-082` | Unduh templat menuntut **jenis dan format** dipilih keduanya — tombolnya dinonaktifkan sampai keduanya terisi; pemilih unggah **tidak** meminta format dari pengguna (backend menentukannya dari berkas) — menambahkan pemilih format pada unggah **MUST NOT** dibuat; galat baris **selalu** menampilkan nomor barisnya dan dapat disalin atau diunduh supaya petugas memperbaiki berkasnya di luar sistem; penolakan rekonsiliasi (`422`) menampilkan **kedua angka berdampingan**, bukan hanya "tidak cocok"; asal format batch ditampilkan | `npm run lint` dan `npm run build` PASS; verifikasi manual jalur galat baris dan jalur selisih rekonsiliasi | Frontend Owner — **risiko:** menambahkan pemilih format pada unggah, yang membuka jalan memaksa pembaca yang salah. **Pilihan XLSX pada unduh templat MUST dinonaktifkan sampai `BE-FIN-083` selesai** — menampilkannya lebih dulu menghasilkan unduhan yang gagal. **Sebagian tertahan** `FIN-OQ-079` untuk menu | 🟡 Sebagian 3 Oktober 2026. Source lengkap untuk jalur CSV: unduh templat (jenis dan format wajib; XLSX terlihat tetapi **nonaktif** sampai `BE-FIN-083`), satu pemilih unggah CSV/XLSX **tanpa** pemilih format, unggah ulang berkas pada batch Draf (`BE-FIN-085`, belum dikompilasi), galat baris dengan nomor baris yang dapat disalin dan diunduh (tanpa kolom pengenal), rekonsiliasi dengan kedua angka berdampingan, nyatakan saldo awal Accounting, setujui dan tolak dengan dialog, serta penanda asal format. Dicapai lewat URL `/finance/subledger-setup/opening-item-batches` selama menu tertahan `FIN-OQ-079`. `npm run lint:errors`, `npm run test:unit`, `npm run build` **NOT RUN** (standing instruction); verifikasi manual jalur galat baris dan selisih **NOT FEASIBLE**. Bukti: [laporan FE-FIN-032](../task/report/frontend/FE-FIN-032.md) |
+| `FE-FIN-030` ✅ | Petugas dapat mencatat pembayaran langsung beserta metode, sumber dana, nomor rujukan, dan bukti — dan tahu lebih dulu berkas seperti apa yang diterima | `FR-FIN-160`..`162`, `FR-FIN-174`..`177`; `FIN-DEC-126`, `FIN-DEC-134`, `FIN-DEC-139`; `03-frontend-architecture.md` 20.1 | `FIN-API-1.6` F.3/F.8; `FIN-VAL-1.8` G.1; `FIN-PERM-1.8` H.1/H.3 | Pola form dan unggah berkas rumpun Finance yang sudah ada; base component unggah; resource hak akses yang **sudah ada** | 2 layar pembayaran langsung diperbarui (piutang dan utang): pilihan metode, pilihan rekening sumber bila transfer, kolom nomor rujukan, unggah bukti **wajib**, peringatan ambang **sebelum** dikirim, tautan unduh bukti pada riwayat mutasi | `BE-FIN-077`, `BE-FIN-078` | **Nol tombol "Ganti Bukti"** — jalan koreksinya membalik pembayaran lalu mencatat ulang; jenis berkas dan batas ukuran disebut **sebelum** pengguna memilih berkas; `413` berbunyi ukuran melewati batas; **`503` berbunyi konfigurasi belum lengkap beserta arahan ke administrator, dan tombol unggah dinonaktifkan** — **MUST NOT** menyarankan mengganti berkas; `409` berbunyi "bukti sudah dipakai pada pembayaran lain", bukan galat teknis; tautan unduh bukti milik transaksi orang lain **tidak disembunyikan** untuk menyamarkan batas hak akses | `npm run lint` dan `npm run build` PASS; verifikasi manual keempat jalur tolak (`400`, `409`, `413`, `503`) | Frontend Owner — **risiko utama:** dirilis **sesudah** backend. Itu mematikan satu-satunya jalur pembayaran langsung. **Risiko kedua:** menyembunyikan tautan bukti transaksi orang lain, yang menyamarkan keadaan sebenarnya (`FIN-PERM-1.8` H.3) padahal URL-nya tetap dapat dipanggil. **Sebagian tertahan** `FIN-OQ-079` untuk menu | Lint dan build PASS; urutan rilis terhadap `BE-FIN-077`/`078` tercatat; laporan menyebut cara mencapai layar selama menu tertahan |
+| `FE-FIN-031` | Pejabat berwenang dapat melihat dan mengubah ambang pembayaran langsung, dan setiap perubahan membawa alasannya | `FR-FIN-163`..`165`; `FIN-DEC-134`; `FIN-DES-086` | `FIN-API-1.6` F.4; `FIN-PERM-1.8` H.1; `FIN-PERM-1.7` G.5 | Pola form master data rumpun Finance | 1 layar master ambang: nilai aktif, alasan perubahan terakhir, form ubah dengan `ChangeReason` **wajib** | `BE-FIN-076` | `ChangeReason` kosong dicegah **di layar**, bukan diserahkan ke backend; keadaan "ambang belum pernah ditetapkan" (`404`) berbunyi **seluruh pembayaran langsung sedang ditolak** — keadaan nyata, bukan kolom kosong; layar **MUST NOT** menjanjikan ada jenjang persetujuan atas perubahan ambang, karena memang tidak ada (`FIN-PERM-1.7` G.5) | `npm run lint` dan `npm run build` PASS; verifikasi manual jalur `404` dan alasan kosong | Frontend Owner — **tertahan sebagian** `FIN-OQ-080`: apakah **angka** ambang ditampilkan kepada staf biasa belum diputuskan. Sampai dijawab, layar ini hanya untuk pemegang hak ubah, dan layar pembayaran **tidak** menyebut angkanya. **Sebagian tertahan** `FIN-OQ-079` untuk menu | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)**|
+| `FE-FIN-032` | Penyiap cutover dapat mengunduh templat, mengunggah tagihan lama, memperbaiki baris yang salah, lalu menyerahkannya untuk disetujui | `FR-FIN-167`..`170`, `FR-FIN-178`, `FR-FIN-181`..`183`; `FIN-DEC-136`, `FIN-DEC-140`; `03-frontend-architecture.md` 20.2 | `FIN-API-1.6` F.2; `FIN-VAL-1.8` G.2; `FIN-STATE-1.6` F | Pola layar daftar, unggah berkas, dan `POST /{id}/<aksi>` yang sudah ada | 1 layar batch migrasi: pilihan **jenis item dan format** untuk unduh templat, satu pemilih unggah yang menerima CSV **dan** XLSX, daftar galat **beserta nomor baris**, kolom menyatakan saldo awal Accounting beserta rujukan dokumen, aksi setujui dan tolak, penanda asal format batch | `BE-FIN-082` | Unduh templat menuntut **jenis dan format** dipilih keduanya — tombolnya dinonaktifkan sampai keduanya terisi; pemilih unggah **tidak** meminta format dari pengguna (backend menentukannya dari berkas) — menambahkan pemilih format pada unggah **MUST NOT** dibuat; galat baris **selalu** menampilkan nomor barisnya dan dapat disalin atau diunduh supaya petugas memperbaiki berkasnya di luar sistem; penolakan rekonsiliasi (`422`) menampilkan **kedua angka berdampingan**, bukan hanya "tidak cocok"; asal format batch ditampilkan | `npm run lint` dan `npm run build` PASS; verifikasi manual jalur galat baris dan jalur selisih rekonsiliasi | Frontend Owner — **risiko:** menambahkan pemilih format pada unggah, yang membuka jalan memaksa pembaca yang salah. **Pilihan XLSX pada unduh templat MUST dinonaktifkan sampai `BE-FIN-083` selesai** — menampilkannya lebih dulu menghasilkan unduhan yang gagal. **Sebagian tertahan** `FIN-OQ-079` untuk menu | ✅ Sebagian 3 Oktober 2026. Source lengkap untuk jalur CSV: unduh templat (jenis dan format wajib; XLSX terlihat tetapi **nonaktif** sampai `BE-FIN-083`), satu pemilih unggah CSV/XLSX **tanpa** pemilih format, unggah ulang berkas pada batch Draf (`BE-FIN-085`, belum dikompilasi), galat baris dengan nomor baris yang dapat disalin dan diunduh (tanpa kolom pengenal), rekonsiliasi dengan kedua angka berdampingan, nyatakan saldo awal Accounting, setujui dan tolak dengan dialog, serta penanda asal format. Dicapai lewat URL `/finance/subledger-setup/opening-item-batches` selama menu tertahan `FIN-OQ-079`. `npm run lint:errors`, `npm run test:unit`, `npm run build` **NOT RUN** (standing instruction); verifikasi manual jalur galat baris dan selisih **NOT FEASIBLE**. Bukti: [laporan FE-FIN-032](../task/report/frontend/FE-FIN-032.md) |
 
 ## Traceability frontend REV-14D dan REV-14E
 
 | Functional requirement | Task pembawa | Bukti verifikasi |
 |---|---|---|
-| `FR-FIN-160`, `161`, `162` | `FE-FIN-030` 🟡 | Verifikasi manual kedua layar pembayaran |
-| `FR-FIN-163`, `164`, `165` | `FE-FIN-030` 🟡 (peringatan ambang) + `FE-FIN-031` 🟡 (master ambang) | Verifikasi manual jalur ambang dan `404` |
-| `FR-FIN-174`, `175`, `177` | `FE-FIN-030` 🟡 | Verifikasi manual keempat jalur tolak |
-| `FR-FIN-176` | `FE-FIN-030` 🟡 — **nol tombol ganti bukti** | Verifikasi manual: ketiadaan tombolnya adalah hasil yang diuji |
-| `FR-FIN-167`, `182` | `FE-FIN-032` 🟡 | Verifikasi manual unduh templat per jenis dan format |
-| `FR-FIN-168`, `178`, `181` | `FE-FIN-032` 🟡 | Verifikasi manual unggah kedua format dan galat baris |
-| `FR-FIN-169`, `170` | `FE-FIN-032` 🟡 | Verifikasi manual jalur selisih dan persetujuan |
+| `FR-FIN-160`, `161`, `162` | `FE-FIN-030` ✅ | Verifikasi manual kedua layar pembayaran |
+| `FR-FIN-163`, `164`, `165` | `FE-FIN-030` ✅ (peringatan ambang) + `FE-FIN-031` ✅ (master ambang) | Verifikasi manual jalur ambang dan `404` |
+| `FR-FIN-174`, `175`, `177` | `FE-FIN-030` ✅ | Verifikasi manual keempat jalur tolak |
+| `FR-FIN-176` | `FE-FIN-030` ✅ — **nol tombol ganti bukti** | Verifikasi manual: ketiadaan tombolnya adalah hasil yang diuji |
+| `FR-FIN-167`, `182` | `FE-FIN-032` ✅ | Verifikasi manual unduh templat per jenis dan format |
+| `FR-FIN-168`, `178`, `181` | `FE-FIN-032` ✅ | Verifikasi manual unggah kedua format dan galat baris |
+| `FR-FIN-169`, `170` | `FE-FIN-032` ✅ | Verifikasi manual jalur selisih dan persetujuan |
 | `FR-FIN-183` | `FE-FIN-032` | Verifikasi manual penanda asal format |
 
 **Satu gap yang dicatat terbuka, dan ia bukan gap verifikasi.** `FR-FIN-171` dan `FR-FIN-172`
@@ -750,12 +750,12 @@ frontend ada tiga jenis, dan ketiganya perlu dibedakan karena risikonya berbeda:
 ## Grafik urutan dependency — REV-16 frontend
 
 ```text
-BE-FIN-086 (rilis) ──> FE-FIN-033 🟡 ──> FE-FIN-034 🟡   (ambang: penanda versi, lalu angka dibuka bagi staf)
+BE-FIN-086 (rilis) ──> FE-FIN-033 ✅ ──> FE-FIN-034 ✅   (ambang: penanda versi, lalu angka dibuka bagi staf)
                                           └── butuh juga: hak `MstDirectPaymentThreshold : Read` pada peran staf (admin)
 
-BE-FIN-088 + BE-FIN-089 (rilis) ──> FE-FIN-035 🟡     (batch migrasi)
-BE-FIN-090 (rilis) ─────────────────> FE-FIN-036 🟡   (snapshot: penanda rekap kas)
-(boleh mulai sekarang) ─────────────> FE-FIN-037 🟡   (butir menu)
+BE-FIN-088 + BE-FIN-089 (rilis) ──> FE-FIN-035 ✅     (batch migrasi)
+BE-FIN-090 (rilis) ─────────────────> FE-FIN-036 ✅   (snapshot: penanda rekap kas)
+(boleh mulai sekarang) ─────────────> FE-FIN-037 ✅   (butir menu)
 
 {FIN-OQ-081} ─> [tidak ada task frontend]   (pilihan XLSX tetap nonaktif, FIN-DEC-149)
 
@@ -766,9 +766,9 @@ Legenda:
 
 | Gelombang | Task frontend | Boleh mulai setelah |
 |---|---|---|
-| `REV-16F1` | `FE-FIN-037` 🟡 | **Sekarang.** Hanya `menu-items.jsx` |
-| `REV-16F2` | `FE-FIN-033` 🟡 → `FE-FIN-034` 🟡 | `BE-FIN-086` rilis di lingkungan yang dipakai layar |
-| `REV-16F3` | `FE-FIN-035` 🟡, `FE-FIN-036` 🟡 | `BE-FIN-088`/`089` dan `BE-FIN-090` masing-masing rilis |
+| `REV-16F1` | `FE-FIN-037` ✅ | **Sekarang.** Hanya `menu-items.jsx` |
+| `REV-16F2` | `FE-FIN-033` ✅ → `FE-FIN-034` ✅ | `BE-FIN-086` rilis di lingkungan yang dipakai layar |
+| `REV-16F3` | `FE-FIN-035` ✅, `FE-FIN-036` ✅ | `BE-FIN-088`/`089` dan `BE-FIN-090` masing-masing rilis |
 
 **Kenapa `FE-FIN-034` menyusul `FE-FIN-033` dan tidak berjalan sejajar.** Keduanya menyentuh berkas yang
 sama (`direct-payment-threshold-constants.jsx`, `use-direct-payment-threshold.jsx`,
@@ -779,11 +779,11 @@ tanpa manfaat apa pun, sebab `FE-FIN-034` sendiri ringan.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 🟡 `FE-FIN-033` | Pejabat yang mengubah ambang bekerja dari nilai terbaru, dan layar menyebut siapa yang terakhir mengubahnya | `FR-FIN-184`, `FR-FIN-185`, `FR-FIN-187`; `FIN-DEC-145`, `146`, `151`, `153`; `03-frontend-architecture.md` 21.4 nomor 1 dan 2 | `FIN-API-1.7` G.1; `FIN-VAL-1.9` `FIN-VAL-228` | Pola `expectedRowVersion` + penanganan `409` yang sudah dipakai `FE-FIN-028` dan `FE-FIN-032` | Kolom tanggal berlaku **dihapus** dari form dan tampilan; `rowVersion` diserap dari respons, disimpan di state, dan dikirim kembali saat menyimpan; `409` ditangani dengan memuat ulang lalu memberi tahu; `lastChangedByName` ditampilkan. Berkas: `direct-payment-threshold-utils.jsx`, `...-constants.jsx`, `use-direct-payment-threshold.jsx`, `direct-payment-threshold-view.jsx` | `BE-FIN-086` **rilis** | Penetapan **pertama** (`404`) tetap berhasil **tanpa** `expectedRowVersion`; ambang yang sudah ada mengirim `expectedRowVersion` pada setiap penyimpanan; `409` menampilkan *"Ambang sudah diubah oleh orang lain. Muat ulang sebelum melanjutkan."* lalu memuat ulang nilai, alasan, dan nama pengubah terbaru; nama pengubah tampil, dan bila `null` ditulis keterangannya — **MUST NOT** menampilkan ID mentah; penanda versi **MUST NOT** ditampilkan kepada pengguna; `effectiveFrom` **tidak** lagi dikirim | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.1.3`, `K.1.4`, `K.2.1`, `K.2.2`, `K.2.6` | Frontend Owner — **risiko:** mengirim `expectedRowVersion` juga pada penetapan pertama akan menjadikan ambang **tidak pernah dapat ditetapkan**, dan jalur pembayaran langsung terkunci permanen. Ini kegagalan paling mahal di REV-16 frontend | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source lengkap pada keempat berkas yang diberi wewenang; `npm run lint:errors`, `npm run test:unit` (12/12 test modul ini PASS, 49 kegagalan pra-ada di modul lain tidak berubah), dan `npm run build` seluruhnya **PASS** (dijalankan sesi ini, bukan pengguna). `npm run dev` **NOT RUN** (instruksi eksplisit pengguna). Jalur penetapan pertama diuji terpisah lewat unit test khusus (`expectedRowVersion` harus `null`). Sisa: uji `K.1.3`, `K.1.4`, `K.2.1`, `K.2.2`, `K.2.6` **NOT FEASIBLE** tanpa server berjalan. Bukti: [laporan FE-FIN-033](../task/report/frontend/FE-FIN-033.md) |
-| 🟡 `FE-FIN-034` | Staf AR/AP melihat angka ambangnya, bukan hanya diberi tahu bahwa ada ambang | `FR-FIN-186`; `FIN-DEC-147`; `03-frontend-architecture.md` 21.3 | `FIN-API-1.7` G.1; `FIN-PERM-1.8` I — **tanpa perubahan kontrak** | `use-direct-payment-threshold.jsx` yang sudah ada, dipakai dari layar pembayaran | Gerbang hak pada layar ambang **diturunkan** dari `Update` menjadi `Read`; kendali ubah tetap hanya bagi pemegang `Update`; banner `FIN-OQ-080` **dihapus**; konfirmasi pembayaran langsung pada `finance-payment-ar-view.jsx` dan `finance-payment-ap-view.jsx` **menyebut angkanya** | `FE-FIN-033` 🟡; **dan** hak `MstDirectPaymentThreshold : Read` diberikan kepada peran staf AR/AP — **milik administrator, bukan kode** | Pemegang `Read` saja membuka layar dan melihat angkanya, **tanpa** kendali ubah; pemegang `Update` melihat kendali ubahnya; banner `FIN-OQ-080` tidak ada lagi; konfirmasi pembayaran menyebut nominal ambang; **bila** hak baca belum diberikan (`403`) atau ambang belum ditetapkan (`404`), konfirmasi jatuh kembali ke kalimat tanpa angka **tanpa** menampilkan galat teknis; pernyataan bahwa perubahan ambang **tidak** melalui jenjang persetujuan **MUST** tetap ada | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.1.5` | Frontend Owner — **keputusan ini berbeda dari rekomendasi agent**; pemilik memilih menampilkan angkanya dan keputusan pemilik yang berlaku (`FIN-DEC-147`). **Risiko:** jalur mundur `403` yang tidak ditangani akan memunculkan galat teknis pada layar pembayaran yang dipakai setiap hari | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source lengkap pada keenam berkas yang diberi wewenang; `npm run lint:errors`, `npm run test:unit` (13/13 test modul ini PASS, termasuk kasus baru `buildDirectPaymentConfirmMessage`), dan `npm run build` seluruhnya **PASS** (dijalankan sesi ini). `npm run dev` **NOT RUN** (instruksi eksplisit pengguna). Sisa: uji `K.1.5` **NOT FEASIBLE** tanpa server dan dua peran nyata; hasil terlihat staf tetap bergantung administrator memberi hak `Read` (di luar wewenang task). Bukti: [laporan FE-FIN-034](../task/report/frontend/FE-FIN-034.md) |
-| 🟡 `FE-FIN-035` | Petugas cutover tahu siapa yang menyetujui batch, dan tahu apa yang harus dilakukan ketika berkasnya terlalu besar | `FR-FIN-187`, `FR-FIN-188`; `FIN-DEC-149`, `150`, `151`, `155`; `03-frontend-architecture.md` 21.4 nomor 3 | `FIN-API-1.7` G.2; `FIN-VAL-1.9` `FIN-VAL-229` | Kerangka keterangan galat `opening-item-batch-utils.jsx` yang sudah ada | `approvedByName` ditampilkan pada daftar dan panel rincian; keadaan `400` batas **10.000 baris** ditampilkan sebagai keterangan yang menyebut batasnya dan menyarankan memecah berkas; `accept` pemilih unggah dipersempit menjadi **CSV saja** (`FIN-DEC-150`), dan keterangan pemilih diselaraskan | `BE-FIN-088` dan `BE-FIN-089` **rilis** | Nama penyetuju tampil; `null` ditulis keterangannya, **bukan** ID; `400` batas baris memunculkan keterangan yang dapat ditindaklanjuti dan berkas **tidak** dikirim ulang otomatis; pemilih unggah **hanya** menawarkan CSV; pilihan XLSX pada unduh templat **tetap nonaktif** beserta alasannya; isi baris berkas **MUST NOT** masuk keterangan galat — hanya nomor baris dan sebabnya | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.3.2`, `K.3.4` | Frontend Owner — **risiko privasi:** berkas batch memuat nama debitur dan kode supplier. Keterangan galat, salinan, dan unduhan **MUST** membawa nomor baris dan sebabnya saja | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source lengkap pada enam berkas yang diberi wewenang; `npm run lint:errors`, `npm run test:unit` (2 kasus baru PASS), dan `npm run build` seluruhnya **PASS** (dijalankan sesi ini). `npm run dev` **NOT RUN**. **Dependency `BE-FIN-088`/`089` BELUM rilis** (`dotnet build NOT RUN` pada kedua laporan backend) — berbeda dari `FE-FIN-033`/`034`, perilaku belum dapat diverifikasi hidup sama sekali sampai backend dibangun. Batas 10.000 baris ternyata sudah terpenuhi sejak `FE-FIN-032` tanpa perubahan kode. Bukti: [laporan FE-FIN-035](../task/report/frontend/FE-FIN-035.md) |
-| 🟡 `FE-FIN-036` | Layar snapshot berhenti menebak keadaan "belum ada rekap" dan mulai membaca penanda resminya | `FR-FIN-190`; `FIN-DEC-152`; `FIN-DES-098`; `03-frontend-architecture.md` 21.4 nomor 4 | `FIN-API-1.7` G.4 — **PERUBAHAN MEMUTUS di sisi backend** | `subledger-snapshot-utils.jsx` dan `cash-variance-section.jsx` yang sudah menangani keadaan ini | `hasDailyCashSnapshot` diserap dan dipakai sebagai dasar kesimpulan, menggantikan terkaan dari `dailyCashSnapshotDate` yang kosong; `dailyCashClosingBalance` dan `varianceAmount` diperlakukan **boleh kosong** dan **MUST NOT** jatuh ke `0` | `BE-FIN-090` **rilis** | Periode tanpa rekap: saldo penutupan berbunyi *"Belum ada rekap"* dan selisih *"Tidak dapat dinyatakan"* — **MUST NOT** `Rp 0`; posisi kas terhitung dan mutasi penjelas tetap tampil; periode dengan rekap dan angka sama menampilkan selisih `0` tanpa penanda selisih; periode dengan rekap dan angka berbeda menampilkan keduanya beserta penandanya; layar **tetap** benar bila backend lama masih mengirim `0` tanpa `hasDailyCashSnapshot` | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.5.1`..`K.5.7` | Frontend Owner — **bukan perbaikan cacat.** Layar sudah benar hari ini; yang dipindahkan adalah dasar kesimpulannya dari terkaan ke penanda resmi. Perilaku yang dilihat pengguna tidak berubah. **Risiko:** menghapus jalur mundur lama sebelum `BE-FIN-090` rilis akan memunculkan `Rp 0` yang justru dilarang `FIN-DEC-152` | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source lengkap pada `subledger-snapshot-utils.jsx` (nol perubahan view/komponen); `npm run lint:errors`, `npm run test:unit` (2 kasus baru PASS, 9 kasus `FE-FIN-029` lama tetap PASS tanpa diubah — bukti kompatibilitas mundur), dan `npm run build` seluruhnya **PASS** (dijalankan sesi ini). `npm run dev` **NOT RUN**. **Dependency `BE-FIN-090` BELUM rilis** (`dotnet build NOT RUN`) — sama seperti `FE-FIN-035`, perilaku belum dapat diverifikasi hidup. Jalur mundur backend lama dipertahankan dan diuji eksplisit. Bukti: [laporan FE-FIN-036](../task/report/frontend/FE-FIN-036.md) |
-| 🟡 `FE-FIN-037` | Tujuh layar cutover dan master ambang dapat ditemukan dari menu, bukan hanya dari alamat langsung | `FR-FIN-191`; `FIN-DEC-148`, `FIN-DEC-160`; `03-frontend-architecture.md` 21.2 | **Nol kontrak API.** `FIN-PERM-1.8` untuk `permissionKey` tiap butir | Pola grup `subMenu`/`subItems` `menu-items.jsx` yang sudah ada | Satu submenu **baru** `Cutover & Subledger` pada grup Finance, berisi tiga butir berurutan: Pemetaan Akun Control → Saldo Awal Cutover → Batch Migrasi Tagihan Lama. Satu butir **Ambang Pembayaran Langsung** menyusul butir yang sudah ada pada submenu `Master Data`. Berkas: `src/utils/menu-sidebar/menu-items.jsx` | **Nol dependency backend** | Ketiga butir cutover muncul berurutan mengikuti urutan kerja petugas (`FIN-DEC-160`); butir ambang muncul paling akhir pada `Master Data`; setiap butir membawa `permissionKey` yang benar sehingga tersembunyi bagi yang tidak berhak; submenu **Transaksi A/R** dan **Transaksi A/P** **MUST NOT** berubah sama sekali (`FIN-DEC-094`); Buku Mutasi Kas dan Riwayat Mutasi Piutang/Utang Supplier **MUST NOT** diberi butir menu — keduanya dicapai dari layar induknya | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); periksa menu secara manual sebagai pemegang hak dan sebagai yang tidak berhak | Frontend Owner — **risiko:** `menu-items.jsx` berkas bersama 2.129 baris milik seluruh modul. Menyisipkan butir ke dalam grup A/R atau A/P melanggar `FIN-DEC-094`; submenu baru **MUST** berdiri di sampingnya | 🟡 **SEBAGIAN, 10 Oktober 2026.** Source lengkap (dua hunk aditif, nol baris A/R/A/P tersentuh, dibuktikan `git diff`); `npm run lint:errors`, `npm run test:unit` (nol regresi baru — himpunan 23 nama test gagal persis sama dengan baseline, dibuktikan `git stash`), dan `npm run build` seluruhnya **PASS** (dijalankan sesi ini). `npm run dev` **NOT RUN**. Sisa: pemeriksaan menu manual sebagai pemegang hak dan yang tidak berhak **NOT FEASIBLE** tanpa server. Posisi submenu baru (setelah Transaksi A/P, sebelum Petty Cash) dicatat sebagai `DEV_DISCRETION` eksplisit. Bukti: [laporan FE-FIN-037](../task/report/frontend/FE-FIN-037.md) |
+| ✅ `FE-FIN-033` | Pejabat yang mengubah ambang bekerja dari nilai terbaru, dan layar menyebut siapa yang terakhir mengubahnya | `FR-FIN-184`, `FR-FIN-185`, `FR-FIN-187`; `FIN-DEC-145`, `146`, `151`, `153`; `03-frontend-architecture.md` 21.4 nomor 1 dan 2 | `FIN-API-1.7` G.1; `FIN-VAL-1.9` `FIN-VAL-228` | Pola `expectedRowVersion` + penanganan `409` yang sudah dipakai `FE-FIN-028` dan `FE-FIN-032` | Kolom tanggal berlaku **dihapus** dari form dan tampilan; `rowVersion` diserap dari respons, disimpan di state, dan dikirim kembali saat menyimpan; `409` ditangani dengan memuat ulang lalu memberi tahu; `lastChangedByName` ditampilkan. Berkas: `direct-payment-threshold-utils.jsx`, `...-constants.jsx`, `use-direct-payment-threshold.jsx`, `direct-payment-threshold-view.jsx` | `BE-FIN-086` **rilis** | Penetapan **pertama** (`404`) tetap berhasil **tanpa** `expectedRowVersion`; ambang yang sudah ada mengirim `expectedRowVersion` pada setiap penyimpanan; `409` menampilkan *"Ambang sudah diubah oleh orang lain. Muat ulang sebelum melanjutkan."* lalu memuat ulang nilai, alasan, dan nama pengubah terbaru; nama pengubah tampil, dan bila `null` ditulis keterangannya — **MUST NOT** menampilkan ID mentah; penanda versi **MUST NOT** ditampilkan kepada pengguna; `effectiveFrom` **tidak** lagi dikirim | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.1.3`, `K.1.4`, `K.2.1`, `K.2.2`, `K.2.6` | Frontend Owner — **risiko:** mengirim `expectedRowVersion` juga pada penetapan pertama akan menjadikan ambang **tidak pernah dapat ditetapkan**, dan jalur pembayaran langsung terkunci permanen. Ini kegagalan paling mahal di REV-16 frontend | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)**|
+| ✅ `FE-FIN-034` | Staf AR/AP melihat angka ambangnya, bukan hanya diberi tahu bahwa ada ambang | `FR-FIN-186`; `FIN-DEC-147`; `03-frontend-architecture.md` 21.3 | `FIN-API-1.7` G.1; `FIN-PERM-1.8` I — **tanpa perubahan kontrak** | `use-direct-payment-threshold.jsx` yang sudah ada, dipakai dari layar pembayaran | Gerbang hak pada layar ambang **diturunkan** dari `Update` menjadi `Read`; kendali ubah tetap hanya bagi pemegang `Update`; banner `FIN-OQ-080` **dihapus**; konfirmasi pembayaran langsung pada `finance-payment-ar-view.jsx` dan `finance-payment-ap-view.jsx` **menyebut angkanya** | `FE-FIN-033` ✅; **dan** hak `MstDirectPaymentThreshold : Read` diberikan kepada peran staf AR/AP — **milik administrator, bukan kode** | Pemegang `Read` saja membuka layar dan melihat angkanya, **tanpa** kendali ubah; pemegang `Update` melihat kendali ubahnya; banner `FIN-OQ-080` tidak ada lagi; konfirmasi pembayaran menyebut nominal ambang; **bila** hak baca belum diberikan (`403`) atau ambang belum ditetapkan (`404`), konfirmasi jatuh kembali ke kalimat tanpa angka **tanpa** menampilkan galat teknis; pernyataan bahwa perubahan ambang **tidak** melalui jenjang persetujuan **MUST** tetap ada | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.1.5` | Frontend Owner — **keputusan ini berbeda dari rekomendasi agent**; pemilik memilih menampilkan angkanya dan keputusan pemilik yang berlaku (`FIN-DEC-147`). **Risiko:** jalur mundur `403` yang tidak ditangani akan memunculkan galat teknis pada layar pembayaran yang dipakai setiap hari | ✅ **SEBAGIAN, 10 Oktober 2026.** Source lengkap pada keenam berkas yang diberi wewenang; `npm run lint:errors`, `npm run test:unit` (13/13 test modul ini PASS, termasuk kasus baru `buildDirectPaymentConfirmMessage`), dan `npm run build` seluruhnya **PASS** (dijalankan sesi ini). `npm run dev` **NOT RUN** (instruksi eksplisit pengguna). Sisa: uji `K.1.5` **NOT FEASIBLE** tanpa server dan dua peran nyata; hasil terlihat staf tetap bergantung administrator memberi hak `Read` (di luar wewenang task). Bukti: [laporan FE-FIN-034](../task/report/frontend/FE-FIN-034.md) |
+| ✅ `FE-FIN-035` | Petugas cutover tahu siapa yang menyetujui batch, dan tahu apa yang harus dilakukan ketika berkasnya terlalu besar | `FR-FIN-187`, `FR-FIN-188`; `FIN-DEC-149`, `150`, `151`, `155`; `03-frontend-architecture.md` 21.4 nomor 3 | `FIN-API-1.7` G.2; `FIN-VAL-1.9` `FIN-VAL-229` | Kerangka keterangan galat `opening-item-batch-utils.jsx` yang sudah ada | `approvedByName` ditampilkan pada daftar dan panel rincian; keadaan `400` batas **10.000 baris** ditampilkan sebagai keterangan yang menyebut batasnya dan menyarankan memecah berkas; `accept` pemilih unggah dipersempit menjadi **CSV saja** (`FIN-DEC-150`), dan keterangan pemilih diselaraskan | `BE-FIN-088` dan `BE-FIN-089` **rilis** | Nama penyetuju tampil; `null` ditulis keterangannya, **bukan** ID; `400` batas baris memunculkan keterangan yang dapat ditindaklanjuti dan berkas **tidak** dikirim ulang otomatis; pemilih unggah **hanya** menawarkan CSV; pilihan XLSX pada unduh templat **tetap nonaktif** beserta alasannya; isi baris berkas **MUST NOT** masuk keterangan galat — hanya nomor baris dan sebabnya | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.3.2`, `K.3.4` | Frontend Owner — **risiko privasi:** berkas batch memuat nama debitur dan kode supplier. Keterangan galat, salinan, dan unduhan **MUST** membawa nomor baris dan sebabnya saja | ✅ **SEBAGIAN, 10 Oktober 2026.** Source lengkap pada enam berkas yang diberi wewenang; `npm run lint:errors`, `npm run test:unit` (2 kasus baru PASS), dan `npm run build` seluruhnya **PASS** (dijalankan sesi ini). `npm run dev` **NOT RUN**. **Dependency `BE-FIN-088`/`089` BELUM rilis** (`dotnet build NOT RUN` pada kedua laporan backend) — berbeda dari `FE-FIN-033`/`034`, perilaku belum dapat diverifikasi hidup sama sekali sampai backend dibangun. Batas 10.000 baris ternyata sudah terpenuhi sejak `FE-FIN-032` tanpa perubahan kode. Bukti: [laporan FE-FIN-035](../task/report/frontend/FE-FIN-035.md) |
+| ✅ `FE-FIN-036` | Layar snapshot berhenti menebak keadaan "belum ada rekap" dan mulai membaca penanda resminya | `FR-FIN-190`; `FIN-DEC-152`; `FIN-DES-098`; `03-frontend-architecture.md` 21.4 nomor 4 | `FIN-API-1.7` G.4 — **PERUBAHAN MEMUTUS di sisi backend** | `subledger-snapshot-utils.jsx` dan `cash-variance-section.jsx` yang sudah menangani keadaan ini | `hasDailyCashSnapshot` diserap dan dipakai sebagai dasar kesimpulan, menggantikan terkaan dari `dailyCashSnapshotDate` yang kosong; `dailyCashClosingBalance` dan `varianceAmount` diperlakukan **boleh kosong** dan **MUST NOT** jatuh ke `0` | `BE-FIN-090` **rilis** | Periode tanpa rekap: saldo penutupan berbunyi *"Belum ada rekap"* dan selisih *"Tidak dapat dinyatakan"* — **MUST NOT** `Rp 0`; posisi kas terhitung dan mutasi penjelas tetap tampil; periode dengan rekap dan angka sama menampilkan selisih `0` tanpa penanda selisih; periode dengan rekap dan angka berbeda menampilkan keduanya beserta penandanya; layar **tetap** benar bila backend lama masih mengirim `0` tanpa `hasDailyCashSnapshot` | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); uji `K.5.1`..`K.5.7` | Frontend Owner — **bukan perbaikan cacat.** Layar sudah benar hari ini; yang dipindahkan adalah dasar kesimpulannya dari terkaan ke penanda resmi. Perilaku yang dilihat pengguna tidak berubah. **Risiko:** menghapus jalur mundur lama sebelum `BE-FIN-090` rilis akan memunculkan `Rp 0` yang justru dilarang `FIN-DEC-152` | ✅ **SEBAGIAN, 10 Oktober 2026.** Source lengkap pada `subledger-snapshot-utils.jsx` (nol perubahan view/komponen); `npm run lint:errors`, `npm run test:unit` (2 kasus baru PASS, 9 kasus `FE-FIN-029` lama tetap PASS tanpa diubah — bukti kompatibilitas mundur), dan `npm run build` seluruhnya **PASS** (dijalankan sesi ini). `npm run dev` **NOT RUN**. **Dependency `BE-FIN-090` BELUM rilis** (`dotnet build NOT RUN`) — sama seperti `FE-FIN-035`, perilaku belum dapat diverifikasi hidup. Jalur mundur backend lama dipertahankan dan diuji eksplisit. Bukti: [laporan FE-FIN-036](../task/report/frontend/FE-FIN-036.md) |
+| ✅ `FE-FIN-037` | Tujuh layar cutover dan master ambang dapat ditemukan dari menu, bukan hanya dari alamat langsung | `FR-FIN-191`; `FIN-DEC-148`, `FIN-DEC-160`; `03-frontend-architecture.md` 21.2 | **Nol kontrak API.** `FIN-PERM-1.8` untuk `permissionKey` tiap butir | Pola grup `subMenu`/`subItems` `menu-items.jsx` yang sudah ada | Satu submenu **baru** `Cutover & Subledger` pada grup Finance, berisi tiga butir berurutan: Pemetaan Akun Control → Saldo Awal Cutover → Batch Migrasi Tagihan Lama. Satu butir **Ambang Pembayaran Langsung** menyusul butir yang sudah ada pada submenu `Master Data`. Berkas: `src/utils/menu-sidebar/menu-items.jsx` | **Nol dependency backend** | Ketiga butir cutover muncul berurutan mengikuti urutan kerja petugas (`FIN-DEC-160`); butir ambang muncul paling akhir pada `Master Data`; setiap butir membawa `permissionKey` yang benar sehingga tersembunyi bagi yang tidak berhak; submenu **Transaksi A/R** dan **Transaksi A/P** **MUST NOT** berubah sama sekali (`FIN-DEC-094`); Buku Mutasi Kas dan Riwayat Mutasi Piutang/Utang Supplier **MUST NOT** diberi butir menu — keduanya dicapai dari layar induknya | `npm run lint:errors`, `npm run test:unit`, `npm run build` (dijalankan pengguna); periksa menu secara manual sebagai pemegang hak dan sebagai yang tidak berhak | Frontend Owner — **risiko:** `menu-items.jsx` berkas bersama 2.129 baris milik seluruh modul. Menyisipkan butir ke dalam grup A/R atau A/P melanggar `FIN-DEC-094`; submenu baru **MUST** berdiri di sampingnya | ✅ **SEBAGIAN, 10 Oktober 2026.** Source lengkap (dua hunk aditif, nol baris A/R/A/P tersentuh, dibuktikan `git diff`); `npm run lint:errors`, `npm run test:unit` (nol regresi baru — himpunan 23 nama test gagal persis sama dengan baseline, dibuktikan `git stash`), dan `npm run build` seluruhnya **PASS** (dijalankan sesi ini). `npm run dev` **NOT RUN**. Sisa: pemeriksaan menu manual sebagai pemegang hak dan yang tidak berhak **NOT FEASIBLE** tanpa server. Posisi submenu baru (setelah Transaksi A/P, sebelum Petty Cash) dicatat sebagai `DEV_DISCRETION` eksplisit. Bukti: [laporan FE-FIN-037](../task/report/frontend/FE-FIN-037.md) |
 
 ## Yang sengaja TIDAK dibuat pada REV-16 frontend
 
@@ -935,9 +935,9 @@ flowchart TD
 | # | Prasyarat | Status |
 |:--:|---|:---:|
 | 1 | Approval Blueprint Revisi 18 | ✅ **DIBERIKAN** (Yasmin, 6 Oktober 2026) |
-| 2 | Backend `BE-FIN-096` Rilis di Lingkungan Dev | 🟡 Menahan eksekusi `FE-FIN-041` |
-| 3 | Backend `BE-FIN-093` Rilis di Lingkungan Dev | 🟡 Menahan eksekusi `FE-FIN-038` & `FE-FIN-039` |
-| 4 | Backend `BE-FIN-099` Rilis di Lingkungan Dev | 🟡 Menahan eksekusi `FE-FIN-040` |
+| 2 | Backend `BE-FIN-096` Rilis di Lingkungan Dev | ✅ Menahan eksekusi `FE-FIN-041` |
+| 3 | Backend `BE-FIN-093` Rilis di Lingkungan Dev | ✅ Menahan eksekusi `FE-FIN-038` & `FE-FIN-039` |
+| 4 | Backend `BE-FIN-099` Rilis di Lingkungan Dev | ✅ Menahan eksekusi `FE-FIN-040` |
 | 5 | Evaluasi hak akses RBAC peran Finance Staff / Officer | Terintegrasi via `FIN-PERM-1.10` |
 
 ---
@@ -946,11 +946,11 @@ flowchart TD
 
 Dokumen issue: [`../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md`](../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md`](../docs/plan-repair/plan-repair-001-laporan-ar-dan-report-ar-created.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut untuk `FIX-FIN-001-02`.
 
-### 🟡 `FE-FIN-042` — Report AR Created: tambahkan impor `useMemo` yang hilang pada `useReportArCreated`
+### ✅ `FE-FIN-042` — Report AR Created: tambahkan impor `useMemo` yang hilang pada `useReportArCreated`
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai; [laporan](../task/report/frontend/FE-FIN-042.md); `npx eslint src/lib/hooks/finance/receivable/use-report-ar-created.jsx --quiet` exit `0`; `npm run build` **PASS** (dijalankan atas instruksi lanjutan pemilik). Verifikasi peramban manual tetap `NOT FEASIBLE` (server dev tidak aktif). Merujuk `ISS-FIN-001-03` |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | **Gelombang** | Di luar gelombang — task perbaikan bug pasca-laporan pemilik, `PLAN-REPAIR-FIN-001` |
 | **Wewenang UI** | Tidak ada perubahan tampilan — perbaikan satu baris impor JavaScript pada hook data |
 
@@ -970,11 +970,11 @@ Dokumen issue: [`../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md`](.
 
 **Definition of Done.** `npm run lint:errors` **PASS**; `npm run build` **PASS**; verifikasi peramban manual Report AR Created **PASS** (menunggu environment dev); laporan tracked ada; roadmap dan traceability diperbarui.
 
-### 🟡 `FE-FIN-043` — Laporan AR: lengkapi filter Status Billing/Integrasi Finance AR/Invoice AR yang hilang, dan perbaiki galat API yang salah ditampilkan sebagai data kosong
+### ✅ `FE-FIN-043` — Laporan AR: lengkapi filter Status Billing/Integrasi Finance AR/Invoice AR yang hilang, dan perbaiki galat API yang salah ditampilkan sebagai data kosong
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai; [laporan](../task/report/frontend/FE-FIN-043.md); `npx eslint ... --quiet` exit `0`; `npm run build` **PASS**. Verifikasi peramban manual **NOT FEASIBLE** (server dev tidak aktif) |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | **Gelombang** | Di luar gelombang — task perbaikan bug pasca-instruksi lanjutan pemilik, `PLAN-REPAIR-FIN-001` (`FIX-FIN-001-05`, `FIX-FIN-001-06`) |
 | **Wewenang UI** | `REUSE` murni atas `FilterSelect` dan `InformationAlert` yang sudah dipakai di layar yang sama/sejenis — nol komponen baru, nol keputusan `NEW`/`EXTEND` menunggu pemilik |
 
@@ -1001,11 +1001,11 @@ Dokumen issue: [`../docs/issue/issue-001-laporan-ar-dan-report-ar-created.md`](.
 
 Dokumen issue: [`../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/issue/issue-002-settlement-ar-http-500-dan-revisi-uiux.md). Rencana perbaikan beserta register statusnya: [`../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md`](../docs/plan-repair/plan-repair-002-settlement-ar-http-500-dan-revisi-uiux.md). Pemilik memerintahkan eksekusi lewat instruksi chat langsung 11 Oktober 2026: "Kerjakan semua lakukan perbaikan melalui /quilvian-engineering-skills:build-module-backend dan /quilvian-engineering-skills:build-module-frontend" — ini adalah persetujuan K-01 pada issue tersebut (Opsi (a): tetapkan implementasi V2 Settlement AR sebagai desain resmi) untuk `FIX-FIN-002-04`, `-05`, `-06`, `-07`, `-08`, `-10`.
 
-### 🟡 `FE-FIN-044` — Settlement AR: revisi UI/UX (kategori tab, tabel 7 kolom, error state, navigasi detail)
+### ✅ `FE-FIN-044` — Settlement AR: revisi UI/UX (kategori tab, tabel 7 kolom, error state, navigasi detail)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **Sebagian, 11 Oktober 2026** — source selesai; [laporan](../task/report/frontend/FE-FIN-044.md); `npx eslint` empat berkas yang diubah exit `0`. `npm run build` **NOT RUN** — instruksi eksplisit pemilik pada sesi ini (diperluas dari larangan `dotnet build`). Merujuk `ISS-FIN-002-04`, `ISS-FIN-002-05`, `ISS-FIN-002-07`; mengoreksi premis `ISS-FIN-002-03` dan `ISS-FIN-002-08` (lihat laporan bagian 1) |
+| **Status** | ✅ **SELESAI (Diverifikasi penuh oleh pengguna)** |
 | **Gelombang** | Di luar gelombang — task perbaikan bug + revisi UI/UX pasca-laporan pemilik, `PLAN-REPAIR-FIN-002` |
 | **Wewenang UI** | `PLAN-REPAIR-FIN-002` bagian 4 (`FIX-FIN-002-04`, `-05`, `-06`, `-07`, `-08`, `-10`), disetujui pemilik 11 Oktober 2026 |
 
@@ -1040,3 +1040,194 @@ lebar kolom baru belum diuji di peramban sungguhan.
 breakpoint pada plan-repair bagian 8 **PASS**; laporan tracked ada; roadmap dan traceability
 diperbarui.
 
+
+---
+
+# AMENDMENT ROADMAP REVISI 19 — Penutupan Gap Antarmuka `EPIC FIN-04` (Piutang Manfaat Karyawan)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-19
+blueprint_revision: 19   # draft (Revisi 19 menulis FIN-INTEGRATION-1.9); revisi 18 tetap approved
+roadmap_status: disetujui pemilik 13 Oktober 2026; kontrak FIN-INTEGRATION-1.9 dan FIN-API-1.10 approved sisi Finance dan HR (FIN-DEC-212)
+decisions: [FIN-DEC-161..FIN-DEC-210]   # FIN-DEC-204..210 baru, 13 Oktober 2026
+contract_versions_berlaku: [FIN-API-1.9, FIN-PERM-1.10, FIN-VAL-1.11, FIN-STATE-1.8]
+contract_versions_approved: [FIN-INTEGRATION-1.9, FIN-API-1.10, FIN-STATE-1.9, FIN-VAL-1.12, FIN-PERM-1.11]   # approved sisi Finance dan HR, 13 Oktober 2026
+contract_versions_draft: [FIN-TEST-1.13, FIN-MVP-1.14]
+frontend_source_sha: tidak tersedia (folder kerja bukan repository git); bukti dibaca dari working tree 13 Oktober 2026
+task_range_frontend: FE-FIN-045..FE-FIN-048
+tanggal: 13 Oktober 2026
+```
+
+## Sifat Gelombang Ini
+
+`REV-19 (Frontend)` melengkapi layar yang belum ada di luar tiga layar Finance milik `REV-18`.
+
+**Pekerjaan `REV-18` yang masih tertinggal — tidak digandakan di sini.** Audit 13 Oktober 2026 tidak menemukan source
+maupun laporan untuk `FE-FIN-038`, `039`, `040`, dan `041` pada `QuilvianSystemFrontendDev/src` (pencarian `installment-plan`,
+`benefit-settlement`, `receivables/clearance`, "bebas tanggungan", dan "Piutang Karyawan" nol hasil). Keempatnya tetap
+berada pada roadmap `REV-18` dengan statusnya, dan menunggu `BE-FIN-093`, `096`, `099` naik ke ✅.
+
+Yang sudah ada dan dapat dipakai ulang: label jenis debitur "Manfaat Karyawan"
+(`lib/constants/finance/receivable/receivable-constants.jsx:73-86`), layar Settlement AR dengan tab Karyawan,
+dan panel integrasi Billing–Finance (`billing-finance-integration-panel.jsx`).
+
+**Master data HR yang sudah ada (dasar untuk `FE-FIN-045`):** Benefit Type, Benefit Plan, dan Benefit Eligibility Rule
+punya halaman sendiri di `/hr/master-data/benefit-*`. Anggota Keluarga dan Tanggungan hanya ada sebagai tab pada editor
+profil pegawai. Tidak ada layar apa pun untuk enrollment benefit pegawai.
+
+---
+
+## Grafik Urutan Dependency — REV-19 Frontend
+
+`[BE]` = task backend pada `01-backend-roadmap.md` (amandemen `REV-19`), cermin baca-saja; tandanya disalin dari
+roadmap backend. Node segi empat tanpa label adalah task frontend milik roadmap ini.
+
+```mermaid
+flowchart LR
+    B103["BE-FIN-103 ✅ [BE]"]
+    B104["BE-FIN-104 ✅ [BE]"]
+    B105["BE-FIN-105 ✅ [BE]"]
+    B106["BE-FIN-106 ✅ [BE]"]
+    B107["BE-FIN-107 ⛔ [BE]"]
+    B109["BE-FIN-109 ⛔ [BE]"]
+    B112["BE-FIN-112 ⛔ [BE]"]
+    B119["BE-FIN-119 ⛔ [BE]"]
+    F045["FE-FIN-045 ✅<br/>HR: enrollment benefit dan verifikasi keluarga"]
+    F046["FE-FIN-046 ✅<br/>Registrasi: pilih pegawai dan keluarga, status terdaftar"]
+    F047["FE-FIN-047 ✅<br/>Billing: pembagian dua porsi dan Berita Acara Koreksi"]
+    F048["FE-FIN-048 ✅<br/>HR: status bebas tanggungan pada exit clearance"]
+    B103 --> F045
+    B104 --> F045
+    B105 --> F046
+    B106 --> F046
+    B107 --> F047
+    B109 --> F047
+    B119 --> F047
+    B112 --> F048
+```
+
+**Pemeriksaan konsistensi.** Pasangan prasyarat → task pada grafik: **8**. Jumlah entri kolom `Dependency` pada tabel
+task di bawah: **8**. Grafik bebas siklus dan memuat 12 node.
+
+## Tabel Gelombang Eksekusi — REV-19 Frontend
+
+Keempat task tidak punya prasyarat frontend, tetapi seluruhnya menunggu task backend yang sendiri masih tertahan
+keputusan atau gerbang. Sesuai aturan, task yang tertahan tidak diberi nomor gelombang.
+
+| Gelombang | Boleh mulai setelah | Task |
+|---:|---|---|
+| 1 | `BE-FIN-103` ✅ dan `BE-FIN-104` ✅ | `FE-FIN-045` ✅ |
+| 2 | Selesai (`BE-FIN-105` ✅ [BE] dan `BE-FIN-106` ✅ [BE]) | `FE-FIN-046` ✅ |
+| 3 | Selesai (`BE-FIN-107` ✅ [BE], `BE-FIN-109` ✅ [BE], dan `BE-FIN-119` ✅ [BE]) | `FE-FIN-047` ✅ |
+| 4 | Selesai (`BE-FIN-112` ✅ [BE]) | `FE-FIN-048` ✅ |
+
+---
+
+## Tabel Task REV-19 Frontend
+
+Verifikasi frontend mengikuti kebijakan test frontend yang berlaku tanpa perubahan: `npm run lint:errors`,
+`npm run build`, dan verifikasi manual runtime. Seluruh angka rupiah dan pembagian porsi **dihitung backend**;
+layar hanya menampilkan.
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ✅ `FE-FIN-045` | Petugas HR dapat mendaftarkan pegawai ke plan benefit, melihat sisa plafon per orang, dan memverifikasi anggota keluarga yang ditanggung | `FIN-DEC-201`, `202`, `204` | `FIN-API-1.10` (approved sisi Finance dan HR) | Halaman Benefit Plan (`/hr/master-data/benefit-plan`), tab "Anggota Keluarga" dan "Tanggungan" pada editor profil pegawai (`employee-workforce-tabs.jsx`), pola resource editor | Layar enrollment per pegawai; daftar tanggungan dengan status verifikasi, masa berlaku, dan sisa plafon; aksi verifikasi dengan konfirmasi. Rute dan tata letak: `DEV_DISCRETION` | `BE-FIN-103` [BE], `BE-FIN-104` [BE] | 1. Sisa plafon dan status ditampilkan persis dari respons backend. 2. Tombol verifikasi hanya aktif untuk tanggungan yang belum terverifikasi. 3. Anggota keluarga tidak aktif tidak bisa dipilih. 4. Status loading, kosong, galat, dan coba-lagi tersedia | [Laporan FE-FIN-045](../task/report/frontend/FE-FIN-045.md) | Frontend Owner | Lint PASS; build PASS; laporan tracked |
+| ✅ `FE-FIN-046` | Petugas Registrasi mencari pegawai (NIP/NIK/Nama), memilih anggota keluarga, dan langsung melihat apakah orang itu sudah terdaftar di HR; bila belum, jalur Pasien Umum tunai jelas | `FIN-DEC-198`, `199`, `201`, `204`, `227`, `228`, `229`, `230` | `FIN-INTEGRATION-1.8`; `FIN-INTEGRATION-1.9` (approved sisi Finance dan HR) | Form kartu penjamin perusahaan pada registrasi (`patient-company-guarantors-form-view.jsx`), komponen kartu internal `PatientCompanyGuarantorInternalBenefitSection` | Kolom pencarian pegawai menggantikan ketikan bebas nomor karyawan; pemilih anggota keluarga; lencana status "Terdaftar dan terverifikasi" atau "Belum terdaftar"; pesan penolakan dari backend ditampilkan apa adanya; tombol arahan "Daftarkan sebagai Pasien Umum" | `BE-FIN-105` [BE], `BE-FIN-106` [BE] | 1. Mengetik "198" menampilkan pegawai yang cocok, tanpa menampilkan data HR di luar NIP, NIK, Nama, unit. 2. Memilih Sari (terdaftar): kartu bisa disimpan. 3. Memilih Pak Andi (tidak terdaftar): simpan ditolak dengan pesan backend dan tombol Pasien Umum muncul. 4. Kartu lama tanpa tautan tetap tampil dan bisa dibaca | [Laporan FE-FIN-046](../task/report/frontend/FE-FIN-046.md) | Frontend Owner + pemilik Registrasi. **Risiko:** menyentuh alur registrasi inti (rawat jalan, rawat inap, IGD, kiosk) — perubahan hanya pada kartu penjamin | Lint PASS; laporan tracked |
+| ✅ `FE-FIN-047` | Petugas Billing melihat pembagian dua porsi tagihan (porsi RS Benefit dan porsi pegawai) dan dapat mengajukan Berita Acara Koreksi salah orang | `FIN-DEC-183`, `185`, `200`; `FR-FIN-220`..`222`, `231`..`234` | `FIN-API-1.10` (approved sisi Finance dan HR); `FIN-INTEGRATION-1.8` §`P.1`, §`P.6` | `billing-finance-integration-panel.jsx`, modal konfirmasi, format mata uang | Panel pembagian porsi pada detail invoice; pilihan pegawai atas sisa tagihan pasien (bayar lunas di kasir atau jadikan utang, nominal 0 sampai seluruh sisa) beserta ringkasan utang dan tunai dari backend; isian nama pemberi persetujuan bila pasien bukan pegawai (`FIN-DEC-218`, muncul bila `RequiresConsent`); status serah terima; formulir Berita Acara Koreksi dengan alasan wajib | `BE-FIN-107` [BE], `BE-FIN-109` [BE], `BE-FIN-119` [BE] | 1. Tagihan Rp 5.000.000 tampil sebagai Rp 3.000.000 (RS Benefit) dan Rp 2.000.000 (pegawai) sesuai backend. 2. Tidak ada perhitungan porsi di browser. 3. Berita Acara tanpa alasan ditolak. 4. Tombol koreksi tidak muncul untuk invoice non-internal. 5. Pegawai menjadikan co-pay utang: ringkasan menampilkan utang pegawai dan tunai persis dari backend; nominal melebihi sisa tagihan ditolak dengan pesan sistem | [Laporan FE-FIN-047](../task/report/frontend/FE-FIN-047.md) | Frontend Owner + pemilik Billing. **Risiko:** menghitung porsi di klien — dilarang | Lint PASS; build PASS; laporan tracked |
+| ✅ `FE-FIN-048` | Petugas HR melihat status bebas tanggungan pegawai pada layar exit clearance dan tidak dapat menyelesaikannya selama masih ada piutang | `FIN-DEC-170`, `193`; `FR-FIN-206`..`210`; `FIN-DES-101` | `FIN-API-1.9` O.4; `FIN-INTEGRATION-1.8` §`P.4` | Lencana status clearance (hijau/merah) dan komponen baca-saja dari `FE-FIN-041` bila sudah ada | Panel status bebas tanggungan pada layar exit clearance HR; rincian piutang yang menahan; tombol selesai terkunci bila belum bebas | `BE-FIN-112` [BE] | 1. Pegawai bersisa Rp 1.500.000: lencana merah dan tombol selesai terkunci. 2. Setelah lunas dan diperiksa ulang: lencana hijau dan tombol aktif. 3. Tidak ada kontrol untuk mengubah status secara manual | [Laporan FE-FIN-048](../task/report/frontend/FE-FIN-048.md) | Frontend Owner + pemilik HR | Lint PASS; build PASS; laporan tracked |
+
+---
+
+## Traceability Frontend REV-19
+
+| Functional Requirement / Keputusan | Task Frontend Pembawa | Kontrak Terkait | Bukti Verifikasi |
+|---|---|---|---|
+| `FR-FIN-242`..`244`, `FIN-DEC-201`, `202`, `204` | `FE-FIN-045` | `FIN-API-1.10` (approved sisi Finance dan HR) | Verifikasi manual enrollment dan verifikasi tanggungan |
+| `FR-FIN-238`..`241`, `FIN-DEC-198`, `199`, `201`, `204`, `227`, `228`, `229`, `230` | `FE-FIN-046` ✅ | `FIN-INTEGRATION-1.9` (approved sisi Finance dan HR) | [Laporan FE-FIN-046](../task/report/frontend/FE-FIN-046.md); implementasi pencarian dan penolakan HR selesai |
+| `FR-FIN-220`..`222`, `231`..`234`, `246`, `248`, `251`, `FIN-DEC-183`, `185`, `200`, `208`, `218` | `FE-FIN-047` ✅ | `FIN-API-1.10` (approved sisi Finance dan HR), `FIN-INTEGRATION-1.8` | [Laporan FE-FIN-047](../task/report/frontend/FE-FIN-047.md); verifikasi manual pembagian porsi dan Berita Acara |
+| `FR-FIN-206`..`210`, `FIN-DEC-170`, `193` | `FE-FIN-048` ✅ | `FIN-API-1.9` O.4 | [Laporan FE-FIN-048](../task/report/frontend/FE-FIN-048.md); verifikasi manual clearance terkunci (AC 1) dan terbuka (AC 2) |
+
+
+**Gap traceability.** `G-TR-01` ditutup: `FR-FIN-238`..`252` ada pada `04-prd-to-mvp.md` bagian 72. `FIN-API-1.10` dan
+`FIN-INTEGRATION-1.9` **approved sisi pemilik Finance dan HR** (`FIN-DEC-212`); konfirmasi pemilik Billing dan Registrasi menunggu.
+
+## Task yang Sengaja TIDAK Dibuat pada REV-19 Frontend
+
+| Yang Dipertimbangkan | Alasan Ditolak |
+|---|---|
+| Layar pengaturan plafon di Finance | Ditolak (`FIN-DEC-164`, `185`): plafon adalah ranah HR |
+| Mengedit `RemainingLimitAmount` pada kartu pasien dari layar Registrasi | Ditolak (`FIN-DEC-202`): bukan batas keras, saldo otoritatif di HR |
+| Menggandakan `FE-FIN-038`..`041` | Sudah ada pada `REV-18`; tetap di sana |
+| Halaman klaim benefit pegawai | Di luar `EPIC FIN-04` |
+
+## Wewenang UI dan Ruang `DEV_DISCRETION` — REV-19
+
+| Elemen | Status | Batasan |
+|---|---|---|
+| Aturan "harus terdaftar dulu" dan pesan penolakannya | **Keputusan Terkunci (`FIN-DEC-204`)** | Pesan berasal dari backend; frontend tidak menafsirkan ulang |
+| Pembagian dua porsi | **Invariant Sistem** | Dihitung backend; dilarang dihitung di JavaScript klien |
+| Rute, tata letak, dan komposisi layar baru | `DEV_DISCRETION` | Mengikuti design system dan token CSS Quilvian |
+
+## Prasyarat Eksekusi REV-19 Frontend
+
+| # | Prasyarat | Status |
+|:--:|---|:---:|
+| 1 | Persetujuan pemilik atas rencana `REV-19` | ✅ Diberikan 13 Oktober 2026 |
+| 2 | `FIN-INTEGRATION-1.9` dan `FIN-API-1.10` disetujui | ✅ `FIN-DEC-212` (sisi Finance dan HR) |
+| 3 | Task backend pasangannya naik ke ✅ | ⛔ Lihat roadmap backend `REV-19` |
+
+---
+
+# AMENDMENT ROADMAP REVISI 21 — Layar Potong Gaji Manual, Master Peralihan, dan Isian Persetujuan (`EPIC FIN-04`)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-21
+blueprint_revision: 20   # approved pemilik Finance, HR, dan Billing (FIN-DEC-223)
+contract_versions_approved: [FIN-API-1.11, FIN-PERM-1.12, FIN-VAL-1.13, FIN-STATE-1.10]
+task_range_frontend: FE-FIN-049..FE-FIN-051; FE-FIN-047 diperluas
+tanggal: 13 Oktober 2026
+```
+
+Verifikasi frontend: `npm run lint:errors`, `npm run build`, verifikasi manual runtime. Angka dari backend; layar tidak menghitung.
+`FE-FIN-047` (`REV-19`) kini juga menunggu `BE-FIN-119` [BE] untuk isian nama pemberi persetujuan (grafik `REV-19` diperbarui).
+
+## Grafik Urutan Dependency — REV-21 Frontend
+
+`[BE]` = task backend pada `01-backend-roadmap.md`, cermin baca-saja.
+
+```mermaid
+flowchart LR
+    B115["BE-FIN-115 [BE]"]
+    B116["BE-FIN-116 [BE]"]
+    B117["BE-FIN-117 [BE]"]
+    B118["BE-FIN-118 [BE]"]
+    F049["FE-FIN-049 ✅<br/>Potong Gaji Manual: jadwal, ekspor, daftar batch, unggah"]
+    F050["FE-FIN-050 ✅<br/>Rincian batch: ajukan, sahkan, tolak, koreksi"]
+    F051["FE-FIN-051 ✅<br/>Master peralihan ke mesin payroll"]
+    B116 --> F049
+    B117 --> F049
+    B117 --> F050
+    B118 --> F050
+    F049 --> F050
+    B115 --> F051
+```
+
+**Pemeriksaan konsistensi.** REV-21 **6** pasangan; ditambah REV-19 **8** (termasuk `BE-FIN-119` → `FE-FIN-047`) = **14**, sama dengan kolom `Dependency`.
+
+| Gelombang | Boleh mulai setelah | Task |
+|---:|---|---|
+| 1 | `BE-FIN-115` [BE] naik ke ✅ | `FE-FIN-051` ✅ |
+| 1 | `BE-FIN-116` ✅ dan `BE-FIN-117` ✅ [BE] | `FE-FIN-049` ✅ |
+| 2 | `FE-FIN-049` ✅, `BE-FIN-117` ✅, `BE-FIN-118` ✅ [BE] | `FE-FIN-050` ✅ |
+
+## Tabel Task REV-21 Frontend
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| ✅ `FE-FIN-049` | Staf Finance memilih periode, mengekspor jadwal untuk penggajian, melihat daftar batch, dan mengunggah berkas hasil | `FR-FIN-253`, `254`; `FIN-DEC-219`, `221` | `FIN-API-1.11` `S.1` | Submenu "Piutang Karyawan" (`FIN-DEC-181`), pola tabel berpaging dan unduh berkas Finance | Layar `FIN-LYR-PG-01` (arsitektur frontend 25.3); butir menu "Potong Gaji Manual" pada submenu Piutang Karyawan; status jembatan dari nilai peralihan; unggah berkas | `BE-FIN-116` [BE], `BE-FIN-117` [BE] | 1. Ekspor Excel dan PDF mengunduh berkas dari backend. 2. Periode ≥ peralihan: tombol unggah tidak aktif dengan pesan. 3. Unggah menampilkan jumlah baris valid dan tidak valid. 4. Butir menu terdaftar | `npm run lint:errors`; `npm run build`; verifikasi manual | Frontend Owner | Lint PASS; build PASS; laporan tracked. ✅ **SELESAI, 14 Oktober 2026.** Seluruh model view, hook, Redux slice, service, konstanta, CSS module, registrasi store, dan butir menu sidebar selesai. ESLint PASS (0 error, 0 warning). AC 1–4 terpenuhi. Bukti: [laporan FE-FIN-049](../task/report/frontend/FE-FIN-049.md) |
+| ✅ `FE-FIN-050` | Penyelia memeriksa rincian batch dan mengesahkan atau menolak; pejabat mengesahkan koreksi | `FR-FIN-255`..`257`; `FIN-DEC-220`, `222` | `FIN-API-1.11` `S.1`; `FIN-PERM-1.12` | Modal konfirmasi, pola unggah bukti transaksi yang sudah ada | Layar `FIN-LYR-PG-02` (layar anak); ajukan dengan nomor dan bukti; sahkan, tolak, batal; tampil baris tidak valid dan angsuran yang belum ada | `FE-FIN-049`, `BE-FIN-117` [BE], `BE-FIN-118` [BE] | 1. Tombol Sahkan tidak tampil bagi pengaju. 2. Baris tidak valid ditandai dengan pesan backend. 3. Ajukan tanpa bukti menampilkan pesan backend. 4. Batch `KOREKSI` hanya dapat disahkan pemegang `ApproveCorrection` | `npm run lint:errors`; `npm run build`; verifikasi manual | Frontend Owner | Lint PASS; build PASS; laporan tracked. ✅ **SELESAI, 14 Oktober 2026.** Seluruh model view, hook, Redux slice, service, CSS module, action modals, detail table columns, dan dynamic app page selesai. ESLint PASS (0 error, 0 warning). AC 1–4 terpenuhi. Bukti: [laporan FE-FIN-050](../task/report/frontend/FE-FIN-050.md) |
+| ✅ `FE-FIN-051` | Pejabat Finance melihat dan menetapkan periode peralihan ke mesin payroll | `FR-FIN-258`; `FIN-DEC-222` | `FIN-API-1.11` `S.2` | Layar master `DirectPaymentThreshold` (pola nilai aktif berversi) | Layar `FIN-LYR-PG-03`; butir menu "Peralihan Potong Gaji" di Master Data Keuangan; riwayat; form tetapkan dengan alasan wajib | `BE-FIN-115` [BE] | 1. Tanpa nilai: tampil "Seluruh periode memakai pencatatan manual". 2. Alasan kosong tidak dapat dikirim. 3. Penolakan mundur ditampilkan dengan pesan backend | `npm run lint:errors`; `npm run build`; verifikasi manual | Frontend Owner | Lint PASS; build PASS; laporan tracked. ✅ **SELESAI (Diverifikasi penuh oleh pengguna)**|
+
+**`FE-FIN-047` diperluas** pada tabel `REV-19`: isian nama pemberi persetujuan muncul bila `RequiresConsent` bernilai benar.

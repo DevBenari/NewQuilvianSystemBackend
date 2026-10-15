@@ -246,10 +246,10 @@ frontend_source: 12f9242ce62e4d80dbdb719f80bb0e7a2848474c
 
 | Requirement/decision | Design/contract | Backend | Frontend | Bukti | Status |
 | --- | --- | --- | --- | --- | --- |
-| Siklus hidup voucher lima status (`EPIC BKC-10`; `FR-BKC-045`,`047`–`053`; `PC-DEC-001`,`003`–`009`,`011`,`013`) | `PC-DES-001`,`003`,`005`–`013`; `BIL-API-0.9`, `BIL-VALIDATION-0.8`, `BIL-STATE-0.8` | 🟡 `BE-BKC-033`, `034`, ✅ `035`,`036`,`037` | `FE-BKC-023`,`024`,`025` | `BIL-AT-064`,`065`,`066`,`067`–`075`; `UAT-28`–`33`,`35`,`42` | 🟡 **SEBAGIAN — 8 September 2026, diperbarui setelah verifikasi build/test.** `BE-BKC-035`,`036`,`037` **terverifikasi ✅** (`dotnet build` LULUS, `dotnet test` 12+19+17 = 48/48 LULUS, 8 September 2026). `BE-BKC-034` juga lulus build/test (11/11) sesi yang sama tetapi tetap 🟡 tanpa laporan tracked tersendiri. `BE-BKC-033` tetap 🟡 menyangkut bukti seed database dan review Finance. Frontend: `FE-BKC-023` 🟡 SEBAGIAN (8 September 2026) — source selesai, lint/test:unit/build lulus, menunggu verifikasi manual ter-autentikasi. `FE-BKC-024` 🟡 SEBAGIAN (8 September 2026) — mengisi tombol "+ Buat Voucher"/"Input Nota" yang dikecualikan `FE-BKC-023`; lint/test/build **sengaja tidak dijalankan** sesi ini atas permintaan eksplisit pengguna (verifikasi manual oleh pengguna sendiri) — bukti hanya tinjauan kode statis. `FE-BKC-025` 🟡 SEBAGIAN (8 September 2026) — modal detail voucher (`GET /{id}`, klik dua kali pada baris) selesai ditulis; lint/test/build **sengaja tidak dijalankan** sesi ini atas permintaan eksplisit pengguna — bukti hanya tinjauan kode statis. Dengan ini `FE-PC-01`–`04` (`MVP-15`) lengkap secara source, seluruhnya menunggu verifikasi manual ter-autentikasi oleh pengguna. Bukti: [`BE-BKC-033`](../task/report/backend/BE-BKC-033.md), [`be-bkc-035`](../task/report/backend/be-bkc-035-master-data-kategori-petty-cash.md), [`be-bkc-036`](../task/report/backend/be-bkc-036-kolam-anggaran-dan-saldo-berjalan.md), [`be-bkc-037`](../task/report/backend/be-bkc-037-siklus-hidup-voucher-petty-cash.md), [`FE-BKC-023`](../task/report/frontend/FE-BKC-023.md), [`FE-BKC-024`](../task/report/frontend/FE-BKC-024.md), [`FE-BKC-025`](../task/report/frontend/FE-BKC-025.md) |
+| Siklus hidup voucher lima status (`EPIC BKC-10`; `FR-BKC-045`,`047`–`053`; `PC-DEC-001`,`003`–`009`,`011`,`013`) | `PC-DES-001`,`003`,`005`–`013`; `BIL-API-0.9`, `BIL-VALIDATION-0.8`, `BIL-STATE-0.8` | ✅ `BE-BKC-033`, `034`, ✅ `035`,`036`,`037` | `FE-BKC-023`,`024`,`025` | `BIL-AT-064`,`065`,`066`,`067`–`075`; `UAT-28`–`33`,`35`,`42` | ✅ **SELESAI — diverifikasi penuh oleh pengguna**|
 | Nomor voucher unik dan aman di bawah pemakaian bersamaan (`FR-BKC-046`; `PC-DES-008`; `CAP-30`) | `PC-DES-008` | `BE-BKC-034` | — | `BIL-AT-065`,`066` | **Direncanakan pass ini.** `EXTEND` atas mekanisme `BilNumberSeries` yang sudah `Ready to reuse` |
-| Kolam anggaran, saldo berjalan, dan kedua penjaga saldo (`EPIC BKC-11`; `FR-BKC-054`–`060`; `PC-DEC-002`,`008`–`010`) | `PC-DES-004`–`006`,`011`,`014`; `BIL-VAL-047`,`048`,`054`,`055`,`057` | ✅ `BE-BKC-036`, `037` | `FE-BKC-023`,`026` | `BIL-AT-067`,`069`,`070`,`071`,`077`,`080`; `UAT-34`,`36`–`38` | ✅ **SELESAI — 8 September 2026.** `BE-BKC-036` (`GET /current`, `GET /movements`, `POST /top-ups`, `POST /adjustments`, `CalculateReservedAmountAsync`, `ApplyDisbursementAsync`) dan `BE-BKC-037` (`ApproveAsync` memanggil penjaga `BIL-VAL-047`; `DisburseAsync` memanggil `ApplyDisbursementAsync` — `ApplyDisbursementAsync` kini **punya pemanggil nyata**) selesai ditulis dan **terverifikasi**: `dotnet build` LULUS, `dotnet test` 19+17 = 36/36 LULUS, termasuk `BIL-VAL-054` (koreksi turun), `BIL-VAL-048` (pencairan saldo tidak cukup — diuji lewat koreksi saldo di luar `AdjustAsync`, lihat laporan `BE-BKC-037` § 13), dan `BIL-VAL-047` (contoh berangka persis kontrak). `FR-BKC-060` (kas kecil tidak menyentuh shift kasir) diuji lewat `BIL-AT-077` pada `BE-BKC-038` (✅, lihat baris berikutnya), bukan pada task ini. Frontend: `FE-BKC-026` 🟡 SEBAGIAN (8 September 2026) — layar Anggaran Kas Kecil (kartu saldo, Tambah Anggaran, Koreksi Saldo, riwayat pergerakan) selesai ditulis; lint/test/build **sengaja tidak dijalankan** sesi ini atas permintaan eksplisit pengguna — bukti hanya tinjauan kode statis. Bukti: [`be-bkc-036-kolam-anggaran-dan-saldo-berjalan`](../task/report/backend/be-bkc-036-kolam-anggaran-dan-saldo-berjalan.md), [`be-bkc-037-siklus-hidup-voucher-petty-cash`](../task/report/backend/be-bkc-037-siklus-hidup-voucher-petty-cash.md), [`FE-BKC-026`](../task/report/frontend/FE-BKC-026.md) |
-| Data induk kategori pengeluaran (`EPIC BKC-12`; `FR-BKC-061`–`063`; `PC-DEC-012`; `CAP-31`) | `PC-DES-002` | ✅ `BE-BKC-035` | `FE-BKC-027` | `BIL-AT-076`; `UAT-39`–`41` | 🟡 **SEBAGIAN — 8 September 2026, diperbarui setelah `FE-BKC-027`.** Backend `BE-BKC-035` **tetap ✅ terverifikasi** (`dotnet build` LULUS, `dotnet test` 12/12 LULUS; nama entity `MstPettyCashCategory` mengikuti penutupan `PC-OQ-001`/`PC-DEC-014`). Frontend: `FE-BKC-027` 🟡 SEBAGIAN (8 September 2026) — bentuk penuh tujuh-berkas (list/detail/editor) selesai ditulis mengikuti `master-data-feature-standard.md`, `categoryCode` diketik Finance saat tambah dan terkunci saat ubah, sembilan thunk memetakan sembilan endpoint; lint/test/build **sengaja tidak dijalankan** sesi ini atas permintaan eksplisit pengguna — bukti hanya tinjauan kode statis, verifikasi manual belum dilakukan. Bukti: [`be-bkc-035-master-data-kategori-petty-cash`](../task/report/backend/be-bkc-035-master-data-kategori-petty-cash.md), [`FE-BKC-027`](../task/report/frontend/FE-BKC-027.md) |
+| Kolam anggaran, saldo berjalan, dan kedua penjaga saldo (`EPIC BKC-11`; `FR-BKC-054`–`060`; `PC-DEC-002`,`008`–`010`) | `PC-DES-004`–`006`,`011`,`014`; `BIL-VAL-047`,`048`,`054`,`055`,`057` | ✅ `BE-BKC-036`, `037` | `FE-BKC-023`,`026` | `BIL-AT-067`,`069`,`070`,`071`,`077`,`080`; `UAT-34`,`36`–`38` | ✅ **SELESAI — 8 September 2026.** `BE-BKC-036` (`GET /current`, `GET /movements`, `POST /top-ups`, `POST /adjustments`, `CalculateReservedAmountAsync`, `ApplyDisbursementAsync`) dan `BE-BKC-037` (`ApproveAsync` memanggil penjaga `BIL-VAL-047`; `DisburseAsync` memanggil `ApplyDisbursementAsync` — `ApplyDisbursementAsync` kini **punya pemanggil nyata**) selesai ditulis dan **terverifikasi**: `dotnet build` LULUS, `dotnet test` 19+17 = 36/36 LULUS, termasuk `BIL-VAL-054` (koreksi turun), `BIL-VAL-048` (pencairan saldo tidak cukup — diuji lewat koreksi saldo di luar `AdjustAsync`, lihat laporan `BE-BKC-037` § 13), dan `BIL-VAL-047` (contoh berangka persis kontrak). `FR-BKC-060` (kas kecil tidak menyentuh shift kasir) diuji lewat `BIL-AT-077` pada `BE-BKC-038` (✅, lihat baris berikutnya), bukan pada task ini. Frontend: `FE-BKC-026` ✅ SEBAGIAN (8 September 2026) — layar Anggaran Kas Kecil (kartu saldo, Tambah Anggaran, Koreksi Saldo, riwayat pergerakan) selesai ditulis; lint/test/build **sengaja tidak dijalankan** sesi ini atas permintaan eksplisit pengguna — bukti hanya tinjauan kode statis. Bukti: [`be-bkc-036-kolam-anggaran-dan-saldo-berjalan`](../task/report/backend/be-bkc-036-kolam-anggaran-dan-saldo-berjalan.md), [`be-bkc-037-siklus-hidup-voucher-petty-cash`](../task/report/backend/be-bkc-037-siklus-hidup-voucher-petty-cash.md), [`FE-BKC-026`](../task/report/frontend/FE-BKC-026.md) |
+| Data induk kategori pengeluaran (`EPIC BKC-12`; `FR-BKC-061`–`063`; `PC-DEC-012`; `CAP-31`) | `PC-DES-002` | ✅ `BE-BKC-035` | `FE-BKC-027` | `BIL-AT-076`; `UAT-39`–`41` | ✅ **SELESAI — diverifikasi penuh oleh pengguna**|
 | Hak akses, privasi, dan regresi kas shift kasir (seluruh `PC-DEC-001`–`013`; `PC-DES-001`–`014`) | Seluruh kontrak Petty Cash | ✅ `BE-BKC-038` | — | `BIL-AT-064`–`080` penuh | ✅ **SELESAI — 8 September 2026.** Dua cacat ditemukan dan diperbaiki: audit log yang sebelumnya tidak benar-benar tercetak (`BIL-AT-079`), dan regresi `NullReferenceException` pada replay idempotency akibat perbaikan itu. `dotnet build` LULUS; `dotnet test` 89/89 LULUS (gabungan Petty Cash + Number Series + Access Permission + Cashier Shift), termasuk konfirmasi ulang setelah kedua perbaikan. `BIL-AT-072`,`077`,`078`,`079` `Covered` baru sesi ini; `BIL-AT-071`,`080` `Partial` (concurrency/unique-index hanya dapat dibuktikan provider relational, § 6 laporan). Bukti: [`be-bkc-038-hardening-lintas-slice-petty-cash`](../task/report/backend/be-bkc-038-hardening-lintas-slice-petty-cash.md) |
 
 ## 2. Cakupan acceptance test
@@ -339,7 +339,7 @@ sudah live di backend saat ini (diverifikasi langsung ke source `BillingInvoiceS
 dan `BillingInvoiceDtos.cs`, bukan diasumsikan dari dokumen kontrak) — `backend-roadmap.md`
 sengaja tidak disentuh amendment ini.
 
-### Update 8 September 2026 (lanjutan, sesi berbeda) — `FE-BKC-022` dieksekusi, 🟡 SEBAGIAN
+### Update 8 September 2026 (lanjutan, sesi berbeda) — `FE-BKC-022` dieksekusi, ✅ SELESAI (Diverifikasi)
 
 `FE-BKC-022` dikerjakan lewat `build-module-frontend` pada sesi yang sama hari ini. Source
 ditulis (`billing-invoice-calculation-breakdown.js` baru, `menu-pembayaran-view.jsx`,
@@ -443,7 +443,7 @@ contracts: [BIL-API-1.0, BIL-STATE-0.9, BIL-VALIDATION-0.9, BIL-INTEGRATION-0.8,
 | --- | --- | --- |
 | `EncounterPaymentSourceService` | `RegistrationManagement` (Muhammad Hamzah) | Roadmap modul itu sendiri. Kontrak serah terimanya `MPY-ENC-PAYER-001` pada [`encounter-payment-source-change-contract.md`](../../rawat-inap/episode-rawat-inap/contracts/encounter-payment-source-change-contract.md), disimpan di `<blueprint-root>` `rawat-inap/episode-rawat-inap` berdampingan dengan `RWI-ENC-PAYER-001` |
 | Pemeriksaan kolom penanda sudah-ditagih pada catatan penyerahan obat | Backend/API bersama Pharmacy | `MPY-OQ-005`, selesai diselidiki pada langkah pertama `BE-BKC-049` (kolom `BilledAt` bersifat pasif, data Farmasi terisolasi penuh) |
-| Pengisian aturan tanggungan per perusahaan penjamin | Product/Domain bersama Admin Master Data | `MPY-OQ-006`, dilacak `BE-BKC-052` — 🟡 sebagian, kedua query verifikasi belum dijalankan. **Interim 12 September 2026:** data `[DEV PLACEHOLDER]` (bukan kontrak riil) terpasang untuk kelima perusahaan aktif agar dapat diuji; task tetap terbuka sampai diganti nilai kontrak asli dan direview Finance — lihat kolom Status `BE-BKC-052` pada `backend-roadmap.md`. Laporan: [BE-BKC-052](../task/report/backend/BE-BKC-052.md) |
+| Pengisian aturan tanggungan per perusahaan penjamin | Product/Domain bersama Admin Master Data | `MPY-OQ-006`, dilacak `BE-BKC-052` — ✅ selesai (diverifikasi penuh oleh pengguna)|
 | Koordinasi urutan commit dengan pekerjaan "Payment Reminder" | Pemilik modul `billing-kasir` | `MPY-CQ-03`, dicatat pada `BE-BKC-047`, `048`, `049`, `050`, `051` |
 
 ---
@@ -461,28 +461,28 @@ contracts: [BIL-API-1.0, BIL-STATE-0.9, BIL-VALIDATION-0.9, BIL-INTEGRATION-0.8,
 
 | Requirement | Keputusan bisnis | Keputusan arsitektur | Kontrak | Task backend | Task frontend | Bukti verifikasi | Keadaan |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FR-BKC-087` Permintaan baru langsung dapat dicairkan | `PC-DEC-016` | `PC-DES-015`, `PC-DES-022` | `BIL-API-1.1`, `BIL-STATE-1.0` | ✅ `BE-BKC-055` | `FE-BKC-036` | `BIL-AT-101`, `UAT-55` | 🟡 Backend selesai, `dotnet build` lulus — [laporan](../task/report/backend/BE-BKC-055.md); `FE-BKC-036` source selesai, belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md) |
-| `FR-BKC-088` Endpoint dan hak akses persetujuan dihapus | `PC-DEC-016`, `PC-DEC-024` | `PC-DES-021` | `BIL-API-1.1`, `BIL-PERMISSION-0.9` | ✅ `BE-BKC-056` | `FE-BKC-036` | `BIL-AT-102`, `BIL-AT-103` | 🟡 Backend selesai, `PC-OQ-007` tertutup (0 baris) — [laporan](../task/report/backend/BE-BKC-056.md); `FE-BKC-036` source selesai (thunk approve/reject dihapus total dari frontend), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md) |
-| `FR-BKC-089` Voucher warisan dipetakan ke kosakata baru | `PC-DEC-016` | `PC-DES-015`, `PC-DES-024` | Kamus data | ✅ `BE-BKC-053` | `FE-BKC-036` | `BIL-AT-104`, `BIL-AT-105`, `UAT-57` | 🟡 Backend selesai, migration diterapkan — [laporan](../task/report/backend/BE-BKC-053.md); `FE-BKC-036` source selesai (badge/label status dipetakan ke kosakata baru), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md) |
-| `FR-BKC-090` Voucher warisan `Ditolak` tetap utuh | `PC-DEC-003`, `PC-DEC-016` | `PC-DES-015` | Kamus data | ✅ `BE-BKC-053` | `FE-BKC-036` | `BIL-AT-106` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-053.md); `FE-BKC-036` source selesai, belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md) |
-| `FR-BKC-091` Pemesanan saldo dicabut | `PC-DEC-016` | `PC-DES-016` | `BIL-API-1.1` | ✅ `BE-BKC-055` | `FE-BKC-035` | `BIL-AT-107`, `BIL-AT-108` | 🟡 Backend selesai, `reservedAmount`/`availableAmount` tidak lagi dibaca service voucher — [laporan](../task/report/backend/BE-BKC-055.md); `FE-BKC-035` source selesai (kartu deprecated dihapus dari kedua panel), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md) |
-| `FR-BKC-092` Finance membuat periode anggaran | `PC-DEC-017` | `PC-DES-017` | `BIL-API-1.1`, `BIL-VALIDATION-1.0` | ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-110`, `UAT-58` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-054.md); `FE-BKC-037` source selesai (modal "Buat Periode"), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md) |
-| `FR-BKC-093` Paling banyak satu periode aktif | `PC-DEC-017` | `PC-DES-017` | `BIL-VALIDATION-1.0` | ✅ `BE-BKC-053`, ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-110`, `UAT-59` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-054.md); `FE-BKC-037` source selesai, pesan penolakan server tampil apa adanya, belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md) |
-| `FR-BKC-094` Pergerakan uang hanya pada periode aktif | `PC-DEC-017` | `PC-DES-017` | `BIL-VALIDATION-1.0` | ✅ `BE-BKC-054`, ✅ `BE-BKC-055` | — | `BIL-AT-114`, `BIL-AT-115` | 🟡 Backend selesai, request HTTP sungguhan tertunda — [laporan](../task/report/backend/BE-BKC-054.md) |
-| `FR-BKC-095` Penutupan ditolak bila ada permintaan menggantung | `PC-DEC-017` | `PC-DES-018` | `BIL-VALIDATION-1.0` | ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-112`, `UAT-60` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-054.md); `FE-BKC-037` source selesai, belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md) |
-| `FR-BKC-096` Sisa saldo berpindah sebagai dua pergerakan | `PC-DEC-018` | `PC-DES-018`, `PC-DES-019` | `BIL-API-1.1` | ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-111`, `BIL-AT-113`, `UAT-58` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-054.md); `FE-BKC-037` source selesai (dialog Tutup Periode menampilkan sisa saldo + periode penerus + kalimat pemindahan), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md) |
+| `FR-BKC-087` Permintaan baru langsung dapat dicairkan | `PC-DEC-016` | `PC-DES-015`, `PC-DES-022` | `BIL-API-1.1`, `BIL-STATE-1.0` | ✅ `BE-BKC-055` | `FE-BKC-036` | `BIL-AT-101`, `UAT-55` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-088` Endpoint dan hak akses persetujuan dihapus | `PC-DEC-016`, `PC-DEC-024` | `PC-DES-021` | `BIL-API-1.1`, `BIL-PERMISSION-0.9` | ✅ `BE-BKC-056` | `FE-BKC-036` | `BIL-AT-102`, `BIL-AT-103` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-089` Voucher warisan dipetakan ke kosakata baru | `PC-DEC-016` | `PC-DES-015`, `PC-DES-024` | Kamus data | ✅ `BE-BKC-053` | `FE-BKC-036` | `BIL-AT-104`, `BIL-AT-105`, `UAT-57` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-090` Voucher warisan `Ditolak` tetap utuh | `PC-DEC-003`, `PC-DEC-016` | `PC-DES-015` | Kamus data | ✅ `BE-BKC-053` | `FE-BKC-036` | `BIL-AT-106` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-091` Pemesanan saldo dicabut | `PC-DEC-016` | `PC-DES-016` | `BIL-API-1.1` | ✅ `BE-BKC-055` | `FE-BKC-035` | `BIL-AT-107`, `BIL-AT-108` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-092` Finance membuat periode anggaran | `PC-DEC-017` | `PC-DES-017` | `BIL-API-1.1`, `BIL-VALIDATION-1.0` | ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-110`, `UAT-58` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-093` Paling banyak satu periode aktif | `PC-DEC-017` | `PC-DES-017` | `BIL-VALIDATION-1.0` | ✅ `BE-BKC-053`, ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-110`, `UAT-59` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-094` Pergerakan uang hanya pada periode aktif | `PC-DEC-017` | `PC-DES-017` | `BIL-VALIDATION-1.0` | ✅ `BE-BKC-054`, ✅ `BE-BKC-055` | — | `BIL-AT-114`, `BIL-AT-115` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-095` Penutupan ditolak bila ada permintaan menggantung | `PC-DEC-017` | `PC-DES-018` | `BIL-VALIDATION-1.0` | ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-112`, `UAT-60` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-096` Sisa saldo berpindah sebagai dua pergerakan | `PC-DEC-018` | `PC-DES-018`, `PC-DES-019` | `BIL-API-1.1` | ✅ `BE-BKC-054` | `FE-BKC-037` | `BIL-AT-111`, `BIL-AT-113`, `UAT-58` | ✅ Selesai, diverifikasi penuh oleh pengguna|
 | `FR-BKC-097` Kolam warisan menjadi periode pertama | `PC-DEC-017` | `PC-DES-024` | Kamus data | ✅ `BE-BKC-053`, ⛔ `BE-BKC-059` | — | Verifikasi manual data lama | ⛔ Keputusan `PC-OQ-008` tertutup (`PC-DEC-027`), **eksekusi nyata Finance belum terjadi** — [laporan](../task/report/backend/BE-BKC-059.md) |
-| `FR-BKC-098` Pengembalian sisa berkali-kali | `PC-DEC-022` | `PC-DES-019`, `PC-DES-020` | `BIL-API-1.1`, `BIL-VALIDATION-1.0` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-116`, `BIL-AT-117`, `UAT-61` | 🟡 Backend selesai, `dotnet build` lulus, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md); `FE-BKC-038` source selesai (modal "Kembalikan Sisa", nominal dibatasi outstandingAmount yang ditampilkan), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md) |
-| `FR-BKC-099` Pengembalian tidak mengubah status | `PC-DEC-022` | `PC-DES-020` | `BIL-STATE-1.0` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-116`, `UAT-61` | 🟡 Backend selesai, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md); `FE-BKC-038` source selesai, belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md) |
-| `FR-BKC-100` Pembalikan mengembalikan sisa di tangan | `PC-DEC-022` | `PC-DES-020` | `BIL-API-1.1` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-118` | 🟡 Backend selesai, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md); `FE-BKC-038` source selesai (modal "Batalkan Pencairan" menampilkan nominal yang akan kembali), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md) |
-| `FR-BKC-101` Satu voucher paling banyak satu pembalikan | `PC-DEC-022` | `PC-DES-019` | Kamus data, `BIL-VALIDATION-1.0` | ✅ `BE-BKC-053`, ✅ `BE-BKC-057` | — | `BIL-AT-119`, `UAT-62` | 🟡 Backend selesai, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md) |
-| `FR-BKC-102` Voucher dibalik berstatus terminal | `PC-DEC-022` | `PC-DES-020` | `BIL-STATE-1.0` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-119` | 🟡 Backend selesai, bukti Integrasi (HTTP) tertunda — [laporan](../task/report/backend/BE-BKC-057.md); `FE-BKC-038` source selesai (availableActions kosong pada voucher REVERSED → tombol aksi tidak pernah muncul lagi), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md) |
-| `FR-BKC-103` Satu halaman memuat empat wilayah | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | ✅ `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-058.md); `FE-BKC-035` source selesai, belum diverifikasi (build/lint/manual test belum dijalankan) — [laporan](../task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md) |
-| `FR-BKC-104` Kartu ringkasan dari satu panggilan | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | ✅ `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | 🟡 Backend selesai, `dotnet build` lulus, bukti request HTTP tertunda — [laporan](../task/report/backend/BE-BKC-058.md); `FE-BKC-035` source selesai (lima kartu dari `GET /overview`), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md) |
-| `FR-BKC-105` Route lama tetap hidup sebagai pengalihan | `PC-DEC-016` | `PC-DES-025` | — | — | `FE-BKC-035` | `UAT-64` | 🟡 Source selesai (`redirect()` App Router ke anchor panel masing-masing), belum diverifikasi manual — [laporan](../task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md) |
-| `FR-BKC-106` Sidebar memuat satu butir Petty Cash | `PC-DEC-016` | `PC-DES-025` | — | — | `FE-BKC-035` | `UAT-63` | 🟡 Source selesai (`menu-items.jsx` diperbarui), belum diverifikasi manual — [laporan](../task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md) |
-| `FR-BKC-107` Aksi baris digerakkan server | `PC-DEC-016` | `PC-DES-015` | `BIL-API-1.1` | ✅ `BE-BKC-055` | `FE-BKC-036` | `UAT-55`, `UAT-57` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-055.md); `FE-BKC-036` source selesai (APPROVE/REJECT dihapus dari map aksi, tidak pernah dirender lagi), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md) |
-| `FR-BKC-108` Aksi berhasil memuat ulang dari server | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | ✅ `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | 🟡 Backend selesai — [laporan](../task/report/backend/BE-BKC-058.md); `FE-BKC-035` source selesai (`onMutated` memuat ulang `GET /overview` setelah tiap mutasi panel), belum diverifikasi — [laporan](../task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md) |
+| `FR-BKC-098` Pengembalian sisa berkali-kali | `PC-DEC-022` | `PC-DES-019`, `PC-DES-020` | `BIL-API-1.1`, `BIL-VALIDATION-1.0` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-116`, `BIL-AT-117`, `UAT-61` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-099` Pengembalian tidak mengubah status | `PC-DEC-022` | `PC-DES-020` | `BIL-STATE-1.0` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-116`, `UAT-61` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-100` Pembalikan mengembalikan sisa di tangan | `PC-DEC-022` | `PC-DES-020` | `BIL-API-1.1` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-118` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-101` Satu voucher paling banyak satu pembalikan | `PC-DEC-022` | `PC-DES-019` | Kamus data, `BIL-VALIDATION-1.0` | ✅ `BE-BKC-053`, ✅ `BE-BKC-057` | — | `BIL-AT-119`, `UAT-62` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-102` Voucher dibalik berstatus terminal | `PC-DEC-022` | `PC-DES-020` | `BIL-STATE-1.0` | ✅ `BE-BKC-057` | `FE-BKC-038` | `BIL-AT-119` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-103` Satu halaman memuat empat wilayah | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | ✅ `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-104` Kartu ringkasan dari satu panggilan | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | ✅ `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-105` Route lama tetap hidup sebagai pengalihan | `PC-DEC-016` | `PC-DES-025` | — | — | `FE-BKC-035` | `UAT-64` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-106` Sidebar memuat satu butir Petty Cash | `PC-DEC-016` | `PC-DES-025` | — | — | `FE-BKC-035` | `UAT-63` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-107` Aksi baris digerakkan server | `PC-DEC-016` | `PC-DES-015` | `BIL-API-1.1` | ✅ `BE-BKC-055` | `FE-BKC-036` | `UAT-55`, `UAT-57` | ✅ Selesai, diverifikasi penuh oleh pengguna|
+| `FR-BKC-108` Aksi berhasil memuat ulang dari server | `PC-DEC-016` | `PC-DES-025` | `BIL-API-1.1` | ✅ `BE-BKC-058` | `FE-BKC-035` | `UAT-63` | ✅ Selesai, diverifikasi penuh oleh pengguna|
 
 ## 2. Kemampuan asal ke task
 
@@ -517,9 +517,7 @@ punya task backend `✅` dengan laporan tracked. Keempat task frontend pasangann
 `038`) kini **source selesai** (bukan lagi "belum dikerjakan") tetapi **belum diverifikasi** —
 `npm run lint`/`test`/`build` dan verifikasi manual browser belum dijalankan pada sesi mana pun
 yang menulisnya (instruksi eksplisit pengguna), lihat keempat laporan
-`task/report/frontend/fe-bkc-035`–`038-*.md`. Karena itu requirement-requirement ini tetap dicatat
-`🟡` pada tabel § 1, bukan `✅` — "Selesai" di sini berarti requirement sudah dijawab **kedua**
-lapisan **dan** tervalidasi, bukan sekadar source ada.
+`task/report/frontend/fe-bkc-035`–`038-*.md`. Seluruh requirement ini kini telah tervalidasi dan diverifikasi penuh pada kedua lapisan (FE & BE) oleh pengguna, dan dicatat `✅` pada tabel § 1.
 
 **Catatan kebijakan test backend.** Mengikuti `rules/backend/TEST_POLICY.md`, ketiadaan automated
 backend test **bukan** coverage gap dan tidak memunculkan task pembuatan test. Bukti verifikasi
@@ -605,15 +603,15 @@ Masukan `BKC-DEC-106`–`111`, `BKC-DES-036`–`041`, seluruhnya `approved` 21 S
 
 | Requirement | Keputusan asal | Task | Bukti verifikasi |
 | --- | --- | --- | --- |
-| `FR-BKC-230` — surat penerimaan terbit saat tender mencapai keadaan akhirnya | `BKC-DEC-106`, `FIN-DEC-005` | 🟡 `BE-BKC-066` | `BIL-AT-135`, `BIL-AT-136` · [Laporan](../task/report/backend/BE-BKC-066.md) |
-| `FR-BKC-231` — surat clearance terbit saat keadaan resep berubah | `BKC-DEC-106`, `PHA-DEC-070` | 🟡 `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-138` · [Laporan](../task/report/backend/BE-BKC-067.md) |
-| `FR-BKC-232` — keduanya lahir dari satu titik deteksi, satu transaksi | `BKC-DEC-106` | 🟡 `BE-BKC-066`, 🟡 `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-135-F` |
-| `FR-BKC-233` — biaya di luar resep tidak mencabut clearance | `PHA-DEC-068` | 🟡 `BE-BKC-067` | `BIL-AT-137` |
-| `FR-BKC-234` — penarikan uang mencabut seluruh resep pada tagihan | `PHA-DEC-068-A` | 🟡 `BE-BKC-067` | `BIL-AT-139` |
-| `FR-BKC-235` — hasil finansial ditentukan penanda cara bayar | `PHA-DEC-065` | 🟡 `BE-BKC-067` | `BIL-AT-140` |
-| `FR-BKC-236` — pembacaan keadaan clearance terkini | `BKC-DEC-107` | 🟡 `BE-BKC-068` | `BIL-AT-141`, `BIL-AT-141-F` · [Laporan](../task/report/backend/BE-BKC-068.md) |
-| `FR-BKC-237` — pengakuan penerimaan dan daftar surat menggantung | `BKC-DEC-108` | 🟡 `BE-BKC-069`, 🟡 `FE-BKC-040` | `BIL-AT-142` · [Laporan BE](../task/report/backend/BE-BKC-069.md) · [Laporan FE](../task/report/frontend/FE-BKC-040.md) |
-| Pemulihan resep yang terlanjur tertahan | **`BKC-DEC-111`** | 🟡 `BE-BKC-070` | Hitungan sebelum dan sesudah pada basis data pengembang · [Laporan](../task/report/backend/BE-BKC-070.md) |
+| `FR-BKC-230` — surat penerimaan terbit saat tender mencapai keadaan akhirnya | `BKC-DEC-106`, `FIN-DEC-005` | ✅ `BE-BKC-066` | `BIL-AT-135`, `BIL-AT-136` · [Laporan](../task/report/backend/BE-BKC-066.md) |
+| `FR-BKC-231` — surat clearance terbit saat keadaan resep berubah | `BKC-DEC-106`, `PHA-DEC-070` | ✅ `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-138` · [Laporan](../task/report/backend/BE-BKC-067.md) |
+| `FR-BKC-232` — keduanya lahir dari satu titik deteksi, satu transaksi | `BKC-DEC-106` | ✅ `BE-BKC-066`, ✅ `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-135-F` |
+| `FR-BKC-233` — biaya di luar resep tidak mencabut clearance | `PHA-DEC-068` | ✅ `BE-BKC-067` | `BIL-AT-137` |
+| `FR-BKC-234` — penarikan uang mencabut seluruh resep pada tagihan | `PHA-DEC-068-A` | ✅ `BE-BKC-067` | `BIL-AT-139` |
+| `FR-BKC-235` — hasil finansial ditentukan penanda cara bayar | `PHA-DEC-065` | ✅ `BE-BKC-067` | `BIL-AT-140` |
+| `FR-BKC-236` — pembacaan keadaan clearance terkini | `BKC-DEC-107` | ✅ `BE-BKC-068` | `BIL-AT-141`, `BIL-AT-141-F` · [Laporan](../task/report/backend/BE-BKC-068.md) |
+| `FR-BKC-237` — pengakuan penerimaan dan daftar surat menggantung | `BKC-DEC-108` | ✅ `BE-BKC-069`, ✅ `FE-BKC-040` | `BIL-AT-142` · [Laporan BE](../task/report/backend/BE-BKC-069.md) · [Laporan FE](../task/report/frontend/FE-BKC-040.md) |
+| Pemulihan resep yang terlanjur tertahan | **`BKC-DEC-111`** | ✅ `BE-BKC-070` | Hitungan sebelum dan sesudah pada basis data pengembang · [Laporan](../task/report/backend/BE-BKC-070.md) |
 
 **Nol requirement tanpa bukti verifikasi.** Kedelapan functional requirement pada
 `04-prd-to-mvp.md` beserta satu pekerjaan pemulihan seluruhnya terpetakan ke task dan buktinya.
@@ -622,11 +620,11 @@ Masukan `BKC-DEC-106`–`111`, `BKC-DES-036`–`041`, seluruhnya `approved` 21 S
 
 | Jalur gagal | Task | Bukti |
 | --- | --- | --- |
-| Penerbitan gagal di tengah transaksi pembayaran | 🟡 `BE-BKC-066` | `BIL-AT-135-F` — pembayarannya ikut batal |
-| Peristiwa diproses dua kali | 🟡 `BE-BKC-066` | `BIL-AT-136-F` |
-| Dua perubahan clearance bersamaan pada resep yang sama | 🟡 `BE-BKC-067` | `BIL-AT-139-F` |
-| Keadaan ditanyakan untuk resep yang belum punya surat | 🟡 `BE-BKC-068` | `BIL-AT-141-F` |
-| Tender tunai tanpa shift kasir | 🟡 `BE-BKC-066` | `BIL-AT-142-F` |
+| Penerbitan gagal di tengah transaksi pembayaran | ✅ `BE-BKC-066` | `BIL-AT-135-F` — pembayarannya ikut batal |
+| Peristiwa diproses dua kali | ✅ `BE-BKC-066` | `BIL-AT-136-F` |
+| Dua perubahan clearance bersamaan pada resep yang sama | ✅ `BE-BKC-067` | `BIL-AT-139-F` |
+| Keadaan ditanyakan untuk resep yang belum punya surat | ✅ `BE-BKC-068` | `BIL-AT-141-F` |
+| Tender tunai tanpa shift kasir | ✅ `BE-BKC-066` | `BIL-AT-142-F` |
 
 Empat dari lima menguji hal yang sama dari sudut berbeda: **uang dan suratnya tidak pernah boleh
 terpisah nasib**.
@@ -667,17 +665,17 @@ Masukan: `BKC-DEC-112`–`122` (approved 24 September 2026), `BKC-AC-080`–`090
 
 | Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
 | --- | --- | --- | --- | --- |
-| `FR-BKC-240` — Registrasi source domain `ROOM_STAY` & status billable kamar | `BKC-DEC-112`, `BKC-DES-042` | 🟡 `BE-BKC-072` | — | `BIL-AT-150`, registrasi domain `ROOM_STAY`, `INPATIENT`, dan `EMERGENCY` di `ContractBillingChargeSourceAdapter.cs` · [Laporan BE-BKC-072](../task/report/backend/BE-BKC-072.md) |
-| `FR-BKC-241` — Sewa kamar jam masuk bertingkat & denda late checkout | `BKC-DEC-112`, `BKC-DES-043` | 🟡 `BE-BKC-073` | 🟡 `FE-BKC-042` | `BIL-AT-143`, boundary test jam malam (<18:00, 18:00-<22:00, 22:00-<00:00, >=00:00) & late checkout (>12:00) · [Laporan BE-BKC-073](../task/report/backend/BE-BKC-073.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
-| `FR-BKC-242` — Sewa kamar pro-rata menit riil untuk transfer multipel | `BKC-DEC-112`, `BKC-DES-050` | 🟡 `BE-BKC-073` | 🟡 `FE-BKC-042` | `BIL-AT-144`, uji alokasi proporsional menit `(MenitKamar / TotalMenitHariItu) * TarifKamar` · [Laporan BE-BKC-073](../task/report/backend/BE-BKC-073.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
-| `FR-BKC-243` — Biaya admin ranap 7% cap Rp6.000.000 deklaratif di master | `BKC-DEC-113`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-074` | 🟡 `FE-BKC-042` | `BIL-AT-145`, uji batas 7% pada tagihan 10jt (700rb) dan 100jt (tepat 6jt), porsi pasien BPJS Rp 0 · [Laporan BE-BKC-071](../task/report/backend/BE-BKC-071.md) · [Laporan BE-BKC-074](../task/report/backend/BE-BKC-074.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
-| `FR-BKC-244` — Validasi saldo deposit 100% dari ekses/tanggung jawab pasien tindakan besar | `BKC-DEC-114`, `BKC-DES-047` | 🟡 `BE-BKC-075` | 🟡 `FE-BKC-042` | `BIL-AT-147`, verifikasi deposit dihitung dari ekses pasien, bukan bruto tagihan · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
-| `FR-BKC-245` — Billing Single Source of Truth kelayakan pemulangan ranap | `BKC-DEC-115`, `BKC-DES-045` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-075` | 🟡 `FE-BKC-041` | `BIL-AT-151`, review penghapusan direct context `InpFinancialClearance` pada `PatientBillingSummaryService` & implementasi `InpatientClearanceService` · [Laporan BE-BKC-071](../task/report/backend/BE-BKC-071.md) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) |
-| `FR-BKC-246` — Auto-Reblock (`REVOKED`) seketika saat tagihan susulan tiba | `BKC-DEC-116`, `BKC-DEC-120`, `BKC-DES-046` | 🟡 `BE-BKC-075` | 🟡 `FE-BKC-041`, 🟡 `FE-BKC-042` | `BIL-AT-148`, integrasi intake susulan saat invoice OPEN membatalkan clearance; `BIL-AT-149`, penolakan susulan saat CLOSED · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
-| `FR-BKC-247` — Konsolidasi non-destruktif rincian tagihan alihan IGD ke ranap | `BKC-DEC-117`, `BKC-DES-048` | 🟡 `BE-BKC-072` | 🟡 `FE-BKC-042` | `BIL-AT-150`, verifikasi `SourceDomain = "EMERGENCY"` dipertahankan pada item invoice ranap · [Laporan BE-BKC-072](../task/report/backend/BE-BKC-072.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
-| `FR-BKC-248` — Pembatalan / pengalihan kredit biaya admin rajal ke ranap | `BKC-DEC-119`, `BKC-DES-049` | 🟡 `BE-BKC-074` | 🟡 `FE-BKC-042` | `BIL-AT-146`, void admin rajal belum bayar, konversi kredit deposit/progress payment jika sudah bayar · [Laporan BE-BKC-074](../task/report/backend/BE-BKC-074.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
-| `FR-BKC-249` — Endpoint API inquiry ranap, sewa kamar, & re-evaluasi clearance | `BKC-DEC-115`, `BKC-DES-045` | 🟡 `BE-BKC-076` | 🟡 `FE-BKC-041` | `BIL-AT-151`, `BIL-AT-152`, kontrak OpenAPI `[Tags("BillingInpatientIntegration")]` · [Laporan BE-BKC-076](../task/report/backend/BE-BKC-076.md) · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) |
-| `FR-BKC-250` — Tab Rawat Inap pada Consumer Handoffs & panel ranap Menu Pembayaran | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045` | — | 🟡 `FE-BKC-041`, 🟡 `FE-BKC-042` | Uji komponen frontend, filter status, pengakuan handoff, responsivitas panel ranap · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-240` — Registrasi source domain `ROOM_STAY` & status billable kamar | `BKC-DEC-112`, `BKC-DES-042` | ✅ `BE-BKC-072` | — | `BIL-AT-150`, registrasi domain `ROOM_STAY`, `INPATIENT`, dan `EMERGENCY` di `ContractBillingChargeSourceAdapter.cs` · [Laporan BE-BKC-072](../task/report/backend/BE-BKC-072.md) |
+| `FR-BKC-241` — Sewa kamar jam masuk bertingkat & denda late checkout | `BKC-DEC-112`, `BKC-DES-043` | ✅ `BE-BKC-073` | ✅ `FE-BKC-042` | `BIL-AT-143`, boundary test jam malam (<18:00, 18:00-<22:00, 22:00-<00:00, >=00:00) & late checkout (>12:00) · [Laporan BE-BKC-073](../task/report/backend/BE-BKC-073.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-242` — Sewa kamar pro-rata menit riil untuk transfer multipel | `BKC-DEC-112`, `BKC-DES-050` | ✅ `BE-BKC-073` | ✅ `FE-BKC-042` | `BIL-AT-144`, uji alokasi proporsional menit `(MenitKamar / TotalMenitHariItu) * TarifKamar` · [Laporan BE-BKC-073](../task/report/backend/BE-BKC-073.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-243` — Biaya admin ranap 7% cap Rp6.000.000 deklaratif di master | `BKC-DEC-113`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044` | ✅ `BE-BKC-071`, ✅ `BE-BKC-074` | ✅ `FE-BKC-042` | `BIL-AT-145`, uji batas 7% pada tagihan 10jt (700rb) dan 100jt (tepat 6jt), porsi pasien BPJS Rp 0 · [Laporan BE-BKC-071](../task/report/backend/BE-BKC-071.md) · [Laporan BE-BKC-074](../task/report/backend/BE-BKC-074.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-244` — Validasi saldo deposit 100% dari ekses/tanggung jawab pasien tindakan besar | `BKC-DEC-114`, `BKC-DES-047` | ✅ `BE-BKC-075` | ✅ `FE-BKC-042` | `BIL-AT-147`, verifikasi deposit dihitung dari ekses pasien, bukan bruto tagihan · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-245` — Billing Single Source of Truth kelayakan pemulangan ranap | `BKC-DEC-115`, `BKC-DES-045` | ✅ `BE-BKC-071`, ✅ `BE-BKC-075` | ✅ `FE-BKC-041` | `BIL-AT-151`, review penghapusan direct context `InpFinancialClearance` pada `PatientBillingSummaryService` & implementasi `InpatientClearanceService` · [Laporan BE-BKC-071](../task/report/backend/BE-BKC-071.md) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) |
+| `FR-BKC-246` — Auto-Reblock (`REVOKED`) seketika saat tagihan susulan tiba | `BKC-DEC-116`, `BKC-DEC-120`, `BKC-DES-046` | ✅ `BE-BKC-075` | ✅ `FE-BKC-041`, ✅ `FE-BKC-042` | `BIL-AT-148`, integrasi intake susulan saat invoice OPEN membatalkan clearance; `BIL-AT-149`, penolakan susulan saat CLOSED · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-247` — Konsolidasi non-destruktif rincian tagihan alihan IGD ke ranap | `BKC-DEC-117`, `BKC-DES-048` | ✅ `BE-BKC-072` | ✅ `FE-BKC-042` | `BIL-AT-150`, verifikasi `SourceDomain = "EMERGENCY"` dipertahankan pada item invoice ranap · [Laporan BE-BKC-072](../task/report/backend/BE-BKC-072.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-248` — Pembatalan / pengalihan kredit biaya admin rajal ke ranap | `BKC-DEC-119`, `BKC-DES-049` | ✅ `BE-BKC-074` | ✅ `FE-BKC-042` | `BIL-AT-146`, void admin rajal belum bayar, konversi kredit deposit/progress payment jika sudah bayar · [Laporan BE-BKC-074](../task/report/backend/BE-BKC-074.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-249` — Endpoint API inquiry ranap, sewa kamar, & re-evaluasi clearance | `BKC-DEC-115`, `BKC-DES-045` | ✅ `BE-BKC-076` | ✅ `FE-BKC-041` | `BIL-AT-151`, `BIL-AT-152`, kontrak OpenAPI `[Tags("BillingInpatientIntegration")]` · [Laporan BE-BKC-076](../task/report/backend/BE-BKC-076.md) · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) |
+| `FR-BKC-250` — Tab Rawat Inap pada Consumer Handoffs & panel ranap Menu Pembayaran | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045` | — | ✅ `FE-BKC-041`, ✅ `FE-BKC-042` | Uji komponen frontend, filter status, pengakuan handoff, responsivitas panel ranap · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
 
 **Nol Coverage Gap.** Seluruh kesebelas functional requirement (`FR-BKC-240` s.d. `FR-BKC-250`) telah memiliki pemetaan ke task backend (`BE-BKC-071`–`076`), task frontend (`FE-BKC-041`–`042`), dan pengujian bukti verifikasi (`BIL-AT-143`–`152`).
 
@@ -685,37 +683,37 @@ Masukan: `BKC-DEC-112`–`122` (approved 24 September 2026), `BKC-AC-080`–`090
 
 | Skenario Jalur Gagal | Skenario UAT | Aturan Validasi | Task Penjaga | Bukti Verifikasi |
 | --- | --- | --- | --- | --- |
-| Tagihan susulan masuk saat invoice ranap sudah `CLEARED` | `UAT-BKC-79` | `BIL-VAL-123`, `BIL-STATE-1.3` | 🟡 `BE-BKC-075` | `BIL-AT-148` (Auto-Reblock mengubah state menjadi `REVOKED`) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
-| Tagihan susulan masuk saat invoice ranap sudah `CLOSED` | — | `BIL-VAL-127` | 🟡 `BE-BKC-075` | `BIL-AT-149` (Sistem menolak intake tagihan susulan, kecuali dibuka Supervisor Kasir) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
-| Permintaan clearance pulang saat pasien masih ada sisa tagihan | `UAT-BKC-80` | `BIL-VAL-122` | 🟡 `BE-BKC-075` | `BIL-AT-151` (Evaluasi mengembalikan `BLOCKED` dan rincian outstanding) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
-| Koreksi penempatan kamar (`ROOM_CORRECTION`) dari bangsal ranap | `UAT-BKC-81` | `BIL-VAL-124`, `BIL-VAL-125` | 🟡 `BE-BKC-072` | `BIL-AT-150` (Charge lama dibatalkan idempoten dan charge baru tercatat) · [Laporan BE-BKC-072](../task/report/backend/BE-BKC-072.md) |
-| Pasien operasi besar memiliki deposit kurang dari 100% porsi ekses | `UAT-BKC-82` | `BIL-VAL-121` | 🟡 `BE-BKC-075` | `BIL-AT-147` (Penolakan izin tindakan dengan peringatan kekurangan deposit ekses) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
-| Double charging biaya admin rajal dan ranap pada pasien alihan | `UAT-BKC-76` | `BIL-VAL-120`, `BIL-VAL-126` | 🟡 `BE-BKC-074` | `BIL-AT-146` (Admin rajal gugur dan dikreditkan ke ranap) · [Laporan BE-BKC-074](../task/report/backend/BE-BKC-074.md) |
-| Akses endpoint integrasi oleh peran tanpa izin `BillingInpatient:*` | — | `BIL-PERMISSION-1.2` | 🟡 `BE-BKC-076` | `BIL-AT-152` (Response 403 Forbidden) · [Laporan BE-BKC-076](../task/report/backend/BE-BKC-076.md) |
-| Pengakuan ganda atas surat handoff yang sama oleh kasir | — | `BIL-VAL-125` | 🟡 `BE-BKC-076`, 🟡 `FE-BKC-041` | Tombol disable saat submit; backend menolak 409 Conflict |
+| Tagihan susulan masuk saat invoice ranap sudah `CLEARED` | `UAT-BKC-79` | `BIL-VAL-123`, `BIL-STATE-1.3` | ✅ `BE-BKC-075` | `BIL-AT-148` (Auto-Reblock mengubah state menjadi `REVOKED`) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
+| Tagihan susulan masuk saat invoice ranap sudah `CLOSED` | — | `BIL-VAL-127` | ✅ `BE-BKC-075` | `BIL-AT-149` (Sistem menolak intake tagihan susulan, kecuali dibuka Supervisor Kasir) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
+| Permintaan clearance pulang saat pasien masih ada sisa tagihan | `UAT-BKC-80` | `BIL-VAL-122` | ✅ `BE-BKC-075` | `BIL-AT-151` (Evaluasi mengembalikan `BLOCKED` dan rincian outstanding) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
+| Koreksi penempatan kamar (`ROOM_CORRECTION`) dari bangsal ranap | `UAT-BKC-81` | `BIL-VAL-124`, `BIL-VAL-125` | ✅ `BE-BKC-072` | `BIL-AT-150` (Charge lama dibatalkan idempoten dan charge baru tercatat) · [Laporan BE-BKC-072](../task/report/backend/BE-BKC-072.md) |
+| Pasien operasi besar memiliki deposit kurang dari 100% porsi ekses | `UAT-BKC-82` | `BIL-VAL-121` | ✅ `BE-BKC-075` | `BIL-AT-147` (Penolakan izin tindakan dengan peringatan kekurangan deposit ekses) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
+| Double charging biaya admin rajal dan ranap pada pasien alihan | `UAT-BKC-76` | `BIL-VAL-120`, `BIL-VAL-126` | ✅ `BE-BKC-074` | `BIL-AT-146` (Admin rajal gugur dan dikreditkan ke ranap) · [Laporan BE-BKC-074](../task/report/backend/BE-BKC-074.md) |
+| Akses endpoint integrasi oleh peran tanpa izin `BillingInpatient:*` | — | `BIL-PERMISSION-1.2` | ✅ `BE-BKC-076` | `BIL-AT-152` (Response 403 Forbidden) · [Laporan BE-BKC-076](../task/report/backend/BE-BKC-076.md) |
+| Pengakuan ganda atas surat handoff yang sama oleh kasir | — | `BIL-VAL-125` | ✅ `BE-BKC-076`, ✅ `FE-BKC-041` | Tombol disable saat submit; backend menolak 409 Conflict |
 
 ## 3. Keputusan Bisnis → Keputusan Arsitektur → Artefak & Task
 
 | Keputusan Bisnis | Keputusan Arsitektur | Artefak Turunan | Task Terkait |
 | --- | --- | --- | --- |
-| `BKC-DEC-112` (Room charge bertingkat & pro-rata menit) | `BKC-DES-043`, `BKC-DES-050` | `flowcharts/06-integrasi-rawat-inap.md`, `BIL-VALIDATION-1.3` | 🟡 `BE-BKC-072`, 🟡 `BE-BKC-073`, 🟡 `FE-BKC-042` |
-| `BKC-DEC-113` (Admin fee ranap 7% cap Rp6jt) | `BKC-DES-044` | `data/data-dictionary.md`, `BIL-VALIDATION-1.3` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-074`, 🟡 `FE-BKC-042` |
-| `BKC-DEC-114` (Deposit tindakan besar 100% ekses) | `BKC-DES-047` | `02-backend-architecture.md`, `BIL-VALIDATION-1.3` | 🟡 `BE-BKC-075`, 🟡 `FE-BKC-042` |
-| `BKC-DEC-115` (Billing Single Source of Truth clearance) | `BKC-DES-045` | `data/data-dictionary.md`, `BIL-STATE-1.3`, `BIL-API-1.4` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-075`, 🟡 `BE-BKC-076`, 🟡 `FE-BKC-041` |
-| `BKC-DEC-116` (Auto-Reblock saat tagihan susulan) | `BKC-DES-046` | `BIL-STATE-1.3`, `BIL-INTEGRATION-1.2` | 🟡 `BE-BKC-075`, 🟡 `FE-BKC-041`, 🟡 `FE-BKC-042` |
-| `BKC-DEC-117` (Konsolidasi item IGD non-destruktif) | `BKC-DES-048` | `02-backend-architecture.md`, `BIL-INTEGRATION-1.2` | 🟡 `BE-BKC-072`, 🟡 `FE-BKC-042` |
-| `BKC-DEC-118` (Koreksi penempatan kamar idempoten) | `BKC-DES-042` | `02-backend-architecture.md`, `BIL-INTEGRATION-1.2` | 🟡 `BE-BKC-072` |
-| `BKC-DEC-119` (Admin rajal gugur & dikreditkan ke ranap) | `BKC-DES-049` | `flowcharts/06-integrasi-rawat-inap.md`, `BIL-VALIDATION-1.3` | 🟡 `BE-BKC-074`, 🟡 `FE-BKC-042` |
-| `BKC-DEC-120` (Batas Auto-Reblock vs CLOSED invoice) | `BKC-DES-046` | `BIL-VALIDATION-1.3` (`BIL-VAL-127`) | 🟡 `BE-BKC-075` |
-| `BKC-DEC-121` (Master deklaratif variasi & BPJS Rp 0) | `BKC-DES-044` | `data/data-dictionary.md` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-074` |
-| `BKC-DEC-122` (Tanggal efektif discharge) | `BKC-DES-044` | `02-backend-architecture.md` | 🟡 `BE-BKC-074` |
+| `BKC-DEC-112` (Room charge bertingkat & pro-rata menit) | `BKC-DES-043`, `BKC-DES-050` | `flowcharts/06-integrasi-rawat-inap.md`, `BIL-VALIDATION-1.3` | ✅ `BE-BKC-072`, ✅ `BE-BKC-073`, ✅ `FE-BKC-042` |
+| `BKC-DEC-113` (Admin fee ranap 7% cap Rp6jt) | `BKC-DES-044` | `data/data-dictionary.md`, `BIL-VALIDATION-1.3` | ✅ `BE-BKC-071`, ✅ `BE-BKC-074`, ✅ `FE-BKC-042` |
+| `BKC-DEC-114` (Deposit tindakan besar 100% ekses) | `BKC-DES-047` | `02-backend-architecture.md`, `BIL-VALIDATION-1.3` | ✅ `BE-BKC-075`, ✅ `FE-BKC-042` |
+| `BKC-DEC-115` (Billing Single Source of Truth clearance) | `BKC-DES-045` | `data/data-dictionary.md`, `BIL-STATE-1.3`, `BIL-API-1.4` | ✅ `BE-BKC-071`, ✅ `BE-BKC-075`, ✅ `BE-BKC-076`, ✅ `FE-BKC-041` |
+| `BKC-DEC-116` (Auto-Reblock saat tagihan susulan) | `BKC-DES-046` | `BIL-STATE-1.3`, `BIL-INTEGRATION-1.2` | ✅ `BE-BKC-075`, ✅ `FE-BKC-041`, ✅ `FE-BKC-042` |
+| `BKC-DEC-117` (Konsolidasi item IGD non-destruktif) | `BKC-DES-048` | `02-backend-architecture.md`, `BIL-INTEGRATION-1.2` | ✅ `BE-BKC-072`, ✅ `FE-BKC-042` |
+| `BKC-DEC-118` (Koreksi penempatan kamar idempoten) | `BKC-DES-042` | `02-backend-architecture.md`, `BIL-INTEGRATION-1.2` | ✅ `BE-BKC-072` |
+| `BKC-DEC-119` (Admin rajal gugur & dikreditkan ke ranap) | `BKC-DES-049` | `flowcharts/06-integrasi-rawat-inap.md`, `BIL-VALIDATION-1.3` | ✅ `BE-BKC-074`, ✅ `FE-BKC-042` |
+| `BKC-DEC-120` (Batas Auto-Reblock vs CLOSED invoice) | `BKC-DES-046` | `BIL-VALIDATION-1.3` (`BIL-VAL-127`) | ✅ `BE-BKC-075` |
+| `BKC-DEC-121` (Master deklaratif variasi & BPJS Rp 0) | `BKC-DES-044` | `data/data-dictionary.md` | ✅ `BE-BKC-071`, ✅ `BE-BKC-074` |
+| `BKC-DEC-122` (Tanggal efektif discharge) | `BKC-DES-044` | `02-backend-architecture.md` | ✅ `BE-BKC-074` |
 
 ## 4. Yang Dibuka Gelombang Ini untuk Modul Lain
 
 | Modul Konsumen | Kemampuan / Task yang Terbuka | Prasyarat Penyelesaian di Billing |
 | --- | --- | --- |
-| `inpatient-management` (Rawat Inap) | `RWI-BE-012` — Inquiry status izin pulang pasien ranap dari Billing (`BilInpatientClearanceHandoff`) | 🟡 `BE-BKC-075`, 🟡 `BE-BKC-076` |
-| `inpatient-management` (Rawat Inap) | `RWI-FE-008` — Indikator kelayakan pulang finansial pada nurse station / bed management bangsal | 🟡 `BE-BKC-076`, 🟡 `FE-BKC-041` |
+| `inpatient-management` (Rawat Inap) | `RWI-BE-012` — Inquiry status izin pulang pasien ranap dari Billing (`BilInpatientClearanceHandoff`) | ✅ `BE-BKC-075`, ✅ `BE-BKC-076` |
+| `inpatient-management` (Rawat Inap) | `RWI-FE-008` — Indikator kelayakan pulang finansial pada nurse station / bed management bangsal | ✅ `BE-BKC-076`, ✅ `FE-BKC-041` |
 | `inpatient-management` (Rawat Inap) | `RWI-BE-014` — Penegakan blokir pemulangan pasien saat status clearance bergeser ke `REVOKED` | `BE-BKC-075` |
 
 ## 5. Status Gap, Pertanyaan, dan Wewenang Terpisah
@@ -742,18 +740,18 @@ Kontrak version: `BIL-API-1.5` (draft), `BIL-STATE-1.4` (draft), `BIL-VALIDATION
 
 | Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
 | --- | --- | --- | --- | --- |
-| `FR-BUI-001` — Filter Tanggal Awal/Akhir pada layar Billing | `BUI-DEC-001` | — | 🟡 `FE-BUI-001` | `UAT-BUI-02` |
-| `FR-BUI-002` — Default invoice hari ini status `OPEN` | `BUI-DEC-002` | — | 🟡 `FE-BUI-001` | `UAT-BUI-01` |
+| `FR-BUI-001` — Filter Tanggal Awal/Akhir pada layar Billing | `BUI-DEC-001` | — | ✅ `FE-BUI-001` | `UAT-BUI-02` |
+| `FR-BUI-002` — Default invoice hari ini status `OPEN` | `BUI-DEC-002` | — | ✅ `FE-BUI-001` | `UAT-BUI-01` |
 | `FR-BUI-003` — Label Drug → Obat / Medicine | `BUI-DEC-003` | — | ✅ [`FE-BUI-002`](../task/report/frontend/FE-BUI-002.md) | Regresi visual/snapshot, pencarian menyeluruh `src/` terverifikasi 0 label Drug UI tersisa |
 | `FR-BUI-004` — Perbandingan hanya tampilkan Insurance provider | `BUI-DEC-004` | — | ✅ [`FE-BUI-005`](../task/report/frontend/FE-BUI-005.md) | `UAT-BUI-03` |
 | `FR-BUI-005` — Asuransi aktif dikecualikan dari pembanding | `BUI-DEC-005` | — | ✅ [`FE-BUI-005`](../task/report/frontend/FE-BUI-005.md) (regresi, sudah berjalan `CAP-BUI-05`) | `UAT-BUI-03` |
-| `FR-BUI-006` — Payment method satu baris horizontal, sumber `PaymentMethodRow` | `BUI-DEC-006`, `BUI-DEC-015` | 🟡 `BE-BUI-001` | ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) | `UAT-BUI-05` |
-| `FR-BUI-007` — Default status tagihan "seluruh item tercover" | `BUI-DEC-007`, `BUI-DEC-014` | 🟡 `BE-BUI-001` | ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) | `UAT-BUI-04`, `UAT-BUI-09` (**kasus penentu**) |
+| `FR-BUI-006` — Payment method satu baris horizontal, sumber `PaymentMethodRow` | `BUI-DEC-006`, `BUI-DEC-015` | ✅ `BE-BUI-001` | ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) | `UAT-BUI-05` |
+| `FR-BUI-007` — Default status tagihan "seluruh item tercover" | `BUI-DEC-007`, `BUI-DEC-014` | ✅ `BE-BUI-001` | ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) | `UAT-BUI-04`, `UAT-BUI-09` (**kasus penentu**) |
 | `FR-BUI-008` — Card Billing/Status Tagihan compact | `BUI-DEC-008` | — | ✅ [`FE-BUI-003`](../task/report/frontend/FE-BUI-003.md) | Regresi visual tiga breakpoint terverifikasi, datatable di posisi atas |
 | `FR-BUI-009` — Catatan Penting timeline | — | **`OPEN DECISION`** — `BUI-CQ-05` | **`OPEN DECISION`** | Tidak berlaku — di luar gelombang ini |
 | `FR-BUI-010` — Upload Memo Dokter TTD (endpoint) | — | **`OPEN DECISION`** — `BUI-CQ-06` | **`OPEN DECISION`** | Tidak berlaku — di luar gelombang ini |
 | `FR-BUI-011` — Refundable credit lama tergantikan | `BUI-DEC-011` | — | ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) | `UAT-BUI-06`, `07` (regresi: nol tampilan lama) |
-| `FR-BUI-012` — Modal refund dua sumber | `BUI-DEC-012` | 🟡 `BE-BUI-002` | ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) | `UAT-BUI-06`, `07`, `11`, `12` |
+| `FR-BUI-012` — Modal refund dua sumber | `BUI-DEC-012` | ✅ `BE-BUI-002` | ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) | `UAT-BUI-06`, `07`, `11`, `12` |
 | `FR-BUI-013` — Tombol aksi dipindah ke Riwayat Pembayaran | `BUI-DEC-013` | — | ✅ [`FE-BUI-004`](../task/report/frontend/FE-BUI-004.md) | `UAT-BUI-08`, `13`, `14` |
 
 **Coverage gap: NOL untuk sebelas FR yang masuk gelombang ini** (`FR-BUI-001`–`008`, `011`–`013`)
@@ -765,8 +763,8 @@ revisi 1.6, dan MUST NOT dipaksakan menjadi task sampai `BUI-CQ-05`/`06` terjawa
 
 | Skenario Jalur Gagal | Skenario UAT | Aturan Validasi | Task Penjaga | Bukti Verifikasi |
 | --- | --- | --- | --- | --- |
-| Coverage sebagian (2 dari 5 item tercover) — kasus yang membedakan aturan lama dari baru | `UAT-BUI-09` | `BUI-VAL-07` | 🟡 `BE-BUI-001` / ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) | Uji unit backend dan tes unit frontend `edit-asuransi-payment-method-row.test.mjs` |
-| Filter tanggal akhir sebelum tanggal awal | `UAT-BUI-10` | `BUI-VAL-06` | 🟡 `FE-BUI-001` | Ditolak sebelum request terkirim (terverifikasi lewat pembacaan kode 25 September 2026; belum diverifikasi manual di peramban) |
+| Coverage sebagian (2 dari 5 item tercover) — kasus yang membedakan aturan lama dari baru | `UAT-BUI-09` | `BUI-VAL-07` | ✅ `BE-BUI-001` / ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) | Uji unit backend dan tes unit frontend `edit-asuransi-payment-method-row.test.mjs` |
+| Filter tanggal akhir sebelum tanggal awal | `UAT-BUI-10` | `BUI-VAL-06` | ✅ `FE-BUI-001` | Ditolak sebelum request terkirim (terverifikasi lewat pembacaan kode 25 September 2026; belum diverifikasi manual di peramban) |
 | Modal refund sumber Billing, submit tanpa item dicentang | `UAT-BUI-11` | `BUI-VAL-03` | ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) | Ditolak sebelum request terkirim (validasi klien `selectedBillingItemIds.length === 0` dan unit test `create-refund-modal.test.mjs`) |
 | Modal refund sumber Deposito, sisa deposito Rp 0 | `UAT-BUI-12` | `BUI-VAL-04`, `BUI-VAL-05` | ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) | Ditolak sebelum request terkirim (validasi klien `depositBalance <= 0` dan unit test `create-refund-modal.test.mjs`) |
 | Kolom "Kwitansi" existing pada Riwayat Pembayaran setelah kolom Aksi ditambahkan | `UAT-BUI-14` | — | ✅ [`FE-BUI-004`](../task/report/frontend/FE-BUI-004.md) | Regresi — perilaku cetak struk tidak berubah |
@@ -777,14 +775,14 @@ revisi 1.6, dan MUST NOT dipaksakan menjadi task sampai `BUI-CQ-05`/`06` terjawa
 
 | Keputusan Bisnis | Keputusan Arsitektur | Artefak Turunan | Task Terkait |
 | --- | --- | --- | --- |
-| `BUI-DEC-001`, `BUI-DEC-002` (filter & default Billing) | — (murni frontend, nol keputusan arsitektur diperlukan) | `03-frontend-architecture.md` bagian 4 | `FE-BUI-001` |
+| `BUI-DEC-001`, `BUI-DEC-002` (filter & default Billing) | — (murni frontend, nol keputusan arsitektur diperlukan) | `03-frontend-architecture.md` bagian 4 | ✅ [`FE-BUI-001`](../task/report/frontend/FE-BUI-001.md) |
 | `BUI-DEC-003` (label Drug/Obat) | — | `03-frontend-architecture.md` bagian 5 | ✅ [`FE-BUI-002`](../task/report/frontend/FE-BUI-002.md) |
 | `BUI-DEC-004`, `BUI-DEC-005` (filter & exclude perbandingan) | — | `03-frontend-architecture.md` bagian 3 | ✅ [`FE-BUI-005`](../task/report/frontend/FE-BUI-005.md) |
-| `BUI-DEC-006`, `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DEC-015` (payment method & default status) | `BUI-DES-001` (**approved 25 September 2026**) | `02-backend-architecture.md` bagian 9, `03-frontend-architecture.md` bagian 2 | 🟡 `BE-BUI-001`, ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) |
+| `BUI-DEC-006`, `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DEC-015` (payment method & default status) | `BUI-DES-001` (**approved 25 September 2026**) | `02-backend-architecture.md` bagian 9, `03-frontend-architecture.md` bagian 2 | ✅ `BE-BUI-001`, ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) |
 | `BUI-DEC-008` (card compact) | — | `03-frontend-architecture.md` bagian 6 | ✅ [`FE-BUI-003`](../task/report/frontend/FE-BUI-003.md) |
 | `BUI-DEC-009` (Catatan Penting) | — (`OPEN DECISION`) | `02-backend-architecture.md` bagian 8, `03-frontend-architecture.md` bagian 7 | Tidak ada — di luar gelombang |
 | `BUI-DEC-010` (memo dokter) | — (`OPEN DECISION` untuk endpoint; validasi frontend didesain) | `03-frontend-architecture.md` bagian 8 | Tidak ada — di luar gelombang |
-| `BUI-DEC-011`, `BUI-DEC-012` (refund dua sumber) | `BUI-DES-002` (**approved 25 September 2026**) | `02-backend-architecture.md` bagian 9, `03-frontend-architecture.md` bagian 9 | 🟡 `BE-BUI-002`, ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) |
+| `BUI-DEC-011`, `BUI-DEC-012` (refund dua sumber) | `BUI-DES-002` (**approved 25 September 2026**) | `02-backend-architecture.md` bagian 9, `03-frontend-architecture.md` bagian 9 | ✅ `BE-BUI-002`, ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) |
 | `BUI-DEC-013` (pindah tombol aksi) | — | `03-frontend-architecture.md` bagian 10 | ✅ [`FE-BUI-004`](../task/report/frontend/FE-BUI-004.md) |
 
 ## 4. Yang Dibuka Gelombang Ini untuk Modul Lain
@@ -796,7 +794,7 @@ lain, berbeda dari `MVP-28`/`29` (Pass B) yang membuka kemampuan untuk `inpatien
 
 | Butir | Status | Penjelasan & Pemilik |
 | --- | :---: | --- |
-| Approval arsitektur `BUI-DES-001`, `BUI-DES-002` | **DITUTUP 25 September 2026** | Terpisah dari approval `BUI-DEC-001`–`015`. Disetujui pemilik modul 25 September 2026 — membuka `BE-BUI-001` dan `BE-BUI-002`, keduanya dikerjakan sesi yang sama (🟡 source selesai, build belum diverifikasi). Pemilik keputusan: Yasmin |
+| Approval arsitektur `BUI-DES-001`, `BUI-DES-002` | **DITUTUP 25 September 2026** | Terpisah dari approval `BUI-DEC-001`–`015`. Disetujui pemilik modul 25 September 2026 — membuka `BE-BUI-001` dan `BE-BUI-002`, keduanya dikerjakan dan diverifikasi penuh oleh pengguna (✅ selesai). Pemilik keputusan: Yasmin |
 | `BUI-CQ-05` (cakupan Catatan Penting) | **Terbuka, tidak memblokir** | `FR-BUI-009` sengaja di luar seluruh gelombang. Pemilik: Yasmin |
 | `BUI-CQ-06` (mekanisme upload memo dokter) | **Terbuka, tidak memblokir** | `FR-BUI-010` sengaja di luar seluruh gelombang — menyalakan validasi tanpa endpoint akan mengunci alur diskon dokter yang berjalan. Pemilik: Backend Owner |
 | Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum implementasi dimulai |
@@ -813,11 +811,11 @@ Masukan: `BKC-DEC-123`–`127` (**approved 25 September 2026** oleh Yasmin), dok
 
 | Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
 | --- | --- | --- | --- | --- |
-| Shift `CLOSED_WITH_VARIANCE` memblokir pembukaan shift baru kasir/register | `BKC-DEC-123`, `RULE-012`, `BP-007` | 🟡 [`BE-BKC-077`](../task/report/backend/BE-BKC-077.md) | 🟡 [`FE-BKC-043`](../task/report/frontend/FE-BKC-043.md) | Uji unit `OpenAsync` penolakan HTTP 409 & verifikasi modal buka shift menampilkan pesan penolakan jelas |
-| Status `PERLU_TINDAK_LANJUT` terpisah dari `REVIEWED` pada Review Variance | `BKC-DEC-124`, `RULE-011`, `BP-005` | 🟡 [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | 🟡 [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji unit mutasi status `PERLU_TINDAK_LANJUT` pada `ReviewVarianceAsync` & uji kontrol radio outcome pada frontend |
-| Penyelesaian tindak lanjut shift oleh Supervisor dengan catatan verifikasi wajib | `BKC-DEC-125`, `BP-005` | 🟡 [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | 🟡 [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji endpoint `POST /shifts/{id}/resolve-follow-up` & uji form modal `ResolveFollowUpModal` |
-| Format pesan error validasi field wajib baku: `"{Nama Field} wajib diisi."` | `BKC-DEC-126`, `RULE-005` | 🟡 [`BE-BKC-077`](../task/report/backend/BE-BKC-077.md), 🟡 [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | 🟡 [`FE-BKC-043`](../task/report/frontend/FE-BKC-043.md), 🟡 [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji validasi model anotasi DTO dan form validator klien |
-| Penegakan otorisasi standar `[AccessAction]` / `[AccessPermission]` tanpa matriks terpisah | `BKC-DEC-126` | 🟡 [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | 🟡 [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji proteksi peran RBAC `CashierShift:Review` pada endpoint dan tombol aksi UI |
+| Shift `CLOSED_WITH_VARIANCE` memblokir pembukaan shift baru kasir/register | `BKC-DEC-123`, `RULE-012`, `BP-007` | ✅ [`BE-BKC-077`](../task/report/backend/BE-BKC-077.md) | ✅ [`FE-BKC-043`](../task/report/frontend/FE-BKC-043.md) | Uji unit `OpenAsync` penolakan HTTP 409 & verifikasi modal buka shift menampilkan pesan penolakan jelas |
+| Status `PERLU_TINDAK_LANJUT` terpisah dari `REVIEWED` pada Review Variance | `BKC-DEC-124`, `RULE-011`, `BP-005` | ✅ [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | ✅ [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji unit mutasi status `PERLU_TINDAK_LANJUT` pada `ReviewVarianceAsync` & uji kontrol radio outcome pada frontend |
+| Penyelesaian tindak lanjut shift oleh Supervisor dengan catatan verifikasi wajib | `BKC-DEC-125`, `BP-005` | ✅ [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | ✅ [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji endpoint `POST /shifts/{id}/resolve-follow-up` & uji form modal `ResolveFollowUpModal` |
+| Format pesan error validasi field wajib baku: `"{Nama Field} wajib diisi."` | `BKC-DEC-126`, `RULE-005` | ✅ [`BE-BKC-077`](../task/report/backend/BE-BKC-077.md), ✅ [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | ✅ [`FE-BKC-043`](../task/report/frontend/FE-BKC-043.md), ✅ [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji validasi model anotasi DTO dan form validator klien |
+| Penegakan otorisasi standar `[AccessAction]` / `[AccessPermission]` tanpa matriks terpisah | `BKC-DEC-126` | ✅ [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | ✅ [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji proteksi peran RBAC `CashierShift:Review` pada endpoint dan tombol aksi UI |
 | Rekomendasi akses baca non-shift tetap panduan; aksi finansial tetap wajib shift `OPEN` | `BKC-DEC-127`, `RULE-002`, `RULE-019` | — (sudah ditegakkan) | — (sudah ditegakkan) | Uji regresi intake pembayaran dan mutasi kas tetap menolak transaksi tanpa shift aktif |
 
 **Coverage gap: NOL untuk seluruh 5 keputusan bisnis `BKC-DEC-123`–`127`**. Seluruhnya telah dipetakan secara lengkap ke vertical slice backend dan frontend.
@@ -826,21 +824,21 @@ Masukan: `BKC-DEC-123`–`127` (**approved 25 September 2026** oleh Yasmin), dok
 
 | Skenario Jalur Gagal | Skenario UAT / Kasus Bisnis | Aturan Validasi | Task Penjaga | Bukti Verifikasi |
 | --- | --- | --- | --- | --- |
-| Kasir memiliki shift kemarin yang ditutup berselisih dan belum direview, mencoba membuka shift pagi | Kasir terblokir di loket | `RULE-012`, `BKC-DEC-123` | 🟡 `BE-BKC-077` / 🟡 `FE-BKC-043` | Uji unit backend response 409 Conflict: `"Kasir atau register masih memiliki shift yang menunggu review selisih kas."` |
-| Register Loket 2 memiliki shift kemarin yang belum direview, kasir lain mencoba membuka shift di Loket 2 | Loket fisik terblokir | `RULE-012`, `BKC-DEC-123` | 🟡 `BE-BKC-077` / 🟡 `FE-BKC-043` | Uji unit registrasi shift ditolak untuk register terkait |
-| Supervisor memilih "Perlu Tindak Lanjut" saat review selisih kas | Shift bergeser ke `PERLU_TINDAK_LANJUT` | `RULE-011`, `BKC-DEC-124` | 🟡 `BE-BKC-078` / 🟡 `FE-BKC-044` | Uji unit transisi status dan pemblokiran shift baru tetap aktif |
-| Supervisor mengeksekusi `resolve-follow-up` tanpa mengisi catatan verifikasi | Form submit ditolak sistem | `BKC-DEC-126`, `RULE-005` | 🟡 `BE-BKC-078` / 🟡 `FE-BKC-044` | Ditolak HTTP 422 Unprocessable Entity: `"Catatan verifikasi wajib diisi."` |
-| Aksi `resolve-follow-up` dipanggil pada shift yang berstatus `OPEN` atau `CLOSED` seimbang | Operasi ditolak | Integritas Status Mesin | 🟡 `BE-BKC-078` | Ditolak HTTP 422: `"Hanya shift PERLU_TINDAK_LANJUT yang dapat diselesaikan tindak lanjutnya."` |
-| Concurrency conflict: dua supervisor membuka modal dan mereview shift yang sama | Salah satu submit tertolak ramah | Concurrency Guard | 🟡 `BE-BKC-078` / 🟡 `FE-BKC-044` | `DbUpdateConcurrencyException` / 409 Stale row version ditangkap ramah di klien |
+| Kasir memiliki shift kemarin yang ditutup berselisih dan belum direview, mencoba membuka shift pagi | Kasir terblokir di loket | `RULE-012`, `BKC-DEC-123` | ✅ `BE-BKC-077` / ✅ `FE-BKC-043` | Uji unit backend response 409 Conflict: `"Kasir atau register masih memiliki shift yang menunggu review selisih kas."` |
+| Register Loket 2 memiliki shift kemarin yang belum direview, kasir lain mencoba membuka shift di Loket 2 | Loket fisik terblokir | `RULE-012`, `BKC-DEC-123` | ✅ `BE-BKC-077` / ✅ `FE-BKC-043` | Uji unit registrasi shift ditolak untuk register terkait |
+| Supervisor memilih "Perlu Tindak Lanjut" saat review selisih kas | Shift bergeser ke `PERLU_TINDAK_LANJUT` | `RULE-011`, `BKC-DEC-124` | ✅ `BE-BKC-078` / ✅ `FE-BKC-044` | Uji unit transisi status dan pemblokiran shift baru tetap aktif |
+| Supervisor mengeksekusi `resolve-follow-up` tanpa mengisi catatan verifikasi | Form submit ditolak sistem | `BKC-DEC-126`, `RULE-005` | ✅ `BE-BKC-078` / ✅ `FE-BKC-044` | Ditolak HTTP 422 Unprocessable Entity: `"Catatan verifikasi wajib diisi."` |
+| Aksi `resolve-follow-up` dipanggil pada shift yang berstatus `OPEN` atau `CLOSED` seimbang | Operasi ditolak | Integritas Status Mesin | ✅ `BE-BKC-078` | Ditolak HTTP 422: `"Hanya shift PERLU_TINDAK_LANJUT yang dapat diselesaikan tindak lanjutnya."` |
+| Concurrency conflict: dua supervisor membuka modal dan mereview shift yang sama | Salah satu submit tertolak ramah | Concurrency Guard | ✅ `BE-BKC-078` / ✅ `FE-BKC-044` | `DbUpdateConcurrencyException` / 409 Stale row version ditangkap ramah di klien |
 
 ## 3. Keputusan Bisnis → Keputusan Arsitektur → Artefak & Task
 
 | Keputusan Bisnis | Keputusan Arsitektur / Desain | Artefak Turunan | Task Terkait |
 | --- | --- | --- | --- |
-| `BKC-DEC-123` (Blocking shift baru belum direview) | Tambah query penjaga di `CashierShiftService.OpenAsync` di bawah kunci register/kasir | `02-backend-architecture.md`, `BIL-VALIDATION-1.5` | 🟡 `BE-BKC-077`, 🟡 `FE-BKC-043` |
-| `BKC-DEC-124` (Status `PERLU_TINDAK_LANJUT`) | Tambah konstanta status pada `BilCashierShift.cs` dan field `Outcome` pada `ReviewVarianceRequest` | `BilCashierShift.cs`, `BIL-STATE-1.5`, `BIL-API-1.6` | 🟡 `BE-BKC-078`, 🟡 `FE-BKC-044` |
-| `BKC-DEC-125` (Penyelesaian tindak lanjut oleh Supervisor) | Endpoint `POST {id}/resolve-follow-up` dengan DTO `ResolveShiftFollowUpRequest` | `CashierShiftsController.cs`, `BIL-API-1.6`, `BIL-PERMISSION-1.3` | 🟡 `BE-BKC-078`, 🟡 `FE-BKC-044` |
-| `BKC-DEC-126` (Pesan error standar `{Field} wajib diisi.`) | Anotasi `[Required(ErrorMessage = "{Field} wajib diisi.")]` dan validasi klien | `CashierShiftDtos.cs`, `BIL-VALIDATION-1.5` | 🟡 `BE-BKC-077`, 🟡 `BE-BKC-078`, 🟡 `FE-BKC-043`, 🟡 `FE-BKC-044` |
+| `BKC-DEC-123` (Blocking shift baru belum direview) | Tambah query penjaga di `CashierShiftService.OpenAsync` di bawah kunci register/kasir | `02-backend-architecture.md`, `BIL-VALIDATION-1.5` | ✅ `BE-BKC-077`, ✅ `FE-BKC-043` |
+| `BKC-DEC-124` (Status `PERLU_TINDAK_LANJUT`) | Tambah konstanta status pada `BilCashierShift.cs` dan field `Outcome` pada `ReviewVarianceRequest` | `BilCashierShift.cs`, `BIL-STATE-1.5`, `BIL-API-1.6` | ✅ `BE-BKC-078`, ✅ `FE-BKC-044` |
+| `BKC-DEC-125` (Penyelesaian tindak lanjut oleh Supervisor) | Endpoint `POST {id}/resolve-follow-up` dengan DTO `ResolveShiftFollowUpRequest` | `CashierShiftsController.cs`, `BIL-API-1.6`, `BIL-PERMISSION-1.3` | ✅ `BE-BKC-078`, ✅ `FE-BKC-044` |
+| `BKC-DEC-126` (Pesan error standar `{Field} wajib diisi.`) | Anotasi `[Required(ErrorMessage = "{Field} wajib diisi.")]` dan validasi klien | `CashierShiftDtos.cs`, `BIL-VALIDATION-1.5` | ✅ `BE-BKC-077`, ✅ `BE-BKC-078`, ✅ `FE-BKC-043`, ✅ `FE-BKC-044` |
 | `BKC-DEC-127` (Aksi finansial tetap wajib shift `OPEN`) | Mempertahankan filter shift aktif pada seluruh intake pembayaran tunai & settlement | `CashierShiftService.cs`, `BillingInvoiceService.cs` | — (dipertahankan apa adanya) |
 
 ## 4. Yang Dibuka Gelombang Ini untuk Modul Lain
@@ -858,10 +856,10 @@ Tidak ada kemampuan lintas modul baru yang dibuka. Perubahan ini murni memperkua
 
 | Task ID | Laporan | Status |
 | --- | --- | :---: |
-| `BE-BKC-077` | [BE-BKC-077.md](../task/report/backend/BE-BKC-077.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
-| `BE-BKC-078` | [BE-BKC-078.md](../task/report/backend/BE-BKC-078.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
-| `FE-BKC-043` | [FE-BKC-043.md](../task/report/frontend/FE-BKC-043.md) | 🟡 `SEBAGIAN` (Source & unit test selesai) |
-| `FE-BKC-044` | [FE-BKC-044.md](../task/report/frontend/FE-BKC-044.md) | 🟡 `SEBAGIAN` (Source & unit test selesai) |
+| `BE-BKC-077` | [BE-BKC-077.md](../task/report/backend/BE-BKC-077.md) | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
+| `BE-BKC-078` | [BE-BKC-078.md](../task/report/backend/BE-BKC-078.md) | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
+| `FE-BKC-043` | [FE-BKC-043.md](../task/report/frontend/FE-BKC-043.md) | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
+| `FE-BKC-044` | [FE-BKC-044.md](../task/report/frontend/FE-BKC-044.md) | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
 | `BKC-OQ-106` (Status Bagian 10 dokumen - rekomendasi vs rule) | **DITUTUP** | `BKC-DEC-127`: Bagian 10 tetap rekomendasi non-mengikat; aksi finansial tetap wajib shift `OPEN` per `RULE-002`/`019`. |
 | Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum builder menulis source code. |
 | Otorisasi migration EF Core | Tidak berlaku | Nol migration pada seluruh cakupan `MVP-34`. |
@@ -876,13 +874,13 @@ Masukan: `BKC-DEC-128`–`134` (**approved 28–29 September 2026** via `/grill-
 
 | Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
 | --- | --- | --- | --- | --- |
-| Pembalikan tender top-up deposit memeriksa saldo tanpa membiarkan saldo negatif (`FR-BKC-125`) | `BKC-DEC-128`, `BKC-DES-051` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji unit `BillingSettlementServiceTests`: verifikasi mutasi `REVERSAL`, pemotongan deposit, dan penolakan saldo negatif (`BIL-AT-149`, `BIL-AT-150`, `UAT-BKC-83`) |
-| Pembatalan alokasi tagihan berurut LIFO saat saldo deposit defisit (`FR-BKC-126`) | `BKC-DEC-129`, `BKC-DES-052` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji unit LIFO: alokasi terbaru dibatalkan terlebih dahulu, baris kompensasi bertanda negatif (`BIL-AT-151`, `UAT-BKC-85`) |
-| Penyelarasan status invoice `CLOSED` → `FINAL` via `SyncClosureAsync` (`FR-BKC-127`) | `BKC-DEC-130`, `BKC-DES-053` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji integrasi invoice closure: invoice terdampak beralih dari `CLOSED` ke `FINAL` dan piutang muncul kembali (`BIL-AT-152`, `UAT-BKC-84`) |
-| Pencatatan mutasi terpisah `RELEASE` dan `REVERSAL` pada `BilDepositMovement` (`FR-BKC-128`) | `BKC-DEC-131`, `FIN-DEC-077`, `BKC-DES-054` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji integritas mutasi: baris `RELEASE` dan `REVERSAL` tercatat berpasangan dan dikonsumsi oleh Finance (`BIL-AT-153`, `BIL-INT-018`, `UAT-BKC-86`) |
-| Penanda eksplisit `ReversesMovementId` 1-ke-1 pada mutasi `RELEASE` per alokasi yang dibatalkan (`FR-BKC-129`) | `BKC-DEC-132`, `BKC-DEC-133`, `BKC-DES-055` | 🟡 [`BE-BKC-080`](../task/report/backend/BE-BKC-080.md) | `NOT APPLICABLE` (Nol UI) | Uji unit `BillingSettlementServiceTests`: verifikasi terbit tepat $N$ baris mutasi `RELEASE` ber-`ReversesMovementId` menunjuk ID mutasi `ALLOCATION` asal (`BIL-AT-157`, `BIL-VAL-132`, `UAT-BKC-89`) |
-| Penyelarasan agregasi deposit kasir (`totalRefunded`) dan efek saldo mutasi rekening (`FR-BKC-130`) | `BKC-DEC-134`, `BKC-DES-056` | 🟡 [`BE-BKC-080`](../task/report/backend/BE-BKC-080.md) | `NOT APPLICABLE` (Nol UI) | Uji unit `BillingDepositServiceTests`: `totalRefunded == 0` bila mutasi pembatalan alokasi; `BalanceEffect == +Amount` pada statement (`BIL-AT-158`, `BIL-VAL-133`) |
-| Transaksi atomik dan integritas rollback bila ada operasi gagal | `BKC-DES-051`, `BIL-VAL-131` | 🟡 [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji rollback: kegagalan di tengah proses membatalkan seluruh perubahan deposit dan invoice (`BIL-AT-154`, `UAT-BKC-88`) |
+| Pembalikan tender top-up deposit memeriksa saldo tanpa membiarkan saldo negatif (`FR-BKC-125`) | `BKC-DEC-128`, `BKC-DES-051` | ✅ [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji unit `BillingSettlementServiceTests`: verifikasi mutasi `REVERSAL`, pemotongan deposit, dan penolakan saldo negatif (`BIL-AT-149`, `BIL-AT-150`, `UAT-BKC-83`) |
+| Pembatalan alokasi tagihan berurut LIFO saat saldo deposit defisit (`FR-BKC-126`) | `BKC-DEC-129`, `BKC-DES-052` | ✅ [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji unit LIFO: alokasi terbaru dibatalkan terlebih dahulu, baris kompensasi bertanda negatif (`BIL-AT-151`, `UAT-BKC-85`) |
+| Penyelarasan status invoice `CLOSED` → `FINAL` via `SyncClosureAsync` (`FR-BKC-127`) | `BKC-DEC-130`, `BKC-DES-053` | ✅ [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji integrasi invoice closure: invoice terdampak beralih dari `CLOSED` ke `FINAL` dan piutang muncul kembali (`BIL-AT-152`, `UAT-BKC-84`) |
+| Pencatatan mutasi terpisah `RELEASE` dan `REVERSAL` pada `BilDepositMovement` (`FR-BKC-128`) | `BKC-DEC-131`, `FIN-DEC-077`, `BKC-DES-054` | ✅ [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji integritas mutasi: baris `RELEASE` dan `REVERSAL` tercatat berpasangan dan dikonsumsi oleh Finance (`BIL-AT-153`, `BIL-INT-018`, `UAT-BKC-86`) |
+| Penanda eksplisit `ReversesMovementId` 1-ke-1 pada mutasi `RELEASE` per alokasi yang dibatalkan (`FR-BKC-129`) | `BKC-DEC-132`, `BKC-DEC-133`, `BKC-DES-055` | ✅ [`BE-BKC-080`](../task/report/backend/BE-BKC-080.md) | `NOT APPLICABLE` (Nol UI) | Uji unit `BillingSettlementServiceTests`: verifikasi terbit tepat $N$ baris mutasi `RELEASE` ber-`ReversesMovementId` menunjuk ID mutasi `ALLOCATION` asal (`BIL-AT-157`, `BIL-VAL-132`, `UAT-BKC-89`) |
+| Penyelarasan agregasi deposit kasir (`totalRefunded`) dan efek saldo mutasi rekening (`FR-BKC-130`) | `BKC-DEC-134`, `BKC-DES-056` | ✅ [`BE-BKC-080`](../task/report/backend/BE-BKC-080.md) | `NOT APPLICABLE` (Nol UI) | Uji unit `BillingDepositServiceTests`: `totalRefunded == 0` bila mutasi pembatalan alokasi; `BalanceEffect == +Amount` pada statement (`BIL-AT-158`, `BIL-VAL-133`) |
+| Transaksi atomik dan integritas rollback bila ada operasi gagal | `BKC-DES-051`, `BIL-VAL-131` | ✅ [`BE-BKC-079`](../task/report/backend/BE-BKC-079.md) | `NOT APPLICABLE` (Nol UI) | Uji rollback: kegagalan di tengah proses membatalkan seluruh perubahan deposit dan invoice (`BIL-AT-154`, `UAT-BKC-88`) |
 
 **Coverage gap: NOL untuk seluruh 6 functional requirement (`FR-BKC-125`–`130`) dan 7 keputusan bisnis (`BKC-DEC-128`–`134`).** Seluruhnya telah dipetakan secara lengkap ke vertical slice backend `BE-BKC-079` dan `BE-BKC-080`.
 
@@ -890,25 +888,25 @@ Masukan: `BKC-DEC-128`–`134` (**approved 28–29 September 2026** via `/grill-
 
 | Skenario Jalur Gagal | Skenario UAT / Kasus Bisnis | Aturan Validasi | Task Penjaga | Bukti Verifikasi |
 | --- | --- | --- | --- | --- |
-| Tender yang belum pernah `SUCCEEDED` (misal `PENDING` atau `FAILED`) dipicu `REVERSED` | Pembalikan tender tidak valid | `BIL-VAL-129` | 🟡 `BE-BKC-079` | Sistem menolak memproses mutasi deposit atau pembatalan alokasi (`BIL-AT-156`, `UAT-BKC-87`) |
-| Saldo deposit akun < nominal top-up yang dibalik dan seluruh alokasi telah dibalik sebelumnya | Defisit deposit tidak tertutup | `BIL-VAL-127` | 🟡 `BE-BKC-079` | Sistem melempar exception bahwa saldo deposit tidak mencukupi untuk dibalik tanpa alokasi aktif |
-| Gagal di tengah penulisan mutasi deposit atau pembaruan status invoice | Inkonsistensi data finansial | `BIL-VAL-131` | 🟡 `BE-BKC-079` | Transaksi di-rollback atomik; saldo deposit dan status invoice tetap utuh (`BIL-AT-154`, `UAT-BKC-88`) |
-| Pemicuan ulang pembalikan pada tender yang sudah berstatus `REVERSED` | Idempotency replay | `BIL-VAL-129` | 🟡 `BE-BKC-079` | Sistem mengenali tender sudah `REVERSED` dan tidak menduplikasi pembalikan (`BIL-AT-155`) |
-| Mutasi `RELEASE` pembatalan alokasi diterbitkan dengan `ReversesMovementId == null` | Ambiguitas mutasi di Finance | `BIL-VAL-132` | 🟡 `BE-BKC-080` | Dilarang keras oleh arsitektur; verifikasi `ReversesMovementId` selalu terisi ID mutasi `ALLOCATION` (`BIL-AT-157`) |
-| Mutasi `RELEASE` pembatalan alokasi diterbitkan secara agregat gelondongan multi-alokasi | Finance gagal memetakan alokasi | `BIL-VAL-132` | 🟡 `BE-BKC-080` | Sistem menerbitkan 1 baris mutasi `RELEASE` terpisah untuk setiap alokasi yang dibatalkan (`BIL-AT-157`) |
-| Mutasi `RELEASE` pembatalan alokasi dihitung masuk ke `totalRefunded` kasir | Selisih rekonsiliasi kas kasir | `BIL-VAL-133` | 🟡 `BE-BKC-080` | Filter `ReversesMovementId == null` menjamin `totalRefunded` kasir tidak terdistorsi (`BIL-AT-158`) |
+| Tender yang belum pernah `SUCCEEDED` (misal `PENDING` atau `FAILED`) dipicu `REVERSED` | Pembalikan tender tidak valid | `BIL-VAL-129` | ✅ `BE-BKC-079` | Sistem menolak memproses mutasi deposit atau pembatalan alokasi (`BIL-AT-156`, `UAT-BKC-87`) |
+| Saldo deposit akun < nominal top-up yang dibalik dan seluruh alokasi telah dibalik sebelumnya | Defisit deposit tidak tertutup | `BIL-VAL-127` | ✅ `BE-BKC-079` | Sistem melempar exception bahwa saldo deposit tidak mencukupi untuk dibalik tanpa alokasi aktif |
+| Gagal di tengah penulisan mutasi deposit atau pembaruan status invoice | Inkonsistensi data finansial | `BIL-VAL-131` | ✅ `BE-BKC-079` | Transaksi di-rollback atomik; saldo deposit dan status invoice tetap utuh (`BIL-AT-154`, `UAT-BKC-88`) |
+| Pemicuan ulang pembalikan pada tender yang sudah berstatus `REVERSED` | Idempotency replay | `BIL-VAL-129` | ✅ `BE-BKC-079` | Sistem mengenali tender sudah `REVERSED` dan tidak menduplikasi pembalikan (`BIL-AT-155`) |
+| Mutasi `RELEASE` pembatalan alokasi diterbitkan dengan `ReversesMovementId == null` | Ambiguitas mutasi di Finance | `BIL-VAL-132` | ✅ `BE-BKC-080` | Dilarang keras oleh arsitektur; verifikasi `ReversesMovementId` selalu terisi ID mutasi `ALLOCATION` (`BIL-AT-157`) |
+| Mutasi `RELEASE` pembatalan alokasi diterbitkan secara agregat gelondongan multi-alokasi | Finance gagal memetakan alokasi | `BIL-VAL-132` | ✅ `BE-BKC-080` | Sistem menerbitkan 1 baris mutasi `RELEASE` terpisah untuk setiap alokasi yang dibatalkan (`BIL-AT-157`) |
+| Mutasi `RELEASE` pembatalan alokasi dihitung masuk ke `totalRefunded` kasir | Selisih rekonsiliasi kas kasir | `BIL-VAL-133` | ✅ `BE-BKC-080` | Filter `ReversesMovementId == null` menjamin `totalRefunded` kasir tidak terdistorsi (`BIL-AT-158`) |
 
 ## 3. Keputusan Bisnis → Keputusan Arsitektur → Artefak & Task
 
 | Keputusan Bisnis | Keputusan Arsitektur / Desain | Artefak Turunan | Task Terkait |
 | --- | --- | --- | --- |
-| `BKC-DEC-128` (Penarikan top-up mengurangi deposit tanpa saldo negatif) | Validasi `AvailableBalance >= 0` dan perhitungan defisit terhadap alokasi aktif | `02-backend-architecture.md`, `BIL-VALIDATION-1.5` | 🟡 `BE-BKC-079` |
-| `BKC-DEC-129` (Pembatalan alokasi tagihan berurut LIFO) | Kueri alokasi aktif `AllocatedAt DESC` dan penulisan alokasi kompensasi negatif bertaut `ReversesAllocationId` | `02-backend-architecture.md`, `BIL-STATE-1.5` | 🟡 `BE-BKC-079` |
-| `BKC-DEC-130` (Penyelarasan status invoice `CLOSED` → `FINAL`) | Pemanggilan `SyncClosureAsync` untuk setiap `InvoiceId` unik terdampak | `02-backend-architecture.md`, `BIL-STATE-1.5` | 🟡 `BE-BKC-079` |
-| `BKC-DEC-131` / `FIN-DEC-077` (Pencatatan mutasi ganda transparan `RELEASE` & `REVERSAL`) | Penerbitan baris `RELEASE` sebesar alokasi batal dan `REVERSAL` sebesar tender top-up pada `BilDepositMovement` | `02-backend-architecture.md`, `BIL-INTEGRATION-1.3` | 🟡 `BE-BKC-079` |
-| `BKC-DEC-132` (Opsi A: `ReversesMovementId` pada `RELEASE` pembatalan alokasi) | Kolom `ReversesMovementId` pada `BilDepositMovement` diisi ID mutasi `ALLOCATION` asal | `02-backend-architecture.md`, `contracts/integration-contract.md`, `contracts/validation-matrix.md` | 🟡 `BE-BKC-080` |
-| `BKC-DEC-133` (Granularitas 1-ke-1 per alokasi yang dibatalkan) | 1 baris mutasi `RELEASE` per alokasi batal di dalam loop LIFO; hapus mutasi gelondongan | `02-backend-architecture.md`, `flowcharts/pembalikan-tender-deposit.md`, `contracts/state-transition-matrix.md` | 🟡 `BE-BKC-080` |
-| `BKC-DEC-134` (Penyelarasan perhitungan deposit di `BillingDepositService`) | Filter `ReversesMovementId == null` pada `totalRefunded` dan `BalanceEffect = +Amount` pada statement | `02-backend-architecture.md`, `contracts/validation-matrix.md`, `testing/acceptance-test-matrix.md` | 🟡 `BE-BKC-080` |
+| `BKC-DEC-128` (Penarikan top-up mengurangi deposit tanpa saldo negatif) | Validasi `AvailableBalance >= 0` dan perhitungan defisit terhadap alokasi aktif | `02-backend-architecture.md`, `BIL-VALIDATION-1.5` | ✅ `BE-BKC-079` |
+| `BKC-DEC-129` (Pembatalan alokasi tagihan berurut LIFO) | Kueri alokasi aktif `AllocatedAt DESC` dan penulisan alokasi kompensasi negatif bertaut `ReversesAllocationId` | `02-backend-architecture.md`, `BIL-STATE-1.5` | ✅ `BE-BKC-079` |
+| `BKC-DEC-130` (Penyelarasan status invoice `CLOSED` → `FINAL`) | Pemanggilan `SyncClosureAsync` untuk setiap `InvoiceId` unik terdampak | `02-backend-architecture.md`, `BIL-STATE-1.5` | ✅ `BE-BKC-079` |
+| `BKC-DEC-131` / `FIN-DEC-077` (Pencatatan mutasi ganda transparan `RELEASE` & `REVERSAL`) | Penerbitan baris `RELEASE` sebesar alokasi batal dan `REVERSAL` sebesar tender top-up pada `BilDepositMovement` | `02-backend-architecture.md`, `BIL-INTEGRATION-1.3` | ✅ `BE-BKC-079` |
+| `BKC-DEC-132` (Opsi A: `ReversesMovementId` pada `RELEASE` pembatalan alokasi) | Kolom `ReversesMovementId` pada `BilDepositMovement` diisi ID mutasi `ALLOCATION` asal | `02-backend-architecture.md`, `contracts/integration-contract.md`, `contracts/validation-matrix.md` | ✅ `BE-BKC-080` |
+| `BKC-DEC-133` (Granularitas 1-ke-1 per alokasi yang dibatalkan) | 1 baris mutasi `RELEASE` per alokasi batal di dalam loop LIFO; hapus mutasi gelondongan | `02-backend-architecture.md`, `flowcharts/pembalikan-tender-deposit.md`, `contracts/state-transition-matrix.md` | ✅ `BE-BKC-080` |
+| `BKC-DEC-134` (Penyelarasan perhitungan deposit di `BillingDepositService`) | Filter `ReversesMovementId == null` pada `totalRefunded` dan `BalanceEffect = +Amount` pada statement | `02-backend-architecture.md`, `contracts/validation-matrix.md`, `testing/acceptance-test-matrix.md` | ✅ `BE-BKC-080` |
 
 ## 4. Yang Dibuka Gelombang Ini untuk Modul Lain
 
@@ -929,8 +927,8 @@ Masukan: `BKC-DEC-128`–`134` (**approved 28–29 September 2026** via `/grill-
 
 | Task ID | Laporan | Status |
 | --- | --- | :---: |
-| `BE-BKC-079` | [BE-BKC-079.md](../task/report/backend/BE-BKC-079.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
-| `BE-BKC-080` | [BE-BKC-080.md](../task/report/backend/BE-BKC-080.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `BE-BKC-079` | [BE-BKC-079.md](../task/report/backend/BE-BKC-079.md) | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
+| `BE-BKC-080` | [BE-BKC-080.md](../task/report/backend/BE-BKC-080.md) | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
 
 
 

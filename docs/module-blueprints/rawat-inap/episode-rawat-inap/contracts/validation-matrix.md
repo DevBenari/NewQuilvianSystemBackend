@@ -40,6 +40,10 @@ istilah teknis, bukan nama kolom.
 | `VAL-ADM-03` | **Otomasi Default Unit Layanan Rawat Inap** (`RWI-DEC-268`, `RWI-AC-389`) | `POST /patient-encounters`, `POST /episodes` | Dropdown unit disembunyikan dari UI; backend payload otomatis mengisi default Service Unit Rawat Inap aktif | "Unit layanan rawat inap default tidak ditemukan." | 422 |
 | `VAL-ADM-04` | **Form Persetujuan & TTD Digital Wajib Diisi & Dikunci** (`RWI-DEC-272`, `RWI-AC-393`) | `POST /episodes/{id}/admission-consents` | Persetujuan umum belum dicentang lengkap atau citra tanda tangan digital kosong/belum dikunci | "Pernyataan persetujuan umum dan tanda tangan digital wajib dilengkapi sebelum cetak." | 400 |
 | `VAL-ADM-05` | **Penanda Tangan Bayi Baru Lahir Wajib Orang Tua / Wali** (`RWI-DEC-273`, `RWI-AC-394`) | `POST /episodes/{id}/admission-consents` | Pasien berkategori Bayi Baru Lahir (`MotherEpisodeId` terisi) memilih subjek penanda tangan "Pasien Sendiri" | "Pasien bayi baru lahir tidak dapat menandatangani sendiri; penanda tangan wajib orang tua atau wali yang sah." | 422 |
+| `VAL-ADM-06` | **Alasan koreksi persetujuan 10–500 karakter** (`RWI-DEC-295`, `RWI-AC-428`) | `POST …/admission-workspace/general-consent/revisions` | Alasan kosong, kurang dari 10, atau lebih dari 500 karakter. Contoh: "salah" (5 karakter) ditolak | "Alasan perubahan minimal 10 karakter." | 400 |
+| `VAL-ADM-07` | **Koreksi memakai versi terbaru** (`RWI-DEC-295`, `RWI-AC-429`) | `POST …/general-consent/revisions` | `RowVersion` tidak sama dengan versi aktif, misalnya petugas lain sudah menyimpan versi 2 | "Persetujuan sudah diubah petugas lain. Muat ulang lalu ulangi perubahan Anda." (`INP-ADM-DOC-004`) | 409 |
+| `VAL-ADM-08` | **Ganti jenis penanda tangan wajib tanda tangan baru** (`RWI-DEC-296`, `RWI-AC-430`) | `POST …/general-consent/revisions` | `SignerType` berbeda dari versi aktif tanpa `SignatureImageBase64`. Contoh: `Spouse` → `Family` | "Jenis penanda tangan berubah. Bubuhkan tanda tangan penanda tangan yang baru." (`TTD_BARU_WAJIB`) | 422 |
+| `VAL-ADM-09` | **Koreksi harus mengubah sesuatu** (`RWI-DEC-295`) | `POST …/general-consent/revisions` | Tidak ada isian yang berbeda dan tanda tangan tidak diganti | "Tidak ada data yang berubah." (`TIDAK_ADA_PERUBAHAN`) | 422 |
 
 ### 1.2 Validasi Pembentukan Episode
 
@@ -567,3 +571,33 @@ BM-F01–07 menjadi regression obligations; detail positif/negatif ada pada acce
 SourceType harus Emergency atau Outpatient (400). Sumber ranap sah wajib ada (404), status Confirmed dan belum dipakai (409), pasien/kunjungan asal cocok (422). Bed harus sesuai unit/kelas request (422) dan versi current (409). Penjamin divalidasi owner Registrasi; deposit positif hanya Cash dengan metode Billing yang sah dan shift aktif bila tunai. Kegagalan membatalkan seluruh transaksi.
 
 [Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Pembayaran memvalidasi kategori/kartu dan draft penjamin tanpa syarat kelas. Pembukaan dengan SelectedBedId mewajibkan bed/kamar aktif, berkelas, sesuai unit, serta kelas sah rawat inap. Pemesanan/penempatan kamar tanpa kelas memberi ROOM_CLASS_MISSING (422). Konfirmasi tidak dapat mengubah kelas; unit harus cocok kamar reservasi aktif. Validasi DPJP/isolasi, konflik bed, lifecycle dan hak akses existing tetap berlaku.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen PLAN-REPAIR-EPS-009 — 2026-10-13
+
+`VAL-ADM-03` dibaca: unit admisi yang disimpan = unit kamar bed terpilih (`SelectedBedId`); unit rawat inap bawaan
+hanya menyemai penyaring awal papan bed dan tidak hilang ketika pasien dipilih. Bed tanpa unit atau tanpa kelas ditolak
+di layar sebelum permintaan dikirim; unit yang bukan rawat inap tetap ditolak server ("Unit tujuan untuk kunjungan rawat
+inap wajib merupakan unit layanan bertipe rawat inap."). Setiap penolakan titik tulis 1 tampil apa adanya pada langkah
+Pilih Bed (`FE-RWI-243`). Rujukan: [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) `FIX-EPS-009-01`, `-02`.
+
+## Amandemen PLAN-REPAIR-EPS-010 — 2026-10-13
+
+Dasar keputusan: `RWI-DEC-297`. Tiga baris baru untuk validasi admisi. Kalimatnya sama persis dengan penolakan tulisnya,
+karena dibentuk sumber yang sama (`InpPresentEpisodeInfo.RejectionMessage`,
+`OutpatientEncounterRules.BuildActiveEncounterMessage`, `InpEpisodeService.BuildOtherDraftWarning`).
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- | ---: |
+| `VAL-ADM-10` | **Pasien yang sedang dirawat tidak dapat dibukakan admisi baru** (`RWI-DEC-054`, `RWI-DEC-297`, `RWI-AC-432`) | `GET /episodes/admission-eligibility` (langkah 1); `POST /episodes` | Pasien punya episode `Admitted`, atau `DischargePending` yang kepergiannya belum dicatat | "Tn. Budi sudah dirawat pada episode RI-2026-09-000123 di Melati 3B. Bila memang pindah kamar, pakai perpindahan, bukan admisi baru." (`PATIENT_ALREADY_ADMITTED`) | 200 `canContinue=false` / 409 |
+| `VAL-ADM-11` | **Kunjungan rawat jalan aktif menghalangi admisi dari langkah 1** (`RWI-DEC-297`, `RWI-AC-433`) | `GET /episodes/admission-eligibility` (langkah 1); penolakan tulis tetap milik `POST /patient-encounters/admin` | Saklar `HealthServices:Registration:BlockActiveEncounter` hidup dan pasien punya kunjungan rawat jalan berklinik berstatus Draft–Sedang Konsultasi yang belum batal/selesai | "Pasien masih memiliki kunjungan aktif bernomor ENC-RSMMC-00150 tanggal 30 Jul 2026. Selesaikan atau batalkan kunjungan tersebut sebelum mendaftar ke poliklinik atau layanan lain." (`ACTIVE_ENCOUNTER_EXISTS`) | 200 `canContinue=false` / 400 |
+| `VAL-ADM-12` | **Admisi lain yang masih Draft hanya diperingatkan** (`RWI-AC-434`; keputusan "Draft ganda bukan penolakan" bagian 3 tetap berlaku) | `GET /episodes/admission-eligibility`; `POST /episodes` (`warnings`) | Pasien punya episode `Draft` lain yang belum lewat batas; yang lewat batas digugurkan lebih dulu | "Pasien ini punya admisi lain yang sedang disiapkan, yaitu … sejak …. Lanjutkan bila memang admisi terpisah, atau batalkan yang lama lebih dulu." | 200 |
+
+Permintaan Kamar Pulih yang menunggu (`VAL-RWF-87`/`88`) ikut dibaca endpoint yang sama dengan kode `INP-ADM-REF-001`/`002`.
+Rujukan: [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) `FIX-EPS-010-01`, `-02`.

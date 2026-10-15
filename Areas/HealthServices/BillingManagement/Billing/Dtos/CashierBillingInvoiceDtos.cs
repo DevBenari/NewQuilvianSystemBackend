@@ -27,6 +27,14 @@ public static class CashierDepositStatuses
     public const string Exhausted = "EXHAUSTED";
 }
 
+/// <summary>Nilai <c>CashierBillingInvoiceListItemResponse.CalculationState</c> (<c>BE-BKC-FIX-020</c>).</summary>
+public static class CashierCalculationStates
+{
+    public const string NotCalculated = "NOT_CALCULATED";
+    public const string Stale = "STALE";
+    public const string Current = "CURRENT";
+}
+
 public static class CashierReminderStatuses
 {
     public const string NeverSent = "NEVER_SENT";
@@ -85,6 +93,39 @@ public sealed class CashierBillingInvoiceListItemResponse
     public decimal TotalPaidAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
     public string PaymentStatus { get; set; } = CashierPaymentStatuses.Unpaid;
+
+    // Kekinian angka (BE-BKC-FIX-020, K-07, ISSUE-BKC-001 ISS-07). Field tambahan; field lama
+    // tidak berubah makna supaya konsumen lama tetap berjalan.
+
+    /// <summary>
+    /// <c>CURRENT</c> = hitungan terakhir masih mencakup seluruh item dan diskon; <c>STALE</c> = ada
+    /// item/diskon yang berubah sesudah hitungan terakhir (angka hitungan tertinggal);
+    /// <c>NOT_CALCULATED</c> = invoice belum pernah dihitung. Aturan kekiniannya sama dengan
+    /// penjaga finalisasi. Biaya kamar rawat inap yang masih berjalan tidak ikut menandai STALE.
+    /// </summary>
+    public string CalculationState { get; set; } = CashierCalculationStates.NotCalculated;
+
+    /// <summary>Waktu hitungan terakhir; kosong bila belum pernah dihitung.</summary>
+    public DateTimeOffset? CalculatedAt { get; set; }
+
+    /// <summary>Jumlah Qty × harga item aktif saat ini, sebelum admin, kamar, pajak, diskon, dan penjamin.</summary>
+    public decimal RunningGrossAmount { get; set; }
+
+    /// <summary>
+    /// <c>true</c> bila <see cref="TotalBillAmount"/>/<see cref="OutstandingAmount"/> bukan hasil hitungan
+    /// terkini — perkiraan dari item (pasien tunai belum dihitung), nol karena tanggungan penjamin belum
+    /// diketahui, atau hitungan yang tertinggal. Layar tidak boleh menyajikannya sebagai kewajiban pasti.
+    /// </summary>
+    public bool IsPatientAmountProvisional { get; set; }
+
+    /// <summary>Kunjungan tanpa penjamin (tunai); tanpa hitungan, perkiraannya adalah jumlah item.</summary>
+    public bool IsCashPayer { get; set; }
+
+    /// <summary>
+    /// Pelayanan yang sudah layak ditagih tetapi belum menjadi item invoice (menunggu diteruskan,
+    /// gagal, atau perlu ditinjau) — <c>BillingPendingChargeQuery</c>.
+    /// </summary>
+    public int PendingChargeCount { get; set; }
 
     // Info & Status Deposit (RANAP)
     public bool HasDepositAccount { get; set; }

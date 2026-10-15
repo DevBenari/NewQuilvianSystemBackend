@@ -182,6 +182,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     DefaultAmount = x.DefaultAmount,
                     DefaultPercentage = x.DefaultPercentage,
                     MaximumAmount = x.MaximumAmount,
+                    MaxNetSalaryPercentage = x.MaxNetSalaryPercentage,
                     IsRecurring = x.IsRecurring,
                     IsStatutory = x.IsStatutory,
                     IsPreTax = x.IsPreTax,
@@ -296,6 +297,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                     DefaultAmount = x.DefaultAmount,
                     DefaultPercentage = x.DefaultPercentage,
                     MaximumAmount = x.MaximumAmount,
+                    MaxNetSalaryPercentage = x.MaxNetSalaryPercentage,
                     IsRecurring = x.IsRecurring,
                     IsStatutory = x.IsStatutory,
                     IsPreTax = x.IsPreTax,
@@ -361,6 +363,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
                 DefaultAmount = request.DefaultAmount,
                 DefaultPercentage = request.DefaultPercentage,
                 MaximumAmount = request.MaximumAmount,
+                MaxNetSalaryPercentage = request.MaxNetSalaryPercentage,
                 IsRecurring = request.IsRecurring,
                 IsStatutory = request.IsStatutory,
                 IsPreTax = request.IsPreTax,
@@ -429,6 +432,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Payroll
             entity.DefaultAmount = request.DefaultAmount;
             entity.DefaultPercentage = request.DefaultPercentage;
             entity.MaximumAmount = request.MaximumAmount;
+            entity.MaxNetSalaryPercentage = request.MaxNetSalaryPercentage;
             entity.IsRecurring = request.IsRecurring;
             entity.IsStatutory = request.IsStatutory;
             entity.IsPreTax = request.IsPreTax;

@@ -9,6 +9,10 @@ public sealed class ArHandoffResponse
     public DateTimeOffset? DueDate { get; set; }
     public string Status { get; set; } = string.Empty;
     public Guid? HandoffKey { get; set; }
+    public Guid? BenefitOwnerId { get; set; }
+    public string? BenefitRelationship { get; set; }
+    public decimal DeferredPatientAmount { get; set; }
+    public string? DeferredConsentGivenBy { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? AcknowledgedAt { get; set; }
 }

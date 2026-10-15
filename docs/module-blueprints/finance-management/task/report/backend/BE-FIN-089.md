@@ -13,12 +13,12 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian `REV-16B` |
 | Trace | `FR-FIN-187`; `FIN-DEC-151`; `FIN-DES-095` |
 | Contract version | `FIN-API-1.7` G.2 |
-| Dependency | `BE-FIN-082` 🟡 — `ApprovedBy` sudah ada pada `FinOpeningItemBatch` dan diisi `ApproveAsync`; **cukup untuk task ini** walau `BE-FIN-082` sendiri belum ✅ |
+| Dependency | `BE-FIN-082` ✅ — `ApprovedBy` sudah ada pada `FinOpeningItemBatch` dan diisi `ApproveAsync`; **cukup untuk task ini** walau `BE-FIN-082` sendiri belum ✅ |
 | Klasifikasi | `MEDIUM` — 3 berkas (DTO, service, controller); 6 titik panggil controller diubah; nol migration |
 | Task mode | `BACKEND` — diberikan eksplisit pengguna 4 Oktober 2026 |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/AccountingIntegration/` |
 | Tanggal | 4 Oktober 2026 |
-| Status | 🟡 **Source selesai.** `dotnet build` **NOT RUN** (instruksi pengguna: tanpa build otomatis). Nol migration, nol database. Uji manual `K.1.4` (pola yang sama) **belum dilaporkan** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -135,7 +135,7 @@ menampilkan `ApprovedBy` (GUID) mentah.
 | `dotnet build` | **NOT RUN** — instruksi pengguna |
 | Uji manual `K.1.4` (pola yang sama) | **BELUM DILAPORKAN** |
 | `contracts/api-contract.md` G.2 | Tidak perlu diubah — endpoint sudah ada, hanya satu ruas respons bertambah |
-| `roadmap/01-backend-roadmap.md` | Baris `BE-FIN-089` **MUST** diperbarui: ⬜ → 🟡 |
+| `roadmap/01-backend-roadmap.md` | Baris `BE-FIN-089` **MUST** diperbarui: ⬜ → ✅ |
 
 ### Langkah yang perlu pengguna jalankan
 

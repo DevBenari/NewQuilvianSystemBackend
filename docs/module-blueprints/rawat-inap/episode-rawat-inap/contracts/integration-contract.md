@@ -383,3 +383,10 @@ Tidak ada integrasi eksternal baru, worker expiry, reminder, offline workflow at
 Orchestrator transfer existing memanggil OpenAdmission, owner Registrasi untuk source pembayaran dan relasi asal, ReserveBedCore, serta Billing TopUp dalam satu outer transaction. Billing tidak membuka nested transaction. Receipt bed actor/key/hash serta source row lock dan unique source index menjaga replay/duplikasi. Clinical letter poli tetap Issued; status pemakaian diturunkan dari relasi Registrasi.
 
 [Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Clinical dan Billing memakai InpServiceClassResolver, bukan kelas encounter rawat inap sebagai sumber kelas aktual. Interval penempatan [StartDateTime, EndDateTime); riwayat transfer berakhir tetap sah meskipun IsSuperseded, baris digantikan koreksi/dianggap dihapus dikecualikan. Sebelum placement kelas aktual null. Tidak menimpa sejarah kelas encounter/episode karena perpindahan kamar.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

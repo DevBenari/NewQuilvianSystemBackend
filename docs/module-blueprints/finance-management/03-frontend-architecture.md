@@ -1508,3 +1508,237 @@ bahwa bagian ini harus direvisi; peringatan itu baru ditindaklanjuti sekarang.
 - Ini **bukan** pengesahan retroaktif atas proses ad-hoc yang melahirkan V2 di luar roadmap.
   Task frontend/backend berikutnya yang menyentuh layar ini tetap **wajib** didaftarkan ke roadmap
   dengan task ID sebagaimana mestinya.
+
+
+## 24. Amandemen 13 Oktober 2026 (Revisi 19) — Layar Benefit HR, Kartu Penjamin Internal, Pilihan Pegawai di Finalisasi, dan Status Bebas Tanggungan di Exit Clearance
+
+```yaml
+last_changed_in: Revisi 19 (13 Oktober 2026)
+status: draft
+input_revision: 18
+input_hash: 9d2e4d1abef92b17   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 19
+input_decisions: FIN-DEC-204..210
+input_contracts: FIN-API-1.10 (draft); FIN-PERM-1.11 (draft); FIN-INTEGRATION-1.9 (draft)
+task_frontend: FE-FIN-045..FE-FIN-048
+```
+
+### 24.1 Batas wewenang dan kebutuhan layar
+
+| ID layar | Layar | Pemilik modul | Task |
+|---|---|---|---|
+| `FE-FIN-045-A` | Daftar enrollment benefit pegawai | HR | `FE-FIN-045` |
+| `FE-FIN-045-B` | Detail enrollment: tanggungan, saldo per orang, buku mutasi | HR | `FE-FIN-045` |
+| `FE-FIN-046-A` | Form kartu penjamin internal (pencarian pegawai, pilih keluarga, status terdaftar) | Registrasi / Patient Management | `FE-FIN-046` |
+| `FE-FIN-047-A` | Panel pembagian dua porsi dan pilihan pegawai pada finalisasi tagihan | Billing | `FE-FIN-047` |
+| `FE-FIN-047-B` | Form Berita Acara Koreksi salah orang | Billing | `FE-FIN-047` |
+| `FE-FIN-048-A` | Panel status bebas tanggungan pada penyelesaian exit clearance | HR | `FE-FIN-048` |
+
+Seluruh angka rupiah dan pembagian porsi **dihitung backend**. Layar menampilkan, tidak menghitung (`FIN-DEC-185`).
+
+### 24.2 Peta butir menu
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Enrollment Benefit Pegawai | 1 | Grup Human Resource yang sudah ada (diperiksa saat eksekusi) | `DEV_DISCRETION` (usulan `/hr/benefit/enrollments`) | `FE-FIN-045-A` | `EmployeeBenefitEnrollment : Read` | Baru |
+
+Layar yang **tidak** mendapat butir menu, beserta jalan masuknya:
+
+| Layar | Dinyatakan sebagai | Layar induk / jalan masuk |
+|---|---|---|
+| `FE-FIN-045-B` | Layar anak | Baris pada `FE-FIN-045-A` |
+| `FE-FIN-046-A` | Layar anak | Layar kartu penjamin pasien yang sudah ada (komponen kartu pada registrasi belum diperiksa: `Unknown`, ditelusuri saat eksekusi) |
+| `FE-FIN-047-A` | Layar anak | Detail invoice Billing yang sudah ada (`billing-finance-integration-panel.jsx`) |
+| `FE-FIN-047-B` | Layar anak | `FE-FIN-047-A` setelah tagihan final |
+| `FE-FIN-048-A` | Layar anak | Layar penyelesaian exit clearance HR (halaman HR untuk ini belum diperiksa; bila belum ada, task membuat layar anak dari detail pengunduran diri atau offboarding) |
+
+Pendaftaran butir menu menjadi acceptance criteria `FE-FIN-045`. Berkas yang disunting: `src/utils/menu-sidebar/menu-items.jsx`.
+
+### 24.3 Skema fitur per layar
+
+**`FE-FIN-045-B` — Detail enrollment benefit**
+
+```text
++- Enrollment EN-2026-0007 - Budi (nama samaran) --------------- FE-FIN-045 -+
+| Plan: Benefit Medis Pegawai RS   Status: Active   Berlaku 01 Jan - 31 Des 2026 |
+| [Ajukan] [Setujui] [Aktifkan] [Batalkan]                                       |
++--------------------------------------------------------------------------------+
+| Orang           | Hubungan | Status tanggungan | Batas   | Terpakai | Sisa        |
+| Budi (pegawai)  | SELF     | -                 | 10.000K | 2.000K   | 8.000K      |
+| Sari            | CHILD    | Verified          | 5.000K  | 0        | 5.000K [Akhiri] |
+| Andi            | OTHER    | Requested         | -       | -        | -   [Verifikasi][Tolak] |
++--------------------------------------------------------------------------------+
+| Tab: Tanggungan | Buku mutasi plafon                                           |
+| memuat -> kerangka baris | kosong -> "Belum ada tanggungan."  [Daftarkan]      |
+| gagal  -> "Data benefit gagal dimuat."              [Coba lagi]                |
++--------------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses tombol | Kosong / gagal |
+|---|---|---|---|---|
+| Kepala | Plan, status, masa berlaku | `GET .../employee-benefit-enrollments/{id}` | `Submit`, `Approve`, `Activate`, `Cancel` pada `EmployeeBenefitEnrollment` | "Enrollment tidak ditemukan." / "Data benefit gagal dimuat." `[Coba lagi]` |
+| Tabel orang | Saldo per orang dan status tanggungan | Respons yang sama (`Dependents`) | `Verify`, `Reject`, `End`, `Create` pada `EmployeeBenefitDependent` | "Belum ada tanggungan." |
+| Buku mutasi | Tanggal, jenis, invoice, nominal, saldo sesudah | `GET .../{id}/movements` | `EmployeeBenefitEnrollment : Read` | "Belum ada pemakaian plafon." |
+
+**`FE-FIN-046-A` — Kartu penjamin internal**
+
+```text
++- Kartu Penjamin Internal - RS Benefit --------------------------- FE-FIN-046 -+
+| Cari pegawai: [ketik NIP / NIK / nama (min. 3 karakter)]                      |
+|   hasil (maks. 20): NIP | Nama | NIK tersamar | Unit | Benefit aktif?          |
+| Terpilih: Budi - NIP ... - NIK 3174........0001                               |
+| Yang berobat: (o) Pegawai sendiri  ( ) Anggota keluarga [Sari v]              |
+| Status: [Terdaftar dan terverifikasi]  atau  [Belum terdaftar: <pesan sistem>]|
+| [Simpan kartu]                          [Daftarkan sebagai Pasien Umum]       |
++--------------------------------------------------------------------------------+
+```
+
+| Wilayah | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|
+| Pencarian pegawai | `GET .../employee-benefit-lookups/employees?search=` | `EmployeeBenefitLookup : Read` | "Ketik minimal 3 karakter." / "Tidak ada pegawai yang cocok." / "Data HR belum dapat dibaca." `[Coba lagi]` |
+| Pilihan keluarga | `GET .../employees/{id}/family-members` | idem | "Pegawai ini belum punya anggota keluarga terdaftar di HR." |
+| Status terdaftar | `GET .../eligibility` | idem | Pesan dari sistem ditampilkan apa adanya; tidak ditafsirkan ulang |
+| Simpan kartu | Endpoint kartu yang sudah ada (DTO bertambah) | `PatientCompanyGuarantor : Create/Update` | Kode hubungan **tidak** bisa dipilih petugas |
+
+**`FE-FIN-047-A` — Finalisasi tagihan pegawai**
+
+```text
++- Finalisasi INV-2026-001234 - Sari (anak dari Budi) ------------- FE-FIN-047 -+
+| Tagihan Rp 5.000.000                                                          |
+| Ditanggung aturan penjamin (C)                  Rp 4.000.000                  |
+| Sisa plafon                                     Rp 3.000.000                  |
+| Porsi RS Benefit (P)                            Rp 3.000.000                  |
+| Kelebihan di atas plafon -> utang pegawai       Rp 1.000.000                  |
+| Sisa tagihan pasien (co-pay)                    Rp 1.000.000                  |
+|   Pilihan pegawai: (o) Bayar lunas di kasir  ( ) Jadikan utang  ( ) Sebagian [Rp ____] |
+| Utang pegawai Rp 1.000.000   |   Dibayar tunai Rp 1.000.000                   |
+| [Finalisasi]                                                                  |
+| tertahan -> "Data benefit pegawai belum dapat dipastikan. Hubungi HR."        |
++-------------------------------------------------------------------------------+
+```
+
+| Wilayah | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|
+| Rincian porsi | `GET .../finalizations/invoices/{id}/preview` (`EmployeeBenefitSplit`) | `BillingFinalization : Read` | Blok tidak muncul bila bukan kunjungan berpenjamin internal |
+| Pilihan pegawai | Dikirim pada `POST .../finalizations/invoices/{id}` (`EmployeeReceivableChoiceAmount`) | `BillingFinalization : Create` | Nominal melebihi sisa tagihan: pesan sistem; tombol Finalisasi tidak aktif |
+| Penahanan | `BlockingMessage` dari pratinjau | — | Tombol Finalisasi tidak aktif; pesan ditampilkan |
+
+### 24.4 Matriks wewenang UI dan `DEV_DISCRETION`
+
+| Elemen | Status | Batasan |
+|---|---|---|
+| Pegawai sendiri yang memilih; kasir mencatat | **Keputusan terkunci** (`FIN-DEC-208`) | Kasir tidak boleh menetapkan pilihan atas nama pegawai tanpa pegawai memilih |
+| Kode hubungan tidak dapat dipilih petugas | **Keputusan terkunci** (`FIN-DEC-204`) | Selalu hasil sistem |
+| NIK tersamar pada pencarian | **Invariant privasi** | Tidak boleh dilonggarkan oleh frontend |
+| Angka dan pembagian porsi | **Invariant sistem** | Tidak dihitung di JavaScript klien |
+| Rute, tata letak, nama butir menu, urutan | `DEV_DISCRETION` | Mengikuti design system dan token CSS Quilvian |
+| Bentuk pilihan (radio, tombol segmen) | `DEV_DISCRETION` | Isi dan batasnya terkunci, bentuk kontrolnya tidak |
+
+### 24.5 Ketergantungan pada backend
+
+| Task frontend | Menunggu | Catatan |
+|---|---|---|
+| `FE-FIN-045` | `BE-FIN-103`, `BE-FIN-104` | Layar enrollment tidak dapat dibangun sebelum endpoint ada |
+| `FE-FIN-046` | `BE-FIN-105`, `BE-FIN-106` | |
+| `FE-FIN-047` | `BE-FIN-107`, `BE-FIN-109` | |
+| `FE-FIN-048` | `BE-FIN-112` | |
+
+### 24.6 Pertanyaan terbuka frontend
+
+| Pertanyaan | Pemilik | Dampak |
+|---|---|---|
+| Apakah ada halaman HR untuk exit clearance, atau layar anak baru? | Pemilik HR | Bentuk `FE-FIN-048` |
+| Komponen kartu penjamin pada registrasi mana yang dipakai ulang? | Pemilik Registrasi | Bentuk `FE-FIN-046` |
+| Apakah persetujuan pegawai perlu dicatat bila pasien bukan pegawai? | Pemilik Billing + Finance (`FIN-OQ-108`) | Isian tambahan pada `FE-FIN-047-A` |
+
+### 24.7 Yang sengaja tidak dibuat
+
+| Yang dipertimbangkan | Alasan ditolak |
+|---|---|
+| Menampilkan saldo plafon di layar Registrasi | Registrasi tidak melihat saldo (`FIN-DEC-202`) |
+| Menampilkan saldo plafon di layar Finance | Ditolak sejak `22.12`: Finance tidak memegang plafon |
+| Kontrol untuk mengubah kode hubungan | Hubungan ditentukan sistem |
+| Layar klaim benefit | Di luar `EPIC FIN-04` |
+
+
+## 25. Amandemen 13 Oktober 2026 (Revisi 20) — Layar Potong Gaji Manual, Master Peralihan, dan Isian Persetujuan Pegawai
+
+```yaml
+last_changed_in: Revisi 20 (13 Oktober 2026)
+status: draft
+input_revision: 19
+input_hash: c1e6f97cabf64f07   # SHA-256 (16 karakter pertama) berkas ini sebelum amandemen Revisi 20
+input_decisions: FIN-DEC-215, 218..222
+input_contracts: FIN-API-1.11 (draft); FIN-PERM-1.12 (draft)
+```
+
+### 25.1 Kebutuhan layar
+
+| ID layar | Layar | Pemilik |
+|---|---|---|
+| `FIN-LYR-PG-01` | Potong Gaji Manual: jadwal per periode (lihat, ekspor) dan daftar batch | Finance |
+| `FIN-LYR-PG-02` | Rincian batch: hasil validasi per baris, angsuran terjadwal yang belum ada, ajukan dengan bukti, sahkan/tolak/batalkan | Finance |
+| `FIN-LYR-PG-03` | Master peralihan ke mesin payroll | Finance |
+| `FE-FIN-047-A` (tambahan) | Isian nama pemberi persetujuan pada panel finalisasi pegawai (Revisi 19, bagian 24.3) | Billing |
+
+### 25.2 Peta butir menu
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Potong Gaji Manual | 2 | Piutang Karyawan (`FIN-DEC-181`) | `DEV_DISCRETION` (usulan `/finance/employee-receivable/payroll-deduction`) | `FIN-LYR-PG-01` | `FinancePayrollDeductionBatch : Read` | Baru |
+| Peralihan Potong Gaji | 2 | Grup Master Data Keuangan yang sudah ada | `DEV_DISCRETION` (usulan `/finance/master-data/payroll-deduction-cutover`) | `FIN-LYR-PG-03` | `PayrollDeductionCutover : Read` | Baru |
+
+`FIN-LYR-PG-02` adalah **layar anak** dari baris batch pada `FIN-LYR-PG-01`. Isian persetujuan menempel pada panel `FE-FIN-047-A` yang sudah ada.
+
+### 25.3 Skema fitur
+
+**`FIN-LYR-PG-01` — Potong Gaji Manual**
+
+```text
++- Potong Gaji Manual ------------------------------------------- FIN-LYR-PG-01 -+
+| Periode: [2026-09 v]     Status jembatan: Manual (mesin belum aktif)            |
+| Jadwal periode ini: 3 angsuran, terutang Rp 4.250.000  [Ekspor Excel] [Ekspor PDF]|
++---------------------------------------------------------------------------------+
+| Batch                 | Jenis   | Status    | Total kontrol | Baris | Tidak valid |
+| PG-2026-09-0001       | REGULER | DIAJUKAN  | 2.000.000     | 3     | 0   [Buka]  |
++---------------------------------------------------------------------------------+
+| [Unggah hasil potongan]                                                         |
+| kosong -> "Belum ada batch untuk periode ini."  gagal -> "Data gagal dimuat." [Coba lagi] |
++---------------------------------------------------------------------------------+
+```
+
+| Wilayah | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|
+| Jadwal dan ekspor | `GET .../payroll-deduction/schedule`, `/export/excel`, `/export/pdf` | `FinancePayrollDeductionBatch : Read` | "Tidak ada angsuran terjadwal pada periode ini." |
+| Status jembatan | `GET .../payroll-deduction-cutovers/current` | `PayrollDeductionCutover : Read` | Bila periode ≥ peralihan: tombol unggah tidak aktif, pesan "Periode ini ditangani mesin payroll" |
+| Daftar batch | `GET .../payroll-deduction/batches` | `FinancePayrollDeductionBatch : Read` | "Belum ada batch untuk periode ini." |
+| Unggah | `POST .../batches` | `FinancePayrollDeductionBatch : Create` | Pesan galat berkas dari sistem |
+
+**`FIN-LYR-PG-02` — Rincian batch**
+
+```text
++- Batch PG-2026-09-0001 - REGULER - DIAJUKAN ------------------- FIN-LYR-PG-02 -+
+| Total kontrol Rp 2.000.000 = total berkas Rp 2.000.000   Laporan: PAY/09/2026   |
+| [Ajukan] [Sahkan] [Tolak] [Batalkan]                                            |
++---------------------------------------------------------------------------------+
+| # | Kode angsuran | NIP | Nama | Status   | Terpotong | Terutang | Validasi       |
+| 1 | AP-0007-3     | ... | Budi | SEBAGIAN | 1.500.000 | 3.000.000| VALID          |
++---------------------------------------------------------------------------------+
+| Angsuran terjadwal yang belum ada di berkas: (kosong)                           |
++---------------------------------------------------------------------------------+
+```
+
+| Wilayah | Sumber data | Hak akses tombol | Kosong / gagal |
+|---|---|---|---|
+| Kepala dan tombol | `GET .../batches/{id}` | Ajukan: `Submit`; Sahkan: `Approve` atau `ApproveCorrection` (untuk `KOREKSI`); Tolak: `Reject`; Batalkan: `Cancel` | Tombol Sahkan tidak tampil bagi pengaju |
+| Baris | Respons yang sama (`Items`) | — | Baris `INVALID` ditandai beserta pesannya |
+| Belum ada di berkas | `MissingScheduledInstallments` | — | "Semua angsuran terjadwal sudah ada." |
+| Ajukan | Unggah bukti lewat endpoint bukti transaksi yang sudah ada, lalu `POST .../submit` | `Submit` | Pesan sistem bila nomor atau bukti kosong |
+
+### 25.4 Matriks wewenang UI
+
+| Elemen | Status | Batasan |
+|---|---|---|
+| Pengaju tidak dapat mengesahkan | **Invariant** (`FIN-DEC-220`) | Tombol disembunyikan **dan** ditolak backend |
+| Hasil hanya lewat unggah berkas | **Keputusan terkunci** (`FIN-DEC-221`) | Tidak ada form input per angsuran |
+| Angka terutang dan total | **Invariant sistem** | Dari backend; tidak dihitung di klien |
+| Rute, tata letak, nama butir menu | `DEV_DISCRETION` | Mengikuti design system Quilvian |

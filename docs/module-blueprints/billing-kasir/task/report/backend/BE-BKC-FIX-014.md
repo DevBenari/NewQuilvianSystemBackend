@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5.5 |
 | Commit backend saat dikerjakan | `1a3b9299d4fe0fbe47a30124fa1d71e8b21e4ce6` (branch `Yasmina`, upstream `origin/Yasmina`, working tree bersih sebelum task) |
 | Tanggal | 2026-10-05 |
-| Status | 🟡 **KODE DAN MIGRATION SELESAI DITULIS, VALIDASI BELUM DIJALANKAN.** `dotnet build` `NOT RUN` dan migration belum diterapkan ke database mana pun. Task ini belum boleh disebut selesai (`✅`) sebelum build dan pemeriksaan model migration lulus — lihat bagian 5 dan 7 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

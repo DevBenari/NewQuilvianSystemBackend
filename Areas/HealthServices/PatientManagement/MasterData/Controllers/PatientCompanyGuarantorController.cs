@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -40,15 +42,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly PatientPayerCardImageService _cardImageService;
+        private readonly RegistrationEmployeeBenefitLookupService _employeeBenefitLookup;
 
         public PatientCompanyGuarantorController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
-            PatientPayerCardImageService cardImageService)
+            PatientPayerCardImageService cardImageService,
+            RegistrationEmployeeBenefitLookupService? employeeBenefitLookup = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _cardImageService = cardImageService;
+            _employeeBenefitLookup = employeeBenefitLookup
+                ?? new RegistrationEmployeeBenefitLookupService(
+                    dbContext, new EmployeeBenefitEligibilityService(dbContext), loggerService);
         }
 
         [HttpGet("filters/metadata")]
@@ -439,6 +446,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public async Task<IActionResult> CreatePatientCompanyGuarantor(
             [FromBody] CreatePatientCompanyGuarantorRequest request)
         {
+            // BE-FIN-106, FIN-VAL-259/260, FIN-DEC-228: kartu penjamin internal hanya terbit untuk pegawai atau anggota
+            // keluarga yang terdaftar dan terverifikasi di HR; identitas pasien dicocokkan; kode hubungan ditentukan sistem.
+            var cardLink = await _employeeBenefitLookup.ResolveCardLinkAsync(
+                request.CompanyGuarantorId, request.EmployeeId, request.FamilyMemberId, request.BenefitRelationship,
+                request.PatientId,
+                HttpContext.RequestAborted);
+
+            if (!cardLink.IsAccepted)
+            {
+                return StatusCode(cardLink.StatusCode, ApiResponse<object>.Fail(
+                    cardLink.StatusCode,
+                    cardLink.Message ?? "Data pegawai HR pada kartu tidak valid."
+                ));
+            }
+
+            if (cardLink.IsInternal)
+            {
+                // NIP dan nama pada kartu internal adalah label tampilan yang diisi dari data HR.
+                request.EmployeeNumber = cardLink.EmployeeNumber!;
+                request.EmployeeName = cardLink.EmployeeName;
+            }
+
             var validation = await ValidateRequestAsync(
                 excludeId: null,
                 request: request
@@ -520,6 +549,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     GuaranteeDocumentPath = NormalizeNullableString(request.GuaranteeDocumentPath),
                     CardImagePath = storedCardImage?.PublicPath ?? NormalizeNullableString(request.CardImagePath),
                     Notes = NormalizeNullableString(request.Notes),
+                    EmployeeId = cardLink.EmployeeId,
+                    FamilyMemberId = cardLink.FamilyMemberId,
+                    BenefitRelationship = cardLink.BenefitRelationship,
                     IsActive = true,
                     CreateDateTime = now,
                     CreateBy = actorUserId,
@@ -746,6 +778,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 ));
             }
 
+            // BE-FIN-106: kartu yang dinonaktifkan lewat PUT tidak diperiksa ulang ke HR (pegawai yang
+            // sudah keluar tetap dapat dinonaktifkan kartunya) dan tautannya dibiarkan apa adanya.
+            InternalCardLinkResult? cardLink = null;
+
+            if (request.IsActive)
+            {
+                cardLink = await _employeeBenefitLookup.ResolveCardLinkAsync(
+                    request.CompanyGuarantorId, request.EmployeeId, request.FamilyMemberId, request.BenefitRelationship,
+                    entity.PatientId,
+                    HttpContext.RequestAborted);
+
+                if (!cardLink.IsAccepted)
+                {
+                    return StatusCode(cardLink.StatusCode, ApiResponse<object>.Fail(
+                        cardLink.StatusCode,
+                        cardLink.Message ?? "Data pegawai HR pada kartu tidak valid."
+                    ));
+                }
+
+                if (cardLink.IsInternal)
+                {
+                    request.EmployeeNumber = cardLink.EmployeeNumber!;
+                    request.EmployeeName = cardLink.EmployeeName;
+                }
+            }
+
             var validation = await ValidateRequestAsync(
                 excludeId: id,
                 request: request
@@ -828,6 +886,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     ?? NormalizeNullableString(request.CardImagePath)
                     ?? entity.CardImagePath;
                 entity.Notes = NormalizeNullableString(request.Notes);
+
+                if (cardLink != null)
+                {
+                    // Beralih dari penjamin internal ke penjamin biasa mengosongkan ketiga kolom (aturan konsistensi
+                    // CK_MstPatientCompanyGuarantor_BenefitLink).
+                    entity.EmployeeId = cardLink.EmployeeId;
+                    entity.FamilyMemberId = cardLink.FamilyMemberId;
+                    entity.BenefitRelationship = cardLink.BenefitRelationship;
+                }
+
                 entity.IsActive = request.IsActive;
                 entity.UpdateDateTime = now;
                 entity.UpdateBy = actorUserId;
@@ -1486,6 +1554,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 GuaranteeDocumentPath = entity.GuaranteeDocumentPath,
                 CardImagePath = entity.CardImagePath,
                 IsActive = entity.IsActive,
+                EmployeeId = entity.EmployeeId,
+                FamilyMemberId = entity.FamilyMemberId,
+                BenefitRelationship = entity.BenefitRelationship,
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
                 CreateByName = GetActorName(actorNames, entity.CreateBy),
@@ -1538,6 +1609,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 CardImagePath = entity.CardImagePath,
                 Notes = entity.Notes,
                 IsActive = entity.IsActive,
+                EmployeeId = entity.EmployeeId,
+                FamilyMemberId = entity.FamilyMemberId,
+                BenefitRelationship = entity.BenefitRelationship,
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
                 CreateByName = GetActorName(actorNames, entity.CreateBy),

@@ -107,6 +107,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public bool IsActive { get; set; }
 
+        /// <summary>BE-FIN-105: tautan ke pegawai HR. Hanya-baca; tidak diterima pada request simpan kartu.</summary>
+        public Guid? EmployeeId { get; set; }
+
+        /// <summary>BE-FIN-105: tautan ke anggota keluarga HR; kosong bila pegawai sendiri. Hanya-baca.</summary>
+        public Guid? FamilyMemberId { get; set; }
+
+        /// <summary>BE-FIN-105: SELF, SPOUSE, CHILD, PARENT, atau OTHER. Hanya-baca.</summary>
+        public string? BenefitRelationship { get; set; }
+
         public DateTime CreateDateTime { get; set; }
 
         public Guid? CreateBy { get; set; }
@@ -335,6 +344,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [MaxLength(250)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// BE-FIN-106: pegawai HR pemilik benefit. Wajib untuk kartu atas penjamin internal (RS Benefit)
+        /// dan dilarang untuk penjamin biasa. Dipilih lewat pencarian pegawai, bukan diketik bebas.
+        /// </summary>
+        public Guid? EmployeeId { get; set; }
+
+        /// <summary>BE-FIN-106: anggota keluarga HR bila pasiennya bukan pegawai sendiri.</summary>
+        public Guid? FamilyMemberId { get; set; }
+
+        /// <summary>
+        /// FIN-VAL-260: kode hubungan ditentukan sistem dari data HR dan TIDAK boleh dikirim klien.
+        /// Properti ini ada hanya agar pengiriman nilainya dapat ditolak 400, bukan diam-diam diabaikan.
+        /// </summary>
+        public string? BenefitRelationship { get; set; }
     }
 
     public class UpdatePatientCompanyGuarantorRequest : CreatePatientCompanyGuarantorRequest

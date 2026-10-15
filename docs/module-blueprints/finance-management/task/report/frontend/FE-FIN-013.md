@@ -11,7 +11,7 @@
 | Trace | `FR-FIN-093`..`095`; `FIN-DEC-049`, `055`, `058`; `FIN-API-1.2` C.2; `FIN-STATE-1.3` C.4; `FIN-VAL-1.3` C.1, C.3 (`FIN-VAL-118`, `121`, `128`, `137`) |
 | Contract version | `FIN-API-1.1`/`FIN-API-1.2` §B.8/C.2 — `POST /receipts/{id}/allocations` diperluas aditif dengan `deductions[]` |
 | Wewenang UI | `Tetap di dalam alur satu penerimaan` (`03-frontend-architecture.md` §12.3) — potongan **tidak** dijadikan layar sendiri, hanya baris tambahan pada modal alokasi yang sudah ada |
-| Dependency | `BE-FIN-040` (source lengkap; `dotnet build` dikonfirmasi berhasil oleh pemilik repository), `FE-FIN-004` 🟡 (layar alokasi dasarnya sudah dibangun sesi yang sama — [laporan](FE-FIN-004.md)) |
+| Dependency | `BE-FIN-040` (source lengkap; `dotnet build` dikonfirmasi berhasil oleh pemilik repository), `FE-FIN-004` ✅ (layar alokasi dasarnya sudah dibangun sesi yang sama — [laporan](FE-FIN-004.md)) |
 | Klasifikasi | `LIGHT` — satu repository (skor 0); ≤8 berkas diperiksa domain terdekat (skor 0); 5 berkas diubah, 0 baru (skor 0); logika UI kecil — baris tambahan pada form yang sudah ada (skor 0); kontrak API — field aditif pada endpoint yang sudah dikonsumsi (skor 0); tanpa perubahan skema (skor 0); tanpa keputusan otorisasi baru (skor 0); UI — perluasan form existing, bukan layar baru (skor 0). Total 0 → `LIGHT` |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` — `src/lib/hooks/finance/receivable/use-finance-receipt-allocation-editor.jsx`, `use-finance-receipt-detail.jsx` (diubah); `src/components/view/finance/receivable/receipt/allocate-receipt-modal.jsx`, `detail/finance-receipt-detail-view.jsx` (diubah); `src/lib/constants/finance/receivable/finance-receipt-constants.jsx` (diubah); `NewQuilvianSystemBackend` — laporan ini dan tautan bukti pada roadmap modul yang sama |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | Belum di-commit — branch `yasmina` |
 | Commit backend yang dijadikan rujukan | `50f29ccc` |
 | Tanggal | 30 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap, `npm run lint:errors` PASS, `npm run build` PASS; verifikasi manual/runtime `NOT FEASIBLE` — sama seperti `FE-FIN-004`, tidak ada instance backend berjalan yang dikonfirmasi pada sesi ini |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -178,7 +178,7 @@ sungguhan.
 | --- | --- |
 | Peringatan | Tidak ada |
 | Masalah yang diketahui | Tidak ada temuan baru — seluruh gap backend terkait rumpun ini sudah dicatat pada laporan `FE-FIN-004` |
-| Dependency backend | `BE-FIN-040` — dikonfirmasi lengkap dan `dotnet build` berhasil oleh pemilik repository. `FE-FIN-004` 🟡 (prasyarat langsung) — bagian yang relevan untuk task ini (alokasi manual) sudah selesai; gap rekonsiliasi shift pada `FE-FIN-004` tidak berdampak ke task ini |
+| Dependency backend | `BE-FIN-040` — dikonfirmasi lengkap dan `dotnet build` berhasil oleh pemilik repository. `FE-FIN-004` ✅ (prasyarat langsung) — bagian yang relevan untuk task ini (alokasi manual) sudah selesai; gap rekonsiliasi shift pada `FE-FIN-004` tidak berdampak ke task ini |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `git status --short` mencakup 5 berkas yang diubah pada task ini (lihat bagian 3.2) — seluruhnya berkas yang baru dibuat `FE-FIN-004` pada sesi yang sama, belum di-commit siapa pun |

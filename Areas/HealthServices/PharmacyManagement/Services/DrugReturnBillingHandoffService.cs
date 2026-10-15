@@ -66,6 +66,21 @@ public sealed class DrugReturnBillingHandoffService(ApplicationDbContext db, Cli
             var accepted = returned.Items.Where(x => !x.IsDelete && x.AcceptedStatus == DrugStockStatus.Available
                 && x.AcceptedQuantity > 0).ToList();
             if (returned.Status != DrugReturnStatus.Verified || accepted.Count == 0) return;
+
+            // BE-BKC-FIX-017: retur atas pemakaian TANPA resep mengurangi tagihan butir pemakaian
+            // yang bersangkutan (satu fakta per butir), bukan tagihan resep.
+            if (returned.SourceDrugUsageId.HasValue)
+            {
+                var sourceUsage = await db.PhmDrugUsages.AsNoTracking().Include(x => x.Items)
+                    .SingleOrDefaultAsync(x => x.Id == returned.SourceDrugUsageId && !x.IsDelete, ct);
+                if (sourceUsage is { PrescriptionId: null })
+                {
+                    if (sourceUsage.EncounterId == returned.EncounterId)
+                        await EmitNonPrescriptionReturnAsync(returned, sourceUsage, actorId, ct);
+                    return;
+                }
+            }
+
             // Retry Verify memakai fakta retur yang sama; tidak menerbitkan revisi tambahan.
             var marker = $"\"returnId\":\"{returnId:D}\"";
             var prior = await db.Set<CliClinicalMilestoneFact>().AsNoTracking()
@@ -132,6 +147,76 @@ public sealed class DrugReturnBillingHandoffService(ApplicationDbContext db, Cli
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Fakta Billing retur {ReturnId} belum terkirim; Verify dapat diulang dengan kunci yang sama.", returnId);
+        }
+    }
+
+    /// <summary>
+    /// Retur pemakaian obat/BMHP tanpa resep — <c>BE-BKC-FIX-017</c>. Untuk setiap butir pemakaian
+    /// yang jumlah kembaliannya berubah karena retur ini, terbit satu fakta pembatalan bermarka
+    /// <c>DrugReturn</c> berisi sisa jumlah yang tetap ditagih; Billing mengurangi baris butir itu
+    /// (atau mengajukan adjustment bila invoice sudah final).
+    /// </summary>
+    /// <remarks>
+    /// Retur dicatat per obat dan batch, sedangkan tagihan per butir. Jumlah kembali per obat
+    /// dibagikan ke butir-butir obat itu menurut urutan baris, dihitung ulang dari seluruh retur
+    /// terverifikasi, sehingga hasilnya selalu sama walau dijalankan ulang. Verify yang diulang
+    /// menerbitkan ulang fakta yang sama (replay), tidak pernah revisi tambahan.
+    /// </remarks>
+    private async Task EmitNonPrescriptionReturnAsync(PhmDrugReturn returned, PhmDrugUsage usage, Guid actorId, CancellationToken ct)
+    {
+        var verified = await db.PhmDrugReturns.AsNoTracking().Include(x => x.Items)
+            .Where(x => x.SourceDrugUsageId == usage.Id && x.Status == DrugReturnStatus.Verified && !x.IsDelete)
+            .ToListAsync(ct);
+        static decimal Accepted(IEnumerable<PhmDrugReturn> returns, Guid drugId, Guid measurementId) =>
+            returns.SelectMany(x => x.Items).Where(x => !x.IsDelete && x.AcceptedStatus == DrugStockStatus.Available
+                && x.DrugId == drugId && x.MeasurementId == measurementId).Sum(x => x.AcceptedQuantity ?? 0);
+
+        var marker = $"\"returnId\":\"{returned.Id:D}\"";
+        var occurredAt = returned.VerifiedAt ?? DateTime.UtcNow;
+        foreach (var group in usage.Items.Where(x => !x.IsDelete).GroupBy(x => (x.DrugId, x.MeasurementId)))
+        {
+            var lines = group.OrderBy(x => x.LineNumber).ToList();
+            var totalAfter = Accepted(verified, group.Key.DrugId, group.Key.MeasurementId);
+            var totalBefore = Accepted(verified.Where(x => x.Id != returned.Id), group.Key.DrugId, group.Key.MeasurementId);
+            decimal consumedAfter = 0, consumedBefore = 0;
+            foreach (var line in lines)
+            {
+                var returnedAfter = Math.Min(line.Quantity, Math.Max(0, totalAfter - consumedAfter));
+                var returnedBefore = Math.Min(line.Quantity, Math.Max(0, totalBefore - consumedBefore));
+                consumedAfter += line.Quantity;
+                consumedBefore += line.Quantity;
+                if (returnedAfter == returnedBefore) continue;
+
+                var prior = await db.Set<CliClinicalMilestoneFact>().AsNoTracking()
+                    .Where(x => !x.IsDelete && x.SourceContext == BillingSourceContract.DrugUsageSourceContext
+                        && x.SourceItemId == line.Id && x.CausationId == returned.Id
+                        && x.RuleSnapshot != null && x.RuleSnapshot.Contains(marker))
+                    .OrderByDescending(x => x.MilestoneFactVersion).FirstOrDefaultAsync(ct);
+                var request = prior != null
+                    ? new ClinicalMilestoneFactRequest
+                    {
+                        SourceContext = prior.SourceContext, SourceAggregateId = prior.SourceAggregateId, SourceItemId = prior.SourceItemId,
+                        EffectType = prior.EffectType, EncounterId = prior.EncounterId, OccurredAt = prior.OccurredAt,
+                        Quantity = prior.Quantity, Unit = prior.Unit, RuleSnapshot = prior.RuleSnapshot,
+                        TariffSnapshot = prior.TariffSnapshot, CorrelationId = prior.CorrelationId, CausationId = returned.Id
+                    }
+                    : new ClinicalMilestoneFactRequest
+                    {
+                        SourceContext = BillingSourceContract.DrugUsageSourceContext, SourceAggregateId = usage.Id, SourceItemId = line.Id,
+                        EffectType = BillingSourceContract.DrugUsageChargeEffectType, EncounterId = returned.EncounterId,
+                        OccurredAt = occurredAt, Quantity = returnedAfter - returnedBefore, Unit = "UNIT",
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = "DrugReturn", returnId = returned.Id, returnNumber = returned.ReturnNumber,
+                            sourceDrugUsageId = usage.Id, remainingQuantity = line.Quantity - returnedAfter
+                        }),
+                        CorrelationId = usage.Id, CausationId = returned.Id
+                    };
+                var result = await producer.EmitClinicalCancellationAsync(request, actorId, ct);
+                if (!result.IsClinicallySafe)
+                    logger.LogWarning("Fakta retur pemakaian {ReturnId} butir {ItemId} perlu rekonsiliasi: {Code}.",
+                        returned.Id, line.Id, result.Code);
+            }
         }
     }
 

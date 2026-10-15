@@ -1,11 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -21,6 +25,8 @@ public sealed class BillingFinalizationService
     private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
     private readonly IBillingCalculationService? _calculationService;
+    private readonly BillingEmployeeBenefitSplitService? _splitService;
+    private readonly EmployeeBenefitBalanceService? _balanceService;
 
     public BillingFinalizationService(
         ApplicationDbContext dbContext,
@@ -29,7 +35,9 @@ public sealed class BillingFinalizationService
         BillingInvoiceClosureService closureService,
         BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService,
-        IBillingCalculationService? calculationService = null)
+        BillingEmployeeBenefitSplitService? splitService = null,
+        IBillingCalculationService? calculationService = null,
+        EmployeeBenefitBalanceService? balanceService = null)
     {
         _dbContext = dbContext;
         _chargeSourceAdapter = chargeSourceAdapter;
@@ -37,7 +45,9 @@ public sealed class BillingFinalizationService
         _closureService = closureService;
         _consumerHandoffService = consumerHandoffService;
         _loggerService = loggerService;
+        _splitService = splitService;
         _calculationService = calculationService;
+        _balanceService = balanceService ?? splitService?.BalanceService;
     }
 
     public async Task<FinalizationPreviewResponse> PreviewAsync(
@@ -80,7 +90,25 @@ public sealed class BillingFinalizationService
                         "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
                 if (transaction is not null) await transaction.CommitAsync(cancellationToken);
                 await AuditFinalizationAsync(prior, actorUserId, true);
-                return Map(prior, true);
+                var replayResponse = Map(prior, true);
+                if (_splitService is not null)
+                {
+                    var replayCalculation = await _dbContext.BilCalculationVersions.AsNoTracking()
+                        .SingleOrDefaultAsync(x => x.InvoiceId == prior.InvoiceId && x.VersionNo == prior.CalculationVersion, cancellationToken);
+                    if (replayCalculation is not null)
+                    {
+                        var replaySplit = await _splitService.EvaluateSplitAsync(
+                            prior.Invoice,
+                            replayCalculation,
+                            prior.OutstandingAtFinalization,
+                            request.EmployeeReceivableChoiceAmount ?? 0m,
+                            request.EmployeeReceivableConsentGivenBy,
+                            isFinalizing: false,
+                            cancellationToken);
+                        replayResponse.EmployeeBenefitSplit = replaySplit?.Response;
+                    }
+                }
+                return replayResponse;
             }
 
             if (await _dbContext.BilFinalizationRecords.AsNoTracking()
@@ -112,25 +140,51 @@ public sealed class BillingFinalizationService
                 throw new BillingFinalizationBlockedException(
                     "Masih ada layanan yang tarifnya belum diatur. Lengkapi master tarif sebelum memfinalkan.",
                     readiness);
+            // BE-BKC-FIX-021: finalisasi normal tertahan oleh pelayanan yang belum masuk invoice.
+            // Departure exception (meninggal, transfer darurat, APS) tidak ditahan — BKC-DEC-033;
+            // tagihan yang menyusul diajukan sebagai adjustment seperti late charge lain.
+            if (!isDepartureException
+                && readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.PendingClinicalCharge))
+                throw new BillingFinalizationBlockedException(
+                    "Masih ada pelayanan yang belum masuk invoice. Selesaikan antrean rekonsiliasi sebelum memfinalkan.",
+                    readiness);
             if (!readiness.AllOrdersComplete || !readiness.CalculationCurrent)
                 throw new BillingFinalizationBlockedException(
                     "Invoice belum siap difinalisasi.", readiness);
-            if (!isDepartureException && readiness.Outstanding > 0)
-                throw new BillingFinalizationBlockedException(
-                    "Tanggung jawab pasien belum lunas; ajukan write-off/adjustment atau catat departure exception untuk melanjutkan.",
-                    readiness);
-
             var now = DateTimeOffset.UtcNow;
             var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
                 .SingleAsync(
                     x => x.InvoiceId == invoice.Id && x.VersionNo == readiness.CalculationVersion,
                     cancellationToken);
 
+            // BE-FIN-107: Evaluasi pembagian dua porsi penjamin internal (RS Benefit & pegawai)
+            EmployeeBenefitSplitCalculationResult? splitResult = null;
+            if (_splitService is not null)
+            {
+                splitResult = await _splitService.EvaluateSplitAsync(
+                    invoice,
+                    calculation,
+                    readiness.Outstanding,
+                    choiceAmount: request.EmployeeReceivableChoiceAmount ?? 0m,
+                    consentGivenBy: request.EmployeeReceivableConsentGivenBy,
+                    isFinalizing: true,
+                    cancellationToken);
+            }
+
+            var effectiveOutstanding = splitResult is not null
+                ? splitResult.PatientRemainingAmount
+                : readiness.Outstanding;
+
+            if (!isDepartureException && effectiveOutstanding > 0)
+                throw new BillingFinalizationBlockedException(
+                    "Tanggung jawab pasien belum lunas; ajukan write-off/adjustment atau catat departure exception untuk melanjutkan.",
+                    readiness);
+
             var (record, closureChange) = await ExecuteInternalFinalizationAndClosureAsync(
                 invoice,
                 calculation,
                 readiness.CalculationVersion,
-                readiness.Outstanding,
+                effectiveOutstanding,
                 isDepartureException,
                 request.DepartureReason,
                 request.DebtorIdentity,
@@ -142,12 +196,15 @@ public sealed class BillingFinalizationService
                 request.CausationId,
                 actorUserId,
                 now,
-                cancellationToken);
+                cancellationToken,
+                splitResult);
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditFinalizationAsync(record, actorUserId, false);
             if (closureChange.Changed)
                 await AuditClosureChangeAsync(closureChange, actorUserId);
-            return Map(record, false);
+            var response = Map(record, false);
+            response.EmployeeBenefitSplit = splitResult?.Response;
+            return response;
         }
         catch (DbUpdateConcurrencyException exception)
         {
@@ -163,6 +220,14 @@ public sealed class BillingFinalizationService
             throw new BillingFinalizationConflictException(
                 "Finalisasi tidak dapat disimpan karena target, correlation, atau idempotency key sudah diproses.",
                 exception);
+        }
+        catch (Exception exception) when (IsSerializationFailure(exception))
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinalizationConflictException(
+                "Terjadi konflik transaksi bersamaan pada data yang sama (serialization failure). Muat ulang dan coba kembali.",
+                exception,
+                code: "SERIALIZATION_FAILURE");
         }
         catch
         {
@@ -297,10 +362,28 @@ public sealed class BillingFinalizationService
                 throw new BillingFinalizationBlockedException(
                     "Invoice belum memiliki hasil perhitungan terkini.",
                     readiness);
+            // BE-BKC-FIX-021: penahan yang sama dengan finalisasi manual normal.
+            if (readiness.BlockingCodes.Count > 0)
+                throw new BillingFinalizationBlockedException(
+                    readiness.BlockingReasons.LastOrDefault() ?? "Invoice belum siap diselesaikan.",
+                    readiness);
             if (readiness.Outstanding > 0 || calculation.PatientAmount > 0)
                 throw new BillingFinalizationBlockedException(
                     "Invoice memiliki kewajiban pasien; gunakan alur pembayaran normal.",
                     readiness);
+
+            EmployeeBenefitSplitCalculationResult? splitResult = null;
+            if (_splitService is not null)
+            {
+                splitResult = await _splitService.EvaluateSplitAsync(
+                    invoice,
+                    calculation,
+                    patientOutstanding: 0m,
+                    choiceAmount: 0m,
+                    consentGivenBy: null,
+                    isFinalizing: true,
+                    cancellationToken);
+            }
 
             var now = DateTimeOffset.UtcNow;
             var (record, closureChange) = await ExecuteInternalFinalizationAndClosureAsync(
@@ -319,7 +402,8 @@ public sealed class BillingFinalizationService
                 causationId: request.CausationId,
                 actorUserId: actorUserId,
                 now: now,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken,
+                employeeBenefitSplit: splitResult);
 
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditFinalizationAsync(record, actorUserId, false);
@@ -354,6 +438,14 @@ public sealed class BillingFinalizationService
                 "Penyelesaian tidak dapat disimpan karena target, correlation, atau idempotency key sudah diproses.",
                 exception);
         }
+        catch (Exception exception) when (IsSerializationFailure(exception))
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinalizationConflictException(
+                "Terjadi konflik transaksi bersamaan pada data yang sama (serialization failure). Muat ulang dan coba kembali.",
+                exception,
+                code: "SERIALIZATION_FAILURE");
+        }
         catch
         {
             if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
@@ -383,6 +475,12 @@ public sealed class BillingFinalizationService
             return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup karena masih terdapat order yang belum selesai.");
         if (!readiness.CalculationCurrent)
             return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup karena hasil kalkulasi belum terkini.");
+        // BE-BKC-FIX-021: penutupan otomatis memakai penahan yang sama dengan finalisasi manual.
+        if (readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.PendingClinicalCharge))
+            return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup karena masih ada pelayanan yang belum masuk invoice.");
+        if (readiness.BlockingCodes.Count > 0)
+            return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup: " +
+                (readiness.BlockingReasons.LastOrDefault() ?? "invoice perlu diperiksa."));
         if (readiness.Outstanding > 0)
             return (false, "Pembayaran berhasil, tetapi sisa tagihan pasien belum lunas.");
 
@@ -395,6 +493,19 @@ public sealed class BillingFinalizationService
         var idempotencyKey = Guid.NewGuid();
         var payloadHash = Convert.ToHexString(SHA256.HashData(
             Encoding.UTF8.GetBytes($"SETTLED|{invoice.Id:N}|{correlationId:N}|{causationId:N}")));
+
+        EmployeeBenefitSplitCalculationResult? splitResult = null;
+        if (_splitService is not null)
+        {
+            splitResult = await _splitService.EvaluateSplitAsync(
+                invoice,
+                calculation,
+                patientOutstanding: 0m,
+                choiceAmount: 0m,
+                consentGivenBy: null,
+                isFinalizing: true,
+                cancellationToken);
+        }
 
         var (record, closureChange) = await ExecuteInternalFinalizationAndClosureAsync(
             invoice,
@@ -412,7 +523,8 @@ public sealed class BillingFinalizationService
             causationId: causationId,
             actorUserId: actorUserId,
             now: occurredAt,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken,
+            employeeBenefitSplit: splitResult);
 
         await AuditFinalizationAsync(record, actorUserId, false);
         if (closureChange.Changed)
@@ -437,7 +549,8 @@ public sealed class BillingFinalizationService
         Guid causationId,
         Guid actorUserId,
         DateTimeOffset now,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        EmployeeBenefitSplitCalculationResult? employeeBenefitSplit = null)
     {
         var record = new BilFinalizationRecord
         {
@@ -476,7 +589,52 @@ public sealed class BillingFinalizationService
 
         await _arApHandoffService.StageHandoffsForFinalizationAsync(
             invoice, calculation, record, outstandingAtFinalization, isDepartureException,
-            actorUserId, cancellationToken);
+            actorUserId, cancellationToken, employeeBenefitSplit);
+
+        // BE-FIN-108: Kurangi plafon di HR tepat satu kali di dalam batas transaksi pemanggil
+        // (FIN-DEC-202, FIN-DEC-205, FIN-INTEGRATION-1.9 R.3, FR-FIN-244, AC 1-5).
+        // Plafon hanya dipotong untuk porsi RS Benefit (PayerAmount = P = min(C, S)).
+        // Bila P = 0, pemakaian plafon dilewati per AC 4 / R.3.4 langkah 5.
+        if (employeeBenefitSplit is { IsEmployeeBenefitVisit: true, PayerAmount: > 0m }
+            && employeeBenefitSplit.PayerHandoffKey.HasValue
+            && _balanceService is not null)
+        {
+            if (string.IsNullOrWhiteSpace(employeeBenefitSplit.BenefitPersonKind)
+                || !employeeBenefitSplit.BenefitPersonId.HasValue)
+            {
+                throw new BillingFinalizationValidationException(
+                    "Identitas kepesertaan benefit pegawai tidak lengkap untuk pemotongan plafon.");
+            }
+
+            var useResult = await _balanceService.UseAsync(new BenefitBalanceUseRequest
+            {
+                SourceHandoffKey = employeeBenefitSplit.PayerHandoffKey.Value,
+                InvoiceId = invoice.Id,
+                BenefitPersonKind = employeeBenefitSplit.BenefitPersonKind,
+                BenefitPersonId = employeeBenefitSplit.BenefitPersonId.Value,
+                Amount = employeeBenefitSplit.PayerAmount,
+                ActorUserId = actorUserId
+            }, cancellationToken);
+
+            if (string.Equals(useResult.Result, BenefitUseResults.Insufficient, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BillingFinalizationValidationException(
+                    useResult.Message ?? $"Sisa plafon tidak cukup. Sisa saat ini Rp {useResult.RemainingAmount:N0}.");
+            }
+
+            if (string.Equals(useResult.Result, BenefitUseResults.KeyConflict, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BillingFinalizationConflictException(
+                    useResult.Message ?? "Konflik kunci serah terima saat pemakaian plafon benefit.");
+            }
+
+            if (!string.Equals(useResult.Result, BenefitUseResults.Applied, StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(useResult.Result, BenefitUseResults.AlreadyApplied, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new BillingFinalizationValidationException(
+                    useResult.Message ?? $"Gagal memakai plafon benefit pegawai: {useResult.Result}.");
+            }
+        }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -545,6 +703,25 @@ public sealed class BillingFinalizationService
         var calculationCurrent = await IsCalculationCurrentAsync(invoice.Id, calculation, cancellationToken);
         var outstanding = await _closureService.CalculateOutstandingAsync(invoice, calculation, cancellationToken);
         var hasTariffNotFound = await HasTariffNotFoundAsync(invoice, calculation, cancellationToken);
+        // BE-BKC-FIX-021 / ISSUE-BKC-001 T1: pelayanan eligible yang belum menjadi item tidak dapat
+        // diperiksa lewat item invoice. "Tarif belum ada" sudah punya kode sendiri, jadi tidak
+        // dihitung dua kali di sini.
+        var pendingChargeCount = (await BillingPendingChargeQuery.CountByEncounterAsync(
+                _dbContext, [invoice.EncounterId], cancellationToken, excludeTariffNotFound: true))
+            .GetValueOrDefault(invoice.EncounterId);
+
+        EmployeeBenefitSplitCalculationResult? splitResult = null;
+        if (_splitService is not null)
+        {
+            splitResult = await _splitService.EvaluateSplitAsync(
+                invoice,
+                calculation,
+                outstanding,
+                choiceAmount: 0m,
+                consentGivenBy: null,
+                isFinalizing: false,
+                cancellationToken);
+        }
 
         var blockingReasons = new List<string>();
         var blockingCodes = new List<string>();
@@ -565,6 +742,23 @@ public sealed class BillingFinalizationService
             blockingReasons.Add("Masih ada layanan yang tarifnya belum diatur. Lengkapi master tarif sebelum memfinalkan.");
             blockingCodes.Add(BillingFinalizationBlockingCodes.TariffNotFound);
         }
+        if (pendingChargeCount > 0)
+        {
+            blockingReasons.Add(
+                $"Masih ada {pendingChargeCount} pelayanan yang sudah layak ditagih tetapi belum masuk invoice " +
+                "(menunggu diteruskan, gagal, atau perlu ditinjau). Kirim ulang atau selesaikan lewat antrean " +
+                "rekonsiliasi sebelum memfinalkan.");
+            blockingCodes.Add(BillingFinalizationBlockingCodes.PendingClinicalCharge);
+        }
+
+        if (splitResult is not null)
+        {
+            if (!splitResult.Response.IsUsable && !string.IsNullOrWhiteSpace(splitResult.Response.BlockingMessage))
+            {
+                blockingReasons.Add($"Benefit karyawan tidak dapat digunakan: {splitResult.Response.BlockingMessage}");
+                blockingCodes.Add(splitResult.Response.BlockingReasonCode ?? "BIL-FIN-BENEFIT-UNUSABLE");
+            }
+        }
 
         return new FinalizationPreviewResponse
         {
@@ -577,7 +771,8 @@ public sealed class BillingFinalizationService
             BlockingReasons = blockingReasons,
             BlockingCodes = blockingCodes,
             CalculationVersion = calculation.VersionNo,
-            InvoiceRowVersion = invoice.RowVersion
+            InvoiceRowVersion = invoice.RowVersion,
+            EmployeeBenefitSplit = splitResult?.Response
         };
     }
 
@@ -671,6 +866,8 @@ public sealed class BillingFinalizationService
             request.DepartureReason?.Trim().ToUpperInvariant() ?? string.Empty,
             request.DebtorIdentity?.Trim() ?? string.Empty,
             request.DebtorRelationship?.Trim() ?? string.Empty,
+            request.EmployeeReceivableChoiceAmount?.ToString("F2", CultureInfo.InvariantCulture) ?? string.Empty,
+            request.EmployeeReceivableConsentGivenBy?.Trim() ?? string.Empty,
             request.Reason.Trim(),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
@@ -793,6 +990,26 @@ public sealed class BillingFinalizationService
             IsReplay = isReplay
         };
     }
+
+    private static bool IsSerializationFailure(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (string.Equals(current.GetType().Name, "PostgresException", StringComparison.OrdinalIgnoreCase))
+            {
+                var sqlStateProp = current.GetType().GetProperty("SqlState");
+                var sqlState = sqlStateProp?.GetValue(current) as string;
+                if (sqlState == "40001") return true;
+            }
+
+            if (current.Message.Contains("40001", StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains("could not serialize access", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 public static class BillingFinalizationReasons
@@ -809,6 +1026,12 @@ public static class BillingFinalizationBlockingCodes
 
     /// <summary>Masih ada layanan "tarif belum ada" (<c>VAL-RWF-17</c>).</summary>
     public const string TariffNotFound = "BIL-FIN-021";
+
+    /// <summary>
+    /// Masih ada pelayanan eligible yang belum menjadi item invoice — menunggu diteruskan, gagal,
+    /// atau perlu ditinjau (<c>BE-BKC-FIX-021</c>, <c>ISSUE-BKC-001</c> T1).
+    /// </summary>
+    public const string PendingClinicalCharge = "BIL-FIN-022";
 }
 
 public abstract class BillingFinalizationException : Exception

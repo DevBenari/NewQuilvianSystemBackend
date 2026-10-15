@@ -3,7 +3,9 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`46` — `approved`** 2026-10-09, bagian 41 (rencana ulang sesudah wadah dibatalkan; pendahulu tanpa penanda membaca permintaan) — disetujui Yoga Aji Pratama lewat `LAB-REQ-023`. Sebelumnya: **`45` — `approved`** 2026-10-09, bagian 40 (CITO dari pemesanan sampai ke pemeriksaan: perilaku `urgency` saat rencana wadah dan ambil ulang, perbaikan data lama; nol endpoint/ruas baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-022`. Sebelumnya: **`44` — `approved`** 2026-10-08, bagian 39 (data ringkasan Beranda Lab, BR-140: tiga endpoint baca baru `dashboard/today`, `dashboard/yearly`, `dashboard/recent-orders`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`43` — `approved`** 2026-10-08, bagian 38 (lingkup kunci Lunas: nilai `paymentStatus` `Deferred`, `start-process` lolos bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`42` — `approved`** 2026-10-08, bagian 37 (alur Lab dari kiosk sampai hasil mengikuti FE v1, BR-141) — dua endpoint baca baru, enam ruas respons, dua `409` `start-process` — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`41` — `approved`** 2026-10-07, bagian 36 (daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, BR-139) — satu endpoint baca baru dan satu perbaikan kesesuaian `r13`, disetujui Yoga Aji Pratama. Sebelumnya: **`40` — `approved`** 2026-10-07, bagian 35 (Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, BR-138) — dua perubahan perilaku dan satu perubahan hak akses, disetujui Yoga Aji Pratama. Sebelumnya: **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`48` — `approved`** 2026-10-14, bagian 43 (kartu informasi halaman hasil v1: delapan ruas baca aditif di `LabOrderDetailResponse` dan `resultEnteredByName` di `LabExaminationResultFormResponse`; nol endpoint/izin/migration; persetujuan susulan atas kode 2026-10-13) — disetujui Yoga Aji Pratama lewat `LAB-REQ-025`. Sebelumnya: **`47` — `approved`** 2026-10-09, bagian 42 (kolom tabel v1 pada daftar pantau: delapan ruas baca aditif di `LabMonitoringItemResponse`; nol endpoint/izin/migration) — disetujui Yoga Aji Pratama lewat `LAB-REQ-024`. Sebelumnya: **`46` — `approved`** 2026-10-09, bagian 41 (rencana ulang sesudah wadah dibatalkan; pendahulu tanpa penanda membaca permintaan) — disetujui Yoga Aji Pratama lewat `LAB-REQ-023`. Sebelumnya: **`45` — `approved`** 2026-10-09, bagian 40 (CITO dari pemesanan sampai ke pemeriksaan: perilaku `urgency` saat rencana wadah dan ambil ulang, perbaikan data lama; nol endpoint/ruas baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-022`. Sebelumnya: **`44` — `approved`** 2026-10-08, bagian 39 (data ringkasan Beranda Lab, BR-140: tiga endpoint baca baru `dashboard/today`, `dashboard/yearly`, `dashboard/recent-orders`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`43` — `approved`** 2026-10-08, bagian 38 (lingkup kunci Lunas: nilai `paymentStatus` `Deferred`, `start-process` lolos bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`42` — `approved`** 2026-10-08, bagian 37 (alur Lab dari kiosk sampai hasil mengikuti FE v1, BR-141) — dua endpoint baca baru, enam ruas respons, dua `409` `start-process` — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`41` — `approved`** 2026-10-07, bagian 36 (daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian pesanan, BR-139) — satu endpoint baca baru dan satu perbaikan kesesuaian `r13`, disetujui Yoga Aji Pratama. Sebelumnya: **`40` — `approved`** 2026-10-07, bagian 35 (Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1, BR-138) — dua perubahan perilaku dan satu perubahan hak akses, disetujui Yoga Aji Pratama. Sebelumnya: **`39` — `approved`** 2026-10-06, bagian 34 (Spesifik Specimen pada respons specimen, `LAB-DEC-167`) — aditif pada respons dan satu perubahan perilaku penggantian, disetujui Yoga Aji Pratama. Sebelumnya: **`38` — `approved`** 2026-10-01, bagian 33 (identitas pasien pada rincian order, `LAB-DEC-166`) — aditif, disetujui Yoga Aji Pratama. Sebelumnya: **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| `r48` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-14** — *"saya setuju buatkan surat permintaan persetujuannya dan bagian kontraknya"* atas `LAB-REQ-025`, keempat butir |
+| `r47` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-09** — *"Ya, tambahkan semua"* atas `LAB-REQ-024`, ketiga butir |
 | `r46` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-09** — *"setuju kelima butir"* atas `LAB-REQ-023`, kelima butir |
 | `r45` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-09** — *"setuju keenam butir"* atas `LAB-REQ-022`, keenam butir |
 | `r44` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
@@ -4603,3 +4605,151 @@ Request, response, kode status, dan pesan galat **tidak berubah**.
 |---|---|---|
 | Rencana ulang mewarisi pendahulu berpenanda | `LAB-DEC-229` | `AC-323`, `AC-324` |
 | Pendahulu tanpa penanda → permintaan (rencana ulang dan ambil ulang) | `LAB-REQ-023` butir 2, 3 | `AC-325` |
+
+## 42. Amandemen `r47` — Kolom tabel v1 pada daftar pantau, 2026-10-09
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-API-v1` |
+| Revision | `r47` |
+| Status | **`approved`** 2026-10-09 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"Ya, tambahkan semua"* atas [`LAB-REQ-024`](../approval-requests/2026-10-09-permintaan-kolom-tabel-v1.md) |
+| `input_revision` | `LAB-EVD-013`; tangkapan layar tabel v1 dari pemilik modul 2026-10-09 |
+| Sifat | **Aditif.** Delapan ruas respons baru; nol endpoint, penyaring, nilai enum, izin, migration |
+| Compatibility impact | Tidak ada — ruas lama tidak berubah; konsumen yang mengabaikan ruas baru tetap berjalan |
+
+### 42.1 Ruas baru `LabMonitoringItemResponse`
+
+#### `[Tags("Health Services / Laboratory Management / Lab Monitoring")]`
+
+Berlaku untuk ketiga jalur `GET /api/v1/health-services/laboratory-management/lab-monitoring/{clinical-pathology|anatomic-pathology|microbiology}` (`LabMonitoring : Read`).
+
+| Ruas | Tipe | Sumber | Kolom v1 |
+|---|---|---|---|
+| `patientEmail` | `string?` | `MstPatient.Email` | Pasien (Daftar Pasien Lab), Email (Hasil dan Riwayat) |
+| `clinicName` | `string?` | Klinik kunjungan `MstClinic.ClinicName` | Kunjungan / Poli, Poliklinik |
+| `serviceUnitName` | `string?` | Unit layanan kunjungan — cadangan layar bila `clinicName` kosong | Kunjungan / Poli, Poliklinik |
+| `payerName` | `string?` | `RegPatientEncounterGuarantor.PaymentSourceNameSnapshot`, baris aktif tidak terhapus, utama lebih dulu lalu `Priority` | Penjamin |
+| `requestedByName` | `string?` | Nama tampilan pengguna `RequestedByUserId`, cadangan `CreateBy` | User Order |
+| `firstCollectedAt` | `DateTime?` | `CollectedAt` paling awal pada wadah pesanan (tidak terhapus) — sumber yang sama dengan penyaring `SamplingDate` | Tanggal — Sampling |
+| `firstExaminedAt` | `DateTime?` | `ExaminedAt` paling awal pada pemeriksaan pesanan (tidak terhapus) — sumber yang sama dengan penyaring `ExaminationDate` | Tanggal — Pemeriksaan |
+| `orderedProcedures` | `array` | `LabOrderedProcedure` pesanan (tidak terhapus), urut waktu pemesanan | Nama Pemeriksaan |
+
+Butir `orderedProcedures[]`: `procedureCode`, `procedureName` (salinan saat dipesan, cadangan katalog),
+`procedureCategoryName` (katalog), `urgency` (`Routine`/`Cito`), `orderedStatus` (`Ordered`/`Fulfilled`/`Cancelled`).
+Dibaca dari **permintaan**, bukan `LabExamination`, sehingga pesanan yang belum punya wadah tetap memuat daftarnya.
+
+**Contoh** (data tiruan, ruas lama dipotong):
+
+```json
+{
+  "orderNumber": "LAB-RSMMC-000046",
+  "patientEmail": "pasien@contoh.id",
+  "clinicName": "Poli Penyakit Dalam",
+  "serviceUnitName": "Rawat Jalan",
+  "payerName": "Allianz",
+  "requestedByName": "Eren",
+  "firstCollectedAt": "2026-08-04T02:00:00Z",
+  "firstExaminedAt": null,
+  "orderedProcedures": [
+    { "procedureCode": "LAB-HISTO-CITO", "procedureName": "Histo Cito Biopsi", "procedureCategoryName": "Biopsi", "urgency": "Cito", "orderedStatus": "Fulfilled" }
+  ]
+}
+```
+
+### 42.2 Traceability `r47`
+
+| Perubahan | Keputusan |
+|---|---|
+| Delapan ruas baru | `LAB-REQ-024` butir 1 |
+| Susunan kolom layar "persis v1"; *Terkirim ke Pasien* berisi "Belum Terkirim" | `LAB-REQ-024` butir 2, 3 (kewenangan UI, bukan kontrak) |
+
+### 42.3 Bukti uji
+
+2026-10-14, HTTP baca-saja terhadap devYoga: akun Gilang (Analis) menerima kedelapan ruas pada ketiga jalur (PK 11, PA 4, Mikro 7 pesanan); akun dr. Bima (Kepala Instalasi) `403` karena jabatannya tanpa `LabMonitoring : Read` — sesuai. Layar diuji di peramban, 54/54 bersama `r48` (`testing/acceptance-test-matrix.md`, amandemen 2026-10-14).
+
+## 43. Amandemen `r48` — Kartu informasi halaman hasil v1, 2026-10-14
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-API-v1` |
+| Revision | `r48` |
+| Status | **`approved`** 2026-10-14 — Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul: *"saya setuju buatkan surat permintaan persetujuannya dan bagian kontraknya"* atas [`LAB-REQ-025`](../approval-requests/2026-10-14-permintaan-kartu-info-halaman-hasil-v1.md) |
+| `input_revision` | `LAB-EVD-013`; `r47` (bagian 42); kode BE `36422a4d` (2026-10-13) |
+| Sifat | **Aditif, persetujuan susulan.** Sembilan ruas respons baru; nol endpoint, penyaring, nilai enum, izin, migration. Kodenya sudah ada sejak 2026-10-13 dan tidak diubah oleh amandemen ini |
+| Compatibility impact | Tidak ada. Ruas lama tidak berubah; konsumen yang mengabaikan ruas baru tetap berjalan |
+| Konsumen | Halaman hasil Patologi Klinik, Mikrobiologi, dan Patologi Anatomi bersusunan v1 (FE `9aba9929d`, `lab-result-v1-layout.jsx`) |
+
+### 43.1 Ruas baru `LabOrderDetailResponse`
+
+#### `[Tags("Health Services / Laboratory Management / Lab Order")]`
+
+| Method | Path | Hak akses | Response | Status |
+|---|---|---|---|---|
+| `GET` | `/api/v1/health-services/laboratory-management/lab-orders/{id}` | `LabOrder : Read` — **tidak berubah** | `ApiResponse<LabOrderDetailResponse>` — **ruas bertambah** | Sudah ada — **diperbarui** |
+
+| Ruas | Tipe | Sumber | Isian kartu v1 |
+|---|---|---|---|
+| `clinicName` | `string?` | `Encounter.Clinic.ClinicName` | Poliklinik / Kamar |
+| `roomName` | `string?` | `Encounter.Room.RoomName` | Poliklinik / Kamar |
+| `patientClassName` | `string?` | `Encounter.PatientClass.PatientClassName` | Kelas |
+| `paymentType` | `string?` | `Encounter.PaymentType`, nama enum: `Cash`, `Insurance`, `CompanyGuarantor` | Jenis penjamin |
+| `payerName` | `string?` | `RegPatientEncounterGuarantor.PaymentSourceNameSnapshot`, baris aktif tidak terhapus, utama lebih dulu lalu `Priority`. **Sama dengan daftar pantau `r47`** | Penjamin |
+| `referringDoctorName` | `string?` | `Encounter.Doctor.FullName` (dokter internal kunjungan); bila kosong, `Encounter.ReferralDoctor.DoctorName` (dokter perujuk luar) | Dokter Perujuk / DPJP |
+| `firstCollectedAt` | `DateTime?` | `CollectedAt` paling awal pada wadah pesanan (tidak terhapus). **Sama dengan daftar pantau `r47`** | Tanggal Sampling / Specimen |
+| `firstExaminedAt` | `DateTime?` | `ExaminedAt` paling awal pada pemeriksaan pesanan (tidak terhapus). **Sama dengan daftar pantau `r47`** | Tanggal Pemeriksaan |
+
+**Hanya `GET /{id}`.** Sama seperti ruas `r38` (bagian 33.2): respons tindakan tulis yang memakai
+bentuk yang sama mengirim kedelapan ruas ini kosong. Seluruhnya boleh kosong, misalnya order tanpa
+kunjungan atau pesanan yang belum punya wadah.
+
+### 43.2 Ruas baru `LabExaminationResultFormResponse`
+
+#### `[Tags("Health Services / Laboratory Management / Lab Examination")]`
+
+| Method | Path | Hak akses | Status |
+|---|---|---|---|
+| `GET` | `/api/v1/health-services/laboratory-management/lab-examinations/{id}/result` | `LabExamination : Read` — **tidak berubah** | Sudah ada — **ruas bertambah** |
+| `GET` | `/api/v1/health-services/laboratory-management/lab-examinations/by-order/{labOrderId}/results` | `LabExamination : Read` — **tidak berubah** | Sudah ada — **ruas bertambah** |
+
+| Ruas | Tipe | Sumber | Isian kartu v1 |
+|---|---|---|---|
+| `resultEnteredByName` | `string?` | Nama tampilan pengguna `ResultEnteredByUserId` (`DisplayName`, cadangan `UserName`, `Email`, `UserCode`) | Penanggung Jawab Analis |
+
+Nama dibaca **berkelompok** bersama nama pemvalidasi dan perilis (`r34` 29.3): satu kueri untuk
+seluruh baris, bukan satu kueri per baris.
+
+**Contoh** (data tiruan, ruas lama dipotong):
+
+```json
+{
+  "orderNumber": "LAB-RSMMC-000046",
+  "clinicName": "Poli Penyakit Dalam",
+  "roomName": null,
+  "patientClassName": "Kelas 1",
+  "paymentType": "Insurance",
+  "payerName": "Allianz",
+  "referringDoctorName": "dr. Contoh, Sp.PD",
+  "firstCollectedAt": "2026-08-04T02:00:00Z",
+  "firstExaminedAt": "2026-08-04T03:15:00Z"
+}
+```
+
+### 43.3 Privasi dan dampak
+
+| Hal | Isi |
+|---|---|
+| Privasi | Data kunjungan dan penjamin yang sama sudah dibuka daftar pantau `r47` kepada petugas laboratorium. Nama pengisi hasil sejenis dengan nama pemvalidasi dan perilis sejak `r34` |
+| Konsumen lama | Nol dampak. Ruas baru diabaikan pembaca lama |
+| Kinerja | Rincian order: tiga navigasi kunjungan dan tiga sub-query satu baris per pembacaan, pola `r38`. Jalur hasil: nol kueri tambahan, karena nama pengisi ikut kueri nama yang sudah ada |
+
+### 43.4 Traceability `r48`
+
+| Perubahan | Keputusan |
+|---|---|
+| Delapan ruas rincian order | `LAB-REQ-025` butir 1, 3 |
+| `resultEnteredByName` | `LAB-REQ-025` butir 2 |
+| Persetujuan susulan atas kode 2026-10-13 | `LAB-REQ-025` butir 4 |
+
+### 43.5 Bukti uji
+
+2026-10-14, HTTP baca-saja terhadap devYoga dengan akun dr. Bima dan Gilang: `GET /lab-orders/{id}` 8/8 ruas pada `LAB-RSMMC-000001`, `000009`, `000014`, `000024`; `resultEnteredByName` = *Vina Aprilianti* pada `000001`. Kartu halaman hasil PK, Mikro, PA cocok dengan respons di peramban untuk kedua akun.

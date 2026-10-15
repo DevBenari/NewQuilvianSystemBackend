@@ -236,5 +236,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         /// <summary>Sisa tanggungan pasien tunai; nol untuk status selain <c>Unpaid</c>.</summary>
         public decimal OutstandingAmount { get; set; }
+
+        // LAB-API-v1 r47 — kolom tabel v1 Daftar Pasien Lab serta Hasil dan Riwayat. Aditif seluruhnya.
+
+        /// <summary>Email pasien dari data induk pasien (kolom Pasien/Email v1).</summary>
+        public string? PatientEmail { get; set; }
+
+        /// <summary>Nama poliklinik kunjungan (kolom Poli/Poliklinik v1); kosong bila kunjungan tanpa klinik.</summary>
+        public string? ClinicName { get; set; }
+
+        /// <summary>Nama unit layanan kunjungan — cadangan layar bila <see cref="ClinicName"/> kosong.</summary>
+        public string? ServiceUnitName { get; set; }
+
+        /// <summary>
+        /// Nama penjamin kunjungan (kolom Penjamin v1): salinan nama sumber bayar pada penjamin
+        /// kunjungan yang aktif, utama lebih dulu. Kosong bila kunjungan belum punya baris penjamin.
+        /// </summary>
+        public string? PayerName { get; set; }
+
+        /// <summary>Nama pengguna pemesan (kolom User Order v1): <c>RequestedByUserId</c>, cadangan pembuat baris.</summary>
+        public string? RequestedByName { get; set; }
+
+        /// <summary>
+        /// Waktu sampling (kolom Tanggal v1): <c>CollectedAt</c> paling awal di antara wadah pesanan.
+        /// Sama dengan sumber penyaring <c>SamplingDate</c>; kosong bila belum ada wadah diambil.
+        /// </summary>
+        public DateTime? FirstCollectedAt { get; set; }
+
+        /// <summary>
+        /// Waktu pemeriksaan (kolom Tanggal v1): <c>ExaminedAt</c> paling awal di antara pemeriksaan.
+        /// Sama dengan sumber penyaring <c>ExaminationDate</c>; kosong bila belum ada yang diperiksa.
+        /// </summary>
+        public DateTime? FirstExaminedAt { get; set; }
+
+        /// <summary>
+        /// Seluruh pemeriksaan yang <b>diminta</b> pada pesanan ini (kolom Nama Pemeriksaan v1), urut
+        /// waktu pemesanan. Dibaca dari permintaan, bukan baris pemeriksaan, sehingga pesanan yang
+        /// belum punya wadah tetap menampilkan daftarnya.
+        /// </summary>
+        public List<LabMonitoringOrderedProcedureItem> OrderedProcedures { get; set; } = new();
+    }
+
+    /// <summary>Satu pemeriksaan yang diminta, untuk kolom Nama Pemeriksaan (<c>r47</c>).</summary>
+    public class LabMonitoringOrderedProcedureItem
+    {
+        public string? ProcedureCode { get; set; }
+
+        public string? ProcedureName { get; set; }
+
+        /// <summary>Kategori prosedur dari katalog, mis. <i>Biopsi</i>; kosong bila belum digolongkan.</summary>
+        public string? ProcedureCategoryName { get; set; }
+
+        /// <summary>Nama enum kesegeraan: <c>Routine</c> atau <c>Cito</c>.</summary>
+        public string Urgency { get; set; } = string.Empty;
+
+        /// <summary>Nama enum status permintaan: <c>Ordered</c>, <c>Fulfilled</c>, atau <c>Cancelled</c>.</summary>
+        public string OrderedStatus { get; set; } = string.Empty;
     }
 }
