@@ -30,12 +30,17 @@ public class PhmPrescriptionStockReservationConfiguration
         // Satu batch pada satu baris resep hanya boleh ditahan satu kali selagi aktif. Inilah
         // penjaga terakhir terhadap penahanan ganda, di samping pemeriksaan idempotency di
         // service: bila dua request lolos bersamaan, basis data yang menolak yang kedua.
+        // Nama diberikan eksplisit. Nama bawaan EF untuk indeks tiga kolom di tabel ini
+        // terpotong menjadi `…_PrescriptionId_Prescriptio~1`, yang tidak dapat dibaca dan
+        // membedakan kedua indeks hanya dengan akhiran angka.
         builder.HasIndex(x => new { x.PrescriptionId, x.PrescriptionItemId, x.DrugBatchId })
             .IsUnique()
+            .HasDatabaseName("IX_PhmPrescriptionStockReservation_Item_Batch_Active")
             .HasFilter("\"State\" = 1 AND \"PrescriptionItemId\" IS NOT NULL AND \"IsDelete\" = false");
 
         builder.HasIndex(x => new { x.PrescriptionId, x.PrescriptionCompoundItemId, x.DrugBatchId })
             .IsUnique()
+            .HasDatabaseName("IX_PhmPrescriptionStockReservation_Compound_Batch_Active")
             .HasFilter("\"State\" = 1 AND \"PrescriptionCompoundItemId\" IS NOT NULL AND \"IsDelete\" = false");
 
         builder.HasIndex(x => x.IdempotencyKey);

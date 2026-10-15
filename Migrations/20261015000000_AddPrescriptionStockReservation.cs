@@ -166,6 +166,23 @@ namespace QuilvianSystemBackend.Migrations
                 schema: "public",
                 table: "PhmPrescriptionStockReservation",
                 column: "StorageLocationId");
+
+            // Dua indeks berikut menyertai foreign key-nya, dan EF membuatnya sendiri ketika
+            // migration digenerate. Ditulis eksplisit di sini supaya migration dan model
+            // benar-benar sepadan — tanpa keduanya `has-pending-model-changes` tetap melaporkan
+            // selisih, dan basis data yang dibangun dari migration akan kehilangan dua indeks
+            // yang dipakai pembacaan per baris resep dan per batch.
+            migrationBuilder.CreateIndex(
+                name: "IX_PhmPrescriptionStockReservation_DrugBatchId",
+                schema: "public",
+                table: "PhmPrescriptionStockReservation",
+                column: "DrugBatchId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PhmPrescriptionStockReservation_PrescriptionItemId",
+                schema: "public",
+                table: "PhmPrescriptionStockReservation",
+                column: "PrescriptionItemId");
         }
 
         /// <inheritdoc />
