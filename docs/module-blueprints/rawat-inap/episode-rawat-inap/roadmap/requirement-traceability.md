@@ -1087,3 +1087,5 @@ FR-RI-187-192 dan BE-RWI-206/207, FE-RWI-227-230: 🟡 implementasi diperbaiki, 
 ## Amandemen admisi bayi ? 14 Oktober 2026
 
 PLAN-REPAIR-EPS-016 untuk pasien baru/lama dilacak terpisah pada [traceability admisi bayi](requirement-traceability-admisi-bayi-016.md). BE-RWI-231 ✅ selesai source/build; FE-RWI-245 🟡 source/browser lulus, packaging standalone tertahan ENOSPC. Tidak mengubah status historis requirement revision lain atau mengklaim integrasi PostgreSQL/Billing selesai.
+
+Pembaruan handoff 15 Oktober 2026: BE-RWI-231 ✅ / FE-RWI-245 ✅ selesai pada scope kode admisi bayi baru/lama; pengguna mengambil alih build dan migration. Rincian batas runtime dan Billing tetap pada traceability slice.

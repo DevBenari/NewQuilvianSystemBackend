@@ -19,13 +19,13 @@ wewenang_saat_ini: "Implementasi source admisi bayi BE/FE untuk pasien baru dan 
 | ID perbaikan | Menutup | Ringkasan | Area | Prioritas | Task ID | Status | Bukti |
 | --- | --- | --- | --- | :---: | --- | --- | --- |
 | FIX-EPS-016-01 | ISS-01, ISS-03 | Kunci cabang layanan dan amendemen desain admisi bayi | Dokumen/desain | 1 | BE-RWI-231 / FE-RWI-245 | ✅ SELESAI - amendemen cabang bayi disetujui | [kontrak](../../contracts/newborn-admission-repair-016.md) |
-| FIX-EPS-016-02 | ISS-02 | Mode form bayi dan payload master pasien yang benar | FE | 1 | FE-RWI-245 | 🟡 SEBAGIAN - source dan browser lulus; packaging tertahan | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
+| FIX-EPS-016-02 | ISS-02 | Mode form bayi dan payload master pasien yang benar | FE | 1 | FE-RWI-245 | ✅ SELESAI SOURCE - build/penerapan berikutnya oleh pemilik, 2026-10-15 | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
 | FIX-EPS-016-03 | T1 | Konsistensi pasien ibu, episode ibu, dan hubungan historis | BE | 1 | BE-RWI-231 | ✅ SELESAI pada source/build; ibu tidak dikenal tetap di luar kontrak | [laporan BE](../../task/report/backend/BE-RWI-231.md) |
 | FIX-EPS-016-04 | ISS-04 | Kelayakan neonatal di seluruh transaksi penempatan | BE | 1 | BE-RWI-231 | ✅ SELESAI pada source/build; penerapan DB terpisah | [laporan BE](../../task/report/backend/BE-RWI-231.md) |
-| FIX-EPS-016-05 | ISS-04 | Daftar tempat sesuai konteks bayi di layar admisi | FE | 1 | FE-RWI-245 | 🟡 SEBAGIAN - query/browser lulus; packaging tertahan | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
-| FIX-EPS-016-06 | ISS-01, ISS-03 | Stepper kondisional dengan keluaran tiap tahap | FE | 2 | FE-RWI-245 | 🟡 SEBAGIAN - 9/8 tahap new/existing terpasang; packaging tertahan | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
-| FIX-EPS-016-07 | T2 | Bedakan daftar ibu memuat, kosong, gagal, dan pilihan tersimpan | FE | 2 | FE-RWI-245 | 🟡 SEBAGIAN - state pencarian/retry terpasang; packaging tertahan | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
-| FIX-EPS-016-08 | T3 | Jalur bayi yang sudah mempunyai RM dan rawat ulang | FE | 2 | FE-RWI-245 | 🟡 SEBAGIAN - RM lama/rujukan/rawat ulang terpasang; packaging tertahan | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
+| FIX-EPS-016-05 | ISS-04 | Daftar tempat sesuai konteks bayi di layar admisi | FE | 1 | FE-RWI-245 | ✅ SELESAI SOURCE - build/penerapan berikutnya oleh pemilik, 2026-10-15 | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
+| FIX-EPS-016-06 | ISS-01, ISS-03 | Stepper kondisional dengan keluaran tiap tahap | FE | 2 | FE-RWI-245 | ✅ SELESAI SOURCE - build/penerapan berikutnya oleh pemilik, 2026-10-15 | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
+| FIX-EPS-016-07 | T2 | Bedakan daftar ibu memuat, kosong, gagal, dan pilihan tersimpan | FE | 2 | FE-RWI-245 | ✅ SELESAI SOURCE - build/penerapan berikutnya oleh pemilik, 2026-10-15 | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
+| FIX-EPS-016-08 | T3 | Jalur bayi yang sudah mempunyai RM dan rawat ulang | FE | 2 | FE-RWI-245 | ✅ SELESAI SOURCE - build/penerapan berikutnya oleh pemilik, 2026-10-15 | [laporan FE](../../task/report/frontend/FE-RWI-245.md) |
 | FIX-EPS-016-09 | ISS-05 | Handoff kontrak dua invoice dalam satu kelompok pembayaran | Billing + integrasi, desain | 2 | BE-RWI-231 / FE-RWI-245 | 🟡 SEBAGIAN - preferensi tersimpan; settlement lintas invoice belum diimplementasikan | [kontrak](../../contracts/newborn-admission-repair-016.md) |
 
 **Pembaruan implementasi 14 Oktober 2026:** pengguna menyetujui source admisi bayi untuk pasien baru dan pasien lama. Delapan perbaikan mempunyai desain/source terpasang; preferensi dua invoice juga tersimpan. BE-RWI-231 selesai pada source/build; FE-RWI-245 sebagian karena pengemasan standalone belum selesai. Lima skenario browser API tiruan dan lint final lulus. Suite 2.869 uji: 2.842 lulus, 27 gagal yang juga ada di HEAD; nol kegagalan baru. Detail bukti dan batas ada pada laporan task.
@@ -1060,3 +1060,7 @@ Amandemen scope admisi baru/lama sudah ditautkan pada arsitektur, skema, kontrak
 | 2026-10-14 | Atas instruksi “oke update stepper admisi episode bayi”, bagian 3 diperinci menjadi sembilan skema langkah, dua varian tempat, status reservasi, handoff dua invoice, rencana deposit/kasir, gelang bernama ibu, koreksi dan waktu layanan. Acceptance criteria serta skenario verifikasi diselaraskan; source aplikasi tidak diubah | diagnose-module-issue |
 
 | 2026-10-14 | Pengguna menyetujui implementasi pasien baru dan pasien lama; source BE/FE, migration, lima uji browser dan laporan task ditambahkan. Packaging standalone/DB nyata/Billing settlement belum ditutup | build-module-backend / build-module-frontend |
+
+## Handoff implementasi - 15 Oktober 2026
+
+Pengguna membatasi pekerjaan berikutnya pada kode dan persiapan migration; build dan migration dilakukan mandiri oleh pengguna. Implementasi source admisi bayi pasien baru/lama sudah diserahkan, termasuk pemulihan konteks dan pembersihan identitas saat memulai pasien berikutnya. BE-RWI-231 dan FE-RWI-245 selesai pada scope source; readiness runtime dibuktikan pemilik setelah build/migration. Preferensi penagihan bersama tersedia, sedangkan settlement lintas invoice tetap pekerjaan Billing terpisah.

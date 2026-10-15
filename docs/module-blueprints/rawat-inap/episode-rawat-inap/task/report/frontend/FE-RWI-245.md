@@ -18,7 +18,7 @@
 | Commit frontend | 88cb19f0c8edd998fb7a19701f0f52ac9aab839b |
 | Commit backend rujukan | 9f8d82666e8d67dde203d64ffab640305efc90ab dan source BE-RWI-231 lokal |
 | Tanggal | 2026-10-14 |
-| Status | 🟡 SEBAGIAN - implementasi dan lima skenario browser lulus; pengemasan production standalone tertahan ENOSPC; integrasi database nyata belum dijalankan |
+| Status | ✅ SELESAI SOURCE - 2026-10-15; build/migration selanjutnya dikerjakan pemilik sesuai instruksi; runtime/settlement tidak dinyatakan selesai |
 
 ## 1. Keadaan awal
 
@@ -248,3 +248,11 @@ Status Git akhir pemeriksaan (termasuk perubahan eksternal yang dipertahankan):
 ?? tests/unit/inpatient-admission-supporting-doctor.test.mjs
 ?? tests/unit/inpatient-existing-patient-search.test.mjs
 ~~~
+
+## Handoff source kepada pemilik - 15 Oktober 2026
+
+Pengguna menginstruksikan implementasi kode saja; dotnet build dan penerapan migration dikerjakan sendiri oleh pengguna. Tidak ada perintah build, migration atau pengujian baru yang dijalankan setelah instruksi tersebut. Helper preview/test milik task sudah tidak berjalan. Pemeriksaan source/read-only memastikan implementasi pasien baru/lama serta tiga artefak migration tetap tersedia pada commit terbaru.
+
+Scope source admisi selesai. Validasi build dan penerapan database berikutnya menjadi tanggung jawab pemilik sesuai instruksi terbaru; catatan kendala packaging tanggal 14 tetap dipertahankan sebagai riwayat dan bukan pekerjaan yang diteruskan agent. Settlement dua invoice tetap di luar slice source admisi ini; pilihan Combined adalah preferensi/handoff Billing.
+
+Pembaruan konteks source: frontend 60f7764a08c032e2ead66c9ea744e44e2497f6b6, backend bcc663df321aabbc07888385605aa196c74cc6f3. Perubahan working tree denah/transfer di luar slice ini dipertahankan. Percobaan perluasan skenario browser hari ini dihentikan; tidak dicatat sebagai hasil lulus baru.

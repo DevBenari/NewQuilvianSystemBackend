@@ -2,9 +2,9 @@
 
 Disetujui pengguna 14 Oktober 2026 bersama plan repair 016. Kontrak RWI-BAYI-016-1.0; skema BAYI-S01 sampai S09 pada plan repair.
 
-## 🟡 FE-RWI-245 — Alur bayi pasien baru dan pasien lama
+## ✅ FE-RWI-245 — Alur bayi pasien baru dan pasien lama
 
-Status: 🟡 SEBAGIAN - 2026-10-14. Implementasi new/existing terpasang; lint final PASS; browser tiruan 5/5 PASS; unit 2842/2869 PASS, 27 kegagalan existing dan nol kegagalan baru. AC-7/DoD packaging belum lulus: ENOSPC saat standalone; DB nyata/print fisik NOT RUN. [Laporan](../task/report/frontend/FE-RWI-245.md).
+Status: ✅ SELESAI SOURCE - 2026-10-15. Implementasi admisi bayi pasien baru/lama dan migration diserahkan; build serta penerapan DB dilakukan pemilik sesuai instruksi terbaru. Runtime/settlement Billing tidak diklaim selesai. [Laporan](../task/report/frontend/FE-RWI-245.md).
 
 Target: QuilvianSystemFrontendDev, branch HamzahV2/upstream origin/HamzahV2. Backend source dibaca setelah BE-RWI-231; laporan dan bukti di blueprint yang sama.
 
@@ -21,7 +21,7 @@ Dependency: BE-RWI-231.
 
 ~~~text
 ✅ BE-RWI-231
-└── 🟡 FE-RWI-245
+└── ✅ FE-RWI-245
 ~~~
 
 Laporan: ../task/report/frontend/FE-RWI-245.md.

@@ -181,3 +181,11 @@ Status Git akhir pemeriksaan (termasuk perubahan eksternal yang dipertahankan):
 ?? docs/module-blueprints/rawat-inap/episode-rawat-inap/roadmap/frontend-roadmap-bayi-016.md
 ?? docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/frontend/FIX-EPS-018.md
 ~~~
+
+## Handoff source kepada pemilik - 15 Oktober 2026
+
+Pengguna menginstruksikan implementasi kode saja; dotnet build dan penerapan migration dikerjakan sendiri oleh pengguna. Tidak ada perintah build, migration atau pengujian baru yang dijalankan setelah instruksi tersebut. Helper preview/test milik task sudah tidak berjalan. Pemeriksaan source/read-only memastikan implementasi pasien baru/lama serta tiga artefak migration tetap tersedia pada commit terbaru.
+
+Scope source admisi selesai. Validasi build dan penerapan database berikutnya menjadi tanggung jawab pemilik sesuai instruksi terbaru; catatan kendala packaging tanggal 14 tetap dipertahankan sebagai riwayat dan bukan pekerjaan yang diteruskan agent. Settlement dua invoice tetap di luar slice source admisi ini; pilihan Combined adalah preferensi/handoff Billing.
+
+Migration yang diserahkan: Migrations/20261014091502_AddNewbornAdmissionContext.cs, .Designer.cs, dan ApplicationDbContextModelSnapshot.cs. Enam kolom hanya pada public.InpEpisode; agent tidak menerapkan migration. Build sebelum instruksi pengalihan terakhir telah selesai 0 error/279 warning menggunakan flag pengguna dan output/intermediate terpisah; ini adalah bukti historis, bukan build baru sesudah instruksi.

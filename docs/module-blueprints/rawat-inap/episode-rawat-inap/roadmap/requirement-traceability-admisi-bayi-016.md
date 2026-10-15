@@ -15,3 +15,7 @@ Persetujuan 14 Oktober 2026 mencakup admisi pasien baru dan pasien lama. Kontrak
 | FIX-09 / ISS-05: dua invoice sumber | BE-RWI-231 ✅ / FE-RWI-245 🟡 | FamilyBillingPreference Separate/Combined tersimpan; rencana handoff Billing | Preferensi terpasang; settlement/kelompok invoice nyata BELUM DIIMPLEMENTASIKAN |
 
 Laporan tunggal task: [BE-RWI-231](../task/report/backend/BE-RWI-231.md), [FE-RWI-245](../task/report/frontend/FE-RWI-245.md). FE tetap sebagian karena packaging standalone ENOSPC. Source/frontend compile dan 492 halaman berhasil; bukan sign-off deployment. Migration belum diterapkan sesuai AGENTS.md; uji browser memakai API tiruan, bukan data PostgreSQL rumah sakit.
+
+## Handoff source 15 Oktober 2026
+
+BE-RWI-231 ✅ dan FE-RWI-245 ✅ selesai source sesuai instruksi terbaru pengguna. Build dan migration berikutnya dikerjakan pengguna secara mandiri; status packaging/DB pada bukti 14 Oktober adalah riwayat. Tidak mengubah hasil uji historis dan tidak mengklaim settlement lintas invoice selesai.

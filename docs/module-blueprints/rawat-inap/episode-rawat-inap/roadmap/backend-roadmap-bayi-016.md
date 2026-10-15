@@ -4,7 +4,7 @@ Disetujui pengguna 14 Oktober 2026 bersama plan repair 016. Kontrak terkunci: RW
 
 ## ✅ BE-RWI-231 — Konteks dan kelayakan admisi bayi
 
-Status: ✅ SELESAI SOURCE - 2026-10-14. Build final 0 error/279 warning dengan flag pengguna; migration/Designer/snapshot disiapkan tanpa DB update. Runtime PostgreSQL belum diuji dan tidak termasuk penerapan source task. [Laporan](../task/report/backend/BE-RWI-231.md).
+Status: ✅ SELESAI SOURCE - 2026-10-15. Implementasi admisi bayi pasien baru/lama dan migration diserahkan; build serta penerapan DB dilakukan pemilik sesuai instruksi terbaru. Runtime/settlement Billing tidak diklaim selesai. [Laporan](../task/report/backend/BE-RWI-231.md).
 
 Target: NewQuilvianSystemBackend, branch MHamzah/upstream origin/MHamzah. Area HealthServices, module InPatientManagement, prefix Inp ACTIVE. Applicability TOUCHED LEGACY dan NEW CODE service/DTO; QBE-SVC-001, API-001, VAL-001, CFG-001, MOD-001, PERM-001, TXN-001, LOG-001. Tidak ada entity/prefix baru.
 
@@ -19,7 +19,7 @@ Dependency: kontrak RWI-BAYI-016-1.0.
 
 ~~~text
 ✅ BE-RWI-231
-└── 🟡 FE-RWI-245
+└── ✅ FE-RWI-245
 ~~~
 
 Laporan: ../task/report/backend/BE-RWI-231.md.
