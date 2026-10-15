@@ -1,5 +1,6 @@
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
 {
@@ -31,6 +32,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         /// dari radiografer sendiri.
         /// </para>
         /// </summary>
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadReportAuthorRole? AuthorRole { get; set; }
 
         /// <summary><b>Sensitif.</b> Uraian temuan pada citra. Boleh kosong.</summary>
@@ -95,6 +97,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         /// Peran penulis koreksi, diperlakukan sama persis seperti pada draf pertama —
         /// <c>FR-RAD-023</c>.
         /// </summary>
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadReportAuthorRole? AuthorRole { get; set; }
 
         /// <summary><b>Sensitif.</b> Uraian temuan versi koreksi ini. Boleh kosong.</summary>

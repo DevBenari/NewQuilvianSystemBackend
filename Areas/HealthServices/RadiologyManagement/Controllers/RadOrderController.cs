@@ -95,6 +95,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                 hasil, "Daftar petugas radiologi berhasil diambil."));
         }
 
+        // Pilihan pemeriksaan untuk Ubah Pemeriksaan (BE-RAD-25). Radiografer tidak memegang
+        // Procedure : Read master data, jadi pilihannya disajikan Radiologi sendiri — pola BE-RAD-20.
+        [HttpGet("procedure-options")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<RadProcedureOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Update", "Update Rad Order", Description = "Melihat pilihan pemeriksaan radiologi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("RadOrder", "Update")]
+        public async Task<IActionResult> GetProcedureOptions(
+            [FromQuery] RadAssigneeOptionQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radOrderService.GetProcedureOptionsAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<RadProcedureOptionResponse>>.Ok(
+                hasil, "Daftar pemeriksaan radiologi berhasil diambil."));
+        }
+
         // Laporan operasional — menu v1 Laporan dan Pemeriksaan, Setup Tarif Tindakan (BE-RAD-24,
         // RAD-DEC-021). Baca saja; rentang tanggal WIB, bawaan 30 hari, maksimal 366 hari.
         [HttpGet("reports/examination-statistics")]

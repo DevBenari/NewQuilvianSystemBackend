@@ -1889,6 +1889,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             };
         }
 
+        /// <summary>
+        /// Pilihan pemeriksaan untuk Ubah Pemeriksaan (<c>BE-RAD-25</c>): pemeriksaan radiologi aktif saja,
+        /// sama dengan syarat <see cref="ChangeProcedureAsync"/>. Baca murni.
+        /// </summary>
+        public async Task<PagedResult<RadProcedureOptionResponse>> GetProcedureOptionsAsync(
+            RadAssigneeOptionQuery? query,
+            CancellationToken cancellationToken = default)
+        {
+            var (halaman, ukuran, cari) = RapikanPilihan(query);
+
+            var source = _dbContext.MstProcedures
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && x.IsRadiology);
+
+            if (cari != null)
+            {
+                source = source.Where(x =>
+                    x.ProcedureName.ToLower().Contains(cari) ||
+                    x.ProcedureCode.ToLower().Contains(cari) ||
+                    (x.ExternalProcedureCode != null && x.ExternalProcedureCode.ToLower().Contains(cari)) ||
+                    (x.ProcedureCategoryName != null && x.ProcedureCategoryName.ToLower().Contains(cari)));
+            }
+
+            var total = await source.CountAsync(cancellationToken);
+            var items = await source
+                .OrderBy(x => x.ProcedureName).ThenBy(x => x.ProcedureCode)
+                .Skip((halaman - 1) * ukuran).Take(ukuran)
+                .Select(x => new RadProcedureOptionResponse
+                {
+                    Id = x.Id,
+                    ProcedureCode = x.ProcedureCode,
+                    ProcedureName = x.ProcedureName,
+                    ProcedureCategoryName = x.ProcedureCategoryName,
+                    ExternalProcedureCode = x.ExternalProcedureCode,
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<RadProcedureOptionResponse>
+            {
+                PageNumber = halaman,
+                PageSize = ukuran,
+                TotalData = total,
+                TotalPage = (int)Math.Ceiling(total / (double)ukuran),
+                Items = items,
+            };
+        }
+
         private static RadWorklistItemResponse MapWorklist(RadOrder entity) => new()
         {
             RadOrderId = entity.Id,

@@ -1,5 +1,6 @@
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
 {
@@ -141,6 +142,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public Guid Id { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string? UserCode { get; set; }
+    }
+
+    /// <summary>Pilihan pemeriksaan radiologi untuk Ubah Pemeriksaan — hanya ruas yang perlu tampil.</summary>
+    public class RadProcedureOptionResponse
+    {
+        public Guid Id { get; set; }
+        public string ProcedureCode { get; set; } = string.Empty;
+        public string ProcedureName { get; set; } = string.Empty;
+        public string? ProcedureCategoryName { get; set; }
+        public string? ExternalProcedureCode { get; set; }
     }
 
     /// <summary>
@@ -403,6 +414,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public Guid SafetyRequirementId { get; set; }
 
         [Required]
+        // Layar mengirim nama enum ("NotApplicable"), bukan angka; angka tetap diterima.
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadSafetyCheckState CheckState { get; set; }
 
         public string? Note { get; set; }
@@ -423,6 +436,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
     public class RadAbortAcquisitionRequest
     {
         [Required]
+        // Layar mengirim nama enum ("NotApplicable"), bukan angka; angka tetap diterima.
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadAbortCause AbortCause { get; set; }
 
         [Required]
@@ -434,6 +449,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
     public class RadRepeatStudyRequest
     {
         [Required]
+        // Layar mengirim nama enum ("NotApplicable"), bukan angka; angka tetap diterima.
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadRepeatCause RepeatCause { get; set; }
 
         [Required]
@@ -463,6 +480,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
     public class RadConsumptionRequest
     {
         [Required]
+        // Layar mengirim nama enum ("NotApplicable"), bukan angka; angka tetap diterima.
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadConsumptionItemType ItemType { get; set; }
 
         [Required]

@@ -119,6 +119,7 @@ Base URL: `api/v1/health-services/radiology-management/rad-orders`
 | `GET /{id}/images`, `GET /{id}/images/{imageId}/content` | `RadOrder` | `Read` | `[AccessPermission("RadOrder", "Read")]` | Tidak — `BE-RAD-22` |
 | `POST /{id}/images`, `DELETE /{id}/images/{imageId}` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya — `Order.ImageAdded`/`Order.ImageRemoved` + log, `BE-RAD-22` |
 | `GET /reports/*` (6 laporan, termasuk `procedure-tariffs`) | `RadOrder` | `Read` | `[AccessPermission("RadOrder", "Read")]` | Tidak — `BE-RAD-24` |
+| `GET /procedure-options` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Tidak — pilihan Ubah Pemeriksaan, `RAD-EVD-002` |
 | `PUT /{id}/procedure` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya — `Order.ChangeProcedure` + alasan, `BE-RAD-25` |
 | `PUT /{id}/film-print` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya — `Order.FilmPrint`, `BE-RAD-25` |
 
