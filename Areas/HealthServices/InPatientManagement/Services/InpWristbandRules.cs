@@ -117,11 +117,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             Gender? gender,
             MaritalStatus maritalStatus,
             DateTime? birthDate,
-            DateTime today)
+            DateTime today,
+            int? birthOrder = null)
         {
             if (isNewborn && !string.IsNullOrWhiteSpace(motherName))
             {
-                return $"BY. NY. {motherName.Trim().ToUpperInvariant()}";
+                return $"BY. NY. {motherName.Trim().ToUpperInvariant()}{(birthOrder > 0 ? $" / BAYI {birthOrder}" : string.Empty)}";
             }
 
             var name = (fullName ?? string.Empty).Trim().ToUpperInvariant();

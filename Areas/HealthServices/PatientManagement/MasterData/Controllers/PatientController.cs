@@ -219,6 +219,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             [FromQuery] Guid? defaultMembershipTierId,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
+            [FromQuery] string? medicalRecordNumber = null,
+            [FromQuery] string? identityNumber = null,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -242,7 +244,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             query = ApplyDateFilter(query, startDate, endDate, customPeriod);
             query = ApplyRelationFilter(query, defaultMembershipTierId);
-            query = ApplyStandardFilter(query, isActive, search);
+            query = ApplyStandardFilter(query, isActive, search, medicalRecordNumber, identityNumber);
 
             if (birthDateFilter.HasValue)
             {
@@ -330,22 +332,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             [FromQuery] string? customPeriod,
             [FromQuery] Guid? defaultMembershipTierId,
             [FromQuery] string? search,
+            [FromQuery] string? medicalRecordNumber = null,
+            [FromQuery] string? identityNumber = null,
+            [FromQuery] string? birthDate = null,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
             return await GetPatients(
-                startDate,
-                endDate,
-                customPeriod,
-                defaultMembershipTierId,
-                true,
-                search,
-                sortBy,
-                sortDirection,
-                pageNumber,
-                pageSize
+                startDate: startDate,
+                endDate: endDate,
+                customPeriod: customPeriod,
+                defaultMembershipTierId: defaultMembershipTierId,
+                isActive: true,
+                search: search,
+                medicalRecordNumber: medicalRecordNumber,
+                identityNumber: identityNumber,
+                sortBy: sortBy,
+                sortDirection: sortDirection,
+                pageNumber: pageNumber,
+                pageSize: pageSize,
+                birthDate: birthDate
             );
         }
 
@@ -2094,11 +2102,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private static IQueryable<MstPatient> ApplyStandardFilter(
             IQueryable<MstPatient> query,
             bool? isActive,
-            string? search)
+            string? search,
+            string? medicalRecordNumber = null,
+            string? identityNumber = null)
         {
             if (isActive.HasValue)
             {
                 query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(medicalRecordNumber))
+            {
+                var mrnKeyword = medicalRecordNumber.Trim().ToLower();
+                var mrnClean = mrnKeyword.Replace("-", "");
+                query = query.Where(x =>
+                    (x.MedicalRecordNumber != null && (
+                        x.MedicalRecordNumber.ToLower().Contains(mrnKeyword) ||
+                        x.MedicalRecordNumber.Replace("-", "").Contains(mrnClean)
+                    )) ||
+                    (x.PatientCode != null && x.PatientCode.ToLower().Contains(mrnKeyword)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(identityNumber))
+            {
+                var idKeyword = identityNumber.Trim();
+                query = query.Where(x => x.IdentityNumber != null && x.IdentityNumber.Contains(idKeyword));
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -2123,6 +2151,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         BuildEnumLabel(x).ToLower().Contains(keyword))
                     .ToList();
 
+                // Perlindungan broad-match: jangan cocokkan nomor telepon/WA jika keyword pendek (<= 3 karakter seperti "08")
+                // kecuali keyword nomor telepon memiliki panjang minimal 4 karakter (misal "0812")
+                var matchPhone = keyword.Length >= 4;
+
                 query = query.Where(x =>
                     x.PatientCode.ToLower().Contains(keyword) ||
                     x.MedicalRecordNumber.ToLower().Contains(keyword) ||
@@ -2130,8 +2162,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     (x.NickName != null && x.NickName.ToLower().Contains(keyword)) ||
                     (x.IdentityType != null && x.IdentityType.ToLower().Contains(keyword)) ||
                     (x.IdentityNumber != null && x.IdentityNumber.ToLower().Contains(keyword)) ||
-                    (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
-                    (x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
+                    (matchPhone && x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
+                    (matchPhone && x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
                     (x.Email != null && x.Email.ToLower().Contains(keyword)) ||
                     (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)) ||
                     (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)) ||
