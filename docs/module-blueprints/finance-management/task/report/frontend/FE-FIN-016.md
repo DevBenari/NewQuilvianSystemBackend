@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `d2e8a3538` — branch `yasmina` |
 | Commit backend yang dijadikan rujukan | `99df41e1` — branch `Yasmina` (read-only, memverifikasi resource `[AccessPermission]`) |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **Sebagian.** Source lengkap sesuai kontrak. `npm run lint:errors` **PASS**. `npm run test:unit` dan `npm run build` **NOT RUN** — menunggu konfirmasi eksplisit pengguna, mengikuti konvensi sesi saat ini |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

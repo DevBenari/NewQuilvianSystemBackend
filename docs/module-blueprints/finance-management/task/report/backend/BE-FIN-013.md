@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-4`) |
 | Trace | `FIN-DES-018`..`020`, `FR-FIN-060`..`065`; kontrak `FIN-VAL-1.0` §kas (`FIN-VAL-060`..`066`); `FIN-STATE-1.0` §7/§8; `FIN-DEC-020` |
 | Contract version | `FIN-VAL-1.0` §kas — dipatuhi penuh untuk bentuk kolom, check constraint status, dan check constraint formula penutupan kas |
-| Dependency | `BE-FIN-009` — 🟡 sebagian 21 September 2026. Task ini mandiri pada submodule `CashManagement` dan hanya berelasi FK ke `MstBankAccount` (`BE-FIN-002`) |
+| Dependency | `BE-FIN-009` — ✅ SELESAI 21 September 2026. Task ini mandiri pada submodule `CashManagement` dan hanya berelasi FK ke `MstBankAccount` (`BE-FIN-002`) |
 | Klasifikasi | `HEAVY` — dampak database (2 tabel baru, FK, 3 check constraint, 6 index); berkas snapshot tersentuh |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/CashManagement/Models/*.cs` (baru), `Repositories/Configurations/Corporate/FinanceManagement/CashManagement/*.cs` (baru), `Repositories/ApplicationDbContext.cs` (DbSet+using), `Migrations/20260921000004_AddFinanceCashManagement.cs`+`.Designer.cs` (baru), `Migrations/ApplicationDbContextModelSnapshot.cs` (penambahan) |

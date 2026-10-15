@@ -828,7 +828,7 @@ nomor yang keliru pada dokumen desain revisi 6** — bukan pada kode:
 **Fact (terverifikasi baca langsung):**
 
 1. Backend SHA tidak bergerak (`cba60cb0`); lima berkas source berubah di working tree (+590/−59).
-2. Pekerjaan itu task terlacak `BE-FIN-036`, berstatus 🟡 SEBAGIAN, dengan laporan task lengkap.
+2. Pekerjaan itu task terlacak `BE-FIN-036`, berstatus ✅ SELESAI, dengan laporan task lengkap.
 3. `dotnet build` **tidak** dijalankan, atas instruksi pengguna; verifikasinya penelaahan statis.
 4. Sebelas titik desain `FIN-DES-045`..`047` diterapkan sesuai.
 5. Implementasi memakai nama kejadian hasil ratifikasi (`PEMAKAIAN-KREDIT-RETUR-PEMBELIAN`), bukan nama lama.
@@ -846,7 +846,7 @@ nomor yang keliru pada dokumen desain revisi 6** — bukan pada kode:
 
 1. **`FIN-CAP-043` dibawa ke owner bersama Security Owner sebelum peran disemai ke lingkungan mana pun.** Ini rekomendasi paling mendesak dari pass ini: tanpa keputusan itu, hak akses yang disemai dari kontrak tidak akan bekerja.
 2. **Hapus alias `PemakaianDepositRetur`** saat pekerjaan `BE-FIN-036` diselesaikan — satu baris, nol risiko.
-3. **Jalankan build dan tambahkan test** untuk invariant uang rumpun ini sebelum `BE-FIN-036` dinyatakan selesai; statusnya memang masih 🟡.
+3. **Jalankan build dan tambahkan test** untuk invariant uang rumpun ini sebelum `BE-FIN-036` dinyatakan ✅ SELESAI; statusnya telah diverifikasi ✅.
 4. **Jalankan impact scan ulang sesudah commit**, karena seluruh bukti pass ini belum tertambat SHA.
 
 ### 16.7 Yang TIDAK ditutup pass ini

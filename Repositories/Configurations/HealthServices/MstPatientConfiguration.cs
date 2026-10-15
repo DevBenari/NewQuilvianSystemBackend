@@ -92,8 +92,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.PhotoPath)
                 .HasMaxLength(500);
 
+            // crm-membership BE-CRM-015: tanpa sentinel, EF tidak pernah mengirim false saat insert
+            // (sama dengan nilai bawaan CLR) sehingga default database true selalu menang — penyebab
+            // pasien baru bertanda member palsu. Sentinel true membuat false dikirim eksplisit; skema
+            // tidak berubah. Default kolom true tetap tercatat sebagai utang teknis.
             entity.Property(x => x.IsMember)
-                .HasDefaultValue(true);
+                .HasDefaultValue(true)
+                .HasSentinel(true);
 
             entity.Property(x => x.DefaultMembershipTierId)
                 .IsRequired(false);

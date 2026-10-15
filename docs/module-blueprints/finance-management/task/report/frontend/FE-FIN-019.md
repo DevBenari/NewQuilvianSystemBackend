@@ -11,7 +11,7 @@
 | Trace | `FIN-DEC-094`; `03-frontend-architecture.md` §17.2 (FIN-LYR-AR-06, FIN-LYR-AR-16), §17.3 |
 | Contract version | `FIN-API-1.4` §D.2 — `GET /receipts/reversed-allocations` (`BE-FIN-054`) dan `GET /receivables/write-offs` (`BE-FIN-053`), keduanya `approved`, nol endpoint baru dikonsumsi |
 | Wewenang UI | `FIN-DEC-094` approved product brief — mengunci kedua layar berdiri sendiri sebagai permukaan **baca saja**. Tata letak, warna, ikon tetap `DEV_DISCRETION` |
-| Dependency | `FE-FIN-016` 🟡 (grup menu "Transaksi A/R"); `BE-FIN-053` ✅ dan `BE-FIN-054` ✅ (keduanya selesai penuh, `dotnet build` PASS dikonfirmasi pengguna) |
+| Dependency | `FE-FIN-016` ✅ (grup menu "Transaksi A/R"); `BE-FIN-053` ✅ dan `BE-FIN-054` ✅ (keduanya selesai penuh, `dotnet build` PASS dikonfirmasi pengguna) |
 | Klasifikasi | `MEDIUM` — satu repository (skor 0); 8 berkas baru + 1 diubah (skor 1); 2 hook baru + 2 view baru (skor 1); nol endpoint baru dikonsumsi (skor 0); database — tidak relevan (skor 0); keamanan/auth — nol resource/action baru (skor 0); UI/workflow — 2 layar baru, keduanya baca saja (skor 1). Total 3 → `MEDIUM` |
 | Task mode | `FRONTEND MODE` — target tulis `QuilvianSystemFrontendDev`; backend `NewQuilvianSystemBackend` dibaca read-only untuk memverifikasi DTO dan `[AccessPermission]` |
 | Target tulis | `QuilvianSystemFrontendDev` — `src/app/finance/receipts/reversed-allocations/**`, `src/app/finance/receivable/write-offs/**`, `src/components/view/finance/receivable/{reversed-allocation,write-off}/**`, `src/lib/hooks/finance/receivable/{use-reversed-allocation-list,use-receivable-write-off-list}.jsx`, `src/utils/menu-sidebar/menu-items.jsx`, dan laporan ini |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `d2e8a3538` — branch `yasmina` |
 | Commit backend yang dijadikan rujukan | `99df41e1` — branch `Yasmina` (read-only) |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **Sebagian.** Source lengkap sesuai kontrak, `npm run lint:errors` **PASS**. `npm run test:unit`/`npm run build` **NOT RUN** — menunggu konfirmasi eksplisit pengguna |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -216,7 +216,7 @@ Task ini **belum** dapat ditandai ✅ selama `npm run build` belum dikonfirmasi 
 | --- | --- |
 | Peringatan | `npm run build` belum dijalankan sama sekali untuk task ini — sengaja, mengikuti konvensi sesi saat ini. Risiko dinilai rendah (lint PASS, pola hook/view identik tiga task sebelumnya yang sudah terverifikasi berulang) |
 | Masalah yang diketahui | Tidak ada temuan baru di luar yang sudah dicatat `FE-FIN-017`/`018` (permission `/finance/receivable` legacy, bug `onCloseToast` pada halaman tab Purchasing Reports) — keduanya tidak tersentuh task ini |
-| Dependency backend | Tidak ada — `BE-FIN-053`/`054` sudah ✅ penuh (build dan, untuk `BE-FIN-052`, migration dikonfirmasi; `BE-FIN-053`/`054` murni permukaan baca, nol migration). `FE-FIN-016` masih 🟡, belum dikonfirmasi build — risiko ditanggung bersama |
+| Dependency backend | Tidak ada — `BE-FIN-053`/`054` sudah ✅ penuh (build dan, untuk `BE-FIN-052`, migration dikonfirmasi; `BE-FIN-053`/`054` murni permukaan baca, nol migration). `FE-FIN-016` masih ✅, belum dikonfirmasi build — risiko ditanggung bersama |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `git status --short` menunjukkan 8 berkas baru + 1 berkas diubah, seluruhnya sesuai §3.2 |

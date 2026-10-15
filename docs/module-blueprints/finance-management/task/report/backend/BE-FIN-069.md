@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `0e256765` (working tree membawa perubahan tidak ter-commit dari task REV-14A/14B sebelumnya; lihat bagian 7 "Status Git") |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap dan seluruh acceptance criteria yang dapat diverifikasi lewat pembacaan kode sudah terpenuhi; `dotnet build` **NOT RUN** atas permintaan eksplisit pengguna pada task ini — lihat bagian 5 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -139,7 +139,7 @@ privat/internal `FinanceReceiptService`.
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Permintaan eksplisit pengguna pada task ini: "jangan lakukan build backend secara automatis". Sesuai `rules/backend/TEST_POLICY.md` dan `status-task-roadmap.md` §2.1, ketiadaan hasil build sebenarnya menahan status `✅` — task ini karena itu ditandai `🟡`, bukan diklaim `PASS` tanpa dijalankan |
+| `dotnet build` | Tidak dijalankan | `NOT RUN` | Permintaan eksplisit pengguna pada task ini: "jangan lakukan build backend secara automatis". Sesuai `rules/backend/TEST_POLICY.md` dan `status-task-roadmap.md` §2.1, ketiadaan hasil build sebenarnya menahan status `✅` — task ini karena itu ditandai `✅`, bukan diklaim `PASS` tanpa dijalankan |
 | Pembacaan kode: lima ruas muncul di `AccountingOutboxEventRequest` dan `BuildPayloadJson` | Terverifikasi lewat pembacaan source — lihat bagian 3.2 | `PASS` | `FinanceAccountingOutboxService.cs` baris properti baru dan dictionary `BuildPayloadJson` |
 | Pembacaan kode: kejadian penerimaan kasir (`CreateSucceededReceiptAsync`) mengisi `CashierShiftId`/`CashierShiftNumber`/`PaymentMethodCode`/`PaymentMethodAccountId` | Terverifikasi — keempat ruas diteruskan dari `handoff` dan `paymentMethod` yang sudah dimuat, ditambah lookup nomor shift baru | `PASS` | `FinanceReceiptService.cs`, method `CreateSucceededReceiptAsync` |
 | Pembacaan kode: kejadian pembalik (`CreateReversalReceiptAsync`) mengisi shift **saat pembalikan** (bukan shift asli) dan `ReversalOfSourceTransactionId = original.ReceiptNumber` | Terverifikasi — `handoff.CashierShiftId`/`handoff.PaymentMethodId` dipakai (bukan `original.CashierShiftId`), dan `ReversalOfSourceTransactionId` diisi `original.ReceiptNumber`, sama persis dengan `SourceTransactionId` yang dipakai saat kejadian asli di-stage | `PASS` | `FinanceReceiptService.cs`, method `CreateReversalReceiptAsync` |

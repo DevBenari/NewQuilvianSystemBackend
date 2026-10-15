@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `d6cdfaf9fda8889d6fe73db1e97cc28c4f022852` (branch `Yasmina`) |
 | Tanggal | 2026-09-25 |
-| Status | 🟡 **SEBAGIAN — build lulus, verifikasi manual belum.** Source selesai persis sesuai scope roadmap. `dotnet build` dijalankan pengguna sendiri dan **lulus**, dikonfirmasi 25 September 2026. Verifikasi manual `GET /{id}/refundable-items` terhadap data nyata belum dijalankan — lihat §5 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

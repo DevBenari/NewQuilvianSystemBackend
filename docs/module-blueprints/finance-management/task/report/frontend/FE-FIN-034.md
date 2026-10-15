@@ -11,14 +11,14 @@
 | Trace | `FR-FIN-186`; `FIN-DEC-147`; `03-frontend-architecture.md` §21.1, §21.3 |
 | Contract version | `FIN-API-1.7` G.1; `FIN-PERM-1.8` I — **tanpa perubahan kontrak** (dikonfirmasi: nol field/endpoint baru dikonsumsi, hanya gerbang hak dan redaksi yang berubah) |
 | Reuse | `use-direct-payment-threshold.jsx` yang sudah ada (dipakai utuh dari kedua layar pembayaran, bukan hook baru); `MetaRow`/`InformationAlert` yang sudah ada pada layar master ambang |
-| Dependency | `FE-FIN-033` 🟡 (source selesai, lint/test/build PASS sesi sebelumnya — lihat laporan `FE-FIN-033` §0, tidak memblokir task ini karena bergantung pada bentuk kode, bukan status roadmap); hak `MstDirectPaymentThreshold:Read` pada peran staf AR/AP — **milik administrator**, di luar kendali source (lihat §9) |
+| Dependency | `FE-FIN-033` ✅ (source selesai, lint/test/build PASS sesi sebelumnya — lihat laporan `FE-FIN-033` §0, tidak memblokir task ini karena bergantung pada bentuk kode, bukan status roadmap); hak `MstDirectPaymentThreshold:Read` pada peran staf AR/AP — **milik administrator**, di luar kendali source (lihat §9) |
 | Wewenang UI | **Bukan** `DEV_DISCRETION`: pelonggaran gerbang `Read`, penghapusan banner `FIN-OQ-080`, dan penyebutan nominal ambang pada konfirmasi pembayaran adalah **keputusan pemilik** (`FIN-DEC-147`) yang **berbeda dari rekomendasi agent semula** — diterapkan apa adanya |
 | Klasifikasi | `LIGHT` — 5 berkas diubah (nol berkas baru), 1 berkas test diperbarui; nol komponen baru |
 | Task mode | `FRONTEND`. Target tulis `QuilvianSystemFrontendDev`; laporan ini ditulis di repository backend karena di sanalah `docs/module-blueprints/` tinggal |
 | Model | Claude Sonnet 5 |
 | Commit frontend saat dikerjakan | `66d90570d` (branch `yasmina`) |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `npm run lint:errors`, `npm run test:unit`, dan `npm run build` seluruhnya PASS (dijalankan sesi ini). `npm run dev` **TIDAK DIJALANKAN** (instruksi eksplisit pengguna). Sisa: uji `K.1.5` **NOT FEASIBLE** tanpa server berjalan, dan hasil sungguhan tetap bergantung pemberian hak `Read` oleh administrator (§9) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

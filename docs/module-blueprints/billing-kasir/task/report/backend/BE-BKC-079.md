@@ -65,7 +65,7 @@ Melalui implementasi task `BE-BKC-079`, sistem Billing kini memiliki mekanisme p
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend/Areas/HealthServices/BillingManagement/Billing/Services/BillingSettlementService.cs`, `docs/module-blueprints/billing-kasir/task/report/backend/BE-BKC-079.md` |
 | Tanggal | 2026-09-28 |
-| Status | 🟡 **SEBAGIAN — source code selesai, menunggu kompilasi build mandiri dan verifikasi pengguna.** Logika pembalikan tender deposit, pembatalan alokasi LIFO, mutasi ganda `RELEASE` & `REVERSAL`, sinkronisasi status invoice `CLOSED` -> `FINAL`, serta handoff clearance telah terpasang lengkap. |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

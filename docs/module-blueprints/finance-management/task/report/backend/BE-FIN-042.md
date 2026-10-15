@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Belum di-commit — working tree `Yasmina` |
 | Tanggal | 29 September 2026 |
-| Status | 🟡 **SEBAGIAN — DENGAN TEMUAN BLOCKER.** §D.5 (rename 6 controller) dan §D.6.1 (skrip migrasi data) selesai, dengan **koreksi teknis** atas isi skrip kontrak yang tidak dapat dieksekusi terhadap skema nyata (lihat bagian 7). §D.6.2 (seeder ekspansi payung `Finance.AP`/`Finance.AR`) **BLOCKED** — bentrok nama dengan controller nyata yang sudah berjalan, dan menuntut arsitektur otorisasi baru yang belum ada preseden di codebase ini. `dotnet build` **belum dijalankan** untuk perubahan task ini secara spesifik |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

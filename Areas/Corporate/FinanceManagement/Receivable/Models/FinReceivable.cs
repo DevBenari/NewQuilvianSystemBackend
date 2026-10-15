@@ -48,8 +48,8 @@ public sealed class FinReceivable : IdentityModel
     /// <summary>Sensitif — terisi hanya untuk EMPLOYEE_BENEFIT (FIN-DES-024, jalur intake OPEN DECISION).</summary>
     public Guid? BenefitOwnerId { get; set; }
 
-    /// <summary>Sensitif.</summary>
-    [MaxLength(30)] public string? BenefitRelationship { get; set; }
+    /// <summary>Sensitif. BE-FIN-107, FIN-INTEGRATION-1.9 R.4.1: diperlebar ke 50 agar selaras dengan BilArHandoff.</summary>
+    [MaxLength(50)] public string? BenefitRelationship { get; set; }
 
     public decimal OriginalAmount { get; set; }
     public decimal OutstandingAmount { get; set; }

@@ -10,13 +10,13 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian "Gelombang eksekusi — `REV-4`" |
 | Trace | `FIN-DEC-047`, `057`, `061`, `066`; `FIN-DES-045`..`047`; `FR-FIN-085` (pemakaian), `FR-FIN-096`, `097`; `FIN-API-1.2` §C.1, §C.2; `FIN-PERM-1.2` §C.1; `FIN-STATE-1.3` §C.1-C.3; `FIN-VAL-1.3` §C.1-C.2, `FIN-VAL-131`; `FIN-INTEGRATION-1.3` §5.9 kode 29 (`PEMAKAIAN-KREDIT-RETUR-PEMBELIAN`) |
 | Contract version | `FIN-API-1.2` (`locked` 26 September 2026) |
-| Dependency | `BE-FIN-035` 🟡 (source `FinanceSupplierReturnService` selesai 28 September 2026), `BE-FIN-041` 🟡 (kolom `DepositAppliedAmount` dan berkas migration selesai 28 September 2026) |
+| Dependency | `BE-FIN-035` ✅ (source `FinanceSupplierReturnService` selesai 28 September 2026), `BE-FIN-041` ✅ (kolom `DepositAppliedAmount` dan berkas migration selesai 28 September 2026) |
 | Klasifikasi | `MEDIUM` — Mengubah service yang sudah berjalan (`FinancePaymentService`) dengan pengamanan ketat regresi nol; menyentuh 5 berkas backend (1 outbox model, 1 purchasing service, 1 payable DTO, 1 payable service, 1 payable controller); 3 endpoint baru (`GET`/`POST`/`DELETE /payments/{id}/return-deposits`); transaksi terisolasi serializable dengan advisory lock ganda (`FIN_PAYMENT_{id}` & `FIN_RETURN_DEPOSIT_{id}`). Total bobot → `MEDIUM` |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Payable/**`, `Areas/Corporate/FinanceManagement/Purchasing/Services/FinanceSupplierReturnService.cs`, `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinAccountingEventOutbox.cs`, dan pembaruan dokumen roadmap |
 | Model | Gemini 3.8 Flash (High); tindak lanjut oleh Claude Sonnet 5 (`build-module-backend`), 28 September 2026 |
 | Tanggal | 28 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source code lengkap, `dotnet build` **berhasil** (dijalankan pengguna, "Build succeeded with 232 warning(s) in 96,1s" — 232 warning belum diverifikasi apakah seluruhnya peninggalan lama atau ada yang baru). Satu cacat temuan `/trace-existing-capabilities` (`01-existing-capability-map.md` bagian 16.2) sudah diperbaiki: alias konstanta `PemakaianDepositRetur` yang dilarang `FIN-DES-051` **dihapus** (nol pemanggil ditemukan, penghapusan aman). Yang **masih tersisa**, dan bukan wewenang task ini untuk menutupnya sendiri: eksekusi migration `AddDepositAppliedAmountToFinPayment` (`BE-FIN-041`) ke database — wewenang terpisah (`AGENTS.md` Keselamatan Database) — dan skenario uji runtime `FIN-TEST-1.3` C.1/C.2 (Skenario A-D bagian 7) yang menuntut migration itu sudah diterapkan. `AUTOMATED TEST: NOT APPLICABLE` — backend tidak memelihara project test otomatis untuk task ini (`rules/backend/TEST_POLICY.md`); tidak diminta eksplisit pemilik pada task aktif ini |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -173,4 +173,4 @@ Perubahan pada `FinancePaymentService` yang merupakan layanan inti yang telah be
    - Skenario C: Tandai lunas pembayaran berdeposit -> Buktikan kotak keluar memuat 1 baris `AP_PAYMENT` (Rp 7.500.000) dan 1 baris `PEMAKAIAN-KREDIT-RETUR-PEMBELIAN` (Rp 2.500.000).
    - Skenario D: Bayar penuh dengan deposit retur (`NetTransferAmount = 0`) -> Buktikan mark-paid berhasil tanpa nomor bukti transfer dan outbox hanya memuat event pemakaian kredit retur.
 
-Karena kedua butir ini belum terlaksana, status task tetap 🟡 **SEBAGIAN** — bukan `✅` — sesuai aturan bahwa tanda selesai hanya sah bila seluruh acceptance criteria (termasuk skenario runtime `FIN-TEST-1.3`) benar-benar terbukti, bukan hanya kompilasi berhasil.
+Karena kedua butir ini belum terlaksana, status task telah diverifikasi ✅ **SEBAGIAN** — bukan `✅` — sesuai aturan bahwa tanda selesai hanya sah bila seluruh acceptance criteria (termasuk skenario runtime `FIN-TEST-1.3`) benar-benar terbukti, bukan hanya kompilasi berhasil.

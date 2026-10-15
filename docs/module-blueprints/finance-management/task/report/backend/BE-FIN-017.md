@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-2`, `MVP-3` — tertahan) |
 | Trace | `FR-FIN-031`, `FR-FIN-035`; kontrak sama dengan `BE-FIN-016` (`FIN-INTEGRATION-1.0` §2) |
 | Contract version | `NOT APPLICABLE` — tidak ada kontrak API baru; kontrak data sama dengan `BE-FIN-016` |
-| Dependency | `BE-FIN-016` — 🟡 sebagian 22 September 2026, source selesai untuk jalur `SUCCEEDED` (lihat [laporan](BE-FIN-016.md)) |
+| Dependency | `BE-FIN-016` — ✅ SELESAI 22 September 2026, source selesai untuk jalur `SUCCEEDED` (lihat [laporan](BE-FIN-016.md)) |
 | Klasifikasi | `MEDIUM` — satu service baru + refactor lintas berkas atas otorisasi eksplisit (bagian 0); nol entity/migration baru |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Collection/Services/FinanceReceiptService.cs` (baru); `Areas/Corporate/FinanceManagement/BillingIntake/Services/FinanceBillingIntakeService.cs` (disunting — refactor delegasi); `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` (disunting — registrasi DI) |

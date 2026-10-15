@@ -74,6 +74,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.Property(x => x.IsAllowExcessPaymentByPatient)
                 .HasDefaultValue(true);
 
+            entity.Property(x => x.IsEmployeeBenefitGuarantor)
+                .HasDefaultValue(false);
+
             entity.Property(x => x.CreditLimitAmount)
                 .HasColumnType("numeric(18,2)")
                 .IsRequired(false);
@@ -150,6 +153,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
             entity.HasIndex(x => x.GuarantorType);
 
             entity.HasIndex(x => x.BillingMethod);
+
+            // BE-FIN-106: paling banyak satu penjamin internal (RS Benefit) yang belum dihapus.
+            entity.HasIndex(x => x.IsEmployeeBenefitGuarantor)
+                .IsUnique()
+                .HasFilter("\"IsEmployeeBenefitGuarantor\" = true AND \"IsDelete\" = false")
+                .HasDatabaseName("UX_MstCompanyGuarantor_EmployeeBenefit");
 
             entity.HasIndex(x => x.ExternalCompanyCode)
                 .HasFilter("\"ExternalCompanyCode\" IS NOT NULL");

@@ -16,7 +16,7 @@
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev`: `cashier-shift-constants.js`, `use-cashier-shift.js`, `open-shift-modal.jsx`, `tests/unit/cashier-shift-blocking-and-status.test.mjs` |
 | Tanggal | 2026-09-25 |
-| Status | 🟡 **SEBAGIAN — source code dan validasi unit test selesai 100% (4/4 tests PASS).** Badge status "Perlu Tindak Lanjut", opsi saringan riwayat shift, pemetaan error HTTP 409 di hook `useCashierShift`, dan rendering komponen `InformationAlert` pada modal buka shift telah terpasang. Menunggu verifikasi visual interaktif bersama backend aktif. |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

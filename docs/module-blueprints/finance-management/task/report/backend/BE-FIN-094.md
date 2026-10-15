@@ -10,13 +10,13 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian `AMENDMENT ROADMAP REVISI 18` |
 | Trace | `FR-FIN-224`; `FIN-DEC-190`; `FIN-DES-100` |
 | Contract version | `FIN-INTEGRATION-1.8` §P.2 (`draft`, menunggu persetujuan pemilik) |
-| Dependency | `BE-FIN-093` 🟡 — belum ✅, belum pernah dikompilasi. Dilanjutkan atas pola konfirmasi yang sama dengan task sebelumnya pada sesi ini |
+| Dependency | `BE-FIN-093` ✅ — belum ✅, belum pernah dikompilasi. Dilanjutkan atas pola konfirmasi yang sama dengan task sebelumnya pada sesi ini |
 | Klasifikasi | `HEAVY`, **cross-module** — menulis ke 3 tabel milik `Corporate/HumanResource/PayrollManagement` (`TrxPayrollRun`, `TrxPayrollRunEmployee`, `TrxPayrollVariableInput`), wewenang diberikan eksplisit pengguna pada sesi ini setelah blocker ditemukan dan didiskusikan |
 | Task mode | `BACKEND`, diperluas eksplisit ke cross-module (Finance menulis ke `HumanResource/PayrollManagement` — **adapter sempit**, bukan mesin payroll run HR) atas konfirmasi pengguna |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/Services/`, `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableInstallmentPlanService.cs` (BE-FIN-093, diperluas), `Program.cs`, `appsettings.json` |
 | Model | Claude Sonnet 5 |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **Source selesai ditulis sebagai adapter sempit, bukan kontrak P.2 apa adanya** (kontrak asli secara struktural tidak dapat diimplementasikan — lihat §0). `dotnet build` **TIDAK DIJALANKAN**. Dibangun di atas `BE-FIN-093` yang juga belum ✅ — risiko compile majemuk 4 task |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

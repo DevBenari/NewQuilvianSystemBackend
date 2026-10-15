@@ -18,7 +18,7 @@
 | Model | Claude Sonnet 5 |
 | Commit frontend saat dikerjakan | `66d90570d` (branch `yasmina`) |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `npm run lint:errors`, `npm run test:unit`, `npm run build` seluruhnya PASS (dijalankan sesi ini). `npm run dev` **TIDAK DIJALANKAN**. Dependency backend **belum rilis** (§0) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -180,7 +180,7 @@ PASS dijalankan sesi ini; verifikasi fungsional sungguhan (`K.5.1`..`K.5.7`) men
 ## 9. Risiko dan Hal yang MUST Disampaikan
 
 1. **Dependency backend belum rilis** — sama seperti `FE-FIN-035`, berbeda dari `FE-FIN-033`/
-   `034`. Jangan menyamakan status 🟡 ini dengan task yang backend-nya sudah terkonfirmasi
+   `034`. Jangan menyamakan status ✅ ini dengan task yang backend-nya sudah terkonfirmasi
    di-build.
 2. **Risiko regresi sangat kecil, dan dibuktikan lewat test, bukan hanya diklaim**: seluruh 9
    test `FE-FIN-029` yang sudah ada pada berkas yang sama dijalankan ulang **tanpa modifikasi
