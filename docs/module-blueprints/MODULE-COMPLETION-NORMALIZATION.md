@@ -43,8 +43,8 @@ dapat dinilai dengan metode yang sama seperti modul lain.
 
 | Modul | Total Applicable | Done | In Progress | Blocked External | Blocked Business | Not Started | Development Completion |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Farmasi | 16 | 16 | 0 | 0 | 2² | 0 | **100%** |
-| Operasi | 20 | 12 | 8 | 0 | 0 | 0 | **60%** |
+| Farmasi | 17 | 17 | 0 | 0 | 2² | 0 | **100%** |
+| Operasi | 20 | 19 | 1 | 0 | 0 | 0 | **95%** |
 | Gizi | 12 | 12 | 0 | 0 | 0 | 0 | **100%** |
 
 
@@ -55,19 +55,18 @@ dan uji ada, tetapi catatan acceptance belum dibuat. Angka pendamping:
 
 | Modul | Terkirim (source + uji) | Catatan |
 |---|---:|---|
-| Farmasi | 16 / 16 = **100%** | `PHA-FE-002` ditutup dan acceptance `PHA-D-10` ditemukan, 14 Okt |
-| Operasi | 20 / 20 = **100%** | source kesembilan task FE ada; acceptance baru terbukti pada `FE-OPR-004` |
+| Farmasi | 17 / 17 = **100%** | `PHA-FE-002` ditutup dan acceptance `PHA-D-10` ditemukan, 14 Okt; `PHA-D-11` gerbang stok ditambah 15 Okt |
+| Operasi | 20 / 20 = **100%** | acceptance terbukti pada 19 task; `FE-OPR-009` masih sedang proses |
 | Gizi | 12 / 12 = **100%** | — |
 
-**Operasi tampil 60%, dan itu memang benar.** Backend 11/11 `DONE`. Dari sembilan task frontend,
-acceptance baru terbukti pada satu (`FE-OPR-004`, ditutup 14 Okt). Delapan sisanya `IN PROGRESS`:
-source-nya ada, tetapi acceptance-nya belum terbukti karena layarnya belum tersentuh uji.
-Seluruh delapan gap itu pekerjaan **uji frontend** — bukan keputusan bisnis, bukan dependency
-modul lain, dan nol di antaranya menuntut perubahan source aplikasi.
+**Operasi naik ke 95% pada 15 Oktober 2026.** Backend 11/11 selesai. Dari sembilan task frontend,
+delapan kini punya acceptance terbukti lewat uji; satu (`FE-OPR-009`) masih sedang proses karena
+E2E Playwright tertahan bootstrap sesi. Nol perubahan source aplikasi dilakukan untuk menaikkan
+angka ini — seluruhnya penambahan uji terhadap layar yang memang sudah terkirim.
 
 | Modul | Original | Derived |
 |---|---:|---:|
-| Farmasi | 8 | 10 |
+| Farmasi | 8 | 11 |
 | Operasi | 20 | 0 |
 | Gizi | 0 | 12 |
 
@@ -137,7 +136,7 @@ tetap dihitung, tetapi sebagai bukti di dalam `PHA-D-01` (klarifikasi telaah, 4 
 
 | Hal | Pemilik | Dampak |
 |---|---|---|
-| `PharmacyTests` tidak dapat dikompilasi | **Billing / Finance** | 34 error di 3 berkas uji milik mereka di dalam proyek uji Farmasi; **nol** error di berkas Farmasi. 536 uji tertulis tidak dapat dijalankan |
+| `PharmacyTests` tidak dapat dikompilasi | **Billing / Finance** | **17 error** di 3 berkas uji milik mereka di dalam proyek uji Farmasi per 15 Okt (sebelumnya 34); **nol** error di berkas Farmasi. 544 uji tertulis tidak dapat dijalankan lewat `dotnet test` biasa |
 | Master tarif jasa konsultasi tidak ada | **Billing** | Nol baris `MstTariff` dengan `IsConsultationFee = true`. Invoice tertahan `BIL-FIN-021`, sehingga clearance tidak terbit dan workflow Farmasi tidak tercapai lewat jalur normal |
 | `LAB-OPEN-012` | **Lab** | Menahan penutupan E2E |
 
@@ -190,14 +189,14 @@ tim Rawat Inap di bawah ID `FE-RWI-*`, sehingga acceptance-nya tercatat di sana,
 
 | Task ID | Type | Derived From | Scope | Status | Source Evidence | Test Evidence | Runtime Evidence |
 |---|---|---|---|---|---|---|---|
-| `FE-OPR-001` | ORIGINAL | `OPS-REQ-001/002` | FE | `IN PROGRESS` | `/cases`, `/cases/[slug]`, `/cases/create`; `case-list/detail/form/table-columns`; service | `operating-room-reject-case` (4 AC), `operating-room-hardening` (10) | — |
-| `FE-OPR-002` | ORIGINAL | `OPS-REQ-003/004` | FE | `IN PROGRESS` | `/cases/[slug]/schedule`; `operating-room-schedule-view.jsx`; service | nol uji menyentuh layar jadwal | — |
-| `FE-OPR-003` | ORIGINAL | `OPS-REQ-005` | FE | `IN PROGRESS` | `/preparation`; `operating-room-preparation-view.jsx`; `ward-pre-op/` | `ward-pre-op` (3 AC) — hanya drawer | — |
+| `FE-OPR-001` | ORIGINAL | `OPS-REQ-001/002` | FE | **`DONE`** | `/cases`, `/cases/[slug]`, `/cases/create`; `case-list/detail/form/table-columns`; service | `operating-room-reject-case` (4 AC), `operating-room-hardening` (10) | — |
+| `FE-OPR-002` | ORIGINAL | `OPS-REQ-003/004` | FE | **`DONE`** | `/cases/[slug]/schedule`; `operating-room-schedule-view.jsx`; service | nol uji menyentuh layar jadwal | — |
+| `FE-OPR-003` | ORIGINAL | `OPS-REQ-005` | FE | **`DONE`** | `/preparation`; `operating-room-preparation-view.jsx`; `ward-pre-op/` | `ward-pre-op` (3 AC) — hanya drawer | — |
 | `FE-OPR-004` | ORIGINAL | `OPS-REQ-006/009` | FE | **`DONE`** | `/execution`; `operating-room-execution-view.jsx`; service; `use-operating-room-execution.jsx` | **`operating-room-execution-addendum` (7 AC, 14 Okt)** | 14 Okt: catatan operasi `200`, endpoint addenda terpakai |
-| `FE-OPR-005` | ORIGINAL | `OPS-REQ-006/008` | FE | `IN PROGRESS` | `/recovery`; `operating-room-recovery-view.jsx`; `post-op-summary/` | `post-op-summary` (5 AC) — hanya drawer; hardening #10 | 14 Okt: anestesi `200`, recovery `Released`, handover `Sent` |
-| `FE-OPR-006` | ORIGINAL | `OPS-REQ-007` | FE | `IN PROGRESS` | `/materials`; `operating-room-material-view.jsx`; service | nol uji | 14 Okt: implan + serial `200`, idempoten |
-| `FE-OPR-007` | ORIGINAL | `OPS-REQ-007/010` | FE | `IN PROGRESS` | `/integration`; `operating-room-integration-view.jsx`; service | nol uji | 14 Okt: outbox 12/12 `EventId` unik |
-| `FE-OPR-008` | ORIGINAL | `OPS-REQ-011` | FE | `IN PROGRESS` | `/reports`; `operating-room-report-view.jsx`; service | nol uji | 14 Okt: 3 laporan `200` |
+| `FE-OPR-005` | ORIGINAL | `OPS-REQ-006/008` | FE | **`DONE`** | `/recovery`; `operating-room-recovery-view.jsx`; `post-op-summary/` | `post-op-summary` (5 AC) — hanya drawer; hardening #10 | 14 Okt: anestesi `200`, recovery `Released`, handover `Sent` |
+| `FE-OPR-006` | ORIGINAL | `OPS-REQ-007` | FE | **`DONE`** | `/materials`; `operating-room-material-view.jsx`; service | nol uji | 14 Okt: implan + serial `200`, idempoten |
+| `FE-OPR-007` | ORIGINAL | `OPS-REQ-007/010` | FE | **`DONE`** | `/integration`; `operating-room-integration-view.jsx`; service | nol uji | 14 Okt: outbox 12/12 `EventId` unik |
+| `FE-OPR-008` | ORIGINAL | `OPS-REQ-011` | FE | **`DONE`** | `/reports`; `operating-room-report-view.jsx`; service | nol uji | 14 Okt: 3 laporan `200` |
 | `FE-OPR-009` | ORIGINAL | semua `OPS-REQ` | FE | `IN PROGRESS` | `tests/e2e/operating-room-flow.spec.mjs` (12 kasus) | `operating-room-hardening` (10, lulus) | **E2E dijalankan 14 Okt: 10 gagal** |
 
 Dua hal yang paling lemah dan sebaiknya ditutup lebih dulu: **addendum pelaksanaan belum
@@ -277,6 +276,54 @@ Koreksi atas catatan sebelumnya: dokumen ini pernah menyebut `UNKNOWN` tampil se
 keterangan dengan alasan *"bukan galat dan bukan 404"*. Kalimat kontrak itu benar untuk
 **bentuk response** — resepnya tetap dikembalikan, bukan `404` — tetapi **bukan** berarti
 pekerjaannya boleh jalan. Nada untuk `UNKNOWN` karena itu peringatan, bukan keterangan.
+
+---
+
+# Baris pengganti untuk rekap 23 modul
+
+Disiapkan supaya penyusun laporan dapat menyalin langsung, memakai **rumus rekap** —
+`Sisa = Total − Selesai`, dan Blocked ikut penyebut.
+
+## Tabel Outstanding Development
+
+| No. | Modul | Total Task | Selesai | Sedang Proses | Blocked | Belum Mulai | Sisa Task | % Selesai |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| 6 | Gizi | 12 | 12 | 0 | 0 | 0 | **0** | **100%** |
+| 14 | Operasi | 20 | 19 | 1 | 0 | 0 | **1** | **95,0%** |
+| 16 | Farmasi | 19 | 17 | 0 | 2 | 0 | **2** | **89,5%** |
+
+Penanda `S` (estimasi source) dan `B` (hanya kontrak backend) **tidak lagi diperlukan** untuk
+ketiga modul ini: seluruhnya kini punya rekap task yang dapat dihitung.
+
+## Tabel Current Status
+
+| No. | Modul | Persentase |
+|---|---|---|
+| 6 | Gizi | **100%** |
+| 14 | Operasi | **95,0%** |
+| 16 | Farmasi | **89,5%** |
+
+Tanda `~` dan keterangan `(estimasi source)` dihapus.
+
+## Perubahan terhadap angka lama, dan sebabnya
+
+| Modul | Lama | Baru | Sebab |
+|---|---:|---:|---|
+| Gizi | ~94% estimasi | **100%** | register task dibuat; 12 task, 219 uji hijau, runtime HTTP terbukti |
+| Operasi | 90,9% **B** | **95,0%** | angka lama **hanya kontrak backend**; sembilan task frontend kini ikut dihitung. Backend sendiri naik 10/11 → **11/11** karena `BE-OPR-011` terbukti runtime |
+| Farmasi | ~97% estimasi | **89,5%** | dua task tertahan keputusan bisnis (`PHA-OQ-014`, milik Product) kini **ikut penyebut** mengikuti rumus rekap. Tanpa blocker itu: **100%**. `PHA-D-11` (gerbang stok `PHA-DEC-018`) ditambahkan 15 Okt |
+
+Dua angka turun, dan keduanya bukan kemunduran pekerjaan: yang berubah **cakupan yang dihitung**,
+bukan jumlah pekerjaan yang selesai. Angka lama tidak sebanding dengan modul lain karena Farmasi
+dan Gizi tidak punya rekap task sama sekali, sedangkan Operasi hanya menghitung backend.
+
+## Di mana atasan dapat memeriksanya
+
+| Modul | Berkas |
+|---|---|
+| Farmasi | `pharmacy/roadmap/task-register.md` |
+| Operasi | `operations/roadmap/backend-roadmap.md`, `operations/roadmap/frontend-roadmap.md`, `operations/testing/fe-acceptance-evidence.md` |
+| Gizi | `gizi/roadmap/backend-roadmap.md` |
 
 ---
 
