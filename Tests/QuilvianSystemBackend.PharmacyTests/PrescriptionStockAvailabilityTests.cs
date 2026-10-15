@@ -59,7 +59,7 @@ public class PrescriptionStockAvailabilityTests
         using var konteks = harness.CreateContext();
 
         // Butir harness meminta 10; stok disediakan 100.
-        await harness.SediakanStokAsync(konteks, 100);
+        await harness.SediakanStokAsync(konteks, 100, denganPenahanan: false);
         var konsultasiId = await JadikanDraftAsync(konteks, harness.ResepId);
 
         Assert.Empty(await TemuanStokAsync(harness, konteks, konsultasiId));
@@ -72,7 +72,7 @@ public class PrescriptionStockAvailabilityTests
         using var konteks = harness.CreateContext();
 
         // Batasnya inklusif: tersedia 10 untuk permintaan 10 masih sah.
-        await harness.SediakanStokAsync(konteks, 10);
+        await harness.SediakanStokAsync(konteks, 10, denganPenahanan: false);
         var konsultasiId = await JadikanDraftAsync(konteks, harness.ResepId);
 
         Assert.Empty(await TemuanStokAsync(harness, konteks, konsultasiId));
@@ -84,7 +84,7 @@ public class PrescriptionStockAvailabilityTests
         using var harness = new PharmacyHarness();
         using var konteks = harness.CreateContext();
 
-        await harness.SediakanStokAsync(konteks, 2);
+        await harness.SediakanStokAsync(konteks, 2, denganPenahanan: false);
         var konsultasiId = await JadikanDraftAsync(konteks, harness.ResepId);
 
         var pesan = Assert.Single(await TemuanStokAsync(harness, konteks, konsultasiId));
@@ -116,7 +116,7 @@ public class PrescriptionStockAvailabilityTests
         using var harness = new PharmacyHarness();
         using var konteks = harness.CreateContext();
 
-        await harness.SediakanStokAsync(konteks, 10);
+        await harness.SediakanStokAsync(konteks, 10, denganPenahanan: false);
 
         // Sembilan dari sepuluh sudah ditahan resep lain, jadi yang benar-benar bebas hanya satu.
         var saldo = await konteks.Set<PhmDrugStockBalance>().FirstAsync();
@@ -136,7 +136,7 @@ public class PrescriptionStockAvailabilityTests
         using var harness = new PharmacyHarness();
         using var konteks = harness.CreateContext();
 
-        await harness.SediakanStokAsync(konteks, 100);
+        await harness.SediakanStokAsync(konteks, 100, denganPenahanan: false);
 
         // Stok dikarantina. Jumlahnya besar, tetapi tidak boleh diserahkan kepada pasien.
         var saldo = await konteks.Set<PhmDrugStockBalance>().FirstAsync();
@@ -158,7 +158,7 @@ public class PrescriptionStockAvailabilityTests
 
         // Tersedia 12. Butir biasa meminta 10, racikan meminta 5 atas obat yang sama.
         // Keduanya menarik dari saldo yang sama, jadi kebutuhan sesungguhnya 15 — kurang 3.
-        await harness.SediakanStokAsync(konteks, 12);
+        await harness.SediakanStokAsync(konteks, 12, denganPenahanan: false);
 
         var racikanId = Guid.NewGuid();
 

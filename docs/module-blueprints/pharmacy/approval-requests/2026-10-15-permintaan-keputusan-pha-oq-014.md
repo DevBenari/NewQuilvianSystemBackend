@@ -6,10 +6,31 @@
 | `tanggal` | 2026-10-15 |
 | `pengaju` | Ikbal — engineering modul Farmasi (`ikbalyuliyanto7@gmail.com`) |
 | `rujukan` | `PHA-OQ-014` (`00-interview-decisions.md` baris 208); `PHA-DEC-041`; `PHA-DEC-018`; `PHA-DEC-023`; `PHA-DEC-033`; `PHA-OQ-002`; `roadmap/task-register.md` |
-| `status` | `menunggu jawaban` |
+| `status` | **`RESOLVED`** — dijawab `PHA-DEC-066` (`approved`), 15 Oktober 2026 |
+| `keputusan` | [`PHA-DEC-066`](../00-interview-decisions.md) — Stock Reservation Authority V1 |
 | `ditujukan kepada` | Product/Domain Owner; Billing/Finance; Pharmacy/Clinical Governance |
 | `sifat` | Operasional. **Bukan** artefak desain — tidak masuk daftar hash manifest |
 | `menahan` | `PHA-BE-003`, `PHA-FE-001` |
+
+> **SUDAH DIJAWAB.** Permintaan ini diajukan dan dijawab pada hari yang sama, 15 Oktober 2026.
+> Keputusannya `PHA-DEC-066` — **Stock Reservation Authority V1** — dan arah yang dipilih
+> **lebih ketat dari Opsi A** di bawah: reservasi tidak hanya dimajukan ke saat pembayaran,
+> melainkan ke **saat dokter memfinalkan resep**. Finalisasi gagal bila reservasi gagal, dan
+> resep tidak diteruskan ke Billing.
+>
+> Jawaban per kotak keputusan:
+>
+> | Kotak | Jawaban |
+> |---|---|
+> | `DEC-1` | **YA**, dan dimajukan lebih awal lagi — ke finalisasi resep, bukan pembayaran |
+> | `DEC-2` | **4 jam** rawat jalan/APS, sebelum pembayaran valid. Rawat inap dan IGD **tanpa TTL** |
+> | `DEC-3` | **dilepas otomatis**; bila pasien melanjutkan sesudahnya, stok divalidasi dan ditahan ulang |
+> | `DEC-4` | **TIDAK** — pembayaran tanpa reservasi aktif tidak dianggap siap Farmasi; status bisnis eksplisit, bukan `HTTP 500` |
+> | `DEC-5` | `PHA-DEC-023` **disahkan dengan koreksi**: pembatalan Kasir memicu pelepasan oleh **sistem**; Kasir tidak pernah mengubah saldo stok langsung |
+> | `DEC-6` | belum dijawab — tetap terbuka bersama `PHA-OQ-002` |
+>
+> Teks di bawah dipertahankan apa adanya sebagai jejak pertimbangan yang mendasari keputusan
+> itu, bukan sebagai pertanyaan yang masih menunggu.
 
 > `PHA-OQ-014` berstatus `open` dan `BLOCKING` sejak **20 Agustus 2026**. Dokumen ini
 > mengubahnya dari pertanyaan menggantung menjadi keputusan yang dapat diambil sekali duduk.

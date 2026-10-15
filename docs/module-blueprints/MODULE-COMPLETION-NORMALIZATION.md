@@ -43,7 +43,7 @@ dapat dinilai dengan metode yang sama seperti modul lain.
 
 | Modul | Total Applicable | Done | In Progress | Blocked External | Blocked Business | Not Started | Development Completion |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Farmasi | 17 | 17 | 0 | 0 | 2² | 0 | **100%** |
+| Farmasi | 19 | 18 | 1 | 0 | 0 | 0 | **94,7%** |
 | Operasi | 20 | 20 | 0 | 0 | 0 | 0 | **100%** |
 | Gizi | 12 | 12 | 0 | 0 | 0 | 0 | **100%** |
 
@@ -299,7 +299,7 @@ Disiapkan supaya penyusun laporan dapat menyalin langsung, memakai **rumus rekap
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | 6 | Gizi | 12 | 12 | 0 | 0 | 0 | **0** | **100%** |
 | 14 | Operasi | 20 | 20 | 0 | 0 | 0 | **0** | **100%** |
-| 16 | Farmasi | 19 | 17 | 0 | 2 | 0 | **2** | **89,5%** |
+| 16 | Farmasi | 19 | 18 | 1 | 0 | 0 | **1** | **94,7%** |
 
 Penanda `S` (estimasi source) dan `B` (hanya kontrak backend) **tidak lagi diperlukan** untuk
 ketiga modul ini: seluruhnya kini punya rekap task yang dapat dihitung.
@@ -310,7 +310,7 @@ ketiga modul ini: seluruhnya kini punya rekap task yang dapat dihitung.
 |---|---|---|
 | 6 | Gizi | **100%** |
 | 14 | Operasi | **100%** |
-| 16 | Farmasi | **89,5%** |
+| 16 | Farmasi | **94,7%** |
 
 Tanda `~` dan keterangan `(estimasi source)` dihapus.
 

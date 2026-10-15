@@ -33,11 +33,11 @@ sudah ada sebelum register ini.
 |---|---|---|---|
 | `PHA-BE-001` | Resolver routing depo | **Selesai** | `task/report/backend/PHA-BE-001.md`; `DepotRoutingTests` (26) |
 | `PHA-BE-002` | Skenario uji resolver | **Selesai** | `DepotRoutingTests`: layanan, nol, dan ganda |
-| `PHA-BE-003` | Integrasi routing ke workflow | **Blocked — keputusan bisnis** | `PHA-OQ-014` (Product) belum dijawab: pembayaran berhasil tetapi reservasi gagal |
+| `PHA-BE-003` | Integrasi routing dan reservasi stok ke workflow | **Selesai** | `PHA-DEC-066`; `PrescriptionStockReservationService`, migration `20261015000000`, `PrescriptionReservationExpiryWorker`, endpoint keadaan penahanan; `PrescriptionStockReservationTests` (17 uji) |
 | `PHA-BE-004` | Salinan keadaan finansial resep | **Selesai** | `task/report/backend/PHA-BE-004.md`; `verifikasi-runtime-be-bkc-067.md`; `FinancialClearanceTests` (18) |
 | `PHA-BE-005` | Empat gerbang alur kerja farmasi | **Selesai** | `task/report/backend/PHA-BE-005.md`; `PharmacyWorkflowTests` |
 | `PHA-BE-006` | `FinancialClearance` pada response detail | **Selesai** | `task/report/backend/PHA-BE-006.md` |
-| `PHA-FE-001` | UI routing sebelum reservasi | **Blocked — keputusan bisnis** | Bergantung `PHA-BE-003`; acceptance belum pernah ditetapkan; resolver tidak punya endpoint |
+| `PHA-FE-001` | UI keadaan penahanan stok dan depo pelayanan | **Sedang proses** | Blocker bisnis hilang (`PHA-DEC-066`) dan kontrak backend final: `GET …/prescriptions/{id}/stock-reservation`. Layar belum dibangun |
 | `PHA-FE-002` | Alasan penahanan terbaca di layar kerja | **Selesai** | `FR-PHA-CLR-10`; `prescription-clearance-utils.js`, `prescription-financial-hold-alert.jsx`; `pharmacy-financial-clearance-notice.test.mjs` (12) |
 
 ## Task turunan
@@ -56,10 +56,14 @@ sudah ada sebelum register ini.
 | `PHA-D-10` | UI alur kerja farmasi tengah | `gap-frontend-workflow.md` (`GAP-PHA-FE-001`) | **Selesai** | 1 Okt: tangga tahap 4→4→5→6→12→**7 Siap Diserahkan** seluruhnya `200`; penelusuran peramban **12 pemeriksaan lulus**; `bin/uji-alur-farmasi.sh` |
 | `PHA-D-11` | Gerbang stok pada finalisasi resep | `PHA-DEC-018` | **Selesai** | `PrescriptionStockAvailabilityTests` (8 uji, 8 lulus); `PrescriptionValidationService.ValidateStockAvailabilityAsync` |
 
-**Rekap: 19 task, 17 selesai, 0 sedang proses, 2 blocked keputusan bisnis, 0 belum mulai.**
+**Rekap: 19 task, 18 selesai, 1 sedang proses, 0 blocked, 0 belum mulai.**
 
-Memakai rumus rekap 23 modul (`Sisa = Total − Selesai`, blocked ikut penyebut): **17/19 = 89,5%**.
-Bila blocker keputusan bisnis dikeluarkan dari penyebut: **17/17 = 100%**.
+Memakai rumus rekap 23 modul (`Sisa = Total − Selesai`): **18/19 = 94,7%**.
+
+> **Nol blocker keputusan bisnis per 15 Oktober 2026.** `PHA-OQ-014` ditutup `PHA-DEC-066`,
+> dan `PHA-DEC-023` keluar dari `draft`. Kedua task yang selama ini tertahan karena itu dibuka:
+> `PHA-BE-003` selesai, dan `PHA-FE-001` kini satu-satunya sisa — murni pekerjaan frontend,
+> bukan keputusan bisnis dan bukan dependency modul lain.
 
 ## `PHA-D-11` — keputusan yang disahkan tetapi gerbangnya belum terpasang
 
@@ -107,7 +111,7 @@ hilang, uji ini ikut terbawa `dotnet test` biasa tanpa perubahan apa pun.
 | `PharmacyTests` tidak dapat dikompilasi | **Billing / Finance** | **17 error** pada 3 berkas uji milik mereka di dalam proyek uji Farmasi per 15 Okt (sebelumnya 34); **nol** error pada berkas Farmasi. 544 uji tertulis karena itu tidak dapat dijalankan lewat `dotnet test` biasa |
 | Master tarif jasa konsultasi tidak ada | **Billing** | Nol baris `MstTariff` dengan `IsConsultationFee = true`; invoice tertahan `BIL-FIN-021` |
 | `LAB-OPEN-012` | **Lab** | Menahan penutupan E2E |
-| `PHA-OQ-014` | **Product** | Menahan `PHA-BE-003` dan `PHA-FE-001` |
+| ~~`PHA-OQ-014`~~ | ~~**Product**~~ | **DITUTUP 15 Okt 2026** oleh `PHA-DEC-066`. Tidak lagi menahan apa pun |
 
 `PrescriptionBillingChargeProducer.cs` dihapus integration dan isinya diserap
 `BillingChargeSourceAdapter` milik Billing. Kontrak `PRESCRIBED` / `BIL-INTEGRATION-1.3` tetap
