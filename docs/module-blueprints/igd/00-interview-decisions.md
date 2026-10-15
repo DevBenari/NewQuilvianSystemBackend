@@ -6763,3 +6763,82 @@ Perubahan status butir lama — baris aslinya tidak diubah:
 | `IGD-OQ-127`  | Tetap `open`; arah sementara `IGD-DEC-301`                                       |
 | `IGD-DEC-270` | Tetap berlaku; dugaan pemilik (bangsal) dipakai sementara sampai analis menjawab |
 | `IGD-DEC-284` | Tetap berlaku; penyampaian ke analis dicatat sebagai tindakan pemilik            |
+
+### Dua jalur admisi pasien IGD dan pola cetak — 14 Oktober 2026 (saat putaran B)
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-CONF-21` | Conflict | Rawat Inap punya jalur **Admisi Transfer IGD & Poliklinik** (`RWI-BP-001` keputusan `EPS-006`, `BE-RWI-206`/`207`, `FE-RWI-228`/`229`; roadmap disetujui 10 Oktober 2026, masuk `rizkiG` lewat `d7df71e6` 12 Oktober 2026 12.28) yang membaca tindak lanjut IGD berkode `RANAP` berstatus *Confirmed* secara langsung, membuka admisi **tanpa** Form Permintaan Rawat Inap dan tanpa TTD DPJP, lalu men-set tindak lanjut itu *Executed*. Bertabrakan dengan `IGD-DEC-275` (admisi dari permintaan) dan `IGD-DEC-277` (*Jalankan* tertahan sampai form terkirim). Tidak tertangkap capability map suplemen 3.7 karena snapshot-nya `6a1c6cf9` (11 Oktober 2026 22.10) | Product/Domain Owner IGD; pemilik Rawat Inap | `resolved` oleh `IGD-DEC-304` (semula `IGD-DEC-302`) | — | Penelusuran source `InpAdmissionTransferService.Queries.cs` (`TransferQuery`) dan `InpAdmissionTransferService.cs` (`AdmitFromTransferAsync` men-set `Executed`) |
+| `IGD-DEC-302` | Decision | **Form Permintaan Rawat Inap wajib untuk pasien IGD; antrean Admisi Transfer tidak lagi memuat tindak lanjut IGD yang jenisnya bertanda `RequiresAdmissionRequest`.** Saringan satu baris di `InpAdmissionTransferService.TransferQuery`; daftar, rincian, dan *admit* Transfer memakai kueri yang sama, sehingga *admit* lewat Transfer untuk tindak lanjut itu ikut tertolak (`404` *"Permintaan rawat inap yang sah tidak ditemukan."*). Jalur Poliklinik tidak berubah. Pasien IGD dibuka admisinya dari permintaan admisi (mode *Admisi dari Kamar Pulih*, lencana *DARI IGD*, `FE-IGD-062`). Dikerjakan sebagai delta `BE-IGD-073`. Penggabungan antrean IGD ke menu Transfer tidak dipilih untuk demo 16 Oktober 2026 | Product/Domain Owner IGD | `superseded` oleh `IGD-DEC-304` pada hari yang sama (semula `approved` sisi IGD) | **Rizki Gunawan / 2026-10-14** | Pilihan interaktif *"Form wajib, IGD keluar dari Transfer (Recommended)"* |
+| `IGD-DEC-303` | Decision | **Cetak Form Permintaan Rawat Inap memakai rupa surat dengan kelas cetak dokumen PPRI (`inpatient-consent-print.module.css`), bukan CSS surat dokter rawat jalan.** CSS surat dokter memuat aturan cetak global `@media print { body * { visibility: hidden } }` (terbukti di CSS hasil kompilasi) yang membuat Ctrl+P halaman IGD tercetak kosong; kit PPRI hanya aktif selama area cetak ada. Kop memakai `BaseLetterhead` bawaan karena kop profil rumah sakit Rawat Inap butuh episode | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-14** | Pilihan interaktif *"Tata letak surat, CSS cetak PPRI (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keputusan di atas |
+| --- | --- |
+| `IGD-DEC-277` | Ditegakkan juga terhadap jalur Admisi Transfer lewat `IGD-DEC-302` |
+| `IGD-DEC-294` (wewenang UI U3) | Rupa surat tetap; sumber CSS cetak diganti `IGD-DEC-303` |
+
+### Form bertanda tangan sebagai surat pengantar ke Antrean Transfer — 14 Oktober 2026 (sore)
+
+Arahan owner yang disampaikan Rizki: tugas IGD hanya sampai pasien yang ditransfer masuk tabel **Antrean Transfer IGD/Poli** di menu *Admisi Rawat Inap* milik Muhammad Hamzah, lewat surat pengantar. Jalur yang dibangun sejak 13 Oktober — permintaan admisi IGD di `InpAdmissionReferral` dan dibuka lewat mode *Admisi dari Kamar Pulih* — tidak sesuai arahan itu.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-304` | Decision | **Form Permintaan Rawat Inap yang sudah ditandatangani DPJP IGD adalah surat pengantar pasien IGD ke Antrean Transfer IGD/Poli (`RWI-BP-001` `EPS-006`). Tugas IGD selesai saat pasien masuk antrean itu; seluruh admisi — verifikasi, pembayaran, deposit, dokter, tempat tidur — dikerjakan petugas admisi lewat *Proses Admisi* milik Rawat Inap.** Rinciannya: (1) antrean memuat tindak lanjut `RANAP` yang jenisnya bertanda `RequiresAdmissionRequest` hanya bila tindak lanjut itu punya form *Signed* — satu saringan di `InpAdmissionTransferService.TransferQuery`; jenis lain dan sumber Poliklinik tidak berubah; (2) IGD tidak lagi membuat `InpAdmissionReferral`; jalur mode *Admisi dari Kamar Pulih* untuk pasien IGD dibongkar seluruhnya, termasuk migration 2 `ExtendInpatientAdmissionReferralForEmergency`; (3) *Jalankan* tindak lanjut rawat inap oleh perawat IGD ditolak `409`; tindak lanjut itu menjadi *Executed* ketika petugas admisi memproses admisi (perilaku *admit* Transfer yang sudah ada); (4) form *Terkirim* = ditandatangani dan belum diproses admisi; *Selesai* = sudah ada kunjungan rawat inap dari tindak lanjut itu; (5) perawat dapat membatalkan form terkirim selama belum diproses admisi, dan pasien keluar dari antrean; pembatalan dan *admit* memakai kunci baris tindak lanjut yang sama sehingga tidak dapat saling mendahului; (6) **turunan teknis oleh agent, dilaporkan 14 Oktober:** form hanya dapat dibuat dan ditandatangani bila tindak lanjutnya berkode `RANAP` dan unit tujuannya bertipe rawat inap, karena hanya tindak lanjut seperti itu yang dibaca antrean. _Contoh:_ pukul 10.15 dr. Andi menandatangani form Tn. Budi; pukul 10.16 Tn. Budi tampil di Antrean Transfer IGD/Poli dengan asal IGD; pukul 10.40 Sari menekan *Proses Admisi*, menyelesaikan langkah 2–10, dan tindak lanjut `RANAP` Tn. Budi menjadi *Executed*; layar perawat IGD menampilkan form *Selesai* | Product/Domain Owner IGD (arahan owner); pemilik Rawat Inap untuk butir (1) | `approved` sisi IGD; konfirmasi Muhammad Hamzah atas saringan butir (1) **menunggu** sebelum rilis | **Rizki Gunawan / 2026-10-14** | Pilihan interaktif *"Ya, form TTD = surat pengantar (Recommended)"* dan *"Bongkar total, termasuk migration"* |
+| `IGD-OQ-130` | Open Question | **Kunjungan IGD sesudah admisi dari antrean.** *Admit* Transfer men-set tindak lanjut *Executed* langsung di service Rawat Inap, tanpa memindahkan status kunjungan IGD dan tanpa memicu penutupan susulan (`BE-IGD-021`, `BE-IGD-060`) yang dipicu *Jalankan* dari IGD. Karena *Jalankan* kini ditolak untuk tindak lanjut rawat inap, kunjungan IGD pasien yang sudah diadmisi bisa tetap terbuka sampai ditutup lewat jalur kepergian `MVP-8` (batas sadar `IGD-DEC-276`). Perlu diputuskan apakah itu cukup | Rizki Gunawan; Muhammad Hamzah | `open`, dipersempit `IGD-FACT-121` — tidak memblokir demo; memblokir rilis bila kunjungan IGD wajib tertutup otomatis pada urutan apa pun | — | Penelusuran `InpAdmissionTransferService.ExecuteTransferAdmissionCoreAsync` dan `EmergencyDispositionController` |
+| `IGD-OQ-131` | Open Question | **Isi form di layar admisi.** Antrean Transfer menampilkan unit tujuan, dokter, dan alasan dari tindak lanjut IGD, bukan isian form (unit, kelas, DPJP usulan, CITO, kebutuhan khusus), dan belum punya aksi tolak oleh petugas admisi. Akibatnya urutan CITO (`IGD-DEC-288`) dan penolakan beralasan (`IGD-DEC-279`) belum punya tempat. Pilihan perbaikan berada di layar milik Hamzah | Muhammad Hamzah; Rizki Gunawan | `open` — tidak memblokir demo | — | Penelusuran `InpatientAdmissionTransferItemResponse` dan `inpatient-admission-transfer-list.jsx` |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah `IGD-DEC-304` |
+| --- | --- |
+| `IGD-DEC-275` | `superseded` — wadah pengiriman bukan `InpAdmissionReferral`, melainkan Antrean Transfer IGD/Poli |
+| `IGD-DEC-276` | Tetap: admisi dibuka manual oleh petugas admisi — kini dari antrean Transfer. Batas sadar penutupan kunjungan IGD dilanjutkan `IGD-OQ-130` |
+| `IGD-DEC-277` | `superseded` — perawat IGD tidak lagi menjalankan tindak lanjut rawat inap; tindak lanjut dijalankan petugas admisi |
+| `IGD-DEC-278` | Tetap: form terkirim dapat dibatalkan perawat sebelum diproses admisi; ditolak sesudahnya |
+| `IGD-DEC-279` | Belum punya tempat — antrean Transfer tidak punya aksi batal oleh petugas admisi (`IGD-OQ-131`) |
+| `IGD-DEC-280` | Tetap: pembatalan tindak lanjut membatalkan semua form yang belum dibatalkan, termasuk yang terkirim; ditolak bila admisi sudah diproses |
+| `IGD-DEC-288` | Belum punya tempat — antrean Transfer tidak membaca CITO dari form (`IGD-OQ-131`) |
+| `IGD-DEC-292` (`ARC-RI-01`) | `superseded` — sesudah TTD tidak lahir permintaan admisi milik Rawat Inap; yang lahir adalah baris antrean Transfer yang dibaca dari tindak lanjut |
+| `IGD-DEC-293` | Tetap terjaga tanpa `BE-IGD-075`: Billing hanya menautkan kunjungan asal lewat `InpAdmissionReferral`; jalur Transfer tidak membuatnya |
+| `IGD-DEC-299` | Persetujuan lisan Hamzah dan owner Billing atas titik sentuh jalur lama tidak lagi dipakai; titik sentuh baru (saringan butir 1) menunggu konfirmasi Hamzah |
+| `IGD-DEC-301` | Tidak berlaku untuk `FE-IGD-062` (dibatalkan); `IGD-OQ-127` tetap terbuka |
+| `IGD-DEC-302` | `superseded` oleh `IGD-DEC-304` |
+
+Kontrak `approved` yang memuat jalur lama dan perlu amandemen desain sebelum dinyatakan selaras: API §12.4–12.5, validation §14 aturan 20–25, state §11.2–11.4, integration §9, permission §11 (`InpatientAdmissionReferral:Cancel`), `02-backend-architecture` §17.5–17.6 (migration 2). Kartu roadmap `BE-IGD-073`, `075`, dan `FE-IGD-062` ditandai ⛔ dengan penghalang `IGD-DEC-304`; acceptance kartu `BE-IGD-074`, `FE-IGD-060`, dan `061` menunggu amandemen roadmap (`plan-module-delivery`).
+
+### Keterangan analis tentang transfer pasien — 14 Oktober 2026 (malam)
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-FACT-120` | Fact | **Tim analis: transfer pasien IGD diawali pengajuan rawat inap; data itu masuk ke Rawat Inap dan petugas Rawat Inap yang memproses admisinya. Saat pasien diantar ada form serah terima yang biasanya ditandatangani perawat pengirim (IGD) dan perawat penerima (Rawat Inap).** Dalam kata analis, "secara tidak langsung ranap-lah yang mengerjakan". Keterangan ini menguatkan `IGD-DEC-304`: bagian IGD adalah pengajuan bertanda tangan DPJP dan serah terima saat mengantar; admisi milik Rawat Inap | Tim analis | Dicatat | — | Pesan tim analis yang diteruskan Rizki Gunawan, 14 Oktober 2026 |
+| `IGD-FACT-121` | Fact | **Serah terima yang dimaksud analis sudah ada di IGD sejak `MVP-8`, dan penutupan kunjungan IGD bergantung pada urutannya.** (1) Kepergian pasien (`EmgDeparture`, tab *Transfer Pasien*, `FE-IGD-043`/`044`) memuat SBAR empat bagian, perawat pengirim (`SendingNurseUserId`), perawat penerima (`ReceivingNurseUserId`) yang menerima atau menolak dokumen di unit tujuan, serta waktu berangkat dan tiba. Pengirim dan penerima tercatat lewat akun masing-masing; layar itu belum punya cetak dokumen serah terima bertanda tangan. (2) Aksi kepergian menutup kunjungan IGD secara otomatis (`TryCloseAfterBlockerResolvedAsync` → `TryCloseAfterDispositionAsync`) hanya bila tindak lanjutnya sudah *Executed*. (3) Pembuatan kepergian tidak memeriksa status tindak lanjut. Akibatnya, pada urutan analis — admisi diproses di Rawat Inap (tindak lanjut menjadi *Executed*), lalu pasien diantar dan dicatat tiba — kunjungan IGD tertutup sendiri saat tiba. _Contoh:_ Sari memproses admisi Tn. Budi pukul 10.40; Dimas mengantar dengan serah terima SBAR pukul 10.50; perawat Bangsal Melati menerima dokumen dan mencatat tiba pukul 11.00; kunjungan IGD Tn. Budi tertutup pukul 11.00 | — | Dicatat | — | Penelusuran `EmgDeparture.cs`, `EmergencyDepartureController`, `EmergencyVisitService`; tab Transfer frontend tanpa fungsi cetak |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah keterangan di atas |
+| --- | --- |
+| `IGD-OQ-130` | Dipersempit menjadi satu urutan: pasien dicatat tiba **sebelum** petugas admisi memproses admisinya. *Admit* Transfer kemudian men-set tindak lanjut *Executed* tanpa memicu penutupan, sehingga kunjungan tetap terbuka dan tampil sebagai *menunggu penutupan* (`BE-IGD-063`). Yang masih perlu diputuskan: cukup diatur lewat SOP (admisi dulu, baru antar), atau dijaga sistem |
+| `IGD-DEC-304` | Diperkuat `IGD-FACT-120` |
+
+### Pengenal jenis rawat inap di Antrean Transfer — 14 Oktober 2026 (malam)
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-FACT-122` | Fact | **Di basis data dev, jenis tindak lanjut rawat inap berkode `RI` (bertanda `requiresAdmissionRequest`), bukan `RANAP`.** Antrean Transfer milik Rawat Inap hanya membaca kode `RANAP`, sehingga pasien IGD di dev tidak pernah tampil di antrean, ditandatangani atau tidak. Syarat kode `RANAP` yang sempat ditambahkan agent pada aturan pembuatan form (`IGD-DEC-304` butir 6) membuat form tidak dapat dibuat sama sekali di dev | — | Dicatat | — | Bukti uji putaran A 12 Oktober 2026 (`PUT` jenis `RI`, prasyarat P1); `InpAdmissionTransferService.TransferQuery` |
+| `IGD-DEC-305` | Decision | **Pasien IGD dikenali masuk Antrean Transfer lewat tanda `RequiresAdmissionRequest` pada jenis tindak lanjut, bukan lewat kode teks.** Jenis bertanda — kode apa pun — masuk antrean bila tindak lanjutnya punya form *Signed*; jenis tanpa tanda tetap memakai aturan lama Rawat Inap (kode `RANAP`). Di IGD, syarat pembuatan dan tanda tangan form menjadi: jenis tindak lanjut aktif dan unit tujuan bertipe rawat inap. Sejalan dengan pilihan desain §17.11 nomor 5 dan `IGD-UNK-24` (kode berbeda tiap lingkungan); data master tidak diubah | Product/Domain Owner IGD; pemilik Rawat Inap untuk saringan antrean | `approved` sisi IGD; konfirmasi Muhammad Hamzah **menunggu** bersama `IGD-DEC-304` | **Rizki Gunawan / 2026-10-14** | Pilihan interaktif *"Pakai tanda form (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah `IGD-DEC-305` |
+| --- | --- |
+| `IGD-DEC-304` butir (1) | Saringan antrean memakai tanda `RequiresAdmissionRequest`, bukan kode `RANAP` |
+| `IGD-DEC-304` butir (6) | Syarat kode `RANAP` dicabut; syarat yang tersisa: jenis aktif dan unit tujuan bertipe rawat inap |
+| `IGD-UNK-24` | Tidak lagi memblokir rilis slice ini |
+
+### Persetujuan amandemen desain 0q — 14 Oktober 2026 (malam)
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-306` | Decision | **Amandemen desain bagian 0q (revisi `12`) disetujui: form bertanda tangan sebagai surat pengantar ke Antrean Transfer IGD/Poli.** Mencakup API `0.18.0` §12.7, validation `0.17.0` §14.8, state `0.12.0` §11.5, permission/audit `0.11.0` §11.6, integration `0.9.0` §9.5, `02` §17.12, `03` §17.10, `04` §12.7 (`FR-IGD-113`…`115`, `AT-IGD-225`…`237`, DoD), kamus data, flowchart, dan matriks uji. Aturan 27 (jenis aktif dan unit tujuan rawat inap) ikut disetujui. Membuka perencanaan ulang kartu `BE-IGD-074`, `FE-IGD-060`, `FE-IGD-061` | Product/Domain Owner IGD | `approved`; konfirmasi Muhammad Hamzah atas saringan antrean (API §12.7.3, validation aturan 28) **menunggu** sebelum rilis | **Rizki Gunawan / 2026-10-14** | Pilihan interaktif *"Setujui, lanjut rencana (Recommended)"* |

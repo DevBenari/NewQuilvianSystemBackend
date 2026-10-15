@@ -815,3 +815,58 @@ permintaan itu. Pasien tidak berangkat sebelum permintaannya terkirim.
 | `IGD-UNK-24` | Jenis tindak lanjut rawat inap per lingkungan | Tidak untuk pengembangan; ya untuk rilis |
 | `IGD-UNK-25` | Tipe unit ICU | Tidak (tanpa aturan silang) |
 | Urutan terhadap Billing IGD | Ditanyakan pemilik sebelum build (`IGD-DEC-252`) | Ya untuk mulai build |
+
+### 12.7 Amandemen 14 Oktober 2026 — Antrean Transfer IGD/Poli (`IGD-DEC-304`, `305`) — **`approved`** (`IGD-DEC-306`)
+
+Disetujui `IGD-DEC-306`, Rizki Gunawan, 14 Oktober 2026. **Visi yang berubah:** tugas IGD selesai saat pasien masuk Antrean Transfer
+IGD/Poli di menu *Admisi Rawat Inap*; petugas Rawat Inap yang memproses admisi (keterangan analis `IGD-FACT-120`: *"secara tidak
+langsung ranap-lah yang mengerjakan"*). Titik akhir slice di 12.1 menjadi: **form *Selesai* karena petugas admisi memproses
+pasien dari antrean, atau form *Dibatalkan* beralasan.**
+
+#### 12.7.1 Functional requirement yang berubah
+
+| ID | Requirement sesudah amandemen | Disposisi |
+| --- | --- | --- |
+| `FR-IGD-113` | Tanda tangan menyimpan form *Signed* dan salinan beku dalam satu transaksi; pasien tampil di Antrean Transfer IGD/Poli yang sudah ada; petugas admisi memproses admisi dari antrean itu. Tindak lanjut rawat inap tanpa form *Signed* tidak tampil di antrean | `EXTEND` (antrean Rawat Inap) |
+| `FR-IGD-114` | *Jalankan* tindak lanjut rawat inap tidak dilakukan perawat IGD; tindak lanjut menjadi *Executed* saat petugas admisi memproses admisi | `EXTEND` |
+| `FR-IGD-115` | Pembatalan beralasan oleh perawat selama belum diproses admisi, atau otomatis karena tindak lanjut dibatalkan; isi yang ditandatangani tidak pernah berubah. Pembatalan oleh petugas admisi belum ada (`IGD-OQ-131`) | `EXTEND` |
+| `FR-IGD-118` | Tidak lagi relevan untuk jalur ini: jalur Antrean Transfer tidak menautkan tagihan IGD | Tetap di luar gelombang |
+
+#### 12.7.2 Skenario UAT yang berubah dan yang baru
+
+| # | Jalur | Langkah | Hasil yang diharapkan |
+| ---: | --- | --- | --- |
+| `AT-IGD-225` | Berhasil | Perawat meminta TTD; DPJP membuka *Perlu TTD* dan menandatangani | Form *Terkirim*; pasien tampil di Antrean Transfer IGD/Poli dengan asal IGD |
+| `AT-IGD-228` | Gagal | Perawat menekan *Jalankan* sebelum form terkirim, lalu sesudah terkirim (lewat API) | Keduanya `409` dengan dua pesan aturan 23; tombol nonaktif dengan keterangan di layar |
+| `AT-IGD-229` | Berhasil | Petugas admisi menekan *Proses Admisi* pada pasien IGD dan menyelesaikan langkah 2–10 | Admisi terbuka; tindak lanjut *Executed*; form di IGD *Selesai*; pasien tidak lagi di antrean berstatus menunggu |
+| `AT-IGD-230` | Gagal | Tindak lanjut rawat inap tanpa form *Signed*: dilihat di antrean, lalu *admit* lewat API | Tidak tampil; *admit* `404` aturan 28 |
+| `AT-IGD-231` | Berhasil | Perawat membatalkan form terkirim sebelum diproses admisi, lalu membuat form baru | Form *Dibatalkan*; pasien hilang dari antrean; form baru dapat dibuat |
+| `AT-IGD-232` | Berhasil | Dokter membatalkan tindak lanjut rawat inap saat form terkirim | Form ikut *Dibatalkan* dengan alasan yang sama; pasien hilang dari antrean |
+| `AT-IGD-233` | Gagal | Sesudah admisi diproses: perawat membatalkan form, dokter membatalkan tindak lanjut | Keduanya `409` (aturan 19 dan 24) |
+| `AT-IGD-235` | Gagal | Klik *Tandatangani* dua kali dengan `Idempotency-Key` sama; dan perawat membuat form untuk pasien yang punya permintaan kamar pulih `Pending` | Satu tanda tangan dan satu kejadian; kasus kedua `409` aturan 4 saat membuat form |
+| `AT-IGD-236` | Gagal | Dokter mengonfirmasi tindak lanjut rawat inap dengan unit tujuan bukan unit rawat inap; perawat membuat form | `409` aturan 27 |
+| `AT-IGD-237` | Berhasil | Sesudah admisi diproses, perawat IGD membuat kepergian dengan serah terima SBAR; perawat ruangan menerima dan mencatat tiba | Kunjungan IGD tertutup saat tiba (`IGD-FACT-121`) |
+
+`AT-IGD-221`…`224`, `226`, `227`, dan `234` tidak berubah.
+
+#### 12.7.3 Definition of Done yang berubah
+
+| # | Butir sesudah amandemen | Bukti |
+| ---: | --- | --- |
+| 2 | Tanda tangan menyimpan form dan salinan beku dalam satu transaksi; pasien tampil di antrean | Diff + `AT-IGD-225`, `235` |
+| 4 | *Jalankan* rawat inap dari IGD selalu ditolak (aturan 23) | `AT-IGD-228` |
+| 5 | Pembatalan dua jalan (perawat, tindak lanjut) sesuai state §11.5 | `AT-IGD-231`…`233` |
+| 6 | Petugas admisi memproses pasien IGD dari antrean; tanpa form pasien tidak tampil | `AT-IGD-229`, `230` |
+| 7 | Tagihan IGD tidak ditautkan — tanpa perubahan Billing | Diff (nol berkas Billing) |
+| 9 | Satu migration (`AddEmergencyAdmissionRequest`) diterapkan; migration 2 dibatalkan dan dihapus | Bukti rollback 14 Oktober 2026 |
+| 12 | Konfirmasi pemilik Rawat Inap atas saringan antrean tercatat dari laporan pemilik; persetujuan owner Billing tidak lagi dibutuhkan | Log keputusan |
+| 13 (baru) | Serah terima dan penutupan kunjungan IGD berjalan pada urutan admisi lalu antar | `AT-IGD-237` |
+
+#### 12.7.4 Pertanyaan terbuka yang berubah
+
+| ID | Pertanyaan | Memblokir? |
+| --- | --- | :-: |
+| `IGD-OQ-128` | Diganti: hanya konfirmasi Hamzah atas saringan antrean | Ya untuk rilis |
+| `IGD-OQ-130` | Penutupan kunjungan IGD bila pasien tiba sebelum admisi diproses | Tidak untuk demo; ya bila wajib tertutup otomatis |
+| `IGD-OQ-131` | Isi form dan aksi tolak di layar antrean | Tidak |
+| `IGD-UNK-24` | Kode jenis rawat inap per lingkungan — kini tidak memblokir karena antrean memakai tanda `RequiresAdmissionRequest` | Tidak |

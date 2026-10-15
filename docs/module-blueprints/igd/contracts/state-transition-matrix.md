@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.11.0` — Form Permintaan Rawat Inap dari IGD, 12 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-294`): bagian 11 baru (`IGD-DEC-267`…`293`). *Sebelumnya:* `0.10.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 10 baru — tindak lanjut lahir hanya Draft, konfirmasi dijaga diagnosis; nol status baru. *Sebelumnya:* `0.9.0` — pesanan tanpa sikap dan kepergian yang dibatalkan, 5 Oktober 2026 (sore), **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-209`): §6a.2 baris pesanan `Rejected` diberi pengecualian kepergian yang dibatalkan (`IGD-DEC-205`); §9.2 titik pemicu 4 diselaraskan dengan validation §11 aturan 4 — penetapan sikap atas pesanan tanpa sikap ikut memicu penutupan susulan (`IGD-DEC-203`). **Aditif pada matriks** — nol status baru, nol transisi baru; yang berubah adalah *kapan* perpindahan `Disposed` → `Completed` yang sudah sah diizinkan penjaga penutupan. *Sebelumnya* `0.8.0` — observasi Dieskalasi dan kunjungan yang sudah berakhir, 3 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-186`): bagian 9.6 baru (observasi `Escalated` sebagai penahan penutupan, aksi observasi pada kunjungan `Completed`/`Cancelled`; `IGD-DEC-183`, `184`) dan satu baris baru §9.4. **Aditif pada matriks** — nol status baru, nol transisi baru; bagian 1 tidak diubah. Yang berubah adalah *kapan* perpindahan `Disposed` → `Completed` yang sudah sah diizinkan penjaga penutupan. *Sebelumnya* `0.7.0` — observasi yang diakhiri sesudah disposisi dilaksanakan, 30 September 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-175`): bagian 9.5 baru (pemetaan status observasi → status kunjungan pada kunjungan `Disposed`, `IGD-DEC-171`, `172`) dan satu baris baru pada §9.4. **Aditif pada matriks** — nol status baru, nol transisi baru; bagian 1 tidak diubah. Yang berubah adalah *upaya* transisi yang dilakukan aksi observasi pada kunjungan `Disposed`. Sebelumnya `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 9 baru (pemicu penutupan kunjungan, `IGD-DEC-163`…`167`). **Aditif** — nol status baru, nol transisi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 8 baru (titik lahir kunjungan, pengakhiran encounter Emergency oleh IGD, enum `EmergencyArrivalTimeSource` dan `EmergencyReconciliationRunStatus`); bagian 1–7 **tidak** diubah. Sebelumnya `0.4.0` — revisi 6. **Aditif**: bagian 6a murni baru, nol bagian lama diubah |
+| `contract_version` | `0.12.0` — amandemen 14 Oktober 2026 (`IGD-DEC-304`, `305`), **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-306`, Rizki Gunawan, 14 Oktober 2026): bagian 11.5 — form bertanda tangan sebagai surat pengantar ke Antrean Transfer IGD/Poli. *Sebelumnya:* `0.11.0` — Form Permintaan Rawat Inap dari IGD, 12 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-294`): bagian 11 baru (`IGD-DEC-267`…`293`). *Sebelumnya:* `0.10.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 10 baru — tindak lanjut lahir hanya Draft, konfirmasi dijaga diagnosis; nol status baru. *Sebelumnya:* `0.9.0` — pesanan tanpa sikap dan kepergian yang dibatalkan, 5 Oktober 2026 (sore), **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-209`): §6a.2 baris pesanan `Rejected` diberi pengecualian kepergian yang dibatalkan (`IGD-DEC-205`); §9.2 titik pemicu 4 diselaraskan dengan validation §11 aturan 4 — penetapan sikap atas pesanan tanpa sikap ikut memicu penutupan susulan (`IGD-DEC-203`). **Aditif pada matriks** — nol status baru, nol transisi baru; yang berubah adalah *kapan* perpindahan `Disposed` → `Completed` yang sudah sah diizinkan penjaga penutupan. *Sebelumnya* `0.8.0` — observasi Dieskalasi dan kunjungan yang sudah berakhir, 3 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-186`): bagian 9.6 baru (observasi `Escalated` sebagai penahan penutupan, aksi observasi pada kunjungan `Completed`/`Cancelled`; `IGD-DEC-183`, `184`) dan satu baris baru §9.4. **Aditif pada matriks** — nol status baru, nol transisi baru; bagian 1 tidak diubah. Yang berubah adalah *kapan* perpindahan `Disposed` → `Completed` yang sudah sah diizinkan penjaga penutupan. *Sebelumnya* `0.7.0` — observasi yang diakhiri sesudah disposisi dilaksanakan, 30 September 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-175`): bagian 9.5 baru (pemetaan status observasi → status kunjungan pada kunjungan `Disposed`, `IGD-DEC-171`, `172`) dan satu baris baru pada §9.4. **Aditif pada matriks** — nol status baru, nol transisi baru; bagian 1 tidak diubah. Yang berubah adalah *upaya* transisi yang dilakukan aksi observasi pada kunjungan `Disposed`. Sebelumnya `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 9 baru (pemicu penutupan kunjungan, `IGD-DEC-163`…`167`). **Aditif** — nol status baru, nol transisi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 8 baru (titik lahir kunjungan, pengakhiran encounter Emergency oleh IGD, enum `EmergencyArrivalTimeSource` dan `EmergencyReconciliationRunStatus`); bagian 1–7 **tidak** diubah. Sebelumnya `0.4.0` — revisi 6. **Aditif**: bagian 6a murni baru, nol bagian lama diubah |
 | Status | `draft`, **kecuali bagian 11 (Form Permintaan Rawat Inap dari IGD) yang `approved`** (`IGD-DEC-294`, 12 Oktober 2026); `draft`, **kecuali bagian 10 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 1, 1.1, 1.2, dan bagian 8 (encounter-first) yang `approved`**. Bagian 9.1–9.4 **`approved`** (`IGD-DEC-170`, 23 September 2026). Bagian 9.5 dan baris §9.4 *eskalasi observasi pada kunjungan `Disposed`* **`approved`** (`IGD-DEC-175`, 30 September 2026). Bagian 9.6 dan baris §9.4 *aksi observasi pada kunjungan yang sudah berakhir* **`approved`** (`IGD-DEC-186`, 3 Oktober 2026). Baris §6a.2 *pesanan `Rejected`* dan §9.2 butir 4 sebagaimana diubah pada `0.9.0` **`approved`** (`IGD-DEC-209`, 5 Oktober 2026 sore) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-10-06** — bagian 10 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 1, 1.1, 1.2 (`EmergencyVisitStatus`) lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 8 (encounter-first) lewat `IGD-DEC-157`. **Rizki Gunawan / 2026-09-23** — bagian 9 (penutupan lewat disposisi) lewat `IGD-DEC-170`. **Rizki Gunawan / 2026-09-30** — bagian 9.5 dan baris §9.4 eskalasi lewat `IGD-DEC-175` (sementara, `IGD-DEC-174`). **Rizki Gunawan / 2026-10-03** — bagian 9.6 dan baris §9.4 aksi observasi pada kunjungan berakhir lewat `IGD-DEC-186` (sementara, pola `IGD-DEC-174`). **Rizki Gunawan / 2026-10-05 (sore)** — perubahan `0.9.0` pada §6a.2 dan §9.2 butir 4 lewat `IGD-DEC-209` (sementara, pola `IGD-DEC-174`; Nursing authority belum ditunjuk). Bagian 2 sampai 7 tetap `draft` |
@@ -499,3 +499,47 @@ Tidak sah: `Completed` atau `Cancelled` → apa pun (sudah ada).
 | `Confirmed` | `Cancelled` | Permintaan admisi tindak lanjut ini tidak `Completed`; form aktif dan permintaan `Pending` ikut batal | `409` aturan 24 |
 
 Transisi lain pada §5 dan §10 tidak berubah; jenis tindak lanjut tanpa `RequiresAdmissionRequest` tidak terdampak.
+
+### 11.5 Amandemen `0.12.0` — Antrean Transfer IGD/Poli (`IGD-DEC-304`, `305`)
+
+**Status: `approved`** — `IGD-DEC-306`, Rizki Gunawan, 14 Oktober 2026. Menggantikan baris `Signed` dan baris *Tandatangani* di
+11.1, seluruh 11.2, seluruh 11.3, dan seluruh 11.4.
+
+#### 11.5.1 Baris 11.1 yang berubah
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `AwaitingSignature` | Tandatangani | `Signed`; pasien tampil di Antrean Transfer IGD/Poli | DPJP IGD aktif | Validation §14 aturan 13–16, 27 | `403`/`409`/`503` |
+| `Signed` | Batalkan + alasan | `Cancelled` (kejadian `CancelledAfterSend`); pasien keluar dari antrean | Perawat IGD | Belum diproses petugas admisi | `409` aturan 19 |
+| `Signed` | Tindak lanjut rawat inap dibatalkan | `Cancelled` (kejadian `AutoCancelled`) | Sistem (akibat pembatalan oleh dokter) | Belum diproses; bila sudah, pembatalan tindak lanjut ditolak | `409` aturan 24 |
+
+Terminal: `Cancelled`. Form `Signed` yang sudah diproses petugas admisi tidak dapat berubah lagi; ia tetap `Signed` dengan
+keadaan tampil *Selesai*.
+
+#### 11.5.2 Keadaan tampil (`displayStatus`) — turunan, tidak disimpan
+
+| `status` form | Sudah diproses petugas admisi? | `displayStatus` | Bunyi di layar |
+| --- | --- | --- | --- |
+| `Draft` | — | `Draft` | Draf |
+| `AwaitingSignature` | — | `AwaitingSignature` | Menunggu TTD dr. {DPJP aktif} |
+| `Signed` | Belum | `Sent` | Terkirim — pasien di Antrean Transfer IGD/Poli, menunggu petugas admisi |
+| `Signed` | Sudah | `Completed` | Selesai — petugas admisi sudah memproses pasien |
+| `Cancelled` | — | `Cancelled` | Dibatalkan — {alasan} |
+
+`CancelledByAdmission` tidak dihasilkan lagi; nilainya tetap ada pada enum agar nomor nilai lain tidak bergeser.
+
+#### 11.5.3 `InpAdmissionReferral` — dicabut
+
+Rencana 11.3 tidak dijalankan. Status dan sumber `InpAdmissionReferral` milik Rawat Inap **tidak berubah**.
+
+#### 11.5.4 `EmergencyDispositionStatus` untuk jenis `RequiresAdmissionRequest`
+
+| Dari | Ke | Lewat | Syarat | Bila gagal |
+| --- | --- | --- | --- | --- |
+| `Confirmed` | `Executed` | `PATCH …/disposition-status` dari IGD | **Tidak sah** | `409` validation §14.8 aturan 23 |
+| `Confirmed` | `Executed` | *Admit* Transfer (Rawat Inap, sudah ada — `BE-RWI-207`) | Form *Signed* (aturan 28), kunjungan asal aktif, pasien sama | Kode Rawat Inap yang sudah ada |
+| `Confirmed` | `Cancelled` | `PATCH …/disposition-status` dari IGD | Belum diproses petugas admisi; semua form yang belum batal ikut `Cancelled` | `409` aturan 24 |
+
+**Kunjungan IGD.** Tetap ditutup lewat jalur kepergian `MVP-8`: aksi kepergian (catat tiba, terima dokumen) menutup kunjungan
+bila tindak lanjutnya sudah *Executed* (`IGD-FACT-121`). Bila pasien dicatat tiba **sebelum** admisi diproses, kunjungan
+menunggu penutupan (`IGD-OQ-130`). Jenis tindak lanjut tanpa `RequiresAdmissionRequest` tidak terdampak.

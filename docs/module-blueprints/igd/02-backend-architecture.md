@@ -2170,3 +2170,44 @@ Bila pembuatan permintaan admisi gagal, tanda tangan ikut batal; form tetap *Men
 | 5 | Pengenal jenis tindak lanjut rawat inap | Kolom master `RequiresAdmissionRequest`, bukan kode teks | G-10; kode berbeda antar lingkungan (`IGD-UNK-24`) |
 | 6 | Alergi kosong | Ditulis *"Belum ada data alergi"*, tidak pernah *"Tidak ada alergi"* | `IGD-FACT-117` |
 | 7 | Isian Unit Layanan sementara | Wajib diisi dan aktif; aturan tipe unit **ditahan** sampai `IGD-OQ-127` dan **tidak** boleh dibangun lebih dulu | `IGD-DEC-270` — tidak diasumsikan |
+
+### 17.12 Amandemen 14 Oktober 2026 — Antrean Transfer IGD/Poli (`IGD-DEC-304`, `305`) — **`approved`** (`IGD-DEC-306`)
+
+Disetujui `IGD-DEC-306`, Rizki Gunawan, 14 Oktober 2026; saringan antrean milik Rawat Inap butuh konfirmasi Muhammad Hamzah. Kontrak:
+API §12.7, validation §14.8, state §11.5, integration §9.5, permission §11.6.
+
+| Butir | Sebelum (17.1–17.11) | Sesudah |
+| --- | --- | --- |
+| Kepemilikan data | Form milik IGD sampai TTD, lalu lahir `InpAdmissionReferral` milik Rawat Inap | Form milik IGD seumur hidupnya. Rawat Inap **membaca** form *Signed* lewat `TransferQuery`; IGD tidak menulis ke tabel Rawat Inap |
+| `InpAdmissionReferral` | Diperluas 5 kolom, 1 kolom dilonggarkan | **Tidak berubah** |
+| Migration | Dua: `AddEmergencyAdmissionRequest`, `ExtendInpatientAdmissionReferralForEmergency` | Satu. Migration 2 dibatalkan — di-rollback dari basis data dev dan berkasnya dihapus 14 Oktober 2026; snapshot sama dengan `HEAD` |
+| `EmergencyDispositionService` | Bergantung pada `InpAdmissionReferralService` | Tanpa ketergantungan Rawat Inap; hanya `ILogger` yang ditambahkan ke konstruktor |
+| Pengenal jenis rawat inap di antrean | Kode teks `RANAP` | Tanda `RequiresAdmissionRequest` (kode apa pun; di dev `RI`); jenis tanpa tanda tetap memakai kode `RANAP` (`IGD-DEC-305`, sejalan pilihan desain 17.11 nomor 5) |
+| Billing | `BillingInpatientEventReceiver` disaring per sumber | Tidak disentuh |
+
+#### Class yang berubah
+
+| Class | Lokasi | Status | Isi perubahan |
+| --- | --- | --- | --- |
+| `EmergencyDispositionService` (partial `AdmissionRequest`) | `Areas/HealthServices/EmergencyInstallationManagement/Services/` | Diperbarui | `TindakLanjutMasukAntreanAsync`, `AmbilTindakLanjutSudahDiadmisiAsync`, `KunciTindakLanjutAsync`, `AlasanJalankanRawatInapDitolakAsync`; tanda tangan, batal terkirim, dan batal otomatis tanpa permintaan admisi |
+| `EmergencyDispositionController` | `Areas/HealthServices/EmergencyInstallationManagement/Controllers/` | Diperbarui | *Executed* untuk jenis bertanda selalu `409` |
+| `EmergencyAdmissionRequestController` | idem | Diperbarui | Endpoint `sign`, `print-data`; log tanpa `AdmissionReferralId` |
+| `EmergencyAdmissionRequestResponse` | `…/DTOs/EmergencyAdmissionRequestDtos.cs` | Diperbarui | Ruas `admissionReferral` dihapus; `EmergencyAdmissionRequestPrintResponse` baru |
+| `InpAdmissionTransferService` (partial `Queries`) | `Areas/HealthServices/InPatientManagement/Services/` | Diperbarui — **milik Rawat Inap** | Saringan keanggotaan antrean untuk jenis bertanda |
+
+#### Transaksi dan konkurensi
+
+Batal sesudah kirim dan batal karena tindak lanjut dibatalkan membuka transaksi, mengunci kunjungan (advisory lock
+`EMG_ADMISSION_REQUEST_{kunjungan}`), lalu baris `EmgDisposition` dengan `FOR UPDATE` — kunci baris yang sama dengan *admit*
+Transfer. Status "sudah diproses" dibaca **sesudah** kunci didapat.
+
+#### Yang sengaja tidak dibuat
+
+| Butir | Alasan |
+| --- | --- |
+| Perluasan `InpAdmissionReferral` dan mode *Admisi dari Kamar Pulih* untuk pasien IGD | Dibongkar — `IGD-DEC-304` |
+| Penulisan apa pun dari IGD ke tabel Rawat Inap | Antrean cukup membaca form |
+| Penutupan kunjungan IGD dari service Rawat Inap saat *admit* | `IGD-OQ-130` |
+
+Pilihan desain 17.11 nomor 3 (tolak batal tindak lanjut bila admisi sudah dibuka) tetap berlaku; "admisi dibuka" kini berarti
+"diproses dari Antrean Transfer".

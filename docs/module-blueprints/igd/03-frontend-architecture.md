@@ -928,3 +928,24 @@ Akun Perawat IGD (`dimas.kurniawan@rsmmc.local`) dan dokter IGD yang terhubung k
 akun petugas admisi Rawat Inap; satu tindak lanjut rawat inap terkonfirmasi dengan DPJP IGD aktif; jenis tindak lanjut
 bertanda `RequiresAdmissionRequest`; unit rawat inap dengan dan tanpa jadwal dokter. Hak akses diberikan pengurus Akses
 Role — bukan lewat SuperAdmin oleh penguji.
+
+### 17.10 Amandemen 14 Oktober 2026 — Antrean Transfer IGD/Poli (`IGD-DEC-304`, `305`) — **`approved`** (`IGD-DEC-306`)
+
+Disetujui `IGD-DEC-306`, Rizki Gunawan, 14 Oktober 2026.
+
+| Butir | Sebelum | Sesudah |
+| --- | --- | --- |
+| Layar petugas admisi | Mode *Admisi dari Kamar Pulih* menampilkan permintaan IGD (`FE-IGD-062`) | *Admisi Rawat Inap* → langkah 1 *Antrean Transfer IGD/Poli* (`FE-RWI-228`/`229`) yang sudah ada — **tanpa perubahan layar**. `FE-IGD-062` dibatalkan |
+| *Jalankan* di tab Tindak Lanjut perawat | Tertahan sampai form terkirim | Selalu nonaktif untuk tindak lanjut rawat inap, dengan salah satu dari dua keterangan validation §14.8 aturan 23 |
+| Keterangan form di panel dan rincian | *Terkirim ke petugas admisi*; *Dibatalkan admisi — alasan* | *Terkirim* = pasien di Antrean Transfer, menunggu petugas admisi; *Selesai* = sudah diproses; *Dibatalkan admisi* tidak muncul |
+| Baris *Permintaan admisi* di rincian form | Ada | Dihapus; alasan pembatalan tampil langsung dari form |
+| Dialog tanda tangan dokter | "…dikirim ke petugas admisi…" | "…pasien masuk Antrean Transfer IGD/Poli…" |
+| Serah terima saat mengantar | — | Tab *Transfer Pasien* yang sudah ada (`MVP-8`), dipakai **sesudah** admisi diproses (`IGD-FACT-121`) |
+
+**Peta butir menu:** tidak berubah. Tidak ada butir baru; layar petugas admisi milik Rawat Inap dan sudah terjangkau dari menu
+*Admisi Rawat Inap*.
+
+**Ketergantungan berkas Rawat Inap dari layar IGD** — seluruhnya berkas `HEAD` yang tidak diubah: opsi unit dan kelas
+(`inpatient-admission-encounter.service`, `inpatient-admission-payment.service`), kit cetak PPRI
+(`inpatient-consent-print.module.css`, `IGD-DEC-303`), pembuat `Idempotency-Key` (`inpatient-admission-workspace-utils`), dan
+util ruang kerja dokter.

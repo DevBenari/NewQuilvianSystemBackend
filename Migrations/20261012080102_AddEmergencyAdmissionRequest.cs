@@ -231,6 +231,15 @@ namespace QuilvianSystemBackend.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("""
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM public."EmgAdmissionRequest") THEN
+                        RAISE EXCEPTION 'Down BE-IGD-072 dihentikan: EmgAdmissionRequest sudah berisi Form Permintaan Rawat Inap. Menghapus tabel ini menghilangkan dokumen klinis pasien.';
+                    END IF;
+                END $$;
+                """);
+
             migrationBuilder.DropTable(
                 name: "EmgAdmissionRequestEvent",
                 schema: "public");

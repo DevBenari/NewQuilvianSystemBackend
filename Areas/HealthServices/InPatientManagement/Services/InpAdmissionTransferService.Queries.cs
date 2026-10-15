@@ -19,7 +19,11 @@ public partial class InpAdmissionTransferService
         var emergency = _dbContext.Set<EmgDisposition>().AsNoTracking()
             .Where(x => !x.IsDelete && !x.IsCancel && x.EmergencyVisit != null && !x.EmergencyVisit.IsDelete
                 && !x.EmergencyVisit.IsCancel && x.EmergencyVisit.PatientId != null && x.DispositionType != null && !x.DispositionType.IsDelete
-                && x.DispositionType.IsActive && x.DispositionType.Code == "RANAP"
+                && x.DispositionType.IsActive
+                && (x.DispositionType.RequiresAdmissionRequest
+                    ? _dbContext.Set<EmgAdmissionRequest>().Any(f => f.DispositionId == x.Id && !f.IsDelete
+                        && f.Status == EmergencyAdmissionRequestStatus.Signed)
+                    : x.DispositionType.Code == "RANAP")
                 && x.DestinationServiceUnit != null && !x.DestinationServiceUnit.IsDelete
                 && x.DestinationServiceUnit.ServiceUnitType == ServiceUnitType.Inpatient)
             .Select(x => new InpatientAdmissionTransferItemResponse
