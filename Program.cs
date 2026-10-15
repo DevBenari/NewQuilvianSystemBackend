@@ -494,6 +494,7 @@ try
     builder.Services.AddScoped<PatientEncounterNumberService>();
     // RJ-DOC-REV-BE-015 — klasifikasi dan alokator nomor antrean Rawat Jalan (kiosk dan petugas).
     builder.Services.AddScoped<OutpatientQueueClassificationService>();
+    builder.Services.AddScoped<DoctorScheduleQuotaService>();
     builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
     // crm-membership BE-CRM-010 — satu aturan "member aktif" untuk seluruh konsumen.
     builder.Services.AddScoped<PatientMembershipStatusResolver>();

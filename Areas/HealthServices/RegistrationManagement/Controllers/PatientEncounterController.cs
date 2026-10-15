@@ -67,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly OutpatientQueueNumberAllocator _queueNumberAllocator;
         private readonly EncounterReferralService _encounterReferralService;
         private readonly RegistrationEmployeeBenefitLookupService _employeeBenefitLookup;
+        private readonly DoctorScheduleQuotaService _doctorScheduleQuotaService;
 
         /// <summary>Batas body unggah surat rujukan: 10 berkas x 5 MB + cadangan multipart.</summary>
         private const long ReferralUploadRequestLimitBytes = 55L * 1024 * 1024;
@@ -87,7 +88,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             OutpatientQueueClassificationService? queueClassificationService = null,
             OutpatientQueueNumberAllocator? queueNumberAllocator = null,
             EncounterReferralService? encounterReferralService = null,
-            RegistrationEmployeeBenefitLookupService? employeeBenefitLookupService = null)
+            RegistrationEmployeeBenefitLookupService? employeeBenefitLookupService = null,
+            DoctorScheduleQuotaService? doctorScheduleQuotaService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -104,6 +106,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _employeeBenefitLookup = employeeBenefitLookupService
                 ?? new RegistrationEmployeeBenefitLookupService(
                     dbContext, new EmployeeBenefitEligibilityService(dbContext), loggerService);
+            // RJ-REG-REV-BE-006: parameter opsional supaya konstruktor lama (harness uji) tetap sah.
+            _doctorScheduleQuotaService = doctorScheduleQuotaService ?? new DoctorScheduleQuotaService(dbContext);
         }
 
         /// <summary>
@@ -395,6 +399,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             };
 
             return Ok(ApiResponse<PatientEncounterOptionPagedResponse>.Ok(result, "Data pilihan patient encounter berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Kuota terpakai jadwal dokter pada tanggal kunjungan, untuk menonaktifkan kartu jadwal
+        /// yang penuh di layar pendaftaran (<c>RJ-REG-REV-BE-006</c>, <c>RJ-REG-DEC-010</c>).
+        /// Validasi simpan kunjungan tetap menjadi penjaga akhir.
+        /// </summary>
+        [HttpGet("doctor-schedule-quotas")]
+        [ProducesResponseType(typeof(ApiResponse<List<DoctorScheduleQuotaResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat kuota terpakai jadwal dokter per tanggal kunjungan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetDoctorScheduleQuotas(
+            [FromQuery] DoctorScheduleQuotaQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            if (!DateTime.TryParseExact(
+                    query.VisitDate?.Trim(),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var visitDate))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tanggal kunjungan wajib berformat yyyy-MM-dd."));
+            }
+
+            var result = await _doctorScheduleQuotaService.GetQuotasAsync(
+                visitDate,
+                query.ClinicId,
+                cancellationToken);
+
+            return Ok(ApiResponse<List<DoctorScheduleQuotaResponse>>.Ok(
+                result,
+                "Kuota jadwal dokter berhasil diambil."));
         }
 
         [HttpGet("{id:guid}")]
@@ -2458,45 +2499,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             PatientEncounterCreateRequest request,
             DateTime visitDate)
         {
-            var normalizedVisitDate = ToUtcDate(visitDate);
+            // RJ-REG-REV-BE-006: hitungan dipusatkan di DoctorScheduleQuotaService supaya sama
+            // dengan endpoint kuota layar pendaftaran. Urutan dan kalimat penolakan tidak berubah.
+            var usage = await _doctorScheduleQuotaService.GetUsageAsync(schedule.Id, visitDate);
 
-            var queueQuery = _dbContext.Set<RegQueue>()
-                .AsNoTracking()
-                .Where(x =>
-                    x.QueueDate == normalizedVisitDate &&
-                    x.DoctorScheduleId == schedule.Id &&
-                    !x.IsDelete &&
-                    !x.IsCancel &&
-                    !x.CancelledAt.HasValue);
-
-            if (schedule.MaxPatientQuota > 0)
+            if (DoctorScheduleQuotaService.IsFull(schedule.MaxPatientQuota, usage.Total))
             {
-                var totalQueue = await queueQuery.CountAsync();
-
-                if (totalQueue >= schedule.MaxPatientQuota)
-                {
-                    return (false, "Kuota pasien pada jadwal dokter sudah penuh.");
-                }
+                return (false, "Kuota pasien pada jadwal dokter sudah penuh.");
             }
 
-            if (request.IsAppointment && schedule.MaxAppointmentQuota > 0)
+            if (request.IsAppointment &&
+                DoctorScheduleQuotaService.IsFull(schedule.MaxAppointmentQuota, usage.Appointment))
             {
-                var appointmentQueue = await queueQuery.CountAsync(x => x.IsAppointment);
-
-                if (appointmentQueue >= schedule.MaxAppointmentQuota)
-                {
-                    return (false, "Kuota appointment pada jadwal dokter sudah penuh.");
-                }
+                return (false, "Kuota appointment pada jadwal dokter sudah penuh.");
             }
 
-            if (request.IsWalkIn && schedule.MaxWalkInQuota > 0)
+            if (request.IsWalkIn &&
+                DoctorScheduleQuotaService.IsFull(schedule.MaxWalkInQuota, usage.WalkIn))
             {
-                var walkInQueue = await queueQuery.CountAsync(x => x.IsWalkIn);
-
-                if (walkInQueue >= schedule.MaxWalkInQuota)
-                {
-                    return (false, "Kuota walk-in pada jadwal dokter sudah penuh.");
-                }
+                return (false, "Kuota walk-in pada jadwal dokter sudah penuh.");
             }
 
             return (true, null);
