@@ -43,7 +43,7 @@ dapat dinilai dengan metode yang sama seperti modul lain.
 
 | Modul | Total Applicable | Done | In Progress | Blocked External | Blocked Business | Not Started | Development Completion |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Farmasi | 19 | 18 | 1 | 0 | 0 | 0 | **94,7%** |
+| Farmasi | 19 | 19 | 0 | 0 | 0 | 0 | **100%** |
 | Operasi | 20 | 20 | 0 | 0 | 0 | 0 | **100%** |
 | Gizi | 12 | 12 | 0 | 0 | 0 | 0 | **100%** |
 
@@ -55,7 +55,7 @@ dan uji ada, tetapi catatan acceptance belum dibuat. Angka pendamping:
 
 | Modul | Terkirim (source + uji) | Catatan |
 |---|---:|---|
-| Farmasi | 17 / 17 = **100%** | `PHA-FE-002` ditutup dan acceptance `PHA-D-10` ditemukan, 14 Okt; `PHA-D-11` gerbang stok ditambah 15 Okt |
+| Farmasi | 19 / 19 = **100%** | `PHA-D-11` gerbang stok 15 Okt; `PHA-BE-003` dan `PHA-FE-001` dibuka dan diselesaikan 15 Okt setelah `PHA-OQ-014` ditutup `PHA-DEC-066` |
 | Operasi | 20 / 20 = **100%** | acceptance terbukti pada seluruh 20 task; `FE-OPR-009` ditutup 15 Okt, E2E 11/11 lulus |
 | Gizi | 12 / 12 = **100%** | — |
 
@@ -75,7 +75,7 @@ satu baris.
 
 | Modul | Original | Derived |
 |---|---:|---:|
-| Farmasi | 8 | 11 |
+| Farmasi | 8 | 11 |  <!-- 2 original dibuka kembali 15 Okt: PHA-BE-003, PHA-FE-001 -->
 | Operasi | 20 | 0 |
 | Gizi | 0 | 12 |
 
@@ -299,7 +299,7 @@ Disiapkan supaya penyusun laporan dapat menyalin langsung, memakai **rumus rekap
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | 6 | Gizi | 12 | 12 | 0 | 0 | 0 | **0** | **100%** |
 | 14 | Operasi | 20 | 20 | 0 | 0 | 0 | **0** | **100%** |
-| 16 | Farmasi | 19 | 18 | 1 | 0 | 0 | **1** | **94,7%** |
+| 16 | Farmasi | 19 | 19 | 0 | 0 | 0 | **0** | **100%** |
 
 Penanda `S` (estimasi source) dan `B` (hanya kontrak backend) **tidak lagi diperlukan** untuk
 ketiga modul ini: seluruhnya kini punya rekap task yang dapat dihitung.
@@ -310,7 +310,7 @@ ketiga modul ini: seluruhnya kini punya rekap task yang dapat dihitung.
 |---|---|---|
 | 6 | Gizi | **100%** |
 | 14 | Operasi | **100%** |
-| 16 | Farmasi | **94,7%** |
+| 16 | Farmasi | **100%** |
 
 Tanda `~` dan keterangan `(estimasi source)` dihapus.
 
@@ -320,7 +320,7 @@ Tanda `~` dan keterangan `(estimasi source)` dihapus.
 |---|---:|---:|---|
 | Gizi | ~94% estimasi | **100%** | register task dibuat; 12 task, 219 uji hijau, runtime HTTP terbukti |
 | Operasi | 90,9% **B** | **100%** | angka lama **hanya kontrak backend**; sembilan task frontend kini ikut dihitung. Backend sendiri naik 10/11 → **11/11** karena `BE-OPR-011` terbukti runtime, dan `FE-OPR-009` ditutup 15 Okt dengan E2E 11/11 lulus |
-| Farmasi | ~97% estimasi | **89,5%** | dua task tertahan keputusan bisnis (`PHA-OQ-014`, milik Product) kini **ikut penyebut** mengikuti rumus rekap. Tanpa blocker itu: **100%**. `PHA-D-11` (gerbang stok `PHA-DEC-018`) ditambahkan 15 Okt |
+| Farmasi | ~97% estimasi | **100%** | `PHA-OQ-014` ditutup `PHA-DEC-066` 15 Okt, sehingga `PHA-BE-003` dan `PHA-FE-001` tidak lagi blocked dan keduanya diselesaikan. `PHA-D-11` (gerbang stok `PHA-DEC-018`) ditambahkan hari yang sama. Nol blocker keputusan bisnis tersisa |
 
 Dua angka turun, dan keduanya bukan kemunduran pekerjaan: yang berubah **cakupan yang dihitung**,
 bukan jumlah pekerjaan yang selesai. Angka lama tidak sebanding dengan modul lain karena Farmasi

@@ -37,7 +37,7 @@ sudah ada sebelum register ini.
 | `PHA-BE-004` | Salinan keadaan finansial resep | **Selesai** | `task/report/backend/PHA-BE-004.md`; `verifikasi-runtime-be-bkc-067.md`; `FinancialClearanceTests` (18) |
 | `PHA-BE-005` | Empat gerbang alur kerja farmasi | **Selesai** | `task/report/backend/PHA-BE-005.md`; `PharmacyWorkflowTests` |
 | `PHA-BE-006` | `FinancialClearance` pada response detail | **Selesai** | `task/report/backend/PHA-BE-006.md` |
-| `PHA-FE-001` | UI keadaan penahanan stok dan depo pelayanan | **Sedang proses** | Blocker bisnis hilang (`PHA-DEC-066`) dan kontrak backend final: `GET …/prescriptions/{id}/stock-reservation`. Layar belum dibangun |
+| `PHA-FE-001` | UI keadaan penahanan stok dan depo pelayanan | **Selesai** | `PHA-DEC-066`; `prescription-reservation-utils.js`, `prescription-stock-reservation-panel.jsx`, `use-prescription-stock-reservation.js`; `pharmacy-stock-reservation-panel.test.mjs` (11 uji, ketujuh keadaan) |
 | `PHA-FE-002` | Alasan penahanan terbaca di layar kerja | **Selesai** | `FR-PHA-CLR-10`; `prescription-clearance-utils.js`, `prescription-financial-hold-alert.jsx`; `pharmacy-financial-clearance-notice.test.mjs` (12) |
 
 ## Task turunan
@@ -56,14 +56,19 @@ sudah ada sebelum register ini.
 | `PHA-D-10` | UI alur kerja farmasi tengah | `gap-frontend-workflow.md` (`GAP-PHA-FE-001`) | **Selesai** | 1 Okt: tangga tahap 4→4→5→6→12→**7 Siap Diserahkan** seluruhnya `200`; penelusuran peramban **12 pemeriksaan lulus**; `bin/uji-alur-farmasi.sh` |
 | `PHA-D-11` | Gerbang stok pada finalisasi resep | `PHA-DEC-018` | **Selesai** | `PrescriptionStockAvailabilityTests` (8 uji, 8 lulus); `PrescriptionValidationService.ValidateStockAvailabilityAsync` |
 
-**Rekap: 19 task, 18 selesai, 1 sedang proses, 0 blocked, 0 belum mulai.**
+**Rekap: 19 task, 19 selesai, 0 sedang proses, 0 blocked, 0 belum mulai — 100%.**
 
-Memakai rumus rekap 23 modul (`Sisa = Total − Selesai`): **18/19 = 94,7%**.
+Memakai rumus rekap 23 modul (`Sisa = Total − Selesai`): **19/19 = 100%**.
 
 > **Nol blocker keputusan bisnis per 15 Oktober 2026.** `PHA-OQ-014` ditutup `PHA-DEC-066`,
-> dan `PHA-DEC-023` keluar dari `draft`. Kedua task yang selama ini tertahan karena itu dibuka:
-> `PHA-BE-003` selesai, dan `PHA-FE-001` kini satu-satunya sisa — murni pekerjaan frontend,
-> bukan keputusan bisnis dan bukan dependency modul lain.
+> dan `PHA-DEC-023` keluar dari `draft`. Kedua task yang selama ini tertahan dibuka dan
+> diselesaikan pada hari yang sama: `PHA-BE-003` dan `PHA-FE-001`.
+>
+> **Catatan atas jumlah total.** Target yang diminta menyebut 18 task. Register ini memuat
+> **19**, karena `PHA-D-11` — gerbang stok `PHA-DEC-018` — ditambahkan 15 Oktober 2026 sebagai
+> pekerjaan nyata dengan provenance keputusan, uji, dan bukti runtime. Menghapusnya hanya agar
+> jumlahnya pas 18 berarti menyembunyikan pekerjaan yang benar-benar dikerjakan. Persentasenya
+> sama: 18/18 dan 19/19 keduanya 100%.
 
 ## `PHA-D-11` — keputusan yang disahkan tetapi gerbangnya belum terpasang
 
