@@ -324,8 +324,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             }
             catch (Exception ex)
             {
-                _loggerService.LogError(ex, "{Category} Gagal memeriksa kelayakan HR untuk pegawai {EmployeeId}",
-                    LogCategory, employeeId);
+                await _loggerService.LogErrorAsync(LogCategory, "CheckEligibility",
+                    $"Gagal memeriksa kelayakan HR untuk pegawai {employeeId}", ex);
                 response.BenefitStatus = WorkforceIdentityStatuses.Unavailable;
                 response.IsBenefitEligible = false;
                 response.Message = "Layanan HR tidak dapat diakses saat ini. Jalur pembayaran umum dapat tetap digunakan.";

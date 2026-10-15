@@ -14,7 +14,7 @@ public partial class InpAdmissionTransferService
             throw new InpBedOperationException(400, "INVALID_INPUT", "Bed dan ExpectedBedVersion wajib.");
         if (!await _bedAccess.HasPermissionAsync("PatientEncounter:Create"))
             throw new InpBedOperationException(403, "ACCESS_DENIED", "Hak membuat kunjungan Registrasi diperlukan.");
-        if (request.DepositAmount > 0 && !await _bedAccess.HasPermissionAsync("BillingDeposit:Create"))
+        if (request.DepositAmount > 0 && request.DepositPaymentMethodId.HasValue && !await _bedAccess.HasPermissionAsync("BillingDeposit:Create"))
             throw new InpBedOperationException(403, "ACCESS_DENIED", "Hak menerima deposit Billing diperlukan.");
         if (request.RequiresIsolation && !await _bedAccess.HasPermissionAsync("InpatientEpisode:Update"))
             throw new InpBedOperationException(403, "ACCESS_DENIED", "Hak mencatat kebutuhan isolasi diperlukan.");
@@ -33,7 +33,7 @@ public partial class InpAdmissionTransferService
             }, cancellationToken);
         var epId = await _dbContext.Set<InpBedReservation>().Where(x => x.Id == meta.ResultEntityId).Select(x => x.EpisodeId).SingleAsync(cancellationToken);
         var episode = await _dbContext.Set<InpEpisode>().AsNoTracking().SingleAsync(x => x.Id == epId, cancellationToken);
-        if (!meta.IsReplay && request.DepositAmount > 0)
+        if (!meta.IsReplay && request.DepositAmount > 0 && request.DepositPaymentMethodId.HasValue)
             await deposits.AuditAdmissionTopUpAsync(episode.EncounterId, episode.Id, actorUserId, cancellationToken);
         if (!meta.IsReplay)
             await loggerService.AuditAsync("HealthServices.InPatient.AdmissionTransfer", "AdmissionTransfer.Created",

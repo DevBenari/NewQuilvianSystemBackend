@@ -6,6 +6,12 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Serv
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
@@ -27,6 +33,7 @@ public sealed class BillingFinalizationService
     private readonly IBillingCalculationService? _calculationService;
     private readonly BillingEmployeeBenefitSplitService? _splitService;
     private readonly EmployeeBenefitBalanceService? _balanceService;
+    private readonly ClinicalDocumentIntegrityService? _integrityService;
 
     public BillingFinalizationService(
         ApplicationDbContext dbContext,
@@ -37,7 +44,8 @@ public sealed class BillingFinalizationService
         LoggerService loggerService,
         BillingEmployeeBenefitSplitService? splitService = null,
         IBillingCalculationService? calculationService = null,
-        EmployeeBenefitBalanceService? balanceService = null)
+        EmployeeBenefitBalanceService? balanceService = null,
+        ClinicalDocumentIntegrityService? integrityService = null)
     {
         _dbContext = dbContext;
         _chargeSourceAdapter = chargeSourceAdapter;
@@ -48,6 +56,7 @@ public sealed class BillingFinalizationService
         _splitService = splitService;
         _calculationService = calculationService;
         _balanceService = balanceService ?? splitService?.BalanceService;
+        _integrityService = integrityService;
     }
 
     public async Task<FinalizationPreviewResponse> PreviewAsync(
@@ -555,6 +564,102 @@ public sealed class BillingFinalizationService
         return (true, null);
     }
 
+    /// <summary>
+    /// TASK BE-04: Transisi EncounterStatus menjadi Completed (9) setelah billing lunas,
+    /// dengan seluruh guard kelayakan klinis dan finansial yang ketat.
+    /// </summary>
+    public async Task<(bool Completed, string? IncompleteReason)> TryCompleteEncounterForInvoiceAsync(
+        Guid invoiceId,
+        Guid actorUserId,
+        DateTimeOffset occurredAt,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices
+            .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
+        if (invoice == null)
+            return (false, "Invoice tidak ditemukan.");
+
+        // Guard finansial: tagihan harus sudah lunas (outstanding <= 0)
+        var outstanding = await _closureService.CalculateOutstandingAsync(invoice, cancellationToken);
+        if (outstanding > 0)
+            return (false, "Encounter belum dapat diselesaikan karena invoice masih memiliki sisa tagihan.");
+
+        // Guard transaksi: tidak boleh ada tender yang masih pending
+        var hasPendingTenders = await _dbContext.BilTenders
+            .AnyAsync(t => t.Settlement.InvoiceId == invoice.Id && t.Status == BillingTenderStatuses.Pending && !t.IsDelete, cancellationToken);
+        if (hasPendingTenders)
+            return (false, "Encounter belum dapat diselesaikan karena masih ada pembayaran yang berstatus pending.");
+
+        var encounter = await _dbContext.Set<RegPatientEncounter>()
+            .SingleOrDefaultAsync(e => e.Id == invoice.EncounterId && !e.IsDelete, cancellationToken);
+        if (encounter == null)
+            return (false, "Encounter pasien tidak ditemukan.");
+
+        // Idempotent guard: sudah completed
+        if (encounter.EncounterStatus == EncounterStatus.Completed)
+            return (true, null);
+
+        // Guard keselamatan: encounter yang dibatalkan atau no-show tidak boleh diubah menjadi selesai
+        if (encounter.CancelledAt.HasValue || encounter.NoShowAt.HasValue ||
+            encounter.EncounterStatus == EncounterStatus.Cancelled || encounter.EncounterStatus == EncounterStatus.NoShow)
+        {
+            return (false, "Encounter telah dibatalkan atau no-show, tidak dapat diselesaikan.");
+        }
+
+        // Clinical / discharge guards per tipe encounter
+        if (encounter.EncounterType == EncounterType.Inpatient)
+        {
+            var episode = await _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ep => ep.EncounterId == encounter.Id && !ep.IsDelete, cancellationToken);
+            if (episode != null && episode.EpisodeStatus != InpEpisodeStatus.Closed && !episode.PhysicallyLeftAt.HasValue)
+            {
+                return (false, "Encounter rawat inap belum dapat diselesaikan karena pasien belum menyelesaikan prosedur kepulangan klinis.");
+            }
+        }
+        else if (encounter.EncounterType == EncounterType.Emergency)
+        {
+            var emgVisit = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(v => v.EncounterId == encounter.Id && !v.IsDelete, cancellationToken);
+            if (emgVisit != null && !emgVisit.ClosedByDispositionId.HasValue)
+            {
+                return (false, "Encounter gawat darurat belum dapat diselesaikan karena disposisi IGD belum ditutup.");
+            }
+        }
+
+        var statusBefore = encounter.EncounterStatus;
+        encounter.EncounterStatus = EncounterStatus.Completed;
+        encounter.CompletedAt = occurredAt.UtcDateTime;
+        encounter.UpdateDateTime = DateTime.UtcNow;
+        encounter.UpdateBy = actorUserId;
+
+        if (_integrityService != null)
+        {
+            await _integrityService.LockOpenDocumentsForEncounterAsync(
+                encounter.Id, actorUserId, occurredAt.UtcDateTime, encounter.CompletedAt, cancellationToken: cancellationToken);
+        }
+
+        await _loggerService.AuditAsync(
+            LogCategory,
+            "BillingEncounter.Completed",
+            $"Encounter {encounter.EncounterNumber} otomatis diselesaikan setelah tagihan lunas (Invoice {invoice.InvoiceNumber}).",
+            new
+            {
+                InvoiceId = invoice.Id,
+                InvoiceNumber = invoice.InvoiceNumber,
+                EncounterId = encounter.Id,
+                EncounterNumber = encounter.EncounterNumber,
+                EncounterStatusBefore = (int)statusBefore,
+                EncounterStatusAfter = (int)EncounterStatus.Completed,
+                ActorUserId = actorUserId,
+                OccurredAt = occurredAt
+            });
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return (true, null);
+    }
+
     internal async Task<(BilFinalizationRecord Record, InvoiceClosureChange ClosureChange)> ExecuteInternalFinalizationAndClosureAsync(
         BilInvoice invoice,
         BilCalculationVersion calculation,
@@ -693,6 +798,9 @@ public sealed class BillingFinalizationService
                 record.CausationId,
                 cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // TASK BE-04: Transisi EncounterStatus menjadi Completed (9) jika memenuhi prasyarat
+            await TryCompleteEncounterForInvoiceAsync(invoice.Id, actorUserId, now, cancellationToken);
         }
 
         return (record, closureChange);

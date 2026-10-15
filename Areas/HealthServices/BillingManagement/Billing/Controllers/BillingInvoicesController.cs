@@ -196,6 +196,30 @@ public sealed class BillingInvoicesController : ControllerBase
         }
     }
 
+    [HttpGet("{id:guid}/payment-preview")]
+    [AccessAction("Read", "Read Billing Payment Preview", AccessType = AccessTypes.Read, SortOrder = 21)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentPreviewResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaymentPreview(
+        Guid id,
+        [FromQuery] string? paymentMethod,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetPaymentPreviewAsync(id, paymentMethod, cancellationToken);
+            return Ok(ApiResponse<PaymentPreviewResponse>.Ok(result, "Preview pembayaran berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpPost("from-source")]
     [AccessAction("Create", "Create or Update Charge From Source", AccessType = AccessTypes.Create, SortOrder = 3)]
     [AccessPermission("BillingInvoice", "Create")]

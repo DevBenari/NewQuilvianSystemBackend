@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Repositories;
@@ -19,7 +20,8 @@ public partial class InpAdmissionTransferService(
     ApplicationDbContext dbContext, InpEpisodeService episodeService,
     InpBedOccupancyService bedOccupancyService, LoggerService loggerService,
     InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess,
-    EncounterPaymentSourceService paymentSources, BillingDepositService deposits)
+    EncounterPaymentSourceService paymentSources, BillingDepositService deposits,
+    BillingNumberSeriesService? billingNumberSeries = null)
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly InpBedMutationCoordinator _bedCoordinator = bedCoordinator;
@@ -146,19 +148,58 @@ public partial class InpAdmissionTransferService(
 
         if (request.DepositAmount > 0)
         {
-            if (!request.DepositPaymentMethodId.HasValue)
-                throw new InpBedOperationException(422, "DEPOSIT_METHOD_REQUIRED", "Pilih metode penerimaan deposit.");
-            try
+            if (request.DepositPaymentMethodId.HasValue)
             {
-                await deposits.TopUpAsync(episode.EncounterId, new DepositTopUpRequest
+                // Deposit Dibayar Langsung Saat Admisi Transfer (Jalur penerimaan uang tunai/kartu)
+                try
                 {
-                    Amount = request.DepositAmount.Value, PaymentMethodId = request.DepositPaymentMethodId.Value,
-                    Reason = "Deposit admisi transfer", CorrelationId = episode.Id, CausationId = request.TransferDispositionId
-                }, episode.Id, actorUserId, cancellationToken, deferAudit: true);
+                    await deposits.TopUpAsync(episode.EncounterId, new DepositTopUpRequest
+                    {
+                        Amount = request.DepositAmount.Value, PaymentMethodId = request.DepositPaymentMethodId.Value,
+                        Reason = "Deposit admisi transfer", CorrelationId = episode.Id, CausationId = request.TransferDispositionId
+                    }, episode.Id, actorUserId, cancellationToken, deferAudit: true);
+                }
+                catch (BillingDepositValidationException ex) { throw new InpBedOperationException(422, "DEPOSIT_REJECTED", ex.Message); }
+                catch (BillingDepositConflictException ex) { throw new InpBedOperationException(409, "DEPOSIT_CONFLICT", ex.Message); }
+                catch (KeyNotFoundException ex) { throw new InpBedOperationException(422, "DEPOSIT_REFERENCE_INVALID", ex.Message); }
             }
-            catch (BillingDepositValidationException ex) { throw new InpBedOperationException(422, "DEPOSIT_REJECTED", ex.Message); }
-            catch (BillingDepositConflictException ex) { throw new InpBedOperationException(409, "DEPOSIT_CONFLICT", ex.Message); }
-            catch (KeyNotFoundException ex) { throw new InpBedOperationException(422, "DEPOSIT_REFERENCE_INVALID", ex.Message); }
+            else
+            {
+                // Deposit Diminta (Permintaan Pembayaran - Belum Bayar) -> Terbitkan BilDepositPaymentOrder (UNPAID) untuk Kasir
+                string orderNumber;
+                if (billingNumberSeries != null)
+                {
+                    orderNumber = await billingNumberSeries.AllocateDepositOrderNumberAsync(actorUserId, DateTime.UtcNow, cancellationToken);
+                }
+                else
+                {
+                    orderNumber = $"DPO-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(10000, 99999)}";
+                }
+
+                var depositOrder = new BilDepositPaymentOrder
+                {
+                    Id = Guid.NewGuid(),
+                    OrderNumber = orderNumber,
+                    EpisodeId = episode.Id,
+                    EncounterId = episode.EncounterId,
+                    PatientId = episode.PatientId,
+                    OrderType = DepositOrderTypes.InitialDeposit,
+                    SourceType = DepositOrderSourceTypes.InpatientAdmission,
+                    SourceReferenceId = request.TransferDispositionId,
+                    RequestedAmount = request.DepositAmount.Value,
+                    PaidAmount = 0m,
+                    OutstandingAmount = request.DepositAmount.Value,
+                    Status = DepositOrderStatuses.Unpaid,
+                    DueDate = DateTime.UtcNow.Date.AddDays(3),
+                    Remarks = "Order deposit awal admisi transfer",
+                    CorrelationId = episode.Id,
+                    CausationId = request.TransferDispositionId,
+                    CreateBy = actorUserId,
+                    CreateDateTime = DateTime.UtcNow
+                };
+
+                _dbContext.Set<BilDepositPaymentOrder>().Add(depositOrder);
+            }
         }
         if (request.SourceType == "Emergency")
         {
