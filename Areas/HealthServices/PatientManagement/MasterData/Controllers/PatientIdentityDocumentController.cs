@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -47,15 +48,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             "Other"
         };
 
+        // Batas body multipart: berkas maks (bawaan 5 MB) ditambah ruang field form.
+        private const long IdentityUploadRequestLimitBytes = 6L * 1024 * 1024;
+
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly PatientIdentityDocumentFileService _fileService;
 
         public PatientIdentityDocumentController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            PatientIdentityDocumentFileService fileService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _fileService = fileService;
         }
 
         [HttpGet("filters/metadata")]
@@ -635,6 +642,111 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
         }
 
+        /// <summary>
+        /// Mengunggah berkas identitas (JPG/PNG/PDF) untuk pasien yang sudah ada ke penyimpanan
+        /// privat (RJ-REG-REV-BE-004). Tidak membuat pasien. Pasien yang sudah punya dokumen
+        /// berkas aktif dijawab <c>409</c> kecuali <c>replaceDocumentId</c> diisi oleh pemegang
+        /// <c>PatientIdentityDocument : Update</c>; dokumen lama dinonaktifkan dan dihapus lunak, tidak ditimpa.
+        /// </summary>
+        [HttpPost("admin/upload")]
+        [Consumes("multipart/form-data")]
+        [RequestSizeLimit(IdentityUploadRequestLimitBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = IdentityUploadRequestLimitBytes)]
+        [ProducesResponseType(typeof(ApiResponse<PatientIdentityDocumentUploadResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction(
+            "Create",
+            "Upload Patient Identity Document File",
+            Description = "Mengunggah berkas dokumen identitas pasien ke penyimpanan privat",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2
+        )]
+        [AccessPermission("PatientIdentityDocument", "Create")]
+        public async Task<IActionResult> UploadPatientIdentityDocumentFile(
+            [FromForm] PatientIdentityDocumentUploadRequest request)
+        {
+            if (request.File == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Berkas identitas wajib dipilih."));
+            }
+
+            var result = await _fileService.UploadAsync(
+                User,
+                new PatientIdentityDocumentFileService.UploadRequest(
+                    request.PatientId,
+                    request.IdentityType,
+                    request.IdentityNumber,
+                    request.ReplaceDocumentId,
+                    request.File.FileName,
+                    request.File.Length,
+                    request.File.OpenReadStream),
+                CommonIdentityTypes,
+                GetCurrentUserId(),
+                HttpContext.RequestAborted);
+
+            return result.Status switch
+            {
+                PatientIdentityDocumentFileService.ResultStatus.Success => Ok(ApiResponse<PatientIdentityDocumentUploadResponse>.Ok(
+                    new PatientIdentityDocumentUploadResponse
+                    {
+                        Id = result.DocumentId!.Value,
+                        PatientId = request.PatientId,
+                        ReplacedDocumentId = request.ReplaceDocumentId
+                    },
+                    result.Message)),
+                PatientIdentityDocumentFileService.ResultStatus.NotFound => NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, result.Message)),
+                PatientIdentityDocumentFileService.ResultStatus.Conflict => StatusCode(StatusCodes.Status409Conflict,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        result.Message,
+                        new { code = "PATIENT_IDENTITY_DOCUMENT_EXISTS", existingDocumentId = result.ExistingDocumentId })),
+                PatientIdentityDocumentFileService.ResultStatus.Forbidden => StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, result.Message)),
+                _ => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message))
+            };
+        }
+
+        /// <summary>
+        /// Isi berkas dokumen identitas privat (<c>inline</c>, <c>no-store</c>, RJ-REG-REV-BE-004).
+        /// Hanya dokumen yang diunggah ke penyimpanan privat; dokumen lama ber-URL publik
+        /// dijawab <c>404</c>.
+        /// </summary>
+        [HttpGet("admin/{id:guid}/content")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction(
+            "Read",
+            "Read Patient Identity Document",
+            Description = "Membuka berkas dokumen identitas pasien",
+            AccessType = AccessTypes.Read,
+            SortOrder = 1
+        )]
+        [AccessPermission("PatientIdentityDocument", "Read")]
+        public async Task<IActionResult> GetPatientIdentityDocumentContent(Guid id)
+        {
+            var (result, content) = await _fileService.OpenAsync(id, HttpContext.RequestAborted);
+
+            if (result.Status != PatientIdentityDocumentFileService.ResultStatus.Success || content == null)
+            {
+                return result.Status == PatientIdentityDocumentFileService.ResultStatus.NotFound
+                    ? NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message))
+                    : BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message));
+            }
+
+            Response.Headers["Cache-Control"] = "no-store";
+            Response.Headers["X-Content-Type-Options"] = "nosniff";
+            Response.Headers["Content-Disposition"] =
+                new System.Net.Mime.ContentDisposition { Inline = true, FileName = content.FileName }.ToString();
+
+            return File(content.Stream, content.ContentType);
+        }
+
         [HttpPatch("{id:guid}/status")]
         [HttpPatch("admin/{id:guid}/status")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
@@ -1001,6 +1113,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 IdentityNumber = entity.IdentityNumber,
                 DocumentName = entity.DocumentName,
                 FilePath = entity.FilePath,
+                HasPrivateFile = PatientIdentityDocumentFileService.IsPrivatePath(entity.FilePath),
                 FileContentType = entity.FileContentType,
                 IssuedBy = entity.IssuedBy,
                 IssueDate = entity.IssueDate,
@@ -1038,6 +1151,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 IdentityNumber = entity.IdentityNumber,
                 DocumentName = entity.DocumentName,
                 FilePath = entity.FilePath,
+                HasPrivateFile = PatientIdentityDocumentFileService.IsPrivatePath(entity.FilePath),
                 FileContentType = entity.FileContentType,
                 IssuedBy = entity.IssuedBy,
                 IssueDate = entity.IssueDate,

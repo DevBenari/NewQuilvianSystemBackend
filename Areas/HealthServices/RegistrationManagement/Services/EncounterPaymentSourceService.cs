@@ -17,11 +17,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly PatientEncounterNumberService _numbers;
+        private readonly RegistrationEmployeeBenefitLookupService _employeeBenefitLookup;
 
-        public EncounterPaymentSourceService(ApplicationDbContext dbContext, PatientEncounterNumberService numbers)
+        public EncounterPaymentSourceService(
+            ApplicationDbContext dbContext,
+            PatientEncounterNumberService numbers,
+            RegistrationEmployeeBenefitLookupService employeeBenefitLookup)
         {
             _dbContext = dbContext;
             _numbers = numbers;
+            _employeeBenefitLookup = employeeBenefitLookup;
         }
 
         /// <summary>Inisialisasi penjamin admisi dalam transaksi orchestrator pemanggil.</summary>
@@ -437,6 +442,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         Success: false,
                         ErrorCode: "GUARANTOR_INACTIVE",
                         ErrorMessage: "Kerja sama dengan perusahaan penjamin ini sudah berakhir pada tanggal pelayanan.",
+                        StatusCode: 422,
+                        OldPaymentType: null,
+                        OldPayerName: null,
+                        OldCardNumber: null,
+                        NewPaymentType: null,
+                        NewPayerName: null,
+                        NewCardNumber: null);
+                }
+
+                // BE-FIN-106, FIN-DEC-204: kartu atas penjamin internal (RS Benefit) hanya sah bila pegawai atau
+                // anggota keluarganya terdaftar dan terverifikasi di HR pada tanggal pelayanan. Tanggal diteruskan
+                // apa adanya (bukan serviceDate yang sudah dipotong) agar hari operasional tidak bergeser.
+                var benefitCheck = await _employeeBenefitLookup.ValidateCardForServiceAsync(
+                    card.CompanyGuarantorId, card.EmployeeId, card.FamilyMemberId, command.ServiceDate, cancellationToken);
+                if (!benefitCheck.IsValid)
+                {
+                    return new EncounterPaymentSourceSwitchResult(
+                        Success: false,
+                        ErrorCode: benefitCheck.ReasonCode,
+                        ErrorMessage: benefitCheck.Message,
                         StatusCode: 422,
                         OldPaymentType: null,
                         OldPayerName: null,

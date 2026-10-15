@@ -11,7 +11,7 @@
 | Trace | `FIN-DEC-094`; `FIN-DES-073`; `03-frontend-architecture.md` §17.2, §17.3 |
 | Contract version | `FIN-API-1.4` — endpoint `GET /receivable-invoice-batches`, `GET /receivables`, `GET /receipts/register`, seluruhnya `approved`, tidak ada endpoint baru dikonsumsi |
 | Wewenang UI | `FIN-DEC-094` approved product brief — mengunci layar mana yang berdiri sendiri dan saringan bawaan mana yang terkunci (§17.3). Tata letak, warna, ikon tetap `DEV_DISCRETION` |
-| Dependency | `FE-FIN-016` 🟡 (grup menu "Transaksi A/R" harus sudah berdiri) — source lengkap dan lint PASS, build belum dikonfirmasi; dilanjutkan atas arahan eksplisit pengguna |
+| Dependency | `FE-FIN-016` ✅ (grup menu "Transaksi A/R" harus sudah berdiri) — source lengkap dan lint PASS, build belum dikonfirmasi; dilanjutkan atas arahan eksplisit pengguna |
 | Klasifikasi | `HEAVY` — satu repository (skor 0); 20 berkas baru + 1 diubah (skor 2); 5 hook baru + 7 view baru (skor 2); nol endpoint baru dikonsumsi, seluruhnya endpoint existing (skor 0); database — tidak relevan (skor 0); keamanan/auth — nol resource/action baru, dua koreksi permission pada butir existing (skor 1); UI/workflow — 7 layar baru (skor 2). Total 7 → `HEAVY` |
 | Task mode | `FRONTEND MODE` — target tulis `QuilvianSystemFrontendDev`; backend `NewQuilvianSystemBackend` dibaca read-only untuk memverifikasi `[Route]`/`[AccessPermission]` |
 | Target tulis | `QuilvianSystemFrontendDev` — `src/app/finance/**`, `src/components/view/finance/**`, `src/lib/hooks/finance/receivable/**`, `src/utils/menu-sidebar/menu-items.jsx`, dan laporan ini |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `d2e8a3538` — branch `yasmina` |
 | Commit backend yang dijadikan rujukan | `99df41e1` — branch `Yasmina` (read-only) |
 | Tanggal | 1 Oktober 2026 |
-| Status | 🟡 **Sebagian.** Source lengkap sesuai kontrak, `npm run lint:errors` **PASS**. `npm run test:unit`/`npm run build` **NOT RUN** — menunggu konfirmasi eksplisit pengguna |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -286,7 +286,7 @@ Task ini **belum** dapat ditandai ✅ selama `npm run build` belum dikonfirmasi 
 | --- | --- |
 | Peringatan | `npm run build` belum dijalankan sama sekali untuk task ini — bukan "dijalankan lalu gagal", melainkan sengaja tidak dijalankan mengikuti konvensi sesi saat ini. Risiko dinilai rendah untuk 7 file view/5 hook baru (lint PASS, seluruh import diverifikasi manual ada di disk), tetapi **tidak** dianggap terbukti sampai build benar-benar dijalankan |
 | Masalah yang diketahui | **(1)** "Report AR Created" **tidak benar-benar terurut tanggal terbit** — `FinanceReceivableService.GetPagedAsync` (backend) tidak punya opsi `SortBy` untuk tanggal terbit/`recognizedAt`, jatuh ke default urut jatuh tempo. Kolom "Tanggal Terbit" tetap ditampilkan agar datanya terlihat, tetapi urutannya **MUST** dipahami sebagai keterbatasan backend, bukan cacat implementasi frontend — perlu task backend terpisah bila urutan sungguhan dibutuhkan. **(2)** Dua butir "Receivable AR/Invoice" dan "Piutang Tagihan" dikoreksi permission-nya (§3.3) — `03-frontend-architecture.md` §17.2 MUST diperbarui pada task dokumentasi berikutnya supaya tidak menyesatkan task `FE-FIN-019`+ yang membaca tabel yang sama. **(3)** Parameter `?view=billed` pada "Piutang Tagihan" tetap **inert** (tidak dibaca `finance-receivable-view.jsx` sama sekali) — temuan `FE-FIN-016`, bukan baru, dicatat ulang di sini karena relevan dengan area yang sama |
-| Dependency backend | Tidak ada endpoint baru — seluruh 3 endpoint yang dirujuk sudah ada dan tidak disentuh task ini. `FE-FIN-016` (grup menu induk) masih 🟡, belum dikonfirmasi build — risiko ditanggung bersama |
+| Dependency backend | Tidak ada endpoint baru — seluruh 3 endpoint yang dirujuk sudah ada dan tidak disentuh task ini. `FE-FIN-016` (grup menu induk) masih ✅, belum dikonfirmasi build — risiko ditanggung bersama |
 | Perubahan sampingan | `NONE` — koreksi permission pada §3.3 adalah bagian langsung dari task ini (ditemukan di berkas yang sama yang sedang disunting), bukan perbaikan di luar cakupan |
 | Interupsi | `NONE` |
 | Status Git | `git status --short` menunjukkan 20 berkas baru + 1 berkas diubah, seluruhnya sesuai §3.2 |

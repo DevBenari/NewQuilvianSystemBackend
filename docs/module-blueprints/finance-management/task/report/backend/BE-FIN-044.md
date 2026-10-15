@@ -16,7 +16,7 @@
 | Target tulis | `NewQuilvianSystemBackend` — penghapusan 5 konstanta alias lama dari `FinAccountingEventOutbox.cs`, penggantian pemanggilan konstanta outbox pada 5 titik pemanggil di 3 service, laporan task, dan roadmap modul |
 | Commit backend saat dikerjakan | `7811c048`, branch `Yasmina` |
 | Tanggal | 29 September 2026 |
-| Status | 🟡 **SEBAGIAN** — 29 September 2026. Source code pada 4 berkas telah diselaraskan penuh ke katalog resmi, seluruh pemanggil alias lama digantikan, 5 konstanta alias lama dihapus dari outbox model, seluruh kriteria penerimaan terpetakan ke source, verifikasi `dotnet build` sengaja ditunda atas permintaan pengguna ("jangan lakukan build automatis") untuk dijalankan mandiri |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

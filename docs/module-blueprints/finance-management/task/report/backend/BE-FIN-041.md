@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Belum di-commit — lihat Status Git bagian 7 (working tree `Yasmina`, HEAD `45f2bb7c`) |
 | Tanggal | 28 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Source dan berkas migration selesai; **otorisasi pembuatan berkas migration diberikan eksplisit pengguna 28 September 2026** (menjawab prasyarat #13 yang sebelumnya "Belum"). `dotnet build` dan **eksekusi migration** ke database **sengaja belum dijalankan** — keduanya memerlukan otorisasi eksplisit terpisah (`dotnet build` menunggu instruksi umum "jangan lakukan build otomatis" yang berlaku sepanjang sesi ini; eksekusi migration adalah wewenang terpisah dari pembuatan berkas per `AGENTS.md` Keselamatan Database, dan belum diminta) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -94,7 +94,7 @@ sampai `BE-FIN-036` selesai.
 | `Migrations/20260928120000_AddDepositAppliedAmountToFinPayment.cs` | **Baru.** `Up()`: `AddColumn` + drop/add dua constraint (rumus baru + constraint nilai). `Down()`: kebalikannya persis, dengan catatan aman hanya selama belum ada baris `DepositAppliedAmount > 0` |
 | `Migrations/20260928120000_AddDepositAppliedAmountToFinPayment.Designer.cs` | **Baru.** Bentuk ringkas (pola `AddSourcePurchasingInvoiceIdToSupplierPayable`) — tanpa `BuildTargetModel` penuh; sumber kebenaran model tetap `ApplicationDbContextModelSnapshot.cs` |
 | `Migrations/ApplicationDbContextModelSnapshot.cs` | Tambah `b.Property<decimal>("DepositAppliedAmount")` pada entity `FinPayment`; tambah `CK_FinPayment_DepositApplied`; perbarui `CK_FinPayment_NetTransfer` ke rumus baru |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-041` → 🟡 di seluruh titik kemunculan; prasyarat #13 diperbarui — otorisasi pembuatan berkas migration **diberikan** 28 September 2026 (eksekusi tetap terpisah, belum); pembaruan blocker `BE-FIN-036` |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Tanda status `BE-FIN-041` → ✅ di seluruh titik kemunculan; prasyarat #13 diperbarui — otorisasi pembuatan berkas migration **diberikan** 28 September 2026 (eksekusi tetap terpisah, belum); pembaruan blocker `BE-FIN-036` |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 

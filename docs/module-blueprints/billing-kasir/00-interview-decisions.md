@@ -2155,7 +2155,7 @@ Disahkan 24 September 2026 melalui sesi `/grill-me`. Pass ini menutup seluruh ce
 - `BKC-AC-083`: Pasien pindah 3 kamar di hari yang sama ditagih pro-rata sebanding menit riil di tiap kamar terhadap total menit rawat hari itu (`BKC-DEC-115`).
 - `BKC-AC-084`: Pasien asuransi dengan tindakan besar Rp 20.000.000 yang dijamin Rp 15.000.000 hanya diwajibkan deposit tindakan sebesar Rp 5.000.000 (100% patient excess) (`BKC-DEC-116`).
 - `BKC-AC-085`: Tagihan susulan yang muncul setelah invoice lunas memicu pencabutan kelayakan (`REVOKED`) dan menerbitkan sinyal auto-reblock ke Rawat Inap (`BKC-DEC-117`).
-- `BKC-AC-086`: Tagihan IGD dan Rawat Inap pada satu encounter dapat diselesaikan dalam satu settlement terpadu dengan pelaporan per unit yang tetap terpisah (`BKC-DEC-118`).
+- `BKC-AC-086` — **`superseded` 14 Oktober 2026 oleh `BKC-AC-091`** (`BKC-DEC-146`; bunyi asli dipertahankan di bawah sebagai histori approval): Tagihan IGD dan Rawat Inap pada satu encounter dapat diselesaikan dalam satu settlement terpadu dengan pelaporan per unit yang tetap terpisah (`BKC-DEC-118`).
 - `BKC-AC-087`: Pasien alihan rawat jalan ke rawat inap (Rajal → Ranap) tidak dikenakan biaya administrasi ganda. Biaya admin rajal otomatis gugur (batal/terkreditkan) dan digantikan oleh biaya admin ranap 7% cap Rp 6.000.000 (`BKC-DEC-119`).
 
 ---
@@ -2893,3 +2893,460 @@ ada open question tersisa yang memblokir.
 | Status | `approved` — rekomendasi plan-repair dijalankan atas permintaan pemilik |
 | Konsekuensi | Field respons baru `CalculationState`, `CalculatedAt`, `RunningGrossAmount`, `IsPatientAmountProvisional`, `IsCashPayer`, `PendingChargeCount` (`BE-BKC-FIX-020`); tampilan `FE-BKC-FIX-013` |
 | Trace | `ISS-BKC-001-07`, `-08`; `cashier-overview-view.jsx` |
+
+---
+
+## Closure Pass — Pelunasan Gabungan Lintas Kunjungan (13–14 Oktober 2026)
+
+| Field | Isi |
+| --- | --- |
+| Mode | Closure pass atas desain revisi `1.9` (`/design-business-module`, 13 Oktober 2026) |
+| Blueprint | `BIL-CASH-001`, revision `1.9`, status `draft` |
+| Backend SHA | `d166cf4f` · Frontend SHA `6e5edd6df` (impact scan 14 Oktober 2026; keempat berkas tumpuan desain tidak tersentuh sejak `e049a65b`) |
+| Capability map | `01-existing-capability-map.md` §22 berdasar `dcb9c88e` — **masih basi**, belum diperbarui pass ini |
+| Pemilik keputusan | Pemilik modul Billing (pengguna sesi), yang juga pemilik sisi Finance/AR |
+
+### Batas scope pass ini
+
+| Di dalam scope | Di luar scope — untuk modul lain |
+| --- | --- |
+| Ratifikasi arahan 13 Oktober (`BKC-OQ-108`), cakupan kelayakan pulang (`BKC-OQ-109`), bunyi `BKC-AC-086` (`BKC-OQ-110`), kebutuhan Finance (`BKC-OQ-111`), ratifikasi bentuk blueprint (`BKC-OQ-091`) | Aturan internal Rawat Inap soal menahan pasien di bangsal — milik Rawat Inap; di sini hanya titik sentuhnya |
+| | Aturan coverage asuransi per item — milik Insurance/Clinical |
+| | `BillingEmployeeBenefitSplitService` yang baru muncul pada `d166cf4f` — bukan bagian revisi `1.9` |
+
+### `BKC-DEC-142` — Urutan alokasi pada pelunasan gabungan: tagihan terbit paling awal dulu
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Bila uang yang dibayarkan tidak cukup menutup seluruh tagihan dalam satu pembayaran gabungan, **tagihan yang lebih dulu terbit dilunasi lebih dulu sampai habis**, sisanya baru ke tagihan berikutnya. Urutan ditetapkan sistem dan **tidak dapat diubah petugas**. **Contoh:** uang Rp 6.000.000, tagihan IGD (terbit 9 Okt 08:15) bersisa Rp 1.500.000 dan tagihan rawat inap (terbit 9 Okt 16:40) bersisa Rp 8.000.000 → IGD lunas, rawat inap menerima Rp 4.500.000 dan masih bersisa Rp 3.500.000 |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 13 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 13 Oktober 2026 pada sesi `/design-business-module`: *"Invoice tertua dulu (Rekomendasi)"*. Opsi yang ditolak: kasir memilih manual, proporsional, dan porsi pasien rawat inap dulu |
+| Alasan | Deterministik, mudah dijelaskan ke keluarga pasien, dan selaras praktik pelunasan piutang menurut umur tagihan. Proporsional ditolak karena menyisakan sisa kecil di semua tagihan sehingga tidak satu pun berstatus lunas. Manual ditolak karena membuka celah pengaturan alokasi tanpa jejak keputusan |
+| Konsekuensi | `AllocationSequence` disimpan eksplisit pada `BilSettlementInvoice`, bukan dihitung ulang saat dibaca. Tidak ada endpoint pengubah urutan |
+| Trace | `BKC-OQ-108` (bagian pertama); menurunkan `BKC-DES-060` |
+
+### `BKC-DEC-143` — Pelunasan gabungan bersifat pilihan, boleh sebagian, sesuai kehendak pasien
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | **Penggabungan adalah pilihan pasien, bukan kewajiban.** Pasien boleh (a) menggabungkan seluruh tagihan, (b) menggabungkan sebagian saja, atau (c) membayar terpisah — misalnya tagihan IGD lebih dulu dan tagihan rawat inap di kemudian hari. Jalur pembayaran satu tagihan yang sudah berjalan **tidak berubah sama sekali**. Pembayaran sebagian yang berakhir `PARTIALLY_SETTLED` adalah keadaan **sah**, bukan galat |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 13 Oktober 2026 |
+| Approval evidence | Pernyataan langsung pemilik modul pada 13 Oktober 2026: *"tpi pembayarannya bisa dijadikan satu atau dipisah2 sesuai kehendak pasien"* |
+| Alasan | Kemampuan membayar terpisah sudah dipakai hari ini; memaksa penggabungan akan menghapusnya. Keluarga pasien dapat punya alasan sah memisah, misalnya penjamin tagihan rawat inap belum menerbitkan surat jaminan |
+| Konsekuensi | Tidak ada validasi yang mewajibkan seluruh tagihan terbuka ikut grup, dan tidak ada validasi yang menolak pembayaran yang tidak menutup seluruh peserta |
+| Trace | `BKC-OQ-108` (bagian kedua); menurunkan `BKC-DES-061`; mengikat `BKC-DEC-118` |
+
+### `BKC-DEC-144` — Kelayakan pulang dinilai atas rantai admisi, bukan hanya tagihan rawat inap
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Kelayakan pemulangan rawat inap (`BilInpatientClearanceHandoff`) dinilai atas **tagihan kunjungan rawat inap DITAMBAH tagihan kunjungan asal yang merujuk admisi itu** (IGD atau poliklinik yang menghasilkan admisi). Sisa tagihan pasien lebih dari nol pada salah satunya menjadikan status `BLOCKED`. Tagihan kunjungan lain pasien yang **tidak** berada dalam rantai itu **tidak** menahan kepulangan. **Contoh:** tagihan IGD bersisa Rp 1.500.000, tagihan rawat inap lunas → status `BLOCKED` dengan penyebab "ada tagihan unit lain yang belum lunas", sedangkan tagihan poliklinik bulan lalu yang tidak berkaitan **tidak** ikut dihitung |
+| Owner | Pemilik modul Billing — Billing adalah *single source of truth* kelayakan keuangan pemulangan (`BKC-DEC-117`) |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Rantai admisi saja (Rekomendasi)"*. Opsi yang ditolak: hanya tagihan rawat inap (perilaku hari ini), dan seluruh tagihan pasien |
+| Alasan | Tagihan IGD yang berujung admisi adalah satu rangkaian perawatan. Menilai seluruh tagihan pasien berisiko menahan kepulangan karena tagihan lama yang tidak berhubungan. Mempertahankan perilaku hari ini membiarkan pasien resmi pulang dengan piutang IGD menggantung |
+| Konsekuensi | `InpatientClearanceService` **MUST** membaca rantai kunjungan; ini **mengubah** kriteria yang berlaku sejak `BKC-AC-080`. Daftar penghambat yang dibaca Rawat Inap kini dapat memuat tagihan unit lain. Aturan privasi `BKC-DEC-117` tetap berlaku: perawat melihat penyebab operasional **tanpa nominal rupiah**. `EPIC BKC-26` (`FR-BKC-259`) tidak lagi `OPEN DECISION` dari sisi bisnis, tetapi desainnya belum ditulis |
+| Dependency | Pemilik Rawat Inap **MUST** diberi tahu bahwa daftar penghambat dapat memuat tagihan unit lain (`BKC-OQ-117`). Ini dependency pemberitahuan, bukan persetujuan: kriteria kelayakan adalah wewenang Billing |
+| Trace | `BKC-OQ-109`; `BKC-DEC-115`, `BKC-DEC-117`; mengubah cakupan `BKC-AC-080` |
+
+### `BKC-DEC-145` — Finance membaca rincian alokasi yang sudah ada, tanpa penyesuaian laporan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Satu penerimaan kas dari pembayaran gabungan dibaca Finance lewat **baris alokasi per tagihan yang sudah tersimpan**, tanpa perubahan bentuk data maupun laporan. Nominal per tagihan sudah ada pada alokasi sejak baseline |
+| Owner | Pemilik Finance/AR |
+| Status | `approved` — dengan satu pemeriksaan tersisa (`BKC-OQ-116`) |
+| Approved by/at | Pemilik Finance/AR — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Tidak perlu, baca yang sudah ada (Rekomendasi)"*. Opsi yang ditolak: penyesuaian laporan per unit, dan audit laporan lebih dulu |
+| Alasan | Tidak menambah task Finance pada gelombang yang sama, sehingga `MVP-36` tidak memanjang |
+| Konsekuensi | Satu penerimaan kas akan tampil dengan **beberapa baris alokasi**. Laporan Finance yang mengasumsikan satu alokasi per penerimaan akan salah membaca; pemeriksaan sekali sebelum rilis dicatat sebagai `BKC-OQ-116` |
+| Trace | `BKC-OQ-111`; `BIL-INT-019` |
+
+### `BKC-DEC-146` — Bunyi `BKC-AC-086` dikoreksi menjadi "rantai kunjungan"
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | `BKC-AC-086` **`superseded`** oleh `BKC-AC-091`. Kata "pada satu encounter" salah secara fakta sistem: kunjungan IGD dan kunjungan rawat inap **selalu dua encounter berbeda** (admisi ranap membuat encounter baru; `InpEpisodeService.cs:1172-1196`), masing-masing dengan invoice sendiri (`BilInvoice.EncounterId` unik; `BilInvoiceConfiguration.cs:27`). Bunyi aslinya dipertahankan sebagai histori approval |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Ganti jadi rantai kunjungan (Rekomendasi)"*. Opsi yang ditolak: biarkan dengan catatan kaki, dan tulis ulang lebih tegas |
+| Alasan | Setia pada maksud `BKC-DEC-118` sambil benar secara fakta; penulis UAT tidak lagi membuat skenario "satu encounter" yang mustahil terjadi |
+| Konsekuensi | Skenario UAT dan `BIL-AT-159`–`BIL-AT-168` memakai istilah "rantai kunjungan". `BKC-DEC-118` sendiri **tidak** superseded — hanya kriteria penerimaannya |
+| Trace | `BKC-OQ-110`; `BKC-DEC-118` |
+
+### `BKC-DEC-147` — Bentuk blueprint diratifikasi `SINGLE`
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | `blueprint_shape: SINGLE`. `shape_decided_by: USER_CONFIRMED` — pemilik menjawab saran, bukan menyebut bentuknya lebih dulu |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"SINGLE, diratifikasi (Rekomendasi)"*. Opsi yang ditolak: `COMPOSITE` dengan Petty Cash sebagai sub-modul, dan menunda ratifikasi |
+| Hasil uji pemecahan | Mengacu pada tabel uji di `blueprint-manifest.md` bagian "Bentuk blueprint — hasil uji pemecahan": lima rumpun, hanya **Operasi shift kasir** mencapai 3 dari 5, sedangkan `COMPOSITE` menuntut sekurang-kurangnya dua rumpun yang lolos. **Catatan keterbatasan:** tabel itu disusun sebelum Petty Cash dan Multi-Payer ada, sehingga **Petty Cash tidak ikut diuji formal**. Petty Cash hanya ditawarkan sebagai alternatif karena `PC-DEC-001` memutus sambungannya ke kas shift dan gelombang `MVP-13`–`MVP-15` dapat dirilis mandiri; uji lima syarat penuh untuknya belum dijalankan |
+| Kemampuan tanpa rumpun | Tidak berlaku pada `SINGLE` |
+| Koreksi | Pada opsi `COMPOSITE`, agent menulis jumlah berkas "naik dari 14 menjadi 25". Rumus kontrak `4 + (11 × jumlah sub-modul)` dengan dua sub-modul menghasilkan **26**. Jawaban pemilik tidak berubah, tetapi angka yang disajikan saat memutuskan keliru |
+| Konsekuensi | Nol berkas berpindah, nol dokumen ditulis ulang. `BKC-OQ-091` ditutup |
+| Trace | `BKC-OQ-091`; `bentuk-blueprint.md` bagian 4 |
+
+### Acceptance Criteria — pass ini
+
+- `BKC-AC-091` (menggantikan `BKC-AC-086`): Tagihan IGD dan Rawat Inap pada **satu rantai kunjungan pasien yang sama** dapat diselesaikan dalam satu settlement terpadu, dengan pelaporan per unit pelayanan yang tetap terpisah (`BKC-DEC-146`, `BKC-DEC-118`).
+- `BKC-AC-092`: Uang Rp 6.000.000 untuk tagihan IGD bersisa Rp 1.500.000 (terbit lebih awal) dan tagihan rawat inap bersisa Rp 8.000.000 menghasilkan: IGD teralokasi Rp 1.500.000 dan lunas, rawat inap teralokasi Rp 4.500.000 dan bersisa Rp 3.500.000 (`BKC-DEC-142`).
+- `BKC-AC-093`: Keluarga pasien yang memilih membayar tagihan IGD saja lewat jalur biasa berhasil membayar tanpa grup; tagihan rawat inap tetap terbuka tanpa penalti. Pasien yang menggabungkan sebagian tagihan saja juga dilayani (`BKC-DEC-143`).
+- `BKC-AC-094`: Pasien dengan tagihan IGD bersisa Rp 1.500.000 dan tagihan rawat inap lunas berstatus kelayakan pulang `BLOCKED`. Tagihan poliklinik pasien yang sama pada kunjungan di luar rantai admisi **tidak** mengubah status itu. Perawat melihat penyebab tanpa nominal rupiah (`BKC-DEC-144`).
+- `BKC-AC-095`: Satu penerimaan kas gabungan dapat direkonsiliasi Finance dari baris alokasi per tagihan tanpa perubahan bentuk data (`BKC-DEC-145`), dan laporan Finance yang berjalan tidak salah membaca beberapa alokasi per penerimaan (`BKC-OQ-116`).
+
+### Open Questions — pass ini
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `BKC-OQ-115` | Seberapa dalam rantai admisi dibaca: satu tingkat (IGD → Ranap) atau berantai penuh (Rajal → IGD → Ranap)? Bagaimana bila satu kunjungan asal ternyata dirujuk oleh lebih dari satu admisi? | Pemilik modul Billing | `IMPLEMENTATION` `EPIC BKC-26` saja; tidak memblokir `EPIC BKC-25` |
+| `BKC-OQ-116` | Apakah ada laporan Finance yang berjalan yang mengasumsikan satu alokasi per penerimaan kas? Diperiksa sekali sebelum rilis | Pemilik Finance/AR | Rilis `MVP-36`; tidak memblokir perencanaan |
+| `BKC-OQ-117` | Pemilik Rawat Inap diberi tahu bahwa daftar penghambat kelayakan pulang dapat memuat tagihan unit lain, dan konsumsi daftar itu di bangsal diverifikasi | Pemilik modul Billing → pemilik Rawat Inap | `IMPLEMENTATION` `EPIC BKC-26` saja |
+
+### Status pertanyaan terbuka lama
+
+| ID | Status | Keterangan |
+| --- | --- | --- |
+| `BKC-OQ-091` | **Ditutup** | `BKC-DEC-147` |
+| `BKC-OQ-108` | **Ditutup** | `BKC-DEC-142` dan `BKC-DEC-143` |
+| `BKC-OQ-109` | **Ditutup** | `BKC-DEC-144`; sisa teknisnya pindah ke `BKC-OQ-115` dan `BKC-OQ-117` |
+| `BKC-OQ-110` | **Ditutup** | `BKC-DEC-146` |
+| `BKC-OQ-111` | **Ditutup** | `BKC-DEC-145`; sisa pemeriksaannya pindah ke `BKC-OQ-116` |
+| `BKC-OQ-107`, `112`, `113`, `114` | **Tetap terbuka** | Bukan keputusan bisnis melainkan koreksi ketertelusuran (laporan `BE-BKC-072`, nomor sumbu kontrak, rujukan `BKC-DEC-*` yang bergeser, penautan `CAP-BIL-09` pada PRD). Tidak ditanyakan pada pass ini; pemilik tindakannya `/manage-module-blueprint` |
+
+### Frontend Decision Authority — pass ini
+
+Tidak ada keputusan UI baru. Pembagian wewenang `BIL-SCR-43` pada `03-frontend-architecture.md` amendment revisi `1.9` tidak berubah.
+
+---
+
+## Closure Pass — Kelayakan Pulang Lintas Kunjungan (14 Oktober 2026, lanjutan)
+
+| Field | Isi |
+| --- | --- |
+| Mode | Closure pass atas desain revisi `2.0` (`/design-business-module`, 14 Oktober 2026) |
+| Blueprint | `BIL-CASH-001`, revision `2.0`, status `draft` |
+| Backend SHA | `d166cf4f` · Frontend SHA `6e5edd6df` — **tidak bergerak** sejak desain revisi `2.0` ditulis; nol impact scan ulang diperlukan |
+| Pemilik keputusan | Pemilik modul Billing (pengguna sesi) |
+
+### Batas scope pass ini
+
+| Di dalam scope | Di luar scope — untuk modul lain |
+| --- | --- |
+| Ratifikasi arahan penelusuran rantai dan satu admisi aktif (`BKC-OQ-118`), pemegang Action `Reconcile` (`BKC-OQ-119`), masa berlaku pengecualian (`BKC-OQ-120`) | Pembedaan tampilan di layar bangsal (`BKC-OQ-121`) — persetujuan pemilik Rawat Inap |
+| | Keseragaman pengisian kolom rujukan Registrasi (`BKC-OQ-122`) |
+
+### `BKC-DEC-148` — Ratifikasi: penelusuran rantai kunjungan penuh dengan pagar keselamatan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Penilaian kelayakan pulang **menelusuri seluruh encounter asal yang benar-benar terhubung** (misalnya Rawat Jalan → IGD → Rawat Inap), bukan hanya satu tingkat. Penelusuran **wajib** memakai: validasi relasi, pembatasan kedalaman penelusuran (*traversal*), deteksi siklus, dan deduplikasi invoice maupun tagihan. Kewajiban yang sudah dibayar, dialihkan, dikonsolidasikan, atau ditanggung penjamin **tidak boleh** dihitung dua kali — hanya kewajiban yang masih terbuka dan relevan yang memengaruhi kelayakan. Bila relasi antarkunjungan tidak lengkap atau ambigu, sistem **menampilkannya untuk rekonsiliasi petugas Billing/Kasir**, bukan otomatis membuat tagihan baru, dan bukan menganggap seluruh kewajiban sudah lunas |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Arahan langsung pemilik modul pada sesi `/design-business-module` 14 Oktober 2026, dikutip dari pesan asli: *"Gunakan penelusuran rantai kunjungan penuh secara berhati-hati untuk proses financial clearance kepulangan pasien... Sistem harus menelusuri seluruh encounter asal yang benar-benar terhubung, dengan validasi relasi, pembatasan traversal, deteksi siklus, dan deduplikasi invoice maupun tagihan... Jika relasi antarkunjungan tidak lengkap atau ambigu, tampilkan untuk rekonsiliasi petugas Billing/Kasir, bukan otomatis membuat tagihan baru atau menganggap seluruh kewajiban sudah lunas."* |
+| Alasan | Tagihan IGD dan Rajal yang mengantar pasien ke rawat inap adalah satu rangkaian perawatan nyata. Membatasi hanya satu tingkat akan melewatkan rantai Rajal→IGD→Ranap; menelusuri tanpa pagar berisiko menggantung atau menghitung ganda pada data rujukan yang cacat |
+| Konsekuensi | Menurunkan `BKC-DES-063`, `BKC-DES-064`, `BKC-DES-065`, `BKC-DES-066` pada `02-backend-architecture.md` amendment revisi `2.0`: `EncounterChainResolver`, status `NEEDS_RECONCILIATION`, dan tabel `BilClearanceObligation` |
+| Trace | `BKC-OQ-118` (bagian pertama); `BKC-DEC-144` |
+
+### `BKC-DEC-149` — Ratifikasi: satu admisi rawat inap aktif per episode, percabangan tidak didukung tetapi dideteksi
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | **Satu pasien hanya memiliki satu admisi rawat inap aktif dalam satu episode perawatan.** Perpindahan kamar, bed, unit, maupun perubahan kelas (naik/turun kelas) **tidak** membuat admisi baru maupun cabang kunjungan baru — melainkan riwayat perpindahan pada episode yang sama. Seluruh biaya pelayanan dan kamar dikonsolidasikan pada satu episode dan satu proses penyelesaian tagihan, tanpa duplikasi penagihan. **Sistem tidak perlu mendukung** percabangan beberapa admisi aktif dari satu kunjungan asal. Kepulangan memakai satu proses kelayakan terpusat yang memeriksa seluruh kewajiban relevan tanpa menagih transaksi yang sama dua kali |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Arahan langsung pemilik modul pada sesi `/design-business-module` 14 Oktober 2026, dikutip dari pesan asli: *"Satu pasien hanya boleh memiliki satu admisi rawat inap aktif dalam satu episode perawatan. Perpindahan kamar, bed, unit, maupun perubahan kelas... tidak membuat admisi baru... Sistem tidak perlu mendukung percabangan beberapa admisi aktif dari satu kunjungan asal."* |
+| Alasan | Ini fakta operasional rumah sakit: proses admisi rawat inap memang satu episode satu admisi. Perpindahan kamar sudah punya mekanisme tarif pro-rata sendiri (`BKC-DEC-112`, `BKC-DES-050`) dan tidak boleh diperlakukan sebagai kunjungan baru, karena akan menagih episode yang sama berkali-kali |
+| Konsekuensi | "Tidak didukung" ditegakkan lewat **deteksi**, bukan diasumsikan mustahil — keadaan lebih dari satu admisi aktif dari satu kunjungan asal tetap dapat ditemukan data dan ditandai `NEEDS_RECONCILIATION` (kode anomali `MULTIPLE_ACTIVE_ADMISSION`), bukan diam-diam memilih salah satu. Menurunkan `BKC-DES-067`, `BKC-DES-068` |
+| Trace | `BKC-OQ-118` (bagian kedua); `BKC-DEC-112`, `BKC-DEC-115` |
+
+### `BKC-DEC-150` — Pemegang Action `Reconcile`: Kasir dan Supervisor Kasir
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Action `[AccessPermission("BillingInpatient", "Reconcile")]` diberikan kepada peran **Kasir** dan **Supervisor Kasir**. Petugas Billing tanpa loket dan Finance/AR hanya memegang `Read`, tidak `Reconcile` |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Kasir dan Supervisor Kasir (Rekomendasi)"*. Opsi yang ditolak: khusus Supervisor Kasir, dan perluasan ke Petugas Billing |
+| Alasan | Rekonsiliasi di sini bersifat konfirmasi fakta hubungan kunjungan yang sudah terlihat di layar, bukan perubahan aturan keuangan. Menahannya hanya di Supervisor akan menunda kepulangan pasien saat Supervisor tidak di tempat |
+| Konsekuensi | Seeder hak akses `contracts/permission-audit-matrix.md` amendment revisi `2.0` **MUST** diperbarui: baris "Kasir — `BillingInpatient : Reconcile`" berubah dari "Menunggu `BKC-OQ-119`" menjadi **Ya**. Jejak audit (identitas petugas, alasan, nomor versi surat) menjadi penjaga utama karena pemegangnya kini lebih luas dari Supervisor saja |
+| Trace | `BKC-OQ-119`; menurunkan isi `contracts/permission-audit-matrix.md` revisi `2.0` |
+
+### `BKC-DEC-151` — Pengecualian rekonsiliasi berlaku permanen untuk kunjungan terkait, bukan hanya versi surat itu
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Ketika petugas mengecualikan satu kunjungan/tagihan dari penilaian kelayakan (misalnya karena ternyata milik pasien lain), pengecualian itu **berlaku permanen** untuk kunjungan tersebut pada **seluruh penilaian berikutnya** atas kunjungan rawat inap yang sama — **bukan** hanya untuk versi surat kelayakan saat keputusan itu diambil. **Contoh:** petugas mengecualikan kunjungan `INV-RAJAL-000087` karena pasiennya berbeda pada surat versi 3. Saat tagihan susulan memicu penilaian ulang menjadi versi 4, kunjungan itu **tidak** muncul lagi sebagai perlu diperiksa — ia tetap dikecualikan otomatis |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Permanen untuk kunjungan itu (Rekomendasi)"*. Opsi yang ditolak: hanya berlaku untuk versi surat itu |
+| Alasan | Fakta hubungan antar kunjungan tidak berubah-ubah antar penilaian — kunjungan itu memang bukan bagian dari rangkaian. Tanpa ini, petugas harus mengulang keputusan yang sama setiap kali tagihan susulan memicu penilaian ulang, dan berisiko dua petugas pada waktu berbeda mengambil keputusan berbeda untuk fakta yang sama |
+| Konsekuensi | **Gap desain baru.** `BilClearanceObligation` yang dirancang pada `02-backend-architecture.md` amendment revisi `2.0` adalah potret *per versi surat* (`ClearanceHandoffId` + `InvoiceId`), **bukan** penyimpanan permanen lintas versi. Keputusan ini menuntut satu entitas penyimpanan terpisah — misalnya daftar pengecualian permanen bertingkat kunjungan rawat inap — yang **belum** dirancang. `EncounterChainResolver` **MUST** diperluas membaca daftar ini sebelum menelusuri ulang, agar kunjungan yang sudah dikecualikan tidak terdeteksi lagi sebagai anomali |
+| Trace | `BKC-OQ-120`; membuka `BKC-OQ-123` untuk `/design-business-module` |
+
+### Acceptance Criteria — pass ini
+
+> **Catatan penomoran.** `02-backend-architecture.md` amendment revisi `2.0` (bagian "Status Amendment") mencadangkan rentang `BKC-AC-096`–`BKC-AC-100` untuk kriteria penerimaan `BKC-DEC-144`, tetapi rentang itu **tidak pernah ditulis isinya** — `design-business-module` merancang arsitektur, bukan menulis decision log. Pass ini **tidak** mengisi rentang kosong itu supaya tidak diam-diam menetapkan kriteria yang bukan haknya ditetapkan di sini, dan **tidak** memakainya ulang untuk keputusan baru pass ini supaya tidak menimpa klaim yang sudah ada. Kriteria baru pass ini memakai nomor bebas berikutnya, `BKC-AC-101` dan seterusnya. Gap `BKC-AC-096`–`100` dicatat sebagai `BKC-OQ-124`.
+
+- `BKC-AC-101`: Pasien dengan rantai Rawat Jalan → IGD → Rawat Inap dinilai atas ketiga tagihan sekaligus, dengan deduplikasi, deteksi siklus, dan batas kedalaman yang mencegah penelusuran menggantung pada data rujukan yang cacat (`BKC-DEC-148`).
+- `BKC-AC-102`: Perpindahan kamar dalam satu episode rawat inap tidak pernah terbaca sebagai simpul rantai tersendiri; dua admisi aktif yang ditemukan dari satu kunjungan asal yang sama ditandai `NEEDS_RECONCILIATION` dengan kode `MULTIPLE_ACTIVE_ADMISSION`, bukan dipilih salah satu secara diam-diam (`BKC-DEC-149`).
+- `BKC-AC-103`: Kasir (bukan hanya Supervisor Kasir) dapat menyelesaikan rekonsiliasi rantai kunjungan dan keputusannya tersimpan beserta identitasnya (`BKC-DEC-150`).
+- `BKC-AC-104`: Petugas Billing tanpa loket dan Finance/AR menerima kode `403` saat mencoba menyelesaikan rekonsiliasi; keduanya tetap dapat membacanya (`BKC-DEC-150`).
+- `BKC-AC-105`: Kunjungan yang dikecualikan pada satu versi surat kelayakan tidak muncul lagi sebagai perlu rekonsiliasi pada penilaian ulang berikutnya atas kunjungan rawat inap yang sama, sampai ada keputusan baru yang mencabutnya (`BKC-DEC-151`).
+
+### Open Questions — pass ini
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `BKC-OQ-123` | `BKC-DEC-151` menuntut penyimpanan pengecualian permanen yang belum dirancang. Bagaimana bentuknya: tabel baru bertingkat kunjungan rawat inap, atau kolom tambahan pada entitas yang sudah ada? Siapa yang boleh mencabut pengecualian yang sudah ditetapkan, dan apakah pencabutan butuh jejak audit yang sama ketatnya dengan penetapannya? | Pemilik modul Billing bersama Backend/API Owner | `IMPLEMENTATION` `EPIC BKC-26`; tidak memblokir ratifikasi keputusan bisnisnya |
+| `BKC-OQ-124` | `02-backend-architecture.md` amendment revisi `2.0` mencadangkan `BKC-AC-096`–`BKC-AC-100` untuk kriteria penerimaan `BKC-DEC-144`, tetapi rentang itu tidak pernah diisi. Apakah diisi lewat `/manage-module-blueprint`, atau baris cadangannya dikoreksi menjadi merujuk `BKC-AC-101`–`105` yang baru ditulis pass ini? | Pemilik modul Billing | Tidak memblokir `MVP-37`; memblokir keandalan jejak kriteria penerimaan `BKC-DEC-144` |
+
+### Status pertanyaan terbuka lama
+
+| ID | Status | Keterangan |
+| --- | --- | --- |
+| `BKC-OQ-118` | **Ditutup** | `BKC-DEC-148` dan `BKC-DEC-149` |
+| `BKC-OQ-119` | **Ditutup** | `BKC-DEC-150` |
+| `BKC-OQ-120` | **Ditutup** | `BKC-DEC-151`; konsekuensi desainnya pindah ke `BKC-OQ-123` |
+| `BKC-OQ-121`, `122` | **Tetap terbuka** | Bukan keputusan Billing — `BKC-OQ-121` menunggu persetujuan pemilik Rawat Inap, `BKC-OQ-122` menunggu pemilik Registration Management |
+
+### Frontend Decision Authority — pass ini
+
+Satu dampak pada `03-frontend-architecture.md` amendment revisi `2.0`: tombol keputusan pada `BIL-SCR-44` ("Ikutkan"/"Kecualikan") kini **MUST** terlihat bagi peran Kasir, tidak hanya Supervisor Kasir, mengikuti `BKC-DEC-150`. Ini turunan langsung dari matriks hak akses, bukan keputusan UI baru.
+
+
+---
+
+## Closure Pass — Ratifikasi Arahan Revisi 2.1 dan Penulisan Kriteria Penerimaan (14 Oktober 2026, lanjutan kedua)
+
+| Field | Isi |
+| --- | --- |
+| Mode | Closure pass atas desain revisi `2.1` (`/design-business-module`, 14 Oktober 2026) |
+| Blueprint | `BIL-CASH-001`, revision `2.1`, status `draft` — **tidak** ditandai `approved` oleh pass ini |
+| Pemicu | Pemilik meminta menutup yang menahan `MVP-36` dan `MVP-37` |
+| Backend SHA | `d268a41f` (HEAD saat pass ini). Manifest masih mencatat `d166cf4f`; source tumpuan desain (`InpatientClearanceService`, `InpatientClearanceController`, konfigurasi settlement dan invoice, `BillingAllocationService`, `BillingSettlementService`) **nol selisih** sejak `d166cf4f`. Area Billing berubah pada **dua berkas** saja: `BilInpatientClearanceHandoffConfiguration.cs` (milik `BE-BKC-FIX-022`) dan `BillingEmployeeBenefitSplitService.cs` (dua baris: konversi tanggal `asOfDate` ke UTC dan penambahan satu argumen pada pemanggilan log galat — pembacaan saldo benefit HR, tidak menyentuh settlement maupun kelayakan pulang) |
+| Capability map | `01-existing-capability-map.md` §22 berdasar `dcb9c88e` — **masih basi**, tidak disegarkan pass ini |
+| Pemilik keputusan | Pemilik modul Billing (pengguna sesi) |
+
+### Batas scope pass ini
+
+| Di dalam scope | Di luar scope — untuk pihak lain |
+| --- | --- |
+| Ratifikasi tiga arahan pemilik pada `BKC-OQ-126` | Persetujuan pemilik Rawat Inap atas daftar penghambat bangsal (`BKC-OQ-121`) |
+| Pengisian `BKC-AC-096`–`BKC-AC-100` (`BKC-OQ-124`) | Keseragaman pengisian kolom rujukan di Registrasi (`BKC-OQ-122`) |
+| Pencatatan apa yang tersisa sebelum `MVP-36` dan `MVP-37` dapat direncanakan | Koreksi ketertelusuran `BKC-OQ-107`, `112`, `113`, `114` — milik `/manage-module-blueprint` |
+| | **Approval blueprint** — tindakan manusia, belum dinyatakan pemilik |
+
+### `BKC-DEC-152` — Pengecualian rekonsiliasi rantai tidak dapat dicabut
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Keputusan **mengecualikan** sebuah kunjungan dari penilaian kelayakan pulang (`BKC-DEC-151`) bersifat **final**. Tidak ada mekanisme untuk mencabut, mengubah, membalik arahnya, maupun menandainya hapus — oleh Kasir, Supervisor Kasir, maupun peran lain. Pengecualian yang keliru **tidak diperbaiki di sistem**: tagihan yang dikecualikan tetap menjadi piutang terbuka pada invoicenya sendiri dan tetap dapat ditagih seperti biasa; yang hilang hanya fungsinya sebagai penahan kepulangan rawat inap tersebut. **Contoh:** kasir keliru mengecualikan tagihan IGD Rp 1.500.000 milik pasien yang sama. Tagihan itu tidak lagi menahan kepulangan, tetapi tetap muncul sebagai tagihan terbuka di invoice IGD dan ditagih lewat jalur biasa |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026 pada sesi `/design-business-module`: *"Tidak dapat dicabut"*. Opsi yang ditolak: dapat dicabut Supervisor Kasir saja (rekomendasi agent), dan dapat dicabut Kasir dan Supervisor Kasir |
+| Alasan | Pilihan pemilik. Konsekuensinya sudah dipaparkan pada pertanyaan: pengecualian yang keliru tidak bisa diperbaiki di sistem |
+| Konsekuensi | Menurunkan `BKC-DES-072`: tabel `BilClearanceChainDecision` bersifat *append-only* dan dijaga indeks unik tanpa filter `IsDelete`. **Risiko tertinggi pada seluruh amendment ini:** satu kekeliruan kasir berlaku selamanya untuk rawat inap itu. Mitigasi yang sudah dirancang: konfirmasi wajib di layar yang menyebut sifat permanen, alasan wajib, dan jejak audit. Cakupan keputusan ini adalah **mengecualikan**; nasib koreksi atas keputusan **mengikutkan** dicatat terpisah pada `BKC-OQ-125` |
+| Trace | `BKC-OQ-126` (bagian pertama), `BKC-OQ-123`; `BKC-DEC-151`; `BKC-DES-072` |
+
+### `BKC-DEC-153` — Keputusan mengikutkan juga berlaku permanen
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Keputusan **mengikutkan** sebuah kunjungan yang tadinya ditandai janggal (misalnya rujukan berputar yang ternyata sah) **juga diingat** untuk penilaian berikutnya pada rawat inap yang sama, sehingga kejanggalan yang sama pada kunjungan itu tidak ditandai lagi. Kejanggalan **baru** pada kunjungan lain tetap terdeteksi seperti biasa. **Contoh:** kunjungan IGD diikutkan pada surat versi 3 karena rujukannya berputar tetapi sah. Pada surat versi 4 setelah tagihan susulan, kunjungan itu tidak ditanyakan lagi, sedangkan kunjungan Rawat Jalan lain yang baru menunjukkan pasien berbeda tetap ditandai |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Ikutkan juga permanen (Rekomendasi)"*. Opsi yang ditolak: mengikutkan hanya untuk surat itu |
+| Alasan | Tanpa ini, setiap tagihan susulan memicu penilaian ulang, kejanggalan yang sama terdeteksi lagi, status kembali perlu rekonsiliasi, dan kepulangan pasien tertahan lagi — masalah yang justru ingin dihapus `BKC-DEC-151` |
+| Konsekuensi | Menurunkan `BKC-DES-073`. Satu tabel menyimpan dua jenis keputusan, `EXCLUDE` dan `INCLUDE`. Mengikutkan **dilarang** untuk kejanggalan pasien berbeda (`BKC-DES-074`). **Tidak** menjawab apakah keputusan mengikutkan yang keliru dapat dikoreksi — itu `BKC-OQ-125`, tetap terbuka |
+| Trace | `BKC-OQ-126` (bagian kedua); `BKC-DEC-151`; `BKC-DES-073`, `BKC-DES-074` |
+
+### `BKC-DEC-154` — Perbaikan constraint `REEVALUATED_BY_CASHIER` didahulukan sebagai task terpisah
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Cacat tombol Evaluasi Ulang kelayakan milik kasir (kode alasan `REEVALUATED_BY_CASHIER` ditolak constraint basis data) diperbaiki sebagai **task backend tersendiri yang didahulukan sebelum `MVP-36`**, bukan menunggu gelombang fitur. Penerapan migration ke basis data tetap dikerjakan pemilik sendiri |
+| Owner | Pemilik modul Billing |
+| Status | `approved` — **sebagian terlaksana** |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Task perbaikan terpisah, segera (Rekomendasi)"*. Opsi yang ditolak: ikut gelombang `MVP-37`, dan verifikasi runtime dulu tanpa jadwal |
+| Alasan | Ini fitur yang sudah dirilis dan dipakai, bukan fitur baru, sehingga tidak boleh menunggu gelombang lain |
+| Konsekuensi | Terdaftar sebagai `BE-BKC-FIX-022` (`PLAN-REPAIR-BKC-002`, `FIX-BKC-002-01`). **Keadaan 14 Oktober 2026:** migration sudah di-commit (`d268a41f`) dan diterapkan ke basis data dev; constraint di dev terbukti memuat `REEVALUATED_BY_CASHIER`. **Belum tercatat:** hasil `dotnet build`, dan uji tombol di layar — tabel `BilInpatientClearanceHandoff` di dev masih kosong sehingga belum ada bukti tombol itu pernah berhasil. Karena itu `BE-BKC-FIX-022` berstatus 🟡, dan **menjadi prasyarat urutan `MVP-36`** sampai ✅. Migration `MVP-37` **MUST** mempertahankan nilai itu (daftar `ReasonCode` lengkap: sebelas nilai) |
+| Trace | `BKC-OQ-126` (bagian ketiga); `ISSUE-BKC-002`; `BKC-DES-076` |
+
+### Acceptance Criteria — pass ini
+
+> **Catatan.** Rentang `BKC-AC-096`–`BKC-AC-100` dicadangkan `02-backend-architecture.md` amendment revisi `2.0` tetapi tidak pernah diisi (`BKC-OQ-124`). Pemilik memilih rentang itu diisi lewat pass ini. Kelimanya diturunkan **hanya** dari keputusan yang sudah `approved` — `BKC-DEC-117`, `144`, `148`, `149` — dan sengaja tidak mengulang `BKC-AC-094` maupun `BKC-AC-101`–`105`.
+
+- `BKC-AC-096` (`BKC-DEC-148`): **Kewajiban tidak dihitung dua kali.** Ibu Sari Mandasari (nama samaran) membayar biaya administrasi Rawat Jalan Rp 150.000 yang kemudian dialihkan menjadi kredit pada tagihan rawat inap (`BKC-DEC-119`). Tagihan rawat inap Rp 3.650.000 menjadi sisa Rp 3.500.000 setelah kredit, dan tagihan Rawat Jalan bersisa Rp 0. Total kewajiban terbuka untuk kelayakan pulang adalah **Rp 3.500.000** — bukan Rp 3.650.000, dan bukan Rp 3.650.000 ditambah Rp 150.000.
+- `BKC-AC-097` (`BKC-DEC-148`): **Rangkaian tidak jelas gagal tertutup.** Bila penelusuran berhenti sebelum seluruh kunjungan asal terperiksa, status surat menjadi perlu rekonsiliasi — bukan `CLEARED`, bukan dianggap lunas. Total dari tagihan yang sudah ditemukan tetap tampil, dan **nol** tagihan baru dibuat untuk menutup ketidakjelasan itu.
+- `BKC-AC-098` (`BKC-DEC-148`): **Kunjungan milik pasien lain tidak dihitung.** Kunjungan asal yang ternyata milik pasien lain dengan sisa Rp 900.000 tidak masuk total kewajiban. Ia tetap tercatat pada rincian dengan penanda tidak dihitung beserta alasannya, dan status surat menjadi perlu rekonsiliasi.
+- `BKC-AC-099` (`BKC-DEC-144`): **Pasien tanpa kunjungan asal tidak berubah.** Pasien yang langsung dirawat inap, dengan sisa tagihan Rp 2.000.000, berstatus `BLOCKED`; setelah lunas berstatus `CLEARED`. Jumlah tagihan yang dinilai bernilai satu, dan nol kejanggalan muncul — identik dengan perilaku sebelum penilaian rantai ada.
+- `BKC-AC-100` (`BKC-DEC-149`): **Satu episode, satu proses kelayakan.** Pasien yang pindah kamar tiga kali dan naik kelas satu kali dalam satu episode dinilai dalam **satu** proses kelayakan terpusat. Tagihan kamar dihitung sekali per periode penempatan, dan perpindahan itu tidak memunculkan kunjungan, admisi, maupun tagihan tambahan.
+
+### Open Questions — pass ini
+
+Tidak ada pertanyaan baru yang lahir. Pertanyaan yang tersisa semuanya sudah tercatat pada pass sebelumnya.
+
+### Status pertanyaan terbuka
+
+| ID | Status | Keterangan |
+| --- | --- | --- |
+| `BKC-OQ-126` | **Ditutup** | `BKC-DEC-152`, `BKC-DEC-153`, `BKC-DEC-154` |
+| `BKC-OQ-124` | **Ditutup** | `BKC-AC-096`–`BKC-AC-100` ditulis, diturunkan dari keputusan yang sudah `approved` |
+| `BKC-OQ-123` | **Ditutup oleh desain** | Dirancang pada `02-backend-architecture.md` amendment revisi `2.1` (`BKC-DES-070`–`BKC-DES-076`). Desainnya masih `draft` menunggu approval pemilik |
+| `BKC-OQ-125` | **Tetap terbuka — tidak memblokir** | Apakah keputusan **mengikutkan** yang keliru juga tidak dapat dikoreksi. Jawaban "Ikutkan juga permanen" (`BKC-DEC-153`) menjawab bahwa keputusan itu *diingat*, bukan bahwa ia *tidak dapat dikoreksi*, sehingga tidak dianggap terjawab. Desain menerapkan *append-only* pada kedua arah sebagai langkah gagal tertutup |
+| `BKC-OQ-121` | **Tetap terbuka — tidak memblokir `MVP-36` maupun `MVP-37`** | Menunggu persetujuan pemilik Rawat Inap. Memblokir verifikasi ujung-ke-ujung di bangsal |
+| `BKC-OQ-122` | **Tetap terbuka — tidak memblokir** | Milik Registration Management |
+| `BKC-OQ-107`, `112`, `113`, `114` | **Tetap terbuka — tidak memblokir** | Koreksi ketertelusuran; pemilik tindakannya `/manage-module-blueprint` |
+
+### Yang masih menahan `MVP-36` dan `MVP-37`
+
+Tidak ada **pertanyaan bisnis** yang memblokir keduanya. Yang tersisa adalah prasyarat, dan tiga di antaranya adalah tindakan manusia:
+
+| Prasyarat | `MVP-36` | `MVP-37` | Jenis | Status |
+| --- | :---: | :---: | --- | --- |
+| `BE-BKC-FIX-022` mencapai ✅ — hasil `dotnet build` dan uji tombol Evaluasi Ulang di layar | Ya | Ya | Pekerjaan pemilik | 🟡 |
+| Approval blueprint revisi `2.1` oleh pemilik modul | Ya | Ya | **Tindakan manusia** | Belum dinyatakan; blueprint tetap `draft` |
+| Otorisasi pembuatan dan penerapan migration gelombang itu | Ya (`AddConsolidatedSettlementParticipants`) | Ya (`AddClearanceChainObligationsAndDecisions`) | **Tindakan manusia** | Belum diberikan |
+| `MVP-36` selesai | — | Ya | Urutan | Belum dimulai |
+| `01-existing-capability-map.md` §22 disegarkan | Disarankan | Disarankan | Impact scan | Basi sejak `dcb9c88e`; empat barisnya sudah tidak benar |
+| Persetujuan pemilik Rawat Inap (`BKC-OQ-121`) | Tidak | Hanya untuk verifikasi bangsal | Pihak lain | Terbuka |
+
+### Frontend Decision Authority — pass ini
+
+Tidak ada keputusan UI baru.
+
+
+---
+
+## Closure Pass — Penyelesaian Conflict dan Unknown Hasil Impact Scan 14 Oktober 2026 (lanjutan ketiga)
+
+| Field | Isi |
+| --- | --- |
+| Mode | Closure pass atas `01-existing-capability-map.md` §24 (impact scan 14 Oktober 2026) |
+| Blueprint | `BIL-CASH-001`, revision `2.1`, status `approved` (14 Oktober 2026) — **tidak diubah** oleh pass ini |
+| Backend SHA | `d268a41f` · Frontend SHA `0b45dd8cd` — **sama** dengan yang diaudit §24; peta masih berlaku |
+| Capability map | §24 berlaku. `CAP-BIL-11` (Conflict) dan `CAP-BIL-17` (Unknown) adalah sasaran pass ini |
+| Pemilik keputusan | Pemilik modul Billing (pengguna sesi), yang juga pemilik sisi Finance dan HR |
+
+### Batas scope pass ini
+
+| Di dalam scope | Di luar scope — untuk pihak lain |
+| --- | --- |
+| `BKC-CQ-10` — penautan kunjungan asal pada jalur transfer (`CAP-BIL-11`) | Penghubung hop Rawat Jalan → IGD — data milik **Registration Management** |
+| `BKC-CQ-14` — kepemilikan kemampuan benefit pegawai (`CAP-BIL-17`) | Penegakan deposit tindakan besar — milik **Operating Room** (Billing hanya menyediakan rumus) |
+| `BKC-OQ-125` — koreksi keputusan mengikutkan | Label status di bangsal — milik **Rawat Inap** (`BKC-OQ-121`) |
+
+### `BKC-DEC-155` — Billing mencatat tautan kunjungan asal pada jalur transfer
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Saat rawat inap dikonfirmasi lewat jalur *admission transfer* dari IGD atau Rawat Jalan, **Billing mencatat tautan** antara invoice kunjungan asal dan invoice rawat inap pada tabel `BilInvoiceEncounterLink` milik Billing sendiri, dengan sebab asal yang membedakan IGD dari Rawat Jalan. Pencatatan **idempoten**: pemutaran ulang event tidak membuat tautan kedua. **Contoh:** Ibu Sari Mandasari (nama samaran) masuk IGD, tagihan IGD Rp 1.500.000, lalu ditransfer ke rawat inap. Begitu rawat inap dikonfirmasi, tagihan IGD tertaut ke tagihan rawat inap; rincian gabungan tagihan rawat inap memuat item IGD, dan pelunasan gabungan menemukan tagihan IGD sebagai kandidat. Pasien yang dirawat inap langsung tanpa transfer **tidak** mendapat tautan |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Billing mulai mencatat tautan (Rekomendasi)"*. Opsi yang ditolak: penelusuran membaca data Registrasi langsung tanpa mencatat apa pun, dan menahan sampai pemilik Rawat Inap setuju |
+| Alasan | Ini yang sudah diandaikan `BKC-DEC-139` dan seluruh desain revisi `1.9`–`2.1`, sehingga keputusan ini **membuat premis itu benar**, bukan menggantinya. Rincian gabungan tagihan rawat inap otomatis ikut benar. Satu sumber kebenaran hubungan kunjungan tetap di tabel milik Billing |
+| Konsekuensi | (1) **Perubahan desain** — penerima event Rawat Inap milik Billing (`BillingInpatientEventReceiver`) harus membaca asal transfer (`RegPatientEncounter.SourceEncounterId`, `AdmissionTransferSourceType`) **secara baca saja** dan menulis tautan. Ini belum ada pada `02-backend-architecture.md` revisi `2.1`, jadi butuh amendment desain (revisi `2.2`) beserta approval baru. (2) Nilai sebab asal `EMERGENCY_ORIGIN` sudah direncanakan revisi `1.9`; satu nilai setara untuk asal Rawat Jalan **belum** ada dan namanya ditetapkan desain. (3) **Registration dan Rawat Inap tidak berubah**: Billing hanya membaca. Keduanya cukup diberi tahu, bukan dimintai persetujuan. (4) Data transfer yang sudah ada sebelum penulis ini rilis **tidak otomatis bertautan** — lihat `BKC-OQ-127` |
+| Trace | `BKC-CQ-10`, `CAP-BIL-11`; `BKC-DEC-139`, `BKC-DEC-148`; `BKC-DES-063` |
+
+### `BKC-DEC-156` — Benefit pegawai dimiliki sebagai amendment blueprint `billing-kasir`
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Kemampuan **penagihan ditangguhkan atas benefit pegawai** (`BillingEmployeeBenefitSplitService`, kolom `DeferredPatientAmount` pada `BilArHandoff`, migration `20261014021257_AddEmployeeBenefitGuarantorAndDeferredBillingConsent`, panel pemisahan dan koreksi debitur benefit pada frontend) **dimiliki blueprint `billing-kasir`** dan dicatat sebagai amendment tersendiri, bukan blueprint modul terpisah |
+| Owner | Pemilik modul Billing |
+| Status | `approved` — **hanya kepemilikannya**. Aturan bisnisnya belum diputuskan |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Amendment blueprint billing-kasir (Rekomendasi)"*. Opsi yang ditolak: blueprint modul benefit pegawai terpisah, dan membiarkan tanpa dokumen |
+| Alasan | Kemampuan itu mengubah `BilArHandoff` dan alur finalisasi yang sudah dimiliki blueprint ini; kontrak dan state-nya harus ikut dokumen yang sama |
+| Konsekuensi | `CAP-BIL-17` **tetap `Unknown`** sampai ditelusuri dan diwawancarai: kepemilikan sudah jelas, tetapi aturan bisnisnya (siapa yang boleh menangguhkan, batas nominal, persetujuan pasien, peran HR dan Finance) belum dikunci sama sekali. Urutan yang benar: `/trace-existing-capabilities` pada rumpun ini lebih dulu karena sudah ada di source, baru `/grill-me` scope pass. **Tidak** menahan `MVP-36` maupun `MVP-37` |
+| Trace | `BKC-CQ-14`, `CAP-BIL-17`; `BKC-OQ-128` |
+
+### `BKC-DEC-157` — Keputusan mengikutkan tidak dapat dikoreksi
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Keputusan **mengikutkan** sebuah kunjungan pada rekonsiliasi rantai (`BKC-DEC-153`) bersifat final, **sama seperti** keputusan mengecualikan (`BKC-DEC-152`). Tidak ada pencabutan, pengubahan, maupun pembalikan arah pada kedua jenis keputusan. **Contoh:** petugas keliru mengikutkan tagihan IGD Rp 900.000 milik pasien yang sama dari rujukan berputar. Pasien tertahan sampai tagihan itu dilunasi; keputusan itu tidak dapat dibatalkan. Uangnya tidak hilang karena tagihan itu memang milik pasien tersebut |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 14 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 14 Oktober 2026: *"Tidak dapat dikoreksi, konsisten (Rekomendasi)"*. Opsi yang ditolak: dapat dikoreksi Supervisor Kasir |
+| Alasan | Risikonya kecil dan gagal-tertutup: mengikutkan dilarang untuk kunjungan milik pasien lain (`BKC-DES-074`), sehingga tagihan yang keliru diikutkan pasti milik pasien yang sama |
+| Konsekuensi | Desain revisi `2.1` **tidak berubah**: *append-only* pada kedua arah sudah menjadi langkah bawaannya (`BKC-DES-072`, `BKC-DES-073`). Menutup `BKC-OQ-125` |
+| Trace | `BKC-OQ-125`; `BKC-DEC-152`, `BKC-DEC-153` |
+
+### Acceptance Criteria — pass ini
+
+- `BKC-AC-106` (`BKC-DEC-155`): **Transfer IGD menghasilkan tautan.** Pasien IGD dengan tagihan Rp 1.500.000 ditransfer ke rawat inap. Setelah rawat inap dikonfirmasi, tagihan IGD tertaut ke tagihan rawat inap dengan sebab asal IGD. Rincian gabungan tagihan rawat inap memuat item IGD, dan pelunasan gabungan menampilkan tagihan IGD sebagai kandidat.
+- `BKC-AC-107` (`BKC-DEC-155`): **Transfer Rawat Jalan menghasilkan tautan berbeda.** Pasien Rawat Jalan yang ditransfer mendapat tautan dengan sebab asal Rawat Jalan, dan aturan penggantian biaya administrasi `BKC-DEC-119` berjalan seperti sebelumnya, tidak terpengaruh.
+- `BKC-AC-108` (`BKC-DEC-155`): **Pemutaran ulang tidak menggandakan.** Event konfirmasi rawat inap yang sama diproses dua kali. Hasilnya tetap **satu** tautan.
+- `BKC-AC-109` (`BKC-DEC-155`): **Tanpa transfer, tanpa tautan.** Pasien yang dirawat inap langsung tanpa transfer dari kunjungan lain menghasilkan nol tautan, dan perilaku rincian tagihannya identik dengan sebelumnya.
+- `BKC-AC-110` (`BKC-DEC-157`): **Mengikutkan tidak dapat dikoreksi.** Percobaan membalik keputusan mengikutkan menjadi mengecualikan ditolak, dan nol baris keputusan berubah.
+
+### Open Questions — pass ini
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `BKC-OQ-127` | Transfer yang sudah terjadi sebelum penulis tautan (`BKC-DEC-155`) rilis tidak punya tautan. Apakah (a) ditautkan belakangan lewat proses terpisah, atau (b) penelusuran memakai kolom asal transfer sebagai cadangan untuk tingkat pertama? Dev memuat nol transfer; jumlah di lingkungan lain belum diketahui | Pemilik modul Billing | **Rilis** `MVP-36`; tidak menahan perencanaan |
+| `BKC-OQ-128` | Aturan bisnis penagihan ditangguhkan atas benefit pegawai belum diwawancarai: siapa yang boleh menangguhkan, batas nominal, bentuk persetujuan pasien, dan peran HR serta Finance | Pemilik modul Billing, HR, dan Finance | Klaim kesiapan bagian benefit; **tidak** menahan `MVP-36`/`37` |
+| `BKC-OQ-129` | Kolom asal kunjungan pada `RegPatientEncounter` hanya ditulis oleh admisi rawat inap, sehingga kunjungan IGD tidak pernah menunjuk poli asalnya dan hop Rawat Jalan → IGD tidak dapat ditelusuri. Apakah Registrasi akan menyimpannya? **Menggantikan rumusan `BKC-OQ-122`** yang keliru ("pengisian tidak seragam") | Pemilik Registration Management | Tidak memblokir; menentukan nilai praktis `BKC-DEC-148` (kedalaman efektif saat ini satu hop) |
+| `BKC-OQ-130` | Rumus deposit tindakan besar (`BKC-DEC-116`) tidak punya pemanggil. Siapa yang menegakkan bahwa tindakan tidak dijadwalkan sebelum deposit cukup? | Pemilik Operating Room bersama Billing | Tidak memblokir `MVP-36`/`37` |
+
+### Status pertanyaan terbuka
+
+| ID | Status | Keterangan |
+| --- | --- | --- |
+| `BKC-CQ-10` | **Ditutup** | `BKC-DEC-155` |
+| `BKC-CQ-14` | **Ditutup** untuk kepemilikan | `BKC-DEC-156`; aturan bisnisnya pindah ke `BKC-OQ-128` |
+| `BKC-OQ-125` | **Ditutup** | `BKC-DEC-157` |
+| `BKC-CQ-11` / `BKC-OQ-122` | **Digantikan** | Dirumuskan ulang sebagai `BKC-OQ-129`; `BKC-OQ-122` dipertahankan sebagai histori |
+| `BKC-CQ-12` | **Dipindahkan** | Menjadi `BKC-OQ-130` |
+| `BKC-CQ-13` / `BKC-OQ-121` | **Tetap terbuka** | Milik Rawat Inap. Fakta pendukung: status yang tidak dikenal dipetakan ke "Menunggu kasir" dan gerbang pemulangan menuntut `"CLEARED"` persis (`CAP-BIL-08`), sehingga `NEEDS_RECONCILIATION` aman tetapi berlabel kurang tepat |
+
+### Yang masih menahan `MVP-36` dan `MVP-37`
+
+Keputusan bisnis sudah lengkap, tetapi **perencanaan `MVP-36` kini menunggu amendment desain**, karena `BKC-DEC-155` menambah satu unsur yang belum ada di desain approved:
+
+| Prasyarat | `MVP-36` | `MVP-37` | Jenis | Status |
+| --- | :---: | :---: | --- | --- |
+| Amendment desain revisi `2.2`: penulis tautan pada jalur transfer (`BKC-DEC-155`) beserta koreksi premis `BKC-DES-063` | Ya (perencanaan) | Ya | `/design-business-module` (butuh Opus) | Belum dikerjakan |
+| Approval pemilik atas revisi `2.2` | Ya | Ya | **Tindakan manusia** | Belum |
+| `BE-BKC-FIX-022` mencapai ✅ | Ya | Ya | Pekerjaan pemilik | 🟡 |
+| Otorisasi migration kedua gelombang | Ya | Ya | **Tindakan manusia** | Belum |
+| `BKC-OQ-127` (data transfer lama) | Rilis | Rilis | Keputusan Billing | Terbuka |
+
+### Frontend Decision Authority — pass ini
+
+Tidak ada keputusan UI baru.

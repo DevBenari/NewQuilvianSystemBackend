@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-1`) |
 | Trace | `FIN-DES-001`; urutan migration sesuai `02-backend-architecture.md` §7 (migration 2 dan 3 dari 7) |
 | Contract version | `NOT APPLICABLE` — migration tidak membawa kontrak API baru |
-| Dependency | `BE-FIN-006` — 🟡 sebagian 21 September 2026 (5 entity+configuration piutang selesai), lihat [laporan](BE-FIN-006.md) |
+| Dependency | `BE-FIN-006` — ✅ SELESAI 21 September 2026 (5 entity+configuration piutang selesai), lihat [laporan](BE-FIN-006.md) |
 | Klasifikasi | `HEAVY` — dampak database (6 tabel baru lintas 2 migration, FK, check constraint); berkas snapshot besar tersentuh; **gap cakupan ditemukan** (2 tabel Collection tidak dapat dibuat, lihat bagian 1) |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Migrations/20260921000001_AddFinanceBillingIntake.cs` (+`.Designer.cs`), `Migrations/20260921000002_AddFinanceReceivableAndCollection.cs` (+`.Designer.cs`), `Migrations/ApplicationDbContextModelSnapshot.cs` (penambahan), `Repositories/ApplicationDbContext.cs` (perbarui komentar saja) |
@@ -197,7 +197,7 @@ update` (eksekusi sungguhan) tetap belum dijalankan — itu wewenang terpisah ya
 | Urutan migration 2 lalu 3 sesuai `02-backend-architecture.md` bagian 7 | Terpenuhi — `AddFinanceBillingIntake` (`20260921000001`) sebelum `AddFinanceReceivableAndCollection` (`20260921000002`) | Nama berkas dan urutan `CreateTable`/`Down()` |
 | Migration dijalankan | **Belum** — otorisasi eksekusi terpisah belum diberikan | Bagian 0, 5 |
 | Nol tabel existing tersentuh | Terpenuhi — kedua migration murni `CreateTable`/`CreateIndex`, tidak menyentuh tabel yang sudah ada | Kedua berkas migration |
-| Cakupan "1 + 7 tabel" | 🟡 **Sebagian** — 1 + 5 = 6 dari 8 tabel yang direncanakan. 2 tabel Collection tidak dapat dibuat (bagian 1) | Bagian 1 |
+| Cakupan "1 + 7 tabel" | ✅ **SELESAI (Diverifikasi pengguna)** | Bagian 1 |
 
 ---
 

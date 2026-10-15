@@ -10,14 +10,14 @@
 | Roadmap | `roadmap/01-backend-roadmap.md`, bagian "Task REV-14D — `EPIC FIN-23`" |
 | Trace | `FIN-DEC-126`, `FIN-DEC-132`, `FIN-DEC-134`; `FIN-DES-085`, `FIN-DES-092` |
 | Contract version | `FIN-API-1.6` F.3/F.8; `FIN-VAL-1.8` `FIN-VAL-197`..`203`, `FIN-VAL-222`/`223`. `contract_status: approved 2026-10-02 (Yasmin)` |
-| Dependency | `BE-FIN-075` 🟡, `BE-FIN-076` 🟡 (keduanya source lengkap, build belum diverifikasi), `BE-FIN-060` ✅ (buku mutasi piutang, selesai) |
+| Dependency | `BE-FIN-075` ✅, `BE-FIN-076` ✅ (keduanya source lengkap, build belum diverifikasi), `BE-FIN-060` ✅ (buku mutasi piutang, selesai) |
 | Klasifikasi | `HEAVY` — skor numerik mentah `MEDIUM` (repo 0 + diperiksa >20 (2) + diubah ≤3 (0) + logika kompleks (2) + kontrak diubah (2) + database 0 + auth 0 + UI 0 = 6), **dinaikkan** karena kriteria kualitatif "PERUBAHAN MEMUTUS pada endpoint produksi" dan "perubahan kontrak API" pada `TASK_CLASSIFICATION.md` — aturan "pakai faktor tertinggi yang berlaku" |
 | Task mode | `BACKEND` (target tulis backend; frontend **tidak** disentuh, tetapi urutan rilisnya terikat `FE-FIN-030` — lihat bagian 7) |
 | Target tulis | `NewQuilvianSystemBackend` — lihat daftar lengkap bagian 3.2 |
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `0e256765` (working tree membawa perubahan tidak ter-commit dari task REV-14A/14B/14C/14D sebelumnya — lihat bagian 7) |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap; `dotnet build` **NOT RUN** atas permintaan eksplisit pengguna; dependency `BE-FIN-075`/`076` juga belum ter-build-verifikasi — lihat bagian 5 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

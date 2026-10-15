@@ -46,6 +46,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
             _timeZone = ResolveTimeZone(configuration[TimeZoneConfigKey]);
         }
 
+        /// <summary>Zona waktu kalender membership (bawaan Asia/Jakarta).</summary>
+        public TimeZoneInfo TimeZone => _timeZone;
+
         /// <summary>Tanggal kalender WIB hari ini (Kind Unspecified, cocok untuk kolom <c>date</c>).</summary>
         public DateTime GetTodayWib() => ToWibDate(_timeProvider.GetUtcNow());
 

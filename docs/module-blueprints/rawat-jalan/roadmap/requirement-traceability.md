@@ -377,3 +377,26 @@ Keputusan `RJ-DOC-DEC-068`..`082`; definisi task pada
 | Data uji ≥ 4 dokter (`RJ-DOC-DEC-079`) | `RJ-DOC-REV-BE-021` | ✅ `2026-10-08` | [RJ-DOC-REV-BE-021](../task/report/backend/RJ-DOC-REV-BE-021.md) |
 | Popup jadwal Kiosk | `FE-KSK-015` | ✅ `2026-10-09` (uji browser 5/5) | [FE-KSK-015](../../kiosk/task/report/frontend/FE-KSK-015.md) |
 | OCR agent (`RJ-DOC-OQ-PM-01`), Radiologi (`RJ-DOC-OQ-PM-02`) | — | Coverage gap — di luar repository / `POST-MVP` | — |
+
+## 14. Revisi `2026-10-14` — Revisi Pendaftaran Rawat Jalan V2 (Amendment REG-REV)
+
+Scope **Registration** (`RJ-REG`), terpisah dari `RJ-DOC`, `RJ-BIL`, dan `RJ-E2E`. Keputusan `RJ-REG-DEC-001`..`009`;
+definisi task pada [registration-revision-roadmap.md](registration-revision-roadmap.md).
+
+| Requirement | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| `RJ-REG-REV-001` cari tanggal lahir | `RJ-REG-REV-BE-001`, `RJ-REG-REV-FE-001` | ✅ `TESTED` / `UAT_PENDING` `2026-10-14` | [BE-001](../task/report/backend/RJ-REG-REV-BE-001.md), [FE-001](../task/report/frontend/RJ-REG-REV-FE-001.md) |
+| `RJ-REG-REV-002` Detail & Edit Daftar Pasien RJ | `RJ-REG-REV-BE-003`, `RJ-REG-REV-FE-002` | ✅ `TESTED` / `UAT_PENDING` | [BE-003](../task/report/backend/RJ-REG-REV-BE-003.md), [FE-002](../task/report/frontend/RJ-REG-REV-FE-002.md) |
+| `RJ-REG-REV-003` kewarganegaraan | `RJ-REG-REV-BE-002`, `RJ-REG-REV-FE-003` | ✅ `TESTED` / `UAT_PENDING` | [BE-002](../task/report/backend/RJ-REG-REV-BE-002.md), [FE-003](../task/report/frontend/RJ-REG-REV-FE-003.md) |
+| `RJ-REG-REV-004` KTP utuh | `RJ-REG-REV-FE-004` | ✅ `TESTED` / `UAT_PENDING` | [FE-004](../task/report/frontend/RJ-REG-REV-FE-004.md) |
+| `RJ-REG-REV-005` scanner / kamera / upload | `RJ-REG-REV-FE-004` (+ `BE-004`) | ✅ `TESTED` / `UAT_PENDING` (kamera & Plustek fisik di UAT) | [FE-004](../task/report/frontend/RJ-REG-REV-FE-004.md) |
+| `RJ-REG-REV-006` upload identitas pasien lama | `RJ-REG-REV-BE-004`, `RJ-REG-REV-FE-004` | ✅ `TESTED` / `UAT_PENDING` | [BE-004](../task/report/backend/RJ-REG-REV-BE-004.md), [FE-004](../task/report/frontend/RJ-REG-REV-FE-004.md) |
+| `RJ-REG-REV-007` kartu dokter | `RJ-REG-REV-FE-005` | ✅ `TESTED` / `UAT_PENDING` | [FE-005](../task/report/frontend/RJ-REG-REV-FE-005.md) |
+| `RJ-REG-REV-008` tracking & reschedule booking | `RJ-REG-REV-BE-005`, `RJ-REG-REV-FE-006` | ✅ `TESTED` / `UAT_PENDING` | [BE-005](../task/report/backend/RJ-REG-REV-BE-005.md), [FE-006](../task/report/frontend/RJ-REG-REV-FE-006.md) |
+| `RJ-REG-REV-009` kartu asuransi | `RJ-REG-REV-FE-007` | ✅ `TESTED` / `UAT_PENDING` (kartu nyata di UAT) | [FE-007](../task/report/frontend/RJ-REG-REV-FE-007.md) |
+| `RJ-REG-REV-010` Edit Penjamin | `RJ-REG-REV-FE-007` | ✅ `TESTED` / `UAT_PENDING` | [FE-007](../task/report/frontend/RJ-REG-REV-FE-007.md) |
+| `RJ-REG-REV-011` hapus Keluhan Utama (Data Kunjungan) | `RJ-REG-REV-FE-008` | ✅ `TESTED` / `UAT_PENDING` | [FE-008](../task/report/frontend/RJ-REG-REV-FE-008.md) |
+| `RJ-REG-REV-012` redesign Data Rujukan | `RJ-REG-REV-FE-008` | ✅ `TESTED` / `UAT_PENDING` | [FE-008](../task/report/frontend/RJ-REG-REV-FE-008.md) |
+
+**Coverage gap:** uji `403` dengan akun tanpa izin (akun uji SuperAdmin), kamera dan scanner fisik, bentrok
+reschedule `409` (dicegah penjaga pendaftaran), notifikasi realtime WebSocket.

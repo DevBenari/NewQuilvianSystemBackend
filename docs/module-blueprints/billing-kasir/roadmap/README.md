@@ -28,14 +28,14 @@ Roadmap ini berada pada **revision `2`** (4 September 2026) dan berstatus `DRAFT
 | `BKC-PH-018` | **Rumpun baru — Petty Cash.** Kolam anggaran, siklus hidup voucher penuh, dan hardening lintas-slice (`MVP-14`) | `BE-BKC-036`–`038` | — | `BKC-PH-017` selesai dan terverifikasi | **`READY_FOR_TASK_APPROVAL`** |
 | `BKC-PH-019` | **Rumpun baru — Petty Cash.** Layar monitoring, Buat Voucher, Bukti Nota, detail voucher, Anggaran Kas Kecil, dan Kategori Petty Cash (`MVP-15`) | — | `FE-BKC-023`–`027` | `BKC-PH-018` selesai dan terverifikasi (sequencing, bukan gerbang) | **`READY_FOR_TASK_APPROVAL`** |
 | `BKC-PH-020` | Deposit rawat inap terikat episode — permintaan `RWI-BP-001` lewat `RWI-DEC-093`–`096`. Semula `BKC-PH-009`/`BE-BKC-022`,`023`, dinomori ulang 9 September 2026 karena bentrok dengan gelombang 4 September | `BE-BKC-039` (✅ Selesai), `BE-BKC-040` (✅ Selesai) | — (layar ada di Rawat Inap) | `BKC-PH-004` | ✅ `Selesai` (`BE-BKC-039` dan `BE-BKC-040` selesai 2026-09-09) |
-| `BKC-PH-021` | Integrasi Rawat Inap ↔ Billing Management Core (`MVP-28`) | `BE-BKC-071`–`076` | — | Blueprint 1.5 approved (24 Sep 2026) | `READY_FOR_TASK_APPROVAL` |
-| `BKC-PH-022` | Antarmuka Kasir & Handoff Rawat Inap (`MVP-29`) | — | `FE-BKC-041`–`042` | `BKC-PH-021` selesai | `IN_PROGRESS` (`FE-BKC-041`, `FE-BKC-042` 🟡 SEBAGIAN) |
-| `BKC-PH-023` | **Revisi UI Billing.** Perbaikan logika backend `suggestedBillingStatus` & field `TransactionDate` (`MVP-30`) | `BE-BUI-001`, `BE-BUI-002` | — | Approval arsitektur `BUI-DES-001`/`002` — terpisah dari approval bisnis `BUI-DEC-*` | ⛔ `BLOCKED` |
-| `BKC-PH-024` | **Revisi UI Billing.** Filter/default Billing, label Obat, card compact, pindah tombol aksi (`MVP-31`) | — | `FE-BUI-001`–`004` | Tidak ada | **`READY_FOR_TASK_APPROVAL`** |
+| `BKC-PH-021` | Integrasi Rawat Inap ↔ Billing Management Core (`MVP-28`) | `BE-BKC-071`–`076` | — | Blueprint 1.5 approved (24 Sep 2026) | ✅ `SELESAI` (`BE-BKC-071`–`076` selesai 24 Sep 2026) |
+| `BKC-PH-022` | Antarmuka Kasir & Handoff Rawat Inap (`MVP-29`) | — | `FE-BKC-041`–`042` | `BKC-PH-021` selesai | ✅ `Selesai` (`FE-BKC-041`, `FE-BKC-042` ✅ Selesai) |
+| `BKC-PH-023` | **Revisi UI Billing.** Perbaikan logika backend `suggestedBillingStatus` & field `TransactionDate` (`MVP-30`) | `BE-BUI-001`, `BE-BUI-002` | — | Arsitektur `BUI-DES-001`/`002` disetujui 25 Sep 2026 | ✅ `SELESAI` (`BE-BUI-001`, `BE-BUI-002` selesai 25 Sep 2026) |
+| `BKC-PH-024` | **Revisi UI Billing.** Filter/default Billing, label Obat, card compact, pindah tombol aksi (`MVP-31`) | — | `FE-BUI-001`–`004` | Tidak ada | ✅ `SELESAI` (`FE-BUI-001`–`004` selesai 25 Sep 2026) |
 | `BKC-PH-025` | **Revisi UI Billing.** Perbandingan asuransi & payment method (`MVP-32`) | — | `FE-BUI-005`, `FE-BUI-006` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-005`, `FE-BUI-006` selesai 25 Sep 2026) |
 | `BKC-PH-026` | **Revisi UI Billing.** Modal Ajukan Refund dua sumber (`MVP-33`) | — | `FE-BUI-007` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-007` selesai 25 Sep 2026) |
-| `BKC-PH-027` | **Shift Kasir.** Blocking selisih kas belum direview dan status tindak lanjut (`MVP-34`) | `BE-BKC-077`, `BE-BKC-078` | `FE-BKC-043`, `FE-BKC-044` | Blueprint revisi `1.7 draft` (`BKC-DEC-123`–`127` approved 25 Sep 2026) | **`READY_FOR_TASK_APPROVAL`** |
-| `BKC-PH-028` | **Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan** (`MVP-35`) | `BE-BKC-079`, `BE-BKC-080` | — (Nol UI) | Blueprint revisi `1.8` (`BKC-DEC-128`–`134` approved 28–29 Sep 2026) | **`READY_FOR_TASK_APPROVAL`** |
+| `BKC-PH-027` | **Shift Kasir.** Blocking selisih kas belum direview dan status tindak lanjut (`MVP-34`) | `BE-BKC-077`, `BE-BKC-078` | `FE-BKC-043`, `FE-BKC-044` | Blueprint revisi `1.7 draft` (`BKC-DEC-123`–`127` approved 25 Sep 2026) | ✅ `SELESAI` (`BE-BKC-077`/`078`, `FE-BKC-043`/`044` selesai 25 Sep 2026) |
+| `BKC-PH-028` | **Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan** (`MVP-35`) | `BE-BKC-079`, `BE-BKC-080` | — (Nol UI) | Blueprint revisi `1.8` (`BKC-DEC-128`–`134` approved 28–29 Sep 2026) | ✅ `SELESAI` (`BE-BKC-079`, `BE-BKC-080` selesai 29 Sep 2026) |
 
 ## Amendment 7 September 2026 — Koreksi revisi blueprint, verifikasi ulang FE-BKC-018, dan cakupan Struk Pasien
 
@@ -203,7 +203,7 @@ Enam task backend (`BE-BKC-071`–`BE-BKC-076`) dan dua task frontend (`FE-BKC-0
 | Gelombang MVP | Task | Keadaan |
 | --- | --- | --- |
 | `MVP-28` | `BE-BKC-071`, `BE-BKC-072`, `BE-BKC-073`, `BE-BKC-074`, `BE-BKC-075`, `BE-BKC-076` | Siap approval task — terbagi 4 gelombang eksekusi berurutan bebas siklus |
-| `MVP-29` | `FE-BKC-041`, `FE-BKC-042` | `FE-BKC-041` 🟡 SEBAGIAN (kode, unit test, build PASS); `FE-BKC-042` 🟡 SEBAGIAN (kode, unit test, build PASS) |
+| `MVP-29` | `FE-BKC-041`, `FE-BKC-042` | `FE-BKC-041` ✅ Selesai (kode, unit test, build PASS, diverifikasi penuh); `FE-BKC-042` ✅ Selesai (kode, unit test, build PASS, diverifikasi penuh) |
 
 **Aturan Eksekusi Khusus:**
 1. Eksekusi migration EF Core `AddInpatientBillingIntegrationAndClearanceHandoff` pada `BE-BKC-071` membutuhkan otorisasi terpisah sesuai aturan keselamatan basis data.
@@ -228,8 +228,8 @@ pemindahan tombol aksi ke Riwayat Pembayaran.
 
 | Gelombang MVP | Task | Keadaan |
 | --- | --- | --- |
-| `MVP-30` | `BE-BUI-001`, `BE-BUI-002` | ⛔ `BLOCKED` — menunggu approval arsitektur `BUI-DES-001`/`002`, terpisah dari approval bisnis `BUI-DEC-001`–`015` yang sudah `approved` |
-| `MVP-31` | `FE-BUI-001`, `FE-BUI-002`, `FE-BUI-003`, `FE-BUI-004` | Siap approval task — nol dependency ke `MVP-30`, dapat paralel |
+| `MVP-30` | `BE-BUI-001`, `BE-BUI-002` | ✅ `SELESAI PENUH` (Approval arsitektur `BUI-DES-001`/`002` disahkan 25 Sep 2026, source & build diverifikasi) |
+| `MVP-31` | `FE-BUI-001`, `FE-BUI-002`, `FE-BUI-003`, `FE-BUI-004` | ✅ `SELESAI PENUH` (`FE-BUI-001`–`004` selesai dan diverifikasi 25 Sep 2026) |
 | `MVP-32` | `FE-BUI-005`, `FE-BUI-006` | ✅ `SELESAI PENUH` (`FE-BUI-005` & `FE-BUI-006` selesai 25 Sep 2026) |
 | `MVP-33` | `FE-BUI-007` | ✅ `SELESAI PENUH` (`FE-BUI-007` selesai 25 Sep 2026) |
 
@@ -289,10 +289,10 @@ Amendment ini membuka kembali sebagian kecil keputusan operasional kasir (`BKC-D
 
 | Gelombang | Task ID | Cakupan | Status |
 | :---: | --- | --- | :---: |
-| `MVP-34` (BE Gelombang 1) | 🟡 `BE-BKC-077` | Penegakan blocking shift belum direview pada `CashierShiftService.OpenAsync` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
-| `MVP-34` (BE Gelombang 2) | 🟡 `BE-BKC-078` | Status `PERLU_TINDAK_LANJUT`, parameter review, dan endpoint `resolve-follow-up` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
-| `MVP-34` (FE Gelombang 1) | 🟡 `FE-BKC-043` | Badge status `PERLU_TINDAK_LANJUT`, filter riwayat, dan penanganan alert penolakan buka shift | 🟡 `SEBAGIAN` (Source & unit test selesai) |
-| `MVP-34` (FE Gelombang 2) | 🟡 `FE-BKC-044` | Radio hasil review variance ("Terverifikasi" vs "Perlu Tindak Lanjut") & modal penyelesaian tindak lanjut | 🟡 `SEBAGIAN` (Source & unit test selesai) |
+| `MVP-34` (BE Gelombang 1) | ✅ `BE-BKC-077` | Penegakan blocking shift belum direview pada `CashierShiftService.OpenAsync` | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
+| `MVP-34` (BE Gelombang 2) | ✅ `BE-BKC-078` | Status `PERLU_TINDAK_LANJUT`, parameter review, dan endpoint `resolve-follow-up` | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
+| `MVP-34` (FE Gelombang 1) | ✅ `FE-BKC-043` | Badge status `PERLU_TINDAK_LANJUT`, filter riwayat, dan penanganan alert penolakan buka shift | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
+| `MVP-34` (FE Gelombang 2) | ✅ `FE-BKC-044` | Radio hasil review variance ("Terverifikasi" vs "Perlu Tindak Lanjut") & modal penyelesaian tindak lanjut | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
 
 **Nol Migration pada seluruh gelombang ini.** Perubahan disimpan pada kolom string dan entitas review yang telah ada sejak baseline.
 
@@ -327,8 +327,8 @@ Amendment ini menyelesaikan permintaan perbaikan kritis dari modul Finance Manag
 
 | Gelombang | Task ID | Cakupan | Status |
 | :---: | --- | --- | :---: |
-| `MVP-35` (BE Gelombang 1) | 🟡 `BE-BKC-079` | Penanganan pembalikan tender top-up deposit, pembatalan alokasi LIFO, mutasi ganda `RELEASE`/`REVERSAL`, dan `SyncClosureAsync` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
-| `MVP-35` (BE Gelombang 2) | 🟡 `BE-BKC-080` | Penanda eksplisit `ReversesMovementId` 1-ke-1 pada `BillingSettlementService.cs` dan penyelarasan agregasi deposit di `BillingDepositService.cs` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `MVP-35` (BE Gelombang 1) | ✅ `BE-BKC-079` | Penanganan pembalikan tender top-up deposit, pembatalan alokasi LIFO, mutasi ganda `RELEASE`/`REVERSAL`, dan `SyncClosureAsync` | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
+| `MVP-35` (BE Gelombang 2) | ✅ `BE-BKC-080` | Penanda eksplisit `ReversesMovementId` 1-ke-1 pada `BillingSettlementService.cs` dan penyelarasan agregasi deposit di `BillingDepositService.cs` | ✅ `SELESAI` (Diverifikasi penuh oleh pengguna) |
 
 **Nol Migration & Nol Perubahan Frontend pada seluruh gelombang ini.** Seluruh mekanisme berjalan backend di atas model `BilPaymentAllocation`, `BilDepositMovement`, dan `BilDepositAccount` yang sudah ada.
 

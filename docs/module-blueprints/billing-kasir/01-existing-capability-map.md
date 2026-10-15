@@ -3,13 +3,13 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
-| Capability-map revision | `0.4` — bertambah section 22 (impact scan 24 September 2026 integrasi Rawat Inap ↔ Billing Pass B); section 1–21 tidak diubah |
+| Capability-map revision | `0.5` — bertambah section 24 (impact scan 14 Oktober 2026) yang **menggantikan §22**; section 1–21 dan 23 tidak diaudit ulang dan dianggap `STALE` |
 | Status | `source-audited`; belum menyatakan siap implementasi atau siap produksi |
-| Tanggal audit | 24 September 2026 (`Asia/Jakarta`) |
+| Tanggal audit | 24 September 2026 (§1–23); 14 Oktober 2026 (§24) (`Asia/Jakarta`) |
 | Business input | [`00-interview-decisions.md`](./00-interview-decisions.md), approved decision revision `0.3` (`BKC-DEC-112` s.d. `BKC-DEC-119`) |
 | Supplemental evidence | [`05-servicebilling-attachment-evidence.md`](./evidence/05-servicebilling-attachment-evidence.md), ZIP SHA-256 `2b948721cee4154eaecaf9ac57d7621fb34cb7b61fb31a5fd6dff04df7ad218d` |
-| Backend snapshot | `dcb9c88e` |
-| Frontend snapshot | `fdebb9059` |
+| Backend snapshot | `d268a41f` (§24); §1–23 berbasis `dcb9c88e` dan `505d8d78` |
+| Frontend snapshot | `0b45dd8cd` (§24); §1–23 berbasis `fdebb9059` dan `b3f45db7b` |
 | Audit method | Pembacaan statis source, konfigurasi EF, migration, route, DI, state/service frontend, dan test inventory |
 | Write boundary | Hanya dokumen blueprint ini; source aplikasi tidak diubah |
 
@@ -1071,6 +1071,8 @@ Seluruh klaim source pada `BKC-DEC-100`–`102` terverifikasi akurat pada HEAD s
 
 ## 22. Impact Scan 24 September 2026 — Verifikasi Source Kemampuan Integrasi Rawat Inap ↔ Billing (Pass B — `BKC-DEC-112` s.d. `BKC-DEC-119`)
 
+> **`STALE` — digantikan §24 (14 Oktober 2026).** Empat baris tabel di bawah sudah tidak benar pada `d268a41f`: `CAP-BIL-01`, `04`, `05` (kini `Ready to reuse`) dan `CAP-BIL-07` (kini `Ready to reuse`). Dipertahankan sebagai histori; **jangan dipakai sebagai bukti as-is.**
+
 | Field | Nilai |
 |---|---|
 | Backend SHA diaudit | `dcb9c88e` |
@@ -1218,3 +1220,115 @@ tapi aturan pemakaiannya yang disengketakan — jadi ditutup sebagai fakta, dibu
 pasien, bukan hanya yang berkontrak — filter yang diminta murni soal `PayerType`, tidak
 menyentuh soal kontrak aktif provider), `BUI-OQ-05` dijawab `CAP-BUI-12` (kontrak refund sudah
 sepenuhnya kompatibel, nol penyesuaian backend diperlukan).
+
+
+---
+
+## 24. Impact Scan 14 Oktober 2026 — Penyegaran §22 dan Kemampuan Revisi 1.9–2.1
+
+| Field | Nilai |
+|---|---|
+| Backend SHA diaudit | `d268a41f` (branch `Yasmina`) |
+| Frontend SHA diaudit | `0b45dd8cd` (branch `yasmina`) |
+| Dasar keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) `BKC-DEC-112`–`BKC-DEC-154`; blueprint revisi `2.1` berstatus `approved` 14 Oktober 2026 |
+| Pemicu | §22 berbasis `dcb9c88e` dan sudah tidak benar pada empat barisnya; revisi `1.9`–`2.1` menambah kemampuan yang belum pernah diaudit |
+| Metode | Pembacaan statis source backend dan frontend; query `SELECT` read-only pada basis data dev (sesi `read-only`, rollback, nol perubahan). Tidak ada source yang diubah, tidak ada build, tidak ada perintah tulis |
+| Dibaca | `CAP-BIL-01`–`CAP-BIL-10` diverifikasi ulang; `CAP-BIL-11`–`CAP-BIL-17` baru |
+| **Tidak** diaudit ulang | §1–21 dan §23 (basis `dcb9c88e`, `505d8d78`, `b3f45db7b`). Dianggap **stale** sampai impact scan terbatas dijalankan terhadap areanya |
+| Status §22 | **Digantikan oleh §24.** §22 dipertahankan sebagai histori, jangan dipakai sebagai bukti as-is |
+| Verifikasi | `dotnet build` **NOT RUN** (bukan wewenang audit). Runtime **NOT RUN**: basis data dev memuat **nol** episode rawat inap, nol surat kelayakan, nol kredit alihan, dan nol tautan invoice, sehingga tidak ada aliran data yang dapat diamati |
+
+### 24.1 Ringkasan Satu Kalimat
+
+Pass B (`CAP-BIL-01`, `04`, `05`, `07`) ternyata **sudah terbangun dan tersambung**, tetapi audit ini menemukan satu **Conflict** yang tidak terlihat pada §22: `BKC-DEC-139` dan desain revisi `1.9`–`2.1` mengandaikan invoice IGD/poliklinik terhubung ke invoice rawat inap lewat `BilInvoiceEncounterLink`, sedangkan source hanya menulis tautan itu dari **rujukan operasi** — jalur *admission transfer* IGD/Rawat Jalan → Rawat Inap tidak menghasilkannya, dan hop Rawat Jalan → IGD tidak punya penghubung data sama sekali.
+
+### 24.2 Tabel Bukti Kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap / adapter | Risiko |
+|:---|:---|:---|:---|:---:|:---|:---|
+| `CAP-BIL-01` | Intake beban kamar `ROOM_STAY`/`INPATIENT` (`BKC-DEC-112`) | Billing | `BE@d268a41f …/Billing/Services/BillingChargeSourceAdapter.cs:83-90 #SourcePolicies`; `…/Billing/Dtos/BillingInpatientEventDtos.cs:55-58 #InpatientBillingEventTypes`; `…/Billing/BillingManagementServiceCollectionExtensions.cs:62`; `…/InPatientManagement/Workers/InpatientIntegrationOutboxWorker.cs:195-202`; `BE@d268a41f Program.cs:1137` | **Ready to reuse** | Tidak ada gap fungsional. Rantai: `InpBedOccupancyService`/`InpDischargeService` menulis `InpIntegrationOutboxes` → worker terdaftar sebagai hosted service → `BillingInpatientEventReceiver.ReceiveAsync`. Verifikasi: laporan `BE-BKC-072` (QBE PASS); **tidak ada test otomatis**; runtime `NOT RUN` | Rendah pada source; **tidak teruji pada data**. Status lama `Extend` pada §22 sudah tidak benar |
+| `CAP-BIL-02` | Potongan tarif kamar hari pertama menurut jam masuk (`BKC-DEC-114`: ≥18:00 50%, ≥22:00 20%, 00:00 0%) | Billing | `BE@d268a41f …/Billing/Services/BillingCalculationService.cs:658-740 #CalculateRoomChargeAsync`; `…/MasterData/Services/RoomChargePolicyService.cs:189-201 #CalculateChargeUnits` | **Extend** | Unit dihitung per penempatan dari menit hunian lewat `MinimumMinutes`, `PeriodMinutes`, `RemainderRounding`. **Tidak ada** aturan jam masuk bertingkat di kode maupun kolom kebijakan | Pasien yang masuk malam ditagih penuh; melanggar `BKC-DEC-114` |
+| `CAP-BIL-03` | Pro-rata menit pada perpindahan kamar berganda di hari yang sama (`BKC-DEC-115`) | Billing | `BE@d268a41f …/Billing/Services/BillingCalculationService.cs:690-720` | **Extend** | Tiap `InpBedPlacement` dihitung sendiri-sendiri; tidak ada pembobotan menit terhadap total menit hari itu | Over-billing kamar tarif tinggi bila singgah singkat |
+| `CAP-BIL-04` | Biaya administrasi rawat inap 7% ber-cap Rp 6 juta (`BKC-DEC-113`, `121`, `122`) | Billing & Finance | `BE@d268a41f …/MasterData/Models/MstAdministrationFeePolicy.cs:23,26,29,33,49`; `…/Billing/Services/AdministrationFeeCalculationService.cs:78-81`; `…/Billing/Services/BillingCalculationService.cs:587` | **Ready to reuse** | `Percentage`, `CapAmount`, `CalculationType`, `ReplacementPriority` ada dan terpakai. **Catatan:** `:80-81` menyimpan nilai cadangan `?? 7.00m` dan `?? 6000000.00m` di dalam kode | Sedang: nilai bisnis di-hardcode sebagai cadangan; bila baris master kosong, kebijakan diam-diam memakai angka kode. Status lama `Extend` sudah tidak benar |
+| `CAP-BIL-05` | Penggantian biaya admin Rajal → Ranap: void bila belum dibayar, kredit bila sudah (`BKC-DEC-119`) | Billing & Finance | `BE@d268a41f …/Billing/Services/AdministrationFeeCalculationService.cs:19,152`; `…/Billing/Services/IAdministrationFeeCalculationService.cs:24`; `…/Billing/Services/BillingCalculationService.cs:607`; `…/Billing/BillingManagementServiceCollectionExtensions.cs:56` | **Ready to reuse** | Kredit memakai `BilRefundableCredit`; kode void `SUPERSEDED_BY_INPATIENT_ADMISSION`. Menjawab `BKC-CQ-03`. Runtime `NOT RUN` (dev: nol kredit) | Rendah. Status lama `Extend` sudah tidak benar |
+| `CAP-BIL-06` | Deposit 100% porsi pasien sebelum tindakan besar (`BKC-DEC-116`) | Billing | `BE@d268a41f …/Billing/Services/InpatientClearanceService.cs:214-245 #ValidateMajorProcedureDepositAsync`; `…/Billing/Controllers/InpatientClearanceController.cs:146 POST inpatient-clearance/validate-major-procedure-deposit` | **Extend** | Rumus `max(0, perkiraan − jaminan − saldo)` sudah sesuai. **Nol pemanggil** di backend (`OperatingRoomManagement` tidak merujuk Billing) maupun frontend: tidak ada yang menegakkan "tidak dijadwalkan sebelum deposit cukup" | Tindakan besar tetap dapat dijadwalkan tanpa deposit |
+| `CAP-BIL-07` | Billing sebagai pemilik tunggal kelayakan finansial pulang (`BKC-DEC-115`, `117`) | Billing | `BE@d268a41f …/Billing/Models/BilInpatientClearanceHandoff.cs`; `…/Billing/Services/InpatientClearanceService.cs:95-109`; `…/Billing/BillingManagementServiceCollectionExtensions.cs:58-59`; `…/Billing/Services/BillingSettlementService.cs:634-638,671-673`; `…/Billing/Services/BillingFinalizationService.cs:665-667`; `BE@d268a41f Program.cs:742` | **Ready to reuse** | `PatientBillingSummaryService` tidak lagi membaca `InpFinancialClearance` (nol kemunculan di area Billing). Rumus sisa tagihan per invoice **sudah menetralkan** pembayaran, kredit alihan, write-off, penyesuaian, dan porsi penjamin — dasar aturan anti-hitung-ganda `BKC-DEC-148`. Runtime `NOT RUN` (dev: nol surat) | Rendah. Status lama `Repair` sudah tidak benar |
+| `CAP-BIL-08` | Penyampaian status kelayakan ke Rawat Inap dan penghentian di bangsal (`BKC-DEC-117`) | Billing & Rawat Inap | `BE@d268a41f …/InPatientManagement/Services/InpBillingClearanceAdapter.cs`; `…/InPatientManagement/Services/IInpBillingClearanceAdapter.cs:33-41`; `…/InPatientManagement/Services/InpDischargeService.Closure.cs:725,790`; `…/InPatientManagement/Services/InpDischargeService.Departure.cs:38` | **Reuse with adapter** | Bangsal **menarik** status lewat pemanggilan dalam proses, bukan menerima dorongan. Pemetaan string ke enum: `CLEARED`/`BLOCKED`/`REVOKED` dikenal, **string lain dipetakan ke `Pending`** (`:41`). Gerbang pemulangan memeriksa `Status == "CLEARED"` secara ketat | `NEEDS_RECONCILIATION` (revisi `2.0`) **aman** — tidak pernah dianggap lunas — tetapi tampil di bangsal sebagai "Menunggu kasir". Butuh pemetaan eksplisit bila ingin label sendiri (`BKC-OQ-121`) |
+| `CAP-BIL-09` | Pelunasan gabungan lintas kunjungan dalam satu transaksi (`BKC-DEC-118`, `142`, `143`) | Billing | `BE@d268a41f Repositories/Configurations/…/BilSettlementConfiguration.cs:13-21`; `…/Billing/Services/BillingAllocationService.cs:262-267`; `…/Billing/Models/BilPaymentAllocation.cs` | **Extend** | Nol `ConsolidatedSettlement`, `BilSettlementInvoice`, atau `CONSOLIDATED_INVOICE_PAYMENT` di kedua repo. `CK_BilSettlement_Purpose` dan `CK_BilSettlement_PurposeTarget` masih dua nilai; alokasi memuat tepat satu invoice. **Skema alokasi sudah multi-target** (`SettlementId`, `TargetType`, `TargetId`) | Keluarga pasien bertransaksi dua kali |
+| `CAP-BIL-10` | Antarmuka kasir dan bangsal untuk status kelayakan | Frontend Billing & Rawat Inap | `FE@0b45dd8cd src/lib/hooks/health-services/billing-management/billing-consumer-handoffs/use-billing-consumer-handoffs.js:61-72,268-318`; `FE@0b45dd8cd src/lib/constants/health-services/inpatient-management/inpatient-billing-status-constants.js:12-17,36-44`; `FE@0b45dd8cd tests/unit/billing-consumer-handoffs-inpatient.test.mjs` | **Extend** | Layar `BIL-SCR-41` punya tab Rawat Inap, tombol dijaga `BillingInpatient : Acknowledge` dan `: Clearance`, serta test unit `FE-BKC-041`. Bangsal **hanya mengenal empat status ditambah `UNREADABLE`** (`:12-17`). Belum ada layar rekonsiliasi maupun pelunasan gabungan | Layar baru revisi `1.9`–`2.1` belum ada sama sekali |
+| `CAP-BIL-11` | Tautan invoice kunjungan asal (IGD/Poli) ke invoice rawat inap pada jalur *admission transfer* (`BKC-DEC-139`; premis `BKC-DES-063`) | Billing & Rawat Inap | `BE@d268a41f …/Billing/Services/BillingInpatientEventReceiver.cs:247-266 #EnsureEncounterLinksAsync`; `…/Billing/Models/BilInvoiceEncounterLink.cs:12`; `…/InPatientManagement/Services/InpAdmissionTransferService.cs:74,123-126`; `…/RegistrationManagement/Services/EncounterPaymentSourceService.cs:31-34,51-53`; `…/Billing/Services/PatientBillingSummaryService.Breakdown.cs:100-118` | **Conflict** | `BilInvoiceEncounterLinks` punya **satu penulis**, yang membaca `InpAdmissionReferral` berstatus `Completed` (rujukan **operasi**; `LinkReason` bawaan `SURGERY_ORIGIN`). Transfer IGD/Rajal → Ranap (`SourceType` `Emergency`/`Outpatient`) hanya mengisi `RegPatientEncounter.SourceEncounterId`/`AdmissionTransferId` — **Billing tidak membaca kolom itu di mana pun**. Nilai `EMERGENCY_ORIGIN` yang direncanakan revisi `1.9` tidak pernah ditulis | Rincian gabungan tagihan ranap (`:100-118`) **tidak memuat** item IGD pada jalur transfer. Penemuan tagihan kandidat pelunasan gabungan tidak dapat bergantung pada tabel tautan untuk jalur utama |
+| `CAP-BIL-12` | Penelusuran rangkaian kunjungan multi-tingkat Rajal → IGD → Ranap (`BKC-DEC-148`) | Billing (pembaca); Registrasi & Rawat Inap (data) | `BE@d268a41f …/RegistrationManagement/Models/RegPatientEncounter.cs:212`; `…/RegistrationManagement/Services/EncounterPaymentSourceService.cs:51`; `EncounterChainResolver` — pencarian `rg` pada `Areas/` menghasilkan nol | **Missing** | Pembaca (`EncounterChainResolver`) belum ada. **Data** juga terbatas: satu-satunya kolom asal (`SourceEncounterId`) hanya ditulis saat admisi ranap, sehingga kunjungan IGD tidak pernah menunjuk poli asalnya. Kedalaman efektif data saat ini **satu hop** (Ranap → asal) | Hop Rajal → IGD tidak dapat ditelusuri oleh algoritma apa pun; rangkaian "penuh" `BKC-DEC-148` praktis berhenti di satu tingkat |
+| `CAP-BIL-13` | Penyimpanan keputusan rekonsiliasi permanen (`BKC-DEC-151`–`153`; `BKC-DES-070`) | Billing | `BilClearanceChainDecision` — `rg` pada `Areas/`, `Repositories/`, `Migrations/` menghasilkan nol | **Missing** | Tabel, model, configuration, dan service belum ada | — |
+| `CAP-BIL-14` | Status `NEEDS_RECONCILIATION`, tabel `BilClearanceObligation`, dan tiga kolom baru pada surat kelayakan (`BKC-DES-063`–`069`) | Billing | `BE@d268a41f Repositories/Configurations/…/BilInpatientClearanceHandoffConfiguration.cs:13-27`; `…/Billing/Models/BilInpatientClearanceHandoff.cs:75-99` | **Missing** | `CK_…_ClearanceStatus` masih empat nilai; `CK_…_ReasonCode` kini **tujuh** nilai (sudah memuat `REEVALUATED_BY_CASHIER`). Empat kode alasan revisi `2.0` dan kolom `ChainDepthEvaluated`, `ChainInvoiceCount`, `ReconciliationReason` belum ada | Dua `CHECK` wajib diperluas pada migration `MVP-37`, dan daftar `ReasonCode` wajib berisi **sebelas** nilai |
+| `CAP-BIL-15` | Hak akses `BillingInpatient : Reconcile` dan Resource `BillingConsolidatedSettlement` | Billing | `BE@d268a41f …/Billing/Controllers/InpatientClearanceController.cs:37,56,92,146,176,215` | **Missing** | Action `BillingInpatient` yang ada: `Read`, `Clearance`, `ValidateDeposit`, `Acknowledge`, `ReadLatest`. `Reconcile` dan Resource baru belum ada. Grup `[Tags]` controller masih `BillingInpatientIntegration` (pola pendek, utang teknis) | Seeder hak akses wajib lebih dulu, kalau tidak seluruh endpoint baru ditolak `403` |
+| `CAP-BIL-16` | Evaluasi ulang kelayakan manual oleh kasir | Billing | `BE@d268a41f …/Billing/Controllers/InpatientClearanceController.cs:116-118`; `…/Billing/Services/InpatientClearanceService.cs:174,189-190`; `BE@d268a41f Repositories/Configurations/…/BilInpatientClearanceHandoffConfiguration.cs:22-24`; `BE@d268a41f Migrations/20261014100000_FixClearanceReasonCodeReevaluatedByCashier.cs`; DB dev: constraint memuat `REEVALUATED_BY_CASHIER`, migration tercatat di `__EFMigrationsHistory` | **Repair** | Source dan migration perbaikan sudah ada dan **terpasang di dev**. `BE-BKC-FIX-022` berstatus 🟡: hasil `dotnet build` dan uji tombol belum tercatat; tabel surat kelayakan dev kosong | Tombol belum terbukti berhasil. Kerusakan asalnya terbukti pada constraint (`ISSUE-BKC-002`) |
+| `CAP-BIL-17` | Penagihan ditangguhkan atas benefit pegawai: `BillingEmployeeBenefitSplitService`, `BilArHandoff.DeferredPatientAmount`, migration `20261014021257_AddEmployeeBenefitGuarantorAndDeferredBillingConsent`, panel pemisahan dan koreksi debitur benefit pada frontend | Billing / HR / Finance — **pemilik belum tercatat** | `BE@d268a41f …/Billing/Services/BillingEmployeeBenefitSplitService.cs`; `BE@d268a41f Migrations/20261014021257_AddEmployeeBenefitGuarantorAndDeferredBillingConsent.cs`; `FE@0b45dd8cd src/components/view/health-services/billing-management/billing-invoices/detail/billing-employee-benefit-split-section.jsx` | **Unknown** | Ada di source kedua repo tetapi **tidak punya keputusan `BKC-DEC-*` maupun baris kemampuan** pada blueprint ini; pencarian pada decision log hanya menemukan catatan agent, bukan keputusan pemilik | Menyentuh `BilArHandoff` dan alur finalisasi yang dipakai blueprint ini, tanpa kontrak yang disetujui |
+
+### 24.3 Kontrak As-Is — Permukaan Kelayakan Rawat Inap
+
+Grup `[Tags("BillingInpatientIntegration")]` (`InpatientClearanceController.cs:37`), base URL `api/v1/health-services/billing-management/billing`.
+
+| Method | Path | Hak akses | Catatan as-is |
+|---|---|---|---|
+| `GET` | `/invoices/encounter/{encounterId}/inpatient-summary` | `BillingInpatient : Read` | Ringkasan tagihan dan kelayakan per kunjungan |
+| `POST` | `/inpatient-clearance/reevaluate` | `BillingInpatient : Clearance` | Menulis surat dengan `REEVALUATED_BY_CASHIER` (`CAP-BIL-16`) |
+| `POST` | `/inpatient-clearance/validate-major-procedure-deposit` | `BillingInpatient : ValidateDeposit` | Nol pemanggil (`CAP-BIL-06`) |
+| `PATCH` | `/inpatient-clearance/{id}/acknowledge` | `BillingInpatient : Acknowledge` | Pengakuan surat oleh bangsal |
+| `GET` | `/inpatient-clearance/encounter/{encounterId}/latest` | `BillingInpatient : ReadLatest` | Status terbaru per kunjungan |
+
+### 24.4 Fakta, Inferensi, dan Rekomendasi
+
+**Fakta**
+
+1. `BilInvoiceEncounterLinks` ditulis oleh **satu** tempat saja, `BillingInpatientEventReceiver.cs:247-266`, dari rujukan operasi. Dibaca oleh `PatientBillingSummaryService.Breakdown.cs:100` dan `InpIntegrationReplayService.cs:149`.
+2. Jalur transfer IGD/Rajal → Ranap (`InpAdmissionTransferService.cs:74`, `SourceType` `Emergency` atau `Outpatient`) menulis `RegPatientEncounter.SourceEncounterId` lewat `EncounterPaymentSourceService.InitializeAdmissionAsync` (`:51`) dan **tidak** menulis tautan Billing.
+3. Tidak ada kolom lain pada `RegPatientEncounter` (`ReferralInstitutionId`, `ReferralDoctorId` adalah rujukan eksternal) yang menunjuk kunjungan asal, dan modul IGD tidak menyimpan kunjungan poli asalnya.
+4. Adapter Rawat Inap memetakan string status tak dikenal ke `Pending` dan gerbang pemulangan menuntut `"CLEARED"` persis.
+5. Dev: nol episode rawat inap, nol surat kelayakan, nol tautan invoice, nol kredit alihan; tabel `InpIntegrationOutboxes` ada. Migration terakhir terpasang: `20261014100000_FixClearanceReasonCodeReevaluatedByCashier`.
+6. Frontend berubah di 12 berkas area billing sejak `6e5edd6df`, **seluruhnya** soal pemisahan benefit pegawai dan finalisasi; `consumer-handoffs` dan Menu Pembayaran tidak tersentuh.
+7. `Tests/` ter-track pada git (54 berkas, empat proyek: Nutrition, OperatingRoom, PatientManagement, Pharmacy) dan 10 berkas menyebut Billing, tetapi seluruhnya soal integrasi farmasi dan outbox Operating Room. Pencarian kata kunci area ini (settlement, alokasi, kamar, biaya administrasi, kelayakan rawat inap, penerima event Rawat Inap) hanya menemukan `BillingInvoiceEligibilityTests.cs` dan `BillingZeroPatientObligationTests.cs` pada proyek Pharmacy; isinya **tidak diaudit** pass ini, dan roadmap mencatat kedua berkas itu pernah membuat proyek tersebut tidak terkompilasi. Tidak ditemukan test untuk `CAP-BIL-01`–`09`. Frontend punya test unit dan e2e untuk layar surat kelayakan.
+
+**Inferensi**
+
+1. Pelunasan gabungan (`CAP-BIL-09`) tidak dapat menemukan tagihan kandidat dari `BilInvoiceEncounterLink` untuk jalur transfer yang merupakan jalur utama IGD → Ranap. Penemuan kandidat harus membaca `RegPatientEncounter.SourceEncounterId` secara langsung, atau Billing harus mulai menulis tautan pada jalur transfer.
+2. Kedalaman rantai efektif pada data nyata adalah satu hop. Algoritma multi-tingkat dengan pagar kedalaman tetap benar dan aman, tetapi **tidak akan pernah menemukan** hop Rajal → IGD sampai Registrasi menyimpannya.
+3. `BKC-OQ-122` ("keseragaman pengisian kolom rujukan") salah dirumuskan: kolom itu bukan terisi tidak seragam, melainkan **tidak ada penulis** untuk hop Rajal → IGD.
+4. `BKC-DEC-139` dan klaim `BE-BKC-FIX-016` ("tautan konsolidasi") hanya benar untuk jalur rujukan operasi.
+
+**Rekomendasi** (bukan desain)
+
+1. Selesaikan `Conflict` `CAP-BIL-11` lewat `/grill-me` **sebelum** `/plan-module-delivery`, karena menentukan di mana tagihan kandidat pelunasan gabungan ditemukan.
+2. Setelah itu, `/design-business-module` mengoreksi premis `BKC-DES-063` ("tingkat pertama sudah terisi otomatis dari IGD atau poliklinik").
+3. Rumuskan ulang `BKC-OQ-122` kepada pemilik Registration Management.
+4. Pertimbangkan `/grill-me` terpisah untuk `CAP-BIL-17` (`Unknown`).
+
+### 24.5 Pertanyaan Penutup
+
+| ID | Pertanyaan | Pemilik jawaban | Menahan |
+|:---|:---|:---|:---|
+| `BKC-CQ-10` | Pada jalur transfer IGD/Rajal → Ranap, siapa yang menautkan kunjungan asal: Billing mulai menulis `BilInvoiceEncounterLink` dari data transfer, atau penelusuran dan pelunasan gabungan membaca `RegPatientEncounter.SourceEncounterId` langsung dan tabel tautan hanya untuk rujukan operasi? | Pemilik modul Billing bersama pemilik Rawat Inap | `MVP-36` (penemuan kandidat), `MVP-37` |
+| `BKC-CQ-11` | Hop Rajal → IGD tidak punya penghubung data. Apakah Registrasi akan menambahkannya, atau cakupan rangkaian dinyatakan satu hop untuk data yang ada? | Pemilik Registration Management (`BKC-OQ-122`) | Tidak menahan; menentukan nilai praktis `BKC-DEC-148` |
+| `BKC-CQ-12` | Tindakan besar kini punya rumus deposit tetapi tidak ada pemanggil. Siapa penegaknya — penjadwalan Operating Room, atau kasir secara manual? | Pemilik Operating Room bersama Billing | Tidak menahan `MVP-36`/`37` |
+| `BKC-CQ-13` | `NEEDS_RECONCILIATION` di bangsal tampil sebagai "Menunggu kasir". Diterima, atau butuh label sendiri? | Pemilik Rawat Inap (`BKC-OQ-121`) | Verifikasi bangsal `MVP-37` |
+| `BKC-CQ-14` | Penagihan ditangguhkan atas benefit pegawai sudah ada di source tanpa keputusan pada blueprint ini. Apakah masuk blueprint `billing-kasir` sebagai amendment, atau dimiliki modul lain? | Pemilik modul Billing, HR, dan Finance | Tidak menahan; risiko kontrak tak terdokumentasi |
+
+### 24.6 Pemicu Impact Scan Berikutnya
+
+| Pemicu | Area terdampak |
+|---|---|
+| Backend SHA berubah pada `InpatientClearanceService`, `InpatientClearanceController`, `BilSettlementConfiguration`, `BillingAllocationService`, `BillingSettlementService`, atau `BilInpatientClearanceHandoffConfiguration` | `CAP-BIL-07`, `08`, `09`, `14`, `16` |
+| Perubahan pada `InpAdmissionTransferService`, `EncounterPaymentSourceService`, atau `BillingInpatientEventReceiver` | `CAP-BIL-01`, `11`, `12` |
+| Frontend SHA berubah pada `consumer-handoffs`, Menu Pembayaran, atau `inpatient-billing-status-constants.js` | `CAP-BIL-10` |
+| Keputusan `BKC-CQ-10` | `CAP-BIL-11` berubah dari `Conflict` |
+| `BE-BKC-FIX-022` mencapai ✅ | `CAP-BIL-16` berubah dari `Repair` |
+
+
+### 24.7 Koreksi 14 Oktober 2026 (impact scan terbatas saat `/design-business-module` revisi `2.2`)
+
+Dua klaim pada §24 keliru dan dikoreksi di sini. Tabel §24.2 sengaja tidak ditulis ulang.
+
+| Baris | Klaim §24 | Yang benar | Bukti |
+|---|---|---|---|
+| `CAP-BIL-05` | **Ready to reuse** | **Repair.** `ReconcileReferredOutpatientAdminFeeAsync` memilih **semua** invoice Rawat Jalan milik pasien tanpa batas waktu dan tanpa syarat rujukan, lalu mengkredit item admin yang sudah dibayar dan mem-void yang belum dibayar pada setiap invoice itu. Menyimpang dari `BKC-DEC-119` dan `BIL-VAL-126` ("encounter rujukan"). Keparahan **High** | `BE@d268a41f …/Billing/Services/AdministrationFeeCalculationService.cs #ReconcileReferredOutpatientAdminFeeAsync` (query invoice Rawat Jalan, `foreach` sampai `:274`); dipanggil `…/Billing/Services/BillingCalculationService.cs:604-614` setiap kali invoice rawat inap dihitung |
+| `CAP-BIL-11` | Tanpa tautan, "penemuan tagihan kandidat pelunasan gabungan tidak dapat bergantung pada tabel tautan untuk jalur utama" — dibaca sebagai penahan `MVP-36` | Status **Conflict** tetap, tetapi dampaknya pada `MVP-36` **berlebihan**: `BIL-INT-019` (revisi `1.9`) sudah membaca `RegPatientEncounter.SourceEncounterId` langsung sebagai sumber kedua (`REFERRAL_CHAIN`). Yang benar-benar terdampak: rincian gabungan tagihan rawat inap, dan penelusur rantai `MVP-37` yang hanya membaca `SourceEncounterId` **di atas** tingkat pertama sehingga gagal terbuka untuk pasien transfer | `contracts/integration-contract.md` `BIL-INT-019` tabel "Cara tagihan kandidat ditemukan"; `02-backend-architecture.md` amendment revisi `2.0` bagian 2 |
+| (baru) | — | Event `ADMISSION_CONFIRMED` duplikat memanggil ulang `EnsureEncounterLinksAsync` dengan tanda terima asli, sehingga perluasan penulis tautan ikut berlaku pada putar ulang. Layanan putar ulang milik Rawat Inap hanya memilih ulang event yang rujukan operasinya belum bertautan | `…/Billing/Services/BillingInpatientEventReceiver.cs:96-101`; `…/InPatientManagement/Services/InpIntegrationReplayService.cs:84-85,147-150` |

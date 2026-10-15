@@ -33,10 +33,10 @@
 ```text
 ✅{Registry} ─> BE-CRM-001 ✅ ─┬─> BE-CRM-002 ✅ ─┐
                            ├─> BE-CRM-003 ─┤
-                           ├─> BE-CRM-010 ─┼─> BE-CRM-011 ─┬─> BE-CRM-012 ─┐
-                           └─> BE-CRM-023  │               ├─> BE-CRM-013 ─┼─> BE-CRM-015 (rilis bersama FE-CRM-001)
-                                           └─> BE-CRM-014  │               └─> BE-CRM-020
-                                               BE-CRM-021 <┘ (butuh 010)
+                           ├─> BE-CRM-010 ─┼─> BE-CRM-011 ─┬─> BE-CRM-012 ✅ ─┐
+                           └─> BE-CRM-023  │               ├─> BE-CRM-013 ✅ ─┼─> BE-CRM-015 🟡 (rilis bersama FE-CRM-001)
+                                           └─> BE-CRM-014 ✅│               └─> BE-CRM-020 ✅
+                                               BE-CRM-021 ✅ <┘ (butuh 010)
 ⛔{AG-03 owner rawat-jalan} ─> BE-CRM-022 (butuh 010)
 ```
 
@@ -56,12 +56,12 @@
 | `BE-CRM-023` ✅ | Respons daftar/detail/ringkasan memuat kolom dan status baru | CRM-01 | 001 | Selesai — [laporan](../task/report/backend/BE-CRM-023.md) |
 | `BE-CRM-010` ✅ | Satu aturan member aktif + penulis proyeksi | CRM-05 | 001 | Selesai — [laporan](../task/report/backend/BE-CRM-010.md) |
 | `BE-CRM-011` 🟡 | Daftar membership baru lewat service | CRM-02 | 002, 003, 010 | Selesai, `AT-12` paralel di PostgreSQL belum — [laporan](../task/report/backend/BE-CRM-011.md) |
-| `BE-CRM-012` | Perpanjangan dan upgrade | CRM-02 | 011 | — |
-| `BE-CRM-013` | Batal, verifikasi data lama, catatan, riwayat | CRM-04 | 011 | — |
-| `BE-CRM-014` | Lookup pasien + status aktif pasien | CRM-02, CRM-05 | 010 | — |
-| `BE-CRM-015` | Penutupan rute kiosk, pensiun endpoint lama, `IsMember` tidak lagi diterima | CRM-06, CRM-05 | 011, 013; rilis bersama `FE-CRM-001` | — |
-| `BE-CRM-020` | Proses terjadwal harian | CRM-03 | 011, 012 | — |
-| `BE-CRM-021` | Kiosk hanya membaca membership Aktif | CRM-05 | 010 | — |
+| `BE-CRM-012` ✅ | Perpanjangan dan upgrade | CRM-02 | 011 | Selesai — [laporan](../task/report/backend/BE-CRM-012.md) |
+| `BE-CRM-013` ✅ | Batal, verifikasi data lama, catatan, riwayat | CRM-04 | 011 | Selesai — [laporan](../task/report/backend/BE-CRM-013.md) |
+| `BE-CRM-014` ✅ | Lookup pasien + status aktif pasien | CRM-02, CRM-05 | 010 | Selesai — [laporan](../task/report/backend/BE-CRM-014.md) |
+| `BE-CRM-015` 🟡 | Penutupan rute kiosk, pensiun endpoint lama, `IsMember` tidak lagi diterima | CRM-06, CRM-05 | 011, 013; rilis bersama `FE-CRM-001` | Backend selesai, menunggu `FE-CRM-001` untuk rilis — [laporan](../task/report/backend/BE-CRM-015.md) |
+| `BE-CRM-020` ✅ | Proses terjadwal harian | CRM-03 | 011, 012 | Selesai — [laporan](../task/report/backend/BE-CRM-020.md) |
+| `BE-CRM-021` ✅ | Kiosk hanya membaca membership Aktif | CRM-05 | 010 | Selesai — [laporan](../task/report/backend/BE-CRM-021.md) |
 | `BE-CRM-022` | Antrean RJ memakai resolver | CRM-05 | 010, ⛔ `AG-03` | ⛔ |
 
 ## Rincian Task
@@ -177,7 +177,9 @@ Selesai 2026-10-13 kecuali uji paralel `AT-12` di PostgreSQL (index unik sudah t
 | Risiko/pemilik | Format nomor belum final (`CRM-GAP-012`): pakai contoh `MBR-YYMM-nnnnnn` sebagai konfigurasi. Pemilik: Yoga |
 | DoD | Kriteria terbukti dan laporan task tertulis |
 
-### `BE-CRM-012` — Perpanjangan dan upgrade
+### `BE-CRM-012` ✅ — Perpanjangan dan upgrade
+
+Selesai 2026-10-13 di `83ef27bd`. Laporan: [`task/report/backend/BE-CRM-012.md`](../task/report/backend/BE-CRM-012.md).
 
 | Field | Isi |
 |---|---|
@@ -192,7 +194,9 @@ Selesai 2026-10-13 kecuali uji paralel `AT-12` di PostgreSQL (index unik sudah t
 | Risiko/pemilik | Penyelesaian (lunas ke Aktif/Terjadwal) **tidak** di sini, karena milik `EPIC CRM-08` |
 | DoD | Kriteria terbukti |
 
-### `BE-CRM-013` — Batal, verifikasi, catatan, riwayat
+### `BE-CRM-013` ✅ — Batal, verifikasi, catatan, riwayat
+
+Selesai 2026-10-13. Refund/pembatalan tagihan dicatat sebagai permintaan di riwayat sampai `DEC-CRM-001`. Laporan: [`task/report/backend/BE-CRM-013.md`](../task/report/backend/BE-CRM-013.md).
 
 | Field | Isi |
 |---|---|
@@ -207,7 +211,9 @@ Selesai 2026-10-13 kecuali uji paralel `AT-12` di PostgreSQL (index unik sudah t
 | Risiko/pemilik | Refund salah input belum bisa dibuktikan sampai S2. Pemilik: Yoga |
 | DoD | Kriteria terbukti |
 
-### `BE-CRM-014` — Lookup dan status aktif
+### `BE-CRM-014` ✅ — Lookup dan status aktif
+
+Selesai 2026-10-13. Laporan: [`task/report/backend/BE-CRM-014.md`](../task/report/backend/BE-CRM-014.md).
 
 | Field | Isi |
 |---|---|
@@ -222,7 +228,9 @@ Selesai 2026-10-13 kecuali uji paralel `AT-12` di PostgreSQL (index unik sudah t
 | Risiko/pemilik | — |
 | DoD | Kriteria terbukti |
 
-### `BE-CRM-015` — Penutupan dan pensiun endpoint
+### `BE-CRM-015` 🟡 — Penutupan dan pensiun endpoint
+
+Backend selesai 2026-10-13. **Belum boleh dirilis tanpa `FE-CRM-001`.** Juga memperbaiki akar member palsu (`IsMember` sentinel). `AT-19` dan `UAT-11` belum terbukti. Laporan: [`task/report/backend/BE-CRM-015.md`](../task/report/backend/BE-CRM-015.md).
 
 | Field | Isi |
 |---|---|
@@ -237,7 +245,9 @@ Selesai 2026-10-13 kecuali uji paralel `AT-12` di PostgreSQL (index unik sudah t
 | Risiko/pemilik | Klien lain yang belum diketahui memanggil endpoint lama. Mitigasi: grep FE sebelum merge. Pemilik: Yoga |
 | DoD | Kriteria terbukti |
 
-### `BE-CRM-020` — Proses terjadwal
+### `BE-CRM-020` ✅ — Proses terjadwal
+
+Selesai 2026-10-13. Bawaan menyala (`PatientMembership:Lifecycle:Enabled`). Laporan: [`task/report/backend/BE-CRM-020.md`](../task/report/backend/BE-CRM-020.md).
 
 | Field | Isi |
 |---|---|
@@ -252,7 +262,9 @@ Selesai 2026-10-13 kecuali uji paralel `AT-12` di PostgreSQL (index unik sudah t
 | Risiko/pemilik | Startup backend membebani DB. Proses dibatasi per batch. Pemilik: implementer |
 | DoD | Kriteria terbukti |
 
-### `BE-CRM-021` — Kiosk hanya membaca Aktif
+### `BE-CRM-021` ✅ — Kiosk hanya membaca Aktif
+
+Selesai 2026-10-13, termasuk titik baca ketiga `KioskScanSessionController`. Laporan: [`task/report/backend/BE-CRM-021.md`](../task/report/backend/BE-CRM-021.md).
 
 | Field | Isi |
 |---|---|

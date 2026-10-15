@@ -11,7 +11,7 @@
 | Trace | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 2 |
 | Contract version | `BIL-API-1.4`, `BIL-PERMISSION-1.2` — keduanya `approved` |
 | Wewenang UI | Terkunci: keberadaan tab Rawat Inap, rincian panel kamar, banner status clearance, hak akses tombol, kosakata badge status (`CLEARED`, `BLOCKED`, `REVOKED`) dan warna penanda. `DEV_DISCRETION`: jarak, padding kartu, transisi animasi, ikon visual |
-| Dependency | `[BE] BE-BKC-076` — 🟡 selesai 24 September 2026 (controller `InpatientClearanceController` terpasang dengan 6 endpoint integrasi, perlindungan privasi data perawat, penegakan RBAC Resource `BillingInpatient`, dan kontrak Swagger `BIL-API-1.4`). Lihat [laporan](../backend/BE-BKC-076.md) |
+| Dependency | `[BE] BE-BKC-076` — ✅ selesai 24 September 2026 (controller `InpatientClearanceController` terpasang dengan 6 endpoint integrasi, perlindungan privasi data perawat, penegakan RBAC Resource `BillingInpatient`, dan kontrak Swagger `BIL-API-1.4`). Lihat [laporan](../backend/BE-BKC-076.md) |
 | Klasifikasi | `MEDIUM` — penambahan tab navigasi, integrasi thunk evaluasi ulang kelayakan, parsing detail respon handoff ranap, lencana status 3-state, format sisa tagihan, modal evaluasi ulang, dan pengamanan otorisasi per-baris |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` — berkas view, hook, constants, slice, dan test fitur consumer-handoffs. Laporan ini ditulis di `NewQuilvianSystemBackend` sesuai wewenang lintas repository sempit yang diberikan `AGENTS.md` frontend § Pelaporan Task Modul |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `0f022e0c45dd0b941ba83b01e2923944de49b201` |
 | Commit backend yang dijadikan rujukan | `59910dc0ac04c7e99de36f9b299e3024c6f86a39` |
 | Tanggal | 24 September 2026 |
-| Status | 🟡 **SEBAGIAN — source dan validasi statis selesai penuh; 6/6 unit test lulus; npm run build lulus (exit code 0).** Seluruh acceptance criteria terpetakan ke source kode. Yang masih menahan `✅` adalah uji manual interaktif live API ter-autentikasi pada backend runtime aktif. |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 
