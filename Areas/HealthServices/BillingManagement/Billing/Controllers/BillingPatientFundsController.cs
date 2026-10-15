@@ -90,6 +90,49 @@ public sealed class BillingPatientFundsController : ControllerBase
         }
     }
 
+    [HttpGet("deposits/{encounterId:guid}/workspace")]
+    [AccessAction("Read", "Read Inpatient Deposit Workspace", AccessType = AccessTypes.Read, SortOrder = 6)]
+    [AccessPermission("BillingDeposit", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<DepositWorkspaceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> GetDepositWorkspace(
+        Guid encounterId,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? movementType = null,
+        [FromQuery] DateTimeOffset? startDate = null,
+        [FromQuery] DateTimeOffset? endDate = null,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result = await _service.GetDepositWorkspaceAsync(
+                encounterId,
+                pageNumber,
+                pageSize,
+                movementType,
+                startDate,
+                endDate,
+                search,
+                cancellationToken);
+
+            return Ok(ApiResponse<DepositWorkspaceResponse>.Ok(
+                result, "Workspace deposit rawat inap berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(
+                StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingDepositValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpGet("deposit-policies")]
     [AccessAction("Read", "Read Deposit Policy", AccessType = AccessTypes.Read, SortOrder = 4)]
     [AccessPermission("BillingDeposit", "Read")]

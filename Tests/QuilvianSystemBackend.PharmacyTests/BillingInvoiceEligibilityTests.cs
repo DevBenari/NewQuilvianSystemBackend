@@ -340,6 +340,101 @@ public class BillingInvoiceEligibilityTests : IDisposable
         Assert.Equal(1, totalItems);
     }
 
+    [Fact]
+    public async Task L_Encounter_Dengan_Invoice_CLOSED_TIDAK_Muncul_Di_EncounterOptions()
+    {
+        var enc = BuatEncounter(EncounterStatus.Billing, completedAt: null);
+        var invoice = new BilInvoice
+        {
+            Id = Guid.NewGuid(),
+            EncounterId = enc.Id,
+            InvoiceNumber = "INV-CLOSED-001",
+            ServiceType = "OUTPATIENT",
+            Status = BillingInvoiceStatuses.Closed,
+            ClosedAt = DateTimeOffset.UtcNow,
+            RowVersion = Guid.NewGuid(),
+            VisitDate = enc.EncounterDate,
+            CreateDateTime = DateTime.UtcNow
+        };
+        _dbContext.BilInvoices.Add(invoice);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _service.GetActiveEncounterOptionsAsync(enc.EncounterNumber, 10, CancellationToken.None);
+
+        Assert.DoesNotContain(result, x => x.Id == enc.Id);
+    }
+
+    [Fact]
+    public async Task M_Encounter_Dengan_Invoice_SETTLED_BY_WRITE_OFF_TIDAK_Muncul_Di_EncounterOptions()
+    {
+        var enc = BuatEncounter(EncounterStatus.Billing, completedAt: null);
+        var invoice = new BilInvoice
+        {
+            Id = Guid.NewGuid(),
+            EncounterId = enc.Id,
+            InvoiceNumber = "INV-WRITEOFF-001",
+            ServiceType = "OUTPATIENT",
+            Status = BillingInvoiceStatuses.SettledByWriteOff,
+            ClosedAt = DateTimeOffset.UtcNow,
+            RowVersion = Guid.NewGuid(),
+            VisitDate = enc.EncounterDate,
+            CreateDateTime = DateTime.UtcNow
+        };
+        _dbContext.BilInvoices.Add(invoice);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _service.GetActiveEncounterOptionsAsync(enc.EncounterNumber, 10, CancellationToken.None);
+
+        Assert.DoesNotContain(result, x => x.Id == enc.Id);
+    }
+
+    [Fact]
+    public async Task N_Encounter_Dengan_Invoice_FINAL_TIDAK_Muncul_Di_EncounterOptions()
+    {
+        var enc = BuatEncounter(EncounterStatus.Billing, completedAt: null);
+        var invoice = new BilInvoice
+        {
+            Id = Guid.NewGuid(),
+            EncounterId = enc.Id,
+            InvoiceNumber = "INV-FINAL-001",
+            ServiceType = "OUTPATIENT",
+            Status = BillingInvoiceStatuses.Final,
+            RowVersion = Guid.NewGuid(),
+            VisitDate = enc.EncounterDate,
+            CreateDateTime = DateTime.UtcNow
+        };
+        _dbContext.BilInvoices.Add(invoice);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _service.GetActiveEncounterOptionsAsync(enc.EncounterNumber, 10, CancellationToken.None);
+
+        Assert.DoesNotContain(result, x => x.Id == enc.Id);
+    }
+
+    [Fact]
+    public async Task O_Encounter_Dengan_Invoice_OPEN_Muncul_Di_EncounterOptions_Dengan_HasInvoice_True()
+    {
+        var enc = BuatEncounter(EncounterStatus.Billing, completedAt: null);
+        var invoice = new BilInvoice
+        {
+            Id = Guid.NewGuid(),
+            EncounterId = enc.Id,
+            InvoiceNumber = "INV-OPEN-ACTIVE-001",
+            ServiceType = "OUTPATIENT",
+            Status = BillingInvoiceStatuses.Open,
+            RowVersion = Guid.NewGuid(),
+            VisitDate = enc.EncounterDate,
+            CreateDateTime = DateTime.UtcNow
+        };
+        _dbContext.BilInvoices.Add(invoice);
+        await _dbContext.SaveChangesAsync();
+
+        var result = await _service.GetActiveEncounterOptionsAsync(enc.EncounterNumber, 10, CancellationToken.None);
+
+        var match = Assert.Single(result, x => x.Id == enc.Id);
+        Assert.True(match.HasInvoice);
+    }
+
     public void Dispose()
     {
         _dbContext.Dispose();

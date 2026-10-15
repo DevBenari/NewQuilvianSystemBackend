@@ -1388,6 +1388,14 @@ public sealed class BillingInvoiceService
                 && encounter.IsActive
                 && ManualChargeEligibleEncounterStatuses.Contains(encounter.EncounterStatus)
                 && !encounter.CompletedAt.HasValue
+                && !_dbContext.BilInvoices.Any(inv =>
+                    inv.EncounterId == encounter.Id
+                    && !inv.IsDelete
+                    && !inv.IsCancel
+                    && (inv.Status == BillingInvoiceStatuses.Closed
+                        || inv.Status == BillingInvoiceStatuses.SettledByWriteOff
+                        || inv.Status == BillingInvoiceStatuses.Final
+                        || inv.ClosedAt.HasValue))
             select new { encounter, patient };
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -1422,7 +1430,11 @@ public sealed class BillingInvoiceService
         var invoicedEncounterIds = encounterIds.Count == 0
             ? []
             : await _dbContext.BilInvoices.AsNoTracking()
-                .Where(x => encounterIds.Contains(x.EncounterId) && !x.IsDelete)
+                .Where(x => encounterIds.Contains(x.EncounterId)
+                    && !x.IsDelete
+                    && !x.IsCancel
+                    && x.Status == BillingInvoiceStatuses.Open
+                    && !x.ClosedAt.HasValue)
                 .Select(x => x.EncounterId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
@@ -1876,7 +1888,7 @@ public sealed class BillingInvoiceService
                 _dbContext.BilInvoices.Add(invoice);
             }
             // BKC-DEC-120, BIL-VAL-127: Penolakan mutlak tagihan susulan saat invoice CLOSED
-            if (invoice.Status == BillingInvoiceStatuses.Closed)
+            if (invoice.Status == BillingInvoiceStatuses.Closed || invoice.ClosedAt.HasValue)
             {
                 throw new BillingInvoiceValidationException(
                     "Tagihan susulan ditolak karena invoice telah ditutup. Pembukaan kembali memerlukan persetujuan Supervisor Kasir.");

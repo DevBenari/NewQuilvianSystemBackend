@@ -173,6 +173,8 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<PettyCashBudgetService>();
         // BE-BKC-037 / PC-DES-001: siklus hidup voucher kas kecil penuh.
         services.AddScoped<PettyCashVoucherService>();
+        // Laporan Pendapatan Kasir per Shift (CashierShiftRevenueReportService).
+        services.AddScoped<CashierShiftRevenueReportService>();
 
         return services;
     }

@@ -62373,6 +62373,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("DeferredConsentNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<decimal>("DeferredPatientAmount")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(18, 2)
@@ -62390,6 +62394,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<Guid>("FinalizationRecordId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("FinancingChoice")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("HandoffKey")
                         .HasColumnType("uuid");
@@ -104021,6 +104029,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<Guid?>("FamilyMemberIdSnapshot")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("FinancingChoice")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid?>("InsuranceProviderId")
                         .HasColumnType("uuid");
