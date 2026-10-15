@@ -9,7 +9,7 @@
 | Masukan dan approval | `04-prd-to-mvp.md` bagian 25, `contracts/validation-matrix.md` bagian 16 (`VAL-ADM-01` s.d. `05`), `00-interview-decisions.md` revision `40` (`RWI-DEC-267` s.d. `273`, `RWI-AC-388` s.d. `395`), `03-frontend-architecture.md` revision `0.11`, `05-skema-tampilan.md` revision `0.7` |
 | Keputusan | `RWI-DEC-267` (No HP Kontak Darurat max 13 digit), `RWI-DEC-268` (Default Ranap Service Unit), `RWI-DEC-269` (Rujukan Teks Ringkas), `RWI-DEC-270` (3 Kategori Pasien), `RWI-DEC-271` (Split Screen Pasien Lama), `RWI-DEC-272` (Dedicated Step Persetujuan & TTD Digital), `RWI-DEC-273` (Invariant Penanda Tangan Bayi) |
 | Source SHA | Backend `fdf85a07` / branch `MHamzah`; Frontend `dd2cbf7c` / branch `HamzahV2` |
-| Deret ID | `BE-RWI-204` s.d. `BE-RWI-205` |
+| Deret ID | `BE-RWI-204` s.d. `BE-RWI-205`; `BE-RWI-227` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) (`FIX-EPS-008-01`, disetujui pemilik); `BE-RWI-229` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) (`FIX-EPS-009-05`, disetujui pemilik lewat laporan yang sama); `BE-RWI-230` ditambahkan 13 Oktober 2026 dari [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) (`FIX-EPS-010-01`, disetujui pemilik lewat laporan yang sama) |
 | Roadmap pendamping | `frontend-roadmap-admisi-pendaftaran.md`, `requirement-traceability-admisi-pendaftaran.md` |
 
 ---
@@ -30,17 +30,25 @@ flowchart TD
     subgraph backend[Roadmap Backend: Amandemen Admisi Pendaftaran]
         BE204["BE-RWI-204: Validasi Kontak Darurat 13 Digit & Default Service Unit Ranap"]
         BE205["BE-RWI-205: Persistence Persetujuan Rawat Inap, TTD Digital & Invariant Bayi"]
+        BE227["✅ BE-RWI-227: Edit Persetujuan Berversi & Riwayat Perubahan (PLAN-REPAIR-EPS-008)"]
+        BE229["✅ BE-RWI-229: Kunci Baris Episode saat Draft Digugurkan (PLAN-REPAIR-EPS-009)"]
+        BE230["✅ BE-RWI-230: Kelayakan Admisi Langkah 1 & Penjaga INV-INP-10 saat Admisi Dibuka (PLAN-REPAIR-EPS-010)"]
         
         BE204 --> BE205
+        BE205 --> BE227
+        BE204 --> BE229
+        BE204 --> BE230
     end
     
     subgraph frontendPrereq[Prasyarat untuk Tim Frontend]
         FE222["FE-RWI-222: Input Masking Kontak Darurat & Dropdown Unit Tujuan"]
         FE225["FE-RWI-225: Form Persetujuan & Kanvas TTD Digital"]
+        FE244["FE-RWI-244: Langkah 1 Pasien Lama Memeriksa Kelayakan Admisi"]
     end
     
     BE204 -.->|Membuka kontrak| FE222
     BE205 -.->|Membuka kontrak simpan TTD| FE225
+    BE230 -.->|Membuka kontrak admission-eligibility| FE244
 ```
 
 ---
@@ -51,6 +59,9 @@ flowchart TD
 |---|---|---|---|---|---|---|---|---|---|---|
 | [`BE-RWI-204`](../task/report/backend/BE-RWI-204.md) ✅ | Backend menolak nomor HP kontak darurat > 13 digit numerik dan otomatis mengikat ServiceUnit rawat inap pada pembuatan encounter admisi | `FR-RI-179`, `FR-RI-183`, `RWI-DEC-267`, `RWI-DEC-268` | Validation Matrix `0.11.0` (`VAL-ADM-01`, `VAL-ADM-02`), API Contract `0.11.0` | DTO `PatientEmergencyContactCreateDto`, `PatientEncounterCreateDto` | Validasi FluentValidation/DataAnnotation nomor darurat max 13 digit numerik, pemastian default `ServiceUnitId` ranap valid | — | `RWI-AC-388`, `RWI-AC-389` | Unit test validasi nomor telepon (11–13 digit lulus, 14 digit ditolak, karakter huruf ditolak), test payload encounter ranap | Nomor lama di DB / Muhammad Hamzah | ✅ **Selesai 10 Oktober 2026.** Seluruh AC terbukti; validasi DTO & controller aktif; [laporan](../task/report/backend/BE-RWI-204.md) |
 | [`BE-RWI-205`](../task/report/backend/BE-RWI-205.md) ✅ | Endpoint penyimpanan dokumen persetujuan rawat inap & citra TTD digital base64 ke episode serta penegakan invariant hukum penanda tangan bayi baru lahir | `FR-RI-184`, `FR-RI-185`, `RWI-DEC-272`, `RWI-DEC-273` | Validation Matrix `0.11.0` (`VAL-ADM-04`, `VAL-ADM-05`), State Transition `0.11.0`, API Contract `0.11.0` | `InpAdmissionDocumentService`, `InpAdmissionDocumentSignature`, `InpAdmissionDocument` | Endpoint `POST /api/v1/inpatient-admissions/{episodeId}/consent`, model DTO consent, validasi base64 PNG, invariant penolakan penanda tangan mandiri untuk bayi | `BE-RWI-204` | `RWI-AC-393`, `RWI-AC-394` | Integration/API test simpan persetujuan; test penolakan HTTP 422 jika pasien bayi ditandatangani oleh diri sendiri | Ukuran payload citra TTD base64 / Tim DB | ✅ **Selesai 10 Oktober 2026.** Seluruh AC terbukti; controller, DTO, service consent aktif; [laporan](../task/report/backend/BE-RWI-205.md) |
+| [`BE-RWI-227`](../task/report/backend/BE-RWI-227.md) ✅ | Persetujuan bertanda tangan dapat dikoreksi dari Workspace PPRI sebagai versi baru beralasan; versi lama tetap utuh; riwayat menampilkan pengubah, waktu, alasan, dan isian yang berubah; simpan ulang dari admisi tidak lagi menimpa | `ISS-EPS-008-01`, `-02`, `-T1`; `RWI-DEC-240`, `RWI-DEC-236` butir 3; permintaan pemilik 13-10-2026 | [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) `FIX-EPS-008-01` (delta API dicatat di laporan) | `InpAdmissionDocument` rantai versi, `InpAdmissionDocumentService.Touch`/`IsUniqueViolation`, `InpAdmissionWriteGuard`, `InpAdmissionSourceReader.GetUsersAsync` | `POST …/admission-workspace/general-consent/revisions`, `GET …/admission-workspace/general-consent/history`, pembacaan versi aktif pada `…/consent`; tanpa migration | `BE-RWI-205` | 10 butir `FIX-EPS-008-01` | Build, QBE strict per berkas, review akses role; uji PostgreSQL oleh pemilik | Ukuran baris bertambah per versi (PNG) / Muhammad Hamzah | ✅ **Selesai 13 Oktober 2026 (source + build).** Build `Repair008`: 0 error, 279 warning; QBE strict 3 berkas PASS 0 violation; 10/10 AC terpetakan ke source. Uji transaksi PostgreSQL `NOT RUN`, dikecualikan atas keputusan pemilik (build/uji runtime oleh pemilik); [laporan](../task/report/backend/BE-RWI-227.md) |
+| [`BE-RWI-229`](../task/report/backend/BE-RWI-229.md) ✅ | Admisi Draft yang lewat batas digugurkan tepat satu kali walaupun dua pembacaan berjalan bersamaan; daftar dan ringkasan episode tidak lagi jatuh 500 duplicate key | `ISS-EPS-009-05`; `RWI-DEC-030`; laporan pemilik 13-10-2026 | [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) `FIX-EPS-009-05`; tanpa perubahan API | Pola kunci `InpBedMutationCoordinator.LockAsync`/`LockBedRowAsync`, `InpBedTransactionLease` | `InpEpisodeService.ExpireDraftIfDueAsync` + `LockDraftStillDueAsync`; tanpa migration | — | 3 butir `FIX-EPS-009-05` | Build, QBE strict; uji PostgreSQL bersamaan oleh pemilik | Pembaca bersamaan menunggu kunci beberapa milidetik / Muhammad Hamzah | ✅ **Selesai 13 Oktober 2026 (source + build).** Build 0 error/284 warning (tidak ada dari task ini); QBE strict PASS 0 violation; 3/3 AC terpetakan ke source; uji PostgreSQL bersamaan `NOT RUN`, dikecualikan atas keputusan pemilik; [laporan](../task/report/backend/BE-RWI-229.md) |
+| [`BE-RWI-230`](../task/report/backend/BE-RWI-230.md) ✅ | Langkah 1 admisi dapat menanyakan ke server apakah pasien boleh diadmisi; pasien yang sedang dirawat tidak lagi meninggalkan kunjungan dan episode Draft sisa saat admisi dibuka | `ISS-EPS-010-01`, `-02`, `-03`, `-T1`; `RWI-DEC-054`, `RWI-DEC-297`; laporan pemilik 13-10-2026 | [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) `FIX-EPS-010-01`; delta API: `GET /episodes/admission-eligibility` baru, `POST /episodes` 409 `PATIENT_ALREADY_ADMITTED` | `FindPresentEpisodeAsync`, `CheckForAdmissionAsync`, `OutpatientEncounterRules.WhereBlocksRegistration`, `ExpireDraftIfDueAsync` | `InpEpisodeService.AdmissionEligibility.cs`, DTO `InpatientAdmissionEligibilityDtos.cs`, penjaga `OpenAdmissionAsync`, saklar/kalimat kunjungan aktif dipindah ke `OutpatientEncounterRules`; tanpa migration | — | 8 butir `FIX-EPS-010-01` | Build, QBE strict; uji API oleh pemilik | Pembacaan kelayakan dapat menggugurkan Draft lewat batas (pola daftar episode) / Muhammad Hamzah | ✅ **Selesai 13 Oktober 2026 (source + build).** Build 0 error/284 warning (garis dasar, tidak ada dari task ini); QBE strict 6 berkas PASS 0 violation; 8/8 AC terpetakan ke source; uji API runtime `NOT RUN`, dikecualikan atas keputusan pemilik; [laporan](../task/report/backend/BE-RWI-230.md) |
 
 ---
 
@@ -168,3 +179,37 @@ flowchart TD
         }
       }
       ```
+
+### 4.3 ✅ `BE-RWI-227` — Edit Persetujuan Berversi dan Riwayat Perubahan
+
+| Field | Nilai |
+|---|---|
+| Status | ✅ SELESAI — 13 Oktober 2026 (source + build). Build `Repair008` 0 error/279 warning; QBE strict 3 berkas PASS; 10/10 AC terpetakan ke source; uji PostgreSQL `NOT RUN` (dikecualikan atas keputusan pemilik) |
+| Asal | [`PLAN-REPAIR-EPS-008`](../docs/plan-repair/plan-repair-008-edit-riwayat-general-consent.md) `FIX-EPS-008-01`, disetujui pemilik 13 Oktober 2026 |
+| Tujuan bisnis | Persetujuan umum yang salah dapat dikoreksi dari Workspace PPRI tanpa menghilangkan versi yang ditandatangani semula; setiap koreksi tercatat siapa, kapan, alasan, dan isian yang berubah |
+| Endpoint | `POST …/admission-workspace/general-consent/revisions` (`InpatientAdmissionDocument : Update`); `GET …/admission-workspace/general-consent/history` (`InpatientAdmissionDocument : Read`); `GET`/`POST …/consent` membaca dan menulis versi aktif |
+| Contoh | Versi 1 Ny. Rina NIK `…98` oleh Sari 09.40 → koreksi Dewi 10.15 beralasan "NIK penanda tangan salah ketik saat admisi" → versi 1 `Superseded` utuh, versi 2 `Completed`; riwayat "No. Identitas: …98 → …99" |
+| Acceptance criteria | 10 butir pada rencana perbaikan `FIX-EPS-008-01` |
+| Laporan | [Laporan BE-RWI-227](../task/report/backend/BE-RWI-227.md) |
+
+### 4.4 ✅ `BE-RWI-229` — Kunci baris episode saat Draft digugurkan
+
+| Field | Nilai |
+|---|---|
+| Status | ✅ SELESAI — 13 Oktober 2026 (source + build). Build 0 error/284 warning; QBE strict PASS; 3/3 AC terpetakan ke source; uji PostgreSQL bersamaan `NOT RUN` (dikecualikan atas keputusan pemilik) |
+| Asal | [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md) `FIX-EPS-009-05` |
+| Tujuan bisnis | Pembacaan daftar episode tidak pernah gagal hanya karena dua layar membaca bersamaan saat ada admisi telantar |
+| Contoh | `GET /episodes` dan `GET /episodes/summary` bersamaan atas Draft lewat batas → keduanya 200, satu baris riwayat `ExpireDraft` |
+| Laporan | [Laporan BE-RWI-229](../task/report/backend/BE-RWI-229.md) |
+
+### 4.5 ✅ `BE-RWI-230` — Kelayakan admisi langkah 1 dan penjaga `INV-INP-10` saat admisi dibuka
+
+| Field | Nilai |
+|---|---|
+| Status | ✅ SELESAI — 13 Oktober 2026 (source + build). Build 0 error/284 warning; QBE strict 6 berkas PASS; 8/8 AC terpetakan ke source; uji API runtime `NOT RUN` (dikecualikan atas keputusan pemilik) |
+| Asal | [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) `FIX-EPS-010-01` |
+| Tujuan bisnis | Petugas tahu di langkah 1 bahwa pasien sedang dirawat, masih punya kunjungan aktif, atau punya permintaan Kamar Pulih — bukan lima langkah kemudian — dan tidak ada admisi ganda yang tertinggal |
+| Endpoint | `GET /api/v1/health-services/inpatient-management/episodes/admission-eligibility?patientId=&admissionReferralId=` (`InpatientEpisode : Read`); `POST /episodes` kini 409 `PATIENT_ALREADY_ADMITTED` untuk pasien yang sedang hadir |
+| Contoh | Tn. Umar dirawat di Kamar 02 BED 001 → `canContinue=false`, `blockingCode=PATIENT_ALREADY_ADMITTED`, kalimat "… Bila memang pindah kamar, pakai perpindahan, bukan admisi baru." |
+| Acceptance criteria | 8 butir pada rencana perbaikan `FIX-EPS-010-01` |
+| Laporan | [Laporan BE-RWI-230](../task/report/backend/BE-RWI-230.md) |

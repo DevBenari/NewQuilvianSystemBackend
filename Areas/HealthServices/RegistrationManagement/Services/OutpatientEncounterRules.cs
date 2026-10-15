@@ -1,7 +1,9 @@
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using System.Globalization;
 using System.Linq.Expressions;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services
@@ -66,5 +68,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             x => !x.IsCancel &&
                  x.CompletedAt == null &&
                  x.EncounterStatus <= LastBlockingStatus;
+
+        /// <summary>
+        /// Saklar pemblokir "satu pasien satu kunjungan aktif" (RJ-DOC-REV-BE-007/008).
+        /// Ditangguhkan sementara oleh RJ-DOC-DEC-026: bawaannya <c>false</c>, sehingga pendaftaran
+        /// tidak ditolak karena kunjungan lama yang belum selesai.
+        /// </summary>
+        /// <remarks>
+        /// Dibaca pendaftaran kunjungan dan pemeriksaan kelayakan admisi rawat inap
+        /// (<c>ISSUE-EPS-010</c>). Keduanya wajib memakai saklar, aturan, dan kalimat yang sama:
+        /// langkah 1 admisi menolak pasien dengan alasan yang persis sama seperti penolakan
+        /// pendaftaran yang akan terjadi di langkah Pilih Bed.
+        /// </remarks>
+        public const string BlockActiveEncounterConfigKey = "HealthServices:Registration:BlockActiveEncounter";
+
+        public static bool IsActiveEncounterBlockEnabled(IConfiguration? configuration) =>
+            configuration?.GetValue(BlockActiveEncounterConfigKey, false) ?? false;
+
+        /// <summary>
+        /// Kunjungan Rawat Jalan berklinik terbaru yang masih menghalangi pendaftaran, tanggal
+        /// berapa pun (RJ-DOC-REV-BE-007). Kunjungan status 7-8, penunjang tanpa klinik, IGD, dan
+        /// Rawat Inap tidak menghalangi (RJ-DOC-DEC-019, RJ-DOC-DEC-022).
+        /// </summary>
+        public static Task<BlockingEncounterInfo?> FindBlockingEncounterAsync(
+            ApplicationDbContext dbContext,
+            Guid patientId,
+            CancellationToken cancellationToken) =>
+            dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .WhereBlocksRegistration(dbContext)
+                .Where(x => x.PatientId == patientId)
+                .OrderByDescending(x => x.EncounterDate)
+                .Select(x => new BlockingEncounterInfo(x.EncounterNumber, x.EncounterDate))
+                .FirstOrDefaultAsync(cancellationToken);
+
+        public static string BuildActiveEncounterMessage(BlockingEncounterInfo kunjungan) =>
+            $"Pasien masih memiliki kunjungan aktif bernomor {kunjungan.EncounterNumber} " +
+            $"tanggal {kunjungan.EncounterDate.ToString("dd MMM yyyy", CultureInfo.GetCultureInfo("id-ID"))}. " +
+            "Selesaikan atau batalkan kunjungan tersebut sebelum mendaftar ke poliklinik atau layanan lain.";
     }
+
+    /// <summary>Kunjungan yang menghalangi pendaftaran baru: nomor dan tanggalnya.</summary>
+    public sealed record BlockingEncounterInfo(string EncounterNumber, DateTime EncounterDate);
 }

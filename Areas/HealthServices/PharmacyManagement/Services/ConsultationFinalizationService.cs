@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
@@ -21,7 +22,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         private readonly PrescriptionAggregateService _prescriptionAggregateService;
         private readonly PrescriptionWorkflowService _prescriptionWorkflowService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
-        private readonly PrescriptionBillingChargeProducer _prescriptionBillingChargeProducer;
+        private readonly BillingClinicalChargeBridgeService _chargeBridge;
         private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public ConsultationFinalizationService(
@@ -30,7 +31,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             PrescriptionAggregateService prescriptionAggregateService,
             PrescriptionWorkflowService prescriptionWorkflowService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
-            PrescriptionBillingChargeProducer prescriptionBillingChargeProducer,
+            BillingClinicalChargeBridgeService chargeBridge,
             ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
@@ -38,7 +39,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             _prescriptionAggregateService = prescriptionAggregateService;
             _prescriptionWorkflowService = prescriptionWorkflowService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
-            _prescriptionBillingChargeProducer = prescriptionBillingChargeProducer;
+            _chargeBridge = chargeBridge;
             _integrityService = integrityService;
         }
 
@@ -270,21 +271,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     cancellationToken);
 
                 if (!emission.IsClinicallySafe)
+                {
                     billingHandoffIssues.Add($"{prescription.PrescriptionNumber}: {emission.Code}");
+                    continue;
+                }
 
-                // Fakta di atas bermuara ke ledger folio. Surat financial clearance Billing
-                // membaca `BilInvoiceItems`, ledger yang lain, sehingga tagihan obat harus
-                // dikirim ke sana juga — kalau tidak, resep tertahan selamanya pada tahap 2
-                // karena suratnya tidak punya sasaran. Sama seperti fakta: setelah commit,
-                // dan kegagalannya tidak membatalkan konsultasi yang sudah sah.
-                var chargeIssue = await _prescriptionBillingChargeProducer
-                    .SendForFinalizedPrescriptionAsync(
-                        prescription,
-                        actorUserId,
-                        now,
-                        consultationId,
-                        cancellationToken);
-
+                // BE-BKC-FIX-015 / ISSUE-BKC-001 ISS-04: fakta di atas adalah SATU-SATUNYA jalur
+                // tagihan resep. Folio meneruskannya ke invoice lewat jembatan (RJ-E2E-DEC-003)
+                // dengan aturan tahap yang benar: tahap 1 PRESCRIBED untuk rawat jalan dan IGD,
+                // menunggu diserahkan untuk rawat inap (INT-RWF-04), racikan menurut K-02.
+                // Pengirim langsung PrescriptionBillingChargeProducer yang dulu dipanggil di sini
+                // dihapus: ia menagih rawat inap sebelum diserahkan dan bertabrakan versi dengan
+                // jembatan. Yang dilaporkan ke dokter kini hasil invoice yang sebenarnya.
+                var chargeState = await _chargeBridge.GetChargeStateAsync(
+                    BillingSourceContract.PrescriptionSourceContext, prescription.Id, null, cancellationToken);
+                var chargeIssue = DescribeChargeIssue(chargeState);
                 if (chargeIssue != null)
                     billingHandoffIssues.Add($"{prescription.PrescriptionNumber}: {chargeIssue}");
             }
@@ -300,6 +301,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 Validation = validation
             });
         }
+
+        /// <summary>
+        /// Kalimat keluhan penagihan resep untuk dokter, atau <c>null</c> bila tidak ada yang perlu
+        /// ditindaklanjuti. Resep rawat inap yang menunggu diserahkan (<c>NOT_CHARGED</c>) memang
+        /// belum ditagih dan bukan keluhan.
+        /// </summary>
+        private static string? DescribeChargeIssue(BillingSourceChargeState state) => state.State switch
+        {
+            BillingSourceChargeStates.NeedsReview =>
+                $"{state.Code ?? BillingBridgeCodes.SourceRejected} - {state.Message ?? "Tagihan resep perlu ditinjau Billing."}",
+            BillingSourceChargeStates.WaitingForBilling =>
+                $"{state.Code ?? BillingBridgeCodes.TransientFailure} - Tagihan resep belum masuk invoice dan akan dicoba ulang otomatis.",
+            BillingSourceChargeStates.NotReceived or BillingSourceChargeStates.NotSent =>
+                "Tagihan resep belum diterima Billing.",
+            _ => null
+        };
 
         /// <summary>
         /// Menyusun snapshot tarif klinis sebagai rujukan Billing.

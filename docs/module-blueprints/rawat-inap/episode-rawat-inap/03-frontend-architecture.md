@@ -1203,6 +1203,14 @@ Sudah menerima panduan rawat inap: (•) Ya ( ) Tidak    Keterangan: …
 
 Layar ini **tidak mengirim satu pun permintaan tulis** (`RWI-AC-347`); pilihan petugas hilang saat halaman ditutup (`RWI-DEC-233`).
 
+**Revisi 13 Oktober 2026 (`RWI-DEC-295`, `PLAN-REPAIR-EPS-008`, `FE-RWI-241`, `FE-RWI-242`).** Paragraf di atas kini hanya berlaku untuk episode yang **belum** punya persetujuan tersimpan. Bila persetujuan sudah ditandatangani digital pada langkah admisi (`RWI-DEC-272`), tab Formulir General Consent berjalan dalam dua mode:
+
+| Mode | Isi | Sumber data | Butir hak akses |
+|---|---|---|---|
+| Lihat | Jenis penanda tangan, keterangan hubungan, nama, NIK, telepon, alamat, waktu tanda tangan, panduan rawat inap tersimpan, lencana "Versi N", dan "terakhir diubah". Hubungan pada cetakan diturunkan dari data tersimpan | `GET …/consent` | `InpatientEpisode : Read` |
+| Edit | Form terisi dari versi aktif + kanvas tanda tangan opsional (wajib bila jenis penanda tangan berganti, `RWI-DEC-296`) + alasan perubahan 10–500 karakter. Simpan selalu dapat ditekan, lalu validasi dan fokus ke isian yang salah | `POST …/admission-workspace/general-consent/revisions` | `InpatientAdmissionDocument : Update`; episode `Admitted`/`DischargePending` |
+| Riwayat Perubahan | Satu kotak per versi: status, waktu, pengubah, alasan, dan "label: lama → baru" | `GET …/admission-workspace/general-consent/history` | `InpatientAdmissionDocument : Read` |
+
 #### 14.4.4 `FE-INP-38` Gelang & Label Pasien
 
 ```text
@@ -1416,3 +1424,10 @@ Gunakan role tablist/tab/tabpanel, aria-selected, keyboard navigation/focus retu
 Cabang transfer: URL menyimpan patientId, transferId, sourceType dan episodeId hasil. Dokter hanya memvalidasi form; booking memanggil admitFromTransfer sekali. Guard pasien/sumber dibaca ulang, draft dan unknown intent disimpan per owner/sumber. Jalur pasien baru/lama/kamar pulih mempertahankan default existing. Perpindahan langkah transfer pada route yang sama memakai History API terintegrasi useSearchParams, tanpa meminta transisi server hanya untuk query langkah; lihat [dokumentasi Next.js](https://nextjs.org/docs/app/getting-started/linking-and-navigating#native-history-api).
 
 [Acuan implementasi EPS-006 versi 1.0](contracts/admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](task/report/frontend/FIX-EPS-006-08.md).
+
+
+## Amandemen PLAN-REPAIR-DOK-006 — 2026-10-13
+
+Alur admisi tidak membaca kelas dari hook pembayaran. `resolveInpatientAdmissionRoom` memvalidasi kelas/unit bed; `doctor.submit({selectedBed})` baru menulis sesudah bed dipilih; `bed.prepareBooking` menahan klik ganda dan kegagalan. Episode ID disimpan pada URL untuk resume. Konfirmasi tidak mengedit kelas; transfer memakai kelas target bed, deposit memakai kelas episode server bila sudah tersedia.
+
+Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.

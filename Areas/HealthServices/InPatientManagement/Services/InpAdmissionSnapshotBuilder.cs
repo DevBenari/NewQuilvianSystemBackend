@@ -142,7 +142,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 SiteCode = profile.SiteCode,
                 AddressLines = profile.AddressLines.ToList(),
                 PhoneNumber = profile.PhoneNumber,
-                Email = profile.Email
+                Email = profile.Email,
+                LogoUrl = "/Images/logo_mmc-removebg.png"
             };
         }
 
@@ -155,7 +156,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 SiteCode = letterhead.SiteCode,
                 AddressLines = letterhead.AddressLines.ToList(),
                 PhoneNumber = letterhead.PhoneNumber,
-                Email = letterhead.Email
+                Email = letterhead.Email,
+                LogoUrl = letterhead.LogoUrl ?? (letterhead.IsAvailable ? "/Images/logo_mmc-removebg.png" : null)
             };
 
         public static InpAdmissionSnapshotPatient BuildPatient(PatientIdentityProfile identity, DateTime today)
@@ -291,6 +293,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         public string? PhoneNumber { get; set; }
 
         public string? Email { get; set; }
+
+        public string? LogoUrl { get; set; } = "/Images/logo_mmc-removebg.png";
     }
 
     public sealed class InpAdmissionSnapshotPatient

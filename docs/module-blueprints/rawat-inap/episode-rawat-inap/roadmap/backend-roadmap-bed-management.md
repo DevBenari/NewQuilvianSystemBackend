@@ -534,3 +534,27 @@ Acceptance negatif:
 Setiap 14 task di register mempunyai requirement, decision, versi/hash kontrak, AC dan bukti yang diharapkan pada [traceability](requirement-traceability-bed-management.md). Persetujuan source backend tersedia. Build dan validasi migration/SQL sudah dilakukan pada sesi lanjutan; build dan penerapan kedua migration sudah selesai pada 2026-10-12 (0 pending); gap saat ini adalah bukti acceptance/runtime serta gate aktivasi. Tidak adanya automated backend test bukan gap.
 
 Langkah berikutnya: verifikasi acceptance API, concurrency, rollback, backfill dan UAT sesuai kartu pada schema yang sudah diterapkan, lalu tutup gate aktivasi dengan bukti nyata. Status sebagian dipertahankan sampai bukti tersebut tersedia.
+
+## Tambahan PLAN-REPAIR-EPS-009 — 13 Oktober 2026
+
+Task di bawah ditambahkan dari [`PLAN-REPAIR-EPS-009`](../docs/plan-repair/plan-repair-009-pilih-bed-buntu-dan-galat-server.md)
+(`FIX-EPS-009-03`, `FIX-EPS-009-04`), disetujui pemilik lewat laporan 13-10-2026 ("coba cek pada pemilihan bed
+agar query tidak berat"). Ia tidak mengubah 14 task terkunci `BE-RWI-208`–`221` maupun
+`bed-management-delivery-lock.json`.
+
+```text
+BE-RWI-211 🟡───>BE-RWI-228 ✅
+```
+
+| Task ID / status | Outcome | Requirement / decision | Kontrak | Cakupan | Dependency | Acceptance criteria | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| [`BE-RWI-228`](../task/report/backend/BE-RWI-228.md) ✅ | Pembacaan bed (`available-beds`, `bed-board`, monitoring, kelayakan) memakai satu proyeksi tanpa muat ulang dan tanpa query per bed; `bed-board` mengikuti penyaring kamar/kelas/pencarian; pesan 409 tanpa nama exception | `ISS-EPS-009-03`, `-04`, `-T1` | Delta aditif `GET /bed-board` `roomId?`, `patientClassId?`, `search?`; `BedMonitoringQuery.PatientClassId?` | 5 service, 1 controller, 1 DTO `InPatientManagement`; tanpa migration | `BE-RWI-211` (proyeksi bersama) | 4 butir `FIX-EPS-009-03` + 3 butir `FIX-EPS-009-04` | ✅ **Selesai 13 Oktober 2026 (source + build).** Build 0 error/284 warning (sama dengan sebelum task); QBE strict 7 berkas PASS 0 violation; 7/7 AC terpetakan ke source; hitung SQL runtime dan uji papan `NOT RUN`, dikecualikan atas keputusan pemilik; [laporan](../task/report/backend/BE-RWI-228.md) |
+
+### ✅ BE-RWI-228 — Pembacaan bed lebih ringan dan papan mengikuti penyaring
+
+| Field | Isi |
+| --- | --- |
+| Status | ✅ SELESAI — 13 Oktober 2026 (source + build). Build 0 error/284 warning; QBE strict 7 berkas PASS; 7/7 AC terpetakan ke source; hitung SQL dan uji papan `NOT RUN` (dikecualikan atas keputusan pemilik) |
+| Asal | `PLAN-REPAIR-EPS-009` `FIX-EPS-009-03`, `FIX-EPS-009-04` |
+| Contoh | Penyaring Rawat Inap + Kelas II → `bed-board` hanya kamar Kelas II beserta angkanya; `available-beds` ±35–45 → ±16–18 perintah SQL |
+| Laporan | [Laporan BE-RWI-228](../task/report/backend/BE-RWI-228.md) |

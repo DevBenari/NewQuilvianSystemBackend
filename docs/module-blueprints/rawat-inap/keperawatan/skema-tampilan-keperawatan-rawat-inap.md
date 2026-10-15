@@ -829,3 +829,9 @@ reference implementation
    ↓
 IGD REFACTOR
 ```
+
+---
+
+## Delta 12 Oktober 2026 — Order Alkes/BMHP (`FE-BKC-FIX-012`)
+
+Panel Obat & Alkes → Order Alkes menyimpan **draft pemakaian** lewat kontrak Drug Usage (lokasi stok opsional: kosong = depo unit pasien; petugas = profil akun login). Setelah draft tersimpan, tombol **Catat Pemakaian** tampil hanya bagi pemegang hak `DrugUsage : Record`; pengguna lain mendapat kalimat serah tugas ke Farmasi. Pesan hasil membedakan *draft*, *pemakaian tercatat*, dan keadaan tagih (*menunggu Billing*, *masuk invoice*, *perlu ditinjau*). Tidak ada lagi resep pengganti saat penyimpanan gagal. Rencana: [`PLAN-REPAIR-BKC-001`](../../billing-kasir/docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-02, [laporan](../../billing-kasir/task/report/frontend/FE-BKC-FIX-012.md).

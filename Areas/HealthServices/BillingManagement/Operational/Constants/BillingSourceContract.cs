@@ -85,6 +85,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public const string EquipmentUsageSourceContext = "EQUIPMENT_USAGE";
         public const string EquipmentUsageChargeEffectType = "EquipmentUsageCharge";
 
+        /// <summary>
+        /// Sumber pemakaian obat/BMHP pasien <b>tanpa resep</b> (<c>PhmDrugUsage</c> tanpa
+        /// <c>PrescriptionId</c>), terdaftar sejak <c>BE-BKC-FIX-017</c> atas keputusan pemilik
+        /// K-04 (12 Oktober 2026, selaras <c>IGD-DEC-244</c>): BMHP ditagih per item saat pemakaian
+        /// dicatat dan stok berkurang. Satu fakta per butir pemakaian (<c>SourceItemId</c>);
+        /// draft tidak pernah menerbitkan fakta. Penyerahan resep tidak memakai sumber ini —
+        /// ia ditagih lewat <see cref="PrescriptionSourceContext"/>.
+        /// </summary>
+        public const string DrugUsageSourceContext = "DrugUsage";
+        public const string DrugUsageChargeEffectType = "DrugUsageCharge";
+
+        /// <summary>Nilai <c>RuleSnapshot.milestone</c> fakta pemakaian nonresep yang dicatat.</summary>
+        public const string DrugUsageMilestoneRecorded = "DrugUsageRecorded";
+
         private static readonly IReadOnlyDictionary<string, string[]> AllowedEffectTypes =
             new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
@@ -96,7 +110,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 [BloodBankSourceContext] = new[] { BloodBankChargeEffectType },
                 [ConsultationSourceContext] = new[] { ConsultationChargeEffectType },
                 [EquipmentUsageSourceContext] = new[] { EquipmentUsageChargeEffectType },
-                [OperatingRoomSourceContext] = new[] { OperatingRoomChargeEffectType }
+                [OperatingRoomSourceContext] = new[] { OperatingRoomChargeEffectType },
+                [DrugUsageSourceContext] = new[] { DrugUsageChargeEffectType }
             };
 
         public static bool IsKnownSourceContext(string? sourceContext)
