@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `RAD-API-001` |
-| Revision | `17` |
+| Revision | `18` |
 | Status | `approved` |
 | Backend SHA | `50ccf615` |
 | Input | `RAD-ARCH-BE-001`, `RAD-DA-001-r1` |
@@ -325,6 +325,19 @@
 >
 > `GET /rad-orders/{id}` dan baris daftar memuat `PrintFilm`. **Kompatibilitas: aman** — endpoint dan field
 > tambahan. **Urutan rilis:** kode ini memetakan `RadOrder.PrintFilm`, jadi migration wajib diterapkan bersama.
+
+> **Amandemen revision 18 — 2026-10-15.** Dari uji layar data sungguhan (`RAD-EVD-002`).
+>
+> 1. **Enum pada request diterima sebagai nama maupun angka**: `RadSafetyCheckDecisionRequest.CheckState`,
+>    `RadAbortAcquisitionRequest.AbortCause`, `RadRepeatStudyRequest.RepeatCause`, `RadConsumptionRequest.ItemType`,
+>    `CreateRadReportDraftRequest.AuthorRole`, `CreateRadReportAmendmentRequest.AuthorRole` — contoh `"NotApplicable"`
+>    atau `4`. Nama tak dikenal → `400`. Bentuk response tidak berubah.
+> 2. `GET rad-orders/procedure-options` — `RadOrder : Update`; query `search`, `pageNumber`, `pageSize` (≤ 50);
+>    `PagedResult<RadProcedureOptionResponse { Id, ProcedureCode, ProcedureName, ProcedureCategoryName,
+>    ExternalProcedureCode }>` — pemeriksaan `IsRadiology` aktif saja. Dipakai Ubah Pemeriksaan karena Radiografer
+>    tidak memegang `Procedure : Read`.
+>
+> **Kompatibilitas: aman** — pemanggil yang mengirim angka tetap diterima; endpoint tambahan.
 
 Endpoint yang **belum ada di kode** diberi label `Rencana (belum tersedia)`. Yang tidak berlabel
 sudah dapat dipakai sekarang.
