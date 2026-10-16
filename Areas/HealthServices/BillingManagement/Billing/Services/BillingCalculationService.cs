@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
@@ -461,6 +461,11 @@ public class BillingCalculationService : IBillingCalculationService
             - version.ItemDiscount + version.TaxAmount + version.RoundingAmount;
         var paid = paidAmount ?? 0m;
         var remaining = remainingAmount ?? Math.Max(0m, version.PatientAmount - paid);
+        var originalPayable = remaining;
+        var roundedPayable = Math.Round(originalPayable, 0, MidpointRounding.AwayFromZero);
+        var roundingAdjustment = roundedPayable - originalPayable;
+        var isFullyPaid = remaining <= 0m;
+        var paymentStatus = isFullyPaid ? "LUNAS" : (paid > 0m ? "SEBAGIAN" : "BELUM_LUNAS");
 
         return new CalculationResponse
         {
@@ -481,6 +486,10 @@ public class BillingCalculationService : IBillingCalculationService
             TotalInvoiceAmount = totalInvoice,
             PaidAmount = paid,
             RemainingAmount = remaining,
+            OriginalPayableAmount = originalPayable,
+            RoundingAdjustmentAmount = roundingAdjustment,
+            EffectivePayableAmount = roundedPayable,
+            PaymentStatus = paymentStatus,
             IsLocked = version.IsLocked,
             CalculatedAt = version.CalculatedAt,
             Reason = version.Reason,

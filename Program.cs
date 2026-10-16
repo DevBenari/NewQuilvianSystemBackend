@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using QuilvianSystemBackend.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -527,6 +527,7 @@ try
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<RegistrationEmployeeBenefitLookupService>();
+    builder.Services.AddScoped<IPatientWorkforceIdentityResolver, PatientWorkforceIdentityResolver>();
     builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services.InpServiceClassResolver>();
     builder.Services.AddScoped<EncounterInsuranceService>();
