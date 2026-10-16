@@ -331,8 +331,9 @@ public partial class PatientBillingSummaryService
                     lineStatus = priceStatus == "TARIFF_NOT_FOUND" ? "TARIFF_NOT_FOUND" : "ACTIVE";
                 }
 
-                var unitLabel = item.Tariff?.UnitOfMeasure
-                    ?? (item.Category?.IsPharmacy == true ? "tablet / botol" : "tindakan");
+                var unitLabel = item.Category?.IsPharmacy == true
+                    ? "tablet / botol"
+                    : (group is "PROCEDURE" or "SURGERY" || item.Category?.IsSurgery == true || item.Category?.IsProcedure == true ? "tindakan" : "unit");
 
                 var line = new PatientBillingEstimateLineResponse
                 {
