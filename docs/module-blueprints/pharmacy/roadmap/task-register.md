@@ -75,8 +75,9 @@ tidak terhitung ganda.
 | `PHA-FE-007` | Panel alur kerja farmasi | `PHA-D-01`, `PHA-D-08` | **Selesai** | 2 AC: seluruh label tahap pemenuhan, temuan apoteker dibedakan dari deteksi sistem |
 | `PHA-FE-008` | Layar permintaan stok | `StockRequestService` | **Selesai** | 2 AC: obat + satuan + lokasi, layar detail + gerbang |
 | `PHA-FE-009` | Layar transfer stok | `StockTransferService` | **Selesai** | 3 AC: antar lokasi, **batch ditentukan saat persetujuan bukan pengajuan (FEFO)**, pencarian + gerbang |
+| `PHA-FE-010` | Layar pemakaian obat | `DrugUsageService` | **Selesai** | 4 AC: obat + satuan + lokasi, menempel pada kunjungan, **batch terpakai terlihat (syarat penarikan obat)**, gerbang hak akses |
 
-Uji: `tests/unit/pharmacy-screen-acceptance.test.mjs` — **23 uji, 23 lulus**, termasuk penjaga
+Uji: `tests/unit/pharmacy-screen-acceptance.test.mjs` (**23 uji**) dan `three-modules-remaining-fragments.test.mjs` (**13 uji**, bersama Operasi dan Gizi) — seluruhnya lulus, termasuk penjaga
 bahwa nol layar Farmasi memakai data contoh statis.
 
 Empat area FE lain sudah punya uji sebelum hari ini dan tercakup task yang ada: daftar resep
@@ -84,7 +85,7 @@ Empat area FE lain sudah punya uji sebelum hari ini dan tercakup task yang ada: 
 yang terakhir diverifikasi milik Farmasi — controller-nya berada di
 `Areas/HealthServices/PharmacyManagement`.
 
-**Rekap: 26 task, 26 selesai, 0 sedang proses, 0 blocked, 0 belum mulai — 100%.**
+**Rekap: 27 task, 27 selesai, 0 sedang proses, 0 blocked, 0 belum mulai — 100%.**
 
 Memakai rumus rekap 23 modul (`Sisa = Total − Selesai`): **19/19 = 100%**.
 

@@ -43,7 +43,7 @@ dapat dinilai dengan metode yang sama seperti modul lain.
 
 | Modul | Total Applicable | Done | In Progress | Blocked External | Blocked Business | Not Started | Development Completion |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Farmasi | 26 | 26 | 0 | 0 | 0 | 0 | **100%** |
+| Farmasi | 27 | 27 | 0 | 0 | 0 | 0 | **100%** |
 | Operasi | 22 | 21 | 1 | 0 | 0 | 0 | **95,5%** |
 | Gizi | 19 | 19 | 0 | 0 | 0 | 0 | **100%** |
 
@@ -55,7 +55,7 @@ dan uji ada, tetapi catatan acceptance belum dibuat. Angka pendamping:
 
 | Modul | Terkirim (source + uji) | Catatan |
 |---|---:|---|
-| Farmasi | 26 / 26 = **100%** | 15 Okt: `PHA-D-11`, `PHA-BE-003`, `PHA-FE-001`. 16 Okt: **7 task frontend** (`PHA-FE-003`…`009`) ditambahkan — register lama hanya mencatat 3 task FE untuk 22 route |
+| Farmasi | 27 / 27 = **100%** | 15 Okt: `PHA-D-11`, `PHA-BE-003`, `PHA-FE-001`. 16 Okt: **8 task frontend** (`PHA-FE-003`…`010`) ditambahkan — register lama hanya mencatat 3 task FE untuk 22 route dan 36 berkas view |
 | Operasi | 21 / 22 = **95,5%** | 16 Okt: dua area layar yang belum ber-ID ditambahkan. `FE-OPR-010` **belum selesai** — borang permintaan operasi nol penjaga hak akses |
 | Gizi | 19 / 19 = **100%** | 12 backend + **7 frontend**; register frontend dibuat 16 Okt setelah atasan menandai Gizi masih kosong |
 
@@ -75,7 +75,7 @@ satu baris.
 
 | Modul | Original | Derived |
 |---|---:|---:|
-| Farmasi | 8 | 18 |
+| Farmasi | 8 | 19 |
 | Operasi | 20 | 2 |
 | Gizi | 0 | 19 |
 
@@ -299,7 +299,7 @@ Disiapkan supaya penyusun laporan dapat menyalin langsung, memakai **rumus rekap
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | 6 | Gizi | 19 | 19 | 0 | 0 | 0 | **0** | **100%** |
 | 14 | Operasi | 22 | 21 | 1 | 0 | 0 | **1** | **95,5%** |
-| 16 | Farmasi | 26 | 26 | 0 | 0 | 0 | **0** | **100%** |
+| 16 | Farmasi | 27 | 27 | 0 | 0 | 0 | **0** | **100%** |
 
 Penanda `S` (estimasi source) dan `B` (hanya kontrak backend) **tidak lagi diperlukan** untuk
 ketiga modul ini: seluruhnya kini punya rekap task yang dapat dihitung.
