@@ -45,7 +45,7 @@ dapat dinilai dengan metode yang sama seperti modul lain.
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Farmasi | 19 | 19 | 0 | 0 | 0 | 0 | **100%** |
 | Operasi | 20 | 20 | 0 | 0 | 0 | 0 | **100%** |
-| Gizi | 12 | 12 | 0 | 0 | 0 | 0 | **100%** |
+| Gizi | 19 | 19 | 0 | 0 | 0 | 0 | **100%** |
 
 
 ² `PHA-BE-003` dan `PHA-FE-001` tertahan keputusan bisnis (`PHA-OQ-014`, milik Product) dan karena itu **tidak** masuk penyebut Development Completion.
@@ -57,7 +57,7 @@ dan uji ada, tetapi catatan acceptance belum dibuat. Angka pendamping:
 |---|---:|---|
 | Farmasi | 19 / 19 = **100%** | `PHA-D-11` gerbang stok 15 Okt; `PHA-BE-003` dan `PHA-FE-001` dibuka dan diselesaikan 15 Okt setelah `PHA-OQ-014` ditutup `PHA-DEC-066` |
 | Operasi | 20 / 20 = **100%** | acceptance terbukti pada seluruh 20 task; `FE-OPR-009` ditutup 15 Okt, E2E 11/11 lulus |
-| Gizi | 12 / 12 = **100%** | — |
+| Gizi | 19 / 19 = **100%** | 12 backend + **7 frontend**; register frontend dibuat 16 Okt setelah atasan menandai Gizi masih kosong |
 
 **Operasi mencapai 100% pada 15 Oktober 2026.** Backend 11/11 selesai, frontend 9/9 selesai.
 
@@ -77,7 +77,7 @@ satu baris.
 |---|---:|---:|
 | Farmasi | 8 | 11 |  <!-- 2 original dibuka kembali 15 Okt: PHA-BE-003, PHA-FE-001 -->
 | Operasi | 20 | 0 |
-| Gizi | 0 | 12 |
+| Gizi | 0 | 19 |
 
 ---
 
@@ -297,7 +297,7 @@ Disiapkan supaya penyusun laporan dapat menyalin langsung, memakai **rumus rekap
 
 | No. | Modul | Total Task | Selesai | Sedang Proses | Blocked | Belum Mulai | Sisa Task | % Selesai |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
-| 6 | Gizi | 12 | 12 | 0 | 0 | 0 | **0** | **100%** |
+| 6 | Gizi | 19 | 19 | 0 | 0 | 0 | **0** | **100%** |
 | 14 | Operasi | 20 | 20 | 0 | 0 | 0 | **0** | **100%** |
 | 16 | Farmasi | 19 | 19 | 0 | 0 | 0 | **0** | **100%** |
 
@@ -318,7 +318,7 @@ Tanda `~` dan keterangan `(estimasi source)` dihapus.
 
 | Modul | Lama | Baru | Sebab |
 |---|---:|---:|---|
-| Gizi | ~94% estimasi | **100%** | register task dibuat; 12 task, 219 uji hijau, runtime HTTP terbukti |
+| Gizi | ~94% estimasi | **100%** | register task dibuat; **12 backend** (219 uji hijau, runtime HTTP terbukti) + **7 frontend** (27 uji acceptance). Angka 15 Okt yang hanya 12 task **keliru**: ia menghitung backend saja, sehingga frontend Gizi terbaca belum ada — cacat pembukuan yang sama dengan Operasi sebelum 15 Okt |
 | Operasi | 90,9% **B** | **100%** | angka lama **hanya kontrak backend**; sembilan task frontend kini ikut dihitung. Backend sendiri naik 10/11 → **11/11** karena `BE-OPR-011` terbukti runtime, dan `FE-OPR-009` ditutup 15 Okt dengan E2E 11/11 lulus |
 | Farmasi | ~97% estimasi | **100%** | `PHA-OQ-014` ditutup `PHA-DEC-066` 15 Okt, sehingga `PHA-BE-003` dan `PHA-FE-001` tidak lagi blocked dan keduanya diselesaikan. `PHA-D-11` (gerbang stok `PHA-DEC-018`) ditambahkan hari yang sama. Nol blocker keputusan bisnis tersisa |
 

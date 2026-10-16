@@ -39,6 +39,15 @@ dari* menyebut jangkarnya supaya tiap baris dapat ditelusuri.
 
 **Rekap: 12 task, 12 selesai, 0 sedang proses, 0 blocked, 0 belum mulai — 100%.**
 
+> **Ini angka backend saja.** Ke-12 task di atas seluruhnya `GIZ-BE-*`. Frontend Gizi punya
+> register tersendiri: [`frontend-roadmap.md`](frontend-roadmap.md) — **7 task, 7 selesai**.
+> Total modul Gizi karena itu **19 task**, bukan 12.
+>
+> Dicatat terbuka karena angka 15 Oktober 2026 pernah dilaporkan sebagai "Gizi 12/12 = 100%"
+> tanpa keterangan ini. Atasan yang memakai metode audit yang sama dengan 20 modul lain karena
+> itu membaca frontend Gizi sebagai **belum ada**, padahal 9 route, 7 view, dan 11 service/hook
+> sudah terkirim. Cacat pembukuan yang sama dengan Operasi sebelum 15 Oktober.
+
 ## Bukti otorisasi runtime (`GIZ-BE-010`)
 
 Diambil 14 Oktober 2026 dalam satu sesi login yang sama, dengan
