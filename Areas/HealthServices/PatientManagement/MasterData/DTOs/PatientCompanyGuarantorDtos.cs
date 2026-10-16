@@ -344,6 +344,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         [MaxLength(250)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// BE-FIN-106: pegawai HR pemilik benefit. Wajib untuk kartu atas penjamin internal (RS Benefit)
+        /// dan dilarang untuk penjamin biasa. Dipilih lewat pencarian pegawai, bukan diketik bebas.
+        /// </summary>
+        public Guid? EmployeeId { get; set; }
+
+        /// <summary>BE-FIN-106: anggota keluarga HR bila pasiennya bukan pegawai sendiri.</summary>
+        public Guid? FamilyMemberId { get; set; }
+
+        /// <summary>
+        /// FIN-VAL-260: kode hubungan ditentukan sistem dari data HR dan TIDAK boleh dikirim klien.
+        /// Properti ini ada hanya agar pengiriman nilainya dapat ditolak 400, bukan diam-diam diabaikan.
+        /// </summary>
+        public string? BenefitRelationship { get; set; }
     }
 
     public class UpdatePatientCompanyGuarantorRequest : CreatePatientCompanyGuarantorRequest

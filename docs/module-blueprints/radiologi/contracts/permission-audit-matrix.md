@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `RAD-PERM-001` |
-| Revision | `9` |
+| Revision | `10` |
 | Status | `approved` |
 | Backend SHA | `50ccf615` |
 | Input | `RAD-ARCH-BE-001`, `RAD-API-001`, `RAD-DEC-003`, `RAD-DEC-005`, `RAD-DEC-015` |
@@ -75,6 +75,14 @@
 > pasangan yang dibaca service lewat `HasAccessAsync` wajib terdaftar sebagai baris yang dapat
 > dicentang**, dipindai langsung dari source modul.
 
+> **Amandemen revision 10 — 2026-10-14, `BE-RAD-17`.** Empat endpoint study baru (`RAD-API-001`
+> revision 12). `mark-repeat-required` memakai `RadStudy : Repeat` yang sudah ada — pelakunya
+> sama dengan pembuat study pengulangan, Petugas Radiologi. Dua pasangan **baru**:
+> `RadStudy : Hold` untuk `hold` dan `resume`, serta `RadStudy : Cancel` untuk `cancel`, mengikuti
+> pasangannya pada pesanan. Keduanya terdaftar otomatis dari atribut endpoint, **tanpa** baris
+> `SysAccessPolicy` — admin perlu memberikannya pada layar Akses Role sebelum tombolnya dapat
+> dipakai. Jejak tiap transisi ditulis ke `RadTransitionHistory` beserta pelaku dan alasannya.
+
 String `[AccessPermission(...)]` ditulis **apa adanya** supaya implementer menyalin, bukan
 menerjemahkan.
 
@@ -103,6 +111,20 @@ Base URL: `api/v1/health-services/radiology-management/rad-orders`
 | `PUT /{id}/cancel` | `RadOrder` | `Cancel` | `[AccessPermission("RadOrder", "Cancel")]` | Ya |
 | `GET /worklist` | `RadOrder` | `Read` | `[AccessPermission("RadOrder", "Read")]` | Tidak |
 | `PUT /{id}/urgency` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya |
+| `GET /dashboard` | `RadOrder` | `Read` | `[AccessPermission("RadOrder", "Read")]` | Tidak — `BE-RAD-19` |
+| `PUT /{id}/assignment` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya — `Order.Assign` di `RadTransitionHistory` + log, `BE-RAD-20` |
+| `GET /examiner-doctor-options` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Tidak — `BE-RAD-20` |
+| `GET /radiographer-options` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Tidak — `BE-RAD-20` |
+
+| `GET /{id}/images`, `GET /{id}/images/{imageId}/content` | `RadOrder` | `Read` | `[AccessPermission("RadOrder", "Read")]` | Tidak — `BE-RAD-22` |
+| `POST /{id}/images`, `DELETE /{id}/images/{imageId}` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya — `Order.ImageAdded`/`Order.ImageRemoved` + log, `BE-RAD-22` |
+| `GET /reports/*` (6 laporan, termasuk `procedure-tariffs`) | `RadOrder` | `Read` | `[AccessPermission("RadOrder", "Read")]` | Tidak — `BE-RAD-24` |
+| `GET /procedure-options` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Tidak — pilihan Ubah Pemeriksaan, `RAD-EVD-002` |
+| `PUT /{id}/procedure` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya — `Order.ChangeProcedure` + alasan, `BE-RAD-25` |
+| `PUT /{id}/film-print` | `RadOrder` | `Update` | `[AccessPermission("RadOrder", "Update")]` | Ya — `Order.FilmPrint`, `BE-RAD-25` |
+
+Baris tambahan 2026-10-15 **tidak menambah string hak akses** — memakai `RadOrder : Read` dan
+`RadOrder : Update` yang sudah dipegang *Penunjang Medis / Radiografer* di devYoga.
 
 ## 2. Rad Study — sudah berjalan
 
@@ -124,6 +146,10 @@ Base URL: `api/v1/health-services/radiology-management/rad-studies`
 | `POST /{id}/decide-quality` | `RadStudy` | `Quality` | `[AccessPermission("RadStudy", "Quality")]` | Ya |
 | `POST /{id}/repeat` | `RadStudy` | `Repeat` | `[AccessPermission("RadStudy", "Repeat")]` | Ya |
 | `POST /{id}/consumptions` | `RadStudy` | `Consumption` | `[AccessPermission("RadStudy", "Consumption")]` | Ya |
+| `POST /{id}/mark-repeat-required` | `RadStudy` | `Repeat` | `[AccessPermission("RadStudy", "Repeat")]` | Ya |
+| `POST /{id}/hold` | `RadStudy` | `Hold` | `[AccessPermission("RadStudy", "Hold")]` | Ya |
+| `POST /{id}/resume` | `RadStudy` | `Hold` | `[AccessPermission("RadStudy", "Hold")]` | Ya |
+| `POST /{id}/cancel` | `RadStudy` | `Cancel` | `[AccessPermission("RadStudy", "Cancel")]` | Ya |
 
 ## 3. Rad Report — berjalan penuh sejak `BE-RAD-10`, 2026-09-11
 
@@ -143,6 +169,8 @@ Base URL: `api/v1/health-services/radiology-management/rad-reports`
 | `POST /{id}/validate` | `RadReport` | `Validate` | `[AccessPermission("RadReport", "Validate")]` | Ya |
 | `POST /{id}/release` | `RadReport` | `Release` | `[AccessPermission("RadReport", "Release")]` | Ya |
 | `POST /{id}/amendments` | `RadReport` | `Amend` | `[AccessPermission("RadReport", "Amend")]` | Ya |
+| `GET /templates` | `RadReport` | `Read` | `[AccessPermission("RadReport", "Read")]` | Tidak — `BE-RAD-26` |
+| `POST /templates`, `PUT /templates/{id}`, `DELETE /templates/{id}` | `RadReport` | `Validate` | `[AccessPermission("RadReport", "Validate")]` | Ya — log, `BE-RAD-26`. Template milik dokter radiolog; tanpa string izin baru |
 
 ## 4. Master Data — rencana
 

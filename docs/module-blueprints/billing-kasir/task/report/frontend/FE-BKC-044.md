@@ -16,7 +16,7 @@
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev`: `cashier-shift-slice.jsx`, `review-variance-modal.jsx`, `resolve-follow-up-modal.jsx`, `use-cashier-shift.js`, `cashier-shift-history.jsx`, `cashier-shift-view.jsx`, `tests/unit/cashier-shift-resolve-follow-up.test.mjs` |
 | Tanggal | 2026-09-25 |
-| Status | 🟡 **SEBAGIAN — source code dan validasi unit test selesai 100% (6/6 tests PASS).** Kontrol radio evaluasi dua hasil pada modal review, modal penyelesaian tindak lanjut dengan catatan verifikasi wajib, tombol aksi riwayat shift, Redux thunk, dan hook integrasi telah terpasang dan lulus eslint (0 error). Menunggu verifikasi visual interaktif bersama backend aktif. |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

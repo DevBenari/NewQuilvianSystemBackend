@@ -21,12 +21,20 @@ public sealed class BilArHandoff : IdentityModel
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset? AcknowledgedAt { get; set; }
 
-    /// <summary>BE-FIN-091, FIN-DEC-184: terisi hanya untuk baris EMPLOYEE_BENEFIT. Guid EmployeeId/
-    /// WorkforceProfileId pegawai, divalidasi ke HR saat Billing menerbitkan baris ini.</summary>
+    /// <summary>BE-FIN-091, BE-FIN-107, FIN-DEC-184, FIN-INTEGRATION-1.9 R.4.1: terisi hanya untuk baris EMPLOYEE_BENEFIT.
+    /// Berisi MstEmployee.Id pegawai pemilik manfaat, divalidasi ke HR saat Billing menerbitkan baris ini.</summary>
     public Guid? BenefitOwnerId { get; set; }
 
     /// <summary>BE-FIN-091, FIN-DEC-184/198: kode hubungan keluarga (SELF/SPOUSE/CHILD/PARENT/OTHER).</summary>
     [MaxLength(50)] public string? BenefitRelationship { get; set; }
+
+    /// <summary>BE-FIN-107, FIN-DEC-208, FIN-INTEGRATION-1.9 R.4.3: porsi sisa tagihan pasien yang dipilih pegawai
+    /// untuk dijadikan utang pegawai (D). Terisi hanya pada baris EMPLOYEE_BENEFIT; bawaan 0.</summary>
+    public decimal DeferredPatientAmount { get; set; } = 0m;
+
+    /// <summary>BE-FIN-107, BE-FIN-119, FIN-DEC-218, FIN-INTEGRATION-1.10 S.6: nama pihak yang menyetujui
+    /// penangguhan tagihan menjadi utang pegawai bila pasien bukan pegawai sendiri.</summary>
+    [MaxLength(200)] public string? DeferredConsentGivenBy { get; set; }
 
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 

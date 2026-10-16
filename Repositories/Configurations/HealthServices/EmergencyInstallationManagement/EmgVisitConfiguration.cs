@@ -21,6 +21,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
             builder.Property(x => x.ArrivalLocation).HasMaxLength(250);
             builder.Property(x => x.FoundLocation).HasMaxLength(250);
             builder.Property(x => x.TraumaLocation).HasMaxLength(250);
+            builder.Property(x => x.TraumaMechanism).HasMaxLength(1000);
+            builder.Property(x => x.TraumaSafetyEquipment).HasMaxLength(250);
             builder.Property(x => x.TemporaryPatientAlias).HasMaxLength(100);
             builder.Property(x => x.Notes).HasMaxLength(1000);
             builder.Property(x => x.DuplicateEpisodeOverrideReason).HasMaxLength(1000);

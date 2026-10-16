@@ -334,3 +334,23 @@ functional requirement, aturan kontrak, dan cara membuktikannya. Status `approve
 `FR-IGD-117` (arti Unit Layanan) dan `FR-IGD-118` (penautan tagihan) berstatus `OPEN DECISION` dan tidak diuji sampai
 `IGD-OQ-127` dan `IGD-OQ-129` dijawab. Penandaan jenis tindak lanjut rawat inap per lingkungan (`IGD-UNK-24`) adalah keadaan
 data; diperiksa sebelum rilis.
+
+### Amandemen 14 Oktober 2026 — Antrean Transfer IGD/Poli (`IGD-DEC-304`, `305`) — **`approved`** (`IGD-DEC-306`)
+
+Menggantikan baris `AT-IGD-225`, `228`…`233`, `235` di atas dan menambah `AT-IGD-236`, `237`. Langkah dan hasil yang diharapkan
+ada di PRD §12.7.2.
+
+| ID | FR | Kontrak | Bukti yang diminta | Prasyarat data |
+| --- | --- | --- | --- | --- |
+| `AT-IGD-225` | `FR-IGD-112`, `113` | API §12.7; state §11.5 | JSON `sign` + JSON `GET admission-transfers` + PNG antrean | Akun perawat, akun DPJP IGD aktif; unit tujuan tindak lanjut bertipe rawat inap |
+| `AT-IGD-228` | `FR-IGD-114` | Validation §14.8 aturan 23 | JSON `409` ×2 + PNG tombol nonaktif dengan keterangan | — |
+| `AT-IGD-229` | `FR-IGD-113` | API §12.7.3; state §11.5.4 | JSON `admit` + JSON form *Completed* + PNG IGD *Selesai* | Unit rawat inap punya bed kosong; akun petugas admisi |
+| `AT-IGD-230` | `FR-IGD-113` | Validation §14.8 aturan 28 | JSON daftar antrean + JSON `admit` `404` | Tindak lanjut rawat inap terkonfirmasi tanpa form |
+| `AT-IGD-231` | `FR-IGD-115` | Validation §14.8 aturan 19; state §11.5.1 | JSON `cancel` + JSON antrean sebelum/sesudah | — |
+| `AT-IGD-232` | `FR-IGD-115` | Validation §14.8 aturan 25 | JSON `disposition-status` + JSON form + JSON antrean | — |
+| `AT-IGD-233` | `FR-IGD-115` | Validation §14.8 aturan 19, 24 | JSON `409` ×2 | Admisi sudah diproses dari antrean |
+| `AT-IGD-235` | `FR-IGD-112` | Validation §14 aturan 4; §14.8 aturan 18 | JSON ×2 + hitungan kejadian *Signed* | Pasien dengan permintaan kamar pulih `Pending` (jalur OK) |
+| `AT-IGD-236` | `FR-IGD-109` | Validation §14.8 aturan 27 | JSON `409` | Tindak lanjut rawat inap dengan unit tujuan bukan rawat inap |
+| `AT-IGD-237` | `FR-IGD-113` | State §11.5.4; `IGD-FACT-121` | JSON kepergian + JSON kunjungan `Completed` | Admisi sudah diproses |
+
+Data uji yang harus dihindari: pasien `4411cf93-fcca-49b5-8e63-1b08c15a9e32` masih punya episode rawat inap dari jalur lama.

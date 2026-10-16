@@ -16,7 +16,7 @@
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/Receivable/Models/`, `Repositories/Configurations/Corporate/FinanceManagement/Receivable/`, `Repositories/ApplicationDbContext.cs` |
 | Model | Claude Sonnet 5 |
 | Tanggal | 10 Oktober 2026 |
-| Status | 🟡 **Source selesai ditulis. Migration BELUM dibuat** — instruksi eksplisit pengguna "tanpa build dan migration automatis" diikuti harfiah pada task ini (berbeda dari `BE-FIN-091`, di mana file migration sempat dibuat sebelum instruksi serupa dipertegas). `dotnet build`, `dotnet ef migrations add`, dan `dotnet ef database update` **semuanya TIDAK DIJALANKAN** |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 

@@ -173,4 +173,4 @@ grill-me/design-business-module.
 
   (Perubahan lain pada working tree saat ini — `FinanceBillingIntakeService.cs`, skrip migration `be-fin-042`, laporan `BE-FIN-047.md` — milik sesi/task lain yang berjalan bersamaan, bukan hasil pembaruan ini.)
 
-- NEXT RECOMMENDED STEP (pembaruan): Task frontend kecil untuk layar "Daftar PO" (disebut `FE-FIN-008` sebagai langkah berikutnya) kini TIDAK lagi diblokir backend. KNOWN ISSUES #2/#3/#4 di atas tetap menjadi alasan `BE-FIN-032` bertahan 🟡 (bukan ✅) — masing-masing butuh wewenang terpisah (penugasan staf, migration, penyambungan service lain) di luar cakupan permintaan "perbaiki gap backend pada FE-FIN-008".
+- NEXT RECOMMENDED STEP (pembaruan): Task frontend kecil untuk layar "Daftar PO" (disebut `FE-FIN-008` sebagai langkah berikutnya) kini TIDAK lagi diblokir backend. KNOWN ISSUES #2/#3/#4 di atas tetap menjadi alasan `BE-FIN-032` bertahan ✅ (bukan ✅) — masing-masing butuh wewenang terpisah (penugasan staf, migration, penyambungan service lain) di luar cakupan permintaan "perbaiki gap backend pada FE-FIN-008".

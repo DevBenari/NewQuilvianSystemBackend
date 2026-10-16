@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
@@ -218,11 +219,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             [FromQuery] Guid? defaultMembershipTierId,
             [FromQuery] bool? isActive,
             [FromQuery] string? search,
+            [FromQuery] string? medicalRecordNumber = null,
+            [FromQuery] string? identityNumber = null,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 25)
+            [FromQuery] int pageSize = 25,
+            [FromQuery] string? birthDate = null)
         {
+            // RJ-REG-REV-BE-001: tanggal lahir date-only "yyyy-MM-dd". String, bukan DateTime,
+            // supaya tidak ada pergeseran zona waktu dan format salah dijawab ApiResponse 400.
+            if (!TryParseBirthDateFilter(birthDate, out var birthDateFilter))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Format tanggal lahir tidak valid. Gunakan yyyy-MM-dd."));
+            }
+
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
@@ -231,7 +244,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             query = ApplyDateFilter(query, startDate, endDate, customPeriod);
             query = ApplyRelationFilter(query, defaultMembershipTierId);
-            query = ApplyStandardFilter(query, isActive, search);
+            query = ApplyStandardFilter(query, isActive, search, medicalRecordNumber, identityNumber);
+
+            if (birthDateFilter.HasValue)
+            {
+                // Kolom BirthDate bertipe date; nilai Unspecified tidak digeser Npgsql.
+                var birthDateValue = birthDateFilter.Value.ToDateTime(TimeOnly.MinValue, DateTimeKind.Unspecified);
+                query = query.Where(x => x.BirthDate == birthDateValue);
+            }
 
             var totalData = await query.CountAsync();
 
@@ -312,22 +332,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             [FromQuery] string? customPeriod,
             [FromQuery] Guid? defaultMembershipTierId,
             [FromQuery] string? search,
+            [FromQuery] string? medicalRecordNumber = null,
+            [FromQuery] string? identityNumber = null,
+            [FromQuery] string? birthDate = null,
             [FromQuery] string? sortBy = "createDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
             return await GetPatients(
-                startDate,
-                endDate,
-                customPeriod,
-                defaultMembershipTierId,
-                true,
-                search,
-                sortBy,
-                sortDirection,
-                pageNumber,
-                pageSize
+                startDate: startDate,
+                endDate: endDate,
+                customPeriod: customPeriod,
+                defaultMembershipTierId: defaultMembershipTierId,
+                isActive: true,
+                search: search,
+                medicalRecordNumber: medicalRecordNumber,
+                identityNumber: identityNumber,
+                sortBy: sortBy,
+                sortDirection: sortDirection,
+                pageNumber: pageNumber,
+                pageSize: pageSize,
+                birthDate: birthDate
             );
         }
 
@@ -539,14 +565,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     Email = NormalizeLowerNullableString(request.Email),
                     Address = NormalizeNullableString(request.Address),
                     CountryId = NormalizeNullableGuid(request.CountryId),
+                    Citizenship = request.Citizenship,
+                    NationalityCountryId = ResolveNationalityCountryId(request.Citizenship, request.NationalityCountryId),
                     ProvinceId = NormalizeNullableGuid(request.ProvinceId),
                     CityId = NormalizeNullableGuid(request.CityId),
                     DistrictId = NormalizeNullableGuid(request.DistrictId),
                     PostalCodeId = NormalizeNullableGuid(request.PostalCodeId),
                     PhotoPath = null,
-                    IsMember = request.IsMember,
-                    DefaultMembershipTierId = NormalizeNullableGuid(request.DefaultMembershipTierId),
-                    ActivePatientMembershipId = NormalizeNullableGuid(request.ActivePatientMembershipId),
+                    // crm-membership BE-CRM-015: status member adalah proyeksi yang hanya ditulis
+                    // PatientMembershipStatusResolver; nilai dari request diabaikan.
+                    IsMember = false,
+                    DefaultMembershipTierId = null,
+                    ActivePatientMembershipId = null,
                     IsNewborn = request.IsNewborn,
                     MotherPatientId = NormalizeNullableGuid(request.MotherPatientId),
                     BirthOrder = request.BirthOrder,
@@ -842,13 +872,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             entity.Email = NormalizeLowerNullableString(request.Email);
             entity.Address = NormalizeNullableString(request.Address);
             entity.CountryId = NormalizeNullableGuid(request.CountryId);
+
+            // RJ-REG-DEC-006: pemanggil lama tidak mengirim kewarganegaraan; null = pertahankan.
+            if (request.Citizenship.HasValue)
+            {
+                entity.Citizenship = request.Citizenship;
+                entity.NationalityCountryId = ResolveNationalityCountryId(request.Citizenship, request.NationalityCountryId);
+            }
             entity.ProvinceId = NormalizeNullableGuid(request.ProvinceId);
             entity.CityId = NormalizeNullableGuid(request.CityId);
             entity.DistrictId = NormalizeNullableGuid(request.DistrictId);
             entity.PostalCodeId = NormalizeNullableGuid(request.PostalCodeId);
-            entity.IsMember = request.IsMember;
-            entity.DefaultMembershipTierId = NormalizeNullableGuid(request.DefaultMembershipTierId);
-            entity.ActivePatientMembershipId = NormalizeNullableGuid(request.ActivePatientMembershipId);
+            // crm-membership BE-CRM-015: IsMember, DefaultMembershipTierId, dan ActivePatientMembershipId
+            // tidak lagi diubah lewat formulir pasien (proyeksi milik PatientMembershipStatusResolver).
             entity.IsNewborn = request.IsNewborn;
             entity.MotherPatientId = NormalizeNullableGuid(request.MotherPatientId);
             entity.BirthOrder = request.BirthOrder;
@@ -1942,6 +1978,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             return _dbContext.Set<MstPatient>()
                 .AsNoTracking()
                 .Include(x => x.Country)
+                .Include(x => x.NationalityCountry)
                 .Include(x => x.Province)
                 .Include(x => x.City)
                 .Include(x => x.District)
@@ -2043,14 +2080,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             return query;
         }
 
+        private static bool TryParseBirthDateFilter(string? value, out DateOnly? result)
+        {
+            result = null;
+
+            if (string.IsNullOrWhiteSpace(value))
+                return true;
+
+            if (!DateOnly.TryParseExact(
+                    value.Trim(),
+                    "yyyy-MM-dd",
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.None,
+                    out var parsed))
+                return false;
+
+            result = parsed;
+            return true;
+        }
+
         private static IQueryable<MstPatient> ApplyStandardFilter(
             IQueryable<MstPatient> query,
             bool? isActive,
-            string? search)
+            string? search,
+            string? medicalRecordNumber = null,
+            string? identityNumber = null)
         {
             if (isActive.HasValue)
             {
                 query = query.Where(x => x.IsActive == isActive.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(medicalRecordNumber))
+            {
+                var mrnKeyword = medicalRecordNumber.Trim().ToLower();
+                var mrnClean = mrnKeyword.Replace("-", "");
+                query = query.Where(x =>
+                    (x.MedicalRecordNumber != null && (
+                        x.MedicalRecordNumber.ToLower().Contains(mrnKeyword) ||
+                        x.MedicalRecordNumber.Replace("-", "").Contains(mrnClean)
+                    )) ||
+                    (x.PatientCode != null && x.PatientCode.ToLower().Contains(mrnKeyword)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(identityNumber))
+            {
+                var idKeyword = identityNumber.Trim();
+                query = query.Where(x => x.IdentityNumber != null && x.IdentityNumber.Contains(idKeyword));
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -2075,6 +2151,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         BuildEnumLabel(x).ToLower().Contains(keyword))
                     .ToList();
 
+                // Perlindungan broad-match: jangan cocokkan nomor telepon/WA jika keyword pendek (<= 3 karakter seperti "08")
+                // kecuali keyword nomor telepon memiliki panjang minimal 4 karakter (misal "0812")
+                var matchPhone = keyword.Length >= 4;
+
                 query = query.Where(x =>
                     x.PatientCode.ToLower().Contains(keyword) ||
                     x.MedicalRecordNumber.ToLower().Contains(keyword) ||
@@ -2082,8 +2162,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     (x.NickName != null && x.NickName.ToLower().Contains(keyword)) ||
                     (x.IdentityType != null && x.IdentityType.ToLower().Contains(keyword)) ||
                     (x.IdentityNumber != null && x.IdentityNumber.ToLower().Contains(keyword)) ||
-                    (x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
-                    (x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
+                    (matchPhone && x.PhoneNumber != null && x.PhoneNumber.ToLower().Contains(keyword)) ||
+                    (matchPhone && x.WhatsAppNumber != null && x.WhatsAppNumber.ToLower().Contains(keyword)) ||
                     (x.Email != null && x.Email.ToLower().Contains(keyword)) ||
                     (x.Country != null && x.Country.CountryName.ToLower().Contains(keyword)) ||
                     (x.Province != null && x.Province.ProvinceName.ToLower().Contains(keyword)) ||
@@ -2258,6 +2338,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 return (false, regionValidation.ErrorMessage, null);
             }
 
+            var citizenshipValidation = await ValidateCitizenshipAsync(
+                request.Citizenship,
+                request.NationalityCountryId
+            );
+
+            if (!citizenshipValidation.IsValid)
+            {
+                return (false, citizenshipValidation.ErrorMessage, null);
+            }
+
             var membershipValidation = await ValidateMembershipReferencesAsync(
                 excludeId,
                 request.DefaultMembershipTierId,
@@ -2293,6 +2383,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             return (true, null, null);
         }
+
+        /// <summary>
+        /// RJ-REG-DEC-006: WNA wajib menunjuk negara aktif pada <c>MstCountry</c>; WNI tidak
+        /// menyimpan negara sehingga ID negara tidak pernah di-hardcode.
+        /// </summary>
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateCitizenshipAsync(
+            PatientCitizenship? citizenship,
+            Guid? nationalityCountryId)
+        {
+            if (!citizenship.HasValue)
+            {
+                return (true, null);
+            }
+
+            if (!Enum.IsDefined(typeof(PatientCitizenship), citizenship.Value))
+            {
+                return (false, "Kewarganegaraan tidak valid. Gunakan WNI atau WNA.");
+            }
+
+            if (citizenship.Value != PatientCitizenship.Wna)
+            {
+                return (true, null);
+            }
+
+            var countryId = NormalizeNullableGuid(nationalityCountryId);
+
+            if (!countryId.HasValue)
+            {
+                return (false, "Negara asal wajib diisi untuk pasien WNA.");
+            }
+
+            var exists = await _dbContext.MstCountries
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == countryId.Value && x.IsActive && !x.IsDelete);
+
+            return exists
+                ? (true, null)
+                : (false, "Negara asal tidak valid atau tidak aktif.");
+        }
+
+        private static Guid? ResolveNationalityCountryId(
+            PatientCitizenship? citizenship,
+            Guid? nationalityCountryId) =>
+            citizenship == PatientCitizenship.Wna
+                ? NormalizeNullableGuid(nationalityCountryId)
+                : null;
 
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateRegionReferencesAsync(
             Guid? countryId,
@@ -2615,6 +2751,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 Email = entity.Email,
                 CountryId = entity.CountryId,
                 CountryName = entity.Country?.CountryName,
+                Citizenship = entity.Citizenship,
+                CitizenshipName = entity.Citizenship.HasValue ? BuildEnumLabel(entity.Citizenship.Value) : null,
+                NationalityCountryId = entity.NationalityCountryId,
+                NationalityCountryName = entity.NationalityCountry?.CountryName,
                 ProvinceId = entity.ProvinceId,
                 ProvinceName = entity.Province?.ProvinceName,
                 CityId = entity.CityId,
@@ -2684,6 +2824,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 Address = entity.Address,
                 CountryId = entity.CountryId,
                 CountryName = entity.Country?.CountryName,
+                Citizenship = entity.Citizenship,
+                CitizenshipName = entity.Citizenship.HasValue ? BuildEnumLabel(entity.Citizenship.Value) : null,
+                NationalityCountryId = entity.NationalityCountryId,
+                NationalityCountryName = entity.NationalityCountry?.CountryName,
                 ProvinceId = entity.ProvinceId,
                 ProvinceName = entity.Province?.ProvinceName,
                 CityId = entity.CityId,
@@ -2777,6 +2921,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 PatientType.Employee => "Karyawan",
                 PatientType.Corporate => "Perusahaan",
                 PatientType.Other => "Lainnya",
+
+                // Kewarganegaraan (RJ-REG-DEC-006)
+                PatientCitizenship.Wni => "WNI",
+                PatientCitizenship.Wna => "WNA",
 
                 // Patient Status
                 PatientStatus.Active => "Aktif",

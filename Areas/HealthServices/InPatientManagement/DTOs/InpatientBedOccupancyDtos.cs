@@ -20,6 +20,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// </remarks>
     public class AvailableBedQuery
     {
+        public Guid? PatientId { get; set; }
+        public Guid? MotherEpisodeId { get; set; }
+        [MaxLength(20)] public string? NewbornCareMode { get; set; }
+        public bool RequiresIntensiveCare { get; set; }
+        public bool RequiresIsolation { get; set; }
         public Guid? EpisodeId { get; set; }
 
         public Guid? ServiceUnitId { get; set; }

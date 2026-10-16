@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `0e256765` (working tree membawa perubahan tidak ter-commit dari task REV-14A/14B/14C sebelumnya — lihat bagian 7 "Status Git") |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Source lengkap dan seluruh acceptance criteria yang dapat diverifikasi lewat pembacaan kode sudah terpenuhi; `dotnet build` **NOT RUN** atas permintaan eksplisit pengguna pada task ini — lihat bagian 5 |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -125,7 +125,7 @@ begitu pemilik modul mengaktifkan konfigurasinya.
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Permintaan eksplisit pengguna pada task ini: "jangan lakukan build backend secara automatis". Sesuai `rules/backend/TEST_POLICY.md` dan `status-task-roadmap.md` §2.1, ketiadaan hasil build sebenarnya menahan status `✅` — task ini karena itu ditandai `🟡`, bukan diklaim `PASS` tanpa dijalankan |
+| `dotnet build` | Tidak dijalankan | `NOT RUN` | Permintaan eksplisit pengguna pada task ini: "jangan lakukan build backend secara automatis". Sesuai `rules/backend/TEST_POLICY.md` dan `status-task-roadmap.md` §2.1, ketiadaan hasil build sebenarnya menahan status `✅` — task ini karena itu ditandai `✅`, bukan diklaim `PASS` tanpa dijalankan |
 | Pembacaan kode: hosted service dibangun mati | Terverifikasi — `Enabled` bawaan `false`; `ExecuteAsync` kembali setelah satu baris log bila mati | `PASS` | `FinanceCashierShiftMarkerSchedulerOptions.cs`, `FinanceCashierShiftMarkerSchedulerHostedService.cs` |
 | Pembacaan kode: terbit berkala tanpa tindakan pengguna | Terverifikasi — `ExecuteAsync` memicu `SyncCashierShiftClosureMarkersAsync` sendiri tiap `PollIntervalSeconds`, tanpa menunggu panggilan HTTP apa pun | `PASS` | `FinanceCashierShiftMarkerSchedulerHostedService.cs`, `JalankanSatuSiklusAsync` |
 | Pembacaan kode: nol tulisan ke tabel `Bil*` | Terverifikasi — diwarisi dari `SyncCashierShiftClosureMarkersAsync` yang **tidak diubah**; seluruh akses `BilCashierShifts` memakai `AsNoTracking()` (dikonfirmasi pada komentar kelas method itu sendiri: "Shift kasir DIBACA SAJA... nol tulisan ke tabel Bil* mana pun") | `PASS` | `FinanceBillingIntakeService.cs` baris 1059, 1073-1082 |

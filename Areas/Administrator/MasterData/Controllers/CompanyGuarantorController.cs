@@ -763,6 +763,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsNeedApprovalForDrug = request.IsNeedApprovalForDrug,
                 IsCoverageLimitedByEmployeeGrade = request.IsCoverageLimitedByEmployeeGrade,
                 IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient,
+                IsEmployeeBenefitGuarantor = request.IsEmployeeBenefitGuarantor ?? false,
                 CreditLimitAmount = request.CreditLimitAmount,
                 CurrentOutstandingAmount = request.CurrentOutstandingAmount,
                 PaymentDueDays = request.PaymentDueDays,
@@ -878,6 +879,12 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
             entity.IsNeedApprovalForDrug = request.IsNeedApprovalForDrug;
             entity.IsCoverageLimitedByEmployeeGrade = request.IsCoverageLimitedByEmployeeGrade;
             entity.IsAllowExcessPaymentByPatient = request.IsAllowExcessPaymentByPatient;
+
+            if (request.IsEmployeeBenefitGuarantor.HasValue)
+            {
+                entity.IsEmployeeBenefitGuarantor = request.IsEmployeeBenefitGuarantor.Value;
+            }
+
             entity.CreditLimitAmount = request.CreditLimitAmount;
             entity.CurrentOutstandingAmount = request.CurrentOutstandingAmount;
             entity.PaymentDueDays = request.PaymentDueDays;
@@ -1439,6 +1446,25 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 }
             }
 
+            // BE-FIN-106: hanya satu penjamin internal (RS Benefit). Indeks unik terfilter menjaga di
+            // database; pemeriksaan ini memberi pesan yang jelas lebih dulu.
+            if (request.IsEmployeeBenefitGuarantor == true)
+            {
+                var otherInternalQuery = _dbContext.Set<MstCompanyGuarantor>()
+                    .AsNoTracking()
+                    .Where(x => !x.IsDelete && x.IsEmployeeBenefitGuarantor);
+
+                if (excludeId.HasValue)
+                {
+                    otherInternalQuery = otherInternalQuery.Where(x => x.Id != excludeId.Value);
+                }
+
+                if (await otherInternalQuery.AnyAsync())
+                {
+                    return (false, "Sudah ada penjamin lain yang ditandai sebagai penjamin internal. Hanya satu penjamin yang boleh bertanda.");
+                }
+            }
+
             var contractNumber = NormalizeNullableText(request.ContractNumber);
 
             if (!string.IsNullOrWhiteSpace(contractNumber))
@@ -1591,6 +1617,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsNeedApprovalForDrug = entity.IsNeedApprovalForDrug,
                 IsCoverageLimitedByEmployeeGrade = entity.IsCoverageLimitedByEmployeeGrade,
                 IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                IsEmployeeBenefitGuarantor = entity.IsEmployeeBenefitGuarantor,
                 CreditLimitAmount = entity.CreditLimitAmount,
                 CurrentOutstandingAmount = entity.CurrentOutstandingAmount,
                 PaymentDueDays = entity.PaymentDueDays,
@@ -1639,6 +1666,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsNeedApprovalForDrug = entity.IsNeedApprovalForDrug,
                 IsCoverageLimitedByEmployeeGrade = entity.IsCoverageLimitedByEmployeeGrade,
                 IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                IsEmployeeBenefitGuarantor = entity.IsEmployeeBenefitGuarantor,
                 CreditLimitAmount = entity.CreditLimitAmount,
                 CurrentOutstandingAmount = entity.CurrentOutstandingAmount,
                 PaymentDueDays = entity.PaymentDueDays,
@@ -1690,6 +1718,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Controllers
                 IsNeedApprovalForDrug = entity.IsNeedApprovalForDrug,
                 IsCoverageLimitedByEmployeeGrade = entity.IsCoverageLimitedByEmployeeGrade,
                 IsAllowExcessPaymentByPatient = entity.IsAllowExcessPaymentByPatient,
+                IsEmployeeBenefitGuarantor = entity.IsEmployeeBenefitGuarantor,
                 CreditLimitAmount = entity.CreditLimitAmount,
                 CurrentOutstandingAmount = entity.CurrentOutstandingAmount,
                 PaymentDueDays = entity.PaymentDueDays,

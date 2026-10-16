@@ -40,6 +40,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BilPrescriptionClearanceRecoveryService>();
         services.AddScoped<BillingFinancialExceptionService>();
         services.AddScoped<BillingArApHandoffService>();
+        services.AddScoped<BillingEmployeeBenefitSplitService>();
         services.AddScoped<BillingFinalizationService>();
         services.AddScoped<BillingNumberSeriesService>();
         services.AddScoped<BillingReminderService>();

@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, bagian "Task REV-14E — `EPIC FIN-24`" |
 | Trace | `FIN-DEC-136`, `FIN-DEC-140`; `FIN-DES-093`; `FIN-API-1.6` F.2; `FIN-VAL-1.8` `FIN-VAL-224`/`226`; `erd/data-dictionary.md`/`02-backend-architecture.md` bagian M |
 | Contract version | `02-backend-architecture.md` bagian M (revisi 15), disetujui Yasmin 2 Oktober 2026 (`blueprint-manifest.md` `approval_revision_15`); `contracts/permission-audit-matrix.md` bagian yang memuat atribut `[AccessController]` controller ini persis |
-| Dependency | `BE-FIN-079` — 🟡 **sebagian** (source lengkap, `dotnet build`/migration belum dijalankan atas permintaan eksplisit pada giliran itu). Dilanjutkan karena bagian yang dibutuhkan `BE-FIN-080` (model `FinOpeningItemBatch` dan konstanta `ItemKind`) sudah ada di source, bukan menunggu build berhasil |
+| Dependency | `BE-FIN-079` — ✅ SELESAI (source lengkap, `dotnet build`/migration belum dijalankan atas permintaan eksplisit pada giliran itu). Dilanjutkan karena bagian yang dibutuhkan `BE-FIN-080` (model `FinOpeningItemBatch` dan konstanta `ItemKind`) sudah ada di source, bukan menunggu build berhasil |
 | Klasifikasi | `MEDIUM` — nol migration/model baru, tetapi menambah folder baru (`Readers/`), satu pengurai CSV tulisan tangan, satu controller baru, dan dua berkas statis yang isinya adalah keputusan desain (lihat bagian 7) |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend`: `Areas/Corporate/FinanceManagement/AccountingIntegration/**`, `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs`, `Storage/templates/finance/**`, `docs/module-blueprints/finance-management/**` |
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `0e256765563ef2693107e1f35e9c5a67476ca1f0` (belum ada commit baru dibuat pada sesi ini) |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh source dan kedua berkas templat CSV selesai; `dotnet build` **belum dijalankan** atas permintaan eksplisit pemilik task pada giliran ini |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -111,7 +111,7 @@ pengurai yang memulangkan isinya apa adanya beserta nomor barisnya.
 | `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` | `services.AddScoped<IOpeningItemFileReader, CsvOpeningItemFileReader>()` ditambah — pola `IEnumerable<IOpeningItemFileReader>` disiapkan untuk `BE-FIN-083` menambah `XlsxOpeningItemFileReader` tanpa mengubah baris ini |
 | `Storage/templates/finance/opening-item-receivable.csv` | **Baru.** Templat CSV piutang — baris header saja (lihat bagian 7 untuk kolomnya) |
 | `Storage/templates/finance/opening-item-supplier-payable.csv` | **Baru.** Templat CSV utang supplier — baris header saja |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Ditandai 🟡 pada baris tabel dan grafik dependency `BE-FIN-080` (lihat luar laporan ini) |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Ditandai ✅ pada baris tabel dan grafik dependency `BE-FIN-080` (lihat luar laporan ini) |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 
@@ -172,7 +172,7 @@ AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomati
 | Nol paket ditambahkan | **Terpenuhi** | `QuilvianSystemBackend.csproj` tidak diubah; `CsvOpeningItemFileReader` hanya memakai `System.Text`/`System.IO` bawaan |
 | Laporan task tracked ada | **Terpenuhi** | Berkas ini |
 
-**Kesimpulan status:** 🟡 **Sebagian**, bukan ✅. Satu butir DoD eksplisit (`dotnet build PASS`)
+**Kesimpulan status:** ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE).**
 **belum terpenuhi** semata karena belum dijalankan atas instruksi eksplisit, bukan karena ditemukan
 kegagalan. Status ini **wajib** ditinjau ulang ke ✅ setelah `dotnet build` dijalankan dengan hasil PASS.
 

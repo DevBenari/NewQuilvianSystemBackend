@@ -10,14 +10,14 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md`, tabel task `REV-19` |
 | Trace | `FIN-DEC-185`, `202`, `205`, `207`; `FIN-STATE-1.9` `R.3`; `FIN-VAL-1.12` `FIN-VAL-255`..`258`; `02-backend-architecture.md` `R.3`, `R.4`, `R.10` |
 | Contract version | `FIN-INTEGRATION-1.9` `R.3` (`INT-BIL-HR-001`), `R.2.3`; `FIN-API-1.10` `R.1` (`GET /{id}/movements`) — **approved** (`FIN-DEC-212`, `223`) |
-| Dependency | `BE-FIN-103` 🟡 (source ada di commit `a73f5593`; build dan migration belum), `{FIN-OQ-105}` ✅ |
+| Dependency | `BE-FIN-103` ✅ (build dan migrasi dilaporkan berhasil oleh pemilik), `{FIN-OQ-105}` ✅ |
 | Klasifikasi | `HEAVY` — skor 12: berkas diperiksa >20 (2), berkas diubah >8 (2), logika bisnis kompleks: idempotensi dan konkurensi saldo (2), kontrak integrasi dan API baru (2), dampak schema: tabel baru (2), keamanan terkait (1), lintas modul (1), UI 0 |
 | Task mode | `BACKEND`, wewenang tulis eksplisit pemilik ("mulai kerjakan BE-FIN-104", 13 Oktober 2026), lintas modul ke `Areas/Corporate/HumanResource/BenefitManagement` |
 | Target tulis | `Areas/Corporate/HumanResource/BenefitManagement/**`, `Repositories/Configurations/Corporate/HumanResource/BenefitManagement/**`, satu baris `DbSet` di `ApplicationDbContext.cs`, dua baris DI di `Program.cs`, laporan ini, dan baris status roadmap |
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `a73f5593` (branch `Yasmina`; commit pemilik yang memuat source `BE-FIN-103`) |
 | Tanggal | 13 Oktober 2026 |
-| Status | 🟡 **Sebagian** — source selesai; `dotnet build` **NOT RUN** (pemilik meminta tanpa build); file migration **belum dibuat** |
+| Status | ✅ **Selesai** — source selesai; `dotnet build` dan migrasi `20261013055556_TableHrdBenefitBalanceMovements` dijalankan pemilik dan dilaporkan berhasil (13 Oktober 2026). Verifikasi runtime menunggu pemanggil pertama (`BE-FIN-108`) |
 
 ### Backend Governance Preflight
 
@@ -106,7 +106,7 @@ transaksi `Serializable`); `AppDateTimeHelper.cs`; seluruh berkas `BE-FIN-103`.
 | --- | --- |
 | Kontrak integrasi | `INT-BIL-HR-001` tersedia sebagai layanan in-process untuk `BE-FIN-107`/`108`. Nama method berbahasa Inggris: `ReadAsync` = BacaPlafon, `UseAsync` = PakaiPlafon, `ReturnAsync` = KembalikanPlafon |
 | Kontrak API | Satu endpoint baru `GET /{id}/movements` (bagian 4). Delta: bagian 7 |
-| Database | Satu tabel baru, lima check constraint, dua indeks unik, tiga indeks biasa. **File migration belum dibuat; belum diterapkan** (bagian 5) |
+| Database | Satu tabel baru, lima check constraint, dua indeks unik, tiga indeks biasa. **Migration `20261013055556_TableHrdBenefitBalanceMovements` dibuat dan diterapkan pemilik (dilaporkan berhasil)** |
 | Keamanan/Auth | Tiga operasi plafon **tidak** punya endpoint, sehingga hanya bisa dipanggil kode backend (Billing), bukan pengguna. Buku mutasi dibaca dengan hak akses enrollment yang sudah ada (`EmployeeBenefitEnrollment : Read`). Log audit hanya memuat ID, jenis, dan nominal; tanpa nama, NIK, atau hubungan |
 
 ## 4. Dokumentasi endpoint
@@ -137,9 +137,9 @@ Kode status: `200` berhasil; `400` `MovementType` selain `USE`/`RETURN`; `403` t
 | Pencocokan hak akses endpoint baru | `ControllerName` = `EmployeeBenefitEnrollment` = argumen 1 `[AccessPermission]`; argumen 1 `[AccessAction]` = `Read` = argumen 2 `[AccessPermission]`; `AccessType = Read` | `PASS` | Review controller |
 | Review diff dan scope | Hanya berkas pada 3.2; tidak ada perubahan pemilik lain di working tree | `PASS` | `git status --short` |
 | Diagnostik IDE | Language server VS Code tidak melaporkan berkas C# sama sekali, sehingga ini **bukan** bukti kompilasi | `NOT AVAILABLE` | `getDiagnostics` |
-| `dotnet restore` / `dotnet build` | — | `NOT RUN` | Pemilik meminta tanpa build. **Wajib dijalankan sebelum task ditandai ✅** |
-| Pembuatan file migration | `20261013055556_TableHrdBenefitBalanceMovements` ada di working tree, dibuat **di luar sesi agent** pukul 12:55. Isinya diperiksa: tabel `HrdBenefitBalanceMovement` (5 check constraint, 2 indeks unik, 3 indeks, 3 FK), `RowVersion` kedua tabel, constraint dan indeks `BE-FIN-103` | `DONE` (oleh pemilik) | Berkas migration; **belum diterapkan** ke database |
-| Verifikasi proses bisnis runtime (contoh bagian 2) | — | `NOT RUN` | Tidak ada pemanggil runtime sampai `BE-FIN-107`/`108`; uji manual memerlukan build dan migration |
+| `dotnet restore` / `dotnet build` | Dijalankan pemilik dan dilaporkan **berhasil** (13 Oktober 2026); keluarannya tidak dilihat agent | `PASS` (dilaporkan pemilik) | Laporan pemilik pada sesi 13 Oktober 2026 |
+| Pembuatan dan penerapan migration | `20261013055556_TableHrdBenefitBalanceMovements` dibuat di luar sesi agent (12:55) dan diterapkan pemilik; dilaporkan berhasil. Isinya diperiksa: tabel `HrdBenefitBalanceMovement` (5 check constraint, 2 indeks unik, 3 indeks, 3 FK), `RowVersion` kedua tabel, constraint dan indeks `BE-FIN-103` | `PASS` (dilaporkan pemilik) | Berkas ada di `Migrations/` |
+| Verifikasi proses bisnis runtime (contoh bagian 2) | — | `NOT RUN` | Tidak ada pemanggil runtime sampai `BE-FIN-107`/`108`; uji manual menunggu pemanggil itu |
 
 Uji manual: `REQUIRED` setelah build dan migration, idealnya bersama `BE-FIN-108`.
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`.
@@ -169,7 +169,7 @@ keluarga; filter indeks lama tanggungan yang dipersempit. Sebelum diterapkan, ja
 | DoD: preflight selesai | Terpenuhi | Bagian preflight |
 | DoD: kontrak cocok | Terpenuhi dengan delta tercatat | Bagian 7 |
 | DoD: laporan tracked | Terpenuhi | Berkas ini |
-| DoD (dari Verifikasi roadmap): `dotnet build` atas permintaan pemilik | **Belum** | `NOT RUN` |
+| DoD (dari Verifikasi roadmap): `dotnet build` atas permintaan pemilik | Terpenuhi (dilaporkan pemilik) | Build berhasil |
 
 ## 7. Catatan penutup
 
@@ -181,9 +181,9 @@ keluarga; filter indeks lama tanggungan yang dipersempit. Sebelum diterapkan, ja
 | Delta kamus data | Indeks tambahan `IX_HrdBenefitBalanceMovement_Dependent` dan `IX_HrdBenefitBalanceMovement_InvoiceId` (pencarian per tanggungan dan per invoice) |
 | Tafsiran yang dicatat | (1) PakaiPlafon memeriksa kelayakan **berdasarkan status** saja; masa berlaku terhadap tanggal layanan sudah diperiksa BacaPlafon pada transaksi finalisasi yang sama (`R.3.4` langkah 2), karena masukan PakaiPlafon tidak membawa tanggal. (2) KembalikanPlafon tetap mengembalikan walaupun orangnya sudah tidak aktif, agar `Used = Σ USE − Σ RETURN` tetap benar. (3) Tanggungan yang pernah ada tetapi ditolak atau diakhiri dilaporkan `DEPENDENT_NOT_ELIGIBLE`, bukan `DEPENDENT_NOT_REGISTERED` |
 | Masalah yang diketahui | Di bawah isolasi `Serializable` milik `BillingFinalizationService`, finalisasi kedua yang menunggu kunci orang yang sama dapat gagal dengan galat serialisasi (`40001`) alih-alih `INSUFFICIENT`. Saldo tetap aman; `BE-FIN-108` perlu menangani galat itu sebagai "coba lagi" |
-| Risiko tersisa | Kode belum pernah dikompilasi; sintaks `ExecuteUpdateAsync`/`SetProperty` belum diverifikasi compiler. Bila pemanggil sedang melacak baris saldo yang sama, nilainya dimuat ulang dan perubahan pemanggil atas baris itu hilang (Billing tidak menulis tabel HR, sehingga tidak diharapkan terjadi) |
+| Risiko tersisa | Verifikasi runtime menunggu pemanggil pertama. Bila pemanggil sedang melacak baris saldo yang sama, nilainya dimuat ulang dan perubahan pemanggil atas baris itu hilang (Billing tidak menulis tabel HR, sehingga tidak diharapkan terjadi) |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE`. Di tengah sesi ditemukan pemilik sudah meng-commit `BE-FIN-103` (`a73f5593`); pekerjaan dilanjutkan di atas commit itu |
 | Status Git | ` M` `HrBenefitConstants.cs`, `EmployeeBenefitEnrollmentController.cs`, `EmployeeBenefitEnrollmentService.cs`, `ApplicationDbContext.cs`, `Program.cs`; `??` dua DTO, dua service, satu model, satu konfigurasi, dan laporan ini |
 | `requirement-traceability.md` | Tidak ada pada blueprint ini; traceability dipegang tabel di roadmap |
-| Langkah berikutnya | Pemilik menjalankan `dotnet build` dan `dotnet ef migrations add AddHrBenefitBalanceMovementAndConstraints`, lalu menerapkannya. `BE-FIN-106` (butuh `BE-FIN-105`) dan `BE-FIN-107`/`108` adalah pemakai layanan ini |
+| Langkah berikutnya | `BE-FIN-106` sudah dikerjakan; `BE-FIN-107`/`108` adalah pemakai layanan ini dan menunggu `GATE-01` |

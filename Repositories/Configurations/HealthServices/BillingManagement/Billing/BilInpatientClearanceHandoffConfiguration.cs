@@ -21,7 +21,7 @@ public sealed class BilInpatientClearanceHandoffConfiguration : IEntityTypeConfi
                 "\"FinancialOutcome\" IS NULL OR \"FinancialOutcome\" IN ('FULLY_PAID', 'INSURANCE_GUARANTEED', 'SETTLED_WITH_DEPOSIT', 'DISCHARGED_WITH_AR')");
             table.HasCheckConstraint(
                 "CK_BilInpatientClearanceHandoff_ReasonCode",
-                "\"ReasonCode\" IN ('INVOICE_SETTLED', 'GUARANTOR_APPROVED', 'DISCHARGE_ORDER_INITIATED', 'LATE_CHARGE_POSTED', 'PAYMENT_REVERSED', 'CORRECTION_APPLIED')");
+                "\"ReasonCode\" IN ('INVOICE_SETTLED', 'GUARANTOR_APPROVED', 'DISCHARGE_ORDER_INITIATED', 'LATE_CHARGE_POSTED', 'PAYMENT_REVERSED', 'CORRECTION_APPLIED', 'REEVALUATED_BY_CASHIER')");
             table.HasCheckConstraint(
                 "CK_BilInpatientClearanceHandoff_FinancialVersion",
                 "\"FinancialVersion\" > 0");

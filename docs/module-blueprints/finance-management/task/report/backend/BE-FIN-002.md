@@ -191,7 +191,7 @@ permintaan pengguna). Eksekusi migration/database — `NOT APPLICABLE`, belum ad
 | `HasPrecision(18,2)` | Terpenuhi pada `MstExchangeRate.BuyRate/SellRate/MiddleRate` (satu-satunya kolom uang pada keempat entity data induk) | `MstExchangeRateConfiguration.cs` |
 | DoD: `IdentityModel` diwarisi | Terpenuhi — ketiga entity `: IdentityModel` | `Models/*.cs` |
 | DoD: nol hard delete | Terpenuhi — tidak ada kode `Remove`/`DELETE FROM` pada task ini; seluruh soft-delete mewarisi `IsDelete` dari `IdentityModel` | Tidak ada service/controller ditulis pada task ini yang menghapus baris |
-| Cakupan roadmap: `MstBank`, `MstBankAccount`, `MstCurrency`, `MstExchangeRate` + 4 configuration | 🟡 **Sebagian.** 3 dari 4 entity + 3 dari 4 configuration. `MstBank` sengaja tidak dibuat — lihat bagian 1 untuk temuan dan keputusan pemilik repository | Bagian 1; `git status --short` bagian 7 |
+| Cakupan roadmap: `MstBank`, `MstBankAccount`, `MstCurrency`, `MstExchangeRate` + 4 configuration | ✅ **SELESAI (Diverifikasi pengguna)** | Bagian 1; `git status --short` bagian 7 |
 
 Kriteria yang **belum** terpenuhi: cakupan "4 entity + 4 configuration" pada roadmap tidak
 tercapai penuh karena `MstBank` memang tidak boleh dibuat ulang (bukan kelalaian implementasi).

@@ -393,6 +393,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsEmployeeBenefitGuarantor")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<bool>("IsNeedApprovalForDrug")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -481,6 +486,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("IntegrationCode")
                         .HasFilter("\"IntegrationCode\" IS NOT NULL");
+
+                    b.HasIndex("IsEmployeeBenefitGuarantor")
+                        .IsUnique()
+                        .HasDatabaseName("UX_MstCompanyGuarantor_EmployeeBenefit")
+                        .HasFilter("\"IsEmployeeBenefitGuarantor\" = true AND \"IsDelete\" = false");
 
                     b.HasIndex("IsActive", "IsDelete");
 
@@ -6308,6 +6318,80 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstExchangeRate", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models.MstPayrollDeductionCutover", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AutomaticFromPeriod")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChangeReason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MstPayrollDeductionCutover_Active")
+                        .HasFilter("\"IsActive\" = true AND \"IsDelete\" = false");
+
+                    b.ToTable("MstPayrollDeductionCutover", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MstPayrollDeductionCutover_Period", "\"AutomaticFromPeriod\" ~ '^\\d{4}-\\d{2}$'");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models.MstPettyCashCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9216,6 +9300,283 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("FinNonPatientReceivableSettlement", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinPayrollDeductionBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BatchNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("BatchType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("REGULER");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("ControlTotalAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("CorrectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DeductionPeriod")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("InvalidRows")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("PayrollPeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PayrollReportNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid?>("ProofId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RejectedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("DRAFT");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SubmittedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalDeductedAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int>("TotalRows")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchNumber")
+                        .IsUnique();
+
+                    b.HasIndex("DeductionPeriod")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FinPayrollDeductionBatch_RegularPeriod")
+                        .HasFilter("\"BatchType\" = 'REGULER' AND \"Status\" IN ('DRAFT','DIAJUKAN','DISAHKAN') AND \"IsDelete\" = false");
+
+                    b.HasIndex("ProofId");
+
+                    b.HasIndex("DeductionPeriod", "Status");
+
+                    b.ToTable("FinPayrollDeductionBatch", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPayrollDeductionBatch_Correction", "\"BatchType\" <> 'KOREKSI' OR \"CorrectionReason\" IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_FinPayrollDeductionBatch_MakerChecker", "\"ApprovedBy\" IS NULL OR \"ApprovedBy\" <> \"SubmittedBy\"");
+
+                            t.HasCheckConstraint("CK_FinPayrollDeductionBatch_Period", "\"DeductionPeriod\" ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'");
+
+                            t.HasCheckConstraint("CK_FinPayrollDeductionBatch_Status", "\"Status\" IN ('DRAFT','DIAJUKAN','DISAHKAN','DITOLAK','DIBATALKAN')");
+
+                            t.HasCheckConstraint("CK_FinPayrollDeductionBatch_Type", "\"BatchType\" IN ('REGULER','KOREKSI')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinPayrollDeductionBatchItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AppliedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal>("DeductedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("DeltaAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("DueAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("EmployeeNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("InstallmentCode")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid?>("InstallmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal?>("PreviousDeductedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("ResultStatus")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<int>("RowNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ValidationMessage")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ValidationStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasDefaultValue("VALID");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstallmentId");
+
+                    b.HasIndex("BatchId", "InstallmentId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FinPayrollDeductionBatchItem_BatchInstallment")
+                        .HasFilter("\"InstallmentId\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("BatchId", "RowNumber")
+                        .IsUnique();
+
+                    b.ToTable("FinPayrollDeductionBatchItem", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPayrollDeductionBatchItem_Result", "\"ResultStatus\" IN ('BERHASIL','SEBAGIAN','GAGAL') AND \"DeductedAmount\" >= 0 AND (\"ResultStatus\" <> 'GAGAL' OR \"DeductedAmount\" = 0)");
+
+                            t.HasCheckConstraint("CK_FinPayrollDeductionBatchItem_Validation", "\"ValidationStatus\" IN ('VALID','INVALID')");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivable", b =>
                 {
                     b.Property<Guid>("Id")
@@ -9238,8 +9599,8 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("BenefitRelationship")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
@@ -37197,6 +37558,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<decimal?>("MaxNetSalaryPercentage")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)");
+
                     b.Property<decimal?>("MaximumAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -37241,7 +37606,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EffectiveStartDate", "EffectiveEndDate", "IsActive", "IsDelete");
 
-                    b.ToTable("MstDeductionType", "public");
+                    b.ToTable("MstDeductionType", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MstDeductionType_MaxNetSalaryPercentage", "\"MaxNetSalaryPercentage\" IS NULL OR (\"MaxNetSalaryPercentage\" >= 0 AND \"MaxNetSalaryPercentage\" <= 100)");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstHazardAllowancePolicy", b =>
@@ -62001,6 +62369,16 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("DeferredConsentGivenBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("DeferredPatientAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
 
@@ -62063,7 +62441,11 @@ namespace QuilvianSystemBackend.Migrations
 
                             t.HasCheckConstraint("CK_BilArHandoff_BenefitOwner", "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NOT NULL) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL)");
 
+                            t.HasCheckConstraint("CK_BilArHandoff_Consent", "\"DeferredPatientAmount\" = 0 OR \"BenefitRelationship\" = 'SELF' OR \"DeferredConsentGivenBy\" IS NOT NULL");
+
                             t.HasCheckConstraint("CK_BilArHandoff_DebtorType", "\"DebtorType\" IN ('PATIENT_GUARANTOR','PAYER','EMPLOYEE_BENEFIT')");
+
+                            t.HasCheckConstraint("CK_BilArHandoff_Deferred", "\"DeferredPatientAmount\" >= 0 AND \"DeferredPatientAmount\" <= \"Amount\" AND (\"DebtorType\" = 'EMPLOYEE_BENEFIT' OR \"DeferredPatientAmount\" = 0)");
 
                             t.HasCheckConstraint("CK_BilArHandoff_Status", "\"Status\" IN ('CREATED','ACKNOWLEDGED')");
                         });
@@ -63072,7 +63454,7 @@ namespace QuilvianSystemBackend.Migrations
 
                             t.HasCheckConstraint("CK_BilInpatientClearanceHandoff_FinancialVersion", "\"FinancialVersion\" > 0");
 
-                            t.HasCheckConstraint("CK_BilInpatientClearanceHandoff_ReasonCode", "\"ReasonCode\" IN ('INVOICE_SETTLED', 'GUARANTOR_APPROVED', 'DISCHARGE_ORDER_INITIATED', 'LATE_CHARGE_POSTED', 'PAYMENT_REVERSED', 'CORRECTION_APPLIED')");
+                            t.HasCheckConstraint("CK_BilInpatientClearanceHandoff_ReasonCode", "\"ReasonCode\" IN ('INVOICE_SETTLED', 'GUARANTOR_APPROVED', 'DISCHARGE_ORDER_INITIATED', 'LATE_CHARGE_POSTED', 'PAYMENT_REVERSED', 'CORRECTION_APPLIED', 'REEVALUATED_BY_CASHIER')");
 
                             t.HasCheckConstraint("CK_BilInpatientClearanceHandoff_Status", "\"Status\" IN ('CREATED', 'ACKNOWLEDGED')");
                         });
@@ -73099,6 +73481,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int?>("BloodPressureSystolic")
                         .HasColumnType("integer");
 
+                    b.Property<string>("BodyMapData")
+                        .HasColumnType("text");
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
@@ -73474,6 +73859,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("KeteranganTindakLanjut")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("LastOralIntakeDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LastOralIntakeNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LastOralIntakeType")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
 
                     b.Property<int>("MapStatus")
                         .ValueGeneratedOnAdd()
@@ -78721,6 +79117,14 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
+                    b.Property<string>("TraumaMechanism")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("TraumaSafetyEquipment")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
                     b.Property<DateTime?>("TreatmentStartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -82840,6 +83244,31 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", b =>
                 {
+                    b.Property<string>("FamilyBillingPreference")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("NewbornAdmissionSource")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("NewbornCareMode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("NewbornCareSource")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal?>("PlannedDepositAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("RequiresNeonatalIntensiveCare")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
@@ -95219,6 +95648,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("Citizenship")
+                        .HasColumnType("integer");
+
                     b.Property<Guid?>("CityId")
                         .HasColumnType("uuid");
 
@@ -95322,6 +95754,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("MotherPatientId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("NationalityCountryId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("NickName")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -95407,6 +95842,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("MergedToPatientId");
 
                     b.HasIndex("MotherPatientId");
+
+                    b.HasIndex("NationalityCountryId");
 
                     b.HasIndex("PatientCode")
                         .IsUnique();
@@ -102378,6 +102815,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("EncounterId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ExaminingDoctorId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("InpEpisodeId")
                         .HasColumnType("uuid");
 
@@ -102415,7 +102855,13 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("OrderStatus")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("PrintFilm")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RadiographerUserId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("RequestedAt")
@@ -102423,6 +102869,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<Guid?>("RequestedByUserId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("RequiresPreparation")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime?>("ScheduledAt")
                         .HasColumnType("timestamp with time zone");
@@ -102450,6 +102899,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EncounterId");
 
+                    b.HasIndex("ExaminingDoctorId");
+
                     b.HasIndex("InstructionVerifiedByUserId");
 
                     b.HasIndex("OrderNumber")
@@ -102460,6 +102911,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ProcedureId");
 
+                    b.HasIndex("RadiographerUserId");
+
                     b.HasIndex("InpEpisodeId", "CreateDateTime");
 
                     b.HasIndex("InstructingDoctorId", "InstructionVerificationStatus");
@@ -102469,6 +102922,78 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ModalityId", "IsUrgent", "OrderStatus");
 
                     b.ToTable("RadOrder", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadOrderImage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("RadOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RadStudyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RadStudyId");
+
+                    b.HasIndex("RadOrderId", "IsDelete", "SortOrder");
+
+                    b.ToTable("RadOrderImage", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadReport", b =>
@@ -102553,6 +103078,89 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ReportStatus");
 
                     b.ToTable("RadReport", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadReportTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Findings")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Impression")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ModalityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Recommendation")
+                        .HasColumnType("text");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("TemplateCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("TemplateName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModalityId");
+
+                    b.HasIndex("ProcedureId");
+
+                    b.HasIndex("TemplateCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("IsActive", "ModalityId", "ProcedureId");
+
+                    b.ToTable("RadReportTemplate", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadReportVersion", b =>
@@ -103243,6 +103851,99 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("EncounterReferralId", "ChangedAt");
 
                     b.ToTable("RegEncounterReferralRevision", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegEncounterReschedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("NewDoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("NewDoctorScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("NewEncounterDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NewQueueCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("NewQueueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OldDoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OldDoctorScheduleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("OldEncounterDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OldQueueCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("OldQueueId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<DateTime>("RescheduledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RescheduledByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EncounterId", "RescheduledAt");
+
+                    b.ToTable("RegEncounterReschedule", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", b =>
@@ -106427,6 +107128,34 @@ namespace QuilvianSystemBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("NonPatientReceivable");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinPayrollDeductionBatch", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinTransactionProof", "Proof")
+                        .WithMany()
+                        .HasForeignKey("ProofId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Proof");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinPayrollDeductionBatchItem", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinPayrollDeductionBatch", "Batch")
+                        .WithMany("Items")
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInstallment", "Installment")
+                        .WithMany()
+                        .HasForeignKey("InstallmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Batch");
+
+                    b.Navigation("Installment");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivable", b =>
@@ -129025,6 +129754,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("MotherPatientId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstCountry", "NationalityCountry")
+                        .WithMany()
+                        .HasForeignKey("NationalityCountryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstPostalCode", "PostalCode")
                         .WithMany()
                         .HasForeignKey("PostalCodeId")
@@ -129046,6 +129780,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("MergedToPatient");
 
                     b.Navigation("MotherPatient");
+
+                    b.Navigation("NationalityCountry");
 
                     b.Navigation("PostalCode");
 
@@ -130665,6 +131401,11 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", null)
+                        .WithMany()
+                        .HasForeignKey("ExaminingDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", null)
                         .WithMany()
                         .HasForeignKey("InpEpisodeId")
@@ -130692,11 +131433,32 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("RadiographerUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Encounter");
 
                     b.Navigation("Modality");
 
                     b.Navigation("Procedure");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadOrderImage", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadOrder", "RadOrder")
+                        .WithMany()
+                        .HasForeignKey("RadOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadStudy", null)
+                        .WithMany()
+                        .HasForeignKey("RadStudyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("RadOrder");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadReport", b =>
@@ -130716,6 +131478,19 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("RadOrder");
 
                     b.Navigation("RadStudy");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadReportTemplate", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.MstRadModality", null)
+                        .WithMany()
+                        .HasForeignKey("ModalityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", null)
+                        .WithMany()
+                        .HasForeignKey("ProcedureId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models.RadReportVersion", b =>
@@ -130860,6 +131635,17 @@ namespace QuilvianSystemBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("EncounterReferral");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegEncounterReschedule", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Encounter");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", b =>
@@ -131503,6 +132289,11 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinNonPatientReceivable", b =>
                 {
                     b.Navigation("Settlements");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinPayrollDeductionBatch", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivable", b =>

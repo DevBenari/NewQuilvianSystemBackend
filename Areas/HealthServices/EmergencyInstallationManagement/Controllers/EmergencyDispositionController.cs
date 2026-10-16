@@ -364,6 +364,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            var butuhFormRawatInap = request.DispositionStatus is EmergencyDispositionStatus.Executed or EmergencyDispositionStatus.Cancelled
+                && await _emergencyDispositionService.ButuhFormPermintaanRawatInapAsync(entity.Id, cancellationToken);
+
+            if (butuhFormRawatInap && request.DispositionStatus == EmergencyDispositionStatus.Executed)
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict,
+                    await _emergencyDispositionService.AlasanJalankanRawatInapDitolakAsync(entity.Id, cancellationToken)));
+
+            await using var transaksiRawatInap = butuhFormRawatInap && request.DispositionStatus == EmergencyDispositionStatus.Cancelled
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+
+            if (transaksiRawatInap != null)
+            {
+                var penolakanBatal = await _emergencyDispositionService.BatalkanPermintaanKarenaTindakLanjutAsync(
+                    entity, NormalizeText(request.Notes)!, actorUserId, cancellationToken);
+                if (penolakanBatal != null)
+                    return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanBatal));
+            }
+
             // BE-IGD-021 — titik tulis VisitStatus kelima. Penjaga BE-IGD-018 dipanggil
             // sebelum entity diubah, supaya penolakan 409 tidak meninggalkan tindak lanjut
             // yang terlanjur berstatus Executed sementara kunjungannya tidak ikut pindah.
@@ -410,6 +429,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 : EmergencyVisitService.HasilPenutupanSusulan.Dilewati;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaksiRawatInap != null)
+                await transaksiRawatInap.CommitAsync(cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,

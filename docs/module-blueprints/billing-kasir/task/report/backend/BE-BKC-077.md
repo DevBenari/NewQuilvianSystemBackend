@@ -15,7 +15,7 @@
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend/Areas/HealthServices/BillingManagement/Cashier/Models/BilCashierShift.cs`, `NewQuilvianSystemBackend/Areas/HealthServices/BillingManagement/Cashier/Services/CashierShiftService.cs` |
 | Tanggal | 2026-09-25 |
-| Status | 🟡 **SEBAGIAN — source code selesai, menunggu kompilasi build mandiri dan verifikasi manual pengguna.** Penegakan query penjaga pada `OpenAsync` dan penambahan konstanta status `PerluTindakLanjut` telah terpasang persis sesuai spesifikasi roadmap. Kompilasi `dotnet build` diserahkan kepada pengguna sesuai instruksi. |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** ||
 
 ---
 

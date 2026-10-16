@@ -61,4 +61,5 @@ public static class FinTransactionProofTypes
 {
     public const string BuktiTransfer = "BUKTI-TRANSFER";
     public const string Kuitansi = "KUITANSI";
+    public const string LaporanPenggajian = "LAPORAN-PENGGAJIAN";
 }

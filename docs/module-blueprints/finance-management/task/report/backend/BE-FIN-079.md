@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `0e256765563ef2693107e1f35e9c5a67476ca1f0` (belum ada commit baru dibuat pada sesi ini) |
 | Tanggal | 2 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh source, migration tangan, dan dokumentasi selesai; `dotnet build`/`dotnet restore` **belum dijalankan** atas permintaan eksplisit pemilik task pada giliran ini, dan migration **belum dieksekusi** ke database (wewenang eksekusi milik Yasmin) |
+| Status | ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE)** |
 
 ---
 
@@ -111,7 +111,7 @@ validasi aplikasi yang bisa lupa dipanggil.
 | `Areas/Corporate/FinanceManagement/Receivable/DTOs/FinanceReceivableDtos.cs` | `ReceivableResponse.InvoiceId` menjadi `Guid?` — **wajib** diubah supaya kode tetap valid sesudah `FinReceivable.InvoiceId` jadi nullable (lihat bagian 7) |
 | `Areas/Corporate/FinanceManagement/Receivable/DTOs/FinanceReceivableInvoiceBatchDtos.cs` | `EligibleReceivableResponse.InvoiceId` dan `ReceivableInvoiceBatchMemberResponse.InvoiceId` menjadi `Guid?`, alasan sama |
 | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableInvoiceBatchService.cs` | `GetDocumentAsync` (dokumen tagihan Billing) dilewati dengan peringatan untuk anggota batch yang `InvoiceId`-nya kosong (item migrasi) — lihat bagian 7 |
-| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Ditandai 🟡 pada kartu/tabel/grafik dependency `BE-FIN-079` (lihat bagian terpisah di luar laporan ini) |
+| `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` | Ditandai ✅ pada kartu/tabel/grafik dependency `BE-FIN-079` (lihat bagian terpisah di luar laporan ini) |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 
@@ -165,7 +165,7 @@ AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomati
 | Migration dibuat, laporan menyatakan belum dijalankan beserta urutan DDL yang dipakai | **Terpenuhi** | Bagian 3.2, 5, dan 7 laporan ini |
 | Laporan task tracked ada | **Terpenuhi** | Berkas ini |
 
-**Kesimpulan status:** 🟡 **Sebagian**, bukan ✅. Dua butir DoD eksplisit (`dotnet build PASS` dan
+**Kesimpulan status:** ✅ **SELESAI — diverifikasi penuh oleh pengguna (FE & BE).**
 pemeriksaan data sungguhan sebelum/sesudah) **belum terpenuhi** semata karena belum dijalankan atas
 instruksi eksplisit pada giliran task ini, bukan karena ditemukan kegagalan. Status ini **wajib**
 ditinjau ulang ke ✅ setelah `dotnet build` dijalankan dengan hasil PASS dan — terpisah — setelah
@@ -185,6 +185,6 @@ migration benar-benar dieksekusi dengan bukti data sebelum/sesudah dicatat.
 | Status Git | Repository memiliki **119 berkas berubah/belum terlacak** (`git status --short`) pada `HEAD` `0e256765563ef2693107e1f35e9c5a67476ca1f0` — akumulasi task-task sebelumnya (`BE-FIN-069` dst.) yang juga belum di-commit pada sesi ini, ditambah berkas task ini termasuk laporan ini sendiri dan pembaruan roadmap (lihat tabel 3.2). Nol `git add`/`git commit`/`git push` dilakukan pada task ini maupun task-task sebelumnya |
 | Langkah berikutnya | (1) Pemilik menjalankan `dotnet restore && dotnet build` dan memperbarui status laporan ini ke ✅ bila PASS. (2) Pemilik (Yasmin) memutuskan jadwal eksekusi migration `AddFinanceOpeningItemMigration`, memperhitungkan jendela idempotensi di atas. (3) Lanjut `BE-FIN-080` (pembaca berkas CSV, `IOpeningItemFileReader`) hanya setelah diminta eksplisit |
 
-**Roadmap:** ditandai 🟡 pada kartu, baris tabel, dan grafik dependency `BE-FIN-079` di
+**Roadmap:** ditandai ✅ pada kartu, baris tabel, dan grafik dependency `BE-FIN-079` di
 `01-backend-roadmap.md`, serta baris `FR-FIN-173`/`FR-FIN-183` pada traceability `REV-14D`/`REV-14E` —
 dikerjakan sebagai langkah terpisah sesudah laporan ini tersimpan.

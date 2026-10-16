@@ -125,6 +125,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.StatusLokalis)
                 .HasMaxLength(2000);
 
+            entity.Property(x => x.BodyMapData)
+                .HasColumnType("text")
+                .IsRequired(false);
+
             entity.Property(x => x.KeadaanLainnya)
                 .HasMaxLength(1000);
 
@@ -366,6 +370,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.Property(x => x.NutritionNote)
                 .HasMaxLength(500);
+
+            entity.Property(x => x.LastOralIntakeType)
+                .HasMaxLength(250)
+                .IsRequired(false);
+
+            entity.Property(x => x.LastOralIntakeNote)
+                .HasMaxLength(500)
+                .IsRequired(false);
 
             entity.Property(x => x.HasFallRisk)
                 .HasDefaultValue(false);

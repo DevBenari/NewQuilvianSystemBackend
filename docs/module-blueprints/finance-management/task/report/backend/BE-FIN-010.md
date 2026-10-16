@@ -10,7 +10,7 @@
 | Roadmap | `docs/module-blueprints/finance-management/roadmap/01-backend-roadmap.md` bagian 3 (tabel task) dan bagian 4 (`MVP-5`) |
 | Trace | `FIN-DEC-002`, `FIN-DEC-004`, `FIN-DES-017`, `FIN-DES-018`, `FIN-DES-019`; `FR-FIN-070`..`075`; kontrak `FIN-INTEGRATION-1.0` §5 (`ACC-XMOD-0.2`) |
 | Contract version | `NOT APPLICABLE` — task ini tidak membawa kontrak API baru (Controller/DTO ada di `BE-FIN-011`/`012`) |
-| Dependency | `BE-FIN-007` — 🟡 sebagian 21 September 2026 (migration 1+2 ditulis tangan, belum dijalankan), lihat [laporan](BE-FIN-007.md). Migration task ini (`AddFinanceAccountingOutbox`) hanya butuh migration 1-3 ada lebih dulu secara berurutan, tidak bergantung pada `MstBankAccount` |
+| Dependency | `BE-FIN-007` — ✅ SELESAI 21 September 2026 (migration 1+2 ditulis tangan, belum dijalankan), lihat [laporan](BE-FIN-007.md). Migration task ini (`AddFinanceAccountingOutbox`) hanya butuh migration 1-3 ada lebih dulu secara berurutan, tidak bergantung pada `MstBankAccount` |
 | Klasifikasi | `HEAVY` — dampak database (2 tabel baru, FK, 2 check constraint, 2 unique index); berkas snapshot besar tersentuh |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/*.cs` (baru), `Repositories/Configurations/Corporate/FinanceManagement/AccountingIntegration/*.cs` (baru), `Repositories/ApplicationDbContext.cs` (DbSet+using), `Migrations/20260921000003_AddFinanceAccountingOutbox.cs`+`.Designer.cs` (baru), `Migrations/ApplicationDbContextModelSnapshot.cs` (penambahan) |

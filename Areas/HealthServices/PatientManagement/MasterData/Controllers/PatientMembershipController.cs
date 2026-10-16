@@ -304,7 +304,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var query = BuildBaseQuery();
 
             query = ApplyRelationFilter(query, patientId, membershipTierId);
-            query = ApplyStandardFilter(query, onlyActive ? true : null, search);
+            query = ApplyStandardFilter(query, null, search);
+
+            if (onlyActive)
+            {
+                // crm-membership BE-CRM-021: "aktif" = Aktif dalam periode hari ini (aturan tunggal J1).
+                var activeIds = _statusResolver.QueryActiveOn(_statusResolver.GetTodayWib()).Select(x => x.Id);
+                query = query.Where(x => activeIds.Contains(x.Id));
+            }
 
             var totalData = await query.CountAsync();
 
@@ -388,129 +395,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             ));
         }
 
-        [HttpPost]
-        [HttpPost("kiosk")]
-        [Authorize(Policy = KioskReadPolicy)]
-        [ProducesResponseType(typeof(ApiResponse<PatientMembershipCreateResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [AccessAction(
-            "Create",
-            "Create Patient Membership",
-            Description = "Membuat data patient membership",
-            AccessType = AccessTypes.Create,
-            SortOrder = 2
-        )]
-        public async Task<IActionResult> CreatePatientMembership([FromBody] CreatePatientMembershipRequest request)
-        {
-            var validation = await ValidateRequestAsync(
-                excludeId: null,
-                patientId: request.PatientId,
-                membershipTierId: request.MembershipTierId,
-                memberNumber: request.MemberNumber,
-                membershipStatus: request.MembershipStatus,
-                joinDate: request.JoinDate,
-                expiredDate: request.ExpiredDate,
-                pointBalance: request.PointBalance,
-                totalSpendAmount: request.TotalSpendAmount,
-                lastUpgradeDate: request.LastUpgradeDate,
-                lastDowngradeDate: request.LastDowngradeDate
-            );
-
-            if (!validation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data patient membership tidak valid."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
-
-            try
-            {
-                if (request.IsPrimary)
-                {
-                    await ClearOtherPrimaryMembershipsAsync(request.PatientId, null, now, actorUserId);
-                }
-
-                var entity = new MstPatientMembership
-                {
-                    Id = Guid.NewGuid(),
-                    PatientId = request.PatientId,
-                    MembershipTierId = request.MembershipTierId,
-                    MemberNumber = request.MemberNumber.Trim().ToUpperInvariant(),
-                    MembershipStatus = request.MembershipStatus,
-                    JoinDate = NormalizeDateTime(request.JoinDate),
-                    ExpiredDate = NormalizeNullableDateTime(request.ExpiredDate),
-                    IsPrimary = request.IsPrimary,
-                    IsAutoCreated = request.IsAutoCreated,
-                    IsCreatedFromKiosk = request.IsCreatedFromKiosk,
-                    IsCreatedFromAdmission = request.IsCreatedFromAdmission,
-                    IsCreatedByMarketing = request.IsCreatedByMarketing,
-                    PointBalance = request.PointBalance,
-                    TotalSpendAmount = request.TotalSpendAmount,
-                    LastUpgradeDate = NormalizeNullableDateTime(request.LastUpgradeDate),
-                    LastDowngradeDate = NormalizeNullableDateTime(request.LastDowngradeDate),
-                    UpgradeDowngradeReason = NormalizeNullableString(request.UpgradeDowngradeReason),
-                    Notes = NormalizeNullableString(request.Notes),
-                    IsActive = true,
-                    CreateDateTime = now,
-                    CreateBy = actorUserId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
-
-                _dbContext.Set<MstPatientMembership>().Add(entity);
-
-                if (entity.IsPrimary && entity.IsActive)
-                {
-                    await SyncPatientMembershipReferenceAsync(entity.PatientId, entity.Id, entity.MembershipTierId, now, actorUserId);
-                }
-
-                await _dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                var response = await BuildCreateResponseAsync(entity.Id);
-
-                await _loggerService.InfoAsync(
-                    LogCategory,
-                    "PatientMembership.CreatePatientMembership",
-                    "Membuat data patient membership.",
-                    response
-                );
-
-                return Ok(ApiResponse<PatientMembershipCreateResponse>.Ok(
-                    response,
-                    "Patient membership berhasil dibuat."
-                ));
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-
-                await _loggerService.ErrorAsync(
-                    LogCategory,
-                    "PatientMembership.CreatePatientMembership",
-                    "Gagal membuat data patient membership.",
-                    ex
-                );
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiResponse<object>.Fail(
-                        StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat membuat patient membership."
-                    )
-                );
-            }
-        }
-
         // crm-membership BE-CRM-011 (CRM-DEC-004): pendaftaran baru oleh petugas CRM, tersimpan
         // Menunggu Pembayaran dengan nomor member dari sistem.
         [HttpPost("admin")]
+        [AccessAction(
+            "Create",
+            "Create Patient Membership",
+            Description = "Mendaftarkan, memperpanjang, atau meng-upgrade patient membership",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2
+        )]
         [ProducesResponseType(typeof(ApiResponse<PatientMembershipDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -521,7 +415,166 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             CancellationToken cancellationToken = default)
         {
             var result = await _membershipService.RegisterAsync(request, GetCurrentUserId(), cancellationToken);
+            return await ToCommandResponseAsync(result, cancellationToken);
+        }
 
+        // crm-membership BE-CRM-012 (CRM-DEC-024): perpanjangan membership Aktif {id}.
+        [HttpPost("admin/{id:guid}/renewals")]
+        [ProducesResponseType(typeof(ApiResponse<PatientMembershipDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessPermission("PatientMembership", "Create")]
+        public async Task<IActionResult> RenewPatientMembership(
+            Guid id,
+            [FromBody] RenewPatientMembershipRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _membershipService.RenewAsync(id, request, GetCurrentUserId(), cancellationToken);
+            return await ToCommandResponseAsync(result, cancellationToken);
+        }
+
+        // crm-membership BE-CRM-012 (CRM-DEC-012): upgrade membership Aktif {id} ke tingkat lebih tinggi.
+        [HttpPost("admin/{id:guid}/upgrades")]
+        [ProducesResponseType(typeof(ApiResponse<PatientMembershipDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessPermission("PatientMembership", "Create")]
+        public async Task<IActionResult> UpgradePatientMembership(
+            Guid id,
+            [FromBody] UpgradePatientMembershipRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _membershipService.UpgradeAsync(id, request, GetCurrentUserId(), cancellationToken);
+            return await ToCommandResponseAsync(result, cancellationToken);
+        }
+
+        // crm-membership BE-CRM-013 (CRM-DEC-013, 025, 029): pembatalan oleh petugas CRM.
+        [HttpPost("admin/{id:guid}/cancel")]
+        [ProducesResponseType(typeof(ApiResponse<PatientMembershipDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction(
+            "Cancel",
+            "Cancel Patient Membership",
+            Description = "Membatalkan patient membership dengan alasan",
+            AccessType = AccessTypes.Update,
+            SortOrder = 5
+        )]
+        [AccessPermission("PatientMembership", "Cancel")]
+        public async Task<IActionResult> CancelPatientMembership(
+            Guid id,
+            [FromBody] CancelPatientMembershipRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _membershipService.CancelAsync(id, request, GetCurrentUserId(), cancellationToken);
+            return await ToCommandResponseAsync(result, cancellationToken);
+        }
+
+        // crm-membership BE-CRM-013 (CRM-DEC-021): mengakui atau menolak membership lama.
+        [HttpPost("admin/{id:guid}/verify")]
+        [ProducesResponseType(typeof(ApiResponse<PatientMembershipDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction(
+            "Verify",
+            "Verify Patient Membership",
+            Description = "Mengakui atau menolak patient membership lama",
+            AccessType = AccessTypes.Update,
+            SortOrder = 6
+        )]
+        [AccessPermission("PatientMembership", "Verify")]
+        public async Task<IActionResult> VerifyLegacyPatientMembership(
+            Guid id,
+            [FromBody] VerifyLegacyPatientMembershipRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _membershipService.VerifyLegacyAsync(id, request, GetCurrentUserId(), cancellationToken);
+            return await ToCommandResponseAsync(result, cancellationToken);
+        }
+
+        // crm-membership BE-CRM-013 (CRM-DEC-022): ubah catatan.
+        [HttpPatch("admin/{id:guid}/notes")]
+        [ProducesResponseType(typeof(ApiResponse<PatientMembershipDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessPermission("PatientMembership", "Update")]
+        public async Task<IActionResult> UpdatePatientMembershipNotes(
+            Guid id,
+            [FromBody] UpdatePatientMembershipNotesRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _membershipService.UpdateNotesAsync(id, request, GetCurrentUserId(), cancellationToken);
+            return await ToCommandResponseAsync(result, cancellationToken);
+        }
+
+        // crm-membership BE-CRM-013: riwayat status satu membership.
+        [HttpGet("admin/{id:guid}/status-histories")]
+        [ProducesResponseType(typeof(ApiResponse<List<PatientMembershipStatusHistoryResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessPermission("PatientMembership", "Read")]
+        public async Task<IActionResult> GetPatientMembershipStatusHistories(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var data = await _membershipService.GetStatusHistoriesAsync(id, cancellationToken);
+
+            if (data == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Membership tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<List<PatientMembershipStatusHistoryResponse>>.Ok(data, "Riwayat status membership berhasil diambil."));
+        }
+
+        // crm-membership BE-CRM-014 (CRM-DEC-010): cari pasien beserta status membernya.
+        [HttpGet("admin/patient-lookup")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<PatientMembershipLookupResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessPermission("PatientMembership", "Read")]
+        public async Task<IActionResult> LookupPatientsForMembership(
+            [FromQuery] PatientMembershipLookupQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var data = await _membershipService.LookupPatientsAsync(query, cancellationToken);
+
+            if (data == null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Ketik minimal 3 karakter No. RM, NIK, atau No. Telp."));
+            }
+
+            return Ok(ApiResponse<PagedResult<PatientMembershipLookupResponse>>.Ok(data, "Data pasien berhasil diambil."));
+        }
+
+        // crm-membership BE-CRM-014 (J1): status member pasien pada tanggal WIB tertentu.
+        [HttpGet("admin/patients/{patientId:guid}/active")]
+        [ProducesResponseType(typeof(ApiResponse<PatientActiveMembershipResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessPermission("PatientMembership", "Read")]
+        public async Task<IActionResult> GetPatientActiveMembership(
+            Guid patientId,
+            [FromQuery] DateTime? date,
+            CancellationToken cancellationToken = default)
+        {
+            var data = await _membershipService.GetPatientActiveMembershipAsync(patientId, date, cancellationToken);
+
+            if (data == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Pasien tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<PatientActiveMembershipResponse>.Ok(data, "Status member pasien berhasil diambil."));
+        }
+
+        // Gagal: kode dan pesan dari service. Berhasil: detail membership yang terdampak.
+        private async Task<IActionResult> ToCommandResponseAsync(
+            PatientMembershipCommandResult result,
+            CancellationToken cancellationToken)
+        {
             if (!result.IsSuccess)
             {
                 return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
@@ -534,245 +587,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
 
+        // crm-membership BE-CRM-015 (CRM-DEC-022): ubah penuh dipensiunkan.
         [HttpPut("{id:guid}")]
         [HttpPut("admin/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status410Gone)]
         [AccessAction(
             "Update",
             "Update Patient Membership",
-            Description = "Mengubah data patient membership",
+            Description = "Mengubah catatan patient membership",
             AccessType = AccessTypes.Update,
             SortOrder = 3
         )]
         [AccessPermission("PatientMembership", "Update")]
-        public async Task<IActionResult> UpdatePatientMembership(
-            Guid id,
-            [FromBody] UpdatePatientMembershipRequest request)
+        public IActionResult UpdatePatientMembership(Guid id)
         {
-            var entity = await _dbContext.Set<MstPatientMembership>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Patient membership tidak ditemukan."
-                ));
-            }
-
-            var validation = await ValidateRequestAsync(
-                excludeId: id,
-                patientId: request.PatientId,
-                membershipTierId: request.MembershipTierId,
-                memberNumber: request.MemberNumber,
-                membershipStatus: request.MembershipStatus,
-                joinDate: request.JoinDate,
-                expiredDate: request.ExpiredDate,
-                pointBalance: request.PointBalance,
-                totalSpendAmount: request.TotalSpendAmount,
-                lastUpgradeDate: request.LastUpgradeDate,
-                lastDowngradeDate: request.LastDowngradeDate
-            );
-
-            if (!validation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data patient membership tidak valid."
-                ));
-            }
-
-            var oldPatientId = entity.PatientId;
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
-
-            try
-            {
-                if (request.IsPrimary)
-                {
-                    await ClearOtherPrimaryMembershipsAsync(request.PatientId, id, now, actorUserId);
-                }
-
-                entity.PatientId = request.PatientId;
-                entity.MembershipTierId = request.MembershipTierId;
-                entity.MemberNumber = request.MemberNumber.Trim().ToUpperInvariant();
-                entity.MembershipStatus = request.MembershipStatus;
-                entity.JoinDate = NormalizeDateTime(request.JoinDate);
-                entity.ExpiredDate = NormalizeNullableDateTime(request.ExpiredDate);
-                entity.IsPrimary = request.IsPrimary;
-                entity.IsAutoCreated = request.IsAutoCreated;
-                entity.IsCreatedFromKiosk = request.IsCreatedFromKiosk;
-                entity.IsCreatedFromAdmission = request.IsCreatedFromAdmission;
-                entity.IsCreatedByMarketing = request.IsCreatedByMarketing;
-                entity.PointBalance = request.PointBalance;
-                entity.TotalSpendAmount = request.TotalSpendAmount;
-                entity.LastUpgradeDate = NormalizeNullableDateTime(request.LastUpgradeDate);
-                entity.LastDowngradeDate = NormalizeNullableDateTime(request.LastDowngradeDate);
-                entity.UpgradeDowngradeReason = NormalizeNullableString(request.UpgradeDowngradeReason);
-                entity.Notes = NormalizeNullableString(request.Notes);
-                entity.IsActive = request.IsActive;
-                entity.UpdateDateTime = now;
-                entity.UpdateBy = actorUserId;
-
-                await _dbContext.SaveChangesAsync();
-
-                if (entity.IsPrimary && entity.IsActive)
-                {
-                    await SyncPatientMembershipReferenceAsync(entity.PatientId, entity.Id, entity.MembershipTierId, now, actorUserId);
-                }
-                else
-                {
-                    await RecalculatePatientMembershipReferenceAsync(entity.PatientId, now, actorUserId);
-                }
-
-                if (oldPatientId != entity.PatientId)
-                {
-                    await RecalculatePatientMembershipReferenceAsync(oldPatientId, now, actorUserId);
-                }
-
-                await _dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                await _loggerService.InfoAsync(
-                    LogCategory,
-                    "PatientMembership.UpdatePatientMembership",
-                    "Mengubah data patient membership.",
-                    new
-                    {
-                        entity.Id,
-                        entity.PatientId,
-                        entity.MembershipTierId,
-                        entity.MemberNumber,
-                        entity.IsActive
-                    }
-                );
-
-                return Ok(ApiResponse<object>.Ok(
-                    null,
-                    "Patient membership berhasil diperbarui."
-                ));
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-
-                await _loggerService.ErrorAsync(
-                    LogCategory,
-                    "PatientMembership.UpdatePatientMembership",
-                    "Gagal mengubah data patient membership.",
-                    ex
-                );
-
-                return StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    ApiResponse<object>.Fail(
-                        StatusCodes.Status500InternalServerError,
-                        "Terjadi kesalahan saat mengubah patient membership."
-                    )
-                );
-            }
+            return StatusCode(StatusCodes.Status410Gone, ApiResponse<object>.Fail(
+                StatusCodes.Status410Gone,
+                "Fitur ubah membership sudah tidak tersedia. Gunakan ubah catatan, upgrade, atau pembatalan."));
         }
 
+        // crm-membership BE-CRM-015 (CRM-DEC-013): status tidak boleh dibalik tanpa alasan.
         [HttpPatch("{id:guid}/status")]
         [HttpPatch("admin/{id:guid}/status")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction(
-            "Update",
-            "Update Patient Membership Status",
-            Description = "Mengubah status patient membership",
-            AccessType = AccessTypes.Update,
-            SortOrder = 3
-        )]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status410Gone)]
         [AccessPermission("PatientMembership", "Update")]
-        public async Task<IActionResult> UpdatePatientMembershipStatus(
-            Guid id,
-            [FromBody] UpdatePatientMembershipStatusRequest request)
+        public IActionResult UpdatePatientMembershipStatus(Guid id)
         {
-            var entity = await _dbContext.Set<MstPatientMembership>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Patient membership tidak ditemukan."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            entity.IsActive = request.IsActive;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            await _dbContext.SaveChangesAsync();
-            await RecalculatePatientMembershipReferenceAsync(entity.PatientId, now, actorUserId);
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                "Status patient membership berhasil diperbarui."
-            ));
+            return StatusCode(StatusCodes.Status410Gone, ApiResponse<object>.Fail(
+                StatusCodes.Status410Gone,
+                "Ubah status membership sudah tidak tersedia. Gunakan pembatalan atau verifikasi."));
         }
 
+        // crm-membership BE-CRM-015 (CRM-DEC-013): riwayat membership tidak boleh hilang.
         [HttpDelete("{id:guid}")]
         [HttpDelete("admin/{id:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status410Gone)]
         [AccessAction(
             "Delete",
             "Delete Patient Membership",
-            Description = "Menghapus data patient membership",
+            Description = "Menghapus patient membership (dipensiunkan, diganti pembatalan)",
             AccessType = AccessTypes.Delete,
             SortOrder = 4
         )]
         [AccessPermission("PatientMembership", "Delete")]
-        public async Task<IActionResult> DeletePatientMembership(
-            Guid id,
-            [FromBody] DeletePatientMembershipRequest? request = null)
+        public IActionResult DeletePatientMembership(Guid id)
         {
-            var entity = await _dbContext.Set<MstPatientMembership>()
-                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
-
-            if (entity == null)
-            {
-                return NotFound(ApiResponse<object>.Fail(
-                    StatusCodes.Status404NotFound,
-                    "Patient membership tidak ditemukan."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-            var patientId = entity.PatientId;
-
-            entity.IsDelete = true;
-            entity.IsActive = false;
-            entity.IsPrimary = false;
-            entity.DeleteDateTime = now;
-            entity.DeleteBy = actorUserId;
-            entity.UpdateDateTime = now;
-            entity.UpdateBy = actorUserId;
-
-            if (!string.IsNullOrWhiteSpace(request?.DeleteReason))
-            {
-                entity.Notes = request.DeleteReason.Trim();
-            }
-
-            await _dbContext.SaveChangesAsync();
-            await RecalculatePatientMembershipReferenceAsync(patientId, now, actorUserId);
-            await _dbContext.SaveChangesAsync();
-
-            return Ok(ApiResponse<object>.Ok(
-                null,
-                "Patient membership berhasil dihapus."
-            ));
+            return StatusCode(StatusCodes.Status410Gone, ApiResponse<object>.Fail(
+                StatusCodes.Status410Gone,
+                "Hapus membership sudah tidak tersedia. Gunakan pembatalan dengan alasan."));
         }
 
         private IQueryable<MstPatientMembership> BuildBaseQuery()
@@ -983,222 +845,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 _ => isDescending
                     ? query.OrderByDescending(x => x.CreateDateTime).ThenByDescending(x => x.MemberNumber)
                     : query.OrderBy(x => x.CreateDateTime).ThenBy(x => x.MemberNumber)
-            };
-        }
-
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
-            Guid? excludeId,
-            Guid patientId,
-            Guid membershipTierId,
-            string memberNumber,
-            MembershipStatus membershipStatus,
-            DateTime joinDate,
-            DateTime? expiredDate,
-            int pointBalance,
-            decimal totalSpendAmount,
-            DateTime? lastUpgradeDate,
-            DateTime? lastDowngradeDate)
-        {
-            if (patientId == Guid.Empty)
-            {
-                return (false, "Pasien wajib dipilih.");
-            }
-
-            if (membershipTierId == Guid.Empty)
-            {
-                return (false, "Membership tier wajib dipilih.");
-            }
-
-            if (string.IsNullOrWhiteSpace(memberNumber))
-            {
-                return (false, "Nomor member wajib diisi.");
-            }
-
-            if (!Enum.IsDefined(typeof(MembershipStatus), membershipStatus))
-            {
-                return (false, "Status membership tidak valid. Gunakan nilai dari endpoint filters/metadata.");
-            }
-
-            if (pointBalance < 0)
-            {
-                return (false, "Point balance tidak boleh kurang dari 0.");
-            }
-
-            if (totalSpendAmount < 0)
-            {
-                return (false, "Total spend amount tidak boleh kurang dari 0.");
-            }
-
-            var normalizedJoinDate = NormalizeDateTime(joinDate);
-            var normalizedExpiredDate = NormalizeNullableDateTime(expiredDate);
-            var normalizedLastUpgradeDate = NormalizeNullableDateTime(lastUpgradeDate);
-            var normalizedLastDowngradeDate = NormalizeNullableDateTime(lastDowngradeDate);
-
-            if (normalizedExpiredDate.HasValue && normalizedExpiredDate.Value < normalizedJoinDate)
-            {
-                return (false, "Tanggal expired tidak boleh lebih kecil dari tanggal join.");
-            }
-
-            if (normalizedLastUpgradeDate.HasValue && normalizedLastUpgradeDate.Value < normalizedJoinDate)
-            {
-                return (false, "Tanggal upgrade terakhir tidak boleh lebih kecil dari tanggal join.");
-            }
-
-            if (normalizedLastDowngradeDate.HasValue && normalizedLastDowngradeDate.Value < normalizedJoinDate)
-            {
-                return (false, "Tanggal downgrade terakhir tidak boleh lebih kecil dari tanggal join.");
-            }
-
-            var patientExists = await _dbContext.Set<MstPatient>()
-                .AsNoTracking()
-                .AnyAsync(x => x.Id == patientId && x.IsActive && !x.IsDelete);
-
-            if (!patientExists)
-            {
-                return (false, "Pasien tidak valid atau tidak aktif.");
-            }
-
-            var tierExists = await _dbContext.Set<MstMembershipTier>()
-                .AsNoTracking()
-                .AnyAsync(x => x.Id == membershipTierId && x.IsActive && !x.IsDelete);
-
-            if (!tierExists)
-            {
-                return (false, "Membership tier tidak valid atau tidak aktif.");
-            }
-
-            var normalizedMemberNumber = memberNumber.Trim().ToUpperInvariant();
-
-            var duplicateMemberNumber = await _dbContext.Set<MstPatientMembership>()
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.MemberNumber.ToUpper() == normalizedMemberNumber &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateMemberNumber)
-            {
-                return (false, "Nomor member sudah digunakan.");
-            }
-
-            var duplicateTierForPatient = await _dbContext.Set<MstPatientMembership>()
-                .AsNoTracking()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.PatientId == patientId &&
-                    x.MembershipTierId == membershipTierId &&
-                    (!excludeId.HasValue || x.Id != excludeId.Value));
-
-            if (duplicateTierForPatient)
-            {
-                return (false, "Pasien sudah memiliki membership tier tersebut.");
-            }
-
-            return (true, null);
-        }
-
-        private async Task ClearOtherPrimaryMembershipsAsync(
-            Guid patientId,
-            Guid? excludeId,
-            DateTime now,
-            Guid actorUserId)
-        {
-            var query = _dbContext.Set<MstPatientMembership>()
-                .Where(x => !x.IsDelete && x.PatientId == patientId && x.IsPrimary);
-
-            if (excludeId.HasValue)
-            {
-                query = query.Where(x => x.Id != excludeId.Value);
-            }
-
-            var otherMemberships = await query.ToListAsync();
-
-            foreach (var membership in otherMemberships)
-            {
-                membership.IsPrimary = false;
-                membership.UpdateDateTime = now;
-                membership.UpdateBy = actorUserId;
-            }
-        }
-
-        private async Task SyncPatientMembershipReferenceAsync(
-            Guid patientId,
-            Guid membershipId,
-            Guid membershipTierId,
-            DateTime now,
-            Guid actorUserId)
-        {
-            var patient = await _dbContext.Set<MstPatient>()
-                .FirstOrDefaultAsync(x => x.Id == patientId && !x.IsDelete);
-
-            if (patient == null)
-            {
-                return;
-            }
-
-            patient.IsMember = true;
-            patient.DefaultMembershipTierId = membershipTierId;
-            patient.ActivePatientMembershipId = membershipId;
-            patient.UpdateDateTime = now;
-            patient.UpdateBy = actorUserId;
-        }
-
-        private async Task RecalculatePatientMembershipReferenceAsync(
-            Guid patientId,
-            DateTime now,
-            Guid actorUserId)
-        {
-            var patient = await _dbContext.Set<MstPatient>()
-                .FirstOrDefaultAsync(x => x.Id == patientId && !x.IsDelete);
-
-            if (patient == null)
-            {
-                return;
-            }
-
-            var activePrimaryMembership = await _dbContext.Set<MstPatientMembership>()
-                .Where(x =>
-                    x.PatientId == patientId &&
-                    x.IsActive &&
-                    x.IsPrimary &&
-                    !x.IsDelete)
-                .OrderByDescending(x => x.JoinDate)
-                .FirstOrDefaultAsync();
-
-            if (activePrimaryMembership != null)
-            {
-                patient.IsMember = true;
-                patient.DefaultMembershipTierId = activePrimaryMembership.MembershipTierId;
-                patient.ActivePatientMembershipId = activePrimaryMembership.Id;
-            }
-            else
-            {
-                patient.IsMember = false;
-                patient.DefaultMembershipTierId = null;
-                patient.ActivePatientMembershipId = null;
-            }
-
-            patient.UpdateDateTime = now;
-            patient.UpdateBy = actorUserId;
-        }
-
-        private async Task<PatientMembershipCreateResponse> BuildCreateResponseAsync(Guid id)
-        {
-            var entity = await BuildBaseQuery()
-                .FirstAsync(x => x.Id == id);
-
-            return new PatientMembershipCreateResponse
-            {
-                Id = entity.Id,
-                PatientId = entity.PatientId,
-                PatientFullName = entity.Patient?.FullName ?? string.Empty,
-                MembershipTierId = entity.MembershipTierId,
-                TierName = entity.MembershipTier?.TierName ?? string.Empty,
-                MemberNumber = entity.MemberNumber,
-                MembershipStatus = entity.MembershipStatus,
-                MembershipStatusName = BuildEnumLabel(entity.MembershipStatus),
-                IsPrimary = entity.IsPrimary,
-                IsActive = entity.IsActive
             };
         }
 
@@ -1416,13 +1062,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             return (pageNumber, pageSize);
         }
 
-        private static string? NormalizeNullableString(string? value)
-        {
-            return string.IsNullOrWhiteSpace(value)
-                ? null
-                : value.Trim();
-        }
-
         private static Guid? NormalizeNullableGuid(Guid? value)
         {
             if (!value.HasValue || value.Value == Guid.Empty)
@@ -1431,23 +1070,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
 
             return value.Value;
-        }
-
-        private static DateTime NormalizeDateTime(DateTime value)
-        {
-            return value.Kind == DateTimeKind.Unspecified
-                ? DateTime.SpecifyKind(value, DateTimeKind.Utc)
-                : value.ToUniversalTime();
-        }
-
-        private static DateTime? NormalizeNullableDateTime(DateTime? value)
-        {
-            if (!value.HasValue)
-            {
-                return null;
-            }
-
-            return NormalizeDateTime(value.Value);
         }
 
         private Guid GetCurrentUserId()

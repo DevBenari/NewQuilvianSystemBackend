@@ -201,4 +201,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? CarePlanInstruction { get; set; }
         public EmergencyAdmissionRequestSignerInfo Signer { get; set; } = new();
     }
+
+    public class EmergencyAdmissionRequestPrintResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyVisitId { get; set; }
+        public string Origin { get; set; } = "IGD";
+        public string? EmergencyVisitNumber { get; set; }
+        public string? EncounterNumber { get; set; }
+        public DateTime CapturedAt { get; set; }
+        public EmergencyAdmissionRequestPatientInfo Patient { get; set; } = new();
+        public EmergencyAdmissionRequestAllergyInfo Allergies { get; set; } = new();
+        public EmergencyAdmissionRequestPayerInfo Payer { get; set; } = new();
+        public List<EmergencyAdmissionRequestDiagnosisItem> Diagnoses { get; set; } = [];
+        public string? RequestedServiceUnitName { get; set; }
+        public string? RequestedPatientClassName { get; set; }
+        public string? ProposedInpatientDoctorName { get; set; }
+        public int EstimatedLengthOfStayDays { get; set; }
+        public bool IsCito { get; set; }
+        public List<string> SpecialNeeds { get; set; } = [];
+        public string? ClinicalIndication { get; set; }
+        public string? CarePlanInstruction { get; set; }
+        public EmergencyAdmissionRequestSignerInfo Signer { get; set; } = new();
+        public string SignatureStatement { get; set; } = string.Empty;
+        public DateTime PrintedAt { get; set; }
+    }
 }
