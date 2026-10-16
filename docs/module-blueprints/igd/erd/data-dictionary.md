@@ -658,3 +658,12 @@ Model: `Areas/HealthServices/InPatientManagement/Models/InpAdmissionReferral.cs`
 `RegPatientEncounter`, `RegPatientEncounterGuarantor` (Registrasi); `MstServiceUnit`, `MstPatientClass`, `MstDoctorSchedule`
 (Master Data); `MstDoctor` (Human Resource); `ApplicationUser.DoctorId` (Identity); `EmgDoctorAssignment`, `EmgVisit`,
 `EmgDisposition` (IGD). `BilInvoiceEncounterLink` (Billing) **tidak** dibuat untuk sumber IGD (`IGD-DEC-293`).
+
+### Amandemen 14 Oktober 2026 — Antrean Transfer IGD/Poli (`IGD-DEC-304`, `305`) — **`approved`** (`IGD-DEC-306`)
+
+| Tabel | Perubahan |
+| --- | --- |
+| `InpAdmissionReferral` | **Tidak berubah.** Rencana perluasan di atas — `SourceKind`, `EmergencyAdmissionRequestId`, `RequestedServiceUnitId`, `RequestedPatientClassId`, `IsCito`, `CancellationSource`, `OprCaseId` boleh kosong, check constraint, dan dua index — dicabut. Migration 2 `ExtendInpatientAdmissionReferralForEmergency` di-rollback dari basis data dev dan berkasnya dihapus 14 Oktober 2026 |
+| `EmgAdmissionRequest` | Kolom tidak berubah. Arti `CancelledAt`, `CancelledByUserId`, `CancellationReason` diperluas: kini juga mencatat pembatalan **sesudah** terkirim (sebelum diproses petugas admisi), karena pembatalan tidak lagi dicatat di `InpAdmissionReferral` |
+| `EmgAdmissionRequestEvent` | Kolom tidak berubah. Kejadian `CancelledAfterSend` kini memindahkan status `Signed` → `Cancelled`; `AutoCancelled` juga berlaku untuk form terkirim |
+| `RegPatientEncounter` (Registration, sudah ada) | Dibaca saja: `AdmissionTransferId` dan `AdmissionTransferSourceType = "Emergency"` menentukan apakah form sudah diproses petugas admisi |

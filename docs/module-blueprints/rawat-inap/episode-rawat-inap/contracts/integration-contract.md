@@ -390,3 +390,9 @@ Orchestrator transfer existing memanggil OpenAdmission, owner Registrasi untuk s
 Clinical dan Billing memakai InpServiceClassResolver, bukan kelas encounter rawat inap sebagai sumber kelas aktual. Interval penempatan [StartDateTime, EndDateTime); riwayat transfer berakhir tetap sah meskipun IsSuperseded, baris digantikan koreksi/dianggap dihapus dikecualikan. Sebelum placement kelas aktual null. Tidak menimpa sejarah kelas encounter/episode karena perpindahan kamar.
 
 Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-inap/contracts/kelas-perawatan-repair-006.md), SHA256 `439623315c8cb4922e4794b7efb2218228d9e88fbd5f25e1473decd5087cd112`. Bagian lama yang bertentangan pada lingkup delta ini digantikan oleh amandemen; bagian lain tetap berlaku.
+
+## Amandemen admisi bayi -> RWI-BAYI-016-1.0, 14 Oktober 2026
+
+Master bayi/ibu, kunjungan/penjamin bayi, episode bayi dan invoice sumber tetap terpisah. familyBillingPreference=Combined adalah preferensi handoff, bukan bukti kelompok invoice/settlement. plannedDepositAmount adalah rencana, bukan uang diterima. Kontrak pembayaran lintas invoice/refund/clearance masih perlu slice Billing terpisah.
+
+Detail dan batas mengikuti [kontrak admisi bayi](newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.

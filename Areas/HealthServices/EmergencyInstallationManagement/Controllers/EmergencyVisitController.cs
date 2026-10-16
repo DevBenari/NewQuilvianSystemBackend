@@ -412,6 +412,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 FoundLocation = NormalizeText(request.FoundLocation),
                 TraumaLocation = NormalizeText(request.TraumaLocation),
                 TraumaDateTime = request.TraumaDateTime,
+                TraumaMechanism = NormalizeText(request.TraumaMechanism),
+                TraumaSafetyEquipment = NormalizeText(request.TraumaSafetyEquipment),
                 IsUnknownPatient = request.IsUnknownPatient,
                 TemporaryPatientAlias = NormalizeText(request.TemporaryPatientAlias),
                 IsImmediateCareAllowed = request.IsImmediateCareAllowed,
@@ -632,6 +634,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.FoundLocation = NormalizeText(request.FoundLocation);
             entity.TraumaLocation = NormalizeText(request.TraumaLocation);
             entity.TraumaDateTime = request.TraumaDateTime;
+            entity.TraumaMechanism = NormalizeText(request.TraumaMechanism);
+            entity.TraumaSafetyEquipment = NormalizeText(request.TraumaSafetyEquipment);
             entity.IsUnknownPatient = request.IsUnknownPatient;
             entity.TemporaryPatientAlias = NormalizeText(request.TemporaryPatientAlias);
             entity.IsImmediateCareAllowed = request.IsImmediateCareAllowed;
@@ -1100,6 +1104,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 FoundLocation = x.FoundLocation,
                 TraumaLocation = x.TraumaLocation,
                 TraumaDateTime = x.TraumaDateTime,
+                TraumaMechanism = x.TraumaMechanism,
+                TraumaSafetyEquipment = x.TraumaSafetyEquipment,
                 IsUnknownPatient = x.IsUnknownPatient,
                 TemporaryPatientAlias = x.TemporaryPatientAlias,
                 IsImmediateCareAllowed = x.IsImmediateCareAllowed,

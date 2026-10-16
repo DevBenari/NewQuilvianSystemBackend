@@ -31,6 +31,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
             builder.Property(x => x.ClosedWithoutClearanceReason).HasMaxLength(500);
             builder.Property(x => x.CancelReason).HasMaxLength(500);
             builder.Property(x => x.Notes).HasMaxLength(1000);
+            builder.Property(x => x.NewbornAdmissionSource).HasMaxLength(20);
+            builder.Property(x => x.NewbornCareMode).HasMaxLength(20);
+            builder.Property(x => x.NewbornCareSource).HasMaxLength(200);
+            builder.Property(x => x.FamilyBillingPreference).HasMaxLength(20);
+            builder.Property(x => x.RequiresNeonatalIntensiveCare).HasDefaultValue(false);
+            builder.Property(x => x.PlannedDepositAmount).HasPrecision(18, 2);
 
             builder.HasIndex(x => x.EpisodeNumber).IsUnique();
             builder.HasIndex(x => x.EncounterId).IsUnique();

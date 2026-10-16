@@ -141,6 +141,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// <summary>Baris tanda vital yang ditunjuk Kajian Umum — angkanya tidak disalin.</summary>
         public Guid? VitalSignId { get; set; }
 
+        public DateTime? LastOralIntakeDateTime { get; set; }
+        public string? LastOralIntakeType { get; set; }
+        public string? LastOralIntakeNote { get; set; }
+        public string? BodyMapData { get; set; }
+
         /// <summary>
         /// Waktu terakhir pengkajian ini diubah; <c>null</c> bila belum pernah diubah.
         /// </summary>
@@ -608,6 +613,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [MaxLength(500)]
         public string? NutritionNote { get; set; }
 
+        public DateTime? LastOralIntakeDateTime { get; set; }
+
+        [MaxLength(250)]
+        public string? LastOralIntakeType { get; set; }
+
+        [MaxLength(500)]
+        public string? LastOralIntakeNote { get; set; }
+
+        public string? BodyMapData { get; set; }
+
         public bool HasFallRisk { get; set; } = false;
 
         public bool HasAtaxia { get; set; } = false;
@@ -904,6 +919,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(500)]
         public string? NutritionNote { get; set; }
+
+        public DateTime? LastOralIntakeDateTime { get; set; }
+
+        [MaxLength(250)]
+        public string? LastOralIntakeType { get; set; }
+
+        [MaxLength(500)]
+        public string? LastOralIntakeNote { get; set; }
+
+        public string? BodyMapData { get; set; }
 
         public bool HasFallRisk { get; set; } = false;
 

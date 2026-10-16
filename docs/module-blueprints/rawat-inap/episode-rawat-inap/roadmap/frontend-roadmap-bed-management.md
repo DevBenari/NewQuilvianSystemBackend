@@ -233,7 +233,7 @@ Acceptance negatif:
 
 | Field | Isi |
 | --- | --- |
-| Status | ✅ SELESAI — 2026-10-12; live browser testing (Chromium headed mode) PASS; unit scope 58/58 PASS; tab InpatientBedUsageHistory, filter periode UTC, rendering riwayat penggunaan & status billing terverifikasi; [laporan live testing](../testing/test-by-agy/laporan-live-testing-bed-management.md) & [laporan FE-RWI-236](../task/report/frontend/FE-RWI-236.md). |
+| Status | ✅ SELESAI — 2026-10-12; live browser testing (Chromium headed mode) PASS; unit scope 58/58 PASS; tab InpatientBedUsageHistory, filter periode UTC, rendering riwayat penggunaan & status billing terverifikasi; [laporan live testing](../testing/test-by-agy/laporan-live-testing-bed-management.md) & [laporan FE-RWI-236](../task/report/frontend/FE-RWI-236.md). Pengerjaan ulang 2026-10-14: default Semua Riwayat tanpa memilih periode, periode WIB inklusif (API tetap FromUtc/ToUtc), timeline per bulan dengan jeda bed kosong, filter kamar bertingkat; lint/build PASS, unit bed 46/46 PASS, verifikasi browser ulang belum dijalankan — lihat bagian "Pengerjaan ulang 2026-10-14" pada laporan. |
 | Slice / outcome | Bed Usage History menampilkan hunian awal, snapshot dan semua versi koreksi |
 | Ukuran / batas | Satu alur consumer bisnis; gunakan komponen dan helper existing. |
 | Jejak | FR-BM-011, FR-BM-012; RWI-DEC-286, RWI-DEC-287, RWI-DEC-288, RWI-DEC-292; RWI-AC-402, RWI-AC-415, RWI-AC-416, RWI-AC-417, RWI-AC-418; NFR-702, NFR-703, NFR-705 |

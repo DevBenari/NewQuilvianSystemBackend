@@ -1,5 +1,6 @@
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
 {
@@ -44,6 +45,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public bool? IsUrgent { get; set; }
 
         /// <summary>
+        /// Pasien membutuhkan persiapan — tab *Pasien Persiapan* v1 (<c>BE-RAD-18</c>). Boleh kosong,
+        /// dan kosong berarti tidak, dengan alasan yang sama dengan <see cref="IsUrgent"/>.
+        /// </summary>
+        public bool? RequiresPreparation { get; set; }
+
+        /// <summary>
         /// Dokter pemberi instruksi — BE-RWI-104, FR-DOK-106. Hanya dibaca pada pesanan rawat inap
         /// (InpEpisodeId terisi) yang dibuat pengguna tanpa tautan dokter: wajib diisi dan wajib
         /// bertugas atas pasien. Pesanan poliklinik dan IGD mengabaikannya, sehingga pemanggil lama
@@ -60,6 +67,91 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         /// <summary>Nyalakan untuk menandai cito, matikan untuk mencabutnya.</summary>
         [Required]
         public bool IsUrgent { get; set; }
+    }
+
+    /// <summary>
+    /// Menetapkan Petugas Radiologi dan Dokter Pemeriksa — Detail Pasien Radiologi v1
+    /// (<c>BE-RAD-20</c>). Isian yang kosong mengosongkan penunjukannya.
+    /// </summary>
+    public class RadOrderAssignmentRequest
+    {
+        public Guid? RadiographerUserId { get; set; }
+
+        public Guid? ExaminingDoctorId { get; set; }
+    }
+
+    /// <summary>Gambar radiologi pesanan — metadata saja; isi dibaca lewat <c>/images/{id}/content</c> (<c>BE-RAD-22</c>).</summary>
+    public class RadOrderImageResponse
+    {
+        public Guid Id { get; set; }
+        public Guid RadOrderId { get; set; }
+        public Guid? RadStudyId { get; set; }
+        public string OriginalFileName { get; set; } = string.Empty;
+        public string ContentType { get; set; } = string.Empty;
+        public long SizeBytes { get; set; }
+        public int SortOrder { get; set; }
+        public DateTime UploadedAt { get; set; }
+        public Guid UploadedByUserId { get; set; }
+        public string? UploadedByName { get; set; }
+    }
+
+    /// <summary>Ubah Pemeriksaan — Detail Pasien v1 (<c>BE-RAD-25</c>).</summary>
+    public class RadOrderChangeProcedureRequest
+    {
+        [Required]
+        public Guid ProcedureId { get; set; }
+
+        /// <summary>Alat untuk pemeriksaan baru. Kosong = alat lama dipertahankan.</summary>
+        public Guid? ModalityId { get; set; }
+
+        [Required, MaxLength(1000)]
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    /// <summary>Centang Cetak Film — Detail Pasien v1 (<c>BE-RAD-25</c>).</summary>
+    public class RadOrderFilmPrintRequest
+    {
+        [Required]
+        public bool PrintFilm { get; set; }
+    }
+
+    /// <summary>Penyaring pilihan Petugas Radiologi dan Dokter Pemeriksa (<c>BE-RAD-20</c>).</summary>
+    public class RadAssigneeOptionQuery
+    {
+        /// <summary>Sebagian nama atau kode. Dipangkas; maksimum 100 karakter.</summary>
+        public string? Search { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        /// <summary>Ukuran halaman, 1–50.</summary>
+        public int PageSize { get; set; } = 25;
+    }
+
+    /// <summary>Pilihan Dokter Pemeriksa — hanya ruas yang perlu tampil.</summary>
+    public class RadExaminerDoctorOptionResponse
+    {
+        public Guid Id { get; set; }
+        public string DoctorCode { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string? SpecialistName { get; set; }
+    }
+
+    /// <summary>Pilihan Petugas Radiologi — akun pengguna aktif.</summary>
+    public class RadRadiographerOptionResponse
+    {
+        public Guid Id { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string? UserCode { get; set; }
+    }
+
+    /// <summary>Pilihan pemeriksaan radiologi untuk Ubah Pemeriksaan — hanya ruas yang perlu tampil.</summary>
+    public class RadProcedureOptionResponse
+    {
+        public Guid Id { get; set; }
+        public string ProcedureCode { get; set; } = string.Empty;
+        public string ProcedureName { get; set; } = string.Empty;
+        public string? ProcedureCategoryName { get; set; }
+        public string? ExternalProcedureCode { get; set; }
     }
 
     /// <summary>
@@ -146,6 +238,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
 
         /// <summary>Akhir periode jadwal pemeriksaan.</summary>
         public DateTime? ScheduledTo { get; set; }
+
+        /// <summary>
+        /// Menyaring pesanan pasien yang membutuhkan persiapan — tab *Pasien Persiapan* v1
+        /// (<c>BE-RAD-18</c>).
+        /// </summary>
+        public bool? OnlyPreparation { get; set; }
+
+        /// <summary>
+        /// Menyaring menurut tanggal pemeriksaan relatif terhadap hari ini di WIB — <c>BE-RAD-18</c>.
+        /// <c>today</c>: tab Rawat Jalan/Rawat Inap v1. <c>notToday</c>: tab Pasien Perjanjian v1.
+        /// Tanggal pemeriksaan = jadwal bila ada, selain itu waktu pesanan dibuat.
+        /// </summary>
+        public string? ExaminationDay { get; set; }
+
+        /// <summary>
+        /// Menyembunyikan pesanan yang dibatalkan atau ditolak — Daftar Pasien v1 tidak
+        /// menampilkannya; Riwayat tetap menampilkannya (<c>BE-RAD-18</c>).
+        /// </summary>
+        public bool? ExcludeCancelled { get; set; }
 
         /// <summary>
         /// Pencarian bebas pada nama pasien, nomor rekam medis, nomor kunjungan, dan nomor
@@ -303,6 +414,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public Guid SafetyRequirementId { get; set; }
 
         [Required]
+        // Layar mengirim nama enum ("NotApplicable"), bukan angka; angka tetap diterima.
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadSafetyCheckState CheckState { get; set; }
 
         public string? Note { get; set; }
@@ -323,6 +436,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
     public class RadAbortAcquisitionRequest
     {
         [Required]
+        // Layar mengirim nama enum ("NotApplicable"), bukan angka; angka tetap diterima.
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadAbortCause AbortCause { get; set; }
 
         [Required]
@@ -334,6 +449,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
     public class RadRepeatStudyRequest
     {
         [Required]
+        // Layar mengirim nama enum ("NotApplicable"), bukan angka; angka tetap diterima.
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadRepeatCause RepeatCause { get; set; }
 
         [Required]
@@ -347,9 +464,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public Guid? AdditionalOrderId { get; set; }
     }
 
+    /// <summary>
+    /// Isian empat tindakan study yang tidak membawa data lain selain alasan — tandai perlu
+    /// diulang, tahan, lanjutkan, dan batalkan (<c>BE-RAD-17</c>).
+    ///
+    /// Wajib tidaknya alasan ditentukan service per tindakan, bukan di sini: <c>RAD-STATE-001</c>
+    /// bagian 2 hanya mewajibkannya untuk pembatalan.
+    /// </summary>
+    public class RadStudyTransitionRequest
+    {
+        [MaxLength(1000)]
+        public string? Reason { get; set; }
+    }
+
     public class RadConsumptionRequest
     {
         [Required]
+        // Layar mengirim nama enum ("NotApplicable"), bukan angka; angka tetap diterima.
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public RadConsumptionItemType ItemType { get; set; }
 
         [Required]
@@ -528,6 +660,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public bool IsUrgent { get; set; }
 
         public DateTime CreateDateTime { get; set; }
+
+        /* ---------------------------------------------------------------- *
+         * Kolom v1 Daftar Pasien dan Riwayat Radiologi — BE-RAD-18, RAD-EVD-001.
+         * Seluruhnya tambahan; diisi pada jalur daftar (GET /rad-orders).
+         * ---------------------------------------------------------------- */
+
+        /// <summary>Tanggal pemeriksaan: jadwal bila ada, selain itu waktu pesanan (kolom Order v1).</summary>
+        public DateTime? ExaminationDate { get; set; }
+
+        /// <summary>Pasien membutuhkan persiapan — tab Pasien Persiapan v1.</summary>
+        public bool RequiresPreparation { get; set; }
+
+        /// <summary>Nomor study pesanan ini, urut — kolom No. Foto v1.</summary>
+        public List<string> StudyNumbers { get; set; } = new();
+
+        /// <summary>
+        /// Diagnosa kunjungan, diagnosa utama lebih dulu, berbentuk <c>KODE - Nama</c> dipisah titik
+        /// koma — kolom Diagnosa v1. Kosong bila kunjungan belum punya diagnosa.
+        /// </summary>
+        public string? DiagnosisText { get; set; }
+
+        /// <summary>Nama pengguna pemesan — kolom Pemesan v1.</summary>
+        public string? RequestedByName { get; set; }
+
+        /// <summary>
+        /// Kapan pesanan ini dikonfirmasi — konfirmasi pertama (<c>Order.Accept</c> pada riwayat).
+        /// Kosong berarti belum dikonfirmasi. Sejak <c>BE-RAD-18</c> ikut terisi pada jalur daftar.
+        /// </summary>
+        public DateTime? ConfirmedAt { get; set; }
+
+        /// <summary>Nama pengonfirmasi pertama — kolom Konfirmasi v1.</summary>
+        public string? ConfirmedByName { get; set; }
+
+        /// <summary>
+        /// Status pembayaran kunjungan: <c>Paid</c>, <c>Unpaid</c>, <c>Guaranteed</c>,
+        /// <c>NotBilled</c>, atau <c>Deferred</c> — kolom Pembayaran v1. Aturan bacanya sama dengan
+        /// Laboratorium (<c>LAB-API-v1</c> r43).
+        /// </summary>
+        public string? PaymentStatus { get; set; }
+
+        /// <summary>Benar bila dari sisi pembayaran pemeriksaan boleh diproses.</summary>
+        public bool IsPaymentCleared { get; set; }
+
+        /* ---------------------------------------------------------------- *
+         * Detail Pasien dan aksi baris v1 — BE-RAD-20, RAD-EVD-001 bagian 7.1.
+         * ---------------------------------------------------------------- */
+
+        /// <summary>Centang Cetak Film — <c>BE-RAD-25</c>.</summary>
+        public bool PrintFilm { get; set; }
+
+        /// <summary>Petugas Radiologi pesanan ini.</summary>
+        public Guid? RadiographerUserId { get; set; }
+        public string? RadiographerName { get; set; }
+
+        /// <summary>Dokter Pemeriksa pesanan ini.</summary>
+        public Guid? ExaminingDoctorId { get; set; }
+        public string? ExaminingDoctorName { get; set; }
+
+        /// <summary>Nomor WhatsApp pasien, cadangan nomor telepon — aksi Kirim Hasil v1.</summary>
+        public string? PatientPhoneNumber { get; set; }
+
+        /// <summary>
+        /// Tarif pemeriksaan dari master tarif yang berlaku saat ini — cetak Rincian Pasien v1.
+        /// Kosong bila tarifnya belum diatur. Hanya tampilan; tagihan tetap dihitung Billing.
+        /// </summary>
+        public decimal? TariffAmount { get; set; }
     }
 
     public class RadOrderDetailResponse : RadOrderListResponse
@@ -563,8 +761,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         /// </remarks>
         public Guid? ConfirmedByUserId { get; set; }
 
-        /// <summary>Kapan pesanan ini dikonfirmasi. Kosong berarti belum dikonfirmasi.</summary>
-        public DateTime? ConfirmedAt { get; set; }
+        // ConfirmedAt pindah ke RadOrderListResponse sejak BE-RAD-18; nama JSON-nya tidak berubah.
 
         public DateTime? ScheduledAt { get; set; }
 
@@ -613,6 +810,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public string? ModalityCode { get; set; }
 
         public string StudyStatus { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Status sebelum study ditahan. Terisi hanya selama study berstatus <c>OnHold</c>, supaya
+        /// layar dapat menyebut ke mana study kembali bila dilanjutkan.
+        /// </summary>
+        public string? StatusBeforeHold { get; set; }
+
+        /// <summary>Alasan pembatalan study. Terisi hanya untuk study berstatus <c>Cancelled</c>.</summary>
+        public string? ClosureReason { get; set; }
 
         public DateTime? PatientVerifiedAt { get; set; }
 
