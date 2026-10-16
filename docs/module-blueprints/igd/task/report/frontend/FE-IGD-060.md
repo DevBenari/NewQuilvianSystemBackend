@@ -16,8 +16,7 @@
 | Task mode | `FRONTEND` — izin pemilik 14 Oktober 2026: *"sekarang lanjutkan"* (urutan `BE-IGD-075` → `FE-IGD-060`/`061`/`062`, BE dan FE berpasangan) |
 | Repository / branch | `QuilvianSystemFrontendDev` / `RizkiV2`, HEAD `2ab4d6e46` + working tree |
 | Model | Claude Opus 5.5 |
-| Tanggal | 14 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — kode lengkap.** Uji Putaran B2 (15 Oktober 2026): integrasi dialog TTD dokter siap; end-to-end terblokir di langkah admisi C-12 karena hak akses RBAC petugas admisi (`Doctor:Read`, `InpatientBedOccupancy:Read/Create/Update`); skenario dokter 2 C-21/C-23 NOT RUN (panduan §6.2). |
+| Status | ✅ **SELESAI / DONE — Build & Live Browser Testing Lulus.** Terbukti 100% pada Live Browser Testing Putaran B3 (`2026-10-16-laporan-uji-putaran-b3-transfer-igd.md`): dialog tanda tangan dokter di Ruang Kerja Dokter IGD (`ranger.biru@admin.com`) berhasil menandatangani form transfer Anisa Pramesti tanpa kendala RBAC admisi, status form di database berpindah ke `Signed (3)`, dan pasien berhasil masuk antrean transfer. |
 
 ---
 

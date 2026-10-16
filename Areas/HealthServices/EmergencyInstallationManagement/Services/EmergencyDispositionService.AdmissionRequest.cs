@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
@@ -53,7 +54,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private const string PesanUnitTidakAktif = "Unit layanan yang dipilih tidak ditemukan atau tidak aktif.";
         private const string PesanDokterTidakAktif = "Dokter usulan tidak ditemukan atau tidak aktif.";
         private const string PesanDokterTidakBerjadwal = "Dokter usulan tidak berjadwal di unit yang dipilih.";
-        private const string PesanIsianBelumLengkap = "Lengkapi unit layanan, kelas perawatan, DPJP usulan, estimasi lama rawat, dan indikasi klinis sebelum meminta tanda tangan.";
+        private const string PesanIsianBelumLengkap = "Lengkapi unit layanan, kelas perawatan, DPJP usulan, estimasi lama rawat, tingkat ketergantungan pasien, dan indikasi klinis sebelum meminta tanda tangan.";
         private const string PesanTanpaDpjp = "Pasien belum punya DPJP IGD. Tetapkan DPJP lebih dulu.";
         private const string PesanBukanDpjpAktif = "Hanya DPJP IGD aktif pasien ini yang dapat menandatangani atau mengembalikan form.";
         private const string PesanTidakMenungguTtd = "Form ini tidak sedang menunggu tanda tangan.";
@@ -93,8 +94,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 data.Where(x => x.Status == EmergencyAdmissionRequestStatus.Signed).Select(x => x.DispositionId).ToList(),
                 cancellationToken);
 
+            var formIds = data.Select(x => x.Id).ToList();
+            var dibatalkanAdmisiIds = formIds.Count > 0
+                ? (await _dbContext.Set<EmgAdmissionRequestEvent>()
+                    .AsNoTracking()
+                    .Where(x => formIds.Contains(x.AdmissionRequestId)
+                        && !x.IsDelete
+                        && x.EventType == EmergencyAdmissionRequestEventType.AdmissionRejected)
+                    .Select(x => x.AdmissionRequestId)
+                    .Distinct()
+                    .ToListAsync(cancellationToken)).ToHashSet()
+                : [];
+
             foreach (var item in data)
-                item.DisplayStatus = TampilanStatus(item.Status, sudahDiadmisi.Contains(item.DispositionId));
+            {
+                var adalahDibatalkanAdmisi = dibatalkanAdmisiIds.Contains(item.Id);
+                item.DisplayStatus = TampilanStatus(item.Status, sudahDiadmisi.Contains(item.DispositionId), adalahDibatalkanAdmisi);
+                if (adalahDibatalkanAdmisi)
+                    item.AdmissionRejectionReason = item.CancellationReason;
+            }
 
             return data;
         }
@@ -252,6 +270,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             form.NeedsIsolation = request.NeedsIsolation;
             form.NeedsOxygenSupport = request.NeedsOxygenSupport;
             form.NeedsSpecialMonitoring = request.NeedsSpecialMonitoring;
+            form.PatientDependencyLevel = request.PatientDependencyLevel;
             form.ClinicalIndication = indikasi;
             form.CarePlanInstruction = rencana;
             TandaiBerubah(form, actorUserId, DateTime.UtcNow);
@@ -272,6 +291,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!form.RequestedServiceUnitId.HasValue
                 || !form.RequestedPatientClassId.HasValue
                 || !form.ProposedInpatientDoctorId.HasValue
+                || !form.PatientDependencyLevel.HasValue
                 || string.IsNullOrWhiteSpace(form.ClinicalIndication))
                 return Gagal(StatusCodes.Status400BadRequest, PesanIsianBelumLengkap);
 
@@ -444,7 +464,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (!form.RequestedServiceUnitId.HasValue
                 || !form.RequestedPatientClassId.HasValue
-                || !form.ProposedInpatientDoctorId.HasValue)
+                || !form.ProposedInpatientDoctorId.HasValue
+                || !form.PatientDependencyLevel.HasValue)
                 return Gagal(StatusCodes.Status400BadRequest, PesanIsianBelumLengkap);
 
             var now = DateTime.UtcNow;
@@ -553,6 +574,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     salinan.NeedsIsolation,
                     salinan.NeedsOxygenSupport,
                     salinan.NeedsSpecialMonitoring),
+                PatientDependencyLevel = salinan.PatientDependencyLevel,
+                PatientDependencyLevelName = salinan.PatientDependencyLevelName,
                 ClinicalIndication = salinan.ClinicalIndication,
                 CarePlanInstruction = salinan.CarePlanInstruction,
                 Signer = salinan.Signer,
@@ -582,7 +605,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     && x.Status == EmergencyAdmissionRequestStatus.Signed,
                     cancellationToken);
 
-            return adaFormTerkirim ? PesanJalankanLewatAdmisi : PesanJalankanTanpaForm;
+            if (adaFormTerkirim)
+                return PesanJalankanLewatAdmisi;
+
+            var formDitolakAdmisi = await _dbContext.Set<EmgAdmissionRequest>()
+                .AsNoTracking()
+                .Include(x => x.Events)
+                .Where(x => x.DispositionId == dispositionId
+                    && !x.IsDelete
+                    && x.Status == EmergencyAdmissionRequestStatus.Cancelled
+                    && x.Events.Any(e => !e.IsDelete && e.EventType == EmergencyAdmissionRequestEventType.AdmissionRejected))
+                .OrderByDescending(x => x.CancelledAt ?? x.UpdateDateTime ?? x.CreateDateTime)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (formDitolakAdmisi != null)
+            {
+                var alasan = Rapikan(formDitolakAdmisi.CancellationReason) ?? "tanpa alasan";
+                return $"Permintaan rawat inap sebelumnya dibatalkan oleh admisi ({alasan}). Ajukan Form Permintaan Rawat Inap baru atau hubungi dokter untuk evaluasi tindak lanjut.";
+            }
+
+            return PesanJalankanTanpaForm;
         }
 
         public async Task<string?> BatalkanPermintaanKarenaTindakLanjutAsync(
@@ -857,6 +899,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 NeedsIsolation = form.NeedsIsolation,
                 NeedsOxygenSupport = form.NeedsOxygenSupport,
                 NeedsSpecialMonitoring = form.NeedsSpecialMonitoring,
+                PatientDependencyLevel = form.PatientDependencyLevel,
+                PatientDependencyLevelName = form.PatientDependencyLevel.HasValue ? DapatkanNamaTingkatKetergantungan(form.PatientDependencyLevel.Value) : null,
                 ClinicalIndication = form.ClinicalIndication,
                 CarePlanInstruction = form.CarePlanInstruction,
                 Signer = new EmergencyAdmissionRequestSignerInfo
@@ -940,6 +984,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var sudahDiadmisi = form.Status == EmergencyAdmissionRequestStatus.Signed
                 && (await AmbilTindakLanjutSudahDiadmisiAsync([form.DispositionId], cancellationToken)).Count > 0;
 
+            var adalahDibatalkanAdmisi = form.Status == EmergencyAdmissionRequestStatus.Cancelled
+                && form.Events.Any(e => !e.IsDelete && e.EventType == EmergencyAdmissionRequestEventType.AdmissionRejected);
+
             var response = new EmergencyAdmissionRequestResponse
             {
                 Id = form.Id,
@@ -949,7 +996,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EncounterId = form.EncounterId,
                 EncounterNumber = form.Encounter?.EncounterNumber,
                 Status = form.Status,
-                DisplayStatus = TampilanStatus(form.Status, sudahDiadmisi),
+                DisplayStatus = TampilanStatus(form.Status, sudahDiadmisi, adalahDibatalkanAdmisi),
                 RequestedServiceUnit = form.RequestedServiceUnit == null
                     ? null
                     : new EmergencyAdmissionRequestReference { Id = form.RequestedServiceUnit.Id, Name = form.RequestedServiceUnit.ServiceUnitName },
@@ -966,6 +1013,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 NeedsOxygenSupport = form.NeedsOxygenSupport,
                 NeedsSpecialMonitoring = form.NeedsSpecialMonitoring,
                 SpecialNeeds = KodeKebutuhanKhusus(form),
+                PatientDependencyLevel = form.PatientDependencyLevel,
+                PatientDependencyLevelName = form.PatientDependencyLevel.HasValue ? DapatkanNamaTingkatKetergantungan(form.PatientDependencyLevel.Value) : null,
                 ClinicalIndication = form.ClinicalIndication,
                 CarePlanInstruction = form.CarePlanInstruction,
                 ActiveIgdDoctor = dpjp == null
@@ -986,6 +1035,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     : null,
                 CancelledAt = form.CancelledAt,
                 CancellationReason = form.CancellationReason,
+                AdmissionRejectionReason = adalahDibatalkanAdmisi ? form.CancellationReason : null,
                 CreateDateTime = form.CreateDateTime,
                 RowVersion = form.RowVersion
             };
@@ -1024,12 +1074,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 RequestedServiceUnitName = x.RequestedServiceUnit != null ? x.RequestedServiceUnit.ServiceUnitName : null,
                 RequestedPatientClassName = x.RequestedPatientClass != null ? x.RequestedPatientClass.PatientClassName : null,
                 IsCito = x.IsCito,
+                PatientDependencyLevel = x.PatientDependencyLevel,
+                PatientDependencyLevelName = x.PatientDependencyLevel == EmergencyPatientDependencyLevel.Low
+                    ? "Low Dependency"
+                    : x.PatientDependencyLevel == EmergencyPatientDependencyLevel.Moderate
+                        ? "Moderate Dependency"
+                        : x.PatientDependencyLevel == EmergencyPatientDependencyLevel.High
+                            ? "High Dependency"
+                            : null,
                 SignatureRequestedAt = x.SignatureRequestedAt,
                 CancellationReason = x.CancellationReason,
                 CreateDateTime = x.CreateDateTime,
                 RowVersion = x.RowVersion
             });
         }
+
+        private static string DapatkanNamaTingkatKetergantungan(EmergencyPatientDependencyLevel level) => level switch
+        {
+            EmergencyPatientDependencyLevel.Low => "Low Dependency",
+            EmergencyPatientDependencyLevel.Moderate => "Moderate Dependency",
+            EmergencyPatientDependencyLevel.High => "High Dependency",
+            _ => level.ToString()
+        };
 
         private static List<string> KodeKebutuhanKhusus(EmgAdmissionRequest form)
             => KodeKebutuhanKhusus(
@@ -1058,7 +1124,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         private static EmergencyAdmissionRequestDisplayStatus TampilanStatus(
             EmergencyAdmissionRequestStatus status,
-            bool sudahDiadmisi = false)
+            bool sudahDiadmisi = false,
+            bool dibatalkanAdmisi = false)
         {
             return status switch
             {
@@ -1066,7 +1133,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EmergencyAdmissionRequestStatus.Signed => sudahDiadmisi
                     ? EmergencyAdmissionRequestDisplayStatus.Completed
                     : EmergencyAdmissionRequestDisplayStatus.Sent,
-                EmergencyAdmissionRequestStatus.Cancelled => EmergencyAdmissionRequestDisplayStatus.Cancelled,
+                EmergencyAdmissionRequestStatus.Cancelled => dibatalkanAdmisi
+                    ? EmergencyAdmissionRequestDisplayStatus.CancelledByAdmission
+                    : EmergencyAdmissionRequestDisplayStatus.Cancelled,
                 _ => EmergencyAdmissionRequestDisplayStatus.Draft
             };
         }
@@ -1383,5 +1452,193 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         private static Guid? KosongkanGuid(Guid? nilai)
             => nilai.HasValue && nilai.Value != Guid.Empty ? nilai : null;
+
+        public sealed record HasilBatalFormAdmisi(bool Berhasil, int StatusCode, string? Penolakan);
+
+        public sealed record RingkasanPermintaanRawatInap(
+            Guid FormId,
+            bool IsCito,
+            bool NeedsIntensiveCare,
+            bool NeedsIsolation,
+            bool NeedsOxygenSupport,
+            bool NeedsSpecialMonitoring,
+            Guid? RequestedServiceUnitId,
+            string? RequestedServiceUnitName,
+            Guid? RequestedPatientClassId,
+            string? RequestedPatientClassName,
+            Guid? ProposedInpatientDoctorId,
+            string? ProposedInpatientDoctorName,
+            string? ClinicalIndication,
+            string? CarePlanInstruction);
+
+        public async Task<HasilBatalFormAdmisi> BatalkanFormPermintaanOlehPetugasAdmisiAsync(
+            Guid dispositionId,
+            string reason,
+            Guid officerUserId,
+            CancellationToken ct = default)
+        {
+            var alasan = Rapikan(reason);
+            if (string.IsNullOrEmpty(alasan) || alasan.Length > BatasAlasan)
+                return new HasilBatalFormAdmisi(false, StatusCodes.Status400BadRequest, "Alasan penolakan admisi wajib diisi, paling panjang 500 karakter.");
+
+            var disposition = await _dbContext.Set<EmgDisposition>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == dispositionId && !x.IsDelete, ct);
+            if (disposition == null)
+                return new HasilBatalFormAdmisi(false, StatusCodes.Status404NotFound, PesanTindakLanjutTidakAda);
+
+            await using var transaksi = await _dbContext.Database.BeginTransactionAsync(ct);
+            await KunciKunjunganAsync(disposition.EmergencyVisitId, ct);
+            await KunciTindakLanjutAsync(disposition.Id, ct);
+
+            var terkunciDisposition = await _dbContext.Set<EmgDisposition>()
+                .FirstOrDefaultAsync(x => x.Id == dispositionId && !x.IsDelete, ct);
+            if (terkunciDisposition == null)
+                return new HasilBatalFormAdmisi(false, StatusCodes.Status404NotFound, PesanTindakLanjutTidakAda);
+
+            if (terkunciDisposition.DispositionStatus == EmergencyDispositionStatus.Executed
+                || (await AmbilTindakLanjutSudahDiadmisiAsync([dispositionId], ct)).Count > 0)
+            {
+                return new HasilBatalFormAdmisi(false, StatusCodes.Status409Conflict,
+                    "Permintaan rawat inap tidak dapat ditolak karena proses admisi sudah dijalankan.");
+            }
+
+            var form = await _dbContext.Set<EmgAdmissionRequest>()
+                .FirstOrDefaultAsync(x => x.DispositionId == dispositionId
+                    && !x.IsDelete
+                    && x.Status == EmergencyAdmissionRequestStatus.Signed,
+                    ct);
+            if (form == null)
+            {
+                var formBatal = await _dbContext.Set<EmgAdmissionRequest>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.DispositionId == dispositionId && !x.IsDelete && x.Status == EmergencyAdmissionRequestStatus.Cancelled, ct);
+                if (formBatal)
+                    return new HasilBatalFormAdmisi(false, StatusCodes.Status409Conflict, "Form permintaan rawat inap sudah dibatalkan sebelumnya.");
+
+                return new HasilBatalFormAdmisi(false, StatusCodes.Status404NotFound, PesanFormTidakAda);
+            }
+
+            var now = DateTime.UtcNow;
+            var statusSebelum = form.Status;
+
+            form.Status = EmergencyAdmissionRequestStatus.Cancelled;
+            form.CancelledAt = now;
+            form.CancelledByUserId = officerUserId;
+            form.CancellationReason = Potong(alasan, BatasAlasan);
+            TandaiBerubah(form, officerUserId, now);
+
+            TambahKejadian(form, EmergencyAdmissionRequestEventType.AdmissionRejected,
+                statusSebelum, EmergencyAdmissionRequestStatus.Cancelled, officerUserId, now, alasan);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(ct);
+                await transaksi.CommitAsync(ct);
+                return new HasilBatalFormAdmisi(true, StatusCodes.Status200OK, null);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _dbContext.ChangeTracker.Clear();
+                return new HasilBatalFormAdmisi(false, StatusCodes.Status409Conflict, PesanVersiBasi);
+            }
+        }
+
+        public async Task EvaluasiPenutupanKunjunganSusulanAsync(
+            Guid visitId,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken ct = default)
+        {
+            var visitService = _serviceProvider?.GetService(typeof(EmergencyVisitService)) as EmergencyVisitService;
+            if (visitService != null)
+            {
+                await visitService.TryCloseAfterDispositionAsync(visitId, actorUserId, now, null, ct);
+                return;
+            }
+
+            var visit = await _dbContext.Set<EmgVisit>()
+                .FirstOrDefaultAsync(x => x.Id == visitId && !x.IsDelete, ct);
+            if (visit == null || visit.VisitStatus == EmergencyVisitStatus.Completed || visit.VisitStatus == EmergencyVisitStatus.Cancelled)
+                return;
+
+            var dispositionId = await _dbContext.Set<EmgDisposition>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == visit.Id
+                    && !x.IsDelete
+                    && x.DispositionStatus == EmergencyDispositionStatus.Executed)
+                .OrderByDescending(x => x.ExecutedAt)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(ct);
+            if (!dispositionId.HasValue)
+                return;
+
+            var penahan = await ValidateVisitClosureAsync(visit, ct);
+            if (penahan != null)
+                return;
+
+            if (visit.VisitStatus == EmergencyVisitStatus.Disposed)
+            {
+                visit.VisitStatus = EmergencyVisitStatus.Completed;
+                visit.VisitCompletedAt = now;
+                visit.ClosedByDispositionId = dispositionId;
+                visit.UpdateDateTime = now;
+                visit.UpdateBy = actorUserId;
+
+                if (visit.EncounterId.HasValue)
+                {
+                    var encounter = await _dbContext.RegPatientEncounters
+                        .FirstOrDefaultAsync(x => x.Id == visit.EncounterId.Value && !x.IsDelete, ct);
+                    if (encounter != null && encounter.EncounterStatus != EncounterStatus.Completed && encounter.EncounterStatus != EncounterStatus.Cancelled)
+                    {
+                        encounter.EncounterStatus = EncounterStatus.Completed;
+                        encounter.CompletedAt = now;
+                        encounter.UpdateDateTime = now;
+                        encounter.UpdateBy = actorUserId;
+                    }
+                }
+
+                await _dbContext.SaveChangesAsync(ct);
+            }
+        }
+
+        public static async Task<RingkasanPermintaanRawatInap?> BacaRingkasanPermintaanRawatInapPerDisposisiAsync(
+            ApplicationDbContext db,
+            Guid dispositionId,
+            CancellationToken ct = default)
+        {
+            var form = await db.Set<EmgAdmissionRequest>()
+                .AsNoTracking()
+                .Include(x => x.RequestedServiceUnit)
+                .Include(x => x.RequestedPatientClass)
+                .Include(x => x.ProposedInpatientDoctor)
+                .Where(x => x.DispositionId == dispositionId
+                    && !x.IsDelete
+                    && x.Status == EmergencyAdmissionRequestStatus.Signed)
+                .OrderByDescending(x => x.SignedAt ?? x.UpdateDateTime ?? x.CreateDateTime)
+                .FirstOrDefaultAsync(ct);
+
+            if (form == null)
+                return null;
+
+            var salinan = BacaSalinanBeku(form.SnapshotJson);
+
+            return new RingkasanPermintaanRawatInap(
+                form.Id,
+                salinan?.IsCito ?? form.IsCito,
+                salinan?.NeedsIntensiveCare ?? form.NeedsIntensiveCare,
+                salinan?.NeedsIsolation ?? form.NeedsIsolation,
+                salinan?.NeedsOxygenSupport ?? form.NeedsOxygenSupport,
+                salinan?.NeedsSpecialMonitoring ?? form.NeedsSpecialMonitoring,
+                form.RequestedServiceUnitId,
+                salinan?.RequestedServiceUnitName ?? form.RequestedServiceUnit?.ServiceUnitName,
+                form.RequestedPatientClassId,
+                salinan?.RequestedPatientClassName ?? form.RequestedPatientClass?.PatientClassName,
+                form.ProposedInpatientDoctorId,
+                salinan?.ProposedInpatientDoctorName ?? form.ProposedInpatientDoctor?.FullName,
+                salinan?.ClinicalIndication ?? form.ClinicalIndication,
+                salinan?.CarePlanInstruction ?? form.CarePlanInstruction);
+        }
     }
 }

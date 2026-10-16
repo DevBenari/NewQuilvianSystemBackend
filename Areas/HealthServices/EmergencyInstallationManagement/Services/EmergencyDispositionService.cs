@@ -20,6 +20,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly PatientAllergyQueryService _patientAllergyQueryService;
         private readonly EncounterInsuranceService _encounterInsuranceService;
         private readonly ILogger<EmergencyDispositionService> _logger;
+        private readonly IServiceProvider? _serviceProvider;
 
         // BE-IGD-041: aturan pesanan yang menahan penutupan dimiliki EmergencyDepartureService.
         // Keduanya sudah terdaftar Scoped di DI dan EmergencyDepartureService tidak bergantung
@@ -30,13 +31,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             EmergencyDepartureService departureService,
             PatientAllergyQueryService patientAllergyQueryService,
             EncounterInsuranceService encounterInsuranceService,
-            ILogger<EmergencyDispositionService> logger)
+            ILogger<EmergencyDispositionService> logger,
+            IServiceProvider? serviceProvider = null)
         {
             _dbContext = dbContext;
             _departureService = departureService;
             _patientAllergyQueryService = patientAllergyQueryService;
             _encounterInsuranceService = encounterInsuranceService;
             _logger = logger;
+            _serviceProvider = serviceProvider;
         }
 
         public async Task<string?> ValidateRequestAsync(

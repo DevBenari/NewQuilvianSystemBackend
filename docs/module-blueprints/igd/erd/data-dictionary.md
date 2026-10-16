@@ -564,6 +564,7 @@ Satu baris = satu Form Permintaan Rawat Inap.
 | `NeedsIsolation` | `boolean` | Ya | `false` | — | — | Tidak |
 | `NeedsOxygenSupport` | `boolean` | Ya | `false` | — | — | Tidak |
 | `NeedsSpecialMonitoring` | `boolean` | Ya | `false` | — | — | Tidak |
+| `PatientDependencyLevel` | `integer` | Bersyarat | — | — | `EmergencyPatientDependencyLevel` (1=Low, 2=Moderate, 3=High); wajib sebelum *Minta TTD* (`IGD-DEC-312`) | Tidak |
 | `ClinicalIndication` | `varchar` | Bersyarat | Alasan tindak lanjut | 2000 | Wajib sebelum *Minta TTD*; spasi ujung dibuang | **Ya** |
 | `CarePlanInstruction` | `varchar` | Tidak | Instruksi tindak lanjut | 2000 | — | **Ya** |
 | `SignatureRequestedAt` | `timestamptz` | Bersyarat | — | — | Waktu server saat *Minta TTD* terakhir | Tidak |
