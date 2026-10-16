@@ -101,10 +101,11 @@ public partial class InpBedOccupancyService
     /// Tanpa penyaring, jawabannya tidak berubah.
     /// </remarks>
     public async Task<BedBoardResponse> GetBedBoardAsync(Guid? serviceUnitId, Guid? roomId = null, Guid? patientClassId = null,
-        string? search = null, CancellationToken cancellationToken = default)
+        string? search = null, CancellationToken cancellationToken = default, bool? isForNewborn = null)
     {
         var m = await _bedQueries.MonitoringAsync(new()
         {
+            IsForNewborn = isForNewborn,
             ServiceUnitId = serviceUnitId == Guid.Empty ? null : serviceUnitId,
             RoomId = roomId == Guid.Empty ? null : roomId,
             PatientClassId = patientClassId == Guid.Empty ? null : patientClassId,

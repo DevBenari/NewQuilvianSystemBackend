@@ -778,7 +778,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 "self" or "pasien" or "dirisendiri" => InpAdmissionPartyRelationship.Self,
                 "spouse" or "suami" or "istri" => InpAdmissionPartyRelationship.Spouse,
                 "child" or "anak" => InpAdmissionPartyRelationship.Child,
-                "parent" or "orangtua" or "ayah" or "ibu" => InpAdmissionPartyRelationship.Parent,
+                "parent" or "orangtua" or "orang tua" or "ayah" or "ibu" => InpAdmissionPartyRelationship.Parent,
                 "sibling" or "saudara" => InpAdmissionPartyRelationship.Sibling,
                 "guardian" or "wali" => InpAdmissionPartyRelationship.Guardian,
                 _ => InpAdmissionPartyRelationship.Other

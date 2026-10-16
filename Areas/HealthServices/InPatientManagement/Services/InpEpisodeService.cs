@@ -22,16 +22,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     /// selanjutnya, satu per satu:
     ///
     /// <list type="bullet">
-    /// <item><description><c>BE-RWI-012</c> — penjagaan INV-INP-10, satu pasien satu episode yang hadir</description></item>
-    /// <item><description><c>BE-RWI-014</c> — penetapan kebutuhan isolasi beserta penjaga kewenangannya</description></item>
-    /// <item><description><c>BE-RWI-017</c> dan <c>BE-RWI-018</c> — penugasan DPJP dan perawat</description></item>
-    /// <item><description><c>BE-RWI-025</c> s.d. <c>BE-RWI-026</c> — penutupan episode dan jalan keluar supervisor</description></item>
+    /// <item><description><c>BE-RWI-012</c> â€” penjagaan INV-INP-10, satu pasien satu episode yang hadir</description></item>
+    /// <item><description><c>BE-RWI-014</c> â€” penetapan kebutuhan isolasi beserta penjaga kewenangannya</description></item>
+    /// <item><description><c>BE-RWI-017</c> dan <c>BE-RWI-018</c> â€” penugasan DPJP dan perawat</description></item>
+    /// <item><description><c>BE-RWI-025</c> s.d. <c>BE-RWI-026</c> â€” penutupan episode dan jalan keluar supervisor</description></item>
     /// </list>
     ///
     /// Tiga batas desain yang terkunci dan tidak boleh dilanggar saat method berikutnya
     /// diisi: status episode hanya boleh berubah lewat <see cref="ApplyStatusChangeAsync"/>,
     /// method itu selalu menulis <c>InpStatusHistory</c> di dalam transaksi yang sama, dan
-    /// penjaga kewenangan DPJP berada di service ini — bukan di mesin hak akses.
+    /// penjaga kewenangan DPJP berada di service ini â€” bukan di mesin hak akses.
     ///
     /// <para>
     /// <b>Kedaluwarsa dihitung saat dibaca.</b> Episode <c>Draft</c> yang ditinggalkan tidak
@@ -57,7 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// Penanda ini bukan hiasan. Ia adalah satu-satunya bukti tahan lama bahwa kunjungan
         /// jangkar lahir bersama episodenya, dan bukti itulah yang menentukan apakah
         /// kunjungan tersebut boleh ikut dibatalkan saat admisinya batal. Kunjungan yang
-        /// ditunjuk petugas — milik alur pendaftaran — tidak pernah ikut dibatalkan modul
+        /// ditunjuk petugas â€” milik alur pendaftaran â€” tidak pernah ikut dibatalkan modul
         /// ini. Baris riwayat tidak dapat diubah maupun dihapus, sehingga penanda ini tetap
         /// benar sepanjang umur episode.
         /// </remarks>
@@ -97,7 +97,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <b>Arah dependency dibalik pada `BE-RWI-011`.</b> Sampai `BE-RWI-008`, service ini
         /// menerima <c>InpBedOccupancyService</c> tanpa pernah memakainya. Sejak penempatan
         /// pasien dibuka, <c>InpBedOccupancyService.PlacePatientAsync</c> wajib memanggil
-        /// <see cref="ApplyStatusChangeAsync"/> — satu-satunya pintu perubahan status —
+        /// <see cref="ApplyStatusChangeAsync"/> â€” satu-satunya pintu perubahan status â€”
         /// sehingga arah pemakaiannya menjadi <c>InpBedOccupancyService</c> ke service ini.
         /// Mempertahankan kedua arah sekaligus menghasilkan dependency melingkar yang
         /// ditolak container saat aplikasi dinyalakan. Delta terhadap class diagram
@@ -122,7 +122,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         // =====================================================================
-        // BE-RWI-007 — Membuka admisi
+        // BE-RWI-007 â€” Membuka admisi
         // =====================================================================
 
         /// <summary>
@@ -174,7 +174,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return InpEpisodeOperationResult.Invalid("Pasien belum dipilih.");
             }
 
-            // BE-RWI-230 / INV-INP-10 — pasien yang sedang hadir tidak pernah dapat diadmisi ulang,
+            var newbornError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, patient);
+            if (newbornError != null)
+                return InpEpisodeOperationResult.BusinessRuleRejected(newbornError);
+            if (request.NewbornAdmission?.CareMode == "RoomingIn" &&
+                !(await InpNewbornAdmissionRules.FindMotherRoomAsync(_dbContext, request.MotherEpisodeId, patient.MotherPatientId, cancellationToken)).HasValue)
+                return InpEpisodeOperationResult.BusinessRuleRejected("Rawat gabung memerlukan penempatan ibu yang aktif.");
+
+            // BE-RWI-230 / INV-INP-10 â€” pasien yang sedang hadir tidak pernah dapat diadmisi ulang,
             // jadi ditolak sebelum apa pun ditulis. Tanpa penjaga ini admisi baru sempat membuat
             // kunjungan dan episode Draft yang baru ditolak pada pemesanan bed, lalu tertinggal
             // sebagai admisi ganda "Sedang Disiapkan" (ISSUE-EPS-010).
@@ -218,6 +225,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (request.SelectedBedId.HasValue)
             {
+                var selectedBed = await _dbContext.Set<MstBed>().AsNoTracking().Include(x => x.Room)
+                    .FirstOrDefaultAsync(x => x.Id == request.SelectedBedId.Value && !x.IsDelete, cancellationToken);
+                if (selectedBed?.Room != null)
+                {
+                    var newbornEpisode = new InpEpisode { MotherEpisodeId = request.MotherEpisodeId };
+                    InpNewbornAdmissionRules.ApplyContext(newbornEpisode, request.NewbornAdmission);
+                    var motherRoom = await InpNewbornAdmissionRules.FindMotherRoomAsync(_dbContext, request.MotherEpisodeId, patient.MotherPatientId, cancellationToken);
+                    var newbornBedErrors = InpNewbornAdmissionRules.ValidateBed(newbornEpisode, patient, selectedBed, selectedBed.Room, motherRoom);
+                    if (newbornBedErrors.Count > 0)
+                        return InpEpisodeOperationResult.FromStatus(InpEpisodeOperationStatus.BusinessRuleRejected, newbornBedErrors[0].Message, newbornBedErrors[0].Code);
+                }
                 var selectedRoom = await _dbContext.Set<MstBed>().AsNoTracking()
                     .Where(x => x.Id == request.SelectedBedId.Value && !x.IsDelete && x.IsActive &&
                         x.Room != null && !x.Room.IsDelete && x.Room.IsActive)
@@ -272,7 +290,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         "Kunjungan yang dipilih bukan milik pasien ini.");
                 }
 
-                // INV-INP-04 — satu kunjungan menampung paling banyak satu episode. Index
+                // INV-INP-04 â€” satu kunjungan menampung paling banyak satu episode. Index
                 // unik IX_InpEpisode_EncounterId adalah penjaga terakhirnya; pemeriksaan di
                 // sini ada supaya petugas menerima pesan yang dapat dibacanya, bukan galat
                 // basis data.
@@ -291,7 +309,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 encounter = existingEncounter;
             }
 
-            // BE-RWI-031 — hubungan bayi dan ibu. Diperiksa sebelum apa pun ditulis, supaya
+            // BE-RWI-031 â€” hubungan bayi dan ibu. Diperiksa sebelum apa pun ditulis, supaya
             // rujukan yang keliru tidak pernah tersimpan walaupun sesaat.
             var motherCheck = await ValidateMotherEpisodeAsync(
                 request.MotherEpisodeId,
@@ -355,9 +373,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     CreateBy = actorUserId
                 };
 
+                InpNewbornAdmissionRules.ApplyContext(episode, request.NewbornAdmission);
                 _dbContext.Set<InpEpisode>().Add(episode);
 
-                // INV-INP-03 — DPJP ada sejak detik pertama, bukan dilengkapi kemudian.
+                // INV-INP-03 â€” DPJP ada sejak detik pertama, bukan dilengkapi kemudian.
                 // Perannya ditulis eksplisit sejak BE-RWI-074; nilai bawaan database ada
                 // untuk baris lama, bukan sebagai pengganti nilai domain pada baris baru.
                 var doctorAssignment = new InpDoctorAssignment
@@ -428,7 +447,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         // =====================================================================
-        // BE-RWI-008 — Mengubah, membatalkan, dan menggugurkan admisi Draft
+        // BE-RWI-008 â€” Mengubah, membatalkan, dan menggugurkan admisi Draft
         // =====================================================================
 
         /// <summary>
@@ -502,13 +521,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 request.MotherEpisodeId,
                 episode.Id,
                 episode.PatientId,
-                cancellationToken);
+                cancellationToken,
+                allowHistoricalReference: request.MotherEpisodeId == episode.MotherEpisodeId);
 
             if (motherCheck != null)
             {
                 return motherCheck;
             }
 
+            if (request.NewbornAdmission != null)
+            {
+                var newbornPatient = await _dbContext.Set<MstPatient>().AsNoTracking()
+                    .SingleAsync(x => x.Id == episode.PatientId, cancellationToken);
+                var contextError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, newbornPatient);
+                if (contextError != null) return InpEpisodeOperationResult.BusinessRuleRejected(contextError);
+                var unchangedRoomingIn = request.MotherEpisodeId == episode.MotherEpisodeId &&
+                    request.NewbornAdmission.CareMode == episode.NewbornCareMode;
+                if (request.NewbornAdmission.CareMode == "RoomingIn" && !unchangedRoomingIn &&
+                    !(await InpNewbornAdmissionRules.FindMotherRoomAsync(_dbContext, request.MotherEpisodeId, newbornPatient.MotherPatientId, cancellationToken)).HasValue)
+                    return InpEpisodeOperationResult.BusinessRuleRejected("Rawat gabung memerlukan penempatan ibu yang aktif.");
+                InpNewbornAdmissionRules.ApplyContext(episode, request.NewbornAdmission);
+            }
             var now = DateTime.UtcNow;
 
             episode.ServiceUnitId = request.ServiceUnitId;
@@ -660,7 +693,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <b>Kenapa harus satu pintu.</b> Bila satu controller saja menyetel
         /// <c>EpisodeStatus</c> langsung, riwayat status berlubang. Laporan pengecualian,
         /// daftar pantau, dan pembuktian belum adanya catatan klinis saat pembatalan semuanya
-        /// dibaca dari tabel riwayat itu — dan tidak satu pun dari mereka dapat mengetahui
+        /// dibaca dari tabel riwayat itu â€” dan tidak satu pun dari mereka dapat mengetahui
         /// bahwa ada perpindahan yang tidak tercatat. Aturan ini ditegakkan lewat review,
         /// bukan lewat harapan.
         ///
@@ -721,7 +754,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _dbContext.Set<InpStatusHistory>().Add(history);
             episode.StatusHistories.Add(history);
 
-            // BE-RWI-130 / RWI-DEC-156 — Event ADMISSION_CONFIRMED saat status menjadi Admitted.
+            // BE-RWI-130 / RWI-DEC-156 â€” Event ADMISSION_CONFIRMED saat status menjadi Admitted.
             // BE-RWI-151 / INV-RWF-05: isi pesan hanya penanda kejadian (daftar putih); penjamin,
             // pasien, dan waktu admisi tidak lagi ikut terbawa. Billing membacanya dari sumbernya.
             if (toStatus == InpEpisodeStatus.Admitted)
@@ -739,7 +772,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         // =====================================================================
-        // Kedaluwarsa Draft — dihitung saat dibaca, tanpa program penjadwal
+        // Kedaluwarsa Draft â€” dihitung saat dibaca, tanpa program penjadwal
         // =====================================================================
 
         /// <summary>
@@ -790,7 +823,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             try
             {
-                // BE-RWI-229 — dua pembacaan bersamaan (mis. GET /episodes dan /episodes/summary)
+                // BE-RWI-229 â€” dua pembacaan bersamaan (mis. GET /episodes dan /episodes/summary)
                 // dapat sama-sama menemukan Draft ini lewat batas. Tanpa kunci baris keduanya
                 // menulis riwayat bernomor sama dan yang kalah jatuh 500 pada
                 // IX_InpStatusHistory_EpisodeId_SequenceNumber. Pembaca kedua kini menunggu,
@@ -909,14 +942,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <summary>
         /// Melepas pemesanan dan penempatan yang masih hidup milik episode, sebagai bagian
         /// dari pembatalan. Bila pelepasan gagal, pembatalannya ikut gagal dan episode tetap
-        /// seperti semula — itulah yang menutup risiko kamar yang terlihat penuh padahal
+        /// seperti semula â€” itulah yang menutup risiko kamar yang terlihat penuh padahal
         /// pasiennya tidak pernah ada.
         /// </summary>
         /// <remarks>
         /// <b>Salinan status tempat tidur ikut dikembalikan.</b> Sampai `BE-RWI-008`, method
         /// ini hanya menutup baris pemesanan dan penempatan, sehingga <c>MstBed.BedStatus</c>
         /// tetap bernilai <c>Reserved</c> atau <c>Occupied</c> untuk pasien yang admisinya
-        /// sudah batal — tempat tidur yang sesungguhnya kosong tetap terlihat terpakai pada
+        /// sudah batal â€” tempat tidur yang sesungguhnya kosong tetap terlihat terpakai pada
         /// layar master. `BE-RWI-011` menutup celah itu di sini, di dalam transaksi yang sama
         /// dengan pembatalannya. Ini arah tulis <c>INT-INP-03</c> yang disetujui
         /// <c>RWI-DEC-062</c>: modul ini hanya boleh menulis <c>Available</c>,
@@ -983,7 +1016,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// Tempat tidur yang sedang <c>Cleaning</c>, <c>Maintenance</c>, <c>Blocked</c>, atau
         /// <c>Inactive</c> <b>tidak</b> disentuh. Keempat nilai itu tetap wewenang admin
         /// master data, dan menimpanya berarti tempat tidur yang sedang diperbaiki kembali
-        /// muncul sebagai siap pakai — persis kejadian yang dicegah <c>RWI-DEC-062</c>.
+        /// muncul sebagai siap pakai â€” persis kejadian yang dicegah <c>RWI-DEC-062</c>.
         ///
         /// <para>
         /// <b>Kenapa episode pemanggil dikeluarkan dari pemeriksaan.</b> Baris pemesanan dan
@@ -1154,6 +1187,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     IsClosedWithoutFinancialClearance = x.IsClosedWithoutFinancialClearance,
                     ClosedWithoutClearanceReason = x.ClosedWithoutClearanceReason,
                     MotherEpisodeId = x.MotherEpisodeId,
+                    NewbornAdmission = x.NewbornCareMode == null ? null : new InpatientNewbornAdmissionContext
+                    {
+                        Source = x.NewbornAdmissionSource ?? "",
+                        CareMode = x.NewbornCareMode,
+                        CareSource = x.NewbornCareSource ?? "",
+                        RequiresIntensiveCare = x.RequiresNeonatalIntensiveCare,
+                        FamilyBillingPreference = x.FamilyBillingPreference ?? "Separate",
+                        PlannedDepositAmount = x.PlannedDepositAmount
+                    },
                     MotherEpisodeNumber = x.MotherEpisode != null
                         ? x.MotherEpisode.EpisodeNumber
                         : null,
@@ -1162,7 +1204,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         : null,
                     CancelReason = x.CancelReason,
                     Notes = x.Notes,
-                    // DPJP aktif, bukan penugasan terbuka mana pun — BE-RWI-074.
+                    // DPJP aktif, bukan penugasan terbuka mana pun â€” BE-RWI-074.
                     ActiveDoctor = x.DoctorAssignments
                         .Where(d =>
                             d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
@@ -1250,7 +1292,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// </summary>
         /// <remarks>
         /// <b>Nomor kunjungan.</b> Nomornya dibentuk dari awalan kunjungan yang sudah dipakai
-        /// pendaftaran, ditambah waktu sampai detik dan enam huruf/angka acak — pola yang
+        /// pendaftaran, ditambah waktu sampai detik dan enam huruf/angka acak â€” pola yang
         /// sama dengan <see cref="InpEpisodeNumberService"/>. Alokator lama milik pendaftaran
         /// menyisir seluruh baris lalu memakai celah pertama, dan cara itu dilarang
         /// QBE-CODE-003 untuk kode baru karena dua permintaan bersamaan membaca angka yang
@@ -1397,22 +1439,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     /// </summary>
     public enum InpEpisodeOperationStatus
     {
-        /// <summary>Berhasil — 200.</summary>
+        /// <summary>Berhasil â€” 200.</summary>
         Success = 0,
 
-        /// <summary>Isian tidak lengkap atau tidak masuk akal — 400.</summary>
+        /// <summary>Isian tidak lengkap atau tidak masuk akal â€” 400.</summary>
         Invalid = 1,
 
-        /// <summary>Yang dimaksud tidak ditemukan — 404.</summary>
+        /// <summary>Yang dimaksud tidak ditemukan â€” 404.</summary>
         NotFound = 2,
 
-        /// <summary>Bertabrakan dengan keadaan sekarang — 409.</summary>
+        /// <summary>Bertabrakan dengan keadaan sekarang â€” 409.</summary>
         Conflict = 3,
 
-        /// <summary>Aturan bisnis menolak — 422.</summary>
+        /// <summary>Aturan bisnis menolak â€” 422.</summary>
         BusinessRuleRejected = 4,
 
-        /// <summary>Pelakunya tidak berwenang untuk tindakan ini — 403.</summary>
+        /// <summary>Pelakunya tidak berwenang untuk tindakan ini â€” 403.</summary>
         Forbidden = 5
     }
 
@@ -1446,7 +1488,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// </summary>
         /// <remarks>
         /// Diletakkan di sini, bukan pada bentuk hasil tersendiri, supaya kedua jalur penutupan
-        /// — biasa dan jalan keluar supervisor — mengembalikannya lewat satu jalan yang sama.
+        /// â€” biasa dan jalan keluar supervisor â€” mengembalikannya lewat satu jalan yang sama.
         /// Bentuk hasil kedua akan memaksa controller memilih di antara dua cabang, dan yang
         /// paling mungkin terlewat adalah cabang yang lebih jarang dipakai.
         /// </remarks>

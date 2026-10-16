@@ -59,7 +59,6 @@ PatientInsurance.CreatePatientInsurance
 PatientInsurance.GetFilterMetadata
 PatientInsurance.GetPatientInsuranceOptions
 PatientInsurance.GetPatientInsurances
-PatientMembership.CreatePatientMembership
 PatientMembership.GetFilterMetadata
 PatientMembership.GetPatientMembershipOptions
 PatientMembership.GetPatientMemberships

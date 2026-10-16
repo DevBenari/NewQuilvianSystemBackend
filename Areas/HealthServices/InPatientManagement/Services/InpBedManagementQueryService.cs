@@ -190,6 +190,7 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
             throw new InpBedOperationException(400, "INVALID_INPUT", "Status monitoring tidak dikenal.");
         await coordinator.ExpireScopedAsync(operation, ct); var units = await access.UnitsAsync(operation, ct);
         var source = db.Set<MstBed>().AsNoTracking().Where(x => !x.IsDelete && x.Room != null && units.Contains(x.Room.ServiceUnitId));
+        if (query.IsForNewborn.HasValue) source = source.Where(x => x.IsForNewborn == query.IsForNewborn.Value);
         if (query.ServiceUnitId.HasValue) source = source.Where(x => x.Room!.ServiceUnitId == query.ServiceUnitId);
         if (query.RoomId.HasValue) source = source.Where(x => x.RoomId == query.RoomId);
         if (query.PatientClassId.HasValue) source = source.Where(x => x.Room!.PatientClassId == query.PatientClassId);

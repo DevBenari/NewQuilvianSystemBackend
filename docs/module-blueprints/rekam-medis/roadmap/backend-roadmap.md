@@ -83,7 +83,9 @@ dikoreksi lebih berbahaya daripada catatan yang dapat diubah bebas.
 
 ## 2. Ringkasan status seluruh task
 
-Status per 26 Agustus 2026, setelah pengesahan `RM-DEC-027`.
+Status per **14 Oktober 2026**. Semula per 26 Agustus 2026, setelah pengesahan `RM-DEC-027`.
+Penyegaran 14 Oktober mencocokkan tabel dengan source dan dokumen pendamping; yang berubah hanya
+keterangan `BE-08` dan `BE-09`, angka denominatornya tetap.
 
 | Milestone | Task | Status | Keterangan |
 |---|---|---|---|
@@ -93,8 +95,8 @@ Status per 26 Agustus 2026, setelah pengesahan `RM-DEC-027`.
 | B1 | `BE-03` | **`SELESAI`** 26 Agustus 2026 | Tiga celah CPPT ditutup, 8 uji lulus |
 | B1 | `BE-04`, `BE-05`, `BE-06` | **`SELESAI`** 26 Agustus 2026 | Tanda tangan, penetapan berhalangan, addendum — 3 controller, 17 uji lulus. Dirilis bersamaan sesuai aturan urutan |
 | B1 | `BE-07` | **`SELESAI`** 26 Agustus 2026 | Penguncian saat kunjungan selesai, dipasang di **tiga** jalur, 4 uji lulus |
-| B1 | `BE-08` | **`SIAP DIJALANKAN`** | Alat dan panduannya selesai 26 Agustus 2026, 11 uji lulus. Yang tersisa: menjalankan penelaahan pada data nyata, lalu memberi tahu unit rekam medis. Lihat `BE-08-panduan-pengisian-data-lama.md` |
-| B2 | `BE-09` | **`SELESAI` sebagian** 26 Agustus 2026 | Model, configuration, dan migration selesai. **Dua hal belum:** (1) DTO, controller, dan keenam endpoint api-contract bagian 7 **belum dibuat** — dikoreksi 27 Agustus 2026 terhadap source, dan ini menahan `FE-06`; (2) isi awalnya masih menunggu SOP rekam medis |
+| B1 | `BE-08` | **`SIAP DIJALANKAN`** | Alat dan panduannya selesai 26 Agustus 2026, 11 uji lulus. Penelaahan pada basis data dev sudah dijalankan 26 Agustus 2026 (10 CPPT). Yang tersisa: percobaan, pemberitahuan unit rekam medis, penjalanan sungguhan, dan penelaahan ulang di produksi — belum ada yang dijalankan per 14 Oktober 2026. Lihat `BE-08-panduan-pengisian-data-lama.md` dan bagian *Yang tersisa sebelum `BE-08` dapat dinyatakan selesai* |
+| B2 | `BE-09` | **`SELESAI` sebagian** 26 Agustus 2026 | Model, configuration, dan migration selesai. Butir (1) — DTO, controller, dan keenam endpoint api-contract bagian 7 — **ditutup `BE-20` 31 Agustus 2026**. Sisa satu butir **non-kode**: isi awal master keperluan akses menunggu SOP rekam medis; tidak ada seeder di source, isinya diisi lewat layar `FE-06` |
 | B2 | `BE-10`, `BE-11` | **`SELESAI`** 26 Agustus 2026 | Tabel jejak akses, service kewenangan pasien, 12 uji lulus |
 | B2 | `BE-12` | **`SELESAI`** 26 Agustus 2026 | Tinjauan akses, 4 endpoint, 6 uji lulus |
 | B3 | `BE-13` | **`SELESAI`** 26 Agustus 2026 | Service penggabungan riwayat 13 sumber, 10 uji lulus |
@@ -107,7 +109,8 @@ Status per 26 Agustus 2026, setelah pengesahan `RM-DEC-027`.
 | B5 | `BE-20` | **`SELESAI`** 31 Agustus 2026 | `MedicalRecordAccessPurposeController`, 6 endpoint, 9 uji lulus |
 
 **Denominator: 21 task. Delapan belas `SELESAI`, dua `SELESAI` sebagian, satu `SIAP DIJALANKAN`,
-nol `SIAP`, nol `TERTAHAN APPROVAL`.**
+nol `SIAP`, nol `TERTAHAN APPROVAL`.** Kedua `SELESAI` sebagian (`BE-09`, `BE-15`) kodenya sudah
+lengkap; sisanya isi master dari SOP dan pemberitahuan penulis CPPT.
 
 **SELURUH PEKERJAAN KODE BACKEND SELESAI.** Tidak ada lagi task yang menunggu ditulis. Yang
 tersisa seluruhnya bukan pekerjaan kode — lihat tabel di bawah.
