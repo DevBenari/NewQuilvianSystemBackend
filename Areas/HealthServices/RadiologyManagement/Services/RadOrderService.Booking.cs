@@ -1,0 +1,357 @@
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+
+using MstTariff = QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff;
+
+namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services
+{
+    /// <summary>
+    /// Booking Radiologi v1 (<c>FormBookingRadiologi</c>, dibaca dari v1 tayang 2026-10-16):
+    /// cari pasien dengan No. RM, isi Form Order Pemeriksaan, tambahkan beberapa pemeriksaan
+    /// (Cito, Dokter Pemeriksa, Harga), lalu Simpan.
+    /// </summary>
+    /// <remarks>
+    /// Satu pesanan V2 = satu pemeriksaan, sehingga satu booking menjadi beberapa pesanan untuk satu
+    /// kunjungan dengan tanggal pemeriksaan yang sama — persis satu baris Daftar Pasien. Seluruhnya
+    /// dibuat dalam satu transaksi: sebagian pemeriksaan yang tersimpan tidak pernah terjadi.
+    /// </remarks>
+    public partial class RadOrderService
+    {
+        /// <summary>Batas pemeriksaan per booking — mencegah permintaan tak wajar.</summary>
+        internal const int MaksimumPemeriksaanBooking = 20;
+
+        /// <summary>
+        /// Kunjungan pasien yang dapat dibooking dari No. RM. Pencarian mengabaikan tanda hubung
+        /// ("25-31-10-72" = "25311072"), seperti v1. Kunjungan batal dan tidak hadir tidak ikut;
+        /// yang terbaru lebih dulu.
+        /// </summary>
+        public async Task<List<RadBookingEncounterResponse>> GetBookingEncountersAsync(
+            string? medicalRecordNumber,
+            CancellationToken cancellationToken = default)
+        {
+            var digit = new string((medicalRecordNumber ?? string.Empty).Where(char.IsDigit).ToArray());
+            if (digit.Length == 0) return new List<RadBookingEncounterResponse>();
+
+            var kunjungan = await _dbContext.RegPatientEncounters
+                .AsNoTracking()
+                .Where(e => !e.IsDelete &&
+                            e.EncounterStatus != EncounterStatus.Cancelled &&
+                            e.EncounterStatus != EncounterStatus.NoShow &&
+                            e.Patient != null &&
+                            e.Patient.MedicalRecordNumber.Replace("-", "").Replace(".", "").Replace(" ", "") == digit)
+                .OrderByDescending(e => e.EncounterDate)
+                .Take(5)
+                .Select(e => new
+                {
+                    e.Id,
+                    e.EncounterDate,
+                    e.EncounterNumber,
+                    e.EncounterType,
+                    e.VisitType,
+                    e.PaymentType,
+                    e.PatientId,
+                    e.AgeTextAtEncounter,
+                    e.ServiceUnitId,
+                    ServiceUnitName = e.ServiceUnit != null ? e.ServiceUnit.ServiceUnitName : null,
+                    e.RoomId,
+                    RoomName = e.Room != null ? e.Room.RoomName : null,
+                    e.PatientClassId,
+                    PatientClassName = e.PatientClass != null ? e.PatientClass.PatientClassName : null,
+                    GuarantorName = e.PaymentSource != null ? e.PaymentSource.PaymentSourceNameSnapshot : null,
+                    PatientName = e.Patient!.FullName,
+                    e.Patient.MedicalRecordNumber,
+                    e.Patient.Gender,
+                    e.Patient.BirthDate,
+                    Telepon = e.Patient.WhatsAppNumber ?? e.Patient.PhoneNumber,
+                    e.DoctorId,
+                    DoctorName = e.Doctor != null ? e.Doctor.FullName : null,
+                })
+                .ToListAsync(cancellationToken);
+
+            if (kunjungan.Count == 0) return new List<RadBookingEncounterResponse>();
+
+            var encounterIds = kunjungan.Select(x => x.Id).ToList();
+            var diagnosa = await _dbContext.TrxPatientDiagnoses
+                .AsNoTracking()
+                .Where(d => encounterIds.Contains(d.EncounterId) && !d.IsDelete)
+                .OrderByDescending(d => d.IsPrimary)
+                .ThenBy(d => d.DiagnosisDateTime)
+                .Select(d => new { d.EncounterId, d.DiagnosisCode, d.DiagnosisName })
+                .ToListAsync(cancellationToken);
+
+            var diagnosaPerKunjungan = diagnosa
+                .GroupBy(d => d.EncounterId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => string.Join("; ", g
+                        .Select(d => string.IsNullOrWhiteSpace(d.DiagnosisCode)
+                            ? d.DiagnosisName
+                            : $"{d.DiagnosisCode} - {d.DiagnosisName}")
+                        .Distinct()));
+
+            return kunjungan.Select(x => new RadBookingEncounterResponse
+            {
+                EncounterId = x.Id,
+                EncounterDate = x.EncounterDate,
+                Patient = new RadOrderPatientContextResponse
+                {
+                    PatientId = x.PatientId,
+                    MedicalRecordNumber = x.MedicalRecordNumber,
+                    PatientName = x.PatientName,
+                    Gender = x.Gender?.ToString(),
+                    BirthDate = x.BirthDate,
+                    AgeText = x.AgeTextAtEncounter,
+                    EncounterNumber = x.EncounterNumber,
+                    EncounterType = x.EncounterType.ToString(),
+                    VisitType = x.VisitType.ToString(),
+                    ServiceUnitId = x.ServiceUnitId,
+                    ServiceUnitName = x.ServiceUnitName,
+                    RoomId = x.RoomId,
+                    RoomName = x.RoomName,
+                    PatientClassId = x.PatientClassId,
+                    PatientClassName = x.PatientClassName,
+                    PaymentType = x.PaymentType.ToString(),
+                    GuarantorName = x.GuarantorName,
+                },
+                PhoneNumber = string.IsNullOrWhiteSpace(x.Telepon) ? null : x.Telepon.Trim(),
+                DoctorId = x.DoctorId,
+                DoctorName = x.DoctorName,
+                DiagnosisText = diagnosaPerKunjungan.GetValueOrDefault(x.Id),
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Harga tampilan satu pemeriksaan untuk kelas kunjungan (aturan sama dengan
+        /// <see cref="BacaTarifAsync"/>) dan alat yang diturunkan dari pemeriksaannya.
+        /// </summary>
+        public async Task<RadOperationResult<RadBookingPriceResponse>> GetBookingPriceAsync(
+            Guid encounterId,
+            Guid procedureId,
+            CancellationToken cancellationToken = default)
+        {
+            var tindakan = await _dbContext.MstProcedures.AsNoTracking()
+                .Where(p => p.Id == procedureId && !p.IsDelete)
+                .Select(p => new { p.Id, p.ProcedureName, p.ProcedureCategoryName, p.IsRadiology })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (tindakan == null || !tindakan.IsRadiology)
+            {
+                return RadOperationResult<RadBookingPriceResponse>.NotFound(
+                    RadErrorCodes.ProcedureNotFound, "Pemeriksaan radiologi tidak ditemukan.");
+            }
+
+            var kelas = await _dbContext.RegPatientEncounters.AsNoTracking()
+                .Where(e => e.Id == encounterId)
+                .Select(e => e.PatientClassId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var sekarang = DateTime.UtcNow;
+            var tarif = await _dbContext.Set<MstTariff>()
+                .AsNoTracking()
+                .Where(t => t.ProcedureId == procedureId && !t.IsDelete && t.IsActive &&
+                            (t.EffectiveStartDate == null || t.EffectiveStartDate <= sekarang) &&
+                            (t.EffectiveEndDate == null || t.EffectiveEndDate >= sekarang) &&
+                            (t.PatientClassId == null || t.PatientClassId == kelas))
+                .Select(t => new { t.PatientClassId, t.NormalPrice, t.EffectiveStartDate, t.TariffCode })
+                .ToListAsync(cancellationToken);
+
+            var pilihan = tarif
+                .OrderByDescending(t => t.PatientClassId != null)
+                .ThenByDescending(t => t.EffectiveStartDate)
+                .ThenBy(t => t.TariffCode, StringComparer.Ordinal)
+                .FirstOrDefault();
+
+            var alat = await TurunkanAlatAsync(tindakan.ProcedureName, tindakan.ProcedureCategoryName, cancellationToken);
+
+            return RadOperationResult<RadBookingPriceResponse>.Success(new RadBookingPriceResponse
+            {
+                ProcedureId = tindakan.Id,
+                TariffAmount = pilihan?.NormalPrice,
+                ModalityId = alat?.Id,
+                ModalityCode = alat?.ModalityCode,
+                ModalityName = alat?.ModalityName,
+            });
+        }
+
+        /// <summary>Menyimpan Booking Radiologi v1: satu pesanan per pemeriksaan, satu transaksi.</summary>
+        public async Task<RadOperationResult<RadBookingResponse>> CreateBookingAsync(
+            RadBookingRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+            var butir = request.Items ?? new List<RadBookingItemRequest>();
+
+            if (butir.Count == 0)
+            {
+                return RadOperationResult<RadBookingResponse>.Validation(
+                    RadErrorCodes.ValidationFailed, "Tambahkan pemeriksaan radiologi.");
+            }
+
+            if (butir.Count > MaksimumPemeriksaanBooking)
+            {
+                return RadOperationResult<RadBookingResponse>.Validation(
+                    RadErrorCodes.ValidationFailed, $"Satu booking paling banyak {MaksimumPemeriksaanBooking} pemeriksaan.");
+            }
+
+            if (butir.Select(x => x.ProcedureId).Distinct().Count() != butir.Count)
+            {
+                return RadOperationResult<RadBookingResponse>.Validation(
+                    RadErrorCodes.ValidationFailed, "Pemeriksaan tidak boleh duplikat.");
+            }
+
+            var kunjungan = await _dbContext.RegPatientEncounters.AsNoTracking()
+                .Where(e => e.Id == request.EncounterId && !e.IsDelete)
+                .Select(e => new { e.Id, e.EncounterStatus })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (kunjungan == null || kunjungan.EncounterStatus is EncounterStatus.Cancelled or EncounterStatus.NoShow)
+            {
+                return RadOperationResult<RadBookingResponse>.Validation(
+                    RadErrorCodes.ValidationFailed, "Kunjungan pasien tidak ditemukan atau sudah dibatalkan.");
+            }
+
+            var procedureIds = butir.Select(x => x.ProcedureId).ToList();
+            var tindakan = await _dbContext.MstProcedures.AsNoTracking()
+                .Where(p => procedureIds.Contains(p.Id) && !p.IsDelete)
+                .Select(p => new { p.Id, p.ProcedureName, p.ProcedureCategoryName, p.IsRadiology, p.IsActive })
+                .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+            // Alat tiap baris: dipilih, atau diturunkan dari pemeriksaannya seperti v1 (v1 tidak
+            // memilih alat). Baris yang alatnya tidak dapat ditentukan ditolak dengan namanya.
+            var alatPerBaris = new List<Guid>(butir.Count);
+            foreach (var item in butir)
+            {
+                if (!tindakan.TryGetValue(item.ProcedureId, out var t) || !t.IsRadiology || !t.IsActive)
+                {
+                    return RadOperationResult<RadBookingResponse>.Validation(
+                        RadErrorCodes.ProcedureNotFound, "Ada pemeriksaan radiologi yang tidak ditemukan atau nonaktif.");
+                }
+
+                Guid? alatId = item.ModalityId;
+                if (alatId.HasValue)
+                {
+                    var aktif = await _dbContext.MstRadModalities
+                        .AnyAsync(m => m.Id == alatId.Value && !m.IsDelete && m.IsActive, cancellationToken);
+                    if (!aktif) alatId = null;
+                }
+
+                alatId ??= (await TurunkanAlatAsync(t.ProcedureName, t.ProcedureCategoryName, cancellationToken))?.Id;
+                if (!alatId.HasValue)
+                {
+                    return RadOperationResult<RadBookingResponse>.Validation(
+                        RadErrorCodes.ModalityNotFound, $"Alat pencitraan untuk {t.ProcedureName} tidak dapat ditentukan.");
+                }
+
+                alatPerBaris.Add(alatId.Value);
+            }
+
+            var actorUserId = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+            var waktuOrder = request.OrderedAt?.ToUniversalTime() ?? now;
+            var waktuPeriksa = request.ExaminationAt?.ToUniversalTime();
+            // Tanggal pemeriksaan di hari lain menjadi jadwal (Pasien Perjanjian v1).
+            DateTime? jadwal = waktuPeriksa.HasValue && TanggalWib(waktuPeriksa.Value) != TanggalWib(waktuOrder)
+                ? waktuPeriksa
+                : null;
+            var indikasi = string.IsNullOrWhiteSpace(request.ClinicalIndication) ? null : request.ClinicalIndication.Trim();
+
+            await using var transaksi = _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+
+            var dibuat = new List<RadOrder>(butir.Count);
+            for (var i = 0; i < butir.Count; i++)
+            {
+                var item = butir[i];
+                var entity = new RadOrder
+                {
+                    OrderNumber = await _orderNumberService.AllocateOneAsync(cancellationToken),
+                    EncounterId = kunjungan.Id,
+                    ProcedureId = item.ProcedureId,
+                    ModalityId = alatPerBaris[i],
+                    ClinicalIndication = indikasi,
+                    OrderStatus = RadOrderStatus.Requested,
+                    InstructionVerificationStatus = RadOrderInstructionVerificationStatus.NotRequired,
+                    RequestedAt = waktuOrder,
+                    ScheduledAt = jadwal,
+                    RequestedByUserId = actorUserId,
+                    IsUrgent = item.IsUrgent,
+                    UrgentMarkedByUserId = item.IsUrgent ? actorUserId : null,
+                    UrgentMarkedAt = item.IsUrgent ? now : null,
+                    RequiresPreparation = request.RequiresPreparation == true,
+                    ExaminingDoctorId = item.ExaminingDoctorId,
+                    CreateBy = actorUserId,
+                    CreateDateTime = now,
+                };
+
+                _dbContext.RadOrders.Add(entity);
+                AddHistory(entity, "Order.Create", null, entity.OrderStatus.ToString(),
+                    null, "Booking Radiologi", actorUserId, now);
+
+                // Setiap nomor dialokasikan dari MAX + 1 yang terbaca SQL; pesanan yang belum
+                // tersimpan tidak terlihat olehnya, sehingga disimpan satu per satu di dalam
+                // transaksi yang sama supaya nomor berikutnya tidak kembar.
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                dibuat.Add(entity);
+            }
+
+            if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
+
+            return RadOperationResult<RadBookingResponse>.Success(new RadBookingResponse
+            {
+                OrderIds = dibuat.Select(x => x.Id).ToList(),
+                OrderNumbers = dibuat.Select(x => x.OrderNumber).ToList(),
+            });
+        }
+
+        /// <summary>
+        /// Alat pencitraan yang diturunkan dari pemeriksaan — Booking v1 hanya memilih pemeriksaan.
+        /// Nama pemeriksaan didahulukan (kategori impor v1 terlalu kasar: mamografi, densitometri,
+        /// dan barium tercatat "X-Ray"), lalu kategori. Hanya alat aktif yang dipakai.
+        /// </summary>
+        private async Task<MstRadModalityRingkas?> TurunkanAlatAsync(
+            string? namaPemeriksaan,
+            string? kategori,
+            CancellationToken cancellationToken)
+        {
+            var kode = KodeAlatDariPemeriksaan(namaPemeriksaan, kategori);
+            if (kode.Count == 0) return null;
+
+            var alat = await _dbContext.MstRadModalities.AsNoTracking()
+                .Where(m => !m.IsDelete && m.IsActive && kode.Contains(m.ModalityCode))
+                .Select(m => new MstRadModalityRingkas(m.Id, m.ModalityCode, m.ModalityName))
+                .ToListAsync(cancellationToken);
+
+            return kode.Select(k => alat.FirstOrDefault(a => string.Equals(a.ModalityCode, k, StringComparison.OrdinalIgnoreCase)))
+                .FirstOrDefault(a => a != null);
+        }
+
+        internal sealed record MstRadModalityRingkas(Guid Id, string ModalityCode, string ModalityName);
+
+        /// <summary>Kode alat kandidat, urut prioritas, dari nama lalu kategori pemeriksaan.</summary>
+        public static List<string> KodeAlatDariPemeriksaan(string? namaPemeriksaan, string? kategori)
+        {
+            var nama = (namaPemeriksaan ?? string.Empty).ToUpperInvariant();
+            var kat = (kategori ?? string.Empty).ToUpperInvariant();
+            bool Ada(string teks, params string[] kata) => kata.Any(teks.Contains);
+
+            if (Ada(nama, "MAMMO", "MAMOGRA")) return ["MG"];
+            if (Ada(nama, "DENSITO", "BMD", "DEXA")) return ["BMD", "DXA", "DX", "CR"];
+            if (Ada(nama, "ANGIO", "DSA ", "EMBOLI")) return ["XA"];
+            if (Ada(nama, "BARIUM", "FLUORO", "HSG", "APPENDICOGRAM", "COLON IN LOOP", "OMD", "ESOFAGOGRAM", "OESOPHAGOGRAM", "URETHROGRAM", "URETROGRAM"))
+                return ["RF", "CR", "DX"];
+            if (Ada(nama, "MRI", "MRCP", "MRA ")) return ["MR"];
+            if (Ada(nama, "MSCT", "CT SCAN", "CT-SCAN")) return ["CT"];
+            if (Ada(nama, "USG", "ULTRASONO", "DOPPLER")) return ["US"];
+            if (Ada(nama, "PET", "SPECT", "BONE SCAN", "SCINTI", "SKINTI")) return ["NM", "PT"];
+
+            if (Ada(kat, "MRI")) return ["MR"];
+            if (Ada(kat, "CT")) return ["CT"];
+            if (Ada(kat, "USG", "ULTRASONO")) return ["US"];
+            if (Ada(kat, "X-RAY", "XRAY", "KONVENSIONAL", "RONTGEN")) return ["CR", "DX"];
+
+            return [];
+        }
+    }
+}
