@@ -30,6 +30,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Radio
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
 
+            // No. Foto tidak boleh kembar; kosong (belum dikonfirmasi) tidak ikut dijaga.
+            builder.Property(x => x.PhotoNumber).HasMaxLength(32);
+            builder.HasIndex(x => x.PhotoNumber)
+                .IsUnique()
+                .HasFilter("\"PhotoNumber\" IS NOT NULL AND \"IsDelete\" = false");
+
             builder.HasIndex(x => x.EncounterId);
             builder.HasIndex(x => x.OrderStatus);
             builder.HasIndex(x => new { x.ModalityId, x.OrderStatus });
@@ -107,6 +113,20 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Radio
                 .WithMany()
                 .HasForeignKey(x => x.InstructionVerifiedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // BE-RAD-20 — Petugas Radiologi dan Dokter Pemeriksa (Detail Pasien Radiologi v1).
+            builder.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(x => x.RadiographerUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne<MstDoctor>()
+                .WithMany()
+                .HasForeignKey(x => x.ExaminingDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(x => x.RadiographerUserId);
+            builder.HasIndex(x => x.ExaminingDoctorId);
 
             // Daftar tunggu verifikasi membaca "pesanan Pending milik dokter ini".
             builder.HasIndex(x => new { x.InstructingDoctorId, x.InstructionVerificationStatus });

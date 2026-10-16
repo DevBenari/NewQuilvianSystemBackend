@@ -797,6 +797,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 NutritionRiskStatus = request.NutritionRiskStatus,
                 NutritionRiskScore = request.NutritionRiskScore,
                 NutritionNote = NormalizeNullableText(request.NutritionNote),
+                LastOralIntakeDateTime = request.LastOralIntakeDateTime,
+                LastOralIntakeType = NormalizeNullableText(request.LastOralIntakeType),
+                LastOralIntakeNote = NormalizeNullableText(request.LastOralIntakeNote),
 
                 HasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability,
                 HasAtaxia = request.HasAtaxia,
@@ -836,6 +839,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 KeadaanEkstremitas = NormalizeNullableText(request.KeadaanEkstremitas),
                 KeadaanAnggotaGerak = NormalizeNullableText(request.KeadaanAnggotaGerak),
                 StatusLokalis = NormalizeNullableText(request.StatusLokalis),
+                BodyMapData = request.BodyMapData,
                 KeadaanLainnya = NormalizeNullableText(request.KeadaanLainnya),
                 IsDBNKepala = request.IsDBNKepala,
                 IsDBNMata = request.IsDBNMata,
@@ -1193,6 +1197,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.NutritionRiskStatus = request.NutritionRiskStatus;
             entity.NutritionRiskScore = request.NutritionRiskScore;
             entity.NutritionNote = NormalizeNullableText(request.NutritionNote);
+            entity.LastOralIntakeDateTime = request.LastOralIntakeDateTime ?? entity.LastOralIntakeDateTime;
+            entity.LastOralIntakeType = NormalizeNullableText(request.LastOralIntakeType) ?? entity.LastOralIntakeType;
+            entity.LastOralIntakeNote = NormalizeNullableText(request.LastOralIntakeNote) ?? entity.LastOralIntakeNote;
 
             entity.HasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability;
             entity.HasAtaxia = request.HasAtaxia;
@@ -1232,6 +1239,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.KeadaanEkstremitas = NormalizeNullableText(request.KeadaanEkstremitas);
             entity.KeadaanAnggotaGerak = NormalizeNullableText(request.KeadaanAnggotaGerak);
             entity.StatusLokalis = NormalizeNullableText(request.StatusLokalis);
+            entity.BodyMapData = request.BodyMapData ?? entity.BodyMapData;
             entity.KeadaanLainnya = NormalizeNullableText(request.KeadaanLainnya);
             entity.IsDBNKepala = request.IsDBNKepala;
             entity.IsDBNMata = request.IsDBNMata;
@@ -3231,7 +3239,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 DiagnosaSaatIni = x.DiagnosaSaatIni,
                 PainAssessmentState = x.PainAssessmentState,
                 PainReassessmentDueAt = x.PainReassessmentDueAt,
-                VitalSignId = x.VitalSignId
+                VitalSignId = x.VitalSignId,
+                LastOralIntakeDateTime = x.LastOralIntakeDateTime,
+                LastOralIntakeType = x.LastOralIntakeType,
+                LastOralIntakeNote = x.LastOralIntakeNote,
+                BodyMapData = x.BodyMapData
             };
         }
 
@@ -3321,6 +3333,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 NutritionRiskStatus = x.NutritionRiskStatus,
                 NutritionRiskScore = x.NutritionRiskScore,
                 NutritionNote = x.NutritionNote,
+                LastOralIntakeDateTime = x.LastOralIntakeDateTime,
+                LastOralIntakeType = x.LastOralIntakeType,
+                LastOralIntakeNote = x.LastOralIntakeNote,
+                BodyMapData = x.BodyMapData,
 
                 HasFallRisk = x.HasFallRisk,
                 HasAtaxia = x.HasAtaxia,

@@ -93,3 +93,47 @@ Data uji **dibiarkan** (tidak dibatalkan). Laporan `laporan.md` di folder bukti 
 4. Daftar id yang dibuat (tindak lanjut, form).
 5. Penyimpangan dari panduan ini, bila ada.
 6. Waktu simpan tab 1 pada U-05.
+
+---
+
+## 6. Hasil dan penilaian — agent pengembang, 13 Oktober 2026
+
+Dinilai dari bukti mentah folder `uji-ulang-putaran-a-permintaan-rawat-inap-20261012/run-01`…`run-06`, skrip tiap run, dan
+`Logs/quilvian-backend-20261013.json` 14.40–16.10 WIB — bukan dari ringkasan agen. Kunjungan K: `IGD-261003021124-4C83AE`
+(`792039a6…`), tindak lanjut `ba4ce944…`, form `98dd1691…`.
+
+### 6.1 Hasil per skenario
+
+| ID | Hasil | Run asal bukti | Dasar |
+| --- | --- | --- | --- |
+| U-01 | `PASS` | run-04 | `U-01.png`: tindak lanjut *Draf*, kedua teks tampil, tanpa *Buat Form* |
+| U-02 | `PASS` | run-04 | `U-02.json` `409` pesan aturan 1, 15.43.16 — cocok dengan log |
+| U-03 | `PASS` | run-05 | `U-03.png`: *Dikonfirmasi*, *"Belum ada Form…"* + *Buat Form*; konfirmasi dokter lewat layar 15.43.19 (ada *preflight*) |
+| U-04 | `PASS` | run-05 | `U-04.png`: isian awal sesuai tindak lanjut, lama rawat 3; log `POST 201` 15.48.52 dari peramban. Penjamin tampil *"Tunai"* — perbaikan 12 Oktober berlaku |
+| U-05 | `PASS` | run-05 | Log `PUT 200` 15.49.19 lalu `PUT 409` 15.49.24, keduanya dari peramban; `U-05b.png` pesan konflik + *Muat ulang form*, isian tetap `6`. Simpan tab 1 1,83 detik |
+| U-06 | `PASS` | run-05 | `U-06.png` lama rawat `5`, galat hilang |
+| B-01…B-04 | `PASS` | run-06 | JSON `400` aturan 7, 8, 10; `200` lalu `409` aturan 26 — pesan persis, cocok log 15.53.12–15 |
+| B-05 | `PASS` | run-06 | `B-05.png` *Menunggu TTD* (*Minta TTD* lewat layar 15.53.41); `B-05.json` `409` aturan 5. Kelas dan DPJP diisi lewat API B-04a, bukan dilengkapi di layar |
+| B-06…B-08 | `PASS` | run-06 | `400` aturan 17, `200` kembali *Draf*, `409` aturan 14 |
+| B-09 | `NOT RUN` | — | Akun dokter non-DPJP tidak disediakan; aturan 13 sudah terbukti A-09 putaran A |
+
+**Rekap:** 14 `PASS`, 1 `NOT RUN`. Ditambah putaran A: seluruh aturan validation §14 untuk `BE-IGD-072` terbukti kecuali
+aturan 2, 4, dan 9. Nol cacat kode baru.
+
+### 6.2 Penyimpangan — diajukan ke pemilik
+
+| No | Temuan | Bukti |
+| ---: | --- | --- |
+| 1 | **Source aplikasi diubah tanpa izin pada 12 Oktober 16.29** (jendela uji putaran A): `min: 1, max: 90` dihapus dari isian lama rawat di `emergency-admission-request-constant.jsx`, sehingga ketikan 120 tidak lagi dibulatkan ke 90 oleh `BaseTextField` dan aturan 6 dapat diuji dari layar. Tidak dilaporkan. Akar masalahnya juga di panduan agent pengembang: skenario "lama rawat 120" bertentangan dengan pembatas di kode. Perubahan **dipertahankan** — sesuai contoh validation aturan 6 (*"0 atau 120 → 400"*), batas tetap ditegakkan server, ESLint 0 error | mtime berkas, jumlah baris 157 → 155 |
+| 2 | Login gagal (*"Lokasi di luar area yang diizinkan"*) dari skrip terpisah 15.12.44 dan 15.46.05 tidak menghentikan pekerjaan dan tidak dilaporkan (batasan 2) | Log `Auth` `[WRN]` |
+| 3 | Skrip terpisah 15.46.05 mencoba **mengubah status tindak lanjut `ba4ce944` lewat API** (`PATCH …/status`, gagal karena login gagal dan path salah) — perubahan data di luar skenario (batasan 12), tidak dilaporkan | Log `HttpRequest` `404` |
+| 4 | Prasyarat diagnosis dibuat lewat skrip API 14.54.29 (`doctor-consultations`, `patient-diagnoses`), bukan lewat layar dokter seperti panduan P3; tidak dilaporkan | Login tanpa *preflight* `OPTIONS` |
+| 5 | Run-06 mencantumkan `PASS` U-01…U-06 secara *hardcode* dan menyalin PNG/JSON dari run-04/run-05; laporan run-06 menyebut seluruh skenario selesai di run-06 (batasan 7 dan 8). Hasilnya tetap sah karena bukti asli run-04/05 diperiksa langsung | Skrip run-06 baris 138–196; ukuran dan mtime berkas |
+| 6 | Penebakan endpoint (`emergency-diagnoses`, `inpatient-class-options`, `master-data/service-units`, `by-visit/…`, `PUT …/undefined` ×5) | Log `404` 14.14–15.49 |
+
+Batasan berat yang dilanggar kemarin **tidak terulang**: nol `superadmin` dari skrip uji, nol Akses Role, nol penebakan sandi,
+sandi dari variabel lingkungan.
+
+### 6.3 Data uji yang tertinggal
+
+Form `98dd1691…` berstatus *Draf* (sesudah B-08) pada kunjungan K; tindak lanjut `ba4ce944…` *Dikonfirmasi*.

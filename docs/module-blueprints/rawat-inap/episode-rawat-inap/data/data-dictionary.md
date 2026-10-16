@@ -1853,3 +1853,18 @@ Pemilik: RegistrationManagement / RegPatientEncounter. Episode rawat inap hanya 
 | AdmissionTransferSourceType | varchar(20) | Ya | Emergency atau Outpatient |
 
 Index unik pasangan SourceType/TransferId menjaga satu hasil per permintaan; tidak menghapus perlindungan ketika hasil dibatalkan. Pasien datang langsung memakai null. Notes tidak menjadi relasi. [Amandemen](../contracts/admission-transfer-repair-006.md). Migration disiapkan, belum diterapkan.
+
+## Amandemen konteks episode bayi -> RWI-BAYI-016-1.0
+
+Owner HealthServices/InPatientManagement, entity existing InpEpisode, schema public. Bukan data master ibu atau saldo kasir.
+
+| Atribut persisted | Tipe | Makna/validasi |
+| --- | --- | --- |
+| NewbornAdmissionSource | varchar(20), nullable | HospitalBirth, External, Readmission |
+| NewbornCareMode | varchar(20), nullable | RoomingIn, Neonatal; rencana awal admisi |
+| NewbornCareSource | varchar(200), nullable | Sumber keputusan tenaga klinis; wajib bila konteks dikirim |
+| RequiresNeonatalIntensiveCare | boolean, default false | Kebutuhan intensif rencana Draft; tidak menyatakan tindakan klinis terlaksana |
+| FamilyBillingPreference | varchar(20), nullable | Separate/Combined; keinginan keluarga atas dua invoice sumber, bukan settlement |
+| PlannedDepositAmount | numeric(18,2), nullable | Nominal rencana nonnegatif, bukan uang diterima |
+
+DTO newbornAdmission memetakan nama API yang lebih ringkas; pasien ibu tetap pada MstPatient.MotherPatientId dan episode ibu pada InpEpisode.MotherEpisodeId. Migration 20261014091502_AddNewbornAdmissionContext disiapkan, belum diterapkan. Tidak ada backfill atau perubahan identitas bayi legacy secara otomatis.

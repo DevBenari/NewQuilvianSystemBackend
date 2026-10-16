@@ -100,9 +100,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             [FromQuery] Guid? roomId,
             [FromQuery] Guid? patientClassId,
             [FromQuery] string? search,
+            [FromQuery] bool? isForNewborn,
             CancellationToken cancellationToken = default)
         {
-            var result = await _bedOccupancyService.GetBedBoardAsync(serviceUnitId, roomId, patientClassId, search, cancellationToken);
+            var result = await _bedOccupancyService.GetBedBoardAsync(serviceUnitId, roomId, patientClassId, search, cancellationToken, isForNewborn);
 
             return Ok(ApiResponse<BedBoardResponse>.Ok(
                 result,

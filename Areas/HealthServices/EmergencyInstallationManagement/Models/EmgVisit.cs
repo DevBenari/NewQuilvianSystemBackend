@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -51,6 +51,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? TraumaLocation { get; set; }
 
         public DateTime? TraumaDateTime { get; set; }
+
+        [MaxLength(1000)]
+        public string? TraumaMechanism { get; set; }
+
+        [MaxLength(250)]
+        public string? TraumaSafetyEquipment { get; set; }
 
         public bool IsUnknownPatient { get; set; }
 

@@ -559,3 +559,9 @@ BM-G01/02/03 tetap bukti aktivasi, bukan state/status produk baru. Eventtime dan
 IGD Confirmed -> Executed hanya setelah admisi dan reservasi berhasil commit. Surat poli Issued tetap Issued; consumption diturunkan dari AdmissionTransferId/SourceType. Episode Draft dan reservasi Active belum menyatakan pasien tiba. Pendaftaran selesai setelah persetujuan bertanda tangan tersimpan untuk episode yang sama; departure/arrival/handover berjalan melalui owner existing.
 
 [Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).
+
+## Amandemen admisi bayi -> RWI-BAYI-016-1.0, 14 Oktober 2026
+
+Tidak menambah enum status episode. Konteks, identitas, DPJP/payer dan bed disiapkan; pemilihan bed membuka Draft; reservasi dan consent tetap keadaan operasional pada Draft; placement mengubahnya menjadi Admitted. Selesai/cetak ulang tidak melakukan placement kedua atau membuat serah terima fiktif.
+
+Detail dan batas mengikuti [kontrak admisi bayi](newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.

@@ -1114,6 +1114,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 report.LastReleasedAt = now;
                 Touch(report, actorUserId, now);
 
+                // Alur v1: pemeriksaan berstatus Selesai begitu hasilnya disimpan. Tombol Selesaikan
+                // di Antrian Pesanan dihapus 2026-10-16 (keputusan pemilik modul), sehingga rilis
+                // bacaan pertama menyelesaikan pesanannya. Koreksi tidak mengubah status lagi.
+                if (!version.IsAmendment)
+                {
+                    var pesanan = await _dbContext.RadOrders
+                        .FirstOrDefaultAsync(o => o.Id == report.RadOrderId && !o.IsDelete, cancellationToken);
+
+                    if (pesanan is { OrderStatus: RadOrderStatus.Accepted or RadOrderStatus.Scheduled or RadOrderStatus.InProgress })
+                    {
+                        var statusPesanan = pesanan.OrderStatus;
+                        pesanan.OrderStatus = RadOrderStatus.Completed;
+                        pesanan.CompletedAt = now;
+                        pesanan.UpdateBy = actorUserId;
+                        pesanan.UpdateDateTime = now;
+                        pesanan.Version += 1;
+
+                        _dbContext.RadTransitionHistories.Add(new RadTransitionHistory
+                        {
+                            RadOrderId = pesanan.Id,
+                            RadStudyId = report.RadStudyId,
+                            EncounterId = pesanan.EncounterId,
+                            Scope = RadTransitionScope.RadOrder,
+                            Action = "Order.Complete",
+                            FromStatus = statusPesanan.ToString(),
+                            ToStatus = pesanan.OrderStatus.ToString(),
+                            ReasonCode = "AutoOnReportRelease",
+                            ActorUserId = actorUserId,
+                            OccurredAt = now,
+                            CreateBy = actorUserId,
+                            CreateDateTime = now,
+                        });
+                    }
+                }
+
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
                 if (transaction != null)

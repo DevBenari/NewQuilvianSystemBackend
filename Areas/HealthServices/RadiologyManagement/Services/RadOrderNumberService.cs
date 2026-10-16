@@ -1,59 +1,99 @@
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
+using QuilvianSystemBackend.Repositories;
+
 namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services
 {
     /// <summary>
-    /// Membentuk nomor pesanan radiologi, misalnya <c>RAD-ORD-260911074012-A1B2C3</c>.
+    /// Alokasi nomor pesanan radiologi, misalnya <c>RAD-RSMMC-000042</c>.
     /// Tidak memakai interface, mengikuti pola project.
     /// </summary>
     /// <remarks>
     /// <para>
-    /// <b>Mengapa pesanan perlu nomornya sendiri.</b> Sampai sebelum ini, satu-satunya cara
-    /// menunjuk sebuah pesanan adalah <c>Guid</c>-nya. Guid tidak dapat dibacakan lewat telepon,
+    /// <b>Mengapa pesanan perlu nomornya sendiri.</b> Guid tidak dapat dibacakan lewat telepon,
     /// tidak muat pada label, dan tidak dapat diketik petugas yang memegang lembar permintaan.
-    /// <c>RadStudy</c> sudah punya <c>StudyNumber</c> dan <c>RadReport</c> sudah punya
-    /// <c>ReportNumber</c>; pesanan adalah satu-satunya yang tertinggal, padahal justru itulah
-    /// satuan yang disebut orang ketika bertanya "pemeriksaan atas nama siapa".
     /// </para>
     /// <para>
-    /// <b>Nomor tidak dibentuk dari hitungan baris.</b> <c>Count + 1</c> maupun <c>Max + 1</c>
-    /// dilarang <c>QBE-CODE-003</c>. Dua dokter yang menyimpan pesanan pada detik yang sama akan
-    /// membaca angka yang sama lalu menerbitkan dua pesanan bernomor kembar — dan nomor pesanan
-    /// ikut tercetak pada label yang menempel di amplop citra.
+    /// <b>Bentuknya sama dengan nomor pesanan Lab</b> (<c>LAB-RSMMC-000042</c>,
+    /// <c>LabOrderNumberService</c>, <c>LAB-DEC-072</c>) — keputusan pemilik modul 2026-10-16.
+    /// Bentuk lama <c>RAD-ORD-{yyMMddHHmmss}-{6 acak}</c> (27 karakter) tidak dapat disebut.
     /// </para>
     /// <para>
-    /// Enam huruf/angka acak dari Guid membuat dua permintaan bersamaan tetap berbeda, dan index
-    /// unik <c>IX_RadOrder_OrderNumber</c> menjadi penjaga terakhirnya (<c>QBE-CODE-004</c>).
-    /// </para>
-    /// <para>
-    /// Bentuknya sengaja dibuat sama persis dengan <see cref="RadReportNumberService"/> supaya
-    /// petugas mengenali keduanya sebagai satu keluarga nomor, dan supaya panjangnya tetap
-    /// 27 karakter sehingga muat pada kolom <c>varchar(64)</c>.
+    /// <b>Proteksi alokasinya</b> (<c>QBE-CODE-003</c>) mengikuti Lab: <c>MAX + 1</c> dibaca di
+    /// bawah <c>pg_advisory_xact_lock</c>, index unik <c>IX_RadOrder_OrderNumber</c> menjadi
+    /// penjaga terakhir, dan celah tidak pernah diisi ulang — nomor yang sudah tercetak pada label
+    /// tidak boleh berpindah pemilik. Kuncinya hanya berarti di dalam transaksi; pemanggil wajib
+    /// membungkusnya.
     /// </para>
     /// </remarks>
     public class RadOrderNumberService
     {
-        /// <summary>Awalan bawaan nomor pesanan radiologi.</summary>
-        public const string DefaultPrefix = "RAD-ORD";
+        public const string OrderCodePrefix = "RAD-RSMMC-";
 
-        /// <summary>Membentuk satu nomor pesanan baru memakai waktu sekarang.</summary>
-        /// <remarks>
-        /// Tidak membuka transaksi dan tidak menulis apa pun ke database; ia ikut transaksi
-        /// pemanggilnya.
-        /// </remarks>
-        public string Generate() => Generate(DefaultPrefix, DateTime.UtcNow);
+        /// <summary>Lebar tampilan minimum, sama dengan Lab. Nomor di atas enam digit tetap benar.</summary>
+        public const int CodeNumberLength = 6;
 
         /// <summary>
-        /// Membentuk nomor dari awalan dan waktu yang diberikan. Dipisahkan supaya bentuk
-        /// nomornya dapat diuji tanpa database.
+        /// Hanya baris yang bentuknya memang nomor pesanan yang dibaca; tanpanya satu baris
+        /// berformat lain membuat <c>CAST</c> gagal dan seluruh pembuatan pesanan berhenti.
         /// </summary>
-        /// <param name="prefix">Awalan nomor. Kosong berarti memakai <see cref="DefaultPrefix"/>.</param>
-        /// <param name="now">Waktu yang dipakai membentuk bagian tanggal dan jam.</param>
-        public string Generate(string? prefix, DateTime now)
-        {
-            var normalizedPrefix = string.IsNullOrWhiteSpace(prefix)
-                ? DefaultPrefix
-                : prefix.Trim().ToUpperInvariant();
+        private const string NumberPattern = "^" + OrderCodePrefix + "[0-9]+$";
 
-            return $"{normalizedPrefix}-{now:yyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}";
+        private readonly ApplicationDbContext _dbContext;
+
+        public RadOrderNumberService(ApplicationDbContext dbContext)
+        {
+            _dbContext = dbContext;
+        }
+
+        /// <summary>Menyusun satu nomor dari nilai urutnya.</summary>
+        public static string Format(long number) =>
+            OrderCodePrefix + number.ToString().PadLeft(CodeNumberLength, '0');
+
+        /// <summary>Mengalokasikan satu nomor pesanan baru.</summary>
+        public async Task<string> AllocateOneAsync(CancellationToken cancellationToken = default)
+        {
+            if (_dbContext.Database.IsNpgsql())
+            {
+                await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                    $"SELECT pg_advisory_xact_lock(hashtext('RAD_ORDER_NUMBER')::bigint)",
+                    cancellationToken);
+            }
+
+            var last = await ReadLastNumberAsync(cancellationToken);
+
+            return Format(last + 1);
+        }
+
+        private async Task<long> ReadLastNumberAsync(CancellationToken cancellationToken)
+        {
+            if (_dbContext.Database.IsNpgsql())
+            {
+                // Dibandingkan sebagai ANGKA: perbandingan teks pecah diam-diam pada digit ketujuh.
+                var prefixLength = OrderCodePrefix.Length;
+
+                var tertinggi = await _dbContext.Database
+                    .SqlQuery<long?>(
+                        $@"SELECT MAX(CAST(SUBSTRING(o.""OrderNumber"" FROM {prefixLength + 1}) AS BIGINT)) AS ""Value""
+                           FROM public.""RadOrder"" o
+                           WHERE o.""OrderNumber"" ~ {NumberPattern}")
+                    .SingleAsync(cancellationToken);
+
+                return tertinggi ?? 0;
+            }
+
+            // Jalur cadangan selain PostgreSQL (harness uji). Bukan jalur produksi.
+            var nomor = await _dbContext.Set<RadOrder>()
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(x => x.OrderNumber.StartsWith(OrderCodePrefix))
+                .Select(x => x.OrderNumber)
+                .ToListAsync(cancellationToken);
+
+            return nomor
+                .Select(x => long.TryParse(x[OrderCodePrefix.Length..], out var nilai) ? nilai : 0)
+                .DefaultIfEmpty(0)
+                .Max();
         }
     }
 }

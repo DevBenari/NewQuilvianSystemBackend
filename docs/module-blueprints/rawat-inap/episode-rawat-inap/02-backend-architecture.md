@@ -2959,3 +2959,9 @@ Pada gagal sebelum commit, seluruh komposisi rollback; tidak menutup episode den
 Gunakan InpAdmissionTransferService existing sebagai orchestrator satu transaksi. Reader gabungan disposisi RANAP IGD dan surat InpatientReferral poli; pembayaran/relasi berada di Registrasi, ledger deposit berada di Billing. Tidak memindahkan catatan klinis atau menutup kunjungan IGD ketika hanya reservasi.
 
 [Acuan implementasi EPS-006 versi 1.0](contracts/admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](task/report/frontend/FIX-EPS-006-08.md).
+
+## Amandemen admisi bayi -> RWI-BAYI-016-1.0, 14 Oktober 2026
+
+InpEpisode menyimpan enam atribut konteks bayi, diperluas lewat DTO/service/EF existing. InpNewbornAdmissionRules dipakai bersama pada pembukaan/pencarian/reservasi/penempatan; bukan aggregate/layanan billing baru. PatientProfileQueryService memasok BirthOrder untuk cetakan. Migration belum diterapkan.
+
+Detail dan batas mengikuti [kontrak admisi bayi](contracts/newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.

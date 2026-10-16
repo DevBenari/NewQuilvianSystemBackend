@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
@@ -146,19 +146,12 @@ public partial class InpAdmissionTransferService(
 
         if (request.DepositAmount > 0)
         {
-            if (!request.DepositPaymentMethodId.HasValue)
-                throw new InpBedOperationException(422, "DEPOSIT_METHOD_REQUIRED", "Pilih metode penerimaan deposit.");
-            try
+            var trackedEpisode = await _dbContext.Set<InpEpisode>().FirstOrDefaultAsync(x => x.Id == episode.Id, cancellationToken);
+            if (trackedEpisode != null)
             {
-                await deposits.TopUpAsync(episode.EncounterId, new DepositTopUpRequest
-                {
-                    Amount = request.DepositAmount.Value, PaymentMethodId = request.DepositPaymentMethodId.Value,
-                    Reason = "Deposit admisi transfer", CorrelationId = episode.Id, CausationId = request.TransferDispositionId
-                }, episode.Id, actorUserId, cancellationToken, deferAudit: true);
+                trackedEpisode.PlannedDepositAmount = request.DepositAmount.Value;
+                episode.PlannedDepositAmount = request.DepositAmount.Value;
             }
-            catch (BillingDepositValidationException ex) { throw new InpBedOperationException(422, "DEPOSIT_REJECTED", ex.Message); }
-            catch (BillingDepositConflictException ex) { throw new InpBedOperationException(409, "DEPOSIT_CONFLICT", ex.Message); }
-            catch (KeyNotFoundException ex) { throw new InpBedOperationException(422, "DEPOSIT_REFERENCE_INVALID", ex.Message); }
         }
         if (request.SourceType == "Emergency")
         {

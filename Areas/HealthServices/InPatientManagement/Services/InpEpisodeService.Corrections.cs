@@ -240,7 +240,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             Guid? motherEpisodeId,
             Guid childEpisodeId,
             Guid childPatientId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool allowHistoricalReference = false)
         {
             if (!motherEpisodeId.HasValue || motherEpisodeId.Value == Guid.Empty)
             {
@@ -260,12 +261,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (mother == null ||
-                mother.EpisodeStatus == InpEpisodeStatus.Closed ||
+                (!allowHistoricalReference && mother.EpisodeStatus == InpEpisodeStatus.Closed) ||
                 mother.EpisodeStatus == InpEpisodeStatus.Cancelled)
             {
                 return InpEpisodeOperationResult.BusinessRuleRejected(
                     "Episode ibu tidak ditemukan atau sudah selesai.");
             }
+
+            var child = await _dbContext.Set<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient>()
+                .AsNoTracking().Where(x => x.Id == childPatientId && !x.IsDelete)
+                .Select(x => new { x.IsNewborn, x.MotherPatientId }).FirstOrDefaultAsync(cancellationToken);
+            if (child == null || !child.IsNewborn || child.MotherPatientId != mother.PatientId)
+                return InpEpisodeOperationResult.BusinessRuleRejected("Episode ibu tidak sesuai dengan hubungan ibu pada profil bayi.");
 
             if (mother.PatientId == childPatientId)
             {
