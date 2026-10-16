@@ -56,7 +56,35 @@ sudah ada sebelum register ini.
 | `PHA-D-10` | UI alur kerja farmasi tengah | `gap-frontend-workflow.md` (`GAP-PHA-FE-001`) | **Selesai** | 1 Okt: tangga tahap 4→4→5→6→12→**7 Siap Diserahkan** seluruhnya `200`; penelusuran peramban **12 pemeriksaan lulus**; `bin/uji-alur-farmasi.sh` |
 | `PHA-D-11` | Gerbang stok pada finalisasi resep | `PHA-DEC-018` | **Selesai** | `PrescriptionStockAvailabilityTests` (8 uji, 8 lulus); `PrescriptionValidationService.ValidateStockAvailabilityAsync` |
 
-**Rekap: 19 task, 19 selesai, 0 sedang proses, 0 blocked, 0 belum mulai — 100%.**
+## Task frontend turunan
+
+Ditambahkan 16 Oktober 2026. Register ini sebelumnya mencatat **tiga** task frontend
+(`PHA-FE-001`, `PHA-FE-002`, `PHA-D-10`) untuk **22 route** dan **11 area kapabilitas** — tujuh
+area di antaranya nol uji, sehingga acceptance-nya tidak dapat dibuktikan.
+
+Cacat pembukuan yang sama dengan Gizi: register yang tidak menyebut sebuah layar akan selalu
+terlihat lengkap. `PHA-D-01` sampai `PHA-D-11` adalah kapabilitas **backend**, sehingga FE-nya
+tidak terhitung ganda.
+
+| Task ID | Outcome | Diturunkan dari | Status | Bukti acceptance |
+|---|---|---|---|---|
+| `PHA-FE-003` | Layar retur obat | `PHA-D-03` | **Selesai** | 4 AC: pencarian obat + batch, batch wajib disebut, kunjungan + lokasi asal, gerbang hak akses |
+| `PHA-FE-004` | Layar stok obat dan kartu stok | `PHA-D-04`, `PHA-DEC-046` | **Selesai** | 4 AC: cara membaca angka dijelaskan, **baris kartu stok lama tidak diubah**, batch + kedaluwarsa, gerbang |
+| `PHA-FE-005` | Layar penyerahan resep | `PHA-D-02` | **Selesai** | 3 AC: **"menyiapkan belum berarti menyerahkan"**, pembatalan menuntut keterangan, kegagalan muat + gerbang |
+| `PHA-FE-006` | Layar etiket obat | `PHA-D-04`, `PHA-DEC-057` | **Selesai** | 4 AC: penanda obat khusus, **rute tidak tercatat master dinyatakan bukan ditebak**, aturan pakai ditahan, warna dipilih petugas |
+| `PHA-FE-007` | Panel alur kerja farmasi | `PHA-D-01`, `PHA-D-08` | **Selesai** | 2 AC: seluruh label tahap pemenuhan, temuan apoteker dibedakan dari deteksi sistem |
+| `PHA-FE-008` | Layar permintaan stok | `StockRequestService` | **Selesai** | 2 AC: obat + satuan + lokasi, layar detail + gerbang |
+| `PHA-FE-009` | Layar transfer stok | `StockTransferService` | **Selesai** | 3 AC: antar lokasi, **batch ditentukan saat persetujuan bukan pengajuan (FEFO)**, pencarian + gerbang |
+
+Uji: `tests/unit/pharmacy-screen-acceptance.test.mjs` — **23 uji, 23 lulus**, termasuk penjaga
+bahwa nol layar Farmasi memakai data contoh statis.
+
+Empat area FE lain sudah punya uji sebelum hari ini dan tercakup task yang ada: daftar resep
+(`PHA-FE-002`, `PHA-D-10`), pemakaian obat (`PHA-D-02`), jadwal obat, dan sliding scale. Dua
+yang terakhir diverifikasi milik Farmasi — controller-nya berada di
+`Areas/HealthServices/PharmacyManagement`.
+
+**Rekap: 26 task, 26 selesai, 0 sedang proses, 0 blocked, 0 belum mulai — 100%.**
 
 Memakai rumus rekap 23 modul (`Sisa = Total − Selesai`): **19/19 = 100%**.
 

@@ -43,8 +43,8 @@ dapat dinilai dengan metode yang sama seperti modul lain.
 
 | Modul | Total Applicable | Done | In Progress | Blocked External | Blocked Business | Not Started | Development Completion |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Farmasi | 19 | 19 | 0 | 0 | 0 | 0 | **100%** |
-| Operasi | 20 | 20 | 0 | 0 | 0 | 0 | **100%** |
+| Farmasi | 26 | 26 | 0 | 0 | 0 | 0 | **100%** |
+| Operasi | 22 | 21 | 1 | 0 | 0 | 0 | **95,5%** |
 | Gizi | 19 | 19 | 0 | 0 | 0 | 0 | **100%** |
 
 
@@ -55,8 +55,8 @@ dan uji ada, tetapi catatan acceptance belum dibuat. Angka pendamping:
 
 | Modul | Terkirim (source + uji) | Catatan |
 |---|---:|---|
-| Farmasi | 19 / 19 = **100%** | `PHA-D-11` gerbang stok 15 Okt; `PHA-BE-003` dan `PHA-FE-001` dibuka dan diselesaikan 15 Okt setelah `PHA-OQ-014` ditutup `PHA-DEC-066` |
-| Operasi | 20 / 20 = **100%** | acceptance terbukti pada seluruh 20 task; `FE-OPR-009` ditutup 15 Okt, E2E 11/11 lulus |
+| Farmasi | 26 / 26 = **100%** | 15 Okt: `PHA-D-11`, `PHA-BE-003`, `PHA-FE-001`. 16 Okt: **7 task frontend** (`PHA-FE-003`…`009`) ditambahkan — register lama hanya mencatat 3 task FE untuk 22 route |
+| Operasi | 21 / 22 = **95,5%** | 16 Okt: dua area layar yang belum ber-ID ditambahkan. `FE-OPR-010` **belum selesai** — borang permintaan operasi nol penjaga hak akses |
 | Gizi | 19 / 19 = **100%** | 12 backend + **7 frontend**; register frontend dibuat 16 Okt setelah atasan menandai Gizi masih kosong |
 
 **Operasi mencapai 100% pada 15 Oktober 2026.** Backend 11/11 selesai, frontend 9/9 selesai.
@@ -75,8 +75,8 @@ satu baris.
 
 | Modul | Original | Derived |
 |---|---:|---:|
-| Farmasi | 8 | 11 |  <!-- 2 original dibuka kembali 15 Okt: PHA-BE-003, PHA-FE-001 -->
-| Operasi | 20 | 0 |
+| Farmasi | 8 | 18 |
+| Operasi | 20 | 2 |
 | Gizi | 0 | 19 |
 
 ---
@@ -298,8 +298,8 @@ Disiapkan supaya penyusun laporan dapat menyalin langsung, memakai **rumus rekap
 | No. | Modul | Total Task | Selesai | Sedang Proses | Blocked | Belum Mulai | Sisa Task | % Selesai |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | 6 | Gizi | 19 | 19 | 0 | 0 | 0 | **0** | **100%** |
-| 14 | Operasi | 20 | 20 | 0 | 0 | 0 | **0** | **100%** |
-| 16 | Farmasi | 19 | 19 | 0 | 0 | 0 | **0** | **100%** |
+| 14 | Operasi | 22 | 21 | 1 | 0 | 0 | **1** | **95,5%** |
+| 16 | Farmasi | 26 | 26 | 0 | 0 | 0 | **0** | **100%** |
 
 Penanda `S` (estimasi source) dan `B` (hanya kontrak backend) **tidak lagi diperlukan** untuk
 ketiga modul ini: seluruhnya kini punya rekap task yang dapat dihitung.
@@ -309,7 +309,7 @@ ketiga modul ini: seluruhnya kini punya rekap task yang dapat dihitung.
 | No. | Modul | Persentase |
 |---|---|---|
 | 6 | Gizi | **100%** |
-| 14 | Operasi | **100%** |
+| 14 | Operasi | **95,5%** |
 | 16 | Farmasi | **100%** |
 
 Tanda `~` dan keterangan `(estimasi source)` dihapus.
