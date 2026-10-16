@@ -102855,6 +102855,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("OrderStatus")
                         .HasColumnType("integer");
 
+                    b.Property<string>("PhotoNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<bool>("PrintFilm")
                         .HasColumnType("boolean");
 
@@ -102908,6 +102912,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("OrderStatus");
+
+                    b.HasIndex("PhotoNumber")
+                        .IsUnique()
+                        .HasFilter("\"PhotoNumber\" IS NOT NULL AND \"IsDelete\" = false");
 
                     b.HasIndex("ProcedureId");
 

@@ -54,9 +54,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
         [ProducesResponseType(typeof(ApiResponse<RadOrderSummaryResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Rad Order", Description = "Melihat rekap order radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("RadOrder", "Read")]
-        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        public async Task<IActionResult> GetSummary(
+            [FromQuery] RadOrderListQuery query,
+            CancellationToken cancellationToken = default)
         {
-            var hasil = await _radOrderService.GetSummaryAsync(cancellationToken);
+            var hasil = await _radOrderService.GetSummaryAsync(query, cancellationToken);
 
             return Ok(ApiResponse<RadOrderSummaryResponse>.Ok(
                 hasil, "Rekap order radiologi berhasil diambil."));
@@ -429,6 +431,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             CancellationToken cancellationToken = default) =>
             Execute(() => _radOrderService.ChangeProcedureAsync(id, request, cancellationToken),
                 "Pemeriksaan pesanan berhasil diubah.");
+
+        // Tambah Baris — Detail Pasien v1: pemeriksaan tambahan pada booking yang sama. Izinnya
+        // RadOrder : Update seperti Ubah Pemeriksaan, karena dikerjakan petugas Radiologi pada
+        // booking yang sudah ada, bukan pesanan baru dokter pengirim.
+        [HttpPost("{id:guid}/examinations")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Update Rad Order", Description = "Menambah pemeriksaan pada booking radiologi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("RadOrder", "Update")]
+        public Task<IActionResult> AddExamination(
+            Guid id,
+            [FromBody] RadOrderAddExaminationRequest request,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.AddExaminationAsync(id, request, cancellationToken),
+                "Pemeriksaan berhasil ditambahkan.");
 
         [HttpPut("{id:guid}/film-print")]
         [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
