@@ -3,7 +3,7 @@
 ```yaml
 plan_id: PLAN-REPAIR-INS-002
 issue: ../issue/issue-ins-002-kelas-pelayanan-dan-hak-kelas-asuransi.md
-status_rencana: MENUNGGU_KEPUTUSAN
+status_rencana: SEBAGIAN_SELESAI  # FIX-05 selesai; sisanya menunggu keputusan dan pemilik modul
 tanggal_rencana: "2026-10-16"
 diputuskan_oleh: "-"
 tanggal_keputusan: "-"
@@ -29,11 +29,22 @@ Rencana ini menutup tujuh issue pada [ISSUE-INS-002](../issue/issue-ins-002-kela
 | `FIX-INS-002-02` | `ISS-INS-002-02` | Tambah relasi hak kelas (`PatientClassId`) pada kartu asuransi pasien dan snapshot-nya di sumber pembayaran kunjungan | BE + FE + Data | 2 | K-02, K-03 | ⏳ BELUM DIMULAI |
 | `FIX-INS-002-03` | `ISS-INS-002-03` | Hitung naik kelas di mesin coverage dan billing; minta persetujuan naik kelas saat penempatan bed | BE + FE | 3 | K-04, K-05, K-06, K-07 | ⏳ BELUM DIMULAI |
 | `FIX-INS-002-04` | `ISS-INS-002-04` | Nonaktifkan aturan coverage kamar per penjamin yang digantikan perhitungan naik kelas | Data | 4 | Setelah FIX-03 | ⏳ BELUM DIMULAI |
-| `FIX-INS-002-05` | `ISS-INS-002-05` | Tampilkan status coverage di picker tindakan sebelum tindakan disimpan | BE + FE | 2 (paralel) | — | ⏳ BELUM DIMULAI |
-| `FIX-INS-002-06` | `ISS-INS-002-06` | Backfill kelas kunjungan lama dan perbaiki tipe pembayaran yang tidak konsisten | Data | 5 | K-08 | ⏳ BELUM DIMULAI |
+| `FIX-INS-002-05` | `ISS-INS-002-05` | Tampilkan status coverage di picker tindakan sebelum tindakan disimpan | BE + FE | 2 (paralel) | — | ✅ SELESAI 2026-10-16 (lingkup rawat jalan, lihat §10) |
+| `FIX-INS-002-06` | `ISS-INS-002-06` | Backfill kelas kunjungan lama dan perbaiki tipe pembayaran yang tidak konsisten | Data | 5 | K-08 ✅ | 🟡 SEBAGIAN — bagian rawat jalan selesai 2026-10-16 (§11); IGD dan kunjungan Inhealth menunggu pemilik modul |
 | `FIX-INS-002-07` | `ISS-INS-002-07` | Tambahkan catatan koreksi pada ISSUE-INS-001 | Dokumen | 6 (paralel) | — | ⏳ BELUM DIMULAI |
 
-**Ringkasan: 0 dari 7 perbaikan selesai. FIX-01, FIX-05, dan FIX-07 dapat dimulai segera. FIX-01 cukup menunggu jawaban K-01, yang sudah punya rekomendasi.**
+**Ringkasan: 1 dari 7 perbaikan selesai (FIX-05) dan 1 sebagian (FIX-06 bagian rawat jalan). FIX-01, FIX-02, FIX-03, FIX-04, dan sebagian FIX-06 berada di ranah IGD, rawat inap, dan manajemen pasien, sehingga menunggu pemilik modul masing-masing.**
+
+**Pembagian kepemilikan:**
+
+| Perbaikan | Ranah modul | Keterangan |
+| --- | --- | --- |
+| FIX-01 | IGD (registrasi kunjungan IGD) | Di luar ranah rawat jalan |
+| FIX-02 | Manajemen pasien (kartu asuransi) + registrasi | Di luar ranah rawat jalan |
+| FIX-03, FIX-04 | Rawat inap (penempatan bed) + billing + master penjamin | Di luar ranah rawat jalan |
+| FIX-05 | **Rawat jalan** (tab Tindakan Dokter) | Selesai |
+| FIX-06 | Rawat jalan (117 kunjungan berkelas KELAS I), IGD (4 kunjungan), data penjamin (1 kunjungan) | Bagian rawat jalan menunggu K-08 |
+| FIX-07 | Dokumen | Dapat dikerjakan siapa saja |
 
 ---
 
@@ -376,7 +387,7 @@ SEBELUM                                     SESUDAH (pasien AdMedika)
 | K-05 | Persetujuan naik kelas saat penempatan bed | A. Wajib dicatat. B. Tidak perlu. | **A** | FIX-03 |
 | K-06 | Ketentuan BPJS naik ke VIP | Nilai batas tanggungan sesuai regulasi JKN yang berlaku | Dikonfirmasi oleh bagian casemix/JKN rumah sakit | FIX-03 |
 | K-07 | Urutan `ClassLevel` dan daftar kelas yang dievaluasi naik kelas | Lihat catatan di bawah tabel | Sahkan urutan kelas rawat berjenjang. ICU/NICU/Isolasi/Perinatologi/VK/Bayi/ODC dikecualikan dari evaluasi naik kelas. | FIX-02, FIX-03 |
-| K-08 | Backfill kunjungan rawat jalan lama berkelas KELAS I | A. Ubah yang belum punya invoice final. B. Biarkan semua. | **A** | FIX-06 |
+| K-08 | Backfill kunjungan rawat jalan lama berkelas KELAS I | A. Ubah yang belum punya invoice final. B. Biarkan semua. | **Diputuskan A** oleh pemilik modul rawat jalan (2026-10-16): kunjungan rawat jalan selalu memakai kelas RAWAT JALAN | FIX-06 |
 
 **Catatan K-07:** `InpBedClassComparisonService` hanya bekerja bila:
 - `ClassLevel` > 0;
@@ -435,3 +446,98 @@ Keadaan DB sesudah setiap run dicatat. Data uji memakai pasien samaran.
 | Tanggal | Versi | Catatan | Oleh |
 | :-: | :-: | --- | --- |
 | 2026-10-16 | 1.0.0 | Rencana perbaikan diterbitkan untuk ISSUE-INS-002. Menunggu keputusan K-01 sampai K-08. | sukmagp (dibantu Claude Code) |
+| 2026-10-16 | 1.1.0 | FIX-05 selesai untuk tab Tindakan Dokter rawat jalan (§10). Pembagian kepemilikan modul ditambahkan di §1. | sukmagp (dibantu Claude Code) |
+| 2026-10-16 | 1.2.0 | K-08 diputuskan. Bagian rawat jalan FIX-06 dijalankan (§11). | sukmagp (dibantu Claude Code) |
+
+---
+
+## 10. Laporan pelaksanaan FIX-INS-002-05 (rawat jalan)
+
+**Status: ✅ SELESAI 2026-10-16.** Lingkup: tab Tindakan Dokter rawat jalan (Klinis Dokter). Katalog tindakan IGD dan rawat inap tidak diubah perilakunya.
+
+### 10.1 Perubahan
+
+| Area | Berkas | Perubahan |
+| --- | --- | --- |
+| BE | [`PatientProcedureController.cs`](../../../../Areas/HealthServices/ClinicalManagement/Controllers/PatientProcedureController.cs) | `GET master-options` menerima `encounterId` opsional. Bila terisi, tarif dan coverage tiap opsi dihitung dengan mesin yang sama seperti `POST select`. Tanpa `encounterId`, respons sama persis seperti sebelumnya. |
+| BE | [`PatientProcedureDtos.cs`](../../../../Areas/HealthServices/ClinicalManagement/DTOs/PatientProcedureDtos.cs) | Field tambahan pada `PatientProcedureMasterOptionResponse`: `IsCoverageResolved`, `CoveragePercent`, `CoveredAmount`, `PatientPayAmount`, `IsNeedGuarantorApproval`, `PaymentTypeName`, `CoverageNote` |
+| BE | [`InsuranceCoverageService.cs`](../../../../Areas/HealthServices/ClinicalManagement/Services/InsuranceCoverageService.cs) | Metode batch baru `ResolveProceduresAsync`: tarif RS, buku tarif asuransi, dan aturan coverage dimuat sekali untuk semua opsi. Predikat pencarian dipindah ke expression bersama (`ProcedureTariffScope`, `InsuranceTariffScope`, `CoverageRuleScope`, `CoverageRuleMatches`) yang juga dipakai jalur per item, sehingga hasilnya tidak bisa menyimpang. Perilaku jalur per item (resep, IGD, rawat inap) tidak berubah. |
+| FE | `src/lib/hooks/health-services/clinical-management/use-doctor-procedure.js` | Mengirim `encounterId` saat memuat katalog |
+| FE | `src/components/view/health-services/registration-management/doctor-queues/tabs/procedure/doctor-procedure-tab.jsx` | Kolom STATUS katalog menampilkan status coverage (Ditanggung / Sebagian x% / Perlu Persetujuan / Tidak Ditanggung / Tunai). Form kanan menampilkan Status Penjamin, Tarif, Ditanggung penjamin, Bayar Pasien, dan catatan aturan. Tabel katalog memakai lebar kolom tetap. |
+| FE | `src/components/ui/doctor-clinical-base/doctor-procedure-presentation-utils.js` | Label tambahan `ConfigurationMissing` ("Tarif Belum Ada") dan `Invalid` ("Belum Dapat Dihitung"). Bersifat additive. |
+
+**Perbaikan tambahan yang ditemukan saat uji layar:** pada nama atau kode tindakan yang panjang (contoh `OPERASI_766_STANDBY`), kolom STATUS dan tombol tambah terdorong keluar kartu katalog sehingga tidak bisa diklik. Masalah ini sudah ada sebelumnya dan diperbaiki hanya di tab rawat jalan dengan `table-layout: fixed`. CSS bersama dengan rawat inap tidak diubah.
+
+### 10.2 Bukti verifikasi
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| `dotnet build -c Release` | ✅ 0 error (warning baru: tidak ada; warning CS8629 di baris 443 sudah ada sebelumnya) |
+| `dotnet ef migrations has-pending-model-changes` | ✅ "No changes have been made to the model since the last migration." |
+| `Invoke-QbeConformanceCheck.ps1 -Mode Strict` | ✅ PASS (3 berkas, 0 violation) |
+| ESLint 3 berkas FE | ✅ 0 error (2 warning lama `react-hooks/set-state-in-effect` di baris yang tidak diubah) |
+| `dotnet test` | NOT RUN — tidak ada project test |
+
+Uji runtime HTTP ke build dari scratchpad (port 7185) terhadap `QuilvianNewDevSukma`. Pembanding memakai build sebelum refactor (port 7186).
+
+| Skenario | Hasil |
+| --- | --- |
+| R0 — tanpa `encounterId` | ✅ Tetap "Tarif RS", coverage tidak dihitung (pemanggil IGD/rawat inap tidak terdampak) |
+| R1 — batch vs jalur per item, 6 encounter × 9 kata kunci | ✅ 1.314 opsi dibandingkan, 0 beda |
+| R2 — contoh status | ✅ Liposuction: Tidak Ditanggung (semua asuransi). Sirkumsisi: Perlu Persetujuan (BPJS, Allianz), Tidak Ditanggung (AdMedika, Prudential). Nebulisasi Dewasa: Ditanggung. Pasien tunai: Tunai. |
+| R3 — waktu browse 50 opsi | ✅ AdMedika 0,50 s · BPJS 0,46 s · Tunai 0,38 s (sebelum batch: 3,98 s) |
+| R4 — encounter dengan konteks penjamin tidak valid | ✅ 200, catatan "Tipe pembayaran pada encounter dan payment source tidak konsisten." |
+| R5 — regresi jalur per item (katalog obat), 6 encounter × 9 kata kunci | ✅ 534 obat dibandingkan, 0 beda |
+
+Uji layar Playwright (FE dev 3000, API dialihkan ke 7185, pasien Prudential, hanya membaca):
+
+| Skenario | Hasil |
+| --- | --- |
+| UI1 — katalog mengirim `encounterId` | ✅ |
+| UI2 — liposuction tampil "Tidak Ditanggung" sebelum dipilih | ✅ |
+| UI3 — Nebulisasi Dewasa tampil "Ditanggung" | ✅ |
+| UI4 — form menampilkan Tarif Rp150.000, Ditanggung Asuransi Rp150.000, Bayar Pasien Rp0 | ✅ |
+| UI5 — tombol tambah pada nama tindakan panjang berada di dalam kartu | ✅ |
+
+Keadaan DB sesudah uji: tidak berubah. Semua skenario hanya membaca.
+
+### 10.3 Catatan
+
+- **Urutan deploy aman.** Frontend baru dengan backend lama tetap berjalan, karena parameter `encounterId` diabaikan dan katalog tampil seperti sebelumnya. Backend baru dengan frontend lama juga tetap berjalan.
+- **Tindakan yang bukan tindakan dokter tidak muncul di katalog.** Contohnya bleaching, scaling, akupunktur, dan paket MCU. Penyebabnya `IsDoctorAction = false` dan `IsNursingAction = false` di master tindakan, bukan karena coverage. Saat ini ada 2.382 tindakan aktif seperti itu. Bila tindakan tersebut seharusnya bisa dipilih dokter poli, perlu keputusan master data tersendiri.
+
+---
+
+## 11. Laporan pelaksanaan FIX-INS-002-06 — bagian rawat jalan
+
+**Status: ✅ SELESAI 2026-10-16** untuk kunjungan rawat jalan. Dasar keputusan: K-08, disetujui pemilik modul rawat jalan. Kunjungan rawat jalan selalu memakai kelas RAWAT JALAN, kecuali yang invoice-nya sudah final/ditutup.
+
+### 11.1 Cakupan data
+
+| Kelompok kunjungan rawat jalan (`EncounterType = 1`) berkelas KELAS I | Jumlah | Tindakan |
+| --- | :-: | --- |
+| Tanpa invoice | 112 | Diubah ke RAWAT JALAN |
+| Invoice `OPEN` (`BIL-20260928-00000002` s.d. `...05`) | 4 | Diubah ke RAWAT JALAN |
+| Invoice `CLOSED` (`BIL-20260928-00000001`, kunjungan `bf30a6d1…`) | 1 | **Tidak diubah**, karena tagihannya sudah ditutup |
+| Kunjungan IGD lama bertipe Outpatient (punya `EmgVisit`) | 0 | Tidak ada; ranah IGD tidak tersentuh |
+
+Hasil: dari 304 kunjungan rawat jalan, 303 berkelas RAWAT JALAN dan 1 tetap KELAS I (invoice `CLOSED`).
+
+### 11.2 Pelaksanaan
+
+- Skrip dengan dry-run terlebih dahulu, lalu commit dalam satu transaksi.
+- Backup nilai lama (`Id`, `PatientClassId`, `UpdateDateTime`, `UpdateBy`) di tabel `Backup_RegPatientEncounter_PatientClass_BeforeRjBackfill_20261016` (116 baris). Untuk rollback, kembalikan `PatientClassId` dari tabel ini.
+- `UpdateDateTime` diisi waktu eksekusi dan `UpdateBy` diisi akun SuperAdmin seed.
+
+### 11.3 Bukti
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Total nominal 11 invoice `BIL-20260928-*` (jumlah `Quantity × UnitPrice`) sebelum vs sesudah | ✅ Identik |
+| Alasan nominal tidak berubah | Billing memakai `TariffId` yang tersimpan pada tindakan saat order (`BillingSourceTariffResolver.FindTariffAsync`, `directTariffId`). Item lama tetap dengan tarif lamanya. Tindakan baru pada kunjungan ini akan memakai tarif RAWAT JALAN. |
+| Runtime `GET prescribing-drugs` (backend 7184) untuk kunjungan Prudential `68feb39a…` yang diubah | ✅ 200, PANADOL 500 MG CAPLET `PartiallyCovered` 80% |
+
+### 11.4 Sisa FIX-06 di luar ranah rawat jalan
+
+- 4 kunjungan IGD dengan `PatientClassId` NULL. Ranah IGD, menunggu FIX-01 dan K-01.
+- 1 kunjungan Mandiri Inhealth (`cfb02314…`) dengan tipe pembayaran tidak konsisten. Ranah registrasi/penjamin, menunggu pemilik data.

@@ -127,7 +127,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] string? serviceType,
             [FromQuery] int take = 50,
             [FromQuery] ProcedureCatalogCareSetting? careSetting = null,
-            [FromQuery] ProcedureCatalogAudience? audience = null)
+            [FromQuery] ProcedureCatalogAudience? audience = null,
+            [FromQuery] Guid? encounterId = null)
         {
             if ((careSetting.HasValue && !Enum.IsDefined(careSetting.Value)) ||
                 (audience.HasValue && !Enum.IsDefined(audience.Value)))
@@ -254,6 +255,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     CoverageStatus = tariff != null ? "Tarif RS" : "Belum Ditetapkan"
                 };
             }).ToList();
+
+            // PLAN-REPAIR-INS-002 FIX-05: dengan encounterId, setiap opsi memakai resolusi tarif
+            // dan coverage yang sama dengan POST select, sehingga dokter melihat status
+            // ditanggung/tidak sebelum memilih. Tanpa encounterId perilaku lama tidak berubah.
+            if (encounterId.HasValue && encounterId.Value != Guid.Empty && data.Count > 0)
+            {
+                var cancellationToken = HttpContext.RequestAborted;
+                var insuranceContext = await _encounterInsuranceService.GetContextAsync(
+                    encounterId.Value,
+                    cancellationToken: cancellationToken);
+
+                if (!insuranceContext.IsValid)
+                {
+                    foreach (var option in data)
+                        option.CoverageNote = insuranceContext.ErrorMessage;
+                }
+                else
+                {
+                    var pricingByProcedure = await _insuranceCoverageService.ResolveProceduresAsync(
+                        data.Select(x => x.Id).ToList(),
+                        insuranceContext,
+                        quantity: 1,
+                        cancellationToken: cancellationToken);
+
+                    foreach (var option in data)
+                    {
+                        var pricing = pricingByProcedure[option.Id];
+
+                        option.IsCoverageResolved = pricing.IsValid;
+                        option.CoverageStatus = pricing.CoverageStatus;
+                        option.PaymentTypeName = insuranceContext.PaymentTypeName;
+
+                        if (!pricing.IsValid)
+                        {
+                            option.CoverageNote = pricing.ErrorMessage;
+                            continue;
+                        }
+
+                        option.Tariff = pricing.UnitPrice;
+                        option.TotalPrice = pricing.TotalPrice;
+                        option.CoveragePercent = pricing.CoveragePercent;
+                        option.CoveredAmount = pricing.CoveredAmount;
+                        option.PatientPayAmount = pricing.PatientPayAmount;
+                        option.IsNeedGuarantorApproval = pricing.IsNeedGuarantorApproval;
+                        option.CoverageNote = pricing.CoverageNote;
+                    }
+                }
+            }
 
             return Ok(ApiResponse<List<PatientProcedureMasterOptionResponse>>.Ok(
                 data,
