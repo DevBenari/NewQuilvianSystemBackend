@@ -83,6 +83,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         /// Angka inilah yang menunjukkan beban kerja yang belum tersentuh.
         /// </summary>
         public int BelumDikerjakan { get; set; }
+
+        /// <summary>
+        /// Kunjungan yang punya sedikitnya satu pesanan belum dikonfirmasi (status Diminta) —
+        /// angka lencana tab Daftar Pasien v1, karena satu baris daftar = satu kunjungan.
+        /// </summary>
+        public int KunjunganBelumDikonfirmasi { get; set; }
     }
 
     /// <summary>
