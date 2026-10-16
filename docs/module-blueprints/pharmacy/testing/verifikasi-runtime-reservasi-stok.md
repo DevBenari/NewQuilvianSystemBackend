@@ -156,7 +156,55 @@ diturunkan menjadi tidak unik dan foreign key dimatikan:
 | Saringan indeks bekerja sesuai maksud | Penahanan ulang setelah yang lama `Released` → **diterima** |
 | Foreign key ditegakkan | Seluruh baris uji memakai resep, butir, obat, dan depo nyata; tidak ada FK yang dimatikan |
 
-### Depo pelayanan: kekurangan data master yang ditemukan
+### Pemetaan depo pelayanan — **sudah diisi 16 Oktober 2026**
+
+Kekurangan data master di bawah **sudah diperbaiki**, dan perbaikannya murni pengisian data:
+nol perubahan source, migration, maupun aturan routing.
+
+| Depo | Kode | Nama | Unit layanan |
+|---|---|---|---|
+| `e8c7c172-7329-4580-bf06-7d47c91e8b94` | `DSL-RSMMC-00001` | Depo Uji Farmasi | Poliklinik Bedah (Demo) |
+| `0078fcff-1448-4735-9fed-187255d82faf` | `DSL-RSMMC-00002` | Depo Farmasi Kamar Operasi | Kamar Operasi (Demo) |
+
+Pemetaan satu depo per unit layanan, karena `PHA-DEC-040` menuntut hasil **tepat satu**.
+Mengisi satu depo saja hanya akan menyelamatkan salah satu unit; yang lain tetap tertolak.
+
+#### Verifikasi memakai service routing yang sesungguhnya
+
+Tidak menirukan predikatnya dengan SQL — menirukan bukan membuktikan, karena tiruan yang salah
+akan salah dengan cara yang sama. `PharmacyDepotRoutingService.ResolveAsync` dipanggil untuk
+**setiap** kunjungan nyata, bukan satu contoh:
+
+| Pemeriksaan | Hasil |
+|---|---|
+| Kunjungan Poliklinik Bedah (14) | **seluruhnya `PHA_ROUTE_RESOLVED` → `DSL-RSMMC-00001`** |
+| Kunjungan Kamar Operasi (10) | **seluruhnya `PHA_ROUTE_RESOLVED` → `DSL-RSMMC-00002`** |
+| Kunjungan ter-cover | **24 dari 24** |
+| `PHA_ROUTE_NOT_FOUND` / `PHA_RSV_DEPOT_UNRESOLVED` | **0** |
+| Hasil ambigu atau depo ganda | **0** |
+| Unit layanan dengan lebih dari satu depo aktif | **0** |
+
+#### Satu cacat harness yang ditemukan pengisian ini
+
+Setelah pemetaan terisi, tujuh uji runtime yang sebelumnya lulus menjadi gagal
+`PHA_ROUTE_*`. Sebabnya bukan datanya: uji itu **membuat depo uji sendiri** pada unit layanan
+yang sama, sehingga dua depo cocok dan routing menjadi ambigu — tepat keadaan yang dilarang
+*"jangan membuat dua depo aktif untuk unit yang sama"*.
+
+Harness diperbaiki, bukan datanya: uji rawat jalan kini memakai **depo nyata**, sehingga
+sekaligus menguji pemetaan ini. Rawat inap dan IGD tetap memakai depo buatan karena routing
+keduanya menyaring `StorageLocationType` `pharmacy` dan `emergency`, sedangkan kedua depo
+nyata bertipe `General` — saringan tipe itu pula yang mencegah bentrok.
+
+Empat uji lain ikut diperbaiki: keduanya memeriksa satu baris saldo tertentu, padahal depo
+nyata sudah memuat tiga batch obat yang sama dan FEFO memilih yang paling dekat kedaluwarsa —
+`UJI-FEFO-A`, bukan batch yang disediakan uji. Assertion-nya diubah memeriksa **total yang
+ditahan**, bukan satu batch; memeriksa satu batch berarti menguji urutan FEFO, dan itu sudah
+punya ujinya sendiri.
+
+**Hasil akhir: 15/15 lulus** — 11 skenario reservasi ditambah 4 pemeriksaan pemetaan depo.
+
+### Kekurangan data master itu, sebagaimana ditemukan
 
 Satu-satunya depo yang memenuhi syarat routing di basis data ini — `DSL-RSMMC-00001` — memiliki
 `ServiceUnitId` **dan** `ClinicId` kosong, sedangkan `PHA-DEC-040` /
@@ -168,9 +216,11 @@ bukti runtime modul lain tidak tersentuh. Ke-24 kunjungan rawat jalan di basis d
 **sudah** memiliki `ServiceUnitId`, jadi perbaikannya adalah mengisi konfigurasi routing depo —
 pekerjaan data master, bukan kode.
 
-> **Tindakan yang dibutuhkan sebelum pemakaian sungguhan:** isi `ServiceUnitId` atau `ClinicId`
+> ~~**Tindakan yang dibutuhkan sebelum pemakaian sungguhan:** isi `ServiceUnitId` atau `ClinicId`
 > pada depo farmasi, atau tambahkan depo per unit layanan. Selama itu belum dilakukan,
-> finalisasi resep akan ditolak dengan sebab yang jelas — bukan gagal diam-diam.
+> finalisasi resep akan ditolak dengan sebab yang jelas — bukan gagal diam-diam.~~
+>
+> **SUDAH DIKERJAKAN 16 Oktober 2026** — lihat bagian pemetaan depo di atas.
 
 ### Kebersihan basis data
 
@@ -187,6 +237,13 @@ status resep acuan         : 2  (kembali seperti semula)
 
 ## 5. Kesimpulan
 
-`PHA-BE-003` dan `PHA-FE-001` **DONE**. Farmasi **19/19 = 100%**, runtime reservasi **PASS**,
-dengan satu catatan terbuka yang bukan pekerjaan kode: konfigurasi routing depo pada data
-master, dan authorization/controller `PHA-FE-001` yang belum dibuktikan lewat HTTP.
+`PHA-BE-003` dan `PHA-FE-001` **DONE**. Farmasi **19/19 = 100%**, runtime reservasi
+**PASS 15/15**.
+
+Konfigurasi routing depo yang semula tercatat sebagai catatan terbuka **sudah diisi**
+16 Oktober 2026, dan seluruh 24 kunjungan rawat jalan kini resolve tepat satu depo.
+
+Satu hal tetap **belum terbukti runtime** dan tidak diklaim terbukti: authorization filter dan
+wiring controller pada `GET …/prescriptions/{id}/stock-reservation`. Controller-nya tipis —
+satu pemanggilan `DescribeAsync` yang sudah terbukti di atas — tetapi membuktikannya menuntut
+aplikasi berjalan, dan boot aplikasi di basis data ini tertahan seeder modul lain.
