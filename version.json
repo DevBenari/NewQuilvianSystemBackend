@@ -1,19 +1,44 @@
 {
+  "backendVersion": "0.21.0",
   "releaseMetadata": {
-    "generatedAt": "2026-10-13T11:49:39",
     "generatedBy": "Quilvian Release Generator",
     "modules": [
+      "Administrator Management",
       "Billing Management",
+      "Clinical Management",
+      "Emergency Management",
+      "Finance Management",
+      "Human Resource Management",
       "Inpatient Management",
+      "Patient Management",
+      "Radiology Management",
       "Registration Management"
     ],
-    "features": [
-      "Billing Workflow"
+    "generatedAt": "2026-10-16T07:40:08",
+    "migrationCount": 14,
+    "migrations": [
+      "20260929000000_AddOperatingRoomOutboxEventContract.cs",
+      "20261012080102_AddEmergencyAdmissionRequest.cs",
+      "20261013123000_AddPayrollInstallmentDeductionAndCutover.cs",
+      "20261013143000_AddFinancePayrollDeductionBatch.cs",
+      "20261014021257_AddEmployeeBenefitGuarantorAndDeferredBillingConsent.cs",
+      "20261014044508_AddPatientCitizenship.cs",
+      "20261014050013_AddEncounterRescheduleHistory.cs",
+      "20261014091502_AddNewbornAdmissionContext.cs",
+      "20261014094349_AddRadOrderRequiresPreparation.cs",
+      "20261014100000_FixClearanceReasonCodeReevaluatedByCashier.cs",
+      "20261015033258_AddRadOrderAssignment.cs",
+      "20261015043017_AddRadOrderImage.cs",
+      "20261015050322_AddEmergencyAnamnesisAndBodyMap.cs",
+      "20261015054457_AddRadReportTemplateAndFilmPrint.cs"
     ],
-    "migrations": [],
-    "migrationCount": 0
+    "features": [
+      "Billing Workflow",
+      "Finance Workflow",
+      "Radiology Workflow",
+      "Blood Bank Workflow"
+    ]
   },
-  "description": "Release 0.20.0 enhances Billing Management, Inpatient Management, Registration Management capabilities. Includes improvements across Billing Workflow.",
-  "releaseName": "Quilvian 0.20.0 - Billing Management and Inpatient Management and Registration Management Enhancement",
-  "backendVersion": "0.20.0"
+  "releaseName": "Quilvian 0.21.0 - Enterprise Platform Enhancement",
+  "description": "Release 0.21.0 enhances Administrator Management, Billing Management, Clinical Management, Emergency Management, Finance Management, Human Resource Management, Inpatient Management, Patient Management, Radiology Management, Registration Management capabilities. Includes improvements across Billing Workflow, Finance Workflow, Radiology Workflow, Blood Bank Workflow. Includes 14 database migration update(s)."
 }
