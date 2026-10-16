@@ -280,7 +280,7 @@ public sealed class BillingDepositOrderService
                 Status = ord.Status,
                 StatusName = FormatStatusName(ord.Status),
                 DueDate = ord.DueDate,
-                CreatedAt = new DateTimeOffset(ord.CreateDateTime, TimeSpan.FromHours(7)),
+                CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(ord.CreateDateTime, DateTimeKind.Utc)),
                 CreatedByName = createdByName
             };
         }).ToList();
@@ -366,7 +366,7 @@ public sealed class BillingDepositOrderService
                     Amount = p.Amount,
                     ReferenceNumber = mov?.ReferenceNumber,
                     Status = p.Status,
-                    PaidAt = mov != null ? mov.OccurredAt : new DateTimeOffset(p.CreateDateTime, TimeSpan.FromHours(7)),
+                    PaidAt = mov != null ? mov.OccurredAt : new DateTimeOffset(DateTime.SpecifyKind(p.CreateDateTime, DateTimeKind.Utc)),
                     CashierName = cashierName,
                     CashierShiftNumber = shift?.ShiftNumber
                 });
@@ -422,7 +422,7 @@ public sealed class BillingDepositOrderService
             Status = order.Status,
             StatusName = FormatStatusName(order.Status),
             DueDate = order.DueDate,
-            CreatedAt = new DateTimeOffset(order.CreateDateTime, TimeSpan.FromHours(7)),
+            CreatedAt = new DateTimeOffset(DateTime.SpecifyKind(order.CreateDateTime, DateTimeKind.Utc)),
             CreatedByName = createdByName,
             PolicyId = order.PolicyId,
             Remarks = order.Remarks,
@@ -743,7 +743,7 @@ public sealed class BillingDepositOrderService
             PaymentMethodName = method?.PaymentMethodName ?? "Tunai (Cash)",
             IsCash = method?.IsCash ?? true,
             ReferenceNumber = movement?.ReferenceNumber,
-            PaymentDateTime = movement != null ? movement.OccurredAt : new DateTimeOffset(payment.CreateDateTime, TimeSpan.FromHours(7)),
+            PaymentDateTime = movement != null ? movement.OccurredAt : new DateTimeOffset(DateTime.SpecifyKind(payment.CreateDateTime, DateTimeKind.Utc)),
             CashierName = cashierName,
             CashierShiftNumber = shift?.ShiftNumber,
             Notes = $"Pembayaran uang muka rawat inap untuk order {order.OrderNumber} ({FormatStatusName(order.Status)})."

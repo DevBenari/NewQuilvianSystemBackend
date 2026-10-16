@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing/patient-funds")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING", "Health Service Billing Management", "Billing Patient Funds",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Patient Funds",
     AreaName = "HealthServices", ControllerName = "BillingPatientFunds", Description = "Inpatient deposit balance and append-only top-up ledger", SortOrder = 2)]
 [Tags("Health Services / Billing Management / Billing / Patient Funds")]
 public sealed class BillingPatientFundsController : ControllerBase

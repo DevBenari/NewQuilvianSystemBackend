@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing/invoices")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING", "Health Service Billing Management", "Billing Invoice",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Invoice",
     AreaName = "HealthServices", ControllerName = "BillingInvoice", Description = "Running invoice and idempotent source charge", SortOrder = 1)]
 [Tags("Health Services / Billing Management / Billing / Invoices")]
 public sealed class BillingInvoicesController : ControllerBase

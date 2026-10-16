@@ -37,6 +37,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Workers;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
@@ -1927,6 +1928,13 @@ try
         // seluruh SysAccessPolicy Farmasi kehilangan acuan tanpa satu pun galat.
         await RunStartupSeederAsync("PharmacyModuleCodeConsolidationSeeder",
             () => PharmacyModuleCodeConsolidationSeeder.SeedAsync(app.Services));
+        // ISS-BKC-004-01: delapan controller Billing terpecah ke tujuh kode modul berbeda
+        // dengan nama tampilan yang sama persis, sehingga layar Manajemen Role menampilkan
+        // delapan kartu "Billing" yang tidak bisa dibedakan. Alasan WAJIB mendahului
+        // AccessMenuSeeder sama persis dengan Farmasi di atas - lihat dokumentasi
+        // BillingModuleCodeConsolidationSeeder.
+        await RunStartupSeederAsync("BillingModuleCodeConsolidationSeeder",
+            () => BillingModuleCodeConsolidationSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
         // BE-RWI-177 / data awal E8: salin hak OperatingRoomHandover : Update → : Send pada peran yang
         // sama, sekali jalan. Hak : Receive TIDAK disalin (RWI-DEC-189). Wajib sesudah AccessMenuSeeder.

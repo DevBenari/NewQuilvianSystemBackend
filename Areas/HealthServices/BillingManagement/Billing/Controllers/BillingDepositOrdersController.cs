@@ -13,7 +13,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing/deposit-orders")]
 [Route("v1/health-services/billing-management/billing/deposit-orders")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING", "Health Service Billing Management", "Billing Deposit Orders",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Deposit Orders",
     AreaName = "HealthServices", ControllerName = "BillingDepositOrders", Description = "Inpatient deposit payment orders and cashier receipt workflow", SortOrder = 3)]
 [Tags("Health Services / Billing Management / Billing / Deposit Orders")]
 public sealed class BillingDepositOrdersController : ControllerBase

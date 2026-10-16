@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing/finalizations")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING_FINALIZATION", "Health Service Billing Management", "Billing Finalizations",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Finalizations",
     AreaName = "HealthServices", ControllerName = "BillingFinalization", Description = "Readiness checklist and one-time invoice finalization with departure exception", SortOrder = 6)]
 [Tags("Health Services / Billing Management / Billing / Finalizations")]
 public sealed class BillingFinalizationsController : ControllerBase

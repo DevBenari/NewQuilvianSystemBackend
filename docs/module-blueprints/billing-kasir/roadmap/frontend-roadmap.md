@@ -2037,3 +2037,87 @@ Task ad-hoc, pola `FE-BKC-FIX-XXX`. Pemicu: [`ISSUE-BKC-001`](../docs/issue/issu
 | --- | --- | --- | --- | --- | --- |
 | `FE-BKC-FIX-012` | FIX-02 | Keranjang Alkes perawat: draft sah → Catat Pemakaian (hak `DrugUsage : Record`) → status tagih; fallback resep dan GUID kosong dihapus | `BE-BKC-FIX-017` | ✅ Source selesai; lint 0 error; build lulus; uji unit baru lulus; uji layar `NOT RUN` | [laporan](../task/report/frontend/FE-BKC-FIX-012.md) |
 | `FE-BKC-FIX-013` | FIX-10 | Daftar kasir: Total Tagihan, Sudah Dibayar & Tgl, Sisa Pasien, Status Tagihan, banner pelayanan tertunda, Muat Ulang (`BKC-DEC-141`) | `BE-BKC-FIX-020` | ✅ Source selesai; 21/21 uji unit; lint 0 error; build lulus; pemeriksaan visual `NOT RUN` | [laporan](../task/report/frontend/FE-BKC-FIX-013.md) |
+
+## Gelombang Perbaikan `PLAN-REPAIR-BKC-003` — Dropdown kunjungan tampil identik (16 Oktober 2026)
+
+Task ad-hoc, pola `FE-BKC-FIX-XXX`. Pemicu: [`ISSUE-BKC-003`](../docs/issue/issue-003-kunjungan-pasien-tampil-identik.md) dan [`PLAN-REPAIR-BKC-003`](../docs/plan-repair/plan-repair-003-kunjungan-pasien-tampil-identik.md). Belum di-commit.
+
+| Task | FIX plan-repair | Ringkasan | Dependency | Status | Laporan |
+| --- | --- | --- | --- | --- | --- |
+| `FE-BKC-FIX-014` | FIX-BKC-003-01 | Tambahkan No. Kunjungan + tanggal/jam ke label opsi dropdown Pasien/Kunjungan (`create-manual-invoice-view.jsx`), supaya kunjungan berbeda milik pasien yang sama tidak lagi tampil identik | Tidak ada | ✅ Source selesai; lint 0 error; `npm run build` lulus; uji manual live browser `NOT FEASIBLE` (backend tidak dijalankan otomatis) | [laporan](../task/report/frontend/FE-BKC-FIX-014.md) |
+
+---
+
+# Gelombang Revisi 2.3 — Tampilan Admin Rawat Jalan Digantikan dan Tinjauan Void Keliru
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `2.3` · status **`approved`** 16 Oktober 2026 |
+| Keputusan | `BKC-DEC-119`, `BKC-DEC-162`, `BKC-DEC-164`–`167`; `BKC-DES-083`–`091` (`BKC-DES-092` dicabut) |
+| Contract version berlaku | `BIL-API-2.0` (bagian A dan B, **tanpa** field adendum `BKC-DES-092`), `BIL-PERMISSION-1.6`, `BIL-TEST-2.1` |
+| Desain layar | `03-frontend-architecture.md` amendment revisi `2.3` (peta butir menu, `BIL-SCR-42`, panel ringkasan rawat inap, `BIL-SCR-45`) |
+| Frontend baseline SHA | `8ad45262b` · Backend baseline SHA `738e03a0` |
+| Requirement | `FR-BKC-284` (sisi layar), `FR-BKC-285` |
+
+**Legenda tanda status:** ✅ selesai terbukti · 🟡 source ada, kriteria belum terbukti penuh · ⛔ tertahan gerbang ·
+tanpa tanda = belum disentuh.
+
+## Grafik Urutan Dependency
+
+```text
+BE-BKC-084 [BE] ─> FE-BKC-045
+
+BE-BKC-088 [BE] ─> FE-BKC-046
+```
+
+`[BE]` = task backend pada `backend-roadmap.md`, gelombang Revisi 2.3 (cermin baca-saja; keduanya tertahan
+`{OTORISASI-MIG-1}` lewat `BE-BKC-083`). Jumlah pasangan prasyarat→task: **2**. Bebas siklus.
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| ⛔ | `BE-BKC-084` [BE] (tertahan otorisasi migration 1) | `FE-BKC-045` |
+| ⛔ | `BE-BKC-088` [BE] (tertahan otorisasi migration 1) | `FE-BKC-046` |
+
+Kerja paralel lebih awal **tidak** diizinkan: kontrak `BIL-API-2.0` sudah approved tetapi belum dikunci hash-nya, sehingga
+frontend menunggu backend yang mengimplementasikannya.
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FE-BKC-045` | Kasir melihat admin poli "Digantikan rawat inap", serta kredit, daftar asal, dan sisa kredit di ringkasan rawat inap | `FR-BKC-285`; `BKC-DEC-119`, `164` | `BIL-API-2.0` bagian A | `detail-invoice-billing-view.jsx`, `billing-inpatient-summary-panel.jsx` | Dua komponen yang ada | `BE-BKC-084` [BE] | `BIL-AT-225`, `226` | Lint, build, verifikasi manual | Rendah / Frontend | Bagian rincian |
+| `FE-BKC-046` | Supervisor Kasir meninjau dan memutuskan void lama lewat `BIL-SCR-45` | `FR-BKC-284`; `BKC-DEC-162`, `165`, `166` | `BIL-API-2.0` bagian B; `BIL-PERMISSION-1.6` | Pola layar "Rekonsiliasi Tagihan Klinis" | Layar baru + butir menu | `BE-BKC-088` [BE] | `BIL-AT-227` + perilaku `03-frontend-architecture.md` §4 | Lint, build, verifikasi manual | Sedang / Frontend | Bagian rincian |
+
+## Rincian Task
+
+### `FE-BKC-045` — Admin poli digantikan di Menu Pembayaran dan ringkasan rawat inap
+
+| Field | Isi |
+| --- | --- |
+| Outcome | (1) Pada tagihan poli yang digantikan, baris Biaya Administrasi tetap tampil dengan Rp 0, label "Digantikan rawat inap", dan nomor tagihan rawat inapnya. (2) Panel ringkasan rawat inap menampilkan kredit terpakai, daftar tagihan poli asal beserta perlakuannya, dan keterangan sisa kredit yang akan menjadi kredit refund. Baris "Biaya Administrasi Rajal Dibatalkan" dihapus |
+| Jejak | `FR-BKC-285`; `BKC-DEC-119`, `BKC-DEC-164`; `BKC-DES-084`–`086` |
+| Kontrak | `BIL-API-2.0` bagian A: `isSupersededByInpatientAdmission`, `supersededByInpatientInvoiceId`, `supersededReasonCode`, `referredOutpatientAdminCreditedAmount` (arti baru), `referredOutpatientAdminUnappliedCreditAmount`, `referredOutpatientAdminOrigins`; `referredOutpatientAdminVoided` dihapus |
+| Kemampuan existing | `src/components/view/health-services/billing-management/billing-invoices/detail-billing/detail-invoice-billing-view.jsx:824-837`; `src/components/view/health-services/billing-management/billing-invoices/detail/billing-inpatient-summary-panel.jsx:72-80,321-333` |
+| Cakupan | Sesuai `03-frontend-architecture.md` amendment `2.3` bagian 2–3. Bunyi label adalah usulan desain; warna, ikon, dan tata letak `DEV_DISCRETION`. **Tanpa** baris item tarif admin (adendum `BKC-DES-092` dicabut) |
+| Dependency | `BE-BKC-084` [BE] |
+| Acceptance criteria | 1. (`BIL-AT-225`) Tagihan poli yang digantikan menampilkan baris admin Rp 0 berlabel, dengan nomor tagihan rawat inap; bila nomor gagal dimuat, label tetap tampil tanpa nomor.<br/>2. (`BIL-AT-226`) Panel ringkasan menampilkan kredit, daftar asal, dan sisa kredit; tidak ada lagi indikator "dibatalkan".<br/>3. Tagihan tanpa penggantian tampil persis seperti sebelumnya |
+| Bukti verifikasi | `npm run lint`, `npm run build`, verifikasi manual pada data dev (atau NOT RUN beralasan bila dev belum punya data rawat inap). Test unit opsional; layak hanya bila logika pemetaan perlakuan dipindah ke `src/utils` |
+| Risiko / pemilik | Rendah. Pemilik: Frontend Engineering |
+| Definition of Done | Kriteria terbukti; lint dan build lulus; laporan `task/report/frontend/` tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |
+
+### `FE-BKC-046` — Layar `BIL-SCR-45` Tinjauan Void Biaya Administrasi
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Supervisor Kasir dapat membuka daftar item yang di-void oleh cacat lama, menyaringnya, dan menetapkan satu keputusan final per item dengan alasan wajib |
+| Jejak | `FR-BKC-284`; `BKC-DEC-158`, `162`, `165`, `166`; `BKC-DES-089` |
+| Kontrak | `BIL-API-2.0` bagian B (`GET /superseded-item-reviews`, `GET /{invoiceItemId}`, `POST /{invoiceItemId}/decision` dengan `Idempotency-Key`); `BIL-PERMISSION-1.6` |
+| Kemampuan existing | Pola layar dan hook "Rekonsiliasi Tagihan Klinis" (`src/lib/constants/health-services/billing-management/charge-reconciliation.constants.js`, `src/components/view/health-services/billing-management/charge-reconciliations/`); kelompok menu "Approval & Kontrol" (`src/utils/menu-sidebar/menu-items.jsx`) |
+| Cakupan | Route usulan `/health-services/billing-management/billing/superseded-item-reviews`; butir menu dengan `requiredPermission: { resource: "BillingSupersededItemReview", action: "Read" }` (label, urutan, dan ikon menunggu persetujuan Frontend Owner — tidak menghalangi pembangunan); filter, tabel, dialog keputusan, dan aturan perilaku sesuai `03-frontend-architecture.md` amendment `2.3` bagian 4. **Tanpa** penanda "kategori tarif admin" (dicabut) |
+| Dependency | `BE-BKC-088` [BE] |
+| Acceptance criteria | 1. (`BIL-AT-227`) Keadaan kosong dan gagal muat tampil sesuai bunyi desain; tombol di luar `allowedDecisions` tidak tampil.<br/>2. Tanpa hak `Decide`, tombol keputusan tidak tampil; tanpa hak `Read`, butir menu tidak tampil.<br/>3. Tombol simpan nonaktif selama permintaan berjalan; menekan ulang setelah jaringan putus memakai `Idempotency-Key` yang sama.<br/>4. `409`/`422` ditampilkan sesuai desain, dan baris diperbarui dari response server.<br/>5. Nama pasien dan nomor RM tidak dikirim ke logger maupun pelacak galat |
+| Bukti verifikasi | `npm run lint`, `npm run build`, verifikasi manual dengan akun Supervisor Kasir dan akun Kasir. Test unit opsional; layak untuk penentuan tombol dari `allowedDecisions` bila dipisah ke `src/utils` |
+| Risiko / pemilik | Sedang: keputusan final tidak dapat dibatalkan, jadi dialog konfirmasi wajib jelas. Pemilik: Frontend Engineering; Frontend Owner untuk label menu |
+| Definition of Done | Kriteria terbukti; lint dan build lulus; layar terjangkau dari menu; laporan tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |

@@ -3042,3 +3042,250 @@ graph TD
 5. Migration **tidak** diterapkan oleh builder; pemilik menjalankan `dotnet ef database update` sendiri.
 
 **Jebakan yang wajib dijaga gelombang berikutnya:** migration `MVP-37` (desain revisi `2.1`) menulis ulang constraint yang sama. Daftar nilainya **MUST** memuat `REEVALUATED_BY_CASHIER`, kalau tidak perbaikan ini terhapus kembali.
+
+## Gelombang Perbaikan `PLAN-REPAIR-BKC-004` — Kartu "Billing" ganda di Manajemen Role (16 Oktober 2026)
+
+Task ad-hoc di luar penomoran roadmap asli, mengikuti pola `BE-BKC-FIX-XXX`. Pemicu:
+[`ISSUE-BKC-004`](../docs/issue/issue-004-kartu-billing-ganda-manajemen-role.md) dan
+[`PLAN-REPAIR-BKC-004`](../docs/plan-repair/plan-repair-004-kartu-billing-ganda-manajemen-role.md).
+Disetujui pemilik modul Billing 16 Oktober 2026 (perintah langsung "Perbaiki FE dan BE", scope
+K-01 dikonfirmasi lewat pertanyaan klarifikasi sebelum plan repair ditulis).
+
+| Task | FIX plan-repair | Ringkasan | Status | Laporan |
+| --- | --- | --- | --- | --- |
+| `BE-BKC-FIX-024` | `FIX-BKC-004-01` | Seeder `BillingModuleCodeConsolidationSeeder` baru (pola `PharmacyModuleCodeConsolidationSeeder`) memindahkan `SysControllerAccess.ModuleId` dari 7 kode modul lama ke kode kanonik `HEALTH_SERVICE_BILLING_MANAGEMENT`; 9 titik atribut `moduleCode` diubah di 8 controller | 🟡 SEBAGIAN (16-10-2026) — source selesai; `dotnet build` dan seluruh verifikasi runtime **belum dijalankan** (pengguna meminta build backend tidak dijalankan otomatis di tengah task ini) | [`BE-BKC-FIX-024.md`](../task/report/backend/BE-BKC-FIX-024.md) |
+
+**Acceptance criteria `BE-BKC-FIX-024`** — disalin dari `PLAN-REPAIR-BKC-004` bagian 4:
+
+1. Setelah seeder migrasi dan `AccessMenuSeeder` berjalan pada database dev dengan data lama, hanya tersisa 1 baris aktif `SysApplicationModule` kanonik menaungi 13 controller; 7 baris lama `IsActive=false`. **Belum terverifikasi.**
+2. `SysControllerAccess`/`SysActionAccess` milik 13 controller tetap `Id` yang sama sebelum/sesudah migrasi. **Belum terverifikasi.**
+3. `SysAccessPolicy` existing tetap valid; role yang sudah punya akses tidak menerima 403 setelah migrasi. **Belum terverifikasi — ini kriteria paling kritis dari sisi keamanan.**
+4. Pada database baru (belum pernah punya data modul Billing), seeder migrasi berjalan sebagai no-op aman. **Belum terverifikasi.**
+5. Layar Manajemen Role menampilkan 1 kartu "Billing"; "Billing Master Data" dan "Billing Management Petty Cash" tetap terpisah. **Belum terverifikasi.**
+6. Seeder migrasi idempotent (jalan dua kali tidak menghasilkan perubahan tambahan). **Belum terverifikasi.**
+
+**Langkah berikutnya (wajib sebelum `✅`):** pemilik modul menjalankan `dotnet build`, lalu
+menjalankan aplikasi pada database dev yang punya data `SysAccessPolicy` nyata untuk
+controller-controller billing-kasir yang terdampak, memverifikasi keenam kriteria di atas, dan
+membuka layar Manajemen Role untuk konfirmasi visual.
+
+---
+
+# Gelombang Revisi 2.3 — Penggantian Biaya Admin Rawat Jalan, Tautan Transfer, Backfill, dan Tinjauan Void Keliru
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `2.3` · status **`approved`** 16 Oktober 2026 (`blueprint-manifest.md` `approved_by_revision_2_3`) |
+| Keputusan bisnis | `BKC-DEC-119`, `BKC-DEC-155`, `BKC-DEC-158`, `BKC-DEC-160`–`167` (seluruhnya `approved`) |
+| Keputusan arsitektur | `BKC-DES-077`–`079` (revisi `2.2`, approved); `BKC-DES-083`–`091` (revisi `2.3`, approved). `BKC-DES-081` dan `BKC-DES-092` **tidak** direncanakan (superseded / dicabut) |
+| Contract version berlaku | `BIL-API-2.0`, `BIL-STATE-2.0`, `BIL-VALIDATION-2.0`, `BIL-INTEGRATION-1.8`, `BIL-PERMISSION-1.6`, `BIL-TEST-2.1`, `BIL-CALCULATION-1.0` |
+| Backend baseline SHA | `738e03a0` (working tree memuat perubahan pihak lain yang belum di-commit; lihat capability map §25.4) |
+| Frontend baseline SHA | `8ad45262b` |
+| Requirement yang direncanakan | `FR-BKC-273`–`275` (revisi `2.2`, belum pernah masuk roadmap), `FR-BKC-278`–`284`. `FR-BKC-285` ada di `frontend-roadmap.md`. `FR-BKC-277` **superseded — MUST NOT dikerjakan** |
+| Tidak direncanakan di sini | `MVP-36`, `MVP-37` (gelombang tersendiri); instrumen koreksi pasca-tutup (`BKC-OQ-139`, milik Finance/AR) |
+
+**Legenda tanda status:** ✅ selesai terbukti · 🟡 source ada, kriteria belum terbukti penuh · ⛔ tertahan gerbang ·
+tanpa tanda = belum disentuh.
+
+## Konteks Bisnis Rumah Sakit dan Alur Operasional
+
+Ibu Sari Mandasari (nama samaran) berobat ke poli dan dikenai biaya administrasi Rp 150.000, lalu ditransfer resmi ke
+rawat inap. Menurut `BKC-DEC-119`, ia hanya menanggung **satu** biaya administrasi, yaitu milik rawat inap.
+- Tagihan poli masih terbuka: admin poli menjadi Rp 0.
+- Sudah lunas di poli: Rp 150.000 itu menjadi kredit di tagihan rawat inap.
+- Rawat inapnya ditanggung penuh penjamin: kredit itu bisa di-refund.
+
+Hari ini sistem justru menjalankan dua jalur lain yang keduanya keliru (capability map §25, `CAP-BIL-05` **Conflict**):
+- **Jalur item.** Mem-void item yang namanya mengandung kata "Administrasi", termasuk saat kasir hanya membuka halaman.
+  Kreditnya ditolak database, sehingga perhitungan tagihan rawat inap **gagal**.
+- **Potongan tetap.** Memotong Rp 50.000 dari admin rawat inap untuk setiap kunjungan poli yang tanggalnya berdekatan,
+  tanpa memeriksa apakah pasien memang ditransfer.
+
+Gelombang ini menghentikan jalur lama lebih dulu (`BE-BKC-081`), lalu memasang model yang benar. Selain itu, gelombang ini
+menautkan transfer IGD/poli ke rawat inap, mengisi tautan untuk transfer lama, dan memberi Supervisor Kasir layar untuk
+meninjau void lama yang keliru.
+
+## Grafik Urutan Dependency
+
+```text
+BE-BKC-081 ─────────────────────────┬─> BE-BKC-084 ─> BE-BKC-085
+                                    │
+                                    ├─> BE-BKC-088
+                                    │
+{OTORISASI-MIG-1 ⛔} ─> BE-BKC-083 ─┘
+
+BE-BKC-082 ─> BE-BKC-086 ─┬─> BE-BKC-087
+                          │
+{OTORISASI-MIG-2 ⛔} ─────┘
+```
+
+`{OTORISASI-MIG-1 ⛔}` = otorisasi eksplisit pemilik untuk **membuat dan menjalankan** migration
+`AddReferredAdminCreditAndSupersededItemReview` (`AGENTS.md` bagian Keselamatan Basis Data). `{OTORISASI-MIG-2 ⛔}` = otorisasi
+eksplisit untuk membuat dan menjalankan migration data `BackfillTransferOriginEncounterLinks`, **sesudah** pemilik membaca
+hasil dry-run `BE-BKC-086`. Approval desain revisi `2.3` **bukan** otorisasi keduanya.
+
+Simpul `BE-BKC-081`/`BE-BKC-083` → `BE-BKC-084`/`BE-BKC-088` berarti: `BE-BKC-084` dan `BE-BKC-088` **masing-masing** menunggu
+`BE-BKC-081` **dan** `BE-BKC-083`. Jumlah pasangan prasyarat→task: **9** (sama dengan isi kolom `Dependency`). Bebas siklus.
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `BE-BKC-081` (**prioritas tertinggi**: menghentikan kalkulasi rawat inap yang gagal dan void salah sasaran), `BE-BKC-082` — dapat paralel, berkas berbeda |
+| 2 | `BE-BKC-082` | `BE-BKC-086` (dry-run baca-saja; **menjalankannya** di lingkungan mana pun tetap butuh izin pemilik) |
+| ⛔ | `{OTORISASI-MIG-1}` | `BE-BKC-083`, lalu `BE-BKC-084` dan `BE-BKC-088` (juga menunggu `BE-BKC-081`), lalu `BE-BKC-085` |
+| ⛔ | `{OTORISASI-MIG-2}` dan `BE-BKC-086` | `BE-BKC-087` — **MUST** selesai sebelum `MVP-37` dirilis (`BKC-DEC-163`) |
+
+Urutan rilis, bukan dependency teknis: `BE-BKC-087` sebaiknya dijalankan **sebelum** `BE-BKC-084` dirilis, agar pasien
+transfer lama yang tagihannya masih terbuka langsung mendapat penggantian (`02-backend-architecture.md` amendment `2.3`
+bagian 11). `BE-BKC-FIX-022` (🟡) tidak menjadi prasyarat gelombang ini.
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BE-BKC-081` | Kalkulasi (pratinjau dan simpan) tidak lagi mem-void item, membuat kredit, atau menulis apa pun selain versi kalkulasi | `FR-BKC-278`; `BKC-DES-083`, `090` | `BIL-API-2.0` (perilaku), `BIL-VALIDATION-2.0` `BIL-VAL-159`, `BIL-CALCULATION-1.0` | `BillingCalculationService`, `AdministrationFeeCalculationService` | Hapus rekonsiliasi item dan pemanggilnya | — | `BIL-AT-202`, `203` | QBE, build, verifikasi runtime dev | Rendah / Backend | Bagian rincian |
+| `BE-BKC-082` | Billing menulis tautan kunjungan asal pada transfer IGD/poli → rawat inap | `FR-BKC-273`–`275`; `BKC-DEC-155`; `BKC-DES-077`–`079` | `BIL-INTEGRATION-1.7` `BIL-INT-021` | `BillingInpatientEventReceiver.EnsureEncounterLinksAsync` | Perluas penulis tautan + konstanta sebab | — | `BIL-AT-189`–`195`, `201` | QBE, build, verifikasi proses | Sedang / Backend; Registrasi & Rawat Inap diberi tahu | Bagian rincian |
+| `BE-BKC-083` | Skema siap: dua kolom versi kalkulasi, constraint kredit diperluas, tabel tinjauan | `BKC-DES-085`, `086`, `089` | `BIL-STATE-2.0`; kamus data amendment `2.3` | `BilCalculationVersionConfiguration`, `BilRefundableCreditConfiguration` | Model, configuration, DbSet, satu migration | `{OTORISASI-MIG-1}` | Bagian rincian | QBE, build, review migration | Tinggi (skema) / Backend + pemilik DB | Bagian rincian |
+| `BE-BKC-084` | Admin poli digantikan lewat tautan aktif; kredit di rawat inap; potongan Rp 50.000 untuk `RANAP` hilang | `FR-BKC-279`, `280`, `282`; `BKC-DEC-119`, `161`; `BKC-DES-084`, `085`, `087` | `BIL-API-2.0`, `BIL-VALIDATION-2.0`, `BIL-CALCULATION-1.0` | `BillingCalculationService`, `AdministrationFeeCalculationService` | Kalkulasi + DTO response | `BE-BKC-081`, `BE-BKC-083` | `BIL-AT-204`–`208`, `211`–`213`, `230` | QBE, build, verifikasi kontrak & proses | Tinggi (angka tagihan) / Backend + Billing Owner | Bagian rincian |
+| `BE-BKC-085` | Sisa kredit menjadi satu kredit refund saat finalisasi; kelayakan pulang tidak menghitung dua kali | `FR-BKC-281`; `BKC-DEC-164`; `BKC-DES-086` | `BIL-STATE-2.0`, `BIL-PERMISSION-1.6` (audit) | `BillingFinalizationService`, `InpatientClearanceService`, alur refund | Finalisasi + kelayakan | `BE-BKC-084` | `BIL-AT-209`, `210` | QBE, build, verifikasi proses | Sedang / Backend + Finance diberi tahu | Bagian rincian |
+| `BE-BKC-086` | Skrip dry-run baca-saja backfill tersedia beserta laporannya | `FR-BKC-283`; `BKC-DEC-160`, `163`; `BKC-DES-088` | `BIL-INTEGRATION-1.8` `BIL-INT-022` | — | Skrip `SELECT` + runbook | `BE-BKC-082` | `BIL-AT-214` | Review skrip; hasil jalan atas izin pemilik | Sedang / Backend + pemilik Billing |  Bagian rincian |
+| `BE-BKC-087` | Transfer lama tertaut lewat migration data | `FR-BKC-283`; `BKC-DEC-163`; `BKC-DES-088` | `BIL-INT-022` | `BilInvoiceEncounterLink`, `BilInpatientEventReceipt` | Satu migration data | `BE-BKC-086`, `{OTORISASI-MIG-2}` | `BIL-AT-215`–`217` | QBE, build, review migration, verifikasi data | Tinggi (data) / Backend + pemilik DB | Bagian rincian |
+| `BE-BKC-088` | Supervisor Kasir dapat meninjau dan memutuskan void lama yang keliru | `FR-BKC-284`; `BKC-DEC-158`, `162`, `165`, `166`; `BKC-DES-089` | `BIL-API-2.0` (3 endpoint), `BIL-STATE-2.0`, `BIL-VALIDATION-2.0` `151`–`158`, `BIL-PERMISSION-1.6` | `BilInvoiceItem`, pola `BillingFinancialExceptionService` | Service, controller, DTO, hak akses, audit | `BE-BKC-081`, `BE-BKC-083` | `BIL-AT-218`–`224` | QBE, build, verifikasi kontrak & proses | Sedang / Backend | Bagian rincian |
+
+## Rincian Task
+
+### `BE-BKC-081` — Hentikan rekonsiliasi admin berbasis item; pratinjau benar-benar bebas tulis
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Menghitung atau mempratinjau tagihan apa pun **tidak** lagi mem-void item, membuat kredit, ataupun menulis baris selain versi kalkulasi (pada hitung-simpan). Kalkulasi rawat inap tidak lagi gagal karena kredit yang ditolak database |
+| Jejak | `FR-BKC-278`; `BKC-DES-083`, `BKC-DES-090`; temuan F9–F11 (`02-backend-architecture.md` amendment `2.3` bagian 0.2) |
+| Kontrak | `BIL-VALIDATION-2.0` `BIL-VAL-159`; `BIL-CALCULATION-1.0`. Response API **tidak** berubah pada task ini: `ReferredOutpatientAdminVoided` dan `ReferredOutpatientAdminCreditedAmount` tetap ada dan bernilai bawaan (`false`/`0`). Penghapusannya milik `BE-BKC-084` |
+| Kemampuan existing | `CAP-BIL-05` (Conflict) — `AdministrationFeeCalculationService`, `BillingCalculationService` |
+| Cakupan | 1. Hapus `ReconcileReferredOutpatientAdminFeeAsync` dari `AdministrationFeeCalculationService.cs` dan tanda tangannya dari `IAdministrationFeeCalculationService.cs`.<br/>2. Hapus pemanggilannya di `BillingCalculationService.cs` (`:613-628`).<br/>3. Hapus `ReconcileReferredOutpatientAdminRequest`/`Result` dari `AdministrationFeeCalculationDtos.cs` bila tidak ada pemakai lain.<br/>4. Pertahankan konstanta `DefaultVoidReasonSuperseded` (dipakai tinjauan dan kode *waived*).<br/>5. **Jangan** menyentuh `GetPriorAppliedAdminFeeAmountAsync` (milik `BE-BKC-084`) |
+| Dependency | — |
+| Acceptance criteria | 1. (`BIL-AT-202`) Pada PostgreSQL dev, invoice rawat inap milik pasien yang punya invoice poli lunas berisi item bernama "Administrasi …" dapat dihitung ulang tanpa galat; nol kredit `REFERRED_OUTPATIENT_ADMIN` dan nol item ber-`VoidReason` `SUPERSEDED_BY_INPATIENT_ADMISSION` baru.<br/>2. (`BIL-AT-203`) Membuka `GET /{id}/calculation-preview` berulang tidak mengubah jumlah maupun isi baris `BilInvoiceItem`, `BilRefundableCredit`, dan `BilCalculationVersion`.<br/>3. Pencarian `ReconcileReferredOutpatientAdmin` pada `Areas/` menghasilkan nol |
+| Bukti verifikasi | QBE preflight; review diff (hanya berkas di atas); `dotnet restore` + `dotnet build`; verifikasi proses bisnis kedua skenario di dev (bila dev belum punya data rawat inap, catat **NOT RUN** beserta alasannya) |
+| Risiko / pemilik | Rendah: jalur yang dihapus tidak pernah menyentuh biaya admin sebenarnya. Pemilik: Backend Engineering |
+| Definition of Done | Cakupan 1–5 terpasang; ketiga kriteria terbukti atau dicatat NOT RUN beralasan; build lulus; laporan `task/report/backend/` tersusun |
+
+### `BE-BKC-082` — Penulis tautan kunjungan asal pada jalur transfer (revisi `2.2`)
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Saat rawat inap hasil transfer IGD atau poli dikonfirmasi, Billing menulis tepat satu tautan ke kunjungan asal dengan sebab `EMERGENCY_ORIGIN` atau `OUTPATIENT_ORIGIN` |
+| Jejak | `FR-BKC-273`–`275`; `BKC-DEC-155`; `BKC-DES-077`–`079` |
+| Kontrak | `BIL-INTEGRATION-1.7` `BIL-INT-021`; kamus data amendment `2.2` (`BilInvoiceEncounterLink`) |
+| Kemampuan existing | `CAP-BIL-11` — `BillingInpatientEventReceiver.EnsureEncounterLinksAsync` (`:247-266`), jalur duplikat (`:96-101`) |
+| Cakupan | Ikuti `02-backend-architecture.md` amendment revisi `2.2` bagian 3–5: perluas `EnsureEncounterLinksAsync` untuk membaca `RegPatientEncounter.SourceEncounterId`/`AdmissionTransferSourceType` (baca saja); kelas konstanta `BillingEncounterLinkReasons`; lewati dan catat `WarningAsync` untuk asal milik pasien lain, terhapus, batal, atau jenis tak dikenal (payload tanpa identitas pasien). Nol migration |
+| Dependency | — |
+| Acceptance criteria | `BIL-AT-189`–`195` dan `BIL-AT-201` sebagaimana tertulis di `testing/acceptance-test-matrix.md` amendment revisi `2.2` (transfer IGD, transfer poli, putar ulang tidak menggandakan, tanpa transfer tanpa tautan, lintas pasien dilewati, tagihan rawat inap tetap terbuka) |
+| Bukti verifikasi | QBE preflight; review diff; `dotnet restore` + `dotnet build`; verifikasi proses: transfer di dev lalu periksa baris tautan |
+| Risiko / pemilik | Sedang: menyentuh jalur penerima event Rawat Inap. Pemilik: Backend Engineering. Registrasi dan Rawat Inap **tidak** berubah; cukup diberi tahu |
+| Definition of Done | Kriteria terbukti; build lulus; laporan tersusun |
+
+### `BE-BKC-083` — Model, configuration, dan migration skema revisi `2.3` ⛔
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Basis data menerima kredit `REFERRED_OUTPATIENT_ADMIN`, menyimpan kredit admin pada versi kalkulasi, dan punya tabel tinjauan void |
+| Jejak | `BKC-DES-085`, `086`, `089`; kamus data amendment `2.3` |
+| Kontrak | `BIL-STATE-2.0`; `02-backend-architecture.md` amendment `2.3` bagian 6–7 |
+| Kemampuan existing | `BilCalculationVersion`, `BilRefundableCredit` dan configuration-nya |
+| Cakupan | 1. `BilCalculationVersion`: `ReferredOutpatientAdminCreditAmount`, `ReferredOutpatientAdminUnappliedCreditAmount` (`numeric(18,2)`, wajib, bawaan 0); perluas `CK_BilCalculationVersion_Amounts`.<br/>2. `CK_BilRefundableCredit_SourceType` + `'REFERRED_OUTPATIENT_ADMIN'`.<br/>3. Model `BilSupersededItemReview` + kelas statis keputusan, `BilSupersededItemReviewConfiguration` (tiga `CHECK`, empat indeks, FK `Restrict`), `DbSet` di `ApplicationDbContext`.<br/>4. Satu migration `<timestamp>_AddReferredAdminCreditAndSupersededItemReview` dengan `NOT VALID` lalu `VALIDATE CONSTRAINT`; `Down` sesuai bagian 7 |
+| Dependency | `{OTORISASI-MIG-1}` |
+| Acceptance criteria | 1. Model snapshot memuat dua kolom, constraint yang diperluas, dan tabel baru persis seperti kamus data.<br/>2. `Up()` hanya memuat perubahan cakupan 1–3; `Down()` mengembalikannya dan mendokumentasikan kegagalan bila sudah ada kredit `REFERRED_OUTPATIENT_ADMIN`.<br/>3. Migration **tidak** diterapkan oleh builder; pemilik menjalankan `dotnet ef database update` sendiri |
+| Bukti verifikasi | QBE preflight; review migration; `dotnet build`; pemeriksaan skema di dev **sesudah** pemilik menerapkan |
+| Risiko / pemilik | Tinggi (skema). Pemilik: Backend + pemilik basis data. **Tertahan** sampai otorisasi eksplisit |
+| Definition of Done | Kriteria terpenuhi; build lulus; migration diterapkan pemilik di dev; laporan tersusun |
+
+### `BE-BKC-084` — Model penggantian admin berbasis tautan aktif ⛔ (lewat `BE-BKC-083`)
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Admin poli digantikan sesuai `BKC-DEC-119` hanya untuk kunjungan yang tertaut resmi: Rp 0 di tagihan poli `OPEN`, kredit di tagihan rawat inap bila poli `FINAL`/`CLOSED`/`SETTLED_BY_WRITE_OFF`. Admin rawat inap tidak lagi dipotong Rp 50.000 berdasarkan kedekatan tanggal |
+| Jejak | `FR-BKC-279`, `280`, `282`; `BKC-DEC-119`, `BKC-DEC-161`, `BKC-DEC-167`; `BKC-DES-084`, `085`, `087` |
+| Kontrak | `BIL-API-2.0` bagian A (response kalkulasi); `BIL-VALIDATION-2.0` penegasan kedua `BIL-VAL-126`, `BIL-VAL-160`; `BIL-CALCULATION-1.0` |
+| Kemampuan existing | `BillingCalculationService.CalculateAdministrationFeeAsync`, `AdministrationFeeCalculationService.GetPriorAppliedAdminFeeAmountAsync`, `BilInvoiceEncounterLink` |
+| Cakupan | 1. `ResolveReferredAdminReplacementAsync` (baca saja) sesuai bagian 5.1.<br/>2. `RAJAL` tertaut aktif: `AppliedAmount = 0` + kode `SUPERSEDED_BY_INPATIENT_ADMISSION`.<br/>3. `RANAP`: kredit sesudah promo (`:314`), dibatasi porsi pasien; isi dua kolom baru.<br/>4. `GetPriorAppliedAdminFeeAmountAsync` → nol untuk `RANAP`; `RAJAL`/`IGD`/`OTC` **tidak** berubah.<br/>5. DTO: hapus `ReferredOutpatientAdminVoided`; tambah lima field bagian A; **tanpa** field adendum `BKC-DES-092` (dicabut).<br/>6. Item tagihan tidak pernah dikenali sebagai admin (`BKC-DEC-167`) |
+| Dependency | `BE-BKC-081`, `BE-BKC-083` |
+| Acceptance criteria | `BIL-AT-204` (poli `OPEN` → admin Rp 0), `205` (poli `CLOSED` → kredit Rp 150.000, porsi Rp 3.500.000), `206` (poli `FINAL`), `207` (`SETTLED_BY_WRITE_OFF`), `208` (tidak tertaut → tanpa potongan), `211` (tidak dobel), `212` (rawat inap batal → admin kembali), `213` (aturan sekali per hari tidak berubah), `230` (kata "Administrasi" tidak berpengaruh) |
+| Bukti verifikasi | QBE preflight; review diff; `dotnet build`; verifikasi kontrak response pada kedua endpoint; verifikasi proses dengan angka contoh di dev |
+| Risiko / pemilik | Tinggi: mengubah angka tagihan. Tiga perubahan perilaku **MUST** dikomunikasikan ke kasir sebelum rilis. Pemilik: Backend + Billing Owner. Sebaiknya dirilis sesudah `BE-BKC-087` |
+| Definition of Done | Kriteria terbukti; build lulus; catatan komunikasi kasir ada; laporan tersusun |
+
+### `BE-BKC-085` — Sisa kredit menjadi kredit refund saat finalisasi ⛔ (lewat `BE-BKC-084`)
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Bila kredit admin poli melebihi porsi pasien, sisanya menjadi tepat satu kredit refund per invoice rawat inap saat finalisasi, dan kelayakan pulang tidak menguranginya dua kali |
+| Jejak | `FR-BKC-281`; `BKC-DEC-164`; `BKC-DES-086` |
+| Kontrak | `BIL-STATE-2.0` bagian 2; `BIL-PERMISSION-1.6` (audit `RecognizeReferredAdmin`, `ReferredAdminDrift`) |
+| Kemampuan existing | `BillingFinalizationService.ExecuteInternalFinalizationAndClosureAsync` (`:663`, `:711`), `InpatientClearanceService` (`:103-107`), alur refund `BillingRefundService` |
+| Cakupan | `RecognizeUnappliedReferredAdminCreditAsync` di transaksi pemanggil (`SourceId` = id invoice rawat inap); audit drift bila nominal berubah; `creditTotal` kelayakan mengecualikan `REFERRED_OUTPATIENT_ADMIN` |
+| Dependency | `BE-BKC-084` |
+| Acceptance criteria | `BIL-AT-209` (porsi pasien Rp 0 → satu kredit refund Rp 150.000; finalisasi ulang tidak membuat baris kedua); `BIL-AT-210` (kelayakan tidak menghitung dua kali) |
+| Bukti verifikasi | QBE preflight; review diff; `dotnet build`; verifikasi proses finalisasi di dev |
+| Risiko / pemilik | Sedang: uang keluar lewat refund. Refund tetap melewati persetujuan Finance yang ada. Pemilik: Backend; Finance diberi tahu (`BKC-OQ-140`) |
+| Definition of Done | Kriteria terbukti; build lulus; laporan tersusun |
+
+### `BE-BKC-086` — Skrip dry-run baca-saja backfill tautan transfer lama
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Pemilik dapat melihat berapa transfer lama yang akan ditautkan, berapa yang dilewati beserta alasannya, dan berapa tagihan rawat inap yang masih terbuka, **sebelum** memberi izin migration |
+| Jejak | `FR-BKC-283`; `BKC-DEC-160`, `163`; `BKC-DES-088` |
+| Kontrak | `BIL-INTEGRATION-1.8` `BIL-INT-022`; `02-backend-architecture.md` amendment `2.3` bagian 8.1–8.2 |
+| Cakupan | Satu skrip `SELECT` (tanpa `INSERT`/`UPDATE`/`DELETE`) di folder evidence blueprint, memakai kriteria **identik** dengan bagian 8.1 dan menghitung seluruh butir bagian 8.2, beserta runbook singkat. Sekaligus menghitung jumlah kredit `REFERRED_OUTPATIENT_ADMIN` (`BKC-CQ-16`, seharusnya 0) |
+| Dependency | `BE-BKC-082` (kriteria runtime harus sudah terpasang agar identik) |
+| Acceptance criteria | 1. Skrip hanya membaca.<br/>2. Kriteria sama persis dengan penulis runtime `BE-BKC-082` dan migration `BE-BKC-087`.<br/>3. (`BIL-AT-214`) Pada data contoh, hasil hitungan per alasan sesuai |
+| Bukti verifikasi | Review skrip. **Menjalankan** skrip di lingkungan mana pun hanya atas izin pemilik; hasilnya dilampirkan sebagai evidence |
+| Risiko / pemilik | Sedang. Pemilik: Backend + pemilik modul Billing |
+| Definition of Done | Skrip dan runbook ada; hasil jalan di dev terlampir (atau NOT RUN beralasan); pemilik sudah membaca hasilnya |
+
+### `BE-BKC-087` — Migration data backfill tautan transfer lama ⛔
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Transfer yang terjadi sebelum `BE-BKC-082` rilis tertaut, sehingga `MVP-37` tidak menandai mereka "asal transfer belum tertaut" |
+| Jejak | `FR-BKC-283`; `BKC-DEC-163`; `BKC-DES-088` |
+| Kontrak | `BIL-INT-022`; `02-backend-architecture.md` amendment `2.3` bagian 8 |
+| Cakupan | Satu migration data `<timestamp>_BackfillTransferOriginEncounterLinks`: `INSERT ... SELECT` dengan kriteria bagian 8.1; `ReceiptId` dan `LinkedAt` dari tanda terima `ADMISSION_CONFIRMED` paling awal (**bukan** waktu migration); `CreateBy` penanda backfill; `Down` menghapus baris berpenanda saja |
+| Dependency | `BE-BKC-086`, `{OTORISASI-MIG-2}` |
+| Acceptance criteria | `BIL-AT-215` (tautan benar; jalan kedua nol baris), `216` (`Down` selektif), `217` (`MVP-37` tidak memunculkan `UNLINKED_TRANSFER_ORIGIN` untuk transfer lama yang tertaut) |
+| Bukti verifikasi | QBE preflight; review migration; `dotnet build`; pembandingan hasil dengan dry-run sesudah pemilik menerapkan migration |
+| Risiko / pemilik | Tinggi (data). Wajib backup sebelum dijalankan. Pemilik: Backend + pemilik basis data |
+| Definition of Done | Kriteria terbukti; migration diterapkan pemilik; jumlah baris sama dengan dry-run; laporan tersusun; **selesai sebelum `MVP-37` dirilis** |
+
+### `BE-BKC-088` — Tinjauan void biaya administrasi yang keliru ⛔ (lewat `BE-BKC-083`)
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Supervisor Kasir melihat item yang di-void oleh cacat lama dan menetapkan satu keputusan final per item: Pulihkan (tagihan terbuka), Biarkan, atau Perlu Koreksi Pasca-Tutup (tagihan final/lunas), tanpa persetujuan berjenjang (sementara) |
+| Jejak | `FR-BKC-284`; `BKC-DEC-158`, `162`, `165`, `166`; `BKC-DES-089` |
+| Kontrak | `BIL-API-2.0` bagian B (tiga endpoint); `BIL-STATE-2.0` bagian 3–4; `BIL-VALIDATION-2.0` `BIL-VAL-151`–`158`; `BIL-PERMISSION-1.6` |
+| Kemampuan existing | `BilInvoiceItem` (indeks unik berfilter non-`VOIDED`), pola transaksi dan idempotensi `BillingFinancialExceptionService` |
+| Cakupan | `BillingSupersededItemReviewService` (transaksi `Serializable` + lock `BIL_INVOICE_LEDGER_{invoiceId}`; salinan item untuk `REINSTATE`), `BillingSupersededItemReviewsController` (`[AccessPermission("BillingSupersededItemReview", "Read")]`, `[AccessPermission("BillingSupersededItemReview", "Decide")]`), DTO di `Dtos/`, registrasi `AddScoped`, baris seeder hak akses untuk Supervisor Kasir, audit `BillingSupersededItemReview.Decide` tanpa data identitas. **Tanpa** field adendum `BKC-DES-092` |
+| Dependency | `BE-BKC-081`, `BE-BKC-083` |
+| Acceptance criteria | `BIL-AT-218`–`224`: pemulihan sebagai salinan (item lama tidak berubah), penolakan per status, keputusan final dan replay idempoten, `403` untuk peran lain, tolak kunci sumber ganda, alasan minimal 10 karakter, audit tanpa identitas |
+| Bukti verifikasi | QBE preflight; review diff; `dotnet build`; verifikasi kontrak ketiga endpoint; verifikasi proses dengan satu item contoh di dev |
+| Risiko / pemilik | Sedang: satu orang tanpa pemeriksa kedua (`BKC-DEC-166`, sementara; tinjau ulang lewat `BKC-OQ-141`). Pemilik: Backend |
+| Definition of Done | Kriteria terbukti; build lulus; laporan tersusun |
+
+## Catatan Kebijakan Test
+
+Sesuai `rules/backend/TEST_POLICY.md`, kriteria dan DoD di atas **tidak** menuntut automated test. Kode `BIL-AT-*` dipakai
+sebagai **skenario verifikasi** proses bisnis dan runtime, bukan sebagai kewajiban membuat project test. Kalimat pada
+`testing/acceptance-test-matrix.md` amendment `2.3` ("seluruh uji integrasi … MUST berjalan di PostgreSQL") dibaca
+sebagai: verifikasi skenario yang menyentuh `CHECK` dilakukan pada basis data PostgreSQL dev, bukan basis data in-memory.
+
+## Wewenang yang Tetap Terpisah
+
+| Wewenang | Pemilik | Catatan |
+| --- | --- | --- |
+| Menulis source backend | Diminta per task saat handoff ke `build-module-backend` | Approval roadmap bukan otorisasi menulis kode |
+| Membuat dan menjalankan migration `AddReferredAdminCreditAndSupersededItemReview` | Pemilik repository/basis data | `{OTORISASI-MIG-1}` — belum diberikan |
+| Menjalankan dry-run dan migration `BackfillTransferOriginEncounterLinks` | Pemilik repository/basis data | `{OTORISASI-MIG-2}` — belum diberikan; dry-run dibaca pemilik lebih dulu |
+| QBE preflight dan kesesuaian engineering | Diselesaikan saat eksekusi task | Dari `AGENTS.md` backend target dan dokumen engineering canonical |
+| Komunikasi perubahan perilaku ke kasir | Pemilik modul Billing | Wajib sebelum `BE-BKC-084` dirilis |

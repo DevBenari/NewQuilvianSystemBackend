@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
@@ -52,8 +53,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? MedicalEquipmentName { get; set; }
 
         /// <summary>Komponen biaya operasi (<c>episode-rawat-inap</c> kontrak <c>0.10.0</c>).</summary>
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public MstSurgeryComponentType SurgeryComponentType { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public MstTariffChargeBasis ChargeBasis { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public MstEquipmentRoundingRule ChargeRounding { get; set; }
 
         public string? ExternalServiceCode { get; set; }
@@ -234,12 +238,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         /// Opsional. Komponen biaya operasi — <c>None</c>, <c>AnesthesiaService</c>, atau
         /// <c>OperatingRoomRent</c> (<c>episode-rawat-inap</c> kontrak <c>0.10.0</c> API 11.9).
         /// </summary>
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public MstSurgeryComponentType? SurgeryComponentType { get; set; }
 
         /// <summary>Opsional. <c>PerService</c> atau <c>PerHour</c>.</summary>
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public MstTariffChargeBasis? ChargeBasis { get; set; }
 
         /// <summary>Opsional. Pembulatan unit untuk tarif <c>PerHour</c>.</summary>
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public MstEquipmentRoundingRule? ChargeRounding { get; set; }
 
         [MaxLength(50)]
@@ -294,8 +301,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? ProcedureId { get; set; }
         public Guid? DrugId { get; set; }
         public Guid? MedicalEquipmentId { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public MstSurgeryComponentType SurgeryComponentType { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public MstTariffChargeBasis ChargeBasis { get; set; }
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public MstEquipmentRoundingRule ChargeRounding { get; set; }
         public Guid? ServiceUnitId { get; set; }
         public Guid? ClinicId { get; set; }
