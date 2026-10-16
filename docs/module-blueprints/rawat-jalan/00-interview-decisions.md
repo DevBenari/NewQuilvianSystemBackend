@@ -1321,3 +1321,21 @@ Keputusan Kiosk yang ikut berubah: `KSK-DEC-025` di blueprint Kiosk menggantikan
 ### Langkah berikutnya
 
 Tidak ada blocker `DESIGN` yang terbuka. `RJ-DOC-OQ-PM-01` hanya menahan implementasi pemeriksaan match. Langkah berikutnya: `design-business-module` (amendment) untuk kontrak entity rujukan, endpoint, dan layar.
+
+## Amendment REF-REV — Zoom 13 Oktober 2026 (rujukan Rawat Jalan)
+
+Sumber: transkrip `GMT20261013-031839_Recording.transcript.vtt`; task Sukma Giri 16 Okt 2026. Detail dan
+status: [roadmap/registration-revision-roadmap.md](roadmap/registration-revision-roadmap.md) bagian 8.
+
+| ID | Keputusan | Sumber | Status |
+| --- | --- | --- | --- |
+| `RJ-REF-DEC-001` | Rujukan dibedakan Internal (Surat Rujukan dokter antar-poli) dan Eksternal (faskes lain) | 00:36:55–00:37:19, 01:41:39 | `USER_CONFIRMED` (meeting) |
+| `RJ-REF-DEC-002` | Nomor rujukan RJ tidak wajib | 01:41:22–01:42:46 | `USER_CONFIRMED` |
+| `RJ-REF-DEC-003` | Diagnosa/alasan medis bukan isian petugas pendaftaran RJ | 01:24:29–01:25:40, 01:43:15 | `USER_CONFIRMED` |
+| `RJ-REF-DEC-004` | Unggah surat eksternal opsional; internal tanpa unggahan | 01:43:23–01:43:45 | `USER_CONFIRMED` |
+| `RJ-REF-DEC-005` | Surat rujukan internal dibuat dokter, dicetak petugas dari Daftar Pasien RJ untuk klaim | 00:37:41–00:40:35 | `USER_CONFIRMED` |
+| `RJ-REF-DEC-006` | Aturan rujukan IGD tidak diubah dalam amendemen ini | Batas scope task | `USER_CONFIRMED` (task) |
+| `RJ-REF-DEC-007` | Satu surat internal = satu kunjungan aktif; batal membebaskan | `RJ-REF-REV-005` | `DEV_DISCRETION` — perlu konfirmasi |
+| `RJ-REF-OQ-001` | Fasilitas di luar master dicatat teks bebas vs `DEC-FRJ-001` | 01:42:46 | `OWNER_DECISION_REQUIRED` |
+| `RJ-REF-OQ-002` | Masa berlaku surat internal; seri kunjungan (fisioterapi) | — | `OWNER_DECISION_REQUIRED` |
+| `RJ-REF-OQ-003` | Unggah surat eksternal wajib untuk penjamin tertentu? | 00:42:04 (klaim) | `OWNER_DECISION_REQUIRED` |

@@ -7,7 +7,7 @@
 | Blueprint | `rawat-jalan` (umbrella `RJ-BIL-BP-001`) |
 | Scope | **Registration / Pendaftaran Rawat Jalan** — prefix `RJ-REG`. Bukan scope Dokter (`RJ-DOC`), bukan Billing (`RJ-BIL`), bukan E2E (`RJ-E2E`) |
 | Sumber requirement | Sukma Giri, 14 Okt 2026, *Master Prompt Rawat Jalan Revision V2* (12 revisi, 5 batch) |
-| Keputusan | `RJ-REG-DEC-001`..`011` (bagian 2) |
+| Keputusan | `RJ-REG-DEC-001`..`011` (bagian 2); `RJ-REF-DEC-001`..`007` (bagian 8, Zoom 13 Okt 2026) |
 | Baseline source | Backend `a52b3c98e7e9b0fae42f9a889b84c6c8332f8923` (`sukmagp`), frontend `70b3735dbae7e270a9eb0945f7f603541dfd42ca` (`sukmagpV2`) |
 | `IMPLEMENTATION_AUTHORITY` | `GRANTED` dalam `CROSS-REPO MODE` (`RJ-REG-DEC-001`): backend dan frontend target tulis. Migration boleh dibuat dan diterapkan **hanya** ke `QuilvianNewDevSukma`. Tanpa commit, push, merge, deploy |
 | Verifikasi | Backend pola Bank Darah (build Release, EF `has-pending-model-changes`, QBE Strict, runtime HTTP terhadap `QuilvianNewDevSukma`); frontend ESLint, `npm run build`, uji fungsi `node --test`, uji layar Playwright bila backend uji tersedia |
@@ -86,6 +86,12 @@ RJ-REG-REV-BE-006 ✅ ─> RJ-REG-REV-FE-009 ✅
 
 Batch 7
 RJ-REG-REV-FE-010 ✅
+
+Batch 8 (bagian 8, Zoom 13 Okt 2026)
+RJ-REF-REV-BE-001 ✅ ─┬─> RJ-REF-REV-FE-001 🟡
+                      └─> RJ-REF-REV-BE-003 ✅ ─> RJ-REF-REV-FE-003 🟡
+RJ-REF-REV-BE-002 ✅ ─┬─> RJ-REF-REV-FE-002 🟡
+                      └─> RJ-REF-REV-BE-003
 ```
 
 | Gelombang | Task | Boleh mulai bila |
@@ -230,3 +236,102 @@ dan mengirim `value` = `yyyy-MM-dd|doctorScheduleId`, `visitDate`, `doctorSchedu
 Bukti: build 0 error, QBE Strict PASS, uji HTTP T1–T7 PASS, uji layar U1–U3 PASS (pilih slot 16 Okt di form →
 detail 16 Okt; data uji dikembalikan ke 19 Okt).
 
+
+## 8. Revisi Zoom 13 Oktober 2026 — Rujukan internal/eksternal dan Surat Rujukan (Amendment REF-REV)
+
+### 8.0 Dasar
+
+| Field | Isi |
+| --- | --- |
+| Sumber requirement | Zoom 13 Okt 2026 (admisi RJ & IGD), transkrip `GMT20261013-031839_Recording.transcript.vtt`; task Sukma Giri 16 Okt 2026 (*Implementasi Revisi Rawat Jalan — Zoom 13 Oktober 2026*) |
+| Scope | Pendaftaran RJ → Data Rujukan; Klinis Dokter → Surat Dokter → Surat Rujukan; Daftar Pasien RJ → detail & cetak. IGD, Kiosk, Billing, Surat Pengantar Rawat Inap **tidak** diubah perilakunya |
+| Baseline | Backend `5a6de202` (`sukmagp`), frontend `321f987a` (`sukmagpV2`); perubahan di working tree, **belum di-commit** (tidak ada commit SHA) |
+| Migration | `20261016043218_AddEncounterReferralSourceType` — 2 kolom (`SourceType` default 1, `SourceDoctorCertificateId`) + FK `Restrict` + index pada `RegEncounterReferral`; data: 20 rujukan RJ eksternal lama yang sudah punya fasilitas + unit tujuan ditandai lengkap (IGD tidak disentuh). Diterapkan **hanya** ke `QuilvianNewDevSukma` (izin pemilik 16 Okt 2026) |
+| Verifikasi | Backend: build Release `0 Error`, EF `has-pending-model-changes` bersih, QBE Strict `PASS` (16 berkas), runtime HTTP R0–R24 **26/26 PASS** (backend uji 7185). Frontend: ESLint tanpa error/warning baru, `npm run build` sukses, unit `tests/unit/outpatient-referral-revision.test.mjs` 12/12 + `doctor-certificate-referral` 2/2; uji layar Playwright **NOT RUN** |
+
+### 8.1 Keputusan (dari transkrip; tidak mengarang aturan baru)
+
+| ID | Keputusan | Sumber |
+| --- | --- | --- |
+| `RJ-REF-DEC-001` | Rujukan dibedakan **Internal** (antar-poli, dari Surat Rujukan dokter rumah sakit) dan **Eksternal** (faskes lain). Pilihan Jenis Kunjungan tetap | 00:36:55–00:37:19, 01:41:39–01:43:11 |
+| `RJ-REF-DEC-002` | Nomor rujukan tidak wajib untuk rujukan RJ (sering tidak ada, termasuk klinik mitra) | Raras 01:41:22–01:42:46 |
+| `RJ-REF-DEC-003` | Diagnosa, alasan, dan tujuan medis bukan isian petugas pendaftaran RJ ("skip saja"; urusan nakes) | dr. Jasmine 01:24:29–01:25:40; Raras 01:43:15 |
+| `RJ-REF-DEC-004` | Unggah surat eksternal opsional; rujukan internal tidak diunggah ulang | Raras 01:43:23–01:43:45 |
+| `RJ-REF-DEC-005` | Surat rujukan internal dibuat dokter (tab Surat Dokter), terbaca dan dapat **dicetak** petugas dari Daftar Pasien RJ untuk lampiran klaim asuransi | 00:37:41–00:40:35 |
+| `RJ-REF-DEC-006` | Aturan IGD (nomor, diagnosa, alasan wajib; `RJ-DOC-DEC-075`) tidak berubah — di luar scope; transkrip IGD dicatat terpisah | Batas scope task |
+| `RJ-REF-DEC-007` (`DEV_DISCRETION`, perlu konfirmasi pemilik) | Satu Surat Rujukan internal hanya dapat menjadi dasar **satu** kunjungan aktif; kunjungan dibatalkan membebaskannya. Mencegah duplikasi saat retry | `RJ-REF-REV-005` |
+
+### 8.2 Pemetaan requirement → gap → task
+
+| Requirement | Existing capability (sebelum) | Gap terbukti | Task |
+| --- | --- | --- | --- |
+| `RJ-REF-REV-001` jenis & sumber rujukan | Step Data Rujukan hanya eksternal (`RJ-DOC-REV-FE-019`, `RJ-REG-REV-FE-008`); `RegEncounterReferral` tanpa sumber | Tidak ada rujukan internal; surat dokter tidak tertaut ke kunjungan lanjutan | `RJ-REF-REV-BE-001`, `RJ-REF-REV-FE-001` |
+| `RJ-REF-REV-002` validasi kondisional | Nomor, fasilitas, diagnosa, alasan, ≥1 surat wajib di FE dan `ComputeMissingFields` | Rujukan sah tanpa nomor/surat tertolak atau tertahan "belum lengkap" | `RJ-REF-REV-BE-001`, `RJ-REF-REV-FE-001` |
+| `RJ-REF-REV-003` Surat Rujukan dokter | `CliDoctorCertificate` tipe `InpatientReferral` berlabel "Rawat Inap", tujuan unit/klinik apa saja, kelas perawatan, tanggal/identitas dari klien, tersimpan saat finalisasi, preview draft bercap "Siap Cetak" dan dapat dicetak | Bukan surat antar-poli; draft bisa dicetak sebagai surat; tanpa DPJP check, tanpa anti-ganda | `RJ-REF-REV-BE-002`, `RJ-REF-REV-FE-002` |
+| `RJ-REF-REV-004` integrasi & cetak | Detail Daftar Pasien RJ tanpa rujukan/surat; endpoint surat dokter tanpa cakupan objek | Petugas tidak dapat melihat/cetak ulang surat resmi | `RJ-REF-REV-BE-003`, `RJ-REF-REV-FE-003` |
+| `RJ-REF-REV-005` riwayat & status | Revisi rujukan tercatat; status surat terpisah | Status rujukan masuk dan surat belum tampil berdampingan; kelengkapan lama tertahan | `RJ-REF-REV-BE-001`/`003`, `RJ-REF-REV-FE-003`, migration |
+
+### 8.3 Task backend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-REF-REV-BE-001` | **Sumber rujukan + validasi kondisional.** Enum `ReferralSourceType`; `RegEncounterReferral.SourceType`/`SourceDoctorCertificateId`; `EncounterReferralCreateRequest.sourceType`/`sourceDoctorCertificateId`; `EncounterReferralService` (internal: surat terbit milik pasien, tujuan = poli kunjungan, belum dipakai — dikunci `FOR UPDATE` di transaksi create; eksternal RJ: fasilitas wajib, nomor/diagnosa/alasan/unggahan opsional; IGD tetap); `ComputeMissingFields` per sumber; `GET /patient-encounters/internal-referral-letters?patientId=`; unggah/`PUT` rujukan internal ditolak; `409` konflik dalam transaksi | — | 1. Internal sah tersimpan `SourceType=2`, surat tertaut, lengkap, nomor = nomor surat. 2. Surat pasien lain `PM-18`, poli beda `PM-20`, dipakai ulang `PM-19`. 3. Eksternal tanpa fasilitas `PM-03`; tanpa nomor & unggahan tersimpan lengkap. 4. Unggah/koreksi internal `PM-22`. 5. Opsi surat hanya surat terbit belum terpakai milik pasien. 6. IGD tidak berubah | Build; EF; QBE; migration; runtime R7–R13, R20–R23 | ✅ `16 Okt 2026` — runtime 26/26 PASS (lihat [laporan](../task/report/backend/RJ-REF-REV-BE-001.md)). Cabang IGD dibuktikan lewat kode, tidak diuji runtime |
+| ✅ `RJ-REF-REV-BE-002` | **Surat Rujukan internal antar-poli.** `DoctorCertificateService.IssueInternalReferralAsync`: kunjungan RJ poli yang sudah ditangani dokter, aktor = DPJP, tujuan poli aktif ≠ poli kunjungan, diagnosa & alasan wajib (≤500/1000), identitas/SIP/tanggal dari server, tanpa kelas perawatan, nomor resmi `SRJ`, kunci kunjungan → `409` bila surat ke poli sama sudah terbit; `referral-targets?certificateType=inpatientReferral` hanya poliklinik; surat yang menjadi dasar kunjungan aktif tidak dapat diubah/dibatalkan (`409`); surat lama bertujuan unit tetap dapat disunting | — | 1. Diagnosa kosong `400`; tujuan = poli sendiri `400`. 2. Terbit: nomor `SRJ`, nama pasien dari master walau klien kirim nama lain, kelas `null`, tanggal = hari ini. 3. Retry `409`, tetap satu surat. 4. Ubah/batal surat terpakai `409` | Runtime R1–R6, R14 | ✅ `16 Okt 2026` — runtime PASS. Uji `403` non-DPJP lewat kode (akun uji SuperAdmin dipetakan ke dokter uji). [Laporan](../task/report/backend/RJ-REF-REV-BE-001.md) |
+| ✅ `RJ-REF-REV-BE-003` | **Detail & cetak bercakupan.** `GET /outpatient-encounters/{id}` menambah `referral` (sumber, fasilitas/surat dasar, kelengkapan, berkas) dan `referralLetters` (keluar/masuk, status surat, kunjungan lanjutan, `canPrint`); `GET /outpatient-encounters/{id}/referral-letters/{certificateId}` (izin `OutpatientEncounter : Read`, cakupan daftar, surat harus tertaut, hanya status Terbit, `Cache-Control: no-store`, audit `ReadOutpatientReferralLetter`) | `BE-001`, `BE-002` | 1. Detail lanjutan memuat rujukan internal + surat masuk. 2. Detail sumber memuat surat keluar + nomor kunjungan lanjutan; surat batal `canPrint=false`. 3. Cetak surat tertaut `200`; surat batal `400`; surat tidak tertaut/acak/pasien lain `404` | Runtime R15–R19, R24; cek header | ✅ `16 Okt 2026` — runtime PASS, `no-store` terverifikasi, 10 baris audit terbit/cetak di log |
+
+### 8.4 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| 🟡 `RJ-REF-REV-FE-001` | **Step Data Rujukan berbasis sumber.** Kartu Sumber Rujukan (Eksternal/Internal). Internal: daftar Surat Rujukan pasien (memuat/galat/kosong), memilih surat mengunci poliklinik tujuan, lalu jadwal dokter; tanpa nomor/fasilitas/diagnosa/unggahan. Eksternal: Fasilitas Perujuk wajib, dokter perujuk & nomor opsional, tanggal/jam, berkas opsional, unit tujuan & jadwal; kelompok Informasi Klinis dihapus. Verifikasi menampilkan ringkasan sesuai sumber; ganti sumber mengosongkan isian sumber lain | `BE-001` | 1. Validasi & payload sesuai sumber (unit test). 2. Unggahan hanya dikirim bila ada. 3. Lab tetap eksternal. 4. Galat backend (`PM-18/19/20`) tampil | ESLint; build; unit; uji layar | 🟡 `16 Okt 2026` — ESLint bersih, build sukses, unit 12/12; **uji layar NOT RUN** [Laporan](../task/report/frontend/RJ-REF-REV-FE-001.md) |
+| 🟡 `RJ-REF-REV-FE-002` | **Surat Rujukan di tab Surat Dokter.** Label "Surat Rujukan" antar-poli; tujuan hanya poliklinik; Tanggal Rujukan & Kelas Perawatan dihapus; tombol **Terbitkan Surat Rujukan** (nomor resmi backend, tidak lagi tersimpan saat finalisasi); surat terbit dimuat ulang dan form terkunci; preview draft bercap *DRAFT — BELUM TERBIT*, nomor "Belum terbit", tombol Cetak nonaktif | `BE-002` | 1. Draft tidak dapat dicetak. 2. Terbit → nomor `SRJ` tampil, form baca saja. 3. `409` menampilkan surat terkini. 4. Surat Pengantar Rawat Inap tidak berubah | ESLint; build; unit; uji layar | 🟡 `16 Okt 2026` — lint (warning = `HEAD`), build sukses, unit payload/peta surat PASS; **uji layar NOT RUN** [Laporan](../task/report/frontend/RJ-REF-REV-FE-001.md) |
+| 🟡 `RJ-REF-REV-FE-003` | **Detail Daftar Pasien RJ.** Kelompok kartu *Rujukan Masuk* (sumber, status rujukan masuk + isian kurang, fasilitas/surat dasar, dokter, tanggal, unit tujuan, berkas) dan bagian *Surat Rujukan* (tabel surat keluar/masuk, status surat terpisah, kunjungan lanjutan, aksi *Preview & Cetak* hanya untuk surat Terbit). Preview memuat surat resmi dari endpoint `BE-003`, cetak via `window.print` | `BE-003` | 1. Surat terbit dapat di-preview & dicetak. 2. Surat batal tidak dapat dicetak. 3. `404/403` tampil sebagai pesan | ESLint; build; uji layar; UAT cetak | 🟡 `16 Okt 2026` — ESLint bersih, build sukses; **uji layar & cetak kertas NOT RUN** [Laporan](../task/report/frontend/RJ-REF-REV-FE-001.md) |
+
+### 8.5 Status requirement
+
+| Requirement | Status | Alasan |
+| --- | --- | --- |
+| `RJ-REF-REV-001` | `PARTIAL` | Backend `TESTED`; frontend build/unit, uji layar belum |
+| `RJ-REF-REV-002` | `PARTIAL` | Validasi BE/FE konsisten dan teruji; **fasilitas di luar master `BLOCKED/OWNER_DECISION_REQUIRED`** (8.7) |
+| `RJ-REF-REV-003` | `PARTIAL` | Backend `TESTED`; tab dokter belum uji layar |
+| `RJ-REF-REV-004` | `PARTIAL` | Endpoint cetak bercakupan `TESTED`; layar & cetak kertas belum |
+| `RJ-REF-REV-005` | `PARTIAL` | Anti-ganda, kunci, kelengkapan, status terpisah `TESTED` di BE; tampilan belum uji layar |
+
+Tidak ada requirement `DONE`: uji layar Playwright dan UAT pengguna belum dijalankan.
+
+### 8.6 Traceability balik (kode → task → requirement)
+
+| Kode berubah | Task | Requirement |
+| --- | --- | --- |
+| BE `Enums/ReferralSourceType.cs`, `Models/RegEncounterReferral.cs`, `RegEncounterReferralConfiguration.cs`, `Migrations/20261016043218_*` | `BE-001` | 001, 002, 005 |
+| BE `Services/EncounterReferralService.cs`, `ReferralDocumentStorageService.cs`, `DTOS/EncounterReferralDtos.cs`, `Controllers/PatientEncounterController.cs` | `BE-001` | 001, 002, 005 |
+| BE `ClinicalManagement/Services/DoctorCertificateService.cs`, `Controllers/DoctorCertificateController.cs` | `BE-002` | 003, 005 |
+| BE `OutpatientEncounterDetailService.cs`, `OutpatientEncounterListService.cs` (konstruktor exception), `OutpatientEncounterController.cs`, `DTOS/OutpatientEncounterDetailDtos.cs` | `BE-003` | 004, 005 |
+| FE `outpatient-referral-step.jsx`, `outpatient-verification-step.jsx`, `outpatient-registration-page.jsx`, `use-outpatient-registration.js`, `outpatient-referral.utils.js`, `outpatient-registration.constants.js`, `outpatient-registration.service.js` | `FE-001` | 001, 002 |
+| FE `doctor-certificate-tab.jsx`, `use-doctor-certificate.js`, `doctor-certificate.utils.js`, `doctor-certificate.constants.js`, `doctor-certificate.module.css` | `FE-002` | 003 |
+| FE `outpatient-encounter-referral-letters.jsx` (baru), `outpatient-encounter-detail-view.jsx`, `outpatient-encounter-detail-utils.jsx`, `outpatient-encounter.service.js` | `FE-003` | 004, 005 |
+| FE `tests/unit/outpatient-referral-revision.test.mjs` (baru) | `FE-001`, `FE-002` | 001–003 |
+
+### 8.7 Blocker dan keputusan pemilik
+
+| Butir | Status | Menahan |
+| --- | --- | --- |
+| Fasilitas perujuk yang tidak ada di master dicatat teks bebas ("pilih strip … free text", 01:42:46). Bertentangan dengan `DEC-FRJ-001` (fasilitas wajib mitra dengan PKS berlaku). Tidak diimplementasikan | `BLOCKED / OWNER_DECISION_REQUIRED` | Sebagian `RJ-REF-REV-002` |
+| Surat internal satu-pakai (`RJ-REF-DEC-007`) vs. dipakai berulang (mis. seri fisioterapi) | Perlu konfirmasi pemilik | Tidak menahan |
+| Masa berlaku Surat Rujukan internal (saat ini tanpa batas waktu) | Perlu keputusan pemilik | Tidak menahan |
+| Apakah surat eksternal wajib diunggah untuk klaim penjamin tertentu | Perlu keputusan pemilik (Billing/Payer) | Tidak menahan |
+| Endpoint lama `GET /doctor-certificates*` belum punya otorisasi objek (cakupan dokter/encounter); petugas memakai endpoint bercakupan `BE-003` | Risiko lama, di luar perubahan ini | Tidak menahan |
+| Uji layar Playwright, uji `403` akun tanpa izin, cetak kertas | `PENDING` | `DONE` |
+| Migration ke DB master/production | Pemilik rilis | Rilis |
+
+### 8.8 Tambahan 16 Oktober 2026 — Tingkat ketergantungan pasien pada Surat Pengantar Rawat Inap
+
+Permintaan Sukma Giri (16 Okt 2026): tab Surat Dokter → Surat Pengantar Rawat Inap mendapat pilihan wajib
+**Tingkat Ketergantungan Pasien** — Low, Moderate, High Dependency.
+
+| Task | Isi | Bukti | Status |
+| --- | --- | --- | --- |
+| ✅ `RJ-DOC-ADM-BE-001` | Enum `PatientDependencyLevel` (`Low=1`, `Moderate=2`, `High=3`); kolom `CliDoctorCertificate.PatientDependencyLevel` (nullable, data lama `null`) lewat migration `20261016062203_AddDoctorCertificatePatientDependencyLevel`; `inpatientAdmission.patientDependencyLevel` wajib dan tervalidasi enum saat terbit; respons menambah `patientDependencyLevel` + `patientDependencyLevelName` | Build 0 error, EF bersih, QBE Strict PASS, migration diterapkan ke `QuilvianNewDevSukma`, runtime D0–D4 5/5 PASS (tanpa nilai `400`, nilai 9 `400`, Moderate tersimpan & terbaca ulang) | ✅ `TESTED` |
+| 🟡 `RJ-DOC-ADM-FE-001` | Select wajib *Tingkat Ketergantungan Pasien* di form Surat Pengantar (terkunci setelah terbit), dikirim di payload, tampil di preview surat ("Ketergantungan") dan saat surat terbit dimuat ulang | ESLint tanpa temuan baru, build sukses, unit 13/13; uji layar `NOT RUN` | 🟡 |
+
+Belum termasuk: menampilkan tingkat ketergantungan di layar Admisi Transfer Rawat Inap (modul Rawat Inap, di luar scope).

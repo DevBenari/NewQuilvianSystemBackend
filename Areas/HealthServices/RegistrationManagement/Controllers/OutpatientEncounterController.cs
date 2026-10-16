@@ -111,6 +111,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 "Detail kunjungan rawat jalan berhasil diambil.")));
 
         /// <summary>
+        /// Isi resmi Surat Rujukan terkait kunjungan untuk preview dan cetak ulang petugas
+        /// (<c>RJ-REF-REV-004</c>). Hanya surat terbit yang diterbitkan pada kunjungan ini atau
+        /// menjadi dasar rujukan internalnya; kunjungan di luar cakupan atau surat lain <c>404</c>.
+        /// </summary>
+        [HttpGet("{id:guid}/referral-letters/{certificateId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<DoctorCertificateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Outpatient Encounter", Description = "Membuka dan mencetak ulang Surat Rujukan terkait kunjungan rawat jalan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("OutpatientEncounter", "Read")]
+        public Task<IActionResult> GetReferralLetter(
+            Guid id,
+            Guid certificateId,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(async () =>
+            {
+                // Data medis tidak boleh tersimpan di cache peramban atau proxy.
+                Response.Headers["Cache-Control"] = "no-store";
+                return Ok(ApiResponse<DoctorCertificateResponse>.Ok(
+                    await _detailService.GetReferralLetterAsync(User, id, certificateId, cancellationToken),
+                    "Surat Rujukan berhasil diambil."));
+            });
+
+        /// <summary>
         /// Jadwal tersedia dokter kunjungan (dokter dan poliklinik tetap) mulai besok sampai 30 hari
         /// ke depan — tanggal + sesi praktik yang kuotanya belum penuh — untuk ganti jadwal di form Perbarui.
         /// </summary>

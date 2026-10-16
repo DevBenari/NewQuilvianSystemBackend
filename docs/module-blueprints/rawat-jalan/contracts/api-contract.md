@@ -529,3 +529,21 @@ nilainya harus sama.
 Sama dengan Referral Institution (sembilan endpoint + `kiosk/options`), resource `ReferralDoctor`.
 Ruas: `referralInstitutionId` (wajib, institusi aktif), `doctorName`, `isActive`. List menerima
 filter `referralInstitutionId`.
+
+## Amendment REF-REV — `RJ-DOC-REFERRAL-001@1.1.0` (aditif, 16 Okt 2026)
+
+| Endpoint | Perubahan |
+| --- | --- |
+| `POST /patient-encounters/admin` | `referral.sourceType` (`1` Eksternal, `2` Internal; kosong = `1`), `referral.sourceDoctorCertificateId` (wajib bila Internal). Internal: nomor, dokter perujuk, tanggal diambil dari surat; `referralInstitutionId`/`referralNumber` diabaikan. Eksternal RJ: `referralNumber`, `diagnosisId`, `referralReason` opsional. Konflik dalam transaksi → `409` |
+| `GET /patient-encounters/internal-referral-letters?patientId=&clinicId=` (baru) | `PatientEncounter : Read`. Surat Rujukan terbit milik pasien, bertujuan poliklinik, belum dipakai kunjungan aktif. Tanpa diagnosa/alasan |
+| `GET /patient-encounters/{id}/referral` | Tambahan `sourceType`, `sourceTypeName`, `sourceLetter`; `missingFields` dapat berisi `sourceLetter` |
+| `PUT /patient-encounters/{id}/referral`, `POST …/referral/documents` | Rujukan internal ditolak `RJ-VAL-PM-22` |
+| `GET /outpatient-encounters/{id}` | Tambahan `referral` (= `EncounterReferralResponse`) dan `referralLetters[]` (`certificateId`, `certificateNumber`, `direction` `outgoing`/`incoming`, `issuedDate`, `doctorName`, `sourceClinicName`, `targetName`, `certificateStatus`, `canPrint`, `followUpEncounterNumber`) |
+| `GET /outpatient-encounters/{id}/referral-letters/{certificateId}` (baru) | `OutpatientEncounter : Read`, cakupan daftar. Surat harus tertaut (diterbitkan pada kunjungan atau dasar rujukannya), status Terbit. `200` `DoctorCertificateResponse`, `400` dibatalkan, `404` tidak tertaut/di luar cakupan. `Cache-Control: no-store` |
+| `POST /doctor-certificates` tipe `inpatientReferral` | DPJP saja (`403`), kunjungan RJ poli status ≥ Sedang Konsultasi (`409`), tujuan `targetClinicId` poli aktif ≠ poli kunjungan, diagnosa & alasan wajib; surat ke tujuan sama yang masih terbit `409`; identitas/SIP/tanggal dari server; `requestedRoomClass` diabaikan |
+| `PUT /doctor-certificates/{id}`, `POST …/cancel` | Surat Rujukan yang menjadi dasar kunjungan aktif `409` |
+| `GET /doctor-certificates/referral-targets?certificateType=inpatientReferral` | Hanya `kind = clinic` |
+
+### Tambahan 16 Okt 2026 — Surat Pengantar Rawat Inap
+
+`POST /doctor-certificates` tipe `inpatientAdmission`: `inpatientAdmission.patientDependencyLevel` **wajib** (`1` Low, `2` Moderate, `3` High Dependency); selain itu `400`. Respons `inpatientAdmission` menambah `patientDependencyLevel` (int, `null` untuk surat lama) dan `patientDependencyLevelName`.

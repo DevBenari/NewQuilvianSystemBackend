@@ -42,6 +42,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public OutpatientEncounterNotFoundException() : base("Kunjungan tidak ditemukan.")
         {
         }
+
+        public OutpatientEncounterNotFoundException(string message) : base(message)
+        {
+        }
     }
 
     /// <summary>

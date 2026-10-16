@@ -138,3 +138,18 @@ Bunyi ini juga dipakai sebagai petunjuk baris (`cancelBlockedReason`) di Daftar 
 | `RJ-VAL-PM-14` | Unggah Kiosk | Kunjungan dari Kiosk, ≤ 30 menit, status ≤ Masuk Antrean | (Kiosk) "Surat rujukan tidak dapat diunggah. Silakan hubungi petugas." | BE |
 | `RJ-VAL-PM-15` | Jalur Laboratorium | Tanggal kunjungan hari ini; tanpa penjamin perusahaan | "Rujukan Laboratorium hanya untuk hari ini dengan pembayaran tunai atau asuransi." | FE |
 | `RJ-VAL-PM-16` | Master Institusi Perujuk | Kode unik maks 50, nama wajib maks 200; hapus ditolak bila dipakai kunjungan | "Kode sudah dipakai." / "Institusi sudah dipakai kunjungan; nonaktifkan saja." | BE |
+
+## Amendment REF-REV (16 Okt 2026)
+
+| Kode | Aturan | HTTP |
+| --- | --- | --- |
+| `RJ-VAL-PM-03` (RJ eksternal) | Fasilitas perujuk wajib; nomor rujukan tidak lagi wajib untuk RJ. IGD tetap nomor + fasilitas | `400` |
+| `RJ-VAL-PM-06` | Kini hanya IGD; RJ tidak mewajibkan diagnosa/alasan | `400` |
+| Kelengkapan RJ eksternal | Tanggal + fasilitas + unit tujuan (nomor, diagnosa, alasan, berkas opsional) | — |
+| Kelengkapan internal | Surat dasar + unit tujuan | — |
+| `RJ-VAL-PM-18` | Surat internal tidak ada/dibatalkan/tanpa poli tujuan/bukan milik pasien | `400` |
+| `RJ-VAL-PM-19` | Surat internal sudah dipakai kunjungan aktif lain | `400` (pra-transaksi) / `409` (dalam transaksi) |
+| `RJ-VAL-PM-20` | Poli kunjungan ≠ poli tujuan surat | `400` |
+| `RJ-VAL-PM-21` | Internal hanya oleh petugas untuk RJ poliklinik (bukan Kiosk/IGD) | `400` |
+| `RJ-VAL-PM-22` | Rujukan internal tidak diunggah/dikoreksi | `400` |
+| Surat Rujukan dokter | Diagnosa ≤500, alasan ≤1000, instruksi ≤1000 wajib/batas; tujuan ≠ poli kunjungan | `400` |

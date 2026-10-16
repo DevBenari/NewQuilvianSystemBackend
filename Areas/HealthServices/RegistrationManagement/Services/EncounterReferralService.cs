@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
@@ -20,10 +22,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     /// supaya tidak pernah berselisih.
     /// </para>
     /// <para>
-    /// <b>Kelengkapan dihitung, bukan diisi.</b> <see cref="RegEncounterReferral.IsComplete"/>
-    /// benar bila nomor, tanggal, instansi, unit tujuan, diagnosa, alasan, dan minimal satu surat
-    /// aktif ada (<c>RJ-DOC-DEC-075</c>, <c>077</c>). Contoh: rujukan Kiosk tanpa diagnosa
-    /// tersimpan <c>false</c>, lalu menjadi <c>true</c> saat petugas melengkapinya.
+    /// <b>Kelengkapan dihitung, bukan diisi.</b> Aturannya bergantung pada sumber dan jenis
+    /// kunjungan — lihat <see cref="ComputeMissingFields"/> (<c>RJ-REF-REV-002</c>/<c>005</c>,
+    /// Zoom 13 Okt 2026). Contoh: rujukan Rawat Jalan eksternal tanpa nomor surat dan tanpa
+    /// unggahan tetap lengkap bila fasilitas, tanggal, dan unit tujuan ada; rujukan IGD masih
+    /// memakai aturan <c>RJ-DOC-DEC-075</c>.
     /// </para>
     /// <para>
     /// <b>Koreksi terkunci</b> begitu konsultasi dokter dimulai (status kunjungan
@@ -42,6 +45,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public const string Pm10 = "RJ-VAL-PM-10: Unit tujuan tidak dapat diubah. Batalkan kunjungan bila salah unit.";
         public const string Pm11 = "RJ-VAL-PM-11: Data rujukan sudah diubah pengguna lain. Muat ulang.";
         public const string Pm17 = "RJ-VAL-PM-17: Fasilitas perujuk bukan mitra aktif atau perjanjian kerja samanya tidak berlaku pada tanggal kunjungan. Pilih ulang fasilitas perujuk.";
+
+        // RJ-REF-REV-001/002 (Zoom 13 Okt 2026): rujukan Rawat Jalan eksternal cukup fasilitas
+        // perujuk; nomor surat sering tidak ada. Rujukan IGD tetap memakai Pm03 lama.
+        public const string Pm03External = "RJ-VAL-PM-03: Fasilitas perujuk wajib dipilih untuk rujukan eksternal.";
+        public const string Pm18 = "RJ-VAL-PM-18: Surat Rujukan internal tidak ditemukan, sudah dibatalkan, tidak memiliki poliklinik tujuan, atau bukan milik pasien ini.";
+        public const string Pm19 = "RJ-VAL-PM-19: Surat Rujukan internal ini sudah dipakai kunjungan lain yang masih aktif.";
+        public const string Pm20 = "RJ-VAL-PM-20: Poliklinik kunjungan harus sama dengan poliklinik tujuan pada Surat Rujukan internal.";
+        public const string Pm21 = "RJ-VAL-PM-21: Rujukan internal hanya dapat didaftarkan petugas untuk kunjungan Rawat Jalan poliklinik.";
+        public const string Pm22 = "RJ-VAL-PM-22: Rujukan internal memakai Surat Rujukan resmi dari dokter, sehingga surat tidak perlu diunggah atau dikoreksi di pendaftaran.";
 
         /// <summary>Toleransi jam perangkat terhadap jam server untuk tanggal rujukan.</summary>
         private static readonly TimeSpan ClockSkew = TimeSpan.FromMinutes(5);
@@ -90,6 +102,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             if (!request.IsReferral)
                 return null;
 
+            var sourceType = request.Referral?.SourceType ?? ReferralSourceType.External;
+
+            if (!Enum.IsDefined(sourceType))
+                return "Sumber rujukan tidak dikenali. Gunakan Eksternal atau Internal.";
+
+            if (sourceType == ReferralSourceType.Internal)
+            {
+                if (isKiosk ||
+                    request.EncounterType == EncounterType.Emergency ||
+                    !request.ClinicId.HasValue ||
+                    request.ClinicId.Value == Guid.Empty)
+                {
+                    return Pm21;
+                }
+
+                var letterCheck = await ValidateInternalLetterAsync(
+                    request.PatientId,
+                    request.Referral!.SourceDoctorCertificateId,
+                    request.ClinicId.Value,
+                    cancellationToken);
+
+                return letterCheck.Error;
+            }
+
+            if (NormalizeGuid(request.Referral?.SourceDoctorCertificateId) != null)
+                return "Surat Rujukan internal hanya dikirim untuk sumber rujukan Internal.";
+
             // Identitas perujuk boleh dikirim tanpa blok rincian (kontrak lama Kiosk), tetapi
             // bila dikirim wajib sah.
             var identityError = await ValidateInstitutionAndDoctorAsync(
@@ -108,14 +147,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             if (referral == null)
                 return null;
 
-            if (string.IsNullOrWhiteSpace(request.ReferralNumber) ||
-                !request.ReferralInstitutionId.HasValue ||
-                request.ReferralInstitutionId.Value == Guid.Empty)
-            {
-                return Pm03;
-            }
+            var isEmergency = request.EncounterType == EncounterType.Emergency;
 
-            if (request.EncounterType == EncounterType.Emergency)
+            if (!request.ReferralInstitutionId.HasValue || request.ReferralInstitutionId.Value == Guid.Empty)
+                return isEmergency ? Pm03 : Pm03External;
+
+            // RJ-REF-REV-002: nomor rujukan wajib hanya untuk IGD (aturan lama tidak diubah).
+            if (isEmergency && string.IsNullOrWhiteSpace(request.ReferralNumber))
+                return Pm03;
+
+            if (isEmergency)
             {
                 if (referral.TargetUnitType != ReferralTargetUnitType.Emergency &&
                     referral.TargetUnitType != ReferralTargetUnitType.Clinic)
@@ -139,7 +180,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 return Pm07;
             }
 
-            if (!isKiosk &&
+            // RJ-REF-REV-002: diagnosa dan alasan medis bukan isian wajib petugas Rawat Jalan
+            // (dr. Jasmine/Raras, 01:24:42, 01:43:15). Aturan IGD tetap.
+            if (isEmergency &&
+                !isKiosk &&
                 (!referral.DiagnosisId.HasValue ||
                  referral.DiagnosisId.Value == Guid.Empty ||
                  string.IsNullOrWhiteSpace(referral.ReferralReason)))
@@ -164,6 +208,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         {
             if (!request.IsReferral)
                 return null;
+
+            if (request.Referral?.SourceType == ReferralSourceType.Internal)
+                return await AttachInternalReferralAsync(encounter, request, actorUserId, now, cancellationToken);
 
             encounter.ReferralInstitutionId = NormalizeGuid(request.ReferralInstitutionId);
             encounter.ReferralDoctorId = NormalizeGuid(request.ReferralDoctorId);
@@ -208,6 +255,178 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return referral;
         }
 
+        /// <summary>
+        /// Rujukan internal (<c>RJ-REF-REV-001</c>): identitas rujukan diambil dari Surat Rujukan
+        /// terbit. Baris surat dikunci <c>FOR UPDATE</c> di dalam transaksi create kunjungan, lalu
+        /// pemakaian diperiksa ulang, sehingga dua pendaftaran bersamaan (atau klik ulang) tidak
+        /// dapat memakai surat yang sama.
+        /// </summary>
+        /// <exception cref="EncounterReferralConflictException">Surat tidak lagi sah atau sudah dipakai.</exception>
+        private async Task<RegEncounterReferral> AttachInternalReferralAsync(
+            RegPatientEncounter encounter,
+            PatientEncounterCreateRequest request,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            var certificateId = NormalizeGuid(request.Referral!.SourceDoctorCertificateId)
+                ?? throw new EncounterReferralConflictException(Pm18);
+
+            await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM public.\"CliDoctorCertificate\" WHERE \"Id\" = {certificateId} FOR UPDATE",
+                cancellationToken);
+
+            var check = await ValidateInternalLetterAsync(
+                encounter.PatientId,
+                certificateId,
+                encounter.ClinicId ?? Guid.Empty,
+                cancellationToken);
+
+            if (check.Error != null)
+                throw new EncounterReferralConflictException(check.Error);
+
+            var letter = check.Letter!;
+
+            // Identitas perujuk eksternal tidak berlaku; nomor rujukan = nomor surat resmi.
+            encounter.ReferralInstitutionId = null;
+            encounter.ReferralDoctorId = null;
+            encounter.ReferralNumber = letter.CertificateNumber;
+
+            var referral = new RegEncounterReferral
+            {
+                Id = Guid.NewGuid(),
+                PatientEncounterId = encounter.Id,
+                SourceType = ReferralSourceType.Internal,
+                SourceDoctorCertificateId = letter.Id,
+                ReferralDateTime = letter.CreateDateTime == default ? now : ToUtc(letter.CreateDateTime),
+                TargetUnitType = ReferralTargetUnitType.Clinic,
+                TargetServiceUnitId = encounter.ServiceUnitId,
+                TargetClinicId = encounter.ClinicId,
+                ReferralDoctorName = letter.DoctorNameSnapshot,
+                CaptureSource = ReferralCaptureSource.Staff,
+                RowVersion = Guid.NewGuid(),
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            ApplyCompletion(referral, encounter, activeDocumentCount: 0, now);
+
+            _dbContext.Set<RegEncounterReferral>().Add(referral);
+
+            return referral;
+        }
+
+        /// <summary>
+        /// Surat Rujukan internal terbit milik pasien yang belum dipakai kunjungan aktif lain,
+        /// terbaru dulu (<c>RJ-REF-REV-001</c>). Dengan <paramref name="clinicId"/> hanya surat yang
+        /// menuju poliklinik itu.
+        /// </summary>
+        public async Task<List<InternalReferralLetterOptionResponse>> GetInternalLetterOptionsAsync(
+            Guid patientId,
+            Guid? clinicId,
+            CancellationToken cancellationToken = default)
+        {
+            var targetClinicId = NormalizeGuid(clinicId);
+
+            var query = UsableInternalLettersQuery()
+                .Where(x => x.PatientId == patientId);
+
+            if (targetClinicId.HasValue)
+                query = query.Where(x => x.ReferralTargetClinicId == targetClinicId.Value);
+
+            var rows = await query
+                .OrderByDescending(x => x.IssuedDate)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Take(50)
+                .ToListAsync(cancellationToken);
+
+            return await ToLetterOptionsAsync(rows, cancellationToken);
+        }
+
+        /// <summary>Surat terbit, bertujuan poliklinik, dan tidak sedang dipakai kunjungan aktif.</summary>
+        private IQueryable<CliDoctorCertificate> UsableInternalLettersQuery()
+            => _dbContext.Set<CliDoctorCertificate>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.CertificateType == DoctorCertificateType.InpatientReferral &&
+                    x.CertificateStatus == DoctorCertificateStatus.Issued &&
+                    x.ReferralTargetClinicId != null &&
+                    !_dbContext.Set<RegEncounterReferral>().Any(r =>
+                        r.SourceDoctorCertificateId == x.Id &&
+                        !r.IsDelete &&
+                        r.PatientEncounter != null &&
+                        !r.PatientEncounter.IsDelete &&
+                        !r.PatientEncounter.IsCancel));
+
+        private async Task<List<InternalReferralLetterOptionResponse>> ToLetterOptionsAsync(
+            IReadOnlyCollection<CliDoctorCertificate> rows,
+            CancellationToken cancellationToken)
+        {
+            if (rows.Count == 0)
+                return new List<InternalReferralLetterOptionResponse>();
+
+            var encounterIds = rows.Select(x => x.EncounterId).Distinct().ToList();
+            var encounterNumbers = await _dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .Where(x => encounterIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.EncounterNumber, cancellationToken);
+
+            return rows.Select(x => new InternalReferralLetterOptionResponse
+            {
+                CertificateId = x.Id,
+                CertificateNumber = x.CertificateNumber,
+                IssuedDate = x.IssuedDate,
+                IssuedAt = x.CreateDateTime,
+                DoctorName = x.DoctorNameSnapshot,
+                SourceEncounterId = x.EncounterId,
+                SourceEncounterNumber = encounterNumbers.TryGetValue(x.EncounterId, out var number) ? number : null,
+                SourceClinicName = x.ClinicNameSnapshot,
+                TargetClinicId = x.ReferralTargetClinicId,
+                TargetServiceUnitId = x.ReferralTargetServiceUnitId,
+                TargetName = x.ReferralTargetNameSnapshot,
+                CertificateStatus = (int)x.CertificateStatus,
+                CertificateStatusName = x.CertificateStatus == DoctorCertificateStatus.Cancelled ? "Dibatalkan" : "Terbit"
+            }).ToList();
+        }
+
+        /// <summary>
+        /// Surat Rujukan internal sah untuk satu pendaftaran: terbit, milik pasien yang sama,
+        /// bertujuan poliklinik kunjungan, dan belum dipakai kunjungan aktif lain.
+        /// </summary>
+        private async Task<(string? Error, CliDoctorCertificate? Letter)> ValidateInternalLetterAsync(
+            Guid patientId,
+            Guid? certificateId,
+            Guid clinicId,
+            CancellationToken cancellationToken)
+        {
+            var id = NormalizeGuid(certificateId);
+
+            if (id == null)
+                return (Pm18, null);
+
+            var letter = await _dbContext.Set<CliDoctorCertificate>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x =>
+                    x.Id == id.Value &&
+                    !x.IsDelete &&
+                    x.CertificateType == DoctorCertificateType.InpatientReferral &&
+                    x.CertificateStatus == DoctorCertificateStatus.Issued &&
+                    x.PatientId == patientId &&
+                    x.ReferralTargetClinicId != null,
+                    cancellationToken);
+
+            if (letter == null)
+                return (Pm18, null);
+
+            if (letter.ReferralTargetClinicId != clinicId)
+                return (Pm20, null);
+
+            var usable = await UsableInternalLettersQuery().AnyAsync(x => x.Id == letter.Id, cancellationToken);
+
+            return usable ? (null, letter) : (Pm19, null);
+        }
+
         // =================================================================
         // GET / PUT rincian
         // =================================================================
@@ -226,6 +445,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     x.IsReferral,
                     x.ReferralNumber,
                     x.EncounterStatus,
+                    x.EncounterType,
                     x.IsCancel,
                     Institution = x.ReferralInstitution == null ? null : new EncounterReferralReferenceResponse
                     {
@@ -281,6 +501,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             var r = referral?.Entity;
 
+            InternalReferralLetterOptionResponse? sourceLetter = null;
+
+            if (r?.SourceDoctorCertificateId is { } sourceCertificateId)
+            {
+                // Surat dasar tetap ditampilkan walau sesudahnya dibatalkan, supaya histori terbaca.
+                var letterRows = await _dbContext.Set<CliDoctorCertificate>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == sourceCertificateId)
+                    .ToListAsync(cancellationToken);
+
+                sourceLetter = (await ToLetterOptionsAsync(letterRows, cancellationToken)).FirstOrDefault();
+            }
+
             var response = new EncounterReferralResponse
             {
                 Id = r?.Id,
@@ -305,6 +538,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 DiagnosisNote = r?.DiagnosisNote,
                 ReferralReason = r?.ReferralReason,
                 CaptureSource = r?.CaptureSource,
+                SourceType = r?.SourceType,
+                SourceTypeName = r == null ? null : SourceTypeLabel(r.SourceType),
+                SourceLetter = sourceLetter,
                 IsComplete = r?.IsComplete ?? false,
                 IsLocked = IsLocked(encounter.EncounterStatus, encounter.IsCancel),
                 RowVersion = r?.RowVersion,
@@ -312,6 +548,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             };
 
             response.MissingFields = ComputeMissingFields(
+                encounter.EncounterType,
                 encounter.ReferralNumber,
                 encounter.Institution?.Id,
                 r,
@@ -341,14 +578,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             if (referral != null && request.ExpectedRowVersion != referral.RowVersion)
                 return EncounterReferralResult.Conflict(Pm11);
 
-            if (string.IsNullOrWhiteSpace(request.ReferralNumber) ||
-                !request.ReferralInstitutionId.HasValue ||
-                request.ReferralInstitutionId.Value == Guid.Empty)
-            {
-                return EncounterReferralResult.Invalid(Pm03);
-            }
+            // Rincian internal berasal dari surat resmi dokter; tidak dikoreksi lewat jalur eksternal.
+            if (referral?.SourceType == ReferralSourceType.Internal)
+                return EncounterReferralResult.Invalid(Pm22);
 
-            if (request.ReferralNumber.Trim().Length > 250)
+            var isEmergency = encounter.EncounterType == EncounterType.Emergency;
+
+            if (!request.ReferralInstitutionId.HasValue || request.ReferralInstitutionId.Value == Guid.Empty)
+                return EncounterReferralResult.Invalid(isEmergency ? Pm03 : Pm03External);
+
+            if (isEmergency && string.IsNullOrWhiteSpace(request.ReferralNumber))
+                return EncounterReferralResult.Invalid(Pm03);
+
+            if (request.ReferralNumber != null && request.ReferralNumber.Trim().Length > 250)
                 return EncounterReferralResult.Invalid("Nomor rujukan terlalu panjang. Batasnya 250 huruf.");
 
             var identityError = await ValidateInstitutionAndDoctorAsync(
@@ -401,7 +643,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             else if ((request.TargetUnitType.HasValue && request.TargetUnitType.Value != referral!.TargetUnitType) ||
                      (request.TargetServiceUnitId.HasValue &&
                       request.TargetServiceUnitId.Value != Guid.Empty &&
-                      request.TargetServiceUnitId.Value != referral.TargetServiceUnitId))
+                      request.TargetServiceUnitId.Value != referral!.TargetServiceUnitId))
             {
                 return EncounterReferralResult.Invalid(Pm10);
             }
@@ -411,7 +653,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var wasComplete = !isNew && referral!.IsComplete;
 
             encounter.IsReferral = true;
-            encounter.ReferralNumber = request.ReferralNumber.Trim();
+            encounter.ReferralNumber = NormalizeText(request.ReferralNumber);
             encounter.ReferralInstitutionId = request.ReferralInstitutionId;
             encounter.ReferralDoctorId = NormalizeGuid(request.ReferralDoctorId);
             encounter.UpdateDateTime = now;
@@ -491,6 +733,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             DateTime now)
         {
             var missing = ComputeMissingFields(
+                encounter.EncounterType,
                 encounter.ReferralNumber,
                 encounter.ReferralInstitutionId,
                 referral,
@@ -502,13 +745,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 referral.CompletedAt = now;
         }
 
+        /// <summary>
+        /// Isian rujukan yang belum ada. Aturan per sumber (<c>RJ-REF-REV-002</c>, <c>005</c>):
+        /// <list type="bullet">
+        /// <item>Internal: surat dasar dan unit tujuan.</item>
+        /// <item>Eksternal Rawat Jalan/Laboratorium: tanggal, fasilitas perujuk, unit tujuan. Nomor
+        /// surat, diagnosa, alasan, dan unggahan opsional sehingga rujukan sah tidak tertahan
+        /// "belum lengkap".</item>
+        /// <item>IGD: aturan lama <c>RJ-DOC-DEC-075</c> tidak berubah.</item>
+        /// </list>
+        /// </summary>
         public static List<string> ComputeMissingFields(
+            EncounterType encounterType,
             string? referralNumber,
             Guid? referralInstitutionId,
             RegEncounterReferral? referral,
             int activeDocumentCount)
         {
             var missing = new List<string>();
+
+            if (referral?.SourceType == ReferralSourceType.Internal)
+            {
+                if (!referral.SourceDoctorCertificateId.HasValue) missing.Add("sourceLetter");
+                if (referral.TargetServiceUnitId == Guid.Empty) missing.Add("targetUnit");
+                return missing;
+            }
+
+            if (encounterType != EncounterType.Emergency)
+            {
+                if (referral == null || referral.ReferralDateTime == default) missing.Add("referralDateTime");
+                if (!referralInstitutionId.HasValue || referralInstitutionId.Value == Guid.Empty) missing.Add("referralInstitution");
+                if (referral == null || referral.TargetServiceUnitId == Guid.Empty) missing.Add("targetUnit");
+                return missing;
+            }
 
             if (string.IsNullOrWhiteSpace(referralNumber)) missing.Add("referralNumber");
             if (referral == null || referral.ReferralDateTime == default) missing.Add("referralDateTime");
@@ -546,6 +815,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public Task<int> CountActiveDocumentsAsync(Guid referralId, CancellationToken cancellationToken)
             => _dbContext.Set<RegEncounterReferralDocument>()
                 .CountAsync(x => x.EncounterReferralId == referralId && !x.IsDelete, cancellationToken);
+
+        public static string SourceTypeLabel(ReferralSourceType type) => type switch
+        {
+            ReferralSourceType.Internal => "Internal",
+            _ => "Eksternal"
+        };
 
         public static string TargetUnitLabel(ReferralTargetUnitType type) => type switch
         {
@@ -755,6 +1030,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private static string? NormalizeText(string? value)
             => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
+
+    /// <summary>
+    /// Rujukan tidak dapat dilampirkan di dalam transaksi create kunjungan (mis. Surat Rujukan
+    /// internal baru saja dipakai pendaftaran lain). Pemanggil wajib rollback dan menjawab <c>409</c>.
+    /// </summary>
+    public sealed class EncounterReferralConflictException : Exception
+    {
+        public EncounterReferralConflictException(string message) : base(message)
+        {
+        }
     }
 
     public enum EncounterReferralResultStatus

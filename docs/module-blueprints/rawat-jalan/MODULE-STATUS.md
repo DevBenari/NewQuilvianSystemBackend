@@ -36,6 +36,19 @@ Yang masih terbuka pada scope Registration: centang action baru di Akses Role
 Indonesia), kebijakan antivirus unggahan, `PhotoPath` publik lama (di luar scope), UAT perangkat fisik,
 migration ke DB master saat rilis.
 
+## Revisi Rujukan Zoom 13 Okt 2026 — `RJ-REF-REV` (`CURRENT STATE` 16 Oktober 2026)
+
+Roadmap: [registration-revision-roadmap.md](roadmap/registration-revision-roadmap.md) bagian 8 — 5 requirement,
+6 task (3 BE ✅, 3 FE 🟡), keputusan `RJ-REF-DEC-001`..`007`. Migration
+`20261016043218_AddEncounterReferralSourceType` diterapkan ke `QuilvianNewDevSukma`. Belum di-commit.
+
+| Ukuran | Nilai |
+| --- | --- |
+| Requirement `DONE` / `PARTIAL` / `PENDING` / `BLOCKED` | 0 / 5 / 0 / 0 (satu sub-butir `RJ-REF-REV-002` `BLOCKED/OWNER_DECISION_REQUIRED`) |
+| Bukti backend | build 0 error, EF bersih, QBE Strict PASS, runtime 26/26 PASS |
+| Bukti frontend | ESLint tanpa temuan baru, build sukses, unit 14/14; uji layar `NOT RUN` |
+| Terbuka | Fasilitas di luar master vs `DEC-FRJ-001`; satu-pakai/masa berlaku surat internal; unggah wajib untuk klaim; uji layar & UAT cetak |
+
 ## Status per scope — audit `2026-08-31`
 
 `CURRENT STATE`. Diaudit terhadap backend `HEAD` `801a4f5` cabang `sukmagp` dan frontend `HEAD`

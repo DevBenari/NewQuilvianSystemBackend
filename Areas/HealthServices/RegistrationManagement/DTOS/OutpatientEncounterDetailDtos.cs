@@ -50,6 +50,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public OutpatientEncounterPatientResponse Patient { get; set; } = new();
 
+        /// <summary>
+        /// Rujukan masuk kunjungan ini (<c>RJ-REF-REV-004</c>/<c>005</c>): sumber, fasilitas atau
+        /// surat internal dasar, kelengkapan, dan berkas. <c>null</c> bila bukan kunjungan rujukan.
+        /// </summary>
+        public EncounterReferralResponse? Referral { get; set; }
+
+        /// <summary>
+        /// Surat Rujukan terkait: surat yang diterbitkan dokter pada kunjungan ini dan surat
+        /// internal yang menjadi dasar kunjungan ini. Isi lengkap dibuka lewat
+        /// <c>GET /{id}/referral-letters/{certificateId}</c>.
+        /// </summary>
+        public List<OutpatientReferralLetterResponse> ReferralLetters { get; set; } = new();
+
         /// <summary>Hak dan status mengizinkan edit data pendaftaran.</summary>
         public bool CanEdit { get; set; }
 
@@ -136,5 +149,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         /// <summary>Jadwal yang sedang dipakai kunjungan pada tanggal itu.</summary>
         public bool IsCurrent { get; set; }
+    }
+
+    /// <summary>Ringkasan satu Surat Rujukan terkait kunjungan (<c>RJ-REF-REV-004</c>).</summary>
+    public class OutpatientReferralLetterResponse
+    {
+        /// <summary>Surat diterbitkan dokter pada kunjungan ini.</summary>
+        public const string DirectionOutgoing = "outgoing";
+
+        /// <summary>Surat internal yang menjadi dasar kunjungan ini.</summary>
+        public const string DirectionIncoming = "incoming";
+
+        public Guid CertificateId { get; set; }
+        public string CertificateNumber { get; set; } = string.Empty;
+        public string Direction { get; set; } = DirectionOutgoing;
+        public string DirectionName { get; set; } = string.Empty;
+        public DateTime IssuedDate { get; set; }
+        public string? DoctorName { get; set; }
+        public string? SourceClinicName { get; set; }
+        public string? SourceEncounterNumber { get; set; }
+        public string? TargetName { get; set; }
+
+        /// <summary><c>1</c> Terbit, <c>2</c> Dibatalkan.</summary>
+        public int CertificateStatus { get; set; }
+        public string CertificateStatusName { get; set; } = string.Empty;
+
+        /// <summary>Hanya surat berstatus terbit yang dapat dibuka sebagai surat resmi dan dicetak.</summary>
+        public bool CanPrint { get; set; }
+
+        /// <summary>Nomor kunjungan rujukan aktif yang memakai surat ini (surat keluar).</summary>
+        public string? FollowUpEncounterNumber { get; set; }
     }
 }

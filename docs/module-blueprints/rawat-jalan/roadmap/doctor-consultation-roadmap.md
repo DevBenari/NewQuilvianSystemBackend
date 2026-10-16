@@ -1360,3 +1360,13 @@ dapat dibuktikan di lingkungan dev; dibuktikan saat UAT sesudah `RJ-DOC-OQ-PM-01
 
 Mengikuti `04` *PM-5*. Setiap task selesai bila acceptance criteria-nya terbukti, laporan tracked
 ada di `task/report/`, serta roadmap dan traceability diperbarui.
+
+## 20. Amandemen `2026-10-16` — Surat Rujukan internal antar-poli (Amendment REF-REV)
+
+Task `RJ-DOC-REV-BE-004` dan `RJ-DOC-REV-FE-006` tetap ✅; perilaku Surat Rujukan diamandemen oleh
+`RJ-REF-REV-BE-002` ✅ dan `RJ-REF-REV-FE-002` 🟡 (definisi dan bukti:
+[registration-revision-roadmap.md](registration-revision-roadmap.md) bagian 8): tujuan hanya poliklinik aktif,
+kelas perawatan dan tanggal klien dihapus, diterbitkan lewat tombol sendiri oleh DPJP dengan nomor resmi `SRJ`,
+preview draft tidak dapat dicetak, surat yang menjadi dasar kunjungan aktif dibekukan. Surat Pengantar Rawat Inap
+(`InpatientAdmissionLetter`) tidak berubah. Amandemen rujukan pendaftaran bagian 19 (`RJ-DOC-REV-BE-018/019`,
+`FE-019/020`) diperluas oleh `RJ-REF-REV-BE-001`/`FE-001` tanpa mengubah status lamanya.

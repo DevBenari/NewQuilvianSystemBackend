@@ -476,6 +476,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         /// <summary>
+        /// Surat Rujukan internal terbit milik pasien yang dapat menjadi dasar pendaftaran rujukan
+        /// internal (<c>RJ-REF-REV-001</c>). Surat yang sudah dipakai kunjungan aktif tidak tampil.
+        /// Tanpa diagnosa dan alasan; isi lengkap surat dibuka dari detail kunjungan.
+        /// </summary>
+        [HttpGet("internal-referral-letters")]
+        [ProducesResponseType(typeof(ApiResponse<List<InternalReferralLetterOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat Surat Rujukan internal pasien untuk pendaftaran rujukan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetInternalReferralLetters(
+            [FromQuery] Guid? patientId,
+            [FromQuery] Guid? clinicId)
+        {
+            if (!patientId.HasValue || patientId.Value == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien wajib dipilih untuk melihat Surat Rujukan internal."));
+            }
+
+            var response = await _encounterReferralService.GetInternalLetterOptionsAsync(
+                patientId.Value,
+                clinicId,
+                HttpContext.RequestAborted);
+
+            return Ok(ApiResponse<List<InternalReferralLetterOptionResponse>>.Ok(
+                response,
+                "Surat Rujukan internal berhasil diambil."));
+        }
+
+        /// <summary>
         /// Rincian rujukan satu kunjungan beserta surat aktif, kelengkapan, dan status terkunci
         /// (<c>RJ-DOC-REV-BE-018</c>, <c>RJ-DOC-REFERRAL-001</c>).
         /// </summary>
@@ -1183,6 +1214,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return Ok(ApiResponse<PatientEncounterCreateResponse>.Ok(
                     response,
                     "Transaksi kunjungan pasien berhasil dibuat."));
+            }
+            catch (EncounterReferralConflictException referralConflict)
+            {
+                // RJ-REF-REV-005: surat internal baru saja dipakai pendaftaran lain (atau klik
+                // ulang) — tidak ada kunjungan maupun rujukan ganda yang tersimpan.
+                if (!transactionCommitted)
+                    await transaction.RollbackAsync();
+
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    referralConflict.Message));
             }
             catch (DbUpdateException dbException)
             {

@@ -69952,6 +69952,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<int?>("PatientDependencyLevel")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
@@ -83244,31 +83247,6 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", b =>
                 {
-                    b.Property<string>("FamilyBillingPreference")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("NewbornAdmissionSource")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("NewbornCareMode")
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
-
-                    b.Property<string>("NewbornCareSource")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<decimal?>("PlannedDepositAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<bool>("RequiresNeonatalIntensiveCare")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
@@ -83343,6 +83321,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("EpisodeStatus")
                         .HasColumnType("integer");
 
+                    b.Property<string>("FamilyBillingPreference")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -83377,6 +83359,18 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("MotherEpisodeId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("NewbornAdmissionSource")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("NewbornCareMode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("NewbornCareSource")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -83393,8 +83387,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("PhysicallyLeftByUserId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal?>("PlannedDepositAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<bool>("RequiresIsolation")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("RequiresNeonatalIntensiveCare")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<Guid>("ServiceUnitId")
                         .HasColumnType("uuid");
@@ -103693,6 +103696,14 @@ namespace QuilvianSystemBackend.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("SourceDoctorCertificateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SourceType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<Guid?>("TargetClinicId")
                         .HasColumnType("uuid");
 
@@ -103717,6 +103728,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("PatientEncounterId")
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("SourceDoctorCertificateId");
 
                     b.HasIndex("TargetClinicId");
 
@@ -131501,6 +131514,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("PatientEncounterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.CliDoctorCertificate", null)
+                        .WithMany()
+                        .HasForeignKey("SourceDoctorCertificateId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstClinic", "TargetClinic")
                         .WithMany()

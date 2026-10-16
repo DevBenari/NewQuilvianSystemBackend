@@ -11,6 +11,20 @@ Keduanya punya roadmap, progress, dan Definition of Done sendiri, dan **tidak bo
 | Billing / Revenue Cycle | `RJ-BIL` | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | `PARTIAL — NEEDS REVERIFICATION` | `1` — `HISTORICAL SNAPSHOT` per `2026-08-24`/`28` | Dimulai sebagai **consumer** clinical fact. `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE` |
 | **Rawat Jalan → Invoice V2** | `RJ-E2E` (dokumen: `RJE`) | [roadmap/e2e-backend-roadmap.md](roadmap/e2e-backend-roadmap.md), [roadmap/e2e-frontend-roadmap.md](roadmap/e2e-frontend-roadmap.md) | **Desain `APPROVED` · roadmap `DRAFT`** | `1` | Jembatan fakta klinis → `BilInvoice`, obat dua tahap, jasa konsultasi, rekonsiliasi, Ringkasan Billing. Lihat bagian *Revisi 27* di bawah |
 
+## Revisi 32 — Amendment REF-REV: Rujukan internal/eksternal dan Surat Rujukan (`2026-10-16`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | `32` |
+| `status` | **`implemented — UAT pending`** (bukan revisi desain baru; perubahan berbasis keputusan Zoom 13 Okt 2026) |
+| Scope | `RJ-REG` + Surat Dokter `RJ-DOC-REV-BE-004`/`FE-006` (diamandemen). IGD, Kiosk, Billing, Surat Pengantar Rawat Inap tetap |
+| `backend_commit_sha` / `frontend_commit_sha` | baseline `5a6de202` / `321f987a`; perubahan belum di-commit |
+| Keputusan | `RJ-REF-DEC-001`..`007` ([00-interview-decisions.md](00-interview-decisions.md) *Amendment REF-REV*) |
+| Kontrak | `RJ-DOC-REFERRAL-001@1.1.0` (aditif) — `contracts/api-contract.md` & `contracts/validation-matrix.md` *Amendment REF-REV* |
+| Migration | `20261016043218_AddEncounterReferralSourceType` (2 kolom + FK + index, aditif) |
+| Roadmap | [roadmap/registration-revision-roadmap.md](roadmap/registration-revision-roadmap.md) bagian 8 |
+| Open question | Fasilitas di luar master (`BLOCKED/OWNER_DECISION_REQUIRED`), satu-pakai & masa berlaku surat internal, unggah wajib untuk klaim |
+
 ## Revisi 31 — Amendment PM-B: Pendaftaran Rujukan dan Pencocokan Kartu Asuransi (`2026-10-08`)
 
 | Field | Nilai |

@@ -402,3 +402,19 @@ definisi task pada [registration-revision-roadmap.md](registration-revision-road
 
 **Coverage gap:** uji `403` dengan akun tanpa izin (akun uji SuperAdmin), kamera dan scanner fisik, bentrok
 reschedule `409` (dicegah penjaga pendaftaran), notifikasi realtime WebSocket.
+
+## 15. Revisi `2026-10-13` (Zoom) — Rujukan internal/eksternal dan Surat Rujukan (Amendment REF-REV)
+
+Scope Registration + Surat Dokter. Keputusan `RJ-REF-DEC-001`..`007`; definisi task pada
+[registration-revision-roadmap.md](registration-revision-roadmap.md) bagian 8. Belum di-commit (tanpa SHA).
+
+| Requirement (sumber Zoom) | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| `RJ-REF-REV-001` jenis & sumber rujukan (00:36:55, 01:41:39) | `RJ-REF-REV-BE-001`, `RJ-REF-REV-FE-001` | `PARTIAL` — BE ✅, FE 🟡 (uji layar belum) | [BE](../task/report/backend/RJ-REF-REV-BE-001.md) R7–R13, [FE](../task/report/frontend/RJ-REF-REV-FE-001.md) |
+| `RJ-REF-REV-002` validasi kondisional (01:24:29, 01:41:22–01:43:45) | `RJ-REF-REV-BE-001`, `RJ-REF-REV-FE-001` | `PARTIAL` — fasilitas di luar master `BLOCKED/OWNER_DECISION_REQUIRED` | R20–R23, unit 12/12 |
+| `RJ-REF-REV-003` Surat Rujukan dokter (00:37:41–00:40:35) | `RJ-REF-REV-BE-002`, `RJ-REF-REV-FE-002` | `PARTIAL` — BE ✅, FE 🟡 | R1–R6, R14 |
+| `RJ-REF-REV-004` integrasi & cetak (00:37:55, 00:39:51) | `RJ-REF-REV-BE-003`, `RJ-REF-REV-FE-003` | `PARTIAL` — BE ✅, FE 🟡 (cetak kertas belum) | R15–R19, R24 |
+| `RJ-REF-REV-005` riwayat & status | `RJ-REF-REV-BE-001`/`003`, `RJ-REF-REV-FE-003`, migration `20261016043218` | `PARTIAL` — BE ✅ | R5, R12, R14, R16; 20 rujukan lama dihitung ulang |
+
+**Coverage gap:** uji layar Playwright, uji `403`/non-DPJP dengan akun tanpa SuperAdmin, cabang IGD runtime,
+cetak kertas (UAT).

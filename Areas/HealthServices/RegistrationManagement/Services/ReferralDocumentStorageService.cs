@@ -91,6 +91,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             if (referral == null)
                 return EncounterReferralResult.Invalid("Rincian rujukan belum ada. Simpan rincian rujukan lebih dulu.");
 
+            // RJ-REF-REV-002: surat rujukan internal sudah tersimpan resmi di sistem; tidak diunggah ulang.
+            if (referral.SourceType == ReferralSourceType.Internal)
+                return EncounterReferralResult.Invalid(EncounterReferralService.Pm22);
+
             var activeCount = await _referralService.CountActiveDocumentsAsync(referral.Id, cancellationToken);
             var maxBytes = (_configuration.GetValue<int?>("FileStorage:MaxReferralDocumentSizeMb") ?? DefaultMaxSizeMb) * 1024L * 1024L;
 
