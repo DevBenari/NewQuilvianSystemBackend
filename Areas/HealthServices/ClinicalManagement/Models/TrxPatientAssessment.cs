@@ -246,6 +246,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         [MaxLength(2000)]
         public string? StatusLokalis { get; set; }
 
+        /// <summary>
+        /// Data array JSON titik-titik temuan luka/marker pada diagram anatomi tubuh (Body Map).
+        /// </summary>
+        public string? BodyMapData { get; set; }
+
         [MaxLength(1000)]
         public string? KeadaanLainnya { get; set; }
 
@@ -431,6 +436,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         [MaxLength(500)]
         public string? NutritionNote { get; set; }
+
+        public DateTime? LastOralIntakeDateTime { get; set; }
+
+        [MaxLength(250)]
+        public string? LastOralIntakeType { get; set; }
+
+        [MaxLength(500)]
+        public string? LastOralIntakeNote { get; set; }
 
         // =========================
         // FALL RISK

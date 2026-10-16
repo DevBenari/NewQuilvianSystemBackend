@@ -2211,3 +2211,40 @@ Transfer. Status "sudah diproses" dibaca **sesudah** kunci didapat.
 
 Pilihan desain 17.11 nomor 3 (tolak batal tindak lanjut bila admisi sudah dibuka) tetap berlaku; "admisi dibuka" kini berarti
 "diproses dari Antrean Transfer".
+
+### 17.13 Amandemen 15 Oktober 2026 — Standar Anamnesis Kasus Trauma, SAMPLE (Last Meal), dan Diagram Tubuh (Body Map) IGD (`IGD-DEC-310`) — **`approved`**
+
+Disetujui `IGD-DEC-310`, Rizki Gunawan, 15 Oktober 2026. Penambahan atribut model data klinis gawat darurat sesuai standar akreditasi rumah sakit di Indonesia.
+
+| Butir | Deskripsi Teknis |
+| :--- | :--- |
+| **Model `EmgVisit`** | Ditambahkan 2 kolom: `TraumaMechanism` (varchar 1000, nullable) dan `TraumaSafetyEquipment` (varchar 250, nullable) |
+| **Model `TrxPatientAssessment`** | Ditambahkan 4 kolom: `BodyMapData` (text, JSON format pin diagram tubuh, nullable), `LastOralIntakeDateTime` (timestamptz, nullable), `LastOralIntakeType` (varchar 250, nullable), dan `LastOralIntakeNote` (varchar 500, nullable) |
+| **Entity Framework Config** | `EmgVisitConfiguration.cs` dan `TrxPatientAssessmentConfiguration.cs` mengonfigurasi kolom snake_case: `trauma_mechanism`, `trauma_safety_equipment`, `body_map_data`, `last_oral_intake_date_time`, `last_oral_intake_type`, `last_oral_intake_note` |
+| **Migration EF Core** | `20261015050322_AddEmergencyAnamnesisAndBodyMap` — Diterapkan ke basis data PostgreSQL `QuilvianNewDevRizki` (Host `160.22.250.77`) |
+| **Kontrak DTO & Controller** | `EmergencyVisitDtos.cs` (`EmergencyVisitDetailDto`, `UpdateEmergencyVisitDto`), `EmergencyVisitController.cs`, `EmergencyVisitService.cs`, `PatientAssessmentDtos.cs` (`PatientAssessmentDetailDto`, `CreatePatientAssessmentDto`, `UpdatePatientAssessmentDto`), `PatientAssessmentController.cs` |
+| **Jaminan Kompatibilitas** | Seluruh kolom bersifat *nullable*. Modul Rawat Jalan (Poliklinik) dan Rawat Inap yang memakai `TrxPatientAssessment` tidak mengalami kegagalan simpan atau baca (zero disruption). |
+
+### 17.14 Amandemen 15 Oktober 2026 — Penolakan Admisi oleh Rawat Inap & Evaluasi Penutupan Kunjungan IGD Susulan Dua Arah (`IGD-DEC-308`, `309`)
+
+**Status: `draft`** — menunggu persetujuan Rizki Gunawan.
+
+#### 17.14.1 Latar Belakang & Ruang Lingkup
+Amandemen ini melengkapi slice transfer pasien IGD → Rawat Inap:
+1. **Penolakan Permintaan oleh Admisi (`IGD-DEC-309`):** Petugas admisi Rawat Inap berhak menolak antrean transfer pasien IGD dengan alasan wajib. Sisi IGD menyediakan fungsi `BatalkanFormPermintaanOlehPetugasAdmisiAsync` pada `EmergencyDispositionService` yang membatalkan form aktif (`Signed` → `Cancelled`), menandai display status `CancelledByAdmission`, dan mencatat alasan pembatalan dari admisi tanpa membatalkan keputusan tindak lanjut DPJP IGD (tindak lanjut tetap `Confirmed`).
+2. **Evaluasi Penutupan Kunjungan IGD Susulan Dua Arah (`IGD-DEC-308`):** Pasien rawat inap dapat dipindahkan secara fisik dari IGD ke ruangan rawat inap sebelum atau sesudah proses admisi diselesaikan. Agar kunjungan IGD tertutup secara otomatis tanpa meninggalkan data menggantung, fungsi `EvaluasiPenutupanKunjunganSusulanAsync` dipanggil dalam transaksi *admit* Rawat Inap setelah status tindak lanjut `Executed`. Bila penjaga kepergian (SBAR kepergian diterima & kedatangan dicatat) terpenuhi, kunjungan IGD otomatis tertutup `Completed`.
+3. **Data Form yang Dibaca Antrean (`BacaRingkasanPermintaanRawatInapAsync`):** Antrean Transfer Rawat Inap membaca langsung ringkasan permintaan rawat inap (penanda CITO, kebutuhan khusus ICU/isolasi/oksigen/pemantauan, unit/kelas usulan, dan DPJP usulan) untuk keperluan rendering lencana CITO dan prefill langkah Proses Admisi.
+
+#### 17.14.2 Perubahan Komponen & Class Backend
+| Class / Berkas | Lokasi | Status | Perubahan |
+| :--- | :--- | :--- | :--- |
+| `EmergencyDispositionService.AdmissionRequest.cs` | `Areas/HealthServices/EmergencyInstallationManagement/Services/` | Diperbarui | 1. Tambah method publik `BatalkanFormPermintaanOlehPetugasAdmisiAsync(Guid dispositionId, string reason, Guid officerUserId, CancellationToken ct)`.<br>2. Tambah method publik `EvaluasiPenutupanKunjunganSusulanAsync(Guid visitId, Guid actorUserId, DateTime now, CancellationToken ct)`.<br>3. Tambah/verifikasi method static publik `BacaRingkasanPermintaanRawatInapAsync(ApplicationDbContext db, Guid dispositionId, CancellationToken ct)`. |
+| `EmgAdmissionRequestEventType.cs` | `…/Enums/` | Diperbarui | Tambah event type `AdmissionRejected = 8` (pencatatan audit tolak admisi). |
+| `EmergencyAdmissionRequestDtos.cs` | `…/DTOs/` | Diperbarui | Tambah `AdmissionRejectionReason` pada response DTO bila form berstatus batal oleh admisi. |
+
+#### 17.14.3 Transaksi & Konkurensi
+1. **Kunci Baris Penolakan:** `BatalkanFormPermintaanOlehPetugasAdmisiAsync` membuka transaksi, mengambil kunci advisory per kunjungan (`EMG_ADMISSION_REQUEST_{visitId}`), lalu melakukan kueri baris `EmgDisposition` dengan `FOR UPDATE` persis seperti alur *admit*.
+2. **Pengecekan Keadaan di Dalam Kunci:** Di dalam kunci, service memeriksa apakah tindak lanjut sudah berstatus `Executed` (sudah diproses admisi). Jika sudah, fungsi mengembalikan penolakan `409 Conflict` (*"Permintaan rawat inap tidak dapat ditolak karena proses admisi sudah dijalankan."*).
+3. **Evaluasi Penutupan:** `EvaluasiPenutupanKunjunganSusulanAsync` memanggil `EmergencyVisitService.TryCloseAfterDispositionAsync` yang telah ada, mengevaluasi penjaga penutupan (`EmergencyDispositionService.ValidateVisitClosureAsync`). Jika seluruh kewajiban terpenuhi, status kunjungan berubah `Completed` dan `ClosedByDispositionId` diisi.
+
+

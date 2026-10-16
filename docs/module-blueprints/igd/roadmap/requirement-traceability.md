@@ -1008,20 +1008,22 @@ disposisi `Executed` (`BE-IGD-062`).
 | Kontrak | **Amandemen 14 Oktober 2026** (`IGD-DEC-306`, manifest 0q): API **`0.18.0`** §12.7, validation **`0.17.0`** §14.8, state **`0.12.0`** §11.5, permission/audit **`0.11.0`** §11.6, integration **`0.9.0`** §9.5 — `approved`. *Sebelumnya:* API **`0.17.1`** §12 (metode `POST`, `IGD-DEC-300`), validation **`0.16.0`** §14, state **`0.11.0`** §11, permission/audit **`0.10.0`** §11, integration **`0.8.0`** §9 — `approved`; hash di manifest bagian 0p |
 | Approval | Amandemen 0q `IGD-DEC-306` — Rizki Gunawan, 14 Oktober 2026. *Sebelumnya:* `IGD-DEC-294`, `297` — Rizki Gunawan, 12 Oktober 2026; titik sentuh Rawat Inap dan Billing disetujui lisan pemiliknya (`IGD-DEC-299`) |
 | Desain turunan | `02-backend-architecture.md` §17; `03-frontend-architecture.md` §17; `04-prd-to-mvp.md` §12; `erd/data-dictionary.md` §10; `testing/acceptance-test-matrix.md`; `flowcharts/permintaan-rawat-inap.md` |
-| Task | Backend R3.18: `BE-IGD-072`…`075`; frontend R3.16: `FE-IGD-059`…`062` |
+| Task | Backend R3.18: `BE-IGD-072`…`075`, `077`; frontend R3.16: `FE-IGD-059`…`062`, `064` |
 
 ### Task
 
 | Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
-| --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| --- | --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
 | `BE-IGD-072` | `FR-IGD-109`…`112`, `115`; `IGD-DEC-268`, `271`, `273`, `274`, `278`, `282`…`292` | Form IGD dari draf sampai *Menunggu TTD*; migration 1 | API §12.2–12.3; val §14 aturan 1–14, 17, 19, 26; state §11.1 | — | ✅ | ✅ | 🟡 source, migration, build 14 Oktober 0 error/10 warning paket NuGet, penjaga `Down()` disisipkan (belum diuji) — [laporan](../task/report/backend/BE-IGD-072.md) | 🟡 putaran A + uji ulang: aturan §14 terbukti kecuali 2, 4, 9 |
 | `BE-IGD-073` | `FR-IGD-113`, `115`; `IGD-DEC-275`, `276`, `279`, `288` | Permintaan admisi bersumber IGD di Rawat Inap; migration 2 | API §12.4; val §14 aturan 20–22; state §11.3 | `BE-IGD-072` | ✅ | ✅ | ⛔ dibatalkan 14 Oktober 2026 (`IGD-DEC-304`); source kembali ke `HEAD`, migration 2 di-rollback dan dihapus 14 Oktober 17.11 — [laporan](../task/report/backend/BE-IGD-073.md) | — |
-| `BE-IGD-074` | `FR-IGD-112`…`116`; `IGD-DEC-272`, `277`, `280`, `281`, `304`…`306` | Tanda tangan (form *Signed*, pasien ke Antrean Transfer); *Jalankan* rawat inap ditolak; batal; cetak; saringan antrean | API §12.2, §12.7; val §14 aturan 13–16, §14.8 aturan 18, 19, 23–25, 27, 28; state §11.5 | `BE-IGD-072` | ✅ | ✅ | 🟡 pengerjaan ulang 14 Oktober 2026 (`IGD-DEC-304`, `305`), QBE `PASS`; build ulang dan putaran B baru menunggu — [laporan](../task/report/backend/BE-IGD-074.md) | — |
+| `BE-IGD-074` | `FR-IGD-112`…`116`; `IGD-DEC-272`, `277`, `280`, `281`, `304`…`307` | Tanda tangan (form *Signed*, pasien ke Antrean Transfer); *Jalankan* rawat inap ditolak; batal; cetak; saringan antrean | API §12.2, §12.7; val §14 aturan 13–16, §14.8 aturan 18, 19, 23–25, 27, 28; state §11.5 | `BE-IGD-072` | ✅ | ✅ | 🟡 Putaran B2 (15 Oktober 2026): aturan 409/404, print-data, regresi Pulang/Poli, pembongkaran Kamar Pulih ✅; admisi C-12 terblokir RBAC petugas admisi — [laporan](../task/report/backend/BE-IGD-074.md) | — |
 | `BE-IGD-075` | `IGD-DEC-293` | Penautan invoice ditahan untuk sumber IGD | Integration §9 | `BE-IGD-073` | ✅ | ✅ | ⛔ dibatalkan 14 Oktober 2026 (`IGD-DEC-304`); `IGD-DEC-293` terjaga tanpa perubahan Billing — [laporan](../task/report/backend/BE-IGD-075.md) | — |
+| `BE-IGD-077` | `FR-IGD-119`, `120`; `IGD-DEC-308`, `309` | Fungsi tolak admisi, evaluasi penutupan kunjungan IGD susulan dua arah | API §12.8; val §14.9; state §11.6; int §9.6; perm §11.7 | `BE-IGD-074` | ✅ | ✅ | Belum dikerjakan — direncanakan 15 Oktober 2026 | — |
 | `FE-IGD-059` | `FR-IGD-109`…`112`, `115` | Panel dan form perawat | API §12.2–12.3; val §14 | `BE-IGD-072` | ✅ | ✅ | ✅ kode lengkap, ESLint 0 error, build 14 Oktober 2026 lulus — [laporan](../task/report/frontend/FE-IGD-059.md) | ✅ acceptance 1–6 terbukti dari layar (DevVerif) |
-| `FE-IGD-060` | `FR-IGD-112` | *Perlu TTD* dan dialog dokter | API §12.2; val §14 aturan 13–18 | `BE-IGD-072`, `074` | ✅ | ✅ | 🟡 teks disesuaikan 14 Oktober 2026 (`IGD-DEC-304`), ESLint 0 error, build 16.42 lulus; uji layar menunggu — [laporan](../task/report/frontend/FE-IGD-060.md) | — |
-| `FE-IGD-061` | `FR-IGD-114`…`116`; `IGD-DEC-303`, `304`, `306` | Status pasca-kirim, *Jalankan* rawat inap selalu tertahan, batal, cetak | API §12.2, §12.7; val §14.8 aturan 19, 23, 24; state §11.5.2 | `BE-IGD-074`, `FE-IGD-059` | ✅ | ✅ | 🟡 pengerjaan ulang 14 Oktober 2026 (`IGD-DEC-304`), ESLint 0 error, build 16.42 lulus; uji layar menunggu — [laporan](../task/report/frontend/FE-IGD-061.md) | — |
+| `FE-IGD-060` | `FR-IGD-112` | *Perlu TTD* dan dialog dokter | API §12.2; val §14 aturan 13–18 | `BE-IGD-072`, `074` | ✅ | ✅ | 🟡 Putaran B2 (15 Oktober 2026): dialog TTD siap; C-12 terblokir RBAC petugas admisi — [laporan](../task/report/frontend/FE-IGD-060.md) | — |
+| `FE-IGD-061` | `FR-IGD-114`…`116`; `IGD-DEC-303`, `304`, `306` | Status pasca-kirim, *Jalankan* rawat inap selalu tertahan, batal, cetak | API §12.2, §12.7; val §14.8 aturan 19, 23, 24; state §11.5.2 | `BE-IGD-074`, `FE-IGD-059` | ✅ | ✅ | 🟡 Putaran B2 (15 Oktober 2026): C-02 & C-10 ✅; C-12 terblokir RBAC petugas admisi — [laporan](../task/report/frontend/FE-IGD-061.md) | — |
 | `FE-IGD-062` | `FR-IGD-113`, `115` | Layar admisi Rawat Inap | API §12.4 | `BE-IGD-073` | ✅ | ✅ | ⛔ dibatalkan 14 Oktober 2026 (`IGD-DEC-304`); berkas kembali ke `HEAD` — [laporan](../task/report/frontend/FE-IGD-062.md) | — |
+| `FE-IGD-064` | `FR-IGD-119`; `IGD-DEC-309` | Tampilan status Dibatalkan admisi dan tombol buat form baru | 03 §17.12; API §12.8; val §14.9 | `BE-IGD-077`, `FE-IGD-061` | ✅ | ✅ | Belum dikerjakan — direncanakan 15 Oktober 2026 | — |
 
 ### Requirement ke task dan uji
 
@@ -1037,6 +1039,8 @@ disposisi `Executed` (`BE-IGD-062`).
 | `FR-IGD-116` cetak | `BE-IGD-074` | `FE-IGD-061` | `AT-IGD-234` | Direncanakan |
 | `FR-IGD-117` aturan tipe Unit Layanan | — | — | — | **Coverage gap** — `OPEN DECISION` `IGD-OQ-127` |
 | `FR-IGD-118` penautan tagihan IGD | — (`BE-IGD-075` hanya menahan) | — | — | **Coverage gap** — `OPEN DECISION` `IGD-OQ-129` |
+| `FR-IGD-119` penolakan form oleh admisi & buat form baru | `BE-IGD-077` | `FE-IGD-064` | `AT-IGD-238`, `239` | Direncanakan 15 Oktober 2026 (`IGD-DEC-309`) |
+| `FR-IGD-120` penutupan kunjungan IGD dua arah | `BE-IGD-077` | — | `AT-IGD-240` | Direncanakan 15 Oktober 2026 (`IGD-DEC-308`) |
 | DoD PRD §12.5 butir 7 (tagihan IGD tidak ditautkan) | `BE-IGD-075` | — | Uji API regresi | Terjaga tanpa `BE-IGD-075` (`IGD-DEC-304`): jalur Transfer tidak membuat `InpAdmissionReferral`, satu-satunya pemicu penautan; uji regresi pada putaran B baru |
 | DoD PRD §12.5 butir 11 (hak akses lewat pengurus Akses Role) | — | — | Log uji tanpa SuperAdmin | Langkah operasional, bukan task |
 | DoD PRD §12.5 butir 12 (persetujuan Rawat Inap dan Billing) | — | — | — | Lunas — `IGD-DEC-299` |
@@ -1055,15 +1059,18 @@ disposisi `Executed` (`BE-IGD-062`).
 | `IGD-DEC-293` tahan penautan invoice | `approved` sementara — terjaga tanpa task (`IGD-DEC-304`) | `BE-IGD-075` (dibatalkan) |
 | `IGD-DEC-294` desain dan sebelas pilihan desain | `approved` | Seluruh |
 | `IGD-DEC-304`…`306` surat pengantar ke Antrean Transfer, pengenal jenis lewat tanda, persetujuan amandemen 0q | `approved`; konfirmasi Hamzah atas saringan antrean menunggu | `BE-IGD-074`; `FE-IGD-060`, `061` |
+| `IGD-DEC-308`, `309` penutupan kunjungan IGD dua arah, tolak admisi beralasan | `approved` | `BE-IGD-077`; `FE-IGD-064` |
+| `IGD-DEC-310` Standar Kasus Trauma, SAMPLE (Last Meal), dan Diagram Tubuh (Body Map) IGD | `approved` | `BE-IGD-076`; `FE-IGD-063` |
+
 
 ### Pertanyaan terbuka
 
 | ID | Keadaan | Menahan |
 | --- | --- | --- |
 | `IGD-OQ-127` | `open` — analis | `FR-IGD-117` |
-| `IGD-OQ-128` | Dijawab `IGD-DEC-299` untuk jalur lama; **dibuka ulang secara sempit** 14 Oktober 2026 — konfirmasi Hamzah atas saringan antrean | Rilis `BE-IGD-074` |
-| `IGD-OQ-130` | `open` — kunjungan IGD bila pasien tiba sebelum admisi diproses | Rilis, bila kunjungan wajib tertutup otomatis |
-| `IGD-OQ-131` | `open` — isi form dan aksi tolak di layar antrean (milik Rawat Inap) | — |
+| `IGD-OQ-128` | **Dijawab** `IGD-DEC-299` (jalur lama) dan `IGD-DEC-307` (saringan antrean, 15 Oktober 2026) | — |
+| `IGD-OQ-130` | **Dijawab** `IGD-DEC-308` — penutupan dua arah; butuh amandemen desain dan task (IGD + Rawat Inap) | Rilis, sampai task-nya selesai |
+| `IGD-OQ-131` | **Dijawab** `IGD-DEC-309` — tombol *Tolak* (endpoint Rawat Inap, hanya form batal), lencana CITO, pengisian awal; butuh amandemen desain dan task | — |
 | `IGD-OQ-129` | `open` — owner Billing | `FR-IGD-118` |
 | `IGD-UNK-24` | Tidak lagi memblokir (`IGD-DEC-305`) — antrean memakai tanda `RequiresAdmissionRequest` | — |
 | `IGD-UNK-25` | `open` | Tidak (tanpa aturan silang) |

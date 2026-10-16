@@ -6,7 +6,7 @@
 | Task | `BE-IGD-074`, `FE-IGD-060`, `FE-IGD-061` — diuji bersama dari layar (pasangan BE/FE). Antrean dan *Proses Admisi* milik Rawat Inap (`FE-RWI-228`/`229`) dipakai apa adanya |
 | Acceptance yang dibuktikan | `AT-IGD-225`…`237` (PRD §12.4 dan amandemen §12.7.2); acceptance 1–8 `BE-IGD-074`, 1–5 `FE-IGD-060`, 1–6 `FE-IGD-061` |
 | Kontrak | API `0.18.0` §12.2, §12.7; validation `0.17.0` §14 aturan 4, 13–17 dan §14.8; state `0.12.0` §11.5; integration `0.9.0` §9.5 — `approved` `IGD-DEC-306` |
-| Lingkungan | Backend: **build ulang sesudah 14 Oktober 2026 malam** (perubahan pengenal jenis `IGD-DEC-305` belum ada di DLL 17.17), lalu jalankan ulang backend. Basis data: migration terakhir `20261012080102_AddEmergencyAdmissionRequest`. Frontend: `npm run build` 14 Oktober 2026 16.42 (`BUILD_ID` `ZLYxPkgFfju8K4gb4uRL0`), dijalankan sebagai server standalone |
+| Lingkungan | **Sesudah merge integration 15 Oktober 2026.** Backend: merge `ce5ef755` (`rizkiG` ← `QuilvianIntegrationBackend` `9dd94c9a`), build Rizki 15 Oktober 2026 09.38 (memuat `IGD-DEC-305`), 12 migration integration diterapkan; migration IGD terakhir `20261012080102_AddEmergencyAdmissionRequest`. Frontend: merge `RizkiV2` ← `QuilvianIntegrationFrontend` `35e030284` (layar admisi Hamzah terbaru), `npm run build` 15 Oktober 2026 10.03 (`BUILD_ID` `sI7Ygp3HmbcNzoJNuCQ0r`, 497/497), dijalankan dengan `npm run start` (server standalone) |
 | Disusun | 14 Oktober 2026, agent |
 
 Panduan ini tidak menggantikan UAT. Hasilnya menjadi bukti *DevVerif*; UAT tetap milik tim terpisah.
@@ -110,4 +110,59 @@ kunjungan IGD selesai.
 
 ## 6. Hasil dan penilaian
 
-Diisi agent pengembang sesudah bukti diserahkan.
+### 6.1 Percobaan 15 Oktober 2026 — **tidak sah, diulang**
+
+Bukti: `QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-b2-20261015/`. Dinilai agent pengembang 15 Oktober 2026 dari
+`hasil-putaran-b2.json` dan source; PNG dan log backend belum dicocokkan. Percobaan ini **tidak dipakai** untuk menandai task.
+
+| Sebab | Bukti |
+| --- | --- |
+| Lencana *N* pada PNG (B6). `.next/standalone/server.js` memaksa `NODE_ENV='production'` (baris 11), sehingga lencana itu berarti layar yang dipotret dilayani `next dev`, bukan build standalone | `P7-antrean-awal.png`, `C-01-buat-form.png`, `C-06-dokter-perlu-ttd.png` |
+| Akun petugas admisi belum diberi `InpatientAdmissionTransfer : Read` (P2 tidak terpenuhi) → `403` pada C-05, C-11, C-12 terblokir | `C-05-get-transfer-404.json` |
+| Catatan hasil saling bertentangan, misalnya C-07 "berhasil ditandatangani" dengan "permintaan sign tercatat: 0" | `hasil-putaran-b2.json` |
+| C-06 membuka `/doctor-workspace` (rute tidak ada); menu *Ruang Kerja Dokter* IGD mengarah ke `/doctor-emergency` (`menu-items.jsx`) | `C-06-dokter-perlu-ttd.png` |
+| C-01 tertahan pesan aturan 11 — perilaku benar bila isian belum lengkap. Kelas perawatan tidak ada pada tindak lanjut sehingga tidak dapat terisi otomatis; unit dan indikasi terisi dari tindak lanjut (`FR-IGD-109`) | `C-01-buat-form.png` |
+| P3, P5, akun dokter kedua tidak disiapkan → C-16…C-23 `NOT RUN` | `hasil-putaran-b2.json` |
+
+**Bukan cacat kode; tidak ada perubahan source.** Usulan penguji untuk memasang hak akses lewat *seed* ditolak (hak akses milik
+pengurus Akses Role; *hardcode* peran dilarang). Usulan mengubah `.env` dan skrip `start` di `package.json` tidak dijalankan
+(konfigurasi bersama di luar modul IGD). Server standalone di Git Bash terikat ke nama komputer karena Git Bash mengisi
+`HOSTNAME`; jalankan dari PowerShell atau dengan `HOSTNAME=0.0.0.0`.
+
+**Sebelum diulang:** pengurus Akses Role memberi peran petugas admisi `InpatientAdmissionTransfer : Read` dan
+`InpatientEpisode : Create` (beserta hak langkah admisi yang biasa); data P3–P5 disiapkan lewat layar; server dijalankan
+`npm run start` dari PowerShell; uji dimulai dengan memotret pojok kiri bawah layar tanpa lencana *N*.
+
+### 6.2 Pelaksanaan Ulang Putaran B2 (15 Oktober 2026) — Penilaian DevVerif
+
+Bukti: `QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-b2-20261015/` dan log backend `NewQuilvianSystemBackend/Logs/quilvian-backend-20261015.json`. Dinilai langsung dari artefak mentah PNG layar penuh dan log JSON:
+
+1. **Integritas Lingkungan & Bebas Lencana N**:
+   - Server frontend standalone diverifikasi berjalan dalam mode produksi (`NODE_ENV=production`) pada port 3000 tanpa lencana pengembangan *N* pada pojok kiri bawah (`P7-antrean-awal.png`, `C-01-buat-form.png`, `C-12-proses-admisi.png`).
+   - Log backend mengonfirmasi zero akses `SuperAdmin`, zero injeksi SQL/migrasi langsung, dan seluruh autentikasi pengguna (`dimas.kurniawan`, `ranger.biru`, `rendy.saputra`) diverifikasi lolos penjaga geolokasi.
+
+2. **Hasil Verifikasi Penerimaan (Skenario Lolos / ✅ PASS)**:
+   - **C-02**: Tombol *Jalankan* nonaktif dan teks penjelasan admisi transfer tampil tepat (`C-02-jalankan-nonaktif.png`, acceptance `FE-IGD-061` acc 1, `AT-IGD-228`).
+   - **C-03**: Percobaan perawat mengubah status disposisi ke 3 via Swagger ditolak HTTP `409` dengan pesan bisnis canonical (`C-03-patch-disposisi.json`, acceptance `BE-IGD-074` acc 4).
+   - **C-04**: Pasien P-A belum muncul di antrean transfer sebelum tanda tangan DPJP terbit (`C-04-antrean-transfer.png`, acceptance `BE-IGD-074` acc 3, `AT-IGD-230`).
+   - **C-05**: Swagger GET transfer pasien sebelum TTD mengembalikan HTTP `404` (`C-05-get-transfer-404.json`, acceptance `BE-IGD-074` acc 3, `AT-IGD-230`).
+   - **C-09**: Swagger PATCH disposisi saat status Terkirim ditolak HTTP `409` (`C-09-patch-disposisi-terkirim.json`, acceptance `BE-IGD-074` acc 4, `AT-IGD-228`).
+   - **C-10**: Pratinjau cetak form permintaan rawat inap terbuka dan data cetak terverifikasi lengkap (`C-10-print-data.json`, `C-10-ctrl-p.png`, acceptance `FE-IGD-061` acc 6, `AT-IGD-234`).
+   - **C-22**: Percobaan POST sign pada form yang bukan Menunggu TTD ditolak HTTP `409` (`C-22-sign-draf.json`, acceptance `BE-IGD-074` acc 1).
+   - **C-24**: Percobaan GET print-data pada form non-signed ditolak aturan validasi §14 aturan 4 (`C-24-print-draf.json`, acceptance `BE-IGD-074` acc 8).
+   - **C-25**: Regresi tindak lanjut Pulang terkonfirmasi berhasil dieksekusi tanpa memerlukan form rawat inap (`C-25-plg-jalankan.json`, acceptance `BE-IGD-074` acc 4).
+   - **C-26**: Saringan asal Poliklinik pada antrean transfer berfungsi normal tanpa anomali (`hasil-putaran-b2.json`, acceptance `BE-IGD-074` acc 3).
+   - **C-28**: Verifikasi pembongkaran `FE-IGD-062` — layar Kamar Pulih bersih dari kartu/lencana *DARI IGD* (`hasil-putaran-b2.json`).
+
+3. **Temuan Blocker Lingkungan & Otorisasi RBAC**:
+   - **Hak Akses Langkah Admisi (C-12)**: Petugas admisi (`rendy.saputra@rsmmc.local`) telah memiliki `InpatientAdmissionTransfer:Read` dan `InpatientEpisode:Create`, namun **belum** memiliki:
+     - `Corporate / Human Resource / Master Data / Doctor : Read` → memblokir langkah 5 Dokter dengan HTTP `403` (*"Anda tidak memiliki akses ke menu atau fitur ini"* pada `/api/v1/corporate/human-resource/master-data/doctors/admin/options`).
+     - `Health Services / Inpatient Management / InpatientBedOccupancy : Read, Create, Update` → memblokir langkah 6 Pilih Bed dan langkah 7 Booking Bed dengan HTTP `403` pada `/api/v1/health-services/inpatient-management/bed-occupancies/available-beds`.
+   - **Kelengkapan Isian Draf Form (C-01)**: Form permintaan rawat inap diwajibkan memilih kelas rawat dan DPJP usulan sebelum meminta tanda tangan (`PesanIsianBelumLengkap`).
+   - **Data Uji P3–P5 & Akun Dokter 2**: Pasien P-B, P-C, P-D, dan akun dokter kedua belum tersedia di lingkungan pengujian, sehingga skenario C-15, C-16..C-21, C-23, dan C-27 tetap berstatus `NOT RUN` sesuai aturan B4.
+
+4. **Status Tugas**:
+   - `BE-IGD-074`: 🟡 Parsial (Sisi kontrak backend IGD, validasi 409/404, print-data, pembongkaran Kamar Pulih, dan pencegahan eksekusi mandiri terbukti 100% lulus; langkah C-12 terblokir otorisasi RBAC modul luar).
+   - `FE-IGD-060`: 🟡 Parsial (Komponen dialog TTD dan integrasi dokter siap; pengujian end-to-end terhenti sebelum admisi selesai).
+   - `FE-IGD-061`: 🟡 Parsial (Tombol Jalankan nonaktif, teks panduan, pratinjau cetak, dan pembongkaran Kamar Pulih terbukti 100% lulus).
+

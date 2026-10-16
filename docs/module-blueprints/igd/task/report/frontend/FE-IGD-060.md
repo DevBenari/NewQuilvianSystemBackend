@@ -17,7 +17,7 @@
 | Repository / branch | `QuilvianSystemFrontendDev` / `RizkiV2`, HEAD `2ab4d6e46` + working tree |
 | Model | Claude Opus 5.5 |
 | Tanggal | 14 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 14 Oktober 2026, disesuaikan `IGD-DEC-304`.** Kode lengkap; teks dialog tanda tangan kini menyebut Antrean Transfer IGD/Poli; ESLint 0 error. build ulang 14 Oktober 2026 16.42 lulus (`BUILD_ID` `ZLYxPkgFfju8K4gb4uRL0`, 492/492, 0 warning). **Belum:** uji layar pada putaran B baru |
+| Status | 🟡 **SEBAGIAN — kode lengkap.** Uji Putaran B2 (15 Oktober 2026): integrasi dialog TTD dokter siap; end-to-end terblokir di langkah admisi C-12 karena hak akses RBAC petugas admisi (`Doctor:Read`, `InpatientBedOccupancy:Read/Create/Update`); skenario dokter 2 C-21/C-23 NOT RUN (panduan §6.2). |
 
 ---
 
@@ -194,3 +194,7 @@ DoD: laporan ini ✅; acceptance 1–5 terpetakan ke kode; 6 terpenuhi (build 14
 ## Penyesuaian — 14 Oktober 2026 (`IGD-DEC-304`)
 
 Teks dialog tanda tangan di `emergency-admission-request-constant.jsx` (`bannerMessage`, `signStatement`, `signed`) kini menyebut pasien masuk Antrean Transfer IGD/Poli, bukan dikirim ke petugas admisi. Kode dialog dan hook tidak berubah. ESLint 0 error. Server uji standalone PID 10068 dihentikan atas izin pemilik; build ulang 14 Oktober 2026 16.42 lulus (`BUILD_ID` `ZLYxPkgFfju8K4gb4uRL0`, 492/492, 0 warning); server tidak dinyalakan ulang agent.
+
+## Build ulang sesudah merge integration — 15 Oktober 2026
+
+Frontend di-merge dengan `QuilvianIntegrationFrontend` `35e030284` (71 commit, termasuk layar admisi Rawat Inap terbaru milik Hamzah). Satu konflik di `patient-selection-step.jsx` (pendaftaran IGD) diselesaikan dengan mempertahankan kedua sisi: mode pencarian IGD *No. RM / NIK / No. HP* dan *Nama + Tanggal Lahir*, serta pencarian bertanggal lahir dan daftar kandidat untuk rawat jalan (`RJ-REG-REV-FE-001`). ESLint berkas itu 0 error, 5 warning — kelimanya sudah ada pada kedua versi sebelum merge. `npm run build` 15 Oktober 2026 10.01–10.03 lulus: *Compiled successfully in 73s*, 497/497, `BUILD_ID` `sI7Ygp3HmbcNzoJNuCQ0r`; teks task ini ditemukan di `.next/static/chunks`, sisa `FE-IGD-062` tidak ada.

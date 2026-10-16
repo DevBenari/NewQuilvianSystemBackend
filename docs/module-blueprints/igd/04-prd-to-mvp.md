@@ -870,3 +870,27 @@ pasien dari antrean, atau form *Dibatalkan* beralasan.**
 | `IGD-OQ-130` | Penutupan kunjungan IGD bila pasien tiba sebelum admisi diproses | Tidak untuk demo; ya bila wajib tertutup otomatis |
 | `IGD-OQ-131` | Isi form dan aksi tolak di layar antrean | Tidak |
 | `IGD-UNK-24` | Kode jenis rawat inap per lingkungan — kini tidak memblokir karena antrean memakai tanda `RequiresAdmissionRequest` | Tidak |
+
+### 12.8 Amandemen 15 Oktober 2026 — Penolakan Admisi oleh Rawat Inap & Penutupan Kunjungan IGD Dua Arah (`IGD-DEC-308`, `309`)
+
+**Status: `draft`** — menunggu persetujuan Rizki Gunawan.
+
+#### 12.8.1 Functional Requirement Baru / Diperbarui
+| ID | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-IGD-119` | Fungsi pembatalan form oleh petugas admisi Rawat Inap (`BatalkanFormPermintaanOlehPetugasAdmisiAsync`) membatalkan form aktif (`Signed` → `Cancelled`), mengeset display status `CancelledByAdmission`, mencatat audit event `AdmissionRejected` beserta alasan tolak, dan mengaktifkan kembali tombol *Buat Form Permintaan Rawat Inap* di IGD tanpa membatalkan status tindak lanjut DPJP IGD (`Confirmed`). | `EXTEND` (`EmergencyDispositionService.AdmissionRequest.cs`) |
+| `FR-IGD-120` | Evaluasi penutupan kunjungan IGD susulan (`EvaluasiPenutupanKunjunganSusulanAsync`) dipanggil di akhir transaksi *admit* Rawat Inap setelah status tindak lanjut `Executed`, memastikan kunjungan IGD ditutup otomatis `Completed` jika dokumen kepergian SBAR telah diterima dan kedatangan dicatat perawat ruangan sebelum admisi selesai. | `EXTEND` (`EmergencyDispositionService.AdmissionRequest.cs`) |
+
+#### 12.8.2 Skenario UAT Baru
+| # | Jalur | Langkah | Hasil yang diharapkan |
+| ---: | --- | --- | --- |
+| `AT-IGD-238` | Berhasil | Pasien IGD dengan form *Signed* ditolak oleh petugas admisi dari antrean transfer dengan alasan; perawat IGD melihat status di panel IGD | Form berstatus *Dibatalkan admisi — {alasan}*; tombol *Buat Form* aktif kembali; tindak lanjut tetap *Confirmed*; tombol *Jalankan* nonaktif dengan keterangan tolak |
+| `AT-IGD-239` | Gagal | Petugas admisi mencoba menolak form pasien yang admisi-nya sudah diselesaikan (*Executed*) | Server menolak `409 Conflict` (*Permintaan rawat inap tidak dapat ditolak karena proses admisi sudah dijalankan.*) |
+| `AT-IGD-240` | Berhasil | Pasien diantar fisik lebih dulu (SBAR diterima & tiba dicatat), kemudian petugas admisi menyelesaikan proses admisi | Transaksi admisi menyelesaikan tindak lanjut (*Executed*) dan otomatis memicu penutupan kunjungan IGD (*Completed*) |
+
+#### 12.8.3 Definition of Done yang Ditambahkan
+| # | Butir DoD Baru | Bukti |
+| ---: | --- | --- |
+| 14 | Method `BatalkanFormPermintaanOlehPetugasAdmisiAsync` dan `EvaluasiPenutupanKunjunganSusulanAsync` teruji dan mematuhi aturan konkurensi (advisory lock + FOR UPDATE) | Diff service + `AT-IGD-238`, `239`, `240` |
+| 15 | Layar perawat IGD menampilkan status dan alasan tolak admisi dengan jelas, serta memfasilitasi pembuatan draf form baru | Bukti tangkapan layar panel form IGD |
+

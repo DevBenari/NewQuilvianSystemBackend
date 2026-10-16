@@ -18,7 +18,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `9e0e517f` (`rizkiG`) + working tree (`BE-IGD-073` belum di-commit) |
 | Tanggal | 13–14 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — pengerjaan ulang 14 Oktober 2026 (`IGD-DEC-304`, `305`); kartu direncanakan ulang `IGD-DEC-306`.** Source lengkap untuk acceptance 1–8; QBE `-Mode Strict` `PASS` (6 berkas, 0 temuan). Build Rizki 17.17 terverifikasi untuk versi sebelum `IGD-DEC-305`. **Belum:** build ulang (acceptance 10); uji putaran B baru (acceptance 1–8); konfirmasi Hamzah atas saringan antrean |
+| Status | 🟡 **SEBAGIAN — source dan kontrak lengkap.** Uji Putaran B2 (15 Oktober 2026): verifikasi aturan 409/404 (C-03, C-04, C-05, C-09, C-22, C-24), print-data (C-10), regresi Pulang/Poli (C-25, C-26), dan pembongkaran Kamar Pulih (C-28) ✅ LULUS. Langkah admisi C-12 terblokir otorisasi RBAC petugas admisi (`Doctor:Read`, `InpatientBedOccupancy:Read/Create/Update`); skenario P3–P5 NOT RUN (panduan §6.2). |
 
 ### Backend Governance Preflight
 
@@ -212,7 +212,7 @@ sesuai R3.18.5.
 | Perubahan sampingan | `NONE` |
 | Interupsi | Satu pertanyaan pemilik di tengah task (cara menempel penjaga `Down()`); dijawab, pekerjaan dilanjutkan dari keadaan terverifikasi |
 | Status Git | 5 `M` di `Areas/HealthServices/EmergencyInstallationManagement/**`; perubahan `BE-IGD-073` dan migration 2 dari sesi sebelumnya tetap di working tree; nol stage, nol commit |
-| Langkah berikutnya | Rizki: build ulang backend (`dotnet build -p:RunAnalyzers=false`) lalu jalankan [panduan putaran B baru](../../../testing/2026-10-14-panduan-uji-putaran-b2-antrean-transfer-igd.md). Hamzah: konfirmasi saringan antrean |
+| Langkah berikutnya | Rizki: build ulang backend (`dotnet build -p:RunAnalyzers=false`) lalu jalankan [panduan putaran B baru](../../../testing/2026-10-14-panduan-uji-putaran-b2-antrean-transfer-igd.md). Konfirmasi Hamzah tercatat `IGD-DEC-307` |
 
 ## 8. Skenario uji putaran B
 

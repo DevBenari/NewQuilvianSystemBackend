@@ -949,3 +949,31 @@ Disetujui `IGD-DEC-306`, Rizki Gunawan, 14 Oktober 2026.
 (`inpatient-admission-encounter.service`, `inpatient-admission-payment.service`), kit cetak PPRI
 (`inpatient-consent-print.module.css`, `IGD-DEC-303`), pembuat `Idempotency-Key` (`inpatient-admission-workspace-utils`), dan
 util ruang kerja dokter.
+
+### 17.11 Amandemen 15 Oktober 2026 — Standar Anamnesis Kasus Trauma, SAMPLE (Last Meal), dan Diagram Tubuh (Body Map) IGD (`IGD-DEC-310`) — **`approved`**
+
+Disetujui `IGD-DEC-310`, Rizki Gunawan, 15 Oktober 2026. Penambahan komponen visual dan field anamnesis pada formulir Assesmen Awal Keperawatan IGD.
+
+| Butir Komponen | Lokasi Berkas & Deskripsi Implementasi |
+| :--- | :--- |
+| **`EmergencyAssessmentBodyMap`** | `src/components/view/health-services/emergency-installation-management/emergency-assessment-view/components/emergency-assessment-body-map.jsx`<br>Komponen diagram tubuh visual interaktif: siluet tubuh tampak depan (*Anterior*) dan belakang (*Posterior*), penempatan pin bernomor, estimasi otomatis regio anatomi tubuh, pemilihan 9 kategori lesi luka, dan auto-generate ringkasan teks `StatusLokalis`. |
+| **Integrasi Tab Assesmen Awal** | `emergency-assessment-initial-tab.jsx`<br>- Seksi Kasus Trauma: Input APD (`traumaSafetyEquipment`) dan Mekanisme Kejadian (`traumaMechanism`).<br>- Seksi SAMPLE: Waktu Makan Terakhir (`lastOralIntakeDateTime`), Jenis Makanan (`lastOralIntakeType`), dan Catatan Lambung/Puasa (`lastOralIntakeNote`).<br>- Seksi Pemeriksaan Fisik Terfokus & Diagram Tubuh: Penempatan `EmergencyAssessmentBodyMap` dan textarea `StatusLokalis`. |
+| **Pelindung Payload Utilitas** | `patient-assessment-payload.utils.js`<br>Pemetaan `mapPatientAssessmentPayload` dilengkapi fallback `null` aman agar pemanggilan dari Poliklinik Rawat Jalan (`use-nurse-station-queue.js`) tidak rusak. |
+| **Pengujian Antarmuka** | Lolos live browser testing Chromium headed mode (**100% PASS**) dan 10/10 unit tests PASS. |
+
+### 17.12 Amandemen 15 Oktober 2026 — Penanganan Layar Status Form Dibatalkan Admisi (`IGD-DEC-309`)
+
+**Status: `draft`** — menunggu persetujuan Rizki Gunawan.
+
+#### 17.12.1 Kebutuhan Antarmuka
+Bila petugas admisi menolak/membatalkan form permintaan rawat inap dari antrean transfer rawat inap:
+1. **Lencana & Status Form di Panel IGD (`SCR-IGD-P02`):**
+   - Menampilkan `displayStatus: CancelledByAdmission` dengan teks lencana: `Dibatalkan admisi — {alasan}` (warna merah/destructive warning).
+   - Menampilkan catatan alasan penolakan yang diinput petugas admisi secara jelas di panel form perawat IGD.
+2. **Perilaku Tombol:**
+   - Tombol *Buat Form Permintaan Rawat Inap* kembali aktif/tersedia untuk perawat membuat draf baru setelah konfirmasi/koordinasi ulang dengan DPJP.
+   - Tombol *Jalankan* pada baris tindak lanjut rawat inap tetap nonaktif dengan teks helper penjelasan: *"Form permintaan rawat inap ditolak oleh petugas admisi ({alasan}). Buat form permintaan baru sebelum pasien diproses."*
+3. **Penyelarasan Hak Layar Sisi Rawat Inap (Referensi Saja untuk Hamzah):**
+   - Layar Antrean Transfer Rawat Inap (`InpatientAdmissionTransfer` milik Hamzah) menampilkan tombol aksi *Tolak* beralasan (modal input alasan tolak wajib diisi, min 5 karakter) untuk pasien asal IGD/Poli, dan badge CITO berwarna merah tegas bila `isCito = true`.
+
+

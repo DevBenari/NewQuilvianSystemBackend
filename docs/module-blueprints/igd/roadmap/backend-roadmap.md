@@ -270,8 +270,11 @@ Jumlah panah: **0**. 2 node. Node `R318` tanpa panah: kemampuan yang dipakainya 
 | `BE-IGD-071` | Pesanan lab dan radiologi perawat IGD atas instruksi dokter (`IGD-DEC-224`) — **baru** | R3.16 | ⛔ menunggu `IGD-OQ-117` (pemilik Laboratorium; pemilik Radiologi, Yoga Aji Pratama); pasangan layar `FE-IGD-057`, `FE-IGD-058` | — |
 | `BE-IGD-072` | Form Permintaan Rawat Inap dari draf sampai *Menunggu TTD* (`IGD-DEC-267`…`294`) — **baru 12 Oktober 2026** | R3.18 | 🟡 13 Oktober 2026 — uji layar dan API terbukti (kecuali aturan 2, 4, 9); penjaga `Down()` disisipkan 14 Oktober (belum diuji); build 14 Oktober 0 error, 10 warning paket NuGet | [laporan](../task/report/backend/BE-IGD-072.md) |
 | `BE-IGD-073` | Permintaan admisi Rawat Inap menerima sumber IGD — **milik Rawat Inap** | R3.18 | ⛔ 14 Oktober 2026 — dibatalkan `IGD-DEC-304`; source kembali ke `HEAD`, migration 2 di-rollback dan dihapus 14 Oktober 17.11 | [laporan](../task/report/backend/BE-IGD-073.md) |
-| `BE-IGD-074` | Tanda tangan, pengiriman ke admisi, pembatalan sesudah kirim, cetak, penahanan *Jalankan* | R3.18 | 🟡 14 Oktober 2026 — pengerjaan ulang `IGD-DEC-304`/`305`, kartu direncanakan ulang `IGD-DEC-306`; QBE `PASS`; build ulang dan uji putaran B baru menunggu | [laporan](../task/report/backend/BE-IGD-074.md) |
+| `BE-IGD-074` | Tanda tangan, pengiriman ke admisi, pembatalan sesudah kirim, cetak, penahanan *Jalankan* | R3.18 | 🟡 15 Oktober 2026 — pengerjaan ulang `IGD-DEC-304`/`305`, QBE `PASS`, build sesudah merge 0 error; saringan disetujui Hamzah (`IGD-DEC-307`); uji putaran B2 berjalan | [laporan](../task/report/backend/BE-IGD-074.md) |
 | `BE-IGD-075` | Penautan invoice ditahan untuk permintaan bersumber IGD (`IGD-DEC-293`) — **milik Billing** | R3.18 | ⛔ 14 Oktober 2026 — dibatalkan `IGD-DEC-304`; `IGD-DEC-293` terjaga tanpa perubahan Billing | [laporan](../task/report/backend/BE-IGD-075.md) |
+| `BE-IGD-076` | Standar Anamnesis Kasus Trauma, SAMPLE (Last Meal), dan Diagram Tubuh (Body Map) Backend IGD | — | ✅ DONE — 15 Oktober 2026. Migration diterapkan, build 0 error, DTO & Controller aktif | [laporan](../task/report/backend/BE-IGD-076.md) |
+| `BE-IGD-077` | Fungsi Penolakan Form oleh Petugas Admisi & Evaluasi Penutupan Kunjungan IGD Susulan Dua Arah (`IGD-DEC-308`, `309`) | R3.18 | Belum dikerjakan — direncanakan 15 Oktober 2026; pasangan layar `FE-IGD-064` | — |
+
 
 
 **Tindak lanjut `BE-IGD-017`** (task yang sama, ID tidak diganti): laporan tracked susulan.
@@ -3986,14 +3989,15 @@ flowchart LR
     BEIGD073["⛔ BE-IGD-073<br/>Permintaan admisi bersumber IGD"]:::terblokir
     BEIGD074["🟡 BE-IGD-074<br/>Tandatangani, kirim, tahan Jalankan"]:::sebagian
     BEIGD075["⛔ BE-IGD-075<br/>Tahan tautan invoice sumber IGD"]:::terblokir
+    BEIGD077["BE-IGD-077<br/>Tolak admisi & penutupan susulan dua arah"]:::belum
 
     BEIGD072 --> BEIGD073
     BEIGD072 --> BEIGD074
     BEIGD073 --> BEIGD075
+    BEIGD074 --> BEIGD077
 ```
 
-Jumlah panah: **3** = `BE-IGD-073` (1) + `074` (1) + `075` (1). 4 node. Panah `BE-IGD-073` → `BE-IGD-074` dihapus 14 Oktober 2026: sesudah amandemen `IGD-DEC-306`, dependency `BE-IGD-074` hanya `BE-IGD-072`. Gerbang `IGD-OQ-128` dan dua panahnya dihapus
-12 Oktober 2026: persetujuan lisan pemilik Rawat Inap dan owner Billing dilaporkan Rizki (`IGD-DEC-299`).
+Jumlah panah: **4** = `BE-IGD-073` (1) + `074` (1) + `075` (1) + `077` (1). 5 node. Panah `BE-IGD-073` → `BE-IGD-074` dihapus 14 Oktober 2026: sesudah amandemen `IGD-DEC-306`, dependency `BE-IGD-074` hanya `BE-IGD-072`. Panah `BE-IGD-074` → `BE-IGD-077` ditambahkan 15 Oktober 2026 (`IGD-DEC-308`, `309`).
 
 ### R3.18.3 Gelombang eksekusi
 
@@ -4003,6 +4007,7 @@ Jumlah panah: **3** = `BE-IGD-073` (1) + `074` (1) + `075` (1). 4 node. Panah `B
 | ⛔ | — | `BE-IGD-073` — dibatalkan `IGD-DEC-304`; tanpa nomor gelombang |
 | 2 | `BE-IGD-072` | `BE-IGD-074` — dependency disempitkan `IGD-DEC-306` |
 | ⛔ | — | `BE-IGD-075` — dibatalkan `IGD-DEC-304`; tanpa nomor gelombang |
+| 3 | `BE-IGD-074` | `BE-IGD-077` — fungsi tolak admisi & evaluasi penutupan susulan dua arah (`IGD-DEC-308`, `309`) |
 
 `IGD-OQ-128` dijawab 12 Oktober 2026 (`IGD-DEC-299`); seluruh task R3.18 kini dependency biasa tanpa gerbang keputusan.
 
@@ -4026,7 +4031,7 @@ rawat inap (untuk `AT-IGD-236`); pasien `4411cf93-…` dihindari karena masih pu
 | Syarat | Alasan |
 | --- | --- |
 | `BE-IGD-074` dirilis **bersama** `FE-IGD-059`, `060`, `061` | Sesudah `BE-IGD-074`, *Jalankan* tindak lanjut rawat inap dari IGD selalu ditolak dan tindak lanjut bertanda tanpa form tidak tampil di antrean; tanpa layar, pasien rawat inap tidak dapat diteruskan ke admisi |
-| Konfirmasi Muhammad Hamzah atas saringan `TransferQuery` tercatat | Saringan mengubah isi Antrean Transfer milik Rawat Inap (API §12.7.3, validation §14.8 aturan 28). *Menggantikan syarat lama "`BE-IGD-073` dirilis bersama `FE-IGD-062`" — keduanya dibatalkan `IGD-DEC-304`* |
+| Konfirmasi Muhammad Hamzah atas saringan `TransferQuery` tercatat — **terpenuhi** `IGD-DEC-307` (15 Oktober 2026) | Saringan mengubah isi Antrean Transfer milik Rawat Inap (API §12.7.3, validation §14.8 aturan 28). *Menggantikan syarat lama "`BE-IGD-073` dirilis bersama `FE-IGD-062`" — keduanya dibatalkan `IGD-DEC-304`* |
 | Tidak ada syarat Billing | Jalur Transfer tidak menautkan tagihan IGD; `IGD-DEC-293` terjaga tanpa kode Billing. *Menggantikan syarat lama untuk `BE-IGD-075` (dibatalkan)* |
 | Hanya migration 1 (`AddEmergencyAdmissionRequest`) yang dirilis | Migration 2 dibatalkan, di-rollback dari basis data dev, dan berkasnya dihapus 14 Oktober 2026 |
 | Tanda `RequiresAdmissionRequest` terpasang pada jenis tindak lanjut rawat inap tiap lingkungan | Antrean dan form memakai tanda, bukan kode (`IGD-DEC-305`). Jenis yang belum bertanda tetap memakai aturan lama: pasien IGD berkode `RANAP` tampil di antrean tanpa form dan *Jalankan* dari IGD tidak tertahan |
@@ -4139,7 +4144,7 @@ traceability.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — pengerjaan ulang 14 Oktober 2026 (`IGD-DEC-304`, `305`); kartu direncanakan ulang `IGD-DEC-306`.** Source lengkap untuk acceptance 1–8; QBE `-Mode Strict` `PASS` (6 berkas, 0 temuan); nol `Program.cs`, nol komentar baru, CRLF. Build Rizki 17.17 terverifikasi untuk versi sebelum `IGD-DEC-305`; perubahan pengenal jenis (`IGD-DEC-305`) **belum dibuild**. **Belum:** build ulang (acceptance 10); uji putaran B baru (acceptance 1–8); konfirmasi Hamzah atas saringan antrean. Bukti: [laporan](../task/report/backend/BE-IGD-074.md) |
+| **Status** | 🟡 **SEBAGIAN — source dan kontrak lengkap.** Uji Putaran B2 (15 Oktober 2026): verifikasi aturan 409/404, print-data, regresi Pulang/Poli, dan pembongkaran Kamar Pulih ✅ LULUS. Langkah admisi C-12 terblokir otorisasi RBAC petugas admisi (`Doctor:Read`, `InpatientBedOccupancy:Read/Create/Update`); skenario P3–P5 NOT RUN. Bukti: [laporan](../task/report/backend/BE-IGD-074.md), [panduan](../testing/2026-10-14-panduan-uji-putaran-b2-antrean-transfer-igd.md) §6.2 |
 | **Outcome** | DPJP IGD aktif menandatangani form; isi dibekukan dan pasien tampil di Antrean Transfer IGD/Poli milik Rawat Inap; petugas admisi memproses admisi dari antrean dan tindak lanjut menjadi *Executed*; perawat IGD tidak menjalankan tindak lanjut rawat inap; form terkirim dapat dibatalkan sebelum diproses dan dapat dicetak |
 | **Slice** | `EPIC IGD-15` · `MVP-11` · R3.18 |
 | **Requirement** | `FR-IGD-112` (tandatangani), `113`, `114`, `115`, `116`; `AT-IGD-225`, `226`, `228`…`233`, `235`, `236`; DoD 2–6, 8–10 (PRD §12.7.3) |
@@ -4203,3 +4208,62 @@ register, grafik, traceability; rilis sesuai R3.18.5.
 
 **DoD.** Acceptance 1–3; persetujuan owner Billing tercatat; laporan `task/report/backend/BE-IGD-075.md`; register, grafik,
 traceability.
+
+### ✅ `BE-IGD-076` — Standar Anamnesis Kasus Trauma, SAMPLE (Last Meal), dan Diagram Tubuh (Body Map) Backend IGD
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **DONE — 15 Oktober 2026.** Migration diterapkan, build 0 error, DTO & Controller aktif. Bukti: [laporan](../task/report/backend/BE-IGD-076.md) |
+| **Outcome** | Entitas `EmgVisit` dan `TrxPatientAssessment` menyimpan data Kasus Trauma (APD & Mekanisme), SAMPLE (Last Meal), dan koordinat Diagram Tubuh (*Body Map*) tanpa mengganggu modul Rawat Jalan dan Rawat Inap |
+| **Slice** | Standar Akreditasi RS Indonesia · Anamnesis & Pemeriksaan Fisik Gawat Darurat |
+| **Requirement** | Standar Rekam Medis Gawat Darurat Indonesia |
+| **Keputusan** | `IGD-DEC-310` |
+| **Kontrak** | API `0.19.0`, Validation `0.18.0` |
+| **Cakupan** | `EmgVisit.cs`, `TrxPatientAssessment.cs`, konfigurasi EF Core, migration EF, DTOs, dan Controller |
+| **Dependency** | `EmgVisit`, `TrxPatientAssessment` |
+| **Pasangan layar** | `FE-IGD-063` |
+| **Owner** | Product/Domain Owner IGD |
+| **Risiko** | Rendah — seluruh kolom nullable, zero disruption |
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta |
+| ---: | --- | --- |
+| 1 | Migration `20261015050322_AddEmergencyAnamnesisAndBodyMap` diterapkan bersih ke basis data dev | `dotnet ef database update` |
+| 2 | Endpoint `GET`/`PUT` `/api/emergency-visits/{id}` membaca dan menyimpan `TraumaMechanism` & `TraumaSafetyEquipment` | Uji API / Unit test |
+| 3 | Endpoint `POST`/`PUT` `/api/patient-assessments` membaca dan menyimpan `BodyMapData` dan ketiga kolom `LastOralIntake*` | Uji API / Live Browser Test |
+| 4 | Build backend lulus 0 error | `dotnet build` 0 error |
+
+**DoD.** Acceptance 1–4; laporan `task/report/backend/BE-IGD-076.md`; traceability diperbarui.
+
+### `BE-IGD-077` — Fungsi Penolakan Form oleh Petugas Admisi & Evaluasi Penutupan Kunjungan IGD Susulan Dua Arah
+
+| Field | Isi |
+| --- | --- |
+| **Status** | Belum dikerjakan — direncanakan 15 Oktober 2026 (`plan-module-delivery`) |
+| **Outcome** | Sisi backend IGD menyediakan fungsi `BatalkanFormPermintaanOlehPetugasAdmisiAsync` untuk dipanggil service Rawat Inap saat tolak admisi beralasan, `EvaluasiPenutupanKunjunganSusulanAsync` untuk penutupan kunjungan IGD dua arah saat transaksi admit, serta verifikasi `BacaRingkasanPermintaanRawatInapAsync` untuk pembacaan antrean |
+| **Slice** | `EPIC IGD-15` · `MVP-11` · R3.18 |
+| **Requirement** | `FR-IGD-119`, `FR-IGD-120`; `AT-IGD-238`…`240`; DoD 14 |
+| **Keputusan** | `IGD-DEC-308`, `IGD-DEC-309` |
+| **Kontrak** | API §12.8, validation §14.9, state §11.6, integration §9.6, permission §11.7 |
+| **Cakupan** | `Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyDispositionService.AdmissionRequest.cs`, `Enums/EmergencyAdmissionRequestEventType.cs` (`AdmissionRejected = 8`), `DTOs/EmergencyAdmissionRequestDtos.cs` |
+| **Dependency** | `BE-IGD-074` |
+| **Pasangan layar** | `FE-IGD-064` |
+| **Owner** | Backend IGD; build milik Rizki |
+| **Risiko** | Sedang — konkurensi dengan aksi admisi simultan; dijaga advisory lock dan row lock `FOR UPDATE` |
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta |
+| ---: | --- | --- |
+| 1 | Method `BatalkanFormPermintaanOlehPetugasAdmisiAsync` membatalkan form aktif (`Signed` → `Cancelled`), mengeset displayStatus `CancelledByAdmission`, dan mencatat `EmgAdmissionRequestEvent` dengan `EventType = AdmissionRejected` dan alasan tolak | Kode & unit / DevVerif test |
+| 2 | Penolakan form oleh admisi tidak membatalkan tindak lanjut DPJP IGD (`EmgDisposition.Status` tetap `Confirmed`) | Pemeriksaan state di basis data / respons DTO |
+| 3 | Percobaan penolakan pada form yang tindak lanjutnya sudah `Executed` mengembalikan penolakan `409 Conflict` (*"Permintaan rawat inap tidak dapat ditolak karena proses admisi sudah dijalankan."*) | Kode & respons penolakan |
+| 4 | Method `EvaluasiPenutupanKunjunganSusulanAsync` menutup kunjungan IGD (`Completed`) bila dokumen serah terima kepergian SBAR telah diterima dan kedatangan dicatat ruangan sebelum admisi selesai | Kode evaluasi penutupan & verifikasi status kunjungan |
+| 5 | Method `BacaRingkasanPermintaanRawatInapAsync` membaca data ringkasan (`isCito`, kebutuhan khusus, usulan unit/kelas/DPJP) tanpa error | Verifikasi method static |
+| 6 | Transaksi dan konkurensi: Mengambil kunci advisory `EMG_ADMISSION_REQUEST_{visitId}` dan kueri baris `EmgDisposition` dengan `FOR UPDATE` | Inspeksi baris transaksi di service |
+| 7 | QBE Strict `PASS`, nol baris komentar baru, nol perubahan `Program.cs`, build backend 0 error | Laporan task |
+
+**DoD.** Acceptance 1–7 terpetakan; laporan `task/report/backend/BE-IGD-077.md`; register, grafik, traceability diperbarui.
+
+

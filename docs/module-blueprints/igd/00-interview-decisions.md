@@ -6842,3 +6842,37 @@ Perubahan status butir lama — baris aslinya tidak diubah:
 | ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
 | --- | --- | --- | --- | --- | --- | --- |
 | `IGD-DEC-306` | Decision | **Amandemen desain bagian 0q (revisi `12`) disetujui: form bertanda tangan sebagai surat pengantar ke Antrean Transfer IGD/Poli.** Mencakup API `0.18.0` §12.7, validation `0.17.0` §14.8, state `0.12.0` §11.5, permission/audit `0.11.0` §11.6, integration `0.9.0` §9.5, `02` §17.12, `03` §17.10, `04` §12.7 (`FR-IGD-113`…`115`, `AT-IGD-225`…`237`, DoD), kamus data, flowchart, dan matriks uji. Aturan 27 (jenis aktif dan unit tujuan rawat inap) ikut disetujui. Membuka perencanaan ulang kartu `BE-IGD-074`, `FE-IGD-060`, `FE-IGD-061` | Product/Domain Owner IGD | `approved`; konfirmasi Muhammad Hamzah atas saringan antrean (API §12.7.3, validation aturan 28) **menunggu** sebelum rilis | **Rizki Gunawan / 2026-10-14** | Pilihan interaktif *"Setujui, lanjut rencana (Recommended)"* |
+
+### Jawaban pemilik Rawat Inap atas antrean, penutupan kunjungan, dan layar admisi — 15 Oktober 2026
+
+Jawaban tertulis Muhammad Hamzah (PIC Admisi Rawat Inap & InPatient Management), diteruskan Rizki Gunawan saat putaran B2 berjalan.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-307` | Decision | **Saringan Antrean Transfer di `InpAdmissionTransferService.TransferQuery` disetujui pemilik Rawat Inap.** Jenis tindak lanjut bertanda `RequiresAdmissionRequest` hanya tampil di antrean dan hanya dapat di-*admit* bila punya Form Permintaan Rawat Inap *Signed*; tanpa form: tidak tampil, rincian dan *admit* `404`. Jenis tanpa tanda memakai aturan lama (kode `RANAP`); baris Poliklinik (Surat Pengantar Rawat Inap) tidak berubah. Pengecekan wajib berbasis tanda boolean, bukan kode teks — sama dengan yang sudah dibangun (`IGD-DEC-305`) | Muhammad Hamzah | `approved` | **Muhammad Hamzah / 2026-10-15** (lewat laporan Rizki Gunawan) | Pesan tertulis Hamzah butir 1 |
+| `IGD-DEC-308` | Decision | **Menjawab `IGD-OQ-130`: penutupan kunjungan IGD dijaga sistem dua arah, tidak cukup SOP.** Alur normal (admisi dulu, lalu antar): kunjungan IGD tertutup saat perawat mencatat serah terima dan pasien tiba — mekanisme IGD yang sudah ada. Alur terbalik (pasien tiba dulu, admisi kemudian): tepat sesudah *admit* Transfer berhasil dan tindak lanjut menjadi *Executed*, Rawat Inap memanggil evaluasi penutupan susulan kunjungan IGD; bila syarat fisik dan kepergian sudah terpenuhi, kunjungan tertutup saat itu juga. Perawat IGD tidak diblokir mencatat kedatangan (`IGD-DEC-070`, `090`). Pembagian: Rawat Inap memanggil; IGD menyediakan fungsi evaluasi penutupan (penjaga yang sama dengan `BE-IGD-060`/`061`) | Muhammad Hamzah (pemanggilan); Product/Domain Owner IGD (fungsi penutupan) | `approved` — butuh amandemen desain dan task | **Muhammad Hamzah / 2026-10-15** | Pesan tertulis Hamzah butir 2 |
+| `IGD-DEC-309` | Decision | **Menjawab `IGD-OQ-131`.** (A) **Tombol *Tolak* beralasan wajib ada** di Antrean Transfer (alasan wajib, misalnya kamar atau kelas penuh, keluarga menolak mondok, ruang isolasi tidak tersedia). Dijalankan lewat **endpoint milik Rawat Inap** (usulan `POST admission-transfers/{id}/reject`, hak akses Rawat Inap) yang memanggil fungsi IGD; petugas admisi tidak butuh hak akses IGD. Akibatnya **hanya form** yang batal: form menjadi *Dibatalkan admisi* beserta alasan, pasien keluar dari antrean, dan **tindak lanjut tetap *Dikonfirmasi*** — perawat IGD dapat membuat form baru atau dokter membatalkan rawat inapnya; keputusan klinis tetap di dokter (`IGD-DEC-279`). (B) Tabel antrean: **lencana merah CITO** dan CITO paling atas (`IGD-DEC-288`); penanda ringkas kebutuhan khusus penting (ICU, isolasi); susunan kolom tetap. (C) Langkah *Proses Admisi*: unit, kelas perawatan, dan DPJP usulan dari form IGD **terisi awal** dan tetap dapat diubah petugas admisi. _Contoh:_ Sari menolak form Tn. Budi dengan alasan "Kelas 2 Bangsal Melati penuh"; Tn. Budi hilang dari antrean; layar perawat IGD menampilkan *Dibatalkan admisi — Kelas 2 Bangsal Melati penuh*; Dimas membuat form baru untuk Bangsal Mawar | Muhammad Hamzah (layar dan endpoint Rawat Inap); Product/Domain Owner IGD (fungsi pembatalan dan tampilan IGD) | `approved` — butuh amandemen desain dan task | **Muhammad Hamzah / 2026-10-15** butir A–C; **Rizki Gunawan / 2026-10-15** efek *Tolak* dan pemilik endpoint | Pesan tertulis Hamzah butir 3; pilihan interaktif Rizki *"Hanya form batal (Recommended)"* dan *"Endpoint Rawat Inap (Recommended)"* |
+
+Perubahan status butir lama — baris aslinya tidak diubah:
+
+| ID | Status sesudah jawaban di atas |
+| --- | --- |
+| `IGD-OQ-128` | **Dijawab** `IGD-DEC-307` — konfirmasi pemilik Rawat Inap atas saringan antrean tercatat |
+| `IGD-OQ-130` | **Dijawab** `IGD-DEC-308` |
+| `IGD-OQ-131` | **Dijawab** `IGD-DEC-309` |
+| `IGD-DEC-279` | Kembali berlaku lewat `IGD-DEC-309` butir A: pembatalan beralasan oleh petugas admisi, kini dari Antrean Transfer |
+| `IGD-DEC-288` | Kembali berlaku lewat `IGD-DEC-309` butir B |
+| `IGD-DEC-301` | Butir C memakai isian *Unit Layanan* form sebagai pengisian awal; arti isian itu tetap `IGD-OQ-127` (sementara = unit rawat inap) |
+| State §11.5.2 (`CancelledByAdmission` tidak dihasilkan) | Akan dihidupkan kembali oleh `IGD-DEC-309` — menunggu amandemen desain |
+
+**Langkah berikutnya** (sesudah putaran B2 selesai dinilai; kode tidak diubah selama uji berjalan): amandemen desain sesudah
+0q untuk `IGD-DEC-308`/`309` — kontrak fungsi IGD yang dipanggil Rawat Inap (pembatalan oleh petugas admisi, evaluasi penutupan
+susulan), keadaan *Dibatalkan admisi*, pesan, dan data form yang dibaca antrean — lalu perencanaan task: sisi IGD (backend
+fungsi pembatalan dan penutupan; frontend keterangan *Dibatalkan admisi*) dan sisi Rawat Inap di roadmap milik Hamzah.
+
+### Standar Anamnesis Kasus Trauma, SAMPLE (Last Meal), dan Diagram Tubuh (Body Map) IGD — 15 Oktober 2026
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-310` | Decision | **Penambahan Standar Anamnesis Kasus Trauma, SAMPLE (Waktu Makan Terakhir / Last Meal), dan Diagram Tubuh (Body Map) interaktif pada Assesmen Awal IGD disetujui.** (A) Kasus Trauma: penambahan kolom `TraumaMechanism` (varchar 1000) dan `TraumaSafetyEquipment` (varchar 250) pada tabel `emg_visit` dan DTO `EmergencyVisit`. (B) Anamnesis SAMPLE: penambahan `LastOralIntakeDateTime` (timestamptz), `LastOralIntakeType` (varchar 250), dan `LastOralIntakeNote` (varchar 500) pada tabel `trx_patient_assessment` untuk keselamatan anestesi/bedah darurat (*Cito*). (C) Diagram Tubuh (*Body Map*): penambahan `BodyMapData` (text/JSON) pada `trx_patient_assessment` yang terhubung dengan komponen siluet interaktif depan (*Anterior*) dan belakang (*Posterior*), mendukung 9 kategori lesi luka, dan menghasilkan ringkasan teks `StatusLokalis` otomatis. (D) Seluruh kolom baru bersifat *nullable* dengan jaminan *zero disruption* pada modul Rawat Jalan dan Rawat Inap. | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-15** | Permintaan penyempurnaan standar RS Indonesia |
+
