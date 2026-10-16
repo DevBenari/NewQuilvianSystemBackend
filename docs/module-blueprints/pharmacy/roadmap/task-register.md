@@ -17,7 +17,7 @@ sudah ada sebelum register ini.
 | Hal | Isi |
 |---|---|
 | Uji | `Tests/QuilvianSystemBackend.PharmacyTests` — **544 uji tertulis** |
-| Bukti runtime | 12 dan 14 Oktober 2026, `localhost/QuilvianNewDevIkbalFr` |
+| Bukti runtime | 12, 14, dan 15 Oktober 2026, `localhost/QuilvianNewDevIkbalFr`; reservasi stok **A–G 11/11 PASS** |
 | Register gabungan | [`../../MODULE-COMPLETION-NORMALIZATION.md`](../../MODULE-COMPLETION-NORMALIZATION.md) |
 
 > **Tabrakan penomoran.** `roadmap/README.md` memakai `PHA-BE-001/002/003` untuk task depot
@@ -33,7 +33,7 @@ sudah ada sebelum register ini.
 |---|---|---|---|
 | `PHA-BE-001` | Resolver routing depo | **Selesai** | `task/report/backend/PHA-BE-001.md`; `DepotRoutingTests` (26) |
 | `PHA-BE-002` | Skenario uji resolver | **Selesai** | `DepotRoutingTests`: layanan, nol, dan ganda |
-| `PHA-BE-003` | Integrasi routing dan reservasi stok ke workflow | **Selesai** | `PHA-DEC-066`; `PrescriptionStockReservationService`, migration `20261015000000`, `PrescriptionReservationExpiryWorker`, endpoint keadaan penahanan; `PrescriptionStockReservationTests` (17 uji) |
+| `PHA-BE-003` | Integrasi routing dan reservasi stok ke workflow | **Selesai** | `PHA-DEC-066`; `PrescriptionStockReservationService`, migration `20261015000000`, `PrescriptionReservationExpiryWorker`, endpoint keadaan penahanan; `PrescriptionStockReservationTests` (17 uji); **runtime PostgreSQL A–G 11/11 PASS** — [`testing/verifikasi-runtime-reservasi-stok.md`](../testing/verifikasi-runtime-reservasi-stok.md) |
 | `PHA-BE-004` | Salinan keadaan finansial resep | **Selesai** | `task/report/backend/PHA-BE-004.md`; `verifikasi-runtime-be-bkc-067.md`; `FinancialClearanceTests` (18) |
 | `PHA-BE-005` | Empat gerbang alur kerja farmasi | **Selesai** | `task/report/backend/PHA-BE-005.md`; `PharmacyWorkflowTests` |
 | `PHA-BE-006` | `FinancialClearance` pada response detail | **Selesai** | `task/report/backend/PHA-BE-006.md` |

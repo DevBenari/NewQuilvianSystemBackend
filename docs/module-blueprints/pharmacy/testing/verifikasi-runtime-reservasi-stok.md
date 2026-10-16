@@ -112,6 +112,81 @@ diterapkan seluruhnya.
 
 ---
 
-## 4. Uji runtime A–G
+## 4. Uji runtime A–G — **PASS, 11/11**
 
-Status: **tertahan kekurangan data master.** Lihat bagian berikut.
+Dijalankan terhadap **PostgreSQL pengembangan yang sesungguhnya**, memakai service produksi
+(`PrescriptionStockReservationService`, `PharmacyDepotRoutingService`) di atas resep, butir
+resep, obat, dan kunjungan nyata yang sudah ada di basis data ini.
+
+| | Skenario | Hasil |
+|---|---|---|
+| **A** | Finalisasi resep → penahanan dibuat | **PASS** — 1 baris `Reserved`, batas waktu **tepat 4 jam**, `QuantityReserved` naik 9 |
+| **B** | Pembayaran valid → penahanan tetap aktif | **PASS** — `ExpiresAt` menjadi `null`; penyapu pada +3 hari melepas **0** |
+| **C** | Penyiapan Farmasi → tidak menahan ulang | **PASS** — `QuantityReserved` tetap 9 sebelum dan sesudah; rencana alokasi dibaca dari penahanan resep |
+| **D** | Penyerahan → penahanan dikonsumsi | **PASS** — `Consumed` + `ConsumedAt`; pemanggilan kedua ditolak `PHA_RSV_UNAVAILABLE` |
+| **E** | Pembatalan → penahanan dilepas | **PASS** — `Released`, sebab `PHA_RSV_PRESCRIPTION_CANCELLED`, `QuantityReserved` kembali 0 |
+| **F** | Stok kurang → finalisasi ditolak | **PASS** — `PHA_RSV_INSUFFICIENT_STOCK`, *"Kurang 5"*, **nol** penahanan parsial, saldo tidak tersentuh |
+| **G** | Retry finalisasi → tidak menahan dua kali | **PASS** — `WasAlreadyReserved`, tetap 1 baris, `QuantityReserved` tetap 9 |
+| + | Batas waktu rawat jalan → dilepas penyapu | **PASS** — pada +4 jam 1 menit menjadi `Expired`, saldo kembali 0 |
+| + | Rawat inap dan IGD | **PASS** — `ExpiresAt` `null`; penyapu pada +30 hari melepas **0** |
+| + | Keadaan untuk layar `PHA-FE-001` | **PASS** — `NOT_RESERVED` → `RESERVED`, `CanProceed` benar, nama depo dan label baris terbaca |
+
+### Mengapa lewat service, bukan HTTP
+
+Boot aplikasi menjalankan **seluruh** seeder dan tidak memiliki sakelar untuk melewatinya.
+Basis data ini tertinggal puluhan tabel modul lain — `AccAccountingEvent`,
+`MstNursingDiagnosisGroup`, `CliEquipmentUsage`, dan lainnya — sehingga seeder gagal satu per
+satu. Dengan `Seeders__ContinueOnFailure=true` proses tetap maju, tetapi **lebih dari tiga
+puluh menit tanpa pernah mendengarkan port**.
+
+Yang diuji di sini karena itu perilaku service terhadap PostgreSQL sungguhan, bukan lapisan
+HTTP-nya. **Yang belum terbukti runtime: authorization filter dan wiring controller** pada
+`GET …/prescriptions/{id}/stock-reservation`. Controller-nya tipis — satu pemanggilan
+`DescribeAsync` yang sudah terbukti di atas — tetapi itu tetap belum dibuktikan dan tidak
+diklaim terbukti.
+
+### Nilai tambah dibanding uji SQLite
+
+Tiga hal ini **tidak dapat** dibuktikan basis data uji, karena di sana indeks unik tersaring
+diturunkan menjadi tidak unik dan foreign key dimatikan:
+
+| Hal | Bukti |
+|---|---|
+| Indeks unik tersaring menolak penahanan ganda | Penahanan kedua atas resep/butir/batch yang sama → `duplicate key value violates unique constraint "IX_PhmPrescriptionStockReservation_Item_Batch_Active"` |
+| Saringan indeks bekerja sesuai maksud | Penahanan ulang setelah yang lama `Released` → **diterima** |
+| Foreign key ditegakkan | Seluruh baris uji memakai resep, butir, obat, dan depo nyata; tidak ada FK yang dimatikan |
+
+### Depo pelayanan: kekurangan data master yang ditemukan
+
+Satu-satunya depo yang memenuhi syarat routing di basis data ini — `DSL-RSMMC-00001` — memiliki
+`ServiceUnitId` **dan** `ClinicId` kosong, sedangkan `PHA-DEC-040` /
+`PHA-DEPOT-ROUTING-v1` menuntut salah satunya cocok dengan kunjungan. Tanpa perbaikan, setiap
+finalisasi resep rawat jalan akan ditolak `PHA_RSV_DEPOT_UNRESOLVED`.
+
+Uji ini membuat depo **baru** di dalam transaksi, bukan mengubah depo yang sudah ada, supaya
+bukti runtime modul lain tidak tersentuh. Ke-24 kunjungan rawat jalan di basis data ini
+**sudah** memiliki `ServiceUnitId`, jadi perbaikannya adalah mengisi konfigurasi routing depo —
+pekerjaan data master, bukan kode.
+
+> **Tindakan yang dibutuhkan sebelum pemakaian sungguhan:** isi `ServiceUnitId` atau `ClinicId`
+> pada depo farmasi, atau tambahkan depo per unit layanan. Selama itu belum dilakukan,
+> finalisasi resep akan ditolak dengan sebab yang jelas — bukan gagal diam-diam.
+
+### Kebersihan basis data
+
+Setiap skenario berjalan di dalam transaksi yang **di-rollback**. Diperiksa sesudahnya:
+
+```
+baris reservasi tertinggal : 0
+depo uji tertinggal        : 0
+batch uji tertinggal       : 0
+status resep acuan         : 2  (kembali seperti semula)
+```
+
+---
+
+## 5. Kesimpulan
+
+`PHA-BE-003` dan `PHA-FE-001` **DONE**. Farmasi **19/19 = 100%**, runtime reservasi **PASS**,
+dengan satu catatan terbuka yang bukan pekerjaan kode: konfigurasi routing depo pada data
+master, dan authorization/controller `PHA-FE-001` yang belum dibuktikan lewat HTTP.
