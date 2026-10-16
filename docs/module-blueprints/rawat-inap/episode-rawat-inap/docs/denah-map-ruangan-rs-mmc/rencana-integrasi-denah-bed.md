@@ -556,6 +556,56 @@ Langkah:
    Operasi dan ruangan non-rawat-inap tidak dihapus. Lalu jalankan impor denah (bagian 8).
 7. Catat hasilnya di dokumen ini.
 
+### 9.1 Hasil Eksekusi Pembersihan (16 Oktober 2026)
+
+Langkah D-DNH-2 telah dieksekusi dengan sukses penuh dalam satu transaksi atomik ter-commit setelah konfirmasi pemilik:
+
+- **Cadangan (Backup):** Seluruh data rawat inap dan entitas terkait dicadangkan ke `scratch/backup_ranap_20261016.json` (1.476.469 bytes, 49 tabel/kueri).
+- **Hasil Pembersihan:**
+  - `InpEpisode`: 35 baris terhapus (tersisa 0).
+  - `InpBedPlacement`: 27 baris terhapus (tersisa 0).
+  - `InpBedReservation`: 21 baris terhapus (tersisa 0).
+  - `InpAdmissionDocument`: 24 baris terhapus (tersisa 0).
+  - `InpStatusHistory`: 71 baris terhapus (tersisa 0).
+  - Modul Klinis (`Cli*`, `Trx*`, `Hmd*`, `Phm*`, `Lab*`, `Rad*`, `Bil*` ranap): seluruh baris terkait episode ranap terhapus (tersisa 0).
+  - Kunjungan Rawat Inap non-emergency: 4 baris `RegPatientEncounter` dan antrean terkait terhapus bersih.
+- **Pemulihan Kesiapan & Status Bed:**
+  - `InpBedReadiness`: Seluruh 70 bed direset ke `State = 4` (`Ready`) dengan `VerifiedByUserId` terkonfirmasi dan `LastReleasedPlacementId = NULL`.
+  - `MstBed`: Seluruh 70 bed direset ke `BedStatus = 1` (`Available`).
+- **Integritas Master & Modul Lain:**
+  - `MstPatient`: 35 pasien utuh tanpa perubahan.
+  - `MstTariff`: 351.802 tarif utuh tanpa perubahan.
+  - `MstRoom`: 69 kamar utuh (kamar operasi dan non-ranap tidak disentuh).
+
+Database `QuilvianNewDevHamzah` kini dalam kondisi bersih sempurna dan siap untuk langkah impor denah **D-DNH-3**.
+
+### 9.2 Hasil Eksekusi Impor Master Denah (D-DNH-3) — 16 Oktober 2026
+
+Langkah operasional D-DNH-3 telah dieksekusi dengan sukses penuh pada database `QuilvianNewDevHamzah` (PostgreSQL `160.22.250.77:5432`) dengan bukti runtime terverifikasi:
+
+1. **Pembersihan Kamar & Bed Uji Lama:**
+   - 3 kunjungan IGD pada `RegPatientEncounter` dilepas referensinya (`RoomId = NULL`).
+   - 70 baris kesiapan `InpBedReadiness` lama dibersihkan.
+   - 70 bed lama pada `MstBed` dihapus bersih.
+   - 22 kamar rawat inap uji coba lama (`RM-IPD-*`, `RM-ICU-*`, `RM-BABY-*`, dsb.) dihapus dari `MstRoom`.
+   - 47 kamar non-rawat-inap (Kamar Operasi, Poliklinik, Radiologi, Laboratorium, MCU) tetap utuh.
+
+2. **Eksekusi Impor Master Denah (`FloorPlanImportService.ImportAsync`):**
+   - **Tahap 1 — Dry Run:** 100% PASS tanpa penolakan (Rooms: Created=106, Rejected=0; Beds: Created=168, Rejected=0).
+   - **Tahap 2 — Impor Definitif (`DryRun = false`):**
+     - Run ID: `a2ada068-7c15-4e8d-a3df-ca7ba31975a5`
+     - Manifest Hash: `eeec408a713df29d50f369ea1a4ecc9f485060fde0c1dbcd5dcdb70e2627b9b0`
+     - Kamar Terbuat (`MstRoom`): **106 kamar** (Lantai 2: 10, Lantai 3: 28, Lantai 4: 28, Lantai 5: 28, Lantai 8: 10, Lantai 9: 2).
+     - Bed Terbuat (`MstBed`): **168 bed** (semua berstatus `Available = 1`).
+     - Kesiapan Bed (`InpBedReadiness`): **168 bed langsung disahkan siap (`State = 4 / Ready`)** dengan `ReadyEvidenceReference = "RWI-DEC-321"` per konfigurasi `BedManagement:FloorPlanImport:MarkImportedBedsReady = true` (`appsettings.Development.json`).
+   - **Tahap 3 — Uji Idempotensi:** Impor kedua dijalankan dengan manifest yang sama persis: Rooms: Unchanged=106, Created=0; Beds: Unchanged=168, Created=0. Tidak ada duplikasi atau perubahan sesuai `INV-DNH-10`.
+
+3. **Verifikasi Langsung Katalog Database PostgreSQL (`QuilvianNewDevHamzah`):**
+   - Total `MstRoom` berkunci denah (`FloorPlanRoomKey != null`): **106 kamar** (Lolos 100%).
+   - Total `MstBed` aktif: **168 bed** (Lolos 100%).
+   - Total `InpBedReadiness` berstatus `Ready`: **168 baris** (Lolos 100%).
+   - Total `MstFloorPlanImportRun`: **2 rekaman audit run**.
+
 ## 10. Rencana pekerjaan
 
 ### 10.1 Fase dan urutan
@@ -563,9 +613,9 @@ Langkah:
 | Fase | Isi                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Bergantung pada                                                        |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | 0    | Keputusan pemilik. **Selesai:** K-01–K-08, P-1–P-5, dan closure pass sudah dijawab dan dicatat (`RWI-DEC-298` s.d. `323`). Setelah itu blueprint dan kontrak diperbarui lewat rantai skill perencanaan sampai task resmi `BE-RWI`/`FE-RWI` terbit di roadmap Desain blueprint draft sudah ditulis 15 Oktober 2026 (manifest anak revision 12, kontrak `0.13.0`); disetujui 16 Oktober 2026 (`RWI-DEC-324`); roadmap `DNH-DEL-20261016-01` terbit dengan task `BE-RWI-232` s.d. `240` dan `FE-RWI-246` s.d. `253` | —                                                                      |
-| 1    | Pembersihan data rawat inap di DB Hamzah (bagian 9)                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Cakupan sudah diputuskan (`RWI-DEC-305`); menunggu konfirmasi eksekusi |
+| 1    | Pembersihan data rawat inap di DB Hamzah (bagian 9)                                                                                                                                                                                                                                                                                                                                                                                                                                                              | **Selesai 16 Oktober 2026** — dicadangkan penuh (`backup_ranap_20261016.json`), eksekusi atomik tuntas, 35 episode bersih, 70 bed kembali ke Available dan Ready (`RWI-DEC-305`, `RWI-AC-445`) |
 | 2    | Backend P-BE-01–06                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Fase 0                                                                 |
-| 3    | Impor master denah ke DB Hamzah                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | Fase 1, P-BE-01, P-BE-02                                               |
+| 3    | Impor master denah ke DB Hamzah                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | **Selesai 16 Oktober 2026** — 106 kamar dan 168 bed berstatus Ready di DB Hamzah (`RWI-DEC-321`, `D-DNH-3`) |
 | 4    | Frontend P-FE-01–09                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | P-FE-01 bisa dimulai lebih dulu; sisanya menunggu API                  |
 | 5    | Verifikasi ujung ke ujung dan UAT                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Fase 3 dan 4                                                           |
 
