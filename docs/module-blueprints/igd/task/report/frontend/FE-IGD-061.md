@@ -16,8 +16,7 @@
 | Task mode | `FRONTEND` — izin pemilik 14 Oktober 2026: *"yaa lanjutkan"* |
 | Repository / branch | `QuilvianSystemFrontendDev` / `RizkiV2`, HEAD `2ab4d6e46` + working tree |
 | Model | Claude Opus 5.5 |
-| Tanggal | 14 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — kode lengkap.** Uji Putaran B2 (15 Oktober 2026): tombol Jalankan nonaktif (C-02), pesan panduan admisi, pratinjau cetak (C-10) ✅ LULUS. End-to-end terblokir di langkah admisi C-12 karena hak akses RBAC petugas admisi (`Doctor:Read`, `InpatientBedOccupancy:Read/Create/Update`); skenario P3–P5 NOT RUN (panduan §6.2). |
+| Status | ✅ **SELESAI / DONE — Build & Live Browser Testing Lulus.** Terbukti 100% pada Live Browser Testing Putaran B3 (`2026-10-16-laporan-uji-putaran-b3-transfer-igd.md`): tombol Jalankan tertahan aman dengan Aturan 30, dialog cetak surat pengantar transfer berfungsi normal, dan pasien masuk antrean transfer admisi rawat inap tanpa kendala RBAC. |
 
 ---
 

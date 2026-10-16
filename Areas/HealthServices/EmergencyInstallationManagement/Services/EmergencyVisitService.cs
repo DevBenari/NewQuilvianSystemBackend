@@ -1398,7 +1398,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                             && x.VisitStatus != EmergencyVisitStatus.Cancelled);
 
             if (statusKunjungan.HasValue)
-                kunjungan = kunjungan.Where(x => x.VisitStatus == statusKunjungan.Value);
+            {
+                if (statusKunjungan.Value == EmergencyVisitStatus.Triaged)
+                {
+                    kunjungan = kunjungan.Where(x => x.VisitStatus == EmergencyVisitStatus.Triaged
+                                                     || x.VisitStatus == EmergencyVisitStatus.InTreatment);
+                }
+                else
+                {
+                    kunjungan = kunjungan.Where(x => x.VisitStatus == statusKunjungan.Value);
+                }
+            }
 
             if (adaPencarian)
             {
@@ -1543,7 +1553,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 EmergencyVisitStatus.Arrived or EmergencyVisitStatus.WaitingForTriage
                     => new List<string> { AksiIsiTriage, AksiTanganiSegera },
-                EmergencyVisitStatus.InTreatment when !baris.IsTriaged
+                EmergencyVisitStatus.Triaged or EmergencyVisitStatus.InTreatment
                     => new List<string> { AksiIsiTriage },
                 _ => new List<string>()
             };

@@ -2247,4 +2247,23 @@ Amandemen ini melengkapi slice transfer pasien IGD → Rawat Inap:
 2. **Pengecekan Keadaan di Dalam Kunci:** Di dalam kunci, service memeriksa apakah tindak lanjut sudah berstatus `Executed` (sudah diproses admisi). Jika sudah, fungsi mengembalikan penolakan `409 Conflict` (*"Permintaan rawat inap tidak dapat ditolak karena proses admisi sudah dijalankan."*).
 3. **Evaluasi Penutupan:** `EvaluasiPenutupanKunjunganSusulanAsync` memanggil `EmergencyVisitService.TryCloseAfterDispositionAsync` yang telah ada, mengevaluasi penjaga penutupan (`EmergencyDispositionService.ValidateVisitClosureAsync`). Jika seluruh kewajiban terpenuhi, status kunjungan berubah `Completed` dan `ClosedByDispositionId` diisi.
 
+### 17.15 Amandemen 16 Oktober 2026 — Perbaikan Alur Non-Ranap dan Sequential Transition Kunjungan IGD (`IGD-DEC-311`) — **`approved`**
+
+Disetujui `IGD-DEC-311`, Rizki Gunawan, 16 Oktober 2026. Penuntasan masalah HTTP 409 Conflict (*"Status kunjungan tidak dapat berubah dari Triaged ke Disposed"*) pada eksekusi tindak lanjut non-ranap (Pulang / Kontrol Poli / Rujuk Balik).
+
+#### 17.15.1 Akar Penyebab & Solusi Arsitektural
+1. **Aturan Matriks Status Asli:** Matriks status resmi (`state-transition-matrix.md` Bagian 1) melarang perpindahan langsung dari `Triaged` (3) atau `InTreatment` (4) menuju `Disposed` (7). Transisi yang sah menuju `Disposed` hanya diperbolehkan dari status `AwaitingDisposition` (6).
+2. **Ketiadaan Transisi pada Non-Ranap:** Pada alur observasi, penyelesaian observasi memindahkan status ke `AwaitingDisposition`. Namun untuk pasien IGD biasa (tanpa observasi), tidak ada tahapan yang mempromosikan status kunjungan ke `AwaitingDisposition`. Akibatnya, saat perawat menekan tombol *Jalankan* pada tindak lanjut pulang, backend langsung mencoba mengeksekusi `TryApplyVisitStatus(visit, EmergencyVisitStatus.Disposed)` yang seketika ditolak dengan `409 Conflict`.
+3. **Mekanisme Promosi Berurutan (*Sequential Promotion*):**
+   - **Tahap Konfirmasi Dokter:** Pada `EmergencyDispositionController.UpdateDispositionStatus`, saat dokter mengonfirmasi tindak lanjut (`Confirmed`), status kunjungan `visit.VisitStatus` yang masih `Triaged` atau `InTreatment` secara otomatis berpindah ke `AwaitingDisposition` via `_emergencyVisitService.TryApplyVisitStatus(visit, EmergencyVisitStatus.AwaitingDisposition, actorUserId, now, out _)`.
+   - **Jaring Pengaman Aksi *Executed*:** Pada `EmergencyDispositionController.UpdateDispositionStatus` saat status menjadi `Executed`, jika kunjungan pasien masih berstatus `Triaged` atau `InTreatment`, controller melakukan promosi berurutan ke `AwaitingDisposition` terlebih dahulu sebelum menerapkan `Disposed`, sehingga lolos validasi `CanTransition` tanpa 409 Conflict.
+   - **Penutupan Otomatis Kunjungan Non-Ranap:** Setelah status menjadi `Disposed`, mekanisme `TryCloseAfterDispositionAsync` langsung mengevaluasi ketiadaan penahan (tidak ada resep tertunda, tidak ada lab tertunda, tidak ada observasi aktif) dan memindahkan status kunjungan menjadi `Completed` (9) secara mulus.
+
+#### 17.15.2 Perubahan Komponen & Berkas Backend
+| Berkas | Perubahan | Kepatuhan QBE |
+| :--- | :--- | :--- |
+| `Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyDispositionController.cs` | 1. Di method `UpdateDispositionStatus`: pindahkan deklarasi `now` dan `actorUserId` ke awal, tambahkan transisi otomatis ke `AwaitingDisposition` saat status `Confirmed`.<br>2. Di blok penanganan `Executed`: tambahkan jaring pengaman berurutan (*sequential promotion*) dari `Triaged`/`InTreatment` $\rightarrow$ `AwaitingDisposition` $\rightarrow$ `Disposed`.<br>3. Di method `Create`: tambahkan transisi otomatis serupa bila disposisi dibuat langsung dengan status `Confirmed`. | 0 Violation, PASS |
+| `Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyDispositionService.AdmissionRequest.cs` | 1. Tambah `using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;` untuk `EncounterStatus`.<br>2. Ganti nama duplikasi CS0111 menjadi `BacaRingkasanPermintaanRawatInapPerDisposisiAsync`.<br>3. Gunakan properti `encounter.CompletedAt = now` pada `EvaluasiPenutupanKunjunganSusulanAsync`. | 0 Violation, PASS |
+
+
 
