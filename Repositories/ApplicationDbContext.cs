@@ -1127,6 +1127,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgDuplicateEpisodeOverride> EmgDuplicateEpisodeOverrides { get; set; }
         public DbSet<EmgAdmissionRequest> EmgAdmissionRequests { get; set; }
         public DbSet<EmgAdmissionRequestEvent> EmgAdmissionRequestEvents { get; set; }
+        public DbSet<EmgPreArrivalReservation> EmgPreArrivalReservations { get; set; }
         #endregion
 
         #endregion

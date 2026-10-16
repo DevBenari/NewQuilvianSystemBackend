@@ -28,6 +28,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
             builder.Property(x => x.EstimatedLengthOfStayDays)
                 .IsRequired()
                 .HasDefaultValue(3);
+            builder.Property(x => x.PatientDependencyLevel)
+                .HasConversion<int>()
+                .IsRequired(false);
             builder.Property(x => x.ClinicalIndication).HasMaxLength(2000);
             builder.Property(x => x.CarePlanInstruction).HasMaxLength(2000);
             builder.Property(x => x.SignatureRequestedAt).HasColumnType("timestamp with time zone");

@@ -701,6 +701,7 @@ try
     builder.Services.AddScoped<EmergencyUnitAuthorityService>();
     builder.Services.AddScoped<EmergencyDoctorAssignmentService>();
     builder.Services.AddScoped<EmergencySettingService>();
+    builder.Services.AddScoped<EmergencyPreArrivalReservationService>();
 
     // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
     // dependency injection, sehingga endpoint-nya membalas 500 sebelum kode modul sempat
