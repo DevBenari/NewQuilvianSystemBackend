@@ -81,6 +81,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             string? FoundLocation,
             string? TraumaLocation,
             DateTime? WaktuTrauma,
+            string? TraumaMechanism,
+            string? TraumaSafetyEquipment,
             string? Notes);
 
         private static readonly TimeZoneInfo ZonaWaktuPesan = TentukanZonaWaktuPesan();
@@ -864,6 +866,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 NormalizeText(request.FoundLocation),
                 NormalizeText(request.TraumaLocation),
                 waktuTrauma,
+                NormalizeText(request.TraumaMechanism),
+                NormalizeText(request.TraumaSafetyEquipment),
                 NormalizeText(request.Notes));
 
             try
@@ -964,6 +968,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 FoundLocation = masukan.FoundLocation,
                 TraumaLocation = masukan.TraumaLocation,
                 TraumaDateTime = masukan.WaktuTrauma,
+                TraumaMechanism = masukan.TraumaMechanism,
+                TraumaSafetyEquipment = masukan.TraumaSafetyEquipment,
                 IsUnknownPatient = masukan.IsUnknownPatient,
                 TemporaryPatientAlias = masukan.TemporaryPatientAlias,
                 IsImmediateCareAllowed = true,

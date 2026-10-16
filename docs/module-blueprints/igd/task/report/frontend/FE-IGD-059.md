@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `701ddfb5d` (`RizkiV2`) + working tree |
 | Commit backend yang dijadikan rujukan | `6a1c6cf9` (`rizkiG`) + working tree `BE-IGD-072` |
 | Tanggal | 12 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — kode lengkap, ESLint 0 error 0 warning; putaran A dinilai dari bukti mentah: 12 dari 14 terbukti, A-01 sebagian, A-11 tidak terbukti ([penilaian putaran A](../../../testing/2026-10-12-laporan-uji-form-permintaan-rawat-inap-putaran-a.md#7-penilaian-ulang-dari-bukti-mentah--agent-pengembang-12-oktober-2026)); `npm run build` belum (server dev pemilik aktif)** |
+| Status | ✅ **SELESAI — 14 Oktober 2026.** Acceptance 1–6 terbukti dari layar (putaran A 12 Oktober + [uji ulang](../../../testing/2026-10-12-panduan-uji-ulang-putaran-a-permintaan-rawat-inap.md#6-hasil-dan-penilaian--agent-pengembang-13-oktober-2026) 13 Oktober: 14 `PASS`, 1 `NOT RUN`); acceptance 7 — `npm run build` lulus 14 Oktober 2026. Panel dan form ikut diubah `FE-IGD-060`/`061` sesudah uji itu; perilakunya diuji ulang pada putaran B (B-01, B-22, B-24) |
 
 ---
 
@@ -86,7 +86,7 @@ Pengguna: perawat IGD. Layar: Pengkajian Pasien IGD → tab *Tindak Lanjut*.
 
 | Berkas | Perubahan |
 | --- | --- |
-| `src/lib/constants/health-services/emergency-installation-management/emergency-admission-request-constant.jsx` | **Baru** — URL, nilai enum (angka, sesuai respons backend), label dan nada lencana, konfigurasi isian, teks baku §17.4 |
+| `src/lib/constants/health-services/emergency-installation-management/emergency-admission-request-constant.jsx` | **Baru** — URL, nilai enum (angka, sesuai respons backend), label dan nada lencana, konfigurasi isian, teks baku §17.4. *Diubah pihak lain 12 Oktober 16.29 (jendela uji, tidak dilaporkan):* `min`/`max` isian lama rawat dihapus sehingga ketikan di luar 1–90 tidak lagi dibulatkan `BaseTextField` dan penolakan aturan 6 dari server tampil apa adanya. Dipertahankan sesudah ditinjau; ESLint 0 error |
 | `src/lib/services/health-services/emergency-management/emergency-admission-request.service.js` | **Baru** — tujuh fungsi `InstanceAxios`: daftar per kunjungan, rincian, buat, simpan draf, minta TTD (`POST`), batal (`POST`), pilihan DPJP |
 | `src/utils/health-services/emergency-installation-management/emergency-admission-request.utils.js` | **Baru** — normalisasi respons, bentuk form dan payload `PUT`, pengelompokan per tindak lanjut, teks tampilan. *Perbaikan sesudah putaran A:* penjamin tidak lagi tampil ganda (*"Tunai — Tunai"*) bila jenis bayar sama dengan nama penjamin |
 | `src/lib/hooks/health-services/emergency-installation-management/emergency-assessment/use-emergency-admission-request.jsx` | **Baru** — hook non-Redux: muat daftar dan rincian (dengan `AbortController`), pilihan unit/kelas/DPJP, aksi buat, simpan, minta TTD, batal; status sibuk dan galat per tempat aksi |
@@ -169,14 +169,15 @@ Pengguna: perawat IGD. Layar: Pengkajian Pasien IGD → tab *Tindak Lanjut*.
 | Grep `console.`, `localStorage`, `sessionStorage` (aturan 17.6 nomor 5) | Nihil | `PASS` | `grep` |
 | Teks *"Tidak ada alergi"* pada berkas task ini | Nihil | `PASS` | `grep` |
 | Akhiran baris | 7 berkas CRLF, tanpa BOM, nol LF tunggal (hitungan byte Node) | `PASS` | Skrip hitung byte |
-| `npm run build` | Belum dijalankan — port 3000 dipakai `next dev` milik pemilik; pemilik memilih menguji dulu di server dev | `NOT RUN` | Keputusan pemilik 12 Oktober 2026 |
+| `npm run build` | Lulus 14 Oktober 2026 13.01.48–13.03.33: *Compiled successfully in 59s*, 492/492 halaman statis, 0 baris peringatan, `postbuild` standalone siap; `BUILD_ID` `CdZrb6rn2PX6y3xbZLSNX`; `data-testid` baru task ini ditemukan di `.next/static/chunks`. Server standalone pemilik (PID 27640) sudah berhenti saat izin diberikan; tidak dinyalakan ulang | `PASS` | Log build + `.next/BUILD_ID` |
 | Uji layar putaran A (A-01…A-14), 16.12–16.43 | 12 terbukti, 1 sebagian (A-01), 1 tidak terbukti (A-11); satu cacat tampilan kecil ditemukan dan diperbaiki (*"Tunai — Tunai"*) | `PASS` sebagian | [penilaian putaran A](../../../testing/2026-10-12-laporan-uji-form-permintaan-rawat-inap-putaran-a.md#7-penilaian-ulang-dari-bukti-mentah--agent-pengembang-12-oktober-2026) |
+| Uji ulang 13 Oktober 2026, 14.59–15.53 (run-01…run-06) | U-01…U-06 dan B-01…B-08 `PASS`, B-09 `NOT RUN`; konkurensi (U-05) kini terbukti: `PUT 200` 15.49.19 lalu `PUT 409` 15.49.24 dari peramban | `PASS` | [uji ulang](../../../testing/2026-10-12-panduan-uji-ulang-putaran-a-permintaan-rawat-inap.md#6-hasil-dan-penilaian--agent-pengembang-13-oktober-2026) |
 
-Uji manual: `PASS` sebagian — A-11 dan keadaan awal A-01 diuji ulang (laporan uji 7.4). ESLint diulang atas `emergency-admission-request.utils.js` sesudah perbaikan: 0 error.
+Uji manual: `PASS` — acceptance 1–6 terbukti dari layar (putaran A dan uji ulang). ESLint diulang atas berkas konstanta sesudah perubahan pihak lain: 0 error.
 
 `AUTOMATED TEST: SKIPPED (opsional) — kebijakan tim: unit test tidak ditulis atau dijalankan untuk task ini.`
 
-**Tidak dijalankan:** `npm run build` (keputusan pemilik: port 3000 dipakai server uji dev), unit test (kebijakan tim).
+**Tidak dijalankan:** unit test (kebijakan tim).
 
 ---
 
@@ -184,15 +185,15 @@ Uji manual: `PASS` sebagian — A-11 dan keadaan awal A-01 diuji ulang (laporan 
 
 | # | Kriteria | Status | Bukti |
 | ---: | --- | --- | --- |
-| 1 | Panel form tampil hanya pada tindak lanjut bertanda `requiresAdmissionRequest`; *Buat Form* hanya pada tindak lanjut terkonfirmasi | **Sebagian** | Kotak pada baris rawat inap terbukti (`A-01.png`, `A-13.png`); keadaan *"Belum ada Form…"* + *Buat Form* tidak terekam (bukti 16.12 tertimpa); baris jenis lain dan tindak lanjut *Draf* tidak diuji |
+| 1 | Panel form tampil hanya pada tindak lanjut bertanda `requiresAdmissionRequest`; *Buat Form* hanya pada tindak lanjut terkonfirmasi | Terpenuhi | Uji ulang `U-01.png` (tindak lanjut *Draf*: kotak tanpa *Buat Form*) dan `U-03.png` (sesudah dikonfirmasi: *Buat Form*) |
 | 2 | Identitas, alergi (*"Belum ada data alergi"* bila kosong, tidak pernah *"Tidak ada alergi"*), penjamin dan hak kelas, diagnosis utama paling atas — baca-saja | Terpenuhi | `A-01.png`…`A-13.png`: alergi *"Belum ada data alergi"*, diagnosis *(utama)*, keadaan diagnosis kosong (`A-13.png`); hak kelas tidak teruji (pasien tunai) |
 | 3 | Pilihan DPJP dari endpoint server; keterangan unit tanpa jadwal tampil | Terpenuhi | `A-04-1.png`, `A-04-2.png` |
-| 4 | Penolakan `400`/`409` tampil apa adanya di tempat aksi; isian tidak dikosongkan | **Sebagian** | `400` di bawah form (`A-05.png`) dan di dialog (`A-06.png`) terbukti, isian tetap. `409` konkurensi di layar (A-11) **tidak terbukti** |
+| 4 | Penolakan `400`/`409` tampil apa adanya di tempat aksi; isian tidak dikosongkan | Terpenuhi | `400` putaran A (`A-05.png`, `A-06.png`); `409` konkurensi uji ulang `U-05b.png` (isian tetap `6`) dan *Muat ulang form* `U-06.png` |
 | 5 | *Minta TTD* mengubah lencana dan menampilkan nama DPJP aktif; catatan *Kembalikan* tampil di riwayat dan form kembali dapat diubah | Terpenuhi | `A-07.png`, `A-10.png` |
 | 6 | *Batalkan Form* meminta alasan; form batal dan *Buat Form* tersedia lagi | Terpenuhi | `A-12.png` |
-| 7 | Diff hanya berkas Cakupan; nol komentar baru; `eslint` 0 error; `npm run build` lulus | **Sebagian** | Diff, komentar, ESLint terpenuhi; build `NOT RUN` (ditunda atas persetujuan pemilik karena server dev aktif) |
+| 7 | Diff hanya berkas Cakupan; nol komentar baru; `eslint` 0 error; `npm run build` lulus | Terpenuhi | Diff, komentar, ESLint; build 14 Oktober 2026 lulus |
 
-**Definition of Done belum terpenuhi:** acceptance 1 dan 4 sebagian, acceptance 7 (build) belum. Penilaian: [penilaian putaran A](../../../testing/2026-10-12-laporan-uji-form-permintaan-rawat-inap-putaran-a.md#7-penilaian-ulang-dari-bukti-mentah--agent-pengembang-12-oktober-2026). Koreksi 12 Oktober 2026: status *🟢 SELESAI* yang ditulis agen uji dikembalikan ke 🟡 — tidak didukung bukti.
+**Definition of Done terpenuhi:** acceptance 1–7. Penilaian uji: [uji ulang](../../../testing/2026-10-12-panduan-uji-ulang-putaran-a-permintaan-rawat-inap.md#6-hasil-dan-penilaian--agent-pengembang-13-oktober-2026); build 14 Oktober 2026.
 
 ---
 
@@ -206,4 +207,4 @@ Uji manual: `PASS` sebagian — A-11 dan keadaan awal A-01 diuji ulang (laporan 
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | 1 `M` (`emergency-assessment-disposition-tab.jsx`) dan 6 `??` berkas baru milik task ini; berkas `M`/`??` lain di working tree milik sesi lain dan tidak disentuh. Nol stage, nol commit |
-| Langkah berikutnya | Pemilik mengisi tanda `RANAP` dan butir hak akses, lalu menjalankan putaran A dari [panduan](../../../testing/2026-10-12-panduan-uji-form-permintaan-rawat-inap-putaran-a.md); sesudah itu agent menjalankan `npm run build` atas izin menghentikan server dev |
+| Langkah berikutnya | Uji regresi pada putaran B bersama `FE-IGD-060`…`062` — [panduan putaran B](../../../testing/2026-10-14-panduan-uji-putaran-b-transfer-igd-rawat-inap.md) |
