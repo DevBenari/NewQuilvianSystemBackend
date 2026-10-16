@@ -101,3 +101,50 @@ flowchart TD
 *Contoh jalur tidak normal:* Sari membatalkan permintaan Tn. Budi 10.50 karena kelas 2 Bangsal Melati penuh. Di layar
 Dimas, form tampil *Dibatalkan admisi — Kelas 2 Bangsal Melati penuh* dan *Jalankan* kembali nonaktif. Dimas membuat form
 baru untuk Bangsal Mawar kelas 2 dan meminta TTD ulang.
+
+## 3. Amandemen 14 Oktober 2026 — surat pengantar ke Antrean Transfer IGD/Poli (`IGD-DEC-304`, `305`) — **`approved`** (`IGD-DEC-306`)
+
+Menggantikan langkah petugas admisi di bagian 1 dan cabang "petugas admisi membatalkan" di bagian 2. Langkah lain tetap.
+Pelaku bertambah: perawat ruangan rawat inap (penerima serah terima).
+
+```mermaid
+flowchart TD
+    subgraph DOK["Dokter IGD"]
+        A1["Tetapkan dan konfirmasi tindak lanjut rawat inap<br/>dengan unit tujuan rawat inap"]
+    end
+    subgraph PRW["Perawat IGD"]
+        B1["Buat dan lengkapi form"]
+        B2["Minta tanda tangan DPJP"]
+        B3["Batalkan form bila rencana berubah"]
+        B4["Antar pasien dengan serah terima"]
+    end
+    subgraph DPJ["DPJP IGD aktif"]
+        C1{"Isi form benar?"}
+        C2["Tandatangani"]
+        C3["Kembalikan dengan catatan"]
+    end
+    subgraph ADM["Petugas admisi Rawat Inap"]
+        D1["Lihat pasien di Antrean Transfer IGD/Poli"]
+        D2["Proses Admisi:<br/>verifikasi, pembayaran, dokter, tempat tidur"]
+    end
+    subgraph RNG["Perawat ruangan"]
+        E1["Terima serah terima dan catat tiba"]
+    end
+    A1 --> B1 --> B2 --> C1
+    C1 -- Ya --> C2 --> D1
+    C1 -- Tidak --> C3 --> B1
+    D1 --> D2 --> B4 --> E1
+    D1 -. belum diproses .-> B3
+    E1 --> F1(["Kunjungan IGD selesai"])
+```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Konfirmasi tindak lanjut | Dokter IGD | Keputusan rawat inap, unit tujuan rawat inap | Tindak lanjut terkonfirmasi | Unit tujuan bukan unit rawat inap: form tidak dapat dibuat — dokter memperbaiki tindak lanjut |
+| Buat dan lengkapi form | Perawat IGD | Tindak lanjut terkonfirmasi | Form *Draf* | Sudah ada form aktif: buka form itu |
+| Tandatangani | DPJP IGD aktif | Form *Menunggu TTD* | Form *Terkirim*; pasien tampil di antrean | Bukan DPJP aktif: minta DPJP yang benar menandatangani |
+| Lihat antrean | Petugas admisi | Form bertanda tangan | Baris pasien asal IGD | Pasien tidak tampil: periksa apakah form sudah ditandatangani |
+| Proses Admisi | Petugas admisi | Baris antrean | Admisi terbuka; tindak lanjut *Executed*; form *Selesai* | Bed atau penjamin bermasalah: diselesaikan di langkah admisi Rawat Inap |
+| Batalkan form | Perawat IGD | Form *Terkirim* belum diproses | Form *Dibatalkan*; pasien keluar dari antrean | Sudah diproses: pembatalan ditolak; batalkan admisi di Rawat Inap lebih dulu |
+| Antar dengan serah terima | Perawat IGD | Admisi sudah diproses | Kepergian dengan SBAR | Admisi belum diproses: tunggu, jangan antar dulu — kunjungan IGD tidak akan tertutup otomatis |
+| Terima dan catat tiba | Perawat ruangan | Kepergian dari IGD | Kunjungan IGD selesai | Dokumen tidak lengkap: tolak dengan alasan, perawat IGD melengkapi |

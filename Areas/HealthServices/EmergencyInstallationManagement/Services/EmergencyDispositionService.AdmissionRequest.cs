@@ -60,10 +60,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private const string PesanCatatanKembali = "Catatan pengembalian wajib diisi, paling panjang 500 karakter.";
         private const string PesanAlasanBatal = "Alasan pembatalan wajib diisi, paling panjang 500 karakter.";
         private const string PesanSudahDibatalkan = "Form ini sudah dibatalkan.";
-        private const string PesanSudahTerkirim = "Form ini sudah ditandatangani. Pembatalan form yang sudah terkirim belum tersedia.";
         private const string PesanVersiBasi = "Form sudah diubah orang lain. Muat ulang lalu coba lagi.";
+        private const string PesanTindakLanjutTidakBerlaku = "Tindak lanjut rawat inap sudah tidak berlaku. Form tidak dapat ditandatangani.";
+        private const string PesanDataPasienGagal = "Data pasien tidak dapat dibaca saat ini. Coba tandatangani lagi.";
+        private const string PesanAdmisiSudahDibuka = "Petugas admisi sudah memproses pasien ini dari Antrean Transfer IGD/Poli. Form tidak dapat dibatalkan dari IGD.";
+        private const string PesanJalankanTanpaForm = "Tindak lanjut rawat inap dijalankan oleh petugas admisi. Lengkapi Form Permintaan Rawat Inap dan minta tanda tangan DPJP agar pasien masuk Antrean Transfer IGD/Poli.";
+        private const string PesanJalankanLewatAdmisi = "Pasien sudah masuk Antrean Transfer IGD/Poli. Tindak lanjut ini dijalankan otomatis saat petugas admisi memproses admisinya.";
+        private const string PesanTujuanBukanAntrean = "Tindak lanjut ini tidak dapat masuk Antrean Transfer IGD/Poli: jenis tindak lanjutnya harus aktif dan unit tujuannya harus unit rawat inap. Perbaiki tindak lanjut lebih dulu.";
+        private const string PesanAdmisiDibukaDariTindakLanjut = "Admisi rawat inap sudah dibuka dari tindak lanjut ini. Batalkan admisi di Rawat Inap lebih dulu.";
+        private const string PesanCetakBelumTtd = "Form Permintaan Rawat Inap hanya dapat dicetak sesudah ditandatangani.";
+        private const string SumberTransferIgd = "Emergency";
 
         private static readonly JsonSerializerOptions OpsiSalinanBeku = new(JsonSerializerDefaults.Web);
+        private static readonly TimeZoneInfo ZonaWaktuCetak = TentukanZonaWaktuCetak();
+        private static readonly string[] NamaBulanCetak =
+        [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+        ];
 
         public async Task<IReadOnlyList<EmergencyAdmissionRequestSummary>> AmbilPermintaanRawatInapPerKunjunganAsync(
             Guid emergencyVisitId,
@@ -75,8 +89,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     .OrderByDescending(x => x.CreateDateTime))
                 .ToListAsync(cancellationToken);
 
+            var sudahDiadmisi = await AmbilTindakLanjutSudahDiadmisiAsync(
+                data.Where(x => x.Status == EmergencyAdmissionRequestStatus.Signed).Select(x => x.DispositionId).ToList(),
+                cancellationToken);
+
             foreach (var item in data)
-                item.DisplayStatus = TampilanStatus(item.Status);
+                item.DisplayStatus = TampilanStatus(item.Status, sudahDiadmisi.Contains(item.DispositionId));
 
             return data;
         }
@@ -120,6 +138,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 || disposition.DispositionStatus != EmergencyDispositionStatus.Confirmed)
                 return Gagal(StatusCodes.Status409Conflict, PesanTindakLanjutBukanRawatInap);
 
+            if (!await TindakLanjutMasukAntreanAsync(disposition.Id, cancellationToken))
+                return Gagal(StatusCodes.Status409Conflict, PesanTujuanBukanAntrean);
+
             if (!visit.PatientId.HasValue || !visit.EncounterId.HasValue)
                 return Gagal(StatusCodes.Status409Conflict, PesanKunjunganTanpaPasien);
 
@@ -134,6 +155,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                         || x.Status == EmergencyAdmissionRequestStatus.AwaitingSignature),
                     cancellationToken);
             if (adaFormAktif)
+                return Gagal(StatusCodes.Status409Conflict, PesanFormAktifAda);
+
+            var formTerkirim = await _dbContext.Set<EmgAdmissionRequest>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == visit.Id
+                    && !x.IsDelete
+                    && x.Status == EmergencyAdmissionRequestStatus.Signed)
+                .Select(x => x.DispositionId)
+                .ToListAsync(cancellationToken);
+            var terkirimSudahDiadmisi = await AmbilTindakLanjutSudahDiadmisiAsync(formTerkirim, cancellationToken);
+            if (formTerkirim.Any(x => !terkirimSudahDiadmisi.Contains(x)))
                 return Gagal(StatusCodes.Status409Conflict, PesanFormAktifAda);
 
             var adaPermintaanAdmisi = await _dbContext.Set<InpAdmissionReferral>()
@@ -360,7 +392,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return Gagal(StatusCodes.Status409Conflict, PesanSudahDibatalkan);
 
             if (form.Status == EmergencyAdmissionRequestStatus.Signed)
-                return Gagal(StatusCodes.Status409Conflict, PesanSudahTerkirim);
+                return await BatalkanPermintaanTerkirimAsync(form, alasan, actorUserId, cancellationToken);
 
             var statusSebelum = form.Status;
             var now = DateTime.UtcNow;
@@ -373,6 +405,219 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 statusSebelum, EmergencyAdmissionRequestStatus.Cancelled, actorUserId, now, alasan);
 
             return await SimpanLaluBentukAsync(form, actorUserId, cancellationToken);
+        }
+
+        public async Task<HasilPermintaanRawatInap<EmergencyAdmissionRequestResponse>> TandatanganiPermintaanAsync(
+            Guid id,
+            EmergencyAdmissionRequestRowVersionRequest request,
+            string? idempotencyKey,
+            string? deviceInfo,
+            string? ipAddress,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var form = await MuatFormAsync(id, false, cancellationToken);
+            if (form == null)
+                return Gagal(StatusCodes.Status404NotFound, PesanFormTidakAda);
+
+            var kunci = Rapikan(idempotencyKey);
+            if (AdalahPengulanganTandaTangan(form, kunci, actorUserId))
+                return HasilPermintaanRawatInap<EmergencyAdmissionRequestResponse>.Ok(
+                    await BentukResponsAsync(form, actorUserId, cancellationToken));
+
+            var dokterAkun = await AmbilDokterAkunAsync(actorUserId, cancellationToken);
+            var dpjp = await AmbilDpjpIgdAktifAsync(form.EmergencyVisitId, cancellationToken);
+            if (!dokterAkun.HasValue || dpjp == null || dpjp.DoctorId != dokterAkun.Value)
+                return Gagal(StatusCodes.Status403Forbidden, PesanBukanDpjpAktif);
+
+            if (request == null || request.RowVersion != form.RowVersion)
+                return Gagal(StatusCodes.Status409Conflict, PesanVersiBasi);
+
+            if (form.Status != EmergencyAdmissionRequestStatus.AwaitingSignature)
+                return Gagal(StatusCodes.Status409Conflict, PesanTidakMenungguTtd);
+
+            if (!await TindakLanjutMasihTerkonfirmasiAsync(form.DispositionId, cancellationToken))
+                return Gagal(StatusCodes.Status409Conflict, PesanTindakLanjutTidakBerlaku);
+
+            if (!await TindakLanjutMasukAntreanAsync(form.DispositionId, cancellationToken))
+                return Gagal(StatusCodes.Status409Conflict, PesanTujuanBukanAntrean);
+
+            if (!form.RequestedServiceUnitId.HasValue
+                || !form.RequestedPatientClassId.HasValue
+                || !form.ProposedInpatientDoctorId.HasValue)
+                return Gagal(StatusCodes.Status400BadRequest, PesanIsianBelumLengkap);
+
+            var now = DateTime.UtcNow;
+            EmergencyAdmissionRequestSnapshot salinan;
+            try
+            {
+                salinan = await BentukSalinanBekuAsync(form, actorUserId, dpjp, now, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger.LogWarning(ex, "Salinan beku Form Permintaan Rawat Inap {FormId} gagal dibentuk.", form.Id);
+                return Gagal(StatusCodes.Status503ServiceUnavailable, PesanDataPasienGagal);
+            }
+
+            await using var transaksi = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await KunciKunjunganAsync(form.EmergencyVisitId, cancellationToken);
+
+            var terkunci = await _dbContext.Set<EmgAdmissionRequest>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            if (terkunci == null)
+                return Gagal(StatusCodes.Status404NotFound, PesanFormTidakAda);
+
+            if (AdalahPengulanganTandaTangan(terkunci, kunci, actorUserId))
+                return await BentukHasilTersimpanAsync(id, actorUserId, cancellationToken);
+
+            var dpjpTerkunci = await AmbilDpjpIgdAktifAsync(terkunci.EmergencyVisitId, cancellationToken);
+            if (dpjpTerkunci == null || dpjpTerkunci.DoctorId != dokterAkun.Value)
+                return Gagal(StatusCodes.Status403Forbidden, PesanBukanDpjpAktif);
+
+            if (terkunci.RowVersion != request.RowVersion)
+                return Gagal(StatusCodes.Status409Conflict, PesanVersiBasi);
+
+            if (terkunci.Status != EmergencyAdmissionRequestStatus.AwaitingSignature)
+                return Gagal(StatusCodes.Status409Conflict, PesanTidakMenungguTtd);
+
+            if (!await TindakLanjutMasihTerkonfirmasiAsync(terkunci.DispositionId, cancellationToken))
+                return Gagal(StatusCodes.Status409Conflict, PesanTindakLanjutTidakBerlaku);
+
+            terkunci.Status = EmergencyAdmissionRequestStatus.Signed;
+            terkunci.SignedAt = now;
+            terkunci.SignedByUserId = actorUserId;
+            terkunci.SignedByDoctorId = dokterAkun.Value;
+            terkunci.SignerNameSnapshot = salinan.Signer.DoctorName;
+            terkunci.SignerPositionSnapshot = salinan.Signer.PositionName;
+            terkunci.SignatureDeviceInfo = Potong(Rapikan(deviceInfo), 250);
+            terkunci.SignatureIpAddress = Potong(Rapikan(ipAddress), 64);
+            terkunci.SnapshotJson = JsonSerializer.Serialize(salinan, OpsiSalinanBeku);
+            TandaiBerubah(terkunci, actorUserId, now);
+            TambahKejadian(terkunci, EmergencyAdmissionRequestEventType.Signed,
+                EmergencyAdmissionRequestStatus.AwaitingSignature, EmergencyAdmissionRequestStatus.Signed,
+                actorUserId, now, null);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaksi.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _dbContext.ChangeTracker.Clear();
+                return Gagal(StatusCodes.Status409Conflict, PesanVersiBasi);
+            }
+
+            return await BentukHasilTersimpanAsync(id, actorUserId, cancellationToken);
+        }
+
+        public async Task<HasilPermintaanRawatInap<EmergencyAdmissionRequestPrintResponse>> AmbilDataCetakPermintaanAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var form = await _dbContext.Set<EmgAdmissionRequest>()
+                .AsNoTracking()
+                .Where(x => x.Id == id && !x.IsDelete)
+                .Select(x => new { x.Id, x.EmergencyVisitId, x.Status, x.SnapshotJson })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (form == null)
+                return HasilPermintaanRawatInap<EmergencyAdmissionRequestPrintResponse>.Gagal(
+                    StatusCodes.Status404NotFound, PesanFormTidakAda);
+
+            var salinan = form.Status == EmergencyAdmissionRequestStatus.Signed
+                ? BacaSalinanBeku(form.SnapshotJson)
+                : null;
+            if (salinan == null)
+                return HasilPermintaanRawatInap<EmergencyAdmissionRequestPrintResponse>.Gagal(
+                    StatusCodes.Status409Conflict, PesanCetakBelumTtd);
+
+            return HasilPermintaanRawatInap<EmergencyAdmissionRequestPrintResponse>.Ok(new EmergencyAdmissionRequestPrintResponse
+            {
+                Id = form.Id,
+                EmergencyVisitId = form.EmergencyVisitId,
+                Origin = salinan.Origin,
+                EmergencyVisitNumber = salinan.EmergencyVisitNumber,
+                EncounterNumber = salinan.EncounterNumber,
+                CapturedAt = salinan.CapturedAt,
+                Patient = salinan.Patient,
+                Allergies = salinan.Allergies,
+                Payer = salinan.Payer,
+                Diagnoses = salinan.Diagnoses,
+                RequestedServiceUnitName = salinan.RequestedServiceUnitName,
+                RequestedPatientClassName = salinan.RequestedPatientClassName,
+                ProposedInpatientDoctorName = salinan.ProposedInpatientDoctorName,
+                EstimatedLengthOfStayDays = salinan.EstimatedLengthOfStayDays,
+                IsCito = salinan.IsCito,
+                SpecialNeeds = KodeKebutuhanKhusus(
+                    salinan.NeedsIntensiveCare,
+                    salinan.NeedsIsolation,
+                    salinan.NeedsOxygenSupport,
+                    salinan.NeedsSpecialMonitoring),
+                ClinicalIndication = salinan.ClinicalIndication,
+                CarePlanInstruction = salinan.CarePlanInstruction,
+                Signer = salinan.Signer,
+                SignatureStatement = KalimatTandaTangan(salinan.Signer),
+                PrintedAt = DateTime.UtcNow
+            });
+        }
+
+        public Task<bool> ButuhFormPermintaanRawatInapAsync(Guid dispositionId, CancellationToken cancellationToken = default)
+        {
+            return _dbContext.Set<EmgDisposition>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == dispositionId
+                    && x.DispositionType != null
+                    && x.DispositionType.RequiresAdmissionRequest,
+                    cancellationToken);
+        }
+
+        public async Task<string> AlasanJalankanRawatInapDitolakAsync(
+            Guid dispositionId,
+            CancellationToken cancellationToken = default)
+        {
+            var adaFormTerkirim = await _dbContext.Set<EmgAdmissionRequest>()
+                .AsNoTracking()
+                .AnyAsync(x => x.DispositionId == dispositionId
+                    && !x.IsDelete
+                    && x.Status == EmergencyAdmissionRequestStatus.Signed,
+                    cancellationToken);
+
+            return adaFormTerkirim ? PesanJalankanLewatAdmisi : PesanJalankanTanpaForm;
+        }
+
+        public async Task<string?> BatalkanPermintaanKarenaTindakLanjutAsync(
+            EmgDisposition disposition,
+            string alasan,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            await KunciKunjunganAsync(disposition.EmergencyVisitId, cancellationToken);
+            await KunciTindakLanjutAsync(disposition.Id, cancellationToken);
+
+            if ((await AmbilTindakLanjutSudahDiadmisiAsync([disposition.Id], cancellationToken)).Count > 0)
+                return PesanAdmisiDibukaDariTindakLanjut;
+
+            var daftarForm = await _dbContext.Set<EmgAdmissionRequest>()
+                .Where(x => x.DispositionId == disposition.Id
+                    && !x.IsDelete
+                    && x.Status != EmergencyAdmissionRequestStatus.Cancelled)
+                .ToListAsync(cancellationToken);
+
+            var catatan = Potong(Rapikan(alasan), BatasAlasan)!;
+            var now = DateTime.UtcNow;
+            foreach (var form in daftarForm)
+            {
+                var statusSebelum = form.Status;
+                form.Status = EmergencyAdmissionRequestStatus.Cancelled;
+                form.CancelledAt = now;
+                form.CancelledByUserId = actorUserId;
+                form.CancellationReason = catatan;
+                TandaiBerubah(form, actorUserId, now);
+                TambahKejadian(form, EmergencyAdmissionRequestEventType.AutoCancelled,
+                    statusSebelum, EmergencyAdmissionRequestStatus.Cancelled, actorUserId, now, catatan);
+            }
+
+            return null;
         }
 
         public async Task<IReadOnlyList<EmergencyInpatientDoctorOption>> AmbilPilihanDpjpRawatInapAsync(
@@ -466,12 +711,186 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             => HasilPermintaanRawatInap<EmergencyAdmissionRequestResponse>.Gagal(statusCode, penolakan);
 
         private static bool AdalahBentrokFormAktif(DbUpdateException exception)
+            => AdalahBentrokIndeks(exception, "UX_EmgAdmissionRequest_Visit_Open");
+
+        private static bool AdalahBentrokIndeks(DbUpdateException exception, string namaIndeks)
             => exception.InnerException is PostgresException postgres
                 && postgres.SqlState == PostgresErrorCodes.UniqueViolation
-                && string.Equals(
-                    postgres.ConstraintName,
-                    "UX_EmgAdmissionRequest_Visit_Open",
-                    StringComparison.Ordinal);
+                && string.Equals(postgres.ConstraintName, namaIndeks, StringComparison.Ordinal);
+
+        private static bool AdalahPengulanganTandaTangan(EmgAdmissionRequest form, string? kunci, Guid actorUserId)
+            => kunci != null
+                && form.Status == EmergencyAdmissionRequestStatus.Signed
+                && form.SignedByUserId == actorUserId;
+
+        private Task<bool> TindakLanjutMasukAntreanAsync(Guid dispositionId, CancellationToken cancellationToken)
+        {
+            return _dbContext.Set<EmgDisposition>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == dispositionId
+                    && x.DispositionType != null
+                    && x.DispositionType.IsActive
+                    && !x.DispositionType.IsDelete
+                    && x.DispositionType.RequiresAdmissionRequest
+                    && x.DestinationServiceUnit != null
+                    && !x.DestinationServiceUnit.IsDelete
+                    && x.DestinationServiceUnit.ServiceUnitType == ServiceUnitType.Inpatient,
+                    cancellationToken);
+        }
+
+        private async Task<HashSet<Guid>> AmbilTindakLanjutSudahDiadmisiAsync(
+            IReadOnlyCollection<Guid> dispositionIds,
+            CancellationToken cancellationToken)
+        {
+            if (dispositionIds.Count == 0)
+                return [];
+
+            var hasil = await _dbContext.RegPatientEncounters
+                .IgnoreQueryFilters()
+                .AsNoTracking()
+                .Where(x => x.AdmissionTransferId.HasValue
+                    && dispositionIds.Contains(x.AdmissionTransferId.Value)
+                    && x.AdmissionTransferSourceType == SumberTransferIgd)
+                .Select(x => x.AdmissionTransferId ?? Guid.Empty)
+                .ToListAsync(cancellationToken);
+
+            return hasil.ToHashSet();
+        }
+
+        private Task<bool> TindakLanjutMasihTerkonfirmasiAsync(Guid dispositionId, CancellationToken cancellationToken)
+        {
+            return _dbContext.Set<EmgDisposition>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == dispositionId
+                    && !x.IsDelete
+                    && x.DispositionStatus == EmergencyDispositionStatus.Confirmed,
+                    cancellationToken);
+        }
+
+        private async Task<HasilPermintaanRawatInap<EmergencyAdmissionRequestResponse>> BentukHasilTersimpanAsync(
+            Guid id,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            var tersimpan = await MuatFormAsync(id, false, cancellationToken);
+            if (tersimpan == null)
+                return Gagal(StatusCodes.Status404NotFound, PesanFormTidakAda);
+
+            return HasilPermintaanRawatInap<EmergencyAdmissionRequestResponse>.Ok(
+                await BentukResponsAsync(tersimpan, actorUserId, cancellationToken));
+        }
+
+        private async Task<HasilPermintaanRawatInap<EmergencyAdmissionRequestResponse>> BatalkanPermintaanTerkirimAsync(
+            EmgAdmissionRequest form,
+            string alasan,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            await using var transaksi = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await KunciKunjunganAsync(form.EmergencyVisitId, cancellationToken);
+            await KunciTindakLanjutAsync(form.DispositionId, cancellationToken);
+
+            if ((await AmbilTindakLanjutSudahDiadmisiAsync([form.DispositionId], cancellationToken)).Count > 0)
+                return Gagal(StatusCodes.Status409Conflict, PesanAdmisiSudahDibuka);
+
+            var now = DateTime.UtcNow;
+            form.Status = EmergencyAdmissionRequestStatus.Cancelled;
+            form.CancelledAt = now;
+            form.CancelledByUserId = actorUserId;
+            form.CancellationReason = alasan;
+            TandaiBerubah(form, actorUserId, now);
+            TambahKejadian(form, EmergencyAdmissionRequestEventType.CancelledAfterSend,
+                EmergencyAdmissionRequestStatus.Signed, EmergencyAdmissionRequestStatus.Cancelled,
+                actorUserId, now, alasan);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaksi.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _dbContext.ChangeTracker.Clear();
+                return Gagal(StatusCodes.Status409Conflict, PesanVersiBasi);
+            }
+
+            return await BentukHasilTersimpanAsync(form.Id, actorUserId, cancellationToken);
+        }
+
+        private async Task<EmergencyAdmissionRequestSnapshot> BentukSalinanBekuAsync(
+            EmgAdmissionRequest form,
+            Guid actorUserId,
+            DpjpIgdAktif dpjp,
+            DateTime waktu,
+            CancellationToken cancellationToken)
+        {
+            if (form.Patient == null)
+                throw new InvalidOperationException("Data pasien Form Permintaan Rawat Inap tidak terbaca.");
+
+            var penanda = await _dbContext.Set<ApplicationUser>()
+                .AsNoTracking()
+                .Where(x => x.Id == actorUserId)
+                .Select(x => new
+                {
+                    x.DisplayName,
+                    PositionName = x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : null
+                })
+                .FirstOrDefaultAsync(cancellationToken)
+                ?? throw new InvalidOperationException("Akun penanda tangan tidak terbaca.");
+
+            return new EmergencyAdmissionRequestSnapshot
+            {
+                CapturedAt = waktu,
+                Origin = "IGD",
+                EmergencyVisitNumber = form.EmergencyVisit?.EmergencyVisitNumber,
+                EncounterNumber = form.Encounter?.EncounterNumber,
+                Patient = BentukPasien(form.Patient, form.PatientId, waktu),
+                Allergies = await BacaAlergiAsync(form.PatientId, cancellationToken),
+                Payer = await BacaPenjaminAsync(form.EncounterId, cancellationToken),
+                Diagnoses = await BacaDiagnosisAsync(form.EncounterId, cancellationToken),
+                RequestedServiceUnitName = form.RequestedServiceUnit?.ServiceUnitName,
+                RequestedPatientClassName = form.RequestedPatientClass?.PatientClassName,
+                ProposedInpatientDoctorName = form.ProposedInpatientDoctor?.FullName,
+                EstimatedLengthOfStayDays = form.EstimatedLengthOfStayDays,
+                IsCito = form.IsCito,
+                NeedsIntensiveCare = form.NeedsIntensiveCare,
+                NeedsIsolation = form.NeedsIsolation,
+                NeedsOxygenSupport = form.NeedsOxygenSupport,
+                NeedsSpecialMonitoring = form.NeedsSpecialMonitoring,
+                ClinicalIndication = form.ClinicalIndication,
+                CarePlanInstruction = form.CarePlanInstruction,
+                Signer = new EmergencyAdmissionRequestSignerInfo
+                {
+                    DoctorName = Potong(Rapikan(penanda.DisplayName) ?? Rapikan(dpjp.DoctorName), 200),
+                    PositionName = Potong(Rapikan(penanda.PositionName), 200),
+                    SignedAt = waktu
+                }
+            };
+        }
+
+        private static string KalimatTandaTangan(EmergencyAdmissionRequestSignerInfo penanda)
+        {
+            var kalimat = $"Ditandatangani secara elektronik oleh {penanda.DoctorName}";
+            if (!penanda.SignedAt.HasValue)
+                return kalimat;
+
+            var waktuUtc = penanda.SignedAt.Value.Kind == DateTimeKind.Local
+                ? penanda.SignedAt.Value.ToUniversalTime()
+                : DateTime.SpecifyKind(penanda.SignedAt.Value, DateTimeKind.Utc);
+            var lokal = TimeZoneInfo.ConvertTimeFromUtc(waktuUtc, ZonaWaktuCetak);
+            return $"{kalimat}, {lokal.Day} {NamaBulanCetak[lokal.Month - 1]} {lokal.Year} {lokal:HH}.{lokal:mm} WIB";
+        }
+
+        private static TimeZoneInfo TentukanZonaWaktuCetak()
+        {
+            if (TimeZoneInfo.TryFindSystemTimeZoneById("Asia/Jakarta", out var zona))
+                return zona;
+
+            if (TimeZoneInfo.TryFindSystemTimeZoneById("SE Asia Standard Time", out zona))
+                return zona;
+
+            return TimeZoneInfo.CreateCustomTimeZone("WIB", TimeSpan.FromHours(7), "WIB", "WIB");
+        }
 
         private async Task<HasilPermintaanRawatInap<EmergencyAdmissionRequestResponse>> SimpanLaluBentukAsync(
             EmgAdmissionRequest form,
@@ -518,6 +937,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var dpjp = await AmbilDpjpIgdAktifAsync(form.EmergencyVisitId, cancellationToken);
             var dokterAkun = await AmbilDokterAkunAsync(actorUserId, cancellationToken);
 
+            var sudahDiadmisi = form.Status == EmergencyAdmissionRequestStatus.Signed
+                && (await AmbilTindakLanjutSudahDiadmisiAsync([form.DispositionId], cancellationToken)).Count > 0;
+
             var response = new EmergencyAdmissionRequestResponse
             {
                 Id = form.Id,
@@ -527,7 +949,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EncounterId = form.EncounterId,
                 EncounterNumber = form.Encounter?.EncounterNumber,
                 Status = form.Status,
-                DisplayStatus = TampilanStatus(form.Status),
+                DisplayStatus = TampilanStatus(form.Status, sudahDiadmisi),
                 RequestedServiceUnit = form.RequestedServiceUnit == null
                     ? null
                     : new EmergencyAdmissionRequestReference { Id = form.RequestedServiceUnit.Id, Name = form.RequestedServiceUnit.ServiceUnitName },
@@ -610,25 +1032,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         }
 
         private static List<string> KodeKebutuhanKhusus(EmgAdmissionRequest form)
+            => KodeKebutuhanKhusus(
+                form.NeedsIntensiveCare,
+                form.NeedsIsolation,
+                form.NeedsOxygenSupport,
+                form.NeedsSpecialMonitoring);
+
+        private static List<string> KodeKebutuhanKhusus(
+            bool intensif,
+            bool isolasi,
+            bool oksigen,
+            bool pemantauan)
         {
             var kode = new List<string>();
-            if (form.NeedsIntensiveCare)
+            if (intensif)
                 kode.Add("IntensiveCare");
-            if (form.NeedsIsolation)
+            if (isolasi)
                 kode.Add("Isolation");
-            if (form.NeedsOxygenSupport)
+            if (oksigen)
                 kode.Add("OxygenSupport");
-            if (form.NeedsSpecialMonitoring)
+            if (pemantauan)
                 kode.Add("SpecialMonitoring");
             return kode;
         }
 
-        private static EmergencyAdmissionRequestDisplayStatus TampilanStatus(EmergencyAdmissionRequestStatus status)
+        private static EmergencyAdmissionRequestDisplayStatus TampilanStatus(
+            EmergencyAdmissionRequestStatus status,
+            bool sudahDiadmisi = false)
         {
             return status switch
             {
                 EmergencyAdmissionRequestStatus.AwaitingSignature => EmergencyAdmissionRequestDisplayStatus.AwaitingSignature,
-                EmergencyAdmissionRequestStatus.Signed => EmergencyAdmissionRequestDisplayStatus.Sent,
+                EmergencyAdmissionRequestStatus.Signed => sudahDiadmisi
+                    ? EmergencyAdmissionRequestDisplayStatus.Completed
+                    : EmergencyAdmissionRequestDisplayStatus.Sent,
                 EmergencyAdmissionRequestStatus.Cancelled => EmergencyAdmissionRequestDisplayStatus.Cancelled,
                 _ => EmergencyAdmissionRequestDisplayStatus.Draft
             };
@@ -922,6 +1359,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var kunci = $"EMG_ADMISSION_REQUEST_{emergencyVisitId}";
             await _dbContext.Database.ExecuteSqlInterpolatedAsync(
                 $"SELECT pg_advisory_xact_lock(hashtext({kunci})::bigint)",
+                cancellationToken);
+        }
+
+        private async Task KunciTindakLanjutAsync(Guid dispositionId, CancellationToken cancellationToken)
+        {
+            if (!_dbContext.Database.IsNpgsql())
+                return;
+
+            await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM public.\"EmgDisposition\" WHERE \"Id\" = {dispositionId} FOR UPDATE",
                 cancellationToken);
         }
 

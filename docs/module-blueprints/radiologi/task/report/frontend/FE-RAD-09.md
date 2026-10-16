@@ -9,16 +9,16 @@
 | Epic | `EPIC RAD-05` |
 | Requirement | `FR-RAD-041` (penomoran blueprint) |
 | Roadmap | `roadmap/frontend-roadmap.md` bagian 4, gelombang `MVP-3` |
-| Contract version | `RAD-API-001` grup *Rad Study* (`v1`, berjalan); `RAD-STATE-001` bagian 2 |
+| Contract version | `RAD-API-001` grup *Rad Study* (`v1`, berjalan); **revision 12 sejak penyelesaian sisa 2026-10-14**; `RAD-STATE-001` bagian 2 |
 | Acceptance criteria | `AC-41` |
 | Test yang diminta roadmap | Penanda "Pengulangan dari study ke-1" beserta sebabnya terlihat di daftar study |
 | **Ketentuan mengikat** | `RAD-ARCH-FE-001` bagian 5 butir 7 — penanda pengulangan wajib terlihat |
-| Dependency | `FE-RAD-08` **selesai** |
+| Dependency | `FE-RAD-08` **selesai**; sisa empat transisi bergantung pada `BE-RAD-17` — **selesai 2026-10-14** |
 | Task mode | `FRONTEND` — frontend target tulis; backend strict read-only kecuali laporan ini dan baris status roadmap |
 | Model | Claude Opus 5 (`claude-opus-5`) |
 | Branch frontend | `YogaV2`, upstream `origin/YogaV2` |
-| Tanggal | 2026-09-14 |
-| Status | **Selesai sebagian — lihat bagian 4.1.** 16 unit test baru lulus; 859 unit test repository lulus, 0 gagal. Definition of Done tidak dapat dipenuhi seluruhnya karena empat transisi pada kontrak **tidak punya endpoint** |
+| Tanggal | 2026-09-14; penyelesaian sisa 2026-10-14 |
+| Status | **Selesai — batas verifikasi** (2026-10-14). Keempat transisi kini punya tombol dan tersambung ke endpoint `BE-RAD-17` — bagian 11. Tahan, lanjutkan, dan batal **terbukti terhadap backend sungguhan** 11/11 (bagian 11.4). Satu butir tersisa: *Tandai Perlu Diulang* belum dapat dicoba sungguhan karena belum ada aturan keselamatan `Active` (`DEC-RAD-005`). Semula: *Selesai sebagian — lihat bagian 4.1* (2026-09-14) |
 
 ---
 
@@ -210,7 +210,7 @@ langsung dari DTO dan service backend, bukan ditebak.
 
 | Hal | Keadaan |
 | --- | --- |
-| **Empat transisi tanpa endpoint** | Temuan bagian 4.1. Definition of Done tertahan karenanya. **Perlu keputusan pemilik modul** |
+| ~~**Empat transisi tanpa endpoint**~~ | **Ditutup 2026-10-14.** Pemilik modul memutuskan endpointnya ditambahkan: `BE-RAD-17`, lalu layar disambungkan — bagian 11 |
 | **Tiga enum tidak terbit pada metadata** | Temuan bagian 4.2. Layar menyalinnya dan akan tertinggal bila enum backend berubah. **Perlu keputusan pemilik modul** |
 | **Tidak ada aturan keselamatan `Active`** | `RAD-OPEN-011` terbuka. Selama belum ada, tidak satu pun study mencapai `SafetyCleared`, sehingga **seluruh layar ini belum dapat dijalankan siapa pun** |
 | **Study terkunci saat aturan berubah** | Temuan `FE-RAD-08` bagian 4.2, masih terbuka |
@@ -225,3 +225,92 @@ langsung dari DTO dan service backend, bukan ditebak.
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
 | 1 | 2026-09-14 | Laporan dibuat. 4 berkas baru, 4 diubah. 16 test baru lulus; 859 test repository lulus; lint 0 error; build lulus. Ketentuan mengikat bagian 5 butir 7 dipenuhi dengan penanda yang tidak pernah disembunyikan. Dua temuan dicatat: empat transisi `RAD-STATE-001` tanpa endpoint — sehingga Definition of Done tertahan — dan tiga enum yang tidak terbit pada metadata penyaring. | `draft` |
+| 2 | 2026-10-14 | Penyelesaian sisa: empat transisi disambungkan ke `BE-RAD-17` (`RAD-API-001` r12). Modal hentikan dan ulangi tidak lagi mengunci tombol Batal. Bagian 11 ditambahkan; status naik menjadi *Selesai — batas verifikasi*. | `draft` |
+
+---
+
+## 11. Penyelesaian sisa — 2026-10-14
+
+Dikerjakan atas instruksi pemilik modul Yoga Aji Pratama, 2026-10-14, sesudah `BE-RAD-17` menambahkan
+keempat endpoint. Mode `FRONTEND`; backend hanya disentuh pada laporan dan baris status roadmap.
+
+### 11.1 Yang berubah di layar
+
+Konsol study (`/health-services/radiology-management/rad-studies/[radOrderId]`), langkah 3:
+
+| Keadaan study | Yang tampil |
+| --- | --- |
+| `Planned`, `PatientVerified`, `SafetyCleared` | Blok **Status Study** dengan tombol *Tahan Study* dan *Batalkan Study* |
+| `OnHold` | Peringatan *Study sedang ditahan* yang menyebut status tujuan bila dilanjutkan (contoh: "Bila dilanjutkan, study kembali ke status Lolos Keselamatan."), tombol *Lanjutkan Study* dan *Batalkan Study*. *Mulai Pengambilan Citra* terkunci |
+| `Cancelled` | Alasan pembatalan dan tombol *Rencanakan Study Baru* — study batal tetap menjadi study aktif layar (nomor urut tertinggi), sehingga tanpa tombol ini pesanan buntu |
+| `QualityRejected` | Tombol *Tandai Perlu Diulang* di samping *Ulangi Pemeriksaan* |
+| `AcquisitionStarted` dan sesudahnya | Blok Status Study tidak tampil |
+
+Keempat tindakan memakai satu modal alasan. Alasan **wajib** hanya pada pembatalan; tombol
+konfirmasinya terkunci selama alasan kosong atau hanya spasi. Alert *"Sebagian transisi belum
+tersedia di API"* dihapus.
+
+### 11.2 Perbaikan yang ikut dikerjakan
+
+`ConfirmModal` memperlakukan prop `disabled` sebagai **sibuk**: tombol *Batal* dan penutup modal ikut
+terkunci. Modal *Hentikan di Tengah Jalan* dan *Ulangi Pemeriksaan* sejak 2026-09-14 memakai prop itu,
+sehingga petugas yang membuka modal lalu berubah pikiran **tidak dapat menutupnya** sebelum isian
+lengkap. Ketiga modal (dua lama, satu baru) kini memakai `confirmProps.disabled`, yang hanya mengunci
+tombol konfirmasi.
+
+### 11.3 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/services/health-services/radiology-management/rad-study.service.js` | `markRadStudyRepeatRequired`, `holdRadStudy`, `resumeRadStudy`, `cancelRadStudy` |
+| `src/lib/hooks/health-services/radiology-management/rad-acquisition-rules.js` | `canMarkRepeatRequired`, `canHoldStudy`, `canResumeStudy`, `canCancelStudy`, `getStatusBeforeHold`, `getClosureReason`, `isStudyCancelled`, `buildStudyTransitionPayload` — daftar status sama persis dengan `RadStudyService` |
+| `src/lib/hooks/health-services/radiology-management/use-rad-safety-gate.jsx` | Empat tindakan lewat `jalankan` yang sudah ada (penjaga kiriman ganda, pesan server apa adanya), menyegarkan rincian pesanan |
+| `src/components/view/health-services/radiology-management/rad-safety-gate/rad-acquisition-panel.jsx` | Blok Status Study, tombol Tandai Perlu Diulang, modal alasan; `confirmProps.disabled` pada tiga modal; alert lama dihapus |
+| `src/components/view/health-services/radiology-management/rad-safety-gate/rad-safety-gate-view.jsx` | Meneruskan keadaan dan tindakan baru ke panel |
+| `src/lib/constants/health-services/radiology-management/rad-order-constants.jsx` | Teks layar keempat tindakan; teks alert lama dihapus |
+| `tests/unit/rad-acquisition-rules.test.mjs` | 6 uji baru `BE-RAD-17` |
+
+### 11.4 Validasi
+
+| Perintah atau skenario | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `node --import ./tests/helpers/register.mjs --test tests/unit/rad-acquisition-rules.test.mjs` | 22/22 lulus (6 baru) | `PASS` |
+| Seluruh `tests/unit/` | 2.831 lulus, 29 gagal — jumlah dan berkas sama dengan baseline 2026-10-13/14 (Hemodialisa, rawat inap, kamar operasi, kas kecil, resep RJ); tidak ada yang menyentuh Radiologi | `PASS` / `UNRELATED EXISTING ISSUE` |
+| `npx eslint` atas tujuh berkas yang berubah | 0 error, 0 warning | `PASS` |
+| `npm run build` | `Compiled successfully`, 492 halaman, standalone siap | `PASS` |
+
+**Uji manual: `PASS` dengan API tiruan — 24/24.** Build standalone di `127.0.0.1:3710`, Playwright
+dengan seluruh `/v1/**` disuapkan (nol permintaan ke backend, nol tulis):
+
+1. `SafetyCleared`: alert lama hilang; *Tahan* dan *Batalkan* tampil, *Lanjutkan* tidak. Tahan dengan
+   alasan → `POST hold {"reason":"Pasien ke toilet"}`; peringatan menyebut "kembali ke status Lolos
+   Keselamatan"; *Mulai Pengambilan Citra* terkunci. Lanjutkan tanpa alasan → `POST resume {}`;
+   *Mulai Pengambilan Citra* aktif lagi.
+2. `Planned`, batal: konfirmasi terkunci selama alasan kosong **dan** selama berisi spasi saja; tombol
+   *Batal* modal tetap dapat ditekan dan menutup modal tanpa kiriman. Dengan alasan →
+   `POST cancel {"reason":"Pasien menolak pemeriksaan"}`; alasan tampil; *Rencanakan Study Baru*
+   tampil; *Tahan*/*Batalkan* hilang.
+3. `PatientVerified`, server menjawab `409`: layar menampilkan peringatan yang sudah ada *"Data baru
+   saja diubah petugas lain"* beserta ajakan muat ulang; modal tetap terbuka; status di layar tidak
+   berubah.
+4. `QualityRejected`: blok Status Study tidak tampil; *Tandai Perlu Diulang* → `POST
+   mark-repeat-required {}`; tombolnya hilang, *Ulangi Pemeriksaan* tetap.
+
+**Uji sungguhan terhadap backend lokal + devYoga — 2026-10-14, 11/11 lulus** (atas instruksi pemilik
+modul; superadmin sebagai pengganti radiografer). Data uji dibuat lewat API aplikasi: pemeriksaan *UJI-RAD Foto
+Thorax PA*, satu kunjungan pasien *UAT FECRM PASIEN IGD* di unit Radiologi, pesanan CR (diterima), satu study
+(identitas terverifikasi). Dari konsol: Tahan beralasan → server `OnHold`, status asal `PatientVerified`, layar
+menyebut tujuan kembalinya; Lanjutkan → server kembali `PatientVerified`, `StatusBeforeHold` kosong; Batalkan →
+konfirmasi terkunci tanpa alasan, lalu server `Cancelled` dengan alasan tersimpan dan tombol *Rencanakan Study
+Baru* tampil. Riwayat: `Study.Create → Study.VerifyPatient → Study.Hold → Study.Resume → Study.Cancel`, seluruhnya
+berpelaku. Penjaga tulis skrip: nol tulis lain.
+
+**Sisa batas verifikasi:** *Tandai Perlu Diulang* hanya teruji dengan API tiruan dan uji backend. Study bermutu
+ditolak tidak dapat dibuat di devYoga selama tidak ada aturan keselamatan `Active` (`DEC-RAD-005`,
+`RAD-OPEN-012`) — gerbang menolak setiap acquisition.
+
+### 11.5 Wewenang UI yang dipakai
+
+`DEV_DISCRETION` (`RAD-ARCH-FE-001`): letak blok, warna tombol, dan teks. Seluruhnya dari komponen yang
+sudah ada — `BaseButton`, `ConfirmModal`, `BaseTextAreaField`, `InformationAlert`. Tidak ada komponen,
+hook, atau CSS baru.

@@ -19,12 +19,16 @@ public partial class InpAdmissionTransferService
         var emergency = _dbContext.Set<EmgDisposition>().AsNoTracking()
             .Where(x => !x.IsDelete && !x.IsCancel && x.EmergencyVisit != null && !x.EmergencyVisit.IsDelete
                 && !x.EmergencyVisit.IsCancel && x.EmergencyVisit.PatientId != null && x.DispositionType != null && !x.DispositionType.IsDelete
-                && x.DispositionType.IsActive && x.DispositionType.Code == "RANAP"
+                && x.DispositionType.IsActive
+                && (x.DispositionType.RequiresAdmissionRequest
+                    ? _dbContext.Set<EmgAdmissionRequest>().Any(f => f.DispositionId == x.Id && !f.IsDelete
+                        && f.Status == EmergencyAdmissionRequestStatus.Signed)
+                    : x.DispositionType.Code == "RANAP")
                 && x.DestinationServiceUnit != null && !x.DestinationServiceUnit.IsDelete
                 && x.DestinationServiceUnit.ServiceUnitType == ServiceUnitType.Inpatient)
             .Select(x => new InpatientAdmissionTransferItemResponse
             {
-                TransferId = x.Id, SourceType = "Emergency", EmergencyVisitId = x.EmergencyVisit!.Id,
+                TransferId = x.Id, SourceType = "Emergency", EmergencyVisitId = (Guid?)x.EmergencyVisit!.Id,
                 EmergencyVisitNumber = x.EmergencyVisit.EmergencyVisitNumber,
                 SourceEncounterId = x.EmergencyVisit.EncounterId,
                 SourceEncounterNumber = _dbContext.RegPatientEncounters.Where(e => e.Id == x.EmergencyVisit.EncounterId).Select(e => e.EncounterNumber).FirstOrDefault(),
@@ -57,7 +61,7 @@ public partial class InpAdmissionTransferService
                 && !p.IsDelete && !_dbContext.Set<EmgVisit>().Any(v => v.EncounterId == e.Id && !v.IsDelete)
             select new InpatientAdmissionTransferItemResponse
             {
-                TransferId = c.Id, SourceType = "Outpatient", EmergencyVisitId = Guid.Empty,
+                TransferId = c.Id, SourceType = "Outpatient", EmergencyVisitId = (Guid?)null,
                 EmergencyVisitNumber = "", SourceEncounterId = e.Id, SourceEncounterNumber = e.EncounterNumber,
                 PatientId = p.Id, PatientName = p.FullName, MedicalRecordNumber = p.MedicalRecordNumber,
                 BirthDate = p.BirthDate,

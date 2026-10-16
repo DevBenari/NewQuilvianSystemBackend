@@ -383,6 +383,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var ageText = InpWristbandRules.AgeText(patient.BirthDate, today);
             var hospitalCode = setting.PatientLabelHospitalCode ?? hospital.Value?.SiteCode;
             var name = patient.FullName.Trim().ToUpperInvariant();
+            if (patient.IsNewborn && patient.BirthOrder > 0) name += $" / BAYI {patient.BirthOrder}";
 
             var counts = await _dbContext.Set<InpAdmissionPrintLog>()
                 .AsNoTracking()
@@ -405,7 +406,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         ? InpAdmissionPrintKind.InfantWristband
                         : InpAdmissionPrintKind.AdultWristband),
                     DisplayName = InpWristbandRules.BuildDisplayName(
-                        patient.FullName, patient.IsNewborn, patient.MotherName, patient.Gender, patient.MaritalStatus, patient.BirthDate, today),
+                        patient.FullName, patient.IsNewborn, patient.MotherName, patient.Gender, patient.MaritalStatus, patient.BirthDate, today, patient.BirthOrder),
                     BirthDateText = patient.BirthDate.HasValue ? InpAdmissionText.FormatShortDate(patient.BirthDate.Value) : null,
                     AgeText = ageText,
                     MedicalRecordNumber = patient.MedicalRecordNumber,

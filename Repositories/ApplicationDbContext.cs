@@ -917,6 +917,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<RegEncounterReferral> RegEncounterReferrals { get; set; }
         public DbSet<RegEncounterReferralDocument> RegEncounterReferralDocuments { get; set; }
         public DbSet<RegEncounterReferralRevision> RegEncounterReferralRevisions { get; set; }
+        public DbSet<RegEncounterReschedule> RegEncounterReschedules { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
         public DbSet<TrxDoctorConsultation> TrxDoctorConsultations { get; set; }
         public DbSet<TrxPatientDiagnosis> TrxPatientDiagnoses { get; set; }
@@ -1085,6 +1086,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<RadStudySafetyCheck> RadStudySafetyChecks { get; set; }
 
         public DbSet<RadAcquisitionConsumption> RadAcquisitionConsumptions { get; set; }
+
+        public DbSet<RadOrderImage> RadOrderImages { get; set; }
+
+        public DbSet<RadReportTemplate> RadReportTemplates { get; set; }
 
         public DbSet<RadTransitionHistory> RadTransitionHistories { get; set; }
 

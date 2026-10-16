@@ -20,6 +20,7 @@ public class BedOperationMeta
 public class OperationOutcomeResponse : BedOperationMeta { public string OperationName { get; set; } = ""; }
 public class BedMonitoringQuery
 {
+    public bool? IsForNewborn { get; set; }
     public Guid? ServiceUnitId { get; set; }
     public Guid? RoomId { get; set; }
     /// <summary>Opsional; menyaring bed lewat kelas kamarnya (BE-RWI-228).</summary>
