@@ -16,6 +16,20 @@ Persetujuan 14 Oktober 2026 mencakup admisi pasien baru dan pasien lama. Kontrak
 
 Laporan tunggal task: [BE-RWI-231](../task/report/backend/BE-RWI-231.md), [FE-RWI-245](../task/report/frontend/FE-RWI-245.md). FE tetap sebagian karena packaging standalone ENOSPC. Source/frontend compile dan 492 halaman berhasil; bukan sign-off deployment. Migration belum diterapkan sesuai AGENTS.md; uji browser memakai API tiruan, bukan data PostgreSQL rumah sakit.
 
+## Repair ISSUE-EPS-022 — 16 Oktober 2026
+
+| Perbaikan | Bukti source/validasi | Status |
+| --- | --- | --- |
+| `FIX-EPS-022-01` — navigasi bayi atomik | Resolver tujuan eksplisit dan test regresi pemilihan bayi | Source selesai; test terarah PASS |
+| `FIX-EPS-022-02` — ringkasan hanya saat konfirmasi | Header global dihapus; konfirmasi memuat identitas, deposit, bed, dan status persetujuan | Source selesai; lint/build PASS |
+| `FIX-EPS-022-03` — konteks/admisi ulang | Sumber kunjungan diturunkan dari jenis kunjungan; opsi admisi ulang hanya jika episode Closed ditemukan | Source selesai; test terarah PASS |
+| `FIX-EPS-022-04` — identitas bayi dan ibu | Form dikelompokkan ulang tanpa kartu detail ibu duplikat | Source selesai; lint/build PASS |
+| `FIX-EPS-022-05` — deposit | Alur bayi memakai komponen deposit admisi umum | Source selesai; lint/build PASS |
+| `FIX-EPS-022-06` — unit layanan/encounter | Predikat kelayakan rawat inap digunakan bersama oleh pencarian bed dan pembentukan encounter; UI memulihkan pilihan bed tanpa retry otomatis | Source selesai; build backend PASS |
+| `FIX-EPS-022-07` — pembatalan | Aksi mengikuti lifecycle: reset lokal sebelum episode, batalkan Draft setelah episode/reservasi terbentuk, tidak tampil setelah aktivasi | Source selesai; lint/build PASS |
+
+Laporan task: [FIX-EPS-022-01](../task/report/frontend/FIX-EPS-022-01.md), [02](../task/report/frontend/FIX-EPS-022-02.md), [03](../task/report/frontend/FIX-EPS-022-03.md), [04](../task/report/frontend/FIX-EPS-022-04.md), [05](../task/report/frontend/FIX-EPS-022-05.md), [06 frontend](../task/report/frontend/FIX-EPS-022-06.md), [06 backend](../task/report/backend/FIX-EPS-022-06.md), dan [07](../task/report/frontend/FIX-EPS-022-07.md). Full frontend unit suite masih memiliki kegagalan existing di luar scope; suite terarah admisi bayi lulus. Live browser, API nyata, dan database belum dijalankan sehingga belum menjadi sign-off deployment.
+
 ## Handoff source 15 Oktober 2026
 
 BE-RWI-231 ✅ dan FE-RWI-245 ✅ selesai source sesuai instruksi terbaru pengguna. Build dan migration berikutnya dikerjakan pengguna secara mandiri; status packaging/DB pada bukti 14 Oktober adalah riwayat. Tidak mengubah hasil uji historis dan tidak mengklaim settlement lintas invoice selesai.

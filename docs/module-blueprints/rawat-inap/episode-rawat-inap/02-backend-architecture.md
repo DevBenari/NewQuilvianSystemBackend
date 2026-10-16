@@ -3,17 +3,17 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.11` — draft Bed Management, 10 Oktober 2026. Riwayat metadata sebelumnya: **`0.10`** — amandemen Workspace PPRI, kontrak `0.11.0`, isi baru pada **bagian 13** (7 Oktober 2026, `draft`). Sebelumnya `0.9` — Finishing, bagian 12 (`approved`, `RWI-DEC-221`); `0.8` — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, blueprint revision `7`, bagian 11; `0.7` Gelombang 1A |
-| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`approved`** untuk `0.10` (bagian 13) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status revision sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
+| Revision | **`0.13`** — Transfer Pasien Masuk (IGD/Rajal ke Ranap) & Penugasan PPJA, bagian 16, **draft** 16 Oktober 2026. Riwayat: `0.12` Integrasi Denah (approved, RWI-DEC-324); `0.11` Bed Management (draft); `0.10` Workspace PPRI (approved, RWI-DEC-265) |
+| Status | **`draft`** untuk amandemen Transfer Pasien Masuk (bagian 16). Amandemen Integrasi Denah (bagian 15) tetap **`approved`** (`RWI-DEC-324`). Bed Management (bagian 14) tetap **`draft`** |
 | Apa yang berubah pada `0.7` | **Gelombang 1A — Rawat Inap Safety Corrections.** Dua koreksi `P0` yang dimiliki sub-modul ini: aturan jenis kelamin tingkat kamar dicabut (`RWI-DEC-101`), dan `InpDoctorAssignment` mendapat kolom peran beserta perubahan filter index unik (`RWI-DEC-099`). Rinciannya bagian 0. Kontrak naik ke `0.8.0`, seluruhnya `draft` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Tanggal | 2 September 2026 (`Asia/Jakarta`) untuk revision `0.5`; 24 Agustus 2026 untuk `0.4`; 21 Agustus 2026 untuk `0.3` |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Tabel kepemilikan data seluruh modul (bagian 2) dan urutan migration antar sub-modul (bagian 7) naik ke [`../02-module-map.md`](../02-module-map.md). Nol tabel, kolom, endpoint, aturan, dan kontrak yang bergerak |
 | Modul | `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
-| Masukan arsitektur domain | Bed Management: DOMAIN_ARCHITECTURE_NOT_RUN; bounded ownership cukup menurut gate1.12. Riwayat metadata: [`evidence/03-hospital-domain-architecture.md`](../evidence/03-hospital-domain-architecture.md) revision `0.1`, kesiapan `DOMAIN_ARCHITECTURE_PARTIAL` |
-| Masukan requirement | Bed Management: gate1.12/BM-RCG-20261010-01, BM-CG01..06 READY_FOR_DOMAIN_DESIGN. Riwayat metadata: [`evidence/02-requirement-completeness-gate.md`](../evidence/02-requirement-completeness-gate.md) revision `1.0`, kesiapan `PARTIALLY_READY` |
-| Masukan keputusan | Bed Management: decision revision46, DEC-274–294, AC-396–426. Riwayat metadata: [`00-interview-decisions.md`](../00-interview-decisions.md) revision `6` |
-| Masukan keadaan saat ini | Bed Management: BM-AUD-20261010-01 rev1; source-audited bukan runtime. Riwayat metadata: [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.2` |
+| Masukan arsitektur domain | Integrasi Denah: DOMAIN_ARCHITECTURE_NOT_RUN; kepemilikan terbukti BM-IMP-20261015-01. Bed Management: DOMAIN_ARCHITECTURE_NOT_RUN; bounded ownership cukup menurut gate1.12. Riwayat metadata: [`evidence/03-hospital-domain-architecture.md`](../evidence/03-hospital-domain-architecture.md) revision `0.1`, kesiapan `DOMAIN_ARCHITECTURE_PARTIAL` |
+| Masukan requirement | Integrasi Denah: gate 1.13/DNH-RCG-20261015-01, DNH-CG-01..06 READY_FOR_DOMAIN_DESIGN. Bed Management: gate1.12/BM-RCG-20261010-01, BM-CG01..06 READY_FOR_DOMAIN_DESIGN. Riwayat metadata: [`evidence/02-requirement-completeness-gate.md`](../evidence/02-requirement-completeness-gate.md) revision `1.0`, kesiapan `PARTIALLY_READY` |
+| Masukan keputusan | Integrasi Denah: decision revision 50, DEC-298–323, AC-436–461. Bed Management: decision revision46, DEC-274–294, AC-396–426. Riwayat metadata: [`00-interview-decisions.md`](../00-interview-decisions.md) revision `6` |
+| Masukan keadaan saat ini | Integrasi Denah: BM-IMP-20261015-01 (BE `ca09cae9`, FE `4d9bf608`); bukti source, bukan runtime. Bed Management: BM-AUD-20261010-01 rev1; source-audited bukan runtime. Riwayat metadata: [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.2` |
 | Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Frontend SHA | Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
 | Scope | Sembilan slice pada arsitektur domain bagian N.2, **ditambah `INP-S11`** penempatan menurut jenis kelamin dan isolasi yang terbuka sejak `RWI-DEC-064` |
@@ -2965,3 +2965,558 @@ Gunakan InpAdmissionTransferService existing sebagai orchestrator satu transaksi
 InpEpisode menyimpan enam atribut konteks bayi, diperluas lewat DTO/service/EF existing. InpNewbornAdmissionRules dipakai bersama pada pembukaan/pencarian/reservasi/penempatan; bukan aggregate/layanan billing baru. PatientProfileQueryService memasok BirthOrder untuk cetakan. Migration belum diterapkan.
 
 Detail dan batas mengikuti [kontrak admisi bayi](contracts/newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
+
+## 15. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); MasterData: seluruh tim (RWI-DEC-193); frontend: pengembang dalam batas RWI-DEC-299 (desain denah tidak diubah); keamanan/privasi dan clinical governance: OPEN (RWI-DEC-006). `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 (RWI-DEC-301 dan 309 sudah superseded) dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**, enam DNH-CG `READY_FOR_DOMAIN_DESIGN`. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini: pemilik setiap data sudah terbukti pada impact scan, gate mengizinkan desain langsung, dan arsitektur domain bersifat opsional. As-is bersumber impact scan **BM-IMP-20261015-01** (bukti source, bukan runtime) dan [rencana integrasi](docs/denah-map-ruangan-rs-mmc/rencana-integrasi-denah-bed.md).
+
+Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`. Semua nama class, kolom, dan endpoint baru di bawah adalah **target Rencana (belum tersedia)**. Bagian 14 tetap berlaku; amandemen ini hanya mengubah hal yang disebut. Bila bagian lama bertentangan mengenai jenis kelamin, tampilan bed, atau kelas khusus, amandemen ini mengikuti RWI-DEC-315, 299, dan 312.
+
+**Ringkasan dalam bahasa sehari-hari.** Denah gedung RS MMC menjadi satu-satunya cara melihat, memilih, dan mengelola bed. Untuk itu setiap kamar menyimpan lantai, arah wing, dan kunci yang menghubungkannya dengan bentuk kamar di gambar. Setiap bed menyimpan label yang dibaca petugas, mis. "329-C", sedangkan kode sistemnya tetap otomatis. Episode rawat inap mendapat catatan tingkat ketergantungan (High/Low Dependency) beserta riwayatnya. Susunan 106 kamar dan 168 bed dimasukkan lewat importer yang aman dijalankan berulang. Aturan jenis kelamin dihapus, dan kelas khusus (ICU, ODC, Isolasi, Perinatologi) dibebaskan dari perbandingan Down/Up/Same Grade otomatis.
+
+### 15.1 Aggregate dan batas transaksi
+
+Tabel kepemilikan data kanonis untuk amandemen ini ada di [02-module-map.md bagian 10](../02-module-map.md), karena blueprint berbentuk `COMPOSITE`. Bagian ini hanya menetapkan aggregate dan transaksinya.
+
+| Operasi | Yang dikunci (urutan 14.12) | Isi satu transaksi | Bila gagal |
+| --- | --- | --- | --- |
+| Baca denah (Monitoring, Pilih Bed, editor master) | Tidak ada; pembacaan sekali jalan | Proyeksi satu lantai | Tidak ada tulisan |
+| Catat atau ubah High/Low Dependency | Episode | Lima kolom episode + satu baris riwayat | Rollback; 409 bila nilai sudah diubah orang lain |
+| Ubah kelas kamar | Kelas lama dan baru → kamar → semua bed kamar | Kelas, nama kamar, penanda turunan kelas, invalidasi kesiapan semua bed, event | Rollback seluruhnya; ditolak bila ada penghuni atau pesanan |
+| Tambah bed atau boks bayi | Kamar → bed baru | Bed berkode sistem dan berlabel, kesiapan `Unverified`, event `BedCreated` | Rollback seluruhnya |
+| Kurangi bed | Bed | Hapus lunak (belum pernah dipakai) atau nonaktif (punya riwayat), invalidasi | Ditolak tanpa perubahan |
+| Ubah arah wing atau label bed | Kamar atau bed | Kolom yang diubah + label lokasi turunan | Rollback |
+| Aktifkan ruang cadangan | Unit dan kelas → kamar baru → bed baru | Kamar + semua bed + kesiapan + event | Rollback; tidak pernah ada kamar tanpa bed |
+| Impor susunan denah | Unit, kelas, kamar, dan bed seluruh baris yang lolos, terurut menurut Guid | Semua baris yang lolos + kesiapan + event + catatan run + receipt; di dev/UAT ditambah penetapan siap | Rollback seluruh baris; laporan penolakan tetap dikembalikan |
+
+Root kesiapan tetap `InpBedReadiness` (bagian 14). Aggregate baru hanya `InpEpisode` dengan anak append-only `InpCareDependencyHistory`. Kamar dan bed tetap master milik MasterData yang ditulis lewat `BedMutationService`. Importer dan aktivasi ruang cadangan adalah satu operasi koordinator multi-bed dengan satu receipt, bukan rangkaian panggilan endpoint yang masing-masing commit sendiri.
+
+### 15.2 As-is → target dan invariant
+
+| Bukti | As-is | Target draft | Trace |
+| --- | --- | --- | --- |
+| `DNH-CAP-01`, `02` | `MstRoom.FloorName` dan `LocationName` teks bebas; tidak ada lantai terstruktur, wing, atau kunci denah | Kolom baru `FloorCode`, `WingDirection`, `FloorPlanRoomKey`; `FloorName` dan `LocationName` kamar berkunci diisi otomatis | DEC-306/313/314/323; AC-451/461 |
+| `DNH-CAP-03`; temuan desain `DNH-DES-01` | `RoomCode` dibuat controller `RM-RSMMC-#####` dengan mengisi nomor kosong terkecil di antara kamar yang **belum dihapus** (`RoomController.cs:790-814`), sedangkan index unik `RoomCode` tidak berfilter (`MstRoomConfiguration.cs:106-107`) | `RoomCode` tetap kode sistem, dialokasikan lewat pengalokasi nomor bersama seperti bed (batas bawah = nomor terbesar termasuk baris terhapus). Usulan kode `L3-329` pada rencana 3.2 tidak dipakai | Analog DEC-317; QBE-CODE-003 |
+| `DNH-CAP-04`, `DNH-MIS-01` | `BedCode` otomatis `BD-RSMMC-#####`; `BedName`/`BedNumber` diisi manual | `BedCode` tetap; label "329-C" di `BedName`, huruf "C" di `BedNumber`, dibentuk server untuk kamar berkunci | DEC-317; AC-456 |
+| `DNH-CAP-10`, `25`, `DNH-MIS-02` | `Capacity` diisi manual dan termasuk perubahan berbahaya | Kapasitas dan status kamar dihitung dari bed aktif saat dibaca; editor tidak mengirim `Capacity` | DEC-303/318; AC-442/457 |
+| `DNH-CAP-07`, `15`, `DNH-MIS-08` | `IsForMale`/`IsForFemale` pada kamar dan bed; aturan 4 `BED_GENDER_MISMATCH` dan 5 `PATIENT_GENDER_UNKNOWN` (`InpBedOccupancyService.cs:1703-1738`) | Kolom, field DTO, aturan, dan pesan dihapus serentak backend–frontend; nomor aturan 4 dan 5 tidak dipakai ulang | DEC-315; AC-439/452 |
+| `DNH-CAP-16`, `17`, `DNH-MIS-04` | Perbandingan kelas berhenti di `Unknown` → 422 `CLASS_ORDER_UNVERIFIED` untuk semua pasangan tanpa bukti urutan | Kelas khusus (`PatientClassType` ICU, Isolation, Odc, Perinatology) menghasilkan `Special`; ketiga kategori boleh dipilih | DEC-312/319; AC-450/458 |
+| `DNH-CAP-11` | Monitoring dikelompokkan per unit; tidak ada saring lantai | Proyeksi per lantai berisi status kamar, badge, ringkasan HD/LD, dan outline | DEC-299/303/316/323; AC-436/442/453 |
+| `DNH-CAP-12`, `21` | `HoldingContext` hanya nomor episode dan nama | Ditambah No. RM dan HD/LD; penyamaran existing tetap berlaku | DEC-287/302; AC-443 |
+| `DNH-CAP-13` | Kelayakan per pasien lewat `available-beds` berhalaman | Kelayakan dievaluasi sekali per lantai dengan evaluator yang sama | DEC-316; AC-453 |
+| `DNH-CAP-19` | Tidak ada HD/LD | Kolom episode + riwayat append-only + dua endpoint | DEC-302; AC-440/441 |
+| `DNH-CAP-26`, `DNH-MIS-07` | Hapus bed = hapus lunak bila status master Available (`BedMasterWriteService.cs:309`); riwayat tidak diperiksa | Hapus hanya bila bed belum pernah punya pesanan maupun hunian; bed beriwayat dinonaktifkan | Rencana 7; DEC-299 |
+| `DNH-CAP-27` | Seeder tidak membuat kamar/bed; tidak ada importer | Importer eksplisit, idempoten menurut kunci, ada dry run, pemetaan unit wajib | DEC-306/321/323; AC-446/459/461 |
+| `DNH-CAP-24`; RWI-FACT-073 (3) | Bed baru lahir `Unverified` dan tampil Tidak Tersedia | Tetap. Produksi memakai verifikasi awal existing oleh perawat. Dev/UAT: importer menetapkan siap dengan event khusus | DEC-321; AC-459 |
+| `DNH-CAP-23`; RWI-FACT-073 (4) | Ubah kelas kamar = perubahan berbahaya: alasan, semua bed kosong, invalidasi kesiapan (`BedMutationService.cs:63-69, 92-98`) | Dipertahankan; pesan penolakan menyebut jumlah penghuni dan pesanan | DEC-304; AC-444/455 |
+| `DNH-CAP-05`; RWI-FACT-073 (5), (7) | Daftar kelas bebas; Id kelas dipakai 10 modul | Perubahan data: ganti nama dengan Id tetap, baris baru hanya untuk kelas baru, nonaktifkan yang tidak terpakai; diterapkan bersama konfigurasi urutan | DEC-307/310/311/319/322; AC-447–449/458/460 |
+| `DNH-CAP-38`, `DNH-MIS-09` | `bed-board` juga dipakai daftar pasien rawat inap | Endpoint dipertahankan; yang dihapus hanya komponen kartu frontend | DEC-299 |
+
+| ID | Invariant |
+| --- | --- |
+| INV-DNH-01 | Satu kunci denah menunjuk paling banyak satu kamar yang belum dihapus. Kunci dan lantai tidak berubah setelah ditetapkan |
+| INV-DNH-02 | Label bed unik di antara bed yang belum dihapus pada lantai yang sama; huruf bed unik per kamar (index existing) |
+| INV-DNH-03 | Kapasitas, jumlah terisi, dan status kamar tidak disimpan; selalu dihitung dari bed saat dibaca |
+| INV-DNH-04 | Tidak ada kolom, aturan, atau tampilan bed yang memakai jenis kelamin pasien |
+| INV-DNH-05 | HD/LD tidak memengaruhi kelayakan, kategori transfer, maupun tarif |
+| INV-DNH-06 | Riwayat HD/LD append-only; nilai pada episode selalu sama dengan baris riwayat terbaru |
+| INV-DNH-07 | Importer di produksi tidak dapat menetapkan bed siap; aplikasi menolak menyala bila konfigurasinya mengizinkan |
+| INV-DNH-08 | Kelas khusus tidak memakai urutan angka; antarkelas biasa tetap memakai urutan resmi terverifikasi |
+| INV-DNH-09 | Setiap kamar berkunci punya unit layanan yang dipilih admin; importer tidak membuat unit |
+| INV-DNH-10 | Importer tidak mengubah kelas, unit, maupun bed kamar yang sudah ada; perbedaannya hanya dilaporkan |
+
+### 15.3 Class diagram per konteks
+
+Lokasi master (MasterData):
+
+```mermaid
+classDiagram
+class MstRoom {
++Guid ServiceUnitId
++Guid PatientClassId
++string RoomCode
++string RoomNumber
++string FloorCode
++RoomWingDirection WingDirection
++string FloorPlanRoomKey
+}
+class MstBed {
++Guid RoomId
++string BedCode
++string BedName
++string BedNumber
++bool IsForNewborn
+}
+class MstFloorPlanImportRun {
++string ManifestHash
++bool MarkedBedsReady
++jsonb SummaryJson
+}
+class MstServiceUnit
+class MstPatientClass {
++PatientClassType PatientClassType
++int ClassLevel
+}
+MstRoom "1" --> "0..*" MstBed
+MstRoom "0..*" --> "1" MstServiceUnit
+MstRoom "0..*" --> "0..1" MstPatientClass
+RoomController --> FloorPlanLayoutService
+RoomController --> FloorPlanImportService
+FloorPlanImportService --> BedMutationService
+FloorPlanLayoutService --> BedMutationService
+FloorPlanImportService --> FloorPlanRoomNaming
+FloorPlanLayoutService --> FloorPlanRoomNaming
+BedMutationService --> InpBedMutationCoordinator
+```
+
+Episode dan proyeksi denah (InPatientManagement):
+
+```mermaid
+classDiagram
+class InpEpisode {
++InpCareDependencyLevel CareDependencyLevel
++InpCareDependencySource CareDependencySource
++DateTime CareDependencySetAt
+}
+class InpCareDependencyHistory {
++Guid EpisodeId
++InpCareDependencyLevel NewLevel
++DateTime RecordedAtUtc
+}
+InpEpisode "1" --> "0..*" InpCareDependencyHistory
+InpatientEpisodeController --> InpEpisodeService
+InpatientBedManagementController --> InpFloorPlanQueryService
+InpatientBedOccupancyController --> InpFloorPlanQueryService
+InpFloorPlanQueryService --> InpBedManagementQueryService
+InpFloorPlanQueryService --> InpBedOccupancyService
+InpFloorPlanQueryService --> InpBedClassComparisonService
+InpFloorPlanQueryService --> InpBedAccessService
+```
+
+Diagram hanya memuat relasi yang berubah atau baru; FK dan kardinalitas pasti ada di kamus data 22. `MstServiceUnit`, `MstPatientClass`, `InpBedReadiness`, `InpBedPlacement`, dan `InpBedReservation` **Sudah ada** dan tidak didesain ulang.
+
+### 15.4 Penjelasan setiap model dan application class
+
+##### MstRoom
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/MasterData/Models/MstRoom.cs` |
+| Tujuan | Kamar fisik. Kamar yang tergambar di denah menyimpan lantai, arah wing, dan kunci denah |
+| Kolom berubah | **Baru:** `FloorCode` string(10)?, `WingDirection` `RoomWingDirection`?, `FloorPlanRoomKey` string(100)?. **Dihapus:** `IsForMale`, `IsForFemale`. Kolom lain tetap; `Capacity` tidak dipakai denah |
+| Relasi | `ServiceUnitId` → `MstServiceUnit.Id` (Restrict, existing); `PatientClassId` → `MstPatientClass.Id` (Restrict, existing); `FloorPlanRoomKey` → UNIQUE berfilter |
+| Padanan existing | Class yang sama; tidak ada tabel lantai atau wing terpisah karena satu gedung (rencana 3.2) |
+
+##### MstBed
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/MasterData/Models/MstBed.cs` |
+| Tujuan | Bed fisik; `BedName` menjadi label yang dibaca petugas |
+| Kolom berubah | **Dihapus:** `IsForMale`, `IsForFemale`. Arti `BedName` dan `BedNumber` dipertegas untuk kamar berkunci; tipe dan panjang tidak berubah |
+| Relasi | `RoomId` → `MstRoom.Id` (Restrict, existing); UNIQUE(`RoomId`, `BedNumber`) berfilter `IsDelete = false` (existing) |
+| Padanan existing | Class yang sama |
+
+##### MstFloorPlanImportRun
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/MasterData/Models/MstFloorPlanImportRun.cs` |
+| Tujuan | Catatan setiap impor yang benar-benar dijalankan: siapa, kapan, manifest mana, lingkungan, apakah bed ditetapkan siap, dan ringkasan hasilnya. Dry run tidak dicatat |
+| Field | Id, ManifestVersion, ManifestHash, EnvironmentName, MarkedBedsReady, ReadyEvidenceReference, SummaryJson, ActorUserId, StartedAtUtc, CompletedAtUtc |
+| Relasi | `ActorUserId` → `ApplicationUser.Id` (Restrict); direferensikan `InpBedOperationReceipt.ResultEntityId` dengan `ResultKind = FloorPlanImport` |
+| Padanan existing | Tidak ada. Receipt tidak menyimpan isi respons (bagian 14.7), sehingga ringkasan impor butuh tempat sendiri untuk audit dan pengulangan permintaan |
+
+##### MstPatientClass / MstServiceUnit
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Sudah ada |
+| Lokasi file | `Areas/HealthServices/MasterData/Models/MstPatientClass.cs`; `Areas/HealthServices/MasterData/Models/MstServiceUnit.cs` |
+| Tujuan | Kelas resmi beserta urutannya, dan unit rawat inap yang diakui RS |
+| Perubahan | Tidak ada kolom baru. Kelas berubah lewat data (RWI-DEC-322) dan konfigurasi urutan (RWI-DEC-319). Kelas khusus dikenali dari `PatientClassType`: ICU = 7, Isolation = 10, Odc = 14, Perinatology = 15 |
+| Padanan existing | Dipakai apa adanya; tidak membuat kelas atau unit kedua |
+
+##### InpEpisode
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Models/InpEpisode.cs` |
+| Tujuan | Episode rawat inap; ditambah tingkat ketergantungan pasien yang berlaku saat ini |
+| Kolom berubah | **Baru:** `CareDependencyLevel` `InpCareDependencyLevel`?, `CareDependencySource` `InpCareDependencySource`?, `CareDependencySetByUserId` Guid?, `CareDependencySetAt` DateTime?, `CareDependencyNote` string(500)? |
+| Relasi | `CareDependencySetByUserId` → `ApplicationUser.Id` (Restrict); koleksi `CareDependencyHistories` |
+| Padanan existing | Pola sama dengan kolom isolasi `RequiresIsolation`, `IsolationSource`, `IsolationSetByUserId`, `IsolationSetAt`, `IsolationNote` |
+
+##### InpCareDependencyHistory
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Models/InpCareDependencyHistory.cs` |
+| Tujuan | Jejak append-only setiap pencatatan HD/LD: nilai lama, nilai baru, sumber, pelaku, waktu, dan catatan |
+| Field | Id, EpisodeId, PreviousLevel, NewLevel, Source, ActorUserId, RecordedAtUtc, Note |
+| Relasi | `EpisodeId` → `InpEpisode.Id` (Restrict); `ActorUserId` → `ApplicationUser.Id` (Restrict); INDEX(`EpisodeId`, `RecordedAtUtc`) |
+| Padanan existing | Riwayat isolasi tidak punya tabel sendiri; RWI-DEC-302 mewajibkan riwayat yang tidak ditimpa, sehingga tabel baru diperlukan |
+
+##### RoomWingDirection / InpCareDependencyLevel / InpCareDependencySource
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/MasterData/Enums/RoomWingDirection.cs`; `Areas/HealthServices/InPatientManagement/Enums/{InpCareDependencyLevel,InpCareDependencySource}.cs` |
+| Nilai | `RoomWingDirection`: Utara = 1, TimurLaut = 2, Timur = 3, Tenggara = 4, Selatan = 5, BaratDaya = 6, Barat = 7, BaratLaut = 8; tanpa bawaan (`null` = kamar tidak di denah). `InpCareDependencyLevel`: High = 1, Low = 2; tanpa bawaan (`null` = belum dinilai). `InpCareDependencySource`: AdmissionNote = 1, NurseAssessment = 2, DoctorDecision = 3 |
+| Padanan existing | Tidak ada; disimpan sebagai `int` seperti enum existing |
+
+##### FloorPlanRoomNaming
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/MasterData/Services/FloorPlanRoomNaming.cs` |
+| Tujuan | Aturan murni tanpa akses database: nama kamar `<Kelas> <Nomor>`, label lantai "Lantai 3", label lokasi "Lantai 3 · Barat Laut", label bed berikutnya, dan penanda kamar/bed turunan jenis kelas (15.6) |
+| Dipanggil oleh | `FloorPlanImportService`, `FloorPlanLayoutService`, `RoomMasterWriteService`, `BedMasterWriteService`, dan jalur ubah nama kelas |
+| Transaksi | Tidak membuka transaksi |
+| Padanan existing | Tidak ada; dipisah agar satu aturan dipakai importer dan editor, dan mudah diuji unit |
+
+##### FloorPlanLayoutService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/MasterData/Services/FloorPlanLayoutService.cs` |
+| Tujuan | Membaca susunan satu lantai untuk editor master (tanpa identitas pasien) dan mengaktifkan ruang cadangan menjadi kamar beserta bed-nya |
+| Dipanggil oleh | `RoomController` |
+| Transaksi | Baca: tidak. Aktivasi: satu transaksi koordinator multi-bed dengan satu receipt |
+| Padanan existing | `RoomController`/`BedController` hanya CRUD per baris; aktivasi kamar + bed harus atomik |
+
+##### FloorPlanImportService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/MasterData/Services/FloorPlanImportService.cs` |
+| Tujuan | Memvalidasi manifest denah, menyusun laporan per kamar, lalu (bila bukan dry run) membuat kamar dan bed baru serta memperbarui label kamar yang sudah ada |
+| Dipanggil oleh | `RoomController` |
+| Transaksi | Dry run: tidak menulis. Impor: satu transaksi koordinator untuk semua baris yang lolos, satu receipt, satu `MstFloorPlanImportRun` |
+| Padanan existing | Seeder sengaja tidak membuat kamar/bed (RWI-DEC-048, 306) |
+
+##### BedMutationService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/MasterData/Services/BedMutationService.cs` |
+| Perubahan | `IsForMale`/`IsForFemale` keluar dari daftar perubahan berbahaya (`:171-172`); `Capacity` tetap di daftar tetapi tidak dikirim editor; tambah `AllocateRoomCodeAsync` (pola `AllocateBedCodeAsync`); tambah operasi multi-entitas untuk importer dan aktivasi ruang cadangan di bawah satu `coordinator.ExecuteAsync` |
+| Transaksi | Tetap pemilik transaksi writer master |
+
+##### RoomMasterWriteService / BedMasterWriteService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/MasterData/Services/RoomMasterWriteService.cs`; `Areas/HealthServices/MasterData/Services/BedMasterWriteService.cs` |
+| Perubahan | Kamar: terima `FloorCode`/`WingDirection`/`FloorPlanRoomKey`, tolak perubahan kunci dan lantai yang sudah terisi, bentuk nama dan penanda turunan untuk kamar berkunci, hapus field jenis kelamin. Bed: label server untuk kamar berkunci, cek label unik per lantai, hapus hanya bila tanpa riwayat, hapus field jenis kelamin |
+| Transaksi | Dijalankan di dalam transaksi `BedMutationService` |
+
+##### PatientClassMasterWriteService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/MasterData/Services/PatientClassMasterWriteService.cs` |
+| Perubahan | Saat nama kelas berubah, nama semua kamar berkunci yang memakai kelas itu dibentuk ulang lewat `FloorPlanRoomNaming` |
+| Transaksi | Di dalam transaksi `BedMutationService` existing yang sudah mengunci kamar dan bed kelas itu (14.12) |
+| Padanan existing | Writer kelas existing; tidak ada endpoint baru |
+
+##### InpFloorPlanQueryService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpFloorPlanQueryService.cs` |
+| Tujuan | Proyeksi satu lantai: kamar berkunci, status kamar, badge, ringkasan HD/LD, bed dengan enam status, penghuni sesuai hak, dan untuk admisi/transfer kelayakan per bed serta outline |
+| Dipanggil oleh | `InpatientBedManagementController` (Monitoring) dan `InpatientBedOccupancyController` (Pilih Bed) |
+| Transaksi | Tidak; baca dengan query terbatas per lantai tanpa N+1 |
+| Padanan existing | Memakai predikat dan proyeksi `InpBedManagementQueryService`, evaluator kelayakan `InpBedOccupancyService`, dan penyamaran `InpBedAccessService`; tidak menghitung status bed sendiri |
+
+##### InpEpisodeService (berkas `InpEpisodeService.CareDependency.cs`)
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui (class partial existing); berkas Baru |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/InpEpisodeService.CareDependency.cs` |
+| Tujuan | Mencatat atau mengubah HD/LD dan membaca riwayatnya |
+| Dipanggil oleh | `InpatientEpisodeController` |
+| Transaksi | Ya: kunci episode, cek nilai yang dilihat klien, ubah kolom episode, tambah satu baris riwayat |
+| Padanan existing | Mengikuti `SetIsolationRequirementAsync` |
+
+##### InpBedOccupancyService / InpBedClassComparisonService / InpBedManagementQueryService
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Services/{InpBedOccupancyService,InpBedClassComparisonService,InpBedManagementQueryService}.cs` |
+| Perubahan | Occupancy: hapus aturan 4 dan 5 beserta `BedGenderMessage`/`NormalizeGender`, tambah saring `FloorCode` pada `available-beds`, sediakan evaluasi kelayakan per lantai tanpa N+1. Comparison: hasil `Special` untuk kelas khusus sebelum pemeriksaan urutan. Query: `HoldingContext` + No. RM + HD/LD, saring `FloorCode` |
+| Transaksi | Tidak berubah |
+
+##### InpatientEpisodeController / InpatientBedManagementController / InpatientBedOccupancyController / RoomController / BedController
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Controllers/{InpatientEpisodeController,InpatientBedManagementController,InpatientBedOccupancyController}.cs`; `Areas/HealthServices/MasterData/Controllers/{RoomController,BedController}.cs` |
+| Perubahan | Endpoint baru dan perubahan field persis ada di API contract 14. Episode: `InpatientEpisode : SetCareDependency` (action baru). Room: `Room : ImportFloorPlan` (action baru). Controller tetap tipis: memanggil service, tidak membuka transaksi, tidak menulis `DbContext` langsung untuk logic baru |
+| Padanan existing | Resource dan route existing dipakai; tidak ada controller baru, sehingga registrasi resource akses tidak bertambah |
+
+##### DTO
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Baru: `InpatientFloorPlanDtos.cs`, `InpatientCareDependencyDtos.cs`, `FloorPlanLayoutDtos.cs`. Diperbarui: `InpatientBedOccupancyDtos.cs`, `InpatientBedManagementDtos.cs`, `RoomDtos.cs`, `BedDtos.cs` |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/DTOs/` dan `Areas/HealthServices/MasterData/DTOs/` sesuai nama |
+| Jenis | PagedQuery/Query: `FloorPlanQuery`, `FloorPlanLayoutQuery`. Response: `FloorPlanResponse`, `FloorPlanLayoutResponse`, `CareDependencyHistoryResponse`, `FloorPlanImportResult`. Create: `ActivateFloorPlanRoomRequest`, `FloorPlanImportRequest`. Status: `SetCareDependencyRequest`. Field persis ada di API contract 14.3 |
+| Padanan existing | DTO existing dipakai ulang; entity tidak diserialisasi langsung |
+
+##### BedManagementOptions
+
+| Atribut | Isi |
+| --- | --- |
+| Status | Diperbarui |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Options/BedManagementOptions.cs` |
+| Perubahan | Bagian `FloorPlanImport`: `MarkImportedBedsReady` bool = false, `ReadyEvidenceReference` string? = null. Validator startup menolak `true` di lingkungan `Production` dan menolak `true` tanpa referensi |
+| Padanan existing | Pola validasi startup `ClassOrder` dan `UnitAssignments` |
+
+### 15.5 Folder dan engineering contract
+
+```text
+NewQuilvianSystemBackend/
+├─ Areas/HealthServices/MasterData/
+│  ├─ Models/MstRoom.cs [Diperbarui]
+│  ├─ Models/MstBed.cs [Diperbarui]
+│  ├─ Models/MstFloorPlanImportRun.cs [Baru]
+│  ├─ Models/MstPatientClass.cs [Sudah ada; data saja]
+│  ├─ Models/MstServiceUnit.cs [Sudah ada]
+│  ├─ Enums/RoomWingDirection.cs [Baru]
+│  ├─ DTOs/RoomDtos.cs [Diperbarui]
+│  ├─ DTOs/BedDtos.cs [Diperbarui]
+│  ├─ DTOs/FloorPlanLayoutDtos.cs [Baru]
+│  ├─ Controllers/RoomController.cs [Diperbarui]
+│  ├─ Controllers/BedController.cs [Diperbarui]
+│  └─ Services/
+│     └─ FloorPlanRoomNaming.cs [Baru]
+│     └─ FloorPlanLayoutService.cs [Baru]
+│     └─ FloorPlanImportService.cs [Baru]
+│     └─ BedMutationService.cs [Diperbarui]
+│     └─ RoomMasterWriteService.cs [Diperbarui]
+│     └─ BedMasterWriteService.cs [Diperbarui]
+│     └─ PatientClassMasterWriteService.cs [Diperbarui; nama kamar ikut nama kelas]
+├─ Areas/HealthServices/InPatientManagement/
+│  ├─ Models/InpEpisode.cs [Diperbarui]
+│  ├─ Models/InpCareDependencyHistory.cs [Baru]
+│  ├─ Enums/InpCareDependencyLevel.cs [Baru]
+│  ├─ Enums/InpCareDependencySource.cs [Baru]
+│  ├─ DTOs/InpatientFloorPlanDtos.cs [Baru]
+│  ├─ DTOs/InpatientCareDependencyDtos.cs [Baru]
+│  ├─ DTOs/InpatientBedOccupancyDtos.cs [Diperbarui]
+│  ├─ DTOs/InpatientBedManagementDtos.cs [Diperbarui]
+│  ├─ Options/BedManagementOptions.cs [Diperbarui]
+│  ├─ Controllers/InpatientEpisodeController.cs [Diperbarui]
+│  ├─ Controllers/InpatientBedManagementController.cs [Diperbarui]
+│  ├─ Controllers/InpatientBedOccupancyController.cs [Diperbarui]
+│  └─ Services/
+│     └─ InpFloorPlanQueryService.cs [Baru]
+│     └─ InpEpisodeService.CareDependency.cs [Baru; class partial existing]
+│     └─ InpBedOccupancyService.cs [Diperbarui]
+│     └─ InpBedClassComparisonService.cs [Diperbarui]
+│     └─ InpBedManagementQueryService.cs [Diperbarui]
+├─ Repositories/Configurations/HealthServices/
+│  └─ MstRoomConfiguration.cs [Diperbarui]
+│  └─ MstBedConfiguration.cs [Diperbarui]
+│  └─ MstFloorPlanImportRunConfiguration.cs [Baru]
+├─ Repositories/Configurations/HealthServices/InPatientManagement/
+│  └─ InpEpisodeConfiguration.cs [Diperbarui]
+│  └─ InpCareDependencyHistoryConfiguration.cs [Baru]
+├─ Repositories/ApplicationDbContext.cs [Diperbarui; DbSet dua entity baru]
+├─ Migrations/ [Baru; empat migration 15.8, dibuat lewat dotnet ef]
+└─ Program.cs [Diperbarui; DI dua service MasterData + validator opsi impor]
+```
+
+Konfigurasi master tetap di `Repositories/Configurations/HealthServices/` tanpa subfolder MasterData, mengikuti lokasi aktual (14.12). Logic alokasi kode kamar di `RoomController.cs:790-814` adalah **utang teknis** yang diperbaiki di sini karena importer bergantung padanya (`DNH-DES-01`), bukan dirapikan diam-diam. Prefix `Inp` dan `Mst` ACTIVE; tidak menambah `Trx`, nomor bisnis buatan, atau `SortOrder` baru. QBE-ENT/NAM/CFG/MOD/SVC/API/PERM/VAL/DTO/TXN/PAGE/DEL/AUD dan QBE-CODE-003 berlaku.
+
+### 15.6 Aturan nama, label, dan penanda turunan
+
+| Hal | Aturan | Contoh |
+| --- | --- | --- |
+| Kunci denah | `lantai-<FloorCode>/<slug>`; slug dari nomor kamar (`k-<nomor>`) atau nama ruang fisik bila tanpa nomor, huruf kecil, `[a-z0-9-]`, maks. 100 karakter, **tidak pernah memuat nama kelas** | `lantai-3/k-329`, `lantai-3/k-321b`, `lantai-2/icu-ck`, `lantai-3/cadangan-1` |
+| Kode lantai | Teks pendek angka atau huruf, maks. 10 | `3` |
+| Nomor kamar | Nomor fisik; kamar tanpa nomor memakai kode ruang pendek yang sekaligus menjadi awalan label bed | `329`; `ICU-CK`, `BAYI-1` |
+| Kode kamar | Kode sistem `RM-RSMMC-#####` dari pengalokasi bersama; tidak dibaca petugas | `RM-RSMMC-00114` |
+| Nama kamar | Kamar bernomor angka: `<nama kelas> <nomor>`. Kamar tanpa nomor: nama ruang fisik dari manifest, tetap (RWI-DEC-308) | "Kelas 2 329", "Isolasi 319", "R. ICU CK" |
+| Label lantai dan lokasi | `FloorName` = "Lantai <kode>"; `LocationName` = "Lantai <kode> · <arah>" | "Lantai 3 · Barat Laut" |
+| Label bed | `<nomor kamar>-<huruf>`; huruf berikutnya sesudah huruf terbesar yang dipakai awalan yang sama di lantai itu, termasuk bed nonaktif; A–Z lalu AA, AB | 329-D; kamar 321 kedua melanjutkan 321-D s.d. 321-F |
+| Kode bed | `BD-RSMMC-#####` existing | `BD-RSMMC-00187` |
+
+Nama kamar dibentuk ulang setiap kali kelas kamar diubah dari editor, setiap kali importer menyentuh kamar itu, dan setiap kali nama kelas diganti lewat master kelas. Jalur ganti nama kelas memperbarui nama semua kamar berkunci yang memakai kelas itu dalam transaksi yang sama. Snapshot lokasi pada penempatan lama tidak ditulis ulang (14.13).
+
+| Jenis kelas (`PatientClassType`) | `RoomType` | Penanda kamar | Penanda bed baru |
+| --- | --- | --- | --- |
+| ICU | `IntensiveCareRoom` | `IsIntensiveCare` = true | `IsIntensiveCareBed` = true |
+| Isolation | `IsolationRoom` | `IsIsolationRoom` = true | `IsIsolationBed` = true |
+| Perinatology | `BabyRoom` | `IsForNewborn` = true; intensif menunggu RWI-OQ-142 | `IsForNewborn` = true |
+| Odc | `OdcRoom` | `IsOdcRoom` = true | `IsOdcBed` = true |
+| Kelas biasa (Kelas 3 s.d. Suite) | `InpatientRoom` | Semua false | Semua false; boks rawat gabung ditandai eksplisit `IsForNewborn` = true |
+
+Penanda turunan ditulis ulang saat kelas kamar berubah. Karena perubahan kelas sudah mensyaratkan kamar kosong (RWI-DEC-304), penulisan ulang penanda bed tidak pernah menyentuh penghuni. Boks rawat gabung tetap boks setelah kelas kamar berubah.
+
+### 15.7 Proyeksi denah, kelayakan, dan kelas khusus
+
+**Bed yang tampil.** Hanya bed aktif yang belum dihapus pada kamar aktif berkunci di lantai yang diminta. Status bed memakai proyeksi enam status bagian 14.6 tanpa perubahan.
+
+**Status kamar.** Dihitung berurutan: Tidak Tersedia (kamar ditutup untuk admisi, tidak punya bed aktif, atau semua bed aktif Tidak Tersedia) → Tersedia (ada bed Tersedia) → Persiapan (ada bed Menunggu atau Dalam Pembersihan) → Penuh. **Kapasitas** = bed aktif yang bukan Tidak Tersedia; **terisi** = Terisi + Dipesan.
+
+**Boks rawat gabung (RWI-OQ-144 masih terbuka).** Respons memisahkan hitungan bed biasa (`Counts`) dari boks rawat gabung (`CribCounts`) dan memberi `HasAvailableCrib`. Status kamar dihitung dari bed biasa. Pada kamar yang seluruh bednya boks, mis. Ruang Bayi, boks dihitung sebagai bed biasa. Bila pemilik memilih opsi B, layar menjumlahkan kedua hitungan dan menaikkan status menjadi Tersedia saat ada boks Tersedia, tanpa perubahan API.
+
+**HD/LD.** Ringkasan kamar menghitung episode penghuni bed Terisi: `HighCount`, `LowCount`, dan `UnassessedCount`. Label kamar High Dependency bila `HighCount` ≥ 1. HD/LD per bed tampil bagi pembaca yang boleh melihat identitas; profil OperationalOnly (Housekeeping) tidak menerima HD/LD, No. RM, maupun nama.
+
+**Outline hijau (`IsSelectable`).** Monitoring: kamar punya sekurang-kurangnya satu bed biasa Tersedia. Admisi dan transfer: kamar punya sekurang-kurangnya satu bed Tersedia yang lolos kelayakan untuk episode itu. Kelayakan dievaluasi sekali per lantai: konteks episode dimuat sekali, lalu aturan isolasi dan boks bayi existing diterapkan pada semua bed Tersedia di memori. Bed yang tidak lolos tetap dikirim beserta alasannya.
+
+**Kelas khusus.** Urutan pemeriksaan `InpBedClassComparisonService` menjadi: kelas tidak ditemukan atau nonaktif → `Unknown`; kelas asal **atau** tujuan berjenis ICU, Isolation, Odc, atau Perinatology → `Special`, ketiga kategori diizinkan, tanpa memeriksa digest urutan; Id sama → `SameGrade`; selain itu aturan urutan terverifikasi bagian 14.8. `Special` disimpan pada snapshot lokasi sebagai hasil perbandingan; kategori yang dipilih petugas tetap disimpan apa adanya. Jenis HCU dan NICU tidak termasuk kelas khusus sampai pemilik memutuskan.
+
+**Lantai bawaan.** Bila `floorCode` tidak dikirim, server memilih lantai dengan bed Tersedia terbanyak (seri → urutan lantai terkecil). Lantai terakhir yang dipakai petugas disimpan di browser oleh frontend.
+
+### 15.8 Migration, data, dan rollback
+
+| Urutan | Nama target | Isi | Tanpa downtime? | Mundur |
+| --- | --- | --- | --- | --- |
+| M-DNH-1 | `AddFloorPlanLocationToMstRoom` | Tambah `FloorCode`, `WingDirection`, `FloorPlanRoomKey` (nullable); index `FloorCode`; UNIQUE `FloorPlanRoomKey` berfilter | Ya; kolom nullable pada tabel kecil | Drop kolom dan index bila belum ada kamar berkunci; setelah impor, roll forward |
+| M-DNH-2 | `AddCareDependencyToInpEpisode` | Lima kolom nullable pada `InpEpisode`; tabel `InpCareDependencyHistory` | Ya | Drop hanya bila belum ada riwayat; setelah dipakai, roll forward |
+| M-DNH-3 | `AddMstFloorPlanImportRun` | Tabel catatan impor | Ya | Drop hanya sebelum impor pertama |
+| M-DNH-4 | `DropGenderFlagsFromRoomAndBed` | Drop `IsForMale`/`IsForFemale` pada `MstRoom` dan `MstBed` | Ya, dalam rilis yang sama dengan kode yang berhenti memakainya | Tambah kembali kolom dengan bawaan true; isi lama tidak dipulihkan karena maknanya dicabut RWI-DEC-315 |
+
+| Langkah data, bukan migration | Isi | Syarat |
+| --- | --- | --- |
+| D-DNH-1 | Kelas resmi: ganti nama dan `ClassLevel` kelas setara dengan Id tetap, tambah baris kelas baru (termasuk Perinatologi), nonaktifkan kelas tak terpakai, lalu perbarui `ClassOrder` (`Direction`, `EvidenceReference`, `ApprovedSourceDigest`) **dalam satu jendela perubahan** | Gate `DNH-G01` dan `BM-G01`; pemetaan kelas lama ke resmi oleh MasterData (RWI-DEC-308, 322) |
+| D-DNH-2 | Pembersihan data rawat inap DB Hamzah | RWI-DEC-305; cadangan, dry run, konfirmasi pemilik terpisah |
+| D-DNH-3 | Impor denah: dry run, perbaiki penolakan, impor | Sesudah M-DNH-1..3, D-DNH-1, dan pemetaan unit (RWI-DEC-323) |
+| D-DNH-4 | Produksi: verifikasi awal setiap bed oleh perawat, boleh per lantai | RWI-DEC-321; gate `DNH-G05` |
+
+Urutan rilis: M-DNH-1..3 dan kode baca/tulis baru → D-DNH-1 → D-DNH-3 → frontend denah → M-DNH-4 bersama penghapusan kode jenis kelamin backend dan frontend dalam satu gelombang (`DNH-MIS-08`). Tidak ada backfill HD/LD: episode lama bernilai "belum dinilai", bukan Low. Tidak ada backfill kunci denah dari id gambar lama, karena 76 id memuat nama kelas (`DNH-MIS-06`). Rollback sesudah impor tidak menghapus kamar/bed yang sudah dipakai; perbaikan dilakukan roll forward lewat editor.
+
+### 15.9 Data master minimum
+
+| Master | Minimum sebelum denah dipakai | Pemilik |
+| --- | --- | --- |
+| `MstPatientClass` | 12 kelas resmi dengan `ClassLevel` 1–12 + Perinatologi 13, berjenis tepat (ICU, Isolation, Odc, Perinatology untuk kelas khusus), aktif; kelas lama tak terpakai nonaktif | MasterData seluruh tim; `DNH-G01` |
+| Konfigurasi `ClassOrder` | Digest cocok dengan daftar kelas aktif sesudah D-DNH-1 | MasterData + BA; `BM-G01` |
+| `MstServiceUnit` | Unit rawat inap yang diakui RS, aktif, untuk setiap kamar denah | RS + MasterData; RWI-OQ-142; `DNH-G03` |
+| Tarif kamar | Tarif per unit dan kelas untuk kelas/unit yang benar-benar baru | Billing (Yasmina); RWI-OQ-143; `DNH-G02` |
+| `MstRoom`/`MstBed` | 106 kamar dan 168 bed hasil impor | Importer; admin MasterData |
+| `UnitAssignments` | Penugasan petugas admisi, perawat, HK, dan admin master per unit | `BM-G03`/`DNH-G05` |
+
+### 15.10 Yang sengaja tidak dibuat
+
+| Yang tidak dibuat | Alasan |
+| --- | --- |
+| Tabel `MstFloor`/`MstWing`/`MstBuilding` | Satu gedung; lantai dan wing cukup sebagai kolom kamar (rencana 3.2) |
+| Koordinat atau bentuk kamar di database | Bentuk adalah gambar gedung milik frontend; database cukup menyimpan kunci (rencana 3.3) |
+| Kolom status kamar, kapasitas tersinkron, atau penanda HD/LD pada kamar/bed | Dihitung saat dibaca (RWI-DEC-302, 303, 318) |
+| Kode kamar/bed bergaya `L3-329` | Kode tetap kode sistem; label dibaca petugas (RWI-DEC-317, `DNH-DES-01`) |
+| Endpoint denah gabungan dengan parameter tujuan untuk semua pembaca | Monitoring dan Pilih Bed punya resource akses berbeda; Housekeeping tidak perlu hak `InpatientBedOccupancy` |
+| Importer yang mengubah kelas, unit, atau jumlah bed kamar existing | Perubahan berbahaya harus lewat editor dengan guard (INV-DNH-10) |
+| Pembuatan unit layanan otomatis per lantai | RWI-DEC-309 superseded oleh RWI-DEC-323 |
+| Penilaian HD/LD otomatis atau pembatasan penempatan karena HD | RWI-DEC-302; kriteria milik SOP (RWI-OQ-141) |
+| Penghapusan data jenis kelamin pasien | Milik modul pasien; RWI-DEC-315 hanya menghapus pemakaian di bed |
+| Status bed ketujuh untuk bed hasil impor | Enam status tetap (RWI-DEC-282) |
+
+### 15.11 Traceability dan risiko
+
+DEC-298–323; AC-436–461 (AC-437/438 superseded oleh AC-452). Gate penerapan: `DNH-G01` menahan D-DNH-1; `DNH-G02` menahan klaim perkiraan biaya untuk kelas/unit baru; `DNH-G03` menahan impor produksi; `DNH-G04` menahan aktivasi HD/LD di produksi (kriteria klinis dan privasi); `DNH-G05` menahan pembukaan bangsal produksi. `BM-G01`–`G04` tetap berlaku. Risiko terbesar adalah gelombang jenis kelamin yang hanya selesai di satu sisi (`DNH-MIS-08`) dan perubahan kelas tanpa konfigurasi urutan (`CLASS_ORDER_UNVERIFIED` massal). Keduanya dijaga urutan rilis 15.8. Tidak ada migration, API, atau pengujian PostgreSQL yang dijalankan pada fase dokumentasi ini.
+
+---
+
+## 16. Amandemen Bagian 16 — Arsitektur Backend Transfer Pasien Masuk IGD & Rajal ke Ranap
+
+| Field | Nilai |
+| --- | --- |
+| Kontrak Target | `0.14.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Bounded Context | `InPatientManagement` berkolaborasi dengan `ClinicalManagement` (`CliTransferHandover`) |
+| Status | `draft` |
+| Fokus Perubahan | Otomasi penerbitan serah terima klinis transfer saat admisi transfer disubmit, ekstensi DTO penerimaan serah terima dengan PPJA wajib, rekonsiliasi obat/alergi, dan integrasi non-blocking dokumen PPRI |
+
+### 16.1 Tanggung Jawab Service & Pola Kolaborasi
+
+1. **Titik Pemicu Otomatis (Trigger)**:
+   - File: `InpAdmissionTransferService.cs` (`Areas/HealthServices/InPatientManagement/Services/InpAdmissionTransferService.cs`).
+   - Metode: `ExecuteTransferAdmissionAsync(ExecuteAdmissionTransferRequest request, ...)`.
+   - Pada alur saat ini, saat episode berhasil dibuat (`InpEpisode`), bed dialokasikan, dan deposit dicatat, service ini **diperluas** untuk memanggil `CliTransferHandoverService.CreateForTransferAsync` (atau memicu event internal).
+   - Dokumen `CliTransferHandover` dibuat dengan status `PendingSend` (Draft), mengaitkan `EpisodeId`, unit asal (IGD atau Rawat Jalan), unit tujuan (Rawat Inap bangsal terkait), serta menyalin snapshot TTV, keluhan, alat medis, dan riwayat obat terakhir dari rekam medis kunjungan asal.
+2. **Ekstensi Service Penerimaan Serah Terima**:
+   - File: `CliTransferHandoverService.cs` (`Areas/HealthServices/ClinicalManagement/Services/CliTransferHandoverService.cs`).
+   - Metode: `AcceptAsync(Guid handoverId, AcceptTransferHandoverRequest request, Guid currentUserId)`.
+   - Menambahkan validasi kewajiban `request.AssignedNurseId` (tidak boleh kosong / Guid.Empty, error `CLI-TRH-001`).
+   - Menyimpan penugasan perawat PPJA ke data penugasan rawat inap (`InpNurseAssignment`) dengan peran `PrimaryNursePPJA`.
+   - Memvalidasi bahwa `currentUserId != handover.CreatedByUserId` (mencegah akun yang sama menandatangani serah terima di kedua sisi, error `CLI-TRH-002`).
+3. **Penyelarasan Dokumen Admisi PPRI**:
+   - File: `InpAdmissionDocumentService.cs` (`Areas/HealthServices/InPatientManagement/Services/InpAdmissionDocumentService.cs`).
+   - Mengelola dokumen admisi cetak: Gelang Pasien Ranap Resmi (`WristbandAndLabel`), Formulir Serah Terima Pasien Baru (`NewPatientHandover`), Selisih Biaya, dan Pelunasan Deposit.
+   - Sifat non-blocking: Kueri detail episode (`InpatientEpisodeDetailService`) menambahkan agregat `AdmissionDocumentsSummary` yang menghitung berapa dokumen admisi yang berstatus `Completed`. Jika belum lengkap, episode tetap berstatus `Admitted` dan pelayanan medis tidak terblokir.
+
+### 16.2 Diagram Class & Komponen (Mermaid)
+
+```mermaid
+classDiagram
+    class InpAdmissionTransferService {
+        +ExecuteTransferAdmissionAsync(request) Task~InpEpisodeDetailDto~
+        -TriggerClinicalHandoverAsync(episodeId, sourceEncounterId) Task
+    }
+    class CliTransferHandoverService {
+        +CreateForTransferAsync(episodeId, sourceUnitId, targetUnitId, snapshot) Task~CliTransferHandoverDto~
+        +SendAsync(handoverId, currentUserId) Task
+        +AcceptAsync(handoverId, request, currentUserId) Task
+        +RejectAsync(handoverId, reason, currentUserId) Task
+    }
+    class InpAdmissionDocumentService {
+        +GetWristbandAndLabelAsync(episodeId) Task~WristbandAndLabelDto~
+        +GetNewPatientHandoverAsync(episodeId) Task~NewPatientHandoverDto~
+        +LockNewPatientHandoverAsync(episodeId, items) Task
+        +SignNewPatientHandoverAsync(episodeId, signRole, currentUserId) Task
+    }
+    class InpEpisodeDetailService {
+        +GetEpisodeDetailAsync(episodeId) Task~InpEpisodeDetailDto~
+    }
+
+    InpAdmissionTransferService --> CliTransferHandoverService : memicu pembuatan serah terima klinis
+    InpAdmissionTransferService --> InpAdmissionDocumentService : inisialisasi dokumen admisi
+    InpEpisodeDetailService ..> CliTransferHandoverService : membaca status serah terima aktif
+    InpEpisodeDetailService ..> InpAdmissionDocumentService : membaca ringkasan kelengkapan berkas PPRI
+```
+
+### 16.3 Matriks Penanganan Transaksi & Idempotensi
+
+- **Transaksi Admisi**: Pembuatan episode transfer dan pencatatan awal serah terima klinis dibungkus dalam batas transaksi database yang aman. Jika pembuatan serah terima klinis gagal karena kendala data asal, admisi tetap dapat diselesaikan dengan pencatatan warning log agar serah terima dapat dibuat ulang dari daftar episode.
+- **Idempotensi Penerimaan**: Pemanggilan `PATCH /transfer-handovers/{id}/accept` menggunakan konkurensi optimistik (`RowVersion`). Jika dua perawat bangsal mencoba mengonfirmasi secara bersamaan, pemanggilan kedua ditolak dengan status HTTP 409 Conflict.
+
+## 17. Amandemen Backend Admisi Bayi — `RWI-BAYI-022-2.0.0`
+
+1. `InpEpisodeService.NewbornCandidates` memproyeksikan calon ibu dari `OprCase` obstetri
+   `InProgress`/`Completed`, berikut encounter sumber penjamin dan lokasi rawat inap opsional.
+2. `NewbornPatientRegistrationService` menjadi pemilik transaksi identitas bayi, idempotency,
+   number series, dan alokasi `BirthOrder`. Urutan memakai advisory lock, counter
+   `PatNewbornBirthSequence`, serta unique index `(DeliveryCaseId, BirthOrder)`.
+3. `NewbornEncounterPaymentInheritanceService` memvalidasi rantai bayi–ibu–kasus–encounter,
+   mengunci payment source, lalu membuat snapshot penjamin bayi dengan provenance tanpa menyalin
+   FK kartu pasien ibu.
+4. `InpEpisode.DeliveryCaseId` menautkan episode bayi ke kasus persalinan. Field finansial lama
+   tetap dapat dibaca tetapi tidak ditulis oleh alur baru.
+5. Validasi bed memakai aturan bayi dan predikat kelayakan service unit rawat inap existing.
+   Admisi tidak mengalokasikan deposit dan hanya meneruskan layanan episode bayi ke Billing.
+
+Detail kontrak berada di `contracts/newborn-admission-repair-022.md`; bukti source pada laporan
+`BE-RWI-244..247`.

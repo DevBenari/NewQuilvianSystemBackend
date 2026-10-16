@@ -8,12 +8,12 @@
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Revision artefak | **`0.12.0`** — draft Bed Management, bagian26, 10 Oktober2026. Riwayat metadata: **`0.11.0`** — bagian 25 Amandemen Alur Admisi Pendaftaran (10 Oktober 2026, `approved`), menyerap `RWI-DEC-267` s.d. `RWI-DEC-273` dan `RWI-AC-388` s.d. `RWI-AC-395`. Sebelumnya **`0.10.0`** — bagian 24 Workspace PPRI, 7 Oktober 2026 (`approved` 2026-10-08, `RWI-DEC-265`); `0.9.0` — bagian 23 Finishing (`approved`, `RWI-DEC-221`); **`0.8.0`** — bagian 22 amandemen terbatas penyelarasan `PRD-RWI-V2-001`, 15 September 2026. Garis keturunan: `0.7.0` → `0.6.1` → `0.6.0` → `0.5.0` → `0.4.1` |
-| `contract_version` | Mengikuti set pada manifest anak, Bed Management draft; last_changed_in0.12.0. Riwayat metadata: **`0.11.0`** untuk bagian 24 & 25 (`approved` 10 Oktober 2026; bagian 24 `approved` 2026-10-08 lewat `RWI-DEC-265`); `0.10.0` untuk bagian 23 (`approved`); **`0.9.0`** untuk bagian 22 |
+| Revision artefak | **`0.14.0`** — Alur Transfer Pasien Masuk (IGD/Rajal ke Ranap) & Penugasan PPJA, bagian 28, **draft** 16 Oktober 2026. Riwayat metadata: `0.13.0` Integrasi Denah (approved, RWI-DEC-324); `0.12.0` Bed Management (draft); `0.11.0` Admisi Mba Ilma (approved); `0.10.0` Workspace PPRI (approved) |
+| `contract_version` | Mengikuti set pada manifest anak, Transfer Pasien Masuk draft (`0.14.0`); Integrasi Denah approved (`RWI-DEC-324`, `0.13.0`); Bed Management draft (`0.12.0`); Admisi & PPRI (`0.11.0`) |
 | Batas dokumen ini | MVP sub-modul `episode-rawat-inap` saja. Kemampuan milik dua sub-modul lain **bukan** bagian dari MVP di sini, dan itu bukan penundaan keputusan |
-| Status | **`draft`** — Bed Management belum disetujui. Riwayat metadata: **`approved`** — amandemen bagian 25 (`0.11.0`) disetujui pengguna pada 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery". Bagian 24 `approved` Muhammad Hamzah 2026-10-08 (`RWI-DEC-265`) |
+| Status | **`draft`** untuk amandemen Transfer Pasien Masuk (bagian 28). Integrasi Denah (bagian 27) tetap **`approved`** (`RWI-DEC-324`). Bed Management (bagian 26) tetap **`draft`** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
-| Backend SHA baseline | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `44099e4ddd921d51140d802cabf1cebbc5291d30` — branch `MHamzah`, memuat merge `6993212` dari `QuilvianIntegrationBackend`. Sebelumnya `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
+| Backend SHA baseline | Integrasi Denah: ca09cae909597442385ce4513be9c803549be10e; frontend 4d9bf608dbbaddc96a2b4acfc8723753b5dd5028. Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `44099e4ddd921d51140d802cabf1cebbc5291d30` — branch `MHamzah`, memuat merge `6993212` dari `QuilvianIntegrationBackend`. Sebelumnya `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Frontend SHA baseline | Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `30db3734a5d1e1ed0de35197ffabc30ae9c8d4e3` — branch `HamzahV2`. Sebelumnya `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
 | Masukan | Bed Management: backend14, FE15, data21, contracts target, gate1.12, decision46. Riwayat metadata: `02-backend-architecture.md` rev `0.3`; `contracts/api-contract.md`, `contracts/validation-matrix.md`, `contracts/permission-audit-matrix.md` rev `0.3.0`; `erd/01-inpatient-episode.md` dan `data/data-dictionary.md` rev `0.3`; `00-interview-decisions.md` rev `5`; `evidence/03-hospital-domain-architecture.md` rev `0.1` (`DOMAIN_ARCHITECTURE_PARTIAL`); arahan scope produk 2026-09-03 untuk memasukkan deposit rawat inap; evidence legacy V1 `ApplicationDbContext.cs` dan `Program.cs`; arahan operasional 2026-09-08 atas layar `Input Deposit Rawat Inap` pada multi-step admisi; evidence frontend `inpatient-admission-flow-constants.jsx`, `inpatient-admission-payment-step.jsx`, `use-inpatient-admission-doctor.jsx`; evidence backend `BilDepositAccount.cs`, `BillingPatientFundsController.cs` |
 | Ringkasan cakupan | Satu pasien dapat dirawat inap dari admisi sampai episode ditutup dan tempat tidur kembali kosong, **termasuk penetapan deposit di dalam multi-step admisi, top-up, dan settlement deposit melalui Billing/Kasir**, tanpa dokumentasi klinis, tanpa resep, dan tanpa jalur masuk IGD |
@@ -2484,3 +2484,410 @@ Seluruh31AC memiliki BM-AT-396..426 pada testing22, termasuk PostgreSQL interlea
 | Persetujuan desain draft | Pemilik desain manusia | Ya, sebelum plan-module-delivery mengunci task target | Ya, bukan approval yang dapat diberikan AI |
 
 Tidak ada pertanyaan pilihan produk tersisa atau epic OPEN DECISION. Jika proof kemudian bertentangan dengan state/authority/data yang telah dipilih, reassess slice terdampak. Gelombang bukan task/tanggal; roadmap dibuat oleh plan-module-delivery setelah approval desain. Source aplikasi, database, deploy dan Git mutations belum menjadi wewenang fase ini.
+
+## 27. Amandemen Integrasi Denah ↔ Bed Management — PRD ke MVP, 15 Oktober 2026
+
+Bagian 27 adalah batas rilis pertama **slice Integrasi Denah ↔ Bed Management**. Bagian 26 tetap berlaku; yang diubah hanya cara bed ditampilkan, dipilih, dan dikelola, serta tiga hal baru: struktur lokasi denah, impor susunan, dan tingkat ketergantungan pasien. Disusun paling akhir dari arsitektur, data, kontrak, dan flowchart yang sudah berdiri; tidak membuat keputusan, entity, maupun endpoint baru. **approved — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`).**
+
+### 27.1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Produk / blueprint | Quilvian / RWI-BP-001, sub-modul `episode-rawat-inap`, slice Integrasi Denah ↔ Bed Management |
+| Revision artefak / status | 0.13.0 / approved 2026-10-16 (`RWI-DEC-324`); set kontrak mengikuti manifest anak; last_changed_in 0.13.0 |
+| Owner / approval | Produk/domain/API Muhammad Hamzah (RWI-DEC-061); MasterData seluruh tim (RWI-DEC-193); frontend dalam batas RWI-DEC-299; keamanan/privasi dan clinical governance OPEN; approved_by = Muhammad Hamzah; approved_at = 2026-10-16 (`RWI-DEC-324`) |
+| Repository / baseline | NewQuilvianSystemBackend@ca09cae909597442385ce4513be9c803549be10e; QuilvianSystemFrontendDev@4d9bf608dbbaddc96a2b4acfc8723753b5dd5028 |
+| Input revision / readiness | Decision log 50, DEC-298–323, AC-436–461; impact scan BM-IMP-20261015-01; gate 1.13 DNH-RCG-20261015-01, enam DNH-CG `READY_FOR_DOMAIN_DESIGN`; `DOMAIN_ARCHITECTURE_NOT_RUN` |
+| Ringkasan cakupan | Susunan denah masuk database → bed disahkan → petugas memilih dan memantau bed lewat denah → HD/LD tercatat per episode → master dikelola dari denah |
+
+Hash masukan artefak teknis saat PRD ini diturunkan (SHA-256 berkas apa adanya):
+
+| Input relatif | SHA256 |
+| --- | --- |
+| 02-backend-architecture.md | 58ef2dfed6fd2264d7d57f2f2dcf0b5834586440a67dc6257a948f4804f942c1 |
+| data/data-dictionary.md | 137245d2acbb280b71904b882837d13682aa1542e8db9a8558e87bb0e779b3ad |
+| contracts/api-contract.md | 1f594bdbd6b688cd5c74a72e1748faf3e9c5e1aa6d32fa24a3fd4ab851d5df40 |
+| contracts/state-transition-matrix.md | 0a93b03140a37a191541b7f74791342523e42d8dd9e8093275f4afbe491ebefe |
+| contracts/validation-matrix.md | d4bcfa202d0dc4c15d80d959f7489b83b42c8cf2fe20fea081da72c78339af29 |
+| contracts/permission-audit-matrix.md | c5015428da2962494d60576bbc641d7d776d57609ea8eb906a94f817e5a995fc |
+| contracts/integration-contract.md | 71f0a09a1eedea09c56ef176ae19018a72d020e19d83efddb4544516ef932d0b |
+| 03-frontend-architecture.md | 7f36b7d4a3006a29a29d0721e966d96d2966e37acab32879f0d2d65cdd8ed2f2 |
+| testing/acceptance-test-matrix.md | 6153297fffaa519c13496d5a83954bba08f747c39b559672a8fd593b05826513 |
+| flowcharts/00-alur-utama.md | ebfa770dab610c420ce424f3641f6d30535150af4498eb9ca45e912b2650a444 |
+| flowcharts/15-denah-pilih-bed.md | 97db8bf7699e7f60195d24f11cfab16fa81381bf0d2a9ef8a8f5d33b094dbc88 |
+| flowcharts/16-denah-master-bed.md | 8a1b3e6329b0466079bbc0af369f53536ccb46efdb5c8f4c11ba90bedb089597 |
+| flowcharts/17-impor-denah.md | beaa568de871a48226d47514806702b3509f2f636ad7fae689bafb222bd5705d |
+| flowcharts/18-ketergantungan-pasien.md | cb44afb4a5378b63cb7401325965cbaedce30336e07042d9dbe09e851385100c |
+| ../02-module-map.md | 14f28a4529bc1183215bad0c598c41f0250c140a3791aadd50ed7259fc780601 |
+
+### 27.2 Ringkasan eksekutif
+
+Petugas RS MMC melihat bed persis seperti gedungnya: buka denah, pilih lantai, klik kamar, lalu memilih bed yang kosong dan sesuai. Satu denah dipakai untuk memantau, mengadmisi, memindahkan pasien, dan mengelola master. Susunan 106 kamar dan 168 bed dimasukkan sekali lewat importer yang aman diulang. Perawat dan DPJP mencatat tingkat ketergantungan pasien (High/Low Dependency) yang tampil di kamar. Pemisahan jenis kelamin dihapus, dan pindah ke kelas khusus seperti ICU tidak lagi tertahan aturan naik/turun kelas.
+
+### 27.3 Masalah produk
+
+Impact scan `BM-IMP-20261015-01` menemukan: denah hanya halaman data dummy tanpa menu; kamar tidak menyimpan lantai, wing, maupun kunci gambar; kode bed sistem tidak cocok dengan label "329-A" yang dikenal petugas; kapasitas kamar diisi manual dan berbahaya diubah; aturan jenis kelamin masih aktif; perbandingan kelas menolak semua transfer ke kelas khusus; HD/LD belum ada; dan tidak ada cara memasukkan susunan kamar selain satu per satu. Tiga tampilan bed yang berbeda (kartu, tabel, papan) membuat petugas melihat data yang sama dengan cara berbeda.
+
+### 27.4 Visi produk
+
+Denah resmi → master kamar dan bed tersusun menurut denah → bed disahkan siap → petugas memilih bed yang layak lewat denah → pasien ditempatkan dan tingkat ketergantungannya dicatat → kamar dipantau lewat denah yang sama → perubahan fisik kamar dicatat dari denah oleh admin.
+
+### 27.5 Batas MVP
+
+Titik mulai:
+
+1. Kelas resmi dan konfigurasi urutan kelas diterapkan bersamaan (`DNH-G01`).
+2. Unit rawat inap yang diakui RS tersedia untuk pemetaan kamar.
+3. Data rawat inap DB Hamzah dibersihkan dengan konfirmasi pemilik (dev/UAT).
+
+Titik akhir:
+
+1. Seluruh 106 kamar dan 168 bed denah ada di database dengan lantai, wing, kunci, dan label.
+2. Monitoring Bed, Pilih Bed admisi (termasuk bayi), transfer, dan Master Bed memakai denah yang sama; kartu dan tabel bed tidak ada lagi.
+3. HD/LD dapat dicatat dan dibaca sesuai hak, beserta riwayatnya.
+4. Tidak ada aturan maupun tampilan jenis kelamin pada bed.
+
+### 27.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab |
+| --- | --- |
+| Petugas admisi | Memilih bed lewat denah; mencatat HD/LD awal pada episode Draft |
+| Perawat penanggung jawab | Memantau kamar; memindahkan pasien; mencatat HD/LD episode yang ditugaskan |
+| DPJP | Mengubah HD/LD episode yang ditanganinya |
+| Perawat verifikator | Mengesahkan bed baru, bed hasil impor produksi, dan bed sesudah ubah kelas |
+| Housekeeping | Memantau dan mengerjakan pembersihan dari pop up tanpa melihat identitas |
+| Admin MasterData | Mengelola kamar dan bed dari denah; menerapkan kelas resmi |
+| Admin impor berwenang | Menjalankan impor susunan denah |
+
+### 27.7 Pemilihan kemampuan MVP
+
+Semua epic berikut MUST HAVE karena RWI-DEC-299 menjadikan denah satu-satunya tampilan bed; tanpa salah satunya petugas kehilangan jalan memilih, memantau, atau mengelola bed.
+
+| Kemampuan | ID kemampuan asal (`BM-IMP-20261015-01`) | Keputusan MVP |
+| --- | --- | --- |
+| EPIC DNH-01 — Denah sebagai tampilan bed dan status kamar | `DNH-CAP-09`–`12`, `21`, `22`, `34`–`36`, `38` | MUST HAVE; EXTEND |
+| EPIC DNH-02 — Memilih bed lewat denah; tanpa jenis kelamin; kelas khusus | `DNH-CAP-07`, `13`–`16`, `18`, `31`, `37` | MUST HAVE; EXTEND |
+| EPIC DNH-03 — Struktur lokasi dan Master Bed lewat denah | `DNH-CAP-01`–`04`, `06`, `23`–`26`, `39`, `41` | MUST HAVE; EXTEND + MISSING / NEW |
+| EPIC DNH-04 — Impor susunan denah dan kesiapan awal | `DNH-CAP-08`, `27` | MUST HAVE; MISSING / NEW |
+| EPIC DNH-05 — Tingkat ketergantungan pasien | `DNH-CAP-12`, `19` | MUST HAVE; MISSING / NEW |
+| EPIC DNH-06 — Kelas resmi dan urutannya | `DNH-CAP-05`, `17`, `30`, `35` | MUST HAVE; EXTEND (data, konfigurasi, satu efek samping kode) |
+
+`DNH-CAP-28` dan `33` adalah langkah operasional pembersihan DB Hamzah (RWI-DEC-305); `DNH-CAP-29` adalah dependency tarif Billing (`DNH-G02`); `DNH-CAP-40` adalah kewajiban penyesuaian test pada setiap epic.
+
+### 27.8 Kemampuan yang ditunda
+
+| Kemampuan | Asal | Alasan | Pengganti selama MVP |
+| --- | --- | --- | --- |
+| Menggambar bentuk kamar baru dari layar | Rencana 3.3 | Denah adalah gambar gedung; bentuk dibuat developer | Ruang cadangan yang sudah tergambar dapat diaktifkan |
+| Kolom gedung dan denah gedung lain | Rencana 3.2 | Satu gedung | Lantai dan wing pada kamar |
+| HCU/NICU sebagai kelas khusus | Backend 15.7 | Belum diputuskan pemilik | Hanya empat jenis kelas khusus RWI-DEC-319 |
+| Penilaian HD/LD otomatis dari skor | RWI-OQ-141 | Kriteria milik SOP keperawatan | Perawat mencatat manual |
+| Tarif untuk kelas atau unit yang benar-benar baru | RWI-OQ-143 | Milik Billing | "Tarif belum tersedia" pada perkiraan biaya |
+
+### 27.9 Alur bisnis target
+
+1. Admin menerapkan kelas resmi bersama konfigurasi urutan kelas.
+2. Admin memetakan kamar ke unit, memeriksa, lalu mengimpor susunan denah.
+3. Dev/UAT: bed langsung Tersedia. Produksi: perawat mengesahkan bed per lantai.
+4. Petugas admisi membuka denah pada langkah Pilih Bed, memilih kamar ber-outline hijau, lalu memilih bed yang layak.
+5. Pasien ditempatkan; perawat penanggung jawab atau DPJP mencatat HD/LD.
+6. Petugas memantau kamar lewat denah yang sama; Housekeeping bekerja dari pop up tanpa melihat identitas.
+7. Admin mengubah kelas kamar kosong, menambah atau mengurangi bed, dan mengaktifkan ruang cadangan dari denah.
+
+Flow references: FLOW-DNH-MVP-001..004 pada flowcharts 15–18; flowchart tidak disalin ke PRD.
+
+### 27.10 Epic dan functional requirement
+
+#### EPIC DNH-01 — Denah sebagai tampilan bed dan status kamar
+
+**MUST HAVE. Disposisi: EXTEND.** Trace: DEC-299/303/316/320; RWI-AC-436/442/443/453.
+
+| FR | Perilaku yang diuji | Contoh expected | Disposisi |
+| --- | --- | --- | --- |
+| FR-DNH-001 | Monitoring Bed menampilkan denah per lantai; status kamar, badge, dan outline dihitung dari bed; kamar penuh tanpa merah dan tetap dapat diklik | Kamar 3 bed Terisi/Dipesan/Tersedia → Tersedia `3/2` ber-outline; Terisi/Dipesan/Terisi → Penuh `3/3` | EXTEND |
+| FR-DNH-002 | Pop up kamar memuat setiap bed, status, penghuni sesuai hak, sisa waktu pesanan, dan aksi pembersihan sesuai hak | Housekeeping melihat "Terisi" tanpa nama maupun HD/LD | EXTEND |
+| FR-DNH-003 | Tampilan kartu dan tabel bed dihapus; endpoint `bed-board` tetap untuk daftar pasien | Daftar pasien rawat inap tetap memuat lokasi bed | EXTEND |
+| FR-DNH-004 | Cara menghitung boks rawat gabung pada badge dan outline Monitoring | Menunggu RWI-OQ-144 | **OPEN DECISION** |
+
+#### EPIC DNH-02 — Memilih bed lewat denah; tanpa jenis kelamin; kelas khusus
+
+**MUST HAVE. Disposisi: EXTEND.** Trace: DEC-299/312/315/316; RWI-AC-450/452/453.
+
+| FR | Perilaku yang diuji | Contoh expected | Disposisi |
+| --- | --- | --- | --- |
+| FR-DNH-005 | Langkah Pilih Bed admisi (termasuk bayi) dan pilih tujuan transfer memakai denah; outline hanya pada kamar yang punya bed Tersedia yang layak untuk pasien itu; bed tidak layak menampilkan alasan | Pasien isolasi: hanya 319 ber-outline; bayi rawat gabung hanya ke boks di kamar ibu | EXTEND |
+| FR-DNH-006 | Tidak ada pemeriksaan, field, maupun tampilan jenis kelamin pada bed | Ny. Sari dipesankan 329-B saat Tn. Budi di 329-A tanpa peringatan | EXTEND (repair) |
+| FR-DNH-007 | Transfer yang melibatkan kelas khusus menerima kategori apa pun; antarkelas biasa tetap divalidasi | Kelas 3 → ICU Up Grade diterima; Kelas 2 → Kelas 1 Down Grade ditolak | EXTEND |
+
+#### EPIC DNH-03 — Struktur lokasi dan Master Bed lewat denah
+
+**MUST HAVE. Disposisi: EXTEND + MISSING / NEW.** Trace: DEC-304/306/313/314/317/318; RWI-AC-439/444/451/454–457.
+
+| FR | Perilaku yang diuji | Contoh expected | Disposisi |
+| --- | --- | --- | --- |
+| FR-DNH-008 | Kamar menyimpan lantai, arah wing, dan kunci denah yang tetap; nama kamar dibentuk dari kelas dan nomor; kode kamar dan bed tetap kode sistem; label bed dibaca petugas | "Kelas 2 329", bed `BD-RSMMC-00187` berlabel "329-C" | MISSING / NEW |
+| FR-DNH-009 | Editor Master Bed: ubah kelas hanya kamar kosong, tambah bed atau boks berlabel otomatis, kurangi bed (hapus bila tanpa riwayat, nonaktif bila beriwayat), ubah wing atau label, aktifkan ruang cadangan | Tambah bed di 329 berpenghuni 2 → `3/2` menjadi `4/2`; ubah kelas 329 berpenghuni ditolak dengan jumlah penghuni | EXTEND |
+| FR-DNH-010 | Bed baru dan bed sesudah ubah kelas Tidak Tersedia sampai disahkan perawat | Sesudah kelas 505 diubah, enam bed Tidak Tersedia sampai disahkan | EXTEND (reuse) |
+
+#### EPIC DNH-04 — Impor susunan denah dan kesiapan awal
+
+**MUST HAVE. Disposisi: MISSING / NEW.** Trace: DEC-306/321/323; RWI-AC-446/459/461.
+
+| FR | Perilaku yang diuji | Contoh expected | Disposisi |
+| --- | --- | --- | --- |
+| FR-DNH-011 | Impor dengan pemeriksaan lebih dulu, pemetaan unit wajib, idempoten menurut kunci, laporan per kamar; kamar existing tidak diubah kelas, unit, maupun bed-nya | Run kedua 0 baris baru; kamar tanpa unit ditolak dan dilaporkan | MISSING / NEW |
+| FR-DNH-012 | Kesiapan bed hasil impor per lingkungan: dev/UAT langsung Tersedia; produksi menunggu pengesahan; aplikasi menolak konfigurasi siap di produksi | DB Hamzah: 168 bed dapat dipesan; produksi: perawat Lantai 3 mengesahkan 48 bed | MISSING / NEW |
+
+#### EPIC DNH-05 — Tingkat ketergantungan pasien
+
+**MUST HAVE. Disposisi: MISSING / NEW.** Trace: DEC-302/303; RWI-AC-440/441/443.
+
+| FR | Perilaku yang diuji | Contoh expected | Disposisi |
+| --- | --- | --- | --- |
+| FR-DNH-013 | Catat atau ubah HD/LD dengan sumber menurut peran (admisi pada Draft, perawat penanggung jawab, DPJP); riwayat tidak ditimpa; nilai basi ditolak | Admisi Low → perawat High → DPJP Low = tiga baris riwayat; perawat lain 403 | MISSING / NEW |
+| FR-DNH-014 | HD/LD tampil per bed dan sebagai ringkasan kamar bagi pembaca berhak; tidak membatasi penempatan | Kamar 329 "High Dependency (1 HD · 1 LD)"; pasien High dapat dipesankan bed mana pun yang layak | MISSING / NEW |
+
+#### EPIC DNH-06 — Kelas resmi dan urutannya
+
+**MUST HAVE. Disposisi: EXTEND (data, konfigurasi, satu efek samping kode).** Trace: DEC-307/308/310/311/319/322; RWI-AC-447–449/458/460.
+
+| FR | Perilaku yang diuji | Contoh expected | Disposisi |
+| --- | --- | --- | --- |
+| FR-DNH-015 | 12 kelas resmi + Perinatologi diterapkan: kelas setara diganti nama dan urutannya dengan Id tetap, kelas baru baris baru, kelas tak terpakai nonaktif; konfigurasi urutan diperbarui dalam jendela yang sama | "Kelas I" → "Kelas 1" dengan Id sama; tarif tetap terpakai | EXTEND |
+| FR-DNH-016 | Nama kamar berkunci mengikuti nama kelas; ganti nama kelas memperbarui nama kamar dalam transaksi yang sama; snapshot penempatan lama tidak berubah | "Kelas 2 329" berubah otomatis sesudah ganti nama kelas | EXTEND |
+
+### 27.11 Model status yang diusulkan
+
+Enam status bed tetap (bagian 26.11). Status kamar adalah turunan, tidak disimpan: Tidak Tersedia → Tersedia → Persiapan → Penuh. HD/LD bernilai High, Low, atau belum dinilai; tidak dapat dikembalikan ke belum dinilai. Bed hasil impor dan bed sesudah ubah kelas memakai status kesiapan `Unverified` existing. Rinciannya di state-transition matrix 12.
+
+### 27.12 Sasaran arsitektur
+
+Reuse master kamar/bed/kelas/unit, proyeksi enam status, evaluator kelayakan, penyamaran identitas, dan writer master bersama. Tambah tiga kolom lokasi pada `MstRoom`, lima kolom HD/LD pada `InpEpisode`, tabel `InpCareDependencyHistory` dan `MstFloorPlanImportRun`, serta dua service baca/impor. Hapus kolom jenis kelamin pada `MstRoom`/`MstBed`. Tabel kepemilikan di module map 10; class, folder, dan migration di backend 15; kolom di kamus data 22.
+
+### 27.13 Sasaran kemampuan API
+
+Turunan API contract 14.2; bukan pemetaan permission kedua.
+
+#### [Tags("Health Services / Inpatient Management / Bed Management")]
+
+Base URL: `api/v1/health-services/inpatient-management/bed-management`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /floor-plan | Denah satu lantai untuk Monitoring Bed | InpatientBedManagement : Read | `FloorPlanMonitoringQuery` | `FloorPlanResponse` | EPIC DNH-01 | Rencana (belum tersedia) |
+
+#### [Tags("Health Services / Inpatient Management / Bed Occupancy")]
+
+Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /floor-plan | Denah satu lantai untuk Pilih Bed admisi dan tujuan transfer | InpatientBedOccupancy : Read | `FloorPlanSelectionQuery` | `FloorPlanResponse` | EPIC DNH-02 | Rencana (belum tersedia) |
+| GET | /available-beds | Ditambah saring lantai; field jenis kelamin dihapus | InpatientBedOccupancy : Read | `AvailableBedQuery` + `FloorCode?` | `AvailableBedPagedResult` | EPIC DNH-02 | Sudah ada; diperbarui |
+
+#### [Tags("Health Services / Inpatient Management / Inpatient Episode")]
+
+Base URL: `api/v1/health-services/inpatient-management/episodes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PATCH | /{id}/care-dependency | Catat atau ubah HD/LD | InpatientEpisode : SetCareDependency | `SetCareDependencyRequest` | `InpatientEpisodeDetailResponse` | EPIC DNH-05 | Rencana (belum tersedia) |
+| GET | /{id}/care-dependency-history | Riwayat HD/LD | InpatientEpisode : Read | `pageNumber`, `pageSize` | `PagedResult<CareDependencyHistoryResponse>` | EPIC DNH-05 | Rencana (belum tersedia) |
+
+#### [Tags("Health Services / Master Data / Room")]
+
+Base URL: `api/v1/health-services/master-data/rooms`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /floor-plan-layout | Susunan satu lantai untuk editor master | Room : Read | `FloorPlanLayoutQuery` | `FloorPlanLayoutResponse` | EPIC DNH-03 | Rencana (belum tersedia) |
+| POST | /floor-plan-layout/rooms | Aktifkan ruang cadangan beserta bed | Room : Create | `ActivateFloorPlanRoomRequest` | `FloorPlanRoomActivationResponse` | EPIC DNH-03 | Rencana (belum tersedia) |
+| POST | /floor-plan-layout/import | Periksa atau jalankan impor susunan denah | Room : ImportFloorPlan | `FloorPlanImportRequest` | `FloorPlanImportResult` | EPIC DNH-04 | Rencana (belum tersedia) |
+| PUT | /{id} | Ubah kelas (kamar kosong) dan arah wing; kunci tetap | Room : Update | `UpdateRoomRequest` | `RoomUpdateResponse` | EPIC DNH-03 | Sudah ada; diperbarui |
+
+#### [Tags("Health Services / Master Data / Bed")]
+
+Base URL: `api/v1/health-services/master-data/beds`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| POST | / | Tambah bed atau boks; label dibentuk server | Bed : Create | `CreateBedRequest` | `BedCreateResponse` | EPIC DNH-03 | Sudah ada; diperbarui |
+| PUT | /{id} | Ubah label bed | Bed : Update | `UpdateBedRequest` | `BedUpdateResponse` | EPIC DNH-03 | Sudah ada; diperbarui |
+| DELETE | /{id} | Hapus bed tanpa riwayat | Bed : Delete | Body existing | Envelope existing | EPIC DNH-03 | Sudah ada; guard diperbarui |
+
+#### [Tags("Health Services / Master Data / Patient Class")]
+
+Base URL: `api/v1/health-services/master-data/patient-classes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUT | /{id} | Ganti nama dan urutan kelas dengan Id tetap | PatientClass : Update | `UpdatePatientClassRequest` | Response existing | EPIC DNH-06 | Sudah ada; efek samping diperbarui |
+
+Endpoint existing lain yang dipakai tanpa perubahan kontrak (pesan, tempatkan, transfer, pembersihan, verifikasi kesiapan, tutup/buka bed) tercantum lengkap di API contract 14.2.
+
+### 27.14 Matriks kewenangan
+
+| Pelaku | Resource/action persis | Guard | Identitas |
+| --- | --- | --- | --- |
+| Petugas admisi | InpatientBedOccupancy : Read/Create; InpatientEpisode : SetCareDependency | HD/LD hanya episode Draft | Sesuai hak episode existing |
+| Perawat penanggung jawab | InpatientBedManagement : Read; InpatientBedOccupancy : Read/Transfer; InpatientEpisode : SetCareDependency | HD/LD hanya bila penugasan aktif | Sesuai hak episode existing |
+| DPJP | InpatientEpisode : SetCareDependency | HD/LD hanya bila DPJP aktif | Sesuai hak episode existing |
+| Perawat verifikator | InpatientBedManagement : VerifyReadiness | Penugasan verifikator dan unit | Tanpa identitas |
+| Housekeeping | InpatientBedManagement : Read/StartCleaning/CompleteCleaning | OperationalOnly | Tanpa nama, No. RM, HD/LD |
+| Admin MasterData | Room : Read/Create/Update; Bed : Read/Create/Update/Delete; PatientClass : Create/Update | Scope unit | Tanpa identitas |
+| Admin impor | Room : ImportFloorPlan; Room : Read | Scope unit tiap baris | Tanpa identitas |
+
+Turunan permission matrix 12. Dua action baru hanya didaftarkan; pemberian hak menunggu `BM-G03`/`DNH-G05`.
+
+### 27.15 Batas integrasi dan billing
+
+Tidak membuat tarif, folio, atau invoice. Id kelas tetap sehingga tarif, deposit, dan aturan cakupan penjamin tetap tersambung (RWI-DEC-322). Kelas atau unit yang benar-benar baru menunggu tarif Billing (RWI-OQ-143). HD/LD tidak dikirim ke Billing. Tidak ada integrasi eksternal baru (integration contract 12).
+
+### 27.16 Guardrail regulasi
+
+HD/LD adalah catatan klinis yang kriterianya milik SOP keperawatan RS (RWI-OQ-141); sistem tidak menilai sendiri. Pedoman HCU (KMK 834/MENKES/SK/VII/2010) menjadi rujukan RS, bukan aturan yang dikodekan desain ini. Penghapusan pemisahan jenis kelamin adalah keputusan produk RWI-DEC-315; konfirmasi clinical governance tetap gerbang produksi (RWI-DEC-006, `DNH-G04`). Privasi penghuni mengikuti RWI-DEC-287.
+
+### 27.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan | Hasil teruji | Bukti target |
+| --- | --- | --- | --- |
+| NFR-801 | Tampilan denah tidak berubah | Screenshot tiap lantai sebelum/sesudah berbeda hanya pada data; 390 px tanpa geser horizontal | DNH-AT-911 |
+| NFR-802 | Privasi | Housekeeping tanpa nama, No. RM, HD/LD pada respons API | DNH-AT-904, 443 |
+| NFR-803 | Beban baca | Satu panggilan per lantai; jumlah query tetap per lantai | DNH-AT-910 |
+| NFR-804 | Atomik dan aman diulang | Impor dan aktivasi semua-atau-tidak; impor ulang tanpa duplikat; HD/LD bersamaan satu pemenang | DNH-AT-913, 446, 908 |
+| NFR-805 | Kompatibilitas | Gelombang jenis kelamin satu rilis backend–frontend; `bed-board` tetap | DNH-AT-912; `DNH-MIS-09` |
+| NFR-806 | Migration aman | M-DNH-1..3 aditif; M-DNH-4 sesudah kode baru; dry run pada salinan | Acceptance 23.3 |
+| NFR-807 | Aksesibilitas | Kamar dapat difokus dan dibuka dengan keyboard; status berupa teks | Frontend 16.6 |
+
+Tidak menetapkan SLA numerik baru.
+
+### 27.18 Skenario UAT
+
+Setiap epic MUST HAVE punya satu jalur berhasil dan satu jalur gagal. Semua hasil **NOT_RUN**.
+
+| ID | Epic | Jalur | Kondisi awal | Langkah | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- | --- |
+| UAT-801 | EPIC DNH-01 | Berhasil | Lantai 3 dengan fixture enam status dan dua pasien HD/LD | Buka Monitoring Bed, pilih Lantai 3, klik Kelas 2 329 | Badge dan outline sesuai aturan; pop up memuat bed, penghuni, HD/LD; tampilan peta sama dengan sebelumnya |
+| UAT-802 | EPIC DNH-01 | Gagal | Akun Housekeeping; koneksi diputus sesaat | Buka pop up kamar berpenghuni; muat ulang saat koneksi putus | Penghuni tidak terbaca; pesan gagal muat dan tombol muat ulang; kamar penuh tetap dapat dibuka |
+| UAT-803 | EPIC DNH-02 | Berhasil | Episode Draft pasien tanpa isolasi; 329-C Tersedia | Langkah Pilih Bed → Lantai 3 → 329 → Pilih bed ini → konfirmasi | 329-C Dipesan; langkah admisi menampilkan "Kelas 2 329 · bed 329-C" |
+| UAT-804 | EPIC DNH-02 | Gagal | Dua petugas memilih 329-C bersamaan; pasien isolasi; transfer Kelas 2 → Kelas 1 | Konfirmasi bersamaan; buka denah pasien isolasi; simpan transfer Down Grade | Petugas kedua diminta memilih ulang; hanya 319 ber-outline; transfer ditolak tanpa perubahan |
+| UAT-805 | EPIC DNH-03 | Berhasil | Kamar 329 berpenghuni 2; ruang cadangan di sebelah 322 | Tambah bed; ubah arah wing 329; aktifkan cadangan sebagai 324 Kelas 2 dengan 3 bed | 329-D muncul (`4/2`), menunggu pengesahan; arah tersimpan; "Kelas 2 324" muncul di semua denah |
+| UAT-806 | EPIC DNH-03 | Gagal | Kamar 329 berpenghuni; 329-A punya riwayat | Ubah kelas 329; hapus 329-A; aktifkan cadangan dengan nomor 329 | Ubah kelas ditolak dengan jumlah penghuni; hapus ditolak dan disarankan nonaktif; nomor ganda ditolak |
+| UAT-807 | EPIC DNH-04 | Berhasil | DB Hamzah sudah dibersihkan; kelas resmi diterapkan; unit terpetakan | Periksa lalu impor; ulangi impor | 106 kamar dan 168 bed, langsung Tersedia; run kedua tanpa baris baru |
+| UAT-808 | EPIC DNH-04 | Gagal | Satu kamar belum dipetakan; lingkungan uji berkonfigurasi produksi | Periksa; impor; nyalakan aplikasi dengan penetapan siap di `Production` | Kamar itu ditolak dan dilaporkan, sisanya masuk; aplikasi menolak menyala |
+| UAT-809 | EPIC DNH-05 | Berhasil | Episode Draft lalu Admitted dengan perawat penanggung jawab dan DPJP | Admisi catat Low; perawat catat High; DPJP catat Low | Riwayat tiga baris dengan sumber berbeda; pop up kamar mengikuti nilai terbaru |
+| UAT-810 | EPIC DNH-05 | Gagal | Perawat bukan penanggung jawab; episode Closed; dua tab terbuka | Simpan HD/LD dari masing-masing kondisi | 403; 422 hanya baca; tab kedua 409 dan diminta muat ulang |
+| UAT-811 | EPIC DNH-06 | Berhasil | Kelas lama berisi "Kelas I"; konfigurasi urutan disiapkan | Terapkan kelas resmi dan konfigurasi dalam satu jendela; transfer Kelas 3 → ICU Up Grade | Nama "Kelas 1" dengan tarif tetap; transfer tersimpan |
+| UAT-812 | EPIC DNH-06 | Gagal | Kelas baru Perinatologi tanpa tarif | Buka perkiraan biaya pasien bayi di Ruang Bayi | "Tarif belum tersedia"; tidak ada angka karangan (RWI-OQ-143) |
+
+Seluruh 26 AC (24 aktif, AC-437/438 superseded) punya DNH-AT pada testing 23, ditambah DNH-AT-901..913 untuk aturan desain.
+
+### 27.19 Definition of Done
+
+| Butir | Jawaban | Bukti |
+| --- | --- | --- |
+| Keputusan produk ditutup dan gate siap desain | ya | Decision log 50; gate 1.13 `DNH-RCG-20261015-01` |
+| Blueprint draft lengkap dan traced ke AC-436–461 | ya | Backend 15, frontend 16, data 22, lima kontrak, testing 23, flowchart 15–18, module map 10 |
+| Desain target disetujui manusia | ya | `RWI-DEC-324`, 16 Oktober 2026; manifest anak 17 |
+| Kelas resmi dan konfigurasi urutan diterapkan | belum | `DNH-G01`; UAT-811 |
+| Pembersihan DB Hamzah dengan cadangan, dry run, dan konfirmasi | belum | RWI-AC-445; DNH-AT-445 |
+| 106 kamar dan 168 bed terimpor; impor ulang tanpa duplikat | belum | UAT-807; DNH-AT-446 |
+| Denah tampil sama dan dipakai empat tempat; kartu/tabel hilang | belum | DNH-AT-436, 911 |
+| Jenis kelamin hilang serentak backend–frontend | belum | DNH-AT-452, 912 |
+| HD/LD tercatat dengan riwayat dan privasi | belum | UAT-809/810; DNH-AT-904 |
+| Semua UAT berhasil dan gagal diterima | belum | UAT-801..812 |
+| Produksi: susunan disahkan RS, tarif kelas/unit baru, penugasan, pengesahan bed | belum | `DNH-G02`, `G03`, `G05` |
+
+### 27.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Epic | Isi | Syarat mulai/akhir |
+| --- | --- | --- | --- |
+| MVP-0 | Fondasi | Approval desain; M-DNH-1..3; opsi impor + validator; pemindahan komponen denah ke feature layer tanpa perubahan tampilan | Approval manusia; bukti screenshot sama |
+| MVP-1 | DNH-06, DNH-03, DNH-04 | Kelas resmi + konfigurasi urutan (D-DNH-1); writer master dan editor; importer; pembersihan dan impor DB Hamzah (D-DNH-2/3) | MVP-0; `DNH-G01`; konfirmasi pembersihan terpisah |
+| MVP-2 | DNH-01, DNH-02 | Endpoint denah; Monitoring, Pilih Bed, transfer lewat denah; kelas khusus; gelombang jenis kelamin + M-DNH-4 | MVP-1 (data denah ada) |
+| MVP-3 | DNH-05 | HD/LD backend + panel | MVP-0; aktivasi produksi menunggu `DNH-G04` |
+| MVP-4 | DNH-01..06 | Uji ujung ke ujung, PostgreSQL, privasi, UAT | Semua epic lengkap |
+| POST-MVP | — | Kemampuan 27.8 dan FR-DNH-004 bila sudah diputuskan | Tidak masuk rilis pertama |
+
+FR-DNH-004 berstatus OPEN DECISION dan **tidak masuk gelombang mana pun** sampai RWI-OQ-144 dijawab; API sudah memisahkan hitungan boks sehingga jawaban apa pun tidak mengubah kontrak.
+
+| Pertanyaan / bukti terbuka | Pemilik | Memblokir development lock? | Memblokir aktivasi |
+| --- | --- | --- | --- |
+| RWI-OQ-144 — boks rawat gabung pada badge dan outline | Product owner | Hanya FR-DNH-004 | Tampilan badge boks |
+| RWI-OQ-141 — kriteria klinis HD/LD | Pemilik klinis RS | Tidak | Ya, HD/LD produksi (`DNH-G04`) |
+| RWI-OQ-142 — fakta RS: arah utara, nama unit, nurse station, nomor 321 ganda, kamar 520–522, kemampuan intensif Ruang Bayi | RS MMC | Tidak | Ya, impor produksi (`DNH-G03`) |
+| RWI-OQ-143 — tarif kelas dan unit yang benar-benar baru | Billing (Yasmina) | Tidak | Ya, perkiraan biaya kelas/unit baru (`DNH-G02`) |
+| `DNH-UNK-01`, `02` — isi DB Hamzah | Pemilik DB | Tidak | Ya, pembersihan dan impor dev (izin eksekusi terpisah) |
+| Asumsi draft RWI-DEC-314, 317–320 dan pilihan desain (kode kamar sistem `DNH-DES-01`, dua endpoint denah, catatan impor, lampiran kamar existing) | Product owner | Selesai: disahkan `RWI-DEC-324` (2026-10-16) | — |
+| Persetujuan desain | Pemilik desain manusia | Selesai: `RWI-DEC-324` (2026-10-16) | Selesai |
+
+Gelombang bukan task atau tanggal; roadmap dibuat `plan-module-delivery` sesudah approval. Source aplikasi, database, deploy, dan Git tidak disentuh oleh desain ini.
+
+---
+
+## 28. Amandemen Bagian 28 — PRD to MVP: Alur Transfer Pasien Masuk (IGD/Rajal ke Ranap) & Penugasan PPJA
+
+| Field | Nilai |
+| --- | --- |
+| Kontrak Target | `0.14.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Status | `draft` |
+| Acuan | Keputusan Grill-Me, `admission-transfer-repair-006.md`, `flowcharts/19-alur-transfer-pasien-masuk-igd-rajal-ke-ranap.md` |
+
+### 28.1 Batas MVP (Scope Boundary)
+
+- **Titik Mulai**: Pendaftaran admisi transfer disubmit (`POST /admission-transfers/admit`) menghasilkan episode berstatus `Admitted` dan nomor episode resmi.
+- **Titik Akhir**: Perawat bangsal menetapkan perawat PPJA dan menerima serah terima klinis (`PATCH /transfer-handovers/{id}/accept`), serta verifikasi berkas admisi di Workspace PPRI dilengkapi.
+- **Prinsip Keselamatan Pasien**: Pasien fisik beserta perawat pengantar dapat langsung didorong ke bangsal rawat inap; dokumen admisi PPRI diselesaikan menyusul secara non-blocking.
+
+### 28.2 Daftar Kebutuhan Fungsional (Epic & Functional Requirements)
+
+| Kode FR | Nama Kebutuhan | Disposisi | Kriteria Penerimaan |
+|---|---|:---:|---|
+| `FR-TRF-001` | Otomasi Pembuatan Serah Terima Klinis saat Admisi Transfer | `EXTEND` | Saat `POST /admission-transfers/admit` berhasil, sistem otomatis membuat `CliTransferHandover` baru dengan status `PendingSend` dan menyalin snapshot klinis asal. |
+| `FR-TRF-002` | Tampilan Banner & Laci Serah Terima Klinis di Detail Episode | `EXTEND` | Detail Episode menampilkan alert banner amber jika ada serah terima `Sent`, dan tombol yang membuka `TransferHandoverDrawer`. |
+| `FR-TRF-003` | Rekonsiliasi Obat & Riwayat Alergi di Laci Handover | `EXTEND` | `TransferHandoverDrawer` merender tabel obat yang diberikan di IGD/Poli + obat bawaan pasien beserta badge alergi yang mencolok. |
+| `FR-TRF-004` | Kewajiban Penetapan Perawat PPJA saat Terima Pasien | `EXTEND` | Tombol `[Terima Pasien]` pada drawer terkunci sampai nama Perawat PPJA dipilih; penerimaan menyimpan penugasan PPJA ke episode. |
+| `FR-TRF-005` | Pencegahan Akun Pengirim dan Penerima Serah Terima Sama | `EXTEND` | Sistem menolak dengan `400 Bad Request` jika pengguna login yang menekan `[Terima Pasien]` adalah perawat yang sama dengan pengirim. |
+| `FR-TRF-006` | Pratinjau & Cetak Gelang Pasien Ranap Resmi di Workspace PPRI | `REUSE` | Workspace PPRI menyediakan pratinjau dan aksi cetak gelang ranap resmi & label stiker medis untuk menggantikan gelang sementara IGD. |
+| `FR-TRF-007` | Alert Non-Blocking Status Berkas PPRI di Detail Episode | `EXTEND` | Detail Episode menampilkan info alert kuning jika dokumen PPRI belum `Completed`, tanpa menghalangi perawatan klinis pasien. |
+
+### 28.3 Skenario Pengujian Penerimaan Pengguna (UAT Scenarios)
+
+1. **Skenario UAT 1: Jalur Normal Transfer Pasien Masuk Sukses (Happy Path)**
+   - *Langkah*:
+     1. Petugas Admisi mengeksekusi pendaftaran admisi transfer pasien IGD bernama Tn. Surya.
+     2. Sistem menerbitkan episode `Admitted`, bed `Occupied`, dan membuat `CliTransferHandover`.
+     3. Petugas PPRI mencetak Gelang Ranap resmi dari Workspace PPRI dan menyerahkan kepada perawat pengantar untuk dipasang ke pasien.
+     4. Perawat IGD mengirim serah terima klinis (status menjadi `Sent`) dan mendorong pasien ke bangsal Mawar Kamar 201 Bed A.
+     5. Perawat Bangsal membuka Detail Episode Tn. Surya, melihat banner serah terima aktif, dan membuka laci serah terima.
+     6. Perawat Bangsal memeriksa TTV, alat infus, serta merekonsiliasi obat Ceftriaxone.
+     7. Perawat Bangsal memilih Ns. Ratna sebagai PPJA dan mengklik `[Terima Pasien]`.
+   - *Hasil*:
+     - Status serah terima klinis berubah menjadi `Accepted`.
+     - Ns. Ratna resmi tercatat sebagai PPJA di Detail Episode.
+     - Banner serah terima hilang; pasien sah dirawat di bangsal rawat inap.
+2. **Skenario UAT 2: Penolakan Validasi Tanpa Perawat PPJA (Failure / Validation Path)**
+   - *Langkah*:
+     1. Perawat Bangsal membuka laci serah terima transfer yang berstatus `Sent`.
+     2. Perawat Bangsal mencoba mengklik tombol `[Terima Pasien]` tanpa memilih PPJA pada dropdown.
+   - *Hasil*:
+     - Tombol `[Terima Pasien]` berada dalam status disabled.
+     - Jika request dikirim paksa via API tanpa `AssignedNurseId`, backend merespons `422 Unprocessable Entity` dengan kode `CLI-TRH-001`.
+3. **Skenario UAT 3: Toleransi Berkas PPRI Belum Lengkap (Non-blocking Path)**
+   - *Langkah*:
+     1. Keluarga pasien belum melunasi deposit dan berkas checklist admisi PPRI masih berstatus `AwaitingSignature`.
+     2. Pasien tiba di bangsal dan perawat menerima serah terima klinis.
+   - *Hasil*:
+     - Detail Episode menampilkan alert info kuning bahwa berkas PPRI belum lengkap.
+     - Dokter dan perawat tetap dapat mengisi CPPT, memberikan terapi, dan mencatat TTV tanpa hambatan teknis.
+
+### 28.4 Definition of Done (DoD)
+
+- [ ] Otomasi trigger pembuatan serah terima klinis pada `ExecuteTransferAdmissionAsync` terbukti berjalan via unit/integration test.
+- [ ] Endpoint `PATCH /transfer-handovers/{id}/accept` memvalidasi `AssignedNurseId` dan mencegah penandatanganan oleh akun yang sama.
+- [ ] `TransferHandoverDrawer` di frontend berhasil menampilkan daftar rekonsiliasi obat, alert alergi, dan form pemilihan PPJA.
+- [ ] Banner serah terima klinis dan alert status dokumen PPRI tampil sesuai kondisi data pada `InpatientEpisodeDetailView`.
+- [ ] Fitur cetak gelang ranap resmi dan label stiker di Workspace PPRI berfungsi normal.
+- [ ] Laporan pengujian dan registri traceability terupdate.
+

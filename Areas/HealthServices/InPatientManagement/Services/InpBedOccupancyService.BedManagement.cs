@@ -53,9 +53,12 @@ public partial class InpBedOccupancyService
                 var targetClass = await _dbContext.Set<MstBed>().Where(x => x.Id == request.TargetBedId).Select(x => x.Room!.PatientClassId).SingleOrDefaultAsync(ct);
                 var comparison = targetClass.HasValue ? await _bedClasses.CompareAsync(current.PatientClassId, targetClass.Value, ct) : "Unknown";
                 if (comparison == "Unknown") throw new InpBedOperationException(422, "CLASS_ORDER_UNVERIFIED", "Urutan kelas belum dapat diverifikasi.");
-                if (request.ManualTransferCategory is < 1 or > 3 || ((InpBedTransferCategory)request.ManualTransferCategory).ToString() != comparison)
+                // BE-RWI-233 (VAL-DNH-13): transfer ke atau dari kelas khusus menerima ketiga kategori
+                // pilihan petugas; antarkelas biasa tetap wajib sama dengan perbandingan resmi.
+                if (comparison != "Special" &&
+                    (request.ManualTransferCategory is < 1 or > 3 || ((InpBedTransferCategory)request.ManualTransferCategory).ToString() != comparison))
                     throw new InpBedOperationException(422, "TRANSFER_CATEGORY_MISMATCH", "Kategori pilihan tidak sesuai perbandingan kelas resmi.");
-                var result = await TransferCoreAsync(request, actorUserId, actorDoctorId, ct); RequireSuccess(result);
+                var result = await TransferCoreAsync(request, actorUserId, actorDoctorId, ct, comparison); RequireSuccess(result);
                 return ("Placement", result.PlacementId!.Value);
             }, cancellationToken);
         if (!meta.IsReplay)

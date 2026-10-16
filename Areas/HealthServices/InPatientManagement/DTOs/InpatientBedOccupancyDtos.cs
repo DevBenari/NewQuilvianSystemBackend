@@ -10,7 +10,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <b><c>EpisodeId</c> mengubah arti pencarian.</b> Tanpa <c>EpisodeId</c>, hasilnya
     /// adalah tempat tidur yang tidak sedang dipegang siapa pun. Dengan <c>EpisodeId</c>,
     /// hasilnya disaring memakai <b>seluruh</b> aturan Kelayakan Penempatan milik episode
-    /// tersebut — jenis kelamin pasien dan kebutuhan isolasinya ikut diperhitungkan.
+    /// tersebut — kebutuhan isolasi dan aturan boks bayi ikut diperhitungkan (jenis kelamin tidak
+    /// lagi dinilai sejak RWI-DEC-315).
     ///
     /// <para>
     /// Layar penempatan wajib mengirim <c>EpisodeId</c>. Bila tidak, petugas akan melihat
@@ -39,6 +40,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public bool? IsIsolationBed { get; set; }
 
         public bool? IsForNewborn { get; set; }
+
+        /// <summary>Opsional; menyaring tempat tidur pada satu lantai denah (BE-RWI-239). Tanpa parameter jawaban tidak berubah.</summary>
+        [MaxLength(10)]
+        public string? FloorCode { get; set; }
 
         /// <summary>
         /// Bila benar, jawaban ikut memuat tempat tidur yang <b>ditolak</b> beserta aturan
@@ -94,10 +99,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public int BedStatus { get; set; }
 
         public string BedStatusName { get; set; } = string.Empty;
-
-        public bool IsForMale { get; set; }
-
-        public bool IsForFemale { get; set; }
 
         public bool IsForNewborn { get; set; }
 

@@ -492,6 +492,7 @@ try
 
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
+    builder.Services.AddScoped<NewbornEncounterPaymentInheritanceService>();
     // RJ-DOC-REV-BE-015 — klasifikasi dan alokator nomor antrean Rawat Jalan (kiosk dan petugas).
     builder.Services.AddScoped<OutpatientQueueClassificationService>();
     builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
@@ -713,12 +714,17 @@ try
     builder.Services.AddScoped<InpBedMutationCoordinator>();
     builder.Services.AddScoped<InpBedManagementQueryService>();
     builder.Services.AddScoped<InpBedClassComparisonService>();
+    // Proyeksi denah satu lantai untuk Monitoring dan Pilih Bed (BE-RWI-238, BE-RWI-239).
+    builder.Services.AddScoped<InpFloorPlanQueryService>();
     builder.Services.AddScoped<InpBedReadinessService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMutationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMasterWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.RoomMasterWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.ServiceUnitMasterWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.PatientClassMasterWriteService>();
+    // Integrasi Denah ↔ Bed Management: susunan lantai/aktivasi ruang cadangan (BE-RWI-236) dan importer denah (BE-RWI-237).
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.FloorPlanLayoutService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.FloorPlanImportService>();
     builder.Services.AddScoped<InpBedOperationFilter>();
     builder.Services.AddScoped<InpEpisodeService>();
     builder.Services.AddScoped<InpDischargeService>();
@@ -758,6 +764,7 @@ try
     // BE-RWI-187 s.d. BE-RWI-189 — service baca milik modul pemilik untuk Workspace PPRI
     // (RWI-DEC-264, disetujui RWI-DEC-266). Hanya membaca dan tidak membuka endpoint baru.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.PatientProfileQueryService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.NewbornPatientRegistrationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.HospitalSiteProfileQueryService>();
     builder.Services.AddScoped<PatientAllergyQueryService>();
 

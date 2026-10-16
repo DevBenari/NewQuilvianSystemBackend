@@ -68,19 +68,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private readonly IWebHostEnvironment _environment;
         private readonly IConfiguration _configuration;
         private readonly MedicalRecordAccessAuditService _accessAuditService;
+        private readonly NewbornPatientRegistrationService _newbornRegistrationService;
 
         public PatientController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             IWebHostEnvironment environment,
             IConfiguration configuration,
-            MedicalRecordAccessAuditService accessAuditService)
+            MedicalRecordAccessAuditService accessAuditService,
+            NewbornPatientRegistrationService newbornRegistrationService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _environment = environment;
             _configuration = configuration;
             _accessAuditService = accessAuditService;
+            _newbornRegistrationService = newbornRegistrationService;
         }
 
         [HttpGet("filters/metadata")]
@@ -792,6 +795,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public async Task<IActionResult> CreatePatientForAdmin([FromBody] CreatePatientRequest request)
         {
             return await CreatePatient(request);
+        }
+
+        /// <summary>
+        /// Mendaftarkan satu bayi dari kasus persalinan obstetri. Urutan lahir ditentukan
+        /// backend per kasus; browser tidak mengirim BirthOrder.
+        /// </summary>
+        [HttpPost("newborns")]
+        [ProducesResponseType(typeof(ApiResponse<NewbornPatientCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction(
+            "Create",
+            "Create Patient",
+            Description = "Mendaftarkan pasien bayi dari kasus persalinan",
+            AccessType = AccessTypes.Create,
+            SortOrder = 2)]
+        [AccessPermission("Patient", "Create")]
+        public async Task<IActionResult> CreateNewbornPatient(
+            [FromBody] CreateNewbornPatientRequest request,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _newbornRegistrationService.RegisterAsync(
+                request,
+                idempotencyKey,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (result.Status == NewbornRegistrationStatus.Success)
+            {
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "Patient.CreateNewbornPatient",
+                    result.Message,
+                    new
+                    {
+                        result.Data!.Id,
+                        result.Data.DeliveryCaseId,
+                        result.Data.BirthOrder,
+                        result.Data.WasExisting
+                    });
+
+                return Ok(ApiResponse<NewbornPatientCreateResponse>.Ok(result.Data!, result.Message));
+            }
+
+            var statusCode = result.Status switch
+            {
+                NewbornRegistrationStatus.NotFound => StatusCodes.Status404NotFound,
+                NewbornRegistrationStatus.Conflict => StatusCodes.Status409Conflict,
+                NewbornRegistrationStatus.BusinessRuleRejected => StatusCodes.Status422UnprocessableEntity,
+                _ => StatusCodes.Status400BadRequest
+            };
+
+            return StatusCode(statusCode, ApiResponse<object>.Fail(statusCode, result.Message));
         }
 
         [HttpPut("{id:guid}")]
@@ -2774,6 +2833,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 MotherMedicalRecordNumber = entity.MotherPatient?.MedicalRecordNumber,
                 MotherPatientName = entity.MotherPatient?.FullName,
                 BirthOrder = entity.BirthOrder,
+                DeliveryCaseId = entity.DeliveryCaseId,
                 IsDeceased = entity.IsDeceased,
                 DeceasedDate = entity.DeceasedDate,
                 MergedToPatientId = entity.MergedToPatientId,
@@ -2847,6 +2907,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 MotherMedicalRecordNumber = entity.MotherPatient?.MedicalRecordNumber,
                 MotherPatientName = entity.MotherPatient?.FullName,
                 BirthOrder = entity.BirthOrder,
+                DeliveryCaseId = entity.DeliveryCaseId,
                 BirthWeightGram = entity.BirthWeightGram,
                 BirthLengthCm = entity.BirthLengthCm,
                 BirthTime = entity.BirthTime,

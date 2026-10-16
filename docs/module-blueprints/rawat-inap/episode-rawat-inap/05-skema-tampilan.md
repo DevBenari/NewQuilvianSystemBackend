@@ -1870,3 +1870,23 @@ tulis apa pun. Skema sebelum-sesudah ada pada [`PLAN-REPAIR-EPS-010`](docs/plan-
 Bayi pada pasien baru dan pasien lama memakai Konteks -> Identitas -> Perawatan/DPJP -> Penjamin/Penagihan -> Deposit kondisional -> Penempatan/Pemesanan -> Persetujuan Wali -> Tinjau/Aktifkan -> Dokumen. Sembilan tahap (delapan tanpa deposit) menggantikan tahap umum hanya untuk cabang bayi. Skema rinci tetap BAYI-S01 sampai S09 pada plan repair 016.
 
 Detail dan batas mengikuti [kontrak admisi bayi](contracts/newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
+
+## Amandemen admisi bayi → `RWI-BAYI-022-2.0.0`, 16 Oktober 2026
+
+Amandemen ini menggantikan skema 016 untuk pendaftaran bayi baru:
+
+```text
+[1 Pilih Ibu Persalinan]
+  → [2 Identitas Bayi]
+  → [3 Perawatan dan DPJP]
+  → [4 Penempatan dan Pemesanan]
+  → [5 Persetujuan Wali]
+  → [6 Tinjau dan Aktifkan]
+  → [7 Dokumen Bayi]
+```
+
+Langkah 1 menampilkan daftar kasus persalinan yang layak, bukan opsi luar RS/rujukan/dirawat
+kembali. Langkah 2 menampilkan nama sistem `By. Ny. <ibu>` dan tidak mempunyai input urutan
+kembar. Tidak ada layar penjamin, penggabungan invoice, atau rencana deposit. Informasi lengkap
+ibu–bayi, penjamin turunan, DPJP, bed, dan keterangan deposit baru tampil baca-saja pada langkah
+6. Detail mengacu ke [kontrak 022](contracts/newborn-admission-repair-022.md).

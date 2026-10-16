@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI (`INT-RWA-01` s.d. `14`), `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8; isi sebelumnya `last_changed_in` `0.4.0` |
-| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`draft`** |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Integrasi Denah approved (bagian 12, last_changed_in `0.13.0`, `RWI-DEC-324`); sebelumnya amandemen Bed Management draft (bagian 11). Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI (`INT-RWA-01` s.d. `14`), `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8; isi sebelumnya `last_changed_in` `0.4.0` |
+| Status | **`approved`** untuk amandemen Integrasi Denah — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Bed Management tetap **`draft`**. Riwayat metadata sebelumnya: **`draft`** |
 | Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `6` |
-| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
-| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Satu arah tulis lintas modul yang baru. Tidak ada kontrak eksternal yang berubah |
+| `input_revision` | Integrasi Denah: decision 50, DEC-298–323, AC-436–461; gate 1.13/DNH-RCG-20261015-01; impact scan BM-IMP-20261015-01. Bed Management: Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `6` |
+| Backend SHA | Integrasi Denah: ca09cae909597442385ce4513be9c803549be10e. Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
+| Dampak kompatibilitas | Integrasi Denah: endpoint baru aditif; field jenis kelamin dihapus (breaking, satu gelombang backend–frontend); nilai `Special` baru; tidak ada integrasi eksternal baru. Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Satu arah tulis lintas modul yang baru. Tidak ada kontrak eksternal yang berubah |
 
 > **`0.3.0` sengaja tidak menambah satu integrasi pun.** `RWI-DEC-066` menolak menambah kolom
 > "boleh campur" pada `MstRoom`, sehingga aturan pencampuran kamar dijalankan dengan **membaca**
@@ -396,3 +396,43 @@ Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-in
 Master bayi/ibu, kunjungan/penjamin bayi, episode bayi dan invoice sumber tetap terpisah. familyBillingPreference=Combined adalah preferensi handoff, bukan bukti kelompok invoice/settlement. plannedDepositAmount adalah rencana, bukan uang diterima. Kontrak pembayaran lintas invoice/refund/clearance masih perlu slice Billing terpisah.
 
 Detail dan batas mengikuti [kontrak admisi bayi](newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
+
+## 12. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); titik sentuh Billing: Yasmina (RWI-OQ-143); MasterData: seluruh tim. `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**; `DOMAIN_ARCHITECTURE_NOT_RUN`. Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`. Tidak ada integrasi eksternal baru, event outbox baru, maupun worker baru.
+
+### 12.1 Dependency dan batas integrasi
+
+| ID | Arah | Kontrak | Kegagalan / kepemilikan | Trace |
+| --- | --- | --- | --- | --- |
+| INT-DNH-01 | MasterData kelas → Bed Management, Billing, dan 10 modul pemakai kelas | Kelas setara diganti nama dan urutannya dengan Id tetap; kelas baru baris baru; kelas tak terpakai nonaktif | Id tetap sehingga tarif, deposit, dan aturan cakupan tetap tersambung tanpa pemetaan ulang | DEC-322; AC-460; RWI-FACT-073 (7) |
+| INT-DNH-02 | MasterData kelas → konfigurasi urutan kelas | Perubahan daftar atau `ClassLevel` kelas aktif dan pembaruan `ClassOrder` dalam satu jendela perubahan | Tanpa itu perbandingan kelas biasa `Unknown` → transfer antarkelas biasa ditolak `CLASS_ORDER_UNVERIFIED`; kelas khusus tidak terdampak | DEC-319; AC-458; `BM-G01` |
+| INT-DNH-03 | Bed Management → Billing (tarif kamar) | Tidak berubah: tarif dicocokkan per unit layanan dan kelas; snapshot `comparisonResult` `Special` tidak dibaca sebagai harga | Kelas atau unit yang benar-benar baru tanpa tarif: perkiraan biaya menampilkan "Tarif belum tersedia" | RWI-OQ-143; `DNH-G02` |
+| INT-DNH-04 | MasterData unit ↔ hak akses | Kamar memakai unit yang diakui RS; penugasan `UnitAssignments` existing tetap berlaku | Unit baru butuh penugasan akses sebelum dipakai | DEC-323; `BM-G03` |
+| INT-DNH-05 | Frontend denah ↔ backend | Geometri dan kunci di frontend; data kamar/bed dari API; kunci yang tidak cocok tidak digambar sebagai kamar berdata | Kamar database tanpa kunci muncul di daftar "Kamar tanpa posisi" | DEC-299/306 |
+| INT-DNH-06 | Pemakai lain `MstRoom` (Kamar Operasi, hemodialisis, gudang obat) | Kamar di luar denah tidak disentuh; halaman Master Room tetap ada | Penghapusan kolom jenis kelamin tidak memengaruhi mereka (tidak ada pembaca lain di source `ca09cae9`) | Rencana 2; `DNH-CAP-28` |
+| INT-DNH-07 | PatientManagement | Data jenis kelamin pasien tidak disentuh dan tidak dibaca Bed Management | — | DEC-315 |
+| INT-DNH-08 | Daftar pasien rawat inap → `bed-board` | Endpoint dan bentuk respons dipertahankan | Menghapus endpoint merusak daftar pasien | `DNH-MIS-09` |
+
+### 12.2 Billing
+
+Bed Management tetap tidak membuat tarif, ledger, folio, atau invoice. HD/LD tidak dikirim ke Billing dan tidak memengaruhi biaya. Perubahan nama kelas tampil otomatis di layar Billing yang membaca nama dari master, karena Id tetap. Pertanyaan Billing yang tersisa hanya RWI-OQ-143: tarif untuk kelas yang benar-benar baru (mis. Perinatologi, VIP Deluxe bila belum ada) dan untuk unit yang dibuat baru.
+
+### 12.3 Batas scope
+
+Tidak ada sinkronisasi denah dengan sistem luar, tidak ada impor dari berkas yang diunggah, dan tidak ada pembuatan unit atau tarif otomatis. Pembersihan data DB Hamzah (RWI-DEC-305) adalah langkah operasional terpisah dengan konfirmasi pemilik, bukan bagian kontrak integrasi.
+
+## 13. Amandemen Integrasi Admisi Bayi — `RWI-BAYI-022-2.0.0`
+
+| Integrasi | Kepemilikan dan handoff |
+| --- | --- |
+| Operating Room → Admisi | `OprCase` obstetri menjadi sumber ibu dan `DeliveryCaseId`; lokasi ibu bukan syarat |
+| Patient Management → Registration | Pasien bayi memiliki RM dan urutan sendiri; encounter menerima referensi payment source ibu |
+| Registration → Inpatient | Encounter bayi membawa snapshot penjamin independen beserta provenance |
+| Inpatient → Billing | Layanan tetap berasal dari encounter/episode bayi; Admisi tidak membuat invoice gabungan dan tidak memutasi saldo deposit |
+| Billing/Kasir/AR | Membentuk invoice bayi dan, untuk tunai, mengalokasikan deposit ibu melalui workflow terpisah `DEP-BIL-01` |
+
+Kegagalan pada identitas, penjamin, episode, atau bed harus fail-fast sebelum aktivasi. Penerapan
+saldo deposit ibu bukan bagian dari source Admisi ini.

@@ -67,6 +67,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
 
         public Guid? MotherEpisodeId { get; set; }
 
+        public Guid? DeliveryCaseId { get; set; }
+
         [MaxLength(20)] public string? NewbornAdmissionSource { get; set; }
         [MaxLength(20)] public string? NewbornCareMode { get; set; }
         [MaxLength(200)] public string? NewbornCareSource { get; set; }
@@ -86,6 +88,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
 
         [MaxLength(500)]
         public string? IsolationNote { get; set; }
+
+        // BE-RWI-234 (RWI-DEC-302): tingkat ketergantungan yang berlaku saat ini. Kelima kolom terisi
+        // bersamaan atau kosong bersamaan (kecuali catatan); NULL berarti belum dinilai.
+        public InpCareDependencyLevel? CareDependencyLevel { get; set; }
+
+        public InpCareDependencySource? CareDependencySource { get; set; }
+
+        public Guid? CareDependencySetByUserId { get; set; }
+
+        /// <summary>Waktu server pencatatan terakhir; dipakai pemeriksaan "nilai yang dilihat klien masih terbaru".</summary>
+        public DateTime? CareDependencySetAt { get; set; }
+
+        /// <summary>Catatan pencatat terakhir. Kolom sensitif; tidak boleh masuk payload logger.</summary>
+        [MaxLength(500)]
+        public string? CareDependencyNote { get; set; }
 
         public int Version { get; set; } = 1;
 
@@ -145,6 +162,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         public ApplicationUser? IsolationSetByUser { get; set; }
 
         public MstDoctor? IsolationSetByDoctor { get; set; }
+
+        public ApplicationUser? CareDependencySetByUser { get; set; }
+
+        public ICollection<InpCareDependencyHistory> CareDependencyHistories { get; set; } = new List<InpCareDependencyHistory>();
 
         public ICollection<InpDoctorAssignment> DoctorAssignments { get; set; } = new List<InpDoctorAssignment>();
 

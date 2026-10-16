@@ -3,13 +3,13 @@
 | Field | Value |
 |---|---|
 | Dokumen | `02-module-map.md` — hanya lahir pada `blueprint_shape: COMPOSITE` |
-| Revision | **`6`** — draft Bed Management, bagian9, 10 Oktober2026. Riwayat metadata: **`5`** — Workspace PPRI, 7 Oktober 2026: bagian 8 (`draft`). Sebelumnya **`4`** — Finishing Rawat Inap, 1 Oktober 2026: bagian 7. Sebelumnya revision `3` pendaftaran sub-modul `integrasi-billing` (17 September 2026) dan revision `2` (15 September 2026) |
-| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata: **`approved`** untuk revision `5` (bagian 8) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). **`approved`** — revision `4` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**, bersama keempat kontrak baru (`integrasi-billing` `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`). Approval sebelumnya tetap berlaku untuk isi yang tidak disentuh |
+| Revision | **`7`** — Integrasi Denah ↔ Bed Management, bagian 10, **approved** Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`); ditulis 15 Oktober 2026. Riwayat metadata: `6` — draft Bed Management, bagian 9, 10 Oktober 2026; **`5`** — Workspace PPRI, 7 Oktober 2026: bagian 8 (`draft`). Sebelumnya **`4`** — Finishing Rawat Inap, 1 Oktober 2026: bagian 7. Sebelumnya revision `3` pendaftaran sub-modul `integrasi-billing` (17 September 2026) dan revision `2` (15 September 2026) |
+| Status | **`approved`** untuk amandemen Integrasi Denah (bagian 10) — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Bed Management (bagian 9) tetap **`draft`**. Riwayat metadata: **`approved`** untuk revision `5` (bagian 8) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). **`approved`** — revision `4` **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**, bersama keempat kontrak baru (`integrasi-billing` `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`). Approval sebelumnya tetap berlaku untuk isi yang tidak disentuh |
 | Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16; revision `3` ditulis 2026-09-17; **revision `4` ditulis 2026-10-01** |
 | Modul | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | Bentuk blueprint | `COMPOSITE`, ditetapkan `RWI-DEC-082`, `shape_decided_by: USER_CONFIRMED` |
-| Masukan keputusan | Decision revision46, DEC-274–294, AC-396–426 untuk Bed Management. Riwayat metadata: [`00-interview-decisions.md`](./00-interview-decisions.md) revision `31` (2 Oktober 2026) — untuk revision `4`: `RWI-DEC-163` s.d. `220` (penyelarasan bagian 7.8). Revision `3`: revision `25`, `RWI-DEC-156` s.d. `161` |
-| Masukan keadaan saat ini | BM-AUD-20261010-01 rev1; gate1.12 BM-RCG-20261010-01. Riwayat metadata: [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.5` Bagian 18 |
+| Masukan keputusan | Integrasi Denah: decision revision 50, DEC-298–323, AC-436–461. Bed Management: Decision revision46, DEC-274–294, AC-396–426 untuk Bed Management. Riwayat metadata: [`00-interview-decisions.md`](./00-interview-decisions.md) revision `31` (2 Oktober 2026) — untuk revision `4`: `RWI-DEC-163` s.d. `220` (penyelarasan bagian 7.8). Revision `3`: revision `25`, `RWI-DEC-156` s.d. `161` |
+| Masukan keadaan saat ini | Integrasi Denah: BM-IMP-20261015-01; gate 1.13 DNH-RCG-20261015-01. Bed Management: BM-AUD-20261010-01 rev1; gate1.12 BM-RCG-20261010-01. Riwayat metadata: [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.5` Bagian 18 |
 | Baseline requirement | `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris) dan `PRD_Final_Rawat_Inap_100_Persen.md` v1.0.0 |
 | Owner | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061`; Integrasi Billing: **Muhammad Hamzah & Yasmina** |
 | Ditulis oleh | `design-business-module` untuk slice `INP-S22` |
@@ -794,3 +794,82 @@ Urutan schema/cutover pada backend14.9, urutan gelombang MVP pada PRD26.20. Tida
 Manifest anak Bed Management draft membuat aggregate parent **partial**. Tiga anak lain tidak diubah atau disetujui ulang. `DOMAIN_ARCHITECTURE_NOT_RUN` khusus slice Bed Management diperbolehkan gate; bukan pembatalan arsitektur domain sebelumnya. Metadata summary lama yang drift tidak diperbaiki pada upstream decision/audit; bukti fresh dan hash dicatat pada manifest.
 
 Finalisasi11 Oktober2026 memasukkan wrapper InpAdmissionTransferService ke cutover writer existing (backend14.14/API13.8). Tidak menambah owner, tabel, menu, atau kemampuan produk. Current source evidence disimpan pada folder evidence agar ikut Git; folder artifacts lama tidak direkonstruksi.
+
+## 10. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Revision 7, approved** — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Mengikuti [manifest anak](./episode-rawat-inap/blueprint-manifest.md) revision 12. Scope: integrasi denah RS MMC dengan Bed Management, keputusan RWI-DEC-298–323 dan RWI-AC-436–461 (decision log revision 50), gate 1.13 `DNH-RCG-20261015-01`, impact scan `BM-IMP-20261015-01` pada BE `ca09cae9` / FE `4d9bf608`. `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini. Bagian 9 tetap berlaku kecuali yang diubah di sini.
+
+### 10.1 Kepemilikan data — kanonis untuk amandemen ini
+
+| Kelompok data | Modul pemilik | Dipakai sub-modul `episode-rawat-inap` | Dibuat ulang? | Keterangan |
+| --- | --- | --- | --- | --- |
+| Lantai, arah wing, dan kunci denah kamar | MasterData (`MstRoom`) | Ya | Tidak; tiga kolom baru pada tabel existing | Tidak ada tabel lantai/wing/gedung (satu gedung) |
+| Kamar dan bed beserta label | MasterData (`MstRoom`, `MstBed`) | Ya | Tidak | Kode tetap kode sistem; label untuk petugas |
+| Catatan impor denah | MasterData (`MstFloorPlanImportRun`, baru) | Ya, lewat layar Master Bed | Baru; tidak ada padanan | Audit impor dan pengulangan permintaan |
+| Kelas resmi dan urutannya | MasterData seluruh tim + konfigurasi `ClassOrder` | Ya | Tidak; ganti nama dengan Id tetap (RWI-DEC-322) | 10 modul memakai Id kelas |
+| Unit layanan | MasterData; nama resmi fakta RS | Ya | Tidak; tidak dibuat otomatis (RWI-DEC-323) | Dasar hak akses dan tarif |
+| Geometri dan bentuk kamar denah | Frontend sub-modul `episode-rawat-inap` | Ya | Tidak disimpan di database | Kunci denah menghubungkan bentuk dan data |
+| Tingkat ketergantungan pasien dan riwayatnya | InPatientManagement, sub-modul `episode-rawat-inap` (`InpEpisode`, `InpCareDependencyHistory` baru) | Ya | Baru | Panel tampil juga di Workspace Keperawatan milik sub-modul `keperawatan` sebagai layar anak; data tetap milik episode |
+| Status kamar, badge, outline | Turunan query | Ya | Tidak disimpan | Dihitung dari bed |
+| Kesiapan bed | InPatientManagement (bagian 9) | Ya | Tidak | Bed baru `Unverified` |
+| Tarif kamar | BillingManagement | Dibaca Billing | Tidak | RWI-OQ-143 untuk kelas/unit baru |
+| Identitas dan jenis kelamin pasien | PatientManagement | Identitas tersamar sesuai hak; jenis kelamin tidak dipakai Bed Management | Tidak | RWI-DEC-315 |
+
+Tidak ada sub-modul lain yang membuat tabel kamar, bed, lantai, atau ketergantungan. Sub-modul `keperawatan` dan `dokter-rawat-inap` hanya menjadi tempat panel HD/LD dan tidak memiliki datanya; manifest kedua sub-modul itu tidak diubah oleh amandemen ini.
+
+### 10.2 Peta butir menu
+
+| Induk | Butir | Route | Layar | Permission |
+| --- | --- | --- | --- | --- |
+| Health Services → Inpatient Management | Bed Management (existing, bagian 9) | `/health-services/inpatient-management/bed-board` | FE-BM-01 kini denah; FE-BM-02/03; anak FE-DNH-02 | InpatientBedManagement : Read |
+| Health Services → Master Data | Master Bed `healthServicesBed` (existing) | `/health-services/master-data/bed` | FE-DNH-03 editor denah; anak FE-DNH-02 dan FE-DNH-04 | Leaf existing + Room : Read; impor Room : ImportFloorPlan |
+| — | Halaman dummy denah | `/health-services/inpatient-management/floor-plan` | Dihapus; tidak pernah di menu | — |
+
+Tidak ada butir menu baru. Panel HD/LD (FE-DNH-05) adalah layar anak di Workspace Keperawatan dan detail episode. Rincian skema layar ada di frontend 16.
+
+### 10.3 Urutan migration lintas sub-modul
+
+| Urutan | Migration | Sub-modul / pemilik | Syarat |
+| --- | --- | --- | --- |
+| Sebelumnya | Migration yang sudah disiapkan dan belum diterapkan dari amandemen lain (mis. `20261014091502_AddNewbornAdmissionContext`, relasi asal admisi EPS-006) | `episode-rawat-inap` | Diterapkan lebih dulu; amandemen ini tidak mengubahnya |
+| 1 | M-DNH-1 `AddFloorPlanLocationToMstRoom` | MasterData, dipakai `episode-rawat-inap` | — |
+| 2 | M-DNH-2 `AddCareDependencyToInpEpisode` | `episode-rawat-inap` | — |
+| 3 | M-DNH-3 `AddMstFloorPlanImportRun` | MasterData | — |
+| 4 | M-DNH-4 `DropGenderFlagsFromRoomAndBed` | MasterData | Satu rilis dengan penghapusan kode jenis kelamin backend dan frontend |
+
+Tidak ada migration dari sub-modul `keperawatan`, `dokter-rawat-inap`, atau `integrasi-billing` dalam amandemen ini. Rincian dan langkah mundur di backend 15.8.
+
+### 10.4 Disposisi kemampuan `BM-IMP-20261015-01`
+
+| ID | Disposisi target | Epic / tempat | Trace |
+| --- | --- | --- | --- |
+| `DNH-CAP-01`, `02` | Missing → baru (kolom lantai, wing, kunci) | DNH-03, DNH-04 | DEC-306/313/314 |
+| `DNH-CAP-03` | Reuse with adapter; kode kamar lewat pengalokasi bersama (`DNH-DES-01`) | DNH-03, DNH-04 | DEC-317 (analog) |
+| `DNH-CAP-04` | Conflict selesai: kode sistem + label | DNH-03 | DEC-317 |
+| `DNH-CAP-05`, `17` | Reuse with adapter: data kelas + konfigurasi urutan bersamaan | DNH-06 | DEC-307/319/322 |
+| `DNH-CAP-06`, `14`, `31`, `32` | Ready to reuse | DNH-02, DNH-03 | DEC-064/251; RWI-RULE-014 |
+| `DNH-CAP-07`, `15`, `39` | Repair: hapus jenis kelamin, satu gelombang | DNH-02, DNH-03 | DEC-315 |
+| `DNH-CAP-08` | Asumsi digantikan: pemetaan unit oleh admin | DNH-04 | DEC-323 |
+| `DNH-CAP-09`, `22` | Reuse | DNH-01 | DEC-282 |
+| `DNH-CAP-10`, `11`, `36` | Missing / adapter: proyeksi lantai dan status kamar | DNH-01 | DEC-299/303 |
+| `DNH-CAP-12`, `21` | Extend: No. RM dan HD/LD tersamar | DNH-01, DNH-05 | DEC-287/302 |
+| `DNH-CAP-13`, `18`, `37` | Adapter: kelayakan per lantai dan pilih bed lewat denah | DNH-02 | DEC-299/316 |
+| `DNH-CAP-16` | Extend: hasil `Special` | DNH-02 | DEC-312 |
+| `DNH-CAP-19` | Missing → baru | DNH-05 | DEC-302 |
+| `DNH-CAP-20` | Reuse with adapter: scope unit existing | DNH-01–04 | DEC-323; `BM-G03` |
+| `DNH-CAP-23`, `24` | Reuse with adapter | DNH-03 | DEC-304/317 |
+| `DNH-CAP-25` | Conflict selesai: kapasitas dihitung | DNH-01, DNH-03 | DEC-318 |
+| `DNH-CAP-26` | Extend: hapus hanya tanpa riwayat | DNH-03 | Rencana 7 |
+| `DNH-CAP-27` | Missing → baru (importer) | DNH-04 | DEC-306/321 |
+| `DNH-CAP-28`, `33` | Langkah operasional, bukan fitur | D-DNH-2 | DEC-305; izin eksekusi terpisah |
+| `DNH-CAP-29` | Dependency luar: tarif kelas/unit baru | `DNH-G02` | RWI-OQ-143 |
+| `DNH-CAP-30` | Tetap tersambung karena Id kelas tetap | DNH-06 | DEC-322 |
+| `DNH-CAP-34`, `35`, `41` | Reuse with adapter: komponen denah bersama, label kelas resmi, editor master | DNH-01, DNH-03 | DEC-299/306 |
+| `DNH-CAP-38` | Reuse: `bed-board` dipertahankan | DNH-01 | `DNH-MIS-09` |
+| `DNH-CAP-40` | Repair: test lama disesuaikan | Semua | — |
+
+Tidak ada kemampuan tanpa pemilik. Seluruh 41 kemampuan jatuh ke sub-modul `episode-rawat-inap` atau ke langkah operasional/dependency yang disebut.
+
+### 10.5 Dependency dan status parent
+
+Enam `DNH-CG` siap desain menurut [gate 1.13](./evidence/02-requirement-completeness-gate.md) bagian 22. Gate penerapan `DNH-G01` (kelas), `DNH-G02` (tarif), `DNH-G03` (fakta RS dan susunan), `DNH-G04` (clinical governance dan privasi HD/LD), `DNH-G05` (verifikasi go-live dan penugasan) serta `BM-G01`–`G04` tetap terbuka; tidak menahan desain. RWI-OQ-144 (boks rawat gabung pada badge) masih terbuka dan ditandai OPEN DECISION pada PRD 27. Manifest anak revision 12 approved; status parent tetap **partial** karena amandemen Bed Management revision 11 masih draft. Urutan gelombang ada di PRD 27.20; berkas ini tidak menulis roadmap atau task.

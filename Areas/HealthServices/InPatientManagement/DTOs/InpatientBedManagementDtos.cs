@@ -27,12 +27,18 @@ public class BedMonitoringQuery
     public Guid? PatientClassId { get; set; }
     public string? Status { get; set; }
     [MaxLength(100)] public string? Search { get; set; }
+    /// <summary>Opsional; menyaring bed pada satu lantai denah (BE-RWI-238).</summary>
+    [MaxLength(10)] public string? FloorCode { get; set; }
 }
 public class BedHoldingContext
 {
     public Guid? EpisodeId { get; set; }
     public string? EpisodeNumber { get; set; }
     public string? PatientName { get; set; }
+    /// <summary>No. RM penghuni; mengikuti aturan penyamaran yang sama dengan nama (BE-RWI-238, GUARD-DNH-01).</summary>
+    public string? MedicalRecordNumber { get; set; }
+    /// <summary><c>High</c>/<c>Low</c>; kosong bila belum dinilai. Tidak dikirim bila identitas tidak boleh dibaca.</summary>
+    public string? CareDependencyLevel { get; set; }
     public Guid? ReservationId { get; set; }
     public DateTime? ReservationExpiresAt { get; set; }
 }

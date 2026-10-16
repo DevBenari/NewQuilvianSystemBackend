@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
-| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata sebelumnya: **`0.11.0`** — resource `InpatientAdmissionDocument` sepuluh aksi, `GUARD-RWA-01` s.d. `07`. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — `GUARD-INP-09`, `10`; `0.8.0` |
-| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Integrasi Denah approved (bagian 12, `RWI-DEC-324`); sebelumnya amandemen Bed Management draft (bagian 11). Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
+| `last_changed_in` | **`0.13.0`** — Integrasi Denah. Riwayat metadata sebelumnya: `0.12.0` — Bed Management; **`0.11.0`** — resource `InpatientAdmissionDocument` sepuluh aksi, `GUARD-RWA-01` s.d. `07`. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — `GUARD-INP-09`, `10`; `0.8.0` |
+| Status | **`approved`** untuk amandemen Integrasi Denah — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Bed Management tetap **`draft`**. Riwayat metadata sebelumnya: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006`; pemilik keamanan/privasi **belum ditunjuk** |
-| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `00-interview-decisions.md` revision `15`; `contracts/api-contract.md` revision `0.6.0` |
-| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
+| `input_revision` | Integrasi Denah: decision 50, DEC-298–323, AC-436–461; gate 1.13/DNH-RCG-20261015-01; impact scan BM-IMP-20261015-01. Bed Management: Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `00-interview-decisions.md` revision `15`; `contracts/api-contract.md` revision `0.6.0` |
+| Backend SHA | Integrasi Denah: ca09cae909597442385ce4513be9c803549be10e. Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
 | Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Butir hak akses baru bersifat aditif. Terdaftar otomatis oleh `AccessMenuSeeder` saat aplikasi dinyalakan |
 
 > **Koreksi `0.6.1`.** Dari dua aksi yang diusulkan `0.6.0`, hanya **`Settle`** yang benar-benar
@@ -616,3 +616,52 @@ Kebijakan retensi baru, perubahan rekam medis, legal signoff dan SOP kebersihan 
 Read: InpatientAdmissionTransfer:Read. Submit: InpatientEpisode:Create dan PatientEncounter:Create, scope unit/bed existing. Isolasi: InpatientEpisode:Update. Deposit positif: BillingDeposit:Create. Opsi metode: PaymentMethod:Read. Audit admisi dan audit top-up/cash receipt milik Billing diterbitkan sesudah outer transaction commit. Client memakai keputusan permission ketat untuk reader transfer.
 
 [Acuan implementasi EPS-006 versi 1.0](admission-transfer-repair-006.md) berlaku untuk slice transfer dan menggantikan uraian historis yang bertentangan. Batas runtime dan migration dicatat dalam [laporan verifikasi](../task/report/frontend/FIX-EPS-006-08.md).
+
+## 12. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); keamanan/privasi dan clinical governance: OPEN (RWI-DEC-006). `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**; `DOMAIN_ARCHITECTURE_NOT_RUN`. Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`. Pemetaan endpoint → permission hanya ada di API contract 14.2; tabel ini tidak mengulangnya.
+
+### 12.1 Kewenangan produk; bukan pemberian hak runtime
+
+Nama pelaku adalah fungsi, bukan akun yang sudah diverifikasi. Dua action baru, `InpatientEpisode : SetCareDependency` dan `Room : ImportFloorPlan`, hanya didaftarkan lewat atribut `AccessAction` seperti action existing; tidak ada role yang otomatis menerimanya. Pemberian hak menunggu `BM-G03` dan `DNH-G05`.
+
+| Pelaku | Resource/action persis | Scope/guard tambahan | Identitas dan HD/LD |
+| --- | --- | --- | --- |
+| Petugas admisi | InpatientBedOccupancy : Read/Create; InpatientEpisode : SetCareDependency | Catatan awal HD/LD hanya pada episode `Draft`; scope unit bed | Sesuai hak episode existing |
+| Perawat penanggung jawab | InpatientBedManagement : Read; InpatientBedOccupancy : Read/Transfer sesuai existing; InpatientEpisode : SetCareDependency | HD/LD hanya bila penugasan perawat aktif pada episode itu | Sesuai hak episode existing |
+| DPJP | InpatientEpisode : SetCareDependency | HD/LD hanya bila DPJP aktif episode itu | Sesuai hak episode existing |
+| Perawat verifikator | InpatientBedManagement : VerifyReadiness existing | Termasuk verifikasi awal bed hasil impor produksi; penugasan verifikator dan unit bed | Aksi kesiapan tanpa identitas pasien |
+| Housekeeping | InpatientBedManagement : Read/StartCleaning/CompleteCleaning existing | Profil OperationalOnly | **Tidak menerima** nama, No. RM, HD/LD, maupun ringkasan HD/LD |
+| Admin MasterData | Room : Read/Create/Update; Bed : Read/Create/Update/Delete; PatientClass : Create/Update | Scope unit lewat `BedMutationService` existing | Editor master tanpa identitas pasien |
+| Admin impor berwenang | Room : ImportFloorPlan; Room : Read | Scope unit untuk setiap baris; produksi dijalankan sekali sesudah susunan disahkan RS (RWI-DEC-306) | Tanpa identitas pasien |
+| Pembaca episode | InpatientEpisode : Read existing | Scope episode existing | Riwayat HD/LD termasuk catatan |
+
+Slash berarti daftar action literal pada resource yang sama.
+
+### 12.2 Business guards
+
+| ID | Guard | Perilaku |
+| --- | --- | --- |
+| GUARD-DNH-01 | Privasi denah | Profil OperationalOnly: `HoldingContext`, `DependencySummary`, No. RM, dan HD/LD dihapus sebelum JSON. Pembaca lain mengikuti `CanReadLoadedIdentityAsync` existing; HD/LD dan No. RM ikut aturan nama |
+| GUARD-DNH-02 | Pencatat HD/LD | `Draft`: pemegang SetCareDependency (sumber AdmissionNote). `Admitted`/`DischargePending`: penugasan perawat aktif dengan `EmployeeId` pengguna (NurseAssessment) atau DPJP aktif dengan `DoctorId` pengguna (DoctorDecision). `Closed`/`Cancelled`: hanya baca. Superadmin tidak melewati guard ini |
+| GUARD-DNH-03 | Otoritas impor | Room : ImportFloorPlan wajib, termasuk untuk dry run. Unit di luar scope pengguna ditolak per baris dengan kode `ACCESS_DENIED` di laporan |
+| GUARD-DNH-04 | Kesiapan impor | Penetapan siap hanya bila opsi dev/UAT aktif; aplikasi tidak menyala di `Production` dengan opsi itu |
+| GUARD-DNH-05 | Scope denah | Monitoring mengikuti scope Read Bed Management existing; Pilih Bed mengikuti scope `available-beds` existing; hitungan dihitung sesudah scope |
+| GUARD-DNH-06 | Writer master | Ubah kelas, tambah/kurangi bed, label, wing, aktivasi ruang cadangan, dan impor memakai serialisasi `BedMutationService` dan scope unit existing |
+| GUARD-DNH-07 | Jenis kelamin | Tidak ada jalur bed yang membaca jenis kelamin pasien, termasuk log dan pesan |
+
+### 12.3 Audit event dan data sensitif
+
+| Aksi | Bukti tersimpan dalam transaksi | Sensitivitas |
+| --- | --- | --- |
+| Catat/ubah HD/LD | Baris `InpCareDependencyHistory` (nilai lama/baru, sumber, pelaku, waktu, catatan) + kolom episode | Catatan sensitif; logger hanya EntityId, action, status |
+| Impor | `MstFloorPlanImportRun` (manifest hash, lingkungan, penetapan siap, ringkasan), receipt `FloorPlanImport`, event `BedCreated` per bed, event `ImportReadyForTest` per bed di dev/UAT | Tanpa data pasien |
+| Aktivasi ruang cadangan | Receipt `Room`, event `BedCreated` per bed, pembuat kamar/bed pada kolom audit | Tanpa data pasien |
+| Ubah kelas kamar | Alasan wajib, invalidasi kesiapan dan event existing | Alasan bukan data pasien |
+| Ubah wing atau label | Kolom audit `UpdateBy`/`UpdateDateTime` existing | — |
+
+### 12.4 Batas approval
+
+Kriteria klinis HD/LD milik SOP keperawatan (RWI-OQ-141); sistem hanya mencatat. Pemilik privasi masih OPEN, sehingga penayangan HD/LD di produksi menunggu `DNH-G04`. Retensi riwayat HD/LD mengikuti kebijakan rekam medis existing; amandemen ini tidak menjadwalkan penghapusan.

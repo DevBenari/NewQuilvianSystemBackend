@@ -38,19 +38,81 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class RoomController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
-        private const string RoomCodePrefix = "RM-RSMMC-";
-        private const int RoomCodeDigitLength = 5;
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService; private readonly BedMutationService _bedMutation;
         private readonly RoomMasterWriteService _bedWriter;
+        private readonly FloorPlanLayoutService _floorPlanLayout;
+        private readonly FloorPlanImportService _floorPlanImport;
 
         public RoomController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService, BedMutationService bedMutation, RoomMasterWriteService bedWriter)
+            LoggerService loggerService, BedMutationService bedMutation, RoomMasterWriteService bedWriter,
+            FloorPlanLayoutService floorPlanLayout, FloorPlanImportService floorPlanImport)
         {
             _dbContext = dbContext;
             _loggerService = loggerService; _bedMutation = bedMutation; _bedWriter = bedWriter;
+            _floorPlanLayout = floorPlanLayout; _floorPlanImport = floorPlanImport;
+        }
+
+        // =====================================================================
+        // BE-RWI-236 / BE-RWI-237 — Susunan lantai denah, aktivasi ruang cadangan, dan impor
+        // =====================================================================
+
+        /// <summary>Susunan satu lantai untuk editor Master Bed, tanpa identitas pasien.</summary>
+        [HttpGet("floor-plan-layout")]
+        [ProducesResponseType(typeof(ApiResponse<FloorPlanLayoutResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Room", Description = "Melihat susunan kamar dan bed satu lantai denah", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("Room", "Read")]
+        public async Task<IActionResult> GetFloorPlanLayout([FromQuery] FloorPlanLayoutQuery query, CancellationToken cancellationToken = default)
+        {
+            var result = await _floorPlanLayout.GetLayoutAsync(query, cancellationToken);
+            return Ok(ApiResponse<FloorPlanLayoutResponse>.Ok(result, "Susunan lantai denah berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Mengaktifkan ruang cadangan menjadi kamar beserta bed-nya dalam satu transaksi. Header
+        /// <c>Idempotency-Key</c> wajib.
+        /// </summary>
+        [HttpPost("floor-plan-layout/rooms")]
+        [ProducesResponseType(typeof(ApiResponse<FloorPlanRoomActivationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Create", "Create Room", Description = "Mengaktifkan ruang cadangan denah menjadi kamar beserta bed-nya", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("Room", "Create")]
+        public async Task<IActionResult> ActivateFloorPlanRoom([FromBody] ActivateFloorPlanRoomRequest request, CancellationToken cancellationToken = default)
+        {
+            var result = await _floorPlanLayout.ActivateRoomAsync(request, cancellationToken);
+
+            await _loggerService.InfoAsync(LogCategory, "Room.ActivateFloorPlanRoom", "Mengaktifkan ruang cadangan denah.",
+                new { EntityId = result.Room.Id, Controller = "Room", Action = "ActivateFloorPlanRoom", BedCount = result.Beds.Count, StatusCode = StatusCodes.Status200OK });
+
+            return Ok(ApiResponse<FloorPlanRoomActivationResponse>.Ok(result, "Ruang cadangan berhasil diaktifkan menjadi kamar."));
+        }
+
+        /// <summary>
+        /// Memeriksa (dry run) atau menjalankan impor susunan kamar dan bed dari denah. Penolakan per
+        /// kamar dilaporkan pada <c>Rows</c> dengan HTTP 200; header <c>Idempotency-Key</c> wajib untuk impor.
+        /// </summary>
+        [HttpPost("floor-plan-layout/import")]
+        [ProducesResponseType(typeof(ApiResponse<FloorPlanImportResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("ImportFloorPlan", "Import Floor Plan Room", Description = "Memeriksa dan mengimpor susunan kamar dan bed dari denah", AccessType = AccessTypes.Create, SortOrder = 5)]
+        [AccessPermission("Room", "ImportFloorPlan")]
+        public async Task<IActionResult> ImportFloorPlan([FromBody] FloorPlanImportRequest request, CancellationToken cancellationToken = default)
+        {
+            var result = await _floorPlanImport.ImportAsync(request, cancellationToken);
+
+            await _loggerService.InfoAsync(LogCategory, "Room.ImportFloorPlan", result.DryRun ? "Memeriksa impor denah." : "Mengimpor susunan denah.",
+                new { EntityId = result.RunId, Controller = "Room", Action = "ImportFloorPlan", result.DryRun, result.ManifestHash, result.Summary, StatusCode = StatusCodes.Status200OK });
+
+            return Ok(ApiResponse<FloorPlanImportResult>.Ok(result,
+                result.DryRun ? "Pemeriksaan impor denah selesai; tidak ada data yang ditulis." : "Impor denah selesai."));
         }
 
         [HttpGet("filters/metadata")]
@@ -75,9 +137,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "roomNumber", Label = "Nomor room" },
                     new() { Value = "locationName", Label = "Lokasi" },
                     new() { Value = "floorName", Label = "Lantai" },
+                    new() { Value = "floorCode", Label = "Kode lantai denah" },
                     new() { Value = "capacity", Label = "Kapasitas" },
-                    new() { Value = "isForMale", Label = "Untuk laki-laki" },
-                    new() { Value = "isForFemale", Label = "Untuk perempuan" },
                     new() { Value = "isForNewborn", Label = "Untuk bayi" },
                     new() { Value = "isIsolationRoom", Label = "Ruang isolasi" },
                     new() { Value = "isIntensiveCare", Label = "Intensive care" },
@@ -88,6 +149,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 SortDirections = new List<string> { "asc", "desc" },
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
                 RoomTypeOptions = BuildEnumOptions<RoomType>(),
+                WingDirectionOptions = BuildEnumOptions<RoomWingDirection>(),
                 QueryParameters = BuildQueryParameterInfo(),
                 CreateFields = BuildCreateFieldMetadata(),
                 UpdateFields = BuildUpdateFieldMetadata(),
@@ -125,8 +187,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IntensiveCareRoom = await query.CountAsync(x => x.IsIntensiveCare),
                 OdcRoom = await query.CountAsync(x => x.IsOdcRoom),
                 NewbornRoom = await query.CountAsync(x => x.IsForNewborn),
-                MaleRoom = await query.CountAsync(x => x.IsForMale),
-                FemaleRoom = await query.CountAsync(x => x.IsForFemale)
             };
 
             return Ok(ApiResponse<RoomSummaryResponse>.Ok(
@@ -147,14 +207,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] Guid? patientClassId,
             [FromQuery] bool? isActive,
             [FromQuery] RoomType? roomType,
-            [FromQuery] bool? isForMale,
-            [FromQuery] bool? isForFemale,
             [FromQuery] bool? isForNewborn,
             [FromQuery] bool? isIsolationRoom,
             [FromQuery] bool? isIntensiveCare,
             [FromQuery] bool? isOdcRoom,
             [FromQuery] bool? isAvailableForAdmission,
             [FromQuery] string? search,
+            [FromQuery] string? floorCode = null,
+            [FromQuery] bool? hasFloorPlanKey = null,
             [FromQuery] string? sortBy = "sortOrder",
             [FromQuery] string? sortDirection = "asc",
             [FromQuery] int pageNumber = 1,
@@ -182,8 +242,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 patientClassId,
                 isActive,
                 roomType,
-                isForMale,
-                isForFemale,
                 isForNewborn,
                 isIsolationRoom,
                 isIntensiveCare,
@@ -191,6 +249,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 isAvailableForAdmission,
                 search
             );
+            query = ApplyFloorPlanFilter(query, floorCode, hasFloorPlanKey);
 
             var totalData = await query.CountAsync();
 
@@ -232,8 +291,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] Guid? serviceUnitId,
             [FromQuery] Guid? patientClassId,
             [FromQuery] RoomType? roomType,
-            [FromQuery] bool? isForMale,
-            [FromQuery] bool? isForFemale,
             [FromQuery] bool? isForNewborn,
             [FromQuery] bool? isIsolationRoom,
             [FromQuery] bool? isIntensiveCare,
@@ -258,8 +315,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 patientClassId,
                 useOnlyActive ? true : null,
                 roomType,
-                isForMale,
-                isForFemale,
                 isForNewborn,
                 isIsolationRoom,
                 isIntensiveCare,
@@ -343,10 +398,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 roomName: request.RoomName,
                 roomType: request.RoomType,
                 roomNumber: request.RoomNumber,
-                capacity: request.Capacity,
-                isForMale: request.IsForMale,
-                isForFemale: request.IsForFemale,
-                isForNewborn: request.IsForNewborn
+                capacity: request.Capacity
             );
 
             if (!validation.IsValid)
@@ -362,7 +414,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, HttpContext.RequestAborted);
 
-            var generatedRoomCode = await GenerateRoomCodeAsync();
+            // BE-RWI-232 / DNH-DES-01: kode dari pengalokasi nomor bersama, bukan mengisi celah nomor.
+            var generatedRoomCode = await _bedMutation.AllocateRoomCodeAsync(HttpContext.RequestAborted);
             var codeValidation = await ValidateGeneratedRoomCodeAsync(generatedRoomCode);
 
             if (!codeValidation.IsValid)
@@ -385,8 +438,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 LocationName = NormalizeNullableText(request.LocationName),
                 FloorName = NormalizeNullableText(request.FloorName),
                 Capacity = request.Capacity,
-                IsForMale = request.IsForMale,
-                IsForFemale = request.IsForFemale,
                 IsForNewborn = request.IsForNewborn,
                 IsIsolationRoom = request.IsIsolationRoom,
                 IsIntensiveCare = request.IsIntensiveCare,
@@ -400,6 +451,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsDelete = false,
                 IsCancel = false
             };
+
+            // BE-RWI-232: lantai, arah wing, dan kunci denah divalidasi writer kamar; kamar berkunci
+            // mendapat nama dan penanda turunan kelas otomatis (backend 15.6).
+            await _bedWriter.ApplyFloorPlanLocationAsync(entity, request.FloorCode, request.WingDirection, request.FloorPlanRoomKey, HttpContext.RequestAborted);
+            await _bedWriter.ApplyKeyedRoomDerivationsAsync(entity, rewriteRoomFlags: true, HttpContext.RequestAborted);
 
             _dbContext.Set<MstRoom>().Add(entity);
             await _dbContext.SaveChangesAsync();
@@ -416,6 +472,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 RoomName = entity.RoomName,
                 RoomType = entity.RoomType,
                 RoomTypeName = BuildEnumLabel(entity.RoomType),
+                RoomNumber = entity.RoomNumber,
+                FloorCode = entity.FloorCode,
+                WingDirection = entity.WingDirection,
+                FloorPlanRoomKey = entity.FloorPlanRoomKey,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,
                 CreateBy = entity.CreateBy == Guid.Empty ? null : (Guid?)entity.CreateBy,
@@ -502,8 +562,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             Guid? patientClassId,
             bool? isActive,
             RoomType? roomType,
-            bool? isForMale,
-            bool? isForFemale,
             bool? isForNewborn,
             bool? isIsolationRoom,
             bool? isIntensiveCare,
@@ -529,16 +587,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (roomType.HasValue)
             {
                 query = query.Where(x => x.RoomType == roomType.Value);
-            }
-
-            if (isForMale.HasValue)
-            {
-                query = query.Where(x => x.IsForMale == isForMale.Value);
-            }
-
-            if (isForFemale.HasValue)
-            {
-                query = query.Where(x => x.IsForFemale == isForFemale.Value);
             }
 
             if (isForNewborn.HasValue)
@@ -581,6 +629,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     (x.ServiceUnit != null && x.ServiceUnit.ServiceUnitName.ToLower().Contains(keyword)) ||
                     (x.PatientClass != null && x.PatientClass.PatientClassCode.ToLower().Contains(keyword)) ||
                     (x.PatientClass != null && x.PatientClass.PatientClassName.ToLower().Contains(keyword)));
+            }
+
+            return query;
+        }
+
+        /// <summary>
+        /// Saring lantai denah dan ada/tidaknya kunci denah (BE-RWI-232). Tanpa parameter, jawaban
+        /// tidak berubah.
+        /// </summary>
+        /// <example><c>floorCode=3</c> hanya kamar Lantai 3; <c>hasFloorPlanKey=false</c> hanya kamar tanpa kunci.</example>
+        private static IQueryable<MstRoom> ApplyFloorPlanFilter(
+            IQueryable<MstRoom> query,
+            string? floorCode,
+            bool? hasFloorPlanKey)
+        {
+            if (!string.IsNullOrWhiteSpace(floorCode))
+            {
+                var normalizedFloor = floorCode.Trim().ToLower();
+                query = query.Where(x => x.FloorCode != null && x.FloorCode.ToLower() == normalizedFloor);
+            }
+
+            if (hasFloorPlanKey.HasValue)
+            {
+                query = hasFloorPlanKey.Value
+                    ? query.Where(x => x.FloorPlanRoomKey != null)
+                    : query.Where(x => x.FloorPlanRoomKey == null);
             }
 
             return query;
@@ -631,17 +705,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     ? query.OrderByDescending(x => x.FloorName).ThenBy(x => x.RoomName)
                     : query.OrderBy(x => x.FloorName).ThenBy(x => x.RoomName),
 
+                "floorcode" => isDesc
+                    ? query.OrderByDescending(x => x.FloorCode).ThenBy(x => x.RoomName)
+                    : query.OrderBy(x => x.FloorCode).ThenBy(x => x.RoomName),
+
                 "capacity" => isDesc
                     ? query.OrderByDescending(x => x.Capacity).ThenBy(x => x.RoomName)
                     : query.OrderBy(x => x.Capacity).ThenBy(x => x.RoomName),
-
-                "isformale" => isDesc
-                    ? query.OrderByDescending(x => x.IsForMale).ThenBy(x => x.RoomName)
-                    : query.OrderBy(x => x.IsForMale).ThenBy(x => x.RoomName),
-
-                "isforfemale" => isDesc
-                    ? query.OrderByDescending(x => x.IsForFemale).ThenBy(x => x.RoomName)
-                    : query.OrderBy(x => x.IsForFemale).ThenBy(x => x.RoomName),
 
                 "isfornewborn" => isDesc
                     ? query.OrderByDescending(x => x.IsForNewborn).ThenBy(x => x.RoomName)
@@ -680,10 +750,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             string roomName,
             RoomType roomType,
             string? roomNumber,
-            int capacity,
-            bool isForMale,
-            bool isForFemale,
-            bool isForNewborn)
+            int capacity)
         {
             if (serviceUnitId == Guid.Empty)
             {
@@ -708,11 +775,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (capacity > 999)
             {
                 return (false, "Kapasitas room tidak boleh lebih dari 999.");
-            }
-
-            if (!isForMale && !isForFemale && !isForNewborn)
-            {
-                return (false, "Room harus tersedia minimal untuk laki-laki, perempuan, atau bayi baru lahir.");
             }
 
             var activationValidation = await ValidateRoomCanBeActivatedAsync(serviceUnitId, NormalizeNullableGuid(patientClassId));
@@ -787,51 +849,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return (true, null);
         }
 
-        private async Task<string> GenerateRoomCodeAsync()
-        {
-            var existingCodes = await _dbContext.Set<MstRoom>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.RoomCode.StartsWith(RoomCodePrefix))
-                .Select(x => x.RoomCode)
-                .ToListAsync();
-
-            var usedNumbers = existingCodes
-                .Select(ExtractRoomCodeNumber)
-                .Where(x => x.HasValue && x.Value > 0)
-                .Select(x => x!.Value)
-                .ToHashSet();
-
-            var nextNumber = 1;
-
-            while (usedNumbers.Contains(nextNumber))
-            {
-                nextNumber++;
-            }
-
-            return RoomCodePrefix + nextNumber.ToString().PadLeft(RoomCodeDigitLength, '0');
-        }
-
-        private static int? ExtractRoomCodeNumber(string roomCode)
-        {
-            if (string.IsNullOrWhiteSpace(roomCode))
-            {
-                return null;
-            }
-
-            if (!roomCode.StartsWith(RoomCodePrefix, StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-
-            var numberText = roomCode[RoomCodePrefix.Length..];
-
-            return int.TryParse(numberText, out var number)
-                ? number
-                : null;
-        }
-
         private async Task<(bool IsValid, string? ErrorMessage)> ValidateGeneratedRoomCodeAsync(string roomCode)
         {
             if (string.IsNullOrWhiteSpace(roomCode))
@@ -841,10 +858,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             var normalizedCode = roomCode.Trim().ToUpperInvariant();
 
+            // Index unik RoomCode tidak berfilter, sehingga kamar yang dihapus lunak ikut diperiksa.
             var duplicateCode = await _dbContext.Set<MstRoom>()
-                .AnyAsync(x =>
-                    !x.IsDelete &&
-                    x.RoomCode.ToUpper() == normalizedCode);
+                .IgnoreQueryFilters()
+                .AnyAsync(x => x.RoomCode.ToUpper() == normalizedCode);
 
             if (duplicateCode)
             {
@@ -901,9 +918,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 RoomNumber = entity.RoomNumber,
                 LocationName = entity.LocationName,
                 FloorName = entity.FloorName,
+                FloorCode = entity.FloorCode,
+                WingDirection = entity.WingDirection,
+                WingDirectionName = entity.WingDirection.HasValue ? FloorPlanRoomNaming.WingLabel(entity.WingDirection.Value) : null,
+                FloorPlanRoomKey = entity.FloorPlanRoomKey,
                 Capacity = entity.Capacity,
-                IsForMale = entity.IsForMale,
-                IsForFemale = entity.IsForFemale,
                 IsForNewborn = entity.IsForNewborn,
                 IsIsolationRoom = entity.IsIsolationRoom,
                 IsIntensiveCare = entity.IsIntensiveCare,
@@ -937,9 +956,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 RoomNumber = entity.RoomNumber,
                 LocationName = entity.LocationName,
                 FloorName = entity.FloorName,
+                FloorCode = entity.FloorCode,
+                WingDirection = entity.WingDirection,
+                WingDirectionName = entity.WingDirection.HasValue ? FloorPlanRoomNaming.WingLabel(entity.WingDirection.Value) : null,
+                FloorPlanRoomKey = entity.FloorPlanRoomKey,
                 Capacity = entity.Capacity,
-                IsForMale = entity.IsForMale,
-                IsForFemale = entity.IsForFemale,
                 IsForNewborn = entity.IsForNewborn,
                 IsIsolationRoom = entity.IsIsolationRoom,
                 IsIntensiveCare = entity.IsIntensiveCare,
@@ -974,8 +995,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 RoomTypeName = BuildEnumLabel(entity.RoomType),
                 RoomNumber = entity.RoomNumber,
                 Capacity = entity.Capacity,
-                IsForMale = entity.IsForMale,
-                IsForFemale = entity.IsForFemale,
                 IsForNewborn = entity.IsForNewborn,
                 IsIsolationRoom = entity.IsIsolationRoom,
                 IsIntensiveCare = entity.IsIntensiveCare,
@@ -1096,6 +1115,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "patientClassId", Type = "guid", Description = "Filter room berdasarkan patient class.", Example = "3fa85f64-5717-4562-b3fc-2c963f66afa6" },
                 new() { Name = "roomType", Type = "enum", Description = "Filter berdasarkan tipe room.", Example = "1" },
                 new() { Name = "isActive", Type = "bool", Description = "Filter status aktif.", Example = "true" },
+                new() { Name = "floorCode", Type = "string", Description = "Filter kamar pada satu lantai denah.", Example = "3" },
+                new() { Name = "hasFloorPlanKey", Type = "bool", Description = "true = kamar yang tergambar di denah; false = kamar tanpa kunci denah.", Example = "false" },
                 new() { Name = "search", Type = "string", Description = "Cari berdasarkan kode, nama, nomor, lokasi, service unit, patient class, atau deskripsi.", Example = "Ruang 101" },
                 new() { Name = "sortBy", Type = "string", Description = "Kolom sorting.", Example = "sortOrder" },
                 new() { Name = "sortDirection", Type = "string", Description = "Arah sorting: asc atau desc.", Example = "asc" },
@@ -1125,10 +1146,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "roomType", Label = "Tipe Room", Section = "Basic", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "roomTypeOptions", SortOrder = 5 },
                 new() { Name = "roomNumber", Label = "Nomor Room", Section = "Basic", InputType = "text", MaxLength = 50, Example = "101", SortOrder = 6 },
                 new() { Name = "locationName", Label = "Lokasi", Section = "Location", InputType = "text", MaxLength = 100, Example = "Gedung Rawat Inap", SortOrder = 7 },
-                new() { Name = "floorName", Label = "Lantai", Section = "Location", InputType = "text", MaxLength = 50, Example = "Lantai 2", SortOrder = 8 },
+                new() { Name = "floorName", Label = "Lantai", Section = "Location", InputType = "text", MaxLength = 50, Example = "Lantai 2", Description = "Untuk kamar berkunci denah diisi otomatis dari kode lantai.", SortOrder = 8 },
+                new() { Name = "floorCode", Label = "Kode Lantai Denah", Section = "Location", InputType = isUpdate ? "readonly" : "text", MaxLength = 10, Description = "Wajib bila kunci denah diisi; tidak dapat diubah setelah terisi.", Example = "3", SortOrder = 8 },
+                new() { Name = "wingDirection", Label = "Arah Wing", Section = "Location", InputType = "select", OptionsSource = "wingDirectionOptions", Description = "Delapan arah mata angin; menentukan label lokasi kamar berkunci.", SortOrder = 8 },
+                new() { Name = "floorPlanRoomKey", Label = "Kunci Denah", Section = "Location", InputType = isUpdate ? "readonly" : "text", MaxLength = 100, Description = "Format lantai-<kode lantai>/<nama>, huruf kecil; unik dan tidak dapat diubah setelah terisi.", Example = "lantai-3/k-329", SortOrder = 8 },
                 new() { Name = "capacity", Label = "Kapasitas", Section = "Capacity", InputType = "number", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", Description = "Jumlah kapasitas tempat tidur/kapasitas layanan di room.", Example = "1", SortOrder = 9 },
-                new() { Name = "isForMale", Label = "Untuk Laki-laki", Section = "Rule", InputType = "switch", SortOrder = 10 },
-                new() { Name = "isForFemale", Label = "Untuk Perempuan", Section = "Rule", InputType = "switch", SortOrder = 11 },
                 new() { Name = "isForNewborn", Label = "Untuk Bayi Baru Lahir", Section = "Rule", InputType = "switch", SortOrder = 12 },
                 new() { Name = "isIsolationRoom", Label = "Ruang Isolasi", Section = "Rule", InputType = "switch", SortOrder = 13 },
                 new() { Name = "isIntensiveCare", Label = "Intensive Care", Section = "Rule", InputType = "switch", SortOrder = 14 },

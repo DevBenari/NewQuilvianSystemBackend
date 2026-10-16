@@ -86,14 +86,19 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
             .Concat(reservations.Values.Select(x => x.EpisodeId))
             .Distinct().ToList();
 
-        Dictionary<Guid, (Guid Id, string EpisodeNumber, string? Name, Guid ServiceUnitId, bool IsDelete)> episodes = [];
+        Dictionary<Guid, (Guid Id, string EpisodeNumber, string? Name, Guid ServiceUnitId, bool IsDelete, string? MedicalRecordNumber, InpCareDependencyLevel? CareDependencyLevel)> episodes = [];
         if (epIds.Count > 0)
         {
+            // BE-RWI-238: No. RM dan HD/LD ikut dimuat sekali per batch, bukan per bed.
             var epList = await db.Set<InpEpisode>().AsNoTracking()
                 .Where(x => epIds.Contains(x.Id))
-                .Select(x => new { x.Id, x.EpisodeNumber, Name = x.Patient == null ? null : x.Patient.FullName, x.ServiceUnitId, x.IsDelete })
+                .Select(x => new
+                {
+                    x.Id, x.EpisodeNumber, Name = x.Patient == null ? null : x.Patient.FullName, x.ServiceUnitId, x.IsDelete,
+                    MedicalRecordNumber = x.Patient == null ? null : x.Patient.MedicalRecordNumber, x.CareDependencyLevel
+                })
                 .ToListAsync(ct);
-            episodes = epList.ToDictionary(x => x.Id, x => (x.Id, x.EpisodeNumber, x.Name, x.ServiceUnitId, x.IsDelete));
+            episodes = epList.ToDictionary(x => x.Id, x => (x.Id, x.EpisodeNumber, x.Name, x.ServiceUnitId, x.IsDelete, x.MedicalRecordNumber, x.CareDependencyLevel));
         }
 
         // Unit per aksi pembersihan dimuat hanya bila ada bed bebas dalam keadaan kesiapan yang
@@ -146,7 +151,10 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
             {
                 if (await access.CanReadLoadedIdentityAsync(response.ServiceUnitId, ep.ServiceUnitId, ep.IsDelete, ct))
                 {
-                    response.HoldingContext = new() { EpisodeId = ep.Id, EpisodeNumber = ep.EpisodeNumber, PatientName = ep.Name, ReservationId = reservation?.Id, ReservationExpiresAt = reservation?.ExpiresAt };
+                    // GUARD-DNH-01: No. RM dan HD/LD mengikuti aturan yang sama dengan nama penghuni.
+                    response.HoldingContext = new() { EpisodeId = ep.Id, EpisodeNumber = ep.EpisodeNumber, PatientName = ep.Name,
+                        MedicalRecordNumber = ep.MedicalRecordNumber, CareDependencyLevel = ep.CareDependencyLevel?.ToString(),
+                        ReservationId = reservation?.Id, ReservationExpiresAt = reservation?.ExpiresAt };
                 }
             }
             var freeForHousekeeping = placement == null && reservation == null && !closed && valid;
@@ -170,7 +178,8 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
         }
         return new BedProjectionBatch
         {
-            Rows = responses, Roots = roots, Placements = placements, Reservations = reservations, Units = units, Classes = classes
+            Rows = responses, Roots = roots, Placements = placements, Reservations = reservations, Units = units, Classes = classes,
+            EpisodeCareDependency = episodes.ToDictionary(x => x.Key, x => x.Value.CareDependencyLevel)
         };
     }
 
@@ -194,6 +203,12 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
         if (query.ServiceUnitId.HasValue) source = source.Where(x => x.Room!.ServiceUnitId == query.ServiceUnitId);
         if (query.RoomId.HasValue) source = source.Where(x => x.RoomId == query.RoomId);
         if (query.PatientClassId.HasValue) source = source.Where(x => x.Room!.PatientClassId == query.PatientClassId);
+        if (!string.IsNullOrWhiteSpace(query.FloorCode))
+        {
+            // BE-RWI-238: saring satu lantai denah; tanpa parameter jawaban tidak berubah.
+            var floor = query.FloorCode.Trim().ToLower();
+            source = source.Where(x => x.Room!.FloorCode != null && x.Room.FloorCode.ToLower() == floor);
+        }
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
             var term = query.Search.Trim().ToLowerInvariant();
@@ -217,14 +232,25 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
         }).ToList();
         return result;
     }
-    public async Task<string> SnapshotAsync(InpBedPlacement p, CancellationToken ct = default)
+    /// <param name="p">Penempatan yang lokasinya dibekukan.</param>
+    /// <param name="ct">Token pembatalan.</param>
+    /// <param name="comparisonResult">
+    /// Hasil perbandingan kelas pada transfer tervalidasi (<c>DownGrade</c>/<c>UpGrade</c>/<c>SameGrade</c>/<c>Special</c>);
+    /// tidak diisi pada penempatan awal sehingga bentuk snapshot penempatan awal tidak berubah.
+    /// </param>
+    public async Task<string> SnapshotAsync(InpBedPlacement p, CancellationToken ct = default, string? comparisonResult = null)
     {
         var bed = await db.Set<MstBed>().AsNoTracking().SingleAsync(x => x.Id == p.BedId, ct);
         var room = await db.Set<MstRoom>().AsNoTracking().SingleAsync(x => x.Id == p.RoomId, ct);
         var unit = await db.Set<MstServiceUnit>().AsNoTracking().SingleAsync(x => x.Id == p.ServiceUnitId, ct);
         var cls = await db.Set<MstPatientClass>().AsNoTracking().SingleAsync(x => x.Id == p.PatientClassId, ct);
-        return JsonSerializer.Serialize(new { p.BedId, bed.BedCode, bed.BedName, p.RoomId, room.RoomCode, room.RoomName,
-            p.ServiceUnitId, unit.ServiceUnitName, p.PatientClassId, cls.PatientClassCode, cls.PatientClassName, p.TransferCategory, ClassOrderEvidenceReference = options.CurrentValue.ClassOrder.EvidenceReference, ClassOrderSourceDigest = options.CurrentValue.ClassOrder.ApprovedSourceDigest });
+        var snapshot = new { p.BedId, bed.BedCode, bed.BedName, p.RoomId, room.RoomCode, room.RoomName,
+            p.ServiceUnitId, unit.ServiceUnitName, p.PatientClassId, cls.PatientClassCode, cls.PatientClassName, p.TransferCategory, ClassOrderEvidenceReference = options.CurrentValue.ClassOrder.EvidenceReference, ClassOrderSourceDigest = options.CurrentValue.ClassOrder.ApprovedSourceDigest };
+        if (comparisonResult == null) return JsonSerializer.Serialize(snapshot);
+        // BE-RWI-233: hasil perbandingan (termasuk Special) ikut dibekukan pada snapshot transfer.
+        var node = JsonSerializer.SerializeToNode(snapshot)!.AsObject();
+        node["ComparisonResult"] = comparisonResult;
+        return node.ToJsonString();
     }
     public async Task<PagedResult<BedUsageHistoryResponse>> HistoryAsync(BedUsageHistoryQuery query, CancellationToken ct = default)
     {
@@ -286,4 +312,6 @@ internal sealed class BedProjectionBatch
     public Dictionary<Guid, InpBedReservation> Reservations { get; init; } = [];
     public Dictionary<Guid, MstServiceUnit> Units { get; init; } = [];
     public Dictionary<Guid, MstPatientClass> Classes { get; init; } = [];
+    /// <summary>HD/LD episode penghuni/pemesan per EpisodeId; dipakai ringkasan kamar denah (BE-RWI-238).</summary>
+    public Dictionary<Guid, InpCareDependencyLevel?> EpisodeCareDependency { get; init; } = [];
 }

@@ -177,6 +177,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var newbornError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, patient);
             if (newbornError != null)
                 return InpEpisodeOperationResult.BusinessRuleRejected(newbornError);
+            var deliveryCaseError = await InpNewbornAdmissionRules.ValidateDeliveryCaseAsync(
+                _dbContext, request.NewbornAdmission, patient, cancellationToken);
+            if (deliveryCaseError != null)
+                return InpEpisodeOperationResult.BusinessRuleRejected(deliveryCaseError);
             if (request.NewbornAdmission?.CareMode == "RoomingIn" &&
                 !(await InpNewbornAdmissionRules.FindMotherRoomAsync(_dbContext, request.MotherEpisodeId, patient.MotherPatientId, cancellationToken)).HasValue)
                 return InpEpisodeOperationResult.BusinessRuleRejected("Rawat gabung memerlukan penempatan ibu yang aktif.");
@@ -364,6 +368,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitId = request.ServiceUnitId,
                     PatientClassId = request.PatientClassId,
                     EpisodeStatus = InpEpisodeStatus.Draft,
+                    AdmittedAt = now,
                     MotherEpisodeId = request.MotherEpisodeId == Guid.Empty
                         ? null
                         : request.MotherEpisodeId,
@@ -535,6 +540,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     .SingleAsync(x => x.Id == episode.PatientId, cancellationToken);
                 var contextError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, newbornPatient);
                 if (contextError != null) return InpEpisodeOperationResult.BusinessRuleRejected(contextError);
+                var deliveryCaseError = await InpNewbornAdmissionRules.ValidateDeliveryCaseAsync(
+                    _dbContext, request.NewbornAdmission, newbornPatient, cancellationToken);
+                if (deliveryCaseError != null)
+                    return InpEpisodeOperationResult.BusinessRuleRejected(deliveryCaseError);
                 var unchangedRoomingIn = request.MotherEpisodeId == episode.MotherEpisodeId &&
                     request.NewbornAdmission.CareMode == episode.NewbornCareMode;
                 if (request.NewbornAdmission.CareMode == "RoomingIn" && !unchangedRoomingIn &&
@@ -1183,12 +1192,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     IsolationSetByUserId = x.IsolationSetByUserId,
                     IsolationSetByDoctorId = x.IsolationSetByDoctorId,
                     IsolationSetAt = x.IsolationSetAt,
+                    // BE-RWI-234: tingkat ketergantungan yang berlaku saat ini.
+                    CareDependencyLevel = x.CareDependencyLevel != null ? (int)x.CareDependencyLevel : null,
+                    CareDependencySource = x.CareDependencySource != null ? (int)x.CareDependencySource : null,
+                    CareDependencySetByName = x.CareDependencySetByUser != null
+                        ? x.CareDependencySetByUser.DisplayName ?? x.CareDependencySetByUser.UserName
+                        : null,
+                    CareDependencySetAt = x.CareDependencySetAt,
+                    CareDependencyNote = x.CareDependencyNote,
                     DischargeType = (int)x.DischargeType,
                     IsClosedWithoutFinancialClearance = x.IsClosedWithoutFinancialClearance,
                     ClosedWithoutClearanceReason = x.ClosedWithoutClearanceReason,
                     MotherEpisodeId = x.MotherEpisodeId,
                     NewbornAdmission = x.NewbornCareMode == null ? null : new InpatientNewbornAdmissionContext
                     {
+                        DeliveryCaseId = x.DeliveryCaseId ?? Guid.Empty,
                         Source = x.NewbornAdmissionSource ?? "",
                         CareMode = x.NewbornCareMode,
                         CareSource = x.NewbornCareSource ?? "",
@@ -1270,6 +1288,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             detail.DischargeTypeName = ((InpDischargeType)detail.DischargeType).ToString();
             detail.IsolationSourceName = detail.IsolationSource.HasValue
                 ? ((InpIsolationSource)detail.IsolationSource.Value).ToString()
+                : null;
+            detail.CareDependencyLevelName = detail.CareDependencyLevel.HasValue
+                ? ((InpCareDependencyLevel)detail.CareDependencyLevel.Value).ToString()
+                : null;
+            detail.CareDependencySourceName = detail.CareDependencySource.HasValue
+                ? ((InpCareDependencySource)detail.CareDependencySource.Value).ToString()
                 : null;
 
             detail.IsEncounterCreatedByAdmission =
