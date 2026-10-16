@@ -45,18 +45,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// </summary>
         private readonly RadReportService _radReportService;
 
+        /// <summary>No. Foto pendek (<c>RAD-000042</c>), dialokasikan di dalam transaksi pembuat study.</summary>
+        private readonly RadStudyNumberService _radStudyNumberService;
+
         public RadStudyService(
             ApplicationDbContext dbContext,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             IHttpContextAccessor httpContextAccessor,
             LoggerService loggerService,
-            RadReportService radReportService)
+            RadReportService radReportService,
+            RadStudyNumberService radStudyNumberService)
         {
             _dbContext = dbContext;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
             _radReportService = radReportService;
+            _radStudyNumberService = radStudyNumberService;
         }
 
         /* ================================================================ *
@@ -102,6 +107,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 ? 1
                 : order.Studies.Max(x => x.StudySequence) + 1;
 
+            // Kunci alokasi No. Foto hanya berlaku di dalam transaksi.
+            await using var transaksi = await MulaiTransaksiBilaPerluAsync(cancellationToken);
+
             var study = new RadStudy
             {
                 RadOrderId = order.Id,
@@ -109,7 +117,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 ProcedureId = procedureId,
                 ModalityId = order.ModalityId,
                 StudySequence = sequence,
-                StudyNumber = BuildStudyNumber(order.Id, sequence),
+                StudyNumber = await _radStudyNumberService.AllocateOneAsync(cancellationToken),
                 StudyStatus = RadStudyStatus.Planned,
                 CreateBy = actorUserId,
                 CreateDateTime = now,
@@ -123,6 +131,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 null, null, actorUserId, now);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
 
             return RadOperationResult<RadStudyResponse>.Success(MapStudy(study));
         }
@@ -428,6 +437,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
             AddHistory(study.RadOrder!, study, "Study.StartAcquisition", from.ToString(),
                 study.StudyStatus.ToString(), null, null, actorUserId, now);
+
+            // Alur v1: pemeriksaan yang mulai dikerjakan langsung berstatus sedang dikerjakan.
+            // Tombol Mulai di Antrian Pesanan dihapus 2026-10-16 (keputusan pemilik modul), sehingga
+            // pesanan berpindah sendiri saat citra pertama mulai diambil.
+            if (study.RadOrder is { OrderStatus: RadOrderStatus.Accepted or RadOrderStatus.Scheduled } pesanan)
+            {
+                var statusPesanan = pesanan.OrderStatus;
+                pesanan.OrderStatus = RadOrderStatus.InProgress;
+                pesanan.UpdateBy = actorUserId;
+                pesanan.UpdateDateTime = now;
+                pesanan.Version += 1;
+                AddHistory(pesanan, null, "Order.Start", statusPesanan.ToString(),
+                    pesanan.OrderStatus.ToString(), "AutoOnAcquisitionStart", null, actorUserId, now);
+            }
 
             await SaveWithConcurrencyGuardAsync(cancellationToken);
 
@@ -753,6 +776,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
             var sequence = existingSequences.Count == 0 ? 1 : existingSequences.Max() + 1;
 
+            await using var transaksi = await MulaiTransaksiBilaPerluAsync(cancellationToken);
+
             var repeat = new RadStudy
             {
                 RadOrderId = order.Id,
@@ -760,7 +785,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 ProcedureId = source.ProcedureId,
                 ModalityId = source.ModalityId,
                 StudySequence = sequence,
-                StudyNumber = BuildStudyNumber(order.Id, sequence),
+                StudyNumber = await _radStudyNumberService.AllocateOneAsync(cancellationToken),
                 StudyStatus = RadStudyStatus.Planned,
                 RepeatOfStudyId = source.Id,
                 RepeatCause = request.RepeatCause,
@@ -787,6 +812,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 request.RepeatReason, actorUserId, now);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
 
             return RadOperationResult<RadStudyResponse>.Success(MapStudy(repeat));
         }
@@ -1446,8 +1472,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             }
         }
 
-        private static string BuildStudyNumber(Guid orderId, int sequence) =>
-            $"RAD-{orderId:N}-{sequence:D3}".ToUpperInvariant();
+        /// <summary>
+        /// Membuka transaksi bila pemanggil belum membukanya; <c>null</c> berarti ikut transaksi
+        /// pemanggil, yang juga menjadi pihak yang meng-commit.
+        /// </summary>
+        private async Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction?> MulaiTransaksiBilaPerluAsync(
+            CancellationToken cancellationToken) =>
+            _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
 
         /// <summary>
         /// Menyusun muatan fakta kelayakan tagih.

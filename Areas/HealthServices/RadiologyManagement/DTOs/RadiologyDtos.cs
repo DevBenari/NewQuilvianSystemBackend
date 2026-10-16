@@ -108,6 +108,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         public string Reason { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// Tambah Baris — Detail Pasien v1: pemeriksaan tambahan pada booking yang sama. Pesanan baru
+    /// mewarisi kunjungan, tanggal pemeriksaan, dan petugas pesanan sumbernya.
+    /// </summary>
+    public class RadOrderAddExaminationRequest
+    {
+        [Required]
+        public Guid ProcedureId { get; set; }
+
+        /// <summary>Alat untuk pemeriksaan tambahan. Kosong = alat pesanan sumber.</summary>
+        public Guid? ModalityId { get; set; }
+
+        /// <summary>Dokter Pemeriksa pemeriksaan tambahan. Boleh kosong.</summary>
+        public Guid? ExaminingDoctorId { get; set; }
+    }
+
     /// <summary>Centang Cetak Film — Detail Pasien v1 (<c>BE-RAD-25</c>).</summary>
     public class RadOrderFilmPrintRequest
     {
@@ -600,6 +616,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         /// </summary>
         public string OrderNumber { get; set; } = string.Empty;
 
+        /// <summary>
+        /// No. Foto v1 (<c>RAD-03-42</c>) — satu per pemeriksaan, diberikan saat Konfirmasi.
+        /// Kosong selama pesanan belum dikonfirmasi.
+        /// </summary>
+        public string? PhotoNumber { get; set; }
+
         public Guid EncounterId { get; set; }
 
         /// <summary>
@@ -672,7 +694,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
         /// <summary>Pasien membutuhkan persiapan — tab Pasien Persiapan v1.</summary>
         public bool RequiresPreparation { get; set; }
 
-        /// <summary>Nomor study pesanan ini, urut — kolom No. Foto v1.</summary>
+        /// <summary>
+        /// Kolom No. Foto v1: satu nomor per pemeriksaan — study yang berlaku (urutan tertinggi
+        /// yang tidak dibatalkan). Tetap berbentuk daftar agar konsumen lama tidak pecah.
+        /// </summary>
         public List<string> StudyNumbers { get; set; } = new();
 
         /// <summary>
@@ -702,6 +727,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
 
         /// <summary>Benar bila dari sisi pembayaran pemeriksaan boleh diproses.</summary>
         public bool IsPaymentCleared { get; set; }
+
+        /// <summary>Sisa tagihan kunjungan — ditampilkan di bawah lencana Belum Lunas, sama dengan Lab.</summary>
+        public decimal OutstandingAmount { get; set; }
 
         /* ---------------------------------------------------------------- *
          * Detail Pasien dan aksi baris v1 — BE-RAD-20, RAD-EVD-001 bagian 7.1.

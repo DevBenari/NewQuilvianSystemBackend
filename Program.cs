@@ -479,6 +479,7 @@ try
     builder.Services.AddScoped<RadOrderImageService>();
     builder.Services.AddScoped<RadOperationalReportService>();
     builder.Services.AddScoped<RadReportTemplateService>();
+    builder.Services.AddScoped<RadStudyNumberService>();
     builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<RadSafetyPolicyService>();
     builder.Services.AddScoped<RadModalityService>();
@@ -486,6 +487,7 @@ try
     builder.Services.AddScoped<RadReportService>();
     builder.Services.AddScoped<RadReportNumberService>();
     builder.Services.AddScoped<RadOrderNumberService>();
+    builder.Services.AddScoped<RadPhotoNumberService>();
     builder.Services.AddScoped<BillingFolioService>();
 
     // BE-RWI-126 / FR-KEP-082 / RWI-DEC-154. Ringkasan tagihan pasien rawat inap baca-saja tanpa
