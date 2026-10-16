@@ -237,6 +237,8 @@ Jumlah panah: **2**; 4 node. Panah `BR318 --> FFORM` (12 Oktober 2026) mewakili 
 | `FE-IGD-063` | Komponen Diagram Tubuh (Body Map) Interaktif & Anamnesis Kasus Trauma/SAMPLE di Assesmen Awal IGD | ✅ DONE — 15 Oktober 2026. Live testing 100% PASS, 10/10 unit tests PASS | [laporan](../task/report/frontend/FE-IGD-063.md) |
 | `FE-IGD-064` | Tampilan dan Penanganan Status Form Dibatalkan Admisi di Layar IGD (`IGD-DEC-309`) | ✅ DONE — 16 Oktober 2026. Kode 5 berkas lengkap, ESLint 0 error, build lulus, live browser testing Putaran B3 terbukti lulus 100% | [FE-IGD-064](../task/report/frontend/FE-IGD-064.md) |
 | `FE-IGD-065` | Pemicu Otomatis dan Manual Status InTreatment & Penyelarasan Alur Non-Ranap (`IGD-DEC-311`) | ✅ 16 Oktober 2026 — 3 berkas tampilan selesai, eslint 0 error/0 warning, 55/55 unit tests PASS, zero disruption to base components | [R3.16](#r316--epic-igd-15-form-permintaan-rawat-inap-dari-igd-mvp-11--12-oktober-2026) |
+| `FE-IGD-066` | Field Seleksi Tingkat Ketergantungan Pasien pada Form Permintaan Rawat Inap & Tampilan Cetak Surat Pengantar (`IGD-DEC-312`) | ✅ DONE — 16 Oktober 2026. 7 berkas selesai, unit test 6/6 lulus, ESLint 0 error 0 warning, Next.js build terverifikasi | [laporan](../task/report/frontend/FE-IGD-066.md) |
+| `FE-IGD-067` | UI Form Reservasi Pra-Kedatangan & Daftar Pasien Prioritas di Admisi IGD (`IGD-DEC-314`, `315`) | ✅ DONE — 16 Oktober 2026. Form reservasi, deteksi CRM tier badge, ambulans, satu-klik check-in, ESLint 0 error, build lulus | [laporan](../task/report/frontend/FE-IGD-067.md) |
 
 
 `FE-IGD-019` sebelumnya belum punya kartu. Kartunya ditambahkan 15 September 2026 pada bagian
@@ -3029,5 +3031,32 @@ traceability; rilis bersama `BE-IGD-073`.
 
 **DoD.** Acceptance 1–7 terpetakan; laporan `task/report/frontend/FE-IGD-066.md`; register, grafik, traceability diperbarui.
 
+### ✅ `FE-IGD-067` — UI Form Reservasi Pra-Kedatangan & Daftar Pasien Prioritas di Admisi IGD
 
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **DONE — 16 Oktober 2026.** Implementasi selesai; form reservasi hotline, dispatch ambulans, deteksi otomatis keanggotaan CRM membership tier, check-in kedatangan reaktif satu-klik, dialog pembatalan beralasan, ESLint 0 error 0 warning, Next.js build sukses. Laporan: [FE-IGD-067.md](../task/report/frontend/FE-IGD-067.md) |
+| **Outcome** | Menyediakan form pencatatan Reservasi Pra-Kedatangan Pasien Prioritas (VIP/Executive CRM-Membership) via hotline WA/telepon, dispatch ambulans, dan penugasan pendamping (GRO/Escort). Menyediakan daftar reservasi pra-kedatangan dengan aksi satu-klik Check-in / Konfirmasi Kedatangan fisik pasien yang otomatis membuka kunjungan IGD aktif |
+| **Slice** | `EPIC IGD-16` · Vertical Slice F5 / Reservasi Pra-Kedatangan Pasien Prioritas |
+| **Requirement** | `FR-IGD-122`, `FR-IGD-123`; `AT-IGD-242`, `AT-IGD-243` |
+| **Keputusan** | `IGD-DEC-314`, `IGD-DEC-315` |
+| **Kontrak** | API `api/v1/health-services/emergency-installation-management/pre-arrival-reservations` |
+| **Cakupan** | `components/features/emergency/emergency-pre-arrival-form.jsx`, `components/features/emergency/emergency-pre-arrival-list.jsx`, hooks dan API client IGD |
+| **Dependency** | `BE-IGD-080` |
+| **Pasangan backend** | `BE-IGD-080` |
+| **Owner** | Frontend IGD |
+| **Risiko** | Rendah — penambahan sub-layar reservasi di pendaftaran IGD tanpa mengganggu flow triase |
 
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta |
+| ---: | --- | --- |
+| 1 | Form reservasi pra-kedatangan menyediakan input nama pemesan, nomor telepon, estimasi jam tiba (ETA), keluhan awal, pencarian pasien/membership CRM, opsi order ambulans, dan staf pendamping | Inspeksi form & komponen UI |
+| 2 | Deteksi otomatis keanggotaan CRM aktif pasien menampilkan badge tier (Platinum/Gold) pada ringkasan reservasi | Inspeksi tampilan form saat pasien dipilih |
+| 3 | Tabel daftar reservasi pra-kedatangan menampilkan daftar pasien pending arrival terurut berdasarkan ETA terdekat | Tampilan tabel daftar pra-kedatangan |
+| 4 | Tombol aksi *Konfirmasi Tiba / Check-in* memanggil endpoint backend dan memperbarui status secara reaktif tanpa reload | Log panggilan API check-in |
+| 5 | Aksi pembatalan reservasi beralasan (*Cancel Reservation*) didukung dengan dialog konfirmasi | Log panggilan API cancel |
+| 6 | Berkas base component bersama tidak disentuh, ESLint 0 error, build Next.js lulus | Log eksekusi build dan linter |
+| 7 | Live Browser Testing visual Chromium memvalidasi alur catat reservasi, pemesanan ambulans, dan check-in kedatangan | Laporan live browser testing |
+
+**DoD.** Acceptance 1–7 terpetakan; laporan `task/report/frontend/FE-IGD-067.md`; register, grafik, traceability diperbarui.

@@ -1044,6 +1044,10 @@ disposisi `Executed` (`BE-IGD-062`).
 | `FR-IGD-119` penolakan form oleh admisi & buat form baru | `BE-IGD-077` | `FE-IGD-064` | `AT-IGD-238`, `239` | Lunas — Live testing visual Chromium Putaran B3 terbukti 100% PASS (`BE-IGD-077` ✅, `FE-IGD-064` ✅, `IGD-DEC-309`) |
 | `FR-IGD-120` penutupan kunjungan IGD dua arah | `BE-IGD-077` | — | `AT-IGD-240` | Selesai — Backend selesai (`BE-IGD-077` ✅ build 0 error), integrasi method publik siap dipanggil saat admit Rawat Inap (`IGD-DEC-308`) |
 | `FR-IGD-121` tingkat ketergantungan pasien (Low, Moderate, High Dependency) | `BE-IGD-079` | `FE-IGD-066` | `AT-IGD-241` | ✅ Selesai / Lunas — Backend selesai (`BE-IGD-079` ✅ migration diaplikasikan, build 0 error, QBE PASS); frontend selesai (`FE-IGD-066` ✅ ESLint 0 error, unit test 6/6 PASS, Next.js build terverifikasi, DoD lunas, `IGD-DEC-312`) |
+| `FR-IGD-122` reservasi pra-kedatangan pasien prioritas & dispatch ambulans | `BE-IGD-080` | `FE-IGD-067` | `AT-IGD-242` | ✅ Selesai / Lunas — Backend `BE-IGD-080` selesai (build 0 error, migrasi EF Core diaplikasikan); Frontend `FE-IGD-067` selesai (form reservasi hotline, dispatch ambulans, auto-detect CRM tier, check-in reaktif, ESLint 0 error, Next.js build PASS, `IGD-DEC-314`) |
+| `FR-IGD-123` independensi triase medis klinis vs fasilitas keramahan VIP | `BE-IGD-080` | `FE-IGD-067` | `AT-IGD-243` | ✅ Selesai / Lunas — Backend `BE-IGD-080` selesai (skema reservasi terpisah dari triase); Frontend `FE-IGD-067` selesai (pemisahan jalur reservasi keramahan dengan proses triase medis IGD, `IGD-DEC-315`) |
+| `FR-IGD-124` prioritas kamar rawat inap antrean transfer berbasis tier CRM | `BE-IGD-081` | `FE-IGD-068` | `AT-IGD-244` | Direncanakan — `IGD-DEC-316` disetujui |
+| `FR-IGD-125` integrasi diskon tier membership & ketentuan pembayaran billing IGD | `BE-IGD-082` | `FE-IGD-069` | `AT-IGD-245` | Direncanakan — `IGD-DEC-317` disetujui |
 | DoD PRD §12.5 butir 7 (tagihan IGD tidak ditautkan) | `BE-IGD-075` | — | Uji API regresi | Terjaga tanpa `BE-IGD-075` (`IGD-DEC-304`): jalur Transfer tidak membuat `InpAdmissionReferral`, satu-satunya pemicu penautan; uji regresi pada putaran B baru |
 | DoD PRD §12.5 butir 11 (hak akses lewat pengurus Akses Role) | — | — | Log uji tanpa SuperAdmin | Langkah operasional, bukan task |
 | DoD PRD §12.5 butir 12 (persetujuan Rawat Inap dan Billing) | — | — | — | Lunas — `IGD-DEC-299` |
@@ -1066,6 +1070,10 @@ disposisi `Executed` (`BE-IGD-062`).
 | `IGD-DEC-310` Standar Kasus Trauma, SAMPLE (Last Meal), dan Diagram Tubuh (Body Map) IGD | `approved` | `BE-IGD-076`; `FE-IGD-063` |
 | `IGD-DEC-311` Perbaikan Transisi Status Alur Non-Ranap & Pemicu Status InTreatment | `approved` | `BE-IGD-078`; `FE-IGD-065` |
 | `IGD-DEC-312` Tingkat Ketergantungan Pasien (Patient Dependency Level) pada Form Permintaan Rawat Inap & Surat Pengantar | `approved` | `BE-IGD-079`; `FE-IGD-066` |
+| `IGD-DEC-314` Reservasi Pra-Kedatangan Pasien Prioritas via WA/Telepon dan Dispatch Ambulans IGD | `approved` | `BE-IGD-080`; `FE-IGD-067` |
+| `IGD-DEC-315` Independensi Triase Klinis Medis vs Fasilitas Keramahan (Hospitality) Pasien Prioritas | `approved` | `BE-IGD-080`; `FE-IGD-067` |
+| `IGD-DEC-316` Prioritas Alokasi Kamar Rawat Inap Berbasis Membership Tier pada Antrean Transfer Admisi | `approved` | `BE-IGD-081`; `FE-IGD-068` |
+| `IGD-DEC-317` Penerapan Ketentuan Pembayaran dan Benefit Diskon CRM-Membership pada Billing IGD | `approved` | `BE-IGD-082`; `FE-IGD-069` |
 
 
 ### Pertanyaan terbuka

@@ -275,6 +275,8 @@ Jumlah panah: **0**. 2 node. Node `R318` tanpa panah: kemampuan yang dipakainya 
 | `BE-IGD-076` | Standar Anamnesis Kasus Trauma, SAMPLE (Last Meal), dan Diagram Tubuh (Body Map) Backend IGD | — | ✅ DONE — 15 Oktober 2026. Migration diterapkan, build 0 error, DTO & Controller aktif | [laporan](../task/report/backend/BE-IGD-076.md) |
 | `BE-IGD-077` | Fungsi Penolakan Form oleh Petugas Admisi & Evaluasi Penutupan Kunjungan IGD Susulan Dua Arah (`IGD-DEC-308`, `309`) | R3.18 | ✅ DONE — 16 Oktober 2026. Build dotnet 0 error, QBE Strict PASS, live browser testing Putaran B3 terbukti lulus 100% | [laporan](../task/report/backend/BE-IGD-077.md) |
 | `BE-IGD-078` | Perbaikan Transisi Status Alur Non-Ranap & Sequential Promotion Triaged/InTreatment $\rightarrow$ AwaitingDisposition $\rightarrow$ Disposed (`IGD-DEC-311`) | R3.18 | ✅ 16 Oktober 2026 — Controller & Service selesai, build 0 error, QBE Strict PASS (0 violation) | [laporan](../task/report/backend/BE-IGD-078.md) |
+| `BE-IGD-079` | Dukungan Backend Tingkat Ketergantungan Pasien pada Form Permintaan Rawat Inap & Surat Pengantar (`IGD-DEC-312`) | R3.18 | ✅ DONE — 16 Oktober 2026. Migration diaplikasikan, build 0 error, QBE Strict PASS | [laporan](../task/report/backend/BE-IGD-079.md) |
+| `BE-IGD-080` | Layanan Reservasi Pra-Kedatangan Pasien Prioritas & Dispatch Ambulans IGD (`IGD-DEC-314`, `315`) | R3.19 | ✅ DONE — 16 Oktober 2026. Source lengkap (6 berkas baru, 2 diubah), build 0 error, QBE Strict PASS (0 violation). Siap migrasi oleh pemilik | [laporan](../task/report/backend/BE-IGD-080.md) |
 
 
 
@@ -4326,5 +4328,33 @@ traceability.
 
 **DoD.** Acceptance 1–7 terpetakan; laporan `task/report/backend/BE-IGD-079.md`; register, grafik, traceability diperbarui.
 
+### ✅ `BE-IGD-080` — Layanan Reservasi Pra-Kedatangan Pasien Prioritas & Dispatch Ambulans IGD
 
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **DONE — 16 Oktober 2026.** Source code lengkap (6 berkas baru, 2 berkas konfigurasi/DI diubah), build 0 error (10 warning NuGet baseline), QBE Strict PASS (0 violation, 0 review, 0 info). Migrasi diserahkan ke pemilik. Bukti: [laporan](../task/report/backend/BE-IGD-080.md) |
+| **Outcome** | Menyediakan pencatatan reservasi pra-kedatangan gawat darurat (`EmgPreArrivalReservation`) untuk pasien prioritas CRM (VIP/Executive) via panggilan WA/telepon. Menyediakan integrasi order penjemputan ambulans medis/transport (`EmgArrivalMode`), penugasan pendamping khusus (Guest Relations Officer / Escort), serta aksi Check-in kedatangan fisik yang otomatis mempromosikan reservasi menjadi kunjungan IGD aktif (`EmgVisit`) dan encounter gawat darurat tanpa perlu input ulang data |
+| **Slice** | `EPIC IGD-16` · Vertical Slice B5 / Reservasi Pra-Kedatangan Pasien Prioritas |
+| **Requirement** | `FR-IGD-122`, `FR-IGD-123`; `AT-IGD-242`, `AT-IGD-243` |
+| **Keputusan** | `IGD-DEC-314`, `IGD-DEC-315` |
+| **Kontrak** | API `api/v1/health-services/emergency-installation-management/pre-arrival-reservations` |
+| **Cakupan** | `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgPreArrivalReservation.cs`, `Enums/EmergencyPreArrivalStatus.cs`, `DTOs/EmergencyPreArrivalReservationDtos.cs`, `Services/EmergencyPreArrivalReservationService.cs`, `Controllers/EmergencyPreArrivalReservationController.cs`, `Configurations/HealthServices/EmergencyInstallationManagement/EmgPreArrivalReservationConfiguration.cs`, `Repositories/ApplicationDbContext.cs`, `Migrations/` |
+| **Dependency** | `BE-IGD-053`, `BE-IGD-055` |
+| **Pasangan layar** | `FE-IGD-067` |
+| **Owner** | Backend IGD; build milik Rizki |
+| **Risiko** | Rendah — penambahan entitas reservasi baru tanpa memecah logika triase klinis atau encounter eksisting |
 
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta |
+| ---: | --- | --- |
+| 1 | Enum `EmergencyPreArrivalStatus` (`PendingArrival` = 1, `Arrived` = 2, `Cancelled` = 3) dibuat di namespace Enums IGD | Source file enum baru |
+| 2 | Model `EmgPreArrivalReservation` terdefinisi dengan atribut relasi ke `MstPatient`, `MstPatientMembership`, `MstMembershipTier`, `EmgArrivalMode`, dan `EmgVisit` | Source file model baru |
+| 3 | Konfigurasi EF Core `EmgPreArrivalReservationConfiguration` dan migrasi database berhasil dibuat dan diaplikasikan tanpa error | File migration C# & status database |
+| 4 | Endpoint `POST /pre-arrival-reservations` berhasil membuat reservasi baru dengan nomor reservasi unik berformat `RES-EMG-yyMMddHHmmss-XXXXXX` | Log panggilan API create & record di DB |
+| 5 | Endpoint `GET /pre-arrival-reservations` dan `GET /{id}` mengembalikan daftar dan detail reservasi dengan filter status dan pencarian | Respons API list dan detail |
+| 6 | Endpoint `POST /{id}/cancel` memvalidasi alasan pembatalan dan memperbarui status reservasi menjadi `Cancelled` (3) | Log panggilan API cancel & update status |
+| 7 | Endpoint `POST /{id}/check-in` memvalidasi status `PendingArrival`, otomatis membuat / mempromosikan kunjungan `EmgVisit`, menautkan `ResultEmergencyVisitId`, dan memperbarui status reservasi menjadi `Arrived` (2) | Log panggilan API check-in & tautan kunjungan |
+| 8 | Build backend `dotnet build -p:RunAnalyzers=false` lulus 0 error, QBE Strict PASS, nol komentar baru di kode | Laporan task |
+
+**DoD.** Acceptance 1–8 terpetakan; laporan `task/report/backend/BE-IGD-080.md`; register, grafik, traceability diperbarui.
