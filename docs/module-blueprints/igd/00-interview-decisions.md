@@ -6896,3 +6896,76 @@ fungsi pembatalan dan penutupan; frontend keterangan *Dibatalkan admisi*) dan si
 | `IGD-DEC-316` | Decision | **Prioritas Alokasi Kamar Rawat Inap Berbasis Membership Tier pada Antrean Transfer disetujui.**<br><br>**(A) Penanda Pasien Prioritas:** Formulir Permintaan Rawat Inap (`EmgAdmissionRequest`) dan Surat Pengantar Transfer otomatis membaca keanggotaan aktif pasien dan menyematkan penanda `IsPriorityMember = true` beserta `MembershipTierCode` (misal: Platinum/Gold).<br><br>**(B) Pengurutan Antrean Admisi Rawat Inap:** Pada tabel Antrean Transfer IGD/Poli di Admisi Rawat Inap (`InpAdmissionTransfer`), pasien berstatus Member Prioritas secara otomatis ditempatkan di urutan teratas (tepat di bawah prioritas medis CITO) dengan lencana visual khusus. Hal ini memandu petugas admisi ranap untuk segera memesankan dan memblokir alokasi kamar kelas VIP / VVIP / Suite sebelum dialokasikan ke antrean reguler. | Product/Domain Owner IGD; PIC Admisi Ranap (Muhammad Hamzah) | `approved` | **Rizki Gunawan / 2026-10-16** | Tugas analis: Layanan Pasien Prioritas Poin 6 |
 | `IGD-DEC-317` | Decision | **Penerapan Ketentuan Pembayaran dan Benefit Diskon CRM-Membership pada Billing IGD disetujui.**<br><br>**(A) Penyelarasan Aturan Pembayaran dengan Rawat Jalan:** Tagihan pelayanan pasien prioritas di IGD menerapkan matriks benefit keanggotaan yang identik dengan ketentuan poliklinik rawat jalan yang telah tersimpan di master `MstMembershipTier`.<br><br>**(B) Diskon Otomatis Terintegrasi:** Invoice billing IGD pasien prioritas secara otomatis memotong tarif sesuai persentase benefit tier yang aktif: (1) Diskon biaya pendaftaran/administrasi (`RegistrationDiscountPercent`), (2) Diskon jasa konsultasi dokter (`ConsultationDiscountPercent`), (3) Diskon tindakan medis IGD (`ProcedureDiscountPercent`), (4) Diskon obat dan alkes farmasi IGD (`PharmacyDiscountPercent`), serta (5) Diskon pemeriksaan laboratorium dan radiologi.<br><br>**(C) Skema Penjaminan:** Fasilitas penjaminan non-tunai (Cashless, Corporate Guarantee Letter, atau asuransi eksekutif) diakui penuh dengan pola otorisasi penjaminan yang sama dengan alur rawat jalan. | Product/Domain Owner IGD; Owner Billing/Finance | `approved` | **Rizki Gunawan / 2026-10-16** | Tugas analis: Layanan Pasien Prioritas Poin 7 |
 
+
+### Persetujuan amandemen 0r dan penilaian pemilik atas Putaran B3 transfer — 17 Oktober 2026
+
+Lahir dari tinjauan status blueprint (`manage-module-blueprint`) atas pertanyaan pemilik _"apakah transfer pasien ke rawat
+inap sudah 100%"_. Pemilik memeriksa bukti mentah Putaran B3 di PC kantor pada 16 Oktober 2026. Bukti itu
+(`QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-b3-20261016/` dan log backend 16 Oktober) **tidak ada di laptop
+ini dan tidak diperiksa agent**. Snapshot yang dibaca agent: backend `rizkiG` `bd645698` (sama dengan origin;
+`origin/QuilvianIntegrationBackend` `cd5c280f` tidak berbeda untuk berkas terkait) dan frontend `RizkiV2` `58ee55d32`
+(dipull pemilik 17 Oktober 2026, sama dengan origin).
+
+| Batas          | Isi                                                                                                   |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| Di dalam scope | Persetujuan amandemen 0r; status task `EPIC IGD-15` sesudah Putaran B3; celah pemanggil di Rawat Inap |
+| Di luar scope  | Perubahan source apa pun; layar dan endpoint milik Rawat Inap; UAT                                    |
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-318` | Decision | **Amandemen desain bagian 0r (revisi `13`) disetujui: penolakan admisi beralasan dan penutupan kunjungan IGD dua arah.** Mencakup API `0.19.0` §12.8, validation `0.18.0` §14.9, state `0.13.0` §11.6, permission/audit `0.12.0` §11.7, integration `0.10.0` §9.6, `02` §17.14, `03` §17.12, dan `04` §12.8. Nol migration, nol hak akses baru. `BE-IGD-077` dan `FE-IGD-064` dibangun 16 Oktober 2026, sebelum persetujuan ini; keputusan ini mengesahkan kontrak yang dipakai keduanya, **bukan** status task-nya | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-17** | Pilihan interaktif _"Setujui revisi 13 (Recommended)"_ |
+| `IGD-DEC-319` | Decision | **Hasil Putaran B3 diterima atas penilaian pemilik, sebatas yang diuji.** Diterima: B3-01…06 (minta TTD, TTD DPJP, tolak admisi, lencana _Dibatalkan admisi_, rincian penolakan, form baru) dan B3-11…14 sebatas pasien tampil kembali di Antrean Transfer; aturan validation §14 nomor 2, 4, dan 9 `BE-IGD-072` terbukti. **Belum diuji** menurut jawaban pemilik: penjaga `Down()` migration `BE-IGD-072`; skenario C-12 `FE-IGD-060` (langkah admisi); B3-07…10 (penutupan dua arah, `IGD-DEC-308`); B3-14 sampai _admit_ sungguhan (tindak lanjut _Executed_, form _Selesai_). Akibat pada register: `BE-IGD-074` dan `FE-IGD-061` kembali 🟡 sesuai kartunya (register sempat menulis ✅ 16 Oktober 2026 tanpa menyunting kartu); `BE-IGD-077` turun ✅ → 🟡; `BE-IGD-072` tetap 🟡, tinggal acceptance 8; `FE-IGD-064` tetap ✅. _Contoh:_ Sari menolak form Tn. Budi di B3-03 dan lencana merah tampil di layar Dimas — diterima; tetapi belum ada uji ketika Sari menekan _Proses Admisi_ sampai selesai, jadi belum terbukti form Tn. Budi berubah _Selesai_ | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-17** | Jawaban pemilik _"pengujian sudah selesai"_, pilihan cakupan uji, dan pilihan _"Lanjutkan rencana (Recommended)"_ |
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-123` | **Pemanggil fungsi IGD dari Rawat Inap belum ada di repo.** Pada backend `bd645698` dan `cd5c280f`, `BatalkanFormPermintaanOlehPetugasAdmisiAsync` (`EmergencyDispositionService.AdmissionRequest.cs:1474`) dan `EvaluasiPenutupanKunjunganSusulanAsync` (`:1547`) tidak dipanggil dari mana pun; Rawat Inap tidak punya endpoint tolak; `ExecuteTransferAdmissionAsync` hanya mengubah tindak lanjut menjadi _Executed_ (`InpAdmissionTransferService.cs:156-162`). Pada frontend `58ee55d32`, antrean transfer tidak punya tombol _Tolak_ dan `inpatient-admission-transfer.service.js` hanya memuat daftar, rincian, dan _admit_. Akibatnya penolakan admisi dan penutupan susulan **tidak dapat dijalankan dari kode di GitHub**, walau sisi IGD sudah siap. B3-03 yang lulus berarti berjalan di kode PC kantor yang belum di-push, atau lewat jalur lain — tidak dapat dipastikan dari laptop ini |
+| `IGD-FACT-124` | **Laporan Putaran B3 tidak memuat B3-07…10, dan B3-14 berhenti di antrean.** [Laporan](testing/2026-10-16-laporan-uji-putaran-b3-transfer-igd.md) menyebut "7 dari 7 PASS", tetapi ketujuh barisnya adalah B3-01…06 dan B3-11…14; hasil B3-14 hanya "pasien tampil di Antrean Transfer". Tabel hasil di [panduan](testing/2026-10-16-panduan-uji-putaran-b3-transfer-igd.md) menulis B3-07…10 `PASS` dengan `b3-10-kunjungan-completed.png` — tidak didukung laporan dan dibantah jawaban pemilik 17 Oktober 2026 |
+
+#### Pertanyaan terbuka
+
+| ID | Pertanyaan | Pemilik | Menahan |
+| --- | --- | --- | --- |
+| `IGD-OQ-132` | Kapan endpoint _Tolak_ (usulan `POST admission-transfers/{id}/reject`) dan pemanggilan `EvaluasiPenutupanKunjunganSusulanAsync` sesudah _admit_ dibangun di Rawat Inap, dan di roadmap mana dicatat? Pembagiannya sudah diputuskan `IGD-DEC-308`/`309`, tetapi belum ada task-nya di blueprint Rawat Inap mana pun | Muhammad Hamzah | `BE-IGD-077` acceptance 4; B3-07…10; rilis penolakan admisi |
+
+#### Keadaan akhir sesi — 17 Oktober 2026
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Sesudah koreksi `IGD-DEC-319`: backend 47 ✅ dari 64 (73%), frontend 34 ✅ dari 57 (60%), gabungan 81 dari 121 (67%). Tanpa tiga task yang dibatalkan `IGD-DEC-304` (`BE-IGD-073`, `075`, `FE-IGD-062`): 81 dari 118 (69%). Sebelum koreksi register menulis 84 dari 121 |
+| `EPIC IGD-15` | Belum selesai. ✅: `BE-IGD-079`, `FE-IGD-059`, `064`, `066`. 🟡: `BE-IGD-072` (acceptance 8), `BE-IGD-074`, `BE-IGD-077`, `FE-IGD-060`, `FE-IGD-061` |
+| Yang dikerjakan pemilik | (1) Push kode PC kantor yang dipakai Putaran B3, bila ada; (2) uji `Down()` `BE-IGD-072`; (3) uji C-12 dan B3-14 sampai _admit_; (4) uji B3-07…10 sesudah `IGD-OQ-132` terjawab; (5) simpan bukti mentah B3 ke repo atau bawa ke sesi berikutnya |
+| Langkah agent berikutnya | Periksa bukti mentah B3 bila tersedia; sesudah uji ulang, `verify-module-readiness` untuk `MVP-11` |
+| Nomor yang dipakai sesi ini | `IGD-DEC-318`, `319`, `IGD-FACT-123`, `124`, `IGD-OQ-132`. `IGD-DEC-313` tidak pernah dipakai dan sengaja tidak diisi |
+
+### Penilaian Putaran B4 dan persiapan Putaran B5 — 17 Oktober 2026 (malam)
+
+Penilaian diambil dari bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-b4-20261017/` (51 berkas,
+60-an skrip) dan `Logs/quilvian-backend-20261017.json`, **bukan** dari laporan penguji. Putusan per skenario ada di
+[laporan B4, bagian penilaian](testing/2026-10-17-laporan-uji-putaran-b4.md). Uji pengganti:
+[Putaran B5](testing/2026-10-17-panduan-uji-sisa-modul-igd.md#3b-putaran-b5--transfer-dalam-lingkup-igd-menggantikan-b4).
+
+#### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-320` | Decision | **Pada Putaran B5, penguji boleh login SuperAdmin khusus untuk persiapan akun dan hak akses.** Cakupannya: membuat akun uji (dokter, petugas admisi, perawat ruangan, petugas loket bila belum ada) beserta data HR dan penugasan unitnya; memberi Akses Role yang dibutuhkan skenario; menyalakan bypass geolokasi (nilai _enable_) pada setiap akun yang dipakai uji, termasuk akun peran lama. Tidak termasuk: pasien, encounter, kunjungan, bed, data master lain, perubahan lain pada akun lama, dan SQL. Skenario uji tetap memakai akun peran. Keputusan ini melonggarkan aturan A1 panduan uji sisa hanya untuk fase persiapan B5. _Contoh:_ penguji login SuperAdmin, memberi `Doctor : Read` kepada akun petugas admisi, menyalakan bypass geolokasi `dimas.kurniawan`, lalu logout; seluruh skenario sesudahnya memakai akun perawat, dokter, dan admisi | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-17** | Pesan pemilik: _"untuk membuat dokter, atau user seperti user admisi dan perawat dan memberikan akses role biarkan pengujian masuk atau login menggunakan superAdmin"_ dan _"geolocation nyaa dibypass atau nilai nyaa enable"_ |
+| `IGD-DEC-321` | Decision | **Penuntasan transfer pasien dikerjakan dalam lingkup IGD saja, tanpa mengubah kode Rawat Inap.** Putaran B5 membuktikan semua kriteria IGD yang dapat dicapai lewat endpoint _admit_ Rawat Inap yang sudah ada ditambah konfigurasi (akun, Akses Role, penugasan unit). Bila lulus, `BE-IGD-074`, `FE-IGD-060`, dan `FE-IGD-061` dapat dinilai selesai tanpa memangkas acceptance. Tombol dan endpoint _Tolak_ serta penutupan alur pasien-tiba-lebih-dulu tetap menunggu `IGD-OQ-132`; `BE-IGD-077` tetap 🟡 | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-17** | Pesan pemilik: _"kita lakukan di lingkup igd"_ |
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-125` | **Putaran B4 tidak sah sebagai uji build dan tidak menemukan cacat kode IGD.** (1) Lencana `next dev` terlihat pada PNG B4-01, 03, 05, 17, 18, dan 20 (B4-17 dan B4-18 juga menampilkan "1 Issue"). (2) SuperAdmin dipakai pukul 12.37–14.23 untuk membuat 2 dokter, 1 pegawai, 2 bed, 4 pasien, dan 4 encounter (lewat rute admin), serta menyalakan bypass geolokasi pada 5 akun termasuk akun dokter lama `8ec5dfff…`; sebelumnya ada 64 login gagal; semua itu tidak tercatat di `percobaan.json`. (3) Sandi tiga akun, termasuk SuperAdmin, tertulis di `skrip/setup_test_patients.js` dan `skrip/create_bed.js` (folder lokal yang di-gitignore) — dicatat untuk lead. (4) B4-08 `FAIL` adalah salah skrip: `dispositionStatus: 3` (Executed) dikirim dengan komentar "Cancelled"; jawaban `409` aturan 23 benar dan menjadi bukti tambahan `BE-IGD-074` acceptance 4. (5) B4-06, 07, 10, 18, 19, 20 tertahan prasyarat: akun admisi ditolak `403` di `doctors/admin/options` dan `available-beds`; _Terima Dokumen_ ditolak `403` karena perawat ruangan belum ditugaskan ke unit; _Catat Tiba_ tidak pernah terjadi. (6) Klaim B4-10 (serah terima sampai tiba) tidak didukung log. (7) PNG B4-06 identik dengan P1 (halaman _Pilih Tipe Pendaftaran_). (8) Dua galat `500` di modul HR (penugasan organisasi, ubah status dokter) — untuk tim HR. Status task tidak berubah |
+
+#### Keadaan akhir sesi — 17 Oktober 2026 (malam)
+
+| Butir | Keadaan |
+| --- | --- |
+| Uji berikutnya | Putaran B5 dengan prompt Lampiran A.1b panduan uji sisa; uji `Down()` `BE-IGD-072` dengan prompt A.6 (boleh paralel) |
+| Sesudah B5 | Penilaian dengan prompt A.7, lalu kesiapan `MVP-11` dengan prompt A.8 |
+| Untuk lead | Sandi tertulis di dua skrip B4 (fakta `IGD-FACT-125` butir 3); tindakannya milik lead |
+| Nomor yang dipakai | `IGD-DEC-320`, `321`, `IGD-FACT-125` |

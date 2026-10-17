@@ -90,3 +90,35 @@ Laporan hasil pengujian diisi pada berkas ini atau di `docs/module-blueprints/ig
 | B3-07..10 | Penutupan Kunjungan IGD Dua Arah (P-B3-C) | PASS | PNG `b3-10-kunjungan-completed.png` |
 | B3-11..14 | Regresi Jalur Utama Putaran B2 (P-B3-A) | PASS | PNG `b3-14-admisi-selesai.png` |
 ```
+
+---
+
+## 5. Hasil dan penilaian — agent pengembang, 17 Oktober 2026
+
+Tabel di bagian 4 adalah **contoh format** yang terisi PASS sebelum uji. Ia bukan hasil uji. Hasil yang berlaku adalah
+[laporan B3](2026-10-16-laporan-uji-putaran-b3-transfer-igd.md) ditambah penilaian pemilik 17 Oktober 2026 (`IGD-DEC-319`).
+Bukti mentah ada di PC kantor dan tidak diperiksa agent.
+
+| ID | Putusan | Dasar |
+| --- | --- | --- |
+| B3-01…06 | Diterima | Laporan B3 dan penilaian pemilik |
+| B3-07…10 | **Belum diuji** | Tidak ada di laporan B3; pemilik menyatakan belum diuji. Rawat Inap juga belum memanggil fungsi penutupan susulan (`IGD-FACT-123`) |
+| B3-11…13 | Diterima | Laporan B3 dan penilaian pemilik |
+| B3-14 | **Sebagian** — pasien tampil di Antrean Transfer; _admit_ sampai tindak lanjut _Executed_ dan form _Selesai_ belum diuji | Laporan B3 berhenti di antrean; jawaban pemilik |
+
+Akibat pada task dan langkah berikutnya dicatat di `00-interview-decisions.md` bagian *Persetujuan amandemen 0r dan
+penilaian pemilik atas Putaran B3 transfer — 17 Oktober 2026*.
+
+**Catatan pemeriksaan laporan B3 (17 Oktober 2026, sesudah pull frontend `58ee55d32`):**
+
+1. Jalur penolakan B3-03 tidak ada di kode GitHub. Aturan 1 panduan ini memberi petugas admisi `InpatientAdmissionTransfer : Reject`,
+   tetapi backend hanya mengenal `Read` (`InpatientAdmissionTransferController.cs:44`, `:61`); frontend tidak punya tombol _Tolak_;
+   tabel endpoint di laporan tidak mencantumkan endpoint tolak. Laporan beberapa kali menulis "status di DB terverifikasi".
+2. Keterangan PNG `b3-14` menyebut pasien kembali di antrean "setelah perbaikan alur transfer" — ada perubahan kode di tengah uji
+   yang tidak dijelaskan.
+3. Pasien uji tidak sesuai bagian 2: hanya satu pasien (ANISA PRAMESTI) dengan kunjungan lama 1 Oktober 2026
+   (`IGD-261001034358-B98C47`), bukan tiga pasien baru. B3-11…14 dijalankan pada pasien P-B3-B, bukan P-B3-A.
+4. Laporan menetapkan status task sendiri ("dinyatakan ✅ SELESAI") — itu bukan peran penguji.
+5. Folder bukti `test-with-agy` masuk `.gitignore` frontend; bukti mentah tidak terbawa lewat pull dan harus disalin manual.
+
+Uji ulang yang menutup celah ini: [Putaran B4](2026-10-17-panduan-uji-sisa-modul-igd.md#3-putaran-b4--transfer-ke-rawat-inap-prioritas-1).
