@@ -1890,3 +1890,19 @@ kembali. Langkah 2 menampilkan nama sistem `By. Ny. <ibu>` dan tidak mempunyai i
 kembar. Tidak ada layar penjamin, penggabungan invoice, atau rencana deposit. Informasi lengkap
 ibu–bayi, penjamin turunan, DPJP, bed, dan keterangan deposit baru tampil baca-saja pada langkah
 6. Detail mengacu ke [kontrak 022](contracts/newborn-admission-repair-022.md).
+
+## Amandemen PLAN-REPAIR-EPS-027 — 17 Oktober 2026
+
+Pada pop-up kamar denah mode **Pilih Bed**, alasan `Belum dapat dipilih` tetap ditampilkan untuk
+bed yang belum siap. Di samping informasi tersebut, tombol `Pembersihan` boleh tampil hanya bila
+respons server memuat salah satu `StartCleaning`, `CompleteCleaning`, atau `VerifyReadiness` dan
+permission efektif pengguna mengizinkan `InpatientBedManagement : Read` serta aksi terkait.
+Tombol memakai `BaseButton` dan membuka `InpatientBedCleaningDetail` existing; tidak ada form,
+endpoint, status, atau permission baru.
+
+Contoh: `325-A` berstatus `WaitingCleaning` dengan `AvailableActions: ["StartCleaning"]` akan
+menampilkan alasan belum layak dan tombol `Pembersihan` bagi pengguna berhak. Sesudah tindakan
+dimulai, denah dimuat ulang dan status `Cleaning` tetap tidak menampilkan `Pilih bed ini`.
+Sesudah verifikasi kesiapan berhasil, tombol pemilihan baru boleh tampil bila snapshot terbaru
+juga menyatakan `Available` dan `Eligibility.IsEligible = true`. Bila aksi kosong, permission
+ditolak/belum diketahui, atau refresh gagal, frontend tidak menyimpulkan kesiapan sendiri.

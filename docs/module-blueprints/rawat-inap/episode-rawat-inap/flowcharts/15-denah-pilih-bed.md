@@ -10,12 +10,16 @@ flowchart TD
   A["Buka denah; lantai bawaan tampil"] --> B["Pilih tab lantai"]
   B --> C["Klik kamar; kamar penuh tetap bisa dibuka"]
   C --> D["Baca pop up: bed, status, penghuni sesuai hak, alasan bila tidak layak"]
-  D --> E{"Ada bed Tersedia yang layak?"}
-  E -- Tidak --> B
-  E -- Ya --> F["Pilih bed; untuk transfer pilih kategori dan alasan"]
+  D --> E{"Aksi pembersihan tersedia dan pengguna berhak?"}
+  E -- Ya --> P["Buka Pembersihan; jalankan aksi yang tersedia"]
+  E -- Tidak --> Q{"Ada bed Tersedia yang layak?"}
+  Q -- Tidak --> B
+  Q -- Ya --> F["Pilih bed; untuk transfer pilih kategori dan alasan"]
   F --> G["Konfirmasi"]
  end
  subgraph sistem[Sistem]
+  P --> L["Muat ulang denah dan kelayakan dari server"]
+  L --> D
   G --> H{"Bed masih Tersedia, pasien masih layak, kategori sesuai?"}
   H -- Tidak --> I["Tolak; muat ulang lantai"]
   H -- Hasil belum diketahui --> J["Periksa hasil sebelum mengulang"]
@@ -30,6 +34,7 @@ flowchart TD
 | --- | --- | --- | --- | --- |
 | Buka denah dan pilih lantai | Petugas | Episode dari langkah sebelumnya | Peta lantai dengan badge dan outline hijau pada kamar yang bisa dipilih pasien itu | Muat ulang; bila lantai tanpa kamar, pilih lantai lain |
 | Buka kamar | Petugas | Kamar di peta | Pop up berisi setiap bed dan penghuninya sesuai hak | Kamar Penuh tetap dibuka untuk melihat penghuni |
+| Tangani pembersihan | Petugas/sistem | `AvailableActions` pembersihan dan permission efektif pengguna | Detail pembersihan existing dibuka; sesudah tindakan denah dan kelayakan dimuat ulang | Tanpa aksi atau hak: tombol tidak tampil. `WaitingCleaning` yang sudah dimulai menjadi `Cleaning` dan tetap belum dapat dipilih |
 | Pilih bed | Petugas | Bed Tersedia yang layak; kategori dan alasan untuk transfer | Konfirmasi siap dikirim | Bed tidak layak menampilkan alasannya; pilih bed lain |
 | Simpan | Sistem | Versi bed terbaru, kelayakan, kategori | Bed Dipesan (admisi) atau Terisi dan asal Menunggu Pembersihan (transfer) | Bed sudah diambil orang lain: muat ulang dan pilih lagi |
 | Hasil belum diketahui | Petugas/sistem | Koneksi terputus sesudah konfirmasi | Hasil diperiksa lebih dulu | Jangan mengulang dengan permintaan baru; ikuti alur 14 |

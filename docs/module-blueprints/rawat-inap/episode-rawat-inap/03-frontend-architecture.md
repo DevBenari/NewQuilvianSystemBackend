@@ -1488,6 +1488,7 @@ Pop up kamar (FE-DNH-02), dari rencana 6.3:
 │ 329-A ● Terisi    Tn. Budi S. · RM 00-12-34 · High Dep.      │
 │ 329-B ● Terisi    Ny. Sari W. · RM 00-56-78 · Low Dep.       │
 │ 329-C ● Tersedia                     [ Pilih bed ini ]       │
+│ Mode Pilih: pembersihan bersyarat; pilih hanya bila layak    │
 │ Mode Lihat: aksi pembersihan/tutup-buka/riwayat per bed      │
 │ Mode Master: [Kelas] [Arah wing] [Tambah bed] [Tambah boks]  │
 └──────────────────────────────────────────────────────────────┘
@@ -1521,7 +1522,7 @@ Tingkat ketergantungan
 | FE-DNH-01 | Tab lantai + peta | `Floors` + `Rooms` respons denah; lantai bawaan dari server atau lantai terakhir di browser | — | Memuat: kerangka peta; gagal: "Denah gagal dimuat. Muat ulang."; lantai tanpa kamar berkunci: "Belum ada kamar pada lantai ini" |
 | FE-DNH-01 | Badge kamar dan outline | `Counts`, `RoomStatus`, `IsSelectable` | Klik selalu aktif, termasuk kamar Penuh | Kamar Penuh tanpa merah dan tanpa outline (RWI-DEC-303) |
 | FE-DNH-02 | Judul pop up | Nama kamar, lokasi, kelas, status kamar, `DependencySummary` | — | Ringkasan HD/LD tidak tampil bila `DependencySummary` kosong |
-| FE-DNH-02 | Baris bed | `Beds`: label, status, penghuni sesuai hak, sisa waktu pesanan, alasan tidak layak | Lihat: start/complete/verify, tutup/buka, riwayat. Pilih: "Pilih bed ini" pada bed layak. Master: ubah label, tutup/buka, kurangi | Penghuni tersamar sesuai server; tidak mengisi ulang identitas dari cache |
+| FE-DNH-02 | Baris bed | `Beds`: label, status, penghuni sesuai hak, sisa waktu pesanan, alasan tidak layak | Lihat: start/complete/verify, tutup/buka, riwayat. Pilih: "Pilih bed ini" hanya pada bed layak; `Pembersihan` boleh tampil pada bed terkait hanya dari irisan `AvailableActions` dan permission efektif pengguna. Sesudah tindakan, denah serta kelayakan dimuat ulang; bed tetap tidak dapat dipilih sampai server mengembalikan `Available` dan `Eligibility.IsEligible = true`. Master: ubah label, tutup/buka, kurangi | Penghuni tersamar sesuai server; tidak mengisi ulang identitas dari cache. Contoh: `325-A` `WaitingCleaning` menampilkan `Pembersihan` hanya bila respons memuat `StartCleaning` dan pengguna berhak; sesudah start status `Cleaning` masih belum dapat dipilih |
 | FE-DNH-02 | Konfirmasi Pilih | `POST reservations` atau transfer existing, versi bed dari respons terbaru | InpatientBedOccupancy : Create / Transfer | 409: "Bed baru saja dipilih petugas lain. Denah dimuat ulang."; 422: pesan aturan dari server |
 | FE-DNH-03 | Daftar kamar tanpa posisi | `RoomsWithoutFloorPlanKey` | Tautan ke halaman bed/kamar existing | Kosong: tidak tampil |
 | FE-DNH-03 | Ubah kelas | `PUT rooms/{id}` + alasan + `AffectedBedVersions` | Room : Update; tombol tetap aktif, server menolak bila berpenghuni | 409: "Kelas 2 329 masih dihuni 2 pasien" |
