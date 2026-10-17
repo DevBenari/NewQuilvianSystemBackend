@@ -8,10 +8,10 @@ sub-modul itu sendiri.
 | Field | Value |
 |---|---|
 | `blueprint_id` | `RWI-BP-001` |
-| `revision` | **`12`** — Delivery Planning Pendaftaran Admisi Pasien ODC (One Day Care) pada sub-modul `episode-rawat-inap` (kontrak target `0.15.0`, planning `ODC-DEL-20261017-01`, revision 14 `APPROVED_DESIGN_PLANNED`, bagian 0-J); Riwayat metadata: **`11`** — Integrasi Denah ↔ Bed Management, bagian 0-H, **approved** Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`); Riwayat metadata: `10` — draft Bed Management 10 Oktober 2026, bagian 0-E; **`9`** — naik 2026-10-07 untuk amandemen **Workspace PPRI** (`PRD-RWI-ADMISI-001` v`0.2`, decision log revision `38`, gate `1.11`): `episode-rawat-inap` kontrak `0.11.0` dan `02-module-map.md` revision `5`, **disetujui Muhammad Hamzah 2026-10-08 lewat `RWI-DEC-265`** (`draft` 2026-10-07) — bagian 0-D. Sebelumnya **`8`** — **disetujui Muhammad Hamzah 2026-10-02 lewat `RWI-DEC-221`**; naik 2026-10-01 menyerap **Finishing Rawat Inap** (`PRD-RWI-FINISHING-001` v`0.4`, decision log revision `30`, gate `1.9`): `integrasi-billing` kontrak `1.1.0`, `keperawatan` `0.6.0`, `dokter-rawat-inap` `0.7.0`, `episode-rawat-inap` `0.10.0`, `02-module-map.md` revision `4`. **Revisi material:** pencabutan webhook, PIN, dan hitungan tarif kedua; tabel baru di `ClinicalManagement`, `OperatingRoomManagement`, `MasterData`, `BillingManagement`, `BloodBankManagement`, dan satu di `InPatientManagement`; status `Rejected` pada kasus OK. Lihat bagian 0-C. Sebelumnya: **`7`** — naik 2026-09-15 menyerap penyelarasan `PRD-RWI-V2-001` fase `RLN-PH-06`: `dokter-rawat-inap` kontrak `0.6.0`, `keperawatan` kontrak `0.5.0`, `episode-rawat-inap` amandemen terbatas kontrak `0.9.0`, `02-module-map.md` revision `2`. **Revisi material:** tabel baru di `ClinicalManagement` dan `PharmacyManagement`, perubahan perilaku penutupan episode, pesanan tindakan, dan template resep. Sebelumnya: `6` — naik 2026-09-11 menyerap `Gelombang 1A`, keputusan `RWI-DEC-097` s.d. `RWI-DEC-104`. **Revisi material:** `RWI-DEC-101` mencabut sebagian aturan keras `RWI-RULE-012`, dan `RWI-DEC-099` menambah satu kolom beserta perubahan filter index unik. Lihat bagian 0-A |
+| `revision` | **`14`** — Delivery Planning Notifikasi Realtime Konflik Pemilihan Bed pada sub-modul `episode-rawat-inap` (contract `0.16.0`, planning `RTB-DEL-20261017-01`, child revision 16, `RWI-DEC-337`, bagian 0-K). Riwayat metadata: `13` desain realtime draft; `12` Delivery Planning ODC; `11` Integrasi Denah approved; `10` draft Bed Management; `9` Workspace PPRI approved |
 | `blueprint_shape` | **`COMPOSITE`** — ditetapkan `RWI-DEC-082` 2026-09-02 |
 | `shape_decided_by` | **`USER_CONFIRMED`** — Muhammad Hamzah; agent menyarankan, pemilik memutuskan |
-| `status` | **`approved`** — derived: seluruh 4 sub-modul berstatus `approved` (episode-rawat-inap revision 14 ODC `approved`, keperawatan `approved`, dokter-rawat-inap `approved`, integrasi-billing `approved`; Bed Management revision 11 tetap draft); Riwayat metadata: **`partial`** selama amandemen ODC berstatus draft; **`approved`** sejak 2026-10-08: keempat sub-modul `approved` |
+| `status` | **`partial`** — realtime child revision 16 `approved_design_planned`; scope Bed Management revision 11 masih `draft`. Sub-modul lain tetap pada status sebelumnya |
 | `module` | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | `registry_lifecycle` | `ACTIVE` — dinaikkan dari `PLANNED` 2026-08-24 lewat `RWI-DEC-068`. Wewenang eksekusi database dan deployment tetap terpisah |
 | `design_snapshot_at` | 2026-10-17 untuk Pendaftaran Admisi ODC; 2026-10-15 untuk Integrasi Denah; 2026-10-10 untuk Bed Management; Riwayat metadata: **`2026-10-07`** untuk revision `9`; **`2026-10-01`** untuk revision `8`; `2026-09-15` untuk revision `7`; `2026-09-11` untuk revision `6`; `2026-09-02` untuk revision `5`; `2026-08-24` untuk revision `4`; `2026-08-21` untuk revision `3` |
@@ -1122,6 +1122,67 @@ Artefak, hash, owner, dan validasi ada di [manifest anak bagian 17](./episode-ra
 | [Lock](./episode-rawat-inap/roadmap/integrasi-denah-delivery-lock.json) | 22 hash masukan, 2 manifest sebelum registrasi, kepemilikan task dan endpoint |
 
 Tidak mengubah source aplikasi, database, atau Git.
+
+---
+
+## 0-K. Registrasi Delivery Notifikasi Realtime Konflik Pemilihan Bed — 17 Oktober 2026
+
+Sub-modul target: [`episode-rawat-inap/`](./episode-rawat-inap/). Contract set **`0.16.0`**
+(`APPROVED_DESIGN_PLANNED`) dan child revision **`16`**, disetujui melalui `RWI-DEC-337`.
+
+| Hal | Isi |
+|---|---|
+| Planning | `RTB-DEL-20261017-01`, revision 1 |
+| Requirement | Decision log revision 59; `RWI-DEC-333`–`337`; `RWI-AC-469`–`480` |
+| Scope | Alert SignalR same-unit sesudah reservation, placement, atau target transfer committed; initiator disuppress; refetch/reconnect tanpa replay |
+| Task backend | `BE-RWI-250` dan `BE-RWI-251` |
+| Task frontend | `FE-RWI-265`, `FE-RWI-266`, dan `FE-RWI-267` |
+| Coverage | 10 FR, 12 AC, 12 VAL, dan 16 UAT — Zero Coverage Gap |
+| Source snapshot | BE `d420c2fbe094a2d70776c44955233bce9c87bda8`; FE `0accf387138a3fcc1ff40fbb5bdeb960076b4d59` |
+| Production gate | `RWI-OQ-151` tetap OPEN dan memblokir aktivasi nama lengkap di produksi |
+| ID bebas berikutnya | `BE-RWI-252` dan `FE-RWI-268` |
+
+| Artefak | Kegunaan / hash SHA-256 |
+|---|---|
+| [Roadmap backend](./episode-rawat-inap/roadmap/backend-roadmap-realtime-bed-selection.md) | 2 task, 1 pasangan dependency · `ea40156e576dd646ad72addda9433b91869f7f6e1162d9fc4bb66dccfd05a489` |
+| [Roadmap frontend](./episode-rawat-inap/roadmap/frontend-roadmap-realtime-bed-selection.md) | 3 task, 3 pasangan dependency · `d323f688b405bc16dc8eaa40373feb1cc4296389c365e80f0efd20e5913a6b3c` |
+| [Traceability](./episode-rawat-inap/roadmap/requirement-traceability-realtime-bed-selection.md) | FR/AC/VAL/UAT ke task · `c6024b92d8d8aecbf2ff2f3c55621f84db2f5997400c939b240c10e063a7a70f` |
+| [Delivery lock](./episode-rawat-inap/roadmap/realtime-bed-selection-delivery-lock.json) | Input hash dan alokasi ID · `ac3067095997190cd6c05be39c6e8e314b51a16890e990446715df5953f73716` |
+
+Tidak ada source aplikasi, database, migration, package, deployment, atau Git write yang dilakukan
+oleh registrasi delivery ini. Eksekusi memerlukan satu pemanggilan builder per task.
+
+## Amandemen manifest parent revision 13 — realtime pemilihan bed, 17 Oktober 2026 (snapshot desain sebelum approval)
+
+> Status `draft` pada bagian ini adalah rekaman revision 13. Status kanonis sesudah approval dan
+> planning berada pada bagian 0-K serta child manifest revision 16.
+
+| Field | Nilai |
+|---|---|
+| Blueprint | `rawat-inap` (`COMPOSITE`) |
+| Parent revision | `13` |
+| Child owner | `episode-rawat-inap`, revision `15` draft |
+| Contract target | `0.16.0` (`draft`) |
+| Requirement source | Decision log revision `58`, `RWI-DEC-333`–`336`, `RWI-AC-469`–`480` |
+| Capability evidence | `RTB-IMP-20261017-01`; capability map revision `1.9` bagian 22 |
+| Readiness | `RTB-RCG-20261017-01`: `READY_FOR_DOMAIN_DESIGN` |
+| Domain architecture | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada aggregate/persistence/billing baru |
+| Status | **partial** — desain child draft; approval manusia belum ada |
+| Production gate | `RWI-OQ-151` security/privacy sign-off untuk nama lengkap |
+
+### Artefak yang diamendemen
+
+| Artefak | Perubahan |
+|---|---|
+| [Decision log](./00-interview-decisions.md) | Trigger, recipient, reconnect, failure policy, dan acceptance dikunci |
+| [Capability map](./01-existing-capability-map.md) | `RTB-CAP-01`–`08` |
+| [Requirement gate](./evidence/02-requirement-completeness-gate.md) | Assessment `RTB-RCG-20261017-01` |
+| [Impact scan](./evidence/realtime-bed-selection-impact-scan-20261017.md) | Bukti source backend/frontend snapshot 17 Oktober 2026 |
+| [Module map](./02-module-map.md) | Ownership child dan tidak ada perubahan menu/route |
+| [Child manifest](./episode-rawat-inap/blueprint-manifest.md) | Contract set `0.16.0` draft dan integrity register |
+
+Amandemen ini hanya menulis dokumentasi blueprint. Perubahan source frontend yang sudah ada pada
+working tree merupakan milik pengguna dan tidak dihitung sebagai hasil desain ini.
 
 ---
 

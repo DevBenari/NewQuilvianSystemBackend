@@ -2259,3 +2259,41 @@ Entity master data berikut sudah ada di database PostgreSQL (`BE@def6cf6a`), tid
 | `PatientClassType.Odc` | Backend `MasterData` | `14` | Kategori kelas pasien ODC pada backend (`Sudah ada`). |
 | `INPATIENT_PATIENT_TYPE.ODC` | Frontend Constants | `"odc"` | Kategori tipe pasien ke-4 pada wizard admisi frontend (`Baru`). |
 
+## 26. Kamus data realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+Tidak ada data persisted baru. Tabel berikut adalah DTO transport SignalR yang dibentuk dari state
+committed existing dan habis setelah dikonsumsi client.
+
+### 26.1 `InpatientBedRealtimeEventResponse`
+
+| Field | Tipe | Null | Sumber existing | Sensitivitas/aturan |
+|---|---|---:|---|---|
+| `eventId` | `Guid` | tidak | Dibuat publisher | ID deduplikasi sesi; tidak disimpan |
+| `eventType` | string enum | tidak | Jenis mutasi | `BedReserved`, `PatientPlaced`, `PatientTransferred` |
+| `bedId` | `Guid` | tidak | Bed target | Identifier internal |
+| `bedCode` | `string` | ya | Master bed | Fallback label; tanpa data pasien |
+| `bedName` | `string` | ya | Master bed | Label utama alert |
+| `roomId` | `Guid` | tidak | Room bed target | Identifier internal |
+| `roomName` | `string` | ya | Master room | Konteks tampilan, tidak wajib dalam kalimat minimum |
+| `serviceUnitId` | `Guid` | tidak | Unit room/placement target | Kunci routing grup dan defense in depth client |
+| `serviceUnitName` | `string` | ya | Master service unit | Konteks tampilan |
+| `episodeId` | `Guid` | tidak | Episode mutasi | Identifier internal; tidak dirender pada alert |
+| `patientName` | `string` | tidak | `InpEpisode.Patient.FullName` | **PHI/sensitif**; hanya grup berwenang unit sama |
+| `actorUserId` | `Guid` | tidak | Actor mutasi | Dipakai menekan alert actor sendiri; tidak dirender |
+| `actorDisplayName` | `string` | tidak | `ApplicationUser.DisplayName` | Data personal; hanya grup berwenang unit sama |
+| `occurredAtUtc` | `DateTimeOffset` | tidak | Waktu hasil commit/publish | UTC ISO-8601 |
+| `bedOperationalVersion` | integer/long | tidak | Versi committed bed | Membantu observability; bukan pengganti refetch |
+
+### 26.2 Data yang dilarang
+
+Payload tidak boleh memuat MRN/nomor rekam medis, NIK, tanggal lahir, alamat, nomor telepon,
+diagnosis, catatan klinis, penjamin, tarif, saldo, atau isi formulir persetujuan. Nama pasien dan
+actor juga tidak boleh dimasukkan ke application log, exception message, atau metric label.
+
+### 26.3 Retensi dan ownership
+
+- Owner data sumber tetap entity existing di Inpatient/Patient/User Management.
+- Event tidak memiliki tabel, retention period, CRUD, atau endpoint pencarian.
+- Deduplikasi frontend hanya hidup selama komponen selection mount dan dibatasi ukurannya.
+- Audit bisnis tetap berasal dari receipt/audit mutasi bed existing, bukan dari event realtime.
+

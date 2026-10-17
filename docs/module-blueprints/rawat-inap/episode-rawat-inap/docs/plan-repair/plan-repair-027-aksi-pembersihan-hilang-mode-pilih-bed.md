@@ -8,7 +8,7 @@ tanggal_rencana: "2026-10-17"
 diputuskan_oleh: "Pemilik Sistem (user sesi)"
 tanggal_keputusan: "2026-10-17"
 basis_source_backend: "c2bc563ed9332f08fa95b9fe35786fea7a647279 (MHamzah)"
-basis_source_frontend: "15ae73984ad26a408e3038566d7e1d1533fe10c3 (HamzahV2; working tree memiliki perubahan lokal yang harus dipertahankan)"
+basis_source_frontend: "15ae73984ad26a408e3038566d7e1d1533fe10c3 (HamzahV2; working tree memiliki perubahan lokal yang harus dipertahankan)" 
 ```
 
 ## 1. Register status pengerjaan

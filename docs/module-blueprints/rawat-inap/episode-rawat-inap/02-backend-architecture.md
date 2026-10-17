@@ -3659,3 +3659,118 @@ Dalam method internal `EvaluatePlacementEligibilityCore`, evaluasi kelayakan bed
 2. **Tidak membuat entitas Pasien atau Kunjungan terpisah**: Pasien ODC tetap menggunakan `MstPatient` dan `RegPatientEncounter` (`EncounterType.Inpatient`).
 3. **Tidak membuat endpoint transfer baru**: Eskalasi perawatan memanfaatkan method `TransferCoreAsync` yang sudah berjalan stabil (`RWI-DEC-331`).
 
+## 19. Amandemen backend realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+### 19.1 Tujuan dan boundary
+
+Backend mengirim event realtime hanya setelah reservasi, penempatan awal, atau penempatan tujuan
+transfer berhasil commit. Event adalah sinyal invalidasi cache/denah bagi layar pemilihan bed;
+state transaksi dan response HTTP tetap source of truth. Amandemen ini tidak menambah webhook,
+controller, endpoint HTTP, entity, tabel, migration, outbox, permission string, atau audit bisnis baru.
+
+### 19.2 Komponen dan keputusan reuse
+
+| Komponen | Keputusan | Perubahan target |
+|---|---|---|
+| `Program.cs` | Ready to reuse | Tetap memakai `AddSignalR` dan route `/hubs/queues`; registrasikan service publisher bila diperlukan DI |
+| `Hubs/QueueHub.cs` | Extend | Tambah join/leave grup pemilihan bed dengan validasi permission dan unit |
+| `InpBedAccessService.cs` | Reuse with adapter | Sediakan pemeriksaan subscription yang memakai aturan unit dan identitas existing |
+| `InpBedOccupancyService.BedManagement.cs` | Extend | Panggil publisher setelah coordinator mengembalikan commit sukses non-replay |
+| `InpBedRealtimeService.cs` | Baru | Bentuk payload, kirim ke grup target, tangkap dan log kegagalan tanpa melempar ke mutasi |
+| `InpatientBedRealtimeEventResponse` | Baru | DTO transport nonpersisten untuk event `InpatientBedSelectionChanged` |
+| `InpBedMutationCoordinator` | Ready to reuse | Tidak diubah; boundary commit dan `IsReplay` sudah memadai |
+
+### 19.3 Hub, grup, dan otorisasi
+
+- Hub: `/hubs/queues` dengan autentikasi existing.
+- Method client-to-server:
+  `JoinInpatientBedSelection(Guid serviceUnitId)` dan
+  `LeaveInpatientBedSelection(Guid serviceUnitId)`.
+- Nama grup: `inpatient-bed-selection:{serviceUnitId:D}`.
+- Join hanya berhasil bila actor memiliki `InpatientBedOccupancy:Read`,
+  `InpatientEpisode:Read`, dan `serviceUnitId` ada di hasil scope unit actor.
+- ID kosong, permission kurang, atau unit di luar scope menghasilkan `HubException` generik; log
+  tidak boleh memuat nama pasien.
+- Tidak ada method `JoinAllInpatientBeds` dan tidak ada pemakaian `Clients.All`.
+- Disconnect otomatis melepaskan membership SignalR; frontend tetap memanggil leave saat konteks
+  berubah sebagai cleanup eksplisit.
+
+### 19.4 Boundary publikasi post-commit
+
+Urutan wajib untuk `ReserveBedAsync`, `PlacePatientAsync`, dan `TransferAsync`:
+
+1. Jalankan validasi dan mutasi existing melalui `InpBedMutationCoordinator.ExecuteAsync`.
+2. Coordinator menyimpan perubahan dan commit transaksi.
+3. Bila hasil adalah replay (`meta.IsReplay == true`), kembalikan response existing tanpa event.
+4. Bila commit baru, muat snapshot minimum episode, patient, bed, room, service unit, actor, dan
+   versi bed dari hasil yang telah committed.
+5. Panggil publisher best-effort ke grup unit layanan milik bed target.
+6. Publisher menangkap kegagalan SignalR, mencatat log teknis terstruktur tanpa nama, lalu return.
+7. Kembalikan response HTTP existing tanpa mengubah status sukses akibat kegagalan publish.
+
+Untuk transfer, event hanya dikirim ke unit bed tujuan. Pelepasan bed asal tetap terlihat lewat
+refetch pada layar yang relevan dan bukan trigger alert “bed didaftarkan” dalam slice ini.
+
+### 19.5 Kontrak kelas
+
+```text
+InpBedOccupancyService
+  ├─ ReserveBedAsync(request, actorUserId, ct)
+  ├─ PlacePatientAsync(request, actorUserId, ct)
+  └─ TransferAsync(request, actorUserId, actorDoctorId, ct)
+          │
+          ├─ InpBedMutationCoordinator.ExecuteAsync(...)  // commit atomik existing
+          │
+          └─ bila !meta.IsReplay
+                 InpBedRealtimeService.NotifyBedAcquiredAsync(
+                   eventType, episodeId, bedId, actorUserId, occurredAtUtc, ct)
+                         │
+                         ├─ query snapshot committed + minimisasi data
+                         └─ IHubContext<QueueHub>.Clients
+                              .Group("inpatient-bed-selection:{serviceUnitId}")
+                              .SendAsync("InpatientBedSelectionChanged", payload)
+```
+
+Publisher tidak boleh dipanggil dari core mutation sebelum commit. Kegagalan query/publish setelah
+commit tidak boleh menyebabkan rollback, `500` palsu, atau percobaan menjalankan ulang mutasi.
+
+### 19.6 Payload minimum dan perlindungan data
+
+DTO mengikuti kontrak integration bagian 14 dan hanya memuat:
+`eventId`, `eventType`, `bedId`, `bedCode`, `bedName`, `roomId`, `roomName`, `serviceUnitId`,
+`serviceUnitName`, `episodeId`, `patientName`, `actorUserId`, `actorDisplayName`,
+`occurredAtUtc`, dan `bedOperationalVersion`.
+
+- Tidak memuat nomor rekam medis, NIK, tanggal lahir, diagnosis, penjamin, atau detail klinis.
+- `patientName` dan `actorDisplayName` tidak ditulis ke application log atau metric label.
+- `eventId` hanya untuk deduplikasi in-memory pada sesi layar; tidak disimpan.
+- `actorUserId` dipakai frontend untuk menekan alert actor sendiri. Transport dapat tetap
+  mengantarkan event kepada koneksi actor yang berada di grup; invariant produk adalah actor tidak
+  melihat alertnya sendiri.
+
+### 19.7 Konsistensi, retry, dan observability
+
+- Delivery bersifat best-effort dan at-most-once dari sudut publisher; tidak ada retry persisted.
+- Client wajib refetch setelah event/reconnect sehingga payload bukan snapshot otoritatif.
+- Race tetap diselesaikan oleh unique constraint/version guard dan response `409` existing.
+- Log kegagalan publish minimum: `eventId`, `eventType`, `episodeId`, `bedId`, `serviceUnitId`,
+  exception type, timestamp, dan correlation/trace ID bila tersedia.
+- Metric yang dianjurkan: jumlah publish berhasil/gagal dan join ditolak, tanpa label PHI.
+
+### 19.8 Daftar file implementasi yang diperkirakan
+
+```text
+NewQuilvianSystemBackend/
+├── Hubs/QueueHub.cs                                      [Extend]
+├── Program.cs                                            [Extend registrasi DI saja]
+└── Areas/HealthServices/InPatientManagement/
+    ├── DTOs/InpatientBedRealtimeDtos.cs                  [Baru]
+    └── Services/
+        ├── InpBedAccessService.cs                        [Extend/adapt]
+        ├── InpBedOccupancyService.BedManagement.cs       [Extend post-commit]
+        └── InpBedRealtimeService.cs                      [Baru]
+```
+
+Nama file DTO boleh mengikuti konvensi folder aktual saat implementasi, tetapi nama event, field,
+security boundary, dan post-commit invariant tidak boleh berubah tanpa revisi kontrak.
+

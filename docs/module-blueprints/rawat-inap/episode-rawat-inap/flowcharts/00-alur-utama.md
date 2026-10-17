@@ -258,3 +258,4 @@ flowchart TD
 - [FLOW-DNH-MVP-002 — Mengelola kamar dan bed lewat denah](./16-denah-master-bed.md)
 - [FLOW-DNH-MVP-003 — Impor susunan denah dan kesiapan awal](./17-impor-denah.md)
 - [FLOW-DNH-MVP-004 — Mencatat tingkat ketergantungan pasien](./18-ketergantungan-pasien.md)
+- [FLOW-RI-MVP-021 — Notifikasi realtime pemilihan bed](./21-notifikasi-realtime-pemilihan-bed.md)

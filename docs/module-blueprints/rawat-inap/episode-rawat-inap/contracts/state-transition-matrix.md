@@ -642,3 +642,34 @@ Contoh: Ny. Sari diadmisi dengan catatan awal Low dari petugas admisi. Hari kedu
 
 Status kasus persalinan tidak berubah ketika dipakai sebagai sumber. Tombol pembatalan existing
 tidak termasuk perubahan transisi ini.
+
+## 14. Amandemen transisi realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+Event realtime tidak memperkenalkan state persisted baru. Ia hanya mengikuti transisi existing
+yang telah committed.
+
+| Aggregate existing | Transisi sukses | Event sesudah commit | Unit penerima |
+|---|---|---|---|
+| Reservasi bed | Tidak ada/berakhir → reservasi aktif pada bed target | `BedReserved` | Unit bed target |
+| Penempatan bed | Bed target tersedia/eligible → penempatan aktif | `PatientPlaced` | Unit bed target |
+| Transfer | Penempatan lama → penempatan aktif pada bed target | `PatientTransferred` | Unit bed target |
+
+### 14.1 Kondisi tanpa event
+
+| Kondisi | Hasil |
+|---|---|
+| Validasi, permission, eligibility, version, atau unique guard gagal | Mutasi gagal; tidak ada event |
+| Transaksi rollback | Tidak ada event |
+| Idempotency mengembalikan receipt lama (`IsReplay`) | Response existing dikembalikan; tidak ada event baru |
+| User hanya membuka, scroll, menyorot, atau memilih lokal | Tidak ada event dan tidak ada lock |
+| SignalR publish gagal setelah commit | Mutasi tetap committed; log teknis; client pulih lewat refetch/reconnect |
+| Client reconnect | Rejoin + refetch; tidak ada replay alert |
+
+### 14.2 Invariant
+
+1. `Committed mutation` mendahului `Publish attempted`.
+2. `Publish failed` tidak boleh mengubah state bisnis atau respons sukses yang telah committed.
+3. Event bukan bukti bahwa bed masih tersedia atau ditempati pada saat dibaca; client wajib
+   refetch.
+4. Unique constraint/version guard existing tetap menentukan pemenang bila dua request bersaing.
+5. Deduplikasi event client tidak pernah menggantikan idempotency mutasi server.

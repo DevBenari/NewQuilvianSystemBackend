@@ -667,3 +667,24 @@ Pengujian positif dan negatif ada di acceptance-test-matrix 23. Belum ada hasil 
 | `VAL-BAYI-022-06` | Context episode memakai kasus yang sama dengan pasien bayi dan source `HospitalBirth` | 400/422 |
 | `VAL-BAYI-022-07` | Rawat gabung membutuhkan penempatan ibu aktif; bayi hanya pada bed bayi dan unit layak registrasi | 400/422 dengan pesan ramah |
 | `VAL-BAYI-022-08` | Request alur baru tidak membawa keputusan invoice atau nominal deposit | Field diabaikan/tidak ditulis |
+
+## 19. Amandemen validasi realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+| ID | Boundary | Aturan | Hasil gagal/penanganan | Trace |
+|---|---|---|---|---|
+| `VAL-RTB-01` | Hub join | `serviceUnitId` wajib nonempty | `HubException`; tidak bergabung | DEC-334, AC-473–474 |
+| `VAL-RTB-02` | Hub join | Actor wajib memiliki `InpatientBedOccupancy:Read`, `InpatientEpisode:Read`, dan akses unit | `HubException`; tidak ada payload PHI | DEC-334, AC-473–474 |
+| `VAL-RTB-03` | Publisher | Hanya mutasi committed baru; `IsReplay` harus false | Tidak publish | DEC-333, AC-469–471 |
+| `VAL-RTB-04` | Publisher | Grup tujuan harus berasal dari `serviceUnitId` bed target committed | Fail closed; log teknis tanpa nama | DEC-334, AC-472–474 |
+| `VAL-RTB-05` | Payload | Semua field wajib tersedia; dilarang MRN/NIK/diagnosis/dll. | Jangan publish payload invalid; log ID teknis | DEC-334, AC-472–473 |
+| `VAL-RTB-06` | Frontend | `actorUserId === currentUserId` tidak boleh menghasilkan alert | Suppress alert actor sendiri | DEC-334, AC-472 |
+| `VAL-RTB-07` | Frontend | Event unit di luar unit aktif diabaikan | Tidak alert; telemetry non-PHI opsional | DEC-334, AC-474 |
+| `VAL-RTB-08` | Frontend | `eventId` duplikat dalam sesi tidak boleh alert dua kali | Ignore duplicate | DEC-335, AC-477 |
+| `VAL-RTB-09` | Frontend | Setiap event actor lain dan reconnect memicu refetch | Tampilkan error refresh existing bila gagal | DEC-335, AC-469, AC-475–477 |
+| `VAL-RTB-10` | Failure | Publish error tidak boleh rollback atau mengubah HTTP sukses | Tangkap, log, return hasil mutasi | DEC-336, AC-478–480 |
+| `VAL-RTB-11` | Race | Submit pada bed yang sudah kalah tetap diperiksa server | HTTP `409` existing, clear selection, refetch | AC-471, AC-476, AC-479 |
+| `VAL-RTB-12` | Release | Full name hanya aktif produksi setelah sign-off security/privacy | Block production activation | OQ-151 |
+
+Urutan backend: auth mutasi → validasi request/scope/eligibility/version → transaksi dan commit →
+cek non-replay → bentuk payload minimum → publish best-effort. Urutan hub join: authenticated user →
+format ID → permission identity → scope unit → add group. Tidak ada fallback ke broad broadcast.

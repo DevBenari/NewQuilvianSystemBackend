@@ -873,3 +873,37 @@ Tidak ada kemampuan tanpa pemilik. Seluruh 41 kemampuan jatuh ke sub-modul `epis
 ### 10.5 Dependency dan status parent
 
 Enam `DNH-CG` siap desain menurut [gate 1.13](./evidence/02-requirement-completeness-gate.md) bagian 22. Gate penerapan `DNH-G01` (kelas), `DNH-G02` (tarif), `DNH-G03` (fakta RS dan susunan), `DNH-G04` (clinical governance dan privasi HD/LD), `DNH-G05` (verifikasi go-live dan penugasan) serta `BM-G01`–`G04` tetap terbuka; tidak menahan desain. RWI-OQ-144 (boks rawat gabung pada badge) masih terbuka dan ditandai OPEN DECISION pada PRD 27. Manifest anak revision 12 approved; status parent tetap **partial** karena amandemen Bed Management revision 11 masih draft. Urutan gelombang ada di PRD 27.20; berkas ini tidak menulis roadmap atau task.
+
+## 11. Amandemen peta capability realtime pemilihan bed — 17 Oktober 2026
+
+> Module map revision `9`, contract target `0.16.0`, status `approved_design_planned`
+> melalui `RWI-DEC-337`.
+
+### 11.1 Ownership dan perubahan navigasi
+
+| Capability | Owner | UI entry point | Perubahan menu/route |
+|---|---|---|---|
+| Subscription grup bed per unit | `episode-rawat-inap` | Floor Plan Selection existing | Tidak ada |
+| Publish setelah reservation/place/transfer | `episode-rawat-inap` | Endpoint Bed Occupancy existing | Tidak ada |
+| Alert + refresh + stale-clear | `episode-rawat-inap` | `FloorPlanSelection` existing | Tidak ada |
+| Reconnect recovery | `episode-rawat-inap` | Lifecycle layar selection | Tidak ada |
+
+Hub `/hubs/queues` adalah shared technical infrastructure, tetapi kebijakan grup, payload, dan
+mutasi tetap dimiliki sub-modul `episode-rawat-inap`. Tidak ada bounded context, modul menu,
+controller HTTP, atau ownership data baru.
+
+### 11.2 Pemetaan capability audit ke desain
+
+| Capability audit | Desain pemilik | Artefak |
+|---|---|---|
+| `RTB-CAP-01`–`RTB-CAP-05` | Backend realtime bed | Backend architecture 19; API 17; integration 14; permission 13 |
+| `RTB-CAP-06`–`RTB-CAP-08` | Frontend selection awareness | Frontend architecture 20; flow `FLOW-RI-MVP-021` |
+| `RTB-CG-01`–`RTB-CG-04` | MVP delivery boundary | PRD 30; validation 19; acceptance 24 |
+
+### 11.3 Dependency dan gate
+
+- Requirement gate `RTB-RCG-20261017-01`: `READY_FOR_DOMAIN_DESIGN`.
+- Domain architecture: `DOMAIN_ARCHITECTURE_NOT_RUN`, karena tidak ada domain/persistence baru.
+- Source of truth: transaksi bed committed dan floor-plan refetch.
+- Delivery planning diregistrasikan sebagai `RTB-DEL-20261017-01` setelah approval `RWI-DEC-337`.
+- Production activation menunggu security/privacy sign-off `RWI-OQ-151`.

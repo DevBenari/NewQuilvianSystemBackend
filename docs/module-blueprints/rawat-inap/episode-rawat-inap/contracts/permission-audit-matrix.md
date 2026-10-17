@@ -665,3 +665,42 @@ Slash berarti daftar action literal pada resource yang sama.
 ### 12.4 Batas approval
 
 Kriteria klinis HD/LD milik SOP keperawatan (RWI-OQ-141); sistem hanya mencatat. Pemilik privasi masih OPEN, sehingga penayangan HD/LD di produksi menunggu `DNH-G04`. Retensi riwayat HD/LD mengikuti kebijakan rekam medis existing; amandemen ini tidak menjadwalkan penghapusan.
+
+## 13. Amandemen permission dan audit realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+### 13.1 Permission matrix
+
+| Aksi | Permission existing | Scope tambahan | Hasil bila ditolak |
+|---|---|---|---|
+| Join grup pemilihan bed unit | `InpatientBedOccupancy:Read` + `InpatientEpisode:Read` | `serviceUnitId` harus berada pada unit yang dapat diakses actor | `HubException`, tidak bergabung |
+| Leave grup | Koneksi authenticated | Hanya membership koneksi sendiri | No-op aman bila tidak tergabung |
+| Reservasi bed | `InpatientBedOccupancy:Create` | Guard existing | HTTP existing |
+| Penempatan pasien | `InpatientBedOccupancy:Create` | Guard existing | HTTP existing |
+| Transfer pasien | `InpatientBedOccupancy:Transfer` | Guard existing | HTTP existing |
+| Menerima payload nama lengkap | Diturunkan dari join yang lolos | Unit event harus sama dengan grup | Tidak ada broadcast lintas unit |
+
+Tidak ada permission string atau role baru. Kewenangan produk ini bukan pemberian permission
+runtime kepada user tertentu.
+
+### 13.2 Audit dan logging
+
+| Peristiwa | Audit/source | Data yang boleh dicatat |
+|---|---|---|
+| Reservasi/penempatan/transfer sukses | Receipt/audit mutasi bed existing | Sesuai audit existing |
+| Publish realtime sukses | Metric/log teknis opsional | `eventId`, type, IDs, timestamp, trace ID; tanpa nama |
+| Publish realtime gagal | Log error teknis wajib | `eventId`, type, episode/bed/unit IDs, exception type, trace ID; tanpa nama/payload |
+| Join ditolak | Security log terstruktur | actor ID, unit ID, reason code; tanpa nama pasien |
+| Alert dilihat/ditutup | Tidak diaudit pada MVP | Tidak ada telemetry PHI |
+
+Event SignalR bukan audit record dan tidak memiliki retention. Audit bisnis tetap berada pada
+mutasi yang menghasilkan event.
+
+### 13.3 Data sensitif dan release gate
+
+- `patientName` adalah PHI; `actorDisplayName` adalah data personal.
+- Payload hanya ke grup unit berwenang dan hanya selama layar selection aktif.
+- MRN, NIK, diagnosis, penjamin, serta data kontak dilarang.
+- Nama tidak boleh muncul pada application log, exception, metric label, atau URL/query string.
+- Pemilik security/privacy wajib mengesahkan penayangan nama lengkap sebelum produksi
+  (`RWI-OQ-151`). Tanpa sign-off, deployment/feature activation produksi diblokir meski test teknis
+  lulus.

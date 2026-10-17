@@ -47,6 +47,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly InpBedAccessService _bedAccess;
         private readonly InpBedManagementQueryService _bedQueries;
         private readonly InpBedClassComparisonService _bedClasses;
+        private readonly InpBedRealtimeService _bedRealtime;
         private readonly InpSettingService _settingService;
         private readonly InpEpisodeService _episodeService;
         private readonly IInpIntegrationOutboxService _outboxService;
@@ -71,14 +72,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InpEpisodeService episodeService,
             IInpIntegrationOutboxService outboxService,
             CliTransferHandoverService transferHandoverService,
-            ILogger<InpBedOccupancyService> logger, InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess, InpBedManagementQueryService bedQueries, InpBedClassComparisonService bedClasses)
+            ILogger<InpBedOccupancyService> logger, InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess, InpBedManagementQueryService bedQueries, InpBedClassComparisonService bedClasses, InpBedRealtimeService bedRealtime)
         {
             _dbContext = dbContext;
             _settingService = settingService;
             _episodeService = episodeService;
             _outboxService = outboxService;
             _transferHandoverService = transferHandoverService;
-            _logger = logger; _bedCoordinator = bedCoordinator; _bedAccess = bedAccess; _bedQueries = bedQueries; _bedClasses = bedClasses;
+            _logger = logger; _bedCoordinator = bedCoordinator; _bedAccess = bedAccess; _bedQueries = bedQueries; _bedClasses = bedClasses; _bedRealtime = bedRealtime;
         }
 
         // =====================================================================
@@ -1760,9 +1761,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 var effectivePatient = patient ?? episode.Patient;
                 if (effectivePatient != null)
                 {
+                    var isOdcEpisode = episode?.PatientClassId == Guid.Parse("02f04b94-e978-49dc-b6a3-2d197573d4ab") ||
+                                       episode?.PatientClassId == Guid.Parse("269ecefe-7da2-4408-a9ab-38fc5096c031");
                     var isOdcPatient = effectivePatient.PatientType == PatientType.OneDayCare ||
                                        (int)effectivePatient.PatientType == 4 ||
-                                       (int)effectivePatient.PatientType == 7;
+                                       (int)effectivePatient.PatientType == 7 ||
+                                       isOdcEpisode;
 
                     if (isOdcPatient && !bed.IsOdcBed)
                     {

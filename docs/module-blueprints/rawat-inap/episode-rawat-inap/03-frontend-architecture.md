@@ -31,6 +31,93 @@ keamanan / privasi / invariant / keterjangkauan
   -> DEV_DISCRETION
 ```
 
+## 20. Amandemen frontend realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+### 20.1 Tujuan dan penempatan tanggung jawab
+
+Koneksi realtime hidup selama `FloorPlanSelection` terpasang. Popup kamar bukan pemilik koneksi,
+karena alert harus tetap diterima ketika pengguna sedang scroll atau popup tertutup. Event selalu
+diikuti refetch; frontend tidak mengubah status bed hanya dari payload event.
+
+### 20.2 Keputusan reuse atau buat baru
+
+| Elemen | Keputusan | Alasan |
+|---|---|---|
+| `@microsoft/signalr` | Ready to reuse | Dependensi sudah tersedia |
+| `createQueueRealtimeConnection` | Extend | Sudah menangani auth, automatic reconnect, dan rejoin; route hub sama |
+| `useFloorPlan.refresh` | Ready to reuse | Jalur kanonis mengambil state dan eligibility terkini |
+| Effect stale selection pada `FloorPlanSelection` | Ready to reuse | Otomatis memanggil `onClearSelection` sesudah hasil refresh tidak eligible |
+| `useInpatientBedRealtime` | Baru | Mengisolasi lifecycle group, deduplikasi sesi, alert, reconnect, dan refetch |
+| Alert pada `FloorPlanSelection` | Extend | Menjamin alert terlihat di seluruh konteks pemilihan, tidak hanya popup |
+| Komponen alert visual | Reuse preferred | Gunakan base alert/toast Quilvian yang sudah ada; bentuk visual adalah `DEV_DISCRETION` |
+
+### 20.3 Lifecycle hook
+
+`useInpatientBedRealtime` menerima sekurangnya:
+
+```text
+enabled
+currentUserId
+serviceUnitIds       // distinct unit yang tampil dan lolos join server
+onChanged(payload)  // set alert lalu await floorPlan.refresh()
+```
+
+Perilaku wajib:
+
+1. Saat layar selection mount dan memiliki unit, start koneksi `/hubs/queues`, pasang handler
+   `InpatientBedSelectionChanged`, lalu join tiap unit.
+2. Saat daftar unit berubah, leave unit lama dan join unit baru; server tetap menjadi otoritas.
+3. Abaikan event dengan `serviceUnitId` di luar unit aktif sebagai defense in depth.
+4. Simpan `eventId` pada bounded in-memory set selama mount; event duplikat tidak membuat alert
+   ganda. Set ini bukan history persisten.
+5. Bila `actorUserId === currentUserId`, jangan tampilkan alert dan jangan mengumumkannya melalui
+   accessibility live region. Refetch boleh tetap dilakukan.
+6. Untuk actor lain, tampilkan alert segera, kemudian jalankan `state.refresh()`.
+7. Setelah reconnect, rejoin semua unit aktif dan panggil `state.refresh()` segera; jangan meminta
+   atau menampilkan replay alert lama.
+8. Saat unmount, lepaskan handler, leave grup bila koneksi tersedia, dan hentikan instance koneksi
+   milik hook.
+
+### 20.4 Konten alert
+
+| `eventType` | Pesan minimum |
+|---|---|
+| `BedReserved` | `Bed {bedLabel} telah didaftarkan atas nama pasien {patientName} oleh user {actorDisplayName}.` |
+| `PatientPlaced` | `Bed {bedLabel} telah ditempati atas nama pasien {patientName} oleh user {actorDisplayName}.` |
+| `PatientTransferred` | `Bed {bedLabel} telah menjadi tujuan transfer atas nama pasien {patientName} oleh user {actorDisplayName}.` |
+
+`bedLabel` memakai `bedName` bila tersedia, lalu fallback `bedCode`. Alert harus dapat ditutup,
+terbaca screen reader melalui live region yang sesuai, dan tidak memblokir scrolling. Warna, ikon,
+posisi, durasi, dan animasi mengikuti design token/base component existing.
+
+### 20.5 Refresh, pilihan usang, dan error
+
+- Alert ditampilkan sebelum network refetch selesai agar pengguna segera memahami perubahan.
+- Hasil refetch mengganti state denah. Effect existing membersihkan `selectedBedId` bila bed tidak
+  lagi eligible.
+- Bila refetch gagal, alert tetap terlihat dan error loading existing ditampilkan; frontend tidak
+  boleh menyimpulkan status bed dari payload saja.
+- Bila pengguna tetap submit sebelum event/refetch selesai, response conflict `409` existing tetap
+  ditangani oleh hook admisi/transfer dan memaksa refresh.
+- Kehilangan koneksi realtime tidak menonaktifkan aksi bisnis, karena server guard tetap menjamin
+  satu pemenang.
+
+### 20.6 Struktur file target
+
+```text
+QuilvianSystemFrontendDev/src/
+├── lib/realtime/
+│   └── queue-realtime-client.js                           [Extend event + group inpatient bed]
+├── lib/hooks/health-services/inpatient-management/
+│   └── use-inpatient-bed-realtime.js                      [Baru]
+└── components/features/health-services/inpatient-management/floor-plan/
+    └── floor-plan-selection.jsx                           [Extend hook + alert]
+```
+
+Tidak ada menu, route, halaman, atau perubahan navigation permission. Perubahan source frontend
+yang sudah berada di working tree pengguna saat blueprint disusun tidak ditimpa dan bukan bukti
+bahwa kontrak ini telah diimplementasikan.
+
 ---
 
 ## 0. Kenapa revision `0.4` ada

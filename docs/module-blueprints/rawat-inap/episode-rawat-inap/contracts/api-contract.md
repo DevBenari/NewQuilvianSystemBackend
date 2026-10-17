@@ -1457,3 +1457,67 @@ HTTP Status: `200 OK`
 | `422` | `ODC_BED_REQUIRED` | Episode ODC mencoba memesan/menempati bed non-ODC pada saat reservasi/admisi awal | Sistem menolak; arahkan petugas untuk memilih tempat tidur khusus ODC |
 | `422` | `ODC_BED_RESERVED` | Episode umum reguler mencoba memesan tempat tidur khusus ODC | Sistem menolak; arahkan petugas untuk memilih tempat tidur reguler |
 
+## 17. Amandemen API dan hub realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+### 17.1 Endpoint HTTP pemicu — tidak berubah
+
+#### `[Tags("Health Services / Inpatient Management / Bed Occupancy")]`
+
+| Method dan route | Trigger event sesudah commit | Permission existing | Perubahan response HTTP |
+|---|---|---|---|
+| `POST /api/v1/health-services/inpatient-management/bed-occupancies/reservations` | `BedReserved` | `InpatientBedOccupancy:Create` | Tidak ada |
+| `POST /api/v1/health-services/inpatient-management/bed-occupancies/placements` | `PatientPlaced` | `InpatientBedOccupancy:Create` | Tidak ada |
+| `POST /api/v1/health-services/inpatient-management/bed-occupancies/placements/transfer` | `PatientTransferred` untuk bed tujuan | `InpatientBedOccupancy:Transfer` | Tidak ada |
+
+HTTP conflict, validation, idempotency, dan envelope response existing tetap berlaku. Event tidak
+dikirim untuk request gagal, rollback, atau replay idempotency.
+
+### 17.2 Kontrak SignalR
+
+| Arah | Nama | Parameter/payload | Hasil |
+|---|---|---|---|
+| Client → hub | `JoinInpatientBedSelection` | `serviceUnitId: Guid` | Bergabung ke grup unit bila berwenang; selainnya `HubException` |
+| Client → hub | `LeaveInpatientBedSelection` | `serviceUnitId: Guid` | Keluar dari grup unit |
+| Server → client | `InpatientBedSelectionChanged` | `InpatientBedRealtimeEventResponse` | Invalidasi state selection dan tampilkan alert untuk actor lain |
+
+- Hub URL: `/hubs/queues`.
+- Authentication: mekanisme cookie/bearer SignalR existing.
+- Authorization join: `InpatientBedOccupancy:Read`, `InpatientEpisode:Read`, dan unit berada pada
+  scope actor.
+- Grup internal: `inpatient-bed-selection:{serviceUnitId:D}`; nama grup bukan API publik frontend.
+- Tidak ada replay endpoint, cursor, acknowledge, atau delivery receipt.
+
+### 17.3 Payload event
+
+```json
+{
+  "eventId": "8dbd47b1-e053-43a6-b5b9-2aeb025f700b",
+  "eventType": "BedReserved",
+  "bedId": "00000000-0000-0000-0000-000000000001",
+  "bedCode": "202",
+  "bedName": "Bed 202",
+  "roomId": "00000000-0000-0000-0000-000000000002",
+  "roomName": "Kamar 2",
+  "serviceUnitId": "00000000-0000-0000-0000-000000000003",
+  "serviceUnitName": "Rawat Inap Lantai 2",
+  "episodeId": "00000000-0000-0000-0000-000000000004",
+  "patientName": "Sintia",
+  "actorUserId": "00000000-0000-0000-0000-000000000005",
+  "actorDisplayName": "Rendi",
+  "occurredAtUtc": "2026-10-17T08:15:30Z",
+  "bedOperationalVersion": 17
+}
+```
+
+Contoh adalah data fiktif. `patientName` dan `actorDisplayName` adalah field sensitif. Daftar field,
+sumber, dan larangan data ada di data dictionary bagian 26.
+
+### 17.4 Kompatibilitas dan error
+
+- Kontrak bersifat aditif; client lama yang tidak memasang handler tetap berjalan.
+- Failure publish tidak mengubah status HTTP mutasi yang sudah committed.
+- Failure join tidak boleh ditafsirkan sebagai hak untuk memakai broadcast tanpa scope.
+- Client yang menerima event wajib refetch endpoint floor plan existing; payload bukan pengganti
+  response floor plan.
+- Aktivasi produksi field nama lengkap menunggu sign-off `RWI-OQ-151`.
+

@@ -708,6 +708,7 @@ try
     builder.Services.AddScoped<InpSettingService>();
     builder.Services.AddScoped<InpEpisodeNumberService>();
     builder.Services.AddScoped<InpBedOccupancyService>();
+    builder.Services.AddScoped<InpBedRealtimeService>();
     builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>, QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptionsValidator>();
     builder.Services.AddOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>().Bind(builder.Configuration.GetSection("BedManagement")).ValidateOnStart();
     builder.Services.AddScoped<InpBedAccessService>();

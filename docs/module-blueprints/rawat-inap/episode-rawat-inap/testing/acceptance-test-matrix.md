@@ -831,3 +831,51 @@ Gunakan PostgreSQL disposable dengan schema target. Uji wajib: index unik berfil
 ### 23.4 Bukti sign-off
 
 Belum ada hasil unit, API, PostgreSQL, UI, maupun UAT. Gate `DNH-G01`–`G05` dan `BM-G01`–`G04` belum dibuktikan. Laporan dokumentasi ini tidak menggantikan bukti tersebut.
+
+## 24. Acceptance test matrix realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+| ID | Level | Skenario | Bukti lulus | Trace |
+|---|---|---|---|---|
+| `UAT-901` | P0 integration | User 2 mereservasi Bed 202 untuk Sintia; User 1 berada di selection unit sama | User 1 melihat pesan reservasi dengan bed/pasien/actor, lalu denah refresh dan bed tidak selectable | AC-469, AC-472 |
+| `UAT-902` | P0 integration | Penempatan awal berhasil | Event `PatientPlaced` baru muncul sesudah commit; consumer unit sama refresh | AC-471 |
+| `UAT-903` | P0 integration | Transfer berhasil ke bed tujuan unit B | Hanya subscriber berwenang unit B menerima alert target transfer | AC-471, AC-473 |
+| `UAT-904` | P0 security | User tanpa akses unit atau tanpa `InpatientEpisode:Read` mencoba join | Join ditolak dan tidak ada payload/nama bocor | AC-473–474 |
+| `UAT-905` | P0 consistency | Dua user submit bed yang sama hampir bersamaan | Tepat satu commit; yang kalah menerima `409`; tidak ada dua event sukses | AC-471, AC-476, AC-479 |
+| `UAT-906` | P0 failure | Inject kegagalan publish SignalR setelah commit | HTTP mutation tetap sukses, DB committed, error log tanpa nama, tidak ada rollback | AC-478–480 |
+| `UAT-907` | P1 privacy | Capture payload dan log | Payload hanya field kontrak; tidak ada MRN/NIK/diagnosis; log tidak berisi nama | AC-472–473, OQ-151 |
+| `UAT-908` | P1 negative | Mutasi gagal/rollback atau eligibility conflict | Tidak ada event realtime | AC-470 |
+| `UAT-909` | P1 idempotency | Ulang request dengan idempotency key/fingerprint sama | Receipt replay; tidak ada event kedua | DEC-333 |
+| `UAT-910` | P1 UX | Actor mutasi juga membuka selection pada unit sama | Actor tidak melihat alert sendiri; user lain melihat satu alert | AC-472 |
+| `UAT-911` | P1 reconnect | Putuskan SignalR, ubah bed saat offline, sambungkan lagi | Rejoin + refetch segera; state terkini tampil; alert lama tidak replay | AC-475–477 |
+| `UAT-912` | P1 stale selection | Bed yang sedang dipilih User 1 dikuasai User 2 | Setelah refetch `onClearSelection` dipanggil; submit tetap dilindungi `409` bila race | AC-469, AC-471, AC-476 |
+| `UAT-913` | P2 unit change | Layar berganti dari unit A ke B | Leave A, join B; event A berikutnya tidak menghasilkan alert | AC-474 |
+| `UAT-914` | P2 duplicate | Payload dengan `eventId` sama diterima dua kali dalam mount | Satu alert; refetch tidak memutasi state dari payload | AC-477 |
+| `UAT-915` | P2 refresh failure | Event diterima lalu GET floor plan gagal | Alert tetap ada, error loading tampil, state tidak ditebak dari event | DEC-335 |
+| `UAT-916` | P3 accessibility | Alert actor lain muncul saat user scroll dan popup tertutup | Alert terlihat, live region terbaca, scrolling tidak terblokir, dapat ditutup | AC-472 |
+
+### 24.1 Perilaku unit dan kontrak yang wajib diverifikasi
+
+- Backend: group-name builder; join authorization; payload mapping; tiga jenis event; no event untuk
+  replay/failure; publisher exception tidak keluar ke mutation caller; log redaction.
+- Frontend: lifecycle join/leave; reconnect rejoin/refetch; actor suppression; unit filter;
+  bounded event deduplication; pesan tiga event; cleanup handler pada unmount.
+- Contract: serializer field/event name case; hub method name; endpoint response HTTP tidak berubah.
+
+Otomasi test baru **tidak diwajibkan** oleh roadmap backend. Bukti boleh berasal dari pemeriksaan
+kontrak, build aplikasi, client SignalR, request API, dan uji runtime/manual yang dapat direproduksi,
+sesuai `rules/backend/TEST_POLICY.md`. Bila test otomatis existing tersedia dan relevan, test itu
+boleh dijalankan sebagai bukti tambahan.
+
+### 24.2 Integration dan race tests wajib
+
+- Jalankan backend dengan PostgreSQL disposable dan SignalR test client authenticated.
+- Pakai dua identity serta dua koneksi untuk membuktikan same-unit delivery dan cross-unit denial.
+- Barrier dua transaksi untuk membuktikan unique/version guard menghasilkan satu pemenang.
+- Fault injection setelah commit untuk membuktikan publish failure tidak membatalkan data.
+- Uji reconnect dengan event terjadi selama offline dan pastikan hanya refetch, tanpa replay.
+
+### 24.3 Evidence dan sign-off
+
+Belum ada hasil test; seluruh baris berstatus **DESIGNED / NOT RUN**. Evidence delivery harus
+memuat output verifikasi kontrak/runtime, network trace hub tanpa data terlarang, screenshot dua browser/session,
+dan log redaction. Aktivasi produksi juga memerlukan sign-off security/privacy `RWI-OQ-151`.

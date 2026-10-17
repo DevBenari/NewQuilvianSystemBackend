@@ -436,3 +436,64 @@ Tidak ada sinkronisasi denah dengan sistem luar, tidak ada impor dari berkas yan
 
 Kegagalan pada identitas, penjamin, episode, atau bed harus fail-fast sebelum aktivasi. Penerapan
 saldo deposit ibu bukan bagian dari source Admisi ini.
+
+## 14. Amandemen integrasi realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+### 14.1 Karakter integrasi
+
+Integrasi ini adalah SignalR internal dari Inpatient Bed Occupancy ke layar pemilihan bed. Ia bukan
+webhook eksternal, tidak memanggil sistem pihak ketiga, dan tidak menjadi sumber state bisnis.
+
+| Producer | Transport | Consumer | Tujuan |
+|---|---|---|---|
+| `InpBedOccupancyService` melalui `InpBedRealtimeService` | Event `InpatientBedSelectionChanged` pada `/hubs/queues` | `FloorPlanSelection` aktif di unit yang sama | Alert pengguna lain dan invalidasi/refetch denah |
+
+### 14.2 Sequence sukses
+
+```mermaid
+sequenceDiagram
+    actor U2 as User 2
+    participant API as Bed Occupancy API
+    participant DB as PostgreSQL
+    participant RT as InpBedRealtimeService
+    participant HUB as QueueHub / unit group
+    participant U1 as User 1 - FloorPlanSelection
+
+    U2->>API: Reserve / Place / Transfer target
+    API->>DB: Validate + write transaction
+    DB-->>API: Commit sukses
+    API->>RT: Notify non-replay
+    RT->>HUB: InpatientBedSelectionChanged
+    HUB-->>U1: Payload minimum
+    U1->>U1: Tampilkan alert actor lain
+    U1->>API: GET floor-plan terkini
+    API-->>U1: State + eligibility terbaru
+    U1->>U1: Bersihkan selectedBed bila tidak eligible
+    API-->>U2: Response mutasi existing
+```
+
+Urutan pengiriman event terhadap response HTTP tidak dijamin untuk konsumen jaringan, tetapi
+publisher hanya boleh dipanggil sesudah database commit.
+
+### 14.3 Failure, retry, replay, dan rekonsiliasi
+
+| Kondisi | Perilaku wajib |
+|---|---|
+| Publish gagal | Log ID teknis; mutasi tetap sukses; tidak rollback |
+| Client offline | Tidak ada antrean/replay; saat reconnect lakukan rejoin dan refetch |
+| Event duplikat selama sesi | Deduplikasi `eventId` in-memory |
+| Event terlambat/out-of-order | Refetch menyelesaikan state; jangan menerapkan payload sebagai state |
+| Dua mutasi bersaing | Constraint/version guard + `409` menentukan satu pemenang |
+| Hub join tidak berwenang | Tolak; dilarang fallback `Clients.All` |
+
+Tidak ada outbox, dead-letter queue, retry persisted, delivery receipt, atau reconciliation batch.
+Rekonsiliasi tunggal adalah pembacaan ulang floor plan authoritative.
+
+### 14.4 Dependency dan compatibility
+
+- Dependensi backend existing: ASP.NET Core SignalR, `QueueHub`, access service, dan mutation
+  coordinator.
+- Dependensi frontend existing: `@microsoft/signalr`, queue realtime factory, dan floor-plan hook.
+- Event bersifat aditif dan tidak mengubah kontrak HTTP konsumen lama.
+- Tidak ada dependency Billing, SATUSEHAT, BPJS, LIS/RIS, atau layanan eksternal.
+- Aktivasi produksi membawa nama lengkap dan menunggu gate privacy/security `RWI-OQ-151`.

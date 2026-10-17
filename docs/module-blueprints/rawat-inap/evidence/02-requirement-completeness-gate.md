@@ -3433,3 +3433,69 @@ Pemeriksaan dokumentasi dilakukan terpisah dari pengujian aplikasi, pada 15 Okto
 | Approval dan klaim kesiapan | PASS | Produk tertutup; lima gerbang penerapan `DNH-G01` s.d. `G05` dan empat gerbang `BM-G01` s.d. `G04` tetap terbuka. Tidak ada SOP, tarif, akses, persetujuan klinis/privasi, atau runtime yang dibuat seolah tersedia |
 | QBE/source/migration | NOT RUN | Tidak ada implementasi aplikasi atau perubahan schema pada task dokumentasi ini |
 | Tes aplikasi/API/PostgreSQL/integrasi | NOT RUN | Pembuktian tetap `BM-G04` |
+
+## 23. Assessment realtime pemilihan bed — `RTB-RCG-20261017-01`
+
+> Assessment revision `1.14`, tanggal 17 Oktober 2026. Scope hanya notifikasi realtime ketika bed
+> berhasil dikuasai oleh reservasi, penempatan, atau tujuan transfer. Evidence source:
+> [RTB-IMP-20261017-01](./realtime-bed-selection-impact-scan-20261017.md). Keputusan produk:
+> `RWI-DEC-333`–`RWI-DEC-336` dan `RWI-AC-469`–`RWI-AC-480` pada decision log revision `58`.
+
+### 23.1 Capability yang dinilai
+
+| ID | Capability | Hasil kebutuhan |
+|---|---|---|
+| `RTB-CG-01` | Subscriber aktif dan berwenang bergabung ke grup unit layanan yang sama | Lengkap |
+| `RTB-CG-02` | Event dipublikasikan hanya sesudah mutasi penguasaan bed berhasil commit | Lengkap |
+| `RTB-CG-03` | Pengguna lain menerima alert, denah di-refresh, dan pilihan usang dibersihkan | Lengkap |
+| `RTB-CG-04` | Reconnect melakukan rejoin dan refetch tanpa replay alert lama | Lengkap |
+
+### 23.2 Matriks kelengkapan requirement
+
+| Dimensi | Status | Bukti/keputusan |
+|---|---|---|
+| Tujuan bisnis | CONFIRMED | Mengurangi benturan pemilihan bed antarpetugas |
+| Actor dan recipient | CONFIRMED | Actor mutasi dan pengguna lain yang aktif di pemilihan bed pada unit yang sama |
+| Trigger | CONFIRMED | Reservasi, penempatan, atau target transfer berhasil commit |
+| Bukan trigger | CONFIRMED | Highlight lokal, membuka popup, kegagalan, rollback, dan replay idempotency |
+| Source of truth | CONFIRMED | Transaksi backend dan conflict guard `409`, bukan event SignalR |
+| Data yang ditampilkan | CONFIRMED | Label bed, nama lengkap pasien, display name actor |
+| Scope organisasi | CONFIRMED | Grup per `serviceUnitId`; tidak ada broadcast lintas unit |
+| Authorization | CONFIRMED | `InpatientBedOccupancy:Read`, `InpatientEpisode:Read`, dan unit yang dapat diakses |
+| Privasi | CONFIRMED WITH RELEASE GATE | Nama lengkap disetujui produk; owner security/privacy masih harus memberi sign-off produksi (`RWI-OQ-151`) |
+| Perilaku initiator | CONFIRMED | UI initiator menekan alert sendiri melalui `actorUserId` |
+| Perilaku setelah event | CONFIRMED | Alert segera, lalu refetch state/eligibility terkini |
+| Reconnect | CONFIRMED | Rejoin grup dan refetch segera; tidak replay alert lama |
+| Kegagalan publish | CONFIRMED | Transaksi tetap sukses; kegagalan dicatat tanpa rollback atau respons palsu |
+| Retry/outbox/history | NOT APPLICABLE FOR MVP | Tidak ada retry persisted, outbox, inbox, atau riwayat alert |
+| Persistence/schema | NOT APPLICABLE | Tidak ada entity, tabel, kolom, migration, atau seed baru |
+| Billing/clinical safety | NOT APPLICABLE | Tidak mengubah billing atau keputusan klinis; hanya visibilitas operasional bed |
+| UX presentation | DEV_DISCRETION | Bentuk visual, warna, icon, durasi, dan animasi boleh mengikuti komponen existing |
+| Acceptance/failure path | CONFIRMED | `RWI-AC-469`–`RWI-AC-480`, termasuk lintas unit, reconnect, failure, dan race |
+
+### 23.3 Konflik, unknown, dan blocker
+
+- Tidak ditemukan requirement yang saling bertentangan.
+- Tidak ada unknown domain, schema ownership, lifecycle, atau source of truth yang menahan desain.
+- `RWI-OQ-151` adalah gerbang aktivasi **produksi**, bukan blocker penyusunan desain atau
+  implementasi nonproduksi. Release produksi wajib berhenti bila sign-off security/privacy belum ada.
+- Approval blueprint dan kontrak tetap harus diberikan pemilik manusia sebelum delivery planning.
+
+### 23.4 Keputusan gate
+
+| Gate | Hasil | Alasan |
+|---|---|---|
+| Requirement completeness | `READY_FOR_DOMAIN_DESIGN` | Keempat capability memiliki trigger, actor, scope, error, security, dan acceptance yang jelas |
+| Hospital domain architecture | `DOMAIN_ARCHITECTURE_NOT_RUN` | Extension berada dalam bounded context yang sama dan tidak menambah aggregate/persistence/billing |
+| Design business module | `READY` | Capability audit segar tersedia dan tidak ada critical invariant yang unresolved |
+| Production activation | `BLOCKED_BY_RWI-OQ-151` | Nama lengkap pasien/actor memerlukan sign-off security/privacy |
+
+### 23.5 Validasi assessment
+
+| Pemeriksaan | Hasil | Catatan |
+|---|---|---|
+| Referensi keputusan | PASS | Seluruh `RWI-DEC-333`–`336` dan `RWI-AC-469`–`480` ada pada decision log revision 58 |
+| Capability evidence | PASS | Delapan `RTB-CAP` ditutup oleh impact scan dan capability map bagian 22 |
+| Kesegaran snapshot | PASS | Audit memakai HEAD backend/frontend yang tercatat pada 17 Oktober 2026 |
+| Source application writes | PASS | Tidak ada source aplikasi yang diubah oleh assessment ini |
+| Runtime/API/PostgreSQL/browser | NOT RUN | Harus dibuktikan pada delivery dan readiness audit |

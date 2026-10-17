@@ -15,6 +15,8 @@ public partial class InpBedOccupancyService
         var meta = await _bedCoordinator.ExecuteAsync("InpatientBedOccupancy:Create", new { operation = "Reserve", request },
             [request.EpisodeId], [request.BedId], [new() { BedId = request.BedId, ExpectedVersion = request.ExpectedBedVersion }],
             async ct => { var result = await ReserveBedCoreAsync(request, actorUserId, ct); RequireSuccess(result); return ("Reservation", result.ReservationId!.Value); }, cancellationToken);
+        if (!meta.IsReplay)
+            await _bedRealtime.NotifyBedAcquiredAsync("BedReserved", request.EpisodeId, request.BedId, actorUserId, meta.CommittedAtUtc, cancellationToken);
         return InpBedOccupancyOperationResult.Success("Pemesanan tersimpan.", reservationId: meta.ResultEntityId);
     }
     public async Task<InpBedOccupancyOperationResult> CancelReservationAsync(Guid reservationId, CancelReservationRequest? request, Guid actorUserId, CancellationToken cancellationToken = default)
@@ -35,6 +37,8 @@ public partial class InpBedOccupancyService
         var meta = await _bedCoordinator.ExecuteAsync("InpatientBedOccupancy:Create", new { operation = "Place", request },
             [request.EpisodeId], [request.BedId], [new() { BedId = request.BedId, ExpectedVersion = request.ExpectedBedVersion }],
             async ct => { var result = await PlacePatientCoreAsync(request, actorUserId, ct); RequireSuccess(result); return ("Placement", result.PlacementId!.Value); }, cancellationToken);
+        if (!meta.IsReplay)
+            await _bedRealtime.NotifyBedAcquiredAsync("PatientPlaced", request.EpisodeId, request.BedId, actorUserId, meta.CommittedAtUtc, cancellationToken);
         return InpBedOccupancyOperationResult.Success("Penempatan tersimpan.", placementId: meta.ResultEntityId);
     }
     public async Task<InpBedOccupancyOperationResult> TransferAsync(TransferPatientRequest request, Guid actorUserId, Guid? actorDoctorId, CancellationToken cancellationToken = default)
@@ -63,6 +67,7 @@ public partial class InpBedOccupancyService
             }, cancellationToken);
         if (!meta.IsReplay)
         {
+            await _bedRealtime.NotifyBedAcquiredAsync("PatientTransferred", request.EpisodeId, request.TargetBedId, actorUserId, meta.CommittedAtUtc, cancellationToken);
             var destination = await _dbContext.Set<InpBedPlacement>().AsNoTracking().SingleAsync(x => x.Id == meta.ResultEntityId, cancellationToken);
             if (source.ServiceUnitId != destination.ServiceUnitId)
             {

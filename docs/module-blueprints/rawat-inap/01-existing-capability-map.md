@@ -2803,3 +2803,34 @@ Dari 11 kemampuan yang diaudit: **5** `Ready to reuse`, **6** `Extend`, **0** `M
   3. Spesifikasi validasi invariant penempatan bed ODC dan pengecualian transfer.
   4. Template klausul dan judul formulir General Consent ODC.
 
+## 22. Amandemen capability realtime pemilihan bed — 17 Oktober 2026
+
+> Status kanonis terbaru untuk slice ini: capability map revision `1.9`, evidence
+> `RTB-IMP-20261017-01`, backend `d420c2fbe094a2d70776c44955233bce9c87bda8`, frontend
+> `0accf387138a3fcc1ff40fbb5bdeb960076b4d59`. Bagian ini menambah hasil audit khusus realtime
+> dan tidak mencabut hasil audit capability lain pada bagian sebelumnya.
+
+| ID | Capability | Status tunggal | Bukti dan keputusan |
+|---|---|---|---|
+| `RTB-CAP-01` | Infrastruktur SignalR terautentikasi | Ready to reuse | `AddSignalR`, JWT hub, `[Authorize]`, dan `/hubs/queues` sudah tersedia |
+| `RTB-CAP-02` | Grup pemilihan bed per unit layanan | Extend | Pola join/leave `QueueHub` sudah ada; method dan grup inpatient belum ada |
+| `RTB-CAP-03` | Boundary post-commit reservasi, penempatan, transfer | Extend | Tiga wrapper memakai `InpBedMutationCoordinator`; perlu pemanggilan publisher setelah sukses non-replay |
+| `RTB-CAP-04` | Publisher serta DTO event bed | Missing | Belum ada event rawat inap; perlu service dan DTO nonpersisten |
+| `RTB-CAP-05` | Otorisasi unit dan identitas pasien | Reuse with adapter | Aturan `InpBedAccessService` digunakan untuk validasi subscriber |
+| `RTB-CAP-06` | Koneksi, reconnect, dan rejoin frontend | Reuse with adapter | Factory queue realtime diperluas untuk grup/event bed |
+| `RTB-CAP-07` | Refresh denah serta pembersihan pilihan usang | Ready to reuse | `useFloorPlan.refresh` dan effect eligibility pada `FloorPlanSelection` sudah tersedia |
+| `RTB-CAP-08` | Alert realtime pada layar pemilihan bed | Missing | Perlu hook consumer dan alert yang tidak bergantung pada popup kamar |
+
+### 22.1 Kesimpulan dan ownership
+
+- Pemilik capability: sub-modul `episode-rawat-inap`, bounded context Inpatient Bed Occupancy.
+- Bentuk perubahan: extension kecil; tidak ada entity, migration, permission string, atau HTTP
+  endpoint baru.
+- Hub existing `/hubs/queues` dipakai kembali. SignalR di sini adalah transport realtime internal,
+  bukan webhook eksternal.
+- Conflict guard atomik dan HTTP `409` tetap source of truth; notifikasi hanya membantu pengguna
+  melihat perubahan lebih cepat.
+- Audit rinci dan daftar bukti source ada di
+  [RTB-IMP-20261017-01](./evidence/realtime-bed-selection-impact-scan-20261017.md).
+- Runtime, database, API, dan browser test belum dijalankan pada tahap audit.
+

@@ -2977,4 +2977,222 @@ Gelombang bukan task atau tanggal; roadmap dibuat `plan-module-delivery` sesudah
 | **MVP-ODC-02** | Frontend Konstanta & Wizard | Penambahan konstanta ODC, penyuntikan context ODC pada Langkah 6 Pilih Bed (`useInpatientAdmissionBed`), dan judul dinamis/klausul 24 jam pada formulir cetak General Consent. |
 | **MVP-ODC-03** | Pengujian & Verifikasi | Verifikasi end-to-end UAT Happy Path, Failure Path, dan Eskalasi Transfer Bed Management > 24 jam. |
 
+## 30. Amandemen realtime pemilihan bed — PRD ke MVP, 17 Oktober 2026
+
+### 30.1 Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Capability | Notifikasi realtime saat bed berhasil dikuasai pengguna lain |
+| Owner | `episode-rawat-inap` / Inpatient Bed Occupancy |
+| Contract | `0.16.0` (`approved_design_planned`, `RWI-DEC-337`) |
+| Requirement | `RWI-DEC-333`–`336`, `RWI-AC-469`–`480` |
+| Capability audit | `RTB-IMP-20261017-01`, `RTB-CAP-01`–`08` |
+| Readiness gate | `RTB-RCG-20261017-01`, `READY_FOR_DOMAIN_DESIGN` |
+| Flow | `FLOW-RI-MVP-021` |
+| Status | **approved_design_planned — roadmap `RTB-DEL-20261017-01`** |
+
+### 30.2 Ringkasan eksekutif
+
+MVP memberi tahu petugas yang sedang memilih bed ketika petugas lain telah berhasil mereservasi,
+menempatkan, atau mentransfer pasien ke bed pada unit layanan yang sama. Alert menampilkan bed,
+nama pasien, dan actor; denah lalu di-refresh sehingga pilihan usang dibersihkan. Transaksi backend
+dan conflict `409` tetap penjamin konsistensi.
+
+### 30.3 Masalah produk
+
+Dua petugas dapat melihat bed yang sama ketika sedang scroll atau membuka detail. Tanpa invalidasi
+realtime, petugas pertama baru mengetahui bed telah diambil saat submit, sehingga terjadi kerja
+ulang dan persepsi benturan. Sistem sudah mencegah double commit, tetapi belum memberi awareness
+segera pada layar selection.
+
+### 30.4 Visi produk
+
+Setiap layar pemilihan bed yang aktif memiliki state cukup segar untuk membantu koordinasi
+petugas, tanpa menjadikan koneksi realtime sebagai lock atau source of truth dan tanpa membocorkan
+identitas pasien ke unit yang tidak berwenang.
+
+### 30.5 Batas MVP
+
+**MUST HAVE**
+
+- Subscription terautentikasi dan terotorisasi per unit layanan.
+- Event post-commit untuk reservation, placement, dan target transfer baru, bukan replay.
+- Payload minimum berisi label bed, nama pasien, actor, tipe kejadian, unit, waktu, dan IDs teknis.
+- Alert hanya untuk actor lain, diikuti refresh floor plan dan pembersihan pilihan yang usang.
+- Rejoin + refetch setelah reconnect tanpa replay alert lama.
+- Kegagalan publish tidak membatalkan transaksi; race tetap menghasilkan satu pemenang dan `409`.
+
+**OUT OF SCOPE**
+
+- Soft lock/presence saat user hanya melihat atau menyorot bed.
+- Notification inbox/history, outbox, push notification, SMS, email, dan webhook eksternal.
+- Perubahan permission, menu, route, schema, billing, atau kontrak response HTTP.
+- Alert untuk pelepasan bed sumber transfer, cleaning, discharge, atau readiness.
+
+### 30.6 Pelaku sasaran
+
+| Actor | Tujuan | Batas |
+|---|---|---|
+| Petugas admisi | Memilih bed untuk reservasi/penempatan | Hanya unit yang dapat diakses dan berizin membaca identitas |
+| Petugas transfer/rawat inap | Memilih bed tujuan transfer | Sama; event target unit saja |
+| Actor mutasi | Menjalankan reserve/place/transfer | Tidak melihat alert dari tindakannya sendiri |
+| Security/privacy owner | Menyetujui nama lengkap di produksi | Wajib sebelum aktivasi produksi |
+| Sistem | Menjaga atomicity dan menyebarkan invalidasi best-effort | Tidak menjamin delivery/replay |
+
+### 30.7 Pemilihan kemampuan MVP
+
+| Capability | Prioritas | Keputusan |
+|---|---|---|
+| `RTB-CAP-01` Infrastruktur SignalR | Must | Reuse |
+| `RTB-CAP-02` Grup unit selection | Must | Extend |
+| `RTB-CAP-03` Boundary post-commit | Must | Extend |
+| `RTB-CAP-04` Publisher/payload | Must | Build |
+| `RTB-CAP-05` Otorisasi unit/identity | Must | Reuse with adapter |
+| `RTB-CAP-06` Reconnect/rejoin frontend | Must | Reuse with adapter |
+| `RTB-CAP-07` Refresh/stale selection | Must | Reuse |
+| `RTB-CAP-08` Alert selection | Must | Build |
+
+### 30.8 Kemampuan yang ditunda
+
+| Kemampuan | Alasan ditunda | Trigger evaluasi kembali |
+|---|---|---|
+| Guaranteed delivery dengan outbox | Tidak dibutuhkan untuk correctness; state dipulihkan lewat refetch | Bila operasi memerlukan SLA delivery/audit alert |
+| Riwayat notifikasi | Bukan kebutuhan MVP dan memperluas retensi PHI | Bila pemilik bisnis menyetujui use case serta retention |
+| Soft lock/presence | Berpotensi menciptakan lock semu dan fairness policy baru | Bila data konflik menunjukkan alert + guard belum cukup |
+| Event pelepasan/cleaning/readiness | Di luar pesan “bed telah didaftarkan/ditempati” | Requirement baru yang disetujui |
+
+### 30.9 Alur bisnis target
+
+1. User 1 membuka selection dan bergabung ke grup unit yang berwenang.
+2. User 2 mengirim mutasi bed lewat endpoint existing.
+3. Backend memvalidasi dan commit melalui coordinator existing.
+4. Backend melewati replay, membentuk payload minimum, dan mencoba publish ke unit target.
+5. User 1 menerima alert bila bukan actor, lalu refetch floor plan.
+6. Eligibility terkini membersihkan selected bed bila sudah tidak layak.
+7. Bila koneksi putus, client reconnect, rejoin, dan refetch tanpa replay.
+
+Detail normal/failure path: [FLOW-RI-MVP-021](./flowcharts/21-notifikasi-realtime-pemilihan-bed.md).
+
+### 30.10 Epic dan functional requirement
+
+| Epic | FR | Requirement |
+|---|---|---|
+| `EPIC RI-42` Secure realtime subscription | `FR-RI-202` | Sistem menyediakan join/leave selection per `serviceUnitId` pada hub existing |
+| `EPIC RI-42` Secure realtime subscription | `FR-RI-203` | Join memerlukan dua permission read serta scope unit; broad broadcast dilarang |
+| `EPIC RI-43` Post-commit notification | `FR-RI-204` | Reservation committed baru memublikasikan `BedReserved` |
+| `EPIC RI-43` Post-commit notification | `FR-RI-205` | Placement committed baru memublikasikan `PatientPlaced` |
+| `EPIC RI-43` Post-commit notification | `FR-RI-206` | Transfer committed baru memublikasikan `PatientTransferred` ke unit target |
+| `EPIC RI-43` Post-commit notification | `FR-RI-207` | Failure/rollback/replay tidak publish dan publish failure tidak mengubah hasil mutasi |
+| `EPIC RI-44` Selection awareness | `FR-RI-208` | User lain melihat alert bed, pasien, dan actor; initiator tidak melihat alert sendiri |
+| `EPIC RI-44` Selection awareness | `FR-RI-209` | Event memicu refetch dan pilihan yang tidak eligible dibersihkan |
+| `EPIC RI-44` Selection awareness | `FR-RI-210` | Reconnect memicu rejoin/refetch tanpa replay alert lama |
+| `EPIC RI-44` Selection awareness | `FR-RI-211` | Duplicate event sesi, unit mismatch, dan cleanup lifecycle ditangani aman |
+
+### 30.11 Model status yang diusulkan
+
+Tidak ada status persisted baru. Event mengikuti hasil transisi reservation/placement/transfer
+existing. Lifecycle koneksi frontend (`Disconnected → Connecting → Connected → Reconnecting`) hanya
+concern transport. Matriks normatif ada pada state-transition-matrix bagian 14.
+
+### 30.12 Sasaran arsitektur
+
+- Backend extension pada `QueueHub`, access service, wrapper mutasi bed, serta publisher/DTO baru.
+- Frontend extension pada queue realtime client dan `FloorPlanSelection`, plus satu hook baru.
+- Satu grup per unit target; tidak ada `Clients.All`.
+- Publisher di luar transaksi dan setelah commit; payload bukan state store.
+- Tidak ada migration dan tidak ada service eksternal.
+
+### 30.13 Sasaran kemampuan API
+
+| Kemampuan | Contract |
+|---|---|
+| Join/leave | `JoinInpatientBedSelection(Guid)`, `LeaveInpatientBedSelection(Guid)` |
+| Event | `InpatientBedSelectionChanged` |
+| HTTP trigger | Tiga endpoint mutation existing; response tidak berubah |
+| Refresh | GET floor plan existing |
+| Error | Hub join ditolak secara generik; mutation conflict tetap HTTP `409` existing |
+
+Payload lengkap ada pada API contract bagian 17 dan data dictionary bagian 26.
+
+### 30.14 Matriks kewenangan
+
+| Actor | Join/read event | Mutasi | Nama pasien |
+|---|---|---|---|
+| User dengan dua permission read + akses unit | Ya, untuk unit itu | Mengikuti permission mutation existing | Ya setelah sign-off produksi |
+| User tanpa akses unit | Tidak | Mengikuti rule existing | Tidak |
+| User tanpa `InpatientEpisode:Read` | Tidak | Mengikuti rule existing | Tidak |
+| Initiator berwenang | Transport dapat menerima | Ya sesuai permission | UI tidak menampilkan alert sendiri |
+
+### 30.15 Batas integrasi dan billing
+
+Integrasi hanya internal SignalR. Tidak ada webhook, message broker, billing event, invoice,
+deposit, tarif, atau dependency sistem eksternal. Failure event tidak mengubah state bisnis.
+
+### 30.16 Guardrail regulasi
+
+- Least privilege dan unit scoping wajib fail closed.
+- Data minimization: hanya nama yang disetujui, tanpa identifier/clinical detail tambahan.
+- Application log dan metrics bebas nama pasien/actor.
+- `RWI-OQ-151` wajib CLOSED dengan sign-off security/privacy sebelum produksi.
+- Audit bisnis berasal dari mutation receipt existing, bukan transient event.
+
+### 30.17 Kebutuhan non-fungsional
+
+| NFR | Target desain |
+|---|---|
+| Correctness | Event hanya post-commit non-replay; guard atomik tetap source of truth |
+| Security | 100% join tervalidasi permission + unit; nol broad broadcast |
+| Privacy | Payload minimum; nol PHI pada log/metric; release gate nama lengkap |
+| Resilience | Publish failure tidak mengubah HTTP/DB; reconnect rejoin + refetch |
+| Performance | Satu event kecil per commit dan satu refetch per event/reconnect; debounce/coalesce boleh bila tidak menunda awareness |
+| Accessibility | Alert dapat ditutup, tidak memblokir scroll, dan diumumkan live region |
+| Compatibility | Client lama dan response HTTP existing tidak berubah |
+| Observability | Counter publish/join dan log ID teknis tanpa high-cardinality PHI |
+
+### 30.18 Skenario UAT
+
+UAT normatif adalah `UAT-901`–`UAT-916` pada acceptance-test-matrix bagian 24. Minimal sign-off
+harus membuktikan: tiga trigger sukses, tidak ada event failure/replay, same-unit delivery,
+cross-unit denial, actor suppression, refresh/stale clear, reconnect tanpa replay, publish failure
+non-rollback, race satu pemenang, payload/log redaction, serta accessibility alert.
+
+| FR | UAT utama | Acceptance bisnis |
+|---|---|---|
+| `FR-RI-202` | `UAT-904`, `913` | `RWI-AC-473`–`474` |
+| `FR-RI-203` | `UAT-904`, `907` | `RWI-AC-472`–`474` |
+| `FR-RI-204` | `UAT-901`, `908`, `909` | `RWI-AC-469`–`470` |
+| `FR-RI-205` | `UAT-902`, `908` | `RWI-AC-470`–`471` |
+| `FR-RI-206` | `UAT-903`, `908` | `RWI-AC-470`–`471` |
+| `FR-RI-207` | `UAT-906`, `908`, `909` | `RWI-AC-470`, `478`–`480` |
+| `FR-RI-208` | `UAT-901`, `910`, `916` | `RWI-AC-472` |
+| `FR-RI-209` | `UAT-901`, `912`, `915` | `RWI-AC-469`, `471`, `476` |
+| `FR-RI-210` | `UAT-911` | `RWI-AC-475`–`477` |
+| `FR-RI-211` | `UAT-913`, `914` | `RWI-AC-474`, `477` |
+
+### 30.19 Definition of Done
+
+- `FR-RI-202`–`FR-RI-211` terimplementasi dan traceable ke test.
+- Hub join tidak dapat membocorkan nama lintas unit/permission.
+- Ketiga event muncul hanya sesudah commit baru dan tidak mengubah response HTTP.
+- Alert bekerja ketika user scroll dan popup tertutup; actor sendiri disuppress.
+- Refetch/reconnect membersihkan state usang; race tetap menghasilkan satu pemenang.
+- Unit, contract, integration, race, failure-injection, dan dua-session browser test lulus.
+- Tidak ada migration, permission string, package, atau data payload di luar kontrak.
+- Dokumentasi operasional menjelaskan best-effort delivery dan recovery refetch.
+- Blueprint/contract disetujui pemilik; produksi juga memiliki sign-off `RWI-OQ-151`.
+
+### 30.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Dependency |
+|---|---|---|
+| `MVP-RTB-01` | Backend group auth, DTO, publisher, dan post-commit hooks | Approval contract 0.16.0 |
+| `MVP-RTB-02` | Frontend client/hook, alert, refresh, reconnect | Event contract stabil + RTB-01 tersedia |
+| `MVP-RTB-03` | Security, race, failure, two-session browser verification | RTB-01 dan RTB-02 |
+
+Pertanyaan produk tidak ada. `RWI-OQ-151` tetap terbuka sebagai penugasan/sign-off owner
+security/privacy dan **hanya memblokir aktivasi produksi**. Blueprint disetujui melalui
+`RWI-DEC-337`; roadmap `RTB-DEL-20261017-01` memecah implementasi menjadi task kecil dengan
+production gate tersebut dipertahankan.
+
 
