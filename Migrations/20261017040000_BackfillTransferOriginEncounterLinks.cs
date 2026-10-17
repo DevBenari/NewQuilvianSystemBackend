@@ -31,8 +31,6 @@ namespace QuilvianSystemBackend.Migrations
     /// Idempoten: pernyataan aman diulang, jalan kedua menyisipkan 0 baris.
     /// Down: menghapus secara selektif baris dengan CreateBy penanda backfill di atas saja.
     /// </remarks>
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261017040000_BackfillTransferOriginEncounterLinks")]
     public partial class BackfillTransferOriginEncounterLinks : Migration
     {
         public const string BackfillCreatorGuid = "7b1f0163-0000-4000-8000-000000000163";

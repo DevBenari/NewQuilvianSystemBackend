@@ -3247,18 +3247,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("JournalId")
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("ReferredOutpatientAdminCreditAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<decimal>("ReferredOutpatientAdminUnappliedCreditAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m);
-
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -62549,6 +62537,18 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<decimal>("ReferredOutpatientAdminCreditAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("ReferredOutpatientAdminUnappliedCreditAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<decimal>("RoomChargeAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -65322,6 +65322,8 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasDatabaseName("UX_BilSupersededItemReview_InvoiceItem")
                         .HasFilter("NOT \"IsDelete\"");
+
+                    b.HasIndex("ReinstatedInvoiceItemId");
 
                     b.ToTable("BilSupersededItemReview", "public", t =>
                         {
