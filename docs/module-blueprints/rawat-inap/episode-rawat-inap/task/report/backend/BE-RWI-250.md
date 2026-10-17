@@ -54,8 +54,8 @@ sehingga task belum memenuhi `D-BE` dan tidak diberi status selesai.
 | Validasi | Hasil |
 |---|---|
 | `git diff --check` | PASS; tidak ada whitespace error |
-| `dotnet build QuilvianSystemBackend.csproj` | Kompilasi source berhasil, tetapi output default gagal disalin karena executable milik proses pengguna PID 22472 sedang terkunci |
-| Build terisolasi | PASS — `dotnet build QuilvianSystemBackend.csproj --no-restore -p:UseAppHost=false -o C:\Users\Asoiii\AppData\Local\Temp\quilvian-build-BE-RWI-250`; 0 error, 5 warning advisory dependency `SixLabors.ImageSharp` existing |
+| Percobaan build awal sebelum arahan build gabungan | Kompilasi source berhasil, tetapi output default gagal disalin karena executable milik proses pengguna PID 22472 sedang terkunci; percobaan ini bukan sign-off akhir backend |
+| Build gabungan setelah `BE-RWI-250` dan `BE-RWI-251` selesai | PASS — `dotnet build QuilvianSystemBackend.csproj --no-restore -p:UseAppHost=false -o C:\Users\Asoiii\AppData\Local\Temp\quilvian-build-BE-RWI-251`; 0 error, 290 warning existing; hasil yang sama menjadi bukti final pasangan task backend |
 | Static contract review | PASS; nama method/event/grup sesuai kontrak, tidak ada `Clients.All`, dan log tidak memuat nama/payload |
 | Runtime SignalR | **NOT FEASIBLE pada sesi ini**; backend pengguna sedang berjalan dari binary lama dan data dua identity/unit uji belum disediakan |
 

@@ -52,7 +52,7 @@ tersedia, sehingga task tidak diberi status selesai.
 | Validasi | Hasil |
 |---|---|
 | `git diff --check` | PASS |
-| Build terisolasi | PASS — `dotnet build QuilvianSystemBackend.csproj --no-restore -p:UseAppHost=false -o C:\Users\Asoiii\AppData\Local\Temp\quilvian-build-BE-RWI-251`; 0 error, 290 warning existing |
+| Build gabungan final sesudah seluruh task backend selesai | PASS — `dotnet build QuilvianSystemBackend.csproj --no-restore -p:UseAppHost=false -o C:\Users\Asoiii\AppData\Local\Temp\quilvian-build-BE-RWI-251`; 0 error, 290 warning existing; dijalankan setelah source `BE-RWI-250` dan `BE-RWI-251` lengkap sesuai arahan pengguna |
 | Review urutan transaksi | PASS; seluruh publisher call berada sesudah `ExecuteAsync` return |
 | Review replay/target | PASS; ketiga call dilindungi `!meta.IsReplay`; transfer memakai bed tujuan |
 | Runtime API/SignalR | **NOT FEASIBLE pada sesi ini**; server aktif masih menggunakan binary lama dan data/identity uji transaksi belum disediakan |

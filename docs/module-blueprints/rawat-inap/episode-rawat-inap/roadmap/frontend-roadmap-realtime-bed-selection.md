@@ -27,9 +27,9 @@
 `[BE]` adalah cermin baca-saja dari roadmap backend. Garis berarti prasyarat → task.
 
 ```text
-FE-RWI-265 ──> FE-RWI-266 ──┬──> FE-RWI-267
-                             │
-BE-RWI-251 [BE] ─────────────┘
+FE-RWI-265 🟡 ──> FE-RWI-266 🟡 ──┬──> FE-RWI-267 🟡
+                                   │
+BE-RWI-251 [BE] 🟡 ────────────────┘
 ```
 
 | Gelombang | Boleh mulai setelah | Task ID | Hasil gelombang |
@@ -58,9 +58,9 @@ Pasangan dependency persis: `FE-RWI-265 → FE-RWI-266`, `FE-RWI-266 → FE-RWI-
 
 | Task ID / Status | Outcome | Requirement / keputusan | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko / owner | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `FE-RWI-265` | Client queue realtime memahami event dan sync membership unit bed, termasuk rejoin | FR-RI-202, 210, 211; DEC-335 | 0.16.0; API 17.2 | `createQueueRealtimeConnection`, auth/reconnect existing | Event constant/handler, join/leave/sync unit IDs, rejoin, stop cleanup | — | AC-474–477; UAT-911, 913 | `V-FE`; review lifecycle/contract | Frontend Platform + Rawat Inap; regresi consumer hub existing | `D-FE`; laporan `task/report/frontend/FE-RWI-265.md` |
-| `FE-RWI-266` | Hook selection mengelola connection, unit scope, dedup, actor suppression, refetch callback, dan cleanup | FR-RI-208, 210, 211 | 0.16.0; VAL-RTB-06–09 | client FE-RWI-265; selector `selectUserInfo` | Hook baru tanpa UI, bounded event IDs, defense-in-depth unit filter, reconnect refresh | `FE-RWI-265` | AC-472, 474–477; UAT-910, 911, 913–915 | `V-FE`; verifikasi lifecycle terisolasi | Rawat Inap; stale closure/duplicate handler | `D-FE`; laporan `task/report/frontend/FE-RWI-266.md` |
-| `FE-RWI-267` | Floor plan selection menampilkan alert actor lain, lalu refresh dan membersihkan pilihan stale | FR-RI-208, 209 | 0.16.0; message contract Frontend 20.4 | `FloorPlanSelection`, `useFloorPlan.refresh`, stale effect, `ToastStack` | Integrasi hook, 3 pesan, dismiss/live region, error refetch, popup-independent | `FE-RWI-266`, `BE-RWI-251` [BE] | AC-469, 471, 472, 476; UAT-901–903, 905, 910, 912, 915, 916 | `V-FE`; browser dua sesi/unit sama dan negative lintas unit | Rawat Inap + UX/A11y; PHI dan worktree overlap | `D-FE`; laporan `task/report/frontend/FE-RWI-267.md` |
+| 🟡 `FE-RWI-265` | Client queue realtime memahami event dan sync membership unit bed, termasuk rejoin | FR-RI-202, 210, 211; DEC-335 | 0.16.0; API 17.2 | `createQueueRealtimeConnection`, auth/reconnect existing | Event constant/handler, join/leave/sync unit IDs, rejoin, stop cleanup | — | AC-474–477; UAT-911, 913 | `V-FE`; review lifecycle/contract | Frontend Platform + Rawat Inap; regresi consumer hub existing | `D-FE`; [laporan](../task/report/frontend/FE-RWI-265.md) |
+| 🟡 `FE-RWI-266` | Hook selection mengelola connection, unit scope, dedup, actor suppression, refetch callback, dan cleanup | FR-RI-208, 210, 211 | 0.16.0; VAL-RTB-06–09 | client FE-RWI-265; selector `selectUserInfo` | Hook baru tanpa UI, bounded event IDs, defense-in-depth unit filter, reconnect refresh | `FE-RWI-265` | AC-472, 474–477; UAT-910, 911, 913–915 | `V-FE`; verifikasi lifecycle terisolasi | Rawat Inap; stale closure/duplicate handler | `D-FE`; [laporan](../task/report/frontend/FE-RWI-266.md) |
+| 🟡 `FE-RWI-267` | Floor plan selection menampilkan alert actor lain, lalu refresh dan membersihkan pilihan stale | FR-RI-208, 209 | 0.16.0; message contract Frontend 20.4 | `FloorPlanSelection`, `useFloorPlan.refresh`, stale effect, `ToastStack` | Integrasi hook, 3 pesan, dismiss/live region, error refetch, popup-independent | `FE-RWI-266`, `BE-RWI-251` [BE] | AC-469, 471, 472, 476; UAT-901–903, 905, 910, 912, 915, 916 | `V-FE`; browser dua sesi/unit sama dan negative lintas unit | Rawat Inap + UX/A11y; PHI dan worktree overlap | `D-FE`; [laporan](../task/report/frontend/FE-RWI-267.md) |
 
 ## Batas Handoff dan Definition of Done
 
@@ -86,11 +86,11 @@ Pasangan dependency persis: `FE-RWI-265 → FE-RWI-266`, `FE-RWI-266 → FE-RWI-
 
 ## Kartu Task
 
-### FE-RWI-265 — Extend queue realtime client untuk unit selection
+### 🟡 FE-RWI-265 — Extend queue realtime client untuk unit selection
 
 | Field | Isi |
 |---|---|
-| Status | `NOT_STARTED` |
+| Status | 🟡 **SEBAGIAN 17 Oktober 2026.** Empat dari empat acceptance criteria dipetakan ke source; bukti runtime reconnect/unit change belum tersedia. `npm run lint:errors` exit `0`; test fokus 6/6 lulus; suite global 2.954/2.985 lulus dan build global tertahan issue existing. Butir `D-FE` command penuh serta runtime belum terpenuhi. Bukti: [laporan](../task/report/frontend/FE-RWI-265.md) |
 | Outcome | Satu client existing dapat mendaftarkan handler `InpatientBedSelectionChanged`, sync daftar `serviceUnitId`, rejoin sesudah reconnect, dan leave/stop bersih |
 | Trace | FR-RI-202, 210, 211; AC-474–477; VAL-RTB-07–09; UAT-911, 913 |
 | Scope source | `src/lib/realtime/queue-realtime-client.js` |
@@ -100,11 +100,11 @@ Pasangan dependency persis: `FE-RWI-265 → FE-RWI-266`, `FE-RWI-266 → FE-RWI-
 | Verifikasi wajib | `V-FE`; contract name; unit dedup; unit change; reconnect; stop; regresi group queue existing |
 | DoD | `D-FE`; laporan `task/report/frontend/FE-RWI-265.md` |
 
-### FE-RWI-266 — Hook lifecycle realtime pemilihan bed
+### 🟡 FE-RWI-266 — Hook lifecycle realtime pemilihan bed
 
 | Field | Isi |
 |---|---|
-| Status | `NOT_STARTED` |
+| Status | 🟡 **SEBAGIAN 17 Oktober 2026.** Lima dari lima acceptance criteria dipetakan ke source dan dedup diuji; bukti lifecycle dua sesi belum tersedia. `npm run lint:errors` exit `0`; test fokus 6/6 lulus; suite global 31 gagal existing dan build global tertahan CSS existing. `D-FE` belum terpenuhi. Bukti: [laporan](../task/report/frontend/FE-RWI-266.md) |
 | Outcome | Hook baru memberikan satu boundary aman untuk subscription unit, dedup event sesi, actor suppression, callback event, refresh reconnect, dan cleanup |
 | Trace | FR-RI-208, 210, 211; AC-472, 474–477; VAL-RTB-06–09; UAT-910, 911, 913–915 |
 | Scope source | `src/lib/hooks/health-services/inpatient-management/use-inpatient-bed-realtime.js` [baru] dan import minimum yang diperlukan |
@@ -114,11 +114,11 @@ Pasangan dependency persis: `FE-RWI-265 → FE-RWI-266`, `FE-RWI-266 → FE-RWI-
 | Verifikasi wajib | `V-FE`; event unit salah, duplicate, actor sendiri, unit berganti, reconnect berulang, callback error, unmount |
 | DoD | `D-FE`; laporan `task/report/frontend/FE-RWI-266.md` |
 
-### FE-RWI-267 — Integrasi alert, refresh, dan stale clear pada FloorPlanSelection
+### 🟡 FE-RWI-267 — Integrasi alert, refresh, dan stale clear pada FloorPlanSelection
 
 | Field | Isi |
 |---|---|
-| Status | `NOT_STARTED` |
+| Status | 🟡 **SEBAGIAN 17 Oktober 2026.** Empat dari empat acceptance criteria dipetakan ke source dan tiga pesan/a11y diuji; UAT dua sesi reserve/place/transfer belum tersedia. `npm run lint:errors` exit `0`; test fokus 6/6 lulus; suite/build global tertahan issue existing. Roadmap membatasi task ini maksimal 🟡 tanpa runtime dua sesi. Bukti: [laporan](../task/report/frontend/FE-RWI-267.md) |
 | Outcome | User lain pada unit sama melihat pesan bed/pasien/petugas segera sesudah commit, lalu denah refresh dan pilihan stale hilang |
 | Trace | FR-RI-208, 209; AC-469, 471, 472, 476; VAL-RTB-06, 09, 11; UAT-901–903, 905, 910, 912, 915, 916 |
 | Scope source | `src/components/features/health-services/inpatient-management/floor-plan/floor-plan-selection.jsx`; hook `use-floor-plan.js` hanya bila bukti implementasi memerlukan adapter minimum; base `ToastStack`/style existing |

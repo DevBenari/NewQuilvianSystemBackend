@@ -14,21 +14,24 @@
 |---|---|---|
 | `BE-RWI-250` | 🟡 Source/build terbukti; runtime allow/deny dan delivery belum dijalankan | [BE-RWI-250](../task/report/backend/BE-RWI-250.md) |
 | `BE-RWI-251` | 🟡 Source/build terbukti; runtime transaksi/event, replay, race, dan failure injection belum dijalankan | [BE-RWI-251](../task/report/backend/BE-RWI-251.md) |
+| `FE-RWI-265` | 🟡 Client event/group, rejoin, dan cleanup tersedia; runtime reconnect/unit change belum dijalankan | [FE-RWI-265](../task/report/frontend/FE-RWI-265.md) |
+| `FE-RWI-266` | 🟡 Hook filter/dedup/actor/refetch tersedia dan test fokus lulus; runtime lifecycle belum dijalankan | [FE-RWI-266](../task/report/frontend/FE-RWI-266.md) |
+| `FE-RWI-267` | 🟡 Alert/refetch/stale-clear tersedia dan test fokus lulus; runtime dua sesi belum dijalankan | [FE-RWI-267](../task/report/frontend/FE-RWI-267.md) |
 
 ## Matriks Functional Requirement
 
 | FR | Ringkasan | Task backend | Task frontend | Bukti utama |
 |---|---|---|---|---|
-| `FR-RI-202` | Join/leave selection per unit | `BE-RWI-250` | `FE-RWI-265` | UAT-904, 913 |
+| `FR-RI-202` | Join/leave selection per unit | `BE-RWI-250` | `FE-RWI-265` | [FE-RWI-265](../task/report/frontend/FE-RWI-265.md); UAT-904, 913 runtime pending |
 | `FR-RI-203` | Dua permission read + unit scope; no broad broadcast | `BE-RWI-250` | — | UAT-904, 907 |
 | `FR-RI-204` | Event reservation post-commit | `BE-RWI-251` | `FE-RWI-267` | UAT-901, 908, 909 |
 | `FR-RI-205` | Event placement post-commit | `BE-RWI-251` | `FE-RWI-267` | UAT-902, 908 |
 | `FR-RI-206` | Event transfer hanya unit target | `BE-RWI-251` | `FE-RWI-267` | UAT-903, 908 |
 | `FR-RI-207` | No event failure/replay; publish failure tidak mengubah mutation | `BE-RWI-251` | — | UAT-906, 908, 909 |
-| `FR-RI-208` | Alert actor lain dan suppress actor sendiri | `BE-RWI-250` | `FE-RWI-266`, `FE-RWI-267` | UAT-901, 910, 916 |
-| `FR-RI-209` | Refetch dan clear stale selection | — | `FE-RWI-267` | UAT-901, 912, 915 |
-| `FR-RI-210` | Reconnect rejoin/refetch tanpa replay | — | `FE-RWI-265`, `FE-RWI-266` | UAT-911 |
-| `FR-RI-211` | Dedup, unit mismatch, lifecycle cleanup | — | `FE-RWI-265`, `FE-RWI-266` | UAT-913, 914 |
+| `FR-RI-208` | Alert actor lain dan suppress actor sendiri | `BE-RWI-250` | `FE-RWI-266`, `FE-RWI-267` | [FE-RWI-266](../task/report/frontend/FE-RWI-266.md), [FE-RWI-267](../task/report/frontend/FE-RWI-267.md); runtime UAT-901, 910, 916 pending |
+| `FR-RI-209` | Refetch dan clear stale selection | — | `FE-RWI-267` | [FE-RWI-267](../task/report/frontend/FE-RWI-267.md); runtime UAT-901, 912, 915 pending |
+| `FR-RI-210` | Reconnect rejoin/refetch tanpa replay | — | `FE-RWI-265`, `FE-RWI-266` | [FE-RWI-265](../task/report/frontend/FE-RWI-265.md), [FE-RWI-266](../task/report/frontend/FE-RWI-266.md); runtime UAT-911 pending |
+| `FR-RI-211` | Dedup, unit mismatch, lifecycle cleanup | — | `FE-RWI-265`, `FE-RWI-266` | [FE-RWI-265](../task/report/frontend/FE-RWI-265.md), [FE-RWI-266](../task/report/frontend/FE-RWI-266.md); runtime UAT-913, 914 pending |
 
 ## Matriks Acceptance Criteria
 

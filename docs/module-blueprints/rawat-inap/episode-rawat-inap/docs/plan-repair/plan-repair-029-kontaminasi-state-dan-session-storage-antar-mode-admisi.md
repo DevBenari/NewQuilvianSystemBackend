@@ -3,7 +3,7 @@
 ```yaml
 plan_id: PLAN-REPAIR-EPS-029
 issue: ../issue/issue-029-kontaminasi-state-dan-session-storage-antar-mode-admisi.md
-status_rencana: DISETUJUI
+status_rencana: SELESAI_DIIMPLEMENTASIKAN
 tanggal_rencana: "2026-10-17"
 diputuskan_oleh: "Pemilik Sistem (User)"
 tanggal_keputusan: "2026-10-17"
@@ -17,12 +17,12 @@ basis_source_frontend: "0accf387138a3fcc1ff40fbb5bdeb960076b4d59 (HamzahV2)"
 
 | ID Perbaikan | Menutup | Ringkasan | Area | Prioritas | Task ID | Status | Bukti |
 | :--- | :--- | :--- | :--- | :---: | :---: | :---: | :--- |
-| `FIX-EPS-029-01` | `ISS-EPS-029-03` | Hapus seluruh klausul mutasi dinamis pada `resolveInpatientAdmissionSteps` sehingga alur `new` dan `existing` kebal dari perubahan ke alur bayi | Frontend | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-029-02` | `ISS-EPS-029-04` | Kunci hook `useInpatientNewbornAdmission` agar `enabled` secara eksklusif hanya pada `entryMode === "newborn"` | Frontend | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-029-03` | `ISS-EPS-029-01` | Tambahkan auto-reset state `patientType` dan `newbornDraft` saat `entryMode !== "newborn"` di `useInpatientAdmissionFlow` | Frontend | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-029-04` | `ISS-EPS-029-02` | Hentikan persistensi sesi di menu awal (`!entryMode`), sanitasi data saat rehidrasi, dan sapu residu kunci sesi tercemar | Frontend | 1 | — | BELUM DIKERJAKAN | — |
+| `FIX-EPS-029-01` | `ISS-EPS-029-03` | Hapus seluruh klausul mutasi dinamis pada `resolveInpatientAdmissionSteps` sehingga alur `new` dan `existing` kebal dari perubahan ke alur bayi | Frontend | 1 | `FIX-EPS-029` | ✅ SELESAI | `resolveInpatientAdmissionSteps` (inpatient-admission-flow-constants.jsx), unit test 9/9 lulus |
+| `FIX-EPS-029-02` | `ISS-EPS-029-04` | Kunci hook `useInpatientNewbornAdmission` agar `enabled` secara eksklusif hanya pada `entryMode === "newborn"` | Frontend | 1 | `FIX-EPS-029` | ✅ SELESAI | `use-inpatient-newborn-admission.js` (enabled = flow.entryMode === "newborn") |
+| `FIX-EPS-029-03` | `ISS-EPS-029-01` | Tambahkan auto-reset state `patientType` dan `newbornDraft` saat `entryMode !== "newborn"` di `useInpatientAdmissionFlow` | Frontend | 1 | `FIX-EPS-029` | ✅ SELESAI | `use-inpatient-admission-flow.jsx` (effect auto-reset saat entryMode non-newborn) |
+| `FIX-EPS-029-04` | `ISS-EPS-029-02` | Hentikan persistensi sesi di menu awal (`!entryMode`), sanitasi data saat rehidrasi, dan sapu residu kunci sesi tercemar | Frontend | 1 | `FIX-EPS-029` | ✅ SELESAI | `use-inpatient-admission-flow.jsx` (storageKey kosong saat !entryMode, auto-purge unknown:draft) |
 
-**Ringkasan: 0 dari 4 perbaikan selesai (Menunggu persetujuan pemilik sistem).**
+**Ringkasan: 4 dari 4 perbaikan selesai (100% selesai).**
 
 ---
 

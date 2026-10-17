@@ -8,7 +8,7 @@ blueprint_id: RWI-BP-001
 layar: "Admisi Rawat Inap — Layar Utama Pilihan Tipe Pendaftaran dan Alur Pasien Lama / Pasien Baru (FE-INP-01 / FE-INP-02)"
 sumber_laporan: "Laporan pengguna 17 Oktober 2026: setelah membuka alur bayi, saat membuka Pendaftaran Pasien Lama tiba-tiba langsung masuk ke Langkah 3 Bayi (Perawatan dan DPJP Bayi) tanpa pernah input nomor RM, dan session storage menyimpan patientType: newborn di mode unknown dan existing"
 tanggal_issue: "2026-10-17"
-status: DALAM_PERBAIKAN
+status: TERATASI
 keparahan_tertinggi: High
 source_sha_backend: "d420c2fbe094a2d70776c44955233bce9c87bda8 (MHamzah)"
 source_sha_frontend: "0accf387138a3fcc1ff40fbb5bdeb960076b4d59 (HamzahV2)"
