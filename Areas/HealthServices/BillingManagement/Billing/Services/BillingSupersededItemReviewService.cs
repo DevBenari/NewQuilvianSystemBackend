@@ -145,7 +145,7 @@ public sealed class BillingSupersededItemReviewService : IBillingSupersededItemR
                 .Where(u => reviewerIds.Contains(u.Id))
                 .ToDictionaryAsync(
                     u => u.Id,
-                    u => !string.IsNullOrWhiteSpace(u.FullName) ? u.FullName : (u.UserName ?? u.Id.ToString()),
+                    u => !string.IsNullOrWhiteSpace(u.DisplayName) ? u.DisplayName : (u.UserName ?? u.Id.ToString()),
                     cancellationToken);
 
         var reviewMap = existingReviews.ToDictionary(
@@ -236,8 +236,8 @@ public sealed class BillingSupersededItemReviewService : IBillingSupersededItemR
         {
             var reviewer = await _dbContext.Set<ApplicationUser>().AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == review.DecidedBy, cancellationToken);
-            var reviewerName = reviewer != null && !string.IsNullOrWhiteSpace(reviewer.FullName)
-                ? reviewer.FullName
+            var reviewerName = reviewer != null && !string.IsNullOrWhiteSpace(reviewer.DisplayName)
+                ? reviewer.DisplayName
                 : (reviewer?.UserName ?? review.DecidedBy.ToString());
             reviewResponse = MapReviewResponse(review, reviewerName, isReplay: false);
         }
@@ -336,8 +336,8 @@ public sealed class BillingSupersededItemReviewService : IBillingSupersededItemR
 
                 var priorReviewer = await _dbContext.Set<ApplicationUser>().AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Id == prior.DecidedBy, cancellationToken);
-                var reviewerName = priorReviewer != null && !string.IsNullOrWhiteSpace(priorReviewer.FullName)
-                    ? priorReviewer.FullName
+                var reviewerName = priorReviewer != null && !string.IsNullOrWhiteSpace(priorReviewer.DisplayName)
+                    ? priorReviewer.DisplayName
                     : (priorReviewer?.UserName ?? prior.DecidedBy.ToString());
 
                 return MapReviewResponse(prior, reviewerName, isReplay: true);
@@ -483,8 +483,8 @@ public sealed class BillingSupersededItemReviewService : IBillingSupersededItemR
 
             var actorUser = await _dbContext.Set<ApplicationUser>().AsNoTracking()
                 .FirstOrDefaultAsync(u => u.Id == actorUserId, cancellationToken);
-            var actorName = actorUser != null && !string.IsNullOrWhiteSpace(actorUser.FullName)
-                ? actorUser.FullName
+            var actorName = actorUser != null && !string.IsNullOrWhiteSpace(actorUser.DisplayName)
+                ? actorUser.DisplayName
                 : (actorUser?.UserName ?? actorUserId.ToString());
 
             return MapReviewResponse(review, actorName, isReplay: false);
