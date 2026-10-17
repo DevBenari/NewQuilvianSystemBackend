@@ -618,3 +618,36 @@ Trace `BKC-DES-070`, `BKC-DES-073`, `BIL-INT-020`.
 | Tingkat lanjutan | `RegPatientEncounter.SourceEncounterId` | Tidak berubah |
 
 Trace `BKC-DEC-155`, `BKC-DES-077`–`BKC-DES-080`, `CAP-BIL-11`. Tests: `BIL-AT-189`–`BIL-AT-198`.
+
+---
+
+## Amendment 16 Oktober 2026 — Backfill Tautan Transfer Lama dan Kredit Refund Admin Rawat Jalan (Revisi 2.3)
+
+> `last_changed_in`: `BIL-INTEGRATION-1.8` atas `BIL-INTEGRATION-1.7` — status **draft**.
+> Masukan: `BKC-DES-086`, `BKC-DES-088`, `BKC-DEC-160`, `BKC-DEC-163`. Backend SHA: `738e03a0`.
+> Nol perubahan pada modul Registration Management, Rawat Inap, maupun Finance.
+
+### `BIL-INT-022` — Backfill tautan kunjungan asal transfer lama
+
+| Field | Isi |
+|---|---|
+| Arah | Billing membaca Registration Management (dan tabel tanda terima milik Billing sendiri), lalu menulis tabel Billing |
+| Mekanisme | Satu migration data `<timestamp>_BackfillTransferOriginEncounterLinks`, didahului dry-run baca-saja (`02-backend-architecture.md` amendment revisi `2.3` bagian 8) |
+| Sumber | `RegPatientEncounter` (`SourceEncounterId`, `AdmissionTransferSourceType`, `PatientId`, `EncounterType`, `IsDelete`, `IsCancel`), **baca saja**; `BilInvoice`; `BilInpatientEventReceipt` |
+| Tujuan | `BilInvoiceEncounterLink` |
+| Kriteria | Identik dengan penulis runtime `BIL-INT-021` (`BKC-DES-077`/`079`) |
+| Idempotensi | Syarat "belum ada tautan untuk pasangan" ditambah indeks unik (`RanapInvoiceId`, `LinkedEncounterId`). Aman diulang |
+| Waktu | Sesudah `FR-BKC-273` terpasang; sebelum `MVP-37` dirilis (`BKC-DEC-163`) |
+| Kegagalan | Seluruh migration berjalan dalam satu transaksi; gagal berarti nol baris tertulis. Data yang tidak memenuhi kriteria tidak membuat migration gagal; ia hanya dilewati dan dihitung dry-run |
+| Rekonsiliasi pasca-jalan | Kandidat yang tetap tidak tertaut jatuh ke `UNLINKED_TRANSFER_ORIGIN` pada `MVP-37` (`BIL-INT-020`), sehingga sistem tetap gagal-tertutup |
+| Modul lain | Registration Management dan Rawat Inap **tidak** berubah dan tidak perlu menyetujui; cukup diberi tahu bahwa data asal transfer mereka dibaca. `InpIntegrationReplayService.NeedsLinkAsync` **tidak** diperluas |
+
+### Kredit refund `REFERRED_OUTPATIENT_ADMIN` dan Finance
+
+| Titik sentuh | Keadaan |
+|---|---|
+| Kredit lahir saat finalisasi invoice rawat inap | Internal Billing (`BKC-DES-086`) |
+| Refund kredit dieksekusi | Lewat `BilRefundCase` yang sudah ada. Refund `EXECUTED` sudah tersinkron ke Finance intake (`FinanceBillingIntakeService.cs:209-212`, BE-FIN-025) |
+| Kredit sebelum dicairkan | **Tidak** tersinkron ke Finance intake, yang hanya menarik `ALLOCATION_EXCESS` dan `SETTLEMENT` (`FinanceBillingIntakeService.cs:203-206`). Mengubahnya menyentuh berkas milik Finance, jadi dicatat `BKC-OQ-140` dan **tidak** dirancang di sini |
+
+Trace `BKC-DEC-119`, `BKC-DEC-160`, `BKC-DEC-163`, A1. Tests: `BIL-AT-214`–`BIL-AT-217`.

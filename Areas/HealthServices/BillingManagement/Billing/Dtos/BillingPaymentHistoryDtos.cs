@@ -49,6 +49,11 @@ public sealed class PaymentHistoryItemResponse
     // Lunas bila seluruh TotalBillAmount sudah tertutup oleh tender SUCCEEDED yang terkumpul.
     public bool IsFullyPaid { get; set; }
 
+    // Status finansial invoice: "BELUM_LUNAS", "SEBAGIAN", "LUNAS"
+    public string PaymentStatus { get; set; } = "BELUM_LUNAS";
+
+    public decimal OutstandingAmount { get; set; }
+
     // Seluruh tender SUCCEEDED milik invoice ini, diurutkan kronologis - frontend yang
     // menurunkan label "Angsuran N/M" (M = Count di sini), konsisten dengan logika yang sama
     // dipakai Kwitansi (satu sumber kebenaran, bukan dihitung ulang backend maupun frontend
@@ -63,4 +68,10 @@ public sealed class PaymentHistoryTenderResponse
     public string KwitansiNumber { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public DateTimeOffset AttemptedAt { get; set; }
+
+    // Klasifikasi transaksi pembayaran: "PELUNASAN", "CICILAN"
+    public string TransactionClassification { get; set; } = "CICILAN";
+    // Status tagihan setelah transaksi ini: "LUNAS", "SEBAGIAN"
+    public string PostTransactionStatus { get; set; } = "SEBAGIAN";
+    public decimal RemainingOutstanding { get; set; }
 }

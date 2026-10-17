@@ -464,7 +464,7 @@ public sealed class BillingAllocationService
                     ActorUserId = actorUserId
                 });
 
-    private async Task<InvoiceFundsPosition> CalculateInvoicePositionAsync(
+    public async Task<InvoiceFundsPosition> CalculateInvoicePositionAsync(
         Guid invoiceId,
         decimal patientAmount,
         CancellationToken cancellationToken)
@@ -697,7 +697,7 @@ public sealed class BillingAllocationService
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 
-    private readonly record struct InvoiceFundsPosition(
+    public readonly record struct InvoiceFundsPosition(
         decimal NetAllocatedAmount,
         decimal OutstandingAmount,
         decimal RefundableCredit);
