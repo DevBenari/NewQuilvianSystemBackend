@@ -172,6 +172,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 bedQuery = bedQuery.Where(x => x.IsForNewborn == query.IsForNewborn.Value);
             }
 
+            // BE-RWI-248: saring tempat tidur khusus ODC dan ruangan ODC.
+            if (query.IsOdcBed.HasValue)
+            {
+                bedQuery = bedQuery.Where(x => x.IsOdcBed == query.IsOdcBed.Value);
+            }
+
+            if (query.IsOdcRoom.HasValue)
+            {
+                bedQuery = bedQuery.Where(x => x.Room != null && x.Room.IsOdcRoom == query.IsOdcRoom.Value);
+            }
+
             // BE-RWI-239: saring satu lantai denah.
             if (!string.IsNullOrWhiteSpace(query.FloorCode))
             {
@@ -288,7 +299,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     BedStatusName = x.BedStatus.ToString(),
                     IsForNewborn = x.IsForNewborn,
                     IsIsolationBed = x.IsIsolationBed,
-                    IsReservable = x.IsReservable
+                    IsReservable = x.IsReservable,
+                    IsOdcBed = x.IsOdcBed
                 })
                 .ToList();
 
@@ -1622,6 +1634,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             IReadOnlyList<InpBedPlacement> placements =
                 projection.Placements.TryGetValue(bed.Id, out var placement) ? [placement] : [];
 
+            if (patient == null && episode != null)
+            {
+                patient = episode.Patient ?? await _dbContext.Set<MstPatient>().AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == episode.PatientId && !p.IsDelete, cancellationToken);
+            }
+
             var motherRoomId = patient?.IsNewborn == true
                 ? await InpNewbornAdmissionRules.FindMotherRoomAsync(_dbContext, episode?.MotherEpisodeId, patient.MotherPatientId, cancellationToken)
                 : null;
@@ -1734,6 +1752,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "ISOLATION_BED_RESERVED",
                     "Tempat tidur isolasi hanya untuk pasien yang membutuhkan isolasi.",
                     422);
+            }
+
+            // --- Aturan 9: Tempat tidur khusus ODC terjaga dua arah (BE-RWI-249 / VAL-ADM-10, VAL-ADM-11, VAL-ADM-12) ---
+            if (context != InpPlacementContext.Transfer)
+            {
+                var effectivePatient = patient ?? episode.Patient;
+                if (effectivePatient != null)
+                {
+                    var isOdcPatient = effectivePatient.PatientType == PatientType.OneDayCare ||
+                                       (int)effectivePatient.PatientType == 4 ||
+                                       (int)effectivePatient.PatientType == 7;
+
+                    if (isOdcPatient && !bed.IsOdcBed)
+                    {
+                        result.Add(
+                            9,
+                            "ODC_BED_REQUIRED",
+                            "Pasien ODC hanya dapat ditempatkan pada tempat tidur khusus One Day Care (ODC).",
+                            422);
+                    }
+                    else if (!isOdcPatient && bed.IsOdcBed)
+                    {
+                        result.Add(
+                            9,
+                            "ODC_BED_RESERVED",
+                            "Tempat tidur One Day Care (ODC) khusus diperuntukkan bagi pasien ODC.",
+                            422);
+                    }
+                }
             }
 
             return result;

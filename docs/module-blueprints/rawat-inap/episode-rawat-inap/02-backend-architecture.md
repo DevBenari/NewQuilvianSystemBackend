@@ -3520,3 +3520,142 @@ classDiagram
 
 Detail kontrak berada di `contracts/newborn-admission-repair-022.md`; bukti source pada laporan
 `BE-RWI-244..247`.
+
+---
+
+## 18. Amandemen Backend Pendaftaran Admisi Pasien ODC (One Day Care) — Kontrak `0.15.0` (`RWI-DEC-327` s.d. `RWI-DEC-332`)
+
+| Field | Nilai |
+|---|---|
+| Kontrak Target | `0.15.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Status | `draft` |
+| Masukan Bisnis | `00-interview-decisions.md` revision `53` (`RWI-DEC-327` s.d. `RWI-DEC-332`), `01-existing-capability-map.md` Bagian 21 |
+| Fokus Perubahan | Ekstensi DTO `AvailableBedQuery` / `AvailableBedResponse`, penyaringan bed ODC di `InpBedOccupancyService`, penegakan invariant penempatan ODC, dan pengecualian mutasi transfer eskalasi |
+
+### 18.1 Batas Bounded Context & Tanggung Jawab Modul
+
+1. **InPatientManagement (Pemilik Episode & Penempatan)**:
+   - Bertanggung jawab atas pembentukan Episode Rawat Inap ODC (`InpEpisode`) dengan durasi observasi < 24 jam dan penunjukan DPJP utama wajib (`RWI-DEC-328`).
+   - Bertanggung jawab atas penyaringan tempat tidur ODC pada kueri ketersediaan tempat tidur (`AvailableBedQuery`) dan penegakan invariant kelayakan tempat tidur ODC pada penempatan awal maupun reservasi (`RWI-DEC-327`).
+   - Bertanggung jawab mengizinkan perpindahan/eskalasi pasien ODC ke kamar rawat inap reguler melalui mutasi transfer bed (`TransferCoreAsync`) saat observasi melampaui 24 jam tanpa merusak atau membatalkan episode (`RWI-DEC-331`).
+2. **MasterData (Pemilik Sumber Daya Bed & Kamar)**:
+   - Kolom penanda `IsOdcBed` pada `MstBed` dan `IsOdcRoom` pada `MstRoom` sudah ada dan berstatus `Ready to reuse` (`BE@def6cf6a`).
+   - Modul ini tidak memerlukan pembuatan tabel baru atau modifikasi skema master data.
+3. **BillingManagement (Pemilik Kebijakan Biaya & Kasir)**:
+   - Sesuai keputusan bisnis `RWI-DEC-329`, skema pembayaran, penjamin, dan deposit pasien ODC 100% mengikuti aturan rawat inap standar. Tidak ada endpoint, tabel, atau logika billing khusus yang dibuat pada slice ini.
+
+### 18.2 Diagram Class Mermaid
+
+```mermaid
+classDiagram
+    class InpBedOccupancyService {
+        +SearchAvailableBedsAsync(AvailableBedQuery query) Task~AvailableBedPagedResult~
+        +ReserveBedAsync(ReserveBedRequest request) Task~InpBedOccupancyOperationResult~
+        +TransferCoreAsync(TransferPatientRequest request) Task~InpBedOccupancyOperationResult~
+        ~EvaluatePlacementEligibilityCore(...) InpPlacementEligibilityResult
+    }
+
+    class AvailableBedQuery {
+        +Guid? EpisodeId
+        +Guid? ServiceUnitId
+        +Guid? RoomId
+        +Guid? PatientClassId
+        +bool? IsIsolationBed
+        +bool? IsForNewborn
+        +bool? IsOdcBed [Baru]
+        +bool? IsOdcRoom [Baru]
+        +string? FloorCode
+        +bool IncludeIneligible
+    }
+
+    class AvailableBedResponse {
+        +Guid BedId
+        +string BedCode
+        +string BedName
+        +Guid RoomId
+        +string RoomName
+        +bool IsForNewborn
+        +bool IsIsolationBed
+        +bool IsOdcBed [Baru]
+        +bool IsReservable
+        +int BedStatus
+    }
+
+    class MstBed {
+        +Guid Id
+        +string BedCode
+        +string BedName
+        +bool IsOdcBed [Sudah Ada]
+        +bool IsIsolationBed
+        +bool IsForNewborn
+        +bool IsReservable
+        +BedStatus BedStatus
+    }
+
+    class MstRoom {
+        +Guid Id
+        +string RoomCode
+        +string RoomName
+        +bool IsOdcRoom [Sudah Ada]
+        +Guid ServiceUnitId
+        +Guid? PatientClassId
+    }
+
+    class InpEpisode {
+        +Guid Id
+        +string EpisodeNumber
+        +Guid EncounterId
+        +Guid PatientId
+        +Guid DoctorId [DPJP Wajib]
+        +InpEpisodeStatus EpisodeStatus
+    }
+
+    InpBedOccupancyService ..> AvailableBedQuery : menerima parameter filter
+    InpBedOccupancyService ..> AvailableBedResponse : memproyeksikan hasil
+    InpBedOccupancyService --> MstBed : menyaring bed bertanda ODC
+    InpBedOccupancyService --> MstRoom : menyaring kamar bertanda ODC
+    InpBedOccupancyService --> InpEpisode : memvalidasi kelayakan penempatan
+```
+
+### 18.3 Inventaris Class, Lokasi, dan Status Perubahan
+
+| Class | Status | Lokasi File | Fungsi / Perubahan |
+|---|---|---|---|
+| `AvailableBedQuery` | **Diperbarui** | `Areas/HealthServices/InPatientManagement/DTOs/InpatientBedOccupancyDtos.cs:22-64` | Menambahkan properti `public bool? IsOdcBed { get; set; }` dan `public bool? IsOdcRoom { get; set; }`. |
+| `AvailableBedResponse` | **Diperbarui** | `Areas/HealthServices/InPatientManagement/DTOs/InpatientBedOccupancyDtos.cs:67-108` | Menambahkan properti `public bool IsOdcBed { get; set; }` untuk mengidentifikasi bed khusus ODC pada respon klien. |
+| `InpBedOccupancyService` | **Diperbarui** | `Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs` | 1. Pada `SearchAvailableBedsAsync`: menambahkan filter query database `if (query.IsOdcBed.HasValue) bedQuery = bedQuery.Where(x => x.IsOdcBed == query.IsOdcBed.Value);` dan proyeksi field.<br>2. Pada `EvaluatePlacementEligibilityCore`: menambahkan aturan penolakan `ODC_BED_REQUIRED` dan `ODC_BED_RESERVED`, dengan pengecualian pada konteks `InpPlacementContext.Transfer`. |
+| `MstBed` | **Sudah ada** | `Areas/HealthServices/MasterData/Models/MstBed.cs:35` | Properti `IsOdcBed` sudah tersedia di database dan model Entity Framework (`Ready to reuse`). |
+| `MstRoom` | **Sudah ada** | `Areas/HealthServices/MasterData/Models/MstRoom.cs:45` | Properti `IsOdcRoom` sudah tersedia di database dan model Entity Framework (`Ready to reuse`). |
+| `InpatientEpisodeController` | **Sudah ada** | `Areas/HealthServices/InPatientManagement/Controllers/InpatientEpisodeController.cs:253` | Endpoint `POST /episodes` (`OpenAdmission`) sudah mendukung pembentukan episode rawat inap dengan validasi DPJP wajib (`Ready to reuse`). |
+
+### 18.4 Aturan Invariant Penempatan Tempat Tidur ODC
+
+Dalam method internal `EvaluatePlacementEligibilityCore`, evaluasi kelayakan bed diperluas dengan aturan berikut:
+
+1. **Aturan Kelayakan ODC (Episode ODC Menuntut Bed ODC)**:
+   - Pemicu: Konteks reservasi/admisi menandakan pasien ODC (misal via parameter context atau penanda episode ODC).
+   - Kondisi: Tempat tidur yang dipilih memiliki `bed.IsOdcBed == false`.
+   - Konsekuensi: Evaluasi ditolak dengan kode `ODC_BED_REQUIRED` (HTTP 422).
+   - Pesan: *"Pasien ODC hanya dapat ditempatkan pada tempat tidur khusus One Day Care (ODC)."*
+
+2. **Aturan Proteksi ODC (Episode Non-ODC Dilarang Memesan Bed ODC)**:
+   - Pemicu: Konteks reservasi/admisi adalah pasien rawat inap umum reguler (non-ODC).
+   - Kondisi: Tempat tidur yang dipilih memiliki `bed.IsOdcBed == true`.
+   - Konsekuensi: Evaluasi ditolak dengan kode `ODC_BED_RESERVED` (HTTP 422).
+   - Pesan: *"Tempat tidur One Day Care (ODC) hanya dapat diperuntukkan bagi pasien ODC."*
+
+3. **Pengecualian Eskalasi Transfer Rawat Inap (`RWI-DEC-331`)**:
+   - Jika `context == InpPlacementContext.Transfer`, aturan proteksi dan batasan ODC di atas **tidak diberlakukan**.
+   - Hal ini memastikan pasien ODC yang dirawat melebihi 24 jam dapat langsung dimutasi ke tempat tidur reguler melalui alur Transfer Bed Management yang sah tanpa terganjal validasi penempatan.
+
+### 18.5 Rencana Database & Migration
+- **Dampak Skema Database**: **NOL tabel baru, NOL kolom baru pada tabel database**.
+- Seluruh kolom yang dibutuhkan (`IsOdcBed` pada `MstBed`, `IsOdcRoom` pada `MstRoom`) sudah ada pada skema database PostgreSQL Quilvian saat ini (`BE@def6cf6a`).
+- Tidak diperlukan eksekusi migrasi Entity Framework (`Add-Migration` / `database update`) untuk slice backend ini.
+
+### 18.6 Yang Sengaja Tidak Dibuat
+1. **Tidak membuat tabel atau modul Billing ODC terpisah**: Menghindari fragmentasi finansial; billing ODC sepenuhnya menggunakan alur dan tagihan rawat inap reguler (`RWI-DEC-329`).
+2. **Tidak membuat entitas Pasien atau Kunjungan terpisah**: Pasien ODC tetap menggunakan `MstPatient` dan `RegPatientEncounter` (`EncounterType.Inpatient`).
+3. **Tidak membuat endpoint transfer baru**: Eskalasi perawatan memanfaatkan method `TransferCoreAsync` yang sudah berjalan stabil (`RWI-DEC-331`).
+

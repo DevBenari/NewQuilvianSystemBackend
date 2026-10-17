@@ -2213,3 +2213,49 @@ Urutan dan langkah mundur ada di backend 15.8. Episode lama tidak diisi HD/LD; N
 
 `FamilyBillingPreference` dan `PlannedDepositAmount` dipertahankan hanya untuk kompatibilitas
 data historis; alur bayi baru tidak menulis keduanya.
+
+---
+
+## 25. Amandemen Kamus Data Pendaftaran Admisi Pasien ODC (One Day Care) — Kontrak `0.15.0` (`RWI-DEC-327` s.d. `RWI-DEC-332`)
+
+| Field | Nilai |
+|---|---|
+| Kontrak Target | `0.15.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Bounded Context | `InPatientManagement` & `MasterData` |
+| Status | `draft` |
+
+### 25.1 Entitas Master Data Penanda ODC (Status: Sudah Ada)
+
+Entity master data berikut sudah ada di database PostgreSQL (`BE@def6cf6a`), tidak memerlukan migrasi skema database baru:
+
+#### `MstBed` (Skema `public`, Tabel `MstBed`)
+| Field | Tipe | Nullable | Bawaan | Sensitif | Keterangan |
+|---|---|:---:|---|:---:|---|
+| `IsOdcBed` | `bool` | Tidak | `false` | Tidak | Penanda tempat tidur khusus untuk pasien One Day Care (ODC). Jika `true`, bed hanya dapat dipesan/ditempati oleh episode ODC (`RWI-DEC-327`). |
+
+#### `MstRoom` (Skema `public`, Tabel `MstRoom`)
+| Field | Tipe | Nullable | Bawaan | Sensitif | Keterangan |
+|---|---|:---:|---|:---:|---|
+| `IsOdcRoom` | `bool` | Tidak | `false` | Tidak | Penanda kamar yang dialokasikan khusus untuk perawatan One Day Care (ODC) (`RWI-DEC-327`). |
+
+### 25.2 Ekstensi Parameter Kueri Ketersediaan Bed (`AvailableBedQuery`)
+
+| Parameter / Field | Tipe | Wajib | Bawaan | Sensitif | Keterangan |
+|---|---|:---:|---|:---:|---|
+| `IsOdcBed` | `bool?` | Tidak | `null` | Tidak | **[Baru]** Menyaring tempat tidur berdasarkan penanda ODC. Dikirim `true` pada alur admisi pasien ODC untuk membatasi pilihan hanya pada bed ODC. |
+| `IsOdcRoom` | `bool?` | Tidak | `null` | Tidak | **[Baru]** Menyaring tempat tidur pada kamar yang bertanda ODC. |
+
+### 25.3 Ekstensi Respon Tempat Tidur Tersedia (`AvailableBedResponse`)
+
+| Field | Tipe | Wajib | Sensitif | Keterangan |
+|---|---|:---:|:---:|---|
+| `IsOdcBed` | `bool` | Ya | Tidak | **[Baru]** Menandakan bahwa tempat tidur ini adalah tempat tidur khusus One Day Care (ODC). Membantu frontend menampilkan badge atau pengelompokan visual ODC. |
+
+### 25.4 Konstanta & Nilai Enum Terkait ODC
+
+| Simbol / Enum | Modul | Nilai | Keterangan |
+|---|---|---|---|
+| `PatientClassType.Odc` | Backend `MasterData` | `14` | Kategori kelas pasien ODC pada backend (`Sudah ada`). |
+| `INPATIENT_PATIENT_TYPE.ODC` | Frontend Constants | `"odc"` | Kategori tipe pasien ke-4 pada wizard admisi frontend (`Baru`). |
+

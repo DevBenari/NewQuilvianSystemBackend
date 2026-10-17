@@ -3,14 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Capability-map revision | **`1.7`** — ditambah **bagian 20: Audit kemampuan Workspace PPRI `PRD-RWI-ADMISI-001` (7 Oktober 2026)**, 54 kemampuan `PPRI-CAP-01` s.d. `PPRI-CAP-54`. Bagian 19 dinyatakan `STALE` terhadap `BE@671191e` untuk butir yang terbukti berubah (bagian 20.1). Sebelumnya `1.6` — ditambah **bagian 19: Impact scan terfokus Finishing Rawat Inap `PRD-RWI-FINISHING-001` (1 Oktober 2026)**, 33 kemampuan `FIN-CAP-01` s.d. `FIN-CAP-33`. Bagian 18 dinyatakan `STALE` untuk butir yang ditimpa bagian 19. Sebelumnya `1.5` — ditambah **bagian 18: Audit Kemampuan Integrasi Rawat Inap ↔ Billing (Pass A — Muhammad Hamzah, 17 September 2026)**. Sebelumnya `1.4` — ditambah bagian 16 dan bagian 17 (penyelarasan `PRD-RWI-V2-001` fase `RLN-PH-03` 15 September 2026). Bagian 1–14 baseline historis; bagian 15, 16, 17 historis untuk ruang kerja dokter dan keperawatan |
-| Status | `source-audited / focused-admission-workspace-audit`. **Per 7 Oktober 2026, bagian 20 current untuk scope `PRD-RWI-ADMISI-001` (Workspace PPRI) terhadap `BE@671191e` (branch `MHamzah`) dan `FE@2788966` (branch `HamzahV2`).** Sebelumnya `source-audited / focused-finishing-audit`. **Per 1 Oktober 2026, bagian 19 current untuk scope `PRD-RWI-FINISHING-001` terhadap `BE@c8e99ce5` (branch `MHamzah`) dan `FE@22ad6733` (branch `HamzahV2`).** Sebelumnya: **per 17 September 2026, bagian 18 current untuk integrasi Rawat Inap ↔ Billing terhadap `BE@fe7e60d4` (branch `MHamzah`) dan `FE@2c007588` (branch `HamzahV2`).** Bagian 17 current untuk ruang kerja dokter dan keperawatan terhadap `BE@df3679c0` dan `FE@147355f5`; bagian 1–16 historis. Dokumen ini belum menyatakan sub-modul siap dibangun, siap dirilis, atau siap produksi |
-| Tanggal audit | Audit Workspace PPRI 7 Oktober 2026; impact scan Finishing 1 Oktober 2026; audit integrasi Rawat Inap ↔ Billing 17 September 2026; impact scan penyelarasan V2 15 September 2026; impact scan V2 11 September 2026; baseline 21 Agustus 2026; impact scan Dokter Rawat Inap 2 September 2026 (`Asia/Jakarta`) |
-| Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), **revision `35`** untuk bagian 20, bersama `PRD-RWI-ADMISI-001` v`0.2` (SHA-256 `f1fd336f…dc1192`); revision `27` untuk bagian 19 (sebelumnya revision `25` untuk bagian 18); `PRD-RWI-FINISHING-001` v`0.1`, SHA-256 `047a43aa…fddb4c29` |
+| Capability-map revision | **`1.8`** — ditambah **bagian 21: Audit kemampuan Pendaftaran Admisi Pasien ODC (One Day Care) pada Rawat Inap (`RWI-DEC-327` s.d. `RWI-DEC-332`, 16 Oktober 2026)**, 11 kemampuan `ODC-CAP-01` s.d. `ODC-CAP-11`. Sebelumnya `1.7` — ditambah **bagian 20: Audit kemampuan Workspace PPRI `PRD-RWI-ADMISI-001` (7 Oktober 2026)**, 54 kemampuan `PPRI-CAP-01` s.d. `PPRI-CAP-54`. Bagian 19 dinyatakan `STALE` terhadap `BE@671191e` untuk butir yang terbukti berubah (bagian 20.1). Sebelumnya `1.6` — ditambah **bagian 19: Impact scan terfokus Finishing Rawat Inap `PRD-RWI-FINISHING-001` (1 Oktober 2026)**, 33 kemampuan `FIN-CAP-01` s.d. `FIN-CAP-33`. Bagian 18 dinyatakan `STALE` untuk butir yang ditimpa bagian 19. Sebelumnya `1.5` — ditambah **bagian 18: Audit Kemampuan Integrasi Rawat Inap ↔ Billing (Pass A — Muhammad Hamzah, 17 September 2026)**. Sebelumnya `1.4` — ditambah bagian 16 dan bagian 17 (penyelarasan `PRD-RWI-V2-001` fase `RLN-PH-03` 15 September 2026). Bagian 1–14 baseline historis; bagian 15, 16, 17 historis untuk ruang kerja dokter dan keperawatan |
+| Status | `source-audited / focused-odc-admission-audit`. **Per 16 Oktober 2026, bagian 21 current untuk scope Pendaftaran Admisi Pasien ODC terhadap `BE@def6cf6a` (branch `MHamzah`) dan `FE@fc9aea6d` (branch `HamzahV2`).** Sebelumnya: Per 7 Oktober 2026, bagian 20 current untuk scope `PRD-RWI-ADMISI-001` (Workspace PPRI) terhadap `BE@671191e` (branch `MHamzah`) dan `FE@2788966` (branch `HamzahV2`). Sebelumnya `source-audited / focused-finishing-audit`. **Per 1 Oktober 2026, bagian 19 current untuk scope `PRD-RWI-FINISHING-001` terhadap `BE@c8e99ce5` (branch `MHamzah`) dan `FE@22ad6733` (branch `HamzahV2`).** Sebelumnya: **per 17 September 2026, bagian 18 current untuk integrasi Rawat Inap ↔ Billing terhadap `BE@fe7e60d4` (branch `MHamzah`) dan `FE@2c007588` (branch `HamzahV2`).** Bagian 17 current untuk ruang kerja dokter dan keperawatan terhadap `BE@df3679c0` dan `FE@147355f5`; bagian 1–16 historis. Dokumen ini belum menyatakan sub-modul siap dibangun, siap dirilis, atau siap produksi |
+| Tanggal audit | Audit Pendaftaran Admisi ODC 16 Oktober 2026; audit Workspace PPRI 7 Oktober 2026; impact scan Finishing 1 Oktober 2026; audit integrasi Rawat Inap ↔ Billing 17 September 2026; impact scan penyelarasan V2 15 September 2026; impact scan V2 11 September 2026; baseline 21 Agustus 2026; impact scan Dokter Rawat Inap 2 September 2026 (`Asia/Jakarta`) |
+| Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), **revision `53`** untuk bagian 21 (`RWI-DEC-327` s.d. `RWI-DEC-332`); revision `35` untuk bagian 20, bersama `PRD-RWI-ADMISI-001` v`0.2` (SHA-256 `f1fd336f…dc1192`); revision `27` untuk bagian 19 (sebelumnya revision `25` untuk bagian 18); `PRD-RWI-FINISHING-001` v`0.1`, SHA-256 `047a43aa…fddb4c29` |
 | Daftar periksa audit | `RWI-TRC-001` sampai `RWI-TRC-009` pada dokumen keputusan |
-| Decision ID yang dirujuk | `RWI-DEC-001` s.d. `RWI-DEC-035`, `RWI-DEC-075` s.d. `RWI-DEC-079`, `RWI-DEC-093` s.d. `RWI-DEC-096`, `RWI-DEC-106` s.d. `RWI-DEC-149`, serta **`RWI-DEC-156` s.d. `RWI-DEC-161`**, dan **`RWI-DEC-163` s.d. `RWI-DEC-183`** untuk bagian 19, serta **`RWI-DEC-225` s.d. `RWI-DEC-248`** dan `RWI-OQ-116` s.d. `RWI-OQ-121` untuk bagian 20 |
-| Backend snapshot | **Bagian 20: `671191eb1aff3f618456cb6c909863bb0eca82f4`** (branch `MHamzah`; enam berkas source belum di-commit, bukti dibaca dari `HEAD`); bagian 19: `c8e99ce54a677f512d2a7ae80432545e1b650248` (branch `MHamzah`); bagian 18: `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344` (branch `MHamzah`); bagian 17: `df3679c0d5b2f08106702153eb242d3a6cb2929b` (branch `MHamzah`); bagian 16: `201de753`; baseline `5afb54bd75281648010e50ef14f43ca1f80d8efd`; impact scan slice dokter `93b3227c431401d8f586dec4e1fb25fbf41766e3` (branch `MHamzah`) |
-| Frontend snapshot | **Bagian 20: `27889662ab1e6149bd7cd291b480796905e52594`** (branch `HamzahV2`; audit dimulai pada `1f889d67c`, lalu commit `27889662a` masuk selama audit dan seluruh bukti diperiksa ulang padanya); bagian 19: `22ad6733096b9eb257fd9ae2af17df5ad25d8967` (branch `HamzahV2`); bagian 18: `2c00758832f834cff0288bef4f0d2fcf1161fb52` (branch `HamzahV2`); bagian 17: `147355f505e875148b8416866ada6cf8b2f1ad99` (branch `HamzahV2`), ditambah pembanding V1 `13c3a96b`; bagian 16: `7f6b9356`; baseline `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; impact scan slice dokter `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`) |
+| Decision ID yang dirujuk | `RWI-DEC-001` s.d. `RWI-DEC-035`, `RWI-DEC-075` s.d. `RWI-DEC-079`, `RWI-DEC-093` s.d. `RWI-DEC-096`, `RWI-DEC-106` s.d. `RWI-DEC-149`, serta **`RWI-DEC-156` s.d. `RWI-DEC-161`**, dan **`RWI-DEC-163` s.d. `RWI-DEC-183`** untuk bagian 19, serta **`RWI-DEC-225` s.d. `RWI-DEC-248`** dan `RWI-OQ-116` s.d. `RWI-OQ-121` untuk bagian 20, serta **`RWI-DEC-327` s.d. `RWI-DEC-332`** dan `RWI-AC-463` s.d. `RWI-AC-468` untuk bagian 21 |
+| Backend snapshot | **Bagian 21: `def6cf6ab5f945cb7bf228847d90fcb10a2d2d94`** (branch `MHamzah`); bagian 20: `671191eb1aff3f618456cb6c909863bb0eca82f4` (branch `MHamzah`; enam berkas source belum di-commit, bukti dibaca dari `HEAD`); bagian 19: `c8e99ce54a677f512d2a7ae80432545e1b650248` (branch `MHamzah`); bagian 18: `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344` (branch `MHamzah`); bagian 17: `df3679c0d5b2f08106702153eb242d3a6cb2929b` (branch `MHamzah`); bagian 16: `201de753`; baseline `5afb54bd75281648010e50ef14f43ca1f80d8efd`; impact scan slice dokter `93b3227c431401d8f586dec4e1fb25fbf41766e3` (branch `MHamzah`) |
+| Frontend snapshot | **Bagian 21: `fc9aea6d62418460493899cb669832f032e48328`** (branch `HamzahV2`); bagian 20: `27889662ab1e6149bd7cd291b480796905e52594` (branch `HamzahV2`; audit dimulai pada `1f889d67c`, lalu commit `27889662a` masuk selama audit dan seluruh bukti diperiksa ulang padanya); bagian 19: `22ad6733096b9eb257fd9ae2af17df5ad25d8967` (branch `HamzahV2`); bagian 18: `2c00758832f834cff0288bef4f0d2fcf1161fb52` (branch `HamzahV2`); bagian 17: `147355f505e875148b8416866ada6cf8b2f1ad99` (branch `HamzahV2`), ditambah pembanding V1 `13c3a96b`; bagian 16: `7f6b9356`; baseline `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; impact scan slice dokter `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`) |
 | Contract version | **Bagian 20:** belum ada kontrak target Workspace PPRI; amandemen kontrak `episode-rawat-inap` (usulan `0.11.0`, `RWI-DEC-227`) belum ditulis. Sebelumnya: Target sub-modul `dokter-rawat-inap`: API, integration, state, validation, permission, dan acceptance test `0.1.0`, seluruhnya `draft`. Kontrak as-is aktual dicatat pada bagian 15 |
 | Cara audit | Pembacaan statis: model/entity, konfigurasi Entity Framework, migration, `DbSet`, route controller, atribut hak akses, registrasi *dependency injection* (DI), seeder, service/state frontend, menu, dan inventaris test |
 | Batas tulis | Hanya dokumen ini. Tidak ada satu baris source aplikasi yang diubah, tidak ada build, tidak ada migration, tidak ada eksekusi database |
@@ -2648,3 +2648,158 @@ Base URL: `api/v1/health-services/operating-room-management/cases`
 - **Backend:** `InPatientManagement/Controllers/InpatientEpisodeController.cs`, `InpatientAncillaryOrderController.cs`, `InpatientSurgeryBookingController.cs`; `InPatientManagement/DTOs/InpatientEpisodeDtos.cs`, `InpatientEpisodeReadDtos.cs`; `InPatientManagement/Services/InpDischargeService.Closure.cs`, `InpAncillaryOrderAdapter.cs`; `MasterData/Models/MstInpatientClearanceItem.cs`, `MstInpatientSetting.cs`, `MstTariff.cs`, `MstRoom.cs`, `MstBed.cs`, `MstPatientClass.cs`; `BillingManagement/Billing/Services/BillingDepositService.cs`, `BillingInvoiceService.cs`; `BillingManagement/MasterData/Models/MstDepositPolicy.cs`, `MstAdministrationFeePolicy.cs`; `ClinicalManagement/Services/InsuranceCoverageService.cs`; `ClinicalManagement/Seeders/ClinicalInstrumentDraftSeeder.cs`; `PatientManagement/MasterData/Models/MstPatient.cs`, `MstPatientRelationship.cs`, `MstPatientEmergencyContact.cs`; `PatientManagement/MasterData/Controllers/PatientController.cs`; `RegistrationManagement/Models/RegPatientEncounterGuarantor.cs`; `Corporate/HumanResource/MasterData/Organization/Models/MstHospitalSite.cs`; `Models/ApplicationUser.cs`; `Controllers/AuthController.cs`; atau ketika entity, endpoint, maupun resource `InpatientAdmissionDocument` pertama kali dibuat.
 - **Frontend:** `inpatient-episode-detail-view.jsx`, `inpatient-consent-print-view.jsx`, `inpatient-consent-form.jsx`, `inpatient-admission-flow-constants.jsx`, `inpatient-episode-constants.jsx`, `nursing-workspace/nursing-workspace-view.jsx`, `src/components/ui/clinical-workspace/*`, `src/components/features/surat-component/*`, `base-patient-card.jsx`, `use-permission.jsx`, `inpatient-admission-patient.service.js`, `inpatient-ancillary-order.service.js`.
 - **Keputusan:** jawaban atas `PPRI-UNK-01` s.d. `PPRI-UNK-12`, `RWI-OQ-116`, `RWI-OQ-117`, atau perubahan pada `RWI-DEC-225` s.d. `RWI-DEC-248`.
+
+---
+
+## 21. Audit kemampuan Pendaftaran Admisi Pasien ODC (One Day Care) pada Rawat Inap (`RWI-DEC-327` s.d. `RWI-DEC-332`) — 16 Oktober 2026
+
+### 21.1 Identitas, masukan, dan batas audit
+
+| Field | Nilai |
+|---|---|
+| Pemicu | Pass `/grill-me` Pendaftaran Admisi Pasien ODC Rawat Inap disahkan pada 16 Oktober 2026 (`00-interview-decisions.md` revision `53`, keputusan `RWI-DEC-327` s.d. `RWI-DEC-332`, acceptance criteria `RWI-AC-463` s.d. `RWI-AC-468`). Disusul eksekusi skill `/trace-existing-capabilities` untuk mengaudit kesiapan source code frontend dan backend |
+| Masukan bisnis | `00-interview-decisions.md` revision `53` (`RWI-DEC-327` s.d. `RWI-DEC-332`) |
+| Backend | `NewQuilvianSystemBackend` branch `MHamzah`, commit **`def6cf6ab5f945cb7bf228847d90fcb10a2d2d94`** (`BE@def6cf6a`) |
+| Frontend | `QuilvianSystemFrontendDev` branch `HamzahV2`, commit **`fc9aea6d62418460493899cb669832f032e48328`** (`FE@fc9aea6d`) |
+| Klaster yang diaudit | 1. UI Pendaftaran Admisi & Wizard Pasien (Langkah 2: Pilih Jenis Pasien)<br>2. Transisi & State Alur Admisi Rawat Inap<br>3. Master Data Bed & Ruangan (Penanda ODC)<br>4. Pencarian Tempat Tidur & Papan Admisi (`AvailableBedQuery`, `InpBedOccupancyService`, `useInpatientAdmissionBed`)<br>5. Invariant Penempatan & Reservasi Bed ODC<br>6. Alur Finansial, Pembayaran, dan Deposit ODC<br>7. Formulir & Lembar Cetak General Consent ODC<br>8. Eskalasi Rawat > 24 Jam melalui Transfer Bed Management |
+| Di luar audit | Tindakan operatif/kamar pulih di luar admisi, perincian tarif paket ODC di billing, formulir catatan rekam medis ODC di bangsal/ruang kerja perawat, konfigurasi master data bed/room |
+| Cara audit | Pembacaan statis: entity/model, DTO, route controller, query service, hook, utils, konstanta alur admisi, dan komponen frontend. **Tidak ada pengubahan source aplikasi, tidak ada build, migration, maupun eksekusi database** |
+| Batas tulis | Hanya dokumen ini dan header dokumen. Tidak ada satu baris source aplikasi yang diubah |
+
+### 21.2 Ringkasan untuk pembaca umum
+
+Bayangkan Ny. Linda (nama samaran) datang ke rumah sakit untuk menjalani tindakan operasi katarak terencana dengan masa pemulihan singkat (< 24 jam) yang dikategorikan sebagai layanan **One Day Care (ODC)**. Begini kesiapan sistem hari ini ketika petugas admisi (Mas Dimas) memproses pendaftaran Ny. Linda:
+
+1. **Pilihan Jenis Pasien ODC di Layar Admisi:** Pada Langkah 2 wizard admisi, sistem saat ini baru menampilkan 3 kartu: Pasien Umum, Bayi Baru Lahir, dan Pegawai RS. Opsi ke-4 *"Pasien ODC (One Day Care)"* belum didaftarkan di daftar konstanta frontend. Namun, komponen wizard admisi sudah dirancang secara dinamis merender kartu dari daftar opsi tersebut. Begitu konstanta ODC ditambahkan, kartu ODC akan langsung muncul secara otomatis baik untuk pendaftaran Pasien Baru maupun Pasien Lama tanpa merombak tata letak UI.
+2. **Pembentukan Episode Rawat Inap ODC:** Sesuai keputusan bisnis `RWI-DEC-328`, pasien ODC dibukakan Episode Rawat Inap khusus dengan kewajiban memiliki DPJP utama. Backend dan frontend sudah memiliki infrastruktur pembentukan episode rawat inap lengkap dengan penetapan DPJP sejak awal.
+3. **Penyaringan Tempat Tidur Khusus ODC:** Master data backend (`MstBed` dan `MstRoom`) **sudah siap 100%** dengan kolom `IsOdcBed` dan `IsOdcRoom` serta metadata konfigurasi. Namun, API pencarian tempat tidur (`AvailableBedQuery` dan `InpBedOccupancyService.SearchAvailableBedsAsync`) belum menyaring bed berdasarkan penanda ODC tersebut. Akibatnya, tanpa penambahan parameter query dan aturan invariant, tempat tidur rawat inap reguler masih bisa terpilih oleh pasien ODC.
+4. **Kebijakan Pembayaran & Deposit:** Keputusan bisnis `RWI-DEC-329` menetapkan kebijakan pembayaran dan deposit pasien ODC disamakan persis dengan rawat inap reguler. Seluruh komponen penjamin, verifikasi polis, deposit awal, dan integrasi kasir yang sudah berjalan dapat dipakai ulang langsung tanpa modifikasi.
+5. **Formulir General Consent:** Fungsi pencocokan kelas persetujuan (`matchRoomOptionKey`) di frontend sudah mengenali kata kunci `"odc"`. Namun, teks judul dokumen cetak General Consent masih statis *"SURAT PERSETUJUAN PASIEN RAWAT INAP"* dan belum dilengkapi judul khusus ODC serta klausul batas observasi maksimal 24 jam (`RWI-DEC-330`).
+6. **Eskalasi Perawatan > 24 Jam:** Jika setelah tindakan dokter memutuskan Ny. Linda memerlukan rawat inap lanjutan lebih dari 24 jam karena komplikasi medis, petugas tidak perlu membatalkan admisi atau membuat episode baru dari nol (`RWI-DEC-331`). Fitur *Transfer Bed Management* yang sudah ada dapat langsung memindahkan penempatan Ny. Linda ke kamar/bed rawat inap reguler.
+
+Dari 11 kemampuan yang diaudit: **5** `Ready to reuse`, **6** `Extend`, **0** `Missing`, **0** `Conflict`, dan **0** `Repair`.
+
+### 21.3 Tabel kemampuan ODC (`ODC-CAP-01` s.d. `ODC-CAP-11`)
+
+| ID | Kemampuan | Status | Bukti As-Is | Gap / Kebutuhan Target | Referensi Keputusan |
+|---|---|---|---|---|---|
+| `ODC-CAP-01` | Definisi Enum & Opsi Tipe Pasien ODC di Frontend | `Extend` | `FE@fc9aea6d src/lib/constants/health-services/inpatient-management/inpatient-admission-flow-constants.jsx:227-252` | `INPATIENT_PATIENT_TYPE` hanya berisi `GENERAL`, `NEWBORN`, `EMPLOYEE`. Perlu penambahan `ODC: "odc"` dan objek opsi ODC pada `INPATIENT_PATIENT_TYPE_OPTIONS` dengan judul "Pasien ODC (One Day Care)". | `RWI-DEC-327`, `RWI-AC-463` |
+| `ODC-CAP-02` | Kartu Pilihan Jenis Pasien ODC pada Wizard Admisi FE | `Ready to reuse` | `FE@fc9aea6d src/components/view/health-services/inpatient-management/inpatient-admission-view.jsx:244` & `inpatient-admission-visit-category-step.jsx:235` | Kedua komponen merender kartu pilihan menggunakan `INPATIENT_PATIENT_TYPE_OPTIONS.map(...)`. Begitu opsi ODC didaftarkan di konstanta, kartu ke-4 otomatis tampil di Pasien Baru dan Pasien Lama. | `RWI-DEC-327`, `RWI-AC-463` |
+| `ODC-CAP-03` | Transisi Alur Langkah Admisi ODC di Frontend | `Ready to reuse` | `FE@fc9aea6d src/lib/constants/health-services/inpatient-management/inpatient-admission-flow-constants.jsx:351-365`, `src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-flow.jsx:49, 144, 161` | `resolvePatientTypeContinuationSlug` secara otomatis mengarahkan seluruh tipe non-newborn ke langkah berikutnya (`registration` untuk Pasien Baru, `patient-search` untuk Pasien Lama). Hook alur admisi sudah menyimpan state `patientType` di session storage. | `RWI-DEC-327`, `RWI-AC-463` |
+| `ODC-CAP-04` | Master Data Penanda Bed dan Kamar ODC di Backend | `Ready to reuse` | `BE@def6cf6a Areas/HealthServices/MasterData/Models/MstBed.cs:35` (`IsOdcBed`), `MstRoom.cs:45` (`IsOdcRoom`), `BedController.cs:78,123,456`, `RoomController.cs:145,188,607`, `PatientClassType.cs:19` | Kolom `IsOdcBed` dan `IsOdcRoom` sudah ada di database, DTO, CRUD controller, dan form metadata rule switch. `PatientClassType.Odc = 14` juga sudah terdaftar. Master data bed/kamar sudah siap 100%. | `RWI-DEC-327`, `RWI-AC-464` |
+| `ODC-CAP-05` | DTO Pencarian Tempat Tidur (`AvailableBedQuery` & Response) | `Extend` | `BE@def6cf6a Areas/HealthServices/InPatientManagement/DTOs/InpatientBedOccupancyDtos.cs:22-64, 67-108` | `AvailableBedQuery` memiliki `IsIsolationBed` dan `IsForNewborn`, tetapi belum memiliki filter `IsOdcBed` atau `IsOdcRoom`. `AvailableBedResponse` juga belum menyertakan properti `IsOdcBed`. | `RWI-DEC-327`, `RWI-AC-464` |
+| `ODC-CAP-06` | Layanan Penyaringan Bed Tersedia Backend (`SearchAvailableBedsAsync`) | `Extend` | `BE@def6cf6a Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:152-208, 276-293` | Query database belum menyaring `x.IsOdcBed == query.IsOdcBed.Value` dan pemetaan respon belum memproyeksikan `IsOdcBed` ke `AvailableBedResponse`. | `RWI-DEC-327`, `RWI-AC-464` |
+| `ODC-CAP-07` | Invariant Kelayakan & Reservasi Bed ODC Backend (`EvaluatePlacementEligibilityCore`) | `Extend` | `BE@def6cf6a Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:1631-1740` | Belum ada aturan validasi penolakan 422 bila episode ODC memesan bed reguler non-ODC, atau episode reguler memesan bed ODC pada konteks reservasi/penempatan awal admisi. | `RWI-DEC-327`, `RWI-AC-464` |
+| `ODC-CAP-08` | Papan Ketersediaan Bed Admisi FE (`buildAvailableBedQuery` & `useInpatientAdmissionBed`) | `Extend` | `FE@fc9aea6d src/utils/health-services/inpatient-management/inpatient-bed-utils.jsx:360-403`, `src/components/view/health-services/inpatient-management/inpatient-admission-view.jsx:757-763` | `buildBedBoardQuery` dan `buildAvailableBedQuery` belum meneruskan parameter `isOdcBed: true` ketika `flow.patientType === INPATIENT_PATIENT_TYPE.ODC`. Parameter ODC perlu disuntikkan ke pemanggilan board ketersediaan bed. | `RWI-DEC-327`, `RWI-AC-464` |
+| `ODC-CAP-09` | Skema Pembayaran & Kebijakan Deposit ODC | `Ready to reuse` | `FE@fc9aea6d src/components/view/health-services/inpatient-management/inpatient-admission-payment-step.jsx`, `inpatient-admission-deposit-step.jsx`, `inpatient-admission-flow-constants.jsx:60` | Kebijakan pembayaran dan deposit ODC 100% mengikuti rawat inap reguler (`RWI-DEC-329`), sehingga seluruh komponen pembayaran, deposit, dan integrasi kasir rawat inap dapat dipakai ulang langsung tanpa modifikasi. | `RWI-DEC-329`, `RWI-AC-465` |
+| `ODC-CAP-10` | Dokumen & Lembar Cetak General Consent ODC | `Extend` | `FE@fc9aea6d src/utils/health-services/inpatient-management/inpatient-consent-utils.jsx:51`, `src/lib/constants/health-services/inpatient-management/inpatient-admission-flow-constants.jsx:1029`, `src/components/view/health-services/inpatient-management/inpatient-consent-print-view.jsx` | `matchRoomOptionKey` sudah mengenali keyword `"odc"`, namun judul cetak `INPATIENT_CONSENT_COPY.documentTitle` masih statis `"SURAT PERSETUJUAN PASIEN RAWAT INAP"` dan belum memuat klausul batas observasi/perawatan maksimal 24 jam. | `RWI-DEC-330`, `RWI-AC-466` |
+| `ODC-CAP-11` | Eskalasi Perawatan > 24 Jam via Transfer Bed Management | `Ready to reuse` | `BE@def6cf6a Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:854-1090` (`TransferCoreAsync`), `src/lib/services/health-services/inpatient-management/inpatient-admission-transfer.service.js` | Layanan transfer mutasi bed sudah beroperasi penuh dan mempertahankan ID episode yang sama (`InpBedPlacementEndReason.Transfer`). Cukup dipastikan validator kelayakan mengizinkan transfer dari bed ODC ke bed reguler saat konteks adalah `Transfer`. | `RWI-DEC-331`, `RWI-AC-467` |
+
+### 21.4 Detail analisis per klaster kemampuan
+
+#### Klaster 1: UI Wizard Admisi & Tipe Pasien (Langkah 2)
+- **Status:** Perluasan kecil konstanta (`Extend`), komponen render UI siap pakai (`Ready to reuse`).
+- **Analisis Source:**
+  - File `inpatient-admission-flow-constants.jsx` mendefinisikan enum `INPATIENT_PATIENT_TYPE` dan array `INPATIENT_PATIENT_TYPE_OPTIONS`. Saat ini hanya terdapat 3 tipe pasien: `GENERAL`, `NEWBORN`, dan `EMPLOYEE`.
+  - Penambahan `ODC: "odc"` beserta objek opsi dengan judul *"Pasien ODC (One Day Care)"* dan deskripsi *"Pasien observasi atau tindakan medis singkat terencana dengan estimasi durasi rawat kurang dari 24 jam."* akan langsung dirender oleh `PatientTypeStep` di `inpatient-admission-view.jsx:244` (Pasien Baru) dan `inpatient-admission-visit-category-step.jsx:235` (Pasien Lama).
+  - Fungsi transisi alur `resolvePatientTypeContinuationSlug` (`inpatient-admission-flow-constants.jsx:351`) mengecek `patientType === INPATIENT_PATIENT_TYPE.NEWBORN` untuk beralih ke alur bayi; untuk seluruh tipe lainnya (termasuk ODC), fungsi secara elegan mengembalikan langkah pendaftaran reguler berikutnya sesuai `entryMode`.
+  - Hook alur `useInpatientAdmissionFlow.jsx` sudah mengelola state `patientType` dan menyimpannya ke *session storage*, sehingga konteks ODC terpelihara di sepanjang 8 langkah wizard.
+
+#### Klaster 2: Master Data Tempat Tidur & Ruangan ODC
+- **Status:** Siap pakai (`Ready to reuse`).
+- **Analisis Source:**
+  - `MstBed.cs:35` memiliki kolom `public bool IsOdcBed { get; set; } = false;`.
+  - `MstRoom.cs:45` memiliki kolom `public bool IsOdcRoom { get; set; } = false;`.
+  - `BedController.cs` dan `RoomController.cs` telah memiliki filter query `isOdcBed` dan `isOdcRoom`, DTO request/response, serta metadata switch rule pada UI form master data.
+  - `PatientClassType.cs:19` telah mendefinisikan `Odc = 14`, dan `FloorPlanRoomNaming.cs:179` telah menggunakan pemetaan ini (`bed.IsOdcBed = classType == PatientClassType.Odc`).
+  - Tidak diperlukan perubahan skema database maupun migrasi master data.
+
+#### Klaster 3: Penyaringan Tempat Tidur & Invariant Kelayakan (Langkah 6)
+- **Status:** Perluasan backend & frontend (`Extend`).
+- **Analisis Source:**
+  - `AvailableBedQuery` (`InpatientBedOccupancyDtos.cs:22-64`) saat ini hanya memiliki filter `IsIsolationBed` dan `IsForNewborn`. Properti `bool? IsOdcBed` dan `bool? IsOdcRoom` perlu ditambahkan.
+  - Pada `InpBedOccupancyService.SearchAvailableBedsAsync` (`InpBedOccupancyService.cs:152-208`), klausul penyaringan database perlu ditambahkan:
+    ```csharp
+    if (query.IsOdcBed.HasValue)
+    {
+        bedQuery = bedQuery.Where(x => x.IsOdcBed == query.IsOdcBed.Value);
+    }
+    ```
+  - Pada pemetaan hasil ke `AvailableBedResponse` (`InpBedOccupancyService.cs:276-293`), properti `IsOdcBed = x.IsOdcBed` perlu diproyeksikan.
+  - Pada pemeriksaan kelayakan penempatan `EvaluatePlacementEligibilityCore` (`InpBedOccupancyService.cs:1631-1740`), aturan invariant dua arah perlu ditambahkan:
+    - Jika episode/konteks adalah ODC dan bed yang dipilih bukan bed ODC (`!bed.IsOdcBed`), tolak dengan kode `ODC_BED_REQUIRED` (422).
+    - Jika episode/konteks BUKAN ODC dan bed yang dipilih adalah bed ODC (`bed.IsOdcBed`), tolak dengan kode `ODC_BED_RESERVED` (422).
+    - Pengecualian: Aturan penolakan bed ODC tidak diberlakukan jika konteks penempatan adalah `InpPlacementContext.Transfer` (eskalasi perawatan).
+  - Pada frontend `inpatient-bed-utils.jsx` (`buildBedBoardQuery` dan `buildAvailableBedQuery`), parameter `isOdcBed: true` perlu diteruskan saat `flow.patientType === INPATIENT_PATIENT_TYPE.ODC`.
+
+#### Klaster 4: Finansial, Deposit, dan Pembayaran (Langkah 4 & 7)
+- **Status:** Siap pakai (`Ready to reuse`).
+- **Analisis Source:**
+  - Keputusan bisnis `RWI-DEC-329` menegaskan bahwa alur finansial, verifikasi penjamin/asuransi, dan deposit pasien ODC identik dengan rawat inap reguler.
+  - Komponen `InpatientAdmissionPaymentStep`, `InpatientAdmissionDepositStep`, dan kalkulator kelayakan deposit `isInpatientDepositApplicable` dapat digunakan langsung tanpa percabangan kode khusus ODC.
+
+#### Klaster 5: Formulir & Lembar Cetak General Consent (Langkah 8)
+- **Status:** Perluasan tampilan cetak (`Extend`).
+- **Analisis Source:**
+  - Utilitas `inpatient-consent-utils.jsx:51` (`matchRoomOptionKey`) sudah memiliki pemetaan:
+    ```javascript
+    if (norm.includes("odc") || norm.includes("one day care")) return "odc";
+    ```
+    sehingga pilihan kamar ODC dapat dicocokkan secara otomatis.
+  - Namun, konstanta `INPATIENT_CONSENT_COPY` (`inpatient-admission-flow-constants.jsx:1029`) saat ini mengunci judul secara statis:
+    `documentTitle: "SURAT PERSETUJUAN PASIEN RAWAT INAP"`.
+  - Sesuai `RWI-DEC-330`, judul dokumen cetak perlu dibuat adaptif: bila tipe pasien adalah ODC, tampilkan *"SURAT PERSETUJUAN PASIEN ONE DAY CARE (ODC)"* dan cantumkan klausul khusus batas observasi/perawatan maksimal 24 jam pada bagian isi persetujuan.
+
+#### Klaster 6: Eskalasi Perawatan > 24 Jam via Transfer Bed Management
+- **Status:** Siap pakai (`Ready to reuse`).
+- **Analisis Source:**
+  - Layanan backend `InpBedOccupancyService.TransferCoreAsync` (`InpBedOccupancyService.cs:854-1090`) menangani mutasi transfer bed dengan menutup penempatan aktif (`InpBedPlacementEndReason.Transfer`) dan membuka penempatan baru pada bed tujuan dengan mempertahankan ID episode yang sama (`currentPlacement.EpisodeId`).
+  - Sesuai `RWI-DEC-331`, eskalasi rawat ODC > 24 jam tidak memerlukan pembatalan episode atau pembentukan episode baru; pasien cukup dipindahkan ke bed reguler melalui fitur Transfer Bed Management yang ada.
+
+### 21.5 Fakta, inferensi, dan rekomendasi
+
+**Fakta dari source code (`ODC-FACT`):**
+
+| ID | Fakta | Bukti Source |
+|---|---|---|
+| `ODC-FACT-01` | Master data bed dan room telah memiliki penanda ODC (`IsOdcBed` dan `IsOdcRoom`) lengkap dengan controller CRUD dan metadata rule switch | `BE@def6cf6a MstBed.cs:35`, `MstRoom.cs:45`, `BedController.cs:78`, `RoomController.cs:145` |
+| `ODC-FACT-02` | Enum kelas pasien backend telah mendefinisikan tipe ODC (`PatientClassType.Odc = 14`) dan digunakan pada penamaan denah lantai | `BE@def6cf6a PatientClassType.cs:19`, `FloorPlanRoomNaming.cs:179` |
+| `ODC-FACT-03` | `AvailableBedQuery` dan `SearchAvailableBedsAsync` belum mengenal filter `IsOdcBed` maupun `IsOdcRoom` | `BE@def6cf6a InpatientBedOccupancyDtos.cs:40-64`, `InpBedOccupancyService.cs:152-208` |
+| `ODC-FACT-04` | Evaluasi kelayakan bed `EvaluatePlacementEligibilityCore` belum memiliki aturan invariant penolakan untuk bed ODC | `BE@def6cf6a InpBedOccupancyService.cs:1631-1740` |
+| `ODC-FACT-05` | Konstanta tipe pasien frontend `INPATIENT_PATIENT_TYPE` belum mendaftarkan nilai ODC | `FE@fc9aea6d inpatient-admission-flow-constants.jsx:227-231` |
+| `ODC-FACT-06` | Fungsi pencocokan opsi kamar persetujuan frontend sudah mendukung kata kunci `"odc"` dan `"one day care"` | `FE@fc9aea6d inpatient-consent-utils.jsx:51` |
+| `ODC-FACT-07` | Judul dokumen formulir General Consent pada konstanta cetak masih terkunci statis untuk rawat inap reguler | `FE@fc9aea6d inpatient-admission-flow-constants.jsx:1029` |
+| `ODC-FACT-08` | Mekanisme transfer bed management backend mempertahankan episode yang sama tanpa pembatalan | `BE@def6cf6a InpBedOccupancyService.cs:1004-1028` |
+
+**Inferensi (penilaian agent):**
+1. Penambahan tipe pasien ODC pada wizard admisi frontend berisiko sangat rendah karena arsitektur form wizard sudah terabstraksi menggunakan konstanta array pilihan (`INPATIENT_PATIENT_TYPE_OPTIONS`) dan transisi slug generik non-newborn.
+2. Penambahan filter `IsOdcBed` pada `AvailableBedQuery` bersifat *non-breaking* dan sepenuhnya *backward-compatible*; pemanggil yang tidak menyertakan parameter ini akan menerima perilaku pencarian bed yang sama persis seperti sebelumnya.
+3. Kebutuhan eskalasi perawatan > 24 jam (`RWI-DEC-331`) dapat terpenuhi langsung menggunakan fitur Transfer Bed Management yang ada, asalkan aturan validasi invariant ODC memberikan pengecualian ketika konteks penempatan adalah `InpPlacementContext.Transfer`.
+
+**Rekomendasi untuk tahap desain (`design-business-module`):**
+1. **Kontrak Query Bed:** Perluas DTO `AvailableBedQuery` dengan menambahkan properti opsional `bool? IsOdcBed { get; set; }` dan `bool? IsOdcRoom { get; set; }`, serta tambahkan `public bool IsOdcBed { get; set; }` pada `AvailableBedResponse`.
+2. **Aturan Invariant Penempatan:** Definisikan aturan kelayakan baru pada `EvaluatePlacementEligibilityCore` dengan kode kegagalan `ODC_BED_REQUIRED` (bila episode ODC memilih bed non-ODC) dan `ODC_BED_RESERVED` (bila episode reguler memilih bed ODC), dikecualikan pada alur `Transfer`.
+3. **Penyuntikan Context FE:** Perbarui `inpatient-bed-utils.jsx` agar menyertakan `isOdcBed: true` pada query papan bed saat `flow.patientType === INPATIENT_PATIENT_TYPE.ODC`.
+4. **General Consent Dinamis:** Sesuaikan `inpatient-consent-print-view.jsx` agar menampilkan judul dinamis *"SURAT PERSETUJUAN PASIEN ONE DAY CARE (ODC)"* dan klausul batas 24 jam saat tipe pasien adalah ODC.
+
+### 21.6 Unknown dan pertanyaan lanjutan
+
+| ID | Pertanyaan | Kenapa tidak bisa dijawab dari source | Pemilik | Dampak |
+|---|---|---|---|---|
+| `ODC-UNK-01` | Apakah entity `InpEpisode` memerlukan kolom permanen `IsOdc` (boolean) di database untuk keperluan analitik/pelaporan jangka panjang setelah transfer eskalasi ke bed reguler, atau cukup dideteksi dari histori penempatan pertama? | Keputusan arsitektur data pelaporan | Muhammad Hamzah | Desain database `InpEpisode` |
+
+### 21.7 Keterbatasan audit
+
+1. Audit ini merupakan pembacaan statis (*read-only static analysis*) pada repository backend commit `def6cf6a` dan frontend commit `fc9aea6d`.
+2. Tidak ada kompilasi build, eksekusi test runner, maupun migrasi database yang dijalankan selama proses audit ini.
+3. Hak akses role pengguna untuk master data bed dan admisi diasumsikan sudah terkonfigurasi dengan benar di database target.
+
+### 21.8 Handoff dan langkah berikutnya
+
+- **Hasil Audit:** Kemampuan existing sistem Quilvian sangat matang untuk mendukung pendaftaran admisi ODC (5 kemampuan ready to reuse, 6 kemampuan extend minor, 0 missing).
+- **Rekomendasi Langkah Berikutnya:** Jalankan skill **`design-business-module`** untuk menyusun amandemen blueprint:
+  1. Kontrak API `AvailableBedQuery` dan DTO respon ketersediaan bed.
+  2. Diagram flowchart alur admisi ODC dari Langkah 1 hingga Langkah 8.
+  3. Spesifikasi validasi invariant penempatan bed ODC dan pengecualian transfer.
+  4. Template klausul dan judul formulir General Consent ODC.
+

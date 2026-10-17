@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Integrasi Denah approved (bagian 12, `RWI-DEC-324`); sebelumnya amandemen Bed Management draft (bagian 11). Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
-| `last_changed_in` | **`0.13.0`** — Integrasi Denah. Riwayat metadata sebelumnya: `0.12.0` — Bed Management; **`0.11.0`** — bagian 10: siklus dokumen admisi. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — bagian 8: tujuan penugasan, akibat penutupan; `0.8.0` — bagian 6A |
-| Status | **`approved`** untuk amandemen Integrasi Denah — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Bed Management tetap **`draft`**. Riwayat metadata sebelumnya: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | Integrasi Denah: decision 50, DEC-298–323, AC-436–461; gate 1.13/DNH-RCG-20261015-01; impact scan BM-IMP-20261015-01. Bed Management: Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `00-interview-decisions.md` revision `6`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
-| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Seluruhnya baru. Tidak ada state machine existing yang berubah |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Pendaftaran Admisi Pasien ODC draft (bagian 1.1, kontrak target `0.15.0`); sebelumnya Integrasi Denah approved (bagian 12, `RWI-DEC-324`); Bed Management draft (bagian 11). Riwayat metadata sebelumnya: `0.11.0` — Workspace PPRI |
+| `last_changed_in` | **`0.15.0`** — Pendaftaran Admisi Pasien ODC (One Day Care). Riwayat metadata sebelumnya: `0.13.0` — Integrasi Denah; `0.12.0` — Bed Management; `0.11.0` — Workspace PPRI |
+| Status | **`draft`** untuk amandemen Pendaftaran Admisi Pasien ODC (`0.15.0`); amandemen Integrasi Denah (`0.13.0`) **`approved`** (`RWI-DEC-324`) |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292 |
+| `input_revision` | Pendaftaran Admisi ODC: decision 53, RWI-DEC-327–332, AC-463–468; capability map 1.8 Bagian 21 |
+| Dampak kompatibilitas | Seluruhnya kompatibel. Memperjelas penanganan mutasi eskalasi perawatan ODC > 24 jam ke kamar rawat inap reguler (`RWI-DEC-331`) |
 
 Dokumen ini memuat perpindahan yang **sah** dan perpindahan yang **tidak sah**. Keduanya sama
 pentingnya: yang tidak sah adalah yang paling sering dicoba petugas ketika sedang terburu-buru.
@@ -32,11 +32,12 @@ Status awal: `Draft`. Status akhir: `Closed` dan `Cancelled`.
 | Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
 | --- | --- | --- | --- | --- | --- |
 | — | Buka admisi | `Draft` | Petugas admisi | Pasien terdaftar; kunjungan tersedia atau dibuat; DPJP pertama dipilih | 400 bila DPJP kosong |
-| `Draft` | Tempatkan pasien | `Admitted` | Petugas admisi | Kelayakan Penempatan terpenuhi | 409 bila tempat tidur sudah ditempati; 422 bila tempat tidur tidak layak |
+| `Draft` | Tempatkan pasien | `Admitted` | Petugas admisi | Kelayakan Penempatan terpenuhi (pasien ODC wajib ke bed ODC) | 409 bila tempat tidur sudah ditempati; 422 bila tempat tidur tidak layak / non-ODC |
 | `Draft` | Batalkan admisi | `Cancelled` | Petugas admisi | Alasan wajib | 400 bila alasan kosong |
 | `Draft` | Telantar melewati batas | `Cancelled` | **Sistem**, dihitung saat dibaca | Tidak disentuh melewati `DraftEpisodeExpiryHours` | Tidak ada; ini perhitungan, bukan permintaan |
 | `Admitted` | Batalkan admisi | `Cancelled` | Supervisor atau kepala ruangan | Belum ada catatan klinis; alasan wajib | 422 bila sudah ada catatan klinis |
 | `Admitted` | Pindahkan pasien | `Admitted` | Kepala ruangan, perawat pelaksana, supervisor, atau DPJP aktif | Tempat tidur tujuan lolos Kelayakan Penempatan; alasan wajib | 409 bila tempat tidur tujuan terisi; 403 bila dokter bukan DPJP aktif |
+| `Admitted` (ODC) | **Eskalasi rawat > 24 jam via Transfer Bed** (`RWI-DEC-331`) | `Admitted` (Reguler) | Perawat bangsal, supervisor, kepala ruangan | Observasi butuh rawat > 24 jam; alasan transfer minimal 10 karakter; bed reguler tujuan tersedia | 409 bila bed tujuan terisi; 422 bila alasan kosong |
 | `Admitted` | Putuskan pasien boleh pulang | `DischargePending` | **DPJP aktif** | Cara pulang dipilih | 403 bila bukan DPJP aktif; 400 bila cara pulang kosong |
 | `DischargePending` | **Catat kepergian fisik pasien** | `DischargePending` — **status tidak berubah** | Petugas admisi, perawat, kepala ruangan, supervisor | Kepergian belum pernah dicatat | 409 bila sudah pernah dicatat |
 | `DischargePending` | Tutup episode | `Closed` | Petugas admisi | Kelima syarat penutupan terpenuhi | 422 disertai daftar syarat yang belum terpenuhi |

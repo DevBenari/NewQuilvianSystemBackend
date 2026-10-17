@@ -3,14 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Integrasi Denah approved (bagian 14, `RWI-DEC-324`); sebelumnya amandemen Bed Management draft (bagian 13). Riwayat metadata sebelumnya: **`0.11.0`** — bagian 12 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 11 Finishing, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 10 |
-| `last_changed_in` | **`0.13.0`** — Integrasi Denah. Riwayat metadata sebelumnya: `0.12.0` — Bed Management; **`0.11.0`** — grup baru `Inpatient Admission Workspace`, isian baru dua master, peringatan detail episode. Sebelumnya `0.10.0` — Finishing; `0.9.0` — census dokter, penugasan pendukung, tiga isian resume, akibat penutupan |
-| Status | **`approved`** untuk amandemen Integrasi Denah — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Bed Management tetap **`draft`**. Riwayat metadata sebelumnya: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
-| `approved_by` / `approved_at` | Integrasi Denah: **Muhammad Hamzah, 2026-10-16** (`RWI-DEC-324`). Belum ada untuk amandemen Bed Management. Riwayat metadata sebelumnya: **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
-| `input_revision` | Integrasi Denah: decision 50, DEC-298–323, AC-436–461; gate 1.13/DNH-RCG-20261015-01; impact scan BM-IMP-20261015-01. Bed Management: Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
-| Backend SHA | Integrasi Denah: ca09cae909597442385ce4513be9c803549be10e. Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `44099e4` — hasil merge `QuilvianIntegrationBackend`. Sebelumnya `5afb54b` |
-| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Pendaftaran Admisi Pasien ODC draft (bagian 16, kontrak target `0.15.0`); sebelumnya Transfer Pasien Masuk approved (`0.14.0`); Integrasi Denah approved (`0.13.0`, `RWI-DEC-324`); Bed Management draft (`0.12.0`) |
+| `last_changed_in` | **`0.15.0`** — Pendaftaran Admisi Pasien ODC (One Day Care). Riwayat metadata sebelumnya: `0.14.0` — Transfer Pasien Masuk & Serah Terima Klinis; `0.13.0` — Integrasi Denah; `0.12.0` — Bed Management; `0.11.0` — Workspace PPRI |
+| Status | **`draft`** untuk amandemen Pendaftaran Admisi Pasien ODC (`0.15.0`); amandemen Transfer Pasien Masuk (`0.14.0`) dan Integrasi Denah (`0.13.0`) **`approved`** (`RWI-DEC-324`) |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292 |
+| `approved_by` / `approved_at` | Belum disetujui (status `draft` menunggu persetujuan manusia). Integrasi Denah: **Muhammad Hamzah, 2026-10-16** (`RWI-DEC-324`) |
+| `input_revision` | Pendaftaran Admisi ODC: decision 53, RWI-DEC-327–332, AC-463–468; capability map 1.8 Bagian 21 |
+| Backend SHA | `def6cf6ab5f945cb7bf228847d90fcb10a2d2d94` (branch `MHamzah`) |
+| Dampak kompatibilitas | **Aditif dan sepenuhnya non-breaking.** Penambahan parameter filter opsional `isOdcBed` dan `isOdcRoom` pada `GET available-beds`, serta properti `isOdcBed` pada respon `AvailableBedResponse`. Pemanggil lama tanpa parameter ODC menerima hasil yang sama persis |
 
 
 ### Perubahan pada `contract_version` `0.8.0`
@@ -1371,3 +1371,89 @@ DEC-298–323; AC-436–461. Belum ada contract test, API test, atau uji Postgre
 Kode tambahan: `409` untuk idempotency payload berbeda atau sumber penjamin basi; `422` untuk
 kasus persalinan yang bukan obstetri/tidak layak/tidak cocok. Bentuk lengkap request/response dan
 permission mengikuti `contracts/newborn-admission-repair-022.md`.
+
+---
+
+## 16. Amandemen API Ketersediaan Bed Pasien ODC — `contract_version 0.15.0` (`RWI-DEC-327` s.d. `RWI-DEC-332`)
+
+### 16.1 Ringkasan Perubahan API
+
+Pada slice ini, tidak ada pembuatan endpoint baru. Endpoint ketersediaan tempat tidur `GET /api/v1/health-services/inpatient-management/bed-occupancies/available-beds` diperluas dengan parameter query opsional `isOdcBed` dan `isOdcRoom` serta penambahan field `isOdcBed` pada respon DTO.
+
+### 16.2 Spesifikasi Endpoint
+
+#### `[Tags("Inpatient Bed Occupancy")]`
+### `GET /api/v1/health-services/inpatient-management/bed-occupancies/available-beds`
+
+- **Deskripsi**: Mengambil daftar tempat tidur yang tersedia dan lolos kelayakan penempatan untuk admisi atau pemesanan tempat tidur.
+- **Otorisasi**: `[AccessPermission("InpatientEpisode", "Read")]` atau `[AccessPermission("InpatientBed", "Read")]`
+- **Tipe Perubahan**: `Diperbarui` (Aditif / non-breaking)
+
+**Parameter Kueri (Query Parameters):**
+
+| Parameter | Tipe Data | Wajib | Nilai Bawaan | Keterangan & Aturan Bisnis |
+|---|---|---|---|---|
+| `episodeId` | `Guid` | Opsional | `null` | ID episode rawat inap aktif. Jika dikirim, aturan kelayakan episode ikut dinilai. |
+| `serviceUnitId` | `Guid` | Opsional | `null` | Filter unit layanan rawat inap tujuan. |
+| `roomId` | `Guid` | Opsional | `null` | Filter kamar tertentu. |
+| `patientClassId` | `Guid` | Opsional | `null` | Filter kelas perawatan yang ditagihkan. |
+| `isIsolationBed` | `bool` | Opsional | `null` | Filter tempat tidur isolasi. |
+| `isForNewborn` | `bool` | Opsional | `null` | Filter tempat tidur / boks bayi baru lahir. |
+| **`isOdcBed`** *(Baru)* | `bool` | Opsional | `null` | **Filter tempat tidur khusus One Day Care (ODC).** Wajib dikirim `true` oleh alur admisi ODC (`RWI-DEC-327`). |
+| **`isOdcRoom`** *(Baru)* | `bool` | Opsional | `null` | Filter kamar yang dikonfigurasi khusus ODC. |
+| `floorCode` | `string` | Opsional | `null` | Filter kode lantai pada denah gedung (misal: "3"). |
+| `search` | `string` | Opsional | `null` | Kata kunci pencarian nama kamar atau kode tempat tidur. |
+| `includeIneligible`| `bool` | Opsional | `false` | Jika `true` dan `episodeId` terisi, mengembalikan daftar tempat tidur yang ditolak beserta alasan penolakannya. |
+| `pageNumber` | `int` | Opsional | `1` | Nomor halaman (minimum 1). |
+| `pageSize` | `int` | Opsional | `25` | Jumlah data per halaman (minimum 1, maksimum 100). |
+
+**Spesifikasi Respon (`AvailableBedPagedResult`):**
+
+HTTP Status: `200 OK`
+
+```json
+{
+  "pageNumber": 1,
+  "pageSize": 25,
+  "totalData": 3,
+  "totalPages": 1,
+  "items": [
+    {
+      "operationalVersion": 1,
+      "cycleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "statusCode": "Available",
+      "statusLabel": "Tersedia",
+      "isBookable": true,
+      "bedId": "d3b07384-d113-494d-9a64-dff84b5c7f8a",
+      "bedCode": "ODC-01-A",
+      "bedName": "ODC 01 Bed A",
+      "bedNumber": "1",
+      "roomId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "roomCode": "ODC-01",
+      "roomName": "Ruang ODC 1",
+      "serviceUnitId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      "serviceUnitName": "Unit One Day Care",
+      "patientClassId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+      "patientClassName": "ODC",
+      "bedStatus": 1,
+      "bedStatusName": "Available",
+      "isForNewborn": false,
+      "isIsolationBed": false,
+      "isOdcBed": true,
+      "isReservable": true
+    }
+  ],
+  "ineligible": []
+}
+```
+
+**Kode Status HTTP & Penanganan Error:**
+
+| Kode | Error Code | Pemicu / Kondisi | Solusi Layar / Petugas |
+|---|---|---|---|
+| `200` | — | Permintaan berhasil; daftar tempat tidur lolos saringan dikembalikan | Tampilkan daftar tempat tidur pada Langkah 6 wizard admisi |
+| `400` | `INVALID_INPUT` | Format parameter query tidak valid (misal `pageNumber < 1`) | Perbaiki parameter masukan |
+| `403` | `ACCESS_DENIED` | Pengguna tidak memiliki hak akses `InpatientEpisode:Read` / `InpatientBed:Read` | Tampilkan pemberitahuan hak akses tidak mencukupi |
+| `422` | `ODC_BED_REQUIRED` | Episode ODC mencoba memesan/menempati bed non-ODC pada saat reservasi/admisi awal | Sistem menolak; arahkan petugas untuk memilih tempat tidur khusus ODC |
+| `422` | `ODC_BED_RESERVED` | Episode umum reguler mencoba memesan tempat tidur khusus ODC | Sistem menolak; arahkan petugas untuk memilih tempat tidur reguler |
+

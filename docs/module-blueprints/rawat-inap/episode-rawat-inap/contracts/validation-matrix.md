@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Integrasi Denah approved (bagian 17, `RWI-DEC-324`); sebelumnya amandemen Bed Management draft (bagian 16). Riwayat metadata sebelumnya: **`0.11.0`** — bagian 15 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 14, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 13 |
-| `last_changed_in` | **`0.13.0`** — Integrasi Denah. Riwayat metadata sebelumnya: `0.12.0` — Bed Management; **`0.11.0`** — amandemen alur admisi pendaftaran `VAL-ADM-01` s.d. `05` (`RWI-DEC-267` s.d. `273`), `VAL-RWA-01` s.d. `55`. Sebelumnya `0.10.0` — `VAL-RWF-70` s.d. `94`; `0.9.0` — `VAL-INP-01` s.d. `17`; `0.8.0` |
-| Status | **`approved`** untuk amandemen Integrasi Denah — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Bed Management tetap **`draft`**. Riwayat metadata sebelumnya: **`approved`** — amandemen alur admisi disetujui pengguna 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery". `0.11.0` Workspace PPRI `approved` 2026-10-08 (`RWI-DEC-265`) |
-| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | Integrasi Denah: decision 50, DEC-298–323, AC-436–461; gate 1.13/DNH-RCG-20261015-01; impact scan BM-IMP-20261015-01. Bed Management: Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `00-interview-decisions.md` revision `40`; `02-backend-architecture.md` revision `0.7`; `04-prd-to-mvp.md` revision `0.6.0` |
-| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Seluruhnya kompatibel. Menambah validasi format nomor darurat 13 digit, kewajiban data rujukan ringkas, default otomatis unit layanan ranap, dan kewajiban penanda tangan wali untuk bayi baru lahir |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Pendaftaran Admisi Pasien ODC draft (bagian 1.1 `VAL-ADM-10` s.d. `14`, kontrak target `0.15.0`); sebelumnya Integrasi Denah approved (bagian 17, `RWI-DEC-324`); Bed Management draft (bagian 16). Riwayat metadata sebelumnya: `0.11.0` — Workspace PPRI |
+| `last_changed_in` | **`0.15.0`** — Pendaftaran Admisi Pasien ODC (One Day Care). Riwayat metadata sebelumnya: `0.13.0` — Integrasi Denah; `0.12.0` — Bed Management; `0.11.0` — Workspace PPRI |
+| Status | **`draft`** untuk amandemen Pendaftaran Admisi Pasien ODC (`0.15.0`); amandemen Integrasi Denah (`0.13.0`) **`approved`** (`RWI-DEC-324`) |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292 |
+| `input_revision` | Pendaftaran Admisi ODC: decision 53, RWI-DEC-327–332, AC-463–468; capability map 1.8 Bagian 21 |
+| Dampak kompatibilitas | Seluruhnya kompatibel. Menambahkan validasi penolakan penempatan bed non-ODC untuk pasien ODC (`VAL-ADM-10`), proteksi bed ODC (`VAL-ADM-11`), pengecualian mutasi transfer eskalasi (`VAL-ADM-12`), kewajiban DPJP ODC (`VAL-ADM-13`), dan format klausul General Consent ODC (`VAL-ADM-14`) |
 
 ### Perubahan pada `contract_version` `0.8.0` — 11 September 2026
 
@@ -44,6 +44,11 @@ istilah teknis, bukan nama kolom.
 | `VAL-ADM-07` | **Koreksi memakai versi terbaru** (`RWI-DEC-295`, `RWI-AC-429`) | `POST …/general-consent/revisions` | `RowVersion` tidak sama dengan versi aktif, misalnya petugas lain sudah menyimpan versi 2 | "Persetujuan sudah diubah petugas lain. Muat ulang lalu ulangi perubahan Anda." (`INP-ADM-DOC-004`) | 409 |
 | `VAL-ADM-08` | **Ganti jenis penanda tangan wajib tanda tangan baru** (`RWI-DEC-296`, `RWI-AC-430`) | `POST …/general-consent/revisions` | `SignerType` berbeda dari versi aktif tanpa `SignatureImageBase64`. Contoh: `Spouse` → `Family` | "Jenis penanda tangan berubah. Bubuhkan tanda tangan penanda tangan yang baru." (`TTD_BARU_WAJIB`) | 422 |
 | `VAL-ADM-09` | **Koreksi harus mengubah sesuatu** (`RWI-DEC-295`) | `POST …/general-consent/revisions` | Tidak ada isian yang berbeda dan tanda tangan tidak diganti | "Tidak ada data yang berubah." (`TIDAK_ADA_PERUBAHAN`) | 422 |
+| `VAL-ADM-10` | **Penyaringan Bed Khusus Pasien ODC** (`RWI-DEC-327`, `RWI-AC-464`) | `POST /bed-reservations`, penempatan awal admisi | Pasien/episode ODC memilih tempat tidur non-ODC (`bed.IsOdcBed == false`) | "Pasien ODC hanya dapat ditempatkan pada tempat tidur khusus One Day Care (ODC)." (`ODC_BED_REQUIRED`) | 422 |
+| `VAL-ADM-11` | **Proteksi Bed Khusus ODC dari Pasien Reguler** (`RWI-DEC-327`, `RWI-AC-464`) | `POST /bed-reservations`, penempatan awal admisi | Pasien/episode reguler (non-ODC) memilih tempat tidur ODC (`bed.IsOdcBed == true`) | "Tempat tidur One Day Care (ODC) khusus diperuntukkan bagi pasien ODC." (`ODC_BED_RESERVED`) | 422 |
+| `VAL-ADM-12` | **Pengecualian Eskalasi Transfer Bed ODC ke Reguler** (`RWI-DEC-331`, `RWI-AC-467`) | `POST /bed-occupancies/transfers` | Pasien ODC yang dirawat > 24 jam dimutasi ke tempat tidur reguler | Mutasi penempatan bed diizinkan tanpa terblokir aturan ODC | 200 |
+| `VAL-ADM-13` | **Kewajiban DPJP Utama pada Episode ODC** (`RWI-DEC-328`, `RWI-AC-463`) | `POST /episodes` | Pembuatan episode admisi ODC tanpa memilih DPJP utama (`DoctorId` kosong/Guid.Empty) | "Dokter Penanggung Jawab Pelayanan (DPJP) utama wajib ditentukan untuk pasien ODC." | 400 |
+| `VAL-ADM-14` | **Format Judul & Klausul General Consent ODC** (`RWI-DEC-330`, `RWI-AC-466`) | `POST …/admission-consents`, cetak GC | Pasien bertipe ODC mencetak General Consent | Judul dokumen otomatis "SURAT PERSETUJUAN PASIEN ONE DAY CARE (ODC)" dan klausul batas observasi 24 jam wajib tertera | 200 |
 
 ### 1.2 Validasi Pembentukan Episode
 

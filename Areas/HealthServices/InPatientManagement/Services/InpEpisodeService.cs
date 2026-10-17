@@ -158,11 +158,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return InpEpisodeOperationResult.Invalid("Pasien belum dipilih.");
             }
 
-            if (request.DoctorId == Guid.Empty)
-            {
-                return InpEpisodeOperationResult.Invalid("Dokter penanggung jawab belum dipilih.");
-            }
-
             var patient = await _dbContext.Set<MstPatient>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
@@ -172,6 +167,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             if (patient == null)
             {
                 return InpEpisodeOperationResult.Invalid("Pasien belum dipilih.");
+            }
+
+            var isOdcPatient = patient.PatientType == PatientType.OneDayCare ||
+                               (int)patient.PatientType == 4 ||
+                               (int)patient.PatientType == 7;
+
+            // BE-RWI-249 / VAL-ADM-13: DPJP Utama wajib untuk admisi pasien ODC
+            if (isOdcPatient && request.DoctorId == Guid.Empty)
+            {
+                return InpEpisodeOperationResult.FromStatus(
+                    InpEpisodeOperationStatus.Invalid,
+                    "Dokter Penanggung Jawab Pelayanan (DPJP) utama wajib ditentukan untuk pasien ODC.",
+                    "PRIMARY_DOCTOR_REQUIRED");
+            }
+
+            if (request.DoctorId == Guid.Empty)
+            {
+                return InpEpisodeOperationResult.Invalid("Dokter penanggung jawab belum dipilih.");
             }
 
             var newbornError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, patient);
@@ -231,6 +244,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 var selectedBed = await _dbContext.Set<MstBed>().AsNoTracking().Include(x => x.Room)
                     .FirstOrDefaultAsync(x => x.Id == request.SelectedBedId.Value && !x.IsDelete, cancellationToken);
+                if (selectedBed != null)
+                {
+                    // BE-RWI-249 / VAL-ADM-10, VAL-ADM-11: Penegakan kelayakan bed ODC pada admisi
+                    if (isOdcPatient && !selectedBed.IsOdcBed)
+                    {
+                        return InpEpisodeOperationResult.FromStatus(
+                            InpEpisodeOperationStatus.BusinessRuleRejected,
+                            "Pasien ODC hanya dapat ditempatkan pada tempat tidur khusus One Day Care (ODC).",
+                            "ODC_BED_REQUIRED");
+                    }
+                    if (!isOdcPatient && selectedBed.IsOdcBed)
+                    {
+                        return InpEpisodeOperationResult.FromStatus(
+                            InpEpisodeOperationStatus.BusinessRuleRejected,
+                            "Tempat tidur One Day Care (ODC) khusus diperuntukkan bagi pasien ODC.",
+                            "ODC_BED_RESERVED");
+                    }
+                }
                 if (selectedBed?.Room != null)
                 {
                     var newbornEpisode = new InpEpisode { MotherEpisodeId = request.MotherEpisodeId };

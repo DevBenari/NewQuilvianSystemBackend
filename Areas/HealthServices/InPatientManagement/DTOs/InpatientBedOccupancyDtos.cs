@@ -41,6 +41,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public bool? IsForNewborn { get; set; }
 
+        /// <summary>Opsional; menyaring tempat tidur khusus One Day Care (BE-RWI-248).</summary>
+        public bool? IsOdcBed { get; set; }
+
+        /// <summary>Opsional; menyaring tempat tidur yang berada di ruangan One Day Care (BE-RWI-248).</summary>
+        public bool? IsOdcRoom { get; set; }
+
         /// <summary>Opsional; menyaring tempat tidur pada satu lantai denah (BE-RWI-239). Tanpa parameter jawaban tidak berubah.</summary>
         [MaxLength(10)]
         public string? FloorCode { get; set; }
@@ -105,6 +111,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public bool IsIsolationBed { get; set; }
 
         public bool IsReservable { get; set; }
+
+        /// <summary>Menandai apakah tempat tidur diperuntukkan khusus One Day Care (BE-RWI-248).</summary>
+        public bool IsOdcBed { get; set; }
     }
 
     /// <summary>Daftar tempat tidur yang dapat ditempati, bertingkat.</summary>

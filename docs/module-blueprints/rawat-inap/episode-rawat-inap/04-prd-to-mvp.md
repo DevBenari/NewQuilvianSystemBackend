@@ -2891,3 +2891,90 @@ Gelombang bukan task atau tanggal; roadmap dibuat `plan-module-delivery` sesudah
 - [ ] Fitur cetak gelang ranap resmi dan label stiker di Workspace PPRI berfungsi normal.
 - [ ] Laporan pengujian dan registri traceability terupdate.
 
+---
+
+## 29. Amandemen Bagian 29 — PRD to MVP: Pendaftaran Admisi Pasien ODC (One Day Care) pada Rawat Inap
+
+| Field | Nilai |
+|---|---|
+| Kontrak Target | `0.15.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Status | `draft` |
+| Masukan Bisnis | `00-interview-decisions.md` revision `53` (`RWI-DEC-327` s.d. `RWI-DEC-332`), `01-existing-capability-map.md` Bagian 21 |
+| Acuan Alur | `flowcharts/20-alur-admisi-odc.md`, `contracts/api-contract.md` Bagian 16 |
+
+### 29.1 Batas MVP (Scope Boundary)
+
+- **Titik Mulai**: Petugas admisi memilih mode masuk ("Pasien Baru" atau "Pasien Lama") dan memilih opsi kartu ke-4 *"Pasien ODC (One Day Care)"* pada Langkah 2 wizard admisi rawat inap.
+- **Titik Akhir**: Pasien ODC terdaftar resmi dengan nomor episode rawat inap aktif, DPJP utama terpasang, bed bertanda ODC terkunci, dokumen General Consent ODC dicetak dengan klausul 24 jam, serta tersedianya alur eskalasi mutasi bed management jika observasi melampaui 24 jam.
+- **Batasan di Luar Scope (Out-of-Scope)**: Tindakan bedah di kamar operasi/ruang tindakan, pengisian resume medis ODC oleh dokter, penentuan tarif paket tindakan ODC di modul billing, dan pengisian data konfigurasi master data bed/kamar.
+
+### 29.2 Daftar Kebutuhan Fungsional (Epic & Functional Requirements)
+
+| Kode FR | Nama Kebutuhan | Disposisi | Kriteria Penerimaan |
+|---|---|:---:|---|
+| `FR-ODC-001` | Pilihan Jenis Pasien ODC pada Wizard Admisi Langkah 2 | `EXTEND` | Wizard admisi merender kartu ke-4 "Pasien ODC (One Day Care)" pada Pasien Baru dan Pasien Lama. Memilih kartu ini menyimpan `patientType = "odc"` dan mengarahkan ke langkah identitas/pencarian berikutnya (`RWI-DEC-327`, `RWI-AC-463`). |
+| `FR-ODC-002` | Pembentukan Episode Rawat Inap ODC dengan DPJP Utama Wajib | `REUSE / EXTEND` | Sistem membentuk `InpEpisode` resmi dengan estimasi durasi rawat < 24 jam. Pemilihan DPJP utama pada Langkah 5 bersifat wajib (`DoctorId != Guid.Empty`); pendaftaran tanpa DPJP ditolak (`RWI-DEC-328`, `RWI-AC-463`). |
+| `FR-ODC-003` | Penyaringan Ketat Bed Khusus ODC pada Langkah 6 | `EXTEND` | Papan tempat tidur pada Langkah 6 menyaring query `GET available-beds` dengan parameter `isOdcBed = true`. Hanya bed dan kamar yang bertanda ODC yang tampil di antarmuka (`RWI-DEC-327`, `RWI-AC-464`). |
+| `FR-ODC-004` | Penegakan Invariant Kelayakan Bed ODC di Backend | `EXTEND` | Backend menolak dengan status `422 Unprocessable Entity` (`ODC_BED_REQUIRED`) bila pasien ODC mencoba memesan/menempati bed non-ODC, dan menolak `422` (`ODC_BED_RESERVED`) bila pasien non-ODC mencoba memesan bed ODC (`RWI-DEC-327`, `RWI-AC-464`). |
+| `FR-ODC-005` | Skema Pembayaran & Deposit Mengikuti Regulasi Rawat Inap Reguler | `REUSE` | Alur pembayaran, penjamin asuransi/perusahaan, kalkulasi deposit, dan penerbitan kuitansi deposit ODC menggunakan komponen dan aturan rawat inap standar tanpa percabangan baru (`RWI-DEC-329`, `RWI-AC-465`). |
+| `FR-ODC-006` | Penyesuaian Judul & Klausul 24 Jam General Consent ODC | `EXTEND` | Tampilan cetak General Consent menampilkan judul dinamis "SURAT PERSETUJUAN PASIEN ONE DAY CARE (ODC)" dan klausul eksplisit batas waktu observasi maksimal 24 jam serta persetujuan alih rawat reguler bila diperlukan (`RWI-DEC-330`, `RWI-AC-466`). |
+| `FR-ODC-007` | Eskalasi Perawatan > 24 Jam via Transfer Bed Management | `REUSE` | Pasien ODC yang membutuhkan rawat inap > 24 jam langsung dimutasi ke bed reguler via menu Transfer Bed Management tanpa pembatalan admisi atau pembuatan episode baru (`RWI-DEC-331`, `RWI-AC-467`). |
+
+### 29.3 Skenario Pengujian Penerimaan Pengguna (UAT Scenarios)
+
+1. **Skenario UAT 1: Pendaftaran Admisi Pasien ODC Berhasil (Happy Path)**
+   - *Kondisi Awal*: Pasien bernama Ny. Linda datang untuk operasi katarak terencana (estimasi < 24 jam). Tersedia tempat tidur bertanda ODC `ODC-01-A` di Unit ODC.
+   - *Langkah*:
+     1. Petugas admisi membuka wizard admisi rawat inap dan memilih "Pasien Baru".
+     2. Pada Langkah 2, petugas mengklik kartu **"Pasien ODC (One Day Care)"** lalu klik "Lanjut ke Pendaftaran".
+     3. Petugas melengkapi data KTP, tanggal lahir, dan kontak darurat Ny. Linda pada Langkah 3.
+     4. Pada Langkah 4, petugas memilih penjamin Asuransi dan memverifikasi nomor polis.
+     5. Pada Langkah 5, petugas memilih dr. Hendra, Sp.M sebagai DPJP utama.
+     6. Pada Langkah 6, denah/papan bed hanya menampilkan tempat tidur bertanda ODC. Petugas memilih `ODC-01-A` dan menekan "Pesan Bed".
+     7. Petugas mengonfirmasi deposit pada Langkah 7 dan membuka Langkah 8 General Consent.
+     8. Petugas mencetak Surat Persetujuan Pasien ODC dan Gelang Pasien.
+   - *Hasil yang Diharapkan*:
+     - Episode rawat inap Ny. Linda terbit dengan status `Admitted`, DPJP dr. Hendra, Sp.M.
+     - Tempat tidur `ODC-01-A` terkunci untuk Ny. Linda.
+     - Judul lembar cetak General Consent berbunyi *"SURAT PERSETUJUAN PASIEN ONE DAY CARE (ODC)"* dan memuat klausul batas observasi 24 jam.
+
+2. **Skenario UAT 2: Penolakan Pemesanan Tempat Tidur Non-ODC (Failure Path)**
+   - *Kondisi Awal*: Petugas memproses admisi pasien ODC.
+   - *Langkah*:
+     1. Pada Langkah 6, jika dicoba memilih tempat tidur rawat inap reguler (misal: `MAWAR-01-A` yang memiliki `IsOdcBed == false`).
+   - *Hasil yang Diharapkan*:
+     - Papan bed di antarmuka tidak menampilkan bed `MAWAR-01-A` (tersembunyi karena filter `isOdcBed = true`).
+     - Jika request reservasi dikirim paksa melalui API untuk bed `MAWAR-01-A`, backend menolak dengan respon HTTP `422 Unprocessable Entity` dan kode kesalahan `ODC_BED_REQUIRED`.
+
+3. **Skenario UAT 3: Eskalasi Perawatan Pasien ODC Melampaui 24 Jam (Happy Path)**
+   - *Kondisi Awal*: Ny. Linda sedang dirawat di bed ODC `ODC-01-A`. Setelah 18 jam observasi pasca operasi, dokter memutuskan Ny. Linda memerlukan rawat inap tambahan 2 hari karena tekanan intraokular meningkat.
+   - *Langkah*:
+     1. Perawat bangsal membuka menu **Bed Management** > **Transfer Bed**.
+     2. Perawat memilih pasien Ny. Linda (episode aktif ODC).
+     3. Perawat memilih kamar rawat inap reguler tujuan: `MELATI-02-B` (bed reguler).
+     4. Perawat menginput alasan mutasi: "Eskalasi perawatan pasca operasi katarak membutuhkan rawat inap > 24 jam" dan mengonfirmasi transfer.
+   - *Hasil yang Diharapkan*:
+     - Mutasi tempat tidur berhasil (HTTP 200). Penempatan lama di `ODC-01-A` ditutup (`InpBedPlacementEndReason.Transfer`) dan penempatan baru di `MELATI-02-B` aktif.
+     - ID Episode rawat inap Ny. Linda **tetap sama** dan tidak dibatalkan.
+     - Perawatan berlanjut secara mulus di kamar reguler Melati.
+
+### 29.4 Definition of Done (DoD)
+
+- [ ] Konstanta frontend `INPATIENT_PATIENT_TYPE` memuat `ODC: "odc"` dan kartu opsi ODC tampil pada Langkah 2 wizard admisi.
+- [ ] DTO `AvailableBedQuery` dan `AvailableBedResponse` memiliki properti `IsOdcBed` dan `IsOdcRoom`.
+- [ ] Method `SearchAvailableBedsAsync` memfilter `IsOdcBed` saat parameter dikirim.
+- [ ] Evaluasi kelayakan `EvaluatePlacementEligibilityCore` memvalidasi aturan `ODC_BED_REQUIRED` dan `ODC_BED_RESERVED`, serta mengecualikan validasi saat mutasi `Transfer`.
+- [ ] Lembar cetak General Consent adaptif menampilkan judul "SURAT PERSETUJUAN PASIEN ONE DAY CARE (ODC)" dan klausul batas 24 jam untuk pasien bertipe ODC.
+- [ ] Fitur Transfer Bed Management terbukti dapat memindahkan pasien ODC ke bed reguler tanpa merusak episode.
+- [ ] Seluruh skenario pengujian unit/integrasi lulus dan tidak ada regresi pada alur admisi reguler maupun bayi baru lahir.
+
+### 29.5 Urutan Pengiriman (Gelombang MVP-ODC)
+
+| Gelombang | Komponen | Isi Pekerjaan |
+|---|---|---|
+| **MVP-ODC-01** | Backend DTO & Query Service | Ekstensi `AvailableBedQuery`, `AvailableBedResponse`, penyaringan `SearchAvailableBedsAsync`, dan aturan invariant `EvaluatePlacementEligibilityCore` (`ODC_BED_REQUIRED`, `ODC_BED_RESERVED`). |
+| **MVP-ODC-02** | Frontend Konstanta & Wizard | Penambahan konstanta ODC, penyuntikan context ODC pada Langkah 6 Pilih Bed (`useInpatientAdmissionBed`), dan judul dinamis/klausul 24 jam pada formulir cetak General Consent. |
+| **MVP-ODC-03** | Pengujian & Verifikasi | Verifikasi end-to-end UAT Happy Path, Failure Path, dan Eskalasi Transfer Bed Management > 24 jam. |
+
+

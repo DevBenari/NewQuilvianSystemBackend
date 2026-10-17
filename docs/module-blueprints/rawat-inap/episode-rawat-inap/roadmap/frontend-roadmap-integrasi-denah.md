@@ -27,11 +27,11 @@
 ```text
                       BE-RWI-239 ✅ [BE] ─┐         BE-RWI-240 ✅ [BE] ─┐
                                           │                             │
-FE-RWI-246 ─────────┬─> FE-RWI-247 ─┬─────┴─> FE-RWI-248 ─> FE-RWI-249 ─┴─> FE-RWI-253
+FE-RWI-246 ✅ ──────┬─> FE-RWI-247 ✅ ─┬─────┴─> FE-RWI-248 ✅ ─> FE-RWI-249 ✅ ─┴─> FE-RWI-253 ✅
                     │               │
 BE-RWI-238 ✅ [BE] ─┘               │
                                     │
-                                    └───────────────────┬─┬─> FE-RWI-250 ─┬─> FE-RWI-251
+                                    └───────────────────┬─┬─> FE-RWI-250 ✅ ─┬─> FE-RWI-251 ✅
                                                         │ │               │
 BE-RWI-235 ✅ [BE] ─────────────────────────────────────┘ │               │
                                                           │               │
@@ -39,21 +39,21 @@ BE-RWI-236 ✅ [BE] ────────────────────
                                                                           │
 BE-RWI-237 ✅ [BE] ───────────────────────────────────────────────────────┘
 
-BE-RWI-234 ✅ [BE] ─> FE-RWI-252
+BE-RWI-234 ✅ [BE] ─> FE-RWI-252 ✅
 ```
 
 `[BE]` = cermin baca-saja task pada [backend-roadmap-integrasi-denah.md](backend-roadmap-integrasi-denah.md); tandanya disalin dari roadmap itu. Garis selalu prasyarat → task. `FE-RWI-249` menunggu `FE-RWI-248` karena memakai mode Pilih pop up yang dibangun di sana; `BE-RWI-239` sudah selesai lebih dulu lewat prasyarat itu. Persetujuan desain `RWI-DEC-324` berlaku untuk seluruh task, sehingga tidak digambar sebagai gerbang.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `FE-RWI-246` |
-| 1 | `BE-RWI-234` [BE] | `FE-RWI-252` — menunggu `BE-RWI-234` |
-| 2 | `FE-RWI-246`, `BE-RWI-238` [BE] | `FE-RWI-247` |
-| 3 | `FE-RWI-247`, `BE-RWI-239` [BE] | `FE-RWI-248` |
-| 3 | `FE-RWI-247`, `BE-RWI-235` [BE], `BE-RWI-236` [BE] | `FE-RWI-250` — boleh paralel dengan `FE-RWI-248` |
-| 4 | `FE-RWI-248` | `FE-RWI-249` |
-| 4 | `FE-RWI-250`, `BE-RWI-237` [BE] | `FE-RWI-251` |
-| 5 | `FE-RWI-249`, `BE-RWI-240` [BE] | `FE-RWI-253` — dirilis bersama `BE-RWI-240` |
+| 1 | — | `FE-RWI-246` ✅ — [laporan](../task/report/frontend/FE-RWI-246.md) |
+| 1 | `BE-RWI-234` [BE] | `FE-RWI-252` ✅ — [laporan](../task/report/frontend/FE-RWI-252.md) |
+| 2 | `FE-RWI-246`, `BE-RWI-238` [BE] | `FE-RWI-247` ✅ — [laporan](../task/report/frontend/FE-RWI-247.md) |
+| 3 | `FE-RWI-247`, `BE-RWI-239` [BE] | `FE-RWI-248` ✅ — [laporan](../task/report/frontend/FE-RWI-248.md) |
+| 3 | `FE-RWI-247`, `BE-RWI-235` [BE], `BE-RWI-236` [BE] | `FE-RWI-250` ✅ — [laporan](../task/report/frontend/FE-RWI-250.md) |
+| 4 | `FE-RWI-248` | `FE-RWI-249` ✅ — [laporan](../task/report/frontend/FE-RWI-249.md) |
+| 4 | `FE-RWI-250`, `BE-RWI-237` [BE] | `FE-RWI-251` ✅ — [laporan](../task/report/frontend/FE-RWI-251.md) |
+| 5 | `FE-RWI-249`, `BE-RWI-240` [BE] | `FE-RWI-253` ✅ — [laporan](../task/report/frontend/FE-RWI-253.md) |
 
 FR-DNH-004 (hitungan boks rawat gabung pada badge) berstatus OPEN DECISION karena RWI-OQ-144, sehingga belum punya task dan tidak masuk gelombang mana pun. Task-nya dibuat sesudah pemilik menjawab. Sampai saat itu badge memakai `Counts` dari server apa adanya, dan boks tampil sebagai baris tersendiri di pop up.
 
@@ -61,14 +61,14 @@ FR-DNH-004 (hitungan boks rawat gabung pada badge) berstatus OPEN DECISION karen
 
 | Task ID / status | Outcome | Requirement / decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko / pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-246` | Denah menjadi komponen bersama tanpa perubahan tampilan | FR-DNH-001; RWI-DEC-299, 325 | 0.13.0 approved; lock DNH-DEL-20261016-01 | `DNH-CAP-34` | Pemindahan komponen dan geometri + peta kunci netral kelas | — | RWI-AC-436 (fondasi); DNH-AT-911 | V-FE + bukti tampilan sama | Tampilan peta adalah invariant pemilik | D-FE |
-| `FE-RWI-247` | Monitoring Bed memakai denah dan pop up kamar | FR-DNH-001, 002, 003, 014; RWI-DEC-287, 299, 303, 316, 320, 325 | 0.13.0 approved | `DNH-CAP-09`, `10`, `12`, `22`, `35`, `36` | Satu layar existing + pop up mode Lihat | `FE-RWI-246`, `BE-RWI-238` | RWI-AC-436, 442, 443, 453 | V-FE + UAT-801, 802 | Privasi Housekeeping | D-FE |
-| `FE-RWI-248` | Langkah Pilih Bed admisi dan admisi bayi memakai denah | FR-DNH-005; RWI-DEC-299, 316, 325 | 0.13.0 approved | `DNH-CAP-13`, `18`, `37` | Dua langkah admisi existing + pop up mode Pilih | `FE-RWI-247`, `BE-RWI-239` | RWI-AC-436, 449, 453, 454 | V-FE + UAT-803, 804 | Berkas admisi diubah pekerjaan paralel issue 022 | D-FE |
-| `FE-RWI-249` | Tujuan transfer dipilih lewat denah | FR-DNH-005, 007; RWI-DEC-312, 316, 325 | 0.13.0 approved | `DNH-CAP-16`, `18`, `37` | Tiga konsumen transfer existing; memakai mode Pilih dari `FE-RWI-248` | `FE-RWI-248` | RWI-AC-436, 450, 453 | V-FE + UAT-804 | Kategori kelas khusus | D-FE |
-| `FE-RWI-250` | Master Bed menjadi editor denah | FR-DNH-008, 009, 010; RWI-DEC-304, 306, 313, 317, 318, 325 | 0.13.0 approved | `DNH-CAP-24`, `26`, `41` | Satu layar menu existing + pop up mode Master | `FE-RWI-247`, `BE-RWI-235`, `BE-RWI-236` | RWI-AC-436, 444, 451, 454, 455, 456, 457 | V-FE + UAT-805, 806 | Seluruh tim MasterData | D-FE |
-| `FE-RWI-251` | Susunan denah diimpor dari layar Master Bed | FR-DNH-011, 012; RWI-DEC-306, 314, 321, 323, 325 | 0.13.0 approved | `DNH-CAP-27` | Satu layar anak | `FE-RWI-250`, `BE-RWI-237` | RWI-AC-446, 451, 459, 461 | V-FE + UAT-807, 808 | Menjalankan impor = D-DNH-3 | D-FE |
-| `FE-RWI-252` | Panel High/Low Dependency | FR-DNH-013, 014; RWI-DEC-302, 303, 325 | 0.13.0 approved | `DNH-CAP-19` | Satu komponen panel di tiga tempat | `BE-RWI-234` | RWI-AC-440, 441, 443 | V-FE + UAT-809, 810 | Berkas langkah Dokter admisi diubah pekerjaan paralel issue 022 | D-FE |
-| `FE-RWI-253` | Sisa tampilan bed lama dan isian jenis kelamin dihapus | FR-DNH-003, 006; RWI-DEC-299, 315, 325 | 0.13.0 approved | `DNH-CAP-38`, `39`, `40` | Penghapusan berkas lama + isian/pesan jenis kelamin | `FE-RWI-249`, `BE-RWI-240` | RWI-AC-436, 439, 452 | V-FE + DNH-AT-912 | Breaking; rilis bersama `BE-RWI-240` | D-FE |
+| `FE-RWI-246` ✅ [laporan](../task/report/frontend/FE-RWI-246.md) | Denah menjadi komponen bersama tanpa perubahan tampilan | FR-DNH-001; RWI-DEC-299, 325 | 0.13.0 approved; lock DNH-DEL-20261016-01 | `DNH-CAP-34` | Pemindahan komponen dan geometri + peta kunci netral kelas | — | RWI-AC-436 (fondasi); DNH-AT-911 | V-FE + bukti tampilan sama | Tampilan peta adalah invariant pemilik | D-FE |
+| `FE-RWI-247` ✅ [laporan](../task/report/frontend/FE-RWI-247.md) | Monitoring Bed memakai denah dan pop up kamar | FR-DNH-001, 002, 003, 014; RWI-DEC-287, 299, 303, 316, 320, 325 | 0.13.0 approved | `DNH-CAP-09`, `10`, `12`, `22`, `35`, `36` | Satu layar existing + pop up mode Lihat | `FE-RWI-246`, `BE-RWI-238` | RWI-AC-436, 442, 443, 453 | V-FE PASS; UAT-801, 802 NOT RUN | Privasi Housekeeping | D-FE |
+| `FE-RWI-248` ✅ [laporan](../task/report/frontend/FE-RWI-248.md) | Langkah Pilih Bed admisi dan admisi bayi memakai denah | FR-DNH-005; RWI-DEC-299, 316, 325 | 0.13.0 approved | `DNH-CAP-13`, `18`, `37` | Dua langkah admisi existing + pop up mode Pilih | `FE-RWI-247`, `BE-RWI-239` | RWI-AC-436, 449, 453, 454 | V-FE PASS; UAT-803, 804 NOT RUN | Berkas admisi diubah pekerjaan paralel issue 022 | D-FE |
+| `FE-RWI-249` ✅ [laporan](../task/report/frontend/FE-RWI-249.md) | Tujuan transfer dipilih lewat denah | FR-DNH-005, 007; RWI-DEC-312, 316, 325 | 0.13.0 approved | `DNH-CAP-16`, `18`, `37` | Tiga konsumen transfer existing; memakai mode Pilih dari `FE-RWI-248` | `FE-RWI-248` | RWI-AC-436, 450, 453 | V-FE PASS; UAT-804 NOT RUN | Kategori kelas khusus | D-FE |
+| `FE-RWI-250` ✅ [laporan](../task/report/frontend/FE-RWI-250.md) | Master Bed menjadi editor denah | FR-DNH-008, 009, 010; RWI-DEC-304, 306, 313, 317, 318, 325 | 0.13.0 approved | `DNH-CAP-24`, `26`, `41` | Satu layar menu existing + pop up mode Master | `FE-RWI-247`, `BE-RWI-235`, `BE-RWI-236` | RWI-AC-436, 444, 451, 454, 455, 456, 457 | V-FE PASS; UAT-805, 806 NOT RUN | Seluruh tim MasterData | D-FE |
+| `FE-RWI-251` ✅ [laporan](../task/report/frontend/FE-RWI-251.md) | Susunan denah diimpor dari layar Master Bed | FR-DNH-011, 012; RWI-DEC-306, 314, 321, 323, 325, 326 | 0.13.0 approved | `DNH-CAP-27` | Satu layar anak | `FE-RWI-250`, `BE-RWI-237` | RWI-AC-446, 451, 459, 461 | V-FE PASS; UAT-807, 808 NOT RUN | Menjalankan impor = D-DNH-3 | D-FE |
+| `FE-RWI-252` ✅ [laporan](../task/report/frontend/FE-RWI-252.md) | Panel High/Low Dependency | FR-DNH-013, 014; RWI-DEC-302, 303, 325 | 0.13.0 approved | `DNH-CAP-19` | Satu komponen panel di tiga tempat | `BE-RWI-234` | RWI-AC-440, 441, 443 | V-FE PASS; UAT-809, 810 NOT RUN | Berkas langkah Dokter admisi diubah pekerjaan paralel issue 022 | D-FE |
+| `FE-RWI-253` ✅ [laporan](../task/report/frontend/FE-RWI-253.md) | Sisa tampilan bed lama dan isian jenis kelamin dihapus | FR-DNH-003, 006; RWI-DEC-299, 315, 325 | 0.13.0 approved | `DNH-CAP-38`, `39`, `40` | Penghapusan berkas lama + isian/pesan jenis kelamin | `FE-RWI-249`, `BE-RWI-240` | RWI-AC-436, 439, 452 | V-FE + DNH-AT-912 PASS | Breaking; rilis bersama `BE-RWI-240` | D-FE |
 
 ## Batas Handoff dan Definition of Done
 
@@ -96,11 +96,11 @@ D-FE terpenuhi bila setiap acceptance criteria kartu terpetakan ke source yang b
 
 ## Kartu Task
 
-### FE-RWI-246 — Denah menjadi komponen bersama tanpa perubahan tampilan
+### ✅ FE-RWI-246 — Denah menjadi komponen bersama tanpa perubahan tampilan
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ **Selesai 16 Oktober 2026.** Source, test registry 2/2, `npm run lint:errors`, build produksi, dan bukti blob CSS/geometri identik PASS. Screenshot denah `NOT RUN` karena browser lokal berhenti di verifikasi sesi; hal ini tidak menahan selesai berdasarkan D-FE. |
 | **Aturan keras !!!** | Berlaku `RWI-DEC-325`: references `build-module-frontend` dan base component tidak wajib; tampilan sempurna; **floor plan tidak boleh diubah** |
 | Slice / outcome | Satu komponen denah siap dipakai Monitoring, Pilih Bed, transfer, dan Master Bed, dengan tampilan persis sama |
 | Ukuran / batas | Pemindahan berkas dan antarmuka komponen; tanpa data API |
@@ -114,7 +114,7 @@ D-FE terpenuhi bila setiap acceptance criteria kartu terpetakan ke source yang b
 | Risiko / owner / aktivasi | Perubahan tampilan sekecil apa pun melanggar RWI-DEC-299; owner frontend |
 | Verifikasi yang wajib | V-FE + bukti tampilan sama (DNH-AT-911); test unit peta kunci dianjurkan, tidak wajib |
 | Definition of Done | D-FE; laporan `task/report/frontend/FE-RWI-246.md` |
-| Laporan | Belum ada |
+| Laporan | [FE-RWI-246.md](../task/report/frontend/FE-RWI-246.md) |
 
 Acceptance positif:
 
@@ -125,11 +125,11 @@ Acceptance negatif:
 
 - Tidak ada kunci yang memuat nama kelas (mis. `svip-318`); tidak ada perubahan warna, garis, atau tata letak peta.
 
-### FE-RWI-247 — Monitoring Bed memakai denah dan pop up kamar
+### ✅ FE-RWI-247 — Monitoring Bed memakai denah dan pop up kamar
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ **Selesai 16 Oktober 2026.** Monitoring memakai satu request denah per lantai; badge/outline/popup, privacy Housekeeping, aksi cleaning/availability/riwayat, stale guard, retry, dan penghapusan render kartu/tabel terbukti pada source/test. Lint dan build PASS; UAT browser `NOT RUN` sesuai D-FE. |
 | **Aturan keras !!!** | Berlaku `RWI-DEC-325`: references `build-module-frontend` dan base component tidak wajib; tampilan sempurna; **floor plan tidak boleh diubah** |
 | Slice / outcome | Tab Monitoring Bed menampilkan denah dengan status kamar, badge, outline hijau, dan pop up berisi setiap bed beserta aksinya |
 | Ukuran / batas | Satu tab existing + pop up mode Lihat |
@@ -143,7 +143,7 @@ Acceptance negatif:
 | Risiko / owner / aktivasi | Privasi: identitas hanya dari respons server, tidak diisi ulang dari cache. Data nyata butuh D-DNH-3 |
 | Verifikasi yang wajib | V-FE + UAT-801, 802 |
 | Definition of Done | D-FE; laporan `task/report/frontend/FE-RWI-247.md` |
-| Laporan | Belum ada |
+| Laporan | [FE-RWI-247.md](../task/report/frontend/FE-RWI-247.md) |
 
 Acceptance positif:
 
@@ -155,11 +155,11 @@ Acceptance negatif:
 - Akun Housekeeping tidak melihat nama, No. RM, maupun HD/LD.
 - Gagal muat menampilkan pesan dan tombol muat ulang; respons lama tidak menimpa lantai yang baru dipilih.
 
-### FE-RWI-248 — Langkah Pilih Bed admisi dan admisi bayi memakai denah
+### ✅ FE-RWI-248 — Langkah Pilih Bed admisi dan admisi bayi memakai denah
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ **Selesai 17 Oktober 2026.** Mode Pilih admisi biasa/bayi, eligibility server, expected version terbaru, race 409, ambiguous recovery, test fokus 21/21, lint, dan build produksi PASS. UAT-803/804 `NOT RUN` karena server/sesi/fixture aktual tidak tersedia; hal ini tidak menahan selesai berdasarkan D-FE. |
 | **Aturan keras !!!** | Berlaku `RWI-DEC-325`: references `build-module-frontend` dan base component tidak wajib; tampilan sempurna; **floor plan tidak boleh diubah** |
 | Slice / outcome | Petugas admisi memilih bed lewat denah; hanya kamar dengan bed layak untuk pasien itu yang ber-outline hijau |
 | Ukuran / batas | Dua langkah admisi existing + pop up mode Pilih |
@@ -173,7 +173,7 @@ Acceptance negatif:
 | Risiko / owner / aktivasi | Berkas admisi sedang diubah pekerjaan paralel PLAN-REPAIR-EPS-022; kerjakan di atas hasil yang sudah di-commit, jangan menimpanya |
 | Verifikasi yang wajib | V-FE + UAT-803, 804 |
 | Definition of Done | D-FE; laporan `task/report/frontend/FE-RWI-248.md` |
-| Laporan | Belum ada |
+| Laporan | [FE-RWI-248.md](../task/report/frontend/FE-RWI-248.md) |
 
 Acceptance positif:
 
@@ -189,7 +189,7 @@ Acceptance negatif:
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ Selesai |
 | **Aturan keras !!!** | Berlaku `RWI-DEC-325`: references `build-module-frontend` dan base component tidak wajib; tampilan sempurna; **floor plan tidak boleh diubah** |
 | Slice / outcome | Tab Bed Transfer, transfer di detail episode, dan panel transfer Workspace Keperawatan memilih tujuan lewat denah |
 | Ukuran / batas | Tiga konsumen transfer existing; mode Pilih pop up dari `FE-RWI-248` dipakai ulang |
@@ -203,7 +203,7 @@ Acceptance negatif:
 | Risiko / owner / aktivasi | Bukti kelas khusus nyata butuh D-DNH-1 |
 | Verifikasi yang wajib | V-FE + UAT-804 |
 | Definition of Done | D-FE; laporan `task/report/frontend/FE-RWI-249.md` |
-| Laporan | Belum ada |
+| Laporan | [FE-RWI-249.md](../task/report/frontend/FE-RWI-249.md) |
 
 Acceptance positif:
 
@@ -214,11 +214,11 @@ Acceptance negatif:
 
 - Kelas 2 → Kelas 1 dicatat Down Grade ditolak dengan pesan server; input petugas tetap utuh.
 
-### FE-RWI-250 — Master Bed menjadi editor denah
+### FE-RWI-250 ✅ — Master Bed menjadi editor denah
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ Selesai — V-FE PASS; UAT-805/806 NOT RUN |
 | **Aturan keras !!!** | Berlaku `RWI-DEC-325`: references `build-module-frontend` dan base component tidak wajib; tampilan sempurna; **floor plan tidak boleh diubah** |
 | Slice / outcome | Admin mengelola kamar dan bed langsung dari denah |
 | Ukuran / batas | Satu butir menu existing + pop up mode Master |
@@ -232,7 +232,7 @@ Acceptance negatif:
 | Risiko / owner / aktivasi | Halaman detail/tambah/ubah bed existing dipertahankan untuk bed di kamar tanpa kunci; seluruh tim MasterData |
 | Verifikasi yang wajib | V-FE + UAT-805, 806 |
 | Definition of Done | D-FE; laporan `task/report/frontend/FE-RWI-250.md` |
-| Laporan | Belum ada |
+| Laporan | [FE-RWI-250.md](../task/report/frontend/FE-RWI-250.md) |
 
 Acceptance positif:
 
@@ -248,11 +248,11 @@ Acceptance negatif:
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ Selesai — V-FE PASS; UAT-807/808 NOT RUN |
 | **Aturan keras !!!** | Berlaku `RWI-DEC-325`: references `build-module-frontend` dan base component tidak wajib; tampilan sempurna; **floor plan tidak boleh diubah** |
 | Slice / outcome | Admin impor menyusun manifest dari denah, memetakan unit, memeriksa, lalu mengimpor |
 | Ukuran / batas | Satu layar anak dari Master Bed |
-| Jejak | FR-DNH-011, 012; RWI-DEC-306, 314, 321, 323, 325; RWI-AC-446, 451, 459, 461 |
+| Jejak | FR-DNH-011, 012; RWI-DEC-306, 314, 321, 323, 325, 326; RWI-AC-446, 451, 459, 461 |
 | Desain / kontrak | Frontend 16.2 (FE-DNH-04), 16.3; API 14.2 Room `POST /floor-plan-layout/import`, 14.3 `FloorPlanImportRequest`/`FloorPlanImportResult`; flowchart 17 |
 | Reuse / disposisi | `DNH-CAP-27`; geometri dan peta kunci dari `FE-RWI-246` |
 | Cakupan | `floor-plan-import-view.jsx` + hook `use-floor-plan-import.js`: tombol "Impor susunan denah" hanya untuk Room : ImportFloorPlan; tabel kamar dari data denah (lantai, kunci, nomor, nama untuk kamar tanpa nomor, kelas dicocokkan dengan master menurut nama resmi, jumlah bed dan boks, arah bawaan dihitung kisi 3 × 3 dari geometri sesuai RWI-DEC-314); pemetaan unit per kamar dan sekaligus per lantai; pilihan kamar existing (opsional); "Periksa" (dry run) menampilkan ringkasan dan alasan per kamar; "Impor"; teks akibat lingkungan pada kesiapan bed |
@@ -262,7 +262,7 @@ Acceptance negatif:
 | Risiko / owner / aktivasi | Menekan Impor di lingkungan nyata adalah langkah D-DNH-3 dengan wewenang terpisah |
 | Verifikasi yang wajib | V-FE + UAT-807, 808 |
 | Definition of Done | D-FE; laporan `task/report/frontend/FE-RWI-251.md` |
-| Laporan | Belum ada |
+| Laporan | [`FE-RWI-251.md`](../task/report/frontend/FE-RWI-251.md) — source/unit/lint/build PASS; 106 kamar, 168 bed, 8 boks; UAT aktual NOT RUN |
 
 Acceptance positif:
 
@@ -277,7 +277,7 @@ Acceptance negatif:
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ Selesai — V-FE PASS; UAT-809/810 NOT RUN |
 | **Aturan keras !!!** | Berlaku `RWI-DEC-325`: references `build-module-frontend` dan base component tidak wajib; tampilan sempurna; **floor plan tidak boleh diubah** |
 | Slice / outcome | Perawat penanggung jawab dan DPJP mencatat HD/LD; petugas admisi mencatat nilai awal; riwayat dapat dibaca |
 | Ukuran / batas | Satu komponen panel di tiga tempat |
@@ -291,7 +291,7 @@ Acceptance negatif:
 | Risiko / owner / aktivasi | `inpatient-admission-doctor-step.jsx` sedang diubah pekerjaan paralel PLAN-REPAIR-EPS-022; aktivasi produksi `DNH-G04` |
 | Verifikasi yang wajib | V-FE + UAT-809, 810 |
 | Definition of Done | D-FE; laporan `task/report/frontend/FE-RWI-252.md` |
-| Laporan | Belum ada |
+| Laporan | [FE-RWI-252.md](../task/report/frontend/FE-RWI-252.md) |
 
 Acceptance positif:
 
@@ -301,11 +301,11 @@ Acceptance negatif:
 
 - Perawat bukan penanggung jawab menerima pesan 403; tab kedua yang basi menerima 409 dan diminta muat ulang; episode Closed hanya baca.
 
-### FE-RWI-253 — Sisa tampilan bed lama dan isian jenis kelamin dihapus
+### ✅ FE-RWI-253 — Sisa tampilan bed lama dan isian jenis kelamin dihapus
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ Selesai — V-FE dan DNH-AT-912 PASS |
 | **Aturan keras !!!** | Berlaku `RWI-DEC-325`: references `build-module-frontend` dan base component tidak wajib; tampilan sempurna; **floor plan tidak boleh diubah** |
 | Slice / outcome | Tidak ada lagi tampilan bed kedua, halaman dummy, maupun isian dan pesan jenis kelamin |
 | Ukuran / batas | Penghapusan berkas lama + penyesuaian test |
@@ -319,7 +319,7 @@ Acceptance negatif:
 | Risiko / owner / aktivasi | Breaking; daftar pasien rawat inap (`use-inpatient-episode-worklist.jsx`) tetap memanggil `bed-board` |
 | Verifikasi yang wajib | V-FE + DNH-AT-912 |
 | Definition of Done | D-FE; laporan `task/report/frontend/FE-RWI-253.md` |
-| Laporan | Belum ada |
+| Laporan | [FE-RWI-253.md](../task/report/frontend/FE-RWI-253.md) |
 
 Acceptance positif:
 

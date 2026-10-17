@@ -9,18 +9,18 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 |---|---|
 | `submodule_slug` | `episode-rawat-inap` |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
-| `revision` | **`13`** — Transfer Pasien Masuk (IGD/Rajal ke Ranap) & Penugasan PPJA, bagian 18, **approved** Muhammad Hamzah, 2026-10-16 ("iya lakukan /plan-module-delivery"); planning ID `TRF-DEL-20261016-01`. Riwayat metadata: `12` Integrasi Denah (approved 2026-10-16, `RWI-DEC-324`); `11` draft Bed Management; `10` Admisi Mba Ilma (approved 2026-10-10); `9` Workspace PPRI (approved 2026-10-08, `RWI-DEC-265`) |
-| `status` | **`approved`** untuk revision 13 Transfer Pasien Masuk & PPJA dan revision 12 Integrasi Denah (`RWI-DEC-324`); Bed Management (revision 11) tetap **`draft`** |
-| `contract_versions` | **`0.14.0`** — target Transfer Pasien Masuk & Handover Klinis (`approved` 2026-10-16); Integrasi Denah approved (`0.13.0`, `RWI-DEC-324`); Bed Management draft (`0.12.0`); Admisi & Workspace PPRI (`0.11.0`, `RWI-DEC-265`) |
+| `revision` | **`14`** — Amandemen Pendaftaran Admisi Pasien ODC (One Day Care) pada Rawat Inap, bagian 19, **`APPROVED_DESIGN_PLANNED`** (disetujui Muhammad Hamzah 17 Oktober 2026 lewat `/plan-module-delivery`); kontrak target `0.15.0`. Riwayat metadata: `13` — Transfer Pasien Masuk & PPJA (approved 2026-10-16); `12` Integrasi Denah (approved 2026-10-16, `RWI-DEC-324`); `11` draft Bed Management; `10` Admisi Mba Ilma (approved 2026-10-10); `9` Workspace PPRI (approved 2026-10-08, `RWI-DEC-265`) |
+| `status` | **`approved`** untuk revision 14 Pendaftaran Admisi Pasien ODC (`0.15.0`), revision 13 Transfer Pasien Masuk & PPJA dan revision 12 Integrasi Denah (`RWI-DEC-324`); Bed Management (revision 11) tetap **`draft`** |
+| `contract_versions` | **`0.15.0`** — Pendaftaran Admisi Pasien ODC (`approved_design_planned` 2026-10-17); `0.14.0` — Transfer Pasien Masuk & Handover Klinis (`approved` 2026-10-16); `0.13.0` Integrasi Denah approved (`RWI-DEC-324`); `0.12.0` Bed Management draft; `0.11.0` Admisi & Workspace PPRI (`RWI-DEC-265`) |
 | `upstream_realignment` | **`REALIGNED_APPROVED` sejak 2026-09-16** lewat `RWI-DEC-150` |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###` |
-| `approved_by` | **Muhammad Hamzah** untuk revision 13 (`TRF-DEL-20261016-01`) dan revision 12 (`RWI-DEC-324`); null untuk revision 11 |
-| `approved_at` | **`2026-10-16`** untuk revision 13 (`TRF-DEL-20261016-01`); **`2026-10-16`** untuk revision 12 (`RWI-DEC-324`); null untuk revision 11 |
-| `rumpun kemampuan` | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan, admisi & consent, serah terima transfer |
-| `kemampuan` | **16** — `CAP-001` s.d. `CAP-011`, `CAP-017`, `CAP-018`, `CAP-019`, `CAP-026`, `CAP-028`, sesuai `RWI-DEC-083`; **ditambah Workspace PPRI** `CAP-RWA-01` s.d. `CAP-RWA-17` tanpa `CAP-RWA-04` (`RWI-DEC-227`); **ditambah Amandemen Admisi & Digital Consent** (`RWI-DEC-267` s.d. `273`); **ditambah Integrasi Denah ↔ Bed Management** `DNH-CG-01` s.d. `06` (`RWI-DEC-298` s.d. `323`); **ditambah Transfer Pasien Masuk & PPJA** (`FR-TRF-001` s.d. `007`) |
+| `approved_by` | **Muhammad Hamzah** (Revision 14 disetujui 2026-10-17 lewat `/plan-module-delivery`; Revision 13 & 12 disetujui 2026-10-16 `RWI-DEC-324`) |
+| `approved_at` | `2026-10-17` untuk revision 14; `2026-10-16` untuk revision 13 & 12 (`RWI-DEC-324`) |
+| `rumpun kemampuan` | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan, admisi & consent, serah terima transfer, admisi ODC |
+| `kemampuan` | **16** — `CAP-001` s.d. `CAP-011`, `CAP-017`, `CAP-018`, `CAP-019`, `CAP-026`, `CAP-028`, sesuai `RWI-DEC-083`; **ditambah Workspace PPRI** `CAP-RWA-01` s.d. `CAP-RWA-17` tanpa `CAP-RWA-04` (`RWI-DEC-227`); **ditambah Amandemen Admisi & Digital Consent** (`RWI-DEC-267` s.d. `273`); **ditambah Integrasi Denah ↔ Bed Management** `DNH-CG-01` s.d. `06` (`RWI-DEC-298` s.d. `323`); **ditambah Transfer Pasien Masuk & PPJA** (`FR-TRF-001` s.d. `007`); **ditambah Pendaftaran Admisi Pasien ODC** (`FR-ODC-001` s.d. `007`, `RWI-DEC-327` s.d. `332`) |
 | `uji pemecahan` | **5/5** syarat `bentuk-blueprint.md` bagian 4.1 |
-| `design_snapshot_at` | 2026-10-16 untuk Transfer Pasien Masuk; 2026-10-15 untuk Integrasi Denah; 2026-10-10 untuk Bed Management |
-| `updated_at` | 2026-10-16 — delivery planning `TRF-DEL-20261016-01` selesai (3 task backend, 3 task frontend); persetujuan Integrasi Denah (`RWI-DEC-324`) |
+| `design_snapshot_at` | 2026-10-17 untuk Pendaftaran Admisi ODC; 2026-10-16 untuk Transfer Pasien Masuk; 2026-10-15 untuk Integrasi Denah; 2026-10-10 untuk Bed Management |
+| `updated_at` | 2026-10-17 — perencanaan delivery Pendaftaran Admisi Pasien ODC (`ODC-DEL-20261017-01`, kontrak target `0.15.0`) |
 
 **Bukti migration diperbarui 5 Oktober 2026.** Build project melalui `dotnet ef database update` berhasil dan `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.` menurut output pengguna. Cakupan aktual: `I1` + `I2`, `K8` + `E4`, `E5`, `E6`, dan `E7`; enam task pemilik perubahan skema. [Bukti lengkap](task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026). `I1`/`I2` dikemas sebagai satu migration gabungan; catatan kesesuaian kriteria ada di `BE-RWI-149`. Nama database/lingkungan tidak disebut; API, regresi, rollback, frontend, data seeder, serta kesiapan rilis belum dibuktikan output ini. Revision, snapshot SHA desain, kontrak, artifact hash persetujuan, dan approval roadmap dipertahankan.
 
@@ -713,3 +713,76 @@ Approval diberikan 16 Oktober 2026 (`RWI-DEC-324`), bersama aturan keras fronten
 | [roadmap/frontend-roadmap-integrasi-denah.md](./roadmap/frontend-roadmap-integrasi-denah.md) | rev 1; 8 task, grafik 13 pasangan, aturan keras RWI-DEC-325 | c3c00f0776e1d58f51696c357d7de21e41127a2804bed54eba834d552ac58723 |
 | [roadmap/requirement-traceability-integrasi-denah.md](./roadmap/requirement-traceability-integrasi-denah.md) | rev 1; FR/AC/NFR/UAT/endpoint ke task | 292d17dc2f28dc40871645619ebe80f292b54cbd192a199cc3dcc440611a5b6d |
 | [roadmap/integrasi-denah-delivery-lock.json](./roadmap/integrasi-denah-delivery-lock.json) | rev 1; 22 masukan + 2 manifest sebelum registrasi | db4f6bd6f700e2edf8686e24349fc55f02c37f33df160cc67a4e0427754e1de8 |
+
+---
+
+## 19. Amandemen Pendaftaran Admisi Pasien ODC (One Day Care) — 16 Oktober 2026
+
+**Current revision 14: `draft`** — Menunggu approval Muhammad Hamzah. Set kontrak target `0.15.0` ditetapkan pada metadata sub-modul; setiap berkas yang isinya berubah mencatat perubahan target `0.15.0`. Baseline revision 13 (Transfer Pasien Masuk & PPJA) dan revision 12 (Integrasi Denah ↔ Bed Management, `RWI-DEC-324`) berstatus `approved`. Desain ini disusun oleh `design-business-module` pada 16 Oktober 2026 menyerap hasil wawancara pass tuntas `RWI-DEC-327` s.d. `RWI-DEC-332` (Revision 53).
+
+### 19.1 Masukan dan Hash
+
+| Input | Status / Keterangan | SHA-256 |
+|---|---|---|
+| `../00-interview-decisions.md` | Revision 53; Wawancara Pass Tuntas ODC (`RWI-DEC-327` s.d. `332`, `RWI-AC-463` s.d. `468`) | bd326629280af2451824f85648ec2e05b8a5ae96cb1b42153fa6ea75f30223ce |
+| Snapshot Git Backend | Branch `MHamzah` @ `def6cf6ab5f945cb7bf228847d90fcb10a2d2d94` | — |
+| Snapshot Git Frontend | Branch `HamzahV2` @ `fc9aea6d62418460493899cb669832f032e48328` | — |
+| Manifest Sub-modul sebelum amandemen | Revision 13 (`approved`) | — |
+
+### 19.2 Owner, Otoritas, dan Approval
+
+| Kewenangan | Pemilik / Batas | Keterangan |
+|---|---|---|
+| Produk / Domain / API | Muhammad Hamzah | Pemilik modul Rawat Inap (`RWI-DEC-061`), pengambil keputusan ODC (`RWI-DEC-327` s.d. `332`) |
+| Clinical Governance | Muhammad Hamzah / Komite Medis | DPJP rawat inap wajib ditetapkan saat admisi ODC (`RWI-DEC-328`) |
+| Approval Desain & Delivery | Muhammad Hamzah | **Disetujui 17 Oktober 2026** lewat pemanggilan `/plan-module-delivery` |
+
+### 19.3 Artefak yang Diamendemen dan Hash Byte Aktual
+
+| Artefak Relatif | Status / Kontrak | SHA-256 |
+|---|---|---|
+| `02-backend-architecture.md` | `approved` / `0.15.0` (Bagian 18) | `bc86e36ec6d98a9ab2d5f751d0d4f42d718a874f118abf323f7f42b73fdc68dc` |
+| `03-frontend-architecture.md` | `approved` / `0.15.0` (Bagian 19) | `00479ae31b78a30801d7838b30726c5814b1e2d979e6b980e7da2f539ff639a6` |
+| `04-prd-to-mvp.md` | `approved` / `0.15.0` (Bagian 29) | `ef1bc144557cfab4d85c7535bd7a2b939a2b0001d14368d0fad346d9da4feee4` |
+| `data/data-dictionary.md` | `approved` / `0.15.0` (Bagian 25) | `11f6ea236f84169761da2eff2e385849e383c5db5516848d05caf4e0fc3c02a1` |
+| `contracts/api-contract.md` | `approved` / `0.15.0` (Bagian 16) | `af460ad374aafe767cbf54a682e0a839b6b75c3cc5933757d4392bf37f63d75c` |
+| `contracts/state-transition-matrix.md` | `approved` / `0.15.0` | `80e1a4eb06b3a9f50479362a188ae3893bd3ce79f00095afa676bb412a1b98dd` |
+| `contracts/validation-matrix.md` | `approved` / `0.15.0` | `931ffc27e0dac6f2c204dbf7fe3c46c3d2f2ce40b4d48d9189a3c491c7f2ecab` |
+| `flowcharts/20-alur-admisi-odc.md` | `approved` / `0.15.0` (berkas baru) | `978e5ccd4d54aeb09fc7072632117ddb4857ca6d39e6ee7383393716dfd5cd2d` |
+
+### 19.4 Ringkasan Amandemen Desain Teknis ODC
+
+1. **Alur Admisi ODC (Langkah 1 s.d. 8 Wizard):**
+   - Langkah 2 menyajikan kartu pilihan tipe pasien ke-4: `One Day Care (ODC)` di samping `Umum/Pribadi`, `BPJS Kesehatan`, dan `Asuransi/Perusahaan`.
+   - Pembentukan episode rawat inap (< 24 jam) dengan status awal `Admitted`, wajib menugaskan DPJP Utama, serta mencatat klausa edukasi batasan 24 jam pada formulir General Consent.
+   - Langkah 6 menyaring bed dan kamar secara otomatis (`isOdcBed=true`), melarang keras penempatan pasien ODC di bed reguler saat admisi (`ODC_BED_REQUIRED`).
+2. **Validasi Backend & Proteksi Bed ODC:**
+   - Invariant backend `EvaluatePlacementEligibilityCore` menegakkan: pasien ODC wajib menempati bed ODC (`ODC_BED_REQUIRED`), dan pasien non-ODC dilarang menempati bed ODC (`ODC_BED_RESERVED`).
+   - Pengecualian Transfer: Mutasi transfer pasien ODC yang dirawat > 24 jam dikecualikan dari invariant ODC (`InpPlacementContext.Transfer`), sehingga pasien dapat langsung dipindahkan ke bed rawat inap reguler tanpa merombak episode atau membatalkan admisi (`RWI-DEC-331`).
+3. **Database & API Extension:**
+   - Database: **0 migrasi EF Core baru** (menggunakan kolom existing `MstBed.IsOdcBed` dan `MstRoom.IsOdcRoom`).
+   - API: Endpoint `GET /bed-occupancies/available-beds` diperluas dengan query parameter `isOdcBed` / `isOdcRoom` dan field respon `isOdcBed`.
+
+### 19.5 Delivery Pendaftaran Admisi Pasien ODC — 17 Oktober 2026
+
+`plan-module-delivery` dijalankan pada 17 Oktober 2026. Roadmap ini mengikat isi Pendaftaran Admisi Pasien ODC kontrak `0.15.0`.
+
+| Field | Nilai |
+| --- | --- |
+| planning_id / revision / status | `ODC-DEL-20261017-01` / 1 / `APPROVED_DESIGN_PLANNED` |
+| Task backend | 2 task `BE-RWI-248` s.d. `249`; gelombang 1 dan 2 |
+| Task frontend | 3 task `FE-RWI-260` s.d. `262`; gelombang 1 dan 2 |
+| Approval | Muhammad Hamzah (17 Oktober 2026 lewat `/plan-module-delivery`). Eksekusi tiap task lewat `build-module-backend` / `build-module-frontend` dengan task ID-nya |
+| Coverage | 7 FR (`FR-ODC-001` s.d. `007`), 6 AC (`RWI-AC-463` s.d. `468`), 5 Validasi (`VAL-ADM-10` s.d. `14`), 3 Skenario UAT (`UAT-ODC-01` s.d. `03`) — **Nol Celah (Zero Coverage Gap)** |
+| Source SHA BE / FE | `def6cf6ab5f945cb7bf228847d90fcb10a2d2d94` / `fc9aea6d62418460493899cb669832f032e48328` |
+| Laporan task / runtime | Belum ada; task berstatus `NOT_STARTED` menunggu pemanggilan builder |
+| ID bebas sesudah alokasi | **`BE-RWI-250`**; **`FE-RWI-263`**. Tetap pindai ulang sebelum alokasi berikutnya |
+
+| Artefak Relatif | Status | SHA-256 Byte Aktual |
+| --- | --- | --- |
+| [roadmap/backend-roadmap-admisi-odc.md](./roadmap/backend-roadmap-admisi-odc.md) | rev 1; 2 task, grafik 1 pasangan | `d0c9cf01acd6f1320d1c878cf7bd998804c4f41546bbb0c76d7b2c246c5d9fad` |
+| [roadmap/frontend-roadmap-admisi-odc.md](./roadmap/frontend-roadmap-admisi-odc.md) | rev 1; 3 task, grafik 3 pasangan | `a691877d50fe0ce207bfa0d932c05f0045135b8524290327949a19d7e43f6128` |
+| [roadmap/requirement-traceability-admisi-odc.md](./roadmap/requirement-traceability-admisi-odc.md) | rev 1; FR/AC/VAL/UAT ke task | `c2ffb791a5186fa59c0647a5bfa94e63828c241037d33781f658460598b384ff` |
+| [roadmap/admisi-odc-delivery-lock.json](./roadmap/admisi-odc-delivery-lock.json) | rev 1; delivery lock snapshot | `0a817fbd1422669d9061fbade896ee79ff2b7c37a86b36243863f296a57be88e` |
+
+

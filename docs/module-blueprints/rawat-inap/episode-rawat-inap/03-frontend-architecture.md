@@ -1677,7 +1677,7 @@ base component baru tanpa permintaan eksplisit.
    - **Tampilan**: Checklist 15 butir serah terima berkas admisi.
    - **Aksi Petugas Admisi**: Mengisi status (Sudah/Belum), mengunci dokumen (`[Kunci Dokumen]`), lalu menandatangani kolom Admisi.
    - **Aksi Perawat Ruangan**: Menandatangani kolom Perawat (tombol aktif setelah pasien menempati tempat tidur).
-   - **Tombol Cetak**: `[Cetak Berkas Serah Terima Pasien Baru]` (`HandoverChecklistPrint.jsx`).
+    - **Tombol Cetak**: `[Cetak Berkas Serah Terima Pasien Baru]` (`HandoverChecklistPrint.jsx`).
 
 ## 18. Amandemen Frontend Admisi Bayi — `RWI-BAYI-022-2.0.0`
 
@@ -1696,3 +1696,110 @@ lagi dimiliki cabang ini.
 - Tombol pembatalan existing tidak diubah oleh amandemen ini.
 
 Bukti source dan validasi: `FE-RWI-257..259`.
+
+---
+
+## 19. Amandemen Frontend Pendaftaran Admisi Pasien ODC (One Day Care) — Kontrak `0.15.0` (`RWI-DEC-327` s.d. `RWI-DEC-332`)
+
+| Field | Nilai |
+|---|---|
+| Kontrak Target | `0.15.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Status | `draft` |
+| Masukan Bisnis | `00-interview-decisions.md` revision `53` (`RWI-DEC-327` s.d. `RWI-DEC-332`), `01-existing-capability-map.md` Bagian 21 |
+| Fokus Perubahan | Opsi kartu tipe pasien ke-4 ODC di Langkah 2, penyaringan papan bed ODC di Langkah 6, judul & klausul 24 jam cetak General Consent di Langkah 8 |
+
+### 19.1 Alur Wizard & Langkah Admisi ODC
+
+Sesuai `RWI-DEC-327` dan `RWI-DEC-328`, alur pendaftaran admisi pasien ODC menggunakan alur 8 langkah rawat inap reguler tanpa membuat alur khusus yang terpisah. Perbedaan perilaku alur ODC terletak pada:
+1. **Langkah 2 (Pilih Jenis Pasien)**: Memilih opsi kartu ke-4 *"Pasien ODC (One Day Care)"*.
+2. **Langkah 5 (Pilih Dokter)**: Penetapan DPJP penanggung jawab tindakan ODC bersifat wajib.
+3. **Langkah 6 (Pilih Tempat Tidur)**: Papan denah/tempat tidur otomatis menerapkan filter ketat hanya menampilkan bed/kamar bertanda ODC.
+4. **Langkah 8 (Persetujuan Pasien)**: Dokumen General Consent mencantumkan judul layanan One Day Care (ODC) dan klausul batas observasi/perawatan maksimal 24 jam.
+
+```text
+[Langkah 1: Mode Masuk] ──► [Langkah 2: Tipe Pasien (ODC)] ──► [Langkah 3: Identitas Pasien]
+         │
+         ▼
+[Langkah 4: Pembayaran/Penjamin] ──► [Langkah 5: Dokter (DPJP Wajib)] ──► [Langkah 6: Pilih Bed ODC]
+         │
+         ▼
+[Langkah 7: Konfirmasi Deposit] ──► [Langkah 8: Cetak General Consent ODC & Gelang] ──► Selesai
+```
+
+### 19.2 Spesifikasi Komponen & Modifikasi Frontend
+
+1. **Konstanta Alur Admisi (`inpatient-admission-flow-constants.jsx`)**:
+   - Lokasi: `src/lib/constants/health-services/inpatient-management/inpatient-admission-flow-constants.jsx`
+   - Pada `INPATIENT_PATIENT_TYPE`, tambahkan `ODC: "odc"`.
+   - Pada `INPATIENT_PATIENT_TYPE_OPTIONS`, tambahkan kartu opsi ke-4:
+     ```javascript
+     Object.freeze({
+       value: INPATIENT_PATIENT_TYPE.ODC,
+       title: "Pasien ODC (One Day Care)",
+       description: "Pasien observasi atau tindakan medis singkat terencana dengan estimasi durasi rawat kurang dari 24 jam.",
+       icon: "O",
+     })
+     ```
+   - Fungsi `resolvePatientTypeContinuationSlug` (`:351`) secara otomatis menangani nilai `ODC` untuk mengarahkan ke langkah berikutnya (`registration` untuk Pasien Baru, `patient-search` untuk Pasien Lama).
+
+2. **Render Kartu Pilihan Jenis Pasien (`inpatient-admission-view.jsx` & `inpatient-admission-visit-category-step.jsx`)**:
+   - Kedua layar ini merender `INPATIENT_PATIENT_TYPE_OPTIONS.map(...)` menggunakan `BaseCheckboxCard`.
+   - Penambahan opsi pada konstanta langsung memunculkan kartu ke-4 dengan rapi dan responsif tanpa perlu pengubahan JSX komponen render kartu.
+
+3. **Penyuntikan Filter Papan Ketersediaan Bed (`useInpatientAdmissionBed.jsx` & `inpatient-bed-utils.jsx`)**:
+   - Lokasi: `src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-bed.jsx` dan `src/utils/health-services/inpatient-management/inpatient-bed-utils.jsx`
+   - Pada `buildBedBoardQuery` dan `buildAvailableBedQuery` di `inpatient-bed-utils.jsx`:
+     ```javascript
+     if (patientContext?.isOdcBed) {
+       query.isOdcBed = true;
+     }
+     ```
+   - Pada `inpatient-admission-view.jsx:757`, teruskan konteks ODC ke `useInpatientAdmissionBed`:
+     ```javascript
+     const bed = useInpatientAdmissionBed({
+       episodeId: doctor.episodeId,
+       active: flow.currentStep?.slug === INPATIENT_BED_STEP_SLUGS.SELECTION || flow.currentStep?.slug === INPATIENT_BED_STEP_SLUGS.BOOKING,
+       adoptExistingReservation: resume.isReady,
+       patientContext: {
+         patientId: activePatientId,
+         isOdcBed: flow.patientType === INPATIENT_PATIENT_TYPE.ODC,
+         // context lainnya...
+       },
+       // ...
+     });
+     ```
+   - Dengan parameter ini, API backend hanya mengembalikan tempat tidur dengan `IsOdcBed == true` dan menyembunyikan bed rawat inap reguler (`RWI-DEC-327`).
+
+4. **Formulir & Lembar Cetak General Consent ODC (`inpatient-consent-print-view.jsx`)**:
+   - Lokasi: `src/components/view/health-services/inpatient-management/inpatient-consent-print-view.jsx`
+   - Judul dokumen dibuat adaptif berdasarkan `flow.patientType` atau indikator ODC episode:
+     - Jika pasien adalah ODC: Judul dokumen berubah menjadi *"SURAT PERSETUJUAN PASIEN ONE DAY CARE (ODC)"* dan subjudul *"General Consent — Pelayanan One Day Care (ODC)"*.
+     - Klausul Tambahan Khusus ODC: Pada bagian pernyataan persetujuan, dicantumkan klausul eksplisit:  
+       > *"Pasien dan keluarga memahami bahwa pelayanan One Day Care (ODC) merupakan tindakan/observasi terencana dengan batas waktu perawatan maksimal 24 jam. Apabila kondisi klinis pasien memerlukan perawatan lanjutan melampaui 24 jam, pasien akan dialihkan ke perawatan rawat inap reguler sesuai ketentuan rumah sakit."*
+   - Pencocokan kamar: `matchRoomOptionKey` (`inpatient-consent-utils.jsx:51`) sudah mengenali kata kunci `"odc"` dan secara otomatis mencentang pilihan kelas ODC pada lembar persetujuan.
+
+5. **Eskalasi Rawat > 24 Jam via Transfer Bed Management (`bed-management-view.jsx`)**:
+   - Sesuai `RWI-DEC-331`, eskalasi rawat inap pasien ODC yang dirawat lebih dari 24 jam dilakukan langsung oleh perawat/petugas melalui layar **Bed Management** existing (menu mutasi *Transfer Bed*).
+   - Petugas memilih kamar dan tempat tidur rawat inap reguler tujuan, menginput alasan mutasi ("Eskalasi perawatan ODC ke rawat inap reguler > 24 jam"), dan menekan tombol konfirmasi transfer.
+   - Episode lama tetap berjalan dan ID episode tidak berubah. Tidak diperlukan pembatalan atau pendaftaran admisi ulang.
+
+### 19.3 Pohon Folder dan Status File Frontend
+
+```text
+QuilvianSystemFrontendDev/src/
+├── components/view/health-services/inpatient-management/
+│   ├── inpatient-admission-view.jsx                       [Diperbarui; inject isOdcBed ke useInpatientAdmissionBed]
+│   ├── inpatient-admission-visit-category-step.jsx        [Ready to reuse; render kartu ODC otomatis]
+│   ├── inpatient-consent-print-view.jsx                   [Diperbarui; judul dinamis ODC & klausul 24 jam]
+│   └── bed-management/bed-management-view.jsx             [Ready to reuse; transfer eskalasi ODC]
+├── lib/constants/health-services/inpatient-management/
+│   └── inpatient-admission-flow-constants.jsx             [Diperbarui; tambahkan INPATIENT_PATIENT_TYPE.ODC]
+├── lib/hooks/health-services/inpatient-management/
+│   ├── use-inpatient-admission-flow.jsx                   [Ready to reuse; kelola state patientType]
+│   └── use-inpatient-admission-bed.jsx                    [Diperbarui; teruskan patientContext.isOdcBed]
+└── utils/health-services/inpatient-management/
+    ├── inpatient-bed-utils.jsx                            [Diperbarui; query builder sertakan isOdcBed]
+    └── inpatient-consent-utils.jsx                        [Ready to reuse; matchRoomOptionKey sudah ada 'odc']
+```
+
