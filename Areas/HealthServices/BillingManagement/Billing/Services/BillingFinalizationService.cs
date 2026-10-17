@@ -718,6 +718,10 @@ public sealed class BillingFinalizationService
             invoice, calculation, record, outstandingAtFinalization, isDepartureException,
             actorUserId, cancellationToken, employeeBenefitSplit);
 
+        // BKC-DEC-164 / BKC-DES-086 (BE-BKC-085): Sisa kredit administrasi rawat jalan menjadi kredit refund
+        await RecognizeUnappliedReferredAdminCreditAsync(
+            invoice, calculation, calculationVersion, actorUserId, now, cancellationToken);
+
         // BE-FIN-108: Kurangi plafon di HR tepat satu kali di dalam batas transaksi pemanggil
         // (FIN-DEC-202, FIN-DEC-205, FIN-INTEGRATION-1.9 R.3, FR-FIN-244, AC 1-5).
         // Plafon hanya dipotong untuk porsi RS Benefit (PayerAmount = P = min(C, S)).
@@ -1057,6 +1061,80 @@ public sealed class BillingFinalizationService
                 Trigger = "Finalization",
                 ActorUserId = actorUserId
             });
+
+    /// <summary>
+    /// BKC-DEC-164 / BKC-DES-086 (BE-BKC-085):
+    /// Bila ReferredOutpatientAdminUnappliedCreditAmount versi yang difinalisasi lebih dari 0 dan
+    /// belum ada kredit REFERRED_OUTPATIENT_ADMIN dengan SourceId = id invoice rawat inap,
+    /// satu kredit refund dibuat dan dicatat audit BillingRefundableCredit.RecognizeReferredAdmin.
+    /// Bila kredit sudah ada tetapi nominal sisanya berbeda (invoice sempat kembali OPEN lalu difinalisasi ulang),
+    /// kredit lama tidak diubah dan peristiwanya dicatat audit BillingRefundableCredit.ReferredAdminDrift untuk ditinjau Finance.
+    /// Berjalan di dalam batas transaksi pemanggil.
+    /// </summary>
+    private async Task RecognizeUnappliedReferredAdminCreditAsync(
+        BilInvoice invoice,
+        BilCalculationVersion calculation,
+        int calculationVersion,
+        Guid actorUserId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (calculation.ReferredOutpatientAdminUnappliedCreditAmount <= 0m)
+            return;
+
+        var existingCredit = await _dbContext.BilRefundableCredits
+            .Where(c => c.SourceType == BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin
+                     && c.SourceId == invoice.Id
+                     && !c.IsDelete)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (existingCredit is null)
+        {
+            var credit = new BilRefundableCredit
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = invoice.Id,
+                SourceType = BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin,
+                SourceId = invoice.Id,
+                OriginalAmount = calculation.ReferredOutpatientAdminUnappliedCreditAmount,
+                AvailableAmount = calculation.ReferredOutpatientAdminUnappliedCreditAmount,
+                Status = BillingRefundableCreditStatuses.Available,
+                RecognizedAt = now,
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.BilRefundableCredits.Add(credit);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "BillingRefundableCredit.RecognizeReferredAdmin",
+                "Kredit refund admin Rawat Jalan lahir saat finalisasi.",
+                new
+                {
+                    CreditId = credit.Id,
+                    InpatientInvoiceId = invoice.Id,
+                    Amount = credit.OriginalAmount,
+                    CalculationVersionNo = calculationVersion,
+                    ActorUserId = actorUserId
+                });
+        }
+        else if (existingCredit.OriginalAmount != calculation.ReferredOutpatientAdminUnappliedCreditAmount)
+        {
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "BillingRefundableCredit.ReferredAdminDrift",
+                "Finalisasi ulang menghasilkan sisa kredit berbeda dari kredit yang sudah ada.",
+                new
+                {
+                    CreditId = existingCredit.Id,
+                    InpatientInvoiceId = invoice.Id,
+                    ExistingAmount = existingCredit.OriginalAmount,
+                    NewUnappliedAmount = calculation.ReferredOutpatientAdminUnappliedCreditAmount,
+                    ActorUserId = actorUserId
+                });
+        }
+    }
 
     private static FinalizationResponse Map(BilFinalizationRecord record, bool isReplay) => new()
     {

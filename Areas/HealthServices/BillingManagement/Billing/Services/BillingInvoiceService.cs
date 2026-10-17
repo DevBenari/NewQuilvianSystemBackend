@@ -2555,6 +2555,19 @@ public sealed class BillingInvoiceService
     };
 
     /// <summary>
+    /// Resolver satuan tunggal item invoice: BilInvoiceItem -> Tariff -> Drug -> DispenseUnitMeasurement ->
+    /// MeasurementName, hanya untuk kategori Pharmacy (obat/alkes). Dipakai bersama oleh <see cref="MapItems"/>
+    /// (Running Invoice) dan estimasi biaya rawat inap supaya kedua layar tidak punya dua rumus satuan.
+    /// Mengembalikan null bila bukan kategori Pharmacy atau master satuan tidak tersedia; pemanggil yang
+    /// butuh teks tampilan menentukan fallback-nya sendiri. Pemanggil MUST memuat Category dan
+    /// Tariff.Drug.DispenseUnitMeasurement (lihat <see cref="MapItems"/>).
+    /// </summary>
+    internal static string? ResolveItemUnit(BilInvoiceItem item) =>
+        (item.Category?.IsPharmacy == true || item.Tariff?.Drug != null)
+            ? item.Tariff?.Drug?.DispenseUnitMeasurement?.MeasurementName
+            : null;
+
+    /// <summary>
     /// Pemetaan tunggal <see cref="BilInvoiceItem"/> -> <see cref="InvoiceItemResponse"/>, dipakai
     /// <see cref="MapDetail"/> (GET /{id}) maupun <see cref="BillingPayerEditService.GetEditContextAsync"/>
     /// (GET /{id}/edit-context, BE-BKC-FIX-009) supaya kedua layar membaca deskripsi/satuan/harga
@@ -2581,9 +2594,7 @@ public sealed class BillingInvoiceService
                 // Enhancement (di luar roadmap, permintaan langsung pengguna): satuan dispensing
                 // obat/alkes untuk kolom "Satuan" Menu Pembayaran - hanya kategori Pharmacy/Drug/
                 // Consumable-Alkes yang punya konsep satuan dispensing, kategori lain tetap null.
-                Unit = x.Category != null && x.Category.IsPharmacy
-                    ? x.Tariff?.Drug?.DispenseUnitMeasurement?.MeasurementName
-                    : null,
+                Unit = ResolveItemUnit(x),
                 Quantity = x.Quantity,
                 UnitPrice = x.UnitPrice,
                 DoctorShare = x.DoctorShare,

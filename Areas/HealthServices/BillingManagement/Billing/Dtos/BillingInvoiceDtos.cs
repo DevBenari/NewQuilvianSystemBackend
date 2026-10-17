@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.DTOs;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 
@@ -522,8 +523,12 @@ public sealed class AdministrationFeeCalculationResponse
     public decimal? RawCalculatedAmount { get; set; }
     public bool IsCapApplied { get; set; }
     public bool IsPackageGuaranteed { get; set; }
-    public bool ReferredOutpatientAdminVoided { get; set; }
     public decimal ReferredOutpatientAdminCreditedAmount { get; set; }
+    public decimal ReferredOutpatientAdminUnappliedCreditAmount { get; set; }
+    public bool IsSupersededByInpatientAdmission { get; set; }
+    public Guid? SupersededByInpatientInvoiceId { get; set; }
+    public string? SupersededReasonCode { get; set; }
+    public IReadOnlyList<ReferredAdminOriginResult> ReferredOutpatientAdminOrigins { get; set; } = [];
 }
 
 // BKC-DEC-043: occupancy timeline (InpBedPlacement) adalah source of truth; komponen ini

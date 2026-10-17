@@ -62,6 +62,8 @@ public static class BillingManagementServiceCollectionExtensions
         // BE-RWI-150 / INT-RWF-01: penerima ketukan pintu Rawat Inap di dalam aplikasi.
         services.AddScoped<BillingInpatientEventReceiver>();
         services.AddScoped<BillingDrugReturnService>();
+        services.AddScoped<IBillingSupersededItemReviewService, BillingSupersededItemReviewService>();
+        services.AddScoped<BillingSupersededItemReviewService>();
         services.AddOptions<BillingPaymentProviderOptions>()
             .BindConfiguration(BillingPaymentProviderOptions.SectionName);
 

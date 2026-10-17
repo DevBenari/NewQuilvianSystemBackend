@@ -118,7 +118,9 @@ public partial class PatientBillingSummaryService
             var linkedEncounter = linked.SingleOrDefault(x => x.EncounterId == sourceInvoice.EncounterId);
             var sourceCalculation = sourceInvoice.Id == invoice.Id ? calculation : (await ResolveCalculationAsync(sourceInvoice, ct)).Calculation;
             var calculatedItems = sourceCalculation?.Breakdown.Items.ToDictionary(x => x.InvoiceItemId) ?? [];
-            var items = await _dbContext.BilInvoiceItems.AsNoTracking().Include(x => x.Category).Include(x => x.Tariff)
+            var items = await _dbContext.BilInvoiceItems.AsNoTracking()
+                .Include(x => x.Category)
+                .Include(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
                 .Where(x => x.InvoiceId == sourceInvoice.Id && !x.IsDelete && x.Status == BillingInvoiceItemStatuses.Active).ToListAsync(ct);
             var excludedIds = await _dbContext.BilInvoiceItemBillingDispositions.AsNoTracking()
                 .Where(x => x.InvoiceItem!.InvoiceId == sourceInvoice.Id && x.IsActive && !x.IsDelete && x.Disposition == "EXCLUDED")
@@ -131,9 +133,15 @@ public partial class PatientBillingSummaryService
                 var calculatedItem = calculatedItems.GetValueOrDefault(item.Id);
                 var amount = calculatedItem != null ? calculatedItem.NetAmount : (item.UnitPrice > 0 ? item.Quantity * item.UnitPrice : 0);
                 var lineStatus = (calculatedItem == null && item.UnitPrice == 0) ? "TARIFF_NOT_FOUND" : "ACTIVE";
+                var isPharmacy = group == "PHARMACY" || item.Category?.IsPharmacy == true;
+                var unitLabel = isPharmacy
+                    ? (BillingInvoiceService.ResolveItemUnit(item) is { } masterUnit && !string.IsNullOrWhiteSpace(masterUnit) ? masterUnit : "-")
+                    : (group is "PROCEDURE" or "SURGERY" || item.Category?.IsSurgery == true || item.Category?.IsProcedure == true ? "tindakan" : "unit");
+
                 Add(group, new PatientBillingLineResponse
                 {
                     Label = item.DescriptionSnapshot, Quantity = item.Quantity, ServiceDate = item.SourceOccurredAt,
+                    UnitLabel = unitLabel,
                     LinkedEncounter = linkedEncounter,
                     LineStatus = lineStatus
                 }, amount);
@@ -271,7 +279,7 @@ public partial class PatientBillingSummaryService
 
             var items = await _dbContext.BilInvoiceItems.AsNoTracking()
                 .Include(x => x.Category)
-                .Include(x => x.Tariff)
+                .Include(x => x.Tariff).ThenInclude(x => x!.Drug).ThenInclude(x => x!.DispenseUnitMeasurement)
                 .Where(x => x.InvoiceId == sourceInvoice.Id && !x.IsDelete && x.Status == BillingInvoiceItemStatuses.Active)
                 .ToListAsync(ct);
 
@@ -331,8 +339,11 @@ public partial class PatientBillingSummaryService
                     lineStatus = priceStatus == "TARIFF_NOT_FOUND" ? "TARIFF_NOT_FOUND" : "ACTIVE";
                 }
 
-                var unitLabel = item.Category?.IsPharmacy == true
-                    ? "tablet / botol"
+                // Satuan farmasi memakai resolver yang sama dengan Running Invoice (InvoiceItemResponse.Unit);
+                // "-" bila master satuan obat/alkes tidak tersedia. Kategori non-farmasi tidak berubah.
+                var isPharmacy = group == "PHARMACY" || item.Category?.IsPharmacy == true;
+                var unitLabel = isPharmacy
+                    ? (BillingInvoiceService.ResolveItemUnit(item) is { } masterUnit && !string.IsNullOrWhiteSpace(masterUnit) ? masterUnit : "-")
                     : (group is "PROCEDURE" or "SURGERY" || item.Category?.IsSurgery == true || item.Category?.IsProcedure == true ? "tindakan" : "unit");
 
                 var line = new PatientBillingEstimateLineResponse

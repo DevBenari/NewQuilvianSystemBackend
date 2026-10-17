@@ -1940,6 +1940,9 @@ try
         // sama, sekali jalan. Hak : Receive TIDAK disalin (RWI-DEC-189). Wajib sesudah AccessMenuSeeder.
         await RunStartupSeederAsync("OperatingRoomHandoverPermissionSeeder",
             () => OperatingRoomHandoverPermissionSeeder.SeedAsync(app.Services));
+        // BE-BKC-088 / BKC-DEC-162: hak akses awal Supervisor Kasir pada modul tinjauan void biaya admin. Wajib sesudah AccessMenuSeeder.
+        await RunStartupSeederAsync("BillingSupersededItemReviewPermissionSeeder",
+            () => BillingSupersededItemReviewPermissionSeeder.SeedAsync(app.Services));
         // Data induk OPERASIONAL Laboratorium. Keduanya sengaja tetap berdiri: alasan penolakan
         // wadah dan jenis specimen adalah data yang dibutuhkan modul sejak hari pertama, bukan data
         // contoh. Environment baru yang berangkat tanpa keduanya akan menolak setiap penerimaan

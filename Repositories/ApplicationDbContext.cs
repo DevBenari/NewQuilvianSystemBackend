@@ -896,6 +896,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<InpIntegrationOutbox> InpIntegrationOutboxes { get; set; }
         public DbSet<BilInvoiceEncounterLink> BilInvoiceEncounterLinks { get; set; }
+        public DbSet<BilSupersededItemReview> BilSupersededItemReviews { get; set; }
 
         /// <summary>Permintaan admisi dari kamar pulih (<c>BE-RWI-181</c>, kamus data 19.8, migration <c>E6</c>).</summary>
         public DbSet<InpAdmissionReferral> InpAdmissionReferrals { get; set; }

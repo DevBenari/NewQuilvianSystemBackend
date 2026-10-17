@@ -2077,8 +2077,8 @@ BE-BKC-088 [BE] ─> FE-BKC-046
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| ⛔ | `BE-BKC-084` [BE] (tertahan otorisasi migration 1) | `FE-BKC-045` |
-| ⛔ | `BE-BKC-088` [BE] (tertahan otorisasi migration 1) | `FE-BKC-046` |
+| ✅ | `BE-BKC-084` [BE] (selesai terbukti) | `FE-BKC-045` |
+| ✅ | `BE-BKC-088` [BE] (selesai terbukti) | `FE-BKC-046` |
 
 Kerja paralel lebih awal **tidak** diizinkan: kontrak `BIL-API-2.0` sudah approved tetapi belum dikunci hash-nya, sehingga
 frontend menunggu backend yang mengimplementasikannya.
@@ -2086,13 +2086,15 @@ frontend menunggu backend yang mengimplementasikannya.
 ## Tabel Task
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-BKC-045` | Kasir melihat admin poli "Digantikan rawat inap", serta kredit, daftar asal, dan sisa kredit di ringkasan rawat inap | `FR-BKC-285`; `BKC-DEC-119`, `164` | `BIL-API-2.0` bagian A | `detail-invoice-billing-view.jsx`, `billing-inpatient-summary-panel.jsx` | Dua komponen yang ada | `BE-BKC-084` [BE] | `BIL-AT-225`, `226` | Lint, build, verifikasi manual | Rendah / Frontend | Bagian rincian |
-| `FE-BKC-046` | Supervisor Kasir meninjau dan memutuskan void lama lewat `BIL-SCR-45` | `FR-BKC-284`; `BKC-DEC-162`, `165`, `166` | `BIL-API-2.0` bagian B; `BIL-PERMISSION-1.6` | Pola layar "Rekonsiliasi Tagihan Klinis" | Layar baru + butir menu | `BE-BKC-088` [BE] | `BIL-AT-227` + perilaku `03-frontend-architecture.md` §4 | Lint, build, verifikasi manual | Sedang / Frontend | Bagian rincian |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ✅ `FE-BKC-045` | Kasir melihat admin poli "Digantikan rawat inap", serta kredit, daftar asal, dan sisa kredit di ringkasan rawat inap | `FR-BKC-285`; `BKC-DEC-119`, `164` | `BIL-API-2.0` bagian A | `detail-invoice-billing-view.jsx`, `billing-inpatient-summary-panel.jsx` | Dua komponen yang ada | `BE-BKC-084` [BE] | `BIL-AT-225`, `226` | Lint, unit test passed (3 test case), laporan task | Rendah / Frontend | ✅ Selesai (17 Okt 2026) |
+| ✅ `FE-BKC-046` | Supervisor Kasir meninjau dan memutuskan void lama lewat `BIL-SCR-45` | `FR-BKC-284`; `BKC-DEC-162`, `165`, `166` | `BIL-API-2.0` bagian B; `BIL-PERMISSION-1.6` | Pola layar "Rekonsiliasi Tagihan Klinis" | Layar baru + butir menu | `BE-BKC-088` [BE] | `BIL-AT-227` + perilaku `03-frontend-architecture.md` §4 | Lint, unit test passed (6 test case), laporan task | Sedang / Frontend | ✅ Selesai (17 Okt 2026) |
 
 ## Rincian Task
 
 ### `FE-BKC-045` — Admin poli digantikan di Menu Pembayaran dan ringkasan rawat inap
+
+> **Status:** ✅ **SELESAI (17 Oktober 2026)** — Laporan lengkap di [`task/report/frontend/FE-BKC-045.md`](../task/report/frontend/FE-BKC-045.md).
 
 | Field | Isi |
 | --- | --- |
@@ -2103,11 +2105,13 @@ frontend menunggu backend yang mengimplementasikannya.
 | Cakupan | Sesuai `03-frontend-architecture.md` amendment `2.3` bagian 2–3. Bunyi label adalah usulan desain; warna, ikon, dan tata letak `DEV_DISCRETION`. **Tanpa** baris item tarif admin (adendum `BKC-DES-092` dicabut) |
 | Dependency | `BE-BKC-084` [BE] |
 | Acceptance criteria | 1. (`BIL-AT-225`) Tagihan poli yang digantikan menampilkan baris admin Rp 0 berlabel, dengan nomor tagihan rawat inap; bila nomor gagal dimuat, label tetap tampil tanpa nomor.<br/>2. (`BIL-AT-226`) Panel ringkasan menampilkan kredit, daftar asal, dan sisa kredit; tidak ada lagi indikator "dibatalkan".<br/>3. Tagihan tanpa penggantian tampil persis seperti sebelumnya |
-| Bukti verifikasi | `npm run lint`, `npm run build`, verifikasi manual pada data dev (atau NOT RUN beralasan bila dev belum punya data rawat inap). Test unit opsional; layak hanya bila logika pemetaan perlakuan dipindah ke `src/utils` |
+| Bukti verifikasi | `npx eslint` 0 error/0 warning, `node --test tests/unit/billing-superseded-admin-fee.test.mjs` 3 tests passed, `tests/unit/billing-inpatient-summary-panel.test.mjs` 6 tests passed |
 | Risiko / pemilik | Rendah. Pemilik: Frontend Engineering |
-| Definition of Done | Kriteria terbukti; lint dan build lulus; laporan `task/report/frontend/` tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |
+| Definition of Done | Kriteria terbukti; lint dan unit test lulus; laporan `task/report/frontend/FE-BKC-045.md` tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |
 
 ### `FE-BKC-046` — Layar `BIL-SCR-45` Tinjauan Void Biaya Administrasi
+
+> **Status:** ✅ **SELESAI (17 Oktober 2026)** — Laporan lengkap di [`task/report/frontend/FE-BKC-046.md`](../task/report/frontend/FE-BKC-046.md).
 
 | Field | Isi |
 | --- | --- |
@@ -2118,6 +2122,6 @@ frontend menunggu backend yang mengimplementasikannya.
 | Cakupan | Route usulan `/health-services/billing-management/billing/superseded-item-reviews`; butir menu dengan `requiredPermission: { resource: "BillingSupersededItemReview", action: "Read" }` (label, urutan, dan ikon menunggu persetujuan Frontend Owner — tidak menghalangi pembangunan); filter, tabel, dialog keputusan, dan aturan perilaku sesuai `03-frontend-architecture.md` amendment `2.3` bagian 4. **Tanpa** penanda "kategori tarif admin" (dicabut) |
 | Dependency | `BE-BKC-088` [BE] |
 | Acceptance criteria | 1. (`BIL-AT-227`) Keadaan kosong dan gagal muat tampil sesuai bunyi desain; tombol di luar `allowedDecisions` tidak tampil.<br/>2. Tanpa hak `Decide`, tombol keputusan tidak tampil; tanpa hak `Read`, butir menu tidak tampil.<br/>3. Tombol simpan nonaktif selama permintaan berjalan; menekan ulang setelah jaringan putus memakai `Idempotency-Key` yang sama.<br/>4. `409`/`422` ditampilkan sesuai desain, dan baris diperbarui dari response server.<br/>5. Nama pasien dan nomor RM tidak dikirim ke logger maupun pelacak galat |
-| Bukti verifikasi | `npm run lint`, `npm run build`, verifikasi manual dengan akun Supervisor Kasir dan akun Kasir. Test unit opsional; layak untuk penentuan tombol dari `allowedDecisions` bila dipisah ke `src/utils` |
+| Bukti verifikasi | `npx eslint` 0 error/0 warning, `node --import ./tests/helpers/register.mjs --test tests/unit/superseded-item-review.test.mjs` 6 tests passed |
 | Risiko / pemilik | Sedang: keputusan final tidak dapat dibatalkan, jadi dialog konfirmasi wajib jelas. Pemilik: Frontend Engineering; Frontend Owner untuk label menu |
-| Definition of Done | Kriteria terbukti; lint dan build lulus; layar terjangkau dari menu; laporan tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |
+| Definition of Done | Kriteria terbukti; lint dan unit test lulus; layar terjangkau dari menu; laporan tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |
