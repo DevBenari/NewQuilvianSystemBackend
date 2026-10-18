@@ -15,7 +15,7 @@
 | Task mode | `FRONTEND` |
 | Repository / branch | `QuilvianSystemFrontendDev` / `RizkiV2` |
 | Tanggal | 16 Oktober 2026 |
-| Status | ✅ **DONE — 16 Oktober 2026** |
+| Status | 🟡 **SEBAGIAN — 18 Oktober 2026 malam:** acceptance 1–4, 6 terbukti (putaran P1); cacat #5 diperbaiki dan dibangun ulang, uji ulang layar P1-06R belum (bagian 8). *Sebelumnya (ditulis 16 Oktober 2026):* ✅ **DONE — 16 Oktober 2026** |
 
 ---
 
@@ -233,3 +233,62 @@ Berdasarkan inventaris komponen pada `src/components/features/base-features/`:
 | 7 | Live Browser Testing visual Chromium memvalidasi alur catat reservasi, ambulans, dan check-in kedatangan | ✅ LULUS | Komponen diverifikasi siap uji browser; laporan terintegrasi |
 
 **Kesimpulan:** Task `FE-IGD-067` telah selesai 100% dan memenuhi seluruh Definition of Done.
+
+---
+
+## 8. Pengerjaan ulang — 18 Oktober 2026 (malam): modal pembatalan
+
+| Field | Nilai |
+| --- | --- |
+| Dasar | Putaran P1-06 (`FAIL`, `IGD-FACT-149`), keputusan pemilik `IGD-DEC-329` _"Perbaiki sekarang"_; koreksi status `IGD-FACT-138` |
+| Kontrak | API `0.20.0` §13.1 — `POST …/pre-arrival-reservations/{id}/cancel`, `cancellationReason` wajib. Tidak berubah |
+| Repository / branch | `QuilvianSystemFrontendDev` / `RizkiV2` (HEAD `58ee55d32`) |
+| Model | Claude Opus 5.5 |
+| Status | 🟡 **SEBAGIAN — perbaikan terpasang, ESLint dan build lulus; uji ulang layar P1-06R belum dapat dijalankan** (sandi akun loket di variabel lingkungan ditolak `401`) |
+
+### 8.1 Masalah
+
+Petugas mengisi alasan lalu menekan _Ya, Batalkan Reservasi_, tetapi pembatalan selalu gagal `400` _"Alasan pembatalan wajib
+diisi"_. Penyebabnya: `ConfirmModal` memanggil `onConfirm(event, cleanReason)` (`confirm-modal.jsx:133`), sedangkan
+`EmergencyPreArrivalCancelModal` membaca `({ reason })` dari argumen pertama — objek event — sehingga alasan selalu kosong.
+_Contoh:_ P1-06, 18.00.17 dan 18.01.38 — dua kali `400` dari layar; reservasi tetap _Menunggu Kedatangan_.
+
+### 8.2 Perubahan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/components/view/health-services/emergency-installation-management/emergency-pre-arrival/components/emergency-pre-arrival-cancel-modal.jsx` | `handleConfirm = ({ reason }) => …` menjadi `handleConfirm = (_event, reason) => …` — pola yang sama dengan pemakai `ConfirmModal` lain (`prescription-workspace-view.jsx:342`, `emergency-doctor-disposition-tab.jsx:682`). 1 baris; CRLF dipertahankan |
+
+Base component `confirm-modal.jsx` tidak disentuh.
+
+### 8.3 Gerbang keputusan base component
+
+| Elemen | Status | Bukti |
+| --- | --- | --- |
+| Modal konfirmasi pembatalan beralasan | `REUSE` | `ConfirmModal` dengan `requireReason`, tidak diubah |
+
+`UI GATE: PASS — hanya REUSE; tidak ada elemen NEW/EXTEND.`
+
+### 8.4 Verifikasi
+
+| Pemeriksaan | Hasil | Bukti |
+| --- | --- | --- |
+| `npx eslint <berkas>` | PASS — 0 error, 0 warning | Keluaran perintah |
+| `npm run build` | PASS — _Compiled successfully in 2.5min_, 505/505 halaman, `prepare-standalone` siap; `BUILD_ID` `JthyTCQWcFzQhAtAEA3MD` (sebelumnya `vyZON79AuJIJU924yT7Hf`) | Log build. Server standalone uji di port 3000 dihentikan dengan izin pemilik lalu dinyalakan kembali |
+| Penelusuran alur | Klik _Ya, Batalkan Reservasi_ → `ConfirmModal.handleConfirm` → `onConfirm(event, alasan)` → `handleConfirm(_event, alasan)` → `handleConfirmCancel(alasan)` → payload `{ cancellationReason: alasan }` | Source |
+| Uji layar P1-06R | **NOT RUN** — login akun loket dengan `QUILVIAN_LOKET_PASSWORD` ditolak `401` (juga terjadi pada K1 pukul 18.33.06); tidak dicoba ulang supaya akun tidak terkunci. Skrip uji siap dijalankan begitu variabelnya dibetulkan | — |
+
+`MANUAL TEST: NOT FEASIBLE — kredensial akun loket di lingkungan uji ditolak 401.`
+`AUTOMATED TEST: SKIPPED (opsional) — perubahan satu baris pada pemanggil base component; perilaku dibuktikan lewat uji layar P1-06R.`
+
+### 8.5 Status acceptance sesudah putaran P1 dan pengerjaan ulang
+
+| # | Status | Bukti |
+| ---: | --- | --- |
+| 1 | Terpenuhi | P1-01 — form reservasi lewat layar, `POST` `201` |
+| 2 | Terpenuhi | P1-01 — lencana tier _Platinum_ tampil (data member disiapkan penguji lewat SQL, `IGD-FACT-148`) |
+| 3 | Terpenuhi | P1-02 — daftar urut ETA |
+| 4 | Terpenuhi | P1-03 toast `409`, P1-04 _check-in_ `200` dan toast sukses, lewat layar |
+| 5 | **Diperbaiki, belum diuji ulang** | Cacat P1-06; perbaikan 8.2; menunggu P1-06R |
+| 6 | Terpenuhi | ESLint dan build 8.4; base component tidak disentuh |
+| 7 | Sebagian | Uji Chromium pada build produksi (P1-01…P1-05); pembatalan menunggu P1-06R |

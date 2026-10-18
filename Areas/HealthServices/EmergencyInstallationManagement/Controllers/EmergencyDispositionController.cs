@@ -413,18 +413,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
                 if (!pengulanganPadaKunjunganSelesai)
                 {
-                    // IGD-DEC-311: Jaring pengaman alur cepat non-ranap / pulang:
-                    // Jika kunjungan masih berstatus Triaged atau InTreatment saat dieksekusi,
-                    // transisikan secara sah ke AwaitingDisposition terlebih dahulu agar
-                    // perpindahan ke Disposed diizinkan oleh CanTransition.
-                    if (visit.VisitStatus == EmergencyVisitStatus.Triaged || visit.VisitStatus == EmergencyVisitStatus.InTreatment)
-                    {
-                        _emergencyVisitService.TryApplyVisitStatus(
-                            visit, EmergencyVisitStatus.AwaitingDisposition, actorUserId, now, out _);
-                    }
-
-                    if (!_emergencyVisitService.TryApplyVisitStatus(
-                        visit, EmergencyVisitStatus.Disposed, actorUserId, now, out var penolakanStatusKunjungan))
+                    if (!_emergencyVisitService.TryPromoteToDisposed(
+                        visit, actorUserId, now, out var penolakanStatusKunjungan))
                     {
                         return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanStatusKunjungan!));
                     }

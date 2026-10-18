@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -356,6 +357,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return Hasil<EmergencyPreArrivalReservationResponse>.Ok(response!);
         }
 
+        public const string PesanBelumTerdaftarDiLoket =
+            "Pasien belum didaftarkan di loket IGD. Daftarkan di loket lebih dulu, lalu ulangi Konfirmasi Tiba.";
+
+        private const string PesanKunjunganEncounterPernahDihapus =
+            "Kunjungan IGD untuk encounter ini pernah dihapus, sehingga encounter ini tidak dapat dimulai lagi. Daftarkan ulang pasien.";
+
         public async Task<Hasil<EmergencyPreArrivalReservationResponse>> CheckInReservationAsync(
             Guid id,
             CheckInEmergencyPreArrivalReservationRequest request,
@@ -379,25 +386,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 return Hasil<EmergencyPreArrivalReservationResponse>.Gagal(
                     StatusCodes.Status400BadRequest, "Data rekam medis pasien wajib ditautkan sebelum melakukan konfirmasi kedatangan (check-in).");
 
-            var openEpisode = await EmergencyEpisodeRule.FindOpenEpisodeAsync(
-                _dbContext,
-                entity.PatientId.Value,
-                null,
-                cancellationToken);
-
-            if (openEpisode is { Kind: EmergencyEpisodeRule.OpenEpisodeKind.Visit, Visit: { } activeVisit })
-                return Hasil<EmergencyPreArrivalReservationResponse>.Gagal(
-                    StatusCodes.Status409Conflict, EmergencyVisitService.PesanKunjunganLainBerjalan(activeVisit));
-
-            var setting = await EmergencyVisitService.ResolveActiveSettingAsync(_dbContext, cancellationToken);
-            if (setting == null)
-                return Hasil<EmergencyPreArrivalReservationResponse>.Gagal(
-                    StatusCodes.Status400BadRequest, EmergencyVisitService.PesanPengaturanTidakTersedia);
-
             var now = DateTime.UtcNow;
             var arrivalDateTime = request.ArrivalDateTime.HasValue
-                ? (request.ArrivalDateTime.Value.Kind == DateTimeKind.Utc ? request.ArrivalDateTime.Value : request.ArrivalDateTime.Value.ToUniversalTime())
+                ? NormalizeUtc(request.ArrivalDateTime.Value)
                 : now;
+
+            if (arrivalDateTime > now)
+                return Hasil<EmergencyPreArrivalReservationResponse>.Gagal(
+                    StatusCodes.Status400BadRequest, "Waktu tiba tidak boleh melewati waktu sekarang.");
 
             Guid? arrivalModeId = request.ArrivalModeId.HasValue && request.ArrivalModeId.Value != Guid.Empty
                 ? request.ArrivalModeId.Value
@@ -414,28 +410,58 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 arrivalModeId = defaultArrivalMode?.Id;
             }
 
-            var visitNumber = await _emergencyVisitService.GenerateVisitNumberAsync(now, cancellationToken);
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            await EmergencyEpisodeRule.LockPatientEpisodeAsync(_dbContext, entity.PatientId.Value, cancellationToken);
+
+            var openEpisode = await EmergencyEpisodeRule.FindOpenEpisodeAsync(
+                _dbContext,
+                entity.PatientId.Value,
+                null,
+                cancellationToken);
+
+            if (openEpisode is { Kind: EmergencyEpisodeRule.OpenEpisodeKind.Visit, Visit: { } activeVisit })
+                return Hasil<EmergencyPreArrivalReservationResponse>.Gagal(
+                    StatusCodes.Status409Conflict, EmergencyVisitService.PesanKunjunganLainBerjalan(activeVisit));
+
+            if (openEpisode is not { Kind: EmergencyEpisodeRule.OpenEpisodeKind.Encounter, Encounter: { } encounter })
+                return Hasil<EmergencyPreArrivalReservationResponse>.Gagal(
+                    StatusCodes.Status409Conflict, PesanBelumTerdaftarDiLoket);
+
+            var kunjunganEncounter = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Where(x => x.EncounterId == encounter.Id)
+                .Select(x => new { x.IsDelete, x.EmergencyVisitNumber })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (kunjunganEncounter != null)
+                return Hasil<EmergencyPreArrivalReservationResponse>.Gagal(
+                    StatusCodes.Status409Conflict,
+                    kunjunganEncounter.IsDelete
+                        ? PesanKunjunganEncounterPernahDihapus
+                        : $"Encounter IGD pasien ini sudah memiliki kunjungan {kunjunganEncounter.EmergencyVisitNumber}. Buka kunjungan tersebut, jangan mendaftar ulang.");
 
             var visit = new EmgVisit
             {
                 Id = Guid.NewGuid(),
-                EmergencyVisitNumber = visitNumber,
-                PatientId = entity.PatientId.Value,
-                ServiceUnitId = setting.DefaultEmergencyServiceUnitId,
+                EmergencyVisitNumber = await _emergencyVisitService.GenerateVisitNumberAsync(now, cancellationToken),
+                EncounterId = encounter.Id,
+                PatientId = encounter.PatientId,
+                ServiceUnitId = encounter.ServiceUnitId,
                 ArrivalModeId = arrivalModeId,
                 CaseTypeId = request.CaseTypeId.HasValue && request.CaseTypeId.Value != Guid.Empty ? request.CaseTypeId.Value : null,
                 ArrivalDateTime = arrivalDateTime,
                 ArrivalTimeSource = EmergencyArrivalTimeSource.Confirmed,
                 ArrivalConfirmedAt = now,
-                ArrivalConfirmedByUserId = actorUserId,
+                ArrivalConfirmedByUserId = actorUserId == Guid.Empty ? null : actorUserId,
                 ChiefComplaint = !string.IsNullOrWhiteSpace(request.ChiefComplaint)
                     ? request.ChiefComplaint.Trim()
                     : entity.ChiefComplaint,
                 ArrivalLocation = request.ArrivalLocation?.Trim(),
-                VisitStatus = EmergencyVisitStatus.Arrived,
+                IsImmediateCareAllowed = true,
+                VisitStatus = EmergencyVisitStatus.WaitingForTriage,
                 RegistrationStatus = EmergencyRegistrationStatus.Registered,
-                RegistrationCompletedAt = now,
-                RegistrationCompletedByUserId = actorUserId,
+                RegistrationCompletedAt = NormalizeUtc(encounter.RegisteredAt),
                 Notes = request.Notes?.Trim() ?? entity.Notes,
                 IsActive = true,
                 CreateDateTime = now,
@@ -443,8 +469,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 IsDelete = false,
                 IsCancel = false
             };
-
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
             _dbContext.Set<EmgVisit>().Add(visit);
 
@@ -455,12 +479,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.UpdateBy = actorUserId;
             entity.RowVersion = Guid.NewGuid();
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException exception) when (exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+            {
+                return Hasil<EmergencyPreArrivalReservationResponse>.Gagal(
+                    StatusCodes.Status409Conflict,
+                    "Pasien ini baru saja mulai ditangani lewat kunjungan IGD lain. Buka kunjungan tersebut, jangan mendaftar ulang.");
+            }
+
             await transaction.CommitAsync(cancellationToken);
 
             var response = await ProjectToResponseAsync(entity.Id, cancellationToken);
             return Hasil<EmergencyPreArrivalReservationResponse>.Ok(response!);
         }
+
+        private static DateTime NormalizeUtc(DateTime value) => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
 
         private async Task<EmergencyPreArrivalReservationResponse?> ProjectToResponseAsync(
             Guid id,

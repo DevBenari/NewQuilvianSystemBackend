@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.10.0` — amandemen 15 Oktober 2026 (`IGD-DEC-308`, `309`), **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-308`/`309`, Rizki Gunawan & Muhammad Hamzah, 15 Oktober 2026): bagian 9.6 — integrasi pemanggilan fungsi tolak admisi dan evaluasi penutupan susulan oleh Rawat Inap. *Sebelumnya:* `0.9.0` — amandemen 14 Oktober 2026 (`IGD-DEC-304`, `305`), **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-306`, Rizki Gunawan, 14 Oktober 2026): bagian 9.5 — form bertanda tangan sebagai surat pengantar ke Antrean Transfer IGD/Poli. *Sebelumnya:* `0.8.0` — Form Permintaan Rawat Inap dari IGD, 12 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-294`): bagian 9 baru (`IGD-DEC-267`…`293`). *Sebelumnya:* `0.7.0` — Dokter jaga IGD, 11 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-240`): bagian 8 baru — IGD membaca jadwal dokter, unit layanan, klinik (Master Data) dan master dokter (Human Resource) secara sinkron tanpa salinan. Masukan: `00-interview-decisions.md` **240 keputusan**, terakhir `IGD-DEC-240`; capability map suplemen 3.5. *Sebelumnya:* `0.6.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 7 baru — sepuluh modul disentuh secara sinkron tanpa salinan data; fakta tagih jasa konsultasi IGD tidak dikirim. Masukan: `00-interview-decisions.md` **229 keputusan**, terakhir `IGD-DEC-229` (grill-me 6 Oktober 2026 sore); capability map suplemen 3.4 (backend `43dab6da`, frontend `6680278a2`). *Sebelumnya:* `0.5.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 6 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol modul baru yang disentuh. Sebelumnya `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
-| Status | `draft`, **kecuali bagian 9 (Form Permintaan Rawat Inap dari IGD) yang `approved`** (`IGD-DEC-294`, 12 Oktober 2026; amandemen 9.5 `IGD-DEC-306`, 14 Oktober 2026; amandemen 9.6 `IGD-DEC-308`/`309`, 15 Oktober 2026); `draft`, **kecuali bagian 8 (dokter jaga IGD) yang `approved`** (`IGD-DEC-240`, 11 Oktober 2026); **kecuali bagian 7 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 6 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
+| `contract_version` | `0.11.0` — amandemen 18 Oktober 2026 (`IGD-DEC-325`…`327`), **Rencana (belum tersedia)**, status **`approved`** (Rizki Gunawan, 18 Oktober 2026): bagian 10 — _check-in_ reservasi membaca encounter loket, jasa kunjungan IGD lewat jalur tindakan ke Billing tanpa perubahan Billing, dan Antrean Transfer Rawat Inap membaca keanggotaan CRM (10.4 mengikat Rawat Inap sesudah butir 5 `IGD-REQ-003` disetujui). *Sebelumnya:* `0.10.0` — amandemen 15 Oktober 2026 (`IGD-DEC-308`, `309`), **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-308`/`309`, Rizki Gunawan & Muhammad Hamzah, 15 Oktober 2026): bagian 9.6 — integrasi pemanggilan fungsi tolak admisi dan evaluasi penutupan susulan oleh Rawat Inap. *Sebelumnya:* `0.9.0` — amandemen 14 Oktober 2026 (`IGD-DEC-304`, `305`), **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-306`, Rizki Gunawan, 14 Oktober 2026): bagian 9.5 — form bertanda tangan sebagai surat pengantar ke Antrean Transfer IGD/Poli. *Sebelumnya:* `0.8.0` — Form Permintaan Rawat Inap dari IGD, 12 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-294`): bagian 9 baru (`IGD-DEC-267`…`293`). *Sebelumnya:* `0.7.0` — Dokter jaga IGD, 11 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-240`): bagian 8 baru — IGD membaca jadwal dokter, unit layanan, klinik (Master Data) dan master dokter (Human Resource) secara sinkron tanpa salinan. Masukan: `00-interview-decisions.md` **240 keputusan**, terakhir `IGD-DEC-240`; capability map suplemen 3.5. *Sebelumnya:* `0.6.0` — Ruang Kerja Dokter IGD, 6 Oktober 2026, **Rencana (belum tersedia)**, status **`approved`** (`IGD-DEC-230`): bagian 7 baru — sepuluh modul disentuh secara sinkron tanpa salinan data; fakta tagih jasa konsultasi IGD tidak dikirim. Masukan: `00-interview-decisions.md` **229 keputusan**, terakhir `IGD-DEC-229` (grill-me 6 Oktober 2026 sore); capability map suplemen 3.4 (backend `43dab6da`, frontend `6680278a2`). *Sebelumnya:* `0.5.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 6 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol modul baru yang disentuh. Sebelumnya `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
+| Status | `draft`, **kecuali bagian 10 (pasien prioritas dan Billing IGD) yang `approved`** (`IGD-DEC-325`…`327`, 18 Oktober 2026); `draft`, **kecuali bagian 9 (Form Permintaan Rawat Inap dari IGD) yang `approved`** (`IGD-DEC-294`, 12 Oktober 2026; amandemen 9.5 `IGD-DEC-306`, 14 Oktober 2026; amandemen 9.6 `IGD-DEC-308`/`309`, 15 Oktober 2026); `draft`, **kecuali bagian 8 (dokter jaga IGD) yang `approved`** (`IGD-DEC-240`, 11 Oktober 2026); **kecuali bagian 7 (Ruang Kerja Dokter IGD) yang `approved`** (`IGD-DEC-230`, 6 Oktober 2026); **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 6 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan & Muhammad Hamzah / 2026-10-15** — amandemen bagian 9.6 (`IGD-DEC-308`, `309`). **Rizki Gunawan / 2026-10-14** — amandemen bagian 9.5 (`IGD-DEC-306`). **Rizki Gunawan / 2026-10-11** — bagian 8 (dokter jaga IGD) lewat `IGD-DEC-240` (sementara, pola `IGD-DEC-174`). **Rizki Gunawan / 2026-10-06** — bagian 7 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. **Rizki Gunawan / 2026-09-23** — bagian 6 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian 1–4 tetap `draft` |
-| Versi sebelumnya | `0.9.0`, `0.8.0`, `0.7.0`, `0.6.0`, `0.5.0`; sebelumnya `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-10-18** — bagian 10 (`IGD-DEC-325`…`327`). **Rizki Gunawan & Muhammad Hamzah / 2026-10-15** — amandemen bagian 9.6 (`IGD-DEC-308`, `309`). **Rizki Gunawan / 2026-10-14** — amandemen bagian 9.5 (`IGD-DEC-306`). **Rizki Gunawan / 2026-10-11** — bagian 8 (dokter jaga IGD) lewat `IGD-DEC-240` (sementara, pola `IGD-DEC-174`). **Rizki Gunawan / 2026-10-06** — bagian 7 (Ruang Kerja Dokter IGD) lewat `IGD-DEC-230`. **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. **Rizki Gunawan / 2026-09-23** — bagian 6 (penutupan lewat disposisi) lewat `IGD-DEC-170`. Bagian 1–4 tetap `draft` |
+| Versi sebelumnya | `0.10.0`, `0.9.0`, `0.8.0`, `0.7.0`, `0.6.0`, `0.5.0`; sebelumnya `0.2.0` |
 
 ---
 
@@ -401,3 +401,73 @@ pemakai — calon pembaca isi form untuk layar antrean bila `IGD-OQ-131` diputus
 | Petugas admisi menolak saat pasien sudah di-admit oleh petugas lain | Transaksi ditolak `409 Conflict` | Layar admisi menampilkan pesan galat konkurensi; baris antrean di-refresh |
 | Evaluasi penutupan susulan gagal / error | Transaksi *admit* rawat inap tidak boleh gagal total bila penutupan IGD sekadar tertahan blocker klinis lain | Penjaga penutupan IGD mengembalikan evaluasi tanpa melempar exception fatal ke transaksi utama *admit* |
 
+
+---
+
+## 10. Pasien prioritas dan Billing IGD — baru pada `0.11.0`, **Rencana (belum tersedia)**
+
+Status **`approved`** — Rizki Gunawan, 18 Oktober 2026 (`IGD-DEC-325`…`327`). Bagian 10.4 menjadi mengikat bagi Rawat Inap
+sesudah Muhammad Hamzah menyetujui butir 5 `IGD-REQ-003`. Rujukan:
+[audit pasien prioritas dan billing IGD](../evidence/2026-10-18-audit-pasien-prioritas-dan-billing-igd.md).
+
+### 10.1 Modul yang disentuh
+
+| Modul | Yang terjadi | Tulis ke modul itu? |
+| --- | --- | --- |
+| Pendaftaran (loket IGD) | Encounter `Emergency` dan penjamin lahir di loket seperti biasa; _check-in_ hanya **membaca** encounter itu | Tidak |
+| ClinicalManagement | IGD mencatat satu `TrxPatientProcedure` _Jasa kunjungan IGD_ lewat method baru di layanan tindakan, lalu menerbitkan fakta lewat `PatientProcedureExecutionService.EnsureCompletedFactAsync` | Ya — **hanya menambah** (persetujuan di muka `IGD-DEC-253`) |
+| Billing | Menerima fakta tindakan lewat jembatan yang sudah menerima kunjungan IGD (`BillingClinicalChargeBridgeService.cs` `:196`); harga dari `BillingSourceTariffResolver.ResolveProcedureAsync` | **Tidak** — nol perubahan |
+| Rawat Inap | Antrean Transfer membaca CITO dan keanggotaan CRM (10.4) | Ya — milik Rawat Inap, lewat `IGD-REQ-003` butir 5 |
+| CRM / Membership | Dibaca Rawat Inap | Tidak |
+
+### 10.2 _Check-in_ reservasi → encounter loket (`IGD-DEC-325`)
+
+```text
+Loket IGD ── encounter Emergency + penjamin ──> RegPatientEncounter (menunggu triage)
+Admisi/GRO ── Konfirmasi Tiba ──> CheckInReservationAsync
+    ├─ cari episode terbuka pasien (EmergencyEpisodeRule.FindOpenEpisodeAsync)
+    │    ├─ kunjungan berjalan  ──> 409 (pesan yang ada)
+    │    ├─ encounter tanpa kunjungan ──> EmgVisit tertaut (penjaga dan isian Mulai Triage)
+    │    └─ tidak ada ──> 409 "Pasien belum didaftarkan di loket IGD…"
+    └─ reservasi Arrived + ResultEmergencyVisitId
+```
+
+Kunjungan dan status reservasi tersimpan dalam satu transaksi di bawah kunci episode pasien (`LockPatientEpisodeAsync`).
+Index unik `EmgVisit.EncounterId` menolak balapan dengan _Mulai Triage_ pada encounter yang sama (validation §15 aturan 6).
+
+### 10.3 Jasa kunjungan IGD → Billing (`IGD-DEC-326`)
+
+| No | Langkah | Di mana | Transaksi |
+| ---: | --- | --- | --- |
+| 1 | DPJP pertama ditetapkan (`TetapkanAsync`) | `EmergencyDoctorAssignmentService` | Satu `SaveChangesAsync` |
+| 2 | Bila belum ada tindakan berkunci `EMG-VISIT-FEE:{id kunjungan}`: tambah `TrxPatientProcedure` — item dari konfigurasi `EmergencyBilling:VisitFeeProcedureCode`, `ProcedureSource` `EmergencyVisitFee`, status `Completed`, `IsExecuted`, `IsBillable`, dokter = DPJP, waktu = mulai berlaku penugasan, jumlah 1. Snapshot harga diisi bila dapat ditentukan; bila tidak, tetap dicatat | Method baru di layanan tindakan ClinicalManagement, dipanggil dari langkah 1 | **Sama** dengan langkah 1 |
+| 3 | Sesudah commit: `EnsureCompletedFactAsync(id tindakan)` | `PatientProcedureExecutionService` | Terpisah; galat dicatat, tidak menggagalkan langkah 1 |
+| 4 | Fakta → folio → jembatan → invoice kunjungan IGD; harga dari Master Tarif menurut `ProcedureId` dan kelas pasien | Billing (yang ada) | Pekerja latar Billing mengirim ulang efek yang gagal |
+
+| Kegagalan | Dampak | Penanganan |
+| --- | --- | --- |
+| Konfigurasi kosong, item tidak aktif, atau kunjungan tanpa encounter | Tidak ada baris jasa kunjungan | Log peringatan `EmergencyVisitFee` dengan alasannya; DPJP tetap tersimpan |
+| Tarif belum ada | Baris di antrean rekonsiliasi `TARIFF_NOT_FOUND`, tidak di kasir | Owner Billing membuat tarif lalu mengirim ulang dari layar rekonsiliasi |
+| Penerbitan fakta gagal sesudah commit | Tindakan tercatat tanpa fakta | Log galat; pemanggilan ulang `EnsureCompletedFactAsync` aman (fakta berkunci sama tidak terbit dua kali) |
+| Dua penetapan DPJP bersamaan | Index unik penugasan berjalan menolak salah satunya (`BE-IGD-044`) | Hanya satu yang menulis jasa kunjungan |
+
+### 10.4 Antrean Transfer membaca keanggotaan CRM (`IGD-DEC-327`) — milik Rawat Inap
+
+Dikerjakan di `InpAdmissionTransferService` (`TransferQuery`, urutan `:46`). IGD tidak berubah.
+
+| Butir | Isi |
+| --- | --- |
+| Penanda | Keanggotaan pasien `MembershipStatus.Active`, hari ini di antara `PeriodStartDate` dan `ExpiredDate` (kosong = tanpa batas), tier `PriorityQueue` = `true` |
+| CITO | Dibaca dari Form Permintaan Rawat Inap bertanda tangan (`EmgAdmissionRequest.IsCito`) lewat `BacaRingkasanPermintaanRawatInapAsync` (API `0.19.0` §12.8) |
+| Urutan | CITO lebih dulu → member prioritas (`PriorityLevel` tertinggi lebih dulu) → waktu keputusan → id |
+| Tampilan | Lencana tier (`TierName`) pada baris member |
+| Larangan | Rawat Inap tidak menulis tabel `Emg*` dan tidak menyalin aturan status IGD (`IGD-REQ-003` bagian 4) |
+
+### 10.5 Yang sengaja tidak diintegrasikan
+
+| Butir | Sebab |
+| --- | --- |
+| Diskon membership pada invoice IGD | Aturannya belum ada di billing mana pun; menunggu owner Billing dan owner CRM (`IGD-DEC-317`) |
+| Penautan invoice IGD ke invoice rawat inap | Ditahan `IGD-DEC-293` sampai `IGD-OQ-129` dijawab; pasien transfer punya dua invoice |
+| Observasi per periode, pembatalan otomatis jasa kunjungan | Rilis berikutnya (`IGD-DEC-243`, `245`, `247`) |
+| Tindakan dokter IGD | Tersimpan _Planned_ dan tidak menerbitkan fakta (`IGD-FACT-140`); di luar rilis ini |
