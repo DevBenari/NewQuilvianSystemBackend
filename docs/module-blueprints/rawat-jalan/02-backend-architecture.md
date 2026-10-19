@@ -1715,3 +1715,483 @@ kunjungan lama (`403`), unit tujuan tidak berubah lewat `PUT` (`400`), `Expected
 | Endpoint OCR di backend | `RJ-DOC-DEC-068` memilih agent Plustek |
 | Registrasi Radiologi | `RJ-DOC-OQ-PM-02` |
 | Base64 untuk surat rujukan | Multipart lebih hemat untuk berkas sampai 5 MB × 10 |
+
+---
+
+# Amendment RP — Reservasi Pasien Prioritas (revisi `33`, `approved` 2026-10-16)
+
+| Field | Nilai |
+|---|---|
+| Status | `approved` — Sukma Giri, 2026-10-16 ("setuju dan lanjutkan", `RJ-PRI-DEC-030`) |
+| Keputusan | `RJ-PRI-DEC-001` s.d. `029`, `RJ-PRI-FE-001` s.d. `004` ([00-interview-decisions.md](00-interview-decisions.md), *Amendment RP*) |
+| Capability | [01-capability-impact-scan-reservasi-prioritas.md](01-capability-impact-scan-reservasi-prioritas.md) (`CAP-RP-01` s.d. `22`), BE `551e1cbb`, FE `1fd858322` |
+| `requirement_readiness` | `READY_FOR_DOMAIN_DESIGN` untuk `S-RP-1` s.d. `S-RP-5` ([01-requirement-completeness-gate-reservasi-prioritas.md](01-requirement-completeness-gate-reservasi-prioritas.md)) |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — satu bounded context (Registration RJ); titik sentuh CRM sudah berkontrak (`crm-membership` `INT-01` s.d. `03`); dampak billing nihil (`RJ-PRI-DEC-009`); dampak klinis dibatasi `CRM-DEC-007` |
+| Kontrak | `RJ-PRI-RESV-001@1.0.0` (`approved`) — bagian *Amendment RP* pada setiap berkas `contracts/` |
+| Owner | Product/Domain dan Frontend authority: Sukma Giri. Siklus hidup membership tetap milik `crm-membership` (Yoga Aji Pratama) |
+
+## RP.1 Tujuan dan batas
+
+Admisi dapat membuat **Reservasi Prioritas** tanpa poli dan dokter untuk member berstatus Aktif. Pasien mengonfirmasi
+kedatangan lewat link WA. Petugas skrining dan admisi lalu menghampiri pasien di ruang tunggu prioritas, dan admisi
+melengkapi poli, dokter, dan penjamin memakai **wizard Pendaftaran Pasien yang sudah ada** (PDF 2B). Pada saat itulah
+kunjungan dan nomor antrean prioritas terbit. Nomor prioritas berupa kelipatan 5. Nomor itu tidak tampil di display
+publik dan tidak dipanggil lewat suara. Perawat dan dokter melihat lokasi pasien di worklist, lalu menghampirinya.
+
+**Contoh lengkap:** Rabu 14 Okt 2026 Ibu Sari (Gold) menelepon admisi untuk berobat Jumat 16 Okt. Admisi membuat
+reservasi `RSV-261016-0001` lalu menekan "Kirim via WhatsApp". Jumat pukul 08.40 Ibu Sari tiba dan menekan link "Saya
+sudah tiba". Daftar Reservasi Prioritas di layar admisi dan petugas skrining langsung berbunyi. Petugas Rina mengisi
+checklist skrining: batuk Ya, demam Tidak, risiko jatuh Tidak. Admisi Dewi menekan "Lengkapi", dan wizard Pendaftaran
+Pasien terbuka dengan Ibu Sari sudah terpilih. Dewi memilih Penyakit Dalam, dr. Maya, dan penjamin Pribadi. Kunjungan
+terbit dengan nomor antrean 5 (prioritas). Layar ruang tunggu Penyakit Dalam tidak pernah menampilkan nomor 5. Perawat
+melihat "5 — Ruang Tunggu Prioritas" di Nurse Station, lalu menghampiri Ibu Sari.
+
+**Tidak berubah:**
+- penjaminan dan billing kunjungan;
+- skrining perawat (TTV) dan konsultasi dokter sesudah kunjungan terbentuk;
+- data dan siklus hidup membership (`crm-membership`);
+- IGD dan rawat inap.
+
+## RP.2 Bounded context, aggregate, invariant, dan transaksi
+
+**Bounded context:** Registration Rawat Jalan, yaitu registry `HealthServices / RegistrationManagement / Registration`
+dengan prefix `Reg` (`ACTIVE / LEGACY`, `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md:23`). Tidak ada folder
+maupun prefix baru, sehingga registry tidak perlu ditambah. Arti `LEGACY` pada baris itu dikonfirmasi saat QBE
+preflight task pertama.
+
+**Aggregate root:** `RegPriorityReservation`, dengan anak `RegPriorityReservationHistory`. Kunjungan
+(`RegPatientEncounter`) dan antrean (`RegQueue`) tetap aggregate masing-masing. Reservasi hanya menunjuk kunjungan yang
+lahir dari pelengkapannya.
+
+| ID | Invariant | Penjaga |
+|---|---|---|
+| `INV-RP-01` | Per pasien per tanggal kunjungan, paling banyak satu reservasi **terbuka** (Menunggu Kedatangan atau Sudah Tiba) | Unique index bersyarat, ditambah kunci per pasien yang sama dengan pendaftaran kunjungan (`RJ-DOC-REV-BE-007`) |
+| `INV-RP-02` | Reservasi hanya dibuat untuk pasien yang menurut `PatientMembershipStatusResolver` adalah member Aktif pada hari pembuatan (WIB) | `OutpatientPriorityReservationService.CreateAsync` |
+| `INV-RP-03` | Snapshot klasifikasi diambil saat reservasi dibuat dan tidak pernah diubah. Satu-satunya pencabutan: membership snapshot berstatus Dibatalkan (`RJ-PRI-DEC-024`), dihitung saat dibaca dan saat dilengkapi | Service; tidak ada endpoint yang mengubah snapshot |
+| `INV-RP-04` | Satu reservasi menghasilkan paling banyak satu kunjungan. Kunjungan dan perubahan reservasi tersimpan dalam **satu** transaksi | Unique index bersyarat pada `EncounterId`; transaksi pendaftaran kunjungan |
+| `INV-RP-05` | Kode link hanya disimpan sebagai hash SHA-256. Kode aslinya hanya muncul sekali, di respons buat atau kirim ulang | Service; kolom `ArrivalCodeHash` |
+| `INV-RP-06` | Setiap perubahan status menulis tepat satu baris riwayat, dalam transaksi yang sama | Service |
+| `INV-RP-07` | Status akhir (Menjadi Kunjungan, Dibatalkan, Tidak Datang, Didaftarkan lewat Jalur Lain) tidak dapat dibuka kembali | Service + matriks status |
+| `INV-RP-08` | Antrean prioritas tidak pernah sampai ke perangkat display publik, baik lewat API maupun realtime. Payload realtime ke display tidak memuat `PatientId`, `EncounterId`, maupun data member | `QueueDisplayRuntimeController.BuildDisplayQueueQuery` dan group display di `QueueHub` |
+| `INV-RP-09` | Nomor prioritas selalu kelipatan N (bawaan 5), nomor Reguler tidak pernah kelipatan N, dan nomor tidak dipakai ulang | `OutpatientQueueNumberAllocator` |
+
+| Transaksi | Isi dalam satu transaksi | Bila gagal |
+|---|---|---|
+| Buat reservasi | Kunci pasien, periksa `INV-RP-01`/`02`, lalu simpan reservasi dan riwayat `CREATED` | Tidak ada yang tersimpan. Nomor reservasi yang sudah dialokasikan tetap hangus (`NumberSeriesAllocator`, `DEC-PLT-008`) |
+| Tiba (link atau petugas), kembalikan, skrining, kirim ulang, batal | Ubah baris reservasi dengan syarat status dan `RowVersion`, lalu tulis riwayat | Ditolak 409 dan tidak ada yang berubah |
+| Lengkapi (lewat pendaftaran kunjungan) | Kunjungan, penjamin, antrean, reservasi menjadi `Converted`, dan riwayat `CONVERTED` | Semua batal. Reservasi tetap Sudah Tiba, sehingga admisi dapat mencoba lagi |
+| Kunjungan lewat jalur lain | Kunjungan, antrean, reservasi menjadi `RegisteredElsewhere`, dan riwayat | Semua batal, termasuk kunjungannya |
+| Penutupan akhir hari | Per batch 200 baris: status `NoShow` dan riwayat | Batch berikutnya tetap jalan, dan putaran berikutnya mengejar ketertinggalan |
+
+## RP.3 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai fitur ini | Dibuat ulang |
+|---|---|:---:|---|
+| Pasien | Patient Management (`MstPatient`) | Ya | Tidak |
+| Membership dan status Aktif | `crm-membership` (`MstPatientMembership`, resolver) | Ya, baca | Tidak |
+| Tingkat member dan kebijakan antrean | Administrator Master Data (`MstMembershipTier`) | Ya, baca | Tidak |
+| Kunjungan RJ | Registration (`RegPatientEncounter`) | Ya, dibuat lewat jalur yang ada | Tidak |
+| Antrean dan snapshot klasifikasi | Registration (`RegQueue`) | Ya | Tidak |
+| Jadwal dan kuota dokter | Registration / HR (`MstDoctorSchedule`, `DoctorScheduleQuotaService`) | Ya, lewat jalur pendaftaran | Tidak |
+| **Reservasi Prioritas** | Registration | Ya | **Ya, baru** (`RegPriorityReservation`). Konsep ini belum ada (`CAP-RP-06`) |
+| **Riwayat Reservasi Prioritas** | Registration | Ya | **Ya, baru** (`RegPriorityReservationHistory`) |
+| Nomor seri | Platform (`NumberSeriesAllocator`) | Ya | Tidak |
+| Notifikasi lonceng dan WA gateway | `platform-notification` (belum ada) | Tidak | Tidak |
+
+## RP.4 Aturan inti
+
+### RP.4.1 Nomor antrean kelipatan N (`RJ-PRI-DEC-004`, `CAP-RP-01`)
+
+`OutpatientQueueNumberOptions.ReservedPriorityNumbers` diganti `PriorityNumberMultiple` (bawaan `5`, minimal `2`).
+Kunci, cakupan nomor, dan larangan pakai ulang tidak berubah.
+
+| Jenis | Aturan | Contoh bila nomor 1, 2, 3, 5 sudah terpakai |
+|---|---|---|
+| Prioritas | Kelipatan N terkecil yang belum terpakai | 10 |
+| Reguler | Nomor terkecil yang belum terpakai dan bukan kelipatan N | 4 |
+
+Untuk antrean prioritas, `IsReservedPriorityNumber` pada hasil alokasi selalu `true`, karena kelipatan N tidak pernah
+habis. Nomor yang sudah terbit hari itu dengan aturan lama (`1, 3, 5, 10, 15`) tetap dihormati, karena alokator
+melihat nomor yang sudah terpakai.
+
+### RP.4.2 Klasifikasi antrean (`RJ-PRI-DEC-006`, `007`, `024`, `CAP-RP-04`, `05`)
+
+1. `OutpatientQueueClassificationService.ClassifyAsync(patientId, classificationDateWib)` memakai
+   `PatientMembershipStatusResolver.GetActiveAsync` untuk menentukan membership Aktif. Kebijakan tingkat
+   (`PriorityQueue`, `PriorityLevel`, `QueueAudience`, `PublicDisplayMode`) tetap dibaca dari `MstMembershipTier`.
+2. Tanggal penilaian adalah **hari pendaftaran (WIB)**, bukan tanggal kunjungan. Contoh: booking yang dibuat 1 Okt
+   untuk kunjungan 20 Okt dinilai pada 1 Okt.
+3. Kunjungan hasil reservasi memakai **snapshot reservasi**. Bila membership snapshot berstatus Dibatalkan, klasifikasi
+   menjadi Reguler.
+4. Cadangan `new OutpatientQueueClassificationService(dbContext)` di `PatientEncounterController.cs:100` diganti
+   suntikan DI, karena service kini membutuhkan resolver. Butir ini adalah `BE-CRM-022`.
+
+### RP.4.3 Display dan realtime (`RJ-PRI-DEC-005`, `025`, `CAP-RP-02`, `03`)
+
+1. `BuildDisplayQueueQuery` ditambah syarat `IsPriorityQueue == false`. Akibatnya ketiga endpoint display (`summary`,
+   `items`, `called`) beserta suaranya ikut tersaring.
+2. `QueueHub` mendapat method `JoinQueueDisplayCluster(clusterId)` yang hanya untuk akun display, yaitu akun dengan
+   peran display atau klaim perangkat display ditambah klaim cluster. Nama group: `queue-display-cluster:{clusterId}`.
+3. Akun display **ditolak** masuk group perawat dan dokter (`JoinNurseStationCluster`,
+   `JoinAccessibleNurseStationClusters`, dan `JoinDoctor*`). Penolakan bersifat fail-closed lewat `HubException`.
+4. `QueueRealtimeService.NotifyQueueChangedAsync` tetap mengirim payload lengkap ke group perawat dan dokter. Selain
+   itu ia mengirim `QueueDisplayRealtimeEventResponse` ke group display, **hanya bila** `IsPriorityQueue == false`.
+5. Payload display hanya memuat `EventType`, `QueueId`, `ServiceUnitId`, `ClinicId`, `QueueDate`, `QueueNumber`,
+   `QueueCode`, `QueueStatus`, `QueueStatusName`, dan `OccurredAt`. Nama samaran dan suara tetap diambil lewat
+   `GET /called`, yang sudah menerapkan `PublicDisplayMode`.
+
+### RP.4.4 Reservasi Prioritas (`RJ-PRI-DEC-008` s.d. `029`)
+
+| Aturan | Isi |
+|---|---|
+| Kelayakan | Pasien adalah member Aktif hari ini menurut resolver. Tanggal kunjungan ≥ hari ini dan ≤ hari ini + `MaxDaysAhead` (bawaan 30, `RJ-PRI-OQ-012`) |
+| Nomor | `NumberSeriesAllocator` dengan `SequenceKey` `REG_PRIORITY_RESERVATION_NUMBER`, prefix `RSV`, reset `DAILY`, 4 digit. Bentuk akhirnya mengikuti format allocator (`RJ-PRI-OQ-002`) |
+| Kode link | 32 byte acak (`RandomNumberGenerator`), dikodekan base64url menjadi 43 karakter. Yang disimpan hanya hex SHA-256-nya (64 karakter). Link = `PublicArrivalBaseUrl` + `/` + kode |
+| Tiba | Hanya pada hari kunjungan (WIB). Sumbernya `PatientLink` atau `Staff` |
+| Kirim ulang | Hanya untuk reservasi Menunggu Kedatangan. Hash diganti, sehingga kode lama otomatis tidak cocok lagi |
+| Lengkapi | Lewat `POST /patient-encounters/admin` dengan `PriorityReservationId`. Syaratnya: reservasi Sudah Tiba, pasien sama, dan tanggal kunjungan = tanggal reservasi = hari ini. Pemanggil wajib memegang `OutpatientPriorityReservation : Complete`, yang diperiksa service lewat `AccessPermissionService` |
+| Jalur lain | Setiap kunjungan **Rawat Jalan berpoliklinik** yang terbentuk tanpa `PriorityReservationId` menutup reservasi terbuka pasien pada tanggal yang sama sebagai `RegisteredElsewhere`. Kunjungan IGD dan kunjungan penunjang (Laboratorium lewat `EncounterIntakeService`) **tidak** menutup reservasi |
+| Penutupan | Hosted service berjalan saat start dan pukul 00.05 WIB. Reservasi terbuka yang tanggal kunjungannya < hari ini menjadi `NoShow` |
+| Pencabutan prioritas | Dibaca sebagai `IsPriorityRevoked`, yaitu `true` bila membership snapshot berstatus `Cancelled` |
+
+### RP.4.5 Penanda lokasi (`RJ-PRI-DEC-017`, `018`)
+
+Nama ruang diambil dari konfigurasi `HealthServices:Registration:PriorityReservation:PriorityWaitingRoomName`, bawaannya
+"Ruang Tunggu Prioritas". Backend mengisi field `PriorityWaitingLocationName` pada respons antrean Nurse Station, Doctor
+Queue, dan `QueueClassification` pembuatan kunjungan. Nilainya terisi bila `IsPriorityQueue = true`, dan `null` bila
+tidak. Frontend tidak menyimpan nama ruang sendiri.
+
+## RP.5 Class diagram
+
+### RP.5.1 Reservasi Prioritas
+
+```mermaid
+classDiagram
+    class RegPriorityReservation {
+        +Guid Id
+        +string ReservationNumber
+        +Guid PatientId
+        +DateTime VisitDate
+        +PriorityReservationStatus Status
+        +string ArrivalCodeHash
+        +PriorityReservationArrivalSource? ArrivalSource
+        +bool? ScreeningCough
+        +Guid? EncounterId
+        +bool IsPrioritySnapshot
+        +Guid? PatientMembershipIdSnapshot
+        +Guid RowVersion
+    }
+    class RegPriorityReservationHistory {
+        +Guid Id
+        +Guid PriorityReservationId
+        +string EventCode
+        +PriorityReservationStatus ToStatus
+        +PriorityReservationEventSource Source
+        +DateTime OccurredAt
+    }
+    class OutpatientPriorityReservationService {
+        +CreateAsync()
+        +ConfirmArrivalByCodeAsync()
+        +MarkArrivalAsync()
+        +PrepareCompletionAsync()
+        +CloseForEncounterAsync()
+        +CloseExpiredAsync()
+    }
+    class MstPatient
+    class MstPatientMembership
+    class RegPatientEncounter
+    RegPriorityReservation "1" --> "0..*" RegPriorityReservationHistory : riwayat
+    MstPatient "1" --> "0..*" RegPriorityReservation : memiliki
+    MstPatientMembership "0..1" --> "0..*" RegPriorityReservation : snapshot
+    RegPriorityReservation "0..1" --> "0..1" RegPatientEncounter : menjadi kunjungan
+    OutpatientPriorityReservationService ..> RegPriorityReservation : mengelola
+```
+
+### RP.5.2 Antrean, display, dan realtime
+
+```mermaid
+classDiagram
+    class OutpatientQueueNumberAllocator {
+        +AllocateAsync(date, unit, clinic, isPriority)
+    }
+    class OutpatientQueueNumberOptions {
+        +int PriorityNumberMultiple
+    }
+    class OutpatientQueueClassificationService {
+        +ClassifyAsync(patientId, classificationDateWib)
+        +FromReservationSnapshot(reservation)
+    }
+    class PatientMembershipStatusResolver {
+        +GetActiveAsync(patientId, dateWib)
+    }
+    class QueueDisplayRuntimeController {
+        -BuildDisplayQueueQuery()
+    }
+    class QueueRealtimeService {
+        +NotifyQueueChangedAsync()
+        +NotifyPriorityReservationChangedAsync()
+    }
+    class QueueHub {
+        +JoinQueueDisplayCluster(clusterId)
+        +JoinPriorityReservationBoard()
+    }
+    class RegQueue {
+        +bool IsPriorityQueue
+        +int QueueNumber
+    }
+    OutpatientQueueNumberAllocator ..> OutpatientQueueNumberOptions
+    OutpatientQueueClassificationService ..> PatientMembershipStatusResolver : memakai
+    QueueDisplayRuntimeController ..> RegQueue : menyaring IsPriorityQueue
+    QueueRealtimeService ..> QueueHub : mengirim ke group
+```
+
+## RP.6 Penjelasan class
+
+### `RegPriorityReservation`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/RegistrationManagement/Models/RegPriorityReservation.cs` |
+| Kategori | Transaksi Registration |
+| Tanggung jawab utama | Menyimpan satu janji kedatangan pasien prioritas untuk satu tanggal, sebelum poli dan dokter dipilih. Reservasi bukan kunjungan, sehingga tidak membuat antrean maupun tagihan |
+| Field penting | `ReservationNumber`, `PatientId`, `VisitDate`, `Status`, `ArrivalCodeHash`, `ArrivalCodeIssuedAt`, `ArrivedAt`, `ArrivalSource`, checklist skrining, `EncounterId`, snapshot klasifikasi, `ClosedAt`, `ClosureReason`, `RowVersion` |
+| Navigation property dan relasi | `Patient` (`MstPatient`), `PatientMembershipSnapshot` (`MstPatientMembership`), `Encounter` (`RegPatientEncounter`), `Histories` |
+| Pemakaian dalam alur bisnis | Dibuat admisi saat pasien menelepon. Diubah oleh link pasien, petugas, pendaftaran kunjungan, dan proses akhir hari |
+| Catatan desain | Kode link asli tidak disimpan. Data pasien (nama, No. HP) tidak disalin ke tabel ini. Snapshot tidak diubah setelah dibuat |
+| Ekuivalen model lama | — |
+
+### `RegPriorityReservationHistory`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/RegistrationManagement/Models/RegPriorityReservationHistory.cs` |
+| Kategori | Transaksi (riwayat) |
+| Tanggung jawab utama | Mencatat satu baris untuk setiap kejadian pada reservasi: dibuat, tiba, dikembalikan, diskrining, kode diganti, dilengkapi, dibatalkan, tidak datang, dan didaftarkan lewat jalur lain |
+| Field penting | `PriorityReservationId`, `EventCode`, `FromStatus`, `ToStatus`, `Source`, `ActorUserId`, `Reason`, `EncounterId`, `OccurredAt` |
+| Navigation property dan relasi | Milik `RegPriorityReservation` (`Restrict`) |
+| Pemakaian dalam alur bisnis | Ditampilkan di detail reservasi sebagai garis waktu |
+| Catatan desain | Tidak pernah diubah atau dihapus. Kejadian lewat link pasien dicatat dengan `Source = PatientLink` dan `ActorUserId` kosong |
+| Ekuivalen model lama | — |
+
+### Enum baru
+
+| Enum | Lokasi | Nilai | Bawaan |
+|---|---|---|---|
+| `PriorityReservationStatus` | `Areas/HealthServices/RegistrationManagement/Enums/PriorityReservationStatus.cs` | `AwaitingArrival = 1` (Menunggu Kedatangan), `Arrived = 2` (Sudah Tiba), `Converted = 3` (Menjadi Kunjungan), `Cancelled = 4` (Dibatalkan), `NoShow = 5` (Tidak Datang), `RegisteredElsewhere = 6` (Didaftarkan lewat Jalur Lain) | `AwaitingArrival` |
+| `PriorityReservationArrivalSource` | `.../Enums/PriorityReservationArrivalSource.cs` | `PatientLink = 1`, `Staff = 2` | Kosong (nullable) |
+| `PriorityReservationEventSource` | `.../Enums/PriorityReservationEventSource.cs` | `Staff = 1`, `PatientLink = 2`, `System = 3` | — |
+
+### Enum diperbarui
+
+| Enum | Lokasi | Perubahan |
+|---|---|---|
+| `EncounterRegistrationSource` | `Areas/HealthServices/RegistrationManagement/Enums/EncounterRegistrationSource.cs` | Tambah `PriorityReservation = 6`, diisi pada kunjungan hasil pelengkapan reservasi. Kolomnya tetap `integer`, jadi skema tidak berubah |
+
+### `OutpatientPriorityReservationService`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/RegistrationManagement/Services/OutpatientPriorityReservationService.cs` |
+| Kategori | Service |
+| Tanggung jawab utama | Semua perintah dan kueri reservasi: daftar, ringkasan, detail, cek kelayakan, buat, tiba lewat link, tiba oleh petugas, kembalikan, skrining, kirim ulang, batal, persiapan pelengkapan, penutupan jalur lain, dan penutupan akhir hari |
+| Dipanggil oleh | `OutpatientPriorityReservationController`, `PriorityReservationArrivalController`, `PatientEncounterController` (pelengkapan dan jalur lain), `OutpatientPriorityReservationClosureHostedService` |
+| Membuka transaksi database | Ya, untuk buat, tiba, kembalikan, skrining, kirim ulang, batal, dan penutupan. Pelengkapan dan jalur lain **ikut** transaksi pendaftaran kunjungan milik pemanggil |
+| Memakai | `ApplicationDbContext`, `PatientMembershipStatusResolver`, `NumberSeriesAllocator`, `AccessPermissionService`, `QueueRealtimeService`, `IOptions<PriorityReservationOptions>`, `TimeProvider` |
+| Catatan desain | Kode link dibuat dan di-hash di sini, dan kode aslinya tidak masuk logger. Pesan audit hanya memuat `EntityId`, aksi, dan status |
+
+### `OutpatientPriorityReservationClosureHostedService`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/RegistrationManagement/Services/OutpatientPriorityReservationClosureHostedService.cs` |
+| Kategori | Proses terjadwal |
+| Tanggung jawab utama | Saat aplikasi mulai dan setiap hari pukul 00.05 WIB, menutup reservasi terbuka yang tanggal kunjungannya sudah lewat sebagai Tidak Datang |
+| Dipanggil oleh | Host. Didaftarkan di blok proses terjadwal `Program.cs`, sehingga hanya berjalan pada `Runtime:Role` `Worker`/`All` (`Program.cs:1137-1144`) |
+| Membuka transaksi database | Ya, per batch |
+| Catatan desain | Mengikuti pola `PatientMembershipLifecycleHostedService` dan idempoten. Proses ini tidak mendorong kabar realtime, karena container Worker tidak memegang SignalR. Layar admisi cukup memuat ulang daftar |
+
+### `OutpatientPriorityReservationController`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/RegistrationManagement/Controllers/OutpatientPriorityReservationController.cs` |
+| Kategori | Controller |
+| Service yang dipakai | `OutpatientPriorityReservationService`. Controller tidak menyentuh `ApplicationDbContext` (`QBE-SVC-001`) |
+| Endpoint yang diurus | Grup `Health Services / Registration Management / Outpatient Priority Reservation` — lihat `contracts/api-contract.md` *Amendment RP* |
+| Atribut akses | `[AccessController]` dan `[AccessPermission("OutpatientPriorityReservation", "Read"/"Create"/"Screen"/"Complete"/"Cancel")]` |
+
+### `PriorityReservationArrivalController`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/RegistrationManagement/Controllers/PriorityReservationArrivalController.cs` |
+| Kategori | Controller publik |
+| Service yang dipakai | `OutpatientPriorityReservationService` |
+| Endpoint yang diurus | Grup `Health Services / Registration Management / Priority Reservation Arrival`: `GET /{code}` dan `POST /{code}/confirm` |
+| Atribut akses | `[AllowAnonymous]` di tingkat kelas dan `[EnableRateLimiting("PriorityReservationArrivalPublic")]`. Controller ini **tidak** memakai `[AccessController]`, agar tidak muncul di layar Akses Role |
+| Catatan desain | Satu-satunya endpoint bisnis tanpa login. Respons tidak memuat data pribadi. Kode salah, kedaluwarsa, dibatalkan, atau tidak datang dijawab sama: 404 |
+
+### Class yang diperbarui
+
+| Class | Lokasi | Perubahan |
+|---|---|---|
+| `OutpatientQueueNumberAllocator`, `OutpatientQueueNumberOptions` | `Areas/HealthServices/RegistrationManagement/Services/OutpatientQueueNumberAllocator.cs` | `ReservedPriorityNumbers` diganti `PriorityNumberMultiple` (RP.4.1). Opsi divalidasi saat start: `PriorityNumberMultiple ≥ 2` |
+| `OutpatientQueueClassificationService` | `.../Services/OutpatientQueueClassificationService.cs` | Memakai resolver. Parameter tanggal menjadi tanggal penilaian WIB. Tambah `FromReservationSnapshot` (RP.4.2) |
+| `PatientEncounterController` | `.../Controllers/PatientEncounterController.cs` | (1) `CreateEncounterCoreAsync` menilai klasifikasi pada hari pendaftaran. (2) `PriorityReservationId` hanya diterima di `POST /admin`; jalur kiosk menolaknya. (3) Di dalam transaksinya, memanggil `PrepareCompletionAsync` lalu `CompleteInTransactionAsync`, atau `CloseForEncounterAsync`. (4) Service klasifikasi diambil dari DI. Logika baru tinggal di service, dan controller hanya meneruskan. Utang teknis controller legacy dicatat di RP.7 |
+| `PatientEncounterCreateRequest` | `.../DTOs/PatientEncounterDtos.cs` | Tambah `Guid? PriorityReservationId` |
+| `PatientEncounterQueueClassificationResponse` | `.../DTOs/PatientEncounterDtos.cs` | Tambah `string? PriorityWaitingLocationName` |
+| Item respons `NurseStationQueue*` dan `DoctorQueue*` | `.../DTOs/NurseStationQueueDtos.cs`, `DoctorQueueDtos.cs` | Tambah `string? PriorityWaitingLocationName` |
+| `QueueDisplayRuntimeController` | `.../Controllers/QueueDisplayRuntimeController.cs` | `BuildDisplayQueueQuery` menyaring `IsPriorityQueue` (RP.4.3) |
+| `QueueRealtimeService` | `.../Services/QueueRealtimeService.cs` | Mengirim payload display ke group display. Tambah `NotifyPriorityReservationChangedAsync` ke group `priority-reservation-board` |
+| `QueueRealtimeDtos` | `.../DTOS/QueueRealtimeDtos.cs` | Tambah `QueueDisplayRealtimeEventResponse` dan `PriorityReservationRealtimeEventResponse` |
+| `QueueHub` | `Hubs/QueueHub.cs` | Tambah `JoinQueueDisplayCluster` dan `JoinPriorityReservationBoard` (memeriksa `OutpatientPriorityReservation : Read`). Akun display ditolak di group perawat dan dokter |
+| `Program.cs` | `Program.cs` | Registrasi service dan hosted service, `Configure<PriorityReservationOptions>`, dan policy rate limit `PriorityReservationArrivalPublic` (partisi IP, bawaan 20 per menit) |
+| `ApplicationDbContext` | `Repositories/ApplicationDbContext.cs` | `DbSet<RegPriorityReservation> RegPriorityReservations` dan `DbSet<RegPriorityReservationHistory> RegPriorityReservationHistories` |
+
+### Configuration baru
+
+| Configuration | Lokasi | Mengatur |
+|---|---|---|
+| `RegPriorityReservationConfiguration` | `Repositories/Configurations/HealthServices/RegPriorityReservationConfiguration.cs` | Tabel, panjang kolom, enum `HasConversion<int>()`, `RowVersion` sebagai `IsConcurrencyToken`, index (lihat data dictionary), serta FK `Restrict` ke `MstPatient`, `MstPatientMembership`, dan `RegPatientEncounter` |
+| `RegPriorityReservationHistoryConfiguration` | `Repositories/Configurations/HealthServices/RegPriorityReservationHistoryConfiguration.cs` | FK `Restrict` ke reservasi dan index `(PriorityReservationId, OccurredAt)` |
+
+Lokasi configuration mengikuti tetangganya. `RegQueueConfiguration.cs` dan `RegPatientEncounterConfiguration.cs` berada
+langsung di `Repositories/Configurations/HealthServices/`, bukan di pola `<Domain>/<SubDomain>/`. Lihat RP.7.
+
+## RP.7 Arsitektur folder
+
+```text
+Areas/HealthServices/RegistrationManagement/
+├── Controllers/
+│   ├── OutpatientPriorityReservationController.cs        # Baru
+│   ├── PriorityReservationArrivalController.cs           # Baru (publik)
+│   ├── PatientEncounterController.cs                     # Diperbarui — controller legacy memakai DbContext langsung (utang teknis, jangan ditiru)
+│   └── QueueDisplayRuntimeController.cs                  # Diperbarui
+├── DTOs/
+│   ├── OutpatientPriorityReservationDtos.cs              # Baru
+│   ├── PatientEncounterDtos.cs                           # Diperbarui
+│   ├── NurseStationQueueDtos.cs                          # Diperbarui
+│   └── DoctorQueueDtos.cs                                # Diperbarui
+├── DTOS/
+│   └── QueueRealtimeDtos.cs                              # Diperbarui — folder ganda DTOs/DTOS beda huruf kapital (utang teknis, jangan dirapikan diam-diam)
+├── Enums/
+│   ├── PriorityReservationStatus.cs                      # Baru
+│   ├── PriorityReservationArrivalSource.cs               # Baru
+│   ├── PriorityReservationEventSource.cs                 # Baru
+│   └── EncounterRegistrationSource.cs                    # Diperbarui
+├── Models/
+│   ├── RegPriorityReservation.cs                         # Baru
+│   └── RegPriorityReservationHistory.cs                  # Baru
+└── Services/
+    ├── OutpatientPriorityReservationService.cs           # Baru
+    ├── OutpatientPriorityReservationClosureHostedService.cs  # Baru
+    ├── PriorityReservationOptions.cs                     # Baru
+    ├── OutpatientQueueNumberAllocator.cs                 # Diperbarui
+    ├── OutpatientQueueClassificationService.cs           # Diperbarui
+    └── QueueRealtimeService.cs                           # Diperbarui
+Hubs/QueueHub.cs                                          # Diperbarui
+Repositories/Configurations/HealthServices/
+├── RegPriorityReservationConfiguration.cs                # Baru — mengikuti tetangga Reg*, bukan <Domain>/<SubDomain>/ (utang teknis)
+└── RegPriorityReservationHistoryConfiguration.cs         # Baru
+Migrations/<timestamp>_AddOutpatientPriorityReservation.cs  # Baru
+appsettings.json                                          # Diperbarui (RP.11)
+Program.cs                                                # Diperbarui
+```
+
+## RP.8 Endpoint (ringkas)
+
+Rinciannya ada di `contracts/api-contract.md` *Amendment RP*.
+
+| Grup | Endpoint |
+|---|---|
+| Outpatient Priority Reservation | `GET /`, `GET /summary`, `GET /{id}`, `GET /eligibility`, `POST /`, `POST /{id}/arrival`, `POST /{id}/arrival-reversal`, `PUT /{id}/screening`, `POST /{id}/arrival-code`, `POST /{id}/cancel` |
+| Priority Reservation Arrival (publik) | `GET /{code}`, `POST /{code}/confirm` |
+| Patient Encounter (diperbarui) | `POST /admin` menerima `priorityReservationId` |
+| Queue Display Runtime (diperbarui) | `GET /summary`, `/items`, `/called` tanpa antrean prioritas |
+| Hub `/hubs/queues` (diperbarui) | `JoinQueueDisplayCluster`, `JoinPriorityReservationBoard`, event `QueueDisplayChanged` dan `PriorityReservationChanged` |
+
+## RP.9 Status model dan dampak migration
+
+| Model | Status | Dampak migration |
+|---|---|---|
+| `RegPriorityReservation` | Baru | Tabel baru dengan enam index (lihat data dictionary) |
+| `RegPriorityReservationHistory` | Baru | Tabel baru dengan satu index |
+| `RegQueue` | Sudah ada | Tidak berubah. `IsPriorityQueue` dipakai penyaring display |
+| `RegPatientEncounter` | Sudah ada | Tidak berubah. Nilai `RegistrationSource` baru `6` tidak mengubah kolom |
+| `MstPatientMembership`, `MstMembershipTier` | Sudah ada | Tidak berubah, hanya dibaca |
+
+## RP.10 Rencana migration
+
+| Urutan | Migration | Tanpa mematikan layanan | Data lama | Langkah mundur |
+|---:|---|:---:|---|---|
+| 1 | `AddOutpatientPriorityReservation`: dua tabel, FK `Restrict`, dan index | Ya (aditif) | Tidak ada | `Down` menghapus kedua tabel, dan data reservasi ikut hilang. Jadi mundur hanya boleh sebelum fitur dipakai |
+
+Urutan rilis yang wajib:
+
+1. Perubahan alokator (`PriorityNumberMultiple`) dirilis **di luar jam layanan** (`GATE-RP-02`).
+2. Perubahan realtime display dirilis **bersamaan** di backend (`QueueHub`, `QueueRealtimeService`) dan frontend (layar
+   display). Bila backend lebih dulu, layar display lama gagal bergabung ke group perawat dan berhenti menerima kabar
+   realtime sampai frontend menyusul. Layar tidak padam, karena tetap memuat ulang daftar secara berkala.
+3. Migration diterapkan ke `QuilvianNewDevSukma` hanya dengan izin per sesi. Penerapan ke DB master dilakukan saat
+   rilis.
+
+## RP.11 Rencana data master dan konfigurasi awal
+
+| Kunci / master | Isi minimum | Sumber nilai |
+|---|---|---|
+| `HealthServices:Registration:QueueNumber:PriorityNumberMultiple` | `5`, menggantikan `ReservedPriorityNumbers` | `RJ-PRI-DEC-004` |
+| `HealthServices:Registration:PriorityReservation:Enabled` | `true` | — |
+| `...:PriorityReservation:MaxDaysAhead` | `30` | `RJ-PRI-OQ-012` (usulan) |
+| `...:PriorityReservation:PriorityWaitingRoomName` | "Ruang Tunggu Prioritas" | `RJ-PRI-DEC-018`. Nama final dari RS |
+| `...:PriorityReservation:PublicArrivalBaseUrl` | Dev: `http://localhost:3000/priority-arrival`. Produksi: `https://quilvian-mmchospital.com/priority-arrival` | `RJ-PRI-OQ-003` (aksesibilitas internet belum terbukti) |
+| `...:PriorityReservation:ArrivalLinkPermitPerMinute` | `20` per IP | Usulan desain |
+| `...:PriorityReservation:Closure:Enabled`, `RunAtLocalTime` | `true`, `00:05` | `RJ-PRI-DEC-013` |
+| Deret nomor `REG_PRIORITY_RESERVATION_NUMBER` | Mengikuti pola `PAT_MEMBERSHIP_NUMBER`. Bila allocator mensyaratkan definisi deret, seed satu baris | `CAP-RP-07` |
+| `MstMembershipTier` | `PriorityQueue = true` untuk Silver, Gold, Platinum, Executive | `CRM-DEC-015`. Diisi Marketing (`RJ-PRI-OQ-006`). **Tanpa ini reservasi tetap bisa dibuat, tetapi nomor yang terbit Reguler** |
+| Akses Role | Centang `OutpatientPriorityReservation` untuk admisi (semua aksi) dan petugas skrining (`Read`, `Screen`) | `RJ-PRI-DEC-020`, `026` |
+
+## RP.12 Otorisasi, privasi, audit
+
+Ringkasan saja. Rinciannya ada di `contracts/permission-audit-matrix.md` *Amendment RP*.
+
+1. Resource baru `OutpatientPriorityReservation` dengan aksi `Read`, `Create`, `Screen`, `Complete`, dan `Cancel`.
+2. Pelengkapan butuh dua izin: `PatientEncounter : Create` untuk endpoint-nya, dan `OutpatientPriorityReservation :
+   Complete` yang diperiksa service.
+3. Endpoint publik dijaga kode acak dan batas laju per IP, dan responsnya tanpa data pribadi.
+4. Riwayat reservasi adalah jejak yang tahan lama. Logger hanya mencatat `EntityId`, aksi, dan status. Kode link, hash,
+   checklist skrining, dan alasan tidak masuk log.
+5. Display publik tidak lagi menerima `PatientId` maupun `EncounterId`. Ini menutup pelanggaran `RJ-DOC-DEC-057` yang
+   sudah ada.
+
+## RP.13 Strategi verifikasi (pola Bank Darah)
+
+Tanpa folder `Tests/` dan tanpa project test.
+
+1. `dotnet build QuilvianSystemBackend.csproj -p:UseSharedCompilation=false -o <scratchpad>`.
+2. `dotnet ef migrations has-pending-model-changes --no-build`.
+3. `tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Mode Strict`.
+4. Runtime HTTP ke backend uji `https://localhost:7185` terhadap `QuilvianNewDevSukma`, dengan data samaran dan
+   skenario `R-RP-*` di `testing/acceptance-test-matrix.md` *Amendment RP*. Keadaan DB dicatat sesudah setiap run.
+5. Uji layar Playwright lewat dev `3000`, dengan route `7184 → 7185`.
+6. `dotnet test` ditulis `NOT RUN — tidak ada project test`.
+
+## RP.14 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Reservasi sebagai kunjungan `Draft` | Setiap layar kunjungan (antrean, nurse station, billing, klaim) harus belajar mengabaikannya (`RJ-PRI-DEC-009`) |
+| Endpoint "lengkapi" tersendiri di controller reservasi | Akan menduplikasi jalur pendaftaran kunjungan: jadwal, kuota, penjamin, consent, dan antrean. PDF 2B meminta format step-by-step yang sudah ada |
+| Memakai `EncounterIntakeService` untuk pelengkapan | Service itu sengaja tidak menangani antrean dokter, jadwal, dan kuota poliklinik |
+| Mengekstrak `CreateEncounterCoreAsync` ke service sekarang | Menyentuh jalur kiosk, petugas, dan IGD sekaligus. Dijadikan task perapian terpisah bila owner arsitektur menyetujui |
+| Aksi "ubah tanggal" | `RJ-PRI-DEC-029`: batal lalu buat baru |
+| Status "Bukan prioritas lagi" | Dihitung saat dibaca dari status membership snapshot. Menyimpannya butuh sinkronisasi dari modul CRM |
+| Kolom No. HP tujuan WA di reservasi | Pengiriman manual di frontend (`RJ-PRI-DEC-011`). Nomornya diambil dari master pasien saat tombol ditekan (`RJ-PRI-OQ-011`) |
+| Kolom nama ruang tunggu di master | Satu ruang untuk semua poli (`RJ-PRI-DEC-018`), jadi cukup konfigurasi |
+| Pengiriman WA otomatis | Belum ada gateway (`RJ-PRI-OQ-004`) |
+| Peringatan pasien prioritas menunggu terlalu lama | `GATE-RP-03`, slice berikutnya |

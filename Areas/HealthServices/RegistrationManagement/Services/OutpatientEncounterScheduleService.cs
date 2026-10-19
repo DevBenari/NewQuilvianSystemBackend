@@ -341,7 +341,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             {
                 change.CancelledQueues.Add(SnapshotAsCancelled(queue));
 
-                var classification = await _classificationService.ClassifyAsync(encounter.PatientId, newDate, cancellationToken);
+                // RJ-PRI-DEC-007: status member dinilai pada hari perubahan jadwal (WIB), sama
+                // seperti pendaftaran baru, bukan pada tanggal kunjungan yang baru.
+                var classification = await _classificationService.ClassifyAsync(
+                    encounter.PatientId,
+                    classificationDateWib: null,
+                    cancellationToken);
                 var allocation = await _queueNumberAllocator.AllocateAsync(
                     newDate,
                     encounter.ServiceUnitId,

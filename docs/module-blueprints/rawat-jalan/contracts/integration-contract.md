@@ -260,3 +260,38 @@ tertunda memakai jalur handoff Billing yang sama dengan konsultasi hari ini
 ## Delta 12 Oktober 2026 — Satu jalur tagihan resep (`BE-BKC-FIX-015`)
 
 Penegasan: fakta resep → folio → jembatan adalah **satu-satunya** jalur tagihan resep. Pengirim paralel `PrescriptionBillingChargeProducer` yang menghitung harga dan waktu tagih sendiri sudah dihapus. Racikan ditagih bahan × tarif obat tanpa jasa racik (`BKC-DEC-136`). Rencana: [`PLAN-REPAIR-BKC-001`](../../billing-kasir/docs/plan-repair/plan-repair-001-integrasi-checkout-ke-billing-kasir.md) FIX-05.
+
+---
+
+# Amendment RP — `RJ-PRI-RESV-001@1.0.0` (`approved`)
+
+`last_changed_in`: `RJ-PRI-RESV-001@1.0.0`. Status `approved` (Sukma Giri, 2026-10-16). Owner Sukma Giri.
+
+## RP-1. Titik sentuh
+
+| ID | Dari → ke | Arah | Sinkron | Isi | Bila gagal |
+|---|---|---|---|---|---|
+| `INT-RP-01` | Registration → `crm-membership` (`PatientMembershipStatusResolver`) | Baca | Ya | Membership Aktif pasien pada tanggal WIB tertentu (`crm-membership` `INT-01` s.d. `03`). Dipakai untuk kelayakan reservasi dan klasifikasi antrean | Kelayakan reservasi gagal tertutup: reservasi ditolak dengan pesan coba lagi. Klasifikasi antrean jatuh ke Reguler dan pendaftaran kunjungan tetap jalan (`crm-membership` `NFR-007`) |
+| `INT-RP-02` | Registration → `crm-membership` (`MstPatientMembership.MembershipStatus`) | Baca | Ya | Status membership snapshot untuk `IsPriorityRevoked` | Saat dibaca: tanda tidak ditampilkan. Saat dilengkapi: transaksi gagal, dan admisi mencoba lagi |
+| `INT-RP-03` | Reservasi → pendaftaran kunjungan (`PatientEncounterController.CreateEncounterCoreAsync`) | Tulis, satu transaksi | Ya | `PrepareCompletionAsync` (validasi + snapshot) sebelum kunjungan dibuat, lalu `CompleteInTransactionAsync` (reservasi `Converted`) dalam transaksi kunjungan | Seluruh transaksi batal |
+| `INT-RP-04` | Pendaftaran kunjungan → reservasi | Tulis, satu transaksi | Ya | `CloseForEncounterAsync` menutup reservasi terbuka sebagai `RegisteredElsewhere` untuk kunjungan Rawat Jalan berpoliklinik tanpa `priorityReservationId` | Seluruh transaksi batal, termasuk kunjungan. Petugas mengulang pendaftaran |
+| `INT-RP-05` | Reservasi → Platform (`NumberSeriesAllocator`) | Tulis, transaksi sendiri | Ya | Nomor `RSV`, reset harian | Reservasi tidak dibuat. Nomor yang sudah terbit hangus |
+| `INT-RP-06` | Registration → layar display (`QueueHub` group display) | Kirim | Asinkron (SignalR) | Event `QueueDisplayChanged`, payload ringkas, tanpa antrean prioritas | Display tetap memuat ulang daftar berkala lewat `GET /items` dan `/called` |
+| `INT-RP-07` | Reservasi → layar admisi (`QueueHub` group `priority-reservation-board`) | Kirim | Asinkron (SignalR), dari container Web | Event `PriorityReservationChanged` tanpa nama pasien | Layar memuat ulang daftar saat dibuka atau ditekan ↻. Kabar yang hilang tidak menyebabkan data salah |
+| `INT-RP-08` | Hosted service → reservasi | Tulis | Terjadwal (container Worker) | Penutupan Tidak Datang | Putaran berikutnya mengejar ketertinggalan |
+| `INT-RP-09` | Frontend → WhatsApp (`wa.me`) | Buka aplikasi | Manual | Teks `whatsAppMessageText` dan nomor pasien. Tidak ada panggilan backend ke WhatsApp | Petugas menyalin link secara manual |
+
+## RP-2. Yang tidak boleh terjadi
+
+| ID | Larangan |
+|---|---|
+| `AC-RP-INT-01` | Modul ini menulis ke tabel membership (`MstPatientMembership`) atau mengubah proyeksi member di `MstPatient` |
+| `AC-RP-INT-02` | Kunjungan terbit tetapi reservasi tidak berubah, atau sebaliknya |
+| `AC-RP-INT-03` | Payload yang diterima perangkat display memuat `PatientId`, `EncounterId`, atau antrean prioritas |
+| `AC-RP-INT-04` | Backend memanggil penyedia WhatsApp atau email |
+| `AC-RP-INT-05` | Reservasi membuat folio, charge, atau tagihan |
+
+## RP-3. Di luar kontrak ini
+
+Pengiriman tagihan lewat WA/email (2I), cara bayar (2J), dan closing (2K) tetap milik `billing-kasir`. WA gateway milik
+`platform-notification`, yang belum memiliki owner.

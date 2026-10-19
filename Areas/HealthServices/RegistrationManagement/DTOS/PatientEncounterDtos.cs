@@ -514,6 +514,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? Notes { get; set; }
 
         public string? DuplicateEpisodeOverrideReason { get; set; }
+
+        /// <summary>
+        /// rawat-jalan Amendment RP (BE-RJP-008): diisi bila kunjungan ini melengkapi Reservasi
+        /// Prioritas berstatus Sudah Tiba. Hanya diterima di <c>POST /admin</c>; kiosk menolaknya.
+        /// </summary>
+        public Guid? PriorityReservationId { get; set; }
     }
 
     /// <summary>
@@ -545,6 +551,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public PublicDisplayMode PublicDisplayMode { get; set; }
 
         public string PublicDisplayModeName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// rawat-jalan Amendment RP (BE-RJP-011, RJ-PRI-DEC-017/018): nama ruang tunggu prioritas dari
+        /// konfigurasi bila antrean prioritas, selain itu <c>null</c>.
+        /// </summary>
+        public string? PriorityWaitingLocationName { get; set; }
     }
 
     public class PatientEncounterCreateResponse

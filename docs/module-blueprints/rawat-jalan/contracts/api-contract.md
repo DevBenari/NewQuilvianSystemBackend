@@ -547,3 +547,120 @@ filter `referralInstitutionId`.
 ### Tambahan 16 Okt 2026 — Surat Pengantar Rawat Inap
 
 `POST /doctor-certificates` tipe `inpatientAdmission`: `inpatientAdmission.patientDependencyLevel` **wajib** (`1` Low, `2` Moderate, `3` High Dependency); selain itu `400`. Respons `inpatientAdmission` menambah `patientDependencyLevel` (int, `null` untuk surat lama) dan `patientDependencyLevelName`.
+
+---
+
+## Amendment RP — `RJ-PRI-RESV-001@1.1.0` (`approved`, 19 Okt 2026)
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-PRI-RESV-001@1.1.0` |
+| Status | `approved`. Owner Sukma Giri. `1.0.0`: `approved_by` Sukma Giri, `approved_at` 2026-10-16 (`RJ-PRI-DEC-030`). `1.1.0`: `approved_by` Sukma Giri, `approved_at` 2026-10-19 (`RJ-PRI-DEC-032`) |
+| Riwayat versi | `1.0.0` — kontrak awal. `1.1.0` — **aditif, kompatibel mundur**: item daftar menambah `createdAt`, `createdByName`, `updatedAt`, `updatedByName`; `GET /summary` menerima `visitDateFrom`/`visitDateTo` dan respons menambah keduanya (`visitDate` tunggal tetap diterima). Dipicu revisi layar Daftar Reservasi Prioritas |
+| `input_revision` | Keputusan `RJ-PRI-DEC-001` s.d. `029`; impact scan `CAP-RP-01` s.d. `22` (BE `551e1cbb`, FE `1fd858322`) |
+| Dampak kompatibilitas | Aditif untuk grup baru. **Mengubah perilaku**: `POST /patient-encounters/admin` (field baru opsional; klasifikasi booking dinilai pada hari pendaftaran), Queue Display Runtime (antrean prioritas hilang dari respons), dan hub `/hubs/queues` (akun display ditolak di group perawat dan dokter) |
+
+Semua respons memakai `ApiResponse<T>`. Tanggal kalender (`visitDate`) memakai format `yyyy-MM-dd` dalam WIB.
+
+### Health Services / Registration Management / Outpatient Priority Reservation
+
+Base URL: `api/v1/health-services/registration-management/outpatient-priority-reservations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar reservasi pada rentang tanggal kunjungan | `OutpatientPriorityReservation : Read` | `PriorityReservationListQuery` | `ApiResponse<PagedResult<PriorityReservationListItemResponse>>` | Tersedia (`BE-RJP-006`; diperbarui `1.1.0`) |
+| `GET` | `/summary` | Jumlah per status pada rentang tanggal kunjungan | `OutpatientPriorityReservation : Read` | `visitDateFrom`, `visitDateTo` (bawaan hari ini); `visitDate` (`1.0.0`, satu hari) tetap diterima | `ApiResponse<PriorityReservationSummaryResponse>` | Tersedia (`BE-RJP-006`; diperbarui `1.1.0`) |
+| `GET` | `/{id}` | Detail + riwayat | `OutpatientPriorityReservation : Read` | — | `ApiResponse<PriorityReservationDetailResponse>` | Tersedia |
+| `GET` | `/eligibility` | Cek apakah pasien boleh reservasi prioritas hari ini | `OutpatientPriorityReservation : Read` | `patientId`, `visitDate` | `ApiResponse<PriorityReservationEligibilityResponse>` | Tersedia (`BE-RJP-006`) |
+| `POST` | `/` | Buat reservasi | `OutpatientPriorityReservation : Create` | `CreatePriorityReservationRequest` | `ApiResponse<PriorityReservationIssuedResponse>` | Tersedia |
+| `POST` | `/{id}/arrival-code` | Kirim ulang: terbitkan kode baru, kode lama mati | `OutpatientPriorityReservation : Create` | `PriorityReservationRowVersionRequest` | `ApiResponse<PriorityReservationIssuedResponse>` | Tersedia |
+| `POST` | `/{id}/arrival` | Petugas menandai tiba | `OutpatientPriorityReservation : Complete` | `PriorityReservationRowVersionRequest` | `ApiResponse<PriorityReservationDetailResponse>` | Tersedia |
+| `POST` | `/{id}/arrival-reversal` | Kembalikan ke Belum Tiba | `OutpatientPriorityReservation : Complete` | `PriorityReservationReasonRequest` | `ApiResponse<PriorityReservationDetailResponse>` | Tersedia |
+| `PUT` | `/{id}/screening` | Simpan checklist skrining awal | `OutpatientPriorityReservation : Screen` | `PriorityReservationScreeningRequest` | `ApiResponse<PriorityReservationDetailResponse>` | Tersedia |
+| `POST` | `/{id}/cancel` | Batalkan dengan alasan | `OutpatientPriorityReservation : Cancel` | `PriorityReservationReasonRequest` | `ApiResponse<PriorityReservationDetailResponse>` | Tersedia |
+
+**DTO**
+
+| Class | Jenis | Field |
+|---|---|---|
+| `PriorityReservationListQuery` | PagedQuery | `visitDateFrom`, `visitDateTo` (bawaan hari ini), `status?`, `search?` (No. RM, nama, nomor reservasi; minimal 3 karakter), `pageNumber`, `pageSize` |
+| `PriorityReservationListItemResponse` | Response | `id`, `reservationNumber`, `patientId`, `medicalRecordNumber`, `patientName`, `birthDate`, `visitDate`, `status`, `statusName`, `arrivedAt?`, `arrivalSource?`, `isScreened`, `membershipTierCodeSnapshot?`, `isPriorityRevoked`, `encounterId?`, `rowVersion`. **`1.1.0`:** `createdAt` (UTC), `createdByName?`, `updatedAt?` (kosong bila belum pernah berubah sejak dibuat), `updatedByName?` (nama petugas pada riwayat terakhir; `Link Pasien` atau `Sistem` bila perubahan terakhir dari link konfirmasi atau penutupan otomatis) |
+| `PriorityReservationSummaryResponse` | Response | `visitDate` (= `visitDateFrom`, untuk `1.0.0`), **`1.1.0`:** `visitDateFrom`, `visitDateTo`; `awaitingArrival`, `arrived`, `converted`, `cancelled`, `noShow`, `registeredElsewhere` |
+| `PriorityReservationDetailResponse` | Response | Field list item + `screening { cough, fever, fallRisk, screenedAt, screenedByName }`, `closedAt?`, `closureReason?`, `arrivalCodeIssuedAt`, `canMarkArrival`, `canRevertArrival`, `canScreen`, `canReissueCode`, `canComplete`, `canCancel`, `histories[] { eventCode, eventName, fromStatus?, toStatus, source, actorName?, reason?, occurredAt }` |
+| `PriorityReservationEligibilityResponse` | Response | `isEligible`, `reasonCode` (`ELIGIBLE`, `NOT_ACTIVE_MEMBER`, `OPEN_RESERVATION_EXISTS`, `ACTIVE_ENCOUNTER_EXISTS`, `DATE_OUT_OF_RANGE`), `message`, `membershipTierCode?`, `existingReservationNumber?` |
+| `CreatePriorityReservationRequest` | Create | `patientId` (wajib), `visitDate` (wajib) |
+| `PriorityReservationIssuedResponse` | Response | `reservation` (`PriorityReservationDetailResponse`), `arrivalLink` (URL lengkap, **hanya** di respons ini), `whatsAppMessageText` (teks siap pakai tanpa poli/dokter), `patientPhoneNumber?` (dari master, untuk tombol `wa.me`) |
+| `PriorityReservationRowVersionRequest` | Status | `expectedRowVersion` (wajib) |
+| `PriorityReservationReasonRequest` | Status | `expectedRowVersion` (wajib), `reason` (wajib, 10–500 karakter) |
+| `PriorityReservationScreeningRequest` | Update | `expectedRowVersion` (wajib), `cough`, `fever`, `fallRisk` (ketiganya wajib, `bool`) |
+
+**Kode status**
+
+| Kode | Arti bagi pengguna |
+|---|---|
+| `200` | Berhasil |
+| `400` | Isian tidak lengkap atau salah (misalnya alasan kurang dari 10 karakter, tanggal lampau) |
+| `403` | Pengguna tidak punya hak untuk tindakan ini |
+| `404` | Reservasi atau pasien tidak ditemukan |
+| `409` | Tindakan tidak sesuai keadaan reservasi saat ini, atau data baru saja diubah petugas lain |
+
+### Health Services / Registration Management / Priority Reservation Arrival
+
+Base URL: `api/v1/health-services/registration-management/priority-reservation-arrivals`
+
+Tanpa login (`[AllowAnonymous]`), dibatasi `PriorityReservationArrivalPublic` (bawaan 20 permintaan per menit per IP).
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/{code}` | Halaman link: tampilkan keadaan reservasi | Publik (kode acak) | — | `ApiResponse<PriorityReservationArrivalPublicResponse>` | Tersedia (`BE-RJP-012`) |
+| `POST` | `/{code}/confirm` | Pasien menekan "Saya sudah tiba" | Publik (kode acak) | — | `ApiResponse<PriorityReservationArrivalPublicResponse>` | Tersedia (`BE-RJP-012`) |
+
+| Class | Jenis | Field |
+|---|---|---|
+| `PriorityReservationArrivalPublicResponse` | Response | `reservationNumber`, `visitDate`, `state` (`NOT_YET_OPEN`, `READY`, `CONFIRMED`), `confirmedAt?`, `message`. **Tidak** memuat nama, No. RM, NIK, tingkat member, poli, dokter, atau ID internal |
+
+| Kode | Arti bagi pengguna |
+|---|---|
+| `200` | Link berlaku. `state` menjelaskan apakah konfirmasi sudah dapat dilakukan |
+| `404` | "Link tidak berlaku. Silakan hubungi petugas pendaftaran." Jawaban sama untuk kode salah, diganti, dibatalkan, tidak datang, atau didaftarkan lewat jalur lain |
+| `429` | "Terlalu banyak percobaan. Coba lagi sebentar lagi." |
+
+Contoh: link Ibu Sari dibuka Kamis 15 Okt. Responsnya `200` dengan `state = NOT_YET_OPEN` dan pesan "Konfirmasi
+kedatangan baru bisa dilakukan pada 16 Okt 2026". Pada Jumat pukul 08.40, `POST /confirm` mengembalikan
+`state = CONFIRMED`, `confirmedAt` 08.40. Bila link dibuka lagi pukul 08.45, `GET` mengembalikan `CONFIRMED` dengan
+jam 08.40.
+
+### Health Services / Registration Management / Patient Encounter (diperbarui)
+
+Base URL: `api/v1/health-services/registration-management/patient-encounters`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/admin` | Daftar kunjungan. Bila `priorityReservationId` diisi, sekaligus melengkapi reservasi | `PatientEncounter : Create`. Bila `priorityReservationId` diisi, juga `OutpatientPriorityReservation : Complete` (diperiksa service) | `PatientEncounterCreateRequest` + `priorityReservationId?` | `ApiResponse<PatientEncounterCreateResponse>`; `queueClassification.priorityWaitingLocationName?` | Diperbarui (tersedia) |
+| `POST` | `/`, `/kiosk` | Daftar kunjungan dari kiosk | Policy kiosk | `PatientEncounterCreateRequest`. `priorityReservationId` **ditolak** (400) | Sama | Diperbarui (tersedia) |
+
+Perubahan perilaku pada ketiga path: klasifikasi member dinilai pada hari pendaftaran (WIB). Kunjungan Rawat Jalan
+berpoliklinik tanpa `priorityReservationId` menutup reservasi terbuka pasien pada tanggal yang sama sebagai Didaftarkan
+lewat Jalur Lain.
+
+### Health Services / Registration Management / Queue Display Runtime (diperbarui)
+
+| Method | Path | Perubahan | Status |
+|---|---|---|---|
+| `GET` | `/summary`, `/items`, `/called` | Antrean dengan `IsPriorityQueue = true` tidak disertakan dan tidak dihitung | Diperbarui (tersedia) |
+
+### Nurse Station Queue dan Doctor Queue (diperbarui)
+
+| Response | Field baru | Isi |
+|---|---|---|
+| Item antrean Nurse Station dan Doctor Queue | `priorityWaitingLocationName?` | Nama ruang tunggu prioritas dari konfigurasi bila `isPriorityQueue = true`, selain itu `null` |
+
+### Hub realtime `/hubs/queues` (diperbarui)
+
+| Method / event | Pemanggil | Isi | Status |
+|---|---|---|---|
+| `JoinQueueDisplayCluster(clusterId)` | Akun display | Bergabung ke `queue-display-cluster:{clusterId}`. Ditolak bila bukan akun display atau tanpa klaim cluster | Tersedia |
+| `JoinPriorityReservationBoard()` | Petugas pemegang `OutpatientPriorityReservation : Read` | Bergabung ke `priority-reservation-board` | Tersedia |
+| `JoinNurseStationCluster`, `JoinAccessibleNurseStationClusters`, `JoinDoctor*` | Petugas | **Menolak** akun display | Diperbarui (tersedia) |
+| Event `QueueDisplayChanged` | Ke group display | `QueueDisplayRealtimeEventResponse`: `eventType`, `queueId`, `serviceUnitId`, `clinicId`, `queueDate`, `queueNumber`, `queueCode`, `queueStatus`, `queueStatusName`, `occurredAt`. Tidak dikirim untuk antrean prioritas | Tersedia |
+| Event `PriorityReservationChanged` | Ke `priority-reservation-board` | `PriorityReservationRealtimeEventResponse`: `reservationId`, `visitDate`, `status`, `eventCode`, `occurredAt`. Tanpa nama pasien; layar memuat ulang daftar | Tersedia |

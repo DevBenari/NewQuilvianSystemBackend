@@ -1182,7 +1182,7 @@ Fakta source (baseline 8 Okt 2026, backend `sukmagp`):
 | Decision ID | Type | Keputusan | Owner | Status | Approved by/at |
 |---|---|---|---|---|---|
 | `RJ-DOC-DEC-055` | Bisnis | Tiga konsep dipisah: **Member** (pasien punya `MstPatientMembership` aktif), **Prioritas** (`MstMembershipTier.PriorityQueue`), dan **Privasi layar publik** (`MstMembershipTier.PublicDisplayMode`). Member tidak otomatis prioritas; prioritas tidak otomatis rahasia. Keputusan klasifikasi hanya di backend dan disimpan sebagai snapshot di `TrxQueue` saat antrean terbit | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
-| `RJ-DOC-DEC-056` | Bisnis | Nomor cadangan prioritas bawaan `1, 3, 5, 10, 15`, dapat diubah lewat konfigurasi `HealthServices:Registration:QueueNumber:ReservedPriorityNumbers`. Prioritas mengambil nomor cadangan terkecil yang belum terpakai; bila habis, mengambil nomor biasa berikutnya dan tetap `IsPriorityQueue = true`. Reguler mengambil nomor non-cadangan terkecil yang belum terpakai. Nomor yang pernah terbit (termasuk batal, tidak hadir, selesai, dihapus) tidak dipakai ulang. Cakupan nomor tetap sama dengan `GenerateQueueNumberAsync` (`F-AQ-3`) | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
+| `RJ-DOC-DEC-056` | Bisnis | Nomor cadangan prioritas bawaan `1, 3, 5, 10, 15`, dapat diubah lewat konfigurasi `HealthServices:Registration:QueueNumber:ReservedPriorityNumbers`. Prioritas mengambil nomor cadangan terkecil yang belum terpakai; bila habis, mengambil nomor biasa berikutnya dan tetap `IsPriorityQueue = true`. Reguler mengambil nomor non-cadangan terkecil yang belum terpakai. Nomor yang pernah terbit (termasuk batal, tidak hadir, selesai, dihapus) tidak dipakai ulang. Cakupan nomor tetap sama dengan `GenerateQueueNumberAsync` (`F-AQ-3`) | Sukma Giri | `superseded` oleh `RJ-PRI-DEC-004` (16 Okt 2026) | Sukma Giri, 8 Okt 2026 |
 | `RJ-DOC-DEC-057` | Keamanan | Layar dan suara publik menyaring di backend. `QueueNumberOnly`: tanpa nama, nama samaran, No. RM, nomor kunjungan, `PatientId`, data member/VIP. `MaskedName`: hanya nama samaran, tanpa No. RM; suara tanpa nama. `Default`/`FullName`: perilaku lama mengikuti saklar perangkat. Ruang kerja perawat/dokter yang login tidak berubah | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
 | `RJ-DOC-DEC-058` | Bisnis | `MstQueueDisplayDevice.QueueAudienceMode` (`All` bawaan, `RegularOnly`, `MemberOnly`) menyaring antrean di backend menurut snapshot `QueueAudience` | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
 | `RJ-DOC-DEC-059` | Data | Data induk program/tier membership MMC **tidak di-seed** karena belum terverifikasi (`F-AQ-6`): `MEMBERSHIP MASTER DATA MMC — NEEDS VERIFIED BUSINESS DATA`. Struktur tetap dapat dikonfigurasi lewat layar Membership Tier | Sukma Giri | `approved` | Sukma Giri, 8 Okt 2026 |
@@ -1339,3 +1339,201 @@ status: [roadmap/registration-revision-roadmap.md](roadmap/registration-revision
 | `RJ-REF-OQ-001` | Fasilitas di luar master dicatat teks bebas vs `DEC-FRJ-001` | 01:42:46 | `OWNER_DECISION_REQUIRED` |
 | `RJ-REF-OQ-002` | Masa berlaku surat internal; seri kunjungan (fisioterapi) | — | `OWNER_DECISION_REQUIRED` |
 | `RJ-REF-OQ-003` | Unggah surat eksternal wajib untuk penjamin tertentu? | 00:42:04 (klaim) | `OWNER_DECISION_REQUIRED` |
+
+## Amendment Pass 2026-10-16 — Reservasi Pasien Prioritas (Amendment RP)
+
+Sumber requirement: PDF "Pendaftaran membership pasien prioritas" (12 Okt 2026, 10:47) poin 2A s.d. 2K,
+diserahkan ke Sukma Giri lewat handover `crm-membership` `CRM-DEC-031` (16 Okt 2026). Poin 1 PDF (menu CRM)
+tetap milik `crm-membership` (Yoga Aji Pratama). Analisa gap awal (read-only, backend `551e1cbb` `sukmagp`,
+frontend `1fd858322` `sukmagpV2`) dicatat sebagai masukan `grill-me` di bawah.
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-PRI-DEC-001` | Ownership | Kebutuhan PDF poin 2A s.d. 2K (reservasi prioritas RJ sampai closing billing) dipegang Sukma Giri sebagai owner Rawat Jalan sekaligus penerima handover CRM untuk RJ. Aturan member dari `crm-membership` (`CRM-DEC-001` s.d. `030`) tetap berlaku sebagai batasan, kecuali diubah lewat amendment ini | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | `crm-membership/00-interview-decisions.md` `CRM-DEC-031` |
+
+Fakta source awal (gap analysis 16 Okt 2026):
+
+- `F-RP-1` — Tidak ada entity reservasi rawat jalan. `RegPatientEncounter.ClinicId` boleh kosong, tetapi nomor antrean dialokasikan saat kunjungan disimpan (`PatientEncounterController.cs:1013-1027`). `EncounterStatus.Draft` ada di enum, tetapi tidak dipakai.
+- `F-RP-2` — Belum ada WA gateway maupun pengirim email. `BilPaymentReminder` hanya mencatat pengingat. Kwitansi dibagikan manual lewat `wa.me`/`mailto` (`BKC-DEC-056`). `platform-notification` baru memiliki capability map.
+- `F-RP-3` — `PATCH .../{id}/check-in` sudah ada (`PatientEncounterController.cs:1415`), tetapi tidak ada endpoint publik bertoken untuk konfirmasi kedatangan oleh pasien.
+- `F-RP-4` — Nomor cadangan prioritas `1, 3, 5, 10, 15` (`RJ-DOC-DEC-056`, `appsettings.json:176`) berbeda dari PDF poin 2G (kelipatan 5). Display publik menampilkan antrean prioritas di urutan atas (`QueueDisplayRuntimeController.cs:156`). Filter `QueueAudienceMode` memilah Member/Reguler, bukan Prioritas (`RJ-DOC-DEC-055`, `058`).
+- `F-RP-5` — Layar Pendaftaran RJ belum menampilkan status member. Resolver dan lookup backend sudah ada (`BE-CRM-010`, `BE-CRM-014`).
+- `F-RP-6` — Cara bayar Cash, Insurance (`ClaimMethod` Cashless/Reimbursement/GuaranteeLetter), dan CompanyGuarantor sudah ada. Diskon member di billing menunggu `DEC-CRM-001`. Wallet ditunda (`CRM-DEC-009`).
+- `F-RP-7` — Capability map RJ tercatat pada SHA lama (`9b26be38`; impact scan `245f0464`), sedangkan HEAD sekarang `551e1cbb`. Map berpotensi basi, sehingga fakta `F-RP-1..6` dikumpulkan ulang pada HEAD sekarang.
+
+### Scope Amendment RP
+
+**Batas scope (satu kalimat):** alur pasien prioritas Rawat Jalan, mulai dari reservasi lewat WA/telp sampai
+pasien dilayani dokter. Pembayaran hanya dicatat sebagai titik sentuh ke billing-kasir.
+
+**Di dalam scope:**
+
+1. Admisi RJ membuat reservasi prioritas atas permintaan pasien lewat WA/telp (PDF 2A, 2B).
+2. Status member tampil saat admisi mencari pasien lewat No. RM, No. Telp, atau NIK di layar Pendaftaran RJ (2C, 2D).
+3. Reservasi tanpa poli/dokter hanya untuk member berstatus Aktif. Pasien Reguler tetap wajib memilih poli dan dokter (2E).
+4. Nomor reservasi dan link konfirmasi kedatangan, termasuk isi pesan WA (2E-I).
+5. Pasien mengonfirmasi kedatangan, petugas diberi tahu, lalu petugas screening/admisi melengkapi poli dan dokter (2F).
+6. Nomor antrean prioritas dan penyembunyiannya dari display serta suara panggilan (2G).
+7. Penanda "pasien di ruang tunggu prioritas" di worklist perawat dan dokter (2H).
+8. `AG-03`: aturan member di antrean RJ (`BE-CRM-022`, `CRM-DECREQ-001` pertanyaan 1 dan 2).
+
+**Di luar scope — untuk modul lain (titik sentuh saja):**
+
+| Kebutuhan | Modul pemilik | Titik sentuh |
+|---|---|---|
+| 2I kirim tagihan via WA/email | `billing-kasir` + `platform-notification` | Saat ini manual `wa.me`/`mailto` (`BKC-DEC-056`) |
+| 2J-I s.d. IV cara bayar | `billing-kasir` | Sudah ada (`F-RP-6`) |
+| 2J-V diskon member | `billing-kasir` | `DEC-CRM-001` pertanyaan 5. Sisi CRM-nya dipegang Sukma (`CRM-DEC-031`) |
+| 2J-VI wallet | Finance/Accounting | Ditunda (`CRM-DEC-009`) |
+| 2K closing dan status Lunas | `billing-kasir` | Sudah ada (amendment `FINAL→CLOSED`) |
+| WA gateway otomatis | `platform-notification` (owner belum ada) | Kanal sementara diputuskan di amendment ini |
+| Menu CRM, iuran, aktivasi | `crm-membership` (Yoga Aji Pratama) | Membaca status member Aktif |
+| IGD, rawat inap | `igd`, `rawat-inap` | Tidak termasuk |
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-PRI-DEC-002` | Scope | Daftar **Di dalam scope** dan **Di luar scope** di atas disetujui. 2I s.d. 2K diperlakukan sebagai titik sentuh `billing-kasir`, bukan dibahas aturan internalnya | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-003` | Bentuk | `blueprint_shape` = `SINGLE`, `shape_decided_by` = `USER_CONFIRMED`. Rumpun (1) reservasi dan konfirmasi kedatangan, serta (2) antrean prioritas dan display, sama-sama milik Registration RJ. Keduanya memakai resource izin dan owner yang sama dan tidak dapat dirilis terpisah dengan berarti, sehingga tidak ada rumpun yang lolos 3 dari 5 syarat pemecahan. Kemampuan tanpa rumpun: tidak ada | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-004` | Bisnis | **Nomor prioritas = kelipatan 5, tanpa batas atas.** Pasien prioritas mengambil kelipatan 5 terkecil yang belum terpakai pada cakupan nomor yang sama (`F-AQ-3`). Pasien Reguler mengambil nomor terkecil yang belum terpakai dan **bukan** kelipatan 5. Angka kelipatan (bawaan 5) dapat diubah di konfigurasi. Nomor yang pernah terbit (batal, tidak hadir, selesai) tetap tidak dipakai ulang, sama seperti `RJ-DOC-DEC-056`. Nomor 1 dan 3 kembali menjadi nomor Reguler. Menggantikan `RJ-DOC-DEC-056`. Contoh: poli Penyakit Dalam hari ini memberi Reguler 1, 2, 3, 4, 6, 7, 8, 9, 11, …, dan Prioritas 5, 10, 15, 20, …. Pasien prioritas ketujuh hari itu mendapat nomor 35 | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2G; jawaban wawancara |
+| `RJ-PRI-DEC-005` | Bisnis/Privasi | **Antrean prioritas tidak tampil di display publik dan tidak dipanggil lewat suara.** Antrean dengan snapshot `IsPriorityQueue = true` disaring di backend dari semua layar publik (perawat dan dokter, berapa pun `QueueAudienceMode`-nya) dan dari suara panggilan. Dasarnya **Prioritas**, bukan Member (`RJ-DOC-DEC-055` tetap berlaku). Ruang kerja perawat dan dokter yang login tetap menampilkan pasien itu, karena petugas dan dokter yang menghampiri pasien (2F, 2H). Melengkapi `RJ-DOC-DEC-057`/`058`, tidak menggantikannya: keduanya tetap berlaku untuk antrean Reguler dan Member yang tidak prioritas. Contoh: nomor 10 (Gold, prioritas) tidak muncul di layar ruang tunggu Penyakit Dalam dan tidak dipanggil. Perawat melihat nomor 10 di Nurse Station dengan penanda prioritas | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2G, 2H; jawaban wawancara |
+| `RJ-PRI-DEC-006` | Bisnis | **`AG-03` pertanyaan 1: antrean RJ memakai aturan member CRM (`J1`) secara penuh.** Definisi "Member" pada `RJ-DOC-DEC-055` direvisi menjadi: pasien yang menurut `PatientMembershipStatusResolver` punya membership Aktif pada tanggal penilaian (kalender WIB). Dasar: migration `BE-CRM-002` mengubah semua membership lama menjadi Perlu Verifikasi, dan endpoint lama yang dapat mengisi Aktif tanpa tanggal sudah dipensiunkan (`BE-CRM-015`). Selisih yang tersisa hanya tanggal WIB vs UTC dan flag `IsActive`. `BE-CRM-022` keluar dari status ⛔. Petugas diberi tahu sebelum rilis. Contoh: Pak Andi yang membership-nya Kedaluwarsa kemarin kini Reguler, baik di nurse station maupun saat mengambil nomor antrean | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 (sebagai owner RJ dan owner sisi CRM untuk RJ, `CRM-DEC-031`) | `CRM-DECREQ-001` Keputusan 1; jawaban wawancara |
+| `RJ-PRI-DEC-007` | Bisnis | **`AG-03` pertanyaan 2: untuk reservasi atau booking ke tanggal mendatang, status member dinilai pada tanggal reservasi dibuat**, sesuai `CRM-DEC-005`. Klasifikasi member dan prioritas disimpan sebagai snapshot saat reservasi dibuat dan dipakai pada hari kunjungan. Pendaftaran langsung pada hari yang sama tidak terpengaruh. Contoh: reservasi dibuat 1 Okt untuk kunjungan 20 Okt, sedangkan membership Gold habis 13 Okt. Pada 20 Okt pasien tetap prioritas. Reservasi baru yang dibuat 14 Okt sudah Reguler | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | `CRM-DECREQ-001` Keputusan 2; `CRM-DEC-005`; jawaban wawancara |
+| `RJ-PRI-DEC-008` | Bisnis | **Reservasi prioritas boleh untuk hari ini atau tanggal mendatang.** Link konfirmasi kedatangan hanya dapat dipakai pada hari kunjungan (kalender WIB). Contoh: Ibu Sari menelepon Rabu 14 Okt untuk kunjungan Jumat 16 Okt. Link yang dibuka Kamis menampilkan "Konfirmasi baru bisa dilakukan pada 16 Okt 2026" | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-009` | Bisnis | **Reservasi prioritas belum menjadi kunjungan.** Selama poli dan dokter belum dilengkapi, reservasi tercatat di daftar "Reservasi Prioritas" tersendiri, tanpa nomor kunjungan, antrean, maupun tagihan. Reservasi baru menjadi kunjungan RJ setelah petugas melengkapi poli dan dokter. Daftar Pasien RJ, antrean, nurse station, dan billing tidak pernah memuat reservasi yang belum lengkap. Bentuk teknisnya diputuskan saat desain. Contoh: reservasi `RSV` milik Ibu Sari tampil di daftar Reservasi Prioritas pukul 08.00. Pukul 09.10 petugas memilih Penyakit Dalam dan dr. Maya, lalu baru saat itu terbit kunjungan dan nomor antrean | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2E, 2F; `F-RP-1`; jawaban wawancara |
+| `RJ-PRI-DEC-010` | Bisnis | **Nomor antrean prioritas terbit saat poli dan dokter dilengkapi**, bukan saat reservasi dibuat atau saat pasien mengonfirmasi tiba. Pada saat itu jadwal dokter divalidasi dan nomor dialokasikan menurut `RJ-PRI-DEC-004`. Urutan ini mengikuti PDF (F lalu G) | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2F, 2G; jawaban wawancara |
+| `RJ-PRI-DEC-011` | Integrasi | **Kanal kirim sementara: tombol `wa.me`, dikirim manual.** Setelah reservasi disimpan, tombol "Kirim via WhatsApp" membuka WhatsApp dengan teks siap pakai berisi nomor reservasi dan link konfirmasi. Petugas mengirimnya dari akun WA resmi RS. Pola ini sama dengan `BKC-DEC-056`. Pesan **tidak** memuat poli atau dokter, karena keduanya belum dipilih (PDF 2E-I). Pengiriman otomatis menunggu WA gateway dari `platform-notification`. Contoh teks: "RS MMC: reservasi prioritas Anda RSV-… untuk 16 Okt 2026. Saat tiba di rumah sakit, tekan link berikut: …" | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2E-I; `F-RP-2`; jawaban wawancara |
+| `RJ-PRI-DEC-012` | Keamanan/Privasi | **Link konfirmasi: kode acak, sekali pakai, cukup diklik.** Kode acak tidak dapat ditebak dan tidak berisi No. RM, nomor reservasi, maupun ID pasien. Link hanya aktif pada hari kunjungan (`RJ-PRI-DEC-008`), lalu mati setelah dipakai, setelah reservasi dibatalkan, atau setelah hari berakhir. Halaman publik **tidak** menampilkan nama, No. RM, NIK, tingkat member, poli, maupun dokter. Halaman hanya menampilkan nomor reservasi, tanggal, dan tombol "Saya sudah tiba". Tidak ada bukti hadir fisik (QR/lokasi). Penggantinya: bila petugas tidak menemukan pasien di ruang tunggu prioritas, petugas mengembalikan status ke "Belum tiba" dengan alasan, dan link aktif lagi untuk hari itu. Contoh: link dibuka pukul 08.40 dan pasien menekan "Saya sudah tiba". Bila link yang sama dibuka lagi pukul 08.45, halaman menampilkan "Kedatangan sudah dikonfirmasi pukul 08.40" | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2E-I; jawaban wawancara |
+| `RJ-PRI-DEC-013` | Bisnis | **Reservasi yang tidak dikonfirmasi batal otomatis di akhir hari kunjungan.** Setelah pukul 23.59 WIB, sistem menutup reservasi yang belum dikonfirmasi atau belum dilengkapi sebagai "Tidak datang", dan link mati. Riwayatnya tidak dihapus. Pasien yang tetap ingin datang membuat reservasi ulang. Karena reservasi belum menjadi kunjungan (`RJ-PRI-DEC-009`), tidak ada kunjungan, antrean, atau tagihan yang ikut ditutup. Proses ini idempoten: bila dijalankan ulang, tidak ada riwayat ganda, dan hari yang tertinggal saat server mati ikut diproses | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-014` | Bisnis | **Pemberitahuan kedatangan lewat daftar realtime di layar admisi.** Saat pasien menekan "Saya sudah tiba", daftar Reservasi Prioritas memperbarui diri seketika lewat SignalR yang sudah ada, menandai baris "Sudah tiba", dan membunyikan pemberitahuan. Penerimanya petugas yang memegang izin pendaftaran RJ. Lonceng notifikasi header tidak dipakai, karena belum tersambung (`platform-notification`). Contoh: pukul 08.40 baris Ibu Sari di layar admisi berubah menjadi "Sudah tiba — 08.40" disertai bunyi, lalu petugas skrining dan admisi berangkat ke ruang tunggu prioritas | Sukma Giri | `approved` (acuan penerima diperbarui `RJ-PRI-DEC-026`) | Sukma Giri, 16 Okt 2026 | PDF 2F; `F-RP-2`; jawaban wawancara |
+| `RJ-PRI-DEC-015` | Bisnis | **Arti "screening" pada PDF 2F adalah skrining awal**, yaitu pemeriksaan batuk, demam, dan risiko jatuh seperti di pintu masuk, oleh petugas skrining. Admisi melengkapi poli, dokter, dan penjamin. Skrining perawat (TTV) **tidak** dipindah, dan tetap berjalan di alur nurse station sesudah kunjungan terbentuk. Pencatatan hasil skrining awal diatur `RJ-PRI-DEC-019` | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2F; jawaban wawancara |
+| `RJ-PRI-DEC-016` | Bisnis | **Jadwal dan kuota dokter berlaku penuh saat reservasi dilengkapi.** Jadwal harus sesuai hari kunjungan dan kuota harus masih tersisa, sama seperti pasien lain. Bila kuota penuh, admisi menawarkan dokter atau jadwal lain, dan reservasi tetap terbuka sampai dilengkapi atau batal di akhir hari (`RJ-PRI-DEC-013`). Hak member tetap non-klinis dan tidak mengambil jatah pasien yang sudah terdaftar (sejalan `CRM-DEC-007`). Contoh: kuota dr. Maya hari ini 20 dan sudah terisi 20. Admisi menawarkan dr. Rendy di poli yang sama | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-017` | Bisnis | **Pasien prioritas tanpa reservasi (kiosk atau loket) diarahkan ke ruang tunggu prioritas.** Antrean mereka juga tersembunyi (`RJ-PRI-DEC-005`), sehingga tiket kiosk dan bukti daftar mencetak "Silakan menunggu di Ruang Tunggu Prioritas". Worklist perawat dan dokter menandai lokasinya, sehingga mereka yang menghampiri pasien. Tanpa aturan ini, pasien menunggu di ruang umum dan tidak pernah dipanggil. Contoh: Pak Budi (Platinum) mendaftar di kiosk pukul 10.00 dan mendapat nomor 15. Tiketnya mengarahkan ke Ruang Tunggu Prioritas, dan perawat Penyakit Dalam melihat "15 — Ruang Tunggu Prioritas" di Nurse Station | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2G, 2H; jawaban wawancara |
+| `RJ-PRI-DEC-018` | Data | **Satu ruang tunggu prioritas untuk semua poli RJ.** Namanya disimpan sebagai satu teks konfigurasi yang dapat diubah, misalnya "Ruang Tunggu Prioritas Lt. 1". Tidak ada master lokasi baru. Bila kelak ada ruang kedua, keputusan ini direvisi | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-019` | Bisnis/Klinis | **Hasil skrining awal dicatat sebagai checklist singkat pada reservasi**: batuk (Ya/Tidak), demam (Ya/Tidak), risiko jatuh (Ya/Tidak), beserta nama petugas dan jam. Sistem hanya mencatat. Sistem tidak memblokir pelengkapan dan tidak memutuskan tindakan klinis. Bila ada jawaban "Ya", petugas mengarahkan pasien sesuai SOP PPI RS. Checklist berlaku untuk alur reservasi. Pasien walk-in tetap diskrining di pintu masuk seperti biasa. Contoh: Ibu Sari: batuk Ya, demam Tidak, risiko jatuh Tidak, dicatat oleh petugas Rina pukul 08.45. Rina mengarahkan Ibu Sari memakai masker sesuai SOP, lalu admisi melengkapi poli | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2F; jawaban wawancara |
+| `RJ-PRI-DEC-020` | Permission | **Reservasi Prioritas memakai resource izin baru**, terpisah dari `OutpatientEncounter`, dengan aksi `Read`, `Create`, `Screen` (mengisi checklist skrining), `Complete` (melengkapi poli/dokter sehingga menjadi kunjungan), dan `Cancel`. Petugas skrining cukup memegang `Read` + `Screen`, tanpa izin membuat kunjungan. Admisi RJ memegang semuanya. Nama resource ditetapkan saat desain mengikuti konvensi `[AccessPermission]`. Konsekuensi operasional: admin wajib mencentang aksi baru di Akses Role sebelum fitur dipakai. Halaman link publik tidak memakai izin login. Ia hanya dijaga kode acak (`RJ-PRI-DEC-012`) | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-021` | Invariant | **Paling banyak satu reservasi terbuka per pasien per tanggal kunjungan.** Reservasi kedua pada tanggal yang sama ditolak, dan admisi diarahkan ke reservasi yang ada. Reservasi juga ditolak bila pasien sudah punya kunjungan RJ aktif pada hari itu, mengikuti `BlockActiveEncounter`. Poli tambahan didaftarkan sebagai kunjungan biasa sesudahnya. "Terbuka" berarti berstatus Menunggu Kedatangan atau Sudah Tiba. Contoh: reservasi Ibu Sari untuk 16 Okt sudah ada. Admisi yang mencoba membuat reservasi kedua untuk 16 Okt menerima pesan "Pasien sudah punya reservasi prioritas RSV-… untuk 16 Okt 2026" | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-022` | Bisnis | **Pembatalan reservasi hanya oleh admisi, dengan alasan wajib.** Pasien meminta batal lewat WA/telp. Setelah dibatalkan, link langsung mati dan riwayatnya tidak dihapus. Halaman link **tidak** punya tombol batal, sehingga orang lain yang memegang pesan WA tidak dapat membatalkan reservasi pasien | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-023` | Bisnis | **Petugas boleh menandai "Sudah tiba" atas nama pasien**, misalnya bila HP pasien mati atau tidak ada kuota. Riwayat mencatat sumber "petugas" (bukan "link pasien") beserta nama petugas dan jam. Link ikut mati. Contoh: Ibu Sari tiba pukul 08.40 tanpa HP aktif dan melapor di meja admisi. Petugas Dewi menandai "Sudah tiba — oleh Dewi, 08.41" | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
+| `RJ-PRI-DEC-024` | Bisnis | **Membership Dibatalkan sebelum reservasi dilengkapi membuat reservasi turun ke Reguler.** Snapshot `RJ-PRI-DEC-007` hanya melindungi masa berlaku yang habis secara wajar (Kedaluwarsa). Bila membership pasien berstatus Dibatalkan (`Cancelled`, alasan apa pun), reservasi yang belum dilengkapi diberi tanda "Bukan prioritas lagi". Admisi menghubungi pasien, dan saat dilengkapi pasien mendapat nomor Reguler serta tampil di display seperti biasa. Hak prioritas tidak boleh lahir dari data yang salah. Contoh: reservasi Pak Budi dibuat 14 Okt untuk 16 Okt. Pada 15 Okt CRM membatalkan Platinum-nya karena salah pasien. Pada 16 Okt reservasinya bertanda "Bukan prioritas lagi", dan saat dilengkapi ia mendapat nomor 12 (Reguler) | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | `CRM-DEC-013`, `CRM-DEC-022`; jawaban wawancara |
+| `RJ-PRI-DEC-025` | Keamanan/Privasi | **Kabar realtime ke layar display diperbaiki penuh dalam Amendment RP** (menutup `RJ-PRI-CONF-001`). Layar display publik mendapat group realtime sendiri, terpisah dari group ruang kerja perawat dan dokter. Payload untuk group itu ringkas: nomor/kode antrean, status, dan poli, **tanpa** `PatientId`, `EncounterId`, maupun data member. Antrean dengan `IsPriorityQueue = true` tidak dikirim ke group display sama sekali. Ruang kerja perawat dan dokter yang login tetap menerima payload lengkap seperti sekarang. Satu perubahan ini memenuhi `RJ-PRI-DEC-005` dan mengakhiri pelanggaran `RJ-DOC-DEC-057`. Contoh: perawat memanggil nomor 10 (prioritas). Nurse Station menerima kabar lengkap, sedangkan display ruang tunggu tidak menerima apa pun. Perawat memanggil nomor 11 (Reguler), dan display menerima "11, Dipanggil, Penyakit Dalam" tanpa `PatientId` | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | `CONF-RP-01`, `CAP-RP-03`; jawaban wawancara |
+| `RJ-PRI-DEC-026` | Permission | **Penerima kabar realtime "pasien sudah tiba" adalah semua pemegang `Read` resource Reservasi Prioritas** (`RJ-PRI-DEC-020`), termasuk petugas skrining. Ini menggantikan acuan "pemegang izin pendaftaran RJ" pada `RJ-PRI-DEC-014`, sedangkan sisa isi `RJ-PRI-DEC-014` tetap berlaku. Menutup `RJ-PRI-OQ-007`. Contoh: petugas skrining Rina (hanya `Read` + `Screen`) mendengar bunyi pemberitahuan saat Ibu Sari menekan "Saya sudah tiba", lalu berangkat ke ruang tunggu prioritas | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Gate `01-requirement-completeness-gate-reservasi-prioritas.md`; jawaban wawancara |
+| `RJ-PRI-DEC-027` | Bisnis | **Reservasi terbuka ditutup otomatis bila pasien didaftarkan lewat jalur lain pada hari yang sama.** Bila pasien yang punya reservasi Menunggu Kedatangan atau Sudah Tiba mendapat kunjungan RJ lewat kiosk atau loket biasa pada tanggal reservasi, kunjungan tetap dibuat seperti biasa (nomor prioritas, tiket mengarahkan ke ruang tunggu prioritas). Reservasinya ditutup otomatis dengan status akhir baru **"Didaftarkan lewat jalur lain"**, ditautkan ke kunjungan itu, dan link mati. Laporan Tidak Datang tetap benar. Menutup `RJ-PRI-OQ-008`. Contoh: Ibu Sari memakai kiosk pukul 08.30 dan mendapat nomor 5. Reservasinya langsung berstatus "Didaftarkan lewat jalur lain — kunjungan RJ-…" | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Gate; jawaban wawancara |
+| `RJ-PRI-DEC-028` | Keamanan | **Admisi boleh mengirim ulang link, dengan kode baru.** "Kirim ulang" membuat kode acak baru dan mematikan kode lama. Kode lama tidak dapat ditampilkan ulang, karena yang disimpan hanya hash-nya. Setiap pengiriman ulang tercatat di riwayat (siapa, kapan). Link yang terlanjur bocor ke orang lain ikut mati. Hanya untuk reservasi Menunggu Kedatangan. Menutup `RJ-PRI-OQ-009`. Contoh: Ibu Sari menghapus chat WA pukul 07.00. Admisi menekan "Kirim ulang", sehingga link lama tidak berlaku dan link baru dikirim lewat `wa.me` | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Gate; jawaban wawancara |
+| `RJ-PRI-DEC-029` | Bisnis | **Ganti tanggal = batal lalu buat reservasi baru.** Tidak ada aksi "ubah tanggal". Admisi membatalkan reservasi dengan alasan "ganti tanggal" (`RJ-PRI-DEC-022`), lalu membuat reservasi baru dengan nomor dan link baru. Reservasi baru **dinilai ulang** kelayakannya pada saat dibuat (`RJ-PRI-DEC-007`), sehingga prioritas tidak dapat diperpanjang dengan menggeser tanggal berulang kali. Menutup `RJ-PRI-OQ-010`. Contoh: reservasi Gold dibuat 1 Okt untuk 10 Okt. Pada 14 Okt pasien meminta pindah ke 20 Okt, sedangkan Gold-nya sudah Kedaluwarsa sejak 13 Okt. Reservasi lama dibatalkan, dan reservasi prioritas baru ditolak karena pasien kini Reguler. Admisi mengarahkan pasien ke booking biasa dengan poli dan dokter | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 (mengoreksi jawaban awal "ubah di menu pendaftaran") | Gate; jawaban wawancara |
+
+### State dan transition — Reservasi Prioritas
+
+| Dari status | Tindakan | Ke status | Siapa | Syarat | Contoh |
+|---|---|---|---|---|---|
+| — | Buat reservasi | Menunggu Kedatangan | Admisi (`Create`) | Member Aktif menurut resolver pada tanggal dibuat (`RJ-PRI-DEC-007`); tidak ada reservasi terbuka lain atau kunjungan RJ aktif pada tanggal itu (`RJ-PRI-DEC-021`) | Ibu Sari (Gold), dibuat 14 Okt untuk 16 Okt |
+| Menunggu Kedatangan | Pasien menekan "Saya sudah tiba" | Sudah Tiba | Pasien lewat link | Hari ini = tanggal kunjungan (WIB); link belum dipakai | 16 Okt 08.40 |
+| Menunggu Kedatangan | Petugas menandai tiba | Sudah Tiba | Admisi | Hari ini = tanggal kunjungan; sumber "petugas" tercatat (`RJ-PRI-DEC-023`) | HP pasien mati |
+| Sudah Tiba | Pasien tidak ditemukan | Menunggu Kedatangan | Admisi | Alasan wajib; link aktif lagi untuk hari itu (`RJ-PRI-DEC-012`) | Konfirmasi dari tempat parkir |
+| Sudah Tiba | Isi checklist skrining | Sudah Tiba (data checklist bertambah) | Petugas skrining (`Screen`) | — | Batuk Ya, demam Tidak, risiko jatuh Tidak |
+| Sudah Tiba | Lengkapi poli dan dokter | Menjadi Kunjungan | Admisi (`Complete`) | Jadwal sesuai hari dan kuota tersisa (`RJ-PRI-DEC-016`); kunjungan dan nomor antrean terbit (`RJ-PRI-DEC-010`) | Penyakit Dalam, dr. Maya, nomor 10 |
+| Menunggu Kedatangan / Sudah Tiba | Batalkan | Dibatalkan | Admisi (`Cancel`) | Alasan wajib (`RJ-PRI-DEC-022`) | Pasien membatalkan lewat telepon |
+| Menunggu Kedatangan / Sudah Tiba | Hari kunjungan berakhir | Tidak Datang | Sistem | Setelah 23.59 WIB (`RJ-PRI-DEC-013`) | Tidak ada konfirmasi sampai malam |
+| Menunggu Kedatangan / Sudah Tiba | Kunjungan RJ pasien terbentuk lewat kiosk atau loket pada tanggal reservasi | Didaftarkan lewat Jalur Lain | Sistem | Ditautkan ke kunjungan itu; link mati (`RJ-PRI-DEC-027`) | Ibu Sari memakai kiosk pukul 08.30 |
+| Menunggu Kedatangan | Kirim ulang link | Menunggu Kedatangan (kode baru) | Admisi | Kode lama mati; tercatat di riwayat (`RJ-PRI-DEC-028`) | Chat WA terhapus |
+
+Status akhir: Menjadi Kunjungan, Dibatalkan, Tidak Datang, Didaftarkan lewat Jalur Lain. Tanda "Bukan prioritas lagi"
+(`RJ-PRI-DEC-024`) adalah tanda pada reservasi, bukan status. Ganti tanggal tidak punya transisi sendiri: batal lalu buat
+baru (`RJ-PRI-DEC-029`).
+
+### Skenario normal dan exception
+
+| Skenario | Perilaku yang disepakati | Dasar |
+|---|---|---|
+| Pasien Reguler meminta reservasi tanpa poli | Ditolak. Pasien Reguler memakai pendaftaran/booking biasa dengan poli dan dokter | Scope butir 3 |
+| Membership Menunggu Pembayaran | Diperlakukan Reguler, sehingga tidak bisa reservasi prioritas | `CRM-DEC-004` |
+| Link dibuka sebelum hari kunjungan | Ditolak dengan pesan tanggal | `RJ-PRI-DEC-008` |
+| Link dibuka kedua kali | Menampilkan jam konfirmasi pertama, tanpa perubahan | `RJ-PRI-DEC-012` |
+| Kuota dokter penuh saat dilengkapi | Admisi memilih dokter atau jadwal lain | `RJ-PRI-DEC-016` |
+| Membership Kedaluwarsa antara reservasi dan hari H | Tetap prioritas | `RJ-PRI-DEC-007` |
+| Membership Dibatalkan antara reservasi dan hari H | Turun ke Reguler | `RJ-PRI-DEC-024` |
+| Prioritas walk-in lewat kiosk | Nomor kelipatan 5, tersembunyi, diarahkan ke ruang tunggu prioritas | `RJ-PRI-DEC-004`, `005`, `017` |
+| Skrining batuk "Ya" | Dicatat. Petugas mengikuti SOP PPI. Sistem tidak memblokir | `RJ-PRI-DEC-019` |
+| Server mati pada malam hari | Penutupan "Tidak Datang" mengejar ketertinggalan saat server hidup lagi | `RJ-PRI-DEC-013` |
+| Pasien memakai kiosk/loket padahal punya reservasi | Kunjungan dibuat biasa. Reservasi ditutup "Didaftarkan lewat Jalur Lain" | `RJ-PRI-DEC-027` |
+| Pasien kehilangan pesan WA | Admisi kirim ulang dengan kode baru, dan kode lama mati | `RJ-PRI-DEC-028` |
+| Pasien ingin ganti tanggal | Batal lalu buat baru. Kelayakan member dinilai ulang | `RJ-PRI-DEC-029` |
+
+### Frontend decision authority — Amendment RP
+
+| Decision ID | Area | Owner | Status | Allowed range | Evidence |
+|---|---|---|---|---|---|
+| `RJ-PRI-FE-001` | Halaman link publik | Sukma Giri | `approved` | Hanya nomor reservasi, tanggal, tombol "Saya sudah tiba", dan pesan status. Tanpa data pribadi | `RJ-PRI-DEC-012` |
+| `RJ-PRI-FE-002` | Isi pesan WA | Sukma Giri | `approved` | Nomor reservasi, tanggal, dan link. Tanpa poli/dokter. Kalimat persisnya `DEV_DISCRETION` | `RJ-PRI-DEC-011` |
+| `RJ-PRI-FE-003` | Tata letak daftar Reservasi Prioritas, posisi menu, bentuk dialog lengkapi/batal/checklist, bunyi pemberitahuan | — | `DEV_DISCRETION` | Ikuti konvensi frontend dan base component Quilvian | Belum ada brief UI |
+| `RJ-PRI-FE-004` | Label status member di layar Pendaftaran RJ (2C) | — | `DEV_DISCRETION` | Hanya menampilkan tingkat dari resolver/proyeksi. Tidak ada isian yang mengubah status member | `CRM-DEC-011`, `F-RP-5` |
+
+### Acceptance criteria — Amendment RP
+
+1. Pada satu poli dan satu hari, pasien Reguler tidak pernah mendapat nomor kelipatan 5, dan pasien prioritas selalu mendapat kelipatan 5 terkecil yang belum terpakai.
+2. Antrean prioritas tidak muncul di payload display publik mana pun dan tidak disebut suara panggilan, sedangkan Nurse Station dan Klinis Dokter tetap menampilkannya beserta penanda ruang tunggu prioritas.
+3. Antrean RJ dan nurse station memberi jawaban member yang sama untuk pasien yang sama pada tanggal yang sama (`AT-36`).
+4. Reservasi untuk tanggal mendatang menyimpan snapshot prioritas, dan pasien yang membership-nya Kedaluwarsa sebelum hari H tetap mendapat nomor prioritas.
+5. Pasien Reguler atau berstatus Menunggu Pembayaran tidak dapat dibuatkan reservasi prioritas.
+6. Reservasi kedua untuk pasien dan tanggal yang sama ditolak.
+7. Reservasi yang belum dilengkapi tidak muncul di Daftar Pasien RJ, antrean, nurse station, maupun billing.
+8. Link sebelum hari H ditolak. Link kedua kali tidak mengubah apa pun. Link sesudah batal atau sesudah hari berakhir mati.
+9. Halaman link tidak memuat nama, No. RM, NIK, tingkat member, poli, atau dokter.
+10. Konfirmasi lewat link memperbarui daftar admisi seketika tanpa memuat ulang halaman.
+11. Petugas dapat menandai tiba dan mengembalikan ke "Belum tiba" dengan alasan. Keduanya tercatat di riwayat beserta sumbernya.
+12. Melengkapi poli/dokter dengan kuota penuh ditolak. Pelengkapan yang berhasil menerbitkan kunjungan dan nomor antrean dalam satu transaksi.
+13. Reservasi yang terbuka setelah 23.59 WIB menjadi Tidak Datang. Menjalankan ulang penutupan tidak menambah riwayat.
+14. Membatalkan tanpa alasan ditolak. Pengguna dengan `Screen` saja tidak dapat membuat, melengkapi, atau membatalkan reservasi (kode 403).
+15. Membership Dibatalkan sebelum hari H membuat reservasi bertanda "Bukan prioritas lagi" dan menghasilkan nomor Reguler saat dilengkapi.
+16. Tiket kiosk pasien prioritas walk-in mencetak arahan ke ruang tunggu prioritas.
+17. Petugas yang hanya memegang `Read` + `Screen` menerima kabar realtime "pasien sudah tiba".
+18. Kunjungan RJ lewat kiosk atau loket untuk pasien dengan reservasi terbuka pada tanggal yang sama menutup reservasi itu sebagai "Didaftarkan lewat Jalur Lain", tertaut ke kunjungannya, dan link mati.
+19. Setelah "Kirim ulang", link lama ditolak dan link baru berfungsi. Riwayat mencatat pengirimnya.
+20. Kode link tidak tersimpan dalam bentuk asli di database (hanya hash).
+21. Reservasi baru untuk pasien yang membership-nya sudah Kedaluwarsa ditolak, walaupun reservasi lamanya dibuat saat masih Aktif.
+22. Display publik tidak menerima kabar realtime untuk antrean prioritas, dan payload realtime ke display tidak memuat `PatientId` maupun `EncounterId` (`RJ-PRI-DEC-025`).
+
+### Open question dan blocker — Amendment RP
+
+| ID | Pertanyaan | Owner | Memblokir |
+|---|---|---|---|
+| `RJ-PRI-OQ-001` | ~~Pencatatan hasil skrining awal~~ — ditutup `RJ-PRI-DEC-019` | — | — |
+| `RJ-PRI-OQ-002` | Format nomor reservasi. Usulan `DEV_DISCRETION` lewat `NumberSeriesAllocator`, contoh `RSV-261016-0001` | Desain | Tidak |
+| `RJ-PRI-OQ-003` | Alamat publik halaman link. Impact scan menemukan domain `https://quilvian-mmchospital.com` (beserta `dev.`/`sta.`) sudah tercatat di `Cors:AllowedOrigins` (`CAP-RP-12`). Yang tersisa: apakah domain dan API dapat dibuka dari internet (`UNK-RP-01`), dan apakah proxy meneruskan IP asli untuk batas laju per IP (`UNK-RP-02`) | IT/infrastruktur | `IMPLEMENTATION` (go-live), tidak memblokir desain |
+| `RJ-PRI-CONF-001` | **Conflict.** Layar display bergabung ke group realtime nurse station dan menampilkan panggilan langsung dari payload event, tanpa penyaring backend. Payload itu membawa `QueueNumber`, `IsPriorityQueue`, `PatientId`, dan `EncounterId` (`CONF-RP-01`, `CAP-RP-03` di [01-capability-impact-scan-reservasi-prioritas.md](01-capability-impact-scan-reservasi-prioritas.md)). Akibatnya: (a) nomor prioritas muncul sekilas saat dipanggil, sehingga `RJ-PRI-DEC-005` tidak terpenuhi; (b) `PatientId`/`EncounterId` sudah sampai ke perangkat publik hari ini, bertentangan dengan `RJ-DOC-DEC-057`. Perlu diputuskan: diperbaiki dalam Amendment RP, atau dipisah | Sukma Giri | ~~`OWNER_DECISION_REQUIRED`~~ — ditutup `RJ-PRI-DEC-025` |
+| `RJ-PRI-OQ-004` | WA gateway otomatis untuk reservasi dan tagihan (2I) | `platform-notification` (owner belum ada) | `LATER SLICE` |
+| `RJ-PRI-OQ-005` | Penerapan diskon member pada tagihan RJ (2J-V) | Owner `billing-kasir` (`DEC-CRM-001` pertanyaan 5) | `LATER SLICE`, di luar scope RJ |
+| `RJ-PRI-OQ-007` s.d. `010` | Temuan gate: penerima kabar tiba, pendaftaran lewat jalur lain, kirim ulang link, ganti tanggal — ditutup `RJ-PRI-DEC-026` s.d. `029` | — | — |
+| `RJ-PRI-OQ-011` | Nomor WA tujuan. Usulan: bawaan No. HP pasien dari master, boleh diganti per pengiriman tanpa mengubah master | Desain | Tidak (`NON_BLOCKING_STANDARD`) |
+| `RJ-PRI-OQ-012` | Batas maksimal hari ke depan untuk reservasi. Usulan konfigurasi, bawaan 30 hari | Desain | Tidak (`CONFIGURABLE_DEFAULT`) |
+| `RJ-PRI-OQ-006` | Isi master tingkat: `PriorityQueue = true` untuk Silver/Gold/Platinum/Executive (`CRM-DEC-015`), nominal iuran, persen diskon (`CRM-OQ-001`) | Yoga Aji Pratama / Marketing | `IMPLEMENTATION` (data go-live) |
+
+**Blocker desain:** tidak ada. `RJ-PRI-CONF-001` (temuan impact scan) ditutup `RJ-PRI-DEC-025`. Semua `K3`, `K4`, `K5`,
+dan `AG-03` pertanyaan 1–2 sudah tertutup.
+
+**Impact scan:** selesai 16 Okt 2026 pada `551e1cbb`/`1fd858322`, yaitu
+[01-capability-impact-scan-reservasi-prioritas.md](01-capability-impact-scan-reservasi-prioritas.md) (22 kemampuan:
+4 Ready to reuse, 7 Reuse with adapter, 6 Extend, 1 Repair, 3 Missing, 1 Unknown).
+
+**Requirement gate:** [01-requirement-completeness-gate-reservasi-prioritas.md](01-requirement-completeness-gate-reservasi-prioritas.md)
+— awalnya `PARTIALLY_READY` (`RJ-PRI-OQ-007` s.d. `009` pemblokir), lalu `READY_FOR_DOMAIN_DESIGN` setelah
+`RJ-PRI-DEC-026` s.d. `029` (16 Okt 2026).
+
+**Desain:** blueprint revisi `33` (`approved` 16 Okt 2026, `RJ-PRI-DEC-030`), kontrak `RJ-PRI-RESV-001@1.0.0` — bagian *Amendment RP* di
+`02`, `03`, `04`, `contracts/*`, `data/data-dictionary.md`, `testing/acceptance-test-matrix.md`, serta
+[flowcharts/reservasi-prioritas.md](flowcharts/reservasi-prioritas.md) dan
+[flowcharts/antrean-prioritas.md](flowcharts/antrean-prioritas.md). `hospital-domain-architect` tidak dipakai
+(`DOMAIN_ARCHITECTURE_NOT_RUN`).
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-PRI-DEC-030` | Approval | **Blueprint revisi `33` dan kontrak `RJ-PRI-RESV-001@1.0.0` disetujui**, termasuk empat usulan desain: (1) pelengkapan reservasi lewat wizard Pendaftaran Pasien dengan `priorityReservationId`; (2) tandai tiba dan kembalikan memakai aksi `Complete`, kirim ulang memakai aksi `Create`; (3) akun display memakai group realtime sendiri dan ditolak di group perawat/dokter, dengan rilis backend dan frontend bersamaan; (4) route publik `/priority-arrival/{code}`. Perencanaan delivery diizinkan untuk `MVP-0` s.d. `MVP-2`. Approval ini **tidak** memberi wewenang implementasi; wewenang diberikan per task | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 ("setuju dan lanjutkan") | Manifest Revisi 33 |
+
+**Roadmap:** `draft` r1 (16 Okt 2026) — [backend](roadmap/priority-reservation-backend-roadmap.md),
+[frontend](roadmap/priority-reservation-frontend-roadmap.md), [traceability](roadmap/priority-reservation-traceability.md).
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-PRI-DEC-031` | Approval | **Roadmap `RJ-PRI-RM-BE-001` r1 dan `RJ-PRI-RM-FE-001` r1 disetujui**, beserta semua rekomendasi pada roadmap. `IMPLEMENTATION_AUTHORITY` `GRANTED` dalam `CROSS-REPO MODE` untuk `BE-RJP-001` s.d. `012` dan `FE-RJP-001` s.d. `008`, dikerjakan berurutan sampai tuntas. Termasuk: (a) pembuatan migration `AddOutpatientPriorityReservation`; (b) penerapannya ke `QuilvianNewDevSukma` saja, dengan berhenti bila ada migration modul lain yang `(Pending)`; (c) uji runtime HTTP backend uji `7185` dengan data samaran; (d) SQL langsung ke `QuilvianNewDevSukma` hanya untuk data uji (tanggal mundur, `PriorityQueue` tingkat uji, role akun uji yang dikembalikan sesudahnya). **Tidak** termasuk commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 ("saya menyetujui semua rekomendasi anda dan lanjutkan semuanya sampai tuntas"; empat izin dijawab satu per satu) | Sesi 16 Okt 2026 |
+| `RJ-PRI-DEC-032` | Revisi UI + kontrak | **Revisi layar Daftar Reservasi Prioritas** atas permintaan owner: (1) tombol "+ Buat Reservasi" pindah ke kartu filter seperti modul lain; (2) filter Tanggal Awal, Tanggal Akhir, Periode, pencarian, jumlah baris, dan ikon muat ulang; **tanggal yang disaring = tanggal kunjungan** (dipilih owner dari dua opsi; opsi "tanggal dibuat" ditolak karena pasien yang datang hari ini tetapi dipesan kemarin tidak akan tampil di "Hari Ini"); (3) tabel wajib memuat No, Tanggal Dibuat, Nama, Dibuat Oleh, Diubah Oleh, dan Status; (4) kolom Aksi dihapus, detail dibuka dengan klik dua kali baris, Lengkapi Pendaftaran hanya dari detail; (5) tombol primer hijau diganti biru gradien seperti modul lain; (6) dialog Buat Reservasi diperjelas untuk pasien yang bukan member Aktif. Kontrak naik ke `RJ-PRI-RESV-001@1.1.0` (aditif: kolom audit di item daftar; ringkasan menerima rentang tanggal). Dikerjakan sebagai rework `BE-RJP-006`, `FE-RJP-004`, `FE-RJP-005` dengan laporan yang sama | Sukma Giri | `approved` | Sukma Giri, 19 Okt 2026 (permintaan langsung disertai tangkapan layar; pilihan tanggal kunjungan dijawab lewat pertanyaan) | Sesi 19 Okt 2026 |
+
+**Langkah berikutnya:** eksekusi task sesuai roadmap, mulai `MVP-0`.

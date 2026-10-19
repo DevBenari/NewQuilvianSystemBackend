@@ -104392,6 +104392,234 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("RegPatientEncounterGuarantor", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPriorityReservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ArrivalCodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("ArrivalCodeIssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ArrivalMarkedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("ArrivalSource")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ArrivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClosedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClosureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrioritySnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("MembershipTierCodeSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("MembershipTierIdSnapshot")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PatientMembershipIdSnapshot")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("PublicDisplayModeSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("QueueAudienceSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("QueuePriorityLevelSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("ReservationNumber")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ScreenedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ScreenedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool?>("ScreeningCough")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool?>("ScreeningFallRisk")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool?>("ScreeningFever")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("VisitDate")
+                        .HasColumnType("date");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArrivalCodeHash")
+                        .IsUnique();
+
+                    b.HasIndex("EncounterId")
+                        .IsUnique()
+                        .HasFilter("\"EncounterId\" IS NOT NULL");
+
+                    b.HasIndex("PatientMembershipIdSnapshot");
+
+                    b.HasIndex("ReservationNumber")
+                        .IsUnique();
+
+                    b.HasIndex("PatientId", "VisitDate")
+                        .IsUnique()
+                        .HasDatabaseName("UX_RegPriorityReservation_Open_Patient_VisitDate")
+                        .HasFilter("\"Status\" IN (1, 2) AND NOT \"IsDelete\"");
+
+                    b.HasIndex("VisitDate", "Status");
+
+                    b.ToTable("RegPriorityReservation", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPriorityReservationHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EventCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<int?>("FromStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PriorityReservationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ToStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PriorityReservationId", "OccurredAt");
+
+                    b.ToTable("RegPriorityReservationHistory", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegQueue", b =>
                 {
                     b.Property<Guid>("Id")
@@ -131749,6 +131977,42 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PaymentMethod");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPriorityReservation", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "Encounter")
+                        .WithMany()
+                        .HasForeignKey("EncounterId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientMembership", "PatientMembershipSnapshot")
+                        .WithMany()
+                        .HasForeignKey("PatientMembershipIdSnapshot")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Encounter");
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("PatientMembershipSnapshot");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPriorityReservationHistory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPriorityReservation", "PriorityReservation")
+                        .WithMany("Histories")
+                        .HasForeignKey("PriorityReservationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PriorityReservation");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegQueue", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "CancelledByUser")
@@ -133800,6 +134064,11 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", b =>
                 {
                     b.Navigation("PaymentSource");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPriorityReservation", b =>
+                {
+                    b.Navigation("Histories");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Models.ApplicationUser", b =>

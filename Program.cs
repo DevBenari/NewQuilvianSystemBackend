@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
@@ -504,8 +505,19 @@ try
     // crm-membership BE-CRM-010 — satu aturan "member aktif" untuk seluruh konsumen.
     builder.Services.AddScoped<PatientMembershipStatusResolver>();
     builder.Services.AddScoped<PatientMembershipService>();
-    builder.Services.Configure<OutpatientQueueNumberOptions>(
-        builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName));
+    // rawat-jalan Amendment RP (BE-RJP-005) — konfigurasi Reservasi Pasien Prioritas.
+    builder.Services.Configure<PriorityReservationOptions>(
+        builder.Configuration.GetSection(PriorityReservationOptions.SectionName));
+    // BE-RJP-006 — perintah dan kueri Reservasi Prioritas.
+    builder.Services.AddScoped<OutpatientPriorityReservationService>();
+    // RJ-PRI-DEC-004 — kelipatan nomor prioritas divalidasi saat aplikasi mulai (VAL-RP-21).
+    builder.Services.AddOptions<OutpatientQueueNumberOptions>()
+        .Bind(builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName))
+        .Validate(
+            options => options.ResolvePriorityNumberMultiple() >= OutpatientQueueNumberOptions.MinimumPriorityNumberMultiple,
+            $"{OutpatientQueueNumberOptions.SectionName}:PriorityNumberMultiple wajib bernilai minimal " +
+            $"{OutpatientQueueNumberOptions.MinimumPriorityNumberMultiple}.")
+        .ValidateOnStart();
 
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();
@@ -1147,6 +1159,8 @@ try
         builder.Services.Configure<PatientMembershipLifecycleOptions>(
             builder.Configuration.GetSection(PatientMembershipLifecycleOptions.SectionName));
         builder.Services.AddHostedService<PatientMembershipLifecycleHostedService>();
+        // rawat-jalan BE-RJP-009: reservasi prioritas yang tidak datang ditutup saat start dan 00.05 WIB.
+        builder.Services.AddHostedService<OutpatientPriorityReservationClosureHostedService>();
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
         builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
         builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
@@ -1273,6 +1287,11 @@ try
         1,
         builder.Configuration.GetValue<int?>("KioskPatientLookup:PermitPerMinute") ?? 10);
 
+    // rawat-jalan BE-RJP-012 — batas link publik per IP (RJ-PRI-OQ-003, bawaan 20 per menit).
+    var priorityReservationArrivalPermitPerMinute = Math.Max(
+        1,
+        builder.Configuration.GetValue<int?>($"{PriorityReservationOptions.SectionName}:ArrivalLinkPermitPerMinute") ?? 20);
+
     builder.Services.AddRateLimiter(options =>
     {
         options.AddPolicy(KioskPatientLookupController.RateLimitPolicy, httpContext =>
@@ -1290,6 +1309,19 @@ try
             });
         });
 
+        // rawat-jalan BE-RJP-012 (VAL-RP-09, NFR-RP-007): link publik konfirmasi kedatangan dibatasi
+        // per IP. Lapisan kedua; pengamanan utamanya kode acak 256 bit.
+        options.AddPolicy(PriorityReservationArrivalController.RateLimitPolicy, httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = priorityReservationArrivalPermitPerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
         // 429 wajib terbaca sebagai "coba lagi", bukan "pasien belum terdaftar" (KSK-INV-002).
         options.OnRejected = async (context, cancellationToken) =>
         {
@@ -1299,6 +1331,22 @@ try
             if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
             {
                 response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+            }
+
+            var rateLimitPolicyName = context.HttpContext.GetEndpoint()?.Metadata
+                .GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+
+            if (rateLimitPolicyName == PriorityReservationArrivalController.RateLimitPolicy)
+            {
+                // Path memuat kode link, jadi hanya dihitung tanpa path maupun IP (permission-audit-matrix RP-4).
+                Log.Warning("Link konfirmasi reservasi prioritas ditolak batas laju.");
+                PriorityReservationArrivalController.RedactRequestPath(context.HttpContext);
+                await response.WriteAsJsonAsync(
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status429TooManyRequests,
+                        PriorityReservationArrivalController.RateLimitedMessage),
+                    cancellationToken);
+                return;
             }
 
             context.HttpContext.RequestServices
@@ -1862,6 +1910,20 @@ try
                 // Di Grafana nanti tetap ada property Elapsed asli dari Serilog.
                 diagnosticContext.Set("DisplayMessage", BuildHttpDisplayMessage(httpContext, 0));
             };
+        });
+
+        // rawat-jalan BE-RJP-012 (INV-RP-05): kode link konfirmasi ada di path, jadi path disamarkan
+        // sesudah pipeline selesai dan sebelum log permintaan di atas ditulis.
+        app.Use(async (context, next) =>
+        {
+            try
+            {
+                await next();
+            }
+            finally
+            {
+                PriorityReservationArrivalController.RedactRequestPath(context);
+            }
         });
     }
 

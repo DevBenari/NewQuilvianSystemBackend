@@ -11,6 +11,7 @@
 | Sifat dokumen | Permintaan keputusan. Dokumen ini **tidak** mengubah status blueprint dan **tidak** memberi wewenang implementasi |
 | Task yang tertahan | `BE-CRM-022` (roadmap `crm-membership`) |
 | Task yang tidak tertahan | Semua task CRM lain. Antrean RJ tetap berjalan dengan aturannya sendiri |
+| Catatan 2026-10-16 | Sejak handover `CRM-DEC-031`, sisi CRM untuk antrean RJ juga dipegang Sukma Giri, sehingga penanya dan penjawab dokumen ini sekarang orang yang sama. Pertanyaan 1 dan 2 tetap perlu dijawab, dan dijawab dalam sesi `grill-me` Amendment RP di `rawat-jalan`. Pertanyaan 3: penyetujunya Sukma Giri. Pelaksana ditentukan saat `BE-CRM-022` dibuka |
 
 ## Untuk siapa dokumen ini
 
@@ -187,9 +188,9 @@ Other.
 
 | ID | Pertanyaan singkat | Pemilik | Jawaban owner | Catatan |
 |---|---|---|---|---|
-| `1` | Antrean RJ memakai aturan member CRM (`J1`)? | Rawat Jalan | | |
-| `2` | Status member dinilai pada tanggal daftar atau tanggal kunjungan? | Rawat Jalan + CRM | | |
-| `3` | Siapa yang mengerjakan dan menyetujui? | Rawat Jalan | | |
+| `1` | Antrean RJ memakai aturan member CRM (`J1`)? | Rawat Jalan | **A** — boleh, berlaku penuh (Sukma Giri, 16 Okt 2026) | `RJ-PRI-DEC-006` |
+| `2` | Status member dinilai pada tanggal daftar atau tanggal kunjungan? | Rawat Jalan + CRM | **A** — tanggal pendaftaran/reservasi dibuat, sesuai `CRM-DEC-005` (Sukma Giri, 16 Okt 2026) | `RJ-PRI-DEC-007`. Pengecualian: membership Dibatalkan sebelum hari H membuat pasien turun ke Reguler (`RJ-PRI-DEC-024`) |
+| `3` | Siapa yang mengerjakan dan menyetujui? | Rawat Jalan | Penyetuju Sukma Giri (handover `CRM-DEC-031`). Pelaksana ditentukan saat task dibuka | Catatan header 2026-10-16 |
 
 Permintaan tambahan, bila owner bersedia:
 

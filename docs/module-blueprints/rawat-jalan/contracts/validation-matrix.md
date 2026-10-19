@@ -153,3 +153,36 @@ Bunyi ini juga dipakai sebagai petunjuk baris (`cancelBlockedReason`) di Daftar 
 | `RJ-VAL-PM-21` | Internal hanya oleh petugas untuk RJ poliklinik (bukan Kiosk/IGD) | `400` |
 | `RJ-VAL-PM-22` | Rujukan internal tidak diunggah/dikoreksi | `400` |
 | Surat Rujukan dokter | Diagnosa ≤500, alasan ≤1000, instruksi ≤1000 wajib/batas; tujuan ≠ poli kunjungan | `400` |
+
+---
+
+# Amendment RP — `RJ-PRI-RESV-001@1.0.0` (`approved`)
+
+`last_changed_in`: `RJ-PRI-RESV-001@1.0.0`. Status `approved` (Sukma Giri, 2026-10-16). Pesan ditulis sebagaimana dibaca petugas atau pasien.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-RP-01` | Buat reservasi | Pasien tidak ditemukan atau tidak aktif | "Data pasien tidak ditemukan." | 404 |
+| `VAL-RP-02` | Buat reservasi, cek kelayakan | Pasien bukan member Aktif hari ini | "Pasien bukan member aktif hari ini, sehingga tidak bisa reservasi prioritas. Daftarkan lewat Pendaftaran Pasien dengan memilih poli dan dokter." | 409 |
+| `VAL-RP-03` | Buat reservasi | Tanggal kunjungan sebelum hari ini | "Tanggal kunjungan tidak boleh sebelum hari ini." | 400 |
+| `VAL-RP-04` | Buat reservasi | Tanggal kunjungan lebih dari `MaxDaysAhead` hari ke depan | "Reservasi paling jauh {N} hari ke depan, yaitu sampai {tanggal}." | 400 |
+| `VAL-RP-05` | Buat reservasi | Sudah ada reservasi terbuka untuk pasien dan tanggal itu | "Pasien sudah punya reservasi prioritas {nomor} untuk {tanggal}." | 409 |
+| `VAL-RP-06` | Buat reservasi | Pasien sudah punya kunjungan Rawat Jalan aktif pada tanggal itu (`BlockActiveEncounter`) | "Pasien sudah terdaftar kunjungan Rawat Jalan pada {tanggal}." | 409 |
+| `VAL-RP-07` | Link publik | Kode tidak cocok, sudah diganti, atau reservasi Dibatalkan, Tidak Datang, atau Didaftarkan lewat Jalur Lain | "Link tidak berlaku. Silakan hubungi petugas pendaftaran." | 404 |
+| `VAL-RP-08` | Link publik | Hari ini sebelum tanggal kunjungan | "Konfirmasi kedatangan baru bisa dilakukan pada {tanggal}." (`state = NOT_YET_OPEN`) | 200 |
+| `VAL-RP-09` | Link publik | Terlalu banyak permintaan dari satu IP | "Terlalu banyak percobaan. Coba lagi sebentar lagi." | 429 |
+| `VAL-RP-10` | Tandai tiba | Hari ini bukan tanggal kunjungan | "Kedatangan hanya bisa ditandai pada hari kunjungan, {tanggal}." | 409 |
+| `VAL-RP-11` | Tandai tiba, kembalikan, skrining, kirim ulang, lengkapi | Status reservasi tidak sesuai tindakan (`contracts/state-transition-matrix.md` RP-C) | "Reservasi sedang berstatus {status}, sehingga tindakan ini tidak bisa dilakukan." | 409 |
+| `VAL-RP-12` | Kembalikan, batal | Alasan kosong atau kurang dari 10 karakter, atau lebih dari 500 | "Alasan wajib diisi, 10 sampai 500 karakter." | 400 |
+| `VAL-RP-13` | Skrining | Salah satu dari batuk, demam, atau risiko jatuh tidak diisi | "Isi ketiga pertanyaan skrining: batuk, demam, dan risiko jatuh." | 400 |
+| `VAL-RP-14` | Semua perintah petugas | `expectedRowVersion` tidak sama dengan data sekarang | "Reservasi baru saja diubah petugas lain. Muat ulang lalu coba lagi." | 409 |
+| `VAL-RP-15` | Lengkapi (`POST /patient-encounters/admin`) | `priorityReservationId` tidak ditemukan | "Reservasi prioritas tidak ditemukan." | 404 |
+| `VAL-RP-16` | Lengkapi | Pasien pada formulir berbeda dengan pasien reservasi | "Pasien tidak sama dengan pasien pada reservasi." | 400 |
+| `VAL-RP-17` | Lengkapi | Tanggal kunjungan bukan tanggal reservasi atau bukan hari ini | "Kunjungan dari reservasi hanya untuk hari ini, {tanggal}." | 400 |
+| `VAL-RP-18` | Lengkapi | Pengguna tidak memegang `OutpatientPriorityReservation : Complete` | "Anda tidak punya hak melengkapi reservasi prioritas." | 403 |
+| `VAL-RP-19` | Pendaftaran kiosk | Permintaan kiosk membawa `priorityReservationId` | "Reservasi prioritas tidak dapat dilengkapi dari kiosk." | 400 |
+| `VAL-RP-20` | Lengkapi | Jadwal atau kuota dokter tidak sah | Pesan jadwal dan kuota yang sudah ada di pendaftaran kunjungan (`PatientEncounterController.cs:2433-2562`), tanpa perubahan | 400 |
+| `VAL-RP-21` | Konfigurasi saat aplikasi mulai | `PriorityNumberMultiple < 2` | Aplikasi gagal mulai dengan pesan konfigurasi yang jelas | — |
+
+Catatan untuk `VAL-RP-07`: jawaban 404 sengaja seragam, agar orang yang menebak kode tidak dapat membedakan kode yang
+pernah ada dari kode yang tidak pernah ada.

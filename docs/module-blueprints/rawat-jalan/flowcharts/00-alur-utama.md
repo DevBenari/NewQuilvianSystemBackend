@@ -53,3 +53,9 @@ flowchart TD
 **Hasil akhir:** kunjungan Rawat Jalan berhenti di `ConsultationCompleted` (dengan dokter) atau
 `Billing` (tanpa dokter). Satu tagihan kunjungan berisi konsultasi, tindakan, Lab, Radiologi, dan
 resep. Penutupan kunjungan menjadi `Completed` **bukan** bagian alur ini (`RJ-E2E-DEC-004`).
+
+## Cabang Amendment RP — pasien prioritas (revisi `33`, `approved`)
+
+Pasien member Aktif dapat masuk alur ini lewat Reservasi Prioritas tanpa poli/dokter, lalu bergabung ke alur utama di
+langkah pendaftaran kunjungan saat admisi melengkapi poli dan dokter. Nomor antreannya kelipatan 5 dan tidak tampil di
+display. Rinciannya ada di [reservasi-prioritas.md](reservasi-prioritas.md) dan [antrean-prioritas.md](antrean-prioritas.md).
