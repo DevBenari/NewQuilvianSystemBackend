@@ -167,7 +167,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyDeparture", "Update")]
         public Task<IActionResult> Arrive(Guid id, [FromBody] ArriveEmergencyDepartureRequest request, CancellationToken cancellationToken = default)
             => ExecuteDeparture(id, "EmergencyDeparture.Arrive",
-                ct => _service.ArriveAsync(id, request, UserId(), ct), cancellationToken);
+                ct => _service.ArriveAsync(id, request, UserId(), ct), cancellationToken, true);
 
         [HttpPost("{id:guid}/accept-handover")]
         [AccessAction("Update", "Accept Emergency Handover", Description = "Menerima dokumen serah terima", AccessType = AccessTypes.Update, SortOrder = 4)]
