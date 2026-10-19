@@ -110,8 +110,10 @@ public sealed class BillingMembershipFeeService : IMembershipFeeChargePort
     }
 
     /// <summary>
-    /// Membuat atau mengambil tagihan untuk membership yang sudah terdaftar Menunggu Pembayaran tetapi belum
-    /// bertagihan (mis. didaftarkan sebelum fitur ini). Idempotent; nominal dari snapshot membership.
+    /// Membuat atau mengambil tagihan sebuah membership (backfill satu membership). Idempotent: tagihan dicari
+    /// berdasarkan <c>MembershipId</c> lebih dulu (bukan dari <c>FeeChargeReferenceId</c>), dan rujukan di
+    /// membership disinkronkan bila belum. Tagihan baru hanya dibuat untuk membership Menunggu Pembayaran yang
+    /// batas bayarnya belum lewat, dengan nominal <c>FeeAmountSnapshot</c>.
     /// </summary>
     public async Task<MembershipFeeChargeDetailResponse> EnsureForMembershipAsync(
         Guid membershipId,
@@ -121,40 +123,270 @@ public sealed class BillingMembershipFeeService : IMembershipFeeChargePort
         if (membershipId == Guid.Empty)
             throw new BillingMembershipFeeValidationException("MembershipId wajib diisi.");
 
-        var context = await _membershipLink.GetFeeContextAsync(membershipId, cancellationToken)
-            ?? throw new KeyNotFoundException("Membership tidak ditemukan.");
-        if (context.FeeChargeReferenceId.HasValue)
-            return await GetDetailAsync(context.FeeChargeReferenceId.Value, cancellationToken);
-
-        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
-        await AcquireLockAsync($"BIL_MEMBERSHIP_FEE_MEMBERSHIP_{membershipId:N}", cancellationToken);
-
-        context = await _membershipLink.GetFeeContextAsync(membershipId, cancellationToken)
-            ?? throw new KeyNotFoundException("Membership tidak ditemukan.");
-        if (context.FeeChargeReferenceId.HasValue)
+        var item = await LinkOrCreateAsync(membershipId, actorUserId, dryRun: false, cancellationToken);
+        return item.Outcome switch
         {
-            await transaction.CommitAsync(cancellationToken);
-            return await GetDetailAsync(context.FeeChargeReferenceId.Value, cancellationToken);
+            MembershipFeeBackfillOutcomes.Created
+                or MembershipFeeBackfillOutcomes.Linked
+                or MembershipFeeBackfillOutcomes.AlreadyLinked => await GetDetailAsync(item.ChargeId!.Value, cancellationToken),
+            MembershipFeeBackfillOutcomes.NotFound => throw new KeyNotFoundException(item.Message),
+            MembershipFeeBackfillOutcomes.SkippedNotPending or MembershipFeeBackfillOutcomes.SkippedOverdue
+                => throw new BillingMembershipFeeValidationException(item.Message),
+            _ => throw new BillingMembershipFeeConflictException(item.Message)
+        };
+    }
+
+    /// <summary>
+    /// Perintah administratif backfill: mencari membership Menunggu Pembayaran yang belum punya tagihan yang
+    /// sah, lalu membuat atau menautkan tagihannya lewat jalur yang sama dengan pendaftaran. Hanya berjalan
+    /// atas permintaan (tidak pernah saat startup); bawaannya simulasi. Tiap membership diproses di
+    /// transaksinya sendiri, sehingga satu kegagalan tidak membatalkan yang lain, dan aman diulang.
+    /// Membership tidak diubah selain rujukan tagihannya; tidak ada aktivasi dan tidak ada membership baru.
+    /// </summary>
+    public async Task<MembershipFeeBackfillResponse> BackfillAsync(
+        MembershipFeeBackfillRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var limit = Math.Clamp(request.Limit <= 0 ? 100 : request.Limit, 1, 200);
+        var memberNumber = string.IsNullOrWhiteSpace(request.MemberNumber) ? null : request.MemberNumber.Trim();
+        var ids = request.MembershipIds?.Where(x => x != Guid.Empty).Distinct().ToList() ?? [];
+
+        // Kandidat: Menunggu Pembayaran yang rujukannya tidak menunjuk ke tagihan sah miliknya sendiri.
+        // Tagihan yang sudah ada tetapi rujukannya kosong tetap kandidat (cukup ditautkan).
+        var candidates = _dbContext.Set<MstPatientMembership>().AsNoTracking()
+            .Where(m => !m.IsDelete
+                && m.MembershipStatus == MembershipStatus.PendingPayment
+                && (memberNumber == null || m.MemberNumber == memberNumber)
+                && (ids.Count == 0 || ids.Contains(m.Id))
+                && !(m.FeeChargeReferenceId != null
+                    && _dbContext.BilMembershipFeeCharges.Any(c => c.Id == m.FeeChargeReferenceId
+                        && c.MembershipId == m.Id && !c.IsDelete)));
+
+        var totalCandidates = await candidates.CountAsync(cancellationToken);
+        var batch = await candidates
+            .OrderBy(m => m.CreateDateTime).ThenBy(m => m.Id)
+            .Select(m => m.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var items = new List<MembershipFeeBackfillItem>(batch.Count);
+        foreach (var membershipId in batch)
+        {
+            try
+            {
+                items.Add(await LinkOrCreateAsync(membershipId, actorUserId, request.DryRun, cancellationToken));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _dbContext.ChangeTracker.Clear();
+                await _loggerService.ErrorAsync(
+                    LogCategory, "MembershipFeeCharge.BackfillFailed",
+                    $"Backfill tagihan untuk membership {membershipId} gagal.", ex, new { MembershipId = membershipId });
+                items.Add(Item(membershipId, "-", MembershipFeeBackfillOutcomes.Failed,
+                    "Backfill gagal; lihat log. Aman diulang."));
+            }
+            _dbContext.ChangeTracker.Clear();
         }
 
+        var response = new MembershipFeeBackfillResponse
+        {
+            DryRun = request.DryRun,
+            TotalCandidates = totalCandidates,
+            Processed = items.Count,
+            Created = items.Count(x => x.Outcome == MembershipFeeBackfillOutcomes.Created),
+            Linked = items.Count(x => x.Outcome == MembershipFeeBackfillOutcomes.Linked),
+            AlreadyLinked = items.Count(x => x.Outcome == MembershipFeeBackfillOutcomes.AlreadyLinked),
+            Skipped = items.Count(x => x.Outcome is MembershipFeeBackfillOutcomes.SkippedNotPending
+                or MembershipFeeBackfillOutcomes.SkippedOverdue),
+            Failed = items.Count(x => x.Outcome is MembershipFeeBackfillOutcomes.Failed
+                or MembershipFeeBackfillOutcomes.NotFound),
+            Items = items
+        };
+
+        await _loggerService.AuditAsync(
+            LogCategory,
+            request.DryRun ? "MembershipFeeCharge.BackfillDryRun" : "MembershipFeeCharge.BackfillExecuted",
+            $"Backfill tagihan iuran membership: {response.Processed} diproses dari {response.TotalCandidates} kandidat " +
+            $"(dibuat {response.Created}, ditautkan {response.Linked}, dilewati {response.Skipped}, gagal {response.Failed}).",
+            new
+            {
+                request.DryRun,
+                MemberNumber = memberNumber,
+                MembershipIdCount = ids.Count,
+                Limit = limit,
+                response.TotalCandidates,
+                response.Created,
+                response.Linked,
+                response.AlreadyLinked,
+                response.Skipped,
+                response.Failed,
+                ActorUserId = actorUserId
+            });
+
+        return response;
+    }
+
+    /// <summary>
+    /// Inti backfill satu membership: tautkan tagihan yang sudah ada (dicari lewat MembershipId), atau buat
+    /// bila membership masih sah dibayar. Satu transaksi di bawah kunci pasien (sama dengan CRM) dan kunci
+    /// membership; unique index MembershipId menjadi pengaman terakhir.
+    /// </summary>
+    private async Task<MembershipFeeBackfillItem> LinkOrCreateAsync(
+        Guid membershipId,
+        Guid actorUserId,
+        bool dryRun,
+        CancellationToken cancellationToken)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            var context = await _membershipLink.GetFeeContextAsync(membershipId, cancellationToken);
+            if (context is null)
+                return Item(membershipId, "-", MembershipFeeBackfillOutcomes.NotFound, "Membership tidak ditemukan.");
+
+            if (dryRun)
+                return await EvaluateAsync(context, cancellationToken);
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"PAT_MEMBERSHIP_{context.PatientId:N}", cancellationToken);
+            await AcquireLockAsync($"BIL_MEMBERSHIP_FEE_MEMBERSHIP_{membershipId:N}", cancellationToken);
+
+            // Dibaca ulang setelah kunci diperoleh: status bisa berubah (dibatalkan, dibayar) selama menunggu.
+            context = await _membershipLink.GetFeeContextAsync(membershipId, cancellationToken);
+            if (context is null)
+                return Item(membershipId, "-", MembershipFeeBackfillOutcomes.NotFound, "Membership tidak ditemukan.");
+
+            var existing = await _dbContext.BilMembershipFeeCharges.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.MembershipId == membershipId && !x.IsDelete, cancellationToken);
+
+            if (existing is null)
+            {
+                var skip = ValidateCreatable(context);
+                if (skip is not null) return skip;
+            }
+            else if (context.FeeChargeReferenceId == existing.Id)
+            {
+                return Item(context, MembershipFeeBackfillOutcomes.AlreadyLinked, "Tagihan sudah terhubung.", existing);
+            }
+            else if (context.FeeChargeReferenceId.HasValue)
+            {
+                return Item(context, MembershipFeeBackfillOutcomes.Failed,
+                    "Membership terhubung ke tagihan lain; perlu ditinjau manual.", existing);
+            }
+
+            try
+            {
+                MembershipFeeChargeRef chargeRef;
+                var created = false;
+                if (existing is null)
+                {
+                    chargeRef = await EnsureChargeAsync(
+                        new MembershipFeeChargeRequest(
+                            context.MembershipId, context.PatientId, context.MemberNumber, context.FeeAmountSnapshot,
+                            context.PaymentDueAt!.Value, actorUserId),
+                        cancellationToken);
+                    created = chargeRef.IsNew;
+                }
+                else
+                {
+                    chargeRef = new MembershipFeeChargeRef(existing.Id, existing.ChargeNumber, false);
+                }
+
+                await _membershipLink.AttachChargeAsync(
+                    context.MembershipId, chargeRef.ChargeId, actorUserId, cancellationToken,
+                    created
+                        ? "Tagihan iuran dibuat lewat backfill administratif."
+                        : "Tagihan iuran yang sudah ada ditautkan lewat backfill administratif.");
+                await transaction.CommitAsync(cancellationToken);
+
+                await _loggerService.AuditAsync(
+                    LogCategory,
+                    created ? "MembershipFeeCharge.BackfillCreated" : "MembershipFeeCharge.BackfillLinked",
+                    $"Tagihan {chargeRef.ChargeNumber} {(created ? "dibuat" : "ditautkan")} untuk membership {context.MemberNumber} lewat backfill.",
+                    new { context.MembershipId, chargeRef.ChargeId, context.FeeAmountSnapshot, ActorUserId = actorUserId });
+
+                return new MembershipFeeBackfillItem
+                {
+                    MembershipId = context.MembershipId,
+                    MemberNumber = context.MemberNumber,
+                    Outcome = created ? MembershipFeeBackfillOutcomes.Created : MembershipFeeBackfillOutcomes.Linked,
+                    ChargeId = chargeRef.ChargeId,
+                    ChargeNumber = chargeRef.ChargeNumber,
+                    FeeAmount = context.FeeAmountSnapshot,
+                    PaymentDueAt = context.PaymentDueAt,
+                    Message = created ? "Tagihan dibuat." : "Tagihan yang sudah ada ditautkan."
+                };
+            }
+            catch (DbUpdateException ex) when (attempt == 0
+                && ex.InnerException is Npgsql.PostgresException { SqlState: "23505" })
+            {
+                // Permintaan paralel menang lebih dulu (unique MembershipId): ulangi sekali dan tautkan hasilnya.
+                await transaction.RollbackAsync(cancellationToken);
+                _dbContext.ChangeTracker.Clear();
+            }
+        }
+    }
+
+    // Simulasi: apa yang akan terjadi tanpa menulis apa pun.
+    private async Task<MembershipFeeBackfillItem> EvaluateAsync(MembershipFeeContext context, CancellationToken cancellationToken)
+    {
+        var existing = await _dbContext.BilMembershipFeeCharges.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.MembershipId == context.MembershipId && !x.IsDelete, cancellationToken);
+
+        if (existing is null)
+        {
+            return ValidateCreatable(context)
+                ?? Item(context, MembershipFeeBackfillOutcomes.WouldCreate, "Tagihan akan dibuat.");
+        }
+
+        if (context.FeeChargeReferenceId == existing.Id)
+            return Item(context, MembershipFeeBackfillOutcomes.AlreadyLinked, "Tagihan sudah terhubung.", existing);
+        if (context.FeeChargeReferenceId.HasValue)
+            return Item(context, MembershipFeeBackfillOutcomes.Failed,
+                "Membership terhubung ke tagihan lain; perlu ditinjau manual.", existing);
+
+        return Item(context, MembershipFeeBackfillOutcomes.WouldLink, "Tagihan yang sudah ada akan ditautkan.", existing);
+    }
+
+    // Aturan membuat tagihan baru: hanya Menunggu Pembayaran dan belum lewat batas bayar (waktu server).
+    // Yang sudah lewat tidak dibuatkan tagihan; pembatalan mengikuti proses CRM yang ada (penyapu harian).
+    private MembershipFeeBackfillItem? ValidateCreatable(MembershipFeeContext context)
+    {
         if (context.Status != MembershipStatus.PendingPayment)
-            throw new BillingMembershipFeeValidationException(
+            return Item(context, MembershipFeeBackfillOutcomes.SkippedNotPending,
                 "Tagihan iuran hanya dibuat untuk membership yang menunggu pembayaran.");
         if (!context.PaymentDueAt.HasValue || context.PaymentDueAt.Value <= _timeProvider.GetUtcNow())
-            throw new BillingMembershipFeeValidationException(
-                "Batas pembayaran membership sudah lewat; tagihan tidak dapat dibuat. Daftarkan ulang membership.");
-
-        var chargeRef = await EnsureChargeAsync(
-            new MembershipFeeChargeRequest(
-                context.MembershipId, context.PatientId, context.MemberNumber, context.FeeAmountSnapshot,
-                context.PaymentDueAt.Value, actorUserId),
-            cancellationToken);
-
-        await _membershipLink.AttachChargeAsync(context.MembershipId, chargeRef.ChargeId, actorUserId, cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
-
-        return await GetDetailAsync(chargeRef.ChargeId, cancellationToken);
+            return Item(context, MembershipFeeBackfillOutcomes.SkippedOverdue,
+                "Batas pembayaran sudah lewat; tagihan tidak dibuat. Membership mengikuti pembatalan otomatis CRM; daftarkan ulang bila perlu.");
+        if (context.FeeAmountSnapshot <= 0)
+            return Item(context, MembershipFeeBackfillOutcomes.Failed, "Nominal iuran pada membership tidak valid.");
+        if (context.FeeChargeReferenceId.HasValue)
+            return Item(context, MembershipFeeBackfillOutcomes.Failed,
+                "Membership menunjuk tagihan yang tidak ditemukan; perlu ditinjau manual, tidak dibuat otomatis.");
+        return null;
     }
+
+    private static MembershipFeeBackfillItem Item(Guid membershipId, string memberNumber, string outcome, string message) => new()
+    {
+        MembershipId = membershipId,
+        MemberNumber = memberNumber,
+        Outcome = outcome,
+        Message = message
+    };
+
+    private static MembershipFeeBackfillItem Item(
+        MembershipFeeContext context, string outcome, string message, BilMembershipFeeCharge? charge = null) => new()
+    {
+        MembershipId = context.MembershipId,
+        MemberNumber = context.MemberNumber,
+        Outcome = outcome,
+        ChargeId = charge?.Id,
+        ChargeNumber = charge?.ChargeNumber,
+        FeeAmount = context.FeeAmountSnapshot,
+        PaymentDueAt = context.PaymentDueAt,
+        Message = message
+    };
 
     // ------------------------------------------------------------------------------------------------
     // Pembacaan

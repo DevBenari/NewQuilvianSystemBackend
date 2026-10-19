@@ -113,7 +113,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
             Guid membershipId,
             Guid chargeId,
             Guid actorUserId,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            string? reason = null)
         {
             var membership = await _dbContext.Set<MstPatientMembership>()
                 .FirstOrDefaultAsync(x => x.Id == membershipId && !x.IsDelete, cancellationToken)
@@ -132,7 +133,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
             var history = NewHistory(membership.Id, membership.MembershipStatus, membership.MembershipStatus,
                 FeeChargeLinkedActionCode, actorUserId, now, MembershipChangeSource.Billing);
             history.ReferenceId = chargeId;
-            history.Reason = "Tagihan iuran dibuat di Billing.";
+            history.Reason = reason ?? "Tagihan iuran dibuat di Billing.";
             _dbContext.Set<PatMembershipStatusHistory>().Add(history);
 
             await _dbContext.SaveChangesAsync(cancellationToken);

@@ -127,6 +127,28 @@ public sealed class BillingMembershipFeeChargesController : ControllerBase
         RunAsync(async () => Ok(ApiResponse<MembershipFeeReconciliationResponse>.Ok(
             await _service.GetReconciliationAsync(cancellationToken), "Laporan rekonsiliasi iuran membership berhasil diambil.")));
 
+    /// <summary>
+    /// Perintah administratif backfill tagihan untuk membership Menunggu Pembayaran yang didaftarkan sebelum
+    /// fitur tagihan ada (mis. <c>{ "memberNumber": "MBR-000001", "dryRun": false }</c>). Bawaannya simulasi
+    /// (<c>dryRun = true</c>); hanya berjalan atas permintaan ini, tidak pernah saat startup. Nominal dari
+    /// snapshot membership, batas bayar harus belum lewat, dan membership tidak diaktifkan. Aman diulang.
+    /// </summary>
+    [HttpPost("backfill")]
+    [AccessAction("Backfill", "Backfill Membership Fee Charge", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("BillingMembershipFeeCharges", "Backfill")]
+    [ProducesResponseType(typeof(ApiResponse<MembershipFeeBackfillResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public Task<IActionResult> Backfill([FromBody] MembershipFeeBackfillRequest request, CancellationToken cancellationToken) =>
+        RunAsync(async () =>
+        {
+            var result = await _service.BackfillAsync(request ?? new MembershipFeeBackfillRequest(), CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<MembershipFeeBackfillResponse>.Ok(
+                result,
+                result.DryRun
+                    ? "Simulasi backfill tagihan iuran selesai; tidak ada data yang ditulis."
+                    : "Backfill tagihan iuran membership selesai."));
+        });
+
     private async Task<IActionResult> RunAsync(Func<Task<IActionResult>> action)
     {
         try

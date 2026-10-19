@@ -603,8 +603,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             try
             {
-                var summaries = await _feeChargePort.GetSummariesAsync(new[] { detail.Id }, cancellationToken);
-                if (summaries.TryGetValue(detail.Id, out var summary))
+                // Port ini dikunci oleh ID tagihan (bukan ID membership).
+                var chargeId = detail.FeeChargeReferenceId.Value;
+                var summaries = await _feeChargePort.GetSummariesAsync(new[] { chargeId }, cancellationToken);
+                if (summaries.TryGetValue(chargeId, out var summary))
                 {
                     detail.FeeCharge = summary;
                 }
