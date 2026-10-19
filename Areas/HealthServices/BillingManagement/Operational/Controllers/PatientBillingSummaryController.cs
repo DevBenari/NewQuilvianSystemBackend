@@ -65,6 +65,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public Task<IActionResult> GetBreakdownAmounts(Guid episodeId, CancellationToken ct) =>
             ReadAsync(() => _summaryService.GetBreakdownAmountsAsync(episodeId, ct));
 
+        /// <summary>
+        /// Rincian estimasi tagihan rawat inap berharga per item (TASK BE-05).
+        /// Hanya dapat diakses oleh pemegang izin PatientBillingSummary:ViewItemAmount.
+        /// </summary>
+        [HttpGet("episodes/{episodeId:guid}/breakdown/estimate")]
+        [AccessAction("ViewItemAmount", "View Patient Billing Estimate With Item Prices", AccessType = AccessTypes.Read, SortOrder = 3)]
+        [AccessPermission("PatientBillingSummary", "ViewItemAmount")]
+        [ProducesResponseType(typeof(ApiResponse<PatientBillingEstimateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetEstimate(Guid episodeId, CancellationToken ct) =>
+            ReadAsync(() => _summaryService.GetEstimateAsync(episodeId, ct));
+
         private async Task<IActionResult> ReadAsync<T>(Func<Task<T?>> read) where T : class
         {
             try

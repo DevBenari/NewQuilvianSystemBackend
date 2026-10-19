@@ -3,13 +3,13 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
-| Capability-map revision | `0.5` — bertambah section 24 (impact scan 14 Oktober 2026) yang **menggantikan §22**; section 1–21 dan 23 tidak diaudit ulang dan dianggap `STALE` |
+| Capability-map revision | `0.6` — bertambah section 25 (impact scan terbatas 16 Oktober 2026) yang **menggantikan status `CAP-BIL-05` pada §24.2 dan §24.7**; section 24 selain `CAP-BIL-05` tetap berlaku; section 1–21 dan 23 tidak diaudit ulang dan dianggap `STALE`. Revisi `0.5` — section 24 menggantikan §22 |
 | Status | `source-audited`; belum menyatakan siap implementasi atau siap produksi |
-| Tanggal audit | 24 September 2026 (§1–23); 14 Oktober 2026 (§24) (`Asia/Jakarta`) |
+| Tanggal audit | 24 September 2026 (§1–23); 14 Oktober 2026 (§24); 16 Oktober 2026 (§25, terbatas) (`Asia/Jakarta`) |
 | Business input | [`00-interview-decisions.md`](./00-interview-decisions.md), approved decision revision `0.3` (`BKC-DEC-112` s.d. `BKC-DEC-119`) |
 | Supplemental evidence | [`05-servicebilling-attachment-evidence.md`](./evidence/05-servicebilling-attachment-evidence.md), ZIP SHA-256 `2b948721cee4154eaecaf9ac57d7621fb34cb7b61fb31a5fd6dff04df7ad218d` |
-| Backend snapshot | `d268a41f` (§24); §1–23 berbasis `dcb9c88e` dan `505d8d78` |
-| Frontend snapshot | `0b45dd8cd` (§24); §1–23 berbasis `fdebb9059` dan `b3f45db7b` |
+| Backend snapshot | `738e03a0` (§25, area admin dan tautan saja); `d268a41f` (§24); §1–23 berbasis `dcb9c88e` dan `505d8d78` |
+| Frontend snapshot | `8ad45262b` (§25, area admin dan Menu Pembayaran saja); `0b45dd8cd` (§24); §1–23 berbasis `fdebb9059` dan `b3f45db7b` |
 | Audit method | Pembacaan statis source, konfigurasi EF, migration, route, DI, state/service frontend, dan test inventory |
 | Write boundary | Hanya dokumen blueprint ini; source aplikasi tidak diubah |
 
@@ -1332,3 +1332,73 @@ Dua klaim pada §24 keliru dan dikoreksi di sini. Tabel §24.2 sengaja tidak dit
 | `CAP-BIL-05` | **Ready to reuse** | **Repair.** `ReconcileReferredOutpatientAdminFeeAsync` memilih **semua** invoice Rawat Jalan milik pasien tanpa batas waktu dan tanpa syarat rujukan, lalu mengkredit item admin yang sudah dibayar dan mem-void yang belum dibayar pada setiap invoice itu. Menyimpang dari `BKC-DEC-119` dan `BIL-VAL-126` ("encounter rujukan"). Keparahan **High** | `BE@d268a41f …/Billing/Services/AdministrationFeeCalculationService.cs #ReconcileReferredOutpatientAdminFeeAsync` (query invoice Rawat Jalan, `foreach` sampai `:274`); dipanggil `…/Billing/Services/BillingCalculationService.cs:604-614` setiap kali invoice rawat inap dihitung |
 | `CAP-BIL-11` | Tanpa tautan, "penemuan tagihan kandidat pelunasan gabungan tidak dapat bergantung pada tabel tautan untuk jalur utama" — dibaca sebagai penahan `MVP-36` | Status **Conflict** tetap, tetapi dampaknya pada `MVP-36` **berlebihan**: `BIL-INT-019` (revisi `1.9`) sudah membaca `RegPatientEncounter.SourceEncounterId` langsung sebagai sumber kedua (`REFERRAL_CHAIN`). Yang benar-benar terdampak: rincian gabungan tagihan rawat inap, dan penelusur rantai `MVP-37` yang hanya membaca `SourceEncounterId` **di atas** tingkat pertama sehingga gagal terbuka untuk pasien transfer | `contracts/integration-contract.md` `BIL-INT-019` tabel "Cara tagihan kandidat ditemukan"; `02-backend-architecture.md` amendment revisi `2.0` bagian 2 |
 | (baru) | — | Event `ADMISSION_CONFIRMED` duplikat memanggil ulang `EnsureEncounterLinksAsync` dengan tanda terima asli, sehingga perluasan penulis tautan ikut berlaku pada putar ulang. Layanan putar ulang milik Rawat Inap hanya memilih ulang event yang rujukan operasinya belum bertautan | `…/Billing/Services/BillingInpatientEventReceiver.cs:96-101`; `…/InPatientManagement/Services/InpIntegrationReplayService.cs:84-85,147-150` |
+
+
+## 25. Impact Scan Terbatas 16 Oktober 2026 — Penggantian Biaya Admin Rawat Jalan (`CAP-BIL-05`) dan Tautan Transfer
+
+| Field | Nilai |
+|---|---|
+| Backend SHA diaudit | `738e03a0` (branch `Yasmina`), **ditambah working tree belum di-commit** pada area Billing (daftar di bagian 25.4) |
+| Frontend SHA diaudit | `8ad45262b` |
+| Dasar keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) `BKC-DEC-017`, `BKC-DEC-119`, `BKC-DEC-155`, `BKC-DEC-158`, `BKC-DEC-160`–`166`; blueprint revisi `2.3` berstatus `draft`, revisi `2.2` `approved` |
+| Pemicu | `/design-business-module` revisi `2.3` menemukan bahwa `CAP-BIL-05` (§24.2 "Ready to reuse", §24.7 "Repair") keliru. Pass ini memverifikasi ulang temuan itu secara independen dari source, bukan dari dokumen desain |
+| Metode | Pembacaan statis source backend dan frontend, pencarian `rg`/`grep`, dan `git diff` antar SHA. **Nol** perubahan source, nol build, nol perintah tulis |
+| Dibaca | `CAP-BIL-04`, `05` (diaudit ulang); `CAP-BIL-11` (dibaca, tidak berubah); `CAP-BIL-18`–`21` (baru) |
+| **Tidak** diaudit ulang | §24 selain `CAP-BIL-05`; §1–21 dan §23. Seluruh area frontend Billing lain: **44 berkas** frontend Billing berubah sejak `0b45dd8cd` (termasuk `menu-items.jsx`, `use-menu-pembayaran.js`, `billing-invoice-constants.js`), sehingga `CAP-BIL-10` dan bukti Menu Pembayaran pada §24 **STALE** |
+| Verifikasi | `dotnet build` **NOT RUN**. Runtime **NOT RUN**. Basis data **tidak** diakses (eksekusi basis data tidak diotorisasi sesi ini), sehingga keberadaan data nyata di lingkungan mana pun **Unknown** |
+
+### 25.1 Ringkasan Satu Kalimat
+
+`CAP-BIL-05` bukan `Repair` melainkan **Conflict**: dokumen desain (`BKC-DES-049`, `BKC-DES-081`) mengandaikan biaya admin poli sebagai **item** yang bisa di-void atau dikreditkan, sedangkan source menjalankan **dua mekanisme lain** yang sama-sama tidak sesuai `BKC-DEC-119`, dan salah satunya membuat perhitungan tagihan rawat inap gagal begitu ada kredit.
+
+### 25.2 Tabel Bukti Kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap / adapter | Risiko |
+|:---|:---|:---|:---|:---:|:---|:---|
+| `CAP-BIL-05` | Penggantian biaya admin Rajal → Ranap (`BKC-DEC-119`): void bila belum dibayar, kredit bila sudah | Billing & Finance | `BE@738e03a0 …/Billing/Services/AdministrationFeeCalculationService.cs:152-288 #ReconcileReferredOutpatientAdminFeeAsync` (pemilihan item `:203-205`, kredit `:226-253`, void `:259-271`, `SaveChanges` `:278`); `:290-327 #GetPriorAppliedAdminFeeAmountAsync` (`:323`); `…/Billing/Services/BillingCalculationService.cs:68-87,144-147,208,614-622`; `…/Billing/Models/BilRefundableCredit.cs:24`; `BE@738e03a0 Repositories/Configurations/…/BilRefundableCreditConfiguration.cs:17-18`; `BE@738e03a0 Migrations/20260824080052_AddBackendBillingDanKasirPart2.cs:217`; `FE@8ad45262b src/components/view/health-services/billing-management/billing-invoices/detail/billing-inpatient-summary-panel.jsx:72-80,321-333` | **Conflict** | Dua mekanisme berjalan bersamaan dan keduanya menyimpang dari `BKC-DEC-119`. (1) **Jalur item** menyasar item yang `SourceDomain = "ADMINISTRATION"` (tidak pernah ditulis kode mana pun) atau yang deskripsinya mengandung "Administrasi". Kredit yang dibuatnya ditolak `CK_BilRefundableCredit_SourceType` (hanya `ALLOCATION_EXCESS` dan `SETTLEMENT`; tidak pernah diperluas), sehingga kalkulasi rawat inap gagal. Jalur ini berjalan juga pada pratinjau (`persist: false`) dan menyimpan sendiri tanpa transaksi. (2) **Potongan tetap** mengurangi admin rawat inap sebesar Rp 50.000 per invoice poli dalam rentang ±1 hari, tanpa tautan dan tanpa melihat status bayar. Keputusan desain yang mengandaikan satu jalur item menjadi tidak dapat dipakai | **High** — kalkulasi tagihan rawat inap dapat gagal; item layanan dapat ter-void tanpa disadari; potongan tidak berdasar |
+| `CAP-BIL-04` | Biaya administrasi rawat inap 7% ber-cap Rp 6 juta (`BKC-DEC-113`, `121`, `122`) | Billing & Finance | `BE@738e03a0 …/Billing/Services/AdministrationFeeCalculationService.cs:78-95,113-125` | **Ready to reuse** | Status **tidak berubah** dan rumus persen-ber-cap benar. **Catatan terikat `CAP-BIL-05`:** `AppliedAmount` rawat inap dapat berkurang Rp 50.000 per invoice poli dekat (`:109-125`). Itu cacat `CAP-BIL-05`, bukan cacat rumus ini | Rendah untuk rumus; risiko potongan dicatat pada `CAP-BIL-05` |
+| `CAP-BIL-18` | Admin rawat jalan sekali per pasien per tanggal lokal (`BKC-DEC-017`) | Billing & Finance | `BE@738e03a0 …/Billing/Services/AdministrationFeeCalculationService.cs:109-125,296-325`; `…/BillingManagement/MasterData/Services/AdministrationFeePolicyService.cs:362-366` | **Repair** | Dijalankan sebagai jendela ±1 hari (bukan tanggal lokal yang sama), hanya invoice `RAJAL` yang dihitung sebagai pendahulu (bukan `IGD`/`OTC`), dan nominal pendahulu dipatok Rp 50.000. Dua invoice poli pada hari yang sama dapat saling menganggap yang lain pendahulu | **Medium** — pendapatan admin dapat hilang atau berlebih. Dicatat `BKC-OQ-138`, belum diputuskan |
+| `CAP-BIL-19` | Kredit refund admin poli yang dapat dicairkan (`BKC-DEC-164`) | Billing & Finance | `BE@738e03a0 Repositories/Configurations/…/BilRefundableCreditConfiguration.cs:17-18`; `…/Billing/Services/BillingRefundService.cs:538-551`; `BE@738e03a0 …/Corporate/FinanceManagement/BillingIntake/Services/FinanceBillingIntakeService.cs:203-206` | **Missing** | Jenis `REFERRED_OUTPATIENT_ADMIN` tidak diterima constraint; tidak ada penulis kredit saat finalisasi; Finance intake hanya menarik `ALLOCATION_EXCESS` dan `SETTLEMENT`. Mekanisme refund-nya sendiri sudah ada | Sedang |
+| `CAP-BIL-20` | Tinjauan Supervisor Kasir atas item yang keliru ter-void (`BKC-DEC-162`, `165`, `166`) | Billing | `rg SupersededItemReview` pada `Areas/`, `Repositories/`, `Migrations/` menghasilkan nol | **Missing** | Tabel, model, service, controller, hak akses, dan layar belum ada | — |
+| `CAP-BIL-21` | Backfill tautan transfer lama (`BKC-DEC-160`, `163`) | Billing | `rg BackfillTransferOrigin` nol; migration backfill yang ada (`BackfillEmergencyDoctorAssignment`, `BackfillLabExaminationUrgencyFromOrderedProcedure`) bukan tautan kunjungan; `BE@738e03a0 …/RegistrationManagement/Services/EncounterPaymentSourceService.cs:51-53` masih satu-satunya penulis `SourceEncounterId` dan `AdmissionTransferSourceType` | **Missing** | Sumber data masih utuh dan penulisnya tidak berubah. Proses backfill belum ada | — |
+
+### 25.3 Fakta, Inferensi, dan Rekomendasi
+
+| Jenis | Isi |
+|---|---|
+| **Fakta** | Sumber biaya admin menurut kebijakan adalah `MstAdministrationFeePolicy`, dihitung sebagai komponen kalkulasi dan disimpan di `BilCalculationVersion.AdministrationFeeAmount` (`BillingCalculationService.cs:238,346`). Ringkasan tagihan pasien (kode belum di-commit) juga menyusun baris "Biaya Administrasi" dari angka kalkulasi, bukan dari item (`PatientBillingSummaryService.Breakdown.cs`, `LineKey = "ADMINISTRATION_FEE"`) |
+| **Fakta** | Pemilihan item oleh jalur item tidak dibatasi pada kunjungan tertaut maupun waktu (`AdministrationFeeCalculationService.cs:170-180`). Karena `SaveChangesAsync` dipanggil sekali untuk seluruh hasil `foreach` (`:278`), sebuah penolakan database membatalkan juga void yang sudah ditandai pada pemanggilan itu |
+| **Fakta** | Tidak ada satu pun test pada `Tests/` yang menyebut kalkulasi biaya admin, rekonsiliasi admin Rawat Jalan, maupun jenis kredit `REFERRED_OUTPATIENT_ADMIN`. Jenis kredit itu ditambahkan di kode pada commit `59910dc0` (24 September 2026) tanpa menyentuh constraint |
+| **Fakta** | Item tarif berkategori `IsAdministrationFee` **dapat** menjadi item tagihan (kategori ini dikenali penghitung item dan diskon: `BillingCalculationService.cs:307,881`; `BillingDiscountService.cs:89,612`; `BillingInvoiceService.cs:1409`). Tidak ada tarif berkategori itu pada seeder atau migration |
+| **Fakta** | Fakta transfer lama tidak berubah: `EncounterPaymentSourceService.cs:51-53` tetap satu-satunya penulis, dan `BillingInpatientEventReceiver` serta `InpIntegrationReplayService` tidak berubah sejak `d268a41f` |
+| **Inferensi** | Karena tidak ada test dan jalur kredit selalu ditolak constraint, kegagalan kalkulasi rawat inap kemungkinan belum pernah teramati. Ia hanya muncul bila pasien punya invoice poli **sudah dibayar** yang memuat item bernama "Administrasi …". Kemunculannya bergantung pada data master di tiap lingkungan |
+| **Inferensi** | Item tarif berkategori admin, bila ada pada data nyata, dapat dikenali jalur item lewat kata "Administrasi" pada namanya. Maka klaim desain "yang di-void adalah item **lain**" (revisi `2.3` F9) **terlalu kuat**: yang benar, item yang di-void bisa item layanan lain **atau** item tarif admin yang sah. Ini tidak membatalkan desain revisi `2.3` (model barunya tidak lagi membaca item), tetapi item tarif admin yang sah **tidak** diganti oleh model baru dan dapat membuat admin dihitung dua kali pada tagihan poli |
+| **Rekomendasi** | Perbarui `CAP-BIL-05` menjadi **Conflict** (dilakukan di sini). `/design-business-module` perlu memeriksa ulang F8–F9 revisi `2.3` terhadap item tarif berkategori admin (lihat `BKC-CQ-15`) sebelum amendment disetujui |
+| **Rekomendasi** | Pengujian regresi pada PostgreSQL (bukan InMemory) wajib mendahului perbaikan, karena `CHECK` tidak ditegakkan InMemory |
+
+### 25.4 Perubahan Belum Di-commit pada Area Billing (bukti tidak stabil)
+
+Pada saat audit, `git diff 738e03a0` memuat empat belas berkas Billing. Dua kelompok relevan:
+
+| Kelompok | Berkas | Relevansi |
+|---|---|---|
+| Satu baris per controller (rapikan kode/penamaan), sembilan berkas, ditambah `BillingDepositOrderService.cs` (8 baris); folder `Seeders/` baru belum terlacak Git | `Billing/Controllers/*.cs`, `Cashier/Controllers/CashierShiftsController.cs` | Tidak menyentuh area admin. Dicatat sebagai pembanding SHA |
+| **Ringkasan tagihan pasien** (+470 baris) | `Operational/Controllers/PatientBillingSummaryController.cs`, `Operational/DTOs/PatientBillingSummaryDtos.cs`, `Operational/Services/PatientBillingSummaryService.Breakdown.cs`, `PatientBillingSummaryService.cs` | Membaca `LinkedEncounters` dan menyusun baris admin dari angka kalkulasi. **Belum ada di SHA mana pun**; bukti ini dapat berubah atau hilang |
+
+### 25.5 Pertanyaan Penutup
+
+| ID | Pertanyaan | Pemilik jawaban | Menahan |
+|:---|:---|:---|:---|
+| `BKC-CQ-15` | Apakah item tarif berkategori `IsAdministrationFee` dipakai pada lingkungan produksi (mis. ditambahkan manual atau lewat katalog pada tagihan poli)? Bila ya, model penggantian revisi `2.3` perlu menyebut perlakuan item itu agar admin tidak dihitung dua kali | Pemilik modul Billing dan Finance (butuh akses data) | Persetujuan desain revisi `2.3` bila jawabannya "ya"; tidak menahan `FR-BKC-278` |
+| `BKC-CQ-16` | Apakah ada kredit `REFERRED_OUTPATIENT_ADMIN` di basis data lingkungan mana pun? Secara teori nol, karena constraint menolaknya; bila lebih dari nol, basis data itu menyimpang dari migration | Pemilik modul Billing (butuh akses data) | Tidak menahan; menentukan apakah ada insiden terpisah |
+| `BKC-CQ-17` | Berapa banyak invoice rawat inap yang gagal dihitung dengan pesan "Versi kalkulasi tidak dapat disimpan karena invoice telah berubah" di log lingkungan nyata? | Pemilik modul Billing (butuh akses log) | Tidak menahan; mengukur dampak sebenarnya cacat `CAP-BIL-05` |
+
+### 25.6 Pemicu Impact Scan Berikutnya
+
+| Pemicu | Area terdampak |
+|---|---|
+| Perubahan pada `AdministrationFeeCalculationService`, `BillingCalculationService`, `BilRefundableCreditConfiguration`, atau `BillingFinalizationService` | `CAP-BIL-04`, `05`, `18`, `19` |
+| Perubahan pada `EncounterPaymentSourceService`, `InpAdmissionTransferService`, `BillingInpatientEventReceiver`, atau `InpIntegrationReplayService` | `CAP-BIL-11`, `21` |
+| Berkas `PatientBillingSummaryService*` di-commit | Bukti ringkasan admin dan `LinkedEncounters` pada bagian 25.3 |
+| Frontend: perubahan pada Menu Pembayaran, `billing-inpatient-summary-panel.jsx`, atau `menu-items.jsx` | `CAP-BIL-05` (konsumen), `CAP-BIL-10` |
+| `BKC-CQ-15` terjawab | Perlakuan item tarif admin pada desain revisi `2.3` |

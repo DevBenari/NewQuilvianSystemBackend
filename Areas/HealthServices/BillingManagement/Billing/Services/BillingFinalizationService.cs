@@ -6,6 +6,12 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Serv
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
@@ -27,6 +33,7 @@ public sealed class BillingFinalizationService
     private readonly IBillingCalculationService? _calculationService;
     private readonly BillingEmployeeBenefitSplitService? _splitService;
     private readonly EmployeeBenefitBalanceService? _balanceService;
+    private readonly ClinicalDocumentIntegrityService? _integrityService;
 
     public BillingFinalizationService(
         ApplicationDbContext dbContext,
@@ -37,7 +44,8 @@ public sealed class BillingFinalizationService
         LoggerService loggerService,
         BillingEmployeeBenefitSplitService? splitService = null,
         IBillingCalculationService? calculationService = null,
-        EmployeeBenefitBalanceService? balanceService = null)
+        EmployeeBenefitBalanceService? balanceService = null,
+        ClinicalDocumentIntegrityService? integrityService = null)
     {
         _dbContext = dbContext;
         _chargeSourceAdapter = chargeSourceAdapter;
@@ -48,16 +56,27 @@ public sealed class BillingFinalizationService
         _splitService = splitService;
         _calculationService = calculationService;
         _balanceService = balanceService ?? splitService?.BalanceService;
+        _integrityService = integrityService;
     }
 
     public async Task<FinalizationPreviewResponse> PreviewAsync(
         Guid invoiceId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        decimal? choiceAmount = null,
+        string? consentGivenBy = null,
+        string? financingChoice = null,
+        decimal? employeeDeferredAmount = null)
     {
         var invoice = await _dbContext.BilInvoices.AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
-        return await BuildReadinessAsync(invoice, cancellationToken);
+        return await BuildReadinessAsync(
+            invoice,
+            cancellationToken,
+            choiceAmount: choiceAmount,
+            consentGivenBy: consentGivenBy,
+            financingChoice: financingChoice,
+            employeeDeferredAmount: employeeDeferredAmount);
     }
 
     public async Task<FinalizationResponse> FinalizeAsync(
@@ -101,10 +120,13 @@ public sealed class BillingFinalizationService
                             prior.Invoice,
                             replayCalculation,
                             prior.OutstandingAtFinalization,
-                            request.EmployeeReceivableChoiceAmount ?? 0m,
+                            request.EmployeeDeferredAmount ?? request.EmployeeReceivableChoiceAmount ?? 0m,
                             request.EmployeeReceivableConsentGivenBy,
                             isFinalizing: false,
-                            cancellationToken);
+                            cancellationToken,
+                            financingChoice: request.FinancingChoice,
+                            employeeDeferredAmount: request.EmployeeDeferredAmount,
+                            consentNotes: request.EmployeeReceivableConsentNotes);
                         replayResponse.EmployeeBenefitSplit = replaySplit?.Response;
                     }
                 }
@@ -128,7 +150,13 @@ public sealed class BillingFinalizationService
                     code: "STALE_INVOICE_ROW_VERSION",
                     currentRowVersion: invoice.RowVersion);
 
-            var readiness = await BuildReadinessAsync(invoice, cancellationToken);
+            var readiness = await BuildReadinessAsync(
+                invoice,
+                cancellationToken,
+                choiceAmount: request.EmployeeDeferredAmount ?? request.EmployeeReceivableChoiceAmount ?? 0m,
+                consentGivenBy: request.EmployeeReceivableConsentGivenBy,
+                financingChoice: request.FinancingChoice,
+                employeeDeferredAmount: request.EmployeeDeferredAmount);
             var isDepartureException = !string.IsNullOrWhiteSpace(request.DepartureReason);
             // BE-RWI-155 / INV-RWF-08 / VAL-RWF-16: invoice "perlu diperiksa" tidak pernah
             // difinalkan, termasuk lewat departure exception.
@@ -165,10 +193,13 @@ public sealed class BillingFinalizationService
                     invoice,
                     calculation,
                     readiness.Outstanding,
-                    choiceAmount: request.EmployeeReceivableChoiceAmount ?? 0m,
+                    choiceAmount: request.EmployeeDeferredAmount ?? request.EmployeeReceivableChoiceAmount ?? 0m,
                     consentGivenBy: request.EmployeeReceivableConsentGivenBy,
                     isFinalizing: true,
-                    cancellationToken);
+                    cancellationToken: cancellationToken,
+                    financingChoice: request.FinancingChoice,
+                    employeeDeferredAmount: request.EmployeeDeferredAmount,
+                    consentNotes: request.EmployeeReceivableConsentNotes);
             }
 
             var effectiveOutstanding = splitResult is not null
@@ -533,6 +564,102 @@ public sealed class BillingFinalizationService
         return (true, null);
     }
 
+    /// <summary>
+    /// TASK BE-04: Transisi EncounterStatus menjadi Completed (9) setelah billing lunas,
+    /// dengan seluruh guard kelayakan klinis dan finansial yang ketat.
+    /// </summary>
+    public async Task<(bool Completed, string? IncompleteReason)> TryCompleteEncounterForInvoiceAsync(
+        Guid invoiceId,
+        Guid actorUserId,
+        DateTimeOffset occurredAt,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices
+            .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
+        if (invoice == null)
+            return (false, "Invoice tidak ditemukan.");
+
+        // Guard finansial: tagihan harus sudah lunas (outstanding <= 0)
+        var outstanding = await _closureService.CalculateOutstandingAsync(invoice, cancellationToken);
+        if (outstanding > 0)
+            return (false, "Encounter belum dapat diselesaikan karena invoice masih memiliki sisa tagihan.");
+
+        // Guard transaksi: tidak boleh ada tender yang masih pending
+        var hasPendingTenders = await _dbContext.BilTenders
+            .AnyAsync(t => t.Settlement.InvoiceId == invoice.Id && t.Status == BillingTenderStatuses.Pending && !t.IsDelete, cancellationToken);
+        if (hasPendingTenders)
+            return (false, "Encounter belum dapat diselesaikan karena masih ada pembayaran yang berstatus pending.");
+
+        var encounter = await _dbContext.Set<RegPatientEncounter>()
+            .SingleOrDefaultAsync(e => e.Id == invoice.EncounterId && !e.IsDelete, cancellationToken);
+        if (encounter == null)
+            return (false, "Encounter pasien tidak ditemukan.");
+
+        // Idempotent guard: sudah completed
+        if (encounter.EncounterStatus == EncounterStatus.Completed)
+            return (true, null);
+
+        // Guard keselamatan: encounter yang dibatalkan atau no-show tidak boleh diubah menjadi selesai
+        if (encounter.CancelledAt.HasValue || encounter.NoShowAt.HasValue ||
+            encounter.EncounterStatus == EncounterStatus.Cancelled || encounter.EncounterStatus == EncounterStatus.NoShow)
+        {
+            return (false, "Encounter telah dibatalkan atau no-show, tidak dapat diselesaikan.");
+        }
+
+        // Clinical / discharge guards per tipe encounter
+        if (encounter.EncounterType == EncounterType.Inpatient)
+        {
+            var episode = await _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ep => ep.EncounterId == encounter.Id && !ep.IsDelete, cancellationToken);
+            if (episode != null && episode.EpisodeStatus != InpEpisodeStatus.Closed && !episode.PhysicallyLeftAt.HasValue)
+            {
+                return (false, "Encounter rawat inap belum dapat diselesaikan karena pasien belum menyelesaikan prosedur kepulangan klinis.");
+            }
+        }
+        else if (encounter.EncounterType == EncounterType.Emergency)
+        {
+            var emgVisit = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(v => v.EncounterId == encounter.Id && !v.IsDelete, cancellationToken);
+            if (emgVisit != null && !emgVisit.ClosedByDispositionId.HasValue)
+            {
+                return (false, "Encounter gawat darurat belum dapat diselesaikan karena disposisi IGD belum ditutup.");
+            }
+        }
+
+        var statusBefore = encounter.EncounterStatus;
+        encounter.EncounterStatus = EncounterStatus.Completed;
+        encounter.CompletedAt = occurredAt.UtcDateTime;
+        encounter.UpdateDateTime = DateTime.UtcNow;
+        encounter.UpdateBy = actorUserId;
+
+        if (_integrityService != null)
+        {
+            await _integrityService.LockOpenDocumentsForEncounterAsync(
+                encounter.Id, actorUserId, occurredAt.UtcDateTime, encounter.CompletedAt, cancellationToken: cancellationToken);
+        }
+
+        await _loggerService.AuditAsync(
+            LogCategory,
+            "BillingEncounter.Completed",
+            $"Encounter {encounter.EncounterNumber} otomatis diselesaikan setelah tagihan lunas (Invoice {invoice.InvoiceNumber}).",
+            new
+            {
+                InvoiceId = invoice.Id,
+                InvoiceNumber = invoice.InvoiceNumber,
+                EncounterId = encounter.Id,
+                EncounterNumber = encounter.EncounterNumber,
+                EncounterStatusBefore = (int)statusBefore,
+                EncounterStatusAfter = (int)EncounterStatus.Completed,
+                ActorUserId = actorUserId,
+                OccurredAt = occurredAt
+            });
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return (true, null);
+    }
+
     internal async Task<(BilFinalizationRecord Record, InvoiceClosureChange ClosureChange)> ExecuteInternalFinalizationAndClosureAsync(
         BilInvoice invoice,
         BilCalculationVersion calculation,
@@ -590,6 +717,10 @@ public sealed class BillingFinalizationService
         await _arApHandoffService.StageHandoffsForFinalizationAsync(
             invoice, calculation, record, outstandingAtFinalization, isDepartureException,
             actorUserId, cancellationToken, employeeBenefitSplit);
+
+        // BKC-DEC-164 / BKC-DES-086 (BE-BKC-085): Sisa kredit administrasi rawat jalan menjadi kredit refund
+        await RecognizeUnappliedReferredAdminCreditAsync(
+            invoice, calculation, calculationVersion, actorUserId, now, cancellationToken);
 
         // BE-FIN-108: Kurangi plafon di HR tepat satu kali di dalam batas transaksi pemanggil
         // (FIN-DEC-202, FIN-DEC-205, FIN-INTEGRATION-1.9 R.3, FR-FIN-244, AC 1-5).
@@ -671,6 +802,9 @@ public sealed class BillingFinalizationService
                 record.CausationId,
                 cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // TASK BE-04: Transisi EncounterStatus menjadi Completed (9) jika memenuhi prasyarat
+            await TryCompleteEncounterForInvoiceAsync(invoice.Id, actorUserId, now, cancellationToken);
         }
 
         return (record, closureChange);
@@ -678,7 +812,11 @@ public sealed class BillingFinalizationService
 
     private async Task<FinalizationPreviewResponse> BuildReadinessAsync(
         BilInvoice invoice,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        decimal? choiceAmount = null,
+        string? consentGivenBy = null,
+        string? financingChoice = null,
+        decimal? employeeDeferredAmount = null)
     {
         if (invoice.CurrentCalculationVersion <= 0)
             return new FinalizationPreviewResponse
@@ -717,11 +855,18 @@ public sealed class BillingFinalizationService
                 invoice,
                 calculation,
                 outstanding,
-                choiceAmount: 0m,
-                consentGivenBy: null,
+                choiceAmount: employeeDeferredAmount ?? choiceAmount ?? 0m,
+                consentGivenBy: consentGivenBy,
                 isFinalizing: false,
-                cancellationToken);
+                cancellationToken: cancellationToken,
+                financingChoice: financingChoice,
+                employeeDeferredAmount: employeeDeferredAmount,
+                consentNotes: null);
         }
+
+        var effectiveOutstanding = splitResult is not null
+            ? splitResult.PatientRemainingAmount
+            : outstanding;
 
         var blockingReasons = new List<string>();
         var blockingCodes = new List<string>();
@@ -729,7 +874,7 @@ public sealed class BillingFinalizationService
             blockingReasons.Add("Semua order harus selesai sebelum invoice difinalkan.");
         if (!calculationCurrent)
             blockingReasons.Add("Tagihan berubah; hitung ulang sebelum finalisasi.");
-        if (outstanding > 0)
+        if (effectiveOutstanding > 0)
             blockingReasons.Add(
                 "Tanggung jawab pasien belum lunas; ajukan write-off/adjustment atau catat departure exception untuk melanjutkan.");
         if (invoice.RequiresReview)
@@ -766,7 +911,7 @@ public sealed class BillingFinalizationService
             AllOrdersComplete = allOrdersComplete,
             CalculationCurrent = calculationCurrent,
             Outstanding = outstanding,
-            IsReadyForNormalFinalization = allOrdersComplete && calculationCurrent && outstanding == 0
+            IsReadyForNormalFinalization = allOrdersComplete && calculationCurrent && effectiveOutstanding == 0
                 && blockingCodes.Count == 0,
             BlockingReasons = blockingReasons,
             BlockingCodes = blockingCodes,
@@ -916,6 +1061,80 @@ public sealed class BillingFinalizationService
                 Trigger = "Finalization",
                 ActorUserId = actorUserId
             });
+
+    /// <summary>
+    /// BKC-DEC-164 / BKC-DES-086 (BE-BKC-085):
+    /// Bila ReferredOutpatientAdminUnappliedCreditAmount versi yang difinalisasi lebih dari 0 dan
+    /// belum ada kredit REFERRED_OUTPATIENT_ADMIN dengan SourceId = id invoice rawat inap,
+    /// satu kredit refund dibuat dan dicatat audit BillingRefundableCredit.RecognizeReferredAdmin.
+    /// Bila kredit sudah ada tetapi nominal sisanya berbeda (invoice sempat kembali OPEN lalu difinalisasi ulang),
+    /// kredit lama tidak diubah dan peristiwanya dicatat audit BillingRefundableCredit.ReferredAdminDrift untuk ditinjau Finance.
+    /// Berjalan di dalam batas transaksi pemanggil.
+    /// </summary>
+    private async Task RecognizeUnappliedReferredAdminCreditAsync(
+        BilInvoice invoice,
+        BilCalculationVersion calculation,
+        int calculationVersion,
+        Guid actorUserId,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (calculation.ReferredOutpatientAdminUnappliedCreditAmount <= 0m)
+            return;
+
+        var existingCredit = await _dbContext.BilRefundableCredits
+            .Where(c => c.SourceType == BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin
+                     && c.SourceId == invoice.Id
+                     && !c.IsDelete)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (existingCredit is null)
+        {
+            var credit = new BilRefundableCredit
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = invoice.Id,
+                SourceType = BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin,
+                SourceId = invoice.Id,
+                OriginalAmount = calculation.ReferredOutpatientAdminUnappliedCreditAmount,
+                AvailableAmount = calculation.ReferredOutpatientAdminUnappliedCreditAmount,
+                Status = BillingRefundableCreditStatuses.Available,
+                RecognizedAt = now,
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.BilRefundableCredits.Add(credit);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "BillingRefundableCredit.RecognizeReferredAdmin",
+                "Kredit refund admin Rawat Jalan lahir saat finalisasi.",
+                new
+                {
+                    CreditId = credit.Id,
+                    InpatientInvoiceId = invoice.Id,
+                    Amount = credit.OriginalAmount,
+                    CalculationVersionNo = calculationVersion,
+                    ActorUserId = actorUserId
+                });
+        }
+        else if (existingCredit.OriginalAmount != calculation.ReferredOutpatientAdminUnappliedCreditAmount)
+        {
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "BillingRefundableCredit.ReferredAdminDrift",
+                "Finalisasi ulang menghasilkan sisa kredit berbeda dari kredit yang sudah ada.",
+                new
+                {
+                    CreditId = existingCredit.Id,
+                    InpatientInvoiceId = invoice.Id,
+                    ExistingAmount = existingCredit.OriginalAmount,
+                    NewUnappliedAmount = calculation.ReferredOutpatientAdminUnappliedCreditAmount,
+                    ActorUserId = actorUserId
+                });
+        }
+    }
 
     private static FinalizationResponse Map(BilFinalizationRecord record, bool isReplay) => new()
     {

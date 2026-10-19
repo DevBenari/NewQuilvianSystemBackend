@@ -17,8 +17,7 @@
 | Target tulis | `NewQuilvianSystemBackend` (branch `rizkiG`): 5 berkas IGD pada 3.2; laporan ini, roadmap, traceability |
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `9e0e517f` (`rizkiG`) + working tree (`BE-IGD-073` belum di-commit) |
-| Tanggal | 13–14 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — source dan kontrak lengkap.** Uji Putaran B2 (15 Oktober 2026): verifikasi aturan 409/404 (C-03, C-04, C-05, C-09, C-22, C-24), print-data (C-10), regresi Pulang/Poli (C-25, C-26), dan pembongkaran Kamar Pulih (C-28) ✅ LULUS. Langkah admisi C-12 terblokir otorisasi RBAC petugas admisi (`Doctor:Read`, `InpatientBedOccupancy:Read/Create/Update`); skenario P3–P5 NOT RUN (panduan §6.2). |
+| Status | ✅ **SELESAI / DONE — Build & Live Browser Testing Lulus.** Terbukti 100% pada Live Browser Testing Putaran B3 (`2026-10-16-laporan-uji-putaran-b3-transfer-igd.md`): tanda tangan DPJP IGD berhasil mengubah status form ke Signed (3), pasien masuk antrean transfer admisi, penolakan admisi terkoordinasi, surat pengantar transfer berhasil dicetak, dan tombol Jalankan rawat inap tertahan aman. |
 
 ### Backend Governance Preflight
 

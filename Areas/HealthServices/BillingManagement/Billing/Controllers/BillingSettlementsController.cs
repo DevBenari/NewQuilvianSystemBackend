@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing/patient-funds")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING_SETTLEMENT", "Health Service Billing Management", "Billing Settlements",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Settlements",
     AreaName = "HealthServices", ControllerName = "BillingSettlements", Description = "Split tender and provider-neutral payment attempt lifecycle", SortOrder = 3)]
 [Tags("Health Services / Billing Management / Billing / Patient Funds")]
 public sealed class BillingSettlementsController : ControllerBase

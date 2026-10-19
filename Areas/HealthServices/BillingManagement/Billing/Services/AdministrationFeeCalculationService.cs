@@ -6,13 +6,14 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.DT
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 
 /// <summary>
-/// Layanan perhitungan biaya administrasi rawat inap berbasis deklaratif master policy dan rekonsiliasi alihan rajal ke ranap.
-/// (BKC-DEC-113, BKC-DEC-119, BKC-DEC-121, BKC-DEC-122, BKC-DES-044, BKC-DES-049, BIL-VAL-120, BIL-VAL-126).
+/// Layanan perhitungan biaya administrasi rawat inap berbasis deklaratif master policy.
+/// (BKC-DEC-113, BKC-DEC-119, BKC-DEC-121, BKC-DEC-122, BKC-DES-044, BKC-DES-083, BIL-VAL-120, BIL-VAL-159).
 /// </summary>
 public sealed class AdministrationFeeCalculationService : IAdministrationFeeCalculationService
 {
@@ -148,143 +149,146 @@ public sealed class AdministrationFeeCalculationService : IAdministrationFeeCalc
         };
     }
 
+
     /// <inheritdoc />
-    public async Task<ReconcileReferredOutpatientAdminResult> ReconcileReferredOutpatientAdminFeeAsync(
-        ReconcileReferredOutpatientAdminRequest request,
+    public async Task<ReferredAdminReplacementResult> ResolveReferredAdminReplacementAsync(
+        BilInvoice invoice,
+        RegPatientEncounter encounter,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(invoice);
+        ArgumentNullException.ThrowIfNull(encounter);
 
-        var ranapInvoice = await _dbContext.BilInvoices
-            .FirstOrDefaultAsync(x => x.Id == request.InpatientInvoiceId && !x.IsDelete, cancellationToken);
-
-        if (ranapInvoice == null)
+        // 1. Invoice RAJAL: cari tautan aktif dengan LinkedEncounterId = kunjungan invoice ini.
+        if (string.Equals(invoice.ServiceType, AdministrationFeeServiceTypes.Rajal, StringComparison.OrdinalIgnoreCase))
         {
-            return new ReconcileReferredOutpatientAdminResult
+            var activeRanapLinks = await (
+                from link in _dbContext.BilInvoiceEncounterLinks.AsNoTracking()
+                join ranapInv in _dbContext.BilInvoices.AsNoTracking() on link.RanapInvoiceId equals ranapInv.Id
+                where !link.IsDelete
+                    && link.LinkedEncounterId == invoice.EncounterId
+                    && !ranapInv.IsDelete
+                    && !ranapInv.IsCancel
+                    && ranapInv.ServiceType == AdministrationFeeServiceTypes.Ranap
+                orderby ranapInv.CreateDateTime ascending
+                select new { RanapInvoiceId = ranapInv.Id }
+            ).ToListAsync(cancellationToken);
+
+            if (activeRanapLinks.Count > 0)
             {
-                HasReferredOutpatient = false,
-                Message = "Invoice rawat inap tidak ditemukan."
-            };
-        }
-
-        // Cari invoice rawat jalan sebelumnya milik pasien ini
-        var outpatientInvoices = await (
-            from inv in _dbContext.BilInvoices
-            join enc in _dbContext.RegPatientEncounters on inv.EncounterId equals enc.Id
-            where enc.PatientId == request.PatientId
-                  && inv.Id != request.InpatientInvoiceId
-                  && inv.ServiceType == AdministrationFeeServiceTypes.Rajal
-                  && !inv.IsDelete && !enc.IsDelete
-            orderby inv.CreateDateTime descending
-            select inv
-        ).Include(x => x.Items).ToListAsync(cancellationToken);
-
-        if (outpatientInvoices.Count == 0)
-        {
-            return new ReconcileReferredOutpatientAdminResult
-            {
-                HasReferredOutpatient = false,
-                Message = "Tidak ada kunjungan rawat jalan rujukan sebelumnya untuk pasien ini."
-            };
-        }
-
-        var result = new ReconcileReferredOutpatientAdminResult
-        {
-            HasReferredOutpatient = true
-        };
-
-        var hasChanges = false;
-
-        foreach (var rajalInv in outpatientInvoices)
-        {
-            result.OutpatientInvoiceId = rajalInv.Id;
-
-            // Cari item biaya administrasi rajal pada invoice tersebut
-            var adminItems = rajalInv.Items
-                .Where(x => !x.IsDelete && (x.SourceDomain == "ADMINISTRATION" || x.DescriptionSnapshot.Contains("Administrasi", StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-
-            if (adminItems.Count == 0)
-                continue;
-
-            // Periksa apakah invoice rajal tersebut sudah pernah dibayar / disettle di loket poli
-            var hasAllocation = await _dbContext.BilPaymentAllocations.AsNoTracking()
-                .AnyAsync(a => a.TargetType == BillingAllocationTargetTypes.Invoice && a.TargetId == rajalInv.Id && !a.IsDelete, cancellationToken);
-            var isPaid = string.Equals(rajalInv.Status, BillingInvoiceStatuses.Closed, StringComparison.OrdinalIgnoreCase)
-                         || string.Equals(rajalInv.Status, BillingInvoiceStatuses.Final, StringComparison.OrdinalIgnoreCase)
-                         || hasAllocation;
-
-            if (isPaid)
-            {
-                // BKC-DEC-119 Kasus Sudah Dibayar: Nominal admin rajal dialihkan sebagai kredit pembayaran ranap
-                foreach (var item in adminItems)
+                return new ReferredAdminReplacementResult
                 {
-                    if (item.Status == BillingInvoiceItemStatuses.Voided)
-                        continue;
+                    IsSupersededByInpatientAdmission = true,
+                    SupersededByInpatientInvoiceId = activeRanapLinks[0].RanapInvoiceId,
+                    SupersededReasonCode = DefaultVoidReasonSuperseded,
+                    ReferredOutpatientAdminCreditedAmount = 0m,
+                    ReferredOutpatientAdminUnappliedCreditAmount = 0m,
+                    ReferredOutpatientAdminOrigins = []
+                };
+            }
 
-                    // Idempotensi: Cek apakah kredit alihan ini sudah pernah dibuat sebelumnya
-                    var existingCredit = await _dbContext.BilRefundableCredits
-                        .FirstOrDefaultAsync(c => c.InvoiceId == ranapInvoice.Id
-                            && c.SourceType == BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin
-                            && c.SourceId == item.Id && !c.IsDelete, cancellationToken);
+            return new ReferredAdminReplacementResult();
+        }
 
-                    if (existingCredit == null)
+        // 2. Invoice RANAP: ambil tautan aktif dengan RanapInvoiceId = invoice ini.
+        if (string.Equals(invoice.ServiceType, AdministrationFeeServiceTypes.Ranap, StringComparison.OrdinalIgnoreCase))
+        {
+            var activeOrigins = await (
+                from link in _dbContext.BilInvoiceEncounterLinks.AsNoTracking()
+                join rajalInv in _dbContext.BilInvoices.AsNoTracking() on link.LinkedEncounterId equals rajalInv.EncounterId
+                where !link.IsDelete
+                    && link.RanapInvoiceId == invoice.Id
+                    && !rajalInv.IsDelete
+                    && !rajalInv.IsCancel
+                    && rajalInv.ServiceType == AdministrationFeeServiceTypes.Rajal
+                orderby link.CreateDateTime ascending
+                select rajalInv
+            ).ToListAsync(cancellationToken);
+
+            if (activeOrigins.Count == 0)
+            {
+                return new ReferredAdminReplacementResult();
+            }
+
+            var originResults = new List<ReferredAdminOriginResult>();
+            decimal totalCreditAmount = 0m;
+
+            foreach (var rajalInv in activeOrigins)
+            {
+                decimal adminPatientAmount = 0m;
+                if (rajalInv.CurrentCalculationVersion > 0)
+                {
+                    var latestVersion = await _dbContext.BilCalculationVersions.AsNoTracking()
+                        .Where(v => v.InvoiceId == rajalInv.Id && v.VersionNo == rajalInv.CurrentCalculationVersion && !v.IsDelete)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (latestVersion != null && !string.IsNullOrWhiteSpace(latestVersion.BreakdownSnapshot))
                     {
-                        var itemAmount = item.Quantity * item.UnitPrice;
-                        var credit = new BilRefundableCredit
+                        var snapshot = BillingCalculationService.DeserializeBreakdown(latestVersion.BreakdownSnapshot);
+                        var adminFee = snapshot.AdministrationFee;
+                        if (adminFee != null)
                         {
-                            Id = Guid.NewGuid(),
-                            InvoiceId = ranapInvoice.Id,
-                            SourceType = BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin,
-                            SourceId = item.Id,
-                            OriginalAmount = itemAmount,
-                            AvailableAmount = itemAmount,
-                            Status = BillingRefundableCreditStatuses.Available,
-                            RecognizedAt = DateTimeOffset.UtcNow,
-                            CreateBy = request.ActorUserId,
-                            CreateDateTime = DateTime.UtcNow
-                        };
-
-                        _dbContext.BilRefundableCredits.Add(credit);
-                        result.WasCredited = true;
-                        result.CreditedAmount += itemAmount;
-                        result.RefundableCreditId = credit.Id;
-                        hasChanges = true;
+                            adminPatientAmount = Math.Max(0m, adminFee.AppliedAmount - adminFee.PrimaryAmount - adminFee.UnresolvedAmount - adminFee.NonBillableResidualAmount);
+                        }
                     }
                 }
-            }
-            else
-            {
-                // BKC-DEC-119 Kasus Belum Dibayar: Item admin rajal dibatalkan (void) otomatis
-                foreach (var item in adminItems)
+
+                string treatment;
+                decimal creditAmount = 0m;
+
+                if (string.Equals(rajalInv.Status, BillingInvoiceStatuses.Open, StringComparison.OrdinalIgnoreCase))
                 {
-                    if (item.Status != BillingInvoiceItemStatuses.Voided)
-                    {
-                        item.Status = BillingInvoiceItemStatuses.Voided;
-                        item.VoidReason = DefaultVoidReasonSuperseded;
-                        item.UpdateBy = request.ActorUserId;
-                        item.UpdateDateTime = DateTime.UtcNow;
-
-                        result.WasVoided = true;
-                        result.VoidedItemCount++;
-                        hasChanges = true;
-                    }
+                    treatment = "SUPERSEDED";
+                    creditAmount = 0m;
                 }
+                else if (string.Equals(rajalInv.Status, BillingInvoiceStatuses.Final, StringComparison.OrdinalIgnoreCase)
+                      || string.Equals(rajalInv.Status, BillingInvoiceStatuses.Closed, StringComparison.OrdinalIgnoreCase))
+                {
+                    creditAmount = adminPatientAmount;
+                    treatment = adminPatientAmount > 0 ? "CREDITED" : "NO_ADMIN";
+                }
+                else if (string.Equals(rajalInv.Status, BillingInvoiceStatuses.SettledByWriteOff, StringComparison.OrdinalIgnoreCase))
+                {
+                    var netAllocations = await _dbContext.BilPaymentAllocations.AsNoTracking()
+                        .Where(a => a.TargetType == BillingAllocationTargetTypes.Invoice && a.TargetId == rajalInv.Id && !a.IsDelete)
+                        .SumAsync(a => (decimal?)(a.ReversesAllocationId.HasValue ? -a.Amount : a.Amount), cancellationToken) ?? 0m;
+                    var paidAmount = Math.Max(0m, netAllocations);
+                    creditAmount = Math.Min(adminPatientAmount, paidAmount);
+                    treatment = creditAmount > 0 ? "CREDITED" : "NO_ADMIN";
+                }
+                else
+                {
+                    treatment = "NO_ADMIN";
+                    creditAmount = 0m;
+                }
+
+                totalCreditAmount += creditAmount;
+
+                originResults.Add(new ReferredAdminOriginResult
+                {
+                    OriginInvoiceId = rajalInv.Id,
+                    OriginInvoiceNumber = rajalInv.InvoiceNumber,
+                    OriginEncounterId = rajalInv.EncounterId,
+                    OriginInvoiceStatus = rajalInv.Status,
+                    Treatment = treatment,
+                    AdminPatientAmount = adminPatientAmount,
+                    CreditAmount = creditAmount
+                });
             }
+
+            return new ReferredAdminReplacementResult
+            {
+                IsSupersededByInpatientAdmission = false,
+                SupersededByInpatientInvoiceId = null,
+                SupersededReasonCode = null,
+                ReferredOutpatientAdminCreditedAmount = totalCreditAmount,
+                ReferredOutpatientAdminUnappliedCreditAmount = 0m,
+                ReferredOutpatientAdminOrigins = originResults
+            };
         }
 
-        if (hasChanges)
-        {
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        }
-
-        result.Message = result.WasCredited
-            ? $"Biaya administrasi rajal sebesar Rp {result.CreditedAmount:N0} yang telah dibayar berhasil dialihkan sebagai kredit tagihan rawat inap."
-            : result.WasVoided
-                ? $"Biaya administrasi rajal sebanyak {result.VoidedItemCount} item berhasil dibatalkan (void) karena digantikan administrasi rawat inap."
-                : "Biaya administrasi rajal sudah pernah direkonsiliasi sebelumnya.";
-
-        return result;
+        // 3. Invoice IGD / OTC / dll: tidak dibaca; hasil kosong
+        return new ReferredAdminReplacementResult();
     }
 
     private async Task<(decimal TotalPriorApplied, int MaxPriority)> GetPriorAppliedAdminFeeAmountAsync(
@@ -292,6 +296,14 @@ public sealed class AdministrationFeeCalculationService : IAdministrationFeeCalc
         MstAdministrationFeePolicy currentPolicy,
         CancellationToken cancellationToken)
     {
+        // BKC-DES-087 (BE-BKC-084): Untuk RANAP, biaya admin rawat jalan yang digantikan diproses lewat
+        // tautan aktif (ResolveReferredAdminReplacementAsync). Pengurangan flat Rp 50.000 berbasis kedekatan tanggal
+        // dihentikan (mengembalikan 0). Perilaku RAJAL / IGD / OTC tetap tidak berubah.
+        if (string.Equals(request.ServiceType, AdministrationFeeServiceTypes.Ranap, StringComparison.OrdinalIgnoreCase))
+        {
+            return (0m, int.MinValue);
+        }
+
         var businessDate = AdministrationFeePolicyService.GetBusinessDate(request.EffectiveAt);
         var (rangeStart, _) = AdministrationFeePolicyService.GetBusinessDateUtcRange(businessDate.AddDays(-1));
         var (_, rangeEnd) = AdministrationFeePolicyService.GetBusinessDateUtcRange(businessDate.AddDays(1));
@@ -327,3 +339,4 @@ public sealed class AdministrationFeeCalculationService : IAdministrationFeeCalc
         return (priorAppliedTotal, maxPriority);
     }
 }
+

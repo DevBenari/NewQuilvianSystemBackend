@@ -51,15 +51,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
 
         private readonly ApplicationDbContext _dbContext;
         private readonly BillingDepositService _depositService;
+        private readonly BillingCalculationService _calculationService;
         private readonly IConfiguration _configuration;
 
         public PatientBillingSummaryService(
             ApplicationDbContext dbContext,
             BillingDepositService depositService,
+            BillingCalculationService calculationService,
             IConfiguration configuration)
         {
             _dbContext = dbContext;
             _depositService = depositService;
+            _calculationService = calculationService;
             _configuration = configuration;
         }
 

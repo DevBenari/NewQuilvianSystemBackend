@@ -12,11 +12,23 @@ public sealed class FinalizeInvoiceRequest
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
 
-    /// <summary>BE-FIN-107, FIN-DEC-208, FIN-INTEGRATION-1.9 R.4.3: nominal pilihan pegawai untuk sisa tagihan pasien (D).</summary>
+    /// <summary>Pilihan pembiayaan eksplisit: EMPLOYEE_BENEFIT atau GENERAL_SELF_PAY (Section 5, 7).</summary>
+    [MaxLength(50)] public string? FinancingChoice { get; set; }
+
+    /// <summary>Nominal pembayaran langsung di kasir (Cash/Transfer).</summary>
+    public decimal? DirectPayAmount { get; set; }
+
+    /// <summary>Nominal kewajiban pegawai yang secara eksplisit ditangguhkan menjadi AR Karyawan.</summary>
+    public decimal? EmployeeDeferredAmount { get; set; }
+
+    /// <summary>BE-FIN-107, FIN-DEC-208, FIN-INTEGRATION-1.9 R.4.3: nominal pilihan pegawai untuk sisa tagihan pasien (D). Kompatibilitas ke belakang.</summary>
     public decimal? EmployeeReceivableChoiceAmount { get; set; }
 
     /// <summary>BE-FIN-107, BE-FIN-119, FIN-DEC-218, FIN-INTEGRATION-1.10 S.4: nama pemberi persetujuan bila pasien bukan pegawai.</summary>
     [MaxLength(200)] public string? EmployeeReceivableConsentGivenBy { get; set; }
+
+    /// <summary>Catatan atau nomor referensi dokumen persetujuan penangguhan (Section 7).</summary>
+    [MaxLength(500)] public string? EmployeeReceivableConsentNotes { get; set; }
 }
 
 public sealed class FinalizationPreviewResponse
@@ -69,13 +81,18 @@ public sealed class FinalizationResponse
 public sealed class EmployeeBenefitSplitResponse
 {
     public bool IsEmployeeBenefitVisit { get; set; }
+    public string? FinancingChoice { get; set; } = "EMPLOYEE_BENEFIT";
     public string? BenefitOwnerName { get; set; }
     public string? RelationshipCode { get; set; }
+    public decimal GrossAmount { get; set; }
     public decimal CoveredByRuleAmount { get; set; }
     public decimal RemainingAllowanceAmount { get; set; }
     public decimal RsBenefitAmount { get; set; }
     public decimal ExcessOverAllowanceAmount { get; set; }
     public decimal PatientPortionAmount { get; set; }
+    public decimal RemainingPatientObligation { get; set; }
+    public decimal DirectPayAmount { get; set; }
+    public decimal EmployeeDeferredAmount { get; set; }
     public decimal ChoiceAmount { get; set; }
     public decimal EmployeeReceivableAmount { get; set; }
     public decimal CashAtCashierAmount { get; set; }

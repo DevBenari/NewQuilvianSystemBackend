@@ -264,6 +264,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public string MedicalRecordNumber { get; set; } = string.Empty;
 
+        public EncounterType EncounterType { get; set; }
+
+        public string EncounterTypeName { get; set; } = string.Empty;
+
         public Guid ServiceUnitId { get; set; }
 
         public string ServiceUnitName { get; set; } = string.Empty;

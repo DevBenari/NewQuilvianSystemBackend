@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
@@ -97,7 +98,8 @@ public sealed class BillingInpatientEventReceiver
                 // Replay juga menutup tautan yang terlewat sebelum I6, memakai receipt asli.
                 if (prior.EventType == InpatientBillingEventTypes.AdmissionConfirmed && prior.InvoiceId.HasValue)
                 {
-                    await EnsureEncounterLinksAsync(prior.EpisodeId, prior.InvoiceId.Value, prior.Id, cancellationToken);
+                    var targetEncounterId = prior.EncounterId != Guid.Empty ? prior.EncounterId : envelope.EncounterId;
+                    await EnsureEncounterLinksAsync(prior.EpisodeId, targetEncounterId, prior.InvoiceId.Value, prior.Id, cancellationToken);
                     await _dbContext.SaveChangesAsync(cancellationToken);
                 }
                 if (transaction is not null) await transaction.CommitAsync(cancellationToken);
@@ -192,7 +194,7 @@ public sealed class BillingInpatientEventReceiver
             };
             _dbContext.BilInpatientEventReceipts.Add(receipt);
             if (envelope.EventType == InpatientBillingEventTypes.AdmissionConfirmed)
-                await EnsureEncounterLinksAsync(envelope.EpisodeId, invoice.Id, receipt.Id, cancellationToken);
+                await EnsureEncounterLinksAsync(envelope.EpisodeId, envelope.EncounterId, invoice.Id, receipt.Id, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
 
@@ -244,26 +246,157 @@ public sealed class BillingInpatientEventReceiver
             throw new ArgumentException("Identitas atau kunci idempotensi ketukan pintu tidak sesuai kontrak.");
     }
 
-    private async Task EnsureEncounterLinksAsync(Guid episodeId, Guid invoiceId, Guid receiptId, CancellationToken ct)
+    private async Task EnsureEncounterLinksAsync(Guid episodeId, Guid encounterId, Guid invoiceId, Guid receiptId, CancellationToken ct)
     {
         if (_dbContext.Database.IsRelational())
             await _dbContext.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}));",
                 [$"BIL_INP_LINK_{invoiceId:N}"], ct);
+
         var referrals = await _dbContext.InpAdmissionReferrals.AsNoTracking()
             .Where(x => x.CompletedEpisodeId == episodeId && x.Status == InpAdmissionReferralStatus.Completed && !x.IsDelete)
             .Select(x => new { x.Id, x.SourceEncounterId }).ToListAsync(ct);
+
         var linkedEncounterIds = await _dbContext.BilInvoiceEncounterLinks.Where(x => x.RanapInvoiceId == invoiceId && !x.IsDelete)
             .Select(x => x.LinkedEncounterId).ToListAsync(ct);
+
         foreach (var referral in referrals)
         {
             if (linkedEncounterIds.Contains(referral.SourceEncounterId)) continue;
             linkedEncounterIds.Add(referral.SourceEncounterId);
             _dbContext.BilInvoiceEncounterLinks.Add(new BilInvoiceEncounterLink
             {
-                RanapInvoiceId = invoiceId, LinkedEncounterId = referral.SourceEncounterId,
-                SourceReferralId = referral.Id, ReceiptId = receiptId, LinkedAt = DateTimeOffset.UtcNow,
-                CreateBy = Guid.Empty, CreateDateTime = DateTime.UtcNow
+                RanapInvoiceId = invoiceId,
+                LinkedEncounterId = referral.SourceEncounterId,
+                LinkReason = BillingEncounterLinkReasons.SurgeryOrigin,
+                SourceReferralId = referral.Id,
+                ReceiptId = receiptId,
+                LinkedAt = DateTimeOffset.UtcNow,
+                CreateBy = Guid.Empty,
+                CreateDateTime = DateTime.UtcNow
             });
         }
+
+        // BKC-DES-077 / BKC-DES-078 / BKC-DES-079 / BIL-INT-021: Tautan kunjungan asal transfer IGD/Poli
+        var ranapEncounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .Where(x => x.Id == encounterId && !x.IsDelete && !x.IsCancel)
+            .Select(x => new
+            {
+                x.Id,
+                x.PatientId,
+                x.SourceEncounterId,
+                x.AdmissionTransferSourceType
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (ranapEncounter == null || !ranapEncounter.SourceEncounterId.HasValue || ranapEncounter.SourceEncounterId.Value == Guid.Empty)
+        {
+            return;
+        }
+
+        var sourceEncounterId = ranapEncounter.SourceEncounterId.Value;
+
+        // Jika kunjungan asal sudah bertautan — termasuk lewat rujukan operasi — lewati (sebab pertama dipertahankan)
+        if (linkedEncounterIds.Contains(sourceEncounterId))
+        {
+            return;
+        }
+
+        string linkReason;
+        if (string.Equals(ranapEncounter.AdmissionTransferSourceType, "Emergency", StringComparison.OrdinalIgnoreCase))
+        {
+            linkReason = BillingEncounterLinkReasons.EmergencyOrigin;
+        }
+        else if (string.Equals(ranapEncounter.AdmissionTransferSourceType, "Outpatient", StringComparison.OrdinalIgnoreCase))
+        {
+            linkReason = BillingEncounterLinkReasons.OutpatientOrigin;
+        }
+        else
+        {
+            await _loggerService.WarningAsync(LogCategory, "InpatientEvent.TransferLinkSkipped",
+                "Tautan asal transfer rawat inap dilewati: tipe sumber transfer tidak dikenal.", new
+                {
+                    EpisodeId = episodeId,
+                    EncounterId = encounterId,
+                    SourceEncounterId = sourceEncounterId,
+                    ReasonCode = "INVALID_TRANSFER_SOURCE_TYPE"
+                });
+            return;
+        }
+
+        var originEncounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .Where(x => x.Id == sourceEncounterId)
+            .Select(x => new
+            {
+                x.Id,
+                x.PatientId,
+                x.IsDelete,
+                x.IsCancel
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (originEncounter == null)
+        {
+            await _loggerService.WarningAsync(LogCategory, "InpatientEvent.TransferLinkSkipped",
+                "Tautan asal transfer rawat inap dilewati: kunjungan asal tidak ditemukan.", new
+                {
+                    EpisodeId = episodeId,
+                    EncounterId = encounterId,
+                    SourceEncounterId = sourceEncounterId,
+                    ReasonCode = "ORIGIN_NOT_FOUND"
+                });
+            return;
+        }
+
+        if (originEncounter.IsDelete)
+        {
+            await _loggerService.WarningAsync(LogCategory, "InpatientEvent.TransferLinkSkipped",
+                "Tautan asal transfer rawat inap dilewati: kunjungan asal telah dihapus.", new
+                {
+                    EpisodeId = episodeId,
+                    EncounterId = encounterId,
+                    SourceEncounterId = sourceEncounterId,
+                    ReasonCode = "DELETED_ORIGIN"
+                });
+            return;
+        }
+
+        if (originEncounter.IsCancel)
+        {
+            await _loggerService.WarningAsync(LogCategory, "InpatientEvent.TransferLinkSkipped",
+                "Tautan asal transfer rawat inap dilewati: kunjungan asal telah dibatalkan.", new
+                {
+                    EpisodeId = episodeId,
+                    EncounterId = encounterId,
+                    SourceEncounterId = sourceEncounterId,
+                    ReasonCode = "CANCELLED_ORIGIN"
+                });
+            return;
+        }
+
+        if (originEncounter.PatientId != ranapEncounter.PatientId)
+        {
+            await _loggerService.WarningAsync(LogCategory, "InpatientEvent.TransferLinkSkipped",
+                "Tautan asal transfer rawat inap dilewati: kunjungan asal milik pasien lain.", new
+                {
+                    EpisodeId = episodeId,
+                    EncounterId = encounterId,
+                    SourceEncounterId = sourceEncounterId,
+                    ReasonCode = "PATIENT_MISMATCH"
+                });
+            return;
+        }
+
+        linkedEncounterIds.Add(originEncounter.Id);
+        _dbContext.BilInvoiceEncounterLinks.Add(new BilInvoiceEncounterLink
+        {
+            RanapInvoiceId = invoiceId,
+            LinkedEncounterId = originEncounter.Id,
+            LinkReason = linkReason,
+            SourceReferralId = null,
+            ReceiptId = receiptId,
+            LinkedAt = DateTimeOffset.UtcNow,
+            CreateBy = Guid.Empty,
+            CreateDateTime = DateTime.UtcNow
+        });
     }
 }
