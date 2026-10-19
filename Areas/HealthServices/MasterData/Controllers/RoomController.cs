@@ -415,8 +415,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             await using var transaction = await InpBedTransactionLease.BeginAsync(_dbContext, HttpContext.RequestAborted);
 
             // BE-RWI-232 / DNH-DES-01: kode dari pengalokasi nomor bersama, bukan mengisi celah nomor.
-            var generatedRoomCode = await _bedMutation.AllocateRoomCodeAsync(HttpContext.RequestAborted);
-            var codeValidation = await ValidateGeneratedRoomCodeAsync(generatedRoomCode);
+            var allocatedRoomCode = await _bedMutation.AllocateRoomCodeAsync(HttpContext.RequestAborted);
+            var codeValidation = await ValidateAllocatedRoomCodeAsync(allocatedRoomCode);
 
             if (!codeValidation.IsValid)
             {
@@ -431,7 +431,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 Id = Guid.NewGuid(),
                 ServiceUnitId = request.ServiceUnitId,
                 PatientClassId = NormalizeNullableGuid(request.PatientClassId),
-                RoomCode = generatedRoomCode,
+                RoomCode = allocatedRoomCode,
                 RoomName = request.RoomName.Trim(),
                 RoomType = request.RoomType,
                 RoomNumber = NormalizeNullableText(request.RoomNumber),
@@ -849,7 +849,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             return (true, null);
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateGeneratedRoomCodeAsync(string roomCode)
+        private async Task<(bool IsValid, string? ErrorMessage)> ValidateAllocatedRoomCodeAsync(string roomCode)
         {
             if (string.IsNullOrWhiteSpace(roomCode))
             {
