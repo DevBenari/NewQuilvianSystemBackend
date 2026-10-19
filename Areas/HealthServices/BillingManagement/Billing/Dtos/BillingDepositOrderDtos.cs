@@ -150,6 +150,8 @@ public class PayDepositOrderRequest
 public class PayDepositOrderResponse
 {
     public Guid DepositOrderId { get; set; }
+    /// <summary>Id pembayaran order (BilDepositOrderPayment); dipakai untuk mengambil kwitansi.</summary>
+    public Guid PaymentId { get; set; }
     public string OrderNumber { get; set; } = string.Empty;
     public string OrderStatus { get; set; } = string.Empty;
     public decimal RequestedAmount { get; set; }
