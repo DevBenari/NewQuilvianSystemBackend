@@ -118,6 +118,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.IsNewborn)
                 .HasDefaultValue(false);
 
+            entity.Property(x => x.DeliveryCaseId)
+                .IsRequired(false);
+
+            entity.Property(x => x.NewbornRegistrationKeyHash)
+                .HasMaxLength(64)
+                .IsRequired(false);
+
+            entity.Property(x => x.NewbornRegistrationFingerprint)
+                .HasMaxLength(64)
+                .IsRequired(false);
+
             entity.Property(x => x.BirthWeightGram)
                 .HasColumnType("numeric(18,2)")
                 .IsRequired(false);
@@ -241,6 +252,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.Email);
 
             entity.HasIndex(x => x.MotherPatientId);
+
+            entity.HasIndex(x => new { x.DeliveryCaseId, x.BirthOrder })
+                .IsUnique()
+                .HasFilter("\"DeliveryCaseId\" IS NOT NULL AND \"BirthOrder\" IS NOT NULL AND \"IsDelete\" = false")
+                .HasDatabaseName("UX_MstPatient_DeliveryCase_BirthOrder");
+
+            entity.HasIndex(x => x.NewbornRegistrationKeyHash)
+                .IsUnique()
+                .HasFilter("\"NewbornRegistrationKeyHash\" IS NOT NULL")
+                .HasDatabaseName("UX_MstPatient_NewbornRegistrationKeyHash");
 
             entity.HasIndex(x => x.ActivePatientMembershipId);
 

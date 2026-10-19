@@ -42,13 +42,14 @@ public class JalurPendaftaranReservasiTests
         Assert.Contains("kiosk", ruteCreate);
         Assert.Equal(["admin"], ruteAdmin);
 
-        // Seluruh rute POST lain pada controller bukan pendaftaran pasien.
+        // Seluruh rute POST lain pada controller bukan pendaftaran pasien umum.
         var postLain = typeof(PatientController)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Where(m => m != create && m != admin && m.GetCustomAttributes<HttpPostAttribute>().Any())
             .Select(m => m.Name)
+            .OrderBy(x => x)
             .ToList();
-        Assert.Equal([nameof(PatientController.ReconcileRsmmcPilotMrn)], postLain);
+        Assert.Equal([nameof(PatientController.CreateNewbornPatient), nameof(PatientController.ReconcileRsmmcPilotMrn)], postLain);
     }
 
     [Fact]

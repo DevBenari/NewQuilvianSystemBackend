@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -74,6 +75,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         // Diambil dari container per request supaya konstruktor lama (dipakai harness uji) tetap sah.
         private ReferralDocumentStorageService ReferralDocumentStorage =>
             HttpContext.RequestServices.GetRequiredService<ReferralDocumentStorageService>();
+        private NewbornEncounterPaymentInheritanceService NewbornPaymentInheritance =>
+            HttpContext.RequestServices.GetRequiredService<NewbornEncounterPaymentInheritanceService>();
         private readonly IConfiguration? _configuration;
 
         public PatientEncounterController(
@@ -698,6 +701,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             request.PatientClassId = patientClassResolution.PatientClass?.Id;
 
+            RegPatientEncounterGuarantor? inheritedPaymentPreview = null;
+            if (request.InheritedPaymentSourceId.HasValue &&
+                request.InheritedPaymentSourceId.Value != Guid.Empty)
+            {
+                var inheritance = await NewbornPaymentInheritance.ResolveAsync(
+                    request.PatientId,
+                    request.InheritedPaymentSourceId.Value,
+                    request.InheritedPaymentSourceExpectedAt,
+                    lockSource: false,
+                    HttpContext.RequestAborted);
+
+                if (!inheritance.IsSuccess)
+                {
+                    var statusCode = inheritance.Status switch
+                    {
+                        NewbornPaymentInheritanceStatus.NotFound => StatusCodes.Status404NotFound,
+                        NewbornPaymentInheritanceStatus.Conflict => StatusCodes.Status409Conflict,
+                        _ => StatusCodes.Status400BadRequest
+                    };
+
+                    return StatusCode(statusCode, ApiResponse<object>.Fail(
+                        statusCode,
+                        inheritance.ErrorMessage ?? "Penjamin ibu tidak dapat diwariskan."));
+                }
+
+                inheritedPaymentPreview = inheritance.Source;
+                request.PaymentType = inheritance.Source!.PaymentType;
+            }
+
             var validation = await ValidateCreateRequestAsync(
                 request,
                 targetEncounterDate,
@@ -739,7 +771,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             MstPatientInsurance? patientInsurance = null;
             MstPatientCompanyGuarantor? patientCompanyGuarantor = null;
 
-            if (request.PaymentType == EncounterPaymentType.Insurance)
+            if (inheritedPaymentPreview == null && request.PaymentType == EncounterPaymentType.Insurance)
             {
                 var insuranceResult = await LoadValidPatientInsuranceAsync(
                     request.PatientId,
@@ -755,7 +787,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 patientInsurance = insuranceResult.Insurance;
             }
-            else if (request.PaymentType == EncounterPaymentType.CompanyGuarantor)
+            else if (inheritedPaymentPreview == null && request.PaymentType == EncounterPaymentType.CompanyGuarantor)
             {
                 var companyGuarantorResult = await LoadValidPatientCompanyGuarantorAsync(
                     request.PatientId,
@@ -837,6 +869,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             try
             {
                 var encounterId = Guid.NewGuid();
+                RegPatientEncounterGuarantor? inheritedPaymentSource = null;
+
+                if (request.InheritedPaymentSourceId.HasValue &&
+                    request.InheritedPaymentSourceId.Value != Guid.Empty)
+                {
+                    var inheritance = await NewbornPaymentInheritance.ResolveAsync(
+                        request.PatientId,
+                        request.InheritedPaymentSourceId.Value,
+                        request.InheritedPaymentSourceExpectedAt,
+                        lockSource: true,
+                        HttpContext.RequestAborted);
+
+                    if (!inheritance.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        var statusCode = inheritance.Status switch
+                        {
+                            NewbornPaymentInheritanceStatus.NotFound => StatusCodes.Status404NotFound,
+                            NewbornPaymentInheritanceStatus.Conflict => StatusCodes.Status409Conflict,
+                            _ => StatusCodes.Status400BadRequest
+                        };
+
+                        return StatusCode(statusCode, ApiResponse<object>.Fail(
+                            statusCode,
+                            inheritance.ErrorMessage ?? "Penjamin ibu tidak dapat diwariskan."));
+                    }
+
+                    inheritedPaymentSource = inheritance.Source;
+                    request.PaymentType = inheritance.Source!.PaymentType;
+                }
 
                 if (isEmergencyEncounter)
                 {
@@ -915,14 +977,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     IsCancel = false
                 };
 
-                var paymentSource = await BuildPaymentSourceAsync(
-                    encounter.Id,
-                    request,
-                    patientInsurance,
-                    patientCompanyGuarantor,
-                    now,
-                    actorUserId,
-                    HttpContext.RequestAborted);
+                var paymentSource = inheritedPaymentSource == null
+                    ? await BuildPaymentSourceAsync(
+                        encounter.Id,
+                        request,
+                        patientInsurance,
+                        patientCompanyGuarantor,
+                        now,
+                        actorUserId,
+                        HttpContext.RequestAborted)
+                    : await NewbornPaymentInheritance.CreateSnapshotAsync(
+                        encounter.Id,
+                        request.PatientId,
+                        inheritedPaymentSource,
+                        now,
+                        actorUserId,
+                        HttpContext.RequestAborted);
 
                 ApplyEncounterPaymentSummary(encounter, paymentSource);
 
@@ -1731,7 +1801,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             {
                 var defaultInpatientUnit = await _dbContext.Set<MstServiceUnit>()
                     .AsNoTracking()
-                    .Where(x => x.IsActive && !x.IsDelete && x.ServiceUnitType == ServiceUnitType.Inpatient && x.IsAvailableForRegistration)
+                    .Where(ServiceUnitRegistrationRules.InpatientRegistrationEligible)
                     .OrderBy(x => x.SortOrder)
                     .ThenBy(x => x.ServiceUnitName)
                     .Select(x => (Guid?)x.Id)
@@ -1818,7 +1888,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             {
                 var isInpatientUnit = await _dbContext.Set<MstServiceUnit>()
                     .AsNoTracking()
-                    .AnyAsync(x => x.Id == request.ServiceUnitId && x.ServiceUnitType == ServiceUnitType.Inpatient);
+                    .Where(ServiceUnitRegistrationRules.InpatientRegistrationEligible)
+                    .AnyAsync(x => x.Id == request.ServiceUnitId);
 
                 if (!isInpatientUnit)
                 {
@@ -1928,7 +1999,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 }
             }
 
-            if (request.PaymentType == EncounterPaymentType.Cash)
+            var hasInheritedPayment = request.InheritedPaymentSourceId.HasValue &&
+                request.InheritedPaymentSourceId.Value != Guid.Empty;
+
+            if (hasInheritedPayment)
+            {
+                if (!request.InheritedPaymentSourceExpectedAt.HasValue)
+                {
+                    return (false, "Versi sumber penjamin ibu wajib diisi.");
+                }
+
+                if ((request.PaymentMethodId.HasValue && request.PaymentMethodId.Value != Guid.Empty) ||
+                    (request.PatientInsuranceId.HasValue && request.PatientInsuranceId.Value != Guid.Empty) ||
+                    (request.PatientCompanyGuarantorId.HasValue && request.PatientCompanyGuarantorId.Value != Guid.Empty))
+                {
+                    return (false, "Penjamin turunan dari ibu tidak boleh digabung dengan pilihan penjamin manual.");
+                }
+            }
+            else if (request.PaymentType == EncounterPaymentType.Cash)
             {
                 if (request.PatientInsuranceId.HasValue &&
                     request.PatientInsuranceId.Value != Guid.Empty)
@@ -3047,6 +3135,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 EffectiveEndDateSnapshot = entity.EffectiveEndDateSnapshot,
                 PatientCompanyGuarantorId = entity.PatientCompanyGuarantorId,
                 CompanyGuarantorId = entity.CompanyGuarantorId,
+                InheritedFromPaymentSourceId = entity.InheritedFromPaymentSourceId,
+                InheritedFromPaymentSourceAt = entity.InheritedFromPaymentSourceAt,
                 CompanyGuarantorCodeSnapshot = entity.CompanyGuarantorCodeSnapshot,
                 EmployeeNumberSnapshot = entity.EmployeeNumberSnapshot,
                 EmployeeNameSnapshot = entity.EmployeeNameSnapshot,

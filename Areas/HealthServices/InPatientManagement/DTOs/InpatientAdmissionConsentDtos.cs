@@ -55,6 +55,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>Keterangan penerimaan panduan rawat inap.</summary>
         [MaxLength(300, ErrorMessage = "Keterangan panduan maksimal 300 karakter.")]
         public string? GuidanceNote { get; set; }
+
+        /// <summary>Nama petugas PPRI yang memproses persetujuan.</summary>
+        public string? OfficerName { get; set; }
     }
 
     /// <summary>
@@ -199,5 +202,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public string? LastChangedByName { get; set; }
 
         public DateTime? LastChangedAt { get; set; }
+
+        /// <summary>Nama petugas PPRI yang memproses persetujuan.</summary>
+        public string? OfficerName { get; set; }
+
+        /// <summary>Jabatan petugas PPRI yang memproses persetujuan.</summary>
+        public string? OfficerPosition { get; set; }
     }
 }

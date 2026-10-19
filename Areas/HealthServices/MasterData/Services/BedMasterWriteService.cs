@@ -38,14 +38,27 @@ public sealed class BedMasterWriteService(ApplicationDbContext dbContext, Logger
         {
             if (_dbContext.Database.CurrentTransaction == null)
                 throw new InvalidOperationException("Writer harus dipanggil melalui BedMutationService.");
+
+            // BE-RWI-235: kamar berkunci denah → label "<nomor kamar>-<huruf berikutnya>" dibentuk server,
+            // unik per lantai, dengan penanda turunan kelas (backend 15.6).
+            var ct = HttpContext.RequestAborted;
+            var keyedRoom = await LoadKeyedRoomAsync(request.RoomId, ct);
+            var bedName = request.BedName;
+            var bedNumber = request.BedNumber;
+            if (keyedRoom != null)
+            {
+                await BedMutationService.LockFloorBedLabelsAsync(_dbContext, keyedRoom.FloorCode!, ct);
+                bedNumber = FloorPlanRoomNaming.NextBedLetter(
+                    await BedMutationService.UsedBedLettersAsync(_dbContext, keyedRoom.FloorCode!, keyedRoom.RoomNumber!, ct));
+                bedName = FloorPlanRoomNaming.BedLabel(keyedRoom.RoomNumber!, bedNumber);
+                await EnsureBedLabelUniqueOnFloorAsync(keyedRoom.FloorCode!, bedName, excludeBedId: null, ct);
+            }
+
             var validation = await ValidateCreateUpdateRequestAsync(
                 excludeId: null,
                 roomId: request.RoomId,
-                bedName: request.BedName,
-                bedNumber: request.BedNumber,
-                isForMale: request.IsForMale,
-                isForFemale: request.IsForFemale,
-                isForNewborn: request.IsForNewborn
+                bedName: bedName,
+                bedNumber: bedNumber
             );
 
             if (!validation.IsValid)
@@ -76,11 +89,9 @@ public sealed class BedMasterWriteService(ApplicationDbContext dbContext, Logger
                 Id = Guid.NewGuid(),
                 RoomId = request.RoomId,
                 BedCode = bedCode,
-                BedName = request.BedName.Trim(),
-                BedNumber = NormalizeNullableText(request.BedNumber),
+                BedName = bedName.Trim(),
+                BedNumber = NormalizeNullableText(bedNumber),
                 BedStatus = request.BedStatus,
-                IsForMale = request.IsForMale,
-                IsForFemale = request.IsForFemale,
                 IsForNewborn = request.IsForNewborn,
                 IsIsolationBed = request.IsIsolationBed,
                 IsIntensiveCareBed = request.IsIntensiveCareBed,
@@ -94,6 +105,12 @@ public sealed class BedMasterWriteService(ApplicationDbContext dbContext, Logger
                 IsDelete = false,
                 IsCancel = false
             };
+
+            if (keyedRoom != null)
+            {
+                // Boks rawat gabung dikirim eksplisit IsForNewborn = true; sisanya turunan kelas kamar.
+                FloorPlanRoomNaming.ApplyBedFlags(entity, keyedRoom.PatientClass?.PatientClassType, isCrib: request.IsForNewborn);
+            }
 
             _dbContext.Set<MstBed>().Add(entity);
             await _dbContext.SaveChangesAsync();
@@ -130,14 +147,27 @@ public sealed class BedMasterWriteService(ApplicationDbContext dbContext, Logger
                 ));
             }
 
+            // BE-RWI-235: ubah label bed pada kamar berkunci; label unik per lantai, huruf bed mengikuti
+            // label berpola "<nomor kamar>-<huruf>".
+            var ct = HttpContext.RequestAborted;
+            var bedNumber = request.BedNumber;
+            var keyedRoom = await LoadKeyedRoomAsync(request.RoomId, ct);
+            if (keyedRoom != null && !string.IsNullOrWhiteSpace(request.BedName))
+            {
+                var label = request.BedName.Trim();
+                if (entity.RoomId != request.RoomId || !string.Equals(entity.BedName, label, StringComparison.OrdinalIgnoreCase))
+                {
+                    await BedMutationService.LockFloorBedLabelsAsync(_dbContext, keyedRoom.FloorCode!, ct);
+                    await EnsureBedLabelUniqueOnFloorAsync(keyedRoom.FloorCode!, label, excludeBedId: id, ct);
+                }
+                bedNumber = FloorPlanRoomNaming.LetterFromLabel(label, keyedRoom.RoomNumber) ?? bedNumber;
+            }
+
             var validation = await ValidateCreateUpdateRequestAsync(
                 excludeId: id,
                 roomId: request.RoomId,
                 bedName: request.BedName,
-                bedNumber: request.BedNumber,
-                isForMale: request.IsForMale,
-                isForFemale: request.IsForFemale,
-                isForNewborn: request.IsForNewborn
+                bedNumber: bedNumber
             );
 
             if (!validation.IsValid)
@@ -153,10 +183,8 @@ public sealed class BedMasterWriteService(ApplicationDbContext dbContext, Logger
 
             entity.RoomId = request.RoomId;
             entity.BedName = request.BedName.Trim();
-            entity.BedNumber = NormalizeNullableText(request.BedNumber);
+            entity.BedNumber = NormalizeNullableText(bedNumber);
             entity.BedStatus = request.BedStatus;
-            entity.IsForMale = request.IsForMale;
-            entity.IsForFemale = request.IsForFemale;
             entity.IsForNewborn = request.IsForNewborn;
             entity.IsIsolationBed = request.IsIsolationBed;
             entity.IsIntensiveCareBed = request.IsIntensiveCareBed;
@@ -302,12 +330,16 @@ public sealed class BedMasterWriteService(ApplicationDbContext dbContext, Logger
                 ));
             }
 
-            if (entity.BedStatus != BedStatus.Available)
+            // BE-RWI-235 (VAL-DNH-10, DNH-MIS-07): bed hanya boleh dihapus bila tidak pernah dirujuk
+            // pemesanan maupun penempatan dalam status apa pun; bed beriwayat dinonaktifkan saja.
+            var hasUsageHistory =
+                await _dbContext.Set<InpBedPlacement>().IgnoreQueryFilters().AsNoTracking().AnyAsync(x => x.BedId == id) ||
+                await _dbContext.Set<InpBedReservation>().IgnoreQueryFilters().AsNoTracking().AnyAsync(x => x.BedId == id);
+
+            if (hasUsageHistory)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Bed tidak dapat dihapus karena status bed tidak available. Nonaktifkan saja jika masih diperlukan untuk histori."
-                ));
+                throw new InpBedOperationException(422, "BED_HAS_USAGE_HISTORY",
+                    "Bed ini pernah dipesan atau ditempati, sehingga tidak dapat dihapus. Nonaktifkan bed agar riwayatnya tetap tersimpan.");
             }
 
             var now = DateTime.UtcNow;
@@ -355,19 +387,13 @@ public sealed class BedMasterWriteService(ApplicationDbContext dbContext, Logger
             Guid? excludeId,
             Guid roomId,
             string bedName,
-            string? bedNumber,
-            bool isForMale,
-            bool isForFemale,
-            bool isForNewborn)
+            string? bedNumber)
         {
             if (roomId == Guid.Empty)
                 return (false, "Room wajib dipilih.");
 
             if (string.IsNullOrWhiteSpace(bedName))
                 return (false, "Nama bed wajib diisi.");
-
-            if (!isForMale && !isForFemale && !isForNewborn)
-                return (false, "Bed minimal harus bisa digunakan untuk laki-laki, perempuan, atau bayi baru lahir.");
 
             var roomExists = await _dbContext.Set<MstRoom>()
                 .AnyAsync(x => x.Id == roomId && x.IsActive && !x.IsDelete);
@@ -405,6 +431,26 @@ public sealed class BedMasterWriteService(ApplicationDbContext dbContext, Logger
 
             return (true, null);
         }
+
+    /// <summary>Kamar berkunci denah (berlantai dan bernomor) beserta kelasnya, atau <c>null</c> untuk kamar di luar denah.</summary>
+    private async Task<MstRoom?> LoadKeyedRoomAsync(Guid roomId, CancellationToken ct)
+    {
+        if (roomId == Guid.Empty) return null;
+        var room = await _dbContext.Set<MstRoom>().AsNoTracking()
+            .Include(x => x.PatientClass)
+            .FirstOrDefaultAsync(x => x.Id == roomId && !x.IsDelete, ct);
+        return room is { FloorPlanRoomKey: not null, FloorCode: not null } && !string.IsNullOrWhiteSpace(room.RoomNumber) ? room : null;
+    }
+
+    /// <summary>INV-DNH-02: label bed unik di antara bed yang belum dihapus pada lantai yang sama.</summary>
+    /// <example>Bed "329-C" sudah ada di Lantai 3 → menambah/mengubah label lain menjadi "329-C" ditolak 409.</example>
+    private async Task EnsureBedLabelUniqueOnFloorAsync(string floorCode, string label, Guid? excludeBedId, CancellationToken ct)
+    {
+        var labels = await BedMutationService.FloorBedLabelsAsync(_dbContext, floorCode, excludeBedId, ct);
+        if (labels.Contains(label.Trim().ToLowerInvariant()))
+            throw new InpBedOperationException(409, "BED_LABEL_DUPLICATE",
+                $"Label bed {label.Trim()} sudah dipakai bed lain di lantai yang sama. Pakai label lain.");
+    }
 
     private async Task<(bool IsValid, string? ErrorMessage)> ValidateBedCodeAsync(string bedCode)
         {
@@ -457,6 +503,7 @@ public sealed class BedMasterWriteService(ApplicationDbContext dbContext, Logger
                 BedNumber = entity.BedNumber,
                 BedStatus = entity.BedStatus,
                 BedStatusName = BuildEnumLabel(entity.BedStatus),
+                IsForNewborn = entity.IsForNewborn,
                 IsReservable = entity.IsReservable,
                 IsActive = entity.IsActive,
                 CreateDateTime = entity.CreateDateTime,

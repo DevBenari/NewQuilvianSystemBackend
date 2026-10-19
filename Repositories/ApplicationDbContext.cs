@@ -589,8 +589,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstTariff> MstTariffs { get; set; }
         public DbSet<MstRoom> MstRooms { get; set; }
         public DbSet<MstBed> MstBeds { get; set; }
+
+        /// <summary>Catatan run impor susunan denah (<c>BE-RWI-237</c>, kamus data 22.2.3, migration <c>M-DNH-3</c>).</summary>
+        public DbSet<MstFloorPlanImportRun> MstFloorPlanImportRuns { get; set; }
         public DbSet<MstMembershipTier> MstMembershipTiers { get; set; }
         public DbSet<MstPatient> MstPatients { get; set; }
+        public DbSet<PatNewbornBirthSequence> PatNewbornBirthSequences { get; set; }
         public DbSet<MstPatientMembership> MstPatientMemberships { get; set; }
         public DbSet<PatMembershipStatusHistory> PatMembershipStatusHistories { get; set; }
         public DbSet<MstPatientIdentityDocument> MstPatientIdentityDocuments { get; set; }
@@ -893,6 +897,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpClearanceMark> InpClearanceMarks { get; set; }
         public DbSet<InpFinancialClearance> InpFinancialClearances { get; set; }
         public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
+
+        /// <summary>Riwayat append-only High/Low Dependency (<c>BE-RWI-234</c>, kamus data 22.2.5, migration <c>M-DNH-2</c>).</summary>
+        public DbSet<InpCareDependencyHistory> InpCareDependencyHistories { get; set; }
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<InpIntegrationOutbox> InpIntegrationOutboxes { get; set; }
         public DbSet<BilInvoiceEncounterLink> BilInvoiceEncounterLinks { get; set; }
@@ -1262,6 +1269,12 @@ namespace QuilvianSystemBackend.Repositories
             if (ChangeTracker.Entries().Any(x => (x.Entity is InpBedLifecycleEvent || x.Entity is InpBedOperationReceipt) &&
                 (x.State == EntityState.Modified || x.State == EntityState.Deleted)))
                 throw new InvalidOperationException("Lifecycle event dan operation receipt bersifat append-only.");
+            // INV-DNH-06: riwayat High/Low Dependency tidak pernah ditimpa maupun dihapus (BE-RWI-234).
+            if (ChangeTracker.Entries<InpCareDependencyHistory>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
+                throw new InvalidOperationException("Riwayat High/Low Dependency bersifat append-only.");
+            // Catatan run impor denah tidak diubah setelah dibuat (BE-RWI-237, kamus data 22.2.3).
+            if (ChangeTracker.Entries<MstFloorPlanImportRun>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
+                throw new InvalidOperationException("Catatan run impor denah bersifat append-only.");
             foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
                 entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
         }

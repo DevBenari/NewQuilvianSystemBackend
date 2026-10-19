@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.8` — draft Bed Management, 10 Oktober 2026. Riwayat metadata sebelumnya: **`0.7`** — bagian 20 Workspace PPRI, kontrak `0.11.0` (7 Oktober 2026, `draft`). Sebelumnya `0.6` — bagian 19 Finishing (`approved`, `RWI-DEC-221`); `0.5` — bagian 18 penyelarasan `PRD-RWI-V2-001`, blueprint revision `7` |
-| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`approved`** untuk `0.7` (bagian 20) — Muhammad Hamzah, 2026-10-08 (`RWI-DEC-265`). Status bagian sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
-| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
+| Revision | **`0.10`** — Kamus Data Ekstensi DTO Serah Terima Transfer Pasien & Summary PPRI, bagian 23, **draft** 16 Oktober 2026. Riwayat: `0.9` Integrasi Denah (approved, RWI-DEC-324); `0.8` Bed Management (draft); `0.7` Workspace PPRI (approved) |
+| Status | **`draft`** untuk amandemen Kamus Data Transfer Pasien Masuk (bagian 23). Amandemen Integrasi Denah (bagian 22) tetap **`approved`** (`RWI-DEC-324`). Bed Management (bagian 21) tetap **`draft`** |
+| Backend SHA | Integrasi Denah: ca09cae909597442385ce4513be9c803549be10e (frontend 4d9bf608dbbaddc96a2b4acfc8723753b5dd5028). Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`,
 `CreateBy`, `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`, `CancelDateTime`,
@@ -1868,3 +1868,432 @@ Owner HealthServices/InPatientManagement, entity existing InpEpisode, schema pub
 | PlannedDepositAmount | numeric(18,2), nullable | Nominal rencana nonnegatif, bukan uang diterima |
 
 DTO newbornAdmission memetakan nama API yang lebih ringkas; pasien ibu tetap pada MstPatient.MotherPatientId dan episode ibu pada InpEpisode.MotherEpisodeId. Migration 20261014091502_AddNewbornAdmissionContext disiapkan, belum diterapkan. Tidak ada backfill atau perubahan identitas bayi legacy secara otomatis.
+
+## 22. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); MasterData: seluruh tim (RWI-DEC-193); keamanan/privasi dan clinical governance: OPEN (RWI-DEC-006). `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**; `DOMAIN_ARCHITECTURE_NOT_RUN`. As-is: impact scan **BM-IMP-20261015-01**. Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`. Kolom berlabel **BARU** atau **DIHAPUS** adalah target Rencana (belum tersedia). Arsitektur dan alasannya ada di [backend 15](../02-backend-architecture.md); bagian ini adalah kontrak kolomnya.
+
+### 22.1 Konvensi dan tabel yang dipakai apa adanya
+
+Konvensi 21.1 berlaku: kolom `IdentityModel` tidak diulang, waktu bisnis `timestamptz` UTC, FK `Restrict`, penghapusan berupa penandaan `IsDelete`. Bawaan pada tabel adalah bawaan aplikasi atau konfigurasi EF existing, bukan klaim isi database.
+
+| Tabel `Sudah ada` | Kolom kunci yang dipakai amandemen ini | Lokasi model / konfigurasi | Pemilik |
+| --- | --- | --- | --- |
+| `MstPatientClass` | `Id`, `PatientClassCode`, `PatientClassName`, `PatientClassType` (kelas khusus: ICU = 7, Isolation = 10, Odc = 14, Perinatology = 15), `ClassLevel`, `IsActive` | `Areas/HealthServices/MasterData/Models/MstPatientClass.cs`; `Repositories/Configurations/HealthServices/MstPatientClassConfiguration.cs` | MasterData seluruh tim |
+| `MstServiceUnit` | `Id`, `ServiceUnitCode`, `ServiceUnitName`, `ServiceUnitType`, `IsActive` | `Areas/HealthServices/MasterData/Models/MstServiceUnit.cs`; `Repositories/Configurations/HealthServices/MstServiceUnitConfiguration.cs` | MasterData |
+| `InpBedReadiness` | `BedId`, `State` (`Unverified` untuk bed baru), `CycleId`, `Version` | Bagian 21.2.1 | InPatientManagement |
+| `InpBedLifecycleEvent` | `Action` bertambah nilai `ImportReadyForTest` (penetapan siap oleh impor dev/UAT); bed baru dari impor dan aktivasi ruang cadangan memakai `BedCreated` existing; kolom tidak berubah | Bagian 21.2.4 | InPatientManagement |
+| `InpBedOperationReceipt` | `ResultKind` bertambah nilai `FloorPlanImport` (menunjuk `MstFloorPlanImportRun.Id`); aktivasi ruang cadangan memakai `Room` existing; kolom tidak berubah | Bagian 21.2.3 | InPatientManagement |
+| `InpBedPlacement` | `LocationSnapshotJson.comparisonResult` bertambah nilai `Special`; kolom tidak berubah | Bagian 21.2.5 dan 21.3 | InPatientManagement |
+| `InpNurseAssignment` | `EpisodeId`, `EmployeeId`, `StartDateTime`, `EndDateTime`, `IsActive` — dasar "perawat penanggung jawab" | `Areas/HealthServices/InPatientManagement/Models/InpNurseAssignment.cs` | InPatientManagement |
+| `InpDoctorAssignment` | `EpisodeId`, `DoctorId`, status aktif DPJP — dasar "DPJP boleh mengubah" | Bagian 2 | InPatientManagement |
+
+### 22.2 Seluruh kolom tabel baru dan diperbarui
+
+#### 22.2.1 `MstRoom` — Diperbarui
+
+Kamar fisik. Tiga kolom baru menghubungkan kamar dengan denah; dua penanda jenis kelamin dihapus (RWI-DEC-315).
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Hapus lunak | Tidak | Existing |
+| ServiceUnitId | uuid | Ya | — | `MstServiceUnit.Id`; INDEX | Restrict | Tidak | Existing; unit rawat inap hasil pemetaan admin (RWI-DEC-323) |
+| PatientClassId | uuid | Tidak | NULL | `MstPatientClass.Id`; INDEX | Restrict | Tidak | Existing; kamar denah wajib berkelas |
+| RoomCode | varchar(50) | Ya | Kode sistem `RM-RSMMC-#####` | UNIQUE tanpa filter | Hapus lunak | Tidak | Existing; dialokasikan pengalokasi nomor bersama, tidak dibaca petugas (`DNH-DES-01`) |
+| RoomName | varchar(150) | Ya | Dibentuk otomatis untuk kamar berkunci | INDEX | Hapus lunak | Tidak | Existing; "Kelas 2 329" atau nama ruang tetap untuk kamar tanpa nomor |
+| RoomType | integer | Ya | 0 (`Unknown`) | INDEX gabungan existing | Hapus lunak | Tidak | Existing; diturunkan dari jenis kelas untuk kamar berkunci (backend 15.6) |
+| RoomNumber | varchar(50) | Tidak | NULL | — | Hapus lunak | Tidak | Existing; nomor fisik atau kode ruang pendek; awalan label bed |
+| LocationName | varchar(100) | Tidak | NULL | — | Hapus lunak | Tidak | Existing; otomatis "Lantai 3 · Barat Laut" untuk kamar berkunci |
+| FloorName | varchar(50) | Tidak | NULL | — | Hapus lunak | Tidak | Existing; otomatis "Lantai 3" untuk kamar berkunci |
+| Capacity | integer | Ya | 1 | — | Hapus lunak | Tidak | Existing; **tidak dipakai denah** dan tidak diselaraskan (RWI-DEC-318); tetap dibaca pemakai lain |
+| IsForMale | boolean | — | — | — | — | Tidak | **DIHAPUS** (RWI-DEC-315) |
+| IsForFemale | boolean | — | — | — | — | Tidak | **DIHAPUS** (RWI-DEC-315) |
+| IsForNewborn | boolean | Ya | false | — | Hapus lunak | Tidak | Existing; true untuk kamar Perinatologi |
+| IsIsolationRoom | boolean | Ya | false | INDEX gabungan existing | Hapus lunak | Tidak | Existing; diturunkan dari kelas Isolasi |
+| IsIntensiveCare | boolean | Ya | false | INDEX gabungan existing | Hapus lunak | Tidak | Existing; diturunkan dari kelas ICU |
+| IsOdcRoom | boolean | Ya | false | INDEX gabungan existing | Hapus lunak | Tidak | Existing; diturunkan dari kelas ODC |
+| IsAvailableForAdmission | boolean | Ya | true | — | Hapus lunak | Tidak | Existing; false = kamar ditutup → status kamar Tidak Tersedia |
+| SortOrder | integer | Ya | 0 | — | Hapus lunak | Tidak | Existing; tidak dipakai denah |
+| Description | varchar(250) | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| IsActive | boolean | Ya | true | INDEX gabungan existing | Hapus lunak | Tidak | Existing |
+| FloorCode | varchar(10) | Tidak | NULL | INDEX | Hapus lunak | Tidak | **BARU**; kode lantai, mis. `3`. Wajib bila kunci denah terisi; tidak dapat diubah setelah terisi |
+| WingDirection | integer | Tidak | NULL | CHECK 1–8 | Hapus lunak | Tidak | **BARU**; `RoomWingDirection`; bawaan dari importer (RWI-DEC-314), dapat dikoreksi admin |
+| FloorPlanRoomKey | varchar(100) | Tidak | NULL | UNIQUE berfilter (terisi dan `IsDelete = false`) | Hapus lunak | Tidak | **BARU**; kunci bentuk kamar di gambar, mis. `lantai-3/k-329`; tidak memuat nama kelas; tidak dapat diubah setelah terisi |
+
+Lokasi model: `Areas/HealthServices/MasterData/Models/MstRoom.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/MstRoomConfiguration.cs` (Diperbarui). Index gabungan existing (`ServiceUnitId`, `PatientClassId`, `RoomType`, `IsActive`, `IsDelete`) dan (`IsIsolationRoom`, `IsIntensiveCare`, `IsOdcRoom`, `IsActive`, `IsDelete`) dipertahankan.
+
+#### 22.2.2 `MstBed` — Diperbarui
+
+Bed fisik. Label "329-C" disimpan di `BedName`, huruf "C" di `BedNumber`; dua penanda jenis kelamin dihapus.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Hapus lunak hanya bila tanpa riwayat | Tidak | Existing |
+| RoomId | uuid | Ya | — | `MstRoom.Id`; INDEX | Restrict | Tidak | Existing |
+| BedCode | varchar(50) | Ya | Kode sistem `BD-RSMMC-#####` | UNIQUE tanpa filter | Hapus lunak | Tidak | Existing; jejak sistem, tidak dibaca petugas (RWI-DEC-317) |
+| BedName | varchar(100) | Ya | Dibentuk server untuk kamar berkunci | — | Hapus lunak | Tidak | Existing; label `<nomor kamar>-<huruf>`; unik per lantai di antara bed yang belum dihapus (dijaga service) |
+| BedNumber | varchar(50) | Tidak | Huruf berikutnya untuk kamar berkunci | UNIQUE(`RoomId`, `BedNumber`) berfilter `IsDelete = false` | Hapus lunak | Tidak | Existing; huruf bed |
+| BedStatus | integer | Ya | 1 (`Available`) | INDEX gabungan existing | Hapus lunak | Tidak | Existing; status administratif mentah; kesiapan tetap dari `InpBedReadiness` |
+| IsForMale | boolean | — | — | — | — | Tidak | **DIHAPUS** (RWI-DEC-315) |
+| IsForFemale | boolean | — | — | — | — | Tidak | **DIHAPUS** (RWI-DEC-315) |
+| IsForNewborn | boolean | Ya | false | — | Hapus lunak | Tidak | Existing; true untuk boks bayi (RWI-RULE-014) |
+| IsIsolationBed | boolean | Ya | false | — | Hapus lunak | Tidak | Existing; diturunkan dari kelas Isolasi |
+| IsIntensiveCareBed | boolean | Ya | false | — | Hapus lunak | Tidak | Existing; diturunkan dari kelas ICU |
+| IsOdcBed | boolean | Ya | false | — | Hapus lunak | Tidak | Existing; diturunkan dari kelas ODC |
+| IsReservable | boolean | Ya | true | INDEX gabungan existing | Hapus lunak | Tidak | Existing |
+| SortOrder | integer | Ya | 0 | — | Hapus lunak | Tidak | Existing; tidak dipakai denah |
+| Description | varchar(250) | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| IsActive | boolean | Ya | true | INDEX gabungan existing | Hapus lunak | Tidak | Existing; false = bed dikurangi tetapi riwayat dipertahankan |
+
+Lokasi model: `Areas/HealthServices/MasterData/Models/MstBed.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/MstBedConfiguration.cs` (Diperbarui). "Riwayat" berarti pernah dirujuk `InpBedPlacement` atau `InpBedReservation` dalam status apa pun.
+
+#### 22.2.3 `MstFloorPlanImportRun` — Baru
+
+Catatan impor susunan denah yang benar-benar dijalankan. Tidak berisi data pasien; tidak dapat diubah setelah dibuat.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Tidak dihapus | Tidak | Identitas run; dirujuk receipt `FloorPlanImport` |
+| ManifestVersion | varchar(50) | Ya | — | — | Tidak dihapus | Tidak | Versi data denah frontend yang diimpor, mis. `denah-rsmmc-2026-10-15` |
+| ManifestHash | char(64) | Ya | SHA-256 server | INDEX | Tidak dihapus | Tidak | Hash manifest kanonis; run kedua dengan hash sama mudah dikenali |
+| EnvironmentName | varchar(32) | Ya | Nama lingkungan host | — | Tidak dihapus | Tidak | `Development`, `Staging`, atau `Production` |
+| MarkedBedsReady | boolean | Ya | false | — | Tidak dihapus | Tidak | true hanya bila opsi dev/UAT aktif (RWI-DEC-321) |
+| ReadyEvidenceReference | varchar(200) | Tidak | NULL | — | Tidak dihapus | Tidak | Wajib bila `MarkedBedsReady`; mis. "RWI-DEC-321 DB Hamzah" |
+| SummaryJson | jsonb | Ya | Ringkasan server | — | Tidak dihapus | Tidak | Jumlah dibuat/diperbarui/tanpa perubahan/ditolak serta kode per kunci denah; skema 22.3 |
+| ActorUserId | uuid | Ya | Actor server | `ApplicationUser.Id` | Restrict | Ya | Admin yang menjalankan |
+| StartedAtUtc | timestamptz | Ya | Waktu server | INDEX | Tidak dihapus | Tidak | Mulai validasi |
+| CompletedAtUtc | timestamptz | Ya | Waktu server | — | Tidak dihapus | Tidak | Commit |
+
+Lokasi model: `Areas/HealthServices/MasterData/Models/MstFloorPlanImportRun.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/MstFloorPlanImportRunConfiguration.cs` (Baru).
+
+#### 22.2.4 `InpEpisode` — Diperbarui
+
+Episode rawat inap. Lima kolom baru untuk tingkat ketergantungan; kolom lain tetap seperti bagian 1, amandemen kliring Billing, dan amandemen bayi.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Hapus lunak | Tidak | Existing |
+| EpisodeNumber | varchar(50) | Ya | Dari master pengaturan | UNIQUE | Hapus lunak | Tidak | Existing |
+| EncounterId | uuid | Ya | — | UNIQUE; `RegPatientEncounter.Id` | Restrict | Tidak | Existing |
+| PatientId | uuid | Ya | — | INDEX + UNIQUE parsial `IX_InpEpisode_PatientId_Present`; `MstPatient.Id` | Restrict | Tidak | Existing |
+| ServiceUnitId | uuid | Ya | — | INDEX; `MstServiceUnit.Id` | Restrict | Tidak | Existing |
+| PatientClassId | uuid | Ya | — | INDEX; `MstPatientClass.Id` | Restrict | Tidak | Existing |
+| EpisodeStatus | integer | Ya | 0 (`Draft`) | INDEX | Hapus lunak | Tidak | Existing; Draft = 0, Admitted = 1, DischargePending = 2, Closed = 3, Cancelled = 4 |
+| AdmittedAt | timestamptz | Tidak | NULL | INDEX | Hapus lunak | Tidak | Existing |
+| DischargeDecidedAt | timestamptz | Tidak | NULL | INDEX | Hapus lunak | Tidak | Existing |
+| PhysicallyLeftAt | timestamptz | Tidak | NULL | INDEX | Hapus lunak | Tidak | Existing |
+| PhysicallyLeftByUserId | uuid | Tidak | NULL | `ApplicationUser.Id` | Restrict | Tidak | Existing |
+| DepartureClearanceObserved | integer | Tidak | NULL | INDEX | Hapus lunak | Tidak | Existing; pengamatan status kasir |
+| DepartureClearanceObservedAt | timestamptz | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| DepartureClearanceWarningAcknowledged | boolean | Ya | false | — | Hapus lunak | Tidak | Existing |
+| ClosureClearanceObserved | integer | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| MotherEpisodeId | uuid | Tidak | NULL | INDEX; `InpEpisode.Id` | Restrict | Tidak | Existing |
+| NewbornAdmissionSource | varchar(20) | Tidak | NULL | — | Hapus lunak | Tidak | Existing (amandemen bayi) |
+| NewbornCareMode | varchar(20) | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| NewbornCareSource | varchar(200) | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| RequiresNeonatalIntensiveCare | boolean | Ya | false | — | Hapus lunak | Tidak | Existing |
+| FamilyBillingPreference | varchar(20) | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| PlannedDepositAmount | numeric(18,2) | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| RequiresIsolation | boolean | Ya | false | INDEX | Hapus lunak | Tidak | Existing |
+| IsolationSource | integer | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| IsolationSetByUserId | uuid | Tidak | NULL | `ApplicationUser.Id` | Restrict | Tidak | Existing |
+| IsolationSetByDoctorId | uuid | Tidak | NULL | INDEX; `MstDoctor.Id` | Restrict | Tidak | Existing |
+| IsolationSetAt | timestamptz | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| IsolationNote | varchar(500) | Tidak | NULL | — | Hapus lunak | **Ya** | Existing |
+| Version | integer | Ya | 1 | — | Hapus lunak | Tidak | Existing; bukan concurrency token |
+| ClosedAt | timestamptz | Tidak | NULL | INDEX | Hapus lunak | Tidak | Existing |
+| DischargeType | integer | Ya | 0 (`Unknown`) | — | Hapus lunak | Tidak | Existing |
+| IsClosedWithoutFinancialClearance | boolean | Ya | false | INDEX | Hapus lunak | Tidak | Existing |
+| ClosedWithoutClearanceReason | varchar(500) | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| ClearanceStatus | integer | Ya | 0 | — | Hapus lunak | Tidak | Existing; dipensiunkan kontrak integrasi Billing 1.1.0 |
+| ClearanceRevokedReason | varchar(1000) | Tidak | NULL | — | Hapus lunak | Tidak | Existing; dipensiunkan |
+| IsSupervisorOverridden | boolean | Ya | false | — | Hapus lunak | Tidak | Existing; dipensiunkan |
+| SupervisorOverrideReason | varchar(1000) | Tidak | NULL | — | Hapus lunak | Tidak | Existing; dipensiunkan |
+| SupervisorOverriddenByUserId | uuid | Tidak | NULL | — | Hapus lunak | Tidak | Existing; dipensiunkan |
+| SupervisorOverriddenAtUtc | timestamptz | Tidak | NULL | — | Hapus lunak | Tidak | Existing; dipensiunkan |
+| CancelReason | varchar(500) | Tidak | NULL | — | Hapus lunak | Tidak | Existing |
+| Notes | varchar(1000) | Tidak | NULL | — | Hapus lunak | **Ya** | Existing |
+| IsActive | boolean | Ya | true | — | Hapus lunak | Tidak | Existing |
+| CareDependencyLevel | integer | Tidak | NULL | CHECK 1–2 | Hapus lunak | Tidak | **BARU**; High = 1, Low = 2; NULL = belum dinilai. Tidak dikirim ke profil OperationalOnly |
+| CareDependencySource | integer | Tidak | NULL | CHECK 1–3 | Hapus lunak | Tidak | **BARU**; AdmissionNote = 1, NurseAssessment = 2, DoctorDecision = 3; diisi server dari peran pencatat |
+| CareDependencySetByUserId | uuid | Tidak | NULL | `ApplicationUser.Id` | Restrict | Tidak | **BARU**; pencatat terakhir |
+| CareDependencySetAt | timestamptz | Tidak | NULL | — | Hapus lunak | Tidak | **BARU**; waktu server pencatatan terakhir; dipakai pemeriksaan "nilai yang dilihat klien masih terbaru" |
+| CareDependencyNote | varchar(500) | Tidak | NULL | — | Hapus lunak | **Ya** | **BARU**; catatan pencatat; tidak boleh masuk logger |
+
+Kelima kolom baru terisi bersamaan atau kosong bersamaan, kecuali `CareDependencyNote` yang boleh kosong. Lokasi model: `Areas/HealthServices/InPatientManagement/Models/InpEpisode.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/InPatientManagement/InpEpisodeConfiguration.cs` (Diperbarui).
+
+#### 22.2.5 `InpCareDependencyHistory` — Baru
+
+Riwayat append-only pencatatan HD/LD. Satu baris per perubahan; baris lama tidak pernah diubah atau dihapus.
+
+| Kolom | SQL type | Wajib | Default aplikasi | Index/relasi | Hapus | Sensitif | Makna/perubahan |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Id | uuid | Ya | UUID aplikasi | PK | Tidak dihapus | Tidak | Identitas baris |
+| EpisodeId | uuid | Ya | — | `InpEpisode.Id`; INDEX(`EpisodeId`, `RecordedAtUtc`, `Id`) | Restrict | Ya | Episode pemilik |
+| PreviousLevel | integer | Tidak | NULL | CHECK 1–2 | Tidak dihapus | Tidak | Nilai sebelum perubahan; NULL = belum dinilai |
+| NewLevel | integer | Ya | — | CHECK 1–2 | Tidak dihapus | Tidak | Nilai baru |
+| Source | integer | Ya | Dari peran pencatat | CHECK 1–3 | Tidak dihapus | Tidak | `InpCareDependencySource` |
+| ActorUserId | uuid | Ya | Actor server | `ApplicationUser.Id` | Restrict | Ya | Pencatat |
+| RecordedAtUtc | timestamptz | Ya | Waktu server | Bagian index | Tidak dihapus | Tidak | Waktu pencatatan |
+| Note | varchar(500) | Tidak | NULL | — | Tidak dihapus | **Ya** | Catatan; tidak boleh berisi diagnosis yang tidak perlu |
+
+Lokasi model: `Areas/HealthServices/InPatientManagement/Models/InpCareDependencyHistory.cs`. Konfigurasi: `Repositories/Configurations/HealthServices/InPatientManagement/InpCareDependencyHistoryConfiguration.cs` (Baru).
+
+### 22.3 Enum dan skema JSON
+
+| Nama | Nilai | Bawaan | Lokasi |
+| --- | --- | --- | --- |
+| `RoomWingDirection` | Utara = 1, TimurLaut = 2, Timur = 3, Tenggara = 4, Selatan = 5, BaratDaya = 6, Barat = 7, BaratLaut = 8 | Tanpa bawaan; NULL = kamar tidak di denah | `Areas/HealthServices/MasterData/Enums/RoomWingDirection.cs` |
+| `InpCareDependencyLevel` | High = 1, Low = 2 | Tanpa bawaan; NULL = belum dinilai | `Areas/HealthServices/InPatientManagement/Enums/InpCareDependencyLevel.cs` |
+| `InpCareDependencySource` | AdmissionNote = 1, NurseAssessment = 2, DoctorDecision = 3 | Ditentukan server | `Areas/HealthServices/InPatientManagement/Enums/InpCareDependencySource.cs` |
+
+| Properti `SummaryJson` | Tipe | Aturan |
+| --- | --- | --- |
+| schemaVersion | int = 1 | Validator service |
+| rooms / beds | object {created, updated, unchanged, rejected: int} | Jumlah per hasil |
+| bedsMarkedReady | int | 0 di luar dev/UAT |
+| rows | array {floorPlanRoomKey: string, outcome: Created/Updated/Unchanged/Rejected, codes: string[]} | Kode dari validation matrix 17; tanpa data pasien |
+
+### 22.4 DDL dokumentasi target, tidak dieksekusi
+
+Spesifikasi untuk EF Configuration dan migration M-DNH-1..4 yang **belum tersedia**; kolom `IdentityModel` mengikuti 22.1. Bagian ini bukan script operasional dan tidak boleh dijalankan langsung; migration dibuat lewat `dotnet ef` dan ditinjau sebelum dipakai.
+
+```sql
+-- M-DNH-1
+ALTER TABLE public."MstRoom"
+  ADD COLUMN "FloorCode" varchar(10) NULL,
+  ADD COLUMN "WingDirection" integer NULL,
+  ADD COLUMN "FloorPlanRoomKey" varchar(100) NULL;
+ALTER TABLE public."MstRoom" ADD CONSTRAINT "CK_MstRoom_WingDirection"
+  CHECK ("WingDirection" IS NULL OR "WingDirection" BETWEEN 1 AND 8);
+ALTER TABLE public."MstRoom" ADD CONSTRAINT "CK_MstRoom_FloorPlanRoomKey_Floor"
+  CHECK ("FloorPlanRoomKey" IS NULL OR "FloorCode" IS NOT NULL);
+CREATE INDEX "IX_MstRoom_FloorCode" ON public."MstRoom" ("FloorCode");
+CREATE UNIQUE INDEX "IX_MstRoom_FloorPlanRoomKey" ON public."MstRoom" ("FloorPlanRoomKey")
+  WHERE "FloorPlanRoomKey" IS NOT NULL AND "IsDelete" = false;
+
+-- M-DNH-2
+ALTER TABLE public."InpEpisode"
+  ADD COLUMN "CareDependencyLevel" integer NULL,
+  ADD COLUMN "CareDependencySource" integer NULL,
+  ADD COLUMN "CareDependencySetByUserId" uuid NULL,
+  ADD COLUMN "CareDependencySetAt" timestamptz NULL,
+  ADD COLUMN "CareDependencyNote" varchar(500) NULL;
+ALTER TABLE public."InpEpisode" ADD CONSTRAINT "CK_InpEpisode_CareDependencyLevel"
+  CHECK ("CareDependencyLevel" IS NULL OR "CareDependencyLevel" BETWEEN 1 AND 2);
+ALTER TABLE public."InpEpisode" ADD CONSTRAINT "CK_InpEpisode_CareDependencySource"
+  CHECK ("CareDependencySource" IS NULL OR "CareDependencySource" BETWEEN 1 AND 3);
+-- CareDependencySetByUserId: FK Restrict ke mapping Identity user actual.
+
+CREATE TABLE public."InpCareDependencyHistory" (
+    "Id" uuid NOT NULL PRIMARY KEY,
+    "EpisodeId" uuid NOT NULL,
+    "PreviousLevel" integer,
+    "NewLevel" integer NOT NULL,
+    "Source" integer NOT NULL,
+    "ActorUserId" uuid NOT NULL,
+    "RecordedAtUtc" timestamptz NOT NULL,
+    "Note" varchar(500),
+    CHECK ("PreviousLevel" IS NULL OR "PreviousLevel" BETWEEN 1 AND 2),
+    CHECK ("NewLevel" BETWEEN 1 AND 2),
+    CHECK ("Source" BETWEEN 1 AND 3),
+    FOREIGN KEY ("EpisodeId") REFERENCES public."InpEpisode"("Id") ON DELETE RESTRICT
+    -- ActorUserId: FK Restrict ke mapping Identity user actual.
+    -- IdentityModel audit columns are inherited; see 22.1.
+);
+CREATE INDEX "IX_InpCareDependencyHistory_EpisodeId_RecordedAtUtc_Id"
+  ON public."InpCareDependencyHistory" ("EpisodeId", "RecordedAtUtc", "Id");
+
+-- M-DNH-3
+CREATE TABLE public."MstFloorPlanImportRun" (
+    "Id" uuid NOT NULL PRIMARY KEY,
+    "ManifestVersion" varchar(50) NOT NULL,
+    "ManifestHash" char(64) NOT NULL,
+    "EnvironmentName" varchar(32) NOT NULL,
+    "MarkedBedsReady" boolean NOT NULL,
+    "ReadyEvidenceReference" varchar(200),
+    "SummaryJson" jsonb NOT NULL,
+    "ActorUserId" uuid NOT NULL,
+    "StartedAtUtc" timestamptz NOT NULL,
+    "CompletedAtUtc" timestamptz NOT NULL,
+    CHECK (NOT "MarkedBedsReady" OR "ReadyEvidenceReference" IS NOT NULL)
+    -- ActorUserId: FK Restrict ke mapping Identity user actual.
+    -- IdentityModel audit columns are inherited; see 22.1.
+);
+CREATE INDEX "IX_MstFloorPlanImportRun_ManifestHash" ON public."MstFloorPlanImportRun" ("ManifestHash");
+CREATE INDEX "IX_MstFloorPlanImportRun_StartedAtUtc" ON public."MstFloorPlanImportRun" ("StartedAtUtc");
+
+-- M-DNH-4, dalam rilis yang sama dengan penghapusan kode jenis kelamin
+ALTER TABLE public."MstRoom" DROP COLUMN "IsForMale", DROP COLUMN "IsForFemale";
+ALTER TABLE public."MstBed" DROP COLUMN "IsForMale", DROP COLUMN "IsForFemale";
+```
+
+### 22.5 Index, relasi, dan constraint service
+
+| Entity | Index/constraint | Makna |
+| --- | --- | --- |
+| `MstRoom` | UNIQUE berfilter `FloorPlanRoomKey`; INDEX `FloorCode`; CHECK wing 1–8; CHECK kunci butuh lantai | INV-DNH-01; denah membaca per lantai |
+| `MstRoom` (service) | Kunci dan lantai tidak berubah setelah terisi; nomor kamar unik per lantai untuk aktivasi ruang cadangan; unit dan kelas wajib untuk kamar berkunci | Tidak bisa dinyatakan sebagai constraint tabel sederhana |
+| `MstBed` (service) | Label unik per lantai di antara bed yang belum dihapus; hapus hanya tanpa riwayat | INV-DNH-02; `DNH-MIS-07` |
+| `InpEpisode` | CHECK level dan sumber; FK pencatat | Kolom HD/LD terisi bersamaan |
+| `InpCareDependencyHistory` | INDEX(`EpisodeId`, `RecordedAtUtc`, `Id`); FK Restrict | Urutan stabil riwayat; append-only |
+| `MstFloorPlanImportRun` | INDEX `ManifestHash`, `StartedAtUtc`; CHECK referensi bila siap | Audit impor; INV-DNH-07 |
+
+### 22.6 Perlindungan data dan migration
+
+Urutan dan langkah mundur ada di backend 15.8. Episode lama tidak diisi HD/LD; NULL dibaca "belum dinilai". Kunci denah tidak diisi dari id gambar lama. `CareDependencyNote` dan `Note` riwayat bertanda sensitif: tidak masuk custom logger, tidak dikirim ke profil OperationalOnly, dan contoh dokumentasi memakai data samaran. Kolom jenis kelamin dihapus hanya pada tabel bed dan kamar; data jenis kelamin pasien di `MstPatient` tidak disentuh (RWI-DEC-315).
+
+---
+
+## 23. Amandemen Bagian 23 — Kamus Data Ekstensi DTO dan Riwayat Serah Terima Pasien Masuk
+
+| Field | Nilai |
+| --- | --- |
+| Kontrak Target | `0.14.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Bounded Context | `ClinicalManagement` & `InPatientManagement` |
+| Status | `draft` |
+
+### 23.1 Ekstensi Payload `AcceptTransferHandoverRequest`
+
+| Parameter / Field | Tipe | Wajib | Bawaan | Sensitif | Keterangan |
+|---|---|:---:|---|:---:|---|
+| `Notes` | `string(1000)?` | Tidak | `null` | Ya | Catatan serah terima penerimaan pasien dari perawat bangsal |
+| `AssignedNurseId` | `Guid` | **Ya** | — | Tidak | ID Perawat Penanggung Jawab Asuhan (PPJA) yang ditetapkan |
+| `MedicationReconciliations` | `List<MedicationReconciliationItemDto>?` | Tidak | `null` | Ya | Daftar hasil verifikasi rekonsiliasi obat IGD/Poli |
+
+### 23.2 Kamus Data Objek Rekonsiliasi Obat (`MedicationReconciliationItemDto`)
+
+| Field | Tipe | Wajib | Sensitif | Keterangan |
+|---|---|:---:|:---:|---|
+| `MedicationName` | `string(150)` | Ya | Ya | Nama obat atau cairan infus |
+| `Dosage` | `string(50)` | Ya | Tidak | Dosis obat (misal: 1 gram, 500 mg, 20 tpm) |
+| `Route` | `string(50)` | Ya | Tidak | Rute pemberian (IV, Oral, SC, IM, Inhalasi) |
+| `LastAdministeredAt` | `DateTime?` | Tidak | Tidak | Waktu pemberian terakhir di unit asal |
+| `Action` | `string(20)` | Ya | Tidak | Rekomendasi / Tindakan: `Continue`, `Hold`, `Discontinue` |
+| `Notes` | `string(250)?` | Tidak | Ya | Instruksi dokter atau catatan khusus perawat |
+
+### 23.3 Kamus Data Summary Dokumen Admisi (`AdmissionDocumentsSummaryDto`)
+
+| Field | Tipe | Wajib | Sensitif | Keterangan |
+|---|---|:---:|:---:|---|
+| `EpisodeId` | `Guid` | Ya | Tidak | ID Episode Rawat Inap |
+| `TotalRequiredDocuments` | `int` | Ya | Tidak | Jumlah dokumen admisi wajib (General Consent, Serah Terima, Selisih Biaya, Deposit) |
+| `CompletedDocumentsCount` | `int` | Ya | Tidak | Jumlah dokumen yang sudah berstatus `Completed` |
+| `IsAllCompleted` | `bool` | Ya | Tidak | Bernilai `true` jika seluruh dokumen admisi telah selesai |
+| `PendingDocumentNames` | `List<string>` | Ya | Tidak | Daftar nama dokumen yang masih berstatus `Draft` atau `AwaitingSignature` |
+
+## 24. Amandemen Kamus Data Admisi Bayi — `RWI-BAYI-022-2.0.0`
+
+### 24.1 `MstPatient`
+
+| Field | Tipe | Wajib untuk bayi baru | Keterangan |
+| --- | --- | :---: | --- |
+| `DeliveryCaseId` | `Guid?` | Ya | Kasus persalinan obstetri sumber bayi |
+| `BirthOrder` | `int?` | Ya | Urutan final yang dialokasikan server per kasus |
+| `NewbornRegistrationKeyHash` | `string(64)?` | Ya | SHA-256 idempotency key; unik bila terisi |
+| `NewbornRegistrationFingerprint` | `string(64)?` | Ya | SHA-256 payload kanonis untuk mendeteksi reuse key berbeda |
+
+### 24.2 `PatNewbornBirthSequence`
+
+| Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `DeliveryCaseId` | `Guid` | Kunci unik satu counter per kasus persalinan |
+| `LastAllocatedBirthOrder` | `int` | Urutan terakhir; wajib positif dan diperbarui di dalam transaksi |
+
+### 24.3 Episode dan penjamin
+
+| Aggregate.Field | Tipe | Keterangan |
+| --- | --- | --- |
+| `InpEpisode.DeliveryCaseId` | `Guid?` | Sumber kasus episode bayi; wajib untuk alur baru |
+| `RegPatientEncounterGuarantor.InheritedFromPaymentSourceId` | `Guid?` | Provenance payment source encounter ibu |
+| `RegPatientEncounterGuarantor.InheritedFromPaymentSourceAt` | `DateTime?` | Versi snapshot sumber yang diwariskan |
+
+`FamilyBillingPreference` dan `PlannedDepositAmount` dipertahankan hanya untuk kompatibilitas
+data historis; alur bayi baru tidak menulis keduanya.
+
+---
+
+## 25. Amandemen Kamus Data Pendaftaran Admisi Pasien ODC (One Day Care) — Kontrak `0.15.0` (`RWI-DEC-327` s.d. `RWI-DEC-332`)
+
+| Field | Nilai |
+|---|---|
+| Kontrak Target | `0.15.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Bounded Context | `InPatientManagement` & `MasterData` |
+| Status | `draft` |
+
+### 25.1 Entitas Master Data Penanda ODC (Status: Sudah Ada)
+
+Entity master data berikut sudah ada di database PostgreSQL (`BE@def6cf6a`), tidak memerlukan migrasi skema database baru:
+
+#### `MstBed` (Skema `public`, Tabel `MstBed`)
+| Field | Tipe | Nullable | Bawaan | Sensitif | Keterangan |
+|---|---|:---:|---|:---:|---|
+| `IsOdcBed` | `bool` | Tidak | `false` | Tidak | Penanda tempat tidur khusus untuk pasien One Day Care (ODC). Jika `true`, bed hanya dapat dipesan/ditempati oleh episode ODC (`RWI-DEC-327`). |
+
+#### `MstRoom` (Skema `public`, Tabel `MstRoom`)
+| Field | Tipe | Nullable | Bawaan | Sensitif | Keterangan |
+|---|---|:---:|---|:---:|---|
+| `IsOdcRoom` | `bool` | Tidak | `false` | Tidak | Penanda kamar yang dialokasikan khusus untuk perawatan One Day Care (ODC) (`RWI-DEC-327`). |
+
+### 25.2 Ekstensi Parameter Kueri Ketersediaan Bed (`AvailableBedQuery`)
+
+| Parameter / Field | Tipe | Wajib | Bawaan | Sensitif | Keterangan |
+|---|---|:---:|---|:---:|---|
+| `IsOdcBed` | `bool?` | Tidak | `null` | Tidak | **[Baru]** Menyaring tempat tidur berdasarkan penanda ODC. Dikirim `true` pada alur admisi pasien ODC untuk membatasi pilihan hanya pada bed ODC. |
+| `IsOdcRoom` | `bool?` | Tidak | `null` | Tidak | **[Baru]** Menyaring tempat tidur pada kamar yang bertanda ODC. |
+
+### 25.3 Ekstensi Respon Tempat Tidur Tersedia (`AvailableBedResponse`)
+
+| Field | Tipe | Wajib | Sensitif | Keterangan |
+|---|---|:---:|:---:|---|
+| `IsOdcBed` | `bool` | Ya | Tidak | **[Baru]** Menandakan bahwa tempat tidur ini adalah tempat tidur khusus One Day Care (ODC). Membantu frontend menampilkan badge atau pengelompokan visual ODC. |
+
+### 25.4 Konstanta & Nilai Enum Terkait ODC
+
+| Simbol / Enum | Modul | Nilai | Keterangan |
+|---|---|---|---|
+| `PatientClassType.Odc` | Backend `MasterData` | `14` | Kategori kelas pasien ODC pada backend (`Sudah ada`). |
+| `INPATIENT_PATIENT_TYPE.ODC` | Frontend Constants | `"odc"` | Kategori tipe pasien ke-4 pada wizard admisi frontend (`Baru`). |
+
+## 26. Kamus data realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+Tidak ada data persisted baru. Tabel berikut adalah DTO transport SignalR yang dibentuk dari state
+committed existing dan habis setelah dikonsumsi client.
+
+### 26.1 `InpatientBedRealtimeEventResponse`
+
+| Field | Tipe | Null | Sumber existing | Sensitivitas/aturan |
+|---|---|---:|---|---|
+| `eventId` | `Guid` | tidak | Dibuat publisher | ID deduplikasi sesi; tidak disimpan |
+| `eventType` | string enum | tidak | Jenis mutasi | `BedReserved`, `PatientPlaced`, `PatientTransferred` |
+| `bedId` | `Guid` | tidak | Bed target | Identifier internal |
+| `bedCode` | `string` | ya | Master bed | Fallback label; tanpa data pasien |
+| `bedName` | `string` | ya | Master bed | Label utama alert |
+| `roomId` | `Guid` | tidak | Room bed target | Identifier internal |
+| `roomName` | `string` | ya | Master room | Konteks tampilan, tidak wajib dalam kalimat minimum |
+| `serviceUnitId` | `Guid` | tidak | Unit room/placement target | Kunci routing grup dan defense in depth client |
+| `serviceUnitName` | `string` | ya | Master service unit | Konteks tampilan |
+| `episodeId` | `Guid` | tidak | Episode mutasi | Identifier internal; tidak dirender pada alert |
+| `patientName` | `string` | tidak | `InpEpisode.Patient.FullName` | **PHI/sensitif**; hanya grup berwenang unit sama |
+| `actorUserId` | `Guid` | tidak | Actor mutasi | Dipakai menekan alert actor sendiri; tidak dirender |
+| `actorDisplayName` | `string` | tidak | `ApplicationUser.DisplayName` | Data personal; hanya grup berwenang unit sama |
+| `occurredAtUtc` | `DateTimeOffset` | tidak | Waktu hasil commit/publish | UTC ISO-8601 |
+| `bedOperationalVersion` | integer/long | tidak | Versi committed bed | Membantu observability; bukan pengganti refetch |
+
+### 26.2 Data yang dilarang
+
+Payload tidak boleh memuat MRN/nomor rekam medis, NIK, tanggal lahir, alamat, nomor telepon,
+diagnosis, catatan klinis, penjamin, tarif, saldo, atau isi formulir persetujuan. Nama pasien dan
+actor juga tidak boleh dimasukkan ke application log, exception message, atau metric label.
+
+### 26.3 Retensi dan ownership
+
+- Owner data sumber tetap entity existing di Inpatient/Patient/User Management.
+- Event tidak memiliki tabel, retention period, CRUD, atau endpoint pencarian.
+- Deduplikasi frontend hanya hidup selama komponen selection mount dan dibatasi ukurannya.
+- Audit bisnis tetap berasal dari receipt/audit mutasi bed existing, bukan dari event realtime.
+

@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI (`INT-RWA-01` s.d. `14`), `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8; isi sebelumnya `last_changed_in` `0.4.0` |
-| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`draft`** |
-| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `evidence/03-hospital-domain-architecture.md` revision `0.1` bagian J; `00-interview-decisions.md` revision `6` |
-| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
-| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Satu arah tulis lintas modul yang baru. Tidak ada kontrak eksternal yang berubah |
+| `contract_version` | **`0.17.0`** — amandemen Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (bagian 15, `draft`, `RWI-DEC-338` s.d. `341`, 2026-10-19). Riwayat metadata sebelumnya: `0.16.0` Notifikasi Realtime Pemilihan Bed (`approved_design_planned`, `RWI-DEC-337`); amandemen Integrasi Denah approved (bagian 12, last_changed_in `0.13.0`, `RWI-DEC-324`); amandemen Bed Management draft (bagian 11); `0.11.0` Workspace PPRI; `0.10.0`; `0.9.0` |
+| Status | **`draft`** untuk amandemen Prioritas Kamar Member & Lencana Tier (`0.17.0`); **`approved`** untuk amandemen Notifikasi Realtime (`0.16.0`), Integrasi Denah (`0.13.0`), dan Workspace PPRI (`0.11.0`) |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292 |
+| `input_revision` | Prioritas Member: Decision log rev 60 (`RWI-DEC-338` s.d. `341`, `RWI-AC-481` s.d. `493`). Realtime Bed: Decision log rev 54 (`RWI-DEC-333`–`336`). Integrasi Denah: decision 50, DEC-298–323, AC-436–461 |
+| Backend SHA | `24526327` (branch `MHamzah`) |
+| Dampak kompatibilitas | Aditif (non-breaking): Field baru pada DTO `InpatientAdmissionTransferItemResponse` (`isCito`, `isPriorityMember`, `memberTierName`, `memberPriorityLevel`), pengurutan multi-kriteria deterministic di server. Tidak ada tabel baru, tidak ada arah tulis ke modul lain |
 
 > **`0.3.0` sengaja tidak menambah satu integrasi pun.** `RWI-DEC-066` menolak menambah kolom
 > "boleh campur" pada `MstRoom`, sehingga aturan pencampuran kamar dijalankan dengan **membaca**
@@ -396,3 +396,167 @@ Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../../dokter-rawat-in
 Master bayi/ibu, kunjungan/penjamin bayi, episode bayi dan invoice sumber tetap terpisah. familyBillingPreference=Combined adalah preferensi handoff, bukan bukti kelompok invoice/settlement. plannedDepositAmount adalah rencana, bukan uang diterima. Kontrak pembayaran lintas invoice/refund/clearance masih perlu slice Billing terpisah.
 
 Detail dan batas mengikuti [kontrak admisi bayi](newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
+
+## 12. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); titik sentuh Billing: Yasmina (RWI-OQ-143); MasterData: seluruh tim. `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**; `DOMAIN_ARCHITECTURE_NOT_RUN`. Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`. Tidak ada integrasi eksternal baru, event outbox baru, maupun worker baru.
+
+### 12.1 Dependency dan batas integrasi
+
+| ID | Arah | Kontrak | Kegagalan / kepemilikan | Trace |
+| --- | --- | --- | --- | --- |
+| INT-DNH-01 | MasterData kelas → Bed Management, Billing, dan 10 modul pemakai kelas | Kelas setara diganti nama dan urutannya dengan Id tetap; kelas baru baris baru; kelas tak terpakai nonaktif | Id tetap sehingga tarif, deposit, dan aturan cakupan tetap tersambung tanpa pemetaan ulang | DEC-322; AC-460; RWI-FACT-073 (7) |
+| INT-DNH-02 | MasterData kelas → konfigurasi urutan kelas | Perubahan daftar atau `ClassLevel` kelas aktif dan pembaruan `ClassOrder` dalam satu jendela perubahan | Tanpa itu perbandingan kelas biasa `Unknown` → transfer antarkelas biasa ditolak `CLASS_ORDER_UNVERIFIED`; kelas khusus tidak terdampak | DEC-319; AC-458; `BM-G01` |
+| INT-DNH-03 | Bed Management → Billing (tarif kamar) | Tidak berubah: tarif dicocokkan per unit layanan dan kelas; snapshot `comparisonResult` `Special` tidak dibaca sebagai harga | Kelas atau unit yang benar-benar baru tanpa tarif: perkiraan biaya menampilkan "Tarif belum tersedia" | RWI-OQ-143; `DNH-G02` |
+| INT-DNH-04 | MasterData unit ↔ hak akses | Kamar memakai unit yang diakui RS; penugasan `UnitAssignments` existing tetap berlaku | Unit baru butuh penugasan akses sebelum dipakai | DEC-323; `BM-G03` |
+| INT-DNH-05 | Frontend denah ↔ backend | Geometri dan kunci di frontend; data kamar/bed dari API; kunci yang tidak cocok tidak digambar sebagai kamar berdata | Kamar database tanpa kunci muncul di daftar "Kamar tanpa posisi" | DEC-299/306 |
+| INT-DNH-06 | Pemakai lain `MstRoom` (Kamar Operasi, hemodialisis, gudang obat) | Kamar di luar denah tidak disentuh; halaman Master Room tetap ada | Penghapusan kolom jenis kelamin tidak memengaruhi mereka (tidak ada pembaca lain di source `ca09cae9`) | Rencana 2; `DNH-CAP-28` |
+| INT-DNH-07 | PatientManagement | Data jenis kelamin pasien tidak disentuh dan tidak dibaca Bed Management | — | DEC-315 |
+| INT-DNH-08 | Daftar pasien rawat inap → `bed-board` | Endpoint dan bentuk respons dipertahankan | Menghapus endpoint merusak daftar pasien | `DNH-MIS-09` |
+
+### 12.2 Billing
+
+Bed Management tetap tidak membuat tarif, ledger, folio, atau invoice. HD/LD tidak dikirim ke Billing dan tidak memengaruhi biaya. Perubahan nama kelas tampil otomatis di layar Billing yang membaca nama dari master, karena Id tetap. Pertanyaan Billing yang tersisa hanya RWI-OQ-143: tarif untuk kelas yang benar-benar baru (mis. Perinatologi, VIP Deluxe bila belum ada) dan untuk unit yang dibuat baru.
+
+### 12.3 Batas scope
+
+Tidak ada sinkronisasi denah dengan sistem luar, tidak ada impor dari berkas yang diunggah, dan tidak ada pembuatan unit atau tarif otomatis. Pembersihan data DB Hamzah (RWI-DEC-305) adalah langkah operasional terpisah dengan konfirmasi pemilik, bukan bagian kontrak integrasi.
+
+## 13. Amandemen Integrasi Admisi Bayi — `RWI-BAYI-022-2.0.0`
+
+| Integrasi | Kepemilikan dan handoff |
+| --- | --- |
+| Operating Room → Admisi | `OprCase` obstetri menjadi sumber ibu dan `DeliveryCaseId`; lokasi ibu bukan syarat |
+| Patient Management → Registration | Pasien bayi memiliki RM dan urutan sendiri; encounter menerima referensi payment source ibu |
+| Registration → Inpatient | Encounter bayi membawa snapshot penjamin independen beserta provenance |
+| Inpatient → Billing | Layanan tetap berasal dari encounter/episode bayi; Admisi tidak membuat invoice gabungan dan tidak memutasi saldo deposit |
+| Billing/Kasir/AR | Membentuk invoice bayi dan, untuk tunai, mengalokasikan deposit ibu melalui workflow terpisah `DEP-BIL-01` |
+
+Kegagalan pada identitas, penjamin, episode, atau bed harus fail-fast sebelum aktivasi. Penerapan
+saldo deposit ibu bukan bagian dari source Admisi ini.
+
+## 14. Amandemen integrasi realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+### 14.1 Karakter integrasi
+
+Integrasi ini adalah SignalR internal dari Inpatient Bed Occupancy ke layar pemilihan bed. Ia bukan
+webhook eksternal, tidak memanggil sistem pihak ketiga, dan tidak menjadi sumber state bisnis.
+
+| Producer | Transport | Consumer | Tujuan |
+|---|---|---|---|
+| `InpBedOccupancyService` melalui `InpBedRealtimeService` | Event `InpatientBedSelectionChanged` pada `/hubs/queues` | `FloorPlanSelection` aktif di unit yang sama | Alert pengguna lain dan invalidasi/refetch denah |
+
+### 14.2 Sequence sukses
+
+```mermaid
+sequenceDiagram
+    actor U2 as User 2
+    participant API as Bed Occupancy API
+    participant DB as PostgreSQL
+    participant RT as InpBedRealtimeService
+    participant HUB as QueueHub / unit group
+    participant U1 as User 1 - FloorPlanSelection
+
+    U2->>API: Reserve / Place / Transfer target
+    API->>DB: Validate + write transaction
+    DB-->>API: Commit sukses
+    API->>RT: Notify non-replay
+    RT->>HUB: InpatientBedSelectionChanged
+    HUB-->>U1: Payload minimum
+    U1->>U1: Tampilkan alert actor lain
+    U1->>API: GET floor-plan terkini
+    API-->>U1: State + eligibility terbaru
+    U1->>U1: Bersihkan selectedBed bila tidak eligible
+    API-->>U2: Response mutasi existing
+```
+
+Urutan pengiriman event terhadap response HTTP tidak dijamin untuk konsumen jaringan, tetapi
+publisher hanya boleh dipanggil sesudah database commit.
+
+### 14.3 Failure, retry, replay, dan rekonsiliasi
+
+| Kondisi | Perilaku wajib |
+|---|---|
+| Publish gagal | Log ID teknis; mutasi tetap sukses; tidak rollback |
+| Client offline | Tidak ada antrean/replay; saat reconnect lakukan rejoin dan refetch |
+| Event duplikat selama sesi | Deduplikasi `eventId` in-memory |
+| Event terlambat/out-of-order | Refetch menyelesaikan state; jangan menerapkan payload sebagai state |
+| Dua mutasi bersaing | Constraint/version guard + `409` menentukan satu pemenang |
+| Hub join tidak berwenang | Tolak; dilarang fallback `Clients.All` |
+
+Tidak ada outbox, dead-letter queue, retry persisted, delivery receipt, atau reconciliation batch.
+Rekonsiliasi tunggal adalah pembacaan ulang floor plan authoritative.
+
+### 14.4 Dependency dan compatibility
+
+- Dependensi backend existing: ASP.NET Core SignalR, `QueueHub`, access service, dan mutation
+  coordinator.
+- Dependensi frontend existing: `@microsoft/signalr`, queue realtime factory, dan floor-plan hook.
+- Event bersifat aditif dan tidak mengubah kontrak HTTP konsumen lama.
+- Tidak ada dependency Billing, SATUSEHAT, BPJS, LIS/RIS, atau layanan eksternal.
+- Aktivasi produksi membawa nama lengkap dan menunggu gate privacy/security `RWI-OQ-151`.
+
+---
+
+## 15. Amandemen Integrasi Prioritas Kamar Pasien Member di Antrean Transfer — `contract_version 0.17.0` (`draft`, `RWI-DEC-338` s.d. `341`)
+
+Amandemen ini mendokumentasikan batas integrasi internal modul Rawat Inap dengan modul CRM (Membership) dan modul IGD (Emergency Installation Management) untuk mendukung prioritas antrean transfer ruangan serta visualisasi lencana tier, disetujui melalui `IGD-REQ-004` dan `RWI-DEC-338` s.d. `341`.
+
+### 15.1 Karakter Integrasi
+
+Integrasi ini bersifat **read-only internal** di dalam satu database PostgreSQL Quilvian melalui Entity Framework Core (`ApplicationDbContext`). Modul Rawat Inap **sama sekali tidak melakukan penulisan (write)** ke tabel CRM maupun tabel IGD, dan tidak memanggil sistem pihak ketiga eksternal.
+
+| ID | Produsen | Konsumen | Sumber Kebenaran Data | Tujuan Bisnis | Sifat Integrasi |
+|---|---|---|---|---|---|
+| `INT-TRF-01` | Modul CRM / Pasien (`MstPatientMembership`, `MstMembershipTier`) | Rawat Inap (`InpAdmissionTransferService`) | Tabel `MstPatientMembership` & `MstMembershipTier` | Membaca status keanggotaan aktif (`MembershipStatus == Active`), masa berlaku (`PeriodStartDate <= Today <= ExpiredDate`), hak prioritas (`PriorityQueue == true`), serta nama tier dan level prioritas untuk pengurutan antrean transfer kamar rawat inap. | Sinkron, query read-only via EF Core `ApplicationDbContext`. Tanpa penulisan ke tabel membership. |
+| `INT-TRF-02` | Modul IGD (`EmgAdmissionRequest`) | Rawat Inap (`InpAdmissionTransferService`) | Tabel `EmgAdmissionRequest` (berstatus `Signed`) | Membaca penanda kegawatdaruratan transfer (`IsCito`) yang diputuskan oleh dokter IGD penanggung jawab. | Sinkron, query read-only via EF Core `ApplicationDbContext`. Tanpa penulisan ke formulir IGD. |
+
+### 15.2 Sequence Diagram Pembacaan Integrasi Antrean Transfer
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Nurse as Petugas Admisi / PPRI
+    participant FE as Frontend Antrean Transfer
+    participant API as InpAdmissionTransferService
+    participant DB as PostgreSQL (Quilvian AppDbContext)
+
+    Nurse->>FE: Buka Layar Antrean Transfer Rawat Inap
+    FE->>API: GET /api/v1/health-services/inpatient-management/admission-transfers
+    activate API
+    API->>DB: Query InpAdmissionTransfer join Patient, Encounter
+    API->>DB: Query EmgAdmissionRequest (IsCito where Status == Signed)
+    API->>DB: Query MstPatientMembership join MstMembershipTier (Active, Valid Date, PriorityQueue == true)
+    DB-->>API: Data hasil query relasional
+    API->>API: Evaluasi Real-Time Membership & CITO
+    API->>API: Sort Multi-Kriteria (CITO DESC -> PriorityMember DESC -> PriorityLevel ASC -> DecidedAt ASC -> TransferId ASC)
+    API-->>FE: HTTP 200 OK (List DTO berurutan dengan IsCito, IsPriorityMember, MemberTierName, MemberPriorityLevel)
+    deactivate API
+    FE-->>Nurse: Tampilkan tabel urut dengan Lencana Merah [CITO] & Lencana Tier [Gold/Silver/dll]
+```
+
+### 15.3 Kebijakan Fallback dan Toleransi Kegagalan (Resilience Policy)
+
+Sesuai `RWI-AC-493`, kegagalan atau ketiadaan data pada modul hulu harus ditangani secara fail-safe tanpa memicu HTTP 500:
+
+1. **Fallback Modul CRM**:
+   - Jika pasien tidak memiliki baris pada `MstPatientMembership`, sistem memetakan `IsPriorityMember = false`, `MemberTierName = null`, `MemberPriorityLevel = null`.
+   - Jika pasien memiliki membership tetapi statusnya `Inactive`, `Suspended`, atau tanggal hari ini berada di luar rentang `PeriodStartDate` s.d. `ExpiredDate`, keanggotaan dianggap tidak aktif: `IsPriorityMember = false`, `MemberTierName = null`, `MemberPriorityLevel = null`.
+   - Jika keanggotaan aktif namun tier-nya memiliki flag `PriorityQueue == false`, pasien tetap tercatat tier-nya namun `IsPriorityMember = false` (antrean diperlakukan sebagai antrean reguler).
+2. **Fallback Modul IGD**:
+   - Jika permintaan transfer berasal dari luar IGD (misal Poliklinik/Rawat Jalan jika ada di masa depan), atau formulir `EmgAdmissionRequest` belum berstatus `Signed`, sistem memetakan `IsCito = false`.
+   - Pasien non-CITO diperlakukan sesuai status membership-nya (bila member prioritas masuk kelompok member prioritas, bila non-member masuk kelompok reguler).
+
+### 15.4 Invariant Perlindungan Klinis & Kestabilan Kamar
+
+1. **Non-Diskriminasi Asuhan Klinis (`RWI-DEC-340`, `RWI-AC-491`)**:
+   - Integrasi membership ini **hanya** digunakan untuk mengurutkan antrean penawaran kamar dan menampilkan lencana pada layar admisi transfer.
+   - Modul klinis (visite dokter, asuhan keperawatan, administrasi obat, tindakan medis) dilarang mengonsumsi tier membership untuk membeda-bedakan mutu layanan klinis.
+2. **Kestabilan Penempatan Kamar (`RWI-DEC-339`, `RWI-AC-490`)**:
+   - Validasi membership dievaluasi pada saat antrean dan saat penetapan kamar pertama kali (admisi).
+   - Apabila keanggotaan pasien kedaluwarsa setelah pasien menempati kamar di bangsal rawat inap, kamar pasien **tidak boleh dicabut, dibatalkan, atau dipindahkan paksa ke kelas lebih rendah**. Pasien tetap berhak menempati kamar hingga episode rawat inap selesai.
+3. **Privasi Denah Bangsal Umum (`RWI-DEC-341`, `RWI-AC-488`)**:
+   - Informasi tier membership tidak diekspos ke denah Bed Management bangsal umum untuk menjaga kerahasiaan status komersial antar pasien di lingkungan rawat inap.
+

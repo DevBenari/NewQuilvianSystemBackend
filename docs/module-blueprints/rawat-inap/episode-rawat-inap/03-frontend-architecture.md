@@ -3,14 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.12`** — draft Bed Management, 10 Oktober 2026. Riwayat metadata: **`0.11`** — amandemen alur admisi pendaftaran rawat inap menyerap revisi tim analisis bisnis (Mba Ilma) via `RWI-DEC-267` s.d. `RWI-DEC-273` dan `RWI-AC-388` s.d. `RWI-AC-395` (10 Oktober 2026, `approved`): alur Pasien Baru 12 langkah dan Pasien Lama 10 langkah, Step 1 Jenis Kunjungan (Umum & Rujukan ringkas), Step 2 Kategori Pasien (3 opsi), batasan kontak darurat maks 13 digit numerik, penyatuan cari & verifikasi Pasien Lama split layout, penyembunyian Unit Tujuan di Step Dokter (otomatis ranap), penambahan langkah mandiri (*Dedicated Step*) Form Persetujuan & TTD Digital Pasien/Wali sebelum cetak, invariant penanda tangan Bayi Baru Lahir, serta fungsi General Consent Workspace PPRI sebagai print-only tanpa re-input. Sebelumnya `0.10` (Workspace PPRI, 7 Oktober 2026); `0.9` (Finishing); `0.8` |
-| Status | **`draft`** — Bed Management belum disetujui. Riwayat metadata: **`approved`** — amandemen alur admisi `0.11` disetujui pengguna pada 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery". Status revision sebelumnya `0.10` `approved` oleh Muhammad Hamzah (`RWI-DEC-265`) |
-| Apa yang berubah pada `0.11` | **Penyelarasan penuh alur admisi pendaftaran:** Pasien Baru diperluas menjadi 12 langkah dan Pasien Lama menjadi 10 langkah. Formulir Persetujuan Rawat Inap & TTD Digital diangkat menjadi Langkah Mandiri (*Dedicated Step*) yang menyimpan data persetujuan & citra TTD digital ke episode sebelum langkah cetak; General Consent PPRI berstatus *read-only / print-ready* (`RWI-AC-395`). Unit Tujuan disembunyikan dari UI dokter (`RWI-DEC-268`), kontak darurat dibatasi 13 digit (`RWI-DEC-267`), dan penanda tangan bayi dikunci ke orang tua/wali (`RWI-DEC-273`) |
+| Revision | **`0.17`** — Lencana Tier Membership & Prioritas Antrean Transfer, bagian 20, **draft** 19 Oktober 2026 (`RWI-DEC-338` s.d. `341`). Riwayat: `0.16` Notifikasi Realtime Pemilihan Bed; `0.15` Admisi ODC; `0.14` Layar Transfer Pasien Masuk; `0.13` Integrasi Denah (`RWI-DEC-324`); `0.12` Bed Management; `0.11` Admisi Mba Ilma |
+| Status | **`draft`** untuk amandemen Lencana Tier Membership & Prioritas Antrean Transfer (`0.17.0`, bagian 20); **`approved`** untuk amandemen Notifikasi Realtime (`0.16.0`), ODC (`0.15.0`), Transfer Pasien Masuk (`0.14.0`), dan Integrasi Denah (`0.13.0`) |
+| Apa yang berubah pada `0.17` | **Lencana Tier Membership & Prioritas Antrean Transfer.** Tampilan antrean transfer menyajikan urutan CITO → Member Prioritas → Reguler. Tabel `InpatientAdmissionTransferList` dan langkah admisi `InpatientAdmissionTransferReviewStep` menampilkan lencana merah `[CITO]` dan lencana warna tier `[Platinum/Gold/Silver]`. Denah Bed Management bangsal umum bebas lencana tier demi privasi pasien (`RWI-DEC-341`). |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Peta butir menu seluruh modul naik ke [`../02-module-map.md`](../02-module-map.md) bagian 3, karena sidebar hanya satu untuk tiga sub-modul. Nol layar, endpoint, dan aturan keterjangkauan yang bergerak |
-| Frontend SHA | Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
-| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
-| Masukan | Decision46, gate1.12/BM-RCG-20261010-01, audit BM-AUD-20261010-01 rev1. Riwayat metadata: `02-backend-architecture.md` revision `0.3`; `04-prd-to-mvp.md` revision `0.6.0` bagian 9; `contracts/api-contract.md`, `contracts/permission-audit-matrix.md`, dan `contracts/validation-matrix.md` revision `0.6.0`; `00-interview-decisions.md` revision `40` |
+| Frontend SHA | Integrasi Denah: 4d9bf608dbbaddc96a2b4acfc8723753b5dd5028. Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
+| Backend SHA | Integrasi Denah: ca09cae909597442385ce4513be9c803549be10e. Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
+| Masukan | Integrasi Denah: decision 50, DEC-298–323, AC-436–461; gate 1.13/DNH-RCG-20261015-01; impact scan BM-IMP-20261015-01. Bed Management: Decision46, gate1.12/BM-RCG-20261010-01, audit BM-AUD-20261010-01 rev1. Riwayat metadata: `02-backend-architecture.md` revision `0.3`; `04-prd-to-mvp.md` revision `0.6.0` bagian 9; `contracts/api-contract.md`, `contracts/permission-audit-matrix.md`, dan `contracts/validation-matrix.md` revision `0.6.0`; `00-interview-decisions.md` revision `40` |
 | Dasar revision ini | `RWI-DEC-075` s.d. `RWI-DEC-079`, `RWI-DEC-093` s.d. `RWI-DEC-096`, serta `RWI-DEC-267` s.d. `RWI-DEC-273` (10 Oktober 2026) |
 | Batas tulis | Hanya dokumen blueprint |
 
@@ -30,6 +30,93 @@ keamanan / privasi / invariant / keterjangkauan
   -> konvensi dan design system project
   -> DEV_DISCRETION
 ```
+
+## 20. Amandemen frontend realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+### 20.1 Tujuan dan penempatan tanggung jawab
+
+Koneksi realtime hidup selama `FloorPlanSelection` terpasang. Popup kamar bukan pemilik koneksi,
+karena alert harus tetap diterima ketika pengguna sedang scroll atau popup tertutup. Event selalu
+diikuti refetch; frontend tidak mengubah status bed hanya dari payload event.
+
+### 20.2 Keputusan reuse atau buat baru
+
+| Elemen | Keputusan | Alasan |
+|---|---|---|
+| `@microsoft/signalr` | Ready to reuse | Dependensi sudah tersedia |
+| `createQueueRealtimeConnection` | Extend | Sudah menangani auth, automatic reconnect, dan rejoin; route hub sama |
+| `useFloorPlan.refresh` | Ready to reuse | Jalur kanonis mengambil state dan eligibility terkini |
+| Effect stale selection pada `FloorPlanSelection` | Ready to reuse | Otomatis memanggil `onClearSelection` sesudah hasil refresh tidak eligible |
+| `useInpatientBedRealtime` | Baru | Mengisolasi lifecycle group, deduplikasi sesi, alert, reconnect, dan refetch |
+| Alert pada `FloorPlanSelection` | Extend | Menjamin alert terlihat di seluruh konteks pemilihan, tidak hanya popup |
+| Komponen alert visual | Reuse preferred | Gunakan base alert/toast Quilvian yang sudah ada; bentuk visual adalah `DEV_DISCRETION` |
+
+### 20.3 Lifecycle hook
+
+`useInpatientBedRealtime` menerima sekurangnya:
+
+```text
+enabled
+currentUserId
+serviceUnitIds       // distinct unit yang tampil dan lolos join server
+onChanged(payload)  // set alert lalu await floorPlan.refresh()
+```
+
+Perilaku wajib:
+
+1. Saat layar selection mount dan memiliki unit, start koneksi `/hubs/queues`, pasang handler
+   `InpatientBedSelectionChanged`, lalu join tiap unit.
+2. Saat daftar unit berubah, leave unit lama dan join unit baru; server tetap menjadi otoritas.
+3. Abaikan event dengan `serviceUnitId` di luar unit aktif sebagai defense in depth.
+4. Simpan `eventId` pada bounded in-memory set selama mount; event duplikat tidak membuat alert
+   ganda. Set ini bukan history persisten.
+5. Bila `actorUserId === currentUserId`, jangan tampilkan alert dan jangan mengumumkannya melalui
+   accessibility live region. Refetch boleh tetap dilakukan.
+6. Untuk actor lain, tampilkan alert segera, kemudian jalankan `state.refresh()`.
+7. Setelah reconnect, rejoin semua unit aktif dan panggil `state.refresh()` segera; jangan meminta
+   atau menampilkan replay alert lama.
+8. Saat unmount, lepaskan handler, leave grup bila koneksi tersedia, dan hentikan instance koneksi
+   milik hook.
+
+### 20.4 Konten alert
+
+| `eventType` | Pesan minimum |
+|---|---|
+| `BedReserved` | `Bed {bedLabel} telah didaftarkan atas nama pasien {patientName} oleh user {actorDisplayName}.` |
+| `PatientPlaced` | `Bed {bedLabel} telah ditempati atas nama pasien {patientName} oleh user {actorDisplayName}.` |
+| `PatientTransferred` | `Bed {bedLabel} telah menjadi tujuan transfer atas nama pasien {patientName} oleh user {actorDisplayName}.` |
+
+`bedLabel` memakai `bedName` bila tersedia, lalu fallback `bedCode`. Alert harus dapat ditutup,
+terbaca screen reader melalui live region yang sesuai, dan tidak memblokir scrolling. Warna, ikon,
+posisi, durasi, dan animasi mengikuti design token/base component existing.
+
+### 20.5 Refresh, pilihan usang, dan error
+
+- Alert ditampilkan sebelum network refetch selesai agar pengguna segera memahami perubahan.
+- Hasil refetch mengganti state denah. Effect existing membersihkan `selectedBedId` bila bed tidak
+  lagi eligible.
+- Bila refetch gagal, alert tetap terlihat dan error loading existing ditampilkan; frontend tidak
+  boleh menyimpulkan status bed dari payload saja.
+- Bila pengguna tetap submit sebelum event/refetch selesai, response conflict `409` existing tetap
+  ditangani oleh hook admisi/transfer dan memaksa refresh.
+- Kehilangan koneksi realtime tidak menonaktifkan aksi bisnis, karena server guard tetap menjamin
+  satu pemenang.
+
+### 20.6 Struktur file target
+
+```text
+QuilvianSystemFrontendDev/src/
+├── lib/realtime/
+│   └── queue-realtime-client.js                           [Extend event + group inpatient bed]
+├── lib/hooks/health-services/inpatient-management/
+│   └── use-inpatient-bed-realtime.js                      [Baru]
+└── components/features/health-services/inpatient-management/floor-plan/
+    └── floor-plan-selection.jsx                           [Extend hook + alert]
+```
+
+Tidak ada menu, route, halaman, atau perubahan navigation permission. Perubahan source frontend
+yang sudah berada di working tree pengguna saat blueprint disusun tidak ditimpa dan bukan bukti
+bahwa kontrak ini telah diimplementasikan.
 
 ---
 
@@ -1437,3 +1524,441 @@ Rujukan normatif delta yang disetujui: [RWI-KELAS-006-1.0](../dokter-rawat-inap/
 Entry new/existing kategori bayi memakai komposisi domain khusus dengan hook/DTO yang sama. View -> hook domain -> Axios service -> util/constants tetap pola existing. Entry transfer/kamar pulih tidak didesain ulang oleh scope ini. Konteks bayi/payer terkunci setelah Draft dan koreksi harus berwenang.
 
 Detail dan batas mengikuti [kontrak admisi bayi](contracts/newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
+
+## 16. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); frontend: pengembang dalam batas RWI-DEC-299 dan aturan keras RWI-DEC-325 (16.7); keamanan/privasi: OPEN. `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**; `DOMAIN_ARCHITECTURE_NOT_RUN`. As-is: impact scan **BM-IMP-20261015-01** (`DNH-CAP-34` s.d. `41`). Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`. Endpoint yang dipakai ada di API contract 14.
+
+### 16.1 Hierarki wewenang dan apa yang dikunci
+
+| Tingkat | Yang dikunci | Sumber |
+| --- | --- | --- |
+| Keamanan/privasi/invariant | Penghuni disamarkan menurut hak server; Housekeeping tidak melihat nama, No. RM, maupun HD/LD; jenis kelamin tidak ditampilkan di mana pun pada layar bed | RWI-DEC-287, 315 |
+| Brief produk yang disetujui | Denah adalah satu-satunya tampilan bed; **desain denah tidak diubah** kecuali permintaan pemilik: kamar penuh tanpa merah dan tetap bisa diklik, outline hijau untuk kamar yang bisa dipilih, pop up kamar memakai kartu pop up yang sama ditambah daftar bed; alur buka denah → pilih lantai → klik kamar → pilih bed | RWI-DEC-299, 303, 316; rencana 6.3 |
+| Konvensi project | Hook + service `InstanceAxios`, App Router JS/JSX, struktur route → view → hook → service. **Base component dan references `build-module-frontend` tidak wajib** untuk Bed Management/denah | `AGENTS.md`/`CLAUDE.md` frontend; RWI-DEC-325 |
+| `DEV_DISCRETION` | Letak tombol Impor, bentuk layar Impor (halaman anak atau modal), letak panel HD/LD di Workspace Keperawatan, warna kelompok kelas dari jenis kelas, susunan kontrol editor master di dalam pop up, serta bentuk komponen dan styling Bed Management dengan prioritas tampilan yang sempurna | Didelegasikan RWI-DEC-299 dan RWI-DEC-325 sebatas tidak mengubah tampilan peta |
+
+Warna kelas pada peta saat ini berasal dari `room-classes.js` dummy yang memakai nama kelas lama. Sesudah integrasi, warna kelompok kelas diturunkan dari jenis kelas (`PatientClassType`) dan nama kelas resmi, dengan palet yang sama seperti sekarang. Bila suatu kelas resmi tidak punya padanan warna lama, warnanya `DEV_DISCRETION` dan dicatat pada laporan task.
+
+### 16.2 Peta butir menu dan layar
+
+Tidak ada butir menu baru. Peta lintas sub-modul tetap di [02-module-map.md bagian 10](../02-module-map.md).
+
+| Tingkat | Induk | Butir / route | Layar | Hak akses yang menjaga |
+| --- | --- | --- | --- | --- |
+| 2 / pathname | Inpatient Management | Bed Management, `/health-services/inpatient-management/bed-board` (existing) | FE-BM-01 Monitoring Bed (kini denah), FE-BM-02, FE-BM-03 | InpatientBedManagement : Read |
+| 2 / pathname | Master Data (Health Services) | Master Bed `healthServicesBed`, `/health-services/master-data/bed` (existing) | FE-DNH-03 editor denah | Leaf existing; editor juga butuh Room : Read |
+| — | — | `/health-services/inpatient-management/floor-plan` (halaman dummy, tidak pernah di menu) | Dihapus | — |
+
+| ID | Layar | Jalan masuk | Hak akses | Sumber data |
+| --- | --- | --- | --- | --- |
+| FE-DNH-01 | Komponen denah bersama (bukan layar) | Dipakai FE-BM-01, FE-BM-02, langkah Pilih Bed admisi dan admisi bayi, panel transfer Workspace Keperawatan, detail episode, FE-DNH-03 | Mengikuti layar pemakai | Geometri konstanta frontend + endpoint denah layar pemakai |
+| FE-DNH-02 | Pop up kamar (anak), mode Lihat, Pilih, dan Master | Klik kamar pada FE-DNH-01 | Aksi per bed mengikuti `AvailableActions` ∩ permission | Data kamar dari respons denah yang sama; mutasi lewat endpoint existing |
+| FE-DNH-03 | Master Bed — editor denah | Butir menu Master Bed | Bed : Read + Room : Read; aksi: Room : Update/Create, Bed : Create/Update/Delete | `GET rooms/floor-plan-layout`; writer master existing; `POST rooms/floor-plan-layout/rooms` |
+| FE-DNH-04 | Impor susunan denah (anak) | Tombol "Impor susunan denah" pada FE-DNH-03, hanya bila Room : ImportFloorPlan | Room : ImportFloorPlan | Geometri dan data kamar denah frontend + `POST rooms/floor-plan-layout/import` |
+| FE-DNH-05 | Panel High/Low Dependency (anak) | Workspace Keperawatan (ringkasan episode) dan detail episode; isian catatan awal pada langkah Dokter admisi | Baca: InpatientEpisode : Read. Ubah: InpatientEpisode : SetCareDependency + aturan pencatat server | `GET episodes/{id}`, `PATCH .../care-dependency`, `GET .../care-dependency-history` |
+
+Layar existing yang berubah: FE-BM-01 (kartu dan tabel diganti denah, RWI-DEC-320), FE-BM-02 (tujuan transfer dipilih lewat denah), langkah 5 Pilih Bed admisi termasuk admisi bayi, panel transfer Workspace Keperawatan, dan transfer pada detail episode. Halaman detail/tambah/ubah bed existing (`master-data/bed/[slug]`, `create`) dipertahankan hanya untuk bed di kamar tanpa kunci denah, dengan jalan masuk dari daftar "Kamar tanpa posisi di denah" pada FE-DNH-03.
+
+### 16.3 Skema fitur per layar
+
+Pop up kamar (FE-DNH-02), dari rencana 6.3:
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                           Kelas 2 329                     ✕  │
+│                      Lantai 3 · Barat Laut                   │
+│     ● Kelas 2 | Tersedia | High Dependency (1 HD · 1 LD)     │
+│ ──────────────────────────────────────────────────────────── │
+│ 329-A ● Terisi    Tn. Budi S. · RM 00-12-34 · High Dep.      │
+│ 329-B ● Terisi    Ny. Sari W. · RM 00-56-78 · Low Dep.       │
+│ 329-C ● Tersedia                     [ Pilih bed ini ]       │
+│ Mode Pilih: pembersihan bersyarat; pilih hanya bila layak    │
+│ Mode Lihat: aksi pembersihan/tutup-buka/riwayat per bed      │
+│ Mode Master: [Kelas] [Arah wing] [Tambah bed] [Tambah boks]  │
+└──────────────────────────────────────────────────────────────┘
+```
+
+Editor Master Bed (FE-DNH-03) dan Impor (FE-DNH-04):
+
+```text
+Master Bed
+[Lantai 2][3][4][5][8][9]   [Impor susunan denah]*   [Kamar tanpa posisi di denah (n)]
+[Peta lantai — desain sama; ruang cadangan abu-abu hanya di sini]
+  klik kamar   -> pop up mode Master
+  klik cadangan -> [Nomor] [Kelas] [Unit] [Arah] [Jumlah bed] [Jumlah boks] [Aktifkan]
+
+Impor susunan denah
+[Versi data denah] [Lingkungan + akibatnya pada kesiapan bed]
+[Tabel kamar: lantai | nomor | nama | kelas | unit (pilih) | arah | bed | boks | kamar existing (opsional)]
+[Isi unit satu lantai sekaligus]  [Periksa]  -> [Ringkasan + alasan per kamar]  [Impor]
+```
+
+Panel HD/LD (FE-DNH-05):
+
+```text
+Tingkat ketergantungan
+[High Dependency]  dicatat Ns. A · 15-10-2026 09:10 · Penilaian perawat
+(•) High  ( ) Low   [Catatan]   [Simpan]      [Lihat riwayat]
+```
+
+| Layar | Wilayah | Data / endpoint | Tombol dan hak | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| FE-DNH-01 | Tab lantai + peta | `Floors` + `Rooms` respons denah; lantai bawaan dari server atau lantai terakhir di browser | — | Memuat: kerangka peta; gagal: "Denah gagal dimuat. Muat ulang."; lantai tanpa kamar berkunci: "Belum ada kamar pada lantai ini" |
+| FE-DNH-01 | Badge kamar dan outline | `Counts`, `RoomStatus`, `IsSelectable` | Klik selalu aktif, termasuk kamar Penuh | Kamar Penuh tanpa merah dan tanpa outline (RWI-DEC-303) |
+| FE-DNH-02 | Judul pop up | Nama kamar, lokasi, kelas, status kamar, `DependencySummary` | — | Ringkasan HD/LD tidak tampil bila `DependencySummary` kosong |
+| FE-DNH-02 | Baris bed | `Beds`: label, status, penghuni sesuai hak, sisa waktu pesanan, alasan tidak layak | Lihat: start/complete/verify, tutup/buka, riwayat. Pilih: "Pilih bed ini" hanya pada bed layak; `Pembersihan` boleh tampil pada bed terkait hanya dari irisan `AvailableActions` dan permission efektif pengguna. Sesudah tindakan, denah serta kelayakan dimuat ulang; bed tetap tidak dapat dipilih sampai server mengembalikan `Available` dan `Eligibility.IsEligible = true`. Master: ubah label, tutup/buka, kurangi | Penghuni tersamar sesuai server; tidak mengisi ulang identitas dari cache. Contoh: `325-A` `WaitingCleaning` menampilkan `Pembersihan` hanya bila respons memuat `StartCleaning` dan pengguna berhak; sesudah start status `Cleaning` masih belum dapat dipilih |
+| FE-DNH-02 | Konfirmasi Pilih | `POST reservations` atau transfer existing, versi bed dari respons terbaru | InpatientBedOccupancy : Create / Transfer | 409: "Bed baru saja dipilih petugas lain. Denah dimuat ulang."; 422: pesan aturan dari server |
+| FE-DNH-03 | Daftar kamar tanpa posisi | `RoomsWithoutFloorPlanKey` | Tautan ke halaman bed/kamar existing | Kosong: tidak tampil |
+| FE-DNH-03 | Ubah kelas | `PUT rooms/{id}` + alasan + `AffectedBedVersions` | Room : Update; tombol tetap aktif, server menolak bila berpenghuni | 409: "Kelas 2 329 masih dihuni 2 pasien" |
+| FE-DNH-03 | Tambah bed / boks, kurangi, ubah label | Writer bed existing | Bed : Create/Update/Delete | 422 riwayat: "329-A punya riwayat, dinonaktifkan saja"; 409 label |
+| FE-DNH-03 | Aktifkan ruang cadangan | `POST rooms/floor-plan-layout/rooms` | Room : Create | 409 nomor: "Nomor 324 sudah dipakai" |
+| FE-DNH-04 | Tabel impor dan ringkasan | Manifest dari data denah frontend; `POST .../import` `DryRun` true lalu false | Room : ImportFloorPlan | Penolakan per kamar ditampilkan dengan alasan; tombol Impor tetap aktif, kamar yang ditolak tidak ikut |
+| FE-DNH-05 | Nilai saat ini + riwayat | Detail episode + riwayat | Simpan: SetCareDependency; server menentukan sumber | 403: "Hanya perawat penanggung jawab atau DPJP yang dapat mengubah"; 409: "Sudah diubah petugas lain. Muat ulang." |
+
+Tombol simpan tidak pernah dinonaktifkan karena isian kosong; klik → validasi → ringkasan kesalahan dan fokus ke isian wajib pertama. Relasi Guid (kelas, unit, kamar existing) dipilih dari daftar berlabel nama + kode; Guid tidak pernah ditampilkan atau diketik.
+
+### 16.4 Reuse elemen dan struktur target
+
+| Elemen | Keputusan | Alasan |
+| --- | --- | --- |
+| `floor-plan-drawing`, `floor-plan-room`, `floor-plan-view`, `zoom-toolbar`, `floor-plan.module.css` | Pindah apa adanya ke feature layer | Satu denah untuk semua layar; tampilan dibuktikan sama lewat perbandingan screenshot per lantai |
+| `room-name-dialog.jsx` | Diganti pop up kamar | Kartu, garis aksen, dan baris rincian dipertahankan; daftar bed ditambahkan |
+| Geometri `lantai-*.plan.js`, `floors.js`, `plan-primitives.js` | Pindah ke `src/lib/constants/.../floor-plan/`; id gambar dipetakan ke kunci denah netral kelas | `DNH-MIS-06` |
+| `lantai-*.occupancy.js`, `room-classes.js` dummy | Dihapus | Kelas, jumlah bed, dan status dari API |
+| `bed-monitoring-cards.jsx`, `bed-monitoring-table-columns.jsx`, `inpatient-bed-board.jsx` + CSS-nya | Dihapus | RWI-DEC-299, 320 |
+| Endpoint dan service `bed-board` | Dipertahankan | Daftar pasien rawat inap (`DNH-MIS-09`) |
+| `use-bed-management`, `use-inpatient-admission-bed`, `use-inpatient-bed-transfer`, `use-bed-master-confirmation`, `bed-master-mutation.service` | Reuse / extend | Aksi pembersihan, pesan, transfer, alasan dan versi bed sudah ada (`DNH-CAP-41`) |
+| `ConfirmModal` (prop `show`), `BaseButton`, `Badge` (prop `label`), `InformationAlert`, `ToastStack`, `AccessDeniedGate`, `DataTable`, `FormControl` | Boleh dipakai, **tidak wajib** (RWI-DEC-325) | Komponen tampilan Bed Management boleh dibuat khusus di folder feature denah dengan CSS module sendiri; tidak membuat base component baru di `base-features` |
+| Isian dan pesan jenis kelamin di `room-constants.jsx`, `room-utils.jsx`, `bed-constants.jsx`, `bed-utils.jsx`, `inpatient-placement-utils.jsx` | Dihapus | RWI-DEC-315; satu gelombang dengan backend |
+
+```text
+QuilvianSystemFrontendDev/src/
+├─ app/health-services/inpatient-management/floor-plan/ [Dihapus; halaman dummy]
+├─ app/health-services/master-data/bed/bed-client.jsx [Diperbarui; render editor denah]
+├─ components/features/health-services/inpatient-management/floor-plan/
+│  ├─ floor-plan-drawing.jsx [Dipindah; tanpa perubahan tampilan]
+│  ├─ floor-plan-room.jsx [Dipindah; badge, outline hijau, tanpa merah]
+│  ├─ floor-plan-view.jsx [Dipindah; terima data API dan mode]
+│  ├─ zoom-toolbar.jsx [Dipindah]
+│  ├─ floor-plan-room-popup.jsx [Baru; pengganti room-name-dialog]
+│  ├─ floor-plan-bed-row.jsx [Baru]
+│  └─ floor-plan-master-actions.jsx [Baru]
+├─ components/features/health-services/inpatient-management/inpatient-bed-board.jsx [Dihapus]
+├─ components/features/health-services/inpatient-management/inpatient-bed-transfer.jsx [Diperbarui; tujuan lewat denah]
+├─ components/features/health-services/inpatient-management/care-dependency-panel.jsx [Baru]
+├─ components/view/health-services/inpatient-management/bed-management/bed-management-view.jsx [Diperbarui]
+├─ components/view/health-services/inpatient-management/bed-management/bed-monitoring-cards.jsx [Dihapus]
+├─ components/view/health-services/inpatient-management/bed-management/bed-monitoring-table-columns.jsx [Dihapus]
+├─ components/view/health-services/inpatient-management/inpatient-admission-bed-step.jsx [Diperbarui]
+├─ components/view/health-services/inpatient-management/inpatient-newborn-admission-steps.jsx [Diperbarui]
+├─ components/view/health-services/inpatient-management/inpatient-admission-doctor-step.jsx [Diperbarui; catatan awal HD/LD]
+├─ components/view/health-services/inpatient-management/inpatient-episode-detail-view.jsx [Diperbarui]
+├─ components/view/health-services/inpatient-management/nursing-workspace/sections/transfer/nursing-transfer-form-panel.jsx [Diperbarui]
+├─ components/view/health-services/inpatient-management/nursing-workspace/components/nursing-quick-summary-panel.jsx [Diperbarui; panel HD/LD]
+├─ components/view/health-services/master-data/bed/master-data-bed-view.jsx [Diganti]
+├─ components/view/health-services/master-data/bed/master-data-bed-floor-plan-view.jsx [Baru]
+├─ components/view/health-services/master-data/bed/floor-plan-import-view.jsx [Baru]
+├─ lib/constants/health-services/inpatient-management/floor-plan/ [Baru; geometri dipindah + peta kunci]
+├─ lib/hooks/health-services/inpatient-management/use-floor-plan.js [Baru]
+├─ lib/hooks/health-services/inpatient-management/use-care-dependency.js [Baru]
+├─ lib/hooks/health-services/inpatient-management/use-inpatient-bed-board.jsx [Dihapus bila konsumen terakhirnya ikut diganti]
+├─ lib/hooks/health-services/master-data/bed/use-floor-plan-layout.js [Baru]
+├─ lib/hooks/health-services/master-data/bed/use-floor-plan-import.js [Baru]
+├─ lib/services/health-services/inpatient-management/bed-management.service.js [Diperbarui]
+├─ lib/services/health-services/inpatient-management/bed-occupancy.service.js [Diperbarui]
+├─ lib/services/health-services/master-data/floor-plan-layout.service.js [Baru]
+├─ lib/constants/health-services/master-data/{room-constants,bed-constants}.jsx [Diperbarui]
+├─ utils/health-services/master-data/{room-utils,bed-utils}.jsx [Diperbarui]
+└─ utils/health-services/inpatient-management/inpatient-placement-utils.jsx [Diperbarui]
+```
+
+Test unit yang mengunci perilaku lama (`inpatient-bed-board.test.mjs`, `inpatient-bed-management.test.mjs`, `inpatient-placement.test.mjs`, dan yang menguji isian jenis kelamin) disesuaikan atau dihapus bersama komponennya (`DNH-CAP-40`). Berkas admisi (`inpatient-admission-*`, `inpatient-newborn-admission-*`, `use-inpatient-admission-bed.jsx`) sedang diubah pekerjaan paralel issue 022; perubahan denah pada berkas itu dikerjakan sesudah pekerjaan tersebut masuk.
+
+### 16.5 Data, kesegaran, dan gangguan
+
+Satu lantai satu panggilan. Ganti lantai membatalkan respons lama (pola request sequence existing). Sesudah aksi apa pun di pop up, data lantai dimuat ulang dan pop up memakai hasil baru; konfirmasi Pilih memakai versi bed dari respons terbaru. Kunci idempotensi dibuat sekali per niat; klik ganda dinonaktifkan dan retry memakai kunci sama (bagian 15.4). Lantai terakhir yang dipakai disimpan di browser sebagai kenyamanan per pengguna, dibungkus try/catch.
+
+Peta menggambar semua bentuk kamar dari geometri, lalu mengisi kamar yang kuncinya ada di respons. Bentuk tanpa data tampil seperti ruang tanpa label di desain sekarang. Ruang cadangan hanya tampil abu-abu di FE-DNH-03.
+
+### 16.6 Aksesibilitas dan verifikasi
+
+Kamar pada peta dapat difokus dengan keyboard dan dibuka dengan Enter; pop up mengembalikan fokus ke kamar saat ditutup. Status bed dan kamar selalu berupa teks, tidak hanya warna. Layar 390 px tidak bergeser horizontal. Bukti tampilan: screenshot setiap lantai sebelum dan sesudah, berbeda hanya pada data (rencana 10.6). Uji privasi memakai profil Housekeeping terhadap respons API, bukan hanya kolom yang disembunyikan.
+
+### 16.7 Aturan keras pemilik — 16 Oktober 2026 (RWI-DEC-325)
+
+> **Aturan keras !!!** Berlaku untuk seluruh task frontend integrasi denah (`FE-RWI-246` s.d. `253`).
+>
+> 1. References skill `build-module-frontend` — katalog dan gerbang keputusan base component, design
+>    token, pola komposisi halaman, standar fitur master data, checklist konsistensi UI, profil proyek,
+>    dan kebijakan test — **tidak wajib diikuti**.
+> 2. Bed Management **fleksibel**; prioritasnya tampilan yang sempurna dan bagus.
+> 3. Tampilan floor plan yang sudah didesain rapi **tidak boleh diubah** (RWI-DEC-299). Yang boleh berubah
+>    hanya permintaan pemilik: tanpa garis merah kamar penuh, outline hijau kamar yang bisa dipilih,
+>    badge, dan daftar bed di pop up (RWI-DEC-303, 316).
+> 4. Base component **tidak wajib** dipakai, karena tampilan Bed Management akan menjadi contoh untuk
+>    tampilan lain.
+
+Aturan ini adalah brief UI pemilik, sehingga pada hierarki 16.1 ia berada di atas konvensi project dan
+`DEV_DISCRETION`. Yang tetap mengikat karena berada di atasnya atau di luar soal tampilan: privasi
+penghuni (RWI-DEC-287), tanpa jenis kelamin (RWI-DEC-315), Guid tidak ditampilkan maupun diketik,
+tombol simpan tidak dinonaktifkan karena isian kosong, kontrak API `0.13.0`, stack Next.js App Router
+JavaScript/JSX dengan Redux dan Axios `InstanceAxios`, struktur route → view → hook → service, serta
+`npm run lint` dan `npm run build`.
+
+**Contoh.** Pop up kamar boleh dibangun sebagai komponen khusus denah dengan CSS module sendiri, tanpa
+`ConfirmModal` atau `BaseButton`, selama kartu pop up denah yang sekarang (judul, garis aksen kelas,
+baris rincian) tetap terlihat sama. Komponen baru tinggal di folder feature denah. Mempromosikannya
+menjadi base component bersama adalah keputusan terpisah, karena `AGENTS.md` frontend melarang membuat
+base component baru tanpa permintaan eksplisit.
+
+---
+
+## 17. Amandemen Bagian 17 — Arsitektur Frontend Layar Transfer Pasien Masuk pada Detail Episode & Workspace PPRI
+
+| Field | Nilai |
+| --- | --- |
+| Kontrak Target | `0.14.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Fokus Perubahan | Layar Detail Episode (`InpatientEpisodeDetailView`), Laci Serah Terima Klinis (`TransferHandoverDrawer`), dan Dokumen Admisi Workspace PPRI (`AdmissionWorkspaceClient`) |
+| Status | `draft` |
+
+### 17.1 Spesifikasi Layar 1: Detail Episode Rawat Inap (`InpatientEpisodeDetailView`)
+
+1. **Banner Serah Terima Klinis (`TransferHandoverBanner.jsx`)**:
+   - **Kondisi Tampil**: Jika kueri `GET /api/v1/health-services/clinical-management/transfer-handovers?episodeId={id}` mengembalikan dokumen berstatus `Sent`.
+   - **Komponen**: `InformationAlert` varian `warning` / `accent-amber`.
+   - **Teks**: "Terdapat dokumen serah terima pasien masuk dari {SourceUnitName} yang menunggu verifikasi penerimaan ruangan."
+   - **Aksi**: Tombol `[Lihat Serah Terima Klinis]` membuka `TransferHandoverDrawer`.
+2. **Alert Non-Blocking Dokumen Admisi PPRI**:
+   - **Kondisi Tampil**: Jika kueri ringkasan admisi mengembalikan ada dokumen PPRI yang belum `Completed`.
+   - **Komponen**: `InformationAlert` varian `info`.
+   - **Teks**: "Dokumen admisi di Workspace PPRI sedang diproses ({CompletedCount}/{TotalCount} selesai). Pelayanan dan perawatan medis di bangsal tetap berjalan penuh."
+   - **Aksi**: Tautan pintas `[Buka Dokumen PPRI]`.
+3. **Laci Serah Terima Klinis (`TransferHandoverDrawer.jsx`)**:
+   - **Komponen Eksisting**: Diadaptasi dari `src/components/features/health-services/clinical-management/transfer-handover/TransferHandoverDrawer.jsx`.
+   - **Area TTV & Fisik**: Menampilkan kartu ringkas Tanda-Tanda Vital unit asal (TD, Nadi, RR, Suhu, SpO2, Skala Nyeri, Kesadaran).
+   - **Area Alat Medis Terpasang**: List badge alat medis aktif (Infus, Kateter, Oksigen, dsb.).
+   - **Area Rekonsiliasi Obat & Alergi**:
+     - Peringatan Alergi: Tag merah tegas jika pasien memiliki riwayat alergi obat/makanan.
+     - Tabel Terapi Obat: Kolom Nama Obat, Dosis, Rute, Jam Terakhir Diberikan di Unit Asal, dan Status Rekonsiliasi (Lanjut / Tunda / Stop).
+   - **Area Penetapan Perawat PPJA (Wajib)**:
+     - Form Dropdown `BaseSelect`: `Pilih Perawat Penanggung Jawab Asuhan (PPJA) *`.
+     - Mengambil daftar perawat aktif di unit ruangan (`GET /api/v1/health-services/inpatient-management/wards/{wardId}/nurses`).
+     - Guard Tombol: Tombol `[Terima Pasien]` **terkunci / disabled** bila PPJA belum dipilih.
+   - **Aksi Penolakan**:
+     - Tombol `[Tolak / Minta Klarifikasi]` membuka dialog input alasan (minimal 10 karakter).
+
+---
+
+### 17.2 Spesifikasi Layar 2: Workspace PPRI (`AdmissionWorkspaceClient`)
+
+1. **Sub-Menu Gelang & Label (`WristbandAndLabelView.jsx`)**:
+   - **Tampilan**: Pratinjau visual gelang pasien ranap resmi (No RM, Nama, Tanggal Lahir, Jenis Kelamin, Bed/Ruangan, Barcode/QR).
+   - **Tombol**:
+     - `[Cetak Gelang Ranap Resmi]` memicu dialog printer thermal gelang.
+     - `[Cetak Stiker Label Medis]` memicu dialog printer stiker label (ukuran standar rekam medis/tabung lab).
+   - **SOP Petugas**: Gelang sementara IGD dilepas dan digantikan dengan Gelang Ranap resmi ini saat proses pendorongan fisik pasien ke bangsal.
+2. **Sub-Menu Formulir Serah Terima Pasien Baru (`HandoverChecklistForm.jsx`)**:
+   - **Tampilan**: Checklist 15 butir serah terima berkas admisi.
+   - **Aksi Petugas Admisi**: Mengisi status (Sudah/Belum), mengunci dokumen (`[Kunci Dokumen]`), lalu menandatangani kolom Admisi.
+   - **Aksi Perawat Ruangan**: Menandatangani kolom Perawat (tombol aktif setelah pasien menempati tempat tidur).
+    - **Tombol Cetak**: `[Cetak Berkas Serah Terima Pasien Baru]` (`HandoverChecklistPrint.jsx`).
+
+## 18. Amandemen Frontend Admisi Bayi — `RWI-BAYI-022-2.0.0`
+
+Cabang bayi memakai tujuh slug: `newborn-context`, `newborn-identity`, `doctor`,
+`bed-selection`, `consent-form`, `confirmation`, dan `newborn-documents`. State finansial tidak
+lagi dimiliki cabang ini.
+
+- Langkah 1 membaca candidate kasus persalinan, bukan pencarian seluruh pasien perempuan.
+- Langkah 2 hanya mengirim ibu, kasus, tanggal/jam lahir, jenis kelamin, dan data kelahiran
+  opsional. Nama dan urutan tidak dikirim browser; retry memakai `Idempotency-Key` stabil.
+- Encounter mengirim payment source ibu beserta versi waktunya dan mengosongkan pilihan payer
+  manual.
+- Ringkasan lengkap serta informasi penjamin/deposit baca-saja hanya ada di `confirmation`.
+- URL lama `payment`/`deposit` pada cabang bayi dinormalisasi ke `bed-selection`; alur umum tetap
+  memakai step finansial existing.
+- Tombol pembatalan existing tidak diubah oleh amandemen ini.
+
+Bukti source dan validasi: `FE-RWI-257..259`.
+
+---
+
+## 19. Amandemen Frontend Pendaftaran Admisi Pasien ODC (One Day Care) — Kontrak `0.15.0` (`RWI-DEC-327` s.d. `RWI-DEC-332`)
+
+| Field | Nilai |
+|---|---|
+| Kontrak Target | `0.15.0` — `draft` |
+| Tanggal | 16 Oktober 2026 |
+| Status | `draft` |
+| Masukan Bisnis | `00-interview-decisions.md` revision `53` (`RWI-DEC-327` s.d. `RWI-DEC-332`), `01-existing-capability-map.md` Bagian 21 |
+| Fokus Perubahan | Opsi kartu tipe pasien ke-4 ODC di Langkah 2, penyaringan papan bed ODC di Langkah 6, judul & klausul 24 jam cetak General Consent di Langkah 8 |
+
+### 19.1 Alur Wizard & Langkah Admisi ODC
+
+Sesuai `RWI-DEC-327` dan `RWI-DEC-328`, alur pendaftaran admisi pasien ODC menggunakan alur 8 langkah rawat inap reguler tanpa membuat alur khusus yang terpisah. Perbedaan perilaku alur ODC terletak pada:
+1. **Langkah 2 (Pilih Jenis Pasien)**: Memilih opsi kartu ke-4 *"Pasien ODC (One Day Care)"*.
+2. **Langkah 5 (Pilih Dokter)**: Penetapan DPJP penanggung jawab tindakan ODC bersifat wajib.
+3. **Langkah 6 (Pilih Tempat Tidur)**: Papan denah/tempat tidur otomatis menerapkan filter ketat hanya menampilkan bed/kamar bertanda ODC.
+4. **Langkah 8 (Persetujuan Pasien)**: Dokumen General Consent mencantumkan judul layanan One Day Care (ODC) dan klausul batas observasi/perawatan maksimal 24 jam.
+
+```text
+[Langkah 1: Mode Masuk] ──► [Langkah 2: Tipe Pasien (ODC)] ──► [Langkah 3: Identitas Pasien]
+         │
+         ▼
+[Langkah 4: Pembayaran/Penjamin] ──► [Langkah 5: Dokter (DPJP Wajib)] ──► [Langkah 6: Pilih Bed ODC]
+         │
+         ▼
+[Langkah 7: Konfirmasi Deposit] ──► [Langkah 8: Cetak General Consent ODC & Gelang] ──► Selesai
+```
+
+### 19.2 Spesifikasi Komponen & Modifikasi Frontend
+
+1. **Konstanta Alur Admisi (`inpatient-admission-flow-constants.jsx`)**:
+   - Lokasi: `src/lib/constants/health-services/inpatient-management/inpatient-admission-flow-constants.jsx`
+   - Pada `INPATIENT_PATIENT_TYPE`, tambahkan `ODC: "odc"`.
+   - Pada `INPATIENT_PATIENT_TYPE_OPTIONS`, tambahkan kartu opsi ke-4:
+     ```javascript
+     Object.freeze({
+       value: INPATIENT_PATIENT_TYPE.ODC,
+       title: "Pasien ODC (One Day Care)",
+       description: "Pasien observasi atau tindakan medis singkat terencana dengan estimasi durasi rawat kurang dari 24 jam.",
+       icon: "O",
+     })
+     ```
+   - Fungsi `resolvePatientTypeContinuationSlug` (`:351`) secara otomatis menangani nilai `ODC` untuk mengarahkan ke langkah berikutnya (`registration` untuk Pasien Baru, `patient-search` untuk Pasien Lama).
+
+2. **Render Kartu Pilihan Jenis Pasien (`inpatient-admission-view.jsx` & `inpatient-admission-visit-category-step.jsx`)**:
+   - Kedua layar ini merender `INPATIENT_PATIENT_TYPE_OPTIONS.map(...)` menggunakan `BaseCheckboxCard`.
+   - Penambahan opsi pada konstanta langsung memunculkan kartu ke-4 dengan rapi dan responsif tanpa perlu pengubahan JSX komponen render kartu.
+
+3. **Penyuntikan Filter Papan Ketersediaan Bed (`useInpatientAdmissionBed.jsx` & `inpatient-bed-utils.jsx`)**:
+   - Lokasi: `src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-bed.jsx` dan `src/utils/health-services/inpatient-management/inpatient-bed-utils.jsx`
+   - Pada `buildBedBoardQuery` dan `buildAvailableBedQuery` di `inpatient-bed-utils.jsx`:
+     ```javascript
+     if (patientContext?.isOdcBed) {
+       query.isOdcBed = true;
+     }
+     ```
+   - Pada `inpatient-admission-view.jsx:757`, teruskan konteks ODC ke `useInpatientAdmissionBed`:
+     ```javascript
+     const bed = useInpatientAdmissionBed({
+       episodeId: doctor.episodeId,
+       active: flow.currentStep?.slug === INPATIENT_BED_STEP_SLUGS.SELECTION || flow.currentStep?.slug === INPATIENT_BED_STEP_SLUGS.BOOKING,
+       adoptExistingReservation: resume.isReady,
+       patientContext: {
+         patientId: activePatientId,
+         isOdcBed: flow.patientType === INPATIENT_PATIENT_TYPE.ODC,
+         // context lainnya...
+       },
+       // ...
+     });
+     ```
+   - Dengan parameter ini, API backend hanya mengembalikan tempat tidur dengan `IsOdcBed == true` dan menyembunyikan bed rawat inap reguler (`RWI-DEC-327`).
+
+4. **Formulir & Lembar Cetak General Consent ODC (`inpatient-consent-print-view.jsx`)**:
+   - Lokasi: `src/components/view/health-services/inpatient-management/inpatient-consent-print-view.jsx`
+   - Judul dokumen dibuat adaptif berdasarkan `flow.patientType` atau indikator ODC episode:
+     - Jika pasien adalah ODC: Judul dokumen berubah menjadi *"SURAT PERSETUJUAN PASIEN ONE DAY CARE (ODC)"* dan subjudul *"General Consent — Pelayanan One Day Care (ODC)"*.
+     - Klausul Tambahan Khusus ODC: Pada bagian pernyataan persetujuan, dicantumkan klausul eksplisit:  
+       > *"Pasien dan keluarga memahami bahwa pelayanan One Day Care (ODC) merupakan tindakan/observasi terencana dengan batas waktu perawatan maksimal 24 jam. Apabila kondisi klinis pasien memerlukan perawatan lanjutan melampaui 24 jam, pasien akan dialihkan ke perawatan rawat inap reguler sesuai ketentuan rumah sakit."*
+   - Pencocokan kamar: `matchRoomOptionKey` (`inpatient-consent-utils.jsx:51`) sudah mengenali kata kunci `"odc"` dan secara otomatis mencentang pilihan kelas ODC pada lembar persetujuan.
+
+5. **Eskalasi Rawat > 24 Jam via Transfer Bed Management (`bed-management-view.jsx`)**:
+   - Sesuai `RWI-DEC-331`, eskalasi rawat inap pasien ODC yang dirawat lebih dari 24 jam dilakukan langsung oleh perawat/petugas melalui layar **Bed Management** existing (menu mutasi *Transfer Bed*).
+   - Petugas memilih kamar dan tempat tidur rawat inap reguler tujuan, menginput alasan mutasi ("Eskalasi perawatan ODC ke rawat inap reguler > 24 jam"), dan menekan tombol konfirmasi transfer.
+   - Episode lama tetap berjalan dan ID episode tidak berubah. Tidak diperlukan pembatalan atau pendaftaran admisi ulang.
+
+### 19.3 Pohon Folder dan Status File Frontend
+
+```text
+QuilvianSystemFrontendDev/src/
+├── components/view/health-services/inpatient-management/
+│   ├── inpatient-admission-view.jsx                       [Diperbarui; inject isOdcBed ke useInpatientAdmissionBed]
+│   ├── inpatient-admission-visit-category-step.jsx        [Ready to reuse; render kartu ODC otomatis]
+│   ├── inpatient-consent-print-view.jsx                   [Diperbarui; judul dinamis ODC & klausul 24 jam]
+│   └── bed-management/bed-management-view.jsx             [Ready to reuse; transfer eskalasi ODC]
+├── lib/constants/health-services/inpatient-management/
+│   └── inpatient-admission-flow-constants.jsx             [Diperbarui; tambahkan INPATIENT_PATIENT_TYPE.ODC]
+├── lib/hooks/health-services/inpatient-management/
+│   ├── use-inpatient-admission-flow.jsx                   [Ready to reuse; kelola state patientType]
+│   └── use-inpatient-admission-bed.jsx                    [Diperbarui; teruskan patientContext.isOdcBed]
+└── utils/health-services/inpatient-management/
+    ├── inpatient-bed-utils.jsx                            [Diperbarui; query builder sertakan isOdcBed]
+    └── inpatient-consent-utils.jsx                        [Ready to reuse; matchRoomOptionKey sudah ada 'odc']
+```
+
+---
+
+## 20. Amandemen Frontend Lencana Tier Membership & Prioritas Antrean Transfer — `contract_version 0.17.0` (`draft`, `RWI-DEC-338` s.d. `341`)
+
+### 20.1 Tujuan dan Boundary Desain UI
+
+Amandemen ini mengatur visualisasi lencana prioritas klinis (`CITO`) dan hak keanggotaan (`Membership Tier`) pada antarmuka pengguna rawat inap, khususnya:
+1. **Layar Tabel Antrean Transfer Pasien (`InpatientAdmissionTransferList.jsx`)**: Mengurutkan pasien secara otomatis dari backend (CITO → Member Prioritas → Reguler) dan menyematkan lencana visual penanda prioritas pada baris pasien.
+2. **Layar Langkah Admisi PPRI Transfer (`InpatientAdmissionTransferReviewStep.jsx`)**: Menyajikan lencana CITO dan Tier Membership pada header ringkasan pasien saat petugas admisi sedang memproses admisi dan memilih tempat tidur.
+
+### 20.2 Spesifikasi Komponen & Aturan Visual Lencana
+
+Sesuai `rules/frontend/refine-menu-ui` dan konvensi base component Quilvian:
+- Lencana dirender menggunakan komponen `StatusBadge` atau `Badge` standar tanpa hardcoded custom styling CSS.
+- **Lencana CITO**:
+  - `variant="danger"` (warna merah tegas / solid red).
+  - Label: `"CITO"` (kapital).
+  - Ditampilkan jika properti `isCito === true`.
+- **Lencana Tier Membership**:
+  - `variant="warning"` (untuk Tier Gold / Platinum) atau `variant="primary"` (untuk Tier Silver).
+  - Label: Nama tier yang diterima dari backend, misalnya `"Platinum"`, `"Gold"`, `"Silver"`.
+  - Ditampilkan hanya jika `isPriorityMember === true && Boolean(memberTierName)`.
+  - Pasien non-member atau member kadaluwarsa tidak memunculkan lencana membership.
+
+### 20.3 Modifikasi Layar 1: Tabel Antrean Transfer (`InpatientAdmissionTransferList.jsx`)
+
+1. **Kolom Pasien / Prioritas**:
+   - Di samping Nomor Rekam Medis (RM) dan Nama Pasien, ditambahkan container flex untuk badge:
+     ```jsx
+     <div className="flex items-center gap-1.5 flex-wrap">
+       {item.isCito && (
+         <StatusBadge variant="danger" size="sm">
+           CITO
+         </StatusBadge>
+       )}
+       {item.isPriorityMember && item.memberTierName && (
+         <StatusBadge variant="warning" size="sm">
+           {item.memberTierName}
+         </StatusBadge>
+       )}
+     </div>
+     ```
+2. **Perilaku Tabel**:
+   - Data tabel otomatis tersaji dalam urutan: CITO di posisi teratas, disusul Member Prioritas sesuai level, lalu Reguler.
+   - Paging dan pencarian tabel tetap stabil karena sorting ditegakkan secara deterministik di server.
+
+### 20.4 Modifikasi Layar 2: Header Langkah Admisi PPRI (`InpatientAdmissionTransferReviewStep.jsx`)
+
+1. **Header Ringkasan Pasien**:
+   - Pada panel ringkasan identitas pasien (sebelum tombol *Pilih Kamar & Bed*), disajikan lencana CITO dan Tier Membership berdampingan dengan Nama, No RM, dan Asal Unit (IGD).
+   - Petugas admisi langsung mengetahui bahwa pasien ini merupakan pasien gawat darurat atau pemegang keanggotaan prioritas rumah sakit.
+2. **Pemilihan Kamar Tetap Manual**:
+   - Tombol *[Pilih Kamar & Tempat Tidur]* tetap membuka modal Denah Bed Management existing.
+   - Petugas admisi mencocokkan ketersediaan kamar secara sadar dan profesional tanpa ada auto-booking diam-diam dari sistem (`RWI-DEC-338`).
+
+### 20.5 Invariant Perlindungan Privasi Pasien (`RWI-DEC-341`, `RWI-AC-488`)
+
+- **Denah Bed Management Bangsal Umum Bebas Lencana Tier**:
+  - Komponen denah lantai dan pop up kamar (`floor-plan-room-popup.jsx`, `floor-plan-bed-row.jsx`, `bed-management-view.jsx`) **dilarang menampilkan lencana tier membership pasien yang sedang dirawat**.
+  - Hal ini menjamin privasi pasien dan mencegah potensi kesenjangan sosial atau persepsi diskriminasi di antara keluarga pasien yang saling melihat papan kamar di bangsal rawat inap umum.
+
+### 20.6 Pohon Folder dan Status File Frontend
+
+```text
+QuilvianSystemFrontendDev/src/
+└── components/view/health-services/inpatient-management/admission-transfers/
+    ├── inpatient-admission-transfer-list.jsx            [Diperbarui; render lencana CITO & Member Tier di kolom pasien]
+    └── inpatient-admission-transfer-review-step.jsx     [Diperbarui; render lencana CITO & Member Tier di header ringkasan]
+```
+
+

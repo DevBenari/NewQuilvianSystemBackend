@@ -1,4 +1,15 @@
 {
   "schemaVersion": "1.0",
-  "exceptions": []
+  "exceptions": [
+    {
+      "ExceptionId": "EXP-QBE-MOD-002-PAT-001",
+      "RuleId": "QBE-MOD-002",
+      "Scope": "Areas/HealthServices/PatientManagement/MasterData/Models/PatNewbornBirthSequence.cs",
+      "Reason": "Entity operasional pencacah urutan kelahiran bayi (BE-RWI-245) menggunakan prefix Pat sesuai domain PatientManagement namun bertempat di folder legacy MasterData berdampingan dengan PatientController.",
+      "Status": "ACTIVE",
+      "ApprovedBy": "Muhammad Hamzah",
+      "ApprovalReference": "BE-RWI-245",
+      "NoExpiryRationale": "Model persisted pencacah urutan bayi obstetri ditempatkan di folder PatientManagement/MasterData mengikuti struktur controller pasien eksisting."
+    }
+  ]
 }

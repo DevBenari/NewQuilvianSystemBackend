@@ -258,6 +258,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public string? BedName { get; set; }
 
         public string? AttendingDoctorName { get; set; }
+        public string? AdmittingOfficerName { get; set; }
     }
 
     public class GeneralConsentGuarantorResponse

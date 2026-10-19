@@ -74,6 +74,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// </summary>
         public Guid? CompanyGuarantorId { get; set; }
 
+        /// <summary>
+        /// Sumber snapshot penjamin ibu yang diwariskan ke encounter bayi. Sengaja tanpa FK
+        /// agar jejak historis bayi tetap dapat dibaca ketika sumber ibu berubah status.
+        /// </summary>
+        public Guid? InheritedFromPaymentSourceId { get; set; }
+
+        /// <summary>Waktu versi sumber ibu yang dipakai saat snapshot bayi dibuat.</summary>
+        public DateTime? InheritedFromPaymentSourceAt { get; set; }
+
         // =========================
         // REGISTRATION SNAPSHOT
         // =========================
