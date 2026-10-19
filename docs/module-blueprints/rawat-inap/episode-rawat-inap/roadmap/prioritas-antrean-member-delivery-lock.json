@@ -31,11 +31,11 @@
     },
     "allocated": {
       "BE-RWI": "252-253",
-      "FE-RWI": "268-269"
+      "FE-RWI": "268-270"
     },
     "next_free": {
       "BE-RWI": 254,
-      "FE-RWI": 270
+      "FE-RWI": 271
     }
   },
   "tasks": [
@@ -75,6 +75,15 @@
       "fr": ["FR-TRF-010", "FR-TRF-011"],
       "acceptance": ["RWI-AC-487", "RWI-AC-488"],
       "component": "InpatientAdmissionTransferReviewStep"
+    },
+    {
+      "id": "FE-RWI-270",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": ["FE-RWI-268"],
+      "fr": ["FR-TRF-013"],
+      "acceptance": ["RWI-AC-494", "RWI-AC-495", "RWI-AC-496", "RWI-AC-497"],
+      "component": "InpatientAdmissionExistingPatientStep"
     }
   ]
 }

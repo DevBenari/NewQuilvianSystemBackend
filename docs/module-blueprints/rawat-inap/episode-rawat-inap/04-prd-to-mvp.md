@@ -3197,9 +3197,9 @@ production gate tersebut dipertahankan.
 
 ---
 
-## 31. Amandemen PRD ke MVP: Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier — `contract_version 0.17.0` (`draft`, `RWI-DEC-338` s.d. `341`)
+## 31. Amandemen PRD ke MVP: Prioritas Kamar Pasien Member di Antrean Transfer, Admisi Pasien Lama & Lencana Tier — `contract_version 0.17.0` (`draft`, `RWI-DEC-338` s.d. `342`)
 
-Bagian 31 mendefinisikan rilis MVP untuk kemampuan **Prioritas Kamar Pasien Member di Antrean Transfer dan Lencana Tier**, menindaklanjuti permintaan resmi `IGD-REQ-004` untuk demo operasional Selasa 20 Oktober 2026 dan keputusan bisnis `RWI-DEC-338` s.d. `RWI-DEC-341`.
+Bagian 31 mendefinisikan rilis MVP untuk kemampuan **Prioritas Kamar Pasien Member di Antrean Transfer, Admisi Pasien Lama, dan Lencana Tier**, menindaklanjuti permintaan resmi `IGD-REQ-004` untuk demo operasional Selasa 20 Oktober 2026 dan keputusan bisnis `RWI-DEC-338` s.d. `RWI-DEC-342`.
 
 ### 31.1 Identitas Dokumen Amandemen
 
@@ -3210,7 +3210,7 @@ Bagian 31 mendefinisikan rilis MVP untuk kemampuan **Prioritas Kamar Pasien Memb
 | Contract Version | `0.17.0` — `draft` |
 | Tanggal Amandemen | 19 Oktober 2026 |
 | Status Desain | `draft` |
-| Masukan Bisnis | `00-interview-decisions.md` revision `60` (`RWI-DEC-338` s.d. `RWI-DEC-341`, `RWI-AC-481` s.d. `RWI-AC-493`), Berkas Permintaan `IGD-REQ-004` |
+| Masukan Bisnis | `00-interview-decisions.md` revision `60` (`RWI-DEC-338` s.d. `RWI-DEC-342`, `RWI-AC-481` s.d. `RWI-AC-497`), Berkas Permintaan `IGD-REQ-004` |
 | Target Milestone | Demo Operasional Selasa, 20 Oktober 2026 |
 
 ### 31.2 Masalah Produk
@@ -3218,12 +3218,14 @@ Bagian 31 mendefinisikan rilis MVP untuk kemampuan **Prioritas Kamar Pasien Memb
 Saat ini, antrean transfer pasien masuk dari IGD maupun unit lain diurutkan secara murni berdasarkan waktu diterbitkannya keputusan transfer (`DecidedAt`). Hal ini menimbulkan kendala di lapangan:
 1. **Kasus Gawat Darurat (CITO)**: Pasien gawat darurat yang membutuhkan tempat tidur segera berpotensi tertumpuk di bawah antrean pasien non-kritis bila antrean transfer sedang padat.
 2. **Apresiasi Pasien Loyal (Membership Prioritas)**: Rumah sakit belum memiliki sistem terpandu untuk mengapresiasi pasien pemegang membership prioritas (Platinum, Gold, Silver) dalam antrean alokasi kamar rawat inap, sehingga petugas admisi harus mengecek status member secara manual dan rawan terlewat.
+3. **Visibilitas Member pada Pendaftaran Pasien Lama**: Pada layar pendaftaran pasien lama, pencarian nomor RM belum menampilkan lencana tier membership dan belum memvalidasi masa aktif kalender CRM di panel verifikasi identitas pasien.
 
 ### 31.3 Visi Produk
 
-Menghadirkan antrean transfer pasien rawat inap yang cerdas, deterministik, dan adil secara klinis maupun komersial:
+Menghadirkan antrean transfer dan admisi pasien rawat inap yang cerdas, deterministik, dan adil secara klinis maupun komersial:
 - **Prioritas Terpandu**: Pasien dengan status **CITO** otomatis menempati urutan teratas, disusul oleh **Member Prioritas** berdasarkan level tier keanggotaannya, lalu **Pasien Reguler / Non-Member** berdasarkan waktu keputusan transfer (FIFO).
-- **Lencana Informatif**: Menampilkan lencana warna `[CITO]` (Merah) dan `[Nama Tier]` (Gold/Silver/Platinum) pada daftar antrean transfer dan langkah admisi PPRI untuk memudahkan petugas admisi mengidentifikasi pasien.
+- **Lencana Informatif**: Menampilkan lencana warna `[CITO]` (Merah) dan `[Nama Tier]` (Gold/Silver/Platinum) pada daftar antrean transfer, langkah admisi PPRI, serta kartu pencarian pasien lama untuk memudahkan petugas admisi mengidentifikasi pasien.
+- **Validasi CRM Pasien Lama & Fail-Open**: Menghubungkan verifikasi data pasien lama dengan masa aktif kalender CRM hari ini secara akurat dan menjamin kelancaran admisi tanpa memblokir alur jika CRM non-aktif / timeout.
 - **Keselamatan Klinis & Privasi Pasien**: Tidak ada diskriminasi klinis terhadap mutu perawatan medis, kamar yang sudah ditempati tidak di-downgrade jika membership expired di bangsal, dan denah Bed Management bangsal umum tetap bebas lencana tier demi privasi.
 
 ### 31.4 Batas MVP
@@ -3241,6 +3243,9 @@ Menghadirkan antrean transfer pasien rawat inap yang cerdas, deterministik, dan 
 - Evaluasi real-time membership aktif (`MembershipStatus == Active`, tanggal valid hari ini, `PriorityQueue == true`) dan status CITO dari IGD (`EmgAdmissionRequest.IsCito == true` dengan status `Signed`).
 - Visualisasi lencana `StatusBadge` pada Tabel Antrean Transfer (`InpatientAdmissionTransferList.jsx`).
 - Visualisasi lencana pada Header Ringkasan Pasien di Langkah Admisi PPRI (`InpatientAdmissionTransferReviewStep.jsx`).
+- Visualisasi lencana tier pada kartu hasil pencarian No. RM pada Alur Admisi Pasien Lama (`inpatient-admission-existing-patient-step.jsx`).
+- Pengecekan aktif keanggotaan CRM (`GET .../patient-memberships/admin/patients/{patientId}/active`) saat pasien lama dipilih dan rendering detail member (Nomor Member, Nama Tier, Masa Berlaku) pada panel verifikasi data pasien.
+- Fail-open admisi pasien lama: kegagalan atau ketiadaan membership tidak memblokir admisi.
 - Fallback toleransi kegagalan aman (fail-safe) tanpa error 500 bila data membership atau data IGD tidak ditemukan/null.
 
 #### OUT OF SCOPE
@@ -3259,6 +3264,7 @@ Menghadirkan antrean transfer pasien rawat inap yang cerdas, deterministik, dan 
 | `EPIC TRF-02` | `FR-TRF-010` | Header Langkah Admisi PPRI menyajikan lencana CITO dan Tier Membership saat petugas admisi meninjau pasien transfer | `RWI-AC-487` |
 | `EPIC TRF-02` | `FR-TRF-011` | Denah Bed Management bangsal umum dilarang menampilkan lencana tier membership pasien demi menjaga privasi | `RWI-AC-488` |
 | `EPIC TRF-02` | `FR-TRF-012` | Sistem menangani kegagalan / anomali pembacaan data membership CRM atau IGD secara fail-safe (fallback reguler tanpa crash 500) | `RWI-AC-493` |
+| `EPIC TRF-02` | `FR-TRF-013` | Layar Admisi Pasien Lama menyajikan lencana tier pada kartu pencarian No. RM dan memvalidasi keanggotaan aktif CRM pada panel verifikasi secara fail-open | `RWI-AC-494`, `RWI-AC-495`, `RWI-AC-496`, `RWI-AC-497` |
 
 ### 31.6 Skenario UAT (User Acceptance Test)
 
@@ -3271,13 +3277,16 @@ Menghadirkan antrean transfer pasien rawat inap yang cerdas, deterministik, dan 
 | `UAT-TRF-05` | UI Verification | Petugas admisi membuka wizard transfer admisi PPRI | Header ringkasan pasien menampilkan lencana CITO dan Tier Membership. Tombol pemilihan kamar tetap membuka Denah Bed Management manual. |
 | `UAT-TRF-06` | Privacy Guard | Pasien member sudah ditempatkan di tempat tidur bangsal umum; petugas membuka Denah Bed Management | Kartu kamar dan baris bed tidak menampilkan lencana tier keanggotaan pasien. |
 | `UAT-TRF-07` | Resilience Fallback | Pasien transfer non-IGD atau data CRM tidak dapat diakses / null | Endpoint merespons HTTP 200 OK dengan nilai fallback aman tanpa pesan error 500. |
+| `UAT-TRF-08` | Existing Patient Member Search | Petugas admisi mencari No. RM pasien yang memiliki status member aktif | Kartu hasil pencarian menampilkan lencana tier (misal: [Platinum]). Saat dipilih, panel verifikasi memuat Nomor Member, Tier, dan Masa Berlaku aktif. |
+| `UAT-TRF-09` | Fail-Open Existing Patient Admission | Pasien lama bukan member atau pemanggilan endpoint membership CRM timeout/error | Kartu hasil pencarian tidak menampilkan lencana tier, panel verifikasi menampilkan data pasien normal, dan tombol lanjut admisi tetap aktif. |
 
 ### 31.7 Definition of Done (DoD)
 
-- Seluruh 13 kriteria penerimaan `RWI-AC-481` s.d. `RWI-AC-493` terpenuhi tanpa celah.
+- Seluruh 17 kriteria penerimaan `RWI-AC-481` s.d. `RWI-AC-497` terpenuhi tanpa celah.
 - Endpoint `GET /admission-transfers` dan `GET /admission-transfers/{id}` mengembalikan properti `isCito`, `isPriorityMember`, `memberTierName`, `memberPriorityLevel`.
 - Algoritma pengurutan terbukti deterministik dan stabil pada database PostgreSQL Quilvian.
 - UI Tabel Antrean Transfer dan Header Admisi PPRI terverifikasi merender lencana CITO dan Tier Membership secara rapi dan proporsional.
+- Layar Admisi Pasien Lama terverifikasi merender lencana tier pada kartu pencarian No. RM dan memuat ringkasan aktif CRM pada panel verifikasi data pasien secara fail-open.
 - Denah Bed Management bangsal umum terbukti bersih dari lencana tier membership.
 - Nol migrasi database baru; nol modifikasi pada tabel CRM maupun formulir IGD.
 - Siap didemokan pada agenda demo operasional Selasa, 20 Oktober 2026.

@@ -27,6 +27,10 @@
 | 11 | `RWI-DEC-340` | `FR-TRF-008` | `RWI-AC-491` (Bebas diskriminasi asuhan klinis dan non-interference) | `TRF-AT-14` | — | `BE-RWI-253` | — | Terpenuhi |
 | 12 | `RWI-DEC-338` | `FR-TRF-008` | `RWI-AC-492` (Endpoint detail /{id} membawa field CITO & Membership konsisten) | `TRF-AT-15` | — | `BE-RWI-252` | — | Terpenuhi |
 | 13 | `RWI-DEC-338` | `FR-TRF-012` | `RWI-AC-493` (Fail-safe fallback bila data CRM/IGD null tanpa crash 500) | `TRF-AT-16` | `UAT-TRF-07` | `BE-RWI-252` | — | Terpenuhi |
+| 14 | `RWI-DEC-342` | `FR-TRF-013` | `RWI-AC-494` (Lencana Tier pada Kartu Hasil Pencarian No. RM Pasien Lama) | `TRF-AT-17` | `UAT-TRF-08` | — | `FE-RWI-270` | Terpenuhi |
+| 15 | `RWI-DEC-342` | `FR-TRF-013` | `RWI-AC-495` (Panggilan endpoint CRM aktif saat pasien lama dipilih) | `TRF-AT-18` | `UAT-TRF-08` | — | `FE-RWI-270` | Terpenuhi |
+| 16 | `RWI-DEC-342` | `FR-TRF-013` | `RWI-AC-496` (Panel verifikasi render nomor member, tier, dan masa aktif CRM) | `TRF-AT-19` | `UAT-TRF-08` | — | `FE-RWI-270` | Terpenuhi |
+| 17 | `RWI-DEC-342` | `FR-TRF-013` | `RWI-AC-497` (Ketahanan admisi fail-open jika CRM gagal/non-aktif) | `TRF-AT-20` | `UAT-TRF-09` | — | `FE-RWI-270` | Terpenuhi |
 
 ## 2. Pemetaan Cakupan per Task
 
@@ -55,12 +59,17 @@
   - FR: `FR-TRF-010`, `FR-TRF-011`.
   - Acceptance Criteria: `RWI-AC-487`, `RWI-AC-488`, `RWI-AC-489`.
   - Kasus Uji / UAT: `TRF-AT-10`, `TRF-AT-11`, `TRF-AT-12`, `UAT-TRF-05`, `UAT-TRF-06`.
+- **`FE-RWI-270`**:
+  - Tanggung Jawab: Lencana Tier pada Pencarian No. RM dan Validasi Keanggotaan CRM Pasien Lama.
+  - FR: `FR-TRF-013`.
+  - Acceptance Criteria: `RWI-AC-494`, `RWI-AC-495`, `RWI-AC-496`, `RWI-AC-497`.
+  - Kasus Uji / UAT: `TRF-AT-17`, `TRF-AT-18`, `TRF-AT-19`, `TRF-AT-20`, `UAT-TRF-08`, `UAT-TRF-09`.
 
 ## 3. Pernyataan Penutupan Gap (Coverage Assurance)
 
-- Total Keputusan Terpetakan: **4 Keputusan** (`RWI-DEC-338` s.d. `341`).
-- Total Functional Requirements: **5 FR** (`FR-TRF-008` s.d. `012`).
-- Total Acceptance Criteria: **13 AC** (`RWI-AC-481` s.d. `493`).
-- Total Kasus Uji Kontrak: **16 Butir Uji** (`TRF-AT-01` s.d. `16`).
-- Total Skenario UAT: **7 Skenario** (`UAT-TRF-01` s.d. `07`).
+- Total Keputusan Terpetakan: **5 Keputusan** (`RWI-DEC-338` s.d. `342`).
+- Total Functional Requirements: **6 FR** (`FR-TRF-008` s.d. `013`).
+- Total Acceptance Criteria: **17 AC** (`RWI-AC-481` s.d. `497`).
+- Total Kasus Uji Kontrak: **20 Butir Uji** (`TRF-AT-01` s.d. `20`).
+- Total Skenario UAT: **9 Skenario** (`UAT-TRF-01` s.d. `09`).
 - Status Kesenjangan: **Nol Kesenjangan (Zero Gap)**.

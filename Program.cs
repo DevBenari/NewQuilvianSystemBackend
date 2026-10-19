@@ -504,6 +504,8 @@ try
     builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
     // crm-membership BE-CRM-010 — satu aturan "member aktif" untuk seluruh konsumen.
     builder.Services.AddScoped<PatientMembershipStatusResolver>();
+   
+    
     builder.Services.AddScoped<PatientMembershipService>();
     builder.Services.Configure<OutpatientQueueNumberOptions>(
         builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName));
