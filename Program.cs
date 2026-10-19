@@ -639,6 +639,9 @@ try
     builder.Services.AddScoped<IRsmmcPilotMigrationSource, RsmmcPilotMigrationSource>();
     builder.Services.AddScoped<RsmmcPilotMrnReconciliationService>();
 
+    // Patient Management — allocator nomor pasien normal beserta guard reservasi RSMMC (BE-PAT-MIG-003)
+    builder.Services.AddScoped<PatientIdentifierAllocationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();

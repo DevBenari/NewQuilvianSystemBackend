@@ -56,8 +56,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
     {
         private const string LogCategory = "HealthServices.PatientManagement.MasterData";
         private const string KioskReadPolicy = "KioskRead";
-        private const string CodePrefix = "PAT-RSMMC-";
-        private const int CodeNumberLength = 5;
         private const string PatientQrCodeFolderName = "patient-qrcodes";
         private const string PatientQrCodeFileName = "qrcode.png";
         private const string DefaultPublicRequestPath = "/uploads";
@@ -68,6 +66,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private readonly IWebHostEnvironment _environment;
         private readonly IConfiguration _configuration;
         private readonly MedicalRecordAccessAuditService _accessAuditService;
+        private readonly PatientIdentifierAllocationService _identifierAllocationService;
         private readonly NewbornPatientRegistrationService _newbornRegistrationService;
 
         public PatientController(
@@ -76,14 +75,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             IWebHostEnvironment environment,
             IConfiguration configuration,
             MedicalRecordAccessAuditService accessAuditService,
-            NewbornPatientRegistrationService newbornRegistrationService)
+            PatientIdentifierAllocationService identifierAllocationService,
+            NewbornPatientRegistrationService? newbornRegistrationService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _environment = environment;
             _configuration = configuration;
             _accessAuditService = accessAuditService;
-            _newbornRegistrationService = newbornRegistrationService;
+            _identifierAllocationService = identifierAllocationService;
+            _newbornRegistrationService = newbornRegistrationService!;
         }
 
         [HttpGet("filters/metadata")]
@@ -496,6 +497,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [ProducesResponseType(typeof(ApiResponse<PatientCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
         [AccessAction(
             "Create",
             "Create Patient",
@@ -542,8 +544,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             try
             {
-                var patientCode = await GeneratePatientCodeAsync();
-                var medicalRecordNumber = await GenerateMedicalRecordNumberAsync();
+                // BE-PAT-MIG-003: nomor dialokasikan module service, bukan controller. Di Staging
+                // persis tanpa guard yang sah, pendaftaran ditolak di sini — sebelum insert pasien,
+                // penulisan QR, dan penulisan foto — dan tidak pernah jatuh ke penomoran lama.
+                var allocation = await _identifierAllocationService.AllocateAsync();
+
+                if (!allocation.Succeeded)
+                {
+                    await transaction.RollbackAsync();
+
+                    return await RejectPatientCreateByReservationGuardAsync(allocation, actorUserId);
+                }
+
+                var patientCode = allocation.PatientCode!;
+                var medicalRecordNumber = allocation.MedicalRecordNumber!;
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "Patient.CreatePatient.AllocateIdentifier",
+                    "Nomor pasien normal dialokasikan.",
+                    new
+                    {
+                        TraceId = HttpContext.TraceIdentifier,
+                        ActorUserId = actorUserId,
+                        Environment = allocation.Guard.EnvironmentName,
+                        GuardState = allocation.Guard.StateCode,
+                        PatientCode = patientCode,
+                        MedicalRecordNumber = medicalRecordNumber
+                    }
+                );
 
                 var entity = new MstPatient
                 {
@@ -791,6 +820,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [ProducesResponseType(typeof(ApiResponse<PatientCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
         [AccessPermission("Patient", "Create")]
         public async Task<IActionResult> CreatePatientForAdmin([FromBody] CreatePatientRequest request)
         {
@@ -851,6 +881,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             };
 
             return StatusCode(statusCode, ApiResponse<object>.Fail(statusCode, result.Message));
+        }
+
+        // BE-PAT-MIG-003, PAT-DEC-067: guard reservasi Staging tidak sah. Tidak ada data pribadi
+        // pasien pada log maupun respons.
+        private async Task<IActionResult> RejectPatientCreateByReservationGuardAsync(
+            PatientIdentifierAllocationResult allocation,
+            Guid actorUserId)
+        {
+            await _loggerService.WarningAsync(
+                LogCategory,
+                "Patient.CreatePatient.ReservationGuard",
+                "Pendaftaran pasien normal ditolak: guard reservasi nomor RSMMC di Staging tidak aktif atau konfigurasinya tidak sah.",
+                new
+                {
+                    TraceId = HttpContext.TraceIdentifier,
+                    ActorUserId = actorUserId,
+                    Environment = allocation.Guard.EnvironmentName,
+                    GuardState = allocation.Guard.StateCode,
+                    ErrorCode = allocation.ErrorCode
+                }
+            );
+
+            return StatusCode(
+                StatusCodes.Status503ServiceUnavailable,
+                ApiResponse<object>.Fail(
+                    StatusCodes.Status503ServiceUnavailable,
+                    $"Pendaftaran pasien sedang tidak tersedia: perlindungan nomor pasien migrasi RSMMC belum aktif. TraceId: {HttpContext.TraceIdentifier}",
+                    new
+                    {
+                        code = allocation.ErrorCode,
+                        guardState = allocation.Guard.StateCode
+                    }
+                )
+            );
         }
 
         [HttpPut("{id:guid}")]
@@ -1137,6 +1201,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             return Ok(ApiResponse<object>.Ok(
                 null,
                 "Patient berhasil dihapus."
+            ));
+        }
+
+        /// <summary>
+        /// Pemeriksa baca-saja guard reservasi nomor pasien normal kampanye migrasi RSMMC, untuk
+        /// `PAT-GATE-005` (`BE-PAT-MIG-003`, kontrak `1.2.1` B14.2). Khusus environment Staging persis.
+        /// </summary>
+        /// <remarks>
+        /// Tidak mencadangkan nomor, tidak membuat pasien, QR, atau folder, dan tidak membaca maupun
+        /// mengubah tabel migrasi. Seluruh perhitungan ada di
+        /// <see cref="PatientIdentifierAllocationService.CheckAsync"/>.
+        /// </remarks>
+        [HttpGet("admin/migration/rsmmc-reservation-guard")]
+        [ProducesResponseType(typeof(ApiResponse<RsmmcReservationGuardStatusResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction(
+            "Update",
+            "Check RSMMC Reservation Guard",
+            Description = "Memeriksa guard reservasi nomor pasien normal migrasi RSMMC (khusus Staging, baca-saja)",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("Patient", "Update")]
+        public async Task<IActionResult> GetRsmmcReservationGuardStatus(CancellationToken cancellationToken)
+        {
+            var guard = _identifierAllocationService.EvaluateGuard();
+
+            if (!guard.IsExactStaging)
+            {
+                return StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Pemeriksa guard reservasi nomor pasien RSMMC hanya tersedia di environment Staging.",
+                        new { code = RsmmcIdentifierReservationProfile.CheckerEnvironmentNotAllowedErrorCode }
+                    )
+                );
+            }
+
+            var status = await _identifierAllocationService.CheckAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Patient.RsmmcReservationGuard.Check",
+                "Memeriksa guard reservasi nomor pasien normal.",
+                new
+                {
+                    TraceId = HttpContext.TraceIdentifier,
+                    ActorUserId = GetCurrentUserId(),
+                    status.Environment,
+                    status.GuardState,
+                    status.OverallGuardReady,
+                    status.NextPatientCodeFormatted,
+                    status.NextMrnFormatted
+                }
+            );
+
+            return Ok(ApiResponse<RsmmcReservationGuardStatusResponse>.Ok(
+                status,
+                status.OverallGuardReady
+                    ? "Guard reservasi nomor pasien normal siap."
+                    : "Guard reservasi nomor pasien normal belum siap."
             ));
         }
 
@@ -1570,39 +1696,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private static string BuildPatientQrPayload(string medicalRecordNumber)
             => PatientQrPayloadBuilder.Build(medicalRecordNumber);
 
-        private async Task<string> GenerateMedicalRecordNumberAsync()
-        {
-            var existingNumbers = await _dbContext.Set<MstPatient>()
-                .IgnoreQueryFilters()
-                .AsNoTracking()
-                .Where(x => x.MedicalRecordNumber != null && x.MedicalRecordNumber != string.Empty)
-                .Select(x => x.MedicalRecordNumber)
-                .ToListAsync();
-
-            var usedNumbers = existingNumbers
-                .Select(NormalizeMedicalRecordNumberToRawDigits)
-                .Where(x => x != null)
-                .Select(x => int.Parse(x!))
-                .Where(x => x > 0)
-                .ToHashSet();
-
-            var nextNumber = 1;
-
-            while (usedNumbers.Contains(nextNumber))
-            {
-                nextNumber++;
-            }
-
-            if (nextNumber > 99999999)
-            {
-                throw new InvalidOperationException("Nomor rekam medis sudah mencapai batas maksimum 99-99-99-99.");
-            }
-
-            var rawNumber = nextNumber.ToString().PadLeft(8, '0');
-
-            return FormatMedicalRecordNumber(rawNumber);
-        }
-
         private static byte[] RenderQrCodePngBytes(
     string payload,
     string? logoPath,
@@ -1772,12 +1865,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 );
             }
         }
-
-        private static string? NormalizeMedicalRecordNumberToRawDigits(string? medicalRecordNumber)
-            => PatientQrPayloadBuilder.NormalizeToRawDigits(medicalRecordNumber);
-
-        private static string FormatMedicalRecordNumber(string rawNumber)
-            => PatientQrPayloadBuilder.FormatMedicalRecordNumber(rawNumber);
 
         private string? ResolveQrLogoPath()
         {
@@ -2710,42 +2797,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
 
             return (true, null);
-        }
-
-        private async Task<string> GeneratePatientCodeAsync()
-        {
-            return await GenerateRunningCodeAsync(
-                selector: x => x.PatientCode,
-                prefix: CodePrefix
-            );
-        }
-
-        private async Task<string> GenerateRunningCodeAsync(
-            System.Linq.Expressions.Expression<Func<MstPatient, string>> selector,
-            string prefix)
-        {
-            var existingCodes = await _dbContext.Set<MstPatient>()
-                .IgnoreQueryFilters()
-                .AsNoTracking()
-                .Select(selector)
-                .Where(x => x.StartsWith(prefix))
-                .ToListAsync();
-
-            var usedNumbers = existingCodes
-                .Select(x => x.Replace(prefix, string.Empty))
-                .Where(x => int.TryParse(x, out _))
-                .Select(int.Parse)
-                .Where(x => x > 0)
-                .ToHashSet();
-
-            var nextNumber = 1;
-
-            while (usedNumbers.Contains(nextNumber))
-            {
-                nextNumber++;
-            }
-
-            return prefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
         }
 
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(
