@@ -831,12 +831,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         /// Mendaftarkan satu bayi dari kasus persalinan obstetri. Urutan lahir ditentukan
         /// backend per kasus; browser tidak mengirim BirthOrder.
         /// </summary>
+        /// <remarks>
+        /// Di Staging persis berlaku guard reservasi nomor migrasi RSMMC (`BE-PAT-MIG-003A`): nomor
+        /// berlantai bila guard aktif, <c>503</c> / <c>PATIENT_RESERVATION_GUARD_CONFIG_INVALID</c> bila
+        /// konfigurasinya tidak sah. Di environment lain perilakunya tidak berubah.
+        /// </remarks>
         [HttpPost("newborns")]
         [ProducesResponseType(typeof(ApiResponse<NewbornPatientCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
         [AccessAction(
             "Create",
             "Create Patient",
@@ -866,10 +872,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                         result.Data!.Id,
                         result.Data.DeliveryCaseId,
                         result.Data.BirthOrder,
-                        result.Data.WasExisting
+                        result.Data.WasExisting,
+                        GuardState = result.ReservationGuard?.StateCode
                     });
 
                 return Ok(ApiResponse<NewbornPatientCreateResponse>.Ok(result.Data!, result.Message));
+            }
+
+            // BE-PAT-MIG-003A: Staging persis tanpa guard reservasi yang sah — kontrak galat yang sama
+            // dengan pendaftaran normal (503 / PATIENT_RESERVATION_GUARD_CONFIG_INVALID).
+            if (result.Status == NewbornRegistrationStatus.ReservationGuardRejected)
+            {
+                return await RejectPatientCreateByReservationGuardAsync(
+                    result.ReservationGuard!,
+                    GetCurrentUserId(),
+                    "Patient.CreateNewbornPatient.ReservationGuard",
+                    "Pendaftaran pasien bayi ditolak: guard reservasi nomor RSMMC di Staging tidak aktif atau konfigurasinya tidak sah.");
             }
 
             var statusCode = result.Status switch
@@ -885,21 +903,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         // BE-PAT-MIG-003, PAT-DEC-067: guard reservasi Staging tidak sah. Tidak ada data pribadi
         // pasien pada log maupun respons.
-        private async Task<IActionResult> RejectPatientCreateByReservationGuardAsync(
+        private Task<IActionResult> RejectPatientCreateByReservationGuardAsync(
             PatientIdentifierAllocationResult allocation,
-            Guid actorUserId)
+            Guid actorUserId) =>
+            RejectPatientCreateByReservationGuardAsync(
+                allocation.Guard,
+                actorUserId,
+                "Patient.CreatePatient.ReservationGuard",
+                "Pendaftaran pasien normal ditolak: guard reservasi nomor RSMMC di Staging tidak aktif atau konfigurasinya tidak sah.");
+
+        // Dipakai bersama pendaftaran normal dan pendaftaran bayi (BE-PAT-MIG-003A).
+        private async Task<IActionResult> RejectPatientCreateByReservationGuardAsync(
+            RsmmcReservationGuardEvaluation guard,
+            Guid actorUserId,
+            string logEvent,
+            string logMessage)
         {
+            const string errorCode = RsmmcIdentifierReservationProfile.GuardConfigInvalidErrorCode;
+
             await _loggerService.WarningAsync(
                 LogCategory,
-                "Patient.CreatePatient.ReservationGuard",
-                "Pendaftaran pasien normal ditolak: guard reservasi nomor RSMMC di Staging tidak aktif atau konfigurasinya tidak sah.",
+                logEvent,
+                logMessage,
                 new
                 {
                     TraceId = HttpContext.TraceIdentifier,
                     ActorUserId = actorUserId,
-                    Environment = allocation.Guard.EnvironmentName,
-                    GuardState = allocation.Guard.StateCode,
-                    ErrorCode = allocation.ErrorCode
+                    Environment = guard.EnvironmentName,
+                    GuardState = guard.StateCode,
+                    ErrorCode = errorCode
                 }
             );
 
@@ -910,8 +942,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     $"Pendaftaran pasien sedang tidak tersedia: perlindungan nomor pasien migrasi RSMMC belum aktif. TraceId: {HttpContext.TraceIdentifier}",
                     new
                     {
-                        code = allocation.ErrorCode,
-                        guardState = allocation.Guard.StateCode
+                        code = errorCode,
+                        guardState = guard.StateCode
                     }
                 )
             );
@@ -1207,6 +1239,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         /// <summary>
         /// Pemeriksa baca-saja guard reservasi nomor pasien normal kampanye migrasi RSMMC, untuk
         /// `PAT-GATE-005` (`BE-PAT-MIG-003`, kontrak `1.2.1` B14.2). Khusus environment Staging persis.
+        /// Sejak kontrak `1.3.0` (`BE-PAT-MIG-003A`) juga melaporkan perlindungan pendaftaran bayi;
+        /// <c>overallGuardReady</c> mensyaratkan kedua jalur terlindungi.
         /// </summary>
         /// <remarks>
         /// Tidak mencadangkan nomor, tidak membuat pasien, QR, atau folder, dan tidak membaca maupun
@@ -1253,6 +1287,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     status.Environment,
                     status.GuardState,
                     status.OverallGuardReady,
+                    status.NormalPatientCreateProtected,
+                    status.NewbornPatientCreateProtected,
                     status.NextPatientCodeFormatted,
                     status.NextMrnFormatted
                 }
