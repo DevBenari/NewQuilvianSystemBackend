@@ -4,6 +4,7 @@
     {
         DoctorOrder = 1,
         NursingAction = 2,
-        ManualEntry = 3
+        ManualEntry = 3,
+        EmergencyVisitFee = 4
     }
 }

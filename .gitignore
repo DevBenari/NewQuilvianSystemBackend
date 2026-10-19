@@ -411,5 +411,11 @@ DataProtectionKeys/key-*.xml
 /Tests/QuilvianSystemBackend.NutritionTests/bin/
 /Tests/QuilvianSystemBackend.NutritionTests/obj/
 
+# Begitu pula Patient Management: guard reservasi nomor pasien normal `BE-PAT-MIG-003` dan
+# rekonsiliasi MRN Pilot `BE-PAT-MIG-001` hanya tetap terjaga bila ujinya ikut masuk repositori.
+!/Tests/QuilvianSystemBackend.PatientManagementTests/
+/Tests/QuilvianSystemBackend.PatientManagementTests/bin/
+/Tests/QuilvianSystemBackend.PatientManagementTests/obj/
+
 # RJ-DOC-REV-BE-019: surat rujukan pasien (data kesehatan) di penyimpanan privat - jangan pernah di-commit.
 /Storage/private/

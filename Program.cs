@@ -638,12 +638,17 @@ try
     builder.Services.AddScoped<IRsmmcPilotMigrationSource, RsmmcPilotMigrationSource>();
     builder.Services.AddScoped<RsmmcPilotMrnReconciliationService>();
 
+    // Patient Management — allocator nomor pasien normal beserta guard reservasi RSMMC (BE-PAT-MIG-003)
+    builder.Services.AddScoped<PatientIdentifierAllocationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
     builder.Services.AddScoped<PrescriptionFinancialClearanceService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    // Penahanan stok milik resep — PHA-DEC-066.
+    builder.Services.AddScoped<PrescriptionStockReservationService>();
     builder.Services.AddScoped<StockRequestService>();
     builder.Services.AddScoped<DrugStockService>();
     builder.Services.AddScoped<DrugUnitConversionResolver>();
@@ -1092,6 +1097,11 @@ try
 
     // BE-RJE-010: pekerja kirim ulang efek folio Rawat Jalan yang belum sampai ke invoice.
     builder.Services.AddHostedService<BilInvoiceSyncWorker>();
+    // PHA-DEC-066 butir 6: melepas penahanan stok rawat jalan yang melewati batas 4 jam
+    // sebelum pembayaran, supaya stok yang fisiknya ada di rak tidak terkunci selamanya.
+    builder.Services
+        .AddHostedService<QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Workers
+            .PrescriptionReservationExpiryWorker>();
     // BE-RJE-011: pekerja kirim ulang fakta klinis yang hasil penyerahannya belum pasti.
     builder.Services.AddHostedService<ClinicalFactDispatchWorker>();
 

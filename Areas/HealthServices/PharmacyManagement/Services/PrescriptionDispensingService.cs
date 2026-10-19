@@ -248,8 +248,8 @@ public sealed class PrescriptionDispensingService
             };
             _dbContext.PhmDrugUsageItems.Add(usageItem);
 
-            await ReserveAsync(usageItem, prescriptionItem.DrugName, request.StorageLocationId,
-                input.Quantity, actorUserId, now, cancellationToken);
+            await ReserveAsync(prescriptionId, usageItem, prescriptionItem.DrugName,
+                request.StorageLocationId, input.Quantity, actorUserId, now, cancellationToken);
         }
 
         await SaveAsync(cancellationToken);
@@ -334,6 +334,8 @@ public sealed class PrescriptionDispensingService
         usage.UpdateBy = actorUserId;
 
         await ApplyFulfillmentStatusAsync(prescription, usage.Id, actorUserId, now,
+            cancellationToken);
+        await ConsumeReservationWhenFullyDispensedAsync(prescription, actorUserId, now,
             cancellationToken);
         await SaveAsync(cancellationToken);
 
@@ -452,14 +454,23 @@ public sealed class PrescriptionDispensingService
         var actorUserId = GetCurrentUserId();
         var now = DateTime.UtcNow;
 
-        foreach (var item in usage.Items.Where(x => !x.IsDelete))
-        {
-            foreach (var allocation in item.Allocations.Where(x => !x.IsDelete))
-            {
-                await _drugStockService.ReleaseReservationAsync(allocation.DrugBatchId,
-                    usage.StorageLocationId, allocation.Quantity, cancellationToken);
-            }
-        }
+        /*
+         * PHA-DEC-066 — pelepasan saldo DIHAPUS dari sini, 15 Oktober 2026.
+         *
+         * Sebelumnya penyiapan menahan stoknya sendiri, sehingga membatalkan draf berarti
+         * melepasnya. Sejak PHA-DEC-066, penahanan milik RESEP dan dibuat saat dokter
+         * memfinalkannya; draf penyiapan tidak menahan apa pun dan karena itu tidak memiliki
+         * apa pun untuk dilepas.
+         *
+         * Melepas saldo di sini justru merusak: `QuantityReserved` akan turun sementara baris
+         * penahanan resep masih menyatakan jumlah itu ditahan, sehingga penghitung dan
+         * catatannya berpisah — dan stok yang seharusnya tersimpan untuk pasien ini menjadi
+         * dapat direbut resep lain, padahal resepnya masih sah dan akan disiapkan ulang.
+         *
+         * Penahanan resep hanya dilepas oleh pembatalan resep, pembayaran yang tidak
+         * dilanjutkan (PHA-DEC-023), pembalikan tagihan, atau kedaluwarsa — seluruhnya
+         * melalui `PrescriptionStockReservationService.ReleaseAsync`.
+         */
 
         usage.Status = DrugUsageStatus.Cancelled;
         usage.CancelReason = request.Reason.Trim();
@@ -482,45 +493,134 @@ public sealed class PrescriptionDispensingService
 
     // ================================================================== internal
 
-    /// <summary>Menahan stok satu baris memakai rencana FEFO, lalu mencatat alokasinya.</summary>
-    private async Task ReserveAsync(PhmDrugUsageItem usageItem, string drugName,
-        Guid storageLocationId, decimal quantity, Guid actorUserId, DateTime now,
+    /// <summary>
+    /// Menandai penahanan stok resep sebagai dikonsumsi ketika seluruh barisnya sudah
+    /// diserahkan (<c>PHA-DEC-066</c> butir 4).
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Saldo stoknya sendiri sudah diurus <c>IssueBatchAsync(consumeReservation: true)</c> di
+    /// atas, yang mengurangi <c>QuantityOnHand</c> dan <c>QuantityReserved</c> pada saat yang
+    /// sama. Yang dikerjakan di sini hanya keadaan dan jejak auditnya.
+    /// </para>
+    /// <para>
+    /// <b>Idempoten.</b> Penyerahan yang diulang tidak mengonsumsi dua kali, karena baris yang
+    /// sudah <c>Consumed</c> tidak lagi terambil saringan <c>Reserved</c>.
+    /// </para>
+    /// <para>
+    /// <b>Penyerahan sebagian sengaja tidak ditandai.</b> Selama resep belum selesai
+    /// seluruhnya, penahanannya tetap <c>Reserved</c> untuk sisa yang belum diserahkan.
+    /// Pembukuan penahanan untuk penyerahan sebagian menunggu <c>PHA-OQ-016</c>, yang masih
+    /// terbuka dan memang menyangkut kebijakan penyerahan sebagian itu sendiri.
+    /// </para>
+    /// </remarks>
+    private async Task ConsumeReservationWhenFullyDispensedAsync(
+        PhmPrescription prescription, Guid actorUserId, DateTime now,
         CancellationToken cancellationToken)
     {
-        List<(Guid DrugBatchId, decimal Quantity)> plan;
-        try
+        if (prescription.FulfillmentStatus != PrescriptionFulfillmentStatus.Dispensed)
+            return;
+
+        var penahanan = await _dbContext.Set<PhmPrescriptionStockReservation>()
+            .Where(x => x.PrescriptionId == prescription.Id
+                        && x.State == PrescriptionReservationState.Reserved
+                        && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        foreach (var baris in penahanan)
         {
-            plan = await _drugStockService.PlanFefoAsync(usageItem.DrugId, storageLocationId,
-                quantity, cancellationToken);
+            baris.State = PrescriptionReservationState.Consumed;
+            baris.ConsumedAt = now;
+            baris.ActorUserId = actorUserId;
+            baris.UpdateDateTime = now;
+            baris.UpdateBy = actorUserId;
         }
-        catch (DrugStockUnprocessableException ex)
-        {
-            throw new PrescriptionDispensingUnprocessableException(ex.Code, $"{drugName}: {ex.Message}");
-        }
+    }
+
+    /// <summary>
+    /// Mengalokasikan baris penyiapan dari penahanan stok yang <b>sudah dipegang resep</b>,
+    /// lalu mencatat alokasinya.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Diubah 15 Oktober 2026 oleh <c>PHA-DEC-066</c>.</b> Sebelumnya langkah ini menyusun
+    /// rencana FEFO sendiri lalu memanggil <c>ReserveBatchAsync</c>, yaitu menahan stok untuk
+    /// kedua kalinya. Sejak <c>PHA-DEC-066</c>, penahanan sudah terjadi saat dokter memfinalkan
+    /// resep, sehingga menahan ulang di sini salah karena dua sebab:
+    /// </para>
+    /// <list type="number">
+    /// <item>
+    /// jumlah yang sama akan terhitung ditahan dua kali, dan saldo tersedia menyusut tanpa ada
+    /// barang yang benar-benar keluar — butir 3 melarangnya secara eksplisit;
+    /// </item>
+    /// <item>
+    /// <c>PlanFefo</c> menghitung tersedia sebagai <c>QuantityOnHand - QuantityReserved</c>.
+    /// Setelah resepnya sendiri menahan stok, obat itu justru terbaca <b>habis</b> dan
+    /// penyiapan akan ditolak <c>PHM028</c> — padahal stoknya memang sedang disimpan untuk
+    /// resep ini.
+    /// </item>
+    /// </list>
+    /// <para>
+    /// Karena itu rencananya kini dibaca dari penahanan milik resep. Batch yang dipakai
+    /// penyerahan dengan sendirinya sama dengan batch yang ditahan saat finalisasi, sehingga
+    /// urutan FEFO yang sudah diputuskan tetap terjaga tanpa dihitung ulang.
+    /// </para>
+    /// <para>
+    /// Baris <c>PhmDrugUsageAllocation</c> tetap dibuat seperti sebelumnya: ia yang dipakai
+    /// jalur pengeluaran stok saat penyerahan, dan itu tidak berubah.
+    /// </para>
+    /// </remarks>
+    private async Task ReserveAsync(Guid prescriptionId, PhmDrugUsageItem usageItem,
+        string drugName, Guid storageLocationId, decimal quantity, Guid actorUserId,
+        DateTime now, CancellationToken cancellationToken)
+    {
+        var penahanan = await _dbContext.Set<PhmPrescriptionStockReservation>()
+            .Where(x => x.PrescriptionId == prescriptionId
+                        && x.PrescriptionItemId == usageItem.PrescriptionItemId
+                        && x.State == PrescriptionReservationState.Reserved
+                        && !x.IsDelete)
+            .OrderBy(x => x.ReservedAt)
+            .ToListAsync(cancellationToken);
+
+        if (penahanan.Count == 0)
+            throw new PrescriptionDispensingUnprocessableException(
+                PrescriptionReservationErrorCodes.ReservationUnavailable,
+                $"{drugName}: resep ini tidak memegang penahanan stok, sehingga tidak dapat " +
+                "disiapkan. Penahanan dibuat saat dokter memfinalkan resep.");
+
+        if (penahanan.Any(x => x.ExpiresAt.HasValue && x.ExpiresAt.Value <= now))
+            throw new PrescriptionDispensingUnprocessableException(
+                PrescriptionReservationErrorCodes.ReservationExpired,
+                $"{drugName}: penahanan stok resep ini sudah melewati batas waktu sebelum " +
+                "pembayaran, sehingga stok harus ditahan ulang.");
+
+        var tersedia = penahanan.Sum(x => x.Quantity);
+        if (tersedia < quantity)
+            throw new PrescriptionDispensingUnprocessableException(
+                PrescriptionReservationErrorCodes.ReservationMismatch,
+                $"{drugName}: jumlah yang diminta {Trim(quantity)} melebihi yang ditahan " +
+                $"untuk resep ini {Trim(tersedia)}.");
 
         var sequence = 1;
-        foreach (var (batchId, batchQuantity) in plan)
+        var sisa = quantity;
+
+        foreach (var baris in penahanan)
         {
-            try
-            {
-                await _drugStockService.ReserveBatchAsync(batchId, storageLocationId,
-                    batchQuantity, cancellationToken);
-            }
-            catch (DrugStockUnprocessableException ex)
-            {
-                throw new PrescriptionDispensingUnprocessableException(ex.Code,
-                    $"{drugName}: {ex.Message}");
-            }
+            if (sisa <= 0) break;
+
+            var ambil = Math.Min(baris.Quantity, sisa);
 
             _dbContext.PhmDrugUsageAllocations.Add(new PhmDrugUsageAllocation
             {
                 DrugUsageItemId = usageItem.Id,
-                DrugBatchId = batchId,
+                DrugBatchId = baris.DrugBatchId,
                 SequenceNumber = sequence++,
-                Quantity = batchQuantity,
+                Quantity = ambil,
                 CreateDateTime = now,
                 CreateBy = actorUserId
             });
+
+            sisa -= ambil;
         }
     }
 
