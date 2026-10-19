@@ -29,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
     /// Pembatalan sebelum acquisition dimulai karena itu tidak menerbitkan koreksi apa pun:
     /// tidak ada yang perlu dikoreksi karena tidak pernah ada yang tertagih.
     /// </summary>
-    public class RadOrderService
+    public partial class RadOrderService
     {
         private const string LogCategory = "HealthServices.RadiologyManagement";
 
@@ -49,13 +49,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             IHttpContextAccessor httpContextAccessor,
             LoggerService loggerService,
             RadOrderNumberService orderNumberService,
-            InpatientClinicalContextService clinicalContextService)
+            InpatientClinicalContextService clinicalContextService,
+            RadPhotoNumberService? photoNumberService = null)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
             _orderNumberService = orderNumberService;
             _clinicalContextService = clinicalContextService;
+            _photoNumberService = photoNumberService;
+        }
+
+        /// <summary>No. Foto v1, diberikan saat Konfirmasi. Opsional hanya untuk harness uji jalur baca.</summary>
+        private readonly RadPhotoNumberService? _photoNumberService;
+
+        /// <summary>
+        /// Memberi No. Foto bila pesanan belum punya, atau menggantinya bila kategori alatnya berubah.
+        /// Wajib dipanggil di dalam transaksi (kunci alokasinya berlaku per transaksi).
+        /// </summary>
+        private async Task<string?> BeriNoFotoAsync(RadOrder order, bool gantiBilaKategoriBerubah, CancellationToken cancellationToken)
+        {
+            if (_photoNumberService == null) return null;
+
+            var kodeAlat = await _dbContext.MstRadModalities.AsNoTracking()
+                .Where(m => m.Id == order.ModalityId)
+                .Select(m => m.ModalityCode)
+                .FirstOrDefaultAsync(cancellationToken);
+            var kategori = RadExamCategory.FromModalityCode(kodeAlat);
+
+            if (!string.IsNullOrEmpty(order.PhotoNumber) &&
+                (!gantiBilaKategoriBerubah || RadPhotoNumberService.BelongsTo(order.PhotoNumber, kategori)))
+            {
+                return null;
+            }
+
+            var lama = order.PhotoNumber;
+            order.PhotoNumber = await _photoNumberService.AllocateAsync(kodeAlat, cancellationToken);
+            return lama;
         }
 
         /* ================================================================ *
@@ -299,13 +329,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         ///
         /// Dihitung di database dengan satu perjalanan, bukan dengan menarik seluruh baris lalu
         /// menghitungnya di memori.
+        ///
+        /// Menerima penyaring yang sama dengan daftar (<see cref="TerapkanPenyaring"/>), sehingga
+        /// angka tab Daftar Pasien v1 dihitung dari baris yang persis sama dengan isi tabnya.
+        /// Tanpa penyaring, hasilnya tetap rekap seluruh pesanan seperti sebelumnya.
         /// </summary>
         public async Task<RadOrderSummaryResponse> GetSummaryAsync(
+            RadOrderListQuery? query = null,
             CancellationToken cancellationToken = default)
         {
-            var rekap = await _dbContext.RadOrders
+            var source = _dbContext.RadOrders
                 .AsNoTracking()
-                .Where(x => !x.IsDelete)
+                .Where(x => !x.IsDelete);
+
+            if (query != null)
+            {
+                source = TerapkanPenyaring(source, query);
+            }
+
+            // Lencana tab v1 menghitung BARIS yang belum terkonfirmasi. Satu baris Daftar Pasien
+            // = satu booking v1 = pesanan satu kunjungan pada satu tanggal pemeriksaan (WIB) —
+            // maka yang dihitung pasangan kunjungan + tanggal, bukan pesanannya. Pesanan berstatus
+            // Diminta sedikit, sehingga tanggal WIB-nya dihitung di memori.
+            var belumDikonfirmasi = await source
+                .Where(x => x.OrderStatus == RadOrderStatus.Requested)
+                .Select(x => new { x.EncounterId, Tanggal = x.ScheduledAt ?? x.RequestedAt ?? x.CreateDateTime })
+                .ToListAsync(cancellationToken);
+
+            var kunjunganBelumDikonfirmasi = belumDikonfirmasi
+                .Select(x => (x.EncounterId, TanggalWib(x.Tanggal)))
+                .Distinct()
+                .Count();
+
+            var rekap = await source
                 .GroupBy(x => 1)
                 .Select(g => new
                 {
@@ -334,6 +390,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 Ditolak = rekap?.Ditolak ?? 0,
                 BelumDikerjakan =
                     (rekap?.Diminta ?? 0) + (rekap?.Diterima ?? 0) + (rekap?.Dijadwalkan ?? 0),
+                KunjunganBelumDikonfirmasi = kunjunganBelumDikonfirmasi,
             };
         }
 
@@ -526,17 +583,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             var orderIds = daftar.Select(x => x.Id).ToList();
             var encounterIds = daftar.Select(x => x.EncounterId).Distinct().ToList();
 
-            // No. Foto — nomor study, urut menurut nomor urut study.
+            // No. Foto — konsep v1: SATU nomor per pemeriksaan, bukan satu per percobaan. Pesanan
+            // V2 memuat satu pemeriksaan, sehingga yang tampil adalah study yang berlaku: urutan
+            // tertinggi yang tidak dibatalkan. Study yang dihentikan atau perlu diulang sudah
+            // digantikan pengulangannya; seluruh percobaan tetap terbaca di konsol pemeriksaan.
             var study = await _dbContext.RadStudies
                 .AsNoTracking()
-                .Where(s => orderIds.Contains(s.RadOrderId) && !s.IsDelete)
-                .OrderBy(s => s.StudySequence)
-                .Select(s => new { s.RadOrderId, s.StudyNumber })
+                .Where(s => orderIds.Contains(s.RadOrderId) && !s.IsDelete
+                    && s.StudyStatus != RadStudyStatus.Cancelled)
+                .Select(s => new { s.RadOrderId, s.StudySequence, s.StudyNumber })
                 .ToListAsync(cancellationToken);
 
             var nomorFoto = study
                 .GroupBy(s => s.RadOrderId)
-                .ToDictionary(g => g.Key, g => g.Select(s => s.StudyNumber).ToList());
+                .ToDictionary(
+                    g => g.Key,
+                    g => new List<string> { g.OrderByDescending(s => s.StudySequence).First().StudyNumber });
 
             // Diagnosa kunjungan — diagnosa utama lebih dulu, lalu menurut waktu ditegakkan.
             var diagnosa = await _dbContext.TrxPatientDiagnoses
@@ -670,6 +732,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 {
                     baris.PaymentStatus = status.Status;
                     baris.IsPaymentCleared = status.IsCleared;
+                    baris.OutstandingAmount = status.OutstandingAmount;
                 }
             }
         }
@@ -728,6 +791,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             var awal = DateTime.SpecifyKind(tanggalWib - wib, DateTimeKind.Utc);
             return (awal, awal.AddDays(1));
         }
+
+        /// <summary>Tanggal kalender WIB dari waktu UTC — satu baris Daftar Pasien per hari pesan.</summary>
+        internal static DateTime TanggalWib(DateTime waktuUtc) => (waktuUtc + TimeSpan.FromHours(7)).Date;
 
         /// <summary>
         /// Menerapkan seluruh penyaring daftar pesanan.
@@ -795,6 +861,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 var nomor = query.StudyNumber.Trim();
 
                 source = source.Where(x =>
+                    (x.PhotoNumber != null && x.PhotoNumber.Contains(nomor)) ||
                     x.Studies.Any(s => !s.IsDelete && s.StudyNumber.Contains(nomor)));
             }
 
@@ -1021,6 +1088,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 {
                     x.Id,
                     x.OrderNumber,
+                    x.PhotoNumber,
                     x.EncounterId,
                     x.InpEpisodeId,
                     x.ProcedureId,
@@ -1093,6 +1161,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 {
                     Id = x.Id,
                     OrderNumber = x.OrderNumber,
+                    PhotoNumber = x.PhotoNumber,
                     EncounterId = x.EncounterId,
                     Patient = !x.HasEncounter ? null : new RadOrderPatientContextResponse
                     {
@@ -1735,9 +1804,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             entity.UpdateBy = actorUserId;
             entity.UpdateDateTime = now;
 
+            // No. Foto mengikuti kategori pemeriksaan: bila alat berganti kategori, nomor kategori
+            // lama dilepas (celahnya dibiarkan) dan nomor kategori baru diberikan.
+            await using var transaksi = !string.IsNullOrEmpty(entity.PhotoNumber) && _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+            if (!string.IsNullOrEmpty(entity.PhotoNumber))
+            {
+                var nomorLama = await BeriNoFotoAsync(entity, gantiBilaKategoriBerubah: true, cancellationToken);
+                if (nomorLama != null) catatan += $" No. Foto {nomorLama} → {entity.PhotoNumber}.";
+            }
+
             var status = entity.OrderStatus.ToString();
             AddHistory(entity, "Order.ChangeProcedure", status, status, null, catatan, actorUserId, now);
             await SaveWithConcurrencyGuardAsync(cancellationToken);
+            if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -1746,6 +1827,86 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 new { OrderId = entity.Id, ActorUserId = actorUserId });
 
             return RadOperationResult<RadOrderDetailResponse>.Success((await GetDetailAsync(id, cancellationToken))!);
+        }
+
+        /// <summary>
+        /// Tambah Baris — Detail Pasien v1: menambah pemeriksaan pada booking yang sama.
+        /// </summary>
+        /// <remarks>
+        /// Satu pesanan V2 = satu pemeriksaan, sehingga pemeriksaan tambahan adalah pesanan baru yang
+        /// <b>mewarisi</b> kunjungan, perawatan, tanggal pemeriksaan (<c>RequestedAt</c>/<c>ScheduledAt</c>),
+        /// penanda persiapan, dan Petugas Radiologi pesanan sumbernya. Tanggal pemeriksaan yang sama
+        /// membuatnya tetap satu baris Daftar Pasien dengan booking sumber walau ditambahkan di hari
+        /// lain; waktu sebenarnya tetap tercatat di <c>CreateDateTime</c> dan riwayat. Statusnya
+        /// Diminta — ia dikonfirmasi seperti pemeriksaan lain, dan saat itulah No. Foto-nya terbit.
+        /// </remarks>
+        public async Task<RadOperationResult<RadOrderDetailResponse>> AddExaminationAsync(
+            Guid sourceId,
+            RadOrderAddExaminationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var sumber = await _dbContext.RadOrders.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == sourceId && !x.IsDelete, cancellationToken);
+            if (sumber == null)
+            {
+                return RadOperationResult<RadOrderDetailResponse>.NotFound(
+                    RadErrorCodes.OrderNotFound, "Pesanan radiologi tidak ditemukan.");
+            }
+
+            var tindakan = await _dbContext.MstProcedures.AsNoTracking()
+                .Where(p => p.Id == request.ProcedureId && !p.IsDelete)
+                .Select(p => new { p.Id, p.ProcedureName, p.IsRadiology, p.IsActive })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (tindakan == null || !tindakan.IsRadiology || !tindakan.IsActive)
+            {
+                return RadOperationResult<RadOrderDetailResponse>.Validation(
+                    RadErrorCodes.ProcedureNotFound, "Pemeriksaan radiologi tidak ditemukan atau nonaktif.");
+            }
+
+            var modalitas = request.ModalityId ?? sumber.ModalityId;
+            if (!await _dbContext.MstRadModalities.AnyAsync(m => m.Id == modalitas && !m.IsDelete && m.IsActive, cancellationToken))
+            {
+                return RadOperationResult<RadOrderDetailResponse>.Validation(
+                    RadErrorCodes.ModalityNotFound, "Alat pencitraan tidak ditemukan atau nonaktif.");
+            }
+
+            var actorUserId = GetCurrentUserId();
+            var now = DateTime.UtcNow;
+
+            await using var transaksi = _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+
+            var entity = new RadOrder
+            {
+                OrderNumber = await _orderNumberService.AllocateOneAsync(cancellationToken),
+                EncounterId = sumber.EncounterId,
+                InpEpisodeId = sumber.InpEpisodeId,
+                ProcedureId = tindakan.Id,
+                ModalityId = modalitas,
+                OrderStatus = RadOrderStatus.Requested,
+                InstructionVerificationStatus = RadOrderInstructionVerificationStatus.NotRequired,
+                // Tanggal pemeriksaan booking diwarisi supaya tetap satu baris dengan sumbernya.
+                RequestedAt = sumber.RequestedAt ?? sumber.CreateDateTime,
+                ScheduledAt = sumber.ScheduledAt,
+                RequestedByUserId = actorUserId,
+                RequiresPreparation = sumber.RequiresPreparation,
+                RadiographerUserId = sumber.RadiographerUserId,
+                ExaminingDoctorId = request.ExaminingDoctorId,
+                CreateBy = actorUserId,
+                CreateDateTime = now,
+            };
+
+            _dbContext.RadOrders.Add(entity);
+            AddHistory(entity, "Order.Create", null, entity.OrderStatus.ToString(),
+                null, $"Tambah Baris pada booking {sumber.OrderNumber}: {tindakan.ProcedureName}", actorUserId, now);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
+
+            return RadOperationResult<RadOrderDetailResponse>.Success((await GetDetailAsync(entity.Id, cancellationToken))!);
         }
 
         /// <summary>Centang Cetak Film — Detail Pasien v1 (<c>BE-RAD-25</c>). Tercatat <c>Order.FilmPrint</c>.</summary>
@@ -2088,15 +2249,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 }
             }
 
+            // Kunci alokasi nomor pesanan hanya berlaku di dalam transaksi.
+            await using var transaksi = _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+
             var entity = new RadOrder
             {
                 InstructingDoctorId = instructingDoctorId,
                 InstructionVerificationStatus = instructionStatus,
 
-                // RAD-CONF-001 bagian 8 butir 2. Nomor dibentuk dari waktu dan enam karakter
-                // acak, bukan dari hitungan baris — QBE-CODE-003. Index unik pada database
-                // menjadi penjaga terakhirnya.
-                OrderNumber = _orderNumberService.Generate(),
+                // Bentuk nomor Lab (RAD-RSMMC-000042), dialokasikan MAX + 1 di bawah advisory
+                // lock — QBE-CODE-003. Index unik pada database menjadi penjaga terakhirnya.
+                OrderNumber = await _orderNumberService.AllocateOneAsync(cancellationToken),
 
                 EncounterId = request.EncounterId,
                 // BE-RWI-052. Konteks perawatan distempel saat pesanan lahir.
@@ -2130,6 +2295,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 null, null, actorUserId, now);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
 
             var detail = await GetDetailAsync(entity.Id, cancellationToken);
             return RadOperationResult<RadOrderDetailResponse>.Success(detail!);
@@ -2324,6 +2490,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     $"Pesanan berstatus {order.OrderStatus} tidak dapat berpindah ke {target}.");
             }
 
+            // v1: No. Foto diberikan saat pemeriksaan dikonfirmasi. Kunci alokasinya berlaku per
+            // transaksi, sehingga Konfirmasi dibungkus transaksi sendiri.
+            var beriNoFoto = target == RadOrderStatus.Accepted && string.IsNullOrEmpty(order.PhotoNumber) && _photoNumberService != null;
+            await using var transaksi = beriNoFoto && _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+            if (beriNoFoto)
+            {
+                await BeriNoFotoAsync(order, gantiBilaKategoriBerubah: false, cancellationToken);
+            }
+
             var from = order.OrderStatus;
             order.OrderStatus = target;
 
@@ -2344,9 +2521,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
             Touch(order, actorUserId, now);
             AddHistory(order, action, from.ToString(), target.ToString(),
-                null, request?.Reason, actorUserId, now);
+                null, beriNoFoto ? $"No. Foto {order.PhotoNumber}" : request?.Reason, actorUserId, now);
 
             await SaveWithConcurrencyGuardAsync(cancellationToken);
+            if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
 
             var detail = await GetDetailAsync(order.Id, cancellationToken);
             return RadOperationResult<RadOrderDetailResponse>.Success(detail!);
@@ -2422,6 +2600,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             {
                 Id = entity.Id,
                 OrderNumber = entity.OrderNumber,
+                PhotoNumber = entity.PhotoNumber,
                 EncounterId = entity.EncounterId,
                 ProcedureId = entity.ProcedureId,
                 ProcedureCode = entity.Procedure?.ProcedureCode ?? string.Empty,

@@ -621,6 +621,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilNumberSeries> BilNumberSeries { get; set; }
         public DbSet<BilDepositAccount> BilDepositAccounts { get; set; }
         public DbSet<BilDepositMovement> BilDepositMovements { get; set; }
+        public DbSet<BilDepositPaymentOrder> BilDepositPaymentOrders { get; set; }
+        public DbSet<BilDepositOrderPayment> BilDepositOrderPayments { get; set; }
         public DbSet<BilSettlement> BilSettlements { get; set; }
         public DbSet<BilTender> BilTenders { get; set; }
         public DbSet<BilPaymentAllocation> BilPaymentAllocations { get; set; }
@@ -894,6 +896,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<InpIntegrationOutbox> InpIntegrationOutboxes { get; set; }
         public DbSet<BilInvoiceEncounterLink> BilInvoiceEncounterLinks { get; set; }
+        public DbSet<BilSupersededItemReview> BilSupersededItemReviews { get; set; }
 
         /// <summary>Permintaan admisi dari kamar pulih (<c>BE-RWI-181</c>, kamus data 19.8, migration <c>E6</c>).</summary>
         public DbSet<InpAdmissionReferral> InpAdmissionReferrals { get; set; }
@@ -1128,6 +1131,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgDuplicateEpisodeOverride> EmgDuplicateEpisodeOverrides { get; set; }
         public DbSet<EmgAdmissionRequest> EmgAdmissionRequests { get; set; }
         public DbSet<EmgAdmissionRequestEvent> EmgAdmissionRequestEvents { get; set; }
+        public DbSet<EmgPreArrivalReservation> EmgPreArrivalReservations { get; set; }
         #endregion
 
         #endregion

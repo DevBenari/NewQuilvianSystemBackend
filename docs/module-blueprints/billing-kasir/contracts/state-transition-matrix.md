@@ -805,3 +805,65 @@ Nol status baru dan nol transisi baru. Yang bertambah adalah **satu sebab** masu
 
 Transisi tidak sah pada revisi `2.1` berlaku penuh untuk kejanggalan baru ini, termasuk larangan
 membalik `INCLUDE` menjadi `EXCLUDE`.
+
+---
+
+## Amendment 16 Oktober 2026 — Penggantian Admin Rawat Jalan dan Tinjauan Void Keliru (Revisi 2.3)
+
+> `last_changed_in`: `BIL-STATE-2.0` atas `BIL-STATE-1.9` — status **draft**.
+> Masukan: `BKC-DES-084`–`BKC-DES-089`. Backend SHA: `738e03a0`.
+> Nol status baru pada `BilInvoice` dan `BilInvoiceItem`. Satu siklus hidup baru: `BilSupersededItemReview`.
+
+### 1. Biaya admin invoice `RAJAL` — keadaan turunan, tidak disimpan sebagai status
+
+| Keadaan | Syarat | Hasil pada kalkulasi |
+| --- | --- | --- |
+| `ADMIN_CHARGED` | Kunjungan tidak bertautan aktif dengan invoice rawat inap mana pun | Admin dihitung seperti biasa (termasuk aturan sekali per hari `BKC-DEC-017` apa adanya) |
+| `ADMIN_SUPERSEDED` | Kunjungan bertautan aktif dengan invoice `RANAP` yang tidak dihapus atau dibatalkan | Admin Rp 0; kode `SUPERSEDED_BY_INPATIENT_ADMISSION` di breakdown |
+
+| Dari | Ke | Pemicu | Catatan |
+| --- | --- | --- | --- |
+| `ADMIN_CHARGED` | `ADMIN_SUPERSEDED` | Tautan transfer atau rujukan operasi lahir (runtime atau backfill), lalu invoice poli dihitung | Hanya bila invoice poli masih `OPEN`. Bila sudah `FINAL`/`CLOSED`/`SETTLED_BY_WRITE_OFF`, versinya tidak berubah dan penggantiannya terjadi sebagai kredit di invoice rawat inap |
+| `ADMIN_SUPERSEDED` | `ADMIN_CHARGED` | Invoice rawat inap dihapus atau dibatalkan, lalu invoice poli dihitung | Contoh kasus E pada `02-backend-architecture.md` amendment revisi `2.3` bagian 1.4 |
+
+Karena keadaan ini diturunkan ulang dari tautan aktif pada setiap kalkulasi, tidak ada transisi yang dapat "tersangkut".
+Versi kalkulasi yang sudah tersimpan tetap *append-only* dan menjadi jejak audit kapan admin digantikan.
+
+### 2. Kredit `REFERRED_OUTPATIENT_ADMIN` pada `BilRefundableCredit`
+
+| Dari | Ke | Pemicu | Syarat |
+| --- | --- | --- | --- |
+| (tidak ada) | `AVAILABLE` | Invoice rawat inap difinalisasi (`ExecuteInternalFinalizationAndClosureAsync`) | `ReferredOutpatientAdminUnappliedCreditAmount` versi yang difinalisasi lebih dari 0 dan belum ada kredit dengan `SourceId` = id invoice rawat inap itu |
+| `AVAILABLE` | `AVAILABLE` (saldo berkurang) / `EXHAUSTED` | Baris refund `SUCCEEDED` | Alur refund yang sudah ada (`BillingRefundService.cs:538-551`) |
+
+Transisi tidak sah: membuat kredit kedua untuk invoice rawat inap yang sama (ditolak indeks unik); membuat kredit saat
+kalkulasi atau pratinjau (invariant 1); mengubah `OriginalAmount` setelah lahir. Bila invoice rawat inap kembali `OPEN`
+(misalnya pembalikan *write-off*) lalu difinalisasi ulang dengan sisa kredit berbeda, kredit lama **tidak** diubah dan
+peristiwa itu dicatat audit `BillingRefundableCredit.ReferredAdminDrift` untuk ditinjau Finance.
+
+### 3. `BilSupersededItemReview` — baru
+
+| Dari | Ke | Pemicu | Syarat | Pelaku |
+| --- | --- | --- | --- | --- |
+| (belum ditinjau) | `REINSTATE` | `POST .../{invoiceItemId}/decision` | Invoice `OPEN`; belum ada item aktif dengan kunci sumber yang sama; `RowVersion` cocok | Supervisor Kasir (`BillingSupersededItemReview : Decide`) |
+| (belum ditinjau) | `KEEP` | Sama | Status invoice apa pun | Sama |
+| (belum ditinjau) | `NEEDS_POST_CLOSE_CORRECTION` | Sama | Invoice `FINAL`, `CLOSED`, atau `SETTLED_BY_WRITE_OFF` | Sama |
+
+Ketiga keadaan bersifat **final**. Transisi tidak sah:
+
+| Percobaan | Penolakan |
+| --- | --- |
+| Keputusan kedua untuk item yang sama, apa pun nilainya | `409`, `BIL-VAL-153` |
+| `REINSTATE` pada invoice yang tidak `OPEN` | `422`, `BIL-VAL-154` |
+| `NEEDS_POST_CLOSE_CORRECTION` pada invoice `OPEN` | `422`, `BIL-VAL-155` |
+| Mengubah atau menandai hapus baris tinjauan | Tidak ada endpoint |
+| Mengubah item `VOIDED` lama | Tidak ada jalur; pemulihan selalu berupa item salinan |
+
+### 4. `BilInvoiceItem` saat pemulihan
+
+| Item | Sebelum | Sesudah |
+| --- | --- | --- |
+| Item lama | `VOIDED`, `VoidReason = SUPERSEDED_BY_INPATIENT_ADMISSION` | **Tidak berubah** |
+| Item salinan | (tidak ada) | `ACTIVE`, `SourceVersion` = item lama + 1 |
+
+Trace `BKC-DEC-119`, `BKC-DEC-158`, `BKC-DEC-161`, `BKC-DEC-162`, A1–A3. Tests: `BIL-AT-204`, `BIL-AT-209`, `BIL-AT-211`, `BIL-AT-212`, `BIL-AT-218`–`BIL-AT-222`.

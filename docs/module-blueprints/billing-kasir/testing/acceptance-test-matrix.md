@@ -596,3 +596,77 @@ Trace `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-076`, `BIL-VAL-147`
 | `BIL-AT-199` | `FR-BKC-277` | Pasien dengan kunjungan poli Maret yang sudah dibayar, lalu poli Oktober yang ditransfer dan sudah dibayar | Integrasi | Kredit alihan Rp 150.000 dari kunjungan Oktober saja |
 | `BIL-AT-200` | `FR-BKC-277` | Pasien dengan kunjungan poli terbuka yang tidak tertaut, lalu dirawat inap langsung | Integrasi | Nol item di-void, nol kredit |
 | `BIL-AT-201` | `FR-BKC-273` | Ringkasan tagihan pasien rawat inap sesudah transfer IGD | Manual | Item tagihan IGD ikut tergabung pada rincian |
+
+> **[Revisi `2.3`]** `BIL-AT-199` dan `BIL-AT-200` **superseded** bersama `FR-BKC-277`. Keduanya menguji jalur void/kredit
+> item yang dihapus `BKC-DES-083`. Penggantinya `BIL-AT-205` dan `BIL-AT-208`.
+
+---
+
+## Amendment 16 Oktober 2026 — Penggantian Admin Rawat Jalan, Backfill Tautan, dan Tinjauan Void Keliru (Revisi 2.3)
+
+> `last_changed_in`: `BIL-TEST-2.1` atas `BIL-TEST-2.0` — status **draft**.
+> Masukan: `BKC-DES-083`–`BKC-DES-089`, `BIL-VAL-151`–`BIL-VAL-160`, arahan A1–A3. Backend SHA: `738e03a0`.
+> Data contoh memakai nama samaran. Angka dasar: admin poli Rp 150.000 (porsi pasien), admin rawat inap Rp 1.000.000,
+> porsi pasien rawat inap sebelum kredit Rp 3.650.000.
+
+### Hentikan jalur lama (`FR-BKC-278`)
+
+| ID | FR | Skenario | Jenis | Hasil yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-202` | `FR-BKC-278` | Pasien punya tagihan poli lama yang lunas berisi item "Administrasi Rekam Medis Rp 25.000"; tagihan rawat inapnya dihitung ulang | Integrasi (PostgreSQL, bukan InMemory, agar `CHECK` ikut diuji) | Kalkulasi **berhasil**; nol kredit, nol item di-void. Regresi F10 |
+| `BIL-AT-203` | `FR-BKC-278` | Pratinjau kalkulasi invoice rawat inap dan invoice poli dibuka tiga kali | Integrasi | Jumlah baris dan isi `BilInvoiceItem`, `BilRefundableCredit`, `BilCalculationVersion` identik sebelum dan sesudah (`BIL-VAL-159`). Regresi F11 |
+
+### Penggantian admin (`FR-BKC-279`–`282`)
+
+| ID | FR | Skenario | Jenis | Hasil yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-204` | `FR-BKC-279` | Pasien poli ditransfer resmi; tagihan poli masih `OPEN`, lalu dihitung | Integrasi | Admin poli Rp 0; `isSupersededByInpatientAdmission = true`; kode `SUPERSEDED_BY_INPATIENT_ADMISSION`. Tagihan rawat inap: `treatment = SUPERSEDED`, kredit Rp 0 |
+| `BIL-AT-205` | `FR-BKC-280` | Seperti `BIL-AT-204`, tetapi tagihan poli sudah `CLOSED` | Integrasi | Kredit Rp 150.000; porsi pasien rawat inap Rp 3.500.000 (`BKC-AC-096`); `ReferredOutpatientAdminCreditAmount = 150.000` |
+| `BIL-AT-206` | `FR-BKC-280` | Tagihan poli `FINAL` dengan sisa piutang Rp 150.000 | Integrasi | Kredit penuh Rp 150.000 di rawat inap; sisa piutang poli **tidak** berubah |
+| `BIL-AT-207` | `FR-BKC-280` | Tagihan poli `SETTLED_BY_WRITE_OFF` dengan alokasi bersih Rp 60.000 | Integrasi | Kredit Rp 60.000 (nilai terkecil antara porsi admin dan alokasi bersih) |
+| `BIL-AT-208` | `FR-BKC-282` | Pasien ke poli kemarin untuk urusan lain (lunas, **tidak** tertaut), lalu masuk rawat inap lewat IGD | Integrasi | Kredit Rp 0; admin rawat inap Rp 1.000.000 utuh, **tidak** dipotong Rp 50.000. Regresi F12 |
+| `BIL-AT-209` | `FR-BKC-281` | Seperti `BIL-AT-205`, tetapi rawat inap ditanggung penuh BPJS (porsi pasien Rp 0), lalu difinalisasi dua kali (finalisasi, buka kembali, finalisasi) | Integrasi | Versi: kredit terpakai Rp 0, sisa Rp 150.000; porsi pasien Rp 0, bukan negatif (`BIL-VAL-160`). Finalisasi pertama melahirkan **satu** kredit `REFERRED_OUTPATIENT_ADMIN` Rp 150.000 dengan `SourceId` = id invoice rawat inap; finalisasi kedua tidak membuat baris kedua |
+| `BIL-AT-210` | `FR-BKC-281` | Kredit `REFERRED_OUTPATIENT_ADMIN` sudah ada; kelayakan pulang dinilai | Integrasi | Outstanding kelayakan = porsi pasien − pembayaran; kredit refund **tidak** ikut mengurangi (dihitung sekali saja) |
+| `BIL-AT-211` | `FR-BKC-279`, `FR-BKC-280` | Tagihan poli dihitung ulang sesudah tautan lahir (admin Rp 0), lalu dibayar sampai `CLOSED`; tagihan rawat inap dihitung | Integrasi | Kredit Rp 0, karena porsi admin pada versi terkini poli sudah 0 (invariant 2: tidak dobel) |
+| `BIL-AT-212` | `FR-BKC-279` | Seperti `BIL-AT-204`, lalu invoice rawat inap dibatalkan; tagihan poli dihitung lagi | Integrasi | Admin poli kembali Rp 150.000; `isSupersededByInpatientAdmission = false` |
+| `BIL-AT-213` | `FR-BKC-282` | Dua tagihan poli pada hari yang sama, tanpa rawat inap | Integrasi | Perilaku **sama persis** dengan sebelum revisi (`BKC-DEC-017` tidak disentuh). Uji ini mengunci perilaku *as-is* sampai `BKC-OQ-138` |
+
+### Backfill (`FR-BKC-283`)
+
+| ID | FR | Skenario | Jenis | Hasil yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-214` | `FR-BKC-283` | Dry-run pada data berisi satu transfer sah, satu asal milik pasien lain, satu asal batal, satu tanpa invoice rawat inap, dan satu yang sudah tertaut | Integrasi | Kandidat 1; terlewat `PATIENT_MISMATCH` 1, `SOURCE_DELETED_OR_CANCELLED` 1, `NO_RANAP_INVOICE` 1, `ALREADY_LINKED` 1. Nol baris tertulis |
+| `BIL-AT-215` | `FR-BKC-283` | Migration dijalankan dua kali | Integrasi | Satu tautan; `ReceiptId` = tanda terima `ADMISSION_CONFIRMED` paling awal; `LinkedAt` = `ReceivedAtUtc` tanda terima itu, **bukan** waktu jalan; `CreateBy` = penanda backfill; jalan kedua menulis nol baris |
+| `BIL-AT-216` | `FR-BKC-283` | `Down` dijalankan sesudah backfill | Integrasi | Hanya baris berpenanda yang hilang; tautan runtime dan rujukan operasi utuh |
+| `BIL-AT-217` | `FR-BKC-283` | Sesudah backfill, penelusur rantai `MVP-37` menilai pasien transfer lama | Integrasi | Tidak ada `UNLINKED_TRANSFER_ORIGIN` untuk transfer yang tertaut lewat backfill |
+
+### Tinjauan void keliru (`FR-BKC-284`)
+
+| ID | FR | Skenario | Jenis | Hasil yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-218` | `FR-BKC-284` | Supervisor Kasir memulihkan item `VOIDED` pada tagihan `OPEN` | Integrasi | Item lama tetap `VOIDED` tanpa perubahan kolom; item salinan `ACTIVE` dengan `SourceVersion` + 1; satu baris tinjauan `REINSTATE`; `RowVersion` invoice berubah; kalkulasi berikutnya memuat item itu |
+| `BIL-AT-219` | `FR-BKC-284` | `REINSTATE` pada tagihan `CLOSED`; lalu `NEEDS_POST_CLOSE_CORRECTION` pada item yang sama | Integrasi | Pertama `422` (`BIL-VAL-154`); kedua `201`; tagihan tidak berubah |
+| `BIL-AT-220` | `FR-BKC-284` | Keputusan kedua untuk item yang sama; dan permintaan ulang dengan `Idempotency-Key` yang sama | Integrasi | `409` (`BIL-VAL-153`); replay `200` dengan `isReplay = true` |
+| `BIL-AT-221` | `FR-BKC-284` | Kasir biasa dan Petugas Billing memanggil `POST .../decision` | Integrasi | `403` |
+| `BIL-AT-222` | `FR-BKC-284` | `REINSTATE` ketika sudah ada item `ACTIVE` dengan kunci sumber sama | Integrasi | `409` (`BIL-VAL-156`); nol baris tertulis |
+| `BIL-AT-223` | `FR-BKC-284` | Alasan 5 karakter | Unit | `400` (`BIL-VAL-151`) |
+| `BIL-AT-224` | `FR-BKC-284` | Periksa log audit sesudah `BIL-AT-218` | Integrasi | Ada `BillingSupersededItemReview.Decide`; payload tidak memuat nama, NIK, maupun nomor rekam medis |
+
+### Frontend (`FR-BKC-285`)
+
+| ID | FR | Skenario | Jenis | Hasil yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-225` | `FR-BKC-285` | Menu Pembayaran tagihan poli yang digantikan | Manual | Baris biaya admin Rp 0 berlabel "Digantikan rawat inap" dengan nomor tagihan rawat inap |
+| `BIL-AT-226` | `FR-BKC-285` | Panel ringkasan rawat inap dengan satu asal `CREDITED` dan sisa kredit | Manual | Kredit terpakai, daftar asal, dan keterangan "akan menjadi kredit refund saat finalisasi" tampil; tidak ada lagi indikator "void" |
+| `BIL-AT-227` | `FR-BKC-285` | `BIL-SCR-45`: daftar kosong, gagal muat, dan tombol yang tidak diizinkan status invoice | Manual | Pesan kosong dan gagal sesuai `03-frontend-architecture.md`; tombol di luar `allowedDecisions` tidak tampil |
+
+### Adendum item tarif berkategori admin (`BKC-DES-092`)
+
+| ID | FR | Skenario | Jenis | Hasil yang diharapkan |
+|---|---|---|---|---|
+| ~~`BIL-AT-228`~~ | — | **Dicabut** bersama `BKC-DES-092` (`BKC-DEC-167`) | — | — |
+| ~~`BIL-AT-229`~~ | — | **Dicabut** bersama `BKC-DES-092` (`BKC-DEC-167`) | — | — |
+| `BIL-AT-230` | `FR-BKC-279` | Tagihan poli tertaut memuat item **bukan** berkategori admin tetapi bernama "Administrasi Rekam Medis" | Integrasi | Item tetap dihitung penuh. Kata pada deskripsi tidak berpengaruh |
+
+Seluruh uji integrasi yang menyentuh `CHECK` atau transaksi **MUST** berjalan di PostgreSQL. F10 lolos selama ini karena
+nol test, dan InMemory tidak menegakkan `CHECK`.

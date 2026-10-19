@@ -34,8 +34,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private const string TooManyResultsMessage = "Hasil terlalu banyak. Ketik nama atau NIP yang lebih spesifik.";
 
         private readonly RegistrationEmployeeBenefitLookupService _service;
+        private readonly IPatientWorkforceIdentityResolver _workforceResolver;
 
-        public EmployeeBenefitLookupController(RegistrationEmployeeBenefitLookupService service) => _service = service;
+        public EmployeeBenefitLookupController(
+            RegistrationEmployeeBenefitLookupService service,
+            IPatientWorkforceIdentityResolver workforceResolver)
+        {
+            _service = service;
+            _workforceResolver = workforceResolver;
+        }
 
         /// <summary>
         /// Mencari pegawai aktif dengan NIP, NIK, atau nama. Minimal 3 karakter (FIN-VAL-268); paling banyak
@@ -106,6 +113,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<BenefitEligibilityResponse>.Ok(
                 result, result.IsEligible ? "Layak memakai penjamin internal." : (result.Message ?? "Tidak layak memakai penjamin internal.")));
         }
+
+        /// <summary>
+        /// Mendeteksi otomatis status karyawan/dokter dan kelayakan benefit berdasarkan No. RM / PatientId.
+        /// Read-only: tidak memodifikasi pasien, benefit, atau membuat kartu penjamin/kunjungan.
+        /// </summary>
+        [HttpGet("patients/{patientId:guid}/workforce-status")]
+        [HttpGet("/api/v1/health-services/registration-management/patients/{patientId:guid}/workforce-status")]
+        [AccessAction("Read", "Read Patient Workforce Status", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessPermission("EmployeeBenefitLookup", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<PatientWorkforceStatusResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+        public Task<IActionResult> GetPatientWorkforceStatus(Guid patientId, CancellationToken cancellationToken) =>
+            RunAsync(async () =>
+            {
+                var result = await _workforceResolver.ResolveStatusAsync(patientId, cancellationToken);
+                return Ok(ApiResponse<PatientWorkforceStatusResponse>.Ok(
+                    result, "Status identitas dan benefit pasien berhasil diverifikasi."));
+            });
 
         private async Task<IActionResult> RunAsync(Func<Task<IActionResult>> action)
         {

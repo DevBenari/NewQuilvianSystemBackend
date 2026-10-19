@@ -689,3 +689,48 @@ dan Finance/AR hanya `Read`.
 | Pembacaan riwayat keputusan | **Tidak dicatat** | Memakai `GET`, mengikuti konvensi project |
 
 Trace `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-072`.
+
+---
+
+## Amendment 16 Oktober 2026 — Tinjauan Void Keliru dan Kredit Admin Rawat Jalan (Revisi 2.3)
+
+> `last_changed_in`: `BIL-PERMISSION-1.6` atas `BIL-PERMISSION-1.5` — status **draft**.
+> Masukan: `BKC-DEC-162`, `BKC-DES-086`, `BKC-DES-089`, arahan A3. Backend SHA: `738e03a0`.
+> Satu Resource baru, dua Action. Butir hak akses yang sudah ada tidak berubah.
+
+### Resource dan Action baru
+
+| Resource | Action | Endpoint | `[AccessPermission]` persis | `AccessType` |
+|---|---|---|---|---|
+| `BillingSupersededItemReview` | `Read` | `GET /superseded-item-reviews`, `GET /superseded-item-reviews/{invoiceItemId}` | `[AccessPermission("BillingSupersededItemReview", "Read")]` | `Read` |
+| `BillingSupersededItemReview` | `Decide` | `POST /superseded-item-reviews/{invoiceItemId}/decision` | `[AccessPermission("BillingSupersededItemReview", "Decide")]` | `Update` |
+
+### Pemberian per peran
+
+| Peran | `Read` | `Decide` | Alasan |
+|---|:---:|:---:|---|
+| Supervisor Kasir | Ya | Ya | `BKC-DEC-162`; dijalankan sendiri tanpa persetujuan berjenjang (A3) |
+| Kasir | Tidak | Tidak | `BKC-DEC-162` menetapkan Supervisor Kasir; kasir biasa tidak diberi wewenang |
+| Petugas Billing | Tidak | Tidak | Tidak disebut keputusan mana pun |
+| Finance | Tidak | Tidak | Antrean `NEEDS_POST_CLOSE_CORRECTION` baru relevan setelah instrumen `BKC-OQ-139` ada; pemberian `Read` ditinjau saat itu |
+
+> **Risiko yang diterima (A3).** Satu orang dapat memulihkan item ke tagihan yang masih terbuka tanpa pemeriksa kedua.
+> Kendalinya adalah keputusan final yang tidak dapat diubah, alasan wajib, jejak audit, dan fakta bahwa tagihan masih
+> terbuka sehingga kasir dan pasien melihat rinciannya sebelum membayar. Preseden: `PC-DEC-016`/`PC-DEC-022`
+> (satu lapis kontrol, audit setelah fakta).
+
+Seeder hak akses ditulis mengikuti baris tabel di atas.
+
+### Peristiwa audit baru
+
+Seluruhnya lewat `_loggerService.AuditAsync`, kategori Billing. Payload **MUST NOT** memuat nama pasien, NIK, nomor rekam medis, maupun diagnosis.
+
+| Peristiwa | Kapan | Payload |
+|---|---|---|
+| `BillingSupersededItemReview.Decide` | Keputusan tinjauan tersimpan atau di-replay | `ReviewId`, `InvoiceItemId`, `InvoiceId`, `Decision`, `ReinstatedInvoiceItemId`, `ActorUserId`, `IsReplay` |
+| `BillingRefundableCredit.RecognizeReferredAdmin` | Kredit refund admin Rawat Jalan lahir saat finalisasi | `CreditId`, `InpatientInvoiceId`, `Amount`, `CalculationVersionNo`, `ActorUserId` |
+| `BillingRefundableCredit.ReferredAdminDrift` | Finalisasi ulang menghasilkan sisa kredit berbeda dari kredit yang sudah ada | `CreditId`, `InpatientInvoiceId`, `ExistingAmount`, `NewUnappliedAmount`, `ActorUserId` |
+| Kalkulasi invoice | **Tidak** ada peristiwa baru | Penggantian dan kredit tercatat permanen di versi kalkulasi (*append-only*) |
+| Pembacaan daftar dan detail tinjauan | **Tidak dicatat** | Memakai `GET`, mengikuti konvensi project |
+
+Trace `BKC-DEC-158`, `BKC-DEC-162`, `BKC-DES-086`, `BKC-DES-089`, A3. Tests: `BIL-AT-221`, `BIL-AT-224`.

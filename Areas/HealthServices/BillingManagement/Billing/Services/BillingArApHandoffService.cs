@@ -111,8 +111,8 @@ public sealed class BillingArApHandoffService
                 });
             }
 
-            // 2. Baris EMPLOYEE_BENEFIT untuk porsi kelebihan plafon (E = C - P) ditambah pilihan utang pegawai (D).
-            // Baris nol tidak diterbitkan.
+            // 2. Baris EMPLOYEE_BENEFIT untuk porsi tagihan yang secara eksplisit ditangguhkan menjadi utang pegawai.
+            // Baris nol tidak diterbitkan (Section 3.4, 8).
             if (employeeBenefitSplit.EmployeeReceivableAmount > 0)
             {
                 _dbContext.BilArHandoffs.Add(new BilArHandoff
@@ -125,8 +125,10 @@ public sealed class BillingArApHandoffService
                     DebtorReferenceId = null,
                     BenefitOwnerId = employeeBenefitSplit.EmployeeId,
                     BenefitRelationship = employeeBenefitSplit.RelationshipCode,
-                    DeferredPatientAmount = employeeBenefitSplit.ChoiceAmount,
+                    DeferredPatientAmount = employeeBenefitSplit.EmployeeDeferredAmount > 0 ? employeeBenefitSplit.EmployeeDeferredAmount : employeeBenefitSplit.ChoiceAmount,
                     DeferredConsentGivenBy = employeeBenefitSplit.ConsentGivenBy,
+                    DeferredConsentNotes = employeeBenefitSplit.ConsentNotes,
+                    FinancingChoice = employeeBenefitSplit.FinancingChoice,
                     Amount = employeeBenefitSplit.EmployeeReceivableAmount,
                     DueDate = invoice.InvoiceDate,
                     Status = BillingHandoffStatuses.Created,

@@ -932,3 +932,41 @@ Masukan: `BKC-DEC-128`–`134` (**approved 28–29 September 2026** via `/grill-
 
 
 
+
+---
+
+## Gelombang Revisi 2.3 — Penggantian Biaya Admin Rawat Jalan, Tautan Transfer, Backfill, Tinjauan Void Keliru
+
+```yaml
+blueprint_id: BIL-CASH-001
+blueprint_revision: 2.3
+blueprint_status: approved
+approved_by: Pemilik modul Billing — 16 Oktober 2026 (blueprint-manifest.md approved_by_revision_2_3)
+roadmap_wave: revisi-2.3
+backend_source: 738e03a0
+frontend_source: 8ad45262b
+contract_versions: BIL-API-2.0, BIL-STATE-2.0, BIL-VALIDATION-2.0, BIL-INTEGRATION-1.8, BIL-PERMISSION-1.6, BIL-TEST-2.1, BIL-CALCULATION-1.0
+```
+
+| Requirement | Keputusan | Desain / kontrak | Backend | Frontend | Bukti verifikasi | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `FR-BKC-273`–`275` Tautan transfer IGD/poli | `BKC-DEC-155` | `BKC-DES-077`–`079`; `BIL-INT-021` | `BE-BKC-082` | — (nol perubahan layar) | `BIL-AT-189`–`195`, `201` | ✅ **Selesai (17 Oktober 2026)** |
+| `FR-BKC-277` | `BKC-DEC-119` | `BKC-DES-081` | — | — | `BIL-AT-199`–`200` (dicabut) | **Superseded** — MUST NOT dikerjakan |
+| `FR-BKC-278` Hentikan rekonsiliasi item, pratinjau bebas tulis | `BKC-DEC-119` | `BKC-DES-083`; `BIL-VAL-159` | `BE-BKC-081` | — | `BIL-AT-202`, `203` | ✅ **Selesai (17 Oktober 2026)** |
+| `FR-BKC-279` Admin poli digantikan (tagihan terbuka) | `BKC-DEC-119`, `161`, `167` | `BKC-DES-084`; `BIL-VAL-126` penegasan kedua | `BE-BKC-084` ✅ | `FE-BKC-045` ✅ | `BIL-AT-204`, `211`, `212`, `230`, `225` | ✅ **Selesai (17 Oktober 2026)** |
+| `FR-BKC-280` Kredit admin di rawat inap | `BKC-DEC-119`, `167` | `BKC-DES-085`; `BIL-VAL-160` | `BE-BKC-084` ✅ (skema `BE-BKC-083` ✅) | `FE-BKC-045` ✅ | `BIL-AT-205`–`207`, `226` | ✅ **Selesai (17 Oktober 2026)** |
+| `FR-BKC-281` Sisa kredit jadi kredit refund | `BKC-DEC-164` | `BKC-DES-086` | `BE-BKC-085` ✅ (skema `BE-BKC-083` ✅) | `FE-BKC-045` ✅ | `BIL-AT-209`, `210` | ✅ **Selesai (17 Oktober 2026)** |
+| `FR-BKC-282` Hapus potongan `RANAP` berbasis tanggal | `BKC-DEC-161` | `BKC-DES-087` | `BE-BKC-084` | — | `BIL-AT-208`, `213` | ✅ **Selesai (17 Oktober 2026)** |
+| `FR-BKC-283` Backfill transfer lama | `BKC-DEC-160`, `163` | `BKC-DES-088`; `BIL-INT-022` | `BE-BKC-086` ✅, `BE-BKC-087` ✅ | — | `BIL-AT-214`–`217` | ✅ **Selesai (17 Oktober 2026)** (Kode migrasi siap; eksekusi migrasi oleh DBA/pemilik DB) |
+| `FR-BKC-284` Tinjauan void keliru | `BKC-DEC-158`, `162`, `165`, `166` | `BKC-DES-089`; `BIL-VAL-151`–`158`; `BIL-PERMISSION-1.6` | `BE-BKC-088` ✅ (skema `BE-BKC-083` ✅) | `FE-BKC-046` ✅ | `BIL-AT-218`–`224`, `227` | ✅ **Selesai (17 Oktober 2026)** |
+| `FR-BKC-285` Tampilan admin digantikan | `BKC-DEC-119`, `164` | `03-frontend-architecture.md` amendment `2.3` §2–3 | — | `FE-BKC-045` ✅ | `BIL-AT-225`, `226` | ✅ **Selesai (17 Oktober 2026)** |
+
+### Gap dan catatan
+
+| Butir | Keadaan |
+| --- | --- |
+| Requirement tanpa task | Tidak ada. Seluruh `FR-BKC-273`–`275` dan `278`–`285` punya task |
+| Bukti verifikasi backend | Skenario `BIL-AT-*` diverifikasi lewat proses bisnis/runtime di PostgreSQL dev, sesuai `rules/backend/TEST_POLICY.md`. Tidak adanya automated test backend **bukan** gap |
+| Pertanyaan terbuka yang tidak memblokir | `BKC-OQ-138` (aturan admin sekali per hari), `BKC-OQ-139` (instrumen koreksi pasca-tutup, Finance/AR), `BKC-OQ-140` (kredit refund di Finance intake), `BKC-OQ-141` (tinjau ulang `BKC-DEC-166`), `BKC-OQ-136` (jaminan transfer resmi, Registrasi/Rawat Inap) |
+| Gerbang manusia | `{OTORISASI-MIG-1}` dan `{OTORISASI-MIG-2}` belum diberikan. Komunikasi tiga perubahan perilaku ke kasir sebelum `BE-BKC-084` dirilis |
+| Tidak direncanakan di sini | `MVP-36`, `MVP-37` (gelombang tersendiri); `BKC-DES-092` (dicabut) |

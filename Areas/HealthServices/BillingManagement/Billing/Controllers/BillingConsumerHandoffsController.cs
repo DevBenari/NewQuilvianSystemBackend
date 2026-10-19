@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/consumer-handoffs")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_CONSUMER_HANDOFF", "Health Service Billing Management", "Billing Consumer Handoffs",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Consumer Handoffs",
     AreaName = "HealthServices", ControllerName = "BillingConsumerHandoff", Description = "Operational query and acknowledgement for unconsumed handoff letters", SortOrder = 6)]
 [Tags("Health Services / Billing Management / Consumer Handoffs")]
 public sealed class BillingConsumerHandoffsController : ControllerBase

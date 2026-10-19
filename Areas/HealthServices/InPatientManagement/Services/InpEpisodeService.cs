@@ -8,6 +8,9 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
@@ -92,17 +95,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// (<c>BE-RWI-230</c>).
         /// </summary>
         private readonly IConfiguration _configuration;
+        private readonly BillingNumberSeriesService? _billingNumberSeries;
 
-        /// <remarks>
-        /// <b>Arah dependency dibalik pada `BE-RWI-011`.</b> Sampai `BE-RWI-008`, service ini
-        /// menerima <c>InpBedOccupancyService</c> tanpa pernah memakainya. Sejak penempatan
-        /// pasien dibuka, <c>InpBedOccupancyService.PlacePatientAsync</c> wajib memanggil
-        /// <see cref="ApplyStatusChangeAsync"/> â€” satu-satunya pintu perubahan status â€”
-        /// sehingga arah pemakaiannya menjadi <c>InpBedOccupancyService</c> ke service ini.
-        /// Mempertahankan kedua arah sekaligus menghasilkan dependency melingkar yang
-        /// ditolak container saat aplikasi dinyalakan. Delta terhadap class diagram
-        /// `02-backend-architecture.md` bagian 3.4 dicatat pada laporan `BE-RWI-011`.
-        /// </remarks>
         public InpEpisodeService(
             ApplicationDbContext dbContext,
             InpSettingService settingService,
@@ -110,7 +104,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             IInpIntegrationOutboxService outboxService,
             InpAdmissionReferralService admissionReferralService,
             InpAdmissionCompletenessEvaluator admissionCompleteness,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            BillingNumberSeriesService? billingNumberSeries = null)
         {
             _dbContext = dbContext;
             _settingService = settingService;
@@ -119,6 +114,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _admissionReferralService = admissionReferralService;
             _admissionCompleteness = admissionCompleteness;
             _configuration = configuration;
+            _billingNumberSeries = billingNumberSeries;
         }
 
         // =====================================================================
@@ -417,6 +413,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 if (referralCheck.Referral != null)
                 {
                     InpAdmissionReferralService.MarkCompleted(referralCheck.Referral, episode.Id, actorUserId, now);
+                }
+
+                // Initial Deposit Order jika nominal diminta diisi dan positif (tidak menahan admisi - RWI-DEC-095)
+                if (request.RequestedDepositAmount.HasValue && request.RequestedDepositAmount.Value > 0)
+                {
+                    string orderNumber;
+                    if (_billingNumberSeries != null)
+                    {
+                        orderNumber = await _billingNumberSeries.AllocateDepositOrderNumberAsync(actorUserId, now, cancellationToken);
+                    }
+                    else
+                    {
+                        orderNumber = $"DPO-{now:yyyyMMdd}-{Random.Shared.Next(10000, 99999)}";
+                    }
+
+                    var depositOrder = new BilDepositPaymentOrder
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderNumber = orderNumber,
+                        EpisodeId = episode.Id,
+                        EncounterId = episode.EncounterId,
+                        PatientId = episode.PatientId,
+                        OrderType = DepositOrderTypes.InitialDeposit,
+                        SourceType = DepositOrderSourceTypes.InpatientAdmission,
+                        SourceReferenceId = episode.Id,
+                        RequestedAmount = request.RequestedDepositAmount.Value,
+                        PaidAmount = 0m,
+                        OutstandingAmount = request.RequestedDepositAmount.Value,
+                        Status = DepositOrderStatuses.Unpaid,
+                        DueDate = now.Date.AddDays(3),
+                        PolicyId = request.DepositPolicyId,
+                        Remarks = !string.IsNullOrWhiteSpace(request.DepositOrderRemarks) ? request.DepositOrderRemarks : "Order deposit awal admisi rawat inap",
+                        IdempotencyKey = Guid.TryParse(request.DepositIdempotencyKey, out var parsedKey) ? parsedKey : Guid.NewGuid(),
+                        CorrelationId = episode.Id,
+                        CausationId = episode.Id,
+                        CreateBy = actorUserId,
+                        CreateDateTime = now
+                    };
+
+                    _dbContext.Set<BilDepositPaymentOrder>().Add(depositOrder);
                 }
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -1274,6 +1310,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             detail.IsEncounterCreatedByAdmission =
                 await WasEncounterCreatedByAdmissionAsync(episodeId, cancellationToken);
+
+            // Baca order deposit awal (jika ada) untuk kebutuhan konfirmasi dan informasi admisi
+            detail.DepositPaymentOrder = await _dbContext.Set<BilDepositPaymentOrder>()
+                .AsNoTracking()
+                .Where(x => x.EpisodeId == episodeId && !x.IsDelete)
+                .OrderBy(x => x.CreateDateTime)
+                .Select(x => new DepositOrderSummaryDto
+                {
+                    Id = x.Id,
+                    OrderNumber = x.OrderNumber,
+                    EpisodeId = x.EpisodeId,
+                    EncounterId = x.EncounterId,
+                    PatientId = x.PatientId,
+                    OrderType = x.OrderType,
+                    SourceType = x.SourceType,
+                    RequestedAmount = x.RequestedAmount,
+                    PaidAmount = x.PaidAmount,
+                    OutstandingAmount = x.OutstandingAmount,
+                    Status = x.Status,
+                    DueDate = x.DueDate,
+                    CreatedAt = x.CreateDateTime,
+                    CreatedByName = x.CreateBy.ToString()
+                })
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (warnings != null && warnings.Count > 0)
             {

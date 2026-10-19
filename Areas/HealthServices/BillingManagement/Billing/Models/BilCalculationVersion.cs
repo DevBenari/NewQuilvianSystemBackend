@@ -22,6 +22,8 @@ public sealed class BilCalculationVersion : IdentityModel
     public decimal UnresolvedCoverageAmount { get; set; }
     public decimal NonBillableResidualAmount { get; set; }
     public decimal RoundingAmount { get; set; }
+    public decimal ReferredOutpatientAdminCreditAmount { get; set; } = 0;
+    public decimal ReferredOutpatientAdminUnappliedCreditAmount { get; set; } = 0;
     public bool IsLocked { get; set; }
     public DateTimeOffset CalculatedAt { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;

@@ -4,9 +4,63 @@
 blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
-revision: 2.2
-status: draft
-approved_baseline_revision: 2.1
+revision: 2.3
+status: approved
+approved_baseline_revision: 2.3
+approved_by_revision_2_3: Pemilik modul Billing (Product/Domain Owner) — pilihan interaktif dalam sesi, 16 Oktober 2026
+approved_at_revision_2_3: 2026-10-16
+approval_evidence_revision_2_3: >
+  Pilihan interaktif pemilik modul Billing: "Ya, setujui revisi 2.3", atas pertanyaan yang menyebut
+  revisi 2.3 beserta adendumnya dan menyatakan bahwa approval desain bukan otorisasi migration. Pada
+  giliran yang sama pemilik menjawab bahwa item tarif admin tidak dipakai (BKC-DEC-167), sehingga
+  adendum BKC-DES-092 DICABUT sebelum approval dicatat. Yang disetujui: BKC-DES-083..091, kontrak
+  BIL-API-2.0 (tanpa field adendum 092), BIL-STATE-2.0, BIL-VALIDATION-2.0, BIL-INTEGRATION-1.8,
+  BIL-PERMISSION-1.6, BIL-TEST-2.1 (BIL-AT-228..229 dicabut), BIL-CALCULATION-1.0.
+approval_exclusions_revision_2_3: >
+  TIDAK mencakup: (1) otorisasi membuat atau menjalankan migration AddReferredAdminCreditAndSupersededItemReview
+  maupun BackfillTransferOriginEncounterLinks, termasuk dry-run di lingkungan mana pun; (2) migration MVP-36/MVP-37;
+  (3) instrumen koreksi pasca-tutup (BKC-OQ-139, milik Finance/AR); (4) perubahan Finance intake (BKC-OQ-140).
+status_derivation_revision_2_3: >
+  Revisi 2.3 (Realisasi Ulang Penggantian Biaya Admin Rawat Jalan, Backfill Tautan Transfer Lama, dan
+  Tinjauan Void Keliru) berstatus `draft`; approval adalah tindakan manusia dan belum diberikan. Revisi
+  2.2 tetap `approved` dan berlaku sampai 2.3 disetujui, KECUALI BKC-DES-081/FR-BKC-277 yang MUST NOT
+  dibangun dalam keadaan apa pun (temuan source di bawah). Dasar keputusan: BKC-DEC-119 (ditegaskan ulang
+  pemilik 16 Oktober 2026: "saya ingin tetap menggunakan aturan bkc-dec-119. Karena itu udah paten"),
+  BKC-DEC-017, BKC-DEC-158, BKC-DEC-160..163. Tiga arahan pemilik pada pass desain (A1 sisa kredit menjadi
+  kredit refund; A2 koreksi pasca-tutup lewat credit note/retur; A3 Supervisor Kasir tanpa persetujuan
+  berjenjang) BELUM punya baris BKC-DEC-* - ratifikasi lewat BKC-OQ-137, yang MEMBLOKIR
+  plan-module-delivery untuk FR-BKC-281 dan FR-BKC-284 saja [DITUTUP 16 Oktober 2026 lewat
+  BKC-DEC-164..166; lihat design_amendment_revision_2_3]. Keputusan arsitektur BKC-DES-083..092.
+  Dua migration (satu skema, satu data backfill), keduanya butuh otorisasi eksplisit terpisah.
+design_amendment_revision_2_3: >
+  /design-business-module 16 Oktober 2026 (Opus 5.5), backend 738e03a0, frontend 8ad45262b. Impact scan
+  terbatas d268a41f -> 738e03a0 dijalankan di dalam pass ini (02-backend-architecture.md amendment 2.3
+  bagian 0.1): berkas tumpuan admin dan tautan tidak berubah; jalur transfer IGD berubah besar tetapi
+  penulisan kolom asal transfer tetap. TEMUAN SOURCE (statis, runtime NOT RUN): (F8) biaya admin bukan
+  item melainkan komponen kalkulasi; (F9) rekonsiliasi lama menyasar item yang namanya mengandung
+  "Administrasi"; (F10) CK_BilRefundableCredit_SourceType menolak REFERRED_OUTPATIENT_ADMIN sehingga
+  kalkulasi rawat inap GAGAL; (F11) pratinjau kalkulasi menulis void tanpa transaksi; (F12) penggantian
+  yang benar-benar berjalan adalah potongan Rp 50.000 tetap berbasis kedekatan tanggal; (F13) mekanisme
+  itu juga menjalankan BKC-DEC-017 secara menyimpang (BKC-OQ-138, tidak diubah). Akibatnya revisi 2.2
+  F6 dan contoh kredit Rp 300.000 keliru; BKC-DES-049 dan BKC-DES-081 superseded; FR-BKC-277 superseded
+  oleh FR-BKC-278..282. Amendment ditambahkan pada 02-backend-architecture.md, 03-frontend-architecture.md,
+  04-prd-to-mvp.md, data/data-dictionary.md, contracts/api-contract.md, contracts/state-transition-matrix.md,
+  contracts/validation-matrix.md, contracts/integration-contract.md, contracts/permission-audit-matrix.md,
+  testing/acceptance-test-matrix.md, dan dua flowchart baru (flowcharts/penggantian-admin-rawat-jalan.md,
+  flowcharts/tinjauan-void-admin-keliru.md). Catatan status yang ditulis manage-module-blueprint
+  sebelumnya pada hari yang sama ("FR-BKC-277 hanya menunggu BE-BKC-FIX-022") dikoreksi di tempatnya.
+  YANG SENGAJA TIDAK DISENTUH: 00-interview-decisions.md (milik grill-me; arahan A1-A3 menunggu
+  ratifikasi BKC-OQ-137); 01-existing-capability-map.md (milik trace-existing-capabilities; CAP-BIL-05
+  seharusnya Conflict, bukan Repair - perlu disegarkan); roadmap/ (milik plan-module-delivery).
+  PEMBARUAN SESUDAHNYA (16 Oktober 2026): /grill-me menutup BKC-OQ-137 lewat BKC-DEC-164..166 (A2
+  hanya prinsipnya; A3 sementara, BKC-OQ-141). /trace-existing-capabilities menulis capability map §25
+  (revisi 0.6): CAP-BIL-05 = Conflict, dan menemukan item tarif berkategori admin (BKC-CQ-15).
+  ADENDUM DESAIN (Opus 5.5, SHA sama 738e03a0/8ad45262b, revisi TIDAK dinaikkan karena 2.3 belum
+  disetujui): BKC-DES-092 - penggantian BKC-DEC-119 mencakup juga item aktif berkategori tarif admin
+  (dikeluarkan dari kalkulasi invoice RAJAL OPEN tanpa void; dikreditkan bila non-OPEN). F8/F9 dikoreksi
+  di 02-backend-architecture.md bagian 15. BKC-CQ-15 ditutup oleh desain. Pertanyaan baru BKC-OQ-142
+  (admin ganda pada satu tagihan poli), tidak memblokir. Nol migration tambahan; uji BIL-AT-228..230.
+  SETELAH ADENDUM: tidak ada pertanyaan yang memblokir approval revisi 2.3.
 approved_by_revision_2_1: Pemilik modul Billing (Product/Domain Owner) — pernyataan langsung dalam sesi, 14 Oktober 2026
 approved_at_revision_2_1: 2026-10-14
 approval_evidence_revision_2_1: >
@@ -38,14 +92,86 @@ approval_exclusions_revision_2_1: >
   Rawat Inap (BKC-OQ-121); (5) kesiapan implementasi - approval desain bukan verifikasi kesiapan.
 status_derivation_revision_2_2: >
   Revisi 2.2 (Tautan Kunjungan Asal Jalur Transfer dan Lingkup Penggantian Biaya Administrasi)
-  berstatus `draft`; approval adalah tindakan manusia dan belum diberikan. Revisi 2.1 tetap
-  `approved` (approved_by_revision_2_1) dan tetap menjadi dasar yang berlaku sampai 2.2 disetujui.
+  kini `approved` (lihat approved_by_revision_2_2 di bawah). Revisi 2.1 tetap `approved`
+  (approved_by_revision_2_1) dan TIDAK dibatalkan; revisi 2.2 menjadi dasar TERATAS yang berlaku.
   Dasar keputusan: BKC-DEC-155 dan BKC-DEC-157 (approved 14 Oktober 2026), BKC-DEC-119 (approved
   24 September 2026). Keputusan arsitektur BKC-DES-077..082. Nol migration baru; satu nilai
   AnomalyCode baru pada CHECK tabel rencana MVP-37. Menemukan dan merancang perbaikan satu cacat
   finansial hidup (FR-BKC-277, keparahan High): penggantian biaya admin Rawat Jalan menyentuh seluruh
-  riwayat kunjungan poli pasien. Pertanyaan baru BKC-OQ-131 dan BKC-OQ-132 (keduanya menahan RILIS
-  FR-BKC-277, bukan desain). MVP-36 TIDAK bergantung revisi ini.
+  riwayat kunjungan poli pasien.
+  Pertanyaan BKC-OQ-131 dan BKC-OQ-132 DIJAWAB 16 Oktober 2026 lewat BKC-DEC-158 dan BKC-DEC-159
+  (lihat closure_pass_16_oktober_2026 di bawah). MVP-36 TIDAK bergantung revisi ini.
+  BKC-OQ-127 DIJAWAB 16 Oktober 2026 lewat BKC-DEC-160.
+  TEMUAN BARU setelah BKC-DEC-159: jawabannya ("admin RAJAL tetap diganti pada admisi langsung
+  tanpa transfer formal") BERTENTANGAN dengan BKC-DES-081 yang approved pada revisi ini sendiri
+  ("tanpa tautan, tidak ada void maupun kredit"). Ini bukan sekadar menutup pertanyaan - ia
+  membatalkan sebagian cakupan desain yang baru saja disetujui. FR-BKC-277 MUST NOT rilis dengan
+  BKC-DES-081 apa adanya; dicatat BKC-OQ-133, MEMBLOKIR rilis FR-BKC-277 sampai amendment desain
+  (revisi 2.3) menyelaraskan BKC-DES-081 dengan BKC-DEC-159.
+  KOREKSI 16 Oktober 2026 (closure pass /grill-me lanjutan, sesi yang sama): pemilik modul
+  MENGOREKSI PREMIS BKC-DEC-159 sendiri - "transfer pasien harus tercatat dalam sistem", ditegaskan
+  "Ya, transfer WAJIB selalu lewat alur resmi". BKC-DEC-159 kini SUPERSEDED oleh BKC-DEC-161:
+  admisi poli->ranap tanpa transfer resmi adalah GAP PROSES (milik Registration/Rawat Inap, BKC-OQ-136),
+  BUKAN kasus sah yang perlu didukung Billing. BKC-DES-081 TETAP berlaku PERSIS seperti approved,
+  TANPA amendment. BKC-OQ-133 DITUTUP tanpa amendment - FR-BKC-277 TIDAK LAGI menunggu revisi 2.3.
+  BKC-OQ-134 (reversal) dijawab BKC-DEC-162 (Supervisor Kasir per-kasus) dan BKC-OQ-135 (backfill)
+  dijawab BKC-DEC-163 (Billing, SEBELUM MVP-37 rilis - menaikkan backfill dari "tidak menahan"
+  menjadi MUST selesai sebelum rilis MVP-37). Rincian lengkap: 00-interview-decisions.md closure
+  pass "Koreksi Premis BKC-OQ-132/133 dan Jawaban BKC-OQ-134/135".
+  [DIKOREKSI REVISI 2.3, 16 Oktober 2026] Kesimpulan "FR-BKC-277 tidak lagi menunggu revisi 2.3" dan
+  "satu-satunya penahannya BE-BKC-FIX-022" BATAL. Impact scan /design-business-module membuktikan jalur
+  yang diperbaiki FR-BKC-277 tidak pernah menyentuh biaya admin sebenarnya (lihat design_amendment_revision_2_3).
+  FR-BKC-277 superseded oleh FR-BKC-278..282 dan MUST NOT dibangun. Keputusan bisnis BKC-DEC-161 tetap berlaku.
+approved_by_revision_2_2: Pemilik modul Billing (Product/Domain Owner) — pernyataan langsung dalam sesi, 16 Oktober 2026
+approved_at_revision_2_2: 2026-10-16
+approval_evidence_revision_2_2: >
+  Pernyataan pemilik modul pada sesi 16 Oktober 2026: "saya menyetujui amandemen juga", menyusul
+  jawaban tertulis dan gambar tabel keputusan atas BKC-OQ-131, BKC-OQ-132, dan BKC-OQ-127. Dicatat
+  sebagai approval revisi 2.2 karena (a) pemilik modul Billing yang menyatakannya, (b) pernyataan
+  eksplisit menyebut "amandemen" merujuk revisi 2.2 yang sedang dibahas pada sesi yang sama, dan
+  (c) pemilik sudah diberi tahu isi revisi 2.2 (BKC-DES-077-082, perbaikan FR-BKC-277, dan tiga
+  pertanyaan BKC-OQ-131/132/127 yang menahan rilis) sebelum menyatakan persetujuan.
+approval_scope_revision_2_2: >
+  Mengikuti pola approval_scope_revision_2_1: bentuk blueprint SINGLE (BKC-DEC-147) hanya punya
+  satu status dan satu approval. Approval MENCAKUP seluruh isi revisi 2.2 (BKC-DES-077-082,
+  perbaikan FR-BKC-277, kontrak yang dinaikkan sesuai design_amendment_revision_2_2) apa adanya.
+approval_exclusions_revision_2_2: >
+  Approval ini TIDAK mencakup: (1) otorisasi pembuatan atau penerapan migration MVP-36/MVP-37 -
+  gerbang terpisah, lihat approval_exclusions_revision_2_1; (2) otorisasi mekanisme reversal
+  terkontrol untuk kredit/void admin yang sudah terlanjur (BKC-DEC-158) - belum dirancang, lihat
+  BKC-OQ-134; (3) otorisasi backfill tautan transfer lama (BKC-DEC-160) - belum dirancang, lihat
+  BKC-OQ-135; (4) rilis FR-BKC-277 - MASIH diblokir BKC-OQ-133 (konflik BKC-DES-081/BKC-DEC-159),
+  terpisah dari approval desain revisi 2.2 ini.
+closure_pass_16_oktober_2026: >
+  Closure pass atas tiga pertanyaan yang menahan rilis FR-BKC-277 dan MVP-37, dan approval revisi
+  2.2 itu sendiri, disampaikan pemilik modul Billing dalam satu sesi 16 Oktober 2026 (teks tertulis
+  plus gambar tabel keputusan). Tiga keputusan baru: BKC-DEC-158 (menjawab BKC-OQ-131: kredit/void
+  admin yang sudah terlanjur dicatat BOLEH DIBATALKAN lewat reversal terkontrol, bukan hard delete
+  atau mengubah histori), BKC-DEC-159 (menjawab BKC-OQ-132: admin RAJAL TETAP DIGANTI bila pasien
+  benar-benar beralih ke RANAP walau tanpa workflow transfer formal), BKC-DEC-160 (menjawab
+  BKC-OQ-127: transfer lama tetap dicatat sebagai data historis Registrasi; hubungan Billing
+  ditentukan dari data Registrasi yang terverifikasi dan disimpan sebagai relasi persisten).
+  BKC-DEC-158 dan BKC-DEC-159 MENUTUP BKC-OQ-131 dan BKC-OQ-132 sebagai pertanyaan, tetapi
+  BKC-DEC-159 MEMBUKA BKC-OQ-133 (konflik dengan BKC-DES-081 yang approved - lihat di atas).
+  BKC-DEC-158 MEMBUKA BKC-OQ-134 (mekanisme reversal belum dirancang; tidak menahan rilis
+  FR-BKC-277 karena remediasi data historis terpisah dari perbaikan forward-looking FR-BKC-277
+  itu sendiri). BKC-DEC-160 MENUTUP BKC-OQ-127 sebagai keputusan kebijakan dan MEMBUKA BKC-OQ-135
+  (mekanisme backfill belum dirancang; TIDAK menahan rilis MVP-37 karena BKC-DES-080 sudah
+  menjaga transfer tak tertaut lewat jalur NEEDS_RECONCILIATION gagal-tertutup - backfill adalah
+  penyempurnaan operasional, bukan prasyarat keselamatan rilis).
+  STATUS RILIS SETELAH PASS INI: MVP-37 tidak lagi menunggu keputusan kebijakan BKC-OQ-127 (masih
+  menunggu prasyarat lain yang sudah tercatat: BKC-DES-077-079 rilis, BE-BKC-FIX-022 selesai,
+  otorisasi migration). FR-BKC-277 BELUM boleh rilis - BKC-OQ-131/132 sebagai pertanyaan sudah
+  tertutup, tetapi BKC-OQ-133 (konflik desain) adalah blocker BARU yang lahir dari jawaban
+  BKC-OQ-132, bukan closure yang membuka rilis.
+  PEMBARUAN STATUS/RUJUKAN PASS INI (diizinkan blueprint-update-rules.md: "perbarui status, rujukan
+  bukti, dan timestamp tanpa revisi arsitektur selama targetnya tidak berubah"): 02-backend-
+  architecture.md bagian 9/10/11 dan 04-prd-to-mvp.md bagian E/F/G/H/I/J/K diberi penanda status
+  tertutup atas BKC-OQ-127/131/132 dan status blocker baru BKC-OQ-133, karena pembaruan ini tidak
+  mengubah target arsitektur apa pun - hanya mencerminkan jawaban yang sudah turun. BKC-DES-081
+  SENDIRI (isi keputusan arsitekturnya) TIDAK diubah pass ini; ia hanya diberi penanda butuh
+  amendment. Amendment desain sesungguhnya (revisi 2.3) bukan wewenang manage-module-blueprint -
+  harus lewat /design-business-module.
 status_derivation_revision_1_9: >
   Revisi 1.9 (Pelunasan Gabungan Lintas Kunjungan) berstatus `draft`. Menutup CAP-BIL-09, satu-satunya
   kemampuan Pass B yang masih terbuka setelah impact scan 13 Oktober 2026. Keputusan bisnis dasarnya
@@ -497,10 +623,15 @@ last_revision_note: >
   menaruh Petty Cash sebagai rumpun di dalam struktur SINGLE yang sudah ada sudah diambil pada
   00-interview-decisions.md amendment 7 September 2026, mengikuti preseden Shift Kasir, Diskon,
   Deposit, Refund, dan Pengecualian Finansial.
-backend_commit_sha: d268a41f
-frontend_commit_sha: 0b45dd8cd
-previous_backend_commit_sha: d166cf4f
-previous_frontend_commit_sha: 6e5edd6df
+backend_commit_sha: 738e03a0
+frontend_commit_sha: 8ad45262b
+previous_backend_commit_sha: d268a41f
+previous_frontend_commit_sha: 0b45dd8cd
+snapshot_note_revision_2_3: >
+  Disegarkan oleh /design-business-module revisi 2.3 setelah impact scan terbatas pada area amendment.
+  Working tree backend saat audit memuat perubahan belum di-commit (sembilan controller Billing, satu baris
+  masing-masing; BillingDepositOrderService.cs; folder Seeders/ baru) yang tidak menyentuh berkas tumpuan.
+  Bukti revisi 2.2 di luar area itu TIDAK diaudit ulang.
 sha_recheck_note_revision_1_9: >
   Impact scan ulang 14 Oktober 2026 pada d166cf4f (backend) dan 6e5edd6df (frontend). Area
   BillingManagement memang bergerak banyak sejak e049a65b (sekitar 1.671 baris, antara lain
@@ -781,7 +912,15 @@ input_hashes_revision_2_2:
   00-interview-decisions.md: 719fd01d1c4091ba72d804d330ddf723eca23bcb9d4337f5984a54e56f2f0bb3
   01-existing-capability-map.md: e41457038d1669ab14f4c1998435228370b3b9a15cdcdb65563b43c87a8658e5
 contract_versions:
-  api: BIL-API-1.9 (draft, revisi 2.2 — satu nilai anomalyCode baru UNLINKED_TRANSFER_ORIGIN pada tiga endpoint rekonsiliasi yang masih rencana; nol endpoint dan nol field baru) atas BIL-API-1.8
+  api: BIL-API-2.0 (draft, revisi 2.3 — response kalkulasi: referredOutpatientAdminVoided dihapus, arti referredOutpatientAdminCreditedAmount berubah, lima field baru; tiga endpoint baru superseded-item-reviews) atas BIL-API-1.9
+  state: BIL-STATE-2.0 (draft, revisi 2.3 — keadaan turunan ADMIN_CHARGED/ADMIN_SUPERSEDED; kredit REFERRED_OUTPATIENT_ADMIN lahir saat finalisasi; siklus BilSupersededItemReview final) atas BIL-STATE-1.9
+  validation: BIL-VALIDATION-2.0 (draft, revisi 2.3 — penegasan kedua BIL-VAL-126; BIL-VAL-151..160) atas BIL-VALIDATION-1.9
+  integration: BIL-INTEGRATION-1.8 (draft, revisi 2.3 — BIL-INT-022 backfill tautan transfer lama; kredit refund admin dan Finance) atas BIL-INTEGRATION-1.7
+  permission: BIL-PERMISSION-1.6 (draft, revisi 2.3 — Resource BillingSupersededItemReview Read/Decide untuk Supervisor Kasir; tiga peristiwa audit) atas BIL-PERMISSION-1.5
+  testing: BIL-TEST-2.1 (draft, revisi 2.3 — BIL-AT-202..230, termasuk adendum BKC-DES-092; BIL-AT-199..200 superseded) atas BIL-TEST-2.0
+  calculation: BIL-CALCULATION-1.0 (draft, revisi 2.3 — admin RAJAL digantikan via tautan aktif; kredit admin pada RANAP sesudah promo; potongan RANAP berbasis tanggal dihapus; aturan sekali-per-hari RAJAL/IGD/OTC tidak berubah) atas BIL-CALCULATION-0.9
+contract_versions_set_sebelum_revisi_2_3:
+  api: BIL-API-1.9 (approved 2026-10-16 bersama revisi 2.2; ditulis draft saat itu — revisi 2.2 — satu nilai anomalyCode baru UNLINKED_TRANSFER_ORIGIN pada tiga endpoint rekonsiliasi yang masih rencana; nol endpoint dan nol field baru) atas BIL-API-1.8
   state: BIL-STATE-1.9 (draft, revisi 2.2 — satu sebab baru masuk NEEDS_RECONCILIATION; nol status dan nol transisi baru) atas BIL-STATE-1.8
   validation: BIL-VALIDATION-1.9 (draft, revisi 2.2 — penegasan BIL-VAL-126: hanya kunjungan Rawat Jalan yang tertaut; nol aturan baru) atas BIL-VALIDATION-1.8
   integration: BIL-INTEGRATION-1.7 (draft, revisi 2.2 — BIL-INT-021 pembacaan asal transfer saat ADMISSION_CONFIRMED; BIL-INT-020 tingkat pertama diperiksa silang) atas BIL-INTEGRATION-1.6

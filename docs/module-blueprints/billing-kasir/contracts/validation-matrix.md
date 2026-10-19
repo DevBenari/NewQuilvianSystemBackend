@@ -713,3 +713,47 @@ Oktober yang ditransfer ke rawat inap (admin Rp 150.000 sudah dibayar) menerima 
 **Rp 150.000**, bukan Rp 300.000.
 
 Nol aturan validasi baru. `UNLINKED_TRANSFER_ORIGIN` tunduk pada `BIL-VAL-147`–`BIL-VAL-150` apa adanya.
+
+> **[Koreksi revisi `2.3`]** Contoh di atas ("menerima kredit Rp 150.000, bukan Rp 300.000") menggambarkan jalur void/kredit
+> item yang tidak pernah bekerja: kreditnya ditolak database dan admin bukan item. Contoh yang berlaku ada pada amendment
+> revisi `2.3` di bawah.
+
+---
+
+## Amendment 16 Oktober 2026 — Penggantian Admin Rawat Jalan dan Tinjauan Void Keliru (Revisi 2.3)
+
+> `last_changed_in`: `BIL-VALIDATION-2.0` atas `BIL-VALIDATION-1.9` — status **draft**.
+> Masukan: `BKC-DES-083`–`BKC-DES-089`; arahan A1–A3. Backend SHA: `738e03a0`.
+
+### Penegasan kedua `BIL-VAL-126`
+
+| Field | Revisi `1.9` | Revisi `2.3` |
+|---|---|---|
+| Kondisi | Invoice Rawat Jalan milik kunjungan yang tertaut ke invoice rawat inap ini memuat item admin | Kunjungan Rawat Jalan bertautan **aktif** dengan invoice rawat inap: tautan tidak dihapus, invoice rawat inap tidak dihapus maupun dibatalkan, dan invoice poli ber-`ServiceType` `RAJAL` |
+| Bukan kondisi | Kunjungan Rawat Jalan lain yang tidak tertaut | Sama, **termasuk** kunjungan pada tanggal yang sama atau sehari sebelum/sesudahnya. Kedekatan tanggal tidak lagi dipakai |
+| Hasil — invoice poli `OPEN` | Item admin di-void `SUPERSEDED_BY_INPATIENT_ADMISSION` | Admin pada kalkulasi invoice poli bernilai **Rp 0**, dengan kode `SUPERSEDED_BY_INPATIENT_ADMISSION` di breakdown. Tidak ada item yang di-void |
+| Hasil — invoice poli `FINAL`/`CLOSED` | Kredit alihan | Kredit sebesar porsi pasien admin pada versi kalkulasi terkini invoice poli, mengurangi porsi pasien invoice rawat inap |
+| Hasil — invoice poli `SETTLED_BY_WRITE_OFF` | (tidak ditulis) | Kredit sebesar nilai terkecil antara porsi pasien admin dan alokasi bersih ke invoice poli |
+| Hasil — kredit melebihi porsi pasien | (tidak ditulis) | Sisanya menjadi kredit refund `REFERRED_OUTPATIENT_ADMIN` saat invoice rawat inap difinalisasi (A1) |
+| Cakupan "admin poli" | (tidak ditulis) | **Satu** biaya administrasi, yaitu komponen kalkulasi dari master Kebijakan Biaya Administrasi (`BKC-DEC-167`). Item tagihan tidak pernah dikenali sebagai admin, termasuk lewat kata "Administrasi" pada deskripsi. *(Adendum `BKC-DES-092` yang sempat memperluasnya ke item tarif admin dicabut.)* |
+
+**Contoh.** Pasien dengan kunjungan poli Maret (lunas, admin Rp 150.000, tidak tertaut) dan kunjungan poli Oktober yang
+ditransfer resmi (lunas, admin Rp 150.000) menerima kredit **Rp 150.000** dari kunjungan Oktober saja. Seandainya tagihan
+poli Oktober belum dibayar, kreditnya Rp 0 dan tagihan poli Oktober menampilkan admin Rp 0 berlabel "Digantikan rawat inap".
+
+### Aturan baru
+
+| ID | Aturan | Konteks | Kondisi gagal | Pesan / akibat | Kode |
+|---|---|---|---|---|---|
+| `BIL-VAL-151` | Alasan keputusan tinjauan wajib, 10–500 karakter sesudah dipangkas | `POST .../superseded-item-reviews/{id}/decision` | Kosong, lebih pendek dari 10, atau lebih panjang dari 500 karakter | "Alasan wajib diisi minimal 10 karakter." | `400` |
+| `BIL-VAL-152` | Item yang ditinjau harus `VOIDED` dengan `VoidReason = 'SUPERSEDED_BY_INPATIENT_ADMISSION'` dan tidak dihapus | Sama, dan `GET /{invoiceItemId}` | Item lain | "Item tidak termasuk daftar tinjauan void biaya administrasi." | `404` |
+| `BIL-VAL-153` | Satu keputusan per item, final | Sama | Sudah ada keputusan | "Item ini sudah ditinjau dan keputusannya bersifat final." | `409` |
+| `BIL-VAL-154` | `REINSTATE` hanya untuk invoice `OPEN` | Sama | Invoice `FINAL`, `CLOSED`, atau `SETTLED_BY_WRITE_OFF` | "Tagihan sudah difinalisasi; pilih Perlu Koreksi Pasca-Tutup atau Biarkan." | `422` |
+| `BIL-VAL-155` | `NEEDS_POST_CLOSE_CORRECTION` hanya untuk invoice yang tidak `OPEN` | Sama | Invoice `OPEN` | "Tagihan masih terbuka; pilih Pulihkan atau Biarkan." | `422` |
+| `BIL-VAL-156` | `REINSTATE` ditolak bila sudah ada item `ACTIVE` dengan `SourceDomain` dan `SourceDetailId` yang sama | Sama | Ada item aktif dengan kunci sumber yang sama | "Sudah ada item aktif untuk layanan yang sama pada tagihan ini." | `409` |
+| `BIL-VAL-157` | `expectedInvoiceRowVersion` harus sama dengan `RowVersion` invoice | Sama | Berbeda | "Data telah berubah. Muat ulang sebelum melanjutkan." | `409` |
+| `BIL-VAL-158` | Header `Idempotency-Key` wajib. Kunci yang sama dengan isi berbeda ditolak; dengan isi sama dikembalikan sebagai replay | Sama | Header tidak ada / isi berbeda | "Idempotency-Key wajib diisi." / "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru." | `400` / `409` |
+| `BIL-VAL-159` | Kalkulasi, baik pratinjau maupun simpan, **MUST NOT** menulis baris selain versi kalkulasinya sendiri | `GET /{id}/calculation-preview`, `POST /{id}/recalculate` | Ada baris `BilInvoiceItem` atau `BilRefundableCredit` yang berubah atau bertambah | Invariant; diuji `BIL-AT-202`, `BIL-AT-203` | — |
+| `BIL-VAL-160` | Kredit admin Rawat Jalan tidak boleh membuat porsi pasien negatif; sisanya dicatat di `ReferredOutpatientAdminUnappliedCreditAmount` | Kalkulasi invoice `RANAP` | — | Invariant; diuji `BIL-AT-209` | — |
+
+Trace `BKC-DEC-119`, `BKC-DEC-158`, `BKC-DEC-161`, `BKC-DEC-162`, A1–A3.

@@ -30,6 +30,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Radio
                 .IsUnique()
                 .HasFilter("\"IsDelete\" = false");
 
+            // No. Foto tidak boleh kembar; kosong (belum dikonfirmasi) tidak ikut dijaga.
+            builder.Property(x => x.PhotoNumber).HasMaxLength(32);
+            builder.HasIndex(x => x.PhotoNumber)
+                .IsUnique()
+                .HasFilter("\"PhotoNumber\" IS NOT NULL AND \"IsDelete\" = false");
+
             builder.HasIndex(x => x.EncounterId);
             builder.HasIndex(x => x.OrderStatus);
             builder.HasIndex(x => new { x.ModalityId, x.OrderStatus });

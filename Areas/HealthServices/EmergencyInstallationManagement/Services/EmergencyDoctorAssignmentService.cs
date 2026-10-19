@@ -2,12 +2,15 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Services.Logging;
 using System.Linq.Expressions;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services
@@ -26,10 +29,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private const string IndexPenugasanBerjalan = "IX_EmgDoctorAssignment_EmergencyVisitId_Active";
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly PatientProcedureOrderService _procedureOrderService;
+        private readonly PatientProcedureExecutionService _procedureExecutionService;
+        private readonly IConfiguration _configuration;
+        private readonly LoggerService _loggerService;
 
-        public EmergencyDoctorAssignmentService(ApplicationDbContext dbContext)
+        public const string KunciKodeJasaKunjungan = "EmergencyBilling:VisitFeeProcedureCode";
+
+        private const string LogCategory = "EmergencyInstallationManagement.EmergencyDoctorAssignmentService";
+
+        public EmergencyDoctorAssignmentService(
+            ApplicationDbContext dbContext,
+            PatientProcedureOrderService procedureOrderService,
+            PatientProcedureExecutionService procedureExecutionService,
+            IConfiguration configuration,
+            LoggerService loggerService)
         {
             _dbContext = dbContext;
+            _procedureOrderService = procedureOrderService;
+            _procedureExecutionService = procedureExecutionService;
+            _configuration = configuration;
+            _loggerService = loggerService;
         }
 
         public class Hasil<T>
@@ -250,11 +270,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             _dbContext.Set<EmgDoctorAssignment>().Add(entity);
             await SelaraskanDokterEncounterAsync(visit, request.DoctorId, actorUserId, now, cancellationToken);
+            var jasaKunjungan = await TambahkanJasaKunjunganAsync(visit, request.DoctorId, effectiveFrom, actorUserId, cancellationToken);
 
             var penolakanSimpan = await SimpanAsync(cancellationToken);
             if (penolakanSimpan != null)
                 return Hasil<EmergencyDoctorAssignmentResponse>.Gagal(
                     StatusCodes.Status409Conflict, penolakanSimpan);
+
+            if (jasaKunjungan != null)
+                await TerbitkanFaktaJasaKunjunganAsync(jasaKunjungan, visit.Id, actorUserId);
 
             var dibuat = await AmbilSatuAsync(entity.Id, cancellationToken);
             return Hasil<EmergencyDoctorAssignmentResponse>.Ok(dibuat!, StatusCodes.Status201Created);
@@ -418,6 +442,71 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             encounter.DoctorId = doctorId;
             encounter.UpdateDateTime = now;
             encounter.UpdateBy = actorUserId;
+        }
+
+        private async Task<TrxPatientProcedure?> TambahkanJasaKunjunganAsync(
+            EmgVisit visit,
+            Guid doctorId,
+            DateTime performedAt,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            var kode = _configuration[KunciKodeJasaKunjungan];
+            TrxPatientProcedure? tindakan = null;
+            string? alasan;
+
+            if (string.IsNullOrWhiteSpace(kode))
+                alasan = $"Konfigurasi {KunciKodeJasaKunjungan} kosong.";
+            else
+            {
+                try
+                {
+                    (tindakan, alasan) = await _procedureOrderService.TambahkanJasaKunjunganIgdAsync(
+                        visit, doctorId, performedAt, kode, actorUserId, cancellationToken);
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    await _loggerService.ErrorAsync(
+                        LogCategory,
+                        "EmergencyVisitFee.PrepareFailed",
+                        "Jasa kunjungan IGD gagal disiapkan; penetapan DPJP tetap dilanjutkan.",
+                        exception,
+                        new { EmergencyVisitId = visit.Id, visit.EncounterId });
+                    return null;
+                }
+            }
+
+            if (tindakan == null)
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "EmergencyVisitFee.Skipped",
+                    "Jasa kunjungan IGD tidak dicatat saat DPJP pertama ditetapkan.",
+                    new { EmergencyVisitId = visit.Id, visit.EncounterId, DoctorId = doctorId, ActorUserId = actorUserId, Alasan = alasan });
+
+            return tindakan;
+        }
+
+        private async Task TerbitkanFaktaJasaKunjunganAsync(TrxPatientProcedure tindakan, Guid emergencyVisitId, Guid actorUserId)
+        {
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "EmergencyVisitFee.Recorded",
+                "Jasa kunjungan IGD dicatat saat DPJP pertama ditetapkan.",
+                new { EmergencyVisitId = emergencyVisitId, ProcedureId = tindakan.Id, tindakan.EncounterId, tindakan.DoctorId, ActorUserId = actorUserId });
+
+            try
+            {
+                await _procedureExecutionService.EnsureCompletedFactAsync(tindakan, actorUserId, CancellationToken.None);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "EmergencyVisitFee.FactFailed",
+                    "Fakta tagih jasa kunjungan IGD gagal diterbitkan; tindakan tetap tersimpan.",
+                    exception,
+                    new { EmergencyVisitId = emergencyVisitId, ProcedureId = tindakan.Id });
+            }
         }
 
         /// <summary>

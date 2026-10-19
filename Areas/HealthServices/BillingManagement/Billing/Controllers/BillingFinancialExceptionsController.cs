@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing/financial-exceptions")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING_FINANCIAL_EXCEPTION", "Health Service Billing Management", "Billing Financial Exceptions",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Financial Exceptions",
     AreaName = "HealthServices", ControllerName = "BillingFinancialExceptions", Description = "Refund, adjustment, and write-off case lifecycle for Billing financial exceptions", SortOrder = 5)]
 [Tags("Health Services / Billing Management / Billing / Financial Exceptions")]
 public sealed class BillingFinancialExceptionsController : ControllerBase

@@ -100,8 +100,11 @@ public sealed class InpatientClearanceService : IInpatientClearanceService
             var adjustmentNet = adjustments.Sum(x => x.Direction == "CREDIT" ? x.Amount : -x.Amount);
 
             // Kredit alihan rajal / refund credit
+            // BKC-DES-086 / BIL-AT-210: creditTotal kelayakan mengecualikan REFERRED_OUTPATIENT_ADMIN karena sudah tercermin di PatientAmount
             var refundableCredits = await _dbContext.BilRefundableCredits.AsNoTracking()
-                .Where(x => x.InvoiceId == invoice.Id && !x.IsDelete)
+                .Where(x => x.InvoiceId == invoice.Id
+                    && !x.IsDelete
+                    && x.SourceType != BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin)
                 .ToListAsync(cancellationToken);
             var creditTotal = refundableCredits.Sum(x => x.OriginalAmount);
 

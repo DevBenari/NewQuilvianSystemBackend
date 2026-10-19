@@ -45,6 +45,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool NeedsOxygenSupport { get; set; }
 
         public bool NeedsSpecialMonitoring { get; set; }
+ 
+        public EmergencyPatientDependencyLevel? PatientDependencyLevel { get; set; }
 
         [MaxLength(2000)]
         public string? ClinicalIndication { get; set; }

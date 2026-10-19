@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
@@ -200,13 +200,18 @@ public class BillingCalculationService : IBillingCalculationService
             var roomCharge = invoice.ServiceType == AdministrationFeeServiceTypes.Ranap
                 ? await CalculateRoomChargeAsync(invoice, calculatedAt, cancellationToken)
                 : new RoomChargeCalculationResponse();
-            var administrationFee = activeItems.Count == 0 && roomCharge.AppliedAmount <= 0
-                ? new AdministrationFeeCalculationResponse
+            var shouldCalculateAdminFee = activeItems.Count > 0
+                || roomCharge.AppliedAmount > 0
+                || invoice.ServiceType == AdministrationFeeServiceTypes.Ranap
+                || invoice.ServiceType == AdministrationFeeServiceTypes.Rajal;
+
+            var administrationFee = shouldCalculateAdminFee
+                ? await CalculateAdministrationFeeAsync(
+                    invoice, encounter, effectiveAt, activeItems, roomCharge.AppliedAmount, cancellationToken)
+                : new AdministrationFeeCalculationResponse
                 {
                     BusinessDate = AdministrationFeePolicyService.GetBusinessDate(effectiveAt)
-                }
-                : await CalculateAdministrationFeeAsync(
-                    invoice, encounter, effectiveAt, activeItems, roomCharge.AppliedAmount, cancellationToken);
+                };
             var approvedDiscounts = invoice.DiscountApplications
                 .Where(x => !x.IsDelete && x.ApprovalStatus == BillingDiscountApprovalStatuses.Approved)
                 .OrderBy(x => x.CreateDateTime)
@@ -312,6 +317,24 @@ public class BillingCalculationService : IBillingCalculationService
                 itemResult.Items.Where(x => discountableItemIds.Contains(x.InvoiceItemId)).Sum(x => x.NetAmount)
                     + roomCharge.AppliedAmount);
             coverageResult.PatientAmount = Money(coverageResult.PatientAmount - patientPromos.TotalAmount);
+
+            // BKC-DEC-119 / BKC-DES-085 (BE-BKC-084): Kredit administrasi rawat jalan asal pada tagihan rawat inap
+            // Kredit dikurangkan dari porsi pasien SESUDAH promo, dibatasi porsi pasien (F19: porsi pasien tidak boleh negatif).
+            // Yang terpakai disimpan di ReferredOutpatientAdminCreditAmount, sisanya di ReferredOutpatientAdminUnappliedCreditAmount.
+            var totalReferredAdminCredit = administrationFee.ReferredOutpatientAdminOrigins.Sum(x => x.CreditAmount);
+            var appliedReferredAdminCredit = 0m;
+            var unappliedReferredAdminCredit = 0m;
+
+            if (invoice.ServiceType == AdministrationFeeServiceTypes.Ranap && totalReferredAdminCredit > 0)
+            {
+                appliedReferredAdminCredit = Math.Min(coverageResult.PatientAmount, totalReferredAdminCredit);
+                unappliedReferredAdminCredit = totalReferredAdminCredit - appliedReferredAdminCredit;
+                coverageResult.PatientAmount = Money(coverageResult.PatientAmount - appliedReferredAdminCredit);
+            }
+
+            administrationFee.ReferredOutpatientAdminCreditedAmount = appliedReferredAdminCredit;
+            administrationFee.ReferredOutpatientAdminUnappliedCreditAmount = unappliedReferredAdminCredit;
+
             var totalDiscount = itemDiscount + patientPromos.TotalAmount;
             var appliedDiscounts = itemResult.Discounts.Concat(patientPromos.Discounts).ToList();
             if (persist)
@@ -354,6 +377,8 @@ public class BillingCalculationService : IBillingCalculationService
                 UnresolvedCoverageAmount = coverageResult.UnresolvedAmount,
                 NonBillableResidualAmount = coverageResult.NonBillableResidualAmount,
                 RoundingAmount = roundingAmount,
+                ReferredOutpatientAdminCreditAmount = appliedReferredAdminCredit,
+                ReferredOutpatientAdminUnappliedCreditAmount = unappliedReferredAdminCredit,
                 IsLocked = false,
                 CalculatedAt = calculatedAt,
                 Reason = request.Reason.Trim(),
@@ -461,6 +486,11 @@ public class BillingCalculationService : IBillingCalculationService
             - version.ItemDiscount + version.TaxAmount + version.RoundingAmount;
         var paid = paidAmount ?? 0m;
         var remaining = remainingAmount ?? Math.Max(0m, version.PatientAmount - paid);
+        var originalPayable = remaining;
+        var roundedPayable = Math.Round(originalPayable, 0, MidpointRounding.AwayFromZero);
+        var roundingAdjustment = roundedPayable - originalPayable;
+        var isFullyPaid = remaining <= 0m;
+        var paymentStatus = isFullyPaid ? "LUNAS" : (paid > 0m ? "SEBAGIAN" : "BELUM_LUNAS");
 
         return new CalculationResponse
         {
@@ -481,6 +511,10 @@ public class BillingCalculationService : IBillingCalculationService
             TotalInvoiceAmount = totalInvoice,
             PaidAmount = paid,
             RemainingAmount = remaining,
+            OriginalPayableAmount = originalPayable,
+            RoundingAdjustmentAmount = roundingAdjustment,
+            EffectivePayableAmount = roundedPayable,
+            PaymentStatus = paymentStatus,
             IsLocked = version.IsLocked,
             CalculatedAt = version.CalculatedAt,
             Reason = version.Reason,
@@ -598,25 +632,29 @@ public class BillingCalculationService : IBillingCalculationService
                 PaymentType = guarantor?.PaymentType.ToString()
             }, cancellationToken);
 
+        // BKC-DEC-119 / BKC-DES-084 / BKC-DES-085 (BE-BKC-084): Evaluasi penggantian admin rajal lewat tautan aktif
+        var replacementResult = await _adminFeeCalculationService.ResolveReferredAdminReplacementAsync(
+            invoice, encounter, cancellationToken);
+
         if (calcResult.PolicyId == null)
-            return new AdministrationFeeCalculationResponse { BusinessDate = businessDate };
-
-        // BKC-DEC-119 / BKC-DES-049 / BIL-VAL-126: Rekonsiliasi alihan rajal ke ranap
-        if (invoice.ServiceType == AdministrationFeeServiceTypes.Ranap)
         {
-            var reconcile = await _adminFeeCalculationService.ReconcileReferredOutpatientAdminFeeAsync(
-                new ReconcileReferredOutpatientAdminRequest
-                {
-                    InpatientInvoiceId = invoice.Id,
-                    InpatientEncounterId = encounter.Id,
-                    PatientId = encounter.PatientId,
-                    ActorUserId = Guid.Empty
-                }, cancellationToken);
+            return new AdministrationFeeCalculationResponse
+            {
+                BusinessDate = businessDate,
+                IsSupersededByInpatientAdmission = replacementResult.IsSupersededByInpatientAdmission,
+                SupersededByInpatientInvoiceId = replacementResult.SupersededByInpatientInvoiceId,
+                SupersededReasonCode = replacementResult.SupersededReasonCode,
+                ReferredOutpatientAdminOrigins = replacementResult.ReferredOutpatientAdminOrigins,
+                ReferredOutpatientAdminCreditedAmount = 0m,
+                ReferredOutpatientAdminUnappliedCreditAmount = 0m
+            };
+        }
 
-            if (reconcile.WasVoided)
-                calcResult.ReferredOutpatientAdminVoided = true;
-            if (reconcile.WasCredited)
-                calcResult.ReferredOutpatientAdminCreditedAmount = reconcile.CreditedAmount;
+        var appliedAmount = calcResult.AppliedAmount;
+        if (replacementResult.IsSupersededByInpatientAdmission)
+        {
+            // BKC-DEC-119: Admin tagihan rawat jalan OPEN yang bertautan aktif digantikan rawat inap (AppliedAmount = 0)
+            appliedAmount = 0m;
         }
 
         var response = new AdministrationFeeCalculationResponse
@@ -626,7 +664,7 @@ public class BillingCalculationService : IBillingCalculationService
             PolicyCode = calcResult.PolicyCode,
             PolicyAmount = calcResult.CalculatedAmount,
             PriorAppliedAmount = calcResult.PriorAppliedAmount,
-            AppliedAmount = calcResult.AppliedAmount,
+            AppliedAmount = appliedAmount,
             ReplacementPriority = 100,
             Coverable = true,
             ReplacesEarlierFee = calcResult.ReplacesEarlierFee,
@@ -637,11 +675,19 @@ public class BillingCalculationService : IBillingCalculationService
             RawCalculatedAmount = calcResult.RawCalculatedAmount,
             IsCapApplied = calcResult.IsCapApplied,
             IsPackageGuaranteed = calcResult.IsPackageGuaranteed,
-            ReferredOutpatientAdminVoided = calcResult.ReferredOutpatientAdminVoided,
-            ReferredOutpatientAdminCreditedAmount = calcResult.ReferredOutpatientAdminCreditedAmount
+            IsSupersededByInpatientAdmission = replacementResult.IsSupersededByInpatientAdmission,
+            SupersededByInpatientInvoiceId = replacementResult.SupersededByInpatientInvoiceId,
+            SupersededReasonCode = replacementResult.SupersededReasonCode,
+            ReferredOutpatientAdminOrigins = replacementResult.ReferredOutpatientAdminOrigins,
+            ReferredOutpatientAdminCreditedAmount = 0m,
+            ReferredOutpatientAdminUnappliedCreditAmount = 0m
         };
 
-        if (calcResult.IsPackageGuaranteed)
+        if (replacementResult.IsSupersededByInpatientAdmission)
+        {
+            response.NonBillableResidualAmount = 0m;
+        }
+        else if (calcResult.IsPackageGuaranteed)
         {
             // BKC-DEC-121: Untuk pasien BPJS / paket klaim, porsi pasien adalah Rp 0
             response.NonBillableResidualAmount = calcResult.AppliedAmount;
