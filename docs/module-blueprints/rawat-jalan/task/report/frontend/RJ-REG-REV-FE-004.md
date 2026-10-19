@@ -97,3 +97,32 @@ diperbaiki dengan `position:absolute; inset:0`.
 | Perubahan sampingan | `NONE` |
 | Status Git | Berkas di atas `M`/`??` pada `V2QuilvianSystemFrontendDev`, belum di-commit |
 | Langkah berikutnya | UAT di perangkat berkamera dan dengan scanner Plustek |
+
+## Revisi 2026-10-15 — bingkai identitas tanpa letterbox
+
+Masukan user: foto KTP pada panel identitas masih menyisakan ruang kosong di dalam bingkai. Penyebabnya adalah bingkai beraspek rasio kartu tetap (`aspect-ratio: 85.6 / 54`) yang dipadukan dengan `object-fit: contain`. Akibatnya, foto dengan rasio berbeda menyisakan letterbox.
+
+| Hal | Isi |
+| --- | --- |
+| Berkas | `src/style/health-services/registration-management/emergency-management/emergency-registration.module.css` (`.identityKtpFrame`, `.identityKtpFrame img`); komentar JSDoc `outpatient-identity-panel.jsx` |
+| Perubahan | `aspect-ratio` dan posisi absolut dihapus dari bingkai. Gambar memakai `width: 100%; height: auto`, jadi tinggi bingkai mengikuti rasio asli foto. Foto tampil utuh, tanpa letterbox, dan tanpa terpotong. |
+| Keputusan base component | `.identityKtpFrame` hanya dipakai oleh panel ini (grep). Status `REUSE` untuk kelas yang sama, tanpa komponen baru. `UI GATE: PASS` |
+| ESLint berkas tersentuh | exit 0 — `PASS` |
+| Grep anti-regresi (warna literal, `!important`) pada blok yang diubah | kosong — `PASS` |
+| Uji CSS headless (Chromium, Playwright) | Foto landscape 1000×620: bingkai 238×148 sama dengan gambar 238×148. Foto portrait 600×900: bingkai 238×357 sama dengan gambar 238×357. Tidak ada ruang kosong — `PASS` |
+| MANUAL TEST | Layar pendaftaran nyata belum diuji ulang. User perlu memuat ulang halaman di FE 3000. |
+| Risiko | Foto portrait membuat bingkai lebih tinggi (sekitar 357 px pada lebar 240 px). |
+| AUTOMATED TEST | `SKIPPED (opsional)` — perubahan CSS kecil |
+
+## Revisi 2026-10-15 — tombol Batal pada modal Ganti/Tambah Identitas
+
+Masukan user: pada step Cari/Input Pasien, tombol **Batal** di modal *Ganti Dokumen Identitas* tidak bisa diklik sebelum foto dipilih. Penyebabnya adalah prop `disabled={!captured?.blob}` pada `ConfirmModal`. Prop itu menandai seluruh modal sibuk (`isBusy`), sehingga tombol Batal, ESC, dan tombol tutup ikut terkunci.
+
+| Hal | Isi |
+| --- | --- |
+| Berkas | `outpatient-identity-panel.jsx` |
+| Perubahan | Diganti menjadi `confirmProps={{ disabled: !captured?.blob }}`. Sekarang hanya *Simpan Identitas* yang nonaktif sampai foto dipilih. Pola ini sama dengan `journal-reversal-dialog.jsx` dan `blood-bank-procedure-list-view.jsx`. Saat menyimpan, `loading={saving}` tetap mengunci seluruh modal. |
+| Keputusan base component | `ConfirmModal` `REUSE`, perilaku default tidak diubah. `UI GATE: PASS` |
+| ESLint berkas tersentuh | exit 0 — `PASS` |
+| MANUAL TEST | Belum diuji ulang di layar. User perlu memastikan Batal menutup modal sebelum foto dipilih. |
+| AUTOMATED TEST | `SKIPPED (opsional)` — perubahan satu prop |

@@ -926,10 +926,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
         public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
         public DbSet<RegQueue> RegQueues { get; set; }
+        // rawat-jalan Amendment RP (BE-RJP-005) — Reservasi Pasien Prioritas.
+        public DbSet<RegPriorityReservation> RegPriorityReservations { get; set; }
+        public DbSet<RegPriorityReservationHistory> RegPriorityReservationHistories { get; set; }
         public DbSet<RegEncounterReferral> RegEncounterReferrals { get; set; }
         public DbSet<RegEncounterReferralDocument> RegEncounterReferralDocuments { get; set; }
         public DbSet<RegEncounterReferralRevision> RegEncounterReferralRevisions { get; set; }
-        public DbSet<RegEncounterReschedule> RegEncounterReschedules { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
         public DbSet<TrxDoctorConsultation> TrxDoctorConsultations { get; set; }
         public DbSet<TrxPatientDiagnosis> TrxPatientDiagnoses { get; set; }

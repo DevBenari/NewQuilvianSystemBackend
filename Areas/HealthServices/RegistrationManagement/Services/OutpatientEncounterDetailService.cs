@@ -3,6 +3,10 @@ using System.Reflection;
 using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
@@ -27,6 +31,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     public class OutpatientEncounterDetailService
     {
         public const string UpdateAction = "Update";
+        private const string ReferralLetterNotFoundMessage = "Surat Rujukan tidak ditemukan pada kunjungan ini.";
         private const string LogCategory = "HealthServices.RegistrationManagement";
         private static readonly Regex PhonePattern = new(@"^\+?[0-9][0-9 \-]{5,28}$", RegexOptions.Compiled);
 
@@ -36,13 +41,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private readonly EncounterReferralService _encounterReferralService;
         private readonly LoggerService _loggerService;
 
+        private readonly OutpatientEncounterScheduleService _scheduleService;
+        private readonly DoctorCertificateService _doctorCertificateService;
+
         public OutpatientEncounterDetailService(
             ApplicationDbContext dbContext,
             OutpatientEncounterListService listService,
             AccessPermissionService accessPermissionService,
             EncounterReferralService encounterReferralService,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            OutpatientEncounterScheduleService scheduleService,
+            DoctorCertificateService doctorCertificateService)
         {
+            _scheduleService = scheduleService;
+            _doctorCertificateService = doctorCertificateService;
             _dbContext = dbContext;
             _listService = listService;
             _accessPermissionService = accessPermissionService;
@@ -92,7 +104,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         .Where(q => q.EncounterId == x.Id && !q.IsDelete && !q.IsCancel)
                         .OrderByDescending(q => q.CreateDateTime)
                         .Select(q => (DateTime?)q.QueueDate)
-                        .FirstOrDefault()
+                        .FirstOrDefault(),
+                    IsBooking = _dbContext.Set<RegPatientEncounter>()
+                        .Where(OutpatientEncounterRules.IsBookingState)
+                        .Any(b => b.Id == x.Id),
+                    HasActiveConsultation = _dbContext.Set<TrxDoctorConsultation>()
+                        .Any(c => c.EncounterId == x.Id && !c.IsDelete && !c.IsCancel)
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -104,6 +121,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var canUpdate = await _accessPermissionService.HasAccessAsync(
                 user, ClinicalActorScopeService.ResourceName, UpdateAction);
             var blockedReason = GetEditBlockedReason(encounter);
+            var scheduleBlockedReason = blockedReason ?? await _scheduleService.GetBlockedReasonAsync(encounter, cancellationToken);
+            var canCancelPermission = await _accessPermissionService.HasAccessAsync(
+                user, ClinicalActorScopeService.ResourceName, OutpatientEncounterListService.CancelAction);
+            var cancelBlockedReason = OutpatientEncounterListService.GetCancelBlockedReason(
+                encounter.EncounterStatus, encounter.IsCancel, encounter.CompletedAt != null, row.HasActiveConsultation);
+            var referral = encounter.IsReferral
+                ? await _encounterReferralService.GetAsync(encounter.Id, cancellationToken)
+                : null;
+            var referralLetters = await LoadReferralLettersAsync(encounter.Id, referral?.SourceLetter?.CertificateId, cancellationToken);
 
             return new OutpatientEncounterDetailResponse
             {
@@ -117,6 +143,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 IsWalkIn = encounter.IsWalkIn,
                 IsFromKiosk = encounter.IsFromKiosk,
                 IsCancelled = encounter.IsCancel,
+                IsBooking = row.IsBooking,
                 CancelledAt = encounter.CancelledAt,
                 CancelReason = encounter.CancelReason,
                 RegisteredAt = encounter.RegisteredAt,
@@ -127,6 +154,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 DoctorId = encounter.DoctorId,
                 DoctorName = row.DoctorName,
                 DoctorSpecialistName = row.DoctorSpecialistName,
+                DoctorScheduleId = encounter.DoctorScheduleId,
                 ScheduleLabel = BuildScheduleLabel(row.ScheduleSessionName, row.ScheduleStartTime, row.ScheduleEndTime, row.SchedulePracticeLocation),
                 QueueCode = row.QueueCode,
                 QueueStatusName = row.QueueStatus.HasValue ? GetDisplayName(row.QueueStatus.Value) : null,
@@ -140,6 +168,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 ReferralStatus = ResolveReferralStatus(encounter, row.ReferralIsComplete),
                 ChiefComplaint = encounter.ChiefComplaint,
                 Notes = encounter.Notes,
+                Referral = referral,
+                ReferralLetters = referralLetters,
                 Patient = new OutpatientEncounterPatientResponse
                 {
                     Id = patient.Id,
@@ -160,8 +190,139 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 },
                 CanEdit = canUpdate && blockedReason == null,
                 EditBlockedReason = blockedReason,
+                CanChangeSchedule = canUpdate && scheduleBlockedReason == null,
+                ScheduleChangeBlockedReason = scheduleBlockedReason,
+                CanCancel = canCancelPermission && cancelBlockedReason == null,
+                CancelBlockedReason = cancelBlockedReason,
                 UpdateDateTime = encounter.UpdateDateTime
             };
+        }
+
+        /// <summary>
+        /// Isi resmi satu Surat Rujukan terkait kunjungan untuk preview dan cetak ulang petugas
+        /// (<c>RJ-REF-REV-004</c>).
+        /// </summary>
+        /// <remarks>
+        /// Kunjungan harus dalam cakupan pengguna (di luar cakupan <c>404</c>), dan surat harus
+        /// terhubung sah dengan kunjungan: diterbitkan pada kunjungan ini atau menjadi dasar rujukan
+        /// internal kunjungan ini. ID surat lain dijawab <c>404</c> (cegah IDOR). Hanya surat
+        /// berstatus terbit yang dikembalikan; isi selalu dari data tersimpan, bukan draft. Akses
+        /// dicatat audit tanpa isi medis.
+        /// </remarks>
+        public async Task<DoctorCertificateResponse> GetReferralLetterAsync(
+            ClaimsPrincipal user,
+            Guid id,
+            Guid certificateId,
+            CancellationToken cancellationToken = default)
+        {
+            var scope = await _listService.ResolveScopeOrThrowAsync(user, cancellationToken);
+
+            var visible = await _listService.BuildScopedQuery(scope).AnyAsync(x => x.Id == id, cancellationToken);
+            if (!visible)
+                throw new OutpatientEncounterNotFoundException();
+
+            var linked = await _dbContext.Set<CliDoctorCertificate>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.Id == certificateId &&
+                    !x.IsDelete &&
+                    x.CertificateType == DoctorCertificateType.InpatientReferral &&
+                    (x.EncounterId == id ||
+                     _dbContext.Set<RegEncounterReferral>().Any(r =>
+                         r.PatientEncounterId == id &&
+                         !r.IsDelete &&
+                         r.SourceDoctorCertificateId == x.Id)))
+                .Select(x => new { x.CertificateStatus })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (linked == null)
+                throw new OutpatientEncounterNotFoundException(ReferralLetterNotFoundMessage);
+
+            if (linked.CertificateStatus != DoctorCertificateStatus.Issued)
+                throw new OutpatientEncounterValidationException("Surat Rujukan sudah dibatalkan dokter sehingga tidak dapat dicetak sebagai surat resmi.");
+
+            var letter = await _doctorCertificateService.GetByIdAsync(certificateId, cancellationToken)
+                ?? throw new OutpatientEncounterNotFoundException(ReferralLetterNotFoundMessage);
+
+            await _loggerService.AuditAsync(LogCategory, "ReadOutpatientReferralLetter",
+                "Surat Rujukan dibuka untuk preview/cetak dari Daftar Pasien Rawat Jalan.",
+                new
+                {
+                    EntityId = id,
+                    CertificateId = certificateId,
+                    Controller = "OutpatientEncounter",
+                    Action = "Read",
+                    ActorUserId = GetUserId(user)
+                });
+
+            return letter;
+        }
+
+        /// <summary>
+        /// Surat Rujukan keluar (diterbitkan pada kunjungan ini) dan masuk (dasar rujukan internal),
+        /// termasuk yang dibatalkan supaya histori tetap terbaca.
+        /// </summary>
+        private async Task<List<OutpatientReferralLetterResponse>> LoadReferralLettersAsync(
+            Guid encounterId,
+            Guid? incomingCertificateId,
+            CancellationToken cancellationToken)
+        {
+            var rows = await _dbContext.Set<CliDoctorCertificate>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.CertificateType == DoctorCertificateType.InpatientReferral &&
+                    (x.EncounterId == encounterId || x.Id == incomingCertificateId))
+                .OrderByDescending(x => x.IssuedDate)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.CertificateNumber,
+                    x.EncounterId,
+                    x.IssuedDate,
+                    x.DoctorNameSnapshot,
+                    x.ClinicNameSnapshot,
+                    x.ReferralTargetNameSnapshot,
+                    x.CertificateStatus,
+                    SourceEncounterNumber = _dbContext.Set<RegPatientEncounter>()
+                        .Where(e => e.Id == x.EncounterId)
+                        .Select(e => e.EncounterNumber)
+                        .FirstOrDefault(),
+                    FollowUpEncounterNumber = _dbContext.Set<RegEncounterReferral>()
+                        .Where(r =>
+                            r.SourceDoctorCertificateId == x.Id &&
+                            !r.IsDelete &&
+                            r.PatientEncounter != null &&
+                            !r.PatientEncounter.IsDelete &&
+                            !r.PatientEncounter.IsCancel)
+                        .Select(r => r.PatientEncounter!.EncounterNumber)
+                        .FirstOrDefault()
+                })
+                .ToListAsync(cancellationToken);
+
+            return rows.Select(x =>
+            {
+                var outgoing = x.EncounterId == encounterId;
+                var issued = x.CertificateStatus == DoctorCertificateStatus.Issued;
+
+                return new OutpatientReferralLetterResponse
+                {
+                    CertificateId = x.Id,
+                    CertificateNumber = x.CertificateNumber,
+                    Direction = outgoing ? OutpatientReferralLetterResponse.DirectionOutgoing : OutpatientReferralLetterResponse.DirectionIncoming,
+                    DirectionName = outgoing ? "Diterbitkan pada kunjungan ini" : "Dasar rujukan kunjungan ini",
+                    IssuedDate = x.IssuedDate,
+                    DoctorName = x.DoctorNameSnapshot,
+                    SourceClinicName = x.ClinicNameSnapshot,
+                    SourceEncounterNumber = x.SourceEncounterNumber,
+                    TargetName = x.ReferralTargetNameSnapshot,
+                    CertificateStatus = (int)x.CertificateStatus,
+                    CertificateStatusName = issued ? "Terbit" : "Dibatalkan",
+                    CanPrint = issued,
+                    FollowUpEncounterNumber = outgoing ? x.FollowUpEncounterNumber : null
+                };
+            }).ToList();
         }
 
         /// <summary>
@@ -237,6 +398,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var now = DateTime.UtcNow;
             var changedFields = new List<string>();
             Guid patientId;
+            OutpatientEncounterScheduleService.ScheduleChange? scheduleChange;
 
             await using (var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken))
             {
@@ -284,6 +446,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     patient.UpdateBy = actorUserId;
                 }
 
+                // Ganti tanggal/sesi praktik dokter yang sama; dokter tidak dapat diganti.
+                scheduleChange = await _scheduleService.ApplyAsync(
+                    encounter, request.VisitDate, request.DoctorScheduleId, actorUserId, now, cancellationToken);
+                if (scheduleChange != null)
+                    changedFields.Add("Schedule");
+
                 if (!string.Equals(encounter.Notes, notes, StringComparison.Ordinal))
                 {
                     encounter.Notes = notes;
@@ -296,9 +464,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 await transaction.CommitAsync(cancellationToken);
             }
 
+            if (scheduleChange != null)
+                await _scheduleService.NotifyAsync(scheduleChange, actorUserId);
+
             if (changedFields.Count > 0)
             {
-                // Tanpa nilai lama/baru: kontak dan alamat adalah data pribadi.
+                // Tanpa nilai lama/baru kontak dan alamat (data pribadi); jadwal dicatat lengkap.
                 await _loggerService.AuditAsync(LogCategory, "UpdateOutpatientEncounterRegistrationData",
                     "Data pendaftaran kunjungan rawat jalan diperbarui.",
                     new
@@ -308,7 +479,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         Controller = "OutpatientEncounter",
                         Action = UpdateAction,
                         ActorUserId = actorUserId,
-                        ChangedFields = changedFields
+                        ChangedFields = changedFields,
+                        OldEncounterDate = scheduleChange?.OldEncounterDate,
+                        OldDoctorScheduleId = scheduleChange?.OldDoctorScheduleId,
+                        NewEncounterDate = scheduleChange != null ? request.VisitDate : null,
+                        NewDoctorScheduleId = scheduleChange != null ? request.DoctorScheduleId : null
                     });
             }
 

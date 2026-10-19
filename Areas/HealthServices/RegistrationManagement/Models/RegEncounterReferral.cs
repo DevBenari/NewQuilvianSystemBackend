@@ -77,6 +77,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public ReferralCaptureSource CaptureSource { get; set; }
 
         /// <summary>
+        /// Sumber rujukan (<c>RJ-REF-REV-001</c>). Data lama bernilai <c>External</c>.
+        /// </summary>
+        public ReferralSourceType SourceType { get; set; } = ReferralSourceType.External;
+
+        /// <summary>
+        /// Surat Rujukan internal yang menjadi dasar kunjungan ini. Hanya diisi bila
+        /// <see cref="SourceType"/> bernilai <c>Internal</c>. Kunjungan asal surat dibaca dari
+        /// <c>CliDoctorCertificate.EncounterId</c>, sehingga relasinya tidak diduplikasi.
+        /// </summary>
+        public Guid? SourceDoctorCertificateId { get; set; }
+
+        /// <summary>
         /// Hasil hitung kelengkapan. Disimpan supaya daftar kunjungan dapat menyaring tanpa join
         /// berat, dan selalu dihitung ulang service setiap kali rincian atau suratnya berubah.
         /// </summary>

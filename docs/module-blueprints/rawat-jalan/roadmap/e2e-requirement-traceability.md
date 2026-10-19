@@ -68,3 +68,9 @@
 | `FR-RJE-062` | Kontrak `1.0.1` belum disetujui | Approval pemilik |
 | `RJ-DOC-BE-005` AC `1`–`4` | Milik scope Dokter | `doctor-consultation-roadmap.md`; wajib memakai ulang `RedispatchAsync` dari `BE-RJE-011` |
 | Uji `403` dengan akun tanpa butir | Bergantung ketersediaan akun uji | Dicatat per laporan task; `NOT RUN` bila akun tidak tersedia |
+
+## Catatan silang — Amendment REF-REV (16 Okt 2026)
+
+Revisi rujukan Zoom 13 Okt 2026 (`RJ-REF-REV-001`..`005`) **bukan** scope roadmap ini dan tidak mengubah
+status task di sini. Definisi, status, dan bukti ada pada
+[registration-revision-roadmap.md](registration-revision-roadmap.md) bagian 8.

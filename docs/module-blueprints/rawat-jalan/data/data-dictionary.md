@@ -350,3 +350,167 @@ Index `(EncounterReferralId, ChangedAt)`.
 | `MstReferralDoctor` | `ReferralInstitutionId`, `IsActive` | Dokter milik institusi | `MstReferralDoctor.cs` |
 | `MstPatientInsurance` | `InsuranceProviderId`, `PolicyNumber` | Dicocokkan dengan `cardScan` | `MstPatientInsurance.cs` |
 | `MstInsuranceProvider` | `InsuranceProviderName`, `InsuranceProviderCode`, `InsuranceGroupName` | Pencocokan nama | `MstInsuranceProvider.cs` |
+
+---
+
+## RP. Amendment RP — Reservasi Pasien Prioritas (revisi `33`, `approved` 2026-10-16)
+
+Kontrak `RJ-PRI-RESV-001@1.0.0`. Keputusan `RJ-PRI-DEC-001` s.d. `029`. Kedua tabel baru mewarisi `IdentityModel`,
+sehingga sepuluh kolom audit tidak ditulis ulang di sini. Penghapusan bersifat penandaan (`IsDelete`). Riwayat tidak
+pernah dihapus.
+
+### RP-1. Tabel status dan kepemilikan
+
+| Entity | Status | Owner | Catatan |
+|---|---|---|---|
+| `RegPriorityReservation` | Baru | Registration (`Reg`) | Satu janji kedatangan pasien prioritas |
+| `RegPriorityReservationHistory` | Baru | Registration (`Reg`) | Garis waktu kejadian reservasi |
+| `RegPatientEncounter` | Sudah ada | Registration | Direferensikan lewat `EncounterId`, **tidak** disalin |
+| `RegQueue` | Sudah ada | Registration | `IsPriorityQueue` dipakai penyaring display |
+| `MstPatient` | Sudah ada | Patient Management | Direferensikan, tidak disalin |
+| `MstPatientMembership` | Sudah ada | `crm-membership` | Snapshot menunjuk barisnya. Status `Cancelled` mencabut prioritas |
+
+### RP-2. `RegPriorityReservation` — seluruh kolom
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `ReservationNumber` | `string(30)` | Ya | Dari `NumberSeriesAllocator` | Unique | — | — | Tidak | Contoh `RSV-261016-0001`. Tidak pernah diketik petugas |
+| `PatientId` | `Guid` | Ya | — | Index (bagian unique bersyarat) | FK `MstPatient` | `Restrict` | Tidak | Pasien pemilik reservasi |
+| `VisitDate` | `DateTime` (`date`) | Ya | — | Index (bagian unique bersyarat) | — | — | Tidak | Tanggal kunjungan, kalender WIB, tanpa jam |
+| `Status` | `int` (`PriorityReservationStatus`) | Ya | `1` (`AwaitingArrival`) | Index `(VisitDate, Status)` | — | — | Tidak | Lihat `contracts/state-transition-matrix.md` *Amendment RP* |
+| `ArrivalCodeHash` | `string(64)` | Ya | — | Unique | — | — | **Ya** | Hex SHA-256 dari kode link. Kode asli tidak disimpan |
+| `ArrivalCodeIssuedAt` | `DateTime` | Ya | Saat dibuat | — | — | — | Tidak | Waktu kode terakhir diterbitkan (dibuat atau dikirim ulang) |
+| `ArrivedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu konfirmasi tiba yang berlaku. Dikosongkan saat dikembalikan |
+| `ArrivalSource` | `int?` (`PriorityReservationArrivalSource`) | Tidak | — | — | — | — | Tidak | `PatientLink` atau `Staff` |
+| `ArrivalMarkedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Diisi bila petugas yang menandai tiba |
+| `ScreeningCough` | `bool?` | Tidak | — | — | — | — | **Ya** | Checklist skrining awal: batuk |
+| `ScreeningFever` | `bool?` | Tidak | — | — | — | — | **Ya** | Checklist skrining awal: demam |
+| `ScreeningFallRisk` | `bool?` | Tidak | — | — | — | — | **Ya** | Checklist skrining awal: risiko jatuh |
+| `ScreenedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu checklist disimpan |
+| `ScreenedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Petugas skrining |
+| `EncounterId` | `Guid?` | Tidak | — | Unique bersyarat (`EncounterId IS NOT NULL`) | FK `RegPatientEncounter` | `Restrict` | Tidak | Kunjungan hasil pelengkapan atau jalur lain |
+| `ClosedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Waktu masuk status akhir |
+| `ClosedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Kosong bila ditutup sistem |
+| `ClosureReason` | `string(500)?` | Tidak | — | — | — | — | **Ya** | Alasan batal (10–500 karakter). Bisa memuat keterangan kesehatan dari pasien |
+| `IsPrioritySnapshot` | `bool` | Ya | `false` | — | — | — | Tidak | Salinan `PriorityQueue` tingkat saat reservasi dibuat |
+| `PatientMembershipIdSnapshot` | `Guid?` | Tidak | — | Index | FK `MstPatientMembership` | `Restrict` | Tidak | Membership Aktif saat dibuat |
+| `MembershipTierIdSnapshot` | `Guid?` | Tidak | — | — | — | — | Tidak | Tingkat saat dibuat |
+| `MembershipTierCodeSnapshot` | `string(50)?` | Tidak | — | — | — | — | Tidak | Kode tingkat saat dibuat, untuk tampilan |
+| `QueuePriorityLevelSnapshot` | `int` | Ya | `0` | — | — | — | Tidak | `PriorityLevel` tingkat saat dibuat |
+| `QueueAudienceSnapshot` | `int` (`QueueAudience`) | Ya | `Regular` | — | — | — | Tidak | Diteruskan ke antrean saat dilengkapi |
+| `PublicDisplayModeSnapshot` | `int` (`PublicDisplayMode`) | Ya | `Default` | — | — | — | Tidak | Diteruskan ke antrean saat dilengkapi |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Token concurrency. Diganti setiap perubahan |
+
+Index tambahan:
+
+| Index | Kolom | Syarat | Tujuan |
+|---|---|---|---|
+| `UX_RegPriorityReservation_Open_Patient_VisitDate` | `(PatientId, VisitDate)` | Unique, `"Status" IN (1, 2) AND NOT "IsDelete"` | `INV-RP-01` |
+| `IX_RegPriorityReservation_VisitDate_Status` | `(VisitDate, Status)` | — | Daftar per tanggal dan penutupan akhir hari |
+
+### RP-3. `RegPriorityReservationHistory` — seluruh kolom
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `PriorityReservationId` | `Guid` | Ya | — | Index `(PriorityReservationId, OccurredAt)` | FK `RegPriorityReservation` | `Restrict` | Tidak | Reservasi induk |
+| `EventCode` | `string(40)` | Ya | — | — | — | — | Tidak | `CREATED`, `ARRIVED`, `ARRIVAL_REVERTED`, `SCREENED`, `CODE_REISSUED`, `CONVERTED`, `CANCELLED`, `NO_SHOW`, `REGISTERED_ELSEWHERE` |
+| `FromStatus` | `int?` | Tidak | — | — | — | — | Tidak | Kosong pada `CREATED` |
+| `ToStatus` | `int` | Ya | — | — | — | — | Tidak | Status sesudah kejadian. Sama dengan `FromStatus` untuk `SCREENED` dan `CODE_REISSUED` |
+| `Source` | `int` (`PriorityReservationEventSource`) | Ya | — | — | — | — | Tidak | `Staff`, `PatientLink`, atau `System` |
+| `ActorUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Kosong untuk `PatientLink` dan `System` |
+| `Reason` | `string(500)?` | Tidak | — | — | — | — | **Ya** | Alasan batal atau alasan mengembalikan tiba |
+| `EncounterId` | `Guid?` | Tidak | — | — | — | — | Tidak | Diisi pada `CONVERTED` dan `REGISTERED_ELSEWHERE` |
+| `OccurredAt` | `DateTime` | Ya | Saat kejadian (UTC) | Index (bersama) | — | — | Tidak | Waktu kejadian |
+
+### RP-4. Tabel `Sudah ada` — kolom kunci yang dipakai
+
+| Tabel | Kolom | Dipakai untuk | File model |
+|---|---|---|---|
+| `RegQueue` | `IsPriorityQueue`, `QueueNumber`, `QueueAudienceSnapshot`, `PublicDisplayModeSnapshot`, `PatientMembershipIdSnapshot`, `MembershipTierIdSnapshot` | Penyaring display. Snapshot reservasi disalin ke sini saat dilengkapi | `Areas/HealthServices/RegistrationManagement/Models/RegQueue.cs` |
+| `RegPatientEncounter` | `Id`, `PatientId`, `EncounterDate`, `EncounterType`, `ClinicId`, `RegistrationSource` | Pemicu penutupan jalur lain; `RegistrationSource = 6` untuk hasil reservasi | `.../Models/RegPatientEncounter.cs` |
+| `MstPatientMembership` | `Id`, `MembershipStatus`, `PeriodStartDate`, `ExpiredDate` | Kelayakan lewat resolver; status `Cancelled` mencabut prioritas | `Areas/HealthServices/PatientManagement/MasterData/Models/MstPatientMembership.cs` |
+| `MstMembershipTier` | `PriorityQueue`, `PriorityLevel`, `QueueAudience`, `PublicDisplayMode` | Isi snapshot | `Areas/Administrator/MasterData/Models/MstMembershipTier.cs` |
+
+### RP-5. Skema DDL
+
+> **Peringatan.** Basis data dibentuk lewat EF Core Migrations. DDL di bawah adalah **dokumentasi bentuk tabel**, bukan
+> skrip yang dijalankan. Kolom audit `IdentityModel` tidak ditulis ulang.
+
+```sql
+-- Bentuk tabel sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+CREATE TABLE public."RegPriorityReservation" (
+    "Id"                          uuid          NOT NULL,
+    "ReservationNumber"           varchar(30)   NOT NULL,
+    "PatientId"                   uuid          NOT NULL,
+    "VisitDate"                   date          NOT NULL,
+    "Status"                      integer       NOT NULL DEFAULT 1,  -- enum PriorityReservationStatus
+    "ArrivalCodeHash"             varchar(64)   NOT NULL,            -- SENSITIF
+    "ArrivalCodeIssuedAt"         timestamp     NOT NULL,
+    "ArrivedAt"                   timestamp,
+    "ArrivalSource"               integer,
+    "ArrivalMarkedByUserId"       uuid,
+    "ScreeningCough"              boolean,                           -- SENSITIF
+    "ScreeningFever"              boolean,                           -- SENSITIF
+    "ScreeningFallRisk"           boolean,                           -- SENSITIF
+    "ScreenedAt"                  timestamp,
+    "ScreenedByUserId"            uuid,
+    "EncounterId"                 uuid,
+    "ClosedAt"                    timestamp,
+    "ClosedByUserId"              uuid,
+    "ClosureReason"               varchar(500),                      -- SENSITIF
+    "IsPrioritySnapshot"          boolean       NOT NULL DEFAULT false,
+    "PatientMembershipIdSnapshot" uuid,
+    "MembershipTierIdSnapshot"    uuid,
+    "MembershipTierCodeSnapshot"  varchar(50),
+    "QueuePriorityLevelSnapshot"  integer       NOT NULL DEFAULT 0,
+    "QueueAudienceSnapshot"       integer       NOT NULL,
+    "PublicDisplayModeSnapshot"   integer       NOT NULL,
+    "RowVersion"                  uuid          NOT NULL,
+    -- kolom audit IdentityModel tidak ditulis ulang di sini
+
+    CONSTRAINT "PK_RegPriorityReservation" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_RegPriorityReservation_MstPatient_PatientId"
+        FOREIGN KEY ("PatientId") REFERENCES public."MstPatient" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_RegPriorityReservation_RegPatientEncounter_EncounterId"
+        FOREIGN KEY ("EncounterId") REFERENCES public."RegPatientEncounter" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_RegPriorityReservation_MstPatientMembership_PatientMembershipIdSnapshot"
+        FOREIGN KEY ("PatientMembershipIdSnapshot") REFERENCES public."MstPatientMembership" ("Id") ON DELETE RESTRICT
+);
+
+CREATE UNIQUE INDEX "IX_RegPriorityReservation_ReservationNumber"
+    ON public."RegPriorityReservation" ("ReservationNumber");
+CREATE UNIQUE INDEX "IX_RegPriorityReservation_ArrivalCodeHash"
+    ON public."RegPriorityReservation" ("ArrivalCodeHash");
+CREATE UNIQUE INDEX "IX_RegPriorityReservation_EncounterId"
+    ON public."RegPriorityReservation" ("EncounterId") WHERE "EncounterId" IS NOT NULL;
+CREATE UNIQUE INDEX "UX_RegPriorityReservation_Open_Patient_VisitDate"
+    ON public."RegPriorityReservation" ("PatientId", "VisitDate")
+    WHERE "Status" IN (1, 2) AND NOT "IsDelete";
+CREATE INDEX "IX_RegPriorityReservation_VisitDate_Status"
+    ON public."RegPriorityReservation" ("VisitDate", "Status");
+CREATE INDEX "IX_RegPriorityReservation_PatientMembershipIdSnapshot"
+    ON public."RegPriorityReservation" ("PatientMembershipIdSnapshot");
+
+CREATE TABLE public."RegPriorityReservationHistory" (
+    "Id"                     uuid          NOT NULL,
+    "PriorityReservationId"  uuid          NOT NULL,
+    "EventCode"              varchar(40)   NOT NULL,
+    "FromStatus"             integer,
+    "ToStatus"               integer       NOT NULL,
+    "Source"                 integer       NOT NULL,
+    "ActorUserId"            uuid,
+    "Reason"                 varchar(500),                -- SENSITIF
+    "EncounterId"            uuid,
+    "OccurredAt"             timestamp     NOT NULL,
+    -- kolom audit IdentityModel tidak ditulis ulang di sini
+
+    CONSTRAINT "PK_RegPriorityReservationHistory" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_RegPriorityReservationHistory_RegPriorityReservation_PriorityReservationId"
+        FOREIGN KEY ("PriorityReservationId") REFERENCES public."RegPriorityReservation" ("Id") ON DELETE RESTRICT
+);
+
+CREATE INDEX "IX_RegPriorityReservationHistory_PriorityReservationId_OccurredAt"
+    ON public."RegPriorityReservationHistory" ("PriorityReservationId", "OccurredAt");
+```
