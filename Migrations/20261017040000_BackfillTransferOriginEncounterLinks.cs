@@ -88,13 +88,13 @@ namespace QuilvianSystemBackend.Migrations
                     NOW(),
                     '{BackfillCreatorGuid}'::uuid,
                     NULL,
+                    '00000000-0000-0000-0000-000000000000'::uuid,
                     NULL,
-                    NULL,
-                    NULL,
+                    '00000000-0000-0000-0000-000000000000'::uuid,
                     false,
                     false,
                     NULL,
-                    NULL
+                    '00000000-0000-0000-0000-000000000000'::uuid
                 FROM public.""RegPatientEncounter"" e
                 JOIN public.""RegPatientEncounter"" s
                     ON s.""Id"" = e.""SourceEncounterId""

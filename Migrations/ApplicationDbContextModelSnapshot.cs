@@ -105134,6 +105134,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("FamilyMemberIdSnapshot")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("FinancingChoice")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<DateTime?>("InheritedFromPaymentSourceAt")
                         .HasColumnType("timestamp with time zone");
 
