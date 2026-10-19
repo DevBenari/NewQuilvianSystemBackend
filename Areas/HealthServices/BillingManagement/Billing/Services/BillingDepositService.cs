@@ -10,6 +10,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Globalization;
 using System.Security.Cryptography;
@@ -51,6 +52,273 @@ public sealed class BillingDepositService
             ?? throw new KeyNotFoundException("Deposit rawat inap belum tersedia.");
 
         return MapDeposit(account);
+    }
+
+    public async Task<DepositWorkspaceResponse> GetDepositWorkspaceAsync(
+        Guid encounterId,
+        int pageNumber,
+        int pageSize,
+        string? movementType,
+        DateTimeOffset? startDate,
+        DateTimeOffset? endDate,
+        string? search,
+        CancellationToken cancellationToken)
+    {
+        if (encounterId == Guid.Empty)
+            throw new BillingDepositValidationException("EncounterId wajib diisi.");
+
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 50) pageSize = 50;
+
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .Include(x => x.Patient)
+            .Include(x => x.ServiceUnit)
+            .SingleOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
+            ?? throw new KeyNotFoundException("Encounter tidak ditemukan.");
+
+        if (encounter.EncounterType != EncounterType.Inpatient)
+            throw new BillingDepositValidationException("Deposit hanya tersedia untuk encounter rawat inap.");
+
+        var account = await _dbContext.BilDepositAccounts.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.EncounterId == encounterId && !x.IsDelete, cancellationToken);
+
+        if (account is null)
+        {
+            return new DepositWorkspaceResponse
+            {
+                EncounterId = encounter.Id,
+                PatientId = encounter.PatientId,
+                PatientName = encounter.Patient?.FullName ?? string.Empty,
+                MedicalRecordNumber = encounter.Patient?.MedicalRecordNumber ?? string.Empty,
+                EncounterNumber = encounter.EncounterNumber,
+                EncounterType = encounter.EncounterType,
+                EncounterTypeName = BuildEnumLabel(encounter.EncounterType),
+                EncounterStatus = encounter.EncounterStatus,
+                EncounterStatusName = BuildEnumLabel(encounter.EncounterStatus),
+                ServiceUnitName = encounter.ServiceUnit?.ServiceUnitName ?? string.Empty,
+                EncounterDate = encounter.EncounterDate,
+
+                HasDepositAccount = false,
+                DepositAccountId = null,
+                AccountNumber = string.Empty,
+                AccountStatus = string.Empty,
+                AvailableBalance = 0m,
+                RowVersion = null,
+                TotalTopUpGross = 0m,
+                TotalTopUpReversed = 0m,
+                TotalAllocated = 0m,
+                TotalReleasedOrRefunded = 0m,
+
+                Items = [],
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = 0,
+                TotalPage = 0
+            };
+        }
+
+        // Hitung agregat mutasi deposit di database tanpa memuat seluruh entity ke memori
+        var aggregates = await _dbContext.BilDepositMovements.AsNoTracking()
+            .Where(x => x.DepositAccountId == account.Id && !x.IsDelete)
+            .GroupBy(x => 1)
+            .Select(g => new
+            {
+                TotalTopUpGross = g.Where(x => x.MovementType == BillingDepositMovementTypes.TopUp).Sum(x => (decimal?)x.Amount) ?? 0m,
+                TotalTopUpReversed = g.Where(x => x.MovementType == BillingDepositMovementTypes.Reversal).Sum(x => (decimal?)x.Amount) ?? 0m,
+                TotalAllocated = g.Where(x => x.MovementType == BillingDepositMovementTypes.Allocation).Sum(x => (decimal?)x.Amount) ?? 0m,
+                TotalReleasedOrRefunded = g.Where(x => x.MovementType == BillingDepositMovementTypes.Release).Sum(x => (decimal?)x.Amount) ?? 0m
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var totalTopUpGross = aggregates?.TotalTopUpGross ?? 0m;
+        var totalTopUpReversed = aggregates?.TotalTopUpReversed ?? 0m;
+        var totalAllocated = aggregates?.TotalAllocated ?? 0m;
+        var totalReleasedOrRefunded = aggregates?.TotalReleasedOrRefunded ?? 0m;
+
+        // Proyeksi deterministik ringan untuk running balance yang konsisten terhadap ledger existing
+        var allMovementsLedger = await _dbContext.BilDepositMovements.AsNoTracking()
+            .Where(x => x.DepositAccountId == account.Id && !x.IsDelete)
+            .OrderBy(x => x.OccurredAt)
+            .ThenBy(x => x.CreateDateTime)
+            .ThenBy(x => x.Id)
+            .Select(x => new
+            {
+                x.Id,
+                x.MovementType,
+                x.Amount,
+                x.ReversesMovementId
+            })
+            .ToListAsync(cancellationToken);
+
+        decimal runningBalance = 0;
+        var balanceMap = new Dictionary<Guid, (decimal Effect, decimal BalanceAfter)>(allMovementsLedger.Count);
+        foreach (var m in allMovementsLedger)
+        {
+            var effect = (m.MovementType == BillingDepositMovementTypes.TopUp ||
+                          (m.MovementType == BillingDepositMovementTypes.Release && m.ReversesMovementId.HasValue))
+                ? m.Amount
+                : -m.Amount;
+            runningBalance += effect;
+            balanceMap[m.Id] = (effect, runningBalance);
+        }
+
+        // Query terfilter dan terpaginasi
+        var filteredQuery = _dbContext.BilDepositMovements.AsNoTracking()
+            .Where(x => x.DepositAccountId == account.Id && !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(movementType))
+        {
+            var normalizedType = movementType.Trim().ToUpperInvariant();
+            filteredQuery = filteredQuery.Where(x => x.MovementType == normalizedType);
+        }
+
+        if (startDate.HasValue)
+        {
+            filteredQuery = filteredQuery.Where(x => x.OccurredAt >= startDate.Value);
+        }
+
+        if (endDate.HasValue)
+        {
+            filteredQuery = filteredQuery.Where(x => x.OccurredAt <= endDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToLower();
+            filteredQuery = filteredQuery.Where(x =>
+                (x.ReferenceNumber != null && x.ReferenceNumber.ToLower().Contains(keyword)) ||
+                x.Reason.ToLower().Contains(keyword));
+        }
+
+        var totalData = await filteredQuery.CountAsync(cancellationToken);
+        var totalPage = totalData == 0 ? 0 : (int)Math.Ceiling(totalData / (double)pageSize);
+
+        var pageEntities = await filteredQuery
+            .OrderBy(x => x.OccurredAt)
+            .ThenBy(x => x.CreateDateTime)
+            .ThenBy(x => x.Id)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        var paymentMethodIds = pageEntities
+            .Where(x => x.PaymentMethodId.HasValue)
+            .Select(x => x.PaymentMethodId!.Value)
+            .Distinct()
+            .ToList();
+
+        var paymentMethods = paymentMethodIds.Count > 0
+            ? await _dbContext.MstPaymentMethods.AsNoTracking()
+                .Where(x => paymentMethodIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, cancellationToken)
+            : new Dictionary<Guid, MstPaymentMethod>();
+
+        var accountIds = pageEntities
+            .Where(x => x.PaymentMethodAccountId.HasValue)
+            .Select(x => x.PaymentMethodAccountId!.Value)
+            .Distinct()
+            .ToList();
+
+        var paymentMethodAccounts = accountIds.Count > 0
+            ? await _dbContext.MstPaymentMethodAccounts.AsNoTracking()
+                .Where(x => accountIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, cancellationToken)
+            : new Dictionary<Guid, MstPaymentMethodAccount>();
+
+        var cashierIds = pageEntities
+            .Where(x => x.CreateBy != Guid.Empty)
+            .Select(x => x.CreateBy)
+            .Distinct()
+            .ToList();
+
+        var cashierNames = cashierIds.Count > 0
+            ? await _dbContext.Users.AsNoTracking()
+                .Where(x => cashierIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.DisplayName ?? x.UserName ?? "Kasir", cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var items = pageEntities.Select(x =>
+        {
+            balanceMap.TryGetValue(x.Id, out var balanceInfo);
+
+            string? pmName = null;
+            string? bankName = null;
+            string? accNum = null;
+
+            if (x.PaymentMethodAccountId.HasValue && paymentMethodAccounts.TryGetValue(x.PaymentMethodAccountId.Value, out var pma))
+            {
+                bankName = pma.BankName;
+                accNum = pma.AccountNumber;
+            }
+
+            if (x.PaymentMethodId.HasValue && paymentMethods.TryGetValue(x.PaymentMethodId.Value, out var pm))
+            {
+                pmName = pm.PaymentMethodName;
+                bankName ??= pm.BankName;
+                accNum ??= pm.BankAccountNumber;
+            }
+            else if (x.MovementType == BillingDepositMovementTypes.Allocation)
+            {
+                pmName = "Deposit";
+            }
+
+            cashierNames.TryGetValue(x.CreateBy, out var cashierName);
+
+            return new DepositMovementResponse
+            {
+                Id = x.Id,
+                MovementType = x.MovementType,
+                Amount = x.Amount,
+                BalanceEffect = balanceInfo.Effect,
+                BalanceAfter = balanceInfo.BalanceAfter,
+                SettlementId = x.SettlementId,
+                PaymentMethodId = x.PaymentMethodId,
+                PaymentMethodAccountId = x.PaymentMethodAccountId,
+                PaymentMethodName = pmName,
+                BankName = bankName,
+                AccountNumber = accNum,
+                ReferenceNumber = x.ReferenceNumber ?? (x.SettlementId.HasValue ? $"INV-SETTLE-{x.SettlementId.Value:N}"[..15] : null),
+                CashierName = cashierName ?? "Kasir",
+                CashierShiftId = x.CashierShiftId,
+                CorrelationId = x.CorrelationId,
+                OccurredAt = x.OccurredAt,
+                Reason = x.Reason,
+                ReversesMovementId = x.ReversesMovementId
+            };
+        }).ToList();
+
+        return new DepositWorkspaceResponse
+        {
+            EncounterId = encounter.Id,
+            PatientId = encounter.PatientId,
+            PatientName = encounter.Patient?.FullName ?? string.Empty,
+            MedicalRecordNumber = encounter.Patient?.MedicalRecordNumber ?? string.Empty,
+            EncounterNumber = encounter.EncounterNumber,
+            EncounterType = encounter.EncounterType,
+            EncounterTypeName = BuildEnumLabel(encounter.EncounterType),
+            EncounterStatus = encounter.EncounterStatus,
+            EncounterStatusName = BuildEnumLabel(encounter.EncounterStatus),
+            ServiceUnitName = encounter.ServiceUnit?.ServiceUnitName ?? string.Empty,
+            EncounterDate = encounter.EncounterDate,
+
+            HasDepositAccount = true,
+            DepositAccountId = account.Id,
+            AccountNumber = account.AccountNumber,
+            AccountStatus = account.Status,
+            AvailableBalance = account.AvailableBalance,
+            RowVersion = account.RowVersion,
+            TotalTopUpGross = totalTopUpGross,
+            TotalTopUpReversed = totalTopUpReversed,
+            TotalAllocated = totalAllocated,
+            TotalReleasedOrRefunded = totalReleasedOrRefunded,
+
+            Items = items,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = totalData,
+            TotalPage = totalPage
+        };
     }
 
     public async Task<DepositPolicyResponse> GetDepositPolicyAsync(
@@ -221,6 +489,7 @@ public sealed class BillingDepositService
     {
         ValidateTopUpRequest(encounterId, request, idempotencyKey);
         var payloadHash = ComputeTopUpPayloadHash(encounterId, request);
+        var legacyPayloadHash = ComputeLegacyTopUpPayloadHash(encounterId, request);
         var cashReceiptApplied = false;
         Guid? cashReceiptSourceId = null;
         IDbContextTransaction? transaction = null;
@@ -240,8 +509,11 @@ public sealed class BillingDepositService
                 .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
             if (priorMovement is not null)
             {
+                var isPayloadMatch = priorMovement.PayloadHash == payloadHash
+                    || priorMovement.PayloadHash == legacyPayloadHash;
+
                 if (priorMovement.MovementType != BillingDepositMovementTypes.TopUp
-                    || priorMovement.PayloadHash != payloadHash)
+                    || !isPayloadMatch)
                     throw new BillingDepositConflictException(
                         "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
 
@@ -696,12 +968,44 @@ public sealed class BillingDepositService
         var canonical = string.Join('|',
             encounterId.ToString("N"),
             request.PaymentMethodId.ToString("N"),
+            request.PaymentMethodAccountId?.ToString("N") ?? string.Empty,
+            request.ReferenceNumber?.Trim() ?? string.Empty,
             request.Amount.ToString(CultureInfo.InvariantCulture),
             request.ExpectedRowVersion?.ToString("N") ?? string.Empty,
             request.Reason.Trim(),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private static string ComputeLegacyTopUpPayloadHash(
+        Guid encounterId,
+        DepositTopUpRequest request)
+    {
+        var canonical = string.Join('|',
+            encounterId.ToString("N"),
+            request.PaymentMethodId.ToString("N"),
+            request.Amount.ToString(CultureInfo.InvariantCulture),
+            request.ExpectedRowVersion?.ToString("N") ?? string.Empty,
+            request.Reason.Trim(),
+            request.CorrelationId.ToString("N"),
+            request.CausationId.ToString("N"));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
+    {
+        var memberInfo = typeof(TEnum).GetMember(value.ToString()).FirstOrDefault();
+        var displayAttribute = memberInfo?
+            .GetCustomAttributes(typeof(DisplayAttribute), false)
+            .OfType<DisplayAttribute>()
+            .FirstOrDefault();
+
+        var displayName = displayAttribute?.GetName();
+        if (!string.IsNullOrWhiteSpace(displayName))
+            return displayName;
+
+        return string.Concat(value.ToString().Select((x, i) => i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
     }
 
     private static string ComputeReversalPayloadHash(

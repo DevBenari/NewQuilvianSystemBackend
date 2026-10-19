@@ -7,7 +7,7 @@ Dicatat 1 Oktober 2026. Ditemukan saat pengujian manual alur resep ujung ke ujun
 | Hal | Isi |
 |---|---|
 | Prioritas | **P0** |
-| Status | **Dikerjakan** 1 Oktober 2026 |
+| Status | **DITUTUP** 16 Oktober 2026. Dikerjakan 1 Oktober 2026; acceptance-nya baru dibuktikan `PHA-FE-007` lewat `tests/unit/pharmacy-screen-acceptance.test.mjs`. Lembar ini dipertahankan sebagai provenance baris `PHA-D-10` pada `roadmap/task-register.md` |
 | Dampak | Alur resep terputus: petugas tidak dapat menelaah, meracik, maupun menelaah akhir dari layar mana pun |
 
 ### Keadaan sebelum perbaikan

@@ -976,4 +976,28 @@ Bila petugas admisi menolak/membatalkan form permintaan rawat inap dari antrean 
 3. **Penyelarasan Hak Layar Sisi Rawat Inap (Referensi Saja untuk Hamzah):**
    - Layar Antrean Transfer Rawat Inap (`InpatientAdmissionTransfer` milik Hamzah) menampilkan tombol aksi *Tolak* beralasan (modal input alasan tolak wajib diisi, min 5 karakter) untuk pasien asal IGD/Poli, dan badge CITO berwarna merah tegas bila `isCito = true`.
 
+### 17.13 Amandemen 16 Oktober 2026 — Pemicu Status InTreatment dan Penanganan Tindak Lanjut Non-Ranap (`IGD-DEC-311`) — **`approved`**
+
+Disetujui `IGD-DEC-311`, Rizki Gunawan, 16 Oktober 2026. Penambahan mekanisme pemicu (*trigger*) transisi status kunjungan dari `Triaged` ke `InTreatment` (Sedang Ditangani) dan penanganan responsif alur non-ranap tanpa modifikasi *shared base components*.
+
+#### 17.13.1 Kebutuhan Antarmuka & Alur Interaksi
+1. **Pemicu Otomatis Pasca-Pengkajian:**
+   - Saat perawat atau dokter menyimpan formulir **Assesmen Awal IGD** (`emergency-assessment-initial-tab.jsx`), bila pasien masih berstatus `Triaged` (`visitStatus === 3`), sistem otomatis mendispatch `startEmergencyImmediateCare({ emergencyVisitId })` (`PATCH /visit-status` dengan `visitStatus = 4`).
+   - Hal serupa diterapkan saat perawat/dokter menyimpan catatan **SOAP Keperawatan IGD** (`emergency-assessment-soap-tab.jsx`).
+   - Callback `onVisitUpdated?.()` dipanggil seketika untuk me-refresh data kunjungan, sehingga lencana status di kartu pasien berubah menjadi *"Sedang ditangani"* berwarna biru primer secara reaktif tanpa perlu *reload* halaman.
+2. **Pemicu Manual di Bilah Tindakan Atas:**
+   - Pada `emergency-assessment-detail-view.jsx`, jika `visitStatus === EMERGENCY_VISIT_STATUS.TRIAGED`, tombol aksi **"Mulai Penanganan"** (ikon play) ditampilkan di bilah navigasi atas di samping tombol *"DPJP"* dan *"Kembali ke Daftar"*.
+   - Tombol ini memungkinkan tim medis menandai awal kontak klinis sesaat setelah pasien masuk ruang tindakan sebelum seluruh kolom pengkajian selesai diisi.
+3. **Prinsip Keamanan Isolasi Modul (Zero Disruption to Base Components):**
+   - Dilarang keras memodifikasi berkas base component bersama (`@/components/features/base-features/` maupun `@/components/ui/`) demi kebutuhan spesifik satu modul.
+   - Seluruh logika transisi, handler tombol, dan Redux thunk terisolasi penuh pada modul IGD, menjamin stabilitas 100% pada modul Poliklinik Rawat Jalan, Rawat Inap, dan MCU.
+
+#### 17.13.2 Komponen Berkas Frontend yang Terlibat
+| Berkas Komponen | Peran & Perubahan |
+| :--- | :--- |
+| `src/components/view/health-services/emergency-installation-management/emergency-assessment-view/components/emergency-assessment-initial-tab.jsx` | Import `startEmergencyImmediateCare` & `EMERGENCY_VISIT_STATUS`. Auto-trigger transisi status ke `InTreatment` saat `createPatientAssessment` sukses untuk pasien `Triaged`, disusul `onVisitUpdated?.()`. |
+| `src/components/view/health-services/emergency-installation-management/emergency-assessment-view/components/emergency-assessment-soap-tab.jsx` | Import `startEmergencyImmediateCare` & `EMERGENCY_VISIT_STATUS`. Tambah props `visit` & `onVisitUpdated`. Auto-trigger transisi status ke `InTreatment` saat `createIntegratedNote` sukses untuk pasien `Triaged`. |
+| `src/components/view/health-services/emergency-installation-management/emergency-assessment-view/emergency-assessment-detail-view.jsx` | Tambah handler `handleStartImmediateCare`, tombol aksi *"Mulai Penanganan"*, dan teruskan `visit` & `refreshVisit` ke `EmergencyAssessmentSoapTab`. |
+
+
 

@@ -8,6 +8,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         Signed = 4,
         Cancelled = 5,
         CancelledAfterSend = 6,
-        AutoCancelled = 7
+        AutoCancelled = 7,
+        AdmissionRejected = 8
     }
 }

@@ -15,7 +15,7 @@ public sealed class BilRefundableCreditConfiguration : IEntityTypeConfiguration<
                 "\"OriginalAmount\" > 0 AND \"AvailableAmount\" >= 0 AND \"AvailableAmount\" <= \"OriginalAmount\"");
             table.HasCheckConstraint(
                 "CK_BilRefundableCredit_SourceType",
-                "\"SourceType\" IN ('ALLOCATION_EXCESS','SETTLEMENT')");
+                "\"SourceType\" IN ('ALLOCATION_EXCESS','SETTLEMENT','REFERRED_OUTPATIENT_ADMIN')");
             table.HasCheckConstraint(
                 "CK_BilRefundableCredit_Status",
                 "\"Status\" IN ('AVAILABLE','EXHAUSTED')");

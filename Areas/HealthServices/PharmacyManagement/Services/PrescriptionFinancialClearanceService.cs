@@ -396,6 +396,32 @@ public sealed class PrescriptionFinancialClearanceService
                 result.ReleasedToQueue++;
             }
 
+            /*
+             * PHA-DEC-066 butir 7. Begitu pembayaran/jaminan dinyatakan valid, batas waktu
+             * 4 jam tidak lagi menjadi pelepas otomatis: penahanan bertahan sampai penyerahan,
+             * pembatalan, atau pembalikan.
+             *
+             * Ditulis langsung di atas `_dbContext`, bukan lewat
+             * `PrescriptionStockReservationService`, supaya konstruktor service ini tidak
+             * berubah. Ia dibangun manual pada harness uji dan pada uji clearance; menambah
+             * dependency akan memecah seluruhnya tanpa menambah kebenaran apa pun.
+             *
+             * Idempoten: baris yang batas waktunya sudah dihapus tidak terambil saringan.
+             */
+            var penahanan = await _dbContext.Set<PhmPrescriptionStockReservation>()
+                .Where(x => x.PrescriptionId == prescription.Id
+                            && x.State == PrescriptionReservationState.Reserved
+                            && x.ExpiresAt != null
+                            && !x.IsDelete)
+                .ToListAsync(ct);
+
+            foreach (var baris in penahanan)
+            {
+                baris.ExpiresAt = null;
+                baris.UpdateDateTime = now.UtcDateTime;
+                baris.UpdateBy = actorUserId;
+            }
+
             result.Cleared++;
         }
         else

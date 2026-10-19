@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using QuilvianSystemBackend.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -37,6 +37,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Workers;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
@@ -479,6 +480,7 @@ try
     builder.Services.AddScoped<RadOrderImageService>();
     builder.Services.AddScoped<RadOperationalReportService>();
     builder.Services.AddScoped<RadReportTemplateService>();
+    builder.Services.AddScoped<RadStudyNumberService>();
     builder.Services.AddScoped<RadStudyService>();
     builder.Services.AddScoped<RadSafetyPolicyService>();
     builder.Services.AddScoped<RadModalityService>();
@@ -486,6 +488,7 @@ try
     builder.Services.AddScoped<RadReportService>();
     builder.Services.AddScoped<RadReportNumberService>();
     builder.Services.AddScoped<RadOrderNumberService>();
+    builder.Services.AddScoped<RadPhotoNumberService>();
     builder.Services.AddScoped<BillingFolioService>();
 
     // BE-RWI-126 / FR-KEP-082 / RWI-DEC-154. Ringkasan tagihan pasien rawat inap baca-saja tanpa
@@ -525,6 +528,7 @@ try
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<RegistrationEmployeeBenefitLookupService>();
+    builder.Services.AddScoped<IPatientWorkforceIdentityResolver, PatientWorkforceIdentityResolver>();
     builder.Services.AddScoped<DoctorQueuePatientContextService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services.InpServiceClassResolver>();
     builder.Services.AddScoped<EncounterInsuranceService>();
@@ -634,12 +638,17 @@ try
     builder.Services.AddScoped<IRsmmcPilotMigrationSource, RsmmcPilotMigrationSource>();
     builder.Services.AddScoped<RsmmcPilotMrnReconciliationService>();
 
+    // Patient Management — allocator nomor pasien normal beserta guard reservasi RSMMC (BE-PAT-MIG-003)
+    builder.Services.AddScoped<PatientIdentifierAllocationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
     builder.Services.AddScoped<PrescriptionFinancialClearanceService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    // Penahanan stok milik resep — PHA-DEC-066.
+    builder.Services.AddScoped<PrescriptionStockReservationService>();
     builder.Services.AddScoped<StockRequestService>();
     builder.Services.AddScoped<DrugStockService>();
     builder.Services.AddScoped<DrugUnitConversionResolver>();
@@ -698,6 +707,7 @@ try
     builder.Services.AddScoped<EmergencyUnitAuthorityService>();
     builder.Services.AddScoped<EmergencyDoctorAssignmentService>();
     builder.Services.AddScoped<EmergencySettingService>();
+    builder.Services.AddScoped<EmergencyPreArrivalReservationService>();
 
     // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
     // dependency injection, sehingga endpoint-nya membalas 500 sebelum kode modul sempat
@@ -1087,6 +1097,11 @@ try
 
     // BE-RJE-010: pekerja kirim ulang efek folio Rawat Jalan yang belum sampai ke invoice.
     builder.Services.AddHostedService<BilInvoiceSyncWorker>();
+    // PHA-DEC-066 butir 6: melepas penahanan stok rawat jalan yang melewati batas 4 jam
+    // sebelum pembayaran, supaya stok yang fisiknya ada di rak tidak terkunci selamanya.
+    builder.Services
+        .AddHostedService<QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Workers
+            .PrescriptionReservationExpiryWorker>();
     // BE-RJE-011: pekerja kirim ulang fakta klinis yang hasil penyerahannya belum pasti.
     builder.Services.AddHostedService<ClinicalFactDispatchWorker>();
 
@@ -1923,11 +1938,21 @@ try
         // seluruh SysAccessPolicy Farmasi kehilangan acuan tanpa satu pun galat.
         await RunStartupSeederAsync("PharmacyModuleCodeConsolidationSeeder",
             () => PharmacyModuleCodeConsolidationSeeder.SeedAsync(app.Services));
+        // ISS-BKC-004-01: delapan controller Billing terpecah ke tujuh kode modul berbeda
+        // dengan nama tampilan yang sama persis, sehingga layar Manajemen Role menampilkan
+        // delapan kartu "Billing" yang tidak bisa dibedakan. Alasan WAJIB mendahului
+        // AccessMenuSeeder sama persis dengan Farmasi di atas - lihat dokumentasi
+        // BillingModuleCodeConsolidationSeeder.
+        await RunStartupSeederAsync("BillingModuleCodeConsolidationSeeder",
+            () => BillingModuleCodeConsolidationSeeder.SeedAsync(app.Services));
         await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
         // BE-RWI-177 / data awal E8: salin hak OperatingRoomHandover : Update → : Send pada peran yang
         // sama, sekali jalan. Hak : Receive TIDAK disalin (RWI-DEC-189). Wajib sesudah AccessMenuSeeder.
         await RunStartupSeederAsync("OperatingRoomHandoverPermissionSeeder",
             () => OperatingRoomHandoverPermissionSeeder.SeedAsync(app.Services));
+        // BE-BKC-088 / BKC-DEC-162: hak akses awal Supervisor Kasir pada modul tinjauan void biaya admin. Wajib sesudah AccessMenuSeeder.
+        await RunStartupSeederAsync("BillingSupersededItemReviewPermissionSeeder",
+            () => BillingSupersededItemReviewPermissionSeeder.SeedAsync(app.Services));
         // Data induk OPERASIONAL Laboratorium. Keduanya sengaja tetap berdiri: alasan penolakan
         // wadah dan jenis specimen adalah data yang dibutuhkan modul sejak hari pertama, bukan data
         // contoh. Environment baru yang berangkat tanpa keduanya akan menolak setiap penerimaan

@@ -45,7 +45,7 @@ Operasi sama sekali, sehingga **tidak** dipakai sebagai bukti di sini:
 | `FE-OPR-006` | `OPS-REQ-007` | validasi batch/serial/quantity/outcome; pending integration terlihat | `/materials`; `operating-room-material-view.jsx`; service | **nol uji** | 14 Okt: implan + serial `200`, kirim ulang idempoten | **belum** di sisi layar | `IN PROGRESS` |
 | `FE-OPR-007` | `OPS-REQ-007/010` | status delivery/retry sesuai permission; tidak menampilkan payload sensitif | `/integration`; `operating-room-integration-view.jsx`; service | **nol uji** | 14 Okt: outbox 12/12 `EventId` unik | **belum** di sisi layar | `IN PROGRESS` |
 | `FE-OPR-008` | `OPS-REQ-011` | filter/paging/empty/error/export bila didukung; responsive/a11y | `/reports`; `operating-room-report-view.jsx`; service | **nol uji** | 14 Okt: 3 laporan `200` dengan data | **belum** di sisi layar | `IN PROGRESS` |
-| `FE-OPR-009` | semua | E2E normal/darurat/cancel/stale/`403`/`409`; tidak memakai `dataOperasi.jsx` | `tests/e2e/operating-room-flow.spec.mjs` (12 kasus, 282 baris) | `operating-room-hardening` (10, **lulus**) | **E2E dijalankan 14 Okt: 10 gagal** | **belum**: lihat di bawah | `IN PROGRESS` |
+| `FE-OPR-009` | semua | E2E normal/darurat/cancel/stale/`403`/`409`; tidak memakai `dataOperasi.jsx` | `tests/e2e/operating-room-flow.spec.mjs` (11 kasus) | `operating-room-hardening` (10, **lulus**) | **E2E 15 Okt: 11/11 lulus** | **terbukti** | `DONE` |
 
 ## `FE-OPR-009` — hasil eksekusi E2E sebenarnya
 
@@ -62,33 +62,72 @@ Dijalankan pertama kali 14 Oktober 2026 (`npx playwright test tests/e2e/operatin
 Karena itu suite ini **belum pernah dapat dieksekusi sejak ditulis**. Satu baris ditambahkan
 mengikuti konvensi yang sama.
 
-**Cacat 2 — belum diperbaiki.** Sesudah perbaikan pertama, kesepuluh skenario berhenti dengan
-halaman tertahan di **"Memverifikasi sesi pengguna…"**. Akarnya: aplikasi memanggil
-`GET /v1/auth/me` saat bootstrap sesi, dan spec ini **lebih tua** dari mekanisme itu sehingga
-tidak menirukannya. Fallthrough tiruannya mengembalikan daftar kosong, lalu `buildUserInfo` dan
-`persistIdentity` menolaknya, sehingga `isAuthenticated` tidak pernah menjadi benar.
+**Cacat 2 — sudah diperbaiki.** Sesudah perbaikan pertama, kesepuluh skenario berhenti dengan
+halaman tertahan di **"Memverifikasi sesi pengguna…"**. Tiruan `GET /v1/auth/me` ditambahkan,
+tetapi itu **belum cukup** dan akar sebenarnya baru ditemukan 15 Oktober.
 
-Perbaikannya bukan menebak: payload `auth/me` harus memenuhi `buildUserInfo` dan
-`persistIdentity` pada `login-slice.jsx`. Bentuknya dapat dibaca dari sana, tetapi menyusunnya
-tanpa memastikan setiap syarat berarti mengarang, jadi ditahan dan dilaporkan apa adanya.
+## `FE-OPR-009` — akar masalah dan penutupannya, 15 Oktober 2026
 
-Konsekuensinya jelas: **acceptance `FE-OPR-009` belum terbukti**, dan statusnya `IN PROGRESS`.
+**Hasil akhir: 11 lulus, 0 gagal.**
+
+### Akar masalah: repo tidak memiliki `playwright.config.mjs`
+
+Tanpa konfigurasi, `playwright test` berjalan tanpa `webServer`, sehingga **tidak ada server
+yang dijalankan runner**. Setiap spec menandatangani cookie sesi dengan
+`SESSION_SIGNING_SECRET` miliknya sendiri, dan cookie itu diverifikasi server di
+`src/app/api/auth/session/route.js`. Server yang dijalankan terpisah memegang rahasia berbeda —
+atau, seperti di sini, tidak memegang rahasia apa pun — sehingga verifikasinya gagal dan
+seluruh layar tertahan di gerbang sesi. Bukan satu pun layar Operasi yang salah.
+
+Akibat kedua: tanpa `testDir`, pola bawaan Playwright ikut menyapu `tests/unit/*.test.mjs`
+yang ditulis untuk `node:test`.
+
+Konfigurasi menyetel rahasia uji **sebelum** spec mana pun dimuat. Ke-47 spec menyetelnya
+dengan `||=`, jadi nilai di konfigurasi yang berlaku dan kedua sisi otomatis sepakat — satu
+perbaikan yang memulihkan seluruh suite E2E repo, bukan hanya Operasi.
+
+Server uji memakai `npm run start` atas hasil build produksi, bukan `next dev`, karena Next 16
+menolak menjalankan dua dev server sekaligus di satu direktori.
+
+### Cacat produksi yang ditemukan E2E ini
+
+Begitu server uji berjalan, dua skenario detail kasus gagal dengan halaman
+*"This page couldn't load"*. Penyebabnya nyata dan bukan soal uji:
+
+> `operating-room-case-detail-view.jsx` memakai `OPR_CASE_STATUS` **tanpa mengimpornya**,
+> sehingga halaman detail kasus melempar `ReferenceError: OPR_CASE_STATUS is not defined`.
+
+Cacat ini **tidak tertangkap `eslint`** dan hanya muncul pada build produksi. Artinya halaman
+detail kasus tidak dapat dibuka sama sekali di produksi. Perbaikannya satu baris import.
+
+Ini nilai nyata dari `FE-OPR-009`: uji unit berbasis pembacaan source tidak akan pernah
+menemukannya, karena source-nya memang menyebut konstanta itu — yang hilang adalah import-nya.
+
+### Penguatan uji benturan jadwal
+
+Skenario `409 OPR003` sebelumnya hanya memeriksa layar terbentuk, padahal namanya menjanjikan
+pembuktian benturan. Sekarang ia benar-benar mengirim `409 OPR003` setelah borang terisi dari
+jadwal berjalan, lalu memastikan layar menjelaskannya sebagai **"Jadwal bentrok"** berikut
+keterangan buffer — berbeda dari galat penyimpanan biasa. Satu assertion yang terlalu longgar
+diperbaiki memakai peran `heading`, karena dua elemen cocok.
 
 ## Gap nyata yang tersisa
 
-| Task | Gap | Dapat dikerjakan sekarang |
-|---|---|---|
-| `FE-OPR-001` | `loading/empty/error/stale/paging` daftar kasus nol uji | ya — uji frontend |
-| `FE-OPR-002` | layar jadwal nol uji (`409`, histori, duplicate submit) | ya — uji frontend |
-| `FE-OPR-003` | `preparation-view` nol uji (fase, sign-off, bypass) | ya — uji frontend |
-| `FE-OPR-005` | `recovery-view` nol uji | ya — uji frontend |
-| `FE-OPR-006` | layar material nol uji | ya — uji frontend |
-| `FE-OPR-007` | layar integrasi nol uji | ya — uji frontend |
-| `FE-OPR-008` | layar laporan nol uji | ya — uji frontend |
-| `FE-OPR-009` | tiruan `GET /v1/auth/me` belum ada | ya — perkakas uji |
+**Nol.** Kedelapan gap yang tercatat 14 Oktober seluruhnya tertutup:
 
-Delapan gap itu **seluruhnya pekerjaan uji frontend**, bukan keputusan bisnis dan bukan
-dependency modul lain. Nol di antaranya menuntut perubahan source aplikasi.
+| Task | Gap 14 Okt | Penutup |
+|---|---|---|
+| `FE-OPR-001` | daftar kasus nol uji | `operating-room-screen-acceptance` (4 AC) |
+| `FE-OPR-002` | layar jadwal nol uji | `operating-room-screen-acceptance` (3 AC) + E2E `409 OPR003` |
+| `FE-OPR-003` | `preparation-view` nol uji | `operating-room-screen-acceptance` (4 AC) |
+| `FE-OPR-005` | `recovery-view` nol uji | `operating-room-screen-acceptance` (3 AC) |
+| `FE-OPR-006` | layar material nol uji | `operating-room-screen-acceptance` (4 AC) |
+| `FE-OPR-007` | layar integrasi nol uji | `operating-room-screen-acceptance` (3 AC) |
+| `FE-OPR-008` | layar laporan nol uji | `operating-room-screen-acceptance` (4 AC) |
+| `FE-OPR-009` | E2E tidak dapat dijalankan | `playwright.config.mjs`; E2E **11/11 lulus** |
+
+Satu perubahan source aplikasi dilakukan, dan bukan untuk membuat uji hijau: import
+`OPR_CASE_STATUS` yang hilang, yaitu cacat produksi yang justru ditemukan uji itu.
 
 ## Yang sudah terbukti dan tidak perlu diulang
 

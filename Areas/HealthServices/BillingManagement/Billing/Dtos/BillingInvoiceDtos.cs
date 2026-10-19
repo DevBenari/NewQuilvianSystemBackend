@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.DTOs;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 
@@ -198,6 +199,12 @@ public class InvoiceSummaryResponse
     // CASH / INSURANCE / COMPANY_GUARANTOR - bentuk mesin dari PatientType, supaya frontend tidak
     // perlu parse label tampilan untuk logika kondisional.
     public string PrimaryPayerType { get; set; } = string.Empty;
+
+    // Status pembayaran invoice: "BELUM_LUNAS", "SEBAGIAN", "LUNAS"
+    public string PaymentStatus { get; set; } = "BELUM_LUNAS";
+    public bool IsFullyPaid { get; set; }
+    public decimal TotalPaidAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
 }
 
 public sealed class InvoiceDetailResponse : InvoiceSummaryResponse
@@ -239,6 +246,10 @@ public sealed class InvoicePatientSummaryResponse
     public string? BedNumber { get; set; }
     public DateTime? AdmissionDateTime { get; set; }
     public string? PaymentTypeLabel { get; set; }
+
+    // Status encounter authoritative dari backend
+    public int EncounterStatus { get; set; }
+    public string EncounterStatusName { get; set; } = string.Empty;
 }
 
 public sealed class InvoiceItemResponse
@@ -416,11 +427,50 @@ public sealed class CalculationResponse
     /// </summary>
     public decimal RemainingAmount { get; set; }
 
+    /// <summary>
+    /// Nilai tagihan pasien sebelum penyesuaian pembulatan tunai.
+    /// </summary>
+    public decimal OriginalPayableAmount { get; set; }
+
+    /// <summary>
+    /// Selisih pembulatan tunai (negatif untuk pembulatan ke bawah, positif untuk pembulatan ke atas).
+    /// </summary>
+    public decimal RoundingAdjustmentAmount { get; set; }
+
+    /// <summary>
+    /// Nominal efektif yang harus dibayar sesuai metode (mis. bilangan bulat untuk tunai).
+    /// </summary>
+    public decimal EffectivePayableAmount { get; set; }
+
+    /// <summary>
+    /// Status pembayaran finansial ("LUNAS", "SEBAGIAN", "BELUM_LUNAS").
+    /// </summary>
+    public string PaymentStatus { get; set; } = "BELUM_LUNAS";
+
     public bool IsLocked { get; set; }
     public DateTimeOffset CalculatedAt { get; set; }
     public string Reason { get; set; } = string.Empty;
     public Guid InvoiceRowVersion { get; set; }
     public CalculationBreakdownResponse Breakdown { get; set; } = new();
+}
+
+/// <summary>
+/// Kontrak preview pembayaran dan pembulatan kasir (BE-07).
+/// </summary>
+public sealed class PaymentPreviewResponse
+{
+    public Guid InvoiceId { get; set; }
+    public decimal OriginalPayableAmount { get; set; }
+    public string PaymentMethodType { get; set; } = "CASH";
+    public decimal RoundingAdjustmentAmount { get; set; }
+    public decimal EffectivePayableAmount { get; set; }
+    public decimal ActualPaidAmount { get; set; }
+    public decimal NetAllocatedAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
+    public string PaymentStatus { get; set; } = "BELUM_LUNAS";
+    public string InvoiceLifecycleStatus { get; set; } = "OPEN";
+    public bool IsCashRoundingApplied { get; set; }
+    public string Description { get; set; } = string.Empty;
 }
 
 public sealed class CalculationBreakdownResponse
@@ -473,8 +523,12 @@ public sealed class AdministrationFeeCalculationResponse
     public decimal? RawCalculatedAmount { get; set; }
     public bool IsCapApplied { get; set; }
     public bool IsPackageGuaranteed { get; set; }
-    public bool ReferredOutpatientAdminVoided { get; set; }
     public decimal ReferredOutpatientAdminCreditedAmount { get; set; }
+    public decimal ReferredOutpatientAdminUnappliedCreditAmount { get; set; }
+    public bool IsSupersededByInpatientAdmission { get; set; }
+    public Guid? SupersededByInpatientInvoiceId { get; set; }
+    public string? SupersededReasonCode { get; set; }
+    public IReadOnlyList<ReferredAdminOriginResult> ReferredOutpatientAdminOrigins { get; set; } = [];
 }
 
 // BKC-DEC-043: occupancy timeline (InpBedPlacement) adalah source of truth; komponen ini

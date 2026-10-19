@@ -58,7 +58,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 PaymentType = EncounterPaymentType.Cash, PaymentSourceNameSnapshot = "Tunai",
                 PaymentMethodId = command.PaymentMethodId, IsEligible = true,
                 IsPrimary = true, Priority = 1, CreateBy = command.ActorUserId,
-                CreateDateTime = DateTime.UtcNow
+                CreateDateTime = DateTime.UtcNow,
+                FinancingChoice = command.FinancingChoice ?? "GENERAL_SELF_PAY"
             };
             encounter.PaymentSource = paymentSource;
             _dbContext.RegPatientEncounterGuarantors.Add(paymentSource);
@@ -231,6 +232,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 paymentSource.PaymentType = EncounterPaymentType.Cash;
                 paymentSource.PaymentMethodId = command.PaymentMethodId;
                 paymentSource.PaymentSourceNameSnapshot = "Tunai";
+                paymentSource.FinancingChoice = command.FinancingChoice ?? "GENERAL_SELF_PAY";
                 paymentSource.IsEligible = true;
                 paymentSource.IsPolicyActive = false;
                 paymentSource.UpdateDateTime = DateTime.UtcNow;
@@ -494,6 +496,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 paymentSource.EffectiveEndDateSnapshot = card.EffectiveEndDate;
                 paymentSource.IsEligible = card.IsEligible;
                 paymentSource.IsPolicyActive = true;
+                paymentSource.FinancingChoice = command.FinancingChoice ?? (guarantor.IsEmployeeBenefitGuarantor ? "EMPLOYEE_BENEFIT" : null);
                 paymentSource.UpdateDateTime = DateTime.UtcNow;
                 paymentSource.UpdateBy = command.ActorUserId;
 
@@ -541,6 +544,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             entity.EmployeeIdSnapshot = null;
             entity.FamilyMemberIdSnapshot = null;
             entity.BenefitRelationshipSnapshot = null;
+            entity.FinancingChoice = null;
         }
     }
 
@@ -552,7 +556,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         Guid? PatientCompanyGuarantorId,
         DateTime ServiceDate,
         string Reason,
-        Guid ActorUserId);
+        Guid ActorUserId,
+        string? FinancingChoice = null);
 
     public sealed record EncounterPaymentSourceSwitchResult(
         bool Success,

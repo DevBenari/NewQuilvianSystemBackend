@@ -5551,7 +5551,7 @@ Tidak ada tabel master baru maupun baris master yang wajib diisi.
 | `BKC-DES-078` | Nilai `LinkReason` dibakukan sebagai konstanta `BillingEncounterLinkReasons`. Bila satu kunjungan asal punya dua sebab, sebab yang tertulis lebih dulu (`SURGERY_ORIGIN`) dipertahankan | `BKC-DEC-155` | Satu tautan per pasangan sudah dijamin indeks; sebab tidak dipakai perhitungan mana pun, hanya keterangan |
 | `BKC-DES-079` | Tautan **tidak** ditulis bila kunjungan asal milik pasien lain, terhapus, atau batal, atau bila `AdmissionTransferSourceType` bukan `Emergency`/`Outpatient`. Kejadian itu dicatat `WarningAsync` kategori Billing, aksi `InpatientEvent.TransferLinkSkipped`, berisi `EpisodeId`, `EncounterId`, `SourceEncounterId`, dan kode alasan saja — **tanpa** nama, NIK, maupun nomor rekam medis. Event tetap diterima | Invariant 2 dan 3 | Pertahanan berlapis tanpa mengorbankan pembukaan invoice |
 | `BKC-DES-080` | Penelusur rantai membaca tingkat pertama dari **dua** sumber: tautan (`BilInvoiceEncounterLink`) dan `SourceEncounterId` kunjungan rawat inap itu sendiri. Asal transfer yang ada di Registrasi tetapi tidak bertautan menghasilkan kejanggalan `UNLINKED_TRANSFER_ORIGIN` → `NEEDS_RECONCILIATION`. Tagihannya ditampilkan tetapi **tidak** dihitung sampai petugas memutuskan `INCLUDE` atau `EXCLUDE` lewat alur rekonsiliasi revisi `2.1`. Bila pasiennya berbeda, `PATIENT_MISMATCH` yang berlaku | `BKC-DEC-148`, `BKC-DEC-151`–`153`, `BKC-DEC-157`, invariant 4 | Menutup lubang gagal-terbuka revisi `2.0`. Ini langkah bawaan sampai `BKC-OQ-127` diputuskan, bukan jawaban atas pertanyaan itu |
-| `BKC-DES-081` | Penggantian biaya admin Rawat Jalan memilih invoice Rawat Jalan **hanya** dari kunjungan yang tertaut ke invoice rawat inap itu dan berjenis `Outpatient`, apa pun sebab tautannya. Tanpa tautan, tidak ada void maupun kredit. Aturan dibayar/belum dibayar, kode void, dan idempotensi kredit **tidak berubah** | `BKC-DEC-119`, `BIL-VAL-126`, `BKC-DES-049`, F6 | Membawa source kembali ke keputusan yang sudah `approved`; bukan kebijakan baru |
+| `BKC-DES-081` | **[Sempat ditandai butuh amendment 16 Oktober 2026; DIKONFIRMASI TETAP BERLAKU hari yang sama — lihat catatan di bawah tabel]** Penggantian biaya admin Rawat Jalan memilih invoice Rawat Jalan **hanya** dari kunjungan yang tertaut ke invoice rawat inap itu dan berjenis `Outpatient`, apa pun sebab tautannya. Tanpa tautan, tidak ada void maupun kredit. Aturan dibayar/belum dibayar, kode void, dan idempotensi kredit **tidak berubah** | `BKC-DEC-119`, `BIL-VAL-126`, `BKC-DES-049`, `BKC-DEC-161`, F6 | Membawa source kembali ke keputusan yang sudah `approved`; bukan kebijakan baru |
 | `BKC-DES-082` | Premis `BKC-DES-063` dibaca dengan koreksi: tingkat pertama dipegang tautan untuk rujukan operasi **dan**, sesudah `BKC-DES-077` rilis, untuk transfer. Untuk transfer sebelum itu, `BKC-DES-080` yang menjaga. `BKC-DES-063` **tidak** digantikan; keputusan arsitekturnya (dua sumber, baca saja, tanpa tabel rantai baru) tetap berlaku | Bagian 0.2 | Mempertahankan ID stabil dan histori approval |
 
 ### Urutan rilis yang dipersyaratkan
@@ -5562,6 +5562,16 @@ Tidak ada tabel master baru maupun baris master yang wajib diisi.
 2. `BKC-DES-077`–`079` **SHOULD** rilis sebelum `MVP-37`, supaya pasien transfer yang dirawat
    sesudah rilis itu tidak memunculkan `UNLINKED_TRANSFER_ORIGIN`.
 3. `MVP-36` **tidak** bergantung pada revisi ini.
+4. **[Ditambahkan 16 Oktober 2026, DIKOREKSI hari yang sama]** Jawaban pemilik atas `BKC-OQ-132`
+   sempat (`BKC-DEC-159`) memutuskan admin Rawat Jalan tetap digantikan pada peralihan nyata ke
+   rawat inap walau tanpa tautan formal — bertentangan dengan `BKC-DES-081`. Pada sesi lanjutan
+   yang sama, pemilik **mengoreksi premis itu sendiri**: transfer pasien **WAJIB** selalu tercatat
+   lewat alur resmi di Registrasi; admisi tanpa transfer formal adalah gap proses milik
+   Registration/Rawat Inap (`BKC-OQ-136`), bukan kasus yang perlu ditangani Billing. `BKC-DEC-159`
+   kini **superseded** oleh `BKC-DEC-161`. **`BKC-DES-081` TETAP berlaku PERSIS seperti approved,
+   TANPA amendment.** `FR-BKC-277` tidak lagi menunggu revisi `2.3` — satu-satunya penahan rilisnya
+   yang tersisa adalah `BE-BKC-FIX-022` mencapai ✅. Rincian: `00-interview-decisions.md` closure
+   pass "Koreksi Premis BKC-OQ-132/133 dan Jawaban BKC-OQ-134/135".
 
 ### Contoh
 
@@ -5577,11 +5587,15 @@ Pada Oktober ia ke poli lagi, membayar admin Rp 150.000, lalu ditransfer ke rawa
 
 ## 10. Yang MUST Dijawab Owner Saat Approval
 
+**STATUS 16 Oktober 2026: ketiga baris di bawah DIJAWAB** (`00-interview-decisions.md`, closure pass
+16 Oktober 2026 — `BKC-DEC-158`, `BKC-DEC-159`, `BKC-DEC-160`). Teks pertanyaan dipertahankan apa
+adanya sebagai histori; kolom "Memblokir" diberi status terkini, bukan dihapus.
+
 | Butir | Pertanyaan | Memblokir |
 | --- | --- | :---: |
-| `BKC-OQ-127` | Transfer sebelum `BKC-DES-077` rilis tidak bertautan. (a) Ditautkan belakangan — lewat putar ulang Rawat Inap (butuh perluasan `NeedsLinkAsync` milik Rawat Inap) atau proses satu kali milik Billing; atau (b) penelusur memakai `SourceEncounterId` sebagai sumber tingkat pertama tanpa kejanggalan. Sampai diputuskan, berlaku `BKC-DES-080` | Rilis `MVP-37` |
-| `BKC-OQ-131` | **Baru.** Kredit dan void biaya admin yang **sudah** terjadi atas kunjungan Rawat Jalan tak tertaut (F6) di lingkungan selain dev: dikoreksi atau dibiarkan? Dev memuat nol kredit. Termasuk temuan bahwa item admin dikenali juga lewat kata "Administrasi" pada deskripsi | Rilis `FR-BKC-277` |
-| `BKC-OQ-132` | **Baru.** Pasien poli yang dirawat inap di hari yang sama **tanpa** lewat jalur transfer (admisi langsung): apakah admin poli-nya tetap digantikan? `BKC-DEC-119` menyebut "dari rujukan poliklinik"; desain ini membacanya harfiah — tanpa tautan, tidak diganti | Rilis `FR-BKC-277` |
+| `BKC-OQ-127` | Transfer sebelum `BKC-DES-077` rilis tidak bertautan. (a) Ditautkan belakangan — lewat putar ulang Rawat Inap (butuh perluasan `NeedsLinkAsync` milik Rawat Inap) atau proses satu kali milik Billing; atau (b) penelusur memakai `SourceEncounterId` sebagai sumber tingkat pertama tanpa kejanggalan. Sampai diputuskan, berlaku `BKC-DES-080` | **Dijawab** (`BKC-DEC-160`: opsi (a)) — tidak lagi menahan rilis `MVP-37`. Mekanisme backfill-nya sendiri belum dirancang (`BKC-OQ-135`), tidak memblokir karena `BKC-DES-080` sudah menjaga |
+| `BKC-OQ-131` | **Baru.** Kredit dan void biaya admin yang **sudah** terjadi atas kunjungan Rawat Jalan tak tertaut (F6) di lingkungan selain dev: dikoreksi atau dibiarkan? Dev memuat nol kredit. Termasuk temuan bahwa item admin dikenali juga lewat kata "Administrasi" pada deskripsi | **Dijawab** (`BKC-DEC-158`: reversal terkontrol) — tidak lagi menahan rilis `FR-BKC-277`. Mekanisme reversal-nya sendiri belum dirancang (`BKC-OQ-134`) |
+| `BKC-OQ-132` | **Baru.** Pasien poli yang dirawat inap di hari yang sama **tanpa** lewat jalur transfer (admisi langsung): apakah admin poli-nya tetap digantikan? `BKC-DEC-119` menyebut "dari rujukan poliklinik"; desain ini membacanya harfiah — tanpa tautan, tidak diganti | **Dijawab dan DIKOREKSI pada sesi yang sama 16 Oktober 2026** (`BKC-DEC-159` sempat "Ya, tetap diganti", lalu **superseded** oleh `BKC-DEC-161`: transfer pasien WAJIB selalu tercatat resmi; admisi tanpa transfer adalah gap proses milik Registration/Rawat Inap, bukan kasus yang didukung Billing). `BKC-DES-081` **TETAP berlaku tanpa amendment**. `BKC-OQ-133` **DITUTUP tanpa amendment** — tidak lagi menahan rilis `FR-BKC-277` |
 
 ## 11. Status Amendment
 
@@ -5596,4 +5610,551 @@ Pada Oktober ia ke poli lagi, membayar admin Rp 150.000, lalu ditransfer ke rawa
 | Ketergantungan lintas modul | Registration Management dan Rawat Inap: **baca saja, nol perubahan**. Cukup diberi tahu |
 | Kompatibilitas | **Satu perubahan perilaku yang disengaja:** kredit dan void biaya admin tidak lagi menyentuh kunjungan Rawat Jalan yang tak tertaut. Pasien yang dulu "untung" dari kredit kunjungan lama akan melihat kewajiban lebih besar — ini koreksi, dan **MUST** dikomunikasikan ke kasir |
 | Cacat as-is | F6, keparahan **High**: data finansial tersimpan salah tanpa disadari. Tidak teramati di dev (nol episode rawat inap, nol kredit) |
-| Status | **draft** — menunggu approval Product/Domain Owner |
+| Status | **approved** — Pemilik modul Billing, 16 Oktober 2026 (*"saya menyetujui amandemen juga"*, `blueprint-manifest.md` `approved_by_revision_2_2`). `BKC-DES-077`–`080` dan `082` **approved dan boleh rilis mengikuti urutan bagian 9**. **[DIKOREKSI 16 Oktober 2026 oleh amendment revisi `2.3` di bawah]** `BKC-DES-081` dan `FR-BKC-277` **MUST NOT dibangun**: impact scan pada `738e03a0` membuktikan jalur yang dipersempitnya (void/kredit item) tidak pernah menyentuh biaya admin Rawat Jalan yang sebenarnya, kreditnya ditolak constraint database sehingga kalkulasi rawat inap gagal, dan jalur itu juga berjalan saat pratinjau. Keduanya digantikan `BKC-DES-083`–`086`. Catatan status sebelumnya ("satu-satunya penahan `FR-BKC-277` adalah `BE-BKC-FIX-022`") batal |
+
+---
+
+# Amendment 16 Oktober 2026 — Realisasi Ulang Penggantian Biaya Admin Rawat Jalan, Backfill Tautan Transfer Lama, dan Tinjauan Void Keliru (Revisi 2.3)
+
+> `revisi blueprint`: `2.3`, status **draft** — approval adalah tindakan manusia dan belum diberikan.
+> Revisi `2.2` tetap `approved` dan tetap berlaku sampai revisi ini disetujui, **kecuali** `BKC-DES-081`/`FR-BKC-277`
+> yang **MUST NOT** dibangun dalam keadaan apa pun (bagian 0.3).
+> Masukan: `BKC-DEC-119` (ditegaskan ulang pemilik 16 Oktober 2026: *"saya ingin tetap menggunakan aturan bkc-dec-119. Karena itu udah paten"*),
+> `BKC-DEC-017`, `BKC-DEC-158`, `BKC-DEC-160`, `BKC-DEC-161`, `BKC-DEC-162`, `BKC-DEC-163`; tiga arahan pemilik pada pass ini (A1–A3, bagian 0.4).
+> Keputusan arsitektur: `BKC-DES-083`–`BKC-DES-091`.
+> Backend SHA diaudit: `738e03a0` (sebelumnya `d268a41f`). Frontend SHA diaudit: `8ad45262b` (sebelumnya `0b45dd8cd`).
+> `domain_architecture_readiness`: `DOMAIN_ARCHITECTURE_NOT_RUN` — amendment ini memperbaiki realisasi aturan Billing yang sudah
+> `approved` di dalam satu bounded context Billing; Registrasi dan Rawat Inap hanya dibaca, sama seperti revisi `2.2`.
+>
+> **Tujuan amendment.** (1) Mewujudkan `BKC-DEC-119` dengan benar: biaya admin Rawat Jalan adalah **komponen kalkulasi**,
+> bukan item, jadi penggantiannya harus terjadi di kalkulasi. (2) Menghentikan tiga cacat hidup pada jalur lama:
+> kalkulasi rawat inap gagal, item yang salah di-void, dan pratinjau yang menulis data. (3) Merancang backfill tautan
+> transfer lama (`BKC-DEC-163`). (4) Merancang tinjauan Supervisor Kasir atas void yang keliru (`BKC-DEC-158`, `BKC-DEC-162`).
+
+## 0. Temuan yang menjadi dasar
+
+### 0.1 Impact scan terbatas `d268a41f` → `738e03a0`
+
+| Berkas | Berubah? | Dampak pada amendment |
+| --- | :---: | --- |
+| `Billing/Services/AdministrationFeeCalculationService.cs` | Tidak | Seluruh fakta F8–F13 berlaku |
+| `Billing/Services/BillingInpatientEventReceiver.cs`, `Billing/Models/BilInvoiceEncounterLink.cs` | Tidak | Premis `BKC-DES-077`–`079` utuh |
+| `Billing/Services/BillingCalculationService.cs` | 11 baris | Hanya field response pembulatan (`OriginalPayableAmount`, `RoundingAdjustmentAmount`, `EffectivePayableAmount`, `PaymentStatus`); nol sentuhan pada biaya admin |
+| `InPatientManagement/Services/InpAdmissionTransferService.cs`, `EmergencyInstallationManagement/Services/EmergencyDispositionService.AdmissionRequest.cs` | Ya, besar (penyelesaian transfer IGD → Ranap) | Penulisan `SourceEncounterId` dan `AdmissionTransferSourceType` tetap lewat `RegistrationManagement/Services/EncounterPaymentSourceService.cs:51-53`. Premis backfill utuh |
+| `Billing/Services/BillingFinalizationService.cs` | 169 baris | Titik transisi ke `FINAL` tetap satu: `ExecuteInternalFinalizationAndClosureAsync` (`:663`, status ditulis `:711`) |
+| Working tree belum di-commit: sembilan controller Billing (satu baris masing-masing), `BillingDepositOrderService.cs`, folder `Seeders/` baru | — | Tidak menyentuh berkas tumpuan amendment ini |
+
+Seluruh fakta di bawah adalah **pembacaan statis**. Verifikasi runtime: **NOT RUN** — basis data dev memuat nol episode
+rawat inap, dan eksekusi basis data tidak diotorisasi.
+
+### 0.2 Fakta source pada `738e03a0`
+
+| No | Fakta | Bukti |
+| ---: | --- | --- |
+| F8 | Biaya admin **bukan** item tagihan. Ia komponen kalkulasi yang disimpan di `BilCalculationVersion.AdministrationFeeAmount`. Tidak ada satu pun kode di `Areas/` yang membuat item ber-`SourceDomain` `"ADMINISTRATION"` | `Billing/Services/BillingCalculationService.cs:238` (dijumlahkan sebagai komponen), `:243-247` (komentar "Biaya administrasi bukan BilInvoiceItem"); `Billing/Models/BilCalculationVersion.cs:14` |
+| F9 | Rekonsiliasi lama memilih item lewat `SourceDomain == "ADMINISTRATION"` (tidak pernah ada) **atau** `DescriptionSnapshot` yang mengandung kata "Administrasi". Yang di-void atau dikreditkan adalah item **lain** yang namanya kebetulan memuat kata itu | `Billing/Services/AdministrationFeeCalculationService.cs:203-205` |
+| F10 | `CK_BilRefundableCredit_SourceType` hanya menerima `ALLOCATION_EXCESS` dan `SETTLEMENT`, sedangkan penulis kredit menyimpan `REFERRED_OUTPATIENT_ADMIN`. Penulis itu lahir di commit `59910dc0` (24 September 2026) tanpa perluasan constraint dan tanpa test. Akibatnya `SaveChangesAsync` ditolak PostgreSQL, lalu muncul pesan *"Versi kalkulasi tidak dapat disimpan karena invoice telah berubah"*, dan **seluruh kalkulasi invoice rawat inap gagal** pada setiap percobaan ulang. Karena seluruh hasil `foreach` disimpan dalam satu `SaveChanges`, void yang sudah ditandai ikut batal | `Migrations/20260824080052_AddBackendBillingDanKasirPart2.cs:217`; `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilRefundableCreditConfiguration.cs`; `AdministrationFeeCalculationService.cs:234-248,278`; `BillingCalculationService.cs:426-430` |
+| F11 | **Pratinjau menulis data.** `PreviewCalculationAsync` memanggil `CalculateAsync(persist: false)`, yang memanggil kalkulasi biaya admin tanpa memandang `persist`, lalu memanggil rekonsiliasi. Rekonsiliasi memanggil `SaveChangesAsync` sendiri, tanpa transaksi (transaksi hanya dibuka bila `persist`). Void tersimpan hanya karena kasir membuka Menu Pembayaran | `BillingCalculationService.cs:68-87,144-147,208,614-622`; `AdministrationFeeCalculationService.cs:278` |
+| F12 | Penggantian yang **benar-benar** berjalan adalah mekanisme lain. Setiap invoice `RAJAL` milik pasien dengan tanggal kunjungan dalam rentang [hari-1, hari+1] menambah Rp 50.000 **tetap** sebagai "admin terdahulu", lalu admin rawat inap (prioritas 100) dipotong sebesar itu. Dasarnya kedekatan waktu, tanpa tautan, tanpa melihat status bayar, dan tanpa nominal admin yang sebenarnya | `AdministrationFeeCalculationService.cs:109-125,290-327` (nilai tetap di `:323`) |
+| F13 | Mekanisme yang sama juga menjalankan `BKC-DEC-017` (admin rawat jalan sekali per pasien per tanggal lokal) untuk `RAJAL`/`IGD`/`OTC` (prioritas 10). Ada tiga penyimpangan: jendelanya ±1 hari, bukan tanggal lokal yang sama; hanya invoice `RAJAL` yang dihitung sebagai pendahulu; dan dua invoice pada hari yang sama saling menganggap yang lain sebagai pendahulu, sehingga keduanya bisa bernilai 0. **Tidak diubah revisi ini** (`BKC-OQ-138`) | `AdministrationFeeCalculationService.cs:111,122-125,301-325`; `BillingManagement/MasterData/Services/AdministrationFeePolicyService.cs:362-366` |
+| F14 | Kredit `REFERRED_OUTPATIENT_ADMIN`, seandainya tersimpan, **tidak** mengurangi sisa tagihan di kasir, karena rumus sisa tagihan hanya membaca `ALLOCATION_EXCESS`. Kredit itu justru mengurangi outstanding kelayakan pulang, dan dapat dicairkan lewat refund tanpa pembatasan jenis kredit | `BillingCalculationService.cs:513-517`; `Billing/Services/BillingInvoiceService.cs:772-776`; `Billing/Services/BillingInvoiceClosureService.cs:41-44`; `Billing/Services/BillingAllocationService.cs:477-481`; `Billing/Services/InpatientClearanceService.cs:103-109`; `Billing/Services/BillingRefundService.cs:227,538-551` |
+| F15 | Kelebihan alokasi di atas `PatientAmount` versi kalkulasi otomatis menjadi kredit refund `ALLOCATION_EXCESS` setiap kali versi disimpan | `BillingAllocationService.cs:395-435 #ReconcileCalculationExcessAsync` |
+| F16 | `BilInvoiceEncounterLink.ReceiptId` **wajib** (FK ke `BilInpatientEventReceipt`), dan `LinkedAt` adalah waktu bisnis. Tanda terima `ADMISSION_CONFIRMED` menyimpan `EncounterId`, `InvoiceId`, dan `ReceivedAtUtc` | `Billing/Models/BilInvoiceEncounterLink.cs:10-15`; `Billing/Models/BilInpatientEventReceipt.cs:26-46`; `BillingInpatientEventReceiver.cs:179-187` |
+| F17 | Indeks unik `BilInvoiceItem` atas (`SourceDomain`, `SourceDetailId`) difilter `Status <> 'VOIDED' AND NOT IsDelete`. Item salinan yang aktif dengan kunci sumber sama **diizinkan** selama item lama tetap `VOIDED` | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInvoiceItemConfiguration.cs:37-38` |
+| F18 | `BilAdjustment` ditolak untuk invoice `CLOSED`/`SETTLED_BY_WRITE_OFF`. Tidak ada instrumen *credit note* atau nota debit di Billing; "retur" hanya ada di Petty Cash | `Billing/Services/BillingFinancialExceptionService.cs:902-907`; pencarian `creditnote`/`nota kredit`/`debit note` pada `Areas/` nihil |
+| F19 | `CK_BilCalculationVersion_Amounts` mewajibkan `PatientAmount >= 0`. `IsLocked` tidak pernah ditulis `true`; penguncian yang nyata adalah status invoice `FINAL` | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilCalculationVersionConfiguration.cs:14`; `BillingFinalizationService.cs:711` |
+
+### 0.3 Koreksi atas revisi sebelumnya
+
+| Klaim lama | Letak | Keadaan sebenarnya | Dikoreksi oleh |
+| --- | --- | --- | --- |
+| F6 revisi `2.2`: rekonsiliasi "mengkredit item admin yang sudah dibayar"; contoh Ibu Sari menerima kredit Rp 300.000 | Amendment revisi `2.2` bagian 0.1 dan contoh bagian 9; `contracts/validation-matrix.md` penegasan `BIL-VAL-126` | **Tidak dapat terjadi.** Insert kredit ditolak database (F10), sehingga yang terjadi adalah kalkulasi gagal. Void **dapat** terjadi, tetapi atas item bernama "Administrasi" (F9), termasuk lewat pratinjau (F11) | Bagian ini |
+| `BKC-DES-081` / `FR-BKC-277` (approved revisi `2.2`) | Amendment revisi `2.2` | Mempersempit jalur yang tidak pernah menyentuh biaya admin sebenarnya. Dirilis apa adanya, ketiga cacat tetap hidup, dan kasus transfer poli yang sah ikut gagal | **Superseded** oleh `BKC-DES-083`–`086`. **MUST NOT dibangun** |
+| `BKC-DES-049` (revisi `1.5`): penggantian lewat void/kredit item | Bagian 9 baseline Pass B | Admin bukan item (F8) | **Superseded** oleh `BKC-DES-083`–`086`. Aturan bisnis `BKC-DEC-119` tetap |
+| Capability map §24.2 `CAP-BIL-05` "Ready to reuse", lalu §24.7 "Repair" | `01-existing-capability-map.md` | Keduanya keliru. Desain mengandaikan item, sedangkan source memakai komponen kalkulasi dan potongan berbasis waktu. Status yang tepat adalah **Conflict** | Dicatat di sini; capability map milik `trace-existing-capabilities` dan **tidak** disunting pass ini |
+| `calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 2.2` | `blueprint-manifest.md` | Revisi ini **mengubah** rumus kalkulasi biaya admin | `BIL-CALCULATION-1.0` |
+
+### 0.4 Arahan pemilik pada pass desain ini
+
+Dijawab pemilik modul Billing pada 16 Oktober 2026 lewat pilihan interaktif. Arahan ini **belum** punya baris `BKC-DEC-*`,
+karena decision log milik `grill-me`; ratifikasinya diminta lewat `BKC-OQ-137` (preseden: `BKC-OQ-108` revisi `1.9`).
+
+| ID | Pertanyaan | Jawaban pemilik | Dipakai di |
+| --- | --- | --- | --- |
+| A0 | Model penggantian mana yang berlaku? | *"saya ingin tetap menggunakan aturan bkc-dec-119. Karena itu udah paten"*. Ini **bukan** keputusan baru; ia menetapkan `BKC-DEC-119` sebagai patokan tunggal | Seluruh bagian 1 |
+| A1 | Kredit admin poli yang melebihi porsi pasien di tagihan rawat inap (mis. rawat inap ditanggung penuh BPJS)? | *"Jadi kredit refund (Direkomendasikan)"* | `BKC-DES-086` |
+| A2 | Item yang keliru di-void pada tagihan poli yang sudah FINAL/LUNAS? | *"koreksi setelah close dilakukan lewat credit note atau retur"* | `BKC-DES-089` (keputusan `NEEDS_POST_CLOSE_CORRECTION`); instrumennya belum ada, dicatat `BKC-OQ-139` |
+| A3 | Pemulihan pada tagihan poli yang masih terbuka: cukup satu orang? | *"tidak usah pake persetujuan dulu"* | `BKC-DES-089` — Supervisor Kasir menjalankan sendiri tanpa persetujuan berjenjang |
+
+## 1. Model target penggantian biaya admin (`BKC-DEC-119`)
+
+Biaya admin Rawat Jalan diganti **di dalam kalkulasi**, bukan dengan mem-void atau mengkreditkan item. Kalkulasi tidak
+pernah menulis apa pun selain versi kalkulasinya sendiri.
+
+**Tautan aktif** adalah baris `BilInvoiceEncounterLink` yang memenuhi semua syarat berikut: tidak ditandai hapus; invoice
+rawat inapnya tidak dihapus, tidak dibatalkan, dan ber-`ServiceType` `RANAP`; dan invoice kunjungan yang ditautkan
+ber-`ServiceType` `RAJAL`. Sebab tautan apa pun (`SURGERY_ORIGIN`, `OUTPATIENT_ORIGIN`) diperlakukan sama, mengikuti
+`BIL-VAL-126` revisi `1.9`. Tautan hanya lahir dari transfer resmi atau rujukan operasi (`BKC-DEC-161`).
+
+### 1.1 Perlakuan per status invoice poli asal
+
+> **[Adendum 16 Oktober 2026, bagian 15 — DICABUT hari yang sama]** "Admin poli" pada tabel di bawah berarti **satu**
+> biaya administrasi, yaitu komponen kalkulasi dari master Kebijakan Biaya Administrasi. Pemilik menyatakan item tarif
+> berkategori admin **tidak dipakai** dalam proses bisnis (`BKC-DEC-167`), sehingga perluasan ke item (`BKC-DES-092`) dicabut.
+
+| Status invoice poli asal | Perlakuan | Di mana terjadinya | Dasar |
+| --- | --- | --- | --- |
+| `OPEN` | **Digantikan.** Saat invoice poli dihitung (pratinjau maupun simpan), admin-nya bernilai **Rp 0** dengan kode `SUPERSEDED_BY_INPATIENT_ADMISSION` tercatat di breakdown. Tagihan rawat inap **tidak** mendapat kredit dari kunjungan ini. Bila sudah ada pembayaran sebagian yang kini melebihi tagihan poli, kelebihannya otomatis menjadi kredit refund `ALLOCATION_EXCESS` (F15) | Kalkulasi invoice poli | `BKC-DEC-119` butir 2 ("dibatalkan/*waived*"). Karena admin bukan item, pembatalannya diwujudkan sebagai *waived* pada kalkulasi |
+| `FINAL` | **Dikreditkan penuh** sebesar porsi pasien admin pada versi kalkulasi terkini invoice poli. Sisa piutang poli, bila ada, tetap ditagih lewat AR seperti biasa | Kalkulasi invoice rawat inap | `BKC-DEC-119` butir 1 (beban tunggal). Invoice `FINAL` tidak dapat dihitung ulang, sehingga admin hanya bisa dinetralkan di sisi rawat inap. Beban bersih pasien tetap satu admin |
+| `CLOSED` | **Dikreditkan penuh** sebesar porsi pasien admin | Kalkulasi invoice rawat inap | `BKC-DEC-119` butir 3 |
+| `SETTLED_BY_WRITE_OFF` | **Dikreditkan sebesar yang benar-benar dibayar**: nilai terkecil antara porsi pasien admin dan alokasi bersih ke invoice poli | Kalkulasi invoice rawat inap | `BKC-DEC-119` butir 3 ("nominal yang telah dibayarkan"). Sisa yang di-*write-off* sudah dibebaskan, jadi tidak dikreditkan |
+
+**Porsi pasien admin** dihitung dari `BreakdownSnapshot.AdministrationFee` versi kalkulasi terkini invoice poli:
+`AppliedAmount − PrimaryAmount − UnresolvedAmount − NonBillableResidualAmount`, dibatasi minimal 0. Ini aturan turunan
+porsi pasien yang sudah dipakai source (`BillingCalculationService.cs:265-270`). Bila invoice poli pernah dihitung ulang
+sesudah tautan ada, admin-nya sudah 0 di versinya, sehingga kreditnya juga 0.
+
+### 1.2 Kredit pada tagihan rawat inap
+
+1. Seluruh kredit dari invoice poli asal dijumlahkan.
+2. Kredit dikurangkan dari porsi pasien **sesudah** promo (sesudah `BillingCalculationService.cs:314`), dibatasi
+   setinggi-tingginya porsi pasien itu sendiri (F19: porsi pasien tidak boleh negatif).
+3. Yang terpakai disimpan di `BilCalculationVersion.ReferredOutpatientAdminCreditAmount`. Sisanya disimpan di
+   `ReferredOutpatientAdminUnappliedCreditAmount`.
+4. Saat invoice rawat inap difinalisasi, sisa yang lebih dari 0 dicatat **satu kali** sebagai kredit refund
+   `REFERRED_OUTPATIENT_ADMIN` (A1). Pengembaliannya memakai alur refund Finance yang sudah ada.
+
+Karena kredit ini masuk ke `PatientAmount`, keenam rumus sisa tagihan (F14) **otomatis** konsisten tanpa disentuh.
+
+### 1.3 Invariant
+
+1. Kalkulasi, baik pratinjau maupun simpan, **MUST NOT** menulis baris apa pun selain versi kalkulasinya sendiri: nol void dan nol kredit.
+2. Satu kunjungan poli asal memberi penggantian **paling banyak satu kali**: digantikan di sisi poli **atau** dikreditkan di sisi rawat inap, tidak keduanya.
+3. Hanya tautan aktif yang dihitung. Kunjungan poli yang tidak tertaut, berapa pun dekat tanggalnya, **tidak** pernah digantikan.
+4. Kredit **MUST NOT** membuat porsi pasien negatif; sisanya dicatat terpisah, tidak hilang.
+5. Sisa kredit menjadi kredit refund **paling banyak satu baris per invoice rawat inap**.
+6. Nominal kredit adalah porsi pasien admin yang sebenarnya, **bukan** angka tetap.
+
+### 1.4 Contoh
+
+Ibu Sari Mandasari (nama samaran) berobat ke poli dengan admin Rp 150.000 (porsi pasien), lalu dirawat inap. Admin rawat
+inap Rp 1.000.000. Porsi pasien tagihan rawat inap sebelum kredit Rp 3.650.000.
+
+| Kasus | Keadaan | Hasil sebelum revisi ini (source `738e03a0`) | Hasil sesudah revisi ini |
+| --- | --- | --- | --- |
+| A | Ditransfer resmi dari poli; tagihan poli belum dibayar (`OPEN`) | Tagihan poli tetap menagih Rp 150.000. Admin rawat inap dipotong Rp 50.000 tetap | Tagihan poli: admin Rp 0, berlabel "Digantikan rawat inap". Tagihan rawat inap Rp 3.650.000 |
+| B | Ditransfer resmi; tagihan poli sudah lunas (`CLOSED`) | Admin rawat inap dipotong Rp 50.000; pasien kelebihan bayar Rp 100.000 | Kredit Rp 150.000; porsi pasien rawat inap **Rp 3.500.000** (sama dengan `BKC-AC-096`) |
+| C | Seperti B, tetapi rawat inap ditanggung penuh BPJS (porsi pasien Rp 0) | Sama dengan B | Kredit terpakai Rp 0, sisa Rp 150.000. Saat finalisasi lahir satu kredit refund Rp 150.000 |
+| D | Ke poli kemarin untuk urusan lain, lalu masuk rawat inap lewat IGD (bukan transfer dari poli) | Admin rawat inap dipotong Rp 50.000 karena dekat tanggalnya | Tidak ada penggantian. Admin rawat inap utuh Rp 1.000.000 (`BKC-DEC-161`) |
+| E | Seperti A, tetapi rawat inapnya kemudian dibatalkan | — | Tautan tidak lagi aktif; saat tagihan poli dihitung ulang, admin Rp 150.000 kembali ditagih |
+
+## 2. Tabel Kepemilikan Data (amendment)
+
+| Kelompok data | Modul pemilik | Dipakai amendment | Dibuat ulang? |
+| --- | --- | :---: | --- |
+| Versi kalkulasi invoice (`BilCalculationVersion`) | Billing | Ya — dua kolom baru | Tidak |
+| Kredit refund (`BilRefundableCredit`) | Billing | Ya — satu nilai `SourceType` diaktifkan di constraint | Tidak |
+| Item tagihan (`BilInvoiceItem`) | Billing | Ya — dibaca; salinan item lahir saat pemulihan | Tidak |
+| Tinjauan void keliru (`BilSupersededItemReview`) | Billing | Ya | **Baru** |
+| Tautan kunjungan (`BilInvoiceEncounterLink`) | Billing | Ya — dibaca kalkulasi; diisi backfill | Tidak |
+| Tanda terima event Rawat Inap (`BilInpatientEventReceipt`) | Billing | Dibaca backfill | Tidak |
+| Kunjungan pasien (`RegPatientEncounter`) | Registration Management | Dibaca backfill, **baca saja** | Tidak |
+| Penyesuaian keuangan (`BilAdjustment`) | Billing | **Tidak dipakai** amendment ini | Tidak |
+
+## 3. Class Diagram
+
+```mermaid
+classDiagram
+    direction LR
+    class BillingCalculationService {
+        +CalculateAsync(invoiceId, request, persist)
+        -CalculateAdministrationFeeAsync()
+        -ApplyReferredAdminCredit()
+    }
+    class AdministrationFeeCalculationService {
+        +CalculateAdministrationFeeAsync(request)
+        +ResolveReferredAdminReplacementAsync(invoice, encounter)
+        -GetPriorAppliedAdminFeeAmountAsync()
+    }
+    class BillingFinalizationService {
+        ~ExecuteInternalFinalizationAndClosureAsync()
+        -RecognizeUnappliedReferredAdminCreditAsync()
+    }
+    class InpatientClearanceService {
+        +EvaluateAsync()
+    }
+    class BilCalculationVersion {
+        +decimal AdministrationFeeAmount
+        +decimal PatientAmount
+        +decimal ReferredOutpatientAdminCreditAmount
+        +decimal ReferredOutpatientAdminUnappliedCreditAmount
+        +string BreakdownSnapshot
+    }
+    class BilInvoiceEncounterLink {
+        +Guid RanapInvoiceId
+        +Guid LinkedEncounterId
+        +string LinkReason
+        +Guid ReceiptId
+        +DateTimeOffset LinkedAt
+    }
+    class BilRefundableCredit {
+        +Guid InvoiceId
+        +string SourceType
+        +Guid SourceId
+        +decimal OriginalAmount
+        +decimal AvailableAmount
+    }
+    BillingCalculationService --> AdministrationFeeCalculationService : memakai
+    AdministrationFeeCalculationService ..> BilInvoiceEncounterLink : membaca tautan aktif
+    BillingCalculationService --> BilCalculationVersion : menulis versi
+    BillingFinalizationService ..> BilCalculationVersion : membaca sisa kredit
+    BillingFinalizationService --> BilRefundableCredit : REFERRED_OUTPATIENT_ADMIN
+    InpatientClearanceService ..> BilRefundableCredit : mengecualikan REFERRED_OUTPATIENT_ADMIN
+```
+
+```mermaid
+classDiagram
+    direction LR
+    class BillingSupersededItemReviewsController {
+        +List()
+        +GetByItem(invoiceItemId)
+        +Decide(invoiceItemId, request)
+    }
+    class BillingSupersededItemReviewService {
+        +ListAsync(query)
+        +GetAsync(invoiceItemId)
+        +DecideAsync(invoiceItemId, request, idempotencyKey, actor)
+    }
+    class BilSupersededItemReview {
+        +Guid Id
+        +Guid InvoiceItemId
+        +Guid InvoiceId
+        +string Decision
+        +string InvoiceStatusAtDecision
+        +Guid? ReinstatedInvoiceItemId
+        +string Reason
+        +Guid DecidedBy
+        +DateTimeOffset DecidedAt
+        +Guid IdempotencyKey
+        +string PayloadHash
+    }
+    class BilInvoiceItem {
+        +Guid InvoiceId
+        +string Status
+        +string VoidReason
+        +string SourceDomain
+        +string SourceDetailId
+    }
+    BillingSupersededItemReviewsController --> BillingSupersededItemReviewService
+    BillingSupersededItemReviewService --> BilSupersededItemReview : append-only
+    BillingSupersededItemReviewService --> BilInvoiceItem : salinan ACTIVE saat REINSTATE
+    BilSupersededItemReview --> BilInvoiceItem : item VOIDED yang ditinjau
+```
+
+## 4. Penjelasan Class
+
+| Class | Status | Lokasi file | Tanggung jawab dan perubahan |
+| --- | --- | --- | --- |
+| `AdministrationFeeCalculationService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/AdministrationFeeCalculationService.cs` | (1) **Dihapus:** `ReconcileReferredOutpatientAdminFeeAsync` beserta seluruh tulisannya (`BKC-DES-083`). (2) **Baru:** `ResolveReferredAdminReplacementAsync`, **baca saja** (`AsNoTracking`). Untuk invoice `RAJAL` method ini mengembalikan apakah admin digantikan beserta invoice rawat inap penggantinya; untuk invoice `RANAP`, daftar invoice poli asal beserta perlakuan dan kreditnya (bagian 1.1). (3) `GetPriorAppliedAdminFeeAmountAsync` mengembalikan nol untuk `RANAP` (`BKC-DES-087`); perilaku `RAJAL`/`IGD`/`OTC` tidak berubah. Konstanta `DefaultVoidReasonSuperseded` dipertahankan, karena dipakai sebagai kode *waived* dan sebagai penyaring tinjauan. Tidak membuka transaksi |
+| `IAdministrationFeeCalculationService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/IAdministrationFeeCalculationService.cs` | Tanda tangan `ReconcileReferredOutpatientAdminFeeAsync` dihapus, `ResolveReferredAdminReplacementAsync` ditambah. Interface ini penyimpangan dari pola "service tanpa interface", tetapi sudah ada; **tidak** dirapikan di task ini |
+| `BillingCalculationService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingCalculationService.cs` | `CalculateAdministrationFeeAsync` (`:546-645`): panggilan rekonsiliasi (`:614-628`) diganti panggilan `ResolveReferredAdminReplacementAsync`. Untuk `RAJAL` yang digantikan, `AppliedAmount = 0` dan kode *waived* dicatat. Untuk `RANAP`, kredit diterapkan sesudah promo (`:314`) dan kedua kolom baru diisi pada `BilCalculationVersion` (`:341-363`). Berlaku sama untuk `persist: true` dan `false`; nol tulisan tambahan. Transaksi tetap milik `CalculateAsync` |
+| `BillingFinalizationService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingFinalizationService.cs` | `ExecuteInternalFinalizationAndClosureAsync` (`:663`), sesudah status ditulis `FINAL` (`:711`), memanggil method privat baru `RecognizeUnappliedReferredAdminCreditAsync`. Bila `ReferredOutpatientAdminUnappliedCreditAmount` versi yang difinalisasi lebih dari 0 dan belum ada kredit `REFERRED_OUTPATIENT_ADMIN` dengan `SourceId` = id invoice rawat inap, satu kredit dibuat (`BKC-DES-086`) dan dicatat audit `BillingRefundableCredit.RecognizeReferredAdmin`. Bila kredit sudah ada tetapi nominal sisanya berbeda (invoice sempat kembali `OPEN` lalu difinalisasi ulang), kredit lama **tidak** diubah dan peristiwanya dicatat audit `BillingRefundableCredit.ReferredAdminDrift` untuk ditinjau Finance. Memakai transaksi pemanggil |
+| `InpatientClearanceService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/InpatientClearanceService.cs` | `creditTotal` (`:103-107`) **mengecualikan** `REFERRED_OUTPATIENT_ADMIN`. Kredit itu sudah tercermin di `PatientAmount`, jadi menguranginya lagi berarti menghitung dua kali |
+| `BilCalculationVersion` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Models/BilCalculationVersion.cs` | Dua kolom baru: `ReferredOutpatientAdminCreditAmount` dan `ReferredOutpatientAdminUnappliedCreditAmount` |
+| `BilCalculationVersionConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilCalculationVersionConfiguration.cs` | `HasPrecision(18, 2)` dan `HasDefaultValue(0m)` untuk kedua kolom; `CK_BilCalculationVersion_Amounts` diperluas `>= 0` untuk keduanya |
+| `BilRefundableCreditConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilRefundableCreditConfiguration.cs` | `CK_BilRefundableCredit_SourceType` menerima `REFERRED_OUTPATIENT_ADMIN` |
+| `BilRefundableCredit` | **Sudah ada** | `Areas/HealthServices/BillingManagement/Billing/Models/BilRefundableCredit.cs` | Konstanta `BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin` sudah ada. Nol perubahan model |
+| `BilSupersededItemReview` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Models/BilSupersededItemReview.cs` | Satu keputusan Supervisor Kasir atas satu item yang di-void dengan kode `SUPERSEDED_BY_INPATIENT_ADMISSION`. *Append-only*. Kelas statis `BillingSupersededItemReviewDecisions` (`REINSTATE`, `KEEP`, `NEEDS_POST_CLOSE_CORRECTION`) di berkas yang sama, mengikuti pola `BillingRefundableCreditSourceTypes` |
+| `BilSupersededItemReviewConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilSupersededItemReviewConfiguration.cs` | Tabel, constraint, dan indeks pada bagian 6 |
+| `BillingSupersededItemReviewService` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingSupersededItemReviewService.cs` | Daftar kandidat, detail, dan keputusan. `DecideAsync` membuka transaksi `Serializable` dan lock `BIL_INVOICE_LEDGER_{invoiceId}` (pola `BillingFinancialExceptionService`). Untuk `REINSTATE`, item salinan `ACTIVE` dibuat (bagian 5.2). Didaftarkan `AddScoped` di `BillingManagementServiceCollectionExtensions.cs` |
+| `BillingSupersededItemReviewsController` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingSupersededItemReviewsController.cs` | Tiga endpoint (`contracts/api-contract.md` amendment revisi `2.3`). `[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Superseded Item Review", ...)]`, `[Tags("Health Services / Billing Management / Billing / Superseded Item Reviews")]` |
+| `BillingSupersededItemReviewDtos` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingSupersededItemReviewDtos.cs` | `SupersededItemReviewListQuery` (PagedQuery), `SupersededItemReviewCandidateResponse` (Response), `DecideSupersededItemRequest` (Status), `SupersededItemReviewResponse` (Response). Folder `Dtos/` (bukan `DTOs/`) adalah penyimpangan yang sudah ada pada area Billing; berkas baru mengikuti folder itu agar tidak terpecah, dan perapiannya **bukan** bagian task ini |
+| `AdministrationFeeCalculationResponse` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInvoiceDtos.cs:490` | `ReferredOutpatientAdminVoided` **dihapus**. `ReferredOutpatientAdminCreditedAmount` kini berarti kredit yang **terpakai**. Baru: `ReferredOutpatientAdminUnappliedCreditAmount`, `IsSupersededByInpatientAdmission`, `SupersededByInpatientInvoiceId`, `SupersededReasonCode`, `ReferredOutpatientAdminOrigins` |
+| `AdminFeeCalculationResult`, `ReconcileReferredOutpatientAdminRequest`, `ReconcileReferredOutpatientAdminResult` | **Diperbarui / Dihapus** | `Areas/HealthServices/BillingManagement/Billing/Dtos/AdministrationFeeCalculationDtos.cs` | Kedua DTO rekonsiliasi dihapus. `ReferredOutpatientAdminVoided` pada `AdminFeeCalculationResult` dihapus. Baru: `ReferredAdminReplacementResult` (hasil `ResolveReferredAdminReplacementAsync`) dan `ReferredAdminOriginResult` |
+| `ApplicationDbContext` | **Diperbarui** | `Repositories/ApplicationDbContext.cs` | `DbSet<BilSupersededItemReview> BilSupersededItemReviews` |
+
+## 5. Alur penting
+
+### 5.1 `ResolveReferredAdminReplacementAsync` — baca saja
+
+1. Invoice `RAJAL`: cari tautan aktif dengan `LinkedEncounterId` = kunjungan invoice ini. Bila ada, hasilnya `Superseded = true` dengan `SupersededByInpatientInvoiceId` diambil dari invoice rawat inap yang paling awal dibuat.
+2. Invoice `RANAP`: ambil tautan aktif dengan `RanapInvoiceId` = invoice ini. Untuk tiap kunjungan tertaut, ambil invoice `RAJAL`-nya (paling banyak satu per kunjungan, karena indeks unik `EncounterId` pada `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInvoiceConfiguration.cs:27`). Lalu ambil versi kalkulasi terkininya beserta alokasi bersihnya, dan hitung perlakuan serta kreditnya menurut bagian 1.1.
+3. Invoice `IGD`/`OTC`: tidak dibaca; hasil kosong.
+
+### 5.2 Pemulihan item (`REINSTATE`)
+
+Item lama tetap `VOIDED` dan tidak diubah satu kolom pun. Item baru dibuat sebagai salinan, dengan kolom berikut:
+
+| Kolom item baru | Isi |
+| --- | --- |
+| `InvoiceId`, `SourceDomain`, `SourceDetailId`, `SourceContractVersion`, `SourceStatus`, `SourceOccurredAt`, `CategoryId`, `TariffId`, `DescriptionSnapshot`, `Quantity`, `UnitPrice`, `DoctorShare`, `SourcePayloadHash` | Disalin dari item lama |
+| `SourceVersion` | Item lama + 1 |
+| `Status` | `ACTIVE` |
+| `VoidReason` | NULL |
+| `LastIdempotencyKey`, `LastCorrelationId`, `LastCausationId` | Idempotency-Key permintaan keputusan; correlation dan causation = id baris tinjauan |
+
+`BilInvoice.RowVersion` diperbarui. Kalkulasi berikutnya, saat kasir membuka atau memproses tagihan, memasukkan item itu.
+Pemulihan **ditolak** bila sudah ada item `ACTIVE` dengan kunci sumber yang sama (F17).
+
+## 6. Status Model dan Dampak Migration
+
+### `BilCalculationVersion` — **Diperbarui**
+
+| Kolom | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | :---: |
+| `ReferredOutpatientAdminCreditAmount` | `numeric(18,2)` | Ya | `0` | `>= 0`; hanya dapat lebih dari 0 pada invoice `RANAP`; `<=` porsi pasien sebelum kredit | Tidak |
+| `ReferredOutpatientAdminUnappliedCreditAmount` | `numeric(18,2)` | Ya | `0` | `>= 0`; hanya dapat lebih dari 0 bila porsi pasien sesudah kredit tepat 0 | Tidak |
+
+`CK_BilCalculationVersion_Amounts` diperluas dengan `"ReferredOutpatientAdminCreditAmount" >= 0 AND "ReferredOutpatientAdminUnappliedCreditAmount" >= 0`. Nol indeks baru.
+
+### `BilRefundableCredit` — **Diperbarui (nilai constraint)**
+
+`CK_BilRefundableCredit_SourceType`: `"SourceType" IN ('ALLOCATION_EXCESS','SETTLEMENT','REFERRED_OUTPATIENT_ADMIN')`. Nol kolom
+baru. Indeks unik (`SourceType`, `SourceId`) yang sudah ada menjamin satu kredit per invoice rawat inap, karena `SourceId` = id invoice rawat inap.
+
+### `BilSupersededItemReview` — **Baru**, schema `public`
+
+| Kolom | Tipe | Wajib | Bawaan | Batas / validasi | Relasi dan hapus | Sensitif |
+| --- | --- | :---: | --- | --- | --- | :---: |
+| `Id` | `uuid` | Ya | baru | PK | — | Tidak |
+| `InvoiceItemId` | `uuid` | Ya | — | Item `VOIDED` dengan `VoidReason = 'SUPERSEDED_BY_INPATIENT_ADMISSION'` | FK `BilInvoiceItem`, `Restrict` | Tidak |
+| `InvoiceId` | `uuid` | Ya | — | Sama dengan `InvoiceId` item | FK `BilInvoice`, `Restrict` | Tidak |
+| `Decision` | `varchar(40)` | Ya | — | `CHECK IN ('REINSTATE','KEEP','NEEDS_POST_CLOSE_CORRECTION')` | — | Tidak |
+| `InvoiceStatusAtDecision` | `varchar(30)` | Ya | — | Status invoice saat keputusan diambil | — | Tidak |
+| `ReinstatedInvoiceItemId` | `uuid` | Tidak | NULL | `CHECK ("Decision" = 'REINSTATE') = ("ReinstatedInvoiceItemId" IS NOT NULL)` | FK `BilInvoiceItem`, `Restrict` | Tidak |
+| `Reason` | `varchar(500)` | Ya | — | 10–500 karakter sesudah dipangkas (diperiksa service); `CHECK length(trim("Reason")) > 0` | — | Tidak, tetapi **MUST NOT** memuat nama pasien atau diagnosis |
+| `DecidedBy` | `uuid` | Ya | — | Pengguna pemegang `BillingSupersededItemReview : Decide` | — | Tidak |
+| `DecidedAt` | `timestamptz` | Ya | — | Waktu server | — | Tidak |
+| `IdempotencyKey` | `uuid` | Ya | — | Unik | — | Tidak |
+| `PayloadHash` | `varchar(64)` | Ya | — | SHA-256 isi permintaan | — | Tidak |
+
+Indeks: `UX_BilSupersededItemReview_InvoiceItem` unik atas `InvoiceItemId` berfilter `NOT "IsDelete"` (satu keputusan per
+item); `UX_BilSupersededItemReview_IdempotencyKey` unik; `IX_BilSupersededItemReview_InvoiceId`;
+`IX_BilSupersededItemReview_Decision`. *Append-only*: tidak ada endpoint ubah atau hapus, sehingga `RowVersion` tidak dibutuhkan.
+
+## 7. Rencana Migration
+
+| Urutan | Nama | Isi | Tanpa mematikan layanan? | Langkah mundur |
+| ---: | --- | --- | :---: | --- |
+| 0 | — (tanpa migration) | `FR-BKC-278`: rekonsiliasi berbasis item dihapus. Murni kode, dapat dirilis lebih dulu | Ya | Revert kode |
+| 1 | `<timestamp>_AddReferredAdminCreditAndSupersededItemReview` | Dua kolom `BilCalculationVersion` (`ADD COLUMN ... NOT NULL DEFAULT 0`, metadata saja pada PostgreSQL 11+); `CK_BilCalculationVersion_Amounts` dan `CK_BilRefundableCredit_SourceType` di-*drop* lalu dibuat ulang `NOT VALID`, kemudian `VALIDATE CONSTRAINT`; `CREATE TABLE "BilSupersededItemReview"` | Ya | `Down`: drop tabel; kembalikan kedua `CHECK`; drop kedua kolom. **Mengembalikan constraint `SourceType` gagal** bila sudah ada kredit `REFERRED_OUTPATIENT_ADMIN`. Mundur sesudah itu berarti menangani kredit itu lebih dulu bersama Finance; tidak boleh dihapus diam-diam |
+| 2 | `<timestamp>_BackfillTransferOriginEncounterLinks` | Data saja, nol skema (`BKC-DES-088`, bagian 8) | Ya | `Down`: hapus baris yang `CreateBy` = penanda backfill. Lihat peringatan bagian 8 |
+
+Kedua migration **MUST** dibuat dan dijalankan hanya dengan otorisasi eksplisit terpisah, sesuai `AGENTS.md` bagian
+Keselamatan Basis Data. Approval desain ini **bukan** otorisasi itu.
+
+## 8. Backfill Tautan Transfer Lama (`BKC-DES-088`)
+
+Preseden: `BKC-DES-034`, yaitu migration data dengan dry-run baca-saja yang memakai kriteria identik.
+
+### 8.1 Kriteria — identik dengan penulis runtime `BKC-DES-077`/`079`
+
+Satu tautan ditulis untuk setiap kunjungan rawat inap **E** yang memenuhi seluruh syarat berikut:
+
+1. `E.SourceEncounterId` tidak NULL, `E.AdmissionTransferSourceType` bernilai `Emergency` atau `Outpatient`, dan E tidak dihapus.
+2. Kunjungan asal **S** = `E.SourceEncounterId`: `S.PatientId = E.PatientId`, dan S tidak dihapus maupun dibatalkan.
+3. Ada invoice rawat inap **R** dengan `R.EncounterId = E.Id`, `ServiceType = 'RANAP'`, dan R tidak dihapus.
+4. Ada tanda terima **T** `ADMISSION_CONFIRMED` dengan `T.InvoiceId = R.Id`, `T.EncounterId = E.Id`, dan `Outcome` `INVOICE_OPENED` atau `INVOICE_ALREADY_OPEN`. Bila lebih dari satu, dipakai yang `ReceivedAtUtc`-nya paling awal.
+5. Belum ada tautan tidak terhapus untuk pasangan (R, S).
+
+Isi baris: `RanapInvoiceId = R.Id`, `LinkedEncounterId = S.Id`,
+`LinkReason = 'EMERGENCY_ORIGIN'`/`'OUTPATIENT_ORIGIN'` mengikuti `AdmissionTransferSourceType`, `SourceReferralId = NULL`,
+`ReceiptId = T.Id`, **`LinkedAt = T.ReceivedAtUtc`**, dan `CreateBy` = penanda backfill
+`7b1f0163-0000-4000-8000-000000000163`, sebuah konstanta yang ditulis di migration dan dicatat di sini.
+
+> **`LinkedAt` MUST NOT diisi waktu migration dijalankan.** Kolom itu berarti "kapan tautan ini seharusnya lahir". Waktu
+> tanda terima asli adalah saat penulis runtime akan menulisnya seandainya ia sudah ada.
+
+### 8.2 Langkah nol — dry-run baca-saja, wajib, di luar migration
+
+| Yang dihitung | Kenapa dibutuhkan |
+| --- | --- |
+| Jumlah kandidat per `AdmissionTransferSourceType` | Ukuran sebenarnya backfill |
+| Jumlah yang dilewati per alasan: `PATIENT_MISMATCH`, `SOURCE_DELETED_OR_CANCELLED`, `NO_RANAP_INVOICE`, `NO_ADMISSION_RECEIPT`, `ALREADY_LINKED` | Pemilik melihat data yang **tidak** akan tertaut, lalu tetap jatuh ke `UNLINKED_TRANSFER_ORIGIN` pada `MVP-37` |
+| `TYPE_MISMATCH`: `S.EncounterType` tidak cocok dengan `AdmissionTransferSourceType`. **Tetap ditautkan**, karena kriterianya identik dengan runtime, tetapi dilaporkan | Anomali data Registrasi yang perlu dilihat pemilik sebelum menjalankan |
+| Dari yang akan ditautkan: berapa invoice R masih `OPEN` dan berapa sudah `FINAL`/`CLOSED` | Yang masih `OPEN` akan mendapat penggantian admin pada kalkulasi berikutnya (bagian 1). Yang sudah final **tidak** berubah |
+
+### 8.3 Waktu dan pengulangan
+
+- **MUST** dijalankan sesudah `FR-BKC-273` (penulis runtime) terpasang, agar tidak ada celah transfer di antara keduanya.
+- **MUST** selesai sebelum `MVP-37` dirilis (`BKC-DEC-163`).
+- Aman diulang: syarat 5 dan indeks unik pasangan mencegah baris kedua.
+- Mundur (`Down`) menghapus baris berpenanda. Tautan adalah data turunan yang dapat dibangun ulang dari Registrasi. Namun versi kalkulasi yang sudah terbentuk dengan memakai tautan itu tetap ada (*append-only*), jadi mundur hanya bermakna **sebelum** invoice rawat inap terkait dihitung ulang.
+
+## 9. Tinjauan Void Keliru (`BKC-DES-089`)
+
+**Kandidat** adalah setiap `BilInvoiceItem` dengan `Status = 'VOIDED'`, `VoidReason = 'SUPERSEDED_BY_INPATIENT_ADMISSION'`,
+dan tidak dihapus. Menurut F8–F11, **seluruh** void dengan kode ini dibuat oleh jalur yang salah sasaran, termasuk void pada kunjungan
+yang tertaut. Supervisor Kasir memutuskan per item (`BKC-DEC-162`), sendiri tanpa persetujuan berjenjang (A3).
+
+| Keputusan | Boleh bila invoice | Akibat |
+| --- | --- | --- |
+| `REINSTATE` | `OPEN` | Item salinan `ACTIVE` lahir (bagian 5.2); tagihan bertambah pada kalkulasi berikutnya |
+| `KEEP` | Status apa pun | Tidak ada perubahan tagihan; alasan tercatat |
+| `NEEDS_POST_CLOSE_CORRECTION` | `FINAL`, `CLOSED`, `SETTLED_BY_WRITE_OFF` | Tagihan **tidak** diubah (A2: koreksi sesudah tutup lewat dokumen terpisah). Baris ini menjadi antrean bagi instrumen *credit note*/retur yang belum ada (`BKC-OQ-139`) |
+
+Setiap keputusan bersifat final, satu per item (preseden `BKC-DEC-152`/`BKC-DEC-157`), dan tercatat di log audit
+`BillingSupersededItemReview.Decide` berisi `ReviewId`, `InvoiceItemId`, `InvoiceId`, `Decision`,
+`ReinstatedInvoiceItemId`, dan `ActorUserId` — **tanpa** nama, NIK, maupun nomor rekam medis.
+
+Kredit `REFERRED_OUTPATIENT_ADMIN` yang **sudah** terlanjur tersimpan tidak dirancang reversal-nya, karena constraint
+menolaknya sejak awal (F10). Dry-run tinjauan **MUST** menghitungnya per lingkungan. Bila hasilnya lebih dari 0, basis data
+itu menyimpang dari migration; tangani sebagai insiden terpisah, bukan lewat layar ini.
+
+## 10. Keputusan Arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-083` | Penggantian `BKC-DEC-119` diwujudkan **di kalkulasi**. Rekonsiliasi berbasis item (`ReconcileReferredOutpatientAdminFeeAsync`) dihapus beserta pemanggilnya. Kalkulasi, baik pratinjau maupun simpan, nol tulisan di luar versi kalkulasi | `BKC-DEC-119`, A0, F8–F11 | Admin bukan item; jalur lama salah sasaran, menggagalkan kalkulasi, dan menulis saat pratinjau |
+| `BKC-DES-084` | Invoice poli `OPEN` yang kunjungannya bertautan aktif dihitung dengan admin Rp 0 dan kode `SUPERSEDED_BY_INPATIENT_ADMISSION` di breakdown. Status tidak disimpan; ia diturunkan ulang setiap kalkulasi dari tautan aktif | `BKC-DEC-119` butir 2, `BKC-DEC-161`, invariant 2–3 | Pembatalan rawat inap otomatis mengembalikan admin poli (kasus E) tanpa penulis kedua |
+| `BKC-DES-085` | Invoice poli `FINAL`/`CLOSED`/`SETTLED_BY_WRITE_OFF` dikreditkan pada kalkulasi invoice rawat inap sesuai bagian 1.1. Kredit mengurangi porsi pasien sesudah promo dan disimpan di `ReferredOutpatientAdminCreditAmount` | `BKC-DEC-119` butir 1 dan 3 | Lewat `PatientAmount`, keenam rumus sisa tagihan otomatis konsisten (F14) dan pratinjau tetap bebas tulisan |
+| `BKC-DES-086` | Sisa kredit disimpan di `ReferredOutpatientAdminUnappliedCreditAmount`, lalu saat finalisasi menjadi satu kredit refund `REFERRED_OUTPATIENT_ADMIN` dengan `SourceId` = id invoice rawat inap. `InpatientClearanceService` mengecualikan jenis kredit ini | A1, `BKC-DEC-119` ("pasien tidak dirugikan"), F10, F14 | Finalisasi adalah satu-satunya saat angka stabil. Indeks unik yang ada sudah menjamin satu baris |
+| `BKC-DES-087` | Admin `RANAP` tidak lagi dipotong oleh invoice `RAJAL` berdasarkan kedekatan tanggal. Perilaku sekali-per-hari `RAJAL`/`IGD`/`OTC` tidak diubah | `BKC-DEC-161`, F12, F13 | Penggantian kini hanya lewat tautan; memperbaiki `BKC-DEC-017` di luar scope (`BKC-OQ-138`) |
+| `BKC-DES-088` | Backfill tautan transfer lama lewat satu migration data dengan dry-run wajib, kriteria identik dengan runtime, serta `ReceiptId` dan `LinkedAt` dari tanda terima asli | `BKC-DEC-160`, `BKC-DEC-163`, preseden `BKC-DES-034`, F16 | Satu sumber kebenaran tautan tetap tabel Billing |
+| `BKC-DES-089` | Tinjauan void keliru lewat tabel *append-only* `BilSupersededItemReview`, satu keputusan final per item. Pemulihan berupa salinan item; item lama tidak diubah | `BKC-DEC-158`, `BKC-DEC-162`, A2, A3, F17, F18 | Tanpa *hard delete* dan tanpa mengubah histori |
+| `BKC-DES-090` | `BKC-DES-049` dan `BKC-DES-081` **superseded**; `FR-BKC-277` **superseded** oleh `FR-BKC-278`–`282`. ID lama dipertahankan sebagai histori | Bagian 0.3 | Menjaga ID stabil dan histori approval |
+| `BKC-DES-091` | Urutan rilis pada bagian 11 | — | — |
+
+## 11. Urutan Rilis yang Dipersyaratkan
+
+1. **`FR-BKC-278` (hentikan jalur lama) SHOULD rilis secepatnya dan berdiri sendiri.** Ia tidak menghilangkan penggantian
+   apa pun yang benar-benar bekerja hari ini (jalur lama tidak pernah menyentuh admin sebenarnya), dan menghentikan kalkulasi
+   gagal, void salah sasaran, serta pratinjau yang menulis.
+2. `FR-BKC-273`–`275` (penulis tautan revisi `2.2`) tidak berubah.
+3. `FR-BKC-283` (backfill) **MUST** dijalankan sesudah langkah 2 dan **MUST** selesai sebelum `MVP-37`.
+4. `FR-BKC-279`–`282` (model penggantian baru beserta migration 1) **SHOULD** rilis sesudah langkah 3. Bila dirilis lebih
+   dulu, pasien transfer lama yang tagihannya masih terbuka belum mendapat penggantian sampai backfill selesai. Dirilis
+   bersamaan, mereka langsung mendapatkannya.
+5. `FR-BKC-284` (tinjauan void) **SHOULD** rilis sesudah langkah 1, agar tidak ada void baru yang menyusul daftar.
+6. `MVP-36` **tidak** bergantung pada revisi ini. `MVP-37` bergantung pada langkah 3.
+
+## 12. Yang Sengaja Tidak Dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Memperbaiki rekonsiliasi item agar hanya menyasar kunjungan tertaut (`BKC-DES-081`) | Jalurnya tidak pernah menyentuh admin sebenarnya (F8). Mempersempitnya tidak memperbaiki apa pun |
+| `BilRefundableCredit` sebagai pembawa utama kredit admin poli | Tidak mengurangi sisa tagihan kasir (F14), dapat dicairkan sebelum dipakai, dan menulisnya saat kalkulasi melanggar invariant 1. Dipakai **hanya** untuk sisa kredit sesudah finalisasi |
+| `BilAdjustment` untuk penggantian admin | Penggantian adalah aturan kalkulasi, bukan pengecualian keuangan. Adjustment juga butuh dua orang dan ditolak untuk `CLOSED` (F18) |
+| Mengubah item `VOIDED` kembali menjadi `ACTIVE` | Mengubah histori (`BKC-DEC-158`). Salinan item memberi hasil yang sama dengan histori utuh |
+| Membuka ulang invoice `CLOSED` | Tidak ada transisinya, dan A2 menetapkan koreksi sesudah tutup lewat dokumen terpisah |
+| Menyimpan status "digantikan" pada invoice poli | Status turunan akan basi saat rawat inap dibatalkan. Menurunkannya ulang dari tautan aktif selalu benar (kasus E) |
+| Memperbaiki `BKC-DEC-017` (sekali per hari) pada revisi ini | Kemampuan lain dengan risiko pendapatan sendiri; dicatat `BKC-OQ-138` |
+| Kolom penanda sumber pada `BilInvoiceEncounterLink` untuk baris backfill | `CreateBy` penanda sudah cukup untuk mundur selektif, dengan nol skema |
+| Endpoint aplikasi untuk menjalankan backfill | Operasi satu kali; preseden `BKC-DES-034` adalah migration data dengan dry-run |
+| Sinkron kredit `REFERRED_OUTPATIENT_ADMIN` ke Finance intake | Berkas milik Finance (`FinanceBillingIntakeService`); dicatat `BKC-OQ-140` |
+| Persetujuan dua orang untuk tinjauan | A3 |
+
+## 13. Yang MUST Dijawab Owner Saat Approval
+
+| Butir | Pertanyaan | Memblokir |
+| --- | --- | :---: |
+| `BKC-OQ-137` | Ratifikasi arahan A1–A3 (bagian 0.4) menjadi baris `BKC-DEC-*` lewat `grill-me` | **Ditutup 16 Oktober 2026** lewat `BKC-DEC-164`–`166`. Catatan: A2 hanya disahkan prinsipnya (tagihan tutup tidak diubah; instrumen diputuskan Finance, `BKC-OQ-139`); A3 bersifat **sementara** dengan pemicu tinjau ulang (`BKC-OQ-141`). Desain tidak berubah karenanya |
+| `BKC-OQ-142` | Admin ganda pada satu tagihan poli (adendum bagian 15) | **Ditutup** — premis tidak terjadi; item tarif admin tidak dipakai (`BKC-DEC-167`) |
+| `BKC-OQ-138` | `BKC-DEC-017` (admin rawat jalan sekali per pasien per tanggal lokal) dijalankan menyimpang (F13): jendela ±1 hari, hanya pendahulu `RAJAL`, dan dua invoice pada hari yang sama bisa sama-sama Rp 0. Perlu pass tersendiri | Tidak memblokir revisi ini |
+| `BKC-OQ-139` | Instrumen koreksi sesudah tutup (*credit note*/retur, A2) belum ada di Billing. Untuk item yang keliru di-void, arah koreksinya **menambah** tagihan pasien, sedangkan *credit note*/retur lazimnya mengurangi. Pemilik Finance/AR perlu menetapkan instrumennya | Tidak memblokir rilis; keputusan `NEEDS_POST_CLOSE_CORRECTION` menunggu instrumen ini |
+| `BKC-OQ-140` | Kredit refund `REFERRED_OUTPATIENT_ADMIN` adalah kewajiban kepada pasien, tetapi Finance intake hanya menyinkronkan `ALLOCATION_EXCESS` dan `SETTLEMENT` (`Corporate/FinanceManagement/BillingIntake/Services/FinanceBillingIntakeService.cs:203-206`). Apakah Finance perlu mencatatnya sebelum refund dieksekusi? | Tidak memblokir; refund yang dieksekusi sudah tersinkron lewat `BilRefundCase` |
+
+## 14. Status Amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `BKC-DEC-119`, `BKC-DEC-017`, `BKC-DEC-158`, `BKC-DEC-160`–`163` (`approved`); arahan A1–A3 (belum diratifikasi, `BKC-OQ-137`) |
+| Keputusan arsitektur | `BKC-DES-083`–`BKC-DES-091` berlaku; `BKC-DES-092` (adendum bagian 15) **dicabut** (`BKC-DEC-167`) |
+| Dampak skema | **Dua migration**: satu skema (dua kolom, dua `CHECK`, satu tabel baru) dan satu data (backfill) |
+| Dampak kontrak API | Dua endpoint kalkulasi yang sudah ada berubah response-nya (satu field dihapus, lima ditambah); tiga endpoint baru tinjauan |
+| Dampak frontend | `BIL-SCR-42` dan panel ringkasan rawat inap diperbarui; satu layar baru `BIL-SCR-45` |
+| Dampak hak akses | Satu Resource baru `BillingSupersededItemReview` (`Read`, `Decide`), diberikan ke Supervisor Kasir |
+| Ketergantungan lintas modul | Registrasi: baca saja. Finance: kredit refund baru melewati alur refund yang ada (`BKC-OQ-140`) |
+| Kompatibilitas | **Perubahan perilaku yang disengaja:** (1) admin rawat inap tidak lagi dipotong Rp 50.000 untuk kunjungan poli yang tidak tertaut; (2) admin poli pada tagihan poli terbuka yang tertaut menjadi Rp 0; (3) pasien transfer yang sudah lunas di poli menerima kredit sebesar admin sebenarnya. Ketiganya **MUST** dikomunikasikan ke kasir |
+| Cacat as-is | F10 (kalkulasi rawat inap gagal) dan F11 (pratinjau menulis) keparahan **High**; F9 (void salah sasaran) **High**; F12 (potongan tetap berbasis waktu) **Medium** |
+| Status | **approved** — Pemilik modul Billing, 16 Oktober 2026 (`blueprint-manifest.md` `approved_by_revision_2_3`). Adendum bagian 15 (`BKC-DES-092`) dicabut sebelum approval (`BKC-DEC-167`). Approval ini **bukan** otorisasi migration |
+
+## 15. Adendum 16 Oktober 2026 — Item Tarif Berkategori Admin (`BKC-CQ-15`)
+
+> **DICABUT 16 Oktober 2026.** Pemilik modul Billing menjawab bahwa hanya ada **satu** biaya administrasi (dihitung otomatis
+> dari master Kebijakan Biaya Administrasi) dan item tarif berkategori admin **tidak dipakai** (`BKC-DEC-167`).
+> `BKC-DES-092` berstatus **withdrawn**; `BKC-CQ-15` dijawab "tidak dipakai"; `BKC-OQ-142` ditutup tanpa keputusan karena
+> premisnya tidak terjadi. Isi bagian ini dipertahankan sebagai histori dan **tidak** boleh dibangun. Item yang kategorinya
+> admin, bila suatu saat muncul, dihitung sebagai item biasa dan tidak digantikan; mengubahnya butuh keputusan baru.
+> Koreksi F8/F9 pada bagian 15.1 tetap berlaku sebagai fakta source.
+
+> Masih bagian revisi `2.3` (`draft`, belum disetujui); revisi **tidak** dinaikkan. Masukan: capability map §25
+> (`BKC-CQ-15`), `BKC-DEC-119` butir 2 dan 3. Backend SHA `738e03a0`, Frontend SHA `8ad45262b`, sama dengan pass desain
+> sebelumnya. Keputusan arsitektur baru: `BKC-DES-092`.
+
+### 15.1 Temuan dan koreksi
+
+Capability map §25 menemukan bahwa item tagihan **dapat** berkategori tarif admin. Kategori `MstTariffCategory.IsAdministrationFee`
+dikenali penghitung item (`BillingCalculationService.cs:307,881`) dan diskon (`BillingDiscountService.cs:89,612`), dan item
+bertarif ikut membawa kategori tarifnya (`BillingInvoiceService.cs:1409`). Tidak ada tarif seperti itu di seeder maupun
+migration, sehingga keberadaannya pada data nyata **Unknown**.
+
+| Klaim revisi `2.3` | Yang benar |
+| --- | --- |
+| F8: "Biaya admin **bukan** item tagihan" | Biaya admin **menurut kebijakan** bukan item. Item tarif berkategori admin **dapat** ada |
+| F9: yang di-void jalur lama adalah item **lain** | Bisa item layanan lain, **atau** item tarif admin yang memang sah |
+| Bagian 1: penggantian hanya menyentuh biaya admin kebijakan | Belum lengkap. `BKC-DEC-119` butir 2 secara harfiah menyebut "**item** biaya administrasi rawat jalan", jadi item tarif admin wajib ikut digantikan |
+
+Desain di bawah dibuat **benar baik item seperti itu ada maupun tidak**. Karena itu `BKC-CQ-15` tidak lagi menahan approval;
+jawabannya hanya menentukan seberapa sering jalur ini terpakai.
+
+### 15.2 Model — item tarif admin diperlakukan sama dengan biaya admin kebijakan
+
+**Item admin poli** adalah item `BilInvoiceItem` pada invoice `RAJAL` yang berstatus `ACTIVE`, tidak dihapus, dan kategorinya
+`IsAdministrationFee = true`. Penandanya **kategori tarif**, **bukan** kata pada deskripsi; pencocokan kata
+"Administrasi" (F9) tidak dipakai lagi di mana pun.
+
+| Status invoice poli asal | Biaya admin kebijakan (bagian 1.1) | Item admin poli (baru) |
+| --- | --- | --- |
+| `OPEN`, tertaut aktif | Rp 0 pada kalkulasi | **Dikeluarkan dari kalkulasi** dengan kode `SUPERSEDED_BY_INPATIENT_ADMISSION`. Baris item tetap `ACTIVE`; **tidak** di-void (invariant 1: kalkulasi tidak menulis). Pola yang sama dengan obat berdisposisi `EXCLUDED` (`BillingCalculationService.cs:192-205`), tetapi diturunkan dari tautan aktif dan tidak disimpan |
+| `FINAL`, `CLOSED` | Dikreditkan porsi pasiennya | Dikreditkan porsi pasiennya, dijumlah dengan kolom kiri |
+| `SETTLED_BY_WRITE_OFF` | Bagian dari total yang dibatasi alokasi bersih | Sama; total admin (kebijakan + item) dibatasi alokasi bersih |
+
+**Porsi pasien item admin** dibaca dari `BreakdownSnapshot.Items` versi kalkulasi terkini invoice poli, untuk item yang
+kategorinya admin:
+`NetAmount − (ItemPrimaryAmount + TaxPrimaryAmount) − (ItemUnresolvedAmount + TaxUnresolvedAmount) − (ItemNonBillableResidualAmount + TaxNonBillableResidualAmount)`,
+dibatasi minimal 0. Rumus ini sejajar dengan rumus porsi pasien biaya admin kebijakan (bagian 1.1).
+
+Kategori dibaca dari `MstTariffCategory` **saat kalkulasi invoice rawat inap berjalan**. Bila kategori itu diubah
+sesudah invoice poli dihitung, yang dipakai adalah penanda terbaru. Risiko ini diterima, karena mengubah penanda kategori
+admin adalah tindakan master data yang jarang dan sudah tercatat.
+
+**Contoh.** Tagihan poli Pak Budi (nama samaran) memuat biaya admin kebijakan Rp 150.000 **dan** item tarif "Biaya
+Administrasi Pendaftaran" Rp 20.000 berkategori admin. Ia ditransfer resmi ke rawat inap.
+- Tagihan poli masih terbuka: admin kebijakan Rp 0 dan item Rp 20.000 dikeluarkan, sehingga total admin poli Rp 0.
+- Tagihan poli sudah lunas: kredit di rawat inap Rp 170.000.
+
+### 15.3 Perubahan class dan kontrak
+
+| Class / berkas | Status | Perubahan tambahan |
+| --- | --- | --- |
+| `AdministrationFeeCalculationService.ResolveReferredAdminReplacementAsync` | **Baru** (bagian 4) | Untuk invoice `RAJAL` yang digantikan, ikut mengembalikan daftar id item admin poli. Untuk invoice `RANAP`, `adminPatientAmount` tiap invoice asal = porsi pasien biaya admin kebijakan + Σ porsi pasien item admin poli. Tetap baca saja |
+| `BillingCalculationService.CalculateAsync` | **Diperbarui** (bagian 4) | Untuk invoice `RAJAL` yang digantikan, item admin poli dikeluarkan dari `activeItems` **sebelum** item dihitung, di titik yang sama dengan pengecualian obat (`:192-205`). Item yang dikeluarkan dicatat di `breakdown.supersededAdministrationItems` |
+| `CalculationBreakdownResponse` | **Diperbarui** | Field baru `SupersededAdministrationItems`: daftar `{ invoiceItemId, description, amount, reasonCode }`. Ikut tersimpan di `BreakdownSnapshot` |
+| `ReferredAdminOriginResult` / elemen `referredOutpatientAdminOrigins` | **Diperbarui** | Field baru `adminItemsPatientAmount` (bagian dari `adminPatientAmount`) |
+| `SupersededItemReviewCandidateResponse` | **Diperbarui** | Field baru `isAdministrationFeeCategory`. Item admin poli yang dulu di-void jalur lama sebenarnya **sudah sesuai** `BKC-DEC-119` bila kunjungannya tertaut; Supervisor perlu melihat ini sebelum memutuskan. Ini hanya informasi, bukan pembatas pilihan |
+
+Nol tabel baru, nol kolom baru, dan nol migration tambahan. `BreakdownSnapshot` sudah berupa JSON.
+
+### 15.4 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Mem-void item admin poli saat tautan ditulis (penulis tautan runtime dan backfill) | Menulis di luar kalkulasi berarti dua penulis untuk satu aturan. Void juga tidak kembali otomatis bila rawat inap dibatalkan (kasus E bagian 1.4) |
+| Mengenali item admin lewat kata "Administrasi" pada deskripsi | Penyebab F9. Penanda yang sah adalah kategori tarif |
+| Melarang item tarif admin pada tagihan poli yang juga punya biaya admin kebijakan | Itu aturan bisnis baru (admin ganda pada satu tagihan), bukan penggantian `BKC-DEC-119`. Dicatat `BKC-OQ-142` |
+
+### 15.5 Keputusan arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-092` | Penggantian `BKC-DEC-119` mencakup biaya admin kebijakan **dan** item aktif berkategori tarif admin pada invoice `RAJAL` yang tertaut aktif. Pada invoice `OPEN`, item itu dikeluarkan dari kalkulasi tanpa ditulis; pada invoice non-`OPEN`, porsi pasiennya dikreditkan di invoice rawat inap. Penandanya kategori tarif, bukan deskripsi | `BKC-DEC-119` butir 2 dan 3; capability map §25 (`BKC-CQ-15`) | Desain benar terlepas dari ada tidaknya item seperti itu; menutup F9 di sumbernya |
+
+### 15.6 Pertanyaan baru
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `BKC-OQ-142` | Bolehkah satu tagihan poli memuat biaya admin kebijakan **dan** item tarif berkategori admin sekaligus? Saat ini keduanya ditagih (admin ganda pada kunjungan yang sama), terlepas dari rawat inap | Pemilik modul Billing bersama Finance | Tidak memblokir revisi ini. Berkaitan dengan `BKC-OQ-138` (`BKC-DEC-017`) |
+
+Status `BKC-CQ-15`: **ditutup oleh desain** (`BKC-DES-092`). Pertanyaan datanya (seberapa banyak item seperti itu di
+produksi) tetap berguna untuk menakar dampak, tetapi tidak lagi menahan approval.

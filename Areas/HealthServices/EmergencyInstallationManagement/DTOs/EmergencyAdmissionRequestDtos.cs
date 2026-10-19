@@ -19,6 +19,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool NeedsIsolation { get; set; }
         public bool NeedsOxygenSupport { get; set; }
         public bool NeedsSpecialMonitoring { get; set; }
+        public EmergencyPatientDependencyLevel? PatientDependencyLevel { get; set; }
         public string? ClinicalIndication { get; set; }
         public string? CarePlanInstruction { get; set; }
         public Guid RowVersion { get; set; }
@@ -126,8 +127,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? RequestedServiceUnitName { get; set; }
         public string? RequestedPatientClassName { get; set; }
         public bool IsCito { get; set; }
+        public EmergencyPatientDependencyLevel? PatientDependencyLevel { get; set; }
+        public string? PatientDependencyLevelName { get; set; }
         public DateTime? SignatureRequestedAt { get; set; }
         public string? CancellationReason { get; set; }
+        public string? AdmissionRejectionReason { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid RowVersion { get; set; }
     }
@@ -157,6 +161,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool NeedsOxygenSupport { get; set; }
         public bool NeedsSpecialMonitoring { get; set; }
         public List<string> SpecialNeeds { get; set; } = [];
+        public EmergencyPatientDependencyLevel? PatientDependencyLevel { get; set; }
+        public string? PatientDependencyLevelName { get; set; }
         public string? ClinicalIndication { get; set; }
         public string? CarePlanInstruction { get; set; }
         public EmergencyAdmissionRequestDoctorInfo? ActiveIgdDoctor { get; set; }
@@ -165,6 +171,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public EmergencyAdmissionRequestSignerInfo? Signer { get; set; }
         public DateTime? CancelledAt { get; set; }
         public string? CancellationReason { get; set; }
+        public string? AdmissionRejectionReason { get; set; }
         public List<EmergencyAdmissionRequestEventItem> Events { get; set; } = [];
         public DateTime CreateDateTime { get; set; }
         public Guid RowVersion { get; set; }
@@ -197,6 +204,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool NeedsIsolation { get; set; }
         public bool NeedsOxygenSupport { get; set; }
         public bool NeedsSpecialMonitoring { get; set; }
+        public EmergencyPatientDependencyLevel? PatientDependencyLevel { get; set; }
+        public string? PatientDependencyLevelName { get; set; }
         public string? ClinicalIndication { get; set; }
         public string? CarePlanInstruction { get; set; }
         public EmergencyAdmissionRequestSignerInfo Signer { get; set; } = new();
@@ -220,6 +229,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public int EstimatedLengthOfStayDays { get; set; }
         public bool IsCito { get; set; }
         public List<string> SpecialNeeds { get; set; } = [];
+        public EmergencyPatientDependencyLevel? PatientDependencyLevel { get; set; }
+        public string? PatientDependencyLevelName { get; set; }
         public string? ClinicalIndication { get; set; }
         public string? CarePlanInstruction { get; set; }
         public EmergencyAdmissionRequestSignerInfo Signer { get; set; } = new();

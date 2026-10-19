@@ -3350,3 +3350,351 @@ Keputusan bisnis sudah lengkap, tetapi **perencanaan `MVP-36` kini menunggu amen
 ### Frontend Decision Authority — pass ini
 
 Tidak ada keputusan UI baru.
+
+---
+
+## Closure Pass — Jawaban Pemilik atas BKC-OQ-131, BKC-OQ-132, BKC-OQ-127 dan Approval Revisi 2.2 (16 Oktober 2026)
+
+| Field | Isi |
+| --- | --- |
+| Mode | Jawaban pemilik modul atas tiga pertanyaan yang menahan rilis `FR-BKC-277` dan `MVP-37`, disampaikan sebagai teks dan gambar tabel keputusan dalam satu sesi, disusul pernyataan persetujuan eksplisit atas amandemen revisi `2.2` |
+| Blueprint | `BIL-CASH-001`, revision `2.2` — **disetujui pass ini** (sebelumnya `draft`, menunggu amendment desain `/design-business-module` 14 Oktober 2026) |
+| Backend SHA | `d268a41f` · Frontend SHA `0b45dd8cd` — tidak bergerak sejak desain revisi 2.2 ditulis; nol impact scan ulang diperlukan |
+| Pemilik keputusan | Pemilik modul Billing (pengguna sesi) |
+
+### Approval Revisi 2.2
+
+Pemilik modul Billing menyatakan: *"saya menyetujui amandemen juga"*, menyusul pernyataan tertulis
+yang merangkum isi revisi 2.2 (`BKC-DES-077`–`082`, perbaikan `FR-BKC-277`) dan jawaban atas ketiga
+pertanyaan di bawah. Dicatat sebagai approval karena pemilik modul Billing yang menyatakannya,
+merujuk eksplisit "amandemen" yang sedang dibahas pada sesi yang sama, dan pemilik sudah diberi
+tahu isi serta konsekuensinya sebelum menyatakan setuju. Revisi 2.1 tetap `approved` dan tidak
+dibatalkan; revisi 2.2 menjadi dasar teratas. Rincian lengkap pada `blueprint-manifest.md`
+(`approved_by_revision_2_2`, `approval_scope_revision_2_2`, `approval_exclusions_revision_2_2`).
+
+### `BKC-DEC-158` — Kredit/void admin yang sudah terlanjur dicatat boleh dikoreksi lewat reversal terkontrol
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Kredit dan void biaya administrasi yang **sudah terlanjur** dicatat di lingkungan selain dev — akibat cacat F6 yang mengambil seluruh riwayat kunjungan poli pasien, bukan hanya kunjungan tertaut (`CAP-BIL-05`, dikoreksi `Repair` pada impact scan §24.7) — **BOLEH DIBATALKAN**, tetapi **hanya** lewat **reversal terkontrol**. **Hard delete dan perubahan langsung atas baris histori yang sudah tercatat DILARANG** |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 |
+| Approval evidence | Jawaban tertulis pemilik (gambar tabel keputusan), `BKC-OQ-131`: *"Kredit/void administrasi yang sudah terlanjur dicatat boleh dibatalkan melalui reversal terkontrol, bukan hard delete atau mengubah histori"* |
+| Alasan | Menjaga audit trail finansial: baris kredit/void yang salah tetap tercatat sebagai bukti kejadian historis (sesuai prinsip *append-only* yang sudah dipakai modul ini pada `BilClearanceChainDecision` dan tender top-up revisi `1.8`), sementara dampaknya dibatalkan lewat entri pembalik yang eksplisit dan tertaut ke entri aslinya |
+| Konsekuensi | **Menutup `BKC-OQ-131` sebagai pertanyaan kebijakan.** Mekanisme reversal terkontrol itu sendiri **belum dirancang** — jenis entri pembalik, siapa yang berwenang menjalankannya, dan apakah per-lingkungan atau lewat proses terpusat belum ditentukan. Dicatat `BKC-OQ-134`. **Tidak menahan rilis `FR-BKC-277`**: perbaikan `FR-BKC-277` bersifat forward-looking (mencegah kredit baru yang salah), terpisah dari remediasi data yang sudah terlanjur |
+| Trace | `BKC-OQ-131`; `CAP-BIL-05`; F6 (`02-backend-architecture.md` §9 tabel koreksi) |
+
+### `BKC-DEC-159` — Admin Rawat Jalan tetap diganti bila pasien benar-benar beralih ke Rawat Inap, walau tanpa workflow transfer formal
+
+**[SUPERSEDED 16 Oktober 2026 oleh `BKC-DEC-161` — lihat closure pass lanjutan di bawah. Premisnya
+dikoreksi pemilik sendiri pada sesi lanjutan yang sama: "tidak bisa seperti ini, sebab transfer
+pasien harus tercatat dalam sistem." Baris ini dipertahankan apa adanya sebagai histori, TIDAK
+dihapus, mengikuti aturan blueprint-update-rules.md.]**
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | **Ya**, biaya admin Rawat Jalan **tetap digantikan** oleh biaya admin Rawat Inap apabila pasien **benar-benar beralih** dari Rawat Jalan ke Rawat Inap pada hari yang sama (contoh: admisi langsung tanpa melalui alur transfer formal yang menghasilkan tautan `BKC-DES-077`). Syaratnya kebenaran faktual peralihan, **bukan** keberadaan tautan sistem |
+| Owner | Pemilik modul Billing |
+| Status | `superseded` oleh `BKC-DEC-161` (16 Oktober 2026) |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 (approval awal, sebelum dikoreksi pada sesi lanjutan yang sama) |
+| Approval evidence | Jawaban tertulis pemilik (gambar tabel keputusan), `BKC-OQ-132`: *"Ya, admin RAJAL tetap diganti apabila pasien benar-benar beralih ke RANAP, walaupun tidak melalui workflow transfer formal"* |
+| Alasan | `BKC-DEC-119` ("admin rajal gugur dan digantikan admin ranap bila pasien berasal dari rujukan poliklinik") dibaca pemilik dari **maksud bisnisnya** — peralihan nyata ke rawat inap — bukan dari mekanisme pencatatan sistem yang kebetulan tersedia (tautan transfer) |
+| Konsekuensi | **Menutup `BKC-OQ-132` sebagai pertanyaan kebijakan, tetapi membuka konflik desain.** `BKC-DES-081` (approved pada revisi `2.2` yang baru saja disetujui pemilik pada pass ini juga) membatasi penggantian **hanya** pada kunjungan yang tertaut lewat `BilInvoiceEncounterLink` — persis kebalikan jawaban ini untuk kasus admisi langsung tanpa transfer formal. `BKC-DES-081` **MUST NOT** dirilis apa adanya; ia butuh amendment (revisi `2.3`) yang merancang cara mengenali "peralihan nyata" tanpa tautan sistem (misalnya lewat kedekatan waktu, status kunjungan poli, atau penanda lain yang BELUM diaudit sumbernya). Dicatat `BKC-OQ-133`, **MEMBLOKIR rilis `FR-BKC-277`** sampai amendment itu ada dan disetujui. Keputusan ini **tidak** mengubah `BKC-DEC-119` — ia menafsirkan cakupannya |
+| Trace | `BKC-OQ-132`; `BKC-DES-081`; `BKC-DES-049`; `BKC-DEC-119`; F6 |
+
+### `BKC-DEC-160` — Transfer lama tercatat sebagai data historis Registrasi; hubungan Billing dari data Registrasi yang terverifikasi, disimpan permanen
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Transfer yang terjadi **sebelum** penulis tautan (`BKC-DEC-155`/`BKC-DES-077`) rilis **tetap dicatat sebagai data historis** pada Registrasi (`RegPatientEncounter.SourceEncounterId`, tidak diubah). Hubungan yang dipakai Billing (tautan `BilInvoiceEncounterLink`) **ditentukan dari data Registrasi yang sudah terverifikasi**, lalu **disimpan sebagai relasi persisten** di tabel milik Billing — bukan dibaca ulang setiap kali dari Registrasi secara langsung (menolak opsi (b) murni pada `BKC-OQ-127`) |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 |
+| Approval evidence | Jawaban tertulis pemilik (gambar tabel keputusan), `BKC-OQ-127`: *"Transfer lama tetap dicatat sebagai data historis Registrasi, sedangkan hubungan Billing ditentukan dari data Registrasi yang terverifikasi dan disimpan sebagai relasi persisten"* |
+| Alasan | Konsisten dengan `BKC-DEC-155`: satu sumber kebenaran hubungan kunjungan tetap di tabel milik Billing (`BilInvoiceEncounterLink`), bukan pembacaan langsung `SourceEncounterId` saat kelayakan dihitung (opsi (b) `BKC-OQ-127`), yang akan membuat dua mekanisme tautan berbeda untuk data lama vs data baru |
+| Konsekuensi | **Menutup `BKC-OQ-127` sebagai keputusan kebijakan.** Pilihan ini adalah opsi (a) `BKC-OQ-127`: "ditautkan belakangan". **Mekanisme verifikasi dan penulisan tautan belakangan itu sendiri belum dirancang** — lewat putar ulang Rawat Inap (`InpIntegrationReplayService.NeedsLinkAsync`, butuh perluasan milik Rawat Inap) atau proses satu kali milik Billing, dan apa yang dimaksud "terverifikasi" (validasi kepemilikan pasien, status kunjungan, dsb.) belum ditentukan. Dicatat `BKC-OQ-135`. **Tidak menahan rilis `MVP-37`**: `BKC-DES-080` sudah menjaga transfer lama yang belum tertaut lewat kejanggalan `UNLINKED_TRANSFER_ORIGIN` → `NEEDS_RECONCILIATION` (gagal-tertutup, kasir memutuskan manual) sebagai langkah bawaan sampai backfill ini ada. Backfill adalah penyempurnaan operasional (mengurangi beban rekonsiliasi manual kasir), bukan prasyarat keselamatan data |
+| Trace | `BKC-OQ-127`; `BKC-DES-080`; `BKC-DEC-155` |
+
+### Open Questions baru — pass ini
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `BKC-OQ-133` | `BKC-DES-081` membatasi penggantian admin poli hanya pada kunjungan tertaut, tetapi `BKC-DEC-159` memutuskan admin tetap diganti pada peralihan nyata ke rawat inap tanpa tautan formal. Bagaimana sistem mengenali "peralihan nyata" tanpa tautan — kedekatan waktu, status kunjungan, penanda lain? Butuh amendment desain (revisi `2.3`) lewat `/design-business-module` | Pemilik modul Billing (desain lewat `/design-business-module`) | **MEMBLOKIR rilis `FR-BKC-277`** |
+| `BKC-OQ-134` | Mekanisme reversal terkontrol untuk kredit/void admin yang sudah terlanjur (`BKC-DEC-158`) belum dirancang: jenis entri pembalik, siapa berwenang menjalankannya, per-lingkungan atau terpusat | Pemilik modul Billing dan Finance | Penutupan remediasi data historis; **tidak** menahan rilis `FR-BKC-277` |
+| `BKC-OQ-135` | Mekanisme backfill tautan transfer lama (`BKC-DEC-160`) belum dirancang: lewat putar ulang Rawat Inap atau proses satu kali Billing, dan apa syarat "terverifikasi" | Pemilik modul Billing bersama Rawat Inap | Tidak menahan rilis `MVP-37` (`BKC-DES-080` sudah menjaga); menentukan beban rekonsiliasi manual kasir pasca-rilis |
+
+### Status pertanyaan terbuka — pass ini
+
+| ID | Status | Keterangan |
+| --- | --- | --- |
+| `BKC-OQ-131` | **Ditutup** | `BKC-DEC-158` |
+| `BKC-OQ-132` | **Ditutup** (kebijakan); melahirkan `BKC-OQ-133` | `BKC-DEC-159` |
+| `BKC-OQ-127` | **Ditutup** (kebijakan); melahirkan `BKC-OQ-135` | `BKC-DEC-160` |
+
+### Yang masih menahan rilis `FR-BKC-277` dan `MVP-37` setelah pass ini
+
+| Prasyarat | `FR-BKC-277` | `MVP-37` | Jenis | Status |
+| --- | :---: | :---: | --- | --- |
+| `BKC-OQ-133` — amendment desain `BKC-DES-081` (revisi `2.3`) | Ya | — | `/design-business-module` | Baru dibuka pass ini |
+| `BKC-DES-077`–`079` (penulis tautan) rilis lebih dulu atau bersamaan | — | Ya (disarankan) | Implementasi | Belum dikerjakan |
+| `BE-BKC-FIX-022` mencapai ✅ | Ya | Ya | Pekerjaan pemilik | 🟡 |
+| Otorisasi migration kedua gelombang (`MVP-36`/`MVP-37`) | — | Ya | **Tindakan manusia** | Belum |
+| `BKC-OQ-134` (mekanisme reversal) | Tidak menahan | — | Keputusan desain lanjutan | Terbuka |
+| `BKC-OQ-135` (mekanisme backfill) | — | Tidak menahan | Keputusan desain lanjutan | Terbuka |
+
+### Frontend Decision Authority — pass ini
+
+Tidak ada keputusan UI baru.
+
+---
+
+## Closure Pass — Koreksi Premis BKC-OQ-132/133 dan Jawaban BKC-OQ-134/135 (16 Oktober 2026, lanjutan)
+
+| Field | Isi |
+| --- | --- |
+| Mode | Closure pass lanjutan pada sesi yang sama, atas tiga pertanyaan yang masih menahan rilis `FR-BKC-277`/`MVP-37` (`BKC-OQ-133`, `134`, `135`) |
+| Blueprint | `BIL-CASH-001`, revision `2.2`, status `approved` — **tidak diubah** oleh pass ini |
+| Pemilik keputusan | Pemilik modul Billing (pengguna sesi) |
+
+### Batas scope pass ini
+
+| Di dalam scope | Di luar scope — untuk modul lain |
+| --- | --- |
+| Cara Billing mengenali kunjungan yang berhak atas penggantian admin poli (`BKC-OQ-133`) | Jaminan proses bahwa setiap peralihan poli→ranap tercatat sebagai transfer resmi di Registrasi/admisi — **milik Registration Management dan Rawat Inap** (`BKC-OQ-136`) |
+| Wewenang dan proses reversal kredit/void yang sudah terlanjur (`BKC-OQ-134`) | — |
+| Waktu dan penanggung jawab backfill tautan transfer lama (`BKC-OQ-135`) | Mekanisme teknis `NeedsLinkAsync` — milik Rawat Inap, hanya disinggung sebagai opsi yang ditolak |
+
+### `BKC-DEC-161` — Admisi poli→ranap tanpa transfer resmi adalah gap proses, bukan kasus sah yang perlu didukung Billing; `BKC-DES-081` tetap berlaku tanpa amendment
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Pemilik modul **mengoreksi premis `BKC-DEC-159`**: peralihan pasien dari Rawat Jalan ke Rawat Inap **WAJIB** selalu tercatat lewat alur transfer resmi di Registrasi (`AdmissionTransferSourceType` terisi, menghasilkan tautan `BKC-DES-077`). Admisi "langsung tanpa transfer formal" **bukan** kasus sah yang perlu dideteksi atau dikompensasi lewat heuristik tambahan di Billing — itu adalah **gap proses** pada titik admisi/Registrasi yang harus ditutup di sana. Akibatnya **`BKC-DES-081` (penggantian admin hanya untuk kunjungan tertaut) tetap berlaku PERSIS seperti yang sudah approved pada revisi `2.2`, TANPA amendment** |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 |
+| Approval evidence | Jawaban interaktif pemilik atas pertanyaan BKC-OQ-133 pass pertama: *"tidak bisa seperti ini. sebab transfer pasien harus kecatat dalam sistem"*, dipertegas pada pertanyaan konfirmasi lanjutan: *"Ya, transfer WAJIB selalu lewat alur resmi"* |
+| Alasan | Pemilik menilai bahwa membangun heuristik deteksi "peralihan nyata" di Billing (kedekatan waktu, penanda manual, dsb.) adalah menambal gejala di modul yang salah. Akar masalahnya ada di proses admisi: bila proses itu benar, Billing tidak pernah menemukan kasus "admisi langsung tanpa tautan" yang sah. Ini **membatalkan** `BKC-DEC-159`, bukan menambahnya |
+| Konsekuensi | **[DIKOREKSI 16 Oktober 2026, closure pass "Ratifikasi Revisi 2.3" di bawah: bagian ini tentang `FR-BKC-277` BATAL. Impact scan `/design-business-module` membuktikan `FR-BKC-277`/`BKC-DES-081` tidak pernah menyentuh biaya admin sebenarnya dan `MUST NOT` dibangun; keduanya superseded oleh `FR-BKC-278`–`282`. Keputusan intinya, transfer wajib resmi, TETAP berlaku.]** ~~**Menutup `BKC-OQ-133` TANPA amendment desain.** `FR-BKC-277` tidak lagi menunggu revisi `2.3` — satu-satunya prasyarat tersisa untuk rilisnya adalah `BE-BKC-FIX-022` mencapai ✅ (lihat tabel status di bawah).~~ `BKC-OQ-133` tetap **ditutup** sebagai pertanyaan kebijakan. `BKC-DEC-159` ditandai `superseded` (lihat baris aslinya di atas), **bukan dihapus**. **Membuka `BKC-OQ-136`**: jaminan proses bahwa Registrasi/admisi Rawat Inap selalu mencatat peralihan poli→ranap sebagai transfer resmi — ini **milik Registration Management dan Rawat Inap**, Billing hanya bergantung padanya dan harus diberi tahu, bukan diputuskan di sini |
+| Trace | `BKC-OQ-132`; `BKC-OQ-133`; `BKC-DEC-159` (superseded); `BKC-DES-081`; `BKC-DES-077` |
+
+### `BKC-DEC-162` — Reversal kredit/void admin yang sudah terlanjur dijalankan Supervisor Kasir per-kasus
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Reversal terkontrol (`BKC-DEC-158`) atas kredit/void biaya admin yang sudah terlanjur salah (cacat F6) **dijalankan oleh Supervisor Kasir, per kasus**, lewat endpoint reversal yang approval-nya tercatat (bukan batch terpusat Finance, bukan pula dibiarkan mandiri per-instalasi tanpa kejelasan wewenang) |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 16 Oktober 2026: *"Supervisor Kasir per-kasus (Direkomendasikan)"*. Opsi yang ditolak: proses batch terpusat Finance, dan masing-masing instalasi mandiri tanpa tenggat |
+| Alasan | Konsisten dengan wewenang koreksi finansial lain yang sudah dipakai modul ini (varians shift kasir, `BKC-DEC-124`/`125`): wewenang di tingkat Supervisor Kasir, per kejadian, dengan jejak approval |
+| Konsekuensi | **Menutup `BKC-OQ-134` sebagai keputusan kebijakan.** Mekanisme teknisnya — bentuk endpoint, field approval, dan aturan idempotensi — **belum dirancang**; itu wewenang `/design-business-module`, bukan `grill-me` atau `manage-module-blueprint`. **Tidak menahan rilis `FR-BKC-277`** (remediasi data historis terpisah dari perbaikan forward-looking) **[DIKOREKSI 16 Oktober 2026: bentuk yang diwujudkan desain revisi `2.3` BUKAN reversal kredit, melainkan tinjauan void keliru (`BilSupersededItemReview`, `FR-BKC-284`), karena kredit `REFERRED_OUTPATIENT_ADMIN` tidak pernah dapat tersimpan (`CK_BilRefundableCredit_SourceType` menolaknya). Pelakunya tetap Supervisor Kasir per kasus. Rincian pelaksanaan ada pada keputusan ratifikasi A1–A3 di closure pass "Ratifikasi Revisi 2.3" di bawah.]** |
+| Trace | `BKC-OQ-131`; `BKC-OQ-134`; `BKC-DEC-158` |
+
+### `BKC-DEC-163` — Backfill tautan transfer lama dijalankan Billing sebelum `MVP-37` rilis
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Backfill tautan transfer lama (`BKC-DEC-160`) **dijalankan sebagai proses satu kali milik Billing sendiri**, memverifikasi kepemilikan pasien dari data Registrasi, **dijalankan SEBELUM `MVP-37` mulai dipakai** — bukan perluasan `NeedsLinkAsync` milik Rawat Inap, dan bukan ditunda sampai sesudah rilis |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 |
+| Approval evidence | Pilihan interaktif 16 Oktober 2026: *"Billing, sebelum MVP-37 rilis (Direkomendasikan)"*. Opsi yang ditolak: dijalankan sesudah rilis (kasir merekonsiliasi manual sementara), dan perluasan milik Rawat Inap |
+| Alasan | Satu sumber kebenaran tautan tetap di tabel milik Billing (konsisten `BKC-DEC-155`/`BKC-DEC-160`), dan kasir tidak perlu menanggung beban rekonsiliasi manual untuk kasus lama yang sebenarnya valid begitu `MVP-37` (kelayakan pulang lintas kunjungan) mulai dipakai |
+| Konsekuensi | **Menutup `BKC-OQ-135` sebagai keputusan kebijakan.** Mekanisme verifikasinya — kriteria "terverifikasi", batas volume data, cara menjalankan tanpa migrasi destruktif — **belum dirancang**, wewenang `/design-business-module`. **MENGUBAH status prasyarat `MVP-37`**: backfill ini sekarang **MUST selesai sebelum rilis `MVP-37`** (sebelumnya dicatat tidak menahan, karena `BKC-DES-080` dianggap cukup sebagai jaring pengaman; pemilik secara eksplisit memilih backfill lebih dulu, bukan membiarkan jaring pengaman itu jadi keadaan permanen) |
+| Trace | `BKC-OQ-127`; `BKC-OQ-135`; `BKC-DEC-160`; `BKC-DES-080` |
+
+### Open Question baru — pass ini
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `BKC-OQ-136` | **Baru.** Apakah proses admisi Registrasi/Rawat Inap saat ini menjamin setiap peralihan pasien dari Rawat Jalan ke Rawat Inap selalu tercatat sebagai transfer resmi (`AdmissionTransferSourceType` terisi)? Bila ada celah operasional (mis. admisi darurat yang tidak memperbarui status kunjungan poli), pasien berisiko kehilangan penggantian admin yang sebenarnya sah, karena `BKC-DES-081` hanya menggantikan admin untuk kunjungan tertaut | Pemilik Registration Management dan Rawat Inap | **Tidak memblokir** rilis `FR-BKC-277` (keputusan desain Billing, `BKC-DEC-161`, sudah final) — relevan untuk ketepatan operasional pasca-rilis |
+
+### Status pertanyaan terbuka — pass ini
+
+| ID | Status | Keterangan |
+| --- | --- | --- |
+| `BKC-OQ-133` | **Ditutup TANPA amendment** | `BKC-DEC-161`; `BKC-DEC-159` superseded |
+| `BKC-OQ-134` | **Ditutup** (kebijakan); mekanisme teknis menunggu `/design-business-module` | `BKC-DEC-162` |
+| `BKC-OQ-135` | **Ditutup** (kebijakan); mekanisme teknis menunggu `/design-business-module` | `BKC-DEC-163` |
+
+### Status rilis setelah pass ini
+
+| Prasyarat | `FR-BKC-277` | `MVP-37` | Jenis | Status |
+| --- | :---: | :---: | --- | --- |
+| ~~`BKC-OQ-133` — amendment desain revisi `2.3`~~ | ~~Ya~~ | — | — | **SELESAI — tidak jadi perlu** (`BKC-DEC-161`) |
+| `BE-BKC-FIX-022` mencapai ✅ | Ya | Ya | Pekerjaan pemilik | 🟡 — ~~**satu-satunya penahan tersisa untuk `FR-BKC-277`**~~ **[DIKOREKSI: `FR-BKC-277` superseded; baris ini kini hanya berlaku untuk `MVP-37`]** |
+| `BKC-DES-077`–`079` (penulis tautan) rilis lebih dulu atau bersamaan | — | Ya (disarankan) | Implementasi | Belum dikerjakan |
+| Backfill tautan transfer lama (`BKC-DEC-163`) selesai | — | **Ya (MUST, naik status pass ini)** | `/design-business-module` lalu implementasi | Belum dirancang |
+| Otorisasi migration kedua gelombang (`MVP-36`/`MVP-37`) | — | Ya | **Tindakan manusia** | Belum |
+| `BKC-OQ-134` (mekanisme reversal) | Tidak menahan | — | `/design-business-module` | Kebijakan selesai, desain belum |
+| `BKC-OQ-136` (jaminan proses transfer, Registrasi/Rawat Inap) | Tidak menahan | Tidak menahan | Pihak lain | Terbuka |
+
+~~**`FR-BKC-277` kini hanya menunggu satu hal: `BE-BKC-FIX-022` mencapai ✅.** Tidak ada lagi pertanyaan
+kebijakan maupun konflik desain yang menahannya.~~
+
+**[DIKOREKSI 16 Oktober 2026]** Kalimat di atas keliru. `FR-BKC-277` **superseded** oleh `FR-BKC-278`–`282` dan
+`MUST NOT` dibangun. Alasan, dari impact scan `/design-business-module` pada backend `738e03a0`
+(`02-backend-architecture.md` amendment revisi `2.3` bagian 0.2): biaya admin poli adalah komponen kalkulasi,
+bukan item tagihan; kreditnya ditolak constraint database sehingga perhitungan tagihan rawat inap gagal; dan jalurnya
+juga berjalan saat pratinjau. Pass ini ditulis sebelum scan itu ada.
+
+### Langkah berikutnya yang ditawarkan
+
+Closure pass ini tuntas: seluruh pertanyaan kebijakan yang menahan `FR-BKC-277` dan `MVP-37` sudah
+dijawab (`BKC-OQ-131`–`135` ditutup; `BKC-OQ-136` terbuka tetapi tidak menahan dan milik modul lain).
+Langkah lanjutan yang disarankan:
+
+1. **`/design-business-module`** — merancang mekanisme teknis untuk tiga keputusan yang kebijakannya
+   sudah selesai tetapi desainnya belum: endpoint reversal terkontrol (`BKC-DEC-162`), proses backfill
+   tautan transfer lama (`BKC-DEC-163`), dan — bila diperlukan — pembaruan dokumen desain untuk
+   mencoret status "MEMBLOKIR" pada `BKC-DES-081` mengikuti `BKC-DEC-161`.
+2. Beri tahu pemilik Registration Management/Rawat Inap soal `BKC-OQ-136` — di luar wewenang sesi ini.
+
+Tunggu persetujuan Anda sebelum berpindah skill.
+
+### Frontend Decision Authority — pass ini
+
+Tidak ada keputusan UI baru.
+
+---
+
+## Closure Pass — Ratifikasi Arahan Revisi 2.3 dan Koreksi Status Rilis (16 Oktober 2026, lanjutan keempat)
+
+| Field | Isi |
+| --- | --- |
+| Mode | Closure pass atas amendment revisi `2.3` (`draft`, dibuat `/design-business-module` 16 Oktober 2026) |
+| Blueprint | `BIL-CASH-001`, revision `2.3`, status `draft` — **tidak diubah** oleh pass ini. Revisi `2.2` tetap `approved` |
+| Backend SHA | `738e03a0` · Frontend SHA `8ad45262b` — sama dengan yang diaudit desain revisi `2.3` |
+| Pemilik keputusan | Pemilik modul Billing (pengguna sesi) |
+
+### Batas scope pass ini
+
+| Di dalam scope | Di luar scope — untuk pihak lain |
+| --- | --- |
+| Meratifikasi tiga arahan pemilik pada pass desain (`BKC-OQ-137`) menjadi keputusan bernomor | Desain teknis tinjauan void dan kredit refund — milik `/design-business-module` |
+| Mengoreksi klaim status rilis `FR-BKC-277` pada closure pass sebelumnya | Status `CAP-BIL-05` pada capability map (seharusnya **Conflict**) — milik `/trace-existing-capabilities` |
+| Menguji istilah kabur "credit note atau retur" dan "dulu" | Instrumen koreksi pasca-tutup dan aturan internal Finance — milik **Finance/AR** (`BKC-OQ-139`, `BKC-OQ-140`) |
+
+### Koreksi atas closure pass sebelumnya
+
+Closure pass "Koreksi Premis `BKC-OQ-132`/`133` dan Jawaban `BKC-OQ-134`/`135`" menyimpulkan bahwa `FR-BKC-277` "hanya menunggu
+`BE-BKC-FIX-022`". Kesimpulan itu **batal**: impact scan `/design-business-module` membuktikan `FR-BKC-277`/`BKC-DES-081`
+tidak menyentuh biaya admin poli yang sebenarnya, sehingga `MUST NOT` dibangun dan digantikan `FR-BKC-278`–`282`. Penanda
+koreksi sudah dipasang pada empat tempat di bagian itu (`BKC-DEC-161` Konsekuensi, `BKC-DEC-162` Konsekuensi, tabel
+status rilis, dan paragraf penutupnya). Teks lama dicoret, **tidak dihapus**. `BKC-DEC-161` sendiri (transfer wajib
+tercatat resmi) **tetap berlaku**.
+
+### `BKC-DEC-164` — Sisa kredit admin poli yang melebihi porsi pasien menjadi kredit refund
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Bila kredit biaya admin poli pada tagihan rawat inap lebih besar daripada porsi pasien (contoh: rawat inap ditanggung penuh BPJS sehingga porsi pasien Rp 0), **sisa kredit menjadi kredit refund** yang dapat dikembalikan ke pasien lewat alur refund Finance yang sudah ada (`BKC-DEC-012`). **Contoh:** Ibu Sari Mandasari (nama samaran) membayar admin poli Rp 150.000, lalu rawat inapnya ditanggung penuh BPJS. Porsinya tetap Rp 0, dan Rp 150.000 itu dapat ia ajukan refund |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 |
+| Approval evidence | Pilihan interaktif pada pass desain 16 Oktober 2026: *"Jadi kredit refund (Direkomendasikan)"*. Opsi yang ditolak: sisa kredit hangus |
+| Alasan | `BKC-DEC-119` butir 3: "pasien tidak dirugikan". Hangus berarti pasien rawat inap yang ditanggung penuh kehilangan uang yang sudah ia bayar di poli |
+| Konsekuensi | Mengesahkan `A1` (`BKC-DES-086`). Refund tetap lewat persetujuan Finance yang sudah ada; keputusan ini **tidak** membuat refund otomatis |
+| Trace | `BKC-OQ-137`; `A1`; `BKC-DEC-119`; `BKC-DEC-012`; `BKC-DES-086` |
+
+### `BKC-DEC-165` — Koreksi pasca-tutup atas void keliru dicatat; instrumennya diputuskan Finance
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Untuk item yang keliru ter-void pada tagihan poli yang **sudah final atau lunas**, Supervisor Kasir **mencatat** bahwa item itu perlu dikoreksi, dan item masuk antrean koreksi pasca-tutup. **Tagihan yang sudah tutup tidak diubah.** Dokumen atau instrumen yang dipakai untuk mengoreksinya **diputuskan Finance/AR kemudian**. **Contoh:** item "Administrasi Rekam Medis Rp 25.000" keliru ter-void pada tagihan poli yang sudah lunas. Tagihan tetap seperti semula, dan item itu masuk antrean sampai Finance menetapkan caranya |
+| Owner | Pemilik modul Billing; instrumen milik Finance/AR |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 |
+| Approval evidence | Jawaban pass desain 16 Oktober 2026: *"koreksi setelah close dilakukan lewat credit note atau retur"*. Istilah ini diuji pada pass ini karena credit note/retur lazimnya **mengurangi** tagihan, sedangkan koreksi ini perlu **menambah**; instrumen itu juga belum ada di Billing. Pemilik memilih: *"Dicatat, instrumen diputuskan Finance (Direkomendasikan)"*. Opsi yang ditolak: tidak ditagih ulang, dan Billing membuat instrumen sendiri sekarang |
+| Alasan | Menjaga tagihan tutup tidak berubah tanpa dokumen resmi, dan bukti kejadian tidak hilang. Menetapkan instrumen akuntansi di luar wewenang Billing |
+| Konsekuensi | Mengesahkan `A2` sebagian: **prinsipnya** (tidak mengubah tagihan tutup, koreksi lewat dokumen terpisah) disahkan; **nama instrumennya** belum, karena "credit note atau retur" **tidak** dipilih sebagai keputusan. `BKC-OQ-139` tetap terbuka dengan pemilik Finance/AR. Antrean `NEEDS_POST_CLOSE_CORRECTION` pada desain revisi `2.3` dipertahankan |
+| Trace | `BKC-OQ-137`; `BKC-OQ-139`; `A2`; `BKC-DES-089` |
+
+### `BKC-DEC-166` — Pemulihan void pada tagihan terbuka oleh Supervisor Kasir tanpa persetujuan berjenjang, bersifat sementara
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Supervisor Kasir **memulihkan** item yang keliru ter-void pada tagihan yang **masih terbuka** secara **mandiri, tanpa persetujuan orang lain**. Aturan ini **sementara**: berlaku selama tinjauan awal atas void lama. **Contoh:** Supervisor memulihkan item "Administrasi Rekam Medis Rp 25.000" pada tagihan poli terbuka tanpa menunggu penyetuju kedua |
+| Owner | Pemilik modul Billing |
+| Status | `approved` (sementara) |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 |
+| Approval evidence | Jawaban pass desain: *"tidakusah pake persetujuan dulu"*. Kata "dulu" diuji pada pass ini; pemilik memilih: *"Sementara, tinjau setelah antrean awal selesai (Direkomendasikan)"*. Opsi yang ditolak: aturan tetap tanpa tinjau ulang, dan dua orang untuk nominal di atas batas |
+| Alasan | Layar tinjauan terutama alat pembersihan data lama, bukan proses harian. Tagihan masih terbuka sehingga kasir dan pasien melihat rincian sebelum membayar |
+| Konsekuensi | Mengesahkan `A3`. **Pemicu tinjau ulang yang tegas:** (a) seluruh antrean awal di semua lingkungan selesai ditinjau, **atau** (b) terjadi satu kasus pemulihan yang salah. Saat pemicu terjadi, pemilik memutuskan apakah layar dipertahankan dan apakah perlu dua orang. Dicatat `BKC-OQ-141`. Risiko satu orang tanpa pemeriksa kedua sudah tercatat pada matriks hak akses revisi `2.3` |
+| Trace | `BKC-OQ-137`; `BKC-OQ-141`; `A3`; `BKC-DES-089` |
+
+### Acceptance Criteria — pass ini
+
+- `BKC-AC-111` (`BKC-DEC-164`): **Sisa kredit menjadi refund.** Ibu Sari Mandasari (nama samaran) membayar admin poli Rp 150.000 dan ditransfer resmi ke rawat inap yang ditanggung penuh penjamin (porsi pasien Rp 0). Setelah tagihan rawat inap difinalisasi, tersedia **satu** kredit refund Rp 150.000 untuk pasien itu, dan porsi pasiennya tetap Rp 0, bukan negatif.
+- `BKC-AC-112` (`BKC-DEC-165`): **Tagihan tutup tidak berubah.** Supervisor Kasir menandai satu item void pada tagihan poli yang sudah lunas sebagai "perlu koreksi pasca-tutup". Total tagihan, status, dan pembayaran tagihan itu **identik** sebelum dan sesudah, dan item muncul di antrean koreksi.
+- `BKC-AC-113` (`BKC-DEC-166`): **Pemulihan mandiri pada tagihan terbuka.** Supervisor Kasir memulihkan satu item void pada tagihan poli terbuka tanpa persetujuan orang lain. Item kembali tertagih, item lama tetap tercatat void, dan alasan serta pelakunya tercatat permanen.
+
+### Open Questions — pass ini
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+| --- | --- | --- | --- |
+| `BKC-OQ-141` | **Baru.** Kapan aturan "tanpa persetujuan berjenjang" (`BKC-DEC-166`) ditinjau ulang? Pemicu: antrean awal selesai di semua lingkungan, atau satu kasus pemulihan yang salah | Pemilik modul Billing | Tidak memblokir |
+
+### Status pertanyaan terbuka — pass ini
+
+| ID | Status | Keterangan |
+| --- | --- | --- |
+| `BKC-OQ-137` | **Ditutup** | `BKC-DEC-164`–`166`. Arahan `A2` hanya disahkan prinsipnya; nama instrumen tetap di `BKC-OQ-139` |
+| `BKC-OQ-138` | **Tetap terbuka** | `BKC-DEC-017` dijalankan menyimpang. Tidak memblokir; pemilik belum memintanya dibahas pada pass ini |
+| `BKC-OQ-139` | **Tetap terbuka** | Pemilik Finance/AR menetapkan instrumen koreksi pasca-tutup. Tidak memblokir rilis |
+| `BKC-OQ-140` | **Tetap terbuka** | Kredit refund admin poli belum tercatat di Finance sebelum dicairkan. Tidak memblokir. Milik Finance |
+| `BKC-OQ-141` | **Terbuka** | Tinjau ulang `BKC-DEC-166` |
+
+### Yang masih menahan perencanaan setelah pass ini
+
+| Prasyarat | Menahan | Jenis | Status |
+| --- | --- | --- | --- |
+| Approval pemilik atas revisi `2.3` | `plan-module-delivery` untuk seluruh `FR-BKC-278`–`285` | **Tindakan manusia** | Belum |
+| Ratifikasi `A1`–`A3` (`BKC-OQ-137`) | `FR-BKC-281`, `FR-BKC-284` | `grill-me` | **Selesai** pass ini |
+| `CAP-BIL-05` diperbarui menjadi Conflict pada capability map | Kejujuran bukti, bukan perencanaan | `/trace-existing-capabilities` | Disarankan |
+| `BE-BKC-FIX-022` mencapai ✅ | `MVP-37` | Pekerjaan pemilik | 🟡 |
+| Otorisasi migration (skema revisi `2.3`, backfill, `MVP-36`, `MVP-37`) | Implementasi | **Tindakan manusia** | Belum |
+
+### Frontend Decision Authority — pass ini
+
+Tidak ada keputusan UI baru.
+
+---
+
+## Catatan Keputusan — Satu Biaya Administrasi dan Approval Revisi 2.3 (16 Oktober 2026, lanjutan kelima)
+
+| Field | Isi |
+| --- | --- |
+| Konteks | Jawaban pemilik atas `BKC-CQ-15` (capability map §25) dan permintaan menjalankan `/plan-module-delivery` |
+| Blueprint | `BIL-CASH-001`, revision `2.3` — **disetujui** pada catatan ini |
+| Backend SHA | `738e03a0` · Frontend SHA `8ad45262b` |
+
+### `BKC-DEC-167` — Hanya ada satu biaya administrasi; item tarif berkategori admin tidak dipakai
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Item | Dalam proses bisnis rumah sakit hanya ada **satu** biaya administrasi, yaitu yang dihitung otomatis sistem dari master Kebijakan Biaya Administrasi. Item tarif berkategori admin (`IsAdministrationFee`) **tidak** dipakai untuk menagih biaya administrasi. **Contoh:** tagihan poli Ibu Sari (nama samaran) memuat satu biaya administrasi Rp 150.000 hasil hitungan sistem, bukan item "Biaya Administrasi" yang ditambahkan petugas |
+| Owner | Pemilik modul Billing |
+| Status | `approved` |
+| Approved by/at | Pemilik modul Billing — 16 Oktober 2026 |
+| Approval evidence | Pernyataan pemilik: *"Tidak ada admin kebijakan, hanya ada proses bisnis untuk admin administrasi saja"*, diperjelas lewat pilihan interaktif: *"Hanya satu biaya administrasi; item tarif admin tidak dipakai (Direkomendasikan)"* |
+| Alasan | Istilah "admin kebijakan" adalah istilah desain, bukan istilah bisnis; yang ada hanya biaya administrasi |
+| Konsekuensi | Adendum desain `BKC-DES-092` (perluasan penggantian ke item tarif admin) **dicabut**. `BKC-CQ-15` terjawab "tidak dipakai". `BKC-OQ-142` ditutup tanpa keputusan karena premisnya tidak terjadi. Bila item tarif admin suatu saat dipakai, perlakuannya butuh keputusan baru |
+| Trace | `BKC-CQ-15`; `BKC-OQ-142`; `BKC-DES-092` (dicabut); `BKC-DEC-119` |
+
+### Approval revisi 2.3
+
+Pemilik modul Billing menyetujui blueprint revisi `2.3` pada 16 Oktober 2026 lewat pilihan interaktif: *"Ya, setujui revisi 2.3"*,
+setelah diberi tahu bahwa approval desain **bukan** otorisasi membuat atau menjalankan migration. Rincian di
+`blueprint-manifest.md` (`approved_by_revision_2_3`).

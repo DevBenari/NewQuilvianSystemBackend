@@ -30,6 +30,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models
         [Required]
         public string OrderNumber { get; set; } = string.Empty;
 
+        /// <summary>
+        /// No. Foto v1 — satu per pemeriksaan, diberikan saat pesanan dikonfirmasi, berbentuk kode
+        /// kategori pemeriksaan + nomor urut per kategori (<c>RAD-03-42</c>,
+        /// <c>RadPhotoNumberService</c>). Kosong selama pesanan belum dikonfirmasi.
+        /// </summary>
+        public string? PhotoNumber { get; set; }
+
         [Required]
         public Guid EncounterId { get; set; }
 
