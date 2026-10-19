@@ -100898,6 +100898,126 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("PhmPrescriptionItem", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmPrescriptionStockReservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DrugBatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DrugId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("PrescriptionCompoundItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PrescriptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PrescriptionItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("numeric(18,3)");
+
+                    b.Property<string>("ReleaseReasonCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime?>("ReleasedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ReservedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SourceEvent")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("State")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("StorageLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DrugBatchId");
+
+                    b.HasIndex("DrugId");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasFilter("\"State\" = 1 AND \"ExpiresAt\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("IdempotencyKey");
+
+                    b.HasIndex("PrescriptionItemId");
+
+                    b.HasIndex("StorageLocationId");
+
+                    b.HasIndex("PrescriptionId", "PrescriptionCompoundItemId", "DrugBatchId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PhmPrescriptionStockReservation_Compound_Batch_Active")
+                        .HasFilter("\"State\" = 1 AND \"PrescriptionCompoundItemId\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("PrescriptionId", "PrescriptionItemId", "DrugBatchId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PhmPrescriptionStockReservation_Item_Batch_Active")
+                        .HasFilter("\"State\" = 1 AND \"PrescriptionItemId\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("PrescriptionId", "State");
+
+                    b.ToTable("PhmPrescriptionStockReservation", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmSlidingScaleExecution", b =>
                 {
                     b.Property<Guid>("Id")
@@ -131382,6 +131502,48 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("StoppedByUser");
 
                     b.Navigation("Tariff");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmPrescriptionStockReservation", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrug", "Drug")
+                        .WithMany()
+                        .HasForeignKey("DrugId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmDrugBatch", "DrugBatch")
+                        .WithMany()
+                        .HasForeignKey("DrugBatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmPrescription", "Prescription")
+                        .WithMany()
+                        .HasForeignKey("PrescriptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmPrescriptionItem", "PrescriptionItem")
+                        .WithMany()
+                        .HasForeignKey("PrescriptionItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDrugStorageLocation", "StorageLocation")
+                        .WithMany()
+                        .HasForeignKey("StorageLocationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Drug");
+
+                    b.Navigation("DrugBatch");
+
+                    b.Navigation("Prescription");
+
+                    b.Navigation("PrescriptionItem");
+
+                    b.Navigation("StorageLocation");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models.PhmSlidingScaleExecution", b =>
