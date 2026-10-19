@@ -28,6 +28,17 @@ public sealed class CashierShiftRevenueReportController : ControllerBase
         _service = service;
     }
 
+    [HttpGet("filters/registers")]
+    [AccessAction("Read", "Read Register Options", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceCashierShiftReport", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<FilterOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRegisterOptions(
+        [FromQuery] RegisterFilterQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetRegisterOptionsAsync(query, cancellationToken);
+        return Ok(ApiResponse<PagedResult<FilterOptionResponse>>.Ok(result, "Daftar opsi register kasir berhasil diambil."));
+    }
+
     [HttpGet("filters/cashiers")]
     [AccessAction("Read", "Read Cashier Options", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceCashierShiftReport", "Read")]

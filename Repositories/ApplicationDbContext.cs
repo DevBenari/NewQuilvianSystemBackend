@@ -627,6 +627,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilDepositMovement> BilDepositMovements { get; set; }
         public DbSet<BilDepositPaymentOrder> BilDepositPaymentOrders { get; set; }
         public DbSet<BilDepositOrderPayment> BilDepositOrderPayments { get; set; }
+        public DbSet<BilMembershipFeeCharge> BilMembershipFeeCharges { get; set; }
+        public DbSet<BilMembershipFeeAllocation> BilMembershipFeeAllocations { get; set; }
         public DbSet<BilSettlement> BilSettlements { get; set; }
         public DbSet<BilTender> BilTenders { get; set; }
         public DbSet<BilPaymentAllocation> BilPaymentAllocations { get; set; }

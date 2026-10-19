@@ -504,6 +504,8 @@ try
     builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
     // crm-membership BE-CRM-010 — satu aturan "member aktif" untuk seluruh konsumen.
     builder.Services.AddScoped<PatientMembershipStatusResolver>();
+    // crm-membership: konfirmasi pelunasan iuran dari Billing (satu-satunya pintu aktivasi setelah bayar).
+    builder.Services.AddScoped<PatientMembershipFeeLinkService>();
     builder.Services.AddScoped<PatientMembershipService>();
     builder.Services.Configure<OutpatientQueueNumberOptions>(
         builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName));
