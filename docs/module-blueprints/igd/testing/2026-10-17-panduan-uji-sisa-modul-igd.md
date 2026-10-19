@@ -49,7 +49,7 @@ dinilai selesai.** Setiap skenario ditulis dengan ID sendiri dan menunjuk accept
 | A1 | Jangan memakai SuperAdmin, jangan menekan _Simpan Akses_, dan jangan menjalankan SQL atau skrip basis data apa pun, termasuk `SELECT`. Bila hak akses kurang, tulis `NOT RUN — 403` dan laporkan ke Rizki. Pelanggaran aturan ini pada putaran 2 (9 Oktober, skrip `grant-…sql`) tidak boleh terulang |
 | A2 | Jangan menyunting source aplikasi, CSS, roadmap, laporan task, atau dokumen blueprint yang sudah ada. **Tidak ada perbaikan kode selama putaran berjalan.** Bila menemukan cacat, tulis `FAIL`, hentikan skenario yang bergantung padanya, lalu lanjutkan skenario lain |
 | A3 | Catat keadaan kode **di awal dan di akhir** putaran ke `kode-awal.txt` dan `kode-akhir.txt`: `git rev-parse HEAD` dan `git status --short` kedua repo, jam berkas DLL backend, dan isi `.next/BUILD_ID` frontend. Bila awal dan akhir berbeda, putaran tidak sah |
-| A4 | Jalankan pada build produksi (server standalone `npm run start`), bukan `next dev`. Lencana _N_ di pojok kiri bawah berarti `next dev`. Ukuran layar 1440 × 900 |
+| A4 | **Dicabut 19 Oktober 2026 atas keputusan pemilik:** layar yang dilayani `npm run dev` **sah** sebagai bukti selama modul masih dalam pengembangan, jadi lencana _N_ bukan lagi alasan menolak hasil dan build produksi tidak dituntut. Yang **tetap** wajib: ukuran layar 1440 × 900; setiap PNG diambil sesudah aksi skenarionya sendiri; tidak ada dua PNG berisi sama untuk skenario berbeda; jam pengambilan tercatat di `percobaan.json`; tangkapan diambil sesudah tombol selesai memproses, bukan saat masih _"Menyimpan…"_. *Aturan lama, berlaku untuk putaran sampai B7 dan K1:* jalankan pada build produksi (`npm run start`), bukan `next dev` |
 | A5 | Sandi dan token dibaca dari variabel lingkungan, tidak ditulis di skrip, JSON, PNG, atau laporan. Token di JSON disensor |
 | A6 | Satu putaran, satu folder: `QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-<ID putaran>-<YYYYMMDD>/`. Folder ini masuk `.gitignore`, jadi Rizki menyalinnya manual bila agent memeriksa dari mesin lain |
 | A7 | Rekam jaringan setiap panggilan `/api/v1/` per skenario ke `jaringan-<ID>.json` (metode, path, status, jam, isi respons tersensor) |
@@ -814,14 +814,67 @@ Kamu adalah penguji untuk modul IGD Quilvian. Jalankan HANYA Putaran D2 dari pan
 NewQuilvianSystemBackend/docs/module-blueprints/igd/testing/2026-10-17-panduan-uji-sisa-modul-igd.md
 (baca bagian 1, 2, 4, dan 8 lebih dulu, seluruhnya).
 
-Aturan bagian 1 berlaku penuh: tanpa SuperAdmin, tanpa mengubah Akses Role, tanpa SQL apa pun (termasuk SELECT),
-tanpa mengubah kode atau dokumen, build produksi standalone tanpa lencana N, sandi dari variabel lingkungan,
+Putaran ini dibagi DUA FASE. Jangan mencampurnya, dan jangan mulai fase T sebelum fase S selesai dan dicatat.
+
+=== FASE S - PERSIAPAN (SuperAdmin DIIZINKAN, keputusan pemilik 19 Oktober 2026) ===
+Hanya di fase ini kamu boleh masuk sebagai SuperAdmin. Tujuannya menyiapkan prasyarat, bukan menjalankan
+skenario. Catat SEMUA yang kamu ubah di persiapan.json dengan bentuk:
+{waktu, aktor, aksi, sasaran, nilai-sebelum, nilai-sesudah}. Daftar ini dipakai pemilik untuk rilis ke
+lingkungan lain, jadi tidak boleh ada yang tidak tercatat.
+
+Basis data dev (QUILVIAN_DEV_DB_URL) boleh dibaca di fase S untuk MENCARI data: akun yang ada, perannya, id
+pasien, id kunjungan. Pemilik menyatakan ini aman karena basis data pengembangan. Batasnya:
+  - SELECT saja. Dilarang INSERT, UPDATE, DELETE, dan DDL apa pun lewat SQL.
+  - Penambahan user dan pemberian Akses Role WAJIB lewat SuperAdmin di aplikasi, bukan lewat SQL.
+  - Setiap kueri yang dijalankan disimpan apa adanya ke kueri-fase-s.sql.
+  - Di fase T tidak ada SQL sama sekali, termasuk SELECT.
+Sandi TIDAK dapat diambil dari basis data: AspNetUsers menyimpan PasswordHash (ASP.NET Identity), bukan sandi
+terbaca. Jadi sandi SuperAdmin dan akun peran tetap harus datang dari variabel lingkungan.
+
+S-01 Izin peran Dokter IGD. Pada 19 Oktober 2026 akun ranger.biru masih 403 pada ketiganya, sehingga kartu
+     pasien menulis "Alergi gagal dimuat". Berikan ke peran Dokter IGD:
+       - PatientAllergy : Read
+       - PatientMedicalHistory : Read
+       - PatientFamilyHistory : Read
+     Verifikasi SESUDAH logout SuperAdmin, masuk sebagai Dokter IGD, lalu GET
+     /api/v1/health-services/clinical-management/patient-allergies/active-alerts?patientId=<pasien D2>
+     dan dua endpoint sejenisnya. Simpan ketiga respons ke jaringan-S-01.json.
+S-02 Akun dokter kedua untuk D2-U03 dan D2-U15. Sandinya HARUS dibaca dari QUILVIAN_DOKTER2_PASSWORD yang
+     sudah disiapkan pemilik - jangan mengarang sandi sendiri dan jangan menuliskannya ke berkas mana pun.
+     Bila variabel itu belum ada, JANGAN membuat akun: tulis D2-U03 dan D2-U15 NOT RUN - akun dokter kedua
+     belum disiapkan, lalu lanjutkan skenario lain.
+S-03 Pasien P-D2-A, P-D2-B, P-D2-C (dan P-D2-D bila dokter kedua ada) disiapkan LEWAT LAYAR dengan akun peran
+     yang semestinya, bukan SuperAdmin. Catat di data-uji.json.
+S-04 Backend berjalan; catat cap waktu DLL dan HEAD kedua repo di kode-awal.txt.
+S-05 Dokter rawat inap untuk D2-R01 bersifat opsional; tanpa itu tulis NOT RUN - data tidak tersedia.
+
+Tutup fase S dengan LOGOUT SuperAdmin dan catat jamnya. Sesudah baris ini, pemakaian SuperAdmin apa pun
+adalah pelanggaran dan harus dilaporkan sendiri di percobaan.json.
+
+=== FASE T - EKSEKUSI (akun peran saja) ===
+Seluruh skenario D2 dijalankan dengan akun peran dari variabel lingkungan. Bila sebuah skenario tetap ditolak
+403 meski izinnya sudah diberikan di S-01, catat apa adanya sebagai temuan izin - jangan kembali ke SuperAdmin
+untuk membuatnya lolos, dan jangan menuliskan PASS.
+
+Aturan bagian 1 berlaku penuh di fase T: tanpa SuperAdmin, tanpa mengubah Akses Role, tanpa SQL apa pun (termasuk SELECT),
+tanpa mengubah kode atau dokumen, sandi hanya dari variabel lingkungan dan tidak pernah ditulis ke berkas mana pun,
 kode-awal.txt dan kode-akhir.txt wajib, satu baris hasil per ID tanpa penggabungan, pesan galat dicatat persis,
-rekam jaringan semua /api/v1/, setiap versi skrip disimpan, setiap percobaan dicatat.
+rekam jaringan semua /api/v1/, setiap versi skrip disimpan, setiap percobaan dicatat termasuk yang gagal dan
+yang dijalankan sebelum putaran resmi.
+
+Soal server: sejak 19 Oktober 2026 pemilik menyatakan layar yang dilayani `npm run dev` SAH sebagai bukti selama
+modul masih dalam pengembangan, jadi lencana "N" bukan lagi alasan menolak hasil. Yang tetap wajib: setiap PNG
+diambil SESUDAH aksi skenarionya sendiri, tidak boleh ada dua PNG dengan isi sama untuk skenario berbeda, jam
+pengambilannya tercatat di percobaan.json, dan tangkapan diambil sesudah tombol selesai memproses - bukan saat
+masih "Menyimpan...".
 
 Khusus D2:
 - Siapkan pasien P-D2-A, P-D2-B, P-D2-C (dan P-D2-D bila ada dokter kedua) lewat layar; catat di data-uji.json.
 - D2-U14 dikerjakan Rizki lewat layar Billing; kamu cukup mencatat ID encounter dan jam penyelesaian catatan.
+- Skenario berkode D2-A dijalankan lewat API, berkode D2-U lewat layar. Jangan menukar keduanya; bila sebuah
+  langkah layar terpaksa lewat API, tulis itu pada baris hasilnya.
+- Nilai tiap skenario dari rekaman jaringan dan PNG-nya sendiri, bukan dari kesimpulan langkah sebelumnya.
+  Jangan menulis PASS yang di-hardcode di skrip.
 - Tanpa akun dokter kedua atau dokter rawat inap, tulis skenario terkait NOT RUN beserta sebabnya.
 - Jangan menyatakan status task.
 
@@ -837,10 +890,15 @@ Kamu adalah penguji untuk modul IGD Quilvian. Jalankan HANYA Putaran D3 dari pan
 NewQuilvianSystemBackend/docs/module-blueprints/igd/testing/2026-10-17-panduan-uji-sisa-modul-igd.md
 (baca bagian 1, 2, 5, dan 8 lebih dulu, seluruhnya).
 
-Aturan bagian 1 berlaku penuh (tanpa SuperAdmin, tanpa SQL, tanpa ubah kode/dokumen, build produksi tanpa lencana N,
-kode-awal/kode-akhir, satu baris per ID, pesan galat persis, rekam jaringan, simpan setiap versi skrip).
-Bukti lama FE-IGD-050/051 ditolak karena dilayani next dev dan tangkapan layarnya berulang — pastikan setiap PNG
-diambil sesudah aksi skenarionya sendiri dan jamnya tercatat di percobaan.json.
+Fase S dan T berlaku seperti D2 (lihat A.2): SuperAdmin dan SELECT basis data dev hanya di fase S dan dicatat di
+persiapan.json; fase T akun peran saja, tanpa SuperAdmin, tanpa SQL, tanpa ubah kode/dokumen.
+Layar yang dilayani `npm run dev` SAH sejak 19 Oktober 2026 - lencana "N" bukan alasan menolak hasil. Yang tetap
+wajib: kode-awal/kode-akhir, satu baris per ID, pesan galat persis, rekam jaringan, simpan setiap versi skrip,
+setiap PNG diambil sesudah aksi skenarionya sendiri, tidak ada dua PNG berisi sama, jamnya tercatat di
+percobaan.json.
+CATATAN LINGKUP: FE-IGD-050 dan FE-IGD-051 sudah ✅ sejak 19 Oktober 2026, jadi putaran ini TIDAK lagi untuk
+membuka ulang keduanya. Sasaran D3 sekarang tinggal BE-IGD-070 (2 dari 8 acceptance); skenario FE tetap
+dijalankan sebagai regresi dan dicatat apa adanya.
 D3-U06 dikerjakan Rizki lewat layar Billing. Jangan menyatakan status task.
 
 Simpan bukti ke QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-d3-<YYYYMMDD>/ dan salin laporan.md sebagai
@@ -855,8 +913,12 @@ Kamu adalah penguji untuk modul IGD Quilvian. Jalankan HANYA Putaran L1 dari pan
 NewQuilvianSystemBackend/docs/module-blueprints/igd/testing/2026-10-17-panduan-uji-sisa-modul-igd.md
 (baca bagian 1, 2, 6, dan 8 lebih dulu, seluruhnya).
 
-Aturan bagian 1 berlaku penuh. Untuk L1-04 sampai L1-06, ambil PNG sebelum simpan dan sesudah buka ulang, dan catat
-setiap isian yang hilang satu per satu. Jangan menyatakan status task.
+Fase S dan T berlaku seperti D2 (lihat A.2): SuperAdmin dan SELECT basis data dev hanya di fase S dan dicatat di
+persiapan.json; fase T akun peran saja, tanpa SuperAdmin, tanpa SQL, tanpa ubah kode/dokumen.
+Layar yang dilayani `npm run dev` SAH sejak 19 Oktober 2026 - lencana "N" bukan alasan menolak hasil.
+Untuk L1-04 sampai L1-06, ambil PNG sebelum simpan dan sesudah buka ulang, dan catat setiap isian yang hilang
+satu per satu. Kedua PNG itu harus berbeda isinya; bila sama, skenarionya belum terbukti.
+Jangan menyatakan status task.
 
 Simpan bukti ke QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-l1-<YYYYMMDD>/ dan salin laporan.md sebagai
 berkas BARU ke NewQuilvianSystemBackend/docs/module-blueprints/igd/testing/<YYYY-MM-DD>-laporan-uji-putaran-l1.md.
@@ -871,7 +933,9 @@ QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-<id>-<YYYYMMDD>/ dan log
 NewQuilvianSystemBackend/Logs/quilvian-backend-<YYYYMMDD>.json. Panduannya
 docs/module-blueprints/igd/testing/2026-10-17-panduan-uji-sisa-modul-igd.md.
 Putuskan per skenario dari bukti mentah (PNG, JSON, skrip, percobaan.json) dan log backend, bukan dari laporan penguji.
-Periksa kode-awal.txt lawan kode-akhir.txt, lencana N, sensor sandi, dan penulisan ke Akses Role atau basis data.
+Periksa kode-awal.txt lawan kode-akhir.txt, sensor sandi, dan penulisan ke Akses Role atau basis data. Sejak
+19 Oktober 2026 lencana N BUKAN cacat - `npm run dev` sah selama modul dikembangkan; yang dinilai PNG identik
+antar-skenario, SuperAdmin atau SQL di fase T, dan perubahan fase S yang tidak tercatat di persiapan.json.
 Sesudah itu perbarui roadmap, traceability, MODULE-STATUS, dan decision log (MODULE BLUEPRINT MODE), tanpa commit.
 ```
 
@@ -905,9 +969,11 @@ Bukti mentah: QuilvianSystemFrontendDev/test-with-agy/igd/uji-putaran-b5-<YYYYMM
 NewQuilvianSystemBackend/Logs/quilvian-backend-<YYYYMMDD>.json. Panduan: docs/module-blueprints/igd/testing/
 2026-10-17-panduan-uji-sisa-modul-igd.md bagian 3B. Konteks: IGD-DEC-319 sampai IGD-DEC-322 dan IGD-FACT-123 sampai
 IGD-FACT-125 di 00-interview-decisions.md.
-Putuskan per skenario dari bukti mentah dan log, bukan dari laporan penguji. Wajib periksa: lencana N di setiap PNG (pojok
-kiri bawah), PNG identik antar-skenario, sandi tertulis di skrip, kode-awal lawan kode-akhir, persiapan.json lawan log
-(setiap penulisan SuperAdmin di log harus tercatat di persiapan.json sesuai IGD-DEC-320 dan IGD-DEC-322; tidak ada SQL),
+Putuskan per skenario dari bukti mentah dan log, bukan dari laporan penguji. Wajib periksa: PNG identik
+antar-skenario, sandi tertulis di skrip, kode-awal lawan kode-akhir, persiapan.json lawan log (setiap penulisan
+SuperAdmin di log harus tercatat di persiapan.json sesuai IGD-DEC-320 dan IGD-DEC-322; SuperAdmin dan SELECT
+basis data dev hanya boleh di fase S, dan nol SQL di fase T), lencana N TIDAK lagi dinilai cacat sejak
+19 Oktober 2026,
 dan tidak ada SuperAdmin di fase T.
 Sesudah itu: tambahkan bagian penilaian ke laporan B5 di testing/; perbarui status BE-IGD-074, FE-IGD-060, FE-IGD-061
 (dan BE-IGD-072 bila bukti R1-01 sudah ada) di kartu, register, grafik, dan traceability; perbarui MODULE-STATUS dan decision

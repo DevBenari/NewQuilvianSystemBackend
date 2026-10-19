@@ -7332,3 +7332,89 @@ agent Billing, CRM-Membership, dan Rawat Inap lewat blueprint modul masing-masin
 | Catatan untuk modul lain | `IGD-REQ-004` (Rawat Inap), [`IGD-REQ-005`](approval-requests/2026-10-18-permintaan-pemilik-crm-billing-aktivasi-membership.md) (Yoga Aji Pratama, CRM-Membership; owner Billing), [`IGD-REQ-006`](approval-requests/2026-10-18-catatan-pemilik-billing-hasil-uji-tagihan-igd.md) (owner Billing; tembusan Farmasi). Masing-masing memuat bagian _"Untuk agent Claude di sisi …"_: agent mereka mencatat di blueprint modulnya sendiri dengan rujukan silang ID IGD, dan hanya mengisi tabel jawaban di berkas IGD |
 | Konfigurasi PC kantor | `EmergencyBilling:VisitFeeProcedureCode` = `PR-RSMMC-00025` di user-secrets PC kantor (belum ada) |
 | Nomor yang dipakai | `IGD-REQ-006` |
+
+### Sesi PC kantor dimulai — 19 Oktober 2026 (pagi)
+
+Lanjutan sesi laptop lewat prompt bagian 9 [catatan serah terima](evidence/2026-10-18-catatan-bukti-uji-p1-k1-dan-serah-terima.md),
+lewat `manage-module-blueprint`. Snapshot: backend `rizkiG` `4cf5c1fd` (sejajar `origin/rizkiG`, memuat commit laptop
+`4fbf5ff6`), frontend `RizkiV2` `5f4ab690a` (sejajar `origin/RizkiV2`, memuat `6b44f8742`). Nol suntingan kode, nol build
+oleh agent, nol SQL; satu pembacaan riwayat migration lewat `dotnet ef migrations list --no-build`. Bukti P1/K1 bagian 3
+catatan serah terima tidak dinilai ulang (`IGD-DEC-328`).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-154` | **PC kantor siap menjalankan jasa kunjungan IGD; akun penguji sisa K1 belum ada.** (1) User-secrets backend semula kosong (_"No secrets configured"_); agent mengisi `EmergencyBilling:VisitFeeProcedureCode` = `PR-RSMMC-00025` dan memeriksanya lewat `dotnet user-secrets list`. Profil `launchSettings.json` memakai `Development`, sehingga nilai itu terbaca saat backend dijalankan. (2) DLL backend dibangun Rizki di PC kantor 19 Oktober 2026 08.48.57, sesudah merge `4cf5c1fd` 08.45, dan memuat teks `EmergencyVisitFee`. (3) Port 3000 dipakai `next dev` sejak 08.54 (PID 8532). Server pengembangan menyusun layar dari source terkini, jadi perbaikan modal pembatalan `IGD-DEC-329` sudah tersaji. Build produksi `.next` masih 16 Oktober 17.23 (`J6Gjk1fm6Q2p-geoV_oxK`) dan belum memuatnya, dan tidak dibangun ulang karena port 3000 sedang dipakai. (4) Variabel penguji di akun Windows PC kantor yang ada: `LOKET`, `PERAWAT`, `DOKTER`, `PENERIMA`, `UNIT_IGD`, `UNIT_TUJUAN`, `UNIT_BELUM`, dan `DEV_DB_URL`. Yang tidak ada: `KASIR`, `LAB`, `APOTEKER`, `ADMISI`, `SUPERADMIN`, `DOKTER2`, `PERAWAT_RUANGAN`. Sandi loket di PC kantor belum diperiksa karena backend tidak sedang berjalan. _Contoh:_ seandainya user-secrets tidak diisi, penetapan DPJP pukul 10.15 tetap berhasil, tetapi log mencatat `EmergencyVisitFee.Skipped` dan kasir tidak melihat baris _Jasa kunjungan IGD_ |
+| `IGD-FACT-155` | **Merge integration pagi ini menyentuh jalur _admit_ transfer dan langkah loket IGD, tetapi tidak mengubah kode IGD. Bukti P1/K1 tidak usang.** Backend `4fbf5ff6..4cf5c1fd`: `InpAdmissionTransferService` ditambah penanganan deposit oleh Billing (`f8403df9`). _Admit_ dengan deposit tanpa metode bayar kini menerbitkan order deposit `UNPAID` untuk kasir. _Admit_ dengan metode bayar langsung mencatat deposit dan mensyaratkan hak `BillingDeposit:Create`. Blok `SourceType == "Emergency"` tidak berubah. Frontend `6b44f8742..5f4ab690a`: tiga langkah pendaftaran loket IGD ditambah kartu status karyawan dan pilihan _Benefit Karyawan_ (`43c0b1a8a`); panel itu hanya tampil untuk pasien yang bukan kategori umum. Lima migration baru (`20261014150000`…`20261017085614`) sudah diterapkan di `QuilvianNewDevRizki`: `dotnet ef migrations list --no-build` dengan DLL 08.48.57 menunjukkan nol migration tertunda. _Contoh:_ pada demo transfer, admisi mengisi deposit Rp5.000.000 tanpa metode bayar → episode rawat inap lahir seperti 18 Oktober, ditambah satu order deposit yang menunggu di kasir |
+| `IGD-FACT-156` | **Belum ada jawaban atas `IGD-REQ-003`…`006`, dan Rawat Inap belum memasang apa pun.** Keempat tabel jawaban kosong. Branch `MHamzah` (terakhir `7fff1c1a`, 18 Oktober 06.35), `yoga`, dan `Yasmina` tidak merujuk `IGD-REQ-00x`. Antrean Transfer di `MHamzah` masih diurutkan `OrderBy(x => x.DecidedAt)`, dan tidak ada panggilan ke fungsi penutupan kunjungan IGD. Akibatnya P1-08 dan B7 bagian 2 belum dapat dijadwalkan |
+
+#### Kesiapan demo — berdasarkan bukti catatan serah terima bagian 3
+
+Selasa 20 Oktober 2026 — pasien membership/prioritas, termasuk transfer ke rawat inap:
+
+| Langkah | Sikap | Dasar |
+| --- | --- | --- |
+| Reservasi pra-kedatangan; tier member terbaca; daftar urut ETA | **Aman, bila ada pasien member `Active` yang disiapkan sah.** Platinum `MBR-000001` (P1-A) aktif lewat SQL penguji dan tidak dipakai untuk demo (`IGD-REQ-005` bagian 1) | P1 17.15–17.18; `IGD-OQ-137` |
+| Daftarkan di loket IGD lebih dulu, lalu _Konfirmasi Tiba_ | **Aman.** Urutannya wajib: loket → _Konfirmasi Tiba_. Penolakan `409` bila urutannya terbalik boleh ditunjukkan sebagai pengaman | P1 17.18.52, 17.51–17.52 |
+| Triage mengikuti kegawatan, bukan membership | **Aman** | P1 18.03 |
+| Batalkan reservasi lewat layar | **Jangan diperagakan** sebelum P1-06R lulus | `IGD-FACT-149`; perbaikan `IGD-DEC-329` belum diuji layar |
+| Form Permintaan Rawat Inap → tanda tangan → _admit_ → _Terima Dokumen_ → _Catat Tiba_ | **Aman untuk alur normal** (dokumen diterima sebelum pasien tiba). Saat _admit_, isian deposit kini menerbitkan order deposit untuk kasir | K1-14 20.11–20.27; `IGD-FACT-155` |
+| Pasien tiba di ruangan sebelum dokumen diterima | **Jangan** | B7 bagian 2; `IGD-REQ-003` butir 1 belum dipasang |
+| Urutan Antrean Transfer CITO → member → waktu, beserta lencana tier | **Jangan dijanjikan** | `IGD-REQ-004`; `IGD-FACT-156` |
+| Jeda 6–15 detik pada aksi bertagih | Siapkan narasi; jangan klik ulang | `IGD-FACT-153` |
+
+Rabu 21 Oktober 2026 — Kasir IGD, Rawat Jalan, pasien membership:
+
+| Langkah | Sikap | Dasar |
+| --- | --- | --- |
+| Jasa kunjungan tercatat otomatis saat DPJP pertama; tidak ganda saat DPJP dialihkan | **Aman dari sisi data** (terbukti lewat API). Rp150.000 masih nilai uji | K1 19.34, 20.07; `IGD-REQ-006` butir 1 |
+| Tindakan perawat dan obat masuk invoice IGD | **Aman dari sisi data.** Obat harus sudah bertarif, karena tanpa tarif resep berakhir `500` | K1 19.36–19.56; `IGD-FACT-151` |
+| Layar kasir membayar invoice IGD | **Belum terbukti.** Perlu K1-09 sebelum Rabu | Akun Kasir tidak ada (`IGD-FACT-154`) |
+| Porsi penjamin BPJS/PKS | **Jangan dijanjikan** | `IGD-FACT-152`; `IGD-REQ-006` butir 2 |
+| Biaya administrasi IGD | Saat ini Rp0; menunggu owner Billing | `IGD-REQ-006` butir 3 |
+| Laboratorium IGD tertagih | **Belum terbukti** | K1-04 — akun Lab tidak ada |
+| Membatalkan jasa kunjungan | **Belum terbukti runtime** | K1-11 |
+| Tindakan dokter IGD | **Jangan** — tidak tertagih | `IGD-FACT-140` |
+| Pasien transfer dengan dua invoice | Sampaikan sebagai perilaku yang dikenal | `IGD-FACT-142` |
+| Diskon membership | **Jangan** | `IGD-DEC-317` |
+
+#### Keadaan akhir sesi — 19 Oktober 2026 (pagi, PC kantor)
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Tidak berubah: backend 50 ✅ dari 67, frontend 35 ✅ dari 57, gabungan 85 dari 124 |
+| Tugas (a) jumlah warning | **Menunggu angka dari Rizki.** Yang sah: build laptop 18 Oktober 16.04.59, atau build PC kantor 19 Oktober 08.48.57 **bila** dijalankan `--no-incremental` (build inkremental selalu melaporkan 0 warning). Sesudah angka diterima: laporan `BE-IGD-085` #8 dan `BE-IGD-084` #9 lewat `build-module-backend`, lalu `BE-IGD-085` → ✅ |
+| Tugas (b) kesiapan PC kantor | User-secrets terisi; DLL terkini; migration lengkap; layar terkini tersaji lewat `next dev` (`IGD-FACT-154`, `155`) |
+| Tugas (c) putaran sisa | **Tertahan.** Akun `KASIR`, `LAB`, `APOTEKER`, serta akun berhak `PatientProcedure : Cancel/RemoveDraft` belum ada di PC kantor; sandi loket belum terbukti |
+| Tugas (d) jawaban modul lain | Belum ada (`IGD-FACT-156`) |
+| Untuk Rizki | (1) Sebutkan jumlah warning; (2) siapkan akun dan variabel penguji sisa K1, lalu periksa sandi loket; (3) `QUILVIAN_DEV_DB_URL` ada di variabel User PC kantor, jadi hapus dari lingkungan penguji (saran `IGD-FACT-148`); (4) build produksi frontend hanya perlu bila penguji memakai server _standalone_, dan butuh izin menghentikan `next dev` di port 3000; (5) pastikan `IGD-REQ-004`…`006` sudah terkirim |
+| Tidak disentuh | Laporan task, roadmap, traceability, kontrak; kode backend/frontend |
+| Nomor yang dipakai | `IGD-FACT-154`…`156` |
+
+### Penutupan `BE-IGD-085` — 19 Oktober 2026 (pagi, PC kantor)
+
+Tugas (a) prompt bagian 9 catatan serah terima, lewat `build-module-backend` (validasi saja, nol perubahan source).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-157` | **Build penuh backend di PC kantor: 0 error, 285 warning.** Rizki menjalankan `dotnet build-server shutdown`, lalu `dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false -m:1 -nodeReuse:false --no-incremental` pada `rizkiG` `4cf5c1fd`. Hasilnya: restore 5 warning, proyek _"succeeded with 285 warning(s) (104,3s)"_. Lima warning itu `NU1902`/`NU1903` paket `SixLabors.ImageSharp` 3.1.11, dan muncul di kedua tahap; 280 sisanya warning kompilator `CS…`. Pada bagian daftar yang terbaca (tempelan keluaran terpotong sebelum akhir daftar), nol warning berasal dari lima berkas yang diubah `BE-IGD-084`/`085`. DLL 09.13.52 memuat teks penanda kedua task (pencarian UTF-16). Build biasa sebelumnya (3,5 detik, 10 warning) **tidak** dipakai: DLL-nya tetap 08.48.57, artinya kompilator dilewati dan warning kode tidak terhitung. _Contoh cara membaca angka ini:_ 285 bukan warning baru dari IGD; angka itu jumlah seluruh proyek, dan acceptance hanya meminta angkanya dilaporkan |
+
+#### Perubahan status
+
+| Task | Status | Dasar |
+| --- | --- | --- |
+| `BE-IGD-085` | 🟡 → ✅ — 8 dari 8 acceptance | #8 `IGD-FACT-157`; #1–7 catatan serah terima bagian 3.1 — [laporan](task/report/backend/BE-IGD-085.md) |
+| `BE-IGD-084` | Tetap 🟡 — 7 dari 9; #9 terpenuhi | Tersisa #2 (K1-09 layar kasir) dan #6 (K1-11) — [laporan](task/report/backend/BE-IGD-084.md) |
+
+#### Keadaan akhir sesi — 19 Oktober 2026 (pagi, sesudah penutupan `BE-IGD-085`)
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Backend 51 ✅ dari 67, frontend 35 ✅ dari 57, gabungan 86 dari 124 (69,4%) |
+| R3.19 | 2 dari 4 task ✅ (`BE-IGD-080`, `BE-IGD-085`); `BE-IGD-084` 🟡 (K1-09, K1-11); `FE-IGD-067` 🟡 (P1-06R) |
+| Disentuh | Laporan `BE-IGD-085`, `BE-IGD-084`; baris status roadmap backend (register, grafik R3.19.1, dua kartu); traceability `FR-IGD-122`; `MODULE-STATUS.md`; catatan serah terima bagian 4–5 |
+| Berikutnya | Putaran sisa (bagian 5 catatan serah terima) begitu akun Kasir, Lab, Apoteker, dan akun berhak batal tindakan tersedia, dan sandi loket terbukti |
+| Nomor yang dipakai | `IGD-FACT-157` |
