@@ -36,10 +36,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         public int Capacity { get; set; } = 1;
 
-        public bool IsForMale { get; set; } = true;
-
-        public bool IsForFemale { get; set; } = true;
-
         public bool IsForNewborn { get; set; } = false;
 
         public bool IsIsolationRoom { get; set; } = false;
@@ -56,6 +52,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
         public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        /// <summary>Kode lantai pada denah, mis. <c>3</c>. Wajib bila kunci denah terisi; tetap setelah terisi.</summary>
+        [MaxLength(10)]
+        public string? FloorCode { get; set; }
+
+        /// <summary>Arah wing kamar pada denah; <c>null</c> berarti kamar tidak tergambar di denah.</summary>
+        public RoomWingDirection? WingDirection { get; set; }
+
+        /// <summary>Kunci bentuk kamar pada gambar denah, mis. <c>lantai-3/k-329</c>; tetap setelah terisi.</summary>
+        [MaxLength(100)]
+        public string? FloorPlanRoomKey { get; set; }
 
         public MstServiceUnit? ServiceUnit { get; set; }
 

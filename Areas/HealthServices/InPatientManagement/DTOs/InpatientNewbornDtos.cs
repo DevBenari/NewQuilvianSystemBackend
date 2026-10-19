@@ -4,11 +4,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 
 public sealed class InpatientNewbornAdmissionContext
 {
+    public Guid DeliveryCaseId { get; set; }
     [Required, MaxLength(20)] public string Source { get; set; } = string.Empty;
     [Required, MaxLength(20)] public string CareMode { get; set; } = string.Empty;
     [Required, MaxLength(200)] public string CareSource { get; set; } = string.Empty;
     public bool RequiresIntensiveCare { get; set; }
-    [Required, MaxLength(20)] public string FamilyBillingPreference { get; set; } = "Separate";
+    [Obsolete("Penagihan invoice adalah ranah Billing/Cashier/AR dan tidak dipilih saat admisi bayi.")]
+    [MaxLength(20)] public string? FamilyBillingPreference { get; set; }
+    [Obsolete("Bayi tidak membuat rencana deposit tambahan pada admisi.")]
     [Range(typeof(decimal), "0", "9999999999999999.99")]
     public decimal? PlannedDepositAmount { get; set; }
+}
+
+public sealed class NewbornMotherCandidateQuery : IValidatableObject
+{
+    public string? Search { get; set; }
+    [DataType(DataType.Date)] public DateTime? FromDate { get; set; }
+    [DataType(DataType.Date)] public DateTime? ToDate { get; set; }
+    [Range(1, 100000)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 20;
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (FromDate.HasValue && ToDate.HasValue && FromDate.Value.Date > ToDate.Value.Date)
+        {
+            yield return new ValidationResult(
+                "Tanggal awal tidak boleh melewati tanggal akhir.",
+                [nameof(FromDate), nameof(ToDate)]);
+        }
+    }
+}
+
+public sealed class NewbornMotherCandidateResponse
+{
+    public Guid DeliveryCaseId { get; set; }
+    public string DeliveryCaseNumber { get; set; } = string.Empty;
+    public DateTime RequestedAt { get; set; }
+    public int DeliveryCaseStatus { get; set; }
+    public string DeliveryCaseStatusName { get; set; } = string.Empty;
+    public Guid MotherPatientId { get; set; }
+    public string MotherName { get; set; } = string.Empty;
+    public string MotherMedicalRecordNumber { get; set; } = string.Empty;
+    public Guid MotherEncounterId { get; set; }
+    public string MotherEncounterNumber { get; set; } = string.Empty;
+    public Guid PaymentSourceId { get; set; }
+    public DateTime PaymentSourceExpectedAt { get; set; }
+    public int PaymentType { get; set; }
+    public string? PaymentSourceName { get; set; }
+    public Guid? MotherEpisodeId { get; set; }
+    public string? MotherEpisodeNumber { get; set; }
+    public Guid? CurrentServiceUnitId { get; set; }
+    public string? CurrentServiceUnitName { get; set; }
+    public Guid? CurrentRoomId { get; set; }
+    public string? CurrentRoomName { get; set; }
+    public int RegisteredBabyCount { get; set; }
+    public int NextBirthOrderPreview { get; set; }
+}
+
+public sealed class NewbornMotherCandidatePagedResult
+{
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
+    public int TotalData { get; set; }
+    public int TotalPage { get; set; }
+    public List<NewbornMotherCandidateResponse> Items { get; set; } = [];
 }

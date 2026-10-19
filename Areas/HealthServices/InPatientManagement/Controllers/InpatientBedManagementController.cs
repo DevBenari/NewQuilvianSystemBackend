@@ -16,8 +16,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     Description = "Monitoring, pembersihan, verifikasi, dan riwayat penggunaan bed", SortOrder = 12)]
 [Tags("Health Services / Inpatient Management / Bed Management")]
 public class InpatientBedManagementController(InpBedManagementQueryService queries,
-    InpBedReadinessService readiness, InpBedAccessService access) : ControllerBase
+    InpBedReadinessService readiness, InpBedAccessService access, InpFloorPlanQueryService floorPlans) : ControllerBase
 {
+    /// <summary>
+    /// Denah satu lantai untuk Monitoring Bed: status kamar, badge, ringkasan HD/LD, dan bed dengan
+    /// enam status (BE-RWI-238). Tanpa <c>floorCode</c>, lantai dengan bed Tersedia terbanyak.
+    /// Profil OperationalOnly tidak menerima nama, No. RM, maupun HD/LD.
+    /// </summary>
+    [HttpGet("floor-plan")]
+    [ProducesResponseType(typeof(ApiResponse<FloorPlanResponse>), StatusCodes.Status200OK)]
+    [AccessAction("Read", "Read Inpatient Bed Management", AccessType = AccessTypes.Read)]
+    [AccessPermission("InpatientBedManagement", "Read")]
+    public async Task<IActionResult> FloorPlan([FromQuery] FloorPlanMonitoringQuery query, CancellationToken ct = default)
+    {
+        var result = await floorPlans.GetMonitoringAsync(query, ct);
+        return Ok(ApiResponse<FloorPlanResponse>.Ok(result, "Denah lantai berhasil diambil."));
+    }
+
     [HttpGet("metadata")]
     [AccessAction("Read", "Read Inpatient Bed Management", AccessType = AccessTypes.Read)]
     [AccessPermission("InpatientBedManagement", "Read")]

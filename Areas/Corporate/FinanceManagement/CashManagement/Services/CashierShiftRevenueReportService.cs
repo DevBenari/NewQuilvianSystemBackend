@@ -43,12 +43,83 @@ public sealed class CashierShiftRevenueReportService
     // ====================================================================================
 
     /// <summary>
-    /// Mengambil daftar kasir yang dapat dicari berdasarkan nama atau kode kasir.
+    /// Mengambil daftar register kasir dari MstRegister yang dapat dicari berdasarkan kode, nama, atau lokasi.
+    /// Mendukung pagination dan pencarian untuk laporan historis (register nonaktif yang memiliki riwayat shift tetap dapat ditelusuri).
+    /// </summary>
+    public async Task<PagedResult<FilterOptionResponse>> GetRegisterOptionsAsync(
+        RegisterFilterQuery query, CancellationToken cancellationToken)
+    {
+        var registersQuery = _dbContext.MstRegisters.AsNoTracking()
+            .Where(r => !r.IsDelete && (r.IsActive || _dbContext.BilCashierShifts.Any(s => !s.IsDelete && s.RegisterId == r.Id)));
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var search = query.Search.Trim().ToLower();
+            registersQuery = registersQuery.Where(r =>
+                r.RegisterCode.ToLower().Contains(search) ||
+                r.RegisterName.ToLower().Contains(search) ||
+                (r.Location != null && r.Location.ToLower().Contains(search)));
+        }
+
+        var total = await registersQuery.CountAsync(cancellationToken);
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+        var registers = await registersQuery
+            .OrderByDescending(r => r.IsActive)
+            .ThenBy(r => r.RegisterCode)
+            .ThenBy(r => r.RegisterName)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => new
+            {
+                r.Id,
+                r.RegisterCode,
+                r.RegisterName,
+                r.Location,
+                r.IsActive
+            })
+            .ToListAsync(cancellationToken);
+
+        var items = registers.Select(r =>
+        {
+            var label = $"{r.RegisterCode} — {r.RegisterName}{(!r.IsActive ? " [Nonaktif]" : "")}";
+            var subLabel = !string.IsNullOrWhiteSpace(r.Location)
+                ? (!r.IsActive ? $"{r.Location} (Nonaktif)" : r.Location)
+                : (!r.IsActive ? "Nonaktif" : null);
+
+            return new FilterOptionResponse
+            {
+                Value = r.Id.ToString(),
+                Label = label,
+                SubLabel = subLabel
+            };
+        }).ToList();
+
+        return new PagedResult<FilterOptionResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            Items = items
+        };
+    }
+
+    /// <summary>
+    /// Mengambil daftar petugas kasir yang relevan dengan aktivitas operasional shift (berdasarkan histori BilCashierShift).
+    /// Mendukung pencarian kode/nama pengguna dan pagination, serta tetap menampilkan petugas nonaktif yang memiliki histori shift.
     /// </summary>
     public async Task<PagedResult<FilterOptionResponse>> GetCashierOptionsAsync(
         CashierFilterQuery query, CancellationToken cancellationToken)
     {
-        var usersQuery = _dbContext.Users.AsNoTracking().Where(u => u.IsActive);
+        var cashierUserIds = _dbContext.BilCashierShifts.AsNoTracking()
+            .Where(s => !s.IsDelete)
+            .Select(s => s.CashierId)
+            .Distinct();
+
+        var usersQuery = _dbContext.Users.AsNoTracking()
+            .Where(u => cashierUserIds.Contains(u.Id));
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
@@ -64,7 +135,8 @@ public sealed class CashierShiftRevenueReportService
         var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
         var users = await usersQuery
-            .OrderBy(u => u.DisplayName)
+            .OrderByDescending(u => u.IsActive)
+            .ThenBy(u => u.DisplayName)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(u => new
@@ -72,16 +144,26 @@ public sealed class CashierShiftRevenueReportService
                 u.Id,
                 u.DisplayName,
                 u.UserCode,
-                u.UserName
+                u.UserName,
+                u.IsActive
             })
             .ToListAsync(cancellationToken);
 
-        var items = users.Select(u => new FilterOptionResponse
+        var items = users.Select(u =>
         {
-            Value = u.Id.ToString(),
-            Label = !string.IsNullOrWhiteSpace(u.DisplayName) ? u.DisplayName : (u.UserName ?? u.UserCode),
-            CashierCode = u.UserCode,
-            SubLabel = !string.IsNullOrWhiteSpace(u.UserCode) ? $"Kode: {u.UserCode}" : null
+            var baseName = !string.IsNullOrWhiteSpace(u.DisplayName) ? u.DisplayName : (u.UserName ?? u.UserCode);
+            var label = !u.IsActive ? $"{baseName} [Nonaktif]" : baseName;
+            var subLabel = !string.IsNullOrWhiteSpace(u.UserCode)
+                ? $"Kode: {u.UserCode}{(!u.IsActive ? " • Nonaktif" : "")}"
+                : (!u.IsActive ? "Nonaktif" : null);
+
+            return new FilterOptionResponse
+            {
+                Value = u.Id.ToString(),
+                Label = label,
+                CashierCode = u.UserCode,
+                SubLabel = subLabel
+            };
         }).ToList();
 
         return new PagedResult<FilterOptionResponse>
@@ -147,6 +229,11 @@ public sealed class CashierShiftRevenueReportService
         ShiftFilterQuery query, CancellationToken cancellationToken)
     {
         var shiftsQuery = _dbContext.BilCashierShifts.AsNoTracking().Where(s => !s.IsDelete);
+
+        if (query.RegisterId.HasValue)
+        {
+            shiftsQuery = shiftsQuery.Where(s => s.RegisterId == query.RegisterId.Value);
+        }
 
         if (query.CashierId.HasValue)
         {
@@ -774,6 +861,7 @@ public sealed class CashierShiftRevenueReportService
         {
             DateFrom = query.DateFrom,
             DateTo = query.DateTo,
+            RegisterId = query.RegisterId,
             CashierId = query.CashierId,
             Location = query.Location,
             ShiftId = query.ShiftId,
@@ -1017,6 +1105,11 @@ public sealed class CashierShiftRevenueReportService
         {
             var endUtc = FinanceBusinessDate.GetEndOfDayUtc(query.DateTo.Value);
             shiftsQuery = shiftsQuery.Where(s => s.OpenedAt < endUtc);
+        }
+
+        if (query.RegisterId.HasValue)
+        {
+            shiftsQuery = shiftsQuery.Where(s => s.RegisterId == query.RegisterId.Value);
         }
 
         if (query.CashierId.HasValue)

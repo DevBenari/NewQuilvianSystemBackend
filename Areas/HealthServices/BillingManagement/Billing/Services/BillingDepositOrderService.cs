@@ -193,17 +193,20 @@ public sealed class BillingDepositOrderService
             baseQuery = baseQuery.Where(x => x.PatientId == query.PatientId.Value);
         }
 
-        // Filter tanggal
-        if (query.DateFrom.HasValue)
+        // Filter tanggal. Tanggal tanpa jam dibaca sebagai tanggal operasional (WIB) dan batas akhir mencakup
+        // seluruh hari tersebut; sebelumnya "Tanggal Sampai" berhenti pukul 00:00 sehingga hari itu terpotong.
+        var fromUtc = BillingDepositService.ResolveRangeStart(query.DateFrom)?.UtcDateTime;
+        if (fromUtc.HasValue)
         {
-            var fromUtc = query.DateFrom.Value.UtcDateTime;
-            baseQuery = baseQuery.Where(x => x.CreateDateTime >= fromUtc);
+            var rangeFrom = fromUtc.Value;
+            baseQuery = baseQuery.Where(x => x.CreateDateTime >= rangeFrom);
         }
 
-        if (query.DateTo.HasValue)
+        var toExclusiveUtc = BillingDepositService.ResolveRangeEndExclusive(query.DateTo)?.UtcDateTime;
+        if (toExclusiveUtc.HasValue)
         {
-            var toUtc = query.DateTo.Value.UtcDateTime;
-            baseQuery = baseQuery.Where(x => x.CreateDateTime <= toUtc);
+            var toExclusive = toExclusiveUtc.Value;
+            baseQuery = baseQuery.Where(x => x.CreateDateTime < toExclusive);
         }
 
         // Join dengan Patient, Encounter, dan Episode untuk pencarian komprehensif
@@ -238,12 +241,26 @@ public sealed class BillingDepositOrderService
         var totalCount = await joinedQuery.CountAsync(cancellationToken);
 
         // Sorting
-        var orderedQuery = joinedQuery.OrderByDescending(x => x.Order.CreateDateTime);
+        var orderedQuery = joinedQuery
+            .OrderByDescending(x => x.Order.CreateDateTime)
+            .ThenByDescending(x => x.Order.Id);
 
         var rawItems = await orderedQuery
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
+
+        // Terbayar dihitung dari pembayaran berstatus SUCCESS (bukan hanya kolom agregat order), sehingga
+        // pembayaran yang dibalik/gagal tidak ikut terhitung. Sisa = Max(0, Nominal - Terbayar).
+        var pageOrderIds = rawItems.Select(x => x.Order.Id).ToList();
+        var successfulPaidByOrder = (await _dbContext.BilDepositOrderPayments.AsNoTracking()
+                .Where(p => pageOrderIds.Contains(p.DepositOrderId)
+                            && !p.IsDelete
+                            && p.Status == DepositOrderPaymentStatuses.Success)
+                .Select(p => new { p.DepositOrderId, p.Amount })
+                .ToListAsync(cancellationToken))
+            .GroupBy(p => p.DepositOrderId)
+            .ToDictionary(g => g.Key, g => g.Sum(p => p.Amount));
 
         var userIds = rawItems.Select(x => x.Order.CreateBy).Distinct().ToList();
         var users = await _dbContext.Set<ApplicationUser>().AsNoTracking()
@@ -258,6 +275,7 @@ public sealed class BillingDepositOrderService
             var ep = x.Episode;
 
             var createdByName = users.TryGetValue(ord.CreateBy, out var uName) ? uName : "-";
+            var paidAmount = successfulPaidByOrder.TryGetValue(ord.Id, out var successfulPaid) ? successfulPaid : 0m;
 
             return new DepositOrderSummaryDto
             {
@@ -275,8 +293,8 @@ public sealed class BillingDepositOrderService
                 OrderTypeName = FormatOrderTypeName(ord.OrderType),
                 SourceType = ord.SourceType,
                 RequestedAmount = ord.RequestedAmount,
-                PaidAmount = ord.PaidAmount,
-                OutstandingAmount = ord.OutstandingAmount,
+                PaidAmount = paidAmount,
+                OutstandingAmount = Math.Max(0m, ord.RequestedAmount - paidAmount),
                 Status = ord.Status,
                 StatusName = FormatStatusName(ord.Status),
                 DueDate = ord.DueDate,
@@ -401,6 +419,11 @@ public sealed class BillingDepositOrderService
             };
         }
 
+        // Konsisten dengan daftar order: terbayar hanya dari pembayaran SUCCESS, sisa tidak pernah negatif.
+        var successfulPaidAmount = order.Payments?
+            .Where(p => !p.IsDelete && p.Status == DepositOrderPaymentStatuses.Success)
+            .Sum(p => p.Amount) ?? 0m;
+
         return new DepositOrderDetailDto
         {
             Id = order.Id,
@@ -417,8 +440,8 @@ public sealed class BillingDepositOrderService
             OrderTypeName = FormatOrderTypeName(order.OrderType),
             SourceType = order.SourceType,
             RequestedAmount = order.RequestedAmount,
-            PaidAmount = order.PaidAmount,
-            OutstandingAmount = order.OutstandingAmount,
+            PaidAmount = successfulPaidAmount,
+            OutstandingAmount = Math.Max(0m, order.RequestedAmount - successfulPaidAmount),
             Status = order.Status,
             StatusName = FormatStatusName(order.Status),
             DueDate = order.DueDate,
@@ -485,6 +508,7 @@ public sealed class BillingDepositOrderService
                 return new PayDepositOrderResponse
                 {
                     DepositOrderId = order.Id,
+                    PaymentId = priorPayment.Id,
                     OrderNumber = order.OrderNumber,
                     OrderStatus = order.Status,
                     RequestedAmount = order.RequestedAmount,
@@ -521,8 +545,19 @@ public sealed class BillingDepositOrderService
             if (paymentMethod.IsInsurance || paymentMethod.IsCompanyGuarantor)
                 throw new BillingDepositValidationException("Pembayaran deposit tidak dapat menggunakan metode asuransi atau penjamin.");
 
-            if (paymentMethod.IsNeedReferenceNumber && string.IsNullOrWhiteSpace(request.ReferenceNumber))
+            var referenceNumber = string.IsNullOrWhiteSpace(request.ReferenceNumber) ? null : request.ReferenceNumber.Trim();
+            if (paymentMethod.IsNeedReferenceNumber && referenceNumber is null)
                 throw new BillingDepositValidationException($"Metode {paymentMethod.PaymentMethodName} mewajibkan nomor referensi / nomor transaksi.");
+
+            // Konkurensi akun deposit: TopUpAsync menolak akun yang sudah ada bila ExpectedRowVersion kosong.
+            // Pembayaran order tidak membawa versi akun dari klien (konkurensi order dijaga oleh RowVersion order
+            // dan advisory lock di atas), jadi versi akun dibaca di dalam transaksi ini dan diteruskan. Tanpa ini
+            // pembayaran kedua pada kunjungan yang sudah punya akun deposit selalu gagal "Data telah berubah".
+            // Bila akun belum ada, nilainya null sehingga akun dibuat oleh TopUpAsync seperti biasa.
+            var depositAccountRowVersion = await _dbContext.BilDepositAccounts.AsNoTracking()
+                .Where(x => x.EncounterId == order.EncounterId && !x.IsDelete)
+                .Select(x => (Guid?)x.RowVersion)
+                .SingleOrDefaultAsync(cancellationToken);
 
             // Eksekusi penerimaan dana aktual melalui BillingDepositService (rekonsiliasi saldo & cashier shift)
             var topUpRequest = new DepositTopUpRequest
@@ -530,11 +565,11 @@ public sealed class BillingDepositOrderService
                 Amount = request.Amount,
                 PaymentMethodId = request.PaymentMethodId,
                 PaymentMethodAccountId = request.PaymentMethodAccountId,
-                ReferenceNumber = request.ReferenceNumber,
+                ReferenceNumber = referenceNumber,
                 Reason = $"Pembayaran order {order.OrderNumber}: {request.Reason}",
                 CorrelationId = request.CorrelationId,
                 CausationId = order.Id,
-                ExpectedRowVersion = null
+                ExpectedRowVersion = depositAccountRowVersion
             };
 
             var settlement = await _depositService.TopUpAsync(
@@ -604,6 +639,7 @@ public sealed class BillingDepositOrderService
             return new PayDepositOrderResponse
             {
                 DepositOrderId = order.Id,
+                PaymentId = orderPayment.Id,
                 OrderNumber = order.OrderNumber,
                 OrderStatus = order.Status,
                 RequestedAmount = order.RequestedAmount,

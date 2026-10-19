@@ -117,7 +117,11 @@ public sealed class CashierShiftResponse
     public Guid Id { get; set; }
     public string ShiftNumber { get; set; } = string.Empty;
     public Guid CashierId { get; set; }
+    public string? CashierName { get; set; }
     public Guid RegisterId { get; set; }
+    public string? RegisterCode { get; set; }
+    public string? RegisterName { get; set; }
+    public string? RegisterLocation { get; set; }
     public decimal OpeningCash { get; set; }
     public decimal SystemCash { get; set; }
     public decimal ExpectedClosingCash { get; set; }

@@ -1,0 +1,55 @@
+{
+  "planning_id": "RPR-027-DEL-20261017-01",
+  "blueprint_id": "RWI-BP-001",
+  "scope": "episode-rawat-inap/repair-027-pembersihan-mode-pilih",
+  "revision": 1,
+  "captured_on": "2026-10-17",
+  "timezone": "Asia/Jakarta",
+  "status": "APPROVED_FOR_IMPLEMENTATION",
+  "approved_by": "Pemilik Sistem (user sesi)",
+  "approval_evidence": "saya setujui; tidak perlu melakukan testing dan cukup npm run build saja",
+  "implementation_lock": true,
+  "contract_version": "0.13.0 + PLAN-REPAIR-EPS-027",
+  "source_heads": {
+    "frontend": "15ae73984ad26a408e3038566d7e1d1533fe10c3",
+    "backend": "c2bc563ed9332f08fa95b9fe35786fea7a647279"
+  },
+  "input_hashes_sha256": {
+    "docs/issue/issue-027-aksi-pembersihan-hilang-mode-pilih-bed.md": "883415CDD8B4642A6A7238AB25FFD65F680C6A652A865852163A88D01B6E8AA9",
+    "docs/plan-repair/plan-repair-027-aksi-pembersihan-hilang-mode-pilih-bed.md": "CCBF500473573C790CE9B1B6648A3CBE3C3B53F973FDCBE735A42C19DA62F7DD",
+    "03-frontend-architecture.md": "80E254EE65723856EFD4B0190E90D679B2B91F596C0B9DAAC7A53BE0A9127162",
+    "05-skema-tampilan.md": "AD3BFF075B13762BFDBE4FFC6071951AC57067E159B7F7CBEDBE30F06AD02A96",
+    "flowcharts/15-denah-pilih-bed.md": "2D8A933B0F04518879A850A6BB24C06465FA57317195EE7BA1913C383B6FE53B",
+    "contracts/api-contract.md": "AF460AD374AAFE767CBF54A682E0A839B6B75C3CC5933757D4392BF37F63D75C",
+    "contracts/permission-audit-matrix.md": "3DDC6C84EF3AA3DA39CDD277E302B77219C86444810556C3A1ED4A665F3FCF7D"
+  },
+  "id_allocation": {
+    "highest_used_before": "FE-RWI-263",
+    "allocated": "FE-RWI-264",
+    "next_free": "FE-RWI-265"
+  },
+  "tasks": [
+    {
+      "id": "FE-RWI-264",
+      "layer": "frontend",
+      "status": "APPROVED_FOR_IMPLEMENTATION",
+      "dependencies": ["FE-RWI-249", "FE-RWI-263"],
+      "fix": ["FIX-EPS-027-01", "FIX-EPS-027-02"],
+      "findings": ["ISS-EPS-027-01", "ISS-EPS-027-T1"],
+      "acceptance": [
+        "RWI-AC-R027-01",
+        "RWI-AC-R027-02",
+        "RWI-AC-R027-03",
+        "RWI-AC-R027-04",
+        "RWI-AC-R027-05",
+        "RWI-AC-R027-06",
+        "RWI-AC-R027-07",
+        "RWI-AC-R027-08"
+      ],
+      "backend_changes": false,
+      "validation_command": "npm run build",
+      "tests_by_agent": false,
+      "uat_owner": true
+    }
+  ]
+}

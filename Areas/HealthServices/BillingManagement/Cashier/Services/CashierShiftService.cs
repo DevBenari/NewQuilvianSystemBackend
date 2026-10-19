@@ -64,6 +64,15 @@ public sealed class CashierShiftService
 
             await AcquireLockAsync($"BIL_CASHIER_{actorUserId:N}", cancellationToken);
             await AcquireLockAsync($"BIL_REGISTER_{request.RegisterId:N}", cancellationToken);
+
+            var register = await _dbContext.MstRegisters.AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == request.RegisterId && !r.IsDelete, cancellationToken);
+            if (register is null || !register.IsActive)
+            {
+                throw new CashierShiftValidationException(
+                    "Register kasir tidak ditemukan atau sudah tidak aktif. Pilih register lain.");
+            }
+
             if (await ActiveShifts().AnyAsync(
                     x => x.CashierId == actorUserId || x.RegisterId == request.RegisterId,
                     cancellationToken))
@@ -96,7 +105,12 @@ public sealed class CashierShiftService
                 CreateBy = actorUserId
             };
             _dbContext.BilCashierShifts.Add(shift);
-            var response = MapShift(shift);
+
+            var cashierUser = await _dbContext.Users.AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == actorUserId, cancellationToken);
+            var cashierName = cashierUser?.DisplayName ?? cashierUser?.UserName;
+
+            var response = MapShift(shift, null, register.RegisterCode, register.RegisterName, register.Location, cashierName);
             var command = Command(
                 shift,
                 CashierShiftCommandTypes.Open,
@@ -168,12 +182,30 @@ public sealed class CashierShiftService
         }
 
         var total = await query.CountAsync(cancellationToken);
-        var items = await query
+        var shifts = await query
             .OrderByDescending(x => x.OpenedAt)
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(x => MapShift(x, null))
             .ToListAsync(cancellationToken);
+
+        var regIds = shifts.Select(x => x.RegisterId).Distinct().ToList();
+        var cashierIds = shifts.Select(x => x.CashierId).Distinct().ToList();
+
+        var regMap = await _dbContext.MstRegisters.AsNoTracking()
+            .Where(r => regIds.Contains(r.Id))
+            .ToDictionaryAsync(r => r.Id, cancellationToken);
+
+        var userMap = await _dbContext.Users.AsNoTracking()
+            .Where(u => cashierIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, cancellationToken);
+
+        var items = shifts.Select(x =>
+        {
+            var reg = regMap.GetValueOrDefault(x.RegisterId);
+            var u = userMap.GetValueOrDefault(x.CashierId);
+            var cName = u?.DisplayName ?? u?.UserName;
+            return MapShift(x, null, reg?.RegisterCode, reg?.RegisterName, reg?.Location, cName);
+        }).ToList();
 
         return new PagedResult<CashierShiftResponse>
         {
@@ -200,7 +232,14 @@ public sealed class CashierShiftService
                     && x.Status == CashierShiftHandoverStatuses.Pending
                     && !x.IsDelete,
                 cancellationToken);
-        return MapShift(shift, pending);
+
+        var reg = await _dbContext.MstRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == shift.RegisterId, cancellationToken);
+        var user = await _dbContext.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == shift.CashierId, cancellationToken);
+        var cashierName = user?.DisplayName ?? user?.UserName;
+
+        return MapShift(shift, pending, reg?.RegisterCode, reg?.RegisterName, reg?.Location, cashierName);
     }
 
     public async Task<CashierShiftResponse> GetByIdAsync(
@@ -218,7 +257,14 @@ public sealed class CashierShiftService
                     && x.Status == CashierShiftHandoverStatuses.Pending
                     && !x.IsDelete,
                 cancellationToken);
-        return MapShift(shift, pending);
+
+        var reg = await _dbContext.MstRegisters.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == shift.RegisterId, cancellationToken);
+        var user = await _dbContext.Users.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == shift.CashierId, cancellationToken);
+        var cashierName = user?.DisplayName ?? user?.UserName;
+
+        return MapShift(shift, pending, reg?.RegisterCode, reg?.RegisterName, reg?.Location, cashierName);
     }
 
     // Sumber "Konfirmasi Terima Shift" mencari sendiri: sebelumnya kasir penerima harus diberi tahu
@@ -1158,12 +1204,20 @@ public sealed class CashierShiftService
 
     private static CashierShiftResponse MapShift(
         BilCashierShift shift,
-        BilCashierShiftHandover? pending = null) => new()
+        BilCashierShiftHandover? pending = null,
+        string? registerCode = null,
+        string? registerName = null,
+        string? registerLocation = null,
+        string? cashierName = null) => new()
         {
             Id = shift.Id,
             ShiftNumber = shift.ShiftNumber,
             CashierId = shift.CashierId,
+            CashierName = cashierName,
             RegisterId = shift.RegisterId,
+            RegisterCode = registerCode,
+            RegisterName = registerName,
+            RegisterLocation = registerLocation,
             OpeningCash = shift.OpeningCash,
             SystemCash = shift.SystemCash,
             ExpectedClosingCash = checked(shift.OpeningCash + shift.SystemCash),
@@ -1198,7 +1252,7 @@ public sealed class CashierShiftService
         ArgumentNullException.ThrowIfNull(request);
         ValidateCommand(idempotencyKey, actorUserId, request.CorrelationId, request.CausationId);
         if (request.RegisterId == Guid.Empty)
-            throw new CashierShiftValidationException("RegisterId wajib diisi.");
+            throw new CashierShiftValidationException("Register kasir tidak ditemukan atau sudah tidak aktif. Pilih register lain.");
         ValidateMoney(request.OpeningCash, "Kas pembukaan", allowZero: true);
     }
 

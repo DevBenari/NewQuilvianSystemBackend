@@ -12,6 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
     [ApiController]
     [Authorize]
     [Route("api/v1/health-services/billing-management/master-data/registers")]
+    [Route("v1/health-services/billing-management/master-data/registers")]
     [AccessController(
         moduleCode: "HEALTH_SERVICE_BILLING_MANAGEMENT_MASTER_DATA",
         moduleName: "Health Service Billing Management Master Data",

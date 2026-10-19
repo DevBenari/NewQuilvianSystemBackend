@@ -1,0 +1,51 @@
+{
+  "planning_id": "RPR-026-DEL-20261017-01",
+  "blueprint_id": "RWI-BP-001",
+  "scope": "episode-rawat-inap/repair-026-konfirmasi-masuk-modal-denah",
+  "revision": 1,
+  "captured_on": "2026-10-17",
+  "timezone": "Asia/Jakarta",
+  "status": "APPROVED_FOR_IMPLEMENTATION",
+  "approved_by": "Pemilik Sistem (user sesi)",
+  "approval_evidence": "oke setujui tolong anda lakukan perbaikan",
+  "implementation_lock": true,
+  "contract_version": "0.13.0",
+  "source_heads": {
+    "frontend": "15ae73984ad26a408e3038566d7e1d1533fe10c3",
+    "backend": "c2bc563ed9332f08fa95b9fe35786fea7a647279"
+  },
+  "input_hashes_sha256": {
+    "docs/issue/issue-026-konfirmasi-masuk-hilang-di-modal-denah.md": "6D0BB344981C855658C2369FE7C7D9445159E0438043A7596FAB9566D4217B52",
+    "docs/plan-repair/plan-repair-026-konfirmasi-masuk-hilang-di-modal-denah.md": "797DEDE2CF04B085AA3BB7C5B4C64A093F15B130F32292AFAC3316DEDAE77946",
+    "03-frontend-architecture.md": "00479AE31B78A30801D7838B30726C5814B1E2D979E6B980E7DA2F539FF639A6",
+    "05-skema-tampilan.md": "531097191B82CBF9F5BCF8051A6461533C5103BFAA5E8702DD8CF3F69637018B",
+    "contracts/api-contract.md": "AF460AD374AAFE767CBF54A682E0A839B6B75C3CC5933757D4392BF37F63D75C",
+    "contracts/validation-matrix.md": "931FFC27E0DAC6F2C204DBF7FE3C46C3D2F2CE40B4D48D9189A3C491C7F2ECAB"
+  },
+  "id_allocation": {
+    "highest_used_before": "FE-RWI-262",
+    "allocated": "FE-RWI-263",
+    "next_free": "FE-RWI-264"
+  },
+  "tasks": [
+    {
+      "id": "FE-RWI-263",
+      "layer": "frontend",
+      "status": "APPROVED_FOR_IMPLEMENTATION",
+      "dependencies": ["FE-RWI-247"],
+      "fix": ["FIX-EPS-026-01"],
+      "findings": ["ISS-EPS-026-01", "ISS-EPS-026-T1", "ISS-EPS-026-T2", "ISS-EPS-026-T3"],
+      "acceptance": [
+        "RWI-AC-R026-01",
+        "RWI-AC-R026-02",
+        "RWI-AC-R026-03",
+        "RWI-AC-R026-04",
+        "RWI-AC-R026-05",
+        "RWI-AC-R026-06",
+        "RWI-AC-R026-07",
+        "RWI-AC-R026-08"
+      ],
+      "backend_changes": false
+    }
+  ]
+}

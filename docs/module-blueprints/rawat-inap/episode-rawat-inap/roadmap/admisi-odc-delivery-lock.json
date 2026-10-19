@@ -1,0 +1,82 @@
+{
+  "planning_id": "ODC-DEL-20261017-01",
+  "blueprint_id": "RWI-BP-001",
+  "scope": "episode-rawat-inap/admisi-odc",
+  "revision": 1,
+  "captured_on": "2026-10-17",
+  "timezone": "Asia/Jakarta",
+  "status": "APPROVED_DESIGN_PLANNED",
+  "approved_by": "Muhammad Hamzah (pengguna sesi)",
+  "approved_at": "2026-10-17",
+  "approval_evidence": {
+    "statement": "/plan-module-delivery",
+    "command": "/plan-module-delivery",
+    "context": "Persetujuan perencanaan delivery pendaftaran admisi pasien ODC (One Day Care) pada rawat inap",
+    "contract_target": "0.15.0",
+    "task_execution": "Setiap task dieksekusi tepat 1 task per pemanggilan via build-module-backend / build-module-frontend"
+  },
+  "implementation_lock": true,
+  "contract_version": "0.15.0",
+  "id_allocation": {
+    "scanned_on": "2026-10-17",
+    "highest_used": {
+      "BE-RWI": 247,
+      "FE-RWI": 259
+    },
+    "allocated": {
+      "BE-RWI": "248-249",
+      "FE-RWI": "260-262"
+    },
+    "next_free": {
+      "BE-RWI": 250,
+      "FE-RWI": 263
+    }
+  },
+  "tasks": [
+    {
+      "id": "BE-RWI-248",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": ["FR-ODC-007"],
+      "acceptance": ["RWI-AC-465"],
+      "service": "InpBedOccupancyService"
+    },
+    {
+      "id": "BE-RWI-249",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": ["BE-RWI-248"],
+      "fr": ["FR-ODC-002", "FR-ODC-004", "FR-ODC-005"],
+      "acceptance": ["RWI-AC-464", "RWI-AC-465", "RWI-AC-466", "RWI-AC-467"],
+      "service": "InpPlacementEligibilityService"
+    },
+    {
+      "id": "FE-RWI-260",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": ["FR-ODC-001", "FR-ODC-002"],
+      "acceptance": ["RWI-AC-463", "RWI-AC-464"],
+      "component": "Step2PatientTypeView"
+    },
+    {
+      "id": "FE-RWI-261",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": ["FE-RWI-260", "BE-RWI-248"],
+      "fr": ["FR-ODC-003", "FR-ODC-004"],
+      "acceptance": ["RWI-AC-465", "RWI-AC-466"],
+      "component": "Step6BedPlacementView"
+    },
+    {
+      "id": "FE-RWI-262",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": ["FE-RWI-260"],
+      "fr": ["FR-ODC-006"],
+      "acceptance": ["RWI-AC-468"],
+      "component": "Step7GeneralConsentView"
+    }
+  ]
+}

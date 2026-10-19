@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options;
 
@@ -10,10 +11,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
 public sealed class InpBedClassComparisonService(ApplicationDbContext db, IOptionsMonitor<BedManagementOptions> options)
 {
+    /// <summary>
+    /// Jenis kelas khusus (RWI-DEC-312, 319): ICU, Isolasi, ODC, dan Perinatologi. Transfer ke
+    /// atau dari kelas ini tidak memakai urutan angka (INV-DNH-08). HCU dan NICU bukan kelas khusus
+    /// sampai pemilik memutuskan.
+    /// </summary>
+    public static readonly IReadOnlySet<PatientClassType> SpecialClassTypes = new HashSet<PatientClassType>
+    {
+        PatientClassType.ICU, PatientClassType.Isolation, PatientClassType.Odc, PatientClassType.Perinatology
+    };
+
+    public static readonly string[] AllTransferCategories = ["DownGrade", "UpGrade", "SameGrade"];
+
+    public static bool IsSpecialClass(PatientClassType classType) => SpecialClassTypes.Contains(classType);
+
+    /// <summary>
+    /// Kategori transfer yang boleh dipilih petugas untuk satu hasil perbandingan: ketiganya untuk
+    /// <c>Special</c>, kosong untuk <c>Unknown</c>, dan satu kategori resmi untuk kelas biasa.
+    /// </summary>
+    /// <example>Kelas 3 → ICU (<c>Special</c>) → DownGrade, UpGrade, SameGrade; Kelas 2 → Kelas 1 (<c>UpGrade</c>) → UpGrade saja.</example>
+    public static string[] AllowedCategories(string? comparison) => comparison switch
+    {
+        "Special" => AllTransferCategories.ToArray(),
+        null or "Unknown" => [],
+        _ => [comparison]
+    };
+
     private List<MstPatientClass>? _cachedClasses;
     private readonly Dictionary<(Guid, Guid), string> _compareCache = new();
 
     // Format digest: kelas aktif, Id:D|ClassLevel, urut Id; LF; pasangan equivalence ternormalisasi sesudah kelas.
+    // Urutan pemeriksaan (backend 15.7): kelas tidak ditemukan/nonaktif → Unknown; asal ATAU tujuan
+    // kelas khusus → Special tanpa memeriksa digest; Id sama → SameGrade; selain itu urutan terverifikasi.
     public async Task<string> CompareAsync(Guid sourceId, Guid targetId, CancellationToken ct = default)
     {
         if (_compareCache.TryGetValue((sourceId, targetId), out var cached)) return cached;
@@ -22,6 +51,11 @@ public sealed class InpBedClassComparisonService(ApplicationDbContext db, IOptio
         var source = classes.SingleOrDefault(x => x.Id == sourceId);
         var target = classes.SingleOrDefault(x => x.Id == targetId);
         if (source == null || target == null) return "Unknown";
+        if (IsSpecialClass(source.PatientClassType) || IsSpecialClass(target.PatientClassType))
+        {
+            _compareCache[(sourceId, targetId)] = "Special";
+            return "Special";
+        }
         if (sourceId == targetId) return "SameGrade";
         var profile = options.CurrentValue.ClassOrder;
         if (source.ClassLevel <= 0 || target.ClassLevel <= 0 || profile.Direction == null ||
@@ -46,4 +80,3 @@ public sealed class InpBedClassComparisonService(ApplicationDbContext db, IOptio
         return result;
     }
 }
-
