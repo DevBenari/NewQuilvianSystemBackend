@@ -141,6 +141,16 @@ namespace QuilvianSystemBackend.Tests.Nutrition.Infrastructure
 
         private const string CastPostgres = "::";
 
+        /// <summary>
+        /// Operator pencocokan regex PostgreSQL. Masuk 15 Oktober 2026 bersama dua check
+        /// constraint Finance — <c>CK_MstPayrollDeductionCutover_Period</c> dan
+        /// <c>CK_FinPayrollDeductionBatch_Period</c> — yang memeriksa format periode dengan
+        /// <c>"Kolom" ~ '^[0-9]{4}-...'</c>. SQLite tidak mengenal operator itu dan menolak
+        /// seluruh skrip dengan <c>near "~": syntax error</c>, sehingga tak satu pun tabel
+        /// terbentuk dan seluruh uji gagal dengan sebab yang menyesatkan.
+        /// </summary>
+        private static readonly string[] OperatorKhususPostgres = [" ~ ", " ~* ", " !~ ", " !~* "];
+
         public override void Customize(ModelBuilder modelBuilder, DbContext context)
         {
             base.Customize(modelBuilder, context);
@@ -184,6 +194,7 @@ namespace QuilvianSystemBackend.Tests.Nutrition.Infrastructure
         private static bool KhasPostgres(string? sql) =>
             sql is not null &&
             (sql.Contains(CastPostgres, StringComparison.Ordinal) ||
-                FungsiKhususPostgres.Any(f => sql.Contains(f, StringComparison.OrdinalIgnoreCase)));
+                FungsiKhususPostgres.Any(f => sql.Contains(f, StringComparison.OrdinalIgnoreCase)) ||
+                OperatorKhususPostgres.Any(o => sql.Contains(o, StringComparison.Ordinal)));
     }
 }
