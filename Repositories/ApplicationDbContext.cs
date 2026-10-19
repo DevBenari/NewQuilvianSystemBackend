@@ -1002,6 +1002,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPrescriptionFinalCheck> TrxPrescriptionFinalChecks { get; set; }
         public DbSet<TrxPrescriptionFinalCheckItem> TrxPrescriptionFinalCheckItems { get; set; }
         public DbSet<TrxPrescriptionDrugSubstitution> TrxPrescriptionDrugSubstitutions { get; set; }
+
+        /// <summary>Penahanan stok milik resep — <c>PHA-DEC-066</c>.</summary>
+        public DbSet<PhmPrescriptionStockReservation> PhmPrescriptionStockReservations { get; set; }
         public DbSet<TrxPrescriptionClarification> TrxPrescriptionClarifications { get; set; }
         public DbSet<MstDiagnosisDrugRecommendation> MstDiagnosisDrugRecommendations { get; set; }
         public DbSet<MstDiagnosisEducationRecommendation> MstDiagnosisEducationRecommendations { get; set; }
