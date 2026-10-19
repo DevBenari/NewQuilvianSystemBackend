@@ -27,7 +27,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing")]
 [AccessController(
-    "HEALTH_SERVICE_BILLING_MANAGEMENT_INPATIENT",
+    "HEALTH_SERVICE_BILLING_MANAGEMENT",
     "Health Service Billing Management",
     "Billing Inpatient Integration",
     AreaName = "HealthServices",

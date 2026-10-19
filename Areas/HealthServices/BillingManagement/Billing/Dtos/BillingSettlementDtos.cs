@@ -7,6 +7,8 @@ public sealed class CreateSettlementRequest
 {
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
+    /// <summary>Target iuran membership (non-kunjungan); wajib bila Purpose = MEMBERSHIP_FEE.</summary>
+    public Guid? MembershipFeeChargeId { get; set; }
     [Required, MaxLength(30)] public string Purpose { get; set; } = string.Empty;
     [Range(
         typeof(decimal),
@@ -42,6 +44,7 @@ public sealed class SettlementResponse
     public Guid? Id { get; set; }
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
+    public Guid? MembershipFeeChargeId { get; set; }
     public string Purpose { get; set; } = BillingSettlementPurposes.DepositTopUp;
     public string? Note { get; set; }
     public string Status { get; set; } = BillingSettlementStatuses.Draft;
@@ -51,6 +54,8 @@ public sealed class SettlementResponse
     public decimal PendingAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
     public decimal CollectibleAmount { get; set; }
+    public decimal RoundingAdjustmentAmount { get; set; }
+    public decimal EffectivePayableAmount { get; set; }
     public bool IsReplay { get; set; }
     public Guid CorrelationId { get; set; }
     public Guid? RowVersion { get; set; }
@@ -59,6 +64,15 @@ public sealed class SettlementResponse
     public Guid? DepositMovementId { get; set; }
     public DepositResponse? Deposit { get; set; }
     public IReadOnlyList<TenderResponse> Tenders { get; set; } = [];
+
+    // Status pembayaran invoice: "BELUM_LUNAS", "SEBAGIAN", "LUNAS"
+    public string PaymentStatus { get; set; } = "BELUM_LUNAS";
+    public bool IsFullyPaid { get; set; }
+    public string? InvoiceStatus { get; set; }
+    public Guid? EncounterId { get; set; }
+    public int? EncounterStatus { get; set; }
+    public string? EncounterStatusName { get; set; }
+    public string? AutoCompletionIncompleteReason { get; set; }
 }
 
 public sealed class TenderResponse
@@ -79,4 +93,11 @@ public sealed class TenderResponse
     public Guid RowVersion { get; set; }
     public bool IsReplay { get; set; }
     public string? InvoiceClosureNote { get; set; }
+
+    // Klasifikasi transaksi pembayaran: "PELUNASAN", "CICILAN", "PENDING"
+    public string TransactionClassification { get; set; } = "CICILAN";
+    // Status tagihan setelah transaksi ini: "LUNAS", "SEBAGIAN", "BELUM_LUNAS"
+    public string PostTransactionStatus { get; set; } = "SEBAGIAN";
+    public decimal RemainingOutstanding { get; set; }
+    public decimal RoundingAdjustmentAmount { get; set; }
 }

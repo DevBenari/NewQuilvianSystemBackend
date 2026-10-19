@@ -32,8 +32,13 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();
         services.AddScoped<BillingDiscountService>();
         services.AddScoped<BillingDepositService>();
+        services.AddScoped<BillingDepositOrderService>();
         services.AddScoped<BillingAllocationService>();
         services.AddScoped<BillingSettlementService>();
+        // crm-membership: tagihan iuran non-kunjungan. Port CRM di-resolve ke instance yang sama.
+        services.AddScoped<BillingMembershipFeeService>();
+        services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Services.IMembershipFeeChargePort>(
+            sp => sp.GetRequiredService<BillingMembershipFeeService>());
         services.AddScoped<BillingRefundService>();
         services.AddScoped<BillingInvoiceClosureService>();
         services.AddScoped<BilConsumerHandoffService>();
@@ -61,6 +66,8 @@ public static class BillingManagementServiceCollectionExtensions
         // BE-RWI-150 / INT-RWF-01: penerima ketukan pintu Rawat Inap di dalam aplikasi.
         services.AddScoped<BillingInpatientEventReceiver>();
         services.AddScoped<BillingDrugReturnService>();
+        services.AddScoped<IBillingSupersededItemReviewService, BillingSupersededItemReviewService>();
+        services.AddScoped<BillingSupersededItemReviewService>();
         services.AddOptions<BillingPaymentProviderOptions>()
             .BindConfiguration(BillingPaymentProviderOptions.SectionName);
 
@@ -173,6 +180,8 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<PettyCashBudgetService>();
         // BE-BKC-037 / PC-DES-001: siklus hidup voucher kas kecil penuh.
         services.AddScoped<PettyCashVoucherService>();
+        // Laporan Pendapatan Kasir per Shift (CashierShiftRevenueReportService).
+        services.AddScoped<CashierShiftRevenueReportService>();
 
         return services;
     }

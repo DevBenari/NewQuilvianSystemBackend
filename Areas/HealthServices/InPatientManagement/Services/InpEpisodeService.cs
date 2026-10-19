@@ -8,6 +8,9 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
@@ -92,17 +95,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// (<c>BE-RWI-230</c>).
         /// </summary>
         private readonly IConfiguration _configuration;
+        private readonly BillingNumberSeriesService? _billingNumberSeries;
 
-        /// <remarks>
-        /// <b>Arah dependency dibalik pada `BE-RWI-011`.</b> Sampai `BE-RWI-008`, service ini
-        /// menerima <c>InpBedOccupancyService</c> tanpa pernah memakainya. Sejak penempatan
-        /// pasien dibuka, <c>InpBedOccupancyService.PlacePatientAsync</c> wajib memanggil
-        /// <see cref="ApplyStatusChangeAsync"/> â€” satu-satunya pintu perubahan status â€”
-        /// sehingga arah pemakaiannya menjadi <c>InpBedOccupancyService</c> ke service ini.
-        /// Mempertahankan kedua arah sekaligus menghasilkan dependency melingkar yang
-        /// ditolak container saat aplikasi dinyalakan. Delta terhadap class diagram
-        /// `02-backend-architecture.md` bagian 3.4 dicatat pada laporan `BE-RWI-011`.
-        /// </remarks>
         public InpEpisodeService(
             ApplicationDbContext dbContext,
             InpSettingService settingService,
@@ -110,7 +104,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             IInpIntegrationOutboxService outboxService,
             InpAdmissionReferralService admissionReferralService,
             InpAdmissionCompletenessEvaluator admissionCompleteness,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            BillingNumberSeriesService? billingNumberSeries = null)
         {
             _dbContext = dbContext;
             _settingService = settingService;
@@ -119,6 +114,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _admissionReferralService = admissionReferralService;
             _admissionCompleteness = admissionCompleteness;
             _configuration = configuration;
+            _billingNumberSeries = billingNumberSeries;
         }
 
         // =====================================================================
@@ -158,11 +154,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return InpEpisodeOperationResult.Invalid("Pasien belum dipilih.");
             }
 
-            if (request.DoctorId == Guid.Empty)
-            {
-                return InpEpisodeOperationResult.Invalid("Dokter penanggung jawab belum dipilih.");
-            }
-
             var patient = await _dbContext.Set<MstPatient>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
@@ -174,9 +165,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return InpEpisodeOperationResult.Invalid("Pasien belum dipilih.");
             }
 
+            var isOdcClass = request.PatientClassId == Guid.Parse("02f04b94-e978-49dc-b6a3-2d197573d4ab") ||
+                             request.PatientClassId == Guid.Parse("269ecefe-7da2-4408-a9ab-38fc5096c031");
+
+            var isOdcPatient = patient.PatientType == PatientType.OneDayCare ||
+                               (int)patient.PatientType == 4 ||
+                               (int)patient.PatientType == 7 ||
+                               isOdcClass;
+
+            // BE-RWI-249 / VAL-ADM-13: DPJP Utama wajib untuk admisi pasien ODC
+            if (isOdcPatient && request.DoctorId == Guid.Empty)
+            {
+                return InpEpisodeOperationResult.FromStatus(
+                    InpEpisodeOperationStatus.Invalid,
+                    "Dokter Penanggung Jawab Pelayanan (DPJP) utama wajib ditentukan untuk pasien ODC.",
+                    "PRIMARY_DOCTOR_REQUIRED");
+            }
+
+            if (request.DoctorId == Guid.Empty)
+            {
+                return InpEpisodeOperationResult.Invalid("Dokter penanggung jawab belum dipilih.");
+            }
+
             var newbornError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, patient);
             if (newbornError != null)
                 return InpEpisodeOperationResult.BusinessRuleRejected(newbornError);
+            var deliveryCaseError = await InpNewbornAdmissionRules.ValidateDeliveryCaseAsync(
+                _dbContext, request.NewbornAdmission, patient, cancellationToken);
+            if (deliveryCaseError != null)
+                return InpEpisodeOperationResult.BusinessRuleRejected(deliveryCaseError);
             if (request.NewbornAdmission?.CareMode == "RoomingIn" &&
                 !(await InpNewbornAdmissionRules.FindMotherRoomAsync(_dbContext, request.MotherEpisodeId, patient.MotherPatientId, cancellationToken)).HasValue)
                 return InpEpisodeOperationResult.BusinessRuleRejected("Rawat gabung memerlukan penempatan ibu yang aktif.");
@@ -227,6 +244,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 var selectedBed = await _dbContext.Set<MstBed>().AsNoTracking().Include(x => x.Room)
                     .FirstOrDefaultAsync(x => x.Id == request.SelectedBedId.Value && !x.IsDelete, cancellationToken);
+                if (selectedBed != null)
+                {
+                    if (selectedBed.IsOdcBed || (selectedBed.Room != null && selectedBed.Room.IsOdcRoom))
+                    {
+                        isOdcPatient = true;
+                    }
+
+                    // BE-RWI-249 / VAL-ADM-10, VAL-ADM-11: Penegakan kelayakan bed ODC pada admisi
+                    if (isOdcPatient && !selectedBed.IsOdcBed)
+                    {
+                        return InpEpisodeOperationResult.FromStatus(
+                            InpEpisodeOperationStatus.BusinessRuleRejected,
+                            "Pasien ODC hanya dapat ditempatkan pada tempat tidur khusus One Day Care (ODC).",
+                            "ODC_BED_REQUIRED");
+                    }
+                    if (!isOdcPatient && selectedBed.IsOdcBed)
+                    {
+                        return InpEpisodeOperationResult.FromStatus(
+                            InpEpisodeOperationStatus.BusinessRuleRejected,
+                            "Tempat tidur One Day Care (ODC) khusus diperuntukkan bagi pasien ODC.",
+                            "ODC_BED_RESERVED");
+                    }
+                }
                 if (selectedBed?.Room != null)
                 {
                     var newbornEpisode = new InpEpisode { MotherEpisodeId = request.MotherEpisodeId };
@@ -364,6 +404,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitId = request.ServiceUnitId,
                     PatientClassId = request.PatientClassId,
                     EpisodeStatus = InpEpisodeStatus.Draft,
+                    AdmittedAt = now,
                     MotherEpisodeId = request.MotherEpisodeId == Guid.Empty
                         ? null
                         : request.MotherEpisodeId,
@@ -375,6 +416,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
                 InpNewbornAdmissionRules.ApplyContext(episode, request.NewbornAdmission);
                 _dbContext.Set<InpEpisode>().Add(episode);
+
+                if (isOdcPatient && patient.PatientType != PatientType.OneDayCare)
+                {
+                    var patientForUpdate = await _dbContext.Set<MstPatient>()
+                        .FirstOrDefaultAsync(x => x.Id == request.PatientId && !x.IsDelete, cancellationToken);
+                    if (patientForUpdate != null)
+                    {
+                        patientForUpdate.PatientType = PatientType.OneDayCare;
+                        patientForUpdate.UpdateDateTime = now;
+                        patientForUpdate.UpdateBy = actorUserId;
+                    }
+                }
 
                 // INV-INP-03 â€” DPJP ada sejak detik pertama, bukan dilengkapi kemudian.
                 // Perannya ditulis eksplisit sejak BE-RWI-074; nilai bawaan database ada
@@ -417,6 +470,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 if (referralCheck.Referral != null)
                 {
                     InpAdmissionReferralService.MarkCompleted(referralCheck.Referral, episode.Id, actorUserId, now);
+                }
+
+                // Initial Deposit Order jika nominal diminta diisi dan positif (tidak menahan admisi - RWI-DEC-095)
+                if (request.RequestedDepositAmount.HasValue && request.RequestedDepositAmount.Value > 0)
+                {
+                    string orderNumber;
+                    if (_billingNumberSeries != null)
+                    {
+                        orderNumber = await _billingNumberSeries.AllocateDepositOrderNumberAsync(actorUserId, now, cancellationToken);
+                    }
+                    else
+                    {
+                        orderNumber = $"DPO-{now:yyyyMMdd}-{Random.Shared.Next(10000, 99999)}";
+                    }
+
+                    var depositOrder = new BilDepositPaymentOrder
+                    {
+                        Id = Guid.NewGuid(),
+                        OrderNumber = orderNumber,
+                        EpisodeId = episode.Id,
+                        EncounterId = episode.EncounterId,
+                        PatientId = episode.PatientId,
+                        OrderType = DepositOrderTypes.InitialDeposit,
+                        SourceType = DepositOrderSourceTypes.InpatientAdmission,
+                        SourceReferenceId = episode.Id,
+                        RequestedAmount = request.RequestedDepositAmount.Value,
+                        PaidAmount = 0m,
+                        OutstandingAmount = request.RequestedDepositAmount.Value,
+                        Status = DepositOrderStatuses.Unpaid,
+                        DueDate = now.Date.AddDays(3),
+                        PolicyId = request.DepositPolicyId,
+                        Remarks = !string.IsNullOrWhiteSpace(request.DepositOrderRemarks) ? request.DepositOrderRemarks : "Order deposit awal admisi rawat inap",
+                        IdempotencyKey = Guid.TryParse(request.DepositIdempotencyKey, out var parsedKey) ? parsedKey : Guid.NewGuid(),
+                        CorrelationId = episode.Id,
+                        CausationId = episode.Id,
+                        CreateBy = actorUserId,
+                        CreateDateTime = now
+                    };
+
+                    _dbContext.Set<BilDepositPaymentOrder>().Add(depositOrder);
                 }
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -535,6 +628,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     .SingleAsync(x => x.Id == episode.PatientId, cancellationToken);
                 var contextError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, newbornPatient);
                 if (contextError != null) return InpEpisodeOperationResult.BusinessRuleRejected(contextError);
+                var deliveryCaseError = await InpNewbornAdmissionRules.ValidateDeliveryCaseAsync(
+                    _dbContext, request.NewbornAdmission, newbornPatient, cancellationToken);
+                if (deliveryCaseError != null)
+                    return InpEpisodeOperationResult.BusinessRuleRejected(deliveryCaseError);
                 var unchangedRoomingIn = request.MotherEpisodeId == episode.MotherEpisodeId &&
                     request.NewbornAdmission.CareMode == episode.NewbornCareMode;
                 if (request.NewbornAdmission.CareMode == "RoomingIn" && !unchangedRoomingIn &&
@@ -1183,12 +1280,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     IsolationSetByUserId = x.IsolationSetByUserId,
                     IsolationSetByDoctorId = x.IsolationSetByDoctorId,
                     IsolationSetAt = x.IsolationSetAt,
+                    // BE-RWI-234: tingkat ketergantungan yang berlaku saat ini.
+                    CareDependencyLevel = x.CareDependencyLevel != null ? (int)x.CareDependencyLevel : null,
+                    CareDependencySource = x.CareDependencySource != null ? (int)x.CareDependencySource : null,
+                    CareDependencySetByName = x.CareDependencySetByUser != null
+                        ? x.CareDependencySetByUser.DisplayName ?? x.CareDependencySetByUser.UserName
+                        : null,
+                    CareDependencySetAt = x.CareDependencySetAt,
+                    CareDependencyNote = x.CareDependencyNote,
                     DischargeType = (int)x.DischargeType,
                     IsClosedWithoutFinancialClearance = x.IsClosedWithoutFinancialClearance,
                     ClosedWithoutClearanceReason = x.ClosedWithoutClearanceReason,
                     MotherEpisodeId = x.MotherEpisodeId,
                     NewbornAdmission = x.NewbornCareMode == null ? null : new InpatientNewbornAdmissionContext
                     {
+                        DeliveryCaseId = x.DeliveryCaseId ?? Guid.Empty,
                         Source = x.NewbornAdmissionSource ?? "",
                         CareMode = x.NewbornCareMode,
                         CareSource = x.NewbornCareSource ?? "",
@@ -1271,9 +1377,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             detail.IsolationSourceName = detail.IsolationSource.HasValue
                 ? ((InpIsolationSource)detail.IsolationSource.Value).ToString()
                 : null;
+            detail.CareDependencyLevelName = detail.CareDependencyLevel.HasValue
+                ? ((InpCareDependencyLevel)detail.CareDependencyLevel.Value).ToString()
+                : null;
+            detail.CareDependencySourceName = detail.CareDependencySource.HasValue
+                ? ((InpCareDependencySource)detail.CareDependencySource.Value).ToString()
+                : null;
 
             detail.IsEncounterCreatedByAdmission =
                 await WasEncounterCreatedByAdmissionAsync(episodeId, cancellationToken);
+
+            // Baca order deposit awal (jika ada) untuk kebutuhan konfirmasi dan informasi admisi
+            detail.DepositPaymentOrder = await _dbContext.Set<BilDepositPaymentOrder>()
+                .AsNoTracking()
+                .Where(x => x.EpisodeId == episodeId && !x.IsDelete)
+                .OrderBy(x => x.CreateDateTime)
+                .Select(x => new DepositOrderSummaryDto
+                {
+                    Id = x.Id,
+                    OrderNumber = x.OrderNumber,
+                    EpisodeId = x.EpisodeId,
+                    EncounterId = x.EncounterId,
+                    PatientId = x.PatientId,
+                    OrderType = x.OrderType,
+                    SourceType = x.SourceType,
+                    RequestedAmount = x.RequestedAmount,
+                    PaidAmount = x.PaidAmount,
+                    OutstandingAmount = x.OutstandingAmount,
+                    Status = x.Status,
+                    DueDate = x.DueDate,
+                    CreatedAt = x.CreateDateTime,
+                    CreatedByName = x.CreateBy.ToString()
+                })
+                .FirstOrDefaultAsync(cancellationToken);
 
             if (warnings != null && warnings.Count > 0)
             {

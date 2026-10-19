@@ -2,6 +2,12 @@
 
 Tanggal: 11 Oktober 2026. Revision: `1`, status **draft**. Blueprint `RWI-BP-001`, sub-modul `episode-rawat-inap`, kontrak target mengikuti manifest anak. Keputusan produk tetap revision `46`, `RWI-DEC-274`–`294` dan `RWI-AC-396`–`426`; gate tetap `1.12`, `BM-RCG-20261010-01`. Approval desain: `approved_by: null`, `approved_at: null`.
 
+> **STALE sebagian sejak 15 Oktober 2026.** Lima klaim dokumen ini sudah berubah pada
+> `BE@ca09cae` / `FE@4d9bf60` (`BM-CAP-07`, `08`, `09`, `14`, dan `S11`). Rinciannya dan bukti
+> current untuk integrasi denah ada di
+> [BM-IMP-20261015-01](./denah-bed-impact-scan-20261015.md) bagian 1. Butir lain belum diperiksa
+> ulang.
+
 ## 1. Batas pemeriksaan dan asal bukti
 
 Pemeriksaan ini memakai `trace-existing-capabilities` untuk melanjutkan finalisasi dokumen, tanpa mengubah source aplikasi. Source backend menjadi bukti perilaku yang tersedia; source frontend menunjukkan konsumen. Tidak menjalankan aplikasi, API, PostgreSQL, migration, atau UAT.

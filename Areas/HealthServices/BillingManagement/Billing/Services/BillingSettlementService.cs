@@ -5,6 +5,8 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Model
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
@@ -27,6 +29,8 @@ public sealed class BillingSettlementService
     private readonly BillingInvoiceClosureService _closureService;
     private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
+    private readonly ClinicalDocumentIntegrityService? _integrityService;
+    private readonly BillingMembershipFeeService? _membershipFeeService;
 
     public BillingSettlementService(
         ApplicationDbContext dbContext,
@@ -37,7 +41,9 @@ public sealed class BillingSettlementService
         BillingFinalizationService finalizationService,
         BillingInvoiceClosureService closureService,
         BilConsumerHandoffService consumerHandoffService,
-        LoggerService loggerService)
+        LoggerService loggerService,
+        ClinicalDocumentIntegrityService? integrityService = null,
+        BillingMembershipFeeService? membershipFeeService = null)
     {
         _dbContext = dbContext;
         _providerAdapter = providerAdapter;
@@ -48,6 +54,8 @@ public sealed class BillingSettlementService
         _closureService = closureService;
         _consumerHandoffService = consumerHandoffService;
         _loggerService = loggerService;
+        _integrityService = integrityService;
+        _membershipFeeService = membershipFeeService;
     }
 
     public async Task<SettlementResponse> GetAsync(
@@ -61,7 +69,21 @@ public sealed class BillingSettlementService
             .Include(x => x.Tenders)
             .SingleOrDefaultAsync(x => x.Id == settlementId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Settlement tidak ditemukan.");
-        return MapSettlement(settlement, false);
+
+        BilInvoice? invoice = null;
+        RegPatientEncounter? encounter = null;
+        if (settlement.InvoiceId.HasValue)
+        {
+            invoice = await _dbContext.BilInvoices.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == settlement.InvoiceId.Value && !x.IsDelete, cancellationToken);
+            if (invoice != null)
+            {
+                encounter = await _dbContext.Set<RegPatientEncounter>().AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.Id == invoice.EncounterId && !x.IsDelete, cancellationToken);
+            }
+        }
+
+        return MapSettlement(settlement, false, invoice, encounter);
     }
 
     // Riwayat settlement milik satu invoice, terbaru lebih dulu. Sebelum ini, layar kasir hanya
@@ -75,13 +97,22 @@ public sealed class BillingSettlementService
         if (invoiceId == Guid.Empty)
             throw new BillingSettlementValidationException("InvoiceId wajib diisi.");
 
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
+        RegPatientEncounter? encounter = null;
+        if (invoice != null)
+        {
+            encounter = await _dbContext.Set<RegPatientEncounter>().AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == invoice.EncounterId && !x.IsDelete, cancellationToken);
+        }
+
         var settlements = await _dbContext.BilSettlements.AsNoTracking()
             .Include(x => x.Tenders)
             .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
             .OrderByDescending(x => x.CreateDateTime)
             .ToListAsync(cancellationToken);
 
-        return settlements.Select(x => MapSettlement(x, false)).ToList();
+        return settlements.Select(x => MapSettlement(x, false, invoice, encounter)).ToList();
     }
 
     public async Task<SettlementResponse> CreateAsync(
@@ -128,6 +159,7 @@ public sealed class BillingSettlementService
                     && x.Purpose == request.Purpose
                     && x.InvoiceId == request.InvoiceId
                     && x.DepositAccountId == request.DepositAccountId
+                    && x.MembershipFeeChargeId == request.MembershipFeeChargeId
                     && x.Status != BillingSettlementStatuses.Settled,
                     cancellationToken);
             if (activeExists)
@@ -139,6 +171,7 @@ public sealed class BillingSettlementService
             {
                 InvoiceId = request.InvoiceId,
                 DepositAccountId = request.DepositAccountId,
+                MembershipFeeChargeId = request.MembershipFeeChargeId,
                 Purpose = request.Purpose,
                 Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
                 RequestedAmount = request.RequestedAmount,
@@ -245,13 +278,36 @@ public sealed class BillingSettlementService
                     throw new BillingSettlementValidationException(
                         "Settlement sudah lunas dan tidak dapat menerima tender baru.");
 
+                // Iuran membership: tagihan harus masih dapat dibayar (belum dibatalkan/lewat batas bayar,
+                // membership masih menunggu pembayaran). Kunci tagihan diambil di sini, serial dengan pembatalan.
+                if (settlement.Purpose == BillingSettlementPurposes.MembershipFee)
+                {
+                    if (_membershipFeeService is null)
+                        throw new InvalidOperationException("Layanan tagihan iuran membership tidak tersedia.");
+                    try
+                    {
+                        await _membershipFeeService.EnsureSettlementPayableAsync(settlement, cancellationToken);
+                    }
+                    catch (BillingMembershipFeeValidationException exception)
+                    {
+                        throw new BillingSettlementValidationException(exception.Message);
+                    }
+                    catch (BillingMembershipFeeConflictException exception)
+                    {
+                        throw new BillingSettlementConflictException(exception.Message);
+                    }
+                }
+
                 paymentMethod = await LoadPaymentMethodAsync(request.PaymentMethodId, cancellationToken);
                 ValidatePaymentMethod(paymentMethod);
                 var activeShift = paymentMethod.IsCash
                     ? await RequireCashierShiftAsync(actorUserId, cancellationToken)
                     : null;
                 var collectibleAmount = CalculateCollectibleAmount(settlement);
-                if (request.Amount > collectibleAmount)
+                var maxCollectible = paymentMethod.IsCash
+                    ? Math.Max(collectibleAmount, Math.Round(collectibleAmount, 0, MidpointRounding.AwayFromZero))
+                    : collectibleAmount;
+                if (request.Amount > maxCollectible)
                     throw new BillingSettlementValidationException(
                         "Total metode pembayaran melebihi saldo yang harus dibayar.");
 
@@ -335,6 +391,7 @@ public sealed class BillingSettlementService
                 cancellationToken);
             response.IsReplay = isReplay;
             await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
+            await TryConfirmMembershipFeeAsync(tender.SettlementId, actorUserId, cancellationToken);
             return response;
         }
         var providerRequest = new BillingPaymentProviderRequest(
@@ -353,6 +410,7 @@ public sealed class BillingSettlementService
                 tender.Id, providerResult, actorUserId, cancellationToken);
             response.IsReplay = isReplay;
             await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
+            await TryConfirmMembershipFeeAsync(tender.SettlementId, actorUserId, cancellationToken);
             return response;
         }
         catch (OperationCanceledException)
@@ -519,6 +577,98 @@ public sealed class BillingSettlementService
                     tender, actorUserId, result.OccurredAt, cancellationToken);
             }
 
+            // BE-02 / BE-03: Penyesuaian pembulatan tunai otomatis (Cash Rounding) ke BilAdjustment yang sah dan dapat diaudit
+            if (targetStatus == BillingTenderStatuses.Succeeded
+                && beforeTenderStatus != BillingTenderStatuses.Succeeded
+                && paymentMethod.IsCash
+                && tender.Settlement.Purpose == BillingSettlementPurposes.InvoicePayment
+                && tender.Settlement.InvoiceId.HasValue)
+            {
+                var invId = tender.Settlement.InvoiceId.Value;
+                var currentCalc = await _dbContext.BilCalculationVersions.AsNoTracking()
+                    .Where(x => x.InvoiceId == invId && !x.IsDelete)
+                    .OrderByDescending(x => x.VersionNo)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (currentCalc is not null)
+                {
+                    var pos = await _allocationService.CalculateInvoicePositionAsync(invId, currentCalc.PatientAmount, cancellationToken);
+                    var roundedRemaining = Math.Round(pos.OutstandingAmount, 0, MidpointRounding.AwayFromZero);
+                    var diff = tender.Amount - pos.OutstandingAmount;
+                    if (tender.Amount == roundedRemaining && Math.Abs(diff) > 0m && Math.Abs(diff) < 1.00m)
+                    {
+                        var existingAdj = await _dbContext.BilAdjustments
+                            .SingleOrDefaultAsync(x => x.CorrelationId == tender.Id && !x.IsDelete, cancellationToken);
+                        if (existingAdj is null)
+                        {
+                            var direction = diff < 0 ? BillingAdjustmentDirections.Credit : BillingAdjustmentDirections.Debit;
+                            var adjAmount = Math.Abs(diff);
+                            var adjIdempotency = Guid.NewGuid();
+                            var adjPayloadHash = Hash($"ROUNDING|{tender.Id:N}|{direction}|{adjAmount.ToString("F2", CultureInfo.InvariantCulture)}");
+                            var roundingAdj = new BilAdjustment
+                            {
+                                InvoiceId = invId,
+                                Direction = direction,
+                                Amount = adjAmount,
+                                Status = BillingAdjustmentStatuses.Posted,
+                                RequestedBy = actorUserId,
+                                ApprovedBy = actorUserId,
+                                Reason = $"Penyesuaian pembulatan tunai otomatis (Cash Rounding) untuk tender {tender.Id:N}",
+                                IdempotencyKey = adjIdempotency,
+                                PayloadHash = adjPayloadHash,
+                                CorrelationId = tender.Id,
+                                CausationId = tender.CausationId,
+                                SubmittedAt = result.OccurredAt,
+                                PostedAt = result.OccurredAt,
+                                RowVersion = Guid.NewGuid(),
+                                CreateDateTime = DateTime.UtcNow,
+                                CreateBy = actorUserId
+                            };
+                            _dbContext.BilAdjustments.Add(roundingAdj);
+                            await _dbContext.SaveChangesAsync(cancellationToken);
+                        }
+                    }
+                }
+            }
+
+            if (targetStatus == BillingTenderStatuses.Reversed
+                && beforeTenderStatus == BillingTenderStatuses.Succeeded
+                && paymentMethod.IsCash
+                && tender.Settlement.InvoiceId.HasValue)
+            {
+                var existingAdj = await _dbContext.BilAdjustments
+                    .SingleOrDefaultAsync(x => x.CorrelationId == tender.Id && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete, cancellationToken);
+                if (existingAdj is not null)
+                {
+                    var reverseDirection = existingAdj.Direction == BillingAdjustmentDirections.Credit
+                        ? BillingAdjustmentDirections.Debit
+                        : BillingAdjustmentDirections.Credit;
+                    var revIdempotency = Guid.NewGuid();
+                    var revPayloadHash = Hash($"ROUNDING_REV|{existingAdj.Id:N}|{reverseDirection}|{existingAdj.Amount.ToString("F2", CultureInfo.InvariantCulture)}");
+                    var revAdj = new BilAdjustment
+                    {
+                        InvoiceId = existingAdj.InvoiceId,
+                        Direction = reverseDirection,
+                        Amount = existingAdj.Amount,
+                        Status = BillingAdjustmentStatuses.Posted,
+                        RequestedBy = actorUserId,
+                        ApprovedBy = actorUserId,
+                        Reason = $"Pembalikan penyesuaian pembulatan tunai untuk tender {tender.Id:N}",
+                        ReversesAdjustmentId = existingAdj.Id,
+                        IdempotencyKey = revIdempotency,
+                        PayloadHash = revPayloadHash,
+                        CorrelationId = Guid.NewGuid(),
+                        CausationId = tender.CausationId,
+                        SubmittedAt = result.OccurredAt,
+                        PostedAt = result.OccurredAt,
+                        RowVersion = Guid.NewGuid(),
+                        CreateDateTime = DateTime.UtcNow,
+                        CreateBy = actorUserId
+                    };
+                    _dbContext.BilAdjustments.Add(revAdj);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+            }
+
             RecalculateSettlement(tender.Settlement, actorUserId, result.OccurredAt);
             SettlementAllocationResult allocationResult;
             try
@@ -534,6 +684,17 @@ public sealed class BillingSettlementService
             {
                 throw new BillingSettlementValidationException(exception.Message);
             }
+
+            // Iuran membership: dana dialokasikan ke tagihan iuran (non-kunjungan) di transaksi yang sama.
+            // Aktivasi membership BUKAN di sini; ia dijalankan setelah commit lewat TryConfirmMembershipFeeAsync.
+            if (tender.Settlement.Purpose == BillingSettlementPurposes.MembershipFee)
+            {
+                if (_membershipFeeService is null)
+                    throw new InvalidOperationException("Layanan tagihan iuran membership tidak tersedia.");
+                await _membershipFeeService.ReconcileSettlementAsync(
+                    tender.Settlement, actorUserId, result.OccurredAt, cancellationToken);
+            }
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             // BKC-DES-029/030: penyelarasan FINAL<->CLOSED dipanggil SESUDAH SaveChanges di atas,
@@ -647,6 +808,17 @@ public sealed class BillingSettlementService
                     catch (BillingConsumerHandoffValidationException exception)
                     {
                         throw new BillingSettlementValidationException(exception.Message);
+                    }
+                }
+
+                // TASK BE-04: Transisi EncounterStatus menjadi Completed (9) jika invoice CLOSED dan lunas
+                if (closureChange.StatusAfter == BillingInvoiceStatuses.Closed && targetStatus == BillingTenderStatuses.Succeeded)
+                {
+                    var (encCompleted, encReason) = await _finalizationService.TryCompleteEncounterForInvoiceAsync(
+                        tender.Settlement.InvoiceId.Value, actorUserId, result.OccurredAt, cancellationToken);
+                    if (!encCompleted && !string.IsNullOrWhiteSpace(encReason) && string.IsNullOrWhiteSpace(autoCompletionIncompleteReason))
+                    {
+                        autoCompletionIncompleteReason = encReason;
                     }
                 }
             }
@@ -1076,10 +1248,42 @@ public sealed class BillingSettlementService
         return new Guid(guidBytes);
     }
 
+    // Dipanggil setelah transaksi tender selesai: bila tender iuran membership membuat tagihan lunas, CRM dikabari
+    // agar mengaktifkan membership. Best-effort dan idempotent; uang yang sudah diterima tidak dibatalkan bila
+    // konfirmasi gagal, dan konfirmasi diulang oleh rekonsiliasi.
+    private async Task TryConfirmMembershipFeeAsync(
+        Guid settlementId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (_membershipFeeService is null) return;
+        await _membershipFeeService.ConfirmPaidChargeForSettlementAsync(settlementId, actorUserId, cancellationToken);
+    }
+
     private async Task ValidateTargetAndAmountAsync(
         CreateSettlementRequest request,
         CancellationToken cancellationToken)
     {
+        if (request.Purpose == BillingSettlementPurposes.MembershipFee)
+        {
+            if (_membershipFeeService is null)
+                throw new InvalidOperationException("Layanan tagihan iuran membership tidak tersedia.");
+            try
+            {
+                await _membershipFeeService.ValidateSettlementTargetAsync(
+                    request.MembershipFeeChargeId!.Value, request.RequestedAmount, cancellationToken);
+            }
+            catch (BillingMembershipFeeValidationException exception)
+            {
+                throw new BillingSettlementValidationException(exception.Message);
+            }
+            catch (BillingMembershipFeeConflictException exception)
+            {
+                throw new BillingSettlementConflictException(exception.Message);
+            }
+            return;
+        }
+
         if (request.Purpose == BillingSettlementPurposes.InvoicePayment)
         {
             var invoice = await _dbContext.BilInvoices.AsNoTracking()
@@ -1132,7 +1336,8 @@ public sealed class BillingSettlementService
                     cancellationToken) ?? 0;
             var available = Math.Max(
                 calculation.PatientAmount - paidAmount + allocationExcess - writeOffTotal - adjustmentNet, 0);
-            if (request.RequestedAmount > available)
+            var maxAvailable = Math.Max(available, Math.Round(available, 0, MidpointRounding.AwayFromZero));
+            if (request.RequestedAmount > maxAvailable)
                 throw new BillingSettlementValidationException(
                     "Nominal settlement melebihi saldo pasien pada invoice.");
             return;
@@ -1196,13 +1401,16 @@ public sealed class BillingSettlementService
             throw new BillingSettlementValidationException("Idempotency-Key wajib diisi.");
         var hasInvoice = request.InvoiceId.HasValue && request.InvoiceId != Guid.Empty;
         var hasDeposit = request.DepositAccountId.HasValue && request.DepositAccountId != Guid.Empty;
-        if (hasInvoice == hasDeposit)
+        var hasMembershipFee = request.MembershipFeeChargeId.HasValue && request.MembershipFeeChargeId != Guid.Empty;
+        if ((hasInvoice ? 1 : 0) + (hasDeposit ? 1 : 0) + (hasMembershipFee ? 1 : 0) != 1)
             throw new BillingSettlementValidationException(
-                "Settlement harus memiliki tepat satu target invoice atau account deposit.");
+                "Settlement harus memiliki tepat satu target: invoice, account deposit, atau tagihan iuran membership.");
         if (request.Purpose == BillingSettlementPurposes.InvoicePayment && !hasInvoice
             || request.Purpose == BillingSettlementPurposes.DepositTopUp && !hasDeposit
+            || request.Purpose == BillingSettlementPurposes.MembershipFee && !hasMembershipFee
             || request.Purpose is not (BillingSettlementPurposes.InvoicePayment
-                or BillingSettlementPurposes.DepositTopUp))
+                or BillingSettlementPurposes.DepositTopUp
+                or BillingSettlementPurposes.MembershipFee))
             throw new BillingSettlementValidationException(
                 "Purpose settlement tidak sesuai dengan target.");
         ValidateMoney(request.RequestedAmount, "Nominal settlement");
@@ -1409,7 +1617,9 @@ public sealed class BillingSettlementService
     private static string TargetLockKey(CreateSettlementRequest request) =>
         request.InvoiceId.HasValue
             ? $"BIL_SETTLEMENT_INVOICE_{request.InvoiceId.Value:N}"
-            : $"BIL_SETTLEMENT_DEPOSIT_{request.DepositAccountId!.Value:N}";
+            : request.MembershipFeeChargeId.HasValue
+                ? $"BIL_SETTLEMENT_MEMBERSHIP_FEE_{request.MembershipFeeChargeId.Value:N}"
+                : $"BIL_SETTLEMENT_DEPOSIT_{request.DepositAccountId!.Value:N}";
 
     private static string ComputeSettlementPayloadHash(CreateSettlementRequest request)
     {
@@ -1421,6 +1631,10 @@ public sealed class BillingSettlementService
             request.Note ?? string.Empty,
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
+        // Segmen target iuran hanya ditambahkan bila ada, sehingga hash settlement invoice/deposit yang sudah
+        // tersimpan tidak berubah (replay idempotent permintaan lama tetap cocok).
+        if (request.MembershipFeeChargeId.HasValue)
+            canonical += "|" + request.MembershipFeeChargeId.Value.ToString("N");
         return Hash(canonical);
     }
 
@@ -1458,16 +1672,65 @@ public sealed class BillingSettlementService
 
     private static SettlementResponse MapSettlement(
         BilSettlement settlement,
-        bool isReplay)
+        bool isReplay,
+        BilInvoice? invoice = null,
+        RegPatientEncounter? encounter = null,
+        string? autoCompletionIncompleteReason = null)
     {
         var pending = CalculatePendingAmount(settlement);
-        var outstanding = Math.Max(
-            settlement.RequestedAmount - settlement.SuccessfulAmount, 0);
+        var targetAmount = settlement.RequestedAmount;
+        var roundedTarget = Math.Round(targetAmount, 0, MidpointRounding.AwayFromZero);
+        var isTargetSatisfiedByRounding = targetAmount > 0
+            && Math.Abs(settlement.SuccessfulAmount - roundedTarget) == 0
+            && Math.Abs(settlement.SuccessfulAmount - targetAmount) < 1.00m;
+
+        var isFullyPaid = (settlement.RequestedAmount > 0 && settlement.SuccessfulAmount >= settlement.RequestedAmount)
+            || isTargetSatisfiedByRounding
+            || settlement.Status == BillingSettlementStatuses.Settled
+            || (invoice != null && (invoice.Status == BillingInvoiceStatuses.Closed || invoice.ClosedAt.HasValue));
+
+        var outstanding = isFullyPaid ? 0m : Math.Max(settlement.RequestedAmount - settlement.SuccessfulAmount, 0m);
+
+        var paymentStatus = isFullyPaid
+            ? "LUNAS"
+            : (settlement.SuccessfulAmount > 0 ? "SEBAGIAN" : "BELUM_LUNAS");
+
+        var roundingAdjustment = roundedTarget - targetAmount;
+        decimal runningTotal = 0m;
+
+        var tenders = settlement.Tenders
+            .Where(x => !x.IsDelete)
+            .OrderBy(x => x.AttemptedAt)
+            .ThenBy(x => x.Id)
+            .Select(x =>
+            {
+                var isSucceeded = x.Status == BillingTenderStatuses.Succeeded;
+                if (isSucceeded)
+                {
+                    runningTotal += x.Amount;
+                }
+                var tenderOut = MapTender(x, false);
+                var isSettling = isFullyPaid || (targetAmount > 0
+                    ? (runningTotal >= targetAmount || (Math.Abs(runningTotal - roundedTarget) == 0 && Math.Abs(runningTotal - targetAmount) < 1.00m))
+                    : isSucceeded);
+                tenderOut.TransactionClassification = !isSucceeded
+                    ? "PENDING"
+                    : (isSettling ? "PELUNASAN" : "CICILAN");
+                tenderOut.PostTransactionStatus = !isSucceeded
+                    ? "BELUM_LUNAS"
+                    : (isSettling ? "LUNAS" : "SEBAGIAN");
+                tenderOut.RemainingOutstanding = isSettling ? 0m : Math.Max(targetAmount - runningTotal, 0m);
+                tenderOut.RoundingAdjustmentAmount = isSettling ? roundingAdjustment : 0m;
+                return tenderOut;
+            })
+            .ToList();
+
         return new SettlementResponse
         {
             Id = settlement.Id,
             InvoiceId = settlement.InvoiceId,
             DepositAccountId = settlement.DepositAccountId,
+            MembershipFeeChargeId = settlement.MembershipFeeChargeId,
             Purpose = settlement.Purpose,
             Note = settlement.Note,
             Status = settlement.Status,
@@ -1477,39 +1740,80 @@ public sealed class BillingSettlementService
             PendingAmount = pending,
             OutstandingAmount = outstanding,
             CollectibleAmount = Math.Max(outstanding - pending, 0),
+            RoundingAdjustmentAmount = roundingAdjustment,
+            EffectivePayableAmount = roundedTarget,
             IsReplay = isReplay,
             CorrelationId = settlement.CorrelationId,
             RowVersion = settlement.RowVersion,
             StartedAt = settlement.StartedAt,
             CompletedAt = settlement.CompletedAt,
-            Tenders = settlement.Tenders
-                .Where(x => !x.IsDelete)
-                .OrderBy(x => x.AttemptedAt)
-                .ThenBy(x => x.Id)
-                .Select(x => MapTender(x, false))
-                .ToList()
+            Tenders = tenders,
+
+            PaymentStatus = paymentStatus,
+            IsFullyPaid = isFullyPaid,
+            InvoiceStatus = invoice?.Status,
+            EncounterId = encounter?.Id ?? invoice?.EncounterId,
+            EncounterStatus = encounter != null ? (int)encounter.EncounterStatus : null,
+            EncounterStatusName = encounter != null ? encounter.EncounterStatus.ToString() : null,
+            AutoCompletionIncompleteReason = autoCompletionIncompleteReason
         };
     }
 
-    private static TenderResponse MapTender(BilTender tender, bool isReplay, string? invoiceClosureNote = null) => new()
+    private static TenderResponse MapTender(BilTender tender, bool isReplay, string? invoiceClosureNote = null)
     {
-        Id = tender.Id,
-        SettlementId = tender.SettlementId,
-        PaymentMethodId = tender.PaymentMethodId,
-        PaymentMethodAccountId = tender.PaymentMethodAccountId,
-        Amount = tender.Amount,
-        Status = tender.Status,
-        CashierReferenceNote = tender.CashierReferenceNote,
-        KwitansiNumber = tender.KwitansiNumber,
-        ProviderReferenceMasked = MaskProviderReference(tender.ProviderReference),
-        ProviderStatusCode = tender.ProviderStatusCode,
-        AttemptedAt = tender.AttemptedAt,
-        SettledAt = tender.SettledAt,
-        CashierShiftId = tender.CashierShiftId,
-        RowVersion = tender.RowVersion,
-        IsReplay = isReplay,
-        InvoiceClosureNote = invoiceClosureNote
-    };
+        var res = new TenderResponse
+        {
+            Id = tender.Id,
+            SettlementId = tender.SettlementId,
+            PaymentMethodId = tender.PaymentMethodId,
+            PaymentMethodAccountId = tender.PaymentMethodAccountId,
+            Amount = tender.Amount,
+            Status = tender.Status,
+            CashierReferenceNote = tender.CashierReferenceNote,
+            KwitansiNumber = tender.KwitansiNumber,
+            ProviderReferenceMasked = MaskProviderReference(tender.ProviderReference),
+            ProviderStatusCode = tender.ProviderStatusCode,
+            AttemptedAt = tender.AttemptedAt,
+            SettledAt = tender.SettledAt,
+            CashierShiftId = tender.CashierShiftId,
+            RowVersion = tender.RowVersion,
+            IsReplay = isReplay,
+            InvoiceClosureNote = invoiceClosureNote
+        };
+
+        if (tender.Settlement != null)
+        {
+            var target = tender.Settlement.RequestedAmount;
+            var roundedTarget = Math.Round(target, 0, MidpointRounding.AwayFromZero);
+            decimal prior = 0m;
+            var tenderList = tender.Settlement.Tenders
+                .Where(t => !t.IsDelete && (t.Status == BillingTenderStatuses.Succeeded || t.Id == tender.Id))
+                .OrderBy(t => t.AttemptedAt)
+                .ThenBy(t => t.Id)
+                .ToList();
+
+            foreach (var t in tenderList)
+            {
+                prior += t.Amount;
+                if (t.Id == tender.Id) break;
+            }
+
+            var isSucceeded = tender.Status == BillingTenderStatuses.Succeeded;
+            var isSettling = target > 0
+                ? (prior >= target || (Math.Abs(prior - roundedTarget) == 0 && Math.Abs(prior - target) < 1.00m))
+                : isSucceeded;
+            res.TransactionClassification = !isSucceeded
+                ? "PENDING"
+                : (isSettling ? "PELUNASAN" : "CICILAN");
+            res.PostTransactionStatus = !isSucceeded
+                ? "BELUM_LUNAS"
+                : (isSettling ? "LUNAS" : "SEBAGIAN");
+            res.RemainingOutstanding = isSettling ? 0m : Math.Max(target - prior, 0m);
+            res.RoundingAdjustmentAmount = isSettling ? (roundedTarget - target) : 0m;
+        }
+
+        return res;
+    }
 
     private static string? MaskProviderReference(string? providerReference)
     {

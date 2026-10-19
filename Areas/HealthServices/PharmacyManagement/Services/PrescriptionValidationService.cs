@@ -48,6 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 ValidateRegularItems(prescription, issues);
                 ValidateCompounds(prescription, issues);
                 await ValidateInpatientSafetyFlagsAsync(prescription, issues, cancellationToken);
+                await ValidateStockAvailabilityAsync(prescription, issues, cancellationToken);
             }
 
             return issues;
@@ -121,6 +122,110 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         /// akan mendarat pada kunjungan yang salah. Lebih baik menolak finalisasi daripada
         /// menerbitkan fakta ke kunjungan orang lain.
         /// </summary>
+        /// <summary>
+        /// <c>PHA-DEC-018</c> — penyimpanan resep gagal jika jumlah obat melebihi stok tersedia;
+        /// dokter harus memilih obat atau jumlah pengganti.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Keputusan ini disahkan product owner 19 Agustus 2026 tetapi gerbangnya belum pernah
+        /// terpasang, sehingga resep dapat difinalkan dan dibayar untuk obat yang stoknya tidak
+        /// mencukupi, lalu gagal di meja farmasi ketika <c>PrescriptionDispensingService</c>
+        /// mencoba menahan stok. Gerbang ini memindahkan penolakan ke titik yang masih dapat
+        /// diperbaiki dokter, bukan setelah pasien membayar.
+        /// </para>
+        /// <para>
+        /// <b>Definisi stok tersedia dibuat sama dengan yang dipakai penyerahan</b>:
+        /// <c>QuantityOnHand - QuantityReserved</c> atas saldo berstatus
+        /// <c>DrugStockStatus.Available</c> — satu-satunya status yang boleh melayani penyerahan,
+        /// sehingga saldo <c>Quarantine</c>, <c>Expired</c>, dan <c>Damaged</c> dengan sendirinya
+        /// tidak terhitung.
+        /// </para>
+        /// <para>
+        /// Yang <b>tidak</b> diperiksa: tanggal <c>ExpiryDate</c> pada batch. Saldo yang
+        /// statusnya masih <c>Available</c> padahal batch-nya sudah lewat tanggal tetap terhitung
+        /// tersedia, persis seperti pada <c>PrescriptionDispensingService</c>. Menambahkan
+        /// pemeriksaan tanggal hanya di sini akan menolak resep yang sesungguhnya masih dapat
+        /// diserahkan — aturan baru yang belum diputuskan. Lihat <c>PHA-OQ-002</c>.
+        /// </para>
+        /// <para>
+        /// Stok dijumlahkan <b>lintas depo</b>. Pemilihan depo adalah <c>PHA-BE-003</c> yang masih
+        /// tertahan <c>PHA-OQ-014</c>, jadi gerbang ini hanya menjawab pertanyaan yang sudah pasti:
+        /// apakah rumah sakit memiliki obat sebanyak itu sama sekali. Ia tidak menjamin obatnya ada
+        /// di depo yang melayani pasien tersebut.
+        /// </para>
+        /// <para>
+        /// Kebutuhan butir biasa dan bahan racikan atas obat yang sama <b>dijumlahkan</b>, karena
+        /// keduanya mengambil dari saldo yang sama.
+        /// </para>
+        /// <para>
+        /// <b>Contoh.</b> Stok Kasa Steril tersedia 2 sedangkan resep meminta 9 → penyelesaian
+        /// catatan dokter ditolak: "Stok Kasa Steril tidak mencukupi: diminta 9, tersedia 2.
+        /// Pilih obat atau jumlah pengganti."
+        /// </para>
+        /// </remarks>
+        private async Task ValidateStockAvailabilityAsync(
+            PhmPrescription prescription,
+            List<ConsultationFinalizationIssueResponse> issues,
+            CancellationToken cancellationToken)
+        {
+            if (prescription.PrescriptionStatus != PrescriptionStatus.Draft)
+                return;
+
+            var kebutuhan = prescription.Items
+                .Select(x => (x.DrugId, x.DrugNameSnapshot, Jumlah: x.Quantity))
+                .Concat(prescription.Compounds
+                    .SelectMany(c => c.Items)
+                    .Select(x => (x.DrugId, x.DrugNameSnapshot, Jumlah: x.TotalQuantity)))
+                .GroupBy(x => x.DrugId)
+                .Select(g => new
+                {
+                    DrugId = g.Key,
+                    Nama = g.Select(x => x.DrugNameSnapshot)
+                        .FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? "Obat",
+                    Diminta = g.Sum(x => x.Jumlah)
+                })
+                .Where(x => x.Diminta > 0)
+                .ToList();
+
+            if (kebutuhan.Count == 0)
+                return;
+
+            var drugIds = kebutuhan.Select(x => x.DrugId).ToList();
+
+            var tersedia = await _dbContext.Set<PhmDrugStockBalance>()
+                .AsNoTracking()
+                .Where(x => drugIds.Contains(x.DrugId)
+                            && x.Status == DrugStockStatus.Available
+                            && !x.IsDelete)
+                .GroupBy(x => x.DrugId)
+                .Select(g => new
+                {
+                    DrugId = g.Key,
+                    Jumlah = g.Sum(x => x.QuantityOnHand - x.QuantityReserved)
+                })
+                .ToDictionaryAsync(x => x.DrugId, x => x.Jumlah, cancellationToken);
+
+            foreach (var butir in kebutuhan)
+            {
+                var saldo = tersedia.TryGetValue(butir.DrugId, out var nilai) ? nilai : 0m;
+
+                if (saldo >= butir.Diminta)
+                    continue;
+
+                issues.Add(Issue("INSUFFICIENT_DRUG_STOCK", ConsultationValidationSeverity.Error,
+                    $"Stok {butir.Nama} tidak mencukupi: diminta {FormatJumlah(butir.Diminta)}, " +
+                    $"tersedia {FormatJumlah(saldo)}. Pilih obat atau jumlah pengganti.",
+                    "Prescription", "prescription", "Quantity", "Prescription", prescription.Id));
+            }
+        }
+
+        /// <summary>Membuang nol di belakang supaya "9" tidak terbaca "9,000".</summary>
+        private static string FormatJumlah(decimal nilai)
+            => nilai.ToString(
+                nilai == decimal.Truncate(nilai) ? "0" : "0.###",
+                System.Globalization.CultureInfo.InvariantCulture);
+
         private static void ValidateEncounterRelation(
             PhmPrescription prescription,
             Guid expectedEncounterId,

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 
@@ -42,7 +43,14 @@ public sealed class DepositResponse
 public sealed class DepositMovementResponse
 {
     public Guid Id { get; set; }
+    /// <summary>Nomor transaksi tampilan, diturunkan stabil dari Id mutasi (tidak disimpan).</summary>
+    public string TransactionNumber { get; set; } = string.Empty;
     public string MovementType { get; set; } = string.Empty;
+    /// <summary>Label jenis transaksi untuk tampilan (Deposit Awal, Top Up, Pemakaian, Refund, Koreksi).</summary>
+    public string MovementTypeName { get; set; } = string.Empty;
+    /// <summary>POSTED atau REVERSED (top-up yang sudah dibalik oleh mutasi REVERSAL).</summary>
+    public string Status { get; set; } = string.Empty;
+    public string StatusName { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public decimal BalanceEffect { get; set; }
     public decimal BalanceAfter { get; set; }
@@ -59,4 +67,43 @@ public sealed class DepositMovementResponse
     public DateTimeOffset OccurredAt { get; set; }
     public string Reason { get; set; } = string.Empty;
     public Guid? ReversesMovementId { get; set; }
+}
+
+public sealed class DepositWorkspaceResponse
+{
+    // Encounter context
+    public Guid EncounterId { get; set; }
+    public Guid PatientId { get; set; }
+    public string PatientName { get; set; } = string.Empty;
+    public string MedicalRecordNumber { get; set; } = string.Empty;
+    public string EncounterNumber { get; set; } = string.Empty;
+    public EncounterType EncounterType { get; set; }
+    public string EncounterTypeName { get; set; } = string.Empty;
+    public EncounterStatus EncounterStatus { get; set; }
+    public string EncounterStatusName { get; set; } = string.Empty;
+    public string ServiceUnitName { get; set; } = string.Empty;
+    public DateTime EncounterDate { get; set; }
+
+    // Deposit summary
+    public bool HasDepositAccount { get; set; }
+    public Guid? DepositAccountId { get; set; }
+    public string AccountNumber { get; set; } = string.Empty;
+    public string AccountStatus { get; set; } = string.Empty;
+    public decimal AvailableBalance { get; set; }
+    public Guid? RowVersion { get; set; }
+    public decimal TotalTopUpGross { get; set; }
+    public decimal TotalTopUpReversed { get; set; }
+    public decimal TotalAllocated { get; set; }
+    public decimal TotalReleasedOrRefunded { get; set; }
+
+    // Kelayakan top-up (aturan sama dengan yang ditegakkan BillingDepositService.TopUpAsync)
+    public bool IsTopUpEligible { get; set; }
+    public string? TopUpIneligibleReason { get; set; }
+
+    // Paginated movements
+    public IReadOnlyList<DepositMovementResponse> Items { get; set; } = [];
+    public int PageNumber { get; set; }
+    public int PageSize { get; set; }
+    public int TotalData { get; set; }
+    public int TotalPage { get; set; }
 }

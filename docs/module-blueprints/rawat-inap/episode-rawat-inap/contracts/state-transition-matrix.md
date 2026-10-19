@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 9, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 8 |
-| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 10: siklus dokumen admisi. Sebelumnya `0.10.0` — bagian 9; `0.9.0` — bagian 8: tujuan penugasan, akibat penutupan; `0.8.0` — bagian 6A |
-| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `00-interview-decisions.md` revision `6`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
-| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Seluruhnya baru. Tidak ada state machine existing yang berubah |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Pendaftaran Admisi Pasien ODC draft (bagian 1.1, kontrak target `0.15.0`); sebelumnya Integrasi Denah approved (bagian 12, `RWI-DEC-324`); Bed Management draft (bagian 11). Riwayat metadata sebelumnya: `0.11.0` — Workspace PPRI |
+| `last_changed_in` | **`0.15.0`** — Pendaftaran Admisi Pasien ODC (One Day Care). Riwayat metadata sebelumnya: `0.13.0` — Integrasi Denah; `0.12.0` — Bed Management; `0.11.0` — Workspace PPRI |
+| Status | **`draft`** untuk amandemen Pendaftaran Admisi Pasien ODC (`0.15.0`); amandemen Integrasi Denah (`0.13.0`) **`approved`** (`RWI-DEC-324`) |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292 |
+| `input_revision` | Pendaftaran Admisi ODC: decision 53, RWI-DEC-327–332, AC-463–468; capability map 1.8 Bagian 21 |
+| Dampak kompatibilitas | Seluruhnya kompatibel. Memperjelas penanganan mutasi eskalasi perawatan ODC > 24 jam ke kamar rawat inap reguler (`RWI-DEC-331`) |
 
 Dokumen ini memuat perpindahan yang **sah** dan perpindahan yang **tidak sah**. Keduanya sama
 pentingnya: yang tidak sah adalah yang paling sering dicoba petugas ketika sedang terburu-buru.
@@ -32,11 +32,12 @@ Status awal: `Draft`. Status akhir: `Closed` dan `Cancelled`.
 | Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
 | --- | --- | --- | --- | --- | --- |
 | — | Buka admisi | `Draft` | Petugas admisi | Pasien terdaftar; kunjungan tersedia atau dibuat; DPJP pertama dipilih | 400 bila DPJP kosong |
-| `Draft` | Tempatkan pasien | `Admitted` | Petugas admisi | Kelayakan Penempatan terpenuhi | 409 bila tempat tidur sudah ditempati; 422 bila tempat tidur tidak layak |
+| `Draft` | Tempatkan pasien | `Admitted` | Petugas admisi | Kelayakan Penempatan terpenuhi (pasien ODC wajib ke bed ODC) | 409 bila tempat tidur sudah ditempati; 422 bila tempat tidur tidak layak / non-ODC |
 | `Draft` | Batalkan admisi | `Cancelled` | Petugas admisi | Alasan wajib | 400 bila alasan kosong |
 | `Draft` | Telantar melewati batas | `Cancelled` | **Sistem**, dihitung saat dibaca | Tidak disentuh melewati `DraftEpisodeExpiryHours` | Tidak ada; ini perhitungan, bukan permintaan |
 | `Admitted` | Batalkan admisi | `Cancelled` | Supervisor atau kepala ruangan | Belum ada catatan klinis; alasan wajib | 422 bila sudah ada catatan klinis |
 | `Admitted` | Pindahkan pasien | `Admitted` | Kepala ruangan, perawat pelaksana, supervisor, atau DPJP aktif | Tempat tidur tujuan lolos Kelayakan Penempatan; alasan wajib | 409 bila tempat tidur tujuan terisi; 403 bila dokter bukan DPJP aktif |
+| `Admitted` (ODC) | **Eskalasi rawat > 24 jam via Transfer Bed** (`RWI-DEC-331`) | `Admitted` (Reguler) | Perawat bangsal, supervisor, kepala ruangan | Observasi butuh rawat > 24 jam; alasan transfer minimal 10 karakter; bed reguler tujuan tersedia | 409 bila bed tujuan terisi; 422 bila alasan kosong |
 | `Admitted` | Putuskan pasien boleh pulang | `DischargePending` | **DPJP aktif** | Cara pulang dipilih | 403 bila bukan DPJP aktif; 400 bila cara pulang kosong |
 | `DischargePending` | **Catat kepergian fisik pasien** | `DischargePending` — **status tidak berubah** | Petugas admisi, perawat, kepala ruangan, supervisor | Kepergian belum pernah dicatat | 409 bila sudah pernah dicatat |
 | `DischargePending` | Tutup episode | `Closed` | Petugas admisi | Kelima syarat penutupan terpenuhi | 422 disertai daftar syarat yang belum terpenuhi |
@@ -565,3 +566,110 @@ IGD Confirmed -> Executed hanya setelah admisi dan reservasi berhasil commit. Su
 Tidak menambah enum status episode. Konteks, identitas, DPJP/payer dan bed disiapkan; pemilihan bed membuka Draft; reservasi dan consent tetap keadaan operasional pada Draft; placement mengubahnya menjadi Admitted. Selesai/cetak ulang tidak melakukan placement kedua atau membuat serah terima fiktif.
 
 Detail dan batas mengikuti [kontrak admisi bayi](newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
+
+## 12. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061). `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**; `DOMAIN_ARCHITECTURE_NOT_RUN`. Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`. Enam status bed dan transisinya pada bagian 11 **tidak berubah**; bagian ini hanya menambah status turunan kamar, HD/LD, siklus master denah, dan kesiapan bed hasil impor.
+
+### 12.1 Status kamar — dihitung, tidak disimpan
+
+| Urutan | Code / label | Syarat | Badge `kapasitas/terisi` | Outline hijau |
+| --- | --- | --- | --- | --- |
+| 1 | `Unavailable` / Tidak Tersedia | Kamar ditutup untuk admisi, tidak punya bed aktif, atau semua bed aktif Tidak Tersedia | Kapasitas 0 | Tidak |
+| 2 | `Available` / Tersedia | Ada sekurang-kurangnya satu bed Tersedia | Kapasitas = bed aktif bukan Tidak Tersedia; terisi = Terisi + Dipesan | Monitoring: ya. Pilih Bed: hanya bila ada bed Tersedia yang layak untuk pasien itu |
+| 3 | `Preparing` / Persiapan | Tidak ada bed Tersedia, ada bed Menunggu atau Dalam Pembersihan | Sama | Tidak |
+| 4 | `Full` / Penuh | Semua bed yang dapat dipakai Terisi atau Dipesan | Sama | Tidak; tanpa merah, tetap dapat diklik |
+
+Aturan dihitung atas bed biasa; boks rawat gabung di kamar biasa dihitung terpisah sampai RWI-OQ-144 dijawab (backend 15.7). Kamar yang seluruh bednya boks dihitung seperti bed biasa. Status kamar tidak punya transisi sendiri: ia berubah karena status bed berubah.
+
+### 12.2 Tingkat ketergantungan (High/Low Dependency)
+
+| Dari | Tindakan | Ke | Pelaku dan syarat | Audit |
+| --- | --- | --- | --- | --- |
+| Belum dinilai | Catatan awal saat admisi | High atau Low | Pemegang SetCareDependency; episode `Draft`; sumber AdmissionNote | Baris riwayat |
+| Belum dinilai, High, atau Low | Penilaian perawat | High atau Low (boleh sama, sebagai penilaian ulang) | Perawat penanggung jawab aktif; episode `Admitted`/`DischargePending`; sumber NurseAssessment | Baris riwayat |
+| Belum dinilai, High, atau Low | Keputusan DPJP | High atau Low | DPJP aktif; episode `Admitted`/`DischargePending`; sumber DoctorDecision | Baris riwayat |
+| Nilai apa pun | Episode ditutup atau dibatalkan | Tetap; hanya baca | — | — |
+
+Contoh: Ny. Sari diadmisi dengan catatan awal Low dari petugas admisi. Hari kedua perawat penanggung jawab mencatat High karena butuh observasi tiap jam. Hari keempat DPJP mencatat Low. Riwayat menampilkan tiga baris; episode bernilai Low.
+
+### 12.3 Siklus master denah
+
+| Dari | Tindakan | Ke | Pelaku dan syarat | Efek pada bed |
+| --- | --- | --- | --- | --- |
+| Bentuk kamar di gambar tanpa data | Impor | Kamar aktif berkunci | Admin impor; unit dan kelas terpetakan | Bed baru `Unverified`; di dev/UAT langsung siap |
+| Kamar tanpa kunci (existing) | Impor dengan kamar existing dipilih | Kamar berkunci | Admin impor | Bed lama tidak berubah; perbedaan dilaporkan |
+| Ruang cadangan | Aktifkan | Kamar aktif berkunci | Admin MasterData; nomor unik di lantai, kelas, unit, ≥1 bed | Bed baru `Unverified` |
+| Kamar kosong tanpa pesanan | Ubah kelas | Kamar berkelas baru | Admin MasterData; alasan wajib | Kesiapan semua bed dibatalkan → Tidak Tersedia sampai disahkan perawat |
+| Kamar berpenghuni atau berpesanan | Ubah kelas | Tidak berubah | — | Ditolak |
+| Kamar | Ubah arah wing | Kamar | Admin MasterData | Tidak ada |
+| Bed tanpa riwayat | Kurangi | Dihapus lunak | Admin MasterData; bed kosong | — |
+| Bed beriwayat | Kurangi | Nonaktif | Admin MasterData; bed kosong; alasan wajib | Tidak tampil di denah; riwayat tetap |
+| Bed | Ubah label | Bed | Admin MasterData; label unik per lantai | Tidak ada |
+
+### 12.4 Kesiapan bed hasil impor
+
+| Lingkungan | Sesudah impor | Jalan ke Tersedia |
+| --- | --- | --- |
+| Dev/UAT dengan opsi siap aktif | Bed yang dibuat run itu `Ready`; event `ImportReadyForTest` | Langsung dapat dipesan untuk uji |
+| Produksi | Semua bed baru `Unverified` (Tidak Tersedia) | Verifikasi awal oleh perawat berwenang per bed, boleh per lantai (transisi bagian 11.2 "Unverified → Initial verification") |
+
+### 12.5 Transisi terlarang
+
+| Percobaan | Hasil wajib |
+| --- | --- |
+| Mengosongkan HD/LD kembali menjadi "belum dinilai" | Tidak ada operasinya |
+| Mencatat HD/LD pada episode `Closed`/`Cancelled` | 422 `EPISODE_READ_ONLY` |
+| Mengubah kunci atau lantai kamar | 422 `FLOOR_PLAN_KEY_IMMUTABLE` |
+| Importer mengubah kelas, unit, atau bed kamar existing | Tidak dilakukan; dilaporkan `FLOOR_PLAN_DRIFT` |
+| Importer produksi menetapkan bed siap | Tidak mungkin; aplikasi tidak menyala dengan opsi itu |
+| Menolak kategori transfer yang melibatkan kelas khusus | Dilarang; semua kategori diterima |
+| Menolak atau memperingatkan penempatan karena jenis kelamin | Dilarang (RWI-DEC-315) |
+| Menghapus bed yang punya riwayat | 422 `BED_HAS_USAGE_HISTORY`; nonaktifkan |
+
+## 13. Amandemen Transisi Admisi Bayi — `RWI-BAYI-022-2.0.0`
+
+| Aggregate | Dari | Peristiwa | Menjadi | Penjagaan |
+| --- | --- | --- | --- | --- |
+| Pasien bayi | Belum ada | `POST /patients/newborns` | Aktif, RM dan urutan teralokasi | Ibu/kasus valid; idempotent; urutan unik |
+| Encounter bayi | Belum ada | Simpan penempatan | Registered | Snapshot penjamin ibu valid dan belum stale |
+| Episode bayi | Belum ada | Buka admisi | Draft | `DeliveryCaseId`, DPJP, care mode, dan bed valid |
+| Reservasi bed | Belum ada | Pesan bed | Aktif | Bed bayi tersedia dan unit layak registrasi |
+| Episode bayi | Draft | Persetujuan lengkap dan aktivasi | Admitted | Reservasi masih sah |
+| Invoice bayi | Belum ada | Billing menerima event layanan bayi | Mengikuti workflow Billing | Bukan keputusan Admisi |
+
+Status kasus persalinan tidak berubah ketika dipakai sebagai sumber. Tombol pembatalan existing
+tidak termasuk perubahan transisi ini.
+
+## 14. Amandemen transisi realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+Event realtime tidak memperkenalkan state persisted baru. Ia hanya mengikuti transisi existing
+yang telah committed.
+
+| Aggregate existing | Transisi sukses | Event sesudah commit | Unit penerima |
+|---|---|---|---|
+| Reservasi bed | Tidak ada/berakhir → reservasi aktif pada bed target | `BedReserved` | Unit bed target |
+| Penempatan bed | Bed target tersedia/eligible → penempatan aktif | `PatientPlaced` | Unit bed target |
+| Transfer | Penempatan lama → penempatan aktif pada bed target | `PatientTransferred` | Unit bed target |
+
+### 14.1 Kondisi tanpa event
+
+| Kondisi | Hasil |
+|---|---|
+| Validasi, permission, eligibility, version, atau unique guard gagal | Mutasi gagal; tidak ada event |
+| Transaksi rollback | Tidak ada event |
+| Idempotency mengembalikan receipt lama (`IsReplay`) | Response existing dikembalikan; tidak ada event baru |
+| User hanya membuka, scroll, menyorot, atau memilih lokal | Tidak ada event dan tidak ada lock |
+| SignalR publish gagal setelah commit | Mutasi tetap committed; log teknis; client pulih lewat refetch/reconnect |
+| Client reconnect | Rejoin + refetch; tidak ada replay alert |
+
+### 14.2 Invariant
+
+1. `Committed mutation` mendahului `Publish attempted`.
+2. `Publish failed` tidak boleh mengubah state bisnis atau respons sukses yang telah committed.
+3. Event bukan bukti bahwa bed masih tersedia atau ditempati pada saat dibaca; client wajib
+   refetch.
+4. Unique constraint/version guard existing tetap menentukan pemenang bila dua request bersaing.
+5. Deduplikasi event client tidak pernah menggantikan idempotency mutasi server.

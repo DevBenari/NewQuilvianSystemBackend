@@ -497,6 +497,123 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 "Tindakan keperawatan IGD berhasil dicatat.");
         }
 
+        public const string PesanJasaKunjunganIgdTidakDapatDibatalkan =
+            "Jasa kunjungan IGD tidak dapat dibatalkan dari modul klinis.";
+
+        public static string KunciJasaKunjunganIgd(Guid emergencyVisitId) => $"EMG-VISIT-FEE:{emergencyVisitId:D}";
+
+        public async Task<(TrxPatientProcedure? Tindakan, string? AlasanDilewati)> TambahkanJasaKunjunganIgdAsync(
+            EmgVisit visit,
+            Guid doctorId,
+            DateTime performedAt,
+            string procedureCode,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(visit);
+
+            if (!visit.EncounterId.HasValue || visit.EncounterId.Value == Guid.Empty)
+                return (null, "Kunjungan IGD belum tertaut encounter.");
+
+            if (!visit.PatientId.HasValue || visit.PatientId.Value == Guid.Empty)
+                return (null, "Kunjungan IGD belum tertaut pasien.");
+
+            var kunci = KunciJasaKunjunganIgd(visit.Id);
+            var sudahAda = await _dbContext.Set<TrxPatientProcedure>()
+                .AsNoTracking()
+                .AnyAsync(x => x.IdempotencyKey == kunci && !x.IsDelete, cancellationToken);
+            if (sudahAda)
+                return (null, "Jasa kunjungan IGD untuk kunjungan ini sudah tercatat.");
+
+            var kode = procedureCode.Trim();
+            var procedure = await _dbContext.Set<MstProcedure>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ProcedureCode == kode && x.IsActive && !x.IsDelete, cancellationToken);
+            if (procedure == null)
+                return (null, $"Item master tindakan berkode {kode} tidak ditemukan atau tidak aktif.");
+
+            var now = DateTime.UtcNow;
+            var pricing = await _insuranceCoverageService.ResolveProcedureAsync(
+                visit.EncounterId.Value,
+                procedure.Id,
+                1m,
+                now,
+                cancellationToken);
+            var hargaSah = pricing.IsValid;
+
+            var entity = new TrxPatientProcedure
+            {
+                Id = Guid.NewGuid(),
+                EncounterId = visit.EncounterId.Value,
+                ConsultationId = null,
+                PatientId = visit.PatientId.Value,
+                DoctorId = doctorId,
+                ServiceUnitId = visit.ServiceUnitId,
+                ClinicId = null,
+                InpEpisodeId = null,
+                PhysicianVisitId = null,
+                IdempotencyKey = kunci,
+                ProcedureId = procedure.Id,
+                TariffId = hargaSah ? pricing.TariffId : null,
+                InsuranceTariffId = hargaSah ? pricing.InsuranceTariffId : null,
+                InsuranceCoverageRuleId = hargaSah ? pricing.InsuranceCoverageRuleId : null,
+                ProcedureCodeSnapshot = procedure.ProcedureCode,
+                ProcedureNameSnapshot = procedure.ProcedureName,
+                ProcedureTypeSnapshot = procedure.ProcedureType,
+                ProcedureCategoryNameSnapshot = procedure.ProcedureCategoryName,
+                ProcedureMasterType = "Master",
+                IsFromMasterProcedure = true,
+                IsPrimaryProcedure = false,
+                IsEmergencyProcedure = true,
+                IsSurgeryRelated = procedure.IsSurgery,
+                IsPackageProcedure = false,
+                ProcedureSource = PatientProcedureSource.EmergencyVisitFee,
+                ProcedureStatus = PatientProcedureStatus.Completed,
+                ProcedureDateTime = performedAt,
+                PlannedAt = performedAt,
+                ScheduledAt = null,
+                StartedAt = performedAt,
+                CompletedAt = performedAt,
+                Quantity = 1m,
+                UnitNameSnapshot = "Kunjungan",
+                UnitPrice = hargaSah ? pricing.UnitPrice : 0m,
+                TotalPrice = hargaSah ? pricing.TotalPrice : 0m,
+                HospitalPriceSnapshot = hargaSah ? pricing.HospitalUnitPrice : null,
+                InsuranceContractPrice = hargaSah ? pricing.ContractUnitPrice : null,
+                IsFreeOfCharge = false,
+                FreeOfChargeReason = null,
+                IsBillable = true,
+                IsCoveredByInsurance = hargaSah && pricing.IsCovered,
+                CoverageStatus = hargaSah ? pricing.CoverageStatus : "Unknown",
+                CoveragePercent = hargaSah ? pricing.CoveragePercent : 0m,
+                CoveredAmount = hargaSah ? pricing.CoveredAmount : 0m,
+                PatientPayAmount = hargaSah ? pricing.PatientPayAmount : 0m,
+                CoverageNote = hargaSah ? pricing.CoverageNote : null,
+                IsNeedApproval = (hargaSah && pricing.IsNeedApproval) || procedure.IsNeedApproval,
+                IsApproved = false,
+                IsExecuted = true,
+                ExecutedAt = performedAt,
+                ExecutedByUserId = actorUserId,
+                PerformedAt = performedAt,
+                PerformedByUserId = actorUserId,
+                ClinicalNote = null,
+                InstructionNote = null,
+                DispositionNote = null,
+                IsBillingGenerated = false,
+                BillingGeneratedAt = null,
+                OrderedByUserId = actorUserId,
+                InstructingDoctorId = null,
+                InstructionVerificationStatus = PatientProcedureInstructionVerificationStatus.NotRequired,
+                CancelledByEpisodeClosure = false,
+                IsActive = true,
+                CreateBy = actorUserId,
+                CreateDateTime = now
+            };
+
+            _dbContext.Set<TrxPatientProcedure>().Add(entity);
+            return (entity, null);
+        }
+
         /// <summary>
         /// Mengubah pesanan tindakan yang belum dilaksanakan (INV-DOK-17).
         /// Hanya penginput asli yang berhak mengubah.

@@ -1413,6 +1413,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            if (entity.ProcedureSource == PatientProcedureSource.EmergencyVisitFee)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    PatientProcedureOrderService.PesanJasaKunjunganIgdTidakDapatDibatalkan
+                ));
+            }
+
             if (!CanRemoveProcedureFromDraft(entity))
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -1468,6 +1476,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Tindakan pasien tidak ditemukan."
+                ));
+            }
+
+            if (entity.ProcedureSource == PatientProcedureSource.EmergencyVisitFee)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    PatientProcedureOrderService.PesanJasaKunjunganIgdTidakDapatDibatalkan
                 ));
             }
 

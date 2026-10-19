@@ -15,6 +15,8 @@ public partial class InpBedOccupancyService
         var meta = await _bedCoordinator.ExecuteAsync("InpatientBedOccupancy:Create", new { operation = "Reserve", request },
             [request.EpisodeId], [request.BedId], [new() { BedId = request.BedId, ExpectedVersion = request.ExpectedBedVersion }],
             async ct => { var result = await ReserveBedCoreAsync(request, actorUserId, ct); RequireSuccess(result); return ("Reservation", result.ReservationId!.Value); }, cancellationToken);
+        if (!meta.IsReplay)
+            await _bedRealtime.NotifyBedAcquiredAsync("BedReserved", request.EpisodeId, request.BedId, actorUserId, meta.CommittedAtUtc, cancellationToken);
         return InpBedOccupancyOperationResult.Success("Pemesanan tersimpan.", reservationId: meta.ResultEntityId);
     }
     public async Task<InpBedOccupancyOperationResult> CancelReservationAsync(Guid reservationId, CancelReservationRequest? request, Guid actorUserId, CancellationToken cancellationToken = default)
@@ -35,6 +37,8 @@ public partial class InpBedOccupancyService
         var meta = await _bedCoordinator.ExecuteAsync("InpatientBedOccupancy:Create", new { operation = "Place", request },
             [request.EpisodeId], [request.BedId], [new() { BedId = request.BedId, ExpectedVersion = request.ExpectedBedVersion }],
             async ct => { var result = await PlacePatientCoreAsync(request, actorUserId, ct); RequireSuccess(result); return ("Placement", result.PlacementId!.Value); }, cancellationToken);
+        if (!meta.IsReplay)
+            await _bedRealtime.NotifyBedAcquiredAsync("PatientPlaced", request.EpisodeId, request.BedId, actorUserId, meta.CommittedAtUtc, cancellationToken);
         return InpBedOccupancyOperationResult.Success("Penempatan tersimpan.", placementId: meta.ResultEntityId);
     }
     public async Task<InpBedOccupancyOperationResult> TransferAsync(TransferPatientRequest request, Guid actorUserId, Guid? actorDoctorId, CancellationToken cancellationToken = default)
@@ -53,13 +57,17 @@ public partial class InpBedOccupancyService
                 var targetClass = await _dbContext.Set<MstBed>().Where(x => x.Id == request.TargetBedId).Select(x => x.Room!.PatientClassId).SingleOrDefaultAsync(ct);
                 var comparison = targetClass.HasValue ? await _bedClasses.CompareAsync(current.PatientClassId, targetClass.Value, ct) : "Unknown";
                 if (comparison == "Unknown") throw new InpBedOperationException(422, "CLASS_ORDER_UNVERIFIED", "Urutan kelas belum dapat diverifikasi.");
-                if (request.ManualTransferCategory is < 1 or > 3 || ((InpBedTransferCategory)request.ManualTransferCategory).ToString() != comparison)
+                // BE-RWI-233 (VAL-DNH-13): transfer ke atau dari kelas khusus menerima ketiga kategori
+                // pilihan petugas; antarkelas biasa tetap wajib sama dengan perbandingan resmi.
+                if (comparison != "Special" &&
+                    (request.ManualTransferCategory is < 1 or > 3 || ((InpBedTransferCategory)request.ManualTransferCategory).ToString() != comparison))
                     throw new InpBedOperationException(422, "TRANSFER_CATEGORY_MISMATCH", "Kategori pilihan tidak sesuai perbandingan kelas resmi.");
-                var result = await TransferCoreAsync(request, actorUserId, actorDoctorId, ct); RequireSuccess(result);
+                var result = await TransferCoreAsync(request, actorUserId, actorDoctorId, ct, comparison); RequireSuccess(result);
                 return ("Placement", result.PlacementId!.Value);
             }, cancellationToken);
         if (!meta.IsReplay)
         {
+            await _bedRealtime.NotifyBedAcquiredAsync("PatientTransferred", request.EpisodeId, request.TargetBedId, actorUserId, meta.CommittedAtUtc, cancellationToken);
             var destination = await _dbContext.Set<InpBedPlacement>().AsNoTracking().SingleAsync(x => x.Id == meta.ResultEntityId, cancellationToken);
             if (source.ServiceUnitId != destination.ServiceUnitId)
             {

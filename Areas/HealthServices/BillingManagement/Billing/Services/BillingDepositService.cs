@@ -8,8 +8,10 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Servi
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Globalization;
 using System.Security.Cryptography;
@@ -51,6 +53,346 @@ public sealed class BillingDepositService
             ?? throw new KeyNotFoundException("Deposit rawat inap belum tersedia.");
 
         return MapDeposit(account);
+    }
+
+    public async Task<DepositWorkspaceResponse> GetDepositWorkspaceAsync(
+        Guid encounterId,
+        int pageNumber,
+        int pageSize,
+        string? movementType,
+        DateTimeOffset? startDate,
+        DateTimeOffset? endDate,
+        string? search,
+        CancellationToken cancellationToken,
+        string? status = null,
+        string? sortDirection = null)
+    {
+        if (encounterId == Guid.Empty)
+            throw new BillingDepositValidationException("EncounterId wajib diisi.");
+
+        if (pageNumber < 1) pageNumber = 1;
+        if (pageSize < 1) pageSize = 10;
+        if (pageSize > 50) pageSize = 50;
+
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .Include(x => x.Patient)
+            .Include(x => x.ServiceUnit)
+            .SingleOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
+            ?? throw new KeyNotFoundException("Encounter tidak ditemukan.");
+
+        if (encounter.EncounterType != EncounterType.Inpatient)
+            throw new BillingDepositValidationException("Deposit hanya tersedia untuk encounter rawat inap.");
+
+        var account = await _dbContext.BilDepositAccounts.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.EncounterId == encounterId && !x.IsDelete, cancellationToken);
+
+        var topUpEligibility = ResolveTopUpEligibility(encounter, account);
+
+        if (account is null)
+        {
+            return new DepositWorkspaceResponse
+            {
+                EncounterId = encounter.Id,
+                PatientId = encounter.PatientId,
+                PatientName = encounter.Patient?.FullName ?? string.Empty,
+                MedicalRecordNumber = encounter.Patient?.MedicalRecordNumber ?? string.Empty,
+                EncounterNumber = encounter.EncounterNumber,
+                EncounterType = encounter.EncounterType,
+                EncounterTypeName = BuildEnumLabel(encounter.EncounterType),
+                EncounterStatus = encounter.EncounterStatus,
+                EncounterStatusName = BuildEnumLabel(encounter.EncounterStatus),
+                ServiceUnitName = encounter.ServiceUnit?.ServiceUnitName ?? string.Empty,
+                EncounterDate = encounter.EncounterDate,
+
+                HasDepositAccount = false,
+                DepositAccountId = null,
+                AccountNumber = string.Empty,
+                AccountStatus = string.Empty,
+                AvailableBalance = 0m,
+                RowVersion = null,
+                TotalTopUpGross = 0m,
+                TotalTopUpReversed = 0m,
+                TotalAllocated = 0m,
+                TotalReleasedOrRefunded = 0m,
+
+                IsTopUpEligible = topUpEligibility.IsEligible,
+                TopUpIneligibleReason = topUpEligibility.Reason,
+
+                Items = [],
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = 0,
+                TotalPage = 0
+            };
+        }
+
+        // Hitung agregat mutasi deposit di database tanpa memuat seluruh entity ke memori
+        var aggregates = await _dbContext.BilDepositMovements.AsNoTracking()
+            .Where(x => x.DepositAccountId == account.Id && !x.IsDelete)
+            .GroupBy(x => 1)
+            .Select(g => new
+            {
+                TotalTopUpGross = g.Where(x => x.MovementType == BillingDepositMovementTypes.TopUp).Sum(x => (decimal?)x.Amount) ?? 0m,
+                TotalTopUpReversed = g.Where(x => x.MovementType == BillingDepositMovementTypes.Reversal).Sum(x => (decimal?)x.Amount) ?? 0m,
+                TotalAllocated = g.Where(x => x.MovementType == BillingDepositMovementTypes.Allocation).Sum(x => (decimal?)x.Amount) ?? 0m,
+                // BKC-DEC-134: RELEASE dengan ReversesMovementId adalah pemulihan alokasi (bukan uang keluar),
+                // RELEASE tanpa ReversesMovementId adalah refund kas murni.
+                TotalAllocationRestored = g.Where(x => x.MovementType == BillingDepositMovementTypes.Release && x.ReversesMovementId != null).Sum(x => (decimal?)x.Amount) ?? 0m,
+                TotalReleasedOrRefunded = g.Where(x => x.MovementType == BillingDepositMovementTypes.Release && x.ReversesMovementId == null).Sum(x => (decimal?)x.Amount) ?? 0m
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var totalTopUpGross = aggregates?.TotalTopUpGross ?? 0m;
+        var totalTopUpReversed = aggregates?.TotalTopUpReversed ?? 0m;
+        // Deposit terpakai = alokasi ke invoice dikurangi alokasi yang dipulihkan, sehingga
+        // Masuk(net) - Terpakai - Pengembalian = Saldo tersedia.
+        var totalAllocated = Math.Max(0m, (aggregates?.TotalAllocated ?? 0m) - (aggregates?.TotalAllocationRestored ?? 0m));
+        var totalReleasedOrRefunded = aggregates?.TotalReleasedOrRefunded ?? 0m;
+
+        // Proyeksi deterministik ringan untuk running balance yang konsisten terhadap ledger existing
+        var allMovementsLedger = await _dbContext.BilDepositMovements.AsNoTracking()
+            .Where(x => x.DepositAccountId == account.Id && !x.IsDelete)
+            .OrderBy(x => x.OccurredAt)
+            .ThenBy(x => x.CreateDateTime)
+            .ThenBy(x => x.Id)
+            .Select(x => new
+            {
+                x.Id,
+                x.MovementType,
+                x.Amount,
+                x.ReversesMovementId
+            })
+            .ToListAsync(cancellationToken);
+
+        decimal runningBalance = 0;
+        var balanceMap = new Dictionary<Guid, (decimal Effect, decimal BalanceAfter)>(allMovementsLedger.Count);
+        foreach (var m in allMovementsLedger)
+        {
+            var effect = (m.MovementType == BillingDepositMovementTypes.TopUp ||
+                          (m.MovementType == BillingDepositMovementTypes.Release && m.ReversesMovementId.HasValue))
+                ? m.Amount
+                : -m.Amount;
+            runningBalance += effect;
+            balanceMap[m.Id] = (effect, runningBalance);
+        }
+
+        // Top-up yang sudah dibalik oleh mutasi REVERSAL (status tampilan REVERSED).
+        var reversedMovementIds = allMovementsLedger
+            .Where(m => m.MovementType == BillingDepositMovementTypes.Reversal && m.ReversesMovementId.HasValue)
+            .Select(m => m.ReversesMovementId!.Value)
+            .Distinct()
+            .ToList();
+
+        // Query terfilter dan terpaginasi
+        var filteredQuery = _dbContext.BilDepositMovements.AsNoTracking()
+            .Where(x => x.DepositAccountId == account.Id && !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(movementType))
+        {
+            var normalizedType = movementType.Trim().ToUpperInvariant();
+            filteredQuery = filteredQuery.Where(x => x.MovementType == normalizedType);
+        }
+
+        var rangeStartUtc = ResolveRangeStart(startDate);
+        if (rangeStartUtc.HasValue)
+        {
+            filteredQuery = filteredQuery.Where(x => x.OccurredAt >= rangeStartUtc.Value);
+        }
+
+        var rangeEndExclusiveUtc = ResolveRangeEndExclusive(endDate);
+        if (rangeEndExclusiveUtc.HasValue)
+        {
+            filteredQuery = filteredQuery.Where(x => x.OccurredAt < rangeEndExclusiveUtc.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            // Status diturunkan dari ledger (append-only): REVERSED bila sudah ada REVERSAL yang merujuknya.
+            var normalizedStatus = status.Trim().ToUpperInvariant();
+            if (normalizedStatus == DepositMovementStatuses.Reversed)
+            {
+                filteredQuery = filteredQuery.Where(x => reversedMovementIds.Contains(x.Id));
+            }
+            else if (normalizedStatus == DepositMovementStatuses.Posted)
+            {
+                filteredQuery = filteredQuery.Where(x => !reversedMovementIds.Contains(x.Id));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var keyword = search.Trim().ToLower();
+            // Nomor transaksi diturunkan dari Id sehingga dicocokkan di memori terhadap ledger akun
+            // (jumlah mutasi per kunjungan kecil); hasilnya diterapkan sebagai himpunan Id ke query.
+            var matchedByTransactionNumber = allMovementsLedger
+                .Where(m => BuildTransactionNumber(m.Id).ToLower().Contains(keyword))
+                .Select(m => m.Id)
+                .ToList();
+
+            filteredQuery = filteredQuery.Where(x =>
+                (x.ReferenceNumber != null && x.ReferenceNumber.ToLower().Contains(keyword)) ||
+                x.Reason.ToLower().Contains(keyword) ||
+                matchedByTransactionNumber.Contains(x.Id));
+        }
+
+        var totalData = await filteredQuery.CountAsync(cancellationToken);
+        var totalPage = totalData == 0 ? 0 : (int)Math.Ceiling(totalData / (double)pageSize);
+
+        // Urutan deterministik. Default "asc" (urutan buku besar) dipertahankan untuk konsumen lama;
+        // "desc" dipakai layar riwayat agar mutasi terbaru tampil di halaman pertama.
+        var descending = string.Equals(sortDirection?.Trim(), "desc", StringComparison.OrdinalIgnoreCase);
+        var orderedQuery = descending
+            ? filteredQuery.OrderByDescending(x => x.OccurredAt).ThenByDescending(x => x.CreateDateTime).ThenByDescending(x => x.Id)
+            : filteredQuery.OrderBy(x => x.OccurredAt).ThenBy(x => x.CreateDateTime).ThenBy(x => x.Id);
+
+        var pageEntities = await orderedQuery
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        // Jenis order asal top-up (INITIAL_DEPOSIT → "Deposit Awal"); top-up tanpa order tetap "Top Up".
+        var pageMovementIds = pageEntities.Select(x => x.Id).ToList();
+        var orderTypeRows = await (from payment in _dbContext.BilDepositOrderPayments.AsNoTracking()
+                                   join order in _dbContext.BilDepositPaymentOrders.AsNoTracking()
+                                       on payment.DepositOrderId equals order.Id
+                                   where pageMovementIds.Contains(payment.DepositMovementId)
+                                         && !payment.IsDelete
+                                         && payment.Status == DepositOrderPaymentStatuses.Success
+                                   select new { payment.DepositMovementId, order.OrderType })
+            .ToListAsync(cancellationToken);
+        var orderTypeByMovement = orderTypeRows
+            .GroupBy(x => x.DepositMovementId)
+            .ToDictionary(g => g.Key, g => g.First().OrderType);
+
+        var paymentMethodIds = pageEntities
+            .Where(x => x.PaymentMethodId.HasValue)
+            .Select(x => x.PaymentMethodId!.Value)
+            .Distinct()
+            .ToList();
+
+        var paymentMethods = paymentMethodIds.Count > 0
+            ? await _dbContext.MstPaymentMethods.AsNoTracking()
+                .Where(x => paymentMethodIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, cancellationToken)
+            : new Dictionary<Guid, MstPaymentMethod>();
+
+        var accountIds = pageEntities
+            .Where(x => x.PaymentMethodAccountId.HasValue)
+            .Select(x => x.PaymentMethodAccountId!.Value)
+            .Distinct()
+            .ToList();
+
+        var paymentMethodAccounts = accountIds.Count > 0
+            ? await _dbContext.MstPaymentMethodAccounts.AsNoTracking()
+                .Where(x => accountIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, cancellationToken)
+            : new Dictionary<Guid, MstPaymentMethodAccount>();
+
+        var cashierIds = pageEntities
+            .Where(x => x.CreateBy != Guid.Empty)
+            .Select(x => x.CreateBy)
+            .Distinct()
+            .ToList();
+
+        var cashierNames = cashierIds.Count > 0
+            ? await _dbContext.Users.AsNoTracking()
+                .Where(x => cashierIds.Contains(x.Id))
+                .ToDictionaryAsync(x => x.Id, x => x.DisplayName ?? x.UserName ?? "Kasir", cancellationToken)
+            : new Dictionary<Guid, string>();
+
+        var items = pageEntities.Select(x =>
+        {
+            balanceMap.TryGetValue(x.Id, out var balanceInfo);
+
+            string? pmName = null;
+            string? bankName = null;
+            string? accNum = null;
+
+            if (x.PaymentMethodAccountId.HasValue && paymentMethodAccounts.TryGetValue(x.PaymentMethodAccountId.Value, out var pma))
+            {
+                bankName = pma.BankName;
+                accNum = pma.AccountNumber;
+            }
+
+            if (x.PaymentMethodId.HasValue && paymentMethods.TryGetValue(x.PaymentMethodId.Value, out var pm))
+            {
+                pmName = pm.PaymentMethodName;
+                bankName ??= pm.BankName;
+                accNum ??= pm.BankAccountNumber;
+            }
+            else if (x.MovementType == BillingDepositMovementTypes.Allocation)
+            {
+                pmName = "Deposit";
+            }
+
+            cashierNames.TryGetValue(x.CreateBy, out var cashierName);
+
+            orderTypeByMovement.TryGetValue(x.Id, out var sourceOrderType);
+            var movementStatus = reversedMovementIds.Contains(x.Id)
+                ? DepositMovementStatuses.Reversed
+                : DepositMovementStatuses.Posted;
+
+            return new DepositMovementResponse
+            {
+                Id = x.Id,
+                TransactionNumber = BuildTransactionNumber(x.Id),
+                MovementType = x.MovementType,
+                MovementTypeName = BuildMovementTypeName(x.MovementType, x.ReversesMovementId.HasValue, sourceOrderType),
+                Status = movementStatus,
+                StatusName = BuildMovementStatusName(movementStatus),
+                Amount = x.Amount,
+                BalanceEffect = balanceInfo.Effect,
+                BalanceAfter = balanceInfo.BalanceAfter,
+                SettlementId = x.SettlementId,
+                PaymentMethodId = x.PaymentMethodId,
+                PaymentMethodAccountId = x.PaymentMethodAccountId,
+                PaymentMethodName = pmName,
+                BankName = bankName,
+                AccountNumber = accNum,
+                ReferenceNumber = x.ReferenceNumber ?? (x.SettlementId.HasValue ? $"INV-SETTLE-{x.SettlementId.Value:N}"[..15] : null),
+                CashierName = cashierName ?? "Kasir",
+                CashierShiftId = x.CashierShiftId,
+                CorrelationId = x.CorrelationId,
+                OccurredAt = x.OccurredAt,
+                Reason = x.Reason,
+                ReversesMovementId = x.ReversesMovementId
+            };
+        }).ToList();
+
+        return new DepositWorkspaceResponse
+        {
+            EncounterId = encounter.Id,
+            PatientId = encounter.PatientId,
+            PatientName = encounter.Patient?.FullName ?? string.Empty,
+            MedicalRecordNumber = encounter.Patient?.MedicalRecordNumber ?? string.Empty,
+            EncounterNumber = encounter.EncounterNumber,
+            EncounterType = encounter.EncounterType,
+            EncounterTypeName = BuildEnumLabel(encounter.EncounterType),
+            EncounterStatus = encounter.EncounterStatus,
+            EncounterStatusName = BuildEnumLabel(encounter.EncounterStatus),
+            ServiceUnitName = encounter.ServiceUnit?.ServiceUnitName ?? string.Empty,
+            EncounterDate = encounter.EncounterDate,
+
+            HasDepositAccount = true,
+            DepositAccountId = account.Id,
+            AccountNumber = account.AccountNumber,
+            AccountStatus = account.Status,
+            AvailableBalance = account.AvailableBalance,
+            RowVersion = account.RowVersion,
+            TotalTopUpGross = totalTopUpGross,
+            TotalTopUpReversed = totalTopUpReversed,
+            TotalAllocated = totalAllocated,
+            TotalReleasedOrRefunded = totalReleasedOrRefunded,
+
+            IsTopUpEligible = topUpEligibility.IsEligible,
+            TopUpIneligibleReason = topUpEligibility.Reason,
+
+            Items = items,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = totalData,
+            TotalPage = totalPage
+        };
     }
 
     public async Task<DepositPolicyResponse> GetDepositPolicyAsync(
@@ -221,6 +563,7 @@ public sealed class BillingDepositService
     {
         ValidateTopUpRequest(encounterId, request, idempotencyKey);
         var payloadHash = ComputeTopUpPayloadHash(encounterId, request);
+        var legacyPayloadHash = ComputeLegacyTopUpPayloadHash(encounterId, request);
         var cashReceiptApplied = false;
         Guid? cashReceiptSourceId = null;
         IDbContextTransaction? transaction = null;
@@ -240,8 +583,11 @@ public sealed class BillingDepositService
                 .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
             if (priorMovement is not null)
             {
+                var isPayloadMatch = priorMovement.PayloadHash == payloadHash
+                    || priorMovement.PayloadHash == legacyPayloadHash;
+
                 if (priorMovement.MovementType != BillingDepositMovementTypes.TopUp
-                    || priorMovement.PayloadHash != payloadHash)
+                    || !isPayloadMatch)
                     throw new BillingDepositConflictException(
                         "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
 
@@ -279,7 +625,8 @@ public sealed class BillingDepositService
             ValidatePaymentMethod(paymentMethod.IsActive, paymentMethod.IsAvailableForBilling,
                 paymentMethod.IsInsurance, paymentMethod.IsCompanyGuarantor,
                 paymentMethod.IsMembership, paymentMethod.IsNeedReferenceNumber,
-                paymentMethod.IsNeedApproval, paymentMethod.IsNeedAttachment);
+                paymentMethod.IsNeedApproval, paymentMethod.IsNeedAttachment,
+                paymentMethod.PaymentMethodName, request.ReferenceNumber);
             BilCashierShift? cashierShift = null;
             if (paymentMethod.IsCash)
             {
@@ -627,7 +974,9 @@ public sealed class BillingDepositService
         bool isMembership,
         bool needsReference,
         bool needsApproval,
-        bool needsAttachment)
+        bool needsAttachment,
+        string paymentMethodName,
+        string? referenceNumber)
     {
         if (!isActive || !isAvailableForBilling)
             throw new BillingDepositValidationException(
@@ -635,9 +984,71 @@ public sealed class BillingDepositService
         if (isInsurance || isCompanyGuarantor || isMembership)
             throw new BillingDepositValidationException(
                 "Metode penjamin tidak dapat digunakan sebagai top-up deposit.");
-        if (needsReference || needsApproval || needsAttachment)
+        // Persetujuan dan lampiran butuh alur settlement/tender yang belum tersedia untuk top-up deposit.
+        if (needsApproval || needsAttachment)
             throw new BillingDepositValidationException(
                 "Metode pembayaran ini memerlukan settlement/tender yang belum tersedia.");
+        // Metode yang mewajibkan nomor referensi (mis. QRIS manual, transfer) cukup disertai referensi
+        // dari bukti transaksi; tanpa referensi penerimaan tetap ditolak. Referensi tidak pernah dibuat sistem.
+        if (needsReference && string.IsNullOrWhiteSpace(referenceNumber))
+            throw new BillingDepositValidationException(
+                $"Metode {paymentMethodName} mewajibkan nomor referensi / nomor transaksi.");
+    }
+
+    private static (bool IsEligible, string? Reason) ResolveTopUpEligibility(
+        RegPatientEncounter encounter,
+        BilDepositAccount? account)
+    {
+        if (encounter.EncounterStatus is EncounterStatus.Cancelled or EncounterStatus.NoShow)
+            return (false, "Kunjungan yang dibatalkan atau tidak hadir tidak dapat menerima deposit.");
+        if (account is not null && account.Status != BillingDepositAccountStatuses.Active)
+            return (false, "Akun deposit sudah ditutup dan tidak dapat menerima top-up baru.");
+        return (true, null);
+    }
+
+    /// <summary>Nomor transaksi tampilan yang stabil, diturunkan dari Id mutasi (tidak disimpan di database).</summary>
+    internal static string BuildTransactionNumber(Guid movementId) =>
+        $"DEP-{movementId:N}"[..12].ToUpperInvariant();
+
+    private static string BuildMovementTypeName(string movementType, bool reversesAnotherMovement, string? sourceOrderType) =>
+        movementType switch
+        {
+            BillingDepositMovementTypes.TopUp when sourceOrderType == DepositOrderTypes.InitialDeposit => "Deposit Awal",
+            BillingDepositMovementTypes.TopUp => "Top Up",
+            BillingDepositMovementTypes.Allocation => "Pemakaian Deposit",
+            BillingDepositMovementTypes.Release when reversesAnotherMovement => "Pemulihan Alokasi",
+            BillingDepositMovementTypes.Release => "Refund",
+            BillingDepositMovementTypes.Reversal => "Koreksi (Pembalikan Top Up)",
+            _ => movementType
+        };
+
+    private static string BuildMovementStatusName(string status) =>
+        status == DepositMovementStatuses.Reversed ? "Dibalik" : "Berhasil";
+
+    /// <summary>
+    /// Mengubah batas awal rentang tanggal menjadi instan UTC. Nilai berjam 00:00 dibaca sebagai
+    /// tanggal operasional (WIB), sehingga "2026-10-19" berarti awal hari 19 Oktober waktu setempat.
+    /// </summary>
+    internal static DateTimeOffset? ResolveRangeStart(DateTimeOffset? value)
+    {
+        if (!value.HasValue) return null;
+        var v = value.Value;
+        return v.TimeOfDay == TimeSpan.Zero
+            ? new DateTimeOffset(AppDateTimeHelper.OperationalDateToUtc(v.DateTime), TimeSpan.Zero)
+            : v;
+    }
+
+    /// <summary>
+    /// Batas akhir rentang tanggal sebagai batas eksklusif UTC. Tanggal tanpa jam mencakup seluruh
+    /// hari tersebut (awal hari berikutnya), bukan berhenti pada pukul 00:00.
+    /// </summary>
+    internal static DateTimeOffset? ResolveRangeEndExclusive(DateTimeOffset? value)
+    {
+        if (!value.HasValue) return null;
+        var v = value.Value;
+        return v.TimeOfDay == TimeSpan.Zero
+            ? new DateTimeOffset(AppDateTimeHelper.OperationalDateToUtc(v.DateTime.Date.AddDays(1)), TimeSpan.Zero)
+            : v.AddTicks(1);
     }
 
     private static void ValidateTopUpRequest(
@@ -696,12 +1107,44 @@ public sealed class BillingDepositService
         var canonical = string.Join('|',
             encounterId.ToString("N"),
             request.PaymentMethodId.ToString("N"),
+            request.PaymentMethodAccountId?.ToString("N") ?? string.Empty,
+            request.ReferenceNumber?.Trim() ?? string.Empty,
             request.Amount.ToString(CultureInfo.InvariantCulture),
             request.ExpectedRowVersion?.ToString("N") ?? string.Empty,
             request.Reason.Trim(),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private static string ComputeLegacyTopUpPayloadHash(
+        Guid encounterId,
+        DepositTopUpRequest request)
+    {
+        var canonical = string.Join('|',
+            encounterId.ToString("N"),
+            request.PaymentMethodId.ToString("N"),
+            request.Amount.ToString(CultureInfo.InvariantCulture),
+            request.ExpectedRowVersion?.ToString("N") ?? string.Empty,
+            request.Reason.Trim(),
+            request.CorrelationId.ToString("N"),
+            request.CausationId.ToString("N"));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private static string BuildEnumLabel<TEnum>(TEnum value) where TEnum : Enum
+    {
+        var memberInfo = typeof(TEnum).GetMember(value.ToString()).FirstOrDefault();
+        var displayAttribute = memberInfo?
+            .GetCustomAttributes(typeof(DisplayAttribute), false)
+            .OfType<DisplayAttribute>()
+            .FirstOrDefault();
+
+        var displayName = displayAttribute?.GetName();
+        if (!string.IsNullOrWhiteSpace(displayName))
+            return displayName;
+
+        return string.Concat(value.ToString().Select((x, i) => i > 0 && char.IsUpper(x) ? " " + x : x.ToString()));
     }
 
     private static string ComputeReversalPayloadHash(
@@ -774,6 +1217,11 @@ public sealed class BillingDepositService
                 .ToDictionary(x => x.Id, x => x.DisplayName ?? x.UserName ?? "Kasir")
             : new Dictionary<Guid, string>();
 
+        var reversedMovementIds = account.Movements
+            .Where(x => !x.IsDelete && x.MovementType == BillingDepositMovementTypes.Reversal && x.ReversesMovementId.HasValue)
+            .Select(x => x.ReversesMovementId!.Value)
+            .ToHashSet();
+
         decimal runningBalance = 0;
         var movements = account.Movements
             .Where(x => !x.IsDelete)
@@ -814,11 +1262,18 @@ public sealed class BillingDepositService
                 }
 
                 cashierNames.TryGetValue(x.CreateBy, out var cashierName);
+                var movementStatus = reversedMovementIds.Contains(x.Id)
+                    ? DepositMovementStatuses.Reversed
+                    : DepositMovementStatuses.Posted;
 
                 return new DepositMovementResponse
                 {
                     Id = x.Id,
+                    TransactionNumber = BuildTransactionNumber(x.Id),
                     MovementType = x.MovementType,
+                    MovementTypeName = BuildMovementTypeName(x.MovementType, x.ReversesMovementId.HasValue, null),
+                    Status = movementStatus,
+                    StatusName = BuildMovementStatusName(movementStatus),
                     Amount = x.Amount,
                     BalanceEffect = effect,
                     BalanceAfter = runningBalance,

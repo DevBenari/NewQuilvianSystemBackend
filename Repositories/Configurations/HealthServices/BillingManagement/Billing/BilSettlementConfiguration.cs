@@ -10,15 +10,16 @@ public sealed class BilSettlementConfiguration : IEntityTypeConfiguration<BilSet
     {
         entity.ToTable("BilSettlement", "public", table =>
         {
+            // Tepat satu target: invoice, account deposit, atau tagihan iuran membership.
             table.HasCheckConstraint(
                 "CK_BilSettlement_Target",
-                "((\"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL) OR (\"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL))");
+                "((\"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NOT NULL))");
             table.HasCheckConstraint(
                 "CK_BilSettlement_Purpose",
-                "\"Purpose\" IN ('DEPOSIT_TOP_UP','INVOICE_PAYMENT')");
+                "\"Purpose\" IN ('DEPOSIT_TOP_UP','INVOICE_PAYMENT','MEMBERSHIP_FEE')");
             table.HasCheckConstraint(
                 "CK_BilSettlement_PurposeTarget",
-                "((\"Purpose\" = 'INVOICE_PAYMENT' AND \"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL) OR (\"Purpose\" = 'DEPOSIT_TOP_UP' AND \"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL))");
+                "((\"Purpose\" = 'INVOICE_PAYMENT' AND \"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"Purpose\" = 'DEPOSIT_TOP_UP' AND \"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"Purpose\" = 'MEMBERSHIP_FEE' AND \"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NOT NULL))");
             table.HasCheckConstraint(
                 "CK_BilSettlement_Status",
                 "\"Status\" IN ('DRAFT','IN_PROGRESS','PARTIALLY_SETTLED','SETTLED','FAILED')");
@@ -47,6 +48,9 @@ public sealed class BilSettlementConfiguration : IEntityTypeConfiguration<BilSet
         entity.HasIndex(x => x.CorrelationId).IsUnique();
         entity.HasIndex(x => new { x.InvoiceId, x.Status });
         entity.HasIndex(x => new { x.DepositAccountId, x.Status });
+        entity.HasIndex(x => new { x.MembershipFeeChargeId, x.Status });
+        entity.HasOne<BilMembershipFeeCharge>().WithMany().HasForeignKey(x => x.MembershipFeeChargeId)
+            .OnDelete(DeleteBehavior.Restrict);
         entity.HasOne<BilInvoice>().WithMany().HasForeignKey(x => x.InvoiceId)
             .OnDelete(DeleteBehavior.Restrict);
         entity.HasOne<BilDepositAccount>().WithMany().HasForeignKey(x => x.DepositAccountId)

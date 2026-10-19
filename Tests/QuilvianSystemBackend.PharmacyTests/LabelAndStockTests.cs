@@ -263,7 +263,13 @@ public class LabelAndStockTests
         SiapkanStokAsync(PharmacyHarness h)
     {
         var (_, konteks) = h.Penyerahan();
-        await h.SediakanStokAsync(konteks);
+
+        // Tanpa penahanan resep: uji di berkas ini menguji `DrugStockService` sendiri dan
+        // memeriksa angka `QuantityReserved` apa adanya. Menyemai penahanan `PHA-DEC-066` di
+        // sini akan menggeser setiap angka itu sebanyak jumlah butir resep harness, dan yang
+        // terbukti bukan lagi perilaku penghitungnya.
+        await h.SediakanStokAsync(konteks, denganPenahanan: false);
+
         return (h.StokService(konteks), konteks, Guid.Empty);
     }
 }

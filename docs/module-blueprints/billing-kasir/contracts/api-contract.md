@@ -1413,3 +1413,155 @@ mengikutkan, total menjadi Rp 3.500.000 dan status dinilai ulang.
 
 Nol perubahan pada endpoint yang sudah tersedia. `BillingInpatientEventReceiver` tidak punya
 endpoint HTTP; ia dipanggil `InpatientIntegrationOutboxWorker`.
+
+---
+
+## Amendment 16 Oktober 2026 — Biaya Admin Rawat Jalan dan Tinjauan Void Keliru (Revisi 2.3)
+
+> `last_changed_in`: `BIL-API-2.0` atas `BIL-API-1.9` — status **draft**.
+> Owner: Billing Owner · `approved_by`: belum · `approved_at`: belum.
+> Masukan: `BKC-DES-083`–`BKC-DES-089`; arahan pemilik A1–A3 (`02-backend-architecture.md` amendment revisi `2.3` bagian 0.4). Backend SHA: `738e03a0`.
+> Kompatibilitas: **tidak sepenuhnya aditif** — satu field response dihapus (`referredOutpatientAdminVoided`) dan arti satu field berubah (`referredOutpatientAdminCreditedAmount`). Konsumennya satu berkas frontend (`billing-inpatient-summary-panel.jsx:74-79`) yang diperbarui pada rilis yang sama (`03-frontend-architecture.md` amendment revisi `2.3`).
+
+### A. `[Tags("Health Services / Billing Management / Billing / Invoices")]` — response kalkulasi berubah
+
+Base URL: `api/v1/health-services/billing-management/billing/invoices`
+
+| Method | Path | Kegunaan | Hak akses | Perubahan | Status |
+|---|---|---|---|---|---|
+| `POST` | `/{id}/recalculate` | Menghitung ulang dan menyimpan versi kalkulasi | `BillingInvoice : Update` | `data.breakdown.administrationFee` berubah (tabel di bawah). Kalkulasi tidak lagi mem-void item maupun membuat kredit | Diimplementasikan; perubahan **Rencana (belum tersedia)** |
+| `GET` | `/{id}/calculation-preview` | Pratinjau kalkulasi untuk Menu Pembayaran, tanpa menyimpan | `BillingInvoice : Read` | Sama. **Perbaikan:** pratinjau benar-benar tidak menulis apa pun (`BIL-VAL-159`); sebelumnya mem-void item (F11) | Diimplementasikan; perubahan **Rencana (belum tersedia)** |
+
+Objek `administrationFee` (`AdministrationFeeCalculationResponse`):
+
+| Field | Tipe | Status | Arti |
+|---|---|---|---|
+| `referredOutpatientAdminVoided` | `boolean` | **Dihapus** | Tidak pernah bermakna benar (F8–F9) |
+| `referredOutpatientAdminCreditedAmount` | `number` | **Arti berubah** | Kredit admin Rawat Jalan yang **terpakai** mengurangi porsi pasien invoice `RANAP`. Selalu 0 di invoice lain |
+| `referredOutpatientAdminUnappliedCreditAmount` | `number` | **Baru** | Kredit yang tidak terpakai karena porsi pasien sudah 0; menjadi kredit refund saat finalisasi |
+| `referredOutpatientAdminOrigins` | `array` | **Baru** | Invoice poli asal yang bertautan aktif, hanya pada invoice `RANAP` (lihat di bawah) |
+| `isSupersededByInpatientAdmission` | `boolean` | **Baru** | `true` pada invoice `RAJAL` yang admin-nya digantikan rawat inap |
+| `supersededByInpatientInvoiceId` | `uuid \| null` | **Baru** | Invoice rawat inap penggantinya |
+| `supersededReasonCode` | `string \| null` | **Baru** | `SUPERSEDED_BY_INPATIENT_ADMISSION` bila digantikan |
+
+Elemen `referredOutpatientAdminOrigins`:
+
+| Field | Tipe | Arti |
+|---|---|---|
+| `originInvoiceId`, `originInvoiceNumber`, `originEncounterId` | `uuid`/`string` | Invoice dan kunjungan poli asal |
+| `originInvoiceStatus` | `string` | `OPEN`, `FINAL`, `CLOSED`, `SETTLED_BY_WRITE_OFF` |
+| `treatment` | `string` | `SUPERSEDED` (admin dihapus di tagihan poli), `CREDITED` (dikreditkan di sini), `NO_ADMIN` (porsi pasien admin 0) |
+| `adminPatientAmount` | `number` | Porsi pasien admin pada versi kalkulasi terkini invoice poli |
+| `creditAmount` | `number` | Kredit dari invoice ini, sebelum dibatasi porsi pasien |
+
+Contoh pada invoice rawat inap Ibu Sari (tagihan poli sudah lunas):
+
+```json
+{
+  "administrationFee": {
+    "appliedAmount": 1000000.00,
+    "referredOutpatientAdminCreditedAmount": 150000.00,
+    "referredOutpatientAdminUnappliedCreditAmount": 0.00,
+    "referredOutpatientAdminOrigins": [
+      { "originInvoiceNumber": "INV-RJ-002311", "originInvoiceStatus": "CLOSED",
+        "treatment": "CREDITED", "adminPatientAmount": 150000.00, "creditAmount": 150000.00 }
+    ],
+    "isSupersededByInpatientAdmission": false,
+    "supersededByInpatientInvoiceId": null,
+    "supersededReasonCode": null
+  }
+}
+```
+
+Contoh pada invoice poli yang masih `OPEN`, setelah pasien ditransfer:
+
+```json
+{
+  "administrationFee": {
+    "appliedAmount": 0.00,
+    "isSupersededByInpatientAdmission": true,
+    "supersededByInpatientInvoiceId": "8f0c...",
+    "supersededReasonCode": "SUPERSEDED_BY_INPATIENT_ADMISSION",
+    "referredOutpatientAdminCreditedAmount": 0.00,
+    "referredOutpatientAdminUnappliedCreditAmount": 0.00,
+    "referredOutpatientAdminOrigins": []
+  }
+}
+```
+
+Kode status kedua endpoint **tidak berubah**. Satu perbaikan: `409` dengan pesan *"Versi kalkulasi tidak dapat disimpan
+karena invoice telah berubah"* tidak lagi muncul akibat penolakan kredit (F10).
+
+**[Adendum `BKC-DES-092` — DICABUT 16 Oktober 2026, `BKC-DEC-167`: item tarif admin tidak dipakai. Ketiga field di bawah TIDAK dibangun; dipertahankan sebagai histori.]** ~~Tambahan aditif pada response yang sama:~~
+
+| Field | Tipe | Arti |
+|---|---|---|
+| `breakdown.supersededAdministrationItems` | `array` | Hanya pada invoice `RAJAL` yang digantikan: item aktif berkategori tarif admin yang **dikeluarkan** dari kalkulasi. Elemen `{ invoiceItemId, description, amount, reasonCode }`, dengan `reasonCode = SUPERSEDED_BY_INPATIENT_ADMISSION`. Item itu tetap ada di daftar item invoice, tetapi tidak dihitung |
+| `referredOutpatientAdminOrigins[].adminItemsPatientAmount` | `number` | Porsi pasien item tarif admin pada invoice poli asal; sudah termasuk di dalam `adminPatientAmount` |
+| `SupersededItemReviewCandidateResponse.isAdministrationFeeCategory` | `boolean` | Item yang ditinjau berkategori tarif admin. Hanya informasi |
+
+### B. `[Tags("Health Services / Billing Management / Billing / Superseded Item Reviews")]` — baru
+
+Base URL: `api/v1/health-services/billing-management/billing/superseded-item-reviews`.
+`[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Superseded Item Review", ...)]`.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar item yang di-void dengan kode `SUPERSEDED_BY_INPATIENT_ADMISSION` beserta keputusan tinjauannya | `[AccessPermission("BillingSupersededItemReview", "Read")]` | Query `reviewState` (`PENDING`\|`DECIDED`\|`ALL`, bawaan `PENDING`), `invoiceStatus`, `search` (nomor invoice), `page` (bawaan 1), `pageSize` (bawaan 20, maks 100) | `ApiResponse<PagedResult<SupersededItemReviewCandidateResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{invoiceItemId}` | Detail satu kandidat | `[AccessPermission("BillingSupersededItemReview", "Read")]` | — | `ApiResponse<SupersededItemReviewCandidateResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{invoiceItemId}/decision` | Menetapkan keputusan final atas satu item | `[AccessPermission("BillingSupersededItemReview", "Decide")]` | Header `Idempotency-Key` (`uuid`, wajib); body `DecideSupersededItemRequest` | `ApiResponse<SupersededItemReviewResponse>` | **Rencana (belum tersedia)** |
+
+`SupersededItemReviewCandidateResponse`:
+
+| Field | Tipe | Arti |
+|---|---|---|
+| `invoiceItemId`, `invoiceId`, `invoiceNumber`, `invoiceStatus`, `invoiceRowVersion` | — | Item dan invoice-nya |
+| `encounterId`, `encounterDate` | — | Kunjungan poli |
+| `patientName`, `medicalRecordNumber` | `string` | **Sensitif** — hanya ditampilkan, **MUST NOT** masuk log |
+| `itemDescription`, `quantity`, `unitPrice`, `amount` | — | Isi item yang di-void |
+| `voidedAt` | `datetime` | `UpdateDateTime` item saat di-void |
+| `isLinkedToInpatient` | `boolean` | Kunjungan ini bertautan aktif dengan invoice rawat inap. Hanya informasi; **seluruh** kandidat tetap perlu ditinjau (F9) |
+| `allowedDecisions` | `string[]` | `REINSTATE` hanya bila invoice `OPEN`; `NEEDS_POST_CLOSE_CORRECTION` hanya bila bukan `OPEN`; `KEEP` selalu |
+| `review` | `object \| null` | Keputusan yang sudah ada (`SupersededItemReviewResponse`) |
+
+`DecideSupersededItemRequest`:
+
+| Field | Tipe | Wajib | Validasi |
+|---|---|---|---|
+| `decision` | `string` | Ya | `REINSTATE`, `KEEP`, `NEEDS_POST_CLOSE_CORRECTION`; harus termasuk `allowedDecisions` (`BIL-VAL-154`, `BIL-VAL-155`) |
+| `reason` | `string` | Ya | 10–500 karakter sesudah dipangkas (`BIL-VAL-151`) |
+| `expectedInvoiceRowVersion` | `uuid` | Ya | Harus sama dengan `RowVersion` invoice (`BIL-VAL-157`) |
+
+`SupersededItemReviewResponse`: `reviewId`, `invoiceItemId`, `invoiceId`, `decision`, `invoiceStatusAtDecision`,
+`reinstatedInvoiceItemId`, `reason`, `decidedBy`, `decidedByName`, `decidedAt`, `isReplay`.
+
+Contoh request dan response:
+
+```http
+POST /api/v1/health-services/billing-management/billing/superseded-item-reviews/3c1e.../decision
+Idempotency-Key: 5b9a2f0e-...
+Content-Type: application/json
+
+{ "decision": "REINSTATE",
+  "reason": "Item layanan rekam medis, bukan biaya admin; ter-void oleh cacat lama",
+  "expectedInvoiceRowVersion": "a71d..." }
+```
+
+```json
+{ "success": true,
+  "message": "Item dipulihkan. Tagihan akan memuatnya pada kalkulasi berikutnya.",
+  "data": { "reviewId": "e04b...", "decision": "REINSTATE", "invoiceStatusAtDecision": "OPEN",
+            "reinstatedInvoiceItemId": "9d22...", "isReplay": false } }
+```
+
+| Kode status | Kapan |
+|---|---|
+| `200` | Daftar/detail terbaca; atau permintaan ulang dengan `Idempotency-Key` dan isi yang sama (`isReplay: true`) |
+| `201` | Keputusan tersimpan |
+| `400` | Alasan kurang dari 10 karakter, keputusan tidak dikenal, atau header `Idempotency-Key` tidak ada (`BIL-VAL-151`, `BIL-VAL-158`) |
+| `403` | Tidak memegang `BillingSupersededItemReview : Decide` |
+| `404` | Item tidak ada, atau bukan item `VOIDED` dengan kode `SUPERSEDED_BY_INPATIENT_ADMISSION` (`BIL-VAL-152`) |
+| `409` | Keputusan sudah ada (`BIL-VAL-153`); `RowVersion` berbeda (`BIL-VAL-157`); sudah ada item aktif dengan kunci sumber yang sama (`BIL-VAL-156`); `Idempotency-Key` sama dengan isi berbeda (`BIL-VAL-158`) |
+| `422` | Keputusan tidak diizinkan untuk status invoice saat ini (`BIL-VAL-154`, `BIL-VAL-155`) |
+
+Trace `BKC-DEC-158`, `BKC-DEC-162`, `BKC-DES-089`, A2, A3. Tests: `BIL-AT-218`–`BIL-AT-224`.

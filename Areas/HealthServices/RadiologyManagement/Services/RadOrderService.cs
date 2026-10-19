@@ -29,7 +29,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
     /// Pembatalan sebelum acquisition dimulai karena itu tidak menerbitkan koreksi apa pun:
     /// tidak ada yang perlu dikoreksi karena tidak pernah ada yang tertagih.
     /// </summary>
-    public class RadOrderService
+    public partial class RadOrderService
     {
         private const string LogCategory = "HealthServices.RadiologyManagement";
 

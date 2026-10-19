@@ -62,6 +62,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.CompanyGuarantorId)
                 .IsRequired(false);
 
+            entity.Property(x => x.InheritedFromPaymentSourceId)
+                .IsRequired(false);
+
+            entity.Property(x => x.InheritedFromPaymentSourceAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
             // =========================
             // REGISTRATION SNAPSHOT
             // =========================
@@ -121,6 +128,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .IsRequired(false);
 
             entity.Property(x => x.BenefitRelationshipSnapshot)
+                .HasMaxLength(50)
+                .IsRequired(false);
+
+            entity.Property(x => x.FinancingChoice)
                 .HasMaxLength(50)
                 .IsRequired(false);
 
@@ -223,6 +234,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.PatientCompanyGuarantorId);
 
             entity.HasIndex(x => x.CompanyGuarantorId);
+
+            entity.HasIndex(x => x.InheritedFromPaymentSourceId)
+                .HasFilter("\"InheritedFromPaymentSourceId\" IS NOT NULL")
+                .HasDatabaseName("IX_RegPatientEncounterGuarantor_InheritedSource");
 
             entity.HasIndex(x => x.EmployeeIdSnapshot)
                 .HasFilter("\"EmployeeIdSnapshot\" IS NOT NULL")

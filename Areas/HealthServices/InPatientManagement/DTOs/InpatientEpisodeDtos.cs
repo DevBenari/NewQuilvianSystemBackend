@@ -77,6 +77,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// permintaan <c>Pending</c>, admisi ditolak <c>409</c> <c>INP-ADM-REF-001</c>.
         /// </summary>
         public Guid? AdmissionReferralId { get; set; }
+
+        /// <summary>
+        /// Nominal uang muka/deposit yang diminta dari langkah Deposit admisi.
+        /// Menjadi BilDepositPaymentOrder (UNPAID) di kasir setelah episode tersimpan.
+        /// </summary>
+        public decimal? RequestedDepositAmount { get; set; }
+
+        /// <summary>Kebijakan deposit MstDepositPolicy yang menjadi acuan perhitungan.</summary>
+        public Guid? DepositPolicyId { get; set; }
+
+        /// <summary>Catatan atau alasan order deposit.</summary>
+        [MaxLength(500)]
+        public string? DepositOrderRemarks { get; set; }
+
+        /// <summary>Kunci idempoten penerbitan order deposit dari form admisi.</summary>
+        [MaxLength(100)]
+        public string? DepositIdempotencyKey { get; set; }
     }
 
     /// <summary>
@@ -144,6 +161,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public string? AdmissionTransferSourceType { get; set; }
         public BedReservationResponse? TransferReservation { get; set; }
         public QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos.DepositResponse? TransferDeposit { get; set; }
+        public QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos.DepositOrderSummaryDto? DepositPaymentOrder { get; set; }
         public BedOperationMeta? OperationMeta { get; set; } public int Version { get; set; }
         public Guid Id { get; set; }
 
@@ -208,6 +226,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public Guid? IsolationSetByDoctorId { get; set; }
 
         public DateTime? IsolationSetAt { get; set; }
+
+        /// <summary>Tingkat ketergantungan saat ini: 1 = High, 2 = Low, kosong = belum dinilai (BE-RWI-234).</summary>
+        public int? CareDependencyLevel { get; set; }
+
+        public string? CareDependencyLevelName { get; set; }
+
+        /// <summary>1 = AdmissionNote, 2 = NurseAssessment, 3 = DoctorDecision.</summary>
+        public int? CareDependencySource { get; set; }
+
+        public string? CareDependencySourceName { get; set; }
+
+        public string? CareDependencySetByName { get; set; }
+
+        /// <summary>Kirim ulang nilai ini sebagai <c>ExpectedSetAt</c> saat mencatat HD/LD.</summary>
+        public DateTime? CareDependencySetAt { get; set; }
+
+        /// <summary>Catatan HD/LD terakhir. Kolom sensitif; tidak boleh masuk payload logger.</summary>
+        public string? CareDependencyNote { get; set; }
 
         public int DischargeType { get; set; }
 

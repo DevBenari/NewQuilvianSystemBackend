@@ -32,12 +32,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasDefaultValue(BedStatus.Available)
                 .IsRequired();
 
-            entity.Property(x => x.IsForMale)
-                .HasDefaultValue(true);
-
-            entity.Property(x => x.IsForFemale)
-                .HasDefaultValue(true);
-
             entity.Property(x => x.IsForNewborn)
                 .HasDefaultValue(false);
 

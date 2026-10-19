@@ -8,7 +8,9 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -106,6 +108,14 @@ public sealed class FinanceReceivableService
             }
         }
 
+        var benefitOwnerIds = pagedEntities.Where(x => x.BenefitOwnerId.HasValue).Select(x => x.BenefitOwnerId!.Value).Distinct().ToList();
+        var employeeDict = benefitOwnerIds.Count > 0
+            ? await _dbContext.MstEmployees.AsNoTracking()
+                .Where(e => !e.IsDelete && benefitOwnerIds.Contains(e.Id))
+                .Select(e => new { e.Id, e.FullName, e.EmployeeNumber })
+                .ToDictionaryAsync(e => e.Id, e => new { e.FullName, e.EmployeeNumber }, cancellationToken)
+            : [];
+
         var invoiceIds = pagedEntities.Where(x => x.InvoiceId.HasValue).Select(x => x.InvoiceId!.Value).Distinct().ToList();
         var invoiceNumbers = invoiceIds.Count > 0
             ? await _dbContext.BilInvoices.AsNoTracking()
@@ -121,6 +131,18 @@ public sealed class FinanceReceivableService
                 res.DebtorName = debtorName;
                 res.CompanyName = debtorName;
                 res.DebtorDisplayName = debtorName;
+            }
+            if (x.BenefitOwnerId.HasValue && employeeDict.TryGetValue(x.BenefitOwnerId.Value, out var empInfo))
+            {
+                res.BenefitOwnerName = empInfo.FullName;
+                res.BenefitOwnerEmployeeNumber = empInfo.EmployeeNumber;
+                if (string.IsNullOrWhiteSpace(res.DebtorName))
+                {
+                    res.DebtorName = empInfo.FullName;
+                    res.CompanyName = "Internal RS";
+                    res.DebtorDisplayName = $"{empInfo.FullName} ({empInfo.EmployeeNumber})";
+                    res.DebtorDisplayCategory = "Pegawai RS (Benefit)";
+                }
             }
             if (x.InvoiceId.HasValue && invoiceNumbers.TryGetValue(x.InvoiceId.Value, out var invNum))
             {
@@ -178,6 +200,49 @@ public sealed class FinanceReceivableService
                 }
             }
         }
+
+        string? benefitOwnerName = null;
+        string? benefitOwnerEmpNo = null;
+        if (receivable.BenefitOwnerId.HasValue)
+        {
+            var emp = await _dbContext.MstEmployees.AsNoTracking()
+                .Where(e => !e.IsDelete && e.Id == receivable.BenefitOwnerId.Value)
+                .Select(e => new { e.FullName, e.EmployeeNumber })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (emp != null)
+            {
+                benefitOwnerName = emp.FullName;
+                benefitOwnerEmpNo = emp.EmployeeNumber;
+                debtorDisplayName = $"{emp.FullName} ({emp.EmployeeNumber})";
+                debtorDisplayCategory = "Pegawai RS (Benefit)";
+                resReceivable.DebtorName = emp.FullName;
+                resReceivable.CompanyName = "Internal RS";
+                resReceivable.BenefitOwnerName = emp.FullName;
+                resReceivable.BenefitOwnerEmployeeNumber = emp.EmployeeNumber;
+            }
+        }
+
+        var patientIds = receivable.Items.Where(x => x.PatientId.HasValue).Select(x => x.PatientId!.Value).Distinct().ToList();
+        var patientsDict = patientIds.Count > 0
+            ? await _dbContext.MstPatients.AsNoTracking()
+                .Where(p => !p.IsDelete && patientIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.FullName, p.MedicalRecordNumber })
+                .ToDictionaryAsync(p => p.Id, p => new { p.FullName, p.MedicalRecordNumber }, cancellationToken)
+            : [];
+
+        var firstPatientId = receivable.Items.FirstOrDefault(x => x.PatientId.HasValue)?.PatientId;
+        string? resolvedPatientName = null;
+        string? resolvedPatientMrn = null;
+        if (firstPatientId.HasValue && patientsDict.TryGetValue(firstPatientId.Value, out var patientInfo))
+        {
+            resolvedPatientName = patientInfo.FullName;
+            resolvedPatientMrn = patientInfo.MedicalRecordNumber;
+            resReceivable.PatientId = firstPatientId;
+            resReceivable.PatientName = resolvedPatientName;
+            resReceivable.PatientMedicalRecordNumber = resolvedPatientMrn;
+        }
+        resReceivable.BenefitRelationship = receivable.BenefitRelationship;
+
         resReceivable.DebtorDisplayName = debtorDisplayName;
         resReceivable.DebtorDisplayCategory = debtorDisplayCategory;
 
@@ -227,9 +292,32 @@ public sealed class FinanceReceivableService
             InvoiceNumber = resolvedInvoiceNumber,
             InvoiceServiceType = invoiceServiceType,
             InvoiceDate = invoiceDate,
-            Items = receivable.Items.Select(x => new ReceivableItemResponse
+            BenefitOwnerName = benefitOwnerName,
+            BenefitOwnerEmployeeNumber = benefitOwnerEmpNo,
+            BenefitRelationship = receivable.BenefitRelationship,
+            PatientId = firstPatientId,
+            PatientName = resolvedPatientName,
+            PatientMedicalRecordNumber = resolvedPatientMrn,
+            Items = receivable.Items.Select(x =>
             {
-                Id = x.Id, EncounterId = x.EncounterId, InvoiceId = x.InvoiceId, Description = x.Description, Amount = x.Amount
+                string? pName = null;
+                string? pMrn = null;
+                if (x.PatientId.HasValue && patientsDict.TryGetValue(x.PatientId.Value, out var pi))
+                {
+                    pName = pi.FullName;
+                    pMrn = pi.MedicalRecordNumber;
+                }
+                return new ReceivableItemResponse
+                {
+                    Id = x.Id,
+                    EncounterId = x.EncounterId,
+                    InvoiceId = x.InvoiceId,
+                    PatientId = x.PatientId,
+                    PatientName = pName,
+                    PatientMedicalRecordNumber = pMrn,
+                    Description = x.Description,
+                    Amount = x.Amount
+                };
             }).ToList(),
             Documents = receivable.Documents.Select(x => new ReceivableDocumentResponse
             {
@@ -438,6 +526,8 @@ public sealed class FinanceReceivableService
         InvoiceId = x.InvoiceId,
         DebtorType = x.DebtorType,
         DebtorReferenceId = x.DebtorReferenceId,
+        BenefitOwnerId = x.BenefitOwnerId,
+        BenefitRelationship = x.BenefitRelationship,
         OriginalAmount = x.OriginalAmount,
         OutstandingAmount = x.OutstandingAmount,
         AllocatedAmount = x.AllocatedAmount,

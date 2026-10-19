@@ -77,6 +77,18 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.Infrastructure
 
         private const string CastPostgres = "::";
 
+        // Dua CHECK constraint modul Finance pada Integration 0c6e3145 memakai operator regex
+        // PostgreSQL (~) yang tidak dikenal SQLite, sehingga EnsureCreated gagal untuk seluruh uji
+        // project ini (BE-PAT-MIG-003, rekonsiliasi baseline). Hanya keduanya — disebut namanya —
+        // yang dilepas dari model uji SQLite; tabel Patient Management tidak memakainya. Constraint
+        // regex lain yang muncul kelak sengaja tetap menggagalkan EnsureCreated, supaya tidak ada
+        // validasi model yang hilang diam-diam.
+        private static readonly HashSet<string> CheckConstraintRegexFinance =
+        [
+            "CK_MstPayrollDeductionCutover_Period",
+            "CK_FinPayrollDeductionBatch_Period"
+        ];
+
         public override void Customize(ModelBuilder modelBuilder, DbContext context)
         {
             base.Customize(modelBuilder, context);
@@ -84,7 +96,7 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.Infrastructure
             foreach (var entitas in modelBuilder.Model.GetEntityTypes())
             {
                 var bermasalah = entitas.GetDeclaredCheckConstraints()
-                    .Where(x => KhasPostgres(x.Sql))
+                    .Where(x => KhasPostgres(x.Sql) || CheckConstraintRegexFinance.Contains(x.ModelName))
                     .Select(x => x.ModelName)
                     .ToList();
 

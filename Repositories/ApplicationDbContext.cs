@@ -589,8 +589,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstTariff> MstTariffs { get; set; }
         public DbSet<MstRoom> MstRooms { get; set; }
         public DbSet<MstBed> MstBeds { get; set; }
+
+        /// <summary>Catatan run impor susunan denah (<c>BE-RWI-237</c>, kamus data 22.2.3, migration <c>M-DNH-3</c>).</summary>
+        public DbSet<MstFloorPlanImportRun> MstFloorPlanImportRuns { get; set; }
         public DbSet<MstMembershipTier> MstMembershipTiers { get; set; }
         public DbSet<MstPatient> MstPatients { get; set; }
+        public DbSet<PatNewbornBirthSequence> PatNewbornBirthSequences { get; set; }
         public DbSet<MstPatientMembership> MstPatientMemberships { get; set; }
         public DbSet<PatMembershipStatusHistory> PatMembershipStatusHistories { get; set; }
         public DbSet<MstPatientIdentityDocument> MstPatientIdentityDocuments { get; set; }
@@ -621,6 +625,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilNumberSeries> BilNumberSeries { get; set; }
         public DbSet<BilDepositAccount> BilDepositAccounts { get; set; }
         public DbSet<BilDepositMovement> BilDepositMovements { get; set; }
+        public DbSet<BilDepositPaymentOrder> BilDepositPaymentOrders { get; set; }
+        public DbSet<BilDepositOrderPayment> BilDepositOrderPayments { get; set; }
+        public DbSet<BilMembershipFeeCharge> BilMembershipFeeCharges { get; set; }
+        public DbSet<BilMembershipFeeAllocation> BilMembershipFeeAllocations { get; set; }
         public DbSet<BilSettlement> BilSettlements { get; set; }
         public DbSet<BilTender> BilTenders { get; set; }
         public DbSet<BilPaymentAllocation> BilPaymentAllocations { get; set; }
@@ -891,9 +899,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpClearanceMark> InpClearanceMarks { get; set; }
         public DbSet<InpFinancialClearance> InpFinancialClearances { get; set; }
         public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
+
+        /// <summary>Riwayat append-only High/Low Dependency (<c>BE-RWI-234</c>, kamus data 22.2.5, migration <c>M-DNH-2</c>).</summary>
+        public DbSet<InpCareDependencyHistory> InpCareDependencyHistories { get; set; }
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
         public DbSet<InpIntegrationOutbox> InpIntegrationOutboxes { get; set; }
         public DbSet<BilInvoiceEncounterLink> BilInvoiceEncounterLinks { get; set; }
+        public DbSet<BilSupersededItemReview> BilSupersededItemReviews { get; set; }
 
         /// <summary>Permintaan admisi dari kamar pulih (<c>BE-RWI-181</c>, kamus data 19.8, migration <c>E6</c>).</summary>
         public DbSet<InpAdmissionReferral> InpAdmissionReferrals { get; set; }
@@ -994,6 +1006,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxPrescriptionFinalCheck> TrxPrescriptionFinalChecks { get; set; }
         public DbSet<TrxPrescriptionFinalCheckItem> TrxPrescriptionFinalCheckItems { get; set; }
         public DbSet<TrxPrescriptionDrugSubstitution> TrxPrescriptionDrugSubstitutions { get; set; }
+
+        /// <summary>Penahanan stok milik resep — <c>PHA-DEC-066</c>.</summary>
+        public DbSet<PhmPrescriptionStockReservation> PhmPrescriptionStockReservations { get; set; }
         public DbSet<TrxPrescriptionClarification> TrxPrescriptionClarifications { get; set; }
         public DbSet<MstDiagnosisDrugRecommendation> MstDiagnosisDrugRecommendations { get; set; }
         public DbSet<MstDiagnosisEducationRecommendation> MstDiagnosisEducationRecommendations { get; set; }
@@ -1127,6 +1142,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgDuplicateEpisodeOverride> EmgDuplicateEpisodeOverrides { get; set; }
         public DbSet<EmgAdmissionRequest> EmgAdmissionRequests { get; set; }
         public DbSet<EmgAdmissionRequestEvent> EmgAdmissionRequestEvents { get; set; }
+        public DbSet<EmgPreArrivalReservation> EmgPreArrivalReservations { get; set; }
         #endregion
 
         #endregion
@@ -1257,6 +1273,12 @@ namespace QuilvianSystemBackend.Repositories
             if (ChangeTracker.Entries().Any(x => (x.Entity is InpBedLifecycleEvent || x.Entity is InpBedOperationReceipt) &&
                 (x.State == EntityState.Modified || x.State == EntityState.Deleted)))
                 throw new InvalidOperationException("Lifecycle event dan operation receipt bersifat append-only.");
+            // INV-DNH-06: riwayat High/Low Dependency tidak pernah ditimpa maupun dihapus (BE-RWI-234).
+            if (ChangeTracker.Entries<InpCareDependencyHistory>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
+                throw new InvalidOperationException("Riwayat High/Low Dependency bersifat append-only.");
+            // Catatan run impor denah tidak diubah setelah dibuat (BE-RWI-237, kamus data 22.2.3).
+            if (ChangeTracker.Entries<MstFloorPlanImportRun>().Any(x => x.State == EntityState.Modified || x.State == EntityState.Deleted))
+                throw new InvalidOperationException("Catatan run impor denah bersifat append-only.");
             foreach (var entry in ChangeTracker.Entries<InpEpisode>().Where(x => x.State == EntityState.Modified))
                 entry.Entity.Version = entry.Property(x => x.Version).OriginalValue + 1;
         }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Repositories;
@@ -36,11 +37,49 @@ namespace QuilvianSystemBackend.Hubs
 
         private readonly ApplicationDbContext _dbContext;
         private readonly AccessPermissionService _accessPermissionService;
+        private readonly InpBedAccessService _bedAccess;
 
-        public QueueHub(ApplicationDbContext dbContext, AccessPermissionService accessPermissionService)
+        public QueueHub(
+            ApplicationDbContext dbContext,
+            AccessPermissionService accessPermissionService,
+            InpBedAccessService bedAccess)
         {
             _dbContext = dbContext;
             _accessPermissionService = accessPermissionService;
+            _bedAccess = bedAccess;
+        }
+
+        public async Task JoinInpatientBedSelection(Guid serviceUnitId)
+        {
+            if (serviceUnitId == Guid.Empty)
+            {
+                throw new HubException("Unit pelayanan tidak valid.");
+            }
+
+            if (!await _bedAccess.CanSubscribeToBedSelectionUnitAsync(serviceUnitId, Context.ConnectionAborted))
+            {
+                throw new HubException("Anda tidak memiliki akses ke unit pelayanan ini.");
+            }
+
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                InpBedRealtimeService.BuildSelectionGroupName(serviceUnitId),
+                Context.ConnectionAborted
+            );
+        }
+
+        public async Task LeaveInpatientBedSelection(Guid serviceUnitId)
+        {
+            if (serviceUnitId == Guid.Empty)
+            {
+                return;
+            }
+
+            await Groups.RemoveFromGroupAsync(
+                Context.ConnectionId,
+                InpBedRealtimeService.BuildSelectionGroupName(serviceUnitId),
+                Context.ConnectionAborted
+            );
         }
 
         /// <summary>

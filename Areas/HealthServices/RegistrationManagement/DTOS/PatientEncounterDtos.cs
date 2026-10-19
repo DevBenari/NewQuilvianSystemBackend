@@ -233,6 +233,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public Guid? CompanyGuarantorId { get; set; }
 
+        public Guid? InheritedFromPaymentSourceId { get; set; }
+
+        public DateTime? InheritedFromPaymentSourceAt { get; set; }
+
         public string? CompanyGuarantorCodeSnapshot { get; set; }
 
         public string? EmployeeNumberSnapshot { get; set; }
@@ -263,6 +267,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string PatientName { get; set; } = string.Empty;
 
         public string MedicalRecordNumber { get; set; } = string.Empty;
+
+        public EncounterType EncounterType { get; set; }
+
+        public string EncounterTypeName { get; set; } = string.Empty;
 
         public Guid ServiceUnitId { get; set; }
 
@@ -455,6 +463,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// RWI-ENC-PAYER-001 1.1.0 (KSK-DEC-013).
         /// </summary>
         public Guid? PatientCompanyGuarantorId { get; set; }
+
+        /// <summary>
+        /// Sumber pembayaran encounter ibu yang disalin sebagai snapshot encounter bayi.
+        /// Tidak boleh digabung dengan pilihan penjamin manual.
+        /// </summary>
+        public Guid? InheritedPaymentSourceId { get; set; }
+
+        /// <summary>
+        /// Versi sumber pembayaran ibu yang terakhir dilihat pengguna. Backend menolak bila
+        /// sumber sudah berubah agar penjamin bayi tidak dibuat dari data basi.
+        /// </summary>
+        public DateTime? InheritedPaymentSourceExpectedAt { get; set; }
 
         public Guid? KioskScanSessionId { get; set; }
 
