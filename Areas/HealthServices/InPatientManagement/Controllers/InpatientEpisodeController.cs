@@ -89,6 +89,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         }
 
         /// <summary>
+        /// Kandidat ibu untuk admisi bayi baru lahir. Sumbernya kasus operasi persalinan yang
+        /// sedang berlangsung atau selesai; lokasi ibu saat ini boleh bukan kamar operasi.
+        /// </summary>
+        [HttpGet("newborn-mother-candidates")]
+        [ProducesResponseType(typeof(ApiResponse<NewbornMotherCandidatePagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat kandidat ibu persalinan untuk admisi bayi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetNewbornMotherCandidates(
+            [FromQuery] NewbornMotherCandidateQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.GetNewbornMotherCandidatesAsync(query, cancellationToken);
+            return Ok(ApiResponse<NewbornMotherCandidatePagedResult>.Ok(
+                result,
+                "Daftar ibu persalinan berhasil diambil."));
+        }
+
+        /// <summary>
         /// Memeriksa apakah pasien boleh dibukakan admisi baru, sebelum petugas mengisi
         /// langkah-langkah admisi. Ditambahkan pada BE-RWI-230 (ISSUE-EPS-010).
         /// </summary>
@@ -414,6 +432,88 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 });
 
             return await OkWithDetailAsync(id, result.Message, result.Warnings, cancellationToken);
+        }
+
+        // =====================================================================
+        // BE-RWI-234 — High/Low Dependency
+        // =====================================================================
+
+        /// <summary>Mencatat atau mengubah tingkat ketergantungan pasien (High/Low Dependency).</summary>
+        /// <remarks>
+        /// Hak <c>SetCareDependency</c> menjawab "boleh memakai fitur ini". Siapa yang boleh mencatat
+        /// pada episode tertentu diperiksa <c>GUARD-DNH-02</c> di dalam service: catatan awal selagi
+        /// <c>Draft</c>, lalu hanya perawat penanggung jawab aktif atau DPJP aktif episode itu.
+        ///
+        /// <para>
+        /// Payload logger sengaja tidak memuat catatan HD/LD; kolom itu bertanda sensitif.
+        /// </para>
+        /// </remarks>
+        [HttpPatch("{id:guid}/care-dependency")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("SetCareDependency", "Set Inpatient Care Dependency", Description = "Mencatat tingkat ketergantungan pasien rawat inap (High/Low Dependency)", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("InpatientEpisode", "SetCareDependency")]
+        public async Task<IActionResult> SetCareDependency(
+            Guid id,
+            [FromBody] SetCareDependencyRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.SetCareDependencyAsync(
+                id,
+                request,
+                User.GetUserId(),
+                User.GetEmployeeId(),
+                User.GetDoctorId(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientEpisode.SetCareDependency",
+                "Mencatat tingkat ketergantungan pasien rawat inap.",
+                new
+                {
+                    EntityId = id,
+                    Controller = "InpatientEpisode",
+                    Action = "SetCareDependency",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            return await OkWithDetailAsync(id, result.Message, result.Warnings, cancellationToken);
+        }
+
+        /// <summary>Riwayat perubahan High/Low Dependency, terbaru dulu.</summary>
+        [HttpGet("{id:guid}/care-dependency-history")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<CareDependencyHistoryResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat riwayat tingkat ketergantungan pasien rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetCareDependencyHistory(
+            Guid id,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.GetCareDependencyHistoryAsync(id, pageNumber, pageSize, cancellationToken);
+
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Episode rawat inap tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<PagedResult<CareDependencyHistoryResponse>>.Ok(
+                result,
+                "Riwayat tingkat ketergantungan berhasil diambil."));
         }
 
         // =====================================================================

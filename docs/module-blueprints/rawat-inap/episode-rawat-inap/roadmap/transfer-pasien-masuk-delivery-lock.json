@@ -1,0 +1,91 @@
+{
+  "planning_id": "TRF-DEL-20261016-01",
+  "blueprint_id": "RWI-BP-001",
+  "scope": "episode-rawat-inap/transfer-pasien-masuk",
+  "revision": 1,
+  "captured_on": "2026-10-16",
+  "timezone": "Asia/Jakarta",
+  "status": "APPROVED_DESIGN_PLANNED",
+  "approved_by": "Muhammad Hamzah (pengguna sesi)",
+  "approved_at": "2026-10-16",
+  "approval_evidence": {
+    "statement": "iya lakukan /plan-module-delivery",
+    "command": "/plan-module-delivery",
+    "context": "Persetujuan desain blueprint transfer pasien masuk (IGD/Rajal ke Ranap) dan penugasan PPJA",
+    "contract_target": "0.14.0",
+    "task_execution": "Setiap task dieksekusi tepat 1 task per pemanggilan via build-module-backend / build-module-frontend"
+  },
+  "implementation_lock": true,
+  "contract_version": "0.14.0",
+  "id_allocation": {
+    "scanned_on": "2026-10-16",
+    "highest_used": {
+      "BE-RWI": 240,
+      "FE-RWI": 253
+    },
+    "allocated": {
+      "BE-RWI": "241-243",
+      "FE-RWI": "254-256"
+    },
+    "next_free": {
+      "BE-RWI": 244,
+      "FE-RWI": 257
+    }
+  },
+  "tasks": [
+    {
+      "id": "BE-RWI-241",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": ["FR-TRF-001"],
+      "acceptance": ["TRF-AC-001", "TRF-AC-002"],
+      "service": "InpAdmissionTransferService"
+    },
+    {
+      "id": "BE-RWI-242",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": ["FR-TRF-003", "FR-TRF-004", "FR-TRF-005"],
+      "acceptance": ["TRF-AC-003", "TRF-AC-004", "TRF-AC-005"],
+      "service": "CliTransferHandoverService"
+    },
+    {
+      "id": "BE-RWI-243",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": ["FR-TRF-007"],
+      "acceptance": ["TRF-AC-006", "TRF-AC-007"],
+      "service": "InpatientEpisodeDetailService"
+    },
+    {
+      "id": "FE-RWI-254",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": ["BE-RWI-241", "BE-RWI-243"],
+      "fr": ["FR-TRF-002", "FR-TRF-007"],
+      "acceptance": ["TRF-AC-008", "TRF-AC-009"],
+      "view": "InpatientEpisodeDetailView"
+    },
+    {
+      "id": "FE-RWI-255",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": ["FE-RWI-254", "BE-RWI-242"],
+      "fr": ["FR-TRF-003", "FR-TRF-004", "FR-TRF-005"],
+      "acceptance": ["TRF-AC-010", "TRF-AC-011", "TRF-AC-012"],
+      "feature": "TransferHandoverDrawer"
+    },
+    {
+      "id": "FE-RWI-256",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": ["FE-RWI-254"],
+      "fr": ["FR-TRF-006"],
+      "acceptance": ["TRF-AC-013", "TRF-AC-014"],
+      "view": "AdmissionWorkspaceClient"
+    }
+  ]
+}

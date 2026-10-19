@@ -14,9 +14,7 @@ Tanpa API/database dan tanpa base component Quilvian. Struktur kode bebas.
   kamar, lalu jumlah tempat tidurnya dicocokkan dengan data resmi RS MMC di SIRS Kemenkes.
 - Format nama mengikuti pola `VIP 304`, yaitu **`<Kelas> <Nomor>`**. Contoh: `Kelas II 329`,
   `Kelas I 330`, `Kelas III 505`.
-- Kelas yang sudah ada **tidak diganti**: VIP, SVIP, Suite, Premium, Grand Royal, VIP Deluxe, dan
-  VIP Superior. Di luar kamar "K.", hanya format nama `VIP Isolasi K. 319` yang berubah menjadi
-  `VIP Isolasi 319`, sedangkan kelasnya tetap.
+- Kelas yang sudah ada **tidak diganti** di database (`RWI-DEC-326`). Di denah Lantai 8, kamar 801–810 dialihkan ke kelas resmi **VVIP** (`CLS-147`, ID: `2dc62399-4451-49f1-80a7-31374636e78e`), 811 ke **LUXURY**, dan 812–813 ke **SUITE**, sehingga kelas baru **Premium tidak ditambahkan** ke database master `MstPatientClass` demi menjaga keutuhan 18.513 tarif `MstTariff` per kelas. Di luar kamar "K.", format nama `VIP Isolasi K. 319` disederhanakan menjadi `VIP Isolasi 319` / `Isolasi 319`.
 - Perubahan cukup di folder `_data` ditambah sedikit tampilan. ID kamar tidak berubah, jadi kunci
   data okupansi tetap berlaku.
 

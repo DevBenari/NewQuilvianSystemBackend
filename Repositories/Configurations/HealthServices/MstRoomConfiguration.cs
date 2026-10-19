@@ -9,7 +9,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
     {
         public void Configure(EntityTypeBuilder<MstRoom> entity)
         {
-            entity.ToTable("MstRoom", "public");
+            // BE-RWI-232 (M-DNH-1): arah wing 1–8 dan kunci denah selalu bersama kode lantai.
+            entity.ToTable("MstRoom", "public", t =>
+            {
+                t.HasCheckConstraint("CK_MstRoom_WingDirection", "\"WingDirection\" IS NULL OR \"WingDirection\" BETWEEN 1 AND 8");
+                t.HasCheckConstraint("CK_MstRoom_FloorPlanRoomKey_Floor", "\"FloorPlanRoomKey\" IS NULL OR \"FloorCode\" IS NOT NULL");
+            });
 
             entity.HasKey(x => x.Id);
 
@@ -41,12 +46,6 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.Capacity)
                 .HasDefaultValue(1);
 
-            entity.Property(x => x.IsForMale)
-                .HasDefaultValue(true);
-
-            entity.Property(x => x.IsForFemale)
-                .HasDefaultValue(true);
-
             entity.Property(x => x.IsForNewborn)
                 .HasDefaultValue(false);
 
@@ -70,6 +69,15 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true);
+
+            entity.Property(x => x.FloorCode)
+                .HasMaxLength(10);
+
+            entity.Property(x => x.WingDirection)
+                .HasConversion<int>();
+
+            entity.Property(x => x.FloorPlanRoomKey)
+                .HasMaxLength(100);
 
             entity.Property(x => x.CreateDateTime)
                 .HasColumnType("timestamp with time zone")
@@ -111,6 +119,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.ServiceUnitId);
 
             entity.HasIndex(x => x.PatientClassId);
+
+            entity.HasIndex(x => x.FloorCode);
+
+            // INV-DNH-01: satu kunci denah menunjuk paling banyak satu kamar yang belum dihapus.
+            entity.HasIndex(x => x.FloorPlanRoomKey)
+                .IsUnique()
+                .HasFilter("\"FloorPlanRoomKey\" IS NOT NULL AND \"IsDelete\" = false");
 
             entity.HasIndex(x => new
             {

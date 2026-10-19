@@ -94,7 +94,7 @@ Bila Mas Hamzah meminta agent Claude mengerjakan permintaan ini, agent tersebut:
 | 2 — _Tolak_ beralasan | | |
 | 3 — `UnitAssignments` petugas admisi | | |
 | 4 — nilai KELAS II | | |
-| 5 — urutan antrean CITO → member prioritas → waktu (usulan) | | |
+| 5 — urutan antrean CITO → member prioritas → waktu (usulan) | **Disetujui via IGD-REQ-004** | Disetujui 19 Oktober 2026; rujukan `RWI-DEC-338` s.d. `341` pada berkas `IGD-REQ-004` |
 
 ---
 

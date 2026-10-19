@@ -72,8 +72,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                     new() { Value = "serviceUnitName", Label = "Nama service unit" },
                     new() { Value = "patientClassName", Label = "Kelas pasien" },
                     new() { Value = "bedStatus", Label = "Status bed" },
-                    new() { Value = "isForMale", Label = "Untuk laki-laki" },
-                    new() { Value = "isForFemale", Label = "Untuk perempuan" },
                     new() { Value = "isForNewborn", Label = "Untuk bayi" },
                     new() { Value = "isIsolationBed", Label = "Bed isolasi" },
                     new() { Value = "isIntensiveCareBed", Label = "Intensive care" },
@@ -124,8 +122,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IntensiveCareBed = beds.Count(x => x.IsIntensiveCareBed),
                 OdcBed = beds.Count(x => x.IsOdcBed),
                 NewbornBed = beds.Count(x => x.IsForNewborn),
-                MaleBed = beds.Count(x => x.IsForMale),
-                FemaleBed = beds.Count(x => x.IsForFemale)
             };
 
             return Ok(ApiResponse<BedSummaryResponse>.Ok(
@@ -147,8 +143,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] Guid? patientClassId,
             [FromQuery] bool? isActive,
             [FromQuery] BedStatus? bedStatus,
-            [FromQuery] bool? isForMale,
-            [FromQuery] bool? isForFemale,
             [FromQuery] bool? isForNewborn,
             [FromQuery] bool? isIsolationBed,
             [FromQuery] bool? isIntensiveCareBed,
@@ -182,8 +176,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 patientClassId,
                 isActive,
                 bedStatus,
-                isForMale,
-                isForFemale,
                 isForNewborn,
                 isIsolationBed,
                 isIntensiveCareBed,
@@ -249,8 +241,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 patientClassId,
                 activeOnly ?? onlyActive,
                 bedStatus,
-                null,
-                null,
                 null,
                 null,
                 null,
@@ -432,8 +422,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             Guid? patientClassId,
             bool? isActive,
             BedStatus? bedStatus,
-            bool? isForMale,
-            bool? isForFemale,
             bool? isForNewborn,
             bool? isIsolationBed,
             bool? isIntensiveCareBed,
@@ -455,12 +443,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
             if (bedStatus.HasValue)
                 query = query.Where(x => x.BedStatus == bedStatus.Value);
-
-            if (isForMale.HasValue)
-                query = query.Where(x => x.IsForMale == isForMale.Value);
-
-            if (isForFemale.HasValue)
-                query = query.Where(x => x.IsForFemale == isForFemale.Value);
 
             if (isForNewborn.HasValue)
                 query = query.Where(x => x.IsForNewborn == isForNewborn.Value);
@@ -514,8 +496,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 "serviceunitname" => isDesc ? query.OrderByDescending(x => x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitName : string.Empty) : query.OrderBy(x => x.Room != null && x.Room.ServiceUnit != null ? x.Room.ServiceUnit.ServiceUnitName : string.Empty),
                 "patientclassname" => isDesc ? query.OrderByDescending(x => x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassName : string.Empty) : query.OrderBy(x => x.Room != null && x.Room.PatientClass != null ? x.Room.PatientClass.PatientClassName : string.Empty),
                 "bedstatus" => isDesc ? query.OrderByDescending(x => x.BedStatus).ThenBy(x => x.BedName) : query.OrderBy(x => x.BedStatus).ThenBy(x => x.BedName),
-                "isformale" => isDesc ? query.OrderByDescending(x => x.IsForMale).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsForMale).ThenBy(x => x.BedName),
-                "isforfemale" => isDesc ? query.OrderByDescending(x => x.IsForFemale).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsForFemale).ThenBy(x => x.BedName),
                 "isfornewborn" => isDesc ? query.OrderByDescending(x => x.IsForNewborn).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsForNewborn).ThenBy(x => x.BedName),
                 "isisolationbed" => isDesc ? query.OrderByDescending(x => x.IsIsolationBed).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsIsolationBed).ThenBy(x => x.BedName),
                 "isintensivecarebed" => isDesc ? query.OrderByDescending(x => x.IsIntensiveCareBed).ThenBy(x => x.BedName) : query.OrderBy(x => x.IsIntensiveCareBed).ThenBy(x => x.BedName),
@@ -568,8 +548,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 BedNumber = entity.BedNumber,
                 BedStatus = entity.BedStatus,
                 BedStatusName = BuildEnumLabel(entity.BedStatus),
-                IsForMale = entity.IsForMale,
-                IsForFemale = entity.IsForFemale,
                 IsForNewborn = entity.IsForNewborn,
                 IsIsolationBed = entity.IsIsolationBed,
                 IsIntensiveCareBed = entity.IsIntensiveCareBed,
@@ -602,8 +580,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 BedNumber = entity.BedNumber,
                 BedStatus = entity.BedStatus,
                 BedStatusName = BuildEnumLabel(entity.BedStatus),
-                IsForMale = entity.IsForMale,
-                IsForFemale = entity.IsForFemale,
                 IsForNewborn = entity.IsForNewborn,
                 IsIsolationBed = entity.IsIsolationBed,
                 IsIntensiveCareBed = entity.IsIntensiveCareBed,
@@ -642,8 +618,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 BedNumber = entity.BedNumber,
                 BedStatus = entity.BedStatus,
                 BedStatusName = BuildEnumLabel(entity.BedStatus),
-                IsForMale = entity.IsForMale,
-                IsForFemale = entity.IsForFemale,
                 IsForNewborn = entity.IsForNewborn,
                 IsIsolationBed = entity.IsIsolationBed,
                 IsIntensiveCareBed = entity.IsIntensiveCareBed,
@@ -787,8 +761,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 new() { Name = "bedName", Label = "Nama Bed", Section = "Basic", InputType = "text", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", MaxLength = 100, Example = "Bed 101-A", SortOrder = 3 },
                 new() { Name = "bedNumber", Label = "Nomor Bed", Section = "Basic", InputType = "text", MaxLength = 50, Example = "101-A", SortOrder = 4 },
                 new() { Name = "bedStatus", Label = "Status Bed", Section = "Status", InputType = "select", IsRequiredOnCreate = true, IsRequiredOnUpdate = true, RequiredType = "Required", OptionsSource = "bedStatusOptions", SortOrder = 5 },
-                new() { Name = "isForMale", Label = "Untuk Laki-laki", Section = "Rule", InputType = "switch", SortOrder = 6 },
-                new() { Name = "isForFemale", Label = "Untuk Perempuan", Section = "Rule", InputType = "switch", SortOrder = 7 },
                 new() { Name = "isForNewborn", Label = "Untuk Bayi Baru Lahir", Section = "Rule", InputType = "switch", SortOrder = 8 },
                 new() { Name = "isIsolationBed", Label = "Bed Isolasi", Section = "Rule", InputType = "switch", SortOrder = 9 },
                 new() { Name = "isIntensiveCareBed", Label = "Intensive Care", Section = "Rule", InputType = "switch", SortOrder = 10 },

@@ -1,0 +1,85 @@
+{
+  "planning_id": "RTB-DEL-20261017-01",
+  "revision": 1,
+  "status": "APPROVED_DESIGN_PLANNED",
+  "blueprint_id": "RWI-BP-001",
+  "submodule": "episode-rawat-inap",
+  "contract_version": "0.16.0",
+  "approved_by": "Muhammad Hamzah",
+  "approved_at": "2026-10-17",
+  "approval_decision": "RWI-DEC-337",
+  "approval_evidence": "Pengguna meminta: oke lanjutkan plan-module-delivery",
+  "implementation_lock": true,
+  "production_activation_gate": "RWI-OQ-151",
+  "source_snapshot": {
+    "backend_branch": "MHamzah",
+    "backend_sha": "d420c2fbe094a2d70776c44955233bce9c87bda8",
+    "frontend_branch": "HamzahV2",
+    "frontend_sha": "0accf387138a3fcc1ff40fbb5bdeb960076b4d59",
+    "frontend_worktree_guard": "Preserve all pre-existing user modifications; especially floor-plan-selection.jsx and related inpatient floor-plan/transfer files."
+  },
+  "id_allocation": {
+    "backend_highest_allocated_before": "BE-RWI-249",
+    "backend_allocated": ["BE-RWI-250", "BE-RWI-251"],
+    "backend_next_free": "BE-RWI-252",
+    "frontend_highest_allocated_before": "FE-RWI-264",
+    "frontend_allocated": ["FE-RWI-265", "FE-RWI-266", "FE-RWI-267"],
+    "frontend_next_free": "FE-RWI-268"
+  },
+  "input_hashes_sha256": {
+    "../../00-interview-decisions.md": "1c37612becbb793ec6a91b5ec0ebab6a774f7d79b3f1376146bb4cc54499190e",
+    "../../01-existing-capability-map.md": "12ace628f329b74a503104fcc6be43fef4742a94d5b2e81a1694aaa50b85cc62",
+    "../../02-module-map.md": "a135c59c4b55ea97e240d463511a3e2a41ba22051e398ee4e5bb6d1c0b8b651a",
+    "../../evidence/02-requirement-completeness-gate.md": "d1ddeeda87aa2888397deecada8027296dbd3734669ae00ca210fb044431ae5b",
+    "../../evidence/realtime-bed-selection-impact-scan-20261017.md": "58c318cc5513fe91793f564f46c74f373dfeca011f6b118cc9687fb84b397d28",
+    "../02-backend-architecture.md": "c09da371e211dad14a319e434ed70fa2a09031e3f83fcd39320b010c275e99fa",
+    "../03-frontend-architecture.md": "043062da08bdf22d0fc129b5f90d691821393dbf9a6561720858cae37e5f0f84",
+    "../04-prd-to-mvp.md": "e3dc084daa0bb232d0ae229e8dee086ae97345f4ca2ea8189c184b6f961e8515",
+    "../data/data-dictionary.md": "10e498c55eac6e9ded2419059eb5c80708e7f4df70a0fc754c817984806290fb",
+    "../contracts/api-contract.md": "99d835dd8b55a2ebceae2ad7e6dc1a27f5faeb10eeee80d2b24c7bdba4801989",
+    "../contracts/state-transition-matrix.md": "3e644053d085c87d83d9bce9602db1c7c2893f2e03f1a4679013454629e6cb3e",
+    "../contracts/validation-matrix.md": "c5d1e40b343cfc28ab372f1ce14f6fc4314057f49c830d0abb404e7358205b67",
+    "../contracts/integration-contract.md": "05f1de80bede84998180cd8191a39d0936c4d951e317aebe148f2ec3b4598771",
+    "../contracts/permission-audit-matrix.md": "9fc9aab72951d9b839088ce874a4f0dd647a15ca5ed3467c76f3655a17c2cd8a",
+    "../testing/acceptance-test-matrix.md": "6e30d19471ef809491fa2eecb3d31a3343cde1c2efe85e06688255eaf43ce4fe",
+    "../flowcharts/00-alur-utama.md": "1dfd7d7bbf3206d191225b30f73740aa41f3f1c2081c28af8f1809447e9fe073",
+    "../flowcharts/21-notifikasi-realtime-pemilihan-bed.md": "3ea19c624b01bdf199daa81aa5641990641495195e44cbdefc6063d66473f9e8"
+  },
+  "tasks": [
+    {
+      "id": "BE-RWI-250",
+      "layer": "backend",
+      "dependencies": [],
+      "requirements": ["FR-RI-202", "FR-RI-203"],
+      "acceptance": ["RWI-AC-472", "RWI-AC-473", "RWI-AC-474"]
+    },
+    {
+      "id": "BE-RWI-251",
+      "layer": "backend",
+      "dependencies": ["BE-RWI-250"],
+      "requirements": ["FR-RI-204", "FR-RI-205", "FR-RI-206", "FR-RI-207"],
+      "acceptance": ["RWI-AC-469", "RWI-AC-470", "RWI-AC-471", "RWI-AC-478", "RWI-AC-479", "RWI-AC-480"]
+    },
+    {
+      "id": "FE-RWI-265",
+      "layer": "frontend",
+      "dependencies": [],
+      "requirements": ["FR-RI-202", "FR-RI-210", "FR-RI-211"],
+      "acceptance": ["RWI-AC-474", "RWI-AC-475", "RWI-AC-476", "RWI-AC-477"]
+    },
+    {
+      "id": "FE-RWI-266",
+      "layer": "frontend",
+      "dependencies": ["FE-RWI-265"],
+      "requirements": ["FR-RI-208", "FR-RI-210", "FR-RI-211"],
+      "acceptance": ["RWI-AC-472", "RWI-AC-474", "RWI-AC-475", "RWI-AC-476", "RWI-AC-477"]
+    },
+    {
+      "id": "FE-RWI-267",
+      "layer": "frontend",
+      "dependencies": ["FE-RWI-266", "BE-RWI-251"],
+      "requirements": ["FR-RI-208", "FR-RI-209"],
+      "acceptance": ["RWI-AC-469", "RWI-AC-471", "RWI-AC-472", "RWI-AC-476"]
+    }
+  ]
+}

@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set pada manifest sub-modul; Bed Management draft, last_changed_in 0.12.0. Riwayat metadata: **`0.11.0`** — bagian 21 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 20, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 18 |
-| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata: **`0.11.0`** — bagian 21. Sebelumnya `0.10.0` — bagian 20; `0.9.0` — bagian 18; `0.8.0` — bagian 2A.1 dan 4.1 |
-| Status | **`draft`** — Bed Management belum disetujui. Riwayat metadata: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Masukan | Decision46, gate1.12/BM-RCG-20261010-01, audit BM-AUD-20261010-01 rev1. Riwayat metadata: `00-interview-decisions.md` revision `6` (149 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
-| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
-| Frontend SHA | Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `dec4fdeff` |
+| `contract_version` | **`0.17.0`** — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (bagian 25, `draft`, `RWI-DEC-338` s.d. `341`, 2026-10-19). Riwayat: `0.16.0` Realtime Pemilihan Bed (`approved_design_planned`); Integrasi Denah approved (`RWI-DEC-324`, `0.13.0`); Bed Management draft (`0.12.0`); `0.11.0` Workspace PPRI |
+| `last_changed_in` | **`0.17.0`** — Prioritas Member & Lencana Tier (bagian 25). Riwayat metadata: `0.16.0` — Realtime Bed (bagian 24); `0.13.0` — Integrasi Denah (bagian 23); `0.12.0` — Bed Management |
+| Status | **`draft`** untuk amandemen Prioritas Member & Lencana Tier (`0.17.0`); **`approved`** untuk Realtime Bed (`0.16.0`), Integrasi Denah (`0.13.0`), dan Workspace PPRI (`0.11.0`) |
+| Masukan | Prioritas Member: decision log rev 60 (`RWI-DEC-338` s.d. `341`, `RWI-AC-481` s.d. `493`), berkas `IGD-REQ-004`. Realtime Bed: decision log rev 54 (`RWI-DEC-333`–`336`). Integrasi Denah: decision 50, DEC-298–323, AC-436–461 |
+| Backend SHA | `24526327` (branch `MHamzah`) |
+| Frontend SHA | `046de515` (branch `HamzahV2`) |
 
 Matriks ini memuat **jalur berhasil dan jalur gagal**. Jalur gagal justru yang paling membuktikan
 aturan bisnis benar-benar ditegakkan.
@@ -751,3 +751,159 @@ Unit/API/PG/UI/UAT hasil target, schema migration applied evidence, master actua
 ### 22.7 Writer admisi transfer IGD — pemeriksaan11 Oktober2026
 
 Turunan BM-AT-419/421/422 dan UAT-704 mencakup POST admission-transfers/admit: field/key hilang ditolak; versi stale tidak membuka episode; kegagalan setelah OpenAdmission dan setelah reserve menggugurkan seluruh transaksi; timeout sesudah commit diikuti retry key sama menghasilkan tepat satu episode, reservasi, disposisi existing, dan receipt. Uji dua request wrapper bersamaan untuk key yang sama serta wrapper melawan placement lain pada bed yang sama. Pastikan direct caller service tetap sah tanpa nested transaction. Helper frontend admitFromTransfer diperbarui sebelum dipakai; tidak menganggap helper yang belum dipanggil sebagai alur UI lulus. Seluruh skenario target ini **NOT_RUN**.
+
+## 23. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061). `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**; `DOMAIN_ARCHITECTURE_NOT_RUN`. Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`.
+
+### 23.1 Coverage seluruh acceptance criteria
+
+Semua test di bawah **rancangan NOT_RUN**, bukan bukti hasil. Fixture kelas, unit, akun, dan pasien adalah data uji samaran.
+
+| Test ID | AC | Epic | Kasus | Jalur berhasil / expected | Jalur gagal / expected | Lapisan | Hasil target |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| DNH-AT-436 | RWI-AC-436 | EPIC DNH-01 | Satu denah | Monitoring, Pilih Bed admisi, transfer, dan Master Bed merender komponen denah yang sama | Kartu bed atau tabel Pemantauan masih dapat dibuka → gagal | FE | NOT_RUN |
+| DNH-AT-437 | RWI-AC-437 | — | Superseded | Tidak diuji; digantikan DNH-AT-452 | — | — | SUPERSEDED |
+| DNH-AT-438 | RWI-AC-438 | — | Superseded | Tidak diuji; digantikan DNH-AT-452 | — | — | SUPERSEDED |
+| DNH-AT-439 | RWI-AC-439 | EPIC DNH-03 | Tanpa penanda jenis kelamin | Respons kamar/bed dan editor tanpa field jenis kelamin | Field `IsForMale`/`IsForFemale` ada di JSON atau form → gagal | API/FE | NOT_RUN |
+| DNH-AT-440 | RWI-AC-440 | EPIC DNH-05 | Ubah HD/LD | Perawat penanggung jawab High → Low; riwayat memuat nilai lama, pelaku, waktu, sumber | Pengguna tanpa hak atau bukan penanggung jawab → 403; nilai basi → 409; episode ditutup → 422 | API | NOT_RUN |
+| DNH-AT-441 | RWI-AC-441 | EPIC DNH-05 | HD tidak membatasi | Pasien High dapat dipesankan bed Tersedia mana pun yang lolos aturan lain | Penolakan karena HD → gagal | API | NOT_RUN |
+| DNH-AT-442 | RWI-AC-442 | EPIC DNH-01 | Status kamar dan badge | Terisi/Dipesan/Tersedia → Tersedia `3/2` + outline; Terisi/Dipesan/Terisi → Penuh `3/3`, dapat diklik | Kamar penuh merah, tidak dapat diklik, atau badge memakai `Capacity` manual → gagal | Unit/API/FE | NOT_RUN |
+| DNH-AT-443 | RWI-AC-443 | EPIC DNH-05 | Ringkasan HD | Kamar dengan 1 HD dan 1 LD → "High Dependency (1 HD · 1 LD)" | Profil Housekeeping menerima ringkasan atau label HD/LD → gagal | API/FE | NOT_RUN |
+| DNH-AT-444 | RWI-AC-444 | EPIC DNH-03 | Ubah kelas | Kamar kosong tanpa pesanan berhasil diubah | Kamar berpenghuni/berpesanan → 409 dengan jumlah penghuni; tidak ada perubahan | API/PostgreSQL | NOT_RUN |
+| DNH-AT-445 | RWI-AC-445 | EPIC DNH-04 | Pembersihan DB Hamzah | Cadangan ada, dry run per tabel ditunjukkan, eksekusi sesudah konfirmasi; tidak ada episode tersisa | Eksekusi tanpa konfirmasi atau pada database tim → gagal | Operasional | NOT_RUN |
+| DNH-AT-446 | RWI-AC-446 | EPIC DNH-04 | Impor idempoten | Run pertama membuat seluruh kamar dan bed terpetakan; run kedua 0 baris baru | Run kedua membuat duplikat atau mengubah kamar existing → gagal | API/PostgreSQL | NOT_RUN |
+| DNH-AT-447 | RWI-AC-447 | EPIC DNH-06 | Kelas resmi | 12 kelas `ClassLevel` 1–12 + Perinatologi; nama "Kelas 2 329", "Kelas VIP 301", "Isolasi 319" | Kelas lama aktif tersisa atau nama kamar memakai nama kelas lama → gagal | Data/API | NOT_RUN |
+| DNH-AT-448 | RWI-AC-448 | EPIC DNH-06 | VIP Superior | 318, 401, 418 bernama "VIP Superior …" dengan `ClassLevel` 7 | Kelas lain → gagal | Data/API | NOT_RUN |
+| DNH-AT-449 | RWI-AC-449 | EPIC DNH-06 | Perinatologi | Ruang Bayi berkelas Perinatologi; boks Tersedia dapat dipesan episode bayi | Bed Ruang Bayi Tidak Tersedia karena kelas kosong → gagal | API | NOT_RUN |
+| DNH-AT-450 | RWI-AC-450 | EPIC DNH-02 | Kelas khusus | Kelas 3 → ICU dengan kategori apa pun tersimpan | Kelas 2 → Kelas 1 dicatat Down Grade tetap ditolak | API | NOT_RUN |
+| DNH-AT-451 | RWI-AC-451 | EPIC DNH-03 | Arah wing | Sesudah impor 330 Barat Laut, 319 Timur Laut, 301 Barat Daya, 309 Selatan, 318 Tenggara; admin mengubah satu kamar | Nilai di luar delapan arah → 400 | API/FE | NOT_RUN |
+| DNH-AT-452 | RWI-AC-452 | EPIC DNH-02 | Kamar campur | Ny. Sari dapat dipesankan dan ditempatkan di 329-B saat Tn. Budi di 329-A, tanpa peringatan | Kode `BED_GENDER_MISMATCH`/`PATIENT_GENDER_UNKNOWN` atau tampilan jenis kelamin muncul → gagal | API/FE | NOT_RUN |
+| DNH-AT-453 | RWI-AC-453 | EPIC DNH-01 | Outline hijau | Monitoring: kamar ber-bed Tersedia. Admisi pasien isolasi: hanya 319 bila bednya Tersedia | Pasien tanpa isolasi melihat 319 ber-outline, atau kamar penuh merah → gagal | API/FE | NOT_RUN |
+| DNH-AT-454 | RWI-AC-454 | EPIC DNH-03 | Boks bayi | Tambah boks pada 329 → label 329-D bertanda boks; bayi rawat gabung yang ibunya di 329-A dapat dipesankan | Pasien bukan bayi ke boks → ditolak dengan alasan | API/FE | NOT_RUN |
+| DNH-AT-455 | RWI-AC-455 | EPIC DNH-03 | Kesiapan sesudah ubah kelas | Enam bed kamar kosong 505 Tidak Tersedia sampai disahkan; sesudah disahkan Tersedia | Bed langsung Tersedia sesudah ubah kelas → gagal | API/PostgreSQL | NOT_RUN |
+| DNH-AT-456 | RWI-AC-456 | EPIC DNH-03 | Kode dan label | Bed baru berkode `BD-RSMMC-#####`, tampil "329-D" | Label memakai kode sistem → gagal | API/FE | NOT_RUN |
+| DNH-AT-457 | RWI-AC-457 | EPIC DNH-03 | Kapasitas dihitung | Tambah bed di 329 berpenghuni 2 → `3/2` menjadi `4/2`; penghuni tidak tersentuh | Ditolak karena kamar berpenghuni → gagal | API | NOT_RUN |
+| DNH-AT-458 | RWI-AC-458 | EPIC DNH-06 | Kelas + konfigurasi bersamaan | Sesudah keduanya diterapkan: Kelas 3 → ICU tidak ditolak `CLASS_ORDER_UNVERIFIED`; Kelas 2 → Kelas 1 Down ditolak | Hanya daftar kelas yang diubah: transfer antarkelas biasa ditolak — dipakai sebagai bukti kenapa harus bersamaan | API/Config | NOT_RUN |
+| DNH-AT-459 | RWI-AC-459 | EPIC DNH-04 | Kesiapan per lingkungan | DB Hamzah: bed impor langsung Tersedia. Produksi: Tidak Tersedia sampai disahkan | Konfigurasi produksi dengan penetapan siap → aplikasi tidak menyala | API/Config | NOT_RUN |
+| DNH-AT-460 | RWI-AC-460 | EPIC DNH-06 | Ganti nama kelas | "Kelas I" menjadi "Kelas 1" dengan Id sama; tarif, deposit, dan cakupan tetap dipakai | Kelas lama nonaktif hilang dari riwayat hunian → gagal | Data/Billing | NOT_RUN |
+| DNH-AT-461 | RWI-AC-461 | EPIC DNH-04 | Pemetaan unit | Kamar tanpa unit ditolak dan dilaporkan; yang terpetakan masuk unitnya; Lantai 3 menampilkan semua kamar walau beda unit | Importer membuat unit atau kamar tanpa unit → gagal | API/FE | NOT_RUN |
+
+| Test ID | Rujukan desain | Kasus | Expected | Lapisan | Hasil target |
+| --- | --- | --- | --- | --- | --- |
+| DNH-AT-901 | `DNH-DES-01` | Kode kamar sesudah hapus lunak | Kamar baru tidak memakai ulang kode kamar yang dihapus lunak; tidak ada bentrok index unik | API/PostgreSQL | NOT_RUN |
+| DNH-AT-902 | INV-DNH-02 | Label unik per lantai | Kamar 321 kedua berlabel 321-D s.d. 321-F; label ganda di lantai sama → 409 | API | NOT_RUN |
+| DNH-AT-903 | VAL-DNH-10 | Hapus bed | Bed tanpa riwayat terhapus; bed beriwayat → 422 dan dapat dinonaktifkan | API | NOT_RUN |
+| DNH-AT-904 | GUARD-DNH-01 | Privasi kedua endpoint denah | JSON profil Housekeeping tanpa nama, No. RM, HD/LD, dan ringkasan HD/LD | API security | NOT_RUN |
+| DNH-AT-905 | INV-DNH-10 | Impor terhadap kamar existing | Kelas, unit, dan bed kamar existing tidak berubah; `FLOOR_PLAN_DRIFT` dilaporkan | API/PostgreSQL | NOT_RUN |
+| DNH-AT-906 | VAL-DNH-18 | Validator startup | `Production` + penetapan siap, atau penetapan siap tanpa referensi → aplikasi menolak menyala | Config | NOT_RUN |
+| DNH-AT-907 | VAL-DNH-22 | Tujuan denah | `Admission` untuk episode Admitted dan `Transfer` tanpa hunian aktif → 422 | API | NOT_RUN |
+| DNH-AT-908 | VAL-DNH-16 | HD/LD bersamaan | Dua perawat menyimpan bersamaan dari nilai yang sama → satu berhasil, satu 409; riwayat satu baris | PostgreSQL concurrent | NOT_RUN |
+| DNH-AT-909 | Backend 15.6 | Ganti nama kelas | Nama kamar berkunci ikut berubah dalam transaksi yang sama; snapshot lokasi penempatan lama tetap | API/PostgreSQL | NOT_RUN |
+| DNH-AT-910 | Backend 15.7 | Beban query denah | Jumlah query per lantai tetap, tidak bertambah per bed (tanpa N+1) | Integration | NOT_RUN |
+| DNH-AT-911 | RWI-DEC-299 | Tampilan tidak berubah | Screenshot tiap lantai sebelum/sesudah berbeda hanya pada data; layar 390 px tanpa geser horizontal | FE visual | NOT_RUN |
+| DNH-AT-912 | `DNH-MIS-08` | Gelombang jenis kelamin | Backend dan frontend dirilis bersama; form master dan pesan kelayakan tidak rusak | Integration/FE | NOT_RUN |
+| DNH-AT-913 | Backend 15.1 | Aktivasi ruang cadangan atomik | Kegagalan disuntik sesudah kamar dibuat → tidak ada kamar maupun bed tersimpan | PostgreSQL | NOT_RUN |
+
+### 23.2 UAT
+
+| ID | Epic | Jalur | Kondisi awal | Langkah | Hasil |
+| --- | --- | --- | --- | --- | --- |
+| UAT-801 | EPIC DNH-01 | Berhasil | Lantai 3 dengan fixture enam status dan dua pasien HD/LD | Buka Monitoring Bed, pilih Lantai 3, klik Kelas 2 329 | Badge dan outline sesuai aturan; pop up memuat bed, penghuni, HD/LD; tampilan peta sama dengan sebelumnya |
+| UAT-802 | EPIC DNH-01 | Gagal | Akun Housekeeping; koneksi diputus sesaat | Buka pop up kamar berpenghuni; muat ulang saat koneksi putus | Penghuni tidak terbaca; pesan gagal muat dan tombol muat ulang; kamar penuh tetap dapat dibuka |
+| UAT-803 | EPIC DNH-02 | Berhasil | Episode Draft pasien tanpa isolasi; 329-C Tersedia | Langkah Pilih Bed → Lantai 3 → 329 → Pilih bed ini → konfirmasi | 329-C Dipesan; langkah admisi menampilkan "Kelas 2 329 · bed 329-C" |
+| UAT-804 | EPIC DNH-02 | Gagal | Dua petugas memilih 329-C bersamaan; pasien isolasi; transfer Kelas 2 → Kelas 1 | Konfirmasi bersamaan; buka denah pasien isolasi; simpan transfer Down Grade | Petugas kedua diminta memilih ulang; hanya 319 ber-outline; transfer ditolak tanpa perubahan |
+| UAT-805 | EPIC DNH-03 | Berhasil | Kamar 329 berpenghuni 2; ruang cadangan di sebelah 322 | Tambah bed; ubah arah wing 329; aktifkan cadangan sebagai 324 Kelas 2 dengan 3 bed | 329-D muncul (`4/2`), menunggu pengesahan; arah tersimpan; "Kelas 2 324" muncul di semua denah |
+| UAT-806 | EPIC DNH-03 | Gagal | Kamar 329 berpenghuni; 329-A punya riwayat | Ubah kelas 329; hapus 329-A; aktifkan cadangan dengan nomor 329 | Ubah kelas ditolak dengan jumlah penghuni; hapus ditolak dan disarankan nonaktif; nomor ganda ditolak |
+| UAT-807 | EPIC DNH-04 | Berhasil | DB Hamzah sudah dibersihkan; kelas resmi diterapkan; unit terpetakan | Periksa lalu impor; ulangi impor | 106 kamar dan 168 bed, langsung Tersedia; run kedua tanpa baris baru |
+| UAT-808 | EPIC DNH-04 | Gagal | Satu kamar belum dipetakan; lingkungan uji berkonfigurasi produksi | Periksa; impor; nyalakan aplikasi dengan penetapan siap di `Production` | Kamar itu ditolak dan dilaporkan, sisanya masuk; aplikasi menolak menyala |
+| UAT-809 | EPIC DNH-05 | Berhasil | Episode Draft lalu Admitted dengan perawat penanggung jawab dan DPJP | Admisi catat Low; perawat catat High; DPJP catat Low | Riwayat tiga baris dengan sumber berbeda; pop up kamar mengikuti nilai terbaru |
+| UAT-810 | EPIC DNH-05 | Gagal | Perawat bukan penanggung jawab; episode Closed; dua tab terbuka | Simpan HD/LD dari masing-masing kondisi | 403; 422 hanya baca; tab kedua 409 dan diminta muat ulang |
+| UAT-811 | EPIC DNH-06 | Berhasil | Kelas lama berisi "Kelas I"; konfigurasi urutan disiapkan | Terapkan kelas resmi dan konfigurasi dalam satu jendela; transfer Kelas 3 → ICU Up Grade | Nama "Kelas 1" dengan tarif tetap; transfer tersimpan |
+| UAT-812 | EPIC DNH-06 | Gagal | Kelas baru Perinatologi tanpa tarif | Buka perkiraan biaya pasien bayi di Ruang Bayi | "Tarif belum tersedia"; tidak ada angka karangan (RWI-OQ-143) |
+
+### 23.3 PostgreSQL, migration, dan rilis
+
+Gunakan PostgreSQL disposable dengan schema target. Uji wajib: index unik berfilter kunci denah (dua aktivasi bersamaan dengan kunci sama → satu menang); dua pencatatan HD/LD bersamaan; injeksi kegagalan di tengah impor dan aktivasi → rollback penuh; dry run migration M-DNH-1..3 pada salinan data; M-DNH-4 hanya sesudah kode baru berjalan. Uji kontrak membuktikan field jenis kelamin hilang dari seluruh respons yang disebut API 14.1.
+
+### 23.4 Bukti sign-off
+
+Belum ada hasil unit, API, PostgreSQL, UI, maupun UAT. Gate `DNH-G01`–`G05` dan `BM-G01`–`G04` belum dibuktikan. Laporan dokumentasi ini tidak menggantikan bukti tersebut.
+
+## 24. Acceptance test matrix realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+| ID | Level | Skenario | Bukti lulus | Trace |
+|---|---|---|---|---|
+| `UAT-901` | P0 integration | User 2 mereservasi Bed 202 untuk Sintia; User 1 berada di selection unit sama | User 1 melihat pesan reservasi dengan bed/pasien/actor, lalu denah refresh dan bed tidak selectable | AC-469, AC-472 |
+| `UAT-902` | P0 integration | Penempatan awal berhasil | Event `PatientPlaced` baru muncul sesudah commit; consumer unit sama refresh | AC-471 |
+| `UAT-903` | P0 integration | Transfer berhasil ke bed tujuan unit B | Hanya subscriber berwenang unit B menerima alert target transfer | AC-471, AC-473 |
+| `UAT-904` | P0 security | User tanpa akses unit atau tanpa `InpatientEpisode:Read` mencoba join | Join ditolak dan tidak ada payload/nama bocor | AC-473–474 |
+| `UAT-905` | P0 consistency | Dua user submit bed yang sama hampir bersamaan | Tepat satu commit; yang kalah menerima `409`; tidak ada dua event sukses | AC-471, AC-476, AC-479 |
+| `UAT-906` | P0 failure | Inject kegagalan publish SignalR setelah commit | HTTP mutation tetap sukses, DB committed, error log tanpa nama, tidak ada rollback | AC-478–480 |
+| `UAT-907` | P1 privacy | Capture payload dan log | Payload hanya field kontrak; tidak ada MRN/NIK/diagnosis; log tidak berisi nama | AC-472–473, OQ-151 |
+| `UAT-908` | P1 negative | Mutasi gagal/rollback atau eligibility conflict | Tidak ada event realtime | AC-470 |
+| `UAT-909` | P1 idempotency | Ulang request dengan idempotency key/fingerprint sama | Receipt replay; tidak ada event kedua | DEC-333 |
+| `UAT-910` | P1 UX | Actor mutasi juga membuka selection pada unit sama | Actor tidak melihat alert sendiri; user lain melihat satu alert | AC-472 |
+| `UAT-911` | P1 reconnect | Putuskan SignalR, ubah bed saat offline, sambungkan lagi | Rejoin + refetch segera; state terkini tampil; alert lama tidak replay | AC-475–477 |
+| `UAT-912` | P1 stale selection | Bed yang sedang dipilih User 1 dikuasai User 2 | Setelah refetch `onClearSelection` dipanggil; submit tetap dilindungi `409` bila race | AC-469, AC-471, AC-476 |
+| `UAT-913` | P2 unit change | Layar berganti dari unit A ke B | Leave A, join B; event A berikutnya tidak menghasilkan alert | AC-474 |
+| `UAT-914` | P2 duplicate | Payload dengan `eventId` sama diterima dua kali dalam mount | Satu alert; refetch tidak memutasi state dari payload | AC-477 |
+| `UAT-915` | P2 refresh failure | Event diterima lalu GET floor plan gagal | Alert tetap ada, error loading tampil, state tidak ditebak dari event | DEC-335 |
+| `UAT-916` | P3 accessibility | Alert actor lain muncul saat user scroll dan popup tertutup | Alert terlihat, live region terbaca, scrolling tidak terblokir, dapat ditutup | AC-472 |
+
+### 24.1 Perilaku unit dan kontrak yang wajib diverifikasi
+
+- Backend: group-name builder; join authorization; payload mapping; tiga jenis event; no event untuk
+  replay/failure; publisher exception tidak keluar ke mutation caller; log redaction.
+- Frontend: lifecycle join/leave; reconnect rejoin/refetch; actor suppression; unit filter;
+  bounded event deduplication; pesan tiga event; cleanup handler pada unmount.
+- Contract: serializer field/event name case; hub method name; endpoint response HTTP tidak berubah.
+
+Otomasi test baru **tidak diwajibkan** oleh roadmap backend. Bukti boleh berasal dari pemeriksaan
+kontrak, build aplikasi, client SignalR, request API, dan uji runtime/manual yang dapat direproduksi,
+sesuai `rules/backend/TEST_POLICY.md`. Bila test otomatis existing tersedia dan relevan, test itu
+boleh dijalankan sebagai bukti tambahan.
+
+### 24.2 Integration dan race tests wajib
+
+- Jalankan backend dengan PostgreSQL disposable dan SignalR test client authenticated.
+- Pakai dua identity serta dua koneksi untuk membuktikan same-unit delivery dan cross-unit denial.
+- Barrier dua transaksi untuk membuktikan unique/version guard menghasilkan satu pemenang.
+- Fault injection setelah commit untuk membuktikan publish failure tidak membatalkan data.
+- Uji reconnect dengan event terjadi selama offline dan pastikan hanya refetch, tanpa replay.
+
+### 24.3 Evidence dan sign-off
+
+Belum ada hasil test; seluruh baris berstatus **DESIGNED / NOT RUN**. Evidence delivery harus
+memuat output verifikasi kontrak/runtime, network trace hub tanpa data terlarang, screenshot dua browser/session,
+dan log redaction. Aktivasi produksi juga memerlukan sign-off security/privacy `RWI-OQ-151`.
+
+---
+
+## 25. Acceptance Test Matrix Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier — `contract_version 0.17.0` (`draft`, `RWI-DEC-338` s.d. `341`)
+
+Amandemen ini menguji 13 Acceptance Criteria (`RWI-AC-481` s.d. `RWI-AC-493`) untuk memastikan urutan pengurutan antrean transfer (CITO → Member Prioritas → Reguler), penyajian lencana visual tier membership, isolasi privasi denah bangsal, dan ketahanan fallback sistem.
+
+### 25.1 Matriks Kasus Uji
+
+| ID Uji | Requirement | Level Uji | Kondisi Awal & Skenario | Hasil yang Diharapkan (Bukti Lulus) | Status |
+|---|---|---|---|---|---|
+| `TRF-AT-01` | `RWI-AC-481` | API Integration | Request `GET /api/v1/health-services/inpatient-management/admission-transfers` | Response HTTP 200 OK; setiap item memuat boolean `isCito`, boolean `isPriorityMember`, string nullable `memberTierName`, integer nullable `memberPriorityLevel`. | NOT_RUN |
+| `TRF-AT-02` | `RWI-AC-482` | Integration (Sort) | Terdapat 4 antrean transfer: Pasien 1 (Reguler, CITO, DecidedAt 09:00), Pasien 2 (Platinum, non-CITO, DecidedAt 08:00), Pasien 3 (Gold, non-CITO, DecidedAt 08:30), Pasien 4 (Reguler, non-CITO, DecidedAt 07:00) | Urutan pengembalian array data: Pasien 1 (CITO #1) → Pasien 2 (Platinum #2) → Pasien 3 (Gold #3) → Pasien 4 (Reguler #4). Terbukti CITO mengalahkan waktu & member; member mengalahkan reguler yang lebih lama. | NOT_RUN |
+| `TRF-AT-03` | `RWI-AC-482` | Integration (Sort) | Dua pasien berstatus Member Platinum: Pasien X (DecidedAt 08:15) dan Pasien Y (DecidedAt 08:45) | Pasien X muncul sebelum Pasien Y (FIFO di dalam satu tingkat tier). | NOT_RUN |
+| `TRF-AT-04` | `RWI-AC-483` | Integration / DB | Pasien memiliki membership `Active`, `PeriodStartDate <= today <= ExpiredDate`, dan tier dengan `PriorityQueue == true` | Item diproyeksikan dengan `isPriorityMember: true`, `memberTierName: "Platinum"`, `memberPriorityLevel: 1`. | NOT_RUN |
+| `TRF-AT-05` | `RWI-AC-484` | Integration / DB | Pasien memiliki membership tetapi `MembershipStatus == Inactive` atau `ExpiredDate < today` | Item diproyeksikan dengan `isPriorityMember: false`, `memberTierName: null`, `memberPriorityLevel: null`. | NOT_RUN |
+| `TRF-AT-06` | `RWI-AC-484` | Integration / DB | Pasien memiliki membership aktif tetapi tier-nya disetel `PriorityQueue == false` | Item diproyeksikan dengan `isPriorityMember: false` (tidak mendapatkan prioritas antrean). | NOT_RUN |
+| `TRF-AT-07` | `RWI-AC-485` | Integration / DB | Pasien transfer memiliki formulir `EmgAdmissionRequest` berstatus `Signed` dengan `IsCito == true` | Item diproyeksikan dengan `isCito: true`. | NOT_RUN |
+| `TRF-AT-08` | `RWI-AC-485` | Integration / DB | Pasien transfer IGD memiliki formulir `EmgAdmissionRequest` berstatus `Draft` (belum signed) atau non-IGD | Item diproyeksikan dengan `isCito: false` (hanya form berstatus Signed yang sah secara klinis). | NOT_RUN |
+| `TRF-AT-09` | `RWI-AC-486` | Frontend UI | Render komponen `InpatientAdmissionTransferList.jsx` dengan data campuran CITO dan Member Prioritas | Kolom pasien menampilkan `StatusBadge` merah bertuliskan "CITO" pada pasien CITO, dan `StatusBadge` kuning/emas bertuliskan nama tier pada pasien member prioritas. | NOT_RUN |
+| `TRF-AT-10` | `RWI-AC-487` | Frontend UI | Petugas membuka Langkah Admisi PPRI Transfer (`InpatientAdmissionTransferReviewStep.jsx`) | Header ringkasan identitas pasien menampilkan lencana CITO dan Tier Membership berdampingan dengan No RM dan Nama. | NOT_RUN |
+| `TRF-AT-11` | `RWI-AC-488` | Privacy Guard | Pasien member prioritas sudah ditempatkan di kamar bangsal; petugas membuka Denah Bed Management (`bed-management-view.jsx`) | Tidak ada lencana tier, nama tier, maupun indikator membership pada denah kamar maupun pop up detail bed. | NOT_RUN |
+| `TRF-AT-12` | `RWI-AC-489` | Workflow Policy | Petugas menekan tombol penempatan bed pada antrean transfer member prioritas | Sistem membuka Denah Bed Management untuk pemilihan kamar manual; tidak ada auto-booking atau bypass pemilihan kamar. | NOT_RUN |
+| `TRF-AT-13` | `RWI-AC-490` | Clinical / Policy | Masa berlaku membership pasien habis (expired) saat pasien masih berstatus `Admitted` di bangsal | Kamar pasien tidak dicabut, kelas tempat tidur tidak diturunkan paksa, dan episode tetap berlanjut normal. | NOT_RUN |
+| `TRF-AT-14` | `RWI-AC-491` | Clinical / Policy | Pemeriksaan modul rekam medis, visite dokter, tindakan keperawatan, dan administrasi obat | Seluruh modul asuhan klinis tidak mengonsumsi properti tier membership untuk membedakan perlakuan klinis. | NOT_RUN |
+| `TRF-AT-15` | `RWI-AC-492` | API Integration | Request `GET /api/v1/health-services/inpatient-management/admission-transfers/{id}` | Objek detail respon mengembalikan properti `isCito`, `isPriorityMember`, `memberTierName`, dan `memberPriorityLevel` yang identik dengan list. | NOT_RUN |
+| `TRF-AT-16` | `RWI-AC-493` | Resilience Fallback | Simulasi anomali data: Pasien tidak memiliki record `MstPatientMembership` sama sekali (null relation) | Endpoint merespons HTTP 200 OK dengan `isPriorityMember: false`, `memberTierName: null`, `memberPriorityLevel: null` tanpa error 500. | NOT_RUN |
+

@@ -17,8 +17,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int IntensiveCareBed { get; set; }
         public int OdcBed { get; set; }
         public int NewbornBed { get; set; }
-        public int MaleBed { get; set; }
-        public int FemaleBed { get; set; }
     }
 
     public class BedResponse
@@ -42,8 +40,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? BedNumber { get; set; }
         public BedStatus BedStatus { get; set; }
         public string BedStatusName { get; set; } = string.Empty;
-        public bool IsForMale { get; set; }
-        public bool IsForFemale { get; set; }
         public bool IsForNewborn { get; set; }
         public bool IsIsolationBed { get; set; }
         public bool IsIntensiveCareBed { get; set; }
@@ -81,8 +77,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? BedNumber { get; set; }
         public BedStatus BedStatus { get; set; }
         public string BedStatusName { get; set; } = string.Empty;
-        public bool IsForMale { get; set; }
-        public bool IsForFemale { get; set; }
         public bool IsForNewborn { get; set; }
         public bool IsIsolationBed { get; set; }
         public bool IsIntensiveCareBed { get; set; }
@@ -135,8 +129,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? PatientClassId { get; set; }
         public bool? IsActive { get; set; }
         public BedStatus? BedStatus { get; set; }
-        public bool? IsForMale { get; set; }
-        public bool? IsForFemale { get; set; }
         public bool? IsForNewborn { get; set; }
         public bool? IsIsolationBed { get; set; }
         public bool? IsIntensiveCareBed { get; set; }
@@ -197,16 +189,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         [Required]
         public Guid RoomId { get; set; }
 
-        [Required]
+        /// <summary>
+        /// Nama/label bed. Wajib untuk kamar di luar denah; untuk kamar berkunci denah label
+        /// <c>&lt;nomor kamar&gt;-&lt;huruf&gt;</c> dibentuk server saat create dan isian ini diabaikan (BE-RWI-235).
+        /// </summary>
         [MaxLength(100)]
         public string BedName { get; set; } = string.Empty;
 
+        /// <summary>Huruf bed. Untuk kamar berkunci denah diisi server dengan huruf berikutnya.</summary>
         [MaxLength(50)]
         public string? BedNumber { get; set; }
 
         public BedStatus BedStatus { get; set; } = BedStatus.Available;
-        public bool IsForMale { get; set; } = true;
-        public bool IsForFemale { get; set; } = true;
         public bool IsForNewborn { get; set; } = false;
         public bool IsIsolationBed { get; set; } = false;
         public bool IsIntensiveCareBed { get; set; } = false;
@@ -268,6 +262,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? BedNumber { get; set; }
         public BedStatus BedStatus { get; set; }
         public string BedStatusName { get; set; } = string.Empty;
+        public bool IsForNewborn { get; set; }
         public bool IsReservable { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }

@@ -1,0 +1,778 @@
+{
+  "planning_id": "DNH-DEL-20261016-01",
+  "blueprint_id": "RWI-BP-001",
+  "scope": "episode-rawat-inap/integrasi-denah-bed-management",
+  "revision": 1,
+  "captured_on": "2026-10-16",
+  "timezone": "Asia/Jakarta",
+  "status": "APPROVED_DESIGN_PLANNED",
+  "approved_by": "Muhammad Hamzah (pengguna sesi)",
+  "approved_at": "2026-10-16",
+  "approval_evidence": {
+    "decision": "RWI-DEC-324",
+    "statement": "oke lanjutkan",
+    "command": "/quilvian-engineering-skills:plan-module-delivery",
+    "context": "Pesan agent sebelumnya menyatakan approval revision 12 dan kontrak 0.13.0 diperlukan sebelum plan-module-delivery",
+    "scope": "Manifest anak revision 12, kontrak 0.13.0 (isi Integrasi Denah), module map revision 7",
+    "task_execution": "Setiap task dieksekusi lewat build-module-backend/frontend dengan task ID; perintah build adalah approval task"
+  },
+  "frontend_hard_rule": {
+    "decision": "RWI-DEC-325",
+    "applies_to": [
+      "FE-RWI-246",
+      "FE-RWI-247",
+      "FE-RWI-248",
+      "FE-RWI-249",
+      "FE-RWI-250",
+      "FE-RWI-251",
+      "FE-RWI-252",
+      "FE-RWI-253"
+    ],
+    "rules": [
+      "References skill build-module-frontend tidak wajib diikuti",
+      "Bed Management fleksibel; prioritas tampilan sempurna dan bagus",
+      "Tampilan floor plan yang sudah didesain rapi tidak boleh diubah",
+      "Base component tidak wajib dipakai; tampilan ini menjadi contoh tampilan lain"
+    ],
+    "still_binding": [
+      "RWI-DEC-287 privasi",
+      "RWI-DEC-299 desain denah",
+      "RWI-DEC-315 tanpa jenis kelamin",
+      "Guid tidak tampil/diketik",
+      "Kontrak API 0.13.0",
+      "Stack dan struktur frontend",
+      "npm run lint dan npm run build",
+      "Tidak membuat base component baru di base-features"
+    ]
+  },
+  "implementation_lock": true,
+  "contract_version": "0.13.0",
+  "revisions": {
+    "decision": 51,
+    "requirement_gate": "1.13",
+    "module_map": 7,
+    "child_manifest": 12,
+    "root_manifest": 11,
+    "impact_scan": "BM-IMP-20261015-01 rev 1"
+  },
+  "hash_convention": "SHA256 byte berkas apa adanya (CRLF dipertahankan); manifest dicatat sebelum registrasi roadmap",
+  "source_states": [
+    {
+      "repo": "NewQuilvianSystemBackend",
+      "head": "ca09cae909597442385ce4513be9c803549be10e",
+      "status": "Working tree memuat dokumen blueprint sesi ini dan pekerjaan paralel issue 022 (InpBedOccupancyService.cs, PatientEncounterController.cs, ServiceUnitRegistrationRules.cs)"
+    },
+    {
+      "repo": "QuilvianSystemFrontendDev",
+      "head": "4d9bf608dbbaddc96a2b4acfc8723753b5dd5028",
+      "status": "12 berkas admisi diubah pekerjaan paralel PLAN-REPAIR-EPS-022 (SELESAI SOURCE, belum di-commit)"
+    }
+  ],
+  "input_files": [
+    {
+      "file": "../../00-interview-decisions.md",
+      "note": "51; RWI-DEC-298–325, RWI-AC-436–461",
+      "sha256": "739b01c27cd41df0187336e2d8858722588631bb6ba630a047a0d3539bfb57e1"
+    },
+    {
+      "file": "../../evidence/02-requirement-completeness-gate.md",
+      "note": "1.13; DNH-RCG-20261015-01",
+      "sha256": "54da1ceefb103b691ea87390b841b20fef866d130edb099e86e7c4fa8879f738"
+    },
+    {
+      "file": "../../02-module-map.md",
+      "note": "7 approved; kepemilikan, menu, urutan migration",
+      "sha256": "8ba242ec25e42fda4da8697197c6c657faebb555f9fee938bc448140fd1ca620"
+    },
+    {
+      "file": "../../evidence/denah-bed-impact-scan-20261015.md",
+      "note": "BM-IMP-20261015-01 rev 1",
+      "sha256": "5ec075d8fe708c5c575bcc5b52715450de60aa9282f70d548f211f4f2b9f0669"
+    },
+    {
+      "file": "../../evidence/denah-bed-source-snapshot-20261015.json",
+      "note": "snapshot source BE/FE",
+      "sha256": "05d997365ca75ad2d3c53689d911422871eba0ae5aaf8aab97c8af2db8ab58f1"
+    },
+    {
+      "file": "../docs/denah-map-ruangan-rs-mmc/rencana-integrasi-denah-bed.md",
+      "note": "rencana integrasi; register Fase 0",
+      "sha256": "d1b0ce8d9a0db73b38f32dd904b442590b54f21de6f92c68a6acfad729fa5aa3"
+    },
+    {
+      "file": "../docs/denah-map-ruangan-rs-mmc/rencana-kelas-kamar.md",
+      "note": "kelas kamar denah",
+      "sha256": "2b8f86ce0525b532eb86748544ecf78b498350dea5b8e09594cb56da49832609"
+    },
+    {
+      "file": "../02-backend-architecture.md",
+      "note": "approved 0.13.0; bagian 15",
+      "sha256": "e15de1bb2cb1bb4375f8d5719e5d487cb5d1169da24bf3c67fe9f759b8d3f6ae"
+    },
+    {
+      "file": "../data/data-dictionary.md",
+      "note": "approved 0.13.0; bagian 22",
+      "sha256": "eed76fe1e3252bf8e7eea1437dfdbeaa3b552ea7cec2c90220390713bd83b6b7"
+    },
+    {
+      "file": "../contracts/api-contract.md",
+      "note": "approved 0.13.0; bagian 14",
+      "sha256": "d94a0ea46ddfb0e18392d547480f9d0f19ccb0c4527d588faaa5b85e7039f075"
+    },
+    {
+      "file": "../contracts/permission-audit-matrix.md",
+      "note": "approved 0.13.0; bagian 12",
+      "sha256": "3ddc6c84ef3aa3da39cdd277e302b77219c86444810556c3a1ed4a665f3fcf7d"
+    },
+    {
+      "file": "../contracts/validation-matrix.md",
+      "note": "approved 0.13.0; bagian 17",
+      "sha256": "637d3d54781dbeafb6312e2a8a6a30cd49f41ca34d8a646e59ad5c5b84f77c20"
+    },
+    {
+      "file": "../contracts/state-transition-matrix.md",
+      "note": "approved 0.13.0; bagian 12",
+      "sha256": "f8b3f20d3c28bd38135e8b405d78b3c432a69dffda8d01fcfa757cb53ef690b2"
+    },
+    {
+      "file": "../contracts/integration-contract.md",
+      "note": "approved 0.13.0; bagian 12",
+      "sha256": "a317131a351ee74306a59d8f6e94ab9c36cd333008ef116cf4b9d1d981fe6acb"
+    },
+    {
+      "file": "../03-frontend-architecture.md",
+      "note": "approved 0.13.0; bagian 16 + aturan keras 16.7",
+      "sha256": "590f6b2871462da36da123d8509c8f125c89014fdaf3fde6422d012def90ec57"
+    },
+    {
+      "file": "../testing/acceptance-test-matrix.md",
+      "note": "approved 0.13.0; bagian 23",
+      "sha256": "7c0cd9f50e7355955658b32e878ef8aac7b79853e5d49b5ff07751e047494d9a"
+    },
+    {
+      "file": "../04-prd-to-mvp.md",
+      "note": "approved 0.13.0; bagian 27",
+      "sha256": "e7c41612db6248bf19fab384fdd780b93b8f28fd2d779c3ae36dde9f106d78d0"
+    },
+    {
+      "file": "../flowcharts/00-alur-utama.md",
+      "note": "approved 0.13.0",
+      "sha256": "46f12d164ca387b1890c495a7b4a035cae5906f41b0c54af2489bad1fdba79be"
+    },
+    {
+      "file": "../flowcharts/15-denah-pilih-bed.md",
+      "note": "approved 0.13.0",
+      "sha256": "806f143b8cc7977641f0aa05623d1083a1bc258974a2f58d1a97cede60817693"
+    },
+    {
+      "file": "../flowcharts/16-denah-master-bed.md",
+      "note": "approved 0.13.0",
+      "sha256": "a2bfeeed93b7cb8c60024131de25032dd8d65df85822d0056cfb4bb6462647ce"
+    },
+    {
+      "file": "../flowcharts/17-impor-denah.md",
+      "note": "approved 0.13.0",
+      "sha256": "6bd9114be0c548a860c0ac1e0588117914d672924fd94c376bb7656520703a68"
+    },
+    {
+      "file": "../flowcharts/18-ketergantungan-pasien.md",
+      "note": "approved 0.13.0",
+      "sha256": "cfb57c3d0b9ee01ecc97e0bc222aca1ac5323e69726d2335abeda07aa0af6285"
+    }
+  ],
+  "manifest_snapshots_before_roadmap_registration": [
+    {
+      "file": "../blueprint-manifest.md",
+      "note": "manifest anak revision 12 approved, sebelum registrasi roadmap",
+      "sha256": "4b9355371f586d44916bbda651710dfafd2c935708cf17c1dcbc0d6845a8cb4d"
+    },
+    {
+      "file": "../../blueprint-manifest.md",
+      "note": "manifest induk revision 11, sebelum registrasi roadmap",
+      "sha256": "2397a0bcd3a48e189f53bc676ed3f6f11e9e144ff60cf1a20cc37c360e45cb67"
+    }
+  ],
+  "id_allocation": {
+    "scanned_on": "2026-10-16",
+    "highest_used": {
+      "BE-RWI": 231,
+      "FE-RWI": 245
+    },
+    "allocated": {
+      "BE-RWI": "232-240",
+      "FE-RWI": "246-253"
+    },
+    "next_free": {
+      "BE-RWI": 241,
+      "FE-RWI": 254
+    }
+  },
+  "tasks": [
+    {
+      "id": "BE-RWI-232",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": [
+        "FR-DNH-008"
+      ],
+      "decisions": [
+        "RWI-DEC-306",
+        "RWI-DEC-313",
+        "RWI-DEC-314",
+        "RWI-DEC-323"
+      ],
+      "acceptance": [
+        "RWI-AC-451",
+        "RWI-AC-461"
+      ],
+      "migration": "M-DNH-1"
+    },
+    {
+      "id": "BE-RWI-233",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": [
+        "FR-DNH-007"
+      ],
+      "decisions": [
+        "RWI-DEC-312",
+        "RWI-DEC-319"
+      ],
+      "acceptance": [
+        "RWI-AC-450",
+        "RWI-AC-458"
+      ]
+    },
+    {
+      "id": "BE-RWI-234",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": [
+        "FR-DNH-013",
+        "FR-DNH-014"
+      ],
+      "decisions": [
+        "RWI-DEC-302",
+        "RWI-DEC-303"
+      ],
+      "acceptance": [
+        "RWI-AC-440",
+        "RWI-AC-441"
+      ],
+      "migration": "M-DNH-2"
+    },
+    {
+      "id": "BE-RWI-235",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "BE-RWI-232"
+      ],
+      "fr": [
+        "FR-DNH-009",
+        "FR-DNH-010",
+        "FR-DNH-016"
+      ],
+      "decisions": [
+        "RWI-DEC-304",
+        "RWI-DEC-317",
+        "RWI-DEC-318"
+      ],
+      "acceptance": [
+        "RWI-AC-444",
+        "RWI-AC-454",
+        "RWI-AC-455",
+        "RWI-AC-456",
+        "RWI-AC-457"
+      ]
+    },
+    {
+      "id": "BE-RWI-236",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "BE-RWI-235"
+      ],
+      "fr": [
+        "FR-DNH-009",
+        "FR-DNH-010"
+      ],
+      "decisions": [
+        "RWI-DEC-306",
+        "RWI-DEC-318"
+      ],
+      "acceptance": [
+        "RWI-AC-451",
+        "RWI-AC-457"
+      ]
+    },
+    {
+      "id": "BE-RWI-237",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "BE-RWI-235"
+      ],
+      "fr": [
+        "FR-DNH-011",
+        "FR-DNH-012"
+      ],
+      "decisions": [
+        "RWI-DEC-306",
+        "RWI-DEC-321",
+        "RWI-DEC-323"
+      ],
+      "acceptance": [
+        "RWI-AC-446",
+        "RWI-AC-459",
+        "RWI-AC-461"
+      ],
+      "migration": "M-DNH-3"
+    },
+    {
+      "id": "BE-RWI-238",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "BE-RWI-232",
+        "BE-RWI-234"
+      ],
+      "fr": [
+        "FR-DNH-001",
+        "FR-DNH-002",
+        "FR-DNH-014"
+      ],
+      "decisions": [
+        "RWI-DEC-287",
+        "RWI-DEC-299",
+        "RWI-DEC-303",
+        "RWI-DEC-316",
+        "RWI-DEC-318",
+        "RWI-DEC-320"
+      ],
+      "acceptance": [
+        "RWI-AC-442",
+        "RWI-AC-443",
+        "RWI-AC-453"
+      ]
+    },
+    {
+      "id": "BE-RWI-239",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "BE-RWI-233",
+        "BE-RWI-238"
+      ],
+      "fr": [
+        "FR-DNH-005"
+      ],
+      "decisions": [
+        "RWI-DEC-299",
+        "RWI-DEC-312",
+        "RWI-DEC-316"
+      ],
+      "acceptance": [
+        "RWI-AC-449",
+        "RWI-AC-453",
+        "RWI-AC-454"
+      ]
+    },
+    {
+      "id": "BE-RWI-240",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "BE-RWI-237",
+        "BE-RWI-239"
+      ],
+      "fr": [
+        "FR-DNH-006"
+      ],
+      "decisions": [
+        "RWI-DEC-315"
+      ],
+      "acceptance": [
+        "RWI-AC-439",
+        "RWI-AC-452"
+      ],
+      "migration": "M-DNH-4"
+    },
+    {
+      "id": "FE-RWI-246",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": [
+        "FR-DNH-001"
+      ],
+      "decisions": [
+        "RWI-DEC-299",
+        "RWI-DEC-325"
+      ],
+      "acceptance": [
+        "RWI-AC-436"
+      ],
+      "hard_rule": "RWI-DEC-325"
+    },
+    {
+      "id": "FE-RWI-247",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "FE-RWI-246",
+        "BE-RWI-238"
+      ],
+      "fr": [
+        "FR-DNH-001",
+        "FR-DNH-002",
+        "FR-DNH-003",
+        "FR-DNH-014"
+      ],
+      "decisions": [
+        "RWI-DEC-287",
+        "RWI-DEC-299",
+        "RWI-DEC-303",
+        "RWI-DEC-316",
+        "RWI-DEC-320",
+        "RWI-DEC-325"
+      ],
+      "acceptance": [
+        "RWI-AC-436",
+        "RWI-AC-442",
+        "RWI-AC-443",
+        "RWI-AC-453"
+      ],
+      "hard_rule": "RWI-DEC-325"
+    },
+    {
+      "id": "FE-RWI-248",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "FE-RWI-247",
+        "BE-RWI-239"
+      ],
+      "fr": [
+        "FR-DNH-005"
+      ],
+      "decisions": [
+        "RWI-DEC-299",
+        "RWI-DEC-316",
+        "RWI-DEC-325"
+      ],
+      "acceptance": [
+        "RWI-AC-436",
+        "RWI-AC-449",
+        "RWI-AC-453",
+        "RWI-AC-454"
+      ],
+      "hard_rule": "RWI-DEC-325"
+    },
+    {
+      "id": "FE-RWI-249",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "FE-RWI-248"
+      ],
+      "fr": [
+        "FR-DNH-005",
+        "FR-DNH-007"
+      ],
+      "decisions": [
+        "RWI-DEC-312",
+        "RWI-DEC-316",
+        "RWI-DEC-325"
+      ],
+      "acceptance": [
+        "RWI-AC-436",
+        "RWI-AC-450",
+        "RWI-AC-453"
+      ],
+      "hard_rule": "RWI-DEC-325"
+    },
+    {
+      "id": "FE-RWI-250",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "FE-RWI-247",
+        "BE-RWI-235",
+        "BE-RWI-236"
+      ],
+      "fr": [
+        "FR-DNH-008",
+        "FR-DNH-009",
+        "FR-DNH-010"
+      ],
+      "decisions": [
+        "RWI-DEC-304",
+        "RWI-DEC-306",
+        "RWI-DEC-313",
+        "RWI-DEC-317",
+        "RWI-DEC-318",
+        "RWI-DEC-325"
+      ],
+      "acceptance": [
+        "RWI-AC-436",
+        "RWI-AC-444",
+        "RWI-AC-451",
+        "RWI-AC-454",
+        "RWI-AC-455",
+        "RWI-AC-456",
+        "RWI-AC-457"
+      ],
+      "hard_rule": "RWI-DEC-325"
+    },
+    {
+      "id": "FE-RWI-251",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "FE-RWI-250",
+        "BE-RWI-237"
+      ],
+      "fr": [
+        "FR-DNH-011",
+        "FR-DNH-012"
+      ],
+      "decisions": [
+        "RWI-DEC-306",
+        "RWI-DEC-314",
+        "RWI-DEC-321",
+        "RWI-DEC-323",
+        "RWI-DEC-325"
+      ],
+      "acceptance": [
+        "RWI-AC-446",
+        "RWI-AC-451",
+        "RWI-AC-459",
+        "RWI-AC-461"
+      ],
+      "hard_rule": "RWI-DEC-325"
+    },
+    {
+      "id": "FE-RWI-252",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "BE-RWI-234"
+      ],
+      "fr": [
+        "FR-DNH-013",
+        "FR-DNH-014"
+      ],
+      "decisions": [
+        "RWI-DEC-302",
+        "RWI-DEC-303",
+        "RWI-DEC-325"
+      ],
+      "acceptance": [
+        "RWI-AC-440",
+        "RWI-AC-441",
+        "RWI-AC-443"
+      ],
+      "hard_rule": "RWI-DEC-325"
+    },
+    {
+      "id": "FE-RWI-253",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": [
+        "FE-RWI-249",
+        "BE-RWI-240"
+      ],
+      "fr": [
+        "FR-DNH-003",
+        "FR-DNH-006"
+      ],
+      "decisions": [
+        "RWI-DEC-299",
+        "RWI-DEC-315",
+        "RWI-DEC-325"
+      ],
+      "acceptance": [
+        "RWI-AC-436",
+        "RWI-AC-439",
+        "RWI-AC-452"
+      ],
+      "hard_rule": "RWI-DEC-325"
+    }
+  ],
+  "endpoint_ownership": [
+    {
+      "method": "GET",
+      "path": "bed-management/floor-plan",
+      "tag": "Health Services / ... / Bed Management",
+      "task_id": "BE-RWI-238",
+      "change": "baru"
+    },
+    {
+      "method": "GET",
+      "path": "bed-management/monitoring",
+      "tag": "Health Services / ... / Bed Management",
+      "task_id": "BE-RWI-238",
+      "change": "saring lantai, No. RM, HD/LD"
+    },
+    {
+      "method": "GET",
+      "path": "bed-occupancies/floor-plan",
+      "tag": "Health Services / ... / Bed Occupancy",
+      "task_id": "BE-RWI-239",
+      "change": "baru"
+    },
+    {
+      "method": "GET",
+      "path": "bed-occupancies/available-beds",
+      "tag": "Health Services / ... / Bed Occupancy",
+      "task_id": "BE-RWI-239",
+      "change": "saring lantai; field jenis kelamin dihapus oleh BE-RWI-240"
+    },
+    {
+      "method": "POST",
+      "path": "bed-occupancies/placements/transfer",
+      "tag": "Health Services / ... / Bed Occupancy",
+      "task_id": "BE-RWI-233",
+      "change": "kelas khusus; aturan jenis kelamin dihapus oleh BE-RWI-240"
+    },
+    {
+      "method": "POST",
+      "path": "bed-occupancies/reservations",
+      "tag": "Health Services / ... / Bed Occupancy",
+      "task_id": "BE-RWI-240",
+      "change": "aturan jenis kelamin dihapus"
+    },
+    {
+      "method": "POST",
+      "path": "bed-occupancies/placements",
+      "tag": "Health Services / ... / Bed Occupancy",
+      "task_id": "BE-RWI-240",
+      "change": "aturan jenis kelamin dihapus"
+    },
+    {
+      "method": "PATCH",
+      "path": "episodes/{id}/care-dependency",
+      "tag": "Health Services / ... / Inpatient Episode",
+      "task_id": "BE-RWI-234",
+      "change": "baru"
+    },
+    {
+      "method": "GET",
+      "path": "episodes/{id}/care-dependency-history",
+      "tag": "Health Services / ... / Inpatient Episode",
+      "task_id": "BE-RWI-234",
+      "change": "baru"
+    },
+    {
+      "method": "GET",
+      "path": "episodes/{id}",
+      "tag": "Health Services / ... / Inpatient Episode",
+      "task_id": "BE-RWI-234",
+      "change": "lima field HD/LD"
+    },
+    {
+      "method": "GET",
+      "path": "rooms/floor-plan-layout",
+      "tag": "Health Services / ... / Room",
+      "task_id": "BE-RWI-236",
+      "change": "baru"
+    },
+    {
+      "method": "POST",
+      "path": "rooms/floor-plan-layout/rooms",
+      "tag": "Health Services / ... / Room",
+      "task_id": "BE-RWI-236",
+      "change": "baru"
+    },
+    {
+      "method": "POST",
+      "path": "rooms/floor-plan-layout/import",
+      "tag": "Health Services / ... / Room",
+      "task_id": "BE-RWI-237",
+      "change": "baru"
+    },
+    {
+      "method": "GET",
+      "path": "rooms",
+      "tag": "Health Services / ... / Room",
+      "task_id": "BE-RWI-232",
+      "change": "saring lantai dan kunci"
+    },
+    {
+      "method": "POST",
+      "path": "rooms",
+      "tag": "Health Services / ... / Room",
+      "task_id": "BE-RWI-232",
+      "change": "tiga field, pengalokasi kode"
+    },
+    {
+      "method": "PUT",
+      "path": "rooms/{id}",
+      "tag": "Health Services / ... / Room",
+      "task_id": "BE-RWI-232",
+      "change": "wing, kunci tetap; turunan ubah kelas oleh BE-RWI-235"
+    },
+    {
+      "method": "POST",
+      "path": "beds",
+      "tag": "Health Services / ... / Bed",
+      "task_id": "BE-RWI-235",
+      "change": "label server"
+    },
+    {
+      "method": "PUT",
+      "path": "beds/{id}",
+      "tag": "Health Services / ... / Bed",
+      "task_id": "BE-RWI-235",
+      "change": "ubah label"
+    },
+    {
+      "method": "DELETE",
+      "path": "beds/{id}",
+      "tag": "Health Services / ... / Bed",
+      "task_id": "BE-RWI-235",
+      "change": "hanya tanpa riwayat"
+    },
+    {
+      "method": "PUT",
+      "path": "patient-classes/{id}",
+      "tag": "Health Services / ... / Patient Class",
+      "task_id": "BE-RWI-235",
+      "change": "nama kamar ikut nama kelas"
+    }
+  ],
+  "operational_steps": [
+    {
+      "id": "D-DNH-1",
+      "content": "Kelas resmi + konfigurasi urutan kelas dalam satu jendela",
+      "gate": "DNH-G01, BM-G01"
+    },
+    {
+      "id": "D-DNH-2",
+      "content": "Pembersihan data rawat inap DB Hamzah",
+      "gate": "RWI-DEC-305; konfirmasi terpisah"
+    },
+    {
+      "id": "D-DNH-3",
+      "content": "Impor denah di DB Hamzah (bed langsung siap)",
+      "gate": "RWI-DEC-321"
+    },
+    {
+      "id": "D-DNH-4",
+      "content": "Produksi: susunan disahkan, impor sekali, pengesahan bed per lantai",
+      "gate": "DNH-G03, DNH-G05"
+    }
+  ],
+  "open_items": [
+    "RWI-OQ-141",
+    "RWI-OQ-142",
+    "RWI-OQ-143",
+    "RWI-OQ-144 (FR-DNH-004 OPEN DECISION)",
+    "DNH-UNK-01",
+    "DNH-UNK-02"
+  ]
+}

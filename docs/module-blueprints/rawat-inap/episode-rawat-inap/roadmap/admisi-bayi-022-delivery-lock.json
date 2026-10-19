@@ -1,0 +1,17 @@
+{
+  "planning_id": "RWI-BAYI-022-DELIVERY-20261016",
+  "blueprint_id": "RWI-BP-001",
+  "scope": "episode-rawat-inap/admisi-bayi-baru-lahir",
+  "status": "IMPLEMENTED_SOURCE_VALIDATED_RUNTIME_PENDING",
+  "approved_by": "Muhammad Hamzah (pengguna sesi)",
+  "approved_at": "2026-10-16",
+  "contract_version": "RWI-BAYI-022-2.0.0",
+  "excluded": ["perubahan perilaku Batalkan Pendaftaran", "alokasi saldo deposit oleh Billing/Kasir/AR"],
+  "id_allocation": {
+    "scanned_on": "2026-10-16",
+    "backend": "BE-RWI-244..247",
+    "frontend": "FE-RWI-257..259",
+    "next_free_backend": 248,
+    "next_free_frontend": 260
+  }
+}

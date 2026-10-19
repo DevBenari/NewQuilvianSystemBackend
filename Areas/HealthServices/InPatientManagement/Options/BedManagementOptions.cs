@@ -5,6 +5,18 @@ public class BedManagementOptions
     public bool EnableWorkflow { get; set; } public Guid? ReservationExpiryActorUserId { get; set; } public string? ReservationExpiryAssignmentReference { get; set; }
     public BedClassOrderOptions ClassOrder { get; set; } = new();
     public List<BedUnitAssignment> UnitAssignments { get; set; } = new();
+    /// <summary>Kesiapan bed hasil impor denah per lingkungan (BE-RWI-237, RWI-DEC-321).</summary>
+    public BedFloorPlanImportOptions FloorPlanImport { get; set; } = new();
+}
+
+/// <summary>
+/// Penetapan siap bed hasil impor hanya untuk dev/UAT. Bawaan mati; aplikasi menolak menyala bila
+/// opsi aktif di lingkungan <c>Production</c> atau tanpa referensi bukti (INV-DNH-07, VAL-DNH-18).
+/// </summary>
+public class BedFloorPlanImportOptions
+{
+    public bool MarkImportedBedsReady { get; set; } = false;
+    public string? ReadyEvidenceReference { get; set; }
 }
 
 public enum BedClassOrderDirection { HigherValueIsHigherGrade = 1, LowerValueIsHigherGrade = 2 }
