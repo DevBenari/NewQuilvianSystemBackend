@@ -2103,3 +2103,110 @@ Item tagihan kunjungan asal transfer ikut tergabung pada ringkasan tagihan, kare
 terjadi di backend (`PatientBillingSummaryService.Breakdown.cs:100-118`). Nol perubahan frontend.
 Daftar `LinkedEncounters` pada response itu belum dibaca frontend (nol kemunculan pada `src/`);
 menampilkannya **tidak** diwajibkan revisi ini.
+
+---
+
+# Amendment 16 Oktober 2026 — Biaya Admin Rawat Jalan Digantikan dan Tinjauan Void Keliru (Revisi 2.3)
+
+> `revisi blueprint`: `2.3`, status **draft**. Masukan: `BKC-DES-083`–`BKC-DES-089`, `BIL-API-2.0`.
+> Backend SHA `738e03a0`, Frontend SHA `8ad45262b`.
+
+## 1. Peta Butir Menu
+
+| Butir | Tingkat | Induk | Route (usulan) | Layar | Hak akses yang menjaga |
+|---|---|---|---|---|---|
+| **Tinjauan Void Biaya Administrasi** (baru) | 3 | Billing Management → **Approval & Kontrol** (`src/utils/menu-sidebar/menu-items.jsx:2372`), bersebelahan dengan "Rekonsiliasi Tagihan Klinis" | `/health-services/billing-management/billing/superseded-item-reviews` | `BIL-SCR-45` | `requiredPermission: { resource: "BillingSupersededItemReview", action: "Read" }` |
+
+Induk dan route di atas adalah **usulan**, mengikuti pola butir "Rekonsiliasi Tagihan Klinis" pada kelompok yang sama.
+Bunyi label, urutan di dalam kelompok, dan ikon tunduk pada persetujuan Frontend Owner. Ketiganya tidak menghalangi
+pembangunan, karena dapat diubah tanpa menyentuh kontrak.
+
+`BIL-SCR-42` dan panel ringkasan rawat inap tidak menambah butir menu; keduanya layar yang sudah ada.
+
+## 2. Perubahan pada `BIL-SCR-42` — Menu Pembayaran
+
+Saat ini baris biaya administrasi hanya tampil bila `appliedAmount > 0`
+(`src/components/view/health-services/billing-management/billing-invoices/detail-billing/detail-invoice-billing-view.jsx:824-837`).
+Akibatnya, tagihan poli yang admin-nya digantikan akan tampak seolah tidak pernah punya admin.
+
+```text
++--------------------------------------------------------------------+
+| Rincian Tagihan                                                    |
+|  ...                                                               |
+|  Biaya Administrasi        Rp 0     [Digantikan rawat inap]        |
+|                            Tagihan rawat inap: INV-RANAP-000207    |
+|  ...                                                               |
++--------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Baris Biaya Administrasi | Tampil **juga** bila `isSupersededByInpatientAdmission = true`, dengan nominal Rp 0 dan label "Digantikan rawat inap" | `GET /invoices/{id}/calculation-preview` → `breakdown.administrationFee` | `BillingInvoice : Read` | Tidak berubah dari perilaku yang ada |
+| Keterangan tagihan pengganti | Nomor tagihan rawat inap dari `supersededByInpatientInvoiceId` | Sama, ditambah pembacaan nomor invoice yang sudah ada | `BillingInvoice : Read` | Nomor gagal dimuat → tampilkan "Tagihan rawat inap" tanpa nomor; label tetap tampil |
+| ~~Baris item tarif admin yang dikeluarkan~~ | **Dicabut** bersama `BKC-DES-092` (`BKC-DEC-167`: item tarif admin tidak dipakai) | — | — | — |
+
+## 3. Perubahan pada panel ringkasan rawat inap
+
+Berkas: `src/components/view/health-services/billing-management/billing-invoices/detail/billing-inpatient-summary-panel.jsx`.
+
+| Wilayah | Sebelum | Sesudah | Sumber data |
+|---|---|---|---|
+| Baris "Kredit Biaya Administrasi Rajal (Pengurang)" (`:321-327`) | Membaca `referredOutpatientAdminCreditedAmount` | Tetap; artinya kini kredit yang **terpakai** | `breakdown.administrationFee` |
+| Baris "Biaya Administrasi Rajal Dibatalkan" (`:78-80`, `:329-333`) | Membaca `referredOutpatientAdminVoided` | **Dihapus.** Field-nya hilang dari API |  — |
+| Daftar asal (baru) | — | Satu baris per elemen `referredOutpatientAdminOrigins`: nomor tagihan poli, status, dan perlakuan ("Admin dihapus di tagihan poli" / "Dikreditkan Rp …" / "Tanpa admin") | Sama |
+| Keterangan sisa kredit (baru) | — | Bila `referredOutpatientAdminUnappliedCreditAmount > 0`: "Sisa kredit Rp … akan menjadi kredit refund saat tagihan difinalisasi" | Sama |
+
+Bunyi label adalah usulan desain. Warna, ikon, dan tata letak tetap `DEV_DISCRETION`.
+
+## 4. Layar baru `BIL-SCR-45` — Tinjauan Void Biaya Administrasi
+
+| Field | Isi |
+|---|---|
+| Pelaku | Supervisor Kasir |
+| Jalan masuk | Butir menu pada bagian 1 |
+| Tujuan | Memeriksa item yang dulu di-void oleh cacat lama, lalu memutuskan Pulihkan, Biarkan, atau Perlu Koreksi Pasca-Tutup |
+
+```text
++------------------------------------------------------------------------------------------+
+| Tinjauan Void Biaya Administrasi                                                         |
+| [Belum ditinjau v] [Status tagihan: Semua v] [Cari nomor tagihan ____] [Muat ulang]      |
+|------------------------------------------------------------------------------------------|
+| Tagihan       | Pasien        | Item                         | Nilai     | Status | Aksi |
+| INV-RJ-002311 | Budi S. / RM… | Administrasi Rekam Medis     | 25.000    | OPEN   | [Pulihkan] [Biarkan] |
+| INV-RJ-001876 | Sari M. / RM… | Paket Administrasi Kartu     | 15.000    | CLOSED | [Perlu Koreksi] [Biarkan] |
+|------------------------------------------------------------------------------------------|
+| < 1 2 3 >                                                                                |
++------------------------------------------------------------------------------------------+
+
+Dialog keputusan
++---------------------------------------------------------------+
+| Pulihkan item "Administrasi Rekam Medis" Rp 25.000?           |
+| Keputusan ini final dan tidak dapat diubah.                   |
+| Alasan (wajib, minimal 10 karakter): [______________________] |
+|                                    [Batal]  [Simpan Keputusan]|
++---------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+|---|---|---|---|---|
+| Filter | Keadaan tinjauan (bawaan "Belum ditinjau"), status tagihan, nomor tagihan | Query `GET /superseded-item-reviews` | `BillingSupersededItemReview : Read` | — |
+| Tabel | Nomor tagihan, nama pasien dan nomor RM, deskripsi item, nilai, status tagihan, tanggal void, penanda "tertaut ke rawat inap" (hanya informasi), keputusan bila sudah ada *(penanda "kategori tarif admin" dari adendum `BKC-DES-092` dicabut)* | `GET /superseded-item-reviews` | `BillingSupersededItemReview : Read` | Kosong: "Tidak ada item yang perlu ditinjau." Gagal: "Daftar tidak dapat dimuat. Coba lagi." beserta tombol coba lagi |
+| Tombol aksi | Hanya keputusan yang ada di `allowedDecisions` | Response baris | `BillingSupersededItemReview : Decide`; tanpa hak itu tombol tidak tampil | — |
+| Dialog keputusan | Ringkasan item, peringatan final, isian alasan | `POST /superseded-item-reviews/{invoiceItemId}/decision` dengan header `Idempotency-Key` dibuat sekali per pembukaan dialog | `BillingSupersededItemReview : Decide` | `409` data berubah → "Data telah berubah. Muat ulang sebelum melanjutkan." dan daftar dimuat ulang. `409` sudah diputuskan → baris diperbarui dari server. `422` → pesan dari server ditampilkan apa adanya |
+
+Aturan perilaku:
+
+1. Tombol simpan dinonaktifkan selama permintaan berjalan. `Idempotency-Key` yang sama dipakai bila pengguna menekan ulang setelah jaringan putus, sehingga keputusan tidak tercatat dua kali.
+2. Setelah keputusan tersimpan, baris diperbarui dari response, bukan dari asumsi lokal.
+3. Nama pasien dan nomor RM **MUST NOT** dikirim ke logger frontend maupun pelacak galat.
+4. Layar dapat dipakai dengan papan ketik; dialog mengunci fokus dan dapat ditutup dengan `Esc`.
+
+Komponen, warna, jarak, dan bentuk tabel tetap `DEV_DISCRETION` mengikuti base component Quilvian.
+
+## 5. Keterjangkauan layar
+
+| Layar | Butir menu | Atau layar anak dari |
+|---|---|---|
+| `BIL-SCR-45` | Tinjauan Void Biaya Administrasi | — |
+| `BIL-SCR-42` (diperbarui) | Sudah ada | — |
+| Panel ringkasan rawat inap (diperbarui) | — | Detail invoice rawat inap (sudah ada) |

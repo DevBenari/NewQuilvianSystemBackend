@@ -132,4 +132,65 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public decimal? SubtotalAmount { get; set; }
         public bool IncludesLinkedEncounter { get; set; }
     }
+
+    /// <summary>
+    /// Kontrak rincian estimasi tagihan rawat inap berharga per item (TASK BE-05).
+    /// Hanya dapat diakses oleh pemegang izin PatientBillingSummary:ViewItemAmount.
+    /// </summary>
+    public sealed class PatientBillingEstimateResponse
+    {
+        public Guid EpisodeId { get; set; }
+        public Guid EncounterId { get; set; }
+        public Guid? InvoiceId { get; set; }
+        public string InvoiceState { get; set; } = "NOT_FORMED";
+        public DateTimeOffset? CalculatedAt { get; set; }
+        public string CalculationSource { get; set; } = "LIVE_PREVIEW";
+        public bool IsEstimateComplete { get; set; }
+        public int UnpricedItemCount { get; set; }
+        public List<PatientBillingEstimateGroupResponse> Groups { get; set; } = [];
+        public List<LinkedBillingEncounterResponse> LinkedEncounters { get; set; } = [];
+        public decimal? TotalGrossAmount { get; set; }
+        public decimal? TotalDiscountAmount { get; set; }
+        public decimal? TotalTaxAmount { get; set; }
+        public decimal? AdministrationFeeAmount { get; set; }
+        public decimal? RoomChargeAmount { get; set; }
+        public decimal? EstimatedInvoiceTotalAmount { get; set; }
+        public decimal? PatientAmount { get; set; }
+        public decimal? PrimaryAmount { get; set; }
+        public bool IsTotalComplete { get; set; }
+        public List<string> WarningMessages { get; set; } = [];
+    }
+
+    public sealed class PatientBillingEstimateGroupResponse
+    {
+        public string GroupCode { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public int ItemCount { get; set; }
+        public decimal? GrossSubtotal { get; set; }
+        public bool IsSubtotalComplete { get; set; }
+        public int UnpricedItemCount { get; set; }
+        public bool IncludesLinkedEncounter { get; set; }
+        public List<PatientBillingEstimateLineResponse> Lines { get; set; } = [];
+    }
+
+    public sealed class PatientBillingEstimateLineResponse
+    {
+        public string LineKey { get; set; } = string.Empty;
+        public Guid? InvoiceItemId { get; set; }
+        public string Label { get; set; } = string.Empty;
+        public string UnitLabel { get; set; } = "unit";
+        public decimal Quantity { get; set; } = 1;
+        public decimal? UnitPrice { get; set; }
+        public decimal? GrossAmount { get; set; }
+        public decimal? ItemDiscount { get; set; }
+        public decimal? TaxAmount { get; set; }
+        public decimal? NetAmount { get; set; }
+        public string PriceStatus { get; set; } = "PRICED";
+        public string LineStatus { get; set; } = "ACTIVE";
+        public string? SourceDomain { get; set; }
+        public DateTimeOffset? ServiceDate { get; set; }
+        public string? PeriodLabel { get; set; }
+        public LinkedBillingEncounterResponse? LinkedEncounter { get; set; }
+    }
 }
+

@@ -27,6 +27,7 @@ public sealed class BillingInvoiceService
     private readonly LoggerService _loggerService;
     private readonly InsuranceCoverageService _insuranceCoverageService;
     private readonly BilConsumerHandoffService _consumerHandoffService;
+    private readonly BillingInvoiceClosureService? _closureService;
 
     public BillingInvoiceService(
         ApplicationDbContext dbContext,
@@ -35,7 +36,8 @@ public sealed class BillingInvoiceService
         BillingCalculationService calculationService,
         LoggerService loggerService,
         InsuranceCoverageService insuranceCoverageService,
-        BilConsumerHandoffService consumerHandoffService)
+        BilConsumerHandoffService consumerHandoffService,
+        BillingInvoiceClosureService? closureService = null)
     {
         _dbContext = dbContext;
         _sourceAdapter = sourceAdapter;
@@ -44,6 +46,7 @@ public sealed class BillingInvoiceService
         _loggerService = loggerService;
         _insuranceCoverageService = insuranceCoverageService;
         _consumerHandoffService = consumerHandoffService;
+        _closureService = closureService;
     }
 
     // BKC-DEC-060: preview read-only, tanpa efek samping - dipakai layar entri sebelum item
@@ -453,6 +456,24 @@ public sealed class BillingInvoiceService
             .GroupBy(t => settlementToInvoice[t.SettlementId])
             .ToDictionary(g => g.Key, g => g.OrderBy(t => t.AttemptedAt).ToList());
 
+        var adjustmentRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilAdjustments.AsNoTracking()
+                .Where(a => invoiceIds.Contains(a.InvoiceId) && a.Status == BillingAdjustmentStatuses.Posted && !a.IsDelete)
+                .Select(a => new { a.InvoiceId, a.Direction, a.Amount })
+                .ToListAsync(cancellationToken);
+        var netAdjustmentByInvoice = adjustmentRows
+            .GroupBy(a => a.InvoiceId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(a => a.Direction == BillingAdjustmentDirections.Credit ? a.Amount : -a.Amount));
+
+        var invoiceStatusById = invoiceIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _dbContext.BilInvoices.AsNoTracking()
+                .Where(i => invoiceIds.Contains(i.Id))
+                .ToDictionaryAsync(i => i.Id, i => i.Status, cancellationToken);
+
         var items = page.Select(x =>
         {
             guarantorByEncounter.TryGetValue(x.EncounterId, out var guarantor);
@@ -465,6 +486,37 @@ public sealed class BillingInvoiceService
                 && claimMethodByProvider.TryGetValue(guarantor.InsuranceProviderId.Value, out var cm)
                 ? cm
                 : null;
+
+            netAdjustmentByInvoice.TryGetValue(x.Id, out var netAdj);
+            var effectivePatientObligation = Math.Max(0m, patientAmount - netAdj);
+            var outstanding = Math.Max(0m, effectivePatientObligation - totalPaid);
+            var invoiceStatus = invoiceStatusById.TryGetValue(x.Id, out var st) ? st : string.Empty;
+
+            var isFullyPaid = (outstanding <= 0m && (totalPaid > 0 || netAdj > 0 || patientAmount == 0))
+                || invoiceStatus == BillingInvoiceStatuses.Closed;
+            var paymentStatus = isFullyPaid
+                ? "LUNAS"
+                : (totalPaid > 0 ? "SEBAGIAN" : "BELUM_LUNAS");
+
+            decimal running = 0m;
+            var historyTenders = tenders.Select(t =>
+            {
+                running += t.Amount;
+                var isSettled = (isFullyPaid && running >= totalPaid)
+                    || running >= effectivePatientObligation
+                    || (effectivePatientObligation > 0 && Math.Abs(running - Math.Round(effectivePatientObligation, 0, MidpointRounding.AwayFromZero)) == 0);
+                return new PaymentHistoryTenderResponse
+                {
+                    Id = t.Id,
+                    SettlementId = t.SettlementId,
+                    KwitansiNumber = t.KwitansiNumber ?? string.Empty,
+                    Amount = t.Amount,
+                    AttemptedAt = t.AttemptedAt,
+                    TransactionClassification = isSettled ? "PELUNASAN" : "CICILAN",
+                    PostTransactionStatus = isSettled ? "LUNAS" : "SEBAGIAN",
+                    RemainingOutstanding = isSettled ? 0m : Math.Max(effectivePatientObligation - running, 0m)
+                };
+            }).ToList();
 
             return new PaymentHistoryItemResponse
             {
@@ -479,15 +531,10 @@ public sealed class BillingInvoiceService
                 ClaimMethod = claimMethod,
                 TotalBillAmount = patientAmount,
                 TotalPaidAmount = totalPaid,
-                IsFullyPaid = patientAmount > 0 && totalPaid >= patientAmount,
-                Tenders = tenders.Select(t => new PaymentHistoryTenderResponse
-                {
-                    Id = t.Id,
-                    SettlementId = t.SettlementId,
-                    KwitansiNumber = t.KwitansiNumber ?? string.Empty,
-                    Amount = t.Amount,
-                    AttemptedAt = t.AttemptedAt
-                }).ToList()
+                OutstandingAmount = outstanding,
+                IsFullyPaid = isFullyPaid,
+                PaymentStatus = paymentStatus,
+                Tenders = historyTenders
             };
         }).ToList();
 
@@ -1053,7 +1100,97 @@ public sealed class BillingInvoiceService
 
         var response = MapDetail(invoice, false);
         response.Patient = await LoadPatientSummaryAsync(invoice.EncounterId, cancellationToken);
+
+        decimal patientAmount = currentVersion?.PatientAmount ?? 0m;
+        var totalPaid = await _dbContext.BilTenders.AsNoTracking()
+            .Where(t => t.Settlement.InvoiceId == id && t.Status == BillingTenderStatuses.Succeeded && !t.IsDelete)
+            .SumAsync(t => (decimal?)t.Amount, cancellationToken) ?? 0m;
+
+        decimal outstanding;
+        if (_closureService != null)
+        {
+            outstanding = await _closureService.CalculateOutstandingAsync(invoice, currentVersion, cancellationToken);
+        }
+        else
+        {
+            outstanding = Math.Max(patientAmount - totalPaid, 0m);
+        }
+
+        var isFullyPaid = invoice.Status == BillingInvoiceStatuses.Closed
+            || (outstanding <= 0 && (patientAmount > 0 || totalPaid > 0))
+            || (patientAmount == 0 && invoice.Status != BillingInvoiceStatuses.Open);
+
+        response.TotalPaidAmount = totalPaid;
+        response.OutstandingAmount = outstanding;
+        response.IsFullyPaid = isFullyPaid;
+        response.PaymentStatus = isFullyPaid
+            ? "LUNAS"
+            : (totalPaid > 0 ? "SEBAGIAN" : "BELUM_LUNAS");
+
         return response;
+    }
+
+    /// <summary>
+    /// Preview pembayaran dan pembulatan kasir sebelum pembayaran diproses (BE-07).
+    /// Mengembalikan nominal awal, selisih pembulatan (mis. tunai ke Rupiah penuh), dan nominal efektif.
+    /// </summary>
+    public async Task<PaymentPreviewResponse> GetPaymentPreviewAsync(
+        Guid invoiceId,
+        string? paymentMethodCode,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+
+        var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.InvoiceId == invoice.Id && !x.IsDelete && x.VersionNo == invoice.CurrentCalculationVersion, cancellationToken)
+            ?? await _dbContext.BilCalculationVersions.AsNoTracking()
+                .Where(x => x.InvoiceId == invoice.Id && !x.IsDelete)
+                .OrderByDescending(x => x.VersionNo)
+                .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new BillingInvoiceValidationException("Invoice belum memiliki hasil perhitungan terkini.");
+
+        var closureService = _closureService ?? new BillingInvoiceClosureService(_dbContext);
+        var outstanding = await closureService.CalculateOutstandingAsync(invoice, calculation, cancellationToken);
+
+        var paidAmount = await _dbContext.BilPaymentAllocations.AsNoTracking()
+            .Where(x => x.TargetType == BillingAllocationTargetTypes.Invoice && x.TargetId == invoice.Id && !x.IsDelete)
+            .SumAsync(x => (decimal?)(x.ReversesAllocationId.HasValue ? -x.Amount : x.Amount), cancellationToken) ?? 0m;
+
+        var method = (paymentMethodCode ?? "CASH").Trim().ToUpperInvariant();
+        var isCash = method is "CASH" or "TUNAI";
+
+        var roundingAdjustment = 0m;
+        var effectivePayable = outstanding;
+
+        if (isCash && outstanding > 0m)
+        {
+            var rounded = Math.Round(outstanding, 0, MidpointRounding.AwayFromZero);
+            roundingAdjustment = rounded - outstanding;
+            effectivePayable = rounded;
+        }
+
+        var isFullyPaid = outstanding <= 0m || invoice.Status == BillingInvoiceStatuses.Closed;
+        var paymentStatus = isFullyPaid ? "LUNAS" : (paidAmount > 0m ? "SEBAGIAN" : "BELUM_LUNAS");
+
+        return new PaymentPreviewResponse
+        {
+            InvoiceId = invoice.Id,
+            OriginalPayableAmount = outstanding,
+            PaymentMethodType = isCash ? "CASH" : method,
+            RoundingAdjustmentAmount = roundingAdjustment,
+            EffectivePayableAmount = effectivePayable,
+            ActualPaidAmount = paidAmount,
+            NetAllocatedAmount = paidAmount,
+            OutstandingAmount = outstanding,
+            PaymentStatus = paymentStatus,
+            InvoiceLifecycleStatus = invoice.Status,
+            IsCashRoundingApplied = isCash && roundingAdjustment != 0m,
+            Description = isCash && roundingAdjustment != 0m
+                ? $"Pembulatan tunai ke Rupiah penuh: {(roundingAdjustment > 0 ? "+" : "")}{roundingAdjustment:N2}"
+                : "Nominal pembayaran eksak."
+        };
     }
 
     public async Task<EncounterChargeSummaryResponse> GetChargeSummaryByEncounterAsync(
@@ -1388,6 +1525,14 @@ public sealed class BillingInvoiceService
                 && encounter.IsActive
                 && ManualChargeEligibleEncounterStatuses.Contains(encounter.EncounterStatus)
                 && !encounter.CompletedAt.HasValue
+                && !_dbContext.BilInvoices.Any(inv =>
+                    inv.EncounterId == encounter.Id
+                    && !inv.IsDelete
+                    && !inv.IsCancel
+                    && (inv.Status == BillingInvoiceStatuses.Closed
+                        || inv.Status == BillingInvoiceStatuses.SettledByWriteOff
+                        || inv.Status == BillingInvoiceStatuses.Final
+                        || inv.ClosedAt.HasValue))
             select new { encounter, patient };
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -1422,7 +1567,11 @@ public sealed class BillingInvoiceService
         var invoicedEncounterIds = encounterIds.Count == 0
             ? []
             : await _dbContext.BilInvoices.AsNoTracking()
-                .Where(x => encounterIds.Contains(x.EncounterId) && !x.IsDelete)
+                .Where(x => encounterIds.Contains(x.EncounterId)
+                    && !x.IsDelete
+                    && !x.IsCancel
+                    && x.Status == BillingInvoiceStatuses.Open
+                    && !x.ClosedAt.HasValue)
                 .Select(x => x.EncounterId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
@@ -1562,7 +1711,9 @@ public sealed class BillingInvoiceService
             DoctorInChargeName = doctorName,
             BedName = bedName,
             BedNumber = bedNumber,
-            AdmissionDateTime = admissionDateTime ?? row.encounter.CheckedInAt ?? row.encounter.EncounterDate
+            AdmissionDateTime = admissionDateTime ?? row.encounter.CheckedInAt ?? row.encounter.EncounterDate,
+            EncounterStatus = (int)row.encounter.EncounterStatus,
+            EncounterStatusName = row.encounter.EncounterStatus.ToString()
         };
     }
 
@@ -1876,7 +2027,7 @@ public sealed class BillingInvoiceService
                 _dbContext.BilInvoices.Add(invoice);
             }
             // BKC-DEC-120, BIL-VAL-127: Penolakan mutlak tagihan susulan saat invoice CLOSED
-            if (invoice.Status == BillingInvoiceStatuses.Closed)
+            if (invoice.Status == BillingInvoiceStatuses.Closed || invoice.ClosedAt.HasValue)
             {
                 throw new BillingInvoiceValidationException(
                     "Tagihan susulan ditolak karena invoice telah ditutup. Pembukaan kembali memerlukan persetujuan Supervisor Kasir.");
@@ -2404,6 +2555,19 @@ public sealed class BillingInvoiceService
     };
 
     /// <summary>
+    /// Resolver satuan tunggal item invoice: BilInvoiceItem -> Tariff -> Drug -> DispenseUnitMeasurement ->
+    /// MeasurementName, hanya untuk kategori Pharmacy (obat/alkes). Dipakai bersama oleh <see cref="MapItems"/>
+    /// (Running Invoice) dan estimasi biaya rawat inap supaya kedua layar tidak punya dua rumus satuan.
+    /// Mengembalikan null bila bukan kategori Pharmacy atau master satuan tidak tersedia; pemanggil yang
+    /// butuh teks tampilan menentukan fallback-nya sendiri. Pemanggil MUST memuat Category dan
+    /// Tariff.Drug.DispenseUnitMeasurement (lihat <see cref="MapItems"/>).
+    /// </summary>
+    internal static string? ResolveItemUnit(BilInvoiceItem item) =>
+        (item.Category?.IsPharmacy == true || item.Tariff?.Drug != null)
+            ? item.Tariff?.Drug?.DispenseUnitMeasurement?.MeasurementName
+            : null;
+
+    /// <summary>
     /// Pemetaan tunggal <see cref="BilInvoiceItem"/> -> <see cref="InvoiceItemResponse"/>, dipakai
     /// <see cref="MapDetail"/> (GET /{id}) maupun <see cref="BillingPayerEditService.GetEditContextAsync"/>
     /// (GET /{id}/edit-context, BE-BKC-FIX-009) supaya kedua layar membaca deskripsi/satuan/harga
@@ -2430,9 +2594,7 @@ public sealed class BillingInvoiceService
                 // Enhancement (di luar roadmap, permintaan langsung pengguna): satuan dispensing
                 // obat/alkes untuk kolom "Satuan" Menu Pembayaran - hanya kategori Pharmacy/Drug/
                 // Consumable-Alkes yang punya konsep satuan dispensing, kategori lain tetap null.
-                Unit = x.Category != null && x.Category.IsPharmacy
-                    ? x.Tariff?.Drug?.DispenseUnitMeasurement?.MeasurementName
-                    : null,
+                Unit = ResolveItemUnit(x),
                 Quantity = x.Quantity,
                 UnitPrice = x.UnitPrice,
                 DoctorShare = x.DoctorShare,

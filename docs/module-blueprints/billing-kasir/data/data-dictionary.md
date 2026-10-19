@@ -1690,3 +1690,97 @@ Kolom `AnomalyCode` (`varchar(40)`) cukup untuk nilai baru (24 karakter). Constr
 |---|---|---|---|
 | `RegPatientEncounter` | Registration Management | `SourceEncounterId`, `AdmissionTransferSourceType`, `PatientId`, `EncounterType`, `IsDelete`, `IsCancel` | Menulis tautan transfer; periksa silang tingkat pertama |
 | `BilInvoice` | Billing | `EncounterId`, `ServiceType` | Memilih invoice Rawat Jalan untuk penggantian biaya admin |
+
+---
+
+## Amendment 16 Oktober 2026 — Kredit Admin Rawat Jalan, Tinjauan Void Keliru, dan Backfill Tautan (Revisi 2.3)
+
+> `last_changed_in`: revisi blueprint `2.3`, status **draft**. Masukan: `BKC-DES-083`–`BKC-DES-089`. Backend SHA: `738e03a0`.
+> Satu tabel baru, dua kolom baru, dua `CHECK` berubah. Seluruh tabel mewarisi `IdentityModel`; kesepuluh kolomnya tidak diulang.
+
+### `BilCalculationVersion` — **Diperbarui**
+
+Pemilik: Billing. Model: `Areas/HealthServices/BillingManagement/Billing/Models/BilCalculationVersion.cs`.
+Konfigurasi: `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilCalculationVersionConfiguration.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Aturan | Sensitif |
+|---|---|---|---|---|---|
+| `ReferredOutpatientAdminCreditAmount` | `numeric(18,2)` | Ya | `0` | **Baru.** Kredit admin Rawat Jalan yang **terpakai** mengurangi porsi pasien invoice `RANAP` (`BKC-DES-085`). Selalu 0 pada invoice selain `RANAP` | Tidak |
+| `ReferredOutpatientAdminUnappliedCreditAmount` | `numeric(18,2)` | Ya | `0` | **Baru.** Kredit yang tidak terpakai karena porsi pasien sudah 0; menjadi kredit refund saat finalisasi (`BKC-DES-086`) | Tidak |
+| `AdministrationFeeAmount` | `numeric(18,2)` | Ya | — | Sudah ada. Pada invoice `RAJAL` yang digantikan (`BKC-DES-084`) nilainya **0** | Tidak |
+| `PatientAmount` | `numeric(18,2)` | Ya | — | Sudah ada. Pada invoice `RANAP`, sudah dikurangi `ReferredOutpatientAdminCreditAmount` | Tidak |
+| `BreakdownSnapshot` | `text` (JSON) | Ya | `{}` | Sudah ada. `AdministrationFee` kini memuat `isSupersededByInpatientAdmission`, `supersededByInpatientInvoiceId`, `supersededReasonCode`, `referredOutpatientAdminOrigins`, dan `referredOutpatientAdminUnappliedCreditAmount`. *(Field `adminItemsPatientAmount` dan `supersededAdministrationItems` dari adendum `BKC-DES-092` dicabut, `BKC-DEC-167`.)* | Tidak |
+
+Constraint `CK_BilCalculationVersion_Amounts` ditambah `"ReferredOutpatientAdminCreditAmount" >= 0 AND "ReferredOutpatientAdminUnappliedCreditAmount" >= 0`.
+
+**Contoh.** Porsi pasien rawat inap sebelum kredit Rp 3.650.000, kredit admin poli Rp 150.000. Hasilnya
+`ReferredOutpatientAdminCreditAmount = 150.000`, `ReferredOutpatientAdminUnappliedCreditAmount = 0`, dan `PatientAmount = 3.500.000`.
+Bila porsi pasien sebelum kredit Rp 0 (ditanggung penuh BPJS), hasilnya `0`, `150.000`, dan `0`.
+
+### `BilRefundableCredit` — **Diperbarui (nilai constraint)**
+
+Model: `Areas/HealthServices/BillingManagement/Billing/Models/BilRefundableCredit.cs`.
+
+| Kolom kunci | Aturan pada revisi ini |
+|---|---|
+| `SourceType` | `CK_BilRefundableCredit_SourceType` menerima `'ALLOCATION_EXCESS'`, `'SETTLEMENT'`, **`'REFERRED_OUTPATIENT_ADMIN'`** |
+| `SourceId` | Untuk `REFERRED_OUTPATIENT_ADMIN`: id invoice **rawat inap**, sehingga indeks unik (`SourceType`, `SourceId`) menjamin satu kredit per invoice rawat inap |
+| `InvoiceId` | Invoice rawat inap tempat kredit diakui |
+| `OriginalAmount`, `AvailableAmount` | Lahir sama dengan `ReferredOutpatientAdminUnappliedCreditAmount` versi yang difinalisasi; berkurang lewat refund yang sudah ada |
+
+### `BilSupersededItemReview` — **Baru**
+
+Pemilik: Billing. Model: `Areas/HealthServices/BillingManagement/Billing/Models/BilSupersededItemReview.cs`.
+Konfigurasi: `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilSupersededItemReviewConfiguration.cs`.
+Satu baris adalah satu keputusan Supervisor Kasir atas satu item yang di-void dengan kode `SUPERSEDED_BY_INPATIENT_ADMISSION`. *Append-only*.
+
+| Kolom | Tipe | Wajib | Bawaan | PK/FK, indeks | Aturan | Sensitif |
+|---|---|---|---|---|---|---|
+| `Id` | `uuid` | Ya | baru | PK | — | Tidak |
+| `InvoiceItemId` | `uuid` | Ya | — | FK `BilInvoiceItem.Id`, `Restrict`; unik selama `NOT "IsDelete"` | Item `VOIDED` dengan kode `SUPERSEDED_BY_INPATIENT_ADMISSION` | Tidak |
+| `InvoiceId` | `uuid` | Ya | — | FK `BilInvoice.Id`, `Restrict`; indeks | Sama dengan invoice item | Tidak |
+| `Decision` | `varchar(40)` | Ya | — | indeks | `REINSTATE`, `KEEP`, `NEEDS_POST_CLOSE_CORRECTION` | Tidak |
+| `InvoiceStatusAtDecision` | `varchar(30)` | Ya | — | — | Status invoice saat diputuskan | Tidak |
+| `ReinstatedInvoiceItemId` | `uuid` | Tidak | NULL | FK `BilInvoiceItem.Id`, `Restrict` | Wajib terisi **hanya** untuk `REINSTATE` | Tidak |
+| `Reason` | `varchar(500)` | Ya | — | — | 10–500 karakter; **MUST NOT** memuat nama pasien atau diagnosis | Tidak |
+| `DecidedBy` | `uuid` | Ya | — | — | Pemegang `BillingSupersededItemReview : Decide` | Tidak |
+| `DecidedAt` | `timestamptz` | Ya | — | — | Waktu server | Tidak |
+| `IdempotencyKey` | `uuid` | Ya | — | Unik | Header `Idempotency-Key` | Tidak |
+| `PayloadHash` | `varchar(64)` | Ya | — | — | SHA-256 isi permintaan | Tidak |
+
+```sql
+CONSTRAINT "CK_BilSupersededItemReview_Decision" CHECK ("Decision" IN ('REINSTATE','KEEP','NEEDS_POST_CLOSE_CORRECTION')),
+CONSTRAINT "CK_BilSupersededItemReview_ReinstatedItem" CHECK (("Decision" = 'REINSTATE') = ("ReinstatedInvoiceItemId" IS NOT NULL)),
+CONSTRAINT "CK_BilSupersededItemReview_Reason" CHECK (length(trim("Reason")) > 0)
+```
+
+**Contoh baris.** Item "Administrasi Rekam Medis Rp 25.000" pada tagihan poli yang masih `OPEN` dipulihkan:
+`Decision = REINSTATE`, `InvoiceStatusAtDecision = OPEN`, `ReinstatedInvoiceItemId` = id item salinan yang baru, dan
+`Reason` = "Item layanan rekam medis, bukan biaya admin; ter-void oleh cacat lama".
+
+### `BilInvoiceItem` — **Sudah ada**, kolom kunci yang dipakai
+
+Model: `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceItem.cs`.
+
+| Kolom kunci | Dipakai untuk |
+|---|---|
+| `Status`, `VoidReason` | Menyaring kandidat tinjauan (`VOIDED` + `SUPERSEDED_BY_INPATIENT_ADMISSION`). Item lama **tidak** pernah diubah |
+| `SourceDomain`, `SourceDetailId`, `SourceVersion` | Disalin ke item pemulihan, dengan `SourceVersion` + 1. Indeks unik berfilter non-`VOIDED` mengizinkan salinan selama item lama tetap `VOIDED` |
+| `InvoiceId`, `CategoryId`, `TariffId`, `DescriptionSnapshot`, `Quantity`, `UnitPrice`, `DoctorShare` | Disalin apa adanya |
+
+### `BilInvoiceEncounterLink` — **Sudah ada**, baris bertambah lewat backfill
+
+| Kolom | Isi pada baris backfill (`BKC-DES-088`) |
+|---|---|
+| `LinkReason` | `EMERGENCY_ORIGIN` atau `OUTPATIENT_ORIGIN` mengikuti `AdmissionTransferSourceType` |
+| `ReceiptId` | Tanda terima `ADMISSION_CONFIRMED` paling awal untuk invoice dan kunjungan rawat inap itu |
+| `LinkedAt` | `ReceivedAtUtc` tanda terima itu — **bukan** waktu migration |
+| `CreateBy` | Penanda backfill `7b1f0163-0000-4000-8000-000000000163` |
+
+### Kolom lain yang dibaca
+
+| Tabel | Pemilik | Kolom | Dipakai untuk |
+|---|---|---|---|
+| `BilInpatientEventReceipt` | Billing | `Id`, `EventType`, `EncounterId`, `InvoiceId`, `Outcome`, `ReceivedAtUtc` | `ReceiptId` dan `LinkedAt` backfill |
+| `BilPaymentAllocation` | Billing | `TargetType`, `TargetId`, `Amount`, `ReversesAllocationId` | Alokasi bersih invoice poli untuk kredit `SETTLED_BY_WRITE_OFF` |
+| `RegPatientEncounter` | Registration Management | `SourceEncounterId`, `AdmissionTransferSourceType`, `PatientId`, `EncounterType`, `IsDelete`, `IsCancel` | Kriteria backfill, **baca saja** |

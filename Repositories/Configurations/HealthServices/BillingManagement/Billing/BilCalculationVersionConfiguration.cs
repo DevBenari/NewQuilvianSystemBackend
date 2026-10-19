@@ -11,7 +11,7 @@ public sealed class BilCalculationVersionConfiguration : IEntityTypeConfiguratio
         entity.ToTable("BilCalculationVersion", "public", table =>
         {
             table.HasCheckConstraint("CK_BilCalculationVersion_Version", "\"VersionNo\" > 0");
-            table.HasCheckConstraint("CK_BilCalculationVersion_Amounts", "\"GrossAmount\" >= 0 AND \"AdministrationFeeAmount\" >= 0 AND \"RoomChargeAmount\" >= 0 AND \"ItemDiscount\" >= 0 AND \"TotalDiscount\" >= 0 AND \"TaxAmount\" >= 0 AND \"PatientAmount\" >= 0 AND \"PrimaryAmount\" >= 0 AND \"ExcessAmount\" >= 0 AND \"UnresolvedCoverageAmount\" >= 0");
+            table.HasCheckConstraint("CK_BilCalculationVersion_Amounts", "\"GrossAmount\" >= 0 AND \"AdministrationFeeAmount\" >= 0 AND \"RoomChargeAmount\" >= 0 AND \"ItemDiscount\" >= 0 AND \"TotalDiscount\" >= 0 AND \"TaxAmount\" >= 0 AND \"PatientAmount\" >= 0 AND \"PrimaryAmount\" >= 0 AND \"ExcessAmount\" >= 0 AND \"UnresolvedCoverageAmount\" >= 0 AND \"ReferredOutpatientAdminCreditAmount\" >= 0 AND \"ReferredOutpatientAdminUnappliedCreditAmount\" >= 0");
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.GrossAmount).HasPrecision(18, 2);
@@ -26,6 +26,8 @@ public sealed class BilCalculationVersionConfiguration : IEntityTypeConfiguratio
         entity.Property(x => x.UnresolvedCoverageAmount).HasPrecision(18, 2);
         entity.Property(x => x.NonBillableResidualAmount).HasPrecision(18, 2);
         entity.Property(x => x.RoundingAmount).HasPrecision(18, 2);
+        entity.Property(x => x.ReferredOutpatientAdminCreditAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+        entity.Property(x => x.ReferredOutpatientAdminUnappliedCreditAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.Reason).HasMaxLength(500).IsRequired();
         entity.Property(x => x.BreakdownSnapshot).HasColumnType("jsonb").IsRequired();
         entity.Property(x => x.CalculatedAt).HasColumnType("timestamp with time zone");
