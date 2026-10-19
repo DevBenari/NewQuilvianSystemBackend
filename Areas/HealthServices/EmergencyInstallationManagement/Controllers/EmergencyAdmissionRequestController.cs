@@ -160,6 +160,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 hasil.Data, "Form Permintaan Rawat Inap dikirim ke DPJP IGD untuk ditandatangani."));
         }
 
+        [HttpGet("{id:guid}/print-data")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyAdmissionRequestPrintResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Read", "Read Emergency Admission Request", Description = "Mengambil isi cetak Form Permintaan Rawat Inap yang sudah ditandatangani", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyAdmissionRequest", "Read")]
+        public async Task<IActionResult> GetPrintData(Guid id, CancellationToken cancellationToken = default)
+        {
+            var hasil = await _service.AmbilDataCetakPermintaanAsync(id, cancellationToken);
+            if (!hasil.Berhasil)
+                return Gagal(hasil.StatusCode, hasil.Penolakan!);
+
+            return Ok(ApiResponse<EmergencyAdmissionRequestPrintResponse>.Ok(
+                hasil.Data!, "Isi cetak Form Permintaan Rawat Inap berhasil diambil."));
+        }
+
+        [HttpPost("{id:guid}/sign")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyAdmissionRequestResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+        [AccessAction("Sign", "Sign Emergency Admission Request", Description = "Melihat daftar Perlu TTD, menandatangani, dan mengembalikan Form Permintaan Rawat Inap", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("EmergencyAdmissionRequest", "Sign")]
+        public async Task<IActionResult> Sign(
+            Guid id,
+            [FromBody] EmergencyAdmissionRequestRowVersionRequest request,
+            [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _service.TandatanganiPermintaanAsync(
+                id,
+                request,
+                idempotencyKey,
+                Request.Headers.UserAgent.ToString(),
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                GetCurrentUserId(),
+                cancellationToken);
+            if (!hasil.Berhasil)
+                return Gagal(hasil.StatusCode, hasil.Penolakan!);
+
+            await CatatAsync("Sign", "Menandatangani Form Permintaan Rawat Inap; pasien masuk Antrean Transfer IGD/Poli.", hasil.Data!);
+            return Ok(ApiResponse<EmergencyAdmissionRequestResponse>.Ok(
+                hasil.Data, "Form Permintaan Rawat Inap ditandatangani. Pasien masuk Antrean Transfer IGD/Poli di Admisi Rawat Inap."));
+        }
+
         [HttpPost("{id:guid}/return")]
         [ProducesResponseType(typeof(ApiResponse<EmergencyAdmissionRequestResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

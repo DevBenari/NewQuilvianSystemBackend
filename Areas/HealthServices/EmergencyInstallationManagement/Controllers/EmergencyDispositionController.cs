@@ -212,6 +212,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             };
 
             _dbContext.Set<EmgDisposition>().Add(entity);
+
+            if (entity.DispositionStatus == EmergencyDispositionStatus.Confirmed)
+            {
+                var visit = await _dbContext.Set<EmgVisit>().FirstOrDefaultAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+                if (visit != null && (visit.VisitStatus == EmergencyVisitStatus.Triaged || visit.VisitStatus == EmergencyVisitStatus.InTreatment))
+                {
+                    _emergencyVisitService.TryApplyVisitStatus(visit, EmergencyVisitStatus.AwaitingDisposition, actorUserId, now, out _);
+                }
+            }
+
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
@@ -317,10 +327,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (!_emergencyDispositionService.CanTransition(entity.DispositionStatus, request.DispositionStatus))
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, $"Perubahan status dari {entity.DispositionStatus} ke {request.DispositionStatus} tidak diperbolehkan."));
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
             if (request.DispositionStatus == EmergencyDispositionStatus.Confirmed)
             {
                 var visit = await _dbContext.Set<EmgVisit>()
-                    .AsNoTracking()
                     .FirstOrDefaultAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
 
                 if (visit != null)
@@ -333,6 +345,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                         return Conflict(ApiResponse<object>.Fail(
                             StatusCodes.Status409Conflict,
                             diagnosisValidation));
+                    }
+
+                    // IGD-DEC-311: Saat dokter mengonfirmasi tindak lanjut, kunjungan yang masih
+                    // berada pada tahap penanganan (Triaged atau InTreatment) berpindah ke AwaitingDisposition.
+                    if (visit.VisitStatus == EmergencyVisitStatus.Triaged || visit.VisitStatus == EmergencyVisitStatus.InTreatment)
+                    {
+                        _emergencyVisitService.TryApplyVisitStatus(
+                            visit, EmergencyVisitStatus.AwaitingDisposition, actorUserId, now, out _);
                     }
                 }
             }
@@ -361,8 +381,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     "Alasan pembatalan wajib diisi ketika tindak lanjut dibatalkan."));
             }
 
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
+            var butuhFormRawatInap = request.DispositionStatus is EmergencyDispositionStatus.Executed or EmergencyDispositionStatus.Cancelled
+                && await _emergencyDispositionService.ButuhFormPermintaanRawatInapAsync(entity.Id, cancellationToken);
+
+            if (butuhFormRawatInap && request.DispositionStatus == EmergencyDispositionStatus.Executed)
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict,
+                    await _emergencyDispositionService.AlasanJalankanRawatInapDitolakAsync(entity.Id, cancellationToken)));
+
+            await using var transaksiRawatInap = butuhFormRawatInap && request.DispositionStatus == EmergencyDispositionStatus.Cancelled
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+
+            if (transaksiRawatInap != null)
+            {
+                var penolakanBatal = await _emergencyDispositionService.BatalkanPermintaanKarenaTindakLanjutAsync(
+                    entity, NormalizeText(request.Notes)!, actorUserId, cancellationToken);
+                if (penolakanBatal != null)
+                    return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanBatal));
+            }
 
             // BE-IGD-021 — titik tulis VisitStatus kelima. Penjaga BE-IGD-018 dipanggil
             // sebelum entity diubah, supaya penolakan 409 tidak meninggalkan tindak lanjut
@@ -375,11 +411,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     entity.DispositionStatus == EmergencyDispositionStatus.Executed
                     && !EmergencyVisitService.EpisodeMasihBerjalan(visit.VisitStatus);
 
-                if (!pengulanganPadaKunjunganSelesai
-                    && !_emergencyVisitService.TryApplyVisitStatus(
-                        visit, EmergencyVisitStatus.Disposed, actorUserId, now, out var penolakanStatusKunjungan))
+                if (!pengulanganPadaKunjunganSelesai)
                 {
-                    return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanStatusKunjungan!));
+                    if (!_emergencyVisitService.TryPromoteToDisposed(
+                        visit, actorUserId, now, out var penolakanStatusKunjungan))
+                    {
+                        return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanStatusKunjungan!));
+                    }
                 }
             }
 
@@ -410,6 +448,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 : EmergencyVisitService.HasilPenutupanSusulan.Dilewati;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaksiRawatInap != null)
+                await transaksiRawatInap.CommitAsync(cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,

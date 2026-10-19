@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Roadmap ID | `RAD-RM-FE-001` |
-| Revision | `1` |
+| Revision | `9` — uji layar data dan akun sungguhan (`RAD-EVD-002`): enam batas verifikasi ditutup, lima cacat diperbaiki, 2026-10-15. Sebelumnya `8` — `FE-RAD-18` dibuka dan dibangun: laporan operasional, Tarif Tindakan, Template Hasil, Ubah Pemeriksaan, Cetak Film, 2026-10-15. Sebelumnya `6` — `RAD-DEC-021`/`022` (ikut v1): `FE-RAD-17` selesai, `FE-RAD-15` ditutup, menu dan tab v1 bertanda, 2026-10-15. Sebelumnya `5` — `FE-RAD-16` (Beranda) selesai; `FE-RAD-15` tertahan keputusan, 2026-10-15. Sebelumnya `4` — paritas v1 (`RAD-EVD-001`): `FE-RAD-14`..`FE-RAD-17` dibuka, `FE-RAD-14` selesai, 2026-10-15. Sebelumnya `3` — sisa `FE-RAD-09` selesai, 2026-10-14 |
 | Status | `approved` |
 | Blueprint | `RAD-BP-001` revision 9, status `approved` |
 | Frontend SHA baseline | `f66ed1885` |
@@ -27,6 +27,73 @@
 > boleh** dikerjakan di browser. Sisa ketidaksesuaian terhadap PRD beserta tujuh pertanyaan
 > keputusan ada pada `05-prd-conformance-gap.md`; sampai keputusannya turun, roadmap ini tidak
 > berubah.
+
+---
+
+## 0. Ringkasan Task Frontend dan Status — per 2026-10-14
+
+> **Mulai baca status dari sini.** Status diambil dari laporan di
+> [`task/report/frontend/`](../task/report/frontend/) lalu dicocokkan dengan source backend branch
+> `yoga` dan frontend branch `YogaV2` per 2026-10-14. Rincian tiap task tetap ada pada blok task
+> dan laporannya.
+
+**Arti status:**
+
+| Status | Arti |
+|---|---|
+| **Selesai** | Kode selesai dan DoD terbukti |
+| **Selesai — batas verifikasi** | Kode dan uji unit selesai. Satu butir pembuktian di layar masih menunggu data atau akun. Kodenya tidak perlu disentuh lagi |
+| **Selesai sebagian — tertahan backend** | Bagian yang punya endpoint selesai. Sisa DoD menunggu endpoint yang belum ada |
+
+### 0.1 Angka pokok
+
+| Golongan | Jumlah | Task |
+|---|---:|---|
+| Nomor task frontend | **18** | `FE-RAD-01`..`FE-RAD-13` dari roadmap (13), `FE-RAD-14`..`FE-RAD-17` dari paritas v1 `RAD-EVD-001` (4), `FE-RAD-18` dari fitur bertanda `RAD-DEC-022` (1) |
+| **Selesai** | **18** | Seluruhnya, termasuk `FE-RAD-15` (ditutup — lihat bagian 5c). Batas verifikasi enam task ditutup 2026-10-15 oleh uji layar data sungguhan `RAD-EVD-002` |
+| Selesai — batas verifikasi | **0** | — |
+| **Siap dikerjakan** | **0** | — |
+
+18 + 0 = **18**. Fitur v1 yang belum ada di V2 dipasang dengan penanda "Fitur belum tersedia" (`RAD-DEC-022`):
+sejak 2026-10-15 tinggal Setup → Kategori dan Parameter, tab Pasien Luar, Foto PACS, AI — daftarnya di
+`rad-pending-feature-constants.jsx`. Laporan/Pemeriksaan, Tarif Tindakan, Template Hasil, Ubah Pemeriksaan, dan
+Cetak Film dicabut dari daftar itu — dibangun `FE-RAD-18`. **Unggah Gambar dicabut dari daftar itu 2026-10-15** — dibangun (`BE-RAD-22`,
+panel Gambar Radiologi). Uji layar dengan data devYoga (peran Radiografer disimulasikan) 17/17 — `FE-RAD-17` 6.1.
+
+### 0.2 Seluruh task menurut gelombang
+
+| Task | Judul | Gelombang | Status | Catatan |
+|---|---|---|---|---|
+| `FE-RAD-01` | Fondasi modul | `MVP-1` | **Selesai** | Halaman dan menu yang sengaja ditunda ikut dibuat `FE-RAD-02` — [laporan](../task/report/frontend/FE-RAD-01.md) |
+| `FE-RAD-02` | Layar kelola alat pencitraan | `MVP-1` | **Selesai** | [laporan](../task/report/frontend/FE-RAD-02.md) |
+| `FE-RAD-03` | Layar kelola butir keselamatan | `MVP-1` | **Selesai** | [laporan](../task/report/frontend/FE-RAD-03.md) |
+| `FE-RAD-04` | Layar aturan keselamatan dan papan kesiapan alat | `MVP-1` | **Selesai** | [laporan](../task/report/frontend/FE-RAD-04.md) |
+| `FE-RAD-05` | Buat pesanan radiologi | `MVP-3` | **Selesai** | [laporan](../task/report/frontend/FE-RAD-05.md) |
+| `FE-RAD-06` | Antrian pesanan masuk | `MVP-3` | **Selesai** | [laporan](../task/report/frontend/FE-RAD-06.md) |
+| `FE-RAD-07` | Daftar kerja per alat | `MVP-3` | **Selesai** | [laporan](../task/report/frontend/FE-RAD-07.md) |
+| `FE-RAD-08` | Verifikasi pasien dan gerbang keselamatan | `MVP-3` | **Selesai** | [laporan](../task/report/frontend/FE-RAD-08.md) |
+| `FE-RAD-09` | Pengambilan citra, mutu, dan bahan terpakai | `MVP-3` | **Selesai** | Ditutup 2026-10-15 oleh uji akun sungguhan [`RAD-EVD-002`](../evidence/2026-10-15-uji-layar-data-sungguhan.md). Empat transisi disambungkan ke `BE-RAD-17` 2026-10-14; API tiruan 24/24; **tahan–lanjutkan–batal terhadap backend sungguhan 11/11**. Tersisa *Tandai Perlu Diulang* sungguhan — butuh aturan keselamatan `Active` — [laporan](../task/report/frontend/FE-RAD-09.md) bagian 11 |
+| `FE-RAD-10` | Daftar bacaan menunggu dan penulisan draf | `MVP-3` | **Selesai** | Ditutup 2026-10-15 oleh uji akun sungguhan [`RAD-EVD-002`](../evidence/2026-10-15-uji-layar-data-sungguhan.md). Celah backend ditutup `BE-RAD-16`: bacaan `Pending` kini lahir saat mutu citra diterima, sehingga penyaring *Menunggu Draf* pada daftar bacaan punya data. Belum diamati di layar — [laporan](../task/report/frontend/FE-RAD-10.md) |
+| `FE-RAD-11` | Pengesahan dan perilisan bacaan | `MVP-3` | **Selesai** | Penghalang yang disebut laporannya ternyata sudah tertutup sejak 2026-09-11 (`BE-RAD-16` bagian 1.1) — [laporan](../task/report/frontend/FE-RAD-11.md) |
+| `FE-RAD-12` | Koreksi berversi dan riwayat versi | `MVP-3` | **Selesai** | [laporan](../task/report/frontend/FE-RAD-12.md) |
+| `FE-RAD-13` | Hasil bacaan di rekam medis | `MVP-4` | **Selesai** | [laporan](../task/report/frontend/FE-RAD-13.md) |
+| `FE-RAD-14` | Menu v1, Daftar Pasien Radiologi, dan Riwayat Pemeriksaan | paritas v1, bagian 5c | **Selesai** | Ditutup 2026-10-15 oleh uji akun sungguhan [`RAD-EVD-002`](../evidence/2026-10-15-uji-layar-data-sungguhan.md). Layar terhadap API tiruan 31/31; 17 uji unit baru. Terhadap backend sungguhan menunggu migration `BE-RAD-18` — [laporan](../task/report/frontend/FE-RAD-14.md) |
+| `FE-RAD-15` | Riwayat Pemeriksaan — Rekap Billing per pasien | paritas v1, bagian 5c | **Selesai — ditutup** | Rekap Billing v1 halaman yatim (tak ada tautan dari alur hidup) — tidak dibangun. Tarif tampil lewat Rincian Pasien `FE-RAD-17`; aksi Riwayat v1 (Detail, Cetak Hasil) dikerjakan `FE-RAD-17` |
+| `FE-RAD-16` | Beranda Radiologi | paritas v1, bagian 5c | **Selesai** | Ditutup 2026-10-15 oleh uji akun sungguhan [`RAD-EVD-002`](../evidence/2026-10-15-uji-layar-data-sungguhan.md). API tiruan; 7 uji unit baru. Terhadap devYoga menunggu migration `BE-RAD-18` — [laporan](../task/report/frontend/FE-RAD-16.md) |
+| `FE-RAD-17` | Detail Pasien Radiologi, Print Hasil/Label, Rincian Pasien | paritas v1, bagian 5c | **Selesai** | Ditutup 2026-10-15 oleh uji akun sungguhan [`RAD-EVD-002`](../evidence/2026-10-15-uji-layar-data-sungguhan.md). Ikut v1 (`RAD-DEC-021`): Konfirmasi membuka Detail; Petugas/Dokter Pemeriksa; Kirim Hasil `wa.me`; cetak tiga dokumen; aksi Riwayat; menu dan tab bertanda. API tiruan 63/63 — [laporan](../task/report/frontend/FE-RAD-17.md) |
+| `FE-RAD-18` | Laporan operasional, Tarif Tindakan, Template Hasil, Ubah Pemeriksaan, Cetak Film | fitur bertanda, bagian 5c | **Selesai** | Ditutup 2026-10-15 oleh uji akun sungguhan [`RAD-EVD-002`](../evidence/2026-10-15-uji-layar-data-sungguhan.md). Lima halaman laporan + dua Setup; Detail Pasien tanpa penanda Cetak Film/Ubah Pemeriksaan; pemilih template di draf. API tiruan 86/86; uji unit Radiologi 217/217. Terhadap devYoga menunggu migration — [laporan](../task/report/frontend/FE-RAD-18.md) |
+
+### 0.3 Yang masih terbuka
+
+- **Batas verifikasi `FE-RAD-09`** tinggal *Tandai Perlu Diulang* sungguhan; terbuka begitu ada aturan keselamatan
+  `Active` sehingga study dapat diambil citranya lalu ditolak mutunya.
+- **Batas verifikasi `FE-RAD-10`** dapat ditutup tanpa mengubah kode: terima mutu satu study di dev,
+  lalu pastikan bacaannya muncul pada daftar dengan status *Menunggu Draf*. ~~Komentar usang di
+  `rad-report-constants.jsx`~~ — diperbaiki 2026-10-15.
+- **Pemakaian sungguhan** seluruh alur tetap menunggu aturan keselamatan aktif (`DEC-RAD-005`,
+  `RAD-OPEN-012`), izin dokter radiolog, dan katalog pemeriksaan — bukan pekerjaan frontend; daftar lengkapnya
+  di roadmap backend bagian 0.3.
+- Per 2026-10-15 **tidak ada pekerjaan kode frontend Radiologi yang terbuka**.
 
 ---
 
@@ -292,6 +359,66 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 
 ---
 
+## 5c. Paritas v1 — `RAD-EVD-001`
+
+Dibuka atas instruksi pemilik modul Yoga Aji Pratama, 2026-10-14 (`RAD-DEC-018`..`RAD-DEC-020`): layar ikut v1
+tayang, pengaman V2 tetap. Menu v1 di urutan teratas, menu khusus V2 di bawahnya — pola paritas Lab `FE-LAB-49`.
+
+### `FE-RAD-14` — Menu v1, Daftar Pasien Radiologi, dan Riwayat Pemeriksaan
+
+| Field | Isi |
+|---|---|
+| Asal | `RAD-EVD-001` bagian 2.2, 2.4, 3; Fase 1 |
+| Contract | `RAD-API-001` revision 13 (`BE-RAD-18`) |
+| Yang dikerjakan | Rute `rad-patients` dan `rad-history`; dua butir menu teratas grup Radiologi; lima tab (RJ, RI, IGD, Persiapan, Perjanjian), kolom per tab sesuai v1 tayang, penyaring cari + cito (+ periode di Riwayat), paginasi 10 baris; aksi Konfirmasi, Buka Pemeriksaan, Batalkan Order; centang *Pasien Butuh Persiapan* pada form pesanan |
+| Selisih sengaja dari v1 | Tab **Gawat Darurat** ditambahkan (v1 tidak menampilkan pesanan IGD di mana pun); **Pasien Luar** dipasang bertanda "Fitur belum tersedia" (v1 data contoh; diubah `RAD-DEC-022`); Print Hasil/Label, Rincian, Kirim Hasil menyusul `FE-RAD-17` — tombolnya tidak dibuat dulu; penanda persiapan diisi pemesan, bukan diturunkan dari master pemeriksaan seperti v1 |
+| Test | `tests/unit/rad-patient-list-rules.test.mjs` (9 uji); verifikasi layar API tiruan 31/31 |
+| **Keadaan 2026-10-15** | **SELESAI — BATAS VERIFIKASI.** Terhadap backend sungguhan menunggu migration `BE-RAD-18` diterapkan — [laporan](../task/report/frontend/FE-RAD-14.md) |
+
+### `FE-RAD-15` — Riwayat Pemeriksaan: Rekap Billing per pasien
+
+Layar Riwayat (tab, kolom seragam + Status Pemeriksaan, tanpa batas hari ini) sudah terbawa `FE-RAD-14`. Sisanya
+*Rekap Billing* per pasien v1: info pasien, daftar pemeriksaan **beserta tarifnya**, total, dan cetak.
+**Tertahan keputusan `RAD-OPEN-017`**: tagihan Radiologi V2 sudah terbit di Billing (per study), tetapi ringkasan
+tagihan kunjungan sengaja tidak pernah mengembalikan harga per item di luar kasir (`EncounterBillingSummaryService`,
+`BE-RJE-014`). Apakah petugas Radiologi boleh melihat tarif per pemeriksaan adalah keputusan pemilik Billing.
+
+### `FE-RAD-16` — Beranda Radiologi
+
+| Field | Isi |
+|---|---|
+| Rute | `/health-services/radiology-management/overview` (`RADIOLOGY_ROUTES.overview`); menu **Beranda** teratas grup Radiologi, seperti v1 |
+| Contract | `GET /rad-orders/dashboard` — `RAD-API-001` revision 14 (`BE-RAD-19`) |
+| Isi | Kartu Total Booking/Rawat Jalan/Rawat Inap/Pemeriksaan Lunas; status Menunggu/Diproses/Selesai/CITO; tren kunjungan 30 hari; komposisi pasien (pie, legenda berangka); lima booking terbaru. Baca saja |
+| Selisih sengaja dari v1 | Irisan **Gawat Darurat** pada komposisi dan keterangan kartu; muat ulang manual (v1 otomatis 30 menit) dengan keterangan jam muat; baris terbaru tidak dapat diklik, sama dengan v1 |
+| Test | `tests/unit/rad-dashboard-rules.test.mjs` (7 uji); verifikasi layar API tiruan |
+| **Keadaan 2026-10-15** | **SELESAI — BATAS VERIFIKASI** — [laporan](../task/report/frontend/FE-RAD-16.md) |
+
+### `FE-RAD-17` — Detail Pasien Radiologi, Print Hasil/Label, Rincian Pasien
+
+Detail dari aksi Konfirmasi v1 (`RAD-EVD-001` bagian 2.3, 7.1). **Selesai — batas verifikasi** 2026-10-15:
+rute `rad-patients/[radOrderId]`; Informasi Pasien, Informasi Order (+ tarif, Petugas Radiologi), tabel pemeriksaan
+(Cito, Pemeriksaan, No. Foto, Foto PACS bertanda, Dokter Pemeriksa, Hasil → konsol, Cetak Film bertanda, Aksi);
+Simpan dan Konfirmasi (simpan penunjukan lalu `accept`). Aksi baris Daftar Pasien: Konfirmasi (→ Detail), Buka
+Pemeriksaan, Batalkan Order, Kirim Hasil, Print Hasil (hanya bacaan rilis), Rincian Pasien, Print Label. Riwayat:
+Detail, Cetak Hasil. Menu Laporan/Pemeriksaan/Setup dan tab Pasien Luar bertanda belum tersedia.
+
+### `FE-RAD-18` — Fitur bertanda yang dibangun
+
+Instruksi pemilik modul 2026-10-15 (`RAD-DEC-022`), backend `BE-RAD-24`..`26`. **Selesai — batas verifikasi**:
+rute `reports/[report]` untuk lima laporan v1 (rentang tanggal WIB, baris jumlah, Unduh CSV, Cetak);
+`setup/tarif-tindakan` (baca-saja, "Belum diatur" bila tanpa tarif); `setup/template-hasil` (kelola template,
+`RadReport : Validate`); Detail Pasien — centang Cetak Film (optimistis, dikembalikan bila ditolak) dan aksi Ubah
+Pemeriksaan (modal pemeriksaan pengganti + alasan wajib; nonaktif bila study sudah ada); layar draf bacaan — pemilih
+template yang hanya mengisi ruas kosong. Menu Setup → Kategori/Parameter tetap bertanda.
+
+### `FE-RAD-15` — ditutup
+
+Rekap Billing v1 (`/Radiologi/Rekap-Billing-Radiologi/[id]`) tidak ditautkan dari alur hidup mana pun, jadi tidak
+dibangun (`RAD-DEC-021`). Tarif per pemeriksaan tampil di Rincian Pasien.
+
+---
+
 ## 6. Peta Dependency
 
 ```text
@@ -332,8 +459,8 @@ Sembilan ketentuan pada `RAD-ARCH-FE-001` bagian 5 tidak boleh diserahkan ke sel
 | Layar temuan kritis dan kotak pemberitahuan | `S11` menunggu `DEC-RAD-002` |
 | Layar pelewatan gerbang keselamatan darurat | `S5` menunggu `DEC-RAD-001` |
 | Daftar pantau keterlambatan pesanan cito | Ditunda `RAD-DEC-013`; `RAD-OPEN-009` |
-| Layar penugasan petugas ke pemeriksaan | Ditolak `RAD-DEC-012` — daftar kerja per alat, bukan per orang |
-| Penampil citra | PACS dan DICOM di luar scope |
+| Layar penugasan petugas ke pemeriksaan | Daftar kerja tetap per alat (`RAD-DEC-012`). Pilihan Petugas Radiologi dan Dokter Pemeriksa v1 **dipasang** di Detail Pasien (`RAD-DEC-021`) |
+| Penampil citra | PACS — kolom dan tombol v1 **dipasang bertanda "Fitur belum tersedia"**, sama dengan v1 (`RAD-DEC-022`) |
 | Base component atau hook generik baru | Dilarang `AGENTS.md` frontend |
 
 ---
@@ -343,3 +470,11 @@ Sembilan ketentuan pada `RAD-ARCH-FE-001` bagian 5 tidak boleh diserahkan ke sel
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
 | 1 | 2026-09-10 | Roadmap frontend pertama. 13 task, 3 gelombang, dari 7 epic yang disetujui. | `draft` |
+| 2 | 2026-10-14 | Bagian **0** *Ringkasan Task Frontend dan Status* ditambahkan untuk pelacakan: 13 nomor task — 11 selesai, 1 selesai dengan batas verifikasi (`FE-RAD-10`, celahnya ditutup `BE-RAD-16`), 1 selesai sebagian tertahan backend (`FE-RAD-09`). Blok task tidak diubah. | `approved` |
+| 3 | 2026-10-14 | Sisa `FE-RAD-09` selesai sesudah `BE-RAD-17`; statusnya naik menjadi *Selesai — batas verifikasi*. Angka bagian 0: 11 selesai, 2 batas verifikasi. | `approved` |
+| 4 | 2026-10-15 | Paritas v1 (`RAD-EVD-001`): bagian 5c membuka `FE-RAD-14`..`FE-RAD-17`. `FE-RAD-14` selesai dengan batas verifikasi (menunggu migration `BE-RAD-18`). `FE-RAD-17` tertahan karena bertentangan dengan `RAD-DEC-012`. Bagian 8 mencatat keduanya. Angka bagian 0: 17 nomor task. | `approved` |
+| 5 | 2026-10-15 | `FE-RAD-16` Beranda selesai dengan batas verifikasi. `FE-RAD-15` tertahan `RAD-OPEN-017` (harga per item). Angka bagian 0: 11 selesai, 4 batas verifikasi, 2 tertahan. | `approved` |
+| 6 | 2026-10-15 | Ikut v1 (`RAD-DEC-021`, `RAD-DEC-022`): `FE-RAD-17` selesai dengan batas verifikasi; `FE-RAD-15` ditutup (Rekap Billing v1 yatim); menu Laporan/Pemeriksaan/Setup, tab Pasien Luar, dan bagian Detail Pasien tanpa fitur V2 dipasang bertanda. Angka: 12 selesai, 5 batas verifikasi. | `approved` |
+| 7 | 2026-10-15 | Uji layar data devYoga 17/17; panel Gambar Radiologi (`BE-RAD-22`) menggantikan penanda Unggah Gambar; layar API tiruan 69/69. Angka tidak berubah. | `approved` |
+| 8 | 2026-10-15 | `FE-RAD-18` dibuka dan dibangun atas instruksi pemilik modul: laporan operasional, Tarif Tindakan, Template Hasil, Ubah Pemeriksaan, Cetak Film; penanda tinggal Kategori, Parameter, Pasien Luar, PACS, AI. API tiruan 86/86. Angka: 18 nomor — 12 selesai, 6 batas verifikasi. | `approved` |
+| 9 | 2026-10-15 | Uji layar dengan data devYoga dan akun sungguhan (Bayu = Radiografer, dr. Arya = Kepala Instalasi) — `RAD-EVD-002`: alur penuh rencana → keselamatan → citra → tolak mutu → *Tandai Perlu Diulang* → ulangi → hentikan → ulangi → mutu layak → bacaan *Menunggu Draf* → draf bertemplate → sahkan → rilis → Print Hasil. Lima cacat ditemukan dan diperbaiki (enum teks ditolak backend, modal Ulangi/Hentikan tak terkirim, total daftar bacaan, pilihan Ubah Pemeriksaan 403, Tarif Tindakan tanpa paginasi). Batas verifikasi `FE-RAD-09`/`10`/`14`/`16`/`17`/`18` ditutup. Angka: 18 selesai. | `approved` |

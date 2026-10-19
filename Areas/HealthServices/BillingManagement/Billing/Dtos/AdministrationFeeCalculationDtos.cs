@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.DTOs;
 
 /// <summary>
@@ -37,39 +35,33 @@ public sealed class AdminFeeCalculationResult
     public bool IsPackageGuaranteed { get; set; }
     public decimal PriorAppliedAmount { get; set; }
     public bool ReplacesEarlierFee { get; set; }
-    public bool ReferredOutpatientAdminVoided { get; set; }
     public decimal ReferredOutpatientAdminCreditedAmount { get; set; }
     public string Notes { get; set; } = string.Empty;
 }
 
 /// <summary>
-/// Permintaan rekonsiliasi biaya administrasi alihan rawat jalan ke rawat inap (BKC-DEC-119, BKC-DES-049, BIL-VAL-126).
+/// Rincian invoice rawat jalan asal yang bertautan aktif dengan tagihan rawat inap (BKC-DEC-119, BKC-DES-084, BKC-DES-085, BIL-API-2.0).
 /// </summary>
-public sealed class ReconcileReferredOutpatientAdminRequest
+public sealed class ReferredAdminOriginResult
 {
-    [Required]
-    public Guid InpatientInvoiceId { get; set; }
-
-    [Required]
-    public Guid InpatientEncounterId { get; set; }
-
-    [Required]
-    public Guid PatientId { get; set; }
-
-    public Guid ActorUserId { get; set; } = Guid.Empty;
+    public Guid OriginInvoiceId { get; set; }
+    public string OriginInvoiceNumber { get; set; } = string.Empty;
+    public Guid OriginEncounterId { get; set; }
+    public string OriginInvoiceStatus { get; set; } = string.Empty;
+    public string Treatment { get; set; } = string.Empty; // SUPERSEDED, CREDITED, NO_ADMIN
+    public decimal AdminPatientAmount { get; set; }
+    public decimal CreditAmount { get; set; }
 }
 
 /// <summary>
-/// Hasil rekonsiliasi pembatalan atau pengkreditan biaya administrasi rajal.
+/// Hasil evaluasi penggantian atau pengkreditan biaya administrasi poli berbasis tautan aktif (BKC-DEC-119, BKC-DES-084, BKC-DES-085).
 /// </summary>
-public sealed class ReconcileReferredOutpatientAdminResult
+public sealed class ReferredAdminReplacementResult
 {
-    public bool HasReferredOutpatient { get; set; }
-    public Guid? OutpatientInvoiceId { get; set; }
-    public bool WasVoided { get; set; }
-    public int VoidedItemCount { get; set; }
-    public bool WasCredited { get; set; }
-    public decimal CreditedAmount { get; set; }
-    public Guid? RefundableCreditId { get; set; }
-    public string Message { get; set; } = string.Empty;
+    public bool IsSupersededByInpatientAdmission { get; set; }
+    public Guid? SupersededByInpatientInvoiceId { get; set; }
+    public string? SupersededReasonCode { get; set; }
+    public decimal ReferredOutpatientAdminCreditedAmount { get; set; }
+    public decimal ReferredOutpatientAdminUnappliedCreditAmount { get; set; }
+    public IReadOnlyList<ReferredAdminOriginResult> ReferredOutpatientAdminOrigins { get; set; } = [];
 }

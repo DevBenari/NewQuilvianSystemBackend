@@ -25,11 +25,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
     public class RadReportController : ControllerBase
     {
         private readonly RadReportService _radReportService;
+        private readonly RadReportTemplateService _radReportTemplateService;
 
-        public RadReportController(RadReportService radReportService)
+        public RadReportController(RadReportService radReportService, RadReportTemplateService radReportTemplateService)
         {
             _radReportService = radReportService;
+            _radReportTemplateService = radReportTemplateService;
         }
+
+        /* ================================================================ *
+         * Template Hasil — menu v1 Setup → Template Hasil (BE-RAD-26). Membaca = RadReport : Read
+         * (dipakai layar tulis draf); mengelola = RadReport : Validate (dokter radiolog).
+         * ================================================================ */
+
+        [HttpGet("templates")]
+        [ProducesResponseType(typeof(ApiResponse<List<RadReportTemplateResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Rad Report", Description = "Melihat template hasil radiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadReport", "Read")]
+        public async Task<IActionResult> GetTemplates([FromQuery] RadReportTemplateQuery query, CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radReportTemplateService.GetListAsync(query, cancellationToken);
+            return Ok(ApiResponse<List<RadReportTemplateResponse>>.Ok(hasil, "Template hasil radiologi berhasil diambil."));
+        }
+
+        [HttpPost("templates")]
+        [ProducesResponseType(typeof(ApiResponse<RadReportTemplateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Validate", "Validate Rad Report", Description = "Membuat template hasil radiologi", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("RadReport", "Validate")]
+        public Task<IActionResult> CreateTemplate([FromBody] RadReportTemplateRequest request, CancellationToken cancellationToken = default) =>
+            Execute(() => _radReportTemplateService.CreateAsync(request, cancellationToken), "Template hasil berhasil dibuat.");
+
+        [HttpPut("templates/{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<RadReportTemplateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Validate", "Validate Rad Report", Description = "Mengubah template hasil radiologi", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("RadReport", "Validate")]
+        public Task<IActionResult> UpdateTemplate(Guid id, [FromBody] RadReportTemplateRequest request, CancellationToken cancellationToken = default) =>
+            Execute(() => _radReportTemplateService.UpdateAsync(id, request, cancellationToken), "Template hasil berhasil disimpan.");
+
+        [HttpDelete("templates/{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Validate", "Validate Rad Report", Description = "Menghapus template hasil radiologi", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("RadReport", "Validate")]
+        public Task<IActionResult> DeleteTemplate(Guid id, CancellationToken cancellationToken = default) =>
+            Execute(() => _radReportTemplateService.DeleteAsync(id, cancellationToken), "Template hasil berhasil dihapus.");
 
         /* ================================================================ *
          * Pembacaan

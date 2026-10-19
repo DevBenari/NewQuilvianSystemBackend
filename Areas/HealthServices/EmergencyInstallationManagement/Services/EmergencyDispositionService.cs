@@ -19,6 +19,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly EmergencyDepartureService _departureService;
         private readonly PatientAllergyQueryService _patientAllergyQueryService;
         private readonly EncounterInsuranceService _encounterInsuranceService;
+        private readonly ILogger<EmergencyDispositionService> _logger;
+        private readonly IServiceProvider? _serviceProvider;
 
         // BE-IGD-041: aturan pesanan yang menahan penutupan dimiliki EmergencyDepartureService.
         // Keduanya sudah terdaftar Scoped di DI dan EmergencyDepartureService tidak bergantung
@@ -28,12 +30,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             ApplicationDbContext dbContext,
             EmergencyDepartureService departureService,
             PatientAllergyQueryService patientAllergyQueryService,
-            EncounterInsuranceService encounterInsuranceService)
+            EncounterInsuranceService encounterInsuranceService,
+            ILogger<EmergencyDispositionService> logger,
+            IServiceProvider? serviceProvider = null)
         {
             _dbContext = dbContext;
             _departureService = departureService;
             _patientAllergyQueryService = patientAllergyQueryService;
             _encounterInsuranceService = encounterInsuranceService;
+            _logger = logger;
+            _serviceProvider = serviceProvider;
         }
 
         public async Task<string?> ValidateRequestAsync(
@@ -125,17 +131,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             // IGD-DEC-183: periode Dieskalasi belum ditutup (IGD-DEC-126), sehingga menahan
             // penutupan seperti periode Aktif, dengan kalimat penolakan yang sama.
-            var adaObservasiBelumSelesai = await _dbContext.Set<EmgObservation>()
-                .AsNoTracking()
-                .AnyAsync(
-                    x => x.EmergencyVisitId == visit.Id
-                        && !x.IsDelete
-                        && (x.ObservationStatus == EmergencyObservationStatus.Active
-                            || x.ObservationStatus == EmergencyObservationStatus.Escalated),
-                    cancellationToken);
-
-            if (adaObservasiBelumSelesai)
-                return "Masih ada observasi yang belum diselesaikan.";
+            if (await AdaObservasiBelumSelesaiAsync(visit.Id, cancellationToken))
+                return PesanObservasiBelumSelesai;
 
             // IGD-DEC-106: hanya keadaan fisik pasien yang menahan penutupan. Dokumen
             // serah-terima yang belum final tetap tersimpan dan dapat ditindaklanjuti.
@@ -151,6 +148,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (adaKepergianBelumTuntas)
                 return "Masih ada proses kepergian pasien yang belum selesai.";
 
+            if (await MenungguPasienTibaDiRawatInapAsync(visit.Id, cancellationToken))
+                return PesanPasienBelumTibaDiRawatInap;
+
             // BE-IGD-041 untuk IGD-DEC-118. Kueri kembar yang dulu berdiri di sini dihapus:
             // aturan pesanan yang menahan penutupan kini hanya tinggal di satu tempat, dan
             // pesannya menyebut pesanan mana supaya petugas tidak perlu membuka setiap
@@ -165,6 +165,70 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             }
 
             return null;
+        }
+
+        public const string PesanObservasiBelumSelesai = "Masih ada observasi yang belum diselesaikan.";
+
+        public const string PesanPasienBelumTibaDiRawatInap = "Pasien belum dicatat tiba di unit rawat inap.";
+
+        public Task<bool> AdaObservasiBelumSelesaiAsync(
+            Guid emergencyVisitId,
+            CancellationToken cancellationToken = default)
+        {
+            return _dbContext.Set<EmgObservation>()
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.EmergencyVisitId == emergencyVisitId
+                        && !x.IsDelete
+                        && (x.ObservationStatus == EmergencyObservationStatus.Active
+                            || x.ObservationStatus == EmergencyObservationStatus.Escalated),
+                    cancellationToken);
+        }
+
+        public async Task<Guid?> CariTindakLanjutTerlaksanaAsync(
+            Guid emergencyVisitId,
+            CancellationToken cancellationToken = default)
+        {
+            var dilacak = _dbContext.Set<EmgDisposition>().Local
+                .Where(x => x.EmergencyVisitId == emergencyVisitId
+                            && !x.IsDelete
+                            && x.DispositionStatus == EmergencyDispositionStatus.Executed)
+                .OrderByDescending(x => x.ExecutedAt)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefault();
+
+            if (dilacak.HasValue)
+                return dilacak;
+
+            return await _dbContext.Set<EmgDisposition>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == emergencyVisitId
+                            && !x.IsDelete
+                            && x.DispositionStatus == EmergencyDispositionStatus.Executed)
+                .OrderByDescending(x => x.ExecutedAt)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private async Task<bool> MenungguPasienTibaDiRawatInapAsync(
+            Guid emergencyVisitId,
+            CancellationToken cancellationToken)
+        {
+            var tindakLanjutTerlaksana = await CariTindakLanjutTerlaksanaAsync(emergencyVisitId, cancellationToken);
+
+            if (!tindakLanjutTerlaksana.HasValue
+                || !await ButuhFormPermintaanRawatInapAsync(tindakLanjutTerlaksana.Value, cancellationToken))
+                return false;
+
+            return !await _dbContext.Set<EmgDeparture>()
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.EmergencyVisitId == emergencyVisitId
+                        && !x.IsDelete
+                        && x.PhysicalStatus == EmergencyPhysicalStatus.Arrived,
+                    cancellationToken);
         }
 
         public bool CanTransition(

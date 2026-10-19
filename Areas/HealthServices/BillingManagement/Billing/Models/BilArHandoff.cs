@@ -36,6 +36,12 @@ public sealed class BilArHandoff : IdentityModel
     /// penangguhan tagihan menjadi utang pegawai bila pasien bukan pegawai sendiri.</summary>
     [MaxLength(200)] public string? DeferredConsentGivenBy { get; set; }
 
+    /// <summary>Pilihan pembiayaan saat finalisasi: EMPLOYEE_BENEFIT atau penjamin terkait.</summary>
+    [MaxLength(50)] public string? FinancingChoice { get; set; }
+
+    /// <summary>Catatan atau nomor bukti otorisasi penangguhan piutang karyawan.</summary>
+    [MaxLength(500)] public string? DeferredConsentNotes { get; set; }
+
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 
     public BilInvoice Invoice { get; set; } = null!;

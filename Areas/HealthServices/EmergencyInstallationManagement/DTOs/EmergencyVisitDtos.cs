@@ -34,6 +34,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? FoundLocation { get; set; }
         public string? TraumaLocation { get; set; }
         public DateTime? TraumaDateTime { get; set; }
+        public string? TraumaMechanism { get; set; }
+        public string? TraumaSafetyEquipment { get; set; }
         public bool IsUnknownPatient { get; set; }
         public string? TemporaryPatientAlias { get; set; }
         public bool IsImmediateCareAllowed { get; set; }
@@ -150,6 +152,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public DateTime? TraumaDateTime { get; set; }
 
+        [MaxLength(1000)]
+        public string? TraumaMechanism { get; set; }
+
+        [MaxLength(250)]
+        public string? TraumaSafetyEquipment { get; set; }
+
         public bool IsUnknownPatient { get; set; }
 
         [MaxLength(100)]
@@ -218,6 +226,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public string? TraumaLocation { get; set; }
 
         public DateTime? TraumaDateTime { get; set; }
+
+        [MaxLength(1000)]
+        public string? TraumaMechanism { get; set; }
+
+        [MaxLength(250)]
+        public string? TraumaSafetyEquipment { get; set; }
 
         [MaxLength(1000)]
         public string? Notes { get; set; }

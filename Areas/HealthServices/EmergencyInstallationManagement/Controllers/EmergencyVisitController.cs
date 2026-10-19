@@ -412,6 +412,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 FoundLocation = NormalizeText(request.FoundLocation),
                 TraumaLocation = NormalizeText(request.TraumaLocation),
                 TraumaDateTime = request.TraumaDateTime,
+                TraumaMechanism = NormalizeText(request.TraumaMechanism),
+                TraumaSafetyEquipment = NormalizeText(request.TraumaSafetyEquipment),
                 IsUnknownPatient = request.IsUnknownPatient,
                 TemporaryPatientAlias = NormalizeText(request.TemporaryPatientAlias),
                 IsImmediateCareAllowed = request.IsImmediateCareAllowed,
@@ -632,6 +634,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.FoundLocation = NormalizeText(request.FoundLocation);
             entity.TraumaLocation = NormalizeText(request.TraumaLocation);
             entity.TraumaDateTime = request.TraumaDateTime;
+            entity.TraumaMechanism = NormalizeText(request.TraumaMechanism);
+            entity.TraumaSafetyEquipment = NormalizeText(request.TraumaSafetyEquipment);
             entity.IsUnknownPatient = request.IsUnknownPatient;
             entity.TemporaryPatientAlias = NormalizeText(request.TemporaryPatientAlias);
             entity.IsImmediateCareAllowed = request.IsImmediateCareAllowed;
@@ -824,12 +828,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            var penolakanPromosi = await _emergencyVisitService.PromosikanBilaTindakLanjutTerlaksanaAsync(
+                entity, actorUserId, now, cancellationToken);
+            if (penolakanPromosi != null)
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakanPromosi));
+
             var penolakan = await _emergencyDispositionService.ValidateVisitClosureAsync(entity, cancellationToken);
             if (penolakan != null)
                 return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, penolakan));
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
 
             // BE-IGD-022 — penulisan Completed dialihkan lewat penjaga BE-IGD-018. Bersama
             // BE-IGD-019 dan BE-IGD-021, seluruh perubahan VisitStatus kini bersumber pada
@@ -1100,6 +1109,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 FoundLocation = x.FoundLocation,
                 TraumaLocation = x.TraumaLocation,
                 TraumaDateTime = x.TraumaDateTime,
+                TraumaMechanism = x.TraumaMechanism,
+                TraumaSafetyEquipment = x.TraumaSafetyEquipment,
                 IsUnknownPatient = x.IsUnknownPatient,
                 TemporaryPatientAlias = x.TemporaryPatientAlias,
                 IsImmediateCareAllowed = x.IsImmediateCareAllowed,

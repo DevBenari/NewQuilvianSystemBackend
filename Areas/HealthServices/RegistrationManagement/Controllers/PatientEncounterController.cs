@@ -332,6 +332,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             [FromQuery] Guid? patientId = null,
             [FromQuery] Guid? serviceUnitId = null,
             [FromQuery] EncounterStatus? encounterStatus = null,
+            [FromQuery] EncounterType? encounterType = null,
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
@@ -344,7 +345,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 onlyActive,
                 search,
                 pageNumber,
-                pageSize);
+                pageSize,
+                encounterType);
         }
 
         [HttpGet("options")]
@@ -359,7 +361,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             [FromQuery] bool onlyActive = true,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 25)
+            [FromQuery] int pageSize = 25,
+            [FromQuery] EncounterType? encounterType = null)
         {
             var paging = NormalizePaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
@@ -368,6 +371,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var query = BuildBaseQuery();
             query = ApplyRelationFilter(query, patientId, serviceUnitId);
 
+            if (encounterType.HasValue) query = query.Where(x => x.EncounterType == encounterType.Value);
             if (encounterStatus.HasValue) query = query.Where(x => x.EncounterStatus == encounterStatus.Value);
             if (onlyActive) query = query.Where(x => x.IsActive);
 
@@ -3081,6 +3085,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 PatientId = entity.PatientId,
                 PatientName = entity.Patient?.FullName ?? string.Empty,
                 MedicalRecordNumber = entity.Patient?.MedicalRecordNumber ?? string.Empty,
+                EncounterType = entity.EncounterType,
+                EncounterTypeName = BuildEnumLabel(entity.EncounterType),
                 ServiceUnitId = entity.ServiceUnitId,
                 ServiceUnitName = entity.ServiceUnit?.ServiceUnitName ?? string.Empty,
                 ClinicId = entity.ClinicId,

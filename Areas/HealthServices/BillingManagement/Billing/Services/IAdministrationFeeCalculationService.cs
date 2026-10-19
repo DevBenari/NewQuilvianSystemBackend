@@ -1,10 +1,12 @@
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 
 /// <summary>
-/// Kontrak layanan perhitungan biaya administrasi rawat inap dan rekonsiliasi alihan rawat jalan.
-/// (BKC-DEC-113, BKC-DEC-119, BKC-DEC-121, BKC-DEC-122, BKC-DES-044, BKC-DES-049, BIL-VAL-120, BIL-VAL-126).
+/// Kontrak layanan perhitungan biaya administrasi rawat inap.
+/// (BKC-DEC-113, BKC-DEC-119, BKC-DEC-121, BKC-DEC-122, BKC-DES-044, BKC-DES-083, BKC-DES-084, BKC-DES-085, BIL-VAL-120, BIL-VAL-159).
 /// </summary>
 public interface IAdministrationFeeCalculationService
 {
@@ -17,11 +19,11 @@ public interface IAdministrationFeeCalculationService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Memproses rekonsiliasi penggantian biaya administrasi saat pasien rawat jalan dialihkan ke rawat inap (BKC-DEC-119, BIL-VAL-126):
-    /// - Jika tagihan rajal belum dibayar: membatalkan (void) item administrasi rajal dengan alasan "SUPERSEDED_BY_INPATIENT_ADMISSION".
-    /// - Jika tagihan rajal sudah dibayar: mengalihkan nominal admin rajal menjadi kredit pembayaran (BilRefundableCredit) pengurang tagihan ranap.
+    /// Mengevaluasi penggantian atau pengkreditan biaya administrasi poli berbasis tautan aktif (BKC-DEC-119, BKC-DES-084, BKC-DES-085).
+    /// Baca saja (AsNoTracking), tidak membuka transaksi database.
     /// </summary>
-    Task<ReconcileReferredOutpatientAdminResult> ReconcileReferredOutpatientAdminFeeAsync(
-        ReconcileReferredOutpatientAdminRequest request,
+    Task<ReferredAdminReplacementResult> ResolveReferredAdminReplacementAsync(
+        BilInvoice invoice,
+        RegPatientEncounter encounter,
         CancellationToken cancellationToken = default);
 }

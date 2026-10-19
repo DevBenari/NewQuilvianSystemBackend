@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing/finalizations")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING_FINALIZATION", "Health Service Billing Management", "Billing Finalizations",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Finalizations",
     AreaName = "HealthServices", ControllerName = "BillingFinalization", Description = "Readiness checklist and one-time invoice finalization with departure exception", SortOrder = 6)]
 [Tags("Health Services / Billing Management / Billing / Finalizations")]
 public sealed class BillingFinalizationsController : ControllerBase
@@ -32,11 +32,23 @@ public sealed class BillingFinalizationsController : ControllerBase
     [AccessAction("Preview", "Preview Billing Finalization Readiness", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("BillingFinalization", "Read")]
     [ProducesResponseType(typeof(ApiResponse<FinalizationPreviewResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> Preview(Guid invoiceId, CancellationToken cancellationToken)
+    public async Task<IActionResult> Preview(
+        Guid invoiceId,
+        [FromQuery] decimal? choiceAmount,
+        [FromQuery] string? consentGivenBy,
+        [FromQuery] string? financingChoice,
+        [FromQuery] decimal? employeeDeferredAmount,
+        CancellationToken cancellationToken)
     {
         try
         {
-            var result = await _service.PreviewAsync(invoiceId, cancellationToken);
+            var result = await _service.PreviewAsync(
+                invoiceId,
+                cancellationToken,
+                choiceAmount: choiceAmount,
+                consentGivenBy: consentGivenBy,
+                financingChoice: financingChoice,
+                employeeDeferredAmount: employeeDeferredAmount);
             return Ok(ApiResponse<FinalizationPreviewResponse>.Ok(
                 result, "Checklist kesiapan finalisasi berhasil diambil."));
         }

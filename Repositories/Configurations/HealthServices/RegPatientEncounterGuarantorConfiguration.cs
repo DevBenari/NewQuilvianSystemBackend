@@ -131,6 +131,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasMaxLength(50)
                 .IsRequired(false);
 
+            entity.Property(x => x.FinancingChoice)
+                .HasMaxLength(50)
+                .IsRequired(false);
+
             // =========================
             // IDENTITY MODEL
             // =========================

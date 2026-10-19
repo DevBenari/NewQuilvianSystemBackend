@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.C
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/billing/invoices")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING", "Health Service Billing Management", "Billing Invoice",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Billing Invoice",
     AreaName = "HealthServices", ControllerName = "BillingInvoice", Description = "Running invoice and idempotent source charge", SortOrder = 1)]
 [Tags("Health Services / Billing Management / Billing / Invoices")]
 public sealed class BillingInvoicesController : ControllerBase
@@ -193,6 +193,30 @@ public sealed class BillingInvoicesController : ControllerBase
         catch (KeyNotFoundException exception)
         {
             return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
+    [HttpGet("{id:guid}/payment-preview")]
+    [AccessAction("Read", "Read Billing Payment Preview", AccessType = AccessTypes.Read, SortOrder = 21)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentPreviewResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPaymentPreview(
+        Guid id,
+        [FromQuery] string? paymentMethod,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetPaymentPreviewAsync(id, paymentMethod, cancellationToken);
+            return Ok(ApiResponse<PaymentPreviewResponse>.Ok(result, "Preview pembayaran berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
         }
     }
 

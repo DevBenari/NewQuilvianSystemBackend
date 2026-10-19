@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.C
 [ApiController]
 [Authorize]
 [Route("api/v1/health-services/billing-management/cashier/shifts")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_CASHIER_SHIFT", "Health Service Billing Management", "Cashier Shifts",
+[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT", "Health Service Billing Management", "Cashier Shifts",
     AreaName = "HealthServices", ControllerName = "CashierShifts", Description = "Cashier shift, handover, close, variance review, and reopen lifecycle", SortOrder = 4)]
 [Tags("Health Services / Billing Management / Cashier / Shifts")]
 public sealed class CashierShiftsController : ControllerBase

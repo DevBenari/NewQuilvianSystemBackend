@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -165,6 +165,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// <summary>Salinan MstPatientCompanyGuarantor.BenefitRelationship saat registrasi. Kolom sensitif.</summary>
         [MaxLength(50)]
         public string? BenefitRelationshipSnapshot { get; set; }
+
+        /// <summary>
+        /// Pilihan pembiayaan eksplisit: EMPLOYEE_BENEFIT atau GENERAL_SELF_PAY (Section 5).
+        /// Bawaan null atau EMPLOYEE_BENEFIT bila memakai kartu penjamin internal, atau GENERAL_SELF_PAY bila pasien memilih bayar umum/pribadi.
+        /// </summary>
+        [MaxLength(50)]
+        public string? FinancingChoice { get; set; }
 
         // =========================
         // NAVIGATION

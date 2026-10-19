@@ -81,6 +81,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             string? FoundLocation,
             string? TraumaLocation,
             DateTime? WaktuTrauma,
+            string? TraumaMechanism,
+            string? TraumaSafetyEquipment,
             string? Notes);
 
         private static readonly TimeZoneInfo ZonaWaktuPesan = TentukanZonaWaktuPesan();
@@ -552,6 +554,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return true;
         }
 
+        public bool TryPromoteToDisposed(
+            EmgVisit visit,
+            Guid actorUserId,
+            DateTime now,
+            out string? penolakan)
+        {
+            // IGD-DEC-311: Jaring pengaman alur cepat non-ranap / pulang:
+            // Jika kunjungan masih berstatus Triaged atau InTreatment saat dieksekusi,
+            // transisikan secara sah ke AwaitingDisposition terlebih dahulu agar
+            // perpindahan ke Disposed diizinkan oleh CanTransition.
+            if (visit.VisitStatus == EmergencyVisitStatus.Triaged || visit.VisitStatus == EmergencyVisitStatus.InTreatment)
+            {
+                TryApplyVisitStatus(
+                    visit, EmergencyVisitStatus.AwaitingDisposition, actorUserId, now, out _);
+            }
+
+            return TryApplyVisitStatus(
+                visit, EmergencyVisitStatus.Disposed, actorUserId, now, out penolakan);
+        }
+
+        public async Task<string?> PromosikanBilaTindakLanjutTerlaksanaAsync(
+            EmgVisit visit,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken = default)
+        {
+            if (visit.VisitStatus == EmergencyVisitStatus.Disposed
+                || !EpisodeMasihBerjalan(visit.VisitStatus)
+                || !(await _dispositionService.CariTindakLanjutTerlaksanaAsync(visit.Id, cancellationToken)).HasValue)
+                return null;
+
+            return await PromosikanKeDisposedAsync(visit, actorUserId, now, cancellationToken);
+        }
+
+        private async Task<string?> PromosikanKeDisposedAsync(
+            EmgVisit visit,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            if (TryPromoteToDisposed(visit, actorUserId, now, out var penolakan))
+                return null;
+
+            return await _dispositionService.AdaObservasiBelumSelesaiAsync(visit.Id, cancellationToken)
+                ? EmergencyDispositionService.PesanObservasiBelumSelesai
+                : penolakan;
+        }
+
         /// <summary>
         /// Menutup encounter milik kunjungan IGD yang baru saja berakhir. Mengembalikan
         /// <c>true</c> bila encounter ditutup oleh pemanggilan ini.
@@ -672,6 +722,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             bool EncounterDitutup)
         {
             public static HasilPenutupanSusulan Dilewati { get; } = new(false, null, null, false);
+
+            public bool Dipromosikan { get; init; }
         }
 
         public async Task<HasilPenutupanSusulan> TryCloseAfterDispositionAsync(
@@ -687,23 +739,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (visit == null || !EpisodeMasihBerjalan(visit.VisitStatus))
                 return HasilPenutupanSusulan.Dilewati;
 
-            var dispositionId = dispositionPemicuId ?? await _dbContext.Set<EmgDisposition>()
-                .AsNoTracking()
-                .Where(x => x.EmergencyVisitId == visit.Id
-                            && !x.IsDelete
-                            && x.DispositionStatus == EmergencyDispositionStatus.Executed)
-                .OrderByDescending(x => x.ExecutedAt)
-                .ThenByDescending(x => x.CreateDateTime)
-                .Select(x => (Guid?)x.Id)
-                .FirstOrDefaultAsync(cancellationToken);
+            var dispositionId = dispositionPemicuId
+                ?? await _dispositionService.CariTindakLanjutTerlaksanaAsync(visit.Id, cancellationToken);
 
             if (!dispositionId.HasValue)
                 return HasilPenutupanSusulan.Dilewati;
 
+            var dipromosikan = false;
+
+            if (visit.VisitStatus != EmergencyVisitStatus.Disposed)
+            {
+                var penolakanPromosi = await PromosikanKeDisposedAsync(visit, actorUserId, now, cancellationToken);
+
+                if (penolakanPromosi != null)
+                    return new HasilPenutupanSusulan(false, dispositionId, penolakanPromosi, false);
+
+                dipromosikan = true;
+            }
+
             var alasanPenahan = await _dispositionService.ValidateVisitClosureAsync(visit, cancellationToken);
 
             if (alasanPenahan != null)
-                return new HasilPenutupanSusulan(false, dispositionId, alasanPenahan, false);
+                return new HasilPenutupanSusulan(false, dispositionId, alasanPenahan, false) { Dipromosikan = dipromosikan };
 
             if (!TryApplyVisitStatus(visit, EmergencyVisitStatus.Completed, actorUserId, now, out _))
                 return HasilPenutupanSusulan.Dilewati;
@@ -720,7 +777,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 now,
                 cancellationToken: cancellationToken);
 
-            return new HasilPenutupanSusulan(true, dispositionId, null, encounterDitutup);
+            return new HasilPenutupanSusulan(true, dispositionId, null, encounterDitutup) { Dipromosikan = dipromosikan };
         }
 
         public async Task<HasilPenutupanSusulan> TryCloseAfterBlockerResolvedAsync(
@@ -743,7 +800,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 DateTime.UtcNow,
                 cancellationToken: cancellationToken);
 
-            if (penutupan.Ditutup)
+            if (penutupan.Ditutup || penutupan.Dipromosikan)
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
             await transaksi.CommitAsync(cancellationToken);
@@ -864,6 +921,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 NormalizeText(request.FoundLocation),
                 NormalizeText(request.TraumaLocation),
                 waktuTrauma,
+                NormalizeText(request.TraumaMechanism),
+                NormalizeText(request.TraumaSafetyEquipment),
                 NormalizeText(request.Notes));
 
             try
@@ -964,6 +1023,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 FoundLocation = masukan.FoundLocation,
                 TraumaLocation = masukan.TraumaLocation,
                 TraumaDateTime = masukan.WaktuTrauma,
+                TraumaMechanism = masukan.TraumaMechanism,
+                TraumaSafetyEquipment = masukan.TraumaSafetyEquipment,
                 IsUnknownPatient = masukan.IsUnknownPatient,
                 TemporaryPatientAlias = masukan.TemporaryPatientAlias,
                 IsImmediateCareAllowed = true,
@@ -1392,7 +1453,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                             && x.VisitStatus != EmergencyVisitStatus.Cancelled);
 
             if (statusKunjungan.HasValue)
-                kunjungan = kunjungan.Where(x => x.VisitStatus == statusKunjungan.Value);
+            {
+                if (statusKunjungan.Value == EmergencyVisitStatus.Triaged)
+                {
+                    kunjungan = kunjungan.Where(x => x.VisitStatus == EmergencyVisitStatus.Triaged
+                                                     || x.VisitStatus == EmergencyVisitStatus.InTreatment);
+                }
+                else
+                {
+                    kunjungan = kunjungan.Where(x => x.VisitStatus == statusKunjungan.Value);
+                }
+            }
 
             if (adaPencarian)
             {
@@ -1537,7 +1608,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 EmergencyVisitStatus.Arrived or EmergencyVisitStatus.WaitingForTriage
                     => new List<string> { AksiIsiTriage, AksiTanganiSegera },
-                EmergencyVisitStatus.InTreatment when !baris.IsTriaged
+                EmergencyVisitStatus.Triaged or EmergencyVisitStatus.InTreatment
                     => new List<string> { AksiIsiTriage },
                 _ => new List<string>()
             };

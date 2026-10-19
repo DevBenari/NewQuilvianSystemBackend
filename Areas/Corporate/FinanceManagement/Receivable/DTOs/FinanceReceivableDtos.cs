@@ -41,6 +41,15 @@ public sealed class ReceivableResponse
     public string ClaimStatus { get; set; } = string.Empty;
     public DateTimeOffset RecognizedAt { get; set; }
     public Guid RowVersion { get; set; }
+
+    // Employee Benefit enrichment fields (Section 7, Section 11)
+    public Guid? BenefitOwnerId { get; set; }
+    public string? BenefitOwnerName { get; set; }
+    public string? BenefitOwnerEmployeeNumber { get; set; }
+    public string? BenefitRelationship { get; set; }
+    public Guid? PatientId { get; set; }
+    public string? PatientName { get; set; }
+    public string? PatientMedicalRecordNumber { get; set; }
 }
 
 public sealed class ReceivableDocumentsResponse
@@ -71,6 +80,9 @@ public sealed class ReceivableItemResponse
     public Guid Id { get; set; }
     public Guid? EncounterId { get; set; }
     public Guid? InvoiceId { get; set; }
+    public Guid? PatientId { get; set; }
+    public string? PatientName { get; set; }
+    public string? PatientMedicalRecordNumber { get; set; }
     public string Description { get; set; } = string.Empty;
     public decimal Amount { get; set; }
 }
@@ -123,6 +135,12 @@ public sealed class ReceivableDetailResponse
     public string? InvoiceNumber { get; set; }
     public string? InvoiceServiceType { get; set; }
     public DateTimeOffset? InvoiceDate { get; set; }
+    public string? BenefitOwnerName { get; set; }
+    public string? BenefitOwnerEmployeeNumber { get; set; }
+    public string? BenefitRelationship { get; set; }
+    public Guid? PatientId { get; set; }
+    public string? PatientName { get; set; }
+    public string? PatientMedicalRecordNumber { get; set; }
     public List<ReceivableItemResponse> Items { get; set; } = new();
     public List<ReceivableDocumentResponse> Documents { get; set; } = new();
     public List<ReceivableAdjustmentResponse> Adjustments { get; set; } = new();
