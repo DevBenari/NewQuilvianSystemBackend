@@ -1,41 +1,30 @@
 {
-  "releaseName": "Quilvian 0.22.0 - Enterprise Platform Enhancement",
+  "description": "Release 0.23.0 enhances Billing Management, Finance Management, Inpatient Management, Patient Management, Registration Management capabilities. Includes improvements across Billing Workflow, Finance Workflow. Includes 7 database migration update(s).",
+  "backendVersion": "0.23.0",
   "releaseMetadata": {
-    "modules": [
-      "Billing Management",
-      "Clinical Management",
-      "Emergency Management",
-      "Finance Management",
-      "Inpatient Management",
-      "Laboratory Management",
-      "Patient Management",
-      "Pharmacy Management",
-      "Radiology Management",
-      "Registration Management"
+    "migrations": [
+      "20261016035829_AddFloorPlanLocationToMstRoom.cs",
+      "20261016041113_AddCareDependencyToInpEpisode.cs",
+      "20261016042242_AddMstFloorPlanImportRun.cs",
+      "20261016043649_DropGenderFlagsFromRoomAndBed.cs",
+      "20261016080745_ReviseNewbornAdmissionFlow.cs",
+      "20261017040000_BackfillTransferOriginEncounterLinks.cs",
+      "20261019090000_AddMembershipFeeCharge.cs"
     ],
-    "generatedBy": "Quilvian Release Generator",
-    "migrationCount": 11,
+    "generatedAt": "2026-10-19T07:09:54",
+    "migrationCount": 7,
     "features": [
       "Billing Workflow",
-      "Finance Workflow",
-      "Pharmacy Workflow",
-      "Radiology Workflow"
+      "Finance Workflow"
     ],
-    "migrations": [
-      "20261014150000_AddFinancingChoiceAndEmployeeBenefitDeferralFields.cs",
-      "20261015000000_AddPrescriptionStockReservation.cs",
-      "20261015073353_AddInpatientDepositPaymentOrder.cs",
-      "20261016064300_AddPatientDependencyLevelToAdmissionRequest.cs",
-      "20261016090000_RenumberRadStudyNumberShort.cs",
-      "20261016090645_AddEmgPreArrivalReservation.cs",
-      "20261016100000_RenumberRadOrderNumberLikeLab.cs",
-      "20261016110000_AddRadOrderPhotoNumber.cs",
-      "20261017031500_AddReferredAdminCreditAndSupersededItemReview.cs",
-      "20261017040000_BackfillTransferOriginEncounterLinks.cs",
-      "20261017085614_SyncCalculationVersionAdminCreditAndSupersededItemReviewIndex.cs"
+    "modules": [
+      "Billing Management",
+      "Finance Management",
+      "Inpatient Management",
+      "Patient Management",
+      "Registration Management"
     ],
-    "generatedAt": "2026-10-19T03:30:52"
+    "generatedBy": "Quilvian Release Generator"
   },
-  "description": "Release 0.22.0 enhances Billing Management, Clinical Management, Emergency Management, Finance Management, Inpatient Management, Laboratory Management, Patient Management, Pharmacy Management, Radiology Management, Registration Management capabilities. Includes improvements across Billing Workflow, Finance Workflow, Pharmacy Workflow, Radiology Workflow. Includes 11 database migration update(s).",
-  "backendVersion": "0.22.0"
+  "releaseName": "Quilvian 0.23.0 - Enterprise Platform Enhancement"
 }
