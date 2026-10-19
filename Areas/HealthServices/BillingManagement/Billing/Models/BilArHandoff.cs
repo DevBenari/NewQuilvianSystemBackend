@@ -25,6 +25,13 @@ public sealed class BilArHandoff : IdentityModel
     /// Berisi MstEmployee.Id pegawai pemilik manfaat, divalidasi ke HR saat Billing menerbitkan baris ini.</summary>
     public Guid? BenefitOwnerId { get; set; }
 
+    /// <summary>
+    /// Identitas canonical pemilik manfaat: MstWorkforceProfile.Id (karyawan atau dokter tetap). Properti terpisah
+    /// karena <see cref="BenefitOwnerId"/> bermakna MstEmployee.Id dan tidak boleh diisi dengan nilai lain. Baris
+    /// EMPLOYEE_BENEFIT baru memuat ini; baris lama dibaca lewat BenefitOwnerId dan di-backfill terpisah.
+    /// </summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
+
     /// <summary>BE-FIN-091, FIN-DEC-184/198: kode hubungan keluarga (SELF/SPOUSE/CHILD/PARENT/OTHER).</summary>
     [MaxLength(50)] public string? BenefitRelationship { get; set; }
 

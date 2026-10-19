@@ -10,6 +10,9 @@ public sealed class ArHandoffResponse
     public string Status { get; set; } = string.Empty;
     public Guid? HandoffKey { get; set; }
     public Guid? BenefitOwnerId { get; set; }
+
+    /// <summary>Identitas canonical pemilik manfaat (karyawan atau dokter tetap); kosong pada baris lama sebelum backfill.</summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
     public string? BenefitRelationship { get; set; }
     public decimal DeferredPatientAmount { get; set; }
     public string? DeferredConsentGivenBy { get; set; }

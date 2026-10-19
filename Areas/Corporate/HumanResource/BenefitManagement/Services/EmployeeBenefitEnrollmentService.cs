@@ -33,13 +33,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
         private readonly NumberSeriesAllocator _numberAllocator;
+        private readonly WorkforceBenefitOwnerResolver _ownerResolver;
 
         public EmployeeBenefitEnrollmentService(
-            ApplicationDbContext dbContext, LoggerService loggerService, NumberSeriesAllocator numberAllocator)
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            NumberSeriesAllocator numberAllocator,
+            WorkforceBenefitOwnerResolver? ownerResolver = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _numberAllocator = numberAllocator;
+            _ownerResolver = ownerResolver ?? new WorkforceBenefitOwnerResolver(dbContext);
         }
 
         // ------------------------------------------------------------------------------------
@@ -68,14 +73,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public async Task<PagedResult<EmployeeBenefitEnrollmentListResponse>> GetPagedAsync(
             EmployeeBenefitEnrollmentPagedQuery query, CancellationToken cancellationToken)
         {
+            // Pemilik dibaca lewat WorkforceProfileId (bukan EmployeeId) sehingga enrollment dokter tetap menampilkan
+            // nama dan nomor dokter. MstEmployee/MstDoctor masing-masing satu per profil (unique index), jadi
+            // join kiri ini tidak menggandakan baris.
             var source = from e in _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
-                         join emp in _dbContext.MstEmployees.AsNoTracking() on e.EmployeeId equals emp.Id into empJoin
+                         join emp in _dbContext.MstEmployees.AsNoTracking() on e.WorkforceProfileId equals emp.WorkforceProfileId into empJoin
                          from emp in empJoin.DefaultIfEmpty()
+                         join doc in _dbContext.MstDoctors.AsNoTracking() on e.WorkforceProfileId equals doc.WorkforceProfileId into docJoin
+                         from doc in docJoin.DefaultIfEmpty()
+                         join wfp in _dbContext.MstWorkforceProfiles.AsNoTracking() on e.WorkforceProfileId equals wfp.Id into wfpJoin
+                         from wfp in wfpJoin.DefaultIfEmpty()
                          join plan in _dbContext.MstBenefitPlans.AsNoTracking() on e.BenefitPlanId equals plan.Id
                          where !e.IsDelete
-                         select new { e, emp, plan };
+                         select new { e, emp, doc, wfp, plan };
 
             if (query.EmployeeId.HasValue) source = source.Where(x => x.e.EmployeeId == query.EmployeeId.Value);
+            if (query.WorkforceProfileId.HasValue) source = source.Where(x => x.e.WorkforceProfileId == query.WorkforceProfileId.Value);
             if (query.BenefitPlanId.HasValue) source = source.Where(x => x.e.BenefitPlanId == query.BenefitPlanId.Value);
             if (!string.IsNullOrWhiteSpace(query.EnrollmentStatus)) source = source.Where(x => x.e.EnrollmentStatus == query.EnrollmentStatus);
             if (!string.IsNullOrWhiteSpace(query.Search))
@@ -83,33 +96,69 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 var keyword = query.Search.Trim().ToLower();
                 source = source.Where(x =>
                     x.e.EnrollmentNumber.ToLower().Contains(keyword)
-                    || (x.emp != null && (x.emp.EmployeeNumber.ToLower().Contains(keyword) || x.emp.FullName.ToLower().Contains(keyword))));
+                    || (x.emp != null && (x.emp.EmployeeNumber.ToLower().Contains(keyword) || x.emp.FullName.ToLower().Contains(keyword)))
+                    || (x.doc != null && (x.doc.DoctorNumber.ToLower().Contains(keyword) || x.doc.FullName.ToLower().Contains(keyword))));
             }
 
             var pageSize = Math.Clamp(query.PageSize, 1, 50);
             var pageNumber = Math.Max(query.PageNumber, 1);
             var total = await source.CountAsync(cancellationToken);
-            var items = await source
+            var rows = await source
                 .OrderByDescending(x => x.e.CreateDateTime)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => new EmployeeBenefitEnrollmentListResponse
+                .Select(x => new
                 {
-                    Id = x.e.Id,
-                    EnrollmentNumber = x.e.EnrollmentNumber,
-                    EmployeeId = x.e.EmployeeId,
+                    x.e.Id,
+                    x.e.EnrollmentNumber,
+                    x.e.WorkforceProfileId,
+                    x.e.EmployeeId,
+                    UserType = x.wfp != null ? (QuilvianSystemBackend.Enums.UserType?)x.wfp.UserType : null,
                     EmployeeNumber = x.emp != null ? x.emp.EmployeeNumber : null,
                     EmployeeName = x.emp != null ? x.emp.FullName : null,
-                    BenefitPlanId = x.e.BenefitPlanId,
-                    BenefitPlanCode = x.plan.BenefitPlanCode,
-                    BenefitPlanName = x.plan.BenefitPlanName,
-                    EnrollmentStatus = x.e.EnrollmentStatus,
-                    EffectiveStartDate = x.e.EffectiveStartDate,
-                    EffectiveEndDate = x.e.EffectiveEndDate,
-                    RemainingAmount = x.e.RemainingAmount,
-                    ActiveDependentCount = x.e.ActiveDependentCount
+                    DoctorId = x.doc != null ? (Guid?)x.doc.Id : null,
+                    DoctorNumber = x.doc != null ? x.doc.DoctorNumber : null,
+                    DoctorName = x.doc != null ? x.doc.FullName : null,
+                    x.e.BenefitPlanId,
+                    x.plan.BenefitPlanCode,
+                    x.plan.BenefitPlanName,
+                    x.e.EnrollmentStatus,
+                    x.e.EffectiveStartDate,
+                    x.e.EffectiveEndDate,
+                    x.e.RemainingAmount,
+                    x.e.ActiveDependentCount
                 })
                 .ToListAsync(cancellationToken);
+
+            var items = rows.Select(x =>
+            {
+                // Jenis pemilik mengikuti jenis SDM pada profil; tanpa profil dibaca dari data peran yang ada.
+                var isDoctor = x.UserType == QuilvianSystemBackend.Enums.UserType.PermanentDoctor
+                    || (x.UserType is null && x.EmployeeName is null && x.DoctorName is not null);
+                var number = isDoctor ? (x.DoctorNumber ?? x.EmployeeNumber) : (x.EmployeeNumber ?? x.DoctorNumber);
+                var name = isDoctor ? (x.DoctorName ?? x.EmployeeName) : (x.EmployeeName ?? x.DoctorName);
+                return new EmployeeBenefitEnrollmentListResponse
+                {
+                    Id = x.Id,
+                    EnrollmentNumber = x.EnrollmentNumber,
+                    WorkforceProfileId = x.WorkforceProfileId,
+                    OwnerType = isDoctor ? WorkforceBenefitOwnerTypes.Doctor : WorkforceBenefitOwnerTypes.Employee,
+                    EmployeeId = x.EmployeeId,
+                    DoctorId = x.DoctorId,
+                    StaffNumber = number,
+                    StaffName = name,
+                    EmployeeNumber = number,
+                    EmployeeName = name,
+                    BenefitPlanId = x.BenefitPlanId,
+                    BenefitPlanCode = x.BenefitPlanCode,
+                    BenefitPlanName = x.BenefitPlanName,
+                    EnrollmentStatus = x.EnrollmentStatus,
+                    EffectiveStartDate = x.EffectiveStartDate,
+                    EffectiveEndDate = x.EffectiveEndDate,
+                    RemainingAmount = x.RemainingAmount,
+                    ActiveDependentCount = x.ActiveDependentCount
+                };
+            }).ToList();
 
             return new PagedResult<EmployeeBenefitEnrollmentListResponse>
             {
@@ -129,25 +178,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             return await MapDetailAsync(enrollment, actorUserId, cancellationToken);
         }
 
-        /// <summary>Ringkasan benefit layanan RS satu pegawai: enrollment Medical aktif dan saldo per orang.</summary>
+        /// <summary>Ringkasan benefit layanan RS satu pegawai (kontrak lama berbasis EmployeeId): enrollment Medical aktif dan saldo per orang.</summary>
         public async Task<EmployeeBenefitSummaryResponse> GetByEmployeeAsync(Guid employeeId, CancellationToken cancellationToken)
         {
-            var employee = await _dbContext.MstEmployees.AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == employeeId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Pegawai tidak ditemukan.");
+            var resolution = await _ownerResolver.ResolveByEmployeeAsync(employeeId, cancellationToken);
+            if (!resolution.IsResolved) throw new KeyNotFoundException("Pegawai tidak ditemukan.");
+            return await BuildSummaryAsync(resolution.Owner!, cancellationToken);
+        }
 
+        /// <summary>Ringkasan benefit layanan RS satu pemilik (karyawan atau dokter tetap) berdasarkan WorkforceProfileId.</summary>
+        public async Task<EmployeeBenefitSummaryResponse> GetByWorkforceProfileAsync(Guid workforceProfileId, CancellationToken cancellationToken)
+        {
+            var resolution = await _ownerResolver.ResolveByWorkforceProfileAsync(workforceProfileId, cancellationToken);
+            if (!resolution.IsResolved) throw new KeyNotFoundException(resolution.Message ?? "SDM tidak ditemukan.");
+            return await BuildSummaryAsync(resolution.Owner!, cancellationToken);
+        }
+
+        private async Task<EmployeeBenefitSummaryResponse> BuildSummaryAsync(WorkforceBenefitOwner owner, CancellationToken cancellationToken)
+        {
             var response = new EmployeeBenefitSummaryResponse
             {
-                EmployeeId = employee.Id,
-                EmployeeNumber = employee.EmployeeNumber,
-                EmployeeName = employee.FullName
+                WorkforceProfileId = owner.WorkforceProfileId,
+                OwnerType = owner.OwnerType,
+                EmployeeId = owner.EmployeeId,
+                DoctorId = owner.DoctorId,
+                StaffNumber = owner.StaffNumber,
+                StaffName = owner.StaffName,
+                EmployeeNumber = owner.StaffNumber,
+                EmployeeName = owner.StaffName
             };
 
             var active = await (from e in _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
                                 join plan in _dbContext.MstBenefitPlans.AsNoTracking() on e.BenefitPlanId equals plan.Id
                                 join type in _dbContext.MstBenefitTypes.AsNoTracking() on plan.BenefitTypeId equals type.Id
                                 where !e.IsDelete
-                                      && e.WorkforceProfileId == employee.WorkforceProfileId
+                                      && e.WorkforceProfileId == owner.WorkforceProfileId
                                       && e.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active
                                       && type.BenefitCategory == BenefitServiceCategories.Medical
                                       && !type.IsClaimBased
@@ -166,7 +231,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             {
                 BenefitPersonKind = BenefitPersonKinds.Enrollment,
                 BenefitPersonId = active.e.Id,
-                PersonName = employee.FullName,
+                PersonName = owner.StaffName,
                 RelationshipCode = BenefitRelationshipCodes.Self,
                 LimitAmount = active.e.CoverageLimitAmount,
                 UsedAmount = active.e.UsedAmount,
@@ -224,12 +289,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         {
             ValidatePeriod(request.EffectiveStartDate, request.EffectiveEndDate);
 
-            var employee = await _dbContext.MstEmployees.AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == request.EmployeeId && !x.IsDelete && x.IsActive, cancellationToken)
-                ?? throw new EmployeeBenefitValidationException("Pegawai tidak ditemukan atau sudah tidak aktif.");
+            // WorkforceProfileId adalah identitas pemilik. EmployeeId lama diterjemahkan ke Workforce; bila keduanya
+            // dikirim, keduanya harus orang yang sama. Dokter tetap tidak memerlukan MstEmployee.
+            var hasProfile = request.WorkforceProfileId.HasValue && request.WorkforceProfileId.Value != Guid.Empty;
+            var hasEmployee = request.EmployeeId.HasValue && request.EmployeeId.Value != Guid.Empty;
+            if (!hasProfile && !hasEmployee)
+                throw new EmployeeBenefitValidationException("Penerima benefit (WorkforceProfileId) wajib dipilih.");
+
+            var resolution = await _ownerResolver.ResolveRequestAsync(request.WorkforceProfileId, request.EmployeeId, cancellationToken);
+            if (!resolution.IsResolved)
+                throw new EmployeeBenefitValidationException(
+                    resolution.Message ?? "Pegawai tidak ditemukan atau sudah tidak aktif.");
+            var owner = resolution.Owner!;
+
             var plan = await _dbContext.MstBenefitPlans.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.Id == request.BenefitPlanId && !x.IsDelete && x.IsActive, cancellationToken)
                 ?? throw new EmployeeBenefitValidationException("Plan benefit tidak ditemukan atau tidak aktif.");
+            await EnsurePlanApplicableAsync(plan, owner, request, cancellationToken);
+            var employee = new { WorkforceProfileId = owner.WorkforceProfileId, EmployeeId = owner.EmployeeId };
 
             // Nomor dialokasikan provider bersama di luar transaksi pemanggil (QBE-CODE-002/003/006).
             var enrollmentNumber = await _numberAllocator.AllocateAsync(new NumberAllocationRequest(
@@ -255,7 +332,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 var enrollment = new TrxEmployeeBenefitEnrollment
                 {
                     WorkforceProfileId = employee.WorkforceProfileId,
-                    EmployeeId = employee.Id,
+                    // Referensi kompatibilitas: hanya bila SDM benar-benar punya data karyawan; tidak pernah DoctorId.
+                    EmployeeId = employee.EmployeeId,
                     BenefitPlanId = plan.Id,
                     EnrollmentNumber = enrollmentNumber,
                     EnrollmentStatus = EmployeeBenefitEnrollmentStatuses.Draft,
@@ -445,9 +523,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         private async Task<EmployeeBenefitEnrollmentResponse> MapDetailAsync(
             TrxEmployeeBenefitEnrollment e, Guid actorUserId, CancellationToken cancellationToken)
         {
-            var employee = e.EmployeeId.HasValue
-                ? await _dbContext.MstEmployees.AsNoTracking().SingleOrDefaultAsync(x => x.Id == e.EmployeeId.Value, cancellationToken)
-                : null;
+            var owners = await _ownerResolver.ResolveManyAsync(new[] { e.WorkforceProfileId }, cancellationToken);
+            owners.TryGetValue(e.WorkforceProfileId, out var owner);
             var plan = await _dbContext.MstBenefitPlans.AsNoTracking().SingleOrDefaultAsync(x => x.Id == e.BenefitPlanId, cancellationToken);
             var type = plan is null ? null : await _dbContext.MstBenefitTypes.AsNoTracking().SingleOrDefaultAsync(x => x.Id == plan.BenefitTypeId, cancellationToken);
             var dependents = await _dbContext.TrxEmployeeBenefitDependents.AsNoTracking()
@@ -461,10 +538,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             {
                 Id = e.Id,
                 EnrollmentNumber = e.EnrollmentNumber,
-                EmployeeId = e.EmployeeId,
-                EmployeeNumber = employee?.EmployeeNumber,
-                EmployeeName = employee?.FullName,
                 WorkforceProfileId = e.WorkforceProfileId,
+                OwnerType = owner?.OwnerType ?? WorkforceBenefitOwnerTypes.Employee,
+                EmployeeId = e.EmployeeId ?? owner?.EmployeeId,
+                DoctorId = owner?.DoctorId,
+                StaffNumber = owner?.StaffNumber,
+                StaffName = owner?.StaffName,
+                EmployeeNumber = owner?.StaffNumber,
+                EmployeeName = owner?.StaffName,
                 BenefitPlanId = e.BenefitPlanId,
                 BenefitPlanCode = plan?.BenefitPlanCode,
                 BenefitPlanName = plan?.BenefitPlanName,
@@ -496,6 +577,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 AvailableActions = AvailableActionsFor(e, actorUserId),
                 Dependents = dependents.Select(EmployeeBenefitDependentService.Map).ToList()
             };
+        }
+
+        /// <summary>
+        /// Plan harus berlaku untuk kategori SDM dan jenis kepegawaian pemilik berdasarkan master HR: batas pada plan
+        /// itu sendiri dan, bila ada aturan eligibility aktif yang berlaku pada tanggal enrollment, minimal satu aturan
+        /// yang terpenuhi (kategori, jenis kepegawaian, dan masa kerja minimum). Nilai kosong berarti tanpa batas.
+        /// Pemeriksaan sama untuk karyawan dan dokter tetap.
+        /// </summary>
+        private async Task EnsurePlanApplicableAsync(
+            MstBenefitPlan plan, WorkforceBenefitOwner owner, CreateEmployeeBenefitEnrollmentRequest request, CancellationToken cancellationToken)
+        {
+            if (plan.EmployeeCategoryId.HasValue && plan.EmployeeCategoryId != owner.EmployeeCategoryId)
+                throw new EmployeeBenefitValidationException("Plan benefit ini tidak berlaku untuk kategori SDM penerima.");
+            if (plan.EmploymentTypeId.HasValue && plan.EmploymentTypeId != owner.EmploymentTypeId)
+                throw new EmployeeBenefitValidationException("Plan benefit ini tidak berlaku untuk jenis kepegawaian penerima.");
+
+            var rules = await _dbContext.MstBenefitEligibilityRules.AsNoTracking()
+                .Where(x => x.BenefitPlanId == plan.Id && !x.IsDelete && x.IsActive)
+                .ToListAsync(cancellationToken);
+            var enrollmentDay = request.EnrollmentDate.Date;
+            var applicable = rules
+                .Where(x => (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= enrollmentDay)
+                            && (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= enrollmentDay))
+                .ToList();
+            if (applicable.Count == 0) return;
+
+            var serviceMonths = owner.JoinDate.HasValue ? MonthsBetween(owner.JoinDate.Value, request.EffectiveStartDate) : 0;
+            var satisfied = applicable.Any(x =>
+                (!x.EmployeeCategoryId.HasValue || x.EmployeeCategoryId == owner.EmployeeCategoryId)
+                && (!x.EmploymentTypeId.HasValue || x.EmploymentTypeId == owner.EmploymentTypeId)
+                && serviceMonths >= x.MinimumServiceMonths);
+            if (!satisfied)
+                throw new EmployeeBenefitValidationException(
+                    "Penerima belum memenuhi aturan kelayakan plan benefit (kategori SDM, jenis kepegawaian, atau masa kerja minimum).");
+        }
+
+        private static int MonthsBetween(DateTime from, DateTime to)
+        {
+            var months = (to.Year - from.Year) * 12 + to.Month - from.Month;
+            if (to.Day < from.Day) months--;
+            return Math.Max(months, 0);
         }
 
         /// <summary>Bantuan tampilan; setiap aksi tetap memeriksa ulang status dan aktor di backend.</summary>

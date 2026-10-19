@@ -50,6 +50,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             // Kelayakan dijalankan ulang: masa berlaku bisa berakhir antara pendaftaran dan finalisasi.
             var eligibility = await _eligibilityService.CheckAsync(new BenefitEligibilityRequest
             {
+                WorkforceProfileId = request.WorkforceProfileId,
                 EmployeeId = request.EmployeeId,
                 FamilyMemberId = request.FamilyMemberId,
                 ServiceDate = request.AsOfDate
@@ -66,6 +67,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 BenefitPersonId = eligibility.BenefitPersonId,
                 EnrollmentId = eligibility.EnrollmentId,
                 RelationshipCode = eligibility.RelationshipCode,
+                WorkforceProfileId = eligibility.WorkforceProfileId,
+                OwnerType = eligibility.OwnerType,
+                OwnerName = eligibility.StaffName,
                 PlanCode = eligibility.PlanCode
             };
 
@@ -324,19 +328,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         {
             var enrollment = await _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
                 .Where(x => x.Id == enrollmentId && !x.IsDelete)
-                .Select(x => new { x.Id, x.EmployeeId })
+                .Select(x => new { x.Id, x.EmployeeId, x.WorkforceProfileId })
                 .SingleOrDefaultAsync(cancellationToken)
                 ?? throw new KeyNotFoundException("Enrollment benefit tidak ditemukan.");
 
             if (!string.IsNullOrWhiteSpace(query.MovementType) && !BenefitMovementTypes.All.Contains(query.MovementType))
                 throw new EmployeeBenefitTransitionException("Jenis mutasi harus USE atau RETURN.");
 
-            var employeeName = enrollment.EmployeeId.HasValue
-                ? await _dbContext.MstEmployees.AsNoTracking()
-                    .Where(x => x.Id == enrollment.EmployeeId.Value)
-                    .Select(x => x.FullName)
-                    .SingleOrDefaultAsync(cancellationToken)
-                : null;
+            // Nama pemilik dari identitas Workforce (karyawan atau dokter), bukan dari EmployeeId yang kosong untuk dokter.
+            var owners = await _eligibilityService.OwnerResolver.ResolveManyAsync(new[] { enrollment.WorkforceProfileId }, cancellationToken);
+            var employeeName = owners.TryGetValue(enrollment.WorkforceProfileId, out var movementOwner)
+                ? movementOwner.StaffName
+                : enrollment.EmployeeId.HasValue
+                    ? await _dbContext.MstEmployees.AsNoTracking()
+                        .Where(x => x.Id == enrollment.EmployeeId.Value)
+                        .Select(x => x.FullName)
+                        .SingleOrDefaultAsync(cancellationToken)
+                    : null;
 
             var source = from m in _dbContext.Set<HrdBenefitBalanceMovement>().AsNoTracking()
                          join d in _dbContext.TrxEmployeeBenefitDependents.AsNoTracking() on m.EmployeeBenefitDependentId equals d.Id into dJoin
@@ -380,6 +388,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     BenefitPersonKind = x.m.BenefitPersonKind,
                     BenefitPersonId = PersonIdOf(x.m),
                     PersonName = x.m.BenefitPersonKind == BenefitPersonKinds.Dependent ? x.DependentName : employeeName,
+                    OwnerType = movementOwner?.OwnerType,
+                    OwnerStaffNumber = movementOwner?.StaffNumber,
                     Amount = x.m.Amount,
                     BalanceBefore = x.m.BalanceBefore,
                     BalanceAfter = x.m.BalanceAfter,

@@ -7,12 +7,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
     public sealed class EmployeeLookupResponse
     {
         public Guid EmployeeId { get; set; }
+
+        /// <summary>Identitas pemilik benefit (tambahan; EmployeeId tetap untuk kompatibilitas).</summary>
+        public Guid WorkforceProfileId { get; set; }
         public string EmployeeNumber { get; set; } = string.Empty;
 
         /// <summary>NIK tersamar: empat digit pertama dan empat terakhir, sisanya "•".</summary>
         public string NationalIdMasked { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
         public string? OrganizationUnitName { get; set; }
+        public bool HasActiveMedicalEnrollment { get; set; }
+    }
+
+    /// <summary>
+    /// Satu SDM pada pencarian pemilik benefit gabungan (karyawan dan dokter tetap). WorkforceProfileId adalah
+    /// identitas pemilik; EmployeeId/DoctorId hanya identitas peran dan boleh kosong.
+    /// </summary>
+    public sealed class WorkforceProfileLookupResponse
+    {
+        public Guid WorkforceProfileId { get; set; }
+
+        /// <summary>EMPLOYEE atau DOCTOR.</summary>
+        public string OwnerType { get; set; } = string.Empty;
+        public Guid? EmployeeId { get; set; }
+        public Guid? DoctorId { get; set; }
+
+        /// <summary>NIP atau nomor dokter.</summary>
+        public string StaffNumber { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+
+        /// <summary>NIK tersamar: empat digit pertama dan empat terakhir, sisanya "•".</summary>
+        public string NationalIdMasked { get; set; } = string.Empty;
+        public string? OrganizationUnitName { get; set; }
+        public string? EmploymentType { get; set; }
+        public bool IsActive { get; set; }
         public bool HasActiveMedicalEnrollment { get; set; }
     }
 
@@ -44,6 +72,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? BenefitPersonKind { get; set; }
         public Guid? BenefitPersonId { get; set; }
         public Guid? EnrollmentId { get; set; }
+
+        /// <summary>Pemilik benefit yang sah (terisi bila layak): identitas Workforce dan jenisnya.</summary>
+        public Guid? WorkforceProfileId { get; set; }
+        public string? OwnerType { get; set; }
+        public string? OwnerName { get; set; }
+        public string? OwnerStaffNumber { get; set; }
         public string? PlanCode { get; set; }
         public string? PlanName { get; set; }
         public string? CoverageType { get; set; }

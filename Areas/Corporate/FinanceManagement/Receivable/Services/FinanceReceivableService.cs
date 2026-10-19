@@ -108,13 +108,13 @@ public sealed class FinanceReceivableService
             }
         }
 
-        var benefitOwnerIds = pagedEntities.Where(x => x.BenefitOwnerId.HasValue).Select(x => x.BenefitOwnerId!.Value).Distinct().ToList();
-        var employeeDict = benefitOwnerIds.Count > 0
-            ? await _dbContext.MstEmployees.AsNoTracking()
-                .Where(e => !e.IsDelete && benefitOwnerIds.Contains(e.Id))
-                .Select(e => new { e.Id, e.FullName, e.EmployeeNumber })
-                .ToDictionaryAsync(e => e.Id, e => new { e.FullName, e.EmployeeNumber }, cancellationToken)
-            : [];
+        // Pemilik manfaat lewat identitas Workforce (karyawan maupun dokter tetap), tanpa N+1.
+        var ownerLookup = await FinanceBenefitOwnerDirectory.LoadAsync(
+            _dbContext,
+            pagedEntities
+                .Where(x => x.BenefitOwnerId.HasValue || x.BenefitOwnerWorkforceProfileId.HasValue)
+                .Select(x => ((Guid?)x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId)),
+            cancellationToken);
 
         var invoiceIds = pagedEntities.Where(x => x.InvoiceId.HasValue).Select(x => x.InvoiceId!.Value).Distinct().ToList();
         var invoiceNumbers = invoiceIds.Count > 0
@@ -132,16 +132,19 @@ public sealed class FinanceReceivableService
                 res.CompanyName = debtorName;
                 res.DebtorDisplayName = debtorName;
             }
-            if (x.BenefitOwnerId.HasValue && employeeDict.TryGetValue(x.BenefitOwnerId.Value, out var empInfo))
+            var benefitOwner = ownerLookup.Find(x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId);
+            if (benefitOwner is not null)
             {
-                res.BenefitOwnerName = empInfo.FullName;
-                res.BenefitOwnerEmployeeNumber = empInfo.EmployeeNumber;
+                res.BenefitOwnerWorkforceProfileId = benefitOwner.WorkforceProfileId;
+                res.BenefitOwnerType = benefitOwner.OwnerType;
+                res.BenefitOwnerName = benefitOwner.StaffName;
+                res.BenefitOwnerEmployeeNumber = benefitOwner.StaffNumber;
                 if (string.IsNullOrWhiteSpace(res.DebtorName))
                 {
-                    res.DebtorName = empInfo.FullName;
+                    res.DebtorName = benefitOwner.StaffName;
                     res.CompanyName = "Internal RS";
-                    res.DebtorDisplayName = $"{empInfo.FullName} ({empInfo.EmployeeNumber})";
-                    res.DebtorDisplayCategory = "Pegawai RS (Benefit)";
+                    res.DebtorDisplayName = $"{benefitOwner.StaffName} ({benefitOwner.StaffNumber})";
+                    res.DebtorDisplayCategory = BenefitOwnerCategoryLabel(benefitOwner.OwnerType);
                 }
             }
             if (x.InvoiceId.HasValue && invoiceNumbers.TryGetValue(x.InvoiceId.Value, out var invNum))
@@ -203,22 +206,27 @@ public sealed class FinanceReceivableService
 
         string? benefitOwnerName = null;
         string? benefitOwnerEmpNo = null;
-        if (receivable.BenefitOwnerId.HasValue)
+        string? benefitOwnerType = null;
+        if (receivable.BenefitOwnerId.HasValue || receivable.BenefitOwnerWorkforceProfileId.HasValue)
         {
-            var emp = await _dbContext.MstEmployees.AsNoTracking()
-                .Where(e => !e.IsDelete && e.Id == receivable.BenefitOwnerId.Value)
-                .Select(e => new { e.FullName, e.EmployeeNumber })
-                .FirstOrDefaultAsync(cancellationToken);
+            var ownerLookup = await FinanceBenefitOwnerDirectory.LoadAsync(
+                _dbContext,
+                new[] { ((Guid?)receivable.BenefitOwnerId, receivable.BenefitOwnerWorkforceProfileId) },
+                cancellationToken);
+            var emp = ownerLookup.Find(receivable.BenefitOwnerId, receivable.BenefitOwnerWorkforceProfileId);
             if (emp != null)
             {
-                benefitOwnerName = emp.FullName;
-                benefitOwnerEmpNo = emp.EmployeeNumber;
-                debtorDisplayName = $"{emp.FullName} ({emp.EmployeeNumber})";
-                debtorDisplayCategory = "Pegawai RS (Benefit)";
-                resReceivable.DebtorName = emp.FullName;
+                benefitOwnerName = emp.StaffName;
+                benefitOwnerEmpNo = emp.StaffNumber;
+                benefitOwnerType = emp.OwnerType;
+                debtorDisplayName = $"{emp.StaffName} ({emp.StaffNumber})";
+                debtorDisplayCategory = BenefitOwnerCategoryLabel(emp.OwnerType);
+                resReceivable.DebtorName = emp.StaffName;
                 resReceivable.CompanyName = "Internal RS";
-                resReceivable.BenefitOwnerName = emp.FullName;
-                resReceivable.BenefitOwnerEmployeeNumber = emp.EmployeeNumber;
+                resReceivable.BenefitOwnerWorkforceProfileId = emp.WorkforceProfileId;
+                resReceivable.BenefitOwnerType = emp.OwnerType;
+                resReceivable.BenefitOwnerName = emp.StaffName;
+                resReceivable.BenefitOwnerEmployeeNumber = emp.StaffNumber;
             }
         }
 
@@ -294,6 +302,7 @@ public sealed class FinanceReceivableService
             InvoiceDate = invoiceDate,
             BenefitOwnerName = benefitOwnerName,
             BenefitOwnerEmployeeNumber = benefitOwnerEmpNo,
+            BenefitOwnerType = benefitOwnerType,
             BenefitRelationship = receivable.BenefitRelationship,
             PatientId = firstPatientId,
             PatientName = resolvedPatientName,
@@ -519,6 +528,11 @@ public sealed class FinanceReceivableService
             ]
         });
 
+    private static string BenefitOwnerCategoryLabel(string? ownerType) =>
+        ownerType == QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants.WorkforceBenefitOwnerTypes.Doctor
+            ? "Dokter RS (Benefit)"
+            : "Pegawai RS (Benefit)";
+
     public static ReceivableResponse Map(FinReceivable x) => new()
     {
         Id = x.Id,
@@ -527,6 +541,7 @@ public sealed class FinanceReceivableService
         DebtorType = x.DebtorType,
         DebtorReferenceId = x.DebtorReferenceId,
         BenefitOwnerId = x.BenefitOwnerId,
+        BenefitOwnerWorkforceProfileId = x.BenefitOwnerWorkforceProfileId,
         BenefitRelationship = x.BenefitRelationship,
         OriginalAmount = x.OriginalAmount,
         OutstandingAmount = x.OutstandingAmount,

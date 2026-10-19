@@ -449,7 +449,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             // BE-FIN-106, FIN-VAL-259/260, FIN-DEC-228: kartu penjamin internal hanya terbit untuk pegawai atau anggota
             // keluarga yang terdaftar dan terverifikasi di HR; identitas pasien dicocokkan; kode hubungan ditentukan sistem.
             var cardLink = await _employeeBenefitLookup.ResolveCardLinkAsync(
-                request.CompanyGuarantorId, request.EmployeeId, request.FamilyMemberId, request.BenefitRelationship,
+                request.CompanyGuarantorId, request.BenefitOwnerWorkforceProfileId, request.EmployeeId,
+                request.FamilyMemberId, request.BenefitRelationship,
                 request.PatientId,
                 HttpContext.RequestAborted);
 
@@ -550,6 +551,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     CardImagePath = storedCardImage?.PublicPath ?? NormalizeNullableString(request.CardImagePath),
                     Notes = NormalizeNullableString(request.Notes),
                     EmployeeId = cardLink.EmployeeId,
+                    BenefitOwnerWorkforceProfileId = cardLink.WorkforceProfileId,
+                    BenefitOwnerType = cardLink.OwnerType,
                     FamilyMemberId = cardLink.FamilyMemberId,
                     BenefitRelationship = cardLink.BenefitRelationship,
                     IsActive = true,
@@ -785,7 +788,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             if (request.IsActive)
             {
                 cardLink = await _employeeBenefitLookup.ResolveCardLinkAsync(
-                    request.CompanyGuarantorId, request.EmployeeId, request.FamilyMemberId, request.BenefitRelationship,
+                    request.CompanyGuarantorId, request.BenefitOwnerWorkforceProfileId, request.EmployeeId,
+                    request.FamilyMemberId, request.BenefitRelationship,
                     entity.PatientId,
                     HttpContext.RequestAborted);
 
@@ -892,6 +896,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     // Beralih dari penjamin internal ke penjamin biasa mengosongkan ketiga kolom (aturan konsistensi
                     // CK_MstPatientCompanyGuarantor_BenefitLink).
                     entity.EmployeeId = cardLink.EmployeeId;
+                    entity.BenefitOwnerWorkforceProfileId = cardLink.WorkforceProfileId;
+                    entity.BenefitOwnerType = cardLink.OwnerType;
                     entity.FamilyMemberId = cardLink.FamilyMemberId;
                     entity.BenefitRelationship = cardLink.BenefitRelationship;
                 }
@@ -1555,6 +1561,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 CardImagePath = entity.CardImagePath,
                 IsActive = entity.IsActive,
                 EmployeeId = entity.EmployeeId,
+                BenefitOwnerWorkforceProfileId = entity.BenefitOwnerWorkforceProfileId,
+                BenefitOwnerType = entity.BenefitOwnerType,
                 FamilyMemberId = entity.FamilyMemberId,
                 BenefitRelationship = entity.BenefitRelationship,
                 CreateDateTime = entity.CreateDateTime,
@@ -1610,6 +1618,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 Notes = entity.Notes,
                 IsActive = entity.IsActive,
                 EmployeeId = entity.EmployeeId,
+                BenefitOwnerWorkforceProfileId = entity.BenefitOwnerWorkforceProfileId,
+                BenefitOwnerType = entity.BenefitOwnerType,
                 FamilyMemberId = entity.FamilyMemberId,
                 BenefitRelationship = entity.BenefitRelationship,
                 CreateDateTime = entity.CreateDateTime,

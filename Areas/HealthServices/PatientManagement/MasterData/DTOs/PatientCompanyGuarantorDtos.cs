@@ -110,6 +110,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         /// <summary>BE-FIN-105: tautan ke pegawai HR. Hanya-baca; tidak diterima pada request simpan kartu.</summary>
         public Guid? EmployeeId { get; set; }
 
+        /// <summary>Pemilik benefit (identitas utama; karyawan atau dokter tetap). Hanya-baca pada respons.</summary>
+        public Guid? BenefitOwnerWorkforceProfileId { get; set; }
+
+        /// <summary>EMPLOYEE atau DOCTOR. Hanya-baca.</summary>
+        public string? BenefitOwnerType { get; set; }
+
         /// <summary>BE-FIN-105: tautan ke anggota keluarga HR; kosong bila pegawai sendiri. Hanya-baca.</summary>
         public Guid? FamilyMemberId { get; set; }
 
@@ -350,6 +356,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         /// dan dilarang untuk penjamin biasa. Dipilih lewat pencarian pegawai, bukan diketik bebas.
         /// </summary>
         public Guid? EmployeeId { get; set; }
+
+        /// <summary>
+        /// Pemilik benefit berbasis MstWorkforceProfile.Id (karyawan atau dokter tetap) hasil pencarian pemilik benefit
+        /// gabungan. Identitas utama untuk kartu baru; EmployeeId tetap diterima untuk kompatibilitas. Jenis pemilik
+        /// dan kelayakan ditentukan backend, bukan klien.
+        /// </summary>
+        public Guid? BenefitOwnerWorkforceProfileId { get; set; }
 
         /// <summary>BE-FIN-106: anggota keluarga HR bila pasiennya bukan pegawai sendiri.</summary>
         public Guid? FamilyMemberId { get; set; }

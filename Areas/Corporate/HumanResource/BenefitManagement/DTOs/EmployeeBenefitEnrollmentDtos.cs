@@ -6,7 +6,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class CreateEmployeeBenefitEnrollmentRequest
     {
-        [Required] public Guid EmployeeId { get; set; }
+        /// <summary>
+        /// Identitas pemilik benefit (utama): MstWorkforceProfile.Id karyawan atau dokter tetap. Bila diisi,
+        /// inilah sumber utama. Salah satu dari WorkforceProfileId atau EmployeeId wajib diisi.
+        /// </summary>
+        public Guid? WorkforceProfileId { get; set; }
+
+        /// <summary>
+        /// Kompatibilitas kontrak lama (MstEmployee.Id). Bila hanya ini yang dikirim, diterjemahkan ke
+        /// WorkforceProfileId; bila keduanya dikirim, keduanya harus menunjuk orang yang sama. Dokter tidak
+        /// mengirim ini (dan DoctorId tidak pernah dikirim sebagai EmployeeId).
+        /// </summary>
+        public Guid? EmployeeId { get; set; }
         [Required] public Guid BenefitPlanId { get; set; }
         [Required] public DateTime EnrollmentDate { get; set; }
         [Required] public DateTime EffectiveStartDate { get; set; }
@@ -37,8 +48,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class EmployeeBenefitEnrollmentPagedQuery
     {
+        /// <summary>Nama, NIP/nomor dokter, atau nomor enrollment.</summary>
         [MaxLength(100)] public string? Search { get; set; }
         public Guid? EmployeeId { get; set; }
+        public Guid? WorkforceProfileId { get; set; }
         public Guid? BenefitPlanId { get; set; }
         [MaxLength(30)] public string? EnrollmentStatus { get; set; }
         [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
@@ -49,7 +62,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     {
         public Guid Id { get; set; }
         public string EnrollmentNumber { get; set; } = string.Empty;
+
+        /// <summary>Identitas pemilik benefit (utama); selalu terisi.</summary>
+        public Guid WorkforceProfileId { get; set; }
+
+        /// <summary>EMPLOYEE atau DOCTOR.</summary>
+        public string OwnerType { get; set; } = string.Empty;
+
+        /// <summary>Identitas peran; kosong untuk dokter tanpa data karyawan.</summary>
         public Guid? EmployeeId { get; set; }
+        public Guid? DoctorId { get; set; }
+
+        /// <summary>NIP atau nomor dokter, dan nama pemilik. Tidak pernah kosong hanya karena EmployeeId kosong.</summary>
+        public string? StaffNumber { get; set; }
+        public string? StaffName { get; set; }
+
+        /// <summary>Nama lama; berisi nilai yang sama dengan StaffNumber/StaffName agar layar lama tetap benar.</summary>
         public string? EmployeeNumber { get; set; }
         public string? EmployeeName { get; set; }
         public Guid BenefitPlanId { get; set; }
@@ -64,7 +92,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class EmployeeBenefitEnrollmentResponse : EmployeeBenefitEnrollmentListResponse
     {
-        public Guid WorkforceProfileId { get; set; }
         public string CoverageType { get; set; } = string.Empty;
         public DateTime EnrollmentDate { get; set; }
         public string CurrencyCode { get; set; } = "IDR";
@@ -90,7 +117,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class EmployeeBenefitSummaryResponse
     {
-        public Guid EmployeeId { get; set; }
+        public Guid WorkforceProfileId { get; set; }
+        public string OwnerType { get; set; } = string.Empty;
+        public Guid? EmployeeId { get; set; }
+        public Guid? DoctorId { get; set; }
+        public string? StaffNumber { get; set; }
+        public string? StaffName { get; set; }
         public string? EmployeeNumber { get; set; }
         public string? EmployeeName { get; set; }
         public bool HasActiveMedicalEnrollment { get; set; }

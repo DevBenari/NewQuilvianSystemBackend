@@ -73,10 +73,27 @@ public sealed class PayrollRestitutionService
             };
         }
 
-        // Cari master pegawai
-        var employee = await _dbContext.MstEmployees
-            .FirstOrDefaultAsync(e => e.Id == request.EmployeeId && !e.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException($"Pegawai dengan Id {request.EmployeeId} tidak ditemukan.");
+        // Pemilik slip: WorkforceProfileId adalah identitas utama; EmployeeId lama diterjemahkan. Dokter tetap tanpa
+        // MstEmployee dikenali lewat MstDoctor dan TIDAK PERNAH dibuatkan data karyawan palsu.
+        var employee = await ResolvePersonAsync(request, cancellationToken)
+            ?? throw new KeyNotFoundException("Pegawai atau dokter pemilik potongan tidak ditemukan.");
+
+        // Dokter tanpa profil payroll tidak pernah dipotong gajinya, sehingga tidak ada potongan yang dapat
+        // dikembalikan lewat slip. Tidak membuat run, adjustment, atau komponen fiktif; alasan dikembalikan jelas.
+        if (employee.EmployeeId is null && !await HasPayrollProfileAsync(employee.WorkforceProfileId, cancellationToken))
+        {
+            return new PayrollRestitutionResponse
+            {
+                EmployeeId = Guid.Empty,
+                WorkforceProfileId = employee.WorkforceProfileId,
+                EmployeeName = employee.Name,
+                EmployeeNumber = employee.Number,
+                Amount = request.Amount,
+                IsIdempotentReplay = false,
+                Status = "TIDAK_ADA_PAYROLL",
+                Message = "SDM ini belum memiliki profil payroll yang dikonfigurasi di HR, sehingga tidak ada potongan gaji yang dikembalikan lewat slip. Selesaikan pengembalian lewat proses refund yang disetujui."
+            };
+        }
 
         // Cari periode berikutnya
         var targetPeriod = await ResolveTargetPeriodAsync(request.TargetPeriodCode, cancellationToken)
@@ -181,8 +198,8 @@ public sealed class PayrollRestitutionService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         await _loggerService.AuditAsync(LogCategory, "Restitution.Completed",
-            $"Restitusi salah potong cicilan Rp {request.Amount:N2} berhasil disematkan pada slip periode {targetPeriod.PayrollPeriodCode} pegawai {employee.FullName} (NIP: {employee.EmployeeNumber}). Tanpa kas keluar Finance.",
-            new { PayrollRunId = run.Id, PayrollRunEmployeeId = runEmployee.Id, EmployeeId = employee.Id, Amount = request.Amount, SourceId = request.SourceId, ActorUserId = request.ActorUserId });
+            $"Restitusi salah potong cicilan Rp {request.Amount:N2} berhasil disematkan pada slip periode {targetPeriod.PayrollPeriodCode} pegawai {employee.Name} (NIP: {employee.Number}). Tanpa kas keluar Finance.",
+            new { PayrollRunId = run.Id, PayrollRunEmployeeId = runEmployee.Id, EmployeeId = employee.EmployeeId, WorkforceProfileId = employee.WorkforceProfileId, Amount = request.Amount, SourceId = request.SourceId, ActorUserId = request.ActorUserId });
 
         return new PayrollRestitutionResponse
         {
@@ -190,9 +207,10 @@ public sealed class PayrollRestitutionService
             RestitutionReversalId = reversal.Id,
             PayrollRunId = run.Id,
             PayrollRunEmployeeId = runEmployee.Id,
-            EmployeeId = employee.Id,
-            EmployeeName = employee.FullName,
-            EmployeeNumber = employee.EmployeeNumber,
+            EmployeeId = employee.EmployeeId ?? Guid.Empty,
+            WorkforceProfileId = employee.WorkforceProfileId,
+            EmployeeName = employee.Name,
+            EmployeeNumber = employee.Number,
             Amount = request.Amount,
             TargetPeriodCode = targetPeriod.PayrollPeriodCode,
             IsIdempotentReplay = false,
@@ -200,6 +218,48 @@ public sealed class PayrollRestitutionService
             Message = $"Restitusi Rp {request.Amount:N2} berhasil dijadwalkan pada slip gaji periode {targetPeriod.PayrollPeriodCode}."
         };
     }
+
+    private sealed record PayrollPerson(Guid WorkforceProfileId, Guid? EmployeeId, string Number, string Name);
+
+    private async Task<PayrollPerson?> ResolvePersonAsync(PayrollRestitutionRequest request, CancellationToken cancellationToken)
+    {
+        MstEmployee? employee = null;
+        if (request.EmployeeId != Guid.Empty)
+        {
+            employee = await _dbContext.MstEmployees
+                .FirstOrDefaultAsync(e => e.Id == request.EmployeeId && !e.IsDelete, cancellationToken);
+        }
+        if (employee is null && request.WorkforceProfileId.HasValue && request.WorkforceProfileId.Value != Guid.Empty)
+        {
+            var profileId = request.WorkforceProfileId.Value;
+            employee = await _dbContext.MstEmployees
+                .FirstOrDefaultAsync(e => e.WorkforceProfileId == profileId && !e.IsDelete, cancellationToken);
+        }
+        if (employee is not null)
+        {
+            // Bila keduanya dikirim, harus orang yang sama.
+            if (request.WorkforceProfileId.HasValue && request.WorkforceProfileId.Value != Guid.Empty
+                && employee.WorkforceProfileId != request.WorkforceProfileId.Value)
+                throw new ArgumentException("EmployeeId dan WorkforceProfileId tidak menunjuk orang yang sama.");
+            return new PayrollPerson(employee.WorkforceProfileId, employee.Id, employee.EmployeeNumber, employee.FullName);
+        }
+
+        if (request.WorkforceProfileId.HasValue && request.WorkforceProfileId.Value != Guid.Empty)
+        {
+            var profileId = request.WorkforceProfileId.Value;
+            var doctor = await _dbContext.MstDoctors.AsNoTracking()
+                .Where(d => d.WorkforceProfileId == profileId && !d.IsDelete)
+                .Select(d => new { d.DoctorNumber, d.FullName })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (doctor is not null) return new PayrollPerson(profileId, null, doctor.DoctorNumber, doctor.FullName);
+        }
+
+        return null;
+    }
+
+    private Task<bool> HasPayrollProfileAsync(Guid workforceProfileId, CancellationToken cancellationToken) =>
+        _dbContext.WfpPayrolls.AsNoTracking()
+            .AnyAsync(x => x.WorkforceProfileId == workforceProfileId && !x.IsDelete && x.IsPayrollEligible, cancellationToken);
 
     /// <summary>
     /// Mencari status restitusi berdasarkan SourceId (misal ReceivableId kartu piutang lama).
@@ -303,7 +363,7 @@ public sealed class PayrollRestitutionService
     }
 
     private async Task<TrxPayrollRunEmployee> ResolveOrCreateRunEmployeeAsync(
-        TrxPayrollRun run, MstEmployee employee, Guid actorUserId, CancellationToken cancellationToken)
+        TrxPayrollRun run, PayrollPerson employee, Guid actorUserId, CancellationToken cancellationToken)
     {
         var tracked = _dbContext.ChangeTracker.Entries<TrxPayrollRunEmployee>()
             .Select(x => x.Entity)
@@ -320,11 +380,11 @@ public sealed class PayrollRestitutionService
         {
             PayrollRunId = run.Id,
             WorkforceProfileId = employee.WorkforceProfileId,
-            EmployeeId = employee.Id,
+            EmployeeId = employee.EmployeeId,
             EmployeePayrollStatus = "Pending",
             CurrencyCode = "IDR",
-            EmployeeNumberSnapshot = employee.EmployeeNumber,
-            EmployeeNameSnapshot = employee.FullName,
+            EmployeeNumberSnapshot = employee.Number,
+            EmployeeNameSnapshot = employee.Name,
             CreateDateTime = DateTime.UtcNow,
             CreateBy = actorUserId
         };

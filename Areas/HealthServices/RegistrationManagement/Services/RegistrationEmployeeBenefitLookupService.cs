@@ -26,8 +26,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public const string CardNotLinkedCode = "CARD_NOT_LINKED";
 
         public const string EmployeeRequiredMessage =
-            "Pegawai wajib dipilih dari data HR untuk kartu penjamin internal. " +
-            "Cari pegawainya, atau daftarkan pasien sebagai Pasien Umum.";
+            "Penerima benefit (karyawan atau dokter tetap) wajib dipilih dari data HR untuk kartu penjamin internal. " +
+            "Cari orangnya, atau daftarkan pasien sebagai Pasien Umum.";
 
         public const string RelationshipFromClientMessage = "Hubungan keluarga ditentukan sistem dari data HR.";
 
@@ -66,6 +66,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 return (result.Items.Select(x => new EmployeeLookupResponse
                 {
                     EmployeeId = x.EmployeeId,
+                    WorkforceProfileId = x.WorkforceProfileId,
                     EmployeeNumber = x.EmployeeNumber,
                     NationalIdMasked = x.NationalIdMasked,
                     FullName = x.FullName,
@@ -76,6 +77,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             catch (Exception exception) when (IsHrFailure(exception))
             {
                 throw await HrUnavailableAsync("SearchEmployees", exception);
+            }
+        }
+
+        /// <summary>
+        /// CariPemilikBenefit: karyawan dan dokter tetap aktif dalam satu daftar, berbasis WorkforceProfileId.
+        /// Kata kunci minimal 3 karakter; paling banyak 20 baris; NIK tersamar.
+        /// </summary>
+        public async Task<(List<WorkforceProfileLookupResponse> Items, bool IsTruncated)> SearchWorkforceAsync(
+            string keyword, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var result = await _eligibilityService.SearchWorkforceAsync(keyword, cancellationToken);
+                return (result.Items.Select(x => new WorkforceProfileLookupResponse
+                {
+                    WorkforceProfileId = x.WorkforceProfileId,
+                    OwnerType = x.OwnerType,
+                    EmployeeId = x.EmployeeId,
+                    DoctorId = x.DoctorId,
+                    StaffNumber = x.StaffNumber,
+                    FullName = x.FullName,
+                    NationalIdMasked = x.NationalIdMasked,
+                    OrganizationUnitName = x.OrganizationUnitName,
+                    EmploymentType = x.EmploymentType,
+                    IsActive = x.IsActive,
+                    HasActiveMedicalEnrollment = x.HasActiveMedicalEnrollment
+                }).ToList(), result.IsTruncated);
+            }
+            catch (Exception exception) when (IsHrFailure(exception))
+            {
+                throw await HrUnavailableAsync("SearchWorkforce", exception);
+            }
+        }
+
+        /// <summary>DaftarKeluarga berbasis WorkforceProfileId (karyawan atau dokter tetap).</summary>
+        public async Task<List<FamilyMemberLookupResponse>> GetFamilyMembersByWorkforceAsync(
+            Guid workforceProfileId, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var items = await _eligibilityService.ListFamilyMembersByWorkforceAsync(workforceProfileId, cancellationToken);
+                return items.Select(x => new FamilyMemberLookupResponse
+                {
+                    FamilyMemberId = x.FamilyMemberId,
+                    FullName = x.FullName,
+                    RelationshipCode = x.RelationshipCode,
+                    AgeYears = x.AgeYears,
+                    IdentityMasked = x.IdentityMasked,
+                    DependentVerification = x.DependentVerification,
+                    CoveredByPlan = x.CoveredByPlan
+                }).ToList();
+            }
+            catch (Exception exception) when (IsHrFailure(exception))
+            {
+                throw await HrUnavailableAsync("GetFamilyMembersByWorkforce", exception);
             }
         }
 
@@ -107,10 +163,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// PeriksaKelayakan. Tidak melempar bila HR gagal dibaca: hasilnya ReasonCode HR_UNAVAILABLE
         /// supaya pemanggil dapat menampilkan jalur Pasien Umum.
         /// </summary>
+        public Task<BenefitEligibilityResponse> CheckEligibilityAsync(
+            Guid employeeId, Guid? familyMemberId, DateTime serviceDate, CancellationToken cancellationToken) =>
+            CheckEligibilityAsync(null, employeeId, familyMemberId, serviceDate, cancellationToken);
+
+        /// <summary>
+        /// PeriksaKelayakan berbasis WorkforceProfileId (identitas utama). EmployeeId boleh kosong (dokter) atau
+        /// diisi (kontrak lama); bila keduanya diisi harus orang yang sama.
+        /// </summary>
         public async Task<BenefitEligibilityResponse> CheckEligibilityAsync(
-            Guid employeeId, Guid? familyMemberId, DateTime serviceDate, CancellationToken cancellationToken)
+            Guid? workforceProfileId, Guid? employeeId, Guid? familyMemberId, DateTime serviceDate, CancellationToken cancellationToken)
         {
-            var check = await TryCheckAsync(employeeId, familyMemberId, serviceDate, cancellationToken);
+            var check = await TryCheckAsync(workforceProfileId, employeeId, familyMemberId, serviceDate, cancellationToken);
             return new BenefitEligibilityResponse
             {
                 IsEligible = check.IsEligible,
@@ -120,6 +184,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 BenefitPersonKind = check.BenefitPersonKind,
                 BenefitPersonId = check.BenefitPersonId,
                 EnrollmentId = check.EnrollmentId,
+                WorkforceProfileId = check.WorkforceProfileId,
+                OwnerType = check.OwnerType,
+                OwnerName = check.StaffName,
+                OwnerStaffNumber = check.StaffNumber,
                 PlanCode = check.PlanCode,
                 PlanName = check.PlanName,
                 CoverageType = check.CoverageType,
@@ -139,9 +207,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// </summary>
         public async Task<InternalCardLinkResult> ResolveCardLinkAsync(
             Guid companyGuarantorId, Guid? employeeId, Guid? familyMemberId, string? clientRelationship,
+            Guid? patientId, CancellationToken cancellationToken) =>
+            await ResolveCardLinkAsync(companyGuarantorId, null, employeeId, familyMemberId, clientRelationship, patientId, cancellationToken);
+
+        /// <summary>
+        /// Versi berbasis WorkforceProfileId: pemilik benefit bisa karyawan atau dokter tetap. Identitas pasien
+        /// (NIK) wajib cocok dengan pemilik untuk hubungan SELF, sehingga seorang dokter tidak dapat memakai
+        /// manfaat milik orang lain. Kartu tidak pernah dibuat otomatis hanya karena NIK cocok.
+        /// </summary>
+        public async Task<InternalCardLinkResult> ResolveCardLinkAsync(
+            Guid companyGuarantorId, Guid? workforceProfileId, Guid? employeeId, Guid? familyMemberId, string? clientRelationship,
             Guid? patientId, CancellationToken cancellationToken)
         {
-            var hasEmployee = employeeId.HasValue && employeeId.Value != Guid.Empty;
+            var hasEmployee = (employeeId.HasValue && employeeId.Value != Guid.Empty)
+                || (workforceProfileId.HasValue && workforceProfileId.Value != Guid.Empty);
             var hasFamilyMember = familyMemberId.HasValue && familyMemberId.Value != Guid.Empty;
 
             // FIN-VAL-260: kode hubungan ditentukan sistem, klien tidak boleh mengirimnya.
@@ -159,7 +238,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 return InternalCardLinkResult.Reject(StatusCodes.Status422UnprocessableEntity, "EMPLOYEE_REQUIRED", EmployeeRequiredMessage);
 
             var check = await TryCheckAsync(
-                employeeId!.Value, hasFamilyMember ? familyMemberId : null, AppDateTimeHelper.OperationalDate(), cancellationToken);
+                workforceProfileId, employeeId, hasFamilyMember ? familyMemberId : null, AppDateTimeHelper.OperationalDate(), cancellationToken);
             if (!check.IsEligible)
             {
                 var status = check.ReasonCode == BenefitEligibilityReasonCodes.HrUnavailable
@@ -231,7 +310,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             }
 
             return InternalCardLinkResult.Linked(
-                check.EmployeeId, check.FamilyMemberId, check.RelationshipCode!, check.EmployeeNumber!, check.EmployeeName);
+                check.WorkforceProfileId!.Value, check.OwnerType ?? WorkforceBenefitOwnerTypes.Employee, check.EmployeeId, check.DoctorId,
+                check.FamilyMemberId, check.RelationshipCode!, check.StaffNumber ?? check.EmployeeNumber ?? string.Empty,
+                check.StaffName ?? check.EmployeeName);
         }
 
         public Task<InternalCardLinkResult> ResolveCardLinkAsync(
@@ -243,17 +324,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         /// Dipanggil saat kunjungan didaftarkan memakai kartu dan saat penanggung kunjungan diganti ke kartu.
         /// Kartu atas penjamin biasa selalu lolos. Kartu internal harus bertaut dan layak pada tanggal pelayanan.
         /// </summary>
-        public async Task<CardServiceCheckResult> ValidateCardForServiceAsync(
+        public Task<CardServiceCheckResult> ValidateCardForServiceAsync(
             Guid companyGuarantorId, Guid? employeeId, Guid? familyMemberId, DateTime serviceDate,
+            CancellationToken cancellationToken) =>
+            ValidateCardForServiceAsync(companyGuarantorId, null, employeeId, familyMemberId, serviceDate, cancellationToken);
+
+        /// <summary>
+        /// Versi berbasis WorkforceProfileId (kartu baru memakai BenefitOwnerWorkforceProfileId; kartu lama masih
+        /// membawa EmployeeId saja dan diterjemahkan ke Workforce oleh pemeriksaan kelayakan).
+        /// </summary>
+        public async Task<CardServiceCheckResult> ValidateCardForServiceAsync(
+            Guid companyGuarantorId, Guid? workforceProfileId, Guid? employeeId, Guid? familyMemberId, DateTime serviceDate,
             CancellationToken cancellationToken)
         {
             if (!await IsInternalGuarantorAsync(companyGuarantorId, cancellationToken))
                 return CardServiceCheckResult.Valid();
 
-            if (!employeeId.HasValue || employeeId.Value == Guid.Empty)
+            var hasOwner = (workforceProfileId.HasValue && workforceProfileId.Value != Guid.Empty)
+                || (employeeId.HasValue && employeeId.Value != Guid.Empty);
+            if (!hasOwner)
                 return CardServiceCheckResult.Invalid(CardNotLinkedCode, CardNotLinkedMessage);
 
-            var check = await TryCheckAsync(employeeId.Value, familyMemberId, serviceDate, cancellationToken);
+            var check = await TryCheckAsync(workforceProfileId, employeeId, familyMemberId, serviceDate, cancellationToken);
             return check.IsEligible
                 ? CardServiceCheckResult.Valid()
                 : CardServiceCheckResult.Invalid(check.ReasonCode, check.Message ?? string.Empty);
@@ -271,13 +363,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         /// <summary>Gagal tertutup: galat membaca HR menjadi hasil HR_UNAVAILABLE, bukan kelayakan.</summary>
         private async Task<BenefitEligibilityResult> TryCheckAsync(
-            Guid employeeId, Guid? familyMemberId, DateTime serviceDate, CancellationToken cancellationToken)
+            Guid? workforceProfileId, Guid? employeeId, Guid? familyMemberId, DateTime serviceDate, CancellationToken cancellationToken)
         {
             try
             {
                 return await _eligibilityService.CheckAsync(new BenefitEligibilityRequest
                 {
-                    EmployeeId = employeeId,
+                    WorkforceProfileId = workforceProfileId,
+                    EmployeeId = employeeId ?? Guid.Empty,
                     FamilyMemberId = familyMemberId,
                     ServiceDate = serviceDate
                 }, cancellationToken);
@@ -329,7 +422,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public string? ReasonCode { get; private init; }
         public string? Message { get; private init; }
 
+        /// <summary>Identitas pemilik benefit (utama). Terisi pada kartu internal yang diterima.</summary>
+        public Guid? WorkforceProfileId { get; private init; }
+        public string? OwnerType { get; private init; }
+
+        /// <summary>Identitas peran; EmployeeId kosong untuk dokter tanpa data karyawan, dan DoctorId tidak pernah masuk ke EmployeeId.</summary>
         public Guid? EmployeeId { get; private init; }
+        public Guid? DoctorId { get; private init; }
         public Guid? FamilyMemberId { get; private init; }
         public string? BenefitRelationship { get; private init; }
         public string? EmployeeNumber { get; private init; }
@@ -338,11 +437,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public static InternalCardLinkResult NotInternal() => new() { IsAccepted = true };
 
         public static InternalCardLinkResult Linked(
-            Guid employeeId, Guid? familyMemberId, string relationship, string employeeNumber, string? employeeName) => new()
+            Guid workforceProfileId, string ownerType, Guid? employeeId, Guid? doctorId, Guid? familyMemberId,
+            string relationship, string employeeNumber, string? employeeName) => new()
         {
             IsInternal = true,
             IsAccepted = true,
+            WorkforceProfileId = workforceProfileId,
+            OwnerType = ownerType,
             EmployeeId = employeeId,
+            DoctorId = doctorId,
             FamilyMemberId = familyMemberId,
             BenefitRelationship = relationship,
             EmployeeNumber = employeeNumber,

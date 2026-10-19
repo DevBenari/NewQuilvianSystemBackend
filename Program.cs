@@ -928,6 +928,9 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.ExitClearanceService>();
 
     // BE-FIN-103 (FIN-API-1.10 R.1, R.2): enrollment dan tanggungan benefit pegawai.
+    // Resolver pemilik benefit berbasis WorkforceProfileId (karyawan dan dokter tetap); dipakai Enrollment,
+    // Eligibility, Registrasi, Billing, dan Finance.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.WorkforceBenefitOwnerResolver>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();

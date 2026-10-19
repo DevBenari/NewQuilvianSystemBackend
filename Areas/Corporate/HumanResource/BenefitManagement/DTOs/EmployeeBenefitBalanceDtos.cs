@@ -7,6 +7,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class BenefitBalanceReadRequest
     {
+        /// <summary>Identitas pemilik benefit (utama); EmployeeId lama diterjemahkan bila kosong.</summary>
+        public Guid? WorkforceProfileId { get; set; }
+
+        /// <summary>Kompatibilitas kontrak lama (MstEmployee.Id). Boleh kosong untuk dokter.</summary>
         public Guid EmployeeId { get; set; }
         public Guid? FamilyMemberId { get; set; }
 
@@ -25,6 +29,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public Guid? BenefitPersonId { get; set; }
         public Guid? EnrollmentId { get; set; }
         public string? RelationshipCode { get; set; }
+
+        /// <summary>Pemilik benefit yang sah; terisi bila dapat dipakai.</summary>
+        public Guid? WorkforceProfileId { get; set; }
+        public string? OwnerType { get; set; }
+        public string? OwnerName { get; set; }
         public decimal LimitAmount { get; set; }
         public decimal UsedAmount { get; set; }
         public decimal RemainingAmount { get; set; }
@@ -85,6 +94,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public string BenefitPersonKind { get; set; } = string.Empty;
         public Guid BenefitPersonId { get; set; }
         public string? PersonName { get; set; }
+
+        /// <summary>Pemilik enrollment (karyawan atau dokter) beserta nomornya, untuk baris pemakaian pemilik sendiri.</summary>
+        public string? OwnerType { get; set; }
+        public string? OwnerStaffNumber { get; set; }
         public decimal Amount { get; set; }
         public decimal BalanceBefore { get; set; }
         public decimal BalanceAfter { get; set; }

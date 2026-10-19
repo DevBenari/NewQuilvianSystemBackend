@@ -479,9 +479,20 @@ public sealed class FinanceBillingIntakeService
 
             // BE-FIN-091, FIN-VAL-247: lapis service di atas CK_BilArHandoff_BenefitOwner dan
             // CK_FinReceivable_BenefitOwner — pesan 422 yang jelas sebelum baris menyentuh database.
-            if (handoff.DebtorType == BillingArDebtorTypes.EmployeeBenefit && handoff.BenefitOwnerId is null)
+            if (handoff.DebtorType == BillingArDebtorTypes.EmployeeBenefit
+                && handoff.BenefitOwnerId is null && handoff.BenefitOwnerWorkforceProfileId is null)
                 throw new BillingIntakeValidationException(
                     "Serah terima piutang manfaat karyawan wajib membawa ID pemilik manfaat yang valid.");
+
+            // Identitas canonical pemilik: dari handoff; handoff lama yang hanya membawa MstEmployee.Id diterjemahkan
+            // ke Workforce (tanpa mengubah BenefitOwnerId). Piutang dokter tidak pernah membawa EmployeeId palsu.
+            var benefitOwnerProfileId = handoff.BenefitOwnerWorkforceProfileId
+                ?? (handoff.BenefitOwnerId.HasValue
+                    ? await _dbContext.MstEmployees.AsNoTracking()
+                        .Where(x => x.Id == handoff.BenefitOwnerId.Value)
+                        .Select(x => (Guid?)x.WorkforceProfileId)
+                        .FirstOrDefaultAsync(cancellationToken)
+                    : null);
 
             var invoice = await _dbContext.BilInvoices.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.Id == handoff.InvoiceId, cancellationToken);
@@ -515,6 +526,7 @@ public sealed class FinanceBillingIntakeService
                 // NULL untuk baris PAYER/PATIENT_GUARANTOR — ditegakkan CK_BilArHandoff_BenefitOwner
                 // di sisi sumber dan CK_FinReceivable_BenefitOwner di sini.
                 BenefitOwnerId = handoff.BenefitOwnerId,
+                BenefitOwnerWorkforceProfileId = benefitOwnerProfileId,
                 BenefitRelationship = handoff.BenefitRelationship,
                 // FIN-DES-011 area: nilai disalin dari handoff, tidak pernah dihitung ulang.
                 // BilArHandoff.Amount sudah berupa sisa tanggungan penjamin (FR-FIN-020) —
@@ -1207,13 +1219,15 @@ public sealed class FinanceBillingIntakeService
                     }
 
                     var targetEmployeeId = oldReceivable.BenefitOwnerId ?? oldReceivable.DebtorReferenceId;
-                    if (totalPaid > 0 && targetEmployeeId.HasValue)
+                    var targetProfileId = oldReceivable.BenefitOwnerWorkforceProfileId;
+                    if (totalPaid > 0 && (targetEmployeeId.HasValue || targetProfileId.HasValue))
                     {
                         // Potongan gaji yang terlanjur diambil dari pegawai yang salah dikembalikan lewat slip gaji periode berikutnya di HR.
                         // Finance TIDAK mengeluarkan kas manual untuk restitusi ini (FIN-DEC-195).
                         await _payrollRestitutionService.ProcessRestitutionAsync(new PayrollRestitutionRequest
                         {
-                            EmployeeId = targetEmployeeId.Value,
+                            EmployeeId = targetProfileId.HasValue ? (oldReceivable.BenefitOwnerId ?? Guid.Empty) : targetEmployeeId!.Value,
+                            WorkforceProfileId = targetProfileId,
                             Amount = totalPaid,
                             SourceId = oldReceivable.Id,
                             SourceType = "FinanceReceivableCorrection",
@@ -1255,6 +1269,13 @@ public sealed class FinanceBillingIntakeService
                     DebtorType = newHandoff.DebtorType,
                     DebtorReferenceId = newHandoff.DebtorReferenceId,
                     BenefitOwnerId = newHandoff.BenefitOwnerId,
+                    BenefitOwnerWorkforceProfileId = newHandoff.BenefitOwnerWorkforceProfileId
+                        ?? (newHandoff.BenefitOwnerId.HasValue
+                            ? await _dbContext.MstEmployees.AsNoTracking()
+                                .Where(x => x.Id == newHandoff.BenefitOwnerId.Value)
+                                .Select(x => (Guid?)x.WorkforceProfileId)
+                                .FirstOrDefaultAsync(cancellationToken)
+                            : null),
                     BenefitRelationship = newHandoff.BenefitRelationship,
                     OriginalAmount = newHandoff.Amount,
                     OutstandingAmount = newHandoff.Amount,

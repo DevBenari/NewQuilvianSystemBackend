@@ -48,6 +48,13 @@ public sealed class FinReceivable : IdentityModel
     /// <summary>Sensitif — terisi hanya untuk EMPLOYEE_BENEFIT (FIN-DES-024, jalur intake OPEN DECISION).</summary>
     public Guid? BenefitOwnerId { get; set; }
 
+    /// <summary>
+    /// Identitas canonical pemilik manfaat: MstWorkforceProfile.Id (karyawan atau dokter tetap). Terpisah dari
+    /// <see cref="BenefitOwnerId"/> yang bermakna MstEmployee.Id dan tidak diubah artinya. Piutang dokter hanya
+    /// membawa ini. Sensitif.
+    /// </summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
+
     /// <summary>Sensitif. BE-FIN-107, FIN-INTEGRATION-1.9 R.4.1: diperlebar ke 50 agar selaras dengan BilArHandoff.</summary>
     [MaxLength(50)] public string? BenefitRelationship { get; set; }
 

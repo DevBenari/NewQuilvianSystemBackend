@@ -18,20 +18,33 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         private static readonly TimeZoneInfo OperationalTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly WorkforceBenefitOwnerResolver _ownerResolver;
 
-        public EmployeeBenefitEligibilityService(ApplicationDbContext dbContext) => _dbContext = dbContext;
+        // Parameter resolver bersifat opsional agar pembuatan manual `new EmployeeBenefitEligibilityService(dbContext)`
+        // (dipakai beberapa controller sebagai cadangan) tetap berjalan dengan resolver yang sama.
+        public EmployeeBenefitEligibilityService(ApplicationDbContext dbContext, WorkforceBenefitOwnerResolver? ownerResolver = null)
+        {
+            _dbContext = dbContext;
+            _ownerResolver = ownerResolver ?? new WorkforceBenefitOwnerResolver(dbContext);
+        }
+
+        public WorkforceBenefitOwnerResolver OwnerResolver => _ownerResolver;
 
         /// <summary>Urutan R.2.3; berhenti pada kegagalan pertama.</summary>
         public async Task<BenefitEligibilityResult> CheckAsync(BenefitEligibilityRequest request, CancellationToken cancellationToken)
         {
             var serviceDay = ToOperationalDayUtc(request.ServiceDate);
 
-            // 1. Pegawai ada dan aktif.
-            var employee = await _dbContext.MstEmployees.AsNoTracking()
-                .Where(x => x.Id == request.EmployeeId && !x.IsDelete && x.IsActive)
-                .Select(x => new { x.Id, x.WorkforceProfileId, x.EmployeeNumber, x.FullName, x.BirthDate, x.IdentityNumber })
-                .SingleOrDefaultAsync(cancellationToken);
-            if (employee is null) return Fail(BenefitEligibilityReasonCodes.EmployeeNotFound);
+            // 1. Pemilik benefit (karyawan atau dokter tetap) ada, aktif, dan berjenis yang diizinkan.
+            //    WorkforceProfileId adalah identitas utama; EmployeeId lama diterjemahkan ke Workforce.
+            var resolution = await _ownerResolver.ResolveRequestAsync(
+                request.WorkforceProfileId,
+                request.EmployeeId == Guid.Empty ? null : request.EmployeeId,
+                cancellationToken);
+            if (!resolution.IsResolved)
+                return Fail(resolution.ReasonCode ?? BenefitEligibilityReasonCodes.OwnerNotFound);
+            var owner = resolution.Owner!;
+            var employee = new { WorkforceProfileId = owner.WorkforceProfileId };
 
             // 2. Tepat satu enrollment layanan RS Active yang masa berlakunya mencakup tanggal layanan.
             var enrollments = await (from e in _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
@@ -55,9 +68,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             var result = new BenefitEligibilityResult
             {
                 ReasonCode = BenefitEligibilityReasonCodes.Ok,
-                EmployeeId = employee.Id,
-                EmployeeNumber = employee.EmployeeNumber,
-                EmployeeName = employee.FullName,
+                WorkforceProfileId = owner.WorkforceProfileId,
+                OwnerType = owner.OwnerType,
+                EmployeeId = owner.EmployeeId,
+                DoctorId = owner.DoctorId,
+                StaffNumber = owner.StaffNumber,
+                StaffName = owner.StaffName,
+                // Nama lama dipertahankan untuk pemanggil yang belum pindah ke StaffNumber/StaffName.
+                EmployeeNumber = owner.StaffNumber,
+                EmployeeName = owner.StaffName,
                 EnrollmentId = enrollment.Id,
                 PlanCode = active.BenefitPlanCode,
                 PlanName = active.BenefitPlanName,
@@ -72,9 +91,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 result.BenefitPersonId = enrollment.Id;
                 result.EffectiveStartDate = enrollment.EffectiveStartDate;
                 result.EffectiveEndDate = enrollment.EffectiveEndDate;
-                result.TargetPersonNationalId = employee.IdentityNumber;
-                result.TargetPersonFullName = employee.FullName;
-                result.TargetPersonBirthDate = employee.BirthDate;
+                result.TargetPersonNationalId = owner.NationalId;
+                result.TargetPersonFullName = owner.StaffName;
+                result.TargetPersonBirthDate = await GetBirthDateAsync(owner, cancellationToken);
                 return result;
             }
 
@@ -172,6 +191,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             result.Items = page.Select(x => new EmployeeSearchItem
             {
                 EmployeeId = x.Id,
+                WorkforceProfileId = x.WorkforceProfileId,
                 EmployeeNumber = x.EmployeeNumber,
                 NationalIdMasked = MaskIdentity(x.IdentityNumber) ?? string.Empty,
                 FullName = x.FullName,
@@ -182,16 +202,161 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         }
 
         /// <summary>
+        /// Pencarian pemilik benefit gabungan: karyawan (jenis SDM Employee) dan dokter tetap (PermanentDoctor)
+        /// aktif yang NIP/nomor dokter, NIK, atau namanya memuat kata kunci. Paling banyak 20 baris
+        /// (IsTruncated bila lebih). Memakai kueri tetap: satu untuk karyawan, satu untuk dokter, dua untuk peran
+        /// lain SDM berperan ganda, dan satu untuk penanda enrollment Medical aktif; tidak ada kueri per baris.
+        /// NIK keluar tersamar.
+        /// </summary>
+        public async Task<WorkforceSearchResult> SearchWorkforceAsync(string keyword, CancellationToken cancellationToken)
+        {
+            var term = (keyword ?? string.Empty).Trim().ToLower();
+            if (term.Length < EmployeeLookupLimits.MinimumKeywordLength)
+                throw new ArgumentException("Kata kunci pencarian SDM minimal 3 karakter.", nameof(keyword));
+
+            var take = EmployeeLookupLimits.MaximumResults + 1;
+
+            var employeeRows = await (from e in _dbContext.MstEmployees.AsNoTracking()
+                                      join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on e.WorkforceProfileId equals p.Id
+                                      where !e.IsDelete && !e.IsCancel && e.IsActive && !e.ResignDate.HasValue
+                                            && !p.IsDelete && p.IsActive && p.UserType == QuilvianSystemBackend.Enums.UserType.Employee
+                                            && (e.EmployeeNumber.ToLower().Contains(term)
+                                                || e.IdentityNumber.Contains(term)
+                                                || e.FullName.ToLower().Contains(term))
+                                      orderby e.FullName, e.EmployeeNumber
+                                      select new WorkforceSearchRow
+                                      {
+                                          WorkforceProfileId = e.WorkforceProfileId,
+                                          OwnerType = WorkforceBenefitOwnerTypes.Employee,
+                                          EmployeeId = e.Id,
+                                          Number = e.EmployeeNumber,
+                                          FullName = e.FullName,
+                                          NationalId = e.IdentityNumber,
+                                          DepartmentName = e.PrimaryDepartment != null ? e.PrimaryDepartment.DepartmentName : null,
+                                          EmploymentTypeName = e.EmploymentType != null ? e.EmploymentType.EmploymentTypeName : null
+                                      })
+                                     .Take(take)
+                                     .ToListAsync(cancellationToken);
+
+            var doctorRows = await (from d in _dbContext.MstDoctors.AsNoTracking()
+                                    join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on d.WorkforceProfileId equals p.Id
+                                    where !d.IsDelete && !d.IsCancel && d.IsActive && !d.ResignDate.HasValue
+                                          && !p.IsDelete && p.IsActive && p.UserType == QuilvianSystemBackend.Enums.UserType.PermanentDoctor
+                                          && (d.DoctorNumber.ToLower().Contains(term)
+                                              || (d.IdentityNumber != null && d.IdentityNumber.Contains(term))
+                                              || d.FullName.ToLower().Contains(term))
+                                    orderby d.FullName, d.DoctorNumber
+                                    select new WorkforceSearchRow
+                                    {
+                                        WorkforceProfileId = d.WorkforceProfileId,
+                                        OwnerType = WorkforceBenefitOwnerTypes.Doctor,
+                                        DoctorId = d.Id,
+                                        Number = d.DoctorNumber,
+                                        FullName = d.FullName,
+                                        NationalId = d.IdentityNumber,
+                                        DepartmentName = d.PrimaryDepartment != null ? d.PrimaryDepartment.DepartmentName : null,
+                                        EmploymentTypeName = d.EmploymentType != null ? d.EmploymentType.EmploymentTypeName : null
+                                    })
+                                   .Take(take)
+                                   .ToListAsync(cancellationToken);
+
+            // Satu SDM berperan ganda tetap satu baris: peran yang sesuai jenis SDM pada profil menang.
+            var merged = employeeRows.Concat(doctorRows)
+                .GroupBy(x => x.WorkforceProfileId)
+                .Select(g => g.First())
+                .OrderBy(x => x.FullName).ThenBy(x => x.Number)
+                .ToList();
+
+            var result = new WorkforceSearchResult { IsTruncated = merged.Count > EmployeeLookupLimits.MaximumResults };
+            var page = merged.Take(EmployeeLookupLimits.MaximumResults).ToList();
+            if (page.Count == 0) return result;
+
+            var profileIds = page.Select(x => x.WorkforceProfileId).ToList();
+            var employeeIds = await _dbContext.MstEmployees.AsNoTracking()
+                .Where(x => profileIds.Contains(x.WorkforceProfileId) && !x.IsDelete && !x.IsCancel)
+                .Select(x => new { x.WorkforceProfileId, x.Id })
+                .ToListAsync(cancellationToken);
+            var doctorIds = await _dbContext.MstDoctors.AsNoTracking()
+                .Where(x => profileIds.Contains(x.WorkforceProfileId) && !x.IsDelete && !x.IsCancel)
+                .Select(x => new { x.WorkforceProfileId, x.Id })
+                .ToListAsync(cancellationToken);
+
+            var today = ToOperationalDayUtc(AppDateTimeHelper.OperationalDate());
+            var enrollmentPeriods = await ActiveMedicalEnrollments()
+                .Where(x => profileIds.Contains(x.WorkforceProfileId))
+                .Select(x => new { x.WorkforceProfileId, x.EffectiveStartDate, x.EffectiveEndDate })
+                .ToListAsync(cancellationToken);
+            var withActiveEnrollment = enrollmentPeriods
+                .Where(x => Covers(x.EffectiveStartDate, x.EffectiveEndDate, today))
+                .Select(x => x.WorkforceProfileId)
+                .ToHashSet();
+
+            result.Items = page.Select(x => new WorkforceSearchItem
+            {
+                WorkforceProfileId = x.WorkforceProfileId,
+                OwnerType = x.OwnerType,
+                EmployeeId = x.EmployeeId ?? employeeIds.Where(r => r.WorkforceProfileId == x.WorkforceProfileId).Select(r => (Guid?)r.Id).FirstOrDefault(),
+                DoctorId = x.DoctorId ?? doctorIds.Where(r => r.WorkforceProfileId == x.WorkforceProfileId).Select(r => (Guid?)r.Id).FirstOrDefault(),
+                StaffNumber = x.Number,
+                FullName = x.FullName,
+                NationalIdMasked = MaskIdentity(x.NationalId) ?? string.Empty,
+                OrganizationUnitName = x.DepartmentName,
+                EmploymentType = x.EmploymentTypeName,
+                IsActive = true,
+                HasActiveMedicalEnrollment = withActiveEnrollment.Contains(x.WorkforceProfileId)
+            }).ToList();
+            return result;
+        }
+
+        private sealed class WorkforceSearchRow
+        {
+            public Guid WorkforceProfileId { get; set; }
+            public string OwnerType { get; set; } = string.Empty;
+            public Guid? EmployeeId { get; set; }
+            public Guid? DoctorId { get; set; }
+            public string Number { get; set; } = string.Empty;
+            public string FullName { get; set; } = string.Empty;
+            public string? NationalId { get; set; }
+            public string? DepartmentName { get; set; }
+            public string? EmploymentTypeName { get; set; }
+        }
+
+        /// <summary>Tanggal lahir pemilik dari baris peran utamanya (karyawan atau dokter), untuk pencocokan identitas.</summary>
+        private async Task<DateTime?> GetBirthDateAsync(WorkforceBenefitOwner owner, CancellationToken cancellationToken)
+        {
+            if (owner.OwnerType == WorkforceBenefitOwnerTypes.Doctor && owner.DoctorId.HasValue)
+                return await _dbContext.MstDoctors.AsNoTracking()
+                    .Where(x => x.Id == owner.DoctorId.Value)
+                    .Select(x => x.BirthDate)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+            if (owner.EmployeeId.HasValue)
+                return await _dbContext.MstEmployees.AsNoTracking()
+                    .Where(x => x.Id == owner.EmployeeId.Value)
+                    .Select(x => (DateTime?)x.BirthDate)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+            return null;
+        }
+
+        /// <summary>
         /// DaftarKeluarga (R.2.2): anggota keluarga aktif satu pegawai beserta status verifikasi tanggungan
         /// pada enrollment layanan RS yang berlaku hari ini dan apakah plan mencakup hubungannya.
         /// </summary>
         public async Task<List<FamilyMemberEligibilityItem>> ListFamilyMembersAsync(Guid employeeId, CancellationToken cancellationToken)
         {
-            var employee = await _dbContext.MstEmployees.AsNoTracking()
-                .Where(x => x.Id == employeeId && !x.IsDelete && x.IsActive)
-                .Select(x => new { x.Id, x.WorkforceProfileId })
-                .SingleOrDefaultAsync(cancellationToken)
-                ?? throw new KeyNotFoundException(MessageFor(BenefitEligibilityReasonCodes.EmployeeNotFound));
+            var resolution = await _ownerResolver.ResolveByEmployeeAsync(employeeId, cancellationToken);
+            if (!resolution.IsResolved) throw new KeyNotFoundException(MessageFor(BenefitEligibilityReasonCodes.EmployeeNotFound));
+            return await ListFamilyMembersByWorkforceAsync(resolution.Owner!.WorkforceProfileId, cancellationToken);
+        }
+
+        /// <summary>DaftarKeluarga untuk pemilik benefit mana pun (karyawan atau dokter tetap) berdasarkan WorkforceProfileId.</summary>
+        public async Task<List<FamilyMemberEligibilityItem>> ListFamilyMembersByWorkforceAsync(
+            Guid workforceProfileId, CancellationToken cancellationToken)
+        {
+            var resolution = await _ownerResolver.ResolveByWorkforceProfileAsync(workforceProfileId, cancellationToken);
+            if (!resolution.IsResolved) throw new KeyNotFoundException(MessageFor(resolution.ReasonCode ?? BenefitEligibilityReasonCodes.OwnerNotFound));
+            var employee = new { WorkforceProfileId = resolution.Owner!.WorkforceProfileId };
 
             var members = await _dbContext.WfpFamilyMembers.AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && x.WorkforceProfileId == employee.WorkforceProfileId)
@@ -286,6 +451,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public static string MessageFor(string reasonCode) => reasonCode switch
         {
             BenefitEligibilityReasonCodes.EmployeeNotFound => "Pegawai tidak ditemukan atau sudah tidak aktif di HR.",
+            BenefitEligibilityReasonCodes.OwnerNotFound => "SDM tidak ditemukan atau sudah tidak aktif di HR.",
+            BenefitEligibilityReasonCodes.OwnerTypeNotAllowed => "Jenis SDM ini tidak termasuk penerima benefit kesehatan menurut kebijakan HR.",
+            BenefitEligibilityReasonCodes.OwnerIdentityConflict => "Data HR SDM ini bertentangan atau ganda. Hubungi HR sebelum melanjutkan.",
+            BenefitEligibilityReasonCodes.OwnerMismatch => "EmployeeId dan WorkforceProfileId tidak menunjuk orang yang sama.",
             BenefitEligibilityReasonCodes.EnrollmentNotActive => "Pegawai belum memiliki benefit layanan RS yang aktif. Daftarkan sebagai Pasien Umum atau hubungi HR.",
             BenefitEligibilityReasonCodes.EnrollmentAmbiguous => "Data benefit pegawai ganda di HR. Hubungi HR sebelum melanjutkan.",
             BenefitEligibilityReasonCodes.FamilyMemberNotFound => "Anggota keluarga tidak terdaftar pada pegawai ini di HR.",

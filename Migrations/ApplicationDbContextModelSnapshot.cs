@@ -9598,6 +9598,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("BenefitOwnerId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BenefitOwnerWorkforceProfileId")
+                        .HasColumnType("uuid");
+                    
                     b.Property<string>("BenefitRelationship")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -9709,6 +9712,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BenefitOwnerWorkforceProfileId")
+                        .HasDatabaseName("IX_FinReceivable_BenefitOwnerWorkforceProfileId")
+                        .HasFilter("\"BenefitOwnerWorkforceProfileId\" IS NOT NULL");
+
                     b.HasIndex("OpeningItemBatchId")
                         .HasDatabaseName("IX_FinReceivable_OpeningItemBatchId");
 
@@ -9729,7 +9736,7 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             t.HasCheckConstraint("CK_FinReceivable_Balance", "\"OriginalAmount\" = \"OutstandingAmount\" + \"AllocatedAmount\" + \"AdjustedAmount\" + \"WrittenOffAmount\"");
 
-                            t.HasCheckConstraint("CK_FinReceivable_BenefitOwner", "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NOT NULL) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL)");
+                            t.HasCheckConstraint("CK_FinReceivable_BenefitOwner", "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND (\"BenefitOwnerId\" IS NOT NULL OR \"BenefitOwnerWorkforceProfileId\" IS NOT NULL)) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL AND \"BenefitOwnerWorkforceProfileId\" IS NULL)");
 
                             t.HasCheckConstraint("CK_FinReceivable_DebtorType", "\"DebtorType\" IN ('PAYER','PATIENT_GUARANTOR','EMPLOYEE_BENEFIT')");
 
@@ -62334,6 +62341,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("BenefitOwnerId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("BenefitOwnerWorkforceProfileId")
+                        .HasColumnType("uuid");
+                    
                     b.Property<string>("BenefitRelationship")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -62432,6 +62442,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BenefitOwnerWorkforceProfileId")
+                        .HasDatabaseName("IX_BilArHandoff_BenefitOwnerWorkforceProfileId")
+                        .HasFilter("\"BenefitOwnerWorkforceProfileId\" IS NOT NULL");
+
                     b.HasIndex("CorrelationId")
                         .IsUnique();
 
@@ -62447,7 +62461,7 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             t.HasCheckConstraint("CK_BilArHandoff_Amount", "\"Amount\" > 0");
 
-                            t.HasCheckConstraint("CK_BilArHandoff_BenefitOwner", "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NOT NULL) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL)");
+                            t.HasCheckConstraint("CK_BilArHandoff_BenefitOwner", "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND (\"BenefitOwnerId\" IS NOT NULL OR \"BenefitOwnerWorkforceProfileId\" IS NOT NULL)) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL AND \"BenefitOwnerWorkforceProfileId\" IS NULL)");
 
                             t.HasCheckConstraint("CK_BilArHandoff_Consent", "\"DeferredPatientAmount\" = 0 OR \"BenefitRelationship\" = 'SELF' OR \"DeferredConsentGivenBy\" IS NOT NULL");
 
@@ -96793,6 +96807,13 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<decimal?>("AnnualLimitAmount")
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("BenefitOwnerType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+                    
+                    b.Property<Guid?>("BenefitOwnerWorkforceProfileId")
+                        .HasColumnType("uuid");
+                    
                     b.Property<string>("BenefitPlanCode")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -96948,6 +96969,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BenefitOwnerWorkforceProfileId")
+                        .HasDatabaseName("IX_MstPatientCompanyGuarantor_BenefitOwnerWorkforceProfileId")
+                        .HasFilter("\"BenefitOwnerWorkforceProfileId\" IS NOT NULL");
+
                     b.HasIndex("CompanyGuarantorId");
 
                     b.HasIndex("EmployeeId")
@@ -96981,7 +97006,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.ToTable("MstPatientCompanyGuarantor", "public", t =>
                         {
-                            t.HasCheckConstraint("CK_MstPatientCompanyGuarantor_BenefitLink", "(\"EmployeeId\" IS NULL AND \"FamilyMemberId\" IS NULL AND \"BenefitRelationship\" IS NULL) OR (\"EmployeeId\" IS NOT NULL AND \"BenefitRelationship\" IS NOT NULL AND ((\"BenefitRelationship\" = 'SELF') = (\"FamilyMemberId\" IS NULL)))");
+                            t.HasCheckConstraint("CK_MstPatientCompanyGuarantor_BenefitLink", "(\"EmployeeId\" IS NULL AND \"FamilyMemberId\" IS NULL AND \"BenefitRelationship\" IS NULL AND \"BenefitOwnerWorkforceProfileId\" IS NULL AND \"BenefitOwnerType\" IS NULL) OR ((\"EmployeeId\" IS NOT NULL OR \"BenefitOwnerWorkforceProfileId\" IS NOT NULL) AND \"BenefitRelationship\" IS NOT NULL AND ((\"BenefitRelationship\" = 'SELF') = (\"FamilyMemberId\" IS NULL)))");
+                            t.HasCheckConstraint("CK_MstPatientCompanyGuarantor_BenefitOwnerType", "(\"BenefitOwnerWorkforceProfileId\" IS NULL AND \"BenefitOwnerType\" IS NULL) OR (\"BenefitOwnerWorkforceProfileId\" IS NOT NULL AND \"BenefitOwnerType\" IN ('EMPLOYEE','DOCTOR'))");
                         });
                 });
 
@@ -105536,6 +105562,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("WorkforceProfileIdSnapshot")
+                        .HasColumnType("uuid");
+                    
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyGuarantorId");
@@ -105563,6 +105592,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PaymentSourceNumber")
                         .IsUnique();
+
+                    b.HasIndex("WorkforceProfileIdSnapshot")
+                        .HasDatabaseName("IX_RegPatientEncounterGuarantor_WorkforceProfileIdSnapshot")
+                        .HasFilter("\"WorkforceProfileIdSnapshot\" IS NOT NULL");
 
                     b.HasIndex("EncounterId", "IsPrimary");
 
@@ -131065,6 +131098,12 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientCompanyGuarantor", b =>
                 {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", null)
+                        .WithMany()
+                        .HasForeignKey("BenefitOwnerWorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_MstPatientCompanyGuarantor_BenefitOwnerWorkforceProfileId");
+
                     b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstCompanyGuarantor", "CompanyGuarantor")
                         .WithMany()
                         .HasForeignKey("CompanyGuarantorId")
