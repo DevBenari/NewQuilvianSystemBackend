@@ -87,6 +87,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         /// <summary>Hanya di detail, tidak di daftar (data sensitif).</summary>
         public string? CancellationReason { get; set; }
+
+        /// <summary>Referensi tagihan iuran di Billing/Kasir; kosong untuk data lama atau impor.</summary>
+        public Guid? FeeChargeReferenceId { get; set; }
+
+        /// <summary>
+        /// Ringkasan tagihan iuran dari Billing (baca-saja). Status membership tetap ditentukan CRM; bila tagihan
+        /// sudah lunas tetapi membership masih Menunggu Pembayaran, <c>NeedsSync</c> bernilai true.
+        /// </summary>
+        public QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Services.MembershipFeeChargeSummary? FeeCharge { get; set; }
     }
 
     public class PatientMembershipOptionResponse

@@ -42,17 +42,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private readonly LoggerService _loggerService;
         private readonly PatientMembershipStatusResolver _statusResolver;
         private readonly PatientMembershipService _membershipService;
+        private readonly IMembershipFeeChargePort _feeChargePort;
 
         public PatientMembershipController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             PatientMembershipStatusResolver statusResolver,
-            PatientMembershipService membershipService)
+            PatientMembershipService membershipService,
+            IMembershipFeeChargePort feeChargePort)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _statusResolver = statusResolver;
             _membershipService = membershipService;
+            _feeChargePort = feeChargePort;
         }
 
         [HttpGet("filters/metadata")]
@@ -388,6 +391,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             });
 
             var data = MapDetailResponse(entity, actorNames);
+            await AttachFeeChargeAsync(data, HttpContext.RequestAborted);
 
             return Ok(ApiResponse<PatientMembershipDetailResponse>.Ok(
                 data,
@@ -583,7 +587,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             var entity = await BuildBaseQuery().FirstAsync(x => x.Id == result.PatientMembershipId, cancellationToken);
             var actorNames = await GetActorNameMapAsync(new[] { entity.CreateBy, entity.UpdateBy });
 
-            return Ok(ApiResponse<PatientMembershipDetailResponse>.Ok(MapDetailResponse(entity, actorNames), result.Message));
+            var detail = MapDetailResponse(entity, actorNames);
+            await AttachFeeChargeAsync(detail, cancellationToken);
+
+            return Ok(ApiResponse<PatientMembershipDetailResponse>.Ok(detail, result.Message));
+        }
+
+        // Ringkasan tagihan dibaca dari Billing; kegagalan membacanya tidak boleh menggagalkan detail membership.
+        private async Task AttachFeeChargeAsync(PatientMembershipDetailResponse detail, CancellationToken cancellationToken)
+        {
+            if (!detail.FeeChargeReferenceId.HasValue)
+            {
+                return;
+            }
+
+            try
+            {
+                var summaries = await _feeChargePort.GetSummariesAsync(new[] { detail.Id }, cancellationToken);
+                if (summaries.TryGetValue(detail.Id, out var summary))
+                {
+                    detail.FeeCharge = summary;
+                }
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "PatientMembership.FeeChargeSummaryFailed",
+                    $"Ringkasan tagihan iuran membership {detail.MemberNumber} gagal dibaca.",
+                    new { detail.Id, exception.Message });
+            }
         }
 
 
@@ -966,6 +999,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 TotalSpendAmount = entity.TotalSpendAmount,
                 LastUpgradeDate = entity.LastUpgradeDate,
                 LastDowngradeDate = entity.LastDowngradeDate,
+                FeeChargeReferenceId = entity.FeeChargeReferenceId,
                 UpgradeDowngradeReason = entity.UpgradeDowngradeReason,
                 Notes = entity.Notes,
                 CancellationReason = entity.CancellationReason,

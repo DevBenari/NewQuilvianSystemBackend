@@ -30,6 +30,7 @@ public sealed class BillingSettlementService
     private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
     private readonly ClinicalDocumentIntegrityService? _integrityService;
+    private readonly BillingMembershipFeeService? _membershipFeeService;
 
     public BillingSettlementService(
         ApplicationDbContext dbContext,
@@ -41,7 +42,8 @@ public sealed class BillingSettlementService
         BillingInvoiceClosureService closureService,
         BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService,
-        ClinicalDocumentIntegrityService? integrityService = null)
+        ClinicalDocumentIntegrityService? integrityService = null,
+        BillingMembershipFeeService? membershipFeeService = null)
     {
         _dbContext = dbContext;
         _providerAdapter = providerAdapter;
@@ -53,6 +55,7 @@ public sealed class BillingSettlementService
         _consumerHandoffService = consumerHandoffService;
         _loggerService = loggerService;
         _integrityService = integrityService;
+        _membershipFeeService = membershipFeeService;
     }
 
     public async Task<SettlementResponse> GetAsync(
@@ -156,6 +159,7 @@ public sealed class BillingSettlementService
                     && x.Purpose == request.Purpose
                     && x.InvoiceId == request.InvoiceId
                     && x.DepositAccountId == request.DepositAccountId
+                    && x.MembershipFeeChargeId == request.MembershipFeeChargeId
                     && x.Status != BillingSettlementStatuses.Settled,
                     cancellationToken);
             if (activeExists)
@@ -167,6 +171,7 @@ public sealed class BillingSettlementService
             {
                 InvoiceId = request.InvoiceId,
                 DepositAccountId = request.DepositAccountId,
+                MembershipFeeChargeId = request.MembershipFeeChargeId,
                 Purpose = request.Purpose,
                 Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
                 RequestedAmount = request.RequestedAmount,
@@ -273,6 +278,26 @@ public sealed class BillingSettlementService
                     throw new BillingSettlementValidationException(
                         "Settlement sudah lunas dan tidak dapat menerima tender baru.");
 
+                // Iuran membership: tagihan harus masih dapat dibayar (belum dibatalkan/lewat batas bayar,
+                // membership masih menunggu pembayaran). Kunci tagihan diambil di sini, serial dengan pembatalan.
+                if (settlement.Purpose == BillingSettlementPurposes.MembershipFee)
+                {
+                    if (_membershipFeeService is null)
+                        throw new InvalidOperationException("Layanan tagihan iuran membership tidak tersedia.");
+                    try
+                    {
+                        await _membershipFeeService.EnsureSettlementPayableAsync(settlement, cancellationToken);
+                    }
+                    catch (BillingMembershipFeeValidationException exception)
+                    {
+                        throw new BillingSettlementValidationException(exception.Message);
+                    }
+                    catch (BillingMembershipFeeConflictException exception)
+                    {
+                        throw new BillingSettlementConflictException(exception.Message);
+                    }
+                }
+
                 paymentMethod = await LoadPaymentMethodAsync(request.PaymentMethodId, cancellationToken);
                 ValidatePaymentMethod(paymentMethod);
                 var activeShift = paymentMethod.IsCash
@@ -366,6 +391,7 @@ public sealed class BillingSettlementService
                 cancellationToken);
             response.IsReplay = isReplay;
             await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
+            await TryConfirmMembershipFeeAsync(tender.SettlementId, actorUserId, cancellationToken);
             return response;
         }
         var providerRequest = new BillingPaymentProviderRequest(
@@ -384,6 +410,7 @@ public sealed class BillingSettlementService
                 tender.Id, providerResult, actorUserId, cancellationToken);
             response.IsReplay = isReplay;
             await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
+            await TryConfirmMembershipFeeAsync(tender.SettlementId, actorUserId, cancellationToken);
             return response;
         }
         catch (OperationCanceledException)
@@ -657,6 +684,17 @@ public sealed class BillingSettlementService
             {
                 throw new BillingSettlementValidationException(exception.Message);
             }
+
+            // Iuran membership: dana dialokasikan ke tagihan iuran (non-kunjungan) di transaksi yang sama.
+            // Aktivasi membership BUKAN di sini; ia dijalankan setelah commit lewat TryConfirmMembershipFeeAsync.
+            if (tender.Settlement.Purpose == BillingSettlementPurposes.MembershipFee)
+            {
+                if (_membershipFeeService is null)
+                    throw new InvalidOperationException("Layanan tagihan iuran membership tidak tersedia.");
+                await _membershipFeeService.ReconcileSettlementAsync(
+                    tender.Settlement, actorUserId, result.OccurredAt, cancellationToken);
+            }
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             // BKC-DES-029/030: penyelarasan FINAL<->CLOSED dipanggil SESUDAH SaveChanges di atas,
@@ -1210,10 +1248,42 @@ public sealed class BillingSettlementService
         return new Guid(guidBytes);
     }
 
+    // Dipanggil setelah transaksi tender selesai: bila tender iuran membership membuat tagihan lunas, CRM dikabari
+    // agar mengaktifkan membership. Best-effort dan idempotent; uang yang sudah diterima tidak dibatalkan bila
+    // konfirmasi gagal, dan konfirmasi diulang oleh rekonsiliasi.
+    private async Task TryConfirmMembershipFeeAsync(
+        Guid settlementId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (_membershipFeeService is null) return;
+        await _membershipFeeService.ConfirmPaidChargeForSettlementAsync(settlementId, actorUserId, cancellationToken);
+    }
+
     private async Task ValidateTargetAndAmountAsync(
         CreateSettlementRequest request,
         CancellationToken cancellationToken)
     {
+        if (request.Purpose == BillingSettlementPurposes.MembershipFee)
+        {
+            if (_membershipFeeService is null)
+                throw new InvalidOperationException("Layanan tagihan iuran membership tidak tersedia.");
+            try
+            {
+                await _membershipFeeService.ValidateSettlementTargetAsync(
+                    request.MembershipFeeChargeId!.Value, request.RequestedAmount, cancellationToken);
+            }
+            catch (BillingMembershipFeeValidationException exception)
+            {
+                throw new BillingSettlementValidationException(exception.Message);
+            }
+            catch (BillingMembershipFeeConflictException exception)
+            {
+                throw new BillingSettlementConflictException(exception.Message);
+            }
+            return;
+        }
+
         if (request.Purpose == BillingSettlementPurposes.InvoicePayment)
         {
             var invoice = await _dbContext.BilInvoices.AsNoTracking()
@@ -1331,13 +1401,16 @@ public sealed class BillingSettlementService
             throw new BillingSettlementValidationException("Idempotency-Key wajib diisi.");
         var hasInvoice = request.InvoiceId.HasValue && request.InvoiceId != Guid.Empty;
         var hasDeposit = request.DepositAccountId.HasValue && request.DepositAccountId != Guid.Empty;
-        if (hasInvoice == hasDeposit)
+        var hasMembershipFee = request.MembershipFeeChargeId.HasValue && request.MembershipFeeChargeId != Guid.Empty;
+        if ((hasInvoice ? 1 : 0) + (hasDeposit ? 1 : 0) + (hasMembershipFee ? 1 : 0) != 1)
             throw new BillingSettlementValidationException(
-                "Settlement harus memiliki tepat satu target invoice atau account deposit.");
+                "Settlement harus memiliki tepat satu target: invoice, account deposit, atau tagihan iuran membership.");
         if (request.Purpose == BillingSettlementPurposes.InvoicePayment && !hasInvoice
             || request.Purpose == BillingSettlementPurposes.DepositTopUp && !hasDeposit
+            || request.Purpose == BillingSettlementPurposes.MembershipFee && !hasMembershipFee
             || request.Purpose is not (BillingSettlementPurposes.InvoicePayment
-                or BillingSettlementPurposes.DepositTopUp))
+                or BillingSettlementPurposes.DepositTopUp
+                or BillingSettlementPurposes.MembershipFee))
             throw new BillingSettlementValidationException(
                 "Purpose settlement tidak sesuai dengan target.");
         ValidateMoney(request.RequestedAmount, "Nominal settlement");
@@ -1544,7 +1617,9 @@ public sealed class BillingSettlementService
     private static string TargetLockKey(CreateSettlementRequest request) =>
         request.InvoiceId.HasValue
             ? $"BIL_SETTLEMENT_INVOICE_{request.InvoiceId.Value:N}"
-            : $"BIL_SETTLEMENT_DEPOSIT_{request.DepositAccountId!.Value:N}";
+            : request.MembershipFeeChargeId.HasValue
+                ? $"BIL_SETTLEMENT_MEMBERSHIP_FEE_{request.MembershipFeeChargeId.Value:N}"
+                : $"BIL_SETTLEMENT_DEPOSIT_{request.DepositAccountId!.Value:N}";
 
     private static string ComputeSettlementPayloadHash(CreateSettlementRequest request)
     {
@@ -1556,6 +1631,10 @@ public sealed class BillingSettlementService
             request.Note ?? string.Empty,
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
+        // Segmen target iuran hanya ditambahkan bila ada, sehingga hash settlement invoice/deposit yang sudah
+        // tersimpan tidak berubah (replay idempotent permintaan lama tetap cocok).
+        if (request.MembershipFeeChargeId.HasValue)
+            canonical += "|" + request.MembershipFeeChargeId.Value.ToString("N");
         return Hash(canonical);
     }
 
@@ -1651,6 +1730,7 @@ public sealed class BillingSettlementService
             Id = settlement.Id,
             InvoiceId = settlement.InvoiceId,
             DepositAccountId = settlement.DepositAccountId,
+            MembershipFeeChargeId = settlement.MembershipFeeChargeId,
             Purpose = settlement.Purpose,
             Note = settlement.Note,
             Status = settlement.Status,

@@ -67,6 +67,7 @@ public sealed class BillingNumberSeriesService
     private const string KwitansiSequenceKey = "BILLING_KWITANSI";
     private const string PettyCashVoucherSequenceKey = "BILLING_PETTY_CASH_VOUCHER";
     private const string DepositOrderSequenceKey = "BILLING_DEPOSIT_ORDER";
+    private const string MembershipFeeChargeSequenceKey = "BILLING_MEMBERSHIP_FEE_CHARGE";
     private readonly ApplicationDbContext _dbContext;
     private readonly BillingInvoiceNumberOptions _invoiceOptions;
     private readonly BillingDepositAccountNumberOptions _depositOptions;
@@ -186,6 +187,25 @@ public sealed class BillingNumberSeriesService
             5,
             "order deposit",
             message => new BillingDepositValidationException(message),
+            actorUserId,
+            instant,
+            cancellationToken);
+
+    /// <summary>
+    /// Nomor tagihan iuran membership (non-kunjungan), bentuk MFC-NNNNNN, tidak pernah di-reset (NEVER).
+    /// Wajib dipanggil di dalam transaction, seperti nomor Billing lain.
+    /// </summary>
+    public Task<string> AllocateMembershipFeeChargeNumberAsync(
+        Guid actorUserId,
+        DateTimeOffset instant,
+        CancellationToken cancellationToken) =>
+        AllocateNumberAsync(
+            MembershipFeeChargeSequenceKey,
+            "MFC",
+            BillingNumberResetPolicies.Never,
+            6,
+            "tagihan iuran membership",
+            message => new BillingMembershipFeeValidationException(message),
             actorUserId,
             instant,
             cancellationToken);

@@ -10,6 +10,8 @@ public sealed class BilSettlement : IdentityModel
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
+    /// <summary>Target settlement iuran membership (non-kunjungan); diisi hanya untuk purpose MEMBERSHIP_FEE.</summary>
+    public Guid? MembershipFeeChargeId { get; set; }
     [Required, MaxLength(30)] public string Purpose { get; set; } = string.Empty;
     // Catatan internal kasir untuk settlement ini (mis. alasan pembayaran sebagian). Internal
     // saja - tidak pernah dikembalikan pada payload/template cetak Dokumen Kasir (BKC-DEC-048).
@@ -42,4 +44,5 @@ public static class BillingSettlementPurposes
 {
     public const string DepositTopUp = "DEPOSIT_TOP_UP";
     public const string InvoicePayment = "INVOICE_PAYMENT";
+    public const string MembershipFee = "MEMBERSHIP_FEE";
 }

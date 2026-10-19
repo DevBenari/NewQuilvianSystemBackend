@@ -64430,6 +64430,187 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("BilInvoicePayerChangeCommand", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilMembershipFeeAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("AllocatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("MembershipFeeChargeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReversesAllocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SettlementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReversesAllocationId")
+                        .IsUnique();
+
+                    b.HasIndex("MembershipFeeChargeId", "AllocatedAt");
+
+                    b.HasIndex("SettlementId", "AllocatedAt");
+
+                    b.ToTable("BilMembershipFeeAllocation", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_BilMembershipFeeAllocation_Amount", "\"Amount\" > 0");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilMembershipFeeCharge", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ChargeNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("FeeAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset?>("MembershipConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("MembershipId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("PaymentDueAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("SettledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChargeNumber")
+                        .IsUnique();
+
+                    b.HasIndex("MembershipId")
+                        .IsUnique();
+
+                    b.HasIndex("PatientId");
+
+                    b.HasIndex("Status", "PaymentDueAt");
+
+                    b.ToTable("BilMembershipFeeCharge", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_BilMembershipFeeCharge_FeeAmount", "\"FeeAmount\" > 0");
+
+                            t.HasCheckConstraint("CK_BilMembershipFeeCharge_PaidAmount", "\"PaidAmount\" >= 0 AND \"PaidAmount\" <= \"FeeAmount\"");
+
+                            t.HasCheckConstraint("CK_BilMembershipFeeCharge_Status", "\"Status\" IN ('UNPAID','PARTIALLY_PAID','PAID','CANCELLED')");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilNumberSeries", b =>
                 {
                     b.Property<Guid>("Id")
@@ -65160,6 +65341,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<Guid?>("MembershipFeeChargeId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -65212,17 +65396,19 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("InvoiceId", "Status");
 
+                    b.HasIndex("MembershipFeeChargeId", "Status");
+
                     b.ToTable("BilSettlement", "public", t =>
                         {
                             t.HasCheckConstraint("CK_BilSettlement_Amounts", "\"RequestedAmount\" > 0 AND \"SuccessfulAmount\" >= 0 AND \"AllocatedAmount\" >= 0 AND \"AllocatedAmount\" <= \"SuccessfulAmount\" AND \"SuccessfulAmount\" <= \"RequestedAmount\"");
 
-                            t.HasCheckConstraint("CK_BilSettlement_Purpose", "\"Purpose\" IN ('DEPOSIT_TOP_UP','INVOICE_PAYMENT')");
+                            t.HasCheckConstraint("CK_BilSettlement_Purpose", "\"Purpose\" IN ('DEPOSIT_TOP_UP','INVOICE_PAYMENT','MEMBERSHIP_FEE')");
 
-                            t.HasCheckConstraint("CK_BilSettlement_PurposeTarget", "((\"Purpose\" = 'INVOICE_PAYMENT' AND \"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL) OR (\"Purpose\" = 'DEPOSIT_TOP_UP' AND \"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL))");
+                            t.HasCheckConstraint("CK_BilSettlement_PurposeTarget", "((\"Purpose\" = 'INVOICE_PAYMENT' AND \"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"Purpose\" = 'DEPOSIT_TOP_UP' AND \"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"Purpose\" = 'MEMBERSHIP_FEE' AND \"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NOT NULL))");
 
                             t.HasCheckConstraint("CK_BilSettlement_Status", "\"Status\" IN ('DRAFT','IN_PROGRESS','PARTIALLY_SETTLED','SETTLED','FAILED')");
 
-                            t.HasCheckConstraint("CK_BilSettlement_Target", "((\"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL) OR (\"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL))");
+                            t.HasCheckConstraint("CK_BilSettlement_Target", "((\"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NOT NULL))");
                         });
                 });
 
@@ -124178,6 +124364,43 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PreviousCalculationVersion");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilMembershipFeeAllocation", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilMembershipFeeCharge", "MembershipFeeCharge")
+                        .WithMany("Allocations")
+                        .HasForeignKey("MembershipFeeChargeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilMembershipFeeAllocation", null)
+                        .WithMany()
+                        .HasForeignKey("ReversesAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilSettlement", null)
+                        .WithMany()
+                        .HasForeignKey("SettlementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("MembershipFeeCharge");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilMembershipFeeCharge", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatientMembership", null)
+                        .WithMany()
+                        .HasForeignKey("MembershipId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", null)
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilPaymentAllocation", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilPaymentAllocation", null)
@@ -124278,6 +124501,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilInvoice", null)
                         .WithMany()
                         .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilMembershipFeeCharge", null)
+                        .WithMany()
+                        .HasForeignKey("MembershipFeeChargeId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
@@ -134099,6 +134327,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("DiscountApplications");
 
                     b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilMembershipFeeCharge", b =>
+                {
+                    b.Navigation("Allocations");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilRefundCase", b =>
