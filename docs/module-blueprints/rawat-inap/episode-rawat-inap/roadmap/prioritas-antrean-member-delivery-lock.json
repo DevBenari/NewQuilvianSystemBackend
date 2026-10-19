@@ -1,0 +1,80 @@
+{
+  "planning_id": "TRF-DEL-20261019-01",
+  "blueprint_id": "RWI-BP-001",
+  "scope": "episode-rawat-inap/prioritas-antrean-member",
+  "revision": 1,
+  "captured_on": "2026-10-19",
+  "timezone": "Asia/Jakarta",
+  "status": "APPROVED_DESIGN_PLANNED",
+  "approved_by": "Muhammad Hamzah (pengguna sesi)",
+  "approved_at": "2026-10-19",
+  "approval_evidence": {
+    "statement": "/plan-module-delivery",
+    "command": "/plan-module-delivery",
+    "context": "Perencanaan delivery prioritas antrean transfer kamar rawat inap (CITO -> Member Prioritas -> Reguler) dan lencana tier membership untuk demo Selasa 20 Oktober 2026",
+    "contract_target": "0.17.0",
+    "task_execution": "Setiap task dieksekusi tepat 1 task per pemanggilan via build-module-backend / build-module-frontend"
+  },
+  "implementation_lock": true,
+  "contract_version": "0.17.0",
+  "source_snapshot": {
+    "backend_sha": "7a4d443fcdf0c9d33cc1a9f4be81522b4fadaefb",
+    "frontend_sha": "5ad45a6944b3c320038cc48bb288471cd8f2910a",
+    "branch_backend": "MHamzah",
+    "branch_frontend": "HamzahV2"
+  },
+  "id_allocation": {
+    "scanned_on": "2026-10-19",
+    "highest_used": {
+      "BE-RWI": 251,
+      "FE-RWI": 267
+    },
+    "allocated": {
+      "BE-RWI": "252-253",
+      "FE-RWI": "268-269"
+    },
+    "next_free": {
+      "BE-RWI": 254,
+      "FE-RWI": 270
+    }
+  },
+  "tasks": [
+    {
+      "id": "BE-RWI-252",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": [],
+      "fr": ["FR-TRF-008", "FR-TRF-012"],
+      "acceptance": ["RWI-AC-481", "RWI-AC-483", "RWI-AC-484", "RWI-AC-485", "RWI-AC-492", "RWI-AC-493"],
+      "service": "InpAdmissionTransferService.Queries",
+      "dto": "InpatientAdmissionTransferItemResponse"
+    },
+    {
+      "id": "BE-RWI-253",
+      "layer": "backend",
+      "status": "NOT_STARTED",
+      "dependencies": ["BE-RWI-252"],
+      "fr": ["FR-TRF-008"],
+      "acceptance": ["RWI-AC-482", "RWI-AC-489", "RWI-AC-490", "RWI-AC-491"],
+      "service": "InpAdmissionTransferService"
+    },
+    {
+      "id": "FE-RWI-268",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": ["BE-RWI-253"],
+      "fr": ["FR-TRF-009"],
+      "acceptance": ["RWI-AC-486"],
+      "component": "InpatientAdmissionTransferList"
+    },
+    {
+      "id": "FE-RWI-269",
+      "layer": "frontend",
+      "status": "NOT_STARTED",
+      "dependencies": ["FE-RWI-268"],
+      "fr": ["FR-TRF-010", "FR-TRF-011"],
+      "acceptance": ["RWI-AC-487", "RWI-AC-488"],
+      "component": "InpatientAdmissionTransferReviewStep"
+    }
+  ]
+}

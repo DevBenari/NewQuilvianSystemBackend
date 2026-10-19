@@ -9,18 +9,18 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 |---|---|
 | `submodule_slug` | `episode-rawat-inap` |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
-| `revision` | **`17`** — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier, bagian 22, **`DRAFT`** (`RWI-DEC-338` s.d. `341`, kontrak `0.17.0`). Riwayat metadata: `16` Realtime Bed Selection planned (`RWI-DEC-337`, `RTB-DEL-20261017-01`, `0.16.0`); `15` realtime draft; `14` Pendaftaran Admisi ODC; `13` Transfer Pasien Masuk & PPJA; `12` Integrasi Denah (`RWI-DEC-324`); `11` draft Bed Management |
-| `status` | **`draft`** untuk amandemen Prioritas Kamar Member & Lencana Tier (`0.17.0`, revision 17); **`approved`** untuk revision 16 Realtime Bed Selection (`0.16.0`), revision 14 ODC (`0.15.0`), revision 13 Transfer Pasien Masuk (`0.14.0`), dan revision 12 Integrasi Denah (`0.13.0`); Bed Management revision 11 tetap **`draft`** pada scope terpisah |
-| `contract_versions` | **`0.17.0`** — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (`draft`, `RWI-DEC-338` s.d. `341`, 2026-10-19); `0.16.0` Notifikasi Realtime Pemilihan Bed (`approved_design_planned`, `RWI-DEC-337`); `0.15.0` ODC (`approved_design_planned`); `0.14.0` Transfer Pasien Masuk (`approved`); `0.13.0` Integrasi Denah (`approved`); `0.12.0` Bed Management draft; `0.11.0` Admisi & Workspace PPRI (`RWI-DEC-265`) |
+| `revision` | **`17`** — Delivery Planning Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier, bagian 22, **`APPROVED_DESIGN_PLANNED`** (`RWI-DEC-338` s.d. `341`, planning `TRF-DEL-20261019-01`, kontrak `0.17.0`). Riwayat metadata: `16` Realtime Bed Selection planned (`RWI-DEC-337`, `RTB-DEL-20261017-01`, `0.16.0`); `15` realtime draft; `14` Pendaftaran Admisi ODC; `13` Transfer Pasien Masuk & PPJA; `12` Integrasi Denah (`RWI-DEC-324`); `11` draft Bed Management |
+| `status` | **`approved`** untuk revision 17 Prioritas Member & Lencana Tier (`0.17.0`), revision 16 Realtime Bed Selection (`0.16.0`), revision 14 ODC (`0.15.0`), revision 13 Transfer Pasien Masuk (`0.14.0`), dan revision 12 Integrasi Denah (`0.13.0`); Bed Management revision 11 tetap **`draft`** pada scope terpisah |
+| `contract_versions` | **`0.17.0`** — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (`approved_design_planned`, `RWI-DEC-338` s.d. `341`, 2026-10-19); `0.16.0` Notifikasi Realtime Pemilihan Bed (`approved_design_planned`, `RWI-DEC-337`); `0.15.0` ODC (`approved_design_planned`); `0.14.0` Transfer Pasien Masuk (`approved`); `0.13.0` Integrasi Denah (`approved`); `0.12.0` Bed Management draft; `0.11.0` Admisi & Workspace PPRI (`RWI-DEC-265`) |
 | `upstream_realignment` | **`REALIGNED_APPROVED` sejak 2026-09-16** lewat `RWI-DEC-150` |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###` |
-| `approved_by` | Muhammad Hamzah (Revision 16 melalui `RWI-DEC-337`; revision 14 lewat `/plan-module-delivery`; revision 13 & 12 melalui approval 2026-10-16). Revision 17 berstatus draft menunggu approval pemilik |
-| `approved_at` | `2026-10-17` untuk revision 16 dan 14; `2026-10-16` untuk revision 13 & 12 |
+| `approved_by` | **Muhammad Hamzah** (Revision 17 lewat `/plan-module-delivery` 19 Oktober 2026; revision 16 melalui `RWI-DEC-337`; revision 14 lewat `/plan-module-delivery`; revision 13 & 12 melalui approval 2026-10-16) |
+| `approved_at` | `2026-10-19` untuk revision 17; `2026-10-17` untuk revision 16 dan 14; `2026-10-16` untuk revision 13 & 12 |
 | `rumpun kemampuan` | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan, admisi & consent, serah terima transfer, admisi ODC, notifikasi realtime pemilihan bed, prioritas antrean transfer kamar member & lencana tier |
 | `kemampuan` | **16** — `CAP-001` s.d. `CAP-011`, `CAP-017`, `CAP-018`, `CAP-019`, `CAP-026`, `CAP-028`, sesuai `RWI-DEC-083`; **ditambah Workspace PPRI** `CAP-RWA-01` s.d. `CAP-RWA-17` tanpa `CAP-RWA-04` (`RWI-DEC-227`); **ditambah Amandemen Admisi & Digital Consent** (`RWI-DEC-267` s.d. `273`); **ditambah Integrasi Denah ↔ Bed Management** `DNH-CG-01` s.d. `06` (`RWI-DEC-298` s.d. `323`); **ditambah Transfer Pasien Masuk & PPJA** (`FR-TRF-001` s.d. `007`); **ditambah Pendaftaran Admisi Pasien ODC** (`FR-ODC-001` s.d. `007`, `RWI-DEC-327` s.d. `332`); **ditambah Prioritas Kamar Member & Lencana Tier** (`FR-TRF-008` s.d. `012`, `RWI-DEC-338` s.d. `341`) |
 | `uji pemecahan` | **5/5** syarat `bentuk-blueprint.md` bagian 4.1 |
 | `design_snapshot_at` | 2026-10-19 untuk Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier; 2026-10-17 untuk Realtime Bed & ODC; 2026-10-16 untuk Transfer Pasien Masuk; 2026-10-15 untuk Integrasi Denah |
-| `updated_at` | 2026-10-19 — perancangan desain Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (`contract_version 0.17.0`, `RWI-DEC-338` s.d. `341`) |
+| `updated_at` | 2026-10-19 — perencanaan delivery Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (`TRF-DEL-20261019-01`, kontrak `0.17.0`) |
 
 **Bukti migration diperbarui 5 Oktober 2026.** Build project melalui `dotnet ef database update` berhasil dan `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.` menurut output pengguna. Cakupan aktual: `I1` + `I2`, `K8` + `E4`, `E5`, `E6`, dan `E7`; enam task pemilik perubahan skema. [Bukti lengkap](task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026). `I1`/`I2` dikemas sebagai satu migration gabungan; catatan kesesuaian kriteria ada di `BE-RWI-149`. Nama database/lingkungan tidak disebut; API, regresi, rollback, frontend, data seeder, serta kesiapan rilis belum dibuktikan output ini. Revision, snapshot SHA desain, kontrak, artifact hash persetujuan, dan approval roadmap dipertahankan.
 
@@ -862,22 +862,26 @@ database/deployment dan tidak mengubah source aplikasi.
 
 ## 22. Manifest revision 17 — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier, 19 Oktober 2026
 
-Amandemen ini menindaklanjuti permintaan mendesak `IGD-REQ-004` untuk demo operasional Selasa 20 Oktober 2026, yang telah disepakati bersama pemilik modul IGD (Rizki Gunawan) dan disetujui melalui keputusan produk `RWI-DEC-338` s.d. `RWI-DEC-341` pada `00-interview-decisions.md` revisi 60.
+`plan-module-delivery` dijalankan pada 19 Oktober 2026. Roadmap ini mengikat isi Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier kontrak `0.17.0` untuk persiapan demo operasional Selasa, 20 Oktober 2026 (`IGD-REQ-004`).
 
 | Field | Nilai |
 |---|---|
 | Blueprint ID | `RWI-BP-001/episode-rawat-inap` |
 | Revision | **`17`** |
-| Contract set | **`0.17.0`** (`draft`) |
-| Status Desain | **draft — menunggu approval pemilik blueprint untuk delivery planning** |
+| planning_id / revision / status | `TRF-DEL-20261019-01` / 1 / `APPROVED_DESIGN_PLANNED` |
+| Contract set | **`0.17.0`** (`approved_design_planned`) |
+| Approval | Muhammad Hamzah (19 Oktober 2026 via `/plan-module-delivery`). Eksekusi per task via `build-module-backend` / `build-module-frontend` |
+| Task Backend | 2 task: `BE-RWI-252` (Gelombang 1), `BE-RWI-253` (Gelombang 2) |
+| Task Frontend | 2 task: `FE-RWI-268` (Gelombang 1), `FE-RWI-269` (Gelombang 2) |
 | Scope Fungsional | Pengurutan cerdas antrean transfer rawat inap (CITO → Member Prioritas → Reguler) dan visualisasi lencana tier/CITO pada tabel antrean dan wizard admisi transfer |
-| Keputusan Bisnis | `RWI-DEC-338` s.d. `RWI-DEC-341` |
+| Keputusan Bisnis | `RWI-DEC-338` s.d. `RWI-DEC-341` (4 Keputusan) |
+| Functional Requirements | `FR-TRF-008` s.d. `FR-TRF-012` (5 FR) |
 | Kriteria Penerimaan | `RWI-AC-481` s.d. `RWI-AC-493` (13 AC) |
+| Kasus Uji & UAT | `TRF-AT-01` s.d. `TRF-AT-16` (16 Butir Uji), `UAT-TRF-01` s.d. `UAT-TRF-07` (7 Skenario) — **Zero Coverage Gap** |
 | Permintaan Terkait | `IGD-REQ-004` (Disetujui penuh), `IGD-REQ-003` butir 5 (Disetujui via `IGD-REQ-004`) |
-| Functional Requirements | `FR-TRF-008` s.d. `FR-TRF-012` |
-| Kasus Uji / UAT | `TRF-AT-01` s.d. `TRF-AT-16`, `UAT-TRF-01` s.d. `UAT-TRF-07` |
+| Source Snapshot | BE `MHamzah@7a4d443fcdf0c9d33cc1a9f4be81522b4fadaefb`; FE `HamzahV2@5ad45a6944b3c320038cc48bb288471cd8f2910a` |
 | Dampak Database | **0 tabel baru, 0 kolom baru, 0 migrasi EF Core** (menggunakan tabel existing CRM dan IGD) |
-| Dampak Keamanan & Privasi | Denah Bed Management bangsal umum bebas lencana tier (`RWI-DEC-341`, `RWI-AC-488`) |
+| ID berikutnya | `BE-RWI-254`; `FE-RWI-270`; wajib scan ulang sebelum alokasi baru |
 
 ### 22.1 Ringkasan Desain Teknis Kontrak 0.17.0
 
@@ -889,22 +893,22 @@ Amandemen ini menindaklanjuti permintaan mendesak `IGD-REQ-004` untuk demo opera
 2. **Frontend UI & Visual Lencana**:
    - `InpatientAdmissionTransferList.jsx`: Kolom pasien menampilkan `StatusBadge` merah `[CITO]` dan `StatusBadge` kuning/emas `[TierName]`.
    - `InpatientAdmissionTransferReviewStep.jsx`: Header ringkasan pasien menampilkan lencana CITO dan Tier Membership saat petugas admisi meninjau pasien transfer.
-   - Denah Bed Management bangsal umum tetap bersih dari lencana membership demi privasi.
+   - Denah Bed Management bangsal umum tetap bersih dari lencana membership demi privasi (`RWI-DEC-341`, `RWI-AC-488`).
    - Petugas admisi tetap memilih kamar dan tempat tidur secara manual melalui Denah Bed Management (tanpa auto-booking server).
 
-### 22.2 Kesiapan untuk Perencanaan Pengiriman (`plan-module-delivery`)
+### 22.2 Integritas Artefak Delivery Roadmap
 
-Seluruh artefak blueprint sub-modul `episode-rawat-inap` telah selesai dimutakhirkan:
-- Decision Log: `00-interview-decisions.md` (Rev 60, `RWI-DEC-338` s.d. `341`, `RWI-AC-481` s.d. `493`).
-- API Contract: `contracts/api-contract.md` (Bab 18, Kontrak `0.17.0`).
-- Integration Contract: `contracts/integration-contract.md` (Bab 15, Kontrak `0.17.0`).
-- Backend Architecture: `02-backend-architecture.md` (Bab 20, Kontrak `0.17.0`).
-- Frontend Architecture: `03-frontend-architecture.md` (Bab 20, Kontrak `0.17.0`).
-- PRD ke MVP: `04-prd-to-mvp.md` (Bab 31, Kontrak `0.17.0`).
-- Acceptance Test Matrix: `testing/acceptance-test-matrix.md` (Bab 25, Kontrak `0.17.0`).
-- Manifest: `blueprint-manifest.md` (Revision 17).
+Hash berikut adalah SHA-256 byte aktual dari berkas delivery yang dihasilkan pada revision 17:
 
-Desain siap untuk dipresentasikan kepada pemilik blueprint (Muhammad Hamzah) dan dilanjutkan ke tahap perencanaan task vertical slice (`/plan-module-delivery`).
+| Artefak Relatif | Status | SHA-256 Byte Aktual |
+|---|---|---|
+| [roadmap/backend-roadmap-prioritas-antrean-member.md](./roadmap/backend-roadmap-prioritas-antrean-member.md) | rev 1; 2 task, grafik 1 pasangan | `3f1f61aa7dda0e78344472de38681c17f51ac7e066a4c8fa521fd7177e1f24c0` |
+| [roadmap/frontend-roadmap-prioritas-antrean-member.md](./roadmap/frontend-roadmap-prioritas-antrean-member.md) | rev 1; 2 task, grafik 1 pasangan | `9851c3d863f77f1772dab22f94e0ebb072b3aad3f439978bfa9a3a6287975cef` |
+| [roadmap/requirement-traceability-prioritas-antrean-member.md](./roadmap/requirement-traceability-prioritas-antrean-member.md) | rev 1; FR/AC/VAL/UAT ke task; zero gap | `80ea82c9c90b5474c0ceb40c3f6d0f3a4858fbedd18a065f939a5dab4b1057e2` |
+| [roadmap/prioritas-antrean-member-delivery-lock.json](./roadmap/prioritas-antrean-member-delivery-lock.json) | rev 1; delivery lock snapshot | `233023844cfc934a587c2449f5154e1084c434d6589d910a2f8b9a214138109e` |
+
+Eksekusi tetap tepat satu task per pemanggilan builder (`build-module-backend` / `build-module-frontend`). Roadmap ini tidak memberi izin perubahan database/deployment dan tidak mengubah source aplikasi secara liar di luar scope task.
+
 
 
 
