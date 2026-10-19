@@ -1521,3 +1521,140 @@ sumber, dan larangan data ada di data dictionary bagian 26.
   response floor plan.
 - Aktivasi produksi field nama lengkap menunggu sign-off `RWI-OQ-151`.
 
+---
+
+## 18. Amandemen Kontrak 0.17.0 — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (19 Oktober 2026)
+
+Kontrak ini menindaklanjuti keputusan resmi `RWI-DEC-338` s.d. `RWI-DEC-341`, kriteria penerimaan `RWI-AC-481` s.d. `RWI-AC-493`, serta permintaan lintas modul `IGD-REQ-004` dan `IGD-REQ-003` butir 5.
+
+### 18.1 Grup Endpoint Swagger
+
+#### [Tags("Health Services / Inpatient Management / Inpatient Admission Transfer")]
+
+Base URL: `/api/v1/health-services/inpatient-management/admission-transfers`
+
+| Method | Path | Deskripsi & Kegunaan | Hak Akses | Request Query | Response Data | Status HTTP | Status Implementasi |
+|---|---|---|---|---|---|---|---|
+| GET | `/admission-transfers` | Mengambil daftar antrean pasien transfer IGD dan Poliklinik menuju rawat inap dengan urutan prioritas: CITO → Member Prioritas (level tertinggi lebih dulu) → Waktu Keputusan → ID, dilengkapi lencana CITO dan Tier member aktif. | `InpatientAdmissionTransfer:Read` | `AdmissionTransferQuery` (`sourceType`, `status`, `overdueOnly`, `search`, `pageNumber`, `pageSize`) | `PagedResult<InpatientAdmissionTransferItemResponse>` | 200 OK | Diperbarui (To-Be Kontrak 0.17.0) |
+| GET | `/admission-transfers/{id}` | Mengambil detail satu transfer pasien dari IGD atau Poliklinik beserta informasi prioritas CITO dan keanggotaan CRM aktif. | `InpatientAdmissionTransfer:Read` | Path param `id: Guid`, Query param `sourceType: string?` | `InpatientAdmissionTransferItemResponse` | 200 OK, 404 Not Found | Diperbarui (To-Be Kontrak 0.17.0) |
+
+### 18.2 Spesifikasi DTO Response (Diperbarui)
+
+Class: `InpatientAdmissionTransferItemResponse`
+
+| Field | Tipe | Wajib | Keterangan & Validasi | Sensitif? |
+|---|---|---|---|---|
+| `TransferId` | `Guid` | Ya | ID unik transfer (Disposisi IGD atau Surat Masuk Rawat Inap Poli) | Tidak |
+| `SourceType` | `string` | Ya | Nilai `"Emergency"` atau `"Outpatient"` | Tidak |
+| `EmergencyVisitId` | `Guid?` | Tidak | ID kunjungan IGD asal jika bersumber dari IGD | Tidak |
+| `EmergencyVisitNumber` | `string` | Ya | Nomor kunjungan IGD (misal `EMG-20261019-0012`) | Tidak |
+| `SourceEncounterId` | `Guid?` | Tidak | ID encounter kunjungan asal | Tidak |
+| `SourceEncounterNumber` | `string?` | Tidak | Nomor encounter (misal `ENC-20261019-0005`) | Tidak |
+| `ResultEpisodeId` | `Guid?` | Tidak | ID episode hasil jika sudah di-admit | Tidak |
+| `PatientId` | `Guid` | Ya | ID pasien | Tidak |
+| `PatientName` | `string` | Ya | Nama lengkap pasien | Ya |
+| `MedicalRecordNumber` | `string` | Ya | Nomor Rekam Medis pasien | Ya |
+| `Gender` | `string?` | Tidak | Jenis kelamin (`"Male"`, `"Female"`) | Tidak |
+| `BirthDate` | `DateTime?` | Tidak | Tanggal lahir pasien | Ya |
+| `DecidedByDoctorId` | `Guid?` | Tidak | ID dokter pengambil keputusan transfer | Tidak |
+| `DecidedByDoctorName` | `string?` | Tidak | Nama dokter perujuk / DPJP IGD | Tidak |
+| `DispositionReason` | `string?` | Tidak | Alasan transfer / diagnosa kerja | Ya |
+| `PatientCondition` | `string?` | Tidak | Ringkasan kondisi pasien saat transfer | Ya |
+| `FollowUpInstruction` | `string?` | Tidak | Instruksi perawatan lanjutan | Ya |
+| `RecommendedServiceUnitId` | `Guid?` | Tidak | Unit rawat inap tujuan rekomendasi | Tidak |
+| `RecommendedServiceUnitName` | `string?` | Tidak | Nama unit rawat inap tujuan | Tidak |
+| `DecidedAt` | `DateTime` | Ya | Waktu keputusan transfer diterbitkan | Tidak |
+| `WaitingMinutes` | `int` | Ya | Durasi menunggu dalam menit | Tidak |
+| `IsOverdue` | `bool` | Ya | True jika waktu tunggu > 60 menit | Tidak |
+| `DispositionStatus` | `string` | Ya | Status disposisi (`"Confirmed"`, `"Executed"`, `"Cancelled"`) | Tidak |
+| **`IsCito`** *(Baru)* | `bool` | Ya | **True bila pasien berstatus CITO dari formulir IGD bertanda tangan (`EmgAdmissionRequest.IsCito`).** Default `false`. | Tidak |
+| **`IsPriorityMember`** *(Baru)* | `bool` | Ya | **True bila pasien memiliki membership CRM aktif (`MstPatientMembership.MembershipStatus == Active`), hari ini dalam periode berlaku, dan tier memiliki `PriorityQueue == true`.** | Tidak |
+| **`MemberTierName`** *(Baru)* | `string?` | Tidak | **Nama tier membership pasien (misal `"Platinum"`, `"Gold"`).** Null jika non-member / reguler. | Tidak |
+| **`MemberPriorityLevel`** *(Baru)* | `int?` | Tidak | **Tingkat prioritas antrean tier (`MstMembershipTier.PriorityLevel`). Angka lebih kecil menduduki prioritas lebih tinggi.** Null jika non-member. | Tidak |
+
+### 18.3 Aturan Pengurutan Server (Sorting Invariant)
+
+Dalam `InpAdmissionTransferService.cs`, penyusunan antrean wajib diurutkan secara deterministik dengan aturan:
+
+```csharp
+itemsQuery = itemsQuery
+    .OrderByDescending(x => x.IsCito)
+    .ThenByDescending(x => x.IsPriorityMember)
+    .ThenBy(x => x.MemberPriorityLevel ?? int.MaxValue)
+    .ThenBy(x => x.DecidedAt)
+    .ThenBy(x => x.TransferId);
+```
+
+1. **Prioritas 1 (CITO):** Pasien darurat medis CITO (`IsCito == true`) selalu berada di paling atas tanpa memandang status keanggotaan.
+2. **Prioritas 2 (Member Prioritas):** Pasien non-CITO yang memiliki keanggotaan CRM aktif dan `PriorityQueue == true` berada di bawah CITO, diurutkan dari `PriorityLevel` tertinggi lebih dulu.
+3. **Prioritas 3 (Waktu Keputusan):** Pasien dengan level prioritas setara atau reguler diurutkan dari waktu keputusan (`DecidedAt`) tertua (FIFO).
+4. **Prioritas 4 (Tie-breaker):** `TransferId` untuk hasil yang stabil saat paginasi.
+
+### 18.4 Contoh Payload JSON Response
+
+```json
+{
+  "pageNumber": 1,
+  "pageSize": 20,
+  "totalData": 3,
+  "totalPage": 1,
+  "items": [
+    {
+      "transferId": "4a1b0000-0000-0000-0000-000000000001",
+      "sourceType": "Emergency",
+      "emergencyVisitNumber": "EMG-20261019-0088",
+      "patientId": "5b2c0000-0000-0000-0000-000000000001",
+      "patientName": "Tn. Joko",
+      "medicalRecordNumber": "RM-092811",
+      "gender": "Male",
+      "recommendedServiceUnitName": "Rawat Inap Melati",
+      "decidedAt": "2026-10-19T02:55:00Z",
+      "waitingMinutes": 15,
+      "isOverdue": false,
+      "dispositionStatus": "Confirmed",
+      "isCito": true,
+      "isPriorityMember": false,
+      "memberTierName": null,
+      "memberPriorityLevel": null
+    },
+    {
+      "transferId": "4a1b0000-0000-0000-0000-000000000002",
+      "sourceType": "Emergency",
+      "emergencyVisitNumber": "EMG-20261019-0085",
+      "patientId": "5b2c0000-0000-0000-0000-000000000002",
+      "patientName": "Tn. Hadi",
+      "medicalRecordNumber": "RM-011234",
+      "gender": "Male",
+      "recommendedServiceUnitName": "Rawat Inap VVIP Anggrek",
+      "decidedAt": "2026-10-19T02:50:00Z",
+      "waitingMinutes": 20,
+      "isOverdue": false,
+      "dispositionStatus": "Confirmed",
+      "isCito": false,
+      "isPriorityMember": true,
+      "memberTierName": "Platinum",
+      "memberPriorityLevel": 1
+    },
+    {
+      "transferId": "4a1b0000-0000-0000-0000-000000000003",
+      "sourceType": "Emergency",
+      "emergencyVisitNumber": "EMG-20261019-0070",
+      "patientId": "5b2c0000-0000-0000-0000-000000000003",
+      "patientName": "Ny. Sari",
+      "medicalRecordNumber": "RM-055678",
+      "gender": "Female",
+      "recommendedServiceUnitName": "Rawat Inap Melati",
+      "decidedAt": "2026-10-19T02:30:00Z",
+      "waitingMinutes": 40,
+      "isOverdue": false,
+      "dispositionStatus": "Confirmed",
+      "isCito": false,
+      "isPriorityMember": false,
+      "memberTierName": null,
+      "memberPriorityLevel": null
+    }
+  ]
+}
+```
+
+

@@ -3,11 +3,11 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.13`** — Transfer Pasien Masuk (IGD/Rajal ke Ranap) & Penugasan PPJA, bagian 16, **draft** 16 Oktober 2026. Riwayat: `0.12` Integrasi Denah (approved, RWI-DEC-324); `0.11` Bed Management (draft); `0.10` Workspace PPRI (approved, RWI-DEC-265) |
-| Status | **`draft`** untuk amandemen Transfer Pasien Masuk (bagian 16). Amandemen Integrasi Denah (bagian 15) tetap **`approved`** (`RWI-DEC-324`). Bed Management (bagian 14) tetap **`draft`** |
-| Apa yang berubah pada `0.7` | **Gelombang 1A — Rawat Inap Safety Corrections.** Dua koreksi `P0` yang dimiliki sub-modul ini: aturan jenis kelamin tingkat kamar dicabut (`RWI-DEC-101`), dan `InpDoctorAssignment` mendapat kolom peran beserta perubahan filter index unik (`RWI-DEC-099`). Rinciannya bagian 0. Kontrak naik ke `0.8.0`, seluruhnya `draft` |
+| Revision | **`0.17`** — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier, bagian 20, **draft** 19 Oktober 2026 (`RWI-DEC-338` s.d. `341`). Riwayat: `0.16` Notifikasi Realtime Pemilihan Bed (`approved_design_planned`); `0.15` Admisi ODC; `0.14` Transfer Pasien Masuk; `0.13` Integrasi Denah (`RWI-DEC-324`); `0.12` Bed Management |
+| Status | **`draft`** untuk amandemen Prioritas Kamar Member & Lencana Tier (`0.17.0`, bagian 20); **`approved`** untuk amandemen Notifikasi Realtime (`0.16.0`), ODC (`0.15.0`), Transfer Pasien Masuk (`0.14.0`), dan Integrasi Denah (`0.13.0`) |
+| Apa yang berubah pada `0.17` | **Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier.** DTO antrean transfer memuat field `IsCito`, `IsPriorityMember`, `MemberTierName`, `MemberPriorityLevel`. Query EF Core memproyeksikan status membership aktif (`PriorityQueue == true`) dan flag CITO IGD. Pengurutan multi-kriteria: CITO desc → Member prioritas desc → PriorityLevel asc → DecidedAt asc → TransferId asc. **Nol tabel baru, nol kolom baru, nol migrasi database.** |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Tanggal | 2 September 2026 (`Asia/Jakarta`) untuk revision `0.5`; 24 Agustus 2026 untuk `0.4`; 21 Agustus 2026 untuk `0.3` |
+| Tanggal | 19 Oktober 2026 (`Asia/Jakarta`) untuk revision `0.17`; 17 Oktober 2026 untuk `0.16` & `0.15`; 16 Oktober 2026 untuk `0.14`; 15 Oktober 2026 untuk `0.13` |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Tabel kepemilikan data seluruh modul (bagian 2) dan urutan migration antar sub-modul (bagian 7) naik ke [`../02-module-map.md`](../02-module-map.md). Nol tabel, kolom, endpoint, aturan, dan kontrak yang bergerak |
 | Modul | `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Masukan arsitektur domain | Integrasi Denah: DOMAIN_ARCHITECTURE_NOT_RUN; kepemilikan terbukti BM-IMP-20261015-01. Bed Management: DOMAIN_ARCHITECTURE_NOT_RUN; bounded ownership cukup menurut gate1.12. Riwayat metadata: [`evidence/03-hospital-domain-architecture.md`](../evidence/03-hospital-domain-architecture.md) revision `0.1`, kesiapan `DOMAIN_ARCHITECTURE_PARTIAL` |
@@ -3773,4 +3773,171 @@ NewQuilvianSystemBackend/
 
 Nama file DTO boleh mengikuti konvensi folder aktual saat implementasi, tetapi nama event, field,
 security boundary, dan post-commit invariant tidak boleh berubah tanpa revisi kontrak.
+
+---
+
+## 20. Amandemen Backend Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier — `contract_version 0.17.0` (`draft`, `RWI-DEC-338` s.d. `341`)
+
+### 20.1 Tujuan dan Boundary Desain
+
+Amandemen ini mengimplementasikan pengurutan cerdas antrean transfer rawat inap (dari IGD dan unit hulu lainnya) berdasarkan urgensi klinis (CITO) dan hak istimewa keanggotaan (Membership Priority Tier) serta penyajian lencana tier pada DTO respon, disetujui melalui permintaan `IGD-REQ-004` dan keputusan produk `RWI-DEC-338` s.d. `RWI-DEC-341`.
+
+**Prinsip Desain & Batasan Wewenang**:
+1. **Tidak Ada Auto-Booking Server (`RWI-DEC-338`)**: Backend **hanya mengurutkan antrean tampilan dan mengembalikan metadata tier/cito**. Backend dilarang melakukan pemesanan kamar/bed secara otomatis. Pemilihan kamar dan bed tetap merupakan keputusan manusia oleh Petugas Admisi melalui denah Bed Management.
+2. **Evaluasi Keanggotaan Bersifat Real-Time (`RWI-DEC-339`)**: Status membership dibaca langsung saat query antrean transfer dijalankan. Jika pasien berstatus member prioritas aktif pada saat admisi, pasien diproses. Namun jika membership kedaluwarsa setelah pasien berada di bangsal, kamar yang sudah ditempati **tidak boleh dibatalkan atau diturunkan paksa**.
+3. **Non-Diskriminasi Asuhan Klinis (`RWI-DEC-340`)**: Membership adalah fasilitas kenyamanan administratif non-medis. Asuhan medis, rekam medis, dokter penanggung jawab, dan perawat tidak membedakan pasien member maupun reguler.
+4. **Isolasi Privasi Denah Bangsal Umum (`RWI-DEC-341`)**: Lencana tier hanya dikirim dan ditampilkan pada antrean transfer dan admisi PPRI; denah Bed Management bangsal umum dilarang menampilkan lencana tier.
+
+### 20.2 Modifikasi DTO Transfer (`InpatientAdmissionTransferDtos.cs`)
+
+Pada kelas `InpatientAdmissionTransferItemResponse`, ditambahkan empat properti aditif:
+
+```csharp
+namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
+
+public class InpatientAdmissionTransferItemResponse
+{
+    // Properti existing dipertahankan:
+    public Guid TransferId { get; set; }
+    public Guid EpisodeId { get; set; }
+    public Guid EncounterId { get; set; }
+    public Guid PatientId { get; set; }
+    public string PatientName { get; set; } = string.Empty;
+    public string MedicalRecordNumber { get; set; } = string.Empty;
+    public string Gender { get; set; } = string.Empty;
+    public DateTime? DateOfBirth { get; set; }
+    public string SourceType { get; set; } = string.Empty;
+    public Guid SourceUnitId { get; set; }
+    public string SourceUnitName { get; set; } = string.Empty;
+    public Guid? DestinationUnitId { get; set; }
+    public string? DestinationUnitName { get; set; }
+    public Guid? RequestedBedClassId { get; set; }
+    public string? RequestedBedClassName { get; set; }
+    public DateTime DecidedAt { get; set; }
+    public string TransferStatus { get; set; } = string.Empty;
+    public string? Notes { get; set; }
+
+    // Properti baru kontrak 0.17.0 (RWI-DEC-338 s.d. 341):
+    /// <summary>
+    /// Menandakan apakah permintaan transfer berstatus gawat darurat / cito dari IGD (EmgAdmissionRequest.IsCito == true).
+    /// </summary>
+    public bool IsCito { get; set; }
+
+    /// <summary>
+    /// Menandakan apakah pasien memiliki membership aktif yang berhak atas antrean prioritas (PriorityQueue == true).
+    /// </summary>
+    public bool IsPriorityMember { get; set; }
+
+    /// <summary>
+    /// Nama tier keanggotaan aktif pasien (misal "Platinum", "Gold", "Silver"). Bernilai null jika reguler/non-member.
+    /// </summary>
+    public string? MemberTierName { get; set; }
+
+    /// <summary>
+    /// Level prioritas tier keanggotaan (angka lebih kecil = prioritas lebih tinggi). Bernilai null jika reguler/non-member.
+    /// </summary>
+    public int? MemberPriorityLevel { get; set; }
+}
+```
+
+### 20.3 Modifikasi Query EF Core (`InpAdmissionTransferService.Queries.cs`)
+
+Pada method internal `BuildTransferQuery`, proyeksi relasional diperluas untuk membaca status CITO dari IGD dan Membership dari CRM secara efisien (tanpa N+1 query):
+
+```csharp
+// Proyeksi data CITO dari formulir transfer IGD (EmgAdmissionRequest yang Signed)
+// Proyeksi data Membership dari tabel CRM: MstPatientMembership join MstMembershipTier
+var today = DateTime.UtcNow.Date;
+
+var query = from t in _dbContext.InpAdmissionTransfers
+            join enc in _dbContext.TrxPatientEncounters on t.EncounterId equals enc.Id
+            join p in _dbContext.MstPatients on enc.PatientId equals p.Id
+            // Relasi ke EmgAdmissionRequest (left join untuk menangani non-IGD atau form unsigned)
+            join emg in _dbContext.EmgAdmissionRequests.Where(e => e.FormStatus == EmgFormStatus.Signed)
+                on t.EncounterId equals emg.EncounterId into emgGroup
+            from emgReq in emgGroup.DefaultIfEmpty()
+            // Relasi ke Membership aktif (left join)
+            join m in _dbContext.MstPatientMemberships.Where(mem =>
+                    mem.MembershipStatus == MembershipStatus.Active &&
+                    mem.PeriodStartDate.Date <= today &&
+                    mem.ExpiredDate.Date >= today)
+                on p.Id equals m.PatientId into memGroup
+            from patientMem in memGroup.DefaultIfEmpty()
+            join tier in _dbContext.MstMembershipTiers.Where(t => t.PriorityQueue == true)
+                on patientMem.MembershipTierId equals tier.Id into tierGroup
+            from memTier in tierGroup.DefaultIfEmpty()
+            select new InpatientAdmissionTransferItemResponse
+            {
+                TransferId = t.Id,
+                EpisodeId = t.EpisodeId,
+                EncounterId = t.EncounterId,
+                PatientId = p.Id,
+                PatientName = p.FullName,
+                MedicalRecordNumber = p.MedicalRecordNumber,
+                Gender = p.Gender.ToString(),
+                DateOfBirth = p.DateOfBirth,
+                SourceType = t.SourceType.ToString(),
+                SourceUnitId = t.SourceUnitId,
+                SourceUnitName = t.SourceUnit.UnitName,
+                DestinationUnitId = t.DestinationUnitId,
+                DestinationUnitName = t.DestinationUnit != null ? t.DestinationUnit.UnitName : null,
+                RequestedBedClassId = t.RequestedBedClassId,
+                RequestedBedClassName = t.RequestedBedClass != null ? t.RequestedBedClass.ClassName : null,
+                DecidedAt = t.DecidedAt,
+                TransferStatus = t.Status.ToString(),
+                Notes = t.Notes,
+
+                // Kontrak 0.17.0:
+                IsCito = emgReq != null && emgReq.IsCito,
+                IsPriorityMember = memTier != null,
+                MemberTierName = memTier != null ? memTier.TierName : null,
+                MemberPriorityLevel = memTier != null ? (int?)memTier.PriorityLevel : null
+            };
+```
+
+### 20.4 Algoritma Pengurutan Multi-Kriteria (`InpAdmissionTransferService.cs`)
+
+Pada `InpAdmissionTransferService.cs:48`, pengurutan query antrean transfer diubah dari pengurutan waktu sederhana menjadi pengurutan bertingkat deterministik:
+
+```csharp
+// SEBELUM:
+// itemsQuery = itemsQuery.OrderBy(x => x.DecidedAt).ThenBy(x => x.TransferId);
+
+// SESUDAH (Kontrak 0.17.0 - RWI-DEC-338):
+itemsQuery = itemsQuery
+    .OrderByDescending(x => x.IsCito)
+    .ThenByDescending(x => x.IsPriorityMember)
+    .ThenBy(x => x.MemberPriorityLevel ?? int.MaxValue)
+    .ThenBy(x => x.DecidedAt)
+    .ThenBy(x => x.TransferId);
+```
+
+**Penjelasan Tingkatan Urutan**:
+1. `OrderByDescending(x => x.IsCito)`: Pasien gawat darurat IGD (CITO) mutlak menempati urutan teratas untuk keselamatan pasien (*clinical safety first*).
+2. `ThenByDescending(x => x.IsPriorityMember)`: Pasien member prioritas aktif berada di atas pasien reguler.
+3. `ThenBy(x => x.MemberPriorityLevel ?? int.MaxValue)`: Di antara sesama member prioritas, tier yang lebih tinggi (level 1 Platinum > level 2 Gold > level 3 Silver) didahulukan.
+4. `ThenBy(x => x.DecidedAt)`: Di antara tingkat prioritas yang sama, pasien yang keputusan transfernya lebih dahulu diterbitkan (`DecidedAt` tertua / FIFO) didahulukan.
+5. `ThenBy(x => x.TransferId)`: Tie-breaker deterministik terakhir untuk menjamin kestabilan paging dan rendering antrean.
+
+### 20.5 Rencana Database & Migrasi
+
+- **Dampak Skema Database**: **0 tabel baru, 0 kolom baru, 0 migrasi EF Core**.
+- Seluruh tabel sumber data sudah tersedia di skema PostgreSQL Quilvian saat ini:
+  - `MstPatientMembership` dan `MstMembershipTier` pada schema CRM / Patient.
+  - `EmgAdmissionRequest` pada schema Emergency Installation Management.
+  - `InpAdmissionTransfer` pada schema InPatientManagement.
+- Tidak diperlukan eksekusi `dotnet ef migrations add` maupun `dotnet ef database update`.
+
+### 20.6 Daftar File Implementasi Backend
+
+```text
+NewQuilvianSystemBackend/
+└── Areas/HealthServices/InPatientManagement/
+    ├── DTOs/
+    │   └── InpatientAdmissionTransferDtos.cs            [Extend: tambah IsCito, IsPriorityMember, MemberTierName, MemberPriorityLevel]
+    └── Services/
+        ├── InpAdmissionTransferService.Queries.cs       [Extend: join EmgAdmissionRequest & MstPatientMembership]
+        └── InpAdmissionTransferService.cs               [Extend: algoritma OrderBy multi-kriteria]
+```
+
 

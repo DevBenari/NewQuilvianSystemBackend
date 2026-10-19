@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | **`0.14`** — Layar Transfer Pasien Masuk (IGD/Rajal ke Ranap) & Penugasan PPJA pada Detail Episode & Workspace PPRI, bagian 17, **draft** 16 Oktober 2026. Riwayat: `0.13` Integrasi Denah (approved, RWI-DEC-324); `0.12` Bed Management (draft); `0.11` Admisi Mba Ilma (approved) |
-| Status | **`draft`** untuk amandemen Layar Transfer Pasien Masuk (bagian 17). Amandemen Integrasi Denah (bagian 16) tetap **`approved`** (`RWI-DEC-324`). Bed Management (bagian 15) tetap **`draft`** |
-| Apa yang berubah pada `0.11` | **Penyelarasan penuh alur admisi pendaftaran:** Pasien Baru diperluas menjadi 12 langkah dan Pasien Lama menjadi 10 langkah. Formulir Persetujuan Rawat Inap & TTD Digital diangkat menjadi Langkah Mandiri (*Dedicated Step*) yang menyimpan data persetujuan & citra TTD digital ke episode sebelum langkah cetak; General Consent PPRI berstatus *read-only / print-ready* (`RWI-AC-395`). Unit Tujuan disembunyikan dari UI dokter (`RWI-DEC-268`), kontak darurat dibatasi 13 digit (`RWI-DEC-267`), dan penanda tangan bayi dikunci ke orang tua/wali (`RWI-DEC-273`) |
+| Revision | **`0.17`** — Lencana Tier Membership & Prioritas Antrean Transfer, bagian 20, **draft** 19 Oktober 2026 (`RWI-DEC-338` s.d. `341`). Riwayat: `0.16` Notifikasi Realtime Pemilihan Bed; `0.15` Admisi ODC; `0.14` Layar Transfer Pasien Masuk; `0.13` Integrasi Denah (`RWI-DEC-324`); `0.12` Bed Management; `0.11` Admisi Mba Ilma |
+| Status | **`draft`** untuk amandemen Lencana Tier Membership & Prioritas Antrean Transfer (`0.17.0`, bagian 20); **`approved`** untuk amandemen Notifikasi Realtime (`0.16.0`), ODC (`0.15.0`), Transfer Pasien Masuk (`0.14.0`), dan Integrasi Denah (`0.13.0`) |
+| Apa yang berubah pada `0.17` | **Lencana Tier Membership & Prioritas Antrean Transfer.** Tampilan antrean transfer menyajikan urutan CITO → Member Prioritas → Reguler. Tabel `InpatientAdmissionTransferList` dan langkah admisi `InpatientAdmissionTransferReviewStep` menampilkan lencana merah `[CITO]` dan lencana warna tier `[Platinum/Gold/Silver]`. Denah Bed Management bangsal umum bebas lencana tier demi privasi pasien (`RWI-DEC-341`). |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Peta butir menu seluruh modul naik ke [`../02-module-map.md`](../02-module-map.md) bagian 3, karena sidebar hanya satu untuk tiga sub-modul. Nol layar, endpoint, dan aturan keterjangkauan yang bergerak |
 | Frontend SHA | Integrasi Denah: 4d9bf608dbbaddc96a2b4acfc8723753b5dd5028. Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
@@ -1890,4 +1890,75 @@ QuilvianSystemFrontendDev/src/
     ├── inpatient-bed-utils.jsx                            [Diperbarui; query builder sertakan isOdcBed]
     └── inpatient-consent-utils.jsx                        [Ready to reuse; matchRoomOptionKey sudah ada 'odc']
 ```
+
+---
+
+## 20. Amandemen Frontend Lencana Tier Membership & Prioritas Antrean Transfer — `contract_version 0.17.0` (`draft`, `RWI-DEC-338` s.d. `341`)
+
+### 20.1 Tujuan dan Boundary Desain UI
+
+Amandemen ini mengatur visualisasi lencana prioritas klinis (`CITO`) dan hak keanggotaan (`Membership Tier`) pada antarmuka pengguna rawat inap, khususnya:
+1. **Layar Tabel Antrean Transfer Pasien (`InpatientAdmissionTransferList.jsx`)**: Mengurutkan pasien secara otomatis dari backend (CITO → Member Prioritas → Reguler) dan menyematkan lencana visual penanda prioritas pada baris pasien.
+2. **Layar Langkah Admisi PPRI Transfer (`InpatientAdmissionTransferReviewStep.jsx`)**: Menyajikan lencana CITO dan Tier Membership pada header ringkasan pasien saat petugas admisi sedang memproses admisi dan memilih tempat tidur.
+
+### 20.2 Spesifikasi Komponen & Aturan Visual Lencana
+
+Sesuai `rules/frontend/refine-menu-ui` dan konvensi base component Quilvian:
+- Lencana dirender menggunakan komponen `StatusBadge` atau `Badge` standar tanpa hardcoded custom styling CSS.
+- **Lencana CITO**:
+  - `variant="danger"` (warna merah tegas / solid red).
+  - Label: `"CITO"` (kapital).
+  - Ditampilkan jika properti `isCito === true`.
+- **Lencana Tier Membership**:
+  - `variant="warning"` (untuk Tier Gold / Platinum) atau `variant="primary"` (untuk Tier Silver).
+  - Label: Nama tier yang diterima dari backend, misalnya `"Platinum"`, `"Gold"`, `"Silver"`.
+  - Ditampilkan hanya jika `isPriorityMember === true && Boolean(memberTierName)`.
+  - Pasien non-member atau member kadaluwarsa tidak memunculkan lencana membership.
+
+### 20.3 Modifikasi Layar 1: Tabel Antrean Transfer (`InpatientAdmissionTransferList.jsx`)
+
+1. **Kolom Pasien / Prioritas**:
+   - Di samping Nomor Rekam Medis (RM) dan Nama Pasien, ditambahkan container flex untuk badge:
+     ```jsx
+     <div className="flex items-center gap-1.5 flex-wrap">
+       {item.isCito && (
+         <StatusBadge variant="danger" size="sm">
+           CITO
+         </StatusBadge>
+       )}
+       {item.isPriorityMember && item.memberTierName && (
+         <StatusBadge variant="warning" size="sm">
+           {item.memberTierName}
+         </StatusBadge>
+       )}
+     </div>
+     ```
+2. **Perilaku Tabel**:
+   - Data tabel otomatis tersaji dalam urutan: CITO di posisi teratas, disusul Member Prioritas sesuai level, lalu Reguler.
+   - Paging dan pencarian tabel tetap stabil karena sorting ditegakkan secara deterministik di server.
+
+### 20.4 Modifikasi Layar 2: Header Langkah Admisi PPRI (`InpatientAdmissionTransferReviewStep.jsx`)
+
+1. **Header Ringkasan Pasien**:
+   - Pada panel ringkasan identitas pasien (sebelum tombol *Pilih Kamar & Bed*), disajikan lencana CITO dan Tier Membership berdampingan dengan Nama, No RM, dan Asal Unit (IGD).
+   - Petugas admisi langsung mengetahui bahwa pasien ini merupakan pasien gawat darurat atau pemegang keanggotaan prioritas rumah sakit.
+2. **Pemilihan Kamar Tetap Manual**:
+   - Tombol *[Pilih Kamar & Tempat Tidur]* tetap membuka modal Denah Bed Management existing.
+   - Petugas admisi mencocokkan ketersediaan kamar secara sadar dan profesional tanpa ada auto-booking diam-diam dari sistem (`RWI-DEC-338`).
+
+### 20.5 Invariant Perlindungan Privasi Pasien (`RWI-DEC-341`, `RWI-AC-488`)
+
+- **Denah Bed Management Bangsal Umum Bebas Lencana Tier**:
+  - Komponen denah lantai dan pop up kamar (`floor-plan-room-popup.jsx`, `floor-plan-bed-row.jsx`, `bed-management-view.jsx`) **dilarang menampilkan lencana tier membership pasien yang sedang dirawat**.
+  - Hal ini menjamin privasi pasien dan mencegah potensi kesenjangan sosial atau persepsi diskriminasi di antara keluarga pasien yang saling melihat papan kamar di bangsal rawat inap umum.
+
+### 20.6 Pohon Folder dan Status File Frontend
+
+```text
+QuilvianSystemFrontendDev/src/
+└── components/view/health-services/inpatient-management/admission-transfers/
+    ├── inpatient-admission-transfer-list.jsx            [Diperbarui; render lencana CITO & Member Tier di kolom pasien]
+    └── inpatient-admission-transfer-review-step.jsx     [Diperbarui; render lencana CITO & Member Tier di header ringkasan]
+```
+
 

@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set pada manifest sub-modul; Integrasi Denah approved (`RWI-DEC-324`), last_changed_in 0.13.0; sebelumnya Bed Management draft, last_changed_in 0.12.0. Riwayat metadata: **`0.11.0`** — bagian 21 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 20, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 18 |
-| `last_changed_in` | **`0.13.0`** — Integrasi Denah (bagian 23). Riwayat metadata: `0.12.0` — Bed Management; **`0.11.0`** — bagian 21. Sebelumnya `0.10.0` — bagian 20; `0.9.0` — bagian 18; `0.8.0` — bagian 2A.1 dan 4.1 |
-| Status | **`approved`** untuk Integrasi Denah — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Bed Management tetap **`draft`**. Riwayat metadata: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Masukan | Integrasi Denah: decision 50, DEC-298–323, AC-436–461; gate 1.13/DNH-RCG-20261015-01; impact scan BM-IMP-20261015-01. Bed Management: Decision46, gate1.12/BM-RCG-20261010-01, audit BM-AUD-20261010-01 rev1. Riwayat metadata: `00-interview-decisions.md` revision `6` (149 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
-| Backend SHA | Integrasi Denah: ca09cae909597442385ce4513be9c803549be10e. Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `5afb54b` |
-| Frontend SHA | Integrasi Denah: 4d9bf608dbbaddc96a2b4acfc8723753b5dd5028. Bed Management: 969acfcc04cdf31074a1911e9827c31d25ddadd0. Riwayat metadata: `dec4fdeff` |
+| `contract_version` | **`0.17.0`** — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (bagian 25, `draft`, `RWI-DEC-338` s.d. `341`, 2026-10-19). Riwayat: `0.16.0` Realtime Pemilihan Bed (`approved_design_planned`); Integrasi Denah approved (`RWI-DEC-324`, `0.13.0`); Bed Management draft (`0.12.0`); `0.11.0` Workspace PPRI |
+| `last_changed_in` | **`0.17.0`** — Prioritas Member & Lencana Tier (bagian 25). Riwayat metadata: `0.16.0` — Realtime Bed (bagian 24); `0.13.0` — Integrasi Denah (bagian 23); `0.12.0` — Bed Management |
+| Status | **`draft`** untuk amandemen Prioritas Member & Lencana Tier (`0.17.0`); **`approved`** untuk Realtime Bed (`0.16.0`), Integrasi Denah (`0.13.0`), dan Workspace PPRI (`0.11.0`) |
+| Masukan | Prioritas Member: decision log rev 60 (`RWI-DEC-338` s.d. `341`, `RWI-AC-481` s.d. `493`), berkas `IGD-REQ-004`. Realtime Bed: decision log rev 54 (`RWI-DEC-333`–`336`). Integrasi Denah: decision 50, DEC-298–323, AC-436–461 |
+| Backend SHA | `24526327` (branch `MHamzah`) |
+| Frontend SHA | `046de515` (branch `HamzahV2`) |
 
 Matriks ini memuat **jalur berhasil dan jalur gagal**. Jalur gagal justru yang paling membuktikan
 aturan bisnis benar-benar ditegakkan.
@@ -879,3 +879,31 @@ boleh dijalankan sebagai bukti tambahan.
 Belum ada hasil test; seluruh baris berstatus **DESIGNED / NOT RUN**. Evidence delivery harus
 memuat output verifikasi kontrak/runtime, network trace hub tanpa data terlarang, screenshot dua browser/session,
 dan log redaction. Aktivasi produksi juga memerlukan sign-off security/privacy `RWI-OQ-151`.
+
+---
+
+## 25. Acceptance Test Matrix Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier — `contract_version 0.17.0` (`draft`, `RWI-DEC-338` s.d. `341`)
+
+Amandemen ini menguji 13 Acceptance Criteria (`RWI-AC-481` s.d. `RWI-AC-493`) untuk memastikan urutan pengurutan antrean transfer (CITO → Member Prioritas → Reguler), penyajian lencana visual tier membership, isolasi privasi denah bangsal, dan ketahanan fallback sistem.
+
+### 25.1 Matriks Kasus Uji
+
+| ID Uji | Requirement | Level Uji | Kondisi Awal & Skenario | Hasil yang Diharapkan (Bukti Lulus) | Status |
+|---|---|---|---|---|---|
+| `TRF-AT-01` | `RWI-AC-481` | API Integration | Request `GET /api/v1/health-services/inpatient-management/admission-transfers` | Response HTTP 200 OK; setiap item memuat boolean `isCito`, boolean `isPriorityMember`, string nullable `memberTierName`, integer nullable `memberPriorityLevel`. | NOT_RUN |
+| `TRF-AT-02` | `RWI-AC-482` | Integration (Sort) | Terdapat 4 antrean transfer: Pasien 1 (Reguler, CITO, DecidedAt 09:00), Pasien 2 (Platinum, non-CITO, DecidedAt 08:00), Pasien 3 (Gold, non-CITO, DecidedAt 08:30), Pasien 4 (Reguler, non-CITO, DecidedAt 07:00) | Urutan pengembalian array data: Pasien 1 (CITO #1) → Pasien 2 (Platinum #2) → Pasien 3 (Gold #3) → Pasien 4 (Reguler #4). Terbukti CITO mengalahkan waktu & member; member mengalahkan reguler yang lebih lama. | NOT_RUN |
+| `TRF-AT-03` | `RWI-AC-482` | Integration (Sort) | Dua pasien berstatus Member Platinum: Pasien X (DecidedAt 08:15) dan Pasien Y (DecidedAt 08:45) | Pasien X muncul sebelum Pasien Y (FIFO di dalam satu tingkat tier). | NOT_RUN |
+| `TRF-AT-04` | `RWI-AC-483` | Integration / DB | Pasien memiliki membership `Active`, `PeriodStartDate <= today <= ExpiredDate`, dan tier dengan `PriorityQueue == true` | Item diproyeksikan dengan `isPriorityMember: true`, `memberTierName: "Platinum"`, `memberPriorityLevel: 1`. | NOT_RUN |
+| `TRF-AT-05` | `RWI-AC-484` | Integration / DB | Pasien memiliki membership tetapi `MembershipStatus == Inactive` atau `ExpiredDate < today` | Item diproyeksikan dengan `isPriorityMember: false`, `memberTierName: null`, `memberPriorityLevel: null`. | NOT_RUN |
+| `TRF-AT-06` | `RWI-AC-484` | Integration / DB | Pasien memiliki membership aktif tetapi tier-nya disetel `PriorityQueue == false` | Item diproyeksikan dengan `isPriorityMember: false` (tidak mendapatkan prioritas antrean). | NOT_RUN |
+| `TRF-AT-07` | `RWI-AC-485` | Integration / DB | Pasien transfer memiliki formulir `EmgAdmissionRequest` berstatus `Signed` dengan `IsCito == true` | Item diproyeksikan dengan `isCito: true`. | NOT_RUN |
+| `TRF-AT-08` | `RWI-AC-485` | Integration / DB | Pasien transfer IGD memiliki formulir `EmgAdmissionRequest` berstatus `Draft` (belum signed) atau non-IGD | Item diproyeksikan dengan `isCito: false` (hanya form berstatus Signed yang sah secara klinis). | NOT_RUN |
+| `TRF-AT-09` | `RWI-AC-486` | Frontend UI | Render komponen `InpatientAdmissionTransferList.jsx` dengan data campuran CITO dan Member Prioritas | Kolom pasien menampilkan `StatusBadge` merah bertuliskan "CITO" pada pasien CITO, dan `StatusBadge` kuning/emas bertuliskan nama tier pada pasien member prioritas. | NOT_RUN |
+| `TRF-AT-10` | `RWI-AC-487` | Frontend UI | Petugas membuka Langkah Admisi PPRI Transfer (`InpatientAdmissionTransferReviewStep.jsx`) | Header ringkasan identitas pasien menampilkan lencana CITO dan Tier Membership berdampingan dengan No RM dan Nama. | NOT_RUN |
+| `TRF-AT-11` | `RWI-AC-488` | Privacy Guard | Pasien member prioritas sudah ditempatkan di kamar bangsal; petugas membuka Denah Bed Management (`bed-management-view.jsx`) | Tidak ada lencana tier, nama tier, maupun indikator membership pada denah kamar maupun pop up detail bed. | NOT_RUN |
+| `TRF-AT-12` | `RWI-AC-489` | Workflow Policy | Petugas menekan tombol penempatan bed pada antrean transfer member prioritas | Sistem membuka Denah Bed Management untuk pemilihan kamar manual; tidak ada auto-booking atau bypass pemilihan kamar. | NOT_RUN |
+| `TRF-AT-13` | `RWI-AC-490` | Clinical / Policy | Masa berlaku membership pasien habis (expired) saat pasien masih berstatus `Admitted` di bangsal | Kamar pasien tidak dicabut, kelas tempat tidur tidak diturunkan paksa, dan episode tetap berlanjut normal. | NOT_RUN |
+| `TRF-AT-14` | `RWI-AC-491` | Clinical / Policy | Pemeriksaan modul rekam medis, visite dokter, tindakan keperawatan, dan administrasi obat | Seluruh modul asuhan klinis tidak mengonsumsi properti tier membership untuk membedakan perlakuan klinis. | NOT_RUN |
+| `TRF-AT-15` | `RWI-AC-492` | API Integration | Request `GET /api/v1/health-services/inpatient-management/admission-transfers/{id}` | Objek detail respon mengembalikan properti `isCito`, `isPriorityMember`, `memberTierName`, dan `memberPriorityLevel` yang identik dengan list. | NOT_RUN |
+| `TRF-AT-16` | `RWI-AC-493` | Resilience Fallback | Simulasi anomali data: Pasien tidak memiliki record `MstPatientMembership` sama sekali (null relation) | Endpoint merespons HTTP 200 OK dengan `isPriorityMember: false`, `memberTierName: null`, `memberPriorityLevel: null` tanpa error 500. | NOT_RUN |
+
