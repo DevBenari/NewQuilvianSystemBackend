@@ -650,36 +650,36 @@ Gunakan lembar kerja ini saat menjalankan pengujian manual, automated testing, m
 
 | No | Kode Test Case | Tipe Pendaftaran | Nama Skenario Uji | Prioritas | Hasil (Pass / Fail) | Tanggal Uji | Catatan Penguji |
 | :---: | :--- | :--- | :--- | :---: | :---: | :---: | :--- |
-| 1 | `TC-NEW-001` | Pasien Baru | E2E 12 Langkah Pasien Umum Mandiri Tunai | **P0** | [ ] | | |
-| 2 | `TC-NEW-002` | Pasien Baru | Pasien BPJS Kesehatan (SEP & Tanpa Deposit) | **P1** | [ ] | | |
-| 3 | `TC-NEW-003` | Pasien Baru | Pasien Asuransi Swasta / GL & Plafon | **P1** | [ ] | | |
-| 4 | `TC-NEW-004` | Pasien Baru | Pasien Naik Kelas (Upgrading & Selisih Biaya) | **P1** | [ ] | | |
-| 5 | `TC-NEW-005` | Pasien Baru | Validasi Kolom Wajib & NIK Tidak Valid | **P2** | [ ] | | |
-| 6 | `TC-NEW-006` | Pasien Baru | Deteksi NIK Kembar $\rightarrow$ Alih ke Pasien Lama | **P1** | [ ] | | |
-| 7 | `TC-NEW-007` | Pasien Baru | Ketahanan Refresh F5 & Pembatalan Draf | **P3** | [ ] | | |
-| 8 | `TC-EXT-001` | Pasien Lama | Alur Standar Rujukan Poliklinik Spesialis | **P0** | [ ] | | |
-| 9 | `TC-EXT-002` | Pasien Lama | Pembaruan Data Penjamin pada Kunjungan Baru | **P1** | [ ] | | |
-| 10 | `TC-EXT-003` | Pasien Lama | Eligibility Blocker (Pasien Sedang Dirawat) | **P0** | [ ] | | |
-| 11 | `TC-EXT-004` | Pasien Lama | Pasien dengan Piutang Tertunggak (Hold) | **P1** | [ ] | | |
-| 12 | `TC-EXT-005` | Pasien Lama | No. RM Tidak Ada $\rightarrow$ Alih Cepat ke Baru | **P2** | [ ] | | |
-| 13 | `TC-NWB-001` | Bayi Baru Lahir | Bayi Sehat Rawat Gabung (Rooming-in) | **P0** | [ ] | | |
-| 14 | `TC-NWB-002` | Bayi Baru Lahir | Bayi Kritis Masuk Perawatan Intensif NICU | **P0** | [ ] | | |
-| 15 | `TC-NWB-003` | Bayi Baru Lahir | Bayi Kembar (Gemelli) dari 1 Ibu | **P1** | [ ] | | |
-| 16 | `TC-NWB-004` | Bayi Baru Lahir | Verifikasi & Cetak Gelang Identitas Bayi | **P1** | [ ] | | |
-| 17 | `TC-NWB-005` | Bayi Baru Lahir | Bayi Rujukan Luar Tanpa Ibu Terdaftar | **P2** | [ ] | | |
-| 18 | `TC-TRF-001` | Transfer Masuk | Transfer Cito IGD (Serah Terima & Bed ICU) | **P0** | [ ] | | |
-| 19 | `TC-TRF-002` | Transfer Masuk | Transfer Elektif dari Poliklinik Spesialis | **P1** | [ ] | | |
-| 20 | `TC-TRF-003` | Transfer Masuk | Pasien Kebutuhan Khusus Kamar Isolasi PPI | **P1** | [ ] | | |
-| 21 | `TC-TRF-004` | Transfer Masuk | Relokasi Bed Akibat Perubahan Permintaan | **P2** | [ ] | | |
-| 22 | `TC-TRF-005` | Transfer Masuk | Pembatalan Transfer / Pasien Pulang APS | **P1** | [ ] | | |
-| 23 | `TC-REC-001` | Kamar Pulih | Pasca Bedah Elektif ke Bangsal (Aldrete $\ge 8$) | **P0** | [ ] | | |
-| 24 | `TC-REC-002` | Kamar Pulih | Komplikasi Pasca Bedah ke ICU/Ventilator | **P0** | [ ] | | |
-| 25 | `TC-REC-003` | Kamar Pulih | Konversi One Day Care (ODC) ke Ranap Penuh | **P1** | [ ] | | |
-| 26 | `TC-REC-004` | Kamar Pulih | Pencegahan Admisi jika Aldrete Score < 8 | **P1** | [ ] | | |
-| 27 | `TC-CRS-001` | Cross-Cutting | Uji Anti-Kontaminasi State (ISSUE-029) | **P0** | [ ] | | |
-| 28 | `TC-CRS-002` | Cross-Cutting | Bed Concurrency Collision (2 User Rebutan Bed) | **P0** | [ ] | | |
-| 29 | `TC-CRS-003` | Cross-Cutting | Verifikasi Informed Consent Sebelum Admisi | **P1** | [ ] | | |
-| 30 | `TC-CRS-004` | Cross-Cutting | Pembersihan Total Session Storage saat Sukses | **P0** | [ ] | | |
+| 1 | `TC-NEW-001` | Pasien Baru | E2E 12 Langkah Pasien Umum Mandiri Tunai | **P0** | **PASS ✅** | 2026-10-20 | Terverifikasi 12 langkah lengkap sampai cetak gelang (10 screenshot) |
+| 2 | `TC-NEW-002` | Pasien Baru | Pasien BPJS Kesehatan (SEP & Tanpa Deposit) | **P1** | **PASS ✅** | 2026-10-20 | Hak kelas 2 valid, deposit otomatis Rp 0 bebas uang muka |
+| 3 | `TC-NEW-003` | Pasien Baru | Pasien Asuransi Swasta / GL & Plafon | **P1** | **PASS ✅** | 2026-10-20 | GL & polis terverifikasi, tarif kamar RS tercover penuh plafon |
+| 4 | `TC-NEW-004` | Pasien Baru | Pasien Naik Kelas (Upgrading & Selisih Biaya) | **P1** | **PASS ✅** | 2026-10-20 | Peringatan selisih biaya naik kelas BPJS ke VIP aktif transparan |
+| 5 | `TC-NEW-005` | Pasien Baru | Validasi Kolom Wajib & NIK Tidak Valid | **P2** | **PASS ✅** | 2026-10-20 | Submit form kosong dicegah, validasi NIK wajib 16 digit angka aktif |
+| 6 | `TC-NEW-006` | Pasien Baru | Deteksi NIK Kembar $\rightarrow$ Alih ke Pasien Lama | **P1** | **PASS ✅** | 2026-10-20 | Modal deteksi NIK terdaftar muncul dan tombol alih rute berfungsi |
+| 7 | `TC-NEW-007` | Pasien Baru | Ketahanan Refresh F5 & Pembatalan Draf | **P3** | **PASS ✅** | 2026-10-20 | Form bertahan saat F5, pembatalan draf membersihkan storage |
+| 8 | `TC-EXT-001` | Pasien Lama | Alur Standar Rujukan Poliklinik Spesialis | **P0** | **PASS ✅** | 2026-10-20 | Profil pasien lama ditemukan, status kelayakan hijau, data terkunci |
+| 9 | `TC-EXT-002` | Pasien Lama | Pembaruan Data Penjamin pada Kunjungan Baru | **P1** | **PASS ✅** | 2026-10-20 | Penjamin diperbarui ke asuransi korporasi tanpa ubah master pasien |
+| 10 | `TC-EXT-003` | Pasien Lama | Eligibility Blocker (Pasien Sedang Dirawat) | **P0** | **PASS ✅** | 2026-10-20 | InformationAlert merah aktif, tombol lanjut dinonaktifkan total |
+| 11 | `TC-EXT-004` | Pasien Lama | Pasien dengan Piutang Tertunggak (Hold) | **P1** | **PASS ✅** | 2026-10-20 | Lencana piutang tertunggak (> Rp 5.000.000) dan memo kasir tampil |
+| 12 | `TC-EXT-005` | Pasien Lama | No. RM Tidak Ada $\rightarrow$ Alih Cepat ke Baru | **P2** | **PASS ✅** | 2026-10-20 | Empty state pencarian menyajikan tombol buat pasien baru mulus |
+| 13 | `TC-NWB-001` | Bayi Baru Lahir | Bayi Sehat Rawat Gabung (Rooming-in) | **P0** | **PASS ✅** | 2026-10-20 | Terhubung ke episode ibu, alokasi boks bayi di kamar ibu tanpa tagihan ganda |
+| 14 | `TC-NWB-002` | Bayi Baru Lahir | Bayi Kritis Masuk Perawatan Intensif NICU | **P0** | **PASS ✅** | 2026-10-20 | Alokasi bed inkubator intensif neonatal terpisah dari kamar ibu |
+| 15 | `TC-NWB-003` | Bayi Baru Lahir | Bayi Kembar (Gemelli) dari 1 Ibu | **P1** | **PASS ✅** | 2026-10-20 | Pendaftaran multipel bayi didukung dengan 2 No. RM unik terpisah |
+| 16 | `TC-NWB-004` | Bayi Baru Lahir | Verifikasi & Cetak Gelang Identitas Bayi | **P1** | **PASS ✅** | 2026-10-20 | Gelang pink/biru memuat nama bayi, No. RM bayi, nama ibu, barcode |
+| 17 | `TC-NWB-005` | Bayi Baru Lahir | Bayi Rujukan Luar Tanpa Ibu Terdaftar | **P2** | **PASS ✅** | 2026-10-20 | Pengecualian rujukan luar memproses episode bayi di Perinatologi |
+| 18 | `TC-TRF-001` | Transfer Masuk | Transfer Cito IGD (Serah Terima & Bed ICU) | **P0** | **PASS ✅** | 2026-10-20 | Antrean rujukan darurat IGD Tn. Harun termuat dengan prioritas Cito & SBAR |
+| 19 | `TC-TRF-002` | Transfer Masuk | Transfer Elektif dari Poliklinik Spesialis | **P1** | **PASS ✅** | 2026-10-20 | Rujukan dari rawat jalan dialokasikan ke bangsal perawatan reguler |
+| 20 | `TC-TRF-003` | Transfer Masuk | Pasien Kebutuhan Khusus Kamar Isolasi PPI | **P1** | **PASS ✅** | 2026-10-20 | Kepatuhan PPI: Penolakan bed umum & penguncian kamar isolasi tekanan negatif |
+| 21 | `TC-TRF-004` | Transfer Masuk | Relokasi Bed Akibat Perubahan Permintaan | **P2** | **PASS ✅** | 2026-10-20 | Ganti tempat tidur melepaskan timer bed lama & mengunci bed baru |
+| 22 | `TC-TRF-005` | Transfer Masuk | Pembatalan Transfer / Pasien Pulang APS | **P1** | **PASS ✅** | 2026-10-20 | Alasan penolakan rawat inap APS tercatat dan tempat tidur dilepaskan |
+| 23 | `TC-REC-001` | Kamar Pulih | Pasca Bedah Elektif ke Bangsal (Aldrete $\ge 8$) | **P0** | **PASS ✅** | 2026-10-20 | Skor Aldrete = 9 memenuhi ambang batas aman keluar kamar pulih |
+| 24 | `TC-REC-002` | Kamar Pulih | Komplikasi Pasca Bedah ke ICU/Ventilator | **P0** | **PASS ✅** | 2026-10-20 | Komplikasi pasca laparotomi dialokasikan ke ICU ventilator ready |
+| 25 | `TC-REC-003` | Kamar Pulih | Konversi One Day Care (ODC) ke Ranap Penuh | **P1** | **PASS ✅** | 2026-10-20 | Komplikasi pasca kuretase dikonversi ke ranap tanpa double billing |
+| 26 | `TC-REC-004` | Kamar Pulih | Pencegahan Admisi jika Aldrete Score < 8 | **P1** | **PASS ✅** | 2026-10-20 | Tombol admisi bangsal terkunci disabled saat Aldrete = 5 |
+| 27 | `TC-CRS-001` | Cross-Cutting | Uji Anti-Kontaminasi State (ISSUE-029) | **P0** | **PASS ✅** | 2026-10-20 | Isolasi namespace Session Storage terbukti bersih tanpa cross-jump |
+| 28 | `TC-CRS-002` | Cross-Cutting | Bed Concurrency Collision (2 User Rebutan Bed) | **P0** | **PASS ✅** | 2026-10-20 | Perebutan bed bersamaan ditolak HTTP 409 Conflict secara ramah |
+| 29 | `TC-CRS-003` | Cross-Cutting | Verifikasi Informed Consent Sebelum Admisi | **P1** | **PASS ✅** | 2026-10-20 | Tombol final terkunci jika persetujuan umum belum ditandatangani |
+| 30 | `TC-CRS-004` | Cross-Cutting | Pembersihan Total Session Storage saat Sukses | **P0** | **PASS ✅** | 2026-10-20 | Draf sementara terhapus total saat nomor episode resmi terbit |
 
 ---
 

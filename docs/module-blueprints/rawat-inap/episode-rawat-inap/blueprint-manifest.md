@@ -9,18 +9,18 @@ manifest tingkat modul. Berkas ini memegang **status desain, `contract_versions`
 |---|---|
 | `submodule_slug` | `episode-rawat-inap` |
 | `blueprint_id` | `RWI-BP-001` — satu untuk seluruh modul |
-| `revision` | **`17`** — Delivery Planning Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier, bagian 22, **`APPROVED_DESIGN_PLANNED`** (`RWI-DEC-338` s.d. `341`, planning `TRF-DEL-20261019-01`, kontrak `0.17.0`). Riwayat metadata: `16` Realtime Bed Selection planned (`RWI-DEC-337`, `RTB-DEL-20261017-01`, `0.16.0`); `15` realtime draft; `14` Pendaftaran Admisi ODC; `13` Transfer Pasien Masuk & PPJA; `12` Integrasi Denah (`RWI-DEC-324`); `11` draft Bed Management |
-| `status` | **`approved`** untuk revision 17 Prioritas Member & Lencana Tier (`0.17.0`), revision 16 Realtime Bed Selection (`0.16.0`), revision 14 ODC (`0.15.0`), revision 13 Transfer Pasien Masuk (`0.14.0`), dan revision 12 Integrasi Denah (`0.13.0`); Bed Management revision 11 tetap **`draft`** pada scope terpisah |
-| `contract_versions` | **`0.17.0`** — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (`approved_design_planned`, `RWI-DEC-338` s.d. `341`, 2026-10-19); `0.16.0` Notifikasi Realtime Pemilihan Bed (`approved_design_planned`, `RWI-DEC-337`); `0.15.0` ODC (`approved_design_planned`); `0.14.0` Transfer Pasien Masuk (`approved`); `0.13.0` Integrasi Denah (`approved`); `0.12.0` Bed Management draft; `0.11.0` Admisi & Workspace PPRI (`RWI-DEC-265`) |
+| `revision` | **`19`** — Delivery Planning Peta Bangsal Denah, bagian 24, **`APPROVED_DESIGN_PLANNED`** (`RWI-DEC-352`, `RWI-DEC-353`, planning `PETA-DEL-20261020-01`, kontrak `0.18.0`). Riwayat metadata: `18` Desain Peta Bangsal Denah draft (bagian 23); `17` — Delivery Planning Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier, bagian 22, **`APPROVED_DESIGN_PLANNED`** (`RWI-DEC-338` s.d. `341`, planning `TRF-DEL-20261019-01`, kontrak `0.17.0`). Riwayat metadata: `16` Realtime Bed Selection planned (`RWI-DEC-337`, `RTB-DEL-20261017-01`, `0.16.0`); `15` realtime draft; `14` Pendaftaran Admisi ODC; `13` Transfer Pasien Masuk & PPJA; `12` Integrasi Denah (`RWI-DEC-324`); `11` draft Bed Management |
+| `status` | **`approved`** untuk revision 19 Peta Bangsal Denah (`0.18.0` `approved_design_planned`, `RWI-DEC-352`); **`approved`** untuk revision 17 Prioritas Member & Lencana Tier (`0.17.0`), revision 16 Realtime Bed Selection (`0.16.0`), revision 14 ODC (`0.15.0`), revision 13 Transfer Pasien Masuk (`0.14.0`), dan revision 12 Integrasi Denah (`0.13.0`); Bed Management revision 11 tetap **`draft`** pada scope terpisah |
+| `contract_versions` | **`0.18.0`** — Peta Bangsal Denah (`approved_design_planned`, `RWI-DEC-352`, 2026-10-20); `0.17.0` — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (`approved_design_planned`, `RWI-DEC-338` s.d. `341`, 2026-10-19); `0.16.0` Notifikasi Realtime Pemilihan Bed (`approved_design_planned`, `RWI-DEC-337`); `0.15.0` ODC (`approved_design_planned`); `0.14.0` Transfer Pasien Masuk (`approved`); `0.13.0` Integrasi Denah (`approved`); `0.12.0` Bed Management draft; `0.11.0` Admisi & Workspace PPRI (`RWI-DEC-265`) |
 | `upstream_realignment` | **`REALIGNED_APPROVED` sejak 2026-09-16** lewat `RWI-DEC-150` |
 | `prefix` | Entity `Inp`; task `BE-RWI-###` dan `FE-RWI-###` |
-| `approved_by` | **Muhammad Hamzah** (Revision 17 lewat `/plan-module-delivery` 19 Oktober 2026; revision 16 melalui `RWI-DEC-337`; revision 14 lewat `/plan-module-delivery`; revision 13 & 12 melalui approval 2026-10-16) |
-| `approved_at` | `2026-10-19` untuk revision 17; `2026-10-17` untuk revision 16 dan 14; `2026-10-16` untuk revision 13 & 12 |
+| `approved_by` | **Muhammad Hamzah** (Revision 19 Peta Bangsal Denah lewat `RWI-DEC-352`, 20 Oktober 2026; Revision 17 lewat `/plan-module-delivery` 19 Oktober 2026; revision 16 melalui `RWI-DEC-337`; revision 14 lewat `/plan-module-delivery`; revision 13 & 12 melalui approval 2026-10-16) |
+| `approved_at` | `2026-10-20` untuk revision 19; `2026-10-19` untuk revision 17; `2026-10-17` untuk revision 16 dan 14; `2026-10-16` untuk revision 13 & 12 |
 | `rumpun kemampuan` | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan, admisi & consent, serah terima transfer, admisi ODC, notifikasi realtime pemilihan bed, prioritas antrean transfer kamar member & lencana tier |
 | `kemampuan` | **16** — `CAP-001` s.d. `CAP-011`, `CAP-017`, `CAP-018`, `CAP-019`, `CAP-026`, `CAP-028`, sesuai `RWI-DEC-083`; **ditambah Workspace PPRI** `CAP-RWA-01` s.d. `CAP-RWA-17` tanpa `CAP-RWA-04` (`RWI-DEC-227`); **ditambah Amandemen Admisi & Digital Consent** (`RWI-DEC-267` s.d. `273`); **ditambah Integrasi Denah ↔ Bed Management** `DNH-CG-01` s.d. `06` (`RWI-DEC-298` s.d. `323`); **ditambah Transfer Pasien Masuk & PPJA** (`FR-TRF-001` s.d. `007`); **ditambah Pendaftaran Admisi Pasien ODC** (`FR-ODC-001` s.d. `007`, `RWI-DEC-327` s.d. `332`); **ditambah Prioritas Kamar Member & Lencana Tier** (`FR-TRF-008` s.d. `012`, `RWI-DEC-338` s.d. `341`) |
 | `uji pemecahan` | **5/5** syarat `bentuk-blueprint.md` bagian 4.1 |
-| `design_snapshot_at` | 2026-10-19 untuk Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier; 2026-10-17 untuk Realtime Bed & ODC; 2026-10-16 untuk Transfer Pasien Masuk; 2026-10-15 untuk Integrasi Denah |
-| `updated_at` | 2026-10-19 — perencanaan delivery Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (`TRF-DEL-20261019-01`, kontrak `0.17.0`) |
+| `design_snapshot_at` | 2026-10-20 untuk Peta Bangsal Denah; 2026-10-19 untuk Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier; 2026-10-17 untuk Realtime Bed & ODC; 2026-10-16 untuk Transfer Pasien Masuk; 2026-10-15 untuk Integrasi Denah |
+| `updated_at` | 2026-10-20 — delivery planning Peta Bangsal Denah (`PETA-DEL-20261020-01`, kontrak `0.18.0` `approved_design_planned`, bagian 24). Sebelumnya desain draft bagian 23; sebelumnya 2026-10-19 — perencanaan delivery Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (`TRF-DEL-20261019-01`, kontrak `0.17.0`) |
 
 **Bukti migration diperbarui 5 Oktober 2026.** Build project melalui `dotnet ef database update` berhasil dan `20261005033044_AddRawatInapFinishing` diterapkan sampai `Done.` menurut output pengguna. Cakupan aktual: `I1` + `I2`, `K8` + `E4`, `E5`, `E6`, dan `E7`; enam task pemilik perubahan skema. [Bukti lengkap](task/report/backend/BE-RWI-172.md#51-pembaruan-bukti-5-oktober-2026). `I1`/`I2` dikemas sebagai satu migration gabungan; catatan kesesuaian kriteria ada di `BE-RWI-149`. Nama database/lingkungan tidak disebut; API, regresi, rollback, frontend, data seeder, serta kesiapan rilis belum dibuktikan output ini. Revision, snapshot SHA desain, kontrak, artifact hash persetujuan, dan approval roadmap dipertahankan.
 
@@ -909,6 +909,155 @@ Hash berikut adalah SHA-256 byte aktual dari berkas delivery yang dihasilkan pad
 
 Eksekusi tetap tepat satu task per pemanggilan builder (`build-module-backend` / `build-module-frontend`). Roadmap ini tidak memberi izin perubahan database/deployment dan tidak mengubah source aplikasi secara liar di luar scope task.
 
+---
 
+## 23. Manifest revision 18 — Peta Bangsal Denah, 20 Oktober 2026
 
+**Status: `draft` — menunggu approval pemilik.** Desain amandemen rupa denah Bed Management. Approval
+revision 17 dan sebelumnya tetap berlaku untuk isinya masing-masing.
 
+| Field | Nilai |
+| --- | --- |
+| Blueprint ID | `RWI-BP-001/episode-rawat-inap` |
+| Revision | **`18`** |
+| Contract set | **`0.18.0`** (`draft`) |
+| Status | **draft** — `approved_by` dan `approved_at` belum ada |
+| Scope | Rupa denah Bed Management menjadi peta bangsal di Monitoring Bed, Pilih Bed, transfer, dan Master Bed; tanpa perubahan backend, API, maupun data |
+| Requirement | `RWI-DEC-343`–`351` (`350` dan `351` asumsi draft), `RWI-AC-498`–`507`, `RWI-CON-018` ditutup, `RWI-FE-009`–`012` |
+| Capability | `DNH-CAP-34`, `36`, `37`, `41`; gate `DNH-CG-01`, `DNH-CG-05` |
+| Readiness | `DNH-RCG-20261015-01` (gate 1.13) `READY_FOR_DOMAIN_DESIGN`; tidak dinilai ulang karena tidak ada kemampuan baru |
+| Domain architecture | `DOMAIN_ARCHITECTURE_NOT_RUN` |
+| Flow | `FLOW-DNH-MVP-001` dan `FLOW-DNH-MVP-002` tidak berubah |
+| Epic/FR/NFR/UAT | `EPIC DNH-07` (`FR-DNH-017`–`024`); `EPIC DNH-08` `OPEN DECISION` (`FR-DNH-025`); `NFR-808`–`813`; `UAT-813`–`819`; `DNH-AT-498`–`507` dan `DNH-AT-914`–`923` |
+| Terbuka | `PETA-OPEN-01` — warna titik status kartu dan pop up; memblokir `EPIC DNH-08` saja |
+| Source snapshot | BE `6e0f2b1b58a2192a0f54f0fdff718bc77670e3bd`; FE `a491b05afcb6b3ed70218ccaa557007719d45ac3` |
+| Dampak database | 0 tabel baru, 0 kolom baru, 0 migration |
+
+> Snapshot historis revision 18. Persetujuan `RWI-DEC-352` dan registrasi delivery ada di bagian 24;
+> hash kanonis sesudah persetujuan tersimpan di lock `PETA-DEL-20261020-01`.
+
+### 23.1 Masukan dan hash
+
+| Input | Revision/readiness | SHA-256 |
+| --- | --- | --- |
+| ../00-interview-decisions.md | 62; DEC-343–351, AC-498–507, CON-018, FE-009–012 | `48dc49dc39851a2fa650968a3391b57375accaf61aa3b0d9dee99d07d56e4ca6` |
+| ../evidence/02-requirement-completeness-gate.md | 1.13; `DNH-RCG-20261015-01` | `d1ddeeda87aa2888397deecada8027296dbd3734669ae00ca210fb044431ae5b` |
+| ../evidence/denah-bed-impact-scan-20261015.md | `BM-IMP-20261015-01` rev 1; `DNH-CAP-34`–`41` | `813430d0a005f71392ed657bc7de0c0e52e466cecc7d74f15e8110345832f3cb` |
+| docs/map-bed/planning/planning-redesain-tampilan-denah-bed.md | Planning; keputusan disetujui, desain draft | `47bb7cb82d5854cfcc9d61ddf72855ca5462a182e627d89d16256e2921f8dec0` |
+| ../02-module-map.md | Tidak berubah; bagian 10 | `a135c59c4b55ea97e240d463511a3e2a41ba22051e398ee4e5bb6d1c0b8b651a` |
+| Manifest anak sebelum amandemen ini | revision 17 | `d13364becfca202a57eaf99e62261b7fafbf00746c519523864637eaa0c8e6cf` |
+| Manifest modul sebelum amandemen ini | revision 14 | `fe538d8ae312213589d868419ff4f6e4dcae035a0fe5fc9f4bb653302c9b1dcf` |
+
+### 23.2 Owner, authority, dan approval
+
+| Kewenangan | Pemilik/batas | Bukti |
+| --- | --- | --- |
+| Produk/domain | Muhammad Hamzah | `RWI-DEC-061` |
+| Pemberi arahan perubahan | Atasan pengguna; dicatat atas nama Muhammad Hamzah | `RWI-DEC-343`, `RWI-FACT-079` |
+| Frontend | Pengembang dalam batas frontend 21.3; `RWI-FE-009`–`012` | Decision log revision 62 |
+| Klinis dan privasi | Penayangan HD/LD di produksi tetap gate `DNH-G04`; pemilik privasi `OPEN` | Bagian 17.5 |
+| approved_by / approved_at | Belum ada | Approval adalah tindakan manusia |
+
+### 23.3 Artefak dan hash
+
+SHA-256 byte berkas apa adanya (CRLF) sesudah amandemen ini.
+
+| Artefak relatif | Status / last_changed_in | SHA-256 |
+| --- | --- | --- |
+| 03-frontend-architecture.md | draft / 0.18.0 — bagian 21; catatan penggantian pada 16 dan 16.7 | `a4a6946f1553ad03ef11a9049cfb918d6ec791a518072ba446a6d25fbe4733a1` |
+| 04-prd-to-mvp.md | draft / 0.18.0 — bagian 32; catatan pada `NFR-801` dan `UAT-801` | `4613e7812fb574ba89e7149adb0123c9f66ecddf7d462dafff6d9134f979a5d5` |
+| testing/acceptance-test-matrix.md | draft / 0.18.0 — bagian 26; catatan pada `DNH-AT-911` dan `UAT-801` | `cee9f576a7d5edbe0fb428ab09bd0183bd57bf647e675aa1ae647d1da4e765fa` |
+| 02-backend-architecture.md | Tidak berubah | `ae492732dbf78d668e1cd54ee900a4a235ddb6c4a7e139d6deb823b91ff9f120` |
+| data/data-dictionary.md | Tidak berubah | `10e498c55eac6e9ded2419059eb5c80708e7f4df70a0fc754c817984806290fb` |
+| contracts/api-contract.md | Tidak berubah | `ba624bce05bbb47421b8169da15f060955099a23ac3753fb9117fbb4889ae125` |
+| contracts/state-transition-matrix.md | Tidak berubah | `3e644053d085c87d83d9bce9602db1c7c2893f2e03f1a4679013454629e6cb3e` |
+| contracts/validation-matrix.md | Tidak berubah | `c5d1e40b343cfc28ab372f1ce14f6fc4314057f49c830d0abb404e7358205b67` |
+| contracts/integration-contract.md | Tidak berubah | `a31fde2eb3467486b460bb16cf1ccb37503cc4507bff343ca567310220d05480` |
+| contracts/permission-audit-matrix.md | Tidak berubah | `9fc9aab72951d9b839088ce874a4f0dd647a15ca5ed3467c76f3655a17c2cd8a` |
+| flowcharts/15-denah-pilih-bed.md | Tidak berubah | `2d8a933b0f04518879a850a6bb24c06465fa57317195ee7ba1913c383b6fe53b` |
+| flowcharts/16-denah-master-bed.md | Tidak berubah | `a2bfeeed93b7cb8c60024131de25032dd8d65df85822d0056cfb4bb6462647ce` |
+
+### 23.4 Scope, compatibility, dan supersession
+
+| Perubahan | Dampak |
+| --- | --- |
+| Gambar CAD diganti peta bangsal | Hanya rupa; posisi kamar, kunci denah, dan data tetap |
+| Rupa status kembali ke `RWI-DEC-303`/`316` | Perubahan perilaku yang terlihat: tepi teal menjadi hijau, kamar penuh berwarna menjadi abu berlabel, aturan HD suara terbanyak menjadi "sekurang-kurangnya satu HD" dari server |
+| Kamar penuh dan kamar Master dapat difokus keyboard | Perbaikan aksesibilitas (frontend 21.2 no. 10) |
+| Ringkasan lantai dan angka tab | Aditif; dihitung dari respons yang sudah ada |
+| Backend, API, database | Tidak berubah |
+
+Yang digantikan: frontend 16.1 (brief rupa dan batas `DEV_DISCRETION`), 16.4 (baris
+`floor-plan-drawing`), 16.6 (kalimat bukti tampilan), dan 16.7 butir 3; PRD `NFR-801` (sebagian) dan
+`UAT-801` (kalimat terakhir); acceptance `DNH-AT-911` (sebagian) dan `UAT-801` (kalimat terakhir);
+`RWI-DEC-325` butir 3 digantikan `RWI-DEC-343` di decision log. Rupa status dari commit frontend
+`685844a34` dicabut `RWI-DEC-346`.
+
+### 23.5 Gate dan pertanyaan terbuka
+
+| Gate / butir | Isi | Dampak |
+| --- | --- | --- |
+| `PETA-OPEN-01` | Warna titik status di kartu dan pop up (frontend 21.12) | `EPIC DNH-08` tidak masuk gelombang sampai diputuskan; disarankan dijawab sebelum contoh Lantai 3 ditunjukkan |
+| Asumsi `RWI-DEC-350`, `RWI-DEC-351` | Label kamar tanpa penilaian; tampilan campuran tidak dirilis | Tidak memblokir; berlaku sampai pemilik menyatakan lain |
+| Pengesahan contoh Lantai 3 (`RWI-DEC-349`) | Atasan melihat Lantai 3, Muhammad Hamzah mencatat pengesahannya | Syarat mulai `MVP-PETA-2` |
+| `DNH-G04` | Kriteria klinis HD/LD dan persetujuan privasi | Tetap; penayangan HD/LD di produksi |
+
+### 23.6 Validasi desain dan batas bukti
+
+| Pemeriksaan | Hasil | Bukti / batas |
+| --- | --- | --- |
+| `git diff --check` | PASS | Tiga berkas desain dan planning |
+| Akhir baris | PASS | Berkas CRLF tetap CRLF; planning tetap LF seperti saat dibuat |
+| Rujukan keputusan | PASS | 30 ID `RWI-*` pada bagian baru ditemukan di decision log revision 62 |
+| ID internal | PASS | `FR-DNH-017`–`025`, `NFR-808`–`813`, `UAT-813`–`819`, `DNH-AT-498`–`507`, `DNH-AT-914`–`923`: semua yang dirujuk terdefinisi |
+| UAT | PASS | `UAT-813`–`819` identik di PRD 32.18 dan acceptance 26.4 |
+| Tautan lokal dan lebar tabel | PASS | Bagian 21, 26, dan 32 |
+| Kesegaran source | PASS | FE `a491b05af` bersih; BE `6e0f2b1b`. Perubahan dokumen paralel (roadmap prioritas member, laporan `BE-RWI-252`/`253`) tidak dinilai |
+| Source, build, dan test aplikasi | NOT RUN | Fase dokumentasi; pembuktian pada delivery |
+
+Butir yang diketahui tidak sinkron dan **tidak** diperbaiki karena di luar amandemen ini:
+
+1. API contract 14.2 masih melabeli tiga endpoint denah "Rencana (belum tersedia)" padahal sudah ada
+   di kode; isi kontrak tidak bergerak pada `0.18.0`.
+2. Kepala frontend architecture menyebut `0.17` `draft`, sedangkan manifest ini menyebut revision 17
+   `approved`.
+3. Frontend architecture punya dua bagian bernomor 20 (realtime dan lencana tier).
+4. Manifest modul belum mencatat child revision 17.
+
+### 23.7 Langkah berikutnya
+
+Approval desain oleh Muhammad Hamzah, sebaiknya bersama jawaban `PETA-OPEN-01`, lalu
+`plan-module-delivery` untuk task contoh Lantai 3 dan lima lantai lain. ID frontend berikutnya saat ini
+`FE-RWI-272`; pindai ulang sebelum alokasi. Revision ini tidak membuat roadmap dan tidak mengubah source
+aplikasi, database, maupun Git.
+
+---
+
+## 24. Delivery Peta Bangsal Denah — 20 Oktober 2026
+
+`plan-module-delivery` dijalankan sesudah persetujuan `RWI-DEC-352`. Revision 19 mengikat set kontrak
+`0.18.0` yang dirancang pada revision 18. Hash bagian 23 tetap snapshot draft historis; snapshot
+approved/planned yang kanonis ada di lock di bawah.
+
+| Field | Nilai |
+|---|---|
+| planning_id / revision / status | `PETA-DEL-20261020-01` / 1 / `APPROVED_DESIGN_PLANNED` |
+| Approval | Muhammad Hamzah, 20 Oktober 2026: "iya saya setujui semua ya atas nama saya Muhammad Hamzah" → `RWI-DEC-352` (desain dan asumsi `RWI-DEC-350`/`351`) dan `RWI-DEC-353` (palet titik, menutup `RWI-OQ-165`) |
+| Task backend | Tidak ada (`RWI-DEC-343`); roadmap backend memuat alasannya |
+| Task frontend | 8 task: contoh Lantai 3 `FE-RWI-272` s.d. `FE-RWI-275`; lima lantai lain `FE-RWI-276` s.d. `FE-RWI-278`; penutupan `FE-RWI-279` |
+| Dependency awal | `FE-RWI-272` gelombang 1; tidak ada prasyarat backend |
+| Gerbang | `DEC-PETA-L3`: atasan mengesahkan contoh Lantai 3 dan Muhammad Hamzah mencatatnya sebagai keputusan baru; menahan `FE-RWI-276` s.d. `FE-RWI-279` |
+| Coverage | 9 FR, 11 AC, 6 NFR, 8 UAT, 21 butir uji — **Zero Coverage Gap** |
+| Source snapshot | BE `6e0f2b1b58a2192a0f54f0fdff718bc77670e3bd`; FE `a491b05afcb6b3ed70218ccaa557007719d45ac3` |
+| Laporan / runtime | Belum ada; seluruh task `NOT_STARTED` atau ⛔ menunggu gerbang |
+| ID berikutnya | `FE-RWI-280`; `BE-RWI-254` tetap. `FE-RWI-271` dilewati karena roadmap paralel prioritas member menyebutnya sebagai ID berikutnya. Wajib pindai ulang sebelum alokasi baru |
+
+| Artefak relatif | Status | SHA-256 byte aktual |
+|---|---|---|
+| [roadmap/frontend-roadmap-peta-bangsal-denah.md](./roadmap/frontend-roadmap-peta-bangsal-denah.md) | rev 1; 8 task; 9 pasangan dependency dan 2 garis syarat gerbang | `b24cfd81100ff36be9e0d4692fb0eca35a6e360c7c84558d028d8d6bf493b3cf` |
+| [roadmap/backend-roadmap-peta-bangsal-denah.md](./roadmap/backend-roadmap-peta-bangsal-denah.md) | rev 1; nol task beserta alasannya | `98144e9a2e45a0edd5a2d404349345c7bc24fbda38ef7e35f84d72c1edd8a339` |
+| [roadmap/requirement-traceability-peta-bangsal-denah.md](./roadmap/requirement-traceability-peta-bangsal-denah.md) | rev 1; FR, AC, NFR, UAT, butir uji ke task; zero gap | `f0b2af462cddbb38ec60cdd1bdd07160bac95e76aefcdc0089d74485152af900` |
+| [roadmap/peta-bangsal-denah-delivery-lock.json](./roadmap/peta-bangsal-denah-delivery-lock.json) | rev 1; 19 hash masukan dan 2 manifest sebelum registrasi | `20a782ef7e643983c3528a5139f5afc9aa9e8a537646a5ebd5295a73de609477` |
+
+Eksekusi tetap tepat satu task per pemanggilan `build-module-frontend`. Roadmap ini tidak memberi izin
+perubahan database maupun deployment, dan tidak mengubah source aplikasi.

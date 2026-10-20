@@ -24,13 +24,13 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-RWI-252 ──> BE-RWI-253
+BE-RWI-252 [✅] ──> BE-RWI-253 [✅]
 ```
 
 | Gelombang | Boleh Mulai Setelah | Task ID | Hasil Gelombang |
 |---:|---|---|---|
-| 1 | — | `BE-RWI-252` | DTO `InpatientAdmissionTransferItemResponse` diperluas dan query relasional EF Core membaca CITO dari IGD dan Membership aktif dari CRM secara fail-safe |
-| 2 | `BE-RWI-252` | `BE-RWI-253` | Algoritma pengurutan multi-kriteria (CITO desc → Member Prioritas desc → PriorityLevel asc → DecidedAt asc → TransferId asc) aktif dan stabil pada endpoint antrean transfer |
+| 1 | — | `BE-RWI-252` [✅] | DTO `InpatientAdmissionTransferItemResponse` diperluas dan query relasional EF Core membaca CITO dari IGD dan Membership aktif dari CRM secara fail-safe |
+| 2 | `BE-RWI-252` | `BE-RWI-253` [✅] | Algoritma pengurutan multi-kriteria (CITO desc → Member Prioritas desc → PriorityLevel asc → DecidedAt asc → TransferId asc) aktif dan stabil pada endpoint antrean transfer |
 
 Garis berarti prasyarat → task. Setiap task muncul tepat satu kali dan pasangan dependency grafik sama persis dengan kolom Dependency pada register.
 
@@ -49,8 +49,8 @@ Tidak ada endpoint baru. Tidak ada migrasi database (`0 migrasi EF Core`). Tidak
 
 | Task ID / Status | Outcome | Requirement / Keputusan | Kontrak | Reuse | Cakupan | Dependency | Acceptance Criteria | Verifikasi | Risiko / Owner | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `BE-RWI-252` | Ekstensi DTO `InpatientAdmissionTransferItemResponse` dan proyeksi query EF Core membaca status CITO IGD dan Membership aktif CRM secara fail-safe | FR-TRF-008, FR-TRF-012; RWI-DEC-338, 339, 341 | 0.17.0; Bab 18 API, Bab 15 Integrasi, Bab 20 Backend | `InpatientAdmissionTransferDtos.cs`, `InpAdmissionTransferService.Queries.cs`, `ApplicationDbContext` | Tambahkan properti `IsCito`, `IsPriorityMember`, `MemberTierName`, `MemberPriorityLevel` ke DTO; ubah `BuildTransferQuery` untuk left-join `EmgAdmissionRequest` (Signed) dan `MstPatientMembership` join `MstMembershipTier` (Active, valid date, `PriorityQueue == true`) | — | RWI-AC-481, RWI-AC-483, RWI-AC-484, RWI-AC-485, RWI-AC-492, RWI-AC-493; TRF-AT-01, 04, 05, 06, 07, 08, 14, 16 | `V-BE`; build lolos, verifikasi proyeksi query tanpa N+1, verifikasi fallback null | InPatientManagement; risiko query overhead relasi membership | `D-BE`; [laporan](../task/report/backend/BE-RWI-252.md) |
-| `BE-RWI-253` | Algoritma pengurutan multi-kriteria deterministik (CITO → Member Prioritas → Reguler) pada antrean transfer rawat inap | FR-TRF-008; RWI-DEC-338, 339, 340 | 0.17.0; Bab 18 API, Bab 20 Backend | `InpAdmissionTransferService.cs` | Terapkan multi-level sorting: `OrderByDescending(IsCito).ThenByDescending(IsPriorityMember).ThenBy(MemberPriorityLevel ?? int.MaxValue).ThenBy(DecidedAt).ThenBy(TransferId)`; verifikasi tidak ada auto-booking | `BE-RWI-252` | RWI-AC-482, RWI-AC-489, RWI-AC-490, RWI-AC-491; TRF-AT-02, 03, 11, 12, 13 | `V-BE`; verifikasi urutan dataset campuran CITO dan Member, build aplikasi | InPatientManagement; risiko stabilitas sorting pada paging besar | `D-BE`; [laporan](../task/report/backend/BE-RWI-253.md) |
+| `BE-RWI-252` [✅] | Ekstensi DTO `InpatientAdmissionTransferItemResponse` dan proyeksi query EF Core membaca status CITO IGD dan Membership aktif CRM secara fail-safe | FR-TRF-008, FR-TRF-012; RWI-DEC-338, 339, 341 | 0.17.0; Bab 18 API, Bab 15 Integrasi, Bab 20 Backend | `InpatientAdmissionTransferDtos.cs`, `InpAdmissionTransferService.Queries.cs`, `ApplicationDbContext` | Tambahkan properti `IsCito`, `IsPriorityMember`, `MemberTierName`, `MemberPriorityLevel` ke DTO; ubah `BuildTransferQuery` untuk left-join `EmgAdmissionRequest` (Signed) dan `MstPatientMembership` join `MstMembershipTier` (Active, valid date, `PriorityQueue == true`) | — | RWI-AC-481, RWI-AC-483, RWI-AC-484, RWI-AC-485, RWI-AC-492, RWI-AC-493; TRF-AT-01, 04, 05, 06, 07, 08, 14, 16 | `V-BE`; build lolos, verifikasi proyeksi query tanpa N+1, verifikasi fallback null | InPatientManagement; risiko query overhead relasi membership | `D-BE`; [laporan](../task/report/backend/BE-RWI-252.md) |
+| `BE-RWI-253` [✅] | Algoritma pengurutan multi-kriteria deterministik (CITO → Member Prioritas → Reguler) pada antrean transfer rawat inap | FR-TRF-008; RWI-DEC-338, 339, 340 | 0.17.0; Bab 18 API, Bab 20 Backend | `InpAdmissionTransferService.cs` | Terapkan multi-level sorting: `OrderByDescending(IsCito).ThenByDescending(IsPriorityMember).ThenBy(MemberPriorityLevel ?? int.MaxValue).ThenBy(DecidedAt).ThenBy(TransferId)`; verifikasi tidak ada auto-booking | `BE-RWI-252` | RWI-AC-482, RWI-AC-489, RWI-AC-490, RWI-AC-491; TRF-AT-02, 03, 11, 12, 13 | `V-BE`; verifikasi urutan dataset campuran CITO dan Member, build aplikasi | InPatientManagement; risiko stabilitas sorting pada paging besar | `D-BE`; [laporan](../task/report/backend/BE-RWI-253.md) |
 
 ## Batas Handoff dan Definition of Done
 
@@ -58,7 +58,7 @@ Tidak ada endpoint baru. Tidak ada migrasi database (`0 migrasi EF Core`). Tidak
 
 1. Jalankan QBE preflight saat eksekusi berdasarkan `AGENTS.md`, kepemilikan modul, kontrak lock, dan file scope.
 2. Review `git diff --check`, diff/scope: pastikan **nol tabel baru, nol kolom baru, nol migrasi EF Core**, dan tidak ada file di luar scope yang tersentuh.
-3. Jalankan `dotnet build QuilvianSystemBackend.csproj` untuk memastikan kompilasi 100% bersih tanpa warning/error baru.
+3. Jalankan `dotnet build QuilvianSystemBackend.csproj` untuk memastikan kompilasi 100% bersih tanpa warning/error baru (dikecualikan pada eksekusi ini sesuai arahan eksplisit pengguna untuk build mandiri).
 4. Verifikasi kontrak DTO dan logika bisnis query/sorting terhadap dataset uji (CITO, Member Platinum/Gold, Reguler, dan Member Expired).
 5. Automated test baru **NOT APPLICABLE / tidak diwajibkan** oleh kebijakan backend `rules/backend/TEST_POLICY.md`. Bukti berbasis build bersih, conformance review, dan pengujian logis query.
 
@@ -72,11 +72,11 @@ Tidak ada endpoint baru. Tidak ada migrasi database (`0 migrasi EF Core`). Tidak
 
 ## Kartu Task
 
-### BE-RWI-252 — Ekstensi DTO dan Proyeksi Query EF Core CITO & Membership Aktif
+### BE-RWI-252 [✅] — Ekstensi DTO dan Proyeksi Query EF Core CITO & Membership Aktif
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | ✅ SELESAI (2026-10-20; DTO & Query diperbarui; build mandiri oleh user; [laporan](../task/report/backend/BE-RWI-252.md)) |
 | Outcome | DTO `InpatientAdmissionTransferItemResponse` memuat field `IsCito`, `IsPriorityMember`, `MemberTierName`, `MemberPriorityLevel` dan query `BuildTransferQuery` memproyeksikan data dari modul IGD dan CRM secara efisien dan fail-safe |
 | File Terdampak | `Areas/HealthServices/InPatientManagement/DTOs/InpatientAdmissionTransferDtos.cs`; `Areas/HealthServices/InPatientManagement/Services/InpAdmissionTransferService.Queries.cs` |
 | Jejak Requirement | `FR-TRF-008`, `FR-TRF-012`; `RWI-DEC-338`, `339`, `341`; `RWI-AC-481`, `483`, `484`, `485`, `492`, `493` |
@@ -101,11 +101,11 @@ Tidak ada endpoint baru. Tidak ada migrasi database (`0 migrasi EF Core`). Tidak
 
 ---
 
-### BE-RWI-253 — Algoritma Pengurutan Multi-Kriteria Antrean Transfer Rawat Inap
+### BE-RWI-253 [✅] — Algoritma Pengurutan Multi-Kriteria Antrean Transfer Rawat Inap
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | ✅ SELESAI (2026-10-20; OrderBy multi-kriteria diterapkan; build mandiri oleh user; [laporan](../task/report/backend/BE-RWI-253.md)) |
 | Outcome | Antrean transfer rawat inap diurutkan secara multi-kriteria deterministik di server backend: CITO teratas, diikuti Member Prioritas sesuai level, lalu Reguler secara FIFO |
 | File Terdampak | `Areas/HealthServices/InPatientManagement/Services/InpAdmissionTransferService.cs` |
 | Jejak Requirement | `FR-TRF-008`; `RWI-DEC-338`, `339`, `340`; `RWI-AC-482`, `489`, `490`, `491` |

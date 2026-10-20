@@ -24,18 +24,18 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-RWI-253 [BE] ──> FE-RWI-268 ─┬─> FE-RWI-269
-                                │
-                                └─> FE-RWI-270
+BE-RWI-253 [BE] ──> FE-RWI-268 [✅] ─┬─> FE-RWI-269 [✅]
+                                     │
+                                     └─> FE-RWI-270 [✅]
 ```
 
 `[BE]` = cermin baca-saja task pada [backend-roadmap-prioritas-antrean-member.md](backend-roadmap-prioritas-antrean-member.md). Garis selalu prasyarat → task.
 
 | Gelombang | Boleh Mulai Setelah | Task ID | Keterangan |
 |---:|---|---|---|
-| 1 | `BE-RWI-253` [BE] | `FE-RWI-268` | Visualisasi lencana CITO dan Tier Membership pada baris pasien di Tabel Antrean Transfer (`InpatientAdmissionTransferList.jsx`) |
-| 2 | `FE-RWI-268` | `FE-RWI-269` | Visualisasi lencana CITO dan Tier Membership pada Header Langkah Admisi PPRI (`InpatientAdmissionTransferReviewStep.jsx`) dan verifikasi isolasi privasi Denah Bed Management |
-| 2 | `FE-RWI-268` | `FE-RWI-270` | Visualisasi lencana tier pada kartu hasil pencarian No. RM dan pemanggilan aktif CRM pada panel verifikasi data admisi pasien lama (`inpatient-admission-existing-patient-step.jsx`, `use-inpatient-admission-patient.jsx`, `inpatient-admission-patient-utils.jsx`) |
+| 1 | `BE-RWI-253` [BE] | `FE-RWI-268` [✅] | Visualisasi lencana CITO dan Tier Membership pada baris pasien di Tabel Antrean Transfer (`InpatientAdmissionTransferList.jsx`) |
+| 2 | `FE-RWI-268` [✅] | `FE-RWI-269` [✅] | Visualisasi lencana CITO dan Tier Membership pada Header Langkah Admisi PPRI (`InpatientAdmissionTransferReviewStep.jsx`) dan verifikasi isolasi privasi Denah Bed Management |
+| 2 | `FE-RWI-268` [✅] | `FE-RWI-270` [✅] | Visualisasi lencana tier pada kartu hasil pencarian No. RM dan pemanggilan aktif CRM pada panel verifikasi data admisi pasien lama (`inpatient-admission-existing-patient-step.jsx`, `use-inpatient-admission-patient.jsx`, `inpatient-admission-patient-utils.jsx`) |
 
 Setiap task muncul tepat satu kali dan pasangan dependency grafik sama persis dengan kolom Dependency pada register.
 
@@ -226,9 +226,9 @@ Sesuai `RWI-DEC-342` dan `RWI-AC-494` s.d. `RWI-AC-497`, layar admisi pasien lam
 
 | Task ID / Status | Outcome | Requirement / Keputusan | Kontrak | Reuse | Cakupan | Dependency | Acceptance Criteria | Verifikasi | Risiko / Pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `FE-RWI-268` | Visualisasi lencana CITO (Merah) dan Nama Tier Membership (Kuning/Emas) pada baris pasien di Tabel Antrean Transfer Rawat Inap | FR-TRF-009; RWI-DEC-338, 341 | 0.17.0; Bab 20 Frontend, Bab 31 PRD | `InpatientAdmissionTransferList.jsx`, `StatusBadge` | Di samping nama/RM pasien, tambahkan container badge flex merender `StatusBadge` CITO dan `StatusBadge` Tier; verifikasi rendering urutan deterministik dari backend | `BE-RWI-253` [BE] | RWI-AC-482, RWI-AC-486; TRF-AT-09, UAT-TRF-01, 02, 05 | `V-FE`; `npm run lint`, `npm run build`, uji responsif mobile/desktop | Frontend HealthServices; kerapian tata letak kolom tabel | `D-FE`; [laporan](../task/report/frontend/FE-RWI-268.md) |
-| `FE-RWI-269` | Visualisasi lencana CITO dan Tier Membership pada Header Langkah Admisi PPRI dan penegakan isolasi privasi pada Denah Bed Management | FR-TRF-010, FR-TRF-011; RWI-DEC-338, 341 | 0.17.0; Bab 20 Frontend, Bab 31 PRD | `InpatientAdmissionTransferReviewStep.jsx`, `bed-management-view.jsx` | Tampilkan lencana CITO & Tier pada header ringkasan identitas pasien wizard admisi transfer; pastikan tombol pemilihan kamar membuka Denah Bed Management manual; verifikasi denah bangsal umum bebas lencana tier | `FE-RWI-268` | RWI-AC-487, RWI-AC-488, RWI-AC-489; TRF-AT-10, 11, 12, UAT-TRF-05, 06 | `V-FE`; `npm run lint`, `npm run build`, uji visual header dan denah bangsal | Frontend HealthServices; kepatuhan privasi pasien bangsal | `D-FE`; [laporan](../task/report/frontend/FE-RWI-269.md) |
-| `FE-RWI-270` | Visualisasi lencana tier pada kartu pencarian No. RM dan validasi keanggotaan aktif CRM pada panel verifikasi data admisi pasien lama | FR-TRF-013; RWI-DEC-342, RWI-FACT-078 | 0.17.0; Bab 20 Frontend, Bab 31 PRD | `inpatient-admission-existing-patient-step.jsx`, `use-inpatient-admission-patient.jsx`, `inpatient-admission-patient-utils.jsx`, `StatusBadge` | Tambahkan lencana tier pada kartu hasil pencarian No RM; saat pasien dipilih, panggil endpoint CRM aktif hari ini; tampilkan nomor member, tier, dan masa berlaku di panel verifikasi; terapkan fail-open jika CRM gagal | `FE-RWI-268` | RWI-AC-494, RWI-AC-495, RWI-AC-496, RWI-AC-497; TRF-AT-17, 18, 19, 20, UAT-TRF-08, 09 | `V-FE`; `npm run lint`, `npm run build`, uji pencarian No RM member/non-member, uji fallback fail-open | Frontend HealthServices; ketahanan admisi saat CRM lambat/gagal | `D-FE`; [laporan](../task/report/frontend/FE-RWI-270.md) |
+| `FE-RWI-268` [✅] | Visualisasi lencana CITO (Merah) dan Nama Tier Membership (Kuning/Emas) pada baris pasien di Tabel Antrean Transfer Rawat Inap | FR-TRF-009; RWI-DEC-338, 341 | 0.17.0; Bab 20 Frontend, Bab 31 PRD | `InpatientAdmissionTransferList.jsx`, `StatusBadge` | Di samping nama/RM pasien, tambahkan container badge flex merender `StatusBadge` CITO dan `StatusBadge` Tier; verifikasi rendering urutan deterministik dari backend | `BE-RWI-253` [BE] | RWI-AC-482, RWI-AC-486; TRF-AT-09, UAT-TRF-01, 02, 05 | `V-FE`; `npm run lint`, `npm run build`, uji responsif mobile/desktop | Frontend HealthServices; kerapian tata letak kolom tabel | `D-FE`; [laporan](../task/report/frontend/FE-RWI-268.md) |
+| `FE-RWI-269` [✅] | Visualisasi lencana CITO dan Tier Membership pada Header Langkah Admisi PPRI dan penegakan isolasi privasi pada Denah Bed Management | FR-TRF-010, FR-TRF-011; RWI-DEC-338, 341 | 0.17.0; Bab 20 Frontend, Bab 31 PRD | `InpatientAdmissionTransferReviewStep.jsx`, `bed-management-view.jsx` | Tampilkan lencana CITO & Tier pada header ringkasan identitas pasien wizard admisi transfer; pastikan tombol pemilihan kamar membuka Denah Bed Management manual; verifikasi denah bangsal umum bebas lencana tier | `FE-RWI-268` [✅] | RWI-AC-487, RWI-AC-488, RWI-AC-489; TRF-AT-10, 11, 12, UAT-TRF-05, 06 | `V-FE`; `npm run lint`, `npm run build`, uji visual header dan denah bangsal | Frontend HealthServices; kepatuhan privasi pasien bangsal | `D-FE`; [laporan](../task/report/frontend/FE-RWI-269.md) |
+| `FE-RWI-270` [✅] | Visualisasi lencana tier pada kartu pencarian No. RM dan validasi keanggotaan aktif CRM pada panel verifikasi data admisi pasien lama | FR-TRF-013; RWI-DEC-342, RWI-FACT-078 | 0.17.0; Bab 20 Frontend, Bab 31 PRD | `inpatient-admission-existing-patient-step.jsx`, `use-inpatient-admission-patient.jsx`, `inpatient-admission-patient-utils.jsx`, `StatusBadge` | Tambahkan lencana tier pada kartu hasil pencarian No RM; saat pasien dipilih, panggil endpoint CRM aktif hari ini; tampilkan nomor member, tier, dan masa berlaku di panel verifikasi; terapkan fail-open jika CRM gagal | `FE-RWI-268` [✅] | RWI-AC-494, RWI-AC-495, RWI-AC-496, RWI-AC-497; TRF-AT-17, 18, 19, 20, UAT-TRF-08, 09 | `V-FE`; `npm run lint`, `npm run build`, uji pencarian No RM member/non-member, uji fallback fail-open | Frontend HealthServices; ketahanan admisi saat CRM lambat/gagal | `D-FE`; [laporan](../task/report/frontend/FE-RWI-270.md) |
 
 ## Batas Handoff dan Definition of Done
 
@@ -251,11 +251,11 @@ Task frontend dikerjakan menggunakan konvensi Next.js App Router, JavaScript/JSX
 
 ## Kartu Task
 
-### FE-RWI-268 — Visualisasi Lencana CITO dan Tier Membership pada Tabel Antrean Transfer
+### FE-RWI-268 [✅] — Visualisasi Lencana CITO dan Tier Membership pada Tabel Antrean Transfer
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | Selesai (20 Oktober 2026); terverifikasi V-FE & laporan [FE-RWI-268.md](../task/report/frontend/FE-RWI-268.md) |
 | Outcome | Tabel Antrean Transfer Rawat Inap (`InpatientAdmissionTransferList.jsx`) menampilkan lencana visual CITO (Merah) dan Lencana Tier Membership (Kuning/Emas) pada kolom pasien secara rapi dan adaptif |
 | File Terdampak | `src/components/view/health-services/inpatient-management/admission-transfers/inpatient-admission-transfer-list.jsx` |
 | Jejak Requirement | `FR-TRF-009`; `RWI-DEC-338`, `341`; `RWI-AC-482`, `486` |
@@ -263,7 +263,7 @@ Task frontend dikerjakan menggunakan konvensi Next.js App Router, JavaScript/JSX
 | Reuse | `InpatientAdmissionTransferList`, komponen `StatusBadge` atau `Badge` base-features |
 | Dependency | `BE-RWI-253` [BE] |
 | Verifikasi yang Wajib | `V-FE` (`npm run lint`, `npm run build`) + pengujian render lencana pada data campuran |
-| Definition of Done | `D-FE`; laporan `task/report/frontend/FE-RWI-268.md` |
+| Definition of Done | `D-FE`; laporan [task/report/frontend/FE-RWI-268.md](../task/report/frontend/FE-RWI-268.md) |
 
 **Kriteria Penerimaan**:
 - Pada kolom pasien di tabel antrean transfer, di samping nomor RM dan nama pasien disajikan:
@@ -275,19 +275,19 @@ Task frontend dikerjakan menggunakan konvensi Next.js App Router, JavaScript/JSX
 
 ---
 
-### FE-RWI-269 — Visualisasi Lencana pada Header Langkah Admisi PPRI & Isolasi Privasi Denah Bangsal
+### FE-RWI-269 [✅] — Visualisasi Lencana pada Header Langkah Admisi PPRI & Isolasi Privasi Denah Bangsal
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | Selesai (20 Oktober 2026); terverifikasi V-FE & laporan [FE-RWI-269.md](../task/report/frontend/FE-RWI-269.md) |
 | Outcome | Header ringkasan pasien pada langkah admisi transfer (`InpatientAdmissionTransferReviewStep.jsx`) menampilkan lencana CITO dan Tier Membership, proses penempatan bed tetap manual melalui denah, dan denah bangsal umum terbukti bebas dari lencana tier demi privasi |
 | File Terdampak | `src/components/view/health-services/inpatient-management/admission-transfers/inpatient-admission-transfer-review-step.jsx` |
 | Jejak Requirement | `FR-TRF-010`, `FR-TRF-011`; `RWI-DEC-338`, `339`, `341`; `RWI-AC-487`, `488`, `489` |
 | Kontrak Target | `0.17.0`; Bab 20 Frontend Architecture, Bab 31 PRD ke MVP |
 | Reuse | `InpatientAdmissionTransferReviewStep`, `StatusBadge` |
-| Dependency | `FE-RWI-268` |
+| Dependency | `FE-RWI-268` [✅] |
 | Verifikasi yang Wajib | `V-FE` (`npm run lint`, `npm run build`) + uji visual header wizard admisi transfer & audit privasi denah bangsal |
-| Definition of Done | `D-FE`; laporan `task/report/frontend/FE-RWI-269.md` |
+| Definition of Done | `D-FE`; laporan [task/report/frontend/FE-RWI-269.md](../task/report/frontend/FE-RWI-269.md) |
 
 **Kriteria Penerimaan**:
 - Panel ringkasan pasien di bagian atas `InpatientAdmissionTransferReviewStep.jsx` menampilkan lencana CITO dan lencana Tier Membership berdampingan dengan Nama, No RM, dan Asal Unit (IGD).
@@ -296,19 +296,19 @@ Task frontend dikerjakan menggunakan konvensi Next.js App Router, JavaScript/JSX
 
 ---
 
-### FE-RWI-270 — Visualisasi Lencana Tier Pencarian No. RM dan Validasi Keanggotaan CRM Pasien Lama
+### FE-RWI-270 [✅] — Visualisasi Lencana Tier Pencarian No. RM dan Validasi Keanggotaan CRM Pasien Lama
 
 | Field | Isi |
 |---|---|
-| Status | Belum dikerjakan |
+| Status | Selesai (20 Oktober 2026); terverifikasi V-FE & laporan [FE-RWI-270.md](../task/report/frontend/FE-RWI-270.md) |
 | Outcome | Kartu hasil pencarian No. RM pasien lama (`inpatient-admission-existing-patient-step.jsx`) menampilkan lencana visual tier membership, dan saat pasien dipilih, frontend memanggil endpoint CRM aktif untuk menampilkan nomor member dan masa aktif di panel verifikasi identitas secara fail-open |
 | File Terdampak | `src/components/view/health-services/inpatient-management/inpatient-admission-existing-patient-step.jsx`; `src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-patient.jsx`; `src/utils/health-services/inpatient-management/inpatient-admission-patient-utils.jsx` |
 | Jejak Requirement | `FR-TRF-013`; `RWI-DEC-342`, `RWI-FACT-078`; `RWI-AC-494`, `495`, `496`, `497` |
 | Kontrak Target | `0.17.0`; Bab 20 Frontend Architecture, Bab 31 PRD ke MVP |
 | Reuse | `InpatientAdmissionExistingPatientReviewStep`, `BasePatientVerificationCard`, `StatusBadge`, service `InstanceAxios` |
-| Dependency | `FE-RWI-268` |
+| Dependency | `FE-RWI-268` [✅] |
 | Verifikasi yang Wajib | `V-FE` (`npm run lint`, `npm run build`) + uji visual pencarian No RM pasien member/non-member, dan uji fail-open saat CRM gagal |
-| Definition of Done | `D-FE`; laporan `task/report/frontend/FE-RWI-270.md` |
+| Definition of Done | `D-FE`; laporan [task/report/frontend/FE-RWI-270.md](../task/report/frontend/FE-RWI-270.md) |
 
 **Kriteria Penerimaan**:
 - Kartu hasil pencarian pasien lama pada Langkah Pasien Lama (`inpatient-admission-existing-patient-step.jsx`) menampilkan lencana visual nama tier (contoh: **[Platinum]**, **[Gold]**) bila pasien memiliki `isMember === true` dan `defaultMembershipTierName` tersedia dari respons pencarian (`RWI-AC-494`).
