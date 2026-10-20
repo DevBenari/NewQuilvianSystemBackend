@@ -20,7 +20,9 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.ReservasiNomor;
 /// <para>
 /// Cara menjalankan sama dengan <see cref="AlokasiPostgresSungguhanTests"/>:
 /// <c>QUILVIAN_PG_PROOF_CONNECTION</c>, <c>QUILVIAN_PG_PROOF_REQUIRED=1</c>, lalu
-/// <c>dotnet test Tests/QuilvianSystemBackend.PatientManagementTests --filter Kategori=ProviderReal</c>.
+/// <c>dotnet test Tests/QuilvianSystemBackend.PatientManagementTests --filter Kategori=ProviderReal
+/// -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1</c> — serial, lihat
+/// <see cref="PostgresSekaliPakai"/>.
 /// </para>
 /// <para>
 /// Fixture: pada basis data sekali pakai, foreign key <c>OprCase</c> ke encounter dan dokter dilepas

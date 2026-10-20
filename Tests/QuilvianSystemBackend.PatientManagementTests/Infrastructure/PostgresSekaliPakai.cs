@@ -37,6 +37,15 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.Infrastructure
     /// server uji sekali pakai — <b>bukan</b> anjuran mengubah PostgreSQL DEV, STAGING, maupun
     /// PRODUCTION, dan tidak menyentuh <c>appsettings*</c> maupun infrastruktur deployment.
     /// </para>
+    /// <para>
+    /// <b>Jalankan suite provider-real secara serial</b> pada server bukti sekali pakai saat ini:
+    /// <c>-- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1</c>. Pada 20 Oktober 2026
+    /// run paralel menghasilkan 21/23: dua kasus gagal saat menyiapkan basis data sekali pakai
+    /// (<see cref="BuatAsync"/> → <c>JalankanAdminAsync</c>, <c>NpgsqlException</c> "Exception while reading
+    /// from stream", soket transport terputus) tanpa crash server; keduanya lulus saat diulang
+    /// tersendiri, dan run serial lulus 23/23. Ini temuan operasional harness bukti, bukan kegagalan
+    /// fungsi, dan <b>bukan</b> syarat PostgreSQL DEV, STAGING, maupun PRODUCTION.
+    /// </para>
     /// </remarks>
     public sealed class PostgresSekaliPakai : IAsyncDisposable
     {
