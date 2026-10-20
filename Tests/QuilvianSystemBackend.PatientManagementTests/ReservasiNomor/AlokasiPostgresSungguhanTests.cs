@@ -18,7 +18,9 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.ReservasiNomor;
 /// Cara menjalankan, dengan server PostgreSQL 15 sekali pakai yang disediakan sendiri:
 /// <c>QUILVIAN_PG_PROOF_CONNECTION="Host=…;Username=…;Password=…;Database=postgres"</c>,
 /// <c>QUILVIAN_PG_PROOF_REQUIRED=1</c>, lalu
-/// <c>dotnet test Tests/QuilvianSystemBackend.PatientManagementTests --filter Kategori=ProviderReal</c>.
+/// <c>dotnet test Tests/QuilvianSystemBackend.PatientManagementTests --filter Kategori=ProviderReal
+/// -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1</c> — serial, lihat
+/// <see cref="PostgresSekaliPakai"/>.
 /// Bukti persistensi <c>IsMember</c> (`PAT-MIG2-AC-47`) milik <c>BE-PAT-MIG-002</c>, bukan task ini.
 /// </remarks>
 [Trait("Kategori", "ProviderReal")]
