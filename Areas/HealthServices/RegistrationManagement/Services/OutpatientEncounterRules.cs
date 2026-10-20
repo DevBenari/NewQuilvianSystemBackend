@@ -60,6 +60,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                  x.EncounterStatus <= LastBlockingStatus;
 
         /// <summary>
+        /// Selisih tetap WIB terhadap UTC. Asia/Jakarta tidak mengenal DST, sehingga tengah malam
+        /// WIB tanggal kunjungan = <c>EncounterDate</c> (tengah malam UTC) dikurangi 7 jam.
+        /// </summary>
+        private const int OperationalUtcOffsetHours = 7;
+
+        /// <summary>
+        /// Booking: kunjungan yang didaftarkan sebelum hari kunjungannya (bukan daftar di hari yang
+        /// sama) dan pasiennya belum datang — belum batal, belum selesai, belum tidak hadir, belum
+        /// check-in, dan belum masuk skrining perawat.
+        /// </summary>
+        public static readonly Expression<Func<RegPatientEncounter, bool>> IsBookingState =
+            x => !x.IsCancel &&
+                 x.CancelledAt == null &&
+                 x.CompletedAt == null &&
+                 x.NoShowAt == null &&
+                 x.CheckedInAt == null &&
+                 x.EncounterStatus <= EncounterStatus.WaitingForNurse &&
+                 x.RegisteredAt < x.EncounterDate.AddHours(-OperationalUtcOffsetHours);
+
+        /// <summary>
         /// Bagian status dari aturan boleh-batal (RJ-DOC-DEC-016, RJ-DOC-DEC-021): belum batal,
         /// belum selesai, dan berstatus Draft sampai Sedang Konsultasi. Untuk status Sedang
         /// Konsultasi, pemanggil wajib memeriksa tambahan bahwa tidak ada konsultasi aktif.

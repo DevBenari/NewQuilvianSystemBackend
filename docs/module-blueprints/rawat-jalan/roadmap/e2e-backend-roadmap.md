@@ -311,3 +311,9 @@ teknis paling awal yang aman.
 | `RJ-DOC-BE-005` AC `1`–`4` | Milik roadmap Dokter | Tetap di `doctor-consultation-roadmap.md` |
 | `SEC-RJ-004` XSS | Frontend | `FE-RJE-001`, `FE-RJE-003` |
 | Layar master kebijakan kirim ulang | `POST-MVP` | — |
+
+## Catatan silang — Amendment REF-REV (16 Okt 2026)
+
+Revisi rujukan Zoom 13 Okt 2026 (`RJ-REF-REV-001`..`005`) **bukan** scope roadmap ini dan tidak mengubah
+status task di sini. Definisi, status, dan bukti ada pada
+[registration-revision-roadmap.md](registration-revision-roadmap.md) bagian 8.

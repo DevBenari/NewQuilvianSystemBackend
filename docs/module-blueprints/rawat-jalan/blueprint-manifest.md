@@ -11,6 +11,68 @@ Keduanya punya roadmap, progress, dan Definition of Done sendiri, dan **tidak bo
 | Billing / Revenue Cycle | `RJ-BIL` | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | `PARTIAL — NEEDS REVERIFICATION` | `1` — `HISTORICAL SNAPSHOT` per `2026-08-24`/`28` | Dimulai sebagai **consumer** clinical fact. `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE` |
 | **Rawat Jalan → Invoice V2** | `RJ-E2E` (dokumen: `RJE`) | [roadmap/e2e-backend-roadmap.md](roadmap/e2e-backend-roadmap.md), [roadmap/e2e-frontend-roadmap.md](roadmap/e2e-frontend-roadmap.md) | **Desain `APPROVED` · roadmap `DRAFT`** | `1` | Jembatan fakta klinis → `BilInvoice`, obat dua tahap, jasa konsultasi, rekonsiliasi, Ringkasan Billing. Lihat bagian *Revisi 27* di bawah |
 
+## Revisi 33 — Amendment RP: Reservasi Pasien Prioritas (`2026-10-16`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | `33` |
+| `status` | **`approved`** — Sukma Giri, 2026-10-16 ("setuju dan lanjutkan", `RJ-PRI-DEC-030`), termasuk keempat usulan desain |
+| Scope | Registration RJ: Reservasi Prioritas tanpa poli/dokter, link konfirmasi kedatangan, nomor prioritas kelipatan 5, penyembunyian dari display dan realtime, satu aturan member di antrean (`BE-CRM-022`), penanda lokasi, label member di Pendaftaran Pasien. Sumber: PDF "Pendaftaran membership pasien prioritas" poin 2A–2H, handover `crm-membership` `CRM-DEC-031`. 2I–2K tetap `billing-kasir` |
+| `blueprint_shape` | `SINGLE` (`RJ-PRI-DEC-003`, `USER_CONFIRMED`) |
+| `backend_commit_sha` / `frontend_commit_sha` | `551e1cbb` (`sukmagp`) / `1fd858322` (`sukmagpV2`) |
+| `contract_versions` | `RJ-PRI-RESV-001@1.1.0` (`approved`, 2026-10-19, `RJ-PRI-DEC-032`; aditif dari `1.0.0`: kolom audit di item daftar dan ringkasan rentang tanggal, hanya `api-contract.md` yang berubah) — bagian *Amendment RP* pada kelima berkas `contracts/` |
+| `decision_revision` | `RJ-PRI-DEC-001`..`029`, `031` (approval roadmap), `032` (revisi layar Daftar Reservasi Prioritas, 19 Okt 2026); `RJ-DOC-DEC-056` `superseded` oleh `RJ-PRI-DEC-004`; `RJ-DOC-DEC-055` (definisi Member) direvisi `RJ-PRI-DEC-006` |
+| `requirement_readiness` | `READY_FOR_DOMAIN_DESIGN` (`S-RP-1`..`5`) — [01-requirement-completeness-gate-reservasi-prioritas.md](01-requirement-completeness-gate-reservasi-prioritas.md) |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — satu bounded context Registration RJ; titik sentuh CRM berkontrak; billing nihil; klinis dibatasi `CRM-DEC-007` |
+| Capability | [01-capability-impact-scan-reservasi-prioritas.md](01-capability-impact-scan-reservasi-prioritas.md) (`CAP-RP-01`..`22`) |
+| Migration | Satu: `AddOutpatientPriorityReservation` (2 tabel baru, aditif) |
+| Artefak | `02` *Amendment RP* (RP.1–RP.14), `03` *Amendment RP* (RP-FE.1–7), `04` *Amendment RP* (RP-1–20), `contracts/*` *Amendment RP*, `data/data-dictionary.md` RP, `testing/acceptance-test-matrix.md` *Amendment RP* (`R-RP-01`..`30`), [flowcharts/reservasi-prioritas.md](flowcharts/reservasi-prioritas.md), [flowcharts/antrean-prioritas.md](flowcharts/antrean-prioritas.md), cabang di `flowcharts/00-alur-utama.md` |
+| Usulan desain yang ikut disetujui | (1) Pelengkapan lewat wizard Pendaftaran Pasien dengan `priorityReservationId` (PDF 2B). (2) Tandai tiba/kembalikan → aksi `Complete`, kirim ulang → aksi `Create`. (3) Akun display memakai group realtime sendiri dan ditolak di group perawat/dokter. (4) Route publik `/priority-arrival/{code}` |
+| Open question | `RJ-PRI-OQ-002`/`011`/`012` (usulan, tidak memblokir), `RJ-PRI-OQ-003` (go-live `MVP-2`), `RJ-PRI-OQ-006` (go-live), `RJ-PRI-OQ-004`/`005` (`POST-MVP`) |
+| `owners` | Product/Domain dan Frontend authority: Sukma Giri. Siklus hidup membership: Yoga Aji Pratama (`crm-membership`) |
+| `approved_by`, `approved_at` | Sukma Giri, `2026-10-16` |
+| `implementation_authority` | `GRANTED` — `RJ-PRI-DEC-031` (CROSS-REPO, 20 task, migration + DB uji `QuilvianNewDevSukma`; tanpa commit/push/deploy) |
+| Roadmap | `approved` r1 (`RJ-PRI-DEC-031`) — [priority-reservation-backend-roadmap.md](roadmap/priority-reservation-backend-roadmap.md) (`RJ-PRI-RM-BE-001`), [priority-reservation-frontend-roadmap.md](roadmap/priority-reservation-frontend-roadmap.md) (`RJ-PRI-RM-FE-001`), [priority-reservation-traceability.md](roadmap/priority-reservation-traceability.md) |
+| Status implementasi | 20/20 task ✅ per 2026-10-19 (`BE-RJP-001`..`012`, `FE-RJP-001`..`008`), belum di-commit. Working tree: backend `sukmagp` @ `a6499cdd`, frontend `sukmagpV2` @ `17e0ffec0`. Migration `20261016144037_AddOutpatientPriorityReservation` hanya diterapkan ke DB uji `QuilvianNewDevSukma`. Laporan: `task/report/backend/BE-RJP-*.md`, `task/report/frontend/FE-RJP-*.md` |
+| Go-live | Belum. Menunggu `RJ-PRI-OQ-003` (link publik) dan `RJ-PRI-OQ-006` (master tingkat), centang Akses Role (`GAP-RP-03`), dan tinjauan keamanan endpoint publik (`GAP-RP-04`) |
+| Kesiapan | `READY_WITH_CONDITIONS` (91,3%, 2026-10-19) — [testing/readiness-report-reservasi-prioritas.md](testing/readiness-report-reservasi-prioritas.md), kondisi K-1..K-7 |
+| Langkah berikutnya | Keputusan K-1 (urutan rilis vs link di pesan WA) lewat `grill-me`, review dan commit, lalu daftar periksa go-live dan UAT |
+
+`artifact_hashes` (SHA-256, 12 karakter awal, 2026-10-16, sesudah approval `RJ-PRI-DEC-030`):
+
+| Artefak | Hash |
+|---|---|
+| `00-interview-decisions.md` | `089ef11d6812` |
+| `01-capability-impact-scan-reservasi-prioritas.md` | `72c738d2f239` |
+| `01-requirement-completeness-gate-reservasi-prioritas.md` | `7323580eeaf2` |
+| `02-backend-architecture.md` | `bd5586a3e478` |
+| `03-frontend-architecture.md` | `3274f27fa597` |
+| `04-prd-to-mvp.md` | `a7962b2158b1` |
+| `data/data-dictionary.md` | `0e7737a60d3b` |
+| `contracts/api-contract.md` | `7932aaf7dc6c` |
+| `contracts/state-transition-matrix.md` | `76ce19d73d35` |
+| `contracts/validation-matrix.md` | `a52d2b2352ee` |
+| `contracts/integration-contract.md` | `91432bc56a4a` |
+| `contracts/permission-audit-matrix.md` | `26e9d859e114` |
+| `flowcharts/reservasi-prioritas.md` | `4a6f884d3105` |
+| `flowcharts/antrean-prioritas.md` | `0161101f0b74` |
+| `flowcharts/00-alur-utama.md` | `0c17a8a6e2f2` |
+| `testing/acceptance-test-matrix.md` | `ce8039c0fb65` |
+
+## Revisi 32 — Amendment REF-REV: Rujukan internal/eksternal dan Surat Rujukan (`2026-10-16`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | `32` |
+| `status` | **`implemented — UAT pending`** (bukan revisi desain baru; perubahan berbasis keputusan Zoom 13 Okt 2026) |
+| Scope | `RJ-REG` + Surat Dokter `RJ-DOC-REV-BE-004`/`FE-006` (diamandemen). IGD, Kiosk, Billing, Surat Pengantar Rawat Inap tetap |
+| `backend_commit_sha` / `frontend_commit_sha` | baseline `5a6de202` / `321f987a`; perubahan belum di-commit |
+| Keputusan | `RJ-REF-DEC-001`..`007` ([00-interview-decisions.md](00-interview-decisions.md) *Amendment REF-REV*) |
+| Kontrak | `RJ-DOC-REFERRAL-001@1.1.0` (aditif) — `contracts/api-contract.md` & `contracts/validation-matrix.md` *Amendment REF-REV* |
+| Migration | `20261016043218_AddEncounterReferralSourceType` (2 kolom + FK + index, aditif) |
+| Roadmap | [roadmap/registration-revision-roadmap.md](roadmap/registration-revision-roadmap.md) bagian 8 |
+| Open question | Fasilitas di luar master (`BLOCKED/OWNER_DECISION_REQUIRED`), satu-pakai & masa berlaku surat internal, unggah wajib untuk klaim |
+
 ## Revisi 31 — Amendment PM-B: Pendaftaran Rujukan dan Pencocokan Kartu Asuransi (`2026-10-08`)
 
 | Field | Nilai |

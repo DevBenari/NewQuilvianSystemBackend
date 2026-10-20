@@ -94,6 +94,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? NoShowReason { get; set; }
         public bool IsPriorityQueue { get; set; }
 
+        /// <summary>
+        /// rawat-jalan Amendment RP (BE-RJP-011, RJ-PRI-DEC-017/018): nama ruang tunggu prioritas dari
+        /// konfigurasi bila antrean prioritas, selain itu <c>null</c>.
+        /// </summary>
+        public string? PriorityWaitingLocationName { get; set; }
+
         /// <summary>Penanda internal staf (RJ-DOC-DEC-055); bukan untuk layar publik.</summary>
         public bool IsMemberQueue { get; set; }
 

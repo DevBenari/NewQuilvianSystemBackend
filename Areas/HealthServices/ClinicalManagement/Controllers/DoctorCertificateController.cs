@@ -146,7 +146,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [AccessPermission("DoctorCertificate", "Update")]
         public async Task<IActionResult> Update(Guid id, [FromBody] SaveDoctorCertificateRequest request, CancellationToken ct = default)
         {
-            var result = await _service.UpdateAsync(id, request, GetCurrentUserId(), ct);
+            var result = await _service.UpdateAsync(id, request, User, GetCurrentUserId(), ct);
             return ToActionResult(result);
         }
 

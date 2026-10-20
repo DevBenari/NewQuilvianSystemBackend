@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
@@ -189,6 +190,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
                 Items = entities.Select(x => MapResponse(x, clusterMap)).ToList()
             };
+
+            // rawat-jalan BE-RJP-011: penanda ruang tunggu prioritas dari konfigurasi.
+            var priorityReservationOptions = HttpContext.RequestServices
+                .GetRequiredService<IOptions<PriorityReservationOptions>>().Value;
+            foreach (var item in result.Items)
+            {
+                item.PriorityWaitingLocationName = priorityReservationOptions.ResolveWaitingLocationFor(item.IsPriorityQueue);
+            }
 
             return Ok(ApiResponse<ResponseNurseStationQueuePagedResult>.Ok(result, "Data antrean nurse station berhasil diambil."));
         }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
@@ -13,6 +14,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Service
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -68,6 +70,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private readonly OutpatientQueueNumberAllocator _queueNumberAllocator;
         private readonly EncounterReferralService _encounterReferralService;
         private readonly RegistrationEmployeeBenefitLookupService _employeeBenefitLookup;
+        private readonly DoctorScheduleQuotaService _doctorScheduleQuotaService;
 
         /// <summary>Batas body unggah surat rujukan: 10 berkas x 5 MB + cadangan multipart.</summary>
         private const long ReferralUploadRequestLimitBytes = 55L * 1024 * 1024;
@@ -75,6 +78,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         // Diambil dari container per request supaya konstruktor lama (dipakai harness uji) tetap sah.
         private ReferralDocumentStorageService ReferralDocumentStorage =>
             HttpContext.RequestServices.GetRequiredService<ReferralDocumentStorageService>();
+
+        // rawat-jalan Amendment RP (BE-RJP-008): diambil per request dengan alasan yang sama.
+        private OutpatientPriorityReservationService PriorityReservationService =>
+            HttpContext.RequestServices.GetRequiredService<OutpatientPriorityReservationService>();
+
+        private IActionResult MapPriorityReservationFailure(PriorityReservationOutcome outcome, string message) =>
+            outcome switch
+            {
+                PriorityReservationOutcome.NotFound => NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, message)),
+                PriorityReservationOutcome.Conflict => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, message)),
+                PriorityReservationOutcome.Forbidden => StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, message)),
+                _ => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, message))
+            };
+
         private NewbornEncounterPaymentInheritanceService NewbornPaymentInheritance =>
             HttpContext.RequestServices.GetRequiredService<NewbornEncounterPaymentInheritanceService>();
         private readonly IConfiguration? _configuration;
@@ -90,7 +109,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             OutpatientQueueClassificationService? queueClassificationService = null,
             OutpatientQueueNumberAllocator? queueNumberAllocator = null,
             EncounterReferralService? encounterReferralService = null,
-            RegistrationEmployeeBenefitLookupService? employeeBenefitLookupService = null)
+            RegistrationEmployeeBenefitLookupService? employeeBenefitLookupService = null,
+            DoctorScheduleQuotaService? doctorScheduleQuotaService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -98,7 +118,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _integrityService = integrityService;
             _patientEncounterNumberService = patientEncounterNumberService ?? new PatientEncounterNumberService(dbContext);
             _emergencyRealtimeService = emergencyRealtimeService;
-            _queueClassificationService = queueClassificationService ?? new OutpatientQueueClassificationService(dbContext);
+            // RJ-PRI-DEC-006: klasifikasi memakai resolver member CRM. Cadangan ini hanya untuk
+            // konstruktor lama (harness uji); saat runtime service disuntik DI.
+            _queueClassificationService = queueClassificationService
+                ?? new OutpatientQueueClassificationService(
+                    dbContext,
+                    new PatientMembershipStatusResolver(
+                        dbContext, configuration ?? new ConfigurationBuilder().Build()));
             _queueNumberAllocator = queueNumberAllocator ?? new OutpatientQueueNumberAllocator(dbContext);
             _configuration = configuration;
             _encounterReferralService = encounterReferralService
@@ -107,6 +133,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             _employeeBenefitLookup = employeeBenefitLookupService
                 ?? new RegistrationEmployeeBenefitLookupService(
                     dbContext, new EmployeeBenefitEligibilityService(dbContext), loggerService);
+            // RJ-REG-REV-BE-006: parameter opsional supaya konstruktor lama (harness uji) tetap sah.
+            _doctorScheduleQuotaService = doctorScheduleQuotaService ?? new DoctorScheduleQuotaService(dbContext);
         }
 
         /// <summary>
@@ -404,6 +432,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<PatientEncounterOptionPagedResponse>.Ok(result, "Data pilihan patient encounter berhasil diambil."));
         }
 
+        /// <summary>
+        /// Kuota terpakai jadwal dokter pada tanggal kunjungan, untuk menonaktifkan kartu jadwal
+        /// yang penuh di layar pendaftaran (<c>RJ-REG-REV-BE-006</c>, <c>RJ-REG-DEC-010</c>).
+        /// Validasi simpan kunjungan tetap menjadi penjaga akhir.
+        /// </summary>
+        [HttpGet("doctor-schedule-quotas")]
+        [ProducesResponseType(typeof(ApiResponse<List<DoctorScheduleQuotaResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat kuota terpakai jadwal dokter per tanggal kunjungan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetDoctorScheduleQuotas(
+            [FromQuery] DoctorScheduleQuotaQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            if (!DateTime.TryParseExact(
+                    query.VisitDate?.Trim(),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var visitDate))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tanggal kunjungan wajib berformat yyyy-MM-dd."));
+            }
+
+            var result = await _doctorScheduleQuotaService.GetQuotasAsync(
+                visitDate,
+                query.ClinicId,
+                cancellationToken);
+
+            return Ok(ApiResponse<List<DoctorScheduleQuotaResponse>>.Ok(
+                result,
+                "Kuota jadwal dokter berhasil diambil."));
+        }
+
         [HttpGet("{id:guid}")]
         [HttpGet("admin/{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientEncounterDetailResponse>), StatusCodes.Status200OK)]
@@ -439,6 +504,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             return Ok(ApiResponse<PatientEncounterDetailResponse>.Ok(
                 MapDetailResponse(entity, actorNames),
                 "Detail kunjungan pasien berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Surat Rujukan internal terbit milik pasien yang dapat menjadi dasar pendaftaran rujukan
+        /// internal (<c>RJ-REF-REV-001</c>). Surat yang sudah dipakai kunjungan aktif tidak tampil.
+        /// Tanpa diagnosa dan alasan; isi lengkap surat dibuka dari detail kunjungan.
+        /// </summary>
+        [HttpGet("internal-referral-letters")]
+        [ProducesResponseType(typeof(ApiResponse<List<InternalReferralLetterOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat Surat Rujukan internal pasien untuk pendaftaran rujukan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetInternalReferralLetters(
+            [FromQuery] Guid? patientId,
+            [FromQuery] Guid? clinicId)
+        {
+            if (!patientId.HasValue || patientId.Value == Guid.Empty)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Pasien wajib dipilih untuk melihat Surat Rujukan internal."));
+            }
+
+            var response = await _encounterReferralService.GetInternalLetterOptionsAsync(
+                patientId.Value,
+                clinicId,
+                HttpContext.RequestAborted);
+
+            return Ok(ApiResponse<List<InternalReferralLetterOptionResponse>>.Ok(
+                response,
+                "Surat Rujukan internal berhasil diambil."));
         }
 
         /// <summary>
@@ -668,6 +764,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var traceId = HttpContext.TraceIdentifier;
             Response.Headers["X-Trace-Id"] = traceId;
 
+            // rawat-jalan Amendment RP (VAL-RP-19): reservasi prioritas hanya dilengkapi petugas admisi.
+            if (request.PriorityReservationId == Guid.Empty)
+                request.PriorityReservationId = null;
+
+            if (request.PriorityReservationId.HasValue && logScope.EndsWith("ForKiosk", StringComparison.Ordinal))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Reservasi prioritas tidak dapat dilengkapi dari kiosk."));
+            }
+
             var now = DateTime.UtcNow;
             var operationalDate = ToUtcDate(AppDateTimeHelper.OperationalDate());
 
@@ -741,6 +848,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data kunjungan pasien tidak valid."));
+            }
+
+            // rawat-jalan Amendment RP (BE-RJP-008, INT-RP-03): jadwal dan kuota sudah lolos di atas
+            // (VAL-RP-20). Pemeriksaan reservasi dan izin Complete ada di service reservasi.
+            PriorityReservationCompletion? reservationCompletion = null;
+
+            if (request.PriorityReservationId is { } priorityReservationId)
+            {
+                var preparation = await PriorityReservationService.PrepareCompletionAsync(
+                    User,
+                    priorityReservationId,
+                    request.PatientId,
+                    targetEncounterDate,
+                    request.EncounterType,
+                    request.ClinicId,
+                    HttpContext.RequestAborted);
+
+                if (!preparation.IsSuccess)
+                    return MapPriorityReservationFailure(preparation.Outcome, preparation.Message);
+
+                reservationCompletion = preparation.Completion;
             }
 
             // RJ-DOC-REV-BE-018: identitas dan rincian rujukan divalidasi sebelum transaksi.
@@ -921,6 +1049,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     }
                 }
 
+                // rawat-jalan Amendment RP (INT-RP-03/04): perubahan reservasi ikut transaksi ini dan
+                // mengambil kunci per pasien sebelum kunci nomor antrean. Kunjungan IGD dan kunjungan
+                // tanpa poliklinik tidak menyentuh reservasi.
+                var changedReservations = new List<(RegPriorityReservation Reservation, string EventCode)>();
+
+                if (reservationCompletion != null)
+                {
+                    var completed = await PriorityReservationService.CompleteInTransactionAsync(
+                        reservationCompletion,
+                        encounterId,
+                        actorUserId,
+                        HttpContext.RequestAborted);
+                    changedReservations.Add((completed, RegPriorityReservationHistory.EventConverted));
+                }
+                else if (!isEmergencyEncounter && request.EncounterType == EncounterType.Outpatient && clinic != null)
+                {
+                    var closed = await PriorityReservationService.CloseForEncounterAsync(
+                        request.PatientId,
+                        targetEncounterDate,
+                        encounterId,
+                        actorUserId,
+                        HttpContext.RequestAborted);
+                    changedReservations.AddRange(closed.Select(x => (x, RegPriorityReservationHistory.EventRegisteredElsewhere)));
+                }
+
                 var encounter = new RegPatientEncounter
                 {
                     Id = encounterId,
@@ -950,7 +1103,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     EncounterDate = targetEncounterDate,
                     EncounterType = request.EncounterType,
                     VisitType = request.VisitType,
-                    RegistrationSource = request.RegistrationSource,
+                    RegistrationSource = reservationCompletion != null
+                        ? EncounterRegistrationSource.PriorityReservation
+                        : request.RegistrationSource,
                     PaymentType = request.PaymentType,
                     EncounterStatus = isQueueRequired
                         ? EncounterStatus.Queued
@@ -1016,10 +1171,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 {
                     // RJ-DOC-DEC-055/056: klasifikasi dan nomor ditentukan backend, sama untuk
                     // kiosk dan petugas karena keduanya melewati proses ini.
-                    queueClassification = await _queueClassificationService.ClassifyAsync(
-                        request.PatientId,
-                        targetEncounterDate,
-                        HttpContext.RequestAborted);
+                    // RJ-PRI-DEC-007: status member dinilai pada hari pendaftaran (WIB), bukan
+                    // tanggal kunjungan, sehingga booking ke tanggal mendatang memakai tingkat saat
+                    // didaftarkan (CRM-DEC-005).
+                    // RJ-PRI-DEC-007/024: kunjungan dari reservasi memakai snapshot reservasi
+                    // (Reguler bila membership snapshot sudah Dibatalkan).
+                    queueClassification = reservationCompletion?.Classification
+                        ?? await _queueClassificationService.ClassifyAsync(
+                            request.PatientId,
+                            classificationDateWib: null,
+                            HttpContext.RequestAborted);
 
                     queueAllocation = await _queueNumberAllocator.AllocateAsync(
                         targetEncounterDate,
@@ -1091,6 +1252,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 await _dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
                 transactionCommitted = true;
+
+                // rawat-jalan INT-RP-07: kabar ke layar admisi sesudah commit; gagal kirim hanya dicatat.
+                foreach (var (changedReservation, eventCode) in changedReservations)
+                {
+                    await _queueRealtimeService.NotifyPriorityReservationChangedAsync(changedReservation, eventCode, now);
+                }
 
                 // Kegagalan notifikasi realtime tidak boleh mengubah transaksi database
                 // yang sudah berhasil commit menjadi response 500.
@@ -1174,7 +1341,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                             QueueAudience = queue.QueueAudienceSnapshot,
                             QueueAudienceName = queue.QueueAudienceSnapshot.ToString(),
                             PublicDisplayMode = queue.PublicDisplayModeSnapshot,
-                            PublicDisplayModeName = queue.PublicDisplayModeSnapshot.ToString()
+                            PublicDisplayModeName = queue.PublicDisplayModeSnapshot.ToString(),
+                            // rawat-jalan BE-RJP-011 (RJ-PRI-DEC-017): tiket dan layar admisi mengarahkan
+                            // pasien prioritas ke ruang tunggu prioritas.
+                            PriorityWaitingLocationName = HttpContext.RequestServices
+                                .GetRequiredService<IOptions<PriorityReservationOptions>>().Value
+                                .ResolveWaitingLocationFor(queue.IsPriorityQueue)
                         }
                         : null,
                     IsFutureVisit = encounter.EncounterDate > operationalDate,
@@ -1216,6 +1388,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return Ok(ApiResponse<PatientEncounterCreateResponse>.Ok(
                     response,
                     "Transaksi kunjungan pasien berhasil dibuat."));
+            }
+            catch (EncounterReferralConflictException referralConflict)
+            {
+                // RJ-REF-REV-005: surat internal baru saja dipakai pendaftaran lain (atau klik
+                // ulang) — tidak ada kunjungan maupun rujukan ganda yang tersimpan.
+                if (!transactionCommitted)
+                    await transaction.RollbackAsync();
+
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    referralConflict.Message));
+            }
+            catch (PriorityReservationConflictException reservationConflict)
+            {
+                // Reservasi berubah (dilengkapi atau dibatalkan petugas lain) sesudah diperiksa:
+                // tidak ada kunjungan maupun perubahan reservasi yang tersimpan.
+                if (!transactionCommitted)
+                    await transaction.RollbackAsync();
+
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    reservationConflict.Message));
+            }
+            catch (DbUpdateConcurrencyException) when (reservationCompletion != null && !transactionCommitted)
+            {
+                await transaction.RollbackAsync();
+
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    OutpatientPriorityReservationService.StaleMessage));
             }
             catch (DbUpdateException dbException)
             {
@@ -2551,45 +2753,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             PatientEncounterCreateRequest request,
             DateTime visitDate)
         {
-            var normalizedVisitDate = ToUtcDate(visitDate);
+            // RJ-REG-REV-BE-006: hitungan dipusatkan di DoctorScheduleQuotaService supaya sama
+            // dengan endpoint kuota layar pendaftaran. Urutan dan kalimat penolakan tidak berubah.
+            var usage = await _doctorScheduleQuotaService.GetUsageAsync(schedule.Id, visitDate);
 
-            var queueQuery = _dbContext.Set<RegQueue>()
-                .AsNoTracking()
-                .Where(x =>
-                    x.QueueDate == normalizedVisitDate &&
-                    x.DoctorScheduleId == schedule.Id &&
-                    !x.IsDelete &&
-                    !x.IsCancel &&
-                    !x.CancelledAt.HasValue);
-
-            if (schedule.MaxPatientQuota > 0)
+            if (DoctorScheduleQuotaService.IsFull(schedule.MaxPatientQuota, usage.Total))
             {
-                var totalQueue = await queueQuery.CountAsync();
-
-                if (totalQueue >= schedule.MaxPatientQuota)
-                {
-                    return (false, "Kuota pasien pada jadwal dokter sudah penuh.");
-                }
+                return (false, "Kuota pasien pada jadwal dokter sudah penuh.");
             }
 
-            if (request.IsAppointment && schedule.MaxAppointmentQuota > 0)
+            if (request.IsAppointment &&
+                DoctorScheduleQuotaService.IsFull(schedule.MaxAppointmentQuota, usage.Appointment))
             {
-                var appointmentQueue = await queueQuery.CountAsync(x => x.IsAppointment);
-
-                if (appointmentQueue >= schedule.MaxAppointmentQuota)
-                {
-                    return (false, "Kuota appointment pada jadwal dokter sudah penuh.");
-                }
+                return (false, "Kuota appointment pada jadwal dokter sudah penuh.");
             }
 
-            if (request.IsWalkIn && schedule.MaxWalkInQuota > 0)
+            if (request.IsWalkIn &&
+                DoctorScheduleQuotaService.IsFull(schedule.MaxWalkInQuota, usage.WalkIn))
             {
-                var walkInQueue = await queueQuery.CountAsync(x => x.IsWalkIn);
-
-                if (walkInQueue >= schedule.MaxWalkInQuota)
-                {
-                    return (false, "Kuota walk-in pada jadwal dokter sudah penuh.");
-                }
+                return (false, "Kuota walk-in pada jadwal dokter sudah penuh.");
             }
 
             return (true, null);

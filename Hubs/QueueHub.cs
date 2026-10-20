@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Services.Security;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -35,11 +36,16 @@ namespace QuilvianSystemBackend.Hubs
         };
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly AccessPermissionService _accessPermissionService;
         private readonly InpBedAccessService _bedAccess;
 
-        public QueueHub(ApplicationDbContext dbContext, InpBedAccessService bedAccess)
+        public QueueHub(
+            ApplicationDbContext dbContext,
+            AccessPermissionService accessPermissionService,
+            InpBedAccessService bedAccess)
         {
             _dbContext = dbContext;
+            _accessPermissionService = accessPermissionService;
             _bedAccess = bedAccess;
         }
 
@@ -76,8 +82,72 @@ namespace QuilvianSystemBackend.Hubs
             );
         }
 
+        /// <summary>
+        /// Group daftar Reservasi Prioritas di layar admisi (rawat-jalan Amendment RP, RJ-PRI-DEC-026).
+        /// Hak akses ditentukan butir <c>OutpatientPriorityReservation : Read</c> di layar Akses Role,
+        /// bukan nama peran. Akun layar display ditolak.
+        /// </summary>
+        public async Task JoinPriorityReservationBoard()
+        {
+            RejectQueueDisplayDeviceAccount();
+
+            if (Context.User == null ||
+                !await _accessPermissionService.HasAccessAsync(Context.User, "OutpatientPriorityReservation", "Read"))
+            {
+                throw new HubException("Anda tidak memiliki akses ke daftar reservasi prioritas.");
+            }
+
+            await Groups.AddToGroupAsync(Context.ConnectionId, QueueRealtimeService.PriorityReservationBoardGroupName);
+        }
+
+        public async Task LeavePriorityReservationBoard()
+        {
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, QueueRealtimeService.PriorityReservationBoardGroupName);
+        }
+
+        private const string DisplayAccountRejectedMessage =
+            "Akun layar display memakai JoinQueueDisplayCluster, bukan group ruang kerja perawat atau dokter.";
+
+        /// <summary>
+        /// Group layar display publik (RJ-PRI-DEC-025). Hanya menerima payload ringkas tanpa
+        /// identitas pasien dan tanpa antrean prioritas. Akses sama dengan cluster nurse station:
+        /// klaim cluster perangkat display, atau pengguna yang berhak atas cluster itu.
+        /// </summary>
+        public async Task JoinQueueDisplayCluster(Guid nurseStationClusterId)
+        {
+            if (nurseStationClusterId == Guid.Empty)
+            {
+                throw new HubException("Nurse station cluster tidak valid.");
+            }
+
+            if (!await CanAccessNurseStationClusterAsync(nurseStationClusterId))
+            {
+                throw new HubException("Anda tidak memiliki akses ke nurse station cluster ini.");
+            }
+
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId,
+                QueueRealtimeService.BuildQueueDisplayClusterGroupName(nurseStationClusterId)
+            );
+        }
+
+        public async Task LeaveQueueDisplayCluster(Guid nurseStationClusterId)
+        {
+            if (nurseStationClusterId == Guid.Empty)
+            {
+                return;
+            }
+
+            await Groups.RemoveFromGroupAsync(
+                Context.ConnectionId,
+                QueueRealtimeService.BuildQueueDisplayClusterGroupName(nurseStationClusterId)
+            );
+        }
+
         public async Task JoinNurseStationCluster(Guid nurseStationClusterId)
         {
+            RejectQueueDisplayDeviceAccount();
+
             if (nurseStationClusterId == Guid.Empty)
             {
                 throw new HubException("Nurse station cluster tidak valid.");
@@ -109,6 +179,8 @@ namespace QuilvianSystemBackend.Hubs
 
         public async Task<List<Guid>> JoinAccessibleNurseStationClusters()
         {
+            RejectQueueDisplayDeviceAccount();
+
             var clusterIds = await ResolveAccessibleNurseStationClusterIdsAsync();
 
             if (IsCurrentUserSuperAdmin())
@@ -132,6 +204,8 @@ namespace QuilvianSystemBackend.Hubs
 
         public async Task JoinDoctorQueue(Guid doctorId)
         {
+            RejectQueueDisplayDeviceAccount();
+
             if (doctorId == Guid.Empty)
             {
                 throw new HubException("Doctor tidak valid.");
@@ -163,6 +237,8 @@ namespace QuilvianSystemBackend.Hubs
 
         public async Task<List<Guid>> JoinAccessibleDoctorQueues()
         {
+            RejectQueueDisplayDeviceAccount();
+
             var doctorIds = await ResolveAccessibleDoctorIdsAsync();
 
             if (IsCurrentUserSuperAdmin())
@@ -186,6 +262,8 @@ namespace QuilvianSystemBackend.Hubs
 
         public async Task JoinDoctorClinicQueue(Guid clinicId)
         {
+            RejectQueueDisplayDeviceAccount();
+
             if (clinicId == Guid.Empty)
             {
                 throw new HubException("Clinic tidak valid.");
@@ -217,6 +295,8 @@ namespace QuilvianSystemBackend.Hubs
 
         public async Task<List<Guid>> JoinAccessibleDoctorClinicQueues()
         {
+            RejectQueueDisplayDeviceAccount();
+
             var clinicIds = await ResolveAccessibleDoctorClinicIdsAsync();
 
             if (IsCurrentUserSuperAdmin())
@@ -412,6 +492,24 @@ namespace QuilvianSystemBackend.Hubs
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// RJ-PRI-DEC-025: perangkat display publik tidak boleh menerima payload ruang kerja
+        /// (berisi PatientId/EncounterId dan antrean prioritas). Perangkat dikenali dari klaim
+        /// login display yang diterbitkan AuthController, bukan dari nama peran.
+        /// </summary>
+        private void RejectQueueDisplayDeviceAccount()
+        {
+            var user = Context.User;
+            var isDisplayDevice =
+                user?.HasClaim("is_queue_display_account", "true") == true ||
+                user?.HasClaim("profile_type", "QueueDisplayDevice") == true;
+
+            if (isDisplayDevice)
+            {
+                throw new HubException(DisplayAccountRejectedMessage);
+            }
         }
 
         private static IEnumerable<string> SplitClaimGuidTokens(string? value)

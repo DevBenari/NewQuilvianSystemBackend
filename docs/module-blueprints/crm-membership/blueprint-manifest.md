@@ -5,7 +5,7 @@
 | `blueprint_id` | `crm-membership` |
 | `revision` | `1` |
 | `status` | `approved` |
-| `owners` | Product/domain: Yoga Aji Pratama. API: belum ditunjuk (usulan: pemilik arsitektur backend). Security: belum ditunjuk. Frontend authority: Yoga Aji Pratama untuk `CRM-FE-001`/`002`/`004`/`005`, sisanya `DEV_DISCRETION` |
+| `owners` | Product/domain: Yoga Aji Pratama untuk PDF poin 1 (menu CRM, siklus hidup, iuran, aktivasi: `EPIC CRM-01` s.d. `CRM-08`). **Sukma Giri** untuk PDF poin 2A–2K beserta `BE-CRM-022`, `AG-03`, dan pertanyaan 5 `DEC-CRM-001` (handover `CRM-DEC-031`, 2026-10-16). API: belum ditunjuk (usulan: pemilik arsitektur backend). Security: belum ditunjuk. Frontend authority: Yoga Aji Pratama untuk `CRM-FE-001`/`002`/`004`/`005`, sisanya `DEV_DISCRETION` |
 | `approved_by` | Yoga Aji Pratama (product/domain owner) |
 | `approved_at` | 2026-10-13 (`CRM-DEC-030`) |
 | `backend_commit_sha` | Discovery `36422a4d`, impact scan dan desain `1aecf642` (branch `yoga`) |
@@ -28,7 +28,7 @@
 
 | Dokumen hulu | Revisi | SHA-256 (12 karakter awal) |
 |---|---|---|
-| `00-interview-decisions.md` | rev 1, pass 3d (`CRM-DEC-001` s.d. `030`) | `6fcb19ef373c` |
+| `00-interview-decisions.md` | rev 1, pass 4a (`CRM-DEC-001` s.d. `032`). Hash sebelum pass 4: `6fcb19ef373c` | `8a39795539af` |
 | `01-existing-capability-map.md` | rev 1 + impact scan | `4c2dbff681d3` |
 | `02-requirement-completeness-assessment.md` | rev 1a | `c73e34e56e9a` |
 | `03-domain-architecture.md` | rev 1 | `439733109233` |
@@ -56,10 +56,11 @@
 1. Owner menyetujui blueprint revision 1 (atau meminta revisi).
 2. ✅ Pemilik registry (Muhammad Hamzah) menyetujui baris folder `HealthServices / PatientManagement / Membership` (prefix `Pat`). Tercatat 2026-10-13.
 3. Owner billing-kasir menjawab `DEC-CRM-001` untuk `EPIC CRM-08`/`09`, atau owner secara eksplisit mengizinkan perencanaan terbatas `MVP-0` s.d. `MVP-2`.
-4. Owner Registration menyetujui `AG-01`, dan owner rawat-jalan menyetujui `AG-03`.
+4. Owner Registration menyetujui `AG-01`, dan owner rawat-jalan menyetujui `AG-03`. Sejak `CRM-DEC-031`, kedua sisi `AG-03` dipegang Sukma Giri.
 
 ## Riwayat
 
 | Revisi | Tanggal | Ringkasan |
 |---|---|---|
 | 1 | 2026-10-13 | Blueprint pertama. Disetujui owner pada hari yang sama (`CRM-DEC-029`, `CRM-DEC-030`) |
+| 1 (metadata) | 2026-10-16 | Handover owner `CRM-DEC-031`: PDF poin 2 ke Sukma Giri. Hanya owner dan hash masukan yang berubah. Arsitektur, kontrak, dan roadmap tidak berubah, sehingga revision tidak dinaikkan |
