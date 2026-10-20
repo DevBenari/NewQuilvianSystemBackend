@@ -1,30 +1,22 @@
 {
-  "description": "Release 0.23.0 enhances Billing Management, Finance Management, Inpatient Management, Patient Management, Registration Management capabilities. Includes improvements across Billing Workflow, Finance Workflow. Includes 7 database migration update(s).",
-  "backendVersion": "0.23.0",
+  "releaseName": "Quilvian 0.24.0 - Clinical Management and Patient Management and Registration Management Enhancement",
   "releaseMetadata": {
-    "migrations": [
-      "20261016035829_AddFloorPlanLocationToMstRoom.cs",
-      "20261016041113_AddCareDependencyToInpEpisode.cs",
-      "20261016042242_AddMstFloorPlanImportRun.cs",
-      "20261016043649_DropGenderFlagsFromRoomAndBed.cs",
-      "20261016080745_ReviseNewbornAdmissionFlow.cs",
-      "20261017040000_BackfillTransferOriginEncounterLinks.cs",
-      "20261019090000_AddMembershipFeeCharge.cs"
-    ],
-    "generatedAt": "2026-10-19T07:09:54",
-    "migrationCount": 7,
-    "features": [
-      "Billing Workflow",
-      "Finance Workflow"
-    ],
+    "generatedBy": "Quilvian Release Generator",
+    "generatedAt": "2026-10-20T17:33:58",
+    "migrationCount": 4,
+    "features": [],
     "modules": [
-      "Billing Management",
-      "Finance Management",
-      "Inpatient Management",
+      "Clinical Management",
       "Patient Management",
       "Registration Management"
     ],
-    "generatedBy": "Quilvian Release Generator"
+    "migrations": [
+      "20261015075431_DropEncounterRescheduleHistory.cs",
+      "20261016043218_AddEncounterReferralSourceType.cs",
+      "20261016062203_AddDoctorCertificatePatientDependencyLevel.cs",
+      "20261016144037_AddOutpatientPriorityReservation.cs"
+    ]
   },
-  "releaseName": "Quilvian 0.23.0 - Enterprise Platform Enhancement"
+  "description": "Release 0.24.0 enhances Clinical Management, Patient Management, Registration Management capabilities. Includes 4 database migration update(s).",
+  "backendVersion": "0.24.0"
 }
