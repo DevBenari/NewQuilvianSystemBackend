@@ -125,21 +125,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         /// pendaftaran bayi (`PAT-DEC-071`).
         /// </summary>
         /// <remarks>
+        /// <para>
         /// Wajib dipanggil di dalam transaksi pembuatan pasien milik pemanggil, pada
         /// <c>ApplicationDbContext</c> yang sama, dan hanya untuk guard yang
         /// <see cref="RsmmcReservationGuardEvaluation.IsActive"/>. Kunci dipegang sampai transaksi itu
         /// selesai, sehingga pembuatan pasien lain dari jalur mana pun menunggu dan baru melihat nomor
         /// ini sesudah tersimpan.
+        /// </para>
+        /// <para>
+        /// Guard dari pemanggil tidak dipercaya begitu saja (temuan review `F-07`): sebelum SQL apa pun,
+        /// <see cref="EnsureReservedAllocationAllowed"/> memeriksa ulang environment yang sedang berjalan
+        /// dan konfigurasi saat ini, sehingga guard buatan tidak dapat menjalankan alokasi berlantai di
+        /// luar <c>Staging</c> persis.
+        /// </para>
         /// </remarks>
         public async Task<PatientIdentifierAllocationResult> AllocateReservedAsync(
             RsmmcReservationGuardEvaluation guard,
             CancellationToken cancellationToken = default)
         {
-            if (ResolveAllocationMode(guard) != RsmmcIdentifierAllocationMode.ReservedFloor)
-            {
-                throw new InvalidOperationException(
-                    "Alokasi nomor pasien berlantai hanya untuk guard reservasi yang aktif di Staging.");
-            }
+            EnsureReservedAllocationAllowed(guard);
 
             if (_dbContext.Database.CurrentTransaction is null)
             {
@@ -281,6 +285,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         // ---- Mode guard aktif -------------------------------------------------------------
+
+        // BE-PAT-MIG-003A, temuan review F-07. Seluruh pemeriksaan tanpa basis data. Urutannya:
+        // environment yang sedang berjalan, asal guard, keadaan guard, lalu konfigurasi saat ini —
+        // sehingga guard buatan bertanda Active di Production, Development, "staging", atau dengan
+        // nama environment lain ditolak sebelum kunci dan pembacaan nomor.
+        private void EnsureReservedAllocationAllowed(RsmmcReservationGuardEvaluation guard)
+        {
+            ArgumentNullException.ThrowIfNull(guard);
+
+            var runtimeEnvironment = _environment.EnvironmentName;
+
+            if (!RsmmcPilotEnvironmentGate.IsAllowed(runtimeEnvironment))
+            {
+                throw new InvalidOperationException(
+                    "Alokasi nomor pasien berlantai hanya boleh berjalan di environment Staging persis.");
+            }
+
+            if (!string.Equals(guard.EnvironmentName, runtimeEnvironment, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Guard reservasi nomor pasien tidak berasal dari environment yang sedang berjalan.");
+            }
+
+            if (ResolveAllocationMode(guard) != RsmmcIdentifierAllocationMode.ReservedFloor)
+            {
+                throw new InvalidOperationException(
+                    "Alokasi nomor pasien berlantai hanya untuk guard reservasi yang aktif di Staging.");
+            }
+
+            if (!EvaluateGuard().IsActive)
+            {
+                throw new InvalidOperationException(
+                    "Konfigurasi guard reservasi nomor pasien saat ini tidak aktif.");
+            }
+        }
 
         // Hanya kode yang suffix-nya mungkin ≥ lantai yang dibaca: suffix lebih dari enam digit,
         // atau tepat enam digit dan ≥ "705250". Untuk teks angka sepanjang sama, urutan teks sama

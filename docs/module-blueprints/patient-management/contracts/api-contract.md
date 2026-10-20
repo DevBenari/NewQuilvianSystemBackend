@@ -9,7 +9,7 @@ normal milik task prasyarat `BE-PAT-MIG-003` (B14), berstatus `approved` sejak 1
 | Field | Nilai |
 | --- | --- |
 | `blueprint_id` | `PAT-BP-001` |
-| `last_changed_in` | `1.3.0` — 19 Oktober 2026: guard reservasi pada jalur pendaftaran bayi (B14.4 baru), pemeriksa B14.2 melaporkan kedua jalur, dan amandemen desain worker — `PERSIST_IS_MEMBER` dihapus, lima kolom baru `NULL`, `PATIENT_BASELINE` dengan baseline tetap (`PAT-DEC-069`–`077`). `1.2.2` (`PAT-DEC-068`), `1.2.1` (`PAT-DEC-067`), dan `1.2.0` sebelumnya. Bagian A terakhir berubah di `1.1.0` |
+| `last_changed_in` | `1.3.0` — 19 Oktober 2026: guard reservasi pada jalur pendaftaran bayi (B14.4 baru), pemeriksa B14.2 melaporkan kedua jalur, dan amandemen desain worker — `PERSIST_IS_MEMBER` dihapus, lima kolom baru `NULL`, `PATIENT_BASELINE` dengan baseline tetap (`PAT-DEC-069`–`077`; klarifikasi non-API B15 19 Oktober 2026 — prasyarat konfigurasi server bukti sekali pakai, temuan `F-14`, tanpa perubahan versi). `1.2.2` (`PAT-DEC-068`), `1.2.1` (`PAT-DEC-067`), dan `1.2.0` sebelumnya. Bagian A terakhir berubah di `1.1.0` |
 | Versi kontrak berlaku | **`1.3.0`** — `approved` 19 Oktober 2026 (`PAT-DEC-069`–`077`, instruksi pemilik `TASK: BE-PAT-MIG-003A`). Bagian A tetap berisi `1.1.0` tanpa perubahan. *Riwayat: `1.2.2` `approved` 16 Oktober 2026* |
 | Versi kontrak diusulkan | — (tidak ada). Riwayat: `1.2.0` diusulkan 14 Oktober 2026 sebagai `draft`, disetujui 15 Oktober 2026; `1.2.1` dan `1.2.2` disetujui 16 Oktober 2026 |
 | Status kontrak | Bagian A: **`approved`** — final 8 Oktober 2026. Bagian B: **`approved`** — `1.2.0` 15 Oktober 2026 (`PAT-DEC-033`) sesudah `requirement-completeness-gate` `PASS`; `1.2.1` 16 Oktober 2026 (`PAT-DEC-067`); `1.2.2` 16 Oktober 2026 (`PAT-DEC-068`). Pertanyaan `BLOCKING`: 0 |
@@ -1181,6 +1181,7 @@ Npgsql dan konfigurasi EF aplikasi yang sebenarnya, lalu dihancurkan sesudah tes
 | Hal | Ketentuan |
 | --- | --- |
 | Server | Disediakan pemilik atau developer saat build; versi mayor 15, sama dengan Staging 15.15 (`PAT-FACT-085`) |
+| Konfigurasi server bukti | `max_locks_per_transaction = 2048`. Model `ApplicationDbContext` kini cukup besar sehingga `EnsureCreatedAsync` gagal pada nilai bawaan PostgreSQL 15 (`64`) dengan SQLSTATE `53200` *out of shared memory* dan petunjuk server *increase max_locks_per_transaction*. Server bukti yang lulus `23`/`23` pada 19 Oktober 2026 memakai `2048`. **Hanya syarat server uji sekali pakai** — **bukan** syarat maupun anjuran mengubah PostgreSQL DEV, STAGING, atau PRODUCTION, dan tidak menyentuh `appsettings*` maupun infrastruktur deployment (temuan review `F-14`) |
 | Koneksi | Connection string dari environment variable; tidak ditulis ke `appsettings*` maupun Git |
 | Basis data | Dibuat test dengan nama acak, dihapus sesudah test — juga saat test gagal |
 | Skema | `MstPatient` dibentuk dari model EF aplikasi, sehingga default `IsMember = true` ikut ada; test memastikan default itu ada sebelum menguji. Tabel `migration.*` dibuat test sesuai `PAT-FACT-079`–`083` |

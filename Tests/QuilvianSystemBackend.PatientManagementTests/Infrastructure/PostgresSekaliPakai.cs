@@ -26,6 +26,17 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.Infrastructure
     /// Bila <see cref="VariabelWajib"/> bernilai <c>1</c>, bukti dianggap diminta: server yang tidak
     /// tersedia atau bukan PostgreSQL 15 membuat uji <b>gagal</b>, tidak dilewati.
     /// </para>
+    /// <para>
+    /// <b>Prasyarat server bukti sekali pakai (`BE-PAT-MIG-003A`, temuan `F-14`).</b> Model
+    /// <c>ApplicationDbContext</c> kini cukup besar sehingga <c>EnsureCreatedAsync</c> gagal pada
+    /// nilai bawaan PostgreSQL 15 <c>max_locks_per_transaction = 64</c> dengan SQLSTATE <c>53200</c>
+    /// (<i>out of shared memory</i>, petunjuk server: <i>increase max_locks_per_transaction</i>).
+    /// Server bukti yang lulus 23/23 pada 19 Oktober 2026 memakai
+    /// <c>max_locks_per_transaction = 2048</c>, misalnya
+    /// <c>docker run … postgres:15 -c max_locks_per_transaction=2048</c>. Ini <b>hanya</b> syarat
+    /// server uji sekali pakai — <b>bukan</b> anjuran mengubah PostgreSQL DEV, STAGING, maupun
+    /// PRODUCTION, dan tidak menyentuh <c>appsettings*</c> maupun infrastruktur deployment.
+    /// </para>
     /// </remarks>
     public sealed class PostgresSekaliPakai : IAsyncDisposable
     {

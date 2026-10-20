@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` — instruksi pemilik `TASK: BE-PAT-MIG-003A`, lewat `quilvian-engineering-skills:build-module-backend` |
 | Target tulis | `NewQuilvianSystemBackend`: source PatientManagement `MasterData`, project test `Tests/QuilvianSystemBackend.PatientManagementTests/`, `docs/module-blueprints/patient-management/**` |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
-| Commit backend saat dikerjakan | `c6537ee45dd774e6b77efd739f4410c6778a228e` — HEAD = `origin/QuilvianIntegrationBackend`, working tree bersih saat mulai |
+| Commit backend saat dikerjakan | Dibangun di atas `c6537ee4` (HEAD = origin, 19 Oktober 2026), lalu di-*rebase* ke `QuilvianIntegrationBackend` @ `98fdc69ff0dcf97622d0c9c27779e9277e65d220` sebagai commit WIP `6ae9c251` di branch `BE-PAT-MIG-003A`; delta upstream `c6537ee4..98fdc69f` hanya `BillingInvoiceService.cs`. Koreksi review final `F-07`/`F-13`/`F-14` di atas `6ae9c251`, belum di-*commit* |
 | Tanggal | 19 Oktober 2026 |
-| Status | 🟡 **Source siap — menunggu bukti PostgreSQL provider-real dan review pemilik.** Build, test SQLite, QBE, dan pemeriksaan model lulus; test provider-real ditulis tetapi tidak dapat dijalankan di sesi agent karena server PostgreSQL 15 sekali pakai tidak tersedia |
+| Status | 🟡 **Siap review PR pemilik — pra-runtime.** Build Release, test SQLite, QBE, dan pemeriksaan model lulus; uji PostgreSQL 15 provider-real `23`/`23` PASS (smoke `1`/`1`; 0 gagal, 0 dilewati; 4259,7 detik ≈ 1 jam 10 menit; 0 basis data `pat_proof_*` tersisa; kontainer dan image `postgres:15` sekali pakai dihapus) — dijalankan pemilik 19 Oktober 2026 pada commit `6ae9c251`. Koreksi `F-07` sesudahnya mengubah `AllocateReservedAsync`, sehingga kasus provider-real yang memanggil method itu wajib dijalankan ulang (bagian 9). `PAT-MIG3A-AC-12` milik runtime `PAT-GATE-005` generasi 2 |
 
 ---
 
@@ -120,6 +120,9 @@ dokumen blueprint `patient-management`.
 | `docs/module-blueprints/patient-management/roadmap/requirement-traceability.md` | `BE-PAT-MIG-003` ✅; amandemen `PAT-MIG2-AC-46`/`47`; bagian 7 baru |
 | `docs/module-blueprints/patient-management/blueprint-manifest.md` | Revision `6`, hash, `PAT-STALE-009` dan `010` ditutup |
 | `docs/module-blueprints/patient-management/task/report/backend/BE-PAT-MIG-003.md` | Adendum runtime bagian 10 |
+| `Areas/HealthServices/PatientManagement/MasterData/Services/PatientIdentifierAllocationService.cs` — koreksi `F-07` | `AllocateReservedAsync` memanggil `EnsureReservedAllocationAllowed` sebelum SQL apa pun: environment berjalan harus `Staging` persis, `guard.EnvironmentName` harus sama persis (ordinal), guard harus `ReservedFloor`, dan konfigurasi saat ini harus aktif |
+| `Tests/QuilvianSystemBackend.PatientManagementTests/ReservasiNomor/AlokasiBerlantaiGuardBuatanTests.cs` — koreksi `F-07` | **Baru** — T-F07-01 sampai 06 dan guard `null`: 7 method / 17 kasus |
+| `Tests/QuilvianSystemBackend.PatientManagementTests/Infrastructure/PostgresSekaliPakai.cs` — koreksi `F-14` | Remarks: prasyarat `max_locks_per_transaction = 2048` khusus server bukti sekali pakai |
 | Laporan ini | **Baru** |
 
 `Program.cs` **tidak** berubah: `NewbornPatientRegistrationService` dan `PatientIdentifierAllocationService`
@@ -179,7 +182,8 @@ Contoh keluaran pemeriksa generasi 2 di Staging dengan `Enabled = true`:
 | `--filter FullyQualifiedName~PendaftaranBayi` (test baru) | `46` lulus / `0` gagal / `9` dilewati | `PASS` | 9 dilewati = method provider-real baru |
 | `--filter ReservasiNomor` tanpa test baru (regresi `BE-PAT-MIG-003`) | `70` lulus / `0` gagal / `7` dilewati | `PASS` | Sama dengan sebelum task |
 | Regresi `BE-PAT-MIG-001` | `73` lulus (189 − 46 − 70) | `PASS` | Hitungan |
-| Uji PostgreSQL 15 provider-real `--filter Kategori=ProviderReal` | Tidak dijalankan: `QUILVIAN_PG_PROOF_CONNECTION` tidak tersedia di sesi agent | `NOT RUN` | 16 dilewati dengan alasan yang terlihat (7 lama + 9 baru) |
+| Uji PostgreSQL 15 provider-real `--filter Kategori=ProviderReal`, dijalankan pemilik pada `6ae9c251` | Smoke `1`/`1`; penuh `23` lulus / `0` gagal / `0` dilewati (Total 23); 4259,7 detik; 0 basis data `pat_proof_*` tersisa; kontainer dan image `postgres:15` dihapus | `PASS` | Bukti pemilik 19 Oktober 2026. Server bukti: `max_locks_per_transaction = 2048` (bagian 5.2) |
+| *Riwayat:* uji provider-real di sesi build agent | Tidak dijalankan: `QUILVIAN_PG_PROOF_CONNECTION` tidak tersedia | `NOT RUN` (riwayat) | 16 dilewati dengan alasan yang terlihat |
 | `dotnet ef migrations has-pending-model-changes --context ApplicationDbContext` | "No changes have been made to the model since the last migration." | `PASS` | Keluaran perintah |
 | QBE `Invoke-QbeConformanceCheck.ps1 -Mode Strict` (WorkingTree) | 9 berkas dievaluasi, `VIOLATION 0`, `REVIEW 0`, `PASS` | `PASS` | Keluaran perintah |
 | Review diff: method `NumberSeries` bayi | Tidak ada hunk pada `AcquireLockAsync`, `FindByIdempotencyAsync`, `ReplayOrConflict`, `AllocatePatientCodeAsync`, `AllocateMedicalRecordNumberAsync`, `GetLegacyMaximumAsync`; dua pemanggilannya hanya dipindah ke cabang `else` | `PASS` | `git diff -U0` |
@@ -189,9 +193,9 @@ Contoh keluaran pemeriksa generasi 2 di Staging dengan `Enabled = true`:
 
 Uji manual: `NOT APPLICABLE` — task melarang deploy, pemanggilan endpoint Staging, dan pembuatan pasien.
 
-**Tidak dijalankan:** uji PostgreSQL provider-real (server tidak tersedia; wajib dijalankan pemilik
-sebelum task ditandai ✅); `dotnet ef database update` dan eksekusi database apa pun (dilarang);
-deployment (dilarang).
+**Tidak dijalankan oleh agent:** uji PostgreSQL provider-real (server tidak tersedia di sesi agent — dijalankan
+pemilik, 23/23 `PASS`); `dotnet ef database update` dan eksekusi database apa pun (dilarang); deployment
+(dilarang).
 
 **Cara pemilik menjalankan bukti provider-real** — sama dengan `BE-PAT-MIG-003`, terhadap server
 PostgreSQL 15 sekali pakai (bukan Staging, bukan Produksi). Connection string tidak dicatat di mana pun:
@@ -203,11 +207,27 @@ dotnet test Tests/QuilvianSystemBackend.PatientManagementTests --filter Kategori
 ```
 
 Diharapkan **23** kasus: 10 milik `BE-PAT-MIG-003` dan 13 milik task ini (9 method; dua di antaranya
-`Theory` tiga kasus), seluruhnya lulus, dan `0` basis data `pat_proof_*` tersisa.
+`Theory` tiga kasus), seluruhnya lulus, dan `0` basis data `pat_proof_*` tersisa. **Hasil pemilik 19 Oktober
+2026: persis 23/23 lulus, 0 tersisa.**
+
+### 5.2 Prasyarat server bukti sekali pakai (`F-14`)
+
+Model `ApplicationDbContext` kini cukup besar sehingga `EnsureCreatedAsync` — pembentukan skema basis data
+uji — gagal pada nilai bawaan PostgreSQL 15 `max_locks_per_transaction = 64`, dengan SQLSTATE `53200` *out of
+shared memory*; server sendiri memberi petunjuk *increase max_locks_per_transaction*. Server bukti yang lulus
+23/23 memakai `max_locks_per_transaction = 2048`, misalnya:
+
+```text
+docker run … postgres:15 -c max_locks_per_transaction=2048
+```
+
+**Ini hanya syarat server uji sekali pakai.** Ini **bukan** syarat maupun anjuran mengubah PostgreSQL DEV,
+STAGING, atau PRODUCTION; `appsettings*` dan infrastruktur deployment tidak disentuh. Prasyarat yang sama
+tercatat pada remarks `PostgresSekaliPakai` dan kontrak B15.
 
 ### 5.1 Pemetaan T1–T17 ke bukti
 
-| ID | Bukti SQLite (dijalankan) | Bukti provider-real (ditulis, menunggu pemilik) |
+| ID | Bukti SQLite (dijalankan) | Bukti provider-real (`PASS` 23/23 pada `6ae9c251`, dijalankan pemilik) |
 | --- | --- | --- |
 | T1 | `T1_T2_BukanStagingPersis_MemakaiNumberSeriesSepertiSebelumnya` (Production ×3) — cabang `NumberSeries` tercapai | `T1_T2_BukanStagingPersis_NumberSeriesSepertiSebelumnya`: `00741` → `PAT-RSMMC-00742` / `00-00-07-42`, pemutaran ulang, lalu `00743`; deret tersimpan 743 |
 | T2 | Kasus Development, `staging`, `Test`; `T2_BukanStaging_KonfigurasiGuardTidakDibaca` | Kasus Development dan `staging`, sambil sesi lain memegang kunci `(PATI, NORM)` — tidak menunggu |
@@ -230,16 +250,16 @@ Diharapkan **23** kasus: 10 milik `BE-PAT-MIG-003` dan 13 milik task ini (9 meth
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `PAT-MIG3A-AC-01` — Staging aktif: nomor bayi ≥ lantai lewat `AllocateReservedAsync`; `NumberSeries` tidak disentuh | Terpenuhi (SQLite) | `NewbornPatientRegistrationService.cs` baris 206–218; T6 |
-| `PAT-MIG3A-AC-02` — Staging tidak sah → `503` sebelum akses basis data | Terpenuhi (SQLite) | Baris 104–110; `PatientController.cs` baris 884–892; T3–T5 (0 perintah SQL) |
-| `PAT-MIG3A-AC-03` — di luar Staging persis `NumberSeries` tidak berubah, tanpa kunci baru | Terpenuhi (SQLite, cabang); ujung-ke-ujung menunggu provider-real | Baris 219–223; review diff; T1, T2 |
-| `PAT-MIG3A-AC-04` — kunci yang disetujui, urutan tanpa siklus | Terpenuhi (source); runtime kunci menunggu provider-real | `PatientIdentifierAllocationService.cs` baris 156–160; audit kunci; kontrak B14.4 |
-| `PAT-MIG3A-AC-05` — konkurensi tiga pasangan tanpa nomor ganda | Terpenuhi (SQLite berurutan); bersamaan menunggu provider-real | T7; T8, T9 provider-real |
-| `PAT-MIG3A-AC-06` — idempotency tetap | Terpenuhi (SQLite) | T15 |
-| `PAT-MIG3A-AC-07` — urutan kelahiran tetap | Terpenuhi (SQLite) | T16 |
-| `PAT-MIG3A-AC-08` — pemeriksa dua jalur; `overallGuardReady` mensyaratkan keduanya | Terpenuhi | `PatientIdentifierAllocationService.cs` baris 205–281; `RsmmcIdentifierReservationProfile.cs` baris 193–204; T11–T14 |
-| `PAT-MIG3A-AC-09` — bukti provider-real PostgreSQL 15 | **Belum terpenuhi** — test ditulis, belum dijalankan | `PendaftaranBayiPostgresSungguhanTests.cs` |
-| `PAT-MIG3A-AC-10` — tanpa regresi; build; QBE | Terpenuhi | 70 + 73 regresi lulus; Release `0` error; QBE `PASS` |
+| `PAT-MIG3A-AC-01` — Staging aktif: nomor bayi ≥ lantai lewat `AllocateReservedAsync`; `NumberSeries` tidak disentuh | Terpenuhi | `NewbornPatientRegistrationService.cs` baris 206–218; T6 SQLite dan provider-real |
+| `PAT-MIG3A-AC-02` — Staging tidak sah → `503` sebelum akses basis data | Terpenuhi | Baris 104–110; `PatientController.cs` baris 884–892; T3–T5 (0 perintah SQL) |
+| `PAT-MIG3A-AC-03` — di luar Staging persis `NumberSeries` tidak berubah, tanpa kunci baru | Terpenuhi | Baris 219–223; review diff; T1, T2 SQLite dan provider-real; koreksi `F-07`: allocator berlantai menolak guard buatan di luar Staging persis sebelum SQL (T-F07-01 sampai 04, 06) |
+| `PAT-MIG3A-AC-04` — kunci yang disetujui, urutan tanpa siklus | Terpenuhi | `PatientIdentifierAllocationService.cs` baris 159–168; audit kunci; kontrak B14.4; T10 provider-real |
+| `PAT-MIG3A-AC-05` — konkurensi tiga pasangan tanpa nomor ganda | Terpenuhi | T7 SQLite; T8, T9 dan `C_D_*` provider-real |
+| `PAT-MIG3A-AC-06` — idempotency tetap | Terpenuhi | T15 SQLite dan provider-real |
+| `PAT-MIG3A-AC-07` — urutan kelahiran tetap | Terpenuhi | T16 SQLite dan provider-real |
+| `PAT-MIG3A-AC-08` — pemeriksa dua jalur; `overallGuardReady` mensyaratkan keduanya | Terpenuhi | `PatientIdentifierAllocationService.cs` baris 209–285; `RsmmcIdentifierReservationProfile.cs` baris 193–204; T11–T14 |
+| `PAT-MIG3A-AC-09` — bukti provider-real PostgreSQL 15 | Terpenuhi — 23/23 `PASS` pada `6ae9c251` (pemilik, 19 Oktober 2026); kasus yang memanggil `AllocateReservedAsync` dijalankan ulang sesudah koreksi `F-07` | `PendaftaranBayiPostgresSungguhanTests.cs`, `AlokasiPostgresSungguhanTests.cs`; bagian 5 dan 9 |
+| `PAT-MIG3A-AC-10` — tanpa regresi; build; QBE | Terpenuhi | Sesudah koreksi: `70` lulus / `0` gagal / `7` dilewati regresi `BE-PAT-MIG-003` dan `73` lulus / `0` gagal regresi `BE-PAT-MIG-001` lulus; Release `0` error; QBE `PASS` (bagian 9) |
 | `PAT-MIG3A-AC-11` — tanpa EF migration | Terpenuhi | `has-pending-model-changes` |
 | `PAT-MIG3A-AC-12` — runtime `PAT-GATE-005` generasi 2 | **Belum** — milik gerbang runtime | — |
 
@@ -248,10 +268,10 @@ Diharapkan **23** kasus: 10 milik `BE-PAT-MIG-003` dan 13 milik task ini (9 meth
 | Keputusan dikunci pemilik | Terpenuhi — 19 Oktober 2026 |
 | Source sesuai kontrak `1.3.0` | Terpenuhi |
 | Build, QBE, test SQLite | Terpenuhi |
-| Uji provider-real | **Belum** |
+| Uji provider-real | Terpenuhi — 23/23 pada `6ae9c251`; uji ulang kasus terdampak `F-07` diminta (bagian 9) |
 | Tanpa EF migration | Terpenuhi |
 | Laporan | Terpenuhi — berkas ini |
-| Review source pemilik/leader | **Belum** |
+| Review source pemilik/leader | **Belum** — review final pemilik menghasilkan `F-07`/`F-13`/`F-14`, dikoreksi pada bagian 9 |
 | `PAT-GATE-005` generasi 2 | **Belum** — sesudah review dan deploy terotorisasi |
 
 ---
@@ -292,6 +312,14 @@ melaporkan keputusan cabang yang dipakai masing-masing jalur — `ResolveAllocat
 `NewbornPatientRegistrationService.ResolveIdentifierAllocationMode` untuk bayi — untuk konfigurasi yang
 berlaku. Build tanpa task ini tidak mengembalikan field itu sama sekali.
 
+**Allocator berlantai tidak memercayai guard pemanggil (`F-07`).** `AllocateReservedAsync` publik dan
+menerima objek guard. Agar guard buatan — misalnya `Active` di Production — tidak dapat menjalankan
+alokasi berlantai di luar `Staging` persis, method itu memeriksa ulang sebelum SQL apa pun: environment
+yang sedang berjalan, asal guard, keadaan guard, dan konfigurasi saat ini. Pemanggil sah — `AllocateAsync`
+dan `RegisterAsync` — selalu memakai guard hasil `EvaluateGuard()` pada service yang sama, sehingga
+perilakunya tidak berubah. Konstruktor record guard tidak dipersempit: record berposisi tidak dapat diberi
+konstruktor `internal` tanpa mengubah bentuknya, dan test memakainya; pertahanan utamanya pemeriksaan runtime.
+
 ---
 
 ## 8. Catatan penutup
@@ -299,11 +327,63 @@ berlaku. Build tanpa task ini tidak mengembalikan field itu sama sekali.
 | Hal | Isi |
 | --- | --- |
 | Peringatan | `298` warning build lama di berkas lain; tidak ada dari berkas yang diubah |
-| Masalah yang diketahui | **(1)** Bukti provider-real belum dijalankan (`PAT-RSK-039`). **(2)** Di luar Staging persis, pendaftaran normal dan bayi tetap tidak saling diserialkan, seperti sebelum task (`PAT-RSK-040`, disengaja) |
+| Masalah yang diketahui | **(1)** ~~Bukti provider-real belum dijalankan (`PAT-RSK-039`)~~ — ditutup: 23/23 `PASS`. **(2)** Di luar Staging persis, pendaftaran normal dan bayi tetap tidak saling diserialkan, seperti sebelum task (`PAT-RSK-040`, disengaja). **(3)** Koreksi `F-07` belum dibuktikan ulang pada PostgreSQL (bagian 9) |
 | Risiko tersisa | Bila build `3a0189c2` sudah berjalan di Staging sebelum task ini dideploy, bayi yang sempat didaftarkan mungkin memakai nomor cadangan (`PAT-RSK-042`) — perlu pemeriksaan read-only pemilik. Jalur insert baru di masa depan tidak otomatis terlihat pemeriksa (`PAT-RSK-041`). Sesudah deploy tanpa `Enabled = true`, pendaftaran normal **dan** bayi Staging ditolak `503` — disengaja |
 | Perubahan sampingan | `NONE`. Tiga berkas test baru disamakan ke CRLF tanpa BOM seperti berkas sekitarnya |
 | Interupsi | `NONE` |
-| Status Git | `M` lima berkas source, `M` `ReservasiHarness.cs`, `M` lima dokumen blueprint + laporan `BE-PAT-MIG-003.md`; `??` tiga berkas test baru dan laporan ini. Tidak ada *stage*, *commit*, atau *push* |
-| Langkah berikutnya | **(1)** Pemilik menjalankan uji provider-real dan menyerahkan hasilnya. **(2)** Review source. **(3)** Otorisasi terpisah *commit*/PR, lalu deploy Staging dengan migration `20261016080745_ReviseNewbornAdmissionFlow` sudah diterapkan. **(4)** `PAT-GATE-005` generasi 2. **(5)** Pemeriksaan read-only `PAT-RSK-042` dan pengukuran baseline `MstPatient` (`PAT-DEC-077`). `BE-PAT-MIG-002` belum boleh dimulai |
+| Status Git | Branch `BE-PAT-MIG-003A`, commit WIP `6ae9c251` di atas `98fdc69f`. Koreksi review final belum di-*commit*: lihat bagian 9. Tidak ada *stage*, *commit*, atau *push* oleh agent |
+| Langkah berikutnya | **(1)** Pemilik menjalankan ulang uji provider-real untuk kasus yang memanggil `AllocateReservedAsync` (bagian 9). **(2)** Review PR pemilik. **(3)** Otorisasi terpisah *commit*/PR, lalu deploy Staging dengan migration `20261016080745_ReviseNewbornAdmissionFlow` sudah diterapkan. **(4)** `PAT-GATE-005` generasi 2. **(5)** Pemeriksaan read-only `PAT-RSK-042` dan pengukuran baseline `MstPatient` (`PAT-DEC-077`). `BE-PAT-MIG-002` belum boleh dimulai |
 
-**BE-PAT-MIG-003A SOURCE READY — WAITING FOR OWNER PROVIDER-REAL PROOF AND REVIEW**
+---
+
+## 9. Koreksi review final `F-07` / `F-13` / `F-14` — 19 Oktober 2026
+
+Review final read-only pemilik atas `6ae9c251` (rebase ke `98fdc69f`) menghasilkan tiga temuan `WARNING`.
+Ketiganya dikoreksi di sini; tidak ada perubahan source lain.
+
+| Temuan | Koreksi | Bukti |
+| --- | --- | --- |
+| `F-07` — `AllocateReservedAsync` memercayai guard buatan pemanggil | `EnsureReservedAllocationAllowed` (`PatientIdentifierAllocationService.cs` baris 293–322), dipanggil di baris 146 sebelum transaksi diperiksa dan sebelum SQL apa pun: (1) `RsmmcPilotEnvironmentGate.IsAllowed(_environment.EnvironmentName)`; (2) `guard.EnvironmentName` sama persis (ordinal) dengan environment berjalan; (3) guard `ReservedFloor`; (4) `EvaluateGuard()` saat ini aktif. Pelanggaran → `InvalidOperationException` deterministik; guard `null` → `ArgumentNullException` | `AlokasiBerlantaiGuardBuatanTests`: `17` lulus / `0` gagal / `0` dilewati |
+| `F-13` — dokumen bukti basi | Laporan ini, roadmap, traceability, dan manifest mencatat 23/23 `PASS`, smoke 1/1, 4259,7 detik, 0 `pat_proof_*` tersisa, rebase `98fdc69f`, commit `6ae9c251`; `PAT-MIG3A-AC-09` terpenuhi; `PAT-RSK-039` ditutup | Diff dokumen |
+| `F-14` — prasyarat server bukti tidak terdokumentasi | `max_locks_per_transaction = 2048` dicatat pada remarks `PostgresSekaliPakai`, bagian 5.2 laporan ini, dan kontrak B15 (klarifikasi non-API, versi tetap `1.3.0`; hash manifest dihitung ulang) — hanya untuk server uji sekali pakai | Diff dokumen |
+
+**Uji koreksi T-F07.** Setiap penolakan diuji dengan transaksi terbuka dan penghitung perintah SQL: 0
+perintah SQL, tanpa hasil alokasi, jumlah pasien tetap, 0 baris `NumberSeries`.
+
+| ID | Skenario | Hasil yang dibuktikan |
+| --- | --- | --- |
+| T-F07-01 | Runtime `Production`, guard buatan `Active` bernama `Staging` / `Production` | Ditolak sebelum SQL |
+| T-F07-02 | Runtime `Development`, guard buatan `Active` bernama `Staging` / `Development` | Ditolak sebelum SQL |
+| T-F07-03 | Runtime `staging`, guard buatan `Active` bernama `Staging` / `staging` | Ditolak sebelum SQL |
+| T-F07-04 | Runtime `Staging` persis, guard bernama `staging`, `STAGING`, `Staging `, `Production`, kosong, `null` | Ditolak sebelum SQL |
+| T-F07-05 | Runtime `Staging` persis, guard hasil `EvaluateGuard()` | Tetap `PAT-RSMMC-705250` / `00-89-01-88`; jalur sah menjalankan SQL (pembanding penghitung) |
+| T-F07-06 | Runtime `Staging` persis, konfigurasi `false` / hilang / salah bentuk, guard buatan `Active` | Ditolak sebelum SQL (pertahanan berlapis) |
+| Guard `null` | Runtime `Staging` persis | `ArgumentNullException`, 0 perintah SQL |
+
+**Validasi sesudah koreksi.**
+
+| Perintah | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet test` PatientManagementTests (seluruhnya) | `206` lulus / `0` gagal / `16` dilewati (Total 222; 16 = provider-real tanpa server) | `PASS` |
+| `--filter AlokasiBerlantaiGuardBuatanTests` | `17` lulus / `0` gagal / `0` dilewati | `PASS` |
+| `--filter PendaftaranBayi` (test SQLite `BE-PAT-MIG-003A`) | `46` lulus / `0` gagal / `9` dilewati | `PASS` |
+| Regresi `BE-PAT-MIG-003` (ReservasiNomor lama) | `70` lulus / `0` gagal / `7` dilewati | `PASS` |
+| Regresi `BE-PAT-MIG-001` | `73` lulus / `0` gagal | `PASS` |
+| `dotnet build -c Release --no-incremental` | Berhasil, `0` error, `297` warning; 0 warning dari berkas yang diubah | `PASS` |
+| QBE `Strict` (WorkingTree) | WorkingTree: 3 berkas, `VIOLATION 0`, `PASS`; GitRange `98fdc69f..6ae9c251`: 9 berkas, `VIOLATION 0`, `PASS` | `PASS` |
+| `has-pending-model-changes --context ApplicationDbContext` | "No changes have been made to the model since the last migration." | `PASS` |
+| Uji provider-real sesudah koreksi | Tidak dijalankan agent — server tidak tersedia | `NOT RUN` |
+
+**Uji provider-real yang wajib dijalankan ulang** karena `AllocateReservedAsync` berubah — seluruh kasus yang
+memanggilnya, langsung atau lewat `AllocateAsync` / `RegisterAsync` di `Staging` persis aktif:
+
+| Kelas | Kasus |
+| --- | --- |
+| `AlokasiPostgresSungguhanTests` (`BE-PAT-MIG-003`) | `A_B_StagingAktif_LantaiDanKunciDatabase`, `E_StagingAktif_CelahDiAtasLantai`, `C_D_Bersamaan_TidakAdaKodeAtauMrnGanda` |
+| `PendaftaranBayiPostgresSungguhanTests` (`BE-PAT-MIG-003A`) | `T6_StagingAktif_NomorBayiDiAtasLantaiTanpaNumberSeries`, `T10_StagingAktif_BayiMenungguKunciPatiNormLaluMelepasnyaSaatCommit`, `T8_BayiBersamaan_KasusBerbeda_TidakAdaNomorGanda`, `T7_T9_NormalDanBayiBersamaan_TidakAdaNomorGandaDanTidakDiBawahLantai`, `T15_StagingAktif_KunciIdempotencySamaBersamaan_SatuPasien`, `T16_StagingAktif_KembarBersamaanSatuKasus_UrutanSatuDanDua` |
+
+Sembilan kasus itu wajib. Empat belas kasus lainnya tidak memanggil `AllocateReservedAsync` — jalur di luar
+Staging, gagal tertutup, pemeriksa baca-saja, dan indeks unik — tetapi menjalankan seluruh 23 kasus lebih
+sederhana dan dianjurkan, karena satu perintah `--filter Kategori=ProviderReal` mencakup semuanya.
+
+**BE-PAT-MIG-003A SOURCE READY — FINAL REVIEW CORRECTIONS APPLIED, PROVIDER-REAL RERUN REQUIRED**
