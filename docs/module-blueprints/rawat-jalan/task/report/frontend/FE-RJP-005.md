@@ -148,3 +148,11 @@ dihapus, dan detail dibuka dengan klik dua kali baris.
 | `MANUAL TEST` bagian admin (Playwright pada `next dev` 3000, API → 7185, reservasi uji baru `RSV-20261019-0072`/`0073`) | `PASS` 7/7: tombol sesuai status, tandai tiba, skrining, 409 data basi, riwayat, kirim ulang, batal |
 | Kelas tombol "Tandai Tiba" (uji `FE-RJP-004` rework, `PRIMARY`) | `PASS` — kelas `primary`, bukan `success` |
 | Bagian akun petugas skrining (`R-RP-14`) | Tidak diulang. Kodenya tidak berubah, dan hasil 2026-10-19 sebelumnya tetap berlaku (bagian 5) |
+
+### 8.1 Lanjutan 20 Oktober 2026 — tombol konfirmasi dialog
+
+Tombol konfirmasi primer di dialog Tandai Tiba ("Ya, Tandai Tiba"), Skrining ("Simpan Skrining"), dan Link Baru Diterbitkan
+("Selesai") kini memakai kelas `primary` milik `BaseButton` lewat prop `confirmButtonClassName`, menggantikan
+`region-btn-primary` hijau tua bawaan `ConfirmModal`. Dialog Kirim Ulang Link (peringatan), Kembalikan, dan Batalkan tetap
+memakai warna bawaannya. Rinciannya di laporan `FE-RJP-004` bagian 8.7. Berkas: `detail/priority-reservation-action-modals.jsx`,
+konstanta di `priority-reservation-modal-buttons.js`. `npm run lint:errors` dan `npm run build` exit 0.

@@ -15,7 +15,7 @@ Definisi task: [priority-reservation-frontend-roadmap.md](../../../roadmap/prior
 | Branch / baseline | FE `sukmagpV2` @ `17e0ffec0`, working tree belum di-commit |
 | Tanggal | 19 Oktober 2026 |
 | Model | Claude Opus 5 |
-| Status | ✅ Selesai — uji layar 15/15 `PASS`; rework 19 Okt 2026 (`RJ-PRI-DEC-032`) uji layar 12/12 + regresi 15/15 `PASS`, lint dan build `PASS` (bagian 8) |
+| Status | ✅ Selesai — uji layar 15/15 `PASS`; rework 19 Okt 2026 (`RJ-PRI-DEC-032`) uji layar 12/12 + regresi 15/15 `PASS`; perbaikan 20 Okt 2026 (kotak cari pasien tidak bisa diketik, warna tombol dialog) 4/4 `PASS` di stack owner; teks hover tombol primer dan tata letak dialog terbit 4/4 + 4/4 `PASS` (1440 px dan 390 px), lint dan build `PASS` (bagian 8.7–8.8) |
 
 ## 2. Proses bisnis
 
@@ -276,3 +276,106 @@ Tangkapan layar: `fe-rjp-004b-list.png`, `fe-rjp-004b-period.png`, `fe-rjp-004b-
 | Dependency backend | `BE-RJP-006` rework (kontrak `1.1.0`) ✅. Backend user di 7184 perlu dijalankan ulang dari working tree terbaru agar kolom Tanggal Dibuat, Dibuat Oleh, dan Diubah Oleh terisi; sebelum itu kolom tampil "-" |
 | Overlay dev "Issues" | Saat uji, overlay `next dev` menghitung 404 foto profil dan WebSocket hub. Penyebabnya API browser uji dialihkan ke 7185 sementara WebSocket tetap ke 7184. Ini artefak lingkungan uji, bukan dari kode fitur |
 | Wewenang | Posisi tombol, pilihan periode, dan susunan kolom diminta owner (`RJ-PRI-DEC-032`). Suntingan user di `patient-selection-step.jsx` tidak disentuh. Tidak ada stage, commit, push, merge, atau deploy |
+
+### 8.7 Perbaikan lanjutan 20 Oktober 2026 — kotak cari pasien dan warna tombol dialog
+
+Owner melaporkan dua hal: form Buat Reservasi masih tidak bisa dipakai, dan tombol di dialog masih hijau.
+
+**Kotak cari pasien tidak bisa diketik (bug).** Log backend owner menunjukkan dialog dibuka, tetapi tidak ada satu pun
+permintaan pencarian pasien maupun cek kelayakan dari browser owner. Uji otomatis sebelumnya memakai `fill()`, yang
+melewati masalah fokus, sehingga bug ini lolos. Reproduksi dengan cara manusia (klik pemicu "Cari pasien", lalu
+mengetik huruf demi huruf) menunjukkan kotak cari muncul tetapi **tidak mendapat fokus**, sehingga ketikan tidak masuk.
+
+Penyebab: daftar pilihan dirender lewat portal (`menuPortal`) di luar DOM modal Bootstrap, dan *focus trap* modal
+menarik fokus kembali ke dalam modal. Perbaikan:
+
+1. `menuPortal` dihapus dari kolom Pasien. Daftar pilihan kini dirender di dalam modal, seperti dialog lain yang
+   memakai select (mis. Periode Akuntansi, Pembayaran AR).
+2. Tinggi menu diturunkan lewat `--filter-select-menu-max-height` (cara yang disediakan `FilterSelect` untuk select di
+   dalam modal), supaya menu berakhir di atas tombol dialog dan sisanya bisa digulir.
+
+**Warna tombol dialog.** "+ Buat Reservasi" sudah memakai `BaseButton` primer, sama persis dengan Order Darah dan
+Tingkat Keanggotaan (`linear-gradient(175deg, #026d78, #02818f, #0db5c8)`). Yang masih hijau adalah tombol
+konfirmasi `ConfirmModal`, karena kelas bawaannya `region-btn-primary` (`#155e6b → #06463f`). Tombol konfirmasi primer
+di dialog fitur ini kini memakai prop `confirmButtonClassName` dengan `region-btn` (ukuran) + kelas `primary` milik
+`BaseButton` (warna). Pola ini sama dengan dialog Pendaftaran Pasien Rawat Jalan (`outpatient-payer-edit-modal.jsx`).
+Dialog yang berubah: Buat Reservasi (Simpan Reservasi), Reservasi Dibuat (Selesai), Tandai Tiba, Skrining, dan Link
+Baru Diterbitkan (Selesai). Dialog peringatan (Kirim Ulang Link, Kembalikan) dan pembatalan tetap memakai warna
+bawaannya.
+
+| Berkas (repo frontend) | Status | Isi |
+| --- | --- | --- |
+| `src/components/view/health-services/registration-management/priority-reservations/priority-reservation-modal-buttons.js` | Baru | `PRIORITY_RESERVATION_PRIMARY_CONFIRM_CLASS` |
+| `src/components/view/health-services/registration-management/priority-reservations/priority-reservation-create-modal.jsx` | Diperbarui | Tanpa `menuPortal`; `className={styles.patientField}`; tombol konfirmasi primer |
+| `src/components/view/health-services/registration-management/priority-reservations/detail/priority-reservation-action-modals.jsx` | Diperbarui | Tombol konfirmasi primer pada Tandai Tiba, Skrining, Link Baru Diterbitkan |
+| `src/style/health-services/registration-management/priority-reservations/priority-reservation.module.css` | Diperbarui | `.patientField { --filter-select-menu-max-height: 11.5rem; }` |
+
+Gerbang komponen dasar: `REUSE` prop `confirmButtonClassName` milik `ConfirmModal`, kelas `primary` milik `BaseButton`,
+dan variabel `--filter-select-menu-max-height` milik `FilterSelect`. Tidak ada base component yang diubah.
+
+`UI GATE: PASS — REUSE prop dan variabel yang sudah disediakan base component; tidak ada NEW atau EXTEND.`
+
+| Langkah | Hasil |
+| --- | --- |
+| `npm run lint:errors` | exit 0 |
+| `npm run build` | exit 0 (`next dev` owner di 3000 tetap berjalan) |
+| `AUTOMATED TEST: node --import ./tests/helpers/register.mjs --test tests/unit/*.test.mjs` | 3283/3318; 35 gagal, **tidak satu pun** dari fitur ini. HEAD frontend kini `d1c186a12` (owner sudah commit `8521d8871` dan merge `QuilvianIntegrationFrontend`, 56 commit baru); kegagalan tambahan berasal dari kode hasil merge, mis. `filter-date-picker-max-guard`, Rawat Inap, Hemodialisa |
+| `MANUAL TEST` di stack owner (FE dev 3000 + backend 7184, tanpa pengalihan API), cara manusia | `PASS` 4/4 |
+
+| ID | Pemeriksaan | Hasil |
+| --- | --- | --- |
+| TYPE | Klik "Cari pasien" memfokuskan kotak cari; ketikan huruf demi huruf mengirim pencarian dan memunculkan 2 pilihan | `PASS` |
+| SAVE color | "Simpan Reservasi" berkelas `primary` milik `BaseButton`, bukan `region-btn-primary` | `PASS` |
+| CREATE | Simpan berhasil: `RSV-20261020-0003` terbit; tombol "Selesai" primer | `PASS` |
+| DETAIL | Klik dua kali baris membuka detail reservasi baru | `PASS` |
+
+Tangkapan layar: `repro-typing-typed.png`, `check-create-button.png`, `e2e-human-detail.png` di scratchpad sesi.
+
+Catatan uji: skenario uji layar berikutnya untuk dialog ini harus mengetik huruf demi huruf (`keyboard.type`), bukan
+`fill()`, agar masalah fokus tertangkap.
+
+### 8.8 Perbaikan lanjutan 20 Oktober 2026 — teks hover tombol primer dan tata letak dialog "Reservasi Prioritas Dibuat"
+
+**Teks hover.** Owner meminta teks semua tombol primer tetap putih saat hover. Pengukuran di stack owner:
+"+ Buat Reservasi" (`<button>` `BaseButton`) sudah putih saat hover, tetapi "Simpan Reservasi" berubah biru
+(`rgb(10, 88, 202)`). Penyebabnya, tombol `ConfirmModal` membawa kelas Bootstrap `btn btn-link`, dan
+`.btn-link:hover` mengganti warna teks. "Kirim via WhatsApp" adalah `BaseButton` sebagai tautan, sehingga juga
+terkena `a:hover`. Perbaikannya adalah kelas fitur `.primaryButtonText` (kelas digandakan agar lebih kuat dari aturan
+Bootstrap tanpa `!important`). Kelas ini menjaga teks `var(--color-surface)` saat hover, fokus, dan ditekan. Kelas
+dipasang lewat `PRIORITY_RESERVATION_PRIMARY_CONFIRM_CLASS` pada semua tombol konfirmasi primer dialog fitur ini dan
+pada tautan "Kirim via WhatsApp". `BaseButton` dan `ConfirmModal` tidak diubah.
+
+**Tata letak dialog "Reservasi Prioritas Dibuat"** (juga dipakai dialog "Link Baru Diterbitkan"):
+
+| Sebelum | Sesudah |
+| --- | --- |
+| Lebar 430 px (ukuran `lg` tidak berlaku pada `ConfirmModal`) | 550 px lewat kelas bersama `region-confirm-modal-wide` |
+| Ringkasan tiga kalimat "Label: nilai" | Daftar label–nilai (`<dl>`): label abu kecil, nilai tebal; di HP label di atas nilai |
+| Tiga tombol berbaris dan terbungkus (WA, Salin Teks, Salin Link turun ke baris kedua) | "Kirim via WhatsApp" selebar dialog; "Salin Teks" dan "Salin Link" dua kolom sama lebar, termasuk di HP |
+| "Salin Link" tombol ghost tanpa ikon | Tombol sekunder dengan ikon tautan, setara "Salin Teks" |
+| Label "Teks pesan", 7 baris | "Teks pesan WhatsApp", 6 baris |
+
+| Berkas (repo frontend) | Status | Isi |
+| --- | --- | --- |
+| `src/components/view/health-services/registration-management/priority-reservations/priority-reservation-issued-panel.jsx` | Diperbarui | Ringkasan `<dl>`, aksi bergrid, ikon "Salin Link", kelas teks putih pada tautan WA |
+| `src/components/view/health-services/registration-management/priority-reservations/priority-reservation-modal-buttons.js` | Diperbarui | Konstanta tombol ditambah `primaryButtonText`; `PRIORITY_RESERVATION_WIDE_MODAL_CLASS` |
+| `src/components/view/health-services/registration-management/priority-reservations/priority-reservation-create-modal.jsx` | Diperbarui | Dialog terbit memakai kelas lebar |
+| `src/components/view/health-services/registration-management/priority-reservations/detail/priority-reservation-action-modals.jsx` | Diperbarui | Dialog "Link Baru Diterbitkan" memakai kelas lebar |
+| `src/style/health-services/registration-management/priority-reservations/priority-reservation.module.css` | Diperbarui | `.issuedSummary`, `.issuedRow`, `.issuedMuted`, `.issuedActions` (grid), `.issuedPrimaryAction`, `.primaryButtonText`, aturan HP; semua nilai warna, jarak, dan huruf memakai token |
+
+Gerbang komponen dasar: `REUSE` `BaseButton` (`fullWidth`, `className`), `BaseTextField`, `BaseTextAreaField`,
+`InformationAlert`, kelas bersama `region-confirm-modal-wide`. `COMPOSE` tata letak ringkasan dan grid aksi di
+stylesheet fitur.
+
+`UI GATE: PASS — REUSE dan COMPOSE gaya feature; tidak ada NEW atau EXTEND pada base component.`
+
+| Langkah | Hasil |
+| --- | --- |
+| `npm run lint:errors` / `npm run build` | exit 0 / exit 0 (`next dev` owner tetap berjalan) |
+| `AUTOMATED TEST: node --import ./tests/helpers/register.mjs --test tests/unit/priority-reservation-data-layer.test.mjs` | `PASS` 8/8 |
+| Grep stylesheet fitur | Tanpa warna literal; `!important` hanya ada di teks komentar |
+| `MANUAL TEST` di stack owner, cara manusia, lebar 1440 px | `PASS` 4/4: hover "Simpan Reservasi", "Kirim via WhatsApp", dan "Selesai" berteks putih; dialog 550 px, ringkasan 3 baris, WA 492 px, Salin Teks/Link 242/242 px sejajar |
+| `MANUAL TEST` di stack owner, lebar 390 px | `PASS` 4/4: hover putih; dialog 343 px, WA 305 px, Salin Teks/Link 149/149 px sejajar |
+
+Data uji yang terbentuk: `RSV-20261020-0004` s.d. `0006` untuk pasien uji `RJPR UJI FE-CREATE2 48CB`.
+Tangkapan layar: `issued-modal-1440.png`, `issued-modal-390.png` di scratchpad sesi.
