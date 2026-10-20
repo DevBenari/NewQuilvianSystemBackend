@@ -215,47 +215,62 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 throw new ArgumentException("Kata kunci pencarian SDM minimal 3 karakter.", nameof(keyword));
 
             var take = EmployeeLookupLimits.MaximumResults + 1;
+            var today = ToOperationalDayUtc(AppDateTimeHelper.OperationalDate());
 
             var employeeRows = await (from e in _dbContext.MstEmployees.AsNoTracking()
-                                      join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on e.WorkforceProfileId equals p.Id
-                                      where !e.IsDelete && !e.IsCancel && e.IsActive && !e.ResignDate.HasValue
-                                            && !p.IsDelete && p.IsActive && p.UserType == QuilvianSystemBackend.Enums.UserType.Employee
-                                            && (e.EmployeeNumber.ToLower().Contains(term)
-                                                || e.IdentityNumber.Contains(term)
-                                                || e.FullName.ToLower().Contains(term))
+                                      join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on e.WorkforceProfileId equals p.Id into pGroup
+                                      from p in pGroup.DefaultIfEmpty()
+                                      join dept in _dbContext.MstDepartments.AsNoTracking() on e.PrimaryDepartmentId equals dept.Id into deptGroup
+                                      from dept in deptGroup.DefaultIfEmpty()
+                                      join et in _dbContext.MstEmploymentTypes.AsNoTracking() on e.EmploymentTypeId equals et.Id into etGroup
+                                      from et in etGroup.DefaultIfEmpty()
+                                      where !e.IsDelete && e.IsActive && (!e.ResignDate.HasValue || e.ResignDate > today)
+                                            && (p == null || (!p.IsDelete && p.IsActive))
+                                            && (((e.EmployeeNumber ?? string.Empty).ToLower().Contains(term))
+                                                || ((e.IdentityNumber ?? string.Empty).ToLower().Contains(term))
+                                                || ((e.FullName ?? string.Empty).ToLower().Contains(term)))
                                       orderby e.FullName, e.EmployeeNumber
                                       select new WorkforceSearchRow
                                       {
-                                          WorkforceProfileId = e.WorkforceProfileId,
+                                          WorkforceProfileId = (p != null && p.Id != Guid.Empty)
+                                              ? p.Id
+                                              : (e.WorkforceProfileId != Guid.Empty ? e.WorkforceProfileId : e.Id),
                                           OwnerType = WorkforceBenefitOwnerTypes.Employee,
                                           EmployeeId = e.Id,
-                                          Number = e.EmployeeNumber,
-                                          FullName = e.FullName,
+                                          Number = e.EmployeeNumber ?? string.Empty,
+                                          FullName = e.FullName ?? string.Empty,
                                           NationalId = e.IdentityNumber,
-                                          DepartmentName = e.PrimaryDepartment != null ? e.PrimaryDepartment.DepartmentName : null,
-                                          EmploymentTypeName = e.EmploymentType != null ? e.EmploymentType.EmploymentTypeName : null
+                                          DepartmentName = dept != null ? dept.DepartmentName : null,
+                                          EmploymentTypeName = et != null ? et.EmploymentTypeName : null
                                       })
                                      .Take(take)
                                      .ToListAsync(cancellationToken);
 
             var doctorRows = await (from d in _dbContext.MstDoctors.AsNoTracking()
-                                    join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on d.WorkforceProfileId equals p.Id
-                                    where !d.IsDelete && !d.IsCancel && d.IsActive && !d.ResignDate.HasValue
-                                          && !p.IsDelete && p.IsActive && p.UserType == QuilvianSystemBackend.Enums.UserType.PermanentDoctor
-                                          && (d.DoctorNumber.ToLower().Contains(term)
-                                              || (d.IdentityNumber != null && d.IdentityNumber.Contains(term))
-                                              || d.FullName.ToLower().Contains(term))
+                                    join p in _dbContext.MstWorkforceProfiles.AsNoTracking() on d.WorkforceProfileId equals p.Id into pGroup
+                                    from p in pGroup.DefaultIfEmpty()
+                                    join dept in _dbContext.MstDepartments.AsNoTracking() on d.PrimaryDepartmentId equals (Guid?)dept.Id into deptGroup
+                                    from dept in deptGroup.DefaultIfEmpty()
+                                    join et in _dbContext.MstEmploymentTypes.AsNoTracking() on d.EmploymentTypeId equals et.Id into etGroup
+                                    from et in etGroup.DefaultIfEmpty()
+                                    where !d.IsDelete && d.IsActive && (!d.ResignDate.HasValue || d.ResignDate > today)
+                                          && (p == null || (!p.IsDelete && p.IsActive))
+                                          && (((d.DoctorNumber ?? string.Empty).ToLower().Contains(term))
+                                              || ((d.IdentityNumber ?? string.Empty).ToLower().Contains(term))
+                                              || ((d.FullName ?? string.Empty).ToLower().Contains(term)))
                                     orderby d.FullName, d.DoctorNumber
                                     select new WorkforceSearchRow
                                     {
-                                        WorkforceProfileId = d.WorkforceProfileId,
+                                        WorkforceProfileId = (p != null && p.Id != Guid.Empty)
+                                            ? p.Id
+                                            : (d.WorkforceProfileId != Guid.Empty ? d.WorkforceProfileId : d.Id),
                                         OwnerType = WorkforceBenefitOwnerTypes.Doctor,
                                         DoctorId = d.Id,
-                                        Number = d.DoctorNumber,
-                                        FullName = d.FullName,
+                                        Number = d.DoctorNumber ?? string.Empty,
+                                        FullName = d.FullName ?? string.Empty,
                                         NationalId = d.IdentityNumber,
-                                        DepartmentName = d.PrimaryDepartment != null ? d.PrimaryDepartment.DepartmentName : null,
-                                        EmploymentTypeName = d.EmploymentType != null ? d.EmploymentType.EmploymentTypeName : null
+                                        DepartmentName = dept != null ? dept.DepartmentName : null,
+                                        EmploymentTypeName = et != null ? et.EmploymentTypeName : null
                                     })
                                    .Take(take)
                                    .ToListAsync(cancellationToken);
@@ -281,7 +296,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 .Select(x => new { x.WorkforceProfileId, x.Id })
                 .ToListAsync(cancellationToken);
 
-            var today = ToOperationalDayUtc(AppDateTimeHelper.OperationalDate());
             var enrollmentPeriods = await ActiveMedicalEnrollments()
                 .Where(x => profileIds.Contains(x.WorkforceProfileId))
                 .Select(x => new { x.WorkforceProfileId, x.EffectiveStartDate, x.EffectiveEndDate })

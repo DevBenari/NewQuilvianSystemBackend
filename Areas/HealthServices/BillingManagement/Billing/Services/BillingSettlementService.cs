@@ -259,12 +259,16 @@ public sealed class BillingSettlementService
 
                 tender = prior;
                 paymentMethod = await LoadPaymentMethodAsync(prior.PaymentMethodId, cancellationToken);
-                if (paymentMethod.IsCash)
+                var isManualCashierReplay = prior.ProviderStatusCode == "MANUAL_CASHIER"
+                    || request.IsManualCashierConfirmed == true
+                    || (settlement.Purpose == BillingSettlementPurposes.MembershipFee && !string.IsNullOrWhiteSpace(prior.CashierReferenceNote));
+
+                if (paymentMethod.IsCash || isManualCashierReplay)
                 {
                     var activeShift = await RequireCashierShiftAsync(actorUserId, cancellationToken);
                     if (tender.CashierShiftId.HasValue && tender.CashierShiftId != activeShift.Id)
                         throw new BillingSettlementConflictException(
-                            "Tender tunai sudah terikat ke shift kasir lain.");
+                            "Tender sudah terikat ke shift kasir lain.");
                     tender.CashierShiftId = activeShift.Id;
                 }
                 isReplay = true;
@@ -300,7 +304,34 @@ public sealed class BillingSettlementService
 
                 paymentMethod = await LoadPaymentMethodAsync(request.PaymentMethodId, cancellationToken);
                 ValidatePaymentMethod(paymentMethod);
-                var activeShift = paymentMethod.IsCash
+
+                var isManualCashierNew = request.IsManualCashierConfirmed == true
+                    || (settlement.Purpose == BillingSettlementPurposes.MembershipFee && !string.IsNullOrWhiteSpace(request.CashierReferenceNote));
+
+                if (isManualCashierNew && paymentMethod.IsBankTransfer && !request.PaymentMethodAccountId.HasValue)
+                    throw new BillingSettlementValidationException(
+                        "Rekening bank tujuan rumah sakit wajib dipilih untuk pembayaran transfer bank.");
+
+                if (isManualCashierNew && string.IsNullOrWhiteSpace(request.CashierReferenceNote))
+                    throw new BillingSettlementValidationException(
+                        "Nomor referensi bukti transaksi kasir wajib diisi.");
+
+                if (isManualCashierNew && !string.IsNullOrWhiteSpace(request.CashierReferenceNote))
+                {
+                    var trimmedRef = request.CashierReferenceNote.Trim();
+                    var duplicateRef = await _dbContext.BilTenders.AsNoTracking().AnyAsync(
+                        x => !x.IsDelete
+                            && x.Status == BillingTenderStatuses.Succeeded
+                            && x.PaymentMethodId == request.PaymentMethodId
+                            && x.PaymentMethodAccountId == request.PaymentMethodAccountId
+                            && x.CashierReferenceNote == trimmedRef,
+                        cancellationToken);
+                    if (duplicateRef)
+                        throw new BillingSettlementConflictException(
+                            $"Nomor referensi pembayaran '{trimmedRef}' sudah pernah digunakan pada tender lain yang berhasil.");
+                }
+
+                var activeShift = (paymentMethod.IsCash || isManualCashierNew)
                     ? await RequireCashierShiftAsync(actorUserId, cancellationToken)
                     : null;
                 var collectibleAmount = CalculateCollectibleAmount(settlement);
@@ -346,7 +377,7 @@ public sealed class BillingSettlementService
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
-            if (isReplay && paymentMethod.IsCash)
+            if (isReplay && (paymentMethod.IsCash || tender.ProviderStatusCode == "MANUAL_CASHIER"))
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
@@ -384,6 +415,29 @@ public sealed class BillingSettlementService
                     BillingPaymentProviderOutcome.Succeeded,
                     null,
                     "CASH_RECEIVED",
+                    DateTimeOffset.UtcNow,
+                    tender.CorrelationId,
+                    tender.CausationId),
+                actorUserId,
+                cancellationToken);
+            response.IsReplay = isReplay;
+            await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
+            await TryConfirmMembershipFeeAsync(tender.SettlementId, actorUserId, cancellationToken);
+            return response;
+        }
+
+        var isManualCashier = request.IsManualCashierConfirmed == true
+            || (tender.Settlement?.Purpose == BillingSettlementPurposes.MembershipFee && !string.IsNullOrWhiteSpace(tender.CashierReferenceNote));
+
+        if (isManualCashier)
+        {
+            var response = await ReconcileTenderAsync(
+                tender.Id,
+                new BillingPaymentProviderResult(
+                    $"manual_cashier:{tender.Id:N}",
+                    BillingPaymentProviderOutcome.Succeeded,
+                    null,
+                    "MANUAL_CASHIER",
                     DateTimeOffset.UtcNow,
                     tender.CorrelationId,
                     tender.CausationId),
@@ -474,6 +528,13 @@ public sealed class BillingSettlementService
                 throw new BillingSettlementValidationException(
                     "Tender tunai hanya dapat direkonsiliasi oleh penerimaan kas internal.");
 
+            var isManualCashier = result.ProviderStatusCode == "MANUAL_CASHIER"
+                || (result.EventId != null && result.EventId.StartsWith("manual_cashier:", StringComparison.OrdinalIgnoreCase));
+
+            if (isManualCashier && paymentMethod.IsCash)
+                throw new BillingSettlementValidationException(
+                    "Tender tunai tidak dapat direkonsiliasi lewat jalur non-tunai manual.");
+
             if (tender.CorrelationId != result.CorrelationId
                 || tender.CausationId != result.CausationId)
                 throw new BillingSettlementConflictException(
@@ -510,9 +571,34 @@ public sealed class BillingSettlementService
                     "Hanya tender berhasil yang dapat direversal.");
             if (targetStatus == BillingTenderStatuses.Succeeded
                 && !paymentMethod.IsCash
+                && !isManualCashier
                 && string.IsNullOrWhiteSpace(result.ProviderReference))
                 throw new BillingSettlementValidationException(
                     "ProviderReference wajib tersedia untuk tender yang berhasil.");
+
+            if (targetStatus == BillingTenderStatuses.Succeeded && isManualCashier)
+            {
+                if (string.IsNullOrWhiteSpace(tender.CashierReferenceNote))
+                    throw new BillingSettlementValidationException(
+                        "Nomor referensi bukti transaksi kasir wajib tersedia untuk konfirmasi manual.");
+
+                if (paymentMethod.IsBankTransfer && !tender.PaymentMethodAccountId.HasValue)
+                    throw new BillingSettlementValidationException(
+                        "Rekening bank tujuan rumah sakit wajib dipilih untuk pembayaran transfer bank.");
+
+                var trimmedRef = tender.CashierReferenceNote.Trim();
+                var duplicateRef = await _dbContext.BilTenders.AsNoTracking().AnyAsync(
+                    x => x.Id != tender.Id
+                        && !x.IsDelete
+                        && x.Status == BillingTenderStatuses.Succeeded
+                        && x.PaymentMethodId == tender.PaymentMethodId
+                        && x.PaymentMethodAccountId == tender.PaymentMethodAccountId
+                        && x.CashierReferenceNote == trimmedRef,
+                    cancellationToken);
+                if (duplicateRef)
+                    throw new BillingSettlementConflictException(
+                        $"Nomor referensi pembayaran '{trimmedRef}' sudah pernah digunakan pada tender lain yang berhasil.");
+            }
             if (!string.IsNullOrWhiteSpace(tender.ProviderReference)
                 && !string.IsNullOrWhiteSpace(result.ProviderReference)
                 && tender.ProviderReference != result.ProviderReference)
@@ -542,6 +628,15 @@ public sealed class BillingSettlementService
             tender.RowVersion = Guid.NewGuid();
             tender.UpdateDateTime = DateTime.UtcNow;
             tender.UpdateBy = actorUserId;
+
+            if (targetStatus == BillingTenderStatuses.Succeeded
+                && beforeTenderStatus != BillingTenderStatuses.Succeeded
+                && isManualCashier
+                && !tender.CashierShiftId.HasValue)
+            {
+                var activeShift = await RequireCashierShiftAsync(actorUserId, cancellationToken);
+                tender.CashierShiftId = activeShift.Id;
+            }
 
             if (targetStatus == BillingTenderStatuses.Succeeded
                 && beforeTenderStatus != BillingTenderStatuses.Succeeded
@@ -762,6 +857,19 @@ public sealed class BillingSettlementService
                 }
             }
 
+            // Auto-Reblock rawat inap jika tender dibalik (PaymentReversed)
+            if (tender.Settlement.InvoiceId.HasValue && targetStatus == BillingTenderStatuses.Reversed)
+            {
+                await _consumerHandoffService.TriggerInpatientAutoReblockIfApplicableAsync(
+                    tender.Settlement.InvoiceId.Value,
+                    InpatientClearanceReasonCodes.PaymentReversed,
+                    actorUserId,
+                    result.OccurredAt,
+                    tender.CorrelationId,
+                    tender.CausationId,
+                    cancellationToken);
+            }
+
             // BE-BKC-067 / BKC-DEC-106 / BKC-DES-038 / BIL-INT-014: Menerbitkan surat clearance resep
             // (BilPrescriptionClearanceHandoff) untuk Farmasi saat status tagihan lunas (CLEARED / INVOICE_SETTLED)
             // atau saat pembayaran dibalik (REVOKED / PAYMENT_REVERSED).
@@ -894,6 +1002,152 @@ public sealed class BillingSettlementService
         {
             if (transaction is not null) await transaction.DisposeAsync();
         }
+    }
+
+    /// <summary>
+    /// Konfirmasi manual oleh kasir untuk tender non-tunai (Transfer Bank / QRIS manual) yang berstatus
+    /// CREATED atau PENDING tanpa integrasi provider payment otomatis.
+    /// Memverifikasi nomor referensi bukti pembayaran kasir, rekening tujuan RS, dan shift kasir aktif.
+    /// Idempotent: jika tender sudah SUCCEEDED, mengembalikan data tender yang ada.
+    /// </summary>
+    public async Task<TenderResponse> ManualConfirmTenderAsync(
+        Guid settlementId,
+        Guid tenderId,
+        ManualConfirmTenderRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (settlementId == Guid.Empty || tenderId == Guid.Empty)
+            throw new BillingSettlementValidationException("SettlementId dan TenderId wajib diisi.");
+        if (idempotencyKey == Guid.Empty)
+            throw new BillingSettlementValidationException("Idempotency-Key wajib tersedia.");
+        if (string.IsNullOrWhiteSpace(request.CashierReferenceNote))
+            throw new BillingSettlementValidationException("Nomor referensi bukti transaksi kasir wajib diisi.");
+        if (!request.UserConfirmation)
+            throw new BillingSettlementValidationException("Pernyataan verifikasi bukti transaksi wajib disetujui.");
+
+        IDbContextTransaction? transaction = null;
+        BilTender tender;
+        var isReplay = false;
+
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_SETTLEMENT_{settlementId:N}", cancellationToken);
+                await AcquireLockAsync($"BIL_TENDER_{tenderId:N}", cancellationToken);
+            }
+
+            var settlement = await _dbContext.BilSettlements
+                .Include(x => x.Tenders)
+                .SingleOrDefaultAsync(x => x.Id == settlementId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Settlement tidak ditemukan.");
+
+            tender = settlement.Tenders.SingleOrDefault(x => x.Id == tenderId && !x.IsDelete)
+                ?? throw new KeyNotFoundException("Tender tidak ditemukan dalam settlement ini.");
+
+            if (tender.Status == BillingTenderStatuses.Succeeded)
+            {
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                return MapTender(tender, true);
+            }
+
+            if (tender.Status != BillingTenderStatuses.Created && tender.Status != BillingTenderStatuses.Pending)
+            {
+                throw new BillingSettlementValidationException(
+                    $"Tender dalam status '{tender.Status}' tidak dapat dikonfirmasi manual.");
+            }
+
+            if (tender.RowVersion != request.ExpectedRowVersion)
+            {
+                throw new BillingSettlementConflictException(
+                    "Data tender telah berubah. Muat ulang sebelum melanjutkan.");
+            }
+
+            var paymentMethod = await LoadPaymentMethodAsync(tender.PaymentMethodId, cancellationToken);
+            ValidatePaymentMethod(paymentMethod);
+            if (paymentMethod.IsCash)
+            {
+                throw new BillingSettlementValidationException(
+                    "Tender tunai tidak dapat dikonfirmasi lewat alur manual non-tunai.");
+            }
+
+            var activeShift = await RequireCashierShiftAsync(actorUserId, cancellationToken);
+            tender.CashierShiftId = activeShift.Id;
+            tender.CashierReferenceNote = request.CashierReferenceNote.Trim();
+            if (request.PaymentMethodAccountId.HasValue)
+            {
+                tender.PaymentMethodAccountId = request.PaymentMethodAccountId.Value;
+            }
+
+            if (paymentMethod.IsBankTransfer && !tender.PaymentMethodAccountId.HasValue)
+            {
+                throw new BillingSettlementValidationException(
+                    "Rekening bank tujuan rumah sakit wajib dipilih untuk pembayaran transfer bank.");
+            }
+
+            var duplicateRef = await _dbContext.BilTenders.AsNoTracking().AnyAsync(
+                x => x.Id != tender.Id
+                    && !x.IsDelete
+                    && x.Status == BillingTenderStatuses.Succeeded
+                    && x.PaymentMethodId == tender.PaymentMethodId
+                    && x.PaymentMethodAccountId == tender.PaymentMethodAccountId
+                    && x.CashierReferenceNote == tender.CashierReferenceNote,
+                cancellationToken);
+            if (duplicateRef)
+            {
+                throw new BillingSettlementConflictException(
+                    $"Nomor referensi pembayaran '{tender.CashierReferenceNote}' sudah pernah digunakan pada transaksi lain yang berhasil.");
+            }
+
+            tender.RowVersion = Guid.NewGuid();
+            tender.UpdateDateTime = DateTime.UtcNow;
+            tender.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingSettlementConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingSettlementConflictException(
+                "Tender tidak dapat dikonfirmasi karena terjadi konflik data.", exception);
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+
+        var providerResult = new BillingPaymentProviderResult(
+            $"manual_cashier:{tender.Id:N}",
+            BillingPaymentProviderOutcome.Succeeded,
+            null,
+            "MANUAL_CASHIER",
+            DateTimeOffset.UtcNow,
+            request.CorrelationId != Guid.Empty ? request.CorrelationId : tender.CorrelationId,
+            request.CausationId != Guid.Empty ? request.CausationId : tender.CausationId);
+
+        var response = await ReconcileTenderAsync(
+            tender.Id, providerResult, actorUserId, cancellationToken);
+        response.IsReplay = isReplay;
+        await TryAutoFinalizeInvoiceAsync(tender.SettlementId, actorUserId, cancellationToken);
+        await TryConfirmMembershipFeeAsync(tender.SettlementId, actorUserId, cancellationToken);
+        return response;
     }
 
     // Tagihan yang sudah lunas langsung difinalisasi tanpa menunggu tindakan kasir.
@@ -1778,7 +2032,13 @@ public sealed class BillingSettlementService
             CashierShiftId = tender.CashierShiftId,
             RowVersion = tender.RowVersion,
             IsReplay = isReplay,
-            InvoiceClosureNote = invoiceClosureNote
+            InvoiceClosureNote = invoiceClosureNote,
+            ConfirmationSource = tender.ProviderStatusCode == "CASH_RECEIVED"
+                ? "CASH"
+                : (tender.ProviderStatusCode == "MANUAL_CASHIER"
+                    ? "MANUAL_CASHIER"
+                    : (!string.IsNullOrWhiteSpace(tender.ProviderReference) ? "PAYMENT_PROVIDER" : null)),
+            ConfirmedAt = tender.SettledAt
         };
 
         if (tender.Settlement != null)

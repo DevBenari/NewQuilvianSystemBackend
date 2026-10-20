@@ -1,1182 +1,1195 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
-using QuilvianSystemBackend.Repositories;
-using QuilvianSystemBackend.Services.Logging;
-using System.Data;
-using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
-
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
-
-public sealed class BillingFinancialExceptionService
-{
-    private const string LogCategory = "HealthServices.BillingManagement.Billing";
-    private const decimal MaxMoneyAmount = 9999999999999999.99m;
-    private readonly ApplicationDbContext _dbContext;
-    private readonly BillingArApHandoffService _arApHandoffService;
-    private readonly BillingInvoiceClosureService _closureService;
-    private readonly BilConsumerHandoffService _consumerHandoffService;
-    private readonly LoggerService _loggerService;
-
-    public BillingFinancialExceptionService(
-        ApplicationDbContext dbContext,
-        BillingArApHandoffService arApHandoffService,
-        BillingInvoiceClosureService closureService,
-        BilConsumerHandoffService consumerHandoffService,
-        LoggerService loggerService)
-    {
-        _dbContext = dbContext;
-        _arApHandoffService = arApHandoffService;
-        _closureService = closureService;
-        _consumerHandoffService = consumerHandoffService;
-        _loggerService = loggerService;
-    }
-
-    public async Task<AdjustmentResponse> CreateAdjustmentAsync(
-        CreateAdjustmentRequest request,
-        Guid idempotencyKey,
-        Guid actorUserId,
-        CancellationToken cancellationToken)
-    {
-        ValidateCreateAdjustmentRequest(request, idempotencyKey, actorUserId);
-        var payloadHash = ComputeAdjustmentPayloadHash(request);
-        IDbContextTransaction? transaction = null;
-
-        try
-        {
-            if (_dbContext.Database.IsRelational())
-            {
-                transaction = await _dbContext.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
-                await AcquireLockAsync($"BIL_INVOICE_LEDGER_{request.InvoiceId:N}", cancellationToken);
-            }
-
-            var prior = await _dbContext.BilAdjustments
-                .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
-            if (prior is not null)
-            {
-                if (prior.PayloadHash != payloadHash)
-                    throw new BillingFinancialExceptionConflictException(
-                        "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
-                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-                await AuditAdjustmentAsync("BillingAdjustment.Create", prior, actorUserId, true);
-                return MapAdjustment(prior, true);
-            }
-
-            if (await _dbContext.BilAdjustments.AsNoTracking()
-                .AnyAsync(x => x.CorrelationId == request.CorrelationId, cancellationToken))
-                throw new BillingFinancialExceptionConflictException(
-                    "CorrelationId sudah diproses; gunakan correlation baru.");
-
-            var invoice = await _dbContext.BilInvoices
-                .SingleOrDefaultAsync(x => x.Id == request.InvoiceId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
-            EnsureLedgerMutableInvoice(invoice);
-            if (invoice.RowVersion != request.ExpectedInvoiceRowVersion)
-                throw new BillingFinancialExceptionConflictException(
-                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
-
-            var now = DateTimeOffset.UtcNow;
-            var adjustment = new BilAdjustment
-            {
-                InvoiceId = invoice.Id,
-                Invoice = invoice,
-                Direction = request.Direction,
-                Amount = request.Amount,
-                Status = BillingAdjustmentStatuses.Submitted,
-                RequestedBy = actorUserId,
-                Reason = request.Reason.Trim(),
-                IdempotencyKey = idempotencyKey,
-                PayloadHash = payloadHash,
-                CorrelationId = request.CorrelationId,
-                CausationId = request.CausationId,
-                SubmittedAt = now,
-                RowVersion = Guid.NewGuid(),
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = actorUserId
-            };
-            _dbContext.BilAdjustments.Add(adjustment);
-            invoice.RowVersion = Guid.NewGuid();
-            invoice.UpdateDateTime = DateTime.UtcNow;
-            invoice.UpdateBy = actorUserId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-            await AuditAdjustmentAsync("BillingAdjustment.Create", adjustment, actorUserId, false);
-            return MapAdjustment(adjustment, false);
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
-        }
-        catch (DbUpdateException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Adjustment tidak dapat disimpan karena target, correlation, atau idempotency key sudah diproses.",
-                exception);
-        }
-        catch
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw;
-        }
-        finally
-        {
-            if (transaction is not null) await transaction.DisposeAsync();
-        }
-    }
-
-    public async Task<AdjustmentResponse> GetAdjustmentByIdAsync(
-        Guid adjustmentId,
-        CancellationToken cancellationToken)
-    {
-        var adjustment = await _dbContext.BilAdjustments.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == adjustmentId && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException("Adjustment tidak ditemukan.");
-        return MapAdjustment(adjustment, false);
-    }
-
-    public async Task<IReadOnlyList<AdjustmentResponse>> ListAdjustmentsByInvoiceAsync(
-        Guid invoiceId,
-        CancellationToken cancellationToken)
-    {
-        var adjustments = await _dbContext.BilAdjustments.AsNoTracking()
-            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
-            .OrderByDescending(x => x.SubmittedAt)
-            .ToListAsync(cancellationToken);
-        return adjustments.Select(x => MapAdjustment(x, false)).ToList();
-    }
-
-    public async Task<WriteOffResponse> GetWriteOffByIdAsync(
-        Guid writeOffCaseId,
-        CancellationToken cancellationToken)
-    {
-        var writeOffCase = await _dbContext.BilWriteOffCases.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == writeOffCaseId && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException("Write-off case tidak ditemukan.");
-        return MapWriteOff(writeOffCase, null, null, false);
-    }
-
-    public async Task<IReadOnlyList<WriteOffResponse>> ListWriteOffsByInvoiceAsync(
-        Guid invoiceId,
-        CancellationToken cancellationToken)
-    {
-        var writeOffCases = await _dbContext.BilWriteOffCases.AsNoTracking()
-            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
-            .OrderByDescending(x => x.SubmittedAt)
-            .ToListAsync(cancellationToken);
-        return writeOffCases.Select(x => MapWriteOff(x, null, null, false)).ToList();
-    }
-
-    public async Task<AdjustmentResponse> ApproveAdjustmentAsync(
-        Guid adjustmentId,
-        AdjustmentApprovalRequest request,
-        Guid actorUserId,
-        CancellationToken cancellationToken)
-    {
-        ValidateApprovalRequest(request, actorUserId);
-        IDbContextTransaction? transaction = null;
-
-        try
-        {
-            if (_dbContext.Database.IsRelational())
-            {
-                transaction = await _dbContext.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
-                await AcquireLockAsync($"BIL_ADJUSTMENT_{adjustmentId:N}", cancellationToken);
-            }
-
-            var adjustment = await _dbContext.BilAdjustments
-                .Include(x => x.Invoice)
-                .SingleOrDefaultAsync(x => x.Id == adjustmentId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Adjustment tidak ditemukan.");
-            if (adjustment.RowVersion != request.ExpectedRowVersion)
-                throw new BillingFinancialExceptionConflictException(
-                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
-            if (adjustment.Status != BillingAdjustmentStatuses.Submitted)
-                throw new BillingFinancialExceptionConflictException(
-                    "Adjustment tidak lagi menunggu approval.");
-            if (adjustment.RequestedBy == actorUserId)
-                throw new BillingFinancialExceptionForbiddenException(
-                    "Pengaju adjustment tidak boleh menyetujui pengajuannya sendiri.");
-
-            var beforeStatus = adjustment.Status;
-            adjustment.Status = BillingAdjustmentStatuses.Posted;
-            adjustment.ApprovedBy = actorUserId;
-            adjustment.PostedAt = DateTimeOffset.UtcNow;
-            adjustment.RowVersion = Guid.NewGuid();
-            adjustment.UpdateDateTime = DateTime.UtcNow;
-            adjustment.UpdateBy = actorUserId;
-            adjustment.Invoice.RowVersion = Guid.NewGuid();
-            adjustment.Invoice.UpdateDateTime = DateTime.UtcNow;
-            adjustment.Invoice.UpdateBy = actorUserId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            var closureChange = await SyncClosureInsideTransactionAsync(
-                adjustment.InvoiceId, actorUserId, adjustment.PostedAt!.Value, cancellationToken);
-            if (closureChange.Changed)
-            {
-                string? reasonCode = closureChange.StatusAfter switch
-                {
-                    BillingInvoiceStatuses.Closed => PrescriptionClearanceReasonCodes.InvoiceSettled,
-                    BillingInvoiceStatuses.Final => PrescriptionClearanceReasonCodes.PayerCoverageReversed,
-                    _ => null
-                };
-                if (reasonCode != null)
-                {
-                    await _consumerHandoffService.PublishForClearanceChangeAsync(
-                        adjustment.InvoiceId,
-                        reasonCode,
-                        actorUserId,
-                        adjustment.PostedAt!.Value,
-                        adjustment.CorrelationId,
-                        adjustment.CausationId,
-                        cancellationToken);
-                    await _dbContext.SaveChangesAsync(cancellationToken);
-                }
-            }
-            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-            await AuditAdjustmentApprovalAsync(adjustment, beforeStatus, actorUserId);
-            if (closureChange.Changed)
-                await AuditClosureChangeAsync(closureChange, actorUserId, "AdjustmentPosted");
-            // BKC-DES-035: penjaga BillingArApHandoffService.RecordCorrectionIfLinkedAsync sudah
-            // menerima FINAL maupun CLOSED - dipanggil SESUDAH commit (transaksi terpisah,
-            // idempotent per source), TIDAK dipindah ke dalam transaksi di atas.
-            await _arApHandoffService.RecordCorrectionIfLinkedAsync(
-                adjustment.InvoiceId, adjustment.Id, null, adjustment.Direction, adjustment.Amount,
-                adjustment.Reason, actorUserId, cancellationToken);
-            return MapAdjustment(adjustment, false);
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
-        }
-        catch (DbUpdateException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Approval adjustment tidak dapat disimpan.", exception);
-        }
-        catch
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw;
-        }
-        finally
-        {
-            if (transaction is not null) await transaction.DisposeAsync();
-        }
-    }
-
-    public async Task<WriteOffResponse> CreateWriteOffAsync(
-        CreateWriteOffRequest request,
-        Guid idempotencyKey,
-        Guid actorUserId,
-        CancellationToken cancellationToken)
-    {
-        ValidateCreateWriteOffRequest(request, idempotencyKey, actorUserId);
-        var category = ResolveWriteOffCategory(request.Category);
-        // BIL-VAL-041: residual non-billable bukan piutang pasien - tidak ada yang "dilunasi".
-        if (category == BillingWriteOffCategories.NonBillableResidual && request.IsFullSettlement)
-            throw new BillingFinancialExceptionValidationException(
-                "Selisih yang tidak dapat ditagihkan bukan pelunasan tagihan pasien; hapus tanda pelunasan penuh.");
-        var payloadHash = ComputeWriteOffPayloadHash(request, category);
-        IDbContextTransaction? transaction = null;
-
-        try
-        {
-            if (_dbContext.Database.IsRelational())
-            {
-                transaction = await _dbContext.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
-                await AcquireLockAsync($"BIL_INVOICE_LEDGER_{request.InvoiceId:N}", cancellationToken);
-            }
-
-            var prior = await _dbContext.BilWriteOffCases
-                .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
-            if (prior is not null)
-            {
-                if (prior.PayloadHash != payloadHash)
-                    throw new BillingFinancialExceptionConflictException(
-                        "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
-                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-                await AuditWriteOffAsync("BillingWriteOff.Create", prior, actorUserId, true, null, null);
-                return MapWriteOff(prior, null, null, true);
-            }
-
-            if (await _dbContext.BilWriteOffCases.AsNoTracking()
-                .AnyAsync(x => x.CorrelationId == request.CorrelationId, cancellationToken))
-                throw new BillingFinancialExceptionConflictException(
-                    "CorrelationId sudah diproses; gunakan correlation baru.");
-
-            var invoice = await _dbContext.BilInvoices
-                .SingleOrDefaultAsync(x => x.Id == request.InvoiceId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
-            EnsureLedgerMutableInvoice(invoice);
-            if (invoice.RowVersion != request.ExpectedInvoiceRowVersion)
-                throw new BillingFinancialExceptionConflictException(
-                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
-
-            // BE-BKC-029/BKC-DES-024: plafon bercabang mengikuti kategori. PATIENT_AR tetap
-            // dibatasi outstanding pasien (pesan lama dipertahankan apa adanya, regresi wajib
-            // nol). NON_BILLABLE_RESIDUAL dibatasi sisa selisih tidak dapat ditagihkan - plafon
-            // yang sama sekali berbeda dari outstanding pasien (BIL-VAL-040).
-            decimal plafon;
-            if (category == BillingWriteOffCategories.NonBillableResidual)
-            {
-                plafon = await CalculateNonBillableResidualRemainingAsync(invoice, cancellationToken);
-                if (request.Amount > plafon)
-                    throw new BillingFinancialExceptionValidationException(
-                        "Nominal write-off melebihi selisih yang tidak dapat ditagihkan pada tagihan ini.");
-            }
-            else
-            {
-                plafon = await CalculateOutstandingAsync(invoice, cancellationToken);
-                if (request.Amount > plafon)
-                    throw new BillingFinancialExceptionValidationException(
-                        "Nominal write-off melebihi saldo outstanding invoice saat ini.");
-            }
-
-            var now = DateTimeOffset.UtcNow;
-            var writeOffCase = new BilWriteOffCase
-            {
-                InvoiceId = invoice.Id,
-                Invoice = invoice,
-                Amount = request.Amount,
-                Category = category,
-                Status = BillingWriteOffCaseStatuses.Submitted,
-                RequestedBy = actorUserId,
-                Reason = request.Reason.Trim(),
-                IdempotencyKey = idempotencyKey,
-                PayloadHash = payloadHash,
-                CorrelationId = request.CorrelationId,
-                CausationId = request.CausationId,
-                SubmittedAt = now,
-                RowVersion = Guid.NewGuid(),
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = actorUserId
-            };
-            _dbContext.BilWriteOffCases.Add(writeOffCase);
-            invoice.RowVersion = Guid.NewGuid();
-            invoice.UpdateDateTime = DateTime.UtcNow;
-            invoice.UpdateBy = actorUserId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-            await AuditWriteOffAsync(
-                "BillingWriteOff.Create", writeOffCase, actorUserId, false, plafon, plafon);
-            return MapWriteOff(writeOffCase, plafon, plafon, false);
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
-        }
-        catch (DbUpdateException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Write-off tidak dapat disimpan karena target, correlation, atau idempotency key sudah diproses.",
-                exception);
-        }
-        catch
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw;
-        }
-        finally
-        {
-            if (transaction is not null) await transaction.DisposeAsync();
-        }
-    }
-
-    public async Task<WriteOffResponse> ApproveWriteOffAsync(
-        Guid writeOffCaseId,
-        WriteOffApprovalRequest request,
-        Guid actorUserId,
-        CancellationToken cancellationToken)
-    {
-        ValidateApprovalRequest(request, actorUserId);
-        IDbContextTransaction? transaction = null;
-
-        try
-        {
-            if (_dbContext.Database.IsRelational())
-            {
-                transaction = await _dbContext.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
-                await AcquireLockAsync($"BIL_WRITEOFF_{writeOffCaseId:N}", cancellationToken);
-            }
-
-            var writeOffCase = await _dbContext.BilWriteOffCases
-                .Include(x => x.Invoice)
-                .SingleOrDefaultAsync(x => x.Id == writeOffCaseId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Write-off case tidak ditemukan.");
-            if (writeOffCase.RowVersion != request.ExpectedRowVersion)
-                throw new BillingFinancialExceptionConflictException(
-                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
-            if (writeOffCase.Status != BillingWriteOffCaseStatuses.Submitted)
-                throw new BillingFinancialExceptionConflictException(
-                    "Write-off case tidak lagi menunggu approval.");
-            if (writeOffCase.RequestedBy == actorUserId)
-                throw new BillingFinancialExceptionForbiddenException(
-                    "Pengaju write-off tidak boleh menyetujui pengajuannya sendiri.");
-
-            // BE-BKC-029/BKC-DES-024: pemeriksaan ulang plafon sebelum posting bercabang kategori
-            // - persis seperti CreateWriteOffAsync, karena saldo dapat berubah di antara pengajuan
-            // dan persetujuan.
-            var isResidual = writeOffCase.Category == BillingWriteOffCategories.NonBillableResidual;
-            var plafonBefore = isResidual
-                ? await CalculateNonBillableResidualRemainingAsync(writeOffCase.Invoice, cancellationToken)
-                : await CalculateOutstandingAsync(writeOffCase.Invoice, cancellationToken);
-            if (writeOffCase.Amount > plafonBefore)
-                throw new BillingFinancialExceptionValidationException(
-                    isResidual
-                        ? "Selisih yang tidak dapat ditagihkan telah berubah dan tidak lagi mencukupi nominal write-off ini; ajukan ulang."
-                        : "Saldo outstanding telah berubah dan tidak lagi mencukupi nominal write-off ini; ajukan ulang.");
-
-            var beforeStatus = writeOffCase.Status;
-            var plafonAfter = Math.Max(plafonBefore - writeOffCase.Amount, 0);
-            // BIL-VAL-018 dipertegas/BKC-DES-024: HANYA PATIENT_AR yang dapat menjadi pelunasan
-            // penuh dan memindahkan status invoice. Residual TIDAK PERNAH - uangnya bukan piutang
-            // pasien, sehingga "pelunasan" tidak berlaku baginya sama sekali, apa pun nominalnya.
-            writeOffCase.IsFullSettlement = !isResidual && plafonAfter == 0;
-            writeOffCase.Status = BillingWriteOffCaseStatuses.Posted;
-            writeOffCase.ApprovedBy = actorUserId;
-            writeOffCase.PostedAt = DateTimeOffset.UtcNow;
-            writeOffCase.RowVersion = Guid.NewGuid();
-            writeOffCase.UpdateDateTime = DateTime.UtcNow;
-            writeOffCase.UpdateBy = actorUserId;
-            if (writeOffCase.IsFullSettlement)
-                writeOffCase.Invoice.Status = BillingInvoiceStatuses.SettledByWriteOff;
-            writeOffCase.Invoice.RowVersion = Guid.NewGuid();
-            writeOffCase.Invoice.UpdateDateTime = DateTime.UtcNow;
-            writeOffCase.Invoice.UpdateBy = actorUserId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            // BIL-VAL-108: bila IsFullSettlement memindahkan invoice ke SETTLED_BY_WRITE_OFF,
-            // penjaga status SyncClosureAsync melewatkannya secara alami (bukan FINAL/CLOSED) -
-            // tidak perlu percabangan khusus di sini.
-            var closureChange = await SyncClosureInsideTransactionAsync(
-                writeOffCase.InvoiceId, actorUserId, writeOffCase.PostedAt!.Value, cancellationToken);
-            if (writeOffCase.IsFullSettlement || (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Closed))
-            {
-                await _consumerHandoffService.PublishForClearanceChangeAsync(
-                    writeOffCase.InvoiceId,
-                    PrescriptionClearanceReasonCodes.InvoiceWrittenOff,
-                    actorUserId,
-                    writeOffCase.PostedAt!.Value,
-                    writeOffCase.CorrelationId,
-                    writeOffCase.CausationId,
-                    cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
-            }
-            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-            await AuditWriteOffApprovalAsync(
-                writeOffCase, beforeStatus, plafonBefore, plafonAfter, actorUserId);
-            if (closureChange.Changed)
-                await AuditClosureChangeAsync(closureChange, actorUserId, "WriteOffPosted");
-            await _arApHandoffService.RecordCorrectionIfLinkedAsync(
-                writeOffCase.InvoiceId, null, writeOffCase.Id, BillingAdjustmentDirections.Credit,
-                writeOffCase.Amount, writeOffCase.Reason, actorUserId, cancellationToken);
-            return MapWriteOff(writeOffCase, plafonBefore, plafonAfter, false);
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
-        }
-        catch (DbUpdateException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Approval write-off tidak dapat disimpan.", exception);
-        }
-        catch
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw;
-        }
-        finally
-        {
-            if (transaction is not null) await transaction.DisposeAsync();
-        }
-    }
-
-    public Task<AdjustmentResponse> ReverseAsync(
-        string type,
-        Guid id,
-        ReverseExceptionRequest request,
-        Guid actorUserId,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(request?.Reason))
-            throw new BillingFinancialExceptionValidationException("Alasan reversal wajib diisi.");
-        return type.Trim().ToLowerInvariant() switch
-        {
-            "adjustments" => ReverseAdjustmentAsync(id, request!, actorUserId, cancellationToken),
-            "write-offs" => ReverseWriteOffAsync(id, request!, actorUserId, cancellationToken),
-            _ => throw new BillingFinancialExceptionValidationException(
-                "Tipe financial exception tidak didukung untuk reversal.")
-        };
-    }
-
-    private async Task<AdjustmentResponse> ReverseAdjustmentAsync(
-        Guid adjustmentId,
-        ReverseExceptionRequest request,
-        Guid actorUserId,
-        CancellationToken cancellationToken)
-    {
-        IDbContextTransaction? transaction = null;
-        try
-        {
-            if (_dbContext.Database.IsRelational())
-            {
-                transaction = await _dbContext.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
-                await AcquireLockAsync($"BIL_ADJUSTMENT_{adjustmentId:N}", cancellationToken);
-            }
-
-            var existingReversal = await _dbContext.BilAdjustments.AsNoTracking()
-                .SingleOrDefaultAsync(
-                    x => x.ReversesAdjustmentId == adjustmentId && !x.IsDelete, cancellationToken);
-            if (existingReversal is not null)
-            {
-                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-                return MapAdjustment(existingReversal, true);
-            }
-
-            var original = await _dbContext.BilAdjustments
-                .SingleOrDefaultAsync(x => x.Id == adjustmentId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Adjustment tidak ditemukan.");
-            if (original.RowVersion != request.ExpectedRowVersion)
-                throw new BillingFinancialExceptionConflictException(
-                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
-            if (original.Status != BillingAdjustmentStatuses.Posted)
-                throw new BillingFinancialExceptionValidationException(
-                    "Hanya adjustment yang sudah POSTED dapat direversal.");
-
-            var invoice = await _dbContext.BilInvoices
-                .SingleAsync(x => x.Id == original.InvoiceId, cancellationToken);
-            var now = DateTimeOffset.UtcNow;
-            var reversal = new BilAdjustment
-            {
-                InvoiceId = original.InvoiceId,
-                Invoice = invoice,
-                Direction = original.Direction == BillingAdjustmentDirections.Credit
-                    ? BillingAdjustmentDirections.Debit
-                    : BillingAdjustmentDirections.Credit,
-                Amount = original.Amount,
-                Status = BillingAdjustmentStatuses.Posted,
-                RequestedBy = actorUserId,
-                ApprovedBy = actorUserId,
-                Reason = request.Reason.Trim(),
-                ReversesAdjustmentId = original.Id,
-                IdempotencyKey = Guid.NewGuid(),
-                PayloadHash = ComputeReversalPayloadHash(original.Id, request.Reason),
-                CorrelationId = Guid.NewGuid(),
-                CausationId = Guid.NewGuid(),
-                SubmittedAt = now,
-                PostedAt = now,
-                RowVersion = Guid.NewGuid(),
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = actorUserId
-            };
-            _dbContext.BilAdjustments.Add(reversal);
-            invoice.RowVersion = Guid.NewGuid();
-            invoice.UpdateDateTime = DateTime.UtcNow;
-            invoice.UpdateBy = actorUserId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            var closureChange = await SyncClosureInsideTransactionAsync(
-                reversal.InvoiceId, actorUserId, now, cancellationToken);
-            if (closureChange.Changed)
-            {
-                string? reasonCode = closureChange.StatusAfter switch
-                {
-                    BillingInvoiceStatuses.Closed => PrescriptionClearanceReasonCodes.InvoiceSettled,
-                    BillingInvoiceStatuses.Final => PrescriptionClearanceReasonCodes.PayerCoverageReversed,
-                    _ => null
-                };
-                if (reasonCode != null)
-                {
-                    await _consumerHandoffService.PublishForClearanceChangeAsync(
-                        reversal.InvoiceId,
-                        reasonCode,
-                        actorUserId,
-                        now,
-                        reversal.CorrelationId,
-                        reversal.CausationId,
-                        cancellationToken);
-                    await _dbContext.SaveChangesAsync(cancellationToken);
-                }
-            }
-            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-            await AuditReversalAsync("BillingAdjustment.Reverse", reversal, original.Id, actorUserId);
-            if (closureChange.Changed)
-                await AuditClosureChangeAsync(closureChange, actorUserId, "AdjustmentReversed");
-            await _arApHandoffService.RecordCorrectionIfLinkedAsync(
-                reversal.InvoiceId, reversal.Id, null, reversal.Direction, reversal.Amount,
-                reversal.Reason, actorUserId, cancellationToken);
-            return MapAdjustment(reversal, false);
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
-        }
-        catch (DbUpdateException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Reversal adjustment tidak dapat disimpan; entry ini mungkin sudah direversal.", exception);
-        }
-        catch
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw;
-        }
-        finally
-        {
-            if (transaction is not null) await transaction.DisposeAsync();
-        }
-    }
-
-    private async Task<AdjustmentResponse> ReverseWriteOffAsync(
-        Guid writeOffCaseId,
-        ReverseExceptionRequest request,
-        Guid actorUserId,
-        CancellationToken cancellationToken)
-    {
-        IDbContextTransaction? transaction = null;
-        try
-        {
-            if (_dbContext.Database.IsRelational())
-            {
-                transaction = await _dbContext.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
-                await AcquireLockAsync($"BIL_WRITEOFF_{writeOffCaseId:N}", cancellationToken);
-            }
-
-            var existingReversal = await _dbContext.BilAdjustments.AsNoTracking()
-                .SingleOrDefaultAsync(
-                    x => x.ReversesWriteOffCaseId == writeOffCaseId && !x.IsDelete, cancellationToken);
-            if (existingReversal is not null)
-            {
-                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-                return MapAdjustment(existingReversal, true);
-            }
-
-            var original = await _dbContext.BilWriteOffCases
-                .Include(x => x.Invoice)
-                .SingleOrDefaultAsync(x => x.Id == writeOffCaseId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Write-off case tidak ditemukan.");
-            if (original.RowVersion != request.ExpectedRowVersion)
-                throw new BillingFinancialExceptionConflictException(
-                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
-            if (original.Status != BillingWriteOffCaseStatuses.Posted)
-                throw new BillingFinancialExceptionValidationException(
-                    "Hanya write-off case yang sudah POSTED dapat direversal.");
-
-            var now = DateTimeOffset.UtcNow;
-            var reversal = new BilAdjustment
-            {
-                InvoiceId = original.InvoiceId,
-                Invoice = original.Invoice,
-                Direction = BillingAdjustmentDirections.Debit,
-                Amount = original.Amount,
-                Status = BillingAdjustmentStatuses.Posted,
-                RequestedBy = actorUserId,
-                ApprovedBy = actorUserId,
-                Reason = request.Reason.Trim(),
-                ReversesWriteOffCaseId = original.Id,
-                IdempotencyKey = Guid.NewGuid(),
-                PayloadHash = ComputeReversalPayloadHash(original.Id, request.Reason),
-                CorrelationId = Guid.NewGuid(),
-                CausationId = Guid.NewGuid(),
-                SubmittedAt = now,
-                PostedAt = now,
-                RowVersion = Guid.NewGuid(),
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = actorUserId
-            };
-            _dbContext.BilAdjustments.Add(reversal);
-            if (original.IsFullSettlement
-                && original.Invoice.Status == BillingInvoiceStatuses.SettledByWriteOff)
-                original.Invoice.Status = BillingInvoiceStatuses.Open;
-            original.Invoice.RowVersion = Guid.NewGuid();
-            original.Invoice.UpdateDateTime = DateTime.UtcNow;
-            original.Invoice.UpdateBy = actorUserId;
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            // BIL-VAL-108: bila pembalikan mengembalikan invoice ke OPEN (write-off penuh
-            // PATIENT_AR yang dibalik), penjaga status SyncClosureAsync melewatkannya secara
-            // alami - tidak perlu percabangan khusus di sini.
-            var closureChange = await SyncClosureInsideTransactionAsync(
-                reversal.InvoiceId, actorUserId, now, cancellationToken);
-            if (original.IsFullSettlement || (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Final))
-            {
-                await _consumerHandoffService.PublishForClearanceChangeAsync(
-                    reversal.InvoiceId,
-                    PrescriptionClearanceReasonCodes.WriteOffReversed,
-                    actorUserId,
-                    now,
-                    reversal.CorrelationId,
-                    reversal.CausationId,
-                    cancellationToken);
-                await _dbContext.SaveChangesAsync(cancellationToken);
-            }
-            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
-            await AuditReversalAsync("BillingWriteOff.Reverse", reversal, original.Id, actorUserId);
-            if (closureChange.Changed)
-                await AuditClosureChangeAsync(closureChange, actorUserId, "WriteOffReversed");
-            await _arApHandoffService.RecordCorrectionIfLinkedAsync(
-                reversal.InvoiceId, reversal.Id, null, reversal.Direction, reversal.Amount,
-                reversal.Reason, actorUserId, cancellationToken);
-            return MapAdjustment(reversal, false);
-        }
-        catch (DbUpdateConcurrencyException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
-        }
-        catch (DbUpdateException exception)
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw new BillingFinancialExceptionConflictException(
-                "Reversal write-off tidak dapat disimpan; case ini mungkin sudah direversal.", exception);
-        }
-        catch
-        {
-            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
-            throw;
-        }
-        finally
-        {
-            if (transaction is not null) await transaction.DisposeAsync();
-        }
-    }
-
-    // BKC-DES-028: badan perhitungan dipindahkan ke BillingInvoiceClosureService (dikonsolidasi
-    // dengan salinan identik BillingFinalizationService, lihat § 21 capability map). Method ini
-    // kini murni pembungkus tipis supaya kedua titik pemanggil di file ini (CreateWriteOffAsync,
-    // ApproveWriteOffAsync) TIDAK berubah, dan pesan galat yang sampai ke layar tetap identik.
-    private async Task<decimal> CalculateOutstandingAsync(
-        BilInvoice invoice,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            return await _closureService.CalculateOutstandingAsync(invoice, cancellationToken);
-        }
-        catch (BillingInvoiceClosureValidationException exception)
-        {
-            throw new BillingFinancialExceptionValidationException(exception.Message);
-        }
-    }
-
-    // BKC-DES-029/030: dipanggil di keempat titik (penyesuaian/write-off diposting maupun
-    // dibalik) SESUDAH SaveChanges peristiwa itu sendiri, SEBELUM CommitAsync - bukan
-    // berdampingan dengan RecordCorrectionIfLinkedAsync yang sengaja tetap berjalan di
-    // transaksi terpisah sesudah commit (lihat komentar pada masing-masing pemanggil).
-    private async Task<InvoiceClosureChange> SyncClosureInsideTransactionAsync(
-        Guid invoiceId, Guid actorUserId, DateTimeOffset occurredAt, CancellationToken cancellationToken)
-    {
-        InvoiceClosureChange change;
-        try
-        {
-            change = await _closureService.SyncClosureAsync(
-                invoiceId, actorUserId, occurredAt, cancellationToken);
-        }
-        catch (BillingInvoiceClosureValidationException exception)
-        {
-            throw new BillingFinancialExceptionValidationException(exception.Message);
-        }
-        if (change.Changed)
-            await _dbContext.SaveChangesAsync(cancellationToken);
-        return change;
-    }
-
-    // BKC-DES-029/030: audit perpindahan FINAL<->CLOSED sebagai efek langsung peristiwa
-    // pengecualian finansial. Kategori/bentuk payload sama dengan yang dipakai
-    // BillingSettlementService dan BillingFinalizationService untuk peristiwa closure lainnya.
-    private Task AuditClosureChangeAsync(InvoiceClosureChange change, Guid actorUserId, string trigger) =>
-        _loggerService.AuditAsync(
-            LogCategory,
-            "BillingInvoice.ClosureSynced",
-            "Status penutupan invoice diselaraskan berdasarkan sisa tagihan pasien.",
-            new
-            {
-                change.InvoiceId,
-                StatusBefore = change.StatusBefore,
-                StatusAfter = change.StatusAfter,
-                change.Outstanding,
-                Trigger = trigger,
-                ActorUserId = actorUserId
-            });
-
-    private Task<List<Guid>> GetNonBillableResidualWriteOffCaseIdsAsync(
-        Guid invoiceId, CancellationToken cancellationToken) =>
-        _dbContext.BilWriteOffCases.AsNoTracking()
-            .Where(x => x.InvoiceId == invoiceId && x.Category == BillingWriteOffCategories.NonBillableResidual)
-            .Select(x => x.Id)
-            .ToListAsync(cancellationToken);
-
-    // BE-BKC-029/BKC-DES-025: berpasangan dengan CalculateOutstandingAsync, menjawab pertanyaan
-    // yang berbeda - bukan piutang pasien, melainkan berapa rupiah residual non-billable yang
-    // BELUM ditutup write-off. Dibaca dari kolom BilCalculationVersion.NonBillableResidualAmount
-    // (BE-BKC-027/028), BUKAN mengurai JSON BreakdownSnapshot (BKC-DES-025).
-    private async Task<decimal> CalculateNonBillableResidualRemainingAsync(
-        BilInvoice invoice,
-        CancellationToken cancellationToken)
-    {
-        var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
-            .SingleOrDefaultAsync(
-                x => x.InvoiceId == invoice.Id
-                    && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete,
-                cancellationToken)
-            ?? throw new BillingFinancialExceptionValidationException(
-                "Invoice belum memiliki hasil perhitungan terkini.");
-        return await CalculateNonBillableResidualRemainingAsync(
-            invoice.Id, calculation.NonBillableResidualAmount, cancellationToken);
-    }
-
-    private async Task<decimal> CalculateNonBillableResidualRemainingAsync(
-        Guid invoiceId, decimal calculatedResidualAmount, CancellationToken cancellationToken)
-    {
-        var postedTotal = await _dbContext.BilWriteOffCases.AsNoTracking()
-            .Where(x => x.InvoiceId == invoiceId
-                && x.Category == BillingWriteOffCategories.NonBillableResidual
-                && x.Status == BillingWriteOffCaseStatuses.Posted && !x.IsDelete)
-            .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
-        var residualCaseIds = await GetNonBillableResidualWriteOffCaseIdsAsync(invoiceId, cancellationToken);
-        var reversedTotal = residualCaseIds.Count == 0
-            ? 0
-            : await _dbContext.BilAdjustments.AsNoTracking()
-                .Where(x => x.InvoiceId == invoiceId && !x.IsDelete
-                    && x.Status == BillingAdjustmentStatuses.Posted
-                    && x.ReversesWriteOffCaseId != null
-                    && residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value))
-                .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
-        return Math.Max(calculatedResidualAmount - postedTotal + reversedTotal, 0);
-    }
-
-    // BE-BKC-029: dipakai GET .../financial-exceptions/invoices/{invoiceId} untuk mengisi
-    // NonBillableResidualRemaining. Beda dari overload privat di atas: invoice yang BELUM pernah
-    // dihitung sama sekali mengembalikan 0 (bukan galat) - endpoint ini murni baca-daftar, bukan
-    // pintu masuk pengajuan write-off yang memang mengharuskan kalkulasi ada lebih dulu.
-    public async Task<decimal> GetNonBillableResidualRemainingAsync(
-        Guid invoiceId, CancellationToken cancellationToken)
-    {
-        var invoice = await _dbContext.BilInvoices.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
-        var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
-            .SingleOrDefaultAsync(
-                x => x.InvoiceId == invoice.Id
-                    && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete,
-                cancellationToken);
-        return calculation is null
-            ? 0
-            : await CalculateNonBillableResidualRemainingAsync(
-                invoiceId, calculation.NonBillableResidualAmount, cancellationToken);
-    }
-
-    // BE-BKC-029/BIL-VAL-042: nilai kosong diperlakukan PATIENT_AR (BKC-DES-014); teks asing
-    // MUST NOT diperlakukan sebagai bawaan.
-    private static string ResolveWriteOffCategory(string? category)
-    {
-        var trimmed = category?.Trim();
-        if (string.IsNullOrEmpty(trimmed)) return BillingWriteOffCategories.PatientAr;
-        if (trimmed is BillingWriteOffCategories.PatientAr or BillingWriteOffCategories.NonBillableResidual)
-            return trimmed;
-        throw new BillingFinancialExceptionValidationException("Kategori write-off tidak dikenali.");
-    }
-
-    private static void EnsureLedgerMutableInvoice(BilInvoice invoice)
-    {
-        if (invoice.Status is BillingInvoiceStatuses.Closed or BillingInvoiceStatuses.SettledByWriteOff)
-            throw new BillingFinancialExceptionValidationException(
-                "Invoice sudah closed atau settled by write-off dan tidak dapat menerima adjustment/write-off baru.");
-    }
-
-    private static void ValidateCreateAdjustmentRequest(
-        CreateAdjustmentRequest request,
-        Guid idempotencyKey,
-        Guid actorUserId)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        if (request.InvoiceId == Guid.Empty)
-            throw new BillingFinancialExceptionValidationException("InvoiceId wajib diisi.");
-        if (request.Direction is not (BillingAdjustmentDirections.Debit or BillingAdjustmentDirections.Credit))
-            throw new BillingFinancialExceptionValidationException("Direction harus DEBIT atau CREDIT.");
-        if (idempotencyKey == Guid.Empty)
-            throw new BillingFinancialExceptionValidationException("Idempotency-Key wajib diisi.");
-        if (actorUserId == Guid.Empty)
-            throw new BillingFinancialExceptionForbiddenException("Identitas pengguna tidak valid.");
-        if (request.ExpectedInvoiceRowVersion == Guid.Empty)
-            throw new BillingFinancialExceptionValidationException("ExpectedInvoiceRowVersion wajib diisi.");
-        ValidateMoney(request.Amount, "Nominal adjustment");
-        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
-            throw new BillingFinancialExceptionValidationException(
-                "Alasan adjustment wajib diisi dan maksimal 500 karakter.");
-        if (request.CorrelationId == Guid.Empty || request.CausationId == Guid.Empty)
-            throw new BillingFinancialExceptionValidationException("CorrelationId dan CausationId wajib diisi.");
-    }
-
-    private static void ValidateCreateWriteOffRequest(
-        CreateWriteOffRequest request,
-        Guid idempotencyKey,
-        Guid actorUserId)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        if (request.InvoiceId == Guid.Empty)
-            throw new BillingFinancialExceptionValidationException("InvoiceId wajib diisi.");
-        if (idempotencyKey == Guid.Empty)
-            throw new BillingFinancialExceptionValidationException("Idempotency-Key wajib diisi.");
-        if (actorUserId == Guid.Empty)
-            throw new BillingFinancialExceptionForbiddenException("Identitas pengguna tidak valid.");
-        if (request.ExpectedInvoiceRowVersion == Guid.Empty)
-            throw new BillingFinancialExceptionValidationException("ExpectedInvoiceRowVersion wajib diisi.");
-        ValidateMoney(request.Amount, "Nominal write-off");
-        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
-            throw new BillingFinancialExceptionValidationException(
-                "Alasan write-off wajib diisi dan maksimal 500 karakter.");
-        if (request.CorrelationId == Guid.Empty || request.CausationId == Guid.Empty)
-            throw new BillingFinancialExceptionValidationException("CorrelationId dan CausationId wajib diisi.");
-    }
-
-    private static void ValidateApprovalRequest(object request, Guid actorUserId)
-    {
-        ArgumentNullException.ThrowIfNull(request);
-        var (expectedRowVersion, reason) = request switch
-        {
-            AdjustmentApprovalRequest adjustmentRequest =>
-                (adjustmentRequest.ExpectedRowVersion, adjustmentRequest.Reason),
-            WriteOffApprovalRequest writeOffRequest =>
-                (writeOffRequest.ExpectedRowVersion, writeOffRequest.Reason),
-            _ => throw new ArgumentOutOfRangeException(nameof(request))
-        };
-        if (expectedRowVersion == Guid.Empty)
-            throw new BillingFinancialExceptionValidationException("ExpectedRowVersion wajib diisi.");
-        if (actorUserId == Guid.Empty)
-            throw new BillingFinancialExceptionForbiddenException("Identitas pengguna tidak valid.");
-        if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length > 500)
-            throw new BillingFinancialExceptionValidationException(
-                "Alasan approval wajib diisi dan maksimal 500 karakter.");
-    }
-
-    private static void ValidateMoney(decimal amount, string fieldName)
-    {
-        if (amount <= 0 || amount > MaxMoneyAmount || decimal.Round(amount, 2) != amount)
-            throw new BillingFinancialExceptionValidationException(
-                $"{fieldName} harus positif dan maksimal memiliki dua angka desimal.");
-    }
-
-    private static string ComputeAdjustmentPayloadHash(CreateAdjustmentRequest request)
-    {
-        var canonical = string.Join('|',
-            request.InvoiceId.ToString("N"),
-            request.Direction,
-            request.Amount.ToString(CultureInfo.InvariantCulture),
-            request.Reason.Trim(),
-            request.CorrelationId.ToString("N"),
-            request.CausationId.ToString("N"));
-        return Hash(canonical);
-    }
-
-    // BE-BKC-029: Category MUST ikut ke dalam PayloadHash - tanpa itu, dua pengajuan bernominal
-    // sama dengan kategori berbeda dianggap pengulangan idempotency yang sama, dan yang kedua
-    // diam-diam mengembalikan case pertama alih-alih diproses sebagai pengajuan baru yang sah.
-    private static string ComputeWriteOffPayloadHash(CreateWriteOffRequest request, string category)
-    {
-        var canonical = string.Join('|',
-            request.InvoiceId.ToString("N"),
-            request.Amount.ToString(CultureInfo.InvariantCulture),
-            request.Reason.Trim(),
-            request.CorrelationId.ToString("N"),
-            request.CausationId.ToString("N"),
-            category);
-        return Hash(canonical);
-    }
-
-    private static string ComputeReversalPayloadHash(Guid originalId, string reason) =>
-        Hash(string.Join('|', originalId.ToString("N"), reason.Trim()));
-
-    private static string Hash(string canonical) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
-
-    private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
-        _dbContext.Database.ExecuteSqlRawAsync(
-            "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
-
-    private Task AuditAdjustmentAsync(
-        string action, BilAdjustment adjustment, Guid actorUserId, bool isReplay) =>
-        _loggerService.AuditAsync(
-            LogCategory,
-            action,
-            "Adjustment diajukan sebagai koreksi append-only terhadap invoice.",
-            new
-            {
-                AdjustmentId = adjustment.Id,
-                adjustment.InvoiceId,
-                adjustment.Direction,
-                adjustment.Amount,
-                adjustment.Status,
-                adjustment.CorrelationId,
-                ActorUserId = actorUserId,
-                IsReplay = isReplay
-            });
-
-    private Task AuditAdjustmentApprovalAsync(
-        BilAdjustment adjustment, string beforeStatus, Guid actorUserId) =>
-        _loggerService.AuditAsync(
-            LogCategory,
-            "BillingAdjustment.Approve",
-            $"Adjustment={adjustment.Id:N}; status {beforeStatus}->{adjustment.Status}.",
-            new
-            {
-                AdjustmentId = adjustment.Id,
-                adjustment.RequestedBy,
-                adjustment.ApprovedBy,
-                adjustment.Direction,
-                adjustment.Amount,
-                StatusBefore = beforeStatus,
-                StatusAfter = adjustment.Status,
-                ActorUserId = actorUserId
-            });
-
-    private Task AuditWriteOffAsync(
-        string action,
-        BilWriteOffCase writeOffCase,
-        Guid actorUserId,
-        bool isReplay,
-        decimal? outstandingBefore,
-        decimal? outstandingAfter) =>
-        _loggerService.AuditAsync(
-            LogCategory,
-            action,
-            "Write-off case diajukan; belum menyelesaikan tagihan sebagai pembayaran.",
-            new
-            {
-                WriteOffCaseId = writeOffCase.Id,
-                writeOffCase.InvoiceId,
-                writeOffCase.Amount,
-                writeOffCase.Category,
-                writeOffCase.Status,
-                OutstandingBefore = outstandingBefore,
-                OutstandingAfter = outstandingAfter,
-                writeOffCase.CorrelationId,
-                ActorUserId = actorUserId,
-                IsReplay = isReplay
-            });
-
-    private Task AuditWriteOffApprovalAsync(
-        BilWriteOffCase writeOffCase,
-        string beforeStatus,
-        decimal outstandingBefore,
-        decimal outstandingAfter,
-        Guid actorUserId) =>
-        _loggerService.AuditAsync(
-            LogCategory,
-            "BillingWriteOff.Approve",
-            $"WriteOffCase={writeOffCase.Id:N}; status {beforeStatus}->{writeOffCase.Status}; outstanding {outstandingBefore:0.00}->{outstandingAfter:0.00}.",
-            new
-            {
-                WriteOffCaseId = writeOffCase.Id,
-                writeOffCase.RequestedBy,
-                writeOffCase.ApprovedBy,
-                writeOffCase.Category,
-                writeOffCase.IsFullSettlement,
-                OutstandingBefore = outstandingBefore,
-                OutstandingAfter = outstandingAfter,
-                InvoiceStatus = writeOffCase.Invoice.Status,
-                ActorUserId = actorUserId
-            });
-
-    private Task AuditReversalAsync(
-        string action, BilAdjustment reversal, Guid originalId, Guid actorUserId) =>
-        _loggerService.AuditAsync(
-            LogCategory,
-            action,
-            "Reversal menghasilkan entry baru; posting asal tidak dimutasi.",
-            new
-            {
-                ReversalAdjustmentId = reversal.Id,
-                OriginalEntryId = originalId,
-                reversal.InvoiceId,
-                reversal.Direction,
-                reversal.Amount,
-                reversal.CorrelationId,
-                ActorUserId = actorUserId
-            });
-
-    private static AdjustmentResponse MapAdjustment(BilAdjustment adjustment, bool isReplay) => new()
-    {
-        Id = adjustment.Id,
-        InvoiceId = adjustment.InvoiceId,
-        Direction = adjustment.Direction,
-        Amount = adjustment.Amount,
-        Status = adjustment.Status,
-        RequestedBy = adjustment.RequestedBy,
-        ApprovedBy = adjustment.ApprovedBy,
-        Reason = adjustment.Reason,
-        ReversesAdjustmentId = adjustment.ReversesAdjustmentId,
-        ReversesWriteOffCaseId = adjustment.ReversesWriteOffCaseId,
-        CorrelationId = adjustment.CorrelationId,
-        RowVersion = adjustment.RowVersion,
-        SubmittedAt = adjustment.SubmittedAt,
-        PostedAt = adjustment.PostedAt,
-        IsReplay = isReplay
-    };
-
-    private static WriteOffResponse MapWriteOff(
-        BilWriteOffCase writeOffCase,
-        decimal? outstandingBefore,
-        decimal? outstandingAfter,
-        bool isReplay) => new()
-        {
-            Id = writeOffCase.Id,
-            InvoiceId = writeOffCase.InvoiceId,
-            Amount = writeOffCase.Amount,
-            IsFullSettlement = writeOffCase.IsFullSettlement,
-            OutstandingBefore = outstandingBefore ?? 0,
-            OutstandingAfter = outstandingAfter ?? 0,
-            Category = writeOffCase.Category,
-            Status = writeOffCase.Status,
-            RequestedBy = writeOffCase.RequestedBy,
-            ApprovedBy = writeOffCase.ApprovedBy,
-            Reason = writeOffCase.Reason,
-            CorrelationId = writeOffCase.CorrelationId,
-            RowVersion = writeOffCase.RowVersion,
-            SubmittedAt = writeOffCase.SubmittedAt,
-            PostedAt = writeOffCase.PostedAt,
-            IsReplay = isReplay
-        };
-}
-
-public abstract class BillingFinancialExceptionException : Exception
-{
-    protected BillingFinancialExceptionException(string message) : base(message) { }
-    protected BillingFinancialExceptionException(string message, Exception innerException)
-        : base(message, innerException) { }
-}
-
-public sealed class BillingFinancialExceptionValidationException(string message)
-    : BillingFinancialExceptionException(message);
-
-public sealed class BillingFinancialExceptionForbiddenException(string message)
-    : BillingFinancialExceptionException(message);
-
-public sealed class BillingFinancialExceptionConflictException : BillingFinancialExceptionException
-{
-    public BillingFinancialExceptionConflictException(string message) : base(message) { }
-    public BillingFinancialExceptionConflictException(string message, Exception innerException)
-        : base(message, innerException) { }
-}
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Services.Logging;
+using System.Data;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+
+namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+
+public sealed class BillingFinancialExceptionService
+{
+    private const string LogCategory = "HealthServices.BillingManagement.Billing";
+    private const decimal MaxMoneyAmount = 9999999999999999.99m;
+    private readonly ApplicationDbContext _dbContext;
+    private readonly BillingArApHandoffService _arApHandoffService;
+    private readonly BillingInvoiceClosureService _closureService;
+    private readonly BilConsumerHandoffService _consumerHandoffService;
+    private readonly LoggerService _loggerService;
+
+    public BillingFinancialExceptionService(
+        ApplicationDbContext dbContext,
+        BillingArApHandoffService arApHandoffService,
+        BillingInvoiceClosureService closureService,
+        BilConsumerHandoffService consumerHandoffService,
+        LoggerService loggerService)
+    {
+        _dbContext = dbContext;
+        _arApHandoffService = arApHandoffService;
+        _closureService = closureService;
+        _consumerHandoffService = consumerHandoffService;
+        _loggerService = loggerService;
+    }
+
+    public async Task<AdjustmentResponse> CreateAdjustmentAsync(
+        CreateAdjustmentRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateCreateAdjustmentRequest(request, idempotencyKey, actorUserId);
+        var payloadHash = ComputeAdjustmentPayloadHash(request);
+        IDbContextTransaction? transaction = null;
+
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_INVOICE_LEDGER_{request.InvoiceId:N}", cancellationToken);
+            }
+
+            var prior = await _dbContext.BilAdjustments
+                .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
+            if (prior is not null)
+            {
+                if (prior.PayloadHash != payloadHash)
+                    throw new BillingFinancialExceptionConflictException(
+                        "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                await AuditAdjustmentAsync("BillingAdjustment.Create", prior, actorUserId, true);
+                return MapAdjustment(prior, true);
+            }
+
+            if (await _dbContext.BilAdjustments.AsNoTracking()
+                .AnyAsync(x => x.CorrelationId == request.CorrelationId, cancellationToken))
+                throw new BillingFinancialExceptionConflictException(
+                    "CorrelationId sudah diproses; gunakan correlation baru.");
+
+            var invoice = await _dbContext.BilInvoices
+                .SingleOrDefaultAsync(x => x.Id == request.InvoiceId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+            EnsureLedgerMutableInvoice(invoice);
+            if (invoice.RowVersion != request.ExpectedInvoiceRowVersion)
+                throw new BillingFinancialExceptionConflictException(
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
+
+            var now = DateTimeOffset.UtcNow;
+            var adjustment = new BilAdjustment
+            {
+                InvoiceId = invoice.Id,
+                Invoice = invoice,
+                Direction = request.Direction,
+                Amount = request.Amount,
+                Status = BillingAdjustmentStatuses.Submitted,
+                RequestedBy = actorUserId,
+                Reason = request.Reason.Trim(),
+                IdempotencyKey = idempotencyKey,
+                PayloadHash = payloadHash,
+                CorrelationId = request.CorrelationId,
+                CausationId = request.CausationId,
+                SubmittedAt = now,
+                RowVersion = Guid.NewGuid(),
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+            _dbContext.BilAdjustments.Add(adjustment);
+            invoice.RowVersion = Guid.NewGuid();
+            invoice.UpdateDateTime = DateTime.UtcNow;
+            invoice.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            await AuditAdjustmentAsync("BillingAdjustment.Create", adjustment, actorUserId, false);
+            return MapAdjustment(adjustment, false);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Adjustment tidak dapat disimpan karena target, correlation, atau idempotency key sudah diproses.",
+                exception);
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public async Task<AdjustmentResponse> GetAdjustmentByIdAsync(
+        Guid adjustmentId,
+        CancellationToken cancellationToken)
+    {
+        var adjustment = await _dbContext.BilAdjustments.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == adjustmentId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Adjustment tidak ditemukan.");
+        return MapAdjustment(adjustment, false);
+    }
+
+    public async Task<IReadOnlyList<AdjustmentResponse>> ListAdjustmentsByInvoiceAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var adjustments = await _dbContext.BilAdjustments.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.SubmittedAt)
+            .ToListAsync(cancellationToken);
+        return adjustments.Select(x => MapAdjustment(x, false)).ToList();
+    }
+
+    public async Task<WriteOffResponse> GetWriteOffByIdAsync(
+        Guid writeOffCaseId,
+        CancellationToken cancellationToken)
+    {
+        var writeOffCase = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == writeOffCaseId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Write-off case tidak ditemukan.");
+        return MapWriteOff(writeOffCase, null, null, false);
+    }
+
+    public async Task<IReadOnlyList<WriteOffResponse>> ListWriteOffsByInvoiceAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var writeOffCases = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.SubmittedAt)
+            .ToListAsync(cancellationToken);
+        return writeOffCases.Select(x => MapWriteOff(x, null, null, false)).ToList();
+    }
+
+    public async Task<AdjustmentResponse> ApproveAdjustmentAsync(
+        Guid adjustmentId,
+        AdjustmentApprovalRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateApprovalRequest(request, actorUserId);
+        IDbContextTransaction? transaction = null;
+
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_ADJUSTMENT_{adjustmentId:N}", cancellationToken);
+            }
+
+            var adjustment = await _dbContext.BilAdjustments
+                .Include(x => x.Invoice)
+                .SingleOrDefaultAsync(x => x.Id == adjustmentId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Adjustment tidak ditemukan.");
+            if (adjustment.RowVersion != request.ExpectedRowVersion)
+                throw new BillingFinancialExceptionConflictException(
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
+            if (adjustment.Status != BillingAdjustmentStatuses.Submitted)
+                throw new BillingFinancialExceptionConflictException(
+                    "Adjustment tidak lagi menunggu approval.");
+            if (adjustment.RequestedBy == actorUserId)
+                throw new BillingFinancialExceptionForbiddenException(
+                    "Pengaju adjustment tidak boleh menyetujui pengajuannya sendiri.");
+
+            var beforeStatus = adjustment.Status;
+            adjustment.Status = BillingAdjustmentStatuses.Posted;
+            adjustment.ApprovedBy = actorUserId;
+            adjustment.PostedAt = DateTimeOffset.UtcNow;
+            adjustment.RowVersion = Guid.NewGuid();
+            adjustment.UpdateDateTime = DateTime.UtcNow;
+            adjustment.UpdateBy = actorUserId;
+            adjustment.Invoice.RowVersion = Guid.NewGuid();
+            adjustment.Invoice.UpdateDateTime = DateTime.UtcNow;
+            adjustment.Invoice.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            var closureChange = await SyncClosureInsideTransactionAsync(
+                adjustment.InvoiceId, actorUserId, adjustment.PostedAt!.Value, cancellationToken);
+            if (closureChange.Changed)
+            {
+                string? reasonCode = closureChange.StatusAfter switch
+                {
+                    BillingInvoiceStatuses.Closed => PrescriptionClearanceReasonCodes.InvoiceSettled,
+                    BillingInvoiceStatuses.Final => PrescriptionClearanceReasonCodes.PayerCoverageReversed,
+                    _ => null
+                };
+                if (reasonCode != null)
+                {
+                    await _consumerHandoffService.PublishForClearanceChangeAsync(
+                        adjustment.InvoiceId,
+                        reasonCode,
+                        actorUserId,
+                        adjustment.PostedAt!.Value,
+                        adjustment.CorrelationId,
+                        adjustment.CausationId,
+                        cancellationToken);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+            }
+
+            // Auto-Reblock untuk rawat inap jika adjustment diposting pada invoice ranap
+            if (string.Equals(adjustment.Invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
+            {
+                await _consumerHandoffService.TriggerInpatientAutoReblockIfApplicableAsync(
+                    adjustment.InvoiceId,
+                    "AdjustmentPosted",
+                    actorUserId,
+                    adjustment.PostedAt!.Value,
+                    adjustment.CorrelationId,
+                    adjustment.CausationId,
+                    cancellationToken);
+            }
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            await AuditAdjustmentApprovalAsync(adjustment, beforeStatus, actorUserId);
+            if (closureChange.Changed)
+                await AuditClosureChangeAsync(closureChange, actorUserId, "AdjustmentPosted");
+            // BKC-DES-035: penjaga BillingArApHandoffService.RecordCorrectionIfLinkedAsync sudah
+            // menerima FINAL maupun CLOSED - dipanggil SESUDAH commit (transaksi terpisah,
+            // idempotent per source), TIDAK dipindah ke dalam transaksi di atas.
+            await _arApHandoffService.RecordCorrectionIfLinkedAsync(
+                adjustment.InvoiceId, adjustment.Id, null, adjustment.Direction, adjustment.Amount,
+                adjustment.Reason, actorUserId, cancellationToken);
+            return MapAdjustment(adjustment, false);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Approval adjustment tidak dapat disimpan.", exception);
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public async Task<WriteOffResponse> CreateWriteOffAsync(
+        CreateWriteOffRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateCreateWriteOffRequest(request, idempotencyKey, actorUserId);
+        var category = ResolveWriteOffCategory(request.Category);
+        // BIL-VAL-041: residual non-billable bukan piutang pasien - tidak ada yang "dilunasi".
+        if (category == BillingWriteOffCategories.NonBillableResidual && request.IsFullSettlement)
+            throw new BillingFinancialExceptionValidationException(
+                "Selisih yang tidak dapat ditagihkan bukan pelunasan tagihan pasien; hapus tanda pelunasan penuh.");
+        var payloadHash = ComputeWriteOffPayloadHash(request, category);
+        IDbContextTransaction? transaction = null;
+
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_INVOICE_LEDGER_{request.InvoiceId:N}", cancellationToken);
+            }
+
+            var prior = await _dbContext.BilWriteOffCases
+                .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
+            if (prior is not null)
+            {
+                if (prior.PayloadHash != payloadHash)
+                    throw new BillingFinancialExceptionConflictException(
+                        "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                await AuditWriteOffAsync("BillingWriteOff.Create", prior, actorUserId, true, null, null);
+                return MapWriteOff(prior, null, null, true);
+            }
+
+            if (await _dbContext.BilWriteOffCases.AsNoTracking()
+                .AnyAsync(x => x.CorrelationId == request.CorrelationId, cancellationToken))
+                throw new BillingFinancialExceptionConflictException(
+                    "CorrelationId sudah diproses; gunakan correlation baru.");
+
+            var invoice = await _dbContext.BilInvoices
+                .SingleOrDefaultAsync(x => x.Id == request.InvoiceId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+            EnsureLedgerMutableInvoice(invoice);
+            if (invoice.RowVersion != request.ExpectedInvoiceRowVersion)
+                throw new BillingFinancialExceptionConflictException(
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
+
+            // BE-BKC-029/BKC-DES-024: plafon bercabang mengikuti kategori. PATIENT_AR tetap
+            // dibatasi outstanding pasien (pesan lama dipertahankan apa adanya, regresi wajib
+            // nol). NON_BILLABLE_RESIDUAL dibatasi sisa selisih tidak dapat ditagihkan - plafon
+            // yang sama sekali berbeda dari outstanding pasien (BIL-VAL-040).
+            decimal plafon;
+            if (category == BillingWriteOffCategories.NonBillableResidual)
+            {
+                plafon = await CalculateNonBillableResidualRemainingAsync(invoice, cancellationToken);
+                if (request.Amount > plafon)
+                    throw new BillingFinancialExceptionValidationException(
+                        "Nominal write-off melebihi selisih yang tidak dapat ditagihkan pada tagihan ini.");
+            }
+            else
+            {
+                plafon = await CalculateOutstandingAsync(invoice, cancellationToken);
+                if (request.Amount > plafon)
+                    throw new BillingFinancialExceptionValidationException(
+                        "Nominal write-off melebihi saldo outstanding invoice saat ini.");
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            var writeOffCase = new BilWriteOffCase
+            {
+                InvoiceId = invoice.Id,
+                Invoice = invoice,
+                Amount = request.Amount,
+                Category = category,
+                Status = BillingWriteOffCaseStatuses.Submitted,
+                RequestedBy = actorUserId,
+                Reason = request.Reason.Trim(),
+                IdempotencyKey = idempotencyKey,
+                PayloadHash = payloadHash,
+                CorrelationId = request.CorrelationId,
+                CausationId = request.CausationId,
+                SubmittedAt = now,
+                RowVersion = Guid.NewGuid(),
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+            _dbContext.BilWriteOffCases.Add(writeOffCase);
+            invoice.RowVersion = Guid.NewGuid();
+            invoice.UpdateDateTime = DateTime.UtcNow;
+            invoice.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            await AuditWriteOffAsync(
+                "BillingWriteOff.Create", writeOffCase, actorUserId, false, plafon, plafon);
+            return MapWriteOff(writeOffCase, plafon, plafon, false);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Write-off tidak dapat disimpan karena target, correlation, atau idempotency key sudah diproses.",
+                exception);
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public async Task<WriteOffResponse> ApproveWriteOffAsync(
+        Guid writeOffCaseId,
+        WriteOffApprovalRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateApprovalRequest(request, actorUserId);
+        IDbContextTransaction? transaction = null;
+
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_WRITEOFF_{writeOffCaseId:N}", cancellationToken);
+            }
+
+            var writeOffCase = await _dbContext.BilWriteOffCases
+                .Include(x => x.Invoice)
+                .SingleOrDefaultAsync(x => x.Id == writeOffCaseId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Write-off case tidak ditemukan.");
+            if (writeOffCase.RowVersion != request.ExpectedRowVersion)
+                throw new BillingFinancialExceptionConflictException(
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
+            if (writeOffCase.Status != BillingWriteOffCaseStatuses.Submitted)
+                throw new BillingFinancialExceptionConflictException(
+                    "Write-off case tidak lagi menunggu approval.");
+            if (writeOffCase.RequestedBy == actorUserId)
+                throw new BillingFinancialExceptionForbiddenException(
+                    "Pengaju write-off tidak boleh menyetujui pengajuannya sendiri.");
+
+            // BE-BKC-029/BKC-DES-024: pemeriksaan ulang plafon sebelum posting bercabang kategori
+            // - persis seperti CreateWriteOffAsync, karena saldo dapat berubah di antara pengajuan
+            // dan persetujuan.
+            var isResidual = writeOffCase.Category == BillingWriteOffCategories.NonBillableResidual;
+            var plafonBefore = isResidual
+                ? await CalculateNonBillableResidualRemainingAsync(writeOffCase.Invoice, cancellationToken)
+                : await CalculateOutstandingAsync(writeOffCase.Invoice, cancellationToken);
+            if (writeOffCase.Amount > plafonBefore)
+                throw new BillingFinancialExceptionValidationException(
+                    isResidual
+                        ? "Selisih yang tidak dapat ditagihkan telah berubah dan tidak lagi mencukupi nominal write-off ini; ajukan ulang."
+                        : "Saldo outstanding telah berubah dan tidak lagi mencukupi nominal write-off ini; ajukan ulang.");
+
+            var beforeStatus = writeOffCase.Status;
+            var plafonAfter = Math.Max(plafonBefore - writeOffCase.Amount, 0);
+            // BIL-VAL-018 dipertegas/BKC-DES-024: HANYA PATIENT_AR yang dapat menjadi pelunasan
+            // penuh dan memindahkan status invoice. Residual TIDAK PERNAH - uangnya bukan piutang
+            // pasien, sehingga "pelunasan" tidak berlaku baginya sama sekali, apa pun nominalnya.
+            writeOffCase.IsFullSettlement = !isResidual && plafonAfter == 0;
+            writeOffCase.Status = BillingWriteOffCaseStatuses.Posted;
+            writeOffCase.ApprovedBy = actorUserId;
+            writeOffCase.PostedAt = DateTimeOffset.UtcNow;
+            writeOffCase.RowVersion = Guid.NewGuid();
+            writeOffCase.UpdateDateTime = DateTime.UtcNow;
+            writeOffCase.UpdateBy = actorUserId;
+            if (writeOffCase.IsFullSettlement)
+                writeOffCase.Invoice.Status = BillingInvoiceStatuses.SettledByWriteOff;
+            writeOffCase.Invoice.RowVersion = Guid.NewGuid();
+            writeOffCase.Invoice.UpdateDateTime = DateTime.UtcNow;
+            writeOffCase.Invoice.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            // BIL-VAL-108: bila IsFullSettlement memindahkan invoice ke SETTLED_BY_WRITE_OFF,
+            // penjaga status SyncClosureAsync melewatkannya secara alami (bukan FINAL/CLOSED) -
+            // tidak perlu percabangan khusus di sini.
+            var closureChange = await SyncClosureInsideTransactionAsync(
+                writeOffCase.InvoiceId, actorUserId, writeOffCase.PostedAt!.Value, cancellationToken);
+            if (writeOffCase.IsFullSettlement || (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Closed))
+            {
+                await _consumerHandoffService.PublishForClearanceChangeAsync(
+                    writeOffCase.InvoiceId,
+                    PrescriptionClearanceReasonCodes.InvoiceWrittenOff,
+                    actorUserId,
+                    writeOffCase.PostedAt!.Value,
+                    writeOffCase.CorrelationId,
+                    writeOffCase.CausationId,
+                    cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            await AuditWriteOffApprovalAsync(
+                writeOffCase, beforeStatus, plafonBefore, plafonAfter, actorUserId);
+            if (closureChange.Changed)
+                await AuditClosureChangeAsync(closureChange, actorUserId, "WriteOffPosted");
+            await _arApHandoffService.RecordCorrectionIfLinkedAsync(
+                writeOffCase.InvoiceId, null, writeOffCase.Id, BillingAdjustmentDirections.Credit,
+                writeOffCase.Amount, writeOffCase.Reason, actorUserId, cancellationToken);
+            return MapWriteOff(writeOffCase, plafonBefore, plafonAfter, false);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Approval write-off tidak dapat disimpan.", exception);
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public Task<AdjustmentResponse> ReverseAsync(
+        string type,
+        Guid id,
+        ReverseExceptionRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request?.Reason))
+            throw new BillingFinancialExceptionValidationException("Alasan reversal wajib diisi.");
+        return type.Trim().ToLowerInvariant() switch
+        {
+            "adjustments" => ReverseAdjustmentAsync(id, request!, actorUserId, cancellationToken),
+            "write-offs" => ReverseWriteOffAsync(id, request!, actorUserId, cancellationToken),
+            _ => throw new BillingFinancialExceptionValidationException(
+                "Tipe financial exception tidak didukung untuk reversal.")
+        };
+    }
+
+    private async Task<AdjustmentResponse> ReverseAdjustmentAsync(
+        Guid adjustmentId,
+        ReverseExceptionRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_ADJUSTMENT_{adjustmentId:N}", cancellationToken);
+            }
+
+            var existingReversal = await _dbContext.BilAdjustments.AsNoTracking()
+                .SingleOrDefaultAsync(
+                    x => x.ReversesAdjustmentId == adjustmentId && !x.IsDelete, cancellationToken);
+            if (existingReversal is not null)
+            {
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                return MapAdjustment(existingReversal, true);
+            }
+
+            var original = await _dbContext.BilAdjustments
+                .SingleOrDefaultAsync(x => x.Id == adjustmentId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Adjustment tidak ditemukan.");
+            if (original.RowVersion != request.ExpectedRowVersion)
+                throw new BillingFinancialExceptionConflictException(
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
+            if (original.Status != BillingAdjustmentStatuses.Posted)
+                throw new BillingFinancialExceptionValidationException(
+                    "Hanya adjustment yang sudah POSTED dapat direversal.");
+
+            var invoice = await _dbContext.BilInvoices
+                .SingleAsync(x => x.Id == original.InvoiceId, cancellationToken);
+            var now = DateTimeOffset.UtcNow;
+            var reversal = new BilAdjustment
+            {
+                InvoiceId = original.InvoiceId,
+                Invoice = invoice,
+                Direction = original.Direction == BillingAdjustmentDirections.Credit
+                    ? BillingAdjustmentDirections.Debit
+                    : BillingAdjustmentDirections.Credit,
+                Amount = original.Amount,
+                Status = BillingAdjustmentStatuses.Posted,
+                RequestedBy = actorUserId,
+                ApprovedBy = actorUserId,
+                Reason = request.Reason.Trim(),
+                ReversesAdjustmentId = original.Id,
+                IdempotencyKey = Guid.NewGuid(),
+                PayloadHash = ComputeReversalPayloadHash(original.Id, request.Reason),
+                CorrelationId = Guid.NewGuid(),
+                CausationId = Guid.NewGuid(),
+                SubmittedAt = now,
+                PostedAt = now,
+                RowVersion = Guid.NewGuid(),
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+            _dbContext.BilAdjustments.Add(reversal);
+            invoice.RowVersion = Guid.NewGuid();
+            invoice.UpdateDateTime = DateTime.UtcNow;
+            invoice.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            var closureChange = await SyncClosureInsideTransactionAsync(
+                reversal.InvoiceId, actorUserId, now, cancellationToken);
+            if (closureChange.Changed)
+            {
+                string? reasonCode = closureChange.StatusAfter switch
+                {
+                    BillingInvoiceStatuses.Closed => PrescriptionClearanceReasonCodes.InvoiceSettled,
+                    BillingInvoiceStatuses.Final => PrescriptionClearanceReasonCodes.PayerCoverageReversed,
+                    _ => null
+                };
+                if (reasonCode != null)
+                {
+                    await _consumerHandoffService.PublishForClearanceChangeAsync(
+                        reversal.InvoiceId,
+                        reasonCode,
+                        actorUserId,
+                        now,
+                        reversal.CorrelationId,
+                        reversal.CausationId,
+                        cancellationToken);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+            }
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            await AuditReversalAsync("BillingAdjustment.Reverse", reversal, original.Id, actorUserId);
+            if (closureChange.Changed)
+                await AuditClosureChangeAsync(closureChange, actorUserId, "AdjustmentReversed");
+            await _arApHandoffService.RecordCorrectionIfLinkedAsync(
+                reversal.InvoiceId, reversal.Id, null, reversal.Direction, reversal.Amount,
+                reversal.Reason, actorUserId, cancellationToken);
+            return MapAdjustment(reversal, false);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Reversal adjustment tidak dapat disimpan; entry ini mungkin sudah direversal.", exception);
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    private async Task<AdjustmentResponse> ReverseWriteOffAsync(
+        Guid writeOffCaseId,
+        ReverseExceptionRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_WRITEOFF_{writeOffCaseId:N}", cancellationToken);
+            }
+
+            var existingReversal = await _dbContext.BilAdjustments.AsNoTracking()
+                .SingleOrDefaultAsync(
+                    x => x.ReversesWriteOffCaseId == writeOffCaseId && !x.IsDelete, cancellationToken);
+            if (existingReversal is not null)
+            {
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                return MapAdjustment(existingReversal, true);
+            }
+
+            var original = await _dbContext.BilWriteOffCases
+                .Include(x => x.Invoice)
+                .SingleOrDefaultAsync(x => x.Id == writeOffCaseId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Write-off case tidak ditemukan.");
+            if (original.RowVersion != request.ExpectedRowVersion)
+                throw new BillingFinancialExceptionConflictException(
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.");
+            if (original.Status != BillingWriteOffCaseStatuses.Posted)
+                throw new BillingFinancialExceptionValidationException(
+                    "Hanya write-off case yang sudah POSTED dapat direversal.");
+
+            var now = DateTimeOffset.UtcNow;
+            var reversal = new BilAdjustment
+            {
+                InvoiceId = original.InvoiceId,
+                Invoice = original.Invoice,
+                Direction = BillingAdjustmentDirections.Debit,
+                Amount = original.Amount,
+                Status = BillingAdjustmentStatuses.Posted,
+                RequestedBy = actorUserId,
+                ApprovedBy = actorUserId,
+                Reason = request.Reason.Trim(),
+                ReversesWriteOffCaseId = original.Id,
+                IdempotencyKey = Guid.NewGuid(),
+                PayloadHash = ComputeReversalPayloadHash(original.Id, request.Reason),
+                CorrelationId = Guid.NewGuid(),
+                CausationId = Guid.NewGuid(),
+                SubmittedAt = now,
+                PostedAt = now,
+                RowVersion = Guid.NewGuid(),
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+            _dbContext.BilAdjustments.Add(reversal);
+            if (original.IsFullSettlement
+                && original.Invoice.Status == BillingInvoiceStatuses.SettledByWriteOff)
+                original.Invoice.Status = BillingInvoiceStatuses.Open;
+            original.Invoice.RowVersion = Guid.NewGuid();
+            original.Invoice.UpdateDateTime = DateTime.UtcNow;
+            original.Invoice.UpdateBy = actorUserId;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            // BIL-VAL-108: bila pembalikan mengembalikan invoice ke OPEN (write-off penuh
+            // PATIENT_AR yang dibalik), penjaga status SyncClosureAsync melewatkannya secara
+            // alami - tidak perlu percabangan khusus di sini.
+            var closureChange = await SyncClosureInsideTransactionAsync(
+                reversal.InvoiceId, actorUserId, now, cancellationToken);
+            if (original.IsFullSettlement || (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Final))
+            {
+                await _consumerHandoffService.PublishForClearanceChangeAsync(
+                    reversal.InvoiceId,
+                    PrescriptionClearanceReasonCodes.WriteOffReversed,
+                    actorUserId,
+                    now,
+                    reversal.CorrelationId,
+                    reversal.CausationId,
+                    cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            await AuditReversalAsync("BillingWriteOff.Reverse", reversal, original.Id, actorUserId);
+            if (closureChange.Changed)
+                await AuditClosureChangeAsync(closureChange, actorUserId, "WriteOffReversed");
+            await _arApHandoffService.RecordCorrectionIfLinkedAsync(
+                reversal.InvoiceId, reversal.Id, null, reversal.Direction, reversal.Amount,
+                reversal.Reason, actorUserId, cancellationToken);
+            return MapAdjustment(reversal, false);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinancialExceptionConflictException(
+                "Reversal write-off tidak dapat disimpan; case ini mungkin sudah direversal.", exception);
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // BKC-DES-028: badan perhitungan dipindahkan ke BillingInvoiceClosureService (dikonsolidasi
+    // dengan salinan identik BillingFinalizationService, lihat § 21 capability map). Method ini
+    // kini murni pembungkus tipis supaya kedua titik pemanggil di file ini (CreateWriteOffAsync,
+    // ApproveWriteOffAsync) TIDAK berubah, dan pesan galat yang sampai ke layar tetap identik.
+    private async Task<decimal> CalculateOutstandingAsync(
+        BilInvoice invoice,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _closureService.CalculateOutstandingAsync(invoice, cancellationToken);
+        }
+        catch (BillingInvoiceClosureValidationException exception)
+        {
+            throw new BillingFinancialExceptionValidationException(exception.Message);
+        }
+    }
+
+    // BKC-DES-029/030: dipanggil di keempat titik (penyesuaian/write-off diposting maupun
+    // dibalik) SESUDAH SaveChanges peristiwa itu sendiri, SEBELUM CommitAsync - bukan
+    // berdampingan dengan RecordCorrectionIfLinkedAsync yang sengaja tetap berjalan di
+    // transaksi terpisah sesudah commit (lihat komentar pada masing-masing pemanggil).
+    private async Task<InvoiceClosureChange> SyncClosureInsideTransactionAsync(
+        Guid invoiceId, Guid actorUserId, DateTimeOffset occurredAt, CancellationToken cancellationToken)
+    {
+        InvoiceClosureChange change;
+        try
+        {
+            change = await _closureService.SyncClosureAsync(
+                invoiceId, actorUserId, occurredAt, cancellationToken);
+        }
+        catch (BillingInvoiceClosureValidationException exception)
+        {
+            throw new BillingFinancialExceptionValidationException(exception.Message);
+        }
+        if (change.Changed)
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        return change;
+    }
+
+    // BKC-DES-029/030: audit perpindahan FINAL<->CLOSED sebagai efek langsung peristiwa
+    // pengecualian finansial. Kategori/bentuk payload sama dengan yang dipakai
+    // BillingSettlementService dan BillingFinalizationService untuk peristiwa closure lainnya.
+    private Task AuditClosureChangeAsync(InvoiceClosureChange change, Guid actorUserId, string trigger) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "BillingInvoice.ClosureSynced",
+            "Status penutupan invoice diselaraskan berdasarkan sisa tagihan pasien.",
+            new
+            {
+                change.InvoiceId,
+                StatusBefore = change.StatusBefore,
+                StatusAfter = change.StatusAfter,
+                change.Outstanding,
+                Trigger = trigger,
+                ActorUserId = actorUserId
+            });
+
+    private Task<List<Guid>> GetNonBillableResidualWriteOffCaseIdsAsync(
+        Guid invoiceId, CancellationToken cancellationToken) =>
+        _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && x.Category == BillingWriteOffCategories.NonBillableResidual)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+    // BE-BKC-029/BKC-DES-025: berpasangan dengan CalculateOutstandingAsync, menjawab pertanyaan
+    // yang berbeda - bukan piutang pasien, melainkan berapa rupiah residual non-billable yang
+    // BELUM ditutup write-off. Dibaca dari kolom BilCalculationVersion.NonBillableResidualAmount
+    // (BE-BKC-027/028), BUKAN mengurai JSON BreakdownSnapshot (BKC-DES-025).
+    private async Task<decimal> CalculateNonBillableResidualRemainingAsync(
+        BilInvoice invoice,
+        CancellationToken cancellationToken)
+    {
+        var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.InvoiceId == invoice.Id
+                    && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete,
+                cancellationToken)
+            ?? throw new BillingFinancialExceptionValidationException(
+                "Invoice belum memiliki hasil perhitungan terkini.");
+        return await CalculateNonBillableResidualRemainingAsync(
+            invoice.Id, calculation.NonBillableResidualAmount, cancellationToken);
+    }
+
+    private async Task<decimal> CalculateNonBillableResidualRemainingAsync(
+        Guid invoiceId, decimal calculatedResidualAmount, CancellationToken cancellationToken)
+    {
+        var postedTotal = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId
+                && x.Category == BillingWriteOffCategories.NonBillableResidual
+                && x.Status == BillingWriteOffCaseStatuses.Posted && !x.IsDelete)
+            .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
+        var residualCaseIds = await GetNonBillableResidualWriteOffCaseIdsAsync(invoiceId, cancellationToken);
+        var reversedTotal = residualCaseIds.Count == 0
+            ? 0
+            : await _dbContext.BilAdjustments.AsNoTracking()
+                .Where(x => x.InvoiceId == invoiceId && !x.IsDelete
+                    && x.Status == BillingAdjustmentStatuses.Posted
+                    && x.ReversesWriteOffCaseId != null
+                    && residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value))
+                .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
+        return Math.Max(calculatedResidualAmount - postedTotal + reversedTotal, 0);
+    }
+
+    // BE-BKC-029: dipakai GET .../financial-exceptions/invoices/{invoiceId} untuk mengisi
+    // NonBillableResidualRemaining. Beda dari overload privat di atas: invoice yang BELUM pernah
+    // dihitung sama sekali mengembalikan 0 (bukan galat) - endpoint ini murni baca-daftar, bukan
+    // pintu masuk pengajuan write-off yang memang mengharuskan kalkulasi ada lebih dulu.
+    public async Task<decimal> GetNonBillableResidualRemainingAsync(
+        Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+        var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.InvoiceId == invoice.Id
+                    && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete,
+                cancellationToken);
+        return calculation is null
+            ? 0
+            : await CalculateNonBillableResidualRemainingAsync(
+                invoiceId, calculation.NonBillableResidualAmount, cancellationToken);
+    }
+
+    // BE-BKC-029/BIL-VAL-042: nilai kosong diperlakukan PATIENT_AR (BKC-DES-014); teks asing
+    // MUST NOT diperlakukan sebagai bawaan.
+    private static string ResolveWriteOffCategory(string? category)
+    {
+        var trimmed = category?.Trim();
+        if (string.IsNullOrEmpty(trimmed)) return BillingWriteOffCategories.PatientAr;
+        if (trimmed is BillingWriteOffCategories.PatientAr or BillingWriteOffCategories.NonBillableResidual)
+            return trimmed;
+        throw new BillingFinancialExceptionValidationException("Kategori write-off tidak dikenali.");
+    }
+
+    private static void EnsureLedgerMutableInvoice(BilInvoice invoice)
+    {
+        if (invoice.Status is BillingInvoiceStatuses.Closed or BillingInvoiceStatuses.SettledByWriteOff)
+            throw new BillingFinancialExceptionValidationException(
+                "Invoice sudah closed atau settled by write-off dan tidak dapat menerima adjustment/write-off baru.");
+    }
+
+    private static void ValidateCreateAdjustmentRequest(
+        CreateAdjustmentRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.InvoiceId == Guid.Empty)
+            throw new BillingFinancialExceptionValidationException("InvoiceId wajib diisi.");
+        if (request.Direction is not (BillingAdjustmentDirections.Debit or BillingAdjustmentDirections.Credit))
+            throw new BillingFinancialExceptionValidationException("Direction harus DEBIT atau CREDIT.");
+        if (idempotencyKey == Guid.Empty)
+            throw new BillingFinancialExceptionValidationException("Idempotency-Key wajib diisi.");
+        if (actorUserId == Guid.Empty)
+            throw new BillingFinancialExceptionForbiddenException("Identitas pengguna tidak valid.");
+        if (request.ExpectedInvoiceRowVersion == Guid.Empty)
+            throw new BillingFinancialExceptionValidationException("ExpectedInvoiceRowVersion wajib diisi.");
+        ValidateMoney(request.Amount, "Nominal adjustment");
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
+            throw new BillingFinancialExceptionValidationException(
+                "Alasan adjustment wajib diisi dan maksimal 500 karakter.");
+        if (request.CorrelationId == Guid.Empty || request.CausationId == Guid.Empty)
+            throw new BillingFinancialExceptionValidationException("CorrelationId dan CausationId wajib diisi.");
+    }
+
+    private static void ValidateCreateWriteOffRequest(
+        CreateWriteOffRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (request.InvoiceId == Guid.Empty)
+            throw new BillingFinancialExceptionValidationException("InvoiceId wajib diisi.");
+        if (idempotencyKey == Guid.Empty)
+            throw new BillingFinancialExceptionValidationException("Idempotency-Key wajib diisi.");
+        if (actorUserId == Guid.Empty)
+            throw new BillingFinancialExceptionForbiddenException("Identitas pengguna tidak valid.");
+        if (request.ExpectedInvoiceRowVersion == Guid.Empty)
+            throw new BillingFinancialExceptionValidationException("ExpectedInvoiceRowVersion wajib diisi.");
+        ValidateMoney(request.Amount, "Nominal write-off");
+        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
+            throw new BillingFinancialExceptionValidationException(
+                "Alasan write-off wajib diisi dan maksimal 500 karakter.");
+        if (request.CorrelationId == Guid.Empty || request.CausationId == Guid.Empty)
+            throw new BillingFinancialExceptionValidationException("CorrelationId dan CausationId wajib diisi.");
+    }
+
+    private static void ValidateApprovalRequest(object request, Guid actorUserId)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        var (expectedRowVersion, reason) = request switch
+        {
+            AdjustmentApprovalRequest adjustmentRequest =>
+                (adjustmentRequest.ExpectedRowVersion, adjustmentRequest.Reason),
+            WriteOffApprovalRequest writeOffRequest =>
+                (writeOffRequest.ExpectedRowVersion, writeOffRequest.Reason),
+            _ => throw new ArgumentOutOfRangeException(nameof(request))
+        };
+        if (expectedRowVersion == Guid.Empty)
+            throw new BillingFinancialExceptionValidationException("ExpectedRowVersion wajib diisi.");
+        if (actorUserId == Guid.Empty)
+            throw new BillingFinancialExceptionForbiddenException("Identitas pengguna tidak valid.");
+        if (string.IsNullOrWhiteSpace(reason) || reason.Trim().Length > 500)
+            throw new BillingFinancialExceptionValidationException(
+                "Alasan approval wajib diisi dan maksimal 500 karakter.");
+    }
+
+    private static void ValidateMoney(decimal amount, string fieldName)
+    {
+        if (amount <= 0 || amount > MaxMoneyAmount || decimal.Round(amount, 2) != amount)
+            throw new BillingFinancialExceptionValidationException(
+                $"{fieldName} harus positif dan maksimal memiliki dua angka desimal.");
+    }
+
+    private static string ComputeAdjustmentPayloadHash(CreateAdjustmentRequest request)
+    {
+        var canonical = string.Join('|',
+            request.InvoiceId.ToString("N"),
+            request.Direction,
+            request.Amount.ToString(CultureInfo.InvariantCulture),
+            request.Reason.Trim(),
+            request.CorrelationId.ToString("N"),
+            request.CausationId.ToString("N"));
+        return Hash(canonical);
+    }
+
+    // BE-BKC-029: Category MUST ikut ke dalam PayloadHash - tanpa itu, dua pengajuan bernominal
+    // sama dengan kategori berbeda dianggap pengulangan idempotency yang sama, dan yang kedua
+    // diam-diam mengembalikan case pertama alih-alih diproses sebagai pengajuan baru yang sah.
+    private static string ComputeWriteOffPayloadHash(CreateWriteOffRequest request, string category)
+    {
+        var canonical = string.Join('|',
+            request.InvoiceId.ToString("N"),
+            request.Amount.ToString(CultureInfo.InvariantCulture),
+            request.Reason.Trim(),
+            request.CorrelationId.ToString("N"),
+            request.CausationId.ToString("N"),
+            category);
+        return Hash(canonical);
+    }
+
+    private static string ComputeReversalPayloadHash(Guid originalId, string reason) =>
+        Hash(string.Join('|', originalId.ToString("N"), reason.Trim()));
+
+    private static string Hash(string canonical) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+
+    private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
+        _dbContext.Database.ExecuteSqlRawAsync(
+            "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
+
+    private Task AuditAdjustmentAsync(
+        string action, BilAdjustment adjustment, Guid actorUserId, bool isReplay) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            action,
+            "Adjustment diajukan sebagai koreksi append-only terhadap invoice.",
+            new
+            {
+                AdjustmentId = adjustment.Id,
+                adjustment.InvoiceId,
+                adjustment.Direction,
+                adjustment.Amount,
+                adjustment.Status,
+                adjustment.CorrelationId,
+                ActorUserId = actorUserId,
+                IsReplay = isReplay
+            });
+
+    private Task AuditAdjustmentApprovalAsync(
+        BilAdjustment adjustment, string beforeStatus, Guid actorUserId) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "BillingAdjustment.Approve",
+            $"Adjustment={adjustment.Id:N}; status {beforeStatus}->{adjustment.Status}.",
+            new
+            {
+                AdjustmentId = adjustment.Id,
+                adjustment.RequestedBy,
+                adjustment.ApprovedBy,
+                adjustment.Direction,
+                adjustment.Amount,
+                StatusBefore = beforeStatus,
+                StatusAfter = adjustment.Status,
+                ActorUserId = actorUserId
+            });
+
+    private Task AuditWriteOffAsync(
+        string action,
+        BilWriteOffCase writeOffCase,
+        Guid actorUserId,
+        bool isReplay,
+        decimal? outstandingBefore,
+        decimal? outstandingAfter) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            action,
+            "Write-off case diajukan; belum menyelesaikan tagihan sebagai pembayaran.",
+            new
+            {
+                WriteOffCaseId = writeOffCase.Id,
+                writeOffCase.InvoiceId,
+                writeOffCase.Amount,
+                writeOffCase.Category,
+                writeOffCase.Status,
+                OutstandingBefore = outstandingBefore,
+                OutstandingAfter = outstandingAfter,
+                writeOffCase.CorrelationId,
+                ActorUserId = actorUserId,
+                IsReplay = isReplay
+            });
+
+    private Task AuditWriteOffApprovalAsync(
+        BilWriteOffCase writeOffCase,
+        string beforeStatus,
+        decimal outstandingBefore,
+        decimal outstandingAfter,
+        Guid actorUserId) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "BillingWriteOff.Approve",
+            $"WriteOffCase={writeOffCase.Id:N}; status {beforeStatus}->{writeOffCase.Status}; outstanding {outstandingBefore:0.00}->{outstandingAfter:0.00}.",
+            new
+            {
+                WriteOffCaseId = writeOffCase.Id,
+                writeOffCase.RequestedBy,
+                writeOffCase.ApprovedBy,
+                writeOffCase.Category,
+                writeOffCase.IsFullSettlement,
+                OutstandingBefore = outstandingBefore,
+                OutstandingAfter = outstandingAfter,
+                InvoiceStatus = writeOffCase.Invoice.Status,
+                ActorUserId = actorUserId
+            });
+
+    private Task AuditReversalAsync(
+        string action, BilAdjustment reversal, Guid originalId, Guid actorUserId) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            action,
+            "Reversal menghasilkan entry baru; posting asal tidak dimutasi.",
+            new
+            {
+                ReversalAdjustmentId = reversal.Id,
+                OriginalEntryId = originalId,
+                reversal.InvoiceId,
+                reversal.Direction,
+                reversal.Amount,
+                reversal.CorrelationId,
+                ActorUserId = actorUserId
+            });
+
+    private static AdjustmentResponse MapAdjustment(BilAdjustment adjustment, bool isReplay) => new()
+    {
+        Id = adjustment.Id,
+        InvoiceId = adjustment.InvoiceId,
+        Direction = adjustment.Direction,
+        Amount = adjustment.Amount,
+        Status = adjustment.Status,
+        RequestedBy = adjustment.RequestedBy,
+        ApprovedBy = adjustment.ApprovedBy,
+        Reason = adjustment.Reason,
+        ReversesAdjustmentId = adjustment.ReversesAdjustmentId,
+        ReversesWriteOffCaseId = adjustment.ReversesWriteOffCaseId,
+        CorrelationId = adjustment.CorrelationId,
+        RowVersion = adjustment.RowVersion,
+        SubmittedAt = adjustment.SubmittedAt,
+        PostedAt = adjustment.PostedAt,
+        IsReplay = isReplay
+    };
+
+    private static WriteOffResponse MapWriteOff(
+        BilWriteOffCase writeOffCase,
+        decimal? outstandingBefore,
+        decimal? outstandingAfter,
+        bool isReplay) => new()
+        {
+            Id = writeOffCase.Id,
+            InvoiceId = writeOffCase.InvoiceId,
+            Amount = writeOffCase.Amount,
+            IsFullSettlement = writeOffCase.IsFullSettlement,
+            OutstandingBefore = outstandingBefore ?? 0,
+            OutstandingAfter = outstandingAfter ?? 0,
+            Category = writeOffCase.Category,
+            Status = writeOffCase.Status,
+            RequestedBy = writeOffCase.RequestedBy,
+            ApprovedBy = writeOffCase.ApprovedBy,
+            Reason = writeOffCase.Reason,
+            CorrelationId = writeOffCase.CorrelationId,
+            RowVersion = writeOffCase.RowVersion,
+            SubmittedAt = writeOffCase.SubmittedAt,
+            PostedAt = writeOffCase.PostedAt,
+            IsReplay = isReplay
+        };
+}
+
+public abstract class BillingFinancialExceptionException : Exception
+{
+    protected BillingFinancialExceptionException(string message) : base(message) { }
+    protected BillingFinancialExceptionException(string message, Exception innerException)
+        : base(message, innerException) { }
+}
+
+public sealed class BillingFinancialExceptionValidationException(string message)
+    : BillingFinancialExceptionException(message);
+
+public sealed class BillingFinancialExceptionForbiddenException(string message)
+    : BillingFinancialExceptionException(message);
+
+public sealed class BillingFinancialExceptionConflictException : BillingFinancialExceptionException
+{
+    public BillingFinancialExceptionConflictException(string message) : base(message) { }
+    public BillingFinancialExceptionConflictException(string message, Exception innerException)
+        : base(message, innerException) { }
+}

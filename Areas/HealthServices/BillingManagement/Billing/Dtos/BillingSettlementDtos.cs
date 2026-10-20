@@ -35,6 +35,19 @@ public sealed class CreateTenderRequest
     public decimal Amount { get; set; }
     [MaxLength(150)] public string? CashierReferenceNote { get; set; }
     public Guid ExpectedRowVersion { get; set; }
+    public bool? IsManualCashierConfirmed { get; set; }
+    [MaxLength(500)] public string? ConfirmationNote { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+
+public sealed class ManualConfirmTenderRequest
+{
+    public Guid ExpectedRowVersion { get; set; }
+    [Required, MaxLength(150)] public string CashierReferenceNote { get; set; } = string.Empty;
+    public Guid? PaymentMethodAccountId { get; set; }
+    [MaxLength(500)] public string? ConfirmationNote { get; set; }
+    public bool UserConfirmation { get; set; } = true;
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
 }
@@ -78,6 +91,7 @@ public sealed class SettlementResponse
 public sealed class TenderResponse
 {
     public Guid Id { get; set; }
+    public Guid TenderId => Id;
     public Guid SettlementId { get; set; }
     public Guid PaymentMethodId { get; set; }
     public Guid? PaymentMethodAccountId { get; set; }
@@ -93,6 +107,12 @@ public sealed class TenderResponse
     public Guid RowVersion { get; set; }
     public bool IsReplay { get; set; }
     public string? InvoiceClosureNote { get; set; }
+
+    // Provenance konfirmasi pembayaran: "CASH", "MANUAL_CASHIER", "PAYMENT_PROVIDER"
+    public string? ConfirmationSource { get; set; }
+    public DateTimeOffset? ConfirmedAt { get; set; }
+    public string? MembershipFeeChargeStatus { get; set; }
+    public string? MembershipConfirmationStatus { get; set; }
 
     // Klasifikasi transaksi pembayaran: "PELUNASAN", "CICILAN", "PENDING"
     public string TransactionClassification { get; set; } = "CICILAN";

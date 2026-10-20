@@ -53,11 +53,15 @@ public sealed class BillingArApHandoffService
         bool isDepartureException,
         Guid actorUserId,
         CancellationToken cancellationToken,
-        EmployeeBenefitSplitCalculationResult? employeeBenefitSplit = null)
+        EmployeeBenefitSplitCalculationResult? employeeBenefitSplit = null,
+        bool isPatientArDeferred = false,
+        DateTimeOffset? patientArDueDate = null,
+        string? patientArConsentGivenBy = null,
+        string? patientArConsentNotes = null)
     {
         var now = DateTimeOffset.UtcNow;
 
-        if (isDepartureException && outstandingAtFinalization > 0)
+        if ((isDepartureException || isPatientArDeferred) && outstandingAtFinalization > 0)
         {
             _dbContext.BilArHandoffs.Add(new BilArHandoff
             {
@@ -67,7 +71,9 @@ public sealed class BillingArApHandoffService
                 FinalizationRecord = finalizationRecord,
                 DebtorType = BillingArDebtorTypes.PatientGuarantor,
                 Amount = outstandingAtFinalization,
-                DueDate = invoice.InvoiceDate,
+                DueDate = patientArDueDate ?? invoice.InvoiceDate,
+                DeferredConsentGivenBy = patientArConsentGivenBy,
+                DeferredConsentNotes = patientArConsentNotes,
                 Status = BillingHandoffStatuses.Created,
                 HandoffKey = Guid.NewGuid(),
                 CorrelationId = Guid.NewGuid(),

@@ -31,6 +31,50 @@ public sealed class FinalizeInvoiceRequest
     [MaxLength(500)] public string? EmployeeReceivableConsentNotes { get; set; }
 }
 
+/// <summary>
+/// Permintaan penutupan tagihan (close bill) dengan penangguhan sisa kewajiban pasien ke Piutang Pasien
+/// (Finance AR, DebtorType: PATIENT_GUARANTOR). Jalur sah dan terotorisasi terpisah dari departure exception.
+/// </summary>
+public sealed class FinalizeWithPatientReceivableRequest
+{
+    [Required]
+    public Guid ExpectedRowVersion { get; set; }
+
+    /// <summary>Alasan penangguhan piutang pasien (wajib).</summary>
+    [Required, MaxLength(500)]
+    public string DeferralReason { get; set; } = string.Empty;
+
+    /// <summary>Nomor dokumen / surat pernyataan persetujuan piutang pasien (opsional).</summary>
+    [MaxLength(100)]
+    public string? AgreementDocumentNumber { get; set; }
+
+    /// <summary>Tanggal jatuh tempo piutang pasien yang disetujui.</summary>
+    public DateTimeOffset? DueDate { get; set; }
+
+    /// <summary>Nama penanggung sisa tagihan bila bukan pasien sendiri (opsional; bila kosong diisi nama pasien authoritative).</summary>
+    [MaxLength(200)]
+    public string? GuarantorName { get; set; }
+
+    /// <summary>Hubungan penanggung dengan pasien (SELF / SPOUSE / PARENT / CHILD / OTHER).</summary>
+    [MaxLength(100)]
+    public string? GuarantorRelationship { get; set; }
+
+    /// <summary>Nomor kontak penanggung.</summary>
+    [MaxLength(50)]
+    public string? GuarantorPhone { get; set; }
+
+    /// <summary>Alamat penanggung.</summary>
+    [MaxLength(300)]
+    public string? GuarantorAddress { get; set; }
+
+    /// <summary>Konfirmasi eksplisit dari kasir/billing bahwa sisa tagihan dialihkan ke Finance AR.</summary>
+    [Required]
+    public bool UserConfirmation { get; set; }
+
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+
 public sealed class FinalizationPreviewResponse
 {
     public Guid InvoiceId { get; set; }

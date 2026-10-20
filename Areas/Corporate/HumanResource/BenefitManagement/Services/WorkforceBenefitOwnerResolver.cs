@@ -145,7 +145,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     EmploymentTypeName = x.EmploymentType != null ? x.EmploymentType.EmploymentTypeName : null,
                     DepartmentName = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : null,
                     JoinDate = x.JoinDate,
-                    IsActive = x.IsActive && !x.ResignDate.HasValue
+                    IsActive = x.IsActive && (!x.ResignDate.HasValue || x.ResignDate.Value.Date > DateTime.UtcNow.Date)
                 })
                 .ToListAsync(cancellationToken);
 
@@ -163,7 +163,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     EmploymentTypeName = x.EmploymentType != null ? x.EmploymentType.EmploymentTypeName : null,
                     DepartmentName = x.PrimaryDepartment != null ? x.PrimaryDepartment.DepartmentName : null,
                     JoinDate = x.JoinDate,
-                    IsActive = x.IsActive && !x.ResignDate.HasValue
+                    IsActive = x.IsActive && (!x.ResignDate.HasValue || x.ResignDate.Value.Date > DateTime.UtcNow.Date)
                 })
                 .ToListAsync(cancellationToken);
 
@@ -200,7 +200,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     ownerType = WorkforceBenefitOwnerTypes.Employee;
                     primary = employee;
                 }
-                else if (profile.UserType == UserType.PermanentDoctor)
+                else if (profile.UserType == UserType.PermanentDoctor || profile.UserType == UserType.GuestDoctor)
                 {
                     if (doctor is null)
                     {
@@ -215,6 +215,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     // Kontrak lama berbasis EmployeeId: baris MstEmployee tetap peran karyawan (perilaku sebelumnya).
                     ownerType = WorkforceBenefitOwnerTypes.Employee;
                     primary = employee;
+                }
+                else if (employee is not null)
+                {
+                    ownerType = WorkforceBenefitOwnerTypes.Employee;
+                    primary = employee;
+                }
+                else if (doctor is not null)
+                {
+                    ownerType = WorkforceBenefitOwnerTypes.Doctor;
+                    primary = doctor;
                 }
                 else
                 {
@@ -255,8 +265,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
         private static WorkforceOwnerResolution ConflictFor(UserType userType) => WorkforceOwnerResolution.Fail(
             BenefitEligibilityReasonCodes.OwnerIdentityConflict,
-            userType == UserType.PermanentDoctor
-                ? "Profil SDM berjenis dokter tetap tetapi data dokternya tidak ditemukan di HR."
+            (userType == UserType.PermanentDoctor || userType == UserType.GuestDoctor)
+                ? "Profil SDM berjenis dokter tetapi data dokternya tidak ditemukan di HR."
                 : "Profil SDM berjenis karyawan tetapi data karyawannya tidak ditemukan di HR.");
 
         private sealed class RoleRow

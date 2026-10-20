@@ -78,14 +78,21 @@ public sealed class BillingAllocationService
                 var replayCalculation = await LoadCurrentCalculationAsync(replayInvoice, cancellationToken);
                 var replayPosition = await CalculateInvoicePositionAsync(
                     replayInvoice.Id, replayCalculation.PatientAmount, cancellationToken);
+                var priorCredit = await _dbContext.BilRefundableCredits.AsNoTracking()
+                    .SingleOrDefaultAsync(
+                        x => x.SourceType == BillingRefundableCreditSourceTypes.Settlement
+                            && x.SourceId == prior.Id
+                            && !x.IsDelete,
+                        cancellationToken);
 
                 if (transaction is not null) await transaction.CommitAsync(cancellationToken);
                 await AuditAllocationAsync(
                     priorAllocation, replayAccount, replayInvoice, replayPosition,
-                    actorUserId, request.Reason, prior.CorrelationId, true);
+                    actorUserId, request.Reason, prior.CorrelationId, true, null,
+                    prior.RequestedAmount, priorCredit?.OriginalAmount, priorCredit?.Id);
                 return MapResponse(
                     priorAllocation, prior, replayAccount, replayInvoice,
-                    replayPosition, true);
+                    replayPosition, true, priorCredit);
             }
 
             var keyUsedByMovement = await _dbContext.BilDepositMovements.AsNoTracking()
@@ -128,10 +135,26 @@ public sealed class BillingAllocationService
             var calculation = await LoadCurrentCalculationAsync(invoice, cancellationToken);
             var positionBefore = await CalculateInvoicePositionAsync(
                 invoice.Id, calculation.PatientAmount, cancellationToken);
-            if (request.Amount > account.AvailableBalance
-                || request.Amount > positionBefore.OutstandingAmount)
+
+            // Validasi A: Saldo deposit tidak mencukupi
+            if (request.Amount > account.AvailableBalance)
+            {
                 throw new BillingAllocationValidationException(
-                    "Dana deposit atau saldo tagihan tidak mencukupi.");
+                    $"Saldo deposit tidak mencukupi. Saldo tersedia: Rp {account.AvailableBalance:N2}, nominal alokasi: Rp {request.Amount:N2}.");
+            }
+
+            // Validasi B: Tagihan invoice sudah lunas
+            if (positionBefore.OutstandingAmount <= 0)
+            {
+                throw new BillingAllocationValidationException(
+                    "Tagihan invoice sudah lunas; tidak dapat menerima alokasi pembayaran baru.");
+            }
+
+            // New Business Rule: Overpayment diperbolehkan jika deposit cukup.
+            // Alokasi ke invoice sebesar min(request.Amount, OutstandingAmount).
+            // Kelebihannya dialihkan menjadi refundable credit pasien.
+            var invoiceAllocatedAmount = Math.Min(request.Amount, positionBefore.OutstandingAmount);
+            var refundCreditAmount = Math.Max(0m, request.Amount - invoiceAllocatedAmount);
 
             var now = DateTimeOffset.UtcNow;
             var beforeBalance = account.AvailableBalance;
@@ -141,7 +164,7 @@ public sealed class BillingAllocationService
                 Purpose = BillingSettlementPurposes.InvoicePayment,
                 RequestedAmount = request.Amount,
                 SuccessfulAmount = request.Amount,
-                AllocatedAmount = request.Amount,
+                AllocatedAmount = invoiceAllocatedAmount,
                 Status = BillingSettlementStatuses.Settled,
                 IdempotencyKey = idempotencyKey,
                 PayloadHash = payloadHash,
@@ -159,7 +182,7 @@ public sealed class BillingAllocationService
                 Settlement = settlement,
                 TargetType = BillingAllocationTargetTypes.Invoice,
                 TargetId = invoice.Id,
-                Amount = request.Amount,
+                Amount = invoiceAllocatedAmount,
                 CalculationVersion = calculation.VersionNo,
                 AllocatedAt = now,
                 CreateDateTime = DateTime.UtcNow,
@@ -183,6 +206,19 @@ public sealed class BillingAllocationService
                 CreateBy = actorUserId
             };
 
+            BilRefundableCredit? settlementCredit = null;
+            if (refundCreditAmount > 0)
+            {
+                settlementCredit = NewCredit(
+                    invoice.Id,
+                    BillingRefundableCreditSourceTypes.Settlement,
+                    settlement.Id,
+                    refundCreditAmount,
+                    now,
+                    actorUserId);
+                _dbContext.BilRefundableCredits.Add(settlementCredit);
+            }
+
             _dbContext.BilSettlements.Add(settlement);
             _dbContext.BilPaymentAllocations.Add(allocation);
             account.Movements.Add(movement);
@@ -198,9 +234,11 @@ public sealed class BillingAllocationService
             await _dbContext.SaveChangesAsync(cancellationToken);
             var positionAfter = positionBefore with
             {
-                NetAllocatedAmount = positionBefore.NetAllocatedAmount + request.Amount,
-                OutstandingAmount = Math.Max(positionBefore.OutstandingAmount - request.Amount, 0)
+                NetAllocatedAmount = positionBefore.NetAllocatedAmount + invoiceAllocatedAmount,
+                OutstandingAmount = Math.Max(positionBefore.OutstandingAmount - invoiceAllocatedAmount, 0),
+                RefundableCredit = positionBefore.RefundableCredit + refundCreditAmount
             };
+
             // BKC-DES-029: dipasang untuk konsistensi dengan lima peristiwa lain yang
             // menggerakkan sisa tagihan. Baris 114 di atas MEWAJIBKAN invoice.Status == OPEN
             // sebagai prasyarat method ini, dan alokasi deposit tidak mengubah Status - sehingga
@@ -224,11 +262,12 @@ public sealed class BillingAllocationService
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditAllocationAsync(
                 allocation, account, invoice, positionAfter,
-                actorUserId, request.Reason, request.CorrelationId, false, beforeBalance);
+                actorUserId, request.Reason, request.CorrelationId, false, beforeBalance,
+                request.Amount, refundCreditAmount, settlementCredit?.Id);
             if (closureChange.Changed)
                 await AuditClosureChangeAsync(closureChange, actorUserId);
             return MapResponse(
-                allocation, settlement, account, invoice, positionAfter, false);
+                allocation, settlement, account, invoice, positionAfter, false, settlementCredit);
         }
         catch (DbUpdateConcurrencyException exception)
         {
@@ -252,6 +291,52 @@ public sealed class BillingAllocationService
         {
             if (transaction is not null) await transaction.DisposeAsync();
         }
+    }
+
+    public async Task<DepositAllocationQuoteResponse> GetAllocationQuoteAsync(
+        Guid encounterId,
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        if (encounterId == Guid.Empty || invoiceId == Guid.Empty)
+            throw new BillingAllocationValidationException("EncounterId dan InvoiceId wajib diisi.");
+
+        var account = await _dbContext.BilDepositAccounts.AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.EncounterId == encounterId && !x.IsDelete,
+                cancellationToken)
+            ?? throw new KeyNotFoundException("Deposit rawat inap belum tersedia.");
+
+        var invoice = await LoadInvoiceAsync(invoiceId, cancellationToken);
+        if (invoice.EncounterId != encounterId)
+            throw new BillingAllocationValidationException(
+                "Deposit hanya dapat dialokasikan ke invoice pada encounter yang sama.");
+
+        var calculation = await LoadCurrentCalculationAsync(invoice, cancellationToken);
+        var position = await CalculateInvoicePositionAsync(
+            invoice.Id, calculation.PatientAmount, cancellationToken);
+
+        var depositAvailable = account.AvailableBalance;
+        var outstanding = position.OutstandingAmount;
+        var suggested = Math.Min(depositAvailable, outstanding);
+        var expectedRefund = Math.Max(0m, depositAvailable - outstanding);
+        var canAllocate = account.Status == BillingDepositAccountStatuses.Active
+            && invoice.Status == BillingInvoiceStatuses.Open
+            && depositAvailable > 0
+            && outstanding > 0;
+
+        return new DepositAllocationQuoteResponse
+        {
+            InvoiceOutstanding = outstanding,
+            DepositAvailableBalance = depositAvailable,
+            MaxDepositDebitAmount = depositAvailable,
+            SuggestedPaymentAmount = suggested,
+            ExpectedRefundIfUsingFullDeposit = expectedRefund,
+            CanAllocate = canAllocate,
+            DepositRowVersion = account.RowVersion,
+            InvoiceRowVersion = invoice.RowVersion,
+            CalculationVersion = calculation.VersionNo
+        };
     }
 
     internal async Task<SettlementAllocationResult> ReconcileSettlementAsync(
@@ -605,7 +690,10 @@ public sealed class BillingAllocationService
         string reason,
         Guid correlationId,
         bool isReplay,
-        decimal? balanceBefore = null) =>
+        decimal? balanceBefore = null,
+        decimal? requestedAmount = null,
+        decimal? refundCreditAmount = null,
+        Guid? refundableCreditId = null) =>
         _loggerService.AuditAsync(
             LogCategory,
             "BillingAllocation.DepositAllocated",
@@ -615,9 +703,12 @@ public sealed class BillingAllocationService
                 AllocationId = allocation.Id,
                 allocation.SettlementId,
                 InvoiceId = invoice.Id,
-                allocation.Amount,
+                RequestedAmount = requestedAmount ?? allocation.Amount,
+                InvoiceAllocatedAmount = allocation.Amount,
+                RefundCreditAmount = refundCreditAmount ?? 0m,
+                RefundableCreditId = refundableCreditId,
                 allocation.CalculationVersion,
-                DepositBalanceBefore = balanceBefore ?? account.AvailableBalance + allocation.Amount,
+                DepositBalanceBefore = balanceBefore ?? account.AvailableBalance + (requestedAmount ?? allocation.Amount),
                 DepositBalanceAfter = account.AvailableBalance,
                 position.OutstandingAmount,
                 InvoiceStatus = invoice.Status,
@@ -633,7 +724,8 @@ public sealed class BillingAllocationService
         BilDepositAccount account,
         BilInvoice invoice,
         InvoiceFundsPosition position,
-        bool isReplay) => new()
+        bool isReplay,
+        BilRefundableCredit? refundableCredit = null) => new()
         {
             Id = allocation.Id,
             SettlementId = allocation.SettlementId,
@@ -648,7 +740,13 @@ public sealed class BillingAllocationService
             DepositRowVersion = account.RowVersion,
             InvoiceRowVersion = invoice.RowVersion,
             CorrelationId = settlement.CorrelationId,
-            IsReplay = isReplay
+            IsReplay = isReplay,
+            RequestedAmount = settlement.RequestedAmount,
+            InvoiceAllocatedAmount = allocation.Amount,
+            RefundCreditAmount = refundableCredit?.OriginalAmount ?? Math.Max(0m, settlement.RequestedAmount - allocation.Amount),
+            RefundableCreditId = refundableCredit?.Id,
+            DepositBalanceAfter = account.AvailableBalance,
+            InvoiceOutstandingAfter = position.OutstandingAmount
         };
 
     private static void ValidateRequest(

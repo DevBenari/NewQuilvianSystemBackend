@@ -134,7 +134,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             {
                 // Jenis pemilik mengikuti jenis SDM pada profil; tanpa profil dibaca dari data peran yang ada.
                 var isDoctor = x.UserType == QuilvianSystemBackend.Enums.UserType.PermanentDoctor
-                    || (x.UserType is null && x.EmployeeName is null && x.DoctorName is not null);
+                    || x.UserType == QuilvianSystemBackend.Enums.UserType.GuestDoctor
+                    || (x.UserType is null && x.EmployeeName is null && x.DoctorName is not null)
+                    || (x.DoctorName is not null && x.EmployeeName is null);
                 var number = isDoctor ? (x.DoctorNumber ?? x.EmployeeNumber) : (x.EmployeeNumber ?? x.DoctorNumber);
                 var name = isDoctor ? (x.DoctorName ?? x.EmployeeName) : (x.EmployeeName ?? x.DoctorName);
                 return new EmployeeBenefitEnrollmentListResponse

@@ -271,6 +271,225 @@ public sealed class BillingFinalizationService
         }
     }
 
+    /// <summary>
+    /// Finalisasi invoice dengan penangguhan sisa kewajiban pasien ke Piutang Pasien (Finance AR).
+    /// Menggunakan otorisasi khusus BillingFinalization.DeferToAR. Menghasilkan BilArHandoff dengan
+    /// DebtorType = PATIENT_GUARANTOR dan mempertahankan status invoice FINAL (bukan CLOSED) selama
+    /// piutang belum lunas diselesaikan di Finance.
+    /// </summary>
+    public async Task<FinalizationResponse> FinalizeWithPatientReceivableAsync(
+        Guid invoiceId,
+        FinalizeWithPatientReceivableRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateFinalizeWithPatientReceivableRequest(request, actorUserId);
+        var payloadHash = ComputePatientArPayloadHash(invoiceId, request);
+        IDbContextTransaction? transaction = null;
+
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_INVOICE_LEDGER_{invoiceId:N}", cancellationToken);
+            }
+
+            var prior = await _dbContext.BilFinalizationRecords
+                .Include(x => x.Invoice)
+                .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
+            if (prior is not null)
+            {
+                if (prior.PayloadHash != payloadHash)
+                    throw new BillingFinalizationConflictException(
+                        "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
+                if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+                await AuditFinalizationAsync(prior, actorUserId, true);
+                return Map(prior, true);
+            }
+
+            if (await _dbContext.BilFinalizationRecords.AsNoTracking()
+                .AnyAsync(x => x.CorrelationId == request.CorrelationId, cancellationToken))
+                throw new BillingFinalizationConflictException(
+                    "CorrelationId sudah diproses; gunakan correlation baru.");
+
+            var invoice = await _dbContext.BilInvoices
+                .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+            if (invoice.Status != BillingInvoiceStatuses.Open)
+                throw new BillingFinalizationConflictException(
+                    "Invoice tidak lagi berstatus OPEN untuk difinalisasi.");
+            if (invoice.RowVersion != request.ExpectedRowVersion)
+                throw new BillingFinalizationConflictException(
+                    "Data telah berubah. Muat ulang sebelum melanjutkan.",
+                    code: "STALE_INVOICE_ROW_VERSION",
+                    currentRowVersion: invoice.RowVersion);
+
+            var readiness = await BuildReadinessAsync(invoice, cancellationToken);
+
+            // Pemeriksaan kelayakan invoice sebelum finalisasi:
+            if (readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.RequiresReview))
+                throw new BillingFinalizationBlockedException(
+                    "Invoice ini perlu diperiksa sebelum difinalkan.", readiness);
+            if (readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.TariffNotFound))
+                throw new BillingFinalizationBlockedException(
+                    "Masih ada layanan yang tarifnya belum diatur. Lengkapi master tarif sebelum memfinalkan.",
+                    readiness);
+            if (readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.PendingClinicalCharge))
+                throw new BillingFinalizationBlockedException(
+                    "Masih ada pelayanan yang belum masuk invoice. Selesaikan antrean rekonsiliasi sebelum memfinalkan.",
+                    readiness);
+            if (!readiness.AllOrdersComplete || !readiness.CalculationCurrent)
+                throw new BillingFinalizationBlockedException(
+                    "Invoice belum siap difinalisasi.", readiness);
+
+            var now = DateTimeOffset.UtcNow;
+            var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
+                .SingleAsync(
+                    x => x.InvoiceId == invoice.Id && x.VersionNo == readiness.CalculationVersion,
+                    cancellationToken);
+
+            EmployeeBenefitSplitCalculationResult? splitResult = null;
+            if (_splitService is not null)
+            {
+                splitResult = await _splitService.EvaluateSplitAsync(
+                    invoice,
+                    calculation,
+                    readiness.Outstanding,
+                    choiceAmount: 0m,
+                    consentGivenBy: null,
+                    isFinalizing: true,
+                    cancellationToken: cancellationToken);
+            }
+
+            var effectiveOutstanding = splitResult is not null
+                ? splitResult.PatientRemainingAmount
+                : readiness.Outstanding;
+
+            if (effectiveOutstanding <= 0)
+                throw new BillingFinalizationValidationException(
+                    "Invoice tidak memiliki sisa kewajiban pasien untuk ditangguhkan ke piutang. Seluruh tagihan sudah selesai; gunakan finalisasi normal.");
+
+            // Identitas debitur penanggung authoritative dari master pasien / encounter
+            var encounter = await _dbContext.Set<RegPatientEncounter>().AsNoTracking()
+                .Include(e => e.Patient)
+                .SingleOrDefaultAsync(e => e.Id == invoice.EncounterId && !e.IsDelete, cancellationToken);
+            var patient = encounter?.Patient;
+            var patientId = encounter?.PatientId ?? Guid.Empty;
+
+            string debtorIdentity;
+            string debtorRelationship;
+            var isSelf = string.IsNullOrWhiteSpace(request.GuarantorRelationship)
+                || string.Equals(request.GuarantorRelationship.Trim(), "SELF", StringComparison.OrdinalIgnoreCase);
+
+            if (isSelf)
+            {
+                debtorIdentity = patient is not null
+                    ? $"{patient.FullName} (No. RM: {patient.MedicalRecordNumber})"
+                    : "Pasien Sendiri";
+                debtorRelationship = "SELF";
+            }
+            else
+            {
+                var guarantorName = !string.IsNullOrWhiteSpace(request.GuarantorName)
+                    ? request.GuarantorName.Trim()
+                    : (patient?.FullName ?? "Penanggung");
+                debtorIdentity = patient is not null
+                    ? $"{guarantorName} (Penanggung untuk {patient.FullName}, No. RM: {patient.MedicalRecordNumber})"
+                    : guarantorName;
+                debtorRelationship = !string.IsNullOrWhiteSpace(request.GuarantorRelationship)
+                    ? request.GuarantorRelationship.Trim().ToUpperInvariant()
+                    : "PENANGGUNG";
+            }
+
+            var deferralReason = $"Penangguhan Piutang Pasien: {request.DeferralReason.Trim()}";
+
+            var (record, closureChange) = await ExecuteInternalFinalizationAndClosureAsync(
+                invoice,
+                calculation,
+                readiness.CalculationVersion,
+                effectiveOutstanding,
+                isDepartureException: false,
+                departureReason: null,
+                debtorIdentity: debtorIdentity,
+                debtorRelationship: debtorRelationship,
+                reason: deferralReason,
+                idempotencyKey: idempotencyKey,
+                payloadHash: payloadHash,
+                correlationId: request.CorrelationId,
+                causationId: request.CausationId,
+                actorUserId: actorUserId,
+                now: now,
+                cancellationToken: cancellationToken,
+                employeeBenefitSplit: splitResult,
+                isPatientArDeferred: true,
+                patientArDueDate: request.DueDate,
+                patientArConsentGivenBy: request.GuarantorName ?? patient?.FullName,
+                patientArConsentNotes: request.AgreementDocumentNumber);
+
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            await AuditFinalizationAsync(record, actorUserId, false);
+            if (closureChange.Changed)
+                await AuditClosureChangeAsync(closureChange, actorUserId);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "BillingFinalization.PatientArDeferred",
+                $"Invoice {invoice.InvoiceNumber} berhasil difinalisasi dengan penangguhan piutang pasien sebesar {effectiveOutstanding:N2}.",
+                new
+                {
+                    InvoiceId = invoice.Id,
+                    InvoiceNumber = invoice.InvoiceNumber,
+                    PatientId = patientId,
+                    DebtorIdentity = debtorIdentity,
+                    DebtorRelationship = debtorRelationship,
+                    Amount = effectiveOutstanding,
+                    DueDate = request.DueDate,
+                    AgreementDocumentNumber = request.AgreementDocumentNumber,
+                    CorrelationId = request.CorrelationId,
+                    FinalizationRecordId = record.Id
+                });
+
+            var response = Map(record, false);
+            response.EmployeeBenefitSplit = splitResult?.Response;
+            return response;
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinalizationConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.",
+                exception,
+                code: "DB_CONCURRENCY_CONFLICT");
+        }
+        catch (DbUpdateException exception)
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinalizationConflictException(
+                "Penangguhan piutang finalisasi tidak dapat disimpan karena target, correlation, atau idempotency key sudah diproses.",
+                exception);
+        }
+        catch (Exception exception) when (IsSerializationFailure(exception))
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new BillingFinalizationConflictException(
+                "Terjadi konflik transaksi bersamaan pada data yang sama (serialization failure). Muat ulang dan coba kembali.",
+                exception,
+                code: "SERIALIZATION_FAILURE");
+        }
+        catch
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
     public async Task<CompleteInvoiceResponse> CompleteInvoiceWithoutPatientPaymentAsync(
         Guid invoiceId,
         CompleteInvoiceRequest request,
@@ -677,7 +896,11 @@ public sealed class BillingFinalizationService
         Guid actorUserId,
         DateTimeOffset now,
         CancellationToken cancellationToken,
-        EmployeeBenefitSplitCalculationResult? employeeBenefitSplit = null)
+        EmployeeBenefitSplitCalculationResult? employeeBenefitSplit = null,
+        bool isPatientArDeferred = false,
+        DateTimeOffset? patientArDueDate = null,
+        string? patientArConsentGivenBy = null,
+        string? patientArConsentNotes = null)
     {
         var record = new BilFinalizationRecord
         {
@@ -689,10 +912,10 @@ public sealed class BillingFinalizationService
             DepartureReason = isDepartureException && !string.IsNullOrWhiteSpace(departureReason)
                 ? departureReason.Trim().ToUpperInvariant()
                 : null,
-            DebtorIdentity = isDepartureException && !string.IsNullOrWhiteSpace(debtorIdentity)
+            DebtorIdentity = !string.IsNullOrWhiteSpace(debtorIdentity)
                 ? debtorIdentity.Trim()
                 : null,
-            DebtorRelationship = isDepartureException && !string.IsNullOrWhiteSpace(debtorRelationship)
+            DebtorRelationship = !string.IsNullOrWhiteSpace(debtorRelationship)
                 ? debtorRelationship.Trim()
                 : null,
             Reason = reason.Trim(),
@@ -716,7 +939,11 @@ public sealed class BillingFinalizationService
 
         await _arApHandoffService.StageHandoffsForFinalizationAsync(
             invoice, calculation, record, outstandingAtFinalization, isDepartureException,
-            actorUserId, cancellationToken, employeeBenefitSplit);
+            actorUserId, cancellationToken, employeeBenefitSplit,
+            isPatientArDeferred: isPatientArDeferred,
+            patientArDueDate: patientArDueDate,
+            patientArConsentGivenBy: patientArConsentGivenBy,
+            patientArConsentNotes: patientArConsentNotes);
 
         // BKC-DEC-164 / BKC-DES-086 (BE-BKC-085): Sisa kredit administrasi rawat jalan menjadi kredit refund
         await RecognizeUnappliedReferredAdminCreditAsync(
@@ -1014,6 +1241,38 @@ public sealed class BillingFinalizationService
             request.EmployeeReceivableChoiceAmount?.ToString("F2", CultureInfo.InvariantCulture) ?? string.Empty,
             request.EmployeeReceivableConsentGivenBy?.Trim() ?? string.Empty,
             request.Reason.Trim(),
+            request.CorrelationId.ToString("N"),
+            request.CausationId.ToString("N"));
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
+    }
+
+    private static void ValidateFinalizeWithPatientReceivableRequest(FinalizeWithPatientReceivableRequest request, Guid actorUserId)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        if (actorUserId == Guid.Empty)
+            throw new BillingFinalizationValidationException("Identitas pengguna tidak valid.");
+        if (request.ExpectedRowVersion == Guid.Empty)
+            throw new BillingFinalizationValidationException("ExpectedRowVersion wajib diisi.");
+        if (string.IsNullOrWhiteSpace(request.DeferralReason) || request.DeferralReason.Trim().Length > 500)
+            throw new BillingFinalizationValidationException(
+                "Alasan penangguhan piutang pasien wajib diisi dan maksimal 500 karakter.");
+        if (!request.UserConfirmation)
+            throw new BillingFinalizationValidationException(
+                "Konfirmasi otorisasi penangguhan piutang pasien wajib disetujui.");
+        if (request.CorrelationId == Guid.Empty || request.CausationId == Guid.Empty)
+            throw new BillingFinalizationValidationException("CorrelationId dan CausationId wajib diisi.");
+    }
+
+    private static string ComputePatientArPayloadHash(Guid invoiceId, FinalizeWithPatientReceivableRequest request)
+    {
+        var canonical = string.Join('|',
+            invoiceId.ToString("N"),
+            request.DeferralReason.Trim(),
+            request.AgreementDocumentNumber?.Trim() ?? string.Empty,
+            request.DueDate?.ToString("O") ?? string.Empty,
+            request.GuarantorName?.Trim() ?? string.Empty,
+            request.GuarantorRelationship?.Trim().ToUpperInvariant() ?? string.Empty,
+            request.UserConfirmation ? "TRUE" : "FALSE",
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));

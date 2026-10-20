@@ -162,7 +162,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             new HashSet<QuilvianSystemBackend.Enums.UserType>
             {
                 QuilvianSystemBackend.Enums.UserType.Employee,
-                QuilvianSystemBackend.Enums.UserType.PermanentDoctor
+                QuilvianSystemBackend.Enums.UserType.PermanentDoctor,
+                QuilvianSystemBackend.Enums.UserType.GuestDoctor
             };
     }
 

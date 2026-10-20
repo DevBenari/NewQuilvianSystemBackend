@@ -71,7 +71,29 @@ public sealed class FinanceReceivableService
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToUpper();
-            query = query.Where(x => x.ReceivableNumber.ToUpper().Contains(search));
+            var matchingInvoiceIds = _dbContext.BilInvoices.AsNoTracking()
+                .Where(i => i.InvoiceNumber.ToUpper().Contains(search))
+                .Select(i => i.Id);
+
+            var matchingReceivableIdsFromPatient = _dbContext.FinReceivableItems.AsNoTracking()
+                .Where(item => item.PatientId.HasValue &&
+                    _dbContext.MstPatients.Any(p => !p.IsDelete && p.Id == item.PatientId.Value &&
+                        (p.FullName.ToUpper().Contains(search) || p.MedicalRecordNumber.ToUpper().Contains(search))))
+                .Select(item => item.ReceivableId);
+
+            var matchingCompanyDebtorIds = _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .Where(c => !c.IsDelete && c.CompanyGuarantorName.ToUpper().Contains(search))
+                .Select(c => c.Id);
+
+            var matchingInsuranceDebtorIds = _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(p => !p.IsDelete && p.InsuranceProviderName.ToUpper().Contains(search))
+                .Select(p => p.Id);
+
+            query = query.Where(x =>
+                x.ReceivableNumber.ToUpper().Contains(search) ||
+                (x.InvoiceId.HasValue && matchingInvoiceIds.Contains(x.InvoiceId.Value)) ||
+                matchingReceivableIdsFromPatient.Contains(x.Id) ||
+                (x.DebtorReferenceId.HasValue && (matchingCompanyDebtorIds.Contains(x.DebtorReferenceId.Value) || matchingInsuranceDebtorIds.Contains(x.DebtorReferenceId.Value))));
         }
 
         var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
@@ -123,6 +145,25 @@ public sealed class FinanceReceivableService
                 .ToDictionaryAsync(i => i.Id, i => i.InvoiceNumber, cancellationToken)
             : new Dictionary<Guid, string>();
 
+        var pagedReceivableIds = pagedEntities.Select(x => x.Id).ToList();
+        var receivablePatientMap = pagedReceivableIds.Count > 0
+            ? (await _dbContext.FinReceivableItems.AsNoTracking()
+                .Where(item => pagedReceivableIds.Contains(item.ReceivableId) && item.PatientId.HasValue)
+                .Select(item => new { item.ReceivableId, item.PatientId })
+                .ToListAsync(cancellationToken))
+                .GroupBy(x => x.ReceivableId)
+                .ToDictionary(g => g.Key, g => g.First().PatientId!.Value)
+            : new Dictionary<Guid, Guid>();
+
+        var pagedPatientIds = receivablePatientMap.Values.Distinct().ToList();
+        var patientLookup = pagedPatientIds.Count > 0
+            ? (await _dbContext.MstPatients.AsNoTracking()
+                .Where(p => !p.IsDelete && pagedPatientIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.FullName, p.MedicalRecordNumber })
+                .ToListAsync(cancellationToken))
+                .ToDictionary(p => p.Id, p => (FullName: p.FullName, MedicalRecordNumber: p.MedicalRecordNumber))
+            : new Dictionary<Guid, (string FullName, string MedicalRecordNumber)>();
+
         var items = pagedEntities.Select(x =>
         {
             var res = Map(x);
@@ -145,6 +186,19 @@ public sealed class FinanceReceivableService
                     res.CompanyName = "Internal RS";
                     res.DebtorDisplayName = $"{benefitOwner.StaffName} ({benefitOwner.StaffNumber})";
                     res.DebtorDisplayCategory = BenefitOwnerCategoryLabel(benefitOwner.OwnerType);
+                }
+            }
+            if (receivablePatientMap.TryGetValue(x.Id, out var patId) && patientLookup.TryGetValue(patId, out var patInfo))
+            {
+                res.PatientId = patId;
+                res.PatientName = patInfo.FullName;
+                res.PatientMedicalRecordNumber = patInfo.MedicalRecordNumber;
+                if (string.IsNullOrWhiteSpace(res.DebtorDisplayName) && string.Equals(x.DebtorType, "PATIENT_GUARANTOR", StringComparison.OrdinalIgnoreCase))
+                {
+                    res.DebtorName = patInfo.FullName;
+                    res.CompanyName = "Pasien / Penjamin Pribadi";
+                    res.DebtorDisplayName = $"{patInfo.FullName} ({patInfo.MedicalRecordNumber})";
+                    res.DebtorDisplayCategory = "Pasien / Penjamin";
                 }
             }
             if (x.InvoiceId.HasValue && invoiceNumbers.TryGetValue(x.InvoiceId.Value, out var invNum))
@@ -250,6 +304,24 @@ public sealed class FinanceReceivableService
             resReceivable.PatientMedicalRecordNumber = resolvedPatientMrn;
         }
         resReceivable.BenefitRelationship = receivable.BenefitRelationship;
+
+        if (string.IsNullOrWhiteSpace(debtorDisplayName) && string.Equals(receivable.DebtorType, "PATIENT_GUARANTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(resolvedPatientName))
+            {
+                debtorDisplayName = $"{resolvedPatientName} ({resolvedPatientMrn})";
+                debtorDisplayCategory = "Pasien / Penjamin";
+                resReceivable.DebtorName = resolvedPatientName;
+                resReceivable.CompanyName = "Pasien / Penjamin Pribadi";
+            }
+            else
+            {
+                debtorDisplayName = "Pasien / Penjamin";
+                debtorDisplayCategory = "Pasien / Penjamin";
+                resReceivable.DebtorName = "Pasien / Penjamin";
+                resReceivable.CompanyName = "Pasien / Penjamin Pribadi";
+            }
+        }
 
         resReceivable.DebtorDisplayName = debtorDisplayName;
         resReceivable.DebtorDisplayCategory = debtorDisplayCategory;
