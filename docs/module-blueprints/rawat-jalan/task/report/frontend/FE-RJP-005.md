@@ -156,3 +156,46 @@ Tombol konfirmasi primer di dialog Tandai Tiba ("Ya, Tandai Tiba"), Skrining ("S
 `region-btn-primary` hijau tua bawaan `ConfirmModal`. Dialog Kirim Ulang Link (peringatan), Kembalikan, dan Batalkan tetap
 memakai warna bawaannya. Rinciannya di laporan `FE-RJP-004` bagian 8.7. Berkas: `detail/priority-reservation-action-modals.jsx`,
 konstanta di `priority-reservation-modal-buttons.js`. `npm run lint:errors` dan `npm run build` exit 0.
+
+### 8.2 Lanjutan 20 Oktober 2026 — tombol "Kirim Ulang Link"
+
+Owner melaporkan tombol "Kirim Ulang Link" di hero detail tampak seperti teks biasa. Penyebabnya: varian `ghost` (transparan
+tanpa bingkai) di atas latar hero gelap. Tombol kini `BaseButton variant="secondary"`, sama dengan "Kembali" dan aksi
+pendukung di halaman detail lain (kiosk device, chart of account).
+
+| Berkas (repo frontend) | Status | Isi |
+| --- | --- | --- |
+| `src/components/view/health-services/registration-management/priority-reservations/detail/priority-reservation-detail-view.jsx` | Diperbarui | "Kirim Ulang Link" `variant="secondary"`, dan atas permintaan owner dipindah tepat di samping "Kembali". Urutan hero: Kembali, Kirim Ulang Link, Lengkapi Pendaftaran, Tandai Tiba, Skrining, Kembalikan ke Belum Tiba, Batalkan (yang tampil mengikuti status dan izin) |
+
+`UI GATE: PASS — REUSE varian BaseButton yang ada.`
+
+| Langkah | Hasil |
+| --- | --- |
+| `npx eslint --quiet` (folder fitur) | exit 0 |
+| `MANUAL TEST` di stack owner, detail `RSV-20261019-0002` (Menunggu Kedatangan) | `PASS` — tombol berlatar putih, bingkai `rgba(8, 155, 171, 0.16)`, teks gelap; klik membuka dialog "Kirim Ulang Link?" (dibatalkan, tidak ada link baru terbit) |
+
+Tangkapan layar: `reissue-hero-full.png` di scratchpad sesi.
+
+### 8.3 Lanjutan 20 Oktober 2026 — tombol "Skrining" dihapus (`RJ-PRI-DEC-033`)
+
+Atas permintaan owner, tombol "Skrining" dihapus dari hero detail supaya petugas langsung ke "Lengkapi Pendaftaran".
+Pelengkapan tidak pernah menunggu skrining (`RJ-PRI-DEC-019`), jadi alur pendaftaran tidak terhalang. Backend tidak diubah:
+endpoint `PUT /{id}/screening`, kolom data, dan izin `Screen` tetap ada, sehingga tombol bisa dikembalikan tanpa migration.
+
+Dampak yang perlu diketahui:
+
+1. Checklist skrining awal (`FR-RP-034`, `RJ-PRI-DEC-019`) tidak lagi bisa diisi dari layar. Bagian frontend `FR-RP-034`
+   ditarik oleh keputusan owner; skenario `SCREENING`, `STALE 409` (melalui dialog skrining), dan `BTN screener` pada bagian 5
+   tidak berlaku lagi untuk layar.
+2. Akun yang hanya punya `Read` + `Screen` tidak lagi punya aksi di detail. Bunyi dan toast "Pasien prioritas tiba" (`R-RP-14`)
+   tetap berjalan di daftar.
+3. Baris "Skrining Awal" di detail dan kolom "Skrining" di daftar masih tampil, dan akan selalu "Belum" untuk reservasi baru.
+
+| Berkas (repo frontend) | Status | Isi |
+| --- | --- | --- |
+| `src/components/view/health-services/registration-management/priority-reservations/detail/priority-reservation-detail-view.jsx` | Diperbarui | Tombol "Skrining" dihapus dari `renderDetailActions` |
+
+| Langkah | Hasil |
+| --- | --- |
+| `npx eslint --quiet` (folder detail) | exit 0 |
+| `MANUAL TEST` di stack owner, detail `RSV-20261020-0008` (Sudah Tiba) | `PASS` — tombol: Kembali, Lengkapi Pendaftaran, Kembalikan ke Belum Tiba, Batalkan; tanpa Skrining |

@@ -379,3 +379,25 @@ stylesheet fitur.
 
 Data uji yang terbentuk: `RSV-20261020-0004` s.d. `0006` untuk pasien uji `RJPR UJI FE-CREATE2 48CB`.
 Tangkapan layar: `issued-modal-1440.png`, `issued-modal-390.png` di scratchpad sesi.
+
+### 8.9 Lanjutan 20 Oktober 2026 — warna tombol "Kirim via WhatsApp"
+
+Atas permintaan owner, tombol "Kirim via WhatsApp" di dialog "Reservasi Prioritas Dibuat" dan "Link Baru Diterbitkan"
+memakai gradien hijau khas WhatsApp, `linear-gradient(135deg, #25D366, #128C7E)`. Caranya: `BaseButton variant="success"`
+dengan variabel `--base-gradient-success` dan `--base-button-success-shadow` yang memang disediakan varian itu, diisi di kelas
+fitur `.whatsAppButton`. Hover menaikkan kecerahan 6%, dan teks tetap putih (`.primaryButtonText`).
+
+Pengecualian token yang disengaja: `#25D366`/`#128C7E` adalah warna merek pihak ketiga, bukan token desain. Nilai
+`#25D366` sudah dipakai tombol kirim struk WhatsApp (`components/features/whast-app/ButtonKirimStrukViaWa.jsx`).
+
+| Berkas (repo frontend) | Status | Isi |
+| --- | --- | --- |
+| `src/components/view/health-services/registration-management/priority-reservations/priority-reservation-issued-panel.jsx` | Diperbarui | Tombol WA `variant="success"` + `.whatsAppButton` |
+| `src/style/health-services/registration-management/priority-reservations/priority-reservation.module.css` | Diperbarui | `.whatsAppButton` (variabel gradien merek WhatsApp, hover `brightness`) |
+
+`UI GATE: PASS — REUSE varian success dan variabelnya; tidak ada NEW atau EXTEND pada base component.`
+
+| Langkah | Hasil |
+| --- | --- |
+| `npx eslint --quiet` (folder fitur) | exit 0 |
+| `MANUAL TEST` di stack owner, cara manusia, 1440 px | `PASS` 5/5 — latar WA `linear-gradient(135deg, rgb(37, 211, 102), rgb(18, 140, 126))`, hover WA/Simpan/Selesai berteks putih, tata letak tetap. Data uji `RSV-20261020-0009` |
