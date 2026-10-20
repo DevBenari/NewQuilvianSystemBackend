@@ -134,7 +134,9 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.Infrastructure
         public PatientIdentifierAllocationService BuatService(ApplicationDbContext konteks) =>
             new(konteks, Environment, Configuration);
 
-        public PatientController BuatController(ApplicationDbContext konteks)
+        public PatientController BuatController(
+            ApplicationDbContext konteks,
+            NewbornPatientRegistrationService? layananBayi = null)
         {
             var controller = new PatientController(
                 konteks,
@@ -142,7 +144,8 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.Infrastructure
                 Environment,
                 Configuration,
                 new MedicalRecordAccessAuditService(konteks),
-                BuatService(konteks));
+                BuatService(konteks),
+                layananBayi);
 
             controller.ControllerContext = new ControllerContext
             {

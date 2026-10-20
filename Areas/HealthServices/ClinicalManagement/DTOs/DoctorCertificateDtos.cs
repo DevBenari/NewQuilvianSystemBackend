@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 {
@@ -56,6 +57,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [MaxLength(4000)] public string? PatientCondition { get; set; }
         [MaxLength(100)] public string? RequestedRoomClass { get; set; }
         [MaxLength(2000)] public string? SpecialInstruction { get; set; }
+
+        /// <summary>Wajib: <c>1</c> Low, <c>2</c> Moderate, <c>3</c> High Dependency.</summary>
+        public PatientDependencyLevel? PatientDependencyLevel { get; set; }
     }
 
     public class SaveDoctorCertificateRequest
@@ -157,6 +161,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? PatientCondition { get; set; }
         public string? RequestedRoomClass { get; set; }
         public string? SpecialInstruction { get; set; }
+        public int? PatientDependencyLevel { get; set; }
+        public string? PatientDependencyLevelName { get; set; }
         /// <summary>Waktu terbit sebenarnya (UTC), bukan tanggal kalender surat.</summary>
         public DateTime IssuedAt { get; set; }
         public string SubmissionStatus { get; set; } = InpatientAdmissionSubmissionStatus.Submitted;
@@ -176,16 +182,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public DateTime SignedAt { get; set; }
         /// <summary>Kode verifikasi = nomor surat yang terdaftar di sistem.</summary>
         public string VerificationCode { get; set; } = string.Empty;
-    }
-
-    /// <summary>Pantauan Surat Pengantar Rawat Inap satu kunjungan untuk perawat Rawat Jalan.</summary>
-    public class OutpatientInpatientAdmissionMonitorResponse
-    {
-        public Guid EncounterId { get; set; }
-        /// <summary><c>NotIssued</c>, <c>Submitted</c>, <c>Admitted</c>, atau <c>Cancelled</c>.</summary>
-        public string Status { get; set; } = "NotIssued";
-        public string StatusName { get; set; } = string.Empty;
-        public DoctorCertificateResponse? Letter { get; set; }
     }
 
     public class DoctorCertificateReferralResponse

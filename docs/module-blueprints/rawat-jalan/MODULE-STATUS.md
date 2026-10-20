@@ -32,9 +32,47 @@ hanya scope Registration diverifikasi ulang dalam pekerjaan ini):
 | **Billing** (`RJ-BIL`) | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | `HISTORICAL SNAPSHOT` — perlu verifikasi ulang pemilik Billing (lihat di bawah) | Tidak — wewenang pemilik Billing |
 
 Yang masih terbuka pada scope Registration: centang action baru di Akses Role
-(`OutpatientEncounter : Update`, `OutpatientAppointment : Read/Reschedule`), isi master negara (DB uji hanya
+(`OutpatientEncounter : Update`; `OutpatientAppointment` dicabut 15 Okt 2026), isi master negara (DB uji hanya
 Indonesia), kebijakan antivirus unggahan, `PhotoPath` publik lama (di luar scope), UAT perangkat fisik,
 migration ke DB master saat rilis.
+
+## Revisi Rujukan Zoom 13 Okt 2026 — `RJ-REF-REV` (`CURRENT STATE` 16 Oktober 2026)
+
+Roadmap: [registration-revision-roadmap.md](roadmap/registration-revision-roadmap.md) bagian 8 — 5 requirement,
+6 task (3 BE ✅, 3 FE 🟡), keputusan `RJ-REF-DEC-001`..`007`. Migration
+`20261016043218_AddEncounterReferralSourceType` diterapkan ke `QuilvianNewDevSukma`. Belum di-commit.
+
+| Ukuran | Nilai |
+| --- | --- |
+| Requirement `DONE` / `PARTIAL` / `PENDING` / `BLOCKED` | 0 / 5 / 0 / 0 (satu sub-butir `RJ-REF-REV-002` `BLOCKED/OWNER_DECISION_REQUIRED`) |
+| Bukti backend | build 0 error, EF bersih, QBE Strict PASS, runtime 26/26 PASS |
+| Bukti frontend | ESLint tanpa temuan baru, build sukses, unit 14/14; uji layar `NOT RUN` |
+| Terbuka | Fasilitas di luar master vs `DEC-FRJ-001`; satu-pakai/masa berlaku surat internal; unggah wajib untuk klaim; uji layar & UAT cetak |
+
+## Amendment RP — Reservasi Pasien Prioritas (`CURRENT STATE` 19 Oktober 2026)
+
+Sumber: PDF "Pendaftaran membership pasien prioritas" poin 2A–2K, diserahkan ke Sukma Giri lewat handover
+`crm-membership` `CRM-DEC-031`. Keputusan: [00-interview-decisions.md](00-interview-decisions.md) bagian
+"Amendment Pass 2026-10-16 — Reservasi Pasien Prioritas (Amendment RP)".
+
+| Ukuran | Nilai |
+| --- | --- |
+| Fase | Implementasi selesai untuk 20/20 task (`BE-RJP-001`..`012`, `FE-RJP-001`..`008`, semuanya ✅). Belum di-commit dan belum dirilis. Bentuk `SINGLE` |
+| Keputusan | `RJ-PRI-DEC-001`..`030` `approved` (Sukma Giri). `RJ-DOC-DEC-056` `superseded` oleh `RJ-PRI-DEC-004` (kelipatan 5) |
+| `AG-03` (`crm-membership`) | Dijawab (`RJ-PRI-DEC-006`/`007`, `CRM-DEC-032`). `BE-CRM-022` tidak lagi ⛔ |
+| Impact scan | Selesai 16 Okt 2026: [01-capability-impact-scan-reservasi-prioritas.md](01-capability-impact-scan-reservasi-prioritas.md), 22 kemampuan |
+| Blocker desain | Tidak ada. `RJ-PRI-CONF-001` (kabar realtime ke display) ditutup `RJ-PRI-DEC-025`: group display sendiri dengan payload ringkas |
+| Terbuka | `RJ-PRI-OQ-002` format nomor (desain), `OQ-003` aksesibilitas internet dan IP asli (infrastruktur, go-live), `OQ-004` WA gateway, `OQ-005` diskon billing, `OQ-006` isi master tingkat |
+| Requirement gate | [01-requirement-completeness-gate-reservasi-prioritas.md](01-requirement-completeness-gate-reservasi-prioritas.md): `READY_FOR_DOMAIN_DESIGN` (`S-RP-1`..`5`). Go-live menunggu `RJ-PRI-OQ-003`/`006` |
+| Desain | Revisi `33` **`approved`** (Sukma Giri, 16 Okt 2026, `RJ-PRI-DEC-030`) — kontrak `RJ-PRI-RESV-001@1.0.0`, 2 tabel baru (`RegPriorityReservation`, `RegPriorityReservationHistory`), 1 migration aditif, 8 epic dalam `MVP-0`..`MVP-2` |
+| Roadmap | `approved` r1 (`RJ-PRI-DEC-031`): [backend](roadmap/priority-reservation-backend-roadmap.md) 12/12 ✅, [frontend](roadmap/priority-reservation-frontend-roadmap.md) 8/8 ✅, [traceability](roadmap/priority-reservation-traceability.md) seluruh baris `FR-RP-*` ✅. `BE-RJP-002` memenuhi `BE-CRM-022` |
+| Kode | Working tree belum di-commit: backend `sukmagp` @ `a6499cdd`, frontend `sukmagpV2` @ `17e0ffec0`. Laporan per task di [task/report/backend/](task/report/backend/) `BE-RJP-*.md` dan [task/report/frontend/](task/report/frontend/) `FE-RJP-*.md` |
+| Migration | `20261016144037_AddOutpatientPriorityReservation` (2 tabel baru, aditif). Diterapkan hanya ke DB uji `QuilvianNewDevSukma`. Belum diterapkan ke lingkungan lain |
+| Validasi akhir (19 Okt 2026) | Backend: build 0 error (11 warning, semuanya kerentanan paket `SixLabors.ImageSharp` 3.1.11 yang sudah ada sebelumnya), `has-pending-model-changes` bersih, QBE Strict 32 berkas `PASS`. Frontend: `lint:errors` exit 0, `npm run build` exit 0, unit 2976/3003 (27 gagal di modul lain, juga gagal pada `HEAD`), uji layar FE-RJP-004..008 seluruhnya `PASS`. `dotnet test` tidak dijalankan (pola Bank Darah) |
+| Go-live | Belum. `FE-RJP-008`/`BE-RJP-012` (link publik) menunggu `RJ-PRI-OQ-003`. Nomor prioritas untuk member menunggu `RJ-PRI-OQ-006` (master tingkat `PriorityQueue = true`). Hak akses `OutpatientPriorityReservation` perlu dicentang di Akses Role (`GAP-RP-03`). Tinjauan keamanan endpoint publik oleh manusia (`GAP-RP-04`) |
+| Revisi 19 Okt 2026 | `RJ-PRI-DEC-032`: layar Daftar Reservasi Prioritas direvisi atas permintaan owner (tombol Buat di kartu saringan, Tanggal Awal/Akhir/Periode atas tanggal kunjungan, kolom Tanggal Dibuat/Dibuat Oleh/Diubah Oleh, tanpa kolom Aksi, tombol primer). Kontrak naik ke `RJ-PRI-RESV-001@1.1.0` (aditif). Rework `BE-RJP-006` runtime 11/11, `FE-RJP-004` uji layar 12/12 + regresi 15/15, `FE-RJP-005` regresi 7/7. Keluhan "tidak bisa buat reservasi" tidak tereproduksi: pasien yang dicoba bukan member Aktif; dialog diperjelas |
+| Kesiapan | **`READY_WITH_CONDITIONS`**, skor 91,3% (audit 19 Okt 2026) — [testing/readiness-report-reservasi-prioritas.md](testing/readiness-report-reservasi-prioritas.md). Kondisi terpenting K-1: pesan WA selalu memuat link, sehingga MVP-1 tidak boleh dirilis sendiri sebelum halaman link publik (MVP-2) bisa dibuka pasien |
+| Langkah berikutnya | (1) Keputusan K-1 lewat `grill-me` (rilis MVP-1 + MVP-2 bersamaan, atau task baru untuk mematikan link selama MVP-1). (2) Review diff dan commit. (3) Daftar periksa go-live K-2 s.d. K-5 dan UAT K-7, lalu audit kesiapan ulang |
 
 ## Status per scope — audit `2026-08-31`
 

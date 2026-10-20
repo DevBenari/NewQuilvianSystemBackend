@@ -183,3 +183,48 @@ endpoint aplikasi. `dotnet test` tidak berlaku (tidak ada perubahan backend).
 | `AT-MT-10` | Item sudah tidak tertunda / id tidak valid | Pesan tidak ditemukan dan tautan kembali | `MT-FR-05` |
 | `AT-MT-11` | Finalisasi ditolak validasi | Tetap di Klinis Dokter dengan pesan validasi | `RJ-DOC-DEC-048` |
 | `AT-MT-12` | Lint berkas tersentuh dan `next build` | Lulus | DoD |
+
+---
+
+# Amendment RP — Reservasi Pasien Prioritas (`RJ-PRI-RESV-001@1.0.0`, `approved`)
+
+Pola Bank Darah. Tanpa folder `Tests/` dan tanpa project test. Kolom "Jenis" menyatakan **sifat** skenario, bukan
+perintah membuat test otomatis. Setiap skenario runtime dijalankan lewat HTTP sungguhan ke backend uji
+`https://localhost:7185` terhadap `QuilvianNewDevSukma`, dengan data samaran, dan keadaan DB dicatat sesudahnya. Uji
+layar memakai Playwright lewat dev `3000`, dengan route `7184 → 7185`.
+
+Gerbang setiap task backend: build `-p:UseSharedCompilation=false`, `dotnet ef migrations has-pending-model-changes
+--no-build`, QBE Strict. `dotnet test`: `NOT RUN — tidak ada project test`.
+
+| ID | Requirement | Skenario | Jenis | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `R-RP-01` | AC 1, `RJ-PRI-DEC-004` | Satu poli satu hari: daftarkan 3 Reguler dan 2 prioritas bergantian | Integ | Reguler 1, 2, 3; prioritas 5, 10. Tidak ada Reguler kelipatan 5 (kueri `RegQueue`) |
+| `R-RP-02` | `GATE-RP-02` | Hari yang sudah memuat nomor lama 1, 3, 5 (aturan lama), lalu daftarkan prioritas | Integ | Prioritas mendapat 10. Tidak ada nomor ganda |
+| `R-RP-03` | AC 2, `RJ-PRI-DEC-005` | Display cluster memanggil `/summary`, `/items`, `/called` saat ada antrean prioritas yang dipanggil perawat | Integ | Antrean prioritas tidak muncul dan tidak dihitung |
+| `R-RP-04` | AC 22, `RJ-PRI-DEC-025` | Akun display bergabung `JoinQueueDisplayCluster`. Perawat memanggil satu Reguler dan satu prioritas | Integ (SignalR) | Display menerima tepat satu event (Reguler), tanpa `patientId`/`encounterId` |
+| `R-RP-05` | `RJ-PRI-DEC-025` (gagal) | Akun display memanggil `JoinNurseStationCluster` | Integ (SignalR) | `HubException`, tidak bergabung |
+| `R-RP-06` | AC 3, `RJ-PRI-DEC-006` | Pasien dengan membership Kedaluwarsa kemarin mendaftar | Integ | Nurse station dan antrean sama-sama Reguler (`AT-36` CRM) |
+| `R-RP-07` | AC 4, `RJ-PRI-DEC-007` | Booking dibuat hari ini untuk +5 hari, lalu membership dibuat kedaluwarsa (data uji) sebelum hari H | Integ | Snapshot antrean booking tetap prioritas |
+| `R-RP-08` | AC 5 (gagal) | Buat reservasi untuk pasien Reguler, lalu untuk pasien Menunggu Pembayaran | Integ | 409 `VAL-RP-02` untuk keduanya |
+| `R-RP-09` | AC 6 (gagal) | Buat dua reservasi untuk pasien dan tanggal sama, termasuk dua permintaan paralel | Integ (konkurensi) | Satu berhasil, satu 409 `VAL-RP-05`. Hanya satu baris terbuka |
+| `R-RP-10` | AC 7 | Reservasi Menunggu Kedatangan ada | Integ | Tidak muncul di `GET /outpatient-encounters`, antrean, nurse station, maupun billing |
+| `R-RP-11` | AC 8 | Link sebelum hari H, saat hari H, lalu dibuka kedua kali | Integ | `NOT_YET_OPEN`; `CONFIRMED`; jam konfirmasi pertama tetap |
+| `R-RP-12` | AC 8 (gagal) | Link sesudah dibatalkan, sesudah Tidak Datang, dan kode acak | Integ | Ketiganya 404 dengan isi sama |
+| `R-RP-13` | AC 9 | Periksa respons `GET /{code}` | Integ | Tidak ada nama, No. RM, NIK, tingkat, poli, dokter, ID internal |
+| `R-RP-14` | AC 10, 17 | Petugas skrining (hanya `Read` + `Screen`) terhubung ke board, pasien konfirmasi | Integ (SignalR) + E2E | Event `PriorityReservationChanged` diterima dan layar berbunyi |
+| `R-RP-15` | AC 11 | Petugas tandai tiba, lalu kembalikan dengan alasan | Integ | Riwayat `ARRIVED` (`Staff`) dan `ARRIVAL_REVERTED`. Link aktif lagi |
+| `R-RP-16` | AC 12 | Lengkapi dengan kuota dokter penuh, lalu dengan dokter lain | Integ | Pertama ditolak dan reservasi tetap Sudah Tiba. Kedua: kunjungan, antrean prioritas, dan reservasi `Converted` dalam satu transaksi |
+| `R-RP-17` | AC 12 (gagal) | Lengkapi reservasi Menunggu Kedatangan; pasien berbeda; tanggal bukan hari ini; tanpa izin `Complete` | Integ | 409, 400, 400, 403. Tidak ada kunjungan terbentuk |
+| `R-RP-18` | AC 13 | Reservasi tanggal kemarin, lalu hosted service dijalankan dua kali | Integ | Status Tidak Datang. Riwayat `NO_SHOW` hanya satu |
+| `R-RP-19` | AC 14 (gagal) | Batal tanpa alasan; pengguna `Screen` saja mencoba buat, lengkapi, dan batal | Integ | 400; 403 untuk ketiganya |
+| `R-RP-20` | AC 15, `RJ-PRI-DEC-024` | Batalkan membership snapshot (data uji) sebelum lengkapi | Integ | Daftar menampilkan `isPriorityRevoked = true`. Kunjungan mendapat nomor Reguler |
+| `R-RP-21` | AC 16, 18 | Pasien prioritas lewat kiosk, dengan dan tanpa reservasi terbuka | Integ + E2E | Tiket mengarahkan ke ruang tunggu prioritas. Reservasi terbuka menjadi Didaftarkan lewat Jalur Lain |
+| `R-RP-22` | AC 18 (batas) | Pasien dengan reservasi terbuka mendaftar IGD atau Laboratorium langsung | Integ | Reservasi tetap terbuka |
+| `R-RP-23` | AC 19, 20 | Kirim ulang, lalu buka link lama dan link baru; periksa kolom DB | Integ | Link lama 404, link baru `READY`. Kolom hanya berisi hash 64 karakter |
+| `R-RP-24` | AC 21 | Batal dengan alasan "ganti tanggal", lalu buat reservasi baru setelah membership Kedaluwarsa | Integ | Reservasi baru ditolak 409 `VAL-RP-02` |
+| `R-RP-25` | `VAL-RP-09` | Kirim 25 permintaan `GET /{code}` per menit dari satu IP | Integ | Permintaan ke-21 dan seterusnya 429 |
+| `R-RP-26` | `VAL-RP-14` | Dua petugas membatalkan reservasi yang sama hampir bersamaan | Integ (konkurensi) | Satu berhasil, satu 409 "baru saja diubah petugas lain" |
+| `R-RP-27` | `VAL-RP-19` | Kiosk mengirim `priorityReservationId` | Integ | 400 |
+| `R-RP-28` | Scope butir 2, `RJ-PRI-FE-004` | Cari pasien Gold di Pendaftaran Pasien | E2E | Label tingkat tampil. Pasien Kedaluwarsa tanpa label |
+| `R-RP-29` | `RJ-PRI-DEC-018` | Worklist Nurse Station dan Klinis Dokter untuk antrean prioritas | E2E | Teks "Ruang Tunggu Prioritas" dari konfigurasi |
+| `R-RP-30` | Regresi | Pendaftaran Reguler petugas dan kiosk tanpa reservasi, IGD, dan Laboratorium langsung | Integ | Perilaku sama dengan sebelum perubahan, kecuali nomor Reguler melewati kelipatan 5 |

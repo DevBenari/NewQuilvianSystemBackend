@@ -388,3 +388,19 @@ Aturan yang ditambahkan, tepat di bawah blok `NutritionTests`, mengikuti pola ya
 | Langkah berikutnya | Review source final oleh pemilik/leader. Sesudah disetujui: keputusan *commit* dan branch, otorisasi deployment Staging, lalu `PAT-GATE-005`. `BE-PAT-MIG-002` belum boleh dimulai sebelum `PAT-GATE-005` `PASS` dan impact scan `PAT-STALE-009` |
 
 **BE-PAT-MIG-003 PROVIDER-REAL PROOF PASS — READY FOR FINAL OWNER REVIEW**
+
+---
+
+## 10. Adendum 19 Oktober 2026 — runtime dan tindak lanjut
+
+Ditambahkan oleh `build-module-backend` saat mengerjakan `BE-PAT-MIG-003A`. Isi bagian 1–9 tidak diubah.
+
+| Hal | Isi |
+| --- | --- |
+| Publikasi source | Di-*merge* pemilik ke `QuilvianIntegrationBackend` lewat PR #290: `a9f2fda2` (dokumen), `ab45dd3c` (source), merge `3c457ab4` |
+| Deployment | Dilaporkan pemilik: dideploy ke DEV dan STAGING; Staging `RsmmcMigrationReservationGuard__Enabled = true`; health `PASS` |
+| `PAT-GATE-005` generasi 1 | **`PASS`** (dilaporkan pemilik, `PAT-FACT-090`): `guardState = ACTIVE`, `nextPatientCode` 705250 / `PAT-RSMMC-705250`, `nextMrn` 890188 / `00-89-01-88`, `overallGuardReady = true`. Memenuhi `PAT-MIG3-AC-12`. Agent tidak memanggil endpoint maupun membuat pasien |
+| Status task | ✅ — seluruh 14 acceptance criteria terbukti, termasuk runtime `AC-12` |
+| Temuan sesudahnya | Impact scan `BE-PAT-MIG-002` 19 Oktober 2026 menemukan jalur pendaftaran bayi `POST /newborns` (upstream `3a0189c2`) yang mengalokasikan nomor lewat `NumberSeries` di luar allocator task ini (`PAT-SRC-031`). Jalur itu **di luar cakupan** task ini — saat task ini dibangun jalur tersebut belum ada di baseline `0c6e3145` — dan ditutup task prasyarat `BE-PAT-MIG-003A` ([laporan](BE-PAT-MIG-003A.md)). Generasi 1 gerbang hanya membuktikan `CreatePatient` |
+
+**BE-PAT-MIG-003 DEPLOYED — PAT-GATE-005 GENERATION 1 PASS**

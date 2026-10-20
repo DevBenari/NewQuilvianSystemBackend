@@ -168,6 +168,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public decimal TotalPrice { get; set; }
         public Guid? TariffPatientClassId { get; set; }
         public string CoverageStatus { get; set; } = "Tarif RS";
+
+        // Terisi hanya bila master-options dipanggil dengan encounterId: hasil
+        // InsuranceCoverageService yang sama dengan saat tindakan disimpan (POST select).
+        public bool IsCoverageResolved { get; set; }
+        public decimal? CoveragePercent { get; set; }
+        public decimal? CoveredAmount { get; set; }
+        public decimal? PatientPayAmount { get; set; }
+        public bool IsNeedGuarantorApproval { get; set; }
+        public string? PaymentTypeName { get; set; }
+        public string? CoverageNote { get; set; }
     }
 
     public class PatientProcedureOptionResponse

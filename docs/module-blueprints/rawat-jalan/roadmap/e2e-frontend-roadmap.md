@@ -130,3 +130,9 @@ baru boleh dinyatakan selesai setelah divalidasi terhadap backend sungguhan.
 | Layar master kebijakan kirim ulang | `POST-MVP` (`04-prd-to-mvp.md` bagian 8) |
 | Tab pemesanan Lab/Radiologi dokter | Tetap `CONDITIONAL` (`RJ-DOC-DEC-002`) |
 | E2E lintas layar (dokter → kasir → farmasi) | `verify-module-readiness` setelah `MVP-4` |
+
+## Catatan silang — Amendment REF-REV (16 Okt 2026)
+
+Revisi rujukan Zoom 13 Okt 2026 (`RJ-REF-REV-001`..`005`) **bukan** scope roadmap ini dan tidak mengubah
+status task di sini. Definisi, status, dan bukti ada pada
+[registration-revision-roadmap.md](registration-revision-roadmap.md) bagian 8.

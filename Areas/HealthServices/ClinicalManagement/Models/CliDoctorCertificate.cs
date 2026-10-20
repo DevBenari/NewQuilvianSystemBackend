@@ -80,6 +80,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         public Guid? ReferralTargetClinicId { get; set; }
         public string? ReferralTargetNameSnapshot { get; set; }
         public string? RequestedRoomClass { get; set; }
+
+        /// <summary>Tingkat ketergantungan pasien; hanya Surat Pengantar Rawat Inap. Data lama <c>null</c>.</summary>
+        public PatientDependencyLevel? PatientDependencyLevel { get; set; }
         public string? SpecialInstruction { get; set; }
 
         public string? CancelReason { get; set; }

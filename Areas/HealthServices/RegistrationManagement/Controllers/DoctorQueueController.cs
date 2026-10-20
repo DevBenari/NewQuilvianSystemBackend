@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
@@ -1464,7 +1465,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     .Select(x => (x.PatientId, x.EncounterId, x.Encounter?.PaymentSource?.PatientInsuranceId))
                     .ToList());
 
-            return queues
+            // rawat-jalan BE-RJP-011: penanda ruang tunggu prioritas dari konfigurasi.
+            var priorityReservationOptions = HttpContext.RequestServices
+                .GetRequiredService<IOptions<PriorityReservationOptions>>().Value;
+
+            var responses = queues
                 .Select(x => MapResponse<TResponse>(
                     x,
                     visitCounts,
@@ -1474,6 +1479,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     patientContexts,
                     serverNowUtc))
                 .ToList();
+
+            foreach (var response in responses)
+            {
+                response.PriorityWaitingLocationName = priorityReservationOptions.ResolveWaitingLocationFor(response.IsPriorityQueue);
+            }
+
+            return responses;
         }
 
         private static TResponse MapResponse<TResponse>(
