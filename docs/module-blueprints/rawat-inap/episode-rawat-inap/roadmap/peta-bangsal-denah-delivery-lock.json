@@ -1,0 +1,223 @@
+{
+  "planning_id": "PETA-DEL-20261020-01",
+  "revision": 1,
+  "status": "APPROVED_DESIGN_PLANNED",
+  "blueprint_id": "RWI-BP-001",
+  "submodule": "episode-rawat-inap",
+  "contract_version": "0.18.0",
+  "approved_by": "Muhammad Hamzah",
+  "approved_at": "2026-10-20",
+  "approval_decision": "RWI-DEC-352",
+  "related_decisions": [
+    "RWI-DEC-353"
+  ],
+  "approval_evidence": "iya saya setujui semua ya atas nama saya Muhammad Hamzah",
+  "approval_interpretation": "Setujui semua = desain 0.18.0, PETA-OPEN-01 opsi A (RWI-DEC-353), dan asumsi RWI-DEC-350/351; koreksi pemilik menggantikan baris terkait",
+  "implementation_lock": true,
+  "process_gate": {
+    "id": "DEC-PETA-L3",
+    "description": "Atasan mengesahkan contoh Lantai 3; Muhammad Hamzah mencatatnya sebagai keputusan baru di decision log (RWI-DEC-349)",
+    "prerequisites": [
+      "FE-RWI-274",
+      "FE-RWI-275"
+    ],
+    "blocks": [
+      "FE-RWI-276",
+      "FE-RWI-277",
+      "FE-RWI-278"
+    ]
+  },
+  "production_gate": "DNH-G04 (kriteria klinis HD/LD dan persetujuan privasi; tidak berubah)",
+  "source_snapshot": {
+    "backend_branch": "MHamzah",
+    "backend_sha": "6e0f2b1b58a2192a0f54f0fdff718bc77670e3bd",
+    "frontend_branch": "HamzahV2",
+    "frontend_sha": "a491b05afcb6b3ed70218ccaa557007719d45ac3",
+    "frontend_worktree_guard": "Working tree bersih saat planning; tetap baca ulang source dan git diff sebelum edit karena pekerjaan paralel."
+  },
+  "id_allocation": {
+    "backend_allocated": [],
+    "backend_next_free": "BE-RWI-254",
+    "frontend_highest_allocated_before": "FE-RWI-270",
+    "frontend_skipped": [
+      "FE-RWI-271"
+    ],
+    "frontend_skip_reason": "Roadmap paralel prioritas-antrean-member menyebut FE-RWI-271 sebagai ID berikutnya",
+    "frontend_allocated": [
+      "FE-RWI-272",
+      "FE-RWI-273",
+      "FE-RWI-274",
+      "FE-RWI-275",
+      "FE-RWI-276",
+      "FE-RWI-277",
+      "FE-RWI-278",
+      "FE-RWI-279"
+    ],
+    "frontend_next_free": "FE-RWI-280"
+  },
+  "input_hashes_sha256": {
+    "../../00-interview-decisions.md": "f97efc8c1622283a91f114edec6c1b6c758c577bc668065c109675a254a0d208",
+    "../../01-existing-capability-map.md": "12ace628f329b74a503104fcc6be43fef4742a94d5b2e81a1694aaa50b85cc62",
+    "../../02-module-map.md": "a135c59c4b55ea97e240d463511a3e2a41ba22051e398ee4e5bb6d1c0b8b651a",
+    "../../evidence/02-requirement-completeness-gate.md": "d1ddeeda87aa2888397deecada8027296dbd3734669ae00ca210fb044431ae5b",
+    "../../evidence/denah-bed-impact-scan-20261015.md": "813430d0a005f71392ed657bc7de0c0e52e466cecc7d74f15e8110345832f3cb",
+    "../docs/map-bed/planning/planning-redesain-tampilan-denah-bed.md": "e15d62b7a903dee12783a7a6117dad7c7d9245773b96833062da4005dd2236aa",
+    "../02-backend-architecture.md": "ae492732dbf78d668e1cd54ee900a4a235ddb6c4a7e139d6deb823b91ff9f120",
+    "../03-frontend-architecture.md": "8996e453b52623af3cd2f0143a7ff66d80ec5ab8702dd65163701c8394eeed9e",
+    "../04-prd-to-mvp.md": "b4ecb982f110a32a49eee820cf614e559660e9dbea6f474186264f43937b36c6",
+    "../data/data-dictionary.md": "10e498c55eac6e9ded2419059eb5c80708e7f4df70a0fc754c817984806290fb",
+    "../contracts/api-contract.md": "ba624bce05bbb47421b8169da15f060955099a23ac3753fb9117fbb4889ae125",
+    "../contracts/state-transition-matrix.md": "3e644053d085c87d83d9bce9602db1c7c2893f2e03f1a4679013454629e6cb3e",
+    "../contracts/validation-matrix.md": "c5d1e40b343cfc28ab372f1ce14f6fc4314057f49c830d0abb404e7358205b67",
+    "../contracts/integration-contract.md": "a31fde2eb3467486b460bb16cf1ccb37503cc4507bff343ca567310220d05480",
+    "../contracts/permission-audit-matrix.md": "9fc9aab72951d9b839088ce874a4f0dd647a15ca5ed3467c76f3655a17c2cd8a",
+    "../testing/acceptance-test-matrix.md": "609f1f6ba2173b0a461b39d3a69a4e1996d56baaac5a5d889f18678ab3615ddd",
+    "../flowcharts/00-alur-utama.md": "1dfd7d7bbf3206d191225b30f73740aa41f3f1c2081c28af8f1809447e9fe073",
+    "../flowcharts/15-denah-pilih-bed.md": "2d8a933b0f04518879a850a6bb24c06465fa57317195ee7ba1913c383b6fe53b",
+    "../flowcharts/16-denah-master-bed.md": "a2bfeeed93b7cb8c60024131de25032dd8d65df85822d0056cfb4bb6462647ce"
+  },
+  "manifest_hashes_before_registration": {
+    "../../blueprint-manifest.md": "3386a31c1ab543ca0eb97263c15392a9f064cd275f1b3001b8352353c1675a69",
+    "../blueprint-manifest.md": "bb45f1d0d32859f45eddbdf65b3a8f6e5a57215a9be5432a908cd5818b2e9970"
+  },
+  "artifact_hashes_sha256": {
+    "frontend-roadmap-peta-bangsal-denah.md": "b24cfd81100ff36be9e0d4692fb0eca35a6e360c7c84558d028d8d6bf493b3cf",
+    "backend-roadmap-peta-bangsal-denah.md": "98144e9a2e45a0edd5a2d404349345c7bc24fbda38ef7e35f84d72c1edd8a339",
+    "requirement-traceability-peta-bangsal-denah.md": "f0b2af462cddbb38ec60cdd1bdd07160bac95e76aefcdc0089d74485152af900"
+  },
+  "tasks": [
+    {
+      "id": "FE-RWI-272",
+      "layer": "frontend",
+      "slice": "PETA-S1",
+      "dependencies": [],
+      "requirements": [
+        "FR-DNH-017",
+        "FR-DNH-024"
+      ],
+      "acceptance": [
+        "RWI-AC-498",
+        "RWI-AC-500",
+        "RWI-AC-507"
+      ]
+    },
+    {
+      "id": "FE-RWI-273",
+      "layer": "frontend",
+      "slice": "PETA-S1",
+      "dependencies": [
+        "FE-RWI-272"
+      ],
+      "requirements": [
+        "FR-DNH-018",
+        "FR-DNH-019",
+        "FR-DNH-020",
+        "FR-DNH-021",
+        "FR-DNH-023"
+      ],
+      "acceptance": [
+        "RWI-AC-499",
+        "RWI-AC-501",
+        "RWI-AC-502",
+        "RWI-AC-503",
+        "RWI-AC-504"
+      ]
+    },
+    {
+      "id": "FE-RWI-274",
+      "layer": "frontend",
+      "slice": "PETA-S1",
+      "dependencies": [
+        "FE-RWI-273"
+      ],
+      "requirements": [
+        "FR-DNH-022"
+      ],
+      "acceptance": [
+        "RWI-AC-505"
+      ]
+    },
+    {
+      "id": "FE-RWI-275",
+      "layer": "frontend",
+      "slice": "PETA-S1",
+      "dependencies": [
+        "FE-RWI-273"
+      ],
+      "requirements": [
+        "FR-DNH-025"
+      ],
+      "acceptance": [
+        "RWI-AC-508"
+      ]
+    },
+    {
+      "id": "FE-RWI-276",
+      "layer": "frontend",
+      "slice": "PETA-S2",
+      "dependencies": [
+        "DEC-PETA-L3"
+      ],
+      "requirements": [
+        "FR-DNH-017",
+        "FR-DNH-018"
+      ],
+      "acceptance": [
+        "RWI-AC-498",
+        "RWI-AC-499"
+      ]
+    },
+    {
+      "id": "FE-RWI-277",
+      "layer": "frontend",
+      "slice": "PETA-S2",
+      "dependencies": [
+        "DEC-PETA-L3"
+      ],
+      "requirements": [
+        "FR-DNH-017",
+        "FR-DNH-018"
+      ],
+      "acceptance": [
+        "RWI-AC-498",
+        "RWI-AC-499"
+      ]
+    },
+    {
+      "id": "FE-RWI-278",
+      "layer": "frontend",
+      "slice": "PETA-S2",
+      "dependencies": [
+        "DEC-PETA-L3"
+      ],
+      "requirements": [
+        "FR-DNH-017",
+        "FR-DNH-018"
+      ],
+      "acceptance": [
+        "RWI-AC-498",
+        "RWI-AC-499"
+      ]
+    },
+    {
+      "id": "FE-RWI-279",
+      "layer": "frontend",
+      "slice": "PETA-S3",
+      "dependencies": [
+        "FE-RWI-276",
+        "FE-RWI-277",
+        "FE-RWI-278"
+      ],
+      "requirements": [
+        "FR-DNH-023",
+        "FR-DNH-024"
+      ],
+      "acceptance": [
+        "RWI-AC-498",
+        "RWI-AC-499",
+        "RWI-AC-500",
+        "RWI-AC-506"
+      ]
+    }
+  ]
+}

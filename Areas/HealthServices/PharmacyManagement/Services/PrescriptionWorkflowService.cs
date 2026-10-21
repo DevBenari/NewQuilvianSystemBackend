@@ -40,6 +40,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         {
             ArgumentNullException.ThrowIfNull(entity);
 
+            // FIX-DOK-008-01 / ISSUE-DOK-008: Di rawat inap tidak ada sistem draf.
+            // Resep langsung aktif (Submitted) dan langsung menuju antrean Instalasi Farmasi.
+            if (entity.InpEpisodeId.HasValue)
+            {
+                entity.PrescriptionStatus = PrescriptionStatus.Submitted;
+                entity.PaymentStatus = PrescriptionPaymentStatus.NotBilled;
+                entity.FulfillmentStatus = PrescriptionFulfillmentStatus.QueuedAtPharmacy;
+                entity.SubmittedAt = entity.CreateDateTime != default ? entity.CreateDateTime : DateTime.UtcNow;
+                entity.SubmittedByUserId = entity.CreateBy;
+                return;
+            }
+
             entity.PrescriptionStatus = PrescriptionStatus.Draft;
             entity.PaymentStatus = PrescriptionPaymentStatus.NotBilled;
             entity.FulfillmentStatus = PrescriptionFulfillmentStatus.WaitingForClinicalFinalization;
@@ -78,14 +90,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             return PrescriptionWorkflowResult.Ok();
         }
 
-        public Task<PrescriptionWorkflowResult> SubmitAsync(
+        public async Task<PrescriptionWorkflowResult> SubmitAsync(
             PhmPrescription entity,
             Guid actorUserId,
             DateTime now,
             CancellationToken cancellationToken = default)
         {
-            return Task.FromResult(PrescriptionWorkflowResult.Fail(
-                "Resep tidak diajukan secara terpisah. Selesaikan konsultasi dokter untuk memfinalkan resep."));
+            if (entity.InpEpisodeId.HasValue)
+            {
+                if (entity.PrescriptionStatus == PrescriptionStatus.Cancelled)
+                    return PrescriptionWorkflowResult.Fail("Resep yang sudah dibatalkan tidak dapat diajukan.");
+
+                entity.PrescriptionStatus = PrescriptionStatus.Submitted;
+                entity.PaymentStatus = PrescriptionPaymentStatus.NotBilled;
+                entity.FulfillmentStatus = PrescriptionFulfillmentStatus.QueuedAtPharmacy;
+                entity.SubmittedAt = now;
+                entity.SubmittedByUserId = actorUserId;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                return PrescriptionWorkflowResult.Ok();
+            }
+
+            return PrescriptionWorkflowResult.Fail(
+                "Resep tidak diajukan secara terpisah. Selesaikan konsultasi dokter untuk memfinalkan resep.");
         }
 
         // RJ-BIL-BE-002 / RJ-BIL-CONFLICT-006 keputusan author 1A.
@@ -109,15 +138,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             if (entity.PrescriptionStatus == PrescriptionStatus.Cancelled)
                 return PrescriptionWorkflowResult.Fail("Resep sudah dibatalkan.");
 
-            if (entity.FulfillmentStatus is
-                PrescriptionFulfillmentStatus.QueuedAtPharmacy or
-                PrescriptionFulfillmentStatus.VerifiedByPharmacy or
-                PrescriptionFulfillmentStatus.InPreparation or
-                PrescriptionFulfillmentStatus.ReadyToDispense or
-                PrescriptionFulfillmentStatus.PartiallyDispensed or
-                PrescriptionFulfillmentStatus.Dispensed)
+            if (entity.InpEpisodeId.HasValue)
             {
-                return PrescriptionWorkflowResult.Fail("Resep yang sudah diproses farmasi tidak dapat dibatalkan dari modul dokter.");
+                if (entity.FulfillmentStatus is
+                    PrescriptionFulfillmentStatus.ReadyToDispense or
+                    PrescriptionFulfillmentStatus.PartiallyDispensed or
+                    PrescriptionFulfillmentStatus.Dispensed)
+                {
+                    return PrescriptionWorkflowResult.Fail("Resep yang sudah disiapkan atau diserahkan farmasi tidak dapat dibatalkan dari modul dokter. Silakan koordinasikan dengan instalasi Farmasi.");
+                }
+            }
+            else
+            {
+                if (entity.FulfillmentStatus is
+                    PrescriptionFulfillmentStatus.QueuedAtPharmacy or
+                    PrescriptionFulfillmentStatus.VerifiedByPharmacy or
+                    PrescriptionFulfillmentStatus.InPreparation or
+                    PrescriptionFulfillmentStatus.ReadyToDispense or
+                    PrescriptionFulfillmentStatus.PartiallyDispensed or
+                    PrescriptionFulfillmentStatus.Dispensed)
+                {
+                    return PrescriptionWorkflowResult.Fail("Resep yang sudah diproses farmasi tidak dapat dibatalkan dari modul dokter.");
+                }
             }
 
             // RJ-BIL-BE-002 / keputusan author 1B: pembatalan klinis bersifat otoritatif atas

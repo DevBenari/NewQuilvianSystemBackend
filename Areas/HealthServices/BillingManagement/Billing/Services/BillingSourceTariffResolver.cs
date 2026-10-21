@@ -158,11 +158,40 @@ public sealed class BillingSourceTariffResolver
             .Where(x => x.Id == request.SourceItemId)
             .Select(x => new { x.TariffId, x.ProcedureId })
             .FirstOrDefaultAsync(cancellationToken);
+
+        Guid? procedureId = examination?.ProcedureId;
+        Guid? tariffId = examination?.TariffId;
+
         if (examination is null)
+        {
+            var orderedProc = await _dbContext.Set<LabOrderedProcedure>().AsNoTracking()
+                .Where(x => x.Id == request.SourceItemId || (x.LabOrderId == request.SourceAggregateId && x.ProcedureId == request.SourceItemId))
+                .Select(x => new { x.ProcedureId })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (orderedProc != null)
+            {
+                procedureId = orderedProc.ProcedureId;
+            }
+            else
+            {
+                var order = await _dbContext.Set<LabOrder>().AsNoTracking()
+                    .Where(x => x.Id == request.SourceAggregateId || x.Id == request.SourceItemId)
+                    .Select(x => new { x.ProcedureId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (order != null)
+                {
+                    procedureId = order.ProcedureId;
+                }
+            }
+        }
+
+        if (procedureId is null)
             return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Pemeriksaan laboratorium sumber tidak ditemukan.");
 
         var tariff = await FindTariffAsync(
-            examination.TariffId, examination.ProcedureId, request.EncounterClinicId,
+            tariffId, procedureId.Value, request.EncounterClinicId,
             request.PatientClassId, request.OccurredAt, cancellationToken);
         return Build(tariff, 1m);
     }
@@ -175,21 +204,31 @@ public sealed class BillingSourceTariffResolver
             .Where(x => x.Id == request.SourceItemId)
             .Select(x => new { x.RadOrderId, x.RepeatCause })
             .FirstOrDefaultAsync(cancellationToken);
-        if (study is null)
-            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Study radiologi sumber tidak ditemukan.");
 
-        // RJ-BIL-GATE-DEC-004: pengulangan karena kesalahan rumah sakit tidak menambah tagihan pasien.
-        if (study.RepeatCause == RadRepeatCause.InternalHospitalError)
-            return BillingTariffResolution.NotBillable(
-                BillingBridgeCodes.RepeatInternalError,
-                "Pengulangan pemeriksaan karena kesalahan rumah sakit tidak ditagihkan.");
+        Guid? procedureId = null;
+        if (study != null)
+        {
+            // RJ-BIL-GATE-DEC-004: pengulangan karena kesalahan rumah sakit tidak menambah tagihan pasien.
+            if (study.RepeatCause == RadRepeatCause.InternalHospitalError)
+                return BillingTariffResolution.NotBillable(
+                    BillingBridgeCodes.RepeatInternalError,
+                    "Pengulangan pemeriksaan karena kesalahan rumah sakit tidak ditagihkan.");
 
-        var procedureId = await _dbContext.Set<RadOrder>().AsNoTracking()
-            .Where(x => x.Id == study.RadOrderId)
-            .Select(x => (Guid?)x.ProcedureId)
-            .FirstOrDefaultAsync(cancellationToken);
+            procedureId = await _dbContext.Set<RadOrder>().AsNoTracking()
+                .Where(x => x.Id == study.RadOrderId)
+                .Select(x => (Guid?)x.ProcedureId)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+        else
+        {
+            procedureId = await _dbContext.Set<RadOrder>().AsNoTracking()
+                .Where(x => x.Id == request.SourceAggregateId || x.Id == request.SourceItemId)
+                .Select(x => (Guid?)x.ProcedureId)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         if (procedureId is null)
-            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Order radiologi sumber tidak ditemukan.");
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Order atau study radiologi sumber tidak ditemukan.");
 
         var tariff = await FindTariffAsync(
             null, procedureId.Value, request.EncounterClinicId, request.PatientClassId,

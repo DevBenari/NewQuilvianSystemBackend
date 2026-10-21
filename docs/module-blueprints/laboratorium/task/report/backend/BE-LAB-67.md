@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `a95f07a6` (branch `yoga`) |
 | Tanggal | 2026-09-29 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — **batasnya menyempit lagi 2026-10-01 (bagian 9):** `AC-221` sisi penolakan terbukti dengan **dua akun analis asli** di `QuilvianNewDevYoga` — kelima tindakan hasil `403`, isi hasil identik sebelum dan sesudah. **Yang tersisa: `AC-222`** (menunggu pemberian `LabExaminationResult : Update`, langkah rilis 6aj.5) dan `PUT /urgency` `200` (menulis data klinis). Sebelumnya **batasnya menyempit 2026-09-29 sore (bagian 8)**. Kini terbukti terhadap aplikasi sungguhan: validator lolos **lewat startup** (1572 kunci); Swagger nol memuat route lama, dan route lama menjawab `404`; **`VAL-122` `422`** pada ketiga tindakan atas pemeriksaan Patologi Anatomi. **Yang tersisa hanya uji dua akun `AC-221`/`AC-222`** — nol jabatan di dev memegang `LabExaminationResult : Update`, dan pemberiannya (langkah rilis 6aj.5) belum diinstruksikan. *Semula: seluruh kode status HTTP tertahan seeder Hemodialisa* |
+| Status | ✅ **`SELESAI`** — 2026-10-21. Semula ⚠: `AC-221` sudah terbukti 2026-10-01; sisa `AC-222` dan `PUT /urgency` `200` kini terbukti dengan akun asli (bagian 10) |
 
 ### Backend Governance Preflight
 
@@ -315,3 +315,16 @@ pemberiannya (langkah rilis 6aj.5) wajib berada di jendela rilis yang sama.
 
 **Status tetap ⚠ `SELESAI DENGAN BATAS VERIFIKASI`**; yang tersisa `AC-222` dan bagian `200`
 `AC-221`, keduanya menunggu langkah rilis 6aj.5.
+
+---
+
+## 10. Penutupan batas verifikasi — 2026-10-21
+
+| Hal | Isi |
+| --- | --- |
+| Akun asli | Bayu (Radiografer — **nol** izin Lab, termasuk tanpa `LabOrder : Read`), dr. Bima (Kepala Instalasi — tanpa `LabOrder : Confirm`, tanpa `LabExamination : Update`), Gilang (Analis — pemegang). Sandi diberikan pemilik modul, tidak dicatat. Kontrol sesi Bayu: `GET /auth/permissions` `200` |
+| `AC-222` sisi izin hasil | Gilang (pemegang `LabExaminationResult : Update`) mengisi hasil Kalium `LAB-RSMMC-000028` → `200`, memfinalkan → `200` (rantai `FE-LAB-48`); `GET …/result` `200` |
+| `AC-222` sisi penolakan | dr. Bima (tanpa `LabExamination : Update`) → `PUT /urgency` **`403`**, `PUT /duplo` **`403`**, `POST /cancel` **`403`** — nol tulis |
+| Catatan bentuk bukti | Belum ada akun yang memegang izin hasil **tanpa** `LabExamination : Update` (jabatan Analis memegang keduanya). Karena izin dinilai per endpoint (`[AccessPermission]` masing-masing), kedua sisi dibuktikan terpisah dengan akun asli yang mewakili tiap sisi |
+| `PUT /urgency` `200` | Superadmin sebagai **pembuat pesanan** `LAB-RSMMC-000001`: Leukosit Rutin → Cito `200`, Cito → Rutin `200` (bersih nol). Penjaga lain teramati sungguhan: pesanan *Selesai* → `409` *"Pesanan ini sudah selesai atau dibatalkan…"*; pemegang izin yang **bukan** dokter pembuat pesanan (Gilang pada `000003`) → `403` *"Hanya dokter yang membuat pesanan ini yang boleh menandainya cito."* — aturan domain, bukan cacat |
+| Hasil | Skrip HTTP 15/15 butir terkait `PASS` |

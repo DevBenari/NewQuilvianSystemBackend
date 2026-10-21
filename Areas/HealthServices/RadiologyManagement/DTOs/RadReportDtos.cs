@@ -57,6 +57,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
     /// menjadi dasar aturan pengesahan; membiarkannya disunting sama dengan membiarkan penulis
     /// memilih sendiri siapa yang boleh mengesahkan drafnya.
     /// </remarks>
+    /// <summary>
+    /// Simpan Form Hasil v1 (<c>RAD-DEC-023</c>): hasil langsung final, tanpa konsol pemeriksaan.
+    /// </summary>
+    public class RadOrderResultRequest
+    {
+        /// <summary><b>Sensitif.</b> "Hasil Pemeriksaan Radiologi" v1. Wajib.</summary>
+        [Required, MaxLength(8000)]
+        public string Findings { get; set; } = string.Empty;
+
+        /// <summary>
+        /// <b>Sensitif.</b> "Catatan Tambahan" v1 (catatan/kesimpulan). Opsional; kosong berarti
+        /// hasil itu sendiri menjadi kesimpulan.
+        /// </summary>
+        [MaxLength(4000)]
+        public string? Notes { get; set; }
+    }
+
     public class UpdateRadReportDraftRequest
     {
         /// <summary><b>Sensitif.</b></summary>

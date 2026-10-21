@@ -92,6 +92,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 ErrorCode = code,
                 ErrorMessage = message
             };
+
+        /// <summary>Meneruskan kegagalan dari langkah lain apa adanya (jenis, kode, pesan).</summary>
+        public static RadOperationResult<T> From<TOther>(RadOperationResult<TOther> failure) =>
+            new(failure.Kind) { ErrorCode = failure.ErrorCode, ErrorMessage = failure.ErrorMessage };
     }
 
     /// <summary>Kode galat radiologi yang dipakai lintas lapisan.</summary>

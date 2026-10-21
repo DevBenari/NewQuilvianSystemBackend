@@ -1,5 +1,6 @@
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services
 {
@@ -378,26 +379,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 })
                 .ToList();
 
-        private static string LabelOrderStatus(LabOrderStatus x) => x switch
+        /// <summary>
+        /// Label status pesanan — dipakai metadata penyaring daftar pesanan dan berkas Laporan Pembatalan
+        /// (<c>BE-LAB-100</c>). Bunyinya SAMA PERSIS dengan label layar Lab (<c>LAB_ORDER_STATUS_LABEL</c>,
+        /// keputusan pemilik modul 2026-10-21 <c>LAB-DEC-250</c>): layar, penyaring, dan berkas memakai satu kata.
+        /// </summary>
+        internal static string LabelOrderStatus(LabOrderStatus x) => x switch
         {
             LabOrderStatus.Draft => "Draf",
             LabOrderStatus.Requested => "Diminta",
             LabOrderStatus.Accepted => "Diterima",
-            LabOrderStatus.InProcess => "Sedang dikerjakan",
+            LabOrderStatus.InProcess => "Sedang Dikerjakan",
             LabOrderStatus.Completed => "Selesai",
             LabOrderStatus.OnHold => "Ditahan",
-            LabOrderStatus.CancelRequested => "Pembatalan diminta",
+            LabOrderStatus.CancelRequested => "Pembatalan Diminta",
             LabOrderStatus.Cancelled => "Dibatalkan",
             LabOrderStatus.Confirmed => "Dikonfirmasi",
             _ => x.ToString()
         };
 
-        private static string LabelDisiplin(LabDiscipline x) => x switch
+        /// <summary>
+        /// Label status pemeriksaan terpesan pada berkas Laporan Pembatalan (<c>BE-LAB-100</c>) — sama persis dengan
+        /// label layar Lab (<c>LAB_EXAMINATION_STATUS_LABEL</c>, <c>LAB-DEC-250</c>).
+        /// </summary>
+        internal static string LabelStatusPemeriksaan(LabExaminationStatus x) => x switch
+        {
+            LabExaminationStatus.Ordered => "Terpesan",
+            LabExaminationStatus.ChargeEligible => "Layak Tagih",
+            LabExaminationStatus.Voided => "Digugurkan",
+            LabExaminationStatus.Cancelled => "Dibatalkan",
+            _ => x.ToString()
+        };
+
+        /// <summary>Label disiplin — dipakai juga Statistik Pesanan (<c>BE-LAB-98</c>), supaya label hanya satu.</summary>
+        internal static string LabelDisiplin(LabDiscipline x) => x switch
         {
             LabDiscipline.ClinicalPathology => "Patologi Klinik",
             LabDiscipline.AnatomicalPathology => "Patologi Anatomi",
             LabDiscipline.Microbiology => "Mikrobiologi",
             _ => x.ToString()
+        };
+
+        /// <summary>Label jenis kunjungan pada Statistik Pesanan (<c>BE-LAB-98</c>, <c>LAB-DEC-243</c>).</summary>
+        internal static string LabelJenisKunjungan(EncounterType x) => x switch
+        {
+            EncounterType.Outpatient => "Rawat Jalan",
+            EncounterType.Emergency => "IGD",
+            EncounterType.Inpatient => "Rawat Inap",
+            EncounterType.MedicalCheckup => "Medical Check Up",
+            EncounterType.Telemedicine => "Telemedisin",
+            _ => "Tidak diketahui"
         };
 
         private static string LabelSpecimenStatus(LabSpecimenStatus x) => x switch
@@ -712,6 +743,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         Description = "ClinicalPathology, AnatomicalPathology, atau Microbiology. Kosong berarti seluruh disiplin.",
                         Example = "ClinicalPathology"
                     }
+                }
+            };
+
+        /// <summary>
+        /// Bagian statis penyaring Laporan Pembatalan (<c>r49</c> 44.2, <c>BE-LAB-99</c>): periode wajib, disiplin, jenis
+        /// pembatalan, halaman. Pilihan unit layanan ditambahkan service; pembatal dari <c>/cancelled-by-options</c>.
+        /// </summary>
+        public static LabCancellationReportFilterMetadataResponse LabCancellationReport() =>
+            new()
+            {
+                MaxPeriodDays = LabOperationalReportService.MaxPeriodDays,
+                Disciplines = Opsi<LabDiscipline>(LabelDisiplin),
+                CancellationKinds = Opsi<LabCancellationKind>(x => x == LabCancellationKind.Order ? "Pesanan" : "Pemeriksaan"),
+                QueryParameters = new()
+                {
+                    new() { Name = "startDate", Type = "date", Required = "Yes", Description = "Tanggal operasional WIB awal periode, dibandingkan dengan waktu pembatalan. Inklusif.", Example = "2026-10-01" },
+                    new() { Name = "endDate", Type = "date", Required = "Yes", Description = "Tanggal operasional WIB akhir periode, inklusif. Paling panjang 366 hari sejak tanggal awal.", Example = "2026-10-31" },
+                    new() { Name = "discipline", Type = "string", Description = "ClinicalPathology, AnatomicalPathology, atau Microbiology. Kosong berarti seluruh disiplin.", Example = "ClinicalPathology" },
+                    new() { Name = "cancellationKind", Type = "string", Description = "Order atau Examination. Kosong berarti keduanya.", Example = "Examination" },
+                    new() { Name = "cancelledByUserId", Type = "guid", Description = "Petugas yang membatalkan, dari /cancelled-by-options." },
+                    new() { Name = "serviceUnitId", Type = "guid", Description = "Unit layanan kunjungan pesanan." },
+                    new() { Name = "pageNumber", Type = "int", Description = "Bawaan 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "int", Description = "Bawaan 25, dijepit 1 sampai 100.", Example = "25" }
+                }
+            };
+
+        /// <summary>
+        /// Bagian statis penyaring Statistik Pesanan (<c>r49</c> 44.3, <c>BE-LAB-98</c>): periode wajib, jenis
+        /// kunjungan, dan disiplin. Pilihan unit layanan ditambahkan service dari data induk.
+        /// </summary>
+        public static LabOrderStatisticsReportFilterMetadataResponse LabOrderStatisticsReport() =>
+            new()
+            {
+                MaxPeriodDays = LabOperationalReportService.MaxPeriodDays,
+                EncounterTypes = Opsi<EncounterType>(LabelJenisKunjungan)
+                    .Where(x => x.Value != (int)EncounterType.Unknown)
+                    .ToList(),
+                Disciplines = Opsi<LabDiscipline>(LabelDisiplin),
+                QueryParameters = new()
+                {
+                    new() { Name = "startDate", Type = "date", Required = "Yes", Description = "Tanggal operasional WIB awal periode, dibandingkan dengan waktu pesanan diminta. Inklusif.", Example = "2026-10-01" },
+                    new() { Name = "endDate", Type = "date", Required = "Yes", Description = "Tanggal operasional WIB akhir periode, inklusif. Paling panjang 366 hari sejak tanggal awal.", Example = "2026-10-31" },
+                    new() { Name = "encounterType", Type = "string", Description = "Outpatient, Emergency, Inpatient, MedicalCheckup, atau Telemedicine. Kosong berarti seluruh jenis kunjungan.", Example = "Inpatient" },
+                    new() { Name = "serviceUnitId", Type = "guid", Description = "Unit layanan kunjungan. Kosong berarti seluruh unit." },
+                    new() { Name = "discipline", Type = "string", Description = "ClinicalPathology, AnatomicalPathology, atau Microbiology. Kosong berarti seluruh disiplin.", Example = "ClinicalPathology" }
                 }
             };
     }
