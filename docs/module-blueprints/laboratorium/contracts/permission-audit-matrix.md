@@ -4,6 +4,7 @@
 |---|---|
 | Contract version | `LAB-PERM-v1` |
 | Revision | **`16` — `approved`** 2026-10-08, bagian 18 (tiga endpoint ringkasan Beranda dijaga `LabOrder : Read`; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`15` — `approved`** 2026-10-08, bagian 17 (dua endpoint alur v1 dipetakan; nol aksi baru) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`14` — `approved`** 2026-10-07, bagian 16 (daftar dokter pemeriksa dijaga `LabOrder : Confirm`; nol aksi baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-10-07, bagian 15 (`LabOrder : Confirm`) — disetujui Yoga Aji Pratama. Sebelumnya: **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision 17 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — bagian 19: `LabCancellationReport` dan `LabOrderStatisticsReport`, masing-masing `Read`/`Export`; cetak memakai `Export` |
 | Revision 16 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
 | Revision 15 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
 | Revision 7 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -1099,3 +1100,87 @@ disengaja (`LAB-DEC-208`: "hanya angka") dan diminta persetujuannya pada `LAB-RE
 
 `today` dan `yearly` hanya angka. `recent-orders` membawa nama pasien dan No. RM, setara Daftar Pasien Lab dan
 rincian pesanan (`r38`). Ketiganya baca dan **tidak** dicatat ke log audit.
+
+## 19. Amandemen revision 17 — Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), 2026-10-20
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **17** |
+| Status | **`approved`** 2026-10-20 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-10-20 — *"Setuju keenam butir (Direkomendasikan)"* — pilihan pemilik modul pada sesi 2026-10-20 atas keempat kontrak dan keenam butir `02-backend-architecture.md` 32.10 |
+| `input_revision` | decisions rev 115 (`LAB-DEC-231`, `233`, `239`, `245`, `248`); `LAB-DA-001` rev 11 bagian A8; `LAB-API-v1` `r49` usulan; `02-backend-architecture.md` rev 22 bagian 32 |
+
+### 19.1 Kenapa amandemen ini ada
+
+`LAB-DEC-231` memutuskan setiap laporan `S16b` punya **izin tersendiri** — izin lihat dan izin keluaran dipisah —
+supaya admin dapat memberi Petugas Laboratorium izin laporan operasional tanpa sekaligus membuka laporan yang memuat
+identitas pasien atau nilai uang. `LAB-DEC-248` menambahkan bahwa **cetak memakai izin unduh** dan ditegakkan di server.
+
+### 19.2 Resource dan aksi yang ditambahkan
+
+| Resource | Aksi | `AccessType` | Kegunaan |
+|---|---|---|---|
+| `LabCancellationReport` | `Read` | `Read` | Membuka Laporan Pembatalan, detail barisnya, dan pilihan penyaring |
+| `LabCancellationReport` | `Export` | `Read` | Mengunduh `.xlsx` **dan** mencatat cetak |
+| `LabOrderStatisticsReport` | `Read` | `Read` | Membuka Statistik Pesanan dan pilihan penyaring |
+| `LabOrderStatisticsReport` | `Export` | `Read` | Mengunduh `.xlsx` **dan** mencatat cetak |
+
+`AccessType` `Export` bernilai `Read` karena `AccessTypes` hanya mengenal empat nilai — pola `LabOperationalReport`
+(`BE-LAB-86`). **`LabOperationalReport` tidak berubah** dan **tidak** membuka kedua laporan baru.
+
+### 19.3 Pemetaan endpoint
+
+| Endpoint | String yang dipakai | Dicatat logger |
+|---|---|:---:|
+| `GET /lab-cancellation-reports/filters/metadata` | `[AccessPermission("LabCancellationReport", "Read")]` | Tidak |
+| `GET /lab-cancellation-reports/cancelled-by-options` | `[AccessPermission("LabCancellationReport", "Read")]` | Tidak |
+| `GET /lab-cancellation-reports` | `[AccessPermission("LabCancellationReport", "Read")]` | **Ya** — 32.10 no. 1, disetujui 2026-10-20 |
+| `GET /lab-cancellation-reports/{historyId}` | `[AccessPermission("LabCancellationReport", "Read")]` | Tidak |
+| `GET /lab-cancellation-reports/export` | `[AccessPermission("LabCancellationReport", "Export")]` | **Ya** |
+| `POST /lab-cancellation-reports/print-log` | `[AccessPermission("LabCancellationReport", "Export")]` | **Ya** — inilah tujuannya |
+| `GET /lab-order-statistics-reports/filters/metadata` | `[AccessPermission("LabOrderStatisticsReport", "Read")]` | Tidak |
+| `GET /lab-order-statistics-reports` | `[AccessPermission("LabOrderStatisticsReport", "Read")]` | Tidak |
+| `GET /lab-order-statistics-reports/export` | `[AccessPermission("LabOrderStatisticsReport", "Export")]` | **Ya** |
+| `POST /lab-order-statistics-reports/print-log` | `[AccessPermission("LabOrderStatisticsReport", "Export")]` | **Ya** |
+
+Setiap endpoint memasang `[AccessAction]` berpasangan dengan `[AccessPermission]`; satu teks `[AccessAction]` per kunci
+(pola `ReadDescription`/`ExportDescription`), supaya `PermissionRegistryValidator` menerimanya saat aplikasi dinyalakan.
+
+**Tidak berubah:** `POST /lab-examinations/{id}/cancel` tetap `LabExamination : Update`; `POST /lab-specimens/{id}/cancel`
+tetap `LabSpecimen : Cancel`. `LAB-DEC-237` menambah syarat alasan, bukan izin.
+
+### 19.4 Siapa memegang apa sesudah amandemen
+
+| Jabatan | Laporan Pembatalan `Read` | `Export` | Statistik Pesanan `Read` | `Export` |
+|---|:---:|:---:|:---:|:---:|
+| Kepala Instalasi Laboratorium | Diberikan admin saat rilis | Diberikan admin | Diberikan admin | Diberikan admin |
+| Manajemen (jabatan ditetapkan admin) | Diberikan admin | Diberikan admin | Diberikan admin | Diberikan admin |
+| Petugas / Dokter Laboratorium | **Tidak secara bawaan**; admin boleh memberi dengan sadar (`LAB-DEC-239`) | Tidak secara bawaan | **Boleh diberikan** admin (`LAB-DEC-245`) | Boleh diberikan |
+
+**Bawaan:** **nol kebijakan tersemai** — sebelum admin memberi, setiap pengguna menerima `403` (pola 14.6,
+`CONFIGURABLE_DEFAULT`). Hak baca daftar Laboratorium (`LabOrder : Read`, `LabExamination : Read`) **tidak** membuka
+kedua laporan.
+
+### 19.5 Isi log
+
+| Aksi log | Kapan | Isi — **di teks pesan** | Dilarang |
+|---|---|---|---|
+| `LabCancellationReport.Export` / `LabOrderStatisticsReport.Export` | Berkas `.xlsx` terkirim | `<laporan> — <awal>..<akhir> — <penyaring> — <n> baris` | Identitas pasien, alasan pembatalan, isi berkas |
+| `LabCancellationReport.Print` / `LabOrderStatisticsReport.Print` | `POST /print-log` diterima | `<laporan> — <awal>..<akhir> — <penyaring> — cetak` | Sama |
+| `LabCancellationReport.Read` | Setiap `GET` daftar (32.10 no. 1, disetujui 2026-10-20) | `<awal>..<akhir> — <penyaring> — halaman <n>` | Sama |
+
+Pelaku dan waktu diisi pencatat. **`LoggerService` tidak menuliskan payload** — isi wajib berada di teks pesan; ruas
+payload tidak bernama `Id`, `Name`, maupun `Path` (menimpa pelaku dan alamat).
+
+**Contoh:** dr. Bima mengunduh Laporan Pembatalan Oktober, disiplin Patologi Klinik → satu baris log
+*"lab-cancellation-report — 2026-10-01..2026-10-31 — Patologi Klinik — 21 baris"*, pelaku dr. Bima.
+
+### 19.6 Traceability revision 17
+
+| Butir | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| Izin per laporan, lihat dan keluaran terpisah | `LAB-DEC-231` | A8.8 | `AC-330` |
+| Bawaan Laporan Pembatalan sempit | `LAB-DEC-239` | A8.8, A8.12 | `AC-330` |
+| Cetak memakai izin unduh, ditegakkan server | `LAB-DEC-248` | A8.9 | `AC-337` |
+| Log tanpa identitas pasien | `LAB-DEC-233`, `248` | A8.12 | `AC-332`, `AC-337` |

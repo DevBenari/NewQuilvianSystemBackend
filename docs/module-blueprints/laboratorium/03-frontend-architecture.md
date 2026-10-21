@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `17` — pencatatan susulan 2026-10-14: kolom tabel dan halaman hasil mengikuti v1 (`r47`, `r48`; `LAB-REQ-024`, `LAB-REQ-025`), bagian terakhir dokumen. Sebelumnya `16` — amandemen 2026-10-08: Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — amandemen 2026-10-07 (kedua): pemilih dokter pemeriksa memakai daftar Lab (BR-139). Sebelumnya `14` — amandemen 2026-10-07: urutan Konfirmasi v1 (BR-138) dan pencatatan susulan putaran 22 (menu, aksi baris). Sebelumnya `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
+| Revision | `18` — amandemen 2026-10-20: Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), bagian terakhir dokumen. Sebelumnya `17` — pencatatan susulan 2026-10-14: kolom tabel dan halaman hasil mengikuti v1 (`r47`, `r48`; `LAB-REQ-024`, `LAB-REQ-025`), bagian terakhir dokumen. Sebelumnya `16` — amandemen 2026-10-08: Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — amandemen 2026-10-07 (kedua): pemilih dokter pemeriksa memakai daftar Lab (BR-139). Sebelumnya `14` — amandemen 2026-10-07: urutan Konfirmasi v1 (BR-138) dan pencatatan susulan putaran 22 (menu, aksi baris). Sebelumnya `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
 | Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
@@ -1720,3 +1720,101 @@ Nol route, nol menu, nol izin baru.
 | Pemilih Unit Layanan bagi Analis pada Penerimaan Sampling | `service-units/options` `403` bagi Analis; keputusan izinnya belum diambil (temuan 2026-10-09) |
 
 **Bukti:** peramban 54/54 dengan akun asli dr. Bima dan Gilang, 2026-10-14 — `roadmap/frontend-roadmap.md` bagian 0.3.
+
+## Amandemen 2026-10-20 — Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** — kontrak `r49` dan letak menunya (32.10 no. 6) **disetujui 2026-10-20** |
+| Slice | `S16b-1` Laporan Pembatalan Order & Pemeriksaan; `S16b-2` Statistik Pesanan Laboratorium |
+| Masukan | decisions rev 115 (`LAB-DEC-230`..`249`); `LAB-DA-001` rev 11 bagian A8; `02-backend-architecture.md` bagian 32; `LAB-API-v1` `r49`, `LAB-PERM-v1` revision 17, `LAB-VAL-v1` `r21` — **ketiganya `draft`** |
+| Frontend SHA | **`7fb1e1d3e`** (branch `YogaV2`) — sama dengan capability map rev 9 |
+| Sifat | **Dua layar laporan baru** dan **satu halaman detail**; dua butir menu baru di grup *Laporan*; **nol** perubahan pada layar yang sudah ada |
+
+### Keadaan frontend saat dirancang
+
+| Sudah ada | Berkas | Hubungan dengan laporan ini |
+|---|---|---|
+| *Laporan Operasional* `S16a` | `lab-operational-reports/` — `lab-operational-report-view.jsx`, `use-lab-operational-report.jsx`, `use-lab-operational-report-export.jsx`, `lab-operational-report.service.js` | **Pola** penyaring periode, izin unduh (`usePermission`), unduhan `blob`, galat `400`/`422`/`403` — dipakai ulang, **tidak** diubah |
+| *Laporan Penerimaan* dan detailnya | `lab-reception-reports/` dan `lab-reception-reports/[slug]/` (`route-token.js`) | **Konvensi proyek** halaman detail laporan — dipakai bagi detail Laporan Pembatalan |
+| Grup menu *Laporan* | `menu-items.jsx` `healthServicesLabReports` (BR-137) | Ditambah dua butir; `requiredPermission` dibaca penyaring menu (`CAP-P22-16`) |
+| Cetak dari layar | `react-to-print` ^3.1.1 (`print-resep-component.jsx#useReactToPrint`) | Dipakai ulang untuk Cetak/Print Preview |
+| Pemilih tanggal | `FilterDatePicker` (`LAB-DEC-074`) | Periode |
+| Aksi batal pemeriksaan/wadah | **Tidak ada, disengaja** (`VAL-13`, `lab-specimen-constants.jsx:15-19`) | **Tidak** dibuka (`LAB-DEC-247`) — `VAL-155` tidak menyentuh layar mana pun |
+
+### Hierarki wewenang yang dipakai
+
+| Tingkat | Yang diputuskan di tingkat itu |
+|---|---|
+| Keamanan/privasi/invariant | Identitas pasien hanya di Laporan Pembatalan; tidak ada di Statistik Pesanan (`AC-335`); dialog cetak hanya sesudah `POST /print-log` berhasil (`LAB-DEC-248`); tombol Unduh/Cetak hanya bagi pemegang `Export` |
+| Brief produk yang disetujui | Kolom, penyaring, urutan, dan teks *Alasan tidak dicatat* (BR-151, BR-152, BR-153); label menu — **diajukan** (32.10 no. 6) |
+| Konvensi proyek | Halaman detail terpisah dengan token rute (pola Laporan Penerimaan); penyaring dan unduhan pola `S16a`; `requiredPermission` pada menu |
+| `DEV_DISCRETION` | Nama berkas, susunan komponen di dalam halaman, gaya tabel dan tata letak cetak dalam konvensi cetak proyek, ikon menu |
+
+### Kebutuhan layar — Laporan Pembatalan
+
+| Kebutuhan | Perilaku |
+|---|---|
+| Penyaring | Periode (wajib) · disiplin · jenis (*Order*/*Pemeriksaan*) · *Dibatalkan oleh* (pilihan dari `/cancelled-by-options` untuk periode terpilih) · unit layanan. Pesan `VAL-147`..`149` pada penyaring periode |
+| Tabel | Dua belas kolom BR-151, urutan waktu batal terbaru di atas, berhalaman. Waktu ditampilkan **WIB** |
+| Total | *Order n · Pemeriksaan n · Seluruhnya n* dari `totals` — **sama** di setiap halaman (`AC-332`) |
+| *Alasan tidak dicatat* | `isReasonRecorded = false` → teks ***Alasan tidak dicatat*** yang dibedakan dari alasan sungguhan (bukan sel kosong) |
+| Detail | Klik nama pemeriksaan (baris *Pemeriksaan*) atau No. order (baris *Order*) → halaman detail `GET /{historyId}`: informasi pemeriksaan dan order induk, daftar pemeriksaan dan wadah beserta statusnya, riwayat transisi |
+| Unduh | Tombol **Unduh Excel** → `GET /export` (`blob`, `.xlsx`) — hanya bagi `LabCancellationReport : Export` |
+| Cetak | Tombol **Cetak** → `POST /print-log` dengan penyaring aktif → **hanya bila berhasil**, buka pratinjau `react-to-print` atas isi yang sedang tampil; gagal → pesan *"Cetak belum dapat dicatat. Coba lagi."* dan pratinjau **tidak** terbuka (`AC-337`) |
+
+### Kebutuhan layar — Statistik Pesanan
+
+| Kebutuhan | Perilaku |
+|---|---|
+| Penyaring | Periode (wajib) · jenis kunjungan · unit layanan · disiplin |
+| Tabel | Baris dikelompokkan **Jenis kunjungan → Unit layanan**; kolom per disiplin (*Pesanan*, *Pemeriksaan*) ditambah *Belum terklasifikasi* bila ada; baris *Sub Total* per jenis kunjungan dan baris *Total* |
+| Keterangan titik hitung | Teks tetap di atas tabel: *"Dihitung menurut waktu pesanan diminta. Pesanan dan pemeriksaan yang dibatalkan atau gugur tidak dihitung — sama dengan Beranda."* (`LAB-DEC-242`, `LAB-DEC-246`) |
+| Nama unit | Apa adanya dari respons — *Kamar Bersalin*, bukan *LABOR* (`LAB-DEC-243`) |
+| Unduh / Cetak | Sama dengan Laporan Pembatalan, izin `LabOrderStatisticsReport : Export` |
+| Privasi | **Nol** identitas pasien, **nol** tautan ke daftar pasien |
+
+### Aksi per peran
+
+| Peran | Buka | Detail | Unduh dan Cetak |
+|---|:---:|:---:|:---:|
+| Pemegang `Read` + `Export` laporan itu | Ya | Ya (Laporan Pembatalan) | Ya |
+| Pemegang `Read` saja | Ya | Ya | **Tidak** — tombol tidak tampil; `403` bila dipaksa |
+| Selain itu | Tidak — menu tidak tampil; `403` bila dibuka langsung | Tidak | Tidak |
+
+### Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Memuat | Tabel memuat tanpa mengosongkan penyaring; tombol Unduh/Cetak nonaktif selama memuat |
+| Kosong | Kalimat bersebab — *"Tidak ada pembatalan pada periode ini."* / *"Tidak ada pesanan pada periode ini."* |
+| `400`/`422` | Pesan backend pada penyaring periode |
+| `403` | Pesan tidak berwenang; nol baris |
+| `404` detail | *"Peristiwa pembatalan tidak ditemukan."* dengan jalan kembali ke daftar |
+| Unduhan gagal | Pesan di dekat tombol; menekan ulang tidak menggandakan unduhan yang sudah berhasil |
+| Tekan Cetak dua kali cepat | Tombol nonaktif sampai `POST /print-log` menjawab — satu tekan, satu log |
+| Data basi | Mengubah penyaring memuat ulang tabel dan total; detail selalu dimuat dari server |
+
+### Berkas yang terdampak
+
+Lokasi mengikuti `rules/frontend/frontend-architecture.md`; **nama berkas `DEV_DISCRETION`**.
+
+| Berkas | Status |
+|---|---|
+| `src/app/health-services/laboratory-management/lab-cancellation-reports/page.jsx` (+ `[slug]/page.jsx`, `route-token.js`) | Baru — daftar dan detail, pola Laporan Penerimaan |
+| `src/app/health-services/laboratory-management/lab-order-statistics-reports/page.jsx` | Baru |
+| `src/components/view/health-services/laboratory-management/lab-cancellation-reports/` | Baru — daftar, detail, kolom tabel |
+| `src/components/view/health-services/laboratory-management/lab-order-statistics-reports/` | Baru |
+| `src/lib/hooks/health-services/laboratory-management/` — hook dua laporan, hook cetak bercatat, **berkas aturan murni** (format WIB, *Alasan tidak dicatat*, susun baris statistik) | Baru — aturan murni diuji `node --test` |
+| `src/lib/services/health-services/laboratory-management/lab-cancellation-report.service.js`, `lab-order-statistics-report.service.js` | Baru — baca, detail, unduh (`responseType: blob`), `print-log` |
+| `src/lib/constants/health-services/laboratory-management/` konstanta dua laporan | Baru |
+| `src/utils/menu-sidebar/menu-items.jsx` | Diperbarui — dua butir di grup *Laporan*, masing-masing `requiredPermission: { resource: "<Resource>", action: "Read" }` (32.10 no. 6) |
+
+### Uji yang dibutuhkan
+
+| Uji | Isi |
+|---|---|
+| Aturan murni | *Alasan tidak dicatat*; format WIB pada batas hari (`AC-331`); penyusunan *Sub Total*/*Total*; kolom *Belum terklasifikasi* |
+| Hook cetak | `POST /print-log` gagal → pratinjau tidak terbuka; berhasil → terbuka; tombol nonaktif selama menunggu |
+| Menu | Butir tampil hanya bagi pemegang `Read` laporannya; `LabOperationalReport : Read` **tidak** menampilkannya |
+| E2E (pola standalone) | Dua laporan dengan API tiruan; satu putaran nyata dengan akun dr. Bima bila izin sudah diberikan |

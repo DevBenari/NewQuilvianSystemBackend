@@ -86451,6 +86451,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("LabSpecimenId");
 
+                    b.HasIndex("Action", "OccurredAt");
+
                     b.HasIndex("LabOrderId", "OccurredAt");
 
                     b.ToTable("LabTransitionHistory", "public");

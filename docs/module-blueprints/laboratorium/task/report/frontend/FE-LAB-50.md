@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `70dd4d4e0` (branch `YogaV2`) |
 | Commit backend yang dijadikan rujukan | `f17cb984` (branch `yoga`) + working tree `BE-LAB-90` |
 | Tanggal | 2026-10-07 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — `AC-287`, `AC-288` (layar dan server), AC tambahan (b), dan urutan v1 lengkap terbukti dengan akun **analis asli** dan tulis sungguhan. **AC tambahan (a) gagal sebagian di runtime** karena cacat backend: jawaban `confirm` tidak membawa `confirmedAt` (bagian 8, temuan T1). Ditemukan pula cacat yang menghalangi analis memilih dokter pemeriksa (temuan T2) |
+| Status | ✅ **`SELESAI`** — 2026-10-21. Semula ⚠ (AC tambahan (a) gagal karena T1; T2 menghalangi analis). T1 ditutup `BE-LAB-91`, T2 ditutup `BE-LAB-91`/`FE-LAB-51` (`examiner-doctor-options`); **AC tambahan (a) kini terbukti** dengan Konfirmasi sungguhan pada baris *Diterima* oleh akun analis asli (bagian 9) |
 
 ---
 
@@ -233,10 +233,28 @@ yang dijaga Akses Role. Pilihan endpoint mengubah `LAB-API-v1`, sehingga butuh a
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Nol pada berkas yang disentuh |
-| Masalah yang diketahui | T1, T2 (bagian 8) |
+| Masalah yang diketahui | `NONE` — T1 dan T2 ditutup (bagian 9) |
 | Dependency backend | `BE-LAB-90` ⚠ (belum di-commit). Usulan task backend untuk T1; keputusan dan amandemen kontrak untuk T2 |
 | Perubahan sampingan | `NONE` |
 | Data dev | `LabOrder : Confirm` diberikan ke jabatan Analis (31 → 32). `LAB-RSMMC-000003`: dikonfirmasi analis (dokter pemeriksa *dr. Aditya Pranata, Sp.PK*), lalu `InProcess`. `000002` tidak berubah (dua `403`, satu `409` sebelum menulis). **Kini nol pesanan `Accepted` yang belum dikonfirmasi di dev** |
 | Interupsi | `NONE` |
 | Status Git | Frontend: delapan berkas `M`, belum di-commit |
-| Langkah berikutnya | Perbaikan T1 (backend), keputusan T2. Langkah rilis `MVP-12c` langkah 3 (deploy frontend) **sebaiknya ditahan** sampai T2 diputuskan — tanpa itu analis melihat Konfirmasi aktif tetapi tidak dapat memilih dokter |
+| Langkah berikutnya | `NONE` — task selesai; T1/T2 sudah diperbaiki (`BE-LAB-91`, `FE-LAB-51`) |
+
+---
+
+## 9. Penuntasan batas verifikasi (2026-10-21)
+
+| Hal | Isi |
+| --- | --- |
+| T1 | Ditutup `BE-LAB-91` — jawaban `confirm`/detail kini membawa `confirmedAt`, `confirmedByName`, `examinerDoctorName` |
+| T2 | Ditutup `BE-LAB-91`/`FE-LAB-51` — pemilih dokter memakai `GET /lab-orders/examiner-doctor-options` (`LabOrder : Confirm`); Gilang memilih dokter tanpa `403` |
+| Pesanan uji | `LAB-RSMMC-000028` — kunjungan IGD pasien uji 00-00-00-17, Kalium (data uji `MVP-15e`, izin tulis pemilik modul 2026-10-21). Satu pesanan dibawa melewati seluruh alur v1 untuk menuntaskan `FE-LAB-46`, `48`, `50`, dan `51` sekaligus |
+| Akun | Gilang (Analis) dan dr. Bima (Kepala Instalasi) — akun asli; sandi tidak dicatat. Superadmin hanya pada satu langkah antara (lihat di bawah) |
+| 1. Rencana wadah — layar Wadah (Gilang) | `POST /lab-specimens/by-order/{GUID pesanan ini}` → `201`; wadah *Direncanakan* menopang Kalium; kartu tampil tanpa muat ulang |
+| 2. Diambil → diterima (Gilang), layak (petugas kedua) | `200`/`200`; *layak* oleh Gilang ditolak `403` *"Petugas yang mengambil sampel tidak boleh menyatakan kelayakannya"* (empat mata, `VAL-09`) → dinyatakan layak oleh superadmin sebagai pengganti analis kedua (sandi Vina tidak tersedia) → pesanan *Diterima*, belum dikonfirmasi |
+| 3. Konfirmasi — Daftar Pasien Lab PK (Gilang) | Dialog kosong, Simpan redup (`AC-291`); dokter dipilih dari daftar Lab; `POST confirm` → `200`. **Tanpa muat ulang:** kolom Dokter Pemeriksa *dr. Aditya Pranata, Sp.PK*, kolom Konfirmasi *Gilang Mahendra · 21 Okt 2026 12.18*, status **tetap** *Diterima*, Konfirmasi redup, **Proses Pemeriksaan aktif**. Bukti: tangkapan layar sesudah Simpan dan sebelum muat ulang (toast *"Pesanan berhasil dikonfirmasi."* masih tampil) dan teks baris sesudah muat ulang. Dua cek teks skrip sempat `FAIL` karena masih mencari awalan pra-v1 *"Dokter pemeriksa:"* — sejak `r47` dokter pemeriksa punya kolom sendiri; bukan cacat layar |
+| 4. Proses Pemeriksaan — layar (Gilang) | `PUT start-process` → `200`; baris *Sedang Dikerjakan* |
+| 5. Hasil (langkah antara, API) | Gilang mengisi Kalium 4,1 dan memfinalkan → `200`; dr. Bima memvalidasi → `200`; rilis oleh validator yang sama ditolak `422` (empat mata) → dr. Bima merilis dengan alasan pengecualian resmi *"Shift tunggal, tidak ada dokter lain bertugas"* → `200`; pesanan *InProcess*, `resultProgress` *AllReleased* |
+| 6. Selesaikan — layar (Gilang) | Selesaikan aktif; `PUT complete` → **`200` sungguhan**; dialog tertutup; baris langsung *Selesai* tanpa muat ulang; server `Completed` |
+| Hasil untuk task ini (S4 diulang) | AC tambahan (a) `PASS`: sesudah Konfirmasi sungguhan baris **Diterima** langsung terbaca dikonfirmasi, Konfirmasi redup, Proses aktif — tanpa muat ulang. Langkah 4 (Proses) `200` membuktikan urutan v1 berlanjut |

@@ -190,6 +190,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
     }
 
     /// <summary>
+    /// Jenis peristiwa pada Laporan Pembatalan (<c>LAB-DEC-238</c>, <c>INV-58</c>, <c>BE-LAB-99</c>): satu baris
+    /// per peristiwa <c>Order.Cancel</c> atau <c>Examination.Cancel</c>. Pembatalan wadah bukan baris laporan.
+    /// Tanpa nilai bawaan — kosong pada penyaring berarti keduanya.
+    /// </summary>
+    public enum LabCancellationKind
+    {
+        /// <summary>Seluruh pesanan dibatalkan — riwayat <c>Order.Cancel</c>.</summary>
+        [Display(Name = "Order")]
+        Order = 1,
+
+        /// <summary>Satu pemeriksaan dibatalkan sendiri — riwayat <c>Examination.Cancel</c>.</summary>
+        [Display(Name = "Examination")]
+        Examination = 2
+    }
+
+    /// <summary>
     /// Objek yang berpindah status pada satu baris riwayat.
     /// </summary>
     public enum LabTransitionScope
