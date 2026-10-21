@@ -296,7 +296,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitName = context.DisplayServiceUnitName,
                     RoomName = context.CurrentPlacement?.RoomName,
                     BedName = context.CurrentPlacement?.BedName,
-                    AttendingDoctorName = context.AttendingDoctorName
+                    AttendingDoctorName = context.AttendingDoctorName,
+                    AdmittingOfficerName = context.AdmissionConfirmedByName
                 },
                 RoomType = roomType,
                 RoomTypeReason = roomTypeReason,

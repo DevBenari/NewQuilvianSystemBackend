@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 15 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 14, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 13 |
-| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata sebelumnya: **`0.11.0`** — amandemen alur admisi pendaftaran `VAL-ADM-01` s.d. `05` (`RWI-DEC-267` s.d. `273`), `VAL-RWA-01` s.d. `55`. Sebelumnya `0.10.0` — `VAL-RWF-70` s.d. `94`; `0.9.0` — `VAL-INP-01` s.d. `17`; `0.8.0` |
-| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`approved`** — amandemen alur admisi disetujui pengguna 10 Oktober 2026 atas instruksi eksplisit "setujui dan lakukan /plan-module-delivery". `0.11.0` Workspace PPRI `approved` 2026-10-08 (`RWI-DEC-265`) |
-| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006` |
-| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `00-interview-decisions.md` revision `40`; `02-backend-architecture.md` revision `0.7`; `04-prd-to-mvp.md` revision `0.6.0` |
-| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: Seluruhnya kompatibel. Menambah validasi format nomor darurat 13 digit, kewajiban data rujukan ringkas, default otomatis unit layanan ranap, dan kewajiban penanda tangan wali untuk bayi baru lahir |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Pendaftaran Admisi Pasien ODC draft (bagian 1.1 `VAL-ADM-10` s.d. `14`, kontrak target `0.15.0`); sebelumnya Integrasi Denah approved (bagian 17, `RWI-DEC-324`); Bed Management draft (bagian 16). Riwayat metadata sebelumnya: `0.11.0` — Workspace PPRI |
+| `last_changed_in` | **`0.15.0`** — Pendaftaran Admisi Pasien ODC (One Day Care). Riwayat metadata sebelumnya: `0.13.0` — Integrasi Denah; `0.12.0` — Bed Management; `0.11.0` — Workspace PPRI |
+| Status | **`draft`** untuk amandemen Pendaftaran Admisi Pasien ODC (`0.15.0`); amandemen Integrasi Denah (`0.13.0`) **`approved`** (`RWI-DEC-324`) |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292 |
+| `input_revision` | Pendaftaran Admisi ODC: decision 53, RWI-DEC-327–332, AC-463–468; capability map 1.8 Bagian 21 |
+| Dampak kompatibilitas | Seluruhnya kompatibel. Menambahkan validasi penolakan penempatan bed non-ODC untuk pasien ODC (`VAL-ADM-10`), proteksi bed ODC (`VAL-ADM-11`), pengecualian mutasi transfer eskalasi (`VAL-ADM-12`), kewajiban DPJP ODC (`VAL-ADM-13`), dan format klausul General Consent ODC (`VAL-ADM-14`) |
 
 ### Perubahan pada `contract_version` `0.8.0` — 11 September 2026
 
@@ -44,6 +44,11 @@ istilah teknis, bukan nama kolom.
 | `VAL-ADM-07` | **Koreksi memakai versi terbaru** (`RWI-DEC-295`, `RWI-AC-429`) | `POST …/general-consent/revisions` | `RowVersion` tidak sama dengan versi aktif, misalnya petugas lain sudah menyimpan versi 2 | "Persetujuan sudah diubah petugas lain. Muat ulang lalu ulangi perubahan Anda." (`INP-ADM-DOC-004`) | 409 |
 | `VAL-ADM-08` | **Ganti jenis penanda tangan wajib tanda tangan baru** (`RWI-DEC-296`, `RWI-AC-430`) | `POST …/general-consent/revisions` | `SignerType` berbeda dari versi aktif tanpa `SignatureImageBase64`. Contoh: `Spouse` → `Family` | "Jenis penanda tangan berubah. Bubuhkan tanda tangan penanda tangan yang baru." (`TTD_BARU_WAJIB`) | 422 |
 | `VAL-ADM-09` | **Koreksi harus mengubah sesuatu** (`RWI-DEC-295`) | `POST …/general-consent/revisions` | Tidak ada isian yang berbeda dan tanda tangan tidak diganti | "Tidak ada data yang berubah." (`TIDAK_ADA_PERUBAHAN`) | 422 |
+| `VAL-ADM-10` | **Penyaringan Bed Khusus Pasien ODC** (`RWI-DEC-327`, `RWI-AC-464`) | `POST /bed-reservations`, penempatan awal admisi | Pasien/episode ODC memilih tempat tidur non-ODC (`bed.IsOdcBed == false`) | "Pasien ODC hanya dapat ditempatkan pada tempat tidur khusus One Day Care (ODC)." (`ODC_BED_REQUIRED`) | 422 |
+| `VAL-ADM-11` | **Proteksi Bed Khusus ODC dari Pasien Reguler** (`RWI-DEC-327`, `RWI-AC-464`) | `POST /bed-reservations`, penempatan awal admisi | Pasien/episode reguler (non-ODC) memilih tempat tidur ODC (`bed.IsOdcBed == true`) | "Tempat tidur One Day Care (ODC) khusus diperuntukkan bagi pasien ODC." (`ODC_BED_RESERVED`) | 422 |
+| `VAL-ADM-12` | **Pengecualian Eskalasi Transfer Bed ODC ke Reguler** (`RWI-DEC-331`, `RWI-AC-467`) | `POST /bed-occupancies/transfers` | Pasien ODC yang dirawat > 24 jam dimutasi ke tempat tidur reguler | Mutasi penempatan bed diizinkan tanpa terblokir aturan ODC | 200 |
+| `VAL-ADM-13` | **Kewajiban DPJP Utama pada Episode ODC** (`RWI-DEC-328`, `RWI-AC-463`) | `POST /episodes` | Pembuatan episode admisi ODC tanpa memilih DPJP utama (`DoctorId` kosong/Guid.Empty) | "Dokter Penanggung Jawab Pelayanan (DPJP) utama wajib ditentukan untuk pasien ODC." | 400 |
+| `VAL-ADM-14` | **Format Judul & Klausul General Consent ODC** (`RWI-DEC-330`, `RWI-AC-466`) | `POST …/admission-consents`, cetak GC | Pasien bertipe ODC mencetak General Consent | Judul dokumen otomatis "SURAT PERSETUJUAN PASIEN ONE DAY CARE (ODC)" dan klausul batas observasi 24 jam wajib tertera | 200 |
 
 ### 1.2 Validasi Pembentukan Episode
 
@@ -607,3 +612,79 @@ Rujukan: [`PLAN-REPAIR-EPS-010`](../docs/plan-repair/plan-repair-010-pasien-lama
 Metadata bayi mewajibkan master IsNewborn dan MotherPatientId, source/careMode/careSource/pref valid, nominal nonnegatif. Ibu/episode cocok; referensi historis yang sama dipertahankan. Bayi wajib boks, dewasa ditolak pada boks. RoomingIn/intensif dari rencana ditegakkan selama Draft; isolasi existing. Placement pertama mensyaratkan GeneralConsent Completed dengan signature Parent/Guardian.
 
 Detail dan batas mengikuti [kontrak admisi bayi](newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
+
+## 17. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); MasterData: seluruh tim (RWI-DEC-193). `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**; `DOMAIN_ARCHITECTURE_NOT_RUN`. Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`. Kode HTTP mengikuti API contract 14.4; tabel ini tidak menyalin kalimat pesan.
+
+### 17.1 Validasi beridentitas stabil
+
+| ID | Aturan | Titik penerapan | Uji/guard | HTTP/code | Trace |
+| --- | --- | --- | --- | --- | --- |
+| VAL-DNH-01 | Format dan keunikan kunci denah | Buat kamar, aktivasi, impor | `lantai-<lantai>/<slug>`, huruf kecil `[a-z0-9-]`, maks. 100; unik di antara kamar belum dihapus dan di dalam satu manifest | 400 `INVALID_INPUT` / 409 `FLOOR_PLAN_KEY_DUPLICATE` | DEC-306; AC-446 |
+| VAL-DNH-02 | Kunci dan lantai tetap | Ubah kamar, impor | Nilai yang sudah terisi tidak berubah | 422 `FLOOR_PLAN_KEY_IMMUTABLE` | INV-DNH-01 |
+| VAL-DNH-03 | Lantai bersama kunci | Buat kamar, aktivasi, impor, susunan lantai | Kunci tanpa lantai ditolak; susunan lantai wajib `floorCode` | 400 `FLOOR_CODE_REQUIRED` | DEC-323 |
+| VAL-DNH-04 | Arah wing | Buat/ubah kamar, aktivasi, impor | Nilai 1–8 | 400 `WING_DIRECTION_INVALID` | DEC-313; AC-451 |
+| VAL-DNH-05 | Pemetaan unit | Impor, aktivasi | Unit wajib, aktif, bertipe rawat inap, dalam scope pengguna | 422 `ROOM_UNIT_MAPPING_MISSING` / `ROOM_UNIT_INVALID`; `ACCESS_DENIED` per baris | DEC-323; AC-461 |
+| VAL-DNH-06 | Kelas kamar | Impor, aktivasi, ubah kamar | Kelas wajib untuk kamar berkunci, ada dan aktif | 422 `PATIENT_CLASS_NOT_FOUND` | DEC-307/311; AC-447/449 |
+| VAL-DNH-07 | Ubah kelas hanya kamar kosong | Ubah kamar | Tidak ada penempatan aktif maupun pesanan aktif di seluruh bed kamar; alasan wajib; pesan menyebut jumlah penghuni dan pesanan | 409 `BED_HOLD_CONFLICT` / 422 `REASON_REQUIRED` | DEC-304; AC-444/455 |
+| VAL-DNH-08 | Label bed | Tambah bed/boks, ubah label, impor | Huruf unik per kamar; label unik per lantai di antara bed belum dihapus; dibentuk server untuk kamar berkunci | 409 `BED_LABEL_DUPLICATE` | DEC-317; AC-454/456 |
+| VAL-DNH-09 | Nomor kamar pada aktivasi | Aktivasi ruang cadangan | Nomor wajib dan belum dipakai kamar aktif di lantai itu; jumlah bed 1–20, boks 0–10 | 409 `ROOM_NUMBER_DUPLICATE` / 400 `INVALID_INPUT` | Rencana 7 |
+| VAL-DNH-10 | Hapus bed | Hapus bed | Tidak pernah dirujuk pesanan maupun penempatan; bila pernah, nonaktifkan | 422 `BED_HAS_USAGE_HISTORY` | `DNH-MIS-07` |
+| VAL-DNH-11 | Kapasitas dihitung | Semua pembacaan denah | Kapasitas, terisi, dan status kamar dari bed saat dibaca; `Capacity` tidak dipakai | Contract test | DEC-303/318; AC-442/457 |
+| VAL-DNH-12 | Tanpa jenis kelamin | Pesan, tempatkan, transfer, `available-beds`, denah | Tidak ada aturan, kode, field, maupun pesan jenis kelamin | Contract test; kode lama dipensiunkan | DEC-315; AC-439/452 |
+| VAL-DNH-13 | Kelas khusus | Transfer, denah transfer | Asal atau tujuan ICU/Isolation/Odc/Perinatology → `Special`, ketiga kategori diterima; antarkelas biasa tetap divalidasi | Tidak ada 422 kategori untuk `Special` | DEC-312/319; AC-450/458 |
+| VAL-DNH-14 | Isian HD/LD | Catat HD/LD | Level 1 atau 2; catatan maks. 500 | 400 `CARE_DEPENDENCY_LEVEL_INVALID` / `INVALID_INPUT` | DEC-302; AC-440 |
+| VAL-DNH-15 | Pencatat dan status episode | Catat HD/LD | GUARD-DNH-02 | 403 `CARE_DEPENDENCY_ACTOR_NOT_ASSIGNED` / 422 `EPISODE_READ_ONLY` | DEC-302; AC-440 |
+| VAL-DNH-16 | Kesegaran HD/LD | Catat HD/LD | `ExpectedSetAt` sama dengan `CareDependencySetAt` saat ini (keduanya kosong dianggap sama) | 409 `STALE_CARE_DEPENDENCY` | AC-440 |
+| VAL-DNH-17 | HD/LD tidak membatasi | Kelayakan, transfer | HD/LD tidak dibaca evaluator kelayakan maupun perbandingan kelas | Tidak ada kode | DEC-302; AC-441 |
+| VAL-DNH-18 | Kesiapan hasil impor | Startup, impor | Penetapan siap hanya bila opsi aktif, ada referensi bukti, bukan `Production`, dan hanya untuk bed yang dibuat run itu | Aplikasi menolak menyala bila opsi salah | DEC-321; AC-459 |
+| VAL-DNH-19 | Kamar existing pada impor | Impor | Tidak mengubah kelas, unit, maupun bed kamar yang sudah ada; perbedaan dilaporkan sebagai kode `FLOOR_PLAN_DRIFT` di baris | Laporan, tanpa perubahan | INV-DNH-10; AC-446 |
+| VAL-DNH-20 | Privasi denah | Kedua endpoint denah, susunan lantai | GUARD-DNH-01; susunan lantai master tanpa identitas | Contract test; data tidak ada di JSON | DEC-287; AC-443 |
+| VAL-DNH-21 | Outline dan kelayakan | Denah Pilih Bed | `IsSelectable` hanya bila ada bed Tersedia yang layak untuk episode itu; bed tidak layak dikirim beserta alasannya | Contract test | DEC-316; AC-453 |
+| VAL-DNH-22 | Tujuan denah | Denah Pilih Bed | `Admission` butuh episode `Draft`; `Transfer` butuh penempatan aktif | 422 `FLOOR_PLAN_PURPOSE_MISMATCH` | Rencana 6.1–6.2 |
+| VAL-DNH-23 | Batas manifest | Impor | 1–300 kamar, 0–20 bed per kamar, huruf bed unik per kamar, `RoomName` wajib untuk kamar tanpa nomor angka | 400 `INVALID_INPUT` | AC-446 |
+
+### 17.2 Urutan validasi
+
+Hak dan scope → format field → kunci entitas terurut (14.12) → kondisi data (kunci unik, label, holder, status episode) → tulis + audit dalam satu transaksi. Pada impor, seluruh baris divalidasi dulu; hanya baris yang lolos ikut transaksi. Dry run menjalankan urutan yang sama tanpa langkah tulis.
+
+### 17.3 Bukti
+
+Pengujian positif dan negatif ada di acceptance-test-matrix 23. Belum ada hasil aplikasi maupun PostgreSQL.
+
+## 18. Amandemen Validasi Admisi Bayi — `RWI-BAYI-022-2.0.0`
+
+| ID | Validasi | Hasil gagal |
+| --- | --- | --- |
+| `VAL-BAYI-022-01` | Ibu aktif, perempuan, dan memiliki kasus obstetri `InProgress`/`Completed` yang dipilih | 404/422 tanpa pasien bayi baru |
+| `VAL-BAYI-022-02` | `BirthDate`, `BirthTime`, dan gender laki-laki/perempuan wajib; tanggal tidak di masa depan | 400 |
+| `VAL-BAYI-022-03` | `Idempotency-Key` 8–200 karakter; key sama wajib memiliki fingerprint sama | 400/409 |
+| `VAL-BAYI-022-04` | `BirthOrder` hanya dialokasikan server dan unik per `DeliveryCaseId` | 409 bila constraint berbenturan |
+| `VAL-BAYI-022-05` | Payment source aktif harus milik encounter ibu pada kasus tersebut dan versinya belum berubah | 404/409/422 tanpa encounter parsial |
+| `VAL-BAYI-022-06` | Context episode memakai kasus yang sama dengan pasien bayi dan source `HospitalBirth` | 400/422 |
+| `VAL-BAYI-022-07` | Rawat gabung membutuhkan penempatan ibu aktif; bayi hanya pada bed bayi dan unit layak registrasi | 400/422 dengan pesan ramah |
+| `VAL-BAYI-022-08` | Request alur baru tidak membawa keputusan invoice atau nominal deposit | Field diabaikan/tidak ditulis |
+
+## 19. Amandemen validasi realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+| ID | Boundary | Aturan | Hasil gagal/penanganan | Trace |
+|---|---|---|---|---|
+| `VAL-RTB-01` | Hub join | `serviceUnitId` wajib nonempty | `HubException`; tidak bergabung | DEC-334, AC-473–474 |
+| `VAL-RTB-02` | Hub join | Actor wajib memiliki `InpatientBedOccupancy:Read`, `InpatientEpisode:Read`, dan akses unit | `HubException`; tidak ada payload PHI | DEC-334, AC-473–474 |
+| `VAL-RTB-03` | Publisher | Hanya mutasi committed baru; `IsReplay` harus false | Tidak publish | DEC-333, AC-469–471 |
+| `VAL-RTB-04` | Publisher | Grup tujuan harus berasal dari `serviceUnitId` bed target committed | Fail closed; log teknis tanpa nama | DEC-334, AC-472–474 |
+| `VAL-RTB-05` | Payload | Semua field wajib tersedia; dilarang MRN/NIK/diagnosis/dll. | Jangan publish payload invalid; log ID teknis | DEC-334, AC-472–473 |
+| `VAL-RTB-06` | Frontend | `actorUserId === currentUserId` tidak boleh menghasilkan alert | Suppress alert actor sendiri | DEC-334, AC-472 |
+| `VAL-RTB-07` | Frontend | Event unit di luar unit aktif diabaikan | Tidak alert; telemetry non-PHI opsional | DEC-334, AC-474 |
+| `VAL-RTB-08` | Frontend | `eventId` duplikat dalam sesi tidak boleh alert dua kali | Ignore duplicate | DEC-335, AC-477 |
+| `VAL-RTB-09` | Frontend | Setiap event actor lain dan reconnect memicu refetch | Tampilkan error refresh existing bila gagal | DEC-335, AC-469, AC-475–477 |
+| `VAL-RTB-10` | Failure | Publish error tidak boleh rollback atau mengubah HTTP sukses | Tangkap, log, return hasil mutasi | DEC-336, AC-478–480 |
+| `VAL-RTB-11` | Race | Submit pada bed yang sudah kalah tetap diperiksa server | HTTP `409` existing, clear selection, refetch | AC-471, AC-476, AC-479 |
+| `VAL-RTB-12` | Release | Full name hanya aktif produksi setelah sign-off security/privacy | Block production activation | OQ-151 |
+
+Urutan backend: auth mutasi → validasi request/scope/eligibility/version → transaksi dan commit →
+cek non-replay → bentuk payload minimum → publish best-effort. Urutan hub join: authenticated user →
+format ID → permission identity → scope unit → add group. Tidak ada fallback ke broad broadcast.

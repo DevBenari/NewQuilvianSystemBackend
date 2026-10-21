@@ -66,7 +66,26 @@ public sealed class PatientClassMasterWriteService(ApplicationDbContext dbContex
                 await ResetDefaultPatientClassAsync(actorUserId, now, excludeId: entity.Id);
             }
 
+            var previousClassName = entity.PatientClassName;
             entity.PatientClassName = request.PatientClassName.Trim();
+
+            // BE-RWI-235 (FR-DNH-016, RWI-DEC-322): nama kamar berkunci mengikuti nama kelas, dalam
+            // transaksi yang sama. Kamar dan bed kelas ini sudah dikunci BedMutationService; snapshot
+            // lokasi penempatan lama tidak ditulis ulang.
+            if (!string.Equals(previousClassName, entity.PatientClassName, StringComparison.Ordinal))
+            {
+                var keyedRooms = await _dbContext.Set<MstRoom>()
+                    .Where(x => x.PatientClassId == entity.Id && !x.IsDelete && x.FloorPlanRoomKey != null)
+                    .ToListAsync(HttpContext.RequestAborted);
+                foreach (var room in keyedRooms)
+                {
+                    var renamed = FloorPlanRoomNaming.RoomName(entity.PatientClassName, room.RoomNumber, room.RoomName);
+                    if (renamed == room.RoomName) continue;
+                    room.RoomName = renamed;
+                    room.UpdateDateTime = now;
+                    room.UpdateBy = actorUserId;
+                }
+            }
             entity.PatientClassType = request.PatientClassType;
             entity.ExternalClassCode = NormalizeNullableText(request.ExternalClassCode);
             entity.ClassAlias = NormalizeNullableText(request.ClassAlias);

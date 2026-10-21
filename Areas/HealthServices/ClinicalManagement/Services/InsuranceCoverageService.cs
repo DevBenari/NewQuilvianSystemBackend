@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
@@ -97,6 +98,83 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 cancellationToken);
         }
 
+        /// <summary>
+        /// Versi batch <see cref="ResolveProcedureAsync"/> untuk katalog tindakan (PLAN-REPAIR-INS-002
+        /// FIX-05). Tarif RS, buku tarif asuransi, dan aturan coverage dimuat sekali untuk seluruh
+        /// tindakan; pemilihan kandidat memakai predikat dan urutan yang sama dengan jalur per item,
+        /// sehingga hasilnya identik dengan yang tersimpan saat tindakan dipilih.
+        /// </summary>
+        public async Task<IReadOnlyDictionary<Guid, InsuranceCoverageResult>> ResolveProceduresAsync(
+            IReadOnlyCollection<Guid> procedureIds,
+            EncounterInsuranceContext context,
+            decimal quantity = 1,
+            CancellationToken cancellationToken = default)
+        {
+            var results = new Dictionary<Guid, InsuranceCoverageResult>();
+            var ids = procedureIds.Where(x => x != Guid.Empty).Distinct().ToList();
+            if (ids.Count == 0)
+                return results;
+
+            if (!context.IsValid)
+            {
+                foreach (var id in ids)
+                    results[id] = InsuranceCoverageResult.Fail(context.ErrorMessage ?? "Konteks encounter tidak valid.");
+                return results;
+            }
+
+            var tariffs = await _dbContext.Set<MstTariff>()
+                .AsNoTracking()
+                .Include(x => x.Procedure)
+                .Include(x => x.TariffCategory)
+                .Where(ProcedureTariffScope(context))
+                .Where(x => ids.Contains(x.ProcedureId!.Value))
+                .ToListAsync(cancellationToken);
+
+            var tariffByProcedure = tariffs
+                .GroupBy(x => x.ProcedureId!.Value)
+                .ToDictionary(g => g.Key, g => SelectBestTariff(g)!);
+
+            CoveragePrefetch? prefetch = null;
+            if (context.IsInsuranceReady && context.InsuranceProviderId.HasValue && tariffByProcedure.Count > 0)
+            {
+                var tariffIds = tariffByProcedure.Values.Select(x => x.Id).ToList();
+                var drugIds = tariffByProcedure.Values.Where(x => x.DrugId.HasValue).Select(x => x.DrugId!.Value).Distinct().ToList();
+                var tariffCategoryIds = tariffByProcedure.Values.Select(x => x.TariffCategoryId).Distinct().ToList();
+                var insuranceTariffs = await _dbContext.Set<MstInsuranceTariff>()
+                    .AsNoTracking()
+                    .Where(InsuranceTariffScope(context))
+                    .Where(x => tariffIds.Contains(x.TariffId))
+                    .ToListAsync(cancellationToken);
+                // Hanya aturan yang mungkin cocok dengan tarif-tarif ini; pencocokan akhir tetap
+                // memakai CoverageRuleMatches yang sama dengan jalur per item.
+                var rules = await _dbContext.Set<MstInsuranceCoverageRule>()
+                    .AsNoTracking()
+                    .Where(CoverageRuleScope(context))
+                    .Where(x =>
+                        (x.ItemType == "Tariff" && x.TariffId.HasValue && tariffIds.Contains(x.TariffId.Value)) ||
+                        (x.ItemType == "Procedure" && x.ProcedureId.HasValue && ids.Contains(x.ProcedureId.Value)) ||
+                        (x.ItemType == "Drug" && x.DrugId.HasValue && drugIds.Contains(x.DrugId.Value)) ||
+                        x.ItemType == "DrugCategory" ||
+                        (x.ItemType == "ServiceCategory" && x.TariffCategoryId.HasValue && tariffCategoryIds.Contains(x.TariffCategoryId.Value)))
+                    .ToListAsync(cancellationToken);
+
+                prefetch = new CoveragePrefetch(
+                    insuranceTariffs.GroupBy(x => x.TariffId).ToDictionary(g => g.Key, g => g.ToList()),
+                    rules);
+            }
+
+            foreach (var id in ids)
+            {
+                results[id] = tariffByProcedure.TryGetValue(id, out var tariff)
+                    ? await ResolveTariffInternalAsync(tariff, context, quantity, cancellationToken, prefetch: prefetch)
+                    : InsuranceCoverageResult.Fail(
+                        "Tarif rumah sakit untuk tindakan belum dikonfigurasi.",
+                        coverageStatus: "ConfigurationMissing");
+            }
+
+            return results;
+        }
+
         public async Task<InsuranceCoverageResult> ResolveTariffAsync(
             Guid encounterId,
             Guid tariffId,
@@ -144,7 +222,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             decimal quantity,
             CancellationToken cancellationToken,
             bool isFallbackTariff = false,
-            string? pricingWarning = null)
+            string? pricingWarning = null,
+            CoveragePrefetch? prefetch = null)
         {
             quantity = quantity <= 0 ? 1 : quantity;
             var hospitalUnitPrice = Math.Max(0, tariff.NormalPrice);
@@ -261,10 +340,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     "Konteks asuransi encounter belum siap digunakan.");
             }
 
-            var insuranceTariff = await FindInsuranceTariffAsync(
-                tariff.Id,
-                context,
-                cancellationToken);
+            var insuranceTariff = prefetch != null
+                ? prefetch.FindInsuranceTariff(tariff.Id)
+                : await FindInsuranceTariffAsync(
+                    tariff.Id,
+                    context,
+                    cancellationToken);
 
             // Positive list: tidak ada insurance tariff berarti tidak dicover.
             if (insuranceTariff == null)
@@ -286,10 +367,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             var totalPrice = RoundMoney(contractUnitPrice * quantity);
 
-            var rule = await FindCoverageRuleAsync(
-                tariff,
-                context,
-                cancellationToken);
+            var rule = prefetch != null
+                ? prefetch.FindRule(tariff)
+                : await FindCoverageRuleAsync(
+                    tariff,
+                    context,
+                    cancellationToken);
 
             // Bila tidak ada aturan coverage (MstInsuranceCoverageRule) yang mencakup item/kategori ini,
             // provider tidak menanggung item tersebut (konsisten dengan RegistrationBillingCoverageAdapter dan CompanyGuarantorCoverageService).
@@ -555,31 +638,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             EncounterInsuranceContext context,
             CancellationToken cancellationToken)
         {
-            var date = context.ServiceDate;
-
             var candidates = await _dbContext.Set<MstTariff>()
                 .AsNoTracking()
                 .Include(x => x.Procedure)
                 .Include(x => x.TariffCategory)
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    x.ProcedureId == procedureId &&
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= date) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= date) &&
-                    (!x.ServiceUnitId.HasValue || x.ServiceUnitId == context.ServiceUnitId) &&
-                    (!x.ClinicId.HasValue || x.ClinicId == context.ClinicId) &&
-                    (!x.PatientClassId.HasValue || x.PatientClassId == context.PatientClassId))
+                .Where(ProcedureTariffScope(context))
+                .Where(x => x.ProcedureId == procedureId)
                 .ToListAsync(cancellationToken);
 
-            return candidates
-                .OrderByDescending(x => x.ClinicId.HasValue)
-                .ThenByDescending(x => x.ServiceUnitId.HasValue)
-                .ThenByDescending(x => x.PatientClassId.HasValue)
-                .ThenByDescending(x => x.EffectiveStartDate)
-                .ThenBy(x => x.SortOrder)
-                .ThenBy(x => x.Id)
-                .FirstOrDefault();
+            return SelectBestTariff(candidates);
         }
 
         private async Task<MstInsuranceTariff?> FindInsuranceTariffAsync(
@@ -590,30 +657,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (!context.InsuranceProviderId.HasValue)
                 return null;
 
-            var date = context.ServiceDate;
-            var planCode = NormalizeNullable(context.BenefitPlanCode);
-
             var candidates = await _dbContext.Set<MstInsuranceTariff>()
                 .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    x.InsuranceProviderId == context.InsuranceProviderId.Value &&
-                    x.TariffId == tariffId &&
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= date) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= date) &&
-                    (!x.PatientClassId.HasValue || x.PatientClassId == context.PatientClassId) &&
-                    (x.BenefitPlanCode == null || x.BenefitPlanCode == "" ||
-                     (planCode != null && x.BenefitPlanCode.ToUpper() == planCode)))
+                .Where(InsuranceTariffScope(context))
+                .Where(x => x.TariffId == tariffId)
                 .ToListAsync(cancellationToken);
 
-            return candidates
-                .OrderByDescending(x => x.PatientClassId.HasValue)
-                .ThenByDescending(x => !string.IsNullOrWhiteSpace(x.BenefitPlanCode))
-                .ThenByDescending(x => x.EffectiveStartDate)
-                .ThenBy(x => x.SortOrder)
-                .ThenBy(x => x.Id)
-                .FirstOrDefault();
+            return SelectBestInsuranceTariff(candidates);
         }
 
         private async Task<MstInsuranceCoverageRule?> FindCoverageRuleAsync(
@@ -624,34 +674,109 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             if (!context.InsuranceProviderId.HasValue)
                 return null;
 
+            var candidates = await _dbContext.Set<MstInsuranceCoverageRule>()
+                .AsNoTracking()
+                .Where(CoverageRuleScope(context))
+                .Where(CoverageRuleMatches(tariff))
+                .ToListAsync(cancellationToken);
+
+            return OrderCoverageRules(candidates).FirstOrDefault();
+        }
+
+        // Predikat kandidat dipakai bersama oleh jalur per item (query DB) dan jalur batch
+        // ResolveProceduresAsync (query DB sekali lalu disaring di memori) agar hasilnya identik.
+        private static Expression<Func<MstTariff, bool>> ProcedureTariffScope(EncounterInsuranceContext context)
+        {
+            var date = context.ServiceDate;
+            var serviceUnitId = context.ServiceUnitId;
+            var clinicId = context.ClinicId;
+            var patientClassId = context.PatientClassId;
+
+            return x =>
+                !x.IsDelete &&
+                x.IsActive &&
+                x.ProcedureId.HasValue &&
+                (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= date) &&
+                (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= date) &&
+                (!x.ServiceUnitId.HasValue || x.ServiceUnitId == serviceUnitId) &&
+                (!x.ClinicId.HasValue || x.ClinicId == clinicId) &&
+                (!x.PatientClassId.HasValue || x.PatientClassId == patientClassId);
+        }
+
+        private static Expression<Func<MstInsuranceTariff, bool>> InsuranceTariffScope(EncounterInsuranceContext context)
+        {
+            var providerId = context.InsuranceProviderId;
             var date = context.ServiceDate;
             var planCode = NormalizeNullable(context.BenefitPlanCode);
+            var patientClassId = context.PatientClassId;
+
+            return x =>
+                !x.IsDelete &&
+                x.IsActive &&
+                x.InsuranceProviderId == providerId &&
+                (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= date) &&
+                (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= date) &&
+                (!x.PatientClassId.HasValue || x.PatientClassId == patientClassId) &&
+                (x.BenefitPlanCode == null || x.BenefitPlanCode == "" ||
+                 (planCode != null && x.BenefitPlanCode.ToUpper() == planCode));
+        }
+
+        private static MstInsuranceTariff? SelectBestInsuranceTariff(IEnumerable<MstInsuranceTariff> candidates)
+        {
+            return candidates
+                .OrderByDescending(x => x.PatientClassId.HasValue)
+                .ThenByDescending(x => !string.IsNullOrWhiteSpace(x.BenefitPlanCode))
+                .ThenByDescending(x => x.EffectiveStartDate)
+                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.Id)
+                .FirstOrDefault();
+        }
+
+        private static Expression<Func<MstInsuranceCoverageRule, bool>> CoverageRuleScope(EncounterInsuranceContext context)
+        {
+            var providerId = context.InsuranceProviderId;
+            var date = context.ServiceDate;
+            var planCode = NormalizeNullable(context.BenefitPlanCode);
+            var patientClassId = context.PatientClassId;
+
+            return x =>
+                !x.IsDelete &&
+                x.IsActive &&
+                x.InsuranceProviderId == providerId &&
+                (!x.PatientClassId.HasValue || x.PatientClassId == patientClassId) &&
+                (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= date) &&
+                (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= date) &&
+                (x.BenefitPlanCode == null || x.BenefitPlanCode == "" ||
+                 (planCode != null && x.BenefitPlanCode.ToUpper() == planCode));
+        }
+
+        private static Expression<Func<MstInsuranceCoverageRule, bool>> CoverageRuleMatches(MstTariff tariff)
+        {
+            var tariffId = tariff.Id;
             var drugId = tariff.DrugId;
             var drugCategoryId = tariff.Drug?.DrugCategoryId;
             var procedureId = tariff.ProcedureId;
             var tariffCategoryId = tariff.TariffCategoryId;
 
-            var candidates = await _dbContext.Set<MstInsuranceCoverageRule>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    x.InsuranceProviderId == context.InsuranceProviderId.Value &&
-                    (!x.PatientClassId.HasValue || x.PatientClassId == context.PatientClassId) &&
-                    (!x.EffectiveStartDate.HasValue || x.EffectiveStartDate.Value.Date <= date) &&
-                    (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= date) &&
-                    (x.BenefitPlanCode == null || x.BenefitPlanCode == "" ||
-                     (planCode != null && x.BenefitPlanCode.ToUpper() == planCode)) &&
-                    (
-                        (x.ItemType == "Tariff" && x.TariffId == tariff.Id) ||
-                        (x.ItemType == "Drug" && drugId.HasValue && x.DrugId == drugId) ||
-                        (x.ItemType == "DrugCategory" && drugCategoryId.HasValue && x.DrugCategoryId == drugCategoryId) ||
-                        (x.ItemType == "Procedure" && procedureId.HasValue && x.ProcedureId == procedureId) ||
-                        (x.ItemType == "ServiceCategory" && x.TariffCategoryId == tariffCategoryId)
-                    ))
-                .ToListAsync(cancellationToken);
+            return x =>
+                (x.ItemType == "Tariff" && x.TariffId == tariffId) ||
+                (x.ItemType == "Drug" && drugId.HasValue && x.DrugId == drugId) ||
+                (x.ItemType == "DrugCategory" && drugCategoryId.HasValue && x.DrugCategoryId == drugCategoryId) ||
+                (x.ItemType == "Procedure" && procedureId.HasValue && x.ProcedureId == procedureId) ||
+                (x.ItemType == "ServiceCategory" && x.TariffCategoryId == tariffCategoryId);
+        }
 
-            return OrderCoverageRules(candidates).FirstOrDefault();
+        private sealed class CoveragePrefetch(
+            Dictionary<Guid, List<MstInsuranceTariff>> insuranceTariffsByTariff,
+            List<MstInsuranceCoverageRule> providerRules)
+        {
+            public MstInsuranceTariff? FindInsuranceTariff(Guid tariffId) =>
+                insuranceTariffsByTariff.TryGetValue(tariffId, out var candidates)
+                    ? SelectBestInsuranceTariff(candidates)
+                    : null;
+
+            public MstInsuranceCoverageRule? FindRule(MstTariff tariff) =>
+                OrderCoverageRules(providerRules.Where(CoverageRuleMatches(tariff).Compile())).FirstOrDefault();
         }
 
         internal static IOrderedEnumerable<MstInsuranceCoverageRule> OrderCoverageRules(IEnumerable<MstInsuranceCoverageRule> rules) =>

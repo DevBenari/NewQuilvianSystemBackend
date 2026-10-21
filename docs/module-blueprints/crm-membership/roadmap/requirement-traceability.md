@@ -34,12 +34,12 @@
 | `FR-CRM-035` | — | — | `VAL-17` | `BE-CRM-013` ✅ | `FE-CRM-005` ✅ | `AT-35` lulus; `UAT-15` lulus E2E dengan API tiruan dan terhadap backend lokal 2026-10-14 ([UAT](../task/report/frontend/FE-CRM-005.md#61-uat-terhadap-backend-lokal-2026-10-14)) | Selesai |
 | `FR-CRM-040` | `CRM-DEC-005` | J1 | `INT-01` | `BE-CRM-010` ✅ | — | `AT-03`, `AT-09` lulus ([laporan](../task/report/backend/BE-CRM-010.md)) | Selesai backend |
 | `FR-CRM-041` | — | BE §4.4 | `INT-03` | `BE-CRM-010` ✅, `BE-CRM-015` 🟡 | `FE-CRM-007` ✅ | Penulis proyeksi diuji; formulir pasien mengabaikan proyeksi; insert pasien baru `IsMember = false`; formulir master pasien dan pasien baru (IGD/Rawat Jalan/Rawat Inap) tidak lagi memuat maupun mengirim status member, `UAT-11` lulus E2E dengan API tiruan ([laporan](../task/report/frontend/FE-CRM-007.md)) dan terhadap backend lokal 2026-10-14 ([UAT](../task/report/frontend/FE-CRM-005.md#61-uat-terhadap-backend-lokal-2026-10-14)) | Backend selesai (rilis bersama `FE-CRM-001`); formulir selesai |
-| `FR-CRM-042` | `AG-03` | J1 | `INT-02` | `BE-CRM-022` ⛔ | — | `AT-36` | ⛔ menunggu owner rawat-jalan |
+| `FR-CRM-042` | `AG-03` | J1 | `INT-02` | `BE-CRM-022` ✅ (dipenuhi `BE-RJP-002`, roadmap rawat-jalan) | — | `AT-36` | ✅ 2026-10-16 — runtime 8/8 PASS, [laporan](../../rawat-jalan/task/report/backend/BE-RJP-002.md) |
 | `FR-CRM-043` | `CRM-DEC-018` | — | `INT-03` | `BE-CRM-021` ✅ | — | `AT-23` lulus ([laporan](../task/report/backend/BE-CRM-021.md)) | Backend selesai |
 | `FR-CRM-050` | `CRM-DEC-018` | — | API `v2` | `BE-CRM-015` 🟡 | — | `AT-22` lulus; `UAT-13` menunggu rilis | Backend selesai |
 | `FR-CRM-051` | `CRM-DEC-011` | — | Izin `v1` | `BE-CRM-011`, `013` | — | `AT-19` | Direncanakan |
 | `FR-CRM-052` | `CRM-DEC-022` | — | `VAL-18` | `BE-CRM-015` 🟡 | — | `AT-25` lulus | Backend selesai |
-| `FR-CRM-060` | `CRM-FE-001`, `002`; `CRM-DEC-031` | FE §1 | Izin `v1` | — | `FE-CRM-002` ✅ | Uji unit menu dan penyaringan izin lulus; E2E dua peran (izin disuapkan) lulus ([laporan](../task/report/frontend/FE-CRM-002.md)); menu CRM tampil bagi akun Customer Service sungguhan 2026-10-14 ([AT-24](../task/report/frontend/FE-CRM-001.md#61-at-24--uat-14-dengan-akun-petugas-crm-sungguhan-2026-10-14)) | Selesai |
+| `FR-CRM-060` | `CRM-FE-001`, `002`; `CRM-DEC-033` | FE §1 | Izin `v1` | — | `FE-CRM-002` ✅ | Uji unit menu dan penyaringan izin lulus; E2E dua peran (izin disuapkan) lulus ([laporan](../task/report/frontend/FE-CRM-002.md)); menu CRM tampil bagi akun Customer Service sungguhan 2026-10-14 ([AT-24](../task/report/frontend/FE-CRM-001.md#61-at-24--uat-14-dengan-akun-petugas-crm-sungguhan-2026-10-14)) | Selesai |
 | `FR-CRM-061` | `CRM-FE-004` | FE §1 | API `v2` | — | `FE-CRM-003` ✅ | Uji unit dan E2E lulus dengan API tiruan, termasuk `UAT-03`/`UAT-04` ([laporan](../task/report/frontend/FE-CRM-003.md)); `UAT-03`/`UAT-04` juga lulus terhadap backend lokal 2026-10-14 ([UAT](../task/report/frontend/FE-CRM-005.md#61-uat-terhadap-backend-lokal-2026-10-14)) | Selesai |
 | `FR-CRM-062` | — | FE §1 | API `v2` | — | `FE-CRM-005` ✅ | Uji unit dan E2E lulus dengan API tiruan, termasuk `UAT-08`/`UAT-15`; halaman ubah lama dialihkan ([laporan](../task/report/frontend/FE-CRM-005.md)); `UAT-08`/`UAT-15` juga lulus terhadap backend lokal 2026-10-14 ([UAT](../task/report/frontend/FE-CRM-005.md#61-uat-terhadap-backend-lokal-2026-10-14)) | Selesai |
 | `FR-CRM-063` | `CRM-DEC-018` | FE §3 | API `v2` | — | `FE-CRM-001` ✅ | Uji unit rute `/admin` lulus ([laporan](../task/report/frontend/FE-CRM-001.md)); `AT-24`, `UAT-14` lulus di layar 2026-10-14 dengan akun Customer Service non-administrator ([AT-24](../task/report/frontend/FE-CRM-001.md#61-at-24--uat-14-dengan-akun-petugas-crm-sungguhan-2026-10-14)) | Selesai (rilis bersama `BE-CRM-015`) |
@@ -56,7 +56,7 @@
 | `GAP-04` | `AT-17`: refund salah input ditolak bila manfaat terpakai | `INT-07` menunggu billing. Selama MVP, refund salah input ditolak fail-closed | Setelah `DEC-CRM-001` |
 | `GAP-05` | `AT-21`, `AT-33`, `AT-34`: diskon di billing | `EPIC CRM-09` | Setelah persetujuan billing dan `AG-01` |
 | `GAP-06` | `AT-10`: snapshot kunjungan IGD/rawat inap | `AG-01` belum disetujui. RJ tercakup lewat snapshot antrean yang sudah ada | Setelah owner Registration menyetujui |
-| `GAP-07` | `AT-36` penuh | `BE-CRM-022` ⛔ | Setelah owner rawat-jalan menyetujui |
+| `GAP-07` | `AT-36` penuh | `BE-CRM-022` ✅ | Ditutup 2026-10-16 oleh `BE-RJP-002` ([laporan](../../rawat-jalan/task/report/backend/BE-RJP-002.md)) |
 | `GAP-08` | `AT-37`: triage IGD tidak terpengaruh | Uji manual, tidak ada task karena modul ini tidak menyentuh triage | UAT manual saat go-live |
 
 ## Catatan Operasional
@@ -64,7 +64,7 @@
 Selama `EPIC CRM-08` belum ada, setiap pendaftaran baru akan batal otomatis setelah 7 hari
 karena tidak ada jalan untuk melunasinya. Owner sudah menerima konsekuensi ini (`CRM-DEC-030`).
 Saran: izin `PatientMembership : Create` tidak diberikan ke petugas di produksi sampai
-`EPIC CRM-08` siap. Sejak `CRM-DEC-031` (2026-10-16) pendaftaran tidak punya menu sendiri,
+`EPIC CRM-08` siap. Sejak `CRM-DEC-033` (2026-10-16) pendaftaran tidak punya menu sendiri,
 dan izin itulah yang memunculkan tombol **+ Pendaftaran Membership** di Daftar Membership.
 Yang dipakai di produksi cukup Daftar Membership dan verifikasi data lama.
 Keputusan pemberian izin tetap di tangan owner.

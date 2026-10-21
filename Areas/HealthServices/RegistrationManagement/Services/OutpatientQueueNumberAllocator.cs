@@ -7,27 +7,29 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services
 {
     /// <summary>
-    /// Konfigurasi penomoran antrean Rawat Jalan (RJ-DOC-DEC-056), section
+    /// Konfigurasi penomoran antrean Rawat Jalan, section
     /// <c>HealthServices:Registration:QueueNumber</c>.
     /// </summary>
+    /// <remarks>
+    /// RJ-PRI-DEC-004 (menggantikan RJ-DOC-DEC-056): nomor prioritas adalah kelipatan N tanpa
+    /// batas atas, dan nomor Reguler tidak pernah kelipatan N. Daftar cadangan tetap
+    /// <c>ReservedPriorityNumbers</c> sudah tidak dipakai.
+    /// </remarks>
     public class OutpatientQueueNumberOptions
     {
         public const string SectionName = "HealthServices:Registration:QueueNumber";
 
         /// <summary>Dipakai bila konfigurasi kosong. Satu-satunya tempat nilai bawaan ini.</summary>
-        public static readonly int[] DefaultReservedPriorityNumbers = { 1, 3, 5, 10, 15 };
+        public const int DefaultPriorityNumberMultiple = 5;
 
-        /// <summary>Nomor cadangan pasien prioritas. Kosong berarti memakai bawaan.</summary>
-        public int[]? ReservedPriorityNumbers { get; set; }
+        /// <summary>Batas bawah yang sah; kelipatan 1 akan menghabiskan seluruh nomor Reguler.</summary>
+        public const int MinimumPriorityNumberMultiple = 2;
 
-        public IReadOnlyList<int> ResolveReservedPriorityNumbers()
-        {
-            var source = ReservedPriorityNumbers is { Length: > 0 }
-                ? ReservedPriorityNumbers
-                : DefaultReservedPriorityNumbers;
+        /// <summary>Kelipatan nomor prioritas. Kosong berarti memakai bawaan.</summary>
+        public int? PriorityNumberMultiple { get; set; }
 
-            return source.Where(x => x > 0).Distinct().OrderBy(x => x).ToArray();
-        }
+        public int ResolvePriorityNumberMultiple() =>
+            PriorityNumberMultiple ?? DefaultPriorityNumberMultiple;
     }
 
     public sealed record OutpatientQueueNumberAllocation(
@@ -108,29 +110,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     .ToListAsync(cancellationToken))
                 .ToHashSet();
 
-            var reserved = _options.ResolveReservedPriorityNumbers();
+            var number = PickNumber(consumed, _options.ResolvePriorityNumberMultiple(), isPriorityQueue);
 
+            return new OutpatientQueueNumberAllocation(number, scope.ScopeKey, isPriorityQueue);
+        }
+
+        /// <summary>
+        /// RJ-PRI-DEC-004. Prioritas: kelipatan N terkecil yang belum terpakai (tidak pernah
+        /// habis). Reguler: nomor terkecil yang belum terpakai dan bukan kelipatan N.
+        /// Contoh N=5 dengan 1, 2, 3, 5 terpakai: prioritas 10, Reguler 4.
+        /// </summary>
+        internal static int PickNumber(IReadOnlySet<int> consumed, int multiple, bool isPriorityQueue)
+        {
             if (isPriorityQueue)
             {
-                foreach (var number in reserved)
+                var priorityNumber = multiple;
+                while (consumed.Contains(priorityNumber))
                 {
-                    if (!consumed.Contains(number))
-                    {
-                        return new OutpatientQueueNumberAllocation(number, scope.ScopeKey, true);
-                    }
+                    priorityNumber += multiple;
                 }
+
+                return priorityNumber;
             }
 
-            // Reguler, atau prioritas yang nomor cadangannya sudah habis.
-            var reservedSet = reserved.ToHashSet();
             var candidate = 1;
-
-            while (reservedSet.Contains(candidate) || consumed.Contains(candidate))
+            while (candidate % multiple == 0 || consumed.Contains(candidate))
             {
                 candidate++;
             }
 
-            return new OutpatientQueueNumberAllocation(candidate, scope.ScopeKey, false);
+            return candidate;
         }
 
         private async Task<(Guid ScopeKey, List<Guid>? ClinicIds)> ResolveScopeAsync(

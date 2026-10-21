@@ -3,7 +3,7 @@
 | Field | Nilai |
 |---|---|
 | Sub-modul | `episode-rawat-inap` |
-| Kontrak | Mengikuti set pada manifest sub-modul; Bed Management draft, last_changed_in 0.12.0. Riwayat metadata: Bagian 0: `0.11.0` amandemen Alur Admisi Pendaftaran (`approved` 10 Oktober 2026, `RWI-DEC-267` s.d. `RWI-DEC-273`). Bagian 1–2: `0.10.0` (`approved`, `RWI-DEC-221`). Bagian 3: `0.11.0` — `approved` 2026-10-08 (`RWI-DEC-265`), Workspace PPRI |
+| Kontrak | Mengikuti set pada manifest sub-modul; Integrasi Denah approved (`RWI-DEC-324`), last_changed_in 0.13.0 (alur 15–18); sebelumnya Bed Management draft, last_changed_in 0.12.0. Riwayat metadata: Bagian 0: `0.11.0` amandemen Alur Admisi Pendaftaran (`approved` 10 Oktober 2026, `RWI-DEC-267` s.d. `RWI-DEC-273`). Bagian 1–2: `0.10.0` (`approved`, `RWI-DEC-221`). Bagian 3: `0.11.0` — `approved` 2026-10-08 (`RWI-DEC-265`), Workspace PPRI |
 | Lahir | Finishing Rawat Inap ★ 1 Oktober 2026; diamandemen 10 Oktober 2026 untuk menyerap alur admisi pendaftaran terpadu |
 | Cakupan file ini | Alur admisi pendaftaran pasien baru & lama (Bagian 0), jalur pasien operasi dari bangsal (Bagian 1–2), dan penerimaan pasien di Workspace PPRI (Bagian 3) |
 
@@ -221,3 +221,41 @@ Closure master sah membuat Tidak Tersedia, pembukaan kembali belum otomatis Ters
 - [FLOW-BM-MVP-004 — Penutupan administratif dan pembukaan](./12-bed-closure-reopen.md)
 - [FLOW-BM-MVP-005 — Riwayat penggunaan dan koreksi](./13-bed-usage-history-correction.md)
 - [FLOW-BM-MVP-006 — Hasil tidak pasti dan pemulihan koneksi](./14-bed-uncertain-outcome.md)
+
+## Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**approved** Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`); last_changed_in 0.13.0. Denah RS MMC menjadi satu-satunya cara melihat, memilih, dan mengelola bed (RWI-DEC-299). Siklus bed di atas tidak berubah; yang berubah adalah cara petugas memilih bed dan cara data kamar disiapkan.
+
+```mermaid
+flowchart TD
+ subgraph admin[Admin]
+  A["Siapkan kelas resmi dan impor susunan denah"]
+ end
+ subgraph perawat[Perawat verifikator]
+  A --> B["Sahkan bed hasil impor"]
+ end
+ subgraph admisi[Petugas admisi]
+  B --> C["Buka denah, pilih lantai dan kamar"]
+  C --> D["Pilih bed Tersedia yang layak"]
+ end
+ subgraph ruangan[Perawat penanggung jawab]
+  D --> E["Pasien ditempatkan; catat tingkat ketergantungan"]
+ end
+ subgraph petugas[Petugas berwenang]
+  E --> F["Pantau kamar lewat denah yang sama"]
+ end
+```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Siapkan data | Admin | Kelas resmi, pemetaan unit, data denah | Kamar dan bed tersimpan | Kamar ditolak dilaporkan; lihat alur 17 |
+| Sahkan bed | Perawat verifikator | Pemeriksaan fisik (produksi) | Bed Tersedia | Belum siap: catat alasan; lihat alur 11 |
+| Pilih bed | Petugas admisi | Episode Draft | Bed Dipesan | Bed diambil orang lain: pilih lagi; lihat alur 15 |
+| Catat ketergantungan | Perawat penanggung jawab | Penilaian menurut SOP | High/Low tercatat | Bukan penanggung jawab: minta yang ditugaskan; lihat alur 18 |
+| Pantau | Petugas berwenang | Lantai | Status kamar dan bed | Muat ulang denah |
+
+- [FLOW-DNH-MVP-001 — Memilih bed lewat denah](./15-denah-pilih-bed.md)
+- [FLOW-DNH-MVP-002 — Mengelola kamar dan bed lewat denah](./16-denah-master-bed.md)
+- [FLOW-DNH-MVP-003 — Impor susunan denah dan kesiapan awal](./17-impor-denah.md)
+- [FLOW-DNH-MVP-004 — Mencatat tingkat ketergantungan pasien](./18-ketergantungan-pasien.md)
+- [FLOW-RI-MVP-021 — Notifikasi realtime pemilihan bed](./21-notifikasi-realtime-pemilihan-bed.md)

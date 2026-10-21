@@ -24,6 +24,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
         private readonly BillingClinicalChargeBridgeService _chargeBridge;
         private readonly ClinicalDocumentIntegrityService _integrityService;
+        private readonly PrescriptionStockReservationService _reservationService;
 
         public ConsultationFinalizationService(
             ApplicationDbContext dbContext,
@@ -32,7 +33,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             PrescriptionWorkflowService prescriptionWorkflowService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             BillingClinicalChargeBridgeService chargeBridge,
-            ClinicalDocumentIntegrityService integrityService)
+            ClinicalDocumentIntegrityService integrityService,
+            PrescriptionStockReservationService reservationService)
         {
             _dbContext = dbContext;
             _validationService = validationService;
@@ -41,6 +43,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _chargeBridge = chargeBridge;
             _integrityService = integrityService;
+            _reservationService = reservationService;
         }
 
         /// <summary>
@@ -134,6 +137,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     await transaction.RollbackAsync(cancellationToken);
                     return ConsultationFinalizationOperationResult.Fail(workflow.ErrorMessage ?? "Resep gagal difinalkan.");
                 }
+                /*
+                 * PHA-DEC-066 butir 1. Penahanan stok atomik terjadi di sini, bukan saat
+                 * Farmasi memproses. Kegagalannya menggagalkan finalisasi, sehingga resep
+                 * tidak pernah diteruskan ke Billing tanpa stok yang sudah dijamin.
+                 *
+                 * Kunci idempotency diturunkan dari resepnya sendiri, bukan diacak: retry
+                 * finalisasi membawa kunci yang sama dan karena itu tidak melahirkan
+                 * penahanan kedua (butir 2).
+                 *
+                 * Tidak ada pembersihan manual ketika gagal. Seluruh blok ini berjalan di
+                 * dalam satu transaksi yang di-rollback di baris berikutnya, jadi penahanan
+                 * parsial tidak pernah tertinggal.
+                 */
+                var reservation = await _reservationService.ReserveForPrescriptionAsync(
+                    prescription,
+                    actorUserId,
+                    now,
+                    $"PHA-RSV:{prescription.Id}",
+                    "CONSULTATION_FINALIZATION",
+                    cancellationToken);
+
+                if (!reservation.IsSuccess)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return ConsultationFinalizationOperationResult.Fail(
+                        $"{reservation.Message} ({reservation.Code})");
+                }
+
                 finalizedPrescriptions.Add(prescription);
                 finalizedPrescriptionCount++;
             }
@@ -155,7 +186,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 consultation.Queue.UpdateBy = actorUserId;
             }
 
-            if (consultation.Encounter != null)
+            // FIX-DOK-007-02 / ISSUE-DOK-007: Jangan mutasi EncounterStatus ke ConsultationCompleted
+            // bila encounter adalah rawat inap (Inpatient). Status kunjungan rawat inap harus tetap aktif
+            // (misal Admitted) sampai pasien dipulangkan secara resmi (discharge).
+            if (consultation.Encounter != null &&
+                !consultation.InpEpisodeId.HasValue &&
+                consultation.Encounter.EncounterType != EncounterType.Inpatient)
             {
                 consultation.Encounter.EncounterStatus = EncounterStatus.ConsultationCompleted;
                 consultation.Encounter.UpdateDateTime = now;
@@ -220,7 +256,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             // RJ-E2E-DEC-001 (BE-RJE-007): jasa konsultasi ditagih saat konsultasi Completed lewat
             // finalisasi canonical ini — satu fakta per konsultasi. Tarifnya ditetapkan Billing
             // (RJ-E2E-DEC-012), sehingga fakta tidak membawa nominal apa pun.
-            if (consultation.Encounter?.EncounterType != EncounterType.Emergency)
+            // FIX-DOK-007-03 / ISSUE-DOK-007: Jangan terbitkan jasa konsultasi rawat jalan
+            // untuk kunjungan rawat inap atau catatan visite CPPT rawat inap.
+            if (consultation.Encounter?.EncounterType != EncounterType.Emergency &&
+                consultation.Encounter?.EncounterType != EncounterType.Inpatient &&
+                !consultation.InpEpisodeId.HasValue)
             {
                 var consultationEmission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
                     new ClinicalMilestoneFactRequest

@@ -65,6 +65,9 @@ public sealed class BedMutationService(ApplicationDbContext db, InpBedMutationCo
             {
                 if (!json.TryGetProperty("OperationReason", out var reason) || string.IsNullOrWhiteSpace(reason.GetString()) || reason.GetString()!.Trim().Length > 500)
                     throw new InpBedOperationException(422, "REASON_REQUIRED", "Alasan perubahan operasional wajib, maksimum 500 karakter.");
+                // BE-RWI-235 (VAL-DNH-07): penolakan perubahan kamar menyebut jumlah penghuni dan pesanan.
+                if (kind == "Room" && old is MstRoom heldRoom && ids.Length > 0)
+                    await RequireRoomEmptyAsync(heldRoom.RoomName, ids, token);
                 foreach (var bedId in ids) await coordinator.RequireEmptyAsync(bedId, token);
             }
             if (newRoom.HasValue)
@@ -124,12 +127,115 @@ public sealed class BedMutationService(ApplicationDbContext db, InpBedMutationCo
         Func<string, Task<IActionResult>> writer, CancellationToken ct) =>
         ExecuteAsync("Bed", "Create", Guid.Empty, request, async () => await writer(await AllocateBedCodeAsync(ct)), ct);
 
-    private async Task<string> AllocateBedCodeAsync(CancellationToken ct)
+    internal async Task<string> AllocateBedCodeAsync(CancellationToken ct)
     {
         var codes = await db.Set<MstBed>().IgnoreQueryFilters().AsNoTracking().Where(x => x.BedCode.StartsWith("BD-RSMMC-")).Select(x => x.BedCode).ToListAsync(ct);
         var floor = codes.Select(x => long.TryParse(x[9..], out var n) ? n : 0).DefaultIfEmpty(0).Max();
         return await numbers.AllocateAsync(new("MST_BED", "BD-RSMMC", "NEVER", 5, access.ActorId, DateTimeOffset.UtcNow, floor), ct);
     }
+
+    /// <summary>
+    /// Kode kamar sistem <c>RM-RSMMC-#####</c> dari pengalokasi nomor bersama (BE-RWI-232, <c>DNH-DES-01</c>).
+    /// Batas bawahnya nomor terbesar yang pernah dipakai, termasuk kamar yang sudah dihapus lunak,
+    /// sehingga kode tidak pernah bentrok dengan index unik <c>RoomCode</c> yang tidak berfilter.
+    /// </summary>
+    /// <example>Kamar RM-RSMMC-00001..00003 ada dan 00003 dihapus lunak → kamar baru RM-RSMMC-00004, bukan 00003.</example>
+    public async Task<string> AllocateRoomCodeAsync(CancellationToken ct)
+    {
+        var codes = await db.Set<MstRoom>().IgnoreQueryFilters().AsNoTracking().Where(x => x.RoomCode.StartsWith("RM-RSMMC-")).Select(x => x.RoomCode).ToListAsync(ct);
+        var floor = codes.Select(x => long.TryParse(x[9..], out var n) ? n : 0).DefaultIfEmpty(0).Max();
+        return await numbers.AllocateAsync(new("MST_ROOM", "RM-RSMMC", "NEVER", 5, access.ActorId, DateTimeOffset.UtcNow, floor), ct);
+    }
+    /// <summary>
+    /// Menolak perubahan berbahaya pada kamar yang masih dihuni atau dipesan, dengan pesan yang
+    /// menyebut jumlahnya (BE-RWI-235, API 14.4 <c>BED_HOLD_CONFLICT</c>).
+    /// </summary>
+    /// <example>Kamar "Kelas 2 329" dengan dua penempatan aktif → "Kelas 2 329 masih dihuni 2 pasien. …".</example>
+    private async Task RequireRoomEmptyAsync(string roomName, Guid[] bedIds, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var occupied = await db.Set<InpBedPlacement>().CountAsync(x => bedIds.Contains(x.BedId) && x.EndDateTime == null && !x.IsDelete, ct);
+        var reserved = await db.Set<InpBedReservation>().CountAsync(x => bedIds.Contains(x.BedId) &&
+            x.ReservationStatus == InpBedReservationStatus.Active && !x.IsDelete && x.ExpiresAt > now, ct);
+        if (occupied == 0 && reserved == 0) return;
+        var holders = occupied > 0 && reserved > 0 ? $"masih dihuni {occupied} pasien dan memiliki {reserved} pesanan aktif"
+            : occupied > 0 ? $"masih dihuni {occupied} pasien" : $"masih memiliki {reserved} pesanan aktif";
+        throw new InpBedOperationException(409, "BED_HOLD_CONFLICT", $"{roomName} {holders}. Perubahan ini baru dapat disimpan setelah kamar kosong.");
+    }
+
+    /// <summary>
+    /// Operasi multi-entitas denah — aktivasi ruang cadangan (BE-RWI-236) dan impor (BE-RWI-237) —
+    /// di bawah satu <c>coordinator.ExecuteAsync</c>: satu transaksi, satu receipt, satu commit.
+    /// </summary>
+    public Task<BedOperationMeta> ExecuteFloorPlanAsync(string operation, object request,
+        IEnumerable<Guid> unitIds, IEnumerable<Guid> roomIds, IEnumerable<Guid> classIds,
+        Func<CancellationToken, Task<(string Kind, Guid Id)>> mutate, CancellationToken ct) =>
+        coordinator.ExecuteAsync(operation, request, [], [], [], mutate, ct,
+            extraUnitIds: unitIds, extraRoomIds: roomIds, extraClassIds: classIds);
+
+    /// <summary>
+    /// Menambah satu bed denah berkode sistem <c>BD-RSMMC-#####</c> dan berlabel <c>&lt;nomor kamar&gt;-&lt;huruf&gt;</c>,
+    /// dengan penanda turunan kelas, kesiapan <c>Unverified</c>, dan event <c>BedCreated</c>.
+    /// Dipanggil di dalam <see cref="ExecuteFloorPlanAsync"/>; tidak menyimpan sendiri.
+    /// </summary>
+    internal async Task<MstBed> AddFloorPlanBedAsync(MstRoom room, PatientClassType? classType, string bedLetter, bool isCrib, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var bed = new MstBed
+        {
+            Id = Guid.NewGuid(), RoomId = room.Id, BedCode = await AllocateBedCodeAsync(ct),
+            BedNumber = bedLetter, BedName = FloorPlanRoomNaming.BedLabel(room.RoomNumber!, bedLetter),
+            BedStatus = BedStatus.Available, IsReservable = true, IsActive = true,
+            CreateDateTime = now, CreateBy = access.ActorId, IsDelete = false, IsCancel = false
+        };
+        FloorPlanRoomNaming.ApplyBedFlags(bed, classType, isCrib);
+        db.Set<MstBed>().Add(bed);
+        var root = await coordinator.RootAsync(bed.Id, access.ActorId, ct);
+        db.Set<InpBedLifecycleEvent>().Add(new() { ReadinessId = root.Id, CycleId = root.CycleId,
+            Action = "BedCreated", ActorUserId = access.ActorId, CreateBy = access.ActorId,
+            BeforeState = root.State, AfterState = root.State, OccurredAtUtc = now, RecordedAtUtc = now });
+        return bed;
+    }
+
+    /// <summary>
+    /// Mengantrekan pembentukan label bed pada satu lantai sampai transaksi selesai, supaya dua
+    /// penambahan bed bersamaan di lantai yang sama tidak memakai label yang sama (INV-DNH-02).
+    /// </summary>
+    internal static async Task LockFloorBedLabelsAsync(ApplicationDbContext db, string floorCode, CancellationToken ct)
+    {
+        if (!db.Database.IsRelational() || db.Database.CurrentTransaction == null) return;
+        var key = "MstBedLabel:" + floorCode.Trim().ToLowerInvariant();
+        await db.Database.ExecuteSqlInterpolatedAsync($"SELECT pg_advisory_xact_lock(hashtextextended({key}, 0))", ct);
+    }
+
+    /// <summary>
+    /// Huruf bed yang sudah dipakai awalan nomor kamar yang sama di satu lantai, termasuk bed
+    /// nonaktif (backend 15.6). Kamar 321 kedua di lantai yang sama melanjutkan huruf kamar pertama.
+    /// </summary>
+    internal static async Task<List<string?>> UsedBedLettersAsync(ApplicationDbContext db, string floorCode, string roomNumber, CancellationToken ct)
+    {
+        var floor = floorCode.Trim().ToLower();
+        var number = roomNumber.Trim().ToLower();
+        var rows = await db.Set<MstBed>().AsNoTracking()
+            .Where(x => !x.IsDelete && x.Room != null && !x.Room.IsDelete && x.Room.FloorCode != null &&
+                x.Room.FloorCode.ToLower() == floor && x.Room.RoomNumber != null && x.Room.RoomNumber.ToLower() == number)
+            .Select(x => new { x.BedNumber, x.BedName })
+            .ToListAsync(ct);
+        return rows.SelectMany(x => new[] { FloorPlanRoomNaming.NormalizeBedLetter(x.BedNumber), FloorPlanRoomNaming.LetterFromLabel(x.BedName, roomNumber) }).ToList();
+    }
+
+    /// <summary>Label bed (huruf kecil) milik bed yang belum dihapus di satu lantai (INV-DNH-02).</summary>
+    internal static async Task<HashSet<string>> FloorBedLabelsAsync(ApplicationDbContext db, string floorCode, Guid? excludeBedId, CancellationToken ct)
+    {
+        var floor = floorCode.Trim().ToLower();
+        var labels = await db.Set<MstBed>().AsNoTracking()
+            .Where(x => !x.IsDelete && (!excludeBedId.HasValue || x.Id != excludeBedId.Value) && x.Room != null && !x.Room.IsDelete &&
+                x.Room.FloorCode != null && x.Room.FloorCode.ToLower() == floor)
+            .Select(x => x.BedName)
+            .ToListAsync(ct);
+        return labels.Select(x => x.Trim().ToLowerInvariant()).ToHashSet();
+    }
+
     private async Task<IActionResult> ReadResultAsync(string kind, string action, Guid id, CancellationToken ct)
     {
         var entity = await CurrentMasterAsync(kind, id, ct)
@@ -168,8 +274,9 @@ public sealed class BedMutationService(ApplicationDbContext db, InpBedMutationCo
         var old = JsonSerializer.SerializeToElement(previous);
         var fields = kind switch
         {
-            "Bed" => new[] { "RoomId", "BedStatus", "IsActive", "IsReservable", "IsForMale", "IsForFemale", "IsForNewborn", "IsIsolationBed", "IsIntensiveCareBed", "IsOdcBed" },
-            "Room" => ["ServiceUnitId", "PatientClassId", "IsActive", "IsAvailableForAdmission", "RoomType", "IsForMale", "IsForFemale", "IsForNewborn", "IsIsolationRoom", "Capacity"],
+            // BE-RWI-240 (RWI-DEC-315): penanda jenis kelamin dicabut dari bed dan kamar.
+            "Bed" => new[] { "RoomId", "BedStatus", "IsActive", "IsReservable", "IsForNewborn", "IsIsolationBed", "IsIntensiveCareBed", "IsOdcBed" },
+            "Room" => ["ServiceUnitId", "PatientClassId", "IsActive", "IsAvailableForAdmission", "RoomType", "IsForNewborn", "IsIsolationRoom", "Capacity"],
             _ => ["IsActive"]
         };
         return fields.Any(f => request.TryGetProperty(f, out var next) && next.ValueKind != JsonValueKind.Null &&

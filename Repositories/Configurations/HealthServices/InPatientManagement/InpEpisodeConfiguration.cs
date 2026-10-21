@@ -8,7 +8,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
     {
         public void Configure(EntityTypeBuilder<InpEpisode> builder)
         {
-            builder.ToTable("InpEpisode", "public");
+            // BE-RWI-234 (M-DNH-2): High = 1, Low = 2; AdmissionNote = 1, NurseAssessment = 2, DoctorDecision = 3.
+            builder.ToTable("InpEpisode", "public", t =>
+            {
+                t.HasCheckConstraint("CK_InpEpisode_CareDependencyLevel", "\"CareDependencyLevel\" IS NULL OR \"CareDependencyLevel\" BETWEEN 1 AND 2");
+                t.HasCheckConstraint("CK_InpEpisode_CareDependencySource", "\"CareDependencySource\" IS NULL OR \"CareDependencySource\" BETWEEN 1 AND 3");
+            });
 
             builder.HasKey(x => x.Id);
             // Versi untuk ExpectedVersion penutupan (integrasi-billing API 3.2). Bukan concurrency
@@ -37,6 +42,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
             builder.Property(x => x.FamilyBillingPreference).HasMaxLength(20);
             builder.Property(x => x.RequiresNeonatalIntensiveCare).HasDefaultValue(false);
             builder.Property(x => x.PlannedDepositAmount).HasPrecision(18, 2);
+            builder.Property(x => x.CareDependencyLevel).HasConversion<int>();
+            builder.Property(x => x.CareDependencySource).HasConversion<int>();
+            builder.Property(x => x.CareDependencyNote).HasMaxLength(500);
 
             builder.HasIndex(x => x.EpisodeNumber).IsUnique();
             builder.HasIndex(x => x.EncounterId).IsUnique();
@@ -48,6 +56,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
             builder.HasIndex(x => x.DischargeDecidedAt);
             builder.HasIndex(x => x.PhysicallyLeftAt);
             builder.HasIndex(x => x.MotherEpisodeId);
+            builder.HasIndex(x => x.DeliveryCaseId)
+                .HasFilter("\"DeliveryCaseId\" IS NOT NULL")
+                .HasDatabaseName("IX_InpEpisode_DeliveryCaseId");
             builder.HasIndex(x => x.RequiresIsolation);
             builder.HasIndex(x => x.IsolationSetByDoctorId);
             builder.HasIndex(x => x.ClosedAt);
@@ -97,6 +108,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
             builder.HasOne(x => x.IsolationSetByDoctor)
                 .WithMany()
                 .HasForeignKey(x => x.IsolationSetByDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.CareDependencySetByUser)
+                .WithMany()
+                .HasForeignKey(x => x.CareDependencySetByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

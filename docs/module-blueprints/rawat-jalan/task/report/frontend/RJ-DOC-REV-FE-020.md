@@ -1,5 +1,8 @@
 # Laporan Perubahan Frontend — `RJ-DOC-REV-FE-020`
 
+> **Sebagian dicabut 15 Okt 2026.** Filter Status Rujukan dan aksi *Lengkapi/Koreksi Rujukan* di Daftar Pasien RJ dihapus;
+> badge *Rujukan belum lengkap* tetap. Lihat [registration-revision-roadmap.md](../../../roadmap/registration-revision-roadmap.md) bagian 7.
+
 ## Metadata
 
 | Field | Nilai |

@@ -14,8 +14,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public int IntensiveCareRoom { get; set; }
         public int OdcRoom { get; set; }
         public int NewbornRoom { get; set; }
-        public int MaleRoom { get; set; }
-        public int FemaleRoom { get; set; }
     }
 
     public class RoomResponse
@@ -38,9 +36,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? RoomNumber { get; set; }
         public string? LocationName { get; set; }
         public string? FloorName { get; set; }
+        /// <summary>Kode lantai denah (BE-RWI-232); <c>null</c> untuk kamar di luar denah.</summary>
+        public string? FloorCode { get; set; }
+        public RoomWingDirection? WingDirection { get; set; }
+        public string? WingDirectionName { get; set; }
+        /// <summary>Kunci bentuk kamar pada gambar denah, mis. <c>lantai-3/k-329</c>.</summary>
+        public string? FloorPlanRoomKey { get; set; }
         public int Capacity { get; set; }
-        public bool IsForMale { get; set; }
-        public bool IsForFemale { get; set; }
         public bool IsForNewborn { get; set; }
         public bool IsIsolationRoom { get; set; }
         public bool IsIntensiveCare { get; set; }
@@ -76,8 +78,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string RoomTypeName { get; set; } = string.Empty;
         public string? RoomNumber { get; set; }
         public int Capacity { get; set; }
-        public bool IsForMale { get; set; }
-        public bool IsForFemale { get; set; }
         public bool IsForNewborn { get; set; }
         public bool IsIsolationRoom { get; set; }
         public bool IsIntensiveCare { get; set; }
@@ -115,6 +115,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public List<string> SortDirections { get; set; } = new();
         public List<int> PageSizeOptions { get; set; } = new();
         public List<RoomEnumOptionResponse> RoomTypeOptions { get; set; } = new();
+        public List<RoomEnumOptionResponse> WingDirectionOptions { get; set; } = new();
         public List<RoomQueryParameterInfoResponse> QueryParameters { get; set; } = new();
         public List<RoomFormFieldMetadataResponse> CreateFields { get; set; } = new();
         public List<RoomFormFieldMetadataResponse> UpdateFields { get; set; } = new();
@@ -129,13 +130,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public Guid? PatientClassId { get; set; }
         public bool? IsActive { get; set; }
         public RoomType? RoomType { get; set; }
-        public bool? IsForMale { get; set; }
-        public bool? IsForFemale { get; set; }
         public bool? IsForNewborn { get; set; }
         public bool? IsIsolationRoom { get; set; }
         public bool? IsIntensiveCare { get; set; }
         public bool? IsOdcRoom { get; set; }
         public bool? IsAvailableForAdmission { get; set; }
+        public string? FloorCode { get; set; }
+        public bool? HasFloorPlanKey { get; set; }
         public string? Search { get; set; }
         public string SortBy { get; set; } = "sortOrder";
         public string SortDirection { get; set; } = "asc";
@@ -209,8 +210,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string? FloorName { get; set; }
 
         public int Capacity { get; set; } = 1;
-        public bool IsForMale { get; set; } = true;
-        public bool IsForFemale { get; set; } = true;
         public bool IsForNewborn { get; set; } = false;
         public bool IsIsolationRoom { get; set; } = false;
         public bool IsIntensiveCare { get; set; } = false;
@@ -220,6 +219,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
 
         [MaxLength(250)]
         public string? Description { get; set; }
+
+        /// <summary>
+        /// Kode lantai denah. Wajib bila <see cref="FloorPlanRoomKey"/> diisi; setelah terisi tidak
+        /// dapat diubah (422 <c>FLOOR_PLAN_KEY_IMMUTABLE</c>).
+        /// </summary>
+        [MaxLength(10)]
+        public string? FloorCode { get; set; }
+
+        /// <summary>Arah wing 1–8; nilai lain ditolak 400 <c>WING_DIRECTION_INVALID</c>. Kosong berarti tidak diubah.</summary>
+        public RoomWingDirection? WingDirection { get; set; }
+
+        /// <summary>Kunci denah <c>lantai-&lt;FloorCode&gt;/&lt;slug&gt;</c>; unik dan tetap setelah terisi.</summary>
+        [MaxLength(100)]
+        public string? FloorPlanRoomKey { get; set; }
     }
 
     public class UpdateRoomRequest : CreateRoomRequest
@@ -257,6 +270,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string RoomName { get; set; } = string.Empty;
         public RoomType RoomType { get; set; }
         public string RoomTypeName { get; set; } = string.Empty;
+        public string? RoomNumber { get; set; }
+        public string? FloorCode { get; set; }
+        public RoomWingDirection? WingDirection { get; set; }
+        public string? FloorPlanRoomKey { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
         public Guid? CreateBy { get; set; }
@@ -276,6 +293,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public string RoomName { get; set; } = string.Empty;
         public RoomType RoomType { get; set; }
         public string RoomTypeName { get; set; } = string.Empty;
+        public string? FloorCode { get; set; }
+        public RoomWingDirection? WingDirection { get; set; }
+        public string? FloorPlanRoomKey { get; set; }
+        public string? LocationName { get; set; }
         public bool IsActive { get; set; }
         public DateTime? UpdateDateTime { get; set; }
         public Guid? UpdateBy { get; set; }

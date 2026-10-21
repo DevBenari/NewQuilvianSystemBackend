@@ -407,3 +407,9 @@ oleh `RJ-BIL-DEC-013` pada `2026-08-28` — terbatas pada `RJ-BIL-FE-001`, `RJ-B
 
 > **Tidak satu pun task di dokumen ini memberi izin** mengubah backend, mengaktifkan adapter
 > eksternal, atau mengambil keputusan produk yang belum disetujui.
+
+## Catatan silang — Amendment REF-REV (16 Okt 2026)
+
+Revisi rujukan Zoom 13 Okt 2026 (`RJ-REF-REV-001`..`005`) **bukan** scope roadmap ini dan tidak mengubah
+status task di sini. Definisi, status, dan bukti ada pada
+[registration-revision-roadmap.md](registration-revision-roadmap.md) bagian 8.

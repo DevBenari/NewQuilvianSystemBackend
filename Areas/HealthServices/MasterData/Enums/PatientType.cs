@@ -1,4 +1,4 @@
-﻿namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums
+namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums
 {
     public enum PatientType
     {
@@ -8,6 +8,7 @@
         Child = 4,
         Employee = 5,
         Corporate = 6,
+        OneDayCare = 7,
         Other = 99
     }
 }

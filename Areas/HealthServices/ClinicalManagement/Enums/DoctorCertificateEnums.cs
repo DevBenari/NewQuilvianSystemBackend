@@ -23,6 +23,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums
         InpatientAdmissionLetter = 4
     }
 
+    /// <summary>
+    /// Tingkat ketergantungan pasien pada Surat Pengantar Rawat Inap — dipakai unit Rawat Inap
+    /// menyiapkan tenaga dan ruang perawatan.
+    /// </summary>
+    public enum PatientDependencyLevel
+    {
+        [Display(Name = "Low Dependency")]
+        Low = 1,
+
+        [Display(Name = "Moderate Dependency")]
+        Moderate = 2,
+
+        [Display(Name = "High Dependency")]
+        High = 3
+    }
+
     /// <summary>Status surat dokter. Surat terbit tidak dihapus; ia dibatalkan.</summary>
     public enum DoctorCertificateStatus
     {

@@ -26,10 +26,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Models
 
         public BedStatus BedStatus { get; set; } = BedStatus.Available;
 
-        public bool IsForMale { get; set; } = true;
-
-        public bool IsForFemale { get; set; } = true;
-
         public bool IsForNewborn { get; set; } = false;
 
         public bool IsIsolationBed { get; set; } = false;

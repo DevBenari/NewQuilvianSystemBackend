@@ -199,3 +199,60 @@ perubahan adalah status kunjungan.
 | Tanpa `cardScan` (masa transisi) | Tersimpan seperti sekarang |
 | `cardScan` cocok | Tersimpan |
 | `cardScan` tidak cocok / tidak lengkap | Tidak tersimpan (`RJ-VAL-PM-01`/`02`); boleh dicoba lagi |
+
+---
+
+# Amendment RP — `RJ-PRI-RESV-001@1.0.0` (`approved`)
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-PRI-RESV-001@1.0.0` |
+| Status | `approved` — Sukma Giri, 2026-10-16 (`RJ-PRI-DEC-030`) |
+| Traceability | `RJ-PRI-DEC-008` s.d. `013`, `021` s.d. `024`, `027` s.d. `029` |
+
+## RP-A. Status Reservasi Prioritas
+
+| Status | Kode | Arti |
+|---|---:|---|
+| Menunggu Kedatangan | `1` | Reservasi dibuat, pasien belum mengonfirmasi tiba |
+| Sudah Tiba | `2` | Pasien mengonfirmasi lewat link, atau petugas menandainya tiba |
+| Menjadi Kunjungan | `3` | Poli dan dokter dilengkapi, kunjungan dan antrean terbit (akhir) |
+| Dibatalkan | `4` | Dibatalkan admisi dengan alasan (akhir) |
+| Tidak Datang | `5` | Hari kunjungan berakhir tanpa pelengkapan (akhir) |
+| Didaftarkan lewat Jalur Lain | `6` | Pasien mendapat kunjungan RJ lewat kiosk atau loket pada tanggal yang sama (akhir) |
+
+## RP-B. Transisi sah
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Buat reservasi | Menunggu Kedatangan | Admisi (`Create`) | Member Aktif hari ini; tanggal dalam jendela; tidak ada reservasi terbuka atau kunjungan RJ aktif pada tanggal itu | 409/400, tidak tersimpan |
+| Menunggu Kedatangan | Konfirmasi lewat link | Sudah Tiba | Pasien (kode acak) | Hari ini = tanggal kunjungan; kode cocok | 404 bila kode tidak berlaku; `NOT_YET_OPEN` bila belum hari H |
+| Menunggu Kedatangan | Tandai tiba | Sudah Tiba | Admisi (`Complete`) | Hari ini = tanggal kunjungan; `RowVersion` cocok | 409 |
+| Sudah Tiba | Kembalikan ke Belum Tiba | Menunggu Kedatangan | Admisi (`Complete`) | Alasan 10–500 karakter; `RowVersion` cocok. Kode link yang sama aktif lagi | 400/409 |
+| Sudah Tiba | Simpan checklist skrining | Sudah Tiba | Petugas skrining (`Screen`) | Ketiga isian terisi; boleh diulang, nilai terakhir berlaku dan setiap simpan tercatat | 400/409 |
+| Menunggu Kedatangan | Kirim ulang link | Menunggu Kedatangan | Admisi (`Create`) | `RowVersion` cocok. Kode lama mati | 409 |
+| Sudah Tiba | Lengkapi lewat pendaftaran kunjungan | Menjadi Kunjungan | Admisi (`PatientEncounter : Create` + `Complete`) | Pasien sama; tanggal kunjungan = hari ini; jadwal dan kuota dokter sah | Kunjungan tidak terbit; reservasi tetap Sudah Tiba |
+| Menunggu Kedatangan / Sudah Tiba | Batalkan | Dibatalkan | Admisi (`Cancel`) | Alasan 10–500 karakter | 400/409 |
+| Menunggu Kedatangan / Sudah Tiba | Hari kunjungan berakhir | Tidak Datang | Sistem | Tanggal kunjungan < hari ini (WIB) | — (idempoten) |
+| Menunggu Kedatangan / Sudah Tiba | Kunjungan RJ berpoliklinik terbentuk tanpa reservasi | Didaftarkan lewat Jalur Lain | Sistem, dalam transaksi pendaftaran | Pasien dan tanggal sama | Kunjungan ikut batal bila penutupan gagal |
+
+## RP-C. Transisi tidak sah
+
+| Dari status | Tindakan yang ditolak | Alasan | Bila dicoba |
+|---|---|---|---|
+| Menunggu Kedatangan | Lengkapi | Pasien belum tiba | 409. Admisi menandai tiba lebih dulu |
+| Menunggu Kedatangan | Simpan skrining | Pasien belum ada di ruang tunggu | 409 |
+| Sudah Tiba | Kirim ulang link | Link sudah tidak dibutuhkan | 409 |
+| Sudah Tiba | Konfirmasi lewat link lagi | Sudah dikonfirmasi | `200` dengan `CONFIRMED` dan jam pertama, tanpa perubahan |
+| Semua status akhir | Semua tindakan | `INV-RP-07` | 409, atau 404 untuk link publik |
+| Menunggu Kedatangan | Tandai tiba sebelum hari H | Hari kunjungan belum tiba | 409 |
+| Apa pun | Ubah tanggal | `RJ-PRI-DEC-029`: batal lalu buat baru | Tidak ada endpoint-nya |
+| Apa pun | Ubah snapshot klasifikasi | `INV-RP-03` | Tidak ada endpoint-nya |
+
+## RP-D. Klasifikasi antrean dari reservasi
+
+| Keadaan saat dilengkapi | Klasifikasi antrean |
+|---|---|
+| Snapshot prioritas, membership snapshot masih Aktif atau sudah Kedaluwarsa | Snapshot dipakai (prioritas) — `RJ-PRI-DEC-007` |
+| Membership snapshot Dibatalkan | Reguler — `RJ-PRI-DEC-024` |
+| Snapshot `IsPrioritySnapshot = false` (tingkat tanpa `PriorityQueue`) | Member non-prioritas, nomor Reguler |

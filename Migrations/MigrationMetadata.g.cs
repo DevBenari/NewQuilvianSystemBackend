@@ -1626,4 +1626,160 @@ namespace QuilvianSystemBackend.Migrations
     partial class AddInvoiceDateAndTermsToFinReceivableInvoiceBatch
     {
     }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261008043304_AddOutpatientQueueClassificationAndRenameRegQueue")]
+    partial class AddOutpatientQueueClassificationAndRenameRegQueue
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261008055604_AddWorkspacePpriAdmissionDocuments")]
+    partial class AddWorkspacePpriAdmissionDocuments
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261008093837_AddEncounterReferralAndReferralInstitutionPartner")]
+    partial class AddEncounterReferralAndReferralInstitutionPartner
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261008120000_AddArInvoiceBatchPaymentAndCollectionEnhancements")]
+    partial class AddArInvoiceBatchPaymentAndCollectionEnhancements
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261008130000_AddFinanceCrossEntry")]
+    partial class AddFinanceCrossEntry
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261008140000_AdjustFinanceCrossEntryAuditColumns")]
+    partial class AdjustFinanceCrossEntryAuditColumns
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261008150000_EnhanceCanceledInvoiceWorkflow")]
+    partial class EnhanceCanceledInvoiceWorkflow
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261009080537_AddReferralPartnerAgreementAndSnapshot")]
+    partial class AddReferralPartnerAgreementAndSnapshot
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261010022402_AddEmployeeBenefitColumnsToBilArHandoff")]
+    partial class AddEmployeeBenefitColumnsToBilArHandoff
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261010115612_AddFinanceReceivableInstallmentAndBenefitSettlement")]
+    partial class AddFinanceReceivableInstallmentAndBenefitSettlement
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261011052215_AddEmergencyDoctorRosterOverride")]
+    partial class AddEmergencyDoctorRosterOverride
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261011084625_AddInpatientBedManagementReadinessAndLifecycle")]
+    partial class AddInpatientBedManagementReadinessAndLifecycle
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261012040222_AddReferralDoctorNameToEncounterReferral")]
+    partial class AddReferralDoctorNameToEncounterReferral
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261012041938_AddAdmissionTransferOrigin")]
+    partial class AddAdmissionTransferOrigin
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261012080102_AddEmergencyAdmissionRequest")]
+    partial class AddEmergencyAdmissionRequest
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261013051652_ExtendPatientMembershipLifecycle")]
+    partial class ExtendPatientMembershipLifecycle
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261013052442_AddPatientMembershipStatusUniqueIndexes")]
+    partial class AddPatientMembershipStatusUniqueIndexes
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261013055556_TableHrdBenefitBalanceMovements")]
+    partial class TableHrdBenefitBalanceMovements
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261013055825_AddEmployeeLinkToPatientCompanyGuarantor")]
+    partial class AddEmployeeLinkToPatientCompanyGuarantor
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261013083000_AddReceivableWriteOffProposalV2")]
+    partial class AddReceivableWriteOffProposalV2
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261013123000_AddPayrollInstallmentDeductionAndCutover")]
+    partial class AddPayrollInstallmentDeductionAndCutover
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261013143000_AddFinancePayrollDeductionBatch")]
+    partial class AddFinancePayrollDeductionBatch
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261014021257_AddEmployeeBenefitGuarantorAndDeferredBillingConsent")]
+    partial class AddEmployeeBenefitGuarantorAndDeferredBillingConsent
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261014044508_AddPatientCitizenship")]
+    partial class AddPatientCitizenship
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261014050013_AddEncounterRescheduleHistory")]
+    partial class AddEncounterRescheduleHistory
+    {
+    }
+
+    [DbContext(typeof(ApplicationDbContext))]
+    [Migration("20261014091502_AddNewbornAdmissionContext")]
+    partial class AddNewbornAdmissionContext
+    {
+    }
 }

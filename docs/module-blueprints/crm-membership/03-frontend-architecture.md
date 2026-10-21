@@ -14,9 +14,9 @@ keamanan/privasi/invariant → keputusan owner (`CRM-FE-*`) → konvensi project
 
 | Kebutuhan | Dasar | Yang sudah ada | Perubahan |
 |---|---|---|---|
-| Bagian menu **CRM** dengan satu menu **Daftar Membership** (diubah 2026-10-16, `CRM-DEC-031`; semula juga menu Pendaftaran Membership) | `CRM-FE-001` | Tidak ada di sidebar (`src/utils/menu-sidebar/menu-items.jsx`) | Tambah. Posisi di sidebar `DEV_DISCRETION` mengikuti konvensi menu |
+| Bagian menu **CRM** dengan satu menu **Daftar Membership** (diubah 2026-10-16, `CRM-DEC-033`; semula juga menu Pendaftaran Membership) | `CRM-FE-001` | Tidak ada di sidebar (`src/utils/menu-sidebar/menu-items.jsx`) | Tambah. Posisi di sidebar `DEV_DISCRETION` mengikuti konvensi menu |
 | Daftar Membership | `CRM-FE-005` | `src/app/health-services/patient-management/master-data/patient-memberships/` | Dipakai ulang. Kolom status baru, filter status, tanggal akhir, dan nomor member. Memuat tombol **+ Pendaftaran Membership** bagi pemegang `PatientMembership : Create`, satu-satunya pintu ke formulir pendaftaran |
-| Pendaftaran Membership | `CRM-FE-004`, `CRM-DEC-031` | Halaman `create` dengan isian bebas | Diubah: cari pasien (lookup) → pilih satu → pilih tingkat → catatan → simpan. Isian status, tanggal, nomor, poin, dan belanja dihapus |
+| Pendaftaran Membership | `CRM-FE-004`, `CRM-DEC-033` | Halaman `create` dengan isian bebas | Diubah: cari pasien (lookup) → pilih satu → pilih tingkat → catatan → simpan. Isian status, tanggal, nomor, poin, dan belanja dihapus |
 | Detail membership | — | Halaman `[slug]` | Tambah riwayat status, tombol Perpanjang, Upgrade, Batalkan, Verifikasi (sesuai status dan izin), serta ubah catatan |
 | Halaman ubah (`[slug]/update`) | `CRM-DEC-022` | Ada | Dihapus atau dialihkan ke detail, karena ubah penuh tidak lagi diizinkan |
 
@@ -69,7 +69,7 @@ Dibatalkan, Perlu Verifikasi. Warna label `DEV_DISCRETION` mengikuti komponen st
 
 | ID | Area | Owner | Status | Ruang | Bukti |
 |---|---|---|---|---|---|
-| `CRM-FE-001` | Nama bagian dan menu | Yoga Aji Pratama | `approved` | CRM → Daftar Membership. Pendaftaran lewat tombol di daftar, tanpa menu sendiri (diubah 2026-10-16) | PDF poin 1; `CRM-DEC-031` |
+| `CRM-FE-001` | Nama bagian dan menu | Yoga Aji Pratama | `approved` | CRM → Daftar Membership. Pendaftaran lewat tombol di daftar, tanpa menu sendiri (diubah 2026-10-16) | PDF poin 1; `CRM-DEC-033` |
 | `CRM-FE-002` | Hak tampil menu | Yoga Aji Pratama | `approved` | Hanya pemegang `PatientMembership : Read` | `CRM-DEC-011` |
 | `CRM-FE-003` | Route, tata letak, kolom, filter, halaman vs modal | — | `DEV_DISCRETION` | Ikuti konvensi | — |
 | `CRM-FE-004` | Isian formulir | Yoga Aji Pratama | `approved` | Pasien, tingkat, catatan | `CRM-DEC-022`, `023` |

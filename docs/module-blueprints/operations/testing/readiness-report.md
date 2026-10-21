@@ -7,7 +7,15 @@
 | Backend commit yang diaudit | `0bde207`, cabang `Ikbal`, sudah didorong ke `origin` |
 | Frontend commit yang diaudit | `400104f2a0f3239c14c40f5905b419977a538450` |
 | Kontrak terkunci | `opr-api-v1`, `opr-state-v1`, `opr-integration-v1`, `opr-validation-v1`, `opr-permission-v1` |
-| Verdict | `NOT_READY` untuk dipakai pengguna; `READY_FOR_REVIEW` untuk tinjauan kode dan otorisasi migration |
+| Verdict | ~~`NOT_READY` untuk dipakai pengguna; `READY_FOR_REVIEW` untuk tinjauan kode dan otorisasi migration~~ |
+| **Verdict per 16 Oktober 2026** | **`READY_FOR_REVIEW`.** Backend 11/11, uji 120/120. Frontend: sebelas area layar punya acceptance, E2E Playwright 11/11 lulus. **Satu gap tersisa** — `FE-OPR-010`, borang permintaan operasi nol penjaga hak akses |
+
+> **Lembar ini audit backend 11 Oktober 2026 dan dipertahankan sebagai catatan sejarah.**
+> Commit yang disebut di atas sudah jauh tertinggal, dan beberapa bagian badan dokumen sudah
+> ditandai tidak berlaku. Untuk keadaan terkini baca
+> [`../roadmap/frontend-roadmap.md`](../roadmap/frontend-roadmap.md) dan
+> [`../../MODULE-COMPLETION-NORMALIZATION.md`](../../MODULE-COMPLETION-NORMALIZATION.md) —
+> bukan lembar ini.
 
 > **Catatan bukti.** Seluruh source modul Operasi sudah di-commit pada `0bde207` dan didorong
 > ke `origin/Ikbal`, sehingga setiap klaim di laporan ini dapat diverifikasi lewat riwayat git.

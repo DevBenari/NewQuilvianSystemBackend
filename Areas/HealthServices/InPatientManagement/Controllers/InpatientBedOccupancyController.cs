@@ -18,7 +18,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     /// <b>Penolakan kelayakan mengembalikan daftar aturan yang gagal.</b> Jawaban 422 pada
     /// controller ini memuat kolom <c>errors</c> berisi daftar aturan Kelayakan Penempatan
     /// yang tidak terpenuhi, bukan satu kalimat umum. Petugas perlu tahu apakah yang
-    /// menghalangi adalah keadaan tempat tidurnya, jenis kelamin pasien, atau kebutuhan
+    /// menghalangi adalah keadaan tempat tidurnya, aturan boks bayi, atau kebutuhan
     /// isolasinya, karena tindakan lanjutannya berbeda untuk masing-masing.
     ///
     /// <para>
@@ -47,15 +47,48 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         private readonly InpBedOccupancyService _bedOccupancyService;
         private readonly InpPlacementCorrectionService _placementCorrectionService;
         private readonly LoggerService _loggerService; private readonly InpBedMutationCoordinator _coordinator; private readonly InpBedAccessService _access;
+        private readonly InpFloorPlanQueryService _floorPlans;
 
         public InpatientBedOccupancyController(
             InpBedOccupancyService bedOccupancyService,
             InpPlacementCorrectionService placementCorrectionService,
-            LoggerService loggerService, InpBedMutationCoordinator coordinator, InpBedAccessService access)
+            LoggerService loggerService, InpBedMutationCoordinator coordinator, InpBedAccessService access,
+            InpFloorPlanQueryService floorPlans)
         {
             _bedOccupancyService = bedOccupancyService;
             _placementCorrectionService = placementCorrectionService;
             _loggerService = loggerService; _coordinator = coordinator; _access = access;
+            _floorPlans = floorPlans;
+        }
+
+        // =====================================================================
+        // BE-RWI-239 — Denah Pilih Bed admisi dan tujuan transfer
+        // =====================================================================
+
+        /// <summary>
+        /// Denah satu lantai untuk langkah Pilih Bed admisi atau tujuan transfer: kelayakan setiap bed
+        /// untuk episode itu, outline kamar, dan kategori transfer yang diizinkan.
+        /// </summary>
+        /// <remarks>
+        /// <c>purpose=Admission</c> hanya untuk episode <c>Draft</c>; <c>purpose=Transfer</c> hanya untuk
+        /// episode yang sedang menempati bed. Selain itu 422 <c>FLOOR_PLAN_PURPOSE_MISMATCH</c>.
+        /// </remarks>
+        [HttpGet("floor-plan")]
+        [ProducesResponseType(typeof(ApiResponse<FloorPlanResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Read", "Read Inpatient Bed Occupancy", Description = "Melihat denah Pilih Bed beserta kelayakan bed untuk satu episode", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientBedOccupancy", "Read")]
+        public async Task<IActionResult> GetFloorPlan(
+            [FromQuery] FloorPlanSelectionQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _floorPlans.GetSelectionAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<FloorPlanResponse>.Ok(
+                result,
+                "Denah Pilih Bed berhasil diambil."));
         }
 
         // =====================================================================
@@ -68,7 +101,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         /// <remarks>
         /// Kirim <c>episodeId</c> bila pencarian dilakukan untuk satu pasien tertentu. Dengan
         /// <c>episodeId</c>, hasilnya disaring memakai seluruh aturan Kelayakan Penempatan —
-        /// jenis kelamin pasien dan kebutuhan isolasinya ikut diperhitungkan, sehingga tempat
+        /// kebutuhan isolasi dan aturan boks bayi ikut diperhitungkan, sehingga tempat
         /// tidur yang muncul di sini tidak akan ditolak saat petugas menekan simpan.
         /// </remarks>
         [HttpGet("available-beds")]
