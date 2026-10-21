@@ -74,7 +74,7 @@ Seluruh 22 acceptance criteria punya skenario.
 
 | ID | Gap | Sebab | Penanganan |
 |---|---|---|---|
-| `GAP-RP-01` | Go-live link publik (`BE-RJP-012`, `FE-RJP-008`) | `RJ-PRI-OQ-003`: aksesibilitas internet domain RS dan penerusan IP asli belum terbukti | Development dan uji lokal tetap jalan. Go-live tercatat terpisah |
+| `GAP-RP-01` | Go-live link publik (`BE-RJP-012`, `FE-RJP-008`) | `RJ-PRI-OQ-003`: aksesibilitas internet domain RS dan penerusan IP asli belum terbukti | Development dan uji lokal tetap jalan. Go-live tercatat terpisah. 2026-10-21: `PublicArrivalBaseUrl` bawaan repo kini server dev; staging/production disetel lewat environment variable server ([`BE-RJP-005` §8](../task/report/backend/BE-RJP-005.md)). Aksesibilitas internet dan IP asli masih terbuka |
 | `GAP-RP-02` | Nomor prioritas benar-benar terbit untuk member | `RJ-PRI-OQ-006`: master tingkat belum diisi `PriorityQueue = true` (Yoga/Marketing) | Data uji di `QuilvianNewDevSukma` diisi lewat layar Membership Tier dengan izin. Go-live menunggu data asli |
 | `GAP-RP-03` | Akses Role untuk admisi dan petugas skrining | Operasional, bukan task kode | Daftar periksa go-live: centang `OutpatientPriorityReservation` sesuai `permission-audit-matrix.md` RP-2 |
 | `GAP-RP-04` | Tinjauan keamanan endpoint publik | Satu-satunya endpoint bisnis tanpa login | Masuk DoD `BE-RJP-012` sebagai tinjauan manusia sebelum go-live |
