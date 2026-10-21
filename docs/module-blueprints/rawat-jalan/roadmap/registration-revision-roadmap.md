@@ -7,7 +7,7 @@
 | Blueprint | `rawat-jalan` (umbrella `RJ-BIL-BP-001`) |
 | Scope | **Registration / Pendaftaran Rawat Jalan** — prefix `RJ-REG`. Bukan scope Dokter (`RJ-DOC`), bukan Billing (`RJ-BIL`), bukan E2E (`RJ-E2E`) |
 | Sumber requirement | Sukma Giri, 14 Okt 2026, *Master Prompt Rawat Jalan Revision V2* (12 revisi, 5 batch) |
-| Keputusan | `RJ-REG-DEC-001`..`009` (bagian 2) |
+| Keputusan | `RJ-REG-DEC-001`..`011` (bagian 2); `RJ-REF-DEC-001`..`007` (bagian 8, Zoom 13 Okt 2026) |
 | Baseline source | Backend `a52b3c98e7e9b0fae42f9a889b84c6c8332f8923` (`sukmagp`), frontend `70b3735dbae7e270a9eb0945f7f603541dfd42ca` (`sukmagpV2`) |
 | `IMPLEMENTATION_AUTHORITY` | `GRANTED` dalam `CROSS-REPO MODE` (`RJ-REG-DEC-001`): backend dan frontend target tulis. Migration boleh dibuat dan diterapkan **hanya** ke `QuilvianNewDevSukma`. Tanpa commit, push, merge, deploy |
 | Verifikasi | Backend pola Bank Darah (build Release, EF `has-pending-model-changes`, QBE Strict, runtime HTTP terhadap `QuilvianNewDevSukma`); frontend ESLint, `npm run build`, uji fungsi `node --test`, uji layar Playwright bila backend uji tersedia |
@@ -41,6 +41,8 @@ bentrok dengan ID requirement.
 | `RJ-REG-REV-010` (REV-07) | Edit Penjamin asuransi | 4 | — | `RJ-REG-REV-FE-007` |
 | `RJ-REG-REV-011` (REV-11) | Hapus Keluhan Utama dari Data Kunjungan | 5 | — | `RJ-REG-REV-FE-008` |
 | `RJ-REG-REV-012` (REV-12) | Redesign Data Rujukan | 5 | — | `RJ-REG-REV-FE-008` |
+| `RJ-REG-REV-013` (amendemen 15 Okt 2026) | Kartu jadwal dokter yang kuotanya penuh dinonaktifkan dan diberi keterangan *Penuh* | 6 | `RJ-REG-REV-BE-006` | `RJ-REG-REV-FE-009` |
+| `RJ-REG-REV-014` (amendemen 15 Okt 2026) | Step baru *Jenis Kunjungan* sebelum Data Kunjungan; pilihan Jenis Kunjungan dihapus dari Data Kunjungan | 7 | — | `RJ-REG-REV-FE-010` |
 
 ## 2. Keputusan pemilik (14 Okt 2026, Sukma Giri)
 
@@ -55,6 +57,8 @@ bentrok dengan ID requirement.
 | `RJ-REG-DEC-007` | REV-10: reschedule hanya appointment (`IsAppointment`) Rawat Jalan berklinik yang **belum datang**: status ≤ `Menunggu Dokter`, belum check-in, antrean belum dipanggil/diskrining; tanggal baru hari ini atau mendatang; poli tetap, jadwal dokter boleh berganti. Antrean lama dibatalkan dan antrean baru dialokasikan alokator yang sama dalam satu transaksi; kuota appointment, bentrok, dan duplikat diperiksa; alasan wajib; ID kunjungan tetap; riwayat tercatat |
 | `RJ-REG-DEC-008` | REV-06: KTP pasien lama diunggah sebagai `MstPatientIdentityDocument` ke **penyimpanan privat** (`FileStorage:PrivateRootPath`), unduh berizin `no-store`, mengganti dokumen = dokumen lama dinonaktifkan (tidak ditimpa), tercatat audit. `PhotoPath` publik lama tidak disentuh |
 | `RJ-REG-DEC-009` | Delta implementasi (`DEV_DISCRETION`): REV-05 untuk **pasien baru** memakai jalur kanonik yang sama dengan scanner (`photoBase64` pada create pasien); kamera/upload manual menghasilkan gambar yang sama bentuknya. Upload untuk **pasien lama** memakai jalur `RJ-REG-DEC-008` |
+| `RJ-REG-DEC-010` | Amendemen 15 Okt 2026 (Sukma Giri): badge kuota di kartu jadwal dokter dihapus. Jadwal yang kuotanya penuh pada tanggal kunjungan dinonaktifkan dan diberi keterangan *Penuh*. Data kuota terpakai disediakan **endpoint backend baru di area Registration**, bukan field tambahan di master data `doctor-schedules/admin`. Hitungannya wajib sama dengan validasi simpan `PatientEncounterController.ValidateDoctorScheduleQuotaAsync`: antrean `RegQueue` aktif (tidak dihapus, tidak batal) per `QueueDate` + `DoctorScheduleId`; total dibandingkan `MaxPatientQuota`, walk-in dengan `MaxWalkInQuota`, appointment dengan `MaxAppointmentQuota`; nilai kuota `0` berarti tanpa batas. Validasi simpan tetap menjadi penjaga akhir |
+| `RJ-REG-DEC-011` | Amendemen 15 Okt 2026 (Sukma Giri): Pendaftaran RJ mendapat step tersendiri **Jenis Kunjungan** (Umum / Rujukan-Tindak Lanjut) tepat sesudah Cari/Input Pasien dan sebelum Data Kunjungan. Pilihan Jenis Kunjungan dihapus dari step Data Kunjungan. Urutan step: Umum = Pasien → Jenis Kunjungan → Data Kunjungan → Pembayaran → General Consent → Verifikasi → Selesai; Rujukan menyisipkan Data Rujukan sesudah Data Kunjungan seperti sebelumnya (`RJ-DOC-DEC-072`). Mengganti Rujukan → Umum yang sudah berisi data rujukan tetap meminta konfirmasi. Payload `visitType` dan backend tidak berubah. Tampilan kartu pilihan bersifat `DEV_DISCRETION` |
 
 ## Grafik Urutan Dependency
 
@@ -69,13 +73,25 @@ RJ-REG-REV-BE-004 ✅ ─> RJ-REG-REV-FE-004 ✅
 
 Batch 3
 RJ-REG-REV-FE-005 ✅
-RJ-REG-REV-BE-005 ✅ ─> RJ-REG-REV-FE-006 ✅
+RJ-REG-REV-BE-005 ⛔ ─> RJ-REG-REV-FE-006 ⛔   (dicabut 15 Okt 2026)
 
 Batch 4
 RJ-REG-REV-FE-007 ✅
 
 Batch 5
 RJ-REG-REV-FE-008 ✅
+
+Batch 6
+RJ-REG-REV-BE-006 ✅ ─> RJ-REG-REV-FE-009 ✅
+
+Batch 7
+RJ-REG-REV-FE-010 ✅
+
+Batch 8 (bagian 8, Zoom 13 Okt 2026)
+RJ-REF-REV-BE-001 ✅ ─┬─> RJ-REF-REV-FE-001 🟡
+                      └─> RJ-REF-REV-BE-003 ✅ ─> RJ-REF-REV-FE-003 🟡
+RJ-REF-REV-BE-002 ✅ ─┬─> RJ-REF-REV-FE-002 🟡
+                      └─> RJ-REF-REV-BE-003
 ```
 
 | Gelombang | Task | Boleh mulai bila |
@@ -83,8 +99,11 @@ RJ-REG-REV-FE-008 ✅
 | 1 | `BE-001`, `BE-002`, `BE-004`, `BE-005`, `FE-005`, `FE-007`, `FE-008` | Wewenang `RJ-REG-DEC-001` |
 | 2 | `BE-003`, `FE-001`, `FE-003`, `FE-004`, `FE-006` | Prasyarat backend masing-masing selesai |
 | 3 | `FE-002` | `BE-003` selesai |
+| 4 | `BE-006` | Keputusan `RJ-REG-DEC-010` |
+| 5 | `FE-009` | `BE-006` selesai |
+| 6 | `FE-010` | Keputusan `RJ-REG-DEC-011` |
 
-Urutan eksekusi mengikuti batch master prompt (1 → 5).
+Urutan eksekusi mengikuti batch master prompt (1 → 5), lalu batch amendemen 6 dan 7.
 
 ## 3. Task backend
 
@@ -94,7 +113,8 @@ Urutan eksekusi mengikuti batch master prompt (1 → 5).
 | ✅ `RJ-REG-REV-BE-002` | **Kewarganegaraan pasien.** Enum `PatientCitizenship`, kolom `Citizenship` + `NationalityCountryId` pada `MstPatient` (configuration + satu migration); create/update/response pasien; `PUT` tanpa `citizenship` mempertahankan nilai lama | — | 1. Create WNI tersimpan tanpa negara. 2. Create WNA tanpa negara → `400`; dengan negara valid tersimpan. 3. Negara tidak ada/nonaktif → `400`. 4. Detail mengembalikan `citizenship`, `citizenshipName`, `nationalityCountryId`, `nationalityCountryName`. 5. `PUT` tanpa field mempertahankan nilai. 6. Migration hanya dua kolom + FK + index | Build; EF; QBE; migration ke `QuilvianNewDevSukma`; runtime HTTP | ✅ `14 Okt 2026` — migration `20261014044508_AddPatientCitizenship` diterapkan ke `QuilvianNewDevSukma`, runtime C1–C7 `PASS` (Batch 1 total 29/29). Catatan: master negara DB uji hanya Indonesia. [Laporan](../task/report/backend/RJ-REG-REV-BE-002.md) |
 | ✅ `RJ-REG-REV-BE-003` | **Detail dan edit data pendaftaran di Daftar Pasien RJ.** `GET /outpatient-encounters/{id}` dan `PATCH /outpatient-encounters/{id}/registration-data` pada `OutpatientEncounterController`, bercakupan `ClinicalActorScopeService` | `BE-002` | 1. Detail dalam cakupan `200`; di luar cakupan/tidak ada `404`; tanpa izin `403`. 2. Edit kontak, kewarganegaraan, catatan tersimpan dan terbaca ulang. 3. Status ≥ 6, batal, atau selesai → `400` dengan alasan. 4. Field identitas (nama, No. RM, NIK, tanggal lahir) tidak dapat diubah lewat endpoint ini. 5. Perubahan tercatat audit (nama field, tanpa nilai PII). 6. `canEdit` pada detail sesuai izin + status | Build; QBE; runtime HTTP | ✅ `14 Okt 2026` — runtime D1–D10 `PASS`; `403` lewat kode. Action baru `OutpatientEncounter : Update` perlu dicentang admin. [Laporan](../task/report/backend/RJ-REG-REV-BE-003.md) |
 | ✅ `RJ-REG-REV-BE-004` | **Dokumen identitas privat.** `PatientIdentityDocumentFileService` (pola `ReferralDocumentStorageService`) + `POST /patient-identity-documents/admin/upload` (multipart) dan `GET /patient-identity-documents/admin/{id}/content` | — | 1. JPG/PNG/PDF ≤ batas → `200`, dokumen primer baru tertaut ke pasien. 2. Ekstensi palsu (isi bukan gambar) → `400`; melebihi batas → `400`. 3. Pasien tidak ada → `404`. 4. Sudah ada dokumen berkas aktif tanpa `replaceDocumentId` → `409`; dengan `replaceDocumentId` milik pasien yang sama → dokumen lama nonaktif, baru primer. 5. Unduh berizin `inline` + `no-store`; berkas tidak dapat dibuka lewat `/uploads`. 6. Tanpa izin `403`. 7. Tidak membuat pasien baru; audit tanpa isi berkas | Build; QBE; runtime HTTP | ✅ `14 Okt 2026` — runtime I0–I14 `PASS` (run 2; run 1 menemukan bentrok unique index → dokumen lama dihapus lunak). `403` lewat kode; antivirus belum ada. [Laporan](../task/report/backend/RJ-REG-REV-BE-004.md) |
-| ✅ `RJ-REG-REV-BE-005` | **Tracking dan reschedule appointment.** `OutpatientAppointmentController` (`GET /`, `GET /filters/metadata`, `GET /{id}`, `POST /{id}/reschedule`), `OutpatientAppointmentService`, entity `RegEncounterReschedule` + satu migration | — | 1. Daftar appointment RJ berhalaman dengan filter tanggal, poli, dokter, status, cari. 2. Detail memuat pasien, dokter, poli, jadwal, antrean, status, riwayat reschedule. 3. Reschedule valid → `200`: ID kunjungan tetap, antrean lama `Cancelled`, antrean baru pada tanggal baru, riwayat tersimpan. 4. Ditolak `400`: bukan appointment, sudah datang/dipanggil, tanggal lampau, jadwal tidak cocok tanggal/poli, tidak menerima appointment, kuota penuh, penjamin tidak berlaku, tanggal+jadwal sama, alasan kosong. 5. Bentrok: pasien punya kunjungan aktif lain di poli+tanggal yang sama → `409`. 6. Dua reschedule bersamaan tidak menghasilkan antrean ganda. 7. Tanpa izin `403` | Build; EF; QBE; migration ke `QuilvianNewDevSukma`; runtime HTTP | ✅ `14 Okt 2026` — migration `20261014050013_AddEncounterRescheduleHistory` diterapkan, runtime R0–R15 `PASS` (37/37 bersama BE-004). Delta: antrean dipindah di tempat (`IX_RegQueue_EncounterId`). R12 bentrok `409` `NOT FEASIBLE` (dicegah penjaga pendaftaran). [Laporan](../task/report/backend/RJ-REG-REV-BE-005.md) |
+| ⛔ `RJ-REG-REV-BE-005` | **[DICABUT 15 Okt 2026 — lihat bagian 7]** **Tracking dan reschedule appointment.** `OutpatientAppointmentController` (`GET /`, `GET /filters/metadata`, `GET /{id}`, `POST /{id}/reschedule`), `OutpatientAppointmentService`, entity `RegEncounterReschedule` + satu migration | — | 1. Daftar appointment RJ berhalaman dengan filter tanggal, poli, dokter, status, cari. 2. Detail memuat pasien, dokter, poli, jadwal, antrean, status, riwayat reschedule. 3. Reschedule valid → `200`: ID kunjungan tetap, antrean lama `Cancelled`, antrean baru pada tanggal baru, riwayat tersimpan. 4. Ditolak `400`: bukan appointment, sudah datang/dipanggil, tanggal lampau, jadwal tidak cocok tanggal/poli, tidak menerima appointment, kuota penuh, penjamin tidak berlaku, tanggal+jadwal sama, alasan kosong. 5. Bentrok: pasien punya kunjungan aktif lain di poli+tanggal yang sama → `409`. 6. Dua reschedule bersamaan tidak menghasilkan antrean ganda. 7. Tanpa izin `403` | Build; EF; QBE; migration ke `QuilvianNewDevSukma`; runtime HTTP | ✅ `14 Okt 2026` — migration `20261014050013_AddEncounterRescheduleHistory` diterapkan, runtime R0–R15 `PASS` (37/37 bersama BE-004). Delta: antrean dipindah di tempat (`IX_RegQueue_EncounterId`). R12 bentrok `409` `NOT FEASIBLE` (dicegah penjaga pendaftaran). [Laporan](../task/report/backend/RJ-REG-REV-BE-005.md) |
+| ✅ `RJ-REG-REV-BE-006` | **Kuota terpakai jadwal dokter per tanggal kunjungan.** `GET /api/v1/health-services/registration-management/patient-encounters/doctor-schedule-quotas?visitDate=yyyy-MM-dd&clinicId={guid?}` pada `PatientEncounterController`, izin `PatientEncounter : Read`. Respons per jadwal: `doctorScheduleId`, `maxPatientQuota`, `maxWalkInQuota`, `maxAppointmentQuota`, `usedTotal`, `usedWalkIn`, `usedAppointment`, `isFullForWalkIn`, `isFullForAppointment`. Logika hitung diekstrak menjadi satu helper yang juga dipakai `ValidateDoctorScheduleQuotaAsync`, sehingga tampilan dan validasi simpan tidak bisa berbeda. Contoh: `MaxPatientQuota = 18` dengan 18 antrean aktif → kedua `isFull*` bernilai `true`. Tanpa migration | `RJ-REG-DEC-010` | 1. Jadwal dengan antrean aktif = `MaxPatientQuota` → `isFullForWalkIn` dan `isFullForAppointment` `true`. 2. Kuota walk-in penuh, total belum → hanya `isFullForWalkIn` `true`; berlaku sama untuk appointment. 3. Antrean batal/terhapus tidak dihitung. 4. Kuota `0` → tidak pernah penuh. 5. `visitDate` salah format/kosong → `400`; tanpa izin → `403`. 6. Validasi simpan berperilaku identik dengan sebelumnya. QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend | Build Release; EF tanpa drift; QBE Strict; runtime HTTP terhadap `QuilvianNewDevSukma` | ✅ `15 Okt 2026` — build Release `0 Error`, EF tanpa drift, QBE Strict `PASS` (4 berkas), runtime R0–R12 13/13 `PASS`. Belum: uji `403` akun tanpa izin dan simpan saat penuh (UAT). [Laporan](../task/report/backend/RJ-REG-REV-BE-006.md) |
 
 ## 4. Task frontend
 
@@ -105,31 +125,37 @@ Urutan eksekusi mengikuti batch master prompt (1 → 5).
 | ✅ `RJ-REG-REV-FE-003` | **Kewarganegaraan pada pasien baru RJ.** Pilihan WNI/WNA; negara wajib bila WNA (dari master negara); terkirim pada create pasien; tampil di review | `BE-002` | 1. WNI default. 2. WNA tanpa negara ditolak di layar. 3. Nilai tersimpan dan terbaca ulang. 4. IGD tidak berubah | ESLint; build; uji fungsi | ✅ `14 Okt 2026` — uji layar N4–N7 `PASS`, terbaca ulang via API. [Laporan](../task/report/frontend/RJ-REG-REV-FE-003.md) |
 | ✅ `RJ-REG-REV-FE-004` | **Identitas: KTP utuh, metode scanner/kamera/upload, lengkapi KTP pasien lama.** Preview `contain` + perbesar; pilihan metode pada pasien baru; panel identitas pasien lama memakai `BE-004` | `BE-004` | 1. KTP tampil utuh (landscape/portrait). 2. Scanner existing tetap jalan. 3. Upload file dan kamera menghasilkan preview + Ganti Foto/Batalkan. 4. Pasien tanpa dokumen dapat menambah identitas; yang sudah ada menampilkan dokumen dan Ganti hanya bila berizin. 5. Berkas salah ditolak dengan pesan | ESLint; build; uji fungsi; uji layar | ✅ `14 Okt 2026` — uji layar U4–U11, N1–N3 `PASS`. Kamera & scanner fisik `NOT FEASIBLE` (uji UAT). [Laporan](../task/report/frontend/RJ-REG-REV-FE-004.md) |
 | ✅ `RJ-REG-REV-FE-005` | **Kartu dokter.** Setelah poliklinik dipilih, jadwal dokter tampil sebagai kartu (nama, spesialis, jam/sesi/ruang, kuota bila ada, terpilih); tanpa dropdown dokter | — | 1. Kartu tampil otomatis. 2. Tidak ada dropdown dokter kedua. 3. Ganti poli mengosongkan pilihan dokter. 4. Loading/kosong/galat tersedia. 5. Step Rujukan ikut memakai kartu | ESLint; build; uji fungsi; uji layar | ✅ `14 Okt 2026` — uji layar U13–U16, N11 `PASS`. [Laporan](../task/report/frontend/RJ-REG-REV-FE-005.md) |
-| ✅ `RJ-REG-REV-FE-006` | **Menu Tracking Jadwal Booking.** Halaman daftar (Hero, DataFilter, DataTable, StatusBadge), detail, dan modal reschedule memakai `BE-005` | `BE-005` | 1. Menu sesuai izin. 2. Detail terbuka. 3. Reschedule valid tersimpan dan tampil. 4. Penolakan backend tampil. 5. Tidak ada antrean ganda | ESLint; build; uji layar | ✅ `14 Okt 2026` — uji layar T1–T7 `PASS` (termasuk 390 px). [Laporan](../task/report/frontend/RJ-REG-REV-FE-006.md) |
+| ⛔ `RJ-REG-REV-FE-006` | **[DICABUT 15 Okt 2026 — lihat bagian 7]** **Menu Tracking Jadwal Booking.** Halaman daftar (Hero, DataFilter, DataTable, StatusBadge), detail, dan modal reschedule memakai `BE-005` | `BE-005` | 1. Menu sesuai izin. 2. Detail terbuka. 3. Reschedule valid tersimpan dan tampil. 4. Penolakan backend tampil. 5. Tidak ada antrean ganda | ESLint; build; uji layar | ✅ `14 Okt 2026` — uji layar T1–T7 `PASS` (termasuk 390 px). [Laporan](../task/report/frontend/RJ-REG-REV-FE-006.md) |
 | ✅ `RJ-REG-REV-FE-007` | **Kartu asuransi utuh dan Edit Penjamin.** Preview kartu `contain` + perbesar; tombol *Edit Penjamin* bila pembayaran Asuransi, form memakai `PUT /patient-insurances/admin/{id}` | — | 1. Kartu tidak terpotong. 2. Data hasil scan tetap. 3. Edit Penjamin hanya pada Asuransi. 4. Data valid tersimpan dan panel pembayaran sinkron. 5. Tanpa izin `PatientInsurance : Update` tombol tidak tampil | ESLint; build; uji layar | ✅ `14 Okt 2026` — uji layar U17–U20 `PASS`; eligibility/kartu tetap sesudah PUT. Pemotongan kartu asli belum tereproduksi (UAT). [Laporan](../task/report/frontend/RJ-REG-REV-FE-007.md) |
 | ✅ `RJ-REG-REV-FE-008` | **Data Kunjungan tanpa Keluhan Utama + redesign Data Rujukan.** Hapus field dari langkah 2 RJ (payload tidak mengirim nilai palsu); susun ulang step Data Rujukan menjadi kelompok Sumber Rujukan, Surat Rujukan, Informasi Klinis & Lampiran, Unit Tujuan | — | 1. Keluhan Utama tidak tampil di langkah 2 RJ. 2. Pendaftaran tetap dapat diselesaikan. 3. IGD, skrining, SOAP tidak berubah. 4. Field wajib dan dependency rujukan tetap; payload sama. 5. Rujukan tersimpan dan terbaca ulang | ESLint; build; uji fungsi; uji layar | ✅ `14 Okt 2026` — uji layar U12, N8–N11, R1–R3 `PASS` (rujukan tersimpan & terbaca ulang). [Laporan](../task/report/frontend/RJ-REG-REV-FE-008.md) |
+| ✅ `RJ-REG-REV-FE-009` | **Kartu jadwal dokter penuh dinonaktifkan.** Step Data Kunjungan (dan step Data Rujukan yang memakai kartu yang sama) memanggil endpoint `BE-006` untuk tanggal kunjungan terpilih. Pendaftaran hari ini dibaca sebagai walk-in (`isFullForWalkIn`), tanggal mendatang sebagai appointment (`isFullForAppointment`). Kartu penuh: nonaktif (`disabled`, `aria-disabled`), tombol aksi bertuliskan *Penuh*, tidak bisa dipilih. Bila jadwal yang sudah terpilih ternyata penuh setelah tanggal diganti, pilihan dikosongkan. Bentuk visual keterangan *Penuh* bersifat `DEV_DISCRETION` | `BE-006` | 1. Jadwal penuh tampil nonaktif dengan keterangan *Penuh* dan tidak bisa dipilih. 2. Jadwal belum penuh tetap bisa dipilih. 3. Ganti tanggal memperbarui status penuh. 4. Gagal memuat kuota tidak menonaktifkan kartu; validasi simpan backend tetap menolak bila penuh. 5. Badge kuota tidak tampil | ESLint; build; uji layar | ✅ `15 Okt 2026` — ESLint exit 0, `npm run build` sukses, uji layar F1–F6 6/6 `PASS` (respons kuota di-mock; endpoint asli teruji di BE-006). Belum: ganti tanggal di layar dan data penuh asli (UAT). [Laporan](../task/report/frontend/RJ-REG-REV-FE-009.md) |
+| ✅ `RJ-REG-REV-FE-010` | **Step Jenis Kunjungan.** Step baru *Jenis Kunjungan* di antara Cari/Input Pasien dan Data Kunjungan, pada bar step Umum maupun Rujukan. Pilihan Umum / Rujukan-Tindak Lanjut dipindah dari Data Kunjungan ke step ini beserta konfirmasi penghapusan data rujukan. Data Kunjungan hanya memuat tanggal, poliklinik, dan jadwal dokter. Contoh: petugas memilih *Rujukan / Tindak Lanjut* di step 2, lalu bar step berubah menampilkan Data Rujukan sesudah Data Kunjungan | — | 1. Bar step menampilkan *Jenis Kunjungan* sebagai step 2 (Umum dan Rujukan). 2. Lanjut dari pasien membuka step Jenis Kunjungan. 3. Data Kunjungan tidak lagi memuat pilihan Jenis Kunjungan. 4. Memilih Rujukan menambah step Data Rujukan; Rujukan → Umum dengan data rujukan meminta konfirmasi. 5. Kembali dari Data Kunjungan membuka Jenis Kunjungan. 6. Pendaftaran Umum dan Rujukan tetap terkirim dengan `visitType` yang benar | ESLint; build; uji layar | ✅ `15 Okt 2026` — ESLint exit 0, `npm run build` sukses, uji layar V1–V11 11/11 `PASS`, tata letak kartu 6 lebar `PASS`. Belum: konfirmasi Rujukan → Umum dengan data terisi dan submit penuh (UAT). [Laporan](../task/report/frontend/RJ-REG-REV-FE-010.md) |
 
 ## 5. Progres — `CURRENT STATE` 14 Oktober 2026
 
 Dihitung per requirement (bagian 1). Progres scope ini **tidak** digabung dengan `RJ-DOC`, `RJ-BIL`, atau
 `RJ-E2E` (lihat [MODULE-STATUS.md](../MODULE-STATUS.md)).
 
+> **15 Okt 2026:** requirement `RJ-REG-REV-008` (REV-10) beserta `BE-005` dan `FE-006` dicabut pemilik (bagian 7). Angka di tabel ini adalah snapshot 14 Okt dan masih menghitungnya.
+
 | Ukuran | Requirement | Task |
 | --- | ---: | ---: |
-| Total | 12 | 13 (5 BE, 8 FE) |
+| Total | 14 | 16 (6 BE, 10 FE) |
 | `DONE` (UAT pengguna lulus) | 0 | 0 |
-| `TESTED` (acceptance teknis terverifikasi, `✅`) | 12 | 13 |
-| `UAT_PENDING` | 12 | — |
+| `TESTED` (acceptance teknis terverifikasi, `✅`) | 14 | 16 |
+| `UAT_PENDING` | 14 | — |
 | `IN_PROGRESS` / `PARTIAL` / `IMPLEMENTED_UNVERIFIED` | 0 | 0 |
 | `NOT_STARTED` | 0 | 0 |
 | `BLOCKED` / `NEEDS_DECISION` | 0 | 0 |
 
-Seluruh requirement berstatus **`TESTED` → `UAT_PENDING`**, bukan `DONE`: UAT pengguna, perangkat fisik
+Requirement `RJ-REG-REV-001`..`012` berstatus **`TESTED` → `UAT_PENDING`**, bukan `DONE`: UAT pengguna, perangkat fisik
 (kamera, scanner Plustek), dan uji `403` dengan akun tanpa izin belum dilakukan.
 
 | Requirement | Status |
 | --- | --- |
 | `RJ-REG-REV-001`..`012` | `TESTED` / `UAT_PENDING` |
+| `RJ-REG-REV-013` | `TESTED` / `UAT_PENDING` |
+| `RJ-REG-REV-014` | `TESTED` / `UAT_PENDING` |
 
 ## 6. Rekonsiliasi per batch
 
@@ -150,9 +176,162 @@ Validasi bersama: backend build Release `0 Error`, EF tanpa drift, QBE Strict `P
 
 | Butir | Pemilik | Menahan |
 | --- | --- | --- |
-| Centang action baru di Akses Role: `OutpatientEncounter : Update`, `OutpatientAppointment : Read/Reschedule` | Admin | Pemakaian oleh petugas non-SuperAdmin |
+| Centang action baru di Akses Role: `OutpatientEncounter : Update` (`OutpatientAppointment` sudah dicabut, lihat bagian 7) | Admin | Pemakaian oleh petugas non-SuperAdmin |
 | Master `MstCountry` hanya berisi Indonesia di DB uji | Pemilik master wilayah | WNA dengan negara asing |
 | Kebijakan antivirus/malware scanning unggahan | Security | Aktivasi production unggah identitas |
 | `MstPatient.PhotoPath` (Kiosk/IGD) masih di `/uploads` publik | Pemilik Patient/Kiosk | Privasi foto KTP lama (di luar scope) |
 | Migration ke DB master/production | Pemilik rilis | Rilis |
 | UAT perangkat fisik (kamera, Plustek), kartu asuransi nyata | Product owner | `DONE` |
+
+## 7. Revisi pemilik 15 Oktober 2026 — Tracking Jadwal Booking dicabut, Daftar Pasien RJ dirapikan
+
+Keputusan pemilik (Sukma Giri, 15 Okt 2026): menu **Tracking Jadwal Booking** dihapus; penelusuran
+kunjungan (termasuk appointment) dilakukan dari **Daftar Pasien Rawat Jalan**. Aksi baris *Koreksi
+Rujukan* dan *Pengajuan Rawat Inap* tidak diperlukan dan dihapus.
+
+| Area | Perubahan |
+| --- | --- |
+| Backend dicabut | `OutpatientAppointmentController`, `OutpatientAppointmentService`, `OutpatientAppointmentDtos` (resource izin `OutpatientAppointment`); entity `RegEncounterReschedule` + migration `20261015075431_DropEncounterRescheduleHistory` (drop tabel `RegEncounterReschedule`, riwayat reschedule ikut hilang); `GET /outpatient-encounters/{id}/inpatient-admission` beserta `DoctorCertificateService.GetInpatientAdmissionMonitorAsync` dan `OutpatientInpatientAdmissionMonitorResponse`; saringan `referralStatus` pada `GET /outpatient-encounters` |
+| Backend ditambah | List: `scheduleLabel`, `createdAt`, `createdByName`, `updatedAt`, `updatedByName`. Detail: `canCancel`, `cancelBlockedReason` |
+| Frontend dicabut | Halaman/menu `outpatient-appointments`; modal + hook rujukan dan pengajuan rawat inap di Daftar Pasien RJ; kolom Aksi; saringan Status Rujukan |
+| Frontend — daftar | Saringan satu baris (≥ 1200px): Tanggal Awal, Tanggal Akhir, Periode, Klinik, Dokter, Status, cari, Jumlah baris, ↻ (atur ulang + muat ulang). Kolom: No, Tanggal & Jadwal, Pasien, Klinik, Dokter, Penjamin, Dibuat Oleh, Diupdate Oleh, Status. Detail dibuka dengan klik ganda pada baris |
+| Frontend — detail | Hero: Kembali, Perbarui (aktif bila `canEdit`), Hapus = batalkan kunjungan (aktif bila `canCancel`); alasan nonaktif sebagai tooltip. Kartu samping *Edit Data Pendaftaran* dihapus |
+
+Bukti: build backend 0 error, `has-pending-model-changes` bersih, QBE Strict PASS, uji HTTP 7/7 (backend
+uji 7185, DB `QuilvianNewDevSukma`), uji layar Playwright 6/6, ESLint bersih. Laporan task `BE-005` dan
+`FE-006` dipertahankan sebagai catatan historis.
+
+### 7.1 Tambahan 15 Oktober 2026 — status Booking, jam dokter, kartu saringan
+
+| Area | Perubahan |
+| --- | --- |
+| Status Booking | Kunjungan yang didaftarkan **sebelum** hari kunjungannya (`RegisteredAt` < tengah malam WIB `EncounterDate`) dan pasiennya belum datang: belum batal/selesai/tidak hadir, belum check-in, status ≤ Menunggu Perawat. Satu aturan: `OutpatientEncounterRules.IsBookingState`. List mengirim `isBooking`; metadata Status menambah opsi `booking` (paling atas); saringan `bookingOnly=true`. Badge Status menampilkan *Booking* |
+| Rentang otomatis | Memilih Status *Booking* menggeser rentang ke hari ini s.d. +30 hari, karena preset Periode berakhir hari ini sementara booking selalu bertanggal ke depan |
+| Jam dokter | `scheduleLabel` memakai jadwal yang tersimpan di kunjungan; bila `DoctorScheduleId` kosong, diambil dari jadwal aktif dokter di klinik kunjungan pada hari itu (tanggal khusus lebih dulu, lalu jadwal mingguan dalam masa berlaku). Tetap kosong bila dokter tidak punya jadwal di klinik tersebut |
+| Kartu saringan | Jarak bar ke tepi kartu disamakan di keempat sisi; lebar tanggal dan Jumlah baris disesuaikan agar tidak terpotong |
+
+Bukti: build 0 error, QBE Strict PASS, uji HTTP B1–B6 PASS (Booking API = hitungan SQL), uji layar K1–K2 PASS.
+Data uji yang dibuat: pasien `RJBOOK UJI CEDE` + appointment 19 Okt 2026 (Poli Penyakit Dalam, dr. Dewi Lestari).
+
+### 7.2 Tambahan 15 Oktober 2026 — detail dan form Perbarui berkelompok, ganti jadwal dokter yang sama
+
+| Area | Perubahan |
+| --- | --- |
+| Detail | Kartu dibagi *Data Kunjungan* (kunjungan + pasien, urut berpasangan) dan *Jadwal Dokter* (Poliklinik, Dokter, Jadwal Praktik, Antrean). Status detail ikut menampilkan *Booking* (`isBooking`) |
+| Form Perbarui | `BaseGroupedEditorView` dengan kelompok yang sama. Jadwal Dokter: Poliklinik dan Dokter hanya tampil (tidak dapat diganti); Tanggal Kunjungan + Jadwal Praktik dapat diubah |
+| Backend | `OutpatientEncounterScheduleService`: `GET /outpatient-encounters/{id}/schedule-options?visitDate=` (sesi praktik dokter yang sama, klinik dan unit sama, beserta kuota); `PATCH /{id}/registration-data` menerima `visitDate` + `doctorScheduleId` (keduanya kosong = tidak diubah) dalam transaksi yang sama. Aturan: belum datang/diproses, tanggal ≥ hari ini, jadwal aktif dokter yang sama, kuota (`DoctorScheduleQuotaService`), tidak bentrok kunjungan pasien di poli yang sama, penjamin berlaku. Antrean hidup dipindah (ID tetap, nomor baru dari `OutpatientQueueNumberAllocator`), notifikasi antrean sesudah commit, audit mencatat jadwal lama/baru. Detail menambah `doctorScheduleId`, `canChangeSchedule`, `scheduleChangeBlockedReason` |
+
+Bukti: build 0 error, QBE Strict PASS, registry izin valid, uji HTTP S1–S10 PASS (termasuk tolak jadwal dokter lain, tanggal lampau, sesi kosong; antrean tetap satu dan pindah), uji layar E1–E3 PASS. Catatan kontrak: field kontak bernilai `null` pada `PATCH registration-data` berarti dikosongkan — klien wajib mengirim semua field kontak.
+
+### 7.3 Revisi 15 Oktober 2026 — jadwal tersedia satu pilihan
+
+Form Perbarui tidak lagi meminta pilih tanggal lalu sesi. Kelompok *Jadwal Dokter* berisi satu select
+**Jadwal Tersedia**: semua pasangan tanggal + sesi praktik dokter yang sama (poliklinik dan unit sama) mulai
+**besok** sampai 30 hari ke depan yang kuotanya belum penuh, urut tanggal lalu jam, ditambah jadwal kunjungan
+saat ini (bertanda *jadwal saat ini*). `GET /outpatient-encounters/{id}/schedule-options` kini tanpa parameter
+dan mengirim `value` = `yyyy-MM-dd|doctorScheduleId`, `visitDate`, `doctorScheduleId`, `label`
+(mis. `Jum, 16 Okt 2026 · Sore · 13:00–21:00`), kuota. Simpan tetap lewat `PATCH registration-data`
+(`visitDate` + `doctorScheduleId`), aturan server bagian 7.2 tidak berubah.
+
+Bukti: build 0 error, QBE Strict PASS, uji HTTP T1–T7 PASS, uji layar U1–U3 PASS (pilih slot 16 Okt di form →
+detail 16 Okt; data uji dikembalikan ke 19 Okt).
+
+
+## 8. Revisi Zoom 13 Oktober 2026 — Rujukan internal/eksternal dan Surat Rujukan (Amendment REF-REV)
+
+### 8.0 Dasar
+
+| Field | Isi |
+| --- | --- |
+| Sumber requirement | Zoom 13 Okt 2026 (admisi RJ & IGD), transkrip `GMT20261013-031839_Recording.transcript.vtt`; task Sukma Giri 16 Okt 2026 (*Implementasi Revisi Rawat Jalan — Zoom 13 Oktober 2026*) |
+| Scope | Pendaftaran RJ → Data Rujukan; Klinis Dokter → Surat Dokter → Surat Rujukan; Daftar Pasien RJ → detail & cetak. IGD, Kiosk, Billing, Surat Pengantar Rawat Inap **tidak** diubah perilakunya |
+| Baseline | Backend `5a6de202` (`sukmagp`), frontend `321f987a` (`sukmagpV2`); perubahan di working tree, **belum di-commit** (tidak ada commit SHA) |
+| Migration | `20261016043218_AddEncounterReferralSourceType` — 2 kolom (`SourceType` default 1, `SourceDoctorCertificateId`) + FK `Restrict` + index pada `RegEncounterReferral`; data: 20 rujukan RJ eksternal lama yang sudah punya fasilitas + unit tujuan ditandai lengkap (IGD tidak disentuh). Diterapkan **hanya** ke `QuilvianNewDevSukma` (izin pemilik 16 Okt 2026) |
+| Verifikasi | Backend: build Release `0 Error`, EF `has-pending-model-changes` bersih, QBE Strict `PASS` (16 berkas), runtime HTTP R0–R24 **26/26 PASS** (backend uji 7185). Frontend: ESLint tanpa error/warning baru, `npm run build` sukses, unit `tests/unit/outpatient-referral-revision.test.mjs` 12/12 + `doctor-certificate-referral` 2/2; uji layar Playwright **NOT RUN** |
+
+### 8.1 Keputusan (dari transkrip; tidak mengarang aturan baru)
+
+| ID | Keputusan | Sumber |
+| --- | --- | --- |
+| `RJ-REF-DEC-001` | Rujukan dibedakan **Internal** (antar-poli, dari Surat Rujukan dokter rumah sakit) dan **Eksternal** (faskes lain). Pilihan Jenis Kunjungan tetap | 00:36:55–00:37:19, 01:41:39–01:43:11 |
+| `RJ-REF-DEC-002` | Nomor rujukan tidak wajib untuk rujukan RJ (sering tidak ada, termasuk klinik mitra) | Raras 01:41:22–01:42:46 |
+| `RJ-REF-DEC-003` | Diagnosa, alasan, dan tujuan medis bukan isian petugas pendaftaran RJ ("skip saja"; urusan nakes) | dr. Jasmine 01:24:29–01:25:40; Raras 01:43:15 |
+| `RJ-REF-DEC-004` | Unggah surat eksternal opsional; rujukan internal tidak diunggah ulang | Raras 01:43:23–01:43:45 |
+| `RJ-REF-DEC-005` | Surat rujukan internal dibuat dokter (tab Surat Dokter), terbaca dan dapat **dicetak** petugas dari Daftar Pasien RJ untuk lampiran klaim asuransi | 00:37:41–00:40:35 |
+| `RJ-REF-DEC-006` | Aturan IGD (nomor, diagnosa, alasan wajib; `RJ-DOC-DEC-075`) tidak berubah — di luar scope; transkrip IGD dicatat terpisah | Batas scope task |
+| `RJ-REF-DEC-007` (`DEV_DISCRETION`, perlu konfirmasi pemilik) | Satu Surat Rujukan internal hanya dapat menjadi dasar **satu** kunjungan aktif; kunjungan dibatalkan membebaskannya. Mencegah duplikasi saat retry | `RJ-REF-REV-005` |
+
+### 8.2 Pemetaan requirement → gap → task
+
+| Requirement | Existing capability (sebelum) | Gap terbukti | Task |
+| --- | --- | --- | --- |
+| `RJ-REF-REV-001` jenis & sumber rujukan | Step Data Rujukan hanya eksternal (`RJ-DOC-REV-FE-019`, `RJ-REG-REV-FE-008`); `RegEncounterReferral` tanpa sumber | Tidak ada rujukan internal; surat dokter tidak tertaut ke kunjungan lanjutan | `RJ-REF-REV-BE-001`, `RJ-REF-REV-FE-001` |
+| `RJ-REF-REV-002` validasi kondisional | Nomor, fasilitas, diagnosa, alasan, ≥1 surat wajib di FE dan `ComputeMissingFields` | Rujukan sah tanpa nomor/surat tertolak atau tertahan "belum lengkap" | `RJ-REF-REV-BE-001`, `RJ-REF-REV-FE-001` |
+| `RJ-REF-REV-003` Surat Rujukan dokter | `CliDoctorCertificate` tipe `InpatientReferral` berlabel "Rawat Inap", tujuan unit/klinik apa saja, kelas perawatan, tanggal/identitas dari klien, tersimpan saat finalisasi, preview draft bercap "Siap Cetak" dan dapat dicetak | Bukan surat antar-poli; draft bisa dicetak sebagai surat; tanpa DPJP check, tanpa anti-ganda | `RJ-REF-REV-BE-002`, `RJ-REF-REV-FE-002` |
+| `RJ-REF-REV-004` integrasi & cetak | Detail Daftar Pasien RJ tanpa rujukan/surat; endpoint surat dokter tanpa cakupan objek | Petugas tidak dapat melihat/cetak ulang surat resmi | `RJ-REF-REV-BE-003`, `RJ-REF-REV-FE-003` |
+| `RJ-REF-REV-005` riwayat & status | Revisi rujukan tercatat; status surat terpisah | Status rujukan masuk dan surat belum tampil berdampingan; kelengkapan lama tertahan | `RJ-REF-REV-BE-001`/`003`, `RJ-REF-REV-FE-003`, migration |
+
+### 8.3 Task backend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-REF-REV-BE-001` | **Sumber rujukan + validasi kondisional.** Enum `ReferralSourceType`; `RegEncounterReferral.SourceType`/`SourceDoctorCertificateId`; `EncounterReferralCreateRequest.sourceType`/`sourceDoctorCertificateId`; `EncounterReferralService` (internal: surat terbit milik pasien, tujuan = poli kunjungan, belum dipakai — dikunci `FOR UPDATE` di transaksi create; eksternal RJ: fasilitas wajib, nomor/diagnosa/alasan/unggahan opsional; IGD tetap); `ComputeMissingFields` per sumber; `GET /patient-encounters/internal-referral-letters?patientId=`; unggah/`PUT` rujukan internal ditolak; `409` konflik dalam transaksi | — | 1. Internal sah tersimpan `SourceType=2`, surat tertaut, lengkap, nomor = nomor surat. 2. Surat pasien lain `PM-18`, poli beda `PM-20`, dipakai ulang `PM-19`. 3. Eksternal tanpa fasilitas `PM-03`; tanpa nomor & unggahan tersimpan lengkap. 4. Unggah/koreksi internal `PM-22`. 5. Opsi surat hanya surat terbit belum terpakai milik pasien. 6. IGD tidak berubah | Build; EF; QBE; migration; runtime R7–R13, R20–R23 | ✅ `16 Okt 2026` — runtime 26/26 PASS (lihat [laporan](../task/report/backend/RJ-REF-REV-BE-001.md)). Cabang IGD dibuktikan lewat kode, tidak diuji runtime |
+| ✅ `RJ-REF-REV-BE-002` | **Surat Rujukan internal antar-poli.** `DoctorCertificateService.IssueInternalReferralAsync`: kunjungan RJ poli yang sudah ditangani dokter, aktor = DPJP, tujuan poli aktif ≠ poli kunjungan, diagnosa & alasan wajib (≤500/1000), identitas/SIP/tanggal dari server, tanpa kelas perawatan, nomor resmi `SRJ`, kunci kunjungan → `409` bila surat ke poli sama sudah terbit; `referral-targets?certificateType=inpatientReferral` hanya poliklinik; surat yang menjadi dasar kunjungan aktif tidak dapat diubah/dibatalkan (`409`); surat lama bertujuan unit tetap dapat disunting | — | 1. Diagnosa kosong `400`; tujuan = poli sendiri `400`. 2. Terbit: nomor `SRJ`, nama pasien dari master walau klien kirim nama lain, kelas `null`, tanggal = hari ini. 3. Retry `409`, tetap satu surat. 4. Ubah/batal surat terpakai `409` | Runtime R1–R6, R14 | ✅ `16 Okt 2026` — runtime PASS. Uji `403` non-DPJP lewat kode (akun uji SuperAdmin dipetakan ke dokter uji). [Laporan](../task/report/backend/RJ-REF-REV-BE-001.md) |
+| ✅ `RJ-REF-REV-BE-003` | **Detail & cetak bercakupan.** `GET /outpatient-encounters/{id}` menambah `referral` (sumber, fasilitas/surat dasar, kelengkapan, berkas) dan `referralLetters` (keluar/masuk, status surat, kunjungan lanjutan, `canPrint`); `GET /outpatient-encounters/{id}/referral-letters/{certificateId}` (izin `OutpatientEncounter : Read`, cakupan daftar, surat harus tertaut, hanya status Terbit, `Cache-Control: no-store`, audit `ReadOutpatientReferralLetter`) | `BE-001`, `BE-002` | 1. Detail lanjutan memuat rujukan internal + surat masuk. 2. Detail sumber memuat surat keluar + nomor kunjungan lanjutan; surat batal `canPrint=false`. 3. Cetak surat tertaut `200`; surat batal `400`; surat tidak tertaut/acak/pasien lain `404` | Runtime R15–R19, R24; cek header | ✅ `16 Okt 2026` — runtime PASS, `no-store` terverifikasi, 10 baris audit terbit/cetak di log |
+
+### 8.4 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| 🟡 `RJ-REF-REV-FE-001` | **Step Data Rujukan berbasis sumber.** Kartu Sumber Rujukan (Eksternal/Internal). Internal: daftar Surat Rujukan pasien (memuat/galat/kosong), memilih surat mengunci poliklinik tujuan, lalu jadwal dokter; tanpa nomor/fasilitas/diagnosa/unggahan. Eksternal: Fasilitas Perujuk wajib, dokter perujuk & nomor opsional, tanggal/jam, berkas opsional, unit tujuan & jadwal; kelompok Informasi Klinis dihapus. Verifikasi menampilkan ringkasan sesuai sumber; ganti sumber mengosongkan isian sumber lain | `BE-001` | 1. Validasi & payload sesuai sumber (unit test). 2. Unggahan hanya dikirim bila ada. 3. Lab tetap eksternal. 4. Galat backend (`PM-18/19/20`) tampil | ESLint; build; unit; uji layar | 🟡 `16 Okt 2026` — ESLint bersih, build sukses, unit 12/12; **uji layar NOT RUN** [Laporan](../task/report/frontend/RJ-REF-REV-FE-001.md) |
+| 🟡 `RJ-REF-REV-FE-002` | **Surat Rujukan di tab Surat Dokter.** Label "Surat Rujukan" antar-poli; tujuan hanya poliklinik; Tanggal Rujukan & Kelas Perawatan dihapus; tombol **Terbitkan Surat Rujukan** (nomor resmi backend, tidak lagi tersimpan saat finalisasi); surat terbit dimuat ulang dan form terkunci; preview draft bercap *DRAFT — BELUM TERBIT*, nomor "Belum terbit", tombol Cetak nonaktif | `BE-002` | 1. Draft tidak dapat dicetak. 2. Terbit → nomor `SRJ` tampil, form baca saja. 3. `409` menampilkan surat terkini. 4. Surat Pengantar Rawat Inap tidak berubah | ESLint; build; unit; uji layar | 🟡 `16 Okt 2026` — lint (warning = `HEAD`), build sukses, unit payload/peta surat PASS; **uji layar NOT RUN** [Laporan](../task/report/frontend/RJ-REF-REV-FE-001.md) |
+| 🟡 `RJ-REF-REV-FE-003` | **Detail Daftar Pasien RJ.** Kelompok kartu *Rujukan Masuk* (sumber, status rujukan masuk + isian kurang, fasilitas/surat dasar, dokter, tanggal, unit tujuan, berkas) dan bagian *Surat Rujukan* (tabel surat keluar/masuk, status surat terpisah, kunjungan lanjutan, aksi *Preview & Cetak* hanya untuk surat Terbit). Preview memuat surat resmi dari endpoint `BE-003`, cetak via `window.print` | `BE-003` | 1. Surat terbit dapat di-preview & dicetak. 2. Surat batal tidak dapat dicetak. 3. `404/403` tampil sebagai pesan | ESLint; build; uji layar; UAT cetak | 🟡 `16 Okt 2026` — ESLint bersih, build sukses; **uji layar & cetak kertas NOT RUN** [Laporan](../task/report/frontend/RJ-REF-REV-FE-001.md) |
+
+### 8.5 Status requirement
+
+| Requirement | Status | Alasan |
+| --- | --- | --- |
+| `RJ-REF-REV-001` | `PARTIAL` | Backend `TESTED`; frontend build/unit, uji layar belum |
+| `RJ-REF-REV-002` | `PARTIAL` | Validasi BE/FE konsisten dan teruji; **fasilitas di luar master `BLOCKED/OWNER_DECISION_REQUIRED`** (8.7) |
+| `RJ-REF-REV-003` | `PARTIAL` | Backend `TESTED`; tab dokter belum uji layar |
+| `RJ-REF-REV-004` | `PARTIAL` | Endpoint cetak bercakupan `TESTED`; layar & cetak kertas belum |
+| `RJ-REF-REV-005` | `PARTIAL` | Anti-ganda, kunci, kelengkapan, status terpisah `TESTED` di BE; tampilan belum uji layar |
+
+Tidak ada requirement `DONE`: uji layar Playwright dan UAT pengguna belum dijalankan.
+
+### 8.6 Traceability balik (kode → task → requirement)
+
+| Kode berubah | Task | Requirement |
+| --- | --- | --- |
+| BE `Enums/ReferralSourceType.cs`, `Models/RegEncounterReferral.cs`, `RegEncounterReferralConfiguration.cs`, `Migrations/20261016043218_*` | `BE-001` | 001, 002, 005 |
+| BE `Services/EncounterReferralService.cs`, `ReferralDocumentStorageService.cs`, `DTOS/EncounterReferralDtos.cs`, `Controllers/PatientEncounterController.cs` | `BE-001` | 001, 002, 005 |
+| BE `ClinicalManagement/Services/DoctorCertificateService.cs`, `Controllers/DoctorCertificateController.cs` | `BE-002` | 003, 005 |
+| BE `OutpatientEncounterDetailService.cs`, `OutpatientEncounterListService.cs` (konstruktor exception), `OutpatientEncounterController.cs`, `DTOS/OutpatientEncounterDetailDtos.cs` | `BE-003` | 004, 005 |
+| FE `outpatient-referral-step.jsx`, `outpatient-verification-step.jsx`, `outpatient-registration-page.jsx`, `use-outpatient-registration.js`, `outpatient-referral.utils.js`, `outpatient-registration.constants.js`, `outpatient-registration.service.js` | `FE-001` | 001, 002 |
+| FE `doctor-certificate-tab.jsx`, `use-doctor-certificate.js`, `doctor-certificate.utils.js`, `doctor-certificate.constants.js`, `doctor-certificate.module.css` | `FE-002` | 003 |
+| FE `outpatient-encounter-referral-letters.jsx` (baru), `outpatient-encounter-detail-view.jsx`, `outpatient-encounter-detail-utils.jsx`, `outpatient-encounter.service.js` | `FE-003` | 004, 005 |
+| FE `tests/unit/outpatient-referral-revision.test.mjs` (baru) | `FE-001`, `FE-002` | 001–003 |
+
+### 8.7 Blocker dan keputusan pemilik
+
+| Butir | Status | Menahan |
+| --- | --- | --- |
+| Fasilitas perujuk yang tidak ada di master dicatat teks bebas ("pilih strip … free text", 01:42:46). Bertentangan dengan `DEC-FRJ-001` (fasilitas wajib mitra dengan PKS berlaku). Tidak diimplementasikan | `BLOCKED / OWNER_DECISION_REQUIRED` | Sebagian `RJ-REF-REV-002` |
+| Surat internal satu-pakai (`RJ-REF-DEC-007`) vs. dipakai berulang (mis. seri fisioterapi) | Perlu konfirmasi pemilik | Tidak menahan |
+| Masa berlaku Surat Rujukan internal (saat ini tanpa batas waktu) | Perlu keputusan pemilik | Tidak menahan |
+| Apakah surat eksternal wajib diunggah untuk klaim penjamin tertentu | Perlu keputusan pemilik (Billing/Payer) | Tidak menahan |
+| Endpoint lama `GET /doctor-certificates*` belum punya otorisasi objek (cakupan dokter/encounter); petugas memakai endpoint bercakupan `BE-003` | Risiko lama, di luar perubahan ini | Tidak menahan |
+| Uji layar Playwright, uji `403` akun tanpa izin, cetak kertas | `PENDING` | `DONE` |
+| Migration ke DB master/production | Pemilik rilis | Rilis |
+
+### 8.8 Tambahan 16 Oktober 2026 — Tingkat ketergantungan pasien pada Surat Pengantar Rawat Inap
+
+Permintaan Sukma Giri (16 Okt 2026): tab Surat Dokter → Surat Pengantar Rawat Inap mendapat pilihan wajib
+**Tingkat Ketergantungan Pasien** — Low, Moderate, High Dependency.
+
+| Task | Isi | Bukti | Status |
+| --- | --- | --- | --- |
+| ✅ `RJ-DOC-ADM-BE-001` | Enum `PatientDependencyLevel` (`Low=1`, `Moderate=2`, `High=3`); kolom `CliDoctorCertificate.PatientDependencyLevel` (nullable, data lama `null`) lewat migration `20261016062203_AddDoctorCertificatePatientDependencyLevel`; `inpatientAdmission.patientDependencyLevel` wajib dan tervalidasi enum saat terbit; respons menambah `patientDependencyLevel` + `patientDependencyLevelName` | Build 0 error, EF bersih, QBE Strict PASS, migration diterapkan ke `QuilvianNewDevSukma`, runtime D0–D4 5/5 PASS (tanpa nilai `400`, nilai 9 `400`, Moderate tersimpan & terbaca ulang) | ✅ `TESTED` |
+| 🟡 `RJ-DOC-ADM-FE-001` | Select wajib *Tingkat Ketergantungan Pasien* di form Surat Pengantar (terkunci setelah terbit), dikirim di payload, tampil di preview surat ("Ketergantungan") dan saat surat terbit dimuat ulang | ESLint tanpa temuan baru, build sukses, unit 13/13; uji layar `NOT RUN` | 🟡 |
+
+Belum termasuk: menampilkan tingkat ketergantungan di layar Admisi Transfer Rawat Inap (modul Rawat Inap, di luar scope).

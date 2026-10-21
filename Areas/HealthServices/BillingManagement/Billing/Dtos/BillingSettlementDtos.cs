@@ -7,6 +7,8 @@ public sealed class CreateSettlementRequest
 {
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
+    /// <summary>Target iuran membership (non-kunjungan); wajib bila Purpose = MEMBERSHIP_FEE.</summary>
+    public Guid? MembershipFeeChargeId { get; set; }
     [Required, MaxLength(30)] public string Purpose { get; set; } = string.Empty;
     [Range(
         typeof(decimal),
@@ -42,6 +44,7 @@ public sealed class SettlementResponse
     public Guid? Id { get; set; }
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
+    public Guid? MembershipFeeChargeId { get; set; }
     public string Purpose { get; set; } = BillingSettlementPurposes.DepositTopUp;
     public string? Note { get; set; }
     public string Status { get; set; } = BillingSettlementStatuses.Draft;

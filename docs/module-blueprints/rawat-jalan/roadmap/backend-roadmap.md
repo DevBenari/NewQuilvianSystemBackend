@@ -146,3 +146,9 @@ izin migration apply, database mutation, deployment, commit, atau publish.
 
 Setiap handoff ke `build-module-backend` wajib menyertakan task ID, approval task, contract hash,
 source SHA/working tree state, dependency state, QBE preflight, dan bukti acceptance yang diminta.
+
+## Catatan silang — Amendment REF-REV (16 Okt 2026)
+
+Revisi rujukan Zoom 13 Okt 2026 (`RJ-REF-REV-001`..`005`) **bukan** scope roadmap ini dan tidak mengubah
+status task di sini. Definisi, status, dan bukti ada pada
+[registration-revision-roadmap.md](registration-revision-roadmap.md) bagian 8.

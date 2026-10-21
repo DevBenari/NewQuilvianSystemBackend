@@ -27,6 +27,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// <summary>Nama dokter perujuk, teks bebas (opsional).</summary>
         [MaxLength(200)]
         public string? ReferralDoctorName { get; set; }
+
+        /// <summary>
+        /// Sumber rujukan (<c>RJ-REF-REV-001</c>). Kosong berarti <c>External</c> (kontrak lama
+        /// petugas dan Kiosk).
+        /// </summary>
+        public ReferralSourceType? SourceType { get; set; }
+
+        /// <summary>
+        /// Surat Rujukan internal terbit milik pasien yang sama; wajib bila
+        /// <see cref="SourceType"/> bernilai <c>Internal</c>. Nomor, dokter perujuk, dan tanggal
+        /// rujukan diambil server dari surat ini.
+        /// </summary>
+        public Guid? SourceDoctorCertificateId { get; set; }
     }
 
     /// <summary>
@@ -128,10 +141,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? DiagnosisNote { get; set; }
         public string? ReferralReason { get; set; }
         public ReferralCaptureSource? CaptureSource { get; set; }
+
+        /// <summary>Sumber rujukan masuk (<c>RJ-REF-REV-001</c>); <c>null</c> bila rincian belum ada.</summary>
+        public ReferralSourceType? SourceType { get; set; }
+        public string? SourceTypeName { get; set; }
+
+        /// <summary>Surat Rujukan internal dasar kunjungan (hanya rujukan internal).</summary>
+        public InternalReferralLetterOptionResponse? SourceLetter { get; set; }
         public bool IsComplete { get; set; }
         public List<string> MissingFields { get; set; } = new();
         public bool IsLocked { get; set; }
         public Guid? RowVersion { get; set; }
         public List<EncounterReferralDocumentResponse> Documents { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Surat Rujukan internal terbit yang dapat dipakai pendaftaran (<c>RJ-REF-REV-001</c>).
+    /// Sengaja tanpa diagnosa dan alasan: petugas administrasi cukup mengenali suratnya.
+    /// </summary>
+    public class InternalReferralLetterOptionResponse
+    {
+        public Guid CertificateId { get; set; }
+        public string CertificateNumber { get; set; } = string.Empty;
+        public DateTime IssuedDate { get; set; }
+        public DateTime IssuedAt { get; set; }
+        public string? DoctorName { get; set; }
+        public Guid SourceEncounterId { get; set; }
+        public string? SourceEncounterNumber { get; set; }
+        public string? SourceClinicName { get; set; }
+        public Guid? TargetClinicId { get; set; }
+        public Guid? TargetServiceUnitId { get; set; }
+        public string? TargetName { get; set; }
+
+        /// <summary><c>1</c> Terbit, <c>2</c> Dibatalkan.</summary>
+        public int CertificateStatus { get; set; }
+        public string CertificateStatusName { get; set; } = string.Empty;
     }
 }

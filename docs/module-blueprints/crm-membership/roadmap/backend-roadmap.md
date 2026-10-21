@@ -37,14 +37,14 @@
                            └─> BE-CRM-023  │               ├─> BE-CRM-013 ✅ ─┼─> BE-CRM-015 🟡 (rilis bersama FE-CRM-001)
                                            └─> BE-CRM-014 ✅│               └─> BE-CRM-020 ✅
                                                BE-CRM-021 ✅ <┘ (butuh 010)
-⛔{AG-03 owner rawat-jalan} ─> BE-CRM-022 (butuh 010)
+{AG-03 ✅ CRM-DEC-032} ─> BE-CRM-022 ✅ (butuh 010; dipenuhi BE-RJP-002 ✅ [RJ])
 ```
 
 | Gelombang | Task | Boleh mulai setelah |
 |---|---|---|
 | `MVP-0` | `BE-CRM-001`, `BE-CRM-002`, `BE-CRM-003`, `BE-CRM-023` | Registry folder disetujui ✅ (2026-10-13) |
 | `MVP-1` | `BE-CRM-010`, `BE-CRM-011`, `BE-CRM-012`, `BE-CRM-013`, `BE-CRM-014`, `BE-CRM-015` | `MVP-0` selesai |
-| `MVP-2` | `BE-CRM-020`, `BE-CRM-021`, `BE-CRM-022` ⛔ | `MVP-1` selesai |
+| `MVP-2` | `BE-CRM-020`, `BE-CRM-021`, `BE-CRM-022` (dipenuhi `BE-RJP-002`, roadmap rawat-jalan) | `MVP-1` selesai |
 
 ## Ringkasan Task
 
@@ -62,7 +62,7 @@
 | `BE-CRM-015` 🟡 | Penutupan rute kiosk, pensiun endpoint lama, `IsMember` tidak lagi diterima | CRM-06, CRM-05 | 011, 013; rilis bersama `FE-CRM-001` | Backend selesai, menunggu `FE-CRM-001` untuk rilis — [laporan](../task/report/backend/BE-CRM-015.md) |
 | `BE-CRM-020` ✅ | Proses terjadwal harian | CRM-03 | 011, 012 | Selesai — [laporan](../task/report/backend/BE-CRM-020.md) |
 | `BE-CRM-021` ✅ | Kiosk hanya membaca membership Aktif | CRM-05 | 010 | Selesai — [laporan](../task/report/backend/BE-CRM-021.md) |
-| `BE-CRM-022` | Antrean RJ memakai resolver | CRM-05 | 010, ⛔ `AG-03` | ⛔ |
+| `BE-CRM-022` ✅ | Antrean RJ memakai resolver | CRM-05 | 010, `AG-03` ✅ (dijawab 2026-10-16, `CRM-DEC-032`) | ✅ 2026-10-16 — **dipenuhi oleh `BE-RJP-002`** ([laporan](../../rawat-jalan/task/report/backend/BE-RJP-002.md)) di [`rawat-jalan/roadmap/priority-reservation-backend-roadmap.md`](../../rawat-jalan/roadmap/priority-reservation-backend-roadmap.md), karena perubahannya milik Registration. Tidak dikerjakan dua kali. Tanda di sini mengikuti tanda `BE-RJP-002`. Owner: Sukma Giri (`CRM-DEC-031`) |
 
 ## Rincian Task
 
@@ -279,7 +279,9 @@ Selesai 2026-10-13, termasuk titik baca ketiga `KioskScanSessionController`. Lap
 | Risiko/pemilik | Menyentuh service kiosk (Registration). Pemilik: Yoga, dengan pemberitahuan ke owner kiosk |
 | DoD | Kriteria terbukti |
 
-### `BE-CRM-022` ⛔ — Antrean RJ memakai resolver
+### `BE-CRM-022` ✅ — Antrean RJ memakai resolver
+
+Selesai 2026-10-16, dipenuhi oleh `BE-RJP-002` pada roadmap `rawat-jalan` (runtime 8/8 PASS). Laporan: [`rawat-jalan/task/report/backend/BE-RJP-002.md`](../../rawat-jalan/task/report/backend/BE-RJP-002.md).
 
 | Field | Isi |
 |---|---|

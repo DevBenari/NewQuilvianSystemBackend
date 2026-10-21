@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
@@ -30,6 +32,16 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasFilter("\"IsDelete\" = false");
 
             entity.HasIndex(x => x.IsComplete);
+
+            // RJ-REF-REV-001: sumber rujukan; baris lama otomatis Eksternal (1).
+            entity.Property(x => x.SourceType).HasDefaultValue(ReferralSourceType.External);
+
+            entity.HasIndex(x => x.SourceDoctorCertificateId);
+
+            entity.HasOne<CliDoctorCertificate>()
+                .WithMany()
+                .HasForeignKey(x => x.SourceDoctorCertificateId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.PatientEncounter)
                 .WithMany()

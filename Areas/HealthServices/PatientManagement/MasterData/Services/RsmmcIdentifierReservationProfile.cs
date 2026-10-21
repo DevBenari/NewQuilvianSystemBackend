@@ -23,6 +23,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         ConfigMalformed = 4
     }
 
+    /// <summary>
+    /// Cara sebuah jalur pembuatan pasien memperoleh <c>PatientCode</c> dan MRN untuk guard saat ini
+    /// (`BE-PAT-MIG-003`, `BE-PAT-MIG-003A`). Pendaftaran normal dan pendaftaran bayi bercabang pada
+    /// nilai yang sama dari <see cref="RsmmcIdentifierReservationProfile.ResolveAllocationMode"/>.
+    /// </summary>
+    public enum RsmmcIdentifierAllocationMode
+    {
+        /// <summary>
+        /// Di luar <c>Staging</c> persis. Setiap jalur memakai penomorannya sendiri yang lama tanpa
+        /// perubahan: pendaftaran normal "nomor kosong terkecil", pendaftaran bayi <c>NumberSeries</c>.
+        /// </summary>
+        Legacy = 0,
+
+        /// <summary>
+        /// <c>Staging</c> persis dengan guard aktif. Nomor pertama yang belum dipakai ≥ lantai, di bawah
+        /// kunci <c>(PATI, NORM)</c> di dalam transaksi pembuatan pasien.
+        /// </summary>
+        ReservedFloor = 1,
+
+        /// <summary><c>Staging</c> persis dengan konfigurasi guard tidak sah. Pembuatan pasien ditolak.</summary>
+        FailClosed = 2
+    }
+
     public sealed record RsmmcReservationGuardEvaluation(
         string? EnvironmentName,
         RsmmcReservationGuardState State)
@@ -108,7 +131,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         /// <summary>
         /// Kunci kedua: <c>0x4E4F524D</c> = 1.313.821.261, teks ASCII <c>"NORM"</c> —
-        /// NORMAL_PATIENT_CREATE. Satu kunci global untuk seluruh pendaftaran pasien normal.
+        /// NORMAL_PATIENT_CREATE. Satu kunci global untuk seluruh pendaftaran pasien normal dan,
+        /// sejak `BE-PAT-MIG-003A` (`PAT-DEC-071`), pendaftaran bayi di <c>Staging</c> persis.
         /// </summary>
         public const int AllocationLockId = 0x4E4F524D;
 
@@ -139,6 +163,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
             return new RsmmcReservationGuardEvaluation(environmentName, ReadState(configuration));
         }
+
+        /// <summary>
+        /// Aturan tunggal pemilihan cara alokasi nomor untuk seluruh jalur pembuatan pasien
+        /// non-migrasi (`PAT-DEC-066`, `067`, `070`).
+        /// </summary>
+        public static RsmmcIdentifierAllocationMode ResolveAllocationMode(RsmmcReservationGuardEvaluation guard)
+        {
+            if (guard.IsActive) return RsmmcIdentifierAllocationMode.ReservedFloor;
+
+            return guard.IsFailClosed
+                ? RsmmcIdentifierAllocationMode.FailClosed
+                : RsmmcIdentifierAllocationMode.Legacy;
+        }
+
+        /// <summary>
+        /// Jalur dengan cara alokasi ini tidak dapat memakai nomor yang dicadangkan migrasi: ia memakai
+        /// lantai, atau ditolak sebelum alokasi. <see cref="RsmmcIdentifierAllocationMode.Legacy"/> tidak.
+        /// </summary>
+        public static bool IsMigrationReservationSafe(RsmmcIdentifierAllocationMode mode) =>
+            mode is RsmmcIdentifierAllocationMode.ReservedFloor or RsmmcIdentifierAllocationMode.FailClosed;
+
+        /// <summary>
+        /// Kesiapan <c>PAT-GATE-005</c> generasi 2 (`PAT-DEC-072`): guard aktif dengan konfigurasi sah,
+        /// <b>kedua</b> jalur pembuatan pasien — normal dan bayi — memakai alokasi berlantai, dan nomor
+        /// berikutnya memenuhi kedua lantai. Satu jalur saja yang tidak terlindungi membuatnya
+        /// <c>false</c>.
+        /// </summary>
+        public static bool IsGuardReady(
+            RsmmcReservationGuardEvaluation guard,
+            RsmmcIdentifierAllocationMode normalPatientCreateMode,
+            RsmmcIdentifierAllocationMode newbornPatientCreateMode,
+            bool patientCodeFloorSatisfied,
+            bool medicalRecordNumberFloorSatisfied) =>
+            guard.IsActive &&
+            guard.ConfigurationValid &&
+            normalPatientCreateMode == RsmmcIdentifierAllocationMode.ReservedFloor &&
+            newbornPatientCreateMode == RsmmcIdentifierAllocationMode.ReservedFloor &&
+            patientCodeFloorSatisfied &&
+            medicalRecordNumberFloorSatisfied;
+
+        public static string ToAllocationModeCode(RsmmcIdentifierAllocationMode mode) => mode switch
+        {
+            RsmmcIdentifierAllocationMode.ReservedFloor => "RESERVED_FLOOR",
+            RsmmcIdentifierAllocationMode.FailClosed => "FAIL_CLOSED",
+            _ => "LEGACY"
+        };
 
         public static string ToStateCode(RsmmcReservationGuardState state) => state switch
         {

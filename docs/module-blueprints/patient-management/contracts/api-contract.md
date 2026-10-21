@@ -9,14 +9,14 @@ normal milik task prasyarat `BE-PAT-MIG-003` (B14), berstatus `approved` sejak 1
 | Field | Nilai |
 | --- | --- |
 | `blueprint_id` | `PAT-BP-001` |
-| `last_changed_in` | `1.2.2` — 16 Oktober 2026: kunci serialisasi allocator B14.1/B14.3 menjadi dua kunci Int32 tetap, dan syarat endpoint pemeriksa B14.2 dikonfirmasi (`PAT-DEC-068`). `1.2.1` (`PAT-DEC-067`) dan `1.2.0` sebelumnya. Bagian A terakhir berubah di `1.1.0` |
-| Versi kontrak berlaku | **`1.2.2`** — `approved` 16 Oktober 2026 (`PAT-DEC-068`). Bagian A tetap berisi `1.1.0` tanpa perubahan |
+| `last_changed_in` | `1.3.0` — 19 Oktober 2026: guard reservasi pada jalur pendaftaran bayi (B14.4 baru), pemeriksa B14.2 melaporkan kedua jalur, dan amandemen desain worker — `PERSIST_IS_MEMBER` dihapus, lima kolom baru `NULL`, `PATIENT_BASELINE` dengan baseline tetap (`PAT-DEC-069`–`077`; klarifikasi non-API B15 19 Oktober 2026 — prasyarat konfigurasi server bukti sekali pakai, temuan `F-14` — dan 20 Oktober 2026 — eksekusi serial suite provider-real, tanpa perubahan versi). `1.2.2` (`PAT-DEC-068`), `1.2.1` (`PAT-DEC-067`), dan `1.2.0` sebelumnya. Bagian A terakhir berubah di `1.1.0` |
+| Versi kontrak berlaku | **`1.3.0`** — `approved` 19 Oktober 2026 (`PAT-DEC-069`–`077`, instruksi pemilik `TASK: BE-PAT-MIG-003A`). Bagian A tetap berisi `1.1.0` tanpa perubahan. *Riwayat: `1.2.2` `approved` 16 Oktober 2026* |
 | Versi kontrak diusulkan | — (tidak ada). Riwayat: `1.2.0` diusulkan 14 Oktober 2026 sebagai `draft`, disetujui 15 Oktober 2026; `1.2.1` dan `1.2.2` disetujui 16 Oktober 2026 |
 | Status kontrak | Bagian A: **`approved`** — final 8 Oktober 2026. Bagian B: **`approved`** — `1.2.0` 15 Oktober 2026 (`PAT-DEC-033`) sesudah `requirement-completeness-gate` `PASS`; `1.2.1` 16 Oktober 2026 (`PAT-DEC-067`); `1.2.2` 16 Oktober 2026 (`PAT-DEC-068`). Pertanyaan `BLOCKING`: 0 |
-| Riwayat versi | `1.0.0` (8 Oktober 2026): bentuk awal; `PAT-OQ-002`–`004` masih `PROPOSED`. `1.1.0` (8 Oktober 2026): `PAT-OQ-002`–`004` final, ditambah `PAT-OQ-005`–`007`; nama status konflik QR dikunci `CONFLICT`. **Bentuk request dan route tidak berubah**. `1.2.0` (14 Oktober 2026, draft; diamandemen dua kali 15 Oktober 2026; **`approved` 15 Oktober 2026**): menambah Bagian B untuk `BE-PAT-MIG-002` dan B14 untuk `BE-PAT-MIG-003`. **Aditif** untuk API: endpoint, request, response, dan status Bagian A tidak berubah; bentuk request/response pendaftaran normal tidak berubah, ditambah satu kode penolakan `503` khusus Staging (B14.3). `1.2.1` (16 Oktober 2026, **`approved`**, `PAT-DEC-067`): `Enabled = false` di Staging persis kini gagal tertutup, bukan mematikan guard; menambah endpoint baca-saja `GET /admin/migration/rsmmc-reservation-guard` (B14.2). Aditif untuk API; satu perubahan perilaku hanya di Staging persis. `1.2.2` (16 Oktober 2026, **`approved`**, `PAT-DEC-068`): kunci serialisasi allocator dua bagian tetap, tanpa `hashtext()`; syarat endpoint pemeriksa dikonfirmasi. Tanpa perubahan bentuk API |
-| Task | Bagian A: `BE-PAT-MIG-001`. Bagian B: `BE-PAT-MIG-002`; B14: `BE-PAT-MIG-003` |
+| Riwayat versi | `1.0.0` (8 Oktober 2026): bentuk awal; `PAT-OQ-002`–`004` masih `PROPOSED`. `1.1.0` (8 Oktober 2026): `PAT-OQ-002`–`004` final, ditambah `PAT-OQ-005`–`007`; nama status konflik QR dikunci `CONFLICT`. **Bentuk request dan route tidak berubah**. `1.2.0` (14 Oktober 2026, draft; diamandemen dua kali 15 Oktober 2026; **`approved` 15 Oktober 2026**): menambah Bagian B untuk `BE-PAT-MIG-002` dan B14 untuk `BE-PAT-MIG-003`. **Aditif** untuk API: endpoint, request, response, dan status Bagian A tidak berubah; bentuk request/response pendaftaran normal tidak berubah, ditambah satu kode penolakan `503` khusus Staging (B14.3). `1.2.1` (16 Oktober 2026, **`approved`**, `PAT-DEC-067`): `Enabled = false` di Staging persis kini gagal tertutup, bukan mematikan guard; menambah endpoint baca-saja `GET /admin/migration/rsmmc-reservation-guard` (B14.2). Aditif untuk API; satu perubahan perilaku hanya di Staging persis. `1.2.2` (16 Oktober 2026, **`approved`**, `PAT-DEC-068`): kunci serialisasi allocator dua bagian tetap, tanpa `hashtext()`; syarat endpoint pemeriksa dikonfirmasi. Tanpa perubahan bentuk API. `1.3.0` (19 Oktober 2026, **`approved`**, `PAT-DEC-069`–`077`): guard reservasi pada `POST /newborns` (B14.4); empat field aditif pemeriksa B14.2 dan `overallGuardReady` mensyaratkan kedua jalur; `503` khusus Staging persis pada jalur bayi; amandemen desain worker B4.2 `PATIENT_BASELINE`, B4.3 langkah 8 dihapus, B10 lima kolom `NULL`, B15. Aditif untuk API |
+| Task | Bagian A: `BE-PAT-MIG-001`. Bagian B: `BE-PAT-MIG-002`; B14: `BE-PAT-MIG-003`; B14.4 dan perluasan B14.2: `BE-PAT-MIG-003A` |
 | Snapshot source | Bagian A: branch `QuilvianStaDeploy`, commit `103b45ccd5f0d9e2cbacff588540d8fe3d52e706` (selisih baris ke Integration dicatat pada laporan `BE-PAT-MIG-001` bagian 9.5). Bagian B: `QuilvianIntegrationBackend` @ `a52b3c98e7e9b0fae42f9a889b84c6c8332f8923` |
-| Status endpoint | Bagian A: **tersedia** di source sejak commit `ef3adbe4` (catatan di bawah tidak diubah karena bukti sejarah). Bagian B: **Rencana (belum tersedia)** |
+| Status endpoint | Pemeriksa B14.2: **tersedia** sejak `BE-PAT-MIG-003` (`ab45dd3c`), keluaran `1.3.0` dibangun `BE-PAT-MIG-003A`; `POST /newborns` sudah ada (upstream `3a0189c2`), guard B14.4 dibangun `BE-PAT-MIG-003A`; endpoint worker Bagian B: **Rencana (belum tersedia)**. Bagian A: **tersedia** di source sejak commit `ef3adbe4` (catatan di bawah tidak diubah karena bukti sejarah). Bagian B: **Rencana (belum tersedia)** |
 
 Dokumen ini mengunci bentuk endpoint, aturan pemilihan pasien, kontrak QR, dan batas data yang
 boleh berubah. Kutipan baris source di bawah diambil dari snapshot di atas. Bila snapshot
@@ -429,6 +429,16 @@ membuat ulang `MstPatient` (`AC-19`).
 > **Amandemen `1.2.2` — 16 Oktober 2026 (`PAT-DEC-068`).** Kunci serialisasi allocator nomor pasien
 > normal kini `pg_advisory_xact_lock(1346458697, 1313821261)` — dua kunci Int32 tetap: namespace `0x50415449` (`"PATI"`, PATIENT_IDENTIFIER_ALLOCATION) dan kunci `0x4E4F524D` (`"NORM"`, NORMAL_PATIENT_CREATE). Endpoint pemeriksa B14.2
 > dikonfirmasi pemilik dengan syarat baca-saja, nol mutasi, tanpa data pribadi.
+>
+> **Amandemen `1.3.0` — 19 Oktober 2026 (`PAT-DEC-069`–`077`), instruksi pemilik
+> `TASK: BE-PAT-MIG-003A`.** Impact scan sebelum build `BE-PAT-MIG-002` menemukan jalur pendaftaran
+> bayi `POST /newborns` yang mengalokasikan nomor di luar guard (`PAT-SRC-031`). Task prasyarat
+> `BE-PAT-MIG-003A` memasang lantai, konfigurasi, dan kunci yang sama pada jalur itu di `Staging` persis
+> (B14.4); pemeriksa B14.2 kini melaporkan kedua jalur dan `overallGuardReady` mensyaratkan keduanya.
+> Desain worker diamandemen: langkah `PERSIST_IS_MEMBER` dihapus (B4.3, `PAT-DEC-075`), lima kolom
+> `MstPatient` baru dibiarkan `NULL` (B10, `PAT-DEC-076`), dan `PATIENT_BASELINE` memakai baseline tetap
+> yang diukur ulang sebelum Canary-A (B4.2, `PAT-DEC-077`). `BE-PAT-MIG-002` tetap belum boleh dibangun
+> (`PAT-DEC-069`).
 
 | Field | Nilai |
 | --- | --- |
@@ -437,7 +447,7 @@ membuat ulang `MstPatient` (`AC-19`).
 | `input_revision` | `00-interview-decisions.md` revision `3` (`approved` untuk bagian 6–14, 15 Oktober 2026) dan `requirement-completeness-assessment.md` revision `1`; hash pada manifest |
 | Snapshot source | `QuilvianIntegrationBackend` @ `a52b3c98e7e9b0fae42f9a889b84c6c8332f8923` |
 | Dampak kompatibilitas | Aditif untuk API: endpoint Bagian A dan kontrak response bersama tidak berubah. Alur pendaftaran pasien normal tidak diubah **oleh endpoint ini**; perlindungan reservasi yang menyentuh alur itu milik task prasyarat `BE-PAT-MIG-003` (B14, `PAT-DEC-057`); bentuk request/response endpoint pendaftaran normal tidak berubah |
-| Traceability | `PAT-DEC-017`–`PAT-DEC-068`; `PAT-OQ-008`–`PAT-OQ-037` (seluruhnya diputuskan atau `SUPERSEDED`); `PAT-GAP-002`–`016`; `PAT-MIG2-AC-01`–`PAT-MIG2-AC-51` (`AC-44`/`45` dipindah ke `BE-PAT-MIG-003`); `PAT-MIG3-AC-01`–`PAT-MIG3-AC-14` untuk B14 dan B15 |
+| Traceability | `PAT-DEC-017`–`PAT-DEC-077`; `PAT-MIG3A-AC-01`–`PAT-MIG3A-AC-12` untuk B14.2 (`1.3.0`) dan B14.4; `PAT-OQ-008`–`PAT-OQ-037` (seluruhnya diputuskan atau `SUPERSEDED`); `PAT-GAP-002`–`016`; `PAT-MIG2-AC-01`–`PAT-MIG2-AC-51` (`AC-44`/`45` dipindah ke `BE-PAT-MIG-003`); `PAT-MIG3-AC-01`–`PAT-MIG3-AC-14` untuk B14 dan B15 |
 | Arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — alasan pada `00-interview-decisions.md` bagian 6 |
 
 ---
@@ -629,8 +639,8 @@ hasil gerbang dilaporkan dan seluruh pasien tetap diklasifikasikan.
 | `PREVIEW_UNIQUE` | `legacy_pid` / `PatientCode` / MRN unik pada preview kanonik | 704.506 / 704.506 / 704.506 |
 | `DEFERRED_SET` | `legacy_pid` perencana `FINALIZED` yang tidak ada di preview kanonik dan bukan Pilot | Tepat `{280143, 805596}` |
 | `DEFERRED_RESERVATIONS_UNUSED` | `PAT-RSMMC-101416`, `PAT-RSMMC-619077`, dan MRN akhir kedua pasien tertunda tidak dipakai `MstPatient` | 0 |
-| `PATIENT_BASELINE` | Jumlah `MstPatient` = 741 + jumlah crosswalk `MIGRATED_BULK_WORKER` (`PAT-DEC-034`). Seeder demo Operating Room menambah satu pasien bila diaktifkan (`PAT-SRC-023`) | Sama |
-| `NORMAL_ALLOCATION_GUARD` | `BE-PAT-MIG-003` **aktif dan terverifikasi** (`PAT-DEC-055`, `057`): pemeriksa baca-saja `BE-PAT-MIG-003` (B14.2) melaporkan `overallGuardReady = true` — yaitu guard aktif dengan konfigurasi sah di `Staging` persis (`PAT-DEC-066`, `067`), `PatientCode` normal berikutnya ≥ `PAT-RSMMC-705250` (`PAT-DEC-054`), dan MRN normal berikutnya ≥ `00-89-01-88` (`PAT-DEC-064`). Pembekuan operasional saja **tidak** meluluskan gerbang ini. Pada source `a52b3c98` gerbang ini gagal (`PAT-FACT-072`, `073`) | Lulus |
+| `PATIENT_BASELINE` | Jumlah `MstPatient` = **baseline tetap yang disetujui** + jumlah crosswalk `MIGRATED_BULK_WORKER` (`PAT-DEC-034`, `PAT-DEC-077`). Baseline diukur **read-only** sesudah seluruh prasyarat source dan migration dideploy dan pemeriksa B14.2 lulus lagi, dicatat sebagai bukti, lalu ditanam pada profil batch seperti manifest — **bukan** dihitung dari jumlah yang ada saat eksekusi. Selama persiapan dan jendela Canary-A seluruh pembuatan pasien Staging dibekukan (`PAT-DEC-073`). Seeder demo Operating Room menambah satu pasien bila diaktifkan (`PAT-SRC-023`). *Teks `1.2.2`: "Jumlah `MstPatient` = 741 + …"; 741 (`PAT-FACT-038`) bukan nilai permanen* | Sama |
+| `NORMAL_ALLOCATION_GUARD` | `BE-PAT-MIG-003` dan `BE-PAT-MIG-003A` **aktif dan terverifikasi** (`PAT-DEC-055`, `057`, `069`, `072`): pemeriksa baca-saja (B14.2) melaporkan `overallGuardReady = true` — yaitu guard aktif dengan konfigurasi sah di `Staging` persis (`PAT-DEC-066`, `067`), **seluruh** jalur pembuatan pasien non-migrasi yang berlaku aman reservasi (`normalPatientCreateProtected = true` dan `newbornPatientCreateProtected = true`, keduanya `RESERVED_FLOOR`), `PatientCode` berikutnya ≥ `PAT-RSMMC-705250` (`PAT-DEC-054`), dan MRN berikutnya ≥ `00-89-01-88` (`PAT-DEC-064`). Pembekuan operasional saja **tidak** meluluskan gerbang ini. Pada source `a52b3c98` gerbang ini gagal (`PAT-FACT-072`, `073`); pada build `BE-PAT-MIG-003` saja (generasi 1) jalur bayi belum terlindungi (`PAT-SRC-031`) | Lulus |
 | `PREVIEW_CODE_UNMAPPED` | `MstPatient` yang memakai `PatientCode` preview tetapi tidak dipetakan crosswalk ke `legacy_pid` pemilik kode itu | 0 |
 | `PREVIEW_MRN_UNMAPPED` | Sama, untuk MRN | 0 |
 | `CROSSWALK_DUPLICATE_TARGET` | Grup `quilvian_patient_id` yang dipetakan lebih dari satu `legacy_pid` | 0 |
@@ -667,18 +677,24 @@ pasien sesudahnya.
    uniknya tanpa syarat (`PAT-SRC-007`).
 7. **Bentuk entity `MstPatient`** dari preview sesuai pemetaan B10, dengan `QrCodePath` = path
    `rsmmc-bulk` (`PAT-DEC-052`), lalu simpan (`INSERT_PATIENT`).
-8. **Tulis `IsMember = false` secara eksplisit** hanya atas baris yang baru di-insert, di transaksi
-   yang sama (`PERSIST_IS_MEMBER`; `PAT-DEC-053`). Konfigurasi EF `MstPatient` tidak diubah. Langkah
-   ini ada karena EF tidak mengirim nilai `false` untuk kolom ber-default `true` (`PAT-SRC-008`).
+8. ~~**Tulis `IsMember = false` secara eksplisit** hanya atas baris yang baru di-insert
+   (`PERSIST_IS_MEMBER`)~~ — **dihapus `1.3.0`** (`PAT-DEC-075`). Entity langkah 7 membawa
+   `IsMember = false`, dan konfigurasi EF saat ini (`HasDefaultValue(true).HasSentinel(true)`)
+   mengirim nilai itu eksplisit pada INSERT (`PAT-SRC-032`). Worker **tidak** mengeluarkan UPDATE
+   `IsMember`, karena proyeksi membership milik crm-membership. Nomor langkah dipertahankan supaya
+   rujukan "langkah 6–10" tetap terbaca. *Teks `1.2.2`: "Langkah ini ada karena EF tidak mengirim
+   nilai `false` untuk kolom ber-default `true` (`PAT-SRC-008`)".*
 9. **Tulis baris crosswalk baru** dengan SQL berparameter di transaksi yang sama
    (`INSERT_CROSSWALK`; `PAT-DEC-047`): `legacy_pid`, `legacy_old_rm` = `preview.legacy_old_rm`,
    `normalized_mrn` = `preview.legacy_normalized_mrn`, `normalized_nik` = `preview.legacy_normalized_nik`,
    `quilvian_patient_id` = `Id` pasien baru, `match_status = TARGET_CREATED`,
    `migration_status = MIGRATED_BULK_WORKER`, `last_batch_id` = batch kanonik, `created_at` = waktu
    database; `canonical_legacy_pid`, `review_reason`, `updated_at` = NULL.
-10. **Baca ulang pasien dari database** tanpa *tracking* dan bandingkan setiap kolom asal preview,
-    termasuk `IsMember = false` dan `IsActive = true` (`VERIFY_PERSISTED`; `PAT-DEC-053`). Selisih →
-    batal.
+10. **Baca ulang pasien dari database** tanpa *tracking* di dalam transaksi yang sama dan bandingkan
+    setiap kolom asal preview, termasuk `IsMember = false` dan `IsActive = true` (`VERIFY_PERSISTED`;
+    `PAT-DEC-053` bagian 2–5, `PAT-DEC-075`). Selisih → batal dan *rollback*. Sesudah transaksi,
+    `IsMember` adalah proyeksi membership yang boleh berubah oleh lifecycle membership; audit
+    pasca-Canary membandingkannya dengan status membership pasien, bukan dengan preview.
 11. **Buat QR** untuk MRN akhir di path `rsmmc-bulk` (`PAT-DEC-052`) dengan `CreateNew` (`CREATE_QR`).
     Konflik → batal, berkas yang ada tidak disentuh.
 12. **Commit** (`COMMIT`).
@@ -854,11 +870,12 @@ dipakai.
 | `FullName` | `full_name` apa adanya | Kosong → konflik; **tidak ada** nama pengganti (`PAT-DEC-030`) |
 | `BirthDate` | `birth_date` | Kolom `date` di kedua sisi; boleh NULL. Tipenya dijaga `PREVIEW_SCHEMA_SIGNATURE` (`PAT-GAP-009`) |
 | `IdentityType`, `IdentityNumber`, `PhoneNumber`, `Address` | Kolom preview bernama sama, apa adanya | Boleh kosong; **sensitif** — tidak masuk log |
-| `IsMember` | `is_member` — seluruh preview `false` (`PAT-FACT-074`) | Ditulis eksplisit dan diverifikasi ulang (`PAT-DEC-041`, `PAT-DEC-053`). Preview tidak boleh diubah menjadi `true` |
+| `IsMember` | `is_member` — seluruh preview `false` (`PAT-FACT-074`) | Dikirim eksplisit pada INSERT karena sentinel `true` (`PAT-SRC-032`), lalu diverifikasi ulang di transaksi yang sama (`PAT-DEC-041`, `PAT-DEC-075`). Tanpa UPDATE khusus. Preview tidak boleh diubah menjadi `true` |
 | `IsActive` | `is_active` — seluruh preview `true` (`PAT-FACT-074`) | Diverifikasi ulang. `IsActive = false` bukan kebutuhan bulk |
 | `IsNewborn`, `IsDeceased` | Kolom preview bernama sama | Diverifikasi ulang; default database `false` sehingga nilai `false` tidak hilang. NULL → `PREVIEW_VALUE_INVALID` |
 | `QrCodePath` | Path publik QR yang dibuat | B6 |
 | `NickName`, `BirthPlace`, `WhatsAppNumber`, `Email`, `CountryId`, `ProvinceId`, `CityId`, `DistrictId`, `PostalCodeId`, `PhotoPath`, `DefaultMembershipTierId`, `ActivePatientMembershipId`, `MotherPatientId`, `BirthOrder`, `BirthWeightGram`, `BirthLengthCm`, `BirthTime`, `DeliveryMethod`, `DeceasedDate`, `MergedToPatientId`, `MergeReason`, `Notes` | **Kosong (NULL)** | Seluruhnya *nullable* tanpa default database (`MstPatient.cs`, `MstPatientConfiguration.cs`), sehingga NULL adalah default model yang terbukti aman. Tidak ada isi yang dikarang |
+| `Citizenship`, `NationalityCountryId`, `DeliveryCaseId`, `NewbornRegistrationKeyHash`, `NewbornRegistrationFingerprint` | **Kosong (NULL)** | Kolom baru sejak desain `1.2.0` (`PAT-SRC-033`) tanpa pemetaan legacy yang disetujui (`PAT-DEC-076`); nilai tidak dikarang. Indeks unik berfilter `IS NOT NULL` tidak terpengaruh. Migration `20261016080745_ReviseNewbornAdmissionFlow` wajib sudah diterapkan di Staging sebelum runtime |
 | `CreateDateTime`, `CreateBy` | Waktu UTC saat itu; aktor | `PAT-DEC-025` |
 | `UpdateDateTime`, `UpdateBy`, `DeleteDateTime`, `DeleteBy`, `CancelDateTime`, `CancelBy` | Kosong / `Guid.Empty` | Default `IdentityModel` |
 | `IsDelete`, `IsCancel` | `false` | Default `IdentityModel` |
@@ -945,7 +962,8 @@ terkonfirmasi (`PAT-FACT-089`), pendaftaran Senin itu juga sudah menimpa QR hist
 | --- | --- | --- | --- |
 | 1 — pencegahan final | Allocator `PatientCode` normal dengan lantai tahan lama: suffix pertama yang belum dipakai ≥ 705.250, diserialkan di database, indeks unik sebagai pengaman terakhir | `OWNER_APPROVED` | `PAT-DEC-054`, `066`; `BE-PAT-MIG-003` |
 | 1 — pencegahan final | Allocator MRN normal dengan lantai: MRN numerik pertama yang belum dipakai ≥ 890.188 (`00-89-01-88`). MRN akhir `FINALIZED` tertinggi 890.187 (`PAT-FACT-084`), sehingga lantai ini tidak pernah memberi MRN cadangan, termasuk MRN dua pasien tertunda. Sisa kapasitas 99.109.812 nomor | `OWNER_APPROVED` | `PAT-DEC-064`, `066`; `BE-PAT-MIG-003` |
-| 2 — pencegahan sementara | Pembekuan pendaftaran pasien normal di Staging, termasuk jalur admin dan kiosk, sampai guard dideploy dan diverifikasi. Bukan strategi final | `OWNER_APPROVED`; dinyatakan berlaku (`PAT-FACT-078`) | `PAT-DEC-055` |
+| 1 — pencegahan final | Jalur pendaftaran bayi memakai allocator berlantai dan kunci yang sama di `Staging` persis; di luar itu `NumberSeries` bayi tidak berubah (B14.4) | `OWNER_APPROVED` | `PAT-DEC-070`, `071`; `BE-PAT-MIG-003A` |
+| 2 — pencegahan sementara | Pembekuan pembuatan pasien di Staging — normal, admin, kiosk, dan bayi — sampai jendela Canary-A selesai. Kontrol operasional, bukan route yang dimatikan. Bukan strategi final | `OWNER_APPROVED`; dinyatakan berlaku (`PAT-FACT-078`); diperluas 19 Oktober 2026 | `PAT-DEC-055`, `PAT-DEC-073` |
 | 3 — deteksi | Gerbang worker `NORMAL_ALLOCATION_GUARD`, `PATIENT_BASELINE`, `PREVIEW_CODE_UNMAPPED`, `PREVIEW_MRN_UNMAPPED`, `DEFERRED_RESERVATIONS_UNUSED` (B4.2) | Bagian kontrak ini | `PAT-DEC-042`, `PAT-DEC-055` |
 
 **Catatan pembekuan (`PAT-SRC-027`).** `POST /` dan `POST /kiosk` hanya dijaga policy
@@ -967,7 +985,13 @@ Base URL: `api/v1/health-services/patient-management/master-data/patients`
 | `POST` | `/admin` | Membuat pasien baru dari layar admin | `Patient : Create` | `CreatePatientRequest` | `ApiResponse<PatientCreateResponse>` | Sama; meneruskan ke `CreatePatient` |
 
 Ketiganya bermuara pada satu method `CreatePatient` (`PAT-SRC-023`), sehingga allocator baru hanya
-dipasang di satu titik.
+dipasang di satu titik **untuk pendaftaran normal**.
+
+> **Koreksi `1.3.0` (`PAT-DEC-072`).** Pernyataan lama bahwa seluruh insert `MstPatient` bermuara pada
+> `CreatePatient` tidak berlaku lagi. Sejak commit upstream `3a0189c2` ada jalur kedua: pendaftaran bayi
+> `POST /newborns` → `NewbornPatientRegistrationService` (`PAT-SRC-031`), yang dilindungi lewat B14.4.
+> Jalur ketiga, `OperatingRoomDemoSeeder`, tetap memakai kode `DEMO-OPR-*` dan hanya aktif bila
+> `Seeders:RunOperatingRoomDemoSeed` dinyalakan di luar Produksi.
 
 | Hal | Sekarang | Sesudah `BE-PAT-MIG-003` |
 | --- | --- | --- |
@@ -979,7 +1003,7 @@ dipasang di satu titik.
 | Saat guard tidak aktif | — | Algoritma nomor kosong terkecil yang sama dengan sekarang, dipindah ke module service **tanpa perubahan hasil** dan **tanpa** kunci baru — penomoran Produksi tidak berubah (`PAT-GAP-005`) |
 | Kode status baru | — | Hanya di Staging persis bila `Enabled` bukan `true` — `false`, hilang, salah bentuk, atau tidak terbaca: `503` / `PATIENT_RESERVATION_GUARD_CONFIG_INVALID`, sebelum insert pasien, penulisan QR, dan penulisan foto (B14.3). Respons sukses dan galat lain tidak berubah |
 | QR pendaftaran normal | `patient-qrcodes/<MRN>/qrcode.png` lewat `File.WriteAllBytes` | Tidak diubah task ini. Saat guard aktif, MRN cadangan tidak lagi dipakai, sehingga folder 715 QR historis Pilot tidak lagi menjadi tujuan pendaftaran normal |
-| `IsMember` pendaftaran normal | Tersimpan `true` bila request `false` (`PAT-SRC-024`) | Tidak diubah task ini (`PAT-DEC-053`) |
+| `IsMember` pendaftaran normal | Tersimpan `true` bila request `false` (`PAT-SRC-024`) — **tidak berlaku lagi** sejak `0c6e3145` (`PAT-SRC-030`, `032`) | Tidak diubah task ini (`PAT-DEC-053`) |
 
 ### B14.2 Pemeriksa baca-saja untuk `NORMAL_ALLOCATION_GUARD`
 
@@ -994,7 +1018,7 @@ Base URL: `api/v1/health-services/patient-management/master-data/patients`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/admin/migration/rsmmc-reservation-guard` | Melaporkan keadaan guard reservasi nomor pasien normal dan nomor yang **akan** diberikan pendaftaran berikutnya, tanpa mencadangkan apa pun | `Patient : Update` | — | `ApiResponse<RsmmcReservationGuardStatusResponse>` | **Rencana (belum tersedia)** — dibangun `BE-PAT-MIG-003` |
+| `GET` | `/admin/migration/rsmmc-reservation-guard` | Melaporkan keadaan guard reservasi nomor pasien, perlindungan jalur pendaftaran normal **dan** bayi, serta nomor yang **akan** diberikan pendaftaran berikutnya, tanpa mencadangkan apa pun | `Patient : Update` | — | `ApiResponse<RsmmcReservationGuardStatusResponse>` | **Tersedia** sejak `BE-PAT-MIG-003` (generasi 1); keluaran diperluas `BE-PAT-MIG-003A` (`1.3.0`, generasi 2) — aditif |
 
 Kode status: `200` laporan dikembalikan, termasuk bila guard belum siap; `401` belum login; `403` tidak
 punya izin, **atau** environment bukan `Staging` persis (kode `RSMMC_RESERVATION_GUARD_ENVIRONMENT_NOT_ALLOWED`).
@@ -1010,8 +1034,25 @@ punya izin, **atau** environment bukan `Staging` persis (kode `RSMMC_RESERVATION
 | `nextPatientCodeNumeric`, `nextPatientCodeFormatted` | Kode yang **akan** diberikan pendaftaran berikutnya | `705250`, `PAT-RSMMC-705250` |
 | `nextMrnNumeric`, `nextMrnFormatted` | MRN yang **akan** diberikan pendaftaran berikutnya | `890188`, `00-89-01-88` |
 | `patientCodeFloorSatisfied`, `mrnFloorSatisfied` | Nomor berikutnya ≥ lantai | `true`, `true` |
-| `overallGuardReady` | `guardEnabled` dan `guardConfigurationValid` dan kedua lantai terpenuhi | `true` |
+| `normalPatientCreateAllocationMode` | Cara alokasi pendaftaran normal (`POST /`, `/kiosk`, `/admin`): `RESERVED_FLOOR` (lantai + kunci), `FAIL_CLOSED` (ditolak sebelum alokasi), atau `LEGACY` (penomoran lama, di luar Staging persis). **Baru `1.3.0`** | `RESERVED_FLOOR` |
+| `normalPatientCreateProtected` | Pendaftaran normal tidak dapat memakai nomor cadangan migrasi — `RESERVED_FLOOR` atau `FAIL_CLOSED`. **Baru `1.3.0`** | `true` |
+| `newbornPatientCreateAllocationMode` | Cara alokasi pendaftaran bayi (`POST /newborns`), nilai sama. **Baru `1.3.0`** | `RESERVED_FLOOR` |
+| `newbornPatientCreateProtected` | Pendaftaran bayi tidak dapat memakai nomor cadangan migrasi. **Baru `1.3.0`** | `true` |
+| `overallGuardReady` | `guardEnabled` dan `guardConfigurationValid`, **kedua** jalur `RESERVED_FLOOR`, dan kedua lantai terpenuhi. Tidak pernah `true` bila jalur bayi tidak terlindungi (`PAT-DEC-072`). *`1.2.2`: tanpa syarat jalur* | `true` |
 | `checkedAtUtc` | Waktu pemeriksaan | — |
+
+**Apa yang dibuktikan kedua field jalur.** Pemeriksa tidak membuat pasien dan tidak mengambil kunci,
+sehingga ia tidak menjalankan alokasi. Ia melaporkan **keputusan cabang** yang dipakai masing-masing
+jalur saat mendaftarkan pasien untuk konfigurasi yang sedang berlaku:
+`PatientIdentifierAllocationService.ResolveAllocationMode` untuk pendaftaran normal dan
+`NewbornPatientRegistrationService.ResolveIdentifierAllocationMode` untuk pendaftaran bayi. Kedua jalur
+yang `RESERVED_FLOOR` memakai satu method alokasi yang sama (`AllocateReservedAsync`), sehingga nomor
+berikutnya pada laporan berlaku untuk keduanya. Build yang dideploy tanpa `BE-PAT-MIG-003A` tidak
+mengembalikan field ini sama sekali — bukti generasi 2 wajib menunjukkan keduanya `true`.
+
+*Contoh di Staging dengan `Enabled = false`:* `guardState = DISABLED`, kedua mode `FAIL_CLOSED`, kedua
+`…Protected = true` (keduanya menolak sebelum alokasi), tetapi `overallGuardReady = false` karena
+pendaftaran tidak tersedia.
 
 Di Staging persis, nomor berikutnya dihitung dengan aturan lantai walau guard belum aktif, supaya
 pemilik melihat nomor yang akan dipakai begitu guard dinyalakan; `overallGuardReady` tetap `false`.
@@ -1083,6 +1124,52 @@ bigint), yang menurut PostgreSQL tidak berbagi ruang kunci dengan bentuk dua kun
 kunci dua bagian lain yang direncanakan — worker `BE-PAT-MIG-002` — memakai namespace `1173286842`.
 *Teks `1.2.1`: `pg_advisory_xact_lock(hashtext('quilvian.patient.identifier-allocation'))`.*
 
+### B14.4 Dampak pada pendaftaran bayi — milik `BE-PAT-MIG-003A` (`1.3.0`)
+
+**Masalahnya, dalam bahasa sederhana.** Pendaftaran bayi dari kasus persalinan membagikan nomornya
+sendiri lewat deret nomor platform (`NumberSeries`). Deret itu dimulai dari nomor tertinggi yang sudah
+ada, sehingga di Staging bayi pertama akan mendapat `PAT-RSMMC-00742` — nomor yang dipesan pasien lama
+RSMMC (`PAT-SRC-031`). Bagian ini memasang perlindungan `BE-PAT-MIG-003` pada jalur itu juga.
+
+### Health Services / Patient Management / Master Data / Patient
+
+Base URL: `api/v1/health-services/patient-management/master-data/patients`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/newborns` | Mendaftarkan satu bayi dari kasus persalinan obstetri; header `Idempotency-Key` wajib | `Patient : Create` | `CreateNewbornPatientRequest` | `ApiResponse<NewbornPatientCreateResponse>` | Sudah ada (upstream `3a0189c2`) — bentuk request/response **tidak** berubah; cara memilih `PatientCode` dan MRN di `Staging` persis berubah; ditambah `503` khusus Staging persis |
+
+| Environment | Konfigurasi `RsmmcMigrationReservationGuard` | Perilaku pendaftaran bayi |
+| --- | --- | --- |
+| `Staging` persis | `Enabled = true` | `PatientCode` pertama yang belum dipakai ≥ 705.250 dan MRN pertama yang belum dipakai ≥ 890.188, lewat allocator yang **sama** dengan pendaftaran normal (`AllocateReservedAsync`) di bawah kunci yang sama. Deret `NumberSeries` `PATIENT_CODE` / `PATIENT_MEDICAL_RECORD` **tidak** dibaca maupun dinaikkan |
+| `Staging` persis | `false`, hilang, salah bentuk, atau tidak terbaca | **Gagal tertutup** sebelum basis data dibaca, dikunci, atau ditulis: `503` / `PATIENT_RESERVATION_GUARD_CONFIG_INVALID` dengan `guardState`, log peringatan `Patient.CreateNewbornPatient.ReservationGuard` tanpa data pribadi. Tidak pernah jatuh ke `NumberSeries` |
+| `Production`, `Development`, `Test`, `staging`, nama lain | Apa pun — tidak dibaca | Perilaku sebelum task **tidak berubah**: `NumberSeries` `PATIENT_CODE` (awalan `PAT-RSMMC`, 5 digit) dan `PATIENT_MEDICAL_RECORD` (8 digit, format `00-00-00-00`), batas bawah dari nomor tertinggi bila deret belum ada; tanpa kunci `(PATI, NORM)` (`PAT-DEC-070` b) |
+
+Guard dinilai **satu kali** di awal pendaftaran, sesudah validasi isian, lalu keputusan yang sama
+dipakai sampai alokasi — tidak ada celah konfigurasi berubah di tengah pendaftaran. Bentuk respons
+sukses, `400`, `404`, `409`, dan `422` tidak berubah. Pemutaran ulang `Idempotency-Key` yang sama di
+Staging yang gagal tertutup juga mendapat `503`, karena penolakan terjadi sebelum basis data dibaca.
+
+**Urutan kunci di dalam satu pendaftaran bayi (`Staging` persis, guard aktif).** Seluruhnya kunci
+transaksi (`xact`) pada transaksi pendaftaran bayi dan lepas sendiri saat *commit* atau *rollback*.
+
+| No | Kunci | Bentuk | Keterangan |
+| ---: | --- | --- | --- |
+| 1 | `pg_advisory_xact_lock(hashtext('PAT_NEWBORN_KEY_<hash Idempotency-Key>'))` | Satu kunci 64-bit | Sudah ada; menyerialkan permintaan dengan kunci idempotency yang sama |
+| 2 | `pg_advisory_xact_lock(hashtext('PAT_NEWBORN_CASE_<DeliveryCaseId>'))` | Satu kunci 64-bit | Sudah ada; menyerialkan urutan kelahiran per kasus |
+| 3 | `pg_advisory_xact_lock(1346458697, 1313821261)` | Dua kunci Int32 | **Baru**; kunci allocator yang sama dengan pendaftaran normal (`PAT-DEC-071`), diambil sesudah validasi ibu, kasus, dan NIK |
+| — | Baris `PatNewbornBirthSequence` dan indeks unik `MstPatient` | Kunci baris/indeks | Terjadi saat `SaveChanges`, sesudah kunci 3 |
+
+Pendaftaran normal hanya mengambil kunci 3 dan tidak pernah mengambil kunci 1 atau 2; tidak ada jalur
+lain yang mengambil kunci 1 atau 2. Karena itu urutan kunci tidak pernah terbalik dan tidak ada siklus
+*deadlock*. Di luar Staging persis, kunci 3 tidak diambil; allocator `NumberSeries` memakai koneksinya
+sendiri dengan kunci `hashtext('NUM_SERIES_<deret>_GLOBAL')` yang lepas sebelum kembali ke transaksi bayi.
+
+**Contoh.** Di Staging dengan guard aktif, pasien normal terakhir `PAT-RSMMC-705250` / `00-89-01-88`.
+Bidan mendaftarkan bayi "By. Ny. Sari" bersamaan dengan petugas kiosk yang mendaftarkan pasien dewasa.
+Yang lebih dulu mendapat kunci memperoleh `PAT-RSMMC-705251` / `00-89-01-89`; yang lain menunggu,
+lalu memperoleh `PAT-RSMMC-705252` / `00-89-01-90`. Tidak ada yang pernah mendapat `PAT-RSMMC-00742`.
+
 ---
 
 ## B15. Bukti PostgreSQL provider-real — `PAT-DEC-065`
@@ -1094,6 +1181,8 @@ Npgsql dan konfigurasi EF aplikasi yang sebenarnya, lalu dihancurkan sesudah tes
 | Hal | Ketentuan |
 | --- | --- |
 | Server | Disediakan pemilik atau developer saat build; versi mayor 15, sama dengan Staging 15.15 (`PAT-FACT-085`) |
+| Konfigurasi server bukti | `max_locks_per_transaction = 2048`. Model `ApplicationDbContext` kini cukup besar sehingga `EnsureCreatedAsync` gagal pada nilai bawaan PostgreSQL 15 (`64`) dengan SQLSTATE `53200` *out of shared memory* dan petunjuk server *increase max_locks_per_transaction*. Server bukti yang lulus `23`/`23` pada 19 Oktober 2026 memakai `2048`. **Hanya syarat server uji sekali pakai** — **bukan** syarat maupun anjuran mengubah PostgreSQL DEV, STAGING, atau PRODUCTION, dan tidak menyentuh `appsettings*` maupun infrastruktur deployment (temuan review `F-14`) |
+| Eksekusi suite | Pada server bukti sekali pakai saat ini, seluruh suite `Kategori=ProviderReal` dijalankan **serial**: `dotnet test … --filter "Kategori=ProviderReal" -- xUnit.ParallelizeTestCollections=false xUnit.MaxParallelThreads=1`. Run paralel 20 Oktober 2026 menghasilkan `21`/`23`: dua kasus gagal saat `PostgresSekaliPakai.BuatAsync` menyiapkan basis data (soket transport terputus; server tidak crash, `OOMKilled = false`, `RestartCount = 0`), lulus saat diulang tersendiri; run serial lulus `23`/`23`. Temuan operasional harness bukti — **bukan** syarat PostgreSQL DEV, STAGING, maupun PRODUCTION |
 | Koneksi | Connection string dari environment variable; tidak ditulis ke `appsettings*` maupun Git |
 | Basis data | Dibuat test dengan nama acak, dihapus sesudah test — juga saat test gagal |
 | Skema | `MstPatient` dibentuk dari model EF aplikasi, sehingga default `IsMember = true` ikut ada; test memastikan default itu ada sebelum menguji. Tabel `migration.*` dibuat test sesuai `PAT-FACT-079`–`083` |
@@ -1104,7 +1193,8 @@ Npgsql dan konfigurasi EF aplikasi yang sebenarnya, lalu dihancurkan sesudah tes
 | Task | Yang wajib dibuktikan |
 | --- | --- |
 | `BE-PAT-MIG-003` (`PAT-MIG3-AC-13`) | Lantai `PatientCode` dan MRN; kode 742–705.249 dan MRN ≤ 890.187 tidak pernah diberikan; dua pendaftaran bersamaan memperoleh nomor berbeda lewat kunci; mode tanpa guard memberi hasil yang sama dengan algoritma lama; konfigurasi hilang di `Staging` persis → gagal tertutup |
-| `BE-PAT-MIG-002` (`PAT-MIG2-AC-47`) | `IsMember = false` tersimpan fisik `false`; `IsActive = true` tetap `true`; koreksi eksplisit `IsMember` di transaksi yang sama berhasil; baca ulang `AsNoTracking` cocok dengan preview; rollback tidak meninggalkan pasien maupun crosswalk; percobaan ulang idempoten tidak membuat target ganda; kegagalan sebelum *commit* tidak meninggalkan pemetaan pasien yang ter-*commit* |
+| `BE-PAT-MIG-003A` (`PAT-MIG3A-AC-09`) | Alokasi berlantai pendaftaran bayi; pendaftaran bayi di luar Staging persis sama dengan perilaku `NumberSeries` sebelum task dan tidak memakai kunci `(PATI, NORM)`; gagal tertutup tanpa mutasi dan tanpa kunci; pendaftaran bayi menunggu kunci `(1346458697, 1313821261)` yang dipegang sesi lain dan melepasnya saat *commit*; bayi↔bayi dan normal↔bayi bersamaan tanpa nomor ganda dan tidak di bawah lantai; idempotency dan urutan kelahiran tetap; pemeriksa baca-saja melaporkan kedua jalur |
+| `BE-PAT-MIG-002` (`PAT-MIG2-AC-47`) | `IsMember = false` tersimpan fisik `false` lewat INSERT; `IsActive = true` tetap `true`; baca ulang `AsNoTracking` di transaksi yang sama cocok dengan preview; rollback tidak meninggalkan pasien maupun crosswalk; percobaan ulang idempoten tidak membuat target ganda; kegagalan sebelum *commit* tidak meninggalkan pemetaan pasien yang ter-*commit*. *`1.2.2`: "koreksi eksplisit `IsMember` di transaksi yang sama berhasil" — dihapus `PAT-DEC-075`* |
 
 **Contoh.** Developer menyalakan server PostgreSQL 15 lokal, mengisi environment variable connection
 string, lalu menjalankan test provider-real. Test membuat basis data `pat_proof_7f3a…`, memasukkan

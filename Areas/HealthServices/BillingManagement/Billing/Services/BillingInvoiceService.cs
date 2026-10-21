@@ -1106,8 +1106,11 @@ public sealed class BillingInvoiceService
             .Where(t => t.Settlement.InvoiceId == id && t.Status == BillingTenderStatuses.Succeeded && !t.IsDelete)
             .SumAsync(t => (decimal?)t.Amount, cancellationToken) ?? 0m;
 
+        // CalculateOutstandingAsync menuntut versi kalkulasi yang sudah ada (pemanggil yang menjamin).
+        // Invoice yang belum punya BilCalculationVersion (currentVersion null) memakai hitungan
+        // cadangan, sama seperti ketika layanan penutupan tidak tersedia - bukan melempar 500.
         decimal outstanding;
-        if (_closureService != null)
+        if (_closureService != null && currentVersion is not null)
         {
             outstanding = await _closureService.CalculateOutstandingAsync(invoice, currentVersion, cancellationToken);
         }

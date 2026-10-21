@@ -104,6 +104,8 @@ public sealed class BillingPatientFundsController : ControllerBase
         [FromQuery] DateTimeOffset? startDate = null,
         [FromQuery] DateTimeOffset? endDate = null,
         [FromQuery] string? search = null,
+        [FromQuery] string? status = null,
+        [FromQuery] string? sortDirection = null,
         CancellationToken cancellationToken = default)
     {
         try
@@ -116,7 +118,9 @@ public sealed class BillingPatientFundsController : ControllerBase
                 startDate,
                 endDate,
                 search,
-                cancellationToken);
+                cancellationToken,
+                status,
+                sortDirection);
 
             return Ok(ApiResponse<DepositWorkspaceResponse>.Ok(
                 result, "Workspace deposit rawat inap berhasil diambil."));

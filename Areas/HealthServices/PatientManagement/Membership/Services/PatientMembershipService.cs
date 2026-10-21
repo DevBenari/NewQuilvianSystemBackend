@@ -26,6 +26,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
         public int Expired { get; set; }
         public int ScheduledStarted { get; set; }
         public int UnpaidCancelled { get; set; }
+        /// <summary>Pelunasan iuran yang tertunda dan berhasil disinkronkan ulang ke membership.</summary>
+        public int FeePaymentsSynced { get; set; }
         public int ProjectionsSynced { get; set; }
         public int Failures { get; set; }
     }
@@ -64,6 +66,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
         private readonly NumberSeriesAllocator _numberSeriesAllocator;
         private readonly PatientMembershipStatusResolver _statusResolver;
         private readonly LoggerService _loggerService;
+        private readonly IMembershipFeeChargePort _feeChargePort;
         private readonly TimeProvider _timeProvider;
         private readonly int _paymentDueDays;
         private readonly int _renewalWindowDays;
@@ -73,6 +76,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
             NumberSeriesAllocator numberSeriesAllocator,
             PatientMembershipStatusResolver statusResolver,
             LoggerService loggerService,
+            IMembershipFeeChargePort feeChargePort,
             IConfiguration configuration,
             TimeProvider? timeProvider = null)
         {
@@ -80,6 +84,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
             _numberSeriesAllocator = numberSeriesAllocator;
             _statusResolver = statusResolver;
             _loggerService = loggerService;
+            _feeChargePort = feeChargePort;
             _timeProvider = timeProvider ?? TimeProvider.System;
             _paymentDueDays = int.TryParse(configuration[PaymentDueDaysConfigKey], out var days) && days > 0
                 ? days
@@ -302,10 +307,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
                         "Pembatalan karena salah input belum bisa diproses: pemeriksaan pemakaian diskon dan refund iuran menunggu modul kasir.");
 
                 case MembershipStatus.PendingPayment:
+                {
+                    // CRM-DEC-029: tagihan iuran ikut dibatalkan. Ditolak bila uang sudah masuk atau sedang diproses
+                    // di Kasir; pengembalian dana tidak pernah dilakukan otomatis dari sini.
+                    var chargeOutcome = await _feeChargePort.CancelChargeAsync(
+                        membership.Id, reason ?? "Membership dibatalkan.", actorUserId, cancellationToken);
+                    if (chargeOutcome == MembershipFeeCancelOutcome.PaymentReceived)
+                        return Fail(StatusCodes.Status409Conflict,
+                            "Iuran sudah diterima di Kasir. Sinkronkan pelunasan atau ajukan peninjauan refund; pembatalan tidak dapat diteruskan.");
+                    if (chargeOutcome == MembershipFeeCancelOutcome.PaymentInProgress)
+                        return Fail(StatusCodes.Status409Conflict,
+                            "Ada pembayaran iuran yang sedang diproses di Kasir. Tunggu hingga selesai sebelum membatalkan.");
+
                     MarkCancelled(membership, request.Category, reason, actorUserId, now);
                     AddHistory(membership.Id, fromStatus, MembershipStatus.Cancelled, "CANCELLED", actorUserId, now, reason);
-                    AddHistory(membership.Id, MembershipStatus.Cancelled, MembershipStatus.Cancelled, FeeChargeCancelRequestedAction, actorUserId, now, PendingBillingNote);
+                    AddHistory(membership.Id, MembershipStatus.Cancelled, MembershipStatus.Cancelled, FeeChargeCancelRequestedAction, actorUserId, now,
+                        chargeOutcome == MembershipFeeCancelOutcome.Cancelled ? "Tagihan iuran dibatalkan di Billing." : "Tidak ada tagihan iuran yang perlu dibatalkan.");
                     break;
+                }
 
                 case MembershipStatus.Scheduled:
                     MarkCancelled(membership, request.Category, reason, actorUserId, now);
@@ -550,7 +569,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
         // Riwayat penanda bahwa tindakan uang menunggu billing; dibaca rekonsiliasi saat EPIC CRM-08 tersedia.
         private const string RefundRequestedAction = "REFUND_REQUESTED";
         private const string FeeChargeCancelRequestedAction = "FEE_CHARGE_CANCEL_REQUESTED";
-        private const string PendingBillingNote = "Menunggu modul kasir (DEC-CRM-001).";
+        private const string PendingBillingNote = "Menunggu proses refund kasir; penyetuju refund belum ditetapkan (DEC-CRM-001).";
 
         // Membership yang akan diubah: ada, belum dihapus, dan belum diubah petugas lain (VAL-17).
         private async Task<(MstPatientMembership? Membership, PatientMembershipCommandResult? Error)> LoadForChangeAsync(
@@ -777,6 +796,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
                 await RunGuardedAsync(result, patientId, () => AdvancePeriodsAsync(patientId, today, now, result, cancellationToken));
             }
 
+            // Pelunasan yang sudah tercatat di Billing tetapi belum sampai ke membership diulang lebih dulu
+            // (idempotent), supaya pembayaran yang masuk sebelum batas bayar tidak kalah oleh penyapu di bawah.
+            try
+            {
+                result.FeePaymentsSynced = await _feeChargePort.RetryUnconfirmedAsync(cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _dbContext.ChangeTracker.Clear();
+                result.Failures++;
+                await _loggerService.ErrorAsync(LogCategory, "PatientMembership.RetryFeeConfirmation", "Gagal mengulang konfirmasi pelunasan iuran.", ex);
+            }
+
             // Batas bayar dibandingkan di memori: jumlahnya kecil dan perbandingan DateTimeOffset
             // tidak seragam antar-provider.
             var pending = await _dbContext.Set<MstPatientMembership>()
@@ -873,9 +905,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
             if (membership == null || membership.MembershipStatus != MembershipStatus.PendingPayment || membership.PaymentDueAt > now)
                 return;
 
+            // Pembayaran yang sedang masuk menang atas pembatalan otomatis: tagihan dikunci di Billing, dan bila
+            // uang sudah diterima atau sedang diproses, pendaftaran dibiarkan Menunggu Pembayaran. Konfirmasi
+            // pelunasan (atau peninjauan manual) yang menentukan, bukan penyapu harian.
+            var chargeOutcome = await _feeChargePort.CancelChargeAsync(
+                membership.Id, "Iuran tidak dibayar sampai batas waktu.", Guid.Empty, cancellationToken);
+            if (chargeOutcome is MembershipFeeCancelOutcome.PaymentReceived or MembershipFeeCancelOutcome.PaymentInProgress)
+            {
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "PatientMembership.UnpaidCancelSkipped",
+                    $"Pembatalan otomatis membership {membership.Id} ditunda karena iuran {chargeOutcome}.");
+                return;
+            }
+
             MarkCancelled(membership, MembershipCancellationCategory.Unpaid, "Iuran tidak dibayar sampai batas waktu.", Guid.Empty, now);
             AddSystemHistory(membership.Id, MembershipStatus.PendingPayment, MembershipStatus.Cancelled, "UNPAID_CANCELLED", now, membership.CancellationReason);
-            AddSystemHistory(membership.Id, MembershipStatus.Cancelled, MembershipStatus.Cancelled, FeeChargeCancelRequestedAction, now, PendingBillingNote);
+            AddSystemHistory(membership.Id, MembershipStatus.Cancelled, MembershipStatus.Cancelled, FeeChargeCancelRequestedAction, now,
+                chargeOutcome == MembershipFeeCancelOutcome.Cancelled ? "Tagihan iuran dibatalkan di Billing." : "Tidak ada tagihan iuran yang perlu dibatalkan.");
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
@@ -1085,7 +1132,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
             try
             {
                 await _dbContext.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
@@ -1094,6 +1140,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membershi
                 _dbContext.ChangeTracker.Clear();
                 return Fail(StatusCodes.Status409Conflict,
                     "Pasien ini sudah punya pendaftaran yang menunggu pembayaran. Muat ulang data lalu periksa kembali.");
+            }
+
+            // Tagihan iuran dibuat di transaksi yang sama (INT-06): pendaftaran tidak pernah sukses tanpa tagihan.
+            // Nominal berasal dari snapshot membership; panggilan ulang menghasilkan tagihan yang sama (idempotent).
+            try
+            {
+                var charge = await _feeChargePort.EnsureChargeAsync(
+                    new MembershipFeeChargeRequest(
+                        membership.Id, patientId, membership.MemberNumber, membership.FeeAmountSnapshot,
+                        membership.PaymentDueAt!.Value, actorUserId),
+                    cancellationToken);
+
+                membership.FeeChargeReferenceId = charge.ChargeId;
+                var linkHistory = NewHistory(
+                    membership.Id, MembershipStatus.PendingPayment, MembershipStatus.PendingPayment,
+                    "FEE_CHARGE_LINKED", actorUserId, now);
+                linkHistory.ReferenceId = charge.ChargeId;
+                linkHistory.Source = MembershipChangeSource.Billing;
+                linkHistory.Reason = $"Tagihan iuran {charge.ChargeNumber} dibuat di Billing.";
+                _dbContext.Set<PatMembershipStatusHistory>().Add(linkHistory);
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                _dbContext.ChangeTracker.Clear();
+                await _loggerService.ErrorAsync(
+                    LogCategory, "PatientMembership.CreateFeeCharge",
+                    "Tagihan iuran gagal dibuat; pendaftaran dibatalkan agar tidak ada membership tanpa tagihan.", ex);
+                return Fail(StatusCodes.Status500InternalServerError,
+                    "Pendaftaran tidak disimpan karena tagihan iuran gagal dibuat. Silakan coba lagi.");
             }
 
             await _loggerService.InfoAsync(
