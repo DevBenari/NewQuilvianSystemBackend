@@ -407,10 +407,20 @@ public sealed class BillingSourceTariffResolver
         if (firstTariff is null)
             return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceRejected, "Resep tidak memuat obat yang dapat ditagih.");
 
+        var drugNamesList = items.Where(x => x.IsActive && !x.IsStopped && !string.IsNullOrWhiteSpace(x.DrugNameSnapshot))
+            .Select(x => x.DrugNameSnapshot)
+            .Concat(compoundIngredients.Select(x => $"{x.CompoundName} ({x.DrugNameSnapshot})"))
+            .Distinct()
+            .ToList();
+
+        var labelText = drugNamesList.Count > 0
+            ? $"{string.Join(", ", drugNamesList)} — Resep {prescription.PrescriptionNumber}"
+            : $"Resep {prescription.PrescriptionNumber}";
+
         return BillingTariffResolution.Resolved(
             null,
             firstTariff.TariffCategoryId,
-            Truncate($"Resep {prescription.PrescriptionNumber}", 250),
+            Truncate(labelText, 250),
             1m,
             decimal.Round(total, 2, MidpointRounding.AwayFromZero));
     }

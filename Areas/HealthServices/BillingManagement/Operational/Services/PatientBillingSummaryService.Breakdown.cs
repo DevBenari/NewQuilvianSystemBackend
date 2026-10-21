@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.M
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
@@ -125,6 +126,7 @@ public partial class PatientBillingSummaryService
             var excludedIds = await _dbContext.BilInvoiceItemBillingDispositions.AsNoTracking()
                 .Where(x => x.InvoiceItem!.InvoiceId == sourceInvoice.Id && x.IsActive && !x.IsDelete && x.Disposition == "EXCLUDED")
                 .Select(x => x.InvoiceItemId).ToListAsync(ct);
+            var pharmacyLabels = await ResolvePrescriptionDrugLabelsAsync(items, ct);
             foreach (var item in items.Where(x => !excludedIds.Contains(x.Id)))
             {
                 var group = MapGroup(item.SourceDomain, item.Category);
@@ -138,9 +140,19 @@ public partial class PatientBillingSummaryService
                     ? (BillingInvoiceService.ResolveItemUnit(item) is { } masterUnit && !string.IsNullOrWhiteSpace(masterUnit) ? masterUnit : "-")
                     : (group is "PROCEDURE" or "SURGERY" || item.Category?.IsSurgery == true || item.Category?.IsProcedure == true ? "tindakan" : "unit");
 
+                var label = item.DescriptionSnapshot;
+                if (isPharmacy && Guid.TryParse(item.SourceDetailId, out var presId))
+                {
+                    var drugSummary = pharmacyLabels.GetValueOrDefault(presId);
+                    if (!string.IsNullOrWhiteSpace(drugSummary) && !label.Contains(drugSummary, StringComparison.OrdinalIgnoreCase))
+                    {
+                        label = $"{drugSummary} — {label}";
+                    }
+                }
+
                 Add(group, new PatientBillingLineResponse
                 {
-                    Label = item.DescriptionSnapshot, Quantity = item.Quantity, ServiceDate = item.SourceOccurredAt,
+                    Label = label, Quantity = item.Quantity, ServiceDate = item.SourceOccurredAt,
                     UnitLabel = unitLabel,
                     LinkedEncounter = linkedEncounter,
                     LineStatus = lineStatus
@@ -291,6 +303,7 @@ public partial class PatientBillingSummaryService
                 .ToListAsync(ct);
 
             var excludedSet = new HashSet<Guid>(excludedIds);
+            var pharmacyLabels = await ResolvePrescriptionDrugLabelsAsync(items, ct);
 
             foreach (var item in items)
             {
@@ -346,11 +359,21 @@ public partial class PatientBillingSummaryService
                     ? (BillingInvoiceService.ResolveItemUnit(item) is { } masterUnit && !string.IsNullOrWhiteSpace(masterUnit) ? masterUnit : "-")
                     : (group is "PROCEDURE" or "SURGERY" || item.Category?.IsSurgery == true || item.Category?.IsProcedure == true ? "tindakan" : "unit");
 
+                var label = item.DescriptionSnapshot;
+                if (isPharmacy && Guid.TryParse(item.SourceDetailId, out var presId))
+                {
+                    var drugSummary = pharmacyLabels.GetValueOrDefault(presId);
+                    if (!string.IsNullOrWhiteSpace(drugSummary) && !label.Contains(drugSummary, StringComparison.OrdinalIgnoreCase))
+                    {
+                        label = $"{drugSummary} — {label}";
+                    }
+                }
+
                 var line = new PatientBillingEstimateLineResponse
                 {
                     LineKey = $"ITEM_{item.Id}",
                     InvoiceItemId = item.Id,
-                    Label = item.DescriptionSnapshot,
+                    Label = label,
                     UnitLabel = unitLabel,
                     Quantity = item.Quantity,
                     UnitPrice = unitPrice,
@@ -582,4 +605,53 @@ public partial class PatientBillingSummaryService
             groups[group].Lines.Add(line);
         }
     }
+
+    private async Task<Dictionary<Guid, string>> ResolvePrescriptionDrugLabelsAsync(
+        List<BilInvoiceItem> items,
+        CancellationToken ct)
+    {
+        var pharmacyPrescriptionIds = items
+            .Where(x => (x.SourceDomain == "PHARMACY" || x.Category?.IsPharmacy == true) && Guid.TryParse(x.SourceDetailId, out _))
+            .Select(x => Guid.Parse(x.SourceDetailId))
+            .Distinct()
+            .ToList();
+
+        if (pharmacyPrescriptionIds.Count == 0) return [];
+
+        var prescriptionDrugNames = await _dbContext.PhmPrescriptionItems.AsNoTracking()
+            .Where(x => pharmacyPrescriptionIds.Contains(x.PrescriptionId) && !x.IsDelete)
+            .OrderBy(x => x.SortOrder)
+            .GroupBy(x => x.PrescriptionId)
+            .ToDictionaryAsync(
+                g => g.Key,
+                g => g.Select(x => x.DrugNameSnapshot).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().ToList(),
+                ct);
+
+        var compoundDrugNames = await (
+            from ingredient in _dbContext.PhmPrescriptionCompoundItems.AsNoTracking()
+            join compound in _dbContext.PhmPrescriptionCompounds.AsNoTracking()
+                on ingredient.PrescriptionCompoundId equals compound.Id
+            where pharmacyPrescriptionIds.Contains(compound.PrescriptionId)
+                && compound.IsActive && !compound.IsDelete && !compound.IsCancel
+                && ingredient.IsActive && !ingredient.IsDelete && !ingredient.IsCancel
+            select new { compound.PrescriptionId, ingredient.DrugNameSnapshot, compound.CompoundName })
+            .ToListAsync(ct);
+
+        var result = new Dictionary<Guid, string>();
+        foreach (var presId in pharmacyPrescriptionIds)
+        {
+            var regular = prescriptionDrugNames.GetValueOrDefault(presId) ?? [];
+            var compounds = compoundDrugNames.Where(c => c.PrescriptionId == presId)
+                .Select(c => $"{c.CompoundName} ({c.DrugNameSnapshot})")
+                .Distinct()
+                .ToList();
+            var all = regular.Concat(compounds).ToList();
+            if (all.Count > 0)
+            {
+                result[presId] = string.Join(", ", all);
+            }
+        }
+        return result;
+    }
 }
+
