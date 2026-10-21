@@ -186,3 +186,30 @@ Bunyi ini juga dipakai sebagai petunjuk baris (`cancelBlockedReason`) di Daftar 
 
 Catatan untuk `VAL-RP-07`: jawaban 404 sengaja seragam, agar orang yang menebak kode tidak dapat membedakan kode yang
 pernah ada dari kode yang tidak pernah ada.
+
+# Amendment RP-GT — `RJ-PRI-RESV-001@1.2.0` (`approved`)
+
+`last_changed_in`: `RJ-PRI-RESV-001@1.2.0`. Status `approved` (Sukma Giri, 2026-10-21, `RJ-PRI-DEC-039`). Keputusan `RJ-PRI-DEC-034`
+s.d. `036`. Pesan ditulis sebagaimana dibaca petugas.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-RP-22` | Ganti tanggal | Hari ini (WIB) sama dengan atau sesudah tanggal kunjungan | "Tanggal reservasi tidak bisa diganti pada hari kunjungan. Batalkan reservasi lalu buat reservasi baru." | 409 |
+| `VAL-RP-23` | Ganti tanggal | Tanggal baru sama dengan tanggal kunjungan sekarang | "Tanggal baru sama dengan tanggal reservasi sekarang." | 400 |
+| `VAL-RP-24` | Ganti tanggal | Tanggal baru tidak diisi | "Tanggal kunjungan baru wajib diisi." | 400 |
+| `VAL-RP-25` | Ganti tanggal | Pasien bukan member Aktif pada hari penggantian | "Pasien bukan member aktif hari ini, sehingga tanggal reservasi tidak bisa diganti. Reservasi tetap berlaku untuk {tanggal lama}." | 409 |
+
+Aturan lama yang juga berlaku pada ganti tanggal, dengan kalimat yang sama:
+
+| Aturan | Diterapkan pada | Contoh |
+|---|---|---|
+| `VAL-RP-03` | Tanggal baru sebelum hari ini | Hari ini 24 Okt, tanggal baru 23 Okt → 400 |
+| `VAL-RP-04` | Tanggal baru lebih dari `MaxDaysAhead` hari dari hari ini | Hari ini 21 Okt, tanggal baru 25 Nov → 400 "Reservasi paling jauh 30 hari ke depan, yaitu sampai 20 November 2026." |
+| `VAL-RP-05` | Pasien sudah punya reservasi terbuka pada tanggal baru | 409 "Pasien sudah punya reservasi prioritas RSV-… untuk 28 Oktober 2026." |
+| `VAL-RP-06` | Pasien sudah punya kunjungan RJ aktif pada tanggal baru | 409 |
+| `VAL-RP-11` | Status bukan Menunggu Kedatangan | 409 "Reservasi sedang berstatus Dibatalkan, sehingga tindakan ini tidak bisa dilakukan." |
+| `VAL-RP-12` | Alasan kosong, kurang dari 10, atau lebih dari 500 karakter | 400 |
+| `VAL-RP-14` | `expectedRowVersion` tidak sama dengan data sekarang | 409 |
+
+Urutan pemeriksaan mengikuti `02-backend-architecture.md` GT.4. Bila beberapa aturan dilanggar sekaligus, pengguna
+menerima pesan aturan yang diperiksa lebih dulu.

@@ -11,6 +11,48 @@ Keduanya punya roadmap, progress, dan Definition of Done sendiri, dan **tidak bo
 | Billing / Revenue Cycle | `RJ-BIL` | [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md), [roadmap/frontend-roadmap.md](roadmap/frontend-roadmap.md) | `PARTIAL — NEEDS REVERIFICATION` | `1` — `HISTORICAL SNAPSHOT` per `2026-08-24`/`28` | Dimulai sebagai **consumer** clinical fact. `DOWNSTREAM — NOT PART OF DOCTOR DEFINITION OF DONE` |
 | **Rawat Jalan → Invoice V2** | `RJ-E2E` (dokumen: `RJE`) | [roadmap/e2e-backend-roadmap.md](roadmap/e2e-backend-roadmap.md), [roadmap/e2e-frontend-roadmap.md](roadmap/e2e-frontend-roadmap.md) | **Desain `APPROVED` · roadmap `DRAFT`** | `1` | Jembatan fakta klinis → `BilInvoice`, obat dua tahap, jasa konsultasi, rekonsiliasi, Ringkasan Billing. Lihat bagian *Revisi 27* di bawah |
 
+## Revisi 34 — Amendment RP-GT: Ganti tanggal Reservasi Prioritas (`2026-10-21`)
+
+| Field | Nilai |
+|---|---|
+| `revision` | `34` |
+| `status` | **`approved`** — Sukma Giri, 2026-10-21 ("Setujui, lanjut sampai selesai", `RJ-PRI-DEC-039`), termasuk keempat usulan desain |
+| Scope | Aksi Ganti Tanggal pada reservasi Menunggu Kedatangan sebelum hari kunjungan: nomor tetap, status member dinilai ulang, link baru, riwayat tanggal lama → baru, dan kabar realtime untuk kedua tanggal. Pada hari kunjungan tetap batal lalu buat baru (`RJ-PRI-DEC-029`) |
+| `blueprint_shape` | `SINGLE` (tetap, `RJ-PRI-DEC-003`) |
+| `backend_commit_sha` / `frontend_commit_sha` | `b0285ff1` (`sukmagp`) / `037c975b7` (`sukmagpV2`) — impact scan terarah pada area yang tersentuh (`F-GT-1` s.d. `F-GT-7`) |
+| `contract_versions` | `RJ-PRI-RESV-001@1.2.0` (`approved` 2026-10-21, aditif dari `1.1.0`): `POST /{id}/reschedule`, `canReschedule`, `fromVisitDate`/`toVisitDate` pada riwayat, `previousVisitDate` pada event realtime, `VAL-RP-22` s.d. `25`. Kelima berkas `contracts/` berubah (`last_changed_in` `1.2.0` pada bagian *Amendment RP-GT*) |
+| `decision_revision` | `RJ-PRI-DEC-034` s.d. `038` (`approved` 21 Okt 2026); `RJ-PRI-DEC-029` dipersempit ke hari kunjungan; `RJ-PRI-DEC-007` dilengkapi; `RJ-PRI-FE-005` (`DEV_DISCRETION`); `RJ-PRI-OQ-013` diadopsi (`VAL-RP-23`); `RJ-PRI-OQ-014` `LATER SLICE` |
+| `input_revisions` | Revisi `33` (`approved`) dan kontrak `1.1.0` (`approved`, `RJ-PRI-DEC-032`) |
+| `requirement_readiness` | Di dalam slice `S-RP-1` (`READY_FOR_DOMAIN_DESIGN`). Tidak ada keputusan yang memblokir |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — satu bounded context, tanpa dampak billing atau klinis baru |
+| Migration | Satu: `AddPriorityReservationHistoryVisitDates` (2 kolom `date` nullable di `RegPriorityReservationHistory`, aditif) |
+| Artefak | `02` *Amendment RP-GT* (GT.1–14), `03` *Amendment RP-GT* (RP-GT-FE.1–6), `04` *Amendment RP-GT* (RP-GT-1–7, `EPIC RP-09`, `MVP-3`), `contracts/*` *Amendment RP-GT*, `data/data-dictionary.md` RP-GT, `testing/acceptance-test-matrix.md` *Amendment RP-GT* (`R-RP-31` s.d. `42`), bagian 4 [flowcharts/reservasi-prioritas.md](flowcharts/reservasi-prioritas.md), catatan di `flowcharts/00-alur-utama.md` |
+| Usulan desain yang perlu disetujui | (1) Endpoint `POST /{id}/reschedule` dengan respons `PriorityReservationIssuedResponse` yang sama dengan buat/kirim ulang. (2) Riwayat memakai dua kolom baru `FromVisitDate`/`ToVisitDate`, bukan teks alasan. (3) Event realtime menambah `previousVisitDate`. (4) Fitur yang dinonaktifkan (`Enabled = false`) juga menolak ganti tanggal |
+| `owners` | Product/Domain dan Frontend authority: Sukma Giri |
+| `approved_by`, `approved_at` | Sukma Giri, `2026-10-21` |
+| `implementation_authority` | `GRANTED` — `RJ-PRI-DEC-039` (CROSS-REPO, task `MVP-3`, migration + DB uji `QuilvianNewDevSukma`; tanpa commit/push/deploy) |
+| Roadmap | `approved` r2 (`RJ-PRI-DEC-039`) — `BE-RJP-013` di [priority-reservation-backend-roadmap.md](roadmap/priority-reservation-backend-roadmap.md), `FE-RJP-009` di [priority-reservation-frontend-roadmap.md](roadmap/priority-reservation-frontend-roadmap.md), [traceability](roadmap/priority-reservation-traceability.md) (`FR-RP-090` s.d. `096`, AC 23–33) |
+| Status implementasi | 2/2 task ✅ per 2026-10-21: `BE-RJP-013` (runtime 23/23, migration `20261021082302_AddPriorityReservationHistoryVisitDates` hanya di DB uji `QuilvianNewDevSukma`), `FE-RJP-009` (uji layar 13/13). Belum di-commit. Laporan: [BE-RJP-013](task/report/backend/BE-RJP-013.md), [FE-RJP-009](task/report/frontend/FE-RJP-009.md) |
+| Langkah berikutnya | Review dan commit oleh owner; migration diterapkan ke DB master saat rilis, backend sebelum atau bersama frontend |
+
+`artifact_hashes` (SHA-256, 12 karakter awal, 2026-10-21, dihitung sebelum approval; isi bagian *Amendment RP-GT* hanya berubah pada label status):
+
+| Artefak | Hash |
+|---|---|
+| `00-interview-decisions.md` | `d2fac53f7749` |
+| `02-backend-architecture.md` | `e1df7b3c92b8` |
+| `03-frontend-architecture.md` | `31eccd26ef8d` |
+| `04-prd-to-mvp.md` | `bcb35d6aee59` |
+| `data/data-dictionary.md` | `4a2fe12c8fad` |
+| `contracts/api-contract.md` | `dc01eae85f3c` |
+| `contracts/state-transition-matrix.md` | `7422b45bbb5c` |
+| `contracts/validation-matrix.md` | `a1fd93c59867` |
+| `contracts/integration-contract.md` | `daeea91d43ca` |
+| `contracts/permission-audit-matrix.md` | `395c2e87b09b` |
+| `flowcharts/reservasi-prioritas.md` | `514aeb22f5b1` |
+| `flowcharts/00-alur-utama.md` | `982ff81165ad` |
+| `testing/acceptance-test-matrix.md` | `e8c1e00d8f79` |
+
 ## Revisi 33 — Amendment RP: Reservasi Pasien Prioritas (`2026-10-16`)
 
 | Field | Nilai |
