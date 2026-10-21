@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `38c8a4f4` (branch `yoga`, upstream `origin/yoga`) + working tree |
 | Tanggal | 2026-10-08 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — harness 34/34, HTTP baca-saja 18/18, build 0 error, validator lolos. **Batas:** `403` belum diamati di runtime (bagian 5) |
+| Status | ✅ **`SELESAI`** — 2026-10-21. Semula ⚠ (`403` belum diamati di runtime). `403` terbukti dengan akun asli tanpa `LabOrder : Read` (bagian 8) |
 
 ---
 
@@ -110,7 +110,7 @@ Contoh jawaban asli `dashboard/today` di DB dev 2026-10-08 15.17 WIB:
 | Harness InMemory (`ApplicationDbContext` asli, nol tulis ke DB bersama) | **34/34** | `PASS` | Rincian di bawah |
 | Startup Development + `PermissionRegistryValidator` | `/health` `200`; *"Permission registry valid. 1659 identitas kanonik dari 1659 kemampuan terdaftar"*; nol `fail:`/`crit:` di log | `PASS` | Log server |
 | HTTP baca-saja — backend lokal + DB dev, superadmin | **18/18** | `PASS` | Rincian di bawah |
-| `403` endpoint baru di runtime | — | `NOT RUN` | Superadmin melewati izin; akun lab yang sandinya tersedia memegang `LabOrder : Read`. Mekanisme atribut sama dengan `GetSummary` |
+| `403` endpoint baru di runtime | `403` (Bayu); pemegang `200` | `PASS` (2026-10-21, bagian 8) | Semula `NOT RUN`: akun lab yang sandinya tersedia saat itu memegang `LabOrder : Read` |
 
 **Harness 34/34:**
 
@@ -173,3 +173,13 @@ diberi wewenang. Uji otomatis tidak masuk repository (`LAB-RDY-C04`); harness ti
 | Interupsi | `NONE`. Server lokal BE (`dotnet run --no-build -p:RunAnalyzers=False`) dan FE (`npm run dev`) dimatikan sebelum build, lalu dinyalakan lagi |
 | Status Git | Source: `M LabOrderController.cs`, `M LabWorklistService.cs`, `M Program.cs`, `?? LabDashboardDtos.cs`, `?? LabDashboardService.cs`; ditambah dokumen blueprint sesi ini. Tidak di-stage, tidak di-commit |
 | Langkah berikutnya | `BE-LAB-93` (ringkasan tahunan, `VAL-154`) — berkas service dan DTO yang sama; atau `FE-LAB-52`, yang kini dapat diverifikasi |
+
+---
+
+## 8. Penutupan batas verifikasi — 2026-10-21
+
+| Hal | Isi |
+| --- | --- |
+| Akun asli | Bayu (Radiografer — **nol** izin Lab, termasuk tanpa `LabOrder : Read`), dr. Bima (Kepala Instalasi — tanpa `LabOrder : Confirm`, tanpa `LabExamination : Update`), Gilang (Analis — pemegang). Sandi diberikan pemilik modul, tidak dicatat. Kontrol sesi Bayu: `GET /auth/permissions` `200` |
+| `GET /lab-orders/dashboard/today` | Bayu → **`403`**; dr. Bima (pemegang) → `200` |
+| `GET /lab-orders/dashboard/recent-orders` | Bayu → **`403`**; dr. Bima (pemegang) → `200` |

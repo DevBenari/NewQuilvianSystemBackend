@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Responses;
 
 using MstTariff = QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff;
 
@@ -173,6 +174,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 ModalityCode = alat?.ModalityCode,
                 ModalityName = alat?.ModalityName,
             });
+        }
+
+        /// <summary>
+        /// Pilihan "Pilih Diagnosa ICD-10" Booking v1 dari master diagnosis — syarat sama dengan
+        /// <c>diagnoses/clinical-options</c> (ICD-10 klinis, aktif, dapat dipilih). Disajikan Radiologi
+        /// sendiri karena pembooking tidak memegang <c>Diagnosis : Read</c> master data — pola
+        /// <see cref="GetProcedureOptionsAsync"/>. Kode yang diawali kata kunci tampil lebih dulu.
+        /// </summary>
+        public async Task<PagedResult<RadBookingDiagnosisOptionResponse>> GetBookingDiagnosisOptionsAsync(
+            RadAssigneeOptionQuery? query,
+            CancellationToken cancellationToken = default)
+        {
+            var (halaman, ukuran, cari) = RapikanPilihan(query);
+
+            var source = _dbContext.MstDiagnoses
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && x.IsSelectableForClinicalUse &&
+                            x.DiagnosisType == "ICD10" && x.IcdVersion == "ICD-10");
+
+            if (cari != null)
+            {
+                source = source.Where(x =>
+                    x.DiagnosisCode.ToLower().Contains(cari) ||
+                    x.DiagnosisName.ToLower().Contains(cari));
+            }
+
+            var total = await source.CountAsync(cancellationToken);
+            var items = await source
+                .OrderBy(x => cari != null && x.DiagnosisCode.ToLower().StartsWith(cari) ? 0 : 1)
+                .ThenBy(x => x.DiagnosisCode)
+                .Skip((halaman - 1) * ukuran).Take(ukuran)
+                .Select(x => new RadBookingDiagnosisOptionResponse
+                {
+                    Id = x.Id,
+                    DiagnosisCode = x.DiagnosisCode,
+                    DiagnosisName = x.DiagnosisName,
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<RadBookingDiagnosisOptionResponse>
+            {
+                PageNumber = halaman,
+                PageSize = ukuran,
+                TotalData = total,
+                TotalPage = (int)Math.Ceiling(total / (double)ukuran),
+                Items = items,
+            };
         }
 
         /// <summary>Menyimpan Booking Radiologi v1: satu pesanan per pemeriksaan, satu transaksi.</summary>

@@ -210,3 +210,30 @@ karena di v1 tayang menu-menu ini "Coming Soon", isinya diturunkan dari data pes
 **Tetap bertanda:** Setup → Kategori dan Parameter ("Coming Soon" di v1, kategori V2 ada di master pemeriksaan),
 tab Pasien Luar (data contoh di v1), Foto PACS (`RAD-OPEN-013`), AI (`RAD-OPEN-014`). Migration
 `AddRadReportTemplateAndFilmPrint` menunggu instruksi untuk devYoga.
+
+---
+
+## 8. Keputusan lanjutan — 2026-10-19: Form Hasil tanpa konsol pemeriksaan
+
+Pemilik modul, 2026-10-19, atas pertanyaan apakah hasil boleh disimpan tanpa konsol seperti v1 (mengubah
+`RAD-DEC-018`): *"yaaa saya ingin seperti ini. proses yang di foto sepertinya tidak diperlukan hapus saja yaa
+pastikan aman jadi pada form hasil langsung munculkan textbox seperti yang v1 samakan saja konsepnya dan ada
+tombol simpan yaaa seperti v1 yang ketika sudah diklik langsung redirect lalu datanya tampil di tabel"*.
+
+| No | Keputusan |
+| ---: | --- |
+| `RAD-DEC-023` | **Form Hasil mengikuti v1: hasil diisi langsung dan langsung berlaku setelah Simpan**, tanpa konsol pemeriksaan (verifikasi pasien, gerbang keselamatan, akuisisi, penilaian mutu) dan tanpa pengesahan/rilis terpisah. Mengubah `RAD-DEC-018` (gerbang keselamatan dan pengesahan radiolog) untuk jalur ini; `RAD-DEC-019` tidak lagi menahan pengisian hasil |
+
+Yang tetap dijaga agar penghapusan konsol aman:
+
+| Hal | Sebelumnya (konsol) | Sekarang (Form Hasil) |
+| --- | --- | --- |
+| Tagihan | Fakta kelayakan tagih terbit saat mutu citra diterima | Terbit saat hasil pertama disimpan, sekali per study (`BillingFactSubmitted`); gagal kirim dicoba lagi pada Simpan berikutnya |
+| Study | Dibuat dan dinaikkan statusnya di konsol | Dibuat atau dilompati ke `QualityAccepted` oleh Simpan; riwayat bertanda `RAD-DEC-023` |
+| Status pesanan | Selesai setelah bacaan dirilis | Setiap Simpan menyelesaikan pesanan yang masih terbuka — termasuk pesanan yang hasilnya sudah dirilis lewat alur lama tetapi statusnya masih Accepted |
+| Isi hasil | Draf → disahkan → dirilis | Langsung `Released`; simpan ulang dengan isi berbeda menjadi versi koreksi, versi lama `Superseded` |
+| Pesanan belum dikonfirmasi, ditahan, batal, ditolak | — | Ditolak backend dan diterangkan di form |
+
+Kontrak: `PUT rad-reports/by-order/{radOrderId}/result` dengan `{ findings, notes }` — `notes` ("Catatan Tambahan"
+v1) opsional; kosong berarti hasil itu sendiri menjadi kesimpulan. Hak akses `RadReport : Create`. Detail Pasien
+tidak lagi punya tombol *Buka Pemeriksaan*; kolom Hasil menampilkan isi hasil yang tersimpan.

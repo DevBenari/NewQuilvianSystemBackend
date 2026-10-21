@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `38c8a4f4` (branch `yoga`, upstream `origin/yoga`) + working tree `BE-LAB-92` |
 | Tanggal | 2026-10-08 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — harness 56/56, HTTP baca-saja 16/16, build 0 error, validator lolos. **Batas:** `403` belum diamati di runtime |
+| Status | ✅ **`SELESAI`** — 2026-10-21. Semula ⚠ (`403` belum diamati di runtime). `403` terbukti dengan akun asli tanpa `LabOrder : Read` (bagian 8) |
 
 ---
 
@@ -111,7 +111,7 @@ Jawaban asli DB dev 2026-10-08 (tahun 2026): Patologi Klinik 8, Patologi Anatomi
 | Startup Development + `PermissionRegistryValidator` | `/health` `200`; 1659 kunci dari 1659 kemampuan — **sama** dengan `BE-LAB-92`, nol aksi baru; nol `fail:`/`crit:` | `PASS` | Log server |
 | HTTP baca-saja — backend lokal + DB dev, superadmin | **16/16** | `PASS` | Rincian di bawah |
 | Lama kueri tahunan | 132–315 ms dalam 5 kali panggil, **termasuk** perjalanan HTTP, pada 23 pesanan | `PASS` | Di bawah ambang 1 detik `LAB-REQ-021` butir 10 |
-| `403` endpoint baru di runtime | — | `NOT RUN` | Sama dengan `BE-LAB-92` — tidak ada sandi akun tanpa `LabOrder : Read` |
+| `403` endpoint baru di runtime | `403` (Bayu); pemegang `200` | `PASS` (2026-10-21, bagian 8) | Semula `NOT RUN`: tidak ada sandi akun tanpa `LabOrder : Read` |
 
 **Harness — 22 uji baru:**
 
@@ -162,3 +162,12 @@ harness tinggal di scratchpad sesi.
 | Interupsi | `NONE`. Server lokal BE dan FE dimatikan sebelum build lalu dinyalakan lagi. Notifikasi *exit code 127* pada kedua proses latar adalah akibat proses dihentikan, bukan galat |
 | Status Git | Source: `M LabOrderController.cs`, `M LabWorklistService.cs`, `M Program.cs`, `?? LabDashboardDtos.cs`, `?? LabDashboardService.cs` (gabungan `BE-LAB-92` dan `BE-LAB-93`); ditambah dokumen blueprint sesi ini. Tidak di-stage, tidak di-commit |
 | Langkah berikutnya | `MVP-13a` selesai pada kode. Lanjut `FE-LAB-52` lalu `FE-LAB-53` (`MVP-13b`) |
+
+---
+
+## 8. Penutupan batas verifikasi — 2026-10-21
+
+| Hal | Isi |
+| --- | --- |
+| Akun asli | Bayu (Radiografer — **nol** izin Lab, termasuk tanpa `LabOrder : Read`), dr. Bima (Kepala Instalasi — tanpa `LabOrder : Confirm`, tanpa `LabExamination : Update`), Gilang (Analis — pemegang). Sandi diberikan pemilik modul, tidak dicatat. Kontrol sesi Bayu: `GET /auth/permissions` `200` |
+| `GET /lab-orders/dashboard/yearly?year=2026` | Bayu → **`403`**; dr. Bima (pemegang) → `200` |
