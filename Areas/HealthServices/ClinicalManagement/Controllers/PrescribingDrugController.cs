@@ -144,7 +144,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var totalData = await query.CountAsync(cancellationToken);
 
-            var drugs = await ApplySorting(query, sortBy, sortDirection)
+            var drugs = await ApplySorting(query, sortBy, sortDirection, search)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
@@ -382,14 +382,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private static IQueryable<MstDrug> ApplySorting(
             IQueryable<MstDrug> query,
             string? sortBy,
-            string? sortDirection)
+            string? sortDirection,
+            string? search = null)
         {
             var isDesc = string.Equals(
                 sortDirection,
                 "desc",
                 StringComparison.OrdinalIgnoreCase);
 
-            return (sortBy ?? "drugName").ToLowerInvariant() switch
+            var normalizedSortBy = (sortBy ?? "drugName").ToLowerInvariant();
+
+            // Jika ada kata kunci pencarian dan pengurutan default (nama obat atau urutan standar),
+            // prioritaskan obat yang paling relevan dengan kata kunci nama obat:
+            if (!string.IsNullOrWhiteSpace(search) && (normalizedSortBy == "drugname" || normalizedSortBy == "sortorder"))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.OrderBy(x =>
+                    x.DrugName.ToLower() == keyword ? 1 :
+                    x.DrugName.ToLower().StartsWith(keyword) ? 2 :
+                    x.DrugName.ToLower().Contains(keyword) ? 3 :
+                    (x.GenericName != null && x.GenericName.ToLower().StartsWith(keyword)) ? 4 :
+                    (x.BrandName != null && x.BrandName.ToLower().Contains(keyword)) ? 5 :
+                    (x.GenericName != null && x.GenericName.ToLower().Contains(keyword)) ? 6 :
+                    7);
+
+                return isDesc
+                    ? ((IOrderedQueryable<MstDrug>)query).ThenByDescending(x => x.DrugName)
+                    : ((IOrderedQueryable<MstDrug>)query).ThenBy(x => x.DrugName);
+            }
+
+            return normalizedSortBy switch
             {
                 "drugcode" => isDesc
                     ? query.OrderByDescending(x => x.DrugCode)

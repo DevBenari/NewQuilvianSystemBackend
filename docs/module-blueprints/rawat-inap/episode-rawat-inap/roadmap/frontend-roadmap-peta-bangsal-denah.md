@@ -32,11 +32,11 @@ FE-RWI-272 🟡 ─> FE-RWI-273 🟡 ─┬─> FE-RWI-274 🟡 ─┐
                                 │                  │
                                 └─> FE-RWI-275 🟡 ─┴─> {DEC-PETA-L3 ⛔}
 
-{DEC-PETA-L3 ⛔} ─┬─> FE-RWI-276 ⛔ ─────┐
+{DEC-PETA-L3 ⛔} ─┬─> FE-RWI-276 🟡 ─────┐
                   │                      │
-                  ├─> FE-RWI-277 ⛔ ─┐   │
+                  ├─> FE-RWI-277 🟡 ─┐   │
                   │                  │   │
-                  └─> FE-RWI-278 ⛔ ─┴───┴─> FE-RWI-279 ⛔
+                  └─> FE-RWI-278 🟡 ─┴───┴─> FE-RWI-279 ⛔
 ```
 
 `{DEC-PETA-L3 ⛔}` = gerbang pengesahan contoh Lantai 3 oleh atasan, dicatat Muhammad Hamzah sebagai
@@ -62,8 +62,8 @@ FE-RWI-279`, dan `FE-RWI-278 → FE-RWI-279`. Dua garis `FE-RWI-274 → {DEC-PET
 | Slice | Isi | Task | Status |
 |---|---|---|---|
 | `PETA-S1` — contoh Lantai 3 (`MVP-PETA-1`) | Lantai 3 menjadi peta bangsal di keempat pemakai: lapisan peta, kartu kamar, kepala halaman, dan satu palet titik | `FE-RWI-272` s.d. `FE-RWI-275` | 🟡 20 Oktober 2026: keempat task `FE-RWI-272` s.d. `FE-RWI-275` 🟡 sebagian — source lengkap, `npm run lint` 0 error, `npm run build` lulus; uji manual peramban dijalankan pengguna sendiri dan belum dilakukan |
-| Gerbang `DEC-PETA-L3` | Atasan melihat dan mengesahkan Lantai 3; revisi dikerjakan di Lantai 3 lebih dulu | — | ⛔ menunggu `PETA-S1` (per 20 Oktober 2026 source keempat task sudah ada; tersisa uji manual pengguna), lalu pengesahan atasan yang dicatat Muhammad Hamzah sebagai keputusan baru |
-| `PETA-S2` — lima lantai lain (`MVP-PETA-2`) | Data skematik Lantai 2, 4, 5, 8, dan 9 | `FE-RWI-276` s.d. `FE-RWI-278` | ⛔ menunggu `DEC-PETA-L3` |
+| Gerbang `DEC-PETA-L3` | Atasan melihat dan mengesahkan Lantai 3; revisi dikerjakan di Lantai 3 lebih dulu | — | ⛔ **21 Oktober 2026:** pemilik menyatakan tampilan Lantai 3 sudah disetujui ("tampilan sudah disetujui pada lantai 3 dan tampilan ya bagus sudah sesuai") dan memerintahkan Lantai 4, 5, 8, dan 9 dikerjakan mengikuti tampilan itu, tanpa area servis utara di Lantai 4 dan 5; Lantai 2 sempat dilewati, lalu dibuka kembali pada hari yang sama dengan sayap utara ditampilkan sebagai blok bernama. Gerbang tetap terbuka sampai pengesahan itu dicatat Muhammad Hamzah sebagai keputusan baru di decision log (hash decision log 21 Oktober 2026 masih sama dengan lock). Riwayat: per 20 Oktober 2026 menunggu `PETA-S1` (source keempat task sudah ada; tersisa uji manual pengguna) |
+| `PETA-S2` — lima lantai lain (`MVP-PETA-2`) | Data skematik Lantai 2, 4, 5, 8, dan 9 | `FE-RWI-276` s.d. `FE-RWI-278` | 🟡 21 Oktober 2026: ketiga task 🟡 sebagian — source Lantai 2, 4, 5, 8, dan 9 lengkap; skrip geometri 40/40; `npm run lint:errors` exit 0; `npm run build` lulus. Tersisa pencatatan `DEC-PETA-L3` di decision log. Riwayat: sebelumnya ⛔ menunggu `DEC-PETA-L3`; `FE-RWI-277`/`278` 🟡 lebih dulu (skrip geometri 35/35), `FE-RWI-276` sempat ⛔ dilewati atas instruksi pemilik lalu dibuka kembali pada hari yang sama |
 | `PETA-S3` — penutupan | Semua lantai berskematik; gambar lama berhenti dipakai; bukti kesiapan rilis | `FE-RWI-279` | ⛔ menunggu `PETA-S2` |
 
 ## Keputusan Reuse
@@ -90,9 +90,9 @@ FE-RWI-279`, dan `FE-RWI-278 → FE-RWI-279`. Dua garis `FE-RWI-274 → {DEC-PET
 | 🟡 `FE-RWI-273` — [laporan](../task/report/frontend/FE-RWI-273.md) | Kamar Lantai 3 tampil sebagai kartu dengan rupa status, label HD/LD, titik bed, dan fokus keyboard yang benar | FR-DNH-018–021, 023; DEC-344, 346, 347, 350 | 0.18.0; Frontend 21.5–21.7, 21.9 | Data kamar `use-floor-plan`, `describeRoom`, `statusTone`, fungsi geometri `FE-RWI-272` | Renderer kartu, aturan rupa 1–7, label HD/LD, titik bed, varian ringkas, fokus dan `aria-label`, modul status bed bersama | `FE-RWI-272` | AC-499, 501–504 (Lantai 3); DNH-AT-499, 501–504, 914–916, 921, 923 | `V-FE`; data uji 328/329/330; akun Housekeeping; keyboard | Rawat Inap FE; urutan aturan rupa | `D-FE` |
 | 🟡 `FE-RWI-274` — [laporan](../task/report/frontend/FE-RWI-274.md) | Kepala halaman menyebut ringkasan bed per status dan bed kosong per tab; legenda, kartu ringkas, kerangka, kompas, dan gerak selesai | FR-DNH-022; DEC-348; FE-011 | 0.18.0; Frontend 21.5, 21.9 | `floors[].availableBedCount`, `FloorTabs`, `ClassLegend`, `FloorPlanSkeleton`, `FloorPlanCompass` | `floor-plan-summary.jsx`, `floor-plan-room-hovercard.jsx`, angka tab, legenda per rupa, kerangka, kompas, animasi | `FE-RWI-273` | AC-505; DNH-AT-505, 919, 920, 922 | `V-FE`; jejak jaringan; gerak dikurangi; lebar 390 px | Rawat Inap FE; selisih ringkasan dan badge | `D-FE` |
 | 🟡 `FE-RWI-275` — [laporan](../task/report/frontend/FE-RWI-275.md) | Titik status di kartu dan pop up memakai satu palet | FR-DNH-025; DEC-353 | 0.18.0; Frontend 21.7, 21.12 | Modul status bed bersama, CSS titik pop up | Token palet bersama; titik pop up dan kartu memakai token yang sama | `FE-RWI-273` | AC-508; DNH-AT-508; UAT-819, 820 | `V-FE`; kartu dan pop up 329, 325 | Rawat Inap FE; perubahan warna terlihat di keempat pemakai | `D-FE` |
-| ⛔ `FE-RWI-276` | Lantai 2 tampil sebagai peta bangsal | FR-DNH-017, 018; DEC-344; FE-010 | 0.18.0; Frontend 21.5, 21.8; planning 5.9 | Fondasi `FE-RWI-272`–`275` | Data skematik Lantai 2, zona unit lain, penanda | `{DEC-PETA-L3}` | AC-498, 499 (Lantai 2); DNH-AT-498, 499, 918 | `V-FE`; bandingkan dengan `lantai-2.png` | Rawat Inap FE; banyak zona non-rawat-inap | `D-FE` |
-| ⛔ `FE-RWI-277` | Lantai 4 dan 5 tampil sebagai peta bangsal | FR-DNH-017, 018; DEC-344; FE-010 | 0.18.0; Frontend 21.5, 21.8; planning 5.9 | Fondasi `FE-RWI-272`–`275` | Data skematik Lantai 4 dan 5 | `{DEC-PETA-L3}` | AC-498, 499 (Lantai 4–5); DNH-AT-498, 499, 918 | `V-FE`; bandingkan dengan `lantai-4.png`, `lantai-5.png` | Rawat Inap FE; kamar L 401, 418, 506 | `D-FE` |
-| ⛔ `FE-RWI-278` | Lantai 8 dan 9 tampil sebagai peta bangsal | FR-DNH-017, 018; DEC-344; FE-010 | 0.18.0; Frontend 21.5, 21.8; planning 5.9 | Fondasi `FE-RWI-272`–`275` | Data skematik Lantai 8 dan 9 | `{DEC-PETA-L3}` | AC-498, 499 (Lantai 8–9); DNH-AT-498, 499, 918 | `V-FE`; bandingkan dengan `lantai-8.png`, `lantai-9.png` | Rawat Inap FE; kamar L 908, 909 | `D-FE` |
+| 🟡 `FE-RWI-276` — [laporan](../task/report/frontend/FE-RWI-276.md) | Lantai 2 tampil sebagai peta bangsal | FR-DNH-017, 018; DEC-344; FE-010 | 0.18.0; Frontend 21.5, 21.8; planning 5.9 | Fondasi `FE-RWI-272`–`275` | Data skematik Lantai 2, zona unit lain, penanda | `{DEC-PETA-L3}` | AC-498, 499 (Lantai 2); DNH-AT-498, 499, 918 | `V-FE`; bandingkan dengan `lantai-2.png` | Rawat Inap FE; banyak zona non-rawat-inap | `D-FE` |
+| 🟡 `FE-RWI-277` — [laporan](../task/report/frontend/FE-RWI-277.md) | Lantai 4 dan 5 tampil sebagai peta bangsal | FR-DNH-017, 018; DEC-344; FE-010 | 0.18.0; Frontend 21.5, 21.8; planning 5.9 | Fondasi `FE-RWI-272`–`275` | Data skematik Lantai 4 dan 5 | `{DEC-PETA-L3}` | AC-498, 499 (Lantai 4–5); DNH-AT-498, 499, 918 | `V-FE`; bandingkan dengan `lantai-4.png`, `lantai-5.png` | Rawat Inap FE; kamar L 401, 418, 506 | `D-FE` |
+| 🟡 `FE-RWI-278` — [laporan](../task/report/frontend/FE-RWI-278.md) | Lantai 8 dan 9 tampil sebagai peta bangsal | FR-DNH-017, 018; DEC-344; FE-010 | 0.18.0; Frontend 21.5, 21.8; planning 5.9 | Fondasi `FE-RWI-272`–`275` | Data skematik Lantai 8 dan 9 | `{DEC-PETA-L3}` | AC-498, 499 (Lantai 8–9); DNH-AT-498, 499, 918 | `V-FE`; bandingkan dengan `lantai-8.png`, `lantai-9.png` | Rawat Inap FE; kamar L 908, 909 | `D-FE` |
 | ⛔ `FE-RWI-279` | Keenam lantai di keempat pemakai memakai peta bangsal; gambar lama berhenti dipakai; bukti kesiapan rilis lengkap | FR-DNH-023, 024; DEC-345, 351; FE-012 | 0.18.0; Frontend 21.8–21.10 | Seluruh hasil `FE-RWI-272`–`278` | Hapus jalur gambar lama dan renderer lama dari pemakaian, hapus gaya CAD tak terpakai, verifikasi penuh | `FE-RWI-276`, `FE-RWI-277`, `FE-RWI-278` | AC-498–500, 506 (semua lantai); DNH-AT-498–500, 506, 920, 922 | `V-FE`; 6 lantai × 4 pemakai | Rawat Inap FE; regresi pemakai | `D-FE` |
 
 Singkatan pada tabel: `FR` = `FR-DNH-0xx`, `DEC` = `RWI-DEC-3xx`, `AC` = `RWI-AC-xxx`, `FE-0xx` = `RWI-FE-0xx`.
@@ -189,11 +189,11 @@ Singkatan pada tabel: `FR` = `FR-DNH-0xx`, `DEC` = `RWI-DEC-3xx`, `AC` = `RWI-AC
 | Risiko / owner | Tim frontend Rawat Inap. Pop up dipakai keempat pemakai, sehingga perubahan warna terlihat di semuanya — sesuai `RWI-DEC-353` |
 | DoD | `D-FE`; laporan `task/report/frontend/FE-RWI-275.md` |
 
-### ⛔ `FE-RWI-276` — Peta bangsal Lantai 2
+### 🟡 `FE-RWI-276` — Peta bangsal Lantai 2
 
 | Field | Isi |
 |---|---|
-| Status | ⛔ Menunggu gerbang `DEC-PETA-L3` (pengesahan atasan atas contoh Lantai 3; dicatat Muhammad Hamzah) |
+| Status | 🟡 **SEBAGIAN 21 Oktober 2026.** Dibuka kembali atas instruksi pemilik ("oke sekarang buatkan lantai 2"). Pemilik memilih menampilkan sayap utara sebagai blok bernama. Seluruh acceptance criteria (`DNH-AT-498`, `499`, `918` untuk Lantai 2; keenam kamar dapat dibuka) terpetakan ke source. `lantai-2.schematic.js` memuat lempeng 8 titik (blok utama dan sayap utara), 34 blok zona (15 berlabel: Taman, Kafetaria, Cath Lab, Farmasi, OK bersih, OK kotor, Ruang tunggu, Hemodialisa, Persiapan endoskopi, R. Operasi, Endoskopi & diagnosa, CSSD, OK 1–3) dan 9 penanda (Nurse Station, R. NS Bayi, Lift, Tangga, Toilet, R. Dokter). Lajur paling utara dan kanopi selatan tidak dimuat. `floors.js` memberi skematik pada Lantai 2. `FittedCompactContent` memuatkan kode pendek BAYI-1, BAYI-2, ICU VIP 2, dan ICU-CK ke kartu ringkas; skala terkecil 0,767 pada keadaan terberat, dan ICU VIP 2 ikut ringkas menurut aturan luas `FE-RWI-277`. Skrip geometri 40/40 lulus. Perbandingan markup kartu `HEAD` vs working tree: hanya keempat kartu ringkas Lantai 2 yang berubah; 1.800 render Lantai 3–9 identik. `npm run lint:errors` exit 0; `eslint . -f json` `0 errors`, 1086 warning (berkas task 0 warning). `npm run test:unit` 3346/3383 lulus; 37 kegagalan ada di 28 berkas uji di luar denah. `npm run build` `✓ Compiled successfully in 109s`, exit 0. **Belum terpenuhi:** gerbang `DEC-PETA-L3` belum dicatat sebagai keputusan baru di decision log. Uji manual di aplikasi belum dijalankan; butir ini tidak menahan ✅ atas keputusan pemilik 1 September 2026. Riwayat: ⛔ ditunda 21 Oktober 2026 atas instruksi pemilik ("untuk lantai 2 di skip saja dulu, jangan di kerjakan"), lalu dibuka kembali pada hari yang sama. Bukti: [laporan](../task/report/frontend/FE-RWI-276.md) |
 | Outcome | Lantai 2 di keempat pemakai tampil sebagai peta bangsal: enam kamar Perinatologi dan ICU menjadi kartu, dan unit lain menjadi blok zona bernama |
 | Trace | FR-DNH-017, 018 untuk Lantai 2; RWI-DEC-344; RWI-AC-498, 499 untuk Lantai 2; DNH-AT-498, 499, 918; RWI-FE-010 |
 | Scope source | Baru: `schematic/lantai-2.schematic.js`. Diperbarui: `floors.js` |
@@ -205,11 +205,11 @@ Singkatan pada tabel: `FR` = `FR-DNH-0xx`, `DEC` = `RWI-DEC-3xx`, `AC` = `RWI-AC
 | Risiko / owner | Tim frontend Rawat Inap. Lantai 2 didominasi unit non-rawat-inap; zona dibuat sederhana |
 | DoD | `D-FE`; laporan `task/report/frontend/FE-RWI-276.md` |
 
-### ⛔ `FE-RWI-277` — Peta bangsal Lantai 4 dan Lantai 5
+### 🟡 `FE-RWI-277` — Peta bangsal Lantai 4 dan Lantai 5
 
 | Field | Isi |
 |---|---|
-| Status | ⛔ Menunggu gerbang `DEC-PETA-L3` |
+| Status | 🟡 **SEBAGIAN 21 Oktober 2026.** Dikerjakan atas instruksi eksplisit pemilik sesudah ia menyatakan tampilan Lantai 3 disetujui. Ketiga acceptance criteria (`DNH-AT-498`, `499`, `918` untuk Lantai 4 dan 5) terpetakan ke source: `lantai-4.schematic.js` dan `lantai-5.schematic.js`, yang lempengnya berhenti di dinding utara blok bangsal atas revisi pemilik 21 Oktober 2026 (tanpa area servis utara). `floors.js` memberi skematik pada Lantai 4 dan 5. Aturan varian ringkas bersama `isCompactRoomBox` (sisi pendek < 56 atau luas < 6.000 satuan²) membuat tepat 520, 521, dan 522 ringkas. Uji `floor-plan-schematic-floors.test.mjs` beserta uji Lantai 3: 35/35 lulus. Perbandingan markup kartu `HEAD` vs working tree: Lantai 3 dan 4 tidak berubah, Lantai 5 hanya 521 dan 522. `npm run lint:errors` exit 0. `eslint . -f json` `0 errors`, 1086 warning: berkas task 0 warning, dan selisih +3 dari garis dasar 1083 berasal dari berkas hasil merge. `npm run test:unit` 3341/3378 lulus; 37 kegagalan ada di 28 berkas uji di luar denah dan tidak satu pun membaca berkas task ini. `npm run build` `✓ Compiled successfully in 55s`, 514 halaman statis, exit 0. Blok "Ruang staf" (meeting, print, IT, store) dan PDI 26 tidak dibuat karena berada di sayap servis utara (revisi pemilik). **Belum terpenuhi:** gerbang `DEC-PETA-L3` belum dicatat sebagai keputusan baru di decision log. Uji manual di aplikasi belum dijalankan; butir ini tidak menahan ✅ atas keputusan pemilik 1 September 2026. Bukti: [laporan](../task/report/frontend/FE-RWI-277.md) |
 | Outcome | Lantai 4 (27 kamar) dan Lantai 5 (11 kamar) di keempat pemakai tampil sebagai peta bangsal |
 | Trace | FR-DNH-017, 018 untuk Lantai 4–5; RWI-DEC-344; RWI-AC-498, 499; DNH-AT-498, 499, 918; RWI-FE-010 |
 | Scope source | Baru: `schematic/lantai-4.schematic.js`, `schematic/lantai-5.schematic.js`. Diperbarui: `floors.js` |
@@ -221,11 +221,11 @@ Singkatan pada tabel: `FR` = `FR-DNH-0xx`, `DEC` = `RWI-DEC-3xx`, `AC` = `RWI-AC
 | Risiko / owner | Tim frontend Rawat Inap. Kamar 520–522 kecil dan berdempetan |
 | DoD | `D-FE`; laporan `task/report/frontend/FE-RWI-277.md` |
 
-### ⛔ `FE-RWI-278` — Peta bangsal Lantai 8 dan Lantai 9
+### 🟡 `FE-RWI-278` — Peta bangsal Lantai 8 dan Lantai 9
 
 | Field | Isi |
 |---|---|
-| Status | ⛔ Menunggu gerbang `DEC-PETA-L3` |
+| Status | 🟡 **SEBAGIAN 21 Oktober 2026.** Dikerjakan atas instruksi eksplisit pemilik sesudah ia menyatakan tampilan Lantai 3 disetujui. Ketiga acceptance criteria (`DNH-AT-498`, `499`, `918` untuk Lantai 8 dan 9) terpetakan ke source: `lantai-8.schematic.js` dan `lantai-9.schematic.js` dengan lempeng seluas seluruh lantai, karena kedua lantai tidak punya area servis terpisah (pemilik 21 Oktober 2026). `floors.js` memberi skematik pada Lantai 8 dan 9. `CardContent` menaruh titik bed dan badge sebaris bila isi bertumpuk tidak muat, sehingga kartu 812, 908, 918, dan 919 tidak meluber. Penanda Lift servis, Tangga, Day room, Lobby room, dan R. Dokter ada. Uji `floor-plan-schematic-floors.test.mjs` beserta uji Lantai 3: 35/35 lulus. Perbandingan markup kartu `HEAD` vs working tree: Lantai 3 tidak berubah; Lantai 8 hanya 812; Lantai 9 hanya 908, 918, dan 919. `npm run lint:errors` exit 0. `eslint . -f json` `0 errors`, 1086 warning (berkas task 0 warning). `npm run test:unit` 3341/3378 lulus; 37 kegagalan ada di luar denah. `npm run build` `✓ Compiled successfully in 55s`, exit 0. **Belum terpenuhi:** gerbang `DEC-PETA-L3` belum dicatat sebagai keputusan baru di decision log. Uji manual di aplikasi belum dijalankan; butir ini tidak menahan ✅ atas keputusan pemilik 1 September 2026. Bukti: [laporan](../task/report/frontend/FE-RWI-278.md) |
 | Outcome | Lantai 8 (13 kamar) dan Lantai 9 (20 kamar) di keempat pemakai tampil sebagai peta bangsal |
 | Trace | FR-DNH-017, 018 untuk Lantai 8–9; RWI-DEC-344; RWI-AC-498, 499; DNH-AT-498, 499, 918; RWI-FE-010 |
 | Scope source | Baru: `schematic/lantai-8.schematic.js`, `schematic/lantai-9.schematic.js`. Diperbarui: `floors.js` |
