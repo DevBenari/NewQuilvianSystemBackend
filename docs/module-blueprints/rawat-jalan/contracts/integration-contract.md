@@ -295,3 +295,15 @@ Penegasan: fakta resep → folio → jembatan adalah **satu-satunya** jalur tagi
 
 Pengiriman tagihan lewat WA/email (2I), cara bayar (2J), dan closing (2K) tetap milik `billing-kasir`. WA gateway milik
 `platform-notification`, yang belum memiliki owner.
+
+# Amendment RP-GT — `RJ-PRI-RESV-001@1.2.0` (`approved`)
+
+`last_changed_in`: `RJ-PRI-RESV-001@1.2.0`. Status `approved` (Sukma Giri, 2026-10-21, `RJ-PRI-DEC-039`). Owner Sukma Giri.
+
+| ID | Perubahan pada ganti tanggal | Bila gagal |
+|---|---|---|
+| `INT-RP-01` | Resolver juga dipanggil saat ganti tanggal, dengan tanggal penilaian = hari penggantian (WIB) | Gagal tertutup: penggantian ditolak, reservasi lama tetap utuh. Admisi mencoba lagi |
+| `INT-RP-07` | Event `PriorityReservationChanged` dengan `eventCode = RESCHEDULED` membawa `visitDate` (baru) dan `previousVisitDate` (lama) | Layar yang tidak menerima kabar tetap benar setelah muat ulang berkala atau tombol ↻ |
+| `INT-RP-09` | Teks WA versi ganti tanggal, dikirim manual lewat `wa.me` | Petugas menyalin link manual |
+
+Larangan `AC-RP-INT-01` s.d. `05` tetap berlaku. Ganti tanggal tidak menyentuh kunjungan, antrean, maupun tagihan.

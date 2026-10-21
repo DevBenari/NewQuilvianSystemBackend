@@ -21,8 +21,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
     /// </summary>
     /// <remarks>
     /// Transaksi ber-lifecycle: perpindahan status lewat <c>POST /{id}/&lt;aksi&gt;</c>, pembatalan
-    /// lewat <c>cancel</c>. Tidak ada <c>PUT</c>, <c>PATCH /status</c>, maupun <c>DELETE</c>. Controller
-    /// tidak menyentuh <c>ApplicationDbContext</c>; seluruh aturan ada di service.
+    /// lewat <c>cancel</c>, ganti tanggal lewat <c>reschedule</c> (kontrak <c>1.2.0</c>). Tidak ada
+    /// <c>PUT /{id}</c> umum, <c>PATCH /status</c>, maupun <c>DELETE</c>. Controller tidak menyentuh
+    /// <c>ApplicationDbContext</c>; seluruh aturan ada di service.
     /// </remarks>
     [ApiController]
     [Authorize]
@@ -159,7 +160,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Create", "Create Outpatient Priority Reservation", Description = "Membuat reservasi pasien prioritas dan mengirim ulang link", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction("Create", "Create Outpatient Priority Reservation", Description = "Membuat reservasi pasien prioritas, mengirim ulang link, dan mengganti tanggal", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("OutpatientPriorityReservation", "Create")]
         public async Task<IActionResult> Create(
             [FromBody] CreatePriorityReservationRequest request,
@@ -185,7 +186,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Create", "Create Outpatient Priority Reservation", Description = "Membuat reservasi pasien prioritas dan mengirim ulang link", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessAction("Create", "Create Outpatient Priority Reservation", Description = "Membuat reservasi pasien prioritas, mengirim ulang link, dan mengganti tanggal", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("OutpatientPriorityReservation", "Create")]
         public async Task<IActionResult> ReissueArrivalCode(
             Guid id,
@@ -198,6 +199,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return MapFailure(result);
 
             await LogCommandAsync("OutpatientPriorityReservation.ReissueArrivalCode", "Menerbitkan ulang link konfirmasi kedatangan.", result, "Create");
+            await NotifyBoardAsync(result);
+
+            return Ok(ApiResponse<PriorityReservationIssuedResponse>.Ok(
+                await _reservationService.BuildIssuedResponseAsync(result, cancellationToken),
+                result.Message));
+        }
+
+        /// <summary>Ganti tanggal kunjungan sebelum hari kunjungan: nomor tetap, link baru terbit.</summary>
+        /// <remarks>
+        /// Hanya untuk reservasi Menunggu Kedatangan dan bila hari ini (WIB) sebelum tanggal kunjungan
+        /// (RJ-PRI-DEC-034). Status member dinilai ulang dan snapshot diganti (RJ-PRI-DEC-035). Link
+        /// lama tidak berlaku lagi, dan link baru hanya muncul di respons ini (RJ-PRI-DEC-036).
+        /// </remarks>
+        [HttpPost("{id:guid}/reschedule")]
+        [ProducesResponseType(typeof(ApiResponse<PriorityReservationIssuedResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Create", "Create Outpatient Priority Reservation", Description = "Membuat reservasi pasien prioritas, mengirim ulang link, dan mengganti tanggal", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("OutpatientPriorityReservation", "Create")]
+        public async Task<IActionResult> Reschedule(
+            Guid id,
+            [FromBody] ReschedulePriorityReservationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _reservationService.RescheduleAsync(id, request, GetCurrentUserId(), cancellationToken);
+
+            if (!result.IsSuccess)
+                return MapFailure(result);
+
+            await LogCommandAsync("OutpatientPriorityReservation.Reschedule", "Mengganti tanggal reservasi prioritas.", result, "Create");
             await NotifyBoardAsync(result);
 
             return Ok(ApiResponse<PriorityReservationIssuedResponse>.Ok(
@@ -300,7 +332,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             => _queueRealtimeService.NotifyPriorityReservationChangedAsync(
                 result.Reservation!,
                 result.EventCode,
-                result.Reservation!.UpdateDateTime ?? result.Reservation.CreateDateTime);
+                result.Reservation!.UpdateDateTime ?? result.Reservation.CreateDateTime,
+                result.PreviousVisitDate);
 
         /// <summary>
         /// Log hanya berisi identitas, aksi, dan status — tanpa kode link, hash, No. HP, checklist,

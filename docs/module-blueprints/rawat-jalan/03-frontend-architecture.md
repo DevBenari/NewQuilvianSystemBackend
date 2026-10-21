@@ -959,3 +959,89 @@ Diturunkan dari `contracts/permission-audit-matrix.md` *Amendment RP*.
 | Menyimpan link atau kode di state frontend setelah dialog ditutup | Kode hanya muncul sekali. Bila hilang, admisi memakai "Kirim ulang" |
 | Lonceng notifikasi header | `platform-notification` belum ada |
 | Membuka halaman publik di dalam layout aplikasi | Halaman publik tidak boleh memuat sidebar, menu, atau panggilan API yang butuh login |
+
+# Amendment RP-GT — Ganti tanggal reservasi (revisi `34`, `approved` 2026-10-21)
+
+| Field | Nilai |
+|---|---|
+| Status | `approved` — Sukma Giri, 2026-10-21 (`RJ-PRI-DEC-039`) |
+| Keputusan | `RJ-PRI-DEC-034` s.d. `038`; kewenangan UI `RJ-PRI-FE-003`, `RJ-PRI-FE-005` |
+| Kontrak | `RJ-PRI-RESV-001@1.2.0` (`contracts/api-contract.md` *Amendment RP-GT*) |
+| Snapshot | FE `037c975b7` (`sukmagpV2`) |
+
+## RP-GT-FE.1 Kebutuhan layar
+
+| ID | Layar | Status | Perubahan |
+|---|---|---|---|
+| `FE-RP-01` | Daftar dan Detail Reservasi Prioritas | Diperbarui | Detail: tombol dan dialog Ganti Tanggal, panel link baru, serta riwayat tanggal lama → tanggal baru. Daftar: kabar realtime ganti tanggal juga memuat ulang layar yang menyaring tanggal lama. Dialog batal: arahan diperbarui |
+
+Tidak ada butir menu baru. Detail (`/health-services/registration-management/priority-reservations/{id}`) tetap layar
+anak dari butir "Reservasi Prioritas", dibuka dengan klik dua kali baris (`RJ-PRI-DEC-032`).
+
+## RP-GT-FE.2 Skema fitur — Detail Reservasi Prioritas
+
+```text
++- Detail Reservasi RSV-261020-0003 --------------------------- FE-RP-01 -+
+| Ibu Sari (RM 00-12-34) · GOLD · Menunggu Kedatangan · 25 Okt 2026      |
+| [Kirim Ulang Link] [Ganti Tanggal] [Batalkan]                          |
++------------------------------------------------------------------------+
+| Riwayat                                                                |
+| 20 Okt 10.12  Reservasi dibuat — Dewi                                  |
+| 24 Okt 21.05  Tanggal kunjungan diganti 25 Okt 2026 → 28 Okt 2026 — Dewi |
+|               Alasan: Pasien ada acara keluarga pada tanggal semula    |
++------------------------------------------------------------------------+
+
++- Dialog Ganti Tanggal --------------------------------------------------+
+| Tanggal kunjungan sekarang: Jumat, 25 Okt 2026                         |
+| Tanggal kunjungan baru*  [ 28/10/2026 ]   (paling awal hari ini)       |
+| Alasan*                  [ ................................ ] 0/500      |
+| Link lama tidak berlaku lagi setelah tanggal diganti.                  |
+| [pesan gagal dari backend bila ada]                                     |
+|                                   [Batal]  [Ganti Tanggal]             |
++------------------------------------------------------------------------+
+| Berhasil -> panel yang sama dengan buat/kirim ulang: link baru, teks   |
+|             pesan, [Kirim via WhatsApp], [Salin]           [Selesai]   |
++------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Tombol Ganti Tanggal | Tampil bila `canReschedule = true` dan pengguna memegang `Create` | `GET /{id}` | `Create` | Tidak tampil, bukan ditolak |
+| Dialog Ganti Tanggal | Tanggal sekarang (baca saja), tanggal baru (wajib, minimal hari ini), alasan (wajib, 10–500 karakter) | — | `Create` | Tombol simpan nonaktif sampai tanggal terisi dan alasan ≥ 10 karakter. Pesan 4xx dari backend tampil apa adanya di dalam dialog, dan dialog tetap terbuka |
+| Panel link baru | Link, teks WA versi ganti tanggal, tombol WA, tombol salin | Respons `POST /{id}/reschedule` | `Create` | Tanpa No. HP: `wa.me/?text=…` tanpa nomor. Link hanya tampil di respons ini |
+| Riwayat | Baris `RESCHEDULED` menampilkan "{tanggal lama} → {tanggal baru}" dan alasan | `histories[].fromVisitDate`, `toVisitDate` | `Read` | Bila kedua tanggal kosong, cukup nama kejadian |
+| Daftar (realtime) | Muat ulang bila `visitDate` **atau** `previousVisitDate` di rentang saringan | Event `PriorityReservationChanged` | `Read` | Koneksi putus: muat ulang berkala yang sudah ada |
+| Dialog Batalkan | Arahan "Untuk ganti tanggal sebelum hari kunjungan, gunakan Ganti Tanggal." menggantikan "buat reservasi baru" | — | `Cancel` | — |
+
+## RP-GT-FE.3 Aksi per peran
+
+| Peran | Tambahan pada `FE-RP-01` |
+|---|---|
+| Admisi RJ (`Create`) | Ganti tanggal |
+| Petugas skrining (`Read` + `Screen`) | Tidak ada. Melihat riwayat ganti tanggal saja |
+
+## RP-GT-FE.4 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Mengirim | Tombol simpan dan tombol lain di dialog terkunci sampai respons datang |
+| Data basi (409 `VAL-RP-14`) | Pesan tampil di dialog. Detail dimuat ulang otomatis setelah dialog ditutup, sama seperti aksi lain |
+| Ditolak bukan member (409 `VAL-RP-25`) | Pesan menyebut tanggal lama tetap berlaku. Tidak ada perubahan di layar |
+| Berhasil | Dialog berganti ke panel link baru. Detail dimuat ulang dan menampilkan tanggal baru serta baris riwayat baru |
+| Link baru setelah dialog ditutup | Tidak disimpan di state. Bila hilang, admisi memakai Kirim Ulang Link |
+
+## RP-GT-FE.5 Kewenangan UI
+
+| Area | Wewenang |
+|---|---|
+| Keberadaan tombol, isian wajib, sumber data, dan arahan di dialog batal | Mengikat (dokumen ini) |
+| Isi minimum pesan WA versi ganti tanggal | Mengikat (`RJ-PRI-FE-005`): nomor reservasi, tanggal baru, link baru, keterangan link lama tidak berlaku. Tanpa poli/dokter |
+| Posisi tombol, bentuk dialog, kalimat persis, ikon, warna | `DEV_DISCRETION` (`RJ-PRI-FE-003`, `005`) |
+
+## RP-GT-FE.6 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Ganti tanggal dari baris daftar | Kolom Aksi di daftar sudah dihapus (`RJ-PRI-DEC-032`). Aksi hanya dari detail |
+| Batas tanggal maksimum di pemilih tanggal | Nilai `MaxDaysAhead` hanya ada di backend. Backend menolak dengan pesan yang menyebut tanggal terakhir (`VAL-RP-04`). Batas **minimum** (hari ini) dipasang di kalender sejak `RJ-PRI-DEC-040` |
+| Pemeriksaan kelayakan member sebelum dialog dibuka | Backend menilai ulang saat simpan. Pemeriksaan ganda dapat basi |

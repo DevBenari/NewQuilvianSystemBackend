@@ -514,3 +514,50 @@ CREATE TABLE public."RegPriorityReservationHistory" (
 CREATE INDEX "IX_RegPriorityReservationHistory_PriorityReservationId_OccurredAt"
     ON public."RegPriorityReservationHistory" ("PriorityReservationId", "OccurredAt");
 ```
+
+## RP-GT. Amendment RP-GT — Ganti tanggal reservasi (revisi `34`, `approved` 2026-10-21)
+
+Kontrak `RJ-PRI-RESV-001@1.2.0`. Keputusan `RJ-PRI-DEC-034` s.d. `038`. Kolom audit `IdentityModel` tidak ditulis ulang.
+
+### RP-GT-1. Tabel status dan kepemilikan
+
+| Entity | Status | Owner | Catatan |
+|---|---|---|---|
+| `RegPriorityReservationHistory` | Diperbarui | Registration (`Reg`) | Dua kolom tanggal baru dan kode kejadian `RESCHEDULED` |
+| `RegPriorityReservation` | Sudah ada | Registration (`Reg`) | Skema tetap. `VisitDate` dan kolom snapshot kini dapat diubah oleh ganti tanggal |
+
+### RP-GT-2. `RegPriorityReservationHistory` — kolom baru dan kolom yang artinya bertambah
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `EventCode` | `string(40)` | Ya | — | — | — | — | Tidak | Nilai baru `RESCHEDULED` (panjang 11, muat di batas 40) |
+| `FromVisitDate` | `date?` | Tidak | Kosong | — | — | — | Tidak | **Baru.** Tanggal kunjungan sebelum diganti. Hanya terisi pada `RESCHEDULED` |
+| `ToVisitDate` | `date?` | Tidak | Kosong | — | — | — | Tidak | **Baru.** Tanggal kunjungan sesudah diganti. Hanya terisi pada `RESCHEDULED` |
+| `Reason` | `string(500)?` | Tidak | — | — | — | — | **Ya** | Kini juga menyimpan alasan ganti tanggal |
+| `FromStatus`, `ToStatus` | `int?`, `int` | — | — | — | — | — | Tidak | Pada `RESCHEDULED` keduanya `1` (Menunggu Kedatangan) |
+
+Contoh baris riwayat: `EventCode = RESCHEDULED`, `FromStatus = 1`, `ToStatus = 1`, `Source = 1` (`Staff`),
+`ActorUserId` = akun Dewi, `Reason` = "Pasien ada acara keluarga pada tanggal semula", `FromVisitDate = 2026-10-25`,
+`ToVisitDate = 2026-10-28`, `OccurredAt = 2026-10-24 14:05 UTC` (21.05 WIB).
+
+### RP-GT-3. `RegPriorityReservation` — kolom yang kini dapat berubah
+
+| Kolom | Sebelum revisi `34` | Sejak revisi `34` |
+|---|---|---|
+| `VisitDate` | Tetap sejak dibuat | Berubah hanya lewat ganti tanggal |
+| `IsPrioritySnapshot`, `PatientMembershipIdSnapshot`, `MembershipTierIdSnapshot`, `MembershipTierCodeSnapshot`, `QueuePriorityLevelSnapshot`, `QueueAudienceSnapshot`, `PublicDisplayModeSnapshot` | Tetap sejak dibuat | Diganti hasil penilaian pada hari penggantian |
+| `ArrivalCodeHash`, `ArrivalCodeIssuedAt` | Berubah saat kirim ulang | Juga berubah saat ganti tanggal |
+
+Unique index `UX_RegPriorityReservation_Open_Patient_VisitDate` tetap menjaga satu reservasi terbuka per pasien per
+tanggal, termasuk setelah tanggal diganti.
+
+### RP-GT-4. Skema DDL tambahan
+
+> **Peringatan.** Dokumentasi bentuk tabel, bukan skrip yang dijalankan. Perubahan dibuat lewat EF Core Migration
+> `AddPriorityReservationHistoryVisitDates`.
+
+```sql
+-- Bentuk perubahan sebagaimana dihasilkan EF Core. Bukan skrip untuk dijalankan.
+ALTER TABLE public."RegPriorityReservationHistory" ADD "FromVisitDate" date NULL;
+ALTER TABLE public."RegPriorityReservationHistory" ADD "ToVisitDate" date NULL;
+```

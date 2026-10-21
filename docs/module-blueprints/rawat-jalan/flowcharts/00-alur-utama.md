@@ -59,3 +59,5 @@ resep. Penutupan kunjungan menjadi `Completed` **bukan** bagian alur ini (`RJ-E2
 Pasien member Aktif dapat masuk alur ini lewat Reservasi Prioritas tanpa poli/dokter, lalu bergabung ke alur utama di
 langkah pendaftaran kunjungan saat admisi melengkapi poli dan dokter. Nomor antreannya kelipatan 5 dan tidak tampil di
 display. Rinciannya ada di [reservasi-prioritas.md](reservasi-prioritas.md) dan [antrean-prioritas.md](antrean-prioritas.md).
+Sebelum hari kunjungan, admisi dapat mengganti tanggal reservasi tanpa membatalkannya (revisi `34`, `approved`, bagian 4
+pada [reservasi-prioritas.md](reservasi-prioritas.md)).
