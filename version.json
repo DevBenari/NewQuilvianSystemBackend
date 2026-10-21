@@ -1,22 +1,13 @@
 {
-  "releaseName": "Quilvian 0.24.0 - Clinical Management and Patient Management and Registration Management Enhancement",
+  "backendVersion": "0.24.1",
+  "description": "Release 0.24.1 enhances  capabilities.",
+  "releaseName": "Quilvian 0.24.1 Maintenance Release",
   "releaseMetadata": {
-    "generatedBy": "Quilvian Release Generator",
-    "generatedAt": "2026-10-20T17:33:58",
-    "migrationCount": 4,
+    "migrationCount": 0,
     "features": [],
-    "modules": [
-      "Clinical Management",
-      "Patient Management",
-      "Registration Management"
-    ],
-    "migrations": [
-      "20261015075431_DropEncounterRescheduleHistory.cs",
-      "20261016043218_AddEncounterReferralSourceType.cs",
-      "20261016062203_AddDoctorCertificatePatientDependencyLevel.cs",
-      "20261016144037_AddOutpatientPriorityReservation.cs"
-    ]
-  },
-  "description": "Release 0.24.0 enhances Clinical Management, Patient Management, Registration Management capabilities. Includes 4 database migration update(s).",
-  "backendVersion": "0.24.0"
+    "migrations": [],
+    "generatedBy": "Quilvian Release Generator",
+    "generatedAt": "2026-10-21T02:13:19",
+    "modules": []
+  }
 }
