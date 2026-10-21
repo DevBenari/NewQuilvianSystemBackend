@@ -18,6 +18,7 @@ using QuilvianSystemBackend.Services.Logging;
 using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Security.Claims;
+using System.Text.Json;
 
 using ResponsePrescriptionPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
@@ -410,6 +411,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             await transaction.CommitAsync(cancellationToken);
             var response = ToCreateResponse(entity, summary);
 
+            // FIX-DOK-008-02 / ISSUE-DOK-008: Pada rawat inap, order resep langsung menuju
+            // ke estimasi biaya dan billing folio tanpa menunggu proses dispensing fisik apotek.
+            if (entity.InpEpisodeId.HasValue && (entity.TotalItemCount > 0 || request.Items.Count > 0 || request.Compounds.Count > 0))
+            {
+                try
+                {
+                    await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                        new ClinicalMilestoneFactRequest
+                        {
+                            SourceContext = BillingSourceContract.PrescriptionSourceContext,
+                            SourceAggregateId = entity.Id,
+                            EffectType = BillingSourceContract.PrescriptionChargeEffectType,
+                            EncounterId = entity.EncounterId,
+                            OccurredAt = now,
+                            Quantity = entity.TotalItemCount > 0 ? entity.TotalItemCount : (request.Items.Count + request.Compounds.Count),
+                            Unit = "ITEM",
+                            TariffSnapshot = JsonSerializer.Serialize(new
+                            {
+                                source = "InpatientOrderSnapshot",
+                                prescriptionNumber = entity.PrescriptionNumber,
+                                totalPrice = entity.TotalPrice,
+                                totalItemCount = entity.TotalItemCount > 0 ? entity.TotalItemCount : (request.Items.Count + request.Compounds.Count),
+                                regularItemCount = entity.RegularItemCount > 0 ? entity.RegularItemCount : request.Items.Count,
+                                compoundCount = entity.CompoundCount > 0 ? entity.CompoundCount : request.Compounds.Count
+                            }),
+                            RuleSnapshot = JsonSerializer.Serialize(new
+                            {
+                                milestone = BillingSourceContract.PrescriptionMilestoneClinicalFinalization
+                            }),
+                            CorrelationId = entity.ConsultationId
+                        },
+                        actorUserId,
+                        cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "Prescription.CreatePrescription.EmitChargeEligibilityAsync",
+                        "Gagal menerbitkan milestone penagihan resep rawat inap.", ex);
+                }
+            }
+
             await _loggerService.InfoAsync(LogCategory, "Prescription.CreatePrescription", "Membuat header resep dokter.", response);
 
             // ISSUE-DOK-001 ISS-06. Operasi create menjawab 201 seperti keluarga endpoint create
@@ -746,18 +788,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.ConsultationId && x.EncounterId == request.EncounterId && !x.IsDelete, cancellationToken);
             if (consultation == null) return (false, "Konsultasi dokter tidak ditemukan atau tidak sesuai encounter.");
-            if (consultation.ConsultationStatus == DoctorConsultationStatus.Completed) return (false, "Konsultasi yang sudah completed tidak dapat ditambahkan resep.");
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Cancelled) return (false, "Konsultasi yang sudah cancelled tidak dapat ditambahkan resep.");
 
-            // BE-RWI-043 / INT-DOK-02. Batas satu resep aktif per catatan tidak berlaku bagi
-            // catatan yang menempel pada perawatan rawat inap: pasien yang dirawat berhari-hari
-            // menerima resep sebanyak yang dibutuhkan - RWI-DEC-070, RWI-RULE-026 aturan 5.
-            //
-            // Penyaringnya adalah konteks perawatan pada catatan dokternya, bukan nama peran
-            // maupun tipe kunjungan yang ditebak. Resep rawat jalan dan medical check-up tetap
-            // ditolak dengan kalimat yang sama persis - INV-DOK-05, RWI-AC-143.
+            // FIX-DOK-007-01 / BE-RWI-043 / INT-DOK-02.
+            // Di rawat inap, catatan dokter yang sudah ditandatangani dan selesai (Completed)
+            // adalah dasar instruksi medis sah untuk terapi pasien selama perawatan berhari-hari.
+            // Evaluasi rawat inap didahulukan agar status Completed pada catatan visite tidak menolak resep.
             if (consultation.InpEpisodeId.HasValue)
                 return (true, null);
+
+            if (consultation.ConsultationStatus == DoctorConsultationStatus.Completed) return (false, "Konsultasi yang sudah completed tidak dapat ditambahkan resep.");
 
             var exists = await _dbContext.Set<PhmPrescription>().AsNoTracking().AnyAsync(x =>
                 x.ConsultationId == request.ConsultationId && !x.IsDelete && !x.IsCancel && x.PrescriptionStatus != PrescriptionStatus.Cancelled,

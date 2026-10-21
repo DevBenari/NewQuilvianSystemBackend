@@ -89,6 +89,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public bool IsOverdue { get; set; }
 
         public string DispositionStatus { get; set; } = "Confirmed";
+
+        /// <summary>
+        /// Menandakan apakah permintaan transfer berstatus gawat darurat / cito dari IGD (EmgAdmissionRequest.IsCito == true).
+        /// </summary>
+        public bool IsCito { get; set; }
+
+        /// <summary>
+        /// Menandakan apakah pasien memiliki membership aktif yang berhak atas antrean prioritas (PriorityQueue == true).
+        /// </summary>
+        public bool IsPriorityMember { get; set; }
+
+        /// <summary>
+        /// Nama tier keanggotaan aktif pasien (misal "Platinum", "Gold", "Silver"). Bernilai null jika reguler/non-member.
+        /// </summary>
+        public string? MemberTierName { get; set; }
+
+        /// <summary>
+        /// Level prioritas tier keanggotaan (angka lebih kecil = prioritas lebih tinggi). Bernilai null jika reguler/non-member.
+        /// </summary>
+        public int? MemberPriorityLevel { get; set; }
     }
 
     /// <summary>

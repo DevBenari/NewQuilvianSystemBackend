@@ -8,10 +8,10 @@ sub-modul itu sendiri.
 | Field | Value |
 |---|---|
 | `blueprint_id` | `RWI-BP-001` |
-| `revision` | **`14`** — Delivery Planning Notifikasi Realtime Konflik Pemilihan Bed pada sub-modul `episode-rawat-inap` (contract `0.16.0`, planning `RTB-DEL-20261017-01`, child revision 16, `RWI-DEC-337`, bagian 0-K). Riwayat metadata: `13` desain realtime draft; `12` Delivery Planning ODC; `11` Integrasi Denah approved; `10` draft Bed Management; `9` Workspace PPRI approved |
+| `revision` | **`16`** — Delivery Planning Peta Bangsal Denah pada sub-modul `episode-rawat-inap` (child revision 19, contract `0.18.0` `approved_design_planned`, `RWI-DEC-352`, planning `PETA-DEL-20261020-01`, bagian 0-M). Riwayat metadata: `15` desain Peta Bangsal draft (bagian 0-L); `14` — Delivery Planning Notifikasi Realtime Konflik Pemilihan Bed pada sub-modul `episode-rawat-inap` (contract `0.16.0`, planning `RTB-DEL-20261017-01`, child revision 16, `RWI-DEC-337`, bagian 0-K). Riwayat metadata: `13` desain realtime draft; `12` Delivery Planning ODC; `11` Integrasi Denah approved; `10` draft Bed Management; `9` Workspace PPRI approved |
 | `blueprint_shape` | **`COMPOSITE`** — ditetapkan `RWI-DEC-082` 2026-09-02 |
 | `shape_decided_by` | **`USER_CONFIRMED`** — Muhammad Hamzah; agent menyarankan, pemilik memutuskan |
-| `status` | **`partial`** — realtime child revision 16 `approved_design_planned`; scope Bed Management revision 11 masih `draft`. Sub-modul lain tetap pada status sebelumnya |
+| `status` | **`partial`** — child revision 19 Peta Bangsal Denah `approved_design_planned`; realtime child revision 16 `approved_design_planned`; scope Bed Management revision 11 masih `draft`. Sub-modul lain tetap pada status sebelumnya |
 | `module` | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | `registry_lifecycle` | `ACTIVE` — dinaikkan dari `PLANNED` 2026-08-24 lewat `RWI-DEC-068`. Wewenang eksekusi database dan deployment tetap terpisah |
 | `design_snapshot_at` | 2026-10-17 untuk Pendaftaran Admisi ODC; 2026-10-15 untuk Integrasi Denah; 2026-10-10 untuk Bed Management; Riwayat metadata: **`2026-10-07`** untuk revision `9`; **`2026-10-01`** untuk revision `8`; `2026-09-15` untuk revision `7`; `2026-09-11` untuk revision `6`; `2026-09-02` untuk revision `5`; `2026-08-24` untuk revision `4`; `2026-08-21` untuk revision `3` |
@@ -29,8 +29,8 @@ sub-modul itu sendiri.
 | `evidence_staleness` | **Diperbarui 2026-09-14 — `STALE` lagi.** `HEAD` backend kini `4f79e9985940f2e333a9e6ea6e159f1076a18844` (**119** commit sejak `201de753`; **3** menyentuh `Areas/HealthServices/InPatientManagement`, **7** menyentuh `Areas/HealthServices/ClinicalManagement`) dan frontend `147355f505e875148b8416866ada6cf8b2f1ad99` (**1** commit sejak `7f6b9356`). Selain itu artefak `dokter-rawat-inap` dan `keperawatan` kini `STALE_AGAINST_UPSTREAM` terhadap `PRD-RWI-V2-001`, bagian 0-B. Catatan sebelumnya: **`STALE` sejak 2026-09-11**, **sebagian terjawab hari itu juga** oleh scan terfokus V2 di atas untuk scope empat koreksi `P0` dan sembilan kemampuan baru. Scope di luar itu tetap `STALE`. `HEAD` backend kini `201de7535d4ca00fa9ede2395d4fb769f023b9e6` dan frontend `7f6b9356f6349d516570d6d603ca026f2c7f4ec2`, keduanya sama dengan snapshot audit PRD V2. Jarak dari `backend_commit_sha` adalah **517 commit**, dari `impact_scan_source_sha` slice dokter **243 commit**. **Cakupan nyatanya sempit:** hanya **8** commit menyentuh `Areas/HealthServices/InPatientManagement` dan **26** menyentuh `Areas/HealthServices/ClinicalManagement` sejak `5afb54bd`. Karena itu yang dibutuhkan adalah **impact assessment terbatas** lewat `trace-existing-capabilities`, **bukan** perancangan ulang arsitektur |
 | `task_id_integrity` | **`2026-10-02` — Finishing (`plan-module-delivery`):** `BE-RWI-146` s.d. `BE-RWI-184` (39 task) dan `FE-RWI-166` s.d. `FE-RWI-201` (36 task) dibagi ke empat roadmap Finishing — `integrasi-billing` `BE-RWI-146`–`159` / `FE-RWI-166`–`171`, `dokter-rawat-inap` `BE-RWI-160`–`164` / `FE-RWI-172`–`179`, `keperawatan` `BE-RWI-165`–`171` / `FE-RWI-180`–`191`, `episode-rawat-inap` `BE-RWI-172`–`184` / `FE-RWI-192`–`201`. Deret dilanjutkan dari maksimum yang benar-benar terpakai (`BE-RWI-145`, `FE-RWI-165`, oleh rencana kerja paralel), bukan dari catatan lama `BE-RWI-135`/`FE-RWI-101`. **ID bebas berikutnya: `BE-RWI-185` dan `FE-RWI-202`.** **`CONFLICT` terbuka:** `BE-RWI-128` dipakai dua task berbeda (`dokter-rawat-inap/roadmap/backend-roadmap-v2.md` dan `integrasi-billing/roadmap/backend-roadmap.md`) — dicatat untuk pemilik peta modul, tidak dinomori ulang otomatis. Sebelumnya: **`RESOLVED` 2026-09-17.** ~~`CONFLICT` — sebelas task ID dipakai dua pekerjaan berbeda~~. Deret task ID bebas berlanjut mulus: `BE-RWI-079` s.d. `BE-RWI-126` dan `FE-RWI-063` s.d. `FE-RWI-094` untuk amandemen revision `7`. Sub-modul baru `integrasi-billing` (Slice `INP-S22`) menggunakan `BE-RWI-127` s.d. `BE-RWI-134` (8 task) dan `FE-RWI-095` s.d. `FE-RWI-100` (6 task). **ID bebas berikutnya per 2026-09-17: `BE-RWI-135` dan `FE-RWI-101`.** Pemeriksaan judul kartu seluruh roadmap mengembalikan **nol** tabrakan |
 | `owners` | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061`; jabatan formal belum diisi. Clinical governance: **sebagian terisi** — keputusan isolasi dan jenis kelamin diambil pemilik yang sama lewat `RWI-DEC-064`, cakupan peran selebihnya belum dinyatakan. Security/Privacy: `OPEN`. API dan Frontend authority: sesuai decision log |
-| `approved_by` | Pendaftaran Admisi ODC: **Muhammad Hamzah** (disetujui 2026-10-17 lewat `/plan-module-delivery`); Integrasi Denah: Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`); amandemen Bed Management belum disetujui manusia; mengikuti per-anak untuk scope lama; Riwayat metadata: **Per sub-modul, seluruhnya Muhammad Hamzah.** **Revision `9`: `episode-rawat-inap` kontrak `0.11.0` dan `02-module-map.md` revision `5` disetujui 2026-10-08 lewat `RWI-DEC-265`.** Revision `8`: keempat sub-modul disetujui 2026-10-02 lewat `RWI-DEC-221`. Revision `7`: **ketiganya disetujui 2026-09-16** lewat `RWI-DEC-150`. Sebelumnya revision `6` 2026-09-11 lewat `RWI-DEC-105`; approval awal `episode-rawat-inap` 2026-08-24, `dokter-rawat-inap` 2026-09-03, `keperawatan` 2026-09-03 |
-| `approved_at` | `2026-10-17` untuk Pendaftaran Admisi ODC; 2026-10-16 untuk Integrasi Denah (`RWI-DEC-324`); null untuk amandemen Bed Management; Riwayat metadata: **`2026-10-08`** untuk revision `9` pada `episode-rawat-inap` (`RWI-DEC-265`); `2026-10-02` untuk revision `8` pada keempat sub-modul (`RWI-DEC-221`); `2026-09-16` untuk revision `7` pada ketiga sub-modul — lihat registry bagian 1 |
+| `approved_by` | Peta Bangsal Denah: **Muhammad Hamzah** (2026-10-20, `RWI-DEC-352`); Pendaftaran Admisi ODC: **Muhammad Hamzah** (disetujui 2026-10-17 lewat `/plan-module-delivery`); Integrasi Denah: Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`); amandemen Bed Management belum disetujui manusia; mengikuti per-anak untuk scope lama; Riwayat metadata: **Per sub-modul, seluruhnya Muhammad Hamzah.** **Revision `9`: `episode-rawat-inap` kontrak `0.11.0` dan `02-module-map.md` revision `5` disetujui 2026-10-08 lewat `RWI-DEC-265`.** Revision `8`: keempat sub-modul disetujui 2026-10-02 lewat `RWI-DEC-221`. Revision `7`: **ketiganya disetujui 2026-09-16** lewat `RWI-DEC-150`. Sebelumnya revision `6` 2026-09-11 lewat `RWI-DEC-105`; approval awal `episode-rawat-inap` 2026-08-24, `dokter-rawat-inap` 2026-09-03, `keperawatan` 2026-09-03 |
+| `approved_at` | `2026-10-20` untuk Peta Bangsal Denah; `2026-10-17` untuk Pendaftaran Admisi ODC; 2026-10-16 untuk Integrasi Denah (`RWI-DEC-324`); null untuk amandemen Bed Management; Riwayat metadata: **`2026-10-08`** untuk revision `9` pada `episode-rawat-inap` (`RWI-DEC-265`); `2026-10-02` untuk revision `8` pada keempat sub-modul (`RWI-DEC-221`); `2026-09-16` untuk revision `7` pada ketiga sub-modul — lihat registry bagian 1 |
 | `requirement_readiness` | `PARTIALLY_READY` |
 | `domain_architecture_revision` | `0.2` — amendment Dokter Rawat Inap, 2026-09-02 |
 | `domain_architecture_readiness` | **Revision `8`:** isi baru `DOMAIN_ARCHITECTURE_NOT_RUN` — gate `1.9` 18.12; kepemilikan ditetapkan `RWI-DEC-164`, `166`, `167`, `173`, `180`, `182`, `188`, `197`. Sebelumnya: `DOMAIN_ARCHITECTURE_PARTIAL` untuk modul. **`DOMAIN_ARCHITECTURE_READY`** untuk scope `dokter-rawat-inap`, yaitu `CAP-015` dan `CAP-020` s.d. `CAP-025`. **Revision `7`:** isi baru `DOMAIN_ARCHITECTURE_NOT_RUN` — gate `1.6` bagian 15.15, kepemilikan ditetapkan `RWI-DEC-117`, `118`, `132`, `147` s.d. `149` |
@@ -649,7 +649,7 @@ blueprint_shape: COMPOSITE
 shape_decided_by: USER_CONFIRMED
 submodules:
   - slug: episode-rawat-inap
-    pending_amendment: none   # planning ODC-DEL-20261017-01 approved 2026-10-17; revision 13 & 12 approved 2026-10-16 (RWI-DEC-324)
+    pending_amendment: none   # revision 19 Peta Bangsal Denah approved_design_planned 2026-10-20 (RWI-DEC-352, PETA-DEL-20261020-01); sebelumnya revision 18 draft; sebelumnya none: planning ODC-DEL-20261017-01 approved 2026-10-17; revision 13 & 12 approved 2026-10-16 (RWI-DEC-324)
     prefix: BE-RWI / FE-RWI
     kemampuan: 16   # + CAP-RWA-01..17 tanpa CAP-RWA-04 (RWI-DEC-227) + FR-ODC-001..007
     uji_pemecahan: 5/5
@@ -1214,4 +1214,58 @@ Sub-modul target: [`episode-rawat-inap/`](./episode-rawat-inap/). Kontrak target
 
 Tidak mengubah source aplikasi, database, atau Git.
 
+---
 
+## 0-L. Desain Peta Bangsal Denah — 20 Oktober 2026
+
+**Current parent revision 15, status `partial` (diturunkan).** Sub-modul `episode-rawat-inap` revision
+18 Peta Bangsal Denah **draft**, menunggu approval Muhammad Hamzah. Tiga sub-modul lain tidak berubah.
+
+| Field current | Nilai |
+| --- | --- |
+| Status desain / approval | draft; belum ada approval |
+| Set kontrak | `0.18.0` draft; sumber kebenaran hanya field `contract_versions` [manifest anak](./episode-rawat-inap/blueprint-manifest.md) |
+| Keputusan produk | `00-interview-decisions.md` revision 62; `RWI-DEC-343`–`351` (`350`, `351` asumsi draft), `RWI-AC-498`–`507`, `RWI-CON-018` ditutup |
+| Requirement gate | `evidence/02-requirement-completeness-gate.md` 1.13 / `DNH-RCG-20261015-01` (`DNH-CG-01`, `DNH-CG-05`); tidak dinilai ulang karena amandemen hanya mengubah rupa |
+| Domain architecture | `DOMAIN_ARCHITECTURE_NOT_RUN` |
+| Bukti kemampuan | Impact scan terfokus di frontend architecture 21.2, berpijak pada [BM-IMP-20261015-01](./evidence/denah-bed-impact-scan-20261015.md) |
+| BE / FE snapshot | `6e0f2b1b58a2192a0f54f0fdff718bc77670e3bd` / `a491b05afcb6b3ed70218ccaa557007719d45ac3` |
+| Module map | `02-module-map.md` tidak berubah: tidak ada butir menu, kepemilikan data, atau migration baru |
+| Compatibility | Frontend saja; 0 endpoint, 0 tabel, 0 migration; rupa status kembali ke `RWI-DEC-303`/`316` |
+| Terbuka | `PETA-OPEN-01` (memblokir `EPIC DNH-08` saja); pengesahan contoh Lantai 3 (`RWI-DEC-349`) sebelum lima lantai lain |
+
+Artefak, hash, owner, dan validasi ada di [manifest anak bagian 23](./episode-rawat-inap/blueprint-manifest.md).
+Desain frontend ada di [frontend architecture bagian 21](./episode-rawat-inap/03-frontend-architecture.md),
+epic `DNH-07`/`DNH-08` di [PRD bagian 32](./episode-rawat-inap/04-prd-to-mvp.md), dan uji di
+[acceptance bagian 26](./episode-rawat-inap/testing/acceptance-test-matrix.md). Tidak menulis roadmap,
+source aplikasi, database, maupun Git.
+
+Catatan: registry bagian 1 dan riwayat revision bagian 9 belum mencatat child revision 17 (Prioritas
+Kamar Pasien Member, 19 Oktober 2026); celah itu tidak diperbaiki pada revision ini.
+
+---
+
+## 0-M. Registrasi Delivery Peta Bangsal Denah — 20 Oktober 2026
+
+Sub-modul target: [`episode-rawat-inap/`](./episode-rawat-inap/). Contract set **`0.18.0`**
+(`APPROVED_DESIGN_PLANNED`) dan child revision **`19`**, disetujui Muhammad Hamzah lewat `RWI-DEC-352`;
+palet titik status `RWI-DEC-353`.
+
+| Hal | Isi |
+|---|---|
+| Planning | `PETA-DEL-20261020-01`, revision 1 |
+| Task | 8 task frontend `FE-RWI-272` s.d. `FE-RWI-279`; nol task backend |
+| Gerbang | `DEC-PETA-L3` — pengesahan atasan atas contoh Lantai 3 sebelum lima lantai lain |
+| Dampak database | 0 tabel, 0 kolom, 0 migration |
+| ID berikutnya | `FE-RWI-280`, `BE-RWI-254`; pindai ulang sebelum alokasi |
+
+[Manifest anak bagian 24](./episode-rawat-inap/blueprint-manifest.md) mendaftarkan artefak berikut:
+
+| Artefak | Kegunaan |
+| --- | --- |
+| [Roadmap frontend](./episode-rawat-inap/roadmap/frontend-roadmap-peta-bangsal-denah.md) | 8 task, grafik dependency teks, gerbang `DEC-PETA-L3` |
+| [Roadmap backend](./episode-rawat-inap/roadmap/backend-roadmap-peta-bangsal-denah.md) | Nol task beserta alasannya |
+| [Traceability](./episode-rawat-inap/roadmap/requirement-traceability-peta-bangsal-denah.md) | FR, AC, NFR, UAT, dan butir uji ke task; zero gap |
+| [Lock](./episode-rawat-inap/roadmap/peta-bangsal-denah-delivery-lock.json) | Hash masukan, alokasi ID, dan daftar task |
+
+Tidak mengubah source aplikasi, database, atau Git.
