@@ -7418,3 +7418,608 @@ Tugas (a) prompt bagian 9 catatan serah terima, lewat `build-module-backend` (va
 | Disentuh | Laporan `BE-IGD-085`, `BE-IGD-084`; baris status roadmap backend (register, grafik R3.19.1, dua kartu); traceability `FR-IGD-122`; `MODULE-STATUS.md`; catatan serah terima bagian 4–5 |
 | Berikutnya | Putaran sisa (bagian 5 catatan serah terima) begitu akun Kasir, Lab, Apoteker, dan akun berhak batal tindakan tersedia, dan sandi loket terbukti |
 | Nomor yang dipakai | `IGD-FACT-157` |
+
+---
+
+### Penilaian Putaran D2, approval sikap pesanan, dan rekonsiliasi `FE-IGD-057` — 20 Oktober 2026
+
+Sesi atas perintah Rizki Gunawan: commit pekerjaan frontend yang menggantung, nilai Putaran D2
+dari bukti mentah, berikan approval yang menahan `BE-IGD-035`, dan tutup pertentangan status
+`FE-IGD-057`. Bukti lengkap: [penilaian Putaran D2](evidence/2026-10-20-penilaian-putaran-d2.md).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-158` | `D2-U14` ditandai `PASS` pada laporan penguji **tanpa bukti apa pun** — ruas `bukti` pada `hasil.json` berupa array kosong, catatannya menyerahkan verifikasi tagihan kepada pemilik lewat layar Billing. Skenario itu satu-satunya yang memetakan `BE-IGD-068` acceptance 1 dan `FE-IGD-049` acceptance 3 |
+| `IGD-FACT-159` | Ketiga angka `D2-A02` pada laporan penguji tidak cocok dengan rekamannya: tertulis 195/1/0, rekamannya `totalData` 244 (tanpa saringan apa pun), 2 (`ongoing`+`search`), dan 33 (`ongoing`+`awaitingClosure`, seluruh butir halaman pertama ber-`isAwaitingClosure: true`). Perilaku saringan benar; angkanya yang salah |
+| `IGD-FACT-160` | Catatan `D2-U07` mengutip pesan `409` yang bukan pesan server (server: _"Kajian medis awal untuk kunjungan IGD ini sudah ada. Buka kajian itu, atau buat kajian ulang."_), dan `D2-U07-akhir.png` tidak memuat pesan penolakan sama sekali. Sisi layar `FE-IGD-046` acceptance 2 karenanya belum terbukti |
+| `IGD-FACT-161` | `D2-A06` tidak menguji aturan `BE-IGD-067` acceptance 3: `400` yang terekam adalah validasi GUID kosong (_"Encounter wajib disebut."_) dan `404`-nya berasal dari routing constraint atas string bukan GUID. Acceptance 1 juga belum terpenuhi — menuntut `totalCount` 2, terekam 1 |
+| `IGD-FACT-162` | Header laporan D2 menyatakan _"Tanpa eksekusi SQL manual/SELECT"_, padahal `kueri-fase-s.sql` (9,5 KB, `SELECT` read-only atas `MstDoctor`, `AspNetUsers`, `information_schema`) ada di folder bukti yang sama. Ulangan `IGD-FACT-148`; sarannya mencabut `QUILVIAN_DEV_DB_URL` dari lingkungan penguji belum dijalankan |
+| `IGD-FACT-163` | Implementasi `FE-IGD-057` ada di source — `instructingDoctorId` dikirim `emergency-assessment-lab-panel.jsx:205` dan `emergency-assessment-radiology-panel.jsx:188`. Bukti uji 12 Oktober 2026 masih ada dalam bentuk JSON di `uji-putaran-4-penunjang-20261012`; PNG-nya terhapus 19 Oktober 2026 saat melegakan disk |
+| `IGD-FACT-164` | Pekerjaan frontend IGD 19 Oktober 2026 (sore) yang belum di-commit sudah di-commit 20 Oktober 2026 sebagai `a244a729f` pada `RizkiV2`: 13 berkas, +1766/−359. Tidak di-push atas perintah pemilik. Sembilan baris komentar ikut masuk (2 JSX pre-arrival, 7 CSS), bertentangan dengan aturan nol komentar — dibiarkan apa adanya dan dilaporkan, bukan disunting diam-diam |
+
+#### Keputusan
+
+| ID | Isi |
+| --- | --- |
+| `IGD-DEC-330` | **Approval `IGD-DEC-100` dan `IGD-DEC-101` diberikan Rizki Gunawan** sebagai Product/Domain Owner IGD, mengikuti pola `IGD-DEC-107`, karena peran Clinical Governance masih `OPEN`. Dengan ini butir terakhir yang menahan `BE-IGD-035` lunas. **Bila Clinical Governance kelak ditunjuk, approval ini wajib ditinjau ulang** — syarat yang sama yang melekat pada `IGD-DEC-082` |
+| `IGD-DEC-331` | **`FE-IGD-057` ditetapkan 🟢, bukan ⛔ dan bukan ✅.** Register dan kartunya saling bertentangan sejak 12 Oktober 2026. Implementasinya ada dan teruji (`IGD-FACT-163`), sehingga ⛔ menyesatkan; tetapi rilisnya terkunci bersama `BE-IGD-071` yang masih ⛔ `IGD-OQ-117`, sehingga ✅ juga belum sah. 🟢 dipakai dengan arti yang sama seperti `FE-IGD-054`/`055`: implementasi selesai, tidak dihitung selesai |
+| `IGD-DEC-332` | **Tabel ringkasan laporan penguji tidak lagi diterima sebagai dasar penilaian status.** Penilaian wajib dibaca dari rekaman jaringan dan tangkapan layar di folder bukti. Dasarnya `IGD-FACT-158`…`162`: lima klaim `PASS` pada satu putaran tidak didukung berkas buktinya sendiri |
+
+#### Perubahan status
+
+| Task | Status | Dasar |
+| --- | --- | --- |
+| `BE-IGD-035` | 🟡 → **✅** | `IGD-DEC-330`; seluruh acceptance sudah terbukti runtime sebelumnya lewat `041-S2`, `041-S4`, `039-S2`, `061-S12` |
+| `BE-IGD-065` | 🟡 3/8 → 🟡 **7/8** | Acceptance 1, 3, 4, 5 terbukti dari `jaringan-D2-A01/A02/A03.json`; sisa acceptance 2 |
+| `BE-IGD-066` | 🟡 2/7 → 🟡 **6/7** | Acceptance 1, 2, 3, 4 terbukti dari `U06`, `U07`, `A04`, `A05`; sisa acceptance 5 |
+| `BE-IGD-067` | 🟡 3/6 → 🟡 **4/6** | Acceptance 2 terbukti; acceptance 1 dan 3 tidak (`IGD-FACT-161`) |
+| `BE-IGD-068` | Tetap 🟡 4/5 | Tidak bergerak — `IGD-FACT-158` |
+| `FE-IGD-046` | 🟡 3/6 → 🟡 **5/6** | Acceptance 1 dan 3 terbukti; sisa acceptance 2 sisi layar (`IGD-FACT-160`) |
+| `FE-IGD-049` | 🟡 2/7 → 🟡 **4/7** | Acceptance 2 dan 4 terbukti; sisa acceptance 1, 3, 5 |
+| `FE-IGD-057` | ⛔ → **🟢** | `IGD-DEC-331` |
+
+#### Keadaan akhir sesi — 20 Oktober 2026
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Backend **53 ✅ dari 65 aktif** (81,5%), frontend **39 ✅ dari 56 aktif** (69,6%), gabungan **92 dari 121 aktif (76,0%)**. Atas penyebut penuh: 92 dari 124 (74,2%) |
+| Putaran D2 | **Nol task naik ke ✅.** Kenaikan satu-satunya hari ini berasal dari `BE-IGD-035`, bukan dari D2. Yang dihasilkan D2: 11 kriteria acceptance baru terbukti pada 5 task |
+| Disentuh | `evidence/2026-10-20-penilaian-putaran-d2.md` (baru); register dan kartu 8 task pada kedua roadmap; `MODULE-STATUS.md`; berkas ini |
+| Berikutnya | Dua langkah operasional pemilik membuka 3 task: grant `ClinicalDocumentIntegrity` + `ClinicalNoteAddendum` ke peran Dokter IGD, dan siapkan `QUILVIAN_DOKTER2_PASSWORD`. Sesudahnya putaran uji `BE-IGD-070` + `FE-IGD-054`/`055` |
+| Nomor yang dipakai | `IGD-FACT-158`…`164`; `IGD-DEC-330`…`332` |
+
+---
+
+### Pembatalan `BE-IGD-017` dan penutupan gelombang `MVP-0` — 20 Oktober 2026
+
+Lanjutan sesi yang sama, atas perintah Rizki Gunawan (_"berarti butir 5 adalah batalkan dari roadmap IGD"_).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-165` | Acceptance `BE-IGD-017` tidak dapat dieksekusi lagi. Kriteria 1, 2, dan 4 memanggil `QuilvianSystemBackend.Tests.csproj` dan `.sln` berisi dua project. Diverifikasi 20 Oktober 2026: **nol berkas `*Tests.csproj` di repo** dan `QuilvianSystemBackend.sln` memuat **satu** entri `Project(`. Sisa berkas `.cs` di `Tests/` (empat folder) tidak terikat project mana pun. Penghapusan itu terjadi 11 September 2026 atas perintah atasan. Kriteria 2 (`dotnet test`) juga bertentangan dengan aturan repo yang berlaku sekarang |
+| `IGD-FACT-166` | Dengan `BE-IGD-017` keluar dari penyebut aktif, seluruh task gelombang `MVP-0` yang tersisa — `BE-IGD-018`…`022` — bertanda ✅. Gelombang `MVP-0` tuntas; ia `IN_PROGRESS` sejak awal roadmap semata-mata karena kartu infrastruktur ini |
+
+#### Keputusan
+
+| ID | Isi |
+| --- | --- |
+| `IGD-DEC-333` | **`BE-IGD-017` dibatalkan dari roadmap IGD**, mengikuti pola `IGD-DEC-304`: barisnya tetap ada, tandanya ⛔, dan ia dikeluarkan dari penyebut aktif. Tiga dasar: (a) kartunya sendiri menyatakan task ini **bukan milik IGD** — owner-nya pemilik repository atau pelaku merge `300922c`; (b) acceptance-nya tidak dapat dieksekusi lagi (`IGD-FACT-165`); (c) pekerjaan nyatanya sudah selesai 26 Agustus 2026 dengan build 0 error, sehingga yang tersisa hanya laporan atas keadaan yang sudah tidak ada. Diukur terhadap alur IGD — kedatangan, triase, pengkajian, penunjang, tindakan, observasi, disposisi, serah terima, billing — task ini tidak menyentuh satu langkah pun. **Bila perapian solution masih dibutuhkan, tempatnya backlog repo, bukan roadmap IGD** |
+
+#### Perubahan status
+
+| Task / Gelombang | Status | Dasar |
+| --- | --- | --- |
+| `BE-IGD-017` | 🟡 → **⛔ dibatalkan** | `IGD-DEC-333` |
+| `MVP-0` | `IN_PROGRESS` 🟡 → **`DONE` ✅** | `IGD-FACT-166` — `BE-IGD-018`…`022` seluruhnya ✅ |
+
+#### Keadaan akhir — 20 Oktober 2026 (penutup)
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Backend **53 ✅ dari 64 aktif (82,8%)**, frontend **39 ✅ dari 56 aktif (69,6%)**, gabungan **92 dari 120 aktif (76,7%)**. Atas penyebut penuh 124 baris: 92 (74,2%) |
+| Task dibatalkan | Empat: `BE-IGD-073`, `BE-IGD-075`, `FE-IGD-062` (`IGD-DEC-304`), `BE-IGD-017` (`IGD-DEC-333`) |
+| Gelombang tuntas | `MVP-0`, `MVP-1`, `MVP-2`, `MVP-6`, `MVP-7`, `MVP-8`, `MVP-10`, R3.7, R3.9, R3.10, R3.12, R3.19 |
+| Nomor yang dipakai | `IGD-FACT-165`, `166`; `IGD-DEC-333` |
+
+---
+
+### Acceptance 5 `BE-IGD-066` diterima lewat penalaran diff, dan Putaran D3 disiapkan — 20 Oktober 2026 (akhir)
+
+Atas perintah Rizki Gunawan (_"jalankan semua"_).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-167` | Commit `703cdd0d` (7 Oktober 2026) mengubah `PatientAssessmentController.cs` **+42 / −0** — nol baris dihapus, diverifikasi lewat `git show --numstat`. Cabang IGD pada `ValidateMedicalAssessmentRuleAsync` hanya dimasuki bila ada baris `EmgVisit` untuk encounter yang diminta (`if (statusKunjunganIgd.HasValue)`), dan setiap jalur di dalamnya `return` sebelum mencapai kode rawat inap. Encounter tanpa `EmgVisit` — rawat inap maupun poliklinik — jatuh ke jalur lama yang utuh, termasuk kalimat *"Pasien ini tidak sedang dirawat inap."* |
+
+#### Keputusan
+
+| ID | Isi |
+| --- | --- |
+| `IGD-DEC-334` | **Acceptance 5 `BE-IGD-066` diterima lewat penalaran diff** (`IGD-FACT-167`), memakai izin yang sudah tertulis pada kartunya. Agen dilarang menjalankan kueri sehingga tidak dapat menetapkan ada-tidaknya data uji rawat inap/poliklinik; pemilik menerima penalaran diff sebagai gantinya. **Bila kelak uji API dua panggilan dijalankan dan hasilnya berbeda, butir ini wajib dibuka kembali** |
+
+#### Perubahan status
+
+| Task | Status | Dasar |
+| --- | --- | --- |
+| `BE-IGD-066` | 🟡 6/7 → **✅ 7 dari 7** | `IGD-DEC-334` |
+
+#### Keadaan akhir — 20 Oktober 2026 (akhir sesi)
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Backend **54 ✅ dari 64 aktif (84,4%)**, frontend **39 ✅ dari 56 aktif (69,6%)**, gabungan **93 dari 120 aktif (77,5%)** |
+| Naik hari ini | `BE-IGD-035` (approval `IGD-DEC-330`), `BE-IGD-066` (`IGD-DEC-334`); `BE-IGD-017` dibatalkan (`IGD-DEC-333`); `MVP-0` tuntas; `FE-IGD-057` direkonsiliasi ⛔ → 🟢 |
+| Berikutnya | [Panduan uji Putaran D2R](testing/2026-10-17-panduan-uji-sisa-modul-igd.md) bagian 5B — menunggu dua langkah operasional pemilik (grant izin peran Dokter IGD, sandi akun dokter kedua) |
+| Nomor yang dipakai | `IGD-FACT-167`; `IGD-DEC-334` |
+
+---
+
+### Penilaian Putaran D2R dan temuan aturan satu catatan dokter per encounter — 20 Oktober 2026
+
+Bukti lengkap: [penilaian Putaran D2R](evidence/2026-10-20-penilaian-putaran-d2r.md).
+Dinilai dari bukti mentah sesuai `IGD-DEC-332`, bukan dari tabel ringkasan penguji.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-168` | `D2R-U01` ditandai `PASS` dengan klaim addendum tersimpan, padahal `jaringan-D2R-U01.json` memuat **4 panggilan dan seluruhnya `GET`** — nol panggilan tulis, nol panggilan menyebut addendum — dan `D2R-U01-akhir.png` memperlihatkan `Addendum (0)` pada setiap baris dengan kolom *Penulis* berisi `–`. Yang benar-benar terbukti: `/doctor-emergency/my-notes` termuat tanpa `403` sesudah grant izin, memuat 10 catatan |
+| `IGD-FACT-169` | `D2R-A01` dilaporkan `totalData` 13 untuk kedua panggilan; rekamannya **33** untuk keduanya, dengan kelima `id` pertama identik urutannya. Angka 33 cocok dengan rekaman D2 19 Oktober. Pengulangan `IGD-FACT-159` |
+| `IGD-FACT-170` | `D2R-U05` dan `D2R-U06` tidak membuktikan apa pun tentang resep: `POST pharmacy-management/prescriptions` ditolak `400` *"Konsultasi yang sudah completed tidak dapat ditambahkan resep."* karena `D2R-U01` lebih dulu mengunci catatan pasien yang sama. **Sebab utamanya cacat panduan 5B**, bukan pelaksanaan: urutan skenario salah, dan kolom *Hasil yang diharapkan* `D2R-U05` menyebut bukti alih-alih hasil |
+| `IGD-FACT-171` | `D2R-U08` ditandai `PASS` dengan klaim No. Rujukan tersimpan, padahal `D2R-U08-akhir.png` berhenti di **Langkah 5 Verifikasi & Konfirmasi** (langkah 6 *Selesai* belum tercapai), satu-satunya `POST` pada `jaringan-D2R-U08.json` adalah **login**, dan string `RUJ-20261020-00123` **nol kemunculan** di seluruh rekaman. Pasien pada layar `Fransesco Aiman Hamzah` (RM `00-00-02-75`) |
+| `IGD-FACT-172` | `DoctorConsultationController.ValidateSingleConsultationRuleAsync:1532` meloloskan encounter yang punya episode rawat inap terbuka, dan membatasi encounter lain — termasuk **seluruh kunjungan IGD** — menjadi **satu catatan dokter per encounter**. Aturan ini bukan buatan modul IGD; ia aturan rawat jalan yang terwarisi karena encounter IGD tidak punya episode rawat inap |
+| `IGD-FACT-173` | `D2R-U07` membuktikan penghitung tab Pengkajian Medis terbaca benar (*Semua Kajian 1 data*, *Kajian Medis Awal 1 data*, *Kajian Medis Ulang 0 data*), konsisten dengan `ASM-20261020-00001`. **Pengamatan `0 data` pada `D2-U08` tidak terulang dan bukan cacat.** Catatan tertib bukti: `jaringan-D2R-U07.json` dikutip `hasil.json` tetapi berkasnya tidak ada di folder |
+| `IGD-FACT-174` | Disiplin pengujian D2R membaik pada dua hal: `kueri-fase-s.sql` kali ini read-only **dan diakui** di laporan, dan skenario tanpa prasyarat ditandai `NOT RUN` dengan sebab yang benar tanpa mengarang sandi |
+
+#### Pertanyaan terbuka
+
+| ID | Isi | Pemilik |
+| --- | --- | --- |
+| `IGD-OQ-138` | **Apakah satu kunjungan IGD boleh memiliki lebih dari satu catatan dokter?** `IGD-FACT-172` membuat `BE-IGD-067` acceptance 1 (`totalCount` 2) mustahil dipenuhi. Opsi (a) pertahankan aturan — re-evaluasi IGD memakai *kajian medis ulang*, dan acceptance 1 beserta kontrak API §10 diamandemen menjadi `totalCount` 1. Opsi (b) longgarkan untuk encounter IGD dengan cabang `EmgVisit`, pola yang sama dengan `BE-IGD-066`. **Pertimbangan penentu:** modul ini mendukung pengalihan DPJP dan dokter jaga pengganti (`BE-IGD-045`, `BE-IGD-056`), sedangkan catatan dokter memakai aturan penulis tunggal — sehingga pada opsi (a) dokter pengganti tidak punya jalur dokumentasi sama sekali. **Rekomendasi penilai: opsi (b)** | Product/Domain Owner IGD + pemilik `ClinicalManagement` (`OPEN`, sementara Rizki Gunawan lewat `IGD-DEC-107`) |
+
+#### Perubahan status
+
+| Task | Status | Dasar |
+| --- | --- | --- |
+| `BE-IGD-065` | 🟡 7/8 → **✅ 8 dari 8** | Acceptance 2 lewat pembandingan jumlah `D2R-A01` (33 = 33, urutan identik) ditambah sumber `EmergencyVisitController.cs:142` |
+| `BE-IGD-067` | 🟡 4/6 → 🟡 **5 dari 6** | Acceptance 3 terbukti `D2R-A03`; acceptance 1 tertahan `IGD-OQ-138` |
+| `BE-IGD-068`, `FE-IGD-045`…`049` | Tetap | `NOT RUN`, bukti tidak mendukung, atau cacat panduan — lihat penilaian bagian 2 dan 5 |
+
+#### Keadaan akhir — 20 Oktober 2026 (sesudah D2R)
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Backend **55 ✅ dari 64 aktif (85,9%)**, frontend **39 ✅ dari 56 aktif (69,6%)**, gabungan **94 dari 120 aktif (78,3%)** |
+| Berikutnya | Delapan kriteria tersisa, dan **tidak satu pun menuntut kode baru** kecuali keputusan `IGD-OQ-138`. Rincian pada penilaian bagian 7 |
+| Nomor yang dipakai | `IGD-FACT-168`…`174`; `IGD-OQ-138` |
+
+---
+
+### `IGD-OQ-138` dijawab, `BE-IGD-067` tuntas, dan penyimpangan indeks basis data — 20 Oktober 2026 (malam)
+
+Pemilik menjalankan opsi (b), menyerahkan hasil kueri `pg_indexes`, dan meminta penilaian ulang
+`D2R-U02`, `D2R-U03`, `D2R-A02`. Bukti: [penilaian Putaran D2R](evidence/2026-10-20-penilaian-putaran-d2r.md) bagian 8.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-175` | Kueri `pg_indexes` yang dijalankan pemilik mengembalikan `CREATE INDEX "IX_TrxDoctorConsultation_EncounterId" … USING btree ("EncounterId")` — **tanpa `UNIQUE`, tanpa filter**. Indeks unik yang dibuat migration `20260903100128_RelaxSingleConsultationAndPrescriptionForInpatient` sudah dilepas di basis data dev **tanpa migration dan tanpa pembaruan snapshot** |
+| `IGD-FACT-176` | `DoctorConsultationController.cs` **+30 / −0**: cabang `EmgVisit` berpagar, nol baris dihapus sehingga jalur rawat inap dan rawat jalan utuh, nol komentar baru. Selain melonggarkan jumlah catatan untuk kunjungan IGD berjalan, ia menambah dua penjaga baru — kunjungan `Completed`/`Cancelled` ditolak, dan hanya satu draf terbuka diperbolehkan pada satu waktu |
+| `IGD-FACT-177` | `TrxDoctorConsultationConfiguration.cs` **+2 / −4** menghapus `.IsUnique()` beserta filternya **seluruhnya**, bukan mempersempitnya. `ApplicationDbContextModelSnapshot.cs` tidak ikut berubah dan **masih memuat** `HasIndex("EncounterId").IsUnique().HasFilter("\"IsDelete\" = false AND \"InpEpisodeId\" IS NULL")`. Akibatnya konfigurasi, snapshot, dan basis data saling berbeda; `migrations add` berikutnya oleh siapa pun akan diam-diam membawa `DropIndex` + `CreateIndex` ini ke dalam migration yang tidak berhubungan |
+| `IGD-FACT-178` | Indeks itu berasal dari rantai keputusan **Rawat Inap** — komentar di atasnya menyebut `INT-DOK-02`, `RWI-DEC-070`, `BE-RWI-037`, dan migration pembuatnya bernama `RelaxSingleConsultationAndPrescriptionForInpatient`. Melepas uniknya juga mencabut jaminan tingkat basis data untuk **rawat jalan**, bukan hanya IGD; penjaga lapisan aplikasi untuk rawat jalan tetap ada |
+| `IGD-FACT-179` | `D2R-U02` tidak menguji keadaan yang diminta: panggilan *Pasien saya* dokter kedua mengembalikan `totalData` **6**, dan header layar menampilkan *"Pasien saya 6"*. Kalimat yang dikutip laporan adalah penuntun panel kanan saat belum ada pasien diklik, bukan empty state *Pasien saya* |
+| `IGD-FACT-180` | `D2R-U03` merekam `PUT doctor-consultations` → `400` *"Konsultasi yang sudah completed tidak dapat diubah."* — penjaga catatan selesai, bukan penjaga penulis tunggal. Layarnya menampilkan *"Aksi tidak tersedia"*, sehingga tidak ada pesan server yang tampil di tempat aksi; panggilan itu dilakukan langsung ke API |
+| `IGD-FACT-181` | `D2R-U01`, `U04`, `U05`, `U08` diklaim ulang `PASS` dengan berkas bukti yang stempel waktunya **tidak berubah**, sehingga pembacaannya tetap sama seperti penilaian pertama. `jaringan-D2R-U07.json` dikutip untuk kedua kalinya padahal berkasnya tetap tidak ada |
+
+#### Keputusan
+
+| ID | Isi |
+| --- | --- |
+| `IGD-DEC-335` | **`IGD-OQ-138` dijawab — opsi (b) dipilih pemilik:** satu kunjungan IGD berjalan boleh memiliki lebih dari satu catatan dokter, dengan dua penjaga yang ditambahkan `IGD-FACT-176`. Dasarnya pengalihan DPJP: dokter pengganti wajib punya jalur dokumentasi sendiri. Acceptance 1 `BE-IGD-067` berlaku apa adanya dan **tidak** diamandemen |
+
+#### Pertanyaan terbuka
+
+| ID | Isi | Pemilik |
+| --- | --- | --- |
+| `IGD-OQ-139` | **Bentuk indeks `IX_TrxDoctorConsultation_EncounterId` yang sah.** Keadaan sekarang menyimpang (`IGD-FACT-175`, `177`) dan **tidak boleh di-commit apa adanya**. Dua bentuk yang dipertimbangkan: (a) uniknya dilepas seperti sekarang — rawat jalan hanya dijaga lapisan aplikasi; (b) filternya dipersempit agar rawat jalan tetap terjaga, usul pemilik memakai `ClinicId IS NOT NULL`. **Peringatan untuk opsi (b):** filter itu hanya aman bila **setiap** catatan rawat jalan dijamin ber-`ClinicId` tidak kosong — satu baris rawat jalan dengan `ClinicId` kosong akan lolos dari indeks unik tanpa suara. Perlu satu kueri hitung sebelum diputuskan. Apa pun pilihannya wajib diturunkan menjadi **migration** yang sekaligus meluruskan snapshot, dan dikoordinasikan dengan **Muhammad Hamzah** karena indeks ini dari rantai keputusan Rawat Inap (`IGD-FACT-178`). Menahan **rilis**, bukan pengembangan | Muhammad Hamzah (Rawat Inap) + pemilik `ClinicalManagement` (`OPEN`, sementara Rizki Gunawan lewat `IGD-DEC-107`) |
+
+#### Perubahan status
+
+| Task | Status | Dasar |
+| --- | --- | --- |
+| `BE-IGD-067` | 🟡 5/6 → **✅ 6 dari 6** | Acceptance 1 terbukti lewat `soap-timeline` `200` `totalCount` 2 (`CON-20261020-00001` selesai + `CON-20261020-00002` draf). **Syarat rilis:** bergantung pada `IGD-OQ-139` diselesaikan lewat migration |
+| `FE-IGD-045` | Tetap 🟡 8/10 | `IGD-FACT-179` — acceptance 3 menguji keadaan yang salah |
+| `FE-IGD-047` | Tetap 🟡 8/9 | `IGD-FACT-180` — acceptance 5 belum tampil di tempat aksi |
+
+#### Keadaan akhir — 20 Oktober 2026 (malam)
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Backend **56 ✅ dari 64 aktif (87,5%)**, frontend **39 ✅ dari 56 aktif (69,6%)**, gabungan **95 dari 120 aktif (79,2%)** |
+| Jangan di-commit | `TrxDoctorConsultationConfiguration.cs` sampai `IGD-OQ-139` diputuskan dan migration-nya dibuat pemilik |
+| Nomor yang dipakai | `IGD-FACT-175`…`181`; `IGD-DEC-335`; `IGD-OQ-139` |
+
+---
+
+### `FE-IGD-047` tuntas, `IGD-OQ-139` dijawab, dan penyelarasan komponen SOAP — 21 Oktober 2026
+
+Bukti: [penilaian Putaran D2R](evidence/2026-10-20-penilaian-putaran-d2r.md) bagian 9.
+Dua skenario UI dijalankan ulang dengan berkas bukti baru bertanggal 21 Oktober 2026 09:22.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-182` | Kueri hitung yang diminta dijalankan pemilik pada `QuilvianNewDevRizki` dan mengembalikan **0**: tidak ada catatan dokter rawat jalan (non-ranap, bukan kunjungan IGD) yang `ClinicId`-nya kosong. Filter `ClinicId IS NOT NULL` karena itu aman dipakai sebagai pembeda **pada basis data dev**; tiap lingkungan lain wajib diperiksa ulang dengan kueri yang sama sebelum rilis |
+| `IGD-FACT-183` | `D2R-U02` diulang dengan akun nol pasien `jenahali@hospital.com` (`doctorId` `3e37fc1f…`), berbeda dari `dr. B4 IGD Utama` yang punya 6 pasien. Rekaman `doctorId=3e37fc1f…` → `200`, `totalData` **0**, `items` kosong; layar menampilkan "Pasien saya 0", "0 dari 0 pasien", dan kalimat §15.4 A **persis** |
+| `IGD-FACT-184` | `D2R-U03` diulang dan kini memperlihatkan **banner merah di tempat aksi** berisi pesan server apa adanya *"Masih ada draf catatan dokter yang belum diselesaikan untuk kunjungan IGD ini."*, identik dengan pesan `400` pada rekaman jaringan. Kotak *"Aksi tidak tersedia"* dibersihkan |
+| `IGD-FACT-185` | Tiga berkas frontend berubah untuk mencapainya. `soap-editor.jsx` milik **Rawat Inap** hanya **+2 / −2**: prop `title` ditambahkan dengan **nilai bawaan `"Form SOAP Dokter Rawat Inap"`**, sehingga layar rawat inap yang tidak mengirim prop itu tidak berubah sama sekali — `IGD-DEC-234` terjaga. Dua berkas IGD mengganti `ClinicalActionGuard` penampil galat dengan `InformationAlert` eksplisit dan menambah perhitungan `isAuthor`. Verifikasi agen: `eslint` **nol temuan**, **nol baris komentar baru**; `npm run build` milik pemilik dan belum dijalankan |
+| `IGD-FACT-186` | Rekapitulasi laporan penguji memetakan sebagian skenario ke task dan nomor acceptance yang keliru (`D2R-U01` → `FE-IGD-047` acc 4; `D2R-U05`/`U06` → `FE-IGD-048` acc 4; `D2R-U08` → `FE-IGD-044` acc 2; `D2R-A01` → `BE-IGD-065` acc 4 dengan `totalData` 13). Pemetaan yang berlaku adalah yang tercatat pada berkas penilaian |
+
+#### Keputusan
+
+| ID | Isi |
+| --- | --- |
+| `IGD-DEC-336` | **`IGD-OQ-139` dijawab — indeks `IX_TrxDoctorConsultation_EncounterId` dipersempit, bukan dilepas uniknya.** Bentuk yang disepakati: unik dengan filter yang menambahkan `ClinicId IS NOT NULL`, sehingga rawat jalan tetap terjaga di tingkat basis data sementara kunjungan IGD (yang `ClinicId`-nya kosong) dibebaskan. Dasarnya `IGD-FACT-182`. **Tiga syarat yang melekat:** (1) perubahan `TrxDoctorConsultationConfiguration.cs` wajib diturunkan menjadi **migration** yang sekaligus meluruskan `ApplicationDbContextModelSnapshot.cs`; (2) migration itu berangkat **bersamaan** dengan perubahan `DoctorConsultationController.cs` — merilis controller lebih dulu ke lingkungan yang indeks uniknya masih utuh akan mengubah penolakan rapi `400` menjadi `500`; (3) dikoordinasikan dengan **Muhammad Hamzah** karena indeks ini dari rantai keputusan Rawat Inap (`IGD-FACT-178`). Kueri hitung `IGD-FACT-182` diulang di tiap lingkungan sebelum migration diterapkan di sana |
+
+#### Perubahan status
+
+| Task | Status | Dasar |
+| --- | --- | --- |
+| `FE-IGD-047` | 🟡 8/9 → **✅ 9 dari 9** | `IGD-FACT-184` |
+| `FE-IGD-045` | 🟡 8/10 → 🟡 **9 dari 10** | `IGD-FACT-183`; sisa acceptance 4 — akun tanpa identitas dokter |
+
+#### Keadaan akhir — 21 Oktober 2026
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Backend **56 ✅ dari 64 aktif (87,5%)**, frontend **40 ✅ dari 56 aktif (71,4%)**, gabungan **96 dari 120 aktif (80,0%)** |
+| Menahan rilis | `IGD-DEC-336` — migration indeks belum ada; `TrxDoctorConsultationConfiguration.cs` dan `DoctorConsultationController.cs` belum boleh di-commit terpisah |
+| Nomor yang dipakai | `IGD-FACT-182`…`186`; `IGD-DEC-336` |
+
+---
+
+### Penjaga draf terbuka dipersempit ke dokter yang masuk — 21 Oktober 2026
+
+Ditemukan saat pemilik menanyakan dasar `IGD-DEC-335` (*"dokter bisa saja berpindah shift"*), lalu
+diperbaiki atas perintah pemilik (*"perbaiki sesuai rekomendasi anda"*).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-187` | Penjaga `hasOpenDraft` pada `ValidateSingleConsultationRuleAsync` **tidak memeriksa pemilik draf** — ia menolak pembuatan catatan baru selama ada draf siapa pun pada encounter itu. Pada saat yang sama ketiga jalan keluarnya tertutup untuk dokter lain: menyunting dan menyelesaikan draf dijaga `EnsureSoleAuthorAsync`, dan `CancelConsultation` memanggil penjaga yang sama (`BE-RWI-088` titik panggil 4 dari 9). Akibatnya, pada skenario ganti shift yang justru menjadi dasar `IGD-DEC-335`, dokter pengganti **terkunci total** bila dokter sebelumnya pulang meninggalkan draf |
+| `IGD-FACT-188` | Perbaikan diterapkan pada berkas yang sama, **+5 baris, nol baris dihapus** (total diff berkas menjadi +35 / −0). Kepemilikan draf ditentukan dengan mekanisme yang sama persis seperti `EnsureSoleAuthorAsync`: `StartedByUserId` bila terisi dan bukan `Guid.Empty`, selain itu `CreateBy`, dibandingkan dengan `GetCurrentUserId()`. Verifikasi agen: **QBE Conformance `PASS`** (0 VIOLATION, 0 REVIEW), nol baris komentar baru, CRLF dipertahankan. `dotnet build` milik pemilik dan belum dijalankan |
+| `IGD-FACT-189` | Kalimat penolakan **sengaja tidak diubah** (*"Masih ada draf catatan dokter yang belum diselesaikan untuk kunjungan IGD ini."*) supaya bukti layar `D2R-U03` yang menaikkan `FE-IGD-047` acceptance 5 tetap sahih. Kalimat itu tetap benar bagi yang melihatnya, karena yang menahan kini memang drafnya sendiri |
+
+#### Keputusan
+
+| ID | Isi |
+| --- | --- |
+| `IGD-DEC-337` | **Penjaga draf terbuka berlaku per dokter, bukan per kunjungan.** Setiap dokter tetap hanya boleh memegang satu draf catatan terbuka pada satu kunjungan IGD — tujuan asli penjaga itu terjaga — tetapi draf milik dokter lain **tidak lagi** memblokir dokter pengganti. Ini melengkapi `IGD-DEC-335`: tanpa perubahan ini, dukungan ganti shift yang menjadi dasar keputusan itu tidak benar-benar berjalan. Alternatif yang ditolak: mewajibkan dokter menyelesaikan drafnya sebelum pulang — sah sebagai aturan kerja, tetapi tidak dapat ditegakkan sistem dan meninggalkan pasien tanpa dokumentasi bila dilanggar |
+
+#### Yang wajib diuji sebelum ini dinyatakan selesai
+
+Putaran **D2R-2** bagian 5C panduan uji. Backend **wajib dibangun ulang pemilik** lebih dulu —
+perubahan ini belum ada pada DLL mana pun.
+
+| Butir | Isi |
+| --- | --- |
+| Nomor yang dipakai | `IGD-FACT-187`…`189`; `IGD-DEC-337` |
+
+---
+
+### `IGD-DEC-337` terverifikasi lewat Putaran D2R-2 — 21 Oktober 2026
+
+Bukti: [penilaian Putaran D2R-2](evidence/2026-10-21-penilaian-putaran-d2r2.md).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-190` | **Catatan dokter ditandatangani DPJP, bukan penulisnya.** `D2R2-A01c` menampilkan ketiga butir lini masa atas nama `dr. Jenah Ali`, termasuk `CON-20261021-00001` yang dibuat dokter kedua. Sebabnya `DoctorConsultationController.cs:602` — `DoctorId = queue?.DoctorId ?? request.DoctorId ?? encounter.DoctorId ?? Guid.Empty`; payload tidak mengirim `doctorId` dan kunjungan IGD tanpa antrean, sehingga nilainya jatuh ke DPJP kunjungan. Identitas penulis sebenarnya tetap tersimpan pada `StartedByUserId`/`CreateBy` yang dipakai `EnsureSoleAuthorAsync` |
+| `IGD-FACT-191` | Sebab kegagalan addendum sudah ditunjuk penguji: ketidakcocokan props `target` lawan `documentItem` pada `ActionList`, sehingga modal addendum tidak pernah terbuka. Rekaman `D2R2-U01` konsisten — 2 panggilan, nol panggilan tulis. `FE-IGD-048` acceptance 2 kini punya sebab yang dapat dikerjakan |
+| `IGD-FACT-192` | `D2R2-U05` tidak menguji keadaan yang diminta `FE-IGD-045` acceptance 4: akun yang dipakai `rendy.saputra@rsmmc.local` adalah **Petugas Loket**, bukan akun berperan dokter tanpa `doctorId`, dan separuh kedua kriteria gagal pada rekamannya sendiri — `GET emergency-visits` → `403`, sehingga daftar *Semua pasien IGD* tidak tampil |
+| `IGD-FACT-193` | `D2R2-U02` gagal menangkap banner `409` di layar untuk **ketiga kalinya berturut-turut** pada butir yang sama (`D2-U07`, `D2R-U04`, `D2R2-U02`). Sisi API-nya selalu terbukti; yang tidak pernah tertangkap adalah tangkapan layar saat pesan masih tampil |
+| `IGD-FACT-194` | `D2R2-U06` menyelesaikan pendaftaran rujukan sampai tuntas — `POST patient-encounters/admin` → `200`, `ENC-RSMMC-00522`, dengan `referralNumber: "RUJ-20261021-00889"` terkirim pada payload. Nomor itu **tidak muncul pada respons** dan **tidak ada panggilan baca-ulang** yang merekamnya kembali, sehingga penyimpanannya terbukti tetapi pembacaan ulangnya belum |
+| `IGD-FACT-195` | Tertib bukti membaik pada dua hal: prasyarat build dipatuhi (DLL 09:53:31 lebih baru dari perubahan source 09:43:37), dan `D2R2-U01` dilaporkan `FAIL` apa adanya beserta sebab teknisnya alih-alih dipaksa `PASS` |
+
+#### Pertanyaan terbuka
+
+| ID | Isi | Pemilik |
+| --- | --- | --- |
+| `IGD-OQ-140` | **Bagaimana penulis catatan dokter disajikan bila berbeda dari DPJP?** (`IGD-FACT-190`) Opsi (a) isi `DoctorId` dari penulis — mengubah arti ruas yang dipakai modul lain. Opsi (b) biarkan `DoctorId` sebagai DPJP dan tambahkan penyajian penulis dari `StartedByUserId` pada lini masa dan *Catatan Saya* — aditif. **Rekomendasi penilai: opsi (b).** Ini melengkapi `IGD-DEC-337`: tanpa penyajian penulis, dokter pengganti dapat menulis tetapi tulisannya tercatat atas nama dokter lain | Product/Domain Owner IGD + pemilik `ClinicalManagement` |
+
+#### Perubahan status
+
+| Task | Status | Dasar |
+| --- | --- | --- |
+| `IGD-DEC-337` | **TERVERIFIKASI** | `D2R2-A01a` `200` dan `D2R2-A01b` `400` — kedua sisi keputusan terbukti |
+| `FE-IGD-049` | 🟡 4/7 → 🟡 **6 dari 7** | Acceptance 1 (`201` `RX-20261021-00001`) dan 5 (pengamatan atas resep yang benar-benar terbentuk) |
+| `FE-IGD-045`, `046`, `048`, `BE-IGD-068` | Tetap | `IGD-FACT-192`, `193`, `191`; `D2R2-R01` `NOT RUN` |
+
+#### Keadaan akhir — 21 Oktober 2026 (sesudah D2R-2)
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Backend **56 ✅ dari 64 aktif (87,5%)**, frontend **40 ✅ dari 56 aktif (71,4%)**, gabungan **96 dari 120 aktif (80,0%)** |
+| Sisa pembuktian | Lima butir, rinciannya pada penilaian bagian 6 |
+| Masih menahan commit | `IGD-DEC-336` — migration indeks belum ada; `TrxDoctorConsultationConfiguration.cs` masih berubah dan belum dikembalikan |
+| Nomor yang dipakai | `IGD-FACT-190`…`195`; `IGD-OQ-140` |
+
+---
+
+### Perbaikan addendum dan tiga akar masalah sisa D2R-2 — 21 Oktober 2026 (sore)
+
+Atas perintah pemilik (*"kerjakan 4 dari 5 task tersebut dan kembalikan TrxDoctorConsultationConfiguration.cs"*).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-196` | **Bug addendum diperbaiki.** `AddendumCreateModal` dan `AddendumHistoryModal` (milik Rawat Inap) menerima prop **`documentItem`** dan memulai dengan `if (!isOpen \|\| !documentItem) return null;` (`addendum-create-modal.jsx:89`). Tab IGD `emergency-locked-notes-tab.jsx` mengirim **`target`**, sehingga `documentItem` selalu `undefined` dan modal mengembalikan `null` — persis gejala "modal tidak muncul". Tab Rawat Inap yang bekerja (`my-locked-notes-tab.jsx:273`, `:284`) memang mengirim `documentItem`. Perbaikan: dua baris prop pada berkas IGD saja; Rawat Inap tidak disentuh. Bentuk datanya sudah cocok — hook IGD meneruskan butir API apa adanya, dan DTO `ClinicalDocumentIntegrityDtos` sudah membawa `DocumentKind`, `DocumentKindName`, `EpisodeNumber`. Verifikasi agen: `eslint` nol temuan, nol komentar baru |
+| `IGD-FACT-197` | **Sebab banner `409` tidak pernah tertangkap bukan karena hilang otomatis.** Pada `medical-assessment-tab.jsx:430-438` banner dirender `{saveError ? <p role="alert" data-testid="medical-assessment-save-error">…</p> : null}` dan **tidak ada satu pun `setTimeout` atau penghapus galat** di berkas itu — banner bertahan sampai `saveError` berubah. Yang terjadi: banner berada di dalam area form yang dapat di-skrol, sementara tangkapan layar diambil sebatas viewport. Perbaikan instruksi: tangkap **elemen** `[data-testid="medical-assessment-save-error"]` langsung, atau gulirkan ke tampilan dulu, atau ambil tangkapan halaman penuh |
+| `IGD-FACT-198` | **Sebab `D2R2-U05` gagal adalah perizinan, bukan jalur kode.** Jalur "tanpa identitas dokter" **ada dan benar** di `doctor-emergency-view.jsx:376-382` — `{!hasDoctorIdentity && !patients.loading ? <p data-testid="emergency-physician-filter-note">…</p> : null}`. Yang salah akunnya: `rendy.saputra@rsmmc.local` adalah Petugas Loket yang tidak punya hak baca kunjungan IGD, sehingga `GET emergency-visits` → `403` dan separuh kedua kriteria (daftar *Semua* tetap tampil) mustahil tercapai. Yang dibutuhkan: akun **berhak baca kunjungan IGD** tetapi **tidak tertaut baris `MstDoctor`** |
+| `IGD-FACT-199` | **`D2R2-R01` belum dapat dijalankan karena prasyaratnya belum terpenuhi.** `ConsultationFinalizationService.FinalizeAsync` menetapkan `ConsultationStatus = Completed` (`:141`) **lebih dulu**, baru menerbitkan fakta jasa konsultasi (`:225`) dan fakta resep (`:252`, `:257`). Catatan `CON-20261021-00002` pada `D2R2-U03` sengaja **dibiarkan berstatus Draf**, sehingga **nol fakta tagih terbit** dan layar Billing memang belum punya apa pun untuk ditampilkan. Urutan yang benar: selesaikan catatan dokter itu lebih dulu, baru buka rincian tagihan |
+
+#### Perubahan source
+
+| Berkas | Diff | Catatan |
+| --- | --- | --- |
+| `emergency-locked-notes-tab.jsx` | +2 / −2 | `target=` → `documentItem=` pada dua pemanggilan modal. Nol komentar, `eslint` bersih |
+| `TrxDoctorConsultationConfiguration.cs` | **dikembalikan** | `git checkout` atas perintah pemilik. Konfigurasi kembali sepakat dengan snapshot, sehingga `migrations add` siapa pun tidak lagi membawa perubahan indeks liar. **Nol pengaruh runtime** — konfigurasi indeks EF hanya dibaca saat scaffolding migration; yang menahan data adalah indeks nyata di PostgreSQL dan penjaga di controller. `IGD-DEC-336` tetap berlaku dan dikerjakan sesudah merge `MHamzah` |
+
+#### Status
+
+Keempat butir **belum** menaikkan task: perbaikan addendum menunggu pembuktian ulang lewat layar,
+dan tiga lainnya adalah akar masalah yang membuka jalan, bukan bukti. Register tidak berubah —
+**96 dari 120 aktif (80,0%)**.
+
+| Butir | Keadaan sesudah sesi ini |
+| --- | --- |
+| `FE-IGD-048` acc 2 | Kode diperbaiki; tinggal diuji ulang |
+| `FE-IGD-046` acc 2 | Instruksi tangkapan layar dikoreksi; tinggal diuji ulang |
+| `FE-IGD-045` acc 4 | Butuh satu akun dari pemilik; jalur kodenya sudah benar |
+| `FE-IGD-049` acc 3 + `BE-IGD-068` acc 1 | Butuh catatan diselesaikan lebih dulu, baru layar Billing |
+| `IGD-OQ-140` | Tetap menunggu keputusan pemilik |
+
+| Butir | Nilai |
+| --- | --- |
+| Nomor yang dipakai | `IGD-FACT-196`…`199` |
+
+---
+
+### Pintu "Pasien Tanpa Identitas" di Pendaftaran IGD dan pencabutan blok penanda di Assesmen Awal — 21 Oktober 2026 (malam)
+
+Pemilik membuka sesi ini dari dua tangkapan layar **Pendaftaran Pasien IGD → Pasien Baru**: seluruh
+tanda wajib menyala merah (*"Tempat lahir wajib diisi"*, *"Nomor identitas wajib diisi"*, *"Alamat
+wajib diisi"*) pada pasien yang justru tidak membawa apa pun. Permintaannya dua:
+
+1. sediakan pintu khusus supaya pasien tanpa identitas dapat **langsung lanjut** ke triage dan
+   pemeriksaan tanpa petugas mengarang NIK, tempat lahir, dan alamat;
+2. cabut blok penanda pasien tanpa identitas di tab **Assesmen Awal IGD** pada ruang kerja perawat.
+
+Mode: **amendment pass** di atas `IGD-BP-001` revisi `15`, bentuk `SINGLE` (`USER_CONFIRMED`).
+Dasar yang sudah berlaku dan **tidak** ditabrak sesi ini: `IGD-DEC-151` (pasien tanpa identitas
+didaftarkan lewat alur pasien baru yang sudah ada) dan `IGD-DEC-161` (penanda kunjungan diisi di
+Mulai Triage, nol kolom baru). Permintaan pemilik **menguatkan** `IGD-DEC-151` — ia memberi pintu
+masuk yang layak bagi alur yang memang sudah dipilih, bukan alur tandingan.
+
+Source yang dibaca: backend `8577462f` (branch `rizkiG`), frontend `a244a729f` (branch `RizkiV2`).
+Capability map `01-existing-capability-map.md` tertanggal SHA `f69e9e48`/`96a91201` sehingga
+**berpotensi basi**; seluruh fakta di bawah diambil langsung dari source pada SHA di atas, bukan
+dari map.
+
+#### Batas scope
+
+| Di dalam scope | Di luar scope — beserta pemiliknya |
+| --- | --- |
+| Pintu "Pasien Tanpa Identitas" pada layar pilihan jenis pasien Pendaftaran IGD | Aturan penggabungan rekam pasien dan penanda rekam pengganti di master pasien — **Master Patient** |
+| Pengisian otomatis rekam pasien pengganti dan pelepasan tanda wajib pada form pasien baru **jalur IGD saja** | Pendaftaran Rawat Jalan dan Admisi Rawat Inap yang memakai ulang komponen yang sama — perilakunya **tidak boleh berubah** (Rawat Inap: **Muhammad Hamzah**) |
+| Pengiriman `birthDate` kosong sebagai `null` pada jalur IGD | Aturan tarif, potongan, dan klaim penjamin — **Billing** dan **Insurance** |
+| Pencabutan blok penanda tanpa identitas di tab Assesmen Awal IGD | Perubahan kontrak maupun kolom kunjungan IGD — ditolak sendiri oleh `IGD-DEC-340` di bawah |
+| Titik sentuh penanda `IsUnknownPatient` / `TemporaryPatientAlias` yang sudah ada di Mulai Triage | Kiosk dan pendaftaran mandiri |
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-200` | **Dua belas tanda wajib pada form pasien baru IGD murni aturan frontend, bukan tuntutan server.** `REQUIRED_NEW_PATIENT_FIELDS` memuat `fullName`, `birthPlace`, `birthDate`, `gender`, `identityType`, `identityNumber`, `phoneNumber`, `address`, `countryId`, `provinceId`, `cityId`, `districtId` (`emergency-registration.constants.js:606-619`), sedangkan `CreatePatientRequest` hanya memberi `[Required]` pada `FullName` (`PatientDtos.cs:341-343`) dan `PatientController.ValidateRequestAsync` hanya menolak nama kosong (`:2254`). Tempat/tanggal lahir, NIK, nomor telepon, alamat, dan seluruh id wilayah boleh `null` |
+| `IGD-FACT-201` | **Pemeriksaan NIK ganda dilewati bila NIK kosong.** `ValidateRequestAsync` membungkus kueri duplikat di dalam `if (!string.IsNullOrWhiteSpace(identityNumber))` (`PatientController.cs:2304-2324`), sehingga banyak rekam pengganti tanpa NIK dapat hidup berdampingan tanpa saling menolak |
+| `IGD-FACT-202` | **Rekam pasien pengganti tetap wajib ada.** `RegPatientEncounter.PatientId` bertipe `Guid` **non-nullable** (`RegPatientEncounter.cs:26`), jadi encounter Emergency tidak dapat lahir tanpa satu baris `MstPatient`. Ini menguatkan `IGD-DEC-151`: "kunjungan tanpa pasien" bukan pilihan yang tersedia pada jalur encounter-first |
+| `IGD-FACT-203` | **`IGD-FACT-022` sudah usang.** Fakta itu mencatat `MstPatient` tanpa kemampuan penggabungan rekam. Hari ini `MstPatient.MergedToPatientId` dan `MergeReason` ada (`MstPatient.cs:117`, `:120`), `PatientController` memvalidasinya lewat `ValidateMergedPatientReferenceAsync` (`:2373-2379`), menulisnya pada `PUT` (`:897`), menghitungnya pada statistik (`:192`), dan menjaganya dari penghapusan (`:1033`). Pintu keluar yang ditunda `IGD-DEC-151` — penggabungan saat identitas diketahui — **kini terbuka**, walau aturan bisnisnya tetap milik Master Patient |
+| `IGD-FACT-204` | **Tanggal lahir kosong saat ini menjadi waktu sekarang.** `buildPatientPayload` memakai `toIsoDateOrNow(values.birthDate)` (`emergency-registration.utils.js:929`), sehingga pasien dewasa tanpa identitas akan tercatat lahir hari ini dan umurnya terbaca `0 tahun`. Pembangun payload yang sama dipakai **tiga** alur: IGD (`use-emergency-registration.js:788`), Rawat Jalan (`use-outpatient-registration.js:515`), dan Admisi Rawat Inap (`inpatient-admission-patient-utils.jsx:33`) |
+| `IGD-FACT-205` | **Layar pilihan jenis pasien sudah dapat menerima kartu tambahan tanpa disentuh.** `PatientEntryChoiceStep` menerima prop `options = PATIENT_ENTRY_OPTIONS` (`patient-entry-choice-step.jsx:563-574`) dan dipakai **tiga** layar: Pendaftaran IGD (`emergency-registration-page.jsx:189`), Pendaftaran Rawat Jalan (`outpatient-registration-page.jsx:206`), dan Admisi Rawat Inap (`inpatient-admission-view.jsx:1137`). Kartu ketiga cukup dikirim dari pemanggil IGD; dua layar lain tidak berubah |
+| `IGD-FACT-206` | **Daftar wajib dipakai bersama IGD dan Rawat Jalan.** `REQUIRED_NEW_PATIENT_FIELDS` dibaca `use-emergency-registration.js:760` dan `use-outpatient-registration.js:496`. Pelepasan tanda wajib karena itu **tidak boleh** dilakukan dengan mengubah konstanta tersebut; penyaringannya harus lokal di hook IGD |
+| `IGD-FACT-207` | **Blok di Assesmen Awal adalah satu-satunya tempat penanda dapat dikoreksi sesudah triage.** Centang `isUnknownPatient` dan `temporaryPatientAlias` pada `emergency-assessment-initial-tab.jsx:735-758` disimpan `handleSaveVisit` lewat pembaruan kunjungan, dengan penjaga *"Nama sementara wajib diisi untuk pasien tanpa identitas."* (`:424-425`). Tempat pengisian pertamanya ada di dialog Mulai Triage (`emergency-triage-start-dialog.jsx:345-370`), dan di situ nilainya ikut ke `buildStartTriagePayload` (`emergency-management-triage-utils.jsx:820-836`) |
+| `IGD-FACT-208` | **Langkah pembayaran hanya memblokir pada dua syarat.** `handlePaymentStepNext` menolak bila kategori bukan `CASH` sementara penjamin belum dipilih, dan bila `paymentMethodId` kosong padahal daftar metodenya terisi (`use-emergency-registration.js:1129-1146`). Kategori `CASH` tidak membutuhkan penjamin sama sekali |
+| `IGD-FACT-209` | **Jalur ini tidak mati walau master Pengaturan IGD kosong.** `EmgSetting.AllowUnknownPatient` bernilai awal `true` (`EmgSetting.cs:30`) dan penjaganya hanya menolak bila setting aktif melarangnya (`EmergencyVisitService.cs:194`). Saat tabelnya kosong, setting tersirat disimpulkan dari satu-satunya unit pelayanan aktif bertipe `Emergency` dan membawa nilai awal model itu, sehingga pendaftaran pasien tanpa identitas tetap diterima |
+
+#### Keputusan
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-338` | **Pintu "Pasien Tanpa Identitas" berupa kartu ketiga pada layar pilihan jenis pasien Pendaftaran IGD**, sejajar *Pasien Lama* dan *Pasien Baru*. Diwujudkan **opt-in** lewat prop `options` yang sudah ada (`IGD-FACT-205`): hanya pemanggil IGD yang mengirim kartu ketiga, sedangkan Pendaftaran Rawat Jalan dan Admisi Rawat Inap tetap menerima dua kartu seperti sekarang. Alternatif yang ditolak: menambah kartu ke `PATIENT_ENTRY_OPTIONS` — akan muncul di tiga layar sekaligus, termasuk milik Rawat Inap | Product/Domain Owner IGD | ~~`approved`~~ **`superseded` oleh `IGD-DEC-347`** (21 Oktober 2026 malam, atas tinjauan tim analis — pemicunya pindah ke dalam langkah Pasien Baru; alasan pada `IGD-FACT-210`) | **Rizki Gunawan / 2026-10-21** | Pilihan interaktif *"Kartu ketiga pilihan pasien"*; `IGD-FACT-205` |
+| `IGD-DEC-339` | **Nama sementara terisi sebagai saran otomatis dan boleh ditimpa petugas.** Bentuknya `<sapaan> X IGD <tggl><bln>-<jam><menit>`, contoh `Tn. X IGD 2110-1432`. Sapaan mengikuti Jenis Kelamin yang dipilih: `Tn.` laki-laki, `Ny.` perempuan, dan `Mr./Mrs.` bila *Tidak diketahui* — istilah yang memang sudah dipakai label lama di Assesmen Awal. Tanggal dan jam membuat tabrakan antar-loket praktis nihil tanpa penghitung apa pun. Alternatif yang ditolak: nomor urut harian dari backend — rapi, tetapi menuntut endpoint dan penyimpanan penghitung baru untuk persoalan yang sudah selesai oleh jam | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-21** | Pilihan interaktif *"Saran otomatis, boleh ditimpa"*; placeholder sepadan di Mulai Triage (`IGD-FACT-207`) |
+| `IGD-DEC-340` | **`IGD-DEC-161` tetap utuh: penanda kunjungan tetap diisi di Mulai Triage, bukan di loket.** Pendaftaran hanya melahirkan rekam pasien pengganti beserta aliasnya; `EmgVisit.IsUnknownPatient` dan `TemporaryPatientAlias` tetap dicentang perawat saat kunjungan lahir. Nol kolom baru, nol migration, nol perubahan kontrak API. **Konsekuensi yang diterima:** di antara loket dan Mulai Triage, status tanpa identitas hanya terbaca dari nama aliasnya. Alternatif yang ditolak: penanda mengalir dari loket — menuntut tempat simpan sebelum kunjungan lahir, artinya kolom baru, migration, dan koordinasi pemilik Registrasi, untuk informasi yang toh akan diisi perawat beberapa menit kemudian | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-21** | Pilihan interaktif *"Tetap di Mulai Triage"*; `IGD-DEC-161`; `IGD-FACT-207` |
+| `IGD-DEC-341` | **Blok penanda tanpa identitas dicabut dari tab Assesmen Awal IGD**, yaitu centang *"Pasien tanpa identitas (Mr./Mrs. X)"* beserta field *Nama sementara* dan penjaganya. Sesudah pencabutan, penanda **diisi sekali** di Mulai Triage dan **tidak lagi dapat dikoreksi** dari ruang kerja perawat; bila identitas kemudian diketahui, jalurnya pendaftaran ulang dan penggabungan rekam pasien sesuai `IGD-DEC-151`. **Konsekuensi yang diterima:** alias yang salah ketik tidak dapat diperbaiki perawat. Alternatif yang ditolak: memindahkan koreksi ke dialog Mulai Triage yang dapat dibuka ulang — menambah jalur tulis baru pada kunjungan berjalan demi kasus salah ketik | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-21** | Pilihan interaktif *"Tanpa jalan koreksi di ruang perawat"*; `IGD-FACT-207` |
+| `IGD-DEC-342` | **Sepuluh dari dua belas tanda wajib dilepas pada jalur tanpa identitas; Nama Lengkap dan Jenis Kelamin tetap wajib.** Yang dilepas: tempat lahir, tanggal lahir, jenis identitas, nomor identitas, nomor handphone, alamat, negara, provinsi, kota/kabupaten, dan kecamatan. **Dikoreksi saat implementasi 21 Oktober 2026 malam:** rumusan semula melepas Nama Lengkap juga, padahal nama adalah satu-satunya isian yang diwajibkan server (`IGD-FACT-200`) — melepasnya hanya memindahkan penolakan dari pesan di layar menjadi galat `400`, sementara isinya toh sudah terisi otomatis. Jenis Kelamin tetap wajib karena biasanya masih teramati pada pasien tak sadar dan dipakai untuk dosis, penempatan tempat tidur, serta skrining kehamilan; pilihan *Tidak diketahui* tetap tersedia bila benar-benar tidak dapat ditentukan. Pelepasan dikerjakan **lokal di hook IGD**, bukan dengan mengubah `REQUIRED_NEW_PATIENT_FIELDS` yang dipakai bersama Rawat Jalan (`IGD-FACT-206`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-21** | Pilihan interaktif *"Tetap wajib"*; `IGD-FACT-200`, `206` |
+| `IGD-DEC-343` | **Tanggal lahir kosong dikirim `null`, bukan waktu sekarang.** Perbaikan `IGD-FACT-204` dibatasi pada jalur tanpa identitas supaya Rawat Jalan dan Admisi Rawat Inap yang memakai `buildPatientPayload` yang sama tidak ikut berubah. Alasan: pasien dewasa yang tercatat lahir hari ini menularkan umur `0 tahun` ke dosis, billing, dan laporan | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-21** | Pilihan interaktif *"Dikosongkan / null"*; `IGD-FACT-204` |
+| `IGD-DEC-344` | **Penjamin diprasetel Tunai/Umum; metode pembayaran sistem tetap dipilih petugas.** Kategori Tunai membuat langkah pembayaran tidak lagi menuntut pencarian penjamin milik pasien yang identitasnya belum diketahui (`IGD-FACT-208`), sedangkan metode pembayaran tidak diprasetel karena nilainya mengalir ke kasir. Prasetel dapat diubah petugas begitu keluarga datang membawa kartu jaminan. Alternatif yang ditolak: melewati langkah pembayaran — encounter lahir tanpa metode pembayaran dan dampaknya ke billing IGD berada di luar kendali modul ini | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-21** | Pilihan interaktif *"Prasetel Tunai, metode tetap dipilih"*; `IGD-FACT-208` |
+| `IGD-DEC-345` | **Tanpa permission baru.** Setiap petugas yang sudah berhak mendaftarkan pasien IGD boleh memakai pintu ini; kendalinya audit sesudahnya. Ini pola yang sama persis dengan `IGD-DEC-145` untuk alasan pendaftaran ganda. Nol Resource hak akses baru. Alternatif yang ditolak: Resource tersendiri — lebih ketat, tetapi tombolnya akan mati pada setiap peran loket sampai grant-nya diberikan satu per satu | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-21** | Pilihan interaktif *"Tanpa izin baru, kendali lewat audit"*; `IGD-DEC-145` |
+| `IGD-DEC-346` | **Nol penanda tambahan pada master pasien; `IGD-DEC-151` tidak diamandemen.** Alias pada kunjungan tetap satu-satunya penanda rekam pengganti. **Konsekuensi yang diterima:** pencarian pasien akan memuat banyak baris `Tn. X IGD ...` yang hanya dapat dikenali petugas dari namanya, dan rekam pengganti tidak dapat disaring. Alternatif yang ditolak: mengisi *Catatan Pasien* otomatis sekaligus mengajukan kolom penanda ke pemilik Master Patient — menambah pekerjaan lintas modul untuk kebersihan daftar, bukan untuk keselamatan pasien | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-21** | Pilihan interaktif *"Biarkan sesuai IGD-DEC-151"*; `IGD-DEC-151`; `IGD-FACT-203` |
+
+#### Bisnis prosesnya sesudah keputusan ini
+
+1. **Loket** membuka Pendaftaran Pasien IGD dan memilih kartu **Pasien Tanpa Identitas**.
+2. Form pasien baru terbuka dengan *Nama Lengkap* sudah terisi `Tn. X IGD 2110-1432`; satu-satunya
+   isian yang masih wajib adalah **Jenis Kelamin**. Petugas boleh mengisi apa pun yang kebetulan
+   diketahui — misalnya perkiraan alamat dari pengantar — tanpa diwajibkan.
+3. Rekam pasien pengganti tersimpan dengan `birthDate` `null`, NIK kosong, dan No. RM terbit seperti
+   pasien lain, lalu encounter Emergency lahir — sama seperti pasien biasa (`IGD-DEC-151`).
+4. **Langkah penjamin** sudah berada pada kategori Tunai/Umum; petugas tinggal memilih metode
+   pembayaran sistem lalu menyelesaikan pendaftaran.
+5. Pasien tampil pada daftar **Menunggu Triage** dengan nama aliasnya.
+6. **Perawat triage** menekan Mulai Triage, mencentang *Pasien tanpa identitas*, dan mengisi *Nama
+   sementara*. Sejak titik ini `EmgVisit.IsUnknownPatient` bernilai benar dan seluruh dokumentasi
+   klinis — tanda vital, SOAP, pesanan penunjang, resep — berjalan normal.
+7. Bila identitas kemudian diketahui, loket mendaftarkan pasien lewat alur pasien standar dan
+   penggabungan rekam dikerjakan Master Patient (`MergedToPatientId`, `MergeReason`).
+
+Endpoint yang dipakai seluruhnya sudah ada; nol endpoint baru:
+
+| Metode | Path | Peran pada alur ini |
+| --- | --- | --- |
+| `POST` | `/api/v1/health-services/patient-management/master-data/patients` | Melahirkan rekam pasien pengganti. Hanya `fullName` yang wajib di server |
+| `POST` | `/api/v1/health-services/registration-management/patient-encounters` | Melahirkan encounter `Emergency` |
+| `POST` | `/api/v1/health-services/emergency-installation-management/emergency-visits/start-triage` | Melahirkan kunjungan IGD beserta penanda `isUnknownPatient` dan `temporaryPatientAlias` |
+
+#### Acceptance criteria yang sudah dapat diuji
+
+| No | Kriteria |
+| --- | --- |
+| 1 | Pada Pendaftaran IGD tampil tiga kartu jenis pasien; pada Pendaftaran Rawat Jalan dan Admisi Rawat Inap tetap dua |
+| 2 | Menekan kartu Pasien Tanpa Identitas membuka form dengan *Nama Lengkap* terisi berpola `<sapaan> X IGD <tggl><bln>-<jam><menit>` dan dapat diubah |
+| 3 | Dengan hanya Jenis Kelamin terisi, tombol lanjut berhasil dan rekam pasien tersimpan `201` — nol galat *"wajib diisi"* pada sebelas field lainnya |
+| 4 | Rekam pasien tersimpan memiliki `birthDate` `null`; umur pasien **tidak** tampil `0 tahun` |
+| 5 | Dua pendaftaran tanpa identitas berurutan sama-sama berhasil tanpa galat `PATIENT_IDENTITY_ALREADY_EXISTS` |
+| 6 | Langkah penjamin terbuka pada kategori Tunai/Umum dan dapat dilanjutkan tanpa memilih penjamin |
+| 7 | Pendaftaran selesai, pasien tampil pada daftar Menunggu Triage dengan nama aliasnya |
+| 8 | Dialog Mulai Triage tetap memuat centang *Pasien tanpa identitas* dan *Nama sementara*, dan penanda tersimpan pada kunjungan |
+| 9 | Tab Assesmen Awal IGD **tidak lagi** memuat centang *Pasien tanpa identitas (Mr./Mrs. X)* maupun field *Nama sementara*; seksi 1 selebihnya tetap utuh dan tombol *Perbarui Data Kedatangan* tetap bekerja |
+| 10 | Pendaftaran Rawat Jalan dan Admisi Rawat Inap tetap menolak pasien baru tanpa field wajibnya — perilaku lamanya tidak berubah |
+
+#### Status penutup
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | `IGD-DEC-338`…`346` — seluruhnya `approved` oleh pemilik pada 21 Oktober 2026. **Susulan malam yang sama:** `IGD-DEC-338` `superseded` oleh `IGD-DEC-347` atas tinjauan tim analis; sembilan keputusan lainnya tetap berlaku |
+| Keputusan yang diamandemen | **Nol.** `IGD-DEC-151` dan `IGD-DEC-161` tetap berlaku apa adanya; `IGD-DEC-340` dan `IGD-DEC-346` justru menegaskannya |
+| Fakta yang dikoreksi | `IGD-FACT-022` dinyatakan **usang** oleh `IGD-FACT-203` — kemampuan penggabungan rekam pasien kini ada di source |
+| Open Question baru | **Nol** |
+| Blocker desain | **Nol.** Nol kolom, nol migration, nol endpoint baru, nol perubahan kontrak API, nol Resource hak akses baru |
+| Lingkup pekerjaan | **Frontend saja** |
+| Risiko utama yang harus dijaga saat implementasi | Tiga komponen dipakai bersama lintas modul (`IGD-FACT-204`, `205`, `206`). Perubahan wajib opt-in lewat prop atau cabang jalur IGD; menyentuh konstanta atau pembangun payload bersama akan merembet ke Rawat Jalan dan Admisi Rawat Inap milik Muhammad Hamzah |
+| Nomor yang dipakai | `IGD-FACT-200`…`209`; `IGD-DEC-338`…`346` |
+
+---
+
+### Putaran D2R-3 lulus penuh — lima task naik — 21 Oktober 2026 (sore)
+
+Bukti: [penilaian Putaran D2R-3](evidence/2026-10-21-penilaian-putaran-d2r3.md).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-200` | Perbaikan prop `target` → `documentItem` (`IGD-FACT-196`) **terbukti bekerja**: `POST clinical-note-addendums` → `201`, modal *Riwayat Addendum Catatan* terbuka, penghitung baris berubah `Addendum (0)` → `Addendum (1)`, isi addendum tampil dengan *Penulis Koreksi: dr. Jenah Ali* dan stempel 21 Okt 2026 11.22 |
+| `IGD-FACT-201` | Banner `409` akhirnya tertangkap pada percobaan **keempat**, sesudah `IGD-FACT-197` menjelaskan sebabnya (banner tidak hilang sendiri; ia berada di area yang dapat di-skrol). Kalimat di layar identik dengan pesan server |
+| `IGD-FACT-202` | Akun perawat `dimas.kurniawan` terbukti sah untuk `FE-IGD-045` acceptance 4: `GET emergency-visits` → `200` `totalData` 196 (bukan `403` seperti akun loket), badge *Pasien saya* hilang, keterangan tampil, daftar terisi "100 dari 196 pasien" |
+| `IGD-FACT-203` | **Bukti terkuat sepanjang rangkaian ini:** invoice `BIL-20261021-00000001` (`encounterId` `7dab5614…`, `serviceType` IGD) memuat **tepat satu baris** — `sourceDomain` `PHARMACY`, `categoryCode` `DRUG`, `sourceDetailId` `0ce93a36…` yang persis id resep `RX-20261021-00001`, `grossAmount` 650000 — dan **nol baris jasa konsultasi**. Kedua separuh `BE-IGD-068` acceptance 1 terbukti sekaligus. Panggilan finalisasi tidak terekam, tetapi kehadiran baris `PHARMACY` itu sendiri buktinya, karena fakta tagih hanya terbit saat finalisasi |
+| `IGD-FACT-204` | Koreksi data sebelum putaran: pasien resep adalah RM **`00-00-02-48`**, bukan `00-00-02-74` seperti tertulis pada laporan D2R-2. Tanpa koreksi itu pemilik akan membuka pasien yang salah di layar Billing |
+| `IGD-FACT-205` | **Putaran pertama yang verifikasinya membenarkan laporan penguji sepenuhnya** — 4 dari 4 skenario terbukti, nol klaim yang tidak didukung bukti |
+
+#### Perubahan status
+
+| Task | Status |
+| --- | --- |
+| `FE-IGD-045` | 🟡 9/10 → **✅ 10 dari 10** |
+| `FE-IGD-046` | 🟡 5/6 → **✅ 6 dari 6** |
+| `FE-IGD-048` | 🟡 5/6 → **✅ 6 dari 6** |
+| `FE-IGD-049` | 🟡 6/7 → **✅ 7 dari 7** |
+| `BE-IGD-068` | 🟡 4/5 → **✅ 5 dari 5** |
+
+#### Keadaan akhir — 21 Oktober 2026
+
+| Butir | Keadaan |
+| --- | --- |
+| Progres register | Backend **57 ✅ dari 64 aktif (89,1%)**, frontend **44 ✅ dari 56 aktif (78,6%)**, gabungan **101 dari 120 aktif (84,2%)** |
+| Seluruh sisa D2R | **Lunas** |
+| Menahan commit dan rilis | `IGD-DEC-336` — migration indeks, dikerjakan sesudah merge `MHamzah` |
+| Menunggu keputusan | `IGD-OQ-140` — penyajian penulis catatan |
+| Berikutnya | Gelombang 2 — Putaran D3, panduan bagian 5 |
+| Nomor yang dipakai | `IGD-FACT-200`…`205` |
+
+---
+
+### Pemicu pasien tanpa identitas dipindah ke dalam langkah Pasien Baru — 21 Oktober 2026 (malam, sesudah tinjauan tim analis)
+
+Tim analis pemilik meninjau hasil implementasi `FE-IGD-070` dan menolak bentuk pemicunya:
+
+> *"Tidak dibuat form input baru lagi, melainkan di dalam form pasien baru di bagian ini dibuat
+> button. Ketika pasien ini adalah pasien tanpa identitas, button ini diklik dan melakukan hal yang
+> sama. Jadi tidak membuat form inputan baru lagi meskipun ini untuk pasien tanpa identitas."*
+
+Yang ditunjuk adalah panel **Scan Kartu Identitas** pada langkah *Data Pasien Baru*, tempat tombol
+*Input Manual* dan *Cek Scanner* berada. Perilaku jalurnya **tidak** dipersoalkan — hanya letak
+pemicunya.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-210` | **Kartu ketiga terbaca sebagai jalur pendaftaran tersendiri, bukan sebagai pilihan di dalam pendaftaran pasien baru.** Layar pilihan jenis pasien adalah percabangan *alur* — `PATIENT_ENTRY_MODE` menentukan langkah mana yang dijalankan dan Redux menyimpannya sebagai mode pendaftaran. Menaruh pasien tanpa identitas di situ membuatnya setara *Pasien Lama* dan *Pasien Baru*, padahal secara proses ia **adalah** pasien baru yang datanya belum lengkap. Implementasi pertama bahkan harus memetakan mode `unknown` kembali menjadi `new` agar seluruh langkah berikutnya tetap berjalan — gejala bahwa ia memang bukan mode tersendiri |
+| `IGD-FACT-211` | **Tempat yang ditunjuk tim analis sudah berisi dua tombol sejenis.** Baris aksi `scannerActionRow` pada `patient-selection-step.jsx` memuat *Input Manual*, *Cek Scanner*, dan *Scan KTP* (yang terakhir hanya saat scanner siap). Ketiganya adalah cara **memulai pengisian data pasien baru**, sehingga tombol keempat di baris yang sama sejajar maknanya dan tidak menambah jalur apa pun |
+
+#### Keputusan
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-347` | **Pemicu pasien tanpa identitas berupa tombol di dalam panel Scan Kartu Identitas pada langkah Data Pasien Baru**, sejajar *Input Manual* dan *Cek Scanner*. Menekannya membuka formulir pasien baru **yang sama** — nol formulir baru, nol jalur pendaftaran baru — dengan nama sementara terisi otomatis dan sepuluh tanda wajib dilepas. Menekan *Input Manual* mengembalikan formulir ke mode pasien baru biasa dan mengosongkan nama sementara yang belum disunting petugas. Tombolnya **opt-in** lewat prop, sehingga Pendaftaran Rawat Jalan yang memakai ulang langkah ini tidak menampilkannya. Seluruh keputusan perilaku lain (`IGD-DEC-339`…`346`) berlaku apa adanya | Product/Domain Owner IGD, atas tinjauan tim analis | `approved` | **Rizki Gunawan / 2026-10-21** | Tinjauan tim analis atas implementasi `FE-IGD-070`; `IGD-FACT-210`, `211` |
+| `IGD-DEC-338` | Kartu ketiga *Pasien Tanpa Identitas* pada layar pilihan jenis pasien | Product/Domain Owner IGD | **`superseded` oleh `IGD-DEC-347`** (21 Oktober 2026, malam) | — | Alasan penggantian pada `IGD-FACT-210` |
+
+#### Yang berubah pada source
+
+| Berkas | Perubahan |
+| --- | --- |
+| `patient-entry-choice-step.jsx` dan `.module.css` | **Dikembalikan utuh ke baseline.** Jenis kartu `unknown`, ilustrasinya, dan tema abu-abunya dicabut seluruhnya; `git diff` kedua berkas kosong |
+| `emergency-registration.constants.js` | `PATIENT_ENTRY_MODE.UNKNOWN`, `UNKNOWN_IDENTITY_PATIENT_ENTRY_OPTION`, dan `EMERGENCY_PATIENT_ENTRY_OPTIONS` dicabut. Konstanta perilaku (`UNKNOWN_IDENTITY_FLAG_FIELD`, `UNKNOWN_IDENTITY_ALIAS_FIELD`, `UNKNOWN_IDENTITY_ALIAS_MARKER`, `UNKNOWN_IDENTITY_SALUTATIONS`, `UNKNOWN_IDENTITY_OPTIONAL_FIELDS`) tetap |
+| `use-emergency-registration.js` | Cabang mode `unknown` pada `handlePatientModeChange` diganti dua aksi tersendiri: `handleUseUnknownIdentityPatient` dan `handleUseIdentifiedPatient`. `handlePatientModeChange` kini hanya **membersihkan** penandanya |
+| `patient-selection-step.jsx` | Tombol *Pasien Tanpa Identitas* pada `scannerActionRow`, tampil hanya bila prop `onUseUnknownIdentityPatient` diberikan; *Input Manual* memanggil `onUseIdentifiedPatient` |
+| `emergency-registration-page.jsx` | Meneruskan kedua handler itu; pengiriman `options` ke layar pilihan jenis pasien dicabut |
+
+Berkas yang berubah turun dari sembilan menjadi **tujuh**, dan dua berkas yang paling berisiko
+merembet ke Admisi Rawat Inap — komponen kartu pilihan jenis pasien beserta CSS-nya — kini **tidak
+disentuh sama sekali**.
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | `IGD-DEC-347` |
+| Keputusan yang digantikan | `IGD-DEC-338` → `superseded` |
+| Nomor yang dipakai | `IGD-FACT-210`, `211`; `IGD-DEC-347` |
+
+---
+
+### Formulir pasien tanpa identitas hanya memuat nama dan jenis kelamin — 21 Oktober 2026 (malam, susulan)
+
+Pemilik menambahkan satu batas lagi sesudah tombolnya dipindahkan:
+
+> *"Form-nya ini field-nya jangan ditampilin semua, hanya nama dan jenis kelamin saja."*
+
+`IGD-DEC-342` hanya **melepas tanda wajib** — seluruh isian tetap tampil, sehingga petugas masih
+melihat sederet kolom kosong (tempat lahir, NIK, alamat, wilayah berjenjang) yang tidak akan diisi.
+Keputusan ini melangkah lebih jauh: isian itu **tidak ditampilkan sama sekali** pada jalur tanpa
+identitas.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-212` | **Menyembunyikan isian sekaligus menutup jalur galat validasinya.** Formulir pasien baru memakai `react-hook-form` lewat `Controller`; isian yang tidak ter-*mount* tidak ikut dinilai, dan catatan di `emergency-registration.constants.js` memang sudah menyatakan hal itu untuk isian bersyarat bayi baru lahir dan pasien meninggal. Jadi penyembunyian ini sejalan dengan pola yang sudah dipakai berkas yang sama, bukan mekanisme baru |
+| `IGD-FACT-213` | **Hanya satu isian tersembunyi yang membawa nilai awal bermakna.** Dari sebelas isian yang disembunyikan, hanya `identityType` yang berawal terisi (`"KTP"`); sisanya memang berawal kosong. Tanpa penanganan khusus, pasien tanpa kartu identitas akan tercatat berjenis identitas KTP dengan nomor kosong |
+
+#### Keputusan
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-348` | **Pada jalur tanpa identitas, formulir pasien hanya menampilkan dua isian: Nama Lengkap dan Jenis Kelamin.** Bagian *Dokumen dan Kontak*, *Alamat Pasien*, dan *Data tambahan pasien (opsional)* tidak ditampilkan, begitu pula nama panggilan, tempat dan tanggal lahir, golongan darah, agama, serta status perkawinan. Keduanya **tetap wajib** sesuai `IGD-DEC-342`. Diwujudkan **opt-in** lewat prop `minimalIdentityOnly` pada `NewPatientForm` yang berawal mati, sehingga Pendaftaran Rawat Jalan dan Admisi Rawat Inap tidak berubah. `identityType` dikosongkan saat jalur ini dipilih dan dikembalikan ke `"KTP"` bila petugas menekan *Input Manual* (`IGD-FACT-213`), supaya pasien tanpa kartu identitas tidak tercatat berjenis identitas KTP | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-21** | Instruksi pemilik di percakapan; `IGD-FACT-212`, `213` |
+| `IGD-DEC-342` | Sepuluh tanda wajib dilepas; Nama Lengkap dan Jenis Kelamin tetap wajib | Product/Domain Owner IGD | `approved` — **diperketat `IGD-DEC-348`**: isian yang dilepas kini juga disembunyikan. Pelepasan tanda wajibnya **tetap berlaku** sebagai lapisan kedua, karena nilai isian yang disembunyikan tetap tersimpan di state formulir | **Rizki Gunawan / 2026-10-21** | — |
+
+#### Yang berubah pada source
+
+| Berkas | Perubahan |
+| --- | --- |
+| `new-patient-form.jsx` | Prop `minimalIdentityOnly` (berawal `false`). Saat menyala, komponen mengembalikan satu bagian *Identitas Pasien* berisi Nama Lengkap dan Jenis Kelamin saja beserta kalimat penjelasnya; pohon formulir lengkapnya tidak disentuh |
+| `patient-selection-step.jsx` | Meneruskan `minimalIdentityOnly` dari penanda jalur |
+| `use-emergency-registration.js` | `handleUseUnknownIdentityPatient` mengosongkan `identityType`; `handleUseIdentifiedPatient` mengembalikannya ke nilai awal bila masih kosong |
+
+#### Konsekuensi yang perlu diketahui pemilik
+
+Kolom **Catatan Pasien** ikut tersembunyi. Pada praktiknya kolom itu kerap dipakai mencatat ciri
+pasien tanpa identitas — misalnya *"laki-laki perkiraan 45 tahun, kaos merah, korban kecelakaan di
+Jl. Merdeka"* — yang justru menjadi bahan mengenali pasien kemudian. Keputusan ini dijalankan apa
+adanya sesuai instruksi; bila ciri pasien perlu tercatat, kolom catatan dapat dikembalikan ke dalam
+dua isian itu lewat keputusan susulan.
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | `IGD-DEC-348` |
+| Keputusan yang diperketat | `IGD-DEC-342` — tetap `approved`, cakupannya bertambah |
+| Nomor yang dipakai | `IGD-FACT-212`, `213`; `IGD-DEC-348` |

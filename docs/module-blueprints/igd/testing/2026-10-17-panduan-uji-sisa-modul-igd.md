@@ -1,4 +1,4 @@
-# Panduan Uji Sisa Modul IGD — Putaran B4…B7, K1, P1, D2, D3, L1, dan R1
+# Panduan Uji Sisa Modul IGD — Putaran B4…B7, K1, P1, D2, D2R, D3, L1, dan R1
 
 | Field | Nilai |
 | --- | --- |
@@ -25,6 +25,7 @@ dinilai selesai.** Setiap skenario ditulis dengan ID sendiri dan menunjuk accept
 | **K1** | Tagihan IGD sampai kasir: tunai, asuransi, PKS (tindakan perawat, laboratorium, obat, jasa kunjungan) dan satu pasien transfer dengan dua invoice (bagian 3E) — _ditambahkan 18 Oktober 2026 malam_ | `BE-IGD-084`; `IGD-UNK-21`, `IGD-UNK-22`; demo Kasir IGD 21 Oktober | 1 | Antigravity; bagian 2 sesudah `BE-IGD-084` dibangun dan item serta tarif _Jasa kunjungan IGD_ ada (`IGD-UNK-19`) |
 | **P1** | Pasien prioritas dari reservasi sampai Form Permintaan Rawat Inap, termasuk _check-in_ memakai encounter loket dan triage yang tidak dipengaruhi membership (bagian 3F) — _ditambahkan 18 Oktober 2026 malam_ | `BE-IGD-085`, `BE-IGD-080`, `FE-IGD-067`; demo pasien prioritas 20 Oktober | 1 | Antigravity, sesudah `BE-IGD-085` dibangun Rizki |
 | **D2** | Ruang Kerja Dokter IGD: daftar pasien, kajian medis, catatan dokter, Catatan Saya, resep | `BE-IGD-065`…`068`, `FE-IGD-045`…`049` | 2 | Antigravity |
+| **D2R** | Pelunasan sisa Putaran D2 — addendum, dokter kedua, saringan, soap-timeline, resep | `BE-IGD-065`, `067`, `068`; `FE-IGD-045`…`049` | 2 | Antigravity + Rizki (`D2R-R01`) |
 | **D3** | Tindakan dan tindak lanjut di layar dokter dan perawat | `BE-IGD-070`, `FE-IGD-050`, `051`, `054`, `055` | 3 | Antigravity |
 | **L1** | Layar lama yang belum pernah dibuktikan lewat layar | `FE-IGD-012`, `013`, `022` | 4 | Antigravity |
 | **R1** | Uji langkah mundur migration di salinan basis data. **R1-01 dijalankan 18 Oktober 2026: lulus, `BE-IGD-072` ✅** ([bukti](../evidence/2026-10-18-uji-down-migration-be-igd-072.md)); R1-02 belum | `BE-IGD-072` (acceptance 8), `BE-IGD-026` (kriteria 1), `BE-IGD-031` (kriteria 2) | boleh paralel | Rizki |
@@ -990,3 +991,144 @@ Pisahkan dengan jelas apa yang siap dari sisi IGD dan apa yang masih menunggu Ra
 penutupan kunjungan pada alur pasien tiba lebih dulu). Sebutkan juga syarat rilis R3.18.5 yang belum terpenuhi.
 Jangan mengerjakan perbaikan.
 ```
+
+---
+
+## 5B. Putaran D2R — pelunasan sisa Putaran D2 (prioritas 2)
+
+Ditambahkan 20 Oktober 2026 sesudah [penilaian Putaran D2 dari bukti mentah](../evidence/2026-10-20-penilaian-putaran-d2.md).
+Putaran D2 **tidak menaikkan satu pun task ke ✅**: lima klaim `PASS` tidak didukung berkas buktinya sendiri
+(`IGD-FACT-158`…`162`). Putaran ini melunasi sisanya — kecil dan terarah, bukan pengulangan D2.
+
+Folder bukti: `test-with-agy/igd/uji-putaran-d2r-<YYYYMMDD>/`. Aturan bagian 1 berlaku penuh, terutama **A7** (rekam
+jaringan tiap panggilan) dan **A9** (hasil ditentukan dari bukti, satu baris per ID).
+
+### 5B.1 Dua prasyarat yang wajib dipenuhi lebih dulu — oleh Rizki
+
+| # | Prasyarat | Tanpa ini |
+| ---: | --- | --- |
+| 1 | Peran **Dokter IGD** diberi `ClinicalDocumentIntegrity : Read` dan `ClinicalNoteAddendum` lewat layar Akses Role | `D2R-U01` tidak dapat dijalankan (`D2-U18` gagal `403` karena ini) |
+| 2 | Akun **dokter kedua** disiapkan dan sandinya diisi ke `QUILVIAN_DOKTER2_PASSWORD` | `D2R-U02` dan `D2R-U03` tidak dapat dijalankan; penguji **dilarang mengarang sandi** |
+
+**Data:** **P-D2R-A** kunjungan IGD berjalan, DPJP `ranger.biru`, punya catatan dokter yang sudah diselesaikan dan satu
+catatan draf; **P-D2R-B** encounter **bukan IGD** (rawat inap atau poliklinik); **P-D2R-C** pasien baru untuk pendaftaran rujukan.
+
+### 5B.2 Skenario (fase T)
+
+| ID | Aktor | Langkah | Hasil yang diharapkan | Menjawab |
+| --- | --- | --- | --- | --- |
+| D2R-U01 | Dokter | `/doctor-emergency/my-notes` → buka catatan terkunci → *+ Addendum* → simpan | Daftar catatan termuat (bukan `403`); addendum tersimpan dan tampil di bawah catatan dengan pelaku dan waktu; isi lama tidak berubah | `FE-IGD-048` acc 2 |
+| D2R-U02 | **Dokter kedua** | Buka `/doctor-emergency` dengan akun yang tidak punya pasien | Tab *Pasien saya* kosong menampilkan kalimat `03` §15.4 tabel A **persis** — salin apa adanya ke laporan | `FE-IGD-045` acc 3 |
+| D2R-U03 | **Dokter kedua** | Coba sunting catatan dokter milik `ranger.biru` pada P-D2R-A | Penolakan server (penulis tunggal) tampil **apa adanya di tempat aksi**; PNG wajib memuat kalimatnya | `FE-IGD-047` acc 5 |
+| D2R-A01 | API dokter | Dua panggilan: (a) `GET EIM/emergency-visits?awaitingClosure=true` **tanpa** `ongoing` dan **tanpa** `doctorId`; (b) `GET …?ongoing=true&awaitingClosure=true` | Catat `totalData` keduanya dan lima `id` pertama. Harapan: (a) ≥ (b), dan (a) memuat kunjungan berstatus `8`/`9` yang tidak ada di (b) — membuktikan saringan lama tidak berubah dan parameter baru murni menambah | `BE-IGD-065` acc 2 |
+| D2R-A02 | API dokter | Pastikan P-D2R-A punya **dua** catatan dokter (satu draf, satu selesai), lalu `GET clinical-management/doctor-consultations/encounters/{encounterId}/soap-timeline` | `200`, `totalCount` **2**, tiap butir berbentuk `SoapTimelineItemResponse` | `BE-IGD-067` acc 1 |
+| D2R-A03 | API dokter | Dua panggilan: (a) `soap-timeline` untuk encounter **P-D2R-B** yang bukan kunjungan IGD; (b) `soap-timeline` untuk GUID **sah tetapi tidak ada** di basis data | (a) `400`; (b) `404`. **Dilarang memakai GUID nol atau string bukan GUID** — keduanya menguji validasi ruas dan routing constraint, bukan aturan bisnis (`IGD-FACT-161`) | `BE-IGD-067` acc 3 |
+| D2R-U04 | Dokter | Lewat layar, coba buat **kajian medis awal kedua** pada P-D2R-A | PNG **wajib memuat pesan penolakan di layar**, dan kalimatnya disalin persis ke laporan lalu dibandingkan dengan pesan pada rekam jaringan. Keduanya harus sama (`IGD-FACT-160`) | `FE-IGD-046` acc 2 |
+| D2R-U05 | Dokter | Buat resep lewat layar pada catatan dokter yang **terbuka**, dengan rekam jaringan menyala sejak sebelum menekan simpan | Rekam jaringan memuat panggilan **`POST`** resep beserta statusnya — pada D2 tidak ada satu pun `POST` resep terekam | `FE-IGD-049` acc 1 |
+| D2R-U06 | Dokter | Amati perilaku resep yang `ClinicId`-nya kosong dan catat apa adanya, tanpa memperbaiki | Catatan perilaku, bukan `PASS`/`FAIL` atas benar-salahnya | `FE-IGD-049` acc 5, `IGD-UNK-12` |
+| D2R-R01 | **Rizki** | Sesudah catatan dokter P-D2R-A diselesaikan, buka ringkasan tagihan pasien itu di layar Billing | Fakta **resep** terkirim; fakta **jasa konsultasi** **tidak** terkirim | `BE-IGD-068` acc 1, `FE-IGD-049` acc 3 |
+| D2R-U07 | Dokter | Pada tab *Pengkajian Medis* P-D2R-A, perhatikan penghitung *Semua Kajian*, *Kajian Medis Awal*, *Kajian Medis Ulang* sesudah satu kajian baru disimpan | Catat apakah penghitung ikut naik atau tetap `0 data`. Pada `D2-U08-akhir.png` ketiganya `0` padahal dua kajian baru saja dibuat — **pengamatan, belum dinyatakan cacat** | Pengamatan bagian 4 penilaian D2 |
+| D2R-U08 | Petugas loket | Daftarkan **P-D2R-C** lewat pendaftaran IGD sebagai pasien **rujukan**, isi *No. Rujukan (opsional)*, simpan, lalu buka ulang pendaftaran itu | Nilai *No. Rujukan* **masih ada** saat dibuka ulang. Ruas ini baru ditampilkan commit `a244a729f` (20 Oktober 2026); rumahnya ada (`EncounterIntakeDtos.ReferralNumber`), tetapi belum pernah dibuktikan lewat layar | Regresi commit `a244a729f` |
+
+### 5B.3 Yang dapat dinilai sesudah D2R
+
+| Task | Naik ✅ bila |
+| --- | --- |
+| `BE-IGD-065` | `D2R-A01` lulus (acc 2 — satu-satunya sisa) |
+| `BE-IGD-067` | `D2R-A02` dan `D2R-A03` lulus (acc 1 dan 3) |
+| `BE-IGD-068` | `D2R-R01` lulus (acc 1) |
+| `FE-IGD-045` | `D2R-U02` lulus, dan acc 4 dibuktikan atau disimulasikan dengan catatan |
+| `FE-IGD-046` | `D2R-U04` lulus (acc 2 sisi layar) |
+| `FE-IGD-047` | `D2R-U03` lulus (acc 5) |
+| `FE-IGD-048` | `D2R-U01` lulus (acc 2) |
+| `FE-IGD-049` | `D2R-U05`, `D2R-U06`, dan `D2R-R01` lulus (acc 1, 5, 3) |
+
+Delapan task sekaligus. Bila seluruhnya lulus, register naik dari 93 menjadi **101 dari 120 aktif (84,2%)**.
+
+### 5B.4 Koreksi panduan sesudah pelaksanaan 20 Oktober 2026 — WAJIB dibaca sebelum menjalankan ulang
+
+Empat skenario D2R gagal membuktikan kriterianya **karena cacat panduan ini, bukan karena pelaksanaan**
+([penilaian D2R](../evidence/2026-10-20-penilaian-putaran-d2r.md) bagian 3). Koreksinya mengikat pada
+pengulangan berikutnya dan menggantikan baris yang bersangkutan pada tabel 5B.2.
+
+| Skenario | Yang salah | Yang berlaku sekarang |
+| --- | --- | --- |
+| **Urutan `D2R-U01` dan `D2R-U05`** | `U01` menuntut catatan yang sudah **diselesaikan**; `U05` menuntut catatan yang masih **terbuka**. Panduan menaruh keduanya pada pasien yang sama, sehingga `U05` mustahil lulus | **Pakai dua pasien berbeda.** `U05` dijalankan pada pasien dengan catatan dokter **masih terbuka**, `U01` pada pasien yang catatannya sudah terkunci. Bila terpaksa satu pasien, jalankan `U05` **lebih dulu** |
+| **`D2R-U05` hasil yang diharapkan** | Tertulis "rekam jaringan memuat panggilan `POST` resep beserta statusnya" — itu menyebut **bukti**, bukan hasil, sehingga `400` pun lolos sebagai `PASS` | Hasil yang diharapkan: **resep tersimpan (`201`) dan tampil di tab Resep layar dokter.** Rekaman `POST` adalah buktinya, bukan kriterianya. `400` = `FAIL` |
+| **`D2R-U01` bukti** | Panduan tidak menyebut bagaimana addendum dibuktikan, sehingga halaman yang sekadar termuat dinilai cukup | Wajib ketiganya: (1) panggilan **tulis** addendum terekam beserta statusnya; (2) PNG memperlihatkan penghitung baris berubah dari **`Addendum (0)`** menjadi `Addendum (1)`; (3) isi addendum tampil di bawah catatan dengan pelaku dan waktu |
+| **`D2R-U04` dan sejenisnya** | PNG diambil sesudah dialog penolakan tertutup, dua putaran berturut-turut (`IGD-FACT-160`, lalu terulang) | Tangkap layar **selagi alert penolakan masih tampil**. Bila alert hilang sendiri, tangkap elemen alert-nya langsung. Tangkapan layar tanpa pesan = kriteria sisi layar **belum** terbukti |
+| **`D2R-U08`** | Panduan tidak menegaskan bahwa pendaftaran harus **selesai**, sehingga putaran berhenti di Langkah 5 Verifikasi | Pendaftaran wajib diselesaikan sampai **langkah 6 _Selesai_** dengan panggilan `POST` pendaftaran terekam, lalu pendaftaran itu **dibuka ulang** dan nilai No. Rujukan dibaca dari layar kedua kalinya |
+
+**Aturan umum yang ditambahkan dari dua putaran ini:** sebelum menulis `PASS`, buka kembali berkas bukti
+yang akan dikutip dan pastikan berkas itu **ada** serta **memuat** pernyataan yang diklaim. Pada D2R,
+`jaringan-D2R-U07.json` dikutip tetapi tidak ada, dan `D2R-U01` diklaim dengan rekaman yang seluruhnya `GET`.
+
+---
+
+## 5C. Putaran D2R-2 — penutup sisa D2R dan penjaga draf per dokter
+
+Ditambahkan 21 Oktober 2026. Putaran ini menutup **seluruh** sisa kriteria D2R sekaligus
+memverifikasi `IGD-DEC-337`. Bila lulus penuh, lima task naik ✅ dan register menembus 101 dari
+120 aktif (84,2%).
+
+Folder bukti: `test-with-agy/igd/uji-putaran-d2r2-<YYYYMMDD>/`. Aturan bagian 1 dan koreksi
+bagian **5B.4** berlaku penuh — terutama: tangkap layar **selagi pesan masih tampil**, dan
+`PASS` hanya bila berkas buktinya ada serta memuat pernyataan yang diklaim.
+
+### 5C.1 Prasyarat
+
+| # | Prasyarat | Pemilik |
+| ---: | --- | --- |
+| 1 | **Backend dibangun ulang.** `DoctorConsultationController.cs` berubah (+35/−0) dan belum ada pada DLL mana pun. Tanpa ini `D2R2-A01` menguji kode lama | Rizki |
+| 2 | Dua akun dokter IGD aktif: **Dokter A** dan **Dokter B** (keduanya sudah ada — `ranger.biru@admin.com`, `jenahali@hospital.com`, `dokter.igd.b4@rsmmc.local`) | — |
+| 3 | Satu akun pengguna **tanpa tautan baris dokter** untuk `D2R2-U05`. Bila tidak tersedia, skenario itu disimulasikan dan dicatat apa adanya — kartunya mengizinkan | Rizki |
+
+**Data:** **P-X-A** kunjungan IGD berjalan dengan catatan dokter **masih terbuka** milik Dokter A;
+**P-X-B** kunjungan IGD berjalan terpisah, belum punya catatan; **P-X-C** pasien untuk pendaftaran rujukan.
+
+### 5C.2 Skenario
+
+| ID | Aktor | Langkah | Hasil yang diharapkan | Menjawab |
+| --- | --- | --- | --- | --- |
+| D2R2-A01a | Dokter B (API) | Dokter A meninggalkan draf terbuka pada **P-X-A**. Dokter B `POST /doctor-consultations` pada encounter yang sama | **Berhasil** — catatan Dokter B terbentuk. Sebelum `IGD-DEC-337` langkah ini ditolak `400` | `IGD-DEC-337` |
+| D2R2-A01b | Dokter B (API) | Dokter B `POST` sekali lagi pada encounter yang sama, selagi drafnya sendiri masih terbuka | **Ditolak `400`** *"Masih ada draf catatan dokter yang belum diselesaikan untuk kunjungan IGD ini."* | `IGD-DEC-337` |
+| D2R2-A01c | Dokter B (API) | `GET …/soap-timeline` encounter P-X-A | `totalCount` bertambah sesuai jumlah catatan yang benar-benar ada | Regresi `BE-IGD-067` |
+| D2R2-U01 | Dokter | Buka `/doctor-emergency/my-notes`, pilih catatan **terkunci**, tekan *+ Addendum*, isi, simpan | **Wajib ketiganya:** (1) panggilan **tulis** addendum terekam beserta statusnya; (2) PNG memperlihatkan penghitung baris berubah dari `Addendum (0)` menjadi `Addendum (1)`; (3) isi addendum tampil di bawah catatan dengan pelaku dan waktu | `FE-IGD-048` acc 2 |
+| D2R2-U02 | Dokter | Pada pasien yang sudah punya kajian medis awal, coba buat kajian awal **kedua** lewat layar | PNG **wajib memuat banner penolakan `409` saat masih tampil**, kalimatnya disalin persis dan dibandingkan dengan rekaman jaringan | `FE-IGD-046` acc 2 |
+| D2R2-U03 | Dokter | Pada **P-X-B**, buat catatan dokter baru (biarkan **terbuka**), lalu buat resep lewat layar | Resep tersimpan **`201`** dan tampil di tab Resep layar dokter. `400` = `FAIL` | `FE-IGD-049` acc 1 |
+| D2R2-U04 | Dokter | Amati perilaku resep yang baru terbentuk itu terkait `ClinicId` kosong, catat apa adanya tanpa memperbaiki | Catatan perilaku atas resep yang **benar-benar terbentuk**, bukan atas panggilan yang ditolak | `FE-IGD-049` acc 5, `IGD-UNK-12` |
+| D2R2-U05 | Akun tanpa dokter | Buka `/doctor-emergency` | Saringan *Pasien saya* **nonaktif dengan keterangan**; daftar *Semua pasien IGD* **tetap tampil**. Bila akunnya tidak ada, simulasikan dan catat | `FE-IGD-045` acc 4 |
+| D2R2-R01 | **Rizki** | Selesaikan catatan dokter **P-X-B** (yang ada resepnya), lalu buka rincian tagihan pasien itu di layar Billing — tombol Aksi (⋮) → rincian, bukan hanya daftar | Fakta **resep** terkirim; fakta **jasa konsultasi** **tidak** terkirim | `BE-IGD-068` acc 1, `FE-IGD-049` acc 3 |
+| D2R2-U06 | Petugas loket | Daftarkan **P-X-C** sebagai pasien rujukan dengan No. Rujukan terisi, **selesaikan sampai langkah 6 _Selesai_**, lalu buka ulang pendaftaran itu | Panggilan `POST` pendaftaran terekam; No. Rujukan **masih ada** saat dibuka ulang | Regresi commit `a244a729f` |
+
+### 5C.3 Yang dapat dinilai sesudah D2R-2
+
+| Task | Naik ✅ bila |
+| --- | --- |
+| `FE-IGD-045` | `D2R2-U05` lulus (acc 4 — satu-satunya sisa) → **10/10** |
+| `FE-IGD-046` | `D2R2-U02` lulus (acc 2) → **6/6** |
+| `FE-IGD-048` | `D2R2-U01` lulus (acc 2) → **6/6** |
+| `FE-IGD-049` | `D2R2-U03`, `U04`, dan `R01` lulus (acc 1, 5, 3) → **7/7** |
+| `BE-IGD-068` | `D2R2-R01` lulus (acc 1) → **5/5** |
+
+`IGD-DEC-337` dinyatakan terverifikasi bila `D2R2-A01a` **dan** `D2R2-A01b` lulus keduanya —
+satu membuktikan penghalang ganti shift tercabut, satu membuktikan penjaga aslinya masih bekerja.
+
+### 5C.4 Putaran D2R-3 — lima butir terakhir, dengan sebab yang sudah ditunjuk
+
+Ditambahkan 21 Oktober 2026 (sore) sesudah [penilaian D2R-2](../evidence/2026-10-21-penilaian-putaran-d2r2.md)
+dan penelusuran akar masalah (`IGD-FACT-196`…`199`). Folder bukti: `test-with-agy/igd/uji-putaran-d2r3-<YYYYMMDD>/`.
+
+**Prasyarat:** frontend menjalankan kode terbaru — `emergency-locked-notes-tab.jsx` diperbaiki
+21 Oktober 2026 (sore). Dengan `npm run dev` perubahan langsung terpakai; dengan `npm start`
+wajib `npm run build` lebih dulu dan `BUILD_ID` baru dicatat.
+
+| ID | Aktor | Langkah | Hasil yang diharapkan | Menjawab |
+| --- | --- | --- | --- | --- |
+| D2R3-U01 | Dokter | `/doctor-emergency/my-notes` → catatan terkunci → *+ Addendum* → isi → simpan | Modal **terbuka** (bug prop sudah diperbaiki, `IGD-FACT-196`). Wajib ketiganya: panggilan tulis addendum terekam; PNG memperlihatkan penghitung berubah dari `Addendum (0)` ke `Addendum (1)`; isi addendum tampil dengan pelaku dan waktu | `FE-IGD-048` acc 2 |
+| D2R3-U02 | Dokter | Coba buat kajian medis awal kedua lewat layar | Banner `409` tampil. **Cara menangkap sudah dikoreksi** (`IGD-FACT-197`): banner **tidak** hilang sendiri — ia berada di area form yang dapat di-skrol. Tangkap **elemen** `[data-testid="medical-assessment-save-error"]` langsung, atau gulirkan ke tampilan dulu, atau ambil tangkapan **halaman penuh**. Tangkapan viewport apa adanya sudah gagal tiga kali | `FE-IGD-046` acc 2 |
+| D2R3-U03 | Akun tanpa dokter | Buka `/doctor-emergency` | Pakai akun yang **berhak baca kunjungan IGD** tetapi **tidak tertaut baris `MstDoctor`** (`IGD-FACT-198`). Akun Petugas Loket **tidak sah** untuk skenario ini — ia ditolak `403` sehingga daftar *Semua* tak pernah tampil. Harapan: keterangan `[data-testid="emergency-physician-filter-note"]` muncul **dan** daftar *Semua pasien IGD* tetap tampil | `FE-IGD-045` acc 4 |
+| D2R3-R01 | **Rizki** | **Selesaikan dulu** catatan dokter `CON-20261021-00002` (pasien P-X-B) sampai berstatus Completed, **baru** buka rincian tagihan pasien itu di layar Billing lewat tombol Aksi (⋮) | Fakta **resep** terkirim; fakta **jasa konsultasi** **tidak** terkirim. **Tanpa langkah penyelesaian, layar Billing kosong dan bukan berarti gagal** — fakta tagih hanya terbit saat finalisasi (`IGD-FACT-199`) | `BE-IGD-068` acc 1, `FE-IGD-049` acc 3 |
+
+**Sesudah D2R-3 lulus penuh:** `FE-IGD-045` 10/10, `FE-IGD-046` 6/6, `FE-IGD-048` 6/6,
+`FE-IGD-049` 7/7, `BE-IGD-068` 5/5 — lima task naik ✅, register **101 dari 120 aktif (84,2%)**.
