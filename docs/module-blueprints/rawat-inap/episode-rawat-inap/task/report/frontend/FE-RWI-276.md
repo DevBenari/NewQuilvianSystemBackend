@@ -16,10 +16,10 @@
 | Task mode | `FRONTEND` untuk source; wewenang lintas repository sempit untuk laporan ini, roadmap, dan traceability |
 | Target tulis | `QuilvianSystemFrontendDev/src/**` dan `tests/unit/**`; laporan ini di repository backend |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
-| Commit frontend saat dikerjakan | `57e8be299` (branch `HamzahV2`, upstream `origin/HamzahV2`; sudah memuat `FE-RWI-277` dan `FE-RWI-278`) ditambah perubahan working tree task ini |
+| Commit frontend saat dikerjakan | `57e8be299` (branch `HamzahV2`, upstream `origin/HamzahV2`; sudah memuat `FE-RWI-277` dan `FE-RWI-278`) ditambah perubahan working tree task ini. Revisi ICU CK (bagian 2B) dikerjakan di atas `2491a1c7e`, commit pengguna yang memuat hasil pertama task ini |
 | Commit backend yang dijadikan rujukan | `be254d87eff2d0050c8724ec3aee727e105ca4cb` (branch `MHamzah`) |
 | Tanggal | 21 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Seluruh acceptance criteria terpetakan ke source; skrip geometri 40/40, `npm run lint:errors`, dan `npm run build` lulus. Yang belum hanya pencatatan pengesahan Lantai 3 sebagai keputusan baru di decision log, yaitu syarat gerbang `DEC-PETA-L3`. Uji manual di aplikasi belum dijalankan; butir ini tidak menahan `✅` atas keputusan pemilik 1 September 2026 |
+| Status | 🟡 **SEBAGIAN.** Seluruh acceptance criteria terpetakan ke source. Sesudah revisi ICU CK (bagian 2B): uji denah 165/167 lulus (2 kegagalan lama di luar task), `npm run lint:errors` exit 0, dan `npm run build` lulus. Yang belum hanya pencatatan pengesahan Lantai 3 sebagai keputusan baru di decision log, yaitu syarat gerbang `DEC-PETA-L3`. Uji manual di aplikasi belum dijalankan; butir ini tidak menahan `✅` atas keputusan pemilik 1 September 2026 |
 
 ---
 
@@ -82,18 +82,20 @@ memindahkan pasien (detail episode dan Workspace Keperawatan), dan admin Master 
   dan susunan bertumpuk (nomor di atas, lalu titik bed dan badge sebaris), memilih yang paling sedikit
   perlu diperkecil, lalu memperkecil isi secara seragam sampai muat. Ukuran aslinya terlihat saat peta
   diperbesar.
-  **Contoh:** kartu ICU-CK berukuran 41 × 42,5 satuan. Susunan sebaris butuh lebar 67,8 satuan (skala
-  0,546), sedangkan susunan bertumpuk hanya butuh 38,3 satuan (skala 0,967), sehingga dipakai susunan
-  bertumpuk pada 97 % ukuran asli. Bila kamar penuh dan berlabel HD, isinya bertambah satu baris
-  sehingga tampil pada 81 % ukuran asli.
-- **Skala per kamar pada keadaan terberat** (badge penuh, label HD, dan ikon pesanan):
+  **Contoh:** kartu BAYI-2 berukuran 53,5 × 40,5 satuan. Susunan sebaris butuh lebar 67,8 satuan
+  (skala 0,73), sedangkan susunan bertumpuk hanya butuh 57 satuan (skala 0,868), sehingga dipakai
+  susunan bertumpuk pada 87 % ukuran asli. Bila kamar penuh, berlabel HD, dan berpesanan, isinya
+  bertambah satu baris sehingga tampil pada 77 % ukuran asli.
+- **Kartu penuh ICU CK.** Sejak revisi pemilik (bagian 2B), ICU CK tidak lagi memakai varian
+  ringkas; kartunya digambar 97 × 92 satuan dan memuat kelas, nomor, titik bed, dan badge seperti
+  kartu ICU VIP 1.
+- **Skala per kamar ringkas pada keadaan terberat** (badge penuh, label HD, dan ikon pesanan):
 
 | Kamar | Ukuran kartu | Tanpa penanda | Dengan penanda terberat |
 | --- | --- | --- | --- |
 | BAYI-1 | 58 × 40,5 | 0,947 | 0,796 |
 | BAYI-2 | 53,5 × 40,5 | 0,868 | 0,767 |
 | ICU VIP 2 | 77 × 59,5 | 1 (bertumpuk) | 1 (bertumpuk) |
-| ICU CK | 41 × 42,5 | 0,967 | 0,811 |
 | 520, 521, 522 (Lantai 5) | — | 1 (susunan lama) | 1 (susunan lama) |
 
 **Perubahan status.** Tidak ada. Rupa status kartu tetap mengikuti `RWI-DEC-346` dan `RWI-DEC-350`.
@@ -127,6 +129,29 @@ ditampilkan sebagai blok bernama?"
 satuan, dan di atasnya sayap utara selebar 997 satuan. Kompas berada di ruang kosong di atas ICU VIP,
 tidak menutupi kartu.
 
+### 2B. Revisi pemilik 21 Oktober 2026 — ICU CK satu kartu penuh
+
+**Pemicu.** Sesudah meninjau Lantai 2, pemilik mengirim tangkapan layar kartu ICU-CK yang sangat kecil
+beserta potongan gambar R. ICU CK, lalu meminta: "memang di peta denah sih seperti itu, tetapi di ubah
+aja deh biar satu full card saja, di perbaiki ya".
+
+**Dasar wewenang.** Instruksi eksplisit pemilik. Revisi ini tidak mengubah `rooms[]`, kunci denah,
+data, maupun kontrak; yang berubah hanya bentuk kartu yang digambar, sehingga mengikuti pola revisi
+`FE-RWI-272` bagian 2A. Dua butir rancangan sengaja dikecualikan untuk ICU CK atas instruksi itu:
+kartu tidak lagi di dalam poligon `rooms[]` (`DNH-AT-499`), dan ICU CK keluar dari daftar varian
+ringkas (`DNH-AT-918`).
+
+| Sebelum | Sesudah |
+| --- | --- |
+| Kartu mengikuti poligon gambar R. ICU CK, 47 × 48,5 satuan, sehingga memakai varian ringkas: "ICU-CK" dan badge, tanpa label kelas | Kartu 97 × 92 satuan (`x 1125,5–1222,5`, `y 514–606`), setinggi ICU VIP 1, di antara Ruang ICU dan ICU VIP: kelas "ICU", nomor "ICU-CK" ukuran penuh, titik bed, badge, dan label HD atau ikon pesanan bila ada |
+| Ruang terbuka ICU di antara Ruang ICU dan ICU VIP tampil sebagai lorong setinggi 108,5 satuan, ditambah lorong kecil di sebelah ICU CK | Lorong di atas kartu tinggal 65 satuan (`y 449–514`); lorong kecil di sebelah ICU CK menjadi bagian kartu; koridor ICU dan lorong R. Operasi diperpanjang 9 satuan ke tempat lama tepi kiri ICU CK |
+| `rooms[]` R. ICU CK `1116,5–1163,5 × 557,5–606` | Tetap sama; bentuk pengganti disimpan di `lantai-2.schematic.js` (`cardShapes`) dan dipasang `FloorPlanView` lewat fungsi murni `withCardShapes` |
+
+**Contoh dampak di layar.** Kartu baru menutup 81 % tempat ICU CK pada gambar, sehingga posisinya
+tetap terbaca sama, dan tidak menimpa Ruang ICU maupun ICU VIP. Karena keempat pemakai memakai
+`FloorPlanView` yang sama, Monitoring, Pilih Bed, transfer, dan Master Bed menampilkan kartu penuh
+yang sama.
+
 ---
 
 ## 3. Perubahan yang dikerjakan
@@ -151,6 +176,16 @@ tidak menutupi kartu.
 | `tests/unit/floor-plan-schematic-floors.test.mjs` | Lantai 2 ditambahkan ke skrip geometri dengan uji bernama `FE-RWI-276: …`: 6 poligon, kartu di dalam poligon, tanpa tumpang tindih, di dalam lempeng dan `viewBox`, dan tanpa label teknis (termasuk "Panel"). Ada uji khusus sayap utara bernama, lajur paling utara dan kanopi yang tidak dimuat, serta penanda wajib. Uji lempeng/bingkai kini membandingkan kotak batas sehingga lempeng 8 titik ikut diperiksa. Uji varian ringkas kini memodelkan skala isi ringkas pada keadaan terberat (minimal 0,75; kamar 520–522 tetap 1) |
 | `tests/unit/floor-plan-schematic-geometry.test.mjs` | Uji `FE-RWI-272` yang mengunci daftar lantai berskematik kini mengunci keenam lantai |
 
+Perubahan revisi ICU CK (bagian 2B), di atas commit `2491a1c7e`:
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/constants/health-services/inpatient-management/floor-plan/schematic/schematic-geometry.js` | Fungsi murni baru `withCardShapes(rooms, cardShapes)`: mengganti `outline` dan `perimeter` kamar yang punya bentuk kartu pengganti; id, kunci denah, label, dan data tetap |
+| `src/lib/constants/health-services/inpatient-management/floor-plan/schematic/lantai-2.schematic.js` | `cardShapes` untuk `r-icu-ck` (`rectPoints(1125,5, 514, 1222,5, 606)`); lorong ICU dipendekkan ke `y 449–514`; lorong kecil di sebelah ICU CK dihapus; koridor ICU dan lorong R. Operasi diperpanjang sampai `x 1125,5` |
+| `src/components/features/health-services/inpatient-management/floor-plan/floor-plan-view.jsx` | `renderedRooms` memasang `schematic.cardShapes` lewat `withCardShapes` sebelum data API digabung. Lantai tanpa `cardShapes` dan lantai gambar lama tidak berubah |
+| `tests/unit/floor-plan-schematic-floors.test.mjs` | Poligon kartu yang diperiksa kini memakai `withCardShapes`, sama seperti `FloorPlanView`. Uji baru "ICU CK tampil sebagai kartu penuh tanpa mengubah `rooms[]`" memeriksa `rooms[]` tetap, kartu menutup lebih dari 75 % tempat lama, tidak menimpa kamar lain, bukan varian ringkas, setinggi ICU VIP 1, dan isi bertumpuknya muat. ICU CK keluar dari daftar varian ringkas |
+| `tests/unit/floor-plan-summary.test.mjs` | Uji `FE-RWI-274` "tanpa panggilan API baru" salah tangkap jalur konstanta `health-services/...` sebagai service; polanya dipersempit menjadi `lib\/services\/` tanpa mengubah maksudnya |
+
 Hook, service, kontrak API, route, menu, permission, `package.json`, CSS, backend, dan database
 tidak berubah. `rooms[]`, `floorPlanKey`, dan berkas CAD tidak disentuh.
 
@@ -171,9 +206,22 @@ tidak berubah. `rooms[]`, `floorPlanKey`, dan berkas CAD tidak disentuh.
 | Ikon penanda (tangga, lift, NS, toilet, ruang dokter) | `LANDMARK_ICONS` `lucide-react` | Kelima jenis sudah ada | `REUSE` | Tanpa ikon baru |
 | Label blok zona (15 unit) | `Zone` di `FloorPlanSchematic` | Prop `label` sudah didukung; uji lebar label lulus | `REUSE` | — |
 | Kartu Ruang ICU dan ICU VIP 1 | `FloorPlanRoom` varian kartu | Isi bertumpuk muat | `REUSE` | — |
-| Kartu ringkas BAYI-1, BAYI-2, ICU VIP 2, ICU CK | `FloorPlanRoom` `CompactCardContent` | Kode pendek tidak muat sebaris | `EXTEND` | `FittedCompactContent` |
+| Kartu ringkas BAYI-1, BAYI-2, ICU VIP 2 (dan ICU CK sebelum revisi) | `FloorPlanRoom` `CompactCardContent` | Kode pendek tidak muat sebaris | `EXTEND` | `FittedCompactContent` |
+| Kartu penuh ICU CK (revisi 2B) | `FloorPlanView` + data skematik | Bentuk kartu selama ini selalu = poligon `rooms[]` | `EXTEND` | `schematic.cardShapes` + `withCardShapes` |
 
-`UI GATE: 5 elemen — REUSE 4, EXTEND 1, COMPOSE 0, WRAP 0, NEW 0`
+`UI GATE: 6 elemen — REUSE 4, EXTEND 2, COMPOSE 0, WRAP 0, NEW 0`
+
+**Keputusan: cara membuat ICU CK menjadi kartu penuh (revisi 2B)**
+
+- **A. Bentuk kartu pengganti di data skematik (`cardShapes`), dipasang `FloorPlanView` —
+  Rekomendasi, dijalankan.** Perubahan tinggal di lapisan tampilan; `rooms[]` yang dipakai registri
+  kunci, manifest impor, dan editor Master tetap sama dengan gambar. Keempat pemakai ikut berubah
+  karena memakai `FloorPlanView` yang sama. Biaya: satu fungsi murni dan satu baris di `FloorPlanView`.
+- **B. Mengubah poligon R. ICU CK di `rooms[]` (`lantai-2.plan.js`).** Hasil tampilannya sama, tetapi
+  melanggar keputusan roadmap "`rooms[]` dipakai apa adanya", dan ikut mengubah geometri yang dibaca
+  manifest impor dan editor Master.
+- **C. Memaksa kartu biasa di poligon kecil.** Tanpa perubahan data, tetapi isi kartu meluber jauh
+  keluar dari kamar 47 × 48,5 satuan.
 
 **Keputusan: kartu ringkas yang kode kamarnya tidak muat**
 
@@ -208,6 +256,9 @@ Bootstrap, `style=`, warna literal, maupun `!important`.
    bloknya tanpa menebak arti singkatan "K.".
 4. Taman memakai rupa blok abu seperti blok lain, sesuai cakupan roadmap "(blok polos)" dan pilihan
    pemilik; usulan blok hijau-pucat di planning 5.9 tidak dipakai.
+5. "Satu full card" ditafsirkan sebagai kartu biasa yang memuat kelas, nomor, titik bed, dan badge,
+   bukan menggabungkan ICU CK dengan kamar lain, karena ICU CK adalah kamar dan kunci denah sendiri.
+   Ukuran 97 × 92 satuan dipilih supaya setinggi ICU VIP 1 dan isi bertumpuknya muat tanpa diperkecil.
 
 ---
 
@@ -244,7 +295,12 @@ aksesnya sama persis dengan laporan [`FE-RWI-277`](FE-RWI-277.md) bagian 5:
 | Perbandingan markup kartu `HEAD` (`57e8be299`) vs working tree, semua kamar × 6 keadaan data × 3 mode | Lantai 2: 108 render, yang berubah hanya `r-bayi-1`, `r-bayi-2`, `r-icu-vip-2`, `r-icu-ck`. Lantai 3, 4, 5, 8, 9: 1.800 render, **tidak ada kartu berubah**, termasuk kartu ringkas 520–522 | `PASS` | Skrip render server di luar repository |
 | Tumpang-susun data skematik di atas `lantai-2.png` | Lempeng, koridor, blok zona, dan penanda jatuh di ruang yang benar; satu celah koridor di persimpangan R. NS Bayi–Persiapan Endoscopy ditemukan dan ditutup | Bukti pendukung | Screenshot Edge di luar repository |
 | Pratinjau statis komponen asli (data samaran, enam keadaan per kamar) | Lantai 2 tampil sebagai peta bangsal tanpa unsur CAD; kartu ringkas BAYI-1, BAYI-2, ICU VIP 2, dan ICU CK muat di kartunya pada keadaan terberat (penuh HD, berpesanan) | Bukti pendukung, bukan uji manual | Screenshot Edge di luar repository, tidak dilampirkan |
-| Uji di aplikasi: Lantai 2 di Monitoring, Pilih Bed (termasuk admisi bayi), transfer, dan Master | Belum dijalankan | `NOT RUN` | Butuh login dan data backend; dijalankan pengguna |
+| **Revisi 2B** — seluruh 20 berkas uji yang membaca kode denah | 167 uji: 165 lulus, termasuk uji baru ICU CK kartu penuh; 2 kegagalan lama di `inpatient-bed-transfer-refresh.test.mjs` yang tidak membaca berkas task ini | `PASS` untuk uji denah; `EXISTING / ENVIRONMENT ISSUE` untuk 2 kegagalan | Keluaran `node:test` |
+| **Revisi 2B** — `npm run lint:errors` | Exit 0 tanpa galat; kelima berkas yang diubah juga lulus `eslint --max-warnings=0` | `PASS` | Keluaran perintah |
+| **Revisi 2B** — `npm run test:unit` | 3384 uji: 3347 lulus, 37 gagal di 28 berkas uji yang sama seperti sebelumnya; tidak satu pun membaca berkas task ini | `EXISTING / ENVIRONMENT ISSUE` | Keluaran perintah |
+| **Revisi 2B** — `npm run build` | `✓ Compiled successfully in 63s`, 514 halaman statis, `prepare-standalone` berhasil, exit 0, tanpa warning build | `PASS` | Keluaran perintah |
+| **Revisi 2B** — pratinjau statis kartu ICU CK pada tiga keadaan (tersedia, berpesanan, penuh HD) | Kartu penuh berlabel "ICU", nomor "ICU-CK" ukuran penuh, titik bed, badge, dan ikon pesanan atau label HD, semuanya di dalam kartu; tinggi sama dengan ICU VIP 1 | Bukti pendukung, bukan uji manual | Screenshot Edge di luar repository |
+| Uji di aplikasi: Lantai 2 di Monitoring, Pilih Bed (termasuk admisi bayi), transfer, dan Master | Belum dijalankan oleh agent | `NOT RUN` | Butuh login dan data backend; dijalankan pengguna |
 
 Uji manual: `NOT FEASIBLE` untuk agent, karena aplikasi butuh login dan data API backend. Tidak ada
 kontrol interaktif yang berubah. Uji manual di peramban tidak menahan `✅` atas keputusan pemilik
@@ -253,6 +309,8 @@ kontrol interaktif yang berubah. Uji manual di peramban tidak menahan `✅` atas
 `AUTOMATED TEST: node --test tests/unit/floor-plan-schematic-floors.test.mjs tests/unit/floor-plan-schematic-geometry.test.mjs — PASS (40/40)`
 
 `AUTOMATED TEST: npm run test:unit — FAIL (37 dari 3383 gagal di 28 berkas uji di luar denah; uji denah lulus)`
+
+`AUTOMATED TEST (revisi 2B): npm run test:unit — FAIL (37 dari 3384 gagal di 28 berkas uji yang sama di luar denah; uji denah 165/167, 2 kegagalan lama)`
 
 **Tidak dijalankan:** uji di aplikasi dan jejak jaringan, karena butuh sesi login dan backend yang
 berjalan.
@@ -264,8 +322,8 @@ berjalan.
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
 | `DNH-AT-498` lulus untuk Lantai 2 — tanpa dinding, pintu, anak tangga, sumbu, angka ukuran, label teknis, tekstur taman, dan judul lembar | Terpenuhi di source; belum diuji di aplikasi | `floors.js` memberi `schematic`; uji "data peta Lantai 2 tidak memuat unsur gambar kerja"; pratinjau statis |
-| `DNH-AT-499` lulus untuk Lantai 2 — 6 kartu di dalam poligon `rooms[]`, kelas dan nomor dari API | Terpenuhi di source; belum diuji di aplikasi | Uji "terdaftar berskematik dengan 6 poligon kamar"; kartu memakai `room.classLabel` dan `room.roomNumber` dari API |
-| `DNH-AT-918` lulus untuk Lantai 2 — kartu di dalam poligon, tidak menimpa koridor dan penanda, teks muat, varian ringkas BAYI-1, BAYI-2, ICU-CK | Terpenuhi; ICU VIP 2 ikut ringkas (tafsiran 1) | `tests/unit/floor-plan-schematic-floors.test.mjs`; tabel skala bagian 2 |
+| `DNH-AT-499` lulus untuk Lantai 2 — 6 kartu di dalam poligon `rooms[]`, kelas dan nomor dari API | Terpenuhi di source; belum diuji di aplikasi. Pengecualian atas instruksi pemilik 21 Oktober 2026: kartu ICU CK memakai bentuk pengganti 97 × 92 satuan yang menutup 81 % tempat lamanya (bagian 2B) | Uji "terdaftar berskematik dengan 6 poligon kamar" dan uji "ICU CK tampil sebagai kartu penuh"; kartu memakai `room.classLabel` dan `room.roomNumber` dari API |
+| `DNH-AT-918` lulus untuk Lantai 2 — kartu di dalam poligon, tidak menimpa koridor dan penanda, teks muat, varian ringkas BAYI-1, BAYI-2, ICU-CK | Terpenuhi untuk BAYI-1, BAYI-2, dan ICU VIP 2 (tafsiran 1). ICU CK sengaja memakai kartu penuh atas instruksi pemilik (bagian 2B) | `tests/unit/floor-plan-schematic-floors.test.mjs`; tabel skala bagian 2 |
 | Keenam kamar dapat dibuka di keempat pemakai | Terpenuhi di source; belum diuji di aplikasi | Jalur klik, Enter, dan Spasi `CardRoom` tidak berubah; ketiga berkas pemakai meneruskan `state.floor.schematic` (uji `FE-RWI-272`) |
 | Verifikasi wajib: bandingkan dengan `lantai-2.png` | Terpenuhi | Tumpang-susun di atas gambar sumber |
 
@@ -275,7 +333,7 @@ berjalan.
 | `V-FE` 1 — baca ulang source dan `git diff` sebelum edit | Terpenuhi; berkas denah bersih saat mulai (perubahan task sebelumnya sudah di-commit sebagai `57e8be299`) |
 | `V-FE` 2 — `lint:errors` | Terpenuhi: exit 0, `0 errors` |
 | `V-FE` 3 — `test:unit` | Dijalankan: 3346/3383 lulus; 37 kegagalan bukan regresi task |
-| `V-FE` 4 — `build` | Terpenuhi: `✓ Compiled successfully`, exit 0 |
+| `V-FE` 4 — `build` | Terpenuhi: `✓ Compiled successfully`, exit 0 (diulang sesudah revisi 2B: 63 detik, exit 0) |
 | `V-FE` 5 — bukti visual | Pratinjau statis komponen asli dan tumpang-susun gambar sumber, di luar repository; uji di aplikasi belum dijalankan (tidak menahan `✅`, keputusan 1 September 2026) |
 | Tanpa perubahan hook, service, kontrak API, route, menu, permission, package, backend, database | Terpenuhi |
 | Laporan dan titik status roadmap serta traceability | Terpenuhi pada perubahan yang sama |
@@ -291,6 +349,6 @@ berjalan.
 | Masalah yang diketahui | Penyederhanaan `RWI-FE-010` dicatat di komentar kepala berkas data. Pada keadaan terberat, isi kartu BAYI-2 tampil pada 77 % ukuran asli; petugas dapat memperbesar peta |
 | Dependency backend | `NONE` |
 | Perubahan sampingan | `NONE`. Berkas pratinjau, skrip render, dan screenshot hanya ada di folder kerja agent di luar repository |
-| Interupsi | `NONE` |
-| Status Git | `M floor-plan-room.jsx`, `M floors.js`, `M tests/unit/floor-plan-schematic-floors.test.mjs`, `M tests/unit/floor-plan-schematic-geometry.test.mjs`, `?? schematic/lantai-2.schematic.js`. Tidak ada berkas lain yang berubah di working tree frontend |
+| Interupsi | `NONE`. Saat build revisi 2B berjalan, pekerjaan paralel mengubah `src/app/layout.js` (skrip penjaga `Performance.measure`) dan `src/app/not-found.jsx` (halaman `ComingSoon`). Keduanya bukan bagian task ini, bukan hasil build, dan tidak disentuh |
+| Status Git | Hasil pertama task ini sudah di-commit pengguna sebagai `2491a1c7e`. Berkas revisi 2B: `M floor-plan-view.jsx`, `M schematic/lantai-2.schematic.js`, `M schematic/schematic-geometry.js`, `M tests/unit/floor-plan-schematic-floors.test.mjs`, `M tests/unit/floor-plan-summary.test.mjs`. Berkas lain yang berubah (`src/app/layout.js`, `src/app/not-found.jsx`) milik pekerjaan paralel |
 | Langkah berikutnya | Catat pengesahan Lantai 3 dan arahan 21 Oktober 2026 (tanpa area servis Lantai 4–5; sayap utara Lantai 2 ditampilkan bernama) sebagai keputusan baru di decision log, lalu naikkan `FE-RWI-276` s.d. `FE-RWI-278` ke `✅` dan buka `FE-RWI-279` |
