@@ -37,6 +37,8 @@ public class MembershipRegisterTests : IDisposable
     // pada satu koneksi, jadi deret nomor uji tinggal di basis data terpisah.
     private readonly TestDatabase _dbNomor = TestDatabase.Create();
 
+    private readonly TiruanPortTagihanIuran _portTagihan = new(() => Sekarang);
+
     private readonly Guid _gold = Guid.NewGuid();
     private readonly Guid _corporate = Guid.NewGuid();
     private readonly Guid _silverTanpaIuran = Guid.NewGuid();
@@ -82,12 +84,24 @@ public class MembershipRegisterTests : IDisposable
         Assert.Equal("Daftar via telepon", m.Notes);
         Assert.Equal(Aktor, m.CreateBy);
 
-        var riwayat = Assert.Single(baca.Set<PatMembershipStatusHistory>().AsNoTracking().Where(x => x.PatientMembershipId == m.Id));
-        Assert.Null(riwayat.FromStatus);
-        Assert.Equal(MembershipStatus.PendingPayment, riwayat.ToStatus);
-        Assert.Equal("REGISTERED", riwayat.ActionCode);
-        Assert.Equal(MembershipChangeSource.Staff, riwayat.Source);
-        Assert.Equal(Aktor, riwayat.ActorUserId);
+        // Pendaftaran sukses mencatat REGISTERED dan FEE_CHARGE_LINKED (tagihan iuran INT-06). Keduanya
+        // ber-OccurredAt sama dan Id acak, jadi urutannya tidak dijamin; diperiksa menurut ActionCode.
+        var riwayat = baca.Set<PatMembershipStatusHistory>().AsNoTracking().Where(x => x.PatientMembershipId == m.Id).ToList();
+        Assert.Equal(2, riwayat.Count);
+
+        var terdaftar = Assert.Single(riwayat, x => x.ActionCode == "REGISTERED");
+        Assert.Null(terdaftar.FromStatus);
+        Assert.Equal(MembershipStatus.PendingPayment, terdaftar.ToStatus);
+        Assert.Equal(MembershipChangeSource.Staff, terdaftar.Source);
+        Assert.Equal(Aktor, terdaftar.ActorUserId);
+
+        var tagihan = _portTagihan.ChargeIdMilik(m.Id);
+        Assert.NotNull(tagihan);
+        Assert.Equal(tagihan, m.FeeChargeReferenceId);
+
+        var tertaut = Assert.Single(riwayat, x => x.ActionCode == "FEE_CHARGE_LINKED");
+        Assert.Equal(MembershipChangeSource.Billing, tertaut.Source);
+        Assert.Equal(tagihan, tertaut.ReferenceId);
 
         // Menunggu Pembayaran tidak mengubah status member pasien (CRM-DEC-004).
         var p = baca.Set<MstPatient>().AsNoTracking().Single(x => x.Id == pasien);
@@ -252,6 +266,7 @@ public class MembershipRegisterTests : IDisposable
             new NumberSeriesAllocator(new PabrikKonteks(_dbNomor)),
             new PatientMembershipStatusResolver(konteks, konfigurasi, jam),
             Logger(),
+            _portTagihan,
             konfigurasi,
             jam);
     }
@@ -259,7 +274,7 @@ public class MembershipRegisterTests : IDisposable
     private PatientMembershipController Controller(ApplicationDbContext konteks)
     {
         var resolver = new PatientMembershipStatusResolver(konteks, new ConfigurationBuilder().Build(), new JamTetap(Sekarang));
-        var controller = new PatientMembershipController(konteks, Logger(), resolver, Service(konteks));
+        var controller = new PatientMembershipController(konteks, Logger(), resolver, Service(konteks), _portTagihan);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

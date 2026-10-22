@@ -31,11 +31,15 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.Infrastructure
         {
             Sekarang = sekarang;
             Db = TestDatabase.Create();
+            PortTagihan = new TiruanPortTagihanIuran(() => Sekarang);
         }
 
         public TestDatabase Db { get; }
 
         public DateTimeOffset Sekarang { get; set; }
+
+        /// <summary>Satu tiruan port tagihan per harness, supaya pendaftaran, pembatalan, dan baca berbagi tagihan.</summary>
+        public TiruanPortTagihanIuran PortTagihan { get; }
 
         public Dictionary<string, string?> Konfigurasi { get; } = new();
 
@@ -56,6 +60,7 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.Infrastructure
                 new NumberSeriesAllocator(new PabrikKonteks(_dbNomor)),
                 new PatientMembershipStatusResolver(konteks, config, jam),
                 Logger(),
+                PortTagihan,
                 config,
                 jam);
         }
@@ -63,7 +68,7 @@ namespace QuilvianSystemBackend.Tests.PatientManagement.Infrastructure
         public PatientMembershipController Controller(ApplicationDbContext konteks)
         {
             var resolver = new PatientMembershipStatusResolver(konteks, Config(), new JamTetap(Sekarang));
-            var controller = new PatientMembershipController(konteks, Logger(), resolver, Service(konteks));
+            var controller = new PatientMembershipController(konteks, Logger(), resolver, Service(konteks), PortTagihan);
             controller.ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext
