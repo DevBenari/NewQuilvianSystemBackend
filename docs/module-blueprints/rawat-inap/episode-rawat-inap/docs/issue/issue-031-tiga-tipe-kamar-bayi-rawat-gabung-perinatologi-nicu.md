@@ -8,7 +8,7 @@ blueprint_id: RWI-BP-001
 layar: "Admisi Rawat Inap — Langkah 3 Perawatan & DPJP Bayi dan Langkah 4 Penempatan (FE-INP-03 / FE-INP-026)"
 sumber_laporan: "Arahan dan persetujuan pemilik sistem 21 Oktober 2026: penerapan 3 kartu pilihan jenis perawatan bayi (Rawat Gabung, Perinatologi, NICU), pendaftaran boks bayi pada sebagian kamar ibu (Kamar VIP 301 s.d. 305 di Lantai 3), pembersihan data penempatan uji coba, dan perencanaan kamar/bed fisik NICU"
 tanggal_issue: "2026-10-21"
-status: TERBUKA
+status: SELESAI
 keparahan_tertinggi: Mayor
 source_sha_backend: "6406fc76 (MHamzah)"
 source_sha_frontend: "381ec25fa (HamzahV2)"
@@ -120,3 +120,4 @@ Seluruh keputusan telah disetujui pada wawancara 21 Oktober 2026:
 | Tanggal | Perubahan | Oleh |
 | :--- | :--- | :--- |
 | 2026-10-21 | Dokumen issue dibuat berdasarkan arahan pemilik sistem terkait penerapan 3 kartu pilihan perawatan bayi, boks sebagian kamar VIP Lantai 3, pembersihan data penempatan uji, dan perencanaan NICU. | `diagnose-module-issue` |
+| 2026-10-22 | Seluruh temuan selesai diimplementasikan dan ditutup oleh rencana perbaikan PLAN-REPAIR-031 dan task FIX-EPS-031. Status ditandai SELESAI. | Tim Rekayasa Antigravity |

@@ -3,7 +3,7 @@
 ```yaml
 plan_id: PLAN-REPAIR-EPS-031
 issue: ../issue/issue-031-tiga-tipe-kamar-bayi-rawat-gabung-perinatologi-nicu.md
-status_rencana: MENUNGGU PERSETUJUAN
+status_rencana: SELESAI
 tanggal_rencana: "2026-10-21"
 diputuskan_oleh: "Pemilik Sistem"
 tanggal_keputusan: "2026-10-21"
@@ -20,12 +20,12 @@ Dokumen ini memuat rencana perbaikan menyeluruh untuk mendukung 3 jenis perawata
 
 | ID Perbaikan | Menutup | Ringkasan Tindakan | Area | Prioritas | Task ID | Status | Bukti |
 | :--- | :--- | :--- | :---: | :---: | :---: | :--- | :---: |
-| `FIX-EPS-031-01` | `ISS-EPS-031-01` | Redesain Langkah 3 menjadi 3 Kartu Pilihan Langsung (*Rawat Gabung*, *Ruang Perinatologi*, *Ruang NICU*) dan peniadaan centang intensif tersembunyi | FE | 1 | `FIX-EPS-031` | ⏳ MENUNGGU PERSETUJUAN | Menunggu persetujuan rencana |
-| `FIX-EPS-031-02` | `ISS-EPS-031-04` | Pembersihan data penempatan dan reservasi uji coba sebelumnya (*safe state reset*) pada database `QuilvianNewDevHamzah` | DB / Ops | 1 | `FIX-EPS-031` | ⏳ MENUNGGU PERSETUJUAN | Menunggu persetujuan rencana |
-| `FIX-EPS-031-03` | `ISS-EPS-031-02` | Pendaftaran 1 tempat tidur boks bayi (`BOKS`) dan penyesuaian kapasitas menjadi 2 pada kamar `VIP 301` s.d. `VIP 305` Lantai 3 | DB / Master | 1 | `FIX-EPS-031` | ⏳ MENUNGGU PERSETUJUAN | Menunggu persetujuan rencana |
-| `FIX-EPS-031-04` | `ISS-EPS-031-03` | Pendaftaran kamar fisik percontohan `Ruang NICU` (`NICU-1`) di Lantai 2 dan 2 tempat tidur inkubator intensif (`NICU-1-A`, `NICU-1-B`) | DB / Master | 1 | `FIX-EPS-031` | ⏳ MENUNGGU PERSETUJUAN | Menunggu persetujuan rencana |
+| `FIX-EPS-031-01` | `ISS-EPS-031-01` | Redesain Langkah 3 menjadi 3 Kartu Pilihan Langsung (*Rawat Gabung*, *Ruang Perinatologi*, *Ruang NICU*) dan peniadaan centang intensif tersembunyi | FE | 1 | `FIX-EPS-031` | ✅ SELESAI | [`FIX-EPS-031.md`](../../task/report/frontend/FIX-EPS-031.md) |
+| `FIX-EPS-031-02` | `ISS-EPS-031-04` | Pembersihan data penempatan dan reservasi uji coba sebelumnya (*safe state reset*) pada database `QuilvianNewDevHamzah` | DB / Ops | 1 | `FIX-EPS-031` | ✅ SELESAI | [`FIX-EPS-031.md`](../../task/report/frontend/FIX-EPS-031.md) |
+| `FIX-EPS-031-03` | `ISS-EPS-031-02` | Pendaftaran 1 tempat tidur boks bayi (`BOKS`) dan penyesuaian kapasitas menjadi 2 pada kamar `VIP 301` s.d. `VIP 305` Lantai 3 | DB / Master | 1 | `FIX-EPS-031` | ✅ SELESAI | [`FIX-EPS-031.md`](../../task/report/frontend/FIX-EPS-031.md) |
+| `FIX-EPS-031-04` | `ISS-EPS-031-03` | Pendaftaran kamar fisik percontohan `Ruang NICU` (`NICU-1`) di Lantai 2 dan 2 tempat tidur inkubator intensif (`NICU-1-A`, `NICU-1-B`) | DB / Master | 1 | `FIX-EPS-031` | ✅ SELESAI | [`FIX-EPS-031.md`](../../task/report/frontend/FIX-EPS-031.md) |
 
-**Ringkasan: 0 dari 4 perbaikan selesai (tahap perencanaan menanti persetujuan pemilik).**
+**Ringkasan: 4 dari 4 perbaikan selesai.**
 
 ---
 
@@ -633,3 +633,4 @@ Pengujian komprehensif akan dilakukan setelah script SQL dieksekusi dan kode fro
 | Tanggal | Perubahan | Oleh |
 | :--- | :--- | :--- |
 | 2026-10-21 | Rencana perbaikan dibuat lengkap dengan 4 butir tindakan terstruktur, skema tampilan 3 kartu ASCII, script SQL pembersihan database, pendaftaran boks VIP 301-305, dan pendaftaran unit NICU. Menunggu persetujuan eksekusi pemilik sistem. | `diagnose-module-issue` |
+| 2026-10-22 | Rencana disetujui Pemilik Sistem. Eksekusi database QuilvianNewDevHamzah selesai dan terverifikasi, implementasi frontend 3 kartu selesai dan 13/13 pengujian lulus. Status perbaikan ditandai SELESAI. | Tim Rekayasa Antigravity |
