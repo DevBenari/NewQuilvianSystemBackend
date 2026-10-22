@@ -252,22 +252,46 @@ public sealed class BillingSettlementService
                 ?? throw new KeyNotFoundException("Settlement tidak ditemukan.");
             var prior = settlement.Tenders.SingleOrDefault(
                 x => x.IdempotencyKey == idempotencyKey && !x.IsDelete);
+
+            // Audit BKC-P0: Bila tidak ditemukan prior dengan IdempotencyKey persis, periksa apakah terdapat
+            // tender existing berstatus CREATED pada settlement ini yang cocok dengan metode pembayaran dan nominal
+            // (misalnya akibat request 422 sebelumnya yang tersimpan sebagai CREATED sebelum rekonsiliasi berhasil).
+            // Ini mencegah deadlock "Total metode pembayaran melebihi saldo" saat retry / konfirmasi lanjutan.
+            if (prior is null)
+            {
+                var existingCreated = settlement.Tenders.FirstOrDefault(
+                    x => !x.IsDelete
+                        && x.Status == BillingTenderStatuses.Created
+                        && x.PaymentMethodId == request.PaymentMethodId
+                        && x.Amount == request.Amount
+                        && (!request.PaymentMethodAccountId.HasValue || !x.PaymentMethodAccountId.HasValue || x.PaymentMethodAccountId == request.PaymentMethodAccountId));
+
+                if (existingCreated is not null)
+                {
+                    prior = existingCreated;
+                }
+            }
+
             if (prior is not null)
             {
-                if (prior.PayloadHash != payloadHash)
-                    throw new BillingSettlementConflictException(
-                        "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
                 if (prior.Status != BillingTenderStatuses.Created)
                 {
+                    if (prior.PayloadHash != payloadHash)
+                        throw new BillingSettlementConflictException(
+                            "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru.");
                     if (transaction is not null) await transaction.CommitAsync(cancellationToken);
                     return MapTender(prior, true);
                 }
 
+                // Tender existing dalam status CREATED (misalnya akibat request 422 sebelumnya yang tersimpan sebelum rekonsiliasi).
+                // Pulihkan dan gunakan tender ini untuk konfirmasi lanjutan tanpa membuat tender baru atau nomor kwitansi ganda.
                 tender = prior;
                 paymentMethod = await LoadPaymentMethodAsync(prior.PaymentMethodId, cancellationToken);
+                ValidatePaymentMethod(paymentMethod);
+
                 var isManualCashierReplay = prior.ProviderStatusCode == "MANUAL_CASHIER"
                     || request.IsManualCashierConfirmed == true
-                    || (settlement.Purpose == BillingSettlementPurposes.MembershipFee && !string.IsNullOrWhiteSpace(prior.CashierReferenceNote));
+                    || (settlement.Purpose == BillingSettlementPurposes.MembershipFee && !string.IsNullOrWhiteSpace(request.CashierReferenceNote ?? prior.CashierReferenceNote));
 
                 if (paymentMethod.IsCash || isManualCashierReplay)
                 {
@@ -277,6 +301,23 @@ public sealed class BillingSettlementService
                             "Tender sudah terikat ke shift kasir lain.");
                     tender.CashierShiftId = activeShift.Id;
                 }
+
+                if (!string.IsNullOrWhiteSpace(request.CashierReferenceNote))
+                {
+                    tender.CashierReferenceNote = request.CashierReferenceNote.Trim();
+                }
+
+                if (request.PaymentMethodAccountId.HasValue)
+                {
+                    tender.PaymentMethodAccountId = request.PaymentMethodAccountId.Value;
+                }
+
+                tender.CorrelationId = request.CorrelationId != Guid.Empty ? request.CorrelationId : tender.CorrelationId;
+                tender.CausationId = request.CausationId != Guid.Empty ? request.CausationId : tender.CausationId;
+                tender.RowVersion = Guid.NewGuid();
+                tender.UpdateDateTime = DateTime.UtcNow;
+                tender.UpdateBy = actorUserId;
+
                 isReplay = true;
             }
             else
@@ -314,9 +355,26 @@ public sealed class BillingSettlementService
                 var isManualCashierNew = request.IsManualCashierConfirmed == true
                     || (settlement.Purpose == BillingSettlementPurposes.MembershipFee && !string.IsNullOrWhiteSpace(request.CashierReferenceNote));
 
+                if (isManualCashierNew && paymentMethod.IsCash)
+                    throw new BillingSettlementValidationException(
+                        "Tender tunai tidak dapat diproses lewat jalur non-tunai manual.");
+
                 if (isManualCashierNew && paymentMethod.IsBankTransfer && !request.PaymentMethodAccountId.HasValue)
                     throw new BillingSettlementValidationException(
                         "Rekening bank tujuan rumah sakit wajib dipilih untuk pembayaran transfer bank.");
+
+                if (isManualCashierNew && paymentMethod.IsBankTransfer && request.PaymentMethodAccountId.HasValue)
+                {
+                    var accountExists = await _dbContext.MstPaymentMethodAccounts.AsNoTracking().AnyAsync(
+                        a => a.Id == request.PaymentMethodAccountId.Value
+                            && a.PaymentMethodId == paymentMethod.Id
+                            && a.IsActive
+                            && !a.IsDelete,
+                        cancellationToken);
+                    if (!accountExists)
+                        throw new BillingSettlementValidationException(
+                            "Rekening bank tujuan rumah sakit tidak valid atau tidak aktif.");
+                }
 
                 if (isManualCashierNew && string.IsNullOrWhiteSpace(request.CashierReferenceNote))
                     throw new BillingSettlementValidationException(
@@ -1094,6 +1152,19 @@ public sealed class BillingSettlementService
             {
                 throw new BillingSettlementValidationException(
                     "Rekening bank tujuan rumah sakit wajib dipilih untuk pembayaran transfer bank.");
+            }
+
+            if (paymentMethod.IsBankTransfer && tender.PaymentMethodAccountId.HasValue)
+            {
+                var accountExists = await _dbContext.MstPaymentMethodAccounts.AsNoTracking().AnyAsync(
+                    a => a.Id == tender.PaymentMethodAccountId.Value
+                        && a.PaymentMethodId == paymentMethod.Id
+                        && a.IsActive
+                        && !a.IsDelete,
+                    cancellationToken);
+                if (!accountExists)
+                    throw new BillingSettlementValidationException(
+                        "Rekening bank tujuan rumah sakit tidak valid atau tidak aktif.");
             }
 
             var duplicateRef = await _dbContext.BilTenders.AsNoTracking().AnyAsync(
