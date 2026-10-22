@@ -96,7 +96,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     A([Reservasi Menunggu Kedatangan atau Sudah Tiba]) --> B{Apa yang terjadi?}
-    B -- Pasien minta batal atau ganti tanggal --> C[Admisi membatalkan dengan alasan]
+    B -- Pasien minta batal, atau ganti tanggal pada hari kunjungan --> C[Admisi membatalkan dengan alasan]
     C --> C1[(Dibatalkan)]
     C1 --> C2{Ganti tanggal?}
     C2 -- Ya --> C3([Buat reservasi baru, kelayakan dinilai ulang])
@@ -114,8 +114,48 @@ flowchart TD
 | Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
 |---|---|---|---|---|
 | Batal | Admisi | Alasan 10–500 karakter | Dibatalkan, link mati | Alasan kurang: lengkapi alasan |
-| Ganti tanggal | Admisi | Tanggal baru | Reservasi lama Dibatalkan, reservasi baru | Pasien sudah bukan member Aktif: daftarkan kunjungan biasa |
+| Ganti tanggal pada hari kunjungan | Admisi | Tanggal baru | Reservasi lama Dibatalkan, reservasi baru | Pasien sudah bukan member Aktif: daftarkan kunjungan biasa. Sebelum hari kunjungan, pakai bagian 4 (revisi `34`) |
 | Jalur lain | Sistem | Kunjungan RJ berpoliklinik pada tanggal yang sama | Didaftarkan lewat Jalur Lain | Penutupan gagal: kunjungan ikut batal, dan petugas mengulang |
 | Penutupan malam | Sistem | Tanggal kunjungan sudah lewat | Tidak Datang | Server mati: putaran berikutnya mengejar |
 | Kirim ulang | Admisi | Reservasi Menunggu Kedatangan | Link baru | Pasien sudah tiba: link tidak dibutuhkan |
 | Bukan prioritas lagi | Sistem (dibaca) | Status membership snapshot | Tanda di daftar dan detail | Admisi menghubungi pasien |
+
+## 4. Ganti tanggal sebelum hari kunjungan (revisi `34`, `approved` 2026-10-21)
+
+Keputusan `RJ-PRI-DEC-034` s.d. `038`. Pada hari kunjungan, jalurnya tetap bagian 3 (batal lalu buat baru).
+
+```mermaid
+flowchart TD
+    subgraph pasien1[Pasien]
+        A([Pasien minta pindah tanggal lewat WA atau telepon])
+    end
+    subgraph admisi[Admisi Rawat Jalan]
+        A --> B[Buka detail reservasi]
+        B --> C{Masih Menunggu Kedatangan dan belum hari kunjungan?}
+        C -- Tidak --> C1[/Ganti tanggal tidak tersedia/]
+        C1 --> C2([Batalkan lalu buat reservasi baru, bagian 3])
+        C -- Ya --> D[Pilih tanggal baru dan isi alasan]
+        D --> E{Tanggal baru sah?}
+        E -- Tidak --> E1[/Ditolak, pilih tanggal lain/]
+        E1 --> D
+        E -- Ya --> F{Masih member aktif hari ini?}
+        F -- Tidak --> F1[/Ditolak, reservasi lama tetap berlaku/]
+        F1 --> F2([Sampaikan ke pasien: tetap datang di tanggal lama, atau batalkan])
+        F -- Ya --> G{Tanggal baru sudah ada reservasi atau kunjungan?}
+        G -- Ya --> G1[/Ditolak, buka data yang ada/]
+        G -- Tidak --> H[(Menunggu Kedatangan pada tanggal baru)]
+        H --> I[Kirim link baru lewat WhatsApp]
+    end
+    subgraph pasien2[Pasien]
+        I --> J([Pasien memakai link baru pada tanggal baru. Link lama tidak berlaku])
+    end
+```
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+|---|---|---|---|---|
+| Buka detail | Admisi | Nomor reservasi atau nama pasien | Detail dengan tombol Ganti Tanggal | Tombol tidak tampil: sudah hari kunjungan atau status bukan Menunggu Kedatangan. Admisi memakai bagian 3 |
+| Pilih tanggal dan alasan | Admisi | Tanggal baru, alasan 10–500 karakter | Permintaan ganti tanggal | Tanggal sama, lampau, atau terlalu jauh: pilih tanggal lain |
+| Nilai ulang member | Sistem | Pasien, hari ini (WIB) | Member Aktif atau tidak | Bukan member Aktif: reservasi lama tetap berlaku. Pasien datang di tanggal lama, atau admisi membatalkan atas permintaan pasien |
+| Periksa tanggal baru | Sistem | Pasien, tanggal baru | Tanggal kosong | Sudah ada reservasi atau kunjungan: admisi membuka data yang ada |
+| Simpan | Sistem | — | Tanggal baru, snapshot baru, link baru, riwayat | Diubah petugas lain di saat yang sama: muat ulang lalu ulangi |
+| Kirim | Admisi | Teks pesan versi ganti tanggal | Pesan WA terkirim | WA tidak terbuka: salin link manual |

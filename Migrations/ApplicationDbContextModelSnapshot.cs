@@ -86947,6 +86947,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("LabSpecimenId");
 
+                    b.HasIndex("Action", "OccurredAt");
+
                     b.HasIndex("LabOrderId", "OccurredAt");
 
                     b.ToTable("LabTransitionHistory", "public");
@@ -105888,6 +105890,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int?>("FromStatus")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("FromVisitDate")
+                        .HasColumnType("date");
+
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
@@ -105909,6 +105914,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<int>("ToStatus")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ToVisitDate")
+                        .HasColumnType("date");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");

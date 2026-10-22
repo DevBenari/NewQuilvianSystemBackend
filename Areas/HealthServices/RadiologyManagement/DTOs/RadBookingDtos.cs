@@ -46,6 +46,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
     }
 
     /// <summary>
+    /// Pilihan "Pilih Diagnosa ICD-10" Booking v1 — diagnosis klinis ICD-10 dari master
+    /// <c>MstDiagnosis</c>. Hanya ruas yang perlu tampil; pilihan mengisi Diagnosa Awal.
+    /// </summary>
+    public class RadBookingDiagnosisOptionResponse
+    {
+        public Guid Id { get; set; }
+
+        public string DiagnosisCode { get; set; } = string.Empty;
+
+        public string DiagnosisName { get; set; } = string.Empty;
+    }
+
+    /// <summary>
     /// Booking Radiologi v1 — satu booking dengan beberapa pemeriksaan untuk satu kunjungan.
     /// Di V2 tiap pemeriksaan menjadi satu pesanan; seluruhnya dibuat dalam satu transaksi.
     /// </summary>

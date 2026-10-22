@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `8` — impact scan 2026-10-08 atas kedua rentang snapshot manifest (BE `4a94628a..f4e79c4e`, FE `696a906a6..f6f23352e`), berfokus pada alur Lab putaran 26 dan titik sentuh Billing/Rawat Inap; `LAB-CONFLICT-018` dibuka. Sebelumnya `7` — impact scan terbatas 2026-10-07 atas sembilan butir bahan audit amendment pass putaran 22 (aksi alur kerja dan menu daftar pasien lab). Sebelumnya `6` |
+| Revision | `9` — impact scan 2026-10-20 atas BE `f4e79c4e..4d3e4f98` / FE `f6f23352e..7fb1e1d3e`, terbatas pada permukaan amendment pass putaran 30 (Menu Laporan v2, BR-142..BR-152). Sebelumnya `8` — impact scan 2026-10-08 atas kedua rentang snapshot manifest (BE `4a94628a..f4e79c4e`, FE `696a906a6..f6f23352e`), berfokus pada alur Lab putaran 26 dan titik sentuh Billing/Rawat Inap; `LAB-CONFLICT-018` dibuka. Sebelumnya `7` — impact scan terbatas 2026-10-07 atas sembilan butir bahan audit amendment pass putaran 22 (aksi alur kerja dan menu daftar pasien lab). Sebelumnya `6` |
 | Status | `draft` — **peta revision 1-2 `STALE`; sebagian revision 3 dan 4 juga `STALE`**, lihat Impact Scan Revision 5 bagian A |
 | Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`. Revision 4: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-095`..`LAB-DEC-110`. **Revision 5: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-133`..`LAB-DEC-145` serta `LAB-FE-015`/`LAB-FE-016`**. Revision 6: dokumen klinis pasien dan kunjungan MCU. **Revision 7: *impact scan* terbatas atas `LAB-DEC-188`..`LAB-DEC-192`, `LAB-FE-030`/`LAB-FE-031`, ditambah sembilan kueri baca-saja ke basis data pengembangan** |
 | Sifat audit | **Read-only.** Tidak ada satu baris source aplikasi yang diubah |
@@ -33,12 +33,107 @@
 | Masukan revision 8 | `00-interview-decisions.md` **revision 91** (`LAB-DEC-212`..`LAB-DEC-221`, BR-141); kontrak `LAB-API-v1` `r42`, `LAB-PERM-v1` rev 15, `LAB-STATE-v1` `r9`, `LAB-VAL-v1` `r18`, `LAB-INT-v1` `r6` — kelimanya `approved` 2026-10-08 (`LAB-REQ-019`) |
 | Basis data revision 8 | `QuilvianNewDevYoga` lewat endpoint `GET` backend lokal sebagai superadmin; **nol penulisan**. Kredensial dibaca dari konfigurasi lokal dan tidak dicetak |
 | Tanggal audit revision 8 | 2026-10-08 |
+| Backend SHA revision 9 | `4d3e4f98` (branch `yoga`). 262 commit sejak `f4e79c4e`; working tree bersih di `LaboratoryManagement` |
+| Frontend SHA revision 9 | `7fb1e1d3e` (branch `YogaV2`). 228 commit sejak `f6f23352e`; working tree hanya berubah di Radiologi |
+| Masukan revision 9 | `00-interview-decisions.md` **revision 111** (sha256 `tr -d '\r'` = `c0bb6450…54b26f`; berkas mentah CRLF = `743a20b1…91bbab`), `LAB-DEC-230`..`LAB-DEC-245`, BR-142..BR-152, `LAB-EVD-014` |
+| Basis data revision 9 | `QuilvianNewDevYoga`, konsol Npgsql `default_transaction_read_only=on` (diperiksa: `on`); 18 kueri `SELECT`, **nol penulisan** |
+| Tanggal audit revision 9 | 2026-10-20 |
 
 > **Cara membaca dokumen ini.**
 > Dokumen ini menjawab pertanyaan "apa yang sudah ada di sistem", bukan "aturan bisnisnya
 > bagaimana". Setiap baris membawa bukti berupa lokasi berkas dan nama simbol pada commit
 > tertentu, supaya siapa pun bisa memeriksa ulang. Dokumen ini **tidak** merancang arsitektur
 > dan **tidak** memberi izin menulis kode.
+
+---
+
+## Impact Scan Revision 9 — 2026-10-20
+
+**Pemicu.** Amendment pass putaran 30 (`00-interview-decisions.md` revision 111, `LAB-DEC-230`..`LAB-DEC-245`,
+BR-142..BR-152) mendefinisikan dua laporan `S16b` — **Laporan Pembatalan Order & Pemeriksaan** (BR-151) dan **Statistik
+Pesanan Laboratorium** (BR-152) — di atas peta revision 8 yang **basi**: BE `f4e79c4e` → `HEAD` `4d3e4f98` (262 commit),
+FE `f6f23352e` → `HEAD` `7fb1e1d3e` (228 commit). Pemilik modul memilih impact scan sebelum desain (putaran 30 Q17).
+
+**Batas audit.**
+
+| Rentang | Yang dipindai | Cara |
+|---|---|---|
+| BE `f4e79c4e..4d3e4f98` | 27 berkas `LaboratoryManagement` berubah (+1.261/−326) — **hanya** permukaan yang disentuh BR-142..BR-152: pembatalan order/pemeriksaan/wadah, `LabDashboardService`, `LabOperationalReportService`/controller, `LabTransitionHistory`, jalur baca kunjungan | `rg` lalu baca implementasi pada `HEAD`; diff berkas lain **tidak** dibaca ulang |
+| BE working tree | Bersih di `LaboratoryManagement`; perubahan belum di-commit hanya di Radiologi | `git status` |
+| FE `f6f23352e..7fb1e1d3e` | 16 berkas Lab berubah (+3.302/−1.479) — hanya layar laporan operasional, aturan pembatalan, konstanta wadah, dan pustaka cetak | Baca kode; **nol layar dijalankan**, **nol uji unit dijalankan** pada revision ini |
+| Basis data | `QuilvianNewDevYoga`, konsol Npgsql dengan `default_transaction_read_only=on` (diperiksa: `on`); 18 kueri `SELECT`, **nol penulisan**; connection string tidak dicetak | Npgsql |
+| Modul tetangga | Hanya titik sentuh sisa katalog `S16b`: Billing (`BilInvoiceItem`), Registrasi (`RegPatientEncounter`, `RegPatientEncounterGuarantor`), Clinical Management (`TrxPatientDiagnosis`), Master Data (`MstProcedure`, `MstDiagnosisGroup`, `MstServiceUnit`) | Baca model; tidak menilai aturan internalnya |
+
+**Tidak diaudit:** perilaku berjalan endpoint (backend tidak dinyalakan); FE v1; isi berkas di luar rentang di atas.
+
+> ### Kesimpulan pendek
+>
+> **Kedua laporan BR-151/BR-152 dapat dibangun dari data yang sudah ada — dengan satu pertentangan yang wajib
+> diputuskan dulu.** Beranda **mengecualikan** pemeriksaan gugur (`Voided`) dari hitungan per disiplin, padahal
+> BR-152 butir 8 menulis *gugur tetap dihitung, sama dengan Beranda*. Kalimat itu tidak dapat benar dua-duanya
+> (`CAP-P30-07`, Q-P30-01). Fakta F30-20 decision log yang menjadi dasarnya **keliru** — dibaca dari potongan kode.
+>
+> **F30-18 terbukti**, dari kode **dan** data: membatalkan order tidak mengubah status pemeriksaan maupun
+> permintaannya; kode Beranda menyatakannya sendiri (`LabDashboardService.cs:228-229`). BR-149 (satu baris per
+> peristiwa) aman terhadapnya.
+>
+> **Kategori pemeriksaan sudah berisi** di `ProcedureCategoryName` (15 nilai pada 30 prosedur Lab);
+> `ProcedureGroupName` seragam *Laboratorium* sehingga tidak berguna sebagai kategori — `LAB-COORD-021` dapat
+> menunjuk ruasnya.
+>
+> **BR-148 butir 5 menunjuk layar yang tidak ada:** FE sengaja **tidak** punya aksi batal pemeriksaan maupun wadah
+> (`VAL-13`). `LAB-DEC-237` menjadi perubahan **backend saja**.
+
+### A. Kemampuan yang disentuh putaran 30
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `CAP-P30-01` | Pembatalan order beralasan wajib, berjejak (BR-151 sumber baris *Order*) | Laboratorium (BE) | `NewQuilvianSystemBackend/Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs#CancelAsync@4d3e4f98` (`VAL-75` hanya `Requested`/`Confirmed`, `VAL-74` alasan wajib, `AppendHistory` `Order.Cancel` dengan `ReasonNote`, `ReasonCode` `null`); FE `src/lib/hooks/health-services/laboratory-management/lab-cancellation-rules.js#canSubmitCancellation@7fb1e1d3e` | `Ready to reuse` | — | Rendah |
+| `CAP-P30-02` | Pembatalan pemeriksaan beralasan wajib (`LAB-DEC-237`) | Laboratorium (BE) | `LabExaminationService.cs#CancelAsync@4d3e4f98` — penjaga `Voided`, `Cancelled`, `ReleasedAt` (pesan rilis), lalu alasan **opsional** (`string.IsNullOrWhiteSpace(request.Reason) ? null`); `DTOs/LabExaminationDtos.cs#CancelLabExaminationRequest` `[MaxLength(1000)] string? Reason` | `Repair` | Penjaga alasan **sesudah** penjaga keadaan (BR-148 butir 2) — urutannya sudah memungkinkan; kode status disamakan dengan `VAL-74` | Rendah |
+| `CAP-P30-03` | Pembatalan wadah beralasan wajib (`LAB-DEC-237`) | Laboratorium (BE) | `LabSpecimenService.cs#CancelAsync@4d3e4f98` (alasan opsional); `DTOs/LabSpecimenDtos.cs#CancelLabSpecimenRequest`; jalur ikut-order `CancelAllForOrderInMemoryAsync` meneruskan alasan order | `Repair` | Jalur ikut-order **sudah** beralasan; hanya `POST` wadah langsung yang perlu penjaga | Rendah |
+| `CAP-P30-04` | Layar batal pemeriksaan/wadah (BR-148 butir 5) | Laboratorium (FE) | `src/lib/constants/health-services/laboratory-management/lab-specimen-constants.jsx:15-19@7fb1e1d3e` — *"Tidak ada satu pun aksi pembatalan pemeriksaan di layar ini, dan ketiadaan itu disengaja"* (`VAL-13`); `rg` atas service FE Lab: hanya `cancelLabOrder` | `Conflict` | BR-148 butir 5 mengandaikan layar yang tidak ada — lihat Q-P30-02 | Rendah |
+| `CAP-P30-05` | Status pemeriksaan/permintaan pada order dibatalkan (F30-18) | Laboratorium (BE) | `LabSpecimenService.cs#CancelSpecimenInMemory@4d3e4f98` (hanya wadah); satu-satunya penulisan `ExaminationStatus = Cancelled` di `LabExaminationService.cs:293`; komentar `LabDashboardService.cs:228-229`. **Data:** satu order `Cancelled` di devYoga — nol pemeriksaan, satu permintaan tetap `Ordered` | `Ready to reuse` | Fakta terbukti. Konsumen wajib mensyaratkan `OrderStatus != Cancelled` sendiri — pola Beranda | Sedang — laporan yang lupa syarat itu menghitung permintaan dari order batal |
+| `CAP-P30-06` | Riwayat pembatalan sebagai sumber Laporan Pembatalan (BR-149, BR-151) | Laboratorium (BE) | `Models/LabTransitionHistory.cs` (`Action`, `FromStatus`, `ReasonNote`, `ActorUserId`, `OccurredAt`, `LabExaminationId`); index `Repositories/Configurations/HealthServices/LaboratoryManagement/LabTransitionHistoryConfiguration.cs:22-25` (`LabOrderId+OccurredAt`, `LabSpecimenId`, `LabExaminationId`, `EncounterId`). **Data:** `Order.Cancel` 1, `Examination.Cancel` 1, `Specimen.Cancel` 0 (satu-satunya order batal tidak berwadah); alasan kosong 0; satu-satu cocok dengan status | `Reuse with adapter` | Tidak ada index `Action`/`OccurredAt` — saringan periode memindai tabel; *Sudah layak tagih* dibaca dari `FromStatus` `ChargeEligible` | Rendah — tabel kecil; keputusan index milik desain |
+| `CAP-P30-07` | Definisi hitung *sama dengan Beranda* (BR-152 butir 5, 7, 8) | Laboratorium (BE) | `LabDashboardService.cs#GetYearlyAsync@4d3e4f98`: pemeriksaan **tanpa `Voided` dan `Cancelled`** (baris 236-237) + permintaan `Ordered` yang belum masuk wadah, pada order bukan `Cancelled`, menurut `RequestedAt ?? CreateDateTime` WIB; tren bulanan tanpa `Cancelled`/`Draft`; disiplin = order, lalu katalog (`VAL-126`). **Data:** 2 pemeriksaan `Voided` di devYoga | `Conflict` | BR-152 butir 8 (*gugur tetap dihitung*) bertentangan dengan butir 5/7 (*sama dengan Beranda*) — Q-P30-01 | **Tinggi** bagi kebenaran laporan — dua angka yang dijanjikan sama akan berselisih tepat sebanyak pemeriksaan gugur |
+| `CAP-P30-08` | Jenis kunjungan dan unit layanan per order (BR-152 butir 4) | Registrasi (data), Laboratorium (baca) | `LabMonitoringService.cs:157`, `LabOrderService.cs:531` (`Encounter.ServiceUnit`); `RegistrationManagement/Models/RegPatientEncounter.cs` (`ServiceUnitId` **wajib**, `EncounterType`). **Data:** 23 order aktif seluruhnya `Outpatient`; unit *Rawat Jalan* 16, *Laboratorium Klinik* 6, *Medical Check Up* 1; unit LABOR bernama **Kamar Bersalin** (`SU-MAT-001`) | `Ready to reuse` | *Unit tidak tercatat* hanya muncul bila unit induknya terhapus (`ServiceUnitId` wajib). **Data uji** Rawat Inap/IGD/Kamar Bersalin belum ada | Rendah; uji butuh data baru |
+| `CAP-P30-09` | Kategori pemeriksaan (`LAB-DEC-235`, `LAB-COORD-021`) | Master Data | `HealthServices/MasterData/Models/MstProcedure.cs:22-25@4d3e4f98`. **Data:** 30 prosedur Lab aktif; `ProcedureGroupName` = *Laboratorium* untuk **seluruhnya**; `ProcedureCategoryName` 15 nilai — Kultur Mikrobiologi 5, Hematologi 4, Kimia Klinik 4, Histopatologi 3, Imunohistokimia 3, Sitologi Ginekologi 2, dan sembilan nilai bertotal satu: Mikrobiologi Molekuler, Elektrolit, Uji Kepekaan Antimikroba, Sitologi, Mikologi, **Mikrobiologi**, Mikroskopi Mikrobiologi, Urinalisis, **Patologi Anatomi** | `Reuse with adapter` | Ruas = `ProcedureCategoryName`. Masih teks bebas; dua nilai adalah nama disiplin (persis pertentangan BR-147 butir 3); *Urinalisis* vs *Urinalisa* artifact | Sedang — milik Master Data |
+| `CAP-P30-10` | Pola laporan operasional: periode, unduhan, izin, layar | Laboratorium (BE+FE) | BE `LabOperationalReportController.cs` (`[AccessPermission("LabOperationalReport","Read"/"Export")]`), `LabOperationalReportService.cs#ResolvePeriod`, `LabReportCsvWriter`; FE `lab-operational-report-view.jsx`, `use-lab-operational-report-export.jsx` (`usePermission` atas `Export`), menu `requiredPermission` | `Ready to reuse` | Izin per laporan (`LAB-DEC-231`) = resource baru per laporan; `PermissionRegistryValidator` (`Services/Security/PermissionRegistryValidator.cs`) memeriksanya saat startup | Rendah |
+| `CAP-P30-11` | Unduhan `.xlsx` (`LAB-DEC-233`) | Platform (pustaka) | `QuilvianSystemBackend.csproj:255` `ClosedXML` 0.105.1 (masuk `81e87b211`, 2026-10-09); pola `FinanceReceivableAgingReportService.cs:255-372` (`XLWorkbook` → `SaveAs(stream)`) | `Reuse with adapter` | Belum ada penulis `.xlsx` di Lab; `LabReportCsvWriter` menjadi pola isi, `ClosedXML` pola berkas | Rendah |
+| `CAP-P30-12` | Cetak dan Print Preview dari layar (`LAB-DEC-233`) | Frontend (pustaka) | `package.json` `react-to-print` ^3.1.1; `src/components/features/print/print-resep/print-resep-component.jsx#useReactToPrint` | `Reuse with adapter` | Pencatatan cetak (BR-145 butir 3) butuh endpoint log — **tidak ada** sekarang; cetak di peramban tidak melewati backend | Sedang — lihat Q-P30-03 |
+
+### B. Titik sentuh sisa katalog `S16b` (bahan putaran 31)
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+| --- | --- | --- | --- | --- | --- | --- |
+| `CAP-P30-13` | Harga pemeriksaan (Biaya Lab, *Jumlah Rupiah*) | Laboratorium (snapshot), Billing (nilai tagih) | `LabExamination.cs:60-70` `TariffId`, `TariffCodeSnapshot`, `UnitPriceSnapshot` = `tariff.NormalPrice` saat pemeriksaan lahir (`LabExaminationService.cs:210`, `LabSpecimenService.cs:364`); `BilInvoiceItem` (`SourceDomain`, `SourceDetailId`) — devYoga: 1 baris `LABORATORY` | `Unknown` | *Harga* artifact = harga normal katalog atau nilai yang ditagihkan per penjamin? Keputusan pemilik modul + `billing-kasir` | Sedang |
+| `CAP-P30-14` | Share Dokter | Billing / `medical-fee` | `BillingManagement/Billing/Models/BilInvoiceItem.cs:29` `DoctorShare` | `Unknown` | Nilai ada pada item tagihan, bukan di Lab; rumus milik pemilik fee (di luar scope `LAB-DEC-231`) | Sedang |
+| `CAP-P30-15` | Status bayar per pemeriksaan | Billing | `LabMonitoringService.cs` — jalur baca Lunas sementara (`LAB-DEC-220`, `LAB-OPEN-053`) | `Reuse with adapter` | Sementara; berisiko simpang dari rumus Billing | Sedang |
+| `CAP-P30-16` | Diagnosis dan kelompok penyakit (Group Diseases) | Clinical Management (diagnosis), Master Data (kelompok) | `ClinicalManagement/Models/TrxPatientDiagnosis.cs` (`EncounterId`, `DiagnosisId`, `IsPrimary`, `DiagnosisStatus`); `MasterData/Models/MstDiagnosis.cs:18` `DiagnosisGroupId` → `MstDiagnosisGroup` (`DtdNumber`, `GroupName`). **Data:** 528 kelompok DTD; 18.079 dari 23.169 diagnosis berkelompok; **nol** order Lab yang kunjungannya berdiagnosis | `Reuse with adapter` | Pengelompokan yang ada = **DTD Kemenkes 528 kelompok** (mis. *001.0 Kolera*), bukan enam kelompok besar artifact §8 (*Cardiovascular Disease* …) | Sedang — keputusan isi kelompok |
+| `CAP-P30-17` | Penjamin perusahaan (Rekap Pasien Perusahaan) | Registrasi | `RegPatientEncounterGuarantor.cs` (`PaymentType`, `CompanyGuarantorId`, `PatientCompanyGuarantorId`, snapshot kode). **Data:** 24 order Lab, seluruh kunjungannya `PaymentType` = 1 | `Reuse with adapter` | *Per Payment* (tanggal bayar) milik Billing — `Unknown` | Sedang |
+
+### C. Ketidakcocokan dengan decision log
+
+| Butir decision log | Yang tertulis | Yang ada di source/data | Akibat |
+|---|---|---|---|
+| F30-20 | Beranda mengecualikan order `Cancelled`/`Draft` dan pemeriksaan batal | Beranda **juga** mengecualikan pemeriksaan `Voided` (`LabDashboardService.cs:236`) | F30-20 tidak lengkap; BR-152 butir 8 dan `AC-335` (*gugur tetap terhitung*) bertentangan dengan `AC-334` (*sama dengan Beranda*) |
+| BR-148 butir 5 | *layar batal pemeriksaan/wadah (isian wajib)* | Tidak ada layar batal pemeriksaan/wadah, disengaja (`VAL-13`) | `LAB-DEC-237` = backend saja |
+| BR-152 butir 4 | *Kunjungan tanpa unit tampil "Unit tidak tercatat"* | `ServiceUnitId` wajib | Baris itu praktis tidak muncul; aturan tetap aman sebagai penjaga |
+| `LAB-DEC-243` | *LABOR tampil apa adanya sebagai unit layanan Ruang Bersalin* | Nama unit di data induk **Kamar Bersalin** (`SU-MAT-001`) | Label laporan mengikuti data induk — sesuai keputusan; contoh BR-152 menulis nama yang berbeda |
+| BR-145 butir 3 | Cetak *dicatat seperti unduhan* | Cetak `react-to-print` berjalan di peramban; tidak ada endpoint log cetak | Perlu jalur pencatatan — Q-P30-03 |
+
+### D. Pertanyaan penutup untuk `/grill-me` (closure)
+
+| ID | Pertanyaan | Mengapa tidak dapat dijawab source | Memblokir |
+|---|---|---|---|
+| Q-P30-01 | Pemeriksaan **gugur** dihitung atau tidak di Statistik Pesanan — ikut Beranda (tidak dihitung) atau tetap dihitung (berbeda dari Beranda)? | Dua kalimat BR-152 bertentangan; pilihan makna milik pemilik modul | **`DESIGN`** BR-152 |
+| Q-P30-02 | BR-148 butir 5 dicabut (perubahan backend saja), atau layar batal pemeriksaan/wadah memang hendak dibuka? | `VAL-13` sengaja menutupnya | `DESIGN` `LAB-DEC-237` (rendah) |
+| Q-P30-03 | Cetak dicatat lewat panggilan log terpisah dari layar sebelum mencetak, cukup dicatat bila cetak berasal dari berkas server, atau cetak tidak dicatat? | Cetak peramban tidak melewati backend | `DESIGN` BR-145 |
+| Q-P30-04 | `LAB-COORD-021` menunjuk `ProcedureCategoryName` — setuju? | Pilihan ruas milik pemilik Master Data; data menunjuk satu ruas | `LATER SLICE` |
+
+**Pemicu impact scan berikutnya:** setiap commit yang menyentuh `LabDashboardService`, `LabOrderService#CancelAsync`,
+`LabExaminationService#CancelAsync`, `LabSpecimenService#CancelAsync`, `LabTransitionHistory`, `LabOperationalReport*`,
+atau `MstProcedure.ProcedureCategoryName`; merge yang membawa migration Lab; dan perubahan `lab-specimen-constants.jsx`
+yang membuka aksi batal pemeriksaan.
 
 ---
 
@@ -1579,6 +1674,7 @@ Bila dipertahankan, `BR-25` perlu diperiksa ulang — memilih metode pembayaran 
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 9 | 2026-10-20 | *Impact scan* terbatas atas permukaan putaran 30 (BR-142..BR-152), BE `4d3e4f98` / FE `7fb1e1d3e`, ditambah 18 kueri baca-saja devYoga. `CAP-P30-01`..`CAP-P30-17`. **F30-18 terbukti** (kode dan data). **Pertentangan baru:** Beranda mengecualikan pemeriksaan gugur, BR-152 butir 8 menghitungnya (`CAP-P30-07`, F30-20 keliru). BR-148 butir 5 menunjuk layar yang tidak ada (`CAP-P30-04`). Kategori ada di `ProcedureCategoryName` (15 nilai). Kelompok penyakit yang tersedia = DTD 528 kelompok. Empat pertanyaan penutup Q-P30-01..04 | `draft` |
 | 8 | 2026-10-08 | *Impact scan* atas kedua rentang snapshot manifest yang `STALE` — BE `4a94628a..f4e79c4e` (+ working tree `Confirmed`), FE `696a906a6..f6f23352e`. Rentang baru dibaca diff-nya (Lab dan titik sentuh), rentang lama dicocokkan ke laporan task dan kontrak approved. **11 kemampuan** (`CAP-P26-01`..`11`): 8 `Ready to reuse`, 1 `Reuse with adapter`, 1 `Conflict`, 1 `Missing`. **`LAB-CONFLICT-018`**: kunci Lunas menahan pesanan Lab rawat inap dan IGD Tunai — closure question `Q-LAB-P26-01`. Rumus pelunasan Billing, Registrasi, enum jenis bayar, dan skema tabel Lab tidak berubah. 555 uji unit Lab lulus | `draft` |
 | 7 | 2026-10-07 | *Impact scan* terbatas atas sembilan butir bahan audit amendment pass putaran 22 (`LAB-DEC-188`..`LAB-DEC-192`), pada BE `171dc314` + FE `5427ddbe4`, ditambah sembilan kueri baca-saja ke `QuilvianNewDevYoga`. **23 kemampuan:** 12 `Ready to reuse`, 1 `Reuse with adapter`, 2 `Extend`, 3 `Repair`, 2 `Missing`, 1 `Conflict`, 2 `Unknown`. **Backend siap tanpa perubahan** — `start-process`, `complete` beserta rincian `VAL-146`, dan jawaban `200` yang cukup memperbarui baris; Analis memegang `LabOrder : Process` dan seluruh aksi wadah. **`Repair` terpenting: layar Wadah tidak menerjemahkan token alamat** (`CAP-P22-10`), sehingga *Terima Sampling* — dan jalan Detail → Wadah hari ini — berakhir `404`. `Repair` lain: `start-process` menjawab `400` alih-alih `409` (`CAP-P22-03`); rujukan `LAB-DEC-025` pada empat komentar (`CAP-P22-20`). **Satu conflict baru `LAB-CONFLICT-017`:** `AC-278` menahan selamanya pesanan `InProcess` tanpa pemeriksaan terhitung, yang justru diterima backend. **Temuan izin:** baris `LabOrder : Update` Analis terhapus 2026-10-01 (`CAP-P22-15`); Kepala Instalasi dan DPJP Lab tidak dapat membuka daftar sama sekali. Nol uji mengunci label lama; judul halaman di enam tempat dan subjudul Nota memakai judul halaman. Tiga closure question `Q-P22-01`..`Q-P22-03`; tiga unknown `UNK-P22-01`..`03` | `draft` |
 | 6 | 2026-09-25 | *Impact scan* terbatas atas dua fakta kode yang dipakai gerbang r10/r11 dan putaran 19 tanpa `CAP`. **Dokumen klinis pasien** (`CAP-P19-01`..`09`): wadah data `S18` siap dipakai dengan adapter, **tetapi** unggah berkas nol, konsumen frontend nol, dan tiga pertentangan dengan `LAB-DEC-158` — `LAB-CONFLICT-015` (tiga jalan keluar berkas salah) dan `LAB-CONFLICT-016` (satu kode izin `Update`; verifikasi-sendiri saat membuat). **Kunjungan MCU** (`CAP-P19-10`..`13`): jalur pesanan Lab siap; backend Registrasi menerima `MedicalCheckup`; **nol layar yang membuatnya**, sehingga `S19` belum dapat dibuktikan lewat layar (`UNK-P19-01`). **Satu koreksi:** asal kemampuan dokumen klinis pasien adalah `9d38d30a` (2026-06-02), bukan `58c61a5b` | `draft` |

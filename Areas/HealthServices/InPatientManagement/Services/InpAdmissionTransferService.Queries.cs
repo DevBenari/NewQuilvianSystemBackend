@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
@@ -16,6 +18,8 @@ public partial class InpAdmissionTransferService
 {
     private IQueryable<InpatientAdmissionTransferItemResponse> TransferQuery(string? sourceType)
     {
+        var today = DateTime.UtcNow.Date;
+
         var emergency = _dbContext.Set<EmgDisposition>().AsNoTracking()
             .Where(x => !x.IsDelete && !x.IsCancel && x.EmergencyVisit != null && !x.EmergencyVisit.IsDelete
                 && !x.EmergencyVisit.IsCancel && x.EmergencyVisit.PatientId != null && x.DispositionType != null && !x.DispositionType.IsDelete
@@ -46,7 +50,38 @@ public partial class InpAdmissionTransferService
                     : x.DispositionStatus == EmergencyDispositionStatus.Cancelled ? "Cancelled" : "Draft",
                 ResultEpisodeId = _dbContext.Set<InpEpisode>().Where(e => e.Encounter != null
                     && e.Encounter.AdmissionTransferId == x.Id && e.Encounter.AdmissionTransferSourceType == "Emergency")
-                    .Select(e => (Guid?)e.Id).FirstOrDefault()
+                    .Select(e => (Guid?)e.Id).FirstOrDefault(),
+
+                // Kontrak 0.17.0 (RWI-DEC-338 s.d. 341):
+                IsCito = _dbContext.Set<EmgAdmissionRequest>().Any(f =>
+                    f.DispositionId == x.Id && !f.IsDelete
+                    && f.Status == EmergencyAdmissionRequestStatus.Signed
+                    && f.IsCito),
+                IsPriorityMember = _dbContext.MstPatientMemberships.Any(m =>
+                    m.PatientId == x.EmergencyVisit.PatientId && !m.IsDelete && m.IsActive
+                    && m.MembershipStatus == MembershipStatus.Active
+                    && (m.PeriodStartDate == null || m.PeriodStartDate <= today)
+                    && (m.ExpiredDate == null || m.ExpiredDate >= today)
+                    && m.MembershipTier != null && !m.MembershipTier.IsDelete && m.MembershipTier.IsActive
+                    && m.MembershipTier.PriorityQueue),
+                MemberTierName = _dbContext.MstPatientMemberships
+                    .Where(m => m.PatientId == x.EmergencyVisit.PatientId && !m.IsDelete && m.IsActive
+                        && m.MembershipStatus == MembershipStatus.Active
+                        && (m.PeriodStartDate == null || m.PeriodStartDate <= today)
+                        && (m.ExpiredDate == null || m.ExpiredDate >= today)
+                        && m.MembershipTier != null && !m.MembershipTier.IsDelete && m.MembershipTier.IsActive
+                        && m.MembershipTier.PriorityQueue)
+                    .Select(m => m.MembershipTier!.TierName)
+                    .FirstOrDefault(),
+                MemberPriorityLevel = _dbContext.MstPatientMemberships
+                    .Where(m => m.PatientId == x.EmergencyVisit.PatientId && !m.IsDelete && m.IsActive
+                        && m.MembershipStatus == MembershipStatus.Active
+                        && (m.PeriodStartDate == null || m.PeriodStartDate <= today)
+                        && (m.ExpiredDate == null || m.ExpiredDate >= today)
+                        && m.MembershipTier != null && !m.MembershipTier.IsDelete && m.MembershipTier.IsActive
+                        && m.MembershipTier.PriorityQueue)
+                    .Select(m => (int?)m.MembershipTier!.PriorityLevel)
+                    .FirstOrDefault()
             });
 
         // Sumber Poliklinik hanya Surat Pengantar Rawat Inap; Surat Rujukan biasa bukan pengajuan admisi.
@@ -76,7 +111,35 @@ public partial class InpAdmissionTransferService
                         && t.AdmissionTransferSourceType == "Outpatient") ? "Executed" : "Confirmed",
                 ResultEpisodeId = _dbContext.Set<InpEpisode>().Where(t => t.Encounter != null
                     && t.Encounter.AdmissionTransferId == c.Id && t.Encounter.AdmissionTransferSourceType == "Outpatient")
-                    .Select(t => (Guid?)t.Id).FirstOrDefault()
+                    .Select(t => (Guid?)t.Id).FirstOrDefault(),
+
+                // Kontrak 0.17.0 (RWI-DEC-338 s.d. 341):
+                IsCito = false,
+                IsPriorityMember = _dbContext.MstPatientMemberships.Any(m =>
+                    m.PatientId == p.Id && !m.IsDelete && m.IsActive
+                    && m.MembershipStatus == MembershipStatus.Active
+                    && (m.PeriodStartDate == null || m.PeriodStartDate <= today)
+                    && (m.ExpiredDate == null || m.ExpiredDate >= today)
+                    && m.MembershipTier != null && !m.MembershipTier.IsDelete && m.MembershipTier.IsActive
+                    && m.MembershipTier.PriorityQueue),
+                MemberTierName = _dbContext.MstPatientMemberships
+                    .Where(m => m.PatientId == p.Id && !m.IsDelete && m.IsActive
+                        && m.MembershipStatus == MembershipStatus.Active
+                        && (m.PeriodStartDate == null || m.PeriodStartDate <= today)
+                        && (m.ExpiredDate == null || m.ExpiredDate >= today)
+                        && m.MembershipTier != null && !m.MembershipTier.IsDelete && m.MembershipTier.IsActive
+                        && m.MembershipTier.PriorityQueue)
+                    .Select(m => m.MembershipTier!.TierName)
+                    .FirstOrDefault(),
+                MemberPriorityLevel = _dbContext.MstPatientMemberships
+                    .Where(m => m.PatientId == p.Id && !m.IsDelete && m.IsActive
+                        && m.MembershipStatus == MembershipStatus.Active
+                        && (m.PeriodStartDate == null || m.PeriodStartDate <= today)
+                        && (m.ExpiredDate == null || m.ExpiredDate >= today)
+                        && m.MembershipTier != null && !m.MembershipTier.IsDelete && m.MembershipTier.IsActive
+                        && m.MembershipTier.PriorityQueue)
+                    .Select(m => (int?)m.MembershipTier!.PriorityLevel)
+                    .FirstOrDefault()
             };
         return sourceType == "Emergency" ? emergency : sourceType == "Outpatient" ? outpatient : emergency.Concat(outpatient);
     }

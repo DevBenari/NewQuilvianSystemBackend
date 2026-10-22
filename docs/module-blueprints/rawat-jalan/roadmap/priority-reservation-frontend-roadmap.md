@@ -3,13 +3,13 @@
 | Field | Nilai |
 |---|---|
 | Roadmap ID | `RJ-PRI-RM-FE-001` |
-| Revision | `1` |
-| Status | `approved` — Sukma Giri, 2026-10-16 (`RJ-PRI-DEC-031`). Wewenang implementasi `GRANTED` untuk seluruh task |
-| Blueprint | `rawat-jalan` revisi `33`, `approved` (Sukma Giri, 2026-10-16, `RJ-PRI-DEC-030`) |
-| Cakupan | `MVP-0` s.d. `MVP-2`, sisi frontend |
-| SHA baseline | FE `1fd858322` (`sukmagpV2`), BE `551e1cbb` (`sukmagp`) |
-| Kontrak masukan | `RJ-PRI-RESV-001@1.0.0` `approved`, `api-contract.md` `7932aaf7dc6c`. Kontrak sudah approved dan terkunci hash, sehingga frontend boleh dikerjakan paralel dengan API tiruan. Acceptance terhadap backend lokal tetap menunggu task `[BE]` |
-| Masukan desain | `03-frontend-architecture.md` RP-FE.1–7 (`3274f27fa597`) |
+| Revision | `2` — menambah `FE-RJP-009` (`MVP-3`, ganti tanggal). Revisi `1` berisi `FE-RJP-001` s.d. `008` |
+| Status | r1 `approved` — Sukma Giri, 2026-10-16 (`RJ-PRI-DEC-031`). r2 `approved` — Sukma Giri, 2026-10-21 (`RJ-PRI-DEC-039`). Wewenang implementasi `GRANTED` untuk seluruh task |
+| Blueprint | `rawat-jalan` revisi `33`, `approved` (Sukma Giri, 2026-10-16, `RJ-PRI-DEC-030`), dan revisi `34`, `approved` (Sukma Giri, 2026-10-21, `RJ-PRI-DEC-039`) |
+| Cakupan | `MVP-0` s.d. `MVP-3`, sisi frontend |
+| SHA baseline | r1: FE `1fd858322` (`sukmagpV2`), BE `551e1cbb` (`sukmagp`). r2: FE `037c975b7`, BE `b0285ff1` |
+| Kontrak masukan | `RJ-PRI-RESV-001@1.0.0` `approved`, `api-contract.md` `7932aaf7dc6c`. Untuk `FE-RJP-009`: `RJ-PRI-RESV-001@1.2.0` `approved`, `api-contract.md` `dc01eae85f3c`. Kontrak sudah approved dan terkunci hash, sehingga frontend boleh dikerjakan paralel dengan API tiruan. Acceptance terhadap backend lokal tetap menunggu task `[BE]` |
+| Masukan desain | `03-frontend-architecture.md` RP-FE.1–7 (`3274f27fa597`). Untuk `FE-RJP-009`: `03` RP-GT-FE.1–6 (`31eccd26ef8d`) |
 | Owner | Sukma Giri (Frontend authority) |
 
 > **Batas dokumen.**
@@ -33,36 +33,40 @@ BE-RJP-004 ✅ [BE] ─> FE-RJP-001 ✅
 
 FE-RJP-002 ✅
 
-BE-RJP-006 ✅ [BE] ─> FE-RJP-003 ✅ ─> FE-RJP-004 ✅ ─┬────────────────────┐
-                                                      │                    │
-BE-RJP-007 ✅ [BE] ─┐                                 │                    │
-                    │                                 │                    │
-BE-RJP-010 ✅ [BE] ─┴─────────────────────────────────┴─> FE-RJP-005 ✅    │
-                                                                           │
-BE-RJP-011 ✅ [BE] ─┬─> FE-RJP-007 ✅                                      │
-                    │                                                      │
-BE-RJP-008 ✅ [BE] ─┴──────────────────────────────────────────────────────┴─> FE-RJP-006 ✅
+BE-RJP-006 ✅ [BE] ─> FE-RJP-003 ✅ ─> FE-RJP-004 ✅ ─┬─────────────────────────────────────────────┐
+                                                      │                                             │
+BE-RJP-007 ✅ [BE] ─┐                                 │                                             │
+                    │                                 │                                             │
+BE-RJP-010 ✅ [BE] ─┴─────────────────────────────────┴─> FE-RJP-005 ✅ ─┐                          │
+                                                                         │                          │
+BE-RJP-013 ✅ [BE] ──────────────────────────────────────────────────────┴─> FE-RJP-009 ✅          │
+                                                                                                    │
+BE-RJP-011 ✅ [BE] ─┬─> FE-RJP-007 ✅                                                               │
+                    │                                                                               │
+BE-RJP-008 ✅ [BE] ─┴───────────────────────────────────────────────────────────────────────────────┴─> FE-RJP-006 ✅
 
 BE-RJP-012 ✅ [BE] ─> FE-RJP-008 ✅
 ```
 
 `[BE]` = task backend pada `priority-reservation-backend-roadmap.md`, cermin baca-saja.
 
-Pasangan prasyarat → task: 11 (`BE-004→FE-001`, `BE-006→FE-003`, `FE-003→FE-004`, `FE-004→FE-005`, `BE-007→FE-005`,
-`BE-010→FE-005`, `FE-004→FE-006`, `BE-011→FE-006`, `BE-008→FE-006`, `BE-011→FE-007`, `BE-012→FE-008`), sama dengan
-isi kolom `Dependency`.
+Pasangan prasyarat → task: 13 (`BE-004→FE-001`, `BE-006→FE-003`, `FE-003→FE-004`, `FE-004→FE-005`, `BE-007→FE-005`,
+`BE-010→FE-005`, `FE-004→FE-006`, `BE-011→FE-006`, `BE-008→FE-006`, `BE-011→FE-007`, `BE-012→FE-008`,
+`FE-005→FE-009`, `BE-013→FE-009`), sama dengan isi kolom `Dependency`.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
 | 1 | — (acceptance menunggu `[BE]` masing-masing) | `FE-RJP-001` (`BE-RJP-004`), `FE-RJP-002` (tanpa prasyarat), `FE-RJP-003` (`BE-RJP-006`), `FE-RJP-007` (`BE-RJP-011`), `FE-RJP-008` (`BE-RJP-012`) |
 | 2 | `FE-RJP-003` | `FE-RJP-004` |
 | 3 | `FE-RJP-004` (+ `[BE]`) | `FE-RJP-005` (`BE-RJP-007`, `BE-RJP-010`), `FE-RJP-006` (`BE-RJP-008`, `BE-RJP-011`) |
+| 4 | `FE-RJP-005` (+ `BE-RJP-013` untuk acceptance) | `FE-RJP-009` |
 
 | Rilis | Task | Catatan |
 |---|---|---|
 | `MVP-0` | `FE-RJP-001`, `FE-RJP-002` | `FE-RJP-001` **wajib** dirilis bersama `BE-RJP-004` |
 | `MVP-1` | `FE-RJP-003` s.d. `007` | — |
 | `MVP-2` | `FE-RJP-008` | Go-live menunggu `RJ-PRI-OQ-003` |
+| `MVP-3` | `FE-RJP-009` | Dirilis bersama atau sesudah `BE-RJP-013`. Tanpa backend-nya, tombol Ganti Tanggal tidak tampil, karena `canReschedule` tidak ada |
 
 ## Ringkasan Task
 
@@ -71,11 +75,12 @@ isi kolom `Dependency`.
 | `FE-RJP-001` | Layar display memakai group realtime display dan mengabaikan event prioritas | `FE-RP-05` / `FR-RP-013` | `BE-RJP-004` [BE] | `MVP-0` | ✅ 2026-10-16 — lint/build PASS, unit 4/4 PASS, uji layar 12/12 PASS (UAT-RP-03); rilis bersama BE-RJP-004 — [laporan](../task/report/frontend/FE-RJP-001.md) |
 | `FE-RJP-002` | Label member di Pendaftaran Pasien | `FE-RP-04` / `FR-RP-070` | — | `MVP-0` | ✅ 2026-10-16 — lint/build PASS, unit 5/5 PASS, uji layar 4/4 PASS (R-RP-28, UAT-RP-18/19); deviasi: label hanya di panel identitas, belum di kartu hasil pencarian — [laporan](../task/report/frontend/FE-RJP-002.md) |
 | `FE-RJP-003` | Lapisan data reservasi dan klien realtime board | `FE-RP-01` (data) | `BE-RJP-006` [BE] | `MVP-1` | ✅ 2026-10-19 — lint/build PASS, unit task 7/7 PASS (thunk tiap endpoint, 409 VAL-RP-14, link tidak disimpan di Redux), unit penuh 2976/3003 (27 gagal di modul lain, sudah gagal di HEAD) — [laporan](../task/report/frontend/FE-RJP-003.md) |
-| `FE-RJP-004` | Daftar Reservasi Prioritas, butir menu, buat reservasi, dialog kirim WA | `FE-RP-01` / `FR-RP-030`, `062` | `FE-RJP-003` | `MVP-1` | ✅ 2026-10-19 — lint/build PASS, uji layar 15/15 PASS (UAT-RP-07/08/09, butir menu per izin Read, empat keadaan, link hilang sesudah dialog ditutup). Rework 2026-10-19 (RJ-PRI-DEC-032, kontrak 1.1.0): tombol Buat di kartu saringan, Tanggal Awal/Akhir/Periode atas tanggal kunjungan, kolom audit, tanpa kolom Aksi — uji layar 12/12 + regresi 15/15 PASS, unit task 8/8 PASS, unit penuh 2977/3004 (27 gagal di modul lain, sudah gagal di HEAD) — [laporan](../task/report/frontend/FE-RJP-004.md) |
-| `FE-RJP-005` | Detail dan aksi reservasi, serta realtime berbunyi | `FE-RP-01` / `FR-RP-033` s.d. `035`, `038`, `052` | `FE-RJP-004`, `BE-RJP-007` [BE], `BE-RJP-010` [BE] | `MVP-1` | ✅ 2026-10-19 — lint/build PASS, uji layar 11/11 PASS dua akun (R-RP-14 akun Read+Screen, 409 toast + muat ulang, tombol sesuai can* dan izin, cadangan muat ulang 60 detik). Rework 2026-10-19 (RJ-PRI-DEC-032): Tandai Tiba primer, Lengkapi hanya dari detail — regresi admin 7/7 PASS, unit penuh 2977/3004 (27 gagal di modul lain, sudah gagal di HEAD) — [laporan](../task/report/frontend/FE-RJP-005.md) |
+| `FE-RJP-004` | Daftar Reservasi Prioritas, butir menu, buat reservasi, dialog kirim WA | `FE-RP-01` / `FR-RP-030`, `062` | `FE-RJP-003` | `MVP-1` | ✅ 2026-10-19 — lint/build PASS, uji layar 15/15 PASS (UAT-RP-07/08/09, butir menu per izin Read, empat keadaan, link hilang sesudah dialog ditutup). Rework 2026-10-19 (RJ-PRI-DEC-032, kontrak 1.1.0): tombol Buat di kartu saringan, Tanggal Awal/Akhir/Periode atas tanggal kunjungan, kolom audit, tanpa kolom Aksi — uji layar 12/12 + regresi 15/15 PASS, unit task 8/8 PASS. Perbaikan 2026-10-20: kotak cari pasien kini bisa diketik (menuPortal dihapus di dalam modal) dan tombol konfirmasi dialog memakai primer BaseButton — uji cara manusia di stack owner 4/4 PASS, lint/build PASS, unit 3283/3318 (35 gagal di modul lain dari merge d1c186a12, tidak satu pun dari fitur ini); teks hover tombol primer tetap putih dan dialog Reservasi Dibuat ditata ulang — uji di stack owner 4/4 (1440 px) + 4/4 (390 px) PASS. Rework 2026-10-21 (RJ-PRI-DEC-040): tanggal lampau dinonaktifkan di kalender Buat Reservasi — uji layar CREATE CAL PASS, bukti di laporan FE-RJP-009 §8 — [laporan](../task/report/frontend/FE-RJP-004.md) |
+| `FE-RJP-005` | Detail dan aksi reservasi, serta realtime berbunyi | `FE-RP-01` / `FR-RP-033` s.d. `035`, `038`, `052` | `FE-RJP-004`, `BE-RJP-007` [BE], `BE-RJP-010` [BE] | `MVP-1` | ✅ 2026-10-19 — lint/build PASS, uji layar 11/11 PASS dua akun (R-RP-14 akun Read+Screen, 409 toast + muat ulang, tombol sesuai can* dan izin, cadangan muat ulang 60 detik). Rework 2026-10-19 (RJ-PRI-DEC-032): Tandai Tiba primer, Lengkapi hanya dari detail — regresi admin 7/7 PASS. Perbaikan 2026-10-20: tombol konfirmasi Tandai Tiba, Skrining, Link Baru memakai primer BaseButton — lint/build PASS — [laporan](../task/report/frontend/FE-RJP-005.md) |
 | `FE-RJP-006` | Pendaftaran Pasien mode reservasi dan layar selesai | `FE-RP-03`, `FE-RP-06` / `FR-RP-040`, `061` | `FE-RJP-004`, `BE-RJP-008` [BE], `BE-RJP-011` [BE] | `MVP-1` | ✅ 2026-10-19 — lint/build PASS, uji layar 7/7 PASS (UAT-RP-11, UAT-RP-12, pasien dan tanggal terkunci, regresi pendaftaran biasa), unit penuh 2976/3003 (27 gagal di modul lain, sudah gagal di HEAD) — [laporan](../task/report/frontend/FE-RJP-006.md) |
 | `FE-RJP-007` | Tiket kiosk dan kartu antrean menampilkan ruang tunggu prioritas | `FE-RP-06`, `FE-RP-07` / `FR-RP-060`, `061` | `BE-RJP-011` [BE] | `MVP-1` | ✅ 2026-10-19 — lint/build PASS, uji layar 4/4 PASS (R-RP-21 tiket kiosk, UAT-RP-16, UAT-RP-17, R-RP-29 Klinis Dokter); R-RP-21 tanpa reservasi dibuktikan di BE-RJP-011, unit penuh 2976/3003 (27 gagal di modul lain, sudah gagal di HEAD) — [laporan](../task/report/frontend/FE-RJP-007.md) |
 | `FE-RJP-008` | Halaman publik Konfirmasi Kedatangan | `FE-RP-02` / `FR-RP-051` | `BE-RJP-012` [BE] | `MVP-2` | ✅ 2026-10-19 — lint/build PASS, uji layar 16/16 PASS tanpa cookie lebar 360 px (R-RP-11 s.d. 13, UAT-RP-14, UAT-RP-15, 429, tanpa panggilan auth); DoD go-live dikecualikan: menunggu RJ-PRI-OQ-003, unit penuh 2976/3003 (27 gagal di modul lain, sudah gagal di HEAD) — [laporan](../task/report/frontend/FE-RJP-008.md) |
+| `FE-RJP-009` | Ganti tanggal di detail reservasi, riwayat tanggal, dan realtime dua tanggal | `FE-RP-01` / `FR-RP-090`, `093` s.d. `095` | `FE-RJP-005`, `BE-RJP-013` [BE] | `MVP-3` | ✅ 2026-10-21 — lint/build PASS, unit task 12/12 PASS, unit penuh 3287/3322 (35 gagal di modul lain, sama dengan sebelum task), uji layar 13/13 PASS (UAT-RP-20..23, R-RP-41 layar dengan kabar realtime asli, 409, akun tanpa Create, 390 px). Rework 2026-10-21 (RJ-PRI-DEC-040, tanggal lampau dinonaktifkan di kalender Ganti Tanggal dan Buat Reservasi): lint/build PASS, unit task 12/12, uji layar 3/3 PASS termasuk regresi BaseDateField modul lain — [laporan](../task/report/frontend/FE-RJP-009.md) |
 
 ## Rincian Task
 
@@ -131,7 +136,7 @@ isi kolom `Dependency`.
 
 | Field | Isi |
 |---|---|
-| Status | ✅ 2026-10-19 — lint/build PASS, uji layar 15/15 PASS (UAT-RP-07/08/09, butir menu per izin Read, empat keadaan, link hilang sesudah dialog ditutup). Rework 2026-10-19 (RJ-PRI-DEC-032, kontrak 1.1.0): tombol Buat di kartu saringan, Tanggal Awal/Akhir/Periode atas tanggal kunjungan, kolom audit, tanpa kolom Aksi — uji layar 12/12 + regresi 15/15 PASS, unit task 8/8 PASS, unit penuh 2977/3004 (27 gagal di modul lain, sudah gagal di HEAD) — [laporan](../task/report/frontend/FE-RJP-004.md) |
+| Status | ✅ 2026-10-19 — lint/build PASS, uji layar 15/15 PASS (UAT-RP-07/08/09, butir menu per izin Read, empat keadaan, link hilang sesudah dialog ditutup). Rework 2026-10-19 (RJ-PRI-DEC-032, kontrak 1.1.0): tombol Buat di kartu saringan, Tanggal Awal/Akhir/Periode atas tanggal kunjungan, kolom audit, tanpa kolom Aksi — uji layar 12/12 + regresi 15/15 PASS, unit task 8/8 PASS. Perbaikan 2026-10-20: kotak cari pasien kini bisa diketik (menuPortal dihapus di dalam modal) dan tombol konfirmasi dialog memakai primer BaseButton — uji cara manusia di stack owner 4/4 PASS, lint/build PASS, unit 3283/3318 (35 gagal di modul lain dari merge d1c186a12, tidak satu pun dari fitur ini); teks hover tombol primer tetap putih dan dialog Reservasi Dibuat ditata ulang — uji di stack owner 4/4 (1440 px) + 4/4 (390 px) PASS. Rework 2026-10-21 (RJ-PRI-DEC-040): tanggal lampau dinonaktifkan di kalender Buat Reservasi — uji layar CREATE CAL PASS, bukti di laporan FE-RJP-009 §8 — [laporan](../task/report/frontend/FE-RJP-004.md) |
 | Outcome | Butir menu "Reservasi Prioritas" di bawah Rawat Jalan (`OutpatientPriorityReservation : Read`), route `/health-services/registration-management/priority-reservations`, daftar dengan saringan, ringkasan status, dan dialog buat reservasi (cari pasien, kelayakan, tanggal). Setelah simpan: link, teks pesan, tombol "Kirim via WhatsApp" (`wa.me/62…?text=…`), dan tombol salin |
 | Requirement/decision | `FR-RP-030`, `062`; `RJ-PRI-DEC-008`, `011`, `021`; `RJ-PRI-FE-002`, `003` |
 | Kontrak | `api-contract.md` `GET /`, `/summary`, `/eligibility`, `POST /` |
@@ -147,7 +152,7 @@ isi kolom `Dependency`.
 
 | Field | Isi |
 |---|---|
-| Status | ✅ 2026-10-19 — lint/build PASS, uji layar 11/11 PASS dua akun (R-RP-14 akun Read+Screen, 409 toast + muat ulang, tombol sesuai can* dan izin, cadangan muat ulang 60 detik). Rework 2026-10-19 (RJ-PRI-DEC-032): Tandai Tiba primer, Lengkapi hanya dari detail — regresi admin 7/7 PASS, unit penuh 2977/3004 (27 gagal di modul lain, sudah gagal di HEAD) — [laporan](../task/report/frontend/FE-RJP-005.md) |
+| Status | ✅ 2026-10-19 — lint/build PASS, uji layar 11/11 PASS dua akun (R-RP-14 akun Read+Screen, 409 toast + muat ulang, tombol sesuai can* dan izin, cadangan muat ulang 60 detik). Rework 2026-10-19 (RJ-PRI-DEC-032): Tandai Tiba primer, Lengkapi hanya dari detail — regresi admin 7/7 PASS. Perbaikan 2026-10-20: tombol konfirmasi Tandai Tiba, Skrining, Link Baru memakai primer BaseButton — lint/build PASS — [laporan](../task/report/frontend/FE-RJP-005.md) |
 | Outcome | Detail berisi kepala, checklist skrining, dan riwayat. Tombol sesuai `can*` dan izin: Tandai tiba, Kembalikan (alasan), Skrining (tiga isian), Kirim ulang, Batalkan (alasan). Bergabung ke board realtime; baris berubah dan berbunyi saat pasien tiba; muat ulang berkala 60 detik bila koneksi putus |
 | Requirement/decision | `FR-RP-033` s.d. `035`, `038`, `052`; `RJ-PRI-DEC-012`, `014`, `019`, `022`, `023`, `026`, `028`, `029` |
 | Kontrak | `api-contract.md` perintah petugas, hub |
@@ -206,3 +211,19 @@ isi kolom `Dependency`.
 | Verifikasi | Uji layar Playwright di jendela tanpa cookie, lebar 360 px |
 | Risiko/pemilik | **Go-live menunggu `RJ-PRI-OQ-003`.** Pemilik: Sukma Giri |
 | DoD | Kriteria terbukti. Go-live tercatat terpisah |
+
+### `FE-RJP-009` ✅ — Ganti tanggal reservasi
+
+| Field | Isi |
+|---|---|
+| Status | ✅ 2026-10-21 — lint/build PASS, unit task 12/12 PASS, unit penuh 3287/3322 (35 gagal di modul lain, sama dengan sebelum task), uji layar 13/13 PASS (UAT-RP-20..23, R-RP-41 layar dengan kabar realtime asli, 409, akun tanpa Create, 390 px). Rework 2026-10-21 (RJ-PRI-DEC-040, tanggal lampau dinonaktifkan di kalender Ganti Tanggal dan Buat Reservasi): lint/build PASS, unit task 12/12, uji layar 3/3 PASS termasuk regresi BaseDateField modul lain — [laporan](../task/report/frontend/FE-RJP-009.md) |
+| Outcome | Detail reservasi menampilkan tombol Ganti Tanggal bila `canReschedule` dan izin `Create`. Dialognya berisi tanggal sekarang, tanggal baru (minimal hari ini), dan alasan 10–500 karakter. Setelah berhasil, dialog berganti ke panel link baru (dipakai ulang dari buat/kirim ulang). Riwayat `RESCHEDULED` menampilkan "{tanggal lama} → {tanggal baru}". Layar daftar memuat ulang bila `visitDate` atau `previousVisitDate` berada di rentang saringan. Dialog Batalkan memakai arahan baru |
+| Requirement/decision | `FR-RP-090`, `093` s.d. `095`; `RJ-PRI-DEC-034` s.d. `038`; `RJ-PRI-FE-003`, `005` |
+| Kontrak | `RJ-PRI-RESV-001@1.2.0`: `POST /{id}/reschedule`, `canReschedule`, `histories[].fromVisitDate`/`toVisitDate`, event `previousVisitDate` |
+| Reuse | `confirm-modal` (`requireReason`), `BaseDateField`, `PriorityReservationIssuedPanel`, pola aksi `REISSUE` di `use-priority-reservation-detail`, service dan slice reservasi, `toVisitDateValue` |
+| Cakupan | Service dan thunk `reschedule`, hook detail (aksi, isian tanggal, izin), dialog dan tombol di detail, baris riwayat, penyaring realtime di hook daftar, teks dialog batal, uji unit lapisan data |
+| Dependency | `FE-RJP-005` ✅, `BE-RJP-013` [BE] |
+| Acceptance criteria | `UAT-RP-20` s.d. `23` lewat layar. `R-RP-41` sisi layar: baris hilang dari layar tanggal lama tanpa muat ulang manual. 409 tampil di dialog, lalu detail dimuat ulang. Tombol tidak tampil untuk akun tanpa `Create` dan pada hari kunjungan. Link baru tidak tersisa di state setelah dialog ditutup |
+| Verifikasi | Lint dan build, uji unit lapisan data, uji layar Playwright lewat dev `3000` dengan route `7184 → 7185` |
+| Risiko/pemilik | Uji "hari kunjungan" butuh reservasi untuk hari ini, dan uji "sebelum hari kunjungan" butuh reservasi `H+n`. Keduanya disiapkan dengan data uji. Pemilik: Sukma Giri |
+| DoD | Kriteria terbukti; laporan `task/report/frontend/FE-RJP-009.md`; status roadmap dan traceability diperbarui |

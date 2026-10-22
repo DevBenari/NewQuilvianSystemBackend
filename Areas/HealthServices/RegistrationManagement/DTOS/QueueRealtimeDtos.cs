@@ -98,6 +98,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public DateTime VisitDate { get; set; }
 
+        /// <summary>
+        /// Tanggal kunjungan sebelum diganti, hanya pada <c>RESCHEDULED</c>, supaya layar yang
+        /// menyaring tanggal lama ikut memuat ulang (RJ-PRI-DEC-038).
+        /// </summary>
+        public DateTime? PreviousVisitDate { get; set; }
+
         public PriorityReservationStatus Status { get; set; }
 
         public string EventCode { get; set; } = string.Empty;

@@ -21,32 +21,58 @@ public enum NewbornRegistrationStatus
     Invalid,
     NotFound,
     Conflict,
-    BusinessRuleRejected
+    BusinessRuleRejected,
+
+    /// <summary>
+    /// <c>Staging</c> persis dengan guard reservasi nomor RSMMC yang tidak sah. Ditolak sebelum
+    /// alokasi nomor dan sebelum mutasi apa pun (`BE-PAT-MIG-003A`, `PAT-DEC-070`).
+    /// </summary>
+    ReservationGuardRejected
 }
 
 public sealed record NewbornRegistrationResult(
     NewbornRegistrationStatus Status,
     string Message,
-    NewbornPatientCreateResponse? Data = null);
+    NewbornPatientCreateResponse? Data = null,
+    RsmmcReservationGuardEvaluation? ReservationGuard = null);
 
 /// <summary>
 /// Membuat identitas pasien bayi dari satu kasus persalinan. Controller hanya meneruskan
 /// request; seluruh validasi, idempotency, alokasi urutan, dan transaksi dimiliki service ini.
 /// </summary>
+/// <remarks>
+/// Nomor bayi di luar <c>Staging</c> persis tetap dari deret <c>NumberSeries</c> milik service ini.
+/// Di <c>Staging</c> persis berlaku guard reservasi nomor migrasi RSMMC (`BE-PAT-MIG-003A`): guard
+/// aktif → <see cref="PatientIdentifierAllocationService.AllocateReservedAsync"/>, lantai dan kunci
+/// yang sama dengan pendaftaran normal; guard tidak sah → ditolak sebelum alokasi.
+/// </remarks>
 public sealed class NewbornPatientRegistrationService
 {
     private const string PatientCodeSequenceKey = "PATIENT_CODE";
     private const string MedicalRecordSequenceKey = "PATIENT_MEDICAL_RECORD";
+    private const string ReservationGuardRejectedMessage =
+        "Pendaftaran pasien bayi sedang tidak tersedia: perlindungan nomor pasien migrasi RSMMC belum aktif.";
     private readonly ApplicationDbContext _dbContext;
     private readonly NumberSeriesAllocator _numberSeriesAllocator;
+    private readonly PatientIdentifierAllocationService _identifierAllocationService;
 
     public NewbornPatientRegistrationService(
         ApplicationDbContext dbContext,
-        NumberSeriesAllocator numberSeriesAllocator)
+        NumberSeriesAllocator numberSeriesAllocator,
+        PatientIdentifierAllocationService identifierAllocationService)
     {
         _dbContext = dbContext;
         _numberSeriesAllocator = numberSeriesAllocator;
+        _identifierAllocationService = identifierAllocationService;
     }
+
+    /// <summary>
+    /// Cara alokasi nomor pendaftaran bayi untuk guard ini. Dipakai <see cref="RegisterAsync"/> dan
+    /// dilaporkan pemeriksa <c>PAT-GATE-005</c> sebagai <c>newbornPatientCreateProtected</c>
+    /// (`PAT-DEC-072`).
+    /// </summary>
+    public static RsmmcIdentifierAllocationMode ResolveIdentifierAllocationMode(RsmmcReservationGuardEvaluation guard) =>
+        RsmmcIdentifierReservationProfile.ResolveAllocationMode(guard);
 
     public async Task<NewbornRegistrationResult> RegisterAsync(
         CreateNewbornPatientRequest request,
@@ -72,6 +98,16 @@ public sealed class NewbornPatientRegistrationService
             return Invalid("Jenis kelamin bayi wajib dipilih.");
         if (request.BirthWeightGram is < 0 || request.BirthLengthCm is < 0)
             return Invalid("Berat dan panjang lahir tidak boleh bernilai negatif.");
+
+        // BE-PAT-MIG-003A: guard dinilai satu kali, sebelum basis data dibaca, dikunci, atau ditulis,
+        // lalu dipakai sampai alokasi supaya keputusan dan nomor berasal dari konfigurasi yang sama.
+        var reservationGuard = _identifierAllocationService.EvaluateGuard();
+        var allocationMode = ResolveIdentifierAllocationMode(reservationGuard);
+        if (allocationMode == RsmmcIdentifierAllocationMode.FailClosed)
+            return new NewbornRegistrationResult(
+                NewbornRegistrationStatus.ReservationGuardRejected,
+                ReservationGuardRejectedMessage,
+                ReservationGuard: reservationGuard);
 
         var normalizedKey = idempotencyKey.Trim();
         var keyHash = Sha256(normalizedKey);
@@ -167,8 +203,25 @@ public sealed class NewbornPatientRegistrationService
                 sequence.UpdateBy = actorUserId;
             }
 
-            var patientCode = await AllocatePatientCodeAsync(actorUserId, cancellationToken);
-            var medicalRecordNumber = await AllocateMedicalRecordNumberAsync(actorUserId, cancellationToken);
+            string patientCode;
+            string medicalRecordNumber;
+            if (allocationMode == RsmmcIdentifierAllocationMode.ReservedFloor)
+            {
+                // Staging persis, guard aktif: kunci (PATI, NORM) diambil di transaksi ini, sesudah
+                // kunci idempotency dan kasus — urutan yang tidak pernah dibalik jalur lain — dan
+                // dipegang sampai commit. Deret NumberSeries bayi tidak disentuh.
+                var allocation = await _identifierAllocationService.AllocateReservedAsync(
+                    reservationGuard,
+                    cancellationToken);
+                patientCode = allocation.PatientCode!;
+                medicalRecordNumber = allocation.MedicalRecordNumber!;
+            }
+            else
+            {
+                patientCode = await AllocatePatientCodeAsync(actorUserId, cancellationToken);
+                medicalRecordNumber = await AllocateMedicalRecordNumberAsync(actorUserId, cancellationToken);
+            }
+
             var motherName = NormalizeMotherName(mother.FullName);
 
             var patient = new MstPatient
@@ -222,7 +275,8 @@ public sealed class NewbornPatientRegistrationService
             return new NewbornRegistrationResult(
                 NewbornRegistrationStatus.Success,
                 "Pasien bayi berhasil didaftarkan.",
-                Map(patient, wasExisting: false));
+                Map(patient, wasExisting: false),
+                reservationGuard);
         }
         catch (OverflowException)
         {

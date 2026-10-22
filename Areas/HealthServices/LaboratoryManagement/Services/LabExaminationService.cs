@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -285,10 +286,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     "Pemeriksaan yang hasilnya sudah dirilis tidak dapat dibatalkan. Hasilnya hanya dapat diperbaiki lewat koreksi.");
             }
 
+            // VAL-155 (BE-LAB-97) — sesudah penjaga keadaan di atas, sebelum apa pun ditulis.
+            var alasan = LabCancellationReason.Require(request?.Reason)
+                ?? throw new LabExaminationValidationException(LabCancellationReason.MissingMessage);
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var statusSebelum = entity.ExaminationStatus;
-            var alasan = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
 
             entity.ExaminationStatus = LabExaminationStatus.Cancelled;
             entity.UpdateDateTime = now;
