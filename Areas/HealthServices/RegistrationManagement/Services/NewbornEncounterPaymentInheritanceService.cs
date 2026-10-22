@@ -150,6 +150,7 @@ public sealed class NewbornEncounterPaymentInheritanceService(
             IsPolicyActive = source.IsPolicyActive,
             Notes = source.Notes,
             EmployeeIdSnapshot = source.EmployeeIdSnapshot,
+            WorkforceProfileIdSnapshot = source.WorkforceProfileIdSnapshot,
             FamilyMemberIdSnapshot = source.FamilyMemberIdSnapshot,
             BenefitRelationshipSnapshot = source.BenefitRelationshipSnapshot,
             Priority = source.Priority,

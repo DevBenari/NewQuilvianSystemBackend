@@ -196,6 +196,7 @@ public sealed class FinanceReceivableMigrationService
                     OpeningItemBatchId = batch.Id,
                     DebtorType = FinReceivableDebtorTypes.EmployeeBenefit,
                     BenefitOwnerId = item.Employee.Id,
+                    BenefitOwnerWorkforceProfileId = item.Employee.WorkforceProfileId,
                     BenefitRelationship = item.Relationship,
                     OriginalAmount = item.OriginalAmount,
                     OutstandingAmount = item.OutstandingAmount,

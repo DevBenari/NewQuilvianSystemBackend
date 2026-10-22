@@ -110,6 +110,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         /// <summary>BE-FIN-105: tautan ke pegawai HR. Hanya-baca; tidak diterima pada request simpan kartu.</summary>
         public Guid? EmployeeId { get; set; }
 
+        /// <summary>Pemilik benefit (identitas utama; karyawan atau dokter tetap). Hanya-baca pada respons.</summary>
+        public Guid? BenefitOwnerWorkforceProfileId { get; set; }
+
+        /// <summary>EMPLOYEE atau DOCTOR. Hanya-baca.</summary>
+        public string? BenefitOwnerType { get; set; }
+
         /// <summary>BE-FIN-105: tautan ke anggota keluarga HR; kosong bila pegawai sendiri. Hanya-baca.</summary>
         public Guid? FamilyMemberId { get; set; }
 
@@ -351,6 +357,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         /// </summary>
         public Guid? EmployeeId { get; set; }
 
+        /// <summary>
+        /// Pemilik benefit berbasis MstWorkforceProfile.Id (karyawan atau dokter tetap) hasil pencarian pemilik benefit
+        /// gabungan. Identitas utama untuk kartu baru; EmployeeId tetap diterima untuk kompatibilitas. Jenis pemilik
+        /// dan kelayakan ditentukan backend, bukan klien.
+        /// </summary>
+        public Guid? BenefitOwnerWorkforceProfileId { get; set; }
+
         /// <summary>BE-FIN-106: anggota keluarga HR bila pasiennya bukan pegawai sendiri.</summary>
         public Guid? FamilyMemberId { get; set; }
 
@@ -359,6 +372,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         /// Properti ini ada hanya agar pengiriman nilainya dapat ditolak 400, bukan diam-diam diabaikan.
         /// </summary>
         public string? BenefitRelationship { get; set; }
+    }
+
+    /// <summary>
+    /// Registrasi meminta kartu penjamin internal (RS Benefit) untuk pasien. Hanya PatientId; semua data benefit
+    /// dibaca backend dari HR, bukan dikirim klien.
+    /// </summary>
+    public class EnsureInternalBenefitCardRequest
+    {
+        [Required]
+        public Guid PatientId { get; set; }
     }
 
     public class UpdatePatientCompanyGuarantorRequest : CreatePatientCompanyGuarantorRequest

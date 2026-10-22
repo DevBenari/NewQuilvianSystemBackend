@@ -125,6 +125,46 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
         /// <summary>Diisi pemanggil (adapter Billing/Registrasi) bila pembacaan HR melempar galat.</summary>
         public const string HrUnavailable = "HR_UNAVAILABLE";
+
+        // Pemilik benefit berbasis WorkforceProfileId (karyawan dan dokter tetap).
+
+        /// <summary>Profil SDM tidak ditemukan, sudah dihapus, atau tidak aktif.</summary>
+        public const string OwnerNotFound = "OWNER_NOT_FOUND";
+
+        /// <summary>Jenis SDM (mis. dokter tamu/mitra) tidak diizinkan oleh kebijakan benefit.</summary>
+        public const string OwnerTypeNotAllowed = "OWNER_TYPE_NOT_ALLOWED";
+
+        /// <summary>Data HR bertentangan: jenis SDM tidak sesuai dengan data karyawan/dokter yang ada.</summary>
+        public const string OwnerIdentityConflict = "OWNER_IDENTITY_CONFLICT";
+
+        /// <summary>EmployeeId dan WorkforceProfileId pada satu permintaan menunjuk orang yang berbeda.</summary>
+        public const string OwnerMismatch = "OWNER_MISMATCH";
+    }
+
+    /// <summary>
+    /// Jenis pemilik benefit. WorkforceProfileId adalah identitas pemilik; EmployeeId dan DoctorId hanya
+    /// identitas peran. Satu SDM yang berperan ganda tetap satu pemilik.
+    /// </summary>
+    public static class WorkforceBenefitOwnerTypes
+    {
+        public const string Employee = "EMPLOYEE";
+        public const string Doctor = "DOCTOR";
+    }
+
+    /// <summary>
+    /// Kebijakan jenis SDM yang boleh menjadi pemilik benefit. Selain Employee dan PermanentDoctor (dokter tetap),
+    /// jenis lain (dokter tamu, mitra, pengguna eksternal) TIDAK otomatis berhak; menambahkannya harus lewat
+    /// keputusan HR yang tertulis di sini, bukan di pemanggil.
+    /// </summary>
+    public static class WorkforceBenefitOwnerPolicy
+    {
+        public static readonly IReadOnlySet<QuilvianSystemBackend.Enums.UserType> AllowedUserTypes =
+            new HashSet<QuilvianSystemBackend.Enums.UserType>
+            {
+                QuilvianSystemBackend.Enums.UserType.Employee,
+                QuilvianSystemBackend.Enums.UserType.PermanentDoctor,
+                QuilvianSystemBackend.Enums.UserType.GuestDoctor
+            };
     }
 
     /// <summary>Status verifikasi tanggungan yang dilihat Registrasi (FIN-INTEGRATION-1.9 R.2.2).</summary>

@@ -96,6 +96,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Serv
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 // BE-FIN-093: Perjanjian cicilan piutang manfaat karyawan (FIN-DES-099).
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PatientRefund.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
@@ -401,6 +402,7 @@ try
     // using-nya sudah ada — nol dotnet build pernah membuktikannya, karena build sukses tidak
     // membuktikan DI terselesaikan saat runtime. Dicatat di laporan task, TIDAK diperbaiki di sini
     // untuk service lain — di luar cakupan BE-FIN-093.
+    builder.Services.AddScoped<FinancePatientRefundService>();
     builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
     // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
     builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
@@ -946,6 +948,9 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.ExitClearanceService>();
 
     // BE-FIN-103 (FIN-API-1.10 R.1, R.2): enrollment dan tanggungan benefit pegawai.
+    // Resolver pemilik benefit berbasis WorkforceProfileId (karyawan dan dokter tetap); dipakai Enrollment,
+    // Eligibility, Registrasi, Billing, dan Finance.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.WorkforceBenefitOwnerResolver>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();

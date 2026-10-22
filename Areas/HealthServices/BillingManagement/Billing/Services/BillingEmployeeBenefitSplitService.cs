@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
@@ -13,7 +14,13 @@ public sealed class EmployeeBenefitSplitCalculationResult
     public bool IsEmployeeBenefitVisit { get; set; }
     public string FinancingChoice { get; set; } = "EMPLOYEE_BENEFIT";
     public Guid? CompanyGuarantorId { get; set; }
+    /// <summary>MstEmployee.Id (snapshot lama); kosong untuk dokter tetap tanpa data karyawan.</summary>
     public Guid? EmployeeId { get; set; }
+
+    /// <summary>Identitas canonical pemilik benefit (WorkforceProfileId). Dipakai handoff Billing dan Finance.</summary>
+    public Guid? WorkforceProfileId { get; set; }
+    public string? OwnerType { get; set; }
+    public string? OwnerName { get; set; }
     public Guid? FamilyMemberId { get; set; }
     public string? RelationshipCode { get; set; }
     public string? ConsentGivenBy { get; set; }
@@ -24,8 +31,12 @@ public sealed class EmployeeBenefitSplitCalculationResult
     public decimal GrossAmount { get; set; }
     public decimal PayerAmount { get; set; } // P = min(C, S)
     public decimal ExcessAmount { get; set; } // E = C - P
+    public decimal ExcessPaidAmount { get; set; } // bagian E yang sudah dibayar langsung (BENEFIT_EXCESS)
+    public decimal ExcessRemainingAmount { get; set; } // E sisa = E - ExcessPaidAmount
+    /// <summary>OVER_ALLOWANCE / PATIENT_PORTION / MIXED (lihat BillingEmployeeArOrigins); kosong bila D = 0.</summary>
+    public string? EmployeeArOrigin { get; set; }
     public decimal ChoiceAmount { get; set; } // D (backward-compatible)
-    public decimal RemainingPatientObligation { get; set; } // E + K
+    public decimal RemainingPatientObligation { get; set; } // E sisa + K
     public decimal EmployeeDeferredAmount { get; set; } // D
     public decimal DirectPayAmount { get; set; } // (E + K) - D
     public decimal EmployeeReceivableAmount { get; set; } // D (hanya nominal yang ditangguhkan)
@@ -45,17 +56,66 @@ public sealed class BillingEmployeeBenefitSplitService
     private readonly ApplicationDbContext _dbContext;
     private readonly EmployeeBenefitBalanceService _balanceService;
     private readonly LoggerService _loggerService;
+    private readonly WorkforceBenefitOwnerResolver _ownerResolver;
 
     public EmployeeBenefitBalanceService BalanceService => _balanceService;
 
     public BillingEmployeeBenefitSplitService(
         ApplicationDbContext dbContext,
         EmployeeBenefitBalanceService balanceService,
-        LoggerService loggerService)
+        LoggerService loggerService,
+        WorkforceBenefitOwnerResolver? ownerResolver = null)
     {
         _dbContext = dbContext;
         _balanceService = balanceService;
         _loggerService = loggerService;
+        _ownerResolver = ownerResolver ?? new WorkforceBenefitOwnerResolver(dbContext);
+    }
+
+    /// <summary>
+    /// Total kelebihan plafon (E) yang sudah dibayar langsung pada invoice: alokasi BENEFIT_EXCESS bersih setelah reversal.
+    /// Target ini sengaja terpisah dari INVOICE agar tidak ikut dibaca sebagai pembayaran sisa tagihan K.
+    /// </summary>
+    public async Task<decimal> GetPaidBenefitExcessAsync(Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var net = await _dbContext.BilPaymentAllocations.AsNoTracking()
+            .Where(x => x.TargetType == BillingAllocationTargetTypes.BenefitExcess
+                && x.TargetId == invoiceId && !x.IsDelete)
+            .SumAsync(
+                x => (decimal?)(x.ReversesAllocationId.HasValue ? -x.Amount : x.Amount),
+                cancellationToken) ?? 0m;
+        return Math.Max(net, 0m);
+    }
+
+    /// <summary>
+    /// Sisa kelebihan plafon (E sisa) yang boleh dibayar langsung lewat settlement baru, dibaca dari HR saat ini.
+    /// Nol (gagal tertutup) untuk kunjungan non-benefit, pilihan GENERAL_SELF_PAY, atau bila benefit tidak dapat dipakai
+    /// (HR tidak terbaca, plafon tidak aktif, dst.). Tidak pernah melempar ke pemanggil: kegagalan berarti "tidak ada E".
+    /// </summary>
+    public async Task<decimal> GetOpenBenefitExcessAsync(
+        BilInvoice invoice,
+        BilCalculationVersion calculation,
+        decimal patientOutstanding,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await EvaluateSplitAsync(
+                invoice,
+                calculation,
+                patientOutstanding,
+                choiceAmount: 0m,
+                consentGivenBy: null,
+                isFinalizing: false,
+                cancellationToken);
+            return result is { Response.IsUsable: true }
+                ? Math.Max(result.Response.ExcessRemainingAmount, 0m)
+                : 0m;
+        }
+        catch (BillingFinalizationValidationException)
+        {
+            return 0m;
+        }
     }
 
     /// <summary>
@@ -93,7 +153,8 @@ public sealed class BillingEmployeeBenefitSplitService
 
         var benefitGuarantor = guarantors.FirstOrDefault(x =>
             (x.CompanyGuarantor != null && x.CompanyGuarantor.IsEmployeeBenefitGuarantor)
-            || x.EmployeeIdSnapshot.HasValue);
+            || x.EmployeeIdSnapshot.HasValue
+            || x.WorkforceProfileIdSnapshot.HasValue);
 
         if (benefitGuarantor == null)
         {
@@ -129,8 +190,9 @@ public sealed class BillingEmployeeBenefitSplitService
             };
         }
 
-        // Penjaga FIN-DEC-230: Kartu internal harus ditautkan ke data HR
-        if (!benefitGuarantor.EmployeeIdSnapshot.HasValue)
+        // Penjaga FIN-DEC-230: Kartu internal harus ditautkan ke data HR (pemilik benefit: WorkforceProfileId pada
+        // snapshot baru, atau EmployeeId pada snapshot lama; dokter tetap hanya memiliki yang pertama).
+        if (!benefitGuarantor.EmployeeIdSnapshot.HasValue && !benefitGuarantor.WorkforceProfileIdSnapshot.HasValue)
         {
             if (isFinalizing)
             {
@@ -151,12 +213,24 @@ public sealed class BillingEmployeeBenefitSplitService
             };
         }
 
-        var employee = await _dbContext.MstEmployees.AsNoTracking()
-            .Where(x => x.Id == benefitGuarantor.EmployeeIdSnapshot.Value)
-            .Select(x => new { x.FullName, x.EmployeeNumber })
-            .FirstOrDefaultAsync(cancellationToken);
+        // Pemilik dibaca lewat WorkforceProfileId; transaksi lama (hanya EmployeeIdSnapshot) diterjemahkan ke Workforce
+        // tanpa mengubah snapshot histori. Pemilik tidak aktif tetap dikenali untuk nama, dan alasan blokirnya
+        // diberikan pembacaan plafon di bawah.
+        var ownerProfileId = benefitGuarantor.WorkforceProfileIdSnapshot
+            ?? (benefitGuarantor.EmployeeIdSnapshot.HasValue
+                ? await _dbContext.MstEmployees.AsNoTracking()
+                    .Where(x => x.Id == benefitGuarantor.EmployeeIdSnapshot.Value)
+                    .Select(x => (Guid?)x.WorkforceProfileId)
+                    .FirstOrDefaultAsync(cancellationToken)
+                : null);
+        WorkforceBenefitOwner? owner = null;
+        if (ownerProfileId.HasValue)
+        {
+            var owners = await _ownerResolver.ResolveManyAsync(new[] { ownerProfileId.Value }, cancellationToken);
+            owners.TryGetValue(ownerProfileId.Value, out owner);
+        }
 
-        var employeeName = employee?.FullName ?? benefitGuarantor.EmployeeNameSnapshot;
+        var employeeName = owner?.StaffName ?? benefitGuarantor.EmployeeNameSnapshot;
         var relationshipCode = benefitGuarantor.BenefitRelationshipSnapshot ?? "SELF";
 
         // Baca saldo plafon otoritatif dari HR (R.3.1 / INT-BIL-HR-001)
@@ -166,7 +240,8 @@ public sealed class BillingEmployeeBenefitSplitService
         {
             balanceResult = await _balanceService.ReadAsync(new BenefitBalanceReadRequest
             {
-                EmployeeId = benefitGuarantor.EmployeeIdSnapshot.Value,
+                WorkforceProfileId = ownerProfileId,
+                EmployeeId = benefitGuarantor.EmployeeIdSnapshot ?? Guid.Empty,
                 FamilyMemberId = benefitGuarantor.FamilyMemberIdSnapshot,
                 AsOfDate = asOfDate
             }, cancellationToken);
@@ -187,6 +262,9 @@ public sealed class BillingEmployeeBenefitSplitService
                 {
                     IsEmployeeBenefitVisit = true,
                     BenefitOwnerName = employeeName,
+                    BenefitOwnerWorkforceProfileId = ownerProfileId,
+                    BenefitOwnerType = owner?.OwnerType,
+                    BenefitOwnerStaffNumber = owner?.StaffNumber,
                     RelationshipCode = relationshipCode,
                     IsUsable = false,
                     BlockingReasonCode = "HR_UNAVAILABLE",
@@ -212,6 +290,9 @@ public sealed class BillingEmployeeBenefitSplitService
                 {
                     IsEmployeeBenefitVisit = true,
                     BenefitOwnerName = employeeName,
+                    BenefitOwnerWorkforceProfileId = ownerProfileId,
+                    BenefitOwnerType = owner?.OwnerType,
+                    BenefitOwnerStaffNumber = owner?.StaffNumber,
                     RelationshipCode = relationshipCode,
                     IsUsable = false,
                     BlockingReasonCode = balanceResult.ReasonCode ?? "BENEFIT_NOT_USABLE",
@@ -235,7 +316,43 @@ public sealed class BillingEmployeeBenefitSplitService
         var rsBenefitAmount = Math.Min(coveredByRuleAmount, remainingAllowanceAmount); // P
         var excessOverAllowanceAmount = coveredByRuleAmount - rsBenefitAmount; // E
         var patientPortionAmount = patientOutstanding; // K
-        var totalRemainingPatientObligation = excessOverAllowanceAmount + patientPortionAmount; // E + K
+
+        // E yang sudah dibayar langsung lewat tender (alokasi BENEFIT_EXCESS). E dihitung ulang dari HR setiap kali;
+        // bila plafon berubah sehingga E baru lebih kecil dari yang sudah dibayar, jangan memutar uang diam-diam:
+        // blokir finalisasi sampai selisihnya dikoreksi/direfund lewat jalur yang sah.
+        var excessPaidAmount = await GetPaidBenefitExcessAsync(invoice.Id, cancellationToken);
+        if (excessPaidAmount > excessOverAllowanceAmount)
+        {
+            var overpaidMessage =
+                $"Pembayaran kelebihan plafon (Rp {excessPaidAmount:N0}) melebihi kelebihan plafon yang dihitung ulang dari HR " +
+                $"(Rp {excessOverAllowanceAmount:N0}); plafon benefit berubah setelah pembayaran. Koreksi atau refund selisihnya sebelum finalisasi.";
+            if (isFinalizing)
+                throw new BillingFinalizationValidationException(overpaidMessage);
+
+            return new EmployeeBenefitSplitCalculationResult
+            {
+                IsEmployeeBenefitVisit = true,
+                BenefitPersonKind = balanceResult.BenefitPersonKind,
+                BenefitPersonId = balanceResult.BenefitPersonId,
+                Response = new EmployeeBenefitSplitResponse
+                {
+                    IsEmployeeBenefitVisit = true,
+                    BenefitOwnerName = employeeName,
+                    BenefitOwnerWorkforceProfileId = ownerProfileId,
+                    BenefitOwnerType = owner?.OwnerType,
+                    BenefitOwnerStaffNumber = owner?.StaffNumber,
+                    RelationshipCode = relationshipCode,
+                    ExcessOverAllowanceAmount = excessOverAllowanceAmount,
+                    ExcessPaidAmount = excessPaidAmount,
+                    IsUsable = false,
+                    BlockingReasonCode = "BENEFIT_EXCESS_OVERPAID",
+                    BlockingMessage = overpaidMessage
+                }
+            };
+        }
+
+        var excessRemainingAmount = excessOverAllowanceAmount - excessPaidAmount; // E sisa
+        var totalRemainingPatientObligation = excessRemainingAmount + patientPortionAmount; // E sisa + K
 
         var deferredD = employeeDeferredAmount ?? choiceAmount;
 
@@ -265,17 +382,34 @@ public sealed class BillingEmployeeBenefitSplitService
         var employeeReceivableAmount = deferredD;
         var cashAtCashierAmount = directPayAmount;
 
+        // Asal piutang karyawan: D seluruhnya berasal dari E sisa (OVER_ALLOWANCE), seluruhnya dari sisa tagihan pasien
+        // (PATIENT_PORTION), atau campuran. Hanya diisi bila ada yang ditangguhkan.
+        string? employeeArOrigin = null;
+        if (deferredD > 0)
+        {
+            employeeArOrigin = excessRemainingAmount <= 0
+                ? BillingEmployeeArOrigins.PatientPortion
+                : deferredD <= excessRemainingAmount
+                    ? BillingEmployeeArOrigins.OverAllowance
+                    : BillingEmployeeArOrigins.Mixed;
+        }
+
         var response = new EmployeeBenefitSplitResponse
         {
             IsEmployeeBenefitVisit = true,
             FinancingChoice = "EMPLOYEE_BENEFIT",
             BenefitOwnerName = employeeName,
+            BenefitOwnerWorkforceProfileId = balanceResult.WorkforceProfileId ?? ownerProfileId,
+            BenefitOwnerType = balanceResult.OwnerType ?? owner?.OwnerType,
+            BenefitOwnerStaffNumber = owner?.StaffNumber,
             RelationshipCode = relationshipCode,
             GrossAmount = calculation.GrossAmount,
             CoveredByRuleAmount = coveredByRuleAmount,
             RemainingAllowanceAmount = remainingAllowanceAmount,
             RsBenefitAmount = rsBenefitAmount,
             ExcessOverAllowanceAmount = excessOverAllowanceAmount,
+            ExcessPaidAmount = excessPaidAmount,
+            ExcessRemainingAmount = excessRemainingAmount,
             PatientPortionAmount = patientPortionAmount,
             RemainingPatientObligation = totalRemainingPatientObligation,
             DirectPayAmount = directPayAmount,
@@ -294,7 +428,10 @@ public sealed class BillingEmployeeBenefitSplitService
             IsEmployeeBenefitVisit = true,
             FinancingChoice = "EMPLOYEE_BENEFIT",
             CompanyGuarantorId = benefitGuarantor.CompanyGuarantorId,
-            EmployeeId = benefitGuarantor.EmployeeIdSnapshot.Value,
+            EmployeeId = benefitGuarantor.EmployeeIdSnapshot,
+            WorkforceProfileId = balanceResult.WorkforceProfileId ?? ownerProfileId,
+            OwnerType = balanceResult.OwnerType ?? owner?.OwnerType,
+            OwnerName = employeeName,
             FamilyMemberId = benefitGuarantor.FamilyMemberIdSnapshot,
             RelationshipCode = relationshipCode,
             ConsentGivenBy = consentGivenBy?.Trim(),
@@ -304,6 +441,9 @@ public sealed class BillingEmployeeBenefitSplitService
             GrossAmount = calculation.GrossAmount,
             PayerAmount = rsBenefitAmount,
             ExcessAmount = excessOverAllowanceAmount,
+            ExcessPaidAmount = excessPaidAmount,
+            ExcessRemainingAmount = excessRemainingAmount,
+            EmployeeArOrigin = employeeArOrigin,
             RemainingPatientObligation = totalRemainingPatientObligation,
             EmployeeDeferredAmount = deferredD,
             DirectPayAmount = directPayAmount,

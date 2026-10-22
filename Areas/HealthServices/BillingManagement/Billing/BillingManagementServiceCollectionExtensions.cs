@@ -32,6 +32,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();
         services.AddScoped<BillingDiscountService>();
         services.AddScoped<BillingDepositService>();
+        services.AddScoped<BillingEncounterPaymentHistoryService>();
         services.AddScoped<BillingDepositOrderService>();
         services.AddScoped<BillingAllocationService>();
         services.AddScoped<BillingSettlementService>();

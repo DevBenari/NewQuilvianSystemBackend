@@ -16,8 +16,16 @@ public sealed class FinReceivableConfiguration : IEntityTypeConfiguration<FinRec
             // FIN-VAL-011: nilai asli piutang selalu seimbang.
             table.HasCheckConstraint("CK_FinReceivable_Balance",
                 "\"OriginalAmount\" = \"OutstandingAmount\" + \"AllocatedAmount\" + \"AdjustedAmount\" + \"WrittenOffAmount\"");
+            // Pemilik manfaat: MstEmployee.Id lama (BenefitOwnerId) dan/atau WorkforceProfileId canonical; dokter tetap
+            // hanya membawa yang kedua. Baris non-EMPLOYEE_BENEFIT wajib kosong keduanya.
             table.HasCheckConstraint("CK_FinReceivable_BenefitOwner",
-                "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NOT NULL) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL)");
+                "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND (\"BenefitOwnerId\" IS NOT NULL OR \"BenefitOwnerWorkforceProfileId\" IS NOT NULL)) " +
+                "OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL AND \"BenefitOwnerWorkforceProfileId\" IS NULL)");
+            // Piutang benefit internal hanyalah baris PAYER; asal piutang karyawan hanya untuk EMPLOYEE_BENEFIT.
+            table.HasCheckConstraint("CK_FinReceivable_InternalBenefit",
+                "\"IsInternalBenefit\" = false OR \"DebtorType\" = 'PAYER'");
+            table.HasCheckConstraint("CK_FinReceivable_EmployeeArOrigin",
+                "\"EmployeeArOrigin\" IS NULL OR (\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"EmployeeArOrigin\" IN ('OVER_ALLOWANCE','PATIENT_PORTION','MIXED'))");
             // BE-FIN-079, FIN-DES-093: baris Billing (tiga kolom asal) XOR baris migrasi (OpeningItemBatchId).
             table.HasCheckConstraint("CK_FinReceivable_OpeningItem",
                 "(\"SourceHandoffKey\" IS NOT NULL AND \"SourceHandoffId\" IS NOT NULL AND \"InvoiceId\" IS NOT NULL AND \"OpeningItemBatchId\" IS NULL) " +
@@ -28,6 +36,9 @@ public sealed class FinReceivableConfiguration : IEntityTypeConfiguration<FinRec
         entity.Property(x => x.ReceivableNumber).HasMaxLength(50).IsRequired();
         entity.Property(x => x.DebtorType).HasMaxLength(30).IsRequired();
         entity.Property(x => x.BenefitRelationship).HasMaxLength(50);
+        entity.Property(x => x.BenefitOwnerWorkforceProfileId).IsRequired(false);
+        entity.Property(x => x.IsInternalBenefit).IsRequired().HasDefaultValue(false);
+        entity.Property(x => x.EmployeeArOrigin).HasMaxLength(30).IsRequired(false);
         entity.Property(x => x.OriginalAmount).HasPrecision(18, 2);
         entity.Property(x => x.OutstandingAmount).HasPrecision(18, 2);
         entity.Property(x => x.AllocatedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
@@ -55,6 +66,9 @@ public sealed class FinReceivableConfiguration : IEntityTypeConfiguration<FinRec
             .OnDelete(DeleteBehavior.Restrict);
 
         entity.HasIndex(x => x.ReceivableNumber).IsUnique().HasFilter("\"IsDelete\" = false").HasDatabaseName("IX_FinReceivable_ReceivableNumber");
+        entity.HasIndex(x => x.BenefitOwnerWorkforceProfileId)
+            .HasFilter("\"BenefitOwnerWorkforceProfileId\" IS NOT NULL")
+            .HasDatabaseName("IX_FinReceivable_BenefitOwnerWorkforceProfileId");
         // BE-FIN-079: filter ditambah "SourceHandoffKey IS NOT NULL" supaya baris migrasi (kolom ini
         // NULL) tidak ikut diuji keunikannya — idempotensi intake Billing tetap terjaga.
         entity.HasIndex(x => x.SourceHandoffKey).IsUnique().HasFilter("\"IsDelete\" = false AND \"SourceHandoffKey\" IS NOT NULL").HasDatabaseName("IX_FinReceivable_SourceHandoffKey");

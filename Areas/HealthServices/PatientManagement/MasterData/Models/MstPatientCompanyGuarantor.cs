@@ -86,8 +86,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         // penjamin internal. Ketiganya kosong untuk kartu biasa. Hanya-baca bagi klien; diisi
         // layanan kelayakan (BE-FIN-106). Kolom sensitif: tidak boleh masuk log.
 
-        /// <summary>MstEmployee.Id pegawai pemilik benefit.</summary>
+        /// <summary>
+        /// MstEmployee.Id pegawai pemilik benefit. Referensi kompatibilitas/historis: kosong untuk dokter tetap
+        /// yang tidak punya data karyawan dan tidak pernah berisi DoctorId.
+        /// </summary>
         public Guid? EmployeeId { get; set; }
+
+        /// <summary>
+        /// MstWorkforceProfile.Id pemilik benefit (identitas utama, karyawan atau dokter tetap). Kartu lama yang
+        /// hanya membawa EmployeeId tetap sah dan diterjemahkan lewat resolver Workforce.
+        /// </summary>
+        public Guid? BenefitOwnerWorkforceProfileId { get; set; }
+
+        /// <summary>EMPLOYEE atau DOCTOR; jenis pemilik benefit pada saat kartu ditautkan (tampilan).</summary>
+        [MaxLength(20)]
+        public string? BenefitOwnerType { get; set; }
 
         /// <summary>WfpFamilyMember.Id bila pasiennya anggota keluarga; kosong bila pegawai sendiri.</summary>
         public Guid? FamilyMemberId { get; set; }
