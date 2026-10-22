@@ -40,7 +40,7 @@ Bila dokumen ini berbeda dari roadmap sub-modul, **roadmap yang berlaku**. Letak
 
 | Sub-modul | Backend (V1 & V2) | Frontend | Sisa Backend |
 |---|---|---|:---:|
-| `episode-rawat-inap` | 49 dari 49 ✅ (V1: 40, V2: 9) | 24 dari 28 | **0 task (100% Selesai)** |
+| `episode-rawat-inap` | 49 dari 49 ✅ (V1: 40, V2: 9) | 24 selesai, 1 dibatalkan (`FE-RWI-060`), 3 tersisa (`FE-RWI-035` 🟡, `FE-RWI-059` 🟡, `FE-RWI-061` 🟡) | **0 task (100% Selesai)** |
 | `dokter-rawat-inap` | 38 dari 38 ✅ (V1: 20, V2: 18) | 9 dari 9 ✅ | **0 task (100% Selesai)** |
 | `keperawatan` | 33 dari 33 ✅ (V1: 12, V2: 21) | 6 dari 6 ✅ | **0 task (100% Selesai)** |
 | `integrasi-billing` | 8 dari 8 ✅ (`BE-RWI-127`..`134`) | 0 dari 6 | **0 task (100% Selesai)** |
@@ -56,7 +56,7 @@ Bila dokumen ini berbeda dari roadmap sub-modul, **roadmap yang berlaku**. Letak
 
 ---
 
-## 4. Kelompok A — enam task yang belum selesai
+## 4. Kelompok A — Task yang Belum Selesai / Status Terkini
 
 ### 4.1 Satu task sebagian
 
@@ -73,36 +73,32 @@ Bila dokumen ini berbeda dari roadmap sub-modul, **roadmap yang berlaku**. Letak
 **Keduanya bukan pekerjaan koding pada task ini.** Kriteria 1 menunggu data pada lingkungan
 target; kriteria 5 menunggu kontrak hak akses per butir dari backend.
 
+> **Ketetapan Pemilik (22 Oktober 2026 — `RWI-DEC-354`):**
+> Verifikasi alur admisi tidak mencakup transaksi kasir atau metode pembayaran (`PaymentMethodId`). Pengisian nominal rencana deposit di admisi sudah tuntas dan terbukti benar (`FE-RWI-058` / `FE-INP-20`). Pengisian saldo fisik deposit dan transaksi kasir berada di Kasir (Billing Management).
+
 ### 4.2 Status Task Tertahan Deposit & Clearance
 
 `BE-BKC-039` dan `BE-BKC-040` telah selesai di `BillingManagement` (`BillingDepositService`). Berdasarkan hal tersebut, task backend `BE-RWI-071` dan `BE-RWI-072` telah selesai diimplementasikan secara penuh pada 17 September 2026.
 
-| Task | Status | Keterangan Pembaruan 17 September 2026 |
+| Task | Status | Keterangan Pembaruan 17 September & 22 Oktober 2026 |
 |---|---|---|
 | ✅ `BE-RWI-071` | ✅ **SELESAI** | Selesai 17 September 2026. Endpoint `GET /monitoring/deposit-shortfall` terpasang di `InpatientMonitoringController`, DTO query & paged result lengkap di `InpatientMonitoringDtos.cs`, logika monitoring terpasang di `InpCensusQueryService.GetDepositShortfallAsync`, dan adapter `IInpBillingDepositAdapter` fail-safe terintegrasi ke `BillingDepositService`. |
 | ✅ `BE-RWI-072` | ✅ **SELESAI** | Selesai 17 September 2026. Validasi kelayakan keuangan otoritatif terpasang di `InpDischargeService.Closure.cs` (`MarkFinancialClearanceAsync`) via `IInpBillingDepositAdapter`, menolak status `Cleared` jika ada kekurangan tagihan, ada kelebihan deposit yang belum direfund, atau jika Billing offline. |
 | 🟡 `FE-RWI-059` | Tertahan Frontend | Backend `BE-BKC-039` (`GET /deposit-policies`) sudah tersedia di backend; pekerjaan frontend menunggu alokasi task UI. |
+| ⛔ `FE-RWI-060` | ⛔ **DIBATALKAN** | **Dibatalkan 22 Oktober 2026 (`RWI-DEC-354`).** Pengisian saldo deposit sesungguhnya, penentuan metode pembayaran (`PaymentMethodId`), dan pemanggilan `POST /patient-funds/deposits/{encounterId}/top-ups` berada di Kasir (Billing Management). Di admisi hanya mengisi nominal deposit saja tanpa metode pembayaran, dan implementasinya saat ini sudah selesai serta benar (`FE-RWI-058`). |
 | 🟡 `FE-RWI-061` | Tertahan Frontend | Backend `BE-BKC-040` (`GET /deposits/episodes/{episodeId}`) sudah tersedia di backend; pekerjaan frontend menunggu alokasi task UI. |
 
 
-#### 🟡 `FE-RWI-060` — tertahan hal yang berbeda, dan ini temuan baru
+#### ⛔ `FE-RWI-060` — DIBATALKAN (22 Oktober 2026 — `RWI-DEC-354`)
 
-Kartu roadmap task ini berbunyi *"Backend-nya sudah siap apa adanya — lihat `RWI-FACT-018`"*.
-**Pernyataan itu tidak akurat.**
+Task ini **resmi dibatalkan** atas arahan langsung pemilik (Muhammad Hamzah).
 
-| Hal | Keadaan sebenarnya |
+| Hal | Ketetapan Bisnis Otoritatif |
 |---|---|
-| Route `POST /patient-funds/deposits/{encounterId}/top-ups` | **Ada**, di `BillingPatientFundsController.cs:93` |
-| Badan permintaannya `DepositTopUpRequest` | Menuntut **`PaymentMethodId`** bertipe `Guid` **non-nullable** dan **`Reason`** ber-`[Required]` |
-| Alur admisi rawat inap | **Nol** mengenal `paymentMethodId` — pencarian pada seluruh hook dan view `inpatient-management` mengembalikan nol hasil |
-
-Baik scope `FE-RWI-060` maupun `FE-RWI-058` tidak menyediakan cara menangkap metode
-pembayaran. Mengirim `Guid.Empty` atau memilih metode secara otomatis berarti **mencatat uang
-atas metode yang tidak pernah dipilih petugas**, jadi nol baris ditulis.
-
-**Yang dibutuhkan pemilik:** memutuskan di mana metode pembayaran ditangkap. Menambahkannya ke
-langkah Deposit menuntut perubahan kriteria 4 `FE-RWI-058`, yang hari ini melarang langkah itu
-mengirim permintaan jaringan apa pun.
+| Kepemilikan Transaksi Deposit | **Kasir (Billing Management)**, bukan Admisi Rawat Inap. |
+| Alur Admisi Rawat Inap | **Hanya mengisi nominal rencana deposit saja** (`FE-RWI-058` / `FE-INP-20`). Alur ini tidak mengenal dan tidak memerlukan metode bayar (`PaymentMethodId`). |
+| Status Kode Saat Ini | Pengisian nominal rencana deposit di admisi **sudah benar dan tidak perlu diubah lagi**. |
+| Route `POST /top-ups` | Tidak dipanggil dari wizard pendaftaran rawat inap; mutasi saldo dan kwitansi dilakukan di kasir saat keluarga pasien melakukan pembayaran fisik. |
 
 ---
 

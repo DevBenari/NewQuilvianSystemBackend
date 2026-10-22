@@ -146,6 +146,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     }
 
     /// <summary>
+    /// Ringkasan kelengkapan berkas admisi Workspace PPRI (BE-RWI-243, kamus data 23.3).
+    /// </summary>
+    public class AdmissionDocumentsSummaryDto
+    {
+        public Guid EpisodeId { get; set; }
+
+        /// <summary>Jumlah dokumen admisi wajib: 4 (General Consent, Serah Terima, Selisih Biaya, Deposit).</summary>
+        public int TotalRequiredDocuments { get; set; } = 4;
+
+        public int CompletedDocumentsCount { get; set; }
+
+        public bool IsAllCompleted { get; set; }
+
+        public List<string> PendingDocumentNames { get; set; } = new();
+    }
+
+    /// <summary>
     /// Bentuk balasan satu episode rawat inap.
     /// </summary>
     /// <remarks>
@@ -162,6 +179,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public BedReservationResponse? TransferReservation { get; set; }
         public QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos.DepositResponse? TransferDeposit { get; set; }
         public QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos.DepositOrderSummaryDto? DepositPaymentOrder { get; set; }
+        public AdmissionDocumentsSummaryDto? AdmissionDocumentsSummary { get; set; }
         public BedOperationMeta? OperationMeta { get; set; } public int Version { get; set; }
         public Guid Id { get; set; }
 

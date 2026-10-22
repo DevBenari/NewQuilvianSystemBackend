@@ -29,11 +29,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [Range(0, int.MaxValue)] public int ExpectedVersion { get; set; }
     }
 
-    /// <summary>Terima atau tolak beralasan (<c>PATCH /{id}/accept</c>).</summary>
+    /// <summary>Butir rekonsiliasi obat saat serah terima klinis transfer (BE-RWI-242, kamus data 23.2).</summary>
+    public class MedicationReconciliationItemDto
+    {
+        [Required, MaxLength(150)]
+        public string MedicationName { get; set; } = string.Empty;
+
+        [Required, MaxLength(50)]
+        public string Dosage { get; set; } = string.Empty;
+
+        [Required, MaxLength(50)]
+        public string Route { get; set; } = string.Empty;
+
+        public DateTime? LastAdministeredAt { get; set; }
+
+        /// <summary>Tindakan: "Continue", "Hold", "Discontinue".</summary>
+        [Required, MaxLength(20)]
+        public string Action { get; set; } = "Continue";
+
+        [MaxLength(250)]
+        public string? Notes { get; set; }
+    }
+
+    /// <summary>Terima atau tolak beralasan (<c>PATCH /{id}/accept</c>) dengan penetapan PPJA &amp; rekonsiliasi obat (BE-RWI-242).</summary>
     public class AcceptTransferHandoverRequest
     {
         public bool Accept { get; set; } = true;
         [MaxLength(1000)] public string? RejectionReason { get; set; }
+        [MaxLength(1000)] public string? Notes { get; set; }
+
+        /// <summary>Wajib diisi saat menerima serah terima transfer (CLI-TRH-001).</summary>
+        public Guid? AssignedNurseId { get; set; }
+
+        public List<MedicationReconciliationItemDto>? MedicationReconciliations { get; set; }
         [Range(0, int.MaxValue)] public int ExpectedVersion { get; set; }
     }
 
@@ -45,6 +73,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public TransferHandoverPainSnapshot? Pain { get; set; }
         public TransferHandoverFallRiskSnapshot? FallRisk { get; set; }
         public TransferHandoverFluidBalanceSnapshot? FluidBalance { get; set; }
+        public List<MedicationReconciliationItemDto>? MedicationReconciliations { get; set; }
+        public string? AcceptanceNotes { get; set; }
     }
 
     public class TransferHandoverVitalSnapshot
@@ -101,8 +131,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid PatientId { get; set; }
         public string PatientName { get; set; } = string.Empty;
         public string? MedicalRecordNumber { get; set; }
-        public Guid FromPlacementId { get; set; }
-        public Guid ToPlacementId { get; set; }
+        public Guid? FromPlacementId { get; set; }
+        public Guid? ToPlacementId { get; set; }
         public Guid FromServiceUnitId { get; set; }
         public string? FromServiceUnitName { get; set; }
         public Guid ToServiceUnitId { get; set; }
@@ -124,5 +154,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public DateTime? ReceivedAt { get; set; }
         public string? RejectionReason { get; set; }
         public int Version { get; set; }
+
+        public Guid? AssignedNurseId { get; set; }
+        public string? AssignedNurseName { get; set; }
+        public string? AssignedRole { get; set; }
+        public string? Notes { get; set; }
+        public List<MedicationReconciliationItemDto>? MedicationReconciliations { get; set; }
     }
 }

@@ -32,7 +32,12 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Clini
             builder.Property(x => x.RejectionReason).HasMaxLength(1000);
             builder.Property(x => x.Version).IsRequired().HasDefaultValue(0).IsConcurrencyToken();
 
-            builder.HasIndex(x => x.ToPlacementId, "UX_CliTransferHandover_ToPlacement").IsUnique();
+            builder.Property(x => x.FromPlacementId).IsRequired(false);
+            builder.Property(x => x.ToPlacementId).IsRequired(false);
+
+            builder.HasIndex(x => x.ToPlacementId, "UX_CliTransferHandover_ToPlacement")
+                .IsUnique()
+                .HasFilter("\"ToPlacementId\" IS NOT NULL");
             builder.HasIndex(x => new { x.InpEpisodeId, x.Status }, "IX_CliTransferHandover_Episode_Status");
             builder.HasIndex(x => new { x.ToServiceUnitId, x.Status }, "IX_CliTransferHandover_ToUnit_Status");
             builder.HasIndex(x => x.FromPlacementId);
@@ -41,9 +46,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Clini
             builder.HasOne(x => x.Episode).WithMany().HasForeignKey(x => x.InpEpisodeId)
                 .OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.FromPlacement).WithMany().HasForeignKey(x => x.FromPlacementId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
             builder.HasOne(x => x.ToPlacement).WithMany().HasForeignKey(x => x.ToPlacementId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
             builder.HasOne(x => x.FromServiceUnit).WithMany().HasForeignKey(x => x.FromServiceUnitId)
                 .OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.ToServiceUnit).WithMany().HasForeignKey(x => x.ToServiceUnitId)

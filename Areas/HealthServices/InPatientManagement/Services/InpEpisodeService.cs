@@ -1411,6 +1411,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
+            // BE-RWI-243: Ringkasan kelengkapan berkas admisi Workspace PPRI secara non-blocking
+            try
+            {
+                var admissionDocs = await _dbContext.Set<InpAdmissionDocument>()
+                    .AsNoTracking()
+                    .Where(x => x.EpisodeId == episodeId && !x.IsDelete)
+                    .Select(x => new { x.DocumentType, x.Status })
+                    .ToListAsync(cancellationToken);
+
+                var completedTypes = admissionDocs
+                    .Where(x => x.Status == InpAdmissionDocumentStatus.Completed)
+                    .Select(x => x.DocumentType)
+                    .ToHashSet();
+
+                var pendingNames = new List<string>();
+
+                // 1. General Consent
+                if (!completedTypes.Contains(InpAdmissionDocumentType.GeneralConsent))
+                    pendingNames.Add("General Consent");
+
+                // 2. Formulir Serah Terima Pasien Baru
+                if (!completedTypes.Contains(InpAdmissionDocumentType.NewPatientHandover))
+                    pendingNames.Add("Checklist Serah Terima Pasien Baru");
+
+                // 3. Surat Pernyataan Selisih Biaya
+                if (!completedTypes.Contains(InpAdmissionDocumentType.CostDifferenceStatement))
+                    pendingNames.Add("Surat Pernyataan Selisih Biaya");
+
+                // 4. Bukti Pelunasan Deposit
+                var hasCompletedDepositDoc = completedTypes.Contains(InpAdmissionDocumentType.DepositSettlementStatement);
+                var depositOrderPending = detail.DepositPaymentOrder != null && detail.DepositPaymentOrder.OutstandingAmount > 0;
+                if (!hasCompletedDepositDoc && depositOrderPending)
+                {
+                    pendingNames.Add("Bukti Pelunasan Deposit");
+                }
+
+                var totalRequired = 4;
+                var completedCount = totalRequired - pendingNames.Count;
+                if (completedCount < 0) completedCount = 0;
+
+                detail.AdmissionDocumentsSummary = new AdmissionDocumentsSummaryDto
+                {
+                    EpisodeId = episodeId,
+                    TotalRequiredDocuments = totalRequired,
+                    CompletedDocumentsCount = completedCount,
+                    IsAllCompleted = pendingNames.Count == 0,
+                    PendingDocumentNames = pendingNames
+                };
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Non-blocking: kegagalan penghitungan dokumen admisi tidak pernah menggagalkan detail episode
+                detail.AdmissionDocumentsSummary = new AdmissionDocumentsSummaryDto
+                {
+                    EpisodeId = episodeId,
+                    TotalRequiredDocuments = 4,
+                    CompletedDocumentsCount = 0,
+                    IsAllCompleted = false,
+                    PendingDocumentNames = ["General Consent", "Checklist Serah Terima Pasien Baru", "Surat Pernyataan Selisih Biaya", "Bukti Pelunasan Deposit"]
+                };
+            }
+
             if (warnings != null && warnings.Count > 0)
             {
                 detail.Warnings.AddRange(warnings);
