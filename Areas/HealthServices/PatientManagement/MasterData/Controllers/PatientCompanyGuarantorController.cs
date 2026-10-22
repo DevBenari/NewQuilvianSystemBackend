@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.DT
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -43,12 +44,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private readonly LoggerService _loggerService;
         private readonly PatientPayerCardImageService _cardImageService;
         private readonly RegistrationEmployeeBenefitLookupService _employeeBenefitLookup;
+        private readonly IPatientWorkforceIdentityResolver? _workforceResolver;
 
         public PatientCompanyGuarantorController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             PatientPayerCardImageService cardImageService,
-            RegistrationEmployeeBenefitLookupService? employeeBenefitLookup = null)
+            RegistrationEmployeeBenefitLookupService? employeeBenefitLookup = null,
+            IPatientWorkforceIdentityResolver? workforceResolver = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -56,6 +59,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             _employeeBenefitLookup = employeeBenefitLookup
                 ?? new RegistrationEmployeeBenefitLookupService(
                     dbContext, new EmployeeBenefitEligibilityService(dbContext), loggerService);
+            _workforceResolver = workforceResolver;
         }
 
         [HttpGet("filters/metadata")]
@@ -611,6 +615,162 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             [FromBody] CreatePatientCompanyGuarantorRequest request)
         {
             return await CreatePatientCompanyGuarantor(request);
+        }
+
+        /// <summary>
+        /// Registrasi memilih "Gunakan Benefit Karyawan": pakai kartu penjamin internal aktif milik pasien, atau buat
+        /// otomatis dari benefit aktif di HR. Eligibility, kecocokan NIK, tautan HR, dan kode hubungan tetap diperiksa
+        /// oleh jalur pembuatan kartu yang sama (<see cref="CreatePatientCompanyGuarantor"/>); klien tidak mengirim
+        /// satu pun data benefit. Hanya pasien yang terdeteksi sebagai pegawai/dokter sendiri yang dibuatkan kartu;
+        /// anggota keluarga tetap harus didaftarkan manual. Hak akses diatur admin lewat Akses Role (kemampuan
+        /// "CreateInternalBenefitCard"), bukan KioskRead.
+        /// </summary>
+        [HttpPost("internal-benefit-card")]
+        [AccessAction(
+            "CreateInternalBenefitCard",
+            "Create Internal Benefit Card",
+            Description = "Menyiapkan kartu penjamin internal (RS Benefit) pasien dari benefit aktif di HR saat registrasi",
+            AccessType = AccessTypes.Create,
+            SortOrder = 3
+        )]
+        [AccessPermission("PatientCompanyGuarantor", "CreateInternalBenefitCard")]
+        [ProducesResponseType(typeof(ApiResponse<PatientCompanyGuarantorCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        public async Task<IActionResult> EnsureInternalBenefitCard(
+            [FromBody] EnsureInternalBenefitCardRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (_workforceResolver is null)
+            {
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, ApiResponse<object>.Fail(
+                    StatusCodes.Status503ServiceUnavailable,
+                    "Layanan pemeriksaan identitas HR tidak tersedia."));
+            }
+
+            PatientWorkforceStatusResponse status;
+            try
+            {
+                status = await _workforceResolver.ResolveStatusAsync(request.PatientId, cancellationToken);
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+            }
+
+            if (status.RequiresReview || status.IdentityStatus == WorkforceIdentityStatuses.Conflict)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Identitas HR pasien sedang berstatus konflik atau membutuhkan review manual. Benefit Karyawan tidak dapat digunakan."));
+            }
+
+            if (!status.IsBenefitEligible || !status.BenefitOwnerWorkforceProfileId.HasValue)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    string.IsNullOrWhiteSpace(status.Message)
+                        ? "Pasien belum memenuhi syarat Benefit Karyawan."
+                        : status.Message));
+            }
+
+            // Kartu penjamin internal aktif yang sudah ada dipakai ulang; tidak membuat kartu ganda.
+            var existingCardId = await _dbContext.Set<MstPatientCompanyGuarantor>().AsNoTracking()
+                .Where(x => x.PatientId == request.PatientId
+                    && !x.IsDelete && !x.IsCancel && x.IsActive
+                    && x.CompanyGuarantor != null
+                    && x.CompanyGuarantor.IsEmployeeBenefitGuarantor
+                    && x.CompanyGuarantor.IsActive && !x.CompanyGuarantor.IsDelete)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingCardId.HasValue)
+            {
+                return Ok(ApiResponse<PatientCompanyGuarantorCreateResponse>.Ok(
+                    await BuildCreateResponseAsync(existingCardId.Value),
+                    "Kartu penjamin internal pasien sudah ada."));
+            }
+
+            if (status.PersonCategory is not (PersonCategories.Employee or PersonCategories.Doctor or PersonCategories.DoctorEmployee))
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Kartu penjamin internal anggota keluarga harus didaftarkan manual lewat Daftarkan Penjamin Baru."));
+            }
+
+            var today = AppDateTimeHelper.OperationalDate();
+            // Benefit Karyawan bukan asuransi dan tidak bergantung pada penjamin eksternal. Penjamin internal hanyalah
+            // pembawa teknis di model data (kunjungan, kasir, dan piutang membacanya), jadi bila belum ada, sistem
+            // menyiapkannya sendiri. Penjamin yang sudah ada (nonaktif/kontrak lewat) tidak diubah diam-diam.
+            var internalCompany = await FindInternalBenefitCompanyAsync(cancellationToken)
+                ?? await ProvisionInternalBenefitCompanyAsync(cancellationToken);
+
+            if (!internalCompany.IsActive || internalCompany.IsCancel)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Penjamin internal \"{internalCompany.CompanyGuarantorName}\" tidak aktif. " +
+                    "Admin perlu mengaktifkannya di Master Data Penjamin Perusahaan; hanya satu penjamin yang boleh bertanda internal."));
+            }
+
+            if (internalCompany.ContractStartDate.HasValue && internalCompany.ContractStartDate.Value.Date > today.Date)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Kontrak penjamin internal \"{internalCompany.CompanyGuarantorName}\" baru berlaku mulai {internalCompany.ContractStartDate.Value:dd MMM yyyy}. " +
+                    "Admin perlu memperbarui tanggal kontraknya di Master Data Penjamin Perusahaan."));
+            }
+
+            if (internalCompany.ContractEndDate.HasValue && internalCompany.ContractEndDate.Value.Date < today.Date)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    $"Kontrak penjamin internal \"{internalCompany.CompanyGuarantorName}\" sudah berakhir pada {internalCompany.ContractEndDate.Value:dd MMM yyyy}. " +
+                    "Admin perlu memperbarui tanggal kontraknya di Master Data Penjamin Perusahaan."));
+            }
+
+            var eligibility = await _employeeBenefitLookup.CheckEligibilityAsync(
+                status.BenefitOwnerWorkforceProfileId, null, null, today, cancellationToken);
+            if (!eligibility.IsEligible)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    string.IsNullOrWhiteSpace(eligibility.Message)
+                        ? "Pasien belum memenuhi syarat Benefit Karyawan."
+                        : eligibility.Message));
+            }
+
+            var hasPrimary = await _dbContext.Set<MstPatientCompanyGuarantor>().AsNoTracking()
+                .AnyAsync(x => x.PatientId == request.PatientId && x.IsPrimary && x.IsActive && !x.IsDelete, cancellationToken);
+
+            static string? Cut(string? value, int max) =>
+                string.IsNullOrWhiteSpace(value) ? null : (value.Length <= max ? value : value[..max]);
+
+            var createRequest = new CreatePatientCompanyGuarantorRequest
+            {
+                PatientId = request.PatientId,
+                CompanyGuarantorId = internalCompany.Id,
+                EmployeeNumber = Cut(eligibility.OwnerStaffNumber ?? status.StaffNumber, 100) ?? string.Empty,
+                EmployeeName = Cut(eligibility.OwnerName ?? status.BenefitOwnerName, 200),
+                DepartmentName = Cut(status.OrganizationUnitName, 100),
+                PositionName = Cut(status.PositionName, 100),
+                BenefitPlanCode = Cut(eligibility.PlanCode, 100),
+                BenefitPlanName = Cut(eligibility.PlanName, 150),
+                // Tanggal berlaku sengaja dikosongkan: masa berlaku benefit dijaga pemeriksaan HR langsung saat registrasi
+                // dan kasir. Menyalin tanggal enrollment (UTC tengah malam WIB) ke kolom date menggeser hari terakhir
+                // ke hari sebelumnya, dan salinannya basi bila HR mengubah periode enrollment.
+                IsPrimary = !hasPrimary,
+                IsEligible = true,
+                LastEligibilityCheckAt = DateTime.UtcNow,
+                EligibilityNote = "Dibuat otomatis dari benefit aktif di HR saat registrasi.",
+                IsNeedGuaranteeLetter = false,
+                IsNeedEmployeeVerification = false,
+                BenefitOwnerWorkforceProfileId = status.BenefitOwnerWorkforceProfileId
+            };
+
+            return await CreatePatientCompanyGuarantor(createRequest);
         }
 
 
@@ -1737,6 +1897,97 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
             }
 
             return value.Value;
+        }
+
+        private sealed record InternalBenefitCompanyRow(
+            Guid Id,
+            string CompanyGuarantorName,
+            bool IsActive,
+            bool IsCancel,
+            DateTime? ContractStartDate,
+            DateTime? ContractEndDate);
+
+        /// <summary>
+        /// Indeks unik UX_MstCompanyGuarantor_EmployeeBenefit: paling banyak satu penjamin bertanda internal yang belum
+        /// dihapus, sehingga penjamin yang nonaktif atau kontraknya lewat tetap menempati satu-satunya slot itu.
+        /// </summary>
+        private async Task<InternalBenefitCompanyRow?> FindInternalBenefitCompanyAsync(CancellationToken cancellationToken)
+        {
+            var rows = await _dbContext.Set<MstCompanyGuarantor>().AsNoTracking()
+                .Where(x => x.IsEmployeeBenefitGuarantor && !x.IsDelete)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.CompanyGuarantorName,
+                    x.IsActive,
+                    x.IsCancel,
+                    x.ContractStartDate,
+                    x.ContractEndDate
+                })
+                .ToListAsync(cancellationToken);
+
+            return rows
+                .OrderByDescending(x => x.IsActive && !x.IsCancel)
+                .Select(x => new InternalBenefitCompanyRow(
+                    x.Id, x.CompanyGuarantorName, x.IsActive, x.IsCancel, x.ContractStartDate, x.ContractEndDate))
+                .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Membuat penjamin internal sistem ("Benefit Karyawan RS") saat belum ada satu pun yang bertanda internal.
+        /// Tanpa kontrak, tanpa surat jaminan, dan tanpa batasan grade: kelayakan dan plafon sepenuhnya dari HR.
+        /// Dua permintaan bersamaan dijaga indeks unik; yang kalah memakai baris pemenang.
+        /// </summary>
+        private async Task<InternalBenefitCompanyRow> ProvisionInternalBenefitCompanyAsync(CancellationToken cancellationToken)
+        {
+            const string systemCode = "SYS-RS-BENEFIT";
+
+            var codeTaken = await _dbContext.Set<MstCompanyGuarantor>().AsNoTracking()
+                .AnyAsync(x => x.CompanyGuarantorCode == systemCode, cancellationToken);
+
+            var entity = new MstCompanyGuarantor
+            {
+                Id = Guid.NewGuid(),
+                CompanyGuarantorCode = codeTaken ? $"{systemCode}-{DateTime.UtcNow:yyyyMMddHHmmss}" : systemCode,
+                CompanyGuarantorName = "Benefit Karyawan RS",
+                GuarantorType = "Other",
+                BillingMethod = "Invoice",
+                IsUsingHospitalTariff = true,
+                IsUsingCompanyTariffBook = false,
+                IsNeedGuaranteeLetter = false,
+                IsNeedEmployeeVerification = false,
+                IsNeedApprovalForProcedure = false,
+                IsNeedApprovalForDrug = false,
+                IsCoverageLimitedByEmployeeGrade = false,
+                IsAllowExcessPaymentByPatient = true,
+                IsEmployeeBenefitGuarantor = true,
+                Description = "Dibuat otomatis oleh sistem untuk Benefit Karyawan. Bukan asuransi dan bukan perusahaan eksternal.",
+                IsActive = true,
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = GetCurrentUserId()
+            };
+
+            _dbContext.Set<MstCompanyGuarantor>().Add(entity);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                _dbContext.Entry(entity).State = EntityState.Detached;
+                var winner = await FindInternalBenefitCompanyAsync(cancellationToken);
+                if (winner is null) throw;
+                return winner;
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientCompanyGuarantor.ProvisionInternalBenefitCompany",
+                "Penjamin internal Benefit Karyawan dibuat otomatis oleh sistem.",
+                new { entity.Id, entity.CompanyGuarantorCode });
+
+            return new InternalBenefitCompanyRow(entity.Id, entity.CompanyGuarantorName, true, false, null, null);
         }
 
         private Guid GetCurrentUserId()

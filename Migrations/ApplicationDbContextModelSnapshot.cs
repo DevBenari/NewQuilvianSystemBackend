@@ -14599,8 +14599,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("TrxEmployeeBenefitEnrollment", "public", t =>
                         {
                             t.HasCheckConstraint("CK_TrxEmployeeBenefitEnrollment_Balance", "\"UsedAmount\" >= 0 AND \"RemainingAmount\" >= 0");
-
-                            t.HasCheckConstraint("CK_TrxEmployeeBenefitEnrollment_MakerChecker", "\"ApprovedByUserId\" IS NULL OR \"SubmittedByUserId\" IS NULL OR \"ApprovedByUserId\" <> \"SubmittedByUserId\"");
                         });
                 });
 

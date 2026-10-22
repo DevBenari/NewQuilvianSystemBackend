@@ -374,6 +374,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public string? BenefitRelationship { get; set; }
     }
 
+    /// <summary>
+    /// Registrasi meminta kartu penjamin internal (RS Benefit) untuk pasien. Hanya PatientId; semua data benefit
+    /// dibaca backend dari HR, bukan dikirim klien.
+    /// </summary>
+    public class EnsureInternalBenefitCardRequest
+    {
+        [Required]
+        public Guid PatientId { get; set; }
+    }
+
     public class UpdatePatientCompanyGuarantorRequest : CreatePatientCompanyGuarantorRequest
     {
         public bool IsActive { get; set; } = true;

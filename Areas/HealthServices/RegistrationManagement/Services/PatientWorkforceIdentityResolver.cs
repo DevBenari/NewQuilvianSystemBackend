@@ -295,7 +295,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     response.BenefitStatus = "NOT_ELIGIBLE";
                     response.Message = $"{response.DoctorKind} tidak memiliki kepesertaan benefit karyawan HR.";
                 }
-                else if (!response.IsBenefitEligible && response.BenefitStatus == BenefitEligibilityReasonCodes.EnrollmentNotActive)
+                else if (!response.IsBenefitEligible
+                         && response.BenefitStatus == BenefitEligibilityReasonCodes.EnrollmentNotActive
+                         // Pesan spesifik dari pemeriksaan HR (jenis benefit bukan layanan RS, belum diaktifkan, dsb.)
+                         // dipertahankan; teks khusus dokter hanya menggantikan pesan umum bawaan.
+                         && response.Message == QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services
+                             .EmployeeBenefitEligibilityService.MessageFor(BenefitEligibilityReasonCodes.EnrollmentNotActive))
                 {
                     response.Message = "Enrollment benefit Medical dokter ini belum aktif di HR. Benefit tidak dapat dipakai sampai HR mengaktifkannya.";
                 }

@@ -60,7 +60,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             var covering = enrollments
                 .Where(x => Covers(x.Enrollment.EffectiveStartDate, x.Enrollment.EffectiveEndDate, serviceDay))
                 .ToList();
-            if (covering.Count == 0) return Fail(BenefitEligibilityReasonCodes.EnrollmentNotActive);
+            if (covering.Count == 0)
+            {
+                // Kode alasan tetap ENROLLMENT_NOT_ACTIVE (kontrak pemanggil tidak berubah); hanya pesannya yang
+                // dibuat spesifik agar petugas tahu benefit apa yang ada dan mengapa tidak terbaca.
+                var message = enrollments.Count > 0
+                    ? PeriodMismatchMessage(enrollments.Select(x => x.BenefitPlanName))
+                    : await DescribeMissingServiceEnrollmentAsync(employee.WorkforceProfileId, cancellationToken);
+                return new BenefitEligibilityResult
+                {
+                    ReasonCode = BenefitEligibilityReasonCodes.EnrollmentNotActive,
+                    Message = message
+                };
+            }
             if (covering.Count > 1) return Fail(BenefitEligibilityReasonCodes.EnrollmentAmbiguous);
 
             var active = covering[0];
@@ -461,6 +473,51 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         internal static bool IsDependentUsable(TrxEmployeeBenefitDependent d) =>
             !d.IsDelete && d.IsActive && d.IsEligible && d.IsCovered
             && d.DependentStatus == EmployeeBenefitDependentStatuses.Verified;
+
+        private const string GeneralFallbackHint = "Daftarkan sebagai Pasien Umum atau hubungi HR.";
+
+        private static string PeriodMismatchMessage(IEnumerable<string> planNames) =>
+            $"Benefit layanan RS ({string.Join(", ", planNames.Distinct())}) sudah aktif, tetapi masa berlakunya tidak mencakup tanggal layanan. {GeneralFallbackHint}";
+
+        /// <summary>
+        /// Tidak ada enrollment Active yang dibaca sebagai benefit layanan RS (kategori Medical, tidak berbasis klaim).
+        /// Cari tahu alasan paling mungkin dari enrollment pemilik yang masih terbuka agar pesannya menunjuk penyebab nyata:
+        /// jenis benefit bukan layanan RS, atau enrollment belum diaktifkan.
+        /// </summary>
+        private async Task<string> DescribeMissingServiceEnrollmentAsync(Guid workforceProfileId, CancellationToken cancellationToken)
+        {
+            var open = await (from e in _dbContext.TrxEmployeeBenefitEnrollments.AsNoTracking()
+                              join plan in _dbContext.MstBenefitPlans.AsNoTracking() on e.BenefitPlanId equals plan.Id
+                              join type in _dbContext.MstBenefitTypes.AsNoTracking() on plan.BenefitTypeId equals type.Id
+                              where !e.IsDelete
+                                    && e.WorkforceProfileId == workforceProfileId
+                                    && EmployeeBenefitEnrollmentStatuses.Open.Contains(e.EnrollmentStatus)
+                              select new
+                              {
+                                  e.EnrollmentNumber,
+                                  e.EnrollmentStatus,
+                                  plan.BenefitPlanName,
+                                  type.BenefitCategory,
+                                  type.IsClaimBased
+                              })
+                             .ToListAsync(cancellationToken);
+
+            var activeNotService = open.FirstOrDefault(x => x.EnrollmentStatus == EmployeeBenefitEnrollmentStatuses.Active);
+            if (activeNotService is not null)
+            {
+                var reason = activeNotService.IsClaimBased
+                    ? "jenis benefitnya berbasis klaim"
+                    : $"kategori jenis benefitnya \"{activeNotService.BenefitCategory}\", bukan \"{BenefitServiceCategories.Medical}\"";
+                return $"Pegawai memiliki benefit aktif ({activeNotService.BenefitPlanName}), tetapi bukan benefit layanan RS karena {reason}. " +
+                       "HR perlu mengatur Jenis Benefit menjadi kategori Medical dan tidak berbasis klaim. " + GeneralFallbackHint;
+            }
+
+            var pending = open.FirstOrDefault();
+            if (pending is not null)
+                return $"Enrollment benefit {pending.EnrollmentNumber} ({pending.BenefitPlanName}) masih berstatus {pending.EnrollmentStatus} dan belum diaktifkan HR. {GeneralFallbackHint}";
+
+            return MessageFor(BenefitEligibilityReasonCodes.EnrollmentNotActive);
+        }
 
         public static string MessageFor(string reasonCode) => reasonCode switch
         {

@@ -98,6 +98,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public decimal CoverageLimitAmount { get; set; }
         public decimal UsedAmount { get; set; }
         public int MaximumDependents { get; set; }
+        /// <summary>
+        /// Batas plafon plan saat ini (read-only). Hanya informasi sebelum enrollment diaktifkan; nilai yang berlaku
+        /// tetap <see cref="CoverageLimitAmount"/>, yang disalin dari plan saat aktivasi (FIN-DEC-207).
+        /// </summary>
+        public decimal? PlanCoverageLimitAmount { get; set; }
+        /// <summary>Maksimum tanggungan plan saat ini (read-only); disalin ke <see cref="MaximumDependents"/> saat aktivasi.</summary>
+        public int? PlanMaximumDependents { get; set; }
+        /// <summary>Kategori jenis benefit plan (mis. Medical, Other). Hanya Medical yang tidak berbasis klaim terbaca sebagai benefit layanan RS.</summary>
+        public string? BenefitCategory { get; set; }
+        public bool IsClaimBased { get; set; }
         public bool IsMedicalServiceBenefit { get; set; }
         public bool IsWithinEffectivePeriod { get; set; }
         public string? Notes { get; set; }

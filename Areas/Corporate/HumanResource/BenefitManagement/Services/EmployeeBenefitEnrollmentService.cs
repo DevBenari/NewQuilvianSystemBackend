@@ -394,14 +394,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 return Task.CompletedTask;
             }, cancellationToken);
 
-        /// <summary>FIN-VAL-271: penyetuju berbeda dari pengaju (service + CK_..._MakerChecker).</summary>
+        /// <summary>
+        /// SEMENTARA: pengaju boleh menyetujui pengajuannya sendiri (FIN-VAL-271 maker-checker dinonaktifkan,
+        /// service dan CK_TrxEmployeeBenefitEnrollment_MakerChecker) sampai ada keputusan bisnis tentang
+        /// persetujuan berjenjang. Pemulihan aturan membutuhkan perubahan service dan migration.
+        /// </summary>
         public Task<EmployeeBenefitEnrollmentResponse> ApproveAsync(
             Guid id, EnrollmentTransitionRequest request, Guid actorUserId, CancellationToken cancellationToken) =>
             TransitionAsync(id, request.RowVersion, actorUserId, "Enrollment.Approved", e =>
             {
                 RequireStatus(e, "disetujui", EmployeeBenefitEnrollmentStatuses.Submitted);
-                if (e.SubmittedByUserId.HasValue && e.SubmittedByUserId.Value == actorUserId)
-                    throw new EmployeeBenefitForbiddenException("Pengaju tidak boleh menyetujui pengajuannya sendiri.");
                 e.EnrollmentStatus = EmployeeBenefitEnrollmentStatuses.Approved;
                 e.ApprovedAt = DateTime.UtcNow;
                 e.ApprovedByUserId = actorUserId;
@@ -561,7 +563,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 UsedAmount = e.UsedAmount,
                 RemainingAmount = e.RemainingAmount,
                 MaximumDependents = e.MaximumDependents,
+                PlanCoverageLimitAmount = plan?.CoverageLimitAmount,
+                PlanMaximumDependents = plan?.MaximumDependents,
                 ActiveDependentCount = e.ActiveDependentCount,
+                BenefitCategory = type?.BenefitCategory,
+                IsClaimBased = type?.IsClaimBased ?? false,
                 IsMedicalServiceBenefit = type is not null && type.BenefitCategory == BenefitServiceCategories.Medical && !type.IsClaimBased,
                 IsWithinEffectivePeriod = (!e.EffectiveStartDate.HasValue || e.EffectiveStartDate.Value <= today)
                                           && (!e.EffectiveEndDate.HasValue || e.EffectiveEndDate.Value >= today),
@@ -632,8 +638,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     actions.AddRange(new[] { EmployeeBenefitActions.Update, EmployeeBenefitActions.Submit, EmployeeBenefitActions.Cancel });
                     break;
                 case EmployeeBenefitEnrollmentStatuses.Submitted:
-                    if (e.SubmittedByUserId != actorUserId) actions.Add(EmployeeBenefitActions.Approve);
-                    actions.Add(EmployeeBenefitActions.Cancel);
+                    // Maker-checker (FIN-VAL-271) dinonaktifkan sementara: pengaju boleh menyetujui sendiri.
+                    actions.AddRange(new[] { EmployeeBenefitActions.Approve, EmployeeBenefitActions.Cancel });
                     break;
                 case EmployeeBenefitEnrollmentStatuses.Approved:
                     actions.AddRange(new[] { EmployeeBenefitActions.Activate, EmployeeBenefitActions.Cancel });
