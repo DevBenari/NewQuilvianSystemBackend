@@ -8,7 +8,9 @@ public sealed class FinalizeInvoiceRequest
     [MaxLength(30)] public string? DepartureReason { get; set; }
     [MaxLength(200)] public string? DebtorIdentity { get; set; }
     [MaxLength(100)] public string? DebtorRelationship { get; set; }
-    [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
+
+    /// <summary>Alasan finalisasi (opsional). Kosong disimpan sebagai string kosong karena kolom DB NOT NULL.</summary>
+    [MaxLength(500)] public string? Reason { get; set; }
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
 

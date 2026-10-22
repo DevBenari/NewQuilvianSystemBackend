@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
@@ -375,6 +378,41 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
+            // Penelusuran ke Billing dan Finance untuk baris pada halaman ini saja (maksimal 50): invoice dan kunjungan,
+            // tahap serah terima ke Finance (fakta masuk + piutang), dan AR karyawan pada invoice yang sama. Hanya baca.
+            var invoiceIds = rows.Select(x => x.m.InvoiceId).Distinct().ToList();
+            var handoffKeys = rows.Select(x => x.m.SourceHandoffKey).Distinct().ToList();
+
+            var invoiceInfo = (await (
+                    from inv in _dbContext.BilInvoices.AsNoTracking()
+                    join enc in _dbContext.RegPatientEncounters.AsNoTracking() on inv.EncounterId equals enc.Id
+                    where invoiceIds.Contains(inv.Id)
+                    select new { inv.Id, inv.Status, enc.EncounterNumber })
+                .ToListAsync(cancellationToken))
+                .ToDictionary(x => x.Id);
+
+            var intakeStatusByKey = (await _dbContext.FinBillingHandoffIntakes.AsNoTracking()
+                    .Where(x => !x.IsDelete && x.HandoffType == FinBillingHandoffTypes.Ar
+                        && handoffKeys.Contains(x.SourceHandoffKey))
+                    .Select(x => new { x.SourceHandoffKey, x.Status, x.CreateDateTime })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(x => x.SourceHandoffKey)
+                .ToDictionary(group => group.Key, group => group.OrderByDescending(x => x.CreateDateTime).First().Status);
+
+            var recognizedKeys = (await _dbContext.FinReceivables.AsNoTracking()
+                    .Where(x => !x.IsDelete && x.SourceHandoffKey != null && handoffKeys.Contains(x.SourceHandoffKey.Value))
+                    .Select(x => x.SourceHandoffKey!.Value)
+                    .ToListAsync(cancellationToken))
+                .ToHashSet();
+
+            var employeeArByInvoice = (await _dbContext.BilArHandoffs.AsNoTracking()
+                    .Where(x => !x.IsDelete && x.DebtorType == BillingArDebtorTypes.EmployeeBenefit
+                        && invoiceIds.Contains(x.InvoiceId))
+                    .Select(x => new { x.InvoiceId, x.Amount })
+                    .ToListAsync(cancellationToken))
+                .GroupBy(x => x.InvoiceId)
+                .ToDictionary(group => group.Key, group => group.Sum(x => x.Amount));
+
             return new PagedResult<BenefitMovementResponse>
             {
                 PageNumber = pageNumber,
@@ -383,6 +421,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                 TotalPage = (int)Math.Ceiling(total / (double)pageSize),
                 Items = rows.Select(x => new BenefitMovementResponse
                 {
+                    EncounterNumber = invoiceInfo.TryGetValue(x.m.InvoiceId, out var info) ? info.EncounterNumber : null,
+                    InvoiceStatus = info?.Status,
+                    SourceHandoffKey = x.m.SourceHandoffKey,
+                    FinanceStage = ArHandoffFinanceStages.Derive(
+                        intakeStatusByKey.TryGetValue(x.m.SourceHandoffKey, out var intakeStatus) ? intakeStatus : null,
+                        recognizedKeys.Contains(x.m.SourceHandoffKey)),
+                    EmployeeArAmount = employeeArByInvoice.TryGetValue(x.m.InvoiceId, out var employeeAr) ? employeeAr : 0m,
+                    ActorUserId = x.m.ActorUserId,
                     Id = x.m.Id,
                     MovementType = x.m.MovementType,
                     BenefitPersonKind = x.m.BenefitPersonKind,

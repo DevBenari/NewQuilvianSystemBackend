@@ -220,7 +220,7 @@ public sealed class BillingFinalizationService
                 request.DepartureReason,
                 request.DebtorIdentity,
                 request.DebtorRelationship,
-                request.Reason,
+                NormalizeFinalizeReason(request.Reason),
                 idempotencyKey,
                 payloadHash,
                 request.CorrelationId,
@@ -586,6 +586,9 @@ public sealed class BillingFinalizationService
             {
                 if (_calculationService is not null)
                 {
+                    var primaryBeforeRefresh = calculation.PrimaryAmount;
+                    var patientBeforeRefresh = calculation.PatientAmount;
+
                     await _calculationService.RecalculateAsync(
                         invoice.Id,
                         new RecalculateInvoiceRequest
@@ -600,6 +603,18 @@ public sealed class BillingFinalizationService
                     calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
                         .SingleAsync(x => x.InvoiceId == invoice.Id
                             && x.VersionNo == invoice.CurrentCalculationVersion && !x.IsDelete, cancellationToken);
+
+                    // Penyelesaian ini dikonfirmasi kasir atas angka yang tampil di layar. Bila penyegaran mengubah porsi
+                    // penjamin atau porsi pasien, angka yang akan difinalisasi bukan lagi angka yang dikonfirmasi:
+                    // tolak (transaksi, termasuk penyegaran ini, dibatalkan) dan minta kasir memuat ulang dan
+                    // mengonfirmasi ulang. Penyegaran yang tidak mengubah angka tetap berjalan seperti sebelumnya.
+                    if (calculation.PrimaryAmount != primaryBeforeRefresh || calculation.PatientAmount != patientBeforeRefresh)
+                        throw new BillingFinalizationBlockedException(
+                            "Perhitungan cakupan berubah saat penyelesaian (porsi penjamin "
+                            + $"Rp {primaryBeforeRefresh:N0} menjadi Rp {calculation.PrimaryAmount:N0}, porsi pasien "
+                            + $"Rp {patientBeforeRefresh:N0} menjadi Rp {calculation.PatientAmount:N0}). "
+                            + "Hitung ulang cakupan, periksa rincian terbaru, lalu konfirmasi kembali.",
+                            await BuildReadinessAsync(invoice, cancellationToken));
                 }
             }
 
@@ -1266,9 +1281,8 @@ public sealed class BillingFinalizationService
             throw new BillingFinalizationValidationException("Identitas pengguna tidak valid.");
         if (request.ExpectedRowVersion == Guid.Empty)
             throw new BillingFinalizationValidationException("ExpectedRowVersion wajib diisi.");
-        if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
-            throw new BillingFinalizationValidationException(
-                "Alasan finalisasi wajib diisi dan maksimal 500 karakter.");
+        if (NormalizeFinalizeReason(request.Reason).Length > 500)
+            throw new BillingFinalizationValidationException("Alasan finalisasi maksimal 500 karakter.");
         if (request.CorrelationId == Guid.Empty || request.CausationId == Guid.Empty)
             throw new BillingFinalizationValidationException("CorrelationId dan CausationId wajib diisi.");
 
@@ -1284,6 +1298,9 @@ public sealed class BillingFinalizationService
                 "Pihak yang menanggung sisa tagihan harus dicatat.");
     }
 
+    // Alasan finalisasi bersifat opsional; kolom BilFinalizationRecord.Reason NOT NULL, jadi kosong = string kosong.
+    private static string NormalizeFinalizeReason(string? reason) => reason?.Trim() ?? string.Empty;
+
     private static string ComputeFinalizePayloadHash(Guid invoiceId, FinalizeInvoiceRequest request)
     {
         var canonical = string.Join('|',
@@ -1293,7 +1310,7 @@ public sealed class BillingFinalizationService
             request.DebtorRelationship?.Trim() ?? string.Empty,
             request.EmployeeReceivableChoiceAmount?.ToString("F2", CultureInfo.InvariantCulture) ?? string.Empty,
             request.EmployeeReceivableConsentGivenBy?.Trim() ?? string.Empty,
-            request.Reason.Trim(),
+            NormalizeFinalizeReason(request.Reason),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));

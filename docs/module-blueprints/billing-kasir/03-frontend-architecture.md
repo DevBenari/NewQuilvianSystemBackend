@@ -2316,3 +2316,176 @@ dan dijaga tes regresi.
 |---|---|
 | Badge Biaya Administrasi/Biaya Kamar pada Detail Invoice | Masih `penjamin`/`tunai` dari nominal; tidak disentuh |
 | Verifikasi runtime dan unit test `node --test` | Belum dijalankan (hanya ESLint pada berkas yang diubah) |
+
+# Amendment 22 Oktober 2026 — Fase Pembayaran, Konfirmasi Benefit RS, dan Status Serah Terima Finance (Revisi 2.6)
+
+> `revisi blueprint`: `2.6`, status **diterapkan di source, belum dibuild atau diuji runtime**. Masukan: adendum backend §18. Frontend branch lokal `yasmina` (huruf kecil).
+
+## 1. Masalah
+
+`isLunas` diturunkan dari "sisa pasien = 0" (dan flag `PaymentStatus = LUNAS` Backend yang artinya *tidak ada sisa pembayaran pasien*). Pada invoice Benefit Karyawan RS yang ditanggung penuh, nilainya benar **sebelum** kasir mengonfirmasi apa pun, sehingga invoice OPEN tampil
+"Lunas · Ditanggung Penjamin", tombol Proses Pembayaran berubah "✓ Tagihan Sudah Lunas" dan terkunci, serta banner hijau menulis tetap *"Piutang ... telah diteruskan ke Finance (CREATED)"*. Teks itu **bukan data Backend**: tidak ada finalisasi, pemotongan plafon HR, mutasi USE, maupun handoff.
+
+## 2. Fase pembayaran (satu sumber: `billing-payment-phase.js`)
+
+| Fase | Kondisi | "Lunas"? | Lencana |
+|---|---|---|---|
+| `FINALIZED` | Status invoice FINAL/CLOSED (finalisasi tersimpan) | Ya | Selesai |
+| `AWAITING_BENEFIT_CONFIRMATION` | OPEN, kunjungan Benefit RS, sisa kewajiban 0, tanpa uang masuk | **Tidak** | Menunggu Konfirmasi Benefit RS |
+| `AWAITING_COMPLETION` | OPEN, bukan benefit, sisa 0, tanpa uang masuk | **Tidak** | Menunggu Penyelesaian Tagihan |
+| `PATIENT_PAID` | OPEN, sisa 0 dan ada uang yang benar-benar diterima | Ya (pembayaran pasien) | Lunas · Sisa Rp0 |
+| `PATIENT_DUE` | OPEN, masih ada sisa (benefit: K + E sisa dari Backend) | Tidak | Belum Lunas / Cicilan |
+| `NOT_CALCULATED` | Belum ada hasil kalkulasi | Tidak | Belum Lunas |
+
+"Lunas" tidak pernah berasal dari kewajiban 0 saja. Sisa kewajiban yang dipakai sudah dikurangi uang yang masuk (kunjungan benefit: `remainingPatientObligation` Backend).
+
+## 3. Panel fase dan tombol (`billing-payment-phase-panel.jsx`)
+
+1. **Menunggu Konfirmasi Benefit RS**: kartu informasi yang menyatakan terus terang plafon belum dipotong dan piutang belum diteruskan ke Finance, dengan rincian dari preview Backend: pemilik benefit (nama, nomor pegawai, hubungan), total biaya, porsi menurut aturan penjamin, sisa plafon, "Akan ditanggung Benefit RS", dan kelebihan di atas plafon bila ada. Bila benefit tidak dapat dipastikan: kartu peringatan berisi alasan Backend.
+2. **Tombol Proses Pembayaran tetap aktif** ("Proses Pembayaran (Konfirmasi Benefit RS)") selama fase menunggu. Klik membuka **modal finalisasi yang sudah ada** (alasan wajib, rincian pembagian, centang konfirmasi); finalisasi baru berjalan dari modal itu (lihat Rev 2.5 poin 5). Tombol **tidak aktif (gagal tertutup)** bila preview finalisasi belum termuat (kunjungan benefit belum dapat dibedakan) atau benefit tidak dapat dipastikan, dengan alasan tampil di bawah tombol.
+3. **Setelah finalisasi**: "Tagihan Selesai — Ditanggung Benefit RS" (atau "Ditanggung Penjamin"/"Lunas & Selesai"), memuat hanya yang benar-benar terjadi: Ditanggung Benefit RS, Diterima Kasir (hanya uang masuk; tidak pernah menampilkan Rp0 sebagai kas), dan Ditangguhkan ke AR Karyawan bila ada.
+4. **Serah terima Finance** dibaca dari handoff Backend (`financeStage`): Handoff dibuat · Intake belum diproses · Intake gagal · Piutang sudah diakui · Perlu rekonsiliasi. Handoff CREATED tidak pernah disebut piutang diakui; respons lama tanpa `financeStage` tampil "Status Finance belum diketahui".
+5. Porsi Benefit RS internal, utang karyawan (`EMPLOYEE_BENEFIT`), piutang penjamin pasien, dan piutang penjamin luar dibedakan lewat `resolveHandoffKind` (PAYER + `isInternalBenefit` ≠ PAYER luar ≠ EMPLOYEE_BENEFIT).
+
+## 4. Hitung ulang dan konfirmasi
+
+`startPayment` menyimpan perhitungan ulang lebih dulu bila versi tersimpan tertinggal dari pratinjau (juga pada kewajiban nol), sehingga kasir mengonfirmasi angka yang akan difinalisasi. Backend menolak penyelesaian bila penyegaran otomatis mengubah angka (adendum backend §18.2).
+
+## 5. Finance › Data Tagihan A/R
+
+Tab: **Perusahaan/Asuransi** (PAYER luar), **Benefit RS Internal** (PAYER internal), **Piutang Karyawan** (EMPLOYEE_BENEFIT), **Pasien Umum**. Header grup memuat pemilik benefit (nama dan nomor pegawai). "Buat AR/Invoice" tidak tersedia untuk Benefit RS Internal (alasan `INTERNAL_BENEFIT`). Pesan keadaan kosong berasal dari Backend dan menjelaskan kapan setiap kategori terisi; pesan "jalur EMPLOYEE_BENEFIT belum tersedia" dihapus.
+
+## 6. Berkas
+
+`billing-payment-phase.js` (baru), `billing-payment-phase-panel.jsx` (baru), `menu-pembayaran-view.jsx`, `use-menu-pembayaran.js`, `billing-data-constants.jsx`, `grouped-billing-table.jsx`, `billing-data-view.jsx`, `tests/unit/billing-payment-phase.test.mjs` (baru).
+
+## 7. Belum dikerjakan
+
+| Hal | Status |
+|---|---|
+| Penyegaran status Finance otomatis di layar kasir | Dibaca saat halaman dimuat; belum ada polling. Intake Finance diolah saat Finance membuka Data Tagihan (adendum backend §18.6) |
+| Halaman riwayat benefit per karyawan di HR | Buku mutasi sudah diperkaya di Backend; tampilan HR belum diubah |
+| Kategori Benefit RS Internal di halaman Finance selain Data Tagihan | Belum |
+| Verifikasi runtime, mobile, dan unit test `node --test` | Belum dijalankan (hanya ESLint) |
+
+# Amendment 22 Oktober 2026 — Running Invoice mengikuti komponen reusable dan Pratinjau Draft pada Progress Pembayaran (Revisi 2.7)
+
+> `revisi blueprint`: `2.7`, status **diterapkan di source, belum dibuild atau diuji runtime**. Tidak ada perubahan Backend: kontrak yang dipakai sudah memadai. Frontend branch lokal `yasmina` (HEAD sekarang merge dari `QuilvianIntegrationFrontend`; berbeda dari SHA acuan `ec528982`).
+
+## 1. Running Invoice (`BIL-SCR` daftar invoice)
+
+**Akar masalah tampilan:** halaman ini tidak memakai kelas `dataPage`, padahal DataFilter/DataTable mengambil token `--base-*` (permukaan, radius, bayangan, tipografi) dari kelas itu. Tanpa token, komponen reusable jatuh ke gaya bawaan, dan CSS lokal menambalnya dengan keluarga token lain (`--color-*`) plus selector rapuh:
+`nth-child` / `nth-last-child` yang sudah tidak sesuai urutan kontrol filter (komentarnya masih menyebut Status sebagai kontrol pertama, padahal sekarang Tanggal Mulai), `[class*="filterBar"]`, `[class*="searchBox"]`, `[class*="tableWrapper"]`, serta penimpaan global `thead th`, `tbody td`, `tbody tr`.
+
+| Perubahan | Rincian |
+|---|---|
+| Kerangka | Pola halaman daftar kanonik (sama dengan Master Data Bank): `administrator-region-page` + `dataPage` + `regionTheme`, shell `region-page-shell` + `dataShell` + `tableShell`; Hero, DataFilter, DataTable tanpa kelas penimpa |
+| CSS lokal | Dipangkas dari 553 menjadi ~200 baris: hanya isi sel (`nowrap`, `wrapText`, `amountCell`) dan menu aksi. Tidak ada `nth-child`, `[class*=]`, atau penimpaan `th/td/tr` |
+| Isi sel | Kelas `tableStyles` yang sama dengan halaman daftar lain (`rowNumber`, `dateCell`, `codeCell`, `primaryCell`, `ordinaryCell`) |
+| Nomor urut | Tetap dari `context.rowNumber` DataTable = `(halaman − 1) × ukuran halaman + indeks + 1` (1, 2, 3, … sesuai pagination); `pageNumber`/`pageSize` berasal dari respons Backend |
+| Tipe Pasien | `StatusBadge` dengan kelas `region-status-*` yang sudah ada, varian dari `primaryPayerType` (CASH → hijau, INSURANCE → teal, COMPANY_GUARANTOR → kuning); sebelumnya span berwarna heksa literal. Penjamin perusahaan tidak lagi ungu (tidak ada token ungu) |
+| Tipe Layanan | Teks biasa (kategori, bukan status) |
+| Kolom Status | **Semantik tidak berubah**: status pembayaran authoritative bila ada, kalau tidak status siklus hidup invoice |
+| Rata kanan | Kolom Total Tagihan: judul dan isi sama-sama rata kanan lewat `align="right"` DataTable |
+| Aksi | `onKeyDown` pada sel aksi tidak lagi sampai ke baris (sebelumnya Enter/Spasi pada tombol aksi malah membuka Menu Pembayaran); menu memakai `popperConfig={{ strategy: "fixed" }}` supaya tidak terpotong area gulir horizontal tabel |
+| Responsif | DataFilter/DataTable memakai aturan responsif bawaan (flex wrap, pembungkus tabel `overflow-x: auto`); lebar kolom 64/150/130/230/200/140/130/160/180/140/130/72 dengan `minWidth` |
+
+## 2. Progress pembayaran: Terkonfirmasi vs Draft (`billing-payment-progress-state.js`)
+
+Tiga nilai yang dipisah:
+
+| Nilai | Sumber | Makna |
+|---|---|---|
+| `confirmedPaidAmount` | `SuccessfulAmount` seluruh settlement invoice (tender sukses + alokasi deposit), dari Backend | Satu-satunya dasar "Terkonfirmasi" dan "Lunas" |
+| `draftPaymentAmount` | Baris lokal berstatus draft dengan metode dipilih dan nominal > 0 | Rencana; tidak mengubah status keuangan apa pun |
+| `previewPaidAmount` | `min(total, terkonfirmasi + draft + diproses + menyinkronkan)` | Pratinjau bilah |
+
+Aturan per status baris: `draft` dihitung bila valid (tanpa metode = belum lengkap, dilaporkan terpisah); `submitting` dihitung sebagai **diproses** (bukan sukses) supaya bilah tidak turun saat dikirim; `failed` **tidak** dihitung, dilaporkan sebagai "Gagal, perlu diulang"; `succeeded` tidak dihitung dari baris (sudah ada di terkonfirmasi), kecuali sempit saat menunggu Backend disegarkan (`awaitingSync` + `syncBaseline`): dihitung "menyinkronkan" hanya selama terkonfirmasi di layar belum naik sebesar nominalnya, sehingga bilah tidak turun-naik dan tidak pernah dihitung dua kali (`addBillingTender.fulfilled` hanya menyisipkan tender dan tidak memperbarui `SuccessfulAmount`). Tender PENDING provider bukan terkonfirmasi dan bukan draft: tampil sebagai "Menunggu konfirmasi provider".
+
+Rumus: `previewPercent = total > 0 ? clamp(preview / total × 100, 0, 100) : 0` (dua desimal). Bilah hanya 100% bila memang lengkap; selisih kecil (mis. Rp0,23) dibatasi 99,99%.
+
+Label: **Lunas** hanya bila terkonfirmasi memenuhi total (hasil Backend). Rencana yang memenuhi sisa: **Siap Diproses** bila penilaian kesiapan layar (`evaluatePaymentSubmission`) menyatakan siap, atau **Nominal Terpenuhi** bila belum (baris belum lengkap); saat baris dikirim: **Sedang Diproses**. Status invoice dan "Lunas" di header tetap berasal dari fase otoritatif (Rev 2.6), tidak pernah dari draft.
+
+`BillingPaymentProgress` menerima prop baru `progress` (hasil `computePaymentProgress`); pemakaian lama (`paidAmount` + `totalAmount`, Detail Invoice Billing) berperilaku sama. Bilah dua segmen (terkonfirmasi berisi penuh; draft bergaris) supaya terbedakan tanpa bergantung warna; rincian: Terkonfirmasi, Draft pembayaran, Sedang diproses, Gagal, Menunggu provider, Total rencana. `role="progressbar"` dengan `aria-valuenow` dan `aria-valuetext` yang memisahkan tiga angka dan menyatakan "belum lunas".
+
+Reaktivitas: nilai diturunkan dari `settlement.rows` pada setiap render, jadi memilih metode, mengisi/mengubah nominal, Salin Nominal, menambah/menghapus baris, dan perubahan split langsung menggeser bilah. Tidak ada `POST` selama kasir hanya mengedit; pengiriman tetap hanya dari Proses Pembayaran. Setelah sukses, draft berpindah ke terkonfirmasi lewat penyegaran settlement dari Backend; setelah gagal, terkonfirmasi tidak berubah dan baris ditandai gagal untuk percobaan ulang yang aman (idempotency key dipertahankan).
+Total progress kunjungan benefit = sudah dibayar + sisa kewajiban (K + E sisa) dari Backend; selain itu `PatientAmount`.
+
+## 3. Kontrak API (tidak ada perubahan Backend)
+
+`GET invoices/{id}/settlements` dan `GET settlements/{id}` (`SettlementResponse`: `SuccessfulAmount`, `PendingAmount`, `CollectibleAmount`, `Tenders`, `IsFullyPaid`, `PaymentStatus`); `GET invoices` (`InvoiceSummaryResponse`: `TotalPaidAmount`, `IsFullyPaid`, `PaymentStatus`). Catatan: `PaymentStatus = LUNAS` pada daftar invoice berarti **tidak ada sisa pembayaran pasien** (juga untuk invoice berpenjamin penuh yang masih OPEN); kolom Status Running Invoice tetap menampilkannya apa adanya.
+
+## 4. Berkas
+
+`billing-invoices-view.jsx`, `billing-invoices-view.module.css`, `billing-invoice-constants.js` (`BILLING_INVOICE_PATIENT_PAYER_BADGE_CONFIG`), `billing-payment-progress-state.js` (baru), `billing-payment-progress.jsx`, `billing-payment-progress.module.css`, `use-billing-settlement.js` (`awaitingSync`, `syncBaseline`), `menu-pembayaran-view.jsx`, `tests/unit/billing-payment-progress-state.test.mjs` (baru).
+
+## 5. Belum dikerjakan
+
+| Hal | Status |
+|---|---|
+| Verifikasi visual Running Invoice terhadap screenshot acuan | Screenshot tidak tersedia pada permintaan ini; perapian mengikuti pola halaman daftar kanonik, belum dibandingkan piksel demi piksel |
+| Verifikasi runtime, responsif, dan unit test `node --test` | Belum dijalankan (hanya ESLint) |
+| Kolom Status Running Invoice untuk invoice berpenjamin penuh yang OPEN | Tetap "Lunas" (status pembayaran Backend); mengubahnya memerlukan keputusan produk dan kontrak Backend |
+
+# Amendment 22 Oktober 2026 — Perbaikan "traits is not defined" pada Terima Pembayaran Iuran Membership (Revisi 2.8)
+
+> `revisi blueprint`: `2.8`, status **diterapkan di source, belum dibuild atau diuji runtime**. Tidak ada perubahan Backend: audit baca-saja tidak menemukan cacat. Frontend branch lokal `yasmina` (branch `Yasmina` tidak ada di remote lokal; HEAD merge dari `QuilvianIntegrationFrontend`).
+
+## 1. Akar masalah (terbukti dari kode, bukan dugaan)
+
+`use-membership-fee-charge-detail.js`, fungsi `submitPayment`, mengirim `isManualCashierConfirmed: !traits.isCash` dan `confirmationNote: !traits.isCash ? … : null` pada argumen `addBillingTender`, tetapi `traits` tidak dideklarasikan, di-import, maupun menjadi parameter di berkas itu. `validatePayment` hanya mengambil `{ errors }` dan `submitPayment` hanya `{ reference }` dari `validateMembershipFeePaymentForm`, yang sebenarnya mengembalikan `{ errors, traits, reference }`. Literal argumen dievaluasi **sebelum** `dispatch`, sehingga `ReferenceError` terlempar di dalam `submitPayment` (tidak lewat slice, jadi tanpa `statusCode`) dan tampil sebagai "traits is not defined" di modal dan toast "Pembayaran Gagal".
+
+Urutan di `submitPayment` membuat gejala di lapangan konsisten: settlement MEMBERSHIP_FEE sudah dibuat (POST settlements berhasil) → `ReferenceError` sebelum POST tender → tidak ada tender → `GET …/payments` mengembalikan `200 data: []`. Itu hasil sah (belum ada tender), bukan bukti POST gagal. Pemakaian lain `traits` (modal bayar, modal konfirmasi manual, util) sudah dideklarasikan benar.
+
+## 2. Perbaikan Frontend
+
+| Berkas | Perubahan |
+|---|---|
+| `membership-fee-charge-utils.js` | `buildMembershipFeeTenderPayload` (fungsi murni): satu-satunya tempat `traits` diturunkan untuk muatan tender; isian tidak valid → `payload: null`. `validateMembershipFeePaymentForm` kini juga memeriksa rekening aktif milik metode dan shift kasir (`hasActiveShift`; `undefined` = belum diketahui, backend yang memutuskan). Baru: `evaluatePaymentPreflight`, `resolveTenderResult`, `pickReceiptPayment`, `classifyPaymentError`, `isPendingTenderStatus` |
+| `use-membership-fee-charge-detail.js` | Tidak lagi memakai `traits`; muatan dari util. `loadLatestState` memuat tagihan + riwayat bersamaan (riwayat `[]` = kosong yang sah). `submitPayment` dirombak (§3). `hasActiveShift` dari state shift |
+| `membership-fee-pay-modal.jsx` | Prop `hasActiveShift`; peringatan shift untuk semua metode; `onExited` mengembalikan langkah ke isian (sebelumnya langkah konfirmasi dan centang verifikasi terbawa ke pembukaan berikutnya); klik yang diabaikan karena sedang diproses (`null`) tidak memindahkan tampilan |
+| `membership-fee-charge-detail-view.jsx` | Meneruskan `hasActiveShift` |
+
+## 3. Alur bayar (`submitPayment`)
+
+1. **Lanjutkan Konfirmasi** hanya memanggil `validatePayment` (tanpa dispatch). **Konfirmasi Pembayaran** adalah satu-satunya yang memanggil `submitPayment`.
+2. Kunci kirim (`payInFlightRef`) dipasang sebelum `await` pertama; klik ganda dibalas `null` dan tidak membuat tender kedua.
+3. Baca ulang tagihan + riwayat dari Backend. Gagal dimuat → tidak ada yang dikirim. `evaluatePaymentPreflight`: tagihan masih dapat dibayar; tidak ada tender PENDING/CREATED; nominal = nominal yang dikonfirmasi di layar (iuran dibayar penuh; `AllowPartialPayment = false` tetap di Backend).
+4. Settlement MEMBERSHIP_FEE terbuka dilanjutkan (`openSettlementId`, termasuk sisa percobaan lama yang berhenti sebelum tender); bila tidak ada, dibuat satu. Backend menolak settlement kedua untuk tagihan yang sama.
+5. Satu tender penuh (`Idempotency-Key`, `ExpectedRowVersion` sesi). Non-tunai dikirim `isManualCashierConfirmed: true` + catatan; tunai tidak.
+6. Status tender dibaca dari respons (`resolveTenderResult`), status akhir dari tagihan yang dimuat ulang (`buildPaymentOutcome`). PAID/aktif hanya bila Backend menyatakannya. Kwitansi hanya untuk tender `SUCCEEDED` di riwayat Backend.
+
+## 4. Penanganan galat (`classifyPaymentError`)
+
+| Jenis | Kondisi | Perilaku |
+|---|---|---|
+| `CONFLICT` | 409 | Satu toast peringatan, sesi ditutup, data dimuat ulang; tidak ada kirim ulang otomatis |
+| `UNCERTAIN` | Tanpa jawaban server / 408 / 5xx / respons settlement tanpa ID | Satu toast peringatan "Hasil Pembayaran Belum Pasti", sesi ditutup, data dimuat ulang. Pembayaran baru hanya lewat pemeriksaan sebelum-kirim di atas (tender PENDING/CREATED atau status berubah menahan pembayaran) |
+| `REJECTED` | 4xx lain | Satu pemberitahuan di dalam modal, isian dipertahankan; kunci idempotensi langkah itu diganti |
+| `RUNTIME` | Galat aplikasi (tanpa `statusCode`) | Dicatat ke konsol non-produksi; kasir hanya melihat pesan umum, bukan teks teknis |
+| Tender `FAILED/EXPIRED/REVERSED` (200) | Ditolak tegas | Pemberitahuan di modal; kunci tender diganti; tidak ada kwitansi |
+
+Alasan sesi ditutup pada hasil tidak pasti: hash payload tender di Backend memuat `ExpectedRowVersion`, sehingga mengirim ulang dengan kunci yang sama setelah versi settlement berubah akan ditolak 409. Membaca ulang lalu memulai sesi baru lebih aman daripada memutar ulang secara buta.
+
+## 5. Audit Backend (baca-saja, tanpa perubahan)
+
+| Butir | Temuan |
+|---|---|
+| `GetPayments` / `GetPaymentsAsync` | Mengembalikan `List` (kosong bila tidak ada tender) dalam `ApiResponse` 200; 404 hanya bila tagihan tidak ada |
+| `CreateAsync` settlement | Menerima `Purpose = MEMBERSHIP_FEE` + `MembershipFeeChargeId`; menolak target dengan settlement aktif (409); idempotent per kunci |
+| `AddTenderAsync` | Referensi wajib untuk konfirmasi kasir manual; rekening wajib untuk transfer; referensi duplikat pada tender SUCCEEDED → 409; shift aktif wajib untuk tunai dan konfirmasi manual non-tunai; hash payload memuat `ExpectedRowVersion` |
+| Pelunasan penuh | `ValidateSettlementTargetAsync`: `AllowPartialPayment = false` → nominal harus sama dengan sisa |
+| PAID dan aktivasi | `ReconcileSettlementAsync` menerapkan dana setelah tender sukses; aktivasi membership lewat `TryConfirmMembershipFeeAsync` / `ConfirmChargeAsync` setelah commit |
+| Settlement yatim | `BuildDetailAsync` menampilkannya sebagai `OpenSettlementId` dengan sisa penuh, sehingga FE melanjutkannya |
+
+## 6. Pengujian
+
+`tests/unit/membership-fee-charge-utils.test.mjs`: muatan Tunai / Transfer Mandiri / QRIS, penolakan isian tidak valid (rekening, referensi kosong/spasi, rekening nonaktif atau milik metode lain), aturan shift, klasifikasi galat, status tender, pemeriksaan sebelum-kirim, kwitansi hanya dari tender berhasil, riwayat `[]` sah, dan kontrak sumber (tidak ada `traits` tanpa deklarasi; Lanjutkan Konfirmasi tidak mengirim; kunci kirim sebelum `await`; baca-ulang sebelum settlement; satu tender). **Belum dijalankan** (hanya ESLint pada berkas yang diubah: bersih).
+
+## 7. Belum dikerjakan / batas
+
+| Hal | Status |
+|---|---|
+| Verifikasi runtime, `node --test`, dan stack trace asli | Belum; akar masalah ditetapkan dari pembacaan kode sumber lokal. Bila bundle yang berjalan berbeda dari source ini, hasil harus dikonfirmasi ulang |
+| Settlement Draft yatim dari percobaan yang gagal sebelum perbaikan | Dilanjutkan otomatis oleh pembayaran berikutnya; tidak ada pembersihan data |
+| Centang "Saya telah memverifikasi bukti transaksi" untuk non-tunai | Dipertahankan (pernyataan kasir yang sesuai `isManualCashierConfirmed`); syarat tombol Konfirmasi Pembayaran |

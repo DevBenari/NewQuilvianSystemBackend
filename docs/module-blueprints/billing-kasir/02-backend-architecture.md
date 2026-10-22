@@ -6311,3 +6311,59 @@ Belum dibuild dan belum dijalankan. Regresi statis tersedia di `Tests/QuilvianSy
 (`Matches` untuk `TariffCategory`/`ServiceCategory`, normalizer, kasus ABBOTIC penuh/sebagian/tanpa aturan/NotCovered/kelas lain/periode/non-coverable). Proyek test itu
 berisi berkas lain yang sudah tidak sesuai signature service, jadi kompilasi perlu dibersihkan lebih dulu sebelum dijalankan. Uji manual di staging:
 invoice RAJAL lama OPEN dengan aturan Kategori Tarif → pratinjau menampilkan C > 0 → Hitung Ulang Cakupan → split Benefit RS mengikuti plafon HR → finalisasi.
+
+## 18. Adendum 22 Oktober 2026 — Konfirmasi Benefit RS, Tahap Serah Terima Finance, dan Pemisahan Kategori Finance
+
+> Status: **diterapkan di source (belum dibuild, belum diuji runtime; tidak ada migration)**. Source: backend `Yasmina`. Penamaan lokal.
+
+### 18.1 Akar masalah "langsung lunas"
+
+1. `IsFullyPaid`/`PaymentStatus = LUNAS` pada `BillingInvoiceService` berarti **tidak ada sisa pembayaran pasien** (`outstanding <= 0` dengan `patientAmount == 0`), BUKAN "invoice sudah difinalisasi". Pada invoice berpenjamin penuh nilainya sudah LUNAS **sebelum** kasir mengonfirmasi apa pun.
+2. Frontend memakai flag itu (dan `sisa pasien = 0`) untuk menurunkan "Lunas", menonaktifkan tombol Proses Pembayaran, dan menulis tetap "Piutang ... telah diteruskan ke Finance (CREATED)". Itu bukan data Backend: tidak ada finalisasi, pemotongan plafon, atau handoff yang terjadi. Penanganannya di FE (lihat 03-frontend-architecture, Rev 2.6).
+3. Backend **tidak** memfinalisasi saat halaman dibuka, saat pratinjau dihitung, maupun setelah `recalculate`. Jalur finalisasi hanya: `POST invoices/{id}/complete`, `POST finalizations/invoices/{id}/finalize`, dan penutupan otomatis setelah settlement berisi pembayaran pasien (`TryCompleteSettledInvoiceAsync`). `SyncClosureAsync` hanya bekerja pada invoice FINAL/CLOSED.
+
+Kontrak: `Status` invoice (OPEN/FINAL/CLOSED) adalah satu-satunya penanda finalisasi; `PaymentStatus` adalah status pembayaran pasien.
+
+### 18.2 Perubahan Backend
+
+| Titik | Perubahan |
+| --- | --- |
+| `ArHandoffResponse` (`GET finalizations/{id}/handoffs`, `.../invoices/{invoiceId}/handoffs`) | Menambah `IsInternalBenefit`, `EmployeeArOrigin`, `FinanceStage`, `FinanceIntakeStatus`, `FinanceIntakeError`, `FinReceivableId`, `FinReceivableNumber`, `FinReceivableStatus` |
+| `ArHandoffFinanceStages.Derive` | Tahap diturunkan dari data sungguhan (dikaitkan lewat `HandoffKey` = `SourceHandoffKey`): `HANDOFF_CREATED` (belum ada intake) → `INTAKE_PENDING` (NEW) → `RECEIVABLE_RECOGNIZED` (ada `FinReceivable`); `INTAKE_ERROR`; `RECONCILIATION_REQUIRED` (intake CONSUMED/ACKNOWLEDGED tanpa piutang). Handoff CREATED **bukan** piutang diakui. Hanya membaca |
+| `CompleteInvoiceWithoutPatientPaymentAsync` | Bila penyegaran kalkulasi otomatis mengubah porsi penjamin/pasien, penyelesaian **ditolak** (transaksi dibatalkan, termasuk penyegarannya) dengan pesan jelas; kasir memuat ulang dan mengonfirmasi ulang. Penyegaran yang tidak mengubah angka tetap berjalan |
+| `FinanceReceivableBillingDataService` | Kategori baru `internalBenefit` (PAYER dengan `IsInternalBenefit = true`); kategori `company` kini **mengecualikan** porsi Benefit RS. Pesan "jalur EMPLOYEE_BENEFIT belum tersedia (FIN-DEC-006)" yang usang diganti keadaan kosong yang akurat. Baris memuat `IsInternalBenefit`, `EmployeeArOrigin`, `BenefitOwnerName`/`BenefitOwnerStaffNumber` (resolver HR bersama, tanpa N+1); header grup memuat pemilik benefit |
+| `FinanceReceivableInvoiceBatchService` | Porsi Benefit RS internal **tidak** dapat digabung ke Batch Tagihan AR: dikeluarkan dari daftar eligible dan ditolak server (`CreateAsync`); alasan terblokir `INTERNAL_BENEFIT` |
+| `EmployeeBenefitBalanceService.GetMovementsAsync` | Mutasi HR kini memuat `EncounterNumber`, `InvoiceStatus`, `SourceHandoffKey`, `FinanceStage`, `EmployeeArAmount`, `ActorUserId` (dibaca dari invoice, handoff, intake, piutang; tidak ada histori duplikat) |
+
+### 18.3 Alur finalisasi (hasil pembacaan kode)
+
+Konfirmasi kasir → (`complete` atau `finalize`; invoice OPEN, `ExpectedRowVersion`, versi kalkulasi terkini, readiness) → evaluasi ulang split Benefit otoritatif (`EvaluateSplitAsync`, `isFinalizing`) →
+`BilFinalizationRecord` → `StageHandoffsForFinalizationAsync` (PAYER internal `IsInternalBenefit = true`; `EMPLOYEE_BENEFIT` hanya bila `EmployeeReceivableAmount > 0`) →
+`EmployeeBenefitBalanceService.UseAsync` (mutasi `USE`, kunci `SourceHandoffKey`) → `SaveChanges` → sinkron penutupan invoice → serah terima konsumen → penyelesaian kunjungan → commit.
+Semua dalam satu transaksi serializable; kegagalan operasi wajib membatalkan seluruhnya. Idempotensi: unik `(SourceHandoffKey, MovementType)` pada mutasi HR, kunci advisory per kunci serah terima lalu per orang, UPDATE saldo bersyarat, `ExpectedRowVersion`, dan status OPEN (klik kedua gagal "Invoice tidak lagi berstatus OPEN").
+
+### 18.4 Matriks integrasi Finance
+
+| Jenis | Sumber di Billing | Finance | Diselesaikan lewat | Muncul di |
+| --- | --- | --- | --- | --- |
+| **PAYER internal** | `BilArHandoff` PAYER, `IsInternalBenefit = true` (porsi P = `min(C, S)`) | `FinReceivable` PAYER + `IsInternalBenefit` | Penutupan Benefit (`FinanceBenefitSettlementService`), nol uang diterima | Data Tagihan A/R › **Benefit RS Internal** |
+| **EMPLOYEE_BENEFIT** | `BilArHandoff` EMPLOYEE_BENEFIT (`EmployeeReceivableAmount > 0`, `EmployeeArOrigin`) | `FinReceivable` EMPLOYEE_BENEFIT | Potong gaji/pembayaran karyawan | Data Tagihan A/R › **Piutang Karyawan** (kosong bila tidak ada penangguhan; sah) |
+| **PATIENT_GUARANTOR** | `BilArHandoff` PATIENT_GUARANTOR | `FinReceivable` PATIENT_GUARANTOR | Pembayaran penjamin pasien | Pasien Umum |
+| **PAYER eksternal** | `BilArHandoff` PAYER, `IsInternalBenefit = false` | `FinReceivable` PAYER | Batch Tagihan AR dan penerimaan uang | Perusahaan/Asuransi |
+
+### 18.5 Rekonsiliasi (kunci penghubung)
+
+`BilInvoice.Id` → `BilFinalizationRecord.InvoiceId` → `BilArHandoff.HandoffKey` → `HrdBenefitBalanceMovement.SourceHandoffKey` + `InvoiceId` → `FinBillingHandoffIntake.SourceHandoffKey` → `FinReceivable.SourceHandoffKey` → `FinReceivableMovement`; porsi internal → `FinBenefitSettlementItem`.
+Kasus 1 (Benefit RS menanggung Rp559.351,20): satu handoff PAYER internal Rp559.351,20; tidak ada EMPLOYEE_BENEFIT; satu mutasi `USE` Rp559.351,20; satu `FinReceivable` internal setelah intake diolah.
+Kasus 2 (C Rp1.000.000, P Rp700.000, E Rp300.000): PAYER internal Rp700.000 + (bila ditangguhkan) EMPLOYEE_BENEFIT Rp300.000, atau E dibayar langsung (`BENEFIT_EXCESS`, §16). Kasus 3 (D = 0): tidak ada handoff EMPLOYEE_BENEFIT.
+
+### 18.6 Belum dikerjakan / keputusan tertunda
+
+| Hal | Status |
+| --- | --- |
+| Penerbitan intake Finance | **Lazy, bukan job**: `FinanceReceivableBillingDataService.GetAsync` menyinkronkan dan mengolah handoff AR yang masih CREATED tiap kali halaman Data Tagihan dibaca; selain itu hanya endpoint `sync`/`process`. Tidak ada job latar untuk AR dan tidak ditambahkan (perlu keputusan operasional). Akibatnya handoff bisa tertahan di `HANDOFF_CREATED` sampai Finance membuka halaman |
+| Ledger akuntansi (Accounting Outbox) | Alur `FinReceivable` → outbox tidak diaudit di adendum ini; tahap "dikirim ke akuntansi" belum ditampilkan |
+| Kategori Benefit RS Internal pada halaman Finance lain | Hanya Data Tagihan A/R. Penyelesaian Piutang, Aging, dan Laporan AR masih memakai kategori Perusahaan/Pasien Umum/Karyawan |
+| Riwayat penggunaan per karyawan | Diperkaya pada buku mutasi enrollment HR (`GET .../employee-benefit-enrollments/{id}/movements`); halaman HR belum diubah |
+| Persetujuan berjenjang penangguhan AR Karyawan | Tetap keputusan bisnis (izin finalisasi + konfirmasi + nama pemberi persetujuan bila bukan SELF) |
+| Pembuktian | Belum dibuild/dijalankan. Tes statis: `Tests/QuilvianSystemBackend.PharmacyTests/ArHandoffFinanceStageTests.cs`; proyek itu memuat berkas lain yang sudah tidak sesuai signature service |

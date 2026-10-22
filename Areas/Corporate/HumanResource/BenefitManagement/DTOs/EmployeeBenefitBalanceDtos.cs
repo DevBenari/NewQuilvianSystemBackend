@@ -106,5 +106,32 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public DateTimeOffset OccurredAt { get; set; }
         public Guid? ReversesMovementId { get; set; }
         public string? ReasonText { get; set; }
+
+        // Penelusuran Billing -> HR -> Finance dari satu baris mutasi. Semua dibaca dari data sumber (invoice, handoff,
+        // intake, piutang); tidak ada histori duplikat dan tidak ada yang dihitung ulang di sini.
+
+        /// <summary>Nomor kunjungan invoice asal.</summary>
+        public string? EncounterNumber { get; set; }
+
+        /// <summary>Status invoice asal (OPEN, FINAL, CLOSED, ...).</summary>
+        public string? InvoiceStatus { get; set; }
+
+        /// <summary>Kunci serah terima PAYER yang menjadi dasar mutasi ini (idempotensi pemakaian plafon).</summary>
+        public Guid SourceHandoffKey { get; set; }
+
+        /// <summary>
+        /// Tahap serah terima ke Finance untuk handoff mutasi ini (HANDOFF_CREATED, INTAKE_PENDING, INTAKE_ERROR,
+        /// RECEIVABLE_RECOGNIZED, RECONCILIATION_REQUIRED). Handoff CREATED belum berarti piutang diakui.
+        /// </summary>
+        public string? FinanceStage { get; set; }
+
+        /// <summary>
+        /// Total kewajiban pribadi karyawan yang ditangguhkan (AR EMPLOYEE_BENEFIT) pada invoice yang sama. Nol bila tidak
+        /// ada penangguhan; bukan porsi Benefit RS ini.
+        /// </summary>
+        public decimal EmployeeArAmount { get; set; }
+
+        /// <summary>Pengguna yang mencatat mutasi (aktor finalisasi).</summary>
+        public Guid? ActorUserId { get; set; }
     }
 }

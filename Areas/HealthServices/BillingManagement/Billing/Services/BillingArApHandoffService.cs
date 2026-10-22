@@ -380,11 +380,33 @@ public sealed class BillingArApHandoffService
             || (x.ApHandoffId.HasValue && apIds.Contains(x.ApHandoffId.Value)))
             .ToList();
 
+        // Tahap di sisi Finance dibaca dari fakta masuk dan piutang yang benar-benar ada (dikaitkan lewat HandoffKey),
+        // bukan diasumsikan dari status handoff Billing. Hanya baca; tidak membuat intake maupun piutang.
+        var handoffKeys = arHandoffs.Select(x => x.HandoffKey).ToList();
+        var intakes = handoffKeys.Count == 0
+            ? new Dictionary<Guid, FinBillingHandoffIntake>()
+            : (await _dbContext.FinBillingHandoffIntakes.AsNoTracking()
+                .Where(x => !x.IsDelete && x.HandoffType == FinBillingHandoffTypes.Ar
+                    && handoffKeys.Contains(x.SourceHandoffKey))
+                .ToListAsync(cancellationToken))
+                .GroupBy(x => x.SourceHandoffKey)
+                .ToDictionary(group => group.Key, group => group.OrderByDescending(x => x.CreateDateTime).First());
+        var receivables = handoffKeys.Count == 0
+            ? new Dictionary<Guid, (Guid Id, string Number, string Status)>()
+            : (await _dbContext.FinReceivables.AsNoTracking()
+                .Where(x => !x.IsDelete && x.SourceHandoffKey != null && handoffKeys.Contains(x.SourceHandoffKey.Value))
+                .Select(x => new { x.Id, x.ReceivableNumber, x.Status, Key = x.SourceHandoffKey!.Value })
+                .ToListAsync(cancellationToken))
+                .GroupBy(x => x.Key)
+                .ToDictionary(
+                    group => group.Key,
+                    group => (Id: group.First().Id, Number: group.First().ReceivableNumber, Status: group.First().Status));
+
         return new HandoffStatusResponse
         {
             InvoiceId = record.InvoiceId,
             FinalizationRecordId = record.Id,
-            ArHandoffs = arHandoffs.Select(MapAr).ToList(),
+            ArHandoffs = arHandoffs.Select(handoff => MapAr(handoff, intakes, receivables)).ToList(),
             ApHandoffs = apHandoffs.Select(MapAp).ToList(),
             Adjustments = linkedAdjustments.Select(MapAdjustment).ToList()
         };
@@ -429,23 +451,40 @@ public sealed class BillingArApHandoffService
                 ActorUserId = actorUserId
             });
 
-    private static ArHandoffResponse MapAr(BilArHandoff handoff) => new()
+    private static ArHandoffResponse MapAr(
+        BilArHandoff handoff,
+        IReadOnlyDictionary<Guid, FinBillingHandoffIntake> intakes,
+        IReadOnlyDictionary<Guid, (Guid Id, string Number, string Status)> receivables)
     {
-        Id = handoff.Id,
-        DebtorType = handoff.DebtorType,
-        DebtorReferenceId = handoff.DebtorReferenceId,
-        Amount = handoff.Amount,
-        DueDate = handoff.DueDate,
-        Status = handoff.Status,
-        HandoffKey = handoff.HandoffKey,
-        BenefitOwnerId = handoff.BenefitOwnerId,
-        BenefitOwnerWorkforceProfileId = handoff.BenefitOwnerWorkforceProfileId,
-        BenefitRelationship = handoff.BenefitRelationship,
-        DeferredPatientAmount = handoff.DeferredPatientAmount,
-        DeferredConsentGivenBy = handoff.DeferredConsentGivenBy,
-        CreatedAt = handoff.CreatedAt,
-        AcknowledgedAt = handoff.AcknowledgedAt
-    };
+        intakes.TryGetValue(handoff.HandoffKey, out var intake);
+        var hasReceivable = receivables.TryGetValue(handoff.HandoffKey, out var receivable);
+
+        return new ArHandoffResponse
+        {
+            Id = handoff.Id,
+            DebtorType = handoff.DebtorType,
+            DebtorReferenceId = handoff.DebtorReferenceId,
+            Amount = handoff.Amount,
+            DueDate = handoff.DueDate,
+            Status = handoff.Status,
+            HandoffKey = handoff.HandoffKey,
+            BenefitOwnerId = handoff.BenefitOwnerId,
+            BenefitOwnerWorkforceProfileId = handoff.BenefitOwnerWorkforceProfileId,
+            BenefitRelationship = handoff.BenefitRelationship,
+            DeferredPatientAmount = handoff.DeferredPatientAmount,
+            DeferredConsentGivenBy = handoff.DeferredConsentGivenBy,
+            CreatedAt = handoff.CreatedAt,
+            AcknowledgedAt = handoff.AcknowledgedAt,
+            IsInternalBenefit = handoff.IsInternalBenefit,
+            EmployeeArOrigin = handoff.EmployeeArOrigin,
+            FinanceStage = ArHandoffFinanceStages.Derive(intake?.Status, hasReceivable),
+            FinanceIntakeStatus = intake?.Status,
+            FinanceIntakeError = intake?.ErrorMessage,
+            FinReceivableId = hasReceivable ? receivable.Id : null,
+            FinReceivableNumber = hasReceivable ? receivable.Number : null,
+            FinReceivableStatus = hasReceivable ? receivable.Status : null
+        };
+    }
 
     private static ApHandoffResponse MapAp(BilApHandoff handoff) => new()
     {
