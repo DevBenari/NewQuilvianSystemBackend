@@ -31,6 +31,13 @@ public sealed class BilArHandoffConfiguration : IEntityTypeConfiguration<BilArHa
             table.HasCheckConstraint(
                 "CK_BilArHandoff_Consent",
                 "\"DeferredPatientAmount\" = 0 OR \"BenefitRelationship\" = 'SELF' OR \"DeferredConsentGivenBy\" IS NOT NULL");
+            // Piutang benefit internal hanyalah baris PAYER; asal piutang karyawan hanya untuk EMPLOYEE_BENEFIT.
+            table.HasCheckConstraint(
+                "CK_BilArHandoff_InternalBenefit",
+                "\"IsInternalBenefit\" = false OR \"DebtorType\" = 'PAYER'");
+            table.HasCheckConstraint(
+                "CK_BilArHandoff_EmployeeArOrigin",
+                "\"EmployeeArOrigin\" IS NULL OR (\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"EmployeeArOrigin\" IN ('OVER_ALLOWANCE','PATIENT_PORTION','MIXED'))");
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.DebtorType).HasMaxLength(30).IsRequired();
@@ -40,6 +47,8 @@ public sealed class BilArHandoffConfiguration : IEntityTypeConfiguration<BilArHa
         entity.Property(x => x.DeferredConsentGivenBy).HasMaxLength(200);
         entity.Property(x => x.BenefitRelationship).HasMaxLength(50);
         entity.Property(x => x.BenefitOwnerWorkforceProfileId).IsRequired(false);
+        entity.Property(x => x.IsInternalBenefit).IsRequired().HasDefaultValue(false);
+        entity.Property(x => x.EmployeeArOrigin).HasMaxLength(30).IsRequired(false);
         entity.Property(x => x.FinancingChoice).HasMaxLength(50).IsRequired(false);
         entity.Property(x => x.DeferredConsentNotes).HasMaxLength(500).IsRequired(false);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();

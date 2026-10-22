@@ -9808,6 +9808,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("EmployeeArOrigin")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<Guid?>("InvoiceId")
                         .HasColumnType("uuid");
 
@@ -9817,6 +9821,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsInternalBenefit")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
@@ -9898,6 +9907,10 @@ namespace QuilvianSystemBackend.Migrations
                             t.HasCheckConstraint("CK_FinReceivable_BenefitOwner", "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND (\"BenefitOwnerId\" IS NOT NULL OR \"BenefitOwnerWorkforceProfileId\" IS NOT NULL)) OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL AND \"BenefitOwnerWorkforceProfileId\" IS NULL)");
 
                             t.HasCheckConstraint("CK_FinReceivable_DebtorType", "\"DebtorType\" IN ('PAYER','PATIENT_GUARANTOR','EMPLOYEE_BENEFIT')");
+
+                            t.HasCheckConstraint("CK_FinReceivable_EmployeeArOrigin", "\"EmployeeArOrigin\" IS NULL OR (\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"EmployeeArOrigin\" IN ('OVER_ALLOWANCE','PATIENT_PORTION','MIXED'))");
+
+                            t.HasCheckConstraint("CK_FinReceivable_InternalBenefit", "\"IsInternalBenefit\" = false OR \"DebtorType\" = 'PAYER'");
 
                             t.HasCheckConstraint("CK_FinReceivable_OpeningItem", "(\"SourceHandoffKey\" IS NOT NULL AND \"SourceHandoffId\" IS NOT NULL AND \"InvoiceId\" IS NOT NULL AND \"OpeningItemBatchId\" IS NULL) OR (\"SourceHandoffKey\" IS NULL AND \"SourceHandoffId\" IS NULL AND \"InvoiceId\" IS NULL AND \"OpeningItemBatchId\" IS NOT NULL)");
 
@@ -62559,6 +62572,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTimeOffset?>("DueDate")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("EmployeeArOrigin")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<Guid>("FinalizationRecordId")
                         .HasColumnType("uuid");
 
@@ -62578,6 +62595,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsInternalBenefit")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
@@ -62625,6 +62647,10 @@ namespace QuilvianSystemBackend.Migrations
                             t.HasCheckConstraint("CK_BilArHandoff_DebtorType", "\"DebtorType\" IN ('PATIENT_GUARANTOR','PAYER','EMPLOYEE_BENEFIT')");
 
                             t.HasCheckConstraint("CK_BilArHandoff_Deferred", "\"DeferredPatientAmount\" >= 0 AND \"DeferredPatientAmount\" <= \"Amount\" AND (\"DebtorType\" = 'EMPLOYEE_BENEFIT' OR \"DeferredPatientAmount\" = 0)");
+
+                            t.HasCheckConstraint("CK_BilArHandoff_EmployeeArOrigin", "\"EmployeeArOrigin\" IS NULL OR (\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"EmployeeArOrigin\" IN ('OVER_ALLOWANCE','PATIENT_PORTION','MIXED'))");
+
+                            t.HasCheckConstraint("CK_BilArHandoff_InternalBenefit", "\"IsInternalBenefit\" = false OR \"DebtorType\" = 'PAYER'");
 
                             t.HasCheckConstraint("CK_BilArHandoff_Status", "\"Status\" IN ('CREATED','ACKNOWLEDGED')");
                         });
@@ -64941,7 +64967,7 @@ namespace QuilvianSystemBackend.Migrations
 
                             t.HasCheckConstraint("CK_BilPaymentAllocation_CalculationVersion", "\"CalculationVersion\" IS NULL OR \"CalculationVersion\" > 0");
 
-                            t.HasCheckConstraint("CK_BilPaymentAllocation_TargetType", "\"TargetType\" = 'INVOICE'");
+                            t.HasCheckConstraint("CK_BilPaymentAllocation_TargetType", "\"TargetType\" IN ('INVOICE','BENEFIT_EXCESS')");
                         });
                 });
 
@@ -65464,6 +65490,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<decimal?>("BenefitExcessAuthorizedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
@@ -65572,6 +65602,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("BilSettlement", "public", t =>
                         {
                             t.HasCheckConstraint("CK_BilSettlement_Amounts", "\"RequestedAmount\" > 0 AND \"SuccessfulAmount\" >= 0 AND \"AllocatedAmount\" >= 0 AND \"AllocatedAmount\" <= \"SuccessfulAmount\" AND \"SuccessfulAmount\" <= \"RequestedAmount\"");
+
+                            t.HasCheckConstraint("CK_BilSettlement_BenefitExcess", "\"BenefitExcessAuthorizedAmount\" IS NULL OR \"BenefitExcessAuthorizedAmount\" >= 0");
 
                             t.HasCheckConstraint("CK_BilSettlement_Purpose", "\"Purpose\" IN ('DEPOSIT_TOP_UP','INVOICE_PAYMENT','MEMBERSHIP_FEE')");
 

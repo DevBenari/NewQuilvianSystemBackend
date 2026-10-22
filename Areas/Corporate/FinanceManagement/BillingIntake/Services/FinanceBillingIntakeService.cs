@@ -528,6 +528,9 @@ public sealed class FinanceBillingIntakeService
                 BenefitOwnerId = handoff.BenefitOwnerId,
                 BenefitOwnerWorkforceProfileId = benefitOwnerProfileId,
                 BenefitRelationship = handoff.BenefitRelationship,
+                // Penanda pemisah AR benefit internal vs AR penjamin pihak luar, dan asal AR karyawan; disalin apa adanya.
+                IsInternalBenefit = handoff.IsInternalBenefit,
+                EmployeeArOrigin = handoff.EmployeeArOrigin,
                 // FIN-DES-011 area: nilai disalin dari handoff, tidak pernah dihitung ulang.
                 // BilArHandoff.Amount sudah berupa sisa tanggungan penjamin (FR-FIN-020) —
                 // dihitung Billing sebelum handoff dibuat, bukan oleh Finance.
@@ -1277,6 +1280,8 @@ public sealed class FinanceBillingIntakeService
                                 .FirstOrDefaultAsync(cancellationToken)
                             : null),
                     BenefitRelationship = newHandoff.BenefitRelationship,
+                    IsInternalBenefit = newHandoff.IsInternalBenefit,
+                    EmployeeArOrigin = newHandoff.EmployeeArOrigin,
                     OriginalAmount = newHandoff.Amount,
                     OutstandingAmount = newHandoff.Amount,
                     DueDate = newHandoff.DueDate.HasValue ? FinanceBusinessDate.ToDateOnly(newHandoff.DueDate.Value) : FinanceBusinessDate.ToDateOnly(now),

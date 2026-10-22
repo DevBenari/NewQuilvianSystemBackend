@@ -366,6 +366,7 @@ public sealed class BillingAllocationService
         var availableCredit = settlementCredit?.AvailableAmount ?? 0;
         var accounted = activeAllocated + availableCredit;
         var allocatedDelta = 0m;
+        var benefitExcessDelta = 0m;
         var creditDelta = 0m;
 
         if (settlement.SuccessfulAmount > accounted)
@@ -393,7 +394,38 @@ public sealed class BillingAllocationService
                 activeAllocated += allocatedDelta;
             }
 
-            var refundable = newFunds - allocatedDelta;
+            // Urutan alokasi: K (sisa tagihan pasien) dulu, baru kelebihan plafon Benefit RS (E). Batas E dibaca dari
+            // settlement (diizinkan saat dibuat), bukan dari HR di tengah transaksi uang. Hanya sisa di atas keduanya
+            // yang menjadi kredit refund. Kunjungan non-benefit tidak punya batas E, jadi perilakunya tidak berubah.
+            var remainingFunds = newFunds - allocatedDelta;
+            var excessAuthorized = settlement.BenefitExcessAuthorizedAmount.GetValueOrDefault();
+            if (remainingFunds > 0 && excessAuthorized > 0)
+            {
+                var alreadyAllocatedToExcess = NetAmount(
+                    allocations.Where(x => x.TargetType == BillingAllocationTargetTypes.BenefitExcess));
+                var excessRoom = Math.Max(excessAuthorized - alreadyAllocatedToExcess, 0m);
+                benefitExcessDelta = Math.Min(remainingFunds, excessRoom);
+                if (benefitExcessDelta > 0)
+                {
+                    var excessAllocation = new BilPaymentAllocation
+                    {
+                        SettlementId = settlement.Id,
+                        Settlement = settlement,
+                        TargetType = BillingAllocationTargetTypes.BenefitExcess,
+                        TargetId = invoice.Id,
+                        Amount = benefitExcessDelta,
+                        CalculationVersion = calculation.VersionNo,
+                        AllocatedAt = occurredAt,
+                        CreateDateTime = DateTime.UtcNow,
+                        CreateBy = actorUserId
+                    };
+                    settlement.Allocations.Add(excessAllocation);
+                    _dbContext.BilPaymentAllocations.Add(excessAllocation);
+                    activeAllocated += benefitExcessDelta;
+                }
+            }
+
+            var refundable = newFunds - allocatedDelta - benefitExcessDelta;
             if (refundable > 0)
             {
                 creditDelta = refundable;
@@ -438,8 +470,10 @@ public sealed class BillingAllocationService
                     .Where(x => x.ReversesAllocationId.HasValue)
                     .Select(x => x.ReversesAllocationId!.Value)
                     .ToHashSet();
-                foreach (var original in allocations.Where(
-                    x => !x.ReversesAllocationId.HasValue && !reversedIds.Contains(x.Id)))
+                // Reversal membalik kelebihan plafon (E) lebih dulu, baru K: kebalikan urutan alokasi.
+                foreach (var original in allocations
+                    .Where(x => !x.ReversesAllocationId.HasValue && !reversedIds.Contains(x.Id))
+                    .OrderByDescending(x => x.TargetType == BillingAllocationTargetTypes.BenefitExcess))
                 {
                     if (reduction <= 0) break;
                     var amount = Math.Min(original.Amount, reduction);
@@ -466,7 +500,7 @@ public sealed class BillingAllocationService
         }
 
         settlement.AllocatedAmount = Math.Max(activeAllocated, 0);
-        if (allocatedDelta != 0 || creditDelta != 0)
+        if (allocatedDelta != 0 || creditDelta != 0 || benefitExcessDelta != 0)
         {
             invoice.RowVersion = Guid.NewGuid();
             invoice.UpdateDateTime = DateTime.UtcNow;

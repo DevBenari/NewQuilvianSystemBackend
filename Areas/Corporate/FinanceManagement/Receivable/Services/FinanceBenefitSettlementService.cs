@@ -369,6 +369,8 @@ public sealed class FinanceBenefitSettlementService
             from receivable in _dbContext.FinReceivables.AsNoTracking()
             where !receivable.IsDelete
                 && receivable.DebtorType == FinReceivableDebtorTypes.Payer
+                // Hanya piutang benefit internal (biaya RS sendiri); piutang PAYER pihak luar tidak pernah ditutup lewat jalur nol-kas ini.
+                && receivable.IsInternalBenefit
                 && receivable.DebtorReferenceId == debtorReferenceId
                 && (receivable.Status == FinReceivableStatuses.Outstanding || receivable.Status == FinReceivableStatuses.Partial)
                 && receivable.RecognizedAt >= periodStart && receivable.RecognizedAt < periodEnd

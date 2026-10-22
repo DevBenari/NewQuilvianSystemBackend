@@ -6158,3 +6158,156 @@ Nol tabel baru, nol kolom baru, dan nol migration tambahan. `BreakdownSnapshot` 
 
 Status `BKC-CQ-15`: **ditutup oleh desain** (`BKC-DES-092`). Pertanyaan datanya (seberapa banyak item seperti itu di
 produksi) tetap berguna untuk menakar dampak, tetapi tidak lagi menahan approval.
+
+## 16. Adendum 22 Oktober 2026 — Pembayaran Langsung Kelebihan Plafon Benefit RS dan Pemisahan AR
+
+> Status: **diterapkan di source (belum dibuild, belum diuji runtime, migration belum dijalankan)**. Dasar: keputusan pemilik pada
+> percakapan 22 Oktober 2026. Source: backend `Yasmina` (SHA dasar `b30576e8`), migration
+> `20261022120000_SeparateBenefitExcessPaymentAndInternalBenefitAr`. Penamaan di adendum ini bersifat lokal dan perlu
+> diselaraskan ke registry keputusan bila pemilik modul menghendaki.
+
+### 16.1 Masalah yang ditutup
+
+Pada kunjungan berpenjamin internal (Benefit Karyawan RS), biaya terbagi atas **P** (ditanggung benefit, `min(C, S)`),
+**E** (kelebihan di atas plafon, `C − P`), dan **K** (sisa tagihan pasien di `PatientAmount`). Sebelum adendum ini:
+
+1. Tender hanya bisa melunasi **K**. Alokasi dibatasi `min(dana, sisa K)` dan sisanya menjadi kredit refund, sehingga **E tidak dapat dibayar langsung**; satu-satunya jalan adalah menangguhkannya penuh menjadi AR Karyawan.
+2. Finalisasi otomatis setelah K lunas (`TryCompleteSettledInvoiceAsync`) dan jalur `CompleteInvoiceWithoutPatientPaymentAsync` tidak memeriksa sisa E, sehingga E yang belum dibayar dapat lolos tanpa tagihan (kebocoran yang sudah ada sebelum adendum ini).
+3. Piutang `PAYER` mencampur piutang pihak luar (dibayar uang masuk) dengan porsi Benefit RS atas penjamin internal (biaya RS sendiri, nol kas); `FinReceipt` tidak memeriksa jenis piutang.
+4. Piutang karyawan tidak menyimpan asalnya (kelebihan plafon atau porsi tagihan pasien).
+
+### 16.2 Tiga aliran yang dibedakan secara eksplisit
+
+| Aliran | Wujud di ledger | Sumber nominal | Dilunasi oleh |
+| --- | --- | --- | --- |
+| **Porsi Benefit RS (P)** | `BilArHandoff` `PAYER` dengan `IsInternalBenefit = true`; pemotongan plafon HR tepat satu kali di finalisasi (`EmployeeBenefitBalanceService.UseAsync`) | Split benefit (`P = min(C, S)`) | Penutupan Benefit berkala (`FinanceBenefitSettlementService`, mutasi PELUNASAN-INTERNAL, **nol uang diterima**) |
+| **Pembayaran langsung pasien** | `BilSettlement` → `BilTender` → `BilPaymentAllocation`: `INVOICE` untuk K, `BENEFIT_EXCESS` untuk E | Tender kasir (Tunai/QRIS/Transfer Bank/split) | Uang benar-benar diterima di kasir |
+| **AR Karyawan** | `BilArHandoff` `EMPLOYEE_BENEFIT` + `EmployeeArOrigin` | D yang ditangguhkan di finalisasi (`D ≤ E sisa + K`) | Potong gaji/cicilan atau pembayaran karyawan; **bukan** penerimaan penjamin |
+
+AR penjamin/asuransi (`PAYER`, `IsInternalBenefit = false`) dan `PATIENT_GUARANTOR` tidak berubah.
+
+### 16.3 Model dan migration (`20261022120000_SeparateBenefitExcessPaymentAndInternalBenefitAr`)
+
+| Tabel | Perubahan | Constraint |
+| --- | --- | --- |
+| `BilPaymentAllocation` | `TargetType` boleh `BENEFIT_EXCESS` (`TargetId` = `InvoiceId`) | `CK_BilPaymentAllocation_TargetType IN ('INVOICE','BENEFIT_EXCESS')` |
+| `BilSettlement` | `BenefitExcessAuthorizedAmount numeric(18,2) null`: batas E yang diizinkan, dibaca dari HR **sekali** saat settlement dibuat | `CK_BilSettlement_BenefitExcess` (`null` atau `>= 0`) |
+| `BilArHandoff`, `FinReceivable` | `IsInternalBenefit boolean not null default false`; `EmployeeArOrigin varchar(30) null` (`OVER_ALLOWANCE` / `PATIENT_PORTION` / `MIXED`) | `CK_*_InternalBenefit` (`false` atau `DebtorType = 'PAYER'`); `CK_*_EmployeeArOrigin` (hanya `EMPLOYEE_BENEFIT`) |
+
+Backfill dalam migration: baris `PAYER` lama yang `DebtorReferenceId`-nya `MstCompanyGuarantor` berflag `IsEmployeeBenefitGuarantor`
+ditandai `IsInternalBenefit = true` (`BilArHandoff` dan `FinReceivable`). `EmployeeArOrigin` baris lama dibiarkan kosong. Tidak ada data yang dihapus.
+`Down` gagal bila sudah ada alokasi `BENEFIT_EXCESS` (constraint lama tidak mengizinkannya); baris itu harus dibereskan lebih dulu.
+
+Konsumen yang sudah memfilter `TargetType == INVOICE` untuk "sudah dibayar" (kalkulasi, closure, invoice, payer edit, clearance, biaya administrasi)
+**tidak diubah**: `BENEFIT_EXCESS` tidak boleh menutup invoice, mengurangi K, atau menjadi kredit refund.
+
+### 16.4 Aturan dan rumus
+
+1. **Pembuatan settlement** (`BillingSettlementService.CreateAsync`): bila invoice kunjungan benefit dan benefit dapat dipakai, `E_auth = E sisa` dibaca dari HR (`GetOpenBenefitExcessAsync`, gagal tertutup ke 0) dan disimpan di settlement; batas `RequestedAmount` menjadi `K + E_auth`. Kunjungan non-benefit tidak berubah.
+2. **Rekonsiliasi** (`BillingAllocationService.ReconcileSettlementAsync`): dana baru dialokasikan ke `INVOICE` sampai K, lalu ke `BENEFIT_EXCESS` sampai `E_auth` (dikurangi yang sudah dialokasikan settlement itu), baru sisanya menjadi kredit refund. Reversal membalik `BENEFIT_EXCESS` lebih dulu, lalu `INVOICE`. Rekonsiliasi tidak membaca HR.
+3. **Split benefit** (`BillingEmployeeBenefitSplitService`): `E sisa = E − Σ alokasi BENEFIT_EXCESS bersih`; `RemainingPatientObligation = E sisa + K`; `DirectPay = RemainingPatientObligation − D`. Field respons baru: `ExcessPaidAmount`, `ExcessRemainingAmount`.
+4. **Finalisasi** tetap mewajibkan `E sisa + K − D = 0`. Bila `Σ BENEFIT_EXCESS > E` hasil hitung ulang (plafon berubah setelah pembayaran), pratinjau memblokir dengan `BENEFIT_EXCESS_OVERPAID` dan finalisasi melempar `BillingFinalizationValidationException`: uang tidak diputar diam-diam; selisih dikoreksi/direfund lewat jalur sah.
+5. **Penutup kebocoran:** `TryCompleteSettledInvoiceAsync` tidak menutup invoice bila `PatientRemainingAmount > 0` dan tidak lagi melempar saat benefit tidak dapat dipastikan (invoice tetap `OPEN`; uang pasien sudah tercatat); `CompleteInvoiceWithoutPatientPaymentAsync` menolak dengan `BillingFinalizationBlockedException`.
+6. **Asal AR Karyawan:** `OVER_ALLOWANCE` bila `D ≤ E sisa`, `PATIENT_PORTION` bila `E sisa = 0`, selain itu `MIXED`. Baris `PAYER` porsi Benefit RS diterbitkan dengan `IsInternalBenefit = true`; koreksi pemilik membawa asal dari handoff lama.
+
+### 16.5 Pagar Finance
+
+| Titik | Aturan |
+| --- | --- |
+| `FinanceBillingIntakeService` (dua jalur pembuatan `FinReceivable`) | Menyalin `IsInternalBenefit` dan `EmployeeArOrigin` apa adanya dari handoff |
+| `FinanceReceiptService.AllocateAsync` | Menolak alokasi penerimaan uang ke piutang `IsInternalBenefit` ("tutup lewat Penutupan Benefit") |
+| `FinanceBenefitSettlementService` | Hanya mengambil piutang `PAYER` dengan `IsInternalBenefit = true` |
+| Payroll (`FinancePayrollDeductionBatchService`, sinkron payroll) | Tidak diubah: hanya piutang berpemilik benefit, dan `CK_FinReceivable_BenefitOwner` sudah membatasinya ke `EMPLOYEE_BENEFIT` |
+
+### 16.6 Yang sengaja tidak diubah atau tidak dikerjakan
+
+| Hal | Alasan |
+| --- | --- |
+| Jalur deposit RANAP (`AllocateDepositAsync`) | Tidak membayar E; tetap alokasi ke `INVOICE` |
+| Koreksi pemilik benefit (`CorrectBenefitDebtor`) | Rumus lamanya menurunkan E dari `Amount − DeferredPatientAmount`, yang bernilai 0 pada model sekarang. Dibiarkan; **tidak membawa pembayaran E langsung ke pemilik pengganti** |
+| Persetujuan penangguhan AR | Tetap izin `BillingFinalization : Create` dengan konfirmasi, nama pemberi persetujuan bila bukan `SELF`, dan catatan consent; tidak ada persetujuan otomatis |
+| Pilihan "Bayar Sendiri" yang tersimpan | Tidak ada endpoint untuk menyimpannya sebelum finalisasi, dan C tidak masuk `PatientAmount`; maknanya belum jelas |
+| Aturan cakupan `MstCompanyGuarantorCoverageRule` untuk penjamin internal | Keputusan bisnis Finance/HR; tanpa aturan, C = 0 dan seluruh tagihan jatuh ke pasien |
+
+### 16.7 Risiko dan pembuktian
+
+Ledger uang diubah **tanpa build dan tanpa test otomatis** (repo tidak memelihara project test). Pembuktian: jalankan migration di database uji, lalu
+uji: bayar E tunai, QRIS, transfer, dan split; tangguhkan sebagian; reversal tender; refresh browser tanpa duplikasi; dua kasir pada invoice yang sama;
+finalisasi berulang tanpa pemotongan plafon ganda; backfill `IsInternalBenefit` pada data lama. Jalankan backfill dan constraint di staging lebih dulu.
+
+## 17. Adendum 22 Oktober 2026 — Aturan Kategori Tarif Penjamin Perusahaan, Alasan Coverage, dan Kesegaran Kalkulasi Invoice Lama
+
+> Status: **diterapkan di source (belum dibuild, belum diuji runtime; tidak ada migration)**. Source: backend `Yasmina` (SHA dasar
+> `b30576e8`). Penamaan lokal; selaraskan ke registry keputusan bila pemilik modul menghendaki.
+
+### 17.1 Akar masalah
+
+`MstCompanyGuarantorCoverageRule.ItemType` untuk aturan Kategori Tarif disimpan master data sebagai `TariffCategory`
+(`CompanyGuarantorCoverageRuleService.NormalizeItemType` memetakan alias lama `ServiceCategory` ke sana), sedangkan
+`CompanyGuarantorCoverageService.Matches` hanya mengenali `ServiceCategory`. Aturan yang dibuat lewat master data karenanya **tidak
+pernah cocok** pada kalkulasi billing: porsi penjamin (C) = 0, item jatuh ke pasien, dan layar menampilkan "Tunai".
+Mesin asuransi (`BillingCoverageAdapter`, `MstInsuranceCoverageRule`) memang memakai `ServiceCategory` dan **tidak diubah**.
+
+### 17.2 Perubahan
+
+| Titik | Perubahan |
+| --- | --- |
+| `MasterData/Models/CompanyGuarantorCoverageItemTypes` (baru) | Satu definisi alias: `Normalize` dan `IsTariffCategory`. Dipakai master data (saat menyimpan) dan mesin tanggungan (saat mencocokkan) supaya keduanya tidak dapat berselisih lagi |
+| `CompanyGuarantorCoverageService.Matches` | Aturan kategori cocok untuk `TariffCategory` **dan** `ServiceCategory` (tanpa membedakan huruf besar/kecil), lewat `TariffCategoryId` komponen. Berlaku juga bagi pratinjau klinis (`ResolveTariffAsync`) |
+| `CompanyGuarantorCoverageService.CalculateCoverageDecision` | Menjadi `public static` (fungsi murni, seperti `Matches`/`CalculateCoveredAmount`) agar dapat diuji; mengisi `CoverageReason` per komponen |
+| `BillingCoverageComponentOutcome` | Parameter akhir opsional `CoverageReason`. Murni penjelasan; **tidak ada nominal yang berpindah** |
+| `BillingCoverageReasonCodes` (baru) | Kosakata alasan, lihat 17.3 |
+| `CalculationItemResponse.CoverageReason` | Dibawa ke breakdown/snapshot per item. Snapshot lama tidak memuatnya (`null`) |
+| `BillingCalculationService.CalculateItemsAndTaxesAsync` | Mencatat alasan item non-coverable: `CASH_ASSIGNED_MANUAL`, `CASH_ASSIGNED_AUTO` (dari `BilInvoiceItemPayerAssignment.AssignmentSource`), atau `CATEGORY_NOT_COVERABLE`. **Penugasan tidak pernah ditulis ulang oleh perhitungan** |
+| `BillingFinalizationService.IsCalculationCurrentAsync` | Selain item dan diskon, perubahan aturan tanggungan penjamin perusahaan encounter setelah `CalculatedAt` membuat versi tersimpan dianggap belum terkini. **Hanya invoice OPEN** |
+
+### 17.3 Kosakata alasan (`CoverageReason`)
+
+| Kode | Arti | Nominal |
+| --- | --- | --- |
+| `MATCHED_COVERED` | Aturan cocok, menanggung seluruh komponen | `PrimaryAmount = Amount` |
+| `MATCHED_PARTIAL` | Aturan cocok, menanggung sebagian (persentase, co-payment, plafon aturan) | `0 < PrimaryAmount < Amount` |
+| `EXPLICIT_NOT_COVERED` | Aturan cocok tetapi hasilnya 0 (status `NotCovered`, persentase 0, kuota kunjungan habis) | `PrimaryAmount = 0` |
+| `NO_MATCHING_RULE` | Tidak ada aturan aktif yang cocok (termasuk kelas pasien atau periode efektif tidak cocok) | `PrimaryAmount = 0`; porsi pasien mengikuti kebijakan existing |
+| `PAYER_NOT_ELIGIBLE` | Penjamin belum eligible | Seluruhnya `DataAnomalyAmount` (sudah ada) |
+| `COVERAGE_UNRESOLVED` | Polis tidak aktif, perusahaan belum dipilih, kunjungan tidak ditemukan | Seluruhnya `DataAnomalyAmount` (sudah ada) |
+| `CASH_ASSIGNED_MANUAL` / `CASH_ASSIGNED_AUTO` / `CATEGORY_NOT_COVERABLE` | Item tidak ikut dinilai penjamin | Tidak masuk daftar outcome (dianggap seluruhnya pasien, seperti sebelumnya) |
+
+Pembagian nominal ke ember primary/unresolved/data anomali/non-billable **tidak berubah** (`ApplyCoverageWaterfall` dan kontrak
+`BIL-CALCULATION-0.9` tetap). Mesin asuransi belum melaporkan alasan (`null`).
+
+### 17.4 Dua tahap yang tetap terpisah
+
+1. **Tahap 1 — aturan item** (`CompanyGuarantorCoverageService`): menghasilkan C = `PrimaryAmount` per item/pajak dari aturan penjamin. Tidak membaca HR.
+2. **Tahap 2 — plafon HR** (`BillingEmployeeBenefitSplitService.EvaluateSplitAsync`): `P = min(C, S)`, `E = C − P`, `K` = sisa pasien. Membaca `calculation.PrimaryAmount` dari **versi kalkulasi tersimpan** dan saldo HR.
+   Tidak ada alokasi plafon per item, dan pratinjau tidak mengurangi plafon (pemotongan hanya saat finalisasi).
+
+Akibatnya angka Benefit RS selalu sama dengan versi tersimpan. Invoice OPEN lama yang dihitung sebelum aturan diperbaiki memiliki C = 0 di versi tersimpan,
+sehingga split Benefit RS baru sejajar dengan aturan setelah **Recalculate**.
+
+### 17.5 Mekanisme invoice lama (tanpa menghapus/membuat ulang item)
+
+| Mekanisme | Perilaku | Pengaman |
+| --- | --- | --- |
+| `GET invoices/{id}/calculation-preview` (`PreviewCalculationAsync`) | Menghitung dengan aturan **terbaru** tanpa menyimpan: tidak ada `BilCalculationVersion`, `RowVersion` tidak berubah, tidak ada audit | Izin `BillingInvoice:Read`; hanya OPEN |
+| `POST invoices/{id}/recalculate` (`RecalculateAsync`) | Menulis satu versi baru + audit `BillingInvoice.Recalculate`; item dan penugasan payer tidak disentuh | Izin `BillingInvoice:Update`; `ExpectedRowVersion` (409 bila basi); alasan wajib; kunci advisory + transaksi serializable; **hanya OPEN** (`Hanya invoice OPEN yang dapat dihitung ulang`) |
+| `IsCalculationCurrentAsync` | Menandai versi tersimpan belum terkini bila aturan penjamin berubah setelahnya; finalisasi diblokir ("hitung ulang sebelum finalisasi") dan jalur selesai-tanpa-bayar menghitung ulang otomatis | Pemeriksaan hanya untuk OPEN; tidak menulis apa pun |
+
+Tidak ada perhitungan ulang massal, job latar, atau migrasi data. Invoice `FINALIZED`/`CLOSED` tidak pernah dihitung ulang karena aturan master berubah
+(`CalculateAsync` menolak non-OPEN, dan pemeriksaan kesegaran dilewati untuk non-OPEN). Penugasan CASH (manual maupun otomatis) tidak diubah oleh jalur mana pun di adendum ini.
+
+### 17.6 Yang tidak dikerjakan / keputusan tertunda
+
+| Hal | Status |
+| --- | --- |
+| Kebijakan "tidak ada aturan cocok" | Tidak diubah: C = 0 dan porsi jatuh ke pasien (kebijakan existing). Bila pemilik menghendaki default tanggungan tertentu, itu keputusan Finance/HR terpisah |
+| Alokasi plafon HR per item | Tidak dibuat dan tidak diinvensikan; HR hanya menyediakan saldo, bukan rincian per item |
+| Alasan untuk mesin asuransi | Tidak dibuat; `CoverageReason = null` |
+| Data kasus ABBOTIC (kategori item, penugasan payer, kelas pasien, status eligible) | Tidak dapat diverifikasi dari source; perlu dibaca di database oleh pemilik data (lihat laporan) |
+
+### 17.7 Pembuktian
+
+Belum dibuild dan belum dijalankan. Regresi statis tersedia di `Tests/QuilvianSystemBackend.PharmacyTests/CompanyGuarantorCoverageRuleMatchingTests.cs`
+(`Matches` untuk `TariffCategory`/`ServiceCategory`, normalizer, kasus ABBOTIC penuh/sebagian/tanpa aturan/NotCovered/kelas lain/periode/non-coverable). Proyek test itu
+berisi berkas lain yang sudah tidak sesuai signature service, jadi kompilasi perlu dibersihkan lebih dulu sebelum dijalankan. Uji manual di staging:
+invoice RAJAL lama OPEN dengan aturan Kategori Tarif → pratinjau menampilkan C > 0 → Hitung Ulang Cakupan → split Benefit RS mengikuti plafon HR → finalisasi.

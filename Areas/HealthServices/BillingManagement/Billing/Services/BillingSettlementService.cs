@@ -31,6 +31,7 @@ public sealed class BillingSettlementService
     private readonly LoggerService _loggerService;
     private readonly ClinicalDocumentIntegrityService? _integrityService;
     private readonly BillingMembershipFeeService? _membershipFeeService;
+    private readonly BillingEmployeeBenefitSplitService? _employeeBenefitSplitService;
 
     public BillingSettlementService(
         ApplicationDbContext dbContext,
@@ -43,7 +44,8 @@ public sealed class BillingSettlementService
         BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService,
         ClinicalDocumentIntegrityService? integrityService = null,
-        BillingMembershipFeeService? membershipFeeService = null)
+        BillingMembershipFeeService? membershipFeeService = null,
+        BillingEmployeeBenefitSplitService? employeeBenefitSplitService = null)
     {
         _dbContext = dbContext;
         _providerAdapter = providerAdapter;
@@ -56,6 +58,7 @@ public sealed class BillingSettlementService
         _loggerService = loggerService;
         _integrityService = integrityService;
         _membershipFeeService = membershipFeeService;
+        _employeeBenefitSplitService = employeeBenefitSplitService;
     }
 
     public async Task<SettlementResponse> GetAsync(
@@ -153,7 +156,9 @@ public sealed class BillingSettlementService
                 throw new BillingSettlementConflictException(
                     "CorrelationId sudah diproses; gunakan correlation baru.");
 
-            await ValidateTargetAndAmountAsync(request, cancellationToken);
+            // Batas kelebihan plafon Benefit RS (E) yang boleh dibayar langsung; 0 untuk kunjungan non-benefit.
+            var benefitExcessAuthorized = await ResolveBenefitExcessAuthorizationAsync(request, cancellationToken);
+            await ValidateTargetAndAmountAsync(request, benefitExcessAuthorized, cancellationToken);
             var activeExists = await _dbContext.BilSettlements.AsNoTracking()
                 .AnyAsync(x => !x.IsDelete
                     && x.Purpose == request.Purpose
@@ -177,6 +182,7 @@ public sealed class BillingSettlementService
                 RequestedAmount = request.RequestedAmount,
                 SuccessfulAmount = 0,
                 AllocatedAmount = 0,
+                BenefitExcessAuthorizedAmount = benefitExcessAuthorized > 0 ? benefitExcessAuthorized : null,
                 Status = BillingSettlementStatuses.Draft,
                 IdempotencyKey = idempotencyKey,
                 PayloadHash = payloadHash,
@@ -1514,8 +1520,41 @@ public sealed class BillingSettlementService
         await _membershipFeeService.ConfirmPaidChargeForSettlementAsync(settlementId, actorUserId, cancellationToken);
     }
 
+    /// <summary>
+    /// Kelebihan plafon Benefit RS (E sisa) yang boleh dibayar langsung lewat settlement invoice ini, dibaca dari HR
+    /// sekali saat settlement dibuat dan disimpan di settlement. Gagal tertutup ke 0 untuk kunjungan non-benefit,
+    /// invoice yang tidak OPEN, atau benefit yang tidak dapat dipastikan.
+    /// </summary>
+    private async Task<decimal> ResolveBenefitExcessAuthorizationAsync(
+        CreateSettlementRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (_employeeBenefitSplitService is null
+            || request.Purpose != BillingSettlementPurposes.InvoicePayment
+            || !request.InvoiceId.HasValue)
+            return 0m;
+
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == request.InvoiceId.Value && !x.IsDelete, cancellationToken);
+        if (invoice is null || invoice.Status != BillingInvoiceStatuses.Open) return 0m;
+
+        var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
+            .SingleOrDefaultAsync(
+                x => x.InvoiceId == invoice.Id
+                    && x.VersionNo == invoice.CurrentCalculationVersion
+                    && !x.IsDelete,
+                cancellationToken);
+        if (calculation is null) return 0m;
+
+        var position = await _allocationService.CalculateInvoicePositionAsync(
+            invoice.Id, calculation.PatientAmount, cancellationToken);
+        return await _employeeBenefitSplitService.GetOpenBenefitExcessAsync(
+            invoice, calculation, position.OutstandingAmount, cancellationToken);
+    }
+
     private async Task ValidateTargetAndAmountAsync(
         CreateSettlementRequest request,
+        decimal benefitExcessAllowed,
         CancellationToken cancellationToken)
     {
         if (request.Purpose == BillingSettlementPurposes.MembershipFee)
@@ -1590,6 +1629,8 @@ public sealed class BillingSettlementService
                     cancellationToken) ?? 0;
             var available = Math.Max(
                 calculation.PatientAmount - paidAmount + allocationExcess - writeOffTotal - adjustmentNet, 0);
+            // Kunjungan benefit: batas = K (sisa tagihan pasien) + E sisa (kelebihan plafon) yang diizinkan.
+            available += benefitExcessAllowed;
             var maxAvailable = Math.Max(available, Math.Round(available, 0, MidpointRounding.AwayFromZero));
             if (request.RequestedAmount > maxAvailable)
                 throw new BillingSettlementValidationException(
@@ -1991,6 +2032,7 @@ public sealed class BillingSettlementService
             RequestedAmount = settlement.RequestedAmount,
             SuccessfulAmount = settlement.SuccessfulAmount,
             AllocatedAmount = settlement.AllocatedAmount,
+            BenefitExcessAuthorizedAmount = settlement.BenefitExcessAuthorizedAmount,
             PendingAmount = pending,
             OutstandingAmount = outstanding,
             CollectibleAmount = Math.Max(outstanding - pending, 0),

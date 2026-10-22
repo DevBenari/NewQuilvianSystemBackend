@@ -139,8 +139,17 @@ public sealed class EmployeeBenefitSplitResponse
     public decimal CoveredByRuleAmount { get; set; }
     public decimal RemainingAllowanceAmount { get; set; }
     public decimal RsBenefitAmount { get; set; }
+    /// <summary>E: kelebihan biaya di atas plafon (dihitung ulang dari HR setiap kali).</summary>
     public decimal ExcessOverAllowanceAmount { get; set; }
+
+    /// <summary>Bagian E yang sudah dibayar langsung lewat tender (alokasi BENEFIT_EXCESS, setelah reversal).</summary>
+    public decimal ExcessPaidAmount { get; set; }
+
+    /// <summary>E sisa = E - ExcessPaidAmount. Yang masih harus dibayar langsung atau ditangguhkan menjadi AR Karyawan.</summary>
+    public decimal ExcessRemainingAmount { get; set; }
     public decimal PatientPortionAmount { get; set; }
+
+    /// <summary>E sisa + K: total yang masih harus diselesaikan pasien (sebelum penangguhan D).</summary>
     public decimal RemainingPatientObligation { get; set; }
     public decimal DirectPayAmount { get; set; }
     public decimal EmployeeDeferredAmount { get; set; }

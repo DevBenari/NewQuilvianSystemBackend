@@ -49,6 +49,19 @@ public sealed class BilArHandoff : IdentityModel
     /// <summary>Catatan atau nomor bukti otorisasi penangguhan piutang karyawan.</summary>
     [MaxLength(500)] public string? DeferredConsentNotes { get; set; }
 
+    /// <summary>
+    /// True hanya untuk baris PAYER porsi Benefit Karyawan RS (P) atas penjamin internal: biaya yang ditanggung RS sendiri,
+    /// ditutup berkala tanpa uang diterima. Membedakannya dari piutang PAYER pihak luar (asuransi/perusahaan) yang
+    /// benar-benar dibayar. Constraint: hanya boleh true bila DebtorType = PAYER.
+    /// </summary>
+    public bool IsInternalBenefit { get; set; }
+
+    /// <summary>
+    /// Asal piutang karyawan (hanya EMPLOYEE_BENEFIT; lihat <see cref="BillingEmployeeArOrigins"/>). Kosong untuk baris lama
+    /// dan jenis debitur lain.
+    /// </summary>
+    [MaxLength(30)] public string? EmployeeArOrigin { get; set; }
+
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 
     public BilInvoice Invoice { get; set; } = null!;
@@ -62,6 +75,14 @@ public static class BillingArDebtorTypes
 
     /// <summary>BE-FIN-091, FIN-DEC-184: porsi tagihan manfaat karyawan di atas plafon, ditanggung pegawai.</summary>
     public const string EmployeeBenefit = "EMPLOYEE_BENEFIT";
+}
+
+/// <summary>Asal piutang karyawan (EMPLOYEE_BENEFIT): kelebihan plafon, porsi sisa tagihan pasien, atau campuran keduanya.</summary>
+public static class BillingEmployeeArOrigins
+{
+    public const string OverAllowance = "OVER_ALLOWANCE";
+    public const string PatientPortion = "PATIENT_PORTION";
+    public const string Mixed = "MIXED";
 }
 
 public static class BillingHandoffStatuses

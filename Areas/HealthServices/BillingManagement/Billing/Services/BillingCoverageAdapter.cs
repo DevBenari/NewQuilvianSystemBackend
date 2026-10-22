@@ -115,7 +115,45 @@ public sealed record BillingCoverageComponentOutcome(
     // BE-BKC-028/BKC-DES-021: porsi komponen ini yang tidak boleh ditagihkan ke pasien menurut
     // kontrak penjamin. Hanya jalur (5) residual dengan IsAllowExcessPaymentByPatient=false yang
     // pernah mengisinya bukan nol.
-    decimal NonBillableResidualAmount);
+    decimal NonBillableResidualAmount,
+    // Alasan keputusan untuk komponen ini (lihat BillingCoverageReasonCodes). Murni penjelasan:
+    // TIDAK mengubah satu pun nominal di atas. Null berarti penjamin ini belum melaporkan alasan
+    // (mis. mesin asuransi) - konsumen MUST memperlakukannya sebagai "tidak diketahui", bukan
+    // sebagai "tidak ditanggung".
+    string? CoverageReason = null);
+
+// Kode alasan hasil penilaian satu komponen. Kode program, TIDAK diterjemahkan. Dipakai FE untuk
+// membedakan "penjamin menanggung" dari "tidak ada aturan yang cocok" dan "penjamin tidak dapat
+// dinilai", tanpa menebak dari nama penjamin atau dari nominal nol.
+public static class BillingCoverageReasonCodes
+{
+    // Aturan cocok dan menanggung seluruh komponen.
+    public const string MatchedCovered = "MATCHED_COVERED";
+    // Aturan cocok dan menanggung sebagian (persentase < 100, plafon aturan, co-payment, dsb.).
+    public const string MatchedPartial = "MATCHED_PARTIAL";
+    // Aturan cocok tetapi hasilnya tanggungan 0: aturan berstatus NotCovered, atau batas aturan
+    // (persentase 0, kuota kunjungan habis, co-payment >= tagihan) membuat tanggungan 0.
+    public const string ExplicitNotCovered = "EXPLICIT_NOT_COVERED";
+    // Tidak ada aturan aktif yang cocok dengan komponen ini. Tanggungan 0; porsi pasien mengikuti
+    // kebijakan existing (tidak ada aturan = pasien membayar).
+    public const string NoMatchingRule = "NO_MATCHING_RULE";
+    // Penjamin belum dinyatakan layak (eligible), sehingga tidak dapat menanggung apa pun.
+    public const string PayerNotEligible = "PAYER_NOT_ELIGIBLE";
+    // Penjamin tidak dapat dinilai karena data pendaftaran bermasalah (polis tidak aktif,
+    // perusahaan belum dipilih, kunjungan tidak ditemukan). Detail ada di AnomalyCodes invoice.
+    public const string CoverageUnresolved = "COVERAGE_UNRESOLVED";
+
+    // Item tidak ikut dinilai penjamin karena penanggungnya ditetapkan Pribadi/Tunai.
+    public const string CashAssignedManual = "CASH_ASSIGNED_MANUAL";
+    public const string CashAssignedAuto = "CASH_ASSIGNED_AUTO";
+    // Item tidak ikut dinilai karena kategorinya ditandai tidak dapat ditanggung penjamin (default master).
+    public const string CategoryNotCoverable = "CATEGORY_NOT_COVERABLE";
+
+    public static string FromAnomalyCode(string anomalyCode) =>
+        string.Equals(anomalyCode, "PAYER_NOT_ELIGIBLE", StringComparison.OrdinalIgnoreCase)
+            ? PayerNotEligible
+            : CoverageUnresolved;
+}
 
 public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
 {
@@ -560,7 +598,9 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
     {
         var coverable = components.Where(x => x.Coverable && x.Amount > 0).ToList();
         var outcomes = coverable
-            .Select(x => new BillingCoverageComponentOutcome(x.ComponentId, x.ComponentType, 0, 0, x.Amount, 0))
+            .Select(x => new BillingCoverageComponentOutcome(
+                x.ComponentId, x.ComponentType, 0, 0, x.Amount, 0,
+                BillingCoverageReasonCodes.FromAnomalyCode(code)))
             .ToList();
         var amount = coverable.Sum(x => x.Amount);
 

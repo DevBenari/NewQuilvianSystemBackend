@@ -58,6 +58,16 @@ public sealed class FinReceivable : IdentityModel
     /// <summary>Sensitif. BE-FIN-107, FIN-INTEGRATION-1.9 R.4.1: diperlebar ke 50 agar selaras dengan BilArHandoff.</summary>
     [MaxLength(50)] public string? BenefitRelationship { get; set; }
 
+    /// <summary>
+    /// Disalin dari BilArHandoff.IsInternalBenefit: piutang PAYER porsi Benefit Karyawan RS atas penjamin internal (biaya
+    /// ditanggung RS sendiri; nol uang diterima). BUKAN piutang pihak luar: tidak boleh dilunasi lewat penerimaan uang
+    /// (FinReceipt) dan hanya ditutup lewat Penutupan Benefit (FinanceBenefitSettlementService).
+    /// </summary>
+    public bool IsInternalBenefit { get; set; }
+
+    /// <summary>Disalin dari BilArHandoff.EmployeeArOrigin (OVER_ALLOWANCE / PATIENT_PORTION / MIXED); hanya EMPLOYEE_BENEFIT.</summary>
+    [MaxLength(30)] public string? EmployeeArOrigin { get; set; }
+
     public decimal OriginalAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
     public decimal AllocatedAmount { get; set; } = 0m;

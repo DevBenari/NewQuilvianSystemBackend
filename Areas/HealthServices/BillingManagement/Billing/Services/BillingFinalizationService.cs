@@ -633,6 +633,14 @@ public sealed class BillingFinalizationService
                     consentGivenBy: null,
                     isFinalizing: true,
                     cancellationToken);
+
+                // Kelebihan plafon Benefit RS (E) yang belum dibayar/ditangguhkan tidak boleh hilang lewat jalur tanpa
+                // pembayaran pasien: tolak, dan arahkan ke finalisasi dengan pilihan D (AR Karyawan) atau pembayaran E.
+                if (splitResult is { IsEmployeeBenefitVisit: true, PatientRemainingAmount: > 0m })
+                    throw new BillingFinalizationBlockedException(
+                        $"Kelebihan plafon benefit Rp {splitResult.PatientRemainingAmount:N0} belum dibayar atau ditangguhkan; " +
+                        "bayar kelebihan plafon atau finalisasi dengan penangguhan AR Karyawan.",
+                        readiness);
             }
 
             var now = DateTimeOffset.UtcNow;
@@ -747,14 +755,31 @@ public sealed class BillingFinalizationService
         EmployeeBenefitSplitCalculationResult? splitResult = null;
         if (_splitService is not null)
         {
-            splitResult = await _splitService.EvaluateSplitAsync(
-                invoice,
-                calculation,
-                patientOutstanding: 0m,
-                choiceAmount: 0m,
-                consentGivenBy: null,
-                isFinalizing: true,
-                cancellationToken);
+            try
+            {
+                splitResult = await _splitService.EvaluateSplitAsync(
+                    invoice,
+                    calculation,
+                    patientOutstanding: 0m,
+                    choiceAmount: 0m,
+                    consentGivenBy: null,
+                    isFinalizing: true,
+                    cancellationToken);
+            }
+            catch (BillingFinalizationValidationException exception)
+            {
+                // Uang pasien sudah diterima; benefit yang tidak dapat dipastikan/overpaid tidak boleh membuat tender gagal.
+                // Invoice tetap OPEN dan difinalisasi manual setelah masalahnya dibereskan.
+                return (false, $"Pembayaran berhasil, tetapi invoice belum dapat ditutup: {exception.Message}");
+            }
+
+            // Kelebihan plafon Benefit RS (E) yang belum dibayar langsung TIDAK boleh lolos begitu saja: tanpa pemeriksaan ini
+            // finalisasi otomatis menutup invoice dengan D = 0 dan E hilang dari tagihan. Pembayaran E atau penangguhannya
+            // menjadi AR Karyawan harus diputuskan lewat finalisasi manual.
+            if (splitResult is { IsEmployeeBenefitVisit: true, PatientRemainingAmount: > 0m })
+                return (false,
+                    $"Pembayaran berhasil, tetapi kelebihan plafon benefit Rp {splitResult.PatientRemainingAmount:N0} belum dibayar atau ditangguhkan. " +
+                    "Bayar kelebihan plafon atau finalisasi dengan penangguhan AR Karyawan.");
         }
 
         var (record, closureChange) = await ExecuteInternalFinalizationAndClosureAsync(
@@ -1203,6 +1228,34 @@ public sealed class BillingFinalizationService
             .OrderByDescending(x => x)
             .FirstOrDefaultAsync(cancellationToken);
         var latestChange = latestItemChange > latestDiscountChange ? latestItemChange : latestDiscountChange;
+
+        // Aturan tanggungan penjamin perusahaan yang berubah SETELAH kalkulasi tersimpan membuat porsi penjamin
+        // (C) pada versi itu tidak lagi mencerminkan aturan terbaru — termasuk invoice lama yang dihitung sebelum
+        // aturan diperbaiki. Pembagian Benefit RS dan finalisasi membaca versi tersimpan, jadi versi itu dianggap
+        // belum terkini sampai kasir menghitung ulang (Recalculate terkontrol: OPEN saja, ExpectedRowVersion,
+        // alasan, audit). Hanya invoice OPEN yang diperiksa: invoice yang sudah final/tutup tidak pernah berubah
+        // retroaktif karena aturan master berubah.
+        var companyGuarantorId = await (
+            from invoice in _dbContext.BilInvoices.AsNoTracking()
+            join guarantor in _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
+                on invoice.EncounterId equals guarantor.EncounterId
+            where invoice.Id == invoiceId
+                && invoice.Status == BillingInvoiceStatuses.Open
+                && guarantor.IsActive && !guarantor.IsDelete
+                && guarantor.CompanyGuarantorId != null
+            select guarantor.CompanyGuarantorId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (companyGuarantorId.HasValue)
+        {
+            // Termasuk aturan yang dinonaktifkan/dihapus: perubahan status juga mengubah hasil kalkulasi.
+            var latestRuleChange = await _dbContext.MstCompanyGuarantorCoverageRules.AsNoTracking()
+                .Where(x => x.CompanyGuarantorId == companyGuarantorId.Value)
+                .Select(x => x.UpdateDateTime ?? x.CreateDateTime)
+                .OrderByDescending(x => x)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (latestRuleChange > latestChange) latestChange = latestRuleChange;
+        }
+
         return latestChange <= calculation.CalculatedAt.UtcDateTime;
     }
 

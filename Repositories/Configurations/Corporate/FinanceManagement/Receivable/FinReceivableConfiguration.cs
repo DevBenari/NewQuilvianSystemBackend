@@ -21,6 +21,11 @@ public sealed class FinReceivableConfiguration : IEntityTypeConfiguration<FinRec
             table.HasCheckConstraint("CK_FinReceivable_BenefitOwner",
                 "(\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND (\"BenefitOwnerId\" IS NOT NULL OR \"BenefitOwnerWorkforceProfileId\" IS NOT NULL)) " +
                 "OR (\"DebtorType\" <> 'EMPLOYEE_BENEFIT' AND \"BenefitOwnerId\" IS NULL AND \"BenefitOwnerWorkforceProfileId\" IS NULL)");
+            // Piutang benefit internal hanyalah baris PAYER; asal piutang karyawan hanya untuk EMPLOYEE_BENEFIT.
+            table.HasCheckConstraint("CK_FinReceivable_InternalBenefit",
+                "\"IsInternalBenefit\" = false OR \"DebtorType\" = 'PAYER'");
+            table.HasCheckConstraint("CK_FinReceivable_EmployeeArOrigin",
+                "\"EmployeeArOrigin\" IS NULL OR (\"DebtorType\" = 'EMPLOYEE_BENEFIT' AND \"EmployeeArOrigin\" IN ('OVER_ALLOWANCE','PATIENT_PORTION','MIXED'))");
             // BE-FIN-079, FIN-DES-093: baris Billing (tiga kolom asal) XOR baris migrasi (OpeningItemBatchId).
             table.HasCheckConstraint("CK_FinReceivable_OpeningItem",
                 "(\"SourceHandoffKey\" IS NOT NULL AND \"SourceHandoffId\" IS NOT NULL AND \"InvoiceId\" IS NOT NULL AND \"OpeningItemBatchId\" IS NULL) " +
@@ -32,6 +37,8 @@ public sealed class FinReceivableConfiguration : IEntityTypeConfiguration<FinRec
         entity.Property(x => x.DebtorType).HasMaxLength(30).IsRequired();
         entity.Property(x => x.BenefitRelationship).HasMaxLength(50);
         entity.Property(x => x.BenefitOwnerWorkforceProfileId).IsRequired(false);
+        entity.Property(x => x.IsInternalBenefit).IsRequired().HasDefaultValue(false);
+        entity.Property(x => x.EmployeeArOrigin).HasMaxLength(30).IsRequired(false);
         entity.Property(x => x.OriginalAmount).HasPrecision(18, 2);
         entity.Property(x => x.OutstandingAmount).HasPrecision(18, 2);
         entity.Property(x => x.AllocatedAmount).HasPrecision(18, 2).HasDefaultValue(0m);

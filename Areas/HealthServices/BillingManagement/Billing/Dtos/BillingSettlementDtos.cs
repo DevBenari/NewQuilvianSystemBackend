@@ -64,6 +64,9 @@ public sealed class SettlementResponse
     public decimal RequestedAmount { get; set; }
     public decimal SuccessfulAmount { get; set; }
     public decimal AllocatedAmount { get; set; }
+
+    /// <summary>Batas bagian settlement ini yang boleh melunasi kelebihan plafon Benefit RS (E); null untuk kunjungan non-benefit.</summary>
+    public decimal? BenefitExcessAuthorizedAmount { get; set; }
     public decimal PendingAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
     public decimal CollectibleAmount { get; set; }
