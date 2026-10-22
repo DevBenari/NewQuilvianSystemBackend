@@ -119,7 +119,7 @@ public sealed class BillingSettlementsController : ControllerBase
 
     [HttpPost("settlements/{settlementId:guid}/tenders/{tenderId:guid}/manual-confirm")]
     [AccessAction("ManualConfirm", "Manual Confirm Billing Tender", AccessType = AccessTypes.Update, SortOrder = 5)]
-    [AccessPermission("BillingPayment", "Create")]
+    [AccessPermission("BillingPayment", "Update")]
     [ProducesResponseType(typeof(ApiResponse<TenderResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ManualConfirmTender(
         Guid settlementId,
