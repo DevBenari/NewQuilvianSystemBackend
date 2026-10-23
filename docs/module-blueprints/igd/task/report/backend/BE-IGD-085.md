@@ -18,7 +18,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `6bb18fe6` (`rizkiG`) + working tree `BE-IGD-083` (lima berkas `.cs`, belum di-commit) dan dokumen blueprint 18 Oktober 2026 |
 | Tanggal | 18 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 18 Oktober 2026 malam, putaran P1 disahkan sebatas bukti log (`IGD-DEC-328`): 7 dari 8 acceptance; tinggal jumlah warning build.** *Sebelumnya:* 🟡 **SEBAGIAN — implementasi selesai, QBE Strict `PASS`; build Rizki dan putaran P1 belum.** Acceptance 3, 5, 7 terpenuhi; 6 sebagian (diff); 1, 2, 4 menunggu P1; 8 menunggu build |
+| Status | ✅ **SELESAI — 19 Oktober 2026 pagi: 8 dari 8 acceptance.** #8 terpenuhi oleh build penuh Rizki di PC kantor 19 Oktober 2026 (`--no-incremental`, `rizkiG` `4cf5c1fd`): 0 error, 285 warning (5 NuGet `NU1902`/`NU1903` `SixLabors.ImageSharp`, 280 kompilator; nol dari berkas task pada daftar yang terbaca) — bagian 5. *Sebelumnya:* 🟡 **SEBAGIAN — 18 Oktober 2026 malam, putaran P1 disahkan sebatas bukti log (`IGD-DEC-328`): 7 dari 8 acceptance; tinggal jumlah warning build.** *Sebelumnya:* 🟡 **SEBAGIAN — implementasi selesai, QBE Strict `PASS`; build Rizki dan putaran P1 belum.** Acceptance 3, 5, 7 terpenuhi; 6 sebagian (diff); 1, 2, 4 menunggu P1; 8 menunggu build |
 
 ### Backend Governance Preflight
 
@@ -123,6 +123,7 @@ beralasan.
 | Penelusuran jalur normal | Encounter loket ada → kunci → episode `Encounter` → tidak ada `EmgVisit` untuk encounter → kunjungan `WaitingForTriage` + reservasi `Arrived` dalam satu `SaveChangesAsync` → commit | `PASS` (source) | Diff `:413`–`495` |
 | Penelusuran jalur tidak normal | Tanpa encounter → `409` sebelum tulis apa pun; kunjungan berjalan → `409` pesan lama; waktu tiba di masa depan → `400` sebelum transaksi; galat unik → `409`, transaksi dibuang tanpa commit | `PASS` (source) | Diff |
 | `dotnet build` (Rizki) | Build Rizki 18 Oktober 2026: DLL `bin/Debug/net9.0/QuilvianSystemBackend.dll` 16.04.59, lebih baru dari seluruh suntingan, memuat teks penanda kode task ini (diperiksa agent lewat pencarian byte); DLL hanya ditulis bila kompilasi berhasil, jadi 0 error. Jumlah warning belum dilaporkan | `PASS` (error); warning menunggu | Cap waktu DLL; teks _"Pasien belum didaftarkan di loket IGD"_ ada di DLL |
+| `dotnet build --no-incremental` (Rizki, PC kantor) | Build ulang penuh: build penuh Rizki di PC kantor 19 Oktober 2026 (`dotnet build-server shutdown`, lalu `dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false -m:1 -nodeReuse:false --no-incremental`) pada `rizkiG` `4cf5c1fd`: **0 error, 285 warning** pada proyek (104,3 detik). Lima di antaranya `NU1902`/`NU1903` paket `SixLabors.ImageSharp` 3.1.11 yang juga muncul di tahap restore; 280 sisanya warning kompilator `CS…`. Pada bagian daftar yang terbaca (tempelan keluaran terpotong sebelum akhir daftar), nol warning berasal dari lima berkas yang diubah `BE-IGD-084`/`085`. DLL 09.13.52 memuat teks penanda kode task (pencarian UTF-16) | `PASS` | Keluaran build yang ditempel Rizki di sesi; cap waktu DLL; teks _"Pasien belum didaftarkan di loket IGD"_ ada di DLL |
 | Putaran P1 (panduan uji sisa bagian 3F) | P1-03 `409` pesan kontrak (17.18.52); P1-04 kunjungan `IGD-261018105233-F75F42` ber-encounter loket `103b9248…`, `visitStatus` `2`, reservasi `2`; P1-05 _Buat Form_ `201`; P1-07 _Mulai Triage_ `201`. Persiapan penguji memakai SQL dan sandi tertulis (`IGD-FACT-148`) — disahkan sebatas bukti log (`IGD-DEC-328`) | `PASS` | [penilaian P1](../../../testing/2026-10-18-laporan-uji-putaran-p1.md) |
 
 Uji manual: `REQUIRED` — putaran P1.
@@ -148,9 +149,9 @@ dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false -m:1 -nodeReuse:
 | 5 | Atomik; balapan dengan _Mulai Triage_ ditolak `409` | Terpenuhi (diff), dengan delta pesan di 3.3 | Satu transaksi, kunci episode, satu `SaveChangesAsync` |
 | 6 | Regresi: _Mulai Triage_, buat/ubah/batal reservasi tidak berubah | Terpenuhi — diff; P1-01 (buat reservasi), P1-07 (_Mulai Triage_ `201`), pembatalan backend `200` | Method lain dan `EmergencyVisitService.cs` tidak disentuh task ini |
 | 7 | Diff hanya Cakupan; nol frontend, migration, DTO/route/enum, `Program.cs`; nol komentar baru; CRLF; QBE `PASS` | Terpenuhi | Bagian 5 |
-| 8 | Build 0 error; jumlah warning dilaporkan | Sebagian — 0 error terbukti (DLL 16.04.59); jumlah warning belum dilaporkan Rizki | Bagian 5 |
+| 8 | Build 0 error; jumlah warning dilaporkan | Terpenuhi — build penuh Rizki di PC kantor 19 Oktober 2026 (`--no-incremental`, `rizkiG` `4cf5c1fd`): 0 error, 285 warning (5 NuGet `NU1902`/`NU1903` `SixLabors.ImageSharp`, 280 kompilator; nol dari berkas task pada daftar yang terbaca). *Sebelumnya:* sebagian — 0 error terbukti (DLL 16.04.59), jumlah warning belum dilaporkan | Bagian 5 |
 
-DoD: laporan ini ✅; register, kartu, dan traceability diperbarui ✅. Belum: build, P1. Sesudah P1 lulus, `BE-IGD-080`
+DoD: laporan ini ✅; register, kartu, dan traceability diperbarui ✅. Belum: build, P1. **19 Oktober 2026 pagi:** keduanya terpenuhi (P1 18 Oktober malam, build penuh 19 Oktober) — DoD lengkap. Sesudah P1 lulus, `BE-IGD-080`
 (#4–7) dan `FE-IGD-067` (#4, #5, #7) dinilai ulang dari bukti yang sama.
 
 ## 7. Catatan penutup
@@ -162,5 +163,5 @@ DoD: laporan ini ✅; register, kartu, dan traceability diperbarui ✅. Belum: b
 | Risiko tersisa | Petugas yang terbiasa menekan _Konfirmasi Tiba_ sebelum loket kini mendapat `409`; perlu SOP singkat untuk demo (GRO ke loket dulu) |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Berkas ini, `EmergencyPreArrivalReservationService.cs`, dan perubahan sebelumnya (`BE-IGD-083`, dokumen blueprint) — belum di-commit |
-| Langkah berikutnya | `BE-IGD-084`; build Rizki; putaran P1 |
+| Status Git | **19 Oktober 2026:** source task ini sudah di-commit Rizki (`4fbf5ff6`, termuat di `rizkiG` `4cf5c1fd`); pembaruan laporan ini belum di-commit. *Sebelumnya:* berkas ini, `EmergencyPreArrivalReservationService.cs`, dan perubahan sebelumnya (`BE-IGD-083`, dokumen blueprint) — belum di-commit |
+| Langkah berikutnya | Tidak ada untuk task ini. *Sebelumnya:* `BE-IGD-084`; build Rizki; putaran P1 |
