@@ -24,7 +24,7 @@ Pada implementasi awal (`FE-RWI-198`), daftar pasien rujukan dari kamar pulih (*
 Desain baru menyatukan pintu masuk admisi rawat inap menjadi **3 Kartu Pilihan Utama yang Sejajar dan Harmonis**:
 1. **Kartu 1 — Pendaftaran Pasien Baru**: Pasien yang belum pernah terdaftar di rumah sakit (belum memiliki No. Rekam Medis).
 2. **Kartu 2 — Pendaftaran Pasien Lama**: Pasien umum/rujukan luar yang sudah memiliki No. Rekam Medis (pencarian NIK/No. RM bebas).
-3. **Kartu 3 — Admisi dari Kamar Pulih (Recovery Room)**: Pasien pasca operasi dari Instalasi Bedah Sentral (IBS) yang telah diputuskan memerlukan rawat inap atau ICU oleh dokter spesialis anestesi.
+3. **Kartu 3 — Admisi dari Kamar Pulih (Recovery Room) — Jalur Eskalasi ODC/Komplikasi (`RWI-DEC-355`)**: Pasien tindakan bedah rawat jalan / One Day Care (ODC) yang di tengah atau pasca operasi mengalami komplikasi tak terduga dan diputuskan wajib rawat inap oleh dokter anestesi. Pasien operasi terencana (elektif dan SC) **tidak** mendaftar melalui kartu ini karena sudah diadmisi sebelum operasi dan kembali ke tempat tidur semula melalui serah terima internal ruangan.
 
 Dengan memilih Kartu 3, petugas admisi diarahkan ke **Alur Stepper Khusus Kamar Pulih** yang dilengkapi:
 * Mesin pencarian dan filter cepat antrean rujukan kamar pulih.
@@ -60,6 +60,13 @@ flowchart TD
         L --> O["Modul Billing Menautkan Biaya Operasi ke Tagihan Rawat Inap (RWI-DEC-207)"]
     end
 ```
+
+---
+
+> [!IMPORTANT]
+> **Catatan Batas Alur (`RWI-DEC-355`):**  
+> Alur kamar pulih di atas **hanya** berlaku untuk pasien yang awalnya tidak direncanakan menginap (Bedah Sehari / ODC) lalu mengalami komplikasi pasca-bedah.  
+> Untuk seluruh operasi elektif terencana (termasuk SC / persalinan caesar), pasien **sudah didaftarkan rawat inap sejak awal** di bangsal sebelum operasi, tempat tidur bangsal tetap berstatus `Occupied`, dan pasca operasi pasien langsung kembali ke kamar bangsalnya melalui transfer internal perawat tanpa melalui alur kartu ini.
 
 ---
 

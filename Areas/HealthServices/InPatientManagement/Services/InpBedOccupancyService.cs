@@ -1500,6 +1500,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     EndDateTime = x.EndDateTime,
                     EndReason = x.EndReason != null ? (int)x.EndReason : null,
                     TransferReason = x.TransferReason,
+                    ChangeReason = x.ChangeReason,
                     PlacedByUserId = x.PlacedByUserId,
                     EndedByUserId = x.EndedByUserId,
                     IsCurrent = x.EndDateTime == null,

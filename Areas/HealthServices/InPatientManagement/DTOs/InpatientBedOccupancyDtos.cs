@@ -447,5 +447,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         /// <summary>Benar bila baris ini lahir dari koreksi salah catat, bukan dari transfer.</summary>
         public bool IsCorrection { get; set; }
+
+        /// <summary>
+        /// Alasan koreksi salah catat (atau alasan perubahan penempatan).
+        /// Ditampilkan pada riwayat penempatan kamar — kontrak integrasi-billing 1.1.0 API 3.4.
+        /// </summary>
+        public string? ChangeReason { get; set; }
     }
 }
