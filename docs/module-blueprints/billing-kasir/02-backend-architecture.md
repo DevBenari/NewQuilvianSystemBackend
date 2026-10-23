@@ -6471,7 +6471,7 @@ Baris dengan `TerakhirBerubah > CalculatedAt` adalah penyebab pasti.
 
 ## 20. Adendum 23 Oktober 2026 — Pemisahan Tahap RS Benefit: Konfirmasi Skema Sebelum Pembayaran Pribadi (Tanpa Perubahan Backend)
 
-> Status: **audit baca-saja; tidak ada perubahan Backend, endpoint, maupun skema.** Backend branch `Yasmina`, HEAD `ee72a793`. Perubahan hanya di Frontend (lihat `03-frontend-architecture.md` Revisi 3.0).
+> Status: **audit baca-saja; tidak ada perubahan Backend, endpoint, maupun skema.** Backend branch `Yasmina`, HEAD `ee72a793`. Perubahan hanya di Frontend (lihat `03-frontend-architecture.md` Revisi 3.0). **Butir "Tahap A" (konfirmasi skema) pada bagian ini digantikan oleh §21 / Revisi 3.1** (tidak ada tahap konfirmasi terpisah); audit §20.2 dan rekonsiliasi nominal §20.4 tetap berlaku.
 
 ### 20.1 Pertanyaan
 
@@ -6530,3 +6530,66 @@ ORDER BY c."VersionNo" DESC;
 | --- | --- |
 | Konfirmasi skema tersimpan di Backend | Tidak dibuat (lihat §20.3); membutuhkan keputusan produk dan skema baru bila kelak dibutuhkan |
 | Pembuktian | Belum dibuild atau dijalankan |
+
+
+## 21. Adendum 23 Oktober 2026 (lanjutan) — RS Benefit Otomatis sebagai Baris Pertama; Finalisasi Otomatis Setelah Pembayaran (Tanpa Perubahan Backend)
+
+> Status: **audit baca-saja; tidak ada perubahan Backend, endpoint, maupun skema.** Backend branch `Yasmina`, HEAD `a092f258`. Keputusan pemilik: tidak ada tahap konfirmasi skema terpisah (menggantikan butir "Tahap A" pada §20; audit pemisahan dan rekonsiliasi nominal §20.2–§20.4 tetap berlaku).
+
+### 21.1 Temuan audit yang menentukan desain layar
+
+| Temuan | Bukti | Akibat bagi layar |
+| --- | --- | --- |
+| Setelah tender SUCCEEDED, Backend **mencoba memfinalisasi otomatis** invoice (alasan `AutoSettledByPayment`), termasuk pembagian benefit dan pemotongan plafon sekali | `BillingSettlementService.AddTenderAsync` → `TryAutoFinalizeInvoiceAsync` → `BillingFinalizationService.TryCompleteSettledInvoiceAsync` | Pada kasus normal kasir **tidak perlu** menekan Finalisasi sesudah membayar kewajiban pribadi |
+| Finalisasi otomatis berhenti (invoice tetap OPEN, pesan "Pembayaran berhasil, tetapi invoice belum dapat ditutup: …") bila order belum selesai, kalkulasi tertinggal, penahan keras, atau kelebihan plafon (E) belum dibayar/ditangguhkan | `TryCompleteSettledInvoiceAsync` | Finalisasi manual adalah **cadangan** dan wajib punya pintu di UI. Sebelumnya, setelah sisa pribadi lunas halaman memakai status "Lunas" dan menyembunyikan seluruh tombol, sehingga cadangan itu tidak terjangkau; kini ada tombol Finalisasi Invoice utama |
+| Plafon HR hanya dipotong di `ExecuteInternalFinalizationAndClosureAsync` (`UseAsync`, sekali, idempoten `PayerHandoffKey`) dan jalur Berita Acara Koreksi | §20.2 | Baris Benefit RS di layar read-only dan tidak mengubah plafon |
+| Benefit RS tidak pernah menjadi tender; settlement dibatasi `PatientAmount − dibayar + E` | `ValidateTargetAndAmountAsync` | Nominal RS tidak ikut `settlement.rows` |
+
+### 21.2 Kode galat yang tersedia (tidak ada kontrak baru)
+
+| Sumber | Kode / bentuk |
+| --- | --- |
+| Penahan finalisasi (`blockingCodes`) | `BIL-FIN-020` perlu diperiksa, `021` tarif belum ada, `022` pelayanan belum masuk invoice, `023` kalkulasi tertinggal, `024` order belum selesai, `025` kewajiban pasien belum lunas, `026` belum dihitung; kode benefit dari split: `HR_UNAVAILABLE`, `CARD_NOT_LINKED`, `MULTIPLE_GUARANTORS_NOT_SUPPORTED`, `BENEFIT_EXCESS_OVERPAID`, dan kode alasan kelayakan HR |
+| Konflik (409) | `STALE_INVOICE_ROW_VERSION`, `DB_CONCURRENCY_CONFLICT`, `SERIALIZATION_FAILURE` (+ `currentRowVersion`) |
+| Plafon tidak cukup | Pesan `BenefitUseResults.Insufficient` pada 422 finalisasi ("Sisa plafon tidak cukup. Sisa saat ini Rp …") |
+| Tender | Status `CREATED/PENDING/SUCCEEDED/FAILED`; 502/504 membawa tender PENDING yang valid |
+
+### 21.3 Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Pembuktian | Belum dibuild atau dijalankan; finalisasi otomatis setelah pembayaran dibaca dari kode, belum diamati pada data nyata |
+| Finalisasi otomatis tanpa konfirmasi kasir pada kunjungan benefit setelah pembayaran pribadi | Perilaku Backend yang sudah ada dan tidak diubah di sini. Bila pemilik ingin konfirmasi eksplisit sebelum finalisasi, itu keputusan produk (mematikan `TryAutoFinalizeInvoiceAsync` untuk kunjungan benefit) dan bukan bagian pekerjaan ini |
+
+
+## 22. Adendum 23 Oktober 2026 — Split Payment Saldo Deposit Pasien (RANAP): Audit Konsistensi Deposit + Tender (Tanpa Perubahan Backend)
+
+> Status: **audit baca-saja; tidak ada perubahan Backend, endpoint, maupun skema.** Backend branch `Yasmina`, HEAD `a092f258`. Layar memilih deposit sebagai draft frontend dan menjalankan deposit lalu tender secara berurutan saat Proses Pembayaran (`03-frontend-architecture.md` Revisi 3.2).
+
+### 22.1 Temuan audit
+
+| Temuan | Bukti | Akibat bagi layar |
+| --- | --- | --- |
+| Alokasi deposit adalah **satu transaksi Serializable sendiri**: kunci `BIL_CALCULATION_{invoice}` dan `BIL_DEPOSIT_{encounter}`, replay idempoten lewat `IdempotencyKey` + hash payload, penolakan 409 bila `ExpectedDepositRowVersion` / `ExpectedInvoiceRowVersion` / `ExpectedCalculationVersion` tidak cocok | `BillingAllocationService.AllocateDepositAsync` | Kutipan terbaru wajib diambil sebelum tiap pengiriman; 409 tidak boleh diulang otomatis; kirim ulang hasil tidak pasti wajib memakai kunci yang sama |
+| Alokasi deposit melahirkan `BilSettlement` berstatus SETTLED **tanpa tender** (`SuccessfulAmount` = nominal) + `BilPaymentAllocation` + `BilDepositMovement`, lalu memutar `RowVersion` deposit dan invoice | idem | Deposit tidak pernah menjadi tender; total terkonfirmasi naik lewat daftar settlement |
+| **Tidak ada endpoint atomik** yang menggabungkan deposit dan tender: `POST patient-funds/deposits/{encounterId}/allocations` (BillingPatientFundsController) dan `POST patient-funds/settlements` + `POST settlements/{id}/tenders` (BillingSettlementsController) adalah transaksi terpisah | kedua controller | Deposit + Tunai/QRIS/Transfer/Debit **tidak atomik**; kegagalan sebagian nyata dan harus dilaporkan apa adanya |
+| Kutipan `GET .../allocations/quote` hanya baca: `InvoiceOutstanding`, `DepositAvailableBalance`, `MaxDepositDebitAmount`, `SuggestedPaymentAmount`, `ExpectedRefundIfUsingFullDeposit`, `CanAllocate`, `DepositRowVersion`, `InvoiceRowVersion`, `CalculationVersion` | `GetAllocationQuoteAsync` | Dipakai saat "Pilih Metode" (validasi, tanpa efek) dan sebelum pengiriman (token versi) |
+| Backend **mengizinkan** nominal deposit melebihi sisa tagihan: porsi invoice = `min(nominal, sisa)`, kelebihannya menjadi `BilRefundableCredit` | `AllocateDepositAsync` (Validasi A/B, "New Business Rule") | Layar **tidak mengaktifkan** overpayment dari alur ini (batas nominal = min(saldo, sisa)); menjadikannya fitur adalah keputusan produk/Finance |
+| Finalisasi otomatis (`TryAutoFinalizeInvoiceAsync`) hanya dipanggil setelah tender SUCCEEDED, **bukan** setelah alokasi deposit; `SyncClosureInsideTransactionAsync` pada alokasi hanya berlaku untuk invoice FINAL/CLOSED | `BillingSettlementService.AddTenderAsync`, `AllocateDepositAsync` | Pembayaran deposit saja tidak memfinalisasi invoice di Backend; langkah penutup Proses Pembayaran di layar yang mengevaluasi kesiapan finalisasi |
+| Tender memakai batas settlement/invoice yang sudah net seluruh alokasi (termasuk deposit) | `ValidateTargetAndAmountAsync`, `CreateSettlementAsync` | Deposit dijalankan **lebih dulu** supaya nominal settlement baru = sisa setelah deposit (`RemainingAmount` dari rekalkulasi) |
+
+### 22.2 Kebutuhan orkestrasi (didokumentasikan, belum dibangun)
+
+| Kebutuhan | Penjelasan | Status |
+| --- | --- | --- |
+| Urutan | Deposit → (hanya bila tercatat) settlement + tender. Bila deposit gagal/tidak pasti, tidak ada tender dikirim | Diterapkan di frontend |
+| Idempotensi | Deposit: kunci dan payload sama pada kirim ulang hasil tidak pasti (`allocationAttemptRef`). Tender: percobaan per baris (`resolveTenderAttempt`). Deposit yang sudah tercatat tidak dikirim ulang | Diterapkan di frontend |
+| Rekonsiliasi | Setelah deposit: muat ulang settlement, invoice, pratinjau, dan saldo deposit; draft dihapus hanya setelah total terkonfirmasi mencerminkannya | Diterapkan di frontend |
+| Endpoint komposit (opsional) | `POST .../payments/split` yang mencatat deposit + tender tunai dalam satu transaksi database akan memberi atomisitas untuk kombinasi deposit + tunai, tetapi tender non-tunai (QRIS/transfer) melibatkan provider di luar transaksi database sehingga atomisitas penuh tidak dapat dijanjikan | **Tidak dibuat**: tidak ada kebutuhan terverifikasi; butuh keputusan produk + persetujuan skema/endpoint |
+
+### 22.3 Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Pembuktian | Belum dibuild atau dijalankan; seluruh temuan dibaca dari kode |
+| Overpayment deposit → saldo refund | Diizinkan Backend, tidak diaktifkan di layar; butuh keputusan Finance |

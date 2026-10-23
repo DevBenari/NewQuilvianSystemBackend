@@ -2538,7 +2538,7 @@ Item covered → Benefit RS · Item non-covered → kewajiban pasien · Kewajiba
 
 # Amendment 23 Oktober 2026 — Tahap RS Benefit: Konfirmasi Skema Sebelum Pembayaran Pribadi (Revisi 3.0)
 
-> `revisi blueprint`: `3.0`, status **diterapkan di source, belum dibuild atau diuji runtime**. Frontend branch lokal `yasmina` (branch `Yasmina` di remote tidak dapat diverifikasi; pekerjaan hanya pada working tree aktif). Backend tidak berubah: `02-backend-architecture.md` §20.
+> **DIGANTIKAN oleh Revisi 3.1** (Tahap A/B dihapus atas keputusan pemilik; baca Revisi 3.1 di bawah untuk perilaku yang berlaku). `revisi blueprint`: `3.0`, status **diterapkan di source, belum dibuild atau diuji runtime**. Frontend branch lokal `yasmina` (branch `Yasmina` di remote tidak dapat diverifikasi; pekerjaan hanya pada working tree aktif). Backend tidak berubah: `02-backend-architecture.md` §20.
 
 ## 1. Akar masalah tombol
 
@@ -2593,3 +2593,138 @@ Mengapa K > 0 dikunci: `onOpenBenefitFinalization` membuka modal **Finalisasi** 
 | Verifikasi runtime, tampilan mobile/desktop, `node --test` | Belum (hanya ESLint: 0 error) |
 | Konfirmasi tahap A tidak bertahan setelah muat ulang halaman | Disengaja: status layar, bukan data; kasir cukup mengonfirmasi lagi (angka sama dalam satu klik) |
 | Memblokir pembayaran K sebelum Tahap A | Tidak dilakukan: pembayaran pribadi tetap independen agar tidak merusak alur kasir yang ada; prioritas Benefit RS ditegakkan lewat urutan tampilan (kartu terbuka, tombol utama) |
+
+
+# Amendment 23 Oktober 2026 — RS Benefit Otomatis sebagai Baris Pertama Metode Pembayaran (Revisi 3.1)
+
+> `revisi blueprint`: `3.1`, status **diterapkan di source, belum dibuild atau diuji runtime**. **Menggantikan Revisi 3.0** (Tahap A/B dihapus atas keputusan pemilik). Frontend branch lokal `yasmina`; Backend tidak berubah (`02-backend-architecture.md` §21).
+
+## 1. Struktur akhir
+
+Daftar Metode Pembayaran (halaman Menu Pembayaran), bila kunjungan memakai Benefit Karyawan RS:
+
+```
+Metode Pembayaran
+1. Benefit Karyawan RS          [Otomatis · Ditanggung RS]
+   Eligible · Bayu Ramadhan (EMP-001) · Sisa plafon Rp9.440.648,80      Nominal  Rp788.544
+2. Tunai                        (Copy Nominal)                           Nominal  Rp5.000
++ Tambah Metode Pembayaran
+
+Ringkasan: Total Tagihan · Ditanggung Benefit RS · Kewajiban Pribadi · Sudah Dibayar · Draft · Sisa Belum Dibayar
+Bilah progres: [alokasi Benefit RS ░░░ | terkonfirmasi | draft]   (Benefit RS = alokasi penjamin, bukan kas masuk)
+[Proses Pembayaran]    [Finalisasi Invoice]  (di luar drawer; ditahan dengan alasan bila belum siap)
+```
+
+Seluruh angka dari preview Backend; tidak ada rumus baru di klien.
+
+## 2. Perilaku
+
+| Elemen | Perilaku |
+| --- | --- |
+| Baris Benefit RS | Baris pertama otomatis (nomor 1) dari `employeeBenefitSplit`; read-only (tanpa input, edit, hapus); tidak punya `paymentMethodId`; tidak masuk `settlement.rows`; tidak pernah menjadi `BilTender`. Status: `ACTIVE` (nominal tampil), `STALE` (kalkulasi tertinggal: tanpa angka, tombol Hitung Ulang Cakupan), `UNUSABLE` (alasan HR dari Backend; pembiayaan lain mengikuti aturan yang ada, tidak ada peralihan otomatis ke bayar pribadi) |
+| Baris pribadi pertama | Untuk kunjungan benefit saja: metode **Tunai** dipilih dan nominal memakai **Copy Nominal** yang sudah ada (mengikuti sisa terbaru dari Backend dikurangi baris lain). Sekali per baris — mengganti metode (QRIS, Transfer Bank, Debit, ...), mematikan Copy Nominal, atau membagi nominal ke beberapa baris tidak pernah ditimpa. Baris tambahan lewat "+ Tambah Metode Pembayaran" tetap kosong (aturan umum tidak diubah). Tidak ada tender atau baris yang ditambahkan otomatis |
+| Drawer Pilih Metode Pembayaran | Kartu Benefit ringkas: Benefit Karyawan RS, Eligible, pemilik, Ditanggung Benefit RS (otomatis), Sisa plafon, Sisa kewajiban pribadi. Tanpa tahap, tombol konfirmasi/finalisasi, atau penjelasan panjang |
+| Ringkasan | Menambah "Ditanggung Benefit RS"; label "Kewajiban Pribadi" dan "Sisa Belum Dibayar" untuk kunjungan benefit (selalu terlihat) |
+| Bilah progres | Segmen alokasi Benefit RS di depan (titik-titik, terbedakan tanpa warna); segmen pribadi mengisi sisa lebar. "Lunas", terkonfirmasi, draft, dan pending tetap hanya untuk kewajiban pribadi; draft 100% tidak pernah Lunas. Tanpa penjamin hasilnya identik dengan sebelumnya |
+| Finalisasi Invoice utama | Di bawah Proses Pembayaran, di luar drawer. Hanya membuka modal Finalisasi; finalisasi tetap dipagari kesiapan Backend. Aktif bila kalkulasi terkini, order lengkap, tanpa penahan, dan sisa pribadi lunas; selain itu tetap terlihat dengan alasan dan langkah (bayar kewajiban pribadi / Hitung Ulang Cakupan). Pada fase "menunggu konfirmasi Benefit RS" (tanpa kewajiban pribadi) tombol utama Proses Pembayaran sudah membuka modal Finalisasi, jadi tombol ini tidak diduplikasi |
+| Konfirmasi alokasi | Tetap satu: centang di modal Finalisasi (kontrak yang ada). Tidak ada tahap konfirmasi terpisah |
+| Finalisasi otomatis | Backend memfinalisasi otomatis setelah tender sukses bila siap (`02-backend-architecture.md` §21.1); tombol utama adalah cadangan saat itu tertahan |
+| Stale | `remainingPatientObligation` benefit dan status "LUNAS" invoice dari versi lama tidak dipakai sebagai angka otoritatif (Rev 2.9) |
+
+## 3. Berkas
+
+| Berkas | Perubahan |
+| --- | --- |
+| `billing-finalization-readiness.js` | `resolveBenefitAllocation`, `resolveMainFinalizeAction`, `describeFinalizeBlock`, konstanta `BENEFIT_ALLOCATION_STATE`/`FINALIZE_BLOCK`/`FINALIZE_ACTION` (menggantikan fungsi Tahap A/B) |
+| `billing-benefit-row-defaults.js` (baru) | `planBenefitRowDefaults`: default baris pribadi pertama (murni, diuji) |
+| `use-billing-finalization.js` | `benefitAllocation`, `mainFinalizeAction`; sisa konfirmasi Tahap A dihapus |
+| `use-menu-pembayaran.js` | Efek default baris pribadi (hanya `updateRow`) |
+| `benefit-allocation-row.jsx` (baru), `menu-pembayaran.module.css` | Baris Benefit RS read-only |
+| `menu-pembayaran-view.jsx` | Baris Benefit RS, ringkasan, tombol Finalisasi Invoice utama, props drawer/modal |
+| `add-tender-modal.jsx`, `payment-method-picker.module.css` | Kartu Benefit ringkas; tahap/tombol/penjelasan dihapus |
+| `finalize-invoice-modal.jsx` | Checkbox konfirmasi kembali seperti semula |
+| `billing-payment-progress-state.js`, `billing-payment-progress.jsx`, `.module.css` | Segmen alokasi penjamin |
+| `tests/unit/billing-benefit-allocation.test.mjs` (baru, menggantikan tes Tahap A/B) | 26 tes |
+
+## 4. Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Verifikasi runtime, mobile/desktop, `node --test` | Belum (hanya ESLint: 0 error) |
+| Aturan "baris baru selalu kosong" pada hook settlement | Tidak diubah (dikunci tes pihak lain); default benefit dilakukan lewat `updateRow` di hook halaman |
+| Default Tunai | Hanya bila metode Tunai ada pada master metode yang tersedia; bila tidak ada, hanya nominal yang terisi |
+
+
+# Amendment 23 Oktober 2026 — Split Payment Saldo Deposit Pasien (RANAP): Pilih Metode = Draft (Revisi 3.2)
+
+> `revisi blueprint`: `3.2`, status **diterapkan di source, belum dibuild atau diuji runtime**. Frontend branch lokal `yasmina`; Backend tidak berubah (`02-backend-architecture.md` §22).
+
+## 1. Akar masalah
+
+Drawer "Pilih Metode Pembayaran" meleburkan **memilih** dan **memotong** deposit: setelah "Gunakan Deposit", tombol utama berlabel "Bayar dengan Deposit" dan memanggil `onPayWithDeposit` → `allocateDepositDirectly` (POST alokasi) saat itu juga. Akibatnya saldo terpotong sebelum kasir selesai menyusun pembayaran, pilihan deposit hanya hidup di state lokal modal (tidak tampil di daftar Metode Pembayaran, ringkasan, atau progress), dan sisa tidak bisa dipecah ke Tunai/QRIS/Transfer/Debit sebelum apa pun diproses.
+
+## 2. Struktur akhir
+
+```
+Drawer "Pilih Metode Pembayaran"  (RANAP)
+  Saldo Deposit Pasien (RANAP)   Saldo Tersedia · Sisa Tagihan · Dipilih dari Deposit (draft) · Sisa Setelah Draft ·
+                                 Saldo Deposit Setelah Dialokasikan (Estimasi)
+  Tunai · QRIS · Transfer Bank · Debit/Lainnya
+  [Batal]  [Pilih Metode]        <- tidak ada POST, saldo tidak berkurang
+
+Menu Pembayaran > Metode Pembayaran
+  1. Deposit Pasien   Draft · Belum Diproses   Rp1.000.000     (nominal bisa diubah, bisa dihapus)
+  2. Metode Pembayaran  [+ Pilih Metode]       Rp0
+  + Tambah Metode Pembayaran
+Ringkasan: Sisa Tagihan Sebelum Pembayaran Rp1.248.734 · Draft Deposit Pasien Rp1.000.000 · Sisa Belum Dialokasikan Rp248.734
+           (+ Tunai 248.734 → Total Draft Rp1.248.734 · Sisa Belum Dialokasikan Rp0) · Saldo Deposit Setelah Dialokasikan (Estimasi)
+[Proses Pembayaran]              <- satu-satunya yang memulai transaksi Backend
+```
+
+## 3. Perilaku
+
+| Elemen | Perilaku |
+| --- | --- |
+| "Pilih Metode" (deposit) | Memeriksa nominal terhadap kutipan Backend TERBARU (GET, hanya baca), menyimpan **draft** frontend, menutup drawer. Tidak ada POST alokasi, saldo tidak dipotong, tidak ada settlement/`BilPaymentAllocation`, invoice tidak lunas |
+| Draft | `{localId, type:"DEPOSIT", encounterId, invoiceId, depositAccountId, amount, reason, status}`; satu per invoice; **bukan** baris tender dan tidak punya `PaymentMethodId`. Status: `DRAFT` → `PROCESSING` → `SUCCEEDED` (dihapus setelah total terkonfirmasi mencerminkannya) / `UNKNOWN` (hasil tidak pasti) / kembali `DRAFT` (ditolak atau 409) |
+| Nominal awal | min(saldo deposit, sisa tagihan); kasir boleh mengubah (inline pada baris draft). Saldo tidak pernah dialokasikan seluruhnya otomatis. Nominal di atas saldo atau sisa tagihan ditolak (overpayment ke saldo refund tidak diaktifkan; lihat §6) |
+| Sisa untuk metode lain | Draft memesan nominalnya dari sisa yang boleh dialokasikan ke baris lain (`reservedDepositAmount`): "Sisa Belum Dialokasikan" dan Copy Nominal langsung menghitung sisa setelah deposit; mengubah/menghapus draft memperbaruinya saat itu juga, tanpa transaksi |
+| Ringkasan | Sisa Tagihan Sebelum Pembayaran · Draft Deposit Pasien · Draft Pembayaran Lain · Total Draft · Sisa Belum Dialokasikan · Saldo Deposit Setelah Dialokasikan (Estimasi) |
+| Progress | `ConfirmedPaidAmount` (tidak berubah oleh draft) dipisah dari `draftDepositAmount`, `draftTenderAmount`, dan pratinjau; deposit yang sedang dikirim = diproses; "Lunas" tetap hanya dari Backend |
+| Proses Pembayaran | (1) draft deposit dikirim lebih dulu lewat `allocateDepositDirectly` (kutipan terbaru → token versi deposit/invoice/kalkulasi; kunci idempotensi sendiri); (2) hanya bila tercatat, baris Tunai/QRIS/Transfer/Debit lewat settlement + tender seperti biasa; (3) langkah penutup yang sudah ada (muat ulang, evaluasi kesiapan finalisasi, laporan hasil). Deposit saja tidak membuat settlement kosong |
+| Kegagalan sebagian | Deposit gagal/ditolak/409: tidak ada tender dikirim, draft dan baris tender dipertahankan, data dimuat ulang, tanpa percobaan ulang otomatis. Deposit tercatat + tender gagal: deposit tidak dikirim ulang, baris gagal dipertahankan, toast menjelaskan, kasir menekan Proses Pembayaran lagi (hanya sisa yang dikirim). Hasil deposit tidak pasti: nominal dikunci, dikirim ulang dengan kunci yang sama (replay Backend) |
+| Konsistensi tampilan | Draft deposit tidak dihitung ganda setelah dikirim: bagian yang belum tercermin = nominal − kenaikan total terkonfirmasi sejak percobaan pertama (`confirmedBaseline`) |
+| Riwayat Pembayaran | Tidak berubah: hanya pembayaran berhasil; draft tidak pernah tampil di sana, deposit yang sudah dialokasikan tidak tampil sebagai form baru |
+
+## 4. Berkas
+
+| Berkas | Perubahan |
+| --- | --- |
+| `billing-deposit-draft.js` (baru) | Logika murni: bentuk draft, validasi, ringkasan, pemesanan sisa, transisi status, klasifikasi galat, validasi terhadap kutipan |
+| `use-billing-deposit-draft.js` (baru) | State draft frontend (tanpa Backend) |
+| `deposit-draft-row.jsx` (baru) | Baris "Deposit Pasien" (Draft/Belum Diproses), nominal inline, hapus |
+| `add-tender-modal.jsx` | Tombol utama selalu "Pilih Metode"; `onSelectDeposit` menggantikan `onPayWithDeposit`; label blok deposit; batas nominal |
+| `menu-pembayaran-view.jsx` | `handleSelectDeposit`, baris draft, ringkasan, parameter progress; `handlePayWithDeposit` dihapus |
+| `use-menu-pembayaran.js` | Draft hook, `runDepositDraftStep`, integrasi `startPayment` (deposit → tender), deposit hook dipindah di atas settlement |
+| `use-billing-settlement.js` | `depositDraft` memesan sisa; `submittableRowCount`; `submitAllocations` tidak membuat settlement kosong; `confirmedOffset` |
+| `billing-split-payment-rows.js`, `billing-payment-progress-state.js`, `billing-payment-progress.jsx` | `evaluatePaymentSubmission` (reserved), `isPristineRow`, progress deposit |
+| `tests/unit/billing-deposit-draft.test.mjs` (baru) | 43 tes |
+
+## 5. Alur API
+
+| Langkah | Panggilan |
+| --- | --- |
+| Pilih Metode | `GET patient-funds/deposits/{encounterId}/allocations/quote` (hanya baca) |
+| Proses Pembayaran, deposit | `GET .../allocations/quote` → `POST patient-funds/deposits/{encounterId}/allocations` (Idempotency-Key, `ExpectedDepositRowVersion`, `ExpectedInvoiceRowVersion`, `ExpectedCalculationVersion`) |
+| Proses Pembayaran, tender | rekalkulasi bila perlu → `POST patient-funds/settlements` → `POST settlements/{id}/tenders` per baris (urutan, Idempotency-Key, `ExpectedRowVersion`) |
+| Setelah | muat ulang settlement, invoice, pratinjau, saldo deposit, kesiapan finalisasi |
+
+## 6. Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Verifikasi runtime, mobile/desktop | Belum (ESLint file berubah: 0 masalah; `node --test` hanya file billing terkait) |
+| Atomisitas deposit + tender | Tidak ada di Backend (§22); dilaporkan sebagai kegagalan sebagian, bukan disembunyikan |
+| Overpayment deposit → saldo refund | Diizinkan Backend, **tidak diaktifkan** di layar; keputusan Finance |
+| Draft hilang saat halaman dimuat ulang | Disengaja (draft bukan transaksi; baris tender draft juga hanya state lokal) |
+| Tabrakan dengan pekerjaan paralel | `startPayment`/`concludePayment` (langkah penutup tombol tunggal) dipakai apa adanya; deposit dihitung satu pembayaran sah pada ringkasan penutup |
