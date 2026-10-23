@@ -559,7 +559,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
             var handoff = await EmitChargeEligibilityAsync(study, actorUserId, cancellationToken);
 
-            if (handoff.Kind is ClinicalFactEmissionKind.Emitted or ClinicalFactEmissionKind.Replayed)
+            if (handoff?.Kind is ClinicalFactEmissionKind.Emitted or ClinicalFactEmissionKind.Replayed)
             {
                 study.BillingFactSubmitted = true;
                 study.BillingFactSubmittedAt = DateTime.UtcNow;
@@ -1490,11 +1490,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// aturan tanggung jawabnya tanpa menebak — <c>GATE-DEC-004</c> melarang pengulangan
         /// karena kesalahan internal rumah sakit otomatis menambah tagihan pasien.
         /// </summary>
-        private Task<ClinicalFactEmissionResult> EmitChargeEligibilityAsync(
+        /// <summary>
+        /// Menerbitkan fakta kelayakan tagih study; <c>null</c> bila pesanannya bertanda paket MCU
+        /// (<c>BE-MCU-020</c>, <c>MCU-DEC-022</c>) — Thorax dalam Paket Basic sudah ditagih sebagai
+        /// satu baris paket oleh MCU dan tidak boleh ditagih lagi sebagai <c>RadiologyCharge</c>.
+        /// </summary>
+        private async Task<ClinicalFactEmissionResult?> EmitChargeEligibilityAsync(
             RadStudy study,
             Guid actorUserId,
             CancellationToken cancellationToken)
         {
+            var coveredByMcuPackage = study.RadOrder != null
+                ? study.RadOrder.CoveringMcuOrderId != null
+                : await _dbContext.RadOrders.AsNoTracking()
+                    .AnyAsync(x => x.Id == study.RadOrderId && x.CoveringMcuOrderId != null, cancellationToken);
+
+            if (coveredByMcuPackage)
+                return null;
+
             var request = new ClinicalMilestoneFactRequest
             {
                 SourceContext = BillingSourceContract.RadiologySourceContext,
@@ -1518,7 +1531,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 }),
             };
 
-            return _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+            return await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
                 request, actorUserId, cancellationToken);
         }
 

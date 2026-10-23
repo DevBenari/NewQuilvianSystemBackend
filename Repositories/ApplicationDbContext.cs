@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Models;
@@ -636,6 +637,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilRefundableCredit> BilRefundableCredits { get; set; }
         public DbSet<BilRefundCase> BilRefundCases { get; set; }
         public DbSet<BilRefundLine> BilRefundLines { get; set; }
+        public DbSet<BilRefundCaseItem> BilRefundCaseItems { get; set; }
         public DbSet<BilAdjustment> BilAdjustments { get; set; }
         public DbSet<BilWriteOffCase> BilWriteOffCases { get; set; }
         public DbSet<BilFinalizationRecord> BilFinalizationRecords { get; set; }
@@ -1260,6 +1262,33 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<HmdUnitReadinessDetail> HmdUnitReadinessDetails { get; set; }
         public DbSet<HmdSetting> HmdSettings { get; set; }
         #endregion HEMODIALYSIS MANAGEMENT
+
+        #region MEDICAL CHECKUP MANAGEMENT
+        // MCU-BP-001, BE-MCU-002. 21 tabel Mcu* milik modul Medical Check-Up (registry Mcu / ACTIVE,
+        // MCU-GOV-001). Katalog, jadwal, order, hasil, resume, dan penyerahan; kunjungan, tagihan,
+        // serta pesanan Lab/Rad tetap milik modul pemiliknya.
+        public DbSet<McuPackage> McuPackages { get; set; }
+        public DbSet<McuPackageComponent> McuPackageComponents { get; set; }
+        public DbSet<McuPackageComponentRequirement> McuPackageComponentRequirements { get; set; }
+        public DbSet<McuPackageCompanyPrice> McuPackageCompanyPrices { get; set; }
+        public DbSet<McuExaminationType> McuExaminationTypes { get; set; }
+        public DbSet<McuExaminationField> McuExaminationFields { get; set; }
+        public DbSet<McuFitnessCategory> McuFitnessCategories { get; set; }
+        public DbSet<McuDailySchedule> McuDailySchedules { get; set; }
+        public DbSet<McuQuotaOverride> McuQuotaOverrides { get; set; }
+        public DbSet<McuOrder> McuOrders { get; set; }
+        public DbSet<McuOrderComponent> McuOrderComponents { get; set; }
+        public DbSet<McuOrderRequirementCheck> McuOrderRequirementChecks { get; set; }
+        public DbSet<McuOrderStatusHistory> McuOrderStatusHistories { get; set; }
+        public DbSet<McuOrderDoctorAssignment> McuOrderDoctorAssignments { get; set; }
+        public DbSet<McuBookingImport> McuBookingImports { get; set; }
+        public DbSet<McuExaminationResult> McuExaminationResults { get; set; }
+        public DbSet<McuExaminationResultValue> McuExaminationResultValues { get; set; }
+        public DbSet<McuExaminationResultValueRevision> McuExaminationResultValueRevisions { get; set; }
+        public DbSet<McuResume> McuResumes { get; set; }
+        public DbSet<McuReleaseConsent> McuReleaseConsents { get; set; }
+        public DbSet<McuResultDelivery> McuResultDeliveries { get; set; }
+        #endregion MEDICAL CHECKUP MANAGEMENT
 
         #endregion HEALTH SERVICE
 
