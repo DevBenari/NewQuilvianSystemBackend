@@ -26,7 +26,7 @@
 | Area / Module | `HealthServices` / `MedicalCheckupManagement / Medical Check-Up`, prefix `Mcu`, registry `ACTIVE` |
 | Keberlakuan | `NEW CODE` (service, controller, DTO baru; tanpa entity baru) |
 | QBE yang berlaku | `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001` (`McuResume`), `QBE-LOG-001` (isi resume dan alasan pengembalian tidak masuk log), `QBE-VAL-001`, `QBE-TXN-001` (resume + order + riwayat satu `SaveChanges`), `QBE-DTO-001` |
-| Checker QBE | `PASS` — 5 berkas task nol temuan; kontrol negatif `ZzzKontrol` terkena `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002`, lalu dihapus. Run pertama tidak menangkap kontrol karena berjalan bersamaan dengan `dotnet test` (terbukti di `BE-MCU-032`); run sendirian selalu menangkapnya |
+| Checker QBE | `PASS` — 5 berkas task nol temuan; kontrol negatif `ZzzKontrol` terkena `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002`, lalu dihapus. Run pertama sesudah `dotnet test` tidak menangkap kontrol (pola berulang di `BE-MCU-030`..`033`, sebab belum diketahui); run berikutnya selalu menangkapnya |
 
 ---
 
@@ -180,7 +180,7 @@ Uji manual: `NOT FEASIBLE` di sesi ini (startup devYoga menunggu migration).
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Checker QBE run pertama tidak menangkap kontrol negatif karena berjalan bersamaan dengan `dotnet test`; run sendirian selalu menangkapnya (sebab dipastikan di `BE-MCU-032`) |
+| Peringatan | Checker QBE: run pertama sesudah `dotnet test` tidak menangkap kontrol negatif; run berikutnya selalu menangkapnya. Sebab belum diketahui (berulang sampai `BE-MCU-033`) |
 | Masalah yang diketahui | Buka ulang resume belum ada (`BE-MCU-031`); sampai itu, resume yang sudah disetujui hanya dapat diubah lewat **kembalikan** sebelum verifikasi |
 | Risiko tersisa | Hak akses `McuResume` mengikuti `SysAccessPolicies` per departemen-posisi; pemberiannya ke jabatan dokter dan petugas MCU di devYoga belum diperiksa. Index unik versi berlaku hanya teruji lewat penanganan kode, bukan PostgreSQL |
 | Perubahan sampingan | Folder uji sementara dipulihkan lalu dihapus (salinan diperbarui di scratchpad); kontrol negatif QBE dibuat lalu dihapus |

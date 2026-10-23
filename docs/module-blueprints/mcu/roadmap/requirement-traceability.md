@@ -46,12 +46,12 @@ bukti), atau **Di luar roadmap**. Tidak ada task implementasi yang selesai pada 
 | `FR-MCU-041` | `MCU-DEC-032` | BE §11 | `VAL-MCU-38` | `BE-MCU-030` ✅, `BE-MCU-032` ✅ | `FE-MCU-012` | `AT-MCU-39` dua bagian pertama ✅ ([`BE-MCU-030`](../task/report/backend/BE-MCU-030.md)), bagian ganti dokter ✅ ([`BE-MCU-032`](../task/report/backend/BE-MCU-032.md)); `UAT-16` | Backend selesai — menunggu `FE-MCU-012` |
 | `FR-MCU-042` | `MCU-DEC-008` | BE §11 | `VAL-MCU-39` | `BE-MCU-030` ✅ | `FE-MCU-013` | `AT-MCU-40` ✅ ([`BE-MCU-030`](../task/report/backend/BE-MCU-030.md)); `UAT-15` | Backend selesai — menunggu `FE-MCU-013` |
 | `FR-MCU-043` | `MCU-DEC-008` | — | `VAL-MCU-40` | `BE-MCU-030` ✅ | `FE-MCU-013` | Uji integrasi `BE-MCU-030` ✅ (kembalikan beralasan, approve ulang) | Backend selesai — menunggu `FE-MCU-013` |
-| `FR-MCU-044` | `MCU-DEC-011` | — | `MCU-STATE-v1` | `BE-MCU-031` ✅, `034` | `FE-MCU-012` | `AT-MCU-43` tanpa alur penyerahan ✅ ([`BE-MCU-031`](../task/report/backend/BE-MCU-031.md)), uji penuh diulang di `BE-MCU-034`; `UAT-17` | Backend sebagian — menunggu `BE-MCU-034` dan `FE-MCU-012` |
+| `FR-MCU-044` | `MCU-DEC-011` | — | `MCU-STATE-v1` | `BE-MCU-031` ✅, `034` ✅ | `FE-MCU-012` | `AT-MCU-43` penuh ✅ ([`BE-MCU-031`](../task/report/backend/BE-MCU-031.md), [`BE-MCU-034`](../task/report/backend/BE-MCU-034.md)); `UAT-17` | Backend selesai — menunggu `FE-MCU-012` |
 | `FR-MCU-045` | `MCU-DEC-040` | — | `VAL-MCU-45` | `BE-MCU-032` ✅ | `FE-MCU-014` | `AT-MCU-39` bagian ketiga ✅ ([`BE-MCU-032`](../task/report/backend/BE-MCU-032.md)) | Backend selesai — menunggu `FE-MCU-014` |
-| `FR-MCU-050` | `MCU-DEC-010` | BE §11 | `MCU-API-v1` Mcu Delivery | `BE-MCU-033` | `FE-MCU-010`, `013` | `AT-MCU-42` (refleksi DTO) | Direncanakan |
-| `FR-MCU-051` | `MCU-DEC-010` | — | `VAL-MCU-31` | `BE-MCU-034` | `FE-MCU-013` | `AT-MCU-42`; `UAT-19` | Direncanakan |
-| `FR-MCU-052` | `MCU-DEC-019`, `027` | — | `VAL-MCU-32`, `33` | `BE-MCU-034` | `FE-MCU-013` | `AT-MCU-41`, `44`; `UAT-18` | Direncanakan |
-| `FR-MCU-053` | `MCU-DEC-010` | — | `MCU-PERM-v1` | `BE-MCU-034` | `FE-MCU-013` | Uji integrasi `BE-MCU-034` | Direncanakan |
+| `FR-MCU-050` | `MCU-DEC-010` | BE §11 | `MCU-API-v1` Mcu Delivery | `BE-MCU-033` ✅ | `FE-MCU-010`, `013` | `AT-MCU-42` refleksi DTO ✅ ([`BE-MCU-033`](../task/report/backend/BE-MCU-033.md)), bagian penyerahan `409` ✅ ([`BE-MCU-034`](../task/report/backend/BE-MCU-034.md)) | Backend selesai — menunggu `FE-MCU-010`, `013` |
+| `FR-MCU-051` | `MCU-DEC-010` | — | `VAL-MCU-31` | `BE-MCU-034` ✅ | `FE-MCU-013` | `AT-MCU-42` ✅ ([`BE-MCU-034`](../task/report/backend/BE-MCU-034.md)); `UAT-19` | Backend selesai — bentuk bukti `MCU-OQ-003` menahan go-live; menunggu `FE-MCU-013` |
+| `FR-MCU-052` | `MCU-DEC-019`, `027` | — | `VAL-MCU-32`, `33` | `BE-MCU-034` ✅ | `FE-MCU-013` | `AT-MCU-41`, `44` ✅ ([`BE-MCU-034`](../task/report/backend/BE-MCU-034.md)); `UAT-18` | Backend selesai — menunggu `FE-MCU-013` |
+| `FR-MCU-053` | `MCU-DEC-010` | — | `MCU-PERM-v1` | `BE-MCU-034` ✅ | `FE-MCU-013` | Uji integrasi `BE-MCU-034` ✅ (persetujuan, pencabutan) | Backend selesai — menunggu `FE-MCU-013` |
 
 ## 2. Kebutuhan non-fungsional → Task
 
@@ -62,7 +62,7 @@ bukti), atau **Di luar roadmap**. Tidak ada task implementasi yang selesai pada 
 | `NFR-003` | Idempotensi check-in | `BE-MCU-013` | `AT-MCU-17` |
 | `NFR-004` | Audit tahan lama | Seluruh task ubah (riwayat status/dokter, versi resume, penyerahan) | Baris riwayat pada setiap AT — lihat celah `GAP-MCU-05` |
 | `NFR-005` | Izin **dan** kecocokan dokter yang ditetapkan | `BE-MCU-024`, `030`, `031`, `032` | `AT-MCU-31`, `39` |
-| `NFR-006` | Log tanpa data sensitif | `BE-MCU-035` (dan DoD setiap task) | `AT-MCU-45` |
+| `NFR-006` | Log tanpa data sensitif | `BE-MCU-035` ✅ (dan DoD setiap task) | `AT-MCU-45` ✅ ([`BE-MCU-035`](../task/report/backend/BE-MCU-035.md)) |
 | `NFR-007` | Tanggal kalender WIB, jam tutup dapat dikonfigurasi | `BE-MCU-012`, `013` | `AT-MCU-13`; `VAL-MCU-24` |
 | `NFR-008` | Isian terkunci sesudah approve; revisi tercatat | `BE-MCU-023`, `031` | `AT-MCU-43`; `VAL-MCU-44` |
 
@@ -79,7 +79,7 @@ bukti), atau **Di luar roadmap**. Tidak ada task implementasi yang selesai pada 
 | `AT-MCU-13` | `BE-MCU-012` | | `AT-MCU-36` | — (`EPIC MCU-10`) |
 | `AT-MCU-16`..`24` | `BE-MCU-013` | | `AT-MCU-38`..`40` | `BE-MCU-030`, `032` |
 | `AT-MCU-25` | — (`EPIC MCU-08`) | | `AT-MCU-41`..`44` | `BE-MCU-031`, `033`, `034` |
-| `AT-MCU-RUN-01`..`03` | `BE-MCU-001` ✅ `PASS` 2026-10-21 | | `AT-MCU-45` | `BE-MCU-035` |
+| `AT-MCU-RUN-01`..`03` | `BE-MCU-001` ✅ `PASS` 2026-10-21 | | `AT-MCU-45` | `BE-MCU-035` ✅ |
 
 ## 4. UAT → Task
 

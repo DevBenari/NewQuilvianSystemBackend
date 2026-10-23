@@ -26,7 +26,7 @@
 | Area / Module | `HealthServices` / `MedicalCheckupManagement / Medical Check-Up`, prefix `Mcu`, registry `ACTIVE`; modul mitra `LaboratoryManagement` (`Lab`), `RadiologyManagement` (`Rad`) |
 | Keberlakuan | `NEW CODE` (endpoint, service MCU, dua method internal baru di Lab/Rad) |
 | QBE yang berlaku | `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001` (`McuOrder : ReassignDoctor`), `QBE-LOG-001` (alasan tidak masuk log), `QBE-VAL-001`, `QBE-TXN-001` (penugasan, order, pesanan Lab/Rad satu transaksi), `QBE-DTO-001` |
-| Checker QBE | `PASS` — 6 berkas task nol temuan; kontrol negatif `ZzzKontrol` terkena `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002`, lalu dihapus. Tiga run pertama berjalan bersamaan dengan `dotnet test` dan tidak menangkap kontrol; dijalankan sendirian, semua varian daftar menangkapnya |
+| Checker QBE | `PASS` — 6 berkas task nol temuan; kontrol negatif `ZzzKontrol` terkena `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002`, lalu dihapus. Tiga run pertama (satu pemanggilan, paralel dengan `dotnet test`) tidak menangkap kontrol; pemanggilan berikutnya, semua varian daftar menangkapnya |
 
 ---
 
@@ -166,10 +166,10 @@ Uji manual: `NOT FEASIBLE` di sesi ini.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Checker QBE yang berjalan bersamaan dengan `dotnet test` tidak menangkap kontrol negatif — sebab inilah yang juga terjadi di `BE-MCU-030`/`031`; laporan keduanya sudah dikoreksi |
+| Peringatan | Checker QBE: pemanggilan pertama sesudah `dotnet test` tidak menangkap kontrol negatif, sama dengan `BE-MCU-030`/`031`. Sebab belum diketahui — dugaan *karena paralel* gugur di `BE-MCU-033` (run sendirian pun meleset) |
 | Masalah yang diketahui | Resume yang sudah disetujui dokter lama tetap atas nama dokter lama; bila perlu diubah, dokter baru membuka ulang (`BE-MCU-031`) |
 | Risiko tersisa | Index unik penugasan berlaku hanya teruji lewat urutan kode (dua `SaveChanges`), bukan PostgreSQL. Hak akses kepala unit di devYoga belum diperiksa |
-| Perubahan sampingan | Folder uji sementara dipulihkan lalu dihapus (salinan diperbarui di scratchpad); kontrol negatif QBE dibuat lalu dihapus. Laporan `BE-MCU-030`/`031` dikoreksi pada butir sebab checker |
+| Perubahan sampingan | Folder uji sementara dipulihkan lalu dihapus (salinan diperbarui di scratchpad); kontrol negatif QBE dibuat lalu dihapus. Laporan `BE-MCU-030`/`031` dikoreksi pada butir checker |
 | Interupsi | Skrip mutasi gabungan berhenti di penanda Rad (CRLF) sesudah mutasi MCU terpasang; uji dijalankan, kedua berkas dipulihkan identik, lalu mutasi Rad diulang terpisah |
 | Status Git | Baru dari task ini: berkas di folder `MedicalCheckupManagement/` (`??`); hunk baru di `LabOrderService.cs` dan `RadOrderService.cs` (` M` sejak `BE-MCU-020`); laporan ini; koreksi laporan 030/031; tanda roadmap/traceability |
 | Langkah berikutnya | `BE-MCU-033` (dokumen hasil lengkap dan ringkasan kelayakan) siap |

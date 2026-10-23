@@ -58,6 +58,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Se
             _ => status.ToString()
         };
 
+        public static string DeliveryRecipient(McuDeliveryRecipient recipient) => recipient switch
+        {
+            McuDeliveryRecipient.Participant => "Peserta",
+            McuDeliveryRecipient.Company => "Perusahaan",
+            _ => recipient.ToString()
+        };
+
+        public static string DeliveryContent(McuDeliveryContent content) => content switch
+        {
+            McuDeliveryContent.Full => "Hasil lengkap",
+            McuDeliveryContent.FitnessSummary => "Ringkasan kelayakan",
+            _ => content.ToString()
+        };
+
+        public static string DeliveryChannel(McuDeliveryChannel channel) => channel switch
+        {
+            McuDeliveryChannel.Pickup => "Ambil langsung",
+            McuDeliveryChannel.WhatsApp => "WhatsApp",
+            McuDeliveryChannel.Email => "Email",
+            McuDeliveryChannel.Phone => "Telepon",
+            _ => channel.ToString()
+        };
+
+        public static string ConsentEvidence(McuConsentEvidenceType type) => type switch
+        {
+            McuConsentEvidenceType.PaperForm => "Formulir kertas",
+            McuConsentEvidenceType.ElectronicAcknowledgement => "Persetujuan elektronik",
+            _ => type.ToString()
+        };
+
         public static string ComponentStatus(McuOrderComponentStatus status) => status switch
         {
             McuOrderComponentStatus.Pending => "Menunggu",

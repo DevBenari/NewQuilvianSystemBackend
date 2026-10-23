@@ -921,6 +921,7 @@ try
     builder.Services.AddScoped<McuCheckInService>();
     builder.Services.AddScoped<McuExaminationService>();
     builder.Services.AddScoped<McuResumeService>();
+    builder.Services.AddScoped<McuDeliveryService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,

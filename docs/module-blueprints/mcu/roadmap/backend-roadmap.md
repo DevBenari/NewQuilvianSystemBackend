@@ -98,9 +98,9 @@ tabel MCU, sehingga dapat berjalan sejajar dengan `BE-MCU-002`.
 | `BE-MCU-030` ✅ | Resume: draf, approve, kembalikan, verifikasi | MCU-05 | 022, 023 | MCU | Selesai 2026-10-23 — [laporan](../task/report/backend/BE-MCU-030.md) |
 | `BE-MCU-031` ✅ | Buka ulang resume, versi, revisi nilai isian | MCU-05 | 030 | MCU | Selesai 2026-10-23 — [laporan](../task/report/backend/BE-MCU-031.md) |
 | `BE-MCU-032` ✅ | Ganti dokter MCU + pindah tanggung jawab pesanan terbuka | MCU-05 | 020, 030 | MCU (+ Lab/Rad) | Selesai 2026-10-23 — [laporan](../task/report/backend/BE-MCU-032.md) |
-| `BE-MCU-033` | Dokumen hasil lengkap dan ringkasan kelayakan | MCU-06 | 030 | MCU | Siap |
-| `BE-MCU-034` | Persetujuan pelepasan, catat penyerahan, pemberitahuan koreksi | MCU-06 | 031, 033 | MCU | Siap |
-| `BE-MCU-035` | Uji menyeluruh privasi log dan registri izin MCU | MCU-06 | 034 | MCU | Siap |
+| `BE-MCU-033` ✅ | Dokumen hasil lengkap dan ringkasan kelayakan | MCU-06 | 030 | MCU | Selesai 2026-10-23 — [laporan](../task/report/backend/BE-MCU-033.md) |
+| `BE-MCU-034` ✅ | Persetujuan pelepasan, catat penyerahan, pemberitahuan koreksi | MCU-06 | 031, 033 | MCU | Selesai 2026-10-23 — [laporan](../task/report/backend/BE-MCU-034.md) |
+| `BE-MCU-035` ✅ | Uji menyeluruh privasi log dan registri izin MCU | MCU-06 | 034 | MCU | Selesai 2026-10-23 — [laporan](../task/report/backend/BE-MCU-035.md) |
 
 ## Rincian Task
 
@@ -464,10 +464,11 @@ tabel MCU, sehingga dapat berjalan sejajar dengan `BE-MCU-002`.
 | Risiko/pemilik | Pemilik: Yoga; sisi pesanan Lab/Rad |
 | DoD | Kriteria terbukti |
 
-### `BE-MCU-033` — Dokumen hasil dan ringkasan kelayakan
+### `BE-MCU-033` ✅ — Dokumen hasil dan ringkasan kelayakan
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-10-23 — [laporan](../task/report/backend/BE-MCU-033.md). `GET result-document?variant=full|fitness-summary` lewat `McuDeliveryService`; `AT-MCU-42` bagian ringkasan terbukti (refleksi daftar putih 12 ruas + skenario Siti tanpa *HBsAg*). Hasil lengkap memuat hasil Lab dirilis, laporan Rad dirilis, isian Pemeriksaan MCU; syarat resume berlaku *Disetujui Dokter*/*Terverifikasi*. Tanpa migration. Diuji di HEAD `cee59643` |
 | Outcome | `GET result-document?variant=full|fitness-summary` disusun server; DTO ringkasan **tidak punya** ruas nilai maupun diagnosis |
 | Requirement/decision | `FR-MCU-050`; `MCU-DEC-010`; `MCU-FE-003` |
 | Kontrak | `MCU-API-v1` grup Mcu Delivery; `MCU-PERM-v1` (`McuDelivery : Read`) |
@@ -479,10 +480,11 @@ tabel MCU, sehingga dapat berjalan sejajar dengan `BE-MCU-002`.
 | Risiko/pemilik | Bentuk cetakan final menunggu brief layar; data saja di sini. Pemilik: Yoga |
 | DoD | Kriteria terbukti |
 
-### `BE-MCU-034` — Persetujuan pelepasan dan penyerahan
+### `BE-MCU-034` ✅ — Persetujuan pelepasan dan penyerahan
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-10-23 — [laporan](../task/report/backend/BE-MCU-034.md). Enam endpoint penyerahan/persetujuan di `McuDeliveryService`; `AT-MCU-41`, `42`, `43` (penuh), `44` terbukti di harness integrasi; uji mutasi 5/5 tertangkap. Bentuk bukti persetujuan final (`MCU-OQ-003`) tetap menahan go-live penyerahan ke perusahaan. Tanpa migration |
 | Outcome | `GET/POST deliveries`, `PATCH deliveries/{deliveryId}/correction-notice`, `GET/POST release-consents`, `PATCH release-consents/{consentId}/revoke`; penyerahan pertama versi terverifikasi → *Diserahkan* |
 | Requirement/decision | `FR-MCU-051`..`053`; `MCU-DEC-010`, `011`, `019`, `027` |
 | Kontrak | `VAL-MCU-31`..`33`; `MCU-STATE-v1`; `MCU-PERM-v1` (`McuDelivery : Create/ManageConsent`) |
@@ -494,10 +496,11 @@ tabel MCU, sehingga dapat berjalan sejajar dengan `BE-MCU-002`.
 | Risiko/pemilik | Bentuk bukti persetujuan (`MCU-OQ-003`) menahan go-live, bukan task ini. Pemilik: Yoga |
 | DoD | Kriteria terbukti |
 
-### `BE-MCU-035` — Privasi log dan registri izin
+### `BE-MCU-035` ✅ — Privasi log dan registri izin
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-10-23 — [laporan](../task/report/backend/BE-MCU-035.md). `AT-MCU-45` lulus: 22 endpoint ubah data peserta lewat controller sungguhan, penangkap log merekam pesan + scope semua logger (termasuk mitra) — nol NIK, nilai isian, isi resume, tujuan penyerahan, maupun alasan tindakan. `PermissionRegistryValidator` nol temuan MCU; 28 kunci MVP `MCU-PERM-v1` terdeklarasi persis; 3 kunci `POST-MVP` (impor, rekomendasi, jasa medis) belum punya endpoint. Tanpa perubahan aplikasi; uji dihapus sesudah lulus (instruksi pemilik) |
 | Outcome | Satu uji menyeluruh atas semua tindakan ubah MCU: log aplikasi tidak memuat NIK, nilai isian, isi resume, maupun tujuan penyerahan; `PermissionRegistryValidator` lulus dengan seluruh kunci `MCU-PERM-v1` |
 | Requirement/decision | `NFR-006`; `MCU-DEC-010`; `AT-MCU-45` |
 | Kontrak | `MCU-PERM-v1`; `02-backend-architecture.md` §11 |

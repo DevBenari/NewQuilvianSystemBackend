@@ -93,6 +93,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Se
         public const string Val27 = "VAL-MCU-27";
         public const string Val28 = "VAL-MCU-28";
         public const string Val29 = "VAL-MCU-29";
+        public const string Val31 = "VAL-MCU-31";
+        public const string Val32 = "VAL-MCU-32";
+        public const string Val33 = "VAL-MCU-33";
         public const string Val34 = "VAL-MCU-34";
         public const string Val35 = "VAL-MCU-35";
         public const string Val36 = "VAL-MCU-36";

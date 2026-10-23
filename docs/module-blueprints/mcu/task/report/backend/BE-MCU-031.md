@@ -26,7 +26,7 @@
 | Area / Module | `HealthServices` / `MedicalCheckupManagement / Medical Check-Up`, prefix `Mcu`, registry `ACTIVE` |
 | Keberlakuan | `NEW CODE` (method dan endpoint baru; perbaikan kecil di service MCU baru) |
 | QBE yang berlaku | `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001` (`McuResume : Reopen`), `QBE-LOG-001` (alasan koreksi tidak masuk log), `QBE-VAL-001`, `QBE-TXN-001` (versi lama, versi baru, penyerahan, order satu transaksi), `QBE-DTO-001` |
-| Checker QBE | `PASS` — 4 berkas task nol temuan; kontrol negatif `ZzzKontrol` terkena `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002`, lalu dihapus. Run pertama berjalan bersamaan dengan `dotnet test` dan tidak menangkap kontrol (sama dengan `BE-MCU-030`); dua run sendirian berikutnya menangkapnya |
+| Checker QBE | `PASS` — 4 berkas task nol temuan; kontrol negatif `ZzzKontrol` terkena `QBE-ENT-001`, `QBE-CFG-001`, `QBE-MOD-002`, lalu dihapus. Run pertama sesudah `dotnet test` tidak menangkap kontrol (sama dengan `BE-MCU-030`, sebab belum diketahui); dua run berikutnya menangkapnya |
 
 ---
 
@@ -162,7 +162,7 @@ Uji manual: `NOT FEASIBLE` di sesi ini.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Checker QBE yang berjalan bersamaan dengan `dotnet test` tidak menangkap kontrol negatif (dua task berturut-turut); jalankan sendirian sesudah build selesai |
+| Peringatan | Checker QBE: run pertama sesudah `dotnet test` tidak menangkap kontrol negatif (berulang di beberapa task, sebab belum diketahui); selalu ulangi sampai kontrol terlihat |
 | Masalah yang diketahui | Pencatatan *sudah diberi tahu* (`CorrectionNoticeRecordedAt`) milik `BE-MCU-034` |
 | Risiko tersisa | Index unik berfilter `IsCurrent` hanya teruji lewat urutan kode, bukan PostgreSQL. Revisi nilai yang tercatat sebelum perbaikan ini tidak ada (fitur baru, belum dipakai di devYoga) |
 | Perubahan sampingan | Folder uji sementara dipulihkan lalu dihapus (salinan diperbarui di scratchpad); kontrol negatif QBE dibuat lalu dihapus |
