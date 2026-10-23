@@ -146,13 +146,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             if (admissionReq != null)
             {
-                if (admissionReq.RequestStatus == EmergencyAdmissionRequestStatus.Draft ||
-                    admissionReq.RequestStatus == EmergencyAdmissionRequestStatus.AwaitingSignature)
+                if (admissionReq.Status == EmergencyAdmissionRequestStatus.Draft ||
+                    admissionReq.Status == EmergencyAdmissionRequestStatus.AwaitingSignature)
                 {
                     return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest,
                         "Pasien tujuan Rawat Inap belum dapat dikonfirmasi berangkat karena Form Permintaan Rawat Inap belum disahkan oleh DPJP.");
                 }
-                if (admissionReq.RequestStatus == EmergencyAdmissionRequestStatus.Cancelled)
+                if (admissionReq.Status == EmergencyAdmissionRequestStatus.Cancelled)
                 {
                     return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest,
                         "Pasien tujuan Rawat Inap belum dapat dikonfirmasi berangkat karena Form Permintaan Rawat Inap telah dibatalkan.");
