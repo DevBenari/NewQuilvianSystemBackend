@@ -2489,3 +2489,107 @@ Alasan sesi ditutup pada hasil tidak pasti: hash payload tender di Backend memua
 | Verifikasi runtime, `node --test`, dan stack trace asli | Belum; akar masalah ditetapkan dari pembacaan kode sumber lokal. Bila bundle yang berjalan berbeda dari source ini, hasil harus dikonfirmasi ulang |
 | Settlement Draft yatim dari percobaan yang gagal sebelum perbaikan | Dilanjutkan otomatis oleh pembayaran berikutnya; tidak ada pembersihan data |
 | Centang "Saya telah memverifikasi bukti transaksi" untuk non-tunai | Dipertahankan (pernyataan kasir yang sesuai `isManualCashierConfirmed`); syarat tombol Konfirmasi Pembayaran |
+
+
+# Amendment 23 Oktober 2026 — Kesiapan Finalisasi, Hitung Ulang Tagihan di Modal, dan Angka Benefit dari Kalkulasi Tertinggal (Revisi 2.9)
+
+> `revisi blueprint`: `2.9`, status **diterapkan di source, belum dibuild atau diuji runtime**. Frontend: branch lokal `yasmina` (branch `Yasmina` pada remote tidak dapat diverifikasi dari sesi ini; pekerjaan hanya pada working tree yang sedang aktif, tanpa pindah branch). Kontrak Backend: lihat `02-backend-architecture.md` §19 (kode `BIL-FIN-023..026`, tanpa endpoint baru).
+
+## 1. Masalah
+
+Modal Finalisasi hanya menerima `employeeBenefitSplit`. Saat Backend menyatakan kalkulasi tersimpan tertinggal (`calculationCurrent=false`; mis. Barang Habis Pakai Rp5.000 ditambahkan sesudah versi 1), modal tetap menampilkan pembagian dari versi lama — "Bayar Langsung Rp0" — mengirim `directPayAmount: 0`, dan baru ditolak 422 generik. Halaman Menu Pembayaran pun memakai `remainingPatientObligation` dan status "LUNAS" dari versi lama sebagai angka otoritatif.
+
+## 2. Perilaku baru
+
+| Situasi | Perilaku |
+| --- | --- |
+| Modal Finalisasi dibuka | Kesiapan dimuat ulang dari Backend; tombol Finalisasi ditahan selama pemuatan |
+| Kalkulasi tertinggal (`BIL-FIN-023` / `calculationCurrent=false`) | Kartu **Kesiapan Finalisasi** menampilkan checklist (order, kalkulasi, benefit, kewajiban pasien — yang terakhir "belum dapat dipastikan"), peringatan "Tagihan mengalami perubahan. Hitung ulang tagihan sebelum melanjutkan finalisasi.", dan tombol **Hitung Ulang Tagihan**. Angka Benefit RS / Sisa Kewajiban / Bayar Langsung / AR Karyawan tampil **"Belum final"**, bukan Rp0. Tombol Finalisasi tidak aktif |
+| Hitung Ulang Tagihan | Satu Recalculate terkontrol (endpoint `POST invoices/{id}/recalculate`, alasan tercatat), lalu invoice (RowVersion baru) dan preview (kesiapan + pembagian benefit) dimuat ulang. Hanya dari klik kasir; tidak ada hitung ulang atau kirim ulang finalisasi otomatis. Angka bayar langsung/AR diturunkan dari preview terbaru, jadi modal otomatis memakai angka baru |
+| Order belum selesai, review, tarif, pelayanan tertunda, benefit tidak dapat dipakai | Tombol ditahan; `blockingReasons` Backend ditampilkan apa adanya |
+| Kewajiban pasien belum lunas | **Tidak** menahan tombol (masih dapat diselesaikan sah): modal menjelaskan bahwa item non-cover dan kelebihan plafon dibayar di kasir (Tunai, QRIS, Transfer Bank) lewat Proses Pembayaran, atau dipilih penangguhan yang diizinkan. Tidak ada piutang otomatis |
+| Departure exception dipilih | `BIL-FIN-022` (pelayanan tertunda) tidak menahan — sama dengan Backend (BKC-DEC-033); penahan lain dan kalkulasi tertinggal tetap menahan |
+| 422 dari Backend | Pesan kini menyebut penyebab; checklist 422 menggantikan preview (reducer sudah ada), sehingga modal langsung menampilkan alasan dan aksi hitung ulang. Isian form yang valid dipertahankan |
+| Menu Pembayaran saat tertinggal | `remainingPatientObligation` benefit dan status "LUNAS" invoice/settlement tidak dipakai sebagai angka otoritatif (`areBenefitNumbersAuthoritative`, `isStoredCalculationStale`); layar memakai pratinjau terbaru sampai dihitung ulang. Menambah Biaya Lain-lain kini juga memuat ulang kesiapan finalisasi |
+
+## 3. Komponen dan berkas
+
+| Berkas | Peran |
+| --- | --- |
+| `billing-finalization-readiness.js` (baru) | Fungsi murni: `resolveFinalizationReadiness(preview, { isDepartureException })`, `resolveFinalizationSettlementAmounts`, `resolveTotalObligation`, konstanta kode `FINALIZATION_BLOCKING_CODE` dan alasan Recalculate |
+| `use-billing-finalization.js` | Parameter opsional `runRecalculate`/`reload`; mengembalikan `readiness`, `recalculate`, `recalculating`, `settlementAmounts`; `form` berisi angka turunan; pagar `canAttemptFinalize` sebelum `dispatch`; `openFinalize` memuat ulang preview |
+| `finalize-invoice-modal.jsx` + `.module.css` | Props `readiness`, `previewLoading`, `onRecalculate`, `recalculating`, `paidAmount`; kartu kesiapan; angka "Belum final"; metrik Sisa Kewajiban Pasien dan Sudah Dibayar; tombol ditahan (`notReady`) |
+| `use-menu-pembayaran.js`, `menu-pembayaran-view.jsx` | Teruskan `runRecalculate`/`reload`; gating angka benefit dan status lunas; props modal |
+| `detail-invoice-billing-view.jsx` | Teruskan `runRecalculate`/`reload` dan props modal |
+| `tests/unit/billing-finalization-readiness.test.mjs` (baru) | 16 tes: kasus lapangan, kode, jalur departure, angka bayar langsung/AR, kontrak sumber hook/modal/Menu Pembayaran, kontrak Backend |
+
+## 4. Alur yang diharapkan
+
+Item covered → Benefit RS · Item non-covered → kewajiban pasien · Kewajiban pasien → Tunai / QRIS / Transfer Bank (Proses Pembayaran; tender SUCCEEDED; PENDING tidak dihitung lunas) · Kalkulasi terkini + kesiapan valid → Finalisasi · Finalisasi → handoff Finance (tidak berubah).
+
+## 5. Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Verifikasi runtime, responsif, dan `node --test` | Belum dijalankan (hanya ESLint: 0 error; satu peringatan lama `set-state-in-effect` di hook finalisasi bukan dari perubahan ini) |
+| Penangguhan AR yang dipra-pilih (`outstandingMode` bawaan `DEFER_TO_PATIENT_AR`) | Tidak diubah: tetap menuntut alasan, nomor perjanjian, jatuh tempo, dan centang konfirmasi; mengubah bawaan adalah keputusan produk |
+| Panel "Preview dan Finalisasi Invoice" pada Detail Invoice Billing | Tidak diubah selain pemasangan props modal; kolom "Kalkulasi Terkini" sudah menampilkan status Backend |
+
+
+# Amendment 23 Oktober 2026 — Tahap RS Benefit: Konfirmasi Skema Sebelum Pembayaran Pribadi (Revisi 3.0)
+
+> `revisi blueprint`: `3.0`, status **diterapkan di source, belum dibuild atau diuji runtime**. Frontend branch lokal `yasmina` (branch `Yasmina` di remote tidak dapat diverifikasi; pekerjaan hanya pada working tree aktif). Backend tidak berubah: `02-backend-architecture.md` §20.
+
+## 1. Akar masalah tombol
+
+Tombol "Lanjut ke Finalisasi Benefit" ada di drawer Pilih Metode Pembayaran (`add-tender-modal.jsx`, kartu Benefit Karyawan RS):
+
+```
+disabled={busy || !canFinalizeBenefit || benefit.patientPortion > 0}
+```
+
+Dengan kewajiban pribadi (K) Rp5.000 `patientPortion > 0`, sehingga tombol **selalu** disabled. Alasannya hanya `title` pada tombol disabled (tidak tampil andal) — jadi tampak rusak. Faktor lain diperiksa dan **bukan** penyebab: `canFinalizeBenefit` (= invoice OPEN dan izin; benar), `calculationCurrent` (angka layar sudah hasil hitung ulang), `financingChoice` (tidak disentuh oleh drawer/pembayaran), overlay, dan handler (`onOpenBenefitFinalization` hanya `finalization.openFinalize()`).
+
+Mengapa K > 0 dikunci: `onOpenBenefitFinalization` membuka modal **Finalisasi** (POST saat submit), dan Backend menolak finalisasi selama sisa pasien belum lunas. Jadi tidak ada langkah "konfirmasi skema" sebelum K dibayar; kasir dipaksa membayar dulu baru boleh meninjau Benefit RS — kebalikan dari prioritas bisnis.
+
+## 2. Alur sekarang vs target
+
+| Urutan | Sebelum | Sesudah |
+| --- | --- | --- |
+| 1 | Kasir memilih Benefit RS di drawer | sama; kartu terbuka otomatis sampai skema dikonfirmasi |
+| 2 | Tombol finalisasi terkunci selama K > 0 | **Tahap A — Konfirmasi Skema Benefit** (tinjau; tanpa POST) dapat dilakukan walau K > 0 |
+| 3 | Bayar K lewat Tunai/QRIS/Transfer | Tahap B: bayar K (settlement yang ada) |
+| 4 | Finalisasi (konfirmasi benefit diminta lagi di modal) | Modal Finalisasi meneruskan konfirmasi Tahap A bila angka skema sama; finalisasi tetap dipagari kesiapan Backend |
+| 5 | Handoff Finance | tidak berubah |
+
+## 3. Perilaku baru
+
+| Elemen | Perilaku |
+| --- | --- |
+| Tahap A | Tombol **Konfirmasi Skema Benefit**: aktif selama benefit dapat dipakai dan angka otoritatif; **tidak** terkunci oleh K. Hanya mengubah status layar (sidik jari: versi kalkulasi, pemilik, hubungan, porsi aturan, porsi Benefit RS, kelebihan plafon; **tidak** memuat K/pembayaran). Tidak ada POST, plafon tidak dipotong, invoice tidak difinalisasi |
+| Tahap B | Tombol **Lanjut ke Finalisasi Invoice** (atau "Finalisasi: Tangguhkan ke AR Karyawan" bila ada kelebihan plafon) hanya membuka modal Finalisasi. Bila belum siap, **alasan tampil** di bawah tombol (`role="status"`) dengan aksi: bayar kewajiban pribadi, atau Hitung Ulang Cakupan bila kalkulasi tertinggal |
+| Penghalang | `NOT_OPEN`, `LOADING`, `UNUSABLE` (alasan HR), `STALE` (aksi hitung ulang), `ORDERS_INCOMPLETE`, `HARD_BLOCK` (alasan Backend), `PERSONAL_DUE` (aksi bayar) — satu sumber teks (`describeBenefitSchemeBlock`) |
+| Kalkulasi tertinggal | Kartu tidak menampilkan angka lama; menampilkan peringatan dan **Hitung Ulang Cakupan** |
+| Pilihan pembiayaan | Memilih atau membayar lewat Tunai/QRIS/Transfer **tidak** menyentuh `financingChoice` (diuji: drawer dan `use-billing-settlement.js` tidak memuatnya) |
+| Halaman utama | Setelah Tahap A, banner "Skema Benefit RS sudah dikonfirmasi (Tahap A)" menunjukkan sisa kewajiban pribadi dan bahwa plafon belum dipotong |
+| Modal Finalisasi | Centang konfirmasi alokasi diteruskan dari Tahap A **hanya** selama sidik jari sama; bila angka berubah otomatis lepas |
+| Label nominal | "Total Biaya" → **Subtotal Item (sebelum pajak)**; "Porsi Sesuai Aturan Penjamin" → **… (termasuk pajak)**; "Sisa Tagihan Pasien (K)" → **Kewajiban Pribadi, Item Non-Cover (K)** (rekonsiliasi di `02-backend-architecture.md` §20.4) |
+
+## 4. Berkas
+
+| Berkas | Perubahan |
+| --- | --- |
+| `billing-finalization-readiness.js` | `buildBenefitSchemeFingerprint`, `resolveBenefitSchemeStages`, `describeBenefitSchemeBlock`, konstanta `BENEFIT_SCHEME_BLOCK/ACTION` |
+| `use-billing-finalization.js` | Status konfirmasi (terikat invoice + sidik jari), `benefitScheme`, `confirmBenefitScheme` (tanpa dispatch), carry-over ke finalisasi |
+| `add-tender-modal.jsx` + `payment-method-picker.module.css` | Tahap A/B, alasan terlihat, label nominal, kartu stale |
+| `finalize-invoice-modal.jsx` | Prop `schemeConfirmed` (centang terkunci bila sama dengan Tahap A) |
+| `menu-pembayaran-view.jsx` | Props drawer dan banner Tahap A |
+| `tests/unit/billing-benefit-scheme-stages.test.mjs` (baru) | 15 tes: Tahap A/B, sidik jari, penghalang, kontrak sumber drawer/hook/view, kontrak Backend |
+
+## 5. Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Verifikasi runtime, tampilan mobile/desktop, `node --test` | Belum (hanya ESLint: 0 error) |
+| Konfirmasi tahap A tidak bertahan setelah muat ulang halaman | Disengaja: status layar, bukan data; kasir cukup mengonfirmasi lagi (angka sama dalam satu klik) |
+| Memblokir pembayaran K sebelum Tahap A | Tidak dilakukan: pembayaran pribadi tetap independen agar tidak merusak alur kasir yang ada; prioritas Benefit RS ditegakkan lewat urutan tampilan (kartu terbuka, tombol utama) |
