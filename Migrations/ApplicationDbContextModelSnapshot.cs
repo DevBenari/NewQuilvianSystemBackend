@@ -72141,7 +72141,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("FromPlacementId")
+                    b.Property<Guid?>("FromPlacementId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("FromServiceUnitId")
@@ -72192,7 +72192,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(1);
 
-                    b.Property<Guid>("ToPlacementId")
+                    b.Property<Guid?>("ToPlacementId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ToServiceUnitId")
@@ -72221,7 +72221,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex(new[] { "ToServiceUnitId", "Status" }, "IX_CliTransferHandover_ToUnit_Status");
 
                     b.HasIndex(new[] { "ToPlacementId" }, "UX_CliTransferHandover_ToPlacement")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"ToPlacementId\" IS NOT NULL");
 
                     b.ToTable("CliTransferHandover", "public", t =>
                         {
@@ -84358,6 +84359,25 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<int>("EpisodeStatus")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ExternalReferralDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExternalReferralDiagnosis")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ExternalReferralDoctorName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("ExternalReferralFacilityName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ExternalReferralNumber")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
 
                     b.Property<string>("FamilyBillingPreference")
                         .HasMaxLength(20)
@@ -128203,8 +128223,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpBedPlacement", "FromPlacement")
                         .WithMany()
                         .HasForeignKey("FromPlacementId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "FromServiceUnit")
                         .WithMany()
@@ -128221,8 +128240,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpBedPlacement", "ToPlacement")
                         .WithMany()
                         .HasForeignKey("ToPlacementId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ToServiceUnit")
                         .WithMany()

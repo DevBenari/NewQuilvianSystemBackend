@@ -190,6 +190,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var newbornError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, patient);
             if (newbornError != null)
                 return InpEpisodeOperationResult.BusinessRuleRejected(newbornError);
+            var externalReferralError = ValidateExternalReferral(request.ExternalReferral);
+            if (externalReferralError != null)
+                return InpEpisodeOperationResult.Invalid(externalReferralError);
             var deliveryCaseError = await InpNewbornAdmissionRules.ValidateDeliveryCaseAsync(
                 _dbContext, request.NewbornAdmission, patient, cancellationToken);
             if (deliveryCaseError != null)
@@ -415,6 +418,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 };
 
                 InpNewbornAdmissionRules.ApplyContext(episode, request.NewbornAdmission);
+                ApplyExternalReferral(episode, request.ExternalReferral);
                 _dbContext.Set<InpEpisode>().Add(episode);
 
                 if (isOdcPatient && patient.PatientType != PatientType.OneDayCare)
@@ -1302,6 +1306,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         FamilyBillingPreference = x.FamilyBillingPreference ?? "Separate",
                         PlannedDepositAmount = x.PlannedDepositAmount
                     },
+                    ExternalReferral = x.ExternalReferralNumber == null ? null : new InpatientAdmissionExternalReferral
+                    {
+                        ReferralNumber = x.ExternalReferralNumber,
+                        ReferralDateTime = x.ExternalReferralDateTime,
+                        ReferralFacilityName = x.ExternalReferralFacilityName ?? "",
+                        ReferralDoctorName = x.ExternalReferralDoctorName,
+                        ReferralDiagnosis = x.ExternalReferralDiagnosis ?? ""
+                    },
                     MotherEpisodeNumber = x.MotherEpisode != null
                         ? x.MotherEpisode.EpisodeNumber
                         : null,
@@ -1410,6 +1422,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     CreatedByName = x.CreateBy.ToString()
                 })
                 .FirstOrDefaultAsync(cancellationToken);
+
+            // BE-RWI-243: Ringkasan kelengkapan berkas admisi Workspace PPRI secara non-blocking
+            try
+            {
+                var admissionDocs = await _dbContext.Set<InpAdmissionDocument>()
+                    .AsNoTracking()
+                    .Where(x => x.EpisodeId == episodeId && !x.IsDelete)
+                    .Select(x => new { x.DocumentType, x.Status })
+                    .ToListAsync(cancellationToken);
+
+                var completedTypes = admissionDocs
+                    .Where(x => x.Status == InpAdmissionDocumentStatus.Completed)
+                    .Select(x => x.DocumentType)
+                    .ToHashSet();
+
+                var pendingNames = new List<string>();
+
+                // 1. General Consent
+                if (!completedTypes.Contains(InpAdmissionDocumentType.GeneralConsent))
+                    pendingNames.Add("General Consent");
+
+                // 2. Formulir Serah Terima Pasien Baru
+                if (!completedTypes.Contains(InpAdmissionDocumentType.NewPatientHandover))
+                    pendingNames.Add("Checklist Serah Terima Pasien Baru");
+
+                // 3. Surat Pernyataan Selisih Biaya
+                if (!completedTypes.Contains(InpAdmissionDocumentType.CostDifferenceStatement))
+                    pendingNames.Add("Surat Pernyataan Selisih Biaya");
+
+                // 4. Bukti Pelunasan Deposit
+                var hasCompletedDepositDoc = completedTypes.Contains(InpAdmissionDocumentType.DepositSettlementStatement);
+                var depositOrderPending = detail.DepositPaymentOrder != null && detail.DepositPaymentOrder.OutstandingAmount > 0;
+                if (!hasCompletedDepositDoc && depositOrderPending)
+                {
+                    pendingNames.Add("Bukti Pelunasan Deposit");
+                }
+
+                var totalRequired = 4;
+                var completedCount = totalRequired - pendingNames.Count;
+                if (completedCount < 0) completedCount = 0;
+
+                detail.AdmissionDocumentsSummary = new AdmissionDocumentsSummaryDto
+                {
+                    EpisodeId = episodeId,
+                    TotalRequiredDocuments = totalRequired,
+                    CompletedDocumentsCount = completedCount,
+                    IsAllCompleted = pendingNames.Count == 0,
+                    PendingDocumentNames = pendingNames
+                };
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Non-blocking: kegagalan penghitungan dokumen admisi tidak pernah menggagalkan detail episode
+                detail.AdmissionDocumentsSummary = new AdmissionDocumentsSummaryDto
+                {
+                    EpisodeId = episodeId,
+                    TotalRequiredDocuments = 4,
+                    CompletedDocumentsCount = 0,
+                    IsAllCompleted = false,
+                    PendingDocumentNames = ["General Consent", "Checklist Serah Terima Pasien Baru", "Surat Pernyataan Selisih Biaya", "Bukti Pelunasan Deposit"]
+                };
+            }
 
             if (warnings != null && warnings.Count > 0)
             {
@@ -1559,6 +1633,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private static string? NormalizeText(string? value)
         {
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        /// <summary>
+        /// Toleransi selisih jam peramban dan server saat memeriksa tanggal rujukan di masa depan.
+        /// </summary>
+        private static readonly TimeSpan ExternalReferralClockSkew = TimeSpan.FromMinutes(5);
+
+        /// <summary>
+        /// Waktu tanpa zona dianggap UTC, sama seperti rujukan kunjungan modul Pendaftaran
+        /// (<c>EncounterReferralService.ToUtc</c>); layar mengirimkannya dalam UTC.
+        /// </summary>
+        private static DateTime ToUtcReferralTime(DateTime value)
+            => value.Kind switch
+            {
+                DateTimeKind.Utc => value,
+                DateTimeKind.Local => value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            };
+
+        /// <summary>
+        /// FIX-EPS-039-03 — kelengkapan isian dijaga atribut DTO; yang diperiksa di sini adalah
+        /// aturan yang tidak dapat dinyatakan atribut: rujukan tidak boleh bertanggal di masa depan.
+        /// Contoh: rujukan bertanggal besok ditolak, rujukan tadi pagi diterima.
+        /// </summary>
+        private static string? ValidateExternalReferral(InpatientAdmissionExternalReferral? referral)
+        {
+            if (referral == null) return null;
+
+            if (string.IsNullOrWhiteSpace(referral.ReferralNumber) ||
+                string.IsNullOrWhiteSpace(referral.ReferralFacilityName) ||
+                string.IsNullOrWhiteSpace(referral.ReferralDiagnosis) ||
+                !referral.ReferralDateTime.HasValue)
+            {
+                return "Data rujukan belum lengkap. Nomor, tanggal dan jam, fasilitas perujuk, dan diagnosa wajib diisi.";
+            }
+
+            if (ToUtcReferralTime(referral.ReferralDateTime.Value) > DateTime.UtcNow.Add(ExternalReferralClockSkew))
+            {
+                return "Tanggal dan jam rujukan tidak boleh melewati waktu sekarang.";
+            }
+
+            return null;
+        }
+
+        private static void ApplyExternalReferral(InpEpisode episode, InpatientAdmissionExternalReferral? referral)
+        {
+            if (referral == null) return;
+
+            episode.ExternalReferralNumber = NormalizeText(referral.ReferralNumber);
+            episode.ExternalReferralDateTime = referral.ReferralDateTime.HasValue
+                ? ToUtcReferralTime(referral.ReferralDateTime.Value)
+                : null;
+            episode.ExternalReferralFacilityName = NormalizeText(referral.ReferralFacilityName);
+            episode.ExternalReferralDoctorName = NormalizeText(referral.ReferralDoctorName);
+            episode.ExternalReferralDiagnosis = NormalizeText(referral.ReferralDiagnosis);
         }
 
         private static string Truncate(string value, int maxLength)
