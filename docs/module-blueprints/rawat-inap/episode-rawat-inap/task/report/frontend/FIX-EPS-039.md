@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `229f071bb` (`HamzahV2`), working tree berisi perubahan pihak lain yang belum di-commit (lihat bagian 8) |
 | Commit backend yang dijadikan rujukan | `b6c638ee` (`MHamzah`) |
 | Tanggal | 2026-10-23 |
-| Status | 🟡 SEBAGIAN — 8 dari 9 perbaikan selesai di source dan lulus validasi otomatis; `FIX-EPS-039-03` ⛔ terblokir backend; uji layar alur hidup belum dijalankan (agent tidak dapat login) |
+| Status | 🟡 SEBAGIAN — 8 dari 9 perbaikan selesai di source dan lulus validasi otomatis; uji layar alur hidup belum dijalankan (agent tidak dapat login). `FIX-EPS-039-03` dikerjakan terpisah sesudah K-01 direvisi ke opsi B — lihat [`FIX-EPS-039-03-FE`](FIX-EPS-039-03-FE.md) |
 
 ---
 
@@ -175,7 +175,7 @@ kunci deposit di payload) hanya terbukti di source dan tes regresi, belum di lay
 | FIX-01 AC1–AC4 — URL memuat `episodeId` di Pilih Bed, F5 tanpa episode kedua, DPJP tetap | Terpenuhi di source; menunggu uji layar | Efek URL view; `persistDraft`/pemulihan hook dokter; tes regresi |
 | FIX-01 AC5 — simpanan DPJP bertes | Terpenuhi | Tes `normalizeInpatientDoctorSnapshot` |
 | FIX-02 AC1–AC3 — Kamar Pulih tahan muat ulang; permintaan tak berlaku ditolak dengan jelas | Terpenuhi di source; menunggu uji layar | Hook `use-inpatient-admission-referral-selection`; langkah Informasi Pasien |
-| FIX-03 — data rujukan dikirim ke server | **Tidak dikerjakan — ⛔ terblokir** | `PUT /patient-encounters/{id}/referral` tidak mendukung kunjungan rawat inap: `ResolveNewTarget` mencatat tujuan rawat inap sebagai `Laboratory` karena `ReferralTargetUnitType` tidak punya nilai Rawat Inap, dan faskes wajib mitra berperjanjian aktif (`Pm17`). Butuh task backend atau keputusan ulang K-01 |
+| FIX-03 — data rujukan dikirim ke server | **Tidak dikerjakan di task ini.** Sesudah K-01 direvisi ke opsi B, dikerjakan di [`FIX-EPS-039-03-BE`](../backend/FIX-EPS-039-03-BE.md) dan [`FIX-EPS-039-03-FE`](FIX-EPS-039-03-FE.md). Catatan saat task ini dikerjakan: ⛔ terblokir | `PUT /patient-encounters/{id}/referral` tidak mendukung kunjungan rawat inap: `ResolveNewTarget` mencatat tujuan rawat inap sebagai `Laboratory` karena `ReferralTargetUnitType` tidak punya nilai Rawat Inap, dan faskes wajib mitra berperjanjian aktif (`Pm17`). Butuh task backend atau keputusan ulang K-01 |
 | FIX-04 AC1–AC2 — draf `active` tidak terbawa; draf per pasien tetap | Terpenuhi di source; menunggu uji layar | Hook alur; tes regresi |
 | FIX-05 AC1–AC2 — Transfer tanpa kedip dan tanpa banner pelanjutan | Terpenuhi di source; menunggu uji layar | Hook transfer, gerbang view, `adoptTransferEpisode` |
 | FIX-06 AC1–AC2 — "Belum terbaca" + muat ulang; tunai normal tetap | Terpenuhi | Render SSR 4/4 |

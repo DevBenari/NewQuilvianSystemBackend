@@ -95,7 +95,7 @@ Payload persis: `eventId`, `eventType`, `bedId`, `bedCode`, `bedName`, `roomId`,
 
 ## Kartu Task
 
-### 🟡 BE-RWI-250 — Secure subscription dan fondasi publisher realtime bed
+### ✅ BE-RWI-250 — Secure subscription dan fondasi publisher realtime bed
 
 | Field | Isi |
 |---|---|
@@ -110,7 +110,7 @@ Payload persis: `eventId`, `eventType`, `bedId`, `bedCode`, `bedName`, `roomId`,
 | Verifikasi wajib | `V-BE`, termasuk join valid, unit luar scope, permission kurang, payload shape, target group, dan log redaction |
 | DoD | `D-BE` dan laporan `task/report/backend/BE-RWI-250.md` |
 
-### 🟡 BE-RWI-251 — Publikasi pasca-commit untuk reserve, place, dan transfer
+### ✅ BE-RWI-251 — Publikasi pasca-commit untuk reserve, place, dan transfer
 
 | Field | Isi |
 |---|---|

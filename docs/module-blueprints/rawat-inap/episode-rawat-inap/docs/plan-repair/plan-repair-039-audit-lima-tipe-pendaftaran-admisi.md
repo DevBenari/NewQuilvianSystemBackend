@@ -22,7 +22,7 @@ Delapan dari sembilan perbaikan hanya menyentuh frontend dan memakai endpoint ya
 | --- | --- | --- | --- | :---: | --- | --- | --- |
 | `FIX-EPS-039-01` | `ISS-EPS-039-01` | Episode Draft dicatat ke URL di semua jalur; pilihan DPJP disimpan per pasien | FE | 1 | `FIX-EPS-039` | 🟡 SEBAGIAN — 5/5 AC ada di source; AC5 terbukti tes unit; AC1–AC4 menunggu uji layar (S1, S2) | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) |
 | `FIX-EPS-039-02` | `ISS-EPS-039-02` | ID permintaan Kamar Pulih dicatat di URL dan dibaca ulang saat muat | FE | 1 | `FIX-EPS-039` | 🟡 SEBAGIAN — 3/3 AC ada di source; 0/3 terbukti uji layar (S3) | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) |
-| `FIX-EPS-039-03` | `ISS-EPS-039-03` | Data rujukan faskes luar dikirim ke server | FE + BE / dokumen | 1 | — | ⛔ TERBLOKIR — K-01 opsi A disetujui, tetapi `PUT /patient-encounters/{id}/referral` tidak mendukung kunjungan rawat inap (tujuan tercatat `Laboratory`, faskes wajib mitra `Pm17`); butuh task backend modul Pendaftaran atau keputusan ulang K-01 | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) bagian 7 |
+| `FIX-EPS-039-03` | `ISS-EPS-039-03` | Data rujukan faskes luar disimpan pada episode rawat inap (K-01 = B) | BE + FE | 1 | `FIX-EPS-039-03-BE`, `FIX-EPS-039-03-FE` | 🟡 SEBAGIAN (23-10-2026) — 4/4 AC ada di source; AC2 terbukti tes unit; AC1/AC3 belum diuji bolak-balik dengan server; AC4 migration tersedia, belum diterapkan. BE: build Release 0 error, QBE Strict PASS. FE: lint 0 error, tes 7/7, suite tanpa kegagalan baru (43 lama), build PASS, render SSR 4/4. Belum: `dotnet ef database update`, uji layar R1–R5 | [`FIX-EPS-039-03-BE.md`](../../task/report/backend/FIX-EPS-039-03-BE.md), [`FIX-EPS-039-03-FE.md`](../../task/report/frontend/FIX-EPS-039-03-FE.md) |
 | `FIX-EPS-039-04` | `ISS-EPS-039-04` | Draf sesi tidak disimpan pada kunci `active` di semua jalur | FE | 2 | `FIX-EPS-039` | 🟡 SEBAGIAN — 2/2 AC ada di source; 0/2 terbukti uji layar (S4) | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) |
 | `FIX-EPS-039-05` | `ISS-EPS-039-05` | Sumber transfer tidak dimuat ulang per langkah; episode transfer ditandai milik layar | FE | 2 | `FIX-EPS-039` | 🟡 SEBAGIAN — 2/2 AC ada di source; 0/2 terbukti uji layar (S5) | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) |
 | `FIX-EPS-039-06` | `ISS-EPS-039-06` | Penjamin yang belum terbaca ditulis "Belum terbaca" | FE | 2 | `FIX-EPS-039` | ✅ SELESAI | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) — render SSR 4/4 |
@@ -30,8 +30,8 @@ Delapan dari sembilan perbaikan hanya menyentuh frontend dan memakai endpoint ya
 | `FIX-EPS-039-08` | `ISS-EPS-039-08` | Kunci idempotensi deposit berupa GUID per admisi | FE | 3 | `FIX-EPS-039` | 🟡 SEBAGIAN — 1/1 AC ada di source; payload belum dicek di layar | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) |
 | `FIX-EPS-039-09` | `ISS-EPS-039-09` | Perbaiki argumen `onChange` cabang pilihan bed transfer | FE | 3 | `FIX-EPS-039` | ✅ SELESAI | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) — tes regresi, lint, build |
 
-**Ringkasan: 2 dari 9 perbaikan selesai, 6 sebagian (source, lint, unit test, dan build selesai
-23-10-2026; uji layar belum), 1 terblokir backend.**
+**Ringkasan: 2 dari 9 perbaikan selesai, 7 sebagian (source, lint, unit test, dan build selesai
+23-10-2026; uji layar belum; FIX-03 juga menunggu migration diterapkan), 0 belum dikerjakan.**
 
 ---
 
@@ -222,17 +222,24 @@ menimpanya. Deteksi: AC "pelanjutan" S7.
 | | |
 | --- | --- |
 | **Menutup** | `ISS-EPS-039-03` |
-| **Area** | Frontend + Backend / dokumen |
-| **Jenis perubahan** | Bergantung K-01 |
-| **Berkas yang diubah** | Opsi A: langkah Jenis Kunjungan (faskes jadi pilihan master), hook dokter (panggil `PUT …/patient-encounters/{encounterId}/referral` sesudah kunjungan dibuat), `03-frontend-architecture.md`, `RWI-DEC-269` |
-| **Radius dampak** | Pasien Baru langkah 1, Pasien Lama langkah 2; modul Pendaftaran (pemilik endpoint) |
-| **Bergantung pada** | K-01; bukti bahwa endpoint menerima kunjungan rawat inap |
+| **Area** | Backend Rawat Inap, lalu Frontend |
+| **Jenis perubahan** | K-01 = **opsi B** (diputuskan 23-10-2026): field baru pada episode rawat inap, teks bebas sesuai `RWI-DEC-269` |
+| **Berkas yang diubah** | Backend: model `InpEpisode`, DTO buat episode dan detail episode, `InpEpisodeService` (pembuatan dan pemetaan detail), migration + Designer + snapshot. Frontend: `inpatient-admission-encounter-utils.jsx` (payload episode), hook dokter (meneruskan data rujukan), view (mengirim `flow.referralData` bila jenis kunjungan Rujukan), langkah Konfirmasi (menampilkan rujukan), langkah Jenis Kunjungan (batas panjang isian) |
+| **Radius dampak** | Hanya Rawat Inap: `POST /episodes` menerima field opsional baru; `GET /episodes/{id}` mengembalikan field baru. Jalur tanpa rujukan tidak berubah |
+| **Bergantung pada** | Task backend selesai sebelum task frontend |
 
-**Acceptance criteria (opsi A).**
+**Isi data.** `ReferralNumber` (≤ 250), `ReferralDateTime`, `ReferralFacilityName` (≤ 200),
+`ReferralDoctorName` (≤ 150), `ReferralDiagnosis` (≤ 1000). Semua opsional di server; bila salah
+satu diisi, nomor, tanggal, faskes, dan diagnosa wajib lengkap (mencerminkan validasi layar).
+Tanggal rujukan tidak boleh di masa depan.
 
-1. Rujukan nomor 445/RS-X tersimpan pada kunjungan dan terbaca ulang di Konfirmasi dan cetak.
-2. Kegagalan simpan rujukan tidak menggagalkan admisi, tetapi tampil sebagai peringatan yang dapat
-   diulang (pola peringatan isolasi `use-inpatient-admission-doctor.jsx`).
+**Acceptance criteria.**
+
+1. Pasien Baru dengan rujukan nomor 445/RS-X → `POST /episodes` membawa kelima field; `GET
+   /episodes/{id}` mengembalikannya; langkah Konfirmasi menampilkannya.
+2. Pasien tanpa rujukan (Umum) → payload tidak membawa field rujukan; perilaku lama tidak berubah.
+3. Rujukan tidak lengkap atau tanggal di masa depan → `400` dengan kalimat berbahasa Indonesia.
+4. Migration tersedia (file migration, Designer, snapshot); database diperbarui pemilik sendiri.
 
 ### FIX-EPS-039-04 — Draf sesi tidak disimpan pada kunci `active` di semua jalur
 
@@ -352,8 +359,8 @@ FIX-EPS-039-06 ✅   tanpa dependency
 FIX-EPS-039-07 🟡   tanpa dependency
 FIX-EPS-039-08 🟡   tanpa dependency
 FIX-EPS-039-09 ✅   tanpa dependency
-K-01 (keputusan pemilik + pemilik modul Pendaftaran) — opsi A disetujui; endpoint belum mendukung rawat inap
-└── ⛔ FIX-EPS-039-03
+K-01 diputuskan opsi B (23-10-2026)
+└── FIX-EPS-039-03 🟡   task backend lebih dulu, lalu frontend
 ```
 
 ---
@@ -362,7 +369,7 @@ K-01 (keputusan pemilik + pemilik modul Pendaftaran) — opsi A disetujui; endpo
 
 | No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
-| K-01 | Tempat penyimpanan data rujukan faskes luar | A: endpoint rujukan kunjungan Pendaftaran (faskes dari master) / B: field baru episode rawat inap (teks bebas) / C: catatan admisi | A | `FIX-EPS-039-03` |
+| K-01 | Tempat penyimpanan data rujukan faskes luar | A: endpoint rujukan kunjungan Pendaftaran (faskes dari master) / B: field baru episode rawat inap (teks bebas) / C: catatan admisi | B (direvisi; A tidak mendukung kunjungan rawat inap) | `FIX-EPS-039-03` — **diputuskan B, 23-10-2026** |
 | K-02 | Draft ganda yang sudah terbentuk | Gugur otomatis + batal manual / skrip data | Gugur otomatis + batal manual | Tidak |
 
 ---
@@ -371,8 +378,8 @@ K-01 (keputusan pemilik + pemilik modul Pendaftaran) — opsi A disetujui; endpo
 
 | Dokumen | Bagian | Sekarang | Menjadi |
 | --- | --- | --- | --- |
-| `03-frontend-architecture.md` | Tabel langkah Pasien Baru, baris 404 | "Jenis Kunjungan … – (state alur)" | Mengikuti K-01, misalnya "`PUT /patient-encounters/{id}/referral` sesudah kunjungan dibuat" |
-| `00-interview-decisions.md` | `RWI-DEC-269` | Faskes perujuk teks bebas | Bila K-01 = A: faskes dipilih dari master institusi |
+| `03-frontend-architecture.md` | Tabel langkah Pasien Baru, baris 404 | "Jenis Kunjungan … – (state alur)" | "Jenis Kunjungan … — dikirim bersama `POST /episodes` (field rujukan episode)" |
+| `00-interview-decisions.md` | `RWI-DEC-269` | Faskes perujuk teks bebas | Tidak berubah (opsi B tetap teks bebas) |
 | `05-skema-tampilan.md` | Langkah Informasi Pasien Kamar Pulih | Tidak menyebut keadaan permintaan dari URL | Tambah keadaan skema 3.1 |
 
 Revisi dokumen dikerjakan lewat jalur blueprint yang berwenang.
@@ -405,3 +412,5 @@ Perintah wajib frontend: `npm run lint:errors`, `npm run test:unit`, `npm run bu
 | 2026-10-23 | Rencana dibuat: 9 perbaikan (8 siap dikerjakan, 1 menunggu K-01), menunggu persetujuan | `diagnose-module-issue` |
 | 2026-10-23 | Pemilik menyetujui seluruh rencana beserta K-01 opsi A dan K-02; `status_rencana` → `DISETUJUI` | Pemilik Sistem |
 | 2026-10-23 | Task `FIX-EPS-039`: 8 perbaikan dikerjakan; lint PASS, tes terkait 30/30, suite penuh tanpa kegagalan baru, build PASS, render SSR penjamin 4/4. FIX-06 dan FIX-09 ✅; enam lainnya 🟡 menunggu uji layar. FIX-03 ⛔: pemeriksaan backend menunjukkan `PUT /patient-encounters/{id}/referral` mencatat tujuan rawat inap sebagai `Laboratory` dan mewajibkan faskes mitra (`Pm17`), sehingga opsi A butuh task backend modul Pendaftaran atau keputusan ulang K-01. Ditemukan dan diperbaiki sekalian: kunci draf transfer terkirim ke hook dokter pada semua jalur | `build-module-frontend` |
+| 2026-10-23 | Pemilik menyetujui revisi K-01 ke opsi B (field rujukan pada episode rawat inap, teks bebas). FIX-03 tidak lagi terblokir; rincian dan acceptance criteria ditulis ulang | Pemilik Sistem |
+| 2026-10-23 | FIX-03 dikerjakan, status 🟡. Task `FIX-EPS-039-03-BE`: 5 kolom rujukan pada `InpEpisode`, validasi `POST /episodes`, proyeksi `GET /episodes/{id}`, migration `20261023062116_AddInpEpisodeExternalReferral` (belum diterapkan). Task `FIX-EPS-039-03-FE`: payload dan validator bersama, batas panjang isian, kartu Rujukan Faskes Luar di Konfirmasi | `build-module-backend`, `build-module-frontend` |

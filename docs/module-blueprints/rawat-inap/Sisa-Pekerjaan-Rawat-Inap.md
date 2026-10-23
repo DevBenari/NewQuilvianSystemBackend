@@ -6,8 +6,8 @@
 |---|---|
 | Tujuan | **Hanya memuat yang belum selesai.** Task yang belum dikerjakan, task yang baru sebagian, dan butir yang masih menggantung pada task yang sudah ✅ |
 | Yang **tidak** ada di sini | Task yang sudah selesai. Untuk itu bacalah roadmap sub-modul masing-masing |
-| Tanggal | 12 September 2026 |
-| Blueprint | `RWI-BP-001` revision `6`, bentuk `COMPOSITE`, status `approved` |
+| Tanggal | 23 Oktober 2026 |
+| Blueprint | `RWI-BP-001` revision `16`, bentuk `COMPOSITE`, status `approved` |
 | Backend | `NewQuilvianSystemBackend`, branch `MHamzah` |
 | Frontend | `QuilvianSystemFrontendDev`, branch `HamzahV2` |
 | Sifat dokumen | Catatan kerja. Ia **menurunkan** dari roadmap, tidak menciptakan task baru |
@@ -36,23 +36,22 @@ Bila dokumen ini berbeda dari roadmap sub-modul, **roadmap yang berlaku**. Letak
 
 ---
 
-## 3. Ringkasan — apa yang tersisa
+## 3. Ringkasan — apa yang tersisa per 23 Oktober 2026
 
-| Sub-modul | Backend (V1 & V2) | Frontend | Sisa Backend |
+| Sub-modul | Backend | Frontend | Status Backend |
 |---|---|---|:---:|
-| `episode-rawat-inap` | 49 dari 49 ✅ (V1: 40, V2: 9) | 24 selesai, 1 dibatalkan (`FE-RWI-060`), 3 tersisa (`FE-RWI-035` 🟡, `FE-RWI-059` 🟡, `FE-RWI-061` 🟡) | **0 task (100% Selesai)** |
-| `dokter-rawat-inap` | 38 dari 38 ✅ (V1: 20, V2: 18) | 9 dari 9 ✅ | **0 task (100% Selesai)** |
-| `keperawatan` | 33 dari 33 ✅ (V1: 12, V2: 21) | 6 dari 6 ✅ | **0 task (100% Selesai)** |
-| `integrasi-billing` | 8 dari 8 ✅ (`BE-RWI-127`..`134`) | 0 dari 6 | **0 task (100% Selesai)** |
-| **TOTAL KESELURUHAN** | **128 dari 128 task Backend ✅** | — | **0 TASK BACKEND TERSISA (100%)** |
+| `episode-rawat-inap` | Seluruh task implementasi ✅ (termasuk Bed Management `BE-RWI-208`..`221`, ODC, Denah, Realtime Bed `BE-RWI-250`..`251`, Transfer IGD `BE-RWI-206`..`207`, Member Priority). Sisa tertahan: `BE-RWI-190`, `191`, `203` (modul luar) | Selesai mayoritas (V1, V2, Workspace PPRI, Denah, Peta Bangsal, ODC). Sisa: `FE-RWI-022`, `035`, `059`, `061`, `227`..`230`, `264`, `265`..`267` 🟡; `FE-RWI-221` ⛔; `FE-RWI-060` ⛔ dibatalkan | **Selesai Implementasi (Sisa 3 Eksternal ⛔)** |
+| `dokter-rawat-inap` | Seluruh 40 task ✅ (V1: 20, V2: 18, Finishing: 5, Repair: 2) | Selesai mayoritas (V1: 9, V2: 14, Finishing: 7). Sisa: `FE-RWI-095` 🟡, `FE-RWI-172` 🟡 | **0 task (100% Selesai)** |
+| `keperawatan` | Seluruh 40 task ✅ (V1: 12, V2: 21, Finishing: 7) | Seluruh 32 task ✅ (V1: 6, V2: 14, Finishing: 12) | **0 task (100% Selesai)** |
+| `integrasi-billing` | Seluruh 22 task ✅ (`BE-RWI-127`..`134`, `BE-RWI-146`..`159`) | 11 selesai (`FE-RWI-095`..`100`, `166`..`169`, `171`). Sisa: `FE-RWI-170` 🟡 (menunggu ChangeReason) | **0 task (100% Selesai)** |
+| **TOTAL KESELURUHAN** | **Seluruh task implementasi Backend ✅** | **Fokus pada penyelesaian gap Frontend & Verifikasi** | **100% Backend Terimplementasi** |
 
-> **Catatan Pembaruan 17 September 2026 — SELURUH BACKEND RAWAT INAP 100% TUNTAS:**
-> - `BE-RWI-071` dan `BE-RWI-072` telah selesai penuh diimplementasikan pada `episode-rawat-inap`.
-> - Seluruh 18 task V2 dokter (`BE-RWI-088` s.d. `BE-RWI-105`) telah selesai.
-> - Seluruh 21 task V2 keperawatan (`BE-RWI-106` s.d. `BE-RWI-126`) telah selesai.
-> - Seluruh 8 task integrasi billing (`BE-RWI-127` s.d. `BE-RWI-134`) telah selesai.
-> - **Tidak ada lagi task backend yang tersisa atau berstatus pending/blocked pada seluruh modul Rawat Inap.**
-> - Pekerjaan yang tersisa pada modul Rawat Inap kini murni berada pada lingkup **Frontend** (UI/UX) dan verifikasi/build mandiri oleh pemilik.
+> **Catatan Pembaruan 23 Oktober 2026 — SINKRONISASI STATUS BACKEND RAWAT INAP:**
+> - Seluruh 14 task backend Bed Management (`BE-RWI-208` s.d. `BE-RWI-221`) kodenya lengkap, EF update PASS, dan resmi ditandai ✅ SELESAI (runtime UAT dicatat `NOT RUN` sesuai Aturan Tetap Bagian 2).
+> - Seluruh 12 task backend Finishing Billing (`BE-RWI-147` s.d. `BE-RWI-159`) kodenya lengkap dan resmi ditandai ✅ SELESAI.
+> - Task backend Realtime Bed (`BE-RWI-250`, `BE-RWI-251`), Admisi Transfer IGD (`BE-RWI-206`, `BE-RWI-207`), dan Dokter V2 (`BE-RWI-127`, `BE-RWI-128`) resmi ditandai ✅ SELESAI.
+> - Tiga task backend yang berstatus ⛔ (`BE-RWI-190`, `191`, `203`) murni menunggu keputusan eksternal (`RegistrationManagement` dan `BillingManagement`).
+> - Sisa pekerjaan kini terpusat pada beberapa gap antarmuka Frontend, sinkronisasi `ChangeReason` untuk `FE-RWI-170`, dan UAT/verifikasi runtime oleh pemilik.
 
 ---
 

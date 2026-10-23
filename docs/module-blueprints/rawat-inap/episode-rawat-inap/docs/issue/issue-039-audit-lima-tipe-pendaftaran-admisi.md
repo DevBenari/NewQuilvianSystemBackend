@@ -445,7 +445,7 @@ Tidak ada. Seluruh temuan di atas adalah hasil langsung permintaan audit (No. la
 
 | No | Keputusan | Pilihan | Rekomendasi | Menahan perbaikan |
 | ---: | --- | --- | --- | --- |
-| K-01 | Di mana data rujukan faskes luar disimpan? | A: endpoint rujukan kunjungan modul Pendaftaran (faskes dipilih dari master institusi) / B: field baru pada episode rawat inap (backend Rawat Inap, teks bebas) / C: dicatat ke catatan admisi saja | A — memakai ulang kontrak yang ada; perlu persetujuan pemilik modul Pendaftaran dan revisi `RWI-DEC-269` | `FIX-EPS-039-03` |
+| K-01 | Di mana data rujukan faskes luar disimpan? | A: endpoint rujukan kunjungan modul Pendaftaran (faskes dipilih dari master institusi) / B: field baru pada episode rawat inap (backend Rawat Inap, teks bebas) / C: dicatat ke catatan admisi saja | Semula A; **direvisi dan diputuskan B (23-10-2026)** karena endpoint Pendaftaran tidak mendukung kunjungan rawat inap | `FIX-EPS-039-03` |
 | K-02 | Draft ganda yang sudah terbentuk | Gugur otomatis (`RWI-DEC-030`) + batal manual / skrip data | Sama dengan K-02 ISSUE-038: gugur otomatis + batal manual, tanpa skrip | Tidak |
 
 ---
@@ -473,3 +473,5 @@ Tidak ada. Seluruh temuan di atas adalah hasil langsung permintaan audit (No. la
 | --- | --- | --- |
 | 2026-10-23 | Issue dibuat dari permintaan audit lima tipe pendaftaran; 9 temuan (3 High, 3 Medium, 3 Low) | `diagnose-module-issue` |
 | 2026-10-23 | Pemilik menyetujui rencana, K-01 opsi A, K-02. Status → `DALAM_PERBAIKAN`; 8 perbaikan dikerjakan di task `FIX-EPS-039` ([laporan](../../task/report/frontend/FIX-EPS-039.md)). Koreksi atas ISS-EPS-039-03: endpoint rujukan kunjungan ternyata tidak mendukung kunjungan rawat inap (tujuan tercatat `Laboratory`, faskes wajib mitra `Pm17`), sehingga opsi A memerlukan task backend modul Pendaftaran | `build-module-frontend` |
+| 2026-10-23 | Pemilik menyetujui revisi K-01 ke opsi B: data rujukan disimpan sebagai field teks pada episode rawat inap | Pemilik Sistem |
+| 2026-10-23 | ISS-EPS-039-03 diperbaiki di source oleh `FIX-EPS-039-03-BE` ([laporan](../../task/report/backend/FIX-EPS-039-03-BE.md)) dan `FIX-EPS-039-03-FE` ([laporan](../../task/report/frontend/FIX-EPS-039-03-FE.md)); menunggu migration diterapkan dan uji layar | `build-module-backend`, `build-module-frontend` |

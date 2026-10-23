@@ -144,9 +144,16 @@ public partial class PatientBillingSummaryService
                 if (isPharmacy && Guid.TryParse(item.SourceDetailId, out var presId))
                 {
                     var drugSummary = pharmacyLabels.GetValueOrDefault(presId);
-                    if (!string.IsNullOrWhiteSpace(drugSummary) && !label.Contains(drugSummary, StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrWhiteSpace(drugSummary))
                     {
-                        label = $"{drugSummary} — {label}";
+                        if (System.Text.RegularExpressions.Regex.IsMatch(label.Trim(), @"^Resep\s+[A-Za-z0-9\-]+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                        {
+                            label = $"{drugSummary} — {label.Trim()}";
+                        }
+                        else if (!label.Contains(" — ", StringComparison.OrdinalIgnoreCase) && !label.Contains(drugSummary, StringComparison.OrdinalIgnoreCase))
+                        {
+                            label = $"{drugSummary} — {label.Trim()}";
+                        }
                     }
                 }
 
@@ -363,9 +370,16 @@ public partial class PatientBillingSummaryService
                 if (isPharmacy && Guid.TryParse(item.SourceDetailId, out var presId))
                 {
                     var drugSummary = pharmacyLabels.GetValueOrDefault(presId);
-                    if (!string.IsNullOrWhiteSpace(drugSummary) && !label.Contains(drugSummary, StringComparison.OrdinalIgnoreCase))
+                    if (!string.IsNullOrWhiteSpace(drugSummary))
                     {
-                        label = $"{drugSummary} — {label}";
+                        if (System.Text.RegularExpressions.Regex.IsMatch(label.Trim(), @"^Resep\s+[A-Za-z0-9\-]+$", System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+                        {
+                            label = $"{drugSummary} — {label.Trim()}";
+                        }
+                        else if (!label.Contains(" — ", StringComparison.OrdinalIgnoreCase) && !label.Contains(drugSummary, StringComparison.OrdinalIgnoreCase))
+                        {
+                            label = $"{drugSummary} — {label.Trim()}";
+                        }
                     }
                 }
 

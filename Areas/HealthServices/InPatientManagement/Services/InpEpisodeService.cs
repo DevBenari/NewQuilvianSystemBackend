@@ -190,6 +190,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var newbornError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, patient);
             if (newbornError != null)
                 return InpEpisodeOperationResult.BusinessRuleRejected(newbornError);
+            var externalReferralError = ValidateExternalReferral(request.ExternalReferral);
+            if (externalReferralError != null)
+                return InpEpisodeOperationResult.Invalid(externalReferralError);
             var deliveryCaseError = await InpNewbornAdmissionRules.ValidateDeliveryCaseAsync(
                 _dbContext, request.NewbornAdmission, patient, cancellationToken);
             if (deliveryCaseError != null)
@@ -415,6 +418,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 };
 
                 InpNewbornAdmissionRules.ApplyContext(episode, request.NewbornAdmission);
+                ApplyExternalReferral(episode, request.ExternalReferral);
                 _dbContext.Set<InpEpisode>().Add(episode);
 
                 if (isOdcPatient && patient.PatientType != PatientType.OneDayCare)
@@ -1302,6 +1306,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         FamilyBillingPreference = x.FamilyBillingPreference ?? "Separate",
                         PlannedDepositAmount = x.PlannedDepositAmount
                     },
+                    ExternalReferral = x.ExternalReferralNumber == null ? null : new InpatientAdmissionExternalReferral
+                    {
+                        ReferralNumber = x.ExternalReferralNumber,
+                        ReferralDateTime = x.ExternalReferralDateTime,
+                        ReferralFacilityName = x.ExternalReferralFacilityName ?? "",
+                        ReferralDoctorName = x.ExternalReferralDoctorName,
+                        ReferralDiagnosis = x.ExternalReferralDiagnosis ?? ""
+                    },
                     MotherEpisodeNumber = x.MotherEpisode != null
                         ? x.MotherEpisode.EpisodeNumber
                         : null,
@@ -1621,6 +1633,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private static string? NormalizeText(string? value)
         {
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        /// <summary>
+        /// Toleransi selisih jam peramban dan server saat memeriksa tanggal rujukan di masa depan.
+        /// </summary>
+        private static readonly TimeSpan ExternalReferralClockSkew = TimeSpan.FromMinutes(5);
+
+        /// <summary>
+        /// Waktu tanpa zona dianggap UTC, sama seperti rujukan kunjungan modul Pendaftaran
+        /// (<c>EncounterReferralService.ToUtc</c>); layar mengirimkannya dalam UTC.
+        /// </summary>
+        private static DateTime ToUtcReferralTime(DateTime value)
+            => value.Kind switch
+            {
+                DateTimeKind.Utc => value,
+                DateTimeKind.Local => value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            };
+
+        /// <summary>
+        /// FIX-EPS-039-03 — kelengkapan isian dijaga atribut DTO; yang diperiksa di sini adalah
+        /// aturan yang tidak dapat dinyatakan atribut: rujukan tidak boleh bertanggal di masa depan.
+        /// Contoh: rujukan bertanggal besok ditolak, rujukan tadi pagi diterima.
+        /// </summary>
+        private static string? ValidateExternalReferral(InpatientAdmissionExternalReferral? referral)
+        {
+            if (referral == null) return null;
+
+            if (string.IsNullOrWhiteSpace(referral.ReferralNumber) ||
+                string.IsNullOrWhiteSpace(referral.ReferralFacilityName) ||
+                string.IsNullOrWhiteSpace(referral.ReferralDiagnosis) ||
+                !referral.ReferralDateTime.HasValue)
+            {
+                return "Data rujukan belum lengkap. Nomor, tanggal dan jam, fasilitas perujuk, dan diagnosa wajib diisi.";
+            }
+
+            if (ToUtcReferralTime(referral.ReferralDateTime.Value) > DateTime.UtcNow.Add(ExternalReferralClockSkew))
+            {
+                return "Tanggal dan jam rujukan tidak boleh melewati waktu sekarang.";
+            }
+
+            return null;
+        }
+
+        private static void ApplyExternalReferral(InpEpisode episode, InpatientAdmissionExternalReferral? referral)
+        {
+            if (referral == null) return;
+
+            episode.ExternalReferralNumber = NormalizeText(referral.ReferralNumber);
+            episode.ExternalReferralDateTime = referral.ReferralDateTime.HasValue
+                ? ToUtcReferralTime(referral.ReferralDateTime.Value)
+                : null;
+            episode.ExternalReferralFacilityName = NormalizeText(referral.ReferralFacilityName);
+            episode.ExternalReferralDoctorName = NormalizeText(referral.ReferralDoctorName);
+            episode.ExternalReferralDiagnosis = NormalizeText(referral.ReferralDiagnosis);
         }
 
         private static string Truncate(string value, int maxLength)

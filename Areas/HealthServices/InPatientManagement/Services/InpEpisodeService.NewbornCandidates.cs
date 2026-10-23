@@ -225,7 +225,7 @@ public partial class InpEpisodeService
                         PatientId = b.Id,
                         FullName = b.FullName,
                         MedicalRecordNumber = b.MedicalRecordNumber,
-                        BirthOrder = b.BirthOrder,
+                        BirthOrder = b.BirthOrder ?? 0,
                         EpisodeId = ep?.Id,
                         EpisodeNumber = ep?.EpisodeNumber,
                         EpisodeStatus = ep != null ? (int)ep.EpisodeStatus : null,
