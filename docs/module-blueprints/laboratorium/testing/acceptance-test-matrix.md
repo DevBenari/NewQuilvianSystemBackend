@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `18` — 2026-10-14: uji `T-V1-01`..`T-V1-10` untuk kolom tabel v1 (`r47`) dan kartu halaman hasil v1 (`r48`) dengan akun asli dr. Bima dan Gilang, seluruhnya lulus. Sebelumnya `17` — 2026-10-09: `AC-323`..`AC-325` (rencana ulang sesudah wadah dibatalkan, putaran 29, `r46` `approved` lewat `LAB-REQ-023`). Sebelumnya `16` — amandemen 2026-10-09: lapis uji `AC-318`..`AC-322` (CITO dari pemesanan sampai ke pemeriksaan, putaran 28, `LAB-API-v1` `r45` `approved` lewat `LAB-REQ-022`). Sebelumnya `15` — amandemen 2026-10-08 (ketiga): lapis uji `AC-294`..`AC-301` dan `VAL-154` (BR-140 Beranda, kontrak usulan `LAB-REQ-021`). Sebelumnya `14` — amandemen 2026-10-08 (kedua): `AC-314`..`AC-317` (putaran 27, kontrak usulan `LAB-REQ-020`). Sebelumnya `13` —amandemen 2026-10-08: `AC-302`..`AC-313` (BR-141, kontrak usulan `LAB-REQ-019`). Sebelumnya `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `20` — 2026-10-21: **hasil `T-S16B-01`..`16` dicatat — seluruhnya lulus** (harness `BE-LAB-96`..`100`, HTTP dan peramban dengan akun asli dr. Bima dan Gilang, data uji `MVP-15e`). Sebelumnya `19` — 2026-10-20: uji `T-S16B-01`..`16` untuk Laporan Pembatalan, Statistik Pesanan, dan `VAL-155` (`AC-326`..`AC-337`), belum dapat dijalankan. Sebelumnya `18` — 2026-10-14: uji `T-V1-01`..`T-V1-10` untuk kolom tabel v1 (`r47`) dan kartu halaman hasil v1 (`r48`) dengan akun asli dr. Bima dan Gilang, seluruhnya lulus. Sebelumnya `17` — 2026-10-09: `AC-323`..`AC-325` (rencana ulang sesudah wadah dibatalkan, putaran 29, `r46` `approved` lewat `LAB-REQ-023`). Sebelumnya `16` — amandemen 2026-10-09: lapis uji `AC-318`..`AC-322` (CITO dari pemesanan sampai ke pemeriksaan, putaran 28, `LAB-API-v1` `r45` `approved` lewat `LAB-REQ-022`). Sebelumnya `15` — amandemen 2026-10-08 (ketiga): lapis uji `AC-294`..`AC-301` dan `VAL-154` (BR-140 Beranda, kontrak usulan `LAB-REQ-021`). Sebelumnya `14` — amandemen 2026-10-08 (kedua): `AC-314`..`AC-317` (putaran 27, kontrak usulan `LAB-REQ-020`). Sebelumnya `13` —amandemen 2026-10-08: `AC-302`..`AC-313` (BR-141, kontrak usulan `LAB-REQ-019`). Sebelumnya `12` — amandemen 2026-10-07 (kedua): `AC-289`..`AC-293` (BR-139, kontrak usulan `LAB-REQ-017`). Sebelumnya `11` — amandemen 2026-10-07: `AC-276`..`AC-282` (susulan putaran 22) dan `AC-283`..`AC-288` (BR-138, kontrak usulan `LAB-REQ-016`). Sebelumnya `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1069,3 +1069,49 @@ terhadap devYoga dengan akun asli dr. Bima (Kepala Instalasi) dan Gilang (Analis
 | `T-V1-10` | Unit FE | `tests/unit/lab-v1-parity-rules.test.mjs` | ✅ 20/20 |
 
 Peramban total **54/54**. Belum diuji: Simpan sungguhan pada Penerimaan Sampling v1, karena menulis data.
+
+## Amandemen 2026-10-20 — Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`)
+
+Menurunkan `LAB-API-v1` `r49`, `LAB-PERM-v1` revision 17, `LAB-VAL-v1` `r21`, dan `LAB-STATE-v1` `r11` — **keempatnya
+`approved` 2026-10-20**. AC berasal dari decision log putaran 30/31 (`AC-326`..`AC-337`). ~~Belum ada yang dapat dijalankan —
+kode belum dibangun.~~ **Seluruhnya dijalankan dan lulus per 2026-10-21** — hasil per uji di tabel *Hasil 2026-10-21* di bawah.
+Uji yang menulis memakai harness InMemory atau data uji dengan izin tulis tersendiri; uji baca-saja memakai devYoga.
+
+| Uji | AC | Lapis | Cara | Lulus bila |
+|---|---|---|---|---|
+| `T-S16B-01` | `AC-326` | Harness | Batal pemeriksaan dan batal wadah dengan `reason` kosong, `"  "`, dan baris baru | `422` *"Alasan pembatalan wajib diisi."*; status tidak berubah; **nol** baris `LabTransitionHistory` |
+| `T-S16B-02` | `AC-327` | Harness | Batal pemeriksaan yang sudah dirilis **tanpa** alasan | `422` dengan pesan **rilis**, bukan pesan alasan |
+| `T-S16B-03` | `AC-326` | Harness | Batal order dengan alasan → wadahnya ikut batal | Lulus tanpa `VAL-155` menolak — jalur ikut-order tidak berubah |
+| `T-S16B-04` | `AC-328` | HTTP baca | Peristiwa batal dengan `ReasonNote` kosong pada data uji | Baris tampil, `isReasonRecorded = false`, terhitung di `totals` |
+| `T-S16B-05` | `AC-329` | Harness | Order lima pemeriksaan dibatalkan + satu pemeriksaan di order lain dibatalkan sendiri | **Dua** baris (Order 1, Pemeriksaan 1); detail order memuat kelima pemeriksaan dan wadahnya |
+| `T-S16B-06` | `AC-330` | HTTP | Akun dengan `LabOrder : Read`/`LabExamination : Read` saja; akun dengan `LabOperationalReport : Read` saja; akun `Read` laporan tanpa `Export` | `403` pada kedua laporan bagi dua akun pertama; akun ketiga: daftar `200`, `/export` dan `/print-log` `403` |
+| `T-S16B-07` | `AC-331` | Harness | Pembatalan 1 Oktober 06.30 WIB (30 September 23.30 UTC) dan 1 September 00.10 WIB | Masuk Oktober dan September masing-masing |
+| `T-S16B-08` | `AC-332` | HTTP | Laporan Pembatalan 21 baris, `pageSize` 10, halaman 1–3; lalu `/export` dengan penyaring sama | `totals` identik di ketiga halaman; berkas `.xlsx` **21** baris data; satu baris log unduhan tanpa No. RM/nama/alasan |
+| `T-S16B-09` | `AC-333` | Harness + HTTP | Data dan periode yang sama di Beranda (`/dashboard/yearly`) dan Statistik Pesanan | Jumlah pesanan per bulan sama; order `Cancelled` tidak terhitung |
+| `T-S16B-10` | `AC-334`, `AC-336` | Harness | Per disiplin, termasuk permintaan belum masuk wadah; tambah satu pemeriksaan `Voided` | Jumlah pemeriksaan = grafik disiplin Beranda; menambah satu gugur tidak mengubah keduanya |
+| `T-S16B-11` | `AC-335` | Harness + HTTP | Pemeriksaan tanpa disiplin; kunjungan dengan unit terhapus; periksa respons dan berkas | Kolom *Belum terklasifikasi*; *Unit tidak tercatat*; **nol** No. RM/nama pasien pada respons dan `.xlsx` |
+| `T-S16B-12` | `AC-337` | HTTP + unit FE | `POST /print-log` pemegang `Export`; pemegang `Read` saja; jaringan gagal (unit FE) | Satu baris log `.Print`; `403`; pratinjau tidak terbuka dan nol log |
+| `T-S16B-13` | `INV-59` | Harness | Uji karakterisasi `GET /dashboard/yearly` **sebelum dan sesudah** pemindahan ke `LabOrderDemandQuery` | Seluruh angka identik — nol perubahan perilaku Beranda |
+| `T-S16B-14` | — | Startup | Aplikasi menyala | `PermissionRegistryValidator` menerima `LabCancellationReport` dan `LabOrderStatisticsReport`, masing-masing `Read`/`Export` |
+| `T-S16B-15` | 32.10 no. 1 | HTTP | `GET /lab-cancellation-reports` (disetujui 2026-10-20) | Satu baris log `.Read` per permintaan tanpa identitas pasien |
+| `T-S16B-16` | `LAB-DEC-243` | HTTP baca | Statistik Pesanan pada data uji Kamar Bersalin | Tampil *Kamar Bersalin* di bawah jenis kunjungan kunjungannya |
+
+**Hasil 2026-10-21**
+
+| Uji | Hasil | Bukti |
+|---|---|---|
+| `T-S16B-01`..`03` | `PASS` | Harness `BE-LAB-97` 15/15; HTTP `422` nol tulis |
+| `T-S16B-04` | `PASS` | Harness `BE-LAB-99`; data nyata `LAB-RSMMC-000030` *Alasan tidak dicatat*, terhitung (`FE-LAB-55` bagian 9) |
+| `T-S16B-05` | `PASS` | Harness `BE-LAB-99`/`100`; data nyata `LAB-RSMMC-000029`: satu baris, detail lima pemeriksaan (`FE-LAB-56` bagian 9) |
+| `T-S16B-06` | `PASS` | Akun asli: dr. Bima bertahap tanpa izin → `Read` → `Export` (2026-10-20); Gilang `403` kesepuluh endpoint (2026-10-21) |
+| `T-S16B-07` | `PASS` | Harness `BE-LAB-99`; uji unit layar (batas hari WIB) |
+| `T-S16B-08` | `PASS` | HTTP `BE-LAB-100`; peramban halaman 1 = halaman 2 (`FE-LAB-55`) |
+| `T-S16B-09`, `10`, `13` | `PASS` | Harness `BE-LAB-96`/`98`; Statistik = Beranda di devYoga |
+| `T-S16B-11` | `PASS` | Harness; data nyata kolom *Belum terklasifikasi* di layar dan `.xlsx` (`FE-LAB-54` bagian 9) |
+| `T-S16B-12` | `PASS` | HTTP log `.Print`; uji unit FE penjalan cetak; peramban putus → nol pratinjau, akun dr. Bima satu log |
+| `T-S16B-14`, `15` | `PASS` | Startup validator; log `.Read` tanpa pasien |
+| `T-S16B-16` | `PASS` | Data uji `MVP-15e`: *Kamar Bersalin* di bawah IGD, kelompok Rawat Inap — peramban dr. Bima (`FE-LAB-54` bagian 9) |
+
+**Data uji yang dibutuhkan** (izin tulis tersendiri) — **dibuat 2026-10-21** (`LAB-RSMMC-000025`..`000030`, langkah rilis `MVP-15e` butir 3): satu order per jenis kunjungan Rawat Inap, IGD, dan unit Kamar
+Bersalin; satu pembatalan lama tanpa alasan; satu pemeriksaan gugur; satu pemeriksaan tanpa disiplin. devYoga hari ini
+hanya memuat order Rawat Jalan (`CAP-P30-08`).

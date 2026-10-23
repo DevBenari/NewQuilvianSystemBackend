@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -1209,10 +1210,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (specimen.SpecimenStatus == LabSpecimenStatus.Cancelled)
                 throw new InvalidOperationException("Sampel sudah dibatalkan.");
 
+            // VAL-155 (BE-LAB-97) — sesudah penjaga keadaan, sebelum apa pun ditulis. Jalur batal
+            // ikut pesanan (CancelAllForOrderInMemoryAsync) tidak lewat sini: alasannya dari VAL-74.
+            var reason = LabCancellationReason.Require(request?.Reason)
+                ?? throw new LabSpecimenValidationException(LabCancellationReason.MissingMessage);
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var fromStatus = specimen.SpecimenStatus;
-            var reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
 
             CancelSpecimenInMemory(order, specimen, reason, actorUserId, now);
 

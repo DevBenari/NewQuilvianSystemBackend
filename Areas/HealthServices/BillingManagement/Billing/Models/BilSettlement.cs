@@ -19,6 +19,15 @@ public sealed class BilSettlement : IdentityModel
     public decimal RequestedAmount { get; set; }
     public decimal SuccessfulAmount { get; set; }
     public decimal AllocatedAmount { get; set; }
+
+    /// <summary>
+    /// Batas dana settlement ini yang boleh dialokasikan ke kelebihan plafon Benefit Karyawan RS (E), dibaca dari HR
+    /// sekali saat settlement dibuat. Kosong untuk kunjungan non-benefit. Rekonsiliasi memakai nilai ini (bukan membaca
+    /// HR ulang di tengah transaksi uang): dana melebihi K dialokasikan ke BENEFIT_EXCESS sampai batas ini, dan hanya sisanya
+    /// yang menjadi kredit refund.
+    /// </summary>
+    public decimal? BenefitExcessAuthorizedAmount { get; set; }
+
     [Required, MaxLength(30)] public string Status { get; set; } = BillingSettlementStatuses.Draft;
     public Guid IdempotencyKey { get; set; }
     [Required, MaxLength(64)] public string PayloadHash { get; set; } = string.Empty;

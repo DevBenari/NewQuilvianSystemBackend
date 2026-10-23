@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 |---|---|
-| Roadmap | `RJ-PRI-RM-BE-001` r1 dan `RJ-PRI-RM-FE-001` r1 (`approved`, `RJ-PRI-DEC-031`) |
-| Blueprint | `rawat-jalan` revisi `33` `approved` (`RJ-PRI-DEC-030`) |
-| Kontrak | `RJ-PRI-RESV-001@1.0.0` `approved` |
-| SHA | BE `551e1cbb`, FE `1fd858322` |
-| Hash masukan | `00-interview-decisions.md` `089ef11d6812`, `04-prd-to-mvp.md` `a7962b2158b1`, `testing/acceptance-test-matrix.md` `ce8039c0fb65` (manifest Revisi 33) |
+| Roadmap | `RJ-PRI-RM-BE-001` dan `RJ-PRI-RM-FE-001`: r1 (`approved`, `RJ-PRI-DEC-031`) dan r2 (`approved`, `RJ-PRI-DEC-039`, `MVP-3`) |
+| Blueprint | `rawat-jalan` revisi `33` `approved` (`RJ-PRI-DEC-030`) dan revisi `34` `approved` (`RJ-PRI-DEC-039`) |
+| Kontrak | `RJ-PRI-RESV-001@1.0.0` `approved`; `1.2.0` `approved` untuk `MVP-3` |
+| SHA | r1: BE `551e1cbb`, FE `1fd858322`. r2: BE `b0285ff1`, FE `037c975b7` |
+| Hash masukan | r1: `00-interview-decisions.md` `089ef11d6812`, `04-prd-to-mvp.md` `a7962b2158b1`, `testing/acceptance-test-matrix.md` `ce8039c0fb65` (manifest Revisi 33). r2: `00-interview-decisions.md` `d2fac53f7749`, `04-prd-to-mvp.md` `bcb35d6aee59`, `testing/acceptance-test-matrix.md` `e8c1e00d8f79` (manifest Revisi 34) |
 
 ## 1. Requirement ke task dan bukti
 
@@ -40,6 +40,15 @@
 | `FR-RP-070` | PDF 2C; `RJ-PRI-FE-004` | `03` FE-RP-04 | — | `FE-RJP-002` | `R-RP-28`, `UAT-RP-18`, `19` | ✅ 2026-10-16 |
 | Regresi | — | `02` RP.14 | `BE-RJP-001`, `002`, `008` | `FE-RJP-006` | `R-RP-30` | ✅ 2026-10-16, 2026-10-19 |
 | Butir menu terjangkau | `03` RP-FE.2 | — | — | `FE-RJP-004` | Uji layar | ✅ 2026-10-20 |
+| `FR-RP-090` | `RJ-PRI-DEC-034` | `02` GT.4, state RP-GT-A | `BE-RJP-013` | `FE-RJP-009` | `R-RP-31`, `R-RP-32`, `R-RP-33`, `UAT-RP-20`, `21` | ✅ 2026-10-21 (BE, FE) |
+| `FR-RP-091` | `RJ-PRI-DEC-035`; `RJ-PRI-OQ-013` | `VAL-RP-03` s.d. `06`, `23`, `24` | `BE-RJP-013` | — | `R-RP-34`, `UAT-RP-23` | ✅ 2026-10-21 (BE) |
+| `FR-RP-092` | `RJ-PRI-DEC-035` | `INV-RP-03` (revisi `34`), `VAL-RP-25` | `BE-RJP-013` | — | `R-RP-35`, `R-RP-36`, `UAT-RP-22` | ✅ 2026-10-21 (BE) |
+| `FR-RP-093` | `RJ-PRI-DEC-036`; `RJ-PRI-FE-005` | `INV-RP-05` | `BE-RJP-013` | `FE-RJP-009` | `R-RP-37`, `UAT-RP-20` | ✅ 2026-10-21 (BE, FE) |
+| `FR-RP-094` | `RJ-PRI-DEC-038` | data RP-GT-2 | `BE-RJP-013` | `FE-RJP-009` | `R-RP-39` | ✅ 2026-10-21 (BE, FE) |
+| `FR-RP-095` | `RJ-PRI-DEC-038` | `INT-RP-07` (`1.2.0`) | `BE-RJP-013` | `FE-RJP-009` | `R-RP-41` | ✅ 2026-10-21 (BE, FE) |
+| `FR-RP-096` | `RJ-PRI-DEC-037` | `permission-audit-matrix.md` RP-GT-1 | `BE-RJP-013` | `FE-RJP-009` | `R-RP-38` | ✅ 2026-10-21 (BE, FE) |
+| Kalender menonaktifkan tanggal lampau (Buat Reservasi, Ganti Tanggal) | `RJ-PRI-DEC-040` | `VAL-RP-03` (tetap di backend) | — | `FE-RJP-004`, `FE-RJP-009` (rework) | Uji layar `RESCHEDULE CAL`, `CREATE CAL`, `REGRESI` ([FE-RJP-009 §8](../task/report/frontend/FE-RJP-009.md)) | ✅ 2026-10-21 |
+| Konkurensi dan regresi ganti tanggal | `RJ-PRI-DEC-034` | `VAL-RP-14`, `02` GT.2 | `BE-RJP-013` | — | `R-RP-40`, `R-RP-42` | ✅ 2026-10-21 (BE) |
 
 ## 2. Acceptance criteria decision log ke skenario
 
@@ -67,8 +76,19 @@
 | 20 | `R-RP-23` |
 | 21 | `R-RP-24` |
 | 22 | `R-RP-04` |
+| 23 | `R-RP-31` |
+| 24 | `R-RP-32` |
+| 25 | `R-RP-33` |
+| 26 | `R-RP-34` |
+| 27 | `R-RP-35` |
+| 28 | `R-RP-36` |
+| 29 | `R-RP-37` |
+| 30 | `R-RP-38` |
+| 31 | `R-RP-39` |
+| 32 | `R-RP-40` |
+| 33 | `R-RP-41` |
 
-Seluruh 22 acceptance criteria punya skenario.
+Seluruh 33 acceptance criteria punya skenario. `R-RP-42` adalah skenario regresi tanpa AC sendiri.
 
 ## 3. Coverage gap
 
@@ -80,6 +100,8 @@ Seluruh 22 acceptance criteria punya skenario.
 | `GAP-RP-04` | Tinjauan keamanan endpoint publik | Satu-satunya endpoint bisnis tanpa login | Masuk DoD `BE-RJP-012` sebagai tinjauan manusia sebelum go-live |
 | `GAP-RP-05` | WA otomatis, lonceng, peringatan lama tunggu, diskon, laporan | `POST-MVP` (`04` RP-8) | Tidak direncanakan di roadmap ini |
 | `GAP-RP-06` | `UAT-RP-03` butuh perangkat display fisik untuk suara | Uji suara di browser terbatas | Uji layar memeriksa payload dan daftar. Suara diperiksa saat UAT perangkat |
+| `GAP-RP-07` | Reservasi lama tertinggal bila admisi membuat reservasi baru di tanggal lain alih-alih memakai Ganti Tanggal | `RJ-PRI-OQ-014` (`LATER SLICE`) | Tidak direncanakan. Ganti Tanggal mengurangi kasusnya |
+| `GAP-RP-08` | 403 untuk ganti tanggal (`R-RP-38`) butuh akun uji non-SuperAdmin | Akun uji yang ada ber-SuperAdmin | Dicatat di laporan `BE-RJP-013`/`FE-RJP-009`. Bila akun tidak tersedia, ditandai belum diuji |
 
 ## 4. Rujukan lintas roadmap
 

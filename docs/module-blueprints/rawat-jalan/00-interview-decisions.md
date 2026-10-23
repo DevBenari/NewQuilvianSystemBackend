@@ -1397,7 +1397,7 @@ pasien dilayani dokter. Pembayaran hanya dicatat sebagai titik sentuh ke billing
 | `RJ-PRI-DEC-004` | Bisnis | **Nomor prioritas = kelipatan 5, tanpa batas atas.** Pasien prioritas mengambil kelipatan 5 terkecil yang belum terpakai pada cakupan nomor yang sama (`F-AQ-3`). Pasien Reguler mengambil nomor terkecil yang belum terpakai dan **bukan** kelipatan 5. Angka kelipatan (bawaan 5) dapat diubah di konfigurasi. Nomor yang pernah terbit (batal, tidak hadir, selesai) tetap tidak dipakai ulang, sama seperti `RJ-DOC-DEC-056`. Nomor 1 dan 3 kembali menjadi nomor Reguler. Menggantikan `RJ-DOC-DEC-056`. Contoh: poli Penyakit Dalam hari ini memberi Reguler 1, 2, 3, 4, 6, 7, 8, 9, 11, …, dan Prioritas 5, 10, 15, 20, …. Pasien prioritas ketujuh hari itu mendapat nomor 35 | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2G; jawaban wawancara |
 | `RJ-PRI-DEC-005` | Bisnis/Privasi | **Antrean prioritas tidak tampil di display publik dan tidak dipanggil lewat suara.** Antrean dengan snapshot `IsPriorityQueue = true` disaring di backend dari semua layar publik (perawat dan dokter, berapa pun `QueueAudienceMode`-nya) dan dari suara panggilan. Dasarnya **Prioritas**, bukan Member (`RJ-DOC-DEC-055` tetap berlaku). Ruang kerja perawat dan dokter yang login tetap menampilkan pasien itu, karena petugas dan dokter yang menghampiri pasien (2F, 2H). Melengkapi `RJ-DOC-DEC-057`/`058`, tidak menggantikannya: keduanya tetap berlaku untuk antrean Reguler dan Member yang tidak prioritas. Contoh: nomor 10 (Gold, prioritas) tidak muncul di layar ruang tunggu Penyakit Dalam dan tidak dipanggil. Perawat melihat nomor 10 di Nurse Station dengan penanda prioritas | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2G, 2H; jawaban wawancara |
 | `RJ-PRI-DEC-006` | Bisnis | **`AG-03` pertanyaan 1: antrean RJ memakai aturan member CRM (`J1`) secara penuh.** Definisi "Member" pada `RJ-DOC-DEC-055` direvisi menjadi: pasien yang menurut `PatientMembershipStatusResolver` punya membership Aktif pada tanggal penilaian (kalender WIB). Dasar: migration `BE-CRM-002` mengubah semua membership lama menjadi Perlu Verifikasi, dan endpoint lama yang dapat mengisi Aktif tanpa tanggal sudah dipensiunkan (`BE-CRM-015`). Selisih yang tersisa hanya tanggal WIB vs UTC dan flag `IsActive`. `BE-CRM-022` keluar dari status ⛔. Petugas diberi tahu sebelum rilis. Contoh: Pak Andi yang membership-nya Kedaluwarsa kemarin kini Reguler, baik di nurse station maupun saat mengambil nomor antrean | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 (sebagai owner RJ dan owner sisi CRM untuk RJ, `CRM-DEC-031`) | `CRM-DECREQ-001` Keputusan 1; jawaban wawancara |
-| `RJ-PRI-DEC-007` | Bisnis | **`AG-03` pertanyaan 2: untuk reservasi atau booking ke tanggal mendatang, status member dinilai pada tanggal reservasi dibuat**, sesuai `CRM-DEC-005`. Klasifikasi member dan prioritas disimpan sebagai snapshot saat reservasi dibuat dan dipakai pada hari kunjungan. Pendaftaran langsung pada hari yang sama tidak terpengaruh. Contoh: reservasi dibuat 1 Okt untuk kunjungan 20 Okt, sedangkan membership Gold habis 13 Okt. Pada 20 Okt pasien tetap prioritas. Reservasi baru yang dibuat 14 Okt sudah Reguler | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | `CRM-DECREQ-001` Keputusan 2; `CRM-DEC-005`; jawaban wawancara |
+| `RJ-PRI-DEC-007` | Bisnis | **`AG-03` pertanyaan 2: untuk reservasi atau booking ke tanggal mendatang, status member dinilai pada tanggal reservasi dibuat**, sesuai `CRM-DEC-005`. Klasifikasi member dan prioritas disimpan sebagai snapshot saat reservasi dibuat dan dipakai pada hari kunjungan. Pendaftaran langsung pada hari yang sama tidak terpengaruh. Contoh: reservasi dibuat 1 Okt untuk kunjungan 20 Okt, sedangkan membership Gold habis 13 Okt. Pada 20 Okt pasien tetap prioritas. Reservasi baru yang dibuat 14 Okt sudah Reguler | Sukma Giri | `approved` (dilengkapi `RJ-PRI-DEC-035`: reservasi yang diganti tanggalnya dinilai ulang pada hari penggantian) | Sukma Giri, 16 Okt 2026 | `CRM-DECREQ-001` Keputusan 2; `CRM-DEC-005`; jawaban wawancara |
 | `RJ-PRI-DEC-008` | Bisnis | **Reservasi prioritas boleh untuk hari ini atau tanggal mendatang.** Link konfirmasi kedatangan hanya dapat dipakai pada hari kunjungan (kalender WIB). Contoh: Ibu Sari menelepon Rabu 14 Okt untuk kunjungan Jumat 16 Okt. Link yang dibuka Kamis menampilkan "Konfirmasi baru bisa dilakukan pada 16 Okt 2026" | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Jawaban wawancara |
 | `RJ-PRI-DEC-009` | Bisnis | **Reservasi prioritas belum menjadi kunjungan.** Selama poli dan dokter belum dilengkapi, reservasi tercatat di daftar "Reservasi Prioritas" tersendiri, tanpa nomor kunjungan, antrean, maupun tagihan. Reservasi baru menjadi kunjungan RJ setelah petugas melengkapi poli dan dokter. Daftar Pasien RJ, antrean, nurse station, dan billing tidak pernah memuat reservasi yang belum lengkap. Bentuk teknisnya diputuskan saat desain. Contoh: reservasi `RSV` milik Ibu Sari tampil di daftar Reservasi Prioritas pukul 08.00. Pukul 09.10 petugas memilih Penyakit Dalam dan dr. Maya, lalu baru saat itu terbit kunjungan dan nomor antrean | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2E, 2F; `F-RP-1`; jawaban wawancara |
 | `RJ-PRI-DEC-010` | Bisnis | **Nomor antrean prioritas terbit saat poli dan dokter dilengkapi**, bukan saat reservasi dibuat atau saat pasien mengonfirmasi tiba. Pada saat itu jadwal dokter divalidasi dan nomor dialokasikan menurut `RJ-PRI-DEC-004`. Urutan ini mengikuti PDF (F lalu G) | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | PDF 2F, 2G; jawaban wawancara |
@@ -1419,7 +1419,7 @@ pasien dilayani dokter. Pembayaran hanya dicatat sebagai titik sentuh ke billing
 | `RJ-PRI-DEC-026` | Permission | **Penerima kabar realtime "pasien sudah tiba" adalah semua pemegang `Read` resource Reservasi Prioritas** (`RJ-PRI-DEC-020`), termasuk petugas skrining. Ini menggantikan acuan "pemegang izin pendaftaran RJ" pada `RJ-PRI-DEC-014`, sedangkan sisa isi `RJ-PRI-DEC-014` tetap berlaku. Menutup `RJ-PRI-OQ-007`. Contoh: petugas skrining Rina (hanya `Read` + `Screen`) mendengar bunyi pemberitahuan saat Ibu Sari menekan "Saya sudah tiba", lalu berangkat ke ruang tunggu prioritas | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Gate `01-requirement-completeness-gate-reservasi-prioritas.md`; jawaban wawancara |
 | `RJ-PRI-DEC-027` | Bisnis | **Reservasi terbuka ditutup otomatis bila pasien didaftarkan lewat jalur lain pada hari yang sama.** Bila pasien yang punya reservasi Menunggu Kedatangan atau Sudah Tiba mendapat kunjungan RJ lewat kiosk atau loket biasa pada tanggal reservasi, kunjungan tetap dibuat seperti biasa (nomor prioritas, tiket mengarahkan ke ruang tunggu prioritas). Reservasinya ditutup otomatis dengan status akhir baru **"Didaftarkan lewat jalur lain"**, ditautkan ke kunjungan itu, dan link mati. Laporan Tidak Datang tetap benar. Menutup `RJ-PRI-OQ-008`. Contoh: Ibu Sari memakai kiosk pukul 08.30 dan mendapat nomor 5. Reservasinya langsung berstatus "Didaftarkan lewat jalur lain — kunjungan RJ-…" | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Gate; jawaban wawancara |
 | `RJ-PRI-DEC-028` | Keamanan | **Admisi boleh mengirim ulang link, dengan kode baru.** "Kirim ulang" membuat kode acak baru dan mematikan kode lama. Kode lama tidak dapat ditampilkan ulang, karena yang disimpan hanya hash-nya. Setiap pengiriman ulang tercatat di riwayat (siapa, kapan). Link yang terlanjur bocor ke orang lain ikut mati. Hanya untuk reservasi Menunggu Kedatangan. Menutup `RJ-PRI-OQ-009`. Contoh: Ibu Sari menghapus chat WA pukul 07.00. Admisi menekan "Kirim ulang", sehingga link lama tidak berlaku dan link baru dikirim lewat `wa.me` | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 | Gate; jawaban wawancara |
-| `RJ-PRI-DEC-029` | Bisnis | **Ganti tanggal = batal lalu buat reservasi baru.** Tidak ada aksi "ubah tanggal". Admisi membatalkan reservasi dengan alasan "ganti tanggal" (`RJ-PRI-DEC-022`), lalu membuat reservasi baru dengan nomor dan link baru. Reservasi baru **dinilai ulang** kelayakannya pada saat dibuat (`RJ-PRI-DEC-007`), sehingga prioritas tidak dapat diperpanjang dengan menggeser tanggal berulang kali. Menutup `RJ-PRI-OQ-010`. Contoh: reservasi Gold dibuat 1 Okt untuk 10 Okt. Pada 14 Okt pasien meminta pindah ke 20 Okt, sedangkan Gold-nya sudah Kedaluwarsa sejak 13 Okt. Reservasi lama dibatalkan, dan reservasi prioritas baru ditolak karena pasien kini Reguler. Admisi mengarahkan pasien ke booking biasa dengan poli dan dokter | Sukma Giri | `approved` | Sukma Giri, 16 Okt 2026 (mengoreksi jawaban awal "ubah di menu pendaftaran") | Gate; jawaban wawancara |
+| `RJ-PRI-DEC-029` | Bisnis | **Ganti tanggal = batal lalu buat reservasi baru.** Tidak ada aksi "ubah tanggal". Admisi membatalkan reservasi dengan alasan "ganti tanggal" (`RJ-PRI-DEC-022`), lalu membuat reservasi baru dengan nomor dan link baru. Reservasi baru **dinilai ulang** kelayakannya pada saat dibuat (`RJ-PRI-DEC-007`), sehingga prioritas tidak dapat diperpanjang dengan menggeser tanggal berulang kali. Menutup `RJ-PRI-OQ-010`. Contoh: reservasi Gold dibuat 1 Okt untuk 10 Okt. Pada 14 Okt pasien meminta pindah ke 20 Okt, sedangkan Gold-nya sudah Kedaluwarsa sejak 13 Okt. Reservasi lama dibatalkan, dan reservasi prioritas baru ditolak karena pasien kini Reguler. Admisi mengarahkan pasien ke booking biasa dengan poli dan dokter | Sukma Giri | `approved` (cakupan dipersempit ke hari kunjungan oleh `RJ-PRI-DEC-034`, 21 Okt 2026) | Sukma Giri, 16 Okt 2026 (mengoreksi jawaban awal "ubah di menu pendaftaran") | Gate; jawaban wawancara |
 
 ### State dan transition — Reservasi Prioritas
 
@@ -1437,7 +1437,8 @@ pasien dilayani dokter. Pembayaran hanya dicatat sebagai titik sentuh ke billing
 | Menunggu Kedatangan | Kirim ulang link | Menunggu Kedatangan (kode baru) | Admisi | Kode lama mati; tercatat di riwayat (`RJ-PRI-DEC-028`) | Chat WA terhapus |
 
 Status akhir: Menjadi Kunjungan, Dibatalkan, Tidak Datang, Didaftarkan lewat Jalur Lain. Tanda "Bukan prioritas lagi"
-(`RJ-PRI-DEC-024`) adalah tanda pada reservasi, bukan status. Ganti tanggal tidak punya transisi sendiri: batal lalu buat
+(`RJ-PRI-DEC-024`) adalah tanda pada reservasi, bukan status. Ganti tanggal sebelum hari kunjungan punya transisi
+sendiri (lihat *Amendment Pass 2026-10-21*, `RJ-PRI-DEC-034`). Pada hari kunjungan, ganti tanggal tetap batal lalu buat
 baru (`RJ-PRI-DEC-029`).
 
 ### Skenario normal dan exception
@@ -1456,7 +1457,7 @@ baru (`RJ-PRI-DEC-029`).
 | Server mati pada malam hari | Penutupan "Tidak Datang" mengejar ketertinggalan saat server hidup lagi | `RJ-PRI-DEC-013` |
 | Pasien memakai kiosk/loket padahal punya reservasi | Kunjungan dibuat biasa. Reservasi ditutup "Didaftarkan lewat Jalur Lain" | `RJ-PRI-DEC-027` |
 | Pasien kehilangan pesan WA | Admisi kirim ulang dengan kode baru, dan kode lama mati | `RJ-PRI-DEC-028` |
-| Pasien ingin ganti tanggal | Batal lalu buat baru. Kelayakan member dinilai ulang | `RJ-PRI-DEC-029` |
+| Pasien ingin ganti tanggal | Sebelum hari kunjungan: ganti tanggal, nomor tetap, link baru, kelayakan member dinilai ulang. Pada hari kunjungan: batal lalu buat baru | `RJ-PRI-DEC-034`, `035`; `RJ-PRI-DEC-029` |
 
 ### Frontend decision authority — Amendment RP
 
@@ -1538,3 +1539,155 @@ dan `AG-03` pertanyaan 1–2 sudah tertutup.
 | `RJ-PRI-DEC-033` | Revisi UI | **Tombol "Skrining" dihapus dari halaman detail Reservasi Prioritas** atas permintaan owner, supaya petugas langsung ke "Lengkapi Pendaftaran". Mengubah sebagian `RJ-PRI-DEC-019`: checklist skrining awal (batuk, demam, risiko jatuh) tidak lagi diisi lewat layar. Endpoint `PUT /{id}/screening`, kolom data, dan izin `Screen` di backend dibiarkan (tidak dihapus) sehingga mudah dikembalikan. Pelengkapan memang tidak pernah menunggu skrining (`RJ-PRI-DEC-019`). Skrining pintu masuk mengikuti SOP PPI seperti pasien walk-in, dan skrining perawat (TTV) tetap di Nurse Station (`RJ-PRI-DEC-015`). Dampak: akun yang hanya punya `Read` + `Screen` tidak lagi punya aksi di detail | Sukma Giri | `approved` | Sukma Giri, 20 Okt 2026 ("button skrining hapus saja biar langsung lengkapi pendaftaran saja") | Sesi 20 Okt 2026 |
 
 **Langkah berikutnya:** eksekusi task sesuai roadmap, mulai `MVP-0`.
+
+## Amendment Pass 2026-10-21 — Ganti tanggal reservasi prioritas (Amendment RP-GT)
+
+Mode: *amendment pass*, yaitu revisi keputusan atas Amendment RP yang sudah disetujui (blueprint revisi `33`,
+kontrak `RJ-PRI-RESV-001@1.1.0`). Pemicunya audit menu Reservasi Prioritas oleh owner pada 21 Okt 2026, dengan
+pertanyaan "bagaimana bila pasien yang sudah direservasi ingin mengubah tanggal reservasi". Impact scan RP dicatat pada
+`551e1cbb`/`1fd858322`, sehingga sudah basi. Fakta di bawah dikumpulkan ulang pada backend `b0285ff1` (`sukmagp`) dan
+frontend `037c975b7` (`sukmagpV2`).
+
+**Batas scope (satu kalimat):** admisi dapat memindahkan tanggal kunjungan reservasi prioritas yang masih Menunggu
+Kedatangan, sebelum hari kunjungan, tanpa membatalkan reservasinya.
+
+**Di dalam scope:**
+
+1. Aksi ganti tanggal pada reservasi yang sudah terdaftar (scope RP butir 1).
+2. Penilaian ulang status member dan pemeriksaan tanggal baru.
+3. Penerbitan link baru dan pesan WA baru (scope RP butir 4).
+4. Riwayat, izin, dan kabar realtime untuk aksi ini.
+
+**Di luar scope:**
+
+| Kebutuhan | Alasan |
+|---|---|
+| Ganti tanggal pada hari kunjungan | Tetap `RJ-PRI-DEC-029`: batal lalu buat reservasi baru |
+| Ganti jadwal booking/appointment RJ biasa (dengan poli dan dokter) | Bukan Reservasi Prioritas. Fitur reschedule appointment sudah dicabut 15 Okt 2026 (`RJ-REG-REV-BE-005`) |
+| Pasien mengganti tanggal sendiri lewat link | Halaman link hanya untuk konfirmasi tiba dan tidak punya aksi lain (`RJ-PRI-DEC-012`, `RJ-PRI-DEC-022`) |
+| WA gateway otomatis | `platform-notification` (`RJ-PRI-OQ-004`) |
+
+**Bentuk blueprint:** tetap `SINGLE` (`RJ-PRI-DEC-003`). Ganti tanggal masuk rumpun reservasi dan konfirmasi
+kedatangan, tanpa rumpun baru.
+
+Fakta source (21 Okt 2026):
+
+- `F-GT-1` — Belum ada aksi ubah tanggal. Controller hanya punya buat, kirim ulang link, tandai tiba, kembalikan,
+  skrining, dan batal. Komentar kelasnya menyatakan "Tidak ada `PUT`, `PATCH /status`, maupun `DELETE`"
+  (`OutpatientPriorityReservationController.cs:22-25`).
+- `F-GT-2` — Batas "satu reservasi terbuka" dihitung per pasien **per tanggal** (`FindOpenReservationAsync`,
+  `OutpatientPriorityReservationService.cs:1356-1372`). Akibatnya, admisi dapat membuat reservasi untuk tanggal lain tanpa
+  membatalkan yang lama, dan sistem tidak memberi peringatan. Reservasi lama kemudian tertutup sebagai Tidak Datang.
+- `F-GT-3` — Batal bersifat final (`CancelAsync`, `:731-758`). Pada alur `RJ-PRI-DEC-029`, reservasi lama sudah hilang
+  bila reservasi baru kemudian ditolak. Penolakan bisa terjadi karena tanggal lebih dari 30 hari ke depan
+  (`ValidateVisitDate`, `:1338-1349`), ada kunjungan aktif, atau member sudah Kedaluwarsa.
+- `F-GT-4` — Pasien hanya bisa ditandai tiba pada hari kunjungan (`MarkArrivalAsync`, `RequiresVisitDay: true`,
+  `:601-622`). Link publik juga hanya aktif pada hari itu (`RJ-PRI-DEC-008`). Jadi, sebelum hari kunjungan, reservasi
+  terbuka selalu berstatus Menunggu Kedatangan dan belum punya data skrining.
+- `F-GT-5` — Kirim ulang link sudah mengganti hash kode dalam satu perintah dan memakai izin `Create`
+  (`ReissueArrivalCodeAsync`, `:694-728`). Halaman publik menolak kode yang sudah diganti (`:1044`). Pola ini dapat
+  dipakai ulang.
+- `F-GT-6` — Tabel riwayat `RegPriorityReservationHistory` tidak punya kolom tanggal. Isinya kode event, status
+  asal/tujuan, sumber, petugas, alasan, kunjungan, dan jam (`RegPriorityReservationHistory.cs:16-55`). Tanggal lama dan
+  tanggal baru belum dapat dicatat sebagai data yang bisa dicari.
+- `F-GT-7` — Alasan batal hanya teks bebas, 10–500 karakter (`NormalizeReason`, `:1448-1453`). Dialog batal sudah
+  menyarankan teks "Pasien minta ganti tanggal kunjungan"
+  (`V2QuilvianSystemFrontendDev/.../detail/priority-reservation-action-modals.jsx:151-166`).
+
+### Proses bisnis — Ganti tanggal reservasi
+
+1. **Tujuan:** pasien tetap memegang reservasinya saat pindah hari, tanpa kehilangan reservasi lama bila tanggal baru
+   ternyata tidak bisa dipakai.
+2. **Pelaku:** admisi RJ yang memegang `Create` pada resource Reservasi Prioritas. Pasien hanya meminta lewat WA atau
+   telepon.
+3. **Pemicu:** pasien menghubungi rumah sakit sebelum hari kunjungan dan meminta tanggal lain.
+4. **Prasyarat:** reservasi berstatus Menunggu Kedatangan, dan hari ini (kalender WIB) masih sebelum tanggal kunjungan.
+5. **Langkah utama:**
+   1. Admisi membuka detail reservasi, lalu memilih Ganti Tanggal.
+   2. Admisi memilih tanggal baru dan mengisi alasan.
+   3. Sistem menilai ulang status member pasien pada hari ini dan memeriksa tanggal baru.
+   4. Sistem menyimpan tanggal baru dan snapshot member baru, menerbitkan kode link baru, lalu mematikan kode lama.
+   5. Sistem menampilkan link baru dan teks WA baru sekali saja.
+   6. Admisi mengirim pesan itu lewat `wa.me`.
+6. **Aturan bisnis:** `RJ-PRI-DEC-034` s.d. `038` di bawah.
+7. **Perubahan status:** status tetap Menunggu Kedatangan. Yang berubah tanggal kunjungan, snapshot member, dan kode
+   link.
+8. **Jalur tidak normal:** bila pemeriksaan apa pun gagal, tidak ada yang berubah. Reservasi lama dan link lama tetap
+   berlaku. Pada hari kunjungan, admisi memakai `RJ-PRI-DEC-029`.
+9. **Hasil akhir:** reservasi dengan nomor yang sama tampil pada tanggal baru, dan riwayatnya mencatat penggantian itu.
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-PRI-DEC-034` | Bisnis | **Ganti tanggal tersedia sebelum hari kunjungan.** Admisi dapat memindahkan tanggal kunjungan reservasi berstatus Menunggu Kedatangan, selama hari ini masih sebelum tanggal kunjungan. Hari ini dihitung menurut kalender WIB, tanpa batas jam. Pada hari kunjungan, ganti tanggal ditolak, dan admisi memakai `RJ-PRI-DEC-029` (batal lalu buat baru). Nomor reservasi tetap sama, dan status tetap Menunggu Kedatangan. Tanggal baru boleh hari ini. Alasan wajib, 10–500 karakter. Jumlah penggantian tidak dibatasi. Mempersempit `RJ-PRI-DEC-029` menjadi khusus hari kunjungan. Contoh: Ibu Sari (Gold) punya reservasi RSV-… untuk 25 Okt. Pada 24 Okt pukul 21.00 ia minta pindah ke 28 Okt. Admisi mengganti tanggalnya, dan nomornya tetap. Pada 25 Okt pagi ia minta pindah lagi. Ganti tanggal ditolak, sehingga admisi membatalkan dan membuat reservasi baru. Contoh lain: pada 22 Okt ia minta maju ke hari itu juga. Penggantian diizinkan, dan link baru langsung aktif | Sukma Giri | `approved` | Sukma Giri, 21 Okt 2026 ("setuju" atas usulan batas H-1 beserta enam rekomendasi) | Sesi 21 Okt 2026; `F-GT-1`, `F-GT-3`, `F-GT-4` |
+| `RJ-PRI-DEC-035` | Bisnis | **Ganti tanggal dinilai ulang seperti reservasi baru. Bila gagal, tidak ada yang berubah.** Saat tanggal diganti, sistem menilai ulang status member pada hari penggantian (kalender WIB) memakai resolver yang sama. Bila pasien bukan member Aktif lagi (Kedaluwarsa, Dibatalkan, atau Menunggu Pembayaran), penggantian ditolak. Tanggal baru diperiksa sama seperti saat membuat reservasi: (1) tidak sebelum hari ini; (2) paling jauh `MaxDaysAhead` hari dari hari ini (bawaan 30); (3) pasien belum punya reservasi terbuka pada tanggal baru (`RJ-PRI-DEC-021`); (4) pasien belum punya kunjungan RJ aktif pada tanggal baru. Bila berhasil, snapshot member diganti hasil penilaian hari itu, sehingga `RJ-PRI-DEC-007` berlaku terhadap tanggal penggantian terakhir. Bila salah satu pemeriksaan gagal, tanggal, snapshot, dan link lama tetap seperti semula. Aturan ini mencegah hak prioritas diperpanjang dengan menggeser tanggal. Contoh 1: Gold Pak Budi habis 23 Okt. Reservasinya dibuat 20 Okt untuk 25 Okt. Pada 24 Okt ia minta pindah ke 28 Okt. Penggantian ditolak karena ia sudah Reguler. Reservasi 25 Okt tetap berlaku dengan status prioritas lamanya, dan link lama tetap dipakai. Contoh 2: pada 21 Okt admisi mencoba memindahkan reservasi ke 25 Nov (35 hari ke depan). Sistem menolak dengan pesan "Reservasi paling jauh 30 hari ke depan, yaitu sampai 20 November 2026" | Sukma Giri | `approved` | Sukma Giri, 21 Okt 2026 ("setuju") | Sesi 21 Okt 2026; `F-GT-2`, `F-GT-3` |
+| `RJ-PRI-DEC-036` | Keamanan | **Ganti tanggal selalu menerbitkan link baru.** Dalam satu penyimpanan yang sama, sistem membuat kode acak baru dan mematikan kode lama, seperti kirim ulang (`RJ-PRI-DEC-028`). Link baru dan teks WA baru hanya tampil sekali setelah penggantian berhasil, lalu admisi mengirimnya lewat `wa.me` (`RJ-PRI-DEC-011`). Link hanya aktif pada hari kunjungan, jadi link lama belum pernah dapat dipakai, dan mematikannya tidak merugikan pasien. Link lama yang dibuka menampilkan pesan bahwa link tidak berlaku, sama seperti setelah kirim ulang. Contoh: setelah tanggal Ibu Sari dipindah ke 28 Okt, link dari pesan WA pertama ditolak. Link dari pesan kedua dapat dipakai pada 28 Okt | Sukma Giri | `approved` | Sukma Giri, 21 Okt 2026 ("setuju") | `F-GT-5`; `RJ-PRI-DEC-012` |
+| `RJ-PRI-DEC-037` | Permission | **Ganti tanggal memakai aksi `Create` yang sudah ada** pada resource Reservasi Prioritas (`RJ-PRI-DEC-020`), sama seperti kirim ulang (`RJ-PRI-DEC-030` butir 2). Admin tidak perlu mencentang aksi baru di Akses Role. Pengguna tanpa `Create`, misalnya yang hanya memegang `Read` + `Screen`, ditolak (kode 403). Contoh: petugas skrining Rina tidak melihat tombol Ganti Tanggal. Bila ia memanggil endpoint-nya langsung, ia mendapat kode 403 | Sukma Giri | `approved` | Sukma Giri, 21 Okt 2026 ("setuju") | `F-GT-5`; `RJ-PRI-DEC-030` |
+| `RJ-PRI-DEC-038` | Audit/Integrasi | **Setiap penggantian tercatat di riwayat dan langsung terlihat di layar admisi.** Riwayat mencatat tanggal lama, tanggal baru, alasan, petugas, dan jam sebagai data yang dapat dicari, bukan hanya teks alasan. Kode link tidak pernah dicatat. Bentuk teknis penyimpanannya diputuskan saat desain. Temuan `F-GT-6` menunjukkan kemungkinan perlu kolom baru di tabel riwayat, sehingga perlu migration. Daftar dan ringkasan admisi untuk tanggal lama maupun tanggal baru diperbarui seketika lewat realtime yang sudah ada (`RJ-PRI-DEC-014`). Contoh: riwayat RSV-… menampilkan "Tanggal diganti 25 Okt 2026 → 28 Okt 2026, oleh Dewi, 24 Okt 21.05, alasan: pasien ada acara keluarga". Layar admisi yang menyaring 25 Okt kehilangan baris itu tanpa dimuat ulang, sedangkan layar yang menyaring 28 Okt menampilkannya | Sukma Giri | `approved` | Sukma Giri, 21 Okt 2026 ("setuju") | `F-GT-6`, `F-GT-7` |
+
+### State dan transition tambahan — Ganti tanggal
+
+| Dari status | Tindakan | Ke status | Siapa | Syarat | Contoh |
+|---|---|---|---|---|---|
+| Menunggu Kedatangan | Ganti tanggal | Menunggu Kedatangan (tanggal baru, kode baru) | Admisi (`Create`) | Hari ini sebelum tanggal kunjungan lama; member Aktif pada hari ini; tanggal baru lolos empat pemeriksaan; alasan wajib (`RJ-PRI-DEC-034` s.d. `036`) | Ibu Sari, 25 Okt → 28 Okt, diganti 24 Okt |
+
+Status lain tidak dapat diganti tanggalnya. Status Sudah Tiba hanya terjadi pada hari kunjungan (`F-GT-4`), sehingga
+otomatis tertutup oleh batas hari ini sebelum tanggal kunjungan.
+
+### Skenario exception — Ganti tanggal
+
+| Skenario | Perilaku yang disepakati | Dasar |
+|---|---|---|
+| Pasien minta ganti tanggal pada hari kunjungan | Ditolak. Admisi membatalkan lalu membuat reservasi baru | `RJ-PRI-DEC-034`, `029` |
+| Membership Kedaluwarsa sebelum penggantian | Penggantian ditolak. Reservasi lama tetap berlaku dengan status prioritas lamanya | `RJ-PRI-DEC-035`, `007` |
+| Membership Dibatalkan sebelum penggantian | Penggantian ditolak. Reservasi lama tetap bertanda "Bukan prioritas lagi" | `RJ-PRI-DEC-035`, `024` |
+| Tanggal baru sudah punya reservasi terbuka atau kunjungan aktif | Penggantian ditolak dan admisi diarahkan ke data yang ada | `RJ-PRI-DEC-035`, `021` |
+| Tanggal baru lebih dari 30 hari ke depan | Penggantian ditolak, dan pesannya menyebut tanggal terakhir yang diizinkan | `RJ-PRI-DEC-035` |
+| Dua petugas mengganti tanggal reservasi yang sama bersamaan | Satu berhasil. Yang lain menerima "Reservasi baru saja diubah petugas lain" | Pola `RowVersion` yang sudah ada |
+| Pasien membuka link lama setelah tanggal diganti | Halaman menyatakan link tidak berlaku | `RJ-PRI-DEC-036` |
+
+### Frontend decision authority — Ganti tanggal
+
+| Decision ID | Area | Owner | Status | Allowed range | Evidence |
+|---|---|---|---|---|---|
+| `RJ-PRI-FE-005` | Tombol dan dialog Ganti Tanggal, serta isi pesan WA setelah ganti tanggal | — | `DEV_DISCRETION` | Tombol hanya di halaman detail, dan hanya bila backend mengizinkan. Pesan WA memuat nomor reservasi, tanggal baru, link baru, dan keterangan bahwa link sebelumnya tidak berlaku. Pesan tidak memuat poli atau dokter. Ikuti konvensi dialog `RJ-PRI-FE-003` | `RJ-PRI-DEC-011`, `036` |
+
+### Acceptance criteria — Ganti tanggal
+
+23. Reservasi Menunggu Kedatangan untuk 25 Okt yang diganti pada 24 Okt ke 28 Okt tersimpan dengan tanggal 28 Okt,
+    nomor yang sama, dan status Menunggu Kedatangan.
+24. Ganti tanggal pada hari kunjungan ditolak (kode 409), dan reservasi tidak berubah.
+25. Ganti tanggal reservasi yang sudah ditutup (Dibatalkan, Tidak Datang, Menjadi Kunjungan, Didaftarkan lewat Jalur
+    Lain) ditolak (kode 409).
+26. Tanggal baru di masa lalu, lebih dari `MaxDaysAhead` hari dari hari ini, sudah punya reservasi terbuka, atau sudah
+    punya kunjungan aktif ditolak. Tanggal, snapshot, dan link lama tidak berubah.
+27. Pasien yang bukan member Aktif lagi pada hari penggantian ditolak. Reservasi lama dan link lama tetap berlaku.
+28. Penggantian yang berhasil mengganti snapshot member dengan hasil penilaian hari itu.
+29. Setelah penggantian berhasil, link lama ditolak, link baru berfungsi pada tanggal baru, dan link baru serta teks WA
+    hanya tampil sekali. Database hanya menyimpan hash kode.
+30. Alasan kosong atau kurang dari 10 karakter ditolak (kode 400). Pengguna tanpa `Create` ditolak (kode 403).
+31. Riwayat mencatat penggantian beserta tanggal lama, tanggal baru, alasan, petugas, dan jam, tanpa kode link.
+32. Dua petugas yang mengganti tanggal reservasi yang sama bersamaan menghasilkan satu yang berhasil dan satu yang
+    ditolak (kode 409).
+33. Layar admisi yang menyaring tanggal lama dan tanggal baru diperbarui tanpa dimuat ulang.
+
+### Open question — Ganti tanggal
+
+| ID | Pertanyaan | Owner | Memblokir |
+|---|---|---|---|
+| `RJ-PRI-OQ-013` | Tanggal baru sama dengan tanggal lama. Usulan: ditolak dengan pesan "Tanggal baru sama dengan tanggal reservasi sekarang", karena tidak ada yang berubah | Desain | Tidak (`NON_BLOCKING_STANDARD`) |
+| `RJ-PRI-OQ-014` | Peringatan saat membuat reservasi baru bila pasien masih punya reservasi terbuka di tanggal lain (`F-GT-2`). Dengan adanya ganti tanggal, kasus ini berkurang, tetapi tetap bisa terjadi lewat tombol Buat Reservasi | Sukma Giri | Tidak (`LATER SLICE`) |
+
+**Blocker desain:** tidak ada.
+
+**Langkah berikutnya:** `design-business-module` untuk amendment RP-GT, yaitu blueprint revisi berikutnya dan kontrak
+`RJ-PRI-RESV-001@1.2.0` (perubahan aditif). Setelah itu, `plan-module-delivery` menyusun task BE/FE.
+
+**Desain:** blueprint revisi `34` (`draft`, 21 Okt 2026) dan kontrak `RJ-PRI-RESV-001@1.2.0` (`draft`) — bagian
+*Amendment RP-GT* di `02`, `03`, `04`, kelima berkas `contracts/`, `data/data-dictionary.md`,
+`testing/acceptance-test-matrix.md` (`R-RP-31` s.d. `42`), dan bagian 4 [flowcharts/reservasi-prioritas.md](flowcharts/reservasi-prioritas.md).
+`RJ-PRI-OQ-013` diadopsi sebagai `VAL-RP-23`.
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `RJ-PRI-DEC-039` | Approval | **Blueprint revisi `34` dan kontrak `RJ-PRI-RESV-001@1.2.0` disetujui**, termasuk empat usulan desain: (1) endpoint `POST /{id}/reschedule` dengan respons yang sama seperti buat dan kirim ulang; (2) dua kolom `FromVisitDate`/`ToVisitDate` di riwayat; (3) `previousVisitDate` pada event realtime; (4) fitur yang dinonaktifkan juga menolak ganti tanggal. Sekaligus: roadmap `MVP-3` yang disusun dari desain ini dianggap disetujui bila tidak memuat keputusan bisnis baru, dan `IMPLEMENTATION_AUTHORITY` `GRANTED` dalam `CROSS-REPO MODE` untuk task `MVP-3`. Termasuk: (a) pembuatan migration `AddPriorityReservationHistoryVisitDates`; (b) penerapannya ke `QuilvianNewDevSukma` saja, dengan berhenti bila ada migration modul lain yang `(Pending)`; (c) uji runtime HTTP ke backend uji `7185` dengan data samaran; (d) SQL langsung ke `QuilvianNewDevSukma` hanya untuk data uji. **Tidak** termasuk commit, push, merge, maupun deployment | Sukma Giri | `approved` | Sukma Giri, 21 Okt 2026 (memilih "Setujui, lanjut sampai selesai") | Sesi 21 Okt 2026 |
+| `RJ-PRI-DEC-040` | Revisi UI | **Tanggal sebelum hari ini dinonaktifkan di kalender** dialog Ganti Tanggal dan dialog Buat Reservasi, atas permintaan owner. Petugas tidak dapat memilih tanggal lampau sama sekali; sebelumnya tanggal itu bisa dipilih lalu ditolak backend. Aturan bisnisnya tidak berubah: backend tetap menolak tanggal lampau (`VAL-RP-03`). Batas atas 30 hari tetap dijaga backend saja, karena nilainya konfigurasi (`MaxDaysAhead`). Dikerjakan sebagai rework `FE-RJP-009` (dan `FE-RJP-004` untuk dialog Buat Reservasi), dengan `BaseDateField` meneruskan `min`/`max` opsional ke `FilterDatePicker`. Contoh: pada 21 Okt, kalender menampilkan 1–20 Okt abu-abu dan tidak dapat diklik; 21 Okt dan sesudahnya aktif | Sukma Giri | `approved` | Sukma Giri, 21 Okt 2026 ("kita kasih penjagaan agar user tidak memilih tanggal sebelum hari ini kita disable saja tanggal nya") | Sesi 21 Okt 2026 |

@@ -31,8 +31,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     }
 
     /// <summary>
-    /// Hasil perintah reservasi. <see cref="ArrivalCode"/> hanya terisi pada buat dan kirim ulang,
-    /// hanya hidup di memori, dan tidak pernah disimpan maupun dicatat ke log (INV-RP-05).
+    /// Hasil perintah reservasi. <see cref="ArrivalCode"/> hanya terisi pada buat, kirim ulang, dan
+    /// ganti tanggal, hanya hidup di memori, dan tidak pernah disimpan maupun dicatat ke log (INV-RP-05).
     /// </summary>
     public sealed class PriorityReservationCommandResult
     {
@@ -46,6 +46,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         /// <summary>Kode kejadian riwayat yang baru ditulis, untuk kabar realtime.</summary>
         public string EventCode { get; init; } = string.Empty;
+
+        /// <summary>Tanggal kunjungan sebelum diganti, hanya pada ganti tanggal, untuk kabar realtime.</summary>
+        public DateTime? PreviousVisitDate { get; init; }
 
         public bool IsSuccess => Outcome == PriorityReservationOutcome.Success;
 
@@ -101,7 +104,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     /// <remarks>
     /// <para>
     /// Kelayakan dinilai lewat <see cref="OutpatientQueueClassificationService"/> pada hari
-    /// pembuatan (WIB). Hasilnya disimpan sebagai snapshot dan tidak pernah diubah (INV-RP-03).
+    /// pembuatan (WIB). Hasilnya disimpan sebagai snapshot. Satu-satunya yang menggantinya adalah
+    /// ganti tanggal, dengan penilaian pada hari penggantian (INV-RP-03, RJ-PRI-DEC-035).
     /// </para>
     /// <para>
     /// Kode link dibuat dan di-hash di sini. Kode asli hanya dikembalikan sekali kepada pemanggil;
@@ -133,6 +137,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public const string StaleMessage = "Reservasi baru saja diubah petugas lain. Muat ulang lalu coba lagi.";
         public const string ReasonInvalidMessage = "Alasan wajib diisi, 10 sampai 500 karakter.";
         public const string ScreeningIncompleteMessage = "Isi ketiga pertanyaan skrining: batuk, demam, dan risiko jatuh.";
+        public const string RescheduleOnVisitDayMessage =
+            "Tanggal reservasi tidak bisa diganti pada hari kunjungan. Batalkan reservasi lalu buat reservasi baru.";
+        public const string RescheduleSameDateMessage = "Tanggal baru sama dengan tanggal reservasi sekarang.";
+        public const string RescheduleDateRequiredMessage = "Tanggal kunjungan baru wajib diisi.";
         private const int MinimumReasonLength = 10;
         private const int MaximumReasonLength = 500;
 
@@ -391,6 +399,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 CanReissueCode = status == PriorityReservationStatus.AwaitingArrival,
                 CanComplete = status == PriorityReservationStatus.Arrived && isVisitDay,
                 CanCancel = IsOpen(status),
+                CanReschedule = status == PriorityReservationStatus.AwaitingArrival && today.Date < reservation.VisitDate.Date,
                 Histories = reservation.Histories
                     .OrderBy(x => x.OccurredAt)
                     .Select(x => new PriorityReservationHistoryResponse
@@ -402,6 +411,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         Source = x.Source,
                         ActorName = x.ActorUserId.HasValue ? userNames.GetValueOrDefault(x.ActorUserId.Value) : null,
                         Reason = x.Reason,
+                        FromVisitDate = x.FromVisitDate,
+                        ToVisitDate = x.ToVisitDate,
                         OccurredAt = x.OccurredAt
                     })
                     .ToList()
@@ -725,6 +736,152 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     EventCode = result.EventCode
                 }
                 : result;
+        }
+
+        /// <summary>
+        /// Ganti tanggal sebelum hari kunjungan (RJ-PRI-DEC-034 s.d. 036). Urutan pemeriksaan mengikuti
+        /// rawat-jalan <c>02-backend-architecture.md</c> GT.4. Status member dinilai ulang pada hari ini
+        /// dan snapshot diganti hasilnya; kode link baru terbit sehingga kode lama tidak cocok lagi.
+        /// Bila satu pemeriksaan gagal, tidak ada yang berubah. Pemeriksaan tanggal baru diulang di bawah
+        /// kunci pasien yang sama dengan buat reservasi, dan unique index menjadi lapis kedua (INV-RP-01).
+        /// </summary>
+        public async Task<PriorityReservationCommandResult> RescheduleAsync(
+            Guid id,
+            ReschedulePriorityReservationRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!_options.Enabled)
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.Conflict, DisabledMessage);
+
+            if (request.ExpectedRowVersion == Guid.Empty)
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.Invalid, "Versi data reservasi wajib dikirim.");
+
+            if (request.NewVisitDate == default)
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.Invalid, RescheduleDateRequiredMessage);
+
+            var reason = NormalizeReason(request.Reason);
+            if (reason == null)
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.Invalid, ReasonInvalidMessage);
+
+            var reservation = await _dbContext.Set<RegPriorityReservation>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+            if (reservation == null)
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.NotFound, ReservationNotFoundMessage);
+
+            if (reservation.RowVersion != request.ExpectedRowVersion)
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.Conflict, StaleMessage);
+
+            if (reservation.Status != PriorityReservationStatus.AwaitingArrival)
+            {
+                return PriorityReservationCommandResult.Fail(
+                    PriorityReservationOutcome.Conflict,
+                    $"Reservasi sedang berstatus {GetStatusName(reservation.Status)}, sehingga tindakan ini tidak bisa dilakukan.");
+            }
+
+            var today = _membershipStatusResolver.GetTodayWib();
+            var previousVisitDate = ToCalendarDate(reservation.VisitDate);
+
+            if (today.Date >= previousVisitDate.Date)
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.Conflict, RescheduleOnVisitDayMessage);
+
+            var newVisitDate = ToCalendarDate(request.NewVisitDate);
+
+            if (newVisitDate == previousVisitDate)
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.Invalid, RescheduleSameDateMessage);
+
+            var dateError = ValidateVisitDate(newVisitDate, today);
+            if (dateError != null)
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.Invalid, dateError);
+
+            var classification = await _classificationService.ClassifyAsync(reservation.PatientId, today, cancellationToken);
+            if (!classification.IsMember)
+            {
+                return PriorityReservationCommandResult.Fail(
+                    PriorityReservationOutcome.Conflict,
+                    "Pasien bukan member aktif hari ini, sehingga tanggal reservasi tidak bisa diganti. " +
+                    $"Reservasi tetap berlaku untuk {FormatDate(previousVisitDate)}.");
+            }
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            await LockPatientAsync(reservation.PatientId, cancellationToken);
+
+            var open = await FindOpenReservationAsync(reservation.PatientId, newVisitDate, cancellationToken);
+            if (open != null)
+            {
+                return PriorityReservationCommandResult.Fail(
+                    PriorityReservationOutcome.Conflict,
+                    BuildOpenReservationMessage(open.Value.ReservationNumber, newVisitDate));
+            }
+
+            if (await HasActiveOutpatientEncounterOnAsync(reservation.PatientId, newVisitDate, cancellationToken))
+            {
+                return PriorityReservationCommandResult.Fail(
+                    PriorityReservationOutcome.Conflict,
+                    BuildActiveEncounterMessage(newVisitDate));
+            }
+
+            var arrivalCode = NewArrivalCode();
+            var nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+
+            reservation.VisitDate = newVisitDate;
+            reservation.IsPrioritySnapshot = classification.IsPriorityQueue;
+            reservation.PatientMembershipIdSnapshot = classification.PatientMembershipId;
+            reservation.MembershipTierIdSnapshot = classification.MembershipTierId;
+            reservation.MembershipTierCodeSnapshot = classification.MembershipTierCode;
+            reservation.QueuePriorityLevelSnapshot = classification.PriorityLevel;
+            reservation.QueueAudienceSnapshot = classification.QueueAudience;
+            reservation.PublicDisplayModeSnapshot = classification.PublicDisplayMode;
+            reservation.ArrivalCodeHash = HashArrivalCode(arrivalCode);
+            reservation.ArrivalCodeIssuedAt = nowUtc;
+            reservation.RowVersion = Guid.NewGuid();
+            reservation.UpdateBy = actorUserId;
+            reservation.UpdateDateTime = nowUtc;
+
+            _dbContext.Add(NewHistory(
+                reservation.Id,
+                new HistoryEntry(
+                    RegPriorityReservationHistory.EventRescheduled,
+                    PriorityReservationStatus.AwaitingArrival,
+                    PriorityReservationStatus.AwaitingArrival,
+                    PriorityReservationEventSource.Staff,
+                    actorUserId,
+                    reason,
+                    FromVisitDate: previousVisitDate,
+                    ToVisitDate: newVisitDate),
+                nowUtc));
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _dbContext.ChangeTracker.Clear();
+                return PriorityReservationCommandResult.Fail(PriorityReservationOutcome.Conflict, StaleMessage);
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+            {
+                // Lapis kedua INV-RP-01 bila pemeriksaan di atas terlewati permintaan paralel.
+                _dbContext.ChangeTracker.Clear();
+                return PriorityReservationCommandResult.Fail(
+                    PriorityReservationOutcome.Conflict,
+                    $"Pasien sudah punya reservasi prioritas untuk {FormatDate(newVisitDate)}.");
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            return new PriorityReservationCommandResult
+            {
+                Outcome = PriorityReservationOutcome.Success,
+                Message = $"Tanggal reservasi diganti ke {FormatDate(newVisitDate)}. Kirim link baru ke pasien; link lama tidak berlaku lagi.",
+                EventCode = RegPriorityReservationHistory.EventRescheduled,
+                Reservation = reservation,
+                ArrivalCode = arrivalCode,
+                PreviousVisitDate = previousVisitDate
+            };
         }
 
         /// <summary>Admisi membatalkan reservasi terbuka dengan alasan (RJ-PRI-DEC-023).</summary>
@@ -1288,7 +1445,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             {
                 Reservation = detail,
                 ArrivalLink = link,
-                WhatsAppMessageText = BuildWhatsAppMessage(detail.ReservationNumber, detail.VisitDate, link),
+                WhatsAppMessageText = result.EventCode == RegPriorityReservationHistory.EventRescheduled
+                    ? BuildRescheduleWhatsAppMessage(detail.ReservationNumber, detail.VisitDate, link)
+                    : BuildWhatsAppMessage(detail.ReservationNumber, detail.VisitDate, link),
                 PatientPhoneNumber = string.IsNullOrWhiteSpace(phoneNumber) ? null : phoneNumber.Trim()
             };
         }
@@ -1331,6 +1490,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 $"Nomor reservasi: {reservationNumber}\n" +
                 $"Tanggal kunjungan: {visitDateText}\n\n" +
                 "Saat tiba di rumah sakit pada tanggal tersebut, buka link berikut lalu tekan \"Saya sudah tiba\":\n" +
+                $"{link}\n\n" +
+                $"Petugas kami akan menghampiri Anda di {_options.ResolvePriorityWaitingRoomName()}.";
+        }
+
+        /// <summary>Teks WA sesudah ganti tanggal (RJ-PRI-FE-005): tanggal baru, link baru, link lama tidak berlaku.</summary>
+        private string BuildRescheduleWhatsAppMessage(string reservationNumber, DateTime visitDate, string link)
+        {
+            var visitDateText = visitDate.ToString("dddd, dd MMMM yyyy", IndonesianCulture);
+
+            return
+                "Tanggal reservasi pasien prioritas Anda sudah diganti.\n" +
+                $"Nomor reservasi: {reservationNumber}\n" +
+                $"Tanggal kunjungan baru: {visitDateText}\n\n" +
+                "Link yang dikirim sebelumnya tidak berlaku lagi. Saat tiba di rumah sakit pada tanggal tersebut, " +
+                "buka link berikut lalu tekan \"Saya sudah tiba\":\n" +
                 $"{link}\n\n" +
                 $"Petugas kami akan menghampiri Anda di {_options.ResolvePriorityWaitingRoomName()}.";
         }
@@ -1413,7 +1587,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             PriorityReservationEventSource Source,
             Guid? ActorUserId,
             string? Reason = null,
-            Guid? EncounterId = null);
+            Guid? EncounterId = null,
+            DateTime? FromVisitDate = null,
+            DateTime? ToVisitDate = null);
 
         private static RegPriorityReservationHistory NewHistory(
             Guid reservationId,
@@ -1430,6 +1606,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 ActorUserId = entry.ActorUserId == Guid.Empty ? null : entry.ActorUserId,
                 Reason = entry.Reason,
                 EncounterId = entry.EncounterId,
+                FromVisitDate = entry.FromVisitDate,
+                ToVisitDate = entry.ToVisitDate,
                 OccurredAt = occurredAtUtc,
                 CreateBy = entry.ActorUserId ?? Guid.Empty,
                 CreateDateTime = occurredAtUtc
@@ -1475,6 +1653,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             RegPriorityReservationHistory.EventArrivalReverted => "Dikembalikan ke Belum Tiba",
             RegPriorityReservationHistory.EventScreened => "Skrining awal disimpan",
             RegPriorityReservationHistory.EventCodeReissued => "Link konfirmasi dikirim ulang",
+            RegPriorityReservationHistory.EventRescheduled => "Tanggal kunjungan diganti",
             RegPriorityReservationHistory.EventConverted => "Menjadi kunjungan",
             RegPriorityReservationHistory.EventCancelled => "Dibatalkan",
             RegPriorityReservationHistory.EventNoShow => "Tidak datang",

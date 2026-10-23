@@ -53,11 +53,15 @@ public sealed class BillingArApHandoffService
         bool isDepartureException,
         Guid actorUserId,
         CancellationToken cancellationToken,
-        EmployeeBenefitSplitCalculationResult? employeeBenefitSplit = null)
+        EmployeeBenefitSplitCalculationResult? employeeBenefitSplit = null,
+        bool isPatientArDeferred = false,
+        DateTimeOffset? patientArDueDate = null,
+        string? patientArConsentGivenBy = null,
+        string? patientArConsentNotes = null)
     {
         var now = DateTimeOffset.UtcNow;
 
-        if (isDepartureException && outstandingAtFinalization > 0)
+        if ((isDepartureException || isPatientArDeferred) && outstandingAtFinalization > 0)
         {
             _dbContext.BilArHandoffs.Add(new BilArHandoff
             {
@@ -67,7 +71,9 @@ public sealed class BillingArApHandoffService
                 FinalizationRecord = finalizationRecord,
                 DebtorType = BillingArDebtorTypes.PatientGuarantor,
                 Amount = outstandingAtFinalization,
-                DueDate = invoice.InvoiceDate,
+                DueDate = patientArDueDate ?? invoice.InvoiceDate,
+                DeferredConsentGivenBy = patientArConsentGivenBy,
+                DeferredConsentNotes = patientArConsentNotes,
                 Status = BillingHandoffStatuses.Created,
                 HandoffKey = Guid.NewGuid(),
                 CorrelationId = Guid.NewGuid(),
@@ -98,6 +104,8 @@ public sealed class BillingArApHandoffService
                     FinalizationRecord = finalizationRecord,
                     DebtorType = BillingArDebtorTypes.Payer,
                     DebtorReferenceId = employeeBenefitSplit.CompanyGuarantorId,
+                    // Biaya yang ditanggung RS sendiri (penjamin internal), bukan piutang pihak luar: ditutup lewat Penutupan Benefit.
+                    IsInternalBenefit = true,
                     Amount = payerAmount,
                     DueDate = invoice.InvoiceDate,
                     Status = BillingHandoffStatuses.Created,
@@ -123,12 +131,16 @@ public sealed class BillingArApHandoffService
                     FinalizationRecord = finalizationRecord,
                     DebtorType = BillingArDebtorTypes.EmployeeBenefit,
                     DebtorReferenceId = null,
+                    // BenefitOwnerId tetap bermakna MstEmployee.Id (kosong untuk dokter tanpa data karyawan);
+                    // identitas canonical pemilik ada di BenefitOwnerWorkforceProfileId.
                     BenefitOwnerId = employeeBenefitSplit.EmployeeId,
+                    BenefitOwnerWorkforceProfileId = employeeBenefitSplit.WorkforceProfileId,
                     BenefitRelationship = employeeBenefitSplit.RelationshipCode,
                     DeferredPatientAmount = employeeBenefitSplit.EmployeeDeferredAmount > 0 ? employeeBenefitSplit.EmployeeDeferredAmount : employeeBenefitSplit.ChoiceAmount,
                     DeferredConsentGivenBy = employeeBenefitSplit.ConsentGivenBy,
                     DeferredConsentNotes = employeeBenefitSplit.ConsentNotes,
                     FinancingChoice = employeeBenefitSplit.FinancingChoice,
+                    EmployeeArOrigin = employeeBenefitSplit.EmployeeArOrigin,
                     Amount = employeeBenefitSplit.EmployeeReceivableAmount,
                     DueDate = invoice.InvoiceDate,
                     Status = BillingHandoffStatuses.Created,
@@ -368,11 +380,33 @@ public sealed class BillingArApHandoffService
             || (x.ApHandoffId.HasValue && apIds.Contains(x.ApHandoffId.Value)))
             .ToList();
 
+        // Tahap di sisi Finance dibaca dari fakta masuk dan piutang yang benar-benar ada (dikaitkan lewat HandoffKey),
+        // bukan diasumsikan dari status handoff Billing. Hanya baca; tidak membuat intake maupun piutang.
+        var handoffKeys = arHandoffs.Select(x => x.HandoffKey).ToList();
+        var intakes = handoffKeys.Count == 0
+            ? new Dictionary<Guid, FinBillingHandoffIntake>()
+            : (await _dbContext.FinBillingHandoffIntakes.AsNoTracking()
+                .Where(x => !x.IsDelete && x.HandoffType == FinBillingHandoffTypes.Ar
+                    && handoffKeys.Contains(x.SourceHandoffKey))
+                .ToListAsync(cancellationToken))
+                .GroupBy(x => x.SourceHandoffKey)
+                .ToDictionary(group => group.Key, group => group.OrderByDescending(x => x.CreateDateTime).First());
+        var receivables = handoffKeys.Count == 0
+            ? new Dictionary<Guid, (Guid Id, string Number, string Status)>()
+            : (await _dbContext.FinReceivables.AsNoTracking()
+                .Where(x => !x.IsDelete && x.SourceHandoffKey != null && handoffKeys.Contains(x.SourceHandoffKey.Value))
+                .Select(x => new { x.Id, x.ReceivableNumber, x.Status, Key = x.SourceHandoffKey!.Value })
+                .ToListAsync(cancellationToken))
+                .GroupBy(x => x.Key)
+                .ToDictionary(
+                    group => group.Key,
+                    group => (Id: group.First().Id, Number: group.First().ReceivableNumber, Status: group.First().Status));
+
         return new HandoffStatusResponse
         {
             InvoiceId = record.InvoiceId,
             FinalizationRecordId = record.Id,
-            ArHandoffs = arHandoffs.Select(MapAr).ToList(),
+            ArHandoffs = arHandoffs.Select(handoff => MapAr(handoff, intakes, receivables)).ToList(),
             ApHandoffs = apHandoffs.Select(MapAp).ToList(),
             Adjustments = linkedAdjustments.Select(MapAdjustment).ToList()
         };
@@ -417,22 +451,40 @@ public sealed class BillingArApHandoffService
                 ActorUserId = actorUserId
             });
 
-    private static ArHandoffResponse MapAr(BilArHandoff handoff) => new()
+    private static ArHandoffResponse MapAr(
+        BilArHandoff handoff,
+        IReadOnlyDictionary<Guid, FinBillingHandoffIntake> intakes,
+        IReadOnlyDictionary<Guid, (Guid Id, string Number, string Status)> receivables)
     {
-        Id = handoff.Id,
-        DebtorType = handoff.DebtorType,
-        DebtorReferenceId = handoff.DebtorReferenceId,
-        Amount = handoff.Amount,
-        DueDate = handoff.DueDate,
-        Status = handoff.Status,
-        HandoffKey = handoff.HandoffKey,
-        BenefitOwnerId = handoff.BenefitOwnerId,
-        BenefitRelationship = handoff.BenefitRelationship,
-        DeferredPatientAmount = handoff.DeferredPatientAmount,
-        DeferredConsentGivenBy = handoff.DeferredConsentGivenBy,
-        CreatedAt = handoff.CreatedAt,
-        AcknowledgedAt = handoff.AcknowledgedAt
-    };
+        intakes.TryGetValue(handoff.HandoffKey, out var intake);
+        var hasReceivable = receivables.TryGetValue(handoff.HandoffKey, out var receivable);
+
+        return new ArHandoffResponse
+        {
+            Id = handoff.Id,
+            DebtorType = handoff.DebtorType,
+            DebtorReferenceId = handoff.DebtorReferenceId,
+            Amount = handoff.Amount,
+            DueDate = handoff.DueDate,
+            Status = handoff.Status,
+            HandoffKey = handoff.HandoffKey,
+            BenefitOwnerId = handoff.BenefitOwnerId,
+            BenefitOwnerWorkforceProfileId = handoff.BenefitOwnerWorkforceProfileId,
+            BenefitRelationship = handoff.BenefitRelationship,
+            DeferredPatientAmount = handoff.DeferredPatientAmount,
+            DeferredConsentGivenBy = handoff.DeferredConsentGivenBy,
+            CreatedAt = handoff.CreatedAt,
+            AcknowledgedAt = handoff.AcknowledgedAt,
+            IsInternalBenefit = handoff.IsInternalBenefit,
+            EmployeeArOrigin = handoff.EmployeeArOrigin,
+            FinanceStage = ArHandoffFinanceStages.Derive(intake?.Status, hasReceivable),
+            FinanceIntakeStatus = intake?.Status,
+            FinanceIntakeError = intake?.ErrorMessage,
+            FinReceivableId = hasReceivable ? receivable.Id : null,
+            FinReceivableNumber = hasReceivable ? receivable.Number : null,
+            FinReceivableStatus = hasReceivable ? receivable.Status : null
+        };
+    }
 
     private static ApHandoffResponse MapAp(BilApHandoff handoff) => new()
     {
@@ -536,8 +588,9 @@ public sealed class BillingArApHandoffService
             throw new ArgumentException("Nomor Berita Acara Koreksi wajib diisi.");
         if (string.IsNullOrWhiteSpace(request.Reason))
             throw new ArgumentException("Alasan koreksi wajib diisi.");
-        if (request.CorrectEmployeeId == Guid.Empty)
-            throw new ArgumentException("Pegawai pengganti yang benar wajib dipilih.");
+        var hasCorrectProfile = request.CorrectWorkforceProfileId.HasValue && request.CorrectWorkforceProfileId.Value != Guid.Empty;
+        if (request.CorrectEmployeeId == Guid.Empty && !hasCorrectProfile)
+            throw new ArgumentException("Pegawai atau dokter pengganti yang benar wajib dipilih.");
 
         // 1. Validasi keberadaan dan status invoice
         var invoice = await _dbContext.BilInvoices.AsNoTracking()
@@ -571,23 +624,40 @@ public sealed class BillingArApHandoffService
                 "Tagihan ini tidak memiliki serah terima piutang manfaat pegawai atau penjamin internal yang dapat dikoreksi.");
         }
 
+        // Pemilik pengganti diresolusi lewat WorkforceProfileId (karyawan atau dokter tetap); EmployeeId lama
+        // diterjemahkan, dan bila keduanya dikirim harus orang yang sama.
+        var ownerResolver = _eligibilityService?.OwnerResolver ?? new WorkforceBenefitOwnerResolver(_dbContext);
+        var newOwnerResolution = await ownerResolver.ResolveRequestAsync(
+            request.CorrectWorkforceProfileId,
+            request.CorrectEmployeeId == Guid.Empty ? null : request.CorrectEmployeeId,
+            cancellationToken);
+        if (!newOwnerResolution.IsResolved)
+        {
+            throw new BillingFinalizationValidationException(
+                newOwnerResolution.Message ?? "Pegawai pengganti tidak ditemukan di HR atau tidak aktif.");
+        }
+        var newOwner = newOwnerResolution.Owner!;
+
         // Cegah koreksi ke orang yang sama bila tidak ada pergantian apa pun
-        if (oldBenefitHandoff is not null
-            && oldBenefitHandoff.BenefitOwnerId == request.CorrectEmployeeId
-            && !request.CorrectFamilyMemberId.HasValue)
+        var sameAsCurrentOwner = oldBenefitHandoff is not null
+            && (oldBenefitHandoff.BenefitOwnerWorkforceProfileId == newOwner.WorkforceProfileId
+                || (oldBenefitHandoff.BenefitOwnerWorkforceProfileId is null
+                    && newOwner.EmployeeId.HasValue
+                    && oldBenefitHandoff.BenefitOwnerId == newOwner.EmployeeId));
+        if (sameAsCurrentOwner && !request.CorrectFamilyMemberId.HasValue)
         {
             throw new BillingFinalizationValidationException(
                 "Pegawai pengganti sama dengan pegawai pemilik manfaat saat ini. Tidak ada perubahan yang dilakukan.");
         }
 
-        // 3. Validasi kelayakan pegawai baru B di HR
+        // 3. Validasi kelayakan pemilik baru B di HR
         string newRelationshipCode = BenefitRelationshipCodes.Self;
         string? newEmployeeName = null;
         if (_eligibilityService is not null)
         {
             var eligibility = await _eligibilityService.CheckAsync(new BenefitEligibilityRequest
             {
-                EmployeeId = request.CorrectEmployeeId,
+                WorkforceProfileId = newOwner.WorkforceProfileId,
                 FamilyMemberId = request.CorrectFamilyMemberId,
                 ServiceDate = invoice.InvoiceDate?.Date ?? invoice.VisitDate.Date
             }, cancellationToken);
@@ -599,17 +669,11 @@ public sealed class BillingArApHandoffService
             }
 
             newRelationshipCode = eligibility.RelationshipCode ?? BenefitRelationshipCodes.Self;
-            newEmployeeName = eligibility.EmployeeName;
+            newEmployeeName = eligibility.StaffName ?? eligibility.EmployeeName;
         }
         else
         {
-            var employee = await _dbContext.MstEmployees.AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == request.CorrectEmployeeId && !x.IsDelete && x.IsActive, cancellationToken);
-            if (employee is null)
-            {
-                throw new BillingFinalizationValidationException("Pegawai pengganti tidak ditemukan di HR atau tidak aktif.");
-            }
-            newEmployeeName = employee.FullName;
+            newEmployeeName = newOwner.StaffName;
         }
 
         // 4. Hitung porsi cakupan aturan RS (C) dan pembagian untuk pegawai B
@@ -627,7 +691,7 @@ public sealed class BillingArApHandoffService
         {
             var balanceB = await _balanceService.ReadAsync(new BenefitBalanceReadRequest
             {
-                EmployeeId = request.CorrectEmployeeId,
+                WorkforceProfileId = newOwner.WorkforceProfileId,
                 FamilyMemberId = request.CorrectFamilyMemberId,
                 AsOfDate = invoice.InvoiceDate?.Date ?? invoice.VisitDate.Date
             }, cancellationToken);
@@ -747,9 +811,11 @@ public sealed class BillingArApHandoffService
                 FinalizationRecordId = finalizationRecordId,
                 DebtorType = BillingArDebtorTypes.EmployeeBenefit,
                 DebtorReferenceId = null,
-                BenefitOwnerId = request.CorrectEmployeeId,
+                BenefitOwnerId = newOwner.EmployeeId,
+                BenefitOwnerWorkforceProfileId = newOwner.WorkforceProfileId,
                 BenefitRelationship = newRelationshipCode,
                 DeferredPatientAmount = newChoice,
+                EmployeeArOrigin = oldBenefitHandoff?.EmployeeArOrigin,
                 DeferredConsentGivenBy = request.ConsentGivenBy ?? oldBenefitHandoff?.DeferredConsentGivenBy,
                 Amount = newEmployeeAmount,
                 DueDate = oldBenefitHandoff?.DueDate ?? payerHandoff?.DueDate ?? invoice.InvoiceDate,
@@ -773,8 +839,8 @@ public sealed class BillingArApHandoffService
 
             await AuditBenefitCorrectionAsync(
                 invoiceId,
-                oldBenefitHandoff?.BenefitOwnerId,
-                request.CorrectEmployeeId,
+                oldBenefitHandoff?.BenefitOwnerWorkforceProfileId ?? oldBenefitHandoff?.BenefitOwnerId,
+                newOwner.WorkforceProfileId,
                 request.OfficialReportNumber,
                 sharedCorrelationId,
                 actorUserId);
@@ -814,7 +880,9 @@ public sealed class BillingArApHandoffService
                 NewHandoffId = newHandoff.Id,
                 CorrelationId = sharedCorrelationId,
                 OldBenefitOwnerId = oldBenefitHandoff?.BenefitOwnerId,
-                NewBenefitOwnerId = request.CorrectEmployeeId,
+                NewBenefitOwnerId = newOwner.EmployeeId ?? Guid.Empty,
+                OldBenefitOwnerWorkforceProfileId = oldBenefitHandoff?.BenefitOwnerWorkforceProfileId,
+                NewBenefitOwnerWorkforceProfileId = newOwner.WorkforceProfileId,
                 NewBenefitOwnerName = newEmployeeName,
                 NewRelationshipCode = newRelationshipCode,
                 OldEmployeeAmount = oldEmployeeAmount,
@@ -852,7 +920,7 @@ public sealed class BillingArApHandoffService
         _loggerService.AuditAsync(
             LogCategory,
             "BillingHandoff.BenefitCorrection",
-            $"Berita Acara Koreksi salah orang ({officialReportNumber}): pegawai {oldEmployeeId} digantikan pegawai {newEmployeeId}.",
+            $"Berita Acara Koreksi salah orang ({officialReportNumber}): pemilik {oldEmployeeId} digantikan pemilik {newEmployeeId}.",
             new
             {
                 InvoiceId = invoiceId,

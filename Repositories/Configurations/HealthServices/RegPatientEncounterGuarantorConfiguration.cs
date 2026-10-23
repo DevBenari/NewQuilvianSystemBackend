@@ -124,6 +124,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.EmployeeIdSnapshot)
                 .IsRequired(false);
 
+            entity.Property(x => x.WorkforceProfileIdSnapshot)
+                .IsRequired(false);
+
             entity.Property(x => x.FamilyMemberIdSnapshot)
                 .IsRequired(false);
 
@@ -242,6 +245,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.EmployeeIdSnapshot)
                 .HasFilter("\"EmployeeIdSnapshot\" IS NOT NULL")
                 .HasDatabaseName("IX_RegPatientEncounterGuarantor_EmployeeIdSnapshot");
+
+            entity.HasIndex(x => x.WorkforceProfileIdSnapshot)
+                .HasFilter("\"WorkforceProfileIdSnapshot\" IS NOT NULL")
+                .HasDatabaseName("IX_RegPatientEncounterGuarantor_WorkforceProfileIdSnapshot");
 
             entity.HasIndex(x => new
             {

@@ -20,6 +20,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             builder.Property(x => x.ToStatus).HasConversion<int>().IsRequired();
             builder.Property(x => x.Source).HasConversion<int>().IsRequired();
             builder.Property(x => x.Reason).HasMaxLength(500);
+            builder.Property(x => x.FromVisitDate).HasColumnType("date");
+            builder.Property(x => x.ToVisitDate).HasColumnType("date");
             builder.Property(x => x.OccurredAt).HasColumnType("timestamp with time zone").IsRequired();
 
             builder.HasIndex(x => new { x.PriorityReservationId, x.OccurredAt });

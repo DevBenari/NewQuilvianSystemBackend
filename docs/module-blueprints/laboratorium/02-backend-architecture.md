@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `21` — bagian 31, 2026-10-14: pencatatan susulan ruas baca v1 `r47`/`r48` (kontrak `approved` lewat `LAB-REQ-024` dan `LAB-REQ-025`). Sebelumnya `20` — bagian 30, 2026-10-09: rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1), kontrak usulan `LAB-REQ-023`. Sebelumnya `19` — bagian 29, 2026-10-09: CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`), kontrak usulan `LAB-REQ-022`. Sebelumnya `18` — bagian 28, 2026-10-08: data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
+| Revision | `23` — 2026-10-20: persetujuan bagian 32 dibukukan. `22` — bagian 32, 2026-10-20: rancangan `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan (`draft`). Sebelumnya `21` — bagian 31, 2026-10-14: pencatatan susulan ruas baca v1 `r47`/`r48` (kontrak `approved` lewat `LAB-REQ-024` dan `LAB-REQ-025`). Sebelumnya `20` — bagian 30, 2026-10-09: rencana ulang sesudah wadah dibatalkan (putaran 29, temuan T1), kontrak usulan `LAB-REQ-023`. Sebelumnya `19` — bagian 29, 2026-10-09: CITO dari pemesanan sampai ke pemeriksaan (putaran 28, `LAB-CONFLICT-019`), kontrak usulan `LAB-REQ-022`. Sebelumnya `18` — bagian 28, 2026-10-08: data ringkasan Beranda Lab mengikuti susunan v1 (BR-140), kontrak usulan `LAB-REQ-021`. Sebelumnya `17` — bagian 27, 2026-10-08: lingkup kunci Lunas — rawat inap dan IGD *Ditagih Kemudian* (putaran 27), kontrak usulan `LAB-REQ-020`. Sebelumnya `16` — bagian 26, 2026-10-08: alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), kontrak usulan `LAB-REQ-019`. Sebelumnya `15` — bagian 25, 2026-10-07: daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian (BR-139), kontrak usulan `LAB-REQ-017`. Sebelumnya `14` — bagian 24, 2026-10-07: Konfirmasi dan Proses Pemeriksaan mengikuti urutan v1 (BR-138), kontrak usulan `LAB-REQ-016`. Sebelumnya `13` — bagian 23, 2026-09-25: `S16a` tiga laporan operasional. Sebelumnya `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -5059,10 +5059,426 @@ Nol migration: migration `BE-LAB-94` tidak diubah (butir 4).
 HTTP baca-saja 2026-10-14 dengan akun asli dr. Bima dan Gilang terhadap devYoga: `r47` lolos pada tiga disiplin, `r48` 8/8 ruas
 pada empat pesanan, dan `resultEnteredByName` terisi. Rinciannya ada di `testing/acceptance-test-matrix.md`, amandemen 2026-10-14.
 
+## 32. Rancangan 2026-10-20 — `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan
+
+Bagian ini menurunkan `LAB-DA-001` **revision 11 bagian A8** dan **memperluas bagian 23** (`S16a`) — pola yang
+sama, tidak dirancang ulang. Arsitektur domain sudah menetapkan bahwa kedua laporan adalah **pandangan baca** tanpa
+konsep tersimpan. Yang dirancang di sini adalah permukaannya: **dua controller** (satu per laporan, karena izinnya
+tersendiri), **dua service laporan**, **satu tempat bersama** bagi definisi hitung Beranda (`INV-59`), **satu penulis
+`.xlsx`**, **satu penjaga alasan** pada dua jalur batal yang sudah ada, dan **satu index**.
+
+### 32.0 Identitas dan gerbang masukan
+
+| Butir | Isi |
+|---|---|
+| Status | **`draft`** — dokumen arsitektur. **Keempat kontraknya dan keenam butir 32.10 disetujui 2026-10-20** |
+| Masukan | `00-interview-decisions.md` **revisi 115** (`LAB-DEC-230`..`LAB-DEC-249`, BR-142..BR-156); `LAB-RCG-001` **revision 13** bagian 0H; `LAB-DA-001` **revision 11** bagian A8; capability map **revision 9** (`CAP-P30-01`..`17`) |
+| SHA | Backend **`4d3e4f98`** (branch `yoga`), frontend **`7fb1e1d3e`** (branch `YogaV2`) — sama dengan arsitektur domain dan capability map; nol impact scan tambahan |
+| Gerbang | Requirement `READY_FOR_DOMAIN_DESIGN` (0H.6); arsitektur `DOMAIN_ARCHITECTURE_READY` (A8.14) — keduanya bagi `S16b-1` dan `S16b-2`, masing-masing independen |
+| Yang dirancang | Laporan Pembatalan Order & Pemeriksaan (BR-151); Statistik Pesanan Laboratorium (BR-152, diamandemen BR-153); unduhan `.xlsx` dan pencatat cetak (BR-145, BR-155); alasan wajib pembatalan pemeriksaan dan wadah (BR-148, BR-154) |
+| Yang **tidak** dirancang | `S16b-3` (sisa katalog); rincian per kategori (`LAB-COORD-021`); layar batal per pemeriksaan (`LAB-DEC-247`); tata letak layar (`03-frontend-architecture.md`) |
+| Skema | **Nol tabel, nol kolom.** **Satu index** pada `LabTransitionHistory (Action, OccurredAt)` (32.6) — usulan, butir 32.10 no. 3 |
+| Ketergantungan kode | Pola bagian 23 sudah berjalan (`BE-LAB-82`..`86`); `LabDashboardService.GetYearlyAsync` (`r44`) sumber definisi hitung yang dipindah; `ClosedXML` 0.105.1 sudah terpasang |
+
+### 32.1 Bounded context, invariant, dan batas transaksi
+
+| Butir | Isi |
+|---|---|
+| Bounded context | `BC-LAB`. **Baca** dari `BC-REG` (jenis kunjungan, unit layanan), `BC-MD` (nama unit), dan data induk pasien (No. RM, nama) — lewat jalur yang sudah dipakai rincian order (`LAB-DEC-166`). `BC-PLAT` menyediakan izin dan pencatat |
+| Aggregate | **Nol baru.** Penjaga alasan berjalan **di dalam** aggregate yang sudah ada — `LAB-DC-002` Pemeriksaan dan `LAB-DC-003` Wadah, keduanya di bawah `LAB-DC-001` Pesanan |
+| Invariant | `INV-58` satu baris per peristiwa; `INV-59` satu definisi hitung bersama Beranda; `INV-60` setiap pembatalan beralasan; diwarisi `INV-57` (pola satu rumus) |
+| Transaksi | Laporan: **nol transaksi tulis**, kueri baca `AsNoTracking`. Pencatat cetak: **nol transaksi basis data** — hanya satu panggilan `AuditAsync`. Penjaga alasan: **tidak menambah transaksi** — ditolak **sebelum** apa pun ditulis, sehingga transaksi batal yang sudah ada tidak pernah dibuka bagi permintaan tanpa alasan |
+| Konkurensi | Laporan tidak relevan (nol tulis). Penjaga alasan diperiksa sebelum token `Version` dibaca ulang — penolakan tidak menyentuh baris |
+| Rollback | Penjaga alasan: tidak ada yang perlu dibalik — penolakan sebelum tulis. Laporan: nol tulis |
+
+**Tanggal operasional.** Sama dengan 23.1 — `LabOperationalReportService.ResolvePeriod` dipakai ulang apa adanya
+(`VAL-147`..`VAL-149`, `LabQueryDateRange`, WIB).
+
+### 32.2 Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+|---|---|:---:|---|
+| Peristiwa batal order/pemeriksaan: aksi, status sebelum, alasan, pelaku, waktu | Laboratorium (`LabTransitionHistory`) | Ya — `S16b-1` | Tidak |
+| Pesanan: waktu diminta, status, disiplin, kunjungan | Laboratorium (`LabOrder`) | Ya — keduanya | Tidak |
+| Pemeriksaan: status, disiplin katalog, nama snapshot | Laboratorium (`LabExamination`) | Ya — keduanya | Tidak |
+| Permintaan yang belum masuk wadah | Laboratorium (`LabOrderedProcedure`) | Ya — `S16b-2` | Tidak |
+| Wadah: status, nomor | Laboratorium (`LabSpecimen`) | Ya — detail `S16b-1` | Tidak |
+| Jenis kunjungan, unit layanan kunjungan | **Registrasi** (`RegPatientEncounter`) | Ya — **baca** | **Tidak** — tidak disalin, tidak dipetakan (`LAB-DEC-243`) |
+| Nama unit layanan | **Master Data** (`MstServiceUnit`) | Ya — **baca** | Tidak |
+| No. RM, nama pasien | **Data induk pasien** (`MstPatient`) | Ya — **baca**, `S16b-1` saja | **Tidak** — tidak disalin ke laporan maupun log |
+| Nama pelaku | **Platform** (`Users`: `DisplayName`, cadangan `UserName`/`Email`/`UserCode`) | Ya — **baca** | Tidak — jalur nama pelaku `r48` (`LabExaminationService.cs:1054-1061`) |
+| Kategori pemeriksaan | Master Data (`MstProcedure.ProcedureCategoryName`) | **Tidak** pada slice ini | — menunggu `LAB-COORD-021` |
+| **Ringkasan laporan per periode** | — | — | **Tidak disimpan di mana pun** (A7.5) |
+| Tagihan, penjamin, fee, diagnosis | Billing, Registrasi, `medical-fee`, Clinical Management | **Tidak** | — milik `S16b-3` |
+
+### 32.3 Class diagram
+
+**Laporan Pembatalan (`S16b-1`):**
+
+```mermaid
+classDiagram
+    class LabCancellationReportController {
+        <<Baru>>
+        +GetFilterMetadata()
+        +GetCancelledByOptions()
+        +GetList()
+        +GetDetail(historyId)
+        +Export()
+        +LogPrint()
+    }
+    class LabCancellationReportService {
+        <<Baru>>
+        +GetListAsync()
+        +GetAllForExportAsync()
+        +GetDetailAsync()
+        +GetCancelledByOptionsAsync()
+        +GetFilterMetadataAsync()
+    }
+    class LabReportXlsxWriter {
+        <<Baru>>
+        +Write(LabCancellationReportExport)
+        +Write(LabOrderStatisticsReportResponse)
+    }
+    class LabReportOutputLogger {
+        <<Baru>>
+        +LogExportAsync()
+        +LogPrintAsync()
+    }
+    class LabOperationalReportService {
+        <<Sudah ada>>
+        +ResolvePeriod()
+    }
+    LabCancellationReportController --> LabCancellationReportService
+    LabCancellationReportController --> LabReportXlsxWriter
+    LabCancellationReportController --> LabReportOutputLogger
+    LabCancellationReportService --> LabOperationalReportService : periode WIB
+```
+
+**Statistik Pesanan (`S16b-2`) dan definisi hitung bersama:**
+
+```mermaid
+classDiagram
+    class LabOrderStatisticsReportController {
+        <<Baru>>
+        +GetFilterMetadata()
+        +Get()
+        +Export()
+        +LogPrint()
+    }
+    class LabOrderStatisticsReportService {
+        <<Baru>>
+        +GetAsync()
+        +GetFilterMetadataAsync()
+    }
+    class LabOrderDemandQuery {
+        <<Baru - dipindah dari LabDashboardService>>
+        +CountedOrders()
+        +CountedExaminations()
+        +PendingOrderedProcedures()
+    }
+    class LabDashboardService {
+        <<Diperbarui>>
+        +GetYearlyAsync()
+    }
+    LabOrderStatisticsReportController --> LabOrderStatisticsReportService
+    LabOrderStatisticsReportController --> LabReportXlsxWriter
+    LabOrderStatisticsReportController --> LabReportOutputLogger
+    LabOrderStatisticsReportService --> LabOrderDemandQuery : INV-59
+    LabDashboardService --> LabOrderDemandQuery : INV-59
+    class LabReportXlsxWriter {
+        <<Baru>>
+    }
+    class LabReportOutputLogger {
+        <<Baru>>
+    }
+```
+
+**Alasan wajib pembatalan (`LAB-DEC-237`):**
+
+```mermaid
+classDiagram
+    class LabExaminationService {
+        <<Diperbarui>>
+        +CancelAsync()
+    }
+    class LabSpecimenService {
+        <<Diperbarui>>
+        +CancelAsync()
+    }
+    class LabCancellationReason {
+        <<Baru>>
+        +Require(reason)
+    }
+    LabExaminationService --> LabCancellationReason : VAL-155
+    LabSpecimenService --> LabCancellationReason : VAL-155
+```
+
+### 32.4 Penjelasan setiap class
+
+**`LabCancellationReportController`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Controllers/LabCancellationReportController.cs` |
+| Route dan tag | `api/v1/health-services/laboratory-management/lab-cancellation-reports`; `[Tags("Health Services / Laboratory Management / Lab Cancellation Report")]` |
+| Atribut akses | `[AccessController(... ControllerName = "LabCancellationReport" ...)]` di kelas — modul `HEALTH_SERVICE_LABORATORY_MANAGEMENT`, pola `LabOperationalReportController`. `[AccessPermission("LabCancellationReport", "Read")]` pada lima `GET` baca; `[AccessPermission("LabCancellationReport", "Export")]` pada `GET /export` **dan** `POST /print-log` (`LAB-DEC-248`: cetak memakai izin unduh). `AccessType` `Export` = `Read` (`AccessTypes` hanya empat nilai, pola `BE-LAB-86`) |
+| Service yang dipakai | `LabCancellationReportService`, `LabReportXlsxWriter`, `LabReportOutputLogger` |
+| Validasi | Periode `VAL-147`..`VAL-149` lewat `ResolvePeriod`; paging mengikuti `LabOrderPagedQuery` — `PageSize` **dijepit** ke 1..100 (`Math.Clamp`, `LabOrderService.cs:150`), bukan ditolak; enum penyaring tak dikenal ditolak model binding (`400`) |
+| Pencatatan | Unduhan dan cetak lewat `LabReportOutputLogger`; **membuka** daftar **dicatat** `LabCancellationReport.Read` tanpa identitas pasien (32.10 no. 1, disetujui 2026-10-20) |
+
+**`LabCancellationReportService`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabCancellationReportService.cs` |
+| Fungsi | `GetListAsync(query)` — baris `LabTransitionHistory` dengan `Action` ∈ {`Order.Cancel`, `Examination.Cancel`} dan `OccurredAt` dalam periode (`INV-58`), terbaru di atas, satu halaman; **total per jenis dihitung atas seluruh hasil penyaring**, bukan halaman (`RPT-003`, `AC-332`). `GetAllForExportAsync(query)` — baris yang sama **tanpa** paging (dibatasi `VAL-149`). `GetDetailAsync(historyId)` — satu peristiwa beserta pesanan, pemeriksaan dan wadahnya, dan riwayat transisi pesanan itu. `GetCancelledByOptionsAsync(period)` — pembatal yang ada dalam periode |
+| Kolom per baris | Waktu batal (WIB) · jenis (`Order`/`Examination`) · No. order · No. RM · nama pasien · disiplin · pemeriksaan (baris `Examination`: nama snapshot; baris `Order`: jumlah pemeriksaannya) · status sebelum (`FromStatus`) · *sudah layak tagih* (baris `Examination`: `FromStatus` = `ChargeEligible`; baris `Order`: kosong) · alasan (`ReasonNote`, kosong → *Alasan tidak dicatat*) · pembatal · unit layanan |
+| Jalur baca | Identitas pasien **sub-kueri** `MstPatient` lewat `Encounter.PatientId` dan unit layanan lewat `Encounter.ServiceUnit` — **sama persis** dengan `LabOrderService.cs:502-520`; nama pembatal lewat kamus nama pelaku pola `LabExaminationService.cs:1054-1061` |
+| Penyaring | Periode (wajib), disiplin, jenis, pembatal (`ActorUserId`), unit layanan |
+| Yang tidak dibaca | Status pemeriksaan hari ini — baris lahir dari **peristiwa** (F30-18, `ARCH-GAP-LAB-16`); `Specimen.Cancel` bukan baris (`LAB-DEC-238`) |
+| Dipanggil siapa | `LabCancellationReportController` |
+| Membuka transaksi | **Tidak** |
+
+**`LabOrderStatisticsReportController`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Controllers/LabOrderStatisticsReportController.cs` |
+| Route dan tag | `api/v1/health-services/laboratory-management/lab-order-statistics-reports`; `[Tags("Health Services / Laboratory Management / Lab Order Statistics Report")]` |
+| Atribut akses | `[AccessController(... ControllerName = "LabOrderStatisticsReport" ...)]`; `[AccessPermission("LabOrderStatisticsReport", "Read")]` pada dua `GET` baca; `[AccessPermission("LabOrderStatisticsReport", "Export")]` pada `GET /export` dan `POST /print-log` |
+| Service yang dipakai | `LabOrderStatisticsReportService`, `LabReportXlsxWriter`, `LabReportOutputLogger` |
+| Validasi | `VAL-147`..`VAL-149`; enum penyaring tak dikenal `400` |
+| Pencatatan | Unduhan dan cetak; membuka **tidak** dicatat (A8.9, agregat) |
+
+**`LabOrderStatisticsReportService`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabOrderStatisticsReportService.cs` |
+| Fungsi | `GetAsync(query)` — memanggil `LabOrderDemandQuery` untuk periode, lalu mengelompokkan per **jenis kunjungan → unit layanan → disiplin**: jumlah pesanan dan jumlah pemeriksaan (`LAB-DEC-244`). *Sub Total* per jenis kunjungan dan *Total* atas seluruh hasil penyaring |
+| Pengelompokan | Disiplin = disiplin order, cadangan disiplin katalog (pola `VAL-126` di Beranda); kosong → kolom *Belum terklasifikasi*. Unit tak ditemukan → *Unit tidak tercatat* (`AC-335`) |
+| Identitas pasien | **Tidak dibaca sama sekali** |
+| Dipanggil siapa | `LabOrderStatisticsReportController` |
+| Membuka transaksi | Tidak |
+
+**`LabOrderDemandQuery`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` — **dipindah** dari isi `LabDashboardService.GetYearlyAsync` (`LabDashboardService.cs:227-290`), bukan ditulis ulang |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabOrderDemandQuery.cs` |
+| Fungsi | Tiga pembentuk kueri atas `ApplicationDbContext`, menerima rentang UTC: `CountedOrders(start, end)` — order bukan `Cancelled`/`Draft` menurut `RequestedAt ?? CreateDateTime`; `CountedExaminations(start, end)` — pemeriksaan bukan `Voided`/`Cancelled` pada order bukan `Cancelled`; `PendingOrderedProcedures(start, end)` — permintaan `Ordered` pada order bukan `Cancelled` |
+| Kenapa dipindah | `INV-59`: Beranda dan Statistik Pesanan **wajib** menghitung dengan definisi yang sama. Salinan kedua akan bercabang tanpa satu galat pun — persis yang terjadi pada F30-20 |
+| `Draft` | Dipindah **apa adanya**: hitungan pemeriksaan tidak menyaring `Draft`, hitungan pesanan menyaring (`ARCH-GAP-LAB-15`, teoretis) |
+| Dipanggil siapa | `LabDashboardService` dan `LabOrderStatisticsReportService` |
+| Membuka transaksi | Tidak |
+
+**`LabReportXlsxWriter`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabReportXlsxWriter.cs` |
+| Fungsi | Menulis respons laporan menjadi `.xlsx` lewat **`ClosedXML`** (`XLWorkbook` → `SaveAs(stream)`, pola `FinanceReceivableAgingReportService.cs:255-372`). Satu lembar; baris pertama judul dan periode; judul kolom Bahasa Indonesia; angka sebagai angka (bukan teks); tanggal-jam WIB. Mengembalikan `LabXlsxFile(byte[] Content, int RowCount)` — pola `LabCsvFile` |
+| Isi | **Dibentuk dari respons yang sama dengan layar**, bukan kueri kedua (`RPT-002`, pola `BE-LAB-86`) |
+| Dipanggil siapa | Kedua controller laporan baru |
+| Membuka transaksi | Tidak |
+
+**`LabReportOutputLogger`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabReportOutputLogger.cs` |
+| Fungsi | `LogExportAsync(report, period, filters, rowCount)` dan `LogPrintAsync(report, period, filters)` → satu `LoggerService.AuditAsync` dengan aksi `<Resource>.Export` / `<Resource>.Print`. **Isi di teks pesan**, sebab pencatat tidak menulis payload: `"<laporan> — <yyyy-MM-dd>..<yyyy-MM-dd> — <penyaring> — <n> baris"` (cetak tanpa jumlah baris). Ruas payload **tidak** bernama `Id`/`Name`/`Path` |
+| Dilarang | No. RM, nama pasien, alasan pembatalan, isi berkas (`LAB-DEC-233`, A8.12) |
+| Kenapa satu class | Dua controller, empat titik keluaran, satu bentuk log — pola pesan `BE-LAB-86` disatukan supaya tidak bercabang |
+| Dipanggil siapa | Kedua controller laporan baru |
+| Membuka transaksi | Tidak |
+
+**`LabCancellationReason`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Constants/LabCancellationReason.cs` |
+| Fungsi | `Require(string? reason)` → alasan yang sudah di-*trim*, atau `null` bila kosong/spasi. Pesan bersama `MissingMessage = "Alasan pembatalan wajib diisi."` — **bunyi yang sama** dengan `VAL-74` (`LabOrderService.cs:1707`) |
+| Dipanggil siapa | `LabExaminationService.CancelAsync`, `LabSpecimenService.CancelAsync` |
+
+**`LabExaminationService`** — `Diperbarui`: `CancelAsync` (`LabExaminationService.cs:259`) menolak alasan kosong
+**sesudah** penjaga `Voided`, `Cancelled`, dan `ReleasedAt` (BR-148 butir 2) dengan `LabExaminationValidationException`
+→ **`422`**, kode yang sama dengan `VAL-74`. Nol baris riwayat ditulis bila ditolak (`AC-326`).
+
+**`LabSpecimenService`** — `Diperbarui`: `CancelAsync` (`LabSpecimenService.cs:1201`) menolak alasan kosong
+**sesudah** penjaga *sudah dibatalkan*, dengan `LabSpecimenValidationException` → **`422`**. Jalur
+`CancelAllForOrderInMemoryAsync` **tidak** berubah — alasannya datang dari order yang sudah wajib beralasan.
+
+**`LabDashboardService`** — `Diperbarui`: `GetYearlyAsync` memanggil `LabOrderDemandQuery`; **nol perubahan perilaku**
+Beranda (uji karakterisasi sebelum dan sesudah, pola `BE-LAB-82`).
+
+**`LabFilterMetadataFactory`** — `Diperbarui`: `LabCancellationReport()` (periode wajib; disiplin; jenis
+`Order`/`Examination`) dan `LabOrderStatisticsReport()` (periode wajib; jenis kunjungan; disiplin) — bagian **statis**,
+pola `LabOperationalReport()` (`LabFilterMetadataFactory.cs:685`). Pilihan **unit layanan** ditambahkan oleh service
+laporan (`GetFilterMetadataAsync`) dari `MstServiceUnit` aktif — supaya pembaca laporan tidak membutuhkan izin
+`service-units/options` (Analis mendapat `403` di sana, manifest rev 128).
+
+**DTO** — `Areas/HealthServices/LaboratoryManagement/DTOs/LabCancellationReportDtos.cs` (`Baru`):
+
+| Class | Jenis | Ruas |
+|---|---|---|
+| `LabCancellationReportQuery` | PagedQuery | `startDate`, `endDate` (tanggal, wajib), `discipline` (`LabDiscipline?`), `cancellationKind` (`LabCancellationKind?`), `cancelledByUserId` (`Guid?`), `serviceUnitId` (`Guid?`), `pageNumber` (bawaan 1), `pageSize` (bawaan 25, maks 100) |
+| `LabCancellationReportPrintRequest` | Create | Ruas penyaring yang sama tanpa paging |
+| `LabCancellationReportResponse` | Response | `period` (`LabReportPeriodResponse`, sudah ada), `totals` (`orderCount`, `examinationCount`, `totalCount`), `items[]`, `pageNumber`, `pageSize`, `totalItems` |
+| `LabCancellationReportRow` | Response | `historyId`, `cancelledAt`, `kind`, `labOrderId`, `orderNumber`, `medicalRecordNumber`, `patientName`, `discipline`, `disciplineName`, `labExaminationId`, `examinationName`, `examinationCount`, `fromStatus`, `wasChargeEligible` (`bool?`), `reason`, `isReasonRecorded`, `cancelledByUserId`, `cancelledByName`, `serviceUnitName` |
+| `LabCancellationReportDetailResponse` | Response | `row` (`LabCancellationReportRow`), `examinations[]` (`labExaminationId`, `examinationName`, `examinationStatus`), `specimens[]` (`labSpecimenId`, `specimenBarcode`, `specimenStatus`), `history[]` (`action`, `fromStatus`, `toStatus`, `reason`, `actorName`, `occurredAt`) |
+| `LabCancelledByOptionResponse` | Option | `userId`, `name` |
+| `LabCancellationReportFilterMetadataResponse` | Response | pola `LabOperationalReportFilterMetadataResponse`, ditambah pilihan unit layanan |
+
+`Areas/HealthServices/LaboratoryManagement/DTOs/LabOrderStatisticsReportDtos.cs` (`Baru`):
+
+| Class | Jenis | Ruas |
+|---|---|---|
+| `LabOrderStatisticsReportQuery` | PagedQuery tanpa halaman | `startDate`, `endDate` (wajib), `encounterType` (`EncounterType?`), `serviceUnitId` (`Guid?`), `discipline` (`LabDiscipline?`) |
+| `LabOrderStatisticsReportPrintRequest` | Create | Ruas yang sama |
+| `LabOrderStatisticsReportResponse` | Response | `period`, `groups[]` (`encounterType`, `encounterTypeName`, `units[]`, `subtotal`), `total` |
+| `LabOrderStatisticsUnitRow` | Response | `serviceUnitId`, `serviceUnitName`, `cells[]`, `orderCount`, `examinationCount` |
+| `LabOrderStatisticsCell` | Response | `discipline` (`null` = *Belum terklasifikasi*), `disciplineName`, `orderCount`, `examinationCount` |
+| `LabOrderStatisticsTotals` | Response | `orderCount`, `examinationCount`, `cells[]` — dipakai `subtotal` dan `total` |
+| `LabOrderStatisticsReportFilterMetadataResponse` | Response | pola `LabOperationalReportFilterMetadataResponse`, ditambah pilihan jenis kunjungan dan unit layanan |
+| `LabReportPrintLogResponse` | Response | `loggedAt` — dipakai kedua laporan; ditaruh di `LabCancellationReportDtos.cs` |
+
+**Enum** — `Areas/HealthServices/LaboratoryManagement/Enums/LaboratoryEnums.cs` (`Diperbarui`):
+
+| Enum | Nilai | Bawaan |
+|---|---|---|
+| `LabCancellationKind` | `Order = 1`, `Examination = 2` | Tidak ada — kosong berarti keduanya |
+
+### 32.5 Arsitektur folder
+
+```text
+Areas/HealthServices/LaboratoryManagement/
+├── Constants/
+│   └── LabCancellationReason.cs                 # Baru — penjaga VAL-155
+├── Controllers/
+│   ├── LabCancellationReportController.cs       # Baru
+│   └── LabOrderStatisticsReportController.cs    # Baru
+├── DTOs/
+│   ├── LabCancellationReportDtos.cs             # Baru
+│   └── LabOrderStatisticsReportDtos.cs          # Baru
+├── Enums/
+│   └── LaboratoryEnums.cs                       # Diperbarui — LabCancellationKind
+└── Services/
+    ├── LabCancellationReportService.cs          # Baru
+    ├── LabOrderStatisticsReportService.cs       # Baru
+    ├── LabOrderDemandQuery.cs                   # Baru — dipindah dari LabDashboardService
+    ├── LabReportXlsxWriter.cs                   # Baru — ClosedXML
+    ├── LabReportOutputLogger.cs                 # Baru
+    ├── LabDashboardService.cs                   # Diperbarui — memakai LabOrderDemandQuery
+    ├── LabExaminationService.cs                 # Diperbarui — VAL-155 pada CancelAsync
+    ├── LabSpecimenService.cs                    # Diperbarui — VAL-155 pada CancelAsync
+    └── LabFilterMetadataFactory.cs              # Diperbarui — metadata dua laporan
+Repositories/Configurations/HealthServices/LaboratoryManagement/
+└── LabTransitionHistoryConfiguration.cs         # Diperbarui — satu index (butir 32.10 no. 3)
+Migrations/
+└── <timestamp>_AddLabTransitionHistoryActionOccurredAtIndex.cs   # Baru — bila butir 32.10 no. 3 disetujui
+Program.cs                                       # Diperbarui — AddScoped lima class baru
+```
+
+**Utang teknis yang tidak ditiru:** `LabOperationalReportService.ResolvePeriod` berstatus `internal static` di service
+laporan `S16a` — dipakai ulang apa adanya, **tidak** dipindah pada slice ini supaya `S16a` tidak tersentuh.
+
+### 32.6 Status model dan dampak migration
+
+| Model | Status | Yang berubah | Dampak migration |
+|---|---|---|---|
+| `LabTransitionHistory` | `Sudah ada` | **Nol kolom.** Satu index baru `(Action, OccurredAt)` — Laporan Pembatalan menyaring keduanya; index yang ada hanya `(LabOrderId, OccurredAt)`, `LabSpecimenId`, `LabExaminationId`, `EncounterId` (`LabTransitionHistoryConfiguration.cs:22-25`) | `AddLabTransitionHistoryActionOccurredAtIndex` — **bila disetujui** |
+| `LabExamination`, `LabSpecimen`, `LabOrder`, `LabOrderedProcedure` | `Sudah ada` | Nol | Nol |
+| `RegPatientEncounter`, `MstServiceUnit`, `MstPatient` | `Sudah ada` — milik modul lain | Nol — hanya dibaca | Nol |
+
+### 32.7 Rencana migration dan urutan rilis
+
+| Langkah | Isi | Tanpa henti layanan? | Mundur |
+|---:|---|:---:|---|
+| 1 | `AddLabTransitionHistoryActionOccurredAtIndex` (bila disetujui) — dibangkitkan di atas snapshot terkini; diterapkan lewat skrip per migration ke devYoga **hanya atas instruksi** | Ya — membuat index mengunci tulis `LabTransitionHistory` sesaat; tabelnya kecil (devYoga: puluhan baris) | `Down` menghapus index; nol data berubah |
+| 2 | Deploy kode: `LabOrderDemandQuery` + `LabDashboardService` lebih dulu (nol perubahan perilaku), lalu kedua laporan, lalu penjaga alasan | Ya | Kode |
+| 3 | Admin memberi `LabCancellationReport : Read`/`Export` dan `LabOrderStatisticsReport : Read`/`Export` kepada jabatan pembaca | — | Cabut kebijakan |
+
+**Sebelum langkah 3 setiap pengguna menerima `403`** — kedua laporan tertutup sampai admin memberinya (pola
+`LAB-PERM-v1` 14.6). **Nol pengisian data lama.** Pembatalan lama tanpa alasan **tidak** diisi surut (`INV-60`).
+
+**Akibat penjaga alasan bagi pemanggil yang sudah ada:** FE **tidak** punya pemanggil batal pemeriksaan/wadah
+(`CAP-P30-04`). Pemanggil lain di luar FE, bila ada, mulai menerima `422` untuk alasan kosong — dicatat sebagai
+perubahan perilaku pada kompatibilitas kontrak (`LAB-API-v1` `r49` 44.5).
+
+### 32.8 Rencana data master awal
+
+**Nol data induk baru.**
+
+| Data | Isi minimum | Sumber |
+|---|---|---|
+| Unit layanan (`MstServiceUnit`) | Sudah ada — termasuk *Kamar Bersalin* (`SU-MAT-001`) | Master Data |
+| Kebijakan izin dua laporan | Empat aksi bagi jabatan pembaca | Admin, langkah rilis 3 |
+| Data uji Rawat Inap/IGD/Kamar Bersalin | Minimal satu order per jenis kunjungan | Tahap uji, **izin tulis tersendiri** (`LAB-RCG-001` r13 0H.4) |
+
+### 32.9 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Tabel ringkasan laporan | A7.5, A8 — angka tersimpan dapat basi |
+| Menambah endpoint ke `LabOperationalReportController` | Resource itu milik `S16a`; izin per laporan (`LAB-DEC-231`) menuntut resource sendiri |
+| Salinan rumus hitung Beranda di service laporan | `INV-59` |
+| Menulis status `Cancelled` ke pemeriksaan saat order dibatalkan | A8.5 — perilaku lama tidak diubah slice ini |
+| Endpoint log terpisah per halaman cetak | Satu panggilan per tekan Cetak cukup (A8.10) |
+| PDF dari server (`QuestPDF`) | `LAB-DEC-248` memilih cetak dari layar |
+| Rincian per kategori | `LAB-COORD-021` |
+| Kolom harga, penjamin, fee | `S16b-3` |
+| Daftar alasan terkendali bagi pembatalan | `LAB-DEC-237` butir 4 — teks bebas |
+
+### 32.10 Keputusan yang diminta pada persetujuan kontrak
+
+> **✅ Keenam butir disetujui 2026-10-20** oleh Yoga Aji Pratama selaku pemilik modul, bersama `LAB-API-v1` `r49`,
+> `LAB-PERM-v1` revision 17, `LAB-VAL-v1` `r21`, dan `LAB-STATE-v1` `r11`, lewat pilihan *"Setuju keenam butir
+> (Direkomendasikan)"*. Yang disetujui adalah **kolom "Usulan rancangan"** di bawah.
+
+| No | Hal | Usulan rancangan | Bila tidak disetujui |
+|---:|---|---|---|
+| 1 | **Jejak membuka Laporan Pembatalan** (`ARCH-GAP-LAB-14`) | **Dicatat** — setiap `GET` daftar menulis satu baris log `LabCancellationReport.Read`: pelaku, periode, penyaring; **tanpa** identitas pasien. Alasannya: satu-satunya layar Lab yang membuka identitas **banyak pasien sekaligus** untuk satu periode | Ikuti konvensi — membuka tidak dicatat; hanya unduhan dan cetak |
+| 2 | **Nama resource izin** | `LabCancellationReport` dan `LabOrderStatisticsReport`, masing-masing `Read` dan `Export` | Nama lain — kunci izin terbentuk saat startup dan sulit diganti sesudah admin memberinya |
+| 3 | **Index `LabTransitionHistory (Action, OccurredAt)`** | Ditambahkan — laporan menyaring keduanya; aditif, satu migration | Tanpa index — kueri memindai tabel; aman selama tabel kecil |
+| 4 | **Detail baris Laporan Pembatalan** | Endpoint detail **di bawah izin laporan** (`GET /{historyId}`) — pembaca laporan tidak perlu `LabOrder : Read` | Tautan ke halaman order yang sudah ada — pembaca butuh izin daftar Lab |
+| 5 | **Ukuran halaman** | Bawaan 25, dijepit 1..100 — pola `LabOrderPagedQuery`/`LabOrderService.cs:150` | Lain |
+| 6 | **Letak menu** — keputusan tampilan, dicatat di sini supaya disetujui bersama (`03-frontend-architecture.md` amandemen 2026-10-20) | Dua butir baru di grup **Laporan** (BR-137): *Laporan Pembatalan* dan *Statistik Pesanan*, masing-masing tampil hanya bagi pemegang izin `Read`-nya | Pemilik menetapkan label/letak lain |
+
+### 32.11 Keamanan, privasi, dan pencatatan
+
+- **Laporan Pembatalan memuat No. RM dan nama pasien** (`LAB-DEC-240`) — dibaca saat diminta, tidak disalin, **tidak
+  pernah** masuk log; izin bawaan tertutup (A8.12).
+- **Statistik Pesanan nol identitas pasien** (`AC-335`) — respons dan berkas `.xlsx` diuji tidak memuat No. RM maupun nama.
+- Log unduhan, cetak, dan (bila butir 1 disetujui) baca **tidak** memuat identitas pasien maupun alasan pembatalan —
+  alasan dapat menyebut kondisi pasien.
+- Izin ditegakkan di server pada `POST /print-log`; FE tidak membuka dialog cetak tanpa `200`/`204` dari sana.
+
+### 32.12 Traceability bagian 32
+
+| Yang dirancang | Keputusan | Arsitektur domain | Kontrak (usulan) | AC |
+|---|---|---|---|---|
+| Laporan Pembatalan | `LAB-DEC-232`, `238`, `239`, `240` | `LAB-DC-063`, `INV-58` | `LAB-API-v1` `r49` 44.2 | `AC-328`..`AC-332` |
+| Statistik Pesanan | `LAB-DEC-241`..`246` | `LAB-DC-064`, `LAB-DC-065`, `INV-59` | `r49` 44.3 | `AC-333`..`AC-336` |
+| Definisi hitung bersama | `LAB-DEC-242`, `246` | `INV-59` | `r49` 44.5 | `AC-334`, `AC-336` |
+| `.xlsx` dan cetak | `LAB-DEC-233`, `248` | A8.9 | `r49` 44.2–44.3; `LAB-PERM-v1` revision 17 | `AC-332`, `AC-337` |
+| Izin per laporan | `LAB-DEC-231`, `239`, `245` | A8.8 | `LAB-PERM-v1` revision 17 | `AC-330` |
+| Alasan wajib | `LAB-DEC-237`, `247` | `INV-60` | `LAB-VAL-v1` `r21` `VAL-155`; `LAB-STATE-v1` `r11` | `AC-326`, `AC-327` |
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 23 | 2026-10-20 | **Persetujuan dibukukan:** keempat kontrak bagian 32 dan keenam butir 32.10 `approved` oleh Yoga Aji Pratama. Butir 1 — pembukaan Laporan Pembatalan **dicatat** — menutup `ARCH-GAP-LAB-14` | `draft` |
+| 22 | 2026-10-20 | **Laporan Pembatalan dan Statistik Pesanan dirancang** (bagian 32), menurunkan `LAB-DA-001` rev 11 A8 dan `LAB-RCG-001` rev 13 0H. Dua controller dan dua service laporan (izin per laporan), `LabOrderDemandQuery` dipindah dari `LabDashboardService` (`INV-59`), `LabReportXlsxWriter` (`ClosedXML`), `LabReportOutputLogger` (unduh dan cetak), penjaga `VAL-155` pada batal pemeriksaan/wadah. Nol tabel, nol kolom; satu index usulan. Enam butir 32.10 menunggu persetujuan. BE `4d3e4f98`, FE `7fb1e1d3e` | `draft` |
 | 21 | 2026-10-14 | **Ruas baca v1 dibukukan susulan** (bagian 31): `r47` daftar pantau dan `r48` kartu halaman hasil. Kodenya sudah ada lebih dulu (BE `36422a4d`, 2026-10-13). Nol tabel/kolom/migration/endpoint/izin. Bukti HTTP 2026-10-14 dengan akun asli dr. Bima dan Gilang | `draft` |
 | 20 | 2026-10-09 | **Rencana ulang sesudah wadah dibatalkan dirancang** (bagian 30), menurunkan `LAB-DEC-229` (putaran 29, temuan T1 `BE-LAB-94`). Satu aturan untuk rencana pertama, rencana ulang, dan ambil ulang: pendahulu **berpenanda** → salin; selain itu → permintaan. Nol tabel/kolom/endpoint/izin/migration; kontrak usulan `r46` (`LAB-REQ-023`) | `draft` |
 | 19 | 2026-10-09 | **CITO dari pemesanan sampai ke pemeriksaan dirancang** (bagian 29); **kontrak `r45` `approved` 2026-10-09 lewat `LAB-REQ-022`**, butir 4 menambah langkah 3 perbaikan data (29.6), menurunkan `LAB-DEC-225`..`LAB-DEC-228` (putaran 28). Wadah pertama mewarisi `Urgency` permintaan dengan penanda kosong; wadah pengganti mewarisi keadaan terakhir pemeriksaan lama beserta penanda; tambah manual tetap `Routine`. Satu record privat `LabExaminationPlan`, nol tabel/kolom/endpoint/izin; satu migration data `BackfillLabExaminationUrgencyFromOrderedProcedure` (idempoten, `Down` berpenanda `ReasonCode = 'LAB-CONFLICT-019'`). Hitung kering dev 2026-10-09: 0 baris (permintaan CITO) dan 0 baris (pengganti yang kehilangan *Tandai Cito*). Nol berkas frontend. 28.8 ditandai *diputuskan* | `draft` |

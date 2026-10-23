@@ -44,6 +44,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid? DoctorId { get; set; }
         public string? DoctorKind { get; set; }
 
+        /// <summary>
+        /// Identitas pemilik benefit (MstWorkforceProfile.Id) bila pasien adalah karyawan, dokter, atau
+        /// anggota keluarga mereka. Dipisah dari PersonCategory: kategori adalah status identitas/profesi,
+        /// kelayakan benefit adalah hasil pemeriksaan HR (IsBenefitEligible).
+        /// </summary>
+        public Guid? BenefitOwnerWorkforceProfileId { get; set; }
+
+        /// <summary>EMPLOYEE atau DOCTOR; jenis pemilik benefit (bukan kategori pasien).</summary>
+        public string? BenefitOwnerType { get; set; }
+        public string? BenefitPlanName { get; set; }
+
         public string? OrganizationUnitName { get; set; }
         public string? PositionName { get; set; }
 

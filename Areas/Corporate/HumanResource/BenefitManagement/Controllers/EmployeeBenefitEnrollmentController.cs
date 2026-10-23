@@ -76,6 +76,19 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             Run(async () => Ok(ApiResponse<EmployeeBenefitSummaryResponse>.Ok(
                 await _service.GetByEmployeeAsync(employeeId, cancellationToken), "Ringkasan benefit pegawai berhasil diambil.")));
 
+        /// <summary>
+        /// Ringkasan benefit satu pemilik (karyawan atau dokter tetap) berdasarkan WorkforceProfileId. Endpoint
+        /// <c>by-employee</c> tetap ada untuk kompatibilitas dan mengembalikan bentuk yang sama.
+        /// </summary>
+        [HttpGet("by-workforce-profile/{workforceProfileId:guid}")]
+        [AccessAction("Read", "Read Employee Benefit Enrollment", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmployeeBenefitEnrollment", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<EmployeeBenefitSummaryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        public Task<IActionResult> GetByWorkforceProfile(Guid workforceProfileId, CancellationToken cancellationToken) =>
+            Run(async () => Ok(ApiResponse<EmployeeBenefitSummaryResponse>.Ok(
+                await _service.GetByWorkforceProfileAsync(workforceProfileId, cancellationToken), "Ringkasan benefit SDM berhasil diambil.")));
+
         [HttpGet("{id:guid}/status-history")]
         [AccessAction("Read", "Read Employee Benefit Enrollment", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("EmployeeBenefitEnrollment", "Read")]

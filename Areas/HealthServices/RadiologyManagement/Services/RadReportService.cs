@@ -57,7 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
     /// untuk menampungnya.
     /// </para>
     /// </summary>
-    public class RadReportService
+    public partial class RadReportService
     {
         private const string LogCategory = "HealthServices.RadiologyManagement";
 

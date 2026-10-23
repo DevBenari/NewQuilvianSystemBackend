@@ -87,34 +87,27 @@ public sealed class FinancePayrollDeductionBatchService
             }
         ).ToListAsync(cancellationToken);
 
-        // Muat profil pegawai untuk seluruh BenefitOwnerId unik
-        var employeeIds = items
-            .Where(x => x.Receivable.BenefitOwnerId.HasValue)
-            .Select(x => x.Receivable.BenefitOwnerId!.Value)
-            .Distinct()
-            .ToList();
-
-        var employees = await _dbContext.MstEmployees.AsNoTracking()
-            .Include(e => e.PrimaryDepartment)
-            .Where(e => employeeIds.Contains(e.Id) && !e.IsDelete)
-            .ToDictionaryAsync(e => e.Id, cancellationToken);
+        // Muat pemilik manfaat (karyawan atau dokter tetap) lewat identitas Workforce, tanpa N+1
+        var ownerLookup = await FinanceBenefitOwnerDirectory.LoadAsync(
+            _dbContext,
+            items
+                .Where(x => x.Receivable.BenefitOwnerId.HasValue || x.Receivable.BenefitOwnerWorkforceProfileId.HasValue)
+                .Select(x => ((Guid?)x.Receivable.BenefitOwnerId, x.Receivable.BenefitOwnerWorkforceProfileId)),
+            cancellationToken);
 
         // Susun baris respons terurut NIP lalu nomor angsuran
         var rows = items.Select(x =>
         {
-            MstEmployee? emp = null;
-            if (x.Receivable.BenefitOwnerId.HasValue)
-            {
-                employees.TryGetValue(x.Receivable.BenefitOwnerId.Value, out emp);
-            }
+            var emp = ownerLookup.Find(x.Receivable.BenefitOwnerId, x.Receivable.BenefitOwnerWorkforceProfileId);
 
             return new DeductionScheduleRowResponse
             {
                 InstallmentId = x.Installment.Id,
                 InstallmentCode = $"{x.Plan.PlanNumber}-{x.Installment.InstallmentNumber}",
-                EmployeeNumber = emp?.EmployeeNumber ?? string.Empty,
-                EmployeeName = emp?.FullName ?? string.Empty,
-                OrganizationUnitName = emp?.PrimaryDepartment?.DepartmentName ?? string.Empty,
+                // Untuk dokter tetap: nomor dokter dan nama dokter (bukan kosong karena tanpa MstEmployee).
+                EmployeeNumber = emp?.StaffNumber ?? string.Empty,
+                EmployeeName = emp?.StaffName ?? string.Empty,
+                OrganizationUnitName = emp?.OrganizationUnitName ?? string.Empty,
                 ReceivableNumber = x.Receivable.ReceivableNumber,
                 InstallmentNumber = x.Installment.InstallmentNumber,
                 ScheduledAmount = x.Installment.ScheduledAmount,
@@ -333,26 +326,19 @@ public sealed class FinancePayrollDeductionBatchService
             }
         ).ToListAsync(cancellationToken);
 
-        var employeeIds = allInstallmentData
-            .Where(x => x.Receivable.BenefitOwnerId.HasValue)
-            .Select(x => x.Receivable.BenefitOwnerId!.Value)
-            .Distinct()
-            .ToList();
-
-        var employees = await _dbContext.MstEmployees.AsNoTracking()
-            .Where(e => employeeIds.Contains(e.Id) && !e.IsDelete)
-            .ToDictionaryAsync(e => e.Id, cancellationToken);
+        var ownerLookup = await FinanceBenefitOwnerDirectory.LoadAsync(
+            _dbContext,
+            allInstallmentData
+                .Where(x => x.Receivable.BenefitOwnerId.HasValue || x.Receivable.BenefitOwnerWorkforceProfileId.HasValue)
+                .Select(x => ((Guid?)x.Receivable.BenefitOwnerId, x.Receivable.BenefitOwnerWorkforceProfileId)),
+            cancellationToken);
 
         // Buat lookup kode angsuran: Code -> Detail
         var codeLookup = allInstallmentData.ToDictionary(
             x => $"{x.Plan.PlanNumber}-{x.Installment.InstallmentNumber}".Trim().ToUpperInvariant(),
             x =>
             {
-                MstEmployee? emp = null;
-                if (x.Receivable.BenefitOwnerId.HasValue)
-                {
-                    employees.TryGetValue(x.Receivable.BenefitOwnerId.Value, out emp);
-                }
+                var emp = ownerLookup.Find(x.Receivable.BenefitOwnerId, x.Receivable.BenefitOwnerWorkforceProfileId);
 
                 return new
                 {
@@ -441,7 +427,7 @@ public sealed class FinancePayrollDeductionBatchService
                 item.DeltaAmount = item.DeductedAmount - target.Installment.PaidAmount;
             }
 
-            var targetNip = target.Employee?.EmployeeNumber ?? string.Empty;
+            var targetNip = target.Employee?.StaffNumber ?? string.Empty;
             if (!string.Equals(targetNip, nip, StringComparison.OrdinalIgnoreCase))
             {
                 item.ValidationStatus = FinPayrollDeductionItemValidationStatuses.Invalid;

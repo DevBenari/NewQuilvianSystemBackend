@@ -7,8 +7,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
 {
     /// <summary>
     /// Satu kejadian pada Reservasi Prioritas: dibuat, tiba, dikembalikan, diskrining, kode diganti,
-    /// dilengkapi, dibatalkan, tidak datang, atau didaftarkan lewat jalur lain (INV-RP-06).
-    /// Baris tidak pernah diubah maupun dihapus.
+    /// tanggal diganti, dilengkapi, dibatalkan, tidak datang, atau didaftarkan lewat jalur lain
+    /// (INV-RP-06). Baris tidak pernah diubah maupun dihapus.
     /// </summary>
     [Table("RegPriorityReservationHistory", Schema = "public")]
     public class RegPriorityReservationHistory : IdentityModel
@@ -18,6 +18,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         public const string EventArrivalReverted = "ARRIVAL_REVERTED";
         public const string EventScreened = "SCREENED";
         public const string EventCodeReissued = "CODE_REISSUED";
+        public const string EventRescheduled = "RESCHEDULED";
         public const string EventConverted = "CONVERTED";
         public const string EventCancelled = "CANCELLED";
         public const string EventNoShow = "NO_SHOW";
@@ -43,11 +44,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// <summary>Kosong untuk kejadian lewat link pasien dan oleh sistem.</summary>
         public Guid? ActorUserId { get; set; }
 
-        /// <summary>Alasan batal atau mengembalikan tiba. Sensitif.</summary>
+        /// <summary>Alasan batal, mengembalikan tiba, atau ganti tanggal. Sensitif.</summary>
         [MaxLength(500)]
         public string? Reason { get; set; }
 
         public Guid? EncounterId { get; set; }
+
+        /// <summary>Tanggal kunjungan sebelum diganti. Hanya terisi pada <see cref="EventRescheduled"/>.</summary>
+        public DateTime? FromVisitDate { get; set; }
+
+        /// <summary>Tanggal kunjungan sesudah diganti. Hanya terisi pada <see cref="EventRescheduled"/>.</summary>
+        public DateTime? ToVisitDate { get; set; }
 
         [Required]
         public DateTime OccurredAt { get; set; } = DateTime.UtcNow;

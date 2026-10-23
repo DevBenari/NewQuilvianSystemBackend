@@ -4,9 +4,9 @@
 | --- | --- |
 | `blueprint_id` | `PAT-BP-001` |
 | `blueprint_revision` | `6` — `approved` 19 Oktober 2026 (`PAT-DEC-069`–`077`); riwayat `5` (`PAT-DEC-068`), `4` (`PAT-DEC-067`), `3` (`PAT-DEC-033`); bagian 1–4 dokumen ini tetap milik revision `2` |
-| `roadmap_revision` | `6` — 19 Oktober 2026: kartu `BE-PAT-MIG-003A`, `BE-PAT-MIG-003` ✅, amandemen `BE-PAT-MIG-002` (`PAT-DEC-069`–`077`). Riwayat `5`: 16 Oktober 2026, `PAT-DEC-068`. Riwayat `4`: 16 Oktober 2026, amandemen `PAT-DEC-067`. Riwayat `3`: 14 Oktober 2026, diamandemen 15 Oktober 2026 (bukti Step 16), amandemen kedua (keputusan `PAT-DEC-044`–`062`, task prasyarat `BE-PAT-MIG-003`), dan **difinalkan sesi ketiga** (`PAT-DEC-063`–`066`, `PAT-DEC-033`). Riwayat: `2` — 8 Oktober 2026 |
+| `roadmap_revision` | `6` — pembaruan bukti 22 Oktober 2026 tanpa perubahan lingkup: `BE-PAT-MIG-003A` ✅ (`PAT-MIG3A-AC-12` runtime `PASS`), `PAT-GATE-005` generasi 2 `PASS`, `PAT-RSK-042` ditutup, `PATIENT_BASELINE = 741` (`PAT-FACT-092`–`097`). Isi revision `6` 19 Oktober 2026: kartu `BE-PAT-MIG-003A`, `BE-PAT-MIG-003` ✅, amandemen `BE-PAT-MIG-002` (`PAT-DEC-069`–`077`). Riwayat `5`: 16 Oktober 2026, `PAT-DEC-068`. Riwayat `4`: 16 Oktober 2026, amandemen `PAT-DEC-067`. Riwayat `3`: 14 Oktober 2026, diamandemen 15 Oktober 2026 (bukti Step 16), amandemen kedua (keputusan `PAT-DEC-044`–`062`, task prasyarat `BE-PAT-MIG-003`), dan **difinalkan sesi ketiga** (`PAT-DEC-063`–`066`, `PAT-DEC-033`). Riwayat: `2` — 8 Oktober 2026 |
 | Approval | `BE-PAT-MIG-001`: task, acceptance criteria, dan keputusan review `PAT-OQ-001`–`007` disetujui pemilik 8 Oktober 2026. `BE-PAT-MIG-002` (bagian 5) dan `BE-PAT-MIG-003` (bagian 6): **disetujui** 15 Oktober 2026, sesi ketiga (`PAT-DEC-033`), sesudah `requirement-completeness-gate` `PASS`. `BE-PAT-MIG-003A` (bagian 7): **disetujui** 19 Oktober 2026 lewat instruksi tertulis pemilik (`PAT-DEC-069`–`074`) |
-| Snapshot source backend | `BE-PAT-MIG-001`: `QuilvianStaDeploy` @ `103b45ccd5f0d9e2cbacff588540d8fe3d52e706`. `BE-PAT-MIG-002` dan `BE-PAT-MIG-003`: `QuilvianIntegrationBackend` @ `a52b3c98e7e9b0fae42f9a889b84c6c8332f8923`. `BE-PAT-MIG-003A`: branch `BE-PAT-MIG-003A`, kandidat `6e72ee6c6a41c2931af6c0a36ceacf9a9ebc92ea` di atas `QuilvianIntegrationBackend` @ `724629ab8921eb16559c6802a64b0c45516d70b0` (dibangun semula di atas `c6537ee4`) |
+| Snapshot source backend | Impact scan final `BE-PAT-MIG-002` 22 Oktober 2026: `QuilvianIntegrationBackend` @ `201d367ed7722320069c69e266133fbabdaf0fc3` (`PAT-FACT-096`); sinkronisasi dokumen di atas Integration `8bccaa034db955c9acb719fc1cb476ed9c71f1c3` (`PAT-FACT-097`); artefak Staging `fb2099a9` memuat `BE-PAT-MIG-003A` (merge `ce34b22b`, `PAT-FACT-092`). `BE-PAT-MIG-001`: `QuilvianStaDeploy` @ `103b45ccd5f0d9e2cbacff588540d8fe3d52e706`. `BE-PAT-MIG-002` dan `BE-PAT-MIG-003`: `QuilvianIntegrationBackend` @ `a52b3c98e7e9b0fae42f9a889b84c6c8332f8923`. `BE-PAT-MIG-003A`: branch `BE-PAT-MIG-003A`, kandidat `6e72ee6c6a41c2931af6c0a36ceacf9a9ebc92ea` di atas `QuilvianIntegrationBackend` @ `724629ab8921eb16559c6802a64b0c45516d70b0` (dibangun semula di atas `c6537ee4`) |
 | Masukan | `BE-PAT-MIG-001`: `00-interview-decisions.md` revision `2`, `sha256:fa0138e5e1c7c98adaf32119564d84675452b37531b137f16b0b1cd36f332885`. `BE-PAT-MIG-002` dan `BE-PAT-MIG-003`: revision `3` (`approved`) dan `requirement-completeness-assessment.md` — hash pada manifest |
 | Kontrak | `BE-PAT-MIG-001`: `contracts/api-contract.md` `1.1.0`, `sha256:cb41e4d5a0f200bb8b234ad4e741413c1ba96837140fa38460a2a78dd710ad7e`. `BE-PAT-MIG-002`, `BE-PAT-MIG-003`, dan `BE-PAT-MIG-003A`: `1.3.0` `approved` 19 Oktober 2026 (riwayat `1.2.2`) — hash pada manifest |
 | Roadmap | [backend-roadmap.md](backend-roadmap.md), [frontend-roadmap.md](frontend-roadmap.md) |
@@ -153,6 +153,10 @@ belum tercatat di laporan task. Selisih ini tercatat sebagai `PAT-STALE-002` pad
 
 ## 5. `BE-PAT-MIG-002`
 
+> **Keadaan 22 Oktober 2026:** prasyarat build terpenuhi — `BE-PAT-MIG-003` ✅, `BE-PAT-MIG-003A` ✅,
+> `PAT-GATE-005` generasi 2 `PASS` (`PAT-FACT-093`), baseline tetap 741 (`PAT-FACT-095`). Task **boleh
+> dimulai**, tetapi belum dikerjakan, sehingga kolom Implementasi tetap `BELUM`. Kontrak berlaku `1.3.0`.
+>
 > **Status: `approved`** — 15 Oktober 2026, sesi ketiga (`PAT-DEC-033`). Kolom Implementasi bernilai
 > `BELUM` karena task belum dikerjakan dan baru boleh dimulai sesudah `BE-PAT-MIG-003` ✅ dan
 > `PAT-GATE-005` `PASS`. Kolom Verifikasi berisi **rencana** bukti, bukan hasil. *Status lama:
@@ -167,14 +171,14 @@ dihitung bila `PAT-OQ-022` pilihan A disetujui — tidak adanya automated test *
 
 ### 5.2 Requirement → task → bukti
 
-| Requirement | Ringkasan | Keputusan | Kontrak `1.2.0` | Task BE | Task FE | Implementasi | Verifikasi — rencana | Runtime | Laporan |
+| Requirement | Ringkasan | Keputusan | Kontrak `1.3.0` | Task BE | Task FE | Implementasi | Verifikasi — rencana | Runtime | Laporan |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `PAT-MIG2-AC-01` | Hanya `Staging` persis, kedua mode | `PAT-DEC-019`, `028` | B7 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran pemakaian `RsmmcPilotEnvironmentGate` sebelum pembacaan apa pun | `NANTI` — respons simulasi pertama menyebut `Staging` | — |
 | `PAT-MIG2-AC-02` | Batch kanonik dan baris batch | `PAT-DEC-004`, `028` | B2.1, B4.2 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran gerbang `APPROVED_BATCH`, `BATCH_ROW_EXISTS` | `NANTI` — gerbang pada simulasi | — |
 | `PAT-MIG2-AC-03` | Preview 704.506 dan unik | `PAT-DEC-020` | B4.2 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran gerbang `PREVIEW_ROWS`, `PREVIEW_UNIQUE` | `NANTI` — gerbang pada simulasi | — |
 | `PAT-MIG2-AC-04` | Perencana `FINALIZED` 705.223 | `PAT-DEC-021` | B4.2 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran gerbang `PLANNER_FINALIZED_ROWS` | `NANTI` — gerbang pada simulasi | — |
 | `PAT-MIG2-AC-05` | Himpunan tertunda dan kode cadangan | `PAT-DEC-030` | B4.2 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran `DEFERRED_SET`, `DEFERRED_RESERVATIONS_UNUSED` | `NANTI` — gerbang pada simulasi dan audit | — |
-| `PAT-MIG2-AC-06` | Baseline `MstPatient` | `PAT-DEC-034`, `PAT-DEC-042` (semula `PAT-OQ-020`, kini `SUPERSEDED`) | B4.2 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran `PATIENT_BASELINE` dengan contoh berangka | `NANTI` — 741 sebelum, 741 + jumlah manifest eksekusi sesudah | — |
+| `PAT-MIG2-AC-06` | Baseline `MstPatient`: seluruh baris tanpa filter `IsDelete` = 741 + crosswalk batch kanonik `MIGRATED_BULK_WORKER` | `PAT-DEC-034`, `PAT-DEC-042` (semula `PAT-OQ-020`, kini `SUPERSEDED`), `PAT-DEC-077` | B4.2 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran `PATIENT_BASELINE` dengan contoh berangka; baseline 741 sebagai konstanta profil batch; pemetaan Pilot dan 285 baris historis tidak terhitung | `NANTI` — 741 sebelum, 741 + jumlah manifest eksekusi sesudah. Nilai 741 = pengukuran read-only 22 Oktober 2026 (`PAT-FACT-095`) | — |
 | `PAT-MIG2-AC-07` | Tabrakan `PatientCode` | `PAT-DEC-023` | B3.2, B4.2, B4.3 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran gerbang dan pemeriksaan per pasien sesudah kunci | `NANTI` — gerbang pada simulasi | — |
 | `PAT-MIG2-AC-08` | Tabrakan MRN akhir | `PAT-DEC-023` | B3.2, B4.2, B4.3 | `BE-PAT-MIG-002` | — | `BELUM` | Sama dengan `AC-07` untuk MRN | `NANTI` — gerbang pada simulasi | — |
 | `PAT-MIG2-AC-09` | Manifest eksekusi `RSMMC-CANARY-A` v1: 25 kandidat dalam urutan yang sama, tanpa sort ulang; identifier, versi, dan sidik jari berurutan pada respons | `PAT-DEC-026`, `040`, `044`, `045`, `056` | B1, B2.2, B3.1, B4.2 | `BE-PAT-MIG-002` | — | `BELUM` | Isi dan urutan konstanta manifest dibandingkan dengan `00-interview-decisions.md` bagian 11; sidik jari berurutan dihitung ulang | `NANTI` — identifier, versi, dan sidik jari pada respons simulasi | — |
@@ -215,7 +219,7 @@ dihitung bila `PAT-OQ-022` pilihan A disetujui — tidak adanya automated test *
 | `PAT-MIG2-AC-44` | *Dipindah* — guard reservasi `PatientCode` | `PAT-DEC-057` | B14 | **`BE-PAT-MIG-003`** — lihat `PAT-MIG3-AC-03`–`05` | — | `DIPINDAH` | — | — | — |
 | `PAT-MIG2-AC-45` | *Dipindah* — guard reservasi MRN | `PAT-DEC-057` | B14 | **`BE-PAT-MIG-003`** — lihat `PAT-MIG3-AC-06` | — | `DIPINDAH` | — | — | — |
 | `PAT-MIG2-AC-46` | Gerbang `NORMAL_ALLOCATION_GUARD` menuntut pemeriksa `BE-PAT-MIG-003` melaporkan `overallGuardReady = true`; pembekuan saja tidak cukup. *Diamandemen `1.3.0` (`PAT-DEC-072`): `overallGuardReady` kini mensyaratkan pendaftaran normal **dan** bayi terlindungi* | `PAT-DEC-042`, `055`, `064`, `066`, `067` | B4.2, B14.2 | `BE-PAT-MIG-002` | — | `BELUM` | Test gerbang: pemeriksa tidak tersedia, `overallGuardReady = false`, atau nomor di bawah lantai → eksekusi ditolak | `NANTI` — gerbang pada simulasi sesudah `PAT-GATE-005` | — |
-| `PAT-MIG2-AC-47` | Persistensi fisik `IsMember = false` dengan bukti provider-real. *Diamandemen `1.3.0` (`PAT-DEC-075`): INSERT menyimpan `false` dan dibaca ulang di transaksi yang sama; tanpa UPDATE `PERSIST_IS_MEMBER`* | `PAT-DEC-037`, `041`, `053`, `065` | B4.3, B10, B15 | `BE-PAT-MIG-002` | — | `BELUM` | Test persistensi terfokus wajib **dan** test PostgreSQL 15 sekali pakai atas tujuh hal `PAT-DEC-065` | `NANTI` — audit fisik PostgreSQL | — |
+| `PAT-MIG2-AC-47` | Persistensi fisik `IsMember = false` dengan bukti provider-real. *Diamandemen `1.3.0` (`PAT-DEC-075`): INSERT menyimpan `false` dan dibaca ulang di transaksi yang sama; tanpa UPDATE `PERSIST_IS_MEMBER`* | `PAT-DEC-037`, `041`, `053`, `065`, `075` | B4.3, B10, B15 | `BE-PAT-MIG-002` | — | `BELUM` | Test persistensi terfokus wajib **dan** test PostgreSQL 15 sekali pakai atas tujuh hal `PAT-DEC-065` | `NANTI` — audit fisik PostgreSQL | — |
 | `PAT-MIG2-AC-48` | Kandidat tidak dieksekusi sebelum syarat `PAT-DEC-056`; sesudahnya menjadi manifest tanpa penggantian | `PAT-DEC-040`, `PAT-DEC-056` | B1, B3.1 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran: konstanta manifest berasal dari bagian 11 dalam urutan yang sama | `NANTI` — sidik jari manifest eksekusi pada respons | — |
 | `PAT-MIG2-AC-49` | Kolom crosswalk baru tepat sesuai `PAT-DEC-047`; `normalized_nik`/`normalized_mrn` tidak pernah dibaca untuk mencocokkan | `PAT-DEC-047`, `PAT-DEC-051` | B4.3, B9 | `BE-PAT-MIG-002` | — | `BELUM` | Penelusuran `INSERT` crosswalk berparameter; pencarian pembacaan `normalized_*` pada diff | `NANTI` — audit kolom crosswalk pasien canary | — |
 | `PAT-MIG2-AC-50` | Telepon `SAFE_TO_STORE` yang bergeser → `PHONE_ALREADY_USED`; nilai preview tidak dibuang | `PAT-DEC-050` | B3.2 | `BE-PAT-MIG-002` | — | `BELUM` | Test konflik telepon | `TIDAK BERLAKU` — jalur konflik | — |
@@ -283,6 +287,10 @@ runtime pada `PAT-GATE-002` dan 18 cukup dibuktikan pada tahap verifikasi. *Aman
 | `PAT-DEC-066` Guard hanya `Staging` persis dan `Enabled == true` | `AC-46`; `PAT-MIG3-AC-08`, `12`, `14` |
 | `PAT-DEC-067` Amandemen: `Enabled = false` di Staging gagal tertutup; endpoint pemeriksa | `AC-46`; `PAT-MIG3-AC-07`, `08`, `12`, `14` |
 | `PAT-DEC-068` Kunci allocator dua bagian tetap; konfirmasi endpoint pemeriksa | `PAT-MIG3-AC-05`, `07`, `13` |
+| `PAT-DEC-072` Pemeriksa dan gerbang mensyaratkan jalur normal dan bayi | `AC-46` |
+| `PAT-DEC-075` `IsMember`: INSERT `false` → baca ulang → verifikasi → rollback; tanpa UPDATE khusus | `AC-33`, `47` |
+| `PAT-DEC-076` Lima kolom `MstPatient` baru dibiarkan `NULL` | `AC-33` |
+| `PAT-DEC-077` Baseline tetap `PATIENT_BASELINE` — nilai 741 (`PAT-FACT-095`) | `AC-06`, `36` |
 
 `AC-xx` pada tabel ini berarti `PAT-MIG2-AC-xx`. Butir `PAT-OQ-008`–`026` mempertajam requirement
 di atas dan **tidak** menambah requirement baru; bila pemilik memilih opsi yang berbeda dari
@@ -331,8 +339,13 @@ pada tahap verifikasi. Tidak ada yang menunggu keputusan. *Amandemen kedua: 12 r
 
 ---
 
-## 7. `BE-PAT-MIG-003A` 🟡
+## 7. `BE-PAT-MIG-003A` ✅
 
+> **Diperbarui 22 Oktober 2026:** ✅ — source di-*merge* pemilik (PR #294, merge `ce34b22b`), dideploy ke
+> Staging lewat artefak `fb2099a9` (`0.24.1-build.260`, `Healthy`, `Enabled = true`; `PAT-FACT-092`), dan
+> `PAT-GATE-005` generasi 2 `PASS` (`PAT-FACT-093`), sehingga `AC-12` terpenuhi. 12 dari 12 requirement
+> terbukti.
+>
 > **Bukti akhir 20 Oktober 2026 — kandidat `6e72ee6c` di atas Integration `724629ab`:** 11 requirement tahap
 > build terbukti; `AC-12` milik runtime `PAT-GATE-005` generasi 2. Build Release `0` error; EF tanpa
 > perubahan model; F-07 `17`/`17`; suite non-provider `206`/`206`; provider-real smoke `1`/`1` dan **akhir
@@ -347,18 +360,19 @@ pada tahap verifikasi. Tidak ada yang menunggu keputusan. *Amandemen kedua: 12 r
 
 | Requirement | Ringkasan | Keputusan | Kontrak `1.3.0` | Task BE | Task FE | Implementasi | Verifikasi | Runtime | Laporan |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `PAT-MIG3A-AC-01` | Staging persis + `Enabled = true`: nomor bayi ≥ lantai lewat allocator bersama; `NumberSeries` tidak disentuh | `PAT-DEC-070`, `071` | B14.4 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` (SQLite) — `T6_StagingAktif_*`; provider-real `T6_*` `PASS` | `NANTI` — `AC-12` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
+| `PAT-MIG3A-AC-01` | Staging persis + `Enabled = true`: nomor bayi ≥ lantai lewat allocator bersama; `NumberSeries` tidak disentuh | `PAT-DEC-070`, `071` | B14.4 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` (SQLite) — `T6_StagingAktif_*`; provider-real `T6_*` `PASS` | `PASS` — generasi 2 melaporkan `newbornPatientCreateAllocationMode = RESERVED_FLOOR` dan nomor berikutnya `PAT-RSMMC-705250` / `00-89-01-88` (`PAT-FACT-093`) | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 | `PAT-MIG3A-AC-02` | Staging persis tanpa guard sah → `503` sebelum akses basis data; tidak jatuh ke `NumberSeries` | `PAT-DEC-070` | B14.4 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` (SQLite) — `T3_T4_T5_*` (0 perintah SQL), `T5_*TidakTerbaca`, `Rute_StagingTidakSah_Ditolak503*` | `TIDAK BERLAKU` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 | `PAT-MIG3A-AC-03` | Di luar Staging persis `NumberSeries` bayi tidak berubah; konfigurasi guard tidak dibaca; tanpa kunci `(PATI, NORM)` | `PAT-DEC-070` | B14.4 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` (SQLite, cabang) — `T1_T2_*`, `T2_*TidakDibaca`; ujung-ke-ujung `T1_T2_*` provider-real `PASS`; diff: method `NumberSeries` tidak berubah; `F-07`: guard buatan di luar Staging persis ditolak sebelum SQL (`AlokasiBerlantaiGuardBuatanTests`) | `TIDAK BERLAKU` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 | `PAT-MIG3A-AC-04` | Kunci `(1346458697, 1313821261)` di transaksi bayi sesudah kunci idempotency/kasus; tanpa siklus *deadlock* | `PAT-DEC-071` | B14.4 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | Penelusuran urutan kunci (laporan bagian F); `T10_*` provider-real `PASS` | `TIDAK BERLAKU` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 | `PAT-MIG3A-AC-05` | Normal↔normal, normal↔bayi, bayi↔bayi tanpa nomor ganda dan tidak di bawah lantai | `PAT-DEC-071` | B14.4 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` (SQLite, berurutan) — `T7_*`; bersamaan `T7_T9_*`, `T8_*` provider-real `PASS` | `TIDAK BERLAKU` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 | `PAT-MIG3A-AC-06` | Semantik idempotency bayi tidak berubah | `PAT-DEC-070` | B14.4 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` (SQLite) — `T15_*`; bersamaan `T15_*` provider-real `PASS` | `TIDAK BERLAKU` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 | `PAT-MIG3A-AC-07` | Semantik urutan kelahiran per kasus tidak berubah | `PAT-DEC-070` | B14.4 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` (SQLite) — `T16_*`; kembar bersamaan `T16_*` provider-real `PASS` | `TIDAK BERLAKU` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
-| `PAT-MIG3A-AC-08` | Pemeriksa melaporkan kedua jalur; `overallGuardReady` mensyaratkan keduanya; tetap baca-saja | `PAT-DEC-072` | B14.2 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` (SQLite) — `T11_T12_T14_*`, `T13_*`, `Pemeriksa_BukanStaging_*`; `Pemeriksa_RuteDanIzinSesuaiKontrak` (lama) tetap lulus | `NANTI` — `AC-12` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
+| `PAT-MIG3A-AC-08` | Pemeriksa melaporkan kedua jalur; `overallGuardReady` mensyaratkan keduanya; tetap baca-saja | `PAT-DEC-072` | B14.2 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` (SQLite) — `T11_T12_T14_*`, `T13_*`, `Pemeriksa_BukanStaging_*`; `Pemeriksa_RuteDanIzinSesuaiKontrak` (lama) tetap lulus | `PASS` — keluaran generasi 2 memuat kedua field jalur dan `overallGuardReady = true` (`PAT-FACT-093`) | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 | `PAT-MIG3A-AC-09` | Bukti provider-real PostgreSQL 15 sekali pakai | `PAT-DEC-065`, `070`, `071` | B15 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` — bukti akhir `23`/`23` serial (13 kasus task ini + 10 `BE-PAT-MIG-003`) pada PostgreSQL 15 sekali pakai, kandidat `6e72ee6c` di atas `724629ab`, dilaporkan pemilik 20 Oktober 2026; 0 `pat_proof_*` tersisa. Riwayat `23`/`23` pada `6ae9c251` | `TIDAK BERLAKU` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 | `PAT-MIG3A-AC-10` | Tidak ada regresi `BE-PAT-MIG-003`/`001`; build Release; QBE `Strict` | — | — | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` — 70 + 73 regresi lulus; Release `0` error; QBE `Strict` `PASS` | `TIDAK BERLAKU` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 | `PAT-MIG3A-AC-11` | Tidak ada EF migration baru | `PAT-DEC-074` | — | `BE-PAT-MIG-003A` | — | `TERPENUHI` | `PASS` — `has-pending-model-changes`: tanpa perubahan | `TIDAK BERLAKU` | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
-| `PAT-MIG3A-AC-12` | Runtime `PAT-GATE-005` generasi 2 di Staging: kedua jalur terlindungi, `overallGuardReady = true` | `PAT-DEC-069`, `072` | B14.2 | `BE-PAT-MIG-003A` | — | `BELUM` | — (runtime) | `NANTI` — `PAT-GATE-005` generasi 2 | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
+| `PAT-MIG3A-AC-12` | Runtime `PAT-GATE-005` generasi 2 di Staging: kedua jalur terlindungi, `overallGuardReady = true` | `PAT-DEC-069`, `072` | B14.2 | `BE-PAT-MIG-003A` | — | `TERPENUHI` | — (runtime) | `PASS` — `PAT-GATE-005` generasi 2, dijalankan pemilik 22 Oktober 2026: `environment = Staging`, `guardState = ACTIVE`, `guardEnabled = true`, `guardConfigurationValid = true`, kedua jalur `RESERVED_FLOOR` dan `…Protected = true`, kedua lantai terpenuhi, `overallGuardReady = true`, `checkedAtUtc` `2026-10-22T01:13:58.8831708Z` (`PAT-FACT-093`) | [laporan](../task/report/backend/BE-PAT-MIG-003A.md) |
 
-Jumlah: 12 requirement; 1 menunggu runtime, 11 terbukti pada tahap verifikasi. *Sebelum 19 Oktober 2026
-malam: 1 menunggu bukti provider-real pemilik.* Tidak ada yang menunggu keputusan.
+Jumlah per 22 Oktober 2026: 12 requirement, seluruhnya terbukti — 11 pada tahap verifikasi dan 1 pada
+runtime `PAT-GATE-005` generasi 2. *Sebelum 22 Oktober 2026: 1 menunggu runtime. Sebelum 19 Oktober
+2026 malam: 1 menunggu bukti provider-real pemilik.* Tidak ada yang menunggu keputusan.

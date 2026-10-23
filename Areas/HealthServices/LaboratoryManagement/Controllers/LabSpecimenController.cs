@@ -290,6 +290,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Cancel", "Cancel Lab Specimen", Description = "Membatalkan sampel secara klinis", AccessType = AccessTypes.Update, SortOrder = 7)]
         [AccessPermission("LabSpecimen", "Cancel")]
         public Task<IActionResult> Cancel(

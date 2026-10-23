@@ -457,7 +457,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 // anggota keluarganya terdaftar dan terverifikasi di HR pada tanggal pelayanan. Tanggal diteruskan
                 // apa adanya (bukan serviceDate yang sudah dipotong) agar hari operasional tidak bergeser.
                 var benefitCheck = await _employeeBenefitLookup.ValidateCardForServiceAsync(
-                    card.CompanyGuarantorId, card.EmployeeId, card.FamilyMemberId, command.ServiceDate, cancellationToken);
+                    card.CompanyGuarantorId, card.BenefitOwnerWorkforceProfileId, card.EmployeeId, card.FamilyMemberId,
+                    command.ServiceDate, cancellationToken);
                 if (!benefitCheck.IsValid)
                 {
                     return new EncounterPaymentSourceSwitchResult(
@@ -487,6 +488,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 paymentSource.EmployeeNameSnapshot = card.EmployeeName;
                 // BE-FIN-105, FIN-DEC-198: tautan HR disalin persis dari kartu baru.
                 paymentSource.EmployeeIdSnapshot = card.EmployeeId;
+                paymentSource.WorkforceProfileIdSnapshot = card.BenefitOwnerWorkforceProfileId;
                 paymentSource.FamilyMemberIdSnapshot = card.FamilyMemberId;
                 paymentSource.BenefitRelationshipSnapshot = card.BenefitRelationship;
                 paymentSource.BenefitPlanCodeSnapshot = card.BenefitPlanCode;
@@ -542,6 +544,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             entity.EmployeeNumberSnapshot = null;
             entity.EmployeeNameSnapshot = null;
             entity.EmployeeIdSnapshot = null;
+            entity.WorkforceProfileIdSnapshot = null;
             entity.FamilyMemberIdSnapshot = null;
             entity.BenefitRelationshipSnapshot = null;
             entity.FinancingChoice = null;
