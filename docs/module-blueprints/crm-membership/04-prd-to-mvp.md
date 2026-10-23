@@ -94,7 +94,7 @@ terkendali, dan membuat status member konsisten di seluruh aplikasi.
 
 ## 9. Alur Bisnis Target — `FLOW-CRM-MVP-001`
 
-1. Petugas CRM membuka Pendaftaran Membership dan mengetik No. Telp `0812-xxxx`.
+1. Petugas CRM membuka CRM → Daftar Membership, menekan **+ Pendaftaran Membership** (`CRM-DEC-033`), lalu mengetik No. Telp `0812-xxxx`.
 2. Sistem menampilkan Ibu Sari (Reguler) dan Dika (Reguler). Petugas memilih Ibu Sari.
 3. Petugas memilih Gold. Sistem menampilkan iuran Rp 2.400.000 (angka samaran).
 4. Petugas menyimpan. Status Menunggu Pembayaran, nomor `MBR-2610-000123`, batas bayar 20 Okt 2026 09.00.

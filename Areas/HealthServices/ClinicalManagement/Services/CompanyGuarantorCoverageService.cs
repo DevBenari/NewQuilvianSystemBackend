@@ -93,7 +93,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             return CalculateCoverageDecision(context, rules);
         }
 
-        private static BillingCoverageDecision CalculateCoverageDecision(
+        // Public (bukan private) seperti Matches/CalculateCoveredAmount di bawah: fungsi murni tanpa akses
+        // database, sehingga pencocokan aturan dan alasan hasilnya dapat diuji langsung.
+        public static BillingCoverageDecision CalculateCoverageDecision(
             BillingCoverageContext context,
             List<MstCompanyGuarantorCoverageRule> rules)
         {
@@ -115,8 +117,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     .FirstOrDefault(x => Matches(x, component));
                 if (rule is null)
                 {
+                    // Nominal sengaja tidak berubah: tidak ada aturan cocok = tanggungan 0 (kebijakan
+                    // existing). Yang ditambahkan hanya alasannya, supaya "tidak ada aturan" dapat
+                    // dibedakan dari aturan NotCovered yang eksplisit.
                     outcomes.Add(new BillingCoverageComponentOutcome(
-                        component.ComponentId, component.ComponentType, 0, 0, 0, 0));
+                        component.ComponentId, component.ComponentType, 0, 0, 0, 0,
+                        BillingCoverageReasonCodes.NoMatchingRule));
                     continue;
                 }
 
@@ -127,7 +133,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     var notCoveredNonBillable = !rule.IsAllowExcessPaymentByPatient ? component.Amount : 0;
                     if (notCoveredNonBillable > 0) nonBillableResidual += notCoveredNonBillable;
                     outcomes.Add(new BillingCoverageComponentOutcome(
-                        component.ComponentId, component.ComponentType, 0, 0, 0, notCoveredNonBillable));
+                        component.ComponentId, component.ComponentType, 0, 0, 0, notCoveredNonBillable,
+                        BillingCoverageReasonCodes.ExplicitNotCovered));
                     continue;
                 }
 
@@ -143,8 +150,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 var residual = component.Amount - covered;
                 var residualNonBillable = !rule.IsAllowExcessPaymentByPatient ? residual : 0;
                 if (residualNonBillable > 0) nonBillableResidual += residualNonBillable;
+                // Aturan cocok tetapi hasilnya 0 (persentase 0, kuota kunjungan habis, co-payment >= tagihan)
+                // dilaporkan EXPLICIT_NOT_COVERED: keputusannya datang dari aturan, bukan dari ketiadaan aturan.
+                var reason = covered <= 0
+                    ? BillingCoverageReasonCodes.ExplicitNotCovered
+                    : covered >= component.Amount
+                        ? BillingCoverageReasonCodes.MatchedCovered
+                        : BillingCoverageReasonCodes.MatchedPartial;
                 outcomes.Add(new BillingCoverageComponentOutcome(
-                    component.ComponentId, component.ComponentType, covered, 0, 0, residualNonBillable));
+                    component.ComponentId, component.ComponentType, covered, 0, 0, residualNonBillable, reason));
             }
 
             return new BillingCoverageDecision(
@@ -173,7 +187,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     && rule.DrugCategoryId.HasValue && rule.DrugCategoryId == component.DrugCategoryId)
                 || (string.Equals(rule.ItemType, "Procedure", StringComparison.OrdinalIgnoreCase)
                     && rule.ProcedureId.HasValue && rule.ProcedureId == component.ProcedureId)
-                || (string.Equals(rule.ItemType, "ServiceCategory", StringComparison.OrdinalIgnoreCase)
+                // Master data menyimpan aturan kategori sebagai "TariffCategory" (CompanyGuarantorCoverageRuleService
+                // memetakan "ServiceCategory" ke sana), sedangkan baris lama/impor masih dapat memuat alias
+                // "ServiceCategory". Keduanya dicocokkan lewat TariffCategoryId yang sama.
+                || (CompanyGuarantorCoverageItemTypes.IsTariffCategory(rule.ItemType)
                     && rule.TariffCategoryId.HasValue && rule.TariffCategoryId == component.TariffCategoryId);
         }
 

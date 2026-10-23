@@ -401,3 +401,13 @@ Pengecualian token yang disengaja: `#25D366`/`#128C7E` adalah warna merek pihak 
 | --- | --- |
 | `npx eslint --quiet` (folder fitur) | exit 0 |
 | `MANUAL TEST` di stack owner, cara manusia, 1440 px | `PASS` 5/5 — latar WA `linear-gradient(135deg, rgb(37, 211, 102), rgb(18, 140, 126))`, hover WA/Simpan/Selesai berteks putih, tata letak tetap. Data uji `RSV-20261020-0009` |
+
+## Rework 21 Oktober 2026 — tanggal lampau dinonaktifkan di kalender (`RJ-PRI-DEC-040`)
+
+Isian "Tanggal kunjungan" di dialog Buat Reservasi kini menonaktifkan tanggal sebelum hari ini di kalender
+(`min: minVisitDate` dari `use-priority-reservation-create.jsx`). Contoh: pada 21 Okt 2026, 1–20 Okt dan seluruh
+September abu-abu dan tidak dapat diklik. Aturan backend tidak berubah (`VAL-RP-03`).
+
+Dikerjakan bersama rework dialog Ganti Tanggal, karena memakai perubahan yang sama pada `BaseDateField`. Gerbang
+komponen, validasi (lint dan build exit 0), dan uji layar `CREATE CAL` `PASS` dicatat di
+[FE-RJP-009.md](FE-RJP-009.md) bagian 8.

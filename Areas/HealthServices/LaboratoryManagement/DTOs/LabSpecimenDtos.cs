@@ -169,6 +169,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
     public class CancelLabSpecimenRequest
     {
+        /// <summary>
+        /// Alasan pembatalan — <b>wajib</b> (<c>VAL-155</c>, <c>BE-LAB-97</c>): kosong atau hanya spasi
+        /// ditolak <c>422</c> <i>"Alasan pembatalan wajib diisi."</i>, sesudah penjaga keadaan. Sengaja
+        /// tanpa <c>[Required]</c>: penolakan pengikatan bawaan berbunyi lain dan berkode <c>400</c>.
+        /// </summary>
         [MaxLength(1000)]
         public string? Reason { get; set; }
     }

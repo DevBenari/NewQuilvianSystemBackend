@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `70dd4d4e0` (branch `YogaV2`) + working tree `FE-LAB-50` |
 | Commit backend yang dijadikan rujukan | `f17cb984` (branch `yoga`) + working tree `BE-LAB-90`/`BE-LAB-91` |
 | Tanggal | 2026-10-07 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — `AC-289` dan `AC-291` terbukti dengan akun analis asli **tanpa mengganti jawaban apa pun**; Konfirmasi sungguhan `LAB-RSMMC-000013` (*Diminta*) langsung menampilkan nama konfirmator, waktu, dan dokter tanpa muat ulang. **Batas:** `AC-292` pada baris *Diterima* (status tetap, Proses aktif) belum diamati di layar — dev tidak punya pesanan *Diterima* belum dikonfirmasi, dan pemilik modul memilih satu tulis minimal |
+| Status | ✅ **`SELESAI`** — 2026-10-21. Semula ⚠ (`AC-292` pada baris *Diterima* belum diamati). `AC-292` kini terbukti pada baris *Diterima* dengan Konfirmasi sungguhan oleh akun analis asli (bagian 9) |
 
 ---
 
@@ -123,7 +123,7 @@ Pemilih umum mengirim `onlyActive=true`; backend mengabaikannya (`r41` 36.3).
 | S5 — Konfirmasi **sungguhan** `LAB-RSMMC-000013` | `POST confirm` `200` (status `Confirmed`, `confirmedAt`/`confirmedByName`/`examinerDoctorName` terisi); dialog tertutup; **tanpa muat ulang** kolom berisi nama analis, waktu, *Dokter pemeriksa: dr. Arif Lesmana*; Konfirmasi redup *"…sudah dikonfirmasi…"* | `PASS` | Tangkapan layar; DB: `Confirmed`, konfirmator = akun analis, versi 0→1, riwayat `Order.Confirm Requested→Confirmed` |
 | S6 — sesudah muat ulang | Kolom tetap terisi | `PASS` | |
 | Penjaga tulis | Hanya satu `POST confirm` `000013` diteruskan; nol tulis lain | `PASS` | Log skrip |
-| `AC-292` pada baris *Diterima* (status tetap, Proses aktif tanpa muat ulang) | — | `NOT RUN` | Dev nol pesanan *Diterima* belum dikonfirmasi; pemilik modul memilih satu tulis pada pesanan *Diminta*. Jalur reducer dan jawaban sama; backend sudah membuktikan lima ruas pada `Accepted` (`BE-LAB-91`) |
+| `AC-292` pada baris *Diterima* (status tetap, Proses aktif tanpa muat ulang) | Status tetap *Diterima*, Konfirmasi redup, Proses aktif, kolom terisi — tanpa muat ulang | `PASS` (2026-10-21) | Bagian 9 — semula `NOT RUN` |
 
 **Pembanding sebelum perbaikan.** Pada `FE-LAB-50` S4, Konfirmasi yang sama berhasil `200`, tetapi kolom tetap
 *Belum Terkonfirmasi* sampai muat ulang. Pada S5 di atas, kolom langsung terisi — itulah T1 yang tertutup.
@@ -149,7 +149,7 @@ AUTOMATED TEST: PASS (5 uji baru; nol kegagalan baru).
 | `AC-289` sisi layar — daftar dari endpoint Lab, nol panggilan SDM | Terpenuhi | S2, S3 |
 | `AC-291` — dibuka kosong; Simpan redup sampai dipilih | Terpenuhi | S1, S4, uji unit |
 | `AC-292` sisi layar — tanpa muat ulang kolom terisi, Konfirmasi redup | Terpenuhi pada baris *Diminta* | S5, S6 |
-| `AC-292` sisi layar — baris *Diterima* tetap *Diterima*, Proses aktif | **Belum** | Butuh pesanan uji *Diterima* |
+| `AC-292` sisi layar — baris *Diterima* tetap *Diterima*, Proses aktif | Terpenuhi (2026-10-21) | `LAB-RSMMC-000028` — bagian 9 |
 | Batas AC tambahan (a) `FE-LAB-50` | **Sebagian ditutup** — kolom kini langsung terisi dari jawaban; pengamatan pada baris *Diterima* menyusul | S5 |
 | DoD — uji unit, lint, build, laporan | Terpenuhi | Bagian 6 |
 
@@ -166,4 +166,20 @@ AUTOMATED TEST: PASS (5 uji baru; nol kegagalan baru).
 | Data dev | `LAB-RSMMC-000013` kini *Confirmed* — dikonfirmasi akun analis, dokter pemeriksa *dr. Arif Lesmana* (izin pemilik modul 2026-10-07, satu tulis) |
 | Interupsi | Backend pertama kali gagal menyala karena dijalankan dari direktori yang salah; dinyalakan ulang dengan `--project` eksplisit. Tidak berdampak pada data |
 | Status Git | Frontend: sembilan berkas `M` (delapan `FE-LAB-50` + registry), satu berkas baru `??` — gabungan `FE-LAB-50`/`FE-LAB-51`, belum di-commit |
-| Langkah berikutnya | Langkah rilis `MVP-12c` serempak. Untuk menutup `AC-292` baris *Diterima*: satu pesanan dibawa ke *Diterima* (memicu fakta tagihan) atas izin pemilik modul |
+| Langkah berikutnya | `NONE` — task selesai |
+
+---
+
+## 9. Penuntasan batas verifikasi (2026-10-21)
+
+| Hal | Isi |
+| --- | --- |
+| Pesanan uji | `LAB-RSMMC-000028` — kunjungan IGD pasien uji 00-00-00-17, Kalium (data uji `MVP-15e`, izin tulis pemilik modul 2026-10-21). Satu pesanan dibawa melewati seluruh alur v1 untuk menuntaskan `FE-LAB-46`, `48`, `50`, dan `51` sekaligus |
+| Akun | Gilang (Analis) dan dr. Bima (Kepala Instalasi) — akun asli; sandi tidak dicatat. Superadmin hanya pada satu langkah antara (lihat di bawah) |
+| 1. Rencana wadah — layar Wadah (Gilang) | `POST /lab-specimens/by-order/{GUID pesanan ini}` → `201`; wadah *Direncanakan* menopang Kalium; kartu tampil tanpa muat ulang |
+| 2. Diambil → diterima (Gilang), layak (petugas kedua) | `200`/`200`; *layak* oleh Gilang ditolak `403` *"Petugas yang mengambil sampel tidak boleh menyatakan kelayakannya"* (empat mata, `VAL-09`) → dinyatakan layak oleh superadmin sebagai pengganti analis kedua (sandi Vina tidak tersedia) → pesanan *Diterima*, belum dikonfirmasi |
+| 3. Konfirmasi — Daftar Pasien Lab PK (Gilang) | Dialog kosong, Simpan redup (`AC-291`); dokter dipilih dari daftar Lab; `POST confirm` → `200`. **Tanpa muat ulang:** kolom Dokter Pemeriksa *dr. Aditya Pranata, Sp.PK*, kolom Konfirmasi *Gilang Mahendra · 21 Okt 2026 12.18*, status **tetap** *Diterima*, Konfirmasi redup, **Proses Pemeriksaan aktif**. Bukti: tangkapan layar sesudah Simpan dan sebelum muat ulang (toast *"Pesanan berhasil dikonfirmasi."* masih tampil) dan teks baris sesudah muat ulang. Dua cek teks skrip sempat `FAIL` karena masih mencari awalan pra-v1 *"Dokter pemeriksa:"* — sejak `r47` dokter pemeriksa punya kolom sendiri; bukan cacat layar |
+| 4. Proses Pemeriksaan — layar (Gilang) | `PUT start-process` → `200`; baris *Sedang Dikerjakan* |
+| 5. Hasil (langkah antara, API) | Gilang mengisi Kalium 4,1 dan memfinalkan → `200`; dr. Bima memvalidasi → `200`; rilis oleh validator yang sama ditolak `422` (empat mata) → dr. Bima merilis dengan alasan pengecualian resmi *"Shift tunggal, tidak ada dokter lain bertugas"* → `200`; pesanan *InProcess*, `resultProgress` *AllReleased* |
+| 6. Selesaikan — layar (Gilang) | Selesaikan aktif; `PUT complete` → **`200` sungguhan**; dialog tertutup; baris langsung *Selesai* tanpa muat ulang; server `Completed` |
+| Hasil untuk task ini | Langkah 3: `AC-291` dan `AC-292` pada baris *Diterima* `PASS`; daftar dokter dari endpoint Lab (`AC-289`) tanpa `403` |

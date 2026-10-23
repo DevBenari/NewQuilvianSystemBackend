@@ -150,3 +150,106 @@ uji `FE-RJP-001`/`002`.
 | Interupsi | Sesi berpindah konteks sesudah migration diterapkan. Dilanjutkan dari status Git dan riwayat migration DB; tidak ada langkah ganda |
 | Status Git | Belum di-commit. Tidak ada stage, commit, push, merge, atau deploy |
 | Langkah berikutnya | `BE-RJP-006` (buat reservasi dan kueri) |
+
+---
+
+## 8. Rework 21 Oktober 2026 — alamat link konfirmasi per lingkungan
+
+### 8.1 Metadata rework
+
+| Field | Nilai |
+| --- | --- |
+| Pemicu | Link konfirmasi kedatangan yang terbit di server berisi `http://localhost:3000/priority-arrival/...`, sehingga tidak bisa dibuka pasien |
+| Trace | `02-backend-architecture.md` RP.11 (`PublicArrivalBaseUrl`), `GAP-RP-01`, `RJ-PRI-OQ-003` |
+| Klasifikasi | `LIGHT` — skor 0: satu repository, diperiksa ≤ 8 berkas inti, diubah 2 berkas konfigurasi, tanpa logika, API, database, maupun auth |
+| Task mode | `BACKEND`, atas permintaan user (sukmagp) pada 2026-10-21 |
+| Target tulis | `appsettings.json`, `appsettings.Development.json`, laporan ini, roadmap dan traceability Reservasi Prioritas |
+| Model | Claude Opus 5.5 |
+| Commit backend saat dikerjakan | `c594fabd` (`sukmagp`, upstream `origin/sukmagp`), working tree bersih sebelum task |
+| Status | ✅ Selesai untuk repo. Nilai staging dan production tetap disetel di server (lihat 8.3) |
+
+| Backend Governance Preflight | Nilai |
+| --- | --- |
+| Area / Module | `HealthServices` / `RegistrationManagement` |
+| Pemilik / prefix | Registration, `Reg` (registry `ACTIVE / LEGACY`) |
+| Keberlakuan | `TOUCHED LEGACY` — hanya nilai konfigurasi, tanpa kode C# |
+| QBE yang berlaku | `NOT APPLICABLE` — tidak ada entity, configuration EF, penamaan, kode nomor, atau migration yang disentuh |
+| Catatan role access | `NOT APPLICABLE` — tidak ada endpoint yang dibuat atau disentuh |
+| Selisih governance | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` di repo berbeda isi dengan salinan di suite skill 1.18.0. Sesuai `AGENTS.md`, salinan repo yang dipakai. Entri `RegistrationManagement` tidak terdampak |
+
+### 8.2 Masalah dan proses bisnis
+
+Link konfirmasi dibentuk backend dari `PublicArrivalBaseUrl` + `/` + kode. Nilai bawaan di `appsettings.json`
+masih alamat laptop pengembang. Image Docker yang sama dipromosikan dari dev ke staging lalu production, dan
+`appsettings.Development.json` dikecualikan oleh `.gitignore` dan `.dockerignore`. Akibatnya setiap server yang
+tidak menimpa kunci ini menerbitkan link `localhost`.
+
+Contoh: admisi membuat reservasi `RSV-20261021-0001` di server dev. Pasien menerima
+`http://localhost:3000/priority-arrival/<kode>` lewat WhatsApp. Di HP pasien, alamat itu menunjuk ke HP itu sendiri,
+jadi halaman tidak terbuka dan pasien tidak bisa menekan "Saya sudah tiba".
+
+Alur sesudah perbaikan:
+
+1. Admisi membuat reservasi atau menekan **Kirim Ulang Link**.
+2. Backend membaca `PublicArrivalBaseUrl` dari konfigurasi lingkungan tempat ia berjalan.
+3. Link dikirim ke pasien dengan domain frontend lingkungan itu, misalnya
+   `https://dev.quilvian-mmchospital.com/priority-arrival/<kode>`.
+4. Jalur tidak normal: link yang terbit **sebelum** perubahan tetap berisi `localhost`. Admisi menerbitkan ulang
+   lewat **Kirim Ulang Link**; kode lama tidak berlaku lagi sesudah diterbitkan ulang.
+
+### 8.3 Perubahan dan nilai per lingkungan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `appsettings.json` | `HealthServices:Registration:PriorityReservation:PublicArrivalBaseUrl` diubah dari `http://localhost:3000/priority-arrival` menjadi `https://dev.quilvian-mmchospital.com/priority-arrival`. Mengikuti pola `FileStorage:PublicBaseUrl` yang sudah menunjuk server dev |
+| `appsettings.Development.json` (tidak dilacak Git) | Menambah section `HealthServices:Registration:PriorityReservation` yang hanya berisi `PublicArrivalBaseUrl = http://localhost:3000/priority-arrival`, agar uji lokal tetap memakai frontend lokal. Kunci lain tetap diwarisi dari `appsettings.json` |
+
+`PriorityReservationOptions.cs` tidak diubah. Nilai bawaan di kelas itu hanya berlaku bila kunci hilang dari
+konfigurasi, dan `appsettings.json` selalu memuat kunci ini.
+
+Nilai yang wajib disetel di server lewat environment variable
+`HealthServices__Registration__PriorityReservation__PublicArrivalBaseUrl`:
+
+| Lingkungan | Nilai | Sumber |
+| --- | --- | --- |
+| Lokal (`Development`) | `http://localhost:3000/priority-arrival` | `appsettings.Development.json` |
+| Server dev | `https://dev.quilvian-mmchospital.com/priority-arrival` | Bawaan `appsettings.json`; environment variable tidak wajib |
+| Staging | `https://sta.quilvian-mmchospital.com/priority-arrival` | Environment variable di server |
+| Production | `https://quilvian-mmchospital.com/priority-arrival` | Environment variable di server; nilai sesuai RP.11 |
+
+Skrip deploy (`/opt/QuilvianDeveloper/deploy.sh`, `/opt/QuilvianProductionV2/deploy-bluegreen.sh`) ada di server,
+bukan di repo, sehingga tidak diubah task ini.
+
+| Aspek | Dampak |
+| --- | --- |
+| Kontrak API | `NOT APPLICABLE` — bentuk respons tetap; hanya domain di field link yang berubah |
+| Database | `NOT APPLICABLE` — tidak ada schema, entity, atau migration |
+| Keamanan/Auth | `NOT APPLICABLE` — tidak ada perubahan otorisasi. Kode link tetap tidak tercatat di konfigurasi maupun log |
+
+### 8.4 Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| Parse JSON kedua berkas (`node`) | Keduanya valid | `PASS` | Keluaran perintah |
+| Nilai efektif, image server (hanya `appsettings.json`) | `https://dev.quilvian-mmchospital.com/priority-arrival` | `PASS` | Keluaran perintah |
+| Nilai efektif, lokal `Development` (override) | `http://localhost:3000/priority-arrival`; override hanya berisi satu kunci, enam kunci lain tetap dari `appsettings.json` | `PASS` | Keluaran perintah |
+| `dotnet build` ke `bin\Debug` | Kompilasi selesai, tetapi salin `QuilvianSystemBackend.exe` gagal (`MSB3027`/`MSB3021`) karena backend lokal sedang berjalan (PID 18356) | `EXISTING / ENVIRONMENT ISSUE` | Keluaran perintah |
+| `dotnet build -o <scratchpad>/build-out` | 0 error, 10 warning (build inkremental). `appsettings.json` hasil build memuat alamat server dev | `PASS` | Keluaran perintah |
+
+Uji manual: `REQUIRED` — sesudah deploy, terbitkan satu link di server dev lalu buka dari HP di luar jaringan
+kantor.
+
+**Tidak dijalankan:** uji runtime HTTP pembuatan reservasi (perubahan hanya nilai konfigurasi; backend lokal
+user sedang berjalan dan tidak dimulai ulang), QBE Strict (tidak ada berkas C#), dan `dotnet test` — `NOT RUN`.
+
+### 8.5 Catatan penutup rework
+
+| Hal | Isi |
+| --- | --- |
+| Peringatan | Backend lokal yang sedang berjalan perlu dimulai ulang agar override `appsettings.Development.json` terbaca. Nilainya sama dengan sebelumnya, jadi perilaku lokal tidak berubah |
+| Masalah yang diketahui | Domain frontend production diambil dari RP.11 dan daftar CORS. Belum dicek langsung terhadap server |
+| Risiko tersisa | Bila environment variable lupa disetel di staging atau production, link menunjuk ke server dev. Pasien bisa membuka halaman, tetapi kode tidak dikenal di database lingkungan itu sehingga muncul 404. `GAP-RP-01` (aksesibilitas internet dan IP asli) tetap terbuka |
+| Perubahan sampingan | `NONE` |
+| Interupsi | `NONE` |
+| Status Git | ` M appsettings.json`, ` M` laporan ini, roadmap, dan traceability. `appsettings.Development.json` tidak dilacak Git. Tidak ada stage, commit, push, merge, atau deploy |
+| Langkah berikutnya | Setel environment variable di server staging dan production, buat ulang container, lalu uji manual link dari HP |

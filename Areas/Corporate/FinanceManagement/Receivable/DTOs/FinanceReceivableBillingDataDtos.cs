@@ -6,11 +6,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dto
 /// <summary>Nilai <c>category</c> pada Data Tagihan. Dipetakan ke FinReceivable.DebtorType.</summary>
 public static class BillingDataCategories
 {
-    /// <summary>Perusahaan/Asuransi → PAYER.</summary>
+    /// <summary>
+    /// Perusahaan/Asuransi → PAYER pihak luar (IsInternalBenefit = false). Porsi Benefit Karyawan RS TIDAK termasuk di sini:
+    /// itu biaya rumah sakit sendiri, bukan tagihan ke pihak luar (lihat <see cref="InternalBenefit"/>).
+    /// </summary>
     public const string Company = "company";
 
-    /// <summary>Karyawan → EMPLOYEE_BENEFIT. Jalur intake-nya belum ada (FIN-DEC-006), jadi hasilnya kosong.</summary>
+    /// <summary>
+    /// Karyawan → EMPLOYEE_BENEFIT: kewajiban pribadi karyawan yang secara eksplisit ditangguhkan menjadi AR Karyawan saat
+    /// finalisasi Benefit RS. Kosong bila tidak ada penangguhan; itu keadaan yang sah, bukan jalur yang belum tersedia.
+    /// </summary>
     public const string Employee = "employee";
+
+    /// <summary>
+    /// Benefit RS Internal → PAYER dengan IsInternalBenefit = true: porsi biaya yang ditanggung rumah sakit lewat program
+    /// Benefit Karyawan RS. Diselesaikan lewat Penutupan Benefit (Finance Benefit Settlement), bukan penerimaan uang.
+    /// </summary>
+    public const string InternalBenefit = "internalBenefit";
 
     /// <summary>Pasien Umum → PATIENT_GUARANTOR.</summary>
     public const string GeneralPatient = "generalPatient";
@@ -57,6 +69,9 @@ public static class BillingDataPeriods
 public static class BillingDataCreateBlockedReasons
 {
     public const string NotPayer = "NOT_PAYER";
+
+    /// <summary>Porsi Benefit RS internal: biaya rumah sakit sendiri, diselesaikan lewat Penutupan Benefit, bukan Batch Tagihan AR.</summary>
+    public const string InternalBenefit = "INTERNAL_BENEFIT";
     public const string NoDebtorReference = "NO_DEBTOR_REFERENCE";
     public const string AlreadyInBatch = "ALREADY_IN_BATCH";
     public const string InCancelledBatch = "IN_CANCELLED_BATCH";
@@ -138,6 +153,16 @@ public sealed class BillingDataItemResponse
     /// <summary>PAYER | PATIENT_GUARANTOR | EMPLOYEE_BENEFIT.</summary>
     public string DebtorType { get; set; } = string.Empty;
     public Guid? DebtorReferenceId { get; set; }
+
+    /// <summary>True untuk PAYER porsi Benefit Karyawan RS (biaya rumah sakit sendiri, bukan tagihan ke pihak luar).</summary>
+    public bool IsInternalBenefit { get; set; }
+
+    /// <summary>Asal piutang karyawan (EMPLOYEE_BENEFIT): OVER_ALLOWANCE, PATIENT_PORTION, atau MIXED.</summary>
+    public string? EmployeeArOrigin { get; set; }
+
+    /// <summary>Nama dan nomor pegawai pemilik benefit (identitas canonical: WorkforceProfileId), bukan nama pasien.</summary>
+    public string? BenefitOwnerName { get; set; }
+    public string? BenefitOwnerStaffNumber { get; set; }
 
     /// <summary>Nama penjamin: asuransi, perusahaan penjamin, atau nama penjamin pada kunjungan; nama pasien untuk kategori lain.</summary>
     public string? PayerName { get; set; }
@@ -221,6 +246,10 @@ public sealed class BillingDataGroupMeta
 {
     public string? NoRM { get; set; }
     public string? EmployeeId { get; set; }
+
+    /// <summary>Pemilik benefit (kategori employee dan internalBenefit): pegawai pemegang plafon, bukan pasien penerima manfaat.</summary>
+    public string? BenefitOwnerName { get; set; }
+    public string? BenefitOwnerStaffNumber { get; set; }
 }
 
 /// <summary>Subtotal billing amount per tanggal kalender di dalam kelompok yang sama.</summary>

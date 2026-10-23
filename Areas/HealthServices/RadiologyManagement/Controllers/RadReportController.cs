@@ -26,9 +26,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
     {
         private readonly RadReportService _radReportService;
         private readonly RadReportTemplateService _radReportTemplateService;
+        private readonly RadStudyService _radStudyService;
 
-        public RadReportController(RadReportService radReportService, RadReportTemplateService radReportTemplateService)
+        public RadReportController(
+            RadReportService radReportService,
+            RadReportTemplateService radReportTemplateService,
+            RadStudyService radStudyService)
         {
+            _radStudyService = radStudyService;
             _radReportService = radReportService;
             _radReportTemplateService = radReportTemplateService;
         }
@@ -232,6 +237,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
         /* ================================================================ *
          * Penulisan
          * ================================================================ */
+
+        // Form Hasil v1 (RAD-DEC-023): hasil langsung final tanpa konsol pemeriksaan. Study dibuat
+        // atau dilompati ke layak, fakta tagihan terbit sekali, dan isinya menjadi versi bacaan
+        // yang langsung dirilis; simpan ulang menjadi versi koreksi.
+        [HttpPut("by-order/{radOrderId:guid}/result")]
+        [ProducesResponseType(typeof(ApiResponse<RadReportDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Create", "Create Rad Report", Description = "Menyimpan hasil pemeriksaan radiologi dari Form Hasil", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("RadReport", "Create")]
+        public async Task<IActionResult> SaveOrderResult(
+            Guid radOrderId,
+            [FromBody] RadOrderResultRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                return await Execute(
+                    () => _radStudyService.SaveDirectResultAsync(radOrderId, request, cancellationToken),
+                    "Hasil pemeriksaan radiologi berhasil disimpan.");
+            }
+            catch (RadConcurrencyException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    exception.Message,
+                    new { Code = RadErrorCodes.ConcurrencyConflict }));
+            }
+        }
 
         [HttpPost("by-study/{radStudyId:guid}/draft")]
         [ProducesResponseType(typeof(ApiResponse<RadReportDetailResponse>), StatusCodes.Status200OK)]

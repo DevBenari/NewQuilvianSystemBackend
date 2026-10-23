@@ -7,6 +7,10 @@ using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
+using System.Text.Json;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
@@ -43,6 +47,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// <b>membaca</b> penugasan lewat service bersama, bukan menyalinnya.
         /// </summary>
         private readonly InpatientClinicalContextService _clinicalContextService;
+        private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
 
         public RadOrderService(
             ApplicationDbContext dbContext,
@@ -50,6 +55,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             LoggerService loggerService,
             RadOrderNumberService orderNumberService,
             InpatientClinicalContextService clinicalContextService,
+            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             RadPhotoNumberService? photoNumberService = null)
         {
             _dbContext = dbContext;
@@ -57,6 +63,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             _loggerService = loggerService;
             _orderNumberService = orderNumberService;
             _clinicalContextService = clinicalContextService;
+            _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _photoNumberService = photoNumberService;
         }
 
@@ -2297,6 +2304,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             await _dbContext.SaveChangesAsync(cancellationToken);
             if (transaksi != null) await transaksi.CommitAsync(cancellationToken);
 
+            if (entity.InpEpisodeId.HasValue && entity.InpEpisodeId.Value != Guid.Empty)
+            {
+                try
+                {
+                    var factRequest = new ClinicalMilestoneFactRequest
+                    {
+                        SourceContext = BillingSourceContract.RadiologySourceContext,
+                        SourceAggregateId = entity.Id,
+                        SourceItemId = entity.Id,
+                        EffectType = BillingSourceContract.RadiologyChargeEffectType,
+                        EncounterId = entity.EncounterId,
+                        OccurredAt = now,
+                        Quantity = 1m,
+                        Unit = "Pemeriksaan",
+                        TariffSnapshot = JsonSerializer.Serialize(new
+                        {
+                            source = "RadiologySnapshot",
+                            procedureId = entity.ProcedureId,
+                            modalityId = entity.ModalityId
+                        }),
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = "OrderRequested",
+                            orderNumber = entity.OrderNumber,
+                            procedureId = entity.ProcedureId,
+                            modalityId = entity.ModalityId
+                        })
+                    };
+                    await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(factRequest, actorUserId, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "RadOrder.EmitChargeEligibility", "Gagal menerbitkan tagihan radiologi rawat inap", ex);
+                }
+            }
+
             var detail = await GetDetailAsync(entity.Id, cancellationToken);
             return RadOperationResult<RadOrderDetailResponse>.Success(detail!);
         }
@@ -2360,13 +2403,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     "sudah terjadi tetap tercatat.");
             }
 
-            return await TransitionAsync(id, "Order.Cancel", RadOrderStatus.Cancelled,
+            var transitionResult = await TransitionAsync(id, "Order.Cancel", RadOrderStatus.Cancelled,
                 new[]
                 {
                     RadOrderStatus.Draft, RadOrderStatus.Requested, RadOrderStatus.Accepted,
                     RadOrderStatus.Scheduled, RadOrderStatus.OnHold, RadOrderStatus.CancelRequested,
                 },
                 request, cancellationToken, reasonRequired: true);
+
+            if (transitionResult.IsSuccess && order.InpEpisodeId.HasValue && order.InpEpisodeId.Value != Guid.Empty)
+            {
+                try
+                {
+                    var cancelFact = new ClinicalMilestoneFactRequest
+                    {
+                        SourceContext = BillingSourceContract.RadiologySourceContext,
+                        SourceAggregateId = order.Id,
+                        SourceItemId = order.Id,
+                        EffectType = BillingSourceContract.RadiologyChargeEffectType,
+                        EncounterId = order.EncounterId,
+                        OccurredAt = DateTime.UtcNow,
+                        TariffSnapshot = null,
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = "OrderCancelled",
+                            orderNumber = order.OrderNumber,
+                            procedureId = order.ProcedureId,
+                            reason = request.Reason
+                        })
+                    };
+                    await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(cancelFact, GetCurrentUserId(), cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "RadOrder.EmitClinicalCancellation", "Gagal membatalkan tagihan radiologi rawat inap", ex);
+                }
+            }
+
+            return transitionResult;
         }
 
         public async Task<RadOperationResult<RadOrderDetailResponse>> HoldAsync(

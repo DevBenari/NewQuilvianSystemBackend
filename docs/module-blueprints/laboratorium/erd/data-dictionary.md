@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `12` — 2026-10-09: putaran 28 (`LAB-CONFLICT-019`) — nol tabel, nol kolom; penjelasan `LabExamination.Urgency`, `UrgencyMarkedAt`, dan `LabOrderedProcedure.Urgency` diperjelas (`02-backend-architecture.md` 29.2). Sebelumnya `11` — bagian 22, 2026-10-08: BR-140 Beranda — nol tabel, nol kolom; kolom `LabOrder`, `LabOrderedProcedure`, `LabExamination` yang dibaca dicatat. Sebelumnya `10` — bagian 21, 2026-10-07: BR-139 — nol tabel, nol kolom; `MstDoctor` dibaca empat kolom. Sebelumnya `9` — bagian 20, 2026-10-07: BR-138 — nol tabel, nol kolom. Sebelumnya `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
+| Revision | `13` — 2026-10-20: bagian 23 — dua laporan `S16b`: nol tabel, nol kolom, satu index usulan `LabTransitionHistory (Action, OccurredAt)`; kolom kunci yang dibaca, `MstPatient` dan `ReasonNote` bertanda sensitif. Sebelumnya `12` — 2026-10-09: putaran 28 (`LAB-CONFLICT-019`) — nol tabel, nol kolom; penjelasan `LabExamination.Urgency`, `UrgencyMarkedAt`, dan `LabOrderedProcedure.Urgency` diperjelas (`02-backend-architecture.md` 29.2). Sebelumnya `11` — bagian 22, 2026-10-08: BR-140 Beranda — nol tabel, nol kolom; kolom `LabOrder`, `LabOrderedProcedure`, `LabExamination` yang dibaca dicatat. Sebelumnya `10` — bagian 21, 2026-10-07: BR-139 — nol tabel, nol kolom; `MstDoctor` dibaca empat kolom. Sebelumnya `9` — bagian 20, 2026-10-07: BR-138 — nol tabel, nol kolom. Sebelumnya `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
 | Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1575,3 +1575,29 @@ Nilai hasil (`ResultNumeric`, `ResultOptionId`, temuan Mikro) **tidak dibaca**.
 
 **`MstProcedure`** (master data) — `Sudah ada`: `LabDiscipline` (disiplin jatuhan) dan `ProcedureName` (nama bagi
 pesanan lama).
+
+## 23. Amandemen 2026-10-20 — Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`): nol tabel, nol kolom, satu index
+
+Menurunkan `02-backend-architecture.md` bagian 32. **Nol tabel baru, nol kolom baru.** Kedua laporan membaca tabel yang
+sudah ada; yang didokumentasikan di sini hanya kolom kunci yang dipakai aturan laporan (kamus bertingkat, tabel
+`Sudah ada`).
+
+### 23.1 Index yang diusulkan
+
+| Tabel | Index | Kolom | Unique | Alasan | Status |
+|---|---|---|:---:|---|---|
+| `public.LabTransitionHistory` | `IX_LabTransitionHistory_Action_OccurredAt` | `Action`, `OccurredAt` | Tidak | Laporan Pembatalan menyaring aksi `Order.Cancel`/`Examination.Cancel` dalam rentang waktu | **Usulan** — `02-backend-architecture.md` 32.10 no. 3 |
+
+### 23.2 Kolom yang dibaca kedua laporan
+
+| Tabel (pemilik) | Kolom | Dipakai untuk | Sensitif |
+|---|---|---|:---:|
+| `LabTransitionHistory` (Lab) — `Models/LabTransitionHistory.cs` | `Id` (PK), `LabOrderId` (FK), `LabExaminationId` (FK, kosong bagi baris order), `Action`, `FromStatus`, `ToStatus`, `ReasonNote`, `ActorUserId`, `OccurredAt` | Satu baris per peristiwa (`INV-58`); *Alasan tidak dicatat* bila `ReasonNote` kosong; *Sudah layak tagih* bila `FromStatus` = `ChargeEligible` | `ReasonNote` **Ya** — dapat menyebut kondisi pasien; tidak boleh masuk log |
+| `LabOrder` (Lab) | `Id`, `OrderNumber`, `OrderStatus`, `Discipline`, `EncounterId` (FK), `RequestedAt`, `CreateDateTime` | Waktu diminta, status, disiplin, kunjungan | Tidak |
+| `LabExamination` (Lab) | `Id`, `LabOrderId`, `ProcedureId`, `ProcedureNameSnapshot`, `ExaminationStatus` | Hitung pemeriksaan (`INV-59`); nama pada detail | Tidak |
+| `LabOrderedProcedure` (Lab) | `LabOrderId`, `ProcedureId`, `OrderedStatus` | Permintaan belum masuk wadah (`LAB-DC-065`) | Tidak |
+| `LabSpecimen` (Lab) | `Id`, `LabOrderId`, `SpecimenBarcode`, `SpecimenStatus` | Detail baris order | Tidak |
+| `RegPatientEncounter` (Registrasi) | `Id`, `PatientId`, `ServiceUnitId` (wajib), `EncounterType` | Pengelompokan dan kolom unit | Tidak |
+| `MstServiceUnit` (Master Data) | `Id`, `ServiceUnitName`, `IsActive` | Nama unit; pilihan penyaring | Tidak |
+| `MstPatient` (data induk pasien) | `Id`, `MedicalRecordNumber`, `FullName` | Kolom No. RM dan nama — **Laporan Pembatalan saja** | **Ya** — tidak disalin, tidak masuk log, tidak dipakai sebagai contoh berisi data asli |
+| `Users` (Platform) | `Id`, `DisplayName` (cadangan `UserName`/`Email`/`UserCode`) | Nama pembatal | Tidak |

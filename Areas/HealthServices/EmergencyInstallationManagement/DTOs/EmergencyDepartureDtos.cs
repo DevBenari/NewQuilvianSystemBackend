@@ -31,6 +31,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public Guid? SendingNurseUserId { get; set; }
         public Guid? ReceivingNurseUserId { get; set; }
 
+        /// <summary>
+        /// Nama tampilan perawat pengirim IGD, perawat penerima bangsal, dan pembuat persiapan transfer.
+        /// Diisi otomatis dari tabel pengguna tanpa perubahan skema database.
+        /// </summary>
+        public string? SendingNurseName { get; set; }
+        public string? ReceivingNurseName { get; set; }
+        public string? RequestedByName { get; set; }
+
         public string? DepartureReason { get; set; }
 
         public string? SituationSummary { get; set; }

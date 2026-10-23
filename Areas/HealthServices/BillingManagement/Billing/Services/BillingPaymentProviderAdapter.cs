@@ -1,4 +1,4 @@
-﻿namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 
 public interface IBillingPaymentProviderAdapter
 {
@@ -58,14 +58,15 @@ public sealed class DeferredBillingPaymentProviderAdapter : IBillingPaymentProvi
 }
 
 /// <summary>
-/// Stand-in sementara selama belum ada integrasi mesin pembayaran / tender bank.
+/// Stand-in sementara selama belum ada integrasi mesin pembayaran / gateway perbankan otomatis.
 ///
-/// Tender non-tunai langsung dianggap berhasil supaya kasir tidak menunggu status yang tidak
-/// akan pernah datang. Ini MEMALSUKAN konfirmasi provider: yang tercatat hanyalah bahwa petugas
-/// menyatakan uangnya diterima, bukan konfirmasi bank/QRIS. Karena itu setiap tender yang lewat
-/// jalur ini diberi ProviderStatusCode "BYPASS_NO_PROVIDER" supaya bisa dipisahkan saat
-/// rekonsiliasi, dan jalurnya dapat dimatikan lewat konfigurasi
-/// Billing:PaymentProvider:AutoAcceptWithoutProvider begitu integrasi asli tersedia.
+/// Sesuai audit keselamatan transaksi finansial, adapter provider tidak boleh memalsukan status
+/// Succeeded tanpa ProviderReference sah dari bank/gateway (yang akan memicu error 422 pada
+/// ReconcileTenderAsync atau menghasilkan pengakuan sukses tanpa dasar).
+///
+/// Setiap tender yang lewat jalur ini diberi status Pending dengan ProviderStatusCode
+/// "BYPASS_NO_PROVIDER" agar kasir dapat melakukan verifikasi bukti transaksi secara eksplisit
+/// melalui jalur konfirmasi manual (MANUAL_CASHIER) atau menunggu webhook callback provider asli.
 /// </summary>
 public sealed class AutoAcceptBillingPaymentProviderAdapter : IBillingPaymentProviderAdapter
 {
@@ -79,7 +80,7 @@ public sealed class AutoAcceptBillingPaymentProviderAdapter : IBillingPaymentPro
 
         return Task.FromResult(new BillingPaymentProviderResult(
             $"bypass:{request.TenderId:N}",
-            BillingPaymentProviderOutcome.Succeeded,
+            BillingPaymentProviderOutcome.Pending,
             null,
             BypassStatusCode,
             DateTimeOffset.UtcNow,
@@ -93,11 +94,10 @@ public sealed class BillingPaymentProviderOptions
     public const string SectionName = "Billing:PaymentProvider";
 
     /// <summary>
-    /// true  = tender non-tunai langsung diterima tanpa provider (default saat ini, karena belum
-    ///         ada integrasi mesin pembayaran).
-    /// false = perilaku aman: tender non-tunai berstatus Pending sampai provider mengonfirmasi.
+    /// true  = tender non-tunai langsung diproses adapter bypass (menghasilkan status Pending tanpa konfirmasi palsu).
+    /// false = perilaku aman: tender non-tunai berstatus Pending via Deferred adapter sampai provider mengonfirmasi.
     /// </summary>
-    public bool AutoAcceptWithoutProvider { get; set; } = true;
+    public bool AutoAcceptWithoutProvider { get; set; } = false;
 }
 
 public sealed class BillingPaymentProviderTimeoutException(string message) : Exception(message);

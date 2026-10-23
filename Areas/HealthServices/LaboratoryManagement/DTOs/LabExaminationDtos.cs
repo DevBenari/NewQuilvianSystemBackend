@@ -116,8 +116,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     public class CancelLabExaminationRequest
     {
         /// <summary>
-        /// Alasan pembatalan. Disimpan pada catatan log, bukan pada baris pemeriksaan —
-        /// kolom alasan pada tabel pemeriksaan belum ada pada rilis ini.
+        /// Alasan pembatalan — <b>wajib</b> (<c>VAL-155</c>, <c>BE-LAB-97</c>): kosong atau hanya spasi
+        /// ditolak <c>422</c> <i>"Alasan pembatalan wajib diisi."</i>, sesudah penjaga keadaan. Disimpan
+        /// pada riwayat perpindahan (<c>LabTransitionHistory.ReasonNote</c>), bukan pada baris pemeriksaan.
+        /// Sengaja tanpa <c>[Required]</c>: penolakan pengikatan bawaan berbunyi lain dan berkode <c>400</c>.
         /// </summary>
         [MaxLength(1000)]
         public string? Reason { get; set; }

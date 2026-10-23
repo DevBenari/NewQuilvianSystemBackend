@@ -318,22 +318,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             // Kunjungan diurus SEBELUM triase disimpan. Penolakan 409 karena itu tidak pernah
             // meninggalkan baris triase yang terlanjur tersimpan, dan perubahan status ikut
             // dalam SaveChangesAsync yang sama dengan triasenya.
-            EmgVisit? visit = null;
+            EmgVisit? visit = await _dbContext.Set<EmgVisit>()
+                .FirstOrDefaultAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+
+            if (visit == null)
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kunjungan IGD milik penilaian ini tidak ditemukan."));
+
+            if (KunjunganSudahDitutup(visit.VisitStatus))
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Kunjungan IGD sudah ditutup, penilaian tidak dapat diselesaikan."));
+
             if (entity.TriageStatus == EmergencyTriageStatus.Completed)
             {
-                visit = await _dbContext.Set<EmgVisit>()
-                    .FirstOrDefaultAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
-
-                if (visit == null)
-                    return NotFound(ApiResponse<object>.Fail(
-                        StatusCodes.Status404NotFound,
-                        "Kunjungan IGD milik penilaian ini tidak ditemukan."));
-
-                if (KunjunganSudahDitutup(visit.VisitStatus))
-                    return Conflict(ApiResponse<object>.Fail(
-                        StatusCodes.Status409Conflict,
-                        "Kunjungan IGD sudah ditutup, penilaian tidak dapat diselesaikan."));
-
                 // Waktu selesai diisi di sini juga, bukan hanya pada jalur ubah status.
                 // Penilaian yang dibuat langsung dalam keadaan selesai tetap harus punya
                 // waktu selesai, supaya perhitungan lama penanganan tidak kehilangan datanya.
@@ -549,27 +548,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             // Kunjungan diperiksa SEBELUM entity disentuh, supaya penolakan tidak
             // meninggalkan perubahan yang menggantung pada change tracker.
-            EmgVisit? visit = null;
+            EmgVisit? visit = await _dbContext.Set<EmgVisit>()
+                .FirstOrDefaultAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
+
+            if (visit == null)
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Kunjungan IGD milik penilaian ini tidak ditemukan."));
+
+            // Aturan 4 validation-matrix bagian 2. Sebelum BE-IGD-019 jalur ini tidak
+            // memeriksa kunjungan sama sekali, sehingga penilaian lama yang diselesaikan
+            // pada kunjungan yang sudah ditutup membuka kembali kunjungan itu.
+            if (KunjunganSudahDitutup(visit.VisitStatus))
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Kunjungan IGD sudah ditutup, penilaian tidak dapat diselesaikan."));
+
             if (request.TriageStatus == EmergencyTriageStatus.Completed)
-            {
-                visit = await _dbContext.Set<EmgVisit>()
-                    .FirstOrDefaultAsync(x => x.Id == entity.EmergencyVisitId && !x.IsDelete, cancellationToken);
-
-                if (visit == null)
-                    return NotFound(ApiResponse<object>.Fail(
-                        StatusCodes.Status404NotFound,
-                        "Kunjungan IGD milik penilaian ini tidak ditemukan."));
-
-                // Aturan 4 validation-matrix bagian 2. Sebelum BE-IGD-019 jalur ini tidak
-                // memeriksa kunjungan sama sekali, sehingga penilaian lama yang diselesaikan
-                // pada kunjungan yang sudah ditutup membuka kembali kunjungan itu.
-                if (KunjunganSudahDitutup(visit.VisitStatus))
-                    return Conflict(ApiResponse<object>.Fail(
-                        StatusCodes.Status409Conflict,
-                        "Kunjungan IGD sudah ditutup, penilaian tidak dapat diselesaikan."));
-            }
-
-            if (visit != null)
             {
                 // IGD-DEC-104, sama seperti jalur create. Perubahan status hanya dicoba bila
                 // kunjungan memang belum melewati triase; penolakannya adalah 409.
@@ -585,16 +580,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                         StatusCodes.Status409Conflict,
                         penolakanStatus!));
                 }
-            }
 
-            entity.TriageStatus = request.TriageStatus;
-            if (visit != null)
-            {
                 entity.CompletedAt ??= now;
                 visit.IsImmediateCareAllowed = entity.ImmediateCareAllowed;
                 visit.UpdateDateTime = now;
                 visit.UpdateBy = actorUserId;
             }
+
+            entity.TriageStatus = request.TriageStatus;
             if (!string.IsNullOrWhiteSpace(request.Notes) && entity.GetType().GetProperty("Notes") != null)
             {
                 entity.GetType().GetProperty("Notes")?.SetValue(entity, NormalizeText(request.Notes));

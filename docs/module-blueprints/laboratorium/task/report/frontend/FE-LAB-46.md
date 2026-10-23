@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `5427ddbe4` (branch `YogaV2`, upstream `origin/YogaV2`) |
 | Commit backend yang dijadikan rujukan | `171dc314` (branch `yoga`) |
 | Tanggal | 2026-10-07 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — AC (a)–(d) terbukti di peramban terhadap backend lokal dan basis data dev; AC (e) **tidak dijalankan** karena menulis ke basis data bersama tanpa izin terpisah |
+| Status | ✅ **`SELESAI`** — 2026-10-21. Semula ⚠ (AC (e) tidak dijalankan). AC (e) dibuktikan dengan tulis sungguhan atas izin pemilik modul; sekaligus **pengerjaan ulang**: dialog *Rencanakan Wadah* tidak punya pilihan bagi pesanan dari jalur pemesanan saat ini — diperbaiki (bagian 9) |
 
 ---
 
@@ -134,7 +134,7 @@ Nol endpoint baru. Yang berubah hanya **nilai** penunjuk yang dikirim: kini GUID
 | (d) GUID langsung | `by-order` `200`, layar terisi | `PASS` | Pencatat jaringan |
 | Penjaga tulis | Setiap permintaan non-GET ke `/v1` digagalkan; **nol** yang tercatat | `PASS` | Log skrip |
 | Galat JavaScript halaman | Nol | `PASS` | `pageerror` |
-| (e) Rencana wadah tersimpan pada pesanan yang benar | — | `NOT RUN` | Menulis ke basis data dev bersama; tidak diizinkan tanpa persetujuan terpisah |
+| (e) Rencana wadah tersimpan pada pesanan yang benar | — | `PASS` (2026-10-21) | Bagian 9 — semula `NOT RUN` |
 
 **Lingkungan uji:** backend lokal `dotnet run --no-build` (Development, https 7184) dengan biner yang
 sudah memuat source `171dc314`; frontend `next dev` port 3000 diarahkan `.env.local` ke backend lokal;
@@ -161,7 +161,7 @@ rev 7 `CAP-P22-10`), bukan dijalankan ulang.
 | (b) Permintaan jaringan memakai GUID, **bukan** token | Terpenuhi | Bagian 6 (b) |
 | (c) Alamat dengan token palsu → pesan tautan tidak valid, nol permintaan `/lab-specimens/**` | Terpenuhi | Bagian 6 (c) |
 | (d) Alamat dengan GUID langsung tetap berjalan | Terpenuhi | Bagian 6 (d) |
-| (e) Rencana wadah dari layar ini tersimpan pada pesanan yang benar | **Belum dibuktikan** — batas verifikasi | Kode mengirim ID hasil terjemahan (`confirmPlan`), tetapi penulisan sungguhan tidak dijalankan |
+| (e) Rencana wadah dari layar ini tersimpan pada pesanan yang benar | Terpenuhi (2026-10-21) | Bagian 9 — `POST` ke GUID pesanan yang benar, `201`, wadah tersimpan |
 | DoD: AC (a)–(d) terbukti di peramban, (e) terbukti atau dicatat sebagai batas | Terpenuhi | Di atas |
 | DoD: laporan ini juga menutup butir verifikasi manual `FE-LAB-07` yang dapat dijalankan | Sebagian | Jalan Detail → Wadah dan pemuatan wadah kini terbukti. Keputusan atas wadah (`collect`, `receive`, `accept`, `reject`) menulis ke basis data bersama dan **tidak** dijalankan |
 
@@ -178,3 +178,36 @@ rev 7 `CAP-P22-10`), bukan dijalankan ulang.
 | Interupsi | `NONE` |
 | Status Git | Frontend: ` M src/lib/hooks/health-services/laboratory-management/use-lab-specimen-workspace.jsx`. Backend: hanya dokumen di `docs/` |
 | Langkah berikutnya | `FE-LAB-47` — *Terima Sampling* dan *Proses Pemeriksaan*; jalan ke layar Wadah kini siap dipakai |
+
+---
+
+## 9. Penuntasan batas verifikasi dan pengerjaan ulang (2026-10-21)
+
+### 9.1 Temuan saat AC (e) dijalankan
+
+Dialog *Rencanakan Wadah* menulis *"Tidak ada pemeriksaan yang belum ditopang wadah"* pada pesanan `LAB-RSMMC-000028`.
+Sebabnya: daftar calon isi wadah hanya membaca **pemeriksaan** (`GET /lab-examinations/by-order`), sedangkan pesanan dari
+jalur pemesanan saat ini (`POST /lab-orders/by-examinations`) baru berupa **permintaan** (`orderedProcedures`, status
+`Ordered`) sampai wadah direncanakan. Backend sudah menerima penunjuk prosedur permintaan itu (dipakai Terima Sampling,
+`FE-LAB-47`), jadi celahnya hanya di layar.
+
+### 9.2 Perbaikan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/hooks/health-services/laboratory-management/lab-specimen-rules.js` | `buildPlanCandidates` — calon = pemeriksaan belum berwadah + permintaan `Ordered` yang prosedurnya belum menjadi pemeriksaan (tanpa ganda) |
+| `src/lib/state/slice/health-services/laboratory-management/lab-specimen-slice.jsx` | `fetchLabSpecimenWorkspace` ikut memuat detail pesanan (`getLabOrderDetail`) untuk `orderedProcedures`; bila detail gagal, layar tetap memuat wadah dan pemeriksaan seperti semula; `clearLabSpecimenWorkspace` ikut mengosongkannya |
+| `src/lib/hooks/health-services/laboratory-management/use-lab-specimen-workspace.jsx` | `unassignedExaminations` memakai `buildPlanCandidates` |
+| `tests/unit/lab-specimen-rules.test.mjs` | +3 uji (26/26) |
+
+Validasi: uji unit penuh 3075/3104 — 29 gagal **identik** dengan baseline (di luar Lab); `npx eslint` nol galat (2 peringatan
+lama `set-state-in-effect` di baris yang tidak disentuh); `npm run build` `PASS`; `lint:errors` hanya 6 galat lama finance/billing.
+
+### 9.3 Bukti AC (e) di peramban
+
+| Hal | Isi |
+| --- | --- |
+| Pesanan uji | `LAB-RSMMC-000028` — kunjungan IGD pasien uji 00-00-00-17, Kalium (data uji `MVP-15e`, izin tulis pemilik modul 2026-10-21). Satu pesanan dibawa melewati seluruh alur v1 untuk menuntaskan `FE-LAB-46`, `48`, `50`, dan `51` sekaligus |
+| Akun | Gilang (Analis) dan dr. Bima (Kepala Instalasi) — akun asli; sandi tidak dicatat. Superadmin hanya pada satu langkah antara (lihat di bawah) |
+| 1. Rencana wadah — layar Wadah (Gilang) | `POST /lab-specimens/by-order/{GUID pesanan ini}` → `201`; wadah *Direncanakan* menopang Kalium; kartu tampil tanpa muat ulang |
+| Hasil | 3/3 `PASS` — satu `POST` ke GUID pesanan yang benar dari layar; wadah tersimpan *Direncanakan* menopang Kalium; kartu tampil tanpa muat ulang |

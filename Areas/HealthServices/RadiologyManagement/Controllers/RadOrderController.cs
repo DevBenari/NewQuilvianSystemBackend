@@ -131,6 +131,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                 hasil, "Kunjungan pasien berhasil diambil."));
         }
 
+        [HttpGet("booking-diagnosis-options")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<RadBookingDiagnosisOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Create", "Create Rad Order", Description = "Melihat pilihan diagnosa ICD-10 untuk booking radiologi", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("RadOrder", "Create")]
+        public async Task<IActionResult> GetBookingDiagnosisOptions(
+            [FromQuery] RadAssigneeOptionQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radOrderService.GetBookingDiagnosisOptionsAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<RadBookingDiagnosisOptionResponse>>.Ok(
+                hasil, "Daftar diagnosa ICD-10 berhasil diambil."));
+        }
+
         [HttpGet("booking-price")]
         [ProducesResponseType(typeof(ApiResponse<RadBookingPriceResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

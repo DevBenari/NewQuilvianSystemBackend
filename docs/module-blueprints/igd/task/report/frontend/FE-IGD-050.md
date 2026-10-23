@@ -17,7 +17,7 @@
 | Pasangan backend | Nol backend baru (endpoint klinis sudah ada); diuji bersama `FE-IGD-051` untuk daftar gabungan |
 | Task mode | `FRONTEND` — izin implementasi diberikan Rizki |
 | Tanggal | 9 Oktober 2026 |
-| Status | 🟢 **SELESAI — 9 Oktober 2026: implementasi selesai**; tab mandiri `EmergencyDoctorProcedureTab` terpasang pada `doctor-emergency-view.jsx`. Modul rawat inap 100% utuh identik HEAD; bebas komentar baru; format baris CRLF terjaga. |
+| Status | ✅ **SELESAI — dipulihkan 19 Oktober 2026 atas penilaian pemilik.** Pemilik menyatakan layar yang dilayani `npm run dev` sah sebagai bukti selama modul masih dalam pengembangan, sehingga dasar `IGD-DEC-296` tidak lagi berlaku dan uji ulang pada hasil build tidak dituntut. Catatan yang tetap melekat: `050-U3` tidak terlihat pada tangkapan layar putaran 3 (`IGD-FACT-118`), dan PNG putaran itu dihapus 19 Oktober 2026 saat drive C: penuh — JSON hasil dan skrip `.mjs` masih ada, sehingga butir itu bersandar pada penilaian pemilik dan bukan bukti yang dapat diperiksa ulang. *Sebelumnya:* 🟡 dibuka kembali 12 Oktober 2026 (`IGD-DEC-296`). *Sebelumnya:* 🟢 **SELESAI — 9 Oktober 2026: implementasi selesai**; tab mandiri `EmergencyDoctorProcedureTab` terpasang pada `doctor-emergency-view.jsx`. Modul rawat inap 100% utuh identik HEAD; bebas komentar baru; format baris CRLF terjaga. |
 
 ---
 
@@ -87,3 +87,7 @@ skrip) dicocokkan dengan `Logs/quilvian-backend-20261009.json`, **bukan** dengan
 
 **Putusan pemilik:** `BE-IGD-069` **disahkan dengan penyimpangan tercatat** (`IGD-DEC-295`); `FE-IGD-050` dan `FE-IGD-051`
 **dibuka kembali 🟡** — uji ulang pada hasil build (`IGD-DEC-296`).
+
+**Pemutakhiran 19 Oktober 2026:** pemilik menyatakan layar yang dilayani `npm run dev` sah sebagai bukti selama modul
+masih dalam pengembangan, sehingga dasar `IGD-DEC-296` tidak lagi berlaku dan uji ulang pada hasil build tidak dituntut.
+`FE-IGD-050` dan `FE-IGD-051` dipulihkan ke ✅ atas penilaian pemilik.

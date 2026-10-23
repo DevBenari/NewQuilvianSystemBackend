@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -12,6 +12,9 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using System.Text.Json;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Services.Logging;
 using System.Linq.Expressions;
 using System.Security.Claims;
@@ -46,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// <b>membaca</b> penugasan lewat service bersama, bukan menyalinnya.
         /// </summary>
         private readonly InpatientClinicalContextService _clinicalContextService;
+        private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
 
         public LabOrderService(
             ApplicationDbContext dbContext,
@@ -54,7 +58,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             LabReportNumberService labReportNumberService,
             IHttpContextAccessor httpContextAccessor,
             LoggerService loggerService,
-            InpatientClinicalContextService clinicalContextService)
+            InpatientClinicalContextService clinicalContextService,
+            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer)
         {
             _dbContext = dbContext;
             _labSpecimenService = labSpecimenService;
@@ -63,6 +68,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
             _clinicalContextService = clinicalContextService;
+            _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
         }
 
         /// <summary>
@@ -998,6 +1004,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // membatalkan pesanan yang sudah sah tersimpan.
             await transaction.CommitAsync(cancellationToken);
 
+            if (entity.InpEpisodeId.HasValue && entity.InpEpisodeId.Value != Guid.Empty)
+            {
+                try
+                {
+                    var factRequest = new ClinicalMilestoneFactRequest
+                    {
+                        SourceContext = BillingSourceContract.LaboratorySourceContext,
+                        SourceAggregateId = entity.Id,
+                        SourceItemId = entity.ProcedureId,
+                        EffectType = BillingSourceContract.LaboratoryChargeEffectType,
+                        EncounterId = entity.EncounterId,
+                        OccurredAt = now,
+                        Quantity = 1m,
+                        Unit = "Pemeriksaan",
+                        TariffSnapshot = JsonSerializer.Serialize(new
+                        {
+                            source = "LaboratorySnapshot",
+                            procedureCode = procedure.ProcedureCode,
+                            procedureName = procedure.ProcedureName
+                        }),
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = "OrderRequested",
+                            orderNumber = entity.OrderNumber,
+                            procedureId = entity.ProcedureId
+                        })
+                    };
+                    await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(factRequest, actorUserId, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "LabOrder.EmitChargeEligibility", "Gagal menerbitkan tagihan lab rawat inap", ex);
+                }
+            }
+
             await _loggerService.InfoAsync(
                 LogCategory,
                 "LabOrder.Create",
@@ -1216,6 +1257,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
+
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                foreach (var (orderEntity, _) in terbentuk)
+                {
+                    var orderedProcs = await _dbContext.LabOrderedProcedures.AsNoTracking()
+                        .Where(x => x.LabOrderId == orderEntity.Id && !x.IsDelete)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var op in orderedProcs)
+                    {
+                        try
+                        {
+                            var factRequest = new ClinicalMilestoneFactRequest
+                            {
+                                SourceContext = BillingSourceContract.LaboratorySourceContext,
+                                SourceAggregateId = orderEntity.Id,
+                                SourceItemId = op.ProcedureId,
+                                EffectType = BillingSourceContract.LaboratoryChargeEffectType,
+                                EncounterId = orderEntity.EncounterId,
+                                OccurredAt = now,
+                                Quantity = 1m,
+                                Unit = "Pemeriksaan",
+                                TariffSnapshot = JsonSerializer.Serialize(new
+                                {
+                                    source = "LaboratorySnapshot",
+                                    procedureCode = op.ProcedureCodeSnapshot,
+                                    procedureName = op.ProcedureNameSnapshot
+                                }),
+                                RuleSnapshot = JsonSerializer.Serialize(new
+                                {
+                                    milestone = "OrderRequested",
+                                    orderNumber = orderEntity.OrderNumber,
+                                    procedureId = op.ProcedureId
+                                })
+                            };
+                            await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(factRequest, actorUserId, cancellationToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            await _loggerService.ErrorAsync(LogCategory, "LabOrder.EmitChargeEligibility", "Gagal menerbitkan tagihan lab rawat inap by-examinations", ex);
+                        }
+                    }
+                }
+            }
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -1766,6 +1852,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     cancellationToken);
 
                 handoffs.Add(MapHandoff(emission));
+            }
+
+            if (entity.InpEpisodeId.HasValue && entity.InpEpisodeId.Value != Guid.Empty)
+            {
+                var orderedProcedures = await _dbContext.LabOrderedProcedures.AsNoTracking()
+                    .Where(x => x.LabOrderId == entity.Id && !x.IsDelete)
+                    .ToListAsync(cancellationToken);
+
+                if (orderedProcedures.Count > 0)
+                {
+                    foreach (var op in orderedProcedures)
+                    {
+                        try
+                        {
+                            var cancelFact = new ClinicalMilestoneFactRequest
+                            {
+                                SourceContext = BillingSourceContract.LaboratorySourceContext,
+                                SourceAggregateId = entity.Id,
+                                SourceItemId = op.ProcedureId,
+                                EffectType = BillingSourceContract.LaboratoryChargeEffectType,
+                                EncounterId = entity.EncounterId,
+                                OccurredAt = DateTime.UtcNow,
+                                TariffSnapshot = null,
+                                RuleSnapshot = JsonSerializer.Serialize(new
+                                {
+                                    milestone = "OrderCancelled",
+                                    orderNumber = entity.OrderNumber,
+                                    procedureId = op.ProcedureId,
+                                    reason = request.CancelReason
+                                })
+                            };
+                            var cancelRes = await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(cancelFact, actorUserId, cancellationToken);
+                            handoffs.Add(MapHandoff(cancelRes));
+                        }
+                        catch (Exception ex)
+                        {
+                            await _loggerService.ErrorAsync(LogCategory, "LabOrder.EmitClinicalCancellation", "Gagal membatalkan tagihan lab rawat inap", ex);
+                        }
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        var cancelFact = new ClinicalMilestoneFactRequest
+                        {
+                            SourceContext = BillingSourceContract.LaboratorySourceContext,
+                            SourceAggregateId = entity.Id,
+                            SourceItemId = entity.ProcedureId,
+                            EffectType = BillingSourceContract.LaboratoryChargeEffectType,
+                            EncounterId = entity.EncounterId,
+                            OccurredAt = DateTime.UtcNow,
+                            TariffSnapshot = null,
+                            RuleSnapshot = JsonSerializer.Serialize(new
+                            {
+                                milestone = "OrderCancelled",
+                                orderNumber = entity.OrderNumber,
+                                procedureId = entity.ProcedureId,
+                                reason = request.CancelReason
+                            })
+                        };
+                        var cancelRes = await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(cancelFact, actorUserId, cancellationToken);
+                        handoffs.Add(MapHandoff(cancelRes));
+                    }
+                    catch (Exception ex)
+                    {
+                        await _loggerService.ErrorAsync(LogCategory, "LabOrder.EmitClinicalCancellation", "Gagal membatalkan tagihan lab rawat inap", ex);
+                    }
+                }
             }
 
             var detail = await GetDetailOrThrowAsync(entity.Id, cancellationToken);

@@ -4,9 +4,9 @@
 |---|---|
 | Blueprint ID | `laboratorium` |
 | Assessment ID | `LAB-RCG-001` |
-| Revision | `12` — bagian 0G, 2026-10-06: sesudah putaran 21, **delapan slice atau bagian naik `READY_FOR_DOMAIN_DESIGN`** — `S2b-1`, `S2b-3`, `S4d-2`, `S4e`, `S5`, `S6-1`, `S17-1`, `S18`; `S6` dan `S17` dipecah; dua penahan baru dari kode dan alur — `DEC-LAB-030` (`S2b-2`), `DEC-LAB-034` (`S6-2`); `S17-2` menunggu `LAB-COORD-015`; `S16b` ditunda Phase 2. Sebelumnya `11` — bagian 0F, 2026-09-25: sesudah putaran 19, **`S16a` naik `READY_FOR_DOMAIN_DESIGN`**; `S8` dilebur ke `S5`/`S6`; `S19` keluar dari desain; `S2b` dipecah tiga dengan dua penahan baru `DEC-LAB-028`, `DEC-LAB-029`. Sebelumnya `10` — bagian 0E, 2026-09-25: `S2b`, `S8`, `S16`, `S18`, `S19` dinilai ulang; kelimanya tetap `BUSINESS_DECISION_REQUIRED` dengan penahan bernama `DEC-LAB-022`..`027` dan `LAB-COORD-017`. Sebelumnya `9` — bagian 0D, 2026-09-25: `S4d-1` naik `READY_FOR_DOMAIN_DESIGN`; `S4d-2` dan `S4e` tertahan keputusan klinis baru. Sebelumnya `8` — bagian 0C, 2026-09-24: `S4` naik `READY_FOR_DOMAIN_DESIGN` untuk desain saja |
+| Revision | `13` — bagian 0H, 2026-10-20: **`S16b` dipecah; `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan naik `READY_FOR_DOMAIN_DESIGN`** (nol `BLOCKING`, nol `CONFLICT` terbuka); `S16b-3` tetap ditunda. Sebelumnya `12` — bagian 0G, 2026-10-06: sesudah putaran 21, **delapan slice atau bagian naik `READY_FOR_DOMAIN_DESIGN`** — `S2b-1`, `S2b-3`, `S4d-2`, `S4e`, `S5`, `S6-1`, `S17-1`, `S18`; `S6` dan `S17` dipecah; dua penahan baru dari kode dan alur — `DEC-LAB-030` (`S2b-2`), `DEC-LAB-034` (`S6-2`); `S17-2` menunggu `LAB-COORD-015`; `S16b` ditunda Phase 2. Sebelumnya `11` — bagian 0F, 2026-09-25: sesudah putaran 19, **`S16a` naik `READY_FOR_DOMAIN_DESIGN`**; `S8` dilebur ke `S5`/`S6`; `S19` keluar dari desain; `S2b` dipecah tiga dengan dua penahan baru `DEC-LAB-028`, `DEC-LAB-029`. Sebelumnya `10` — bagian 0E, 2026-09-25: `S2b`, `S8`, `S16`, `S18`, `S19` dinilai ulang; kelimanya tetap `BUSINESS_DECISION_REQUIRED` dengan penahan bernama `DEC-LAB-022`..`027` dan `LAB-COORD-017`. Sebelumnya `9` — bagian 0D, 2026-09-25: `S4d-1` naik `READY_FOR_DOMAIN_DESIGN`; `S4d-2` dan `S4e` tertahan keputusan klinis baru. Sebelumnya `8` — bagian 0C, 2026-09-24: `S4` naik `READY_FOR_DOMAIN_DESIGN` untuk desain saja |
 | Status | `draft` |
-| **Kesiapan keseluruhan** | **`PARTIALLY_READY`** — **diperbarui revision 12, lihat 0G.13:** delapan slice atau bagian siap dikirim ke arsitektur domain; tiga tertahan (`S2b-2`, `S6-2`, `S17-2`). *Catatan revision 7 di bawah dipertahankan sebagai riwayat.* **Diperbarui revision 7.** Dua slice siap dikirim: `S4b` dan `S4c`. Catatan revision 6 tentang tiga penahan yang dapat ditutup pemilik modul **sudah dipakai habis pada 2026-09-18**, dan hasilnya tercatat 0B. **Sejak putaran itu, nol penahan tersisa yang dapat ditutup pemilik modul sendirian** — seluruhnya wewenang klinis atau manajemen rumah sakit. Lihat 0B.5 |
+| **Kesiapan keseluruhan** | **`PARTIALLY_READY`** — **revision 13 (0H.6): `S16b-1` dan `S16b-2` ditambahkan ke slice siap.** **Diperbarui revision 12, lihat 0G.13:** delapan slice atau bagian siap dikirim ke arsitektur domain; tiga tertahan (`S2b-2`, `S6-2`, `S17-2`). *Catatan revision 7 di bawah dipertahankan sebagai riwayat.* **Diperbarui revision 7.** Dua slice siap dikirim: `S4b` dan `S4c`. Catatan revision 6 tentang tiga penahan yang dapat ditutup pemilik modul **sudah dipakai habis pada 2026-09-18**, dan hasilnya tercatat 0B. **Sejak putaran itu, nol penahan tersisa yang dapat ditutup pemilik modul sendirian** — seluruhnya wewenang klinis atau manajemen rumah sakit. Lihat 0B.5 |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | Backend SHA | `c87d9c0` |
 | Frontend SHA | `688daff90` |
@@ -75,7 +75,7 @@ baseline requirement lewat `LAB-DEC-025` sampai `LAB-DEC-031` pada 2026-09-01.
 | `S13b` | Pendaftaran pasien **rujukan luar** | **`READY_FOR_DOMAIN_DESIGN`** | — (`LAB-DEC-035`; koordinasi data induk perujuk `LAB-COORD-004`) |
 | `S14` | Katalog pemeriksaan, tarif, dan cakupan | **`READY_FOR_DOMAIN_DESIGN`** untuk bagian penyajian | Bagian aturan cakupan penjamin tertahan `LAB-P0-007` |
 | `S15` | Monitoring per disiplin | **`READY_FOR_DOMAIN_DESIGN`** | — (bergantung `S2`) |
-| `S16` | Laporan operasional | **Dipecah — revision 11, lihat 0F.** ✅ **`S16a` `READY_FOR_DOMAIN_DESIGN`** (tiga laporan, `LAB-DEC-159`); `S16b` **ditunda Phase 2** (`LAB-DEC-181`, revision 12) | `S16b`: katalog laporan dari pemilik modul |
+| `S16` | Laporan operasional | **Dipecah — revision 11, lihat 0F.** ✅ **`S16a` `READY_FOR_DOMAIN_DESIGN`** (tiga laporan, `LAB-DEC-159`); `S16b` **ditunda Phase 2** (`LAB-DEC-181`, revision 12). **Revision 13 (0H):** ✅ **`S16b-1`** Laporan Pembatalan dan ✅ **`S16b-2`** Statistik Pesanan `READY_FOR_DOMAIN_DESIGN`; `S16b-3` tetap ditunda | `S16b-3`: katalog laporan dari pemilik modul |
 | `S17` | Label, nota, dan pengiriman hasil ke pasien | **`PARTIALLY_READY` — revision 12, lihat 0G:** `S17-1` dokumen PDF, gerbang, antrean, cetak dan unduh ✅ `READY_FOR_DOMAIN_DESIGN`; `S17-2` jalur publik dan tautan WhatsApp tertahan | `S17-2`: `LAB-COORD-015`, didahului penetapan pemilik keamanan |
 | `S18` | Penautan berkas hasil laboratorium eksternal | ✅ **`READY_FOR_DOMAIN_DESIGN` sisi Laboratorium — revision 12, lihat 0G** | Implementasi: `LAB-COORD-018`, `LAB-COORD-019` — `DEC-LAB-016` ✅ `LAB-DEC-185` |
 | ~~`S19`~~ | Order dari MCU | **Tidak dirancang** — jalur umum (`LAB-DEC-164`); revision 11, lihat 0F | Ditutup sesudah verifikasi berjalan pemesanan dari kunjungan `MedicalCheckup` |
@@ -1455,6 +1455,129 @@ lalu `DEC-LAB-031`..`033` sebelum kontrak. Kelimanya berusulan baseline.
 
 ---
 
+## 0H. Penilaian Ulang Revision 13 — dua laporan `S16b` sesudah putaran 30 dan 31 (2026-10-20)
+
+Diminta pemilik modul sesudah gerbang `/design-business-module` menolak masuk karena `S16b` masih *ditunda Phase 2*
+(0G.13). Putaran 30 dan 31 melengkapi **kesebelas butir definisi** `LAB-DEC-181` bagi **dua** laporan; delapan laporan
+lain tetap ditunda.
+
+### 0H.1 Identitas penilaian
+
+| Field | Nilai |
+|---|---|
+| Slice yang dinilai | **`S16b-1`** Laporan Pembatalan Order & Pemeriksaan; **`S16b-2`** Statistik Pesanan Laboratorium. Sisanya menjadi **`S16b-3`** (tetap ditunda) |
+| Alasan dipecah dua | Ketergantungannya berbeda: `S16b-1` seluruhnya data Laboratorium tetapi menampilkan **identitas pasien**; `S16b-2` agregat tanpa pasien tetapi **membaca kunjungan milik Registrasi**. Satu dapat tertahan tanpa menahan yang lain |
+| Bukti utama | `00-interview-decisions.md` **revisi 115** — putaran 30 (`LAB-DEC-230`..`245`, BR-142..BR-152) dan putaran 31 (`LAB-DEC-246`..`249`, BR-153..BR-156); `LAB-EVD-014` (artifact Menu Laporan v2, disimpan di `evidence/2026-10-20-menu-laporan-v2.md`) |
+| Bukti implementasi | `01-existing-capability-map.md` **revision 9** (`CAP-P30-01`..`17`) pada BE `4d3e4f98` / FE `7fb1e1d3e` — sama dengan `HEAD`, **segar**; 18 kueri baca-saja devYoga |
+| Wewenang | Seluruh keputusan **disetujui pemilik modul** Yoga Aji Pratama, 2026-10-20, setiap pertanyaan dengan pilihan yang direkomendasikan |
+| Baseline rujukan | **Tidak dipakai** — kedua definisi sudah diputuskan pemilik modul |
+| Catatan wewenang | Batas scope putaran 30/31 **tidak dikonfirmasi eksplisit** tetapi tidak dibantah sepanjang 21 pertanyaan; seluruh keputusan yang dinilai di sini berada di dalamnya. Tidak menahan |
+
+### 0H.2 `S16b-1` — Laporan Pembatalan Order & Pemeriksaan: kedelapan belas dimensi
+
+| Dimensi | Status | Isi |
+|---|---|---|
+| 01 Tujuan | `CONFIRMED` | Audit pembatalan — siapa membatalkan apa, kapan, mengapa (`LAB-DEC-240`, `RPT-007`). Pengganti *Audit Delete* artifact (`LAB-DEC-232`) |
+| 02 Aktor | `CONFIRMED` | Pembaca: kepala instalasi dan manajemen secara bawaan; admin dapat memberikannya kepada jabatan lain (`LAB-DEC-239`). Pelaku yang dilaporkan: pembatal order dan pembatal pemeriksaan |
+| 03 Pemicu / prasyarat | `CONFIRMED` | Pembaca membuka laporan dan memilih periode. **Prasyarat data** sudah berdiri: riwayat `Order.Cancel`/`Examination.Cancel` (`CAP-P30-06`) |
+| 04 Alur utama | `CONFIRMED` | Pilih periode dan penyaring → tabel satu baris per peristiwa → buka detail → unduh `.xlsx` atau cetak (BR-151) |
+| 05 Alternatif / exception | `CONFIRMED` + `PROPOSED` | **Dikonfirmasi:** pembatalan lama tanpa alasan tampil *Alasan tidak dicatat* (`LAB-DEC-237`); cetak gagal dicatat → tidak dibuka (`LAB-DEC-248`); periode > 366 hari ditolak (`VAL-149`). **Usulan** (`NON_BLOCKING_STANDARD`): periode tanpa pembatalan tampil kosong beralasan, pola `S16a` |
+| 06 Data minimum | `CONFIRMED` | Dua belas kolom BR-151, termasuk **No. RM dan nama pasien**, petugas pembatal, status sebelum, *Sudah layak tagih*. Identitas pasien dibaca lewat jalur rincian order yang sudah ada (`LAB-DEC-166`) |
+| 07 Aturan / validasi | `CONFIRMED` | Satu baris = satu peristiwa (`LAB-DEC-238`); waktu pembatalan WIB; `VAL-147`..`149`; gugur, koreksi, dan wadah tidak menjadi baris. **Ditambah:** alasan wajib pada pembatalan pemeriksaan dan wadah, penjaga **backend saja**, sesudah penjaga keadaan (`LAB-DEC-237`, `LAB-DEC-247`) |
+| 08 Status | `CONFIRMED` — tidak ada status baru | Laporan hanya membaca. `LAB-DEC-237` menambah **syarat** pada transisi batal yang sudah ada, bukan transisi baru |
+| 09 Kewenangan | `CONFIRMED` | Izin tersendiri, lihat dan unduh/cetak dipisah (`LAB-DEC-231`, `LAB-DEC-239`); hak baca daftar Laboratorium tidak membukanya. **Usulan** (`CONFIGURABLE_DEFAULT`): *bawaan* = tidak ada kebijakan tersemai, admin memberikan per jabatan — pola `LAB-PERM-v1` 14.6 bagi `S16a` |
+| 10 Dependency antarmodul | `CONFIRMED` | Identitas pasien dan unit layanan **dibaca** dari pasien dan kunjungan lewat jalur yang sudah dipakai rincian order. Nol kontrak lintas modul baru |
+| 11 Integrasi | `CONFIRMED` | Nol sistem luar. Pustaka `ClosedXML` (sudah terpasang) dan `react-to-print` (`LAB-DEC-233`) |
+| 12 Hasil akhir | `CONFIRMED` | Daftar peristiwa pembatalan per periode, total per jenis yang sama di setiap halaman dan di berkas (`AC-332`) |
+| 13 Pembatalan / koreksi | `CONFIRMED` | Laporan tidak mengubah data. Pembatalan order tidak mengubah status pemeriksaannya (F30-18, terbukti) — tidak memengaruhi laporan karena baris dibaca dari peristiwa |
+| 14 Audit | `CONFIRMED` + `PROPOSED` | **Dikonfirmasi:** unduhan dan cetak dicatat tanpa data pasien (`LAB-DEC-233`, `LAB-DEC-248`). **Usulan** (`NON_BLOCKING_STANDARD`, **wajib terlihat** bagi pemilik modul): *membuka* laporan **tidak** dicatat, mengikuti konvensi `GET` `S16a` — padahal laporan ini, berbeda dari `S16a`, menampilkan identitas pasien. Arsitek domain menimbang apakah pembukaan perlu jejak akses |
+| 15 Notifikasi | Tidak berlaku | Laporan tidak memberi tahu siapa pun (`LAB-DEC-163`) |
+| 16 Billing | Tidak berlaku | Kolom *Sudah layak tagih* hanya informasi. Penyerahan pembatalan ke Billing sudah ada di alur batal dan tidak disentuh |
+| 17 Keselamatan klinis | Tidak berlaku | Membaca saja. Alasan wajib tidak mengubah perilaku klinis; layar batal pemeriksaan tetap tidak dibuka (`VAL-13`) |
+| 18 Pelaporan | `CONFIRMED` | Jejak audit pembatalan untuk mutu dan penelusuran. **Privasi:** laporan memuat identitas pasien — berbeda dari `S16a` yang agregat saja (0F.3 dimensi 18); diterima pemilik modul lewat paket Q11 (`LAB-DEC-240`, pilihan A, bukan B *tanpa nama pasien*) |
+
+### 0H.3 `S16b-2` — Statistik Pesanan Laboratorium: kedelapan belas dimensi
+
+| Dimensi | Status | Isi |
+|---|---|---|
+| 01 Tujuan | `CONFIRMED` | Beban permintaan per jenis kunjungan, unit layanan, dan disiplin (`LAB-DEC-241`, `LAB-DEC-245`) |
+| 02 Aktor | `CONFIRMED` | Pembaca: kepala instalasi dan manajemen secara bawaan; admin dapat memberikannya kepada Petugas atau Dokter Laboratorium (`LAB-DEC-245`) |
+| 03 Pemicu / prasyarat | `CONFIRMED` | Pembaca membuka laporan dan memilih periode. Data sudah berdiri (`CAP-P30-07`, `CAP-P30-08`) |
+| 04 Alur utama | `CONFIRMED` | Pilih periode dan penyaring → tabel Jenis kunjungan → Unit layanan × disiplin (Pesanan, Pemeriksaan) dengan *Sub Total* dan *Total* → unduh atau cetak (BR-152) |
+| 05 Alternatif / exception | `CONFIRMED` + `PROPOSED` | **Dikonfirmasi:** pemeriksaan tanpa disiplin → *Belum terklasifikasi*; kunjungan tanpa unit → *Unit tidak tercatat* (praktis tidak terjadi, `ServiceUnitId` wajib — `CAP-P30-08`); cetak gagal dicatat → tidak dibuka. **Usulan** (`NON_BLOCKING_STANDARD`): periode tanpa pesanan tampil kosong beralasan |
+| 06 Data minimum | `CONFIRMED` | Order, pemeriksaan, permintaan yang belum masuk wadah, `RequestedAt`/`CreateDateTime`, disiplin, jenis kunjungan, unit layanan. **Tanpa** identitas pasien (`AC-335`) |
+| 07 Aturan / validasi | `CONFIRMED` | Waktu diminta WIB (`LAB-DEC-242`); dua angka pesanan dan pemeriksaan (`LAB-DEC-244`); batal, `Draft`, **dan gugur** tidak dihitung — **sama dengan Beranda** (`LAB-DEC-246`, mengamandemen BR-152 butir 8); `VAL-147`..`149` |
+| 08 Status | Tidak berlaku | Laporan hanya membaca |
+| 09 Kewenangan | `CONFIRMED` | Izin tersendiri, lihat dan unduh/cetak dipisah (`LAB-DEC-231`, `LAB-DEC-245`). Bawaan: `CONFIGURABLE_DEFAULT` seperti `S16b-1` |
+| 10 Dependency antarmodul | `CONFIRMED` — **baru bagi laporan** | **Membaca** `EncounterType` dan unit layanan kunjungan milik **Registrasi** (`BC-REG`) beserta nama unit dari Master Data — jalur baca yang sama dengan daftar pantau (`CAP-P30-08`). Ini yang membedakannya dari `S16a` (`LAB-DA-001` A7.3: *nol baca dari `BC-REG`*). Nol tulis, nol kontrak baru; **ditimbang arsitek domain** |
+| 11 Integrasi | `CONFIRMED` | Nol sistem luar; `ClosedXML` dan `react-to-print` |
+| 12 Hasil akhir | `CONFIRMED` | Tabel agregat per periode yang angkanya sama dengan Beranda pada data yang sama (`AC-333`, `AC-334`, `AC-336`) |
+| 13 Pembatalan / koreksi | `CONFIRMED` | Order batal dan pemeriksaannya tidak dihitung — laporan **wajib** mensyaratkan status order sendiri, sebab pembatalan order tidak mengubah status pemeriksaan (F30-18, `CAP-P30-05`) |
+| 14 Audit | `CONFIRMED` + `PROPOSED` | Unduhan dan cetak dicatat (`LAB-DEC-233`, `LAB-DEC-248`). **Usulan** (`NON_BLOCKING_STANDARD`): membuka laporan tidak dicatat — aman karena agregat |
+| 15 Notifikasi | Tidak berlaku | — |
+| 16 Billing | Tidak berlaku | Tanpa nilai uang |
+| 17 Keselamatan klinis | Tidak berlaku | Angka agregat |
+| 18 Pelaporan | `CONFIRMED` | Satu definisi hitung bersama Beranda. **Akibat yang disadari** (`LAB-DEC-246` butir 4): pemeriksaan gugur yang tidak diambil ulang tidak tampak di hitungan permintaan; penolakannya tetap terbaca di laporan penolakan `S16a` |
+
+**Catatan verifikasi, bukan penahan:** devYoga hanya memuat order **Rawat Jalan** (23 order); pembuktian
+pengelompokan Rawat Inap, IGD, dan Kamar Bersalin butuh data uji baru — milik tahap pengujian, dengan izin
+tulis tersendiri.
+
+### 0H.4 Butir bermasalah dan dampaknya
+
+| Butir | Status | Dampak | Alasan klasifikasi |
+|---|---|---|---|
+| Jejak *membuka* Laporan Pembatalan yang memuat identitas pasien | `PROPOSED` | `NON_BLOCKING_STANDARD` | Menambah atau tidak menambah jejak akses tidak mengubah konsep tersimpan, relasi, maupun lifecycle laporan; usulan ditampilkan eksplisit kepada pemilik modul dan arsitek domain |
+| Periode tanpa data tampil kosong beralasan | `PROPOSED` | `NON_BLOCKING_STANDARD` | Pola `S16a` |
+| Bawaan izin = tidak ada kebijakan tersemai | `PROPOSED` | `CONFIGURABLE_DEFAULT` | Jabatan pemegang izin wajar berbeda antar rumah sakit; diberikan admin (`SysAccessPolicies`) |
+| Data uji Rawat Inap/IGD/Kamar Bersalin | `MISSING` (data, bukan requirement) | `NON_BLOCKING_STANDARD` | Menyangkut bukti uji, tidak mengubah desain |
+
+**Nol butir `BLOCKING`. Nol `CONFLICT` terbuka** — pertentangan gugur vs Beranda (`CAP-P30-07`) dan layar batal
+(`CAP-P30-04`) sudah ditutup `LAB-DEC-246` dan `LAB-DEC-247`.
+
+### 0H.5 Decision Log
+
+**Nol butir baru.** Seluruh keputusan yang dibutuhkan kedua slice sudah tercatat `approved` di decision log
+(`LAB-DEC-230`..`249`). `DEC-LAB-025` tetap ditunda bagi `S16b-3`.
+
+### 0H.6 Kesiapan
+
+| Slice | Sebelumnya (0G.13) | **Revision 13** | Penahan atau syarat |
+|---|---|---|---|
+| `S16b-1` Laporan Pembatalan | Ditunda Phase 2 | ✅ **`READY_FOR_DOMAIN_DESIGN`** | Nol. Syarat rancangan 0H.8 butir 1–3 |
+| `S16b-2` Statistik Pesanan | Ditunda Phase 2 | ✅ **`READY_FOR_DOMAIN_DESIGN`** | Nol. Syarat rancangan 0H.8 butir 1, 4, 5 |
+| `S16b-3` sisa katalog | Ditunda Phase 2 | **Tetap ditunda** — tidak dinilai | Kesebelas butir per laporan (`LAB-DEC-181`); titik sentuh lintas modul `CAP-P30-13`..`17`; Q2b, `LAB-COORD-021`, `LAB-OPEN-054`, `LAB-OPEN-055` |
+
+**Kesiapan keseluruhan tetap `PARTIALLY_READY`** — dua slice naik; bagian yang tertahan pada 0G.13 tidak disentuh.
+
+### 0H.7 Apa yang boleh berjalan dan apa yang harus berhenti
+
+| Boleh berjalan | Harus berhenti |
+|---|---|
+| `S16b-1` dan `S16b-2` ke `hospital-domain-architect` | Desain laporan `S16b-3` mana pun sampai kesebelas butirnya diserahkan |
+| Usulan `LAB-DEC-249` kepada pemilik Master Data (`LAB-COORD-021`) | Rincian laporan per kategori sampai `LAB-COORD-021` disetujui |
+| Penyiapan data uji Rawat Inap/IGD/Kamar Bersalin — dengan izin tulis tersendiri | Layar batal per pemeriksaan/wadah (`LAB-DEC-247`) |
+
+### 0H.8 Handoff ke `hospital-domain-architect`
+
+| Field | Nilai |
+|---|---|
+| Slice | `S16b-1`, `S16b-2` |
+| Kesiapan | `READY_FOR_DOMAIN_DESIGN`, masing-masing **independen** dari `S16b-3` dan dari satu sama lain |
+| Snapshot bukti | Decisions **rev 115**; `LAB-EVD-014`; capability map **rev 9**; backend `4d3e4f98`; frontend `7fb1e1d3e` |
+| Decision ID yang mengikat | `LAB-DEC-230`..`LAB-DEC-249`; diwarisi `LAB-DEC-159`, `LAB-DEC-160`, `LAB-DEC-166`, `LAB-DEC-205`..`207`, `LAB-DEC-181` |
+| Pola yang diwarisi | **Memperluas** `S16a` (`LAB-DA-001` A7) — laporan baca-saja tanpa konsep tersimpan; jangan rancang ulang |
+| Syarat rancangan wajib | (1) **Nol konsep laporan tersimpan** — dibaca dari fakta yang ada, pola A7.5. (2) `S16b-1` dibaca dari **peristiwa** riwayat transisi, bukan dari status pemeriksaan (F30-18). (3) `S16b-1` memuat **identitas pasien** — arsitek domain menetapkan batas privasinya, termasuk usulan jejak pembukaan 0H.2 dimensi 14. (4) `S16b-2` adalah laporan **pertama yang membaca `BC-REG`** — arsitek domain menetapkan bentuk ketergantungannya (baca langsung lewat jalur daftar pantau, bukan kontrak tulis). (5) Definisi hitung `S16b-2` **satu sumber dengan Beranda** — pola `INV-57` (satu rumus) |
+| Ditambahkan pada lintas laporan | Izin per laporan (`LAB-DEC-231`); `.xlsx` + cetak dengan pencatat cetak server **fail-closed** (`LAB-DEC-233`, `LAB-DEC-248`); alasan wajib pembatalan pemeriksaan/wadah, backend saja (`LAB-DEC-237`, `LAB-DEC-247`) |
+| Usulan yang wajib tetap ditandai usulan | Seluruh baris `PROPOSED` pada 0H.2 dan 0H.3 |
+| Dependency | Registrasi (baca kunjungan), Master Data (nama unit); `LAB-COORD-021` hanya bagi rincian kategori — **tidak** dipakai kedua slice |
+| Yang **tidak boleh** muncul | Tabel ringkasan laporan; kolom uang, penjamin, atau fee; rujukan ke laboratorium luar; asal kiosk atau kamar perawatan (`LAB-OPEN-055`); aksi batal per pemeriksaan di layar |
+
+**Ke `grill-me`:** tidak ada yang dibutuhkan kedua slice. Usulan 0H.2 dimensi 14 dapat ditanyakan bila arsitek
+domain menilainya perlu keputusan.
+
+---
+
 ## 1. Scope Penilaian
 
 Yang dinilai adalah kemampuan Rilis 1 modul Laboratorium sebagaimana dibatasi `LAB-DEC-001`
@@ -1849,6 +1972,7 @@ menilai kebutuhan bisnis, bukan kontrak teknis; kontrak as-is yang berlaku ada d
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 13 | 2026-10-20 | **`S16b` dinilai ulang sesudah amendment pass putaran 30 dan closure pass putaran 31** (bagian 0H). `S16b` dipecah tiga: **`S16b-1` Laporan Pembatalan Order & Pemeriksaan** dan **`S16b-2` Statistik Pesanan Laboratorium** naik **`READY_FOR_DOMAIN_DESIGN`** — kedelapan belas dimensi terjawab (`LAB-DEC-230`..`249`), nol `BLOCKING`, nol `CONFLICT` terbuka; **`S16b-3`** sisa katalog tetap ditunda. Empat usulan bertanda: jejak *membuka* laporan berisi identitas pasien, periode kosong, bawaan izin, data uji non-Rawat Jalan. Handoff 0H.8: syarat nol konsep tersimpan, baca dari peristiwa, batas privasi, baca `BC-REG` pertama bagi laporan, satu rumus dengan Beranda. Bukti: decisions rev 115, capability map rev 9 (BE `4d3e4f98`, FE `7fb1e1d3e`) | `draft` |
 | 12 | 2026-10-06 | **Sembilan slice dinilai ulang sesudah amendment pass putaran 21** (bagian 0G). **Delapan slice atau bagian naik `READY_FOR_DOMAIN_DESIGN`:** `S2b-1`, `S2b-3`, `S4d-2`, `S4e`, `S5`, `S6-1`, `S17-1`, `S18` (sisi Laboratorium). **Ratifikasi klinis `LAB-SIGN-002` diuji per keputusan** — tidak memblokir desain selama penolakan kelak tidak membongkar rancangan; satu syarat rancangan lahir darinya: empat mata ditegakkan per disiplin. **Dua penahan baru ditemukan gerbang ini:** `DEC-LAB-030` — nomor cetak tersimpan satu per order (`LabOrder.LabReportNumber`), sehingga order PA campuran histopatologi dan FNAB tidak punya seri yang pasti; `DEC-LAB-034` — akibat tarik hasil pada pemeriksaan, order *Selesai*, dan tagihan pemeriksaan ulang. `S6` dan `S17` dipecah; `S17-2` menunggu `LAB-COORD-015`, dan `owners.security` belum ditetapkan. Tiga butir dikunci sebelum kontrak, tidak memblokir desain: `DEC-LAB-031` (lebih dari satu `Sementara`), `DEC-LAB-032` (rilis mana yang dihitung `S7`/`S16a`), `DEC-LAB-033` (persetujuan perubahan SLA). Titik picu alur kritis ditetapkan **saat rilis** sebagai turunan langsung `LAB-DEC-004` dan `LAB-DEC-155`. `S16b` ditunda Phase 2, tidak dinilai | `draft` |
 | 11 | 2026-09-25 | **Kelima slice 0E dinilai ulang sesudah amendment pass putaran 19** (bagian 0F). **`S16a` naik `READY_FOR_DOMAIN_DESIGN`** — kedelapan belas dimensi terjawab atau berusulan tidak memblokir; laporan PA dan Mikrobiologi ditulis *belum dapat dihitung* sampai jalur rilisnya ada. `S8` **dilebur** ke `S5`/`S6`; `S19` **tidak dirancang**; `S18` sisi Laboratorium lengkap, penahannya di luar modul. **`S2b` dipecah tiga**, dan pembacaan ulang cetakan PA `LAB-EVD-005` menemukan dua hal yang belum pernah diputuskan: **lokasi bernomor lebih dari satu** (`DEC-LAB-029`, kardinalitas) dan **ruas Fiksasi** (`DEC-LAB-028`). Isi awal daftar lokasi diusulkan dari 166 baris lokasi SNOMED yang sudah ter-seed nonaktif | `draft` |
 | 10 | 2026-09-25 | **`S2b`, `S8`, `S16`, `S18`, `S19` dinilai ulang atas permintaan pemilik modul** (bagian 0E) — kelimanya belum pernah disentuh sejak revision 3. **Nol slice naik.** Penahan lama diganti yang bernama: `S2b` menyempit — nomor PA sudah dijawab `LAB-DEC-117` dan bagian Mikrobiologi terbangun lewat `S4b`; sisanya `DEC-LAB-022` (seri Sitologi/FNAB, pelacakan blok dan slide) dan `DEC-LAB-023` (lokasi dan metode pengambilan). `S8`: `LAB-COORD-001` hanya menyepakati **pemilik** — platform masih nol sarana pemberitahuan pada `cfafad8d`; penahan kini `DEC-LAB-024` dan `LAB-COORD-017`. `S16`: `DEC-LAB-025`; dokumen sumber analisis konsolidasi **tidak tersimpan** di repository. **`S18`: kemampuan dokumen klinis pasien milik Clinical Management ditemukan** — jenis `LaboratoryResult`, sumber `ExternalHospital`, status verifikasi — tanpa unggahan berkas dan tanpa layar, **belum ber-CAP**; `LAB-DEC-030` bertentangan soal pemiliknya → `DEC-LAB-026`, `DEC-LAB-016` diperluas. `S19`: jalur umum sudah menerima kunjungan `MedicalCheckup`; `DEC-LAB-027` | `draft` |
