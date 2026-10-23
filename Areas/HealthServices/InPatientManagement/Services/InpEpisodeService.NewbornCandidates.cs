@@ -142,12 +142,56 @@ public partial class InpEpisodeService
             .ToListAsync(cancellationToken);
         var placements = placementRows.GroupBy(x => x.EpisodeId).ToDictionary(x => x.Key, x => x.First());
 
-        var babyCounts = await _dbContext.Set<MstPatient>()
+        var babyPatients = await _dbContext.Set<MstPatient>()
             .AsNoTracking()
             .Where(x => x.DeliveryCaseId.HasValue && caseIds.Contains(x.DeliveryCaseId.Value) && !x.IsDelete)
-            .GroupBy(x => x.DeliveryCaseId!.Value)
-            .Select(x => new { DeliveryCaseId = x.Key, Count = x.Count() })
-            .ToDictionaryAsync(x => x.DeliveryCaseId, x => x.Count, cancellationToken);
+            .OrderBy(x => x.BirthOrder)
+            .Select(x => new
+            {
+                x.Id,
+                DeliveryCaseId = x.DeliveryCaseId!.Value,
+                x.FullName,
+                x.MedicalRecordNumber,
+                x.BirthOrder
+            })
+            .ToListAsync(cancellationToken);
+
+        var babyPatientIds = babyPatients.Select(b => b.Id).ToList();
+        var babyEpisodeRows = await _dbContext.Set<InpEpisode>()
+            .AsNoTracking()
+            .Where(x => babyPatientIds.Contains(x.PatientId) && !x.IsDelete && !x.IsCancel)
+            .OrderByDescending(x => x.CreateDateTime)
+            .Select(x => new
+            {
+                x.Id,
+                x.PatientId,
+                x.EpisodeNumber,
+                x.EpisodeStatus
+            })
+            .ToListAsync(cancellationToken);
+        var babyEpisodes = babyEpisodeRows
+            .GroupBy(x => x.PatientId)
+            .ToDictionary(x => x.Key, x => x.First());
+
+        var babyEpisodeIds = babyEpisodes.Values.Select(x => x.Id).ToList();
+        var babyPlacementRows = await _dbContext.Set<InpBedPlacement>()
+            .AsNoTracking()
+            .Where(x => babyEpisodeIds.Contains(x.EpisodeId) && x.EndDateTime == null && !x.IsDelete)
+            .OrderByDescending(x => x.SequenceNumber)
+            .Select(x => new
+            {
+                x.EpisodeId,
+                RoomName = x.Room != null ? x.Room.RoomName : null,
+                BedCode = x.Bed != null ? x.Bed.BedCode : null
+            })
+            .ToListAsync(cancellationToken);
+        var babyPlacements = babyPlacementRows
+            .GroupBy(x => x.EpisodeId)
+            .ToDictionary(x => x.Key, x => x.First());
+
+        var babyCounts = babyPatients
+            .GroupBy(x => x.DeliveryCaseId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
         var sequences = await _dbContext.Set<PatNewbornBirthSequence>()
             .AsNoTracking()
@@ -168,6 +212,32 @@ public partial class InpEpisodeService
                 : null;
             var registeredCount = babyCounts.GetValueOrDefault(item.Id);
             var nextOrder = Math.Max(registeredCount, sequences.GetValueOrDefault(item.Id)) + 1;
+
+            var caseBabies = babyPatients
+                .Where(b => b.DeliveryCaseId == item.Id)
+                .Select(b =>
+                {
+                    babyEpisodes.TryGetValue(b.Id, out var ep);
+                    var bPlacement = ep != null && babyPlacements.TryGetValue(ep.Id, out var bp) ? bp : null;
+                    var isCurrentlyInRoom = ep != null && ep.EpisodeStatus == InpEpisodeStatus.Admitted && bPlacement != null;
+                    return new NewbornRegisteredBabyDto
+                    {
+                        PatientId = b.Id,
+                        FullName = b.FullName,
+                        MedicalRecordNumber = b.MedicalRecordNumber,
+                        BirthOrder = b.BirthOrder,
+                        EpisodeId = ep?.Id,
+                        EpisodeNumber = ep?.EpisodeNumber,
+                        EpisodeStatus = ep != null ? (int)ep.EpisodeStatus : null,
+                        EpisodeStatusName = ep?.EpisodeStatus.ToString(),
+                        RoomName = bPlacement?.RoomName,
+                        BedCode = bPlacement?.BedCode,
+                        IsCurrentlyInRoom = isCurrentlyInRoom
+                    };
+                })
+                .ToList();
+
+            var hasActiveBaby = caseBabies.Any(b => b.IsCurrentlyInRoom || b.EpisodeStatus == (int)InpEpisodeStatus.Admitted || b.EpisodeStatus == (int)InpEpisodeStatus.Draft);
 
             items.Add(new NewbornMotherCandidateResponse
             {
@@ -192,7 +262,9 @@ public partial class InpEpisodeService
                 CurrentRoomId = placement?.RoomId,
                 CurrentRoomName = placement?.RoomName,
                 RegisteredBabyCount = registeredCount,
-                NextBirthOrderPreview = nextOrder
+                NextBirthOrderPreview = nextOrder,
+                HasActiveInpatientBaby = hasActiveBaby,
+                RegisteredBabies = caseBabies
             });
         }
 
