@@ -8023,3 +8023,29 @@ dua isian itu lewat keputusan susulan.
 | Keputusan baru | `IGD-DEC-348` |
 | Keputusan yang diperketat | `IGD-DEC-342` — tetap `approved`, cakupannya bertambah |
 | Nomor yang dipakai | `IGD-FACT-212`, `213`; `IGD-DEC-348` |
+
+
+---
+
+### Integrasi Layar Tagihan Pasien IGD (Estimasi Biaya & Monitoring Pelayanan) — 23 Oktober 2026
+
+Atas permintaan pemilik sistem untuk menyusun rencana blueprint dan mengaktifkan tab Tagihan Pasien pada Ruang Kerja Pemeriksaan IGD (`EmergencyAssessmentDetailView`).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-214` | **Tab Tagihan Pasien di Ruang Kerja Pemeriksaan IGD sebelumnya ditandai `available: false`** (`emergency-assessment-constant.jsx` line 80) dan menampilkan pesan *"Bagian ini belum tersambung"*, padahal backend bridge `BillingClinicalChargeBridgeService` sudah mempublikasikan seluruh tindakan, resep, penunjang lab/rad, dan alkes IGD ke Billing secara real-time. |
+| `IGD-FACT-215` | **Endpoint charge summary per encounter sudah tersedia di modul Billing & Kasir:** `GET /api/v1/health-services/billing-management/billing/invoices/encounters/{encounterId}/charge-summary` (`BillingInvoicesController.cs:322`). Endpoint ini menghitung akumulasi biaya per kategori langsung dari mesin kalkulasi kasir tanpa perlu membuat tabel baru (`Zero DB Migration`). |
+
+#### Keputusan
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-349` | **Integrasi Layar Tagihan Pasien IGD disetujui sebagai sarana Monitoring Baca-Saja (*Read-Only*) & Estimasi Biaya Pelayanan.** Layar ini tidak memproses pembayaran kasir (pembayaran tetap tersentralisasi di loket kasir IGD/Billing). Visibilitas rincian item pelayanan dibuka untuk seluruh staf IGD, sedangkan visibilitas angka nominal rupiah dilindungi otorisasi finansial (`BillingInvoice : Read` / `PatientBillingSummary : ViewAmount`). Backend me-reuse endpoint `GET .../billing/invoices/encounters/{encounterId}/charge-summary` tanpa migrasi database. Dokumen blueprint terbit di `docs/module-blueprints/igd/docs/2026-10-23-blueprint-integrasi-tagihan-pasien-igd.md` | Product/Domain Owner IGD | `approved` | **User / 2026-10-23** | Wawancara penyelarasan kebutuhan (ask_question A1, A2, A3) |
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | `IGD-DEC-349` |
+| Dokumen blueprint | `docs/2026-10-23-blueprint-integrasi-tagihan-pasien-igd.md` |
+| Nomor yang dipakai | `IGD-FACT-214`, `215`; `IGD-DEC-349` |
