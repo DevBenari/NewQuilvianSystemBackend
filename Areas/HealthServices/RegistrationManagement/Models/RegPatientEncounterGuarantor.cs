@@ -74,6 +74,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// </summary>
         public Guid? CompanyGuarantorId { get; set; }
 
+        /// <summary>
+        /// Sumber snapshot penjamin ibu yang diwariskan ke encounter bayi. Sengaja tanpa FK
+        /// agar jejak historis bayi tetap dapat dibaca ketika sumber ibu berubah status.
+        /// </summary>
+        public Guid? InheritedFromPaymentSourceId { get; set; }
+
+        /// <summary>Waktu versi sumber ibu yang dipakai saat snapshot bayi dibuat.</summary>
+        public DateTime? InheritedFromPaymentSourceAt { get; set; }
+
         // =========================
         // REGISTRATION SNAPSHOT
         // =========================
@@ -149,6 +158,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Mode
         /// kunjungan tetap utuh bila data HR berubah. Kolom sensitif.
         /// </summary>
         public Guid? EmployeeIdSnapshot { get; set; }
+
+        /// <summary>
+        /// Salinan MstPatientCompanyGuarantor.BenefitOwnerWorkforceProfileId saat registrasi: identitas pemilik
+        /// benefit yang stabil untuk histori (karyawan maupun dokter tetap). Tanpa FK. Untuk dokter,
+        /// <see cref="EmployeeIdSnapshot"/> tetap kosong. Transaksi lama tanpa nilai ini dibaca lewat
+        /// EmployeeIdSnapshot dan tidak diubah diam-diam. Kolom sensitif.
+        /// </summary>
+        public Guid? WorkforceProfileIdSnapshot { get; set; }
 
         /// <summary>Salinan MstPatientCompanyGuarantor.FamilyMemberId saat registrasi. Kolom sensitif.</summary>
         public Guid? FamilyMemberIdSnapshot { get; set; }

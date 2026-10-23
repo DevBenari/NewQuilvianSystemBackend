@@ -30,6 +30,7 @@ public sealed class InstallmentPlanQuery
 {
     public string? Status { get; set; }
     public Guid? BenefitOwnerId { get; set; }
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
     public string? DeductionPeriod { get; set; }
     public string? Search { get; set; }
     public string SortBy { get; set; } = "requestedAt";
@@ -63,6 +64,9 @@ public sealed class InstallmentPlanListResponse : InstallmentPlanResponse
 {
     /// <summary>Sensitif (FIN-DEC-172) — tetap dikembalikan ke pengguna berhak, MUST NOT masuk custom logger.</summary>
     public Guid? BenefitOwnerId { get; set; }
+
+    /// <summary>Sensitif. Identitas canonical pemilik (karyawan atau dokter tetap).</summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
     /// <summary>Sensitif.</summary>
     public string? BenefitRelationship { get; set; }
     public decimal OutstandingAmount { get; set; }

@@ -7,6 +7,8 @@ public sealed class CreateSettlementRequest
 {
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
+    /// <summary>Target iuran membership (non-kunjungan); wajib bila Purpose = MEMBERSHIP_FEE.</summary>
+    public Guid? MembershipFeeChargeId { get; set; }
     [Required, MaxLength(30)] public string Purpose { get; set; } = string.Empty;
     [Range(
         typeof(decimal),
@@ -33,6 +35,19 @@ public sealed class CreateTenderRequest
     public decimal Amount { get; set; }
     [MaxLength(150)] public string? CashierReferenceNote { get; set; }
     public Guid ExpectedRowVersion { get; set; }
+    public bool? IsManualCashierConfirmed { get; set; }
+    [MaxLength(500)] public string? ConfirmationNote { get; set; }
+    public Guid CorrelationId { get; set; }
+    public Guid CausationId { get; set; }
+}
+
+public sealed class ManualConfirmTenderRequest
+{
+    public Guid ExpectedRowVersion { get; set; }
+    [Required, MaxLength(150)] public string CashierReferenceNote { get; set; } = string.Empty;
+    public Guid? PaymentMethodAccountId { get; set; }
+    [MaxLength(500)] public string? ConfirmationNote { get; set; }
+    public bool UserConfirmation { get; set; } = true;
     public Guid CorrelationId { get; set; }
     public Guid CausationId { get; set; }
 }
@@ -42,12 +57,16 @@ public sealed class SettlementResponse
     public Guid? Id { get; set; }
     public Guid? InvoiceId { get; set; }
     public Guid? DepositAccountId { get; set; }
+    public Guid? MembershipFeeChargeId { get; set; }
     public string Purpose { get; set; } = BillingSettlementPurposes.DepositTopUp;
     public string? Note { get; set; }
     public string Status { get; set; } = BillingSettlementStatuses.Draft;
     public decimal RequestedAmount { get; set; }
     public decimal SuccessfulAmount { get; set; }
     public decimal AllocatedAmount { get; set; }
+
+    /// <summary>Batas bagian settlement ini yang boleh melunasi kelebihan plafon Benefit RS (E); null untuk kunjungan non-benefit.</summary>
+    public decimal? BenefitExcessAuthorizedAmount { get; set; }
     public decimal PendingAmount { get; set; }
     public decimal OutstandingAmount { get; set; }
     public decimal CollectibleAmount { get; set; }
@@ -75,6 +94,7 @@ public sealed class SettlementResponse
 public sealed class TenderResponse
 {
     public Guid Id { get; set; }
+    public Guid TenderId => Id;
     public Guid SettlementId { get; set; }
     public Guid PaymentMethodId { get; set; }
     public Guid? PaymentMethodAccountId { get; set; }
@@ -90,6 +110,12 @@ public sealed class TenderResponse
     public Guid RowVersion { get; set; }
     public bool IsReplay { get; set; }
     public string? InvoiceClosureNote { get; set; }
+
+    // Provenance konfirmasi pembayaran: "CASH", "MANUAL_CASHIER", "PAYMENT_PROVIDER"
+    public string? ConfirmationSource { get; set; }
+    public DateTimeOffset? ConfirmedAt { get; set; }
+    public string? MembershipFeeChargeStatus { get; set; }
+    public string? MembershipConfirmationStatus { get; set; }
 
     // Klasifikasi transaksi pembayaran: "PELUNASAN", "CICILAN", "PENDING"
     public string TransactionClassification { get; set; } = "CICILAN";

@@ -233,6 +233,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public Guid? CompanyGuarantorId { get; set; }
 
+        public Guid? InheritedFromPaymentSourceId { get; set; }
+
+        public DateTime? InheritedFromPaymentSourceAt { get; set; }
+
         public string? CompanyGuarantorCodeSnapshot { get; set; }
 
         public string? EmployeeNumberSnapshot { get; set; }
@@ -460,6 +464,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// </summary>
         public Guid? PatientCompanyGuarantorId { get; set; }
 
+        /// <summary>
+        /// Sumber pembayaran encounter ibu yang disalin sebagai snapshot encounter bayi.
+        /// Tidak boleh digabung dengan pilihan penjamin manual.
+        /// </summary>
+        public Guid? InheritedPaymentSourceId { get; set; }
+
+        /// <summary>
+        /// Versi sumber pembayaran ibu yang terakhir dilihat pengguna. Backend menolak bila
+        /// sumber sudah berubah agar penjamin bayi tidak dibuat dari data basi.
+        /// </summary>
+        public DateTime? InheritedPaymentSourceExpectedAt { get; set; }
+
         public Guid? KioskScanSessionId { get; set; }
 
         /// <summary>
@@ -518,6 +534,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public string? Notes { get; set; }
 
         public string? DuplicateEpisodeOverrideReason { get; set; }
+
+        /// <summary>
+        /// rawat-jalan Amendment RP (BE-RJP-008): diisi bila kunjungan ini melengkapi Reservasi
+        /// Prioritas berstatus Sudah Tiba. Hanya diterima di <c>POST /admin</c>; kiosk menolaknya.
+        /// </summary>
+        public Guid? PriorityReservationId { get; set; }
     }
 
     /// <summary>
@@ -549,6 +571,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public PublicDisplayMode PublicDisplayMode { get; set; }
 
         public string PublicDisplayModeName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// rawat-jalan Amendment RP (BE-RJP-011, RJ-PRI-DEC-017/018): nama ruang tunggu prioritas dari
+        /// konfigurasi bila antrean prioritas, selain itu <c>null</c>.
+        /// </summary>
+        public string? PriorityWaitingLocationName { get; set; }
     }
 
     public class PatientEncounterCreateResponse

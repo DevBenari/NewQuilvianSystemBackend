@@ -32,6 +32,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             "QueueCancelled"
         };
 
+        /// <summary>Event untuk layar display publik, terpisah dari event ruang kerja (RJ-PRI-DEC-025).</summary>
+        public const string QueueDisplayEventName = "QueueDisplayChanged";
+
+        private const string QueueDisplayClusterGroupPrefix = "queue-display-cluster";
         private const string NurseStationClusterGroupPrefix = "nurse-station-cluster";
         private const string DoctorQueueDoctorGroupPrefix = "doctor-queue-doctor";
         private const string DoctorQueueClinicGroupPrefix = "doctor-queue-clinic";
@@ -55,6 +59,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public static string BuildNurseStationClusterGroupName(Guid nurseStationClusterId)
         {
             return $"{NurseStationClusterGroupPrefix}:{nurseStationClusterId:D}";
+        }
+
+        /// <summary>Group layar display publik per nurse station cluster (RJ-PRI-DEC-025).</summary>
+        public static string BuildQueueDisplayClusterGroupName(Guid nurseStationClusterId)
+        {
+            return $"{QueueDisplayClusterGroupPrefix}:{nurseStationClusterId:D}";
+        }
+
+        /// <summary>Event daftar Reservasi Prioritas di layar admisi (RJ-PRI-DEC-014, 026).</summary>
+        public const string PriorityReservationEventName = "PriorityReservationChanged";
+
+        /// <summary>Satu group untuk semua pemegang <c>OutpatientPriorityReservation : Read</c>.</summary>
+        public const string PriorityReservationBoardGroupName = "priority-reservation-board";
+
+        /// <summary>
+        /// Mengirim kabar perubahan reservasi tanpa data pribadi (INT-RP-07). Bersifat upaya terbaik:
+        /// kegagalan kirim hanya dicatat, karena layar memuat ulang daftar saat dibuka atau ditekan ↻.
+        /// </summary>
+        public async Task NotifyPriorityReservationChangedAsync(
+            RegPriorityReservation reservation,
+            string eventCode,
+            DateTime occurredAtUtc,
+            DateTime? previousVisitDate = null)
+        {
+            var payload = new PriorityReservationRealtimeEventResponse
+            {
+                ReservationId = reservation.Id,
+                VisitDate = reservation.VisitDate,
+                PreviousVisitDate = previousVisitDate,
+                Status = reservation.Status,
+                EventCode = eventCode,
+                OccurredAt = occurredAtUtc
+            };
+
+            try
+            {
+                await _hubContext.Clients
+                    .Group(PriorityReservationBoardGroupName)
+                    .SendAsync(PriorityReservationEventName, payload);
+            }
+            catch (Exception exception)
+            {
+                // Serilog langsung, bukan LoggerService: LoggerService menyertakan path permintaan, dan
+                // path link publik memuat kode konfirmasi (INV-RP-05).
+                Serilog.Log.Error(
+                    exception,
+                    "Kabar realtime reservasi gagal dikirim. EntityId={EntityId}; Event={EventCode}.",
+                    reservation.Id,
+                    eventCode);
+            }
         }
 
         public static string BuildNurseStationAllGroupName()
@@ -252,6 +306,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                             .Group(BuildNurseStationClusterGroupName(nurseStationClusterId))
                             .SendAsync(RealtimeEventName, payload));
                     }
+
+                    // RJ-PRI-DEC-005/025: layar display publik hanya menerima payload ringkas, dan
+                    // tidak menerima kabar antrean prioritas sama sekali.
+                    if (!queue.IsPriorityQueue)
+                    {
+                        var displayPayload = BuildDisplayPayload(payload);
+
+                        foreach (var nurseStationClusterId in nurseStationClusterIds)
+                        {
+                            sendTasks.Add(_hubContext.Clients
+                                .Group(BuildQueueDisplayClusterGroupName(nurseStationClusterId))
+                                .SendAsync(QueueDisplayEventName, displayPayload));
+                        }
+                    }
                 }
 
                 if (notifyDoctorQueue)
@@ -388,6 +456,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 ActorUserId = actorUserId == Guid.Empty ? null : actorUserId,
                 OccurredAt = DateTime.UtcNow,
                 Message = string.IsNullOrWhiteSpace(message) ? null : message.Trim()
+            };
+        }
+
+        private static QueueDisplayRealtimeEventResponse BuildDisplayPayload(QueueRealtimeEventResponse payload)
+        {
+            return new QueueDisplayRealtimeEventResponse
+            {
+                EventType = payload.EventType,
+                QueueId = payload.QueueId,
+                ServiceUnitId = payload.ServiceUnitId,
+                ClinicId = payload.ClinicId,
+                DoctorId = payload.DoctorId,
+                NurseStationClusterIds = payload.NurseStationClusterIds,
+                QueueDate = payload.QueueDate,
+                QueueNumber = payload.QueueNumber,
+                QueueCode = payload.QueueCode,
+                QueueStatus = payload.QueueStatus,
+                QueueStatusName = payload.QueueStatusName,
+                NurseCallExpiresAt = payload.NurseCallExpiresAt,
+                DoctorCallExpiresAt = payload.DoctorCallExpiresAt,
+                OccurredAt = payload.OccurredAt
             };
         }
 

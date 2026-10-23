@@ -101,6 +101,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public int? BirthOrder { get; set; }
 
+        /// <summary>
+        /// Referensi logis kasus persalinan sumber registrasi bayi. Tidak memakai FK lintas
+        /// bounded context agar riwayat pasien tetap terbaca ketika kasus operasi diarsipkan.
+        /// </summary>
+        public Guid? DeliveryCaseId { get; set; }
+
+        /// <summary>SHA-256 dari Idempotency-Key registrasi bayi; nilai asli tidak disimpan.</summary>
+        [MaxLength(64)]
+        public string? NewbornRegistrationKeyHash { get; set; }
+
+        /// <summary>SHA-256 payload terkanonisasi untuk mendeteksi kunci sama dengan isi berbeda.</summary>
+        [MaxLength(64)]
+        public string? NewbornRegistrationFingerprint { get; set; }
+
         public decimal? BirthWeightGram { get; set; }
 
         public decimal? BirthLengthCm { get; set; }

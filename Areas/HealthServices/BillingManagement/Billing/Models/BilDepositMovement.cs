@@ -26,6 +26,13 @@ public sealed class BilDepositMovement : IdentityModel
     public BilDepositAccount DepositAccount { get; set; } = null!;
 }
 
+/// <summary>Status tampilan mutasi deposit; diturunkan dari ledger append-only, tidak disimpan.</summary>
+public static class DepositMovementStatuses
+{
+    public const string Posted = "POSTED";
+    public const string Reversed = "REVERSED";
+}
+
 public static class BillingDepositMovementTypes
 {
     public const string TopUp = "TOP_UP";

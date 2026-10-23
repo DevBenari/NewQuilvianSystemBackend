@@ -198,6 +198,73 @@ public sealed class BillingFinalizationsController : ControllerBase
         }
     }
 
+    /// <summary>
+    /// Finalisasi invoice dengan penangguhan sisa kewajiban pasien ke Piutang Pasien (Finance AR).
+    /// Berbeda dari departure exception medis: invoice tetap berstatus FINAL dengan outstanding,
+    /// dan dibuatkan BilArHandoff dengan DebtorType PATIENT_GUARANTOR untuk diteruskan ke Finance.
+    /// </summary>
+    [HttpPost("invoices/{invoiceId:guid}/defer-to-ar")]
+    [AccessAction("DeferToAR", "Finalize Billing Invoice Deferring Patient Portion To AR", AccessType = AccessTypes.Create, SortOrder = 6)]
+    [AccessPermission("BillingFinalization", "DeferToAR")]
+    [ProducesResponseType(typeof(ApiResponse<FinalizationResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse<FinalizationPreviewResponse>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> FinalizeWithPatientReceivable(
+        Guid invoiceId,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] FinalizeWithPatientReceivableRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.FinalizeWithPatientReceivableAsync(
+                invoiceId, request, idempotencyKey, CurrentUserId(), cancellationToken);
+            var statusCode = result.IsReplay
+                ? StatusCodes.Status200OK
+                : StatusCodes.Status201Created;
+            return StatusCode(statusCode, Success(
+                result,
+                statusCode,
+                result.IsReplay
+                    ? "Invoice sudah difinalisasi dengan penangguhan piutang; hasil sebelumnya dikembalikan."
+                    : "Invoice berhasil difinalisasi dengan penangguhan ke Piutang Pasien (Finance AR)."));
+        }
+        catch (BillingFinalizationBlockedException exception)
+        {
+            return UnprocessableEntity(new ApiResponse<FinalizationPreviewResponse>
+            {
+                Success = false,
+                StatusCode = StatusCodes.Status422UnprocessableEntity,
+                Message = exception.Message,
+                Data = exception.Checklist
+            });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingFinalizationConflictException exception)
+        {
+            object? errors = null;
+            if (!string.IsNullOrEmpty(exception.Code))
+            {
+                errors = new[]
+                {
+                    new
+                    {
+                        code = exception.Code,
+                        currentRowVersion = exception.CurrentRowVersion
+                    }
+                };
+            }
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message, errors));
+        }
+        catch (BillingFinalizationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
 
     private static ApiResponse<T> Success<T>(T data, int statusCode, string message) => new()
     {

@@ -127,7 +127,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] string? serviceType,
             [FromQuery] int take = 50,
             [FromQuery] ProcedureCatalogCareSetting? careSetting = null,
-            [FromQuery] ProcedureCatalogAudience? audience = null)
+            [FromQuery] ProcedureCatalogAudience? audience = null,
+            [FromQuery] Guid? encounterId = null)
         {
             if ((careSetting.HasValue && !Enum.IsDefined(careSetting.Value)) ||
                 (audience.HasValue && !Enum.IsDefined(audience.Value)))
@@ -254,6 +255,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     CoverageStatus = tariff != null ? "Tarif RS" : "Belum Ditetapkan"
                 };
             }).ToList();
+
+            // PLAN-REPAIR-INS-002 FIX-05: dengan encounterId, setiap opsi memakai resolusi tarif
+            // dan coverage yang sama dengan POST select, sehingga dokter melihat status
+            // ditanggung/tidak sebelum memilih. Tanpa encounterId perilaku lama tidak berubah.
+            if (encounterId.HasValue && encounterId.Value != Guid.Empty && data.Count > 0)
+            {
+                var cancellationToken = HttpContext.RequestAborted;
+                var insuranceContext = await _encounterInsuranceService.GetContextAsync(
+                    encounterId.Value,
+                    cancellationToken: cancellationToken);
+
+                if (!insuranceContext.IsValid)
+                {
+                    foreach (var option in data)
+                        option.CoverageNote = insuranceContext.ErrorMessage;
+                }
+                else
+                {
+                    var pricingByProcedure = await _insuranceCoverageService.ResolveProceduresAsync(
+                        data.Select(x => x.Id).ToList(),
+                        insuranceContext,
+                        quantity: 1,
+                        cancellationToken: cancellationToken);
+
+                    foreach (var option in data)
+                    {
+                        var pricing = pricingByProcedure[option.Id];
+
+                        option.IsCoverageResolved = pricing.IsValid;
+                        option.CoverageStatus = pricing.CoverageStatus;
+                        option.PaymentTypeName = insuranceContext.PaymentTypeName;
+
+                        if (!pricing.IsValid)
+                        {
+                            option.CoverageNote = pricing.ErrorMessage;
+                            continue;
+                        }
+
+                        option.Tariff = pricing.UnitPrice;
+                        option.TotalPrice = pricing.TotalPrice;
+                        option.CoveragePercent = pricing.CoveragePercent;
+                        option.CoveredAmount = pricing.CoveredAmount;
+                        option.PatientPayAmount = pricing.PatientPayAmount;
+                        option.IsNeedGuarantorApproval = pricing.IsNeedGuarantorApproval;
+                        option.CoverageNote = pricing.CoverageNote;
+                    }
+                }
+            }
 
             return Ok(ApiResponse<List<PatientProcedureMasterOptionResponse>>.Ok(
                 data,
@@ -553,6 +602,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (!result.IsSuccess)
             {
                 return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            // ISSUE-DOK-008: Real-Time CPOE Rawat Inap To Billing.
+            // Pesanan tindakan rawat inap yang valid dan dapat ditagih langsung diterbitkan ke Estimasi Biaya / Billing Folio
+            // tanpa menunggu eksekusi fisik, sehingga keluarga & DPJP memiliki transparansi biaya seketika.
+            if (result.Data != null && request.InpEpisodeId != Guid.Empty && result.Data.IsBillable)
+            {
+                try
+                {
+                    var entity = await _dbContext.Set<TrxPatientProcedure>()
+                        .FirstOrDefaultAsync(x => x.Id == result.Data.Id, cancellationToken);
+                    if (entity != null && !entity.IsBillingGenerated)
+                    {
+                        var emission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                            PatientProcedureExecutionService.BuildProcedureFactRequest(entity, DateTime.UtcNow),
+                            actorUserId,
+                            cancellationToken);
+
+                        entity.IsBillingGenerated = true;
+                        entity.BillingGeneratedAt = DateTime.UtcNow;
+                        await _dbContext.SaveChangesAsync(cancellationToken);
+
+                        result.Data.IsBillingGenerated = true;
+                        result.Data.BillingGeneratedAt = entity.BillingGeneratedAt;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "PatientProcedure.CreateInpatientOrder.EmitChargeEligibilityAsync",
+                        "Gagal menerbitkan milestone penagihan pesanan tindakan rawat inap ke Billing.", ex);
+                }
             }
 
             if (result.StatusCode == StatusCodes.Status200OK)
@@ -1464,10 +1544,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (entity.IsBillingGenerated)
             {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    "Tindakan yang sudah masuk billing tidak dapat dibatalkan dari modul klinis."
-                ));
+                // ISSUE-DOK-008: Pada rawat inap, pesanan tindakan yang sudah masuk ke Estimasi Biaya tetap dapat
+                // dibatalkan oleh DPJP / pemesan selama tindakan tersebut BELUM dieksekusi / selesai dikerjakan.
+                // Pembatalan akan memicu pembalikan tagihan (reversal) di Billing via EmitClinicalCancellationAsync.
+                if (entity.InpEpisodeId.HasValue)
+                {
+                    if (entity.IsExecuted || entity.ProcedureStatus == PatientProcedureStatus.Completed)
+                    {
+                        return BadRequest(ApiResponse<object>.Fail(
+                            StatusCodes.Status400BadRequest,
+                            "Tindakan yang sudah dieksekusi / selesai dikerjakan tidak dapat dibatalkan dari modul pemesanan. Gunakan prosedur koreksi rekam medis resmi."
+                        ));
+                    }
+                }
+                else
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        "Tindakan yang sudah masuk billing tidak dapat dibatalkan dari modul klinis."
+                    ));
+                }
             }
 
             var now = DateTime.UtcNow;
@@ -1684,7 +1780,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (consultation == null)
                 return (false, "Konsultasi dokter tidak ditemukan, tidak aktif, atau tidak sesuai encounter.");
 
-            if (consultation.ConsultationStatus == DoctorConsultationStatus.Completed)
+            if (!consultation.InpEpisodeId.HasValue && consultation.ConsultationStatus == DoctorConsultationStatus.Completed)
                 return (false, "Konsultasi yang sudah completed tidak dapat ditambahkan tindakan.");
 
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Cancelled)
@@ -1813,7 +1909,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             if (consultation == null)
                 return (false, "Konsultasi dokter tidak ditemukan, tidak aktif, atau tidak sesuai encounter.");
 
-            if (consultation.ConsultationStatus == DoctorConsultationStatus.Completed)
+            if (!consultation.InpEpisodeId.HasValue && consultation.ConsultationStatus == DoctorConsultationStatus.Completed)
                 return (false, "Konsultasi yang sudah completed tidak dapat ditambahkan tindakan.");
 
             if (consultation.ConsultationStatus == DoctorConsultationStatus.Cancelled)

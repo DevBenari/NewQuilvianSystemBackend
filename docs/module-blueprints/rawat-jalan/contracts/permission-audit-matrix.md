@@ -202,3 +202,92 @@ Catatan risiko: jalur `IsCurrentUserSuperAdminAsync` (nama role) adalah utang te
 Privasi: `DiagnosisId`, `DiagnosisNote`, `ReferralReason`, dan berkas surat termasuk data
 kesehatan. Data ini tidak masuk log, tidak masuk URL, dan berkasnya tidak dapat dibuka lewat
 `/uploads`.
+
+---
+
+# Amendment RP — `RJ-PRI-RESV-001@1.0.0` (`approved`)
+
+`last_changed_in`: `RJ-PRI-RESV-001@1.0.0`. Status `approved` (Sukma Giri, 2026-10-16). Pemetaan endpoint ke hak akses hanya ada di kolom `Hak akses`
+pada `contracts/api-contract.md` *Amendment RP*. String atribut diturunkan dari kolom itu:
+`[AccessPermission("OutpatientPriorityReservation", "<Action>")]`.
+
+## RP-1. Butir hak akses baru
+
+| Resource | Action | `AccessType` | Arti |
+|---|---|---|---|
+| `OutpatientPriorityReservation` | `Read` | `Read` | Melihat daftar, ringkasan, detail, cek kelayakan, dan menerima kabar realtime "pasien tiba" (`RJ-PRI-DEC-026`) |
+| `OutpatientPriorityReservation` | `Create` | `Create` | Membuat reservasi dan mengirim ulang link |
+| `OutpatientPriorityReservation` | `Screen` | `Update` | Menyimpan checklist skrining awal |
+| `OutpatientPriorityReservation` | `Complete` | `Update` | Menandai tiba, mengembalikan ke Belum Tiba, dan melengkapi menjadi kunjungan |
+| `OutpatientPriorityReservation` | `Cancel` | `Update` | Membatalkan reservasi |
+
+Pola atribut mengikuti `PatientMembershipController.cs:458-465`, yaitu `[AccessAction("<Action>", …, AccessType =
+AccessTypes.<Jenis>)]` ditambah `[AccessPermission(...)]`. `AccessTypes` hanya mengenal Read, Create, Update, dan Delete
+(`Constants/AccessTypes.cs:3-15`).
+
+**Usulan desain yang ikut disetujui bersama blueprint:** tandai tiba dan kembalikan dipetakan ke `Complete`, sedangkan
+kirim ulang dipetakan ke `Create`. `RJ-PRI-DEC-020` hanya menyebut lima aksi, sehingga ketiga tindakan itu ditumpangkan
+ke aksi yang paling dekat maknanya.
+
+## RP-2. Peta peran (saran awal, diatur lewat layar Akses Role)
+
+| Peran rumah sakit | Butir |
+|---|---|
+| Admisi Rawat Jalan | `Read`, `Create`, `Screen`, `Complete`, `Cancel`, ditambah `PatientEncounter : Create` yang sudah ada |
+| Petugas skrining | `Read`, `Screen` |
+| Perawat Nurse Station, dokter | Tidak perlu. Mereka melihat penanda lokasi di worklist masing-masing |
+
+## RP-3. Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Penjaga | Yang dijaga | Yang tidak dijaganya | Risiko |
+|---|---|---|---|
+| Service memeriksa `OutpatientPriorityReservation : Complete` saat `POST /patient-encounters/admin` membawa `priorityReservationId` | Hanya pemegang `Complete` yang bisa melengkapi | Petugas dengan `PatientEncounter : Create` tetap bisa mendaftarkan pasien yang sama lewat jalur biasa (lalu reservasi tertutup sebagai jalur lain) | Rendah, karena perilakunya sah menurut `RJ-PRI-DEC-027` |
+| Kode acak link publik | Hanya pemegang pesan WA yang dapat mengonfirmasi | Siapa pun yang menerima pesan terusan dapat menekan "Saya sudah tiba" | Diterima (`RJ-PRI-DEC-012`). Petugas dapat mengembalikan bila pasien tidak ditemukan |
+| Batas laju per IP | Menahan tebakan kode | Penyerang dengan banyak IP | Kode 256 bit tidak dapat ditebak dalam praktik. Batas laju hanya lapisan kedua |
+| `JoinQueueDisplayCluster` | Group display hanya untuk akun display | Akun petugas yang membuka halaman display dengan login petugas | Akun petugas tetap menerima payload lengkap di group perawat, seperti hari ini |
+
+## RP-4. Audit dan privasi
+
+| Kejadian | Jejak tahan lama | Logger (`LoggerService`) |
+|---|---|---|
+| Semua perubahan reservasi | `RegPriorityReservationHistory` (pelaku, sumber, jam, alasan) | Dicatat: `EntityId`, aksi, status. **Tanpa** kode link, hash, checklist, atau alasan |
+| `GET` daftar, detail, link publik | — | Tidak dicatat (konvensi) |
+| Konfirmasi lewat link | Riwayat `ARRIVED` dengan `Source = PatientLink` | Dicatat tanpa kode dan tanpa IP lengkap |
+| Kode salah pada link publik | — | Dihitung saja (jumlah per menit), tanpa kode yang dicoba |
+
+| Kolom sensitif (data dictionary *Amendment RP*) | Perlakuan |
+|---|---|
+| `ArrivalCodeHash` | Tidak pernah dikirim ke respons mana pun dan tidak masuk log |
+| `ScreeningCough`, `ScreeningFever`, `ScreeningFallRisk` | Hanya di detail untuk pemegang `Read`. Tidak di daftar, realtime, maupun log |
+| `ClosureReason`, `Reason` (riwayat) | Hanya di detail. Tidak di daftar, realtime, maupun log |
+
+Masa simpan mengikuti data kunjungan Rawat Jalan, karena reservasi adalah bagian dari jejak pendaftaran. Data tidak
+dihapus, hanya ditandai.
+
+# Amendment RP-GT — `RJ-PRI-RESV-001@1.2.0` (`approved`)
+
+`last_changed_in`: `RJ-PRI-RESV-001@1.2.0`. Status `approved` (Sukma Giri, 2026-10-21, `RJ-PRI-DEC-039`). Keputusan `RJ-PRI-DEC-037`,
+`038`.
+
+## RP-GT-1. Arti aksi yang berubah
+
+| Resource | Action | `AccessType` | Arti sejak `1.2.0` |
+|---|---|---|---|
+| `OutpatientPriorityReservation` | `Create` | `Create` | Membuat reservasi, mengirim ulang link, **dan mengganti tanggal** |
+
+Tidak ada butir hak akses baru, sehingga admin tidak perlu mencentang ulang Akses Role. Deskripsi `[AccessAction]` untuk
+aksi `Create` diseragamkan pada ketiga endpoint-nya.
+
+Contoh: petugas skrining Rina hanya memegang `Read` + `Screen`. Ia tidak melihat tombol Ganti Tanggal, dan bila memanggil
+`POST /{id}/reschedule` langsung, ia menerima 403.
+
+## RP-GT-2. Audit dan privasi
+
+| Kejadian | Jejak tahan lama | Logger (`LoggerService`) |
+|---|---|---|
+| Ganti tanggal | `RegPriorityReservationHistory` `RESCHEDULED`: pelaku, sumber `Staff`, jam, alasan, `FromVisitDate`, `ToVisitDate` | `EntityId`, nomor reservasi, aksi, status. **Tanpa** kode link, hash, alasan, maupun tanggal |
+
+| Kolom (data dictionary *Amendment RP-GT*) | Sensitif | Perlakuan |
+|---|:---:|---|
+| `FromVisitDate`, `ToVisitDate` | Tidak | Tampil di riwayat detail untuk pemegang `Read` |
+| `Reason` pada `RESCHEDULED` | Ya | Sama seperti alasan lain: hanya di detail, tidak di daftar, realtime, maupun log |

@@ -3,6 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-STATE-v1` |
+| `r11` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — bagian 13: syarat alasan pada transisi batal pemeriksaan dan wadah; nol status, nol transisi baru |
 | Revision | **`10` — `approved`** 2026-10-08, bagian 12 (syarat Proses dilonggarkan bagi rawat inap/IGD) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`9` — `approved`** 2026-10-08, bagian 11 (Proses wajib lolos pembayaran) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`8` — `approved`** 2026-10-07, bagian 10 (Konfirmasi juga sah pada `Accepted`; Proses wajib terkonfirmasi) — disetujui Yoga Aji Pratama. Sebelumnya: **`7` — `approved`** 2026-09-25, bagian 9 (penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`6` — `approved`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
 | `r10` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
 | `r9` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju ketujuh butir"* atas `LAB-REQ-019`, ketujuh butir |
@@ -589,3 +590,33 @@ melanjutkan dari sana.
 |---|---|---|
 | Proses lolos bagi rawat inap/IGD | `LAB-DEC-223` | `AC-314`, `AC-315` |
 | Proses tetap dikunci bagi jenis lain | `LAB-DEC-223` | `AC-316` |
+
+## 13. Amandemen `r11` — Syarat alasan pada transisi batal pemeriksaan dan wadah, 2026-10-20
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-STATE-v1` |
+| Revision | `r11` |
+| Status | **`approved`** 2026-10-20 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-10-20 — *"Setuju keenam butir (Direkomendasikan)"* — pilihan pemilik modul pada sesi 2026-10-20 atas keempat kontrak dan keenam butir `02-backend-architecture.md` 32.10 |
+| `input_revision` | decisions rev 115 (`LAB-DEC-237`, `LAB-DEC-247`); `LAB-DA-001` rev 11 A8.7, `INV-60`; `LAB-VAL-v1` `r21` usulan |
+| Sifat | **Nol status baru, nol transisi baru.** Satu **syarat** ditambahkan pada dua transisi yang sudah ada |
+
+### 13.1 Transisi yang mendapat syarat
+
+| Objek | Transisi | Syarat yang sudah ada | **Syarat tambahan `r11`** | Ditolak bila |
+|---|---|---|---|---|
+| Pemeriksaan terpesan | `Ordered` / `ChargeEligible` → `Cancelled` | Bukan `Voided`, bukan `Cancelled`, belum dirilis | **Alasan tidak kosong** (`VAL-155`) — diperiksa sesudah syarat yang sudah ada | `422` |
+| Wadah | status aktif → `Cancelled` lewat batal wadah langsung | Belum `Cancelled` | **Alasan tidak kosong** (`VAL-155`) | `422` |
+| Wadah | → `Cancelled` **ikut pembatalan order** | Order `Requested`/`Confirmed` (`VAL-75`), alasan order (`VAL-74`) | **Tidak berubah** — alasan diwarisi dari order | — |
+| Order | `Requested`/`Confirmed` → `Cancelled` | `VAL-75`, `VAL-74` | **Tidak berubah** | — |
+
+**Yang tidak berubah dan sengaja dipertahankan** (`ARCH-GAP-LAB-16`): membatalkan order **tidak** memindahkan pemeriksaan
+maupun permintaan di dalamnya ke `Cancelled`. Pembacanya — Beranda, Statistik Pesanan — mensyaratkan status order sendiri
+(`INV-59`); Laporan Pembatalan membaca **peristiwa** order (`INV-58`).
+
+### 13.2 Traceability `r11`
+
+| Butir | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| Syarat alasan pada dua transisi | `LAB-DEC-237`, `LAB-DEC-247` | A8.7, `INV-60` | `AC-326`, `AC-327` |

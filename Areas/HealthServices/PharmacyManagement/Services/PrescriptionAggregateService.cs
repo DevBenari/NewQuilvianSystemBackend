@@ -146,16 +146,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 throw new InvalidOperationException("Resep yang sudah dibatalkan tidak dapat diubah.");
             }
 
-            if (prescription.PrescriptionStatus != PrescriptionStatus.Draft)
+            if (prescription.InpEpisodeId.HasValue)
             {
-                throw new InvalidOperationException(
-                    "Item resep hanya dapat diubah ketika resep masih berstatus Draft.");
+                if (prescription.FulfillmentStatus is
+                    PrescriptionFulfillmentStatus.ReadyToDispense or
+                    PrescriptionFulfillmentStatus.PartiallyDispensed or
+                    PrescriptionFulfillmentStatus.Dispensed)
+                {
+                    throw new InvalidOperationException(
+                        "Item resep rawat inap tidak dapat diubah setelah disiapkan atau diserahkan oleh farmasi.");
+                }
             }
-
-            if (prescription.PaymentStatus != PrescriptionPaymentStatus.NotBilled)
+            else
             {
-                throw new InvalidOperationException(
-                    "Item resep tidak dapat diubah setelah proses billing dimulai.");
+                if (prescription.PrescriptionStatus != PrescriptionStatus.Draft)
+                {
+                    throw new InvalidOperationException(
+                        "Item resep hanya dapat diubah ketika resep masih berstatus Draft.");
+                }
+
+                if (prescription.PaymentStatus != PrescriptionPaymentStatus.NotBilled)
+                {
+                    throw new InvalidOperationException(
+                        "Item resep tidak dapat diubah setelah proses billing dimulai.");
+                }
             }
         }
 

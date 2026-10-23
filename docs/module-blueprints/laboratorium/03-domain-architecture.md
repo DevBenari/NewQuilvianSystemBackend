@@ -6,10 +6,10 @@
 |---|---|
 | Blueprint ID | `laboratorium` |
 | Architecture ID | `LAB-DA-001` |
-| Revision | `10` — bagian **A7**, 2026-09-25: `S16a` tiga laporan operasional; `INV-54` dibukukan. Sebelumnya `9` — bagian **A6**, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `8` — bagian **A5**, 2026-09-24: `S4` validasi dan rilis Patologi Klinik |
+| Revision | `11` — bagian **A8**, 2026-10-20: `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan; hubungan baca pertama laporan ke `BC-REG`; `INV-58`..`INV-60`. Sebelumnya `10` — bagian **A7**, 2026-09-25: `S16a` tiga laporan operasional; `INV-54` dibukukan. Sebelumnya `9` — bagian **A6**, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `8` — bagian **A5**, 2026-09-24: `S4` validasi dan rilis Patologi Klinik |
 | Status | `draft` |
-| **Kesiapan arsitektur** | **Revision 10: `S16a` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant arti `INV-55`..`INV-57`, nol gap memblokir. Lihat A7.14.** **Revision 9: `S4d-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang (`DEC-LAB-020`, `DEC-LAB-021`). Lihat A6.14.** **Revision 8: `S4` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja — pemakaian nyatanya tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`. Lihat A5.14.** Sebelumnya: **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
-| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)**; **`S4` (rev 8)**; **`S4d-1` (rev 9)**; **`S16a` (rev 10)** |
+| **Kesiapan arsitektur** | **Revision 11: `S16b-1` dan `S16b-2` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant `INV-58`..`INV-60`, nol gap memblokir. Lihat A8.14.** **Revision 10: `S16a` ditambahkan `DOMAIN_ARCHITECTURE_READY` — nol konsep tersimpan, tiga invariant arti `INV-55`..`INV-57`, nol gap memblokir. Lihat A7.14.** **Revision 9: `S4d-1` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang (`DEC-LAB-020`, `DEC-LAB-021`). Lihat A6.14.** **Revision 8: `S4` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja — pemakaian nyatanya tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`. Lihat A5.14.** Sebelumnya: **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
+| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)**; **`S4` (rev 8)**; **`S4d-1` (rev 9)**; **`S16a` (rev 10)**; **`S16b-1`, `S16b-2` (rev 11)** |
 | Kesiapan requirement | `PARTIALLY_READY` dari `LAB-RCG-001` revision 4; seluruh slice dikirim sebagai slice siap yang berdiri sendiri |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | Backend SHA | `c87d9c0` |
@@ -1456,6 +1456,180 @@ Anatomi bergantung `MVP-10` dan `S4e`.
 
 ---
 
+## A8. Revision 11 — `S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan (2026-10-20)
+
+**Bagian ini memperluas A7, tidak merancang ulang.** Kedua laporan tetap **pandangan baca** tanpa konsep tersimpan.
+Yang baru dibanding `S16a` ada tiga: Laporan Pembatalan **menampilkan identitas pasien dan petugas**, Statistik Pesanan
+**membaca kunjungan milik Registrasi**, dan keduanya punya **keluaran cetak** yang wajib tercatat. Satu aturan validasi
+pada alur batal yang sudah ada ikut dirancang di sini, sebab laporan bergantung padanya.
+
+### A8.1 Identitas dan gerbang masuk
+
+| Butir | Isi |
+|---|---|
+| Scope | **`S16b-1`** Laporan Pembatalan Order & Pemeriksaan; **`S16b-2`** Statistik Pesanan Laboratorium; aturan **alasan wajib** pembatalan pemeriksaan dan wadah (`LAB-DEC-237`). **`S16b-3`** (sisa katalog) **tidak** dirancang |
+| Kesiapan requirement | `LAB-RCG-001` **revision 13** bagian 0H: kedua slice **`READY_FOR_DOMAIN_DESIGN`**, masing-masing independen dari `S16b-3` dan dari satu sama lain |
+| Decision ID yang mengikat | `LAB-DEC-230`..`LAB-DEC-249` (BR-142..BR-156); diwarisi `LAB-DEC-159`, `LAB-DEC-160`, `LAB-DEC-166`, `LAB-DEC-181`, `LAB-DEC-205`..`207`, `LAB-DEC-071`; `AC-326`..`AC-337` |
+| Bukti | Decisions **rev 115**; `LAB-EVD-014`; capability map **rev 9** (`CAP-P30-01`..`17`); kode dibaca pada **BE `4d3e4f98`**, **FE `7fb1e1d3e`** = `HEAD`; 19 kueri baca-saja devYoga (18 pada capability map rev 9 + status order di A8.13) |
+| Impact scan | Tidak perlu lagi — capability map rev 9 dipindai pada `HEAD` yang sama |
+| Baseline rujukan | **Tidak dipakai** — kedua definisi diputuskan pemilik modul |
+
+### A8.2 Ubiquitous language — istilah yang ditambahkan
+
+| Istilah | Arti |
+|---|---|
+| **Peristiwa pembatalan** | Satu baris riwayat perpindahan (`LAB-DC-007`) beraksi `Order.Cancel` atau `Examination.Cancel` — **satu keputusan membatalkan** oleh satu petugas pada satu waktu. Bukan status hari ini: pemeriksaan di dalam order yang dibatalkan **tidak** berstatus batal (F30-18), tetapi pembatalannya tetap terbaca lewat peristiwa order |
+| **Waktu diminta** | `RequestedAt` pesanan, atau waktu pesanan dibuat bila `RequestedAt` kosong; dibaca sebagai **tanggal operasional WIB** (A7.2) |
+| **Beban permintaan** | Berapa pesanan dan pemeriksaan yang **diminta** dalam suatu periode — berbeda dari *jumlah pemeriksaan* `S16a` yang menghitung **hasil keluar** pada tanggal rilis. Dua arti, dua angka, bukan selisih |
+| **Keluaran laporan** | Isi laporan yang meninggalkan layar: **unduhan** berkas atau **cetakan** lewat tombol Cetak. Cetak lewat menu peramban (Ctrl+P) berada di luar jangkauan aplikasi (`LAB-DEC-248` butir 4) |
+
+### A8.3 Peta bounded context — perubahan
+
+**Satu hubungan baca baru untuk laporan, nol context baru bagi Laboratorium.**
+
+| Dari | Ke | Sifat | Dipakai oleh | Arah kebenaran |
+|---|---|---|---|---|
+| `BC-LAB` | `BC-REG` | **Baca, conformist** — jenis kunjungan dan unit layanan kunjungan dibaca apa adanya | `S16b-2` (pengelompokan); `S16b-1` (kolom unit) | `BC-REG` pemilik. Laboratorium **tidak** menyalin, menafsir ulang, atau memetakan jenis kunjungan (*LABOR* tampil sebagai nama unit dari data induk, `LAB-DEC-243`) |
+| `BC-LAB` | `BC-MD` | Baca — nama unit layanan | Kedua laporan | `BC-MD` pemilik |
+| `BC-LAB` | **Data induk pasien** (modul `patient-management`) | Baca — No. RM dan nama pasien lewat kunjungan | `S16b-1` | Pemilik pasien. Jalur baca **sudah dipakai** rincian order sejak `LAB-DEC-166`; laporan memakai jalur yang sama, tidak membuka jalur kedua |
+
+**Mengamandemen kalimat A7.3** *"nol baca dari `BC-REG` … itulah yang membedakan `S16a` dari `S16b`"* — kalimat itu
+tetap benar bagi `S16a`; `S16b-1` dan `S16b-2` adalah laporan pertama yang membaca `BC-REG`. **Nol baca** dari
+`BC-BIL`, `BC-MRC`, maupun modul klinis — itu yang kini membedakan `S16b-1`/`S16b-2` dari `S16b-3`.
+
+**Aturan yang dipertahankan:** hubungan baru ini **hanya membaca**, pada saat laporan dibuka, dan tidak menyimpan
+salinan kunjungan, unit, atau pasien.
+
+### A8.4 Katalog konsep domain
+
+| ID | Nama | Klasifikasi | Context | Ownership | Identitas | Peran | Bukti |
+|---|---|---|---|---|---|---|---|
+| `LAB-DC-063` | **Laporan Pembatalan Order & Pemeriksaan** | `ADAPTER/VIEW` | `BC-LAB` | `Adapter/View` atas `LAB-DC-007`, `LAB-DC-001`, `LAB-DC-002`; membaca `LAB-DC-020` | Tanpa identitas; dihitung saat diminta | Audit pembatalan | `LAB-DEC-240` (BR-151) |
+| `LAB-DC-064` | **Statistik Pesanan Laboratorium** | `ADAPTER/VIEW` | `BC-LAB` | `Adapter/View` atas `LAB-DC-001`, `LAB-DC-002`, `LAB-DC-065`; membaca `LAB-DC-020` | Sama | Beban permintaan | `LAB-DEC-245` (BR-152), `LAB-DEC-246` |
+| `LAB-DC-065` | **Permintaan Pemeriksaan** | `ENTITY` | `BC-LAB` | `Existing` — **dibukukan di sini, tidak dibuat**; bagian dari aggregate `LAB-DC-001` | Identitas sendiri di dalam pesanan | Jenis pemeriksaan yang diminta sebelum direncanakan ke wadah | `LabOrderedProcedure` (`OrderedStatus`, `Urgency`); dihitung Beranda (`LabDashboardService.cs:247-255`) |
+
+**Fakta yang dibaca — seluruhnya sudah ada, nol yang dibuat untuk laporan:**
+
+| Fakta | Milik konsep | Keadaan pada `4d3e4f98` |
+|---|---|---|
+| Peristiwa batal order/pemeriksaan: aksi, status sebelum, alasan, pelaku, waktu | `LAB-DC-007` | Ada — `LabTransitionHistory` (`CAP-P30-06`); baris tidak pernah diubah |
+| Waktu diminta, status order, disiplin | `LAB-DC-001` | Ada — `RequestedAt`, `CreateDateTime`, `OrderStatus`, `Discipline` |
+| Status pemeriksaan (batal, gugur), disiplin katalog | `LAB-DC-002`, `LAB-DC-021` | Ada |
+| Status permintaan | `LAB-DC-065` | Ada — `OrderedStatus` |
+| Jenis kunjungan, unit layanan | `LAB-DC-020` | Ada — `EncounterType`, `ServiceUnitId` **wajib** (`CAP-P30-08`) |
+| No. RM, nama pasien | Data induk pasien | Ada — jalur rincian order (`LAB-DEC-166`) |
+
+### A8.5 Invariant
+
+| Invariant | Isi | Contoh |
+|---|---|---|
+| `INV-58` | Laporan Pembatalan memuat **satu baris per peristiwa** `Order.Cancel` atau `Examination.Cancel`, pada **tanggal operasional** peristiwa itu. Pembatalan wadah **tidak** menjadi baris. Karena riwayat tidak pernah diubah, laporan atas periode yang sudah lewat **tidak berubah** ketika dibuka ulang | Order berisi lima pemeriksaan dibatalkan 1 Oktober 06.30 WIB → **satu** baris *Order* pada Oktober; detailnya memuat kelima pemeriksaan. Dibuka lagi bulan depan → baris yang sama |
+| `INV-59` | Statistik Pesanan dan Beranda memakai **satu definisi hitung bersama** — pola `INV-57`. *Pesanan* = order bukan `Cancelled`/`Draft` menurut waktu diminta; *pemeriksaan* = pemeriksaan bukan `Voided`/`Cancelled` ditambah permintaan `Ordered` yang belum masuk wadah, keduanya pada order bukan `Cancelled`. **Laporan tidak boleh punya rumus kedua** | Pada data dan periode yang sama, Patologi Klinik Oktober menurut Statistik Pesanan = menurut grafik Beranda. Satu pemeriksaan gugur ditambahkan → **kedua** angka tidak berubah |
+| `INV-60` | Sejak `LAB-DEC-237` berlaku, **setiap** peristiwa pembatalan — order, pemeriksaan, maupun wadah — membawa **alasan yang tidak kosong**, dari pemanggil mana pun (layar, integrasi, alat). Peristiwa yang lebih lama **tidak diisi surut** | Integrasi membatalkan Kolesterol tanpa alasan → ditolak; tidak ada baris riwayat tertulis. Pembatalan 3 September tanpa alasan tetap tersimpan apa adanya dan tampil *Alasan tidak dicatat* |
+
+**Yang tidak boleh muncul:** ringkasan tersimpan (A7.5 berlaku); status *batal* yang dituliskan ke pemeriksaan
+hanya demi laporan — membatalkan order tidak mengubah status pemeriksaan, dan perilaku itu **tidak** diubah slice ini.
+
+### A8.6 Model relasi
+
+| Dari | Ke | Arti | Kardinalitas |
+|---|---|---|---|
+| Laporan Pembatalan | Peristiwa batal (`LAB-DC-007`) | Satu baris per peristiwa | Satu periode ↔ nol atau banyak peristiwa |
+| Peristiwa batal order | Pesanan (`LAB-DC-001`) → Pemeriksaan (`LAB-DC-002`), Wadah (`LAB-DC-003`) | Detail baris | Satu peristiwa ↔ satu pesanan ↔ nol atau banyak pemeriksaan dan wadah |
+| Peristiwa batal pemeriksaan | Pemeriksaan (`LAB-DC-002`) | Detail baris | Satu ↔ satu |
+| Pesanan | Kunjungan (`LAB-DC-020`, `BC-REG`) → unit layanan (`BC-MD`), pasien | Kolom unit dan identitas | Satu pesanan ↔ tepat satu kunjungan |
+| Statistik Pesanan | Pesanan, Pemeriksaan, Permintaan (`LAB-DC-065`) melalui Kunjungan | Menghitung per jenis kunjungan × unit × disiplin | Satu periode ↔ nol atau banyak pesanan |
+
+Seluruh relasi **hanya membaca**.
+
+### A8.7 Model lifecycle
+
+**Tidak ada lifecycle laporan.** `LAB-DEC-237` menambah **syarat** pada transisi batal pemeriksaan dan wadah yang sudah
+ada (`LAB-STATE-v1`) — **tidak** menambah status maupun transisi. Urutannya tetap: penjaga keadaan lebih dulu (pemeriksaan
+dirilis, sudah batal, sudah gugur), baru penjaga alasan (BR-148 butir 2).
+
+### A8.8 Tanggung jawab authorization
+
+| Tindakan | Siapa | Dasar |
+|---|---|---|
+| Membuka Laporan Pembatalan / Statistik Pesanan | Pemegang **izin lihat laporan itu** — satu kewenangan **per laporan** | `LAB-DEC-231`, `LAB-DEC-239`, `LAB-DEC-245` |
+| Mengunduh **dan** mencetak laporan itu | Pemegang **izin keluaran** laporan itu — terpisah dari izin lihat; **cetak memakai izin yang sama dengan unduh** | `LAB-DEC-233`, `LAB-DEC-248` |
+| Memberi izin | Admin, per departemen–jabatan (`SysAccessPolicies`). **Bawaan:** tidak ada kebijakan tersemai — laporan tertutup bagi siapa pun sampai diberikan (pola `S16a`) | `CONFIGURABLE_DEFAULT`, `LAB-RCG-001-r13` 0H.2 dimensi 09 |
+| Membatalkan pemeriksaan / wadah lewat API | Tidak berubah — kewenangan yang sudah ada; slice ini hanya menambah syarat alasan | `LAB-DEC-247` |
+
+Hak baca daftar Laboratorium **tidak** mencakup laporan. Izin **ditegakkan di server**, termasuk untuk cetak — menyembunyikan
+tombol hanyalah kenyamanan (`LAB-DEC-248` butir 3).
+
+### A8.9 Model audit dan histori
+
+| Kejadian | Dicatat? | Status |
+|---|---|---|
+| Mengunduh salah satu laporan | **Ya** — pelaku, waktu, laporan, periode, penyaring; **tanpa** data pasien | `CONFIRMED` (`LAB-DEC-233`) |
+| Mencetak lewat tombol Cetak | **Ya** — dicatat **sebelum** dialog cetak terbuka, dengan isi yang sama dengan unduhan; gagal dicatat → cetak tidak dibuka | `CONFIRMED` (`LAB-DEC-248`) |
+| Membuka Statistik Pesanan | Tidak — konvensi `GET`; agregat tanpa pasien | `PROPOSED`, `NON_BLOCKING_STANDARD` |
+| Membuka Laporan Pembatalan | **Tidak** menurut konvensi `GET` — padahal laporan ini menampilkan No. RM dan nama pasien | `PROPOSED`, `NON_BLOCKING_STANDARD` — **`ARCH-GAP-LAB-14`**, wajib diputuskan pemilik modul saat menyetujui kontrak |
+| Membatalkan tanpa alasan | Tidak ada yang tercatat — ditolak sebelum riwayat ditulis (`INV-60`) | `CONFIRMED` |
+
+### A8.10 Model integrasi
+
+**Nol integrasi.** Tidak ada produsen maupun konsumen di luar Laboratorium; hubungan `BC-REG`/`BC-MD`/data pasien adalah
+**baca di tempat** saat laporan dibuka, bukan sinkronisasi. Pencatatan cetak adalah panggilan dari layar Laboratorium ke
+backend Laboratorium sendiri — **idempoten tidak diperlukan**: dua kali menekan Cetak memang dua cetakan dan dua baris log.
+
+### A8.11 Dampak billing
+
+**Tidak ada dampak charge.** Kolom *Sudah layak tagih* pada Laporan Pembatalan hanya membaca status sebelum batal.
+Penyerahan pembatalan ke Billing sudah ada di alur batal dan **tidak** disentuh `LAB-DEC-237` — penolakan karena alasan
+kosong terjadi **sebelum** apa pun diserahkan.
+
+### A8.12 Dampak keselamatan klinis dan privasi
+
+**Non-klinis.** Tidak ada keputusan klinis yang diambil dari kedua laporan; aksi batal per pemeriksaan tetap **tidak**
+ada di layar (`VAL-13`, `LAB-DEC-247`).
+
+**Privasi — berbeda dari `S16a`:** Laporan Pembatalan memuat **No. RM dan nama pasien** per baris (`LAB-DEC-240`, pilihan
+pemilik modul atas paket Q11, bukan varian *tanpa nama pasien*). Batas yang dirancang:
+
+1. Identitas dibaca **saat dibuka**, tidak disalin ke laporan maupun ke log.
+2. Log unduhan dan cetak **tidak** memuat identitas pasien (A8.9).
+3. Izin bawaan tertutup; pembaca selain kepala instalasi dan manajemen diberikan **sadar** oleh admin (`LAB-DEC-239`).
+4. Jejak *membuka* — `ARCH-GAP-LAB-14`.
+
+Statistik Pesanan **tidak** memuat identitas pasien (`AC-335`).
+
+### A8.13 Gap arsitektur
+
+| ID | Isi | Status | Dampak |
+|---|---|---|---|
+| `ARCH-GAP-LAB-14` | **Jejak membuka Laporan Pembatalan.** Konvensi proyek tidak mencatat `GET`; laporan ini menampilkan identitas pasien. Pilihan: (a) ikuti konvensi — tidak dicatat; (b) catat pembuka, waktu, dan periode, tanpa identitas pasien. Arsitektur **tidak** memilih atas nama pemilik | `PROPOSED`, `NON_BLOCKING_STANDARD`. **✅ Ditutup 2026-10-20:** pemilik modul memilih **(b) dicatat** — `02-backend-architecture.md` 32.10 no. 1 | Menambah atau tidak satu panggilan log — tidak mengubah konsep, relasi, maupun lifecycle. Diputuskan saat kontrak disetujui, pola persetujuan 23.10 `S16a` |
+| `ARCH-GAP-LAB-15` | **`Draft` pada dua hitungan Beranda.** Hitungan pemeriksaan Beranda mengecualikan order `Cancelled` saja, hitungan pesanan mengecualikan `Cancelled` **dan** `Draft`. **Nol jalur kode yang menulis `Draft`** dan **nol** order `Draft` di devYoga (19 kueri) — selisih teoretis. `INV-59` menutupnya dengan satu definisi bersama | `PROPOSED`, `NON_BLOCKING_STANDARD` | Tidak ada sampai `Draft` dipakai |
+| `ARCH-GAP-LAB-16` | **Permintaan pada order yang dibatalkan tetap `Ordered`** (F30-18, `CAP-P30-05`). Perilaku yang sudah berjalan dan disengaja; setiap pembaca **wajib** mensyaratkan status order sendiri. Slice ini **tidak** mengubahnya | `CONFIRMED` (fakta), `NON_BLOCKING_STANDARD` | Risiko bagi pembaca baru yang lupa syarat itu — dijaga `INV-59` |
+
+**Nol gap `BLOCKING`.**
+
+### A8.14 Kesiapan arsitektur
+
+**`S16b-1`: `DOMAIN_ARCHITECTURE_READY`. `S16b-2`: `DOMAIN_ARCHITECTURE_READY`.** Nol konsep tersimpan; satu konsep
+existing dibukukan (`LAB-DC-065`); dua pandangan baca (`LAB-DC-063`, `LAB-DC-064`); satu hubungan baca baru ke `BC-REG`;
+tiga invariant (`INV-58`..`INV-60`); kewenangan per laporan dengan keluaran terpisah; nol dampak billing dan klinis; satu
+batas privasi; tiga gap tidak memblokir. **Independen** dari `S16b-3` dan dari satu sama lain.
+
+### A8.15 Handoff ke `design-business-module`
+
+| Field | Nilai |
+|---|---|
+| Slice | `S16b-1`, `S16b-2` |
+| Kesiapan requirement | `READY_FOR_DOMAIN_DESIGN` (`LAB-RCG-001` revision 13, 0H) |
+| Kesiapan arsitektur | `DOMAIN_ARCHITECTURE_READY` (`LAB-DA-001` revision 11) |
+| Snapshot | BE `4d3e4f98`, FE `7fb1e1d3e`; decisions rev 115; capability map rev 9 |
+| Konsep | `LAB-DC-063`, `LAB-DC-064` (pandangan baca), `LAB-DC-065` (dibukukan) — **nol tabel baru** |
+| Invariant | `INV-58`, `INV-59`, `INV-60`; diwarisi `INV-57` (satu rumus) |
+| Usulan yang wajib tetap ditandai usulan | `ARCH-GAP-LAB-14`, `ARCH-GAP-LAB-15`; jejak membuka Statistik Pesanan (A8.9) |
+| Yang wajib dipakai ulang | Penentu periode `S16a` (`ResolvePeriod`, `LabQueryDateRange`, `AppDateTimeHelper`); jalur baca kunjungan/pasien rincian order (`LAB-DEC-166`); **definisi hitung Beranda** — dipindah ke satu tempat bersama, bukan disalin (`INV-59`); pola izin dan unduhan `LabOperationalReport`; `ClosedXML`; `react-to-print` |
+| Yang **tidak boleh** muncul | Ringkasan tersimpan; rumus hitung kedua; salinan kunjungan/unit/pasien; identitas pasien di log; kolom uang, penjamin, atau fee; aksi batal per pemeriksaan di layar; perubahan status pemeriksaan saat order dibatalkan |
+
+---
+
 ## B. Ubiquitous Language
 
 Satu istilah, satu makna. Bila satu kata dipakai dua arti oleh bagian berbeda, perbedaannya
@@ -1976,6 +2150,7 @@ dijawab, yang berjalan di produksi tidak boleh disentuh.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 11 | 2026-10-20 | **`S16b-1` Laporan Pembatalan dan `S16b-2` Statistik Pesanan dirancang** (bagian A8), menurunkan `LAB-RCG-001` revision 13 bagian 0H dan `LAB-DEC-230`..`249`. **Nol konsep tersimpan:** dua `ADAPTER/VIEW` (`LAB-DC-063`, `LAB-DC-064`); `LAB-DC-065` Permintaan Pemeriksaan **dibukukan** (sudah ada). **Hubungan baca baru** `BC-LAB` → `BC-REG`/`BC-MD`/data pasien, hanya baca — mengamandemen kalimat A7.3. `INV-58` satu baris per peristiwa, `INV-59` satu definisi hitung bersama Beranda, `INV-60` alasan wajib setiap pembatalan. Batas privasi Laporan Pembatalan (A8.12). Gap `ARCH-GAP-LAB-14` (jejak membuka laporan berisi pasien, usulan), `15` (`Draft` teoretis), `16` (permintaan order batal tetap `Ordered`). Bukti BE `4d3e4f98`, FE `7fb1e1d3e`, decisions rev 115, capability map rev 9 | `draft` |
 | 10 | 2026-09-25 | **`S16a` tiga laporan operasional dirancang** (bagian A7), menurunkan `LAB-RCG-001-r11` bagian 0F dan `LAB-DEC-159`/`160`. **Nol konsep tersimpan:** ketiga laporan `ADAPTER/VIEW` (`LAB-DC-060`..`062`) plus satu `VALUE_OBJECT` Periode Laporan (`LAB-DC-059`) yang memakai ulang `LabQueryDateRange` dan tanggal operasional **WIB**. Tiga invariant arti: `INV-55` hitung pada tanggal rilis, `INV-56` penolakan per keputusan kelayakan, **`INV-57` TAT memakai titik mulai `ChargeEligibleAt` yang sama dengan daftar pantau cito** — diverifikasi pada kode, nilainya sama dengan `DecidedAt` wadah. Pengambilan ulang membuat pemeriksaan baru, sehingga TAT mulai dari wadah pengganti — sesuai bunyi `LAB-DEC-159`. Tiga usulan tidak memblokir `ARCH-GAP-LAB-11`..`13`. **`INV-54`** (penyelesaian pesanan, `LAB-DEC-154`) dibukukan sesuai usulan `02-backend-architecture.md` 22.0. Impact scan: BE `84383f64` (73 commit) dan FE `2083ff36a` (38 commit), nol berkas source Laboratorium. **`DOMAIN_ARCHITECTURE_READY`**; siap ke `design-business-module` | `draft` |
 | 9 | 2026-09-25 | **`S4d-1` validasi dan rilis Mikrobiologi dirancang** (bagian A6), menurunkan `LAB-RCG-001-r9` bagian 0D. **A6 memperluas A5, tidak menyalinnya.** **Nol konsep, nol aggregate, nol relasi baru** — `LAB-DC-051`..`058` berlaku apa adanya, dengan kode kewenangan Mikrobiologi dan daftar alasan yang **sama** lintas disiplin. **Dua invariant baru:** `INV-52` menolak validasi dan rilis hasil `Sementara` sampai `DEC-LAB-020` dijawab; `INV-53` menegaskan hasil berstruktur — status temuan, isolat, antibiogram — disahkan sebagai **satu** kesatuan, bukan per isolat. **Satu usulan:** `ARCH-GAP-LAB-10` — hasil **tanpa** kualifikasi diperlakukan bukan `Sementara`, sebab ruas itu sengaja opsional (`r10` 12.2); disarankan ikut ditanyakan bersama `DEC-LAB-020`. **Satu perbedaan makna dijaga:** *Definitif* adalah kualifikasi isi hasil, *Tervalidasi*/*Dirilis* adalah pengesahan — dan rilis **tidak** mengirim apa pun kepada pasien (`LAB-OPEN-029` tetap terpisah). `DOMAIN_ARCHITECTURE_READY` untuk desain saja; `S4d-2` dan `S4e` tidak dirancang | `draft` |
 | 8 | 2026-09-24 | **`S4` validasi dan rilis Patologi Klinik dirancang** (bagian A5), menurunkan `LAB-RCG-001-r8` bagian 0C. **Nol aggregate baru, nol status baru.** Delapan konsep (`LAB-DC-051`..`058`) dan tiga domain event — `LAB-DC-058` alasan pengecualian empat mata ditambahkan pada hari yang sama sesudah pemeriksaan ulang terhadap `LAB-DEC-003` menemukan jalur pengecualian **nyata** pada rilis malam hari; sebelas invariant (`INV-41`..`51`). **Dua context yang sudah ada disebut untuk pertama kali:** `BC-HR` sebagai upstream penunjukan kewenangan — Laboratorium hanya membaca, dan **fail-closed** bila datanya kosong — serta `BC-MRC` sebagai downstream dokumen hasil. **`ARCH-GAP-LAB-05` ditinjau ulang** seperti yang dimintanya sendiri: validasi dan rilis cukup dijaga per pemeriksaan, sehingga gap itu menyempit. **Dua gap baru:** `ARCH-GAP-LAB-08` lima usulan yang wajib ditandai usulan, dan `ARCH-GAP-LAB-09` pembatalan sesudah rilis yang ditolak. **Pemeriksaan kelengkapan 2026-09-25** — sesi 2026-09-24 terhenti sebelum A5 diperiksa terhadap kontrak — menyambungkan `LAB-DC-058` ke relasi dan audit, menambah dua usulan pada `ARCH-GAP-LAB-08` (pengelola daftar alasan pengecualian, bunyi penanda rangkap pemvalidasi–perilis), dan **membetulkan rujukan `ARCH-GAP-LAB-09`**: penolakannya diturunkan dari `LAB-DEC-138`/`007`/`063`, bukan `DEC-LAB-014`, dan ketegangannya dengan `LAB-DEC-049` kini tercatat. `DOMAIN_ARCHITECTURE_READY` **untuk desain saja** — pemakaian nyata tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, dan `LAB-COORD-016` | `draft` |

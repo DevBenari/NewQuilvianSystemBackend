@@ -96,6 +96,24 @@ public sealed class InpBedAccessService(
         _unitsCache[operation] = result;
         return result;
     }
+
+    /// <summary>
+    /// Memastikan subscription realtime pemilihan bed memakai permission dan scope unit yang
+    /// sama dengan pembacaan denah, ditambah hak membaca identitas episode.
+    /// </summary>
+    public async Task<bool> CanSubscribeToBedSelectionUnitAsync(Guid serviceUnitId, CancellationToken ct = default)
+    {
+        if (serviceUnitId == Guid.Empty ||
+            !await HasPermissionAsync("InpatientBedOccupancy:Read") ||
+            !await HasPermissionAsync("InpatientEpisode:Read"))
+        {
+            return false;
+        }
+
+        var readableUnits = await UnitsAsync("InpatientBedOccupancy:Read", ct);
+        return readableUnits.Contains(serviceUnitId);
+    }
+
     public async Task RequireBedAsync(Guid bedId, string operation, CancellationToken ct = default)
     {
         var units = await UnitsAsync(operation, ct);

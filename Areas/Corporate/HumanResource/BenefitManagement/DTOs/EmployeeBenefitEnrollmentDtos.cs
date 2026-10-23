@@ -6,7 +6,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class CreateEmployeeBenefitEnrollmentRequest
     {
-        [Required] public Guid EmployeeId { get; set; }
+        /// <summary>
+        /// Identitas pemilik benefit (utama): MstWorkforceProfile.Id karyawan atau dokter tetap. Bila diisi,
+        /// inilah sumber utama. Salah satu dari WorkforceProfileId atau EmployeeId wajib diisi.
+        /// </summary>
+        public Guid? WorkforceProfileId { get; set; }
+
+        /// <summary>
+        /// Kompatibilitas kontrak lama (MstEmployee.Id). Bila hanya ini yang dikirim, diterjemahkan ke
+        /// WorkforceProfileId; bila keduanya dikirim, keduanya harus menunjuk orang yang sama. Dokter tidak
+        /// mengirim ini (dan DoctorId tidak pernah dikirim sebagai EmployeeId).
+        /// </summary>
+        public Guid? EmployeeId { get; set; }
         [Required] public Guid BenefitPlanId { get; set; }
         [Required] public DateTime EnrollmentDate { get; set; }
         [Required] public DateTime EffectiveStartDate { get; set; }
@@ -37,8 +48,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class EmployeeBenefitEnrollmentPagedQuery
     {
+        /// <summary>Nama, NIP/nomor dokter, atau nomor enrollment.</summary>
         [MaxLength(100)] public string? Search { get; set; }
         public Guid? EmployeeId { get; set; }
+        public Guid? WorkforceProfileId { get; set; }
         public Guid? BenefitPlanId { get; set; }
         [MaxLength(30)] public string? EnrollmentStatus { get; set; }
         [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
@@ -49,7 +62,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     {
         public Guid Id { get; set; }
         public string EnrollmentNumber { get; set; } = string.Empty;
+
+        /// <summary>Identitas pemilik benefit (utama); selalu terisi.</summary>
+        public Guid WorkforceProfileId { get; set; }
+
+        /// <summary>EMPLOYEE atau DOCTOR.</summary>
+        public string OwnerType { get; set; } = string.Empty;
+
+        /// <summary>Identitas peran; kosong untuk dokter tanpa data karyawan.</summary>
         public Guid? EmployeeId { get; set; }
+        public Guid? DoctorId { get; set; }
+
+        /// <summary>NIP atau nomor dokter, dan nama pemilik. Tidak pernah kosong hanya karena EmployeeId kosong.</summary>
+        public string? StaffNumber { get; set; }
+        public string? StaffName { get; set; }
+
+        /// <summary>Nama lama; berisi nilai yang sama dengan StaffNumber/StaffName agar layar lama tetap benar.</summary>
         public string? EmployeeNumber { get; set; }
         public string? EmployeeName { get; set; }
         public Guid BenefitPlanId { get; set; }
@@ -64,13 +92,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class EmployeeBenefitEnrollmentResponse : EmployeeBenefitEnrollmentListResponse
     {
-        public Guid WorkforceProfileId { get; set; }
         public string CoverageType { get; set; } = string.Empty;
         public DateTime EnrollmentDate { get; set; }
         public string CurrencyCode { get; set; } = "IDR";
         public decimal CoverageLimitAmount { get; set; }
         public decimal UsedAmount { get; set; }
         public int MaximumDependents { get; set; }
+        /// <summary>
+        /// Batas plafon plan saat ini (read-only). Hanya informasi sebelum enrollment diaktifkan; nilai yang berlaku
+        /// tetap <see cref="CoverageLimitAmount"/>, yang disalin dari plan saat aktivasi (FIN-DEC-207).
+        /// </summary>
+        public decimal? PlanCoverageLimitAmount { get; set; }
+        /// <summary>Maksimum tanggungan plan saat ini (read-only); disalin ke <see cref="MaximumDependents"/> saat aktivasi.</summary>
+        public int? PlanMaximumDependents { get; set; }
+        /// <summary>Kategori jenis benefit plan (mis. Medical, Other). Hanya Medical yang tidak berbasis klaim terbaca sebagai benefit layanan RS.</summary>
+        public string? BenefitCategory { get; set; }
+        public bool IsClaimBased { get; set; }
         public bool IsMedicalServiceBenefit { get; set; }
         public bool IsWithinEffectivePeriod { get; set; }
         public string? Notes { get; set; }
@@ -90,7 +127,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class EmployeeBenefitSummaryResponse
     {
-        public Guid EmployeeId { get; set; }
+        public Guid WorkforceProfileId { get; set; }
+        public string OwnerType { get; set; } = string.Empty;
+        public Guid? EmployeeId { get; set; }
+        public Guid? DoctorId { get; set; }
+        public string? StaffNumber { get; set; }
+        public string? StaffName { get; set; }
         public string? EmployeeNumber { get; set; }
         public string? EmployeeName { get; set; }
         public bool HasActiveMedicalEnrollment { get; set; }

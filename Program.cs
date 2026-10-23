@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
@@ -95,6 +96,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Serv
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 // BE-FIN-093: Perjanjian cicilan piutang manfaat karyawan (FIN-DES-099).
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PatientRefund.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 
 
@@ -400,6 +402,7 @@ try
     // using-nya sudah ada — nol dotnet build pernah membuktikannya, karena build sukses tidak
     // membuktikan DI terselesaikan saat runtime. Dicatat di laporan task, TIDAK diperbaiki di sini
     // untuk service lain — di luar cakupan BE-FIN-093.
+    builder.Services.AddScoped<FinancePatientRefundService>();
     builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
     // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
     builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
@@ -470,9 +473,14 @@ try
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabCitoTurnaroundPolicy>();
     builder.Services.AddScoped<LabWorklistService>();
+    builder.Services.AddScoped<LabOrderDemandQuery>();
     builder.Services.AddScoped<LabDashboardService>();
     builder.Services.AddScoped<LabOperationalReportService>();
     builder.Services.AddScoped<LabReportCsvWriter>();
+    builder.Services.AddScoped<LabOrderStatisticsReportService>();
+    builder.Services.AddScoped<LabCancellationReportService>();
+    builder.Services.AddScoped<LabReportXlsxWriter>();
+    builder.Services.AddScoped<LabReportOutputLogger>();
     builder.Services.AddScoped<LabMonitoringService>();
     builder.Services.AddScoped<LabCatalogService>();
     builder.Services.AddScoped<LabPatientRegistrationService>();
@@ -498,14 +506,29 @@ try
 
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
+    builder.Services.AddScoped<NewbornEncounterPaymentInheritanceService>();
     // RJ-DOC-REV-BE-015 — klasifikasi dan alokator nomor antrean Rawat Jalan (kiosk dan petugas).
     builder.Services.AddScoped<OutpatientQueueClassificationService>();
+    builder.Services.AddScoped<DoctorScheduleQuotaService>();
     builder.Services.AddScoped<OutpatientQueueNumberAllocator>();
     // crm-membership BE-CRM-010 — satu aturan "member aktif" untuk seluruh konsumen.
     builder.Services.AddScoped<PatientMembershipStatusResolver>();
+    // crm-membership: konfirmasi pelunasan iuran dari Billing (satu-satunya pintu aktivasi setelah bayar).
+    builder.Services.AddScoped<PatientMembershipFeeLinkService>();
     builder.Services.AddScoped<PatientMembershipService>();
-    builder.Services.Configure<OutpatientQueueNumberOptions>(
-        builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName));
+    // rawat-jalan Amendment RP (BE-RJP-005) — konfigurasi Reservasi Pasien Prioritas.
+    builder.Services.Configure<PriorityReservationOptions>(
+        builder.Configuration.GetSection(PriorityReservationOptions.SectionName));
+    // BE-RJP-006 — perintah dan kueri Reservasi Prioritas.
+    builder.Services.AddScoped<OutpatientPriorityReservationService>();
+    // RJ-PRI-DEC-004 — kelipatan nomor prioritas divalidasi saat aplikasi mulai (VAL-RP-21).
+    builder.Services.AddOptions<OutpatientQueueNumberOptions>()
+        .Bind(builder.Configuration.GetSection(OutpatientQueueNumberOptions.SectionName))
+        .Validate(
+            options => options.ResolvePriorityNumberMultiple() >= OutpatientQueueNumberOptions.MinimumPriorityNumberMultiple,
+            $"{OutpatientQueueNumberOptions.SectionName}:PriorityNumberMultiple wajib bernilai minimal " +
+            $"{OutpatientQueueNumberOptions.MinimumPriorityNumberMultiple}.")
+        .ValidateOnStart();
 
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();
@@ -522,7 +545,7 @@ try
     builder.Services.AddScoped<ClinicalActorScopeService>();
     builder.Services.AddScoped<OutpatientEncounterListService>();
     builder.Services.AddScoped<OutpatientEncounterDetailService>();
-    builder.Services.AddScoped<OutpatientAppointmentService>();
+    builder.Services.AddScoped<OutpatientEncounterScheduleService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.PatientIdentityDocumentFileService>();
     builder.Services.Configure<KioskEncounterClosureOptions>(
     builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
@@ -638,12 +661,17 @@ try
     builder.Services.AddScoped<IRsmmcPilotMigrationSource, RsmmcPilotMigrationSource>();
     builder.Services.AddScoped<RsmmcPilotMrnReconciliationService>();
 
+    // Patient Management — allocator nomor pasien normal beserta guard reservasi RSMMC (BE-PAT-MIG-003)
+    builder.Services.AddScoped<PatientIdentifierAllocationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
     builder.Services.AddScoped<PrescriptionFinancialClearanceService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
+    // Penahanan stok milik resep — PHA-DEC-066.
+    builder.Services.AddScoped<PrescriptionStockReservationService>();
     builder.Services.AddScoped<StockRequestService>();
     builder.Services.AddScoped<DrugStockService>();
     builder.Services.AddScoped<DrugUnitConversionResolver>();
@@ -715,18 +743,24 @@ try
     builder.Services.AddScoped<InpSettingService>();
     builder.Services.AddScoped<InpEpisodeNumberService>();
     builder.Services.AddScoped<InpBedOccupancyService>();
+    builder.Services.AddScoped<InpBedRealtimeService>();
     builder.Services.AddSingleton<Microsoft.Extensions.Options.IValidateOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>, QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptionsValidator>();
     builder.Services.AddOptions<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Options.BedManagementOptions>().Bind(builder.Configuration.GetSection("BedManagement")).ValidateOnStart();
     builder.Services.AddScoped<InpBedAccessService>();
     builder.Services.AddScoped<InpBedMutationCoordinator>();
     builder.Services.AddScoped<InpBedManagementQueryService>();
     builder.Services.AddScoped<InpBedClassComparisonService>();
+    // Proyeksi denah satu lantai untuk Monitoring dan Pilih Bed (BE-RWI-238, BE-RWI-239).
+    builder.Services.AddScoped<InpFloorPlanQueryService>();
     builder.Services.AddScoped<InpBedReadinessService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMutationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.BedMasterWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.RoomMasterWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.ServiceUnitMasterWriteService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.PatientClassMasterWriteService>();
+    // Integrasi Denah ↔ Bed Management: susunan lantai/aktivasi ruang cadangan (BE-RWI-236) dan importer denah (BE-RWI-237).
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.FloorPlanLayoutService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.FloorPlanImportService>();
     builder.Services.AddScoped<InpBedOperationFilter>();
     builder.Services.AddScoped<InpEpisodeService>();
     builder.Services.AddScoped<InpDischargeService>();
@@ -766,6 +800,7 @@ try
     // BE-RWI-187 s.d. BE-RWI-189 — service baca milik modul pemilik untuk Workspace PPRI
     // (RWI-DEC-264, disetujui RWI-DEC-266). Hanya membaca dan tidak membuka endpoint baru.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.PatientProfileQueryService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services.NewbornPatientRegistrationService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services.HospitalSiteProfileQueryService>();
     builder.Services.AddScoped<PatientAllergyQueryService>();
 
@@ -913,6 +948,9 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Services.ExitClearanceService>();
 
     // BE-FIN-103 (FIN-API-1.10 R.1, R.2): enrollment dan tanggungan benefit pegawai.
+    // Resolver pemilik benefit berbasis WorkforceProfileId (karyawan dan dokter tetap); dipakai Enrollment,
+    // Eligibility, Registrasi, Billing, dan Finance.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.WorkforceBenefitOwnerResolver>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEnrollmentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();
@@ -1092,6 +1130,11 @@ try
 
     // BE-RJE-010: pekerja kirim ulang efek folio Rawat Jalan yang belum sampai ke invoice.
     builder.Services.AddHostedService<BilInvoiceSyncWorker>();
+    // PHA-DEC-066 butir 6: melepas penahanan stok rawat jalan yang melewati batas 4 jam
+    // sebelum pembayaran, supaya stok yang fisiknya ada di rak tidak terkunci selamanya.
+    builder.Services
+        .AddHostedService<QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Workers
+            .PrescriptionReservationExpiryWorker>();
     // BE-RJE-011: pekerja kirim ulang fakta klinis yang hasil penyerahannya belum pasti.
     builder.Services.AddHostedService<ClinicalFactDispatchWorker>();
 
@@ -1149,6 +1192,8 @@ try
         builder.Services.Configure<PatientMembershipLifecycleOptions>(
             builder.Configuration.GetSection(PatientMembershipLifecycleOptions.SectionName));
         builder.Services.AddHostedService<PatientMembershipLifecycleHostedService>();
+        // rawat-jalan BE-RJP-009: reservasi prioritas yang tidak datang ditutup saat start dan 00.05 WIB.
+        builder.Services.AddHostedService<OutpatientPriorityReservationClosureHostedService>();
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
         builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
         builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
@@ -1275,6 +1320,11 @@ try
         1,
         builder.Configuration.GetValue<int?>("KioskPatientLookup:PermitPerMinute") ?? 10);
 
+    // rawat-jalan BE-RJP-012 — batas link publik per IP (RJ-PRI-OQ-003, bawaan 20 per menit).
+    var priorityReservationArrivalPermitPerMinute = Math.Max(
+        1,
+        builder.Configuration.GetValue<int?>($"{PriorityReservationOptions.SectionName}:ArrivalLinkPermitPerMinute") ?? 20);
+
     builder.Services.AddRateLimiter(options =>
     {
         options.AddPolicy(KioskPatientLookupController.RateLimitPolicy, httpContext =>
@@ -1292,6 +1342,19 @@ try
             });
         });
 
+        // rawat-jalan BE-RJP-012 (VAL-RP-09, NFR-RP-007): link publik konfirmasi kedatangan dibatasi
+        // per IP. Lapisan kedua; pengamanan utamanya kode acak 256 bit.
+        options.AddPolicy(PriorityReservationArrivalController.RateLimitPolicy, httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                "ip:" + (httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown"),
+                _ => new FixedWindowRateLimiterOptions
+                {
+                    PermitLimit = priorityReservationArrivalPermitPerMinute,
+                    Window = TimeSpan.FromMinutes(1),
+                    QueueLimit = 0,
+                    AutoReplenishment = true
+                }));
+
         // 429 wajib terbaca sebagai "coba lagi", bukan "pasien belum terdaftar" (KSK-INV-002).
         options.OnRejected = async (context, cancellationToken) =>
         {
@@ -1301,6 +1364,22 @@ try
             if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
             {
                 response.Headers.RetryAfter = ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
+            }
+
+            var rateLimitPolicyName = context.HttpContext.GetEndpoint()?.Metadata
+                .GetMetadata<EnableRateLimitingAttribute>()?.PolicyName;
+
+            if (rateLimitPolicyName == PriorityReservationArrivalController.RateLimitPolicy)
+            {
+                // Path memuat kode link, jadi hanya dihitung tanpa path maupun IP (permission-audit-matrix RP-4).
+                Log.Warning("Link konfirmasi reservasi prioritas ditolak batas laju.");
+                PriorityReservationArrivalController.RedactRequestPath(context.HttpContext);
+                await response.WriteAsJsonAsync(
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status429TooManyRequests,
+                        PriorityReservationArrivalController.RateLimitedMessage),
+                    cancellationToken);
+                return;
             }
 
             context.HttpContext.RequestServices
@@ -1864,6 +1943,20 @@ try
                 // Di Grafana nanti tetap ada property Elapsed asli dari Serilog.
                 diagnosticContext.Set("DisplayMessage", BuildHttpDisplayMessage(httpContext, 0));
             };
+        });
+
+        // rawat-jalan BE-RJP-012 (INV-RP-05): kode link konfirmasi ada di path, jadi path disamarkan
+        // sesudah pipeline selesai dan sebelum log permintaan di atas ditulis.
+        app.Use(async (context, next) =>
+        {
+            try
+            {
+                await next();
+            }
+            finally
+            {
+                PriorityReservationArrivalController.RedactRequestPath(context);
+            }
         });
     }
 

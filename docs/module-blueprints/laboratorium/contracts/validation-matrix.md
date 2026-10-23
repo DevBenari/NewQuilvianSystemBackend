@@ -3,6 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
+| `r21` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-20** — bagian 23: `VAL-155` alasan wajib batal pemeriksaan/wadah; `VAL-147`..`149` dipakai dua laporan baru |
 | Revision | **`20` — `approved`** 2026-10-08, bagian 22 (`VAL-154`, tahun pada ringkasan Beranda Lab) — disetujui Yoga Aji Pratama lewat `LAB-REQ-021`. Sebelumnya: **`19` — `approved`** 2026-10-08, bagian 21 (`VAL-152`/`VAL-153` dipersempit) — disetujui Yoga Aji Pratama lewat `LAB-REQ-020`. Sebelumnya: **`18` — `approved`** 2026-10-08, bagian 20 (`VAL-152`, `VAL-153`) — disetujui Yoga Aji Pratama lewat `LAB-REQ-019`. Sebelumnya: **`17` — `approved`** 2026-10-07, bagian 19 (`VAL-71` dipersempit, `VAL-151` baru) — disetujui Yoga Aji Pratama. Sebelumnya: **`16` — `approved`** 2026-10-06, bagian 18 (`VAL-150`, Spesifik Specimen nonaktif pada koreksi specimen, `LAB-DEC-167`) — disetujui Yoga Aji Pratama. Sebelumnya: **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
 | `r20` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"Setuju 11 butir"* atas `LAB-REQ-021`, kesebelas butir |
 | `r19` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-10-08** — *"setuju keenam butir"* atas `LAB-REQ-020`, keenam butir |
@@ -998,3 +999,46 @@ sama dengan catatan `VAL-76`; tidak dijadikan aturan tersendiri.
 | Aturan | Keputusan | AC |
 |---|---|---|
 | `VAL-154` | `LAB-DEC-206`, `LAB-DEC-207` (satu pemilih tahun) | `AC-297`, `AC-298` |
+
+## 23. Amandemen `r21` — Alasan wajib pembatalan dan periode dua laporan baru, 2026-10-20
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r21` |
+| Status | **`approved`** 2026-10-20 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-10-20 — *"Setuju keenam butir (Direkomendasikan)"* — pilihan pemilik modul pada sesi 2026-10-20 atas keempat kontrak dan keenam butir `02-backend-architecture.md` 32.10 |
+| `input_revision` | decisions rev 115 (`LAB-DEC-237`, `LAB-DEC-247`, `LAB-DEC-240`, `LAB-DEC-245`); `LAB-DA-001` rev 11 `INV-60`; `LAB-API-v1` `r49` usulan; `02-backend-architecture.md` bagian 32 |
+| Sifat | **Satu aturan baru** (`VAL-155`) pada dua endpoint yang sudah ada — **memperketat**. `VAL-147`..`VAL-149` **diperluas pemakaiannya**, bunyi tidak berubah |
+
+### 23.1 Aturan yang ditambahkan
+
+| ID | Endpoint | Aturan | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-155` | `POST /lab-examinations/{id}/cancel`; `POST /lab-specimens/{id}/cancel` | `reason` wajib berisi selain spasi, tab, dan baris baru; disimpan sesudah di-*trim*. Diperiksa **sesudah** penjaga keadaan — pemeriksaan gugur, sudah batal, atau sudah dirilis; sampel sudah dibatalkan — sehingga permintaan yang memang tidak boleh dibatalkan tidak diminta alasannya lebih dulu | "Alasan pembatalan wajib diisi." | `422` | `LAB-DEC-237`, `LAB-DEC-247`, `INV-60`; bunyi dan kode **sama** dengan `VAL-74` |
+
+**Contoh.** Integrasi memanggil batal Kolesterol dengan `reason: "  "` → `422` *"Alasan pembatalan wajib diisi."*; status
+pemeriksaan tetap, nol baris riwayat. Memanggil batal Kalium yang sudah dirilis tanpa alasan → `422` dengan pesan
+**rilis** (*"Pemeriksaan yang hasilnya sudah dirilis tidak dapat dibatalkan…"*), bukan pesan alasan (`AC-327`).
+
+**Tidak berlaku surut.** Pembatalan yang tersimpan sebelum `r21` tanpa alasan tetap apa adanya (`INV-60`); Laporan
+Pembatalan menampilkannya *Alasan tidak dicatat*.
+
+### 23.2 Aturan yang diperluas pemakaiannya
+
+| ID | Kini juga berlaku pada | Bunyi |
+|---|---|---|
+| `VAL-147` periode wajib (`400`) | Kedua grup laporan baru: daftar, ekspor, dan `POST /print-log`; `GET /lab-cancellation-reports/cancelled-by-options` | Tidak berubah |
+| `VAL-148` awal tidak sesudah akhir (`400`) | Sama | Tidak berubah |
+| `VAL-149` paling panjang 366 hari (`422`) | Sama | Tidak berubah |
+
+Penyaring enum yang tidak dikenal (`discipline`, `cancellationKind`, `encounterType`) ditolak pengikatan bawaan dengan
+`400` sebelum masuk controller — sama dengan catatan `VAL-76`; tidak dijadikan aturan tersendiri. `pageSize` **dijepit**
+1..100, tidak ditolak — pola `LabOrderPagedQuery`.
+
+### 23.3 Traceability `r21`
+
+| Aturan | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| `VAL-155` | `LAB-DEC-237`, `LAB-DEC-247` | `INV-60` | `AC-326`, `AC-327` |
+| `VAL-147`..`149` pada laporan baru | `LAB-DEC-240`, `LAB-DEC-245` | A8.2 *periode laporan* (A7.2) | `AC-331`, `AC-333` |

@@ -233,9 +233,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         {
             var serviceUnitId = device.ServiceUnitId;
             var selectedDate = AppDateTimeHelper.ResolveOperationalDate(queueDate);
+            // RJ-PRI-DEC-005: antrean prioritas tidak pernah tampil di display publik maupun
+            // dipanggil suara, berapa pun QueueAudienceMode-nya. Perawat dan dokter menghampiri
+            // pasien di ruang tunggu prioritas. Ketiga endpoint display memakai penyaring ini.
             var query = _dbContext.Set<RegQueue>()
                 .AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive && x.QueueDate.Date == selectedDate && x.ClinicId.HasValue && clinicIds.Contains(x.ClinicId.Value));
+                .Where(x => !x.IsDelete && x.IsActive && x.QueueDate.Date == selectedDate && x.ClinicId.HasValue && clinicIds.Contains(x.ClinicId.Value))
+                .Where(x => !x.IsPriorityQueue);
 
             if (serviceUnitId.HasValue && serviceUnitId.Value != Guid.Empty)
             {

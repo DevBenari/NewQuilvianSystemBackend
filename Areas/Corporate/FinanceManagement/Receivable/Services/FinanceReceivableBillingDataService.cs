@@ -81,11 +81,23 @@ public sealed class FinanceReceivableBillingDataService
                 EntityName = entityName,
                 PeriodLabel = filter.PeriodLabel
             },
-            Notice = total == 0 && filter.Category == BillingDataCategories.Employee
-                ? "Belum ada tagihan Karyawan. Jalur piutang EMPLOYEE_BENEFIT belum tersedia (FIN-DEC-006 menunggu konfirmasi Billing dan HR)."
-                : null
+            Notice = total == 0 ? EmptyStateNotice(filter.Category) : null
         };
     }
+
+    // Keadaan kosong yang akurat per kategori. Kosong BUKAN berarti jalur tidak tersedia: tiap kategori hanya terisi
+    // setelah kejadian bisnis tertentu dan setelah Finance mengolah serah terima dari Billing.
+    private static string? EmptyStateNotice(string category) => category switch
+    {
+        BillingDataCategories.Employee =>
+            "Belum ada piutang karyawan. Piutang karyawan (EMPLOYEE_BENEFIT) hanya terbentuk bila kasir menangguhkan " +
+            "kewajiban pegawai menjadi AR Karyawan saat finalisasi Benefit RS. Porsi yang ditanggung Benefit RS tidak " +
+            "termasuk di sini; lihat kategori Benefit RS Internal.",
+        BillingDataCategories.InternalBenefit =>
+            "Belum ada piutang Benefit RS Internal. Porsi ini terbentuk setelah kasir mengonfirmasi finalisasi Benefit RS " +
+            "dan Finance mengolah serah terima dari Billing. Penyelesaiannya lewat Penutupan Benefit, bukan penerimaan uang.",
+        _ => null
+    };
 
     /// <summary>
     /// Isi field pilihan asuransi/perusahaan: gabungan asuransi dan perusahaan penjamin yang aktif, diurutkan
@@ -243,6 +255,13 @@ public sealed class FinanceReceivableBillingDataService
                     .FirstOrDefault()
             };
 
+        // Porsi Benefit Karyawan RS (PAYER dengan IsInternalBenefit) dipisah dari piutang pihak luar: itu biaya rumah
+        // sakit sendiri yang diselesaikan lewat Penutupan Benefit, bukan tagihan ke perusahaan/asuransi.
+        if (filter.Category == BillingDataCategories.Company)
+            rows = rows.Where(x => !x.Receivable.IsInternalBenefit);
+        else if (filter.Category == BillingDataCategories.InternalBenefit)
+            rows = rows.Where(x => x.Receivable.IsInternalBenefit);
+
         // Cakupan Data Tagihan: piutang yang tidak CANCELLED, dan yang masih bisa ditagihkan (OUTSTANDING/PARTIAL/
         // SETTLED) atau sudah tergabung dalam batch aktif. Status pembayaran (SETTLED/Lunas) dan status pembuatan
         // AR/Invoice (keanggotaan batch) adalah dua hal terpisah: piutang yang sudah lunas dibayar (mis. gabungan
@@ -384,6 +403,10 @@ public sealed class FinanceReceivableBillingDataService
                 ReceivableStatus = x.Receivable.Status,
                 x.Receivable.DebtorType,
                 x.Receivable.DebtorReferenceId,
+                x.Receivable.IsInternalBenefit,
+                x.Receivable.EmployeeArOrigin,
+                x.Receivable.BenefitOwnerId,
+                x.Receivable.BenefitOwnerWorkforceProfileId,
                 x.Receivable.OriginalAmount,
                 x.Receivable.OutstandingAmount,
                 DueDate = (DateOnly?)x.Receivable.DueDate,
@@ -427,8 +450,18 @@ public sealed class FinanceReceivableBillingDataService
             .ToListAsync(cancellationToken);
 
         var isCompany = filter.Category == BillingDataCategories.Company;
+
+        // Pemilik benefit (karyawan) dibaca lewat resolver HR bersama untuk seluruh halaman sekaligus (tanpa N+1);
+        // hanya untuk baris yang memang punya pemilik benefit. Menampilkan pemilik, bukan hanya nama pasien.
+        var ownerLookup = await FinanceBenefitOwnerDirectory.LoadAsync(
+            _dbContext,
+            page.Where(x => x.BenefitOwnerId.HasValue || x.BenefitOwnerWorkforceProfileId.HasValue)
+                .Select(x => (x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId)),
+            cancellationToken);
+
         return page.Select(x =>
         {
+            var owner = ownerLookup.Find(x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId);
             var billingDate = x.EncounterDate.HasValue
                 ? new DateTimeOffset(DateTime.SpecifyKind(x.EncounterDate.Value, DateTimeKind.Utc))
                 : x.RecognizedAt;
@@ -442,7 +475,8 @@ public sealed class FinanceReceivableBillingDataService
                 : (DateTimeOffset?)null;
 
             var blockedReason = ResolveCreateBlockedReason(
-                x.DebtorType, x.DebtorReferenceId, x.ActiveBatchId.HasValue, x.AnyBatchMembership, x.ReceivableStatus);
+                x.DebtorType, x.DebtorReferenceId, x.ActiveBatchId.HasValue, x.AnyBatchMembership, x.ReceivableStatus,
+                x.IsInternalBenefit);
 
             return new BillingDataItemResponse
             {
@@ -466,6 +500,10 @@ public sealed class FinanceReceivableBillingDataService
                 PatientId = x.PatientId,
                 DebtorType = x.DebtorType,
                 DebtorReferenceId = x.DebtorReferenceId,
+                IsInternalBenefit = x.IsInternalBenefit,
+                EmployeeArOrigin = x.EmployeeArOrigin,
+                BenefitOwnerName = owner?.StaffName,
+                BenefitOwnerStaffNumber = owner?.StaffNumber,
                 PayerName = isCompany ? x.ProviderName ?? x.CompanyName ?? x.GuarantorName : x.PatientName,
                 PayerId = isCompany ? x.DebtorReferenceId ?? x.CompanyGuarantorId : null,
                 PayerKind = !isCompany
@@ -563,11 +601,14 @@ public sealed class FinanceReceivableBillingDataService
                     meta = new BillingDataGroupMeta
                     {
                         NoRM = item.MedicalRecordNumber,
-                        EmployeeId = item.EmployeeId
+                        EmployeeId = item.EmployeeId,
+                        BenefitOwnerName = item.BenefitOwnerName,
+                        BenefitOwnerStaffNumber = item.BenefitOwnerStaffNumber
                     };
                     break;
 
                 case BillingDataCategories.GeneralPatient:
+                case BillingDataCategories.InternalBenefit:
                     groupId = item.PatientId.HasValue
                         ? item.PatientId.Value.ToString()
                         : (!string.IsNullOrWhiteSpace(item.MedicalRecordNumber)
@@ -577,7 +618,10 @@ public sealed class FinanceReceivableBillingDataService
                     meta = new BillingDataGroupMeta
                     {
                         NoRM = item.MedicalRecordNumber,
-                        EmployeeId = null
+                        EmployeeId = null,
+                        // Hanya terisi untuk Benefit RS Internal; piutang pasien umum tidak punya pemilik benefit.
+                        BenefitOwnerName = item.BenefitOwnerName,
+                        BenefitOwnerStaffNumber = item.BenefitOwnerStaffNumber
                     };
                     break;
 
@@ -744,9 +788,11 @@ public sealed class FinanceReceivableBillingDataService
     // IX_FinReceivableInvoiceBatchItem_ActiveReceivable (batch yang dibatalkan tidak menghapus baris anggotanya),
     // sehingga belum bisa digabung ulang.
     private static string? ResolveCreateBlockedReason(
-        string debtorType, Guid? debtorReferenceId, bool inActiveBatch, bool anyMembership, string receivableStatus)
+        string debtorType, Guid? debtorReferenceId, bool inActiveBatch, bool anyMembership, string receivableStatus,
+        bool isInternalBenefit)
     {
         if (debtorType != FinReceivableDebtorTypes.Payer) return BillingDataCreateBlockedReasons.NotPayer;
+        if (isInternalBenefit) return BillingDataCreateBlockedReasons.InternalBenefit;
         if (debtorReferenceId is null) return BillingDataCreateBlockedReasons.NoDebtorReference;
         if (inActiveBatch) return BillingDataCreateBlockedReasons.AlreadyInBatch;
         if (anyMembership) return BillingDataCreateBlockedReasons.InCancelledBatch;
@@ -778,6 +824,7 @@ public sealed class FinanceReceivableBillingDataService
             {
                 BillingDataCategories.Company => "Semua Perusahaan",
                 BillingDataCategories.Employee => "Semua Karyawan",
+                BillingDataCategories.InternalBenefit => "Semua Penerima Benefit RS",
                 _ => "Semua Pasien"
             };
         }
@@ -809,7 +856,8 @@ public sealed class FinanceReceivableBillingDataService
     private static BillingDataFilter ResolveFilter(BillingDataQuery request)
     {
         var category = Canonical(request.Category, BillingDataCategories.Company, "category",
-            BillingDataCategories.Company, BillingDataCategories.Employee, BillingDataCategories.GeneralPatient);
+            BillingDataCategories.Company, BillingDataCategories.Employee, BillingDataCategories.GeneralPatient,
+            BillingDataCategories.InternalBenefit);
         var status = Canonical(request.BillingStatus, BillingDataStatuses.All, "billingStatus",
             BillingDataStatuses.All, BillingDataStatuses.NotCreated, BillingDataStatuses.Created);
         var patientType = Canonical(request.PatientType, BillingDataPatientTypes.All, "patientType",

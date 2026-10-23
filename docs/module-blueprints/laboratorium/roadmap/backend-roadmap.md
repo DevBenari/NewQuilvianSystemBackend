@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `117` — verifikasi HTTP `r47`/`r48` dengan akun asli dr. Bima dan Gilang dicatat di bagian 0.3, 2026-10-14. Sebelumnya `116` — kontrak `r48` `approved` susulan lewat `LAB-REQ-025` (`api-contract.md` bagian 43); baris `r48` di bagian 0.3 naik menjadi **Selesai**, 2026-10-14. Sebelumnya `115` — bagian **0** *Ringkasan Task Backend dan Status* ditambahkan per 2026-10-14: 101 nomor task — 91 selesai, 4 selesai dengan batas verifikasi, 1 selesai dengan temuan, 1 tertahan, 2 dilebur, 2 dibatalkan — beserta pekerjaan tanpa nomor task (`r42`, `r43`, `r47`, `r48`). Sebelumnya `114` — `BE-LAB-94` naik ✅ `SELESAI` sesudah cek layar `MVP-14c` langkah 5 di devYoga, 2026-10-09. Sebelumnya `113` — `BE-LAB-95` ✅ `SELESAI` (harness 24/24); `MVP-14a` beserta susulannya selesai pada kode, 2026-10-09, bagian 6at. Sebelumnya `112` — `BE-LAB-95` ⏳ `SIAP DIKERJAKAN` (rencana ulang sesudah wadah dibatalkan, `r46` `approved`), 2026-10-09, bagian 6at.4. Sebelumnya `111` — `BE-LAB-94` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `MVP-14a` selesai pada kode, 2026-10-09, bagian 6at. Sebelumnya `110` — gelombang `MVP-14` (CITO dari pemesanan sampai ke pemeriksaan, putaran 28): `BE-LAB-94` ⏳ `SIAP DIKERJAKAN`, langkah rilis `MVP-14c`, 2026-10-09, bagian 6at. Sebelumnya `109` — `BE-LAB-93` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `MVP-13a` selesai pada kode, 2026-10-08, bagian 6as. Sebelumnya `108` — `BE-LAB-92` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-93` siap dikerjakan, 2026-10-08, bagian 6as. Sebelumnya `107` — gelombang `MVP-13` (`EPIC-LAB-19` Beranda Lab, BR-140): `BE-LAB-92` ⏳, `BE-LAB-93` ⏳, langkah rilis `MVP-13c`, 2026-10-08, bagian 6as. Sebelumnya `106` — `BE-LAB-91` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`, 2026-10-07, bagian 6ar.4. Sebelumnya `105` — `MVP-12` diperluas: `BE-LAB-91` ⏳ (daftar dokter pemeriksa, jejak konfirmasi rincian, `r41`); langkah rilis 6ar.2 menjadi serempak, 2026-10-07, bagian 6ar.4. Sebelumnya `104` — `BE-LAB-90` naik ✅; langkah rilis `MVP-12c` langkah 2 terlaksana di dev; dua temuan (T1 respons detail, T2 pemilih dokter), 2026-10-07, bagian 6ar.1–6ar.2. Sebelumnya `103` — `BE-LAB-90` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`, 2026-10-07, bagian 6ar.1. Sebelumnya `102` — gelombang `MVP-12` (`EPIC-LAB-18`, urutan Konfirmasi v1) ditambahkan 2026-10-07, bagian 6ar: `BE-LAB-90` ⏳ melebur `BE-LAB-89` ❌; langkah rilis `MVP-12c`. Sebelumnya `101` — `BE-LAB-89` ditambahkan ⏳ (penolakan `start-process` ke `409`, tidak memblokir), 2026-10-07, bagian 6aq. Sebelumnya `100` — `BE-LAB-73`, `74`, `75` naik ✅ dengan bukti HTTP asli di devYoga, 2026-10-06. Sebelumnya `99` — `BE-LAB-78` naik ✅ (HTTP asli + baris `S4` Mikrobiologi pada harness), 2026-10-06. Sebelumnya `98` — Mikrobiologi lulus uji nyata di dev (6al.5), 2026-10-06. Sebelumnya `97` — temuan uji: langkah rilis 4 `MVP-9d`/`MVP-10c` wajib memuat `LabOrder : Read` dan `LabExamination : Read`; PK lulus uji nyata di dev, 2026-10-06. Sebelumnya `96` — setup uji langkah rilis `MVP-9d`/`MVP-10c` di devYoga (langkah 1–4 disetujui pemilik modul); temuan katalog HR untuk `LAB-COORD-016`, 2026-10-06. Sebelumnya `95` — `BE-LAB-88` ✅ `SELESAI` (Spesifik Specimen pada respons specimen, `r39`), 2026-10-06, bagian 6ap. Sebelumnya `94` — `BE-LAB-88` ditambahkan ✅ `SIAP DIKERJAKAN` (Spesifik Specimen pada respons specimen, `r39`, `LAB-DEC-167`), 2026-10-06, bagian 6ap. Sebelumnya `93` — `BE-LAB-87` ✅ `SELESAI` (identitas pasien pada rincian order, `r38`), 2026-10-01, bagian 6ao. Sebelumnya `92` — langkah rilis `MVP-8a` 6aj.5 langkah 1 dan 3 terlaksana di dev, 2026-10-01. Sebelumnya `91` — `AC-221` `BE-LAB-67` terbukti dengan akun analis asli; 22 migration tertunda modul lain diterapkan ke `QuilvianNewDevYoga`, 2026-10-01, bagian 6aj.1. Sebelumnya `90` — langkah rilis `MVP-11c` langkah 1 dan 3 terlaksana di dev, 2026-09-30, bagian 6an.7. Sebelumnya `89` — `BE-LAB-80` ✅ `SELESAI`; **`MVP-10a` selesai pada kode**, 2026-09-30, bagian 6al.3. Sebelumnya `88` — `BE-LAB-79` ✅ `SELESAI`, 2026-09-30, bagian 6al.2. Sebelumnya `87` — `BE-LAB-78` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-79` dan `BE-LAB-80` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6al.1-6al.3. Sebelumnya `86` — `BE-LAB-86` ✅ `SELESAI`; **`MVP-11a` selesai pada kode**, 2026-09-30, bagian 6an.5. Sebelumnya `85` — `BE-LAB-85` ✅ `SELESAI`; `BE-LAB-86` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.4-6an.5. Sebelumnya `84` — `BE-LAB-84` ✅ `SELESAI`, migration `AddLabSpecimenDecidedAtIndex` diterapkan ke database dev; `BE-LAB-85` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.3-6an.4. Sebelumnya `83` — `BE-LAB-83` ✅ `SELESAI`; `BE-LAB-84` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.2-6an.3. Sebelumnya `82` — `BE-LAB-82` ✅ `SELESAI`; `BE-LAB-83` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.1-6an.2. Sebelumnya `81` — `BE-LAB-81` ✅ `SELESAI`; gelombang `MVP-9e` selesai pada kode, 2026-09-30, bagian 6am.1-6am.2. Sebelumnya `80` — `BE-LAB-77` ✅ `SELESAI`; `BE-LAB-78` dan `BE-LAB-82` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6ak.8, 6al.1, dan 6an.1. Sebelumnya `79` — `BE-LAB-76` ✅ `SELESAI`; `BE-LAB-77` dan `BE-LAB-81` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.7-6ak.8 dan 6am.1. Sebelumnya `78` — `BE-LAB-75` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-76` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.6-6ak.7. Sebelumnya `77` — `BE-LAB-74` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-75` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.5-6ak.6. Sebelumnya `76` — `BE-LAB-73` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-74` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.4-6ak.5. Sebelumnya `75` — `BE-LAB-72` ✅ `SELESAI`; `BE-LAB-73` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.3-6ak.4. Sebelumnya `74` — verifikasi runtime susulan 2026-09-29 sore: migration Hemodialisa dan `BE-LAB-70` diterapkan ke database dev atas instruksi pemilik modul; `BE-LAB-68`..`71` ✅ `SELESAI`; `BE-LAB-67` tetap ⚠ dengan batas tinggal `AC-221`/`AC-222`; kedua daftar alasan terisi, bagian 6aj.1-6aj.3 dan 6ak.1-6ak.2. Sebelumnya `73` — `BE-LAB-71` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-73` kini hanya menunggu `BE-LAB-72`, 2026-09-29, bagian 6ak.2 dan 6ak.4. Sebelumnya `72` — `BE-LAB-70` ⚠ `SELESAI SEBAGIAN` (migration belum diterapkan); `LaboratoryResult = 15`; `BE-LAB-71` dan `BE-LAB-72` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.1-6ak.3. Sebelumnya `71` — `BE-LAB-69` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; backend `MVP-8` berdiri pada kode; `BE-LAB-70` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.3 dan 6ak.1. Sebelumnya `70` — `BE-LAB-68` ⚠ `SELESAI DENGAN BATAS VERIFIKASI` dan `BE-LAB-69` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.2-6aj.3. Sebelumnya `69` — `BE-LAB-67` ⚠ `SELESAI DENGAN BATAS VERIFIKASI` dan `BE-LAB-68` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.1-6aj.2. Sebelumnya `68` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28, bagian 6an: `BE-LAB-82`..`BE-LAB-86` dan langkah rilis `MVP-11c`. Sebelumnya `67` — `r36`/`r14`/`r7` disetujui; `BE-LAB-81` direncanakan sebagai gelombang `MVP-9e`, 2026-09-25, bagian 6am.0. Sebelumnya `66` — keputusan `LAB-DEC-154`..`156` diturunkan 2026-09-25 malam, bagian 6am; `BE-LAB-81` `BLOCKED`. Sebelumnya `65` — gelombang `MVP-10` ditambahkan 2026-09-25, bagian 6al. Sebelumnya `64` — gelombang `MVP-9` ditambahkan 2026-09-25, bagian 6ak; `BE-LAB-68` diperluas. Sebelumnya `63` — gelombang `MVP-8` ditambahkan 2026-09-24, bagian 6aj. *Baris ini sempat tertinggal di `57` sementara riwayat sudah sampai `62`; dirapikan 2026-09-24* |
+| Roadmap revision | `126` — **nol task batas verifikasi**: `BE-LAB-67`, `91`, `92`, `93` naik ✅ — `403`/jalur `200` diamati di runtime dengan akun asli (Bayu, dr. Bima, Gilang); baris status `BE-LAB-66` yang tertinggal dirapikan, 2026-10-21. `125` — langkah rilis `MVP-15e` tuntas: data uji dibuat, verifikasi peramban dengan akun asli dr. Bima dan Gilang, izin jabatan manajemen ditunda atas keputusan pemilik modul; `LAB-DEC-250` (label status berkas = layar) diterapkan di `LabFilterMetadataFactory`, 2026-10-21. `124` — `BE-LAB-98`..`100` selesai penuh: migration index diterapkan, `403` terbukti dengan akun dr. Bima, 2026-10-20. `123` — `BE-LAB-100` selesai (batas verifikasi); `MVP-15` backend selesai pada kode, 2026-10-20. `122` — `BE-LAB-99` selesai (batas verifikasi) 2026-10-20. `121` — `BE-LAB-98` selesai (batas verifikasi) 2026-10-20. `120` — `BE-LAB-97` selesai 2026-10-20. `119` — `BE-LAB-96` selesai 2026-10-20. `118` — gelombang `MVP-15` (`EPIC-LAB-20`, Laporan Pembatalan dan Statistik Pesanan) ditambahkan di bagian 6au: `BE-LAB-96`..`BE-LAB-100`, kontrak `r49`/PERM 17/VAL `r21`/STATE `r11` `approved` 2026-10-20. Sebelumnya `117` — verifikasi HTTP `r47`/`r48` dengan akun asli dr. Bima dan Gilang dicatat di bagian 0.3, 2026-10-14. Sebelumnya `116` — kontrak `r48` `approved` susulan lewat `LAB-REQ-025` (`api-contract.md` bagian 43); baris `r48` di bagian 0.3 naik menjadi **Selesai**, 2026-10-14. Sebelumnya `115` — bagian **0** *Ringkasan Task Backend dan Status* ditambahkan per 2026-10-14: 101 nomor task — 91 selesai, 4 selesai dengan batas verifikasi, 1 selesai dengan temuan, 1 tertahan, 2 dilebur, 2 dibatalkan — beserta pekerjaan tanpa nomor task (`r42`, `r43`, `r47`, `r48`). Sebelumnya `114` — `BE-LAB-94` naik ✅ `SELESAI` sesudah cek layar `MVP-14c` langkah 5 di devYoga, 2026-10-09. Sebelumnya `113` — `BE-LAB-95` ✅ `SELESAI` (harness 24/24); `MVP-14a` beserta susulannya selesai pada kode, 2026-10-09, bagian 6at. Sebelumnya `112` — `BE-LAB-95` ⏳ `SIAP DIKERJAKAN` (rencana ulang sesudah wadah dibatalkan, `r46` `approved`), 2026-10-09, bagian 6at.4. Sebelumnya `111` — `BE-LAB-94` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `MVP-14a` selesai pada kode, 2026-10-09, bagian 6at. Sebelumnya `110` — gelombang `MVP-14` (CITO dari pemesanan sampai ke pemeriksaan, putaran 28): `BE-LAB-94` ⏳ `SIAP DIKERJAKAN`, langkah rilis `MVP-14c`, 2026-10-09, bagian 6at. Sebelumnya `109` — `BE-LAB-93` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `MVP-13a` selesai pada kode, 2026-10-08, bagian 6as. Sebelumnya `108` — `BE-LAB-92` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-93` siap dikerjakan, 2026-10-08, bagian 6as. Sebelumnya `107` — gelombang `MVP-13` (`EPIC-LAB-19` Beranda Lab, BR-140): `BE-LAB-92` ⏳, `BE-LAB-93` ⏳, langkah rilis `MVP-13c`, 2026-10-08, bagian 6as. Sebelumnya `106` — `BE-LAB-91` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`, 2026-10-07, bagian 6ar.4. Sebelumnya `105` — `MVP-12` diperluas: `BE-LAB-91` ⏳ (daftar dokter pemeriksa, jejak konfirmasi rincian, `r41`); langkah rilis 6ar.2 menjadi serempak, 2026-10-07, bagian 6ar.4. Sebelumnya `104` — `BE-LAB-90` naik ✅; langkah rilis `MVP-12c` langkah 2 terlaksana di dev; dua temuan (T1 respons detail, T2 pemilih dokter), 2026-10-07, bagian 6ar.1–6ar.2. Sebelumnya `103` — `BE-LAB-90` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`, 2026-10-07, bagian 6ar.1. Sebelumnya `102` — gelombang `MVP-12` (`EPIC-LAB-18`, urutan Konfirmasi v1) ditambahkan 2026-10-07, bagian 6ar: `BE-LAB-90` ⏳ melebur `BE-LAB-89` ❌; langkah rilis `MVP-12c`. Sebelumnya `101` — `BE-LAB-89` ditambahkan ⏳ (penolakan `start-process` ke `409`, tidak memblokir), 2026-10-07, bagian 6aq. Sebelumnya `100` — `BE-LAB-73`, `74`, `75` naik ✅ dengan bukti HTTP asli di devYoga, 2026-10-06. Sebelumnya `99` — `BE-LAB-78` naik ✅ (HTTP asli + baris `S4` Mikrobiologi pada harness), 2026-10-06. Sebelumnya `98` — Mikrobiologi lulus uji nyata di dev (6al.5), 2026-10-06. Sebelumnya `97` — temuan uji: langkah rilis 4 `MVP-9d`/`MVP-10c` wajib memuat `LabOrder : Read` dan `LabExamination : Read`; PK lulus uji nyata di dev, 2026-10-06. Sebelumnya `96` — setup uji langkah rilis `MVP-9d`/`MVP-10c` di devYoga (langkah 1–4 disetujui pemilik modul); temuan katalog HR untuk `LAB-COORD-016`, 2026-10-06. Sebelumnya `95` — `BE-LAB-88` ✅ `SELESAI` (Spesifik Specimen pada respons specimen, `r39`), 2026-10-06, bagian 6ap. Sebelumnya `94` — `BE-LAB-88` ditambahkan ✅ `SIAP DIKERJAKAN` (Spesifik Specimen pada respons specimen, `r39`, `LAB-DEC-167`), 2026-10-06, bagian 6ap. Sebelumnya `93` — `BE-LAB-87` ✅ `SELESAI` (identitas pasien pada rincian order, `r38`), 2026-10-01, bagian 6ao. Sebelumnya `92` — langkah rilis `MVP-8a` 6aj.5 langkah 1 dan 3 terlaksana di dev, 2026-10-01. Sebelumnya `91` — `AC-221` `BE-LAB-67` terbukti dengan akun analis asli; 22 migration tertunda modul lain diterapkan ke `QuilvianNewDevYoga`, 2026-10-01, bagian 6aj.1. Sebelumnya `90` — langkah rilis `MVP-11c` langkah 1 dan 3 terlaksana di dev, 2026-09-30, bagian 6an.7. Sebelumnya `89` — `BE-LAB-80` ✅ `SELESAI`; **`MVP-10a` selesai pada kode**, 2026-09-30, bagian 6al.3. Sebelumnya `88` — `BE-LAB-79` ✅ `SELESAI`, 2026-09-30, bagian 6al.2. Sebelumnya `87` — `BE-LAB-78` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-79` dan `BE-LAB-80` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6al.1-6al.3. Sebelumnya `86` — `BE-LAB-86` ✅ `SELESAI`; **`MVP-11a` selesai pada kode**, 2026-09-30, bagian 6an.5. Sebelumnya `85` — `BE-LAB-85` ✅ `SELESAI`; `BE-LAB-86` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.4-6an.5. Sebelumnya `84` — `BE-LAB-84` ✅ `SELESAI`, migration `AddLabSpecimenDecidedAtIndex` diterapkan ke database dev; `BE-LAB-85` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.3-6an.4. Sebelumnya `83` — `BE-LAB-83` ✅ `SELESAI`; `BE-LAB-84` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.2-6an.3. Sebelumnya `82` — `BE-LAB-82` ✅ `SELESAI`; `BE-LAB-83` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6an.1-6an.2. Sebelumnya `81` — `BE-LAB-81` ✅ `SELESAI`; gelombang `MVP-9e` selesai pada kode, 2026-09-30, bagian 6am.1-6am.2. Sebelumnya `80` — `BE-LAB-77` ✅ `SELESAI`; `BE-LAB-78` dan `BE-LAB-82` naik menjadi `SIAP DIKERJAKAN`, 2026-09-30, bagian 6ak.8, 6al.1, dan 6an.1. Sebelumnya `79` — `BE-LAB-76` ✅ `SELESAI`; `BE-LAB-77` dan `BE-LAB-81` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.7-6ak.8 dan 6am.1. Sebelumnya `78` — `BE-LAB-75` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-76` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.6-6ak.7. Sebelumnya `77` — `BE-LAB-74` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-75` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.5-6ak.6. Sebelumnya `76` — `BE-LAB-73` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-74` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.4-6ak.5. Sebelumnya `75` — `BE-LAB-72` ✅ `SELESAI`; `BE-LAB-73` naik menjadi `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.3-6ak.4. Sebelumnya `74` — verifikasi runtime susulan 2026-09-29 sore: migration Hemodialisa dan `BE-LAB-70` diterapkan ke database dev atas instruksi pemilik modul; `BE-LAB-68`..`71` ✅ `SELESAI`; `BE-LAB-67` tetap ⚠ dengan batas tinggal `AC-221`/`AC-222`; kedua daftar alasan terisi, bagian 6aj.1-6aj.3 dan 6ak.1-6ak.2. Sebelumnya `73` — `BE-LAB-71` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; `BE-LAB-73` kini hanya menunggu `BE-LAB-72`, 2026-09-29, bagian 6ak.2 dan 6ak.4. Sebelumnya `72` — `BE-LAB-70` ⚠ `SELESAI SEBAGIAN` (migration belum diterapkan); `LaboratoryResult = 15`; `BE-LAB-71` dan `BE-LAB-72` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6ak.1-6ak.3. Sebelumnya `71` — `BE-LAB-69` ⚠ `SELESAI DENGAN BATAS VERIFIKASI`; backend `MVP-8` berdiri pada kode; `BE-LAB-70` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.3 dan 6ak.1. Sebelumnya `70` — `BE-LAB-68` ⚠ `SELESAI DENGAN BATAS VERIFIKASI` dan `BE-LAB-69` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.2-6aj.3. Sebelumnya `69` — `BE-LAB-67` ⚠ `SELESAI DENGAN BATAS VERIFIKASI` dan `BE-LAB-68` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.1-6aj.2. Sebelumnya `68` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28, bagian 6an: `BE-LAB-82`..`BE-LAB-86` dan langkah rilis `MVP-11c`. Sebelumnya `67` — `r36`/`r14`/`r7` disetujui; `BE-LAB-81` direncanakan sebagai gelombang `MVP-9e`, 2026-09-25, bagian 6am.0. Sebelumnya `66` — keputusan `LAB-DEC-154`..`156` diturunkan 2026-09-25 malam, bagian 6am; `BE-LAB-81` `BLOCKED`. Sebelumnya `65` — gelombang `MVP-10` ditambahkan 2026-09-25, bagian 6al. Sebelumnya `64` — gelombang `MVP-9` ditambahkan 2026-09-25, bagian 6ak; `BE-LAB-68` diperluas. Sebelumnya `63` — gelombang `MVP-8` ditambahkan 2026-09-24, bagian 6aj. *Baris ini sempat tertinggal di `57` sementara riwayat sudah sampai `62`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
 | Ringkasan status task | **Bagian 0** — per 2026-10-14 |
 | Bentuk blueprint | `SINGLE` |
@@ -47,16 +47,16 @@
 
 | Golongan | Jumlah | Task |
 |---|---:|---|
-| Nomor task backend | **101** | `BE-LAB-01`..`BE-LAB-95` (95) dan `BE-EXT-01`, `02`, `03`, `04`, `04b`, `05` (6) |
-| **Selesai** | **91** | Seluruh nomor lain |
-| Selesai — batas verifikasi | **4** | `BE-LAB-67`, `BE-LAB-91`, `BE-LAB-92`, `BE-LAB-93` |
+| Nomor task backend | **106** | `BE-LAB-01`..`BE-LAB-100` (100) dan `BE-EXT-01`, `02`, `03`, `04`, `04b`, `05` (6) |
+| **Selesai** | **100** | Seluruh nomor lain |
+| Selesai — batas verifikasi | **0** | — sejak 2026-10-21 |
 | Selesai — dengan temuan | **1** | `BE-LAB-49` |
 | Tertahan | **1** | `BE-LAB-41` |
 | Dilebur | **2** | `BE-LAB-45` → `BE-LAB-53`; `BE-LAB-89` → `BE-LAB-90` |
 | Dibatalkan | **2** | `BE-LAB-23`, `BE-LAB-46` |
-| **Siap dikerjakan** | **0** | Belum ada task backend bernomor yang terbuka |
+| **Siap dikerjakan** | **0** | Gelombang `MVP-15` selesai, termasuk langkah rilis `MVP-15e` (6au.6) — butir 2 manajemen ditunda atas keputusan pemilik modul 2026-10-21 |
 
-91 + 4 + 1 + 1 + 2 + 2 = **101**.
+100 + 0 + 1 + 1 + 2 + 2 = **106**.
 
 ### 0.2 Seluruh task menurut gelombang
 
@@ -134,7 +134,7 @@
 | `BE-LAB-64` | Permukaan baseline dua data induk Mikrobiologi (prasyarat `FE-LAB-34`) | susulan `MVP-7b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-64.md) |
 | `BE-LAB-65` | Permukaan baseline `LabOrganism` dan `LabAntibiotic` (prasyarat `FE-LAB-24`) | susulan `MVP-6` | **Selesai** | [laporan](../task/report/backend/BE-LAB-65.md) |
 | `BE-LAB-66` | Permukaan baseline tiga data induk Patologi Anatomi | susulan `MVP-6b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-66.md) |
-| `BE-LAB-67` | Izin hasil tersendiri dan route netral disiplin | `MVP-8a` | **Selesai — batas verifikasi** | `AC-222` menunggu admin memberi `LabExaminationResult : Update` (langkah rilis 6aj.5) |
+| `BE-LAB-67` | Izin hasil tersendiri dan route netral disiplin | `MVP-8a` | **Selesai** | `AC-222` dan `PUT /urgency` `200` terbukti 2026-10-21 — [laporan](../task/report/backend/BE-LAB-67.md) |
 | `BE-LAB-68` | Penjaga hasil Final | `MVP-8a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-68.md) |
 | `BE-LAB-69` | Jalur baca per order dan penanda rujukan | `MVP-8b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-69.md) |
 | `BE-LAB-70` | Skema validasi dan rilis | `MVP-9a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-70.md) |
@@ -158,11 +158,16 @@
 | `BE-LAB-88` | Spesifik Specimen pada respons specimen (`LAB-DEC-167`) | susulan `MVP-7` | **Selesai** | [laporan](../task/report/backend/BE-LAB-88.md) |
 | `BE-LAB-89` | `start-process` menolak status selain `Accepted` dengan `409` | susulan putaran 22 | **Dilebur** | Masuk `BE-LAB-90`, 2026-10-07 (`LAB-REQ-016` butir 3) |
 | `BE-LAB-90` | Konfirmasi pada pesanan yang wadahnya layak, Proses wajib terkonfirmasi, izin Konfirmasi tersendiri | `MVP-12a` | **Selesai** | Termasuk cakupan `BE-LAB-89` — [laporan](../task/report/backend/BE-LAB-90.md) |
-| `BE-LAB-91` | Daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian | `MVP-12a` | **Selesai — batas verifikasi** | `403` endpoint baru belum diamati di runtime; perlu akun tanpa izin `Confirm` |
-| `BE-LAB-92` | Ringkasan hari ini dan pesanan terbaru Beranda | `MVP-13a` | **Selesai — batas verifikasi** | `403` belum diamati di runtime |
-| `BE-LAB-93` | Ringkasan tahunan Beranda dan `VAL-154` | `MVP-13a` | **Selesai — batas verifikasi** | `403` belum diamati di runtime |
+| `BE-LAB-91` | Daftar dokter pemeriksa bagi pengonfirmasi dan jejak konfirmasi pada rincian | `MVP-12a` | **Selesai** | `403` runtime terbukti 2026-10-21 (dr. Bima, Bayu) — [laporan](../task/report/backend/BE-LAB-91.md) |
+| `BE-LAB-92` | Ringkasan hari ini dan pesanan terbaru Beranda | `MVP-13a` | **Selesai** | `403` runtime terbukti 2026-10-21 (Bayu) — [laporan](../task/report/backend/BE-LAB-92.md) |
+| `BE-LAB-93` | Ringkasan tahunan Beranda dan `VAL-154` | `MVP-13a` | **Selesai** | `403` runtime terbukti 2026-10-21 (Bayu) — [laporan](../task/report/backend/BE-LAB-93.md) |
 | `BE-LAB-94` | Pemeriksaan mewarisi CITO saat wadah direncanakan dan diambil ulang, beserta perbaikan data lama | `MVP-14a` | **Selesai** | Migration data diterapkan ke devYoga; cek layar 2026-10-09 — [laporan](../task/report/backend/BE-LAB-94.md) |
 | `BE-LAB-95` | Rencana ulang sesudah wadah dibatalkan dan pendahulu tanpa penanda | `MVP-14a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-95.md) |
+| `BE-LAB-96` | Definisi hitung Beranda dipindah ke `LabOrderDemandQuery` | `MVP-15a` | **Selesai** | [laporan](../task/report/backend/BE-LAB-96.md) |
+| `BE-LAB-97` | Alasan wajib batal pemeriksaan dan wadah (`VAL-155`) | `MVP-15b` | **Selesai** | [laporan](../task/report/backend/BE-LAB-97.md) |
+| `BE-LAB-98` | Statistik Pesanan, `.xlsx`, pencatat cetak, izin | `MVP-15c` | **Selesai** | `403` terbukti dengan akun dr. Bima 2026-10-20 — [laporan](../task/report/backend/BE-LAB-98.md) |
+| `BE-LAB-99` | Laporan Pembatalan: daftar, detail, penyaring, index, jejak baca | `MVP-15d` | **Selesai** | Migration diterapkan dan `403` terbukti 2026-10-20 — [laporan](../task/report/backend/BE-LAB-99.md) |
+| `BE-LAB-100` | Laporan Pembatalan: unduhan `.xlsx` dan pencatat cetak | `MVP-15d` | **Selesai** | `403` bagi `Read` tanpa `Export` terbukti 2026-10-20 — [laporan](../task/report/backend/BE-LAB-100.md) |
 
 ### 0.3 Pekerjaan backend tanpa nomor task
 
@@ -3133,6 +3138,15 @@ kelalaian.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 126 | 2026-10-21 | **Nol task batas verifikasi.** `BE-LAB-67`, `91`, `92`, `93` naik ✅ dengan akun asli (Bayu — Radiografer tanpa izin Lab, dr. Bima, Gilang); baris status `BE-LAB-66` yang tertinggal ⚠ dirapikan mengikuti laporannya | `DRAFT` |
+| 125 | 2026-10-21 | **Langkah rilis `MVP-15e` tuntas** (6au.6): data uji butir 3, verifikasi butir 4 dengan akun asli dr. Bima dan Gilang; butir 2 manajemen ditunda (keputusan pemilik modul). **`LAB-DEC-250`**: `LabFilterMetadataFactory.LabelOrderStatus`/`LabelStatusPemeriksaan` mengikuti label layar Lab; build lulus, harness `BE-LAB-100` 31/31 ([`BE-LAB-100.md`](../task/report/backend/BE-LAB-100.md) bagian 9) | `DRAFT` |
+| 124 | 2026-10-20 | **`BE-LAB-98`, `99`, `100` naik menjadi ✅ `SELESAI`**: migration index diterapkan ke devYoga (riwayat 342) dan `403` terbukti dengan akun dr. Bima secara bertahap; jabatan Kepala Instalasi memegang keempat izin laporan `S16b` (`MVP-15e` butir 1; butir 2 dan 4 sebagian) | `DRAFT` |
+| 123 | 2026-10-20 | **`BE-LAB-100` ✅ `SELESAI` — batas verifikasi** ([`BE-LAB-100.md`](../task/report/backend/BE-LAB-100.md)): unduhan `.xlsx` dan print-log Laporan Pembatalan; harness 31/31; **gelombang `MVP-15` backend selesai pada kode** — tersisa `MVP-15e` dan `403` non-superadmin | `DRAFT` |
+| 122 | 2026-10-20 | **`BE-LAB-99` ✅ `SELESAI` — batas verifikasi** ([`BE-LAB-99.md`](../task/report/backend/BE-LAB-99.md)): Laporan Pembatalan (daftar, detail, penyaring, log baca), resource `LabCancellationReport : Read`; migration index disiapkan tanpa diterapkan; harness 19/19 | `DRAFT` |
+| 121 | 2026-10-20 | **`BE-LAB-98` ✅ `SELESAI` — batas verifikasi** ([`BE-LAB-98.md`](../task/report/backend/BE-LAB-98.md)): Statistik Pesanan, `.xlsx`, pencatat cetak, resource `LabOrderStatisticsReport`; harness 29/29; angka sama dengan Beranda di devYoga; `403` non-superadmin belum diamati | `DRAFT` |
+| 120 | 2026-10-20 | **`BE-LAB-97` ✅ `SELESAI`** ([`BE-LAB-97.md`](../task/report/backend/BE-LAB-97.md)): `VAL-155` alasan wajib pada batal pemeriksaan dan wadah, sesudah penjaga keadaan; harness 15/15; HTTP `422` dengan nol tulis | `DRAFT` |
+| 119 | 2026-10-20 | **`BE-LAB-96` ✅ `SELESAI`** ([`BE-LAB-96.md`](../task/report/backend/BE-LAB-96.md)): definisi hitung Beranda dipindah ke `LabOrderDemandQuery`; uji karakterisasi byte-identik; build lulus; Beranda terbaca | `DRAFT` |
+| 118 | 2026-10-20 | **Gelombang `MVP-15` direncanakan** (bagian 6au): `EPIC-LAB-20` Laporan Pembatalan dan Statistik Pesanan. Lima task `BE-LAB-96`..`BE-LAB-100` beserta langkah rilis `MVP-15e` (migration index atas instruksi, pemberian izin, data uji berizin tulis). Kontrak `approved` 2026-10-20 oleh Yoga Aji Pratama. BE `4d3e4f98` | `DRAFT` |
 | 117 | 2026-10-14 | **Verifikasi HTTP `r47` dan `r48` dengan akun asli** (dr. Bima, Gilang), baca-saja di backend lokal terhadap devYoga: daftar pantau 8 ruas `r47` pada tiga disiplin (Gilang `200`; dr. Bima `403` sesuai izin jabatannya); rincian order 8/8 ruas `r48` pada empat pesanan dan `resultEnteredByName` terisi, untuk kedua akun. Jalur `by-order/{id}/results` menjawab `422` untuk Mikro/PA — sesuai, jalur itu khusus Patologi Klinik. Nol permintaan tulis | `DRAFT` |
 | 116 | 2026-10-14 | **Kontrak `r48` dibukukan.** Pemilik modul menyetujui `LAB-REQ-025` (kartu informasi halaman hasil v1, persetujuan susulan atas kode 2026-10-13); `api-contract.md` bagian 43 ditulis. Bagian 0.3: baris `r48` naik dari *Selesai pada kode — kontrak belum dibukukan* menjadi **Selesai**. Bagian 0.4: butir `r48` ditutup | `DRAFT` |
 | 115 | 2026-10-14 | **Bagian 0 *Ringkasan Task Backend dan Status* ditambahkan** di awal dokumen. Status seluruh 101 nomor task (`BE-LAB-01`..`95`, `BE-EXT-01`..`05`) diambil dari laporan dan baris Status blok task: 91 selesai, 4 selesai dengan batas verifikasi (`BE-LAB-67`, `91`, `92`, `93`), 1 selesai dengan temuan (`BE-LAB-49`), 1 tertahan (`BE-LAB-41`), 2 dilebur (`BE-LAB-45`, `89`), 2 dibatalkan (`BE-LAB-23`, `46`). Bagian 0.3 mencatat pekerjaan tanpa nomor task: `r42` dan `r43` (2026-10-08), `r47` dan `r48` (2026-10-13, commit `36422a4d`). **`r48` ada di kode tetapi belum dibukukan di `api-contract.md`.** Papan 6ag dan tabel 7 ditandai riwayat | `DRAFT` |
@@ -4508,7 +4522,7 @@ terdaftar pada controller itu.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI` 2026-09-23** — `r32` disetujui dan kesebelas endpoint dibangun pada hari yang sama task ini dibuka. Lihat bagian **6af** dan [`BE-LAB-66.md`](../task/report/backend/BE-LAB-66.md) |
+| **Status** | ✅ **`SELESAI`** 2026-09-23 — `r32` disetujui dan kesebelas endpoint dibangun pada hari yang sama task ini dibuka; terbukti berjalan terhadap database sungguhan pada hari itu juga. Lihat bagian **6af** dan [`BE-LAB-66.md`](../task/report/backend/BE-LAB-66.md) *(baris ini tertinggal ⚠ dan dirapikan 2026-10-21 mengikuti laporan dan tabel 0.2)* |
 | Dependency | ✅ `BE-LAB-50` selesai 2026-09-18 — keempat tabel berdiri, migration terterap, seeder dijalankan |
 | Menahan | **`FE-LAB-27`**, dan lewat `FE-LAB-27` ikut menahan pengisian pemetaan yang `FE-LAB-28` tunggu |
 | Klasifikasi | `MEDIUM` — sebelas endpoint, tiga controller, nol migration, nol permission baru |
@@ -4608,7 +4622,7 @@ dari endpoint yang menjawab `404`.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-23 |
+| **Status** | ✅ **`SELESAI`** 2026-09-23 — lihat [`BE-LAB-66.md`](../task/report/backend/BE-LAB-66.md) *(dirapikan 2026-10-21; baris "Batas diketahui" di bawah adalah keadaan sebelum pembuktian hari itu)* |
 | Kontrak | `LAB-API-v1` **`r32`** — `approved` 2026-09-23, bagian 27 |
 | Sifat | Aditif; nol migration, nol permission baru |
 | Batas diketahui | Kesebelas endpoint **nol pernah dipanggil**. Yang paling patut diperiksa lebih dulu: `unmappedProcedure` — satu-satunya angka baru yang dihitung dari dua tabel, dan satu-satunya yang salahnya nol menimbulkan galat |
@@ -4928,7 +4942,7 @@ itu tanda cakupannya melenceng dari bagian 19 — berhenti dan laporkan.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-29 — **batasnya menyempit lagi 2026-10-01:** `AC-221` sisi penolakan terbukti dengan **dua akun analis asli** (28 izin Lab, tanpa `LabExaminationResult : Update`) — kelima tindakan hasil `403`, isi hasil identik; dijalankan pada backend hasil merge `55b032b0` sesudah 22 migration tertunda modul lain diterapkan ke `QuilvianNewDevYoga` atas instruksi pemilik modul. **Tersisa `AC-222`** dan bagian `200` `AC-221`, keduanya menunggu 6aj.5 ([`BE-LAB-67.md`](../task/report/backend/BE-LAB-67.md) bagian 9). Sebelumnya **batasnya menyempit 2026-09-29 sore:** penahan Hemodialisa ditutup; validator lolos lewat startup sungguhan (1572 kunci); Swagger nol memuat route lama dan route lama menjawab `404`; **`VAL-122` `422`** pada ketiga tindakan atas pemeriksaan Patologi Anatomi. **Yang tersisa hanya `AC-221`/`AC-222`** — nol jabatan di dev memegang `LabExaminationResult : Update`, dan langkah rilis 6aj.5 belum diinstruksikan. Lihat [`BE-LAB-67.md`](../task/report/backend/BE-LAB-67.md) bagian 8 |
+| **Status** | ✅ **`SELESAI`** — 2026-10-21, [`BE-LAB-67.md`](../task/report/backend/BE-LAB-67.md) bagian 10. Semula ⚠ (sisa `AC-222` dan `PUT /urgency` `200`). `AC-222` per izin dengan akun asli: Gilang (izin hasil) mengisi hasil `200`; dr. Bima (tanpa `LabExamination : Update`) `PUT urgency`/`duplo`/`POST cancel` `403`. `PUT /urgency` `200` oleh pembuat pesanan (Leukosit `000001` Rutin→Cito→Rutin, bersih nol); `409` pada pesanan selesai dan `403` bagi bukan pembuat teramati |
 | **Gelombang** | `MVP-8a` |
 | **Outcome** | Hanya pemegang izin hasil yang dapat menulis hasil; dokter pemesan tetap dapat menandai cito tetapi ditolak saat menulis hasil. Final, Reopen, dan konsultasi berjalan di route netral untuk Patologi Klinik dan Mikrobiologi |
 | **Requirement/decision** | `FR-14.1`, `FR-14.2`, `FR-14.5`, `FR-14.6`; `LAB-DEC-146`, `LAB-DEC-135`, `LAB-DEC-141` |
@@ -5807,7 +5821,7 @@ Menurunkan [`02-backend-architecture.md`](../02-backend-architecture.md) **bagia
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — 2026-10-07, [`BE-LAB-91.md`](../task/report/backend/BE-LAB-91.md). Harness InMemory **47/47** (17 uji baru: dokter aktif saja, urutan, jepit halaman, empat ruas tanpa data kontak, predikat bersama `VAL-73`, lima ruas jejak konfirmasi pada `confirm`/`GET`/`start-process`; + 30 non-regresi `BE-LAB-90`); HTTP baca-saja **10/10** ke DB dev (pencarian `ILike` asli, 16 dokter = isi DB, rincian `000003` lima ruas terisi, `000002` `null`); nol aksi izin baru; nol tulis. Build 0 error. **Batas:** `403` endpoint baru belum diamati di runtime (belum ada sandi akun non-pemegang `Confirm`) — dibuktikan metadata atribut dan registrasi |
+| **Status** | ✅ **`SELESAI`** — 2026-10-21, [`BE-LAB-91.md`](../task/report/backend/BE-LAB-91.md) bagian 8. Semula ⚠ (harness 47/47, HTTP baca-saja 10/10; `403` belum diamati). `GET examiner-doctor-options`: dr. Bima tanpa `Confirm` `403`, Bayu `403`, Gilang `200`; dipakai Konfirmasi sungguhan `LAB-RSMMC-000028` |
 | **Gelombang** | `MVP-12a` |
 | **Outcome** | Analis pemegang `LabOrder : Confirm` dapat memuat daftar dokter aktif untuk dipilih sebagai dokter pemeriksa **tanpa** izin master dokter SDM; sesudah Konfirmasi, jawaban server langsung membawa siapa, kapan, dan dokter mana — sehingga layar tidak perlu muat ulang |
 | **Requirement/decision** | `FR-18.8`, `FR-18.9`, `FR-18.10`; `LAB-DEC-200`, `LAB-DEC-201`, `LAB-DEC-203`; T1/T2 [`FE-LAB-50.md`](../task/report/frontend/FE-LAB-50.md) |
@@ -5853,7 +5867,7 @@ service dan DTO yang sama, sehingga dikerjakan **berurutan**, bukan sejajar.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — 2026-10-08, [`BE-LAB-92.md`](../task/report/backend/BE-LAB-92.md). Harness InMemory **34/34** (contoh 28.3, batas WIB termasuk pergantian tahun, CITO dua sumber, pembulatan, antrean validasi = `totalData`, regresi antrean, pesanan terbaru); HTTP baca-saja **18/18** ke DB dev (`awaitingValidationCount` = `totalData` antrean, total tercatat = `totalData` `GET /lab-orders`, `401` tanpa masuk); validator 1659/1659, nol aksi baru; build 0 error. **Batas:** `403` belum diamati di runtime |
+| **Status** | ✅ **`SELESAI`** — 2026-10-21, [`BE-LAB-92.md`](../task/report/backend/BE-LAB-92.md) bagian 8. Semula ⚠ (harness 34/34; `403` belum diamati). `dashboard/today` dan `dashboard/recent-orders`: Bayu tanpa `LabOrder : Read` `403`, dr. Bima `200` |
 | **Gelombang** | `MVP-13a` |
 | **Outcome** | Pemegang `LabOrder : Read` memperoleh angka kartu *hari ini* dan *fokus operasional* (kecuali *Jenis laboratorium*) serta 10 pesanan terakhir dari server, dengan hari dibaca WIB dan angka *menunggu validasi* yang sama persis dengan Antrean Validasi |
 | **Requirement/decision** | `FR-19.2`, `FR-19.3`, `FR-19.6`, `FR-19.8`, `FR-19.9`; `LAB-DEC-205`, `LAB-DEC-208`, `LAB-DEC-209`, `LAB-DEC-211`; `LAB-REQ-021` butir 1–6, 9, 10 |
@@ -5870,7 +5884,7 @@ service dan DTO yang sama, sehingga dikerjakan **berurutan**, bukan sejajar.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — 2026-10-08, [`BE-LAB-93.md`](../task/report/backend/BE-LAB-93.md). Harness InMemory **56/56** (22 baru: hitungan 39.8, batas tahun/bulan WIB, tren 12 bulan dua seri, `VAL-154` termasuk pergantian tahun; + 34 regresi `BE-LAB-92`); HTTP baca-saja **16/16** (`422` pesan kontrak, `400` bukan angka, `GroupBy` di Npgsql); lama kueri tahunan 132–315 ms → **tanpa index**; validator 1659/1659; build 0 error. **Batas:** `403` runtime belum diamati |
+| **Status** | ✅ **`SELESAI`** — 2026-10-21, [`BE-LAB-93.md`](../task/report/backend/BE-LAB-93.md) bagian 8. Semula ⚠ (harness 56/56; `403` belum diamati). `dashboard/yearly`: Bayu tanpa `LabOrder : Read` `403`, dr. Bima `200` |
 | **Gelombang** | `MVP-13a` |
 | **Outcome** | Pemegang `LabOrder : Read` memperoleh hitungan pemeriksaan per disiplin, jumlah disiplin aktif, dan tren pesanan 12 bulan untuk tahun terpilih dan tahun sebelumnya; tahun di luar 2000 sampai tahun berjalan WIB ditolak dengan pesan yang jelas |
 | **Requirement/decision** | `FR-19.3` (*Jenis laboratorium*), `FR-19.4`, `FR-19.5`, `FR-19.8`; `LAB-DEC-206`, `LAB-DEC-207`, `LAB-DEC-211`; `LAB-REQ-021` butir 2, 7, 8, 10 |
@@ -5985,3 +5999,139 @@ kembalikan biner.
 | **Verifikasi** | Harness InMemory (perluas `be94harness`). Build `-p:RunAnalyzers=False` dengan server lokal dimatikan dulu. Nol tulis ke DB bersama |
 | **Risiko/pemilik** | **Rendah.** Jebakan: (a) memilih pendahulu dari pesanan lain; (b) memakai pendahulu tanpa penanda — menghidupkan cacat `LAB-CONFLICT-019`; (c) memilih pemeriksaan **baru** yang sedang dibuat sebagai pendahulunya sendiri — kueri dijalankan sebelum `CreateExaminationsAsync`. Pemilik: implementer backend. QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend dan dokumen engineering canonical |
 | **DoD** | `AC-323`..`AC-325` + butir 3 terbukti; regresi `BE-LAB-94` hijau; build hijau; laporan `task/report/backend/BE-LAB-95.md` |
+
+## 6au. Gelombang `MVP-15` — `EPIC-LAB-20` Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), 2026-10-20
+
+Menurunkan [`02-backend-architecture.md`](../02-backend-architecture.md) **bagian 32** dan
+[`04-prd-to-mvp.md`](../04-prd-to-mvp.md) **bagian 32**. Kontrak **`approved` 2026-10-20** — Yoga Aji Pratama: *"Setuju
+keenam butir (Direkomendasikan)"* atas keempat kontrak dan keenam butir 32.10. **Nol tabel, nol kolom; satu index; dua
+resource izin baru; satu aturan validasi baru.**
+
+| Field | Nilai |
+|---|---|
+| Kontrak | `LAB-API-v1` **`r49`** bagian 44; `LAB-PERM-v1` **revision 17** bagian 19; `LAB-VAL-v1` **`r21`** bagian 23 (`VAL-155`); `LAB-STATE-v1` **`r11`** bagian 13 — keempatnya **`approved` 2026-10-20**. `LAB-INT-v1` `r6` tidak berubah |
+| Keputusan | `LAB-DEC-230`..`LAB-DEC-249`; decisions rev 115 |
+| Gerbang | `LAB-RCG-001` rev 13 0H `READY_FOR_DOMAIN_DESIGN`; `LAB-DA-001` rev 11 A8 `DOMAIN_ARCHITECTURE_READY` |
+| Backend SHA | **`4d3e4f98`** (branch `yoga`) — capability map rev 9 dipindai pada SHA yang sama |
+| Frontend SHA | **`7fb1e1d3e`** (branch `YogaV2`) |
+| Hash masukan | [`traceability.md`](traceability.md) bagian *Traceability `MVP-15`* |
+| Nomor task | `BE-LAB-96`..`BE-LAB-100` |
+| Gelombang | `MVP-15a` (`BE-LAB-96`), `MVP-15b` (`BE-LAB-97`), `MVP-15c` (`BE-LAB-98`), `MVP-15d` (`BE-LAB-99`, `BE-LAB-100`); langkah rilis `MVP-15e` (6au.6) |
+
+**Untuk setiap task backend di bawah:** pemeriksaan awal QBE dan kesesuaian rekayasa diselesaikan **pada waktu
+eksekusi**, dari `AGENTS.md` backend dan dokumen engineering canonical
+(`docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`, `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`). Roadmap
+ini tidak menggantikannya.
+
+**Build lokal** memakai `-p:RunAnalyzers=False`, **sesudah server lokal BE dan FE dimatikan**. Aplikasi dijalankan dengan
+`ASPNETCORE_ENVIRONMENT=Development`. **Uji yang menulis** memakai harness InMemory (`Tests/` diabaikan `.gitignore`;
+uji baru butuh `git add -f`). **Basis data pengembangan dipakai bersama** — menulis baris uji atau menerapkan migration ke
+devYoga butuh instruksi pemilik modul pada saat task dikerjakan, bukan izin dari roadmap ini.
+
+**Urutan.** `BE-LAB-96` dan `BE-LAB-97` saling lepas dan boleh sejajar. `BE-LAB-98` butuh `BE-LAB-96`. `BE-LAB-99` butuh
+`BE-LAB-98` (pencatat bersama dan berkas `LabFilterMetadataFactory.cs`/`Program.cs` yang sama) dan dianjurkan sesudah
+`BE-LAB-97` (pembatalan baru selalu beralasan). `BE-LAB-100` butuh `BE-LAB-99`.
+
+### 6au.1 `BE-LAB-96` — Definisi hitung Beranda dipindah ke satu tempat bersama
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-10-20, [`BE-LAB-96.md`](../task/report/backend/BE-LAB-96.md). Uji karakterisasi harness InMemory **byte-identik** sebelum dan sesudah (berkas harness tidak disunting); build lulus; aplikasi menyala; Beranda Lab dan `GET /dashboard/yearly` diperiksa dengan superadmin (tren 2026 = 23 pesanan, cocok dengan basis data). Nol migration |
+| **Gelombang** | `MVP-15a` — task pertama, tersendiri |
+| **Outcome** | Beranda dan Statistik Pesanan kelak menghitung pesanan dan pemeriksaan dengan **satu** definisi. **Nol perilaku berubah** bagi pengguna mana pun |
+| **Requirement/decision** | `FR-20.6`; `LAB-DEC-242`, `LAB-DEC-246`; `INV-59`; `ARCH-GAP-LAB-15` |
+| **Kontrak** | `r49` 44.5 baris `GET /lab-orders/dashboard/yearly` (*nol perubahan perilaku*) |
+| **Reuse** | Isi `LabDashboardService.GetYearlyAsync` (`LabDashboardService.cs:227-290`) — **dipindah, tidak ditulis ulang**, termasuk penyaringan `Draft` yang tidak simetris (`ARCH-GAP-LAB-15`) dan disiplin order → katalog (`VAL-126`) |
+| **Cakupan** | (1) `Services/LabOrderDemandQuery.cs` baru — `CountedOrders`, `CountedExaminations`, `PendingOrderedProcedures` atas rentang UTC; `AddScoped` di `Program.cs`. (2) `LabDashboardService` memanggilnya; salinan kueri lama **dihapus** |
+| **Dependency** | Nol |
+| **Acceptance criteria** | `T-S16B-13` — `GET /lab-orders/dashboard/yearly` identik sebelum dan sesudah pada data uji yang sama (seluruh disiplin, `UnclassifiedExaminationCount`, dua belas bulan dua tahun) |
+| **Verifikasi** | Uji karakterisasi harness InMemory **ditulis dan lulus sebelum** pemindahan, lalu lulus **tanpa disunting** sesudahnya; build hijau |
+| **Risiko/pemilik** | **Sedang** — seluruh angka Statistik Pesanan bersandar padanya. Jebakan: (a) *merapikan* `Draft` saat memindah — perubahan perilaku Beranda yang tidak disetujui; (b) meninggalkan salinan lama *"untuk jaga-jaga"* — melanggar `INV-59`. Pemilik: implementer backend |
+| **DoD** | Satu class bersama; nol salinan; uji karakterisasi hijau dua putaran; nol migration; laporan `task/report/backend/BE-LAB-96.md` |
+
+### 6au.2 `BE-LAB-97` — Alasan wajib pada batal pemeriksaan dan batal wadah (`VAL-155`)
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-10-20, [`BE-LAB-97.md`](../task/report/backend/BE-LAB-97.md). Harness InMemory **15/15**; build lulus; HTTP pada aplikasi berjalan: batal pemeriksaan dan wadah beralasan kosong → `422` *"Alasan pembatalan wajib diisi."*, status dibaca ulang tetap (nol tulis). Nol migration |
+| **Gelombang** | `MVP-15b` |
+| **Outcome** | Setiap pembatalan pemeriksaan dan wadah — dari pemanggil mana pun — beralasan; yang kosong ditolak `422` tanpa menulis apa pun |
+| **Requirement/decision** | `FR-20.10`; `LAB-DEC-237`, `LAB-DEC-247`; `INV-60`; BR-148, BR-154 |
+| **Kontrak** | `r49` 44.5; `LAB-VAL-v1` `r21` `VAL-155`; `LAB-STATE-v1` `r11` 13.1 |
+| **Reuse** | Bunyi pesan `VAL-74` (`LabOrderService.cs:1707`); `LabExaminationValidationException` dan `LabSpecimenValidationException` yang sudah dipetakan ke `422` |
+| **Cakupan** | (1) `Constants/LabCancellationReason.cs` baru — `Require`, `MissingMessage`. (2) `LabExaminationService.CancelAsync` (`:259`): penjaga alasan **sesudah** `Voided`, `Cancelled`, `ReleasedAt`. (3) `LabSpecimenService.CancelAsync` (`:1201`): penjaga alasan **sesudah** *sudah dibatalkan*. (4) Jalur `CancelAllForOrderInMemoryAsync` **tidak** disentuh. (5) `ProducesResponseType` `422` pada kedua endpoint bila belum ada |
+| **Dependency** | Nol |
+| **Acceptance criteria** | `AC-326`, `AC-327` — `T-S16B-01`, `T-S16B-02`, `T-S16B-03` |
+| **Verifikasi** | Harness InMemory: alasan `null`, `""`, `"  "`, `"\n"` → `422` pesan sama, status tetap, **nol** baris `LabTransitionHistory`; pemeriksaan dirilis tanpa alasan → pesan rilis; batal order beralasan → wadah ikut batal tanpa ditolak. Regresi uji batal yang sudah ada hijau |
+| **Risiko/pemilik** | **Rendah.** Jebakan: memasang penjaga **sebelum** penjaga keadaan — pemeriksaan dirilis lalu menjawab pesan alasan, melanggar `AC-327`; memasang penjaga pada jalur ikut-order — pembatalan order beralasan ikut gagal |
+| **DoD** | `AC-326`, `AC-327` terbukti; nol migration; laporan `BE-LAB-97.md` |
+
+### 6au.3 `BE-LAB-98` — Statistik Pesanan beserta unduhan `.xlsx`, pencatat cetak, dan izinnya
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-10-20, [`BE-LAB-98.md`](../task/report/backend/BE-LAB-98.md). Harness **29/29**; regresi Beranda identik; registri izin valid (1755); HTTP superadmin di devYoga: total pesanan Sep–Okt 23 = tren Beranda, PK/PA/MB setahun = Beranda, `.xlsx` sah, print-log `200`, log aplikasi lengkap tanpa pasien. **`403` terbukti** dengan akun dr. Bima (`AC-330`, laporan bagian 8). Temuan uji HTTP diperbaiki: konverter enum teks pada isi JSON print-log |
+| **Gelombang** | `MVP-15c` |
+| **Outcome** | Pemegang `LabOrderStatisticsReport : Read` melihat beban permintaan per jenis kunjungan → unit → disiplin dengan angka yang sama dengan Beranda; pemegang `Export` mengunduh `.xlsx` dan mencatat cetak |
+| **Requirement/decision** | `FR-20.5`..`FR-20.9`; `LAB-DEC-231`, `233`, `241`..`246`, `248`; `INV-59` |
+| **Kontrak** | `r49` 44.3, 44.4; `LAB-PERM-v1` rev 17 19.2, 19.3, 19.5; `VAL-147`..`149` (`r21` 23.2) |
+| **Reuse** | `LabOrderDemandQuery` (`BE-LAB-96`); `LabOperationalReportService.ResolvePeriod`; pola controller, `[AccessController]`, `[AccessAction]`/`[AccessPermission]`, dan `UnduhAsync` `LabOperationalReportController`; `LabFilterMetadataFactory.LabOperationalReport()` (`:685`); jalur baca `Encounter.ServiceUnit`/`EncounterType` (`LabMonitoringService.cs:157`); pola `XLWorkbook` `FinanceReceivableAgingReportService.cs:255-372` |
+| **Cakupan** | (1) `Controllers/LabOrderStatisticsReportController.cs` — route `api/v1/health-services/laboratory-management/lab-order-statistics-reports`, `[Tags("Health Services / Laboratory Management / Lab Order Statistics Report")]`, resource `LabOrderStatisticsReport`; `GET /filters/metadata`, `GET /` (`Read`); `GET /export`, `POST /print-log` (`Export`). (2) `Services/LabOrderStatisticsReportService.cs` — `GetAsync`, `GetFilterMetadataAsync` (unit layanan dari `MstServiceUnit` aktif). (3) `DTOs/LabOrderStatisticsReportDtos.cs` — persis 32.4. (4) **`Services/LabReportXlsxWriter.cs`** dan **`Services/LabReportOutputLogger.cs`** baru — dipakai juga `BE-LAB-100`. (5) `LabFilterMetadataFactory.LabOrderStatisticsReport()`. (6) `AddScoped` empat class di `Program.cs` |
+| **Dependency** | `BE-LAB-96` |
+| **Acceptance criteria** | `AC-333`, `AC-334`, `AC-335`, `AC-336`, `AC-337` (bagian Statistik), `AC-330` (bagian Statistik) — `T-S16B-06`, `09`, `10`, `11`, `12`, `14` |
+| **Verifikasi** | Harness: angka sama dengan `GET /dashboard/yearly` pada data yang sama; gugur dan batal tidak dihitung; *Belum terklasifikasi*; *Unit tidak tercatat*; respons dan `.xlsx` **tanpa** No. RM/nama (cari string). HTTP lokal: `403` bagi `LabOrder : Read` saja dan bagi `LabOperationalReport : Read` saja; `Read` tanpa `Export` → `/export` dan `/print-log` `403`. Aplikasi menyala dan `PermissionRegistryValidator` menerima resource baru. `app.log`: satu baris `.Export` dan satu `.Print` dengan isi di teks pesan |
+| **Risiko/pemilik** | **Sedang.** Jebakan: (a) rumus hitung kedua di service laporan (`INV-59`); (b) payload log berisi `Id`/`Name`; (c) membaca unit layanan lewat endpoint `service-units/options` (`403` bagi Analis) alih-alih di dalam metadata laporan; (d) `.xlsx` dibentuk dari kueri kedua, bukan dari respons layar |
+| **DoD** | Empat endpoint berjalan; dua aksi izin terdaftar; `.xlsx` terbuka di Excel dengan angka sebagai angka; log sesuai 19.5; laporan `BE-LAB-98.md` |
+
+### 6au.4 `BE-LAB-99` — Laporan Pembatalan: daftar, detail, penyaring, index, dan jejak baca
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-10-20, [`BE-LAB-99.md`](../task/report/backend/BE-LAB-99.md). Harness **19/19**; regresi `BE-LAB-98` 29/29 dan Beranda identik; registri izin valid (1756); HTTP devYoga: dua peristiwa nyata tampil benar, detail, `404`, log baca tanpa pasien. Migration `20261020084310_AddLabTransitionHistoryActionOccurredAtIndex` **diterapkan ke devYoga** 2026-10-20 (`MVP-15e` butir 1; riwayat 342). **`403` terbukti** dengan akun dr. Bima |
+| **Gelombang** | `MVP-15d` |
+| **Outcome** | Pemegang `LabCancellationReport : Read` melihat siapa membatalkan apa, kapan, dan mengapa — satu baris per peristiwa, total yang sama di setiap halaman — dan membuka detailnya; setiap pembukaan daftar tercatat tanpa identitas pasien |
+| **Requirement/decision** | `FR-20.1`..`FR-20.4`, `FR-20.7`, `FR-20.11`; `LAB-DEC-232`, `237`..`240`; 32.10 no. 1, 3, 4, 5; `INV-58` |
+| **Kontrak** | `r49` 44.2 (lima endpoint baca), 44.4; `LAB-PERM-v1` rev 17 19.2–19.5; `VAL-147`..`149` |
+| **Reuse** | `ResolvePeriod`; sub-kueri `MstPatient` lewat `Encounter.PatientId` **persis** `LabOrderService.cs:502-520`; kamus nama pelaku `LabExaminationService.cs:1054-1061`; paging `Math.Clamp(PageSize, 1, 100)` (`LabOrderService.cs:150`); `LabReportOutputLogger` (`BE-LAB-98`) bagi log `.Read` |
+| **Cakupan** | (1) `Controllers/LabCancellationReportController.cs` — route `.../lab-cancellation-reports`, resource `LabCancellationReport`; `GET /filters/metadata`, `GET /cancelled-by-options`, `GET /`, `GET /{historyId}` (`Read`). (2) `Services/LabCancellationReportService.cs` — `GetListAsync`, `GetDetailAsync`, `GetCancelledByOptionsAsync`, `GetFilterMetadataAsync`. (3) `DTOs/LabCancellationReportDtos.cs` dan enum `LabCancellationKind`. (4) `LabFilterMetadataFactory.LabCancellationReport()`. (5) Index `(Action, OccurredAt)` di `LabTransitionHistoryConfiguration.cs` dan migration **`AddLabTransitionHistoryActionOccurredAtIndex`**, dibangkitkan di atas snapshot terkini. (6) Log `LabCancellationReport.Read` per `GET /` |
+| **Dependency** | `BE-LAB-98` (pencatat bersama, `LabFilterMetadataFactory`, `Program.cs`); `BE-LAB-97` (dianjurkan) |
+| **Acceptance criteria** | `AC-328`, `AC-329`, `AC-330` (bagian Pembatalan), `AC-331`, `AC-332` (total) — `T-S16B-04`..`07`, `T-S16B-08` (total), `T-S16B-15` |
+| **Verifikasi** | Harness: order lima pemeriksaan dibatalkan + satu pemeriksaan dibatalkan sendiri → dua baris; detail memuat kelima pemeriksaan dan wadah; `ReasonNote` kosong → `isReasonRecorded = false`, tetap terhitung; batas WIB 1 Oktober 06.30; `totals` sama di halaman 1–3 dengan `pageSize` 10; `Specimen.Cancel` bukan baris. HTTP lokal: izin seperti `BE-LAB-98`; `404` bagi `historyId` yang bukan peristiwa batal. Migration: `Up` → index ada, `Down` → hilang, **nol baris berubah**. `app.log`: baris `.Read` **tanpa** No. RM, nama, maupun alasan |
+| **Risiko/pemilik** | **Sedang — satu-satunya layar Lab yang membuka identitas banyak pasien sekaligus.** Jebakan: (a) membaca status pemeriksaan alih-alih peristiwa (F30-18) — pemeriksaan di order batal hilang atau ganda; (b) menyalin identitas atau alasan ke log; (c) total dihitung dari halaman; (d) migration menyeret perubahan modul lain dari snapshot lama |
+| **DoD** | Empat endpoint berjalan; index naik-turun terbukti; log `.Read` sesuai 19.5; laporan `BE-LAB-99.md` |
+
+### 6au.5 `BE-LAB-100` — Laporan Pembatalan: unduhan `.xlsx` dan pencatat cetak
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-10-20, [`BE-LAB-100.md`](../task/report/backend/BE-LAB-100.md). Harness **31/31** (termasuk regresi `BE-LAB-99`); regresi `BE-LAB-98` dan Beranda lulus; registri 1757; HTTP devYoga: unduhan berisi seluruh baris (paging diabaikan), print-log `200`, log tanpa pasien. **`403` bagi `Read` tanpa `Export` terbukti** dengan akun dr. Bima |
+| **Gelombang** | `MVP-15d` |
+| **Outcome** | Pemegang `LabCancellationReport : Export` mengunduh seluruh baris hasil penyaring sebagai `.xlsx` dan mencatat cetak; isi berkas sama dengan layar; log tanpa identitas pasien dan alasan |
+| **Requirement/decision** | `FR-20.3`, `FR-20.8`, `FR-20.9`; `LAB-DEC-233`, `LAB-DEC-248` |
+| **Kontrak** | `r49` 44.2 (`GET /export`, `POST /print-log`), 44.4 (berkas); `LAB-PERM-v1` rev 17 19.3, 19.5 |
+| **Reuse** | `LabReportXlsxWriter`, `LabReportOutputLogger` (`BE-LAB-98`); `GetAllForExportAsync` dibentuk dari fungsi yang sama dengan `GetListAsync` (`BE-LAB-99`) |
+| **Cakupan** | (1) `LabCancellationReportService.GetAllForExportAsync` — baris yang sama tanpa paging. (2) `LabReportXlsxWriter.Write(LabCancellationReportExport)`. (3) `GET /export` dan `POST /print-log` dengan `[AccessPermission("LabCancellationReport", "Export")]` |
+| **Dependency** | `BE-LAB-99`, `BE-LAB-98` |
+| **Acceptance criteria** | `AC-332`, `AC-337` (bagian Pembatalan) — `T-S16B-08`, `T-S16B-12` |
+| **Verifikasi** | Penyaring 21 baris → berkas **21** baris data, kolom sama dengan layar, *Alasan tidak dicatat* tertulis; `Read` saja → `403`; `app.log`: satu `.Export`, satu `.Print`, isi di teks pesan, **tanpa** No. RM/nama/alasan |
+| **Risiko/pemilik** | **Sedang — jalur data pasien keluar sistem.** Jebakan: memasang `Read` pada endpoint keluaran; kueri ekspor terpisah yang berbeda dari layar |
+| **DoD** | Dua endpoint berjalan; log sesuai; laporan `BE-LAB-100.md` |
+
+### 6au.6 Langkah rilis `MVP-15e`
+
+| Langkah | Isi | Wewenang |
+|---:|---|---|
+| 1 | Terapkan `AddLabTransitionHistoryActionOccurredAtIndex` ke devYoga lewat skrip per migration — cek `migrations list` dulu; bila ada migration lain tertunda, pakai skrip khusus. ✅ **2026-10-20** — satu-satunya yang tertunda; uji kering lalu `COMMIT`, riwayat 342 | **Instruksi pemilik modul** saat itu |
+| 2 | Admin memberi `LabOrderStatisticsReport : Read`/`Export` dan `LabCancellationReport : Read`/`Export` kepada jabatan pembaca (Kepala Instalasi, manajemen). POST Role Access **menimpa seluruh set** — baca dulu, kirim ulang utuh. ✅ **Kepala Instalasi 2026-10-20** (set 41 → 45, bertahap `Read` lalu `Export`, nol izin hilang). **Manajemen: ditunda** — keputusan pemilik modul 2026-10-21: master jabatan devYoga belum punya jabatan manajemen pelayanan (hanya *Manajer Finance*, *Manajer HR*), dan laporan berisi data pasien tidak diberikan kepada keduanya; admin memberikannya begitu jabatannya dibuat | Admin / pemilik modul |
+| 3 | Data uji: satu order per jenis kunjungan Rawat Inap, IGD, unit Kamar Bersalin; satu pembatalan lama tanpa alasan; satu pemeriksaan gugur; satu pemeriksaan tanpa disiplin (`T-S16B-16`). ✅ **2026-10-21** lewat API (superadmin): kunjungan Rawat Inap/unit Rawat Inap, IGD/unit Kamar Bersalin, IGD/unit IGD (pasien uji 00-00-00-15..17); pesanan `LAB-RSMMC-000025` (Rawat Inap), `000026` (prosedur katalog uji tanpa disiplin, prosedurnya lalu dinonaktifkan), `000027` (Kamar Bersalin), `000028` (IGD), `000029` (lima pemeriksaan, dibatalkan beralasan), `000030` (dibatalkan; alasan dikosongkan lewat **satu `UPDATE` SQL** bertransaksi untuk meniru data lama). Pemeriksaan gugur sudah ada (`000001`, September) | **Izin tulis** pemilik modul 2026-10-21 |
+| 4 | Verifikasi HTTP dan peramban dengan akun asli dr. Bima (Kepala Instalasi) dan Gilang (Analis — wajib `403`). ✅ **HTTP dr. Bima 2026-10-20**; ✅ **HTTP Gilang 2026-10-21** (kesepuluh endpoint `S16b` `403`, kontrol positif `200`); ✅ **peramban dr. Bima 2026-10-21** — `FE-LAB-54` 51/51, `FE-LAB-55` 73/73, `FE-LAB-56` 32/32, data uji 12/12 (`T-S16B-04`, `05`, `11`, `16`; isi `.xlsx`); Gilang tanpa menu dan *Akses Ditolak* | Baca-saja |
+
+### 6au.7 Yang sengaja tidak menjadi task backend
+
+| Yang tidak dijadikan task | Alasan |
+|---|---|
+| Delapan laporan `S16b-3` | Kesebelas butir belum diserahkan (`LAB-DEC-181`) |
+| Rincian per kategori | `LAB-COORD-021` |
+| Asal *via kiosk*, kamar perawatan | `LAB-OPEN-055` |
+| Status `Cancelled` pada pemeriksaan saat order dibatalkan | A8.5 — perilaku lama dipertahankan |
+| PDF cetak dari server | `LAB-DEC-248` memilih cetak dari layar |

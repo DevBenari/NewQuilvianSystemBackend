@@ -39,6 +39,9 @@ namespace QuilvianSystemBackend.Tests.Pharmacy.Infrastructure;
 /// </remarks>
 public sealed class PharmacyHarness : IDisposable
 {
+    /// <summary>Jumlah pada satu-satunya butir resep harness.</summary>
+    public const decimal JumlahButirResep = 10m;
+
     private readonly TestDatabase _database;
     private readonly List<ApplicationDbContext> _contexts = [];
     private readonly List<IServiceScope> _scopes = [];
@@ -420,7 +423,22 @@ public sealed class PharmacyHarness : IDisposable
     }
 
     /// <summary>Menyediakan satu bets obat bersaldo di depo penyerahan.</summary>
-    public async Task SediakanStokAsync(ApplicationDbContext konteks, decimal jumlah = 100)
+    /// <param name="denganPenahanan">
+    /// Benar — bawaannya — menyemai sekalian penahanan stok milik resep.
+    /// <para>
+    /// <c>PHA-DEC-066</c> menetapkan penahanan dibuat saat dokter memfinalkan resep, sehingga
+    /// resep harness ini — yang titik awalnya sudah <c>Submitted</c> dan menunggu pembayaran —
+    /// <b>selalu</b> memegang penahanan di produksi. Tanpa menyemainya, penyiapan ditolak
+    /// <c>PHA_RSV_UNAVAILABLE</c> dan uji penyerahan gagal karena keadaan awal yang tidak
+    /// mungkin terjadi, bukan karena aturan yang diuji.
+    /// </para>
+    /// <para>
+    /// Diisi salah hanya oleh uji yang justru menguji pembuatan penahanan itu sendiri, karena
+    /// bagi uji tersebut titik awalnya memang resep yang belum menahan apa pun.
+    /// </para>
+    /// </param>
+    public async Task SediakanStokAsync(ApplicationDbContext konteks, decimal jumlah = 100,
+        bool denganPenahanan = true)
     {
         var betsId = Guid.NewGuid();
 
@@ -441,9 +459,32 @@ public sealed class PharmacyHarness : IDisposable
             StorageLocationId = DepoId,
             Status = DrugStockStatus.Available,
             QuantityOnHand = jumlah,
-            QuantityReserved = 0,
+            QuantityReserved = denganPenahanan ? JumlahButirResep : 0,
             CreateDateTime = DateTime.UtcNow
         });
+
+        if (denganPenahanan)
+        {
+            konteks.Set<PhmPrescriptionStockReservation>().Add(new PhmPrescriptionStockReservation
+            {
+                Id = Guid.NewGuid(),
+                PrescriptionId = ResepId,
+                PrescriptionItemId = ItemResepId,
+                DrugId = ObatId,
+                DrugBatchId = betsId,
+                StorageLocationId = DepoId,
+                Quantity = JumlahButirResep,
+                State = PrescriptionReservationState.Reserved,
+                ReservedAt = DateTime.UtcNow,
+                // Tanpa batas waktu: resep harness sudah melewati pembayaran pada seluruh uji
+                // yang memakainya, dan `PHA-DEC-066` butir 7 menghapus batas waktu begitu
+                // pembayaran valid.
+                ExpiresAt = null,
+                SourceEvent = "HARNESS",
+                IdempotencyKey = $"PHA-RSV:{ResepId}",
+                CreateDateTime = DateTime.UtcNow
+            });
+        }
 
         await konteks.SaveChangesAsync();
     }

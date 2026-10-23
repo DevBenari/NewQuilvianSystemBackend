@@ -126,6 +126,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
 
         public int? BirthOrder { get; set; }
 
+        public Guid? DeliveryCaseId { get; set; }
+
         public bool IsDeceased { get; set; }
 
         public DateTime? DeceasedDate { get; set; }
@@ -480,5 +482,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         public bool IsMember { get; set; }
 
         public bool IsActive { get; set; }
+    }
+
+    public sealed class CreateNewbornPatientRequest
+    {
+        [Required]
+        public Guid MotherPatientId { get; set; }
+
+        [Required]
+        public Guid DeliveryCaseId { get; set; }
+
+        [Required]
+        public DateTime? BirthDate { get; set; }
+
+        [Required]
+        [JsonConverter(typeof(FlexibleNullableTimeSpanConverter))]
+        public TimeSpan? BirthTime { get; set; }
+
+        [Required]
+        public Gender? Gender { get; set; }
+
+        [MaxLength(100)]
+        public string? BirthPlace { get; set; }
+
+        [RegularExpression(@"^\d{16}$", ErrorMessage = "NIK bayi harus 16 digit atau dikosongkan.")]
+        public string? IdentityNumber { get; set; }
+
+        public decimal? BirthWeightGram { get; set; }
+
+        public decimal? BirthLengthCm { get; set; }
+
+        [MaxLength(100)]
+        public string? DeliveryMethod { get; set; }
+
+        [MaxLength(1000)]
+        public string? Notes { get; set; }
+    }
+
+    public sealed class NewbornPatientCreateResponse : PatientCreateResponse
+    {
+        public Guid MotherPatientId { get; set; }
+        public Guid DeliveryCaseId { get; set; }
+        public int BirthOrder { get; set; }
+        public DateTime BirthDate { get; set; }
+        public TimeSpan BirthTime { get; set; }
+        public Gender Gender { get; set; }
+        public bool WasExisting { get; set; }
     }
 }

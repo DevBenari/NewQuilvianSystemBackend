@@ -12,13 +12,23 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
         {
             entity.ToTable("MstPatientCompanyGuarantor", "public", table =>
             {
-                // BE-FIN-105, kamus data 9.4: ketiga kolom tautan HR kosong semua (kartu biasa),
-                // atau EmployeeId dan BenefitRelationship terisi dengan SELF <=> FamilyMemberId kosong.
+                // BE-FIN-105, kamus data 9.4: kolom tautan HR kosong semua (kartu biasa), atau pemilik benefit
+                // (EmployeeId lama dan/atau BenefitOwnerWorkforceProfileId) dan BenefitRelationship terisi dengan
+                // SELF <=> FamilyMemberId kosong. Dokter tetap hanya membawa BenefitOwnerWorkforceProfileId.
                 table.HasCheckConstraint(
                     "CK_MstPatientCompanyGuarantor_BenefitLink",
-                    "(\"EmployeeId\" IS NULL AND \"FamilyMemberId\" IS NULL AND \"BenefitRelationship\" IS NULL) " +
-                    "OR (\"EmployeeId\" IS NOT NULL AND \"BenefitRelationship\" IS NOT NULL " +
+                    "(\"EmployeeId\" IS NULL AND \"FamilyMemberId\" IS NULL AND \"BenefitRelationship\" IS NULL " +
+                    "AND \"BenefitOwnerWorkforceProfileId\" IS NULL AND \"BenefitOwnerType\" IS NULL) " +
+                    "OR ((\"EmployeeId\" IS NOT NULL OR \"BenefitOwnerWorkforceProfileId\" IS NOT NULL) " +
+                    "AND \"BenefitRelationship\" IS NOT NULL " +
                     "AND ((\"BenefitRelationship\" = 'SELF') = (\"FamilyMemberId\" IS NULL)))");
+
+                // Jenis pemilik benefit hanya sah bersama WorkforceProfileId, dan hanya EMPLOYEE atau DOCTOR
+                // (WorkforceBenefitOwnerTypes). Kolom baru, jadi tidak ada baris lama yang terdampak.
+                table.HasCheckConstraint(
+                    "CK_MstPatientCompanyGuarantor_BenefitOwnerType",
+                    "(\"BenefitOwnerWorkforceProfileId\" IS NULL AND \"BenefitOwnerType\" IS NULL) " +
+                    "OR (\"BenefitOwnerWorkforceProfileId\" IS NOT NULL AND \"BenefitOwnerType\" IN ('EMPLOYEE','DOCTOR'))");
             });
 
             entity.HasKey(x => x.Id);
@@ -118,6 +128,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.EmployeeId)
                 .IsRequired(false);
 
+            entity.Property(x => x.BenefitOwnerWorkforceProfileId)
+                .IsRequired(false);
+
+            entity.Property(x => x.BenefitOwnerType)
+                .HasMaxLength(20)
+                .IsRequired(false);
+
             entity.Property(x => x.FamilyMemberId)
                 .IsRequired(false);
 
@@ -165,6 +182,15 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .HasConstraintName("FK_MstPatientCompanyGuarantor_EmployeeId")
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Pemilik benefit canonical (karyawan atau dokter tetap). FK hanya pada master kartu, mengikuti FK EmployeeId;
+            // snapshot kunjungan, handoff AR, dan piutang sengaja tanpa FK (rekam historis, sama seperti EmployeeIdSnapshot
+            // dan BenefitOwnerId) agar tidak terkunci oleh perubahan master Workforce.
+            entity.HasOne<MstWorkforceProfile>()
+                .WithMany()
+                .HasForeignKey(x => x.BenefitOwnerWorkforceProfileId)
+                .HasConstraintName("FK_MstPatientCompanyGuarantor_BenefitOwnerWorkforceProfileId")
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne<WfpFamilyMember>()
                 .WithMany()
                 .HasForeignKey(x => x.FamilyMemberId)
@@ -178,6 +204,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.EmployeeId)
                 .HasFilter("\"EmployeeId\" IS NOT NULL")
                 .HasDatabaseName("IX_MstPatientCompanyGuarantor_EmployeeId");
+
+            entity.HasIndex(x => x.BenefitOwnerWorkforceProfileId)
+                .HasFilter("\"BenefitOwnerWorkforceProfileId\" IS NOT NULL")
+                .HasDatabaseName("IX_MstPatientCompanyGuarantor_BenefitOwnerWorkforceProfileId");
 
             entity.HasIndex(x => x.FamilyMemberId)
                 .HasFilter("\"FamilyMemberId\" IS NOT NULL")

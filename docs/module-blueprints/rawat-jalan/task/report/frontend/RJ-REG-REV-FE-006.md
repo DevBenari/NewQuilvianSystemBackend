@@ -1,5 +1,8 @@
 # Laporan Perubahan Frontend — `RJ-REG-REV-FE-006`
 
+> **Dicabut 15 Okt 2026.** Fitur pada laporan ini sudah dihapus atas keputusan pemilik; lihat
+> [registration-revision-roadmap.md](../../../roadmap/registration-revision-roadmap.md) bagian 7. Isi di bawah dipertahankan sebagai catatan historis.
+
 ## Metadata
 
 | Field | Nilai |

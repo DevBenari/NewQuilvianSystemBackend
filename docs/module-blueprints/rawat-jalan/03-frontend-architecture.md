@@ -661,7 +661,7 @@ component, token, pola master data `hr/master-data/job-level`) → `DEV_DISCRETI
 | Institusi Perujuk | 3 | Pelayanan Kesehatan → Master Data | `/health-services/master-data/referral-institutions` (+ `create`, `[slug]`, `[slug]/update`) | Master Institusi Perujuk | `ReferralInstitution : Read` |
 | Dokter Perujuk | 3 | Pelayanan Kesehatan → Master Data | `/health-services/master-data/referral-doctors` (+ `create`, `[slug]`, `[slug]/update`) | Master Dokter Perujuk | `ReferralDoctor : Read` |
 | — (layar anak) | — | Pendaftaran Pasien Rawat Jalan | sama | Step *Data Rujukan* | `PatientEncounter : Create` |
-| — (layar anak) | — | Daftar Kunjungan RJ (`/health-services/registration-management/outpatient-encounters`) | sama | Form *Lengkapi / Koreksi Rujukan* (aksi baris) | `PatientEncounter : Update` |
+| — (layar anak) | — | Daftar Kunjungan RJ (`/health-services/registration-management/outpatient-encounters`) | sama | ~~Form *Lengkapi / Koreksi Rujukan* (aksi baris)~~ — dicabut 15 Okt 2026; hanya badge *Rujukan belum lengkap* | `PatientEncounter : Update` |
 | — (layar anak) | — | Kiosk Pasien Lama / Baru | sama | Step *Data Rujukan* Kiosk | Akun perangkat Kiosk |
 
 Letak butir di dalam grup Master Data mengikuti urutan alfabet grup yang ada (`DEV_DISCRETION`).
@@ -726,7 +726,7 @@ menampilkan scan wajib.
 |---|---|---|---|
 | Kolom/badge | `StatusBadge` "Rujukan belum lengkap" (warning) bila `referralStatus = Incomplete` | `GET /outpatient-encounters` | `PatientEncounter : Read` |
 | Filter | Status rujukan: Semua / Lengkap / Belum lengkap | Query `referralStatus` | — |
-| Aksi baris | *Lengkapi Rujukan* / *Koreksi Rujukan* (bila rujukan, tidak terkunci) | `GET/PUT …/referral`, berkas | `PatientEncounter : Update` |
+| ~~Aksi baris~~ (dicabut 15 Okt 2026: tanpa kolom Aksi; detail lewat klik ganda) | ~~*Lengkapi Rujukan* / *Koreksi Rujukan*~~ | `GET/PUT …/referral`, berkas | `PatientEncounter : Update` |
 | Form | Wilayah A, B (unit tujuan **baca saja**), C; unduh surat lewat endpoint berizin | idem | Terkunci → baca saja + "Konsultasi dokter sudah dimulai" |
 
 Bentuk form (modal, drawer, atau halaman anak) mengikuti pola aksi baris yang sudah dipakai layar
@@ -777,3 +777,271 @@ Kolom list menampilkan badge "Mitra". Dokter: Institusi (pilihan), Nama Dokter, 
 | Diagnosa/alasan di Kiosk | `RJ-DOC-DEC-076` |
 | Unit tujuan Laboratorium di Kiosk | `RJ-DOC-DEC-082` — alur Kiosk Laboratorium yang ada |
 | Pindah Jenis Kunjungan Kiosk ke Layanan & Dokter | `KSK-DEC-025` |
+
+---
+
+# Amendment RP — Reservasi Pasien Prioritas (revisi `33`, `approved` 2026-10-16)
+
+| Field | Nilai |
+|---|---|
+| Status | `approved` — Sukma Giri, 2026-10-16 ("setuju dan lanjutkan", `RJ-PRI-DEC-030`) |
+| Keputusan | `RJ-PRI-DEC-001` s.d. `029`; kewenangan UI `RJ-PRI-FE-001` s.d. `004` |
+| Kontrak | `RJ-PRI-RESV-001@1.0.0` (`contracts/api-contract.md` *Amendment RP*) |
+| Snapshot | FE `1fd858322` (`sukmagpV2`) |
+
+## RP-FE.1 Kebutuhan layar
+
+| ID | Layar | Status | Isi |
+|---|---|---|---|
+| `FE-RP-01` | Daftar Reservasi Prioritas | Baru | Daftar per tanggal, ringkasan status, buat reservasi, detail beserta aksi, realtime "pasien tiba" |
+| `FE-RP-02` | Halaman Konfirmasi Kedatangan (publik) | Baru | Nomor reservasi, tanggal, tombol "Saya sudah tiba". Tanpa login |
+| `FE-RP-03` | Pendaftaran Pasien — mode reservasi | Diperbarui | Wizard yang ada dibuka dari "Lengkapi", dengan pasien terkunci dan tanggal hari ini |
+| `FE-RP-04` | Pendaftaran Pasien — label member | Diperbarui | Tingkat member pada panel identitas dan hasil pencarian |
+| `FE-RP-05` | Layar display antrean | Diperbarui | Bergabung ke group display. Event prioritas diabaikan |
+| `FE-RP-06` | Tiket kiosk dan layar selesai petugas | Diperbarui | Arahan ruang tunggu prioritas |
+| `FE-RP-07` | Kartu antrean Nurse Station dan Klinis Dokter | Diperbarui | Teks lokasi di samping lencana "Prioritas" |
+
+## RP-FE.2 Peta butir menu
+
+```text
+Rawat Jalan                              <- tingkat 0, key healthServicesRegistrationManagement (sudah ada)
+├── Pendaftaran Pasien                   -> .../outpatient-registration            (sudah ada; FE-RP-03, FE-RP-04)
+├── Reservasi Prioritas                  -> .../priority-reservations             (BARU; FE-RP-01)
+├── Skrining Pasien                      -> .../nurse-station-queue               (sudah ada; FE-RP-07)
+└── Daftar Pasien Rawat Jalan            -> .../outpatient-encounters             (sudah ada)
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+|---|:---:|---|---|---|---|---|
+| Reservasi Prioritas | 1 | Rawat Jalan | `/health-services/registration-management/priority-reservations` | `FE-RP-01` | `OutpatientPriorityReservation : Read` | Baru |
+
+| Layar tanpa butir menu | Jalan masuk |
+|---|---|
+| `FE-RP-02` Konfirmasi Kedatangan | Link di pesan WA (`/priority-arrival/{code}`). Route didaftarkan di `PUBLIC_PATH_PREFIXES` pada `src/proxy.js` **dan** `src/components/ui/auth-wrapper.jsx` |
+| `FE-RP-03` mode reservasi | Tombol "Lengkapi" di `FE-RP-01` membuka `.../outpatient-registration?priorityReservationId={id}` |
+| `FE-RP-05`, `FE-RP-06`, `FE-RP-07` | Layar yang sudah ada |
+
+Nama butir, urutannya, dan ikon tetap `DEV_DISCRETION`. Penempatan di bawah grup "Rawat Jalan" dekat "Pendaftaran
+Pasien" mengikuti `RJ-PRI-DEC-002` (scope RJ). Pendaftaran butir menu menjadi acceptance criteria task `FE-RP-01`.
+
+## RP-FE.3 Skema fitur
+
+### `FE-RP-01` Daftar Reservasi Prioritas
+
+```text
++- Reservasi Prioritas --------------------------------------- FE-RP-01 -+
+| [Tanggal: 16 Okt 2026 v]  [Status v]  [cari No. RM / nama / no. RSV] ↻ |
+| Menunggu 3 | Sudah Tiba 1 | Kunjungan 5 | Batal 0 | Tidak Datang 0 | Jalur Lain 1 |
+|                                              [+ Buat Reservasi]       |
++------------------------------------------------------------------------+
+| No. RSV | Pasien (RM) | Tingkat | Status | Tiba | Skrining | Aksi       |
+| RSV-…01 | Ibu Sari    | GOLD    | Sudah Tiba ● 08.40 | ✓ | [Lengkapi]  |
+| RSV-…02 | Pak Budi    | PLAT ⚠ Bukan prioritas lagi | Menunggu | — | [⋯] |
++------------------------------------------------------------------------+
+| memuat -> kerangka baris                                               |
+| kosong -> "Belum ada reservasi prioritas pada tanggal ini."  [Buat]    |
+| gagal  -> "Data reservasi gagal dimuat."                   [Coba lagi] |
++------------------------------------------------------------------------+
+| Detail (klik baris): kepala, checklist skrining, riwayat, tombol aksi  |
++------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Saringan | Tanggal (bawaan hari ini), status, cari | — | `Read` | — |
+| Ringkasan | Jumlah per status | `GET /summary` | `Read` | Gagal → angka "—" dan tombol ↻ |
+| Tabel | Nomor, pasien, No. RM, tingkat snapshot, tanda "Bukan prioritas lagi", status, jam tiba, skrining | `GET /` | `Read` | Lihat skema |
+| Buat Reservasi | Cari pasien (≥ 3 karakter), label kelayakan, tanggal, Simpan | `GET /patients` (pencarian yang ada), `GET /eligibility`, `POST /` | `Create` | Tidak layak → tombol Simpan nonaktif dan pesan dari `reasonCode` |
+| Setelah simpan / kirim ulang | Link, teks pesan, tombol "Kirim via WhatsApp" (`wa.me/<62…>?text=…`), tombol salin | Respons `POST /` atau `POST /{id}/arrival-code` | `Create` | Tanpa No. HP → tombol WA membuka `wa.me/?text=…` tanpa nomor. Link hanya tampil di respons ini |
+| Detail | Kepala, checklist, riwayat | `GET /{id}` | `Read` | Gagal → pesan dan tombol coba lagi |
+| Tombol aksi | Tandai tiba, Kembalikan, Skrining, Kirim ulang, Lengkapi, Batalkan | `can*` pada detail | `Complete`, `Complete`, `Screen`, `Create`, `Complete`, `Cancel` | Tombol tanpa hak disembunyikan, bukan ditolak |
+| Realtime | Baris berubah tanpa memuat ulang, bunyi saat ada yang tiba | Hub `JoinPriorityReservationBoard`, event `PriorityReservationChanged` → muat ulang `GET /` dan `/summary` | `Read` | Koneksi putus → penanda "Pembaruan otomatis terputus" dan muat ulang berkala 60 detik |
+
+### `FE-RP-02` Konfirmasi Kedatangan (publik)
+
+```text
++- RS MMC — Konfirmasi Kedatangan ---------------------------- FE-RP-02 -+
+| Reservasi RSV-261016-0001                                              |
+| Jumat, 16 Oktober 2026                                                 |
+|                                                                        |
+|                 [  Saya sudah tiba  ]                                  |
+|                                                                        |
+| sebelum hari H -> "Konfirmasi kedatangan baru bisa dilakukan pada …"   |
+| sudah          -> "Kedatangan sudah dikonfirmasi pukul 08.40. Silakan  |
+|                    menunggu di Ruang Tunggu Prioritas."                |
+| tidak berlaku  -> "Link tidak berlaku. Silakan hubungi petugas         |
+|                    pendaftaran."                                       |
+| terlalu sering -> "Terlalu banyak percobaan. Coba lagi sebentar lagi." |
++------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Kepala | Nomor reservasi, tanggal | `GET /priority-reservation-arrivals/{code}` | Publik | 404 → pesan "Link tidak berlaku", tanpa tombol |
+| Tombol | "Saya sudah tiba" (hanya bila `state = READY`) | `POST /{code}/confirm` | Publik | Gagal jaringan → "Konfirmasi belum terkirim. Coba lagi." Tombol terkunci selama permintaan berjalan |
+
+Halaman tidak memuat nama, No. RM, tingkat, poli, atau dokter (`RJ-PRI-FE-001`). Panggilan API memakai `InstanceAxios`
+dengan `_skipAuthRefresh: true`, agar tidak mencoba refresh sesi atau mengalihkan ke login (`CAP-RP-11`). Tampilan
+ramah HP (lebar 360 px) wajib.
+
+### `FE-RP-03` Pendaftaran Pasien — mode reservasi
+
+| Perubahan | Isi |
+|---|---|
+| Masuk | `?priorityReservationId={id}` memuat `GET /outpatient-priority-reservations/{id}`. Bila status bukan Sudah Tiba, muncul pesan dan tombol kembali ke `FE-RP-01` |
+| Pasien | Terpilih otomatis dan **terkunci** |
+| Tanggal kunjungan | Hari ini, terkunci |
+| Step berikutnya | Sama dengan wizard yang ada: jenis kunjungan, poli, jadwal dokter, penjamin, consent |
+| Simpan | `POST /patient-encounters/admin` dengan `priorityReservationId` |
+| Selesai | Layar selesai menampilkan nomor antrean dan arahan ruang tunggu prioritas (`FE-RP-06`) |
+| Hak akses | Tombol "Lengkapi" di `FE-RP-01` hanya untuk `OutpatientPriorityReservation : Complete` **dan** `PatientEncounter : Create` |
+
+### `FE-RP-04` Label member di Pendaftaran Pasien
+
+Label tingkat diambil dari field `isMember`/`defaultMembershipTierName` pada hasil pencarian pasien yang sudah ada
+(`CAP-RP-21`). Labelnya hanya tampilan, tanpa isian apa pun. Bentuk label `DEV_DISCRETION` (`RJ-PRI-FE-004`).
+
+### `FE-RP-05` Layar display
+
+| Perubahan | Isi |
+|---|---|
+| Realtime | `queue-realtime-client` mendapat `syncQueueDisplayClusters([clusterId])` yang memanggil `JoinQueueDisplayCluster`. Display tidak lagi memanggil `syncNurseStationClusters` |
+| Event | Menangani `QueueDisplayChanged`. Kandidat dengan `isPriorityQueue = true` diabaikan sebagai lapis kedua |
+| Data | Daftar tetap dari `GET /items` dan `/called`, yang sudah tersaring backend |
+
+### `FE-RP-06` Tiket kiosk dan layar selesai petugas
+
+Bila `queueClassification.isPriorityQueue = true`, tiket kiosk (`kiosk-old-patient-step-ticket.jsx`) menampilkan
+pemberitahuan dengan pola `KioskReferralTicketNotice`, berisi "Silakan menunggu di {priorityWaitingLocationName}".
+Layar selesai petugas (`outpatient-completed-step.jsx:95-99`) mengganti kalimat "Arahkan pasien ke ruang tunggu
+poliklinik…" dengan arahan ke ruang tunggu prioritas.
+
+### `FE-RP-07` Kartu antrean Nurse Station dan Klinis Dokter
+
+Di samping lencana "Prioritas" yang sudah ada (`QueuePatientCard.jsx` nurse:110-112, doctor:156-158), tampilkan
+`priorityWaitingLocationName`. Tombol Panggil tetap ada. Bila ditekan, status berubah tetapi tidak muncul di display.
+
+## RP-FE.4 Aksi per peran
+
+Diturunkan dari `contracts/permission-audit-matrix.md` *Amendment RP*.
+
+| Peran | `FE-RP-01` | `FE-RP-03` |
+|---|---|---|
+| Admisi RJ | Lihat, buat, kirim ulang, tandai tiba, kembalikan, skrining, batal, lengkapi | Simpan kunjungan dari reservasi |
+| Petugas skrining | Lihat, skrining, menerima bunyi | — |
+
+## RP-FE.5 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Memuat | Kerangka baris di daftar. Tombol aksi terkunci selama permintaan berjalan |
+| Kosong | Kalimat pada skema |
+| Gagal | Pesan dan tombol coba lagi. Pesan 4xx dari backend ditampilkan apa adanya |
+| Data basi | 409 `VAL-RP-14` → pesan "Reservasi baru saja diubah petugas lain", lalu detail dimuat ulang otomatis |
+| Pengiriman ganda | Tombol Simpan, Konfirmasi, dan aksi lain dikunci sampai respons datang. Backend tetap menjaga lewat `RowVersion` dan unique index |
+| Privasi | No. RM dan nama hanya di layar login. Halaman publik tanpa data pribadi. NIK dan No. HP tersamar di daftar |
+
+## RP-FE.6 Kewenangan UI
+
+| Area | Wewenang |
+|---|---|
+| Isi halaman publik dan isi pesan WA | Mengikat (`RJ-PRI-FE-001`, `002`) |
+| Keberadaan butir menu, layar, tombol, dan sumber datanya | Mengikat (dokumen ini) |
+| Tata letak, bentuk dialog/drawer, posisi tombol, warna, ikon, bunyi pemberitahuan, kalimat persis pesan WA | `DEV_DISCRETION` (`RJ-PRI-FE-002`, `003`) |
+| Bentuk label member | `DEV_DISCRETION` (`RJ-PRI-FE-004`) |
+| Route halaman publik `/priority-arrival/{code}` | Usulan desain. Bila diubah, nilai `PublicArrivalBaseUrl` ikut diubah |
+
+## RP-FE.7 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Formulir pendaftaran kunjungan khusus reservasi | Wizard yang ada dipakai ulang (PDF 2B) |
+| Menyimpan link atau kode di state frontend setelah dialog ditutup | Kode hanya muncul sekali. Bila hilang, admisi memakai "Kirim ulang" |
+| Lonceng notifikasi header | `platform-notification` belum ada |
+| Membuka halaman publik di dalam layout aplikasi | Halaman publik tidak boleh memuat sidebar, menu, atau panggilan API yang butuh login |
+
+# Amendment RP-GT — Ganti tanggal reservasi (revisi `34`, `approved` 2026-10-21)
+
+| Field | Nilai |
+|---|---|
+| Status | `approved` — Sukma Giri, 2026-10-21 (`RJ-PRI-DEC-039`) |
+| Keputusan | `RJ-PRI-DEC-034` s.d. `038`; kewenangan UI `RJ-PRI-FE-003`, `RJ-PRI-FE-005` |
+| Kontrak | `RJ-PRI-RESV-001@1.2.0` (`contracts/api-contract.md` *Amendment RP-GT*) |
+| Snapshot | FE `037c975b7` (`sukmagpV2`) |
+
+## RP-GT-FE.1 Kebutuhan layar
+
+| ID | Layar | Status | Perubahan |
+|---|---|---|---|
+| `FE-RP-01` | Daftar dan Detail Reservasi Prioritas | Diperbarui | Detail: tombol dan dialog Ganti Tanggal, panel link baru, serta riwayat tanggal lama → tanggal baru. Daftar: kabar realtime ganti tanggal juga memuat ulang layar yang menyaring tanggal lama. Dialog batal: arahan diperbarui |
+
+Tidak ada butir menu baru. Detail (`/health-services/registration-management/priority-reservations/{id}`) tetap layar
+anak dari butir "Reservasi Prioritas", dibuka dengan klik dua kali baris (`RJ-PRI-DEC-032`).
+
+## RP-GT-FE.2 Skema fitur — Detail Reservasi Prioritas
+
+```text
++- Detail Reservasi RSV-261020-0003 --------------------------- FE-RP-01 -+
+| Ibu Sari (RM 00-12-34) · GOLD · Menunggu Kedatangan · 25 Okt 2026      |
+| [Kirim Ulang Link] [Ganti Tanggal] [Batalkan]                          |
++------------------------------------------------------------------------+
+| Riwayat                                                                |
+| 20 Okt 10.12  Reservasi dibuat — Dewi                                  |
+| 24 Okt 21.05  Tanggal kunjungan diganti 25 Okt 2026 → 28 Okt 2026 — Dewi |
+|               Alasan: Pasien ada acara keluarga pada tanggal semula    |
++------------------------------------------------------------------------+
+
++- Dialog Ganti Tanggal --------------------------------------------------+
+| Tanggal kunjungan sekarang: Jumat, 25 Okt 2026                         |
+| Tanggal kunjungan baru*  [ 28/10/2026 ]   (paling awal hari ini)       |
+| Alasan*                  [ ................................ ] 0/500      |
+| Link lama tidak berlaku lagi setelah tanggal diganti.                  |
+| [pesan gagal dari backend bila ada]                                     |
+|                                   [Batal]  [Ganti Tanggal]             |
++------------------------------------------------------------------------+
+| Berhasil -> panel yang sama dengan buat/kirim ulang: link baru, teks   |
+|             pesan, [Kirim via WhatsApp], [Salin]           [Selesai]   |
++------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+|---|---|---|---|---|
+| Tombol Ganti Tanggal | Tampil bila `canReschedule = true` dan pengguna memegang `Create` | `GET /{id}` | `Create` | Tidak tampil, bukan ditolak |
+| Dialog Ganti Tanggal | Tanggal sekarang (baca saja), tanggal baru (wajib, minimal hari ini), alasan (wajib, 10–500 karakter) | — | `Create` | Tombol simpan nonaktif sampai tanggal terisi dan alasan ≥ 10 karakter. Pesan 4xx dari backend tampil apa adanya di dalam dialog, dan dialog tetap terbuka |
+| Panel link baru | Link, teks WA versi ganti tanggal, tombol WA, tombol salin | Respons `POST /{id}/reschedule` | `Create` | Tanpa No. HP: `wa.me/?text=…` tanpa nomor. Link hanya tampil di respons ini |
+| Riwayat | Baris `RESCHEDULED` menampilkan "{tanggal lama} → {tanggal baru}" dan alasan | `histories[].fromVisitDate`, `toVisitDate` | `Read` | Bila kedua tanggal kosong, cukup nama kejadian |
+| Daftar (realtime) | Muat ulang bila `visitDate` **atau** `previousVisitDate` di rentang saringan | Event `PriorityReservationChanged` | `Read` | Koneksi putus: muat ulang berkala yang sudah ada |
+| Dialog Batalkan | Arahan "Untuk ganti tanggal sebelum hari kunjungan, gunakan Ganti Tanggal." menggantikan "buat reservasi baru" | — | `Cancel` | — |
+
+## RP-GT-FE.3 Aksi per peran
+
+| Peran | Tambahan pada `FE-RP-01` |
+|---|---|
+| Admisi RJ (`Create`) | Ganti tanggal |
+| Petugas skrining (`Read` + `Screen`) | Tidak ada. Melihat riwayat ganti tanggal saja |
+
+## RP-GT-FE.4 Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Mengirim | Tombol simpan dan tombol lain di dialog terkunci sampai respons datang |
+| Data basi (409 `VAL-RP-14`) | Pesan tampil di dialog. Detail dimuat ulang otomatis setelah dialog ditutup, sama seperti aksi lain |
+| Ditolak bukan member (409 `VAL-RP-25`) | Pesan menyebut tanggal lama tetap berlaku. Tidak ada perubahan di layar |
+| Berhasil | Dialog berganti ke panel link baru. Detail dimuat ulang dan menampilkan tanggal baru serta baris riwayat baru |
+| Link baru setelah dialog ditutup | Tidak disimpan di state. Bila hilang, admisi memakai Kirim Ulang Link |
+
+## RP-GT-FE.5 Kewenangan UI
+
+| Area | Wewenang |
+|---|---|
+| Keberadaan tombol, isian wajib, sumber data, dan arahan di dialog batal | Mengikat (dokumen ini) |
+| Isi minimum pesan WA versi ganti tanggal | Mengikat (`RJ-PRI-FE-005`): nomor reservasi, tanggal baru, link baru, keterangan link lama tidak berlaku. Tanpa poli/dokter |
+| Posisi tombol, bentuk dialog, kalimat persis, ikon, warna | `DEV_DISCRETION` (`RJ-PRI-FE-003`, `005`) |
+
+## RP-GT-FE.6 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Ganti tanggal dari baris daftar | Kolom Aksi di daftar sudah dihapus (`RJ-PRI-DEC-032`). Aksi hanya dari detail |
+| Batas tanggal maksimum di pemilih tanggal | Nilai `MaxDaysAhead` hanya ada di backend. Backend menolak dengan pesan yang menyebut tanggal terakhir (`VAL-RP-04`). Batas **minimum** (hari ini) dipasang di kalender sejak `RJ-PRI-DEC-040` |
+| Pemeriksaan kelayakan member sebelum dialog dibuka | Backend menilai ulang saat simpan. Pemeriksaan ganda dapat basi |

@@ -3,14 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Bed Management draft. Riwayat metadata sebelumnya: **`0.11.0`** — bagian 12 Workspace PPRI, `approved` 2026-10-08 (`RWI-DEC-265`). Sebelumnya `0.10.0` — bagian 11 Finishing, `approved` (`RWI-DEC-221`); `0.9.0` — bagian 10 |
-| `last_changed_in` | **`0.12.0`** — Bed Management. Riwayat metadata sebelumnya: **`0.11.0`** — grup baru `Inpatient Admission Workspace`, isian baru dua master, peringatan detail episode. Sebelumnya `0.10.0` — Finishing; `0.9.0` — census dokter, penugasan pendukung, tiga isian resume, akibat penutupan |
-| Status | **`draft`** — amandemen Bed Management belum disetujui. Riwayat metadata sebelumnya: **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
-| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292. Riwayat metadata sebelumnya: Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
-| `approved_by` / `approved_at` | Belum ada untuk amandemen Bed Management. Riwayat metadata sebelumnya: **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
-| `input_revision` | Decision 46; gate 1.12 / BM-RCG-20261010-01; audit BM-AUD-20261010-01 rev1. Riwayat metadata sebelumnya: `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
-| Backend SHA | Bed Management: d4e1eca06fb28c05934c68c1e51a4dca01935a10. Riwayat metadata: `44099e4` — hasil merge `QuilvianIntegrationBackend`. Sebelumnya `5afb54b` |
-| Dampak kompatibilitas | Bed Management: GET aditif, mutation diperketat (expected version/key/category/reason); cutover seluruh konsumen wajib. Riwayat metadata sebelumnya: **Seluruhnya aditif.** Tidak ada endpoint existing yang berubah bentuknya. Satu endpoint existing berubah **perilakunya**, lihat bagian 7 |
+| `contract_version` | Mengikuti set kontrak pada [manifest](../blueprint-manifest.md), amandemen Pendaftaran Admisi Pasien ODC draft (bagian 16, kontrak target `0.15.0`); sebelumnya Transfer Pasien Masuk approved (`0.14.0`); Integrasi Denah approved (`0.13.0`, `RWI-DEC-324`); Bed Management draft (`0.12.0`) |
+| `last_changed_in` | **`0.15.0`** — Pendaftaran Admisi Pasien ODC (One Day Care). Riwayat metadata sebelumnya: `0.14.0` — Transfer Pasien Masuk & Serah Terima Klinis; `0.13.0` — Integrasi Denah; `0.12.0` — Bed Management; `0.11.0` — Workspace PPRI |
+| Status | **`draft`** untuk amandemen Pendaftaran Admisi Pasien ODC (`0.15.0`); amandemen Transfer Pasien Masuk (`0.14.0`) dan Integrasi Denah (`0.13.0`) **`approved`** (`RWI-DEC-324`) |
+| Owner | Produk/domain/API Muhammad Hamzah; keamanan/privasi OPEN; frontend sesuai DEC-292 |
+| `approved_by` / `approved_at` | Belum disetujui (status `draft` menunggu persetujuan manusia). Integrasi Denah: **Muhammad Hamzah, 2026-10-16** (`RWI-DEC-324`) |
+| `input_revision` | Pendaftaran Admisi ODC: decision 53, RWI-DEC-327–332, AC-463–468; capability map 1.8 Bagian 21 |
+| Backend SHA | `def6cf6ab5f945cb7bf228847d90fcb10a2d2d94` (branch `MHamzah`) |
+| Dampak kompatibilitas | **Aditif dan sepenuhnya non-breaking.** Penambahan parameter filter opsional `isOdcBed` dan `isOdcRoom` pada `GET available-beds`, serta properti `isOdcBed` pada respon `AvailableBedResponse`. Pemanggil lama tanpa parameter ODC menerima hasil yang sama persis |
 
 
 ### Perubahan pada `contract_version` `0.8.0`
@@ -1209,3 +1209,452 @@ datang dari `POST /bed-occupancies/reservations`, sesudah kunjungan dan episode 
 POST/PUT/detail episode diperluas dengan newbornAdmission opsional; available-beds menerima subject/kebutuhan sebelum episode dan memakai metadata server setelah episode; bed-board menerima IsForNewborn. Tidak mengubah endpoint transaksi/operation/permission existing.
 
 Detail dan batas mengikuti [kontrak admisi bayi](newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
+
+## 14. Amandemen Integrasi Denah ↔ Bed Management — 15 Oktober 2026
+
+**Status: `approved` — Muhammad Hamzah, 2026-10-16 (`RWI-DEC-324`). Amandemen Integrasi Denah ↔ Bed Management, ditulis 15 Oktober 2026.** Set kontrak mengikuti `blueprint-manifest.md`; `last_changed_in: 0.13.0`. Owner produk/domain/API: Muhammad Hamzah (RWI-DEC-061); MasterData: seluruh tim (RWI-DEC-193); frontend: pengembang dalam batas RWI-DEC-299; keamanan/privasi: OPEN. `approved_by: Muhammad Hamzah`, `approved_at: 2026-10-16` (`RWI-DEC-324`).
+
+Masukan: decision log revision **50**, RWI-DEC-298–323 dan RWI-AC-436–461; gate revision **1.13**, **DNH-RCG-20261015-01**; `DOMAIN_ARCHITECTURE_NOT_RUN`. As-is: impact scan **BM-IMP-20261015-01** bagian Swagger. Snapshot BE `ca09cae909597442385ce4513be9c803549be10e`, FE `4d9bf608dbbaddc96a2b4acfc8723753b5dd5028`. Endpoint berlabel **Rencana (belum tersedia)** belum ada di kode; endpoint berlabel **Sudah ada** sudah berjalan dan hanya berubah sebatas kolom "Status".
+
+### 14.1 Envelope dan compatibility
+
+`ApiResponse<T>`, `PagedResult<T>`, `Idempotency-Key`, `OperationMeta`, dan aturan replay bagian 13.1–13.4 berlaku tanpa perubahan. Waktu bisnis UTC.
+
+| Perubahan | Dampak ke konsumen |
+| --- | --- |
+| Endpoint denah, HD/LD, susunan lantai, aktivasi ruang cadangan, dan impor | Aditif |
+| Saring `floorCode` pada `available-beds`, `monitoring`, dan daftar kamar | Aditif; tanpa parameter jawaban tidak berubah |
+| Field `IsForMale`/`IsForFemale` hilang dari request dan response kamar, bed, dan `available-beds` | **Breaking**; backend dan frontend berubah dalam satu gelombang (`DNH-MIS-08`). Request lama yang masih mengirim field itu diabaikan, bukan ditolak |
+| Kode `BED_GENDER_MISMATCH` dan `PATIENT_GENDER_UNKNOWN` tidak pernah dikembalikan lagi | Konsumen tidak boleh bergantung pada keduanya |
+| `ComparisonResult` dapat bernilai `Special`; `AllowedManualCategories` berisi ketiga kategori | Aditif pada nilai; konsumen yang hanya mengenal tiga nilai harus menerima nilai keempat |
+| `RoomCode` kamar baru selalu kode sistem; `BedName`/`BedNumber` bed di kamar berkunci dibentuk server | Perilaku; nilai yang dikirim klien untuk kamar berkunci diabaikan |
+
+### 14.2 Inventaris Swagger
+
+#### [Tags("Health Services / Inpatient Management / Bed Management")]
+
+Base URL: `api/v1/health-services/inpatient-management/bed-management`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /floor-plan | Denah satu lantai untuk Monitoring Bed: kamar, status kamar, badge, ringkasan HD/LD, bed dengan enam status dan aksi yang diizinkan | InpatientBedManagement : Read | `FloorPlanMonitoringQuery` | `FloorPlanResponse` | EPIC DNH-01 | Rencana (belum tersedia) |
+| GET | /monitoring | Monitoring per unit; ditambah saring lantai dan No. RM/HD-LD pada penghuni | InpatientBedManagement : Read | `BedMonitoringQuery` + `FloorCode?` | `BedMonitoringResponse` | EPIC DNH-01 | Sudah ada; diperbarui |
+| POST | /beds/{bedId}/cleaning-attempts | Mulai pembersihan, kini dari pop up kamar | InpatientBedManagement : StartCleaning | `StartBedCleaningRequest` | `BedOperationResponse` | EPIC DNH-01 | Sudah ada; tidak berubah |
+| PATCH | /cleaning-attempts/{attemptId}/complete | Selesai pembersihan | InpatientBedManagement : CompleteCleaning | `CompleteBedCleaningRequest` | `BedOperationResponse` | EPIC DNH-01 | Sudah ada; tidak berubah |
+| POST | /beds/{bedId}/readiness-verifications | Sahkan atau tolak kesiapan; juga verifikasi awal bed hasil impor produksi | InpatientBedManagement : VerifyReadiness | `VerifyBedReadinessRequest` | `BedOperationResponse` | EPIC DNH-04 | Sudah ada; tidak berubah |
+
+#### [Tags("Health Services / Inpatient Management / Bed Occupancy")]
+
+Base URL: `api/v1/health-services/inpatient-management/bed-occupancies`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /floor-plan | Denah satu lantai untuk langkah Pilih Bed admisi atau tujuan transfer: kelayakan per bed untuk episode, outline kamar, dan kategori transfer yang diizinkan | InpatientBedOccupancy : Read | `FloorPlanSelectionQuery` | `FloorPlanResponse` | EPIC DNH-02 | Rencana (belum tersedia) |
+| GET | /available-beds | Pencarian bed tersedia existing; ditambah saring lantai; field jenis kelamin dihapus | InpatientBedOccupancy : Read | `AvailableBedQuery` + `FloorCode?` | `AvailableBedPagedResult` | EPIC DNH-02 | Sudah ada; diperbarui |
+| GET | /bed-board | Dipertahankan untuk daftar pasien rawat inap (`DNH-MIS-09`); tidak lagi dipakai layar pilih bed | InpatientBedOccupancy : Read | Query existing | `BedBoardResponse` | EPIC DNH-01 | Sudah ada; tidak berubah |
+| POST | /reservations | Pesan bed dari pop up kamar; aturan jenis kelamin tidak lagi diperiksa | InpatientBedOccupancy : Create | `ReserveBedRequest` | `BedReservationResponse` | EPIC DNH-02 | Sudah ada; perilaku diperbarui |
+| POST | /placements | Tempatkan pasien; aturan jenis kelamin tidak lagi diperiksa | InpatientBedOccupancy : Create | `PlacePatientRequest` | `BedPlacementResponse` | EPIC DNH-02 | Sudah ada; perilaku diperbarui |
+| POST | /placements/transfer | Transfer; kelas khusus menerima kategori apa pun | InpatientBedOccupancy : Transfer | `TransferPatientRequest` | `BedPlacementResponse` | EPIC DNH-02 | Sudah ada; perilaku diperbarui |
+| GET | /transfer-context | Asal transfer otomatis | InpatientBedOccupancy : Read | `episodeId` | `BedTransferContextResponse` | EPIC DNH-02 | Sudah ada; tidak berubah |
+
+#### [Tags("Health Services / Inpatient Management / Inpatient Episode")]
+
+Base URL: `api/v1/health-services/inpatient-management/episodes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PATCH | /{id}/care-dependency | Mencatat atau mengubah High/Low Dependency | InpatientEpisode : SetCareDependency (action baru) | `SetCareDependencyRequest` | `InpatientEpisodeDetailResponse` | EPIC DNH-05 | Rencana (belum tersedia) |
+| GET | /{id}/care-dependency-history | Riwayat perubahan HD/LD, terbaru dulu | InpatientEpisode : Read | `pageNumber`, `pageSize` | `PagedResult<CareDependencyHistoryResponse>` | EPIC DNH-05 | Rencana (belum tersedia) |
+| GET | /{id} | Detail episode; ditambah lima field HD/LD | InpatientEpisode : Read | `id` | `InpatientEpisodeDetailResponse` | EPIC DNH-05 | Sudah ada; diperbarui |
+
+#### [Tags("Health Services / Master Data / Room")]
+
+Base URL: `api/v1/health-services/master-data/rooms`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| GET | /floor-plan-layout | Susunan satu lantai untuk editor Master Bed, tanpa identitas pasien, termasuk daftar kamar tanpa posisi di denah | Room : Read | `FloorPlanLayoutQuery` | `FloorPlanLayoutResponse` | EPIC DNH-03 | Rencana (belum tersedia) |
+| POST | /floor-plan-layout/rooms | Mengaktifkan ruang cadangan menjadi kamar beserta bed-nya dalam satu transaksi | Room : Create | `ActivateFloorPlanRoomRequest`; header `Idempotency-Key` | `FloorPlanRoomActivationResponse` | EPIC DNH-03 | Rencana (belum tersedia) |
+| POST | /floor-plan-layout/import | Memeriksa (dry run) atau menjalankan impor susunan kamar dan bed dari denah | Room : ImportFloorPlan (action baru) | `FloorPlanImportRequest`; header `Idempotency-Key` | `FloorPlanImportResult` | EPIC DNH-04 | Rencana (belum tersedia) |
+| GET | / | Daftar kamar; ditambah saring lantai dan ada/tidaknya kunci denah | Room : Read | Query existing + `FloorCode?`, `HasFloorPlanKey?` | `PagedResult<RoomResponse>` + tiga field baru | EPIC DNH-03 | Sudah ada; diperbarui |
+| POST | / | Buat kamar di luar denah; kode dari pengalokasi bersama | Room : Create | `CreateRoomRequest` + tiga field baru, tanpa jenis kelamin | `RoomCreateResponse` | EPIC DNH-03 | Sudah ada; diperbarui |
+| PUT | /{id} | Ubah kamar: kelas (hanya kamar kosong), arah wing, unit. Kunci dan lantai tidak dapat diubah | Room : Update | `UpdateRoomRequest` + `WingDirection?`, tanpa jenis kelamin | `RoomUpdateResponse` + `OperationMeta` | EPIC DNH-03 | Sudah ada; diperbarui |
+
+#### [Tags("Health Services / Master Data / Bed")]
+
+Base URL: `api/v1/health-services/master-data/beds`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| POST | / | Tambah bed atau boks bayi; untuk kamar berkunci label dibentuk server | Bed : Create | `CreateBedRequest` tanpa jenis kelamin | `BedCreateResponse` + `OperationMeta` | EPIC DNH-03 | Sudah ada; diperbarui |
+| PUT | /{id} | Ubah label bed; label unik per lantai | Bed : Update | `UpdateBedRequest` tanpa jenis kelamin | `BedUpdateResponse` + `OperationMeta` | EPIC DNH-03 | Sudah ada; diperbarui |
+| PATCH | /{id}/status | Nonaktifkan bed yang punya riwayat (kurangi bed) | Bed : Update | `UpdateBedStatusRequest` | `BedUpdateResponse` + `OperationMeta` | EPIC DNH-03 | Sudah ada; tidak berubah |
+| PATCH | /{id}/availability | Tutup atau buka bed dengan alasan | Bed : Update | `UpdateBedAvailabilityRequest` | `BedUpdateResponse` + `OperationMeta` | EPIC DNH-03 | Sudah ada; tidak berubah |
+| DELETE | /{id} | Hapus bed yang belum pernah dipakai | Bed : Delete | Body existing | Envelope existing + `OperationMeta` | EPIC DNH-03 | Sudah ada; guard diperbarui |
+
+#### [Tags("Health Services / Master Data / Patient Class")]
+
+Base URL: `api/v1/health-services/master-data/patient-classes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response Data | Epic | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| PUT | /{id} | Ganti nama dan `ClassLevel` kelas setara dengan Id tetap; nama kamar berkunci ikut berubah | PatientClass : Update | `UpdatePatientClassRequest` existing | Response existing + `OperationMeta` | EPIC DNH-06 | Sudah ada; efek samping diperbarui |
+| POST | / | Tambah kelas yang benar-benar baru, mis. Perinatologi | PatientClass : Create | `CreatePatientClassRequest` existing | Response existing | EPIC DNH-06 | Sudah ada; tidak berubah |
+| PATCH | /{id}/status | Nonaktifkan kelas lama yang tidak terpakai | PatientClass : Update | `UpdatePatientClassStatusRequest` existing | Response existing + `OperationMeta` | EPIC DNH-06 | Sudah ada; tidak berubah |
+
+### 14.3 Bentuk DTO
+
+| DTO | Jenis | Field | Aturan |
+| --- | --- | --- | --- |
+| `FloorPlanMonitoringQuery` | Query | `FloorCode?`: string maks. 10 | Kosong → lantai dengan bed Tersedia terbanyak |
+| `FloorPlanSelectionQuery` | Query | `FloorCode?`: string maks. 10; `Purpose`: `Admission` atau `Transfer` (wajib); `EpisodeId`: Guid (wajib, episode dari konteks layar, tidak diketik) | Admission: episode `Draft`. Transfer: episode `Admitted` dengan penempatan aktif |
+| `FloorPlanResponse` | Response | `AsOfUtc`; `FloorCode`; `FloorName`; `Floors`: [{`FloorCode`, `FloorName`, `RoomCount`, `AvailableBedCount`}]; `Rooms`: `FloorPlanRoomResponse[]` | Hanya kamar aktif berkunci dalam scope pembaca |
+| `FloorPlanRoomResponse` | Response | `RoomId`, `FloorPlanRoomKey`, `RoomName`, `RoomNumber?`, `WingDirection?` {code, label}, `LocationName?`, `ServiceUnitName`, `PatientClassName`, `IsSpecialClass`, `RoomStatus` {code `Unavailable`/`Available`/`Preparing`/`Full`, label}, `Counts` {`Capacity`, `Filled`, `Available`}, `CribCounts` {sama}, `HasAvailableCrib`, `IsSelectable`, `DependencySummary?` {`HighCount`, `LowCount`, `UnassessedCount`, `IsHighDependency`}, `Beds` | `DependencySummary` NULL bagi profil OperationalOnly; aturan hitung backend 15.7 |
+| `FloorPlanBedResponse` | Response | Seluruh field `BedOperationalResponse` + `BedNumber?`, `IsForNewborn`, `IsIsolationBed`, `IsIntensiveCareBed`; khusus selection: `Eligibility?` {`IsEligible`, `Failures`: [{`Code`, `Message`}]}, `ComparisonResult?` (`DownGrade`/`UpGrade`/`SameGrade`/`Special`/`Unknown`), `AllowedManualCategories` | `BedName` adalah label "329-C"; `BedCode` tidak ditampilkan sebagai label |
+| `BedHoldingContext` (perluasan) | Response | + `MedicalRecordNumber?`, `CareDependencyLevel?` (`High`/`Low`) | Aturan penyamaran existing; NULL bila identitas tidak boleh dibaca |
+| `SetCareDependencyRequest` | Status | `Level`: int 1 (High) atau 2 (Low), wajib; `Note?`: string maks. 500; `ExpectedSetAt?`: waktu UTC pencatatan terakhir yang dilihat klien, NULL bila "belum dinilai" | Sumber ditentukan server dari peran pencatat; nilai yang sama dengan nilai saat ini tetap dicatat sebagai penilaian ulang |
+| `CareDependencyHistoryResponse` | Response | `Id`, `PreviousLevel?`, `NewLevel`, `Source`, `ActorName`, `RecordedAtUtc`, `Note?` | Nama pencatat, bukan Guid |
+| `InpatientEpisodeDetailResponse` (perluasan) | Response | + `CareDependencyLevel?`, `CareDependencySource?`, `CareDependencySetByName?`, `CareDependencySetAt?`, `CareDependencyNote?` | Note hanya bagi pembaca episode berwenang |
+| `FloorPlanLayoutQuery` | Query | `FloorCode`: string maks. 10, wajib | — |
+| `FloorPlanLayoutResponse` | Response | `FloorCode`, `FloorName`, `Rooms`: [{`RoomId`, `FloorPlanRoomKey`, `RoomCode`, `RoomNumber?`, `RoomName`, `PatientClassId?`, `PatientClassName?`, `ServiceUnitId`, `ServiceUnitName`, `WingDirection?`, `IsAvailableForAdmission`, `OccupiedCount`, `ReservedCount`, `AffectedBedVersions`: [{`BedId`, `ExpectedVersion`}], `Beds`: [{`BedId`, `BedCode`, `BedName`, `BedNumber?`, `IsForNewborn`, `IsActive`, `StatusCode`, `HasUsageHistory`, `OperationalVersion`}]}]; `RoomsWithoutFloorPlanKey`: [{`RoomId`, `RoomCode`, `RoomName`, `FloorName?`}] | Tanpa nama/No. RM penghuni; Guid hanya dipakai layar sebagai pengenal, tidak ditampilkan |
+| `ActivateFloorPlanRoomRequest` | Create | `FloorPlanRoomKey` maks. 100; `FloorCode` maks. 10; `RoomNumber` maks. 50; `PatientClassId` dan `ServiceUnitId` dari daftar pilihan berlabel; `WingDirection` 1–8; `BedCount` 1–20; `CribCount` 0–10, bawaan 0 | Semua wajib kecuali `CribCount`; nomor unik di lantai itu |
+| `FloorPlanRoomActivationResponse` | Response | `Room`: `RoomCreateResponse` existing + tiga field baru; `Beds`: [{`BedId`, `BedCode`, `BedName`, `IsForNewborn`}]; `OperationMeta` | Bed baru `Unverified` |
+| `FloorPlanImportRequest` | Create | `DryRun`: bool wajib; `ManifestVersion` maks. 50 wajib; `Rooms` 1–300: [{`FloorPlanRoomKey`, `FloorCode`, `RoomNumber`, `RoomName?` (wajib untuk kamar tanpa nomor angka), `PatientClassId`, `ServiceUnitId?`, `WingDirection`, `ExistingRoomId?`, `Beds` 0–20: [{`BedNumber` maks. 50, `IsForNewborn`}]}] | Manifest disusun layar Impor dari data denah frontend; kelas dan unit dipilih dari daftar berlabel. `ExistingRoomId` melekatkan kunci ke kamar tanpa kunci yang dipilih admin; bed kamar itu tidak dibuat |
+| `FloorPlanImportResult` | Response | `DryRun`; `RunId?`; `ManifestHash`; `Summary` {`Rooms` dan `Beds`: {`Created`, `Updated`, `Unchanged`, `Rejected`}, `BedsMarkedReady`}; `Rows`: [{`FloorPlanRoomKey`, `Outcome`, `Codes`, `Messages`}]; `OperationMeta?` | Dry run tidak menulis apa pun dan tidak membuat receipt |
+| `RoomResponse` / `CreateRoomRequest` / `UpdateRoomRequest` (perubahan) | Response / Create / Update | + `FloorCode?`, `WingDirection?`, `FloorPlanRoomKey?` (response dan create); − `IsForMale`, `IsForFemale` | Update hanya boleh mengubah `WingDirection`; kunci dan lantai yang sudah terisi tidak berubah |
+| `CreateBedRequest` / `UpdateBedRequest` / `BedResponse` (perubahan) | Create / Update / Response | − `IsForMale`, `IsForFemale`; `BedName`/`BedNumber` opsional untuk kamar berkunci saat create | Label dibentuk server; update label diperiksa unik per lantai |
+| `AvailableBedQuery` / `AvailableBedResponse` / `BedMonitoringQuery` (perubahan) | Query / Response | + `FloorCode?` pada query; − `IsForMale`, `IsForFemale` pada response | — |
+
+**Contoh samaran.** Petugas admisi membuka Pilih Bed untuk episode uji di Lantai 3:
+`GET .../bed-occupancies/floor-plan?floorCode=3&purpose=Admission&episodeId=<episode dari layar>`.
+Kamar "Kelas 2 329" kembali dengan `RoomStatus` `Available`, `Counts` {3, 2, 1}, `IsSelectable` true, dan bed "329-C" `Eligibility.IsEligible` true. Kamar "Isolasi 319" kembali dengan `IsSelectable` false karena pasien tidak membutuhkan isolasi.
+
+### 14.4 Error
+
+| HTTP | `Errors.code` | Pemicu | Yang dilakukan layar |
+| --- | --- | --- | --- |
+| 400 | `INVALID_INPUT` | Format atau batas field (maks. 300 kamar, 20 bed per kamar, `Purpose` tidak dikenal) | Tunjukkan field yang salah |
+| 400 | `FLOOR_CODE_REQUIRED` | Kunci denah tanpa kode lantai, atau susunan lantai tanpa `floorCode` | Lengkapi lantai |
+| 400 | `WING_DIRECTION_INVALID` | Arah di luar 1–8 | Pilih salah satu dari delapan arah |
+| 400 | `CARE_DEPENDENCY_LEVEL_INVALID` | Level selain 1 atau 2 | Pilih High atau Low |
+| 403 | `ACCESS_DENIED` | Hak akses atau scope unit tidak ada | Tanpa membocorkan data di luar scope |
+| 403 | `CARE_DEPENDENCY_ACTOR_NOT_ASSIGNED` | Episode berjalan tetapi pengguna bukan perawat penanggung jawab aktif maupun DPJP aktif | Minta perawat penanggung jawab atau DPJP |
+| 404 | `NOT_FOUND` | Episode, kamar, atau bed tidak ada dalam scope | Muat ulang |
+| 409 | `FLOOR_PLAN_KEY_DUPLICATE` | Kunci denah sudah dipakai kamar lain | Periksa pemetaan; jangan buat kamar kedua |
+| 409 | `ROOM_NUMBER_DUPLICATE` | Nomor kamar sudah dipakai kamar aktif di lantai yang sama saat aktivasi ruang cadangan | Pakai nomor lain |
+| 409 | `BED_LABEL_DUPLICATE` | Label bed sudah dipakai bed lain di lantai yang sama | Pakai label lain |
+| 409 | `STALE_CARE_DEPENDENCY` | HD/LD sudah diubah orang lain sejak layar dibuka | Muat ulang lalu ulangi bila masih perlu |
+| 409 | `BED_HOLD_CONFLICT` | Existing; untuk ubah kelas pesannya menyebut jumlah penghuni dan pesanan, mis. "Kelas 2 329 masih dihuni 2 pasien" | Tunggu kamar kosong |
+| 422 | `FLOOR_PLAN_KEY_IMMUTABLE` | Mengubah kunci atau lantai kamar yang sudah terisi | Kunci tetap; hubungi pengembang bila gambar berubah |
+| 422 | `ROOM_UNIT_MAPPING_MISSING` | Baris impor tanpa unit layanan | Petakan kamar ke unit |
+| 422 | `ROOM_UNIT_INVALID` | Unit nonaktif atau bukan unit rawat inap | Pilih unit rawat inap aktif |
+| 422 | `PATIENT_CLASS_NOT_FOUND` | Kelas tidak ditemukan atau nonaktif | Terapkan kelas resmi dulu (`DNH-G01`) |
+| 422 | `BED_HAS_USAGE_HISTORY` | Menghapus bed yang pernah dipesan atau ditempati | Nonaktifkan bed |
+| 422 | `EPISODE_READ_ONLY` | Mencatat HD/LD pada episode `Closed` atau `Cancelled` | Tidak ada tindakan |
+| 422 | `FLOOR_PLAN_PURPOSE_MISMATCH` | Denah Pilih Bed dengan `Admission` untuk episode bukan `Draft`, atau `Transfer` tanpa penempatan aktif | Kembali ke langkah sebelumnya |
+
+Kode `BED_GENDER_MISMATCH` dan `PATIENT_GENDER_UNKNOWN` **dipensiunkan**: tidak dikembalikan lagi dan tidak dipakai ulang untuk arti lain. `CLASS_ORDER_UNVERIFIED` dan `TRANSFER_CATEGORY_MISMATCH` tidak pernah muncul untuk transfer yang melibatkan kelas khusus. Pada impor, kode 409/422 per kamar muncul di `Rows[].Codes` dengan HTTP 200; seluruh permintaan hanya gagal 4xx bila format atau hak aksesnya salah. Kode laporan `FLOOR_PLAN_DRIFT` menandai kamar existing yang kelas, unit, atau jumlah bednya berbeda dari manifest; kamar itu tidak diubah.
+
+### 14.5 Coverage
+
+DEC-298–323; AC-436–461. Belum ada contract test, API test, atau uji PostgreSQL target yang dijalankan. Contract test wajib membuktikan bahwa profil OperationalOnly tidak menerima nama, No. RM, maupun HD/LD pada kedua endpoint denah, dan bahwa field jenis kelamin hilang dari seluruh response yang disebut 14.1.
+
+## 15. Amandemen API Admisi Bayi — `RWI-BAYI-022-2.0.0`
+
+| Method | Path | Kontrak utama |
+| --- | --- | --- |
+| `GET` | `/api/v1/health-services/inpatient-management/episodes/newborn-mother-candidates` | Kasus obstetri `InProgress`/`Completed`, paginated, termasuk sumber penjamin dan lokasi opsional |
+| `POST` | `/api/v1/health-services/patient-management/master-data/patients/newborns` | Header `Idempotency-Key`; body tidak menerima nama atau `BirthOrder` |
+| `POST` | `/api/v1/health-services/registration-management/patient-encounters/admin` | Mode `InheritedPaymentSourceId` + `InheritedPaymentSourceExpectedAt`; pilihan payer manual harus kosong |
+| `POST` | `/api/v1/health-services/inpatient-management/episodes` | `NewbornAdmissionContext.DeliveryCaseId`; tidak memerlukan preferensi invoice/deposit baru |
+
+Kode tambahan: `409` untuk idempotency payload berbeda atau sumber penjamin basi; `422` untuk
+kasus persalinan yang bukan obstetri/tidak layak/tidak cocok. Bentuk lengkap request/response dan
+permission mengikuti `contracts/newborn-admission-repair-022.md`.
+
+---
+
+## 16. Amandemen API Ketersediaan Bed Pasien ODC — `contract_version 0.15.0` (`RWI-DEC-327` s.d. `RWI-DEC-332`)
+
+### 16.1 Ringkasan Perubahan API
+
+Pada slice ini, tidak ada pembuatan endpoint baru. Endpoint ketersediaan tempat tidur `GET /api/v1/health-services/inpatient-management/bed-occupancies/available-beds` diperluas dengan parameter query opsional `isOdcBed` dan `isOdcRoom` serta penambahan field `isOdcBed` pada respon DTO.
+
+### 16.2 Spesifikasi Endpoint
+
+#### `[Tags("Inpatient Bed Occupancy")]`
+### `GET /api/v1/health-services/inpatient-management/bed-occupancies/available-beds`
+
+- **Deskripsi**: Mengambil daftar tempat tidur yang tersedia dan lolos kelayakan penempatan untuk admisi atau pemesanan tempat tidur.
+- **Otorisasi**: `[AccessPermission("InpatientEpisode", "Read")]` atau `[AccessPermission("InpatientBed", "Read")]`
+- **Tipe Perubahan**: `Diperbarui` (Aditif / non-breaking)
+
+**Parameter Kueri (Query Parameters):**
+
+| Parameter | Tipe Data | Wajib | Nilai Bawaan | Keterangan & Aturan Bisnis |
+|---|---|---|---|---|
+| `episodeId` | `Guid` | Opsional | `null` | ID episode rawat inap aktif. Jika dikirim, aturan kelayakan episode ikut dinilai. |
+| `serviceUnitId` | `Guid` | Opsional | `null` | Filter unit layanan rawat inap tujuan. |
+| `roomId` | `Guid` | Opsional | `null` | Filter kamar tertentu. |
+| `patientClassId` | `Guid` | Opsional | `null` | Filter kelas perawatan yang ditagihkan. |
+| `isIsolationBed` | `bool` | Opsional | `null` | Filter tempat tidur isolasi. |
+| `isForNewborn` | `bool` | Opsional | `null` | Filter tempat tidur / boks bayi baru lahir. |
+| **`isOdcBed`** *(Baru)* | `bool` | Opsional | `null` | **Filter tempat tidur khusus One Day Care (ODC).** Wajib dikirim `true` oleh alur admisi ODC (`RWI-DEC-327`). |
+| **`isOdcRoom`** *(Baru)* | `bool` | Opsional | `null` | Filter kamar yang dikonfigurasi khusus ODC. |
+| `floorCode` | `string` | Opsional | `null` | Filter kode lantai pada denah gedung (misal: "3"). |
+| `search` | `string` | Opsional | `null` | Kata kunci pencarian nama kamar atau kode tempat tidur. |
+| `includeIneligible`| `bool` | Opsional | `false` | Jika `true` dan `episodeId` terisi, mengembalikan daftar tempat tidur yang ditolak beserta alasan penolakannya. |
+| `pageNumber` | `int` | Opsional | `1` | Nomor halaman (minimum 1). |
+| `pageSize` | `int` | Opsional | `25` | Jumlah data per halaman (minimum 1, maksimum 100). |
+
+**Spesifikasi Respon (`AvailableBedPagedResult`):**
+
+HTTP Status: `200 OK`
+
+```json
+{
+  "pageNumber": 1,
+  "pageSize": 25,
+  "totalData": 3,
+  "totalPages": 1,
+  "items": [
+    {
+      "operationalVersion": 1,
+      "cycleId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "statusCode": "Available",
+      "statusLabel": "Tersedia",
+      "isBookable": true,
+      "bedId": "d3b07384-d113-494d-9a64-dff84b5c7f8a",
+      "bedCode": "ODC-01-A",
+      "bedName": "ODC 01 Bed A",
+      "bedNumber": "1",
+      "roomId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+      "roomCode": "ODC-01",
+      "roomName": "Ruang ODC 1",
+      "serviceUnitId": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+      "serviceUnitName": "Unit One Day Care",
+      "patientClassId": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e",
+      "patientClassName": "ODC",
+      "bedStatus": 1,
+      "bedStatusName": "Available",
+      "isForNewborn": false,
+      "isIsolationBed": false,
+      "isOdcBed": true,
+      "isReservable": true
+    }
+  ],
+  "ineligible": []
+}
+```
+
+**Kode Status HTTP & Penanganan Error:**
+
+| Kode | Error Code | Pemicu / Kondisi | Solusi Layar / Petugas |
+|---|---|---|---|
+| `200` | — | Permintaan berhasil; daftar tempat tidur lolos saringan dikembalikan | Tampilkan daftar tempat tidur pada Langkah 6 wizard admisi |
+| `400` | `INVALID_INPUT` | Format parameter query tidak valid (misal `pageNumber < 1`) | Perbaiki parameter masukan |
+| `403` | `ACCESS_DENIED` | Pengguna tidak memiliki hak akses `InpatientEpisode:Read` / `InpatientBed:Read` | Tampilkan pemberitahuan hak akses tidak mencukupi |
+| `422` | `ODC_BED_REQUIRED` | Episode ODC mencoba memesan/menempati bed non-ODC pada saat reservasi/admisi awal | Sistem menolak; arahkan petugas untuk memilih tempat tidur khusus ODC |
+| `422` | `ODC_BED_RESERVED` | Episode umum reguler mencoba memesan tempat tidur khusus ODC | Sistem menolak; arahkan petugas untuk memilih tempat tidur reguler |
+
+## 17. Amandemen API dan hub realtime pemilihan bed — `contract_version 0.16.0` (`approved_design_planned`, `RWI-DEC-337`)
+
+### 17.1 Endpoint HTTP pemicu — tidak berubah
+
+#### `[Tags("Health Services / Inpatient Management / Bed Occupancy")]`
+
+| Method dan route | Trigger event sesudah commit | Permission existing | Perubahan response HTTP |
+|---|---|---|---|
+| `POST /api/v1/health-services/inpatient-management/bed-occupancies/reservations` | `BedReserved` | `InpatientBedOccupancy:Create` | Tidak ada |
+| `POST /api/v1/health-services/inpatient-management/bed-occupancies/placements` | `PatientPlaced` | `InpatientBedOccupancy:Create` | Tidak ada |
+| `POST /api/v1/health-services/inpatient-management/bed-occupancies/placements/transfer` | `PatientTransferred` untuk bed tujuan | `InpatientBedOccupancy:Transfer` | Tidak ada |
+
+HTTP conflict, validation, idempotency, dan envelope response existing tetap berlaku. Event tidak
+dikirim untuk request gagal, rollback, atau replay idempotency.
+
+### 17.2 Kontrak SignalR
+
+| Arah | Nama | Parameter/payload | Hasil |
+|---|---|---|---|
+| Client → hub | `JoinInpatientBedSelection` | `serviceUnitId: Guid` | Bergabung ke grup unit bila berwenang; selainnya `HubException` |
+| Client → hub | `LeaveInpatientBedSelection` | `serviceUnitId: Guid` | Keluar dari grup unit |
+| Server → client | `InpatientBedSelectionChanged` | `InpatientBedRealtimeEventResponse` | Invalidasi state selection dan tampilkan alert untuk actor lain |
+
+- Hub URL: `/hubs/queues`.
+- Authentication: mekanisme cookie/bearer SignalR existing.
+- Authorization join: `InpatientBedOccupancy:Read`, `InpatientEpisode:Read`, dan unit berada pada
+  scope actor.
+- Grup internal: `inpatient-bed-selection:{serviceUnitId:D}`; nama grup bukan API publik frontend.
+- Tidak ada replay endpoint, cursor, acknowledge, atau delivery receipt.
+
+### 17.3 Payload event
+
+```json
+{
+  "eventId": "8dbd47b1-e053-43a6-b5b9-2aeb025f700b",
+  "eventType": "BedReserved",
+  "bedId": "00000000-0000-0000-0000-000000000001",
+  "bedCode": "202",
+  "bedName": "Bed 202",
+  "roomId": "00000000-0000-0000-0000-000000000002",
+  "roomName": "Kamar 2",
+  "serviceUnitId": "00000000-0000-0000-0000-000000000003",
+  "serviceUnitName": "Rawat Inap Lantai 2",
+  "episodeId": "00000000-0000-0000-0000-000000000004",
+  "patientName": "Sintia",
+  "actorUserId": "00000000-0000-0000-0000-000000000005",
+  "actorDisplayName": "Rendi",
+  "occurredAtUtc": "2026-10-17T08:15:30Z",
+  "bedOperationalVersion": 17
+}
+```
+
+Contoh adalah data fiktif. `patientName` dan `actorDisplayName` adalah field sensitif. Daftar field,
+sumber, dan larangan data ada di data dictionary bagian 26.
+
+### 17.4 Kompatibilitas dan error
+
+- Kontrak bersifat aditif; client lama yang tidak memasang handler tetap berjalan.
+- Failure publish tidak mengubah status HTTP mutasi yang sudah committed.
+- Failure join tidak boleh ditafsirkan sebagai hak untuk memakai broadcast tanpa scope.
+- Client yang menerima event wajib refetch endpoint floor plan existing; payload bukan pengganti
+  response floor plan.
+- Aktivasi produksi field nama lengkap menunggu sign-off `RWI-OQ-151`.
+
+---
+
+## 18. Amandemen Kontrak 0.17.0 — Prioritas Kamar Pasien Member di Antrean Transfer & Lencana Tier (19 Oktober 2026)
+
+Kontrak ini menindaklanjuti keputusan resmi `RWI-DEC-338` s.d. `RWI-DEC-341`, kriteria penerimaan `RWI-AC-481` s.d. `RWI-AC-493`, serta permintaan lintas modul `IGD-REQ-004` dan `IGD-REQ-003` butir 5.
+
+### 18.1 Grup Endpoint Swagger
+
+#### [Tags("Health Services / Inpatient Management / Inpatient Admission Transfer")]
+
+Base URL: `/api/v1/health-services/inpatient-management/admission-transfers`
+
+| Method | Path | Deskripsi & Kegunaan | Hak Akses | Request Query | Response Data | Status HTTP | Status Implementasi |
+|---|---|---|---|---|---|---|---|
+| GET | `/admission-transfers` | Mengambil daftar antrean pasien transfer IGD dan Poliklinik menuju rawat inap dengan urutan prioritas: CITO → Member Prioritas (level tertinggi lebih dulu) → Waktu Keputusan → ID, dilengkapi lencana CITO dan Tier member aktif. | `InpatientAdmissionTransfer:Read` | `AdmissionTransferQuery` (`sourceType`, `status`, `overdueOnly`, `search`, `pageNumber`, `pageSize`) | `PagedResult<InpatientAdmissionTransferItemResponse>` | 200 OK | Diperbarui (To-Be Kontrak 0.17.0) |
+| GET | `/admission-transfers/{id}` | Mengambil detail satu transfer pasien dari IGD atau Poliklinik beserta informasi prioritas CITO dan keanggotaan CRM aktif. | `InpatientAdmissionTransfer:Read` | Path param `id: Guid`, Query param `sourceType: string?` | `InpatientAdmissionTransferItemResponse` | 200 OK, 404 Not Found | Diperbarui (To-Be Kontrak 0.17.0) |
+
+### 18.2 Spesifikasi DTO Response (Diperbarui)
+
+Class: `InpatientAdmissionTransferItemResponse`
+
+| Field | Tipe | Wajib | Keterangan & Validasi | Sensitif? |
+|---|---|---|---|---|
+| `TransferId` | `Guid` | Ya | ID unik transfer (Disposisi IGD atau Surat Masuk Rawat Inap Poli) | Tidak |
+| `SourceType` | `string` | Ya | Nilai `"Emergency"` atau `"Outpatient"` | Tidak |
+| `EmergencyVisitId` | `Guid?` | Tidak | ID kunjungan IGD asal jika bersumber dari IGD | Tidak |
+| `EmergencyVisitNumber` | `string` | Ya | Nomor kunjungan IGD (misal `EMG-20261019-0012`) | Tidak |
+| `SourceEncounterId` | `Guid?` | Tidak | ID encounter kunjungan asal | Tidak |
+| `SourceEncounterNumber` | `string?` | Tidak | Nomor encounter (misal `ENC-20261019-0005`) | Tidak |
+| `ResultEpisodeId` | `Guid?` | Tidak | ID episode hasil jika sudah di-admit | Tidak |
+| `PatientId` | `Guid` | Ya | ID pasien | Tidak |
+| `PatientName` | `string` | Ya | Nama lengkap pasien | Ya |
+| `MedicalRecordNumber` | `string` | Ya | Nomor Rekam Medis pasien | Ya |
+| `Gender` | `string?` | Tidak | Jenis kelamin (`"Male"`, `"Female"`) | Tidak |
+| `BirthDate` | `DateTime?` | Tidak | Tanggal lahir pasien | Ya |
+| `DecidedByDoctorId` | `Guid?` | Tidak | ID dokter pengambil keputusan transfer | Tidak |
+| `DecidedByDoctorName` | `string?` | Tidak | Nama dokter perujuk / DPJP IGD | Tidak |
+| `DispositionReason` | `string?` | Tidak | Alasan transfer / diagnosa kerja | Ya |
+| `PatientCondition` | `string?` | Tidak | Ringkasan kondisi pasien saat transfer | Ya |
+| `FollowUpInstruction` | `string?` | Tidak | Instruksi perawatan lanjutan | Ya |
+| `RecommendedServiceUnitId` | `Guid?` | Tidak | Unit rawat inap tujuan rekomendasi | Tidak |
+| `RecommendedServiceUnitName` | `string?` | Tidak | Nama unit rawat inap tujuan | Tidak |
+| `DecidedAt` | `DateTime` | Ya | Waktu keputusan transfer diterbitkan | Tidak |
+| `WaitingMinutes` | `int` | Ya | Durasi menunggu dalam menit | Tidak |
+| `IsOverdue` | `bool` | Ya | True jika waktu tunggu > 60 menit | Tidak |
+| `DispositionStatus` | `string` | Ya | Status disposisi (`"Confirmed"`, `"Executed"`, `"Cancelled"`) | Tidak |
+| **`IsCito`** *(Baru)* | `bool` | Ya | **True bila pasien berstatus CITO dari formulir IGD bertanda tangan (`EmgAdmissionRequest.IsCito`).** Default `false`. | Tidak |
+| **`IsPriorityMember`** *(Baru)* | `bool` | Ya | **True bila pasien memiliki membership CRM aktif (`MstPatientMembership.MembershipStatus == Active`), hari ini dalam periode berlaku, dan tier memiliki `PriorityQueue == true`.** | Tidak |
+| **`MemberTierName`** *(Baru)* | `string?` | Tidak | **Nama tier membership pasien (misal `"Platinum"`, `"Gold"`).** Null jika non-member / reguler. | Tidak |
+| **`MemberPriorityLevel`** *(Baru)* | `int?` | Tidak | **Tingkat prioritas antrean tier (`MstMembershipTier.PriorityLevel`). Angka lebih kecil menduduki prioritas lebih tinggi.** Null jika non-member. | Tidak |
+
+### 18.3 Aturan Pengurutan Server (Sorting Invariant)
+
+Dalam `InpAdmissionTransferService.cs`, penyusunan antrean wajib diurutkan secara deterministik dengan aturan:
+
+```csharp
+itemsQuery = itemsQuery
+    .OrderByDescending(x => x.IsCito)
+    .ThenByDescending(x => x.IsPriorityMember)
+    .ThenBy(x => x.MemberPriorityLevel ?? int.MaxValue)
+    .ThenBy(x => x.DecidedAt)
+    .ThenBy(x => x.TransferId);
+```
+
+1. **Prioritas 1 (CITO):** Pasien darurat medis CITO (`IsCito == true`) selalu berada di paling atas tanpa memandang status keanggotaan.
+2. **Prioritas 2 (Member Prioritas):** Pasien non-CITO yang memiliki keanggotaan CRM aktif dan `PriorityQueue == true` berada di bawah CITO, diurutkan dari `PriorityLevel` tertinggi lebih dulu.
+3. **Prioritas 3 (Waktu Keputusan):** Pasien dengan level prioritas setara atau reguler diurutkan dari waktu keputusan (`DecidedAt`) tertua (FIFO).
+4. **Prioritas 4 (Tie-breaker):** `TransferId` untuk hasil yang stabil saat paginasi.
+
+### 18.4 Contoh Payload JSON Response
+
+```json
+{
+  "pageNumber": 1,
+  "pageSize": 20,
+  "totalData": 3,
+  "totalPage": 1,
+  "items": [
+    {
+      "transferId": "4a1b0000-0000-0000-0000-000000000001",
+      "sourceType": "Emergency",
+      "emergencyVisitNumber": "EMG-20261019-0088",
+      "patientId": "5b2c0000-0000-0000-0000-000000000001",
+      "patientName": "Tn. Joko",
+      "medicalRecordNumber": "RM-092811",
+      "gender": "Male",
+      "recommendedServiceUnitName": "Rawat Inap Melati",
+      "decidedAt": "2026-10-19T02:55:00Z",
+      "waitingMinutes": 15,
+      "isOverdue": false,
+      "dispositionStatus": "Confirmed",
+      "isCito": true,
+      "isPriorityMember": false,
+      "memberTierName": null,
+      "memberPriorityLevel": null
+    },
+    {
+      "transferId": "4a1b0000-0000-0000-0000-000000000002",
+      "sourceType": "Emergency",
+      "emergencyVisitNumber": "EMG-20261019-0085",
+      "patientId": "5b2c0000-0000-0000-0000-000000000002",
+      "patientName": "Tn. Hadi",
+      "medicalRecordNumber": "RM-011234",
+      "gender": "Male",
+      "recommendedServiceUnitName": "Rawat Inap VVIP Anggrek",
+      "decidedAt": "2026-10-19T02:50:00Z",
+      "waitingMinutes": 20,
+      "isOverdue": false,
+      "dispositionStatus": "Confirmed",
+      "isCito": false,
+      "isPriorityMember": true,
+      "memberTierName": "Platinum",
+      "memberPriorityLevel": 1
+    },
+    {
+      "transferId": "4a1b0000-0000-0000-0000-000000000003",
+      "sourceType": "Emergency",
+      "emergencyVisitNumber": "EMG-20261019-0070",
+      "patientId": "5b2c0000-0000-0000-0000-000000000003",
+      "patientName": "Ny. Sari",
+      "medicalRecordNumber": "RM-055678",
+      "gender": "Female",
+      "recommendedServiceUnitName": "Rawat Inap Melati",
+      "decidedAt": "2026-10-19T02:30:00Z",
+      "waitingMinutes": 40,
+      "isOverdue": false,
+      "dispositionStatus": "Confirmed",
+      "isCito": false,
+      "isPriorityMember": false,
+      "memberTierName": null,
+      "memberPriorityLevel": null
+    }
+  ]
+}
+```
+
+

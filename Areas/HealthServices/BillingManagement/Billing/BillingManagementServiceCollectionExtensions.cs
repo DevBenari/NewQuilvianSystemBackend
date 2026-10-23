@@ -32,9 +32,14 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();
         services.AddScoped<BillingDiscountService>();
         services.AddScoped<BillingDepositService>();
+        services.AddScoped<BillingEncounterPaymentHistoryService>();
         services.AddScoped<BillingDepositOrderService>();
         services.AddScoped<BillingAllocationService>();
         services.AddScoped<BillingSettlementService>();
+        // crm-membership: tagihan iuran non-kunjungan. Port CRM di-resolve ke instance yang sama.
+        services.AddScoped<BillingMembershipFeeService>();
+        services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Services.IMembershipFeeChargePort>(
+            sp => sp.GetRequiredService<BillingMembershipFeeService>());
         services.AddScoped<BillingRefundService>();
         services.AddScoped<BillingInvoiceClosureService>();
         services.AddScoped<BilConsumerHandoffService>();

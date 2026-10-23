@@ -74,10 +74,7 @@ public sealed class RoomMasterWriteService(ApplicationDbContext dbContext, Logge
                 roomName: request.RoomName,
                 roomType: request.RoomType,
                 roomNumber: request.RoomNumber,
-                capacity: request.Capacity,
-                isForMale: request.IsForMale,
-                isForFemale: request.IsForFemale,
-                isForNewborn: request.IsForNewborn
+                capacity: request.Capacity
             );
 
             if (!validation.IsValid)
@@ -91,6 +88,11 @@ public sealed class RoomMasterWriteService(ApplicationDbContext dbContext, Logge
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            // Nilai turunan kamar berkunci sebelum suntingan (BE-RWI-235).
+            var previousClassId = entity.PatientClassId;
+            var previousName = entity.RoomName;
+            var previousFlags = (entity.RoomType, entity.IsIntensiveCare, entity.IsIsolationRoom, entity.IsForNewborn, entity.IsOdcRoom);
+
             entity.ServiceUnitId = request.ServiceUnitId;
             entity.PatientClassId = NormalizeNullableGuid(request.PatientClassId);
             entity.RoomName = request.RoomName.Trim();
@@ -99,8 +101,6 @@ public sealed class RoomMasterWriteService(ApplicationDbContext dbContext, Logge
             entity.LocationName = NormalizeNullableText(request.LocationName);
             entity.FloorName = NormalizeNullableText(request.FloorName);
             entity.Capacity = request.Capacity;
-            entity.IsForMale = request.IsForMale;
-            entity.IsForFemale = request.IsForFemale;
             entity.IsForNewborn = request.IsForNewborn;
             entity.IsIsolationRoom = request.IsIsolationRoom;
             entity.IsIntensiveCare = request.IsIntensiveCare;
@@ -111,6 +111,23 @@ public sealed class RoomMasterWriteService(ApplicationDbContext dbContext, Logge
             entity.IsActive = request.IsActive;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
+
+            // BE-RWI-232: lantai, arah wing, dan kunci denah; label lantai/lokasi kamar berkunci otomatis.
+            await ApplyFloorPlanLocationAsync(entity, request.FloorCode, request.WingDirection, request.FloorPlanRoomKey, HttpContext.RequestAborted);
+
+            // BE-RWI-235: nama dan penanda kamar berkunci milik server. Nama mengikuti kelas; penanda
+            // turunan kamar dan bed ditulis ulang hanya saat kelas berubah — perubahan kelas sudah
+            // melewati guard berbahaya BedMutationService (alasan wajib, seluruh bed kosong).
+            if (entity.FloorPlanRoomKey != null)
+            {
+                var classChanged = previousClassId != entity.PatientClassId;
+                entity.RoomName = previousName;
+                if (!classChanged)
+                    (entity.RoomType, entity.IsIntensiveCare, entity.IsIsolationRoom, entity.IsForNewborn, entity.IsOdcRoom) = previousFlags;
+                await ApplyKeyedRoomDerivationsAsync(entity, rewriteRoomFlags: classChanged, HttpContext.RequestAborted);
+                if (classChanged)
+                    await RewriteBedClassFlagsAsync(entity, previousClassId, actorUserId, now, HttpContext.RequestAborted);
+            }
 
             await _dbContext.SaveChangesAsync();
 
@@ -125,6 +142,10 @@ public sealed class RoomMasterWriteService(ApplicationDbContext dbContext, Logge
                 RoomName = entity.RoomName,
                 RoomType = entity.RoomType,
                 RoomTypeName = BuildEnumLabel(entity.RoomType),
+                FloorCode = entity.FloorCode,
+                WingDirection = entity.WingDirection,
+                FloorPlanRoomKey = entity.FloorPlanRoomKey,
+                LocationName = entity.LocationName,
                 IsActive = entity.IsActive,
                 UpdateDateTime = entity.UpdateDateTime,
                 UpdateBy = entity.UpdateBy == Guid.Empty ? null : (Guid?)entity.UpdateBy,
@@ -295,6 +316,102 @@ public sealed class RoomMasterWriteService(ApplicationDbContext dbContext, Logge
             ));
         }
 
+    /// <summary>
+    /// Menetapkan lantai, arah wing, dan kunci denah kamar (BE-RWI-232, VAL-DNH-01–04). Kunci dan
+    /// lantai yang sudah terisi tidak berubah; kamar berkunci mendapat "Lantai 3" dan
+    /// "Lantai 3 · Barat Laut" otomatis.
+    /// </summary>
+    /// <remarks>
+    /// Nilai kosong pada permintaan berarti "tidak diubah". Penolakan dilempar sebagai
+    /// <see cref="InpBedOperationException"/> supaya transaksi pemanggil dibatalkan utuh.
+    /// </remarks>
+    internal async Task ApplyFloorPlanLocationAsync(MstRoom entity, string? floorCode,
+        RoomWingDirection? wingDirection, string? floorPlanRoomKey, CancellationToken ct)
+    {
+        var requestedFloor = NormalizeNullableText(floorCode);
+        var requestedKey = NormalizeNullableText(floorPlanRoomKey);
+
+        if (wingDirection.HasValue && !Enum.IsDefined(wingDirection.Value))
+            throw new InpBedOperationException(400, "WING_DIRECTION_INVALID", "Arah wing harus salah satu dari delapan arah (nilai 1–8).");
+
+        // VAL-DNH-02 / INV-DNH-01: kunci dan lantai yang sudah terisi tidak berubah.
+        if (entity.FloorPlanRoomKey != null && requestedKey != null &&
+            !string.Equals(entity.FloorPlanRoomKey, requestedKey, StringComparison.Ordinal))
+            throw new InpBedOperationException(422, "FLOOR_PLAN_KEY_IMMUTABLE", "Kunci denah kamar ini sudah ditetapkan dan tidak dapat diubah.");
+        if (entity.FloorCode != null && requestedFloor != null &&
+            !string.Equals(entity.FloorCode, requestedFloor, StringComparison.OrdinalIgnoreCase))
+            throw new InpBedOperationException(422, "FLOOR_PLAN_KEY_IMMUTABLE", "Lantai kamar ini sudah ditetapkan dan tidak dapat diubah.");
+
+        var finalFloor = entity.FloorCode ?? requestedFloor;
+        var finalKey = entity.FloorPlanRoomKey ?? requestedKey;
+
+        if (finalFloor != null && !FloorPlanRoomNaming.IsValidFloorCode(finalFloor))
+            throw new InpBedOperationException(400, "INVALID_INPUT", "Kode lantai hanya boleh angka atau huruf, maksimum 10 karakter.");
+
+        if (finalKey != null)
+        {
+            var keyError = FloorPlanRoomNaming.ValidateRoomKey(finalKey, finalFloor);
+            if (keyError != null)
+                throw new InpBedOperationException(400, keyError.Value.Code, keyError.Value.Message);
+
+            if (entity.FloorPlanRoomKey == null &&
+                await _dbContext.Set<MstRoom>().AnyAsync(x => !x.IsDelete && x.Id != entity.Id && x.FloorPlanRoomKey == finalKey, ct))
+                throw new InpBedOperationException(409, "FLOOR_PLAN_KEY_DUPLICATE", "Kunci denah sudah dipakai kamar lain. Periksa pemetaan; jangan membuat kamar kedua.");
+        }
+
+        entity.FloorCode = finalFloor;
+        entity.FloorPlanRoomKey = finalKey;
+        if (wingDirection.HasValue) entity.WingDirection = wingDirection;
+
+        if (finalKey != null)
+        {
+            entity.FloorName = FloorPlanRoomNaming.FloorName(finalFloor!);
+            entity.LocationName = FloorPlanRoomNaming.LocationName(finalFloor!, entity.WingDirection);
+        }
+    }
+
+    /// <summary>
+    /// Membentuk nama kamar berkunci dari kelasnya dan, bila diminta, menulis ulang penanda kamar
+    /// turunan jenis kelas (backend 15.6).
+    /// </summary>
+    /// <example>Kamar 329 berkelas "Kelas 2" → "Kelas 2 329", <c>RoomType</c> InpatientRoom.</example>
+    internal async Task ApplyKeyedRoomDerivationsAsync(MstRoom entity, bool rewriteRoomFlags, CancellationToken ct)
+    {
+        if (entity.FloorPlanRoomKey == null) return;
+        var patientClass = entity.PatientClassId.HasValue
+            ? await _dbContext.Set<MstPatientClass>().AsNoTracking()
+                .Where(x => x.Id == entity.PatientClassId.Value)
+                .Select(x => new { x.PatientClassName, x.PatientClassType })
+                .FirstOrDefaultAsync(ct)
+            : null;
+        entity.RoomName = FloorPlanRoomNaming.RoomName(patientClass?.PatientClassName, entity.RoomNumber, entity.RoomName);
+        if (rewriteRoomFlags) FloorPlanRoomNaming.ApplyRoomFlags(entity, patientClass?.PatientClassType);
+    }
+
+    /// <summary>
+    /// Menulis ulang penanda bed turunan kelas untuk seluruh bed kamar berkunci yang kelasnya baru
+    /// diubah (backend 15.6). Boks rawat gabung tetap boks; bed kamar Perinatologi yang pindah ke
+    /// kelas lain tidak lagi otomatis ditandai bayi.
+    /// </summary>
+    /// <example>Kamar kosong 505 Kelas 2 → ICU: keenam bed menjadi <c>IsIntensiveCareBed</c> = true.</example>
+    private async Task RewriteBedClassFlagsAsync(MstRoom entity, Guid? previousClassId, Guid actorUserId, DateTime now, CancellationToken ct)
+    {
+        var classTypes = await _dbContext.Set<MstPatientClass>().AsNoTracking()
+            .Where(x => x.Id == entity.PatientClassId || x.Id == previousClassId)
+            .Select(x => new { x.Id, x.PatientClassType })
+            .ToListAsync(ct);
+        var newType = classTypes.FirstOrDefault(x => x.Id == entity.PatientClassId)?.PatientClassType;
+        var previousType = classTypes.FirstOrDefault(x => x.Id == previousClassId)?.PatientClassType;
+        var beds = await _dbContext.Set<MstBed>().Where(x => x.RoomId == entity.Id && !x.IsDelete).ToListAsync(ct);
+        foreach (var bed in beds)
+        {
+            var isCrib = bed.IsForNewborn && previousType != PatientClassType.Perinatology;
+            FloorPlanRoomNaming.ApplyBedFlags(bed, newType, isCrib);
+            bed.UpdateDateTime = now;
+            bed.UpdateBy = actorUserId;
+        }
+    }
+
     private async Task<(bool IsValid, string? ErrorMessage)> ValidateCreateUpdateRequestAsync(
             Guid? excludeId,
             Guid serviceUnitId,
@@ -302,10 +419,7 @@ public sealed class RoomMasterWriteService(ApplicationDbContext dbContext, Logge
             string roomName,
             RoomType roomType,
             string? roomNumber,
-            int capacity,
-            bool isForMale,
-            bool isForFemale,
-            bool isForNewborn)
+            int capacity)
         {
             if (serviceUnitId == Guid.Empty)
             {
@@ -330,11 +444,6 @@ public sealed class RoomMasterWriteService(ApplicationDbContext dbContext, Logge
             if (capacity > 999)
             {
                 return (false, "Kapasitas room tidak boleh lebih dari 999.");
-            }
-
-            if (!isForMale && !isForFemale && !isForNewborn)
-            {
-                return (false, "Room harus tersedia minimal untuk laki-laki, perempuan, atau bayi baru lahir.");
             }
 
             var activationValidation = await ValidateRoomCanBeActivatedAsync(serviceUnitId, NormalizeNullableGuid(patientClassId));

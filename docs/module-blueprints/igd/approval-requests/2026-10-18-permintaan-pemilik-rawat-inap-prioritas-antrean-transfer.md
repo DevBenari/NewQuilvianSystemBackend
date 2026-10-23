@@ -7,7 +7,7 @@
 | `pengaju` | Rizki Gunawan — Product/Domain Owner IGD (`IGD-DEC-089`) |
 | `penerima` | **Muhammad Hamzah** — PIC Admisi Rawat Inap & InPatient Management |
 | `rujukan` | `IGD-DEC-316` (prioritas kamar berbasis membership; pemilik keputusan: pemilik IGD dan PIC Admisi Ranap; disetujui Rizki Gunawan, 16 Oktober 2026); `IGD-DEC-327` (sumber penanda: keanggotaan CRM dibaca langsung, 18 Oktober 2026); `IGD-DEC-309` (lencana CITO); [audit pasien prioritas dan billing IGD](../evidence/2026-10-18-audit-pasien-prioritas-dan-billing-igd.md) bagian 6; kontrak integrasi IGD `0.11.0` §10.4 |
-| `status` | **`menunggu jawaban`** |
+| `status` | **`disetujui`** (Muhammad Hamzah, 19 Oktober 2026; rujukan blueprint `RWI-DEC-338` s.d. `341`) |
 | `sifat` | Operasional, lintas modul. **Bukan** artefak desain IGD |
 
 ---
@@ -80,7 +80,7 @@ Bila Mas Hamzah meminta agent Claude mengerjakan permintaan ini, agent tersebut:
 
 | Butir | Setuju? | Target / catatan |
 |---|---|---|
-| 1 — penanda member prioritas dari CRM | | |
-| 2 — CITO dari form IGD | | |
-| 3 — urutan antrean | | |
-| 4 — lencana tier dan CITO | | |
+| 1 — penanda member prioritas dari CRM | **Setuju** | Dibaca langsung dari `MstPatientMembership` & `MstMembershipTier.PriorityQueue = true` via `TransferQuery` (`RWI-DEC-338`, `RWI-DEC-339`) |
+| 2 — CITO dari form IGD | **Setuju** | Dibaca via `EmergencyDispositionService.BacaRingkasanPermintaanRawatInapAsync` (`RWI-DEC-338`) |
+| 3 — urutan antrean | **Setuju** | CITO → Member Prioritas (`PriorityLevel` tertinggi lebih dulu) → waktu keputusan (`DecidedAt`) → id (`RWI-DEC-338`) |
+| 4 — lencana tier dan CITO | **Setuju** | Tampil di Tabel Antrean Transfer dan Header Ringkasan Admisi PPRI (`RWI-DEC-341`) |

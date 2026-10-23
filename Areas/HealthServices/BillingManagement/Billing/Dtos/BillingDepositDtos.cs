@@ -43,7 +43,14 @@ public sealed class DepositResponse
 public sealed class DepositMovementResponse
 {
     public Guid Id { get; set; }
+    /// <summary>Nomor transaksi tampilan, diturunkan stabil dari Id mutasi (tidak disimpan).</summary>
+    public string TransactionNumber { get; set; } = string.Empty;
     public string MovementType { get; set; } = string.Empty;
+    /// <summary>Label jenis transaksi untuk tampilan (Deposit Awal, Top Up, Pemakaian, Refund, Koreksi).</summary>
+    public string MovementTypeName { get; set; } = string.Empty;
+    /// <summary>POSTED atau REVERSED (top-up yang sudah dibalik oleh mutasi REVERSAL).</summary>
+    public string Status { get; set; } = string.Empty;
+    public string StatusName { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public decimal BalanceEffect { get; set; }
     public decimal BalanceAfter { get; set; }
@@ -88,6 +95,10 @@ public sealed class DepositWorkspaceResponse
     public decimal TotalTopUpReversed { get; set; }
     public decimal TotalAllocated { get; set; }
     public decimal TotalReleasedOrRefunded { get; set; }
+
+    // Kelayakan top-up (aturan sama dengan yang ditegakkan BillingDepositService.TopUpAsync)
+    public bool IsTopUpEligible { get; set; }
+    public string? TopUpIneligibleReason { get; set; }
 
     // Paginated movements
     public IReadOnlyList<DepositMovementResponse> Items { get; set; } = [];

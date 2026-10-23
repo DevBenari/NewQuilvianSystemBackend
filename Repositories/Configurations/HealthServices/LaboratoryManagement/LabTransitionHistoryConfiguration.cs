@@ -24,6 +24,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
             builder.HasIndex(x => x.LabExaminationId);
             builder.HasIndex(x => x.EncounterId);
 
+            // Laporan Pembatalan (BE-LAB-99, 02-backend-architecture.md 32.6, 32.10 no. 3) menyaring
+            // aksi Order.Cancel/Examination.Cancel dalam rentang waktu peristiwa.
+            builder.HasIndex(x => new { x.Action, x.OccurredAt });
+
             builder.HasOne(x => x.LabOrder)
                 .WithMany()
                 .HasForeignKey(x => x.LabOrderId)

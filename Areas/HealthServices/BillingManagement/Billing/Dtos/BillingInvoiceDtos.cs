@@ -618,6 +618,15 @@ public sealed class CalculationItemResponse
     // kontrak penjamin. Lihat CoverageCalculationResponse.NonBillableResidualAmount.
     public decimal ItemNonBillableResidualAmount { get; set; }
     public decimal TaxNonBillableResidualAmount { get; set; }
+
+    // Alasan keputusan coverage untuk komponen ITEM ini (kode BillingCoverageReasonCodes):
+    // MATCHED_COVERED, MATCHED_PARTIAL, EXPLICIT_NOT_COVERED, NO_MATCHING_RULE, PAYER_NOT_ELIGIBLE,
+    // COVERAGE_UNRESOLVED; atau, bila item tidak ikut dinilai penjamin, CASH_ASSIGNED_MANUAL,
+    // CASH_ASSIGNED_AUTO, CATEGORY_NOT_COVERABLE. Murni penjelasan: nominal tetap dibaca dari
+    // Item*Amount di atas. Null untuk versi kalkulasi lama (snapshot sebelum field ini ada) dan
+    // untuk payer yang tidak melaporkan alasan; konsumen MUST menganggapnya "tidak diketahui" dan
+    // MUST NOT menurunkan status "Tunai" dari null.
+    public string? CoverageReason { get; set; }
 }
 
 public sealed class TaxCalculationResponse

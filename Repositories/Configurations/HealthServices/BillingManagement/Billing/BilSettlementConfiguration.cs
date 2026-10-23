@@ -10,21 +10,25 @@ public sealed class BilSettlementConfiguration : IEntityTypeConfiguration<BilSet
     {
         entity.ToTable("BilSettlement", "public", table =>
         {
+            // Tepat satu target: invoice, account deposit, atau tagihan iuran membership.
             table.HasCheckConstraint(
                 "CK_BilSettlement_Target",
-                "((\"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL) OR (\"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL))");
+                "((\"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NOT NULL))");
             table.HasCheckConstraint(
                 "CK_BilSettlement_Purpose",
-                "\"Purpose\" IN ('DEPOSIT_TOP_UP','INVOICE_PAYMENT')");
+                "\"Purpose\" IN ('DEPOSIT_TOP_UP','INVOICE_PAYMENT','MEMBERSHIP_FEE')");
             table.HasCheckConstraint(
                 "CK_BilSettlement_PurposeTarget",
-                "((\"Purpose\" = 'INVOICE_PAYMENT' AND \"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL) OR (\"Purpose\" = 'DEPOSIT_TOP_UP' AND \"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL))");
+                "((\"Purpose\" = 'INVOICE_PAYMENT' AND \"InvoiceId\" IS NOT NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"Purpose\" = 'DEPOSIT_TOP_UP' AND \"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NOT NULL AND \"MembershipFeeChargeId\" IS NULL) OR (\"Purpose\" = 'MEMBERSHIP_FEE' AND \"InvoiceId\" IS NULL AND \"DepositAccountId\" IS NULL AND \"MembershipFeeChargeId\" IS NOT NULL))");
             table.HasCheckConstraint(
                 "CK_BilSettlement_Status",
                 "\"Status\" IN ('DRAFT','IN_PROGRESS','PARTIALLY_SETTLED','SETTLED','FAILED')");
             table.HasCheckConstraint(
                 "CK_BilSettlement_Amounts",
                 "\"RequestedAmount\" > 0 AND \"SuccessfulAmount\" >= 0 AND \"AllocatedAmount\" >= 0 AND \"AllocatedAmount\" <= \"SuccessfulAmount\" AND \"SuccessfulAmount\" <= \"RequestedAmount\"");
+            table.HasCheckConstraint(
+                "CK_BilSettlement_BenefitExcess",
+                "\"BenefitExcessAuthorizedAmount\" IS NULL OR \"BenefitExcessAuthorizedAmount\" >= 0");
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.Purpose).HasMaxLength(30).IsRequired();
@@ -34,6 +38,7 @@ public sealed class BilSettlementConfiguration : IEntityTypeConfiguration<BilSet
         entity.Property(x => x.RequestedAmount).HasPrecision(18, 2);
         entity.Property(x => x.SuccessfulAmount).HasPrecision(18, 2);
         entity.Property(x => x.AllocatedAmount).HasPrecision(18, 2);
+        entity.Property(x => x.BenefitExcessAuthorizedAmount).HasPrecision(18, 2).IsRequired(false);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
         entity.Property(x => x.StartedAt).HasColumnType("timestamp with time zone");
         entity.Property(x => x.CompletedAt).HasColumnType("timestamp with time zone");
@@ -47,6 +52,9 @@ public sealed class BilSettlementConfiguration : IEntityTypeConfiguration<BilSet
         entity.HasIndex(x => x.CorrelationId).IsUnique();
         entity.HasIndex(x => new { x.InvoiceId, x.Status });
         entity.HasIndex(x => new { x.DepositAccountId, x.Status });
+        entity.HasIndex(x => new { x.MembershipFeeChargeId, x.Status });
+        entity.HasOne<BilMembershipFeeCharge>().WithMany().HasForeignKey(x => x.MembershipFeeChargeId)
+            .OnDelete(DeleteBehavior.Restrict);
         entity.HasOne<BilInvoice>().WithMany().HasForeignKey(x => x.InvoiceId)
             .OnDelete(DeleteBehavior.Restrict);
         entity.HasOne<BilDepositAccount>().WithMany().HasForeignKey(x => x.DepositAccountId)

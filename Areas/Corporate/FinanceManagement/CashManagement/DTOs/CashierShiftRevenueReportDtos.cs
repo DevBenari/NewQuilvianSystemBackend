@@ -10,6 +10,7 @@ public sealed class CashierShiftRevenueReportQuery
 {
     public DateOnly? DateFrom { get; set; }
     public DateOnly? DateTo { get; set; }
+    public Guid? RegisterId { get; set; }
     public Guid? CashierId { get; set; }
     public string? Location { get; set; }
     public Guid? ShiftId { get; set; }
@@ -17,6 +18,16 @@ public sealed class CashierShiftRevenueReportQuery
     public string? Status { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
+}
+
+/// <summary>
+/// Parameter query untuk filter dropdown register kasir (searchable).
+/// </summary>
+public sealed class RegisterFilterQuery
+{
+    public string? Search { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 20;
 }
 
 /// <summary>
@@ -47,6 +58,7 @@ public sealed class ShiftFilterQuery
     public string? Search { get; set; }
     public DateOnly? DateFrom { get; set; }
     public DateOnly? DateTo { get; set; }
+    public Guid? RegisterId { get; set; }
     public Guid? CashierId { get; set; }
     public string? Location { get; set; }
     public int PageNumber { get; set; } = 1;
@@ -92,6 +104,7 @@ public sealed class CashierShiftExportQuery
 {
     public DateOnly? DateFrom { get; set; }
     public DateOnly? DateTo { get; set; }
+    public Guid? RegisterId { get; set; }
     public Guid? CashierId { get; set; }
     public string? Location { get; set; }
     public Guid? ShiftId { get; set; }

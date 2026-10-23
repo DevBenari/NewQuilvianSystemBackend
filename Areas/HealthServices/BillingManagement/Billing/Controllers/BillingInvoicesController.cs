@@ -25,6 +25,7 @@ public sealed class BillingInvoicesController : ControllerBase
     private readonly BillingCompanyGuarantorInvoiceDocumentService _companyGuarantorInvoiceDocumentService;
     private readonly BillingReminderService _reminderService;
     private readonly BillingFinalizationService _finalizationService;
+    private readonly BillingEncounterPaymentHistoryService _encounterPaymentHistoryService;
 
     public BillingInvoicesController(
         BillingInvoiceService service,
@@ -34,8 +35,10 @@ public sealed class BillingInvoicesController : ControllerBase
         BillingInsuranceInvoiceDocumentService insuranceInvoiceDocumentService,
         BillingCompanyGuarantorInvoiceDocumentService companyGuarantorInvoiceDocumentService,
         BillingReminderService reminderService,
-        BillingFinalizationService finalizationService)
+        BillingFinalizationService finalizationService,
+        BillingEncounterPaymentHistoryService encounterPaymentHistoryService)
     {
+        _encounterPaymentHistoryService = encounterPaymentHistoryService;
         _service = service;
         _calculationService = calculationService;
         _payerEditService = payerEditService;
@@ -69,6 +72,34 @@ public sealed class BillingInvoicesController : ControllerBase
     {
         var result = await _service.GetPaymentHistoryAsync(request, cancellationToken);
         return Ok(ApiResponse<PagedResult<PaymentHistoryItemResponse>>.Ok(result, "Riwayat pembayaran berhasil diambil."));
+    }
+
+    // Riwayat pembayaran GABUNGAN satu kunjungan untuk tab "Riwayat Pembayaran" Menu Pembayaran: tender pada
+    // seluruh invoice kunjungan, top-up deposit, dan pemakaian deposit (yang tidak punya tender). Baca saja;
+    // hak akses dipakai ulang (BillingInvoice:Read) seperti payment-history di atas dan cashier-overview yang
+    // juga membawa info deposit, jadi tidak ada kewenangan baru.
+    [HttpGet("encounters/{encounterId:guid}/payment-history")]
+    [AccessAction("Read", "Read Encounter Payment History", AccessType = AccessTypes.Read, SortOrder = 24)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<EncounterPaymentHistoryResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> GetEncounterPaymentHistory(Guid encounterId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _encounterPaymentHistoryService.GetAsync(encounterId, cancellationToken);
+            if (result is null)
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kunjungan tidak ditemukan."));
+
+            return Ok(ApiResponse<EncounterPaymentHistoryResponse>.Ok(
+                result, "Riwayat pembayaran kunjungan berhasil diambil."));
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
     }
 
     // Halaman "Invoice & Billing Kasir" (Cashier Overview): ringkasan operasional kasir terpadu

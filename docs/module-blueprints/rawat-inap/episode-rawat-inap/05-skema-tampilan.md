@@ -1870,3 +1870,39 @@ tulis apa pun. Skema sebelum-sesudah ada pada [`PLAN-REPAIR-EPS-010`](docs/plan-
 Bayi pada pasien baru dan pasien lama memakai Konteks -> Identitas -> Perawatan/DPJP -> Penjamin/Penagihan -> Deposit kondisional -> Penempatan/Pemesanan -> Persetujuan Wali -> Tinjau/Aktifkan -> Dokumen. Sembilan tahap (delapan tanpa deposit) menggantikan tahap umum hanya untuk cabang bayi. Skema rinci tetap BAYI-S01 sampai S09 pada plan repair 016.
 
 Detail dan batas mengikuti [kontrak admisi bayi](contracts/newborn-admission-repair-016.md). Implementasi/source serta bukti dicatat pada laporan BE-RWI-231 dan FE-RWI-245; packaging/DB runtime belum dinyatakan siap.
+
+## Amandemen admisi bayi → `RWI-BAYI-022-2.0.0`, 16 Oktober 2026
+
+Amandemen ini menggantikan skema 016 untuk pendaftaran bayi baru:
+
+```text
+[1 Pilih Ibu Persalinan]
+  → [2 Identitas Bayi]
+  → [3 Perawatan dan DPJP]
+  → [4 Penempatan dan Pemesanan]
+  → [5 Persetujuan Wali]
+  → [6 Tinjau dan Aktifkan]
+  → [7 Dokumen Bayi]
+```
+
+Langkah 1 menampilkan daftar kasus persalinan yang layak, bukan opsi luar RS/rujukan/dirawat
+kembali. Langkah 2 menampilkan nama sistem `By. Ny. <ibu>` dan tidak mempunyai input urutan
+kembar. Tidak ada layar penjamin, penggabungan invoice, atau rencana deposit. Informasi lengkap
+ibu–bayi, penjamin turunan, DPJP, bed, dan keterangan deposit baru tampil baca-saja pada langkah
+6. Detail mengacu ke [kontrak 022](contracts/newborn-admission-repair-022.md).
+
+## Amandemen PLAN-REPAIR-EPS-027 — 17 Oktober 2026
+
+Pada pop-up kamar denah mode **Pilih Bed**, alasan `Belum dapat dipilih` tetap ditampilkan untuk
+bed yang belum siap. Di samping informasi tersebut, tombol `Pembersihan` boleh tampil hanya bila
+respons server memuat salah satu `StartCleaning`, `CompleteCleaning`, atau `VerifyReadiness` dan
+permission efektif pengguna mengizinkan `InpatientBedManagement : Read` serta aksi terkait.
+Tombol memakai `BaseButton` dan membuka `InpatientBedCleaningDetail` existing; tidak ada form,
+endpoint, status, atau permission baru.
+
+Contoh: `325-A` berstatus `WaitingCleaning` dengan `AvailableActions: ["StartCleaning"]` akan
+menampilkan alasan belum layak dan tombol `Pembersihan` bagi pengguna berhak. Sesudah tindakan
+dimulai, denah dimuat ulang dan status `Cleaning` tetap tidak menampilkan `Pilih bed ini`.
+Sesudah verifikasi kesiapan berhasil, tombol pemilihan baru boleh tampil bila snapshot terbaru
+juga menyatakan `Available` dan `Eligibility.IsEligible = true`. Bila aksi kosong, permission
+ditolak/belum diketahui, atau refresh gagal, frontend tidak menyimpulkan kesiapan sendiri.

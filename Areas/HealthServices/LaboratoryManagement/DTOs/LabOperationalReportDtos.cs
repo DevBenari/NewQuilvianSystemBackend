@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
@@ -19,7 +20,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// </summary>
         public DateTime? EndDate { get; set; }
 
-        /// <summary>Kosong berarti seluruh disiplin. Nilai tak dikenal ditolak model binding.</summary>
+        /// <summary>
+        /// Kosong berarti seluruh disiplin. Nilai tak dikenal ditolak model binding. Konverter teks dipasang supaya
+        /// isi JSON <c>POST /print-log</c> laporan <c>S16b</c> menerima nama seperti query (<c>BE-LAB-98</c>);
+        /// angka tetap diterima.
+        /// </summary>
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public LabDiscipline? Discipline { get; set; }
     }
 

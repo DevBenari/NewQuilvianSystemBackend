@@ -62,6 +62,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.CompanyGuarantorId)
                 .IsRequired(false);
 
+            entity.Property(x => x.InheritedFromPaymentSourceId)
+                .IsRequired(false);
+
+            entity.Property(x => x.InheritedFromPaymentSourceAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
             // =========================
             // REGISTRATION SNAPSHOT
             // =========================
@@ -115,6 +122,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             // BE-FIN-105, kamus data 9.5: salinan historis, sengaja tanpa FK.
             entity.Property(x => x.EmployeeIdSnapshot)
+                .IsRequired(false);
+
+            entity.Property(x => x.WorkforceProfileIdSnapshot)
                 .IsRequired(false);
 
             entity.Property(x => x.FamilyMemberIdSnapshot)
@@ -228,9 +238,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
 
             entity.HasIndex(x => x.CompanyGuarantorId);
 
+            entity.HasIndex(x => x.InheritedFromPaymentSourceId)
+                .HasFilter("\"InheritedFromPaymentSourceId\" IS NOT NULL")
+                .HasDatabaseName("IX_RegPatientEncounterGuarantor_InheritedSource");
+
             entity.HasIndex(x => x.EmployeeIdSnapshot)
                 .HasFilter("\"EmployeeIdSnapshot\" IS NOT NULL")
                 .HasDatabaseName("IX_RegPatientEncounterGuarantor_EmployeeIdSnapshot");
+
+            entity.HasIndex(x => x.WorkforceProfileIdSnapshot)
+                .HasFilter("\"WorkforceProfileIdSnapshot\" IS NOT NULL")
+                .HasDatabaseName("IX_RegPatientEncounterGuarantor_WorkforceProfileIdSnapshot");
 
             entity.HasIndex(x => new
             {

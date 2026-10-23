@@ -113,6 +113,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var existingDoc = await LoadActiveAsync(episodeId, tracked: true, cancellationToken);
 
             var now = DateTime.UtcNow;
+            var users = await _sourceReader.GetUsersAsync(new[] { actorUserId ?? Guid.Empty }, cancellationToken);
+            var hasUserEntry = users.TryGetValue(actorUserId ?? Guid.Empty, out var userEntry);
+            string? actorName = hasUserEntry && !string.IsNullOrWhiteSpace(userEntry.DisplayName)
+                ? userEntry.DisplayName
+                : request.OfficerName;
+            string? actorPosition = hasUserEntry && !string.IsNullOrWhiteSpace(userEntry.PositionName)
+                ? userEntry.PositionName
+                : null;
+
             var content = new InpatientAdmissionConsentResponse
             {
                 EpisodeId = episodeId,
@@ -129,6 +138,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 SignedAt = ToUtc(request.SignedAt) ?? now,
                 GuidanceReceived = request.GuidanceReceived,
                 GuidanceNote = InpAdmissionText.Clean(request.GuidanceNote),
+                OfficerName = actorName,
+                OfficerPosition = actorPosition,
                 Status = "Signed",
                 IsSigned = true
             };
@@ -189,6 +200,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 _dbContext.Set<InpAdmissionDocument>().Add(doc);
                 _dbContext.Set<InpAdmissionDocumentParty>().Add(BuildParty(docId, content, isSelfSigner, actorUserId, now));
                 _dbContext.Set<InpAdmissionDocumentSignature>().Add(BuildSignature(docId, content, actorUserId, now));
+                _dbContext.Set<InpAdmissionDocumentSignature>().Add(BuildOfficerSignature(docId, actorName, actorPosition, actorUserId, now));
                 savedDoc = doc;
             }
             else
@@ -228,6 +240,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     sig.VerifiedByUserId = actorUserId;
                     sig.UpdateBy = actorUserId ?? Guid.Empty;
                     sig.UpdateDateTime = now;
+                }
+
+                var officerSig = existingDoc.Signatures?.FirstOrDefault(s => s.Slot == InpAdmissionSignatureSlot.AdmissionOfficer && !s.IsDelete);
+                if (officerSig != null)
+                {
+                    officerSig.SignerName = actorName ?? officerSig.SignerName;
+                    if (!string.IsNullOrWhiteSpace(actorPosition))
+                    {
+                        officerSig.SignerPositionName = actorPosition;
+                    }
+                    officerSig.SignedByUserId = actorUserId ?? officerSig.SignedByUserId;
+                    officerSig.UpdateBy = actorUserId ?? Guid.Empty;
+                    officerSig.UpdateDateTime = now;
+                }
+                else
+                {
+                    _dbContext.Set<InpAdmissionDocumentSignature>().Add(BuildOfficerSignature(existingDoc.Id, actorName, actorPosition, actorUserId, now));
                 }
 
                 savedDoc = existingDoc;
@@ -479,6 +508,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var revisionId = Guid.NewGuid();
             content.ConsentId = revisionId;
 
+            var users = await _sourceReader.GetUsersAsync(new[] { actorUserId }, cancellationToken);
+            var hasUserEntry = users.TryGetValue(actorUserId, out var userEntry);
+            string? actorName = hasUserEntry && !string.IsNullOrWhiteSpace(userEntry.DisplayName)
+                ? userEntry.DisplayName
+                : content.OfficerName;
+            string? actorPosition = hasUserEntry && !string.IsNullOrWhiteSpace(userEntry.PositionName)
+                ? userEntry.PositionName
+                : content.OfficerPosition;
+            content.OfficerName = actorName;
+            content.OfficerPosition = actorPosition;
+
             var revision = new InpAdmissionDocument
             {
                 Id = revisionId,
@@ -504,6 +544,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             revision.Party = BuildParty(revisionId, content, isSelfSigner, actorUserId, now);
             revision.Signatures.Add(BuildSignature(revisionId, content, actorUserId, now));
+            revision.Signatures.Add(BuildOfficerSignature(revisionId, actorName, actorPosition, actorUserId, now));
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
@@ -594,6 +635,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             content.ConsentId = doc.Id;
             content.EpisodeId = doc.EpisodeId;
             content.IsSigned = true;
+            var officerSig = doc.Signatures?.FirstOrDefault(s => s.Slot == InpAdmissionSignatureSlot.AdmissionOfficer && !s.IsDelete);
+            if (officerSig != null)
+            {
+                if (string.IsNullOrWhiteSpace(content.OfficerName))
+                {
+                    content.OfficerName = officerSig.SignerName;
+                }
+                content.OfficerPosition ??= officerSig.SignerPositionName;
+            }
             return content;
         }
 
@@ -609,7 +659,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             response.VersionNo = doc.VersionNo;
             response.RowVersion = doc.RowVersion;
             response.LastChangedAt = doc.CreateDateTime;
-            response.LastChangedByName = users.TryGetValue(doc.CreateBy, out var user) ? user.DisplayName : null;
+            var hasUser = users.TryGetValue(doc.CreateBy, out var user);
+            response.LastChangedByName = hasUser ? user.DisplayName : null;
+            response.OfficerName ??= response.LastChangedByName;
+            response.OfficerPosition ??= hasUser ? user.PositionName : null;
         }
 
         /// <summary>
@@ -750,6 +803,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 SignedAt = content.SignedAt ?? now,
                 RecordedAt = now,
                 VerifiedByUserId = actorUserId,
+                CreateBy = actorUserId ?? Guid.Empty,
+                CreateDateTime = now
+            };
+
+        /// <summary>Slot petugas PPRI satu versi; atestasi elektronik akun yang sedang masuk.</summary>
+        private static InpAdmissionDocumentSignature BuildOfficerSignature(
+            Guid documentId,
+            string? officerName,
+            string? officerPosition,
+            Guid? actorUserId,
+            DateTime now)
+            => new()
+            {
+                Id = Guid.NewGuid(),
+                DocumentId = documentId,
+                Slot = InpAdmissionSignatureSlot.AdmissionOfficer,
+                Method = InpAdmissionSignatureMethod.ElectronicAttestation,
+                SignerName = !string.IsNullOrWhiteSpace(officerName) ? officerName : "Petugas PPRI",
+                SignerPositionName = !string.IsNullOrWhiteSpace(officerPosition) ? officerPosition : "Petugas PPRI",
+                SignedAt = now,
+                SignedByUserId = actorUserId,
+                RecordedAt = now,
                 CreateBy = actorUserId ?? Guid.Empty,
                 CreateDateTime = now
             };

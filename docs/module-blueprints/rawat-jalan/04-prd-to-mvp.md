@@ -797,3 +797,403 @@ penjamin baru yang tidak cocok dengan kartunya ditolak.
 |---|---|---|
 | `RJ-DOC-OQ-PM-01` | Kontrak OCR kartu asuransi di agent | Tidak memblokir MVP; pencocokan nyata menunggu |
 | `RJ-DOC-OQ-PM-02` | Registrasi Radiologi | `POST-MVP` |
+
+---
+
+# Amendment RP — PRD ke MVP: Reservasi Pasien Prioritas (revisi `33`, `approved` 2026-10-16)
+
+## RP-1. Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Produk | Quilvian V2 |
+| Modul | Rawat Jalan, Amendment RP (kode `RP`) |
+| Status | `approved` — Sukma Giri, 2026-10-16 ("setuju dan lanjutkan", `RJ-PRI-DEC-030`) |
+| Repository target | `NewQuilvianSystemBackend` `551e1cbb` (`sukmagp`), `V2QuilvianSystemFrontendDev` `1fd858322` (`sukmagpV2`) |
+| Masukan | `00-interview-decisions.md` *Amendment RP* (`RJ-PRI-DEC-001` s.d. `029`), `01-capability-impact-scan-reservasi-prioritas.md`, `01-requirement-completeness-gate-reservasi-prioritas.md`, `02`/`03` *Amendment RP*, `contracts/*` *Amendment RP* (`RJ-PRI-RESV-001@1.0.0`), `data/data-dictionary.md` RP |
+| Cakupan | PDF "Pendaftaran membership pasien prioritas" poin 2A–2H. Poin 2I–2K adalah titik sentuh `billing-kasir` |
+
+## RP-2. Ringkasan eksekutif
+
+Member Silver, Gold, Platinum, dan Executive dapat memesan kedatangan tanpa harus tahu poli dan dokternya. Mereka
+menunggu di ruang tunggu prioritas, lalu petugas, perawat, dan dokter yang menghampiri. Nomor antrean mereka tidak
+pernah tampil di layar publik. Bersamaan dengan itu, kebocoran `PatientId` ke layar display publik yang sudah terjadi
+hari ini ikut ditutup.
+
+## RP-3. Masalah produk
+
+| Kondisi sekarang | Bukti |
+|---|---|
+| Tidak ada cara menyimpan pendaftaran tanpa poli/dokter. Nomor antrean langsung terbit saat simpan | `CAP-RP-06`, `CAP-RP-14` |
+| Nomor prioritas memakai daftar tetap `1, 3, 5, 10, 15`, bukan kelipatan 5 | `CAP-RP-01` |
+| Antrean prioritas tampil di urutan atas display dan dipanggil suara | `CAP-RP-02` |
+| Display menerima kabar realtime berisi `PatientId`/`EncounterId` (melanggar `RJ-DOC-DEC-057`) | `CAP-RP-03` |
+| Aturan member di antrean berbeda dari aturan CRM, dan booking dinilai pada tanggal kunjungan | `CAP-RP-04`, `CAP-RP-05` |
+| Belum ada halaman publik bertoken, sehingga belum ada link konfirmasi | `CAP-RP-09` |
+| Layar Pendaftaran Pasien tidak menampilkan status member | `CAP-RP-21` |
+| Yang sudah ada: alokator satu pintu, jalur pendaftaran dengan jadwal/kuota, resolver CRM, SignalR, rate limiter, nomor seri | `CAP-RP-07`, `08`, `10`, `13`, `14` |
+
+## RP-4. Visi produk
+
+1. Pasien member menelepon. Admisi membuat reservasi untuk tanggal tertentu tanpa poli/dokter.
+2. Pasien menerima nomor reservasi dan link lewat WA.
+3. Pada hari H pasien tiba dan menekan link. Layar admisi dan petugas skrining berbunyi.
+4. Petugas menghampiri pasien, mencatat skrining awal, lalu admisi melengkapi poli, dokter, dan penjamin lewat wizard
+   yang sudah ada.
+5. Kunjungan terbit dengan nomor kelipatan 5. Nomor itu tidak tampil di display, dan perawat serta dokter menghampiri
+   pasien.
+6. Tagihan dan pembayaran berjalan seperti kunjungan biasa.
+
+## RP-5. Batas MVP
+
+**Titik mulai:**
+
+1. Pasien sudah ber-No. RM dan punya membership berstatus Aktif di `crm-membership`.
+2. Master tingkat diisi `PriorityQueue = true` untuk keempat tingkat berbayar (`RJ-PRI-OQ-006`).
+3. Admisi dan petugas skrining sudah diberi butir `OutpatientPriorityReservation` di Akses Role.
+
+**Titik akhir:**
+
+1. Reservasi tercatat dari dibuat sampai Menjadi Kunjungan, Dibatalkan, Tidak Datang, atau Didaftarkan lewat Jalur
+   Lain, dengan riwayat lengkap.
+2. Kunjungan hasil reservasi punya nomor prioritas kelipatan 5 yang tidak tampil di display.
+3. Perawat dan dokter melihat lokasi ruang tunggu prioritas di worklist.
+4. *(MVP-2)* Pasien dapat mengonfirmasi kedatangan sendiri lewat link.
+
+## RP-6. Pelaku sasaran
+
+| Pelaku | Tanggung jawab dalam MVP |
+|---|---|
+| Admisi Rawat Jalan | Membuat, mengirim, menandai tiba, mengembalikan, melengkapi, membatalkan |
+| Petugas skrining | Menerima kabar tiba, mengisi checklist skrining |
+| Pasien member | Menerima link, mengonfirmasi tiba (MVP-2) |
+| Perawat, dokter | Menghampiri pasien berdasarkan penanda lokasi |
+| Sistem | Menutup reservasi yang tidak datang dan menutup reservasi yang terdaftar lewat jalur lain |
+
+## RP-7. Pemilihan kemampuan MVP
+
+| Kemampuan | ID asal | Keputusan MVP |
+|---|---|---|
+| Nomor kelipatan 5 | `CAP-RP-01` | Wajib. Tanpa ini nomor prioritas tidak sesuai PDF 2G |
+| Penyaring display dan realtime | `CAP-RP-02`, `CAP-RP-03` | Wajib. Tanpa ini nomor prioritas tetap terlihat, dan `PatientId` tetap bocor |
+| Satu aturan member di antrean | `CAP-RP-04`, `CAP-RP-05` | Wajib. Tanpa ini satu pasien bisa prioritas di satu layar dan Reguler di layar lain |
+| Wadah reservasi | `CAP-RP-06`, `07`, `08`, `15`, `16` | Wajib. Inti PDF 2E |
+| Pelengkapan lewat jalur pendaftaran | `CAP-RP-14` | Wajib. Tanpa ini reservasi tidak pernah menjadi kunjungan |
+| Daftar realtime untuk admisi | `CAP-RP-13` | Wajib. Tanpa ini petugas tidak tahu pasien sudah tiba |
+| Penanda lokasi dan tiket | `CAP-RP-17`, `18` | Wajib. Tanpa ini pasien prioritas tidak pernah dihampiri, karena tidak dipanggil |
+| Hak akses resource baru | `CAP-RP-20` | Wajib |
+| Label member di Pendaftaran | `CAP-RP-21` | Wajib (PDF 2C) |
+| Tombol `wa.me` | `CAP-RP-22` | Wajib (PDF 2E-I) |
+| Link konfirmasi publik | `CAP-RP-09`, `10`, `11`, `12` | Wajib untuk PDF 2E-I, tetapi dikirim di `MVP-2`. Selama `MVP-1`, petugas menandai tiba (`RJ-PRI-DEC-023`) |
+
+## RP-8. Kemampuan yang ditunda
+
+| Kemampuan | ID asal | Alasan ditunda | Pengganti selama MVP |
+|---|---|---|---|
+| WA terkirim otomatis | — | Belum ada WA gateway dan belum ada owner `platform-notification` (`RJ-PRI-OQ-004`) | Tombol `wa.me` dikirim manual dari akun RS (`RJ-PRI-DEC-011`) |
+| Peringatan pasien prioritas menunggu terlalu lama | — | Tidak diminta PDF; butuh batas waktu yang belum diputuskan (`GATE-RP-03`) | Admisi memantau kolom jam tiba di daftar |
+| Diskon member pada tagihan RJ (2J-V) | — | Menunggu `DEC-CRM-001` pertanyaan 5 di `billing-kasir` (`RJ-PRI-OQ-005`) | Tagihan tanpa diskon member |
+| Wallet / prepaid (2J-VI) | — | Ditunda `CRM-DEC-009` | Cara bayar biasa |
+| Laporan rekap reservasi | — | Tidak diminta (`RJ-PRI` gate dimensi 18) | Daftar dengan saringan tanggal dan status |
+| Lonceng notifikasi | — | `platform-notification` belum ada | Bunyi di layar daftar |
+
+## RP-9. Alur bisnis target — `FLOW-RP-MVP-001`
+
+1. Rabu 14 Okt, Ibu Sari (Gold) menelepon. Admisi Dewi mencari No. RM-nya dan label Gold tampil.
+2. Dewi memilih tanggal 16 Okt lalu menyimpan. Reservasi `RSV-261016-0001` berstatus Menunggu Kedatangan.
+3. Dewi menekan "Kirim via WhatsApp", dan pesan berisi nomor dan link terkirim dari akun RS.
+4. Jumat 16 Okt pukul 08.40, Ibu Sari menekan "Saya sudah tiba". Reservasi menjadi Sudah Tiba, dan layar Dewi serta
+   petugas skrining Rina berbunyi.
+5. Rina menemui Ibu Sari di ruang tunggu prioritas dan mengisi checklist.
+6. Dewi menekan "Lengkapi". Wizard Pendaftaran Pasien terbuka, lalu Dewi memilih Penyakit Dalam, dr. Maya, Pribadi, dan
+   consent.
+7. Kunjungan terbit dengan nomor 5, dan reservasi menjadi Menjadi Kunjungan.
+8. Perawat melihat "5 — Ruang Tunggu Prioritas", menghampiri, lalu menyelesaikan skrining TTV. Dokter menghampiri untuk
+   pemeriksaan.
+9. Kasir menagih seperti kunjungan biasa.
+
+## RP-10. Epic dan functional requirement
+
+### EPIC RP-01 — Nomor prioritas kelipatan 5 — `EXTEND`
+
+| FR | Requirement |
+|---|---|
+| `FR-RP-001` | Prioritas mendapat kelipatan 5 terkecil yang belum terpakai, dan Reguler mendapat nomor terkecil yang bukan kelipatan 5. Contoh: dengan nomor 1, 2, 3, 5 terpakai, prioritas berikutnya mendapat 10, Reguler berikutnya mendapat 4 |
+| `FR-RP-002` | Kelipatan diatur `PriorityNumberMultiple` (bawaan 5, minimal 2). Nilai di bawah 2 membuat aplikasi gagal mulai |
+
+### EPIC RP-02 — Privasi display dan realtime — `EXTEND`
+
+| FR | Requirement |
+|---|---|
+| `FR-RP-010` | `GET /summary`, `/items`, `/called` display tidak memuat dan tidak menghitung antrean prioritas |
+| `FR-RP-011` | Akun display bergabung lewat `JoinQueueDisplayCluster` dan ditolak di group perawat/dokter |
+| `FR-RP-012` | Event ke display tidak memuat `PatientId`, `EncounterId`, maupun data member, dan tidak dikirim untuk antrean prioritas |
+| `FR-RP-013` | Layar display memakai group baru dan mengabaikan kandidat prioritas |
+
+### EPIC RP-03 — Satu aturan member di antrean (`BE-CRM-022`) — `EXTEND`
+
+| FR | Requirement |
+|---|---|
+| `FR-RP-020` | Klasifikasi antrean memakai `PatientMembershipStatusResolver` |
+| `FR-RP-021` | Klasifikasi dinilai pada hari pendaftaran (WIB). Contoh: booking 1 Okt untuk 20 Okt tetap prioritas walau Gold habis 13 Okt |
+| `FR-RP-022` | Pasien dengan membership Kedaluwarsa terbaca Reguler di antrean dan nurse station |
+
+### EPIC RP-04 — Reservasi Prioritas — `MISSING / NEW`
+
+| FR | Requirement |
+|---|---|
+| `FR-RP-030` | Admisi membuat reservasi untuk member Aktif, hari ini sampai `MaxDaysAhead` hari ke depan. Nomor dari `NumberSeriesAllocator` |
+| `FR-RP-031` | Paling banyak satu reservasi terbuka per pasien per tanggal, termasuk pada dua permintaan bersamaan |
+| `FR-RP-032` | Reservasi ditolak bila pasien sudah punya kunjungan RJ aktif pada tanggal itu |
+| `FR-RP-033` | Petugas dapat menandai tiba pada hari H, dan mengembalikan ke Belum Tiba dengan alasan |
+| `FR-RP-034` | Petugas skrining menyimpan checklist batuk, demam, dan risiko jatuh |
+| `FR-RP-035` | Admisi membatalkan dengan alasan 10–500 karakter. Ganti tanggal = batal lalu buat baru, dengan kelayakan dinilai ulang |
+| `FR-RP-036` | Reservasi terbuka yang tanggalnya lewat menjadi Tidak Datang pukul 00.05 WIB. Menjalankan dua kali tidak menggandakan riwayat |
+| `FR-RP-037` | Setiap kejadian tercatat di riwayat beserta pelaku, sumber, jam, dan alasan |
+| `FR-RP-038` | Daftar realtime: konfirmasi tiba memperbarui layar pemegang `Read` tanpa memuat ulang |
+
+### EPIC RP-05 — Pelengkapan dan jalur lain — `EXTEND`
+
+| FR | Requirement |
+|---|---|
+| `FR-RP-040` | `POST /patient-encounters/admin` dengan `priorityReservationId` membuat kunjungan dan mengubah reservasi menjadi Menjadi Kunjungan dalam satu transaksi |
+| `FR-RP-041` | Pelengkapan memakai snapshot klasifikasi reservasi, kecuali membership snapshot Dibatalkan (Reguler) |
+| `FR-RP-042` | Pelengkapan ditolak bila reservasi bukan Sudah Tiba, pasien berbeda, tanggal bukan hari ini, atau tanpa izin `Complete` |
+| `FR-RP-043` | Kunjungan RJ berpoliklinik lain pada tanggal yang sama menutup reservasi terbuka sebagai Didaftarkan lewat Jalur Lain. IGD dan Laboratorium langsung tidak menutupnya |
+
+### EPIC RP-06 — Link konfirmasi publik — `MISSING / NEW`
+
+| FR | Requirement |
+|---|---|
+| `FR-RP-050` | Kode 32 byte acak, hanya hash tersimpan, link hanya muncul di respons buat dan kirim ulang |
+| `FR-RP-051` | Halaman publik: `NOT_YET_OPEN` sebelum hari H, `READY`, `CONFIRMED` dengan jam pertama, dan 404 seragam untuk kode yang tidak berlaku |
+| `FR-RP-052` | Kirim ulang mematikan kode lama |
+| `FR-RP-053` | Batas 20 permintaan per menit per IP, dengan 429 terbaca "coba lagi" |
+
+### EPIC RP-07 — Penanda lokasi dan tiket — `EXTEND`
+
+| FR | Requirement |
+|---|---|
+| `FR-RP-060` | Antrean prioritas di Nurse Station dan Klinis Dokter menampilkan nama ruang tunggu prioritas dari konfigurasi |
+| `FR-RP-061` | Tiket kiosk dan layar selesai petugas untuk antrean prioritas mengarahkan ke ruang tunggu prioritas |
+| `FR-RP-062` | Teks pesan WA hanya memuat nomor reservasi, tanggal, dan link |
+
+### EPIC RP-08 — Label member di Pendaftaran Pasien — `EXTEND`
+
+| FR | Requirement |
+|---|---|
+| `FR-RP-070` | Hasil pencarian dan panel identitas Pendaftaran Pasien menampilkan tingkat member Aktif. Pasien Reguler dan Kedaluwarsa tanpa label |
+
+## RP-11. Model status yang diusulkan
+
+Menunggu Kedatangan ⇄ Sudah Tiba → Menjadi Kunjungan. Status akhir lainnya: Dibatalkan, Tidak Datang, Didaftarkan lewat
+Jalur Lain. Invariant utama: satu reservasi terbuka per pasien per tanggal (`INV-RP-01`), dan satu reservasi paling
+banyak satu kunjungan (`INV-RP-04`). Rincian di `contracts/state-transition-matrix.md` *Amendment RP*.
+
+## RP-12. Sasaran arsitektur
+
+| Dipakai ulang | Diperluas | Baru |
+|---|---|---|
+| `NumberSeriesAllocator`, `PatientMembershipStatusResolver`, pola hosted service, `AddRateLimiter`, wizard Pendaftaran Pasien, pola `wa.me` | `OutpatientQueueNumberAllocator`, `OutpatientQueueClassificationService`, `PatientEncounterController`, `QueueDisplayRuntimeController`, `QueueRealtimeService`, `QueueHub`, DTO antrean | `RegPriorityReservation`, `RegPriorityReservationHistory`, `OutpatientPriorityReservationService`, `OutpatientPriorityReservationClosureHostedService`, dua controller, tiga enum, halaman publik, layar Reservasi Prioritas |
+
+## RP-13. Sasaran kemampuan API
+
+### Health Services / Registration Management / Outpatient Priority Reservation
+
+Base URL: `api/v1/health-services/registration-management/outpatient-priority-reservations`
+
+| Method | Path | Kegunaan | Hak akses | Epic | Status |
+|---|---|---|---|---|---|
+| `GET` | `/`, `/summary`, `/{id}`, `/eligibility` | Daftar, ringkasan, detail, kelayakan | `OutpatientPriorityReservation : Read` | `RP-04` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Buat | `OutpatientPriorityReservation : Create` | `RP-04` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/arrival-code` | Kirim ulang | `OutpatientPriorityReservation : Create` | `RP-06` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/arrival`, `/{id}/arrival-reversal` | Tandai tiba, kembalikan | `OutpatientPriorityReservation : Complete` | `RP-04` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/screening` | Checklist | `OutpatientPriorityReservation : Screen` | `RP-04` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Batal | `OutpatientPriorityReservation : Cancel` | `RP-04` | **Rencana (belum tersedia)** |
+
+### Health Services / Registration Management / Priority Reservation Arrival
+
+| Method | Path | Kegunaan | Hak akses | Epic | Status |
+|---|---|---|---|---|---|
+| `GET` | `/{code}` | Halaman link | Publik | `RP-06` | **Rencana (belum tersedia)** |
+| `POST` | `/{code}/confirm` | Konfirmasi tiba | Publik | `RP-06` | **Rencana (belum tersedia)** |
+
+### Health Services / Registration Management / Patient Encounter
+
+| Method | Path | Kegunaan | Hak akses | Epic | Status |
+|---|---|---|---|---|---|
+| `POST` | `/admin` (+ `priorityReservationId`) | Lengkapi reservasi | `PatientEncounter : Create` + `OutpatientPriorityReservation : Complete` | `RP-05` | **Diperbarui (belum tersedia)** |
+
+## RP-14. Matriks kewenangan
+
+| Peran | String izin |
+|---|---|
+| Admisi RJ | `[AccessPermission("OutpatientPriorityReservation", "Read")]`, `[AccessPermission("OutpatientPriorityReservation", "Create")]`, `[AccessPermission("OutpatientPriorityReservation", "Screen")]`, `[AccessPermission("OutpatientPriorityReservation", "Complete")]`, `[AccessPermission("OutpatientPriorityReservation", "Cancel")]`, `[AccessPermission("PatientEncounter", "Create")]` |
+| Petugas skrining | `[AccessPermission("OutpatientPriorityReservation", "Read")]`, `[AccessPermission("OutpatientPriorityReservation", "Screen")]` |
+| Pasien | Tanpa login, lewat kode acak |
+
+## RP-15. Batas integrasi dan billing
+
+Amendment ini **MUST NOT**: membuat tagihan, folio, atau charge dari reservasi; menulis ke tabel membership atau
+proyeksi member; memanggil penyedia WhatsApp atau email dari backend; menerapkan diskon member. Tagihan, cara bayar, dan
+closing (2I–2K) tetap milik `billing-kasir`.
+
+## RP-16. Guardrail regulasi
+
+- Status member tidak mengubah urutan penanganan medis (`CRM-DEC-007`). Prioritas di RJ adalah layanan non-klinis.
+- Identitas pasien tidak tampil di layar publik dan halaman link (`RJ-DOC-DEC-057`, `RJ-PRI-DEC-012`).
+- Hasil skrining awal adalah data kesehatan: hanya untuk petugas berhak, tidak masuk log.
+- Petugas yang menghampiri pasien mengikuti SOP identifikasi pasien RS (dua penanda). Sistem menampilkan nama dan
+  tanggal lahir di layar petugas.
+- Riwayat reservasi tidak dihapus.
+
+## RP-17. Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+|---|---|
+| `NFR-RP-001` | Kunjungan dan perubahan reservasi tersimpan bersama atau tidak sama sekali |
+| `NFR-RP-002` | Kunci per pasien + unique index mencegah dua reservasi terbuka dan dua kunjungan dari satu reservasi |
+| `NFR-RP-003` | `RowVersion` mencegah dua petugas saling menimpa |
+| `NFR-RP-004` | Semua aturan tanggal memakai kalender WIB |
+| `NFR-RP-005` | Proses akhir hari idempoten dan mengejar ketertinggalan |
+| `NFR-RP-006` | Gagal membaca status member tidak menahan pendaftaran kunjungan, dan klasifikasi jatuh ke Reguler |
+| `NFR-RP-007` | Endpoint publik merespons seragam untuk kode yang tidak berlaku dan dibatasi per IP |
+| `NFR-RP-008` | Halaman publik dapat dipakai di HP dengan lebar 360 px |
+
+## RP-18. Skenario UAT
+
+| ID | Epic | Jalur | Kondisi awal | Langkah | Hasil yang diharapkan |
+|---|---|---|---|---|---|
+| `UAT-RP-01` | RP-01 | Berhasil | Poli kosong hari ini | Daftarkan Reguler, Reguler, prioritas | Nomor 1, 2, 5 |
+| `UAT-RP-02` | RP-01 | Gagal | Konfigurasi kelipatan diisi 1 | Jalankan aplikasi | Aplikasi gagal mulai dengan pesan konfigurasi |
+| `UAT-RP-03` | RP-02 | Berhasil | Nomor 5 (prioritas) dan 6 (Reguler) dipanggil perawat | Lihat display ruang tunggu | Hanya nomor 6 tampil dan bersuara |
+| `UAT-RP-04` | RP-02 | Gagal | Akun display | Coba bergabung ke group perawat | Ditolak |
+| `UAT-RP-05` | RP-03 | Berhasil | Booking 1 Okt untuk 20 Okt, Gold habis 13 Okt | Pasien datang 20 Okt | Antrean prioritas |
+| `UAT-RP-06` | RP-03 | Gagal | Gold Kedaluwarsa kemarin | Daftar hari ini | Reguler di antrean dan nurse station |
+| `UAT-RP-07` | RP-04 | Berhasil | Pasien Gold Aktif | Buat reservasi untuk lusa | Menunggu Kedatangan, nomor `RSV`, link tampil sekali |
+| `UAT-RP-08` | RP-04 | Gagal | Pasien Reguler | Buat reservasi | Ditolak: bukan member aktif |
+| `UAT-RP-09` | RP-04 | Gagal | Reservasi terbuka sudah ada | Buat reservasi kedua tanggal sama | Ditolak dengan nomor yang sudah ada |
+| `UAT-RP-10` | RP-04 | Berhasil | Reservasi kemarin belum dilengkapi | Tunggu 00.05 WIB | Tidak Datang |
+| `UAT-RP-11` | RP-05 | Berhasil | Reservasi Sudah Tiba | Lengkapi lewat Pendaftaran Pasien | Kunjungan, nomor kelipatan 5, reservasi Menjadi Kunjungan |
+| `UAT-RP-12` | RP-05 | Gagal | Reservasi Menunggu Kedatangan | Coba lengkapi | Ditolak: pasien belum tiba |
+| `UAT-RP-13` | RP-05 | Berhasil | Reservasi terbuka | Pasien memakai kiosk | Kunjungan terbentuk, reservasi Didaftarkan lewat Jalur Lain |
+| `UAT-RP-14` | RP-06 | Berhasil | Hari H | Pasien menekan link | Sudah Tiba, layar admisi berbunyi |
+| `UAT-RP-15` | RP-06 | Gagal | Link sudah dikirim ulang | Buka link lama | "Link tidak berlaku" |
+| `UAT-RP-16` | RP-07 | Berhasil | Antrean prioritas terbit | Buka Nurse Station | "Ruang Tunggu Prioritas" tampil |
+| `UAT-RP-17` | RP-07 | Gagal | Antrean Reguler | Buka Nurse Station | Tanpa penanda lokasi |
+| `UAT-RP-18` | RP-08 | Berhasil | Pasien Gold | Cari di Pendaftaran Pasien | Label Gold |
+| `UAT-RP-19` | RP-08 | Gagal | Pasien Gold Menunggu Pembayaran | Cari di Pendaftaran Pasien | Tanpa label |
+
+## RP-19. Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Nomor prioritas kelipatan 5, nomor Reguler bukan kelipatan 5 | `R-RP-01`, `R-RP-02`, `UAT-RP-01` |
+| Display tidak menampilkan antrean prioritas, baik lewat API maupun realtime, dan tidak menerima `PatientId` | `R-RP-03` s.d. `05`, `UAT-RP-03`/`04` |
+| Satu aturan member di antrean, dinilai pada hari pendaftaran | `R-RP-06`, `R-RP-07`, `UAT-RP-05`/`06` |
+| Reservasi dibuat, dibatalkan, dan ditutup sesuai matriks status | `R-RP-08` s.d. `R-RP-12`, `R-RP-15`, `R-RP-18`, `R-RP-19`, `R-RP-24` |
+| Pelengkapan atomik, dan jalur lain menutup reservasi | `R-RP-16`, `R-RP-17`, `R-RP-21`, `R-RP-22` |
+| Link publik aman: hash saja, tanpa data pribadi, kirim ulang, batas laju | `R-RP-11` s.d. `13`, `R-RP-23`, `R-RP-25` |
+| Kabar realtime sampai ke admisi dan petugas skrining | `R-RP-14` |
+| Penanda lokasi dan tiket | `R-RP-21`, `R-RP-29` |
+| Label member di Pendaftaran | `R-RP-28` |
+| Tidak ada regresi pendaftaran Reguler, kiosk, IGD, Laboratorium | `R-RP-30` |
+| Butir menu "Reservasi Prioritas" terdaftar dan dijaga `Read` | Uji layar `FE-RP-01` |
+| Build, EF, dan QBE Strict lulus untuk setiap task backend | Laporan task |
+| Domain dan IP asli untuk link publik terkonfirmasi | **Belum** dapat dijawab — `RJ-PRI-OQ-003` (go-live `MVP-2`) |
+| Master tingkat berisi `PriorityQueue = true` | **Belum** dapat dijawab — `RJ-PRI-OQ-006` (go-live) |
+
+## RP-20. Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-0` | `EPIC RP-03`, `RP-01`, `RP-02` | Blueprint revisi 33 disetujui. Berdiri sendiri, dan sudah berguna bagi pasien prioritas walk-in |
+| `MVP-1` | `EPIC RP-04`, `RP-05`, `RP-07`, `RP-08` | `MVP-0` selesai. Alur ujung ke ujung dengan petugas menandai tiba |
+| `MVP-2` | `EPIC RP-06` | `MVP-1` selesai. Development boleh jalan; go-live menunggu `RJ-PRI-OQ-003` |
+| `POST-MVP` | WA otomatis, peringatan lama tunggu, diskon billing, laporan rekap | Bagian RP-8 |
+
+| Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+|---|---|---|:---:|
+| `RJ-PRI-OQ-003` aksesibilitas internet domain RS dan penerusan IP asli | IT/infrastruktur | Link tidak dapat dibuka pasien dari HP | Go-live `MVP-2` saja |
+| `RJ-PRI-OQ-006` isi master tingkat | Yoga Aji Pratama / Marketing | Reservasi bisa dibuat, tetapi nomor yang terbit Reguler | Go-live |
+| `RJ-PRI-OQ-002`, `011`, `012` | Desain (usulan terlampir) | — | Tidak |
+| Pemetaan aksi tandai tiba/kembalikan ke `Complete` dan kirim ulang ke `Create` | Sukma Giri, bersama approval blueprint | Bila ditolak, perlu aksi tambahan di Akses Role | Tidak (disetujui bersama blueprint) |
+
+**Development lock:** `MVP-0` s.d. `MVP-2` terkunci untuk perencanaan delivery (`RJ-PRI-DEC-030`). Go-live `MVP-2` tetap menunggu `RJ-PRI-OQ-003`.
+
+# Amendment RP-GT — PRD ke MVP: Ganti tanggal reservasi (revisi `34`, `approved` 2026-10-21)
+
+## RP-GT-1. Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Modul | Rawat Jalan, Amendment RP-GT (kode `RP`, lanjutan Amendment RP) |
+| Status | `approved` — Sukma Giri, 2026-10-21 (`RJ-PRI-DEC-039`) |
+| Repository target | `NewQuilvianSystemBackend` `b0285ff1` (`sukmagp`), `V2QuilvianSystemFrontendDev` `037c975b7` (`sukmagpV2`) |
+| Masukan | `00-interview-decisions.md` *Amendment Pass 2026-10-21* (`RJ-PRI-DEC-034` s.d. `038`), `02`/`03` *Amendment RP-GT*, `contracts/*` *Amendment RP-GT* (`RJ-PRI-RESV-001@1.2.0`), `data/data-dictionary.md` RP-GT |
+
+## RP-GT-2. Ringkasan dan masalah
+
+Hari ini, pasien yang ingin pindah tanggal harus dibatalkan lalu dibuatkan reservasi baru. Akibatnya ada tiga masalah:
+- reservasi lama sudah hilang bila reservasi baru ternyata ditolak;
+- admisi dapat lupa membatalkan reservasi lama, sehingga reservasi itu tercatat Tidak Datang;
+- nomor reservasi dan riwayatnya terputus (`F-GT-2`, `F-GT-3`).
+
+Revisi ini menambah satu aksi Ganti Tanggal sebelum hari kunjungan. Aksi ini tetap tidak memberi celah untuk memperpanjang
+hak prioritas.
+
+## RP-GT-3. Batas MVP
+
+| Titik | Isi |
+|---|---|
+| Mulai | Admisi membuka detail reservasi Menunggu Kedatangan sebelum hari kunjungan |
+| Akhir | Reservasi tersimpan pada tanggal baru, link baru dikirim lewat `wa.me`, dan riwayat mencatat penggantian |
+
+## RP-GT-4. Epic dan functional requirement
+
+### EPIC RP-09 — Ganti tanggal reservasi — `EXTEND`
+
+| FR | Requirement | Disposisi |
+|---|---|---|
+| `FR-RP-090` | Admisi dapat mengganti tanggal reservasi Menunggu Kedatangan bila hari ini (WIB) < tanggal kunjungan. Nomor dan status tetap | `EXTEND` (`OutpatientPriorityReservationService`) |
+| `FR-RP-091` | Tanggal baru diperiksa sama seperti saat membuat reservasi, ditambah: tidak boleh sama dengan tanggal lama | `EXTEND` (`ValidateVisitDate`, `FindOpenReservationAsync`, `HasActiveOutpatientEncounterOnAsync`) |
+| `FR-RP-092` | Status member dinilai ulang pada hari penggantian. Bila bukan member Aktif, ganti tanggal ditolak dan reservasi lama tetap. Bila berhasil, snapshot diganti | `EXTEND` (`OutpatientQueueClassificationService`) |
+| `FR-RP-093` | Ganti tanggal menerbitkan link baru dan mematikan link lama dalam satu penyimpanan. Teks WA versi ganti tanggal | `EXTEND` (pola kirim ulang) |
+| `FR-RP-094` | Riwayat `RESCHEDULED` mencatat tanggal lama, tanggal baru, alasan, pelaku, dan jam | `EXTEND` (`RegPriorityReservationHistory` + 2 kolom) |
+| `FR-RP-095` | Kabar realtime membawa tanggal lama dan baru, sehingga layar kedua tanggal ikut diperbarui | `EXTEND` (`QueueRealtimeService`, layar daftar) |
+| `FR-RP-096` | Hak akses memakai `OutpatientPriorityReservation : Create` | `EXISTING / REUSE` |
+
+## RP-GT-5. Skenario UAT
+
+| ID | Epic | Jalur | Kondisi awal | Langkah | Hasil yang diharapkan |
+|---|---|---|---|---|---|
+| `UAT-RP-20` | RP-09 | Berhasil | Reservasi Gold untuk besok | Ganti tanggal ke 3 hari lagi, kirim link baru | Tanggal berubah, nomor sama, link lama "tidak berlaku", link baru tampil sekali |
+| `UAT-RP-21` | RP-09 | Gagal | Reservasi untuk hari ini | Buka detail | Tombol Ganti Tanggal tidak tampil. Admisi memakai batal lalu buat baru |
+| `UAT-RP-22` | RP-09 | Gagal | Membership pasien sudah Kedaluwarsa | Ganti tanggal | Ditolak, dan reservasi lama tetap berlaku pada tanggalnya |
+| `UAT-RP-23` | RP-09 | Gagal | Pasien sudah punya reservasi di tanggal tujuan | Ganti tanggal ke tanggal itu | Ditolak dengan nomor reservasi yang sudah ada |
+
+## RP-GT-6. Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Ganti tanggal berhasil sesuai aturan, dan gagal tanpa mengubah apa pun | `R-RP-31` s.d. `R-RP-36`, `UAT-RP-20` s.d. `23` |
+| Link lama mati dan link baru berfungsi; hanya hash yang tersimpan | `R-RP-37` |
+| Hak akses dan alasan wajib | `R-RP-38` |
+| Riwayat lengkap tanpa kebocoran ke log | `R-RP-39` |
+| Konkurensi aman | `R-RP-40` |
+| Layar tanggal lama dan baru diperbarui realtime | `R-RP-41` |
+| Tidak ada regresi alur RP | `R-RP-42` |
+| Build, EF, dan QBE Strict lulus; migration `AddPriorityReservationHistoryVisitDates` diterapkan ke DB uji | Laporan task |
+
+## RP-GT-7. Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-3` | `EPIC RP-09` | Revisi `34` disetujui. `MVP-0` s.d. `MVP-2` sudah selesai (20/20 task) |
+
+| Pertanyaan | Siapa | Dampak | Memblokir |
+|---|---|---|:---:|
+| `RJ-PRI-OQ-013` tanggal baru = tanggal lama | Desain | Diadopsi sebagai `VAL-RP-23` (ditolak 400) | Tidak |
+| `RJ-PRI-OQ-014` peringatan reservasi terbuka di tanggal lain saat membuat reservasi | Sukma Giri | Kasus lupa membatalkan masih mungkin lewat tombol Buat Reservasi | Tidak (`LATER SLICE`) |
+
+**Development lock:** `MVP-3` terkunci untuk perencanaan delivery setelah revisi `34` disetujui.
