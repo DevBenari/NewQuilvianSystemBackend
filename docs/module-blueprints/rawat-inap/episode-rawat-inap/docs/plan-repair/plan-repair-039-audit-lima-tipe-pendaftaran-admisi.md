@@ -22,7 +22,7 @@ Delapan dari sembilan perbaikan hanya menyentuh frontend dan memakai endpoint ya
 | --- | --- | --- | --- | :---: | --- | --- | --- |
 | `FIX-EPS-039-01` | `ISS-EPS-039-01` | Episode Draft dicatat ke URL di semua jalur; pilihan DPJP disimpan per pasien | FE | 1 | `FIX-EPS-039` | 🟡 SEBAGIAN — 5/5 AC ada di source; AC5 terbukti tes unit; AC1–AC4 menunggu uji layar (S1, S2) | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) |
 | `FIX-EPS-039-02` | `ISS-EPS-039-02` | ID permintaan Kamar Pulih dicatat di URL dan dibaca ulang saat muat | FE | 1 | `FIX-EPS-039` | 🟡 SEBAGIAN — 3/3 AC ada di source; 0/3 terbukti uji layar (S3) | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) |
-| `FIX-EPS-039-03` | `ISS-EPS-039-03` | Data rujukan faskes luar disimpan pada episode rawat inap (K-01 = B) | BE + FE | 1 | `FIX-EPS-039-03-BE`, `FIX-EPS-039-03-FE` | 🟡 SEBAGIAN (23-10-2026) — 4/4 AC ada di source; AC2 terbukti tes unit; AC1/AC3 belum diuji bolak-balik dengan server; AC4 migration tersedia, belum diterapkan. BE: build Release 0 error, QBE Strict PASS. FE: lint 0 error, tes 7/7, suite tanpa kegagalan baru (43 lama), build PASS, render SSR 4/4. Belum: `dotnet ef database update`, uji layar R1–R5 | [`FIX-EPS-039-03-BE.md`](../../task/report/backend/FIX-EPS-039-03-BE.md), [`FIX-EPS-039-03-FE.md`](../../task/report/frontend/FIX-EPS-039-03-FE.md) |
+| `FIX-EPS-039-03` | `ISS-EPS-039-03` | Data rujukan faskes luar disimpan pada episode rawat inap (K-01 = B) | BE + FE | 1 | `FIX-EPS-039-03-BE`, `FIX-EPS-039-03-FE` | 🟡 SEBAGIAN (23-10-2026) — 4/4 AC ada di source; AC2 terbukti tes unit; AC1/AC3 belum diuji bolak-balik dengan server; AC4 ✅ migration diterapkan pemilik 23-10-2026. BE: build Release 0 error, QBE Strict PASS. FE: lint 0 error, tes 7/7, suite tanpa kegagalan baru (43 lama), build PASS, render SSR 4/4. Belum: uji layar R1–R5 | [`FIX-EPS-039-03-BE.md`](../../task/report/backend/FIX-EPS-039-03-BE.md), [`FIX-EPS-039-03-FE.md`](../../task/report/frontend/FIX-EPS-039-03-FE.md) |
 | `FIX-EPS-039-04` | `ISS-EPS-039-04` | Draf sesi tidak disimpan pada kunci `active` di semua jalur | FE | 2 | `FIX-EPS-039` | 🟡 SEBAGIAN — 2/2 AC ada di source; 0/2 terbukti uji layar (S4) | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) |
 | `FIX-EPS-039-05` | `ISS-EPS-039-05` | Sumber transfer tidak dimuat ulang per langkah; episode transfer ditandai milik layar | FE | 2 | `FIX-EPS-039` | 🟡 SEBAGIAN — 2/2 AC ada di source; 0/2 terbukti uji layar (S5) | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) |
 | `FIX-EPS-039-06` | `ISS-EPS-039-06` | Penjamin yang belum terbaca ditulis "Belum terbaca" | FE | 2 | `FIX-EPS-039` | ✅ SELESAI | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) — render SSR 4/4 |
@@ -31,7 +31,7 @@ Delapan dari sembilan perbaikan hanya menyentuh frontend dan memakai endpoint ya
 | `FIX-EPS-039-09` | `ISS-EPS-039-09` | Perbaiki argumen `onChange` cabang pilihan bed transfer | FE | 3 | `FIX-EPS-039` | ✅ SELESAI | [`FIX-EPS-039.md`](../../task/report/frontend/FIX-EPS-039.md) — tes regresi, lint, build |
 
 **Ringkasan: 2 dari 9 perbaikan selesai, 7 sebagian (source, lint, unit test, dan build selesai
-23-10-2026; uji layar belum; FIX-03 juga menunggu migration diterapkan), 0 belum dikerjakan.**
+23-10-2026; uji layar belum), 0 belum dikerjakan.**
 
 ---
 

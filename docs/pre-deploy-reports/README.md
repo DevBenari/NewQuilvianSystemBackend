@@ -23,7 +23,7 @@ Contoh:
 Setiap berkas laporan mendokumentasikan hasil pengujian dari 4 gerbang berikut:
 
 1. **Gerbang 1: Sanitasi Git, Deteksi Branch, & Marker Konflik**: Mendeteksi branch pengembang dan memastikan working tree bersih serta bebas dari sisa konflik git (`<<<<<<<`, `=======`, `>>>>>>>`).
-2. **Gerbang 2: Kompilasi Cepat & Ringan .NET**: Menjalankan `dotnet build -p:SkipMigrationMetadata=true -p:RunAnalyzers=false` untuk memastikan kompilasi 100% bebas error (*0 Error*) tanpa membebani memori/resource.
+2. **Gerbang 2: Kompilasi .NET**: Menjalankan `dotnet build` untuk memastikan kompilasi 100% bebas error (*0 Error*) secara penuh dan utuh.
 3. **Gerbang 3: Migrasi Skema Database EF Core**: Menjalankan `dotnet ef database update --no-build` untuk memverifikasi kesiapan skema database tanpa melakukan kompilasi ganda.
 4. **Gerbang 4: Kepatuhan Standar Arsitektur QBE**: Menjalankan `.\tooling\qbe\Invoke-QbeConformanceCheck.ps1 -Mode Strict` untuk memverifikasi kepatuhan terhadap kontrak arsitektur Quilvian Backend.
 

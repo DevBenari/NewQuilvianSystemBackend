@@ -11,14 +11,14 @@
 | Trace | [ISSUE-EPS-039](../../../docs/issue/issue-039-audit-lima-tipe-pendaftaran-admisi.md) `ISS-EPS-039-03`; `RWI-DEC-269`, `RWI-AC-390`, `FE-RWI-223`, `FE-RWI-224`; keputusan pemilik K-01 = B, 23-10-2026 |
 | Contract version | Perluasan additive `POST /episodes` dan `GET /episodes/{id}` dari [`FIX-EPS-039-03-BE`](../backend/FIX-EPS-039-03-BE.md): objek opsional `externalReferral` |
 | Wewenang UI | Plan repair 039 disetujui pemilik 23-10-2026, termasuk revisi K-01 ke opsi B |
-| Dependency | `FIX-EPS-039-03-BE`: selesai di source (`MHamzah` @ `488faa22`, belum di-commit); migration **belum diterapkan** |
+| Dependency | `FIX-EPS-039-03-BE`: selesai di source (`MHamzah` @ `488faa22`, belum di-commit); migration diterapkan pemilik 23-10-2026 (`dotnet ef database update`, bersama 11 migration modul lain yang tertunda sejak 15-10-2026) |
 | Klasifikasi | `MEDIUM`: satu util payload dan validator, satu normalizer, dua langkah isian, langkah Konfirmasi, view, dan hook dokter |
 | Task mode | `FRONTEND` (backend baca-saja, kecuali laporan ini dan register 039) |
 | Target tulis | `QuilvianSystemFrontendDev/src/**`, `tests/unit/**`; backend hanya laporan ini, register plan repair 039, dan riwayat issue 039 |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit frontend saat dikerjakan | `8f198ec2b` (`HamzahV2`) |
 | Tanggal | 2026-10-23 |
-| Status | 🟡 SEBAGIAN — keempat acceptance criteria ada di source dan lulus validasi otomatis. Belum diuji bolak-balik dengan server karena migration belum diterapkan, dan belum diuji di layar karena agent tidak dapat login |
+| Status | 🟡 SEBAGIAN — keempat acceptance criteria ada di source dan lulus validasi otomatis; migration sudah diterapkan 23-10-2026. Belum diuji bolak-balik dengan server dan belum diuji di layar karena agent tidak dapat login |
 
 ---
 
@@ -167,10 +167,9 @@ Bentuk `externalReferral` yang dikirim: `referralNumber`, `referralDateTime` (IS
 
 `AUTOMATED TEST: node --import ./tests/helpers/register.mjs --test tests/unit/inpatient-admission-external-referral.test.mjs — PASS`
 
-`MANUAL TEST: NOT FEASIBLE` — agent tidak dapat login ke aplikasi, dan migration
-`20261023062116_AddInpEpisodeExternalReferral` belum diterapkan, sehingga `POST /episodes` dengan
-`externalReferral` akan gagal di database sampai pemilik menjalankan `dotnet ef database update`
-dan memulai ulang backend.
+`MANUAL TEST: NOT FEASIBLE` — agent tidak dapat login ke aplikasi. Migration
+`20261023062116_AddInpEpisodeExternalReferral` sudah diterapkan pemilik 23-10-2026; uji layar
+dapat dijalankan setelah backend dimulai ulang.
 
 Skenario uji layar untuk pemilik:
 
@@ -191,11 +190,10 @@ Skenario uji layar untuk pemilik:
 | AC1 — `POST` membawa kelima field, `GET` mengembalikannya, Konfirmasi menampilkannya | Terpenuhi di source; belum diuji bolak-balik dengan server | Tes payload dan normalizer; render K1 |
 | AC2 — tanpa rujukan, payload tanpa field rujukan dan perilaku lama tidak berubah | Terpenuhi | Tes "POST /episodes membawa rujukan hanya bila ada"; render K2 |
 | AC3 — rujukan tidak lengkap atau bertanggal di masa depan → `400` berbahasa Indonesia | Terpenuhi di layar (dicegah sebelum kirim) dan di server (`FIX-EPS-039-03-BE`); runtime server belum | Tes validator |
-| AC4 — migration tersedia; database diperbarui pemilik | Bagian backend; berkas tersedia, penerapan menunggu pemilik | [`FIX-EPS-039-03-BE`](../backend/FIX-EPS-039-03-BE.md) |
+| AC4 — migration tersedia; database diperbarui pemilik | Terpenuhi — bagian backend; migration diterapkan pemilik 23-10-2026 (`dotnet ef database update`, bersama 11 migration modul lain yang tertunda sejak 15-10-2026) | [`FIX-EPS-039-03-BE`](../backend/FIX-EPS-039-03-BE.md) |
 
 **Definition of Done yang belum terpenuhi:**
 - uji layar R1–R5;
-- penerapan migration;
 - revisi dokumen hulu `03-frontend-architecture.md` (plan repair bagian 7), yang di luar wewenang
   task ini.
 
@@ -207,8 +205,8 @@ Skenario uji layar untuk pemilik:
 | --- | --- |
 | Peringatan | `NONE` dari berkas task ini |
 | Masalah yang diketahui | (1) Rujukan belum dapat dikoreksi sesudah episode dibuat, karena `PUT /episodes/{id}` tidak membawanya (sama dengan catatan laporan backend). (2) Layar mewajibkan dokter perujuk, sedangkan server menganggapnya opsional. Layar sengaja lebih ketat sesuai `RWI-DEC-269`. (3) Bila jam komputer petugas lebih cepat dari server lebih dari 5 menit, rujukan "sekarang" bisa lolos di layar tetapi ditolak server dengan kalimat yang sama |
-| Dependency backend | `FIX-EPS-039-03-BE`: source selesai, migration belum diterapkan |
+| Dependency backend | `FIX-EPS-039-03-BE`: source selesai, migration sudah diterapkan 23-10-2026 |
 | Perubahan sampingan | `NONE` di repository. Skrip render ada di folder scratch sesi |
 | Interupsi | Konteks sesi diringkas di tengah task. Pekerjaan dilanjutkan dari `git diff` (dua suntingan util sudah ada) tanpa penggandaan |
 | Status Git | Frontend `HamzahV2` @ `8f198ec2b`: berkas task ini 8 ` M` dan 1 `??` (lihat 3.2). Perubahan pihak lain yang tidak disentuh: `nursing-billing-section.jsx` + `.module.css`, `inpatient-room-transfer-report-view.jsx`, `inpatient-newborn-admission-steps.jsx`, `tests/unit/inpatient-newborn-admission.test.mjs`. Backend `MHamzah` @ `488faa22`: laporan ini `??`; register plan repair 039, issue 039, dan baris FIX-03 di `FIX-EPS-039.md` ` M`. Perubahan dokumen pihak lain yang tidak disentuh: `Sisa-Pekerjaan-Rawat-Inap.md`, `Revisi-Rawat-Inap.md`, dan roadmap `backend-roadmap-v2`, `-admisi-transfer-igd`, `-bed-management`, `-realtime-bed-selection`, `-finishing` |
-| Langkah berikutnya | Pemilik menjalankan `dotnet ef database update`, memulai ulang backend, lalu menguji R1–R5 dan S1–S10 plan repair 039 |
+| Langkah berikutnya | Pemilik memulai ulang backend, lalu menguji R1–R5 dan S1–S10 plan repair 039 |

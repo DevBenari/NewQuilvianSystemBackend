@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit backend saat dikerjakan | `488faa22` (`MHamzah`) |
 | Tanggal | 2026-10-23 |
-| Status | Source, migration, build, dan QBE Strict selesai; migration **belum diterapkan** ke database (wewenang pemilik); verifikasi runtime belum dilakukan |
+| Status | Source, migration, build, dan QBE Strict selesai; migration diterapkan pemilik 23-10-2026 (`dotnet ef database update`, bersama 11 migration modul lain yang tertunda sejak 15-10-2026); verifikasi runtime belum dilakukan |
 
 ### Backend Governance Preflight
 
@@ -87,7 +87,7 @@ Aturan:
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | Additive: `externalReferral` opsional pada request `POST /episodes` dan response `GET /episodes/{id}`. Konsumen lama tidak terdampak |
-| Database | Migration `20261023062116_AddInpEpisodeExternalReferral`: 5 kolom nullable, tanpa data default, tanpa indeks. **Belum diterapkan** — jalankan `dotnet ef database update` sendiri. Saat dibuat otomatis, EF juga memunculkan perubahan `CliTransferHandover` karena migration manual `20261022130000_MakeTransferHandoverPlacementsNullable` tidak memperbarui snapshot. Operasi itu **dibuang** dari migration ini agar tidak terulang; snapshot diselaraskan. `dotnet ef migrations has-pending-model-changes` menjawab tidak ada perubahan tersisa |
+| Database | Migration `20261023062116_AddInpEpisodeExternalReferral`: 5 kolom nullable, tanpa data default, tanpa indeks. Sudah diterapkan pemilik 23-10-2026 (`dotnet ef database update`, bersama 11 migration modul lain yang tertunda sejak 15-10-2026). Percobaan pertama dengan `--no-build` di atas build Debug yang tidak memuat Designer dan snapshot menjawab "No migrations were applied … Done." tanpa menerapkan apa pun, gejala yang tercatat di `QuilvianSystemBackend.csproj` (blok `SkipMigrationMetadata`). Setelah build biasa, migration diterapkan. Saat dibuat otomatis, EF juga memunculkan perubahan `CliTransferHandover` karena migration manual `20261022130000_MakeTransferHandoverPlacementsNullable` tidak memperbarui snapshot. Operasi itu **dibuang** dari migration ini agar tidak terulang; snapshot diselaraskan. `dotnet ef migrations has-pending-model-changes` menjawab tidak ada perubahan tersisa |
 | Keamanan/Auth | Tidak ada endpoint baru; `[AccessPermission("InpatientEpisode", "Create"/"Read")]` existing berlaku. Data rujukan tidak dimasukkan ke log |
 
 ---
@@ -139,9 +139,9 @@ depan; kode lain tidak berubah.
 | AC1 — `POST /episodes` menerima dan `GET /episodes/{id}` mengembalikan kelima field | Terpenuhi di source; runtime belum | DTO, `ApplyExternalReferral`, proyeksi detail |
 | AC2 — tanpa rujukan, perilaku lama tidak berubah | Terpenuhi di source | Objek opsional; `ApplyExternalReferral` keluar bila null |
 | AC3 — rujukan tidak lengkap atau tanggal di masa depan → `400` berbahasa Indonesia | Terpenuhi di source; runtime belum | Atribut DTO + `ValidateExternalReferral` |
-| AC4 — migration, Designer, snapshot tersedia; database diperbarui pemilik | Terpenuhi (berkas); penerapan menunggu pemilik | `20261023062116_AddInpEpisodeExternalReferral` |
+| AC4 — migration, Designer, snapshot tersedia; database diperbarui pemilik | Terpenuhi — migration diterapkan pemilik 23-10-2026 (`dotnet ef database update`, bersama 11 migration modul lain yang tertunda sejak 15-10-2026) | `20261023062116_AddInpEpisodeExternalReferral` |
 
-**Belum terpenuhi:** verifikasi runtime; penerapan migration; koreksi data rujukan lewat
+**Belum terpenuhi:** verifikasi runtime; koreksi data rujukan lewat
 `PUT /episodes/{id}` (di luar scope, lihat catatan).
 
 ---
@@ -155,4 +155,4 @@ depan; kode lain tidak berubah.
 | Dependency backend | `NONE` |
 | Perubahan sampingan | Penyelarasan snapshot `CliTransferHandover` (dipertahankan, alasan di 3.3). Folder `bin/Release` dan `obj` hasil build tidak di-track |
 | Status Git | `MHamzah` @ `488faa22`: berkas task ini ` M` (model, DTO, service, snapshot) dan `??` (migration + Designer, laporan ini). Perubahan pihak lain yang tidak disentuh: `PatientBillingSummaryService.Breakdown.cs`, `InpEpisodeService.NewbornCandidates.cs` |
-| Langkah berikutnya | Pemilik menjalankan `dotnet ef database update` dan memulai ulang backend. Bagian frontend sudah dikerjakan di [`FIX-EPS-039-03-FE`](../frontend/FIX-EPS-039-03-FE.md); uji layar R1–R5 di laporan itu sekaligus menjadi verifikasi runtime task ini |
+| Langkah berikutnya | Pemilik memulai ulang backend (migration sudah diterapkan 23-10-2026). Bagian frontend sudah dikerjakan di [`FIX-EPS-039-03-FE`](../frontend/FIX-EPS-039-03-FE.md); uji layar R1–R5 di laporan itu sekaligus menjadi verifikasi runtime task ini |
