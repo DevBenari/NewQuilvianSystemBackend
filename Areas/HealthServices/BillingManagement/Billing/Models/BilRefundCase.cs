@@ -30,6 +30,7 @@ public sealed class BilRefundCase : IdentityModel
     public BilInvoice Invoice { get; set; } = null!;
     public BilRefundableCredit? RefundableCredit { get; set; }
     public ICollection<BilRefundLine> Lines { get; set; } = new List<BilRefundLine>();
+    public ICollection<BilRefundCaseItem> Items { get; set; } = new List<BilRefundCaseItem>();
 }
 
 public static class BillingRefundCaseStatuses
