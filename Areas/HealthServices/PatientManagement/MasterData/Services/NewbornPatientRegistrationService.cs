@@ -223,6 +223,9 @@ public sealed class NewbornPatientRegistrationService
             }
 
             var motherName = NormalizeMotherName(mother.FullName);
+            var patientFullName = !string.IsNullOrWhiteSpace(request.FullName)
+                ? request.FullName.Trim()
+                : $"By. Ny. {motherName}";
 
             var patient = new MstPatient
             {
@@ -232,7 +235,7 @@ public sealed class NewbornPatientRegistrationService
                 PatientType = PatientType.Newborn,
                 PatientStatus = PatientStatus.Active,
                 RegistrationSource = PatientRegistrationSource.InpatientAdmission,
-                FullName = $"By. Ny. {motherName}",
+                FullName = patientFullName,
                 BirthPlace = Normalize(request.BirthPlace),
                 BirthDate = request.BirthDate.Value.Date,
                 BirthTime = request.BirthTime,
@@ -386,6 +389,7 @@ public sealed class NewbornPatientRegistrationService
         var canonical = string.Join('|',
             request.MotherPatientId.ToString("N"),
             request.DeliveryCaseId.ToString("N"),
+            Normalize(request.FullName)?.ToUpperInvariant(),
             request.BirthDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
             request.BirthTime?.ToString("c", CultureInfo.InvariantCulture),
             ((int?)request.Gender)?.ToString(CultureInfo.InvariantCulture),

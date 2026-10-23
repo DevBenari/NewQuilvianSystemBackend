@@ -59,6 +59,23 @@ public sealed class NewbornMotherCandidateResponse
     public string? CurrentRoomName { get; set; }
     public int RegisteredBabyCount { get; set; }
     public int NextBirthOrderPreview { get; set; }
+    public bool HasActiveInpatientBaby { get; set; }
+    public List<NewbornRegisteredBabyDto> RegisteredBabies { get; set; } = [];
+}
+
+public sealed class NewbornRegisteredBabyDto
+{
+    public Guid PatientId { get; set; }
+    public string FullName { get; set; } = string.Empty;
+    public string MedicalRecordNumber { get; set; } = string.Empty;
+    public int BirthOrder { get; set; }
+    public Guid? EpisodeId { get; set; }
+    public string? EpisodeNumber { get; set; }
+    public int? EpisodeStatus { get; set; }
+    public string? EpisodeStatusName { get; set; }
+    public string? RoomName { get; set; }
+    public string? BedCode { get; set; }
+    public bool IsCurrentlyInRoom { get; set; }
 }
 
 public sealed class NewbornMotherCandidatePagedResult
