@@ -33,6 +33,7 @@ public class MembershipReadAndTierControllerTests : IDisposable
 
     private readonly TestDatabase _db = TestDatabase.Create();
     private readonly TestDatabase _dbNomor = TestDatabase.Create();
+    private readonly TiruanPortTagihanIuran _portTagihan = new(() => Sekarang);
 
     public void Dispose()
     {
@@ -218,8 +219,8 @@ public class MembershipReadAndTierControllerTests : IDisposable
         var jam = new JamTetap(Sekarang);
         var resolver = new PatientMembershipStatusResolver(konteks, config, jam);
         var service = new PatientMembershipService(
-            konteks, new NumberSeriesAllocator(new PabrikKonteks(_dbNomor)), resolver, Logger(), config, jam);
-        return WithUser(new PatientMembershipController(konteks, Logger(), resolver, service));
+            konteks, new NumberSeriesAllocator(new PabrikKonteks(_dbNomor)), resolver, Logger(), _portTagihan, config, jam);
+        return WithUser(new PatientMembershipController(konteks, Logger(), resolver, service, _portTagihan));
     }
 
     private sealed class PabrikKonteks(TestDatabase db) : Microsoft.EntityFrameworkCore.IDbContextFactory<ApplicationDbContext>

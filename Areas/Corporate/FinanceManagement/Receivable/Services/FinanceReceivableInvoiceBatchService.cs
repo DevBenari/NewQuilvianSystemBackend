@@ -578,6 +578,8 @@ public sealed class FinanceReceivableInvoiceBatchService
         return await _dbContext.FinReceivables.AsNoTracking()
             .Where(x => !x.IsDelete
                 && x.DebtorType == FinReceivableDebtorTypes.Payer
+                // Porsi Benefit RS internal bukan tagihan ke pihak luar: diselesaikan lewat Penutupan Benefit.
+                && !x.IsInternalBenefit
                 && x.DebtorReferenceId == debtorReferenceId
                 && (x.Status == FinReceivableStatuses.Outstanding || x.Status == FinReceivableStatuses.Partial)
                 && !activeBatchMemberIds.Contains(x.Id))
@@ -618,6 +620,14 @@ public sealed class FinanceReceivableInvoiceBatchService
         if (nonPayer.Count > 0)
             throw new ReceivableInvoiceBatchBadRequestException(
                 $"Batch Tagihan AR hanya menerima piutang berjenis PAYER. Piutang {nonPayer[0].ReceivableNumber} berjenis {nonPayer[0].DebtorType}.");
+
+        // Porsi Benefit Karyawan RS (PAYER dengan IsInternalBenefit) adalah biaya rumah sakit sendiri, bukan tagihan ke
+        // perusahaan/asuransi; ditolak di server, bukan hanya disembunyikan dari daftar.
+        var internalBenefit = receivables.Where(x => x.IsInternalBenefit).ToList();
+        if (internalBenefit.Count > 0)
+            throw new ReceivableInvoiceBatchBadRequestException(
+                $"Piutang {internalBenefit[0].ReceivableNumber} adalah porsi Benefit RS internal dan tidak dapat digabung ke Batch Tagihan AR. " +
+                "Selesaikan lewat Penutupan Benefit.");
 
         // Hanya piutang yang masih bisa ditagihkan (OUTSTANDING/PARTIAL) ATAU sudah lunas dibayar (SETTLED, mis.
         // gabungan asuransi + excess tunai) dan bernilai positif yang boleh ditagihkan. Status pembayaran (SETTLED)

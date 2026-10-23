@@ -169,6 +169,8 @@ public sealed class FinanceReceivableInstallmentPlanService
             query = query.Where(x => x.plan.Status == request.Status);
         if (request.BenefitOwnerId.HasValue)
             query = query.Where(x => x.receivable.BenefitOwnerId == request.BenefitOwnerId.Value);
+        if (request.BenefitOwnerWorkforceProfileId.HasValue)
+            query = query.Where(x => x.receivable.BenefitOwnerWorkforceProfileId == request.BenefitOwnerWorkforceProfileId.Value);
         if (!string.IsNullOrWhiteSpace(request.DeductionPeriod))
             query = query.Where(x => x.plan.FirstDeductionPeriod == request.DeductionPeriod);
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -320,10 +322,10 @@ public sealed class FinanceReceivableInstallmentPlanService
             // BE-FIN-094, INT-FIN-HR-001 §P.2: diterbitkan ke HR Payroll di dalam transaksi yang
             // sama. Kegagalan sinkron (periode/komponen HR belum dikonfigurasi) dicatat, TIDAK
             // membatalkan persetujuan — lihat ringkasan kelas.
-            if (receivable.BenefitOwnerId.HasValue)
+            if (receivable.BenefitOwnerId.HasValue || receivable.BenefitOwnerWorkforceProfileId.HasValue)
             {
                 var syncResult = await _payrollSyncService.SyncAsync(
-                    receivable.BenefitOwnerId.Value, createdInstallments, actorUserId, cancellationToken);
+                    receivable.BenefitOwnerId, receivable.BenefitOwnerWorkforceProfileId, createdInstallments, actorUserId, cancellationToken);
                 if (syncResult.SkippedCount > 0)
                 {
                     await AuditAsync("Plan.PayrollSyncGap", plan.Id, actorUserId);
@@ -554,6 +556,7 @@ public sealed class FinanceReceivableInstallmentPlanService
         Notes = x.Notes,
         RowVersion = x.RowVersion,
         BenefitOwnerId = receivable.BenefitOwnerId,
+        BenefitOwnerWorkforceProfileId = receivable.BenefitOwnerWorkforceProfileId,
         BenefitRelationship = receivable.BenefitRelationship,
         OutstandingAmount = receivable.OutstandingAmount
     };

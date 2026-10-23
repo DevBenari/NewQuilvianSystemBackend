@@ -3,20 +3,20 @@
 | Field | Nilai |
 |---|---|
 | Roadmap ID | `RJ-PRI-RM-BE-001` |
-| Revision | `1` |
-| Status | `approved` — Sukma Giri, 2026-10-16 (`RJ-PRI-DEC-031`). Wewenang implementasi `GRANTED` untuk seluruh task |
-| Blueprint | `rawat-jalan` revisi `33`, `approved` (Sukma Giri, 2026-10-16, `RJ-PRI-DEC-030`), bentuk `SINGLE` |
-| Cakupan | `MVP-0` s.d. `MVP-2` (`EPIC RP-01` s.d. `RP-08`, sisi backend). `POST-MVP` tidak direncanakan |
-| SHA baseline | BE `551e1cbb` (`sukmagp`), FE `1fd858322` (`sukmagpV2`) |
-| Kontrak masukan | `RJ-PRI-RESV-001@1.0.0` `approved`. Hash per berkas di `blueprint-manifest.md` Revisi 33 (`api-contract.md` `7932aaf7dc6c`, `state-transition-matrix.md` `76ce19d73d35`, `validation-matrix.md` `a52d2b2352ee`, `integration-contract.md` `91432bc56a4a`, `permission-audit-matrix.md` `26e9d859e114`) |
-| Masukan desain | `02-backend-architecture.md` RP.1–RP.14 (`bd5586a3e478`), `data/data-dictionary.md` RP (`0e7737a60d3b`), `04-prd-to-mvp.md` RP-10, RP-20 (`a7962b2158b1`), `testing/acceptance-test-matrix.md` *Amendment RP* (`ce8039c0fb65`) |
+| Revision | `2` — menambah `BE-RJP-013` (`MVP-3`, ganti tanggal). Revisi `1` berisi `BE-RJP-001` s.d. `012` |
+| Status | r1 `approved` — Sukma Giri, 2026-10-16 (`RJ-PRI-DEC-031`). r2 `approved` — Sukma Giri, 2026-10-21 (`RJ-PRI-DEC-039`: roadmap `MVP-3` disetujui karena tidak memuat keputusan bisnis baru). Wewenang implementasi `GRANTED` untuk seluruh task |
+| Blueprint | `rawat-jalan` revisi `33`, `approved` (Sukma Giri, 2026-10-16, `RJ-PRI-DEC-030`), dan revisi `34`, `approved` (Sukma Giri, 2026-10-21, `RJ-PRI-DEC-039`), bentuk `SINGLE` |
+| Cakupan | `MVP-0` s.d. `MVP-3` (`EPIC RP-01` s.d. `RP-09`, sisi backend). `POST-MVP` tidak direncanakan |
+| SHA baseline | r1: BE `551e1cbb` (`sukmagp`), FE `1fd858322` (`sukmagpV2`). r2: BE `b0285ff1`, FE `037c975b7` |
+| Kontrak masukan | `RJ-PRI-RESV-001@1.0.0` `approved`. Hash per berkas di `blueprint-manifest.md` Revisi 33 (`api-contract.md` `7932aaf7dc6c`, `state-transition-matrix.md` `76ce19d73d35`, `validation-matrix.md` `a52d2b2352ee`, `integration-contract.md` `91432bc56a4a`, `permission-audit-matrix.md` `26e9d859e114`). Untuk `BE-RJP-013`: `RJ-PRI-RESV-001@1.2.0` `approved`, hash di manifest Revisi 34 (`api-contract.md` `dc01eae85f3c`, `state-transition-matrix.md` `7422b45bbb5c`, `validation-matrix.md` `a1fd93c59867`, `integration-contract.md` `daeea91d43ca`, `permission-audit-matrix.md` `395c2e87b09b`) |
+| Masukan desain | `02-backend-architecture.md` RP.1–RP.14 (`bd5586a3e478`), `data/data-dictionary.md` RP (`0e7737a60d3b`), `04-prd-to-mvp.md` RP-10, RP-20 (`a7962b2158b1`), `testing/acceptance-test-matrix.md` *Amendment RP* (`ce8039c0fb65`). Untuk `BE-RJP-013`: `02` GT.1–GT.14 (`e1df7b3c92b8`), data RP-GT (`4a2fe12c8fad`), `04` RP-GT (`bcb35d6aee59`), tes *Amendment RP-GT* (`e8c1e00d8f79`) |
 | Owner | Sukma Giri |
 | Nama berkas | `priority-reservation-backend-roadmap.md`, karena `roadmap/backend-roadmap.md` sudah dimiliki scope `RJ-BIL`. Pola yang sama dipakai `e2e-backend-roadmap.md` |
 
 > **Batas dokumen.**
 > 1. Roadmap ini **bukan** izin menulis kode. Setiap task baru boleh dikerjakan lewat `build-module-backend` dengan approval task yang eksplisit.
 > 2. **QBE preflight** dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend dan `docs/engineering/`, bukan dari roadmap ini.
-> 3. Migration dibuat di `BE-RJP-005`. **Penerapannya** ke `QuilvianNewDevSukma` butuh izin terpisah per sesi.
+> 3. Migration dibuat di `BE-RJP-005` dan `BE-RJP-013`. **Penerapannya** ke `QuilvianNewDevSukma` butuh izin terpisah per sesi. Untuk `BE-RJP-013`, izin itu sudah diberikan `RJ-PRI-DEC-039`.
 > 4. Verifikasi memakai pola Bank Darah: build, `has-pending-model-changes`, QBE Strict, runtime HTTP. Tanpa folder `Tests/`. `dotnet test` ditulis `NOT RUN — tidak ada project test`.
 > 5. Commit, push, dan deployment tetap wewenang pemilik.
 
@@ -42,9 +42,11 @@ BE-CRM-010 ✅ [CRM] ─> BE-RJP-002 ✅ ─────────────
                                                          │
 BE-RJP-005 ✅ ─┬─> BE-RJP-006 ✅ ─┬─> BE-RJP-007 ✅ ─┬───┴─> BE-RJP-008 ✅
                │                  │                  │
-               │                  │                  ├─> BE-RJP-010 ✅ ─┐
-               │                  │                  │                  │
-               │                  │                  └──────────────────┴─> BE-RJP-012 ✅
+               │                  │                  ├─> BE-RJP-010 ✅ ─┬───────────────────┐
+               │                  │                  │                  │                   │
+               │                  │                  ├──────────────────┴─> BE-RJP-012 ✅   │
+               │                  │                  │                                      │
+               │                  │                  └──────────────────────────────────────┴─> BE-RJP-013 ✅
                │                  │
                │                  └─> BE-RJP-009 ✅
                │
@@ -53,8 +55,8 @@ BE-RJP-005 ✅ ─┬─> BE-RJP-006 ✅ ─┬─> BE-RJP-007 ✅ ─┬──�
 
 `[CRM]` = task backend pada `crm-membership/roadmap/backend-roadmap.md`, cermin baca-saja (resolver member aktif).
 
-Pasangan prasyarat → task: 10 (`CRM-010→002`, `005→006`, `005→011`, `006→007`, `006→009`, `007→008`, `002→008`,
-`007→010`, `007→012`, `010→012`), sama dengan isi kolom `Dependency`.
+Pasangan prasyarat → task: 12 (`CRM-010→002`, `005→006`, `005→011`, `006→007`, `006→009`, `007→008`, `002→008`,
+`007→010`, `007→012`, `010→012`, `007→013`, `010→013`), sama dengan isi kolom `Dependency`.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
@@ -62,7 +64,7 @@ Pasangan prasyarat → task: 10 (`CRM-010→002`, `005→006`, `005→011`, `006
 | 2 | `BE-RJP-005` | `BE-RJP-006`, `BE-RJP-011` |
 | 3 | `BE-RJP-006` | `BE-RJP-007`, `BE-RJP-009` |
 | 4 | `BE-RJP-007` (+ `BE-RJP-002` untuk `008`) | `BE-RJP-008`, `BE-RJP-010` |
-| 5 | `BE-RJP-007`, `BE-RJP-010` | `BE-RJP-012` |
+| 5 | `BE-RJP-007`, `BE-RJP-010` | `BE-RJP-012`, `BE-RJP-013` |
 
 **Gelombang rilis produk** (`04-prd-to-mvp.md` RP-20) berbeda dari gelombang teknis di atas:
 
@@ -71,6 +73,7 @@ Pasangan prasyarat → task: 10 (`CRM-010→002`, `005→006`, `005→011`, `006
 | `MVP-0` | `BE-RJP-001`, `002`, `003`, `004` | `BE-RJP-004` dirilis bersama `FE-RJP-001` |
 | `MVP-1` | `BE-RJP-005` s.d. `011` | Secara teknis `BE-RJP-005` tidak menunggu `MVP-0`, sehingga boleh dikerjakan paralel bila owner mengizinkan. Rilisnya tetap sesudah `MVP-0` |
 | `MVP-2` | `BE-RJP-012` | Development boleh jalan. Go-live menunggu `RJ-PRI-OQ-003` (domain publik dan IP asli) |
+| `MVP-3` | `BE-RJP-013` | Ganti tanggal (`04` RP-GT-7). Aditif dan kompatibel mundur, sehingga boleh dirilis sebelum atau bersama `FE-RJP-009`. Migration diterapkan sebelum kode berjalan |
 
 ## Ringkasan Task
 
@@ -88,6 +91,7 @@ Pasangan prasyarat → task: 10 (`CRM-010→002`, `005→006`, `005→011`, `006
 | `BE-RJP-010` | Realtime daftar reservasi untuk admisi dan skrining | `RP-04` / `FR-RP-038` | `BE-RJP-007` | `MVP-1` | ✅ 2026-10-19 — build PASS (0 error), EF bersih, QBE Strict PASS, runtime SignalR 9/9 PASS (R-RP-14 sisi backend, payload tanpa nama) + regresi display — [laporan](../task/report/backend/BE-RJP-010.md) |
 | `BE-RJP-011` | Nama ruang tunggu prioritas di respons antrean | `RP-07` / `FR-RP-060`, `061` (data) | `BE-RJP-005` | `MVP-1` | ✅ 2026-10-19 — build PASS (0 error), EF bersih, QBE Strict PASS, runtime 3/3 dua kali (R-RP-29 sisi API, nama dari konfigurasi; Reguler null) — [laporan](../task/report/backend/BE-RJP-011.md) |
 | `BE-RJP-012` | Endpoint publik link konfirmasi | `RP-06` / `FR-RP-050`, `051`, `053` | `BE-RJP-007`, `BE-RJP-010` | `MVP-2` | ✅ 2026-10-19 — build PASS (0 error), EF bersih, QBE Strict PASS, runtime 12/12 PASS (R-RP-11/12/13/25, UAT-RP-14/15, kode tidak masuk log); go-live menunggu RJ-PRI-OQ-003 dan tinjauan keamanan — [laporan](../task/report/backend/BE-RJP-012.md) |
+| `BE-RJP-013` | Ganti tanggal reservasi sebelum hari kunjungan | `RP-09` / `FR-RP-090` s.d. `096` | `BE-RJP-007`, `BE-RJP-010` | `MVP-3` | ✅ 2026-10-21 — build PASS (0 error), EF bersih, QBE Strict PASS (8 berkas), migration diterapkan ke QuilvianNewDevSukma, runtime 23/23 PASS (R-RP-31..42 sisi API/SignalR, 403 dengan akun non-SuperAdmin); sisi layar R-RP-41 di FE-RJP-009 — [laporan](../task/report/backend/BE-RJP-013.md) |
 
 ## Rincian Task
 
@@ -283,6 +287,23 @@ Pasangan prasyarat → task: 10 (`CRM-010→002`, `005→006`, `005→011`, `006
 | Risiko/pemilik | Satu-satunya endpoint bisnis tanpa login. Tinjauan keamanan sebelum go-live. **Go-live menunggu `RJ-PRI-OQ-003`** (IT/infrastruktur). Pemilik: Sukma Giri |
 | DoD | Kriteria terbukti. Go-live tercatat terpisah setelah `RJ-PRI-OQ-003` dijawab |
 
+### `BE-RJP-013` ✅ — Ganti tanggal reservasi
+
+| Field | Isi |
+|---|---|
+| Status | ✅ 2026-10-21 — build PASS (0 error), EF bersih, QBE Strict PASS (8 berkas), migration diterapkan ke QuilvianNewDevSukma, runtime 23/23 PASS (R-RP-31..42 sisi API/SignalR, 403 dengan akun non-SuperAdmin); sisi layar R-RP-41 di FE-RJP-009 — [laporan](../task/report/backend/BE-RJP-013.md) |
+| Outcome | `POST /{id}/reschedule` mengganti tanggal reservasi Menunggu Kedatangan bila hari ini (WIB) < tanggal kunjungan. Nomor tetap, status member dinilai ulang, snapshot diganti, link baru terbit dan link lama mati, riwayat `RESCHEDULED` mencatat tanggal lama dan baru, lalu event realtime membawa `previousVisitDate`. Bila gagal, tidak ada yang berubah |
+| Requirement/decision | `FR-RP-090` s.d. `096`; `RJ-PRI-DEC-034` s.d. `039`; `INV-RP-01`, `03` (revisi `34`), `05`, `06`, `10`; `VAL-RP-03` s.d. `06`, `11`, `12`, `14`, `22` s.d. `25` |
+| Kontrak | `RJ-PRI-RESV-001@1.2.0`: `api-contract.md` *Amendment RP-GT*, `state-transition-matrix.md` RP-GT-A/B, `validation-matrix.md` RP-GT, `integration-contract.md` RP-GT, `permission-audit-matrix.md` RP-GT |
+| Reuse | `LockPatientAsync`, `FindOpenReservationAsync`, `HasActiveOutpatientEncounterOnAsync`, `ValidateVisitDate`, `NewArrivalCode`/`HashArrivalCode`, `OutpatientQueueClassificationService.ClassifyAsync`, `BuildIssuedResponseAsync`, pola controller `ReissueArrivalCode` (log, realtime, respons terbit) |
+| Cakupan | (1) Model dan konfigurasi `RegPriorityReservationHistory`: `EventRescheduled`, `FromVisitDate`, `ToVisitDate` (`date`, nullable). (2) Migration `AddPriorityReservationHistoryVisitDates` beserta Designer dan snapshot, lalu diterapkan ke `QuilvianNewDevSukma` setelah memeriksa migration modul lain yang `(Pending)`. (3) `RescheduleAsync` dengan urutan pemeriksaan `02` GT.4. (4) DTO `ReschedulePriorityReservationRequest`; `canReschedule`; `fromVisitDate`/`toVisitDate` di riwayat; `previousVisitDate` di event realtime; `PreviousVisitDate` di hasil perintah. (5) Teks WA versi ganti tanggal dan nama kejadian "Tanggal kunjungan diganti". (6) Action controller `Reschedule` dengan `OutpatientPriorityReservation : Create`, dan deskripsi `[AccessAction("Create")]` yang diseragamkan |
+| Dependency | `BE-RJP-007` ✅ (perintah petugas, `RowVersion`, riwayat), `BE-RJP-010` ✅ (board realtime) |
+| Acceptance criteria | `R-RP-31` s.d. `R-RP-42` (`testing/acceptance-test-matrix.md` *Amendment RP-GT*), sisi API dan SignalR. `R-RP-41` bagian layar menjadi milik `FE-RJP-009` |
+| Verifikasi | Pola Bank Darah: build `-p:UseSharedCompilation=false`, `has-pending-model-changes`, QBE Strict, runtime HTTP ke `7185` terhadap `QuilvianNewDevSukma` dengan data samaran (tanggal relatif `H+n`), klien SignalR untuk event. `dotnet test`: `NOT RUN — tidak ada project test` |
+| Risiko/pemilik | (1) Kunci pasien wajib dipasang di dalam transaksi sebelum memeriksa tanggal baru. Bila tidak, dua permintaan paralel dapat lolos, dan hanya unique index yang menahannya. (2) Akun uji non-SuperAdmin dibutuhkan untuk 403 (`R-RP-38`). Bila tidak tersedia, 403 dicatat belum diuji, seperti `BE-RJP-006`. Pemilik: Sukma Giri |
+| DoD | Kriteria terbukti; migration diterapkan ke DB uji; laporan `task/report/backend/BE-RJP-013.md`; status roadmap dan traceability diperbarui |
+| Handoff | QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi dari `AGENTS.md` backend dan `docs/engineering/` |
+
 ## Di luar roadmap ini
 
 | Butir | Penyebab | Selama MVP |
@@ -293,3 +314,4 @@ Pasangan prasyarat → task: 10 (`CRM-010→002`, `005→006`, `005→011`, `006
 | Ekstraksi `CreateEncounterCoreAsync` ke service | `02` RP.14 | Tetap di controller legacy |
 | Isi master tingkat `PriorityQueue = true` | `RJ-PRI-OQ-006` (Yoga/Marketing) | Data go-live, bukan task kode |
 | Centang Akses Role | Operasional | Daftar periksa go-live di traceability |
+| Peringatan reservasi terbuka di tanggal lain saat membuat reservasi | `RJ-PRI-OQ-014` (`LATER SLICE`) | Admisi memakai Ganti Tanggal (`BE-RJP-013`) alih-alih membuat reservasi baru |

@@ -16,7 +16,7 @@
 | **Pasangan backend** | `LabOrderController`, `RadOrderController`, `BbkBloodOrderController` |
 | **Task mode** | `FRONTEND` — izin implementasi diberikan Rizki |
 | **Tanggal** | 12 Oktober 2026 |
-| **Status** | 🟢 **SELESAI — 12 Oktober 2026: implementasi & pengujian live selesai**; sub-segmen terintegrasi, badge counter aktif, lint 0 error, build lulus, live browser testing PASS. |
+| **Status** | ✅ **SELESAI — 19 Oktober 2026 atas penilaian pemilik**: tiga sub-segmen baca-status (Laboratorium, Radiologi, Bank Darah) terpasang dan berjalan, badge counter aktif, lint 0 error. Pemilik menyatakan layar yang dilayani `npm run dev` sah sebagai bukti selama modul masih dalam pengembangan, sehingga `IGD-DEC-296` tidak diberlakukan di kartu ini. **Hemodialisa dikeluarkan dari lingkup** — diperiksa di source 19 Oktober 2026: `emergency-assessment-diagnostic-support-tab.jsx` hanya memuat segmen `laboratory`, `radiology`, dan `blood-bank`, dan di backend tidak ada controller `HemodialysisManagement` yang menerima `encounterId`, sehingga pembacaan pesanan hemodialisa per kunjungan belum mungkin dibuat dari frontend. Jenis keempat menunggu endpoint backend dan dicatat sebagai langkah operasional, bukan kartu baru. *Sebelumnya:* 🟢 **SELESAI — 12 Oktober 2026: implementasi & pengujian live selesai**; sub-segmen terintegrasi, badge counter aktif, lint 0 error, build lulus, live browser testing PASS. |
 
 ---
 

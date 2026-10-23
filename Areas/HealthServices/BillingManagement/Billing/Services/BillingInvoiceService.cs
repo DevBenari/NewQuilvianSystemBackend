@@ -474,13 +474,34 @@ public sealed class BillingInvoiceService
                 .Where(i => invoiceIds.Contains(i.Id))
                 .ToDictionaryAsync(i => i.Id, i => i.Status, cancellationToken);
 
+        // Pembayaran bersih yang sudah DIALOKASIKAN ke tiap invoice (tender + pemakaian deposit). Basis yang
+        // sama dengan Cashier Overview dan GetPaymentPreviewAsync. Sebelumnya total dibayar hanya menjumlah
+        // tender, sehingga invoice yang sebagian dibayar deposit tampak masih berutang sebesar deposit itu dan
+        // tidak pernah berstatus LUNAS walau seluruh tagihan sudah tertutup. Pemakaian deposit tidak punya
+        // tender, jadi tidak menjadi baris kwitansi di bawah.
+        var allocationRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilPaymentAllocations.AsNoTracking()
+                .Where(a => a.TargetType == BillingAllocationTargetTypes.Invoice
+                    && invoiceIds.Contains(a.TargetId) && !a.IsDelete)
+                .Select(a => new { a.TargetId, a.Amount, a.ReversesAllocationId })
+                .ToListAsync(cancellationToken);
+        var allocatedPaidByInvoice = allocationRows
+            .GroupBy(a => a.TargetId)
+            .ToDictionary(g => g.Key, g => g.Sum(a => a.ReversesAllocationId.HasValue ? -a.Amount : a.Amount));
+
         var items = page.Select(x =>
         {
             guarantorByEncounter.TryGetValue(x.EncounterId, out var guarantor);
             var tenders = tendersByInvoice.TryGetValue(x.Id, out var invoiceTenders)
                 ? invoiceTenders
                 : [];
-            var totalPaid = tenders.Sum(t => t.Amount);
+            var tenderTotal = tenders.Sum(t => t.Amount);
+            var totalPaid = allocatedPaidByInvoice.TryGetValue(x.Id, out var allocatedPaid) ? allocatedPaid : 0m;
+            // Bagian yang sudah dibayar TANPA tender (pemakaian deposit). Dianggap masuk lebih dulu: deposit
+            // biasanya dipakai sebelum sisanya dibayar tunai/QRIS/transfer, jadi tender pertama setelahnya
+            // bukan "Pelunasan" kecuali memang sudah menutup seluruh kewajiban.
+            var paidWithoutTender = Math.Max(0m, totalPaid - tenderTotal);
             var patientAmount = patientAmountByInvoice.TryGetValue(x.Id, out var pa) ? pa : 0m;
             string? claimMethod = guarantor?.InsuranceProviderId.HasValue == true
                 && claimMethodByProvider.TryGetValue(guarantor.InsuranceProviderId.Value, out var cm)
@@ -498,7 +519,7 @@ public sealed class BillingInvoiceService
                 ? "LUNAS"
                 : (totalPaid > 0 ? "SEBAGIAN" : "BELUM_LUNAS");
 
-            decimal running = 0m;
+            decimal running = paidWithoutTender;
             var historyTenders = tenders.Select(t =>
             {
                 running += t.Amount;
@@ -1102,9 +1123,15 @@ public sealed class BillingInvoiceService
         response.Patient = await LoadPatientSummaryAsync(invoice.EncounterId, cancellationToken);
 
         decimal patientAmount = currentVersion?.PatientAmount ?? 0m;
-        var totalPaid = await _dbContext.BilTenders.AsNoTracking()
-            .Where(t => t.Settlement.InvoiceId == id && t.Status == BillingTenderStatuses.Succeeded && !t.IsDelete)
-            .SumAsync(t => (decimal?)t.Amount, cancellationToken) ?? 0m;
+
+        // Total dibayar = pembayaran bersih yang sudah DIALOKASIKAN ke invoice: tender sukses dan pemakaian
+        // deposit RANAP. Basis yang sama dengan Cashier Overview dan GetPaymentPreviewAsync, serta dengan
+        // sisa tagihan (outstanding) di bawah. Sebelumnya hanya menjumlah tender SUCCEEDED; pemakaian deposit
+        // tidak punya tender, sehingga invoice yang baru dibayar sebagian oleh deposit berstatus BELUM_LUNAS
+        // (bukan SEBAGIAN) dan "Total Dibayar" mengabaikan deposit itu.
+        var totalPaid = await _dbContext.BilPaymentAllocations.AsNoTracking()
+            .Where(x => x.TargetType == BillingAllocationTargetTypes.Invoice && x.TargetId == id && !x.IsDelete)
+            .SumAsync(x => (decimal?)(x.ReversesAllocationId.HasValue ? -x.Amount : x.Amount), cancellationToken) ?? 0m;
 
         // CalculateOutstandingAsync menuntut versi kalkulasi yang sudah ada (pemanggil yang menjamin).
         // Invoice yang belum punya BilCalculationVersion (currentVersion null) memakai hitungan
@@ -1974,6 +2001,7 @@ public sealed class BillingInvoiceService
                     transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
                 await AcquireLockAsync($"BIL_SOURCE_{source.SourceDomain}_{source.SourceDetailId}", cancellationToken);
                 await AcquireLockAsync($"BIL_ENCOUNTER_{request.EncounterId:N}", cancellationToken);
+                await AcquireLockAsync($"BIL_INPATIENT_CLEARANCE_{request.EncounterId:N}", cancellationToken);
             }
 
             var priorReceipt = await _dbContext.BilChargeReceipts.AsNoTracking()
@@ -2247,7 +2275,10 @@ public sealed class BillingInvoiceService
                 ?? throw new KeyNotFoundException("Item invoice Billing tidak ditemukan.");
 
             if (_dbContext.Database.IsRelational())
+            {
+                await AcquireLockAsync($"BIL_INPATIENT_CLEARANCE_{invoice.EncounterId:N}", cancellationToken);
                 await AcquireLockAsync($"BIL_SOURCE_{item.SourceDomain}_{item.SourceDetailId}", cancellationToken);
+            }
 
             var voidPayloadHash = ComputeVoidPayloadHash(invoiceId, item, request);
             if (item.Status == BillingInvoiceItemStatuses.Voided)
@@ -2313,6 +2344,18 @@ public sealed class BillingInvoiceService
             catch (BillingCalculationValidationException exception)
             {
                 throw new BillingInvoiceValidationException(exception.Message);
+            }
+
+            if (string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
+            {
+                await _consumerHandoffService.TriggerInpatientAutoReblockIfApplicableAsync(
+                    invoice.Id,
+                    "CorrectionApplied",
+                    actorUserId,
+                    DateTimeOffset.UtcNow,
+                    request.CorrelationId,
+                    request.CausationId,
+                    cancellationToken);
             }
 
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);

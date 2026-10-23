@@ -61,8 +61,22 @@ public sealed class FinanceReceivablePayrollSyncService
     /// sendiri — caller (ApproveAsync) yang melakukan commit tunggal untuk plan + installment +
     /// seluruh baris HR sekaligus.
     /// </summary>
-    public async Task<FinanceReceivablePayrollSyncResult> SyncAsync(
+    public Task<FinanceReceivablePayrollSyncResult> SyncAsync(
         Guid benefitOwnerId,
+        IReadOnlyList<FinReceivableInstallment> installments,
+        Guid actorUserId,
+        CancellationToken cancellationToken) =>
+        SyncAsync(benefitOwnerId, null, installments, actorUserId, cancellationToken);
+
+    /// <summary>
+    /// Versi berbasis identitas Workforce. <paramref name="benefitOwnerId"/> adalah MstEmployee.Id lama (boleh kosong
+    /// untuk dokter tetap); <paramref name="workforceProfileId"/> adalah pemilik canonical. Dokter tanpa data karyawan
+    /// hanya disinkronkan bila HR benar-benar memiliki profil payroll aktif untuknya; bila tidak, tidak ada input
+    /// potongan fiktif yang dibuat dan alasannya dicatat pada <c>SkipReasons</c>.
+    /// </summary>
+    public async Task<FinanceReceivablePayrollSyncResult> SyncAsync(
+        Guid? benefitOwnerId,
+        Guid? workforceProfileId,
         IReadOnlyList<FinReceivableInstallment> installments,
         Guid actorUserId,
         CancellationToken cancellationToken)
@@ -79,11 +93,52 @@ public sealed class FinanceReceivablePayrollSyncService
         // (data-dictionary.md §7: "Memetakan NIP ke BenefitOwnerId", FIN-DEC-196/199) — BUKAN
         // WorkforceProfileId langsung, berbeda dari field yang disebut kontrak INT-FIN-HR-001
         // P.2 (temuan drift lain, dicatat laporan task).
-        var employee = await _dbContext.MstEmployees.AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Id == benefitOwnerId && !x.IsDelete, cancellationToken);
-        if (employee is null)
+        MstEmployee? employee = null;
+        if (benefitOwnerId.HasValue && benefitOwnerId.Value != Guid.Empty)
         {
-            result.SkipReasons.Add($"Profil pegawai (MstEmployee) untuk BenefitOwnerId {benefitOwnerId} tidak ditemukan — nol baris disinkron.");
+            employee = await _dbContext.MstEmployees.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == benefitOwnerId.Value && !x.IsDelete, cancellationToken);
+        }
+        if (employee is null && workforceProfileId.HasValue)
+        {
+            var profileId = workforceProfileId.Value;
+            employee = await _dbContext.MstEmployees.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.WorkforceProfileId == profileId && !x.IsDelete, cancellationToken);
+        }
+
+        // Pemilik tanpa data karyawan (dokter tetap): slip dibangun dari identitas Workforce dan hanya bila payroll
+        // dikonfigurasi HR. Tanpa itu tidak ada potongan gaji yang dibuat (tidak ada MstEmployee atau payroll palsu).
+        PayrollTarget? target = null;
+        if (employee is not null)
+        {
+            target = new PayrollTarget(employee.WorkforceProfileId, employee.Id, employee.EmployeeNumber, employee.FullName);
+        }
+        else if (workforceProfileId.HasValue)
+        {
+            var profileId = workforceProfileId.Value;
+            var doctor = await _dbContext.MstDoctors.AsNoTracking()
+                .Where(x => x.WorkforceProfileId == profileId && !x.IsDelete)
+                .Select(x => new { x.DoctorNumber, x.FullName })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (doctor is not null)
+            {
+                var hasPayroll = await _dbContext.WfpPayrolls.AsNoTracking()
+                    .AnyAsync(x => x.WorkforceProfileId == profileId && !x.IsDelete && x.IsPayrollEligible, cancellationToken);
+                if (!hasPayroll)
+                {
+                    result.SkipReasons.Add(
+                        $"Dokter {doctor.FullName} ({doctor.DoctorNumber}) belum memiliki profil payroll yang dikonfigurasi di HR — " +
+                        "potongan gaji tidak dibuat. Gunakan mekanisme pembayaran piutang lain bila proses bisnis mengizinkan.");
+                    result.SkippedCount = installments.Count;
+                    return result;
+                }
+                target = new PayrollTarget(profileId, null, doctor.DoctorNumber, doctor.FullName);
+            }
+        }
+
+        if (target is null)
+        {
+            result.SkipReasons.Add($"Profil pegawai atau dokter untuk BenefitOwnerId {benefitOwnerId} / WorkforceProfileId {workforceProfileId} tidak ditemukan — nol baris disinkron.");
             result.SkippedCount = installments.Count;
             return result;
         }
@@ -111,7 +166,7 @@ public sealed class FinanceReceivablePayrollSyncService
             }
 
             var run = await ResolveOrCreateRunAsync(period, actorUserId, cancellationToken);
-            var runEmployee = await ResolveOrCreateRunEmployeeAsync(run, employee, actorUserId, cancellationToken);
+            var runEmployee = await ResolveOrCreateRunEmployeeAsync(run, target, actorUserId, cancellationToken);
 
             await UpsertVariableInputAsync(runEmployee, component, installment, actorUserId, cancellationToken);
             result.SyncedCount++;
@@ -121,7 +176,7 @@ public sealed class FinanceReceivablePayrollSyncService
         {
             await _loggerService.AuditAsync(LogCategory, "Sync.PartialGap",
                 $"Sinkron payroll sebagian terlewat. BenefitOwnerId={benefitOwnerId} Disinkron={result.SyncedCount} Dilewati={result.SkippedCount}",
-                new { BenefitOwnerId = benefitOwnerId, result.SyncedCount, result.SkippedCount, result.SkipReasons });
+                new { BenefitOwnerId = benefitOwnerId, WorkforceProfileId = workforceProfileId, result.SyncedCount, result.SkippedCount, result.SkipReasons });
         }
 
         return result;
@@ -166,8 +221,10 @@ public sealed class FinanceReceivablePayrollSyncService
     }
 
     /// <summary>Resolve-or-create — snapshot nama/NIP diisi dari MstEmployee saat baris dibuat.</summary>
+    private sealed record PayrollTarget(Guid WorkforceProfileId, Guid? EmployeeId, string Number, string Name);
+
     private async Task<TrxPayrollRunEmployee> ResolveOrCreateRunEmployeeAsync(
-        TrxPayrollRun run, MstEmployee employee, Guid actorUserId, CancellationToken cancellationToken)
+        TrxPayrollRun run, PayrollTarget employee, Guid actorUserId, CancellationToken cancellationToken)
     {
         // run.Id bisa belum tersimpan (baris baru, belum SaveChangesAsync) — cari di change
         // tracker dulu sebelum menduplikasi pencarian ke database untuk run yang baru dibuat.
@@ -185,11 +242,11 @@ public sealed class FinanceReceivablePayrollSyncService
         {
             PayrollRunId = run.Id,
             WorkforceProfileId = employee.WorkforceProfileId,
-            EmployeeId = employee.Id,
+            EmployeeId = employee.EmployeeId,
             EmployeePayrollStatus = "Pending",
             CurrencyCode = _options.CurrencyCode,
-            EmployeeNumberSnapshot = employee.EmployeeNumber,
-            EmployeeNameSnapshot = employee.FullName,
+            EmployeeNumberSnapshot = employee.Number,
+            EmployeeNameSnapshot = employee.Name,
             CreateDateTime = DateTime.UtcNow,
             CreateBy = actorUserId
         };

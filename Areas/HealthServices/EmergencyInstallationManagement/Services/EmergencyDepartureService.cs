@@ -131,9 +131,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public async Task<Hasil<EmgDeparture>> DepartAsync(
             Guid id, DepartEmergencyDepartureRequest request, Guid actorUserId,
             CancellationToken cancellationToken = default)
-            => await UbahFisikAsync(id, EmergencyPhysicalStatus.Departed,
+        {
+            var entity = await _dbContext.Set<EmgDeparture>()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            if (entity == null)
+                return Hasil<EmgDeparture>.Gagal(StatusCodes.Status404NotFound, "Data kepergian pasien IGD tidak ditemukan.");
+
+            // Validasi kesiapan keberangkatan ke Rawat Inap (E4):
+            var admissionReq = await _dbContext.Set<EmgAdmissionRequest>()
+                .AsNoTracking()
+                .Where(x => x.EmergencyVisitId == entity.EmergencyVisitId && !x.IsDelete && !x.IsCancel)
+                .OrderByDescending(x => x.CreateDateTime)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (admissionReq != null)
+            {
+                if (admissionReq.Status == EmergencyAdmissionRequestStatus.Draft ||
+                    admissionReq.Status == EmergencyAdmissionRequestStatus.AwaitingSignature)
+                {
+                    return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest,
+                        "Pasien tujuan Rawat Inap belum dapat dikonfirmasi berangkat karena Form Permintaan Rawat Inap belum disahkan oleh DPJP.");
+                }
+                if (admissionReq.Status == EmergencyAdmissionRequestStatus.Cancelled)
+                {
+                    return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest,
+                        "Pasien tujuan Rawat Inap belum dapat dikonfirmasi berangkat karena Form Permintaan Rawat Inap telah dibatalkan.");
+                }
+            }
+
+            return await UbahFisikAsync(id, EmergencyPhysicalStatus.Departed,
                 EmergencyDepartureEventType.Departed, request.OccurredAt, request.Reason,
                 request.DowntimeReference, actorUserId, null, cancellationToken);
+        }
 
         public async Task<Hasil<EmgDeparture>> ArriveAsync(
             Guid id, ArriveEmergencyDepartureRequest request, Guid actorUserId,
@@ -679,7 +708,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (actual > now)
                 return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest, "Waktu kejadian tidak boleh berada di masa depan.");
             entity.PhysicalStatus = target;
-            if (target == EmergencyPhysicalStatus.Departed) entity.DepartedAt = actual;
+            if (target == EmergencyPhysicalStatus.Departed)
+            {
+                entity.DepartedAt = actual;
+                if (!entity.SendingNurseUserId.HasValue || entity.SendingNurseUserId.Value == Guid.Empty)
+                    entity.SendingNurseUserId = actorUserId;
+            }
             if (target == EmergencyPhysicalStatus.Arrived)
             {
                 entity.ArrivedAt = actual;
@@ -709,6 +743,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var combination = ValidateKombinasi(entity.PhysicalStatus, target);
             if (combination != null)
                 return Hasil<EmgDeparture>.Gagal(StatusCodes.Status409Conflict, combination);
+            if (target == EmergencyHandoverStatus.Accepted)
+            {
+                // Validasi E11: Petugas penerima serah terima tidak boleh sama dengan petugas pengirim
+                var pengirim = entity.SendingNurseUserId ?? entity.RequestedByUserId;
+                if (pengirim != Guid.Empty && pengirim == actorUserId)
+                {
+                    return Hasil<EmgDeparture>.Gagal(StatusCodes.Status400BadRequest,
+                        "Petugas penerima serah terima tidak boleh sama dengan petugas pengirim demi prinsip verifikasi dua pihak.");
+                }
+                entity.ReceivingNurseUserId = actorUserId;
+            }
+
             entity.HandoverStatus = target;
             entity.HandoverRejectionReason = target == EmergencyHandoverStatus.Rejected ? Rapikan(reason) : null;
             entity.UpdateDateTime = DateTime.UtcNow;
@@ -850,7 +896,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             EmgDeparture x, CancellationToken cancellationToken = default)
         {
             var response = ToResponse(x);
-            await IsiNamaPelakuAsync(response.Events, cancellationToken);
+            await IsiNamaPelakuAsync(new[] { response }, cancellationToken);
             return response;
         }
 
@@ -862,7 +908,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             IEnumerable<EmgDeparture> items, CancellationToken cancellationToken = default)
         {
             var responses = items.Select(x => ToResponse(x)).ToList();
-            await IsiNamaPelakuAsync(responses.SelectMany(r => r.Events), cancellationToken);
+            await IsiNamaPelakuAsync(responses, cancellationToken);
             return responses;
         }
 
@@ -871,17 +917,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             EmgDepartureEvent x, CancellationToken cancellationToken = default)
         {
             var response = ToResponse(x);
-            await IsiNamaPelakuAsync(new[] { response }, cancellationToken);
+            await IsiNamaPelakuEventsAsync(new[] { response }, cancellationToken);
             return response;
         }
 
         private async Task IsiNamaPelakuAsync(
-            IEnumerable<EmergencyDepartureEventResponse> events, CancellationToken cancellationToken)
+            IEnumerable<EmergencyDepartureResponse> departures, CancellationToken cancellationToken)
         {
-            var daftar = events.ToList();
+            var listDepartures = departures.ToList();
+            var listEvents = listDepartures.SelectMany(r => r.Events).ToList();
 
-            var idPelaku = daftar
+            var idPelaku = listEvents
                 .SelectMany(e => new[] { e.RecordedByUserId, e.ApprovedByUserId ?? Guid.Empty })
+                .Concat(listDepartures.SelectMany(d => new[] {
+                    d.RequestedByUserId,
+                    d.SendingNurseUserId ?? Guid.Empty,
+                    d.ReceivingNurseUserId ?? Guid.Empty
+                }))
                 .Where(id => id != Guid.Empty)
                 .Distinct()
                 .ToList();
@@ -900,9 +952,50 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 u => u.Id,
                 u => PilihNamaTampilan(u.DisplayName, u.UserName, u.Email, u.UserCode));
 
-            foreach (var e in daftar)
+            foreach (var e in listEvents)
             {
                 // Pengguna tidak ditemukan atau ruas ID kosong menghasilkan null, bukan GUID.
+                e.RecordedByName = nama.GetValueOrDefault(e.RecordedByUserId);
+                e.ApprovedByName = e.ApprovedByUserId is { } disetujuOleh
+                    ? nama.GetValueOrDefault(disetujuOleh)
+                    : null;
+            }
+
+            foreach (var d in listDepartures)
+            {
+                d.RequestedByName = nama.GetValueOrDefault(d.RequestedByUserId);
+                if (d.SendingNurseUserId.HasValue)
+                    d.SendingNurseName = nama.GetValueOrDefault(d.SendingNurseUserId.Value);
+                if (d.ReceivingNurseUserId.HasValue)
+                    d.ReceivingNurseName = nama.GetValueOrDefault(d.ReceivingNurseUserId.Value);
+            }
+        }
+
+        private async Task IsiNamaPelakuEventsAsync(
+            IEnumerable<EmergencyDepartureEventResponse> events, CancellationToken cancellationToken)
+        {
+            var daftar = events.ToList();
+
+            var idPelaku = daftar
+                .SelectMany(e => new[] { e.RecordedByUserId, e.ApprovedByUserId ?? Guid.Empty })
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (idPelaku.Count == 0) return;
+
+            var pengguna = await _dbContext.Set<QuilvianSystemBackend.Models.ApplicationUser>()
+                .AsNoTracking()
+                .Where(u => idPelaku.Contains(u.Id))
+                .Select(u => new { u.Id, u.DisplayName, u.UserName, u.Email, u.UserCode })
+                .ToListAsync(cancellationToken);
+
+            var nama = pengguna.ToDictionary(
+                u => u.Id,
+                u => PilihNamaTampilan(u.DisplayName, u.UserName, u.Email, u.UserCode));
+
+            foreach (var e in daftar)
+            {
                 e.RecordedByName = nama.GetValueOrDefault(e.RecordedByUserId);
                 e.ApprovedByName = e.ApprovedByUserId is { } disetujuOleh
                     ? nama.GetValueOrDefault(disetujuOleh)

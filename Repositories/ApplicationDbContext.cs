@@ -27,6 +27,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PatientRefund.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
@@ -751,6 +752,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinPayment> FinPayments { get; set; }
         public DbSet<FinPaymentAllocation> FinPaymentAllocations { get; set; }
         public DbSet<FinPaymentDeduction> FinPaymentDeductions { get; set; }
+        public DbSet<FinPatientRefundRequest> FinPatientRefundRequests { get; set; }
         // BE-FIN-021, FIN-DES-025, FIN-CAP-021: utang jasa tenaga medis (dokter, perawat, praktisi lain).
         // Migration AddFinanceMedicalServicePayable dibuat tangan, belum dijalankan.
         public DbSet<FinMedicalServicePayable> FinMedicalServicePayables { get; set; }

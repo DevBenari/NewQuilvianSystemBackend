@@ -41,18 +41,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var visitExists = await _dbContext.Set<EmgVisit>()
                 .AsNoTracking()
                 .AnyAsync(
-                    // Completed ditambahkan BE-IGD-019. Sebelumnya hanya Disposed dan Cancelled
-                    // yang dianggap tertutup, sehingga triase masih dapat dibuat pada kunjungan
-                    // yang sudah benar-benar selesai — AT-IGD-088.
-                    x => x.Id == request.EmergencyVisitId &&
-                         !x.IsDelete &&
-                         x.VisitStatus != EmergencyVisitStatus.Disposed &&
-                         x.VisitStatus != EmergencyVisitStatus.Completed &&
-                         x.VisitStatus != EmergencyVisitStatus.Cancelled,
+                    x => x.Id == request.EmergencyVisitId && !x.IsDelete,
                     cancellationToken);
 
             if (!visitExists)
-                return "EmergencyVisitId tidak ditemukan atau kunjungan sudah ditutup.";
+                return "EmergencyVisitId tidak ditemukan.";
 
             var level = await _dbContext.Set<EmgTriageLevel>()
                 .AsNoTracking()

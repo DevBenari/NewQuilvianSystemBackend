@@ -16,7 +16,7 @@
 | Pasangan backend | `BE-IGD-069` — pasangan uji `AT-IGD-206`, `AT-IGD-207` |
 | Task mode | `FRONTEND` — izin implementasi diberikan Rizki |
 | Tanggal | 9 Oktober 2026 |
-| Status | 🟢 **SELESAI — 9 Oktober 2026: implementasi selesai**; service `createEmergencyNursingAction`, slice & hook update, komponen `EmergencyAssessmentProcedureTab` terpasang pada `emergency-assessment-detail-view.jsx`. Bebas komentar baru; format baris CRLF terjaga. |
+| Status | ✅ **SELESAI — dipulihkan 19 Oktober 2026 atas penilaian pemilik.** Pemilik menyatakan layar yang dilayani `npm run dev` sah sebagai bukti selama modul masih dalam pengembangan, sehingga dasar `IGD-DEC-296` tidak lagi berlaku dan uji ulang pada hasil build tidak dituntut. Sisi API (`BE-IGD-069`) sudah terbukti terpisah. Catatan yang tetap melekat: skrip putaran 3 memakai aturan PASS "salah satu" (`IGD-FACT-118`), dan PNG putaran itu dihapus 19 Oktober 2026 saat drive C: penuh — JSON hasil dan skrip `.mjs` masih ada. *Sebelumnya:* 🟡 dibuka kembali 12 Oktober 2026 (`IGD-DEC-296`). *Sebelumnya:* 🟢 **SELESAI — 9 Oktober 2026: implementasi selesai**; service `createEmergencyNursingAction`, slice & hook update, komponen `EmergencyAssessmentProcedureTab` terpasang pada `emergency-assessment-detail-view.jsx`. Bebas komentar baru; format baris CRLF terjaga. |
 
 ---
 
@@ -92,3 +92,7 @@ skrip) dicocokkan dengan `Logs/quilvian-backend-20261009.json`, **bukan** dengan
 
 **Putusan pemilik:** `BE-IGD-069` **disahkan dengan penyimpangan tercatat** (`IGD-DEC-295`); `FE-IGD-050` dan `FE-IGD-051`
 **dibuka kembali 🟡** — uji ulang pada hasil build (`IGD-DEC-296`).
+
+**Pemutakhiran 19 Oktober 2026:** pemilik menyatakan layar yang dilayani `npm run dev` sah sebagai bukti selama modul
+masih dalam pengembangan, sehingga dasar `IGD-DEC-296` tidak lagi berlaku dan uji ulang pada hasil build tidak dituntut.
+`FE-IGD-050` dan `FE-IGD-051` dipulihkan ke ✅ atas penilaian pemilik.

@@ -654,6 +654,45 @@ public sealed class BillingRefundService
                     await _dbContext.SaveChangesAsync(cancellationToken);
                 }
             }
+            if (refundCase.Status is BillingRefundCaseStatuses.Executed or BillingRefundCaseStatuses.PartiallyExecuted)
+            {
+                var invoice = await _dbContext.BilInvoices.AsNoTracking().FirstOrDefaultAsync(x => x.Id == refundCase.InvoiceId, cancellationToken);
+                if (invoice != null && string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
+                {
+                    var latestHandoff = await _dbContext.BilInpatientClearanceHandoffs
+                        .Where(x => x.EncounterId == invoice.EncounterId && !x.IsDelete)
+                        .OrderByDescending(x => x.FinancialVersion)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    if (latestHandoff != null && latestHandoff.ClearanceStatus == InpatientClearanceStatuses.Cleared)
+                    {
+                        var handoff = new BilInpatientClearanceHandoff
+                        {
+                            Id = Guid.NewGuid(),
+                            EncounterId = invoice.EncounterId,
+                            InvoiceId = invoice.Id,
+                            ClearanceStatus = InpatientClearanceStatuses.Revoked,
+                            FinancialOutcome = null,
+                            OutstandingBalance = latestHandoff.OutstandingBalance + refundCase.RequestedAmount,
+                            TotalPatientResponsibility = latestHandoff.TotalPatientResponsibility,
+                            TotalPaidOrAllocated = Math.Max(0m, latestHandoff.TotalPaidOrAllocated - refundCase.RequestedAmount),
+                            ReasonCode = InpatientClearanceReasonCodes.LateChargePosted,
+                            RevocationReason = "RefundExecuted",
+                            FinancialVersion = latestHandoff.FinancialVersion + 1,
+                            EffectiveAt = DateTimeOffset.UtcNow,
+                            CorrelationId = refundCase.CorrelationId,
+                            CausationId = refundCase.CausationId,
+                            Status = BillingHandoffStatuses.Created,
+                            RowVersion = Guid.NewGuid(),
+                            CreateDateTime = DateTime.UtcNow,
+                            CreateBy = actorUserId
+                        };
+                        _dbContext.BilInpatientClearanceHandoffs.Add(handoff);
+                        await _dbContext.SaveChangesAsync(cancellationToken);
+                    }
+                }
+            }
+
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             if (refundCase.Status != beforeStatus)
                 await AuditExecutionAsync(refundCase, beforeStatus, actorUserId);

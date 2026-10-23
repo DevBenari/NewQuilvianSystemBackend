@@ -1767,7 +1767,7 @@ lahir dari pelengkapannya.
 |---|---|---|
 | `INV-RP-01` | Per pasien per tanggal kunjungan, paling banyak satu reservasi **terbuka** (Menunggu Kedatangan atau Sudah Tiba) | Unique index bersyarat, ditambah kunci per pasien yang sama dengan pendaftaran kunjungan (`RJ-DOC-REV-BE-007`) |
 | `INV-RP-02` | Reservasi hanya dibuat untuk pasien yang menurut `PatientMembershipStatusResolver` adalah member Aktif pada hari pembuatan (WIB) | `OutpatientPriorityReservationService.CreateAsync` |
-| `INV-RP-03` | Snapshot klasifikasi diambil saat reservasi dibuat dan tidak pernah diubah. Satu-satunya pencabutan: membership snapshot berstatus Dibatalkan (`RJ-PRI-DEC-024`), dihitung saat dibaca dan saat dilengkapi | Service; tidak ada endpoint yang mengubah snapshot |
+| `INV-RP-03` | Snapshot klasifikasi diambil saat reservasi dibuat dan tidak pernah diubah. Satu-satunya pencabutan: membership snapshot berstatus Dibatalkan (`RJ-PRI-DEC-024`), dihitung saat dibaca dan saat dilengkapi. **Revisi `34`:** ganti tanggal mengganti snapshot dengan hasil penilaian hari penggantian (*Amendment RP-GT*, GT.2) | Service; satu-satunya endpoint yang mengubah snapshot adalah ganti tanggal |
 | `INV-RP-04` | Satu reservasi menghasilkan paling banyak satu kunjungan. Kunjungan dan perubahan reservasi tersimpan dalam **satu** transaksi | Unique index bersyarat pada `EncounterId`; transaksi pendaftaran kunjungan |
 | `INV-RP-05` | Kode link hanya disimpan sebagai hash SHA-256. Kode aslinya hanya muncul sekali, di respons buat atau kirim ulang | Service; kolom `ArrivalCodeHash` |
 | `INV-RP-06` | Setiap perubahan status menulis tepat satu baris riwayat, dalam transaksi yang sama | Service |
@@ -2189,9 +2189,221 @@ Tanpa folder `Tests/` dan tanpa project test.
 | Endpoint "lengkapi" tersendiri di controller reservasi | Akan menduplikasi jalur pendaftaran kunjungan: jadwal, kuota, penjamin, consent, dan antrean. PDF 2B meminta format step-by-step yang sudah ada |
 | Memakai `EncounterIntakeService` untuk pelengkapan | Service itu sengaja tidak menangani antrean dokter, jadwal, dan kuota poliklinik |
 | Mengekstrak `CreateEncounterCoreAsync` ke service sekarang | Menyentuh jalur kiosk, petugas, dan IGD sekaligus. Dijadikan task perapian terpisah bila owner arsitektur menyetujui |
-| Aksi "ubah tanggal" | `RJ-PRI-DEC-029`: batal lalu buat baru |
+| Aksi "ubah tanggal" | `RJ-PRI-DEC-029`: batal lalu buat baru. **Direvisi revisi `34`:** sebelum hari kunjungan ada aksi ganti tanggal (*Amendment RP-GT*) |
 | Status "Bukan prioritas lagi" | Dihitung saat dibaca dari status membership snapshot. Menyimpannya butuh sinkronisasi dari modul CRM |
 | Kolom No. HP tujuan WA di reservasi | Pengiriman manual di frontend (`RJ-PRI-DEC-011`). Nomornya diambil dari master pasien saat tombol ditekan (`RJ-PRI-OQ-011`) |
 | Kolom nama ruang tunggu di master | Satu ruang untuk semua poli (`RJ-PRI-DEC-018`), jadi cukup konfigurasi |
 | Pengiriman WA otomatis | Belum ada gateway (`RJ-PRI-OQ-004`) |
 | Peringatan pasien prioritas menunggu terlalu lama | `GATE-RP-03`, slice berikutnya |
+
+# Amendment RP-GT — Ganti tanggal Reservasi Prioritas (revisi `34`, `approved` 2026-10-21)
+
+| Field | Nilai |
+|---|---|
+| Status | `approved` — Sukma Giri, 2026-10-21 (`RJ-PRI-DEC-039`) |
+| Keputusan | `RJ-PRI-DEC-034` s.d. `038`, `RJ-PRI-FE-005`, `RJ-PRI-OQ-013` (usulan diadopsi), `RJ-PRI-OQ-014` (`LATER SLICE`) — [00-interview-decisions.md](00-interview-decisions.md), *Amendment Pass 2026-10-21* |
+| Dasar | Revisi `33` (`approved`) dan kontrak `RJ-PRI-RESV-001@1.1.0` |
+| Impact scan | Terarah dan read-only, pada area yang tersentuh: backend `b0285ff1` (`sukmagp`), frontend `037c975b7` (`sukmagpV2`). Impact scan RP penuh dicatat pada `551e1cbb`/`1fd858322`, sehingga sudah basi. Temuannya dicatat sebagai `F-GT-1` s.d. `F-GT-7` di decision log |
+| `requirement_readiness` | Keputusan lengkap dan tidak ada pertanyaan yang memblokir. Gate terpisah tidak dijalankan, karena perubahan berada di dalam slice `S-RP-1` yang sudah `READY_FOR_DOMAIN_DESIGN` |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — tetap satu bounded context (Registration RJ), tanpa dampak billing atau klinis baru |
+| Kontrak | `RJ-PRI-RESV-001@1.2.0` (`approved`, aditif) |
+| Owner | Sukma Giri |
+
+## GT.1 Tujuan dan batas
+
+Admisi dapat memindahkan tanggal kunjungan reservasi yang masih **Menunggu Kedatangan**, selama hari ini (WIB) masih
+**sebelum** tanggal kunjungannya. Nomor reservasi tetap. Status member dinilai ulang. Link baru terbit dan link lama
+mati. Bila satu pemeriksaan saja gagal, tidak ada yang berubah. Pada hari kunjungan, ganti tanggal tetap lewat batal lalu
+buat baru (`RJ-PRI-DEC-029`).
+
+**Contoh:** pada Kamis 24 Okt 2026 pukul 21.00, Ibu Sari (Gold) meminta reservasi `RSV-261020-0003` untuk Jumat 25 Okt
+dipindah ke Senin 28 Okt. Admisi Dewi membuka detail reservasi, memilih Ganti Tanggal, mengisi 28 Okt dan alasan "pasien
+ada acara keluarga", lalu menyimpan. Sistem memastikan Ibu Sari masih member Aktif per 24 Okt, dan belum punya reservasi
+lain atau kunjungan aktif pada 28 Okt. Setelah itu sistem menyimpan tanggal baru. Dewi menekan "Kirim via WhatsApp" dengan
+link baru. Link lama dari pesan pertama kini menjawab "Link tidak berlaku".
+
+**Tidak berubah:** cara membuat, menandai tiba, melengkapi, membatalkan, dan penutupan akhir hari. Jalur publik, nomor
+antrean, display, dan billing juga tidak tersentuh.
+
+## GT.2 Invariant dan transaksi
+
+| ID | Invariant | Perubahan | Penjaga |
+|---|---|---|---|
+| `INV-RP-01` | Satu reservasi terbuka per pasien per tanggal | Tetap. Kini juga dijaga saat tanggal diganti | Pemeriksaan di bawah kunci pasien, lalu unique index `UX_RegPriorityReservation_Open_Patient_VisitDate` sebagai lapis kedua |
+| `INV-RP-03` | Snapshot klasifikasi tidak pernah diubah | **Diubah:** snapshot diganti **hanya** oleh ganti tanggal, dengan hasil penilaian pada hari penggantian (`RJ-PRI-DEC-035`). Tidak ada jalan lain | `OutpatientPriorityReservationService.RescheduleAsync` |
+| `INV-RP-05` | Kode link hanya disimpan sebagai hash | Tetap. Ganti tanggal menerbitkan kode baru, dan kode aslinya hanya muncul di respons ganti tanggal | Service |
+| `INV-RP-06` | Setiap perubahan menulis tepat satu baris riwayat | Tetap. Ganti tanggal menulis satu baris `RESCHEDULED` | Service |
+| `INV-RP-10` | **Baru.** Tanggal hanya dapat diganti bila status Menunggu Kedatangan **dan** hari ini (WIB) < tanggal kunjungan lama | — | Service |
+
+| Transaksi | Isi dalam satu transaksi | Bila gagal |
+|---|---|---|
+| Ganti tanggal | Kunci pasien. Periksa reservasi terbuka dan kunjungan aktif pada tanggal baru. Ubah tanggal, snapshot, hash kode, `ArrivalCodeIssuedAt`, dan `RowVersion`. Tulis riwayat `RESCHEDULED` | Tidak ada yang berubah: tanggal, snapshot, dan link lama tetap. Bila `RowVersion` berubah di tengah jalan, permintaan ditolak 409 |
+
+**Tidak bentrok dengan penutupan akhir hari.** Penutupan hanya menyentuh reservasi dengan tanggal kunjungan < hari ini.
+Ganti tanggal hanya menyentuh reservasi dengan tanggal kunjungan > hari ini. Kedua himpunan tidak pernah beririsan
+(`F-GT-4`).
+
+## GT.3 Tabel kepemilikan data
+
+Tidak ada kelompok data baru. Ganti tanggal hanya mengubah `RegPriorityReservation` dan menambah baris
+`RegPriorityReservationHistory` (Registration). Status member tetap dibaca lewat resolver `crm-membership` (`INT-RP-01`).
+
+## GT.4 Aturan inti — urutan pemeriksaan
+
+Urutan ini tetap, supaya pesan yang diterima admisi dapat diuji.
+
+| No | Pemeriksaan | Bila gagal |
+|---:|---|---|
+| 1 | Fitur aktif (`PriorityReservation:Enabled`) | 409 "Reservasi prioritas sedang dinonaktifkan." |
+| 2 | `expectedRowVersion` terisi, `newVisitDate` terisi (`VAL-RP-24`), dan alasan 10–500 karakter (`VAL-RP-12`) | 400 |
+| 3 | Reservasi ada | 404 |
+| 4 | `RowVersion` cocok (`VAL-RP-14`) | 409 |
+| 5 | Status Menunggu Kedatangan (`VAL-RP-11`) | 409 |
+| 6 | Hari ini < tanggal kunjungan lama (`VAL-RP-22`) | 409 |
+| 7 | Tanggal baru ≠ tanggal lama (`VAL-RP-23`) | 400 |
+| 8 | Tanggal baru ≥ hari ini (`VAL-RP-03`) dan ≤ hari ini + `MaxDaysAhead` (`VAL-RP-04`) | 400 |
+| 9 | Member Aktif pada hari ini menurut `OutpatientQueueClassificationService.ClassifyAsync` (`VAL-RP-25`) | 409 |
+| 10 | Di dalam transaksi dan kunci pasien: belum ada reservasi terbuka pada tanggal baru (`VAL-RP-05`) | 409 |
+| 11 | Belum ada kunjungan RJ aktif pada tanggal baru (`VAL-RP-06`) | 409 |
+| 12 | Simpan. `DbUpdateConcurrencyException` → 409 `VAL-RP-14`; unique violation → 409 `VAL-RP-05` | 409 |
+
+**Yang diubah saat berhasil:**
+- `VisitDate`;
+- ketujuh kolom snapshot: `IsPrioritySnapshot`, `PatientMembershipIdSnapshot`, `MembershipTierIdSnapshot`,
+  `MembershipTierCodeSnapshot`, `QueuePriorityLevelSnapshot`, `QueueAudienceSnapshot`, dan `PublicDisplayModeSnapshot`;
+- `ArrivalCodeHash` dan `ArrivalCodeIssuedAt`;
+- `RowVersion`, `UpdateBy`, dan `UpdateDateTime`.
+
+`ReservationNumber`, `Status`, dan `PatientId` tidak berubah.
+
+**Contoh perhitungan batas:** hari ini 21 Okt 2026 dan `MaxDaysAhead` = 30, sehingga tanggal baru paling jauh 20 Nov
+2026. Reservasi untuk 21 Okt (hari ini) tidak dapat diganti tanggalnya (pemeriksaan 6). Reservasi untuk 22 Okt dapat
+dipindah ke tanggal mana pun dari 21 Okt sampai 20 Nov, kecuali 22 Okt itu sendiri (pemeriksaan 7).
+
+## GT.5 Class diagram
+
+```mermaid
+classDiagram
+    class OutpatientPriorityReservationController {
+        +Reschedule(id, request)
+    }
+    class OutpatientPriorityReservationService {
+        +RescheduleAsync(id, request, actorUserId)
+        +BuildIssuedResponseAsync(result)
+    }
+    class RegPriorityReservation {
+        +DateTime VisitDate
+        +string ArrivalCodeHash
+        +bool IsPrioritySnapshot
+        +Guid RowVersion
+    }
+    class RegPriorityReservationHistory {
+        +string EventCode
+        +DateTime? FromVisitDate
+        +DateTime? ToVisitDate
+        +string? Reason
+    }
+    class OutpatientQueueClassificationService {
+        +ClassifyAsync(patientId, classificationDateWib)
+    }
+    class QueueRealtimeService {
+        +NotifyPriorityReservationChangedAsync(reservation, eventCode, occurredAt, previousVisitDate)
+    }
+    OutpatientPriorityReservationController ..> OutpatientPriorityReservationService : memanggil
+    OutpatientPriorityReservationController ..> QueueRealtimeService : kabar sesudah simpan
+    OutpatientPriorityReservationService ..> OutpatientQueueClassificationService : menilai ulang member
+    OutpatientPriorityReservationService ..> RegPriorityReservation : mengubah
+    RegPriorityReservation "1" --> "0..*" RegPriorityReservationHistory : riwayat RESCHEDULED
+```
+
+## GT.6 Penjelasan class yang tersentuh
+
+| Class | **Status** | **Lokasi file** | Perubahan |
+|---|---|---|---|
+| `RegPriorityReservationHistory` | Diperbarui | `Areas/HealthServices/RegistrationManagement/Models/RegPriorityReservationHistory.cs` | Tambah konstanta `EventRescheduled = "RESCHEDULED"`. Tambah kolom `FromVisitDate` (`DateTime?`, `date`) dan `ToVisitDate` (`DateTime?`, `date`), yang hanya diisi pada `RESCHEDULED` |
+| `RegPriorityReservationHistoryConfiguration` | Diperbarui | `Repositories/Configurations/HealthServices/RegPriorityReservationHistoryConfiguration.cs` | `FromVisitDate` dan `ToVisitDate` bertipe kolom `date` dan nullable. Tanpa index baru |
+| `RegPriorityReservation` | Sudah ada (perilaku berubah) | `.../Models/RegPriorityReservation.cs` | Skema tidak berubah. `VisitDate` dan ketujuh kolom snapshot kini dapat diubah, tetapi hanya oleh `RescheduleAsync` |
+| `OutpatientPriorityReservationService` | Diperbarui | `.../Services/OutpatientPriorityReservationService.cs` | Tambah `RescheduleAsync` (GT.4). Method ini membuka transaksi sendiri dan memakai `LockPatientAsync`, `FindOpenReservationAsync`, `HasActiveOutpatientEncounterOnAsync`, serta `ValidateVisitDate` yang sudah ada. `GetDetailAsync` mengisi `CanReschedule` serta `FromVisitDate`/`ToVisitDate` pada riwayat. `GetEventName` menambah "Tanggal kunjungan diganti". `BuildIssuedResponseAsync` memakai teks WA versi ganti tanggal bila `EventCode = RESCHEDULED` |
+| `PriorityReservationCommandResult` | Diperbarui | Berkas yang sama (kelas di atas service) | Tambah `DateTime? PreviousVisitDate`, yang hanya diisi oleh ganti tanggal, untuk kabar realtime |
+| `OutpatientPriorityReservationController` | Diperbarui | `.../Controllers/OutpatientPriorityReservationController.cs` | Tambah action `Reschedule` → `POST /{id}/reschedule`, `[AccessPermission("OutpatientPriorityReservation", "Create")]`. Pola responsnya sama dengan `ReissueArrivalCode`: log, kabar realtime, lalu `BuildIssuedResponseAsync`. Deskripsi `[AccessAction("Create", …)]` pada ketiga action `Create` diseragamkan menjadi "Membuat reservasi pasien prioritas, mengirim ulang link, dan mengganti tanggal" |
+| `QueueRealtimeService` | Diperbarui | `.../Services/QueueRealtimeService.cs` | `NotifyPriorityReservationChangedAsync` menerima `previousVisitDate` opsional dan meneruskannya ke payload |
+| DTO | Diperbarui | `.../DTOS/OutpatientPriorityReservationDtos.cs`, `.../DTOS/QueueRealtimeDtos.cs` | Lihat GT.8 |
+
+`RescheduleAsync` tidak memakai `ExecuteStaffCommandAsync`, karena kerangka itu tidak mengunci pasien dan tidak memeriksa
+unique violation. Perilaku `RowVersion` dan riwayatnya tetap disamakan.
+
+## GT.7 Arsitektur folder
+
+```text
+Areas/HealthServices/RegistrationManagement/
+├── Controllers/OutpatientPriorityReservationController.cs   # Diperbarui
+├── DTOS/OutpatientPriorityReservationDtos.cs                # Diperbarui
+├── DTOS/QueueRealtimeDtos.cs                                # Diperbarui
+├── Models/RegPriorityReservationHistory.cs                  # Diperbarui
+└── Services/
+    ├── OutpatientPriorityReservationService.cs              # Diperbarui
+    └── QueueRealtimeService.cs                              # Diperbarui
+Repositories/Configurations/HealthServices/RegPriorityReservationHistoryConfiguration.cs  # Diperbarui
+Migrations/<timestamp>_AddPriorityReservationHistoryVisitDates.cs                         # Baru
+Migrations/ApplicationDbContextModelSnapshot.cs                                           # Diperbarui
+```
+
+Pada HEAD, DTO reservasi sebenarnya berada di folder `DTOS` (huruf kapital). Utang teknis `DTOs`/`DTOS` dari RP.7 tetap
+tidak dirapikan diam-diam.
+
+## GT.8 Endpoint dan DTO (ringkas)
+
+Rinciannya ada di `contracts/api-contract.md` *Amendment RP-GT*.
+
+| Yang berubah | Isi |
+|---|---|
+| Endpoint baru | `POST /{id}/reschedule` — `ReschedulePriorityReservationRequest` → `ApiResponse<PriorityReservationIssuedResponse>` |
+| DTO baru | `ReschedulePriorityReservationRequest` (Status): `expectedRowVersion` (wajib), `newVisitDate` (wajib), `reason` (wajib, 10–500 karakter) |
+| DTO diperbarui | `PriorityReservationDetailResponse` + `canReschedule`; `PriorityReservationHistoryResponse` + `fromVisitDate?`, `toVisitDate?`; `PriorityReservationRealtimeEventResponse` + `previousVisitDate?` |
+
+## GT.9 Status model dan dampak migration
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+|---|---|---|---|
+| `RegPriorityReservationHistory` | Diperbarui | `FromVisitDate date NULL`, `ToVisitDate date NULL` | Dua kolom nullable baru, tanpa index |
+| `RegPriorityReservation` | Sudah ada | — | Tidak ada |
+
+## GT.10 Rencana migration
+
+| Urutan | Migration | Tanpa mematikan layanan | Data lama | Langkah mundur |
+|---:|---|:---:|---|---|
+| 1 | `AddPriorityReservationHistoryVisitDates`: `ADD COLUMN "FromVisitDate" date NULL` dan `ADD COLUMN "ToVisitDate" date NULL` pada `RegPriorityReservationHistory` | Ya (aditif, nullable, tanpa isi ulang) | Baris lama tetap kosong. Tidak perlu diisi, karena belum pernah ada ganti tanggal | `Down` menghapus kedua kolom. Tanggal pada riwayat `RESCHEDULED` ikut hilang, tetapi baris riwayat dan alasannya tetap ada |
+
+Sebelum migration diterapkan ke `QuilvianNewDevSukma`, periksa `dotnet ef migrations list` untuk migration modul lain
+yang masih `(Pending)`. Penerapan ke DB master dilakukan saat rilis.
+
+## GT.11 Konfigurasi dan data awal
+
+Tidak ada kunci konfigurasi atau master baru. `MaxDaysAhead` dan `Enabled` yang sudah ada ikut berlaku. Akses Role tidak
+perlu dicentang ulang, karena ganti tanggal memakai aksi `Create` (`RJ-PRI-DEC-037`).
+
+## GT.12 Otorisasi, privasi, audit
+
+1. Hak akses `OutpatientPriorityReservation : Create`. Pengguna tanpa `Create` menerima 403.
+2. Riwayat `RESCHEDULED` menyimpan pelaku, jam, alasan, tanggal lama, dan tanggal baru. Kode link dan hash tidak pernah
+   dicatat.
+3. Logger hanya mencatat `EntityId`, nomor reservasi, aksi, dan status, sama seperti perintah lain. Alasan dan tanggal
+   tidak masuk log.
+4. Payload realtime tetap tanpa nama pasien. Field baru `previousVisitDate` hanya berisi tanggal.
+
+## GT.13 Strategi verifikasi (pola Bank Darah)
+
+Sama dengan RP.13: build, `has-pending-model-changes`, QBE Strict, runtime HTTP ke `7185` terhadap `QuilvianNewDevSukma`
+dengan data samaran, lalu uji layar Playwright. Skenarionya `R-RP-31` s.d. `R-RP-42` di
+`testing/acceptance-test-matrix.md` *Amendment RP-GT*.
+
+## GT.14 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Kolom "jumlah ganti tanggal" atau batas jumlah | Tidak ada batas (`RJ-PRI-DEC-034`). Jumlahnya dapat dihitung dari riwayat `RESCHEDULED` |
+| Endpoint `PUT /{id}` umum | Kontrak RP memakai aksi per transisi. `PUT` umum akan membuka jalan untuk mengubah pasien atau snapshot di luar aturan |
+| Ganti tanggal pada hari kunjungan atau sesudah tiba | `RJ-PRI-DEC-034`, `INV-RP-10` |
+| Mempertahankan kode link lama | `RJ-PRI-DEC-036` |
+| Nomor reservasi baru | Nomor tetap (`RJ-PRI-DEC-034`). Format nomor memakai tanggal **pembuatan**, bukan tanggal kunjungan, sehingga nomor lama tidak menjadi salah |
+| Peringatan reservasi terbuka di tanggal lain saat membuat reservasi | `RJ-PRI-OQ-014`, `LATER SLICE` |

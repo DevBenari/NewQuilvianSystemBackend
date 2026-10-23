@@ -127,6 +127,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public string? Reason { get; set; }
 
+        /// <summary>Tanggal kunjungan sebelum diganti. Hanya terisi pada <c>RESCHEDULED</c>.</summary>
+        public DateTime? FromVisitDate { get; set; }
+
+        /// <summary>Tanggal kunjungan sesudah diganti. Hanya terisi pada <c>RESCHEDULED</c>.</summary>
+        public DateTime? ToVisitDate { get; set; }
+
         public DateTime OccurredAt { get; set; }
     }
 
@@ -151,6 +157,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public bool CanComplete { get; set; }
 
         public bool CanCancel { get; set; }
+
+        /// <summary>
+        /// Menunggu Kedatangan dan hari ini (WIB) sebelum tanggal kunjungan (RJ-PRI-DEC-034).
+        /// Status member dan tanggal baru baru diperiksa saat simpan.
+        /// </summary>
+        public bool CanReschedule { get; set; }
 
         public List<PriorityReservationHistoryResponse> Histories { get; set; } = new();
     }
@@ -184,8 +196,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
     }
 
     /// <summary>
-    /// Jawaban buat dan kirim ulang. <see cref="ArrivalLink"/> hanya muncul di respons ini;
-    /// kode aslinya tidak disimpan (INV-RP-05).
+    /// Ganti tanggal sebelum hari kunjungan (RJ-PRI-DEC-034 s.d. 036). <see cref="NewVisitDate"/>
+    /// kosong dan alasan yang tidak sah dijawab service dengan pesan validasi, bukan oleh model binding.
+    /// </summary>
+    public class ReschedulePriorityReservationRequest
+    {
+        [Required]
+        public Guid ExpectedRowVersion { get; set; }
+
+        [Required]
+        public DateTime NewVisitDate { get; set; }
+
+        public string? Reason { get; set; }
+    }
+
+    /// <summary>
+    /// Jawaban buat, kirim ulang, dan ganti tanggal. <see cref="ArrivalLink"/> hanya muncul di
+    /// respons ini; kode aslinya tidak disimpan (INV-RP-05).
     /// </summary>
     public class PriorityReservationIssuedResponse
     {

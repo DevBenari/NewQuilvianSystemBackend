@@ -128,7 +128,8 @@ public sealed class FinanceSettlementService
                 DebtorReferenceId = row.r.DebtorReferenceId,
                 DebtorName = row.debtorResolvedName ?? "-",
                 BenefitOwnerId = row.r.BenefitOwnerId,
-                BenefitOwnerName = row.emp?.FullName,
+                BenefitOwnerWorkforceProfileId = row.r.BenefitOwnerWorkforceProfileId,
+                BenefitOwnerName = row.emp?.FullName ?? row.doc?.FullName,
                 BenefitRelationship = row.r.BenefitRelationship,
                 TotalPiutang = row.r.OriginalAmount,
                 BeginningBalance = begBal,
@@ -186,6 +187,8 @@ public sealed class FinanceSettlementService
                          from pat in patJoin.DefaultIfEmpty()
                          join emp in _dbContext.MstEmployees.AsNoTracking() on r.BenefitOwnerId equals emp.Id into empJoin
                          from emp in empJoin.DefaultIfEmpty()
+                         join doc in _dbContext.MstDoctors.AsNoTracking() on r.BenefitOwnerWorkforceProfileId equals doc.WorkforceProfileId into docJoin
+                         from doc in docJoin.DefaultIfEmpty()
                          join comp in _dbContext.MstCompanyGuarantors.AsNoTracking() on r.DebtorReferenceId equals comp.Id into compJoin
                          from comp in compJoin.DefaultIfEmpty()
                          join ins in _dbContext.MstInsuranceProviders.AsNoTracking() on r.DebtorReferenceId equals ins.Id into insJoin
@@ -197,9 +200,11 @@ public sealed class FinanceSettlementService
                              encounterNumber = enc != null ? enc.EncounterNumber : null,
                              pat,
                              emp,
+                             doc,
                              debtorResolvedName = comp != null ? comp.CompanyGuarantorName
                                                 : ins != null ? ins.InsuranceProviderName
                                                 : emp != null ? emp.FullName
+                                                : doc != null ? doc.FullName
                                                 : pat != null ? pat.FullName : null
                          }).FirstOrDefaultAsync(cancellationToken);
 
@@ -229,7 +234,8 @@ public sealed class FinanceSettlementService
             DebtorReferenceId = row.r.DebtorReferenceId,
             DebtorName = row.debtorResolvedName ?? "-",
             BenefitOwnerId = row.r.BenefitOwnerId,
-            BenefitOwnerName = row.emp?.FullName,
+            BenefitOwnerWorkforceProfileId = row.r.BenefitOwnerWorkforceProfileId,
+            BenefitOwnerName = row.emp?.FullName ?? row.doc?.FullName,
             BenefitRelationship = row.r.BenefitRelationship,
             InvoiceDate = row.inv?.InvoiceDate ?? row.r.RecognizedAt,
             DueDate = row.r.DueDate,
@@ -735,6 +741,9 @@ public sealed class FinanceSettlementService
         public string? encounterNumber { get; set; }
         public MstPatient? pat { get; set; }
         public MstEmployee? emp { get; set; }
+
+        /// <summary>Dokter tetap pemilik manfaat (tanpa MstEmployee), dihubungkan lewat BenefitOwnerWorkforceProfileId.</summary>
+        public MstDoctor? doc { get; set; }
         public MstCompanyGuarantor? comp { get; set; }
         public MstInsuranceProvider? ins { get; set; }
         public string? batchNumber { get; set; }
@@ -746,6 +755,7 @@ public sealed class FinanceSettlementService
             comp != null ? comp.CompanyGuarantorName
             : ins != null ? ins.InsuranceProviderName
             : emp != null ? emp.FullName
+            : doc != null ? doc.FullName
             : pat != null ? pat.FullName : null;
     }
 
@@ -798,6 +808,8 @@ public sealed class FinanceSettlementService
                         from pat in patJoin.DefaultIfEmpty()
                         join emp in _dbContext.MstEmployees.AsNoTracking() on r.BenefitOwnerId equals emp.Id into empJoin
                         from emp in empJoin.DefaultIfEmpty()
+                        join doc in _dbContext.MstDoctors.AsNoTracking() on r.BenefitOwnerWorkforceProfileId equals doc.WorkforceProfileId into docJoin
+                        from doc in docJoin.DefaultIfEmpty()
                         join comp in _dbContext.MstCompanyGuarantors.AsNoTracking() on r.DebtorReferenceId equals comp.Id into compJoin
                         from comp in compJoin.DefaultIfEmpty()
                         join ins in _dbContext.MstInsuranceProviders.AsNoTracking() on r.DebtorReferenceId equals ins.Id into insJoin
@@ -811,6 +823,7 @@ public sealed class FinanceSettlementService
                             encounterNumber = enc != null ? enc.EncounterNumber : null,
                             pat = pat,
                             emp = emp,
+                            doc = doc,
                             comp = comp,
                             ins = ins,
                             batchNumber = bItem != null ? bItem.BatchNumber : null
@@ -845,7 +858,9 @@ public sealed class FinanceSettlementService
                 (x.encounterNumber != null && x.encounterNumber.ToUpper().Contains(search)) ||
                 (x.comp != null && x.comp.CompanyGuarantorName.ToUpper().Contains(search)) ||
                 (x.ins != null && x.ins.InsuranceProviderName.ToUpper().Contains(search)) ||
-                (x.emp != null && x.emp.FullName.ToUpper().Contains(search)));
+                (x.emp != null && x.emp.FullName.ToUpper().Contains(search)) ||
+                (x.doc != null && x.doc.FullName.ToUpper().Contains(search)) ||
+                (x.doc != null && x.doc.DoctorNumber.ToUpper().Contains(search)));
         }
 
         return queryable;
@@ -880,11 +895,13 @@ public sealed class FinanceSettlementService
                 ? query.OrderByDescending(x => x.pat != null ? x.pat.FullName
                     : x.comp != null ? x.comp.CompanyGuarantorName
                     : x.ins != null ? x.ins.InsuranceProviderName
-                    : x.emp != null ? x.emp.FullName : null).ThenBy(x => x.r.Id)
+                    : x.emp != null ? x.emp.FullName
+                    : x.doc != null ? x.doc.FullName : null).ThenBy(x => x.r.Id)
                 : query.OrderBy(x => x.pat != null ? x.pat.FullName
                     : x.comp != null ? x.comp.CompanyGuarantorName
                     : x.ins != null ? x.ins.InsuranceProviderName
-                    : x.emp != null ? x.emp.FullName : null).ThenBy(x => x.r.Id)
+                    : x.emp != null ? x.emp.FullName
+                    : x.doc != null ? x.doc.FullName : null).ThenBy(x => x.r.Id)
         };
     }
 

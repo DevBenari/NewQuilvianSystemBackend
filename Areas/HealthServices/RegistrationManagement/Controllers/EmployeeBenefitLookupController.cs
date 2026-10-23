@@ -70,6 +70,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             });
         }
 
+        /// <summary>
+        /// Mencari pemilik benefit gabungan: karyawan dan dokter tetap aktif berdasarkan nama, NIP/nomor dokter,
+        /// atau NIK. Berbasis WorkforceProfileId. Minimal 3 karakter; paling banyak 20 hasil; NIK tersamar.
+        /// Endpoint <c>employees</c> tetap berfungsi untuk kompatibilitas.
+        /// </summary>
+        [HttpGet("workforce-profiles")]
+        [AccessAction("Read", "Read Employee Benefit Lookup", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmployeeBenefitLookup", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<List<WorkforceProfileLookupResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+        public async Task<IActionResult> SearchWorkforceProfiles([FromQuery] string? search, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(search)
+                || search.Trim().Length < EmployeeLookupLimits.MinimumKeywordLength)
+            {
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, TooShortKeywordMessage));
+            }
+
+            return await RunAsync(async () =>
+            {
+                var (items, isTruncated) = await _service.SearchWorkforceAsync(search, cancellationToken);
+                return Ok(ApiResponse<List<WorkforceProfileLookupResponse>>.Ok(
+                    items, isTruncated ? TooManyResultsMessage : "Pencarian pemilik benefit berhasil."));
+            });
+        }
+
+        /// <summary>Anggota keluarga aktif satu pemilik benefit (karyawan atau dokter tetap) berdasarkan WorkforceProfileId.</summary>
+        [HttpGet("workforce-profiles/{workforceProfileId:guid}/family-members")]
+        [AccessAction("Read", "Read Employee Benefit Lookup", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmployeeBenefitLookup", "Read")]
+        [ProducesResponseType(typeof(ApiResponse<List<FamilyMemberLookupResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+        public Task<IActionResult> GetFamilyMembersByWorkforce(Guid workforceProfileId, CancellationToken cancellationToken) =>
+            RunAsync(async () => Ok(ApiResponse<List<FamilyMemberLookupResponse>>.Ok(
+                await _service.GetFamilyMembersByWorkforceAsync(workforceProfileId, cancellationToken),
+                "Daftar anggota keluarga berhasil diambil.")));
+
         /// <summary>Anggota keluarga aktif satu pegawai beserta status verifikasi tanggungannya.</summary>
         [HttpGet("employees/{employeeId:guid}/family-members")]
         [AccessAction("Read", "Read Employee Benefit Lookup", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -94,15 +133,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [ProducesResponseType(typeof(ApiResponse<BenefitEligibilityResponse>), StatusCodes.Status503ServiceUnavailable)]
         public async Task<IActionResult> CheckEligibility(
             [FromQuery] Guid employeeId, [FromQuery] Guid? familyMemberId, [FromQuery] DateTime? serviceDate,
+            [FromQuery] Guid? workforceProfileId,
             CancellationToken cancellationToken)
         {
-            if (employeeId == Guid.Empty)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "employeeId wajib diisi."));
+            // workforceProfileId adalah identitas utama (karyawan atau dokter tetap); employeeId tetap diterima
+            // untuk kompatibilitas. Salah satu wajib diisi.
+            var hasWorkforce = workforceProfileId.HasValue && workforceProfileId.Value != Guid.Empty;
+            if (employeeId == Guid.Empty && !hasWorkforce)
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "workforceProfileId atau employeeId wajib diisi."));
             if (!serviceDate.HasValue || serviceDate.Value.Year < 2000)
                 return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "serviceDate wajib diisi dengan tanggal yang valid."));
 
             var result = await _service.CheckEligibilityAsync(
-                employeeId, familyMemberId == Guid.Empty ? null : familyMemberId, serviceDate.Value, cancellationToken);
+                hasWorkforce ? workforceProfileId : null,
+                employeeId == Guid.Empty ? null : employeeId,
+                familyMemberId == Guid.Empty ? null : familyMemberId,
+                serviceDate.Value,
+                cancellationToken);
 
             if (result.ReasonCode == BenefitEligibilityReasonCodes.HrUnavailable)
             {
