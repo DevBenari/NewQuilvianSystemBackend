@@ -44,9 +44,11 @@ public sealed class PaymentHistoryItemResponse
     // lewat tender/Kwitansi.
     public decimal TotalBillAmount { get; set; }
 
+    // Pembayaran bersih yang sudah dialokasikan ke invoice: tender sukses DAN pemakaian deposit (alokasi
+    // deposit tidak punya tender, jadi tidak muncul di Tenders). Basis yang sama dengan Cashier Overview.
     public decimal TotalPaidAmount { get; set; }
 
-    // Lunas bila seluruh TotalBillAmount sudah tertutup oleh tender SUCCEEDED yang terkumpul.
+    // Lunas bila seluruh TotalBillAmount sudah tertutup oleh pembayaran yang dialokasikan (tender + deposit).
     public bool IsFullyPaid { get; set; }
 
     // Status finansial invoice: "BELUM_LUNAS", "SEBAGIAN", "LUNAS"

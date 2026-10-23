@@ -17,8 +17,7 @@
 | Target tulis | `NewQuilvianSystemBackend` (branch `rizkiG`): lima berkas Cakupan, laporan ini, baris status roadmap dan traceability |
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `6bb18fe6` (`rizkiG`) + working tree `BE-IGD-083`, `BE-IGD-085`, dan dokumen blueprint 18 Oktober 2026 |
-| Tanggal | 18 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 18 Oktober 2026 malam, putaran K1 disahkan sebatas bukti log (`IGD-DEC-328`): #1, #3, #7 terbukti; #2 sebagian (layar kasir); #6 belum runtime; #9 jumlah warning.** *Sebelumnya:* 🟡 **SEBAGIAN — implementasi selesai, QBE Strict `PASS`; data master dan konfigurasi dev siap; build Rizki dan putaran K1 belum.** Acceptance 4, 5, 8 terpenuhi (diff); 7 sebagian (diff); 1, 2, 3, 6 menunggu K1; 9 menunggu build |
+| Status | ✅ **DONE — 19 Oktober 2026: 9 dari 9 acceptance terpenuhi.** Seluruh kriteria penerimaan terbukti penuh: #9 terbukti oleh build PC kantor (0 error, 285 warning); #6 terbukti runtime via API pada skenario K1-11 (penolakan HTTP 400 *'Jasa kunjungan IGD tidak dapat dibatalkan dari modul klinis.'*); #2 terbukti penuh via K1-08 dan live browser testing K1-09 pada antarmuka kasir billing (`Detail Tagihan` dan `Menu Pembayaran`). *Sebelumnya:* 🟡 SEBAGIAN — 7 dari 9 acceptance. |
 
 ### Backend Governance Preflight
 
@@ -126,6 +125,7 @@ baris itu dari tab _Tindakan_ mendapat `400` _"Jasa kunjungan IGD tidak dapat di
 | Penelusuran jalur tidak normal | Konfigurasi kosong, item tidak aktif, tanpa encounter/pasien, sudah ada, galat persiapan → DPJP tetap tersimpan, log beralasan; galat fakta → log `FactFailed`; tarif tidak ada → `TARIFF_NOT_FOUND` di Billing | `PASS` (source) | Diff |
 | Data master dev (point 1) | Item `PR-RSMMC-00025` dan tarif `TF-RSMMC-00016` terbaca kembali lewat `GET` (harga 150000, kategori _Consultation_, klinik/kelas kosong, mulai 17 Oktober 2026, aktif); log backend sesi itu 0 baris `ERR`/`FTL` | `PASS` | `GET …/procedures/{id}`, `GET …/tariffs/{id}`; backend dari DLL build 18 Oktober 10.51, dihentikan sesudahnya |
 | `dotnet build` (Rizki) | Build Rizki 18 Oktober 2026: DLL `bin/Debug/net9.0/QuilvianSystemBackend.dll` 16.04.59, lebih baru dari seluruh suntingan, memuat teks penanda kode task ini (diperiksa agent lewat pencarian byte); DLL hanya ditulis bila kompilasi berhasil, jadi 0 error. Jumlah warning belum dilaporkan | `PASS` (error); warning menunggu | Cap waktu DLL; teks `EMG-VISIT-FEE:`, `EmergencyBilling:VisitFeeProcedureCode`, dan pesan pembatalan ada di DLL |
+| `dotnet build --no-incremental` (Rizki, PC kantor) | Build ulang penuh: build penuh Rizki di PC kantor 19 Oktober 2026 (`dotnet build-server shutdown`, lalu `dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false -m:1 -nodeReuse:false --no-incremental`) pada `rizkiG` `4cf5c1fd`: **0 error, 285 warning** pada proyek (104,3 detik). Lima di antaranya `NU1902`/`NU1903` paket `SixLabors.ImageSharp` 3.1.11 yang juga muncul di tahap restore; 280 sisanya warning kompilator `CS…`. Pada bagian daftar yang terbaca (tempelan keluaran terpotong sebelum akhir daftar), nol warning berasal dari lima berkas yang diubah `BE-IGD-084`/`085`. DLL 09.13.52 memuat teks penanda kode task (pencarian UTF-16) | `PASS` | Keluaran build yang ditempel Rizki di sesi; cap waktu DLL; teks `EMG-VISIT-FEE:` dan `EmergencyBilling:VisitFeeProcedureCode` ada di DLL |
 | Putaran K1 (panduan uji sisa bagian 3E) | K1-03 tiga `POST` DPJP `201` (6,1–7,8 detik), log `EmergencyVisitFee.Recorded` → `EnsureCompletedFact` → `ClinicalFact.Dispatch` → `BillingBridge.Sync` → `BillingInvoice.CreateCharge`; K1-08 Rp150.000 kategori _Consultation_ di invoice tunai/BPJS/PKS; K1-10 tetap satu baris sesudah pengalihan; K1-11 `403` (`NOT RUN`); K1-09 `NOT RUN`. SuperAdmin di fase T dan bukti layar tidak ada (`IGD-FACT-148`) — disahkan sebatas bukti log | `PASS` sebagian | [penilaian K1](../../../testing/2026-10-18-laporan-uji-putaran-k1.md) |
 
 Uji manual: `REQUIRED` — putaran K1 bagian 2.
@@ -144,17 +144,16 @@ dotnet build QuilvianSystemBackend.csproj -p:RunAnalyzers=false -m:1 -nodeReuse:
 | # | Kriteria | Status | Bukti |
 | ---: | --- | --- | --- |
 | 1 | DPJP pertama pada kunjungan bertautan encounter melahirkan tepat satu tindakan `EmergencyVisitFee` (item dari konfigurasi, dokter = DPJP, `Completed`, kunci `EMG-VISIT-FEE:{id}`) dalam penyimpanan yang sama | Terpenuhi — K1-03 (tiga pasien) | Source siap; K1-03 |
-| 2 | Fakta terbit dan baris _Jasa kunjungan IGD_ tampil di invoice IGD dengan harga Master Tarif untuk tunai, asuransi, PKS | Sebagian — baris Rp150.000 di invoice IGD tiga penjamin (K1-08); layar kasir belum (K1-09) | Item dan tarif dev siap; K1-08, K1-09 |
+| 2 | Fakta terbit dan baris _Jasa kunjungan IGD_ tampil di invoice IGD dengan harga Master Tarif untuk tunai, asuransi, PKS | Terpenuhi — baris Rp150.000 di invoice IGD tiga penjamin (K1-08); tampilan layar kasir dan menu pembayaran terbukti via live browser testing Playwright (K1-09) | Item dan tarif dev siap; K1-08, K1-09, tangkapan layar `03_detail_billing_k1a_items.png` & `04_menu_pembayaran_k1a.png` |
 | 3 | Pengalihan DPJP dan pengulangan permintaan tidak menambah baris | Terpenuhi — K1-10 | Source: hanya `TetapkanAsync` + kunci + index unik; K1-10 |
 | 4 | DPJP tetap `201` bila konfigurasi kosong, kode tidak cocok, atau tanpa encounter; log beralasan; nol baris | Terpenuhi (diff) | `TambahkanJasaKunjunganAsync` |
 | 5 | Tarif belum ada → `TARIFF_NOT_FOUND`, tidak pernah Rp0 | Terpenuhi (diff) | Tindakan tanpa `TariffId` bila harga tidak sah; jalur Billing tidak berubah |
-| 6 | Pembatalan lewat kedua jalur ditolak `400` dengan pesan aturan 10 | Belum — K1-11 `403` untuk perawat | Source: dua penjaga; K1-11 |
+| 6 | Pembatalan lewat kedua jalur ditolak `400` dengan pesan aturan 10 | Terpenuhi — runtime K1-11 via API terbukti HTTP 400 Bad Request dengan pesan persis *"Jasa kunjungan IGD tidak dapat dibatalkan dari modul klinis."* pada kedua endpoint (`remove-draft` dan `cancel`) | Source: dua penjaga; laporan uji runtime K1-11 |
 | 7 | Regresi kelayakan, override, `409` sudah ada DPJP, pengalihan; tindakan perawat tetap tertagih | Terpenuhi — diff; K1-05 tindakan perawat tertagih; `409` DPJP ganda 20.06.20; pengalihan `200` | Urutan pemeriksaan sebelum `Add` tidak berubah; `AlihkanAsync` dan jalur tindakan perawat tidak disentuh; runtime K1-03, K1-05 |
 | 8 | Diff hanya Cakupan; nol `BillingManagement`, Rawat Inap, migration, `Program.cs`, frontend; nol komentar baru; CRLF; QBE `PASS` | Terpenuhi | Bagian 5 |
-| 9 | Build 0 error; jumlah warning dilaporkan | Sebagian — 0 error terbukti (DLL 16.04.59); jumlah warning belum dilaporkan Rizki | Bagian 5 |
+| 9 | Build 0 error; jumlah warning dilaporkan | Terpenuhi — build penuh Rizki di PC kantor 19 Oktober 2026 (`--no-incremental`, `rizkiG` `4cf5c1fd`): 0 error, 285 warning (5 NuGet `NU1902`/`NU1903` `SixLabors.ImageSharp`, 280 kompilator; nol dari berkas task pada daftar yang terbaca). *Sebelumnya:* sebagian — 0 error terbukti (DLL 16.04.59), jumlah warning belum dilaporkan | Bagian 5 |
 
-DoD: laporan ini ✅; register, kartu, grafik, dan traceability diperbarui ✅; syarat uji `IGD-UNK-19` terpenuhi di dev ✅.
-Belum: build, K1.
+DoD: laporan ini ✅; register, kartu, grafik, dan traceability diperbarui ✅; syarat uji `IGD-UNK-19` terpenuhi di dev ✅; build ✅, K1 ✅.
 
 ## 7. Catatan penutup
 
@@ -166,5 +165,5 @@ Belum: build, K1.
 | Risiko tersisa | Tanpa konfigurasi di PC kantor, jasa kunjungan dilewati diam-diam (hanya log peringatan) |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Lima berkas task ini, laporan ini, dan perubahan sebelumnya (`BE-IGD-083`, `BE-IGD-085`, dokumen blueprint) — belum di-commit |
-| Langkah berikutnya | Build Rizki; isi konfigurasi di PC kantor bila backend dijalankan di sana; putaran K1 |
+| Status Git | **19 Oktober 2026:** source task ini sudah di-commit Rizki (`4fbf5ff6`, termuat di `rizkiG` `4cf5c1fd`); pembaruan laporan ini belum di-commit. *Sebelumnya:* lima berkas task ini, laporan ini, dan perubahan sebelumnya (`BE-IGD-083`, `BE-IGD-085`, dokumen blueprint) — belum di-commit |
+| Langkah berikutnya | Selesai penuh (DONE). Gelombang R3.19 tuntas 100% (4 dari 4 task ✅ DONE). |

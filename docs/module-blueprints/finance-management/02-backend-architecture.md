@@ -6842,3 +6842,24 @@ Nomor urut melanjutkan migration 1-4 Revisi 19. Migration 6 menyusul migration 3
 | FK lintas area ke `MstPayrollPeriod` | Pola Finance merujuk HR lewat `Guid` logis; keabsahan diperiksa service |
 | Layar input hasil satu per satu | `FIN-DEC-221` |
 | Endpoint koreksi tanpa batch | Koreksi wajib lewat batch `KOREKSI` beralasan dan disahkan pejabat |
+
+## T. Amandemen 22 Oktober 2026 (Revisi 21) — Pemisahan AR Benefit Internal, AR Karyawan, dan AR Penjamin Pihak Luar
+
+> Status: **diterapkan di source, belum dibuild, migration belum dijalankan**. Rinci Billing ada di
+> `billing-kasir/02-backend-architecture.md` §16. Bagian ini hanya mencatat dampak di sisi Finance.
+
+| Jenis piutang | Penanda | Dibentuk dari | Dilunasi lewat |
+|---|---|---|---|
+| AR penjamin/asuransi pihak luar | `DebtorType = PAYER`, `IsInternalBenefit = false` | Handoff Billing `PAYER` | Penerimaan uang (`FinReceipt` → alokasi `RECEIVABLE`) |
+| Porsi Benefit RS (biaya RS sendiri, nol kas) | `DebtorType = PAYER`, `IsInternalBenefit = true` | Handoff `PAYER` porsi P atas penjamin internal | Penutupan Benefit (`FinanceBenefitSettlementService`), mutasi PELUNASAN-INTERNAL |
+| AR Karyawan | `DebtorType = EMPLOYEE_BENEFIT`, `EmployeeArOrigin` (`OVER_ALLOWANCE` / `PATIENT_PORTION` / `MIXED`) | Handoff `EMPLOYEE_BENEFIT` (D yang ditangguhkan saat finalisasi) | Potong gaji/cicilan atau pembayaran karyawan |
+
+Perubahan:
+
+1. `FinReceivable` menambah `IsInternalBenefit` (bool, default false) dan `EmployeeArOrigin` (varchar 30, null), dengan `CK_FinReceivable_InternalBenefit` dan `CK_FinReceivable_EmployeeArOrigin`. Backfill migration menandai baris `PAYER` lama yang debiturnya penjamin berflag internal.
+2. `FinanceBillingIntakeService` menyalin kedua penanda dari `BilArHandoff` apa adanya, di kedua jalur pembuatan piutang (intake biasa dan koreksi pemilik).
+3. `FinanceReceiptService.AllocateAsync` menolak alokasi penerimaan uang ke piutang `IsInternalBenefit` (`ReceivableValidationException`): biaya RS sendiri tidak pernah dilunasi uang masuk.
+4. `FinanceBenefitSettlementService` hanya memproses piutang `PAYER` dengan `IsInternalBenefit = true`.
+5. Payroll tidak diubah: hanya piutang berpemilik benefit yang masuk, dan `CK_FinReceivable_BenefitOwner` membatasinya ke `EMPLOYEE_BENEFIT`.
+
+Belum dikerjakan: laporan umur piutang, subledger, dan dokumen laporan belum memfilter `IsInternalBenefit` (penandanya sudah tersedia). Segmen subledger `PAYER`/`PATIENT_GUARANTOR`/`EMPLOYEE_BENEFIT` tidak diubah; memisahkan akun kontrol piutang benefit internal adalah keputusan Finance/Accounting yang terpisah.

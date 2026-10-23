@@ -1591,12 +1591,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .ThenBy(x => x.ProcedureCodeSnapshot)
                 .ToListAsync(cancellationToken);
 
-        internal async Task<LabFactEmission> EmitClinicalCancellationAsync(
+        internal async Task<LabFactEmission?> EmitClinicalCancellationAsync(
             LabSpecimen specimen,
             LabOrder order,
             Guid actorUserId,
             CancellationToken cancellationToken)
         {
+            // BE-MCU-020: pesanan paket MCU tidak pernah menerbitkan tagihan Lab, jadi tidak ada
+            // tagihan yang perlu dibatalkan. Pengembalian uang komponen milik MCU (MCU-DEC-015).
+            if (order.CoveringMcuOrderId.HasValue)
+                return null;
+
             var examinations = await LoadExaminationsForFactAsync(specimen.Id, cancellationToken);
             var occurredAt = specimen.CancelDateTime ?? DateTime.UtcNow;
 
@@ -1638,12 +1643,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// menekan tombol layak dua kali menerbitkan fakta atas pemeriksaan yang sama, dan
         /// producer mengenalinya sebagai pengiriman ulang.
         /// </summary>
-        private async Task<LabFactEmission> EmitChargeEligibilityAsync(
+        private async Task<LabFactEmission?> EmitChargeEligibilityAsync(
             LabSpecimen specimen,
             LabOrder order,
             Guid actorUserId,
             CancellationToken cancellationToken)
         {
+            // BE-MCU-020, MCU-DEC-022: pesanan bertanda paket MCU sudah ditagih sebagai satu baris
+            // paket oleh MCU. Menerbitkan fakta tagih di sini akan menagih Darah Lengkap dua kali —
+            // sekali di paket Rp 350.000, sekali sebagai LaboratoryCharge. Pesanan tanpa tanda
+            // (termasuk pemeriksaan MCU di luar paket) tetap ditagih seperti biasa.
+            if (order.CoveringMcuOrderId.HasValue)
+                return null;
+
             var examinations = await LoadExaminationsForFactAsync(specimen.Id, cancellationToken);
             var occurredAt = specimen.DecidedAt ?? DateTime.UtcNow;
 

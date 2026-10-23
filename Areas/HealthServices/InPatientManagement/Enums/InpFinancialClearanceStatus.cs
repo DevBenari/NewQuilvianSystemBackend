@@ -4,6 +4,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums
     {
         Pending = 0,
         Cleared = 1,
-        Blocked = 2
+        Blocked = 2,
+        Revoked = 3
     }
 }

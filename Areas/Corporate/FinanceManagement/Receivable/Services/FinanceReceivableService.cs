@@ -71,7 +71,29 @@ public sealed class FinanceReceivableService
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToUpper();
-            query = query.Where(x => x.ReceivableNumber.ToUpper().Contains(search));
+            var matchingInvoiceIds = _dbContext.BilInvoices.AsNoTracking()
+                .Where(i => i.InvoiceNumber.ToUpper().Contains(search))
+                .Select(i => i.Id);
+
+            var matchingReceivableIdsFromPatient = _dbContext.FinReceivableItems.AsNoTracking()
+                .Where(item => item.PatientId.HasValue &&
+                    _dbContext.MstPatients.Any(p => !p.IsDelete && p.Id == item.PatientId.Value &&
+                        (p.FullName.ToUpper().Contains(search) || p.MedicalRecordNumber.ToUpper().Contains(search))))
+                .Select(item => item.ReceivableId);
+
+            var matchingCompanyDebtorIds = _dbContext.MstCompanyGuarantors.AsNoTracking()
+                .Where(c => !c.IsDelete && c.CompanyGuarantorName.ToUpper().Contains(search))
+                .Select(c => c.Id);
+
+            var matchingInsuranceDebtorIds = _dbContext.MstInsuranceProviders.AsNoTracking()
+                .Where(p => !p.IsDelete && p.InsuranceProviderName.ToUpper().Contains(search))
+                .Select(p => p.Id);
+
+            query = query.Where(x =>
+                x.ReceivableNumber.ToUpper().Contains(search) ||
+                (x.InvoiceId.HasValue && matchingInvoiceIds.Contains(x.InvoiceId.Value)) ||
+                matchingReceivableIdsFromPatient.Contains(x.Id) ||
+                (x.DebtorReferenceId.HasValue && (matchingCompanyDebtorIds.Contains(x.DebtorReferenceId.Value) || matchingInsuranceDebtorIds.Contains(x.DebtorReferenceId.Value))));
         }
 
         var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
@@ -108,13 +130,13 @@ public sealed class FinanceReceivableService
             }
         }
 
-        var benefitOwnerIds = pagedEntities.Where(x => x.BenefitOwnerId.HasValue).Select(x => x.BenefitOwnerId!.Value).Distinct().ToList();
-        var employeeDict = benefitOwnerIds.Count > 0
-            ? await _dbContext.MstEmployees.AsNoTracking()
-                .Where(e => !e.IsDelete && benefitOwnerIds.Contains(e.Id))
-                .Select(e => new { e.Id, e.FullName, e.EmployeeNumber })
-                .ToDictionaryAsync(e => e.Id, e => new { e.FullName, e.EmployeeNumber }, cancellationToken)
-            : [];
+        // Pemilik manfaat lewat identitas Workforce (karyawan maupun dokter tetap), tanpa N+1.
+        var ownerLookup = await FinanceBenefitOwnerDirectory.LoadAsync(
+            _dbContext,
+            pagedEntities
+                .Where(x => x.BenefitOwnerId.HasValue || x.BenefitOwnerWorkforceProfileId.HasValue)
+                .Select(x => ((Guid?)x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId)),
+            cancellationToken);
 
         var invoiceIds = pagedEntities.Where(x => x.InvoiceId.HasValue).Select(x => x.InvoiceId!.Value).Distinct().ToList();
         var invoiceNumbers = invoiceIds.Count > 0
@@ -122,6 +144,25 @@ public sealed class FinanceReceivableService
                 .Where(i => invoiceIds.Contains(i.Id))
                 .ToDictionaryAsync(i => i.Id, i => i.InvoiceNumber, cancellationToken)
             : new Dictionary<Guid, string>();
+
+        var pagedReceivableIds = pagedEntities.Select(x => x.Id).ToList();
+        var receivablePatientMap = pagedReceivableIds.Count > 0
+            ? (await _dbContext.FinReceivableItems.AsNoTracking()
+                .Where(item => pagedReceivableIds.Contains(item.ReceivableId) && item.PatientId.HasValue)
+                .Select(item => new { item.ReceivableId, item.PatientId })
+                .ToListAsync(cancellationToken))
+                .GroupBy(x => x.ReceivableId)
+                .ToDictionary(g => g.Key, g => g.First().PatientId!.Value)
+            : new Dictionary<Guid, Guid>();
+
+        var pagedPatientIds = receivablePatientMap.Values.Distinct().ToList();
+        var patientLookup = pagedPatientIds.Count > 0
+            ? (await _dbContext.MstPatients.AsNoTracking()
+                .Where(p => !p.IsDelete && pagedPatientIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.FullName, p.MedicalRecordNumber })
+                .ToListAsync(cancellationToken))
+                .ToDictionary(p => p.Id, p => (FullName: p.FullName, MedicalRecordNumber: p.MedicalRecordNumber))
+            : new Dictionary<Guid, (string FullName, string MedicalRecordNumber)>();
 
         var items = pagedEntities.Select(x =>
         {
@@ -132,16 +173,32 @@ public sealed class FinanceReceivableService
                 res.CompanyName = debtorName;
                 res.DebtorDisplayName = debtorName;
             }
-            if (x.BenefitOwnerId.HasValue && employeeDict.TryGetValue(x.BenefitOwnerId.Value, out var empInfo))
+            var benefitOwner = ownerLookup.Find(x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId);
+            if (benefitOwner is not null)
             {
-                res.BenefitOwnerName = empInfo.FullName;
-                res.BenefitOwnerEmployeeNumber = empInfo.EmployeeNumber;
+                res.BenefitOwnerWorkforceProfileId = benefitOwner.WorkforceProfileId;
+                res.BenefitOwnerType = benefitOwner.OwnerType;
+                res.BenefitOwnerName = benefitOwner.StaffName;
+                res.BenefitOwnerEmployeeNumber = benefitOwner.StaffNumber;
                 if (string.IsNullOrWhiteSpace(res.DebtorName))
                 {
-                    res.DebtorName = empInfo.FullName;
+                    res.DebtorName = benefitOwner.StaffName;
                     res.CompanyName = "Internal RS";
-                    res.DebtorDisplayName = $"{empInfo.FullName} ({empInfo.EmployeeNumber})";
-                    res.DebtorDisplayCategory = "Pegawai RS (Benefit)";
+                    res.DebtorDisplayName = $"{benefitOwner.StaffName} ({benefitOwner.StaffNumber})";
+                    res.DebtorDisplayCategory = BenefitOwnerCategoryLabel(benefitOwner.OwnerType);
+                }
+            }
+            if (receivablePatientMap.TryGetValue(x.Id, out var patId) && patientLookup.TryGetValue(patId, out var patInfo))
+            {
+                res.PatientId = patId;
+                res.PatientName = patInfo.FullName;
+                res.PatientMedicalRecordNumber = patInfo.MedicalRecordNumber;
+                if (string.IsNullOrWhiteSpace(res.DebtorDisplayName) && string.Equals(x.DebtorType, "PATIENT_GUARANTOR", StringComparison.OrdinalIgnoreCase))
+                {
+                    res.DebtorName = patInfo.FullName;
+                    res.CompanyName = "Pasien / Penjamin Pribadi";
+                    res.DebtorDisplayName = $"{patInfo.FullName} ({patInfo.MedicalRecordNumber})";
+                    res.DebtorDisplayCategory = "Pasien / Penjamin";
                 }
             }
             if (x.InvoiceId.HasValue && invoiceNumbers.TryGetValue(x.InvoiceId.Value, out var invNum))
@@ -203,22 +260,27 @@ public sealed class FinanceReceivableService
 
         string? benefitOwnerName = null;
         string? benefitOwnerEmpNo = null;
-        if (receivable.BenefitOwnerId.HasValue)
+        string? benefitOwnerType = null;
+        if (receivable.BenefitOwnerId.HasValue || receivable.BenefitOwnerWorkforceProfileId.HasValue)
         {
-            var emp = await _dbContext.MstEmployees.AsNoTracking()
-                .Where(e => !e.IsDelete && e.Id == receivable.BenefitOwnerId.Value)
-                .Select(e => new { e.FullName, e.EmployeeNumber })
-                .FirstOrDefaultAsync(cancellationToken);
+            var ownerLookup = await FinanceBenefitOwnerDirectory.LoadAsync(
+                _dbContext,
+                new[] { ((Guid?)receivable.BenefitOwnerId, receivable.BenefitOwnerWorkforceProfileId) },
+                cancellationToken);
+            var emp = ownerLookup.Find(receivable.BenefitOwnerId, receivable.BenefitOwnerWorkforceProfileId);
             if (emp != null)
             {
-                benefitOwnerName = emp.FullName;
-                benefitOwnerEmpNo = emp.EmployeeNumber;
-                debtorDisplayName = $"{emp.FullName} ({emp.EmployeeNumber})";
-                debtorDisplayCategory = "Pegawai RS (Benefit)";
-                resReceivable.DebtorName = emp.FullName;
+                benefitOwnerName = emp.StaffName;
+                benefitOwnerEmpNo = emp.StaffNumber;
+                benefitOwnerType = emp.OwnerType;
+                debtorDisplayName = $"{emp.StaffName} ({emp.StaffNumber})";
+                debtorDisplayCategory = BenefitOwnerCategoryLabel(emp.OwnerType);
+                resReceivable.DebtorName = emp.StaffName;
                 resReceivable.CompanyName = "Internal RS";
-                resReceivable.BenefitOwnerName = emp.FullName;
-                resReceivable.BenefitOwnerEmployeeNumber = emp.EmployeeNumber;
+                resReceivable.BenefitOwnerWorkforceProfileId = emp.WorkforceProfileId;
+                resReceivable.BenefitOwnerType = emp.OwnerType;
+                resReceivable.BenefitOwnerName = emp.StaffName;
+                resReceivable.BenefitOwnerEmployeeNumber = emp.StaffNumber;
             }
         }
 
@@ -242,6 +304,24 @@ public sealed class FinanceReceivableService
             resReceivable.PatientMedicalRecordNumber = resolvedPatientMrn;
         }
         resReceivable.BenefitRelationship = receivable.BenefitRelationship;
+
+        if (string.IsNullOrWhiteSpace(debtorDisplayName) && string.Equals(receivable.DebtorType, "PATIENT_GUARANTOR", StringComparison.OrdinalIgnoreCase))
+        {
+            if (!string.IsNullOrWhiteSpace(resolvedPatientName))
+            {
+                debtorDisplayName = $"{resolvedPatientName} ({resolvedPatientMrn})";
+                debtorDisplayCategory = "Pasien / Penjamin";
+                resReceivable.DebtorName = resolvedPatientName;
+                resReceivable.CompanyName = "Pasien / Penjamin Pribadi";
+            }
+            else
+            {
+                debtorDisplayName = "Pasien / Penjamin";
+                debtorDisplayCategory = "Pasien / Penjamin";
+                resReceivable.DebtorName = "Pasien / Penjamin";
+                resReceivable.CompanyName = "Pasien / Penjamin Pribadi";
+            }
+        }
 
         resReceivable.DebtorDisplayName = debtorDisplayName;
         resReceivable.DebtorDisplayCategory = debtorDisplayCategory;
@@ -294,6 +374,7 @@ public sealed class FinanceReceivableService
             InvoiceDate = invoiceDate,
             BenefitOwnerName = benefitOwnerName,
             BenefitOwnerEmployeeNumber = benefitOwnerEmpNo,
+            BenefitOwnerType = benefitOwnerType,
             BenefitRelationship = receivable.BenefitRelationship,
             PatientId = firstPatientId,
             PatientName = resolvedPatientName,
@@ -519,6 +600,11 @@ public sealed class FinanceReceivableService
             ]
         });
 
+    private static string BenefitOwnerCategoryLabel(string? ownerType) =>
+        ownerType == QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants.WorkforceBenefitOwnerTypes.Doctor
+            ? "Dokter RS (Benefit)"
+            : "Pegawai RS (Benefit)";
+
     public static ReceivableResponse Map(FinReceivable x) => new()
     {
         Id = x.Id,
@@ -527,6 +613,7 @@ public sealed class FinanceReceivableService
         DebtorType = x.DebtorType,
         DebtorReferenceId = x.DebtorReferenceId,
         BenefitOwnerId = x.BenefitOwnerId,
+        BenefitOwnerWorkforceProfileId = x.BenefitOwnerWorkforceProfileId,
         BenefitRelationship = x.BenefitRelationship,
         OriginalAmount = x.OriginalAmount,
         OutstandingAmount = x.OutstandingAmount,

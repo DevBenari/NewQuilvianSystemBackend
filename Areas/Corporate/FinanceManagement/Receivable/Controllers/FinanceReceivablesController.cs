@@ -571,7 +571,15 @@ public sealed class FinanceReceivablesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetClearanceBatch([FromQuery] ClearanceBatchQuery request, CancellationToken cancellationToken)
     {
-        var result = await _clearanceService.GetBatchAsync(request.BenefitOwnerIds, cancellationToken);
+        if (request.BenefitOwnerIds.Count == 0 && request.BenefitOwnerWorkforceProfileIds.Count == 0)
+            return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest,
+                "BenefitOwnerIds atau BenefitOwnerWorkforceProfileIds wajib diisi."));
+
+        var result = new List<EmployeeClearanceResponse>();
+        if (request.BenefitOwnerIds.Count > 0)
+            result.AddRange(await _clearanceService.GetBatchAsync(request.BenefitOwnerIds, cancellationToken));
+        if (request.BenefitOwnerWorkforceProfileIds.Count > 0)
+            result.AddRange(await _clearanceService.GetBatchByWorkforceAsync(request.BenefitOwnerWorkforceProfileIds, cancellationToken));
         return Ok(ApiResponse<List<EmployeeClearanceResponse>>.Ok(result, "Status bebas tanggungan berhasil diambil."));
     }
 

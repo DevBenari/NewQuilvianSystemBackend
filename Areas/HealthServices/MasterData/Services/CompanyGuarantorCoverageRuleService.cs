@@ -431,8 +431,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                 MaxQuantityPerMonth = request.MaxQuantityPerMonth,
                 MaxAmountPerVisit = request.MaxAmountPerVisit,
                 MaxAmountPerMonth = request.MaxAmountPerMonth,
-                EffectiveStartDate = request.EffectiveStartDate,
-                EffectiveEndDate = request.EffectiveEndDate,
+                EffectiveStartDate = NormalizeEffectiveDate(request.EffectiveStartDate),
+                EffectiveEndDate = NormalizeEffectiveDate(request.EffectiveEndDate),
                 Priority = request.Priority,
                 ApprovalInstruction = NormalizeNullableText(request.ApprovalInstruction),
                 BillingInstruction = NormalizeNullableText(request.BillingInstruction),
@@ -521,8 +521,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             entity.MaxQuantityPerMonth = request.MaxQuantityPerMonth;
             entity.MaxAmountPerVisit = request.MaxAmountPerVisit;
             entity.MaxAmountPerMonth = request.MaxAmountPerMonth;
-            entity.EffectiveStartDate = request.EffectiveStartDate;
-            entity.EffectiveEndDate = request.EffectiveEndDate;
+            entity.EffectiveStartDate = NormalizeEffectiveDate(request.EffectiveStartDate);
+            entity.EffectiveEndDate = NormalizeEffectiveDate(request.EffectiveEndDate);
             entity.Priority = request.Priority;
             entity.ApprovalInstruction = NormalizeNullableText(request.ApprovalInstruction);
             entity.BillingInstruction = NormalizeNullableText(request.BillingInstruction);
@@ -915,13 +915,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             return int.TryParse(numberText, out var number) ? number : null;
         }
 
-        private static string NormalizeItemType(string itemType)
-        {
-            var trimmed = itemType.Trim();
-            return trimmed.Equals("ServiceCategory", StringComparison.OrdinalIgnoreCase)
-                ? "TariffCategory"
-                : trimmed;
-        }
+        // Alias "ServiceCategory" -> "TariffCategory" didefinisikan di satu tempat yang sama dengan
+        // mesin tanggungan (CompanyGuarantorCoverageService.Matches), supaya aturan yang tersimpan
+        // di sini selalu dapat dikenali saat tagihan dihitung.
+        private static string NormalizeItemType(string itemType) =>
+            CompanyGuarantorCoverageItemTypes.Normalize(itemType);
 
         private static string NormalizeCoverageStatus(string status)
         {
@@ -931,6 +929,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
         private static string? NormalizeNullableText(string? value)
         {
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        // Tanggal berlaku datang dari input tanggal (YYYY-MM-DD) sebagai DateTimeKind.Unspecified, dan
+        // Npgsql menolak menulisnya ke kolom timestamp with time zone (ArgumentException -> HTTP 500).
+        // Dinormalkan ke UTC lewat helper baku aplikasi (tanpa zona dibaca sebagai jam dinding WIB);
+        // nilai yang sudah UTC tidak berubah.
+        private static DateTime? NormalizeEffectiveDate(DateTime? value)
+        {
+            return value.HasValue ? AppDateTimeHelper.ToUtc(value.Value) : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
@@ -977,11 +984,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                 }
             }
 
+            // CreateDateTime disimpan dalam UTC, sedangkan tanggal di atas adalah tanggal operasional (WIB)
+            // tanpa zona (DateTimeKind.Unspecified). Npgsql menolak parameter Unspecified untuk kolom
+            // timestamp with time zone (HTTP 500), jadi batas hari dikonversi: 00:00 WIB hari itu sampai
+            // 00:00 WIB hari berikutnya (eksklusif), dinyatakan dalam UTC.
             if (startDate.HasValue)
-                query = query.Where(x => x.CreateDateTime >= startDate.Value.Date);
+            {
+                var startUtc = AppDateTimeHelper.OperationalDateToUtc(startDate.Value);
+                query = query.Where(x => x.CreateDateTime >= startUtc);
+            }
 
             if (endDate.HasValue)
-                query = query.Where(x => x.CreateDateTime < endDate.Value.Date.AddDays(1));
+            {
+                var endExclusiveUtc = AppDateTimeHelper.OperationalDateToUtc(endDate.Value.Date.AddDays(1));
+                query = query.Where(x => x.CreateDateTime < endExclusiveUtc);
+            }
 
             return query;
         }

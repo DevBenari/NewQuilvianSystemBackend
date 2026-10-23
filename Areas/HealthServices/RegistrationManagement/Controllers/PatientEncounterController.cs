@@ -2691,6 +2691,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             // bila HR tidak dapat dibaca; petugas diarahkan mendaftarkan sebagai Pasien Umum.
             var benefitCheck = await _employeeBenefitLookup.ValidateCardForServiceAsync(
                 companyGuarantor.CompanyGuarantorId,
+                companyGuarantor.BenefitOwnerWorkforceProfileId,
                 companyGuarantor.EmployeeId,
                 companyGuarantor.FamilyMemberId,
                 encounterDate,
@@ -2907,6 +2908,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 // BE-FIN-105, FIN-DEC-198: tautan HR disalin persis dari kartu; kartu tanpa
                 // tautan menghasilkan snapshot kosong.
                 entity.EmployeeIdSnapshot = patientCompanyGuarantor.EmployeeId;
+                entity.WorkforceProfileIdSnapshot = patientCompanyGuarantor.BenefitOwnerWorkforceProfileId;
                 entity.FamilyMemberIdSnapshot = patientCompanyGuarantor.FamilyMemberId;
                 entity.BenefitRelationshipSnapshot = patientCompanyGuarantor.BenefitRelationship;
                 entity.BenefitPlanCodeSnapshot =

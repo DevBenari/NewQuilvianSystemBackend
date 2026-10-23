@@ -15,10 +15,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
                 table.HasCheckConstraint(
                     "CK_TrxEmployeeBenefitEnrollment_Balance",
                     "\"UsedAmount\" >= 0 AND \"RemainingAmount\" >= 0");
-                // FIN-VAL-271: penyetuju MUST berbeda dari pengaju.
-                table.HasCheckConstraint(
-                    "CK_TrxEmployeeBenefitEnrollment_MakerChecker",
-                    "\"ApprovedByUserId\" IS NULL OR \"SubmittedByUserId\" IS NULL OR \"ApprovedByUserId\" <> \"SubmittedByUserId\"");
+                // FIN-VAL-271 (penyetuju berbeda dari pengaju) dinonaktifkan sementara: constraint
+                // CK_TrxEmployeeBenefitEnrollment_MakerChecker di-drop oleh migration
+                // DropEnrollmentMakerCheckerConstraint sampai ada keputusan bisnis persetujuan berjenjang.
             });
             entity.HasKey(x => x.Id);
             entity.Property(x => x.RowVersion).IsConcurrencyToken();

@@ -162,6 +162,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models
         /// <summary>Wajib akun dokter pemberi instruksi.</summary>
         public Guid? InstructionVerifiedByUserId { get; set; }
 
+        /// <summary>
+        /// Order MCU yang mencakup pesanan ini (<c>MCU-DEC-005</c>, <c>MCU-DEC-022</c>). Terisi
+        /// berarti pemeriksaannya sudah ditagih sebagai satu baris paket oleh MCU, sehingga
+        /// Radiologi tidak boleh menerbitkan <c>RadiologyCharge</c> sendiri.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-MCU-003</c>. Boleh kosong, dan kosong adalah keadaan seluruh pesanan lama serta
+        /// pesanan biasa: bukan bagian paket, ditagih seperti sekarang. Nilainya hanya ditulis
+        /// jalur internal MCU — tidak ada DTO permintaan Radiologi yang menerimanya dari luar.
+        /// </remarks>
+        public Guid? CoveringMcuOrderId { get; set; }
+
         public RegPatientEncounter? Encounter { get; set; }
 
         public MstProcedure? Procedure { get; set; }
