@@ -932,6 +932,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<RegEncounterReferral> RegEncounterReferrals { get; set; }
         public DbSet<RegEncounterReferralDocument> RegEncounterReferralDocuments { get; set; }
         public DbSet<RegEncounterReferralRevision> RegEncounterReferralRevisions { get; set; }
+        // rawat-jalan RJ-REG-REV-BE-007 — General Consent pendaftaran pasien baru.
+        public DbSet<RegPatientGeneralConsent> RegPatientGeneralConsents { get; set; }
         public DbSet<TrxPatientAssessment> TrxPatientAssessments { get; set; }
         public DbSet<TrxDoctorConsultation> TrxDoctorConsultations { get; set; }
         public DbSet<TrxPatientDiagnosis> TrxPatientDiagnoses { get; set; }
