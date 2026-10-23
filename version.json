@@ -1,13 +1,40 @@
 {
-  "backendVersion": "0.24.1",
-  "description": "Release 0.24.1 enhances  capabilities.",
-  "releaseName": "Quilvian 0.24.1 Maintenance Release",
+  "backendVersion": "0.25.0",
+  "description": "Release 0.25.0 enhances Billing Management, Clinical Management, Emergency Management, Finance Management, Human Resource Management, Inpatient Management, Laboratory Management, Patient Management, Pharmacy Management, Radiology Management, Registration Management capabilities. Includes improvements across Laboratory Reporting, Specimen Management, Billing Workflow, Finance Workflow, Pharmacy Workflow, Radiology Workflow. Includes 7 database migration update(s).",
   "releaseMetadata": {
-    "migrationCount": 0,
-    "features": [],
-    "migrations": [],
+    "generatedAt": "2026-10-23T03:32:41",
     "generatedBy": "Quilvian Release Generator",
-    "generatedAt": "2026-10-21T02:13:19",
-    "modules": []
-  }
+    "migrations": [
+      "20261019100000_AddWorkforceBenefitOwnerIdentity.cs",
+      "20261019110000_AddWorkforceBenefitOwnerConstraints.cs",
+      "20261020084310_AddLabTransitionHistoryActionOccurredAtIndex.cs",
+      "20261020120000_AddFinancePatientRefundQueue.cs",
+      "20261021082302_AddPriorityReservationHistoryVisitDates.cs",
+      "20261021100000_DropEnrollmentMakerCheckerConstraint.cs",
+      "20261022120000_SeparateBenefitExcessPaymentAndInternalBenefitAr.cs"
+    ],
+    "features": [
+      "Laboratory Reporting",
+      "Specimen Management",
+      "Billing Workflow",
+      "Finance Workflow",
+      "Pharmacy Workflow",
+      "Radiology Workflow"
+    ],
+    "modules": [
+      "Billing Management",
+      "Clinical Management",
+      "Emergency Management",
+      "Finance Management",
+      "Human Resource Management",
+      "Inpatient Management",
+      "Laboratory Management",
+      "Patient Management",
+      "Pharmacy Management",
+      "Radiology Management",
+      "Registration Management"
+    ],
+    "migrationCount": 7
+  },
+  "releaseName": "Quilvian 0.25.0 - Enterprise Platform Enhancement"
 }
