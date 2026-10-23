@@ -1508,6 +1508,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             if (coveredByMcuPackage)
                 return null;
 
+            var chargeItemId = await ResolveChargeSourceItemIdAsync(study, cancellationToken);
+
             var request = new ClinicalMilestoneFactRequest
             {
                 SourceContext = BillingSourceContract.RadiologySourceContext,
