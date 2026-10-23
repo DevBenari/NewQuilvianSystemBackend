@@ -44,32 +44,13 @@ public sealed class BillingRefundService
             .Where(x => !x.IsDelete && x.Status != BillingInvoiceItemStatuses.Voided)
             .ToList();
 
-        // Cari item yang sudah pernah diajukan refund
-        var existingCases = await _dbContext.BilRefundCases.AsNoTracking()
-            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete && x.Status != BillingRefundCaseStatuses.Rejected)
-            .ToListAsync(cancellationToken);
-
-        var refundedItemIds = new HashSet<Guid>();
-        foreach (var c in existingCases)
-        {
-            if (!string.IsNullOrWhiteSpace(c.SelectedBillingItemIdsJson))
-            {
-                try
-                {
-                    var ids = System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(c.SelectedBillingItemIdsJson);
-                    if (ids != null)
-                    {
-                        foreach (var id in ids) refundedItemIds.Add(id);
-                    }
-                }
-                catch { }
-            }
-        }
+        // BE-MCU-026: sisa per baris = nilai baris − refund yang sudah diajukan atas baris itu.
+        var remaining = await LoadRemainingRefundableAsync(invoice.Id, invoice.Items, cancellationToken);
 
         var result = activeItems.Select(item =>
         {
             var itemTotal = Money(item.Quantity * item.UnitPrice);
-            var refundable = refundedItemIds.Contains(item.Id) ? 0m : itemTotal;
+            var refundable = remaining.GetValueOrDefault(item.Id);
 
             return new BillingRefundableItemResponse
             {
@@ -124,8 +105,13 @@ public sealed class BillingRefundService
 
             if (_dbContext.Database.IsRelational())
             {
-                transaction = await _dbContext.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
+                // BE-MCU-025: refund utuh batal penuh MCU diajukan di dalam transaksi MCU; di sana
+                // Billing ikut transaksi itu (tanpa commit/rollback sendiri), kunci tetap dipegang.
+                if (_dbContext.Database.CurrentTransaction == null)
+                {
+                    transaction = await _dbContext.Database.BeginTransactionAsync(
+                        IsolationLevel.Serializable, cancellationToken);
+                }
                 await AcquireLockAsync($"BIL_REFUND_INVOICE_{invoice.Id:N}", cancellationToken);
             }
 
@@ -153,6 +139,7 @@ public sealed class BillingRefundService
 
             decimal calculatedAmount = 0m;
             List<Guid>? selectedItemIds = null;
+            List<(Guid ItemId, decimal Amount)> itemAllocations = [];
 
             if (category == "BILLING")
             {
@@ -167,8 +154,42 @@ public sealed class BillingRefundService
                 if (selectedItems.Count != selectedItemIds.Count)
                     throw new BillingRefundValidationException("Beberapa item billing yang dipilih tidak ditemukan pada invoice ini.");
 
-                // Nominal refund otomatis dari: SUM(selected item refundable amount)
-                calculatedAmount = selectedItems.Sum(x => Money(x.Quantity * x.UnitPrice));
+                // BE-MCU-026 (MCU-DEC-043): nominal yang diminta dipakai, tidak pernah melebihi sisa per baris.
+                // Nominal sebagian hanya untuk satu baris; beberapa baris = sisa penuh masing-masing, sehingga
+                // rincian per baris selalu tegas. Nominal kosong/nol = refund utuh atas sisa (perilaku lama).
+                var remaining = await LoadRemainingRefundableAsync(invoice.Id, invoice.Items, cancellationToken);
+                var exhausted = selectedItems.FirstOrDefault(x => remaining.GetValueOrDefault(x.Id) <= 0m);
+                if (exhausted != null)
+                    throw new BillingRefundValidationException(
+                        $"Item {exhausted.DescriptionSnapshot} sudah direfund penuh; tidak ada sisa yang dapat direfund.");
+
+                var totalRemaining = selectedItems.Sum(x => remaining[x.Id]);
+                var requested = Money(request.RequestedAmount);
+
+                if (requested <= 0m)
+                {
+                    calculatedAmount = totalRemaining;
+                    itemAllocations = selectedItems.Select(x => (x.Id, remaining[x.Id])).ToList();
+                }
+                else if (selectedItems.Count == 1)
+                {
+                    if (requested > totalRemaining)
+                        throw new BillingRefundValidationException(
+                            $"Nominal refund {Rupiah(requested)} melebihi sisa yang dapat direfund pada {selectedItems[0].DescriptionSnapshot} ({Rupiah(totalRemaining)}).");
+                    calculatedAmount = requested;
+                    itemAllocations = [(selectedItems[0].Id, requested)];
+                }
+                else
+                {
+                    if (requested != totalRemaining)
+                        throw new BillingRefundValidationException(
+                            "Nominal sebagian hanya dapat diajukan untuk satu item. Untuk beberapa item, nominal harus sama dengan " +
+                            $"total sisa yang dapat direfund ({Rupiah(totalRemaining)}).");
+                    calculatedAmount = totalRemaining;
+                    itemAllocations = selectedItems.Select(x => (x.Id, remaining[x.Id])).ToList();
+                }
+
+                ValidateMoney(calculatedAmount, "Nominal refund");
             }
             else if (category == "DEPOSITO")
             {
@@ -188,7 +209,9 @@ public sealed class BillingRefundService
                 throw new BillingRefundValidationException("Kategori refund tidak valid. Pilih 'Billing' atau 'Deposito'.");
             }
 
-            var activeExists = await _dbContext.BilRefundCases.AsNoTracking()
+            // BE-MCU-026: refund BILLING boleh berurutan atas satu invoice (mis. dua komponen MCU pada satu baris
+            // paket) karena dijaga akumulasi per baris di atas; deposito tetap satu case aktif per invoice.
+            var activeExists = category == "DEPOSITO" && await _dbContext.BilRefundCases.AsNoTracking()
                 .AnyAsync(x => !x.IsDelete && x.InvoiceId == invoice.Id
                     && x.RefundCategory == category
                     && x.Status != BillingRefundCaseStatuses.Rejected
@@ -243,6 +266,18 @@ public sealed class BillingRefundService
             {
                 line.RefundCaseId = refundCase.Id;
                 refundCase.Lines.Add(line);
+            }
+
+            foreach (var (itemId, amount) in itemAllocations)
+            {
+                refundCase.Items.Add(new BilRefundCaseItem
+                {
+                    RefundCaseId = refundCase.Id,
+                    InvoiceItemId = itemId,
+                    Amount = amount,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                });
             }
 
             _dbContext.BilRefundCases.Add(refundCase);
@@ -735,6 +770,7 @@ public sealed class BillingRefundService
             request.InvoiceId.ToString("N"),
             category,
             itemIds,
+            Money(request.RequestedAmount).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
             request.Reason.Trim(),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
@@ -742,6 +778,65 @@ public sealed class BillingRefundService
     }
 
     private static decimal Money(decimal value) => decimal.Round(value, 2, MidpointRounding.AwayFromZero);
+
+    private static string Rupiah(decimal value) =>
+        "Rp " + value.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("id-ID"));
+
+    /// <summary>
+    /// Sisa yang dapat direfund per baris invoice (<c>BE-MCU-026</c>): nilai baris dikurangi rincian
+    /// <see cref="BilRefundCaseItem"/> dari case yang tidak ditolak. Case lama tanpa rincian dianggap merefund
+    /// penuh baris-baris pada <c>SelectedBillingItemIdsJson</c>-nya — aturan layar refund sebelum perluasan.
+    /// </summary>
+    private async Task<Dictionary<Guid, decimal>> LoadRemainingRefundableAsync(
+        Guid invoiceId,
+        IEnumerable<BilInvoiceItem> invoiceItems,
+        CancellationToken cancellationToken)
+    {
+        var totals = invoiceItems
+            .Where(x => !x.IsDelete && x.Status != BillingInvoiceItemStatuses.Voided)
+            .ToDictionary(x => x.Id, x => Money(x.Quantity * x.UnitPrice));
+
+        var cases = await _dbContext.BilRefundCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete && x.Status != BillingRefundCaseStatuses.Rejected)
+            .Select(x => new
+            {
+                x.SelectedBillingItemIdsJson,
+                Items = x.Items.Where(i => !i.IsDelete).Select(i => new { i.InvoiceItemId, i.Amount }).ToList()
+            })
+            .ToListAsync(cancellationToken);
+
+        var refunded = new Dictionary<Guid, decimal>();
+        foreach (var refundCase in cases)
+        {
+            if (refundCase.Items.Count > 0)
+            {
+                foreach (var item in refundCase.Items)
+                    refunded[item.InvoiceItemId] = refunded.GetValueOrDefault(item.InvoiceItemId) + item.Amount;
+                continue;
+            }
+
+            if (string.IsNullOrWhiteSpace(refundCase.SelectedBillingItemIdsJson))
+                continue;
+
+            List<Guid>? legacyIds;
+            try
+            {
+                legacyIds = System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(refundCase.SelectedBillingItemIdsJson);
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                continue;
+            }
+
+            foreach (var id in legacyIds ?? [])
+            {
+                if (totals.TryGetValue(id, out var total))
+                    refunded[id] = refunded.GetValueOrDefault(id) + total;
+            }
+        }
+
+        return totals.ToDictionary(x => x.Key, x => Math.Max(x.Value - refunded.GetValueOrDefault(x.Key), 0m));
+    }
 
     private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
         _dbContext.Database.ExecuteSqlRawAsync(

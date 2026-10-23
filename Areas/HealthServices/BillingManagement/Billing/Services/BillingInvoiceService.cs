@@ -1965,7 +1965,13 @@ public sealed class BillingInvoiceService
         {
             if (_dbContext.Database.IsRelational())
             {
-                transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+                // BE-MCU-013 (INT-MCU-03, disetujui pemilik modul MCU 2026-10-22): check-in MCU
+                // menambah baris paket di dalam transaksinya sendiri, bersama kunjungan dan order.
+                // Bila pemanggil sudah membuka transaksi, charge ini ikut di dalamnya — commit dan
+                // rollback milik pemanggil; kunci penasihat di bawah tetap berlaku sampai commit itu.
+                // Tanpa transaksi pemanggil, perilaku lama (Serializable + commit sendiri) tidak berubah.
+                if (_dbContext.Database.CurrentTransaction == null)
+                    transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
                 await AcquireLockAsync($"BIL_SOURCE_{source.SourceDomain}_{source.SourceDetailId}", cancellationToken);
                 await AcquireLockAsync($"BIL_ENCOUNTER_{request.EncounterId:N}", cancellationToken);
             }
@@ -2220,8 +2226,13 @@ public sealed class BillingInvoiceService
         {
             if (_dbContext.Database.IsRelational())
             {
-                transaction = await _dbContext.Database.BeginTransactionAsync(
-                    IsolationLevel.Serializable, cancellationToken);
+                // BE-MCU-025: batal penuh MCU memanggil void di dalam transaksinya sendiri; di sana
+                // Billing ikut transaksi itu (tanpa commit/rollback sendiri), kunci tetap dipegang.
+                if (_dbContext.Database.CurrentTransaction == null)
+                {
+                    transaction = await _dbContext.Database.BeginTransactionAsync(
+                        IsolationLevel.Serializable, cancellationToken);
+                }
                 await AcquireLockAsync($"BIL_ITEM_{itemId:N}", cancellationToken);
             }
 
