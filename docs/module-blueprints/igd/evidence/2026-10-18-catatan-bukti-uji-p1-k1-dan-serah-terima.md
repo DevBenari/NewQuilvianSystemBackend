@@ -90,13 +90,13 @@ Jam = WIB, 18 Oktober 2026. Sumber: rekaman jaringan mentah dan log backend.
 | Task | Status | Dasar |
 | --- | --- | --- |
 | `BE-IGD-080` | ✅ | Bagian 3.1 |
-| `BE-IGD-085` | 🟡 — **hanya** jumlah warning build yang kurang | Bagian 3.1, 3.3 |
-| `BE-IGD-084` | 🟡 — layar kasir, pembatalan runtime, jumlah warning | Bagian 3.2 |
+| `BE-IGD-085` | ✅ **sejak 19 Oktober 2026 pagi** — build penuh PC kantor 0 error, 285 warning (`IGD-FACT-157`). *Semula:* 🟡 — **hanya** jumlah warning build yang kurang | Bagian 3.1, 3.3 |
+| `BE-IGD-084` | 🟡 — layar kasir, pembatalan runtime. Jumlah warning terpenuhi 19 Oktober 2026 (`IGD-FACT-157`). *Semula:* 🟡 — layar kasir, pembatalan runtime, jumlah warning | Bagian 3.2 |
 | `FE-IGD-067` | 🟡 — uji ulang layar P1-06R | Bagian 3.1, 3.3 |
 | `BE-IGD-083` | ✅ (sejak B7) — regresi aman di K1-14 | Bagian 3.2 |
 | `MVP-11` | 9 dari 10; `BE-IGD-077` menunggu `IGD-REQ-003` | Tidak berubah |
 
-Register: backend 50 ✅ dari 67, frontend 35 ✅ dari 57, gabungan 85 dari 124.
+Register: backend 50 ✅ dari 67, frontend 35 ✅ dari 57, gabungan 85 dari 124. _19 Oktober 2026 pagi:_ backend 51 ✅ dari 67, gabungan 86 dari 124.
 
 ---
 
@@ -104,7 +104,7 @@ Register: backend 50 ✅ dari 67, frontend 35 ✅ dari 57, gabungan 85 dari 124.
 
 | Butir | Mengapa belum | Syarat |
 | --- | --- | --- |
-| Jumlah warning build backend | Belum dilaporkan | Rizki menyebut angka `Build succeeded with N warning(s)` |
+| ~~Jumlah warning build backend~~ | **Terbukti 19 Oktober 2026 pagi:** build penuh PC kantor 0 error, 285 warning (`IGD-FACT-157`). *Semula:* belum dilaporkan | Rizki menyebut angka `Build succeeded with N warning(s)` |
 | P1-06R — pembatalan reservasi lewat layar sesudah perbaikan | Login loket dengan `QUILVIAN_LOKET_PASSWORD` ditolak `401` | Sandi loket di lingkungan uji dibetulkan |
 | K1-09 — layar kasir, termasuk porsi penjamin | Akun Kasir tidak ada; porsi penjamin belum terhitung (`IGD-FACT-152`) | Akun `QUILVIAN_KASIR_*`; jawaban Billing `IGD-REQ-006` butir 2 |
 | K1-11 — pembatalan jasa kunjungan ditolak `400` | Perawat tidak punya hak `PatientProcedure : Cancel/RemoveDraft` (`403`) | Akun yang punya hak itu |
@@ -140,9 +140,9 @@ login, dan menulis sandi di skrip; ringkasannya juga bertentangan dengan bukti (
 
 | Hal | Laptop | PC kantor |
 | --- | --- | --- |
-| `EmergencyBilling:VisitFeeProcedureCode` | `PR-RSMMC-00025` di user-secrets (`c5cea89b-03e0-4326-8dc2-62ee00ae859d`) | **Belum** — isi dengan `dotnet user-secrets set "EmergencyBilling:VisitFeeProcedureCode" "PR-RSMMC-00025"` di folder backend. Tanpa itu jasa kunjungan dilewati (log `EmergencyVisitFee.Skipped`) |
-| Variabel `QUILVIAN_*` untuk penguji | `LOKET` (sandi ditolak `401`), `PERAWAT`, `PERAWAT_RUANGAN`, `DOKTER`, `DOKTER2`, `ADMISI`, `SUPERADMIN`, `DEV_DB_URL` | Siapkan sesuai kebutuhan; tambah `KASIR`, `LAB`, `APOTEKER`; jangan sediakan `DEV_DB_URL` untuk penguji |
-| Build frontend | `BUILD_ID` `JthyTCQWcFzQhAtAEA3MD` (memuat perbaikan modal) | Build ulang sesudah pull |
+| `EmergencyBilling:VisitFeeProcedureCode` | `PR-RSMMC-00025` di user-secrets (`c5cea89b-03e0-4326-8dc2-62ee00ae859d`) | **Terisi 19 Oktober 2026 pagi** oleh agent PC kantor, diperiksa lewat `dotnet user-secrets list` (`IGD-FACT-154`). *Semula:* **Belum** — isi dengan `dotnet user-secrets set "EmergencyBilling:VisitFeeProcedureCode" "PR-RSMMC-00025"` di folder backend. Tanpa itu jasa kunjungan dilewati (log `EmergencyVisitFee.Skipped`) |
+| Variabel `QUILVIAN_*` untuk penguji | `LOKET` (sandi ditolak `401`), `PERAWAT`, `PERAWAT_RUANGAN`, `DOKTER`, `DOKTER2`, `ADMISI`, `SUPERADMIN`, `DEV_DB_URL` | Siapkan sesuai kebutuhan; tambah `KASIR`, `LAB`, `APOTEKER`; jangan sediakan `DEV_DB_URL` untuk penguji. _19 Oktober 2026 pagi:_ ada `LOKET`, `PERAWAT`, `DOKTER`, `PENERIMA`, `UNIT_*`, `DEV_DB_URL`; belum ada `KASIR`, `LAB`, `APOTEKER`, `ADMISI`, `SUPERADMIN` (`IGD-FACT-154`) |
+| Build frontend | `BUILD_ID` `JthyTCQWcFzQhAtAEA3MD` (memuat perbaikan modal) | Build ulang sesudah pull. _19 Oktober 2026 pagi:_ `next dev` di port 3000 sejak 08.54 sudah menyajikan source terkini, termasuk perbaikan modal; build produksi `.next` masih 16 Oktober (`IGD-FACT-154`) |
 
 ---
 
