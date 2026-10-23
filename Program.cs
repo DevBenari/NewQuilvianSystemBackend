@@ -666,6 +666,12 @@ try
     // Patient Management — allocator nomor pasien normal beserta guard reservasi RSMMC (BE-PAT-MIG-003)
     builder.Services.AddScoped<PatientIdentifierAllocationService>();
 
+    // Patient Management — worker migrasi massal pasien RSMMC (BE-PAT-MIG-002), sementara, khusus Staging
+    builder.Services.AddSingleton(RsmmcBulkApprovedBatchProfile.Canonical);
+    builder.Services.AddSingleton(RsmmcBulkCanaryManifest.CanaryAV1);
+    builder.Services.AddScoped<IRsmmcBulkMigrationStore, RsmmcBulkMigrationStore>();
+    builder.Services.AddScoped<RsmmcBulkPatientMigrationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
