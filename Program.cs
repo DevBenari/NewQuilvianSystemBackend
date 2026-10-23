@@ -871,6 +871,8 @@ try
     builder.Services.AddScoped<ReferralMasterDataService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.EncounterReferralService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.ReferralDocumentStorageService>();
+    // rawat-jalan RJ-REG-REV-BE-007: General Consent pendaftaran Rawat Jalan pasien baru.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.OutpatientGeneralConsentService>();
 
     // Pemeriksaan golongan darah Bank Darah — sumber sah golongan darah pasien (DEC-BD-015),
     // bukan MstPatient.BloodType. Service ini memegang deteksi perbedaan hasil (BD-XINV-04)
