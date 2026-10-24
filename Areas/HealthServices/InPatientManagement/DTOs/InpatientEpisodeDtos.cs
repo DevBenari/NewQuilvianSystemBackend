@@ -100,6 +100,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// pasien. Dikosongkan untuk kunjungan Umum.
         /// </summary>
         public InpatientAdmissionExternalReferral? ExternalReferral { get; set; }
+
+        /// <summary>Nomor booking rencana operasi IBS yang terhubung (BE-RWI-182, OPS-DEC-040).</summary>
+        [MaxLength(50)]
+        public string? SurgicalBookingNumber { get; set; }
+
+        /// <summary>Sub-kategori klinis: ObstetricSurgery, GynecologicSurgery, GeneralSurgery, ODC (BE-RWI-182).</summary>
+        [MaxLength(50)]
+        public string? ClinicalSubCategory { get; set; }
+
+        /// <summary>Status penahanan tempat tidur: None, InSurgery, InRecovery (BE-RWI-183, RWI-DEC-355).</summary>
+        [MaxLength(30)]
+        public string? BedHoldStatus { get; set; }
+
+        /// <summary>Menandai apakah pasien SC memesan boks bayi rawat gabung di bangsal nifas (BE-RWI-183, RWI-DEC-357).</summary>
+        public bool IsRoomingInBabyPlanned { get; set; } = false;
+
+        /// <summary>ID paket persalinan/SC jika pasien memilih tarif paket terpadu (BE-RWI-183, RWI-DEC-358).</summary>
+        public Guid? MaternityPackageId { get; set; }
+
+        /// <summary>Dokter Spesialis Anestesi (Sp.An) sebagai konsulen (BE-RWI-183, RWI-DEC-357).</summary>
+        public Guid? AnesthesiologistDoctorId { get; set; }
+
+        /// <summary>Dokter Spesialis Anak (Sp.A) sebagai konsulen kasus obgyn SC (BE-RWI-183, RWI-DEC-357).</summary>
+        public Guid? PediatricianDoctorId { get; set; }
+    }
+
+    /// <summary>
+    /// Permintaan pembaruan status penahanan tempat tidur bangsal (BE-RWI-183, RWI-DEC-355).
+    /// </summary>
+    public class UpdateBedHoldStatusRequest
+    {
+        [Required]
+        [MaxLength(30)]
+        public string BedHoldStatus { get; set; } = "InSurgery";
+
+        [MaxLength(500)]
+        public string? Reason { get; set; }
     }
 
     /// <summary>
@@ -315,6 +352,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         /// <summary>Rujukan faskes luar yang tercatat saat admisi (<c>FIX-EPS-039-03</c>); kosong untuk kunjungan Umum.</summary>
         public InpatientAdmissionExternalReferral? ExternalReferral { get; set; }
+
+        /// <summary>Nomor booking rencana operasi IBS yang terhubung (BE-RWI-182, OPS-DEC-040).</summary>
+        [MaxLength(50)]
+        public string? SurgicalBookingNumber { get; set; }
+
+        /// <summary>Sub-kategori klinis: ObstetricSurgery, GynecologicSurgery, GeneralSurgery, ODC (BE-RWI-182).</summary>
+        [MaxLength(50)]
+        public string? ClinicalSubCategory { get; set; }
+
+        /// <summary>Status penahanan tempat tidur: None, InSurgery, InRecovery (BE-RWI-183, RWI-DEC-355).</summary>
+        [MaxLength(30)]
+        public string? BedHoldStatus { get; set; }
+
+        /// <summary>Menandai apakah pasien SC memesan boks bayi rawat gabung di bangsal nifas (BE-RWI-183, RWI-DEC-357).</summary>
+        public bool IsRoomingInBabyPlanned { get; set; } = false;
+
+        /// <summary>ID paket persalinan/SC jika pasien memilih tarif paket terpadu (BE-RWI-183, RWI-DEC-358).</summary>
+        public Guid? MaternityPackageId { get; set; }
 
         public string? MotherEpisodeNumber { get; set; }
 

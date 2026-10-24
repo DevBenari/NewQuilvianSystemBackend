@@ -27,7 +27,7 @@ Di rumah sakit Indonesia, alur ini tidak lazim dan berisiko tinggi:
    * Penjadwalan kamar bedah fisik, alokasi jam operasi, dan perhitungan waktu sterilisasi ruangan (*buffer time*) dikelola penuh oleh **Koordinator Kamar Operasi (IBS)**.
    * Pemilihan kamar rawat inap (bangsal), penjaminan (BPJS/Asuransi/Paket SC), dan perjanjian rawat inap dikelola oleh **Petugas Admisi Rawat Inap**.
 2. **Alur Operasi Terencana Pre-Op**: Pasien didaftarkan dan mendapatkan kamar rawat inap terlebih dahulu, kamar bangsal tetap ditahan (*bed hold*) selama operasi, dan pasca-bedah pasien kembali ke kamar rawat inap semula tanpa admisi ulang.
-3. **Reposisi Kamar Pulih**: Jalur *"Admisi dari Kamar Pulih"* direposisi menjadi **jalur eskalasi kasus darurat / komplikasi tak terduga** bagi pasien rawat jalan / One Day Care (ODC) yang wajib menginap pasca-tindakan.
+3. **Penghapusan Jalur Kamar Pulih**: Jalur *"Admisi dari Kamar Pulih"* di loket pendaftaran rawat inap **dihilangkan/dihapus total** (`RWI-DEC-359`). Seluruh pasien operasi wajib di-admisi ke bangsal pre-op terlebih dahulu sebagai standar baku RS. Bila pasien ODC mengalami komplikasi pasca-bedah di PACU, penanganannya dilakukan via serah terima transfer internal (IBS/PACU ke Ranap/ICU), bukan lewat loket pendaftaran depan.
 4. **Dukungan Penuh Bedah Obgyn (Sectio Caesarea / SC)**:
    * Formasi Tri-Dokter: Operator (Sp.OG), Anestesi (Sp.An), dan Anak (Sp.A).
    * Filter kamar ke Bangsal Maternitas/Nifas dengan fasilitas Rawat Gabung (*Rooming-in*) boks bayi.
@@ -98,22 +98,22 @@ flowchart TD
 
 ---
 
-### 2.3 Alur Pengecualian: Eskalasi Komplikasi Pasien ODC di Kamar Pulih
+### 2.3 Alur Pengecualian: Eskalasi Komplikasi Pasien ODC di Kamar Pulih (Transfer Internal Tanpa Loket Admisi)
 
 ```mermaid
 flowchart TD
     subgraph ODC_PACU["Kamar Pulih (Pasca Bedah Rawat Jalan / ODC)"]
         A["Pasien ODC Selesai Tindakan & Diobservasi di PACU"] --> B["Terjadi Komplikasi (Pendarahan Tak Terduga / Shock / Saturasi Turun)"]
         B --> C["Dokter Anestesi Putuskan: 'Pasien Wajib Rawat Inap Darurat'"]
-        C --> D["Sistem IBS Buat Rujukan Eskalasi Kamar Pulih (Status: Pending)"]
+        C --> D["Perawat PACU Buat Permintaan Transfer Antar Unit (Handover Klinis)"]
     end
 
-    subgraph ADMISI_ESKALASI["Loket Admisi Rawat Inap"]
-        D --> E["Notifikasi Muncul di Kartu 'Admisi Kamar Pulih (Eskalasi ODC)'"]
-        E --> F["Petugas Buka Antrean & Verifikasi Riwayat Tindakan IBS"]
-        F --> G["Petugas Pilihkan Kamar & Ranjang Bangsal Baru"]
-        G --> H["Penerbitan Episode Rawat Inap Lanjutan & Hubungkan Tagihan ODC"]
-        H --> I["Perawat Bangsal Menjemput Pasien di PACU"]
+    subgraph TRANSFER_INTERNAL["Transfer Internal Antar-Unit (Tanpa Loket Admisi Depan)"]
+        D --> E["Kepala Ruangan / Pengawas Bangsal Alokasikan Bed Kosong (ICU / Bangsal)"]
+        E --> F["Perawat Bangsal / ICU Jemput Pasien di PACU & Serah Terima SBAR"]
+        F --> G["Billing ODC Digabungkan Otomatis ke Episode Perawatan Lanjutan"]
+
+
     end
 ```
 
@@ -331,13 +331,14 @@ Tabel ini menyimpan data alokasi ruangan dan waktu operasi yang dikelola oleh Ko
   * Di bawah kartu pemilihan bed ibu, terdapat komponen kartu saklar:
     * **[✓] Fasilitas Rawat Gabung Bayi (*Rooming-in*)**: Mencadangkan boks bayi di samping ranjang ibu.
 
-### 5.4 Reposisi Layar Muka: Kartu Pendaftaran Admisi Rawat Inap
+### 5.4 Antarmuka Layar Muka: Kartu Pendaftaran Admisi Rawat Inap (4 Pintu Masuk Resmi)
 * **Route**: `/health-services/inpatient-management/admissions`
 * **Penyajian 4 Kartu Masuk**:
   1. **Pasien Baru**: Pasien yang belum pernah memiliki No. Rekam Medis.
   2. **Pasien Lama / Rujukan Poli & Operasi Terencana**: Pasien yang memiliki No. RM dan membawa SPRI/Rencana Tindakan (termasuk SC).
   3. **Admisi Bayi Baru Lahir**: Pendaftaran mandiri bayi baru lahir (jika persalinan di luar RS atau admisi susulan).
-  4. **Admisi Eskalasi Kamar Pulih (Khusus ODC / Komplikasi)**: Diberi badge kuning tebal bertuliskan: *"Hanya untuk pasien bedah rawat jalan/ODC yang mengalami komplikasi pasca-tindakan"*.
+  4. **Admisi Transfer IGD & Poliklinik**: Pasien rujukan opname dari Instalasi Gawat Darurat atau Poliklinik rawat jalan.
+  *(Jalur/kartu 'Admisi dari Kamar Pulih' ditiadakan secara total dari loket pendaftaran rawat inap)*.
 
 ---
 
@@ -350,7 +351,7 @@ Tabel ini menyimpan data alokasi ruangan dan waktu operasi yang dikelola oleh Ko
   3. Pemilihan kamar nifas/maternitas dengan opsi rawat gabung boks bayi.
   4. Formasi tri-dokter (Sp.OG, Sp.An, Sp.A) pada Langkah 5 Dokter.
   5. Form pencatatan data kelahiran bayi intraoperatif di modul Operasi dan penerbitan event integrasi bayi baru lahir.
-  6. Reposisi label kartu Admisi Kamar Pulih menjadi jalur eskalasi komplikasi ODC.
+  6. Penghapusan penuh kartu & jalur masuk Admisi Kamar Pulih dari modul admisi rawat inap (`FE-RWI-282`).
 * **Di luar MVP (Rilis Berikutnya)**:
   * Pembuatan partograf digital grafis real-time di kamar bersalin.
   * Integrasi otomatis pemotongan stok darah ke mesin pendingin Bank Darah RFID.

@@ -18,9 +18,9 @@
    * Ranjang bangsal berstatus `Occupied / In-Use (Sedang Operasi)` selama pasien diantar ke IBS dan kamar pulih.
    * Pasien kembali ke kamar bangsal semula melalui serah terima (*Handover*) antar-perawat tanpa admisi ulang.
 
-2. **Reposisi Kartu Admisi Kamar Pulih (`RWI-DEC-355`)**:
-   * Kartu *"Admisi dari Kamar Pulih"* pada beranda Admisi (`/health-services/inpatient-management/admissions`) direposisi menjadi **Jalur Eskalasi Kasus ODC / Komplikasi Tak Terduga**.
-   * Diberi penanda visual (*warning badge*) bahwa jalur ini bukan untuk operasi umum, melainkan khusus pasien rawat jalan/ODC yang harus dialihkan opname karena kondisi pasca-bedah memburuk.
+2. **Penghapusan Total Jalur & Kartu Admisi Kamar Pulih (`RWI-DEC-359`)**:
+   * Kartu *"Admisi dari Kamar Pulih"* pada beranda Admisi (`/health-services/inpatient-management/admissions`) **dihilangkan/dihapus total** dari opsi pintu masuk rawat inap.
+   * Standar rumah sakit mengharuskan seluruh pasien yang akan dioperasi telah terdaftar dan memiliki tempat tidur di rawat inap sebelum operasi. Bila terjadi komplikasi pasca-bedah pada pasien ODC di PACU, penanganannya dilakukan melalui **Transfer Pasien Antar Unit (IBS/PACU ke Rawat Inap/ICU)**, bukan pendaftaran di loket admisi depan.
 
 3. **Handshake Tautan Jadwal IBS Read-Only (`RWI-DEC-356`)**:
    * Di Langkah 1 Admisi (*Pencarian Pasien & Rujukan*), sistem memanggil API `GET /api/v1/health-services/operating-room-management/schedules/lookup-by-patient`.

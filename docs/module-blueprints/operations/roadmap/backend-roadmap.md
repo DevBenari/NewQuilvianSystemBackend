@@ -9,19 +9,19 @@ BE-OPR-001 ✅ ─> BE-OPR-002 ✅ ─> BE-OPR-003 ✅ ─┬─> BE-OPR-004 ✅
                                                   │                  │                  │                  │                  │
                                                   │                  │                  │                  ├─> BE-OPR-008 ✅ ─┴─> BE-OPR-009 ✅
                                                   │                  │                  │                  │
-                                                  │                  │                  │                  └─> BE-OPR-014 ───> [RWI] BE-RWI-184
+                                                  │                  │                  │                  └─> BE-OPR-014 ✅ ───> [RWI] BE-RWI-184
                                                   │                  │                  │
                                                   │                  │                  └─> BE-OPR-010 ✅
                                                   │                  │
-                                                  │                  └─> BE-OPR-012 ───> BE-OPR-013 ─> [RWI] BE-RWI-182
+                                                  │                  └─> BE-OPR-012 ✅ ───> BE-OPR-013 ✅ ─> [RWI] BE-RWI-182
 ```
 
 ### Tabel Gelombang Eksekusi
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | `BE-OPR-004` ✅ selesai | `BE-OPR-012` (Timeline Grid Ruang OK & Buffer Sterilisasi Otomatis) |
-| 2 | `BE-OPR-012` selesai | `BE-OPR-013` (Lookup Booking Pasien untuk Konsumsi Admisi Ranap) |
+| 1 | `BE-OPR-004` ✅ selesai | `BE-OPR-012` ✅ (Timeline Grid Ruang OK & Buffer Sterilisasi Otomatis) |
+| 2 | `BE-OPR-012` ✅ selesai | `BE-OPR-013` ✅ (Lookup Booking Pasien untuk Konsumsi Admisi Ranap) |
 | 1 | `BE-OPR-006` ✅ & `BE-OPR-009` ✅ selesai | `BE-OPR-014` (Alokasi Tri-Dokter Obgyn & Pencatatan Lahir SC) |
 
 ## Status per 28 September 2026
@@ -78,8 +78,8 @@ tidak satu pun berupa pekerjaan pembangunan modul Operasi yang tertinggal.
 | `BE-OPR-009` | Handoff Billing/Inventory idempotent dan dapat direkonsiliasi | `OPS-REQ-007/010`, `OPS-INT-001/002` | Integration delivery, retry, reconciliation, create/correct/reverse | `BE-OPR-007/008`; **BLOCKED** owner API Billing dan Inventory | Consumer contract tests; duplicate key satu efek; failure/retry visible | DoD: adapter nyata hanya setelah kontrak consumer disahkan |
 | `BE-OPR-010` | Laporan operasional tersedia | `OPS-REQ-011`, `OPS-DEC-024` | Query laporan kasus, utilization, material/implant; AsNoTracking/paging | `BE-OPR-003..008` sesuai laporan | Filter/date/paging/permission/privacy/performance query tests | DoD: GET tanpa custom mutation log |
 | `BE-OPR-011` | Modul hardened dan siap diuji ujung-ke-ujung | Semua requirement | Permission matrix, audit, privacy, observability, full state/concurrency/idempotency regression | Semua task backend yang tidak blocked | Semua acceptance matrix relevan lulus; build bersih; dependency blocked dilaporkan | DoD: evidence report, migration execution tetap terpisah |
-| `BE-OPR-012` | Engine Timeline Jadwal Ruang OK & Buffer Sterilisasi Otomatis (30–45 Menit) | `OPS-DEC-038`, `OPS-DEC-039` | Endpoint `GET /rooms/timeline` dan validasi jeda sterilisasi antar-operasi | `BE-OPR-004` ✅ | Query timeline tanggal mengembalikan slot Occupied, SterilizationBuffer, dan Available; jadwal baru pada slot buffer ditolak `409 Conflict` | DoD: Controller + Service + DTO + Conformance Check |
-| `BE-OPR-013` | Endpoint Lookup Booking Operasi Aktif untuk Admisi Rawat Inap | `OPS-DEC-040` | Endpoint `GET /schedules/lookup-by-patient` read-only | `BE-OPR-012` | Pasien dengan jadwal aktif mengembalikan detail ruangan, jam, DPJP Sp.OG/Sp.B, Anestesi, dan Anak; data tanpa jadwal mengembalikan respons aman | DoD: Controller endpoint + Auth guard + Response DTO |
+| `BE-OPR-012` | **Selesai (✅)** | Engine Timeline Jadwal Ruang OK & Buffer Sterilisasi Otomatis (45 Menit) | `OPS-DEC-038`, `OPS-DEC-039` | Endpoint `GET /rooms/timeline` dan validasi jeda sterilisasi antar-operasi | `BE-OPR-004` ✅ | Query timeline tanggal mengembalikan slot Occupied, SterilizationBuffer, dan Available; jadwal baru pada slot buffer ditolak `409 Conflict`. Uji otomatis lulus 3/3 (OperatingRoomTimelineTests). | DoD: Controller + Service + DTO + Conformance Check |
+| `BE-OPR-013` | **Selesai (✅)** | Endpoint Lookup Booking Operasi Aktif untuk Admisi Rawat Inap | `OPS-DEC-040` | Endpoint `GET /schedules/lookup-by-patient` read-only | `BE-OPR-012` ✅ | Pasien dengan jadwal aktif mengembalikan detail ruangan, jam, DPJP Sp.OG/Sp.B, Anestesi, dan Anak; data tanpa jadwal mengembalikan respons aman. Unit test lulus (OperatingRoomTimelineTests). | DoD: Controller endpoint + Auth guard + Response DTO |
 | `BE-OPR-014` | Alokasi Tim Tri-Dokter Obgyn & Pencatatan Kelahiran Bayi Intraoperatif SC | `OPS-DEC-041`, `OPS-DEC-042` | Endpoint `POST /cases/{caseId}/execution/birth-event` dan outbox event `operating-room.birth-event.recorded` | `BE-OPR-006` ✅, `BE-OPR-009` ✅ | Input Jam lahir, BB, PB, dan APGAR 1/5/10 tersimpan di database dan outbox delivery tersimpan idempotent untuk Admisi Bayi Baru Lahir | DoD: Endpoint + Outbox Integration + Conformance Check |
 
 Setiap task builder hanya boleh mengerjakan satu task ID dengan acceptance criteria dan write authority eksplisit.

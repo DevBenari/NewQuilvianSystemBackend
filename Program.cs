@@ -765,6 +765,7 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.MasterData.Services.FloorPlanImportService>();
     builder.Services.AddScoped<InpBedOperationFilter>();
     builder.Services.AddScoped<InpEpisodeService>();
+    builder.Services.AddScoped<InpatientNewbornBirthEventConsumerService>();
     builder.Services.AddScoped<InpDischargeService>();
     builder.Services.AddScoped<CliWsdObservationService>();
     builder.Services.AddScoped<InpDietOrderAdapter>();

@@ -927,6 +927,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         }
 
         /// <summary>
+        /// Memperbarui status penahanan ranjang bangsal (Bed Hold) selama operasi (BE-RWI-183, RWI-DEC-355).
+        /// </summary>
+        [HttpPatch("{id:guid}/bed-hold")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Bed Hold Status", Description = "Mengubah status penahanan bed selama operasi", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("InpatientEpisode", "Update")]
+        public async Task<IActionResult> UpdateBedHoldStatus(
+            Guid id,
+            [FromBody] UpdateBedHoldStatusRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _episodeService.UpdateBedHoldStatusAsync(id, request, actorUserId, cancellationToken);
+            if (!result.Succeeded)
+            {
+                return FromFailure(result);
+            }
+
+            return Ok(ApiResponse<InpatientEpisodeDetailResponse>.Ok(
+                result.EpisodeDetail!,
+                $"Status penahanan tempat tidur berhasil diperbarui menjadi {request.BedHoldStatus}."));
+        }
+
+        /// <summary>
         /// Menerjemahkan penolakan service menjadi kode status yang sudah ditetapkan kontrak.
         /// Kode tidak boleh ditentukan controller sendiri: aturan bisnislah yang menentukan
         /// apakah sesuatu adalah isian yang kurang, tabrakan keadaan, atau penolakan aturan.

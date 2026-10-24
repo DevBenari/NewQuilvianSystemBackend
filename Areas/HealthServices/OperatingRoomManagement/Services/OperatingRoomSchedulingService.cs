@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -304,6 +305,259 @@ public sealed class OperatingRoomSchedulingService
     }
 
     /// <summary>Menonaktifkan jadwal dan tim berjalan; histori revisi tetap tersimpan.</summary>
+    /// <summary>
+    /// Menampilkan timeline jadwal seluruh ruang OK dalam bentuk slot (Occupied, SterilizationBuffer, Available)
+    /// untuk tanggal yang diminta (BE-OPR-012, OPS-DEC-038, OPS-DEC-039).
+    /// </summary>
+    public async Task<List<OprRoomTimelineResponse>> GetRoomsTimelineAsync(string date, string? floorLocation,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(date) ||
+            !DateOnly.TryParseExact(date.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture,
+                DateTimeStyles.None, out var parsedDate))
+        {
+            throw new ArgumentException("Format tanggal tidak valid. Gunakan format YYYY-MM-DD.");
+        }
+
+        var wibOffset = TimeSpan.FromHours(7);
+        var startOfDayWib = new DateTimeOffset(parsedDate.Year, parsedDate.Month, parsedDate.Day, 0, 0, 0, wibOffset);
+        var endOfDayWib = startOfDayWib.AddDays(1);
+        var startOfDayUtc = startOfDayWib.UtcDateTime;
+        var endOfDayUtc = endOfDayWib.UtcDateTime;
+
+        var roomQuery = _dbContext.Set<MstRoom>().AsNoTracking()
+            .Where(x => x.IsActive && !x.IsDelete && x.RoomType == RoomType.OperatingRoom);
+
+        if (!string.IsNullOrWhiteSpace(floorLocation))
+        {
+            var trimmedFloor = floorLocation.Trim().ToLower();
+            roomQuery = roomQuery.Where(x => (x.FloorName != null && x.FloorName.ToLower().Contains(trimmedFloor))
+                                          || (x.LocationName != null && x.LocationName.ToLower().Contains(trimmedFloor)));
+        }
+
+        var rooms = await roomQuery
+            .OrderBy(x => x.SortOrder)
+            .ThenBy(x => x.RoomName)
+            .ToListAsync(cancellationToken);
+
+        var schedules = await _dbContext.OprSchedules.AsNoTracking()
+            .Where(x => x.IsCurrent && !x.IsDelete &&
+                        x.StartAt < endOfDayUtc && x.EndAt > startOfDayUtc &&
+                        x.OprCase != null && !x.OprCase.IsDelete &&
+                        !ClosedStatuses.Contains(x.OprCase.Status))
+            .Include(x => x.OprCase).ThenInclude(c => c!.Patient)
+            .Include(x => x.OprCase).ThenInclude(c => c!.PrimarySurgeon)
+            .Include(x => x.OprCase).ThenInclude(c => c!.Procedures).ThenInclude(p => p.PatientProcedure)
+            .Include(x => x.TeamMembers.Where(t => t.IsCurrent && !t.IsDelete)).ThenInclude(t => t.Workforce)
+            .ToListAsync(cancellationToken);
+
+        var responseList = new List<OprRoomTimelineResponse>();
+
+        foreach (var room in rooms)
+        {
+            var roomResponse = new OprRoomTimelineResponse
+            {
+                RoomId = room.Id,
+                RoomName = room.RoomName,
+                Floor = !string.IsNullOrWhiteSpace(room.FloorName) ? room.FloorName : room.LocationName,
+                Slots = []
+            };
+
+            var roomSchedules = schedules
+                .Where(s => s.RoomId == room.Id)
+                .OrderBy(s => s.StartAt)
+                .ToList();
+
+            var dayStartWib = new DateTimeOffset(parsedDate.Year, parsedDate.Month, parsedDate.Day, 7, 0, 0, wibOffset);
+            var dayEndWib = new DateTimeOffset(parsedDate.Year, parsedDate.Month, parsedDate.Day, 21, 0, 0, wibOffset);
+
+            if (roomSchedules.Count > 0)
+            {
+                var firstStartWib = new DateTimeOffset(DateTime.SpecifyKind(roomSchedules[0].StartAt, DateTimeKind.Utc)).ToOffset(wibOffset);
+                if (firstStartWib < dayStartWib)
+                {
+                    dayStartWib = firstStartWib;
+                }
+
+                var lastEndWib = new DateTimeOffset(DateTime.SpecifyKind(roomSchedules[^1].EndAt, DateTimeKind.Utc)).ToOffset(wibOffset);
+                var lastBuffer = roomSchedules[^1].BufferAfterMinutes > 0 ? roomSchedules[^1].BufferAfterMinutes : _options.DefaultBufferAfterMinutes;
+                var lastBufferEndWib = lastEndWib.AddMinutes(lastBuffer);
+                if (lastBufferEndWib > dayEndWib)
+                {
+                    dayEndWib = lastBufferEndWib;
+                }
+            }
+
+            var currentPointer = dayStartWib;
+
+            foreach (var s in roomSchedules)
+            {
+                var sStart = new DateTimeOffset(DateTime.SpecifyKind(s.StartAt, DateTimeKind.Utc)).ToOffset(wibOffset);
+                var sEnd = new DateTimeOffset(DateTime.SpecifyKind(s.EndAt, DateTimeKind.Utc)).ToOffset(wibOffset);
+                var bufferMinutes = s.BufferAfterMinutes > 0 ? s.BufferAfterMinutes : _options.DefaultBufferAfterMinutes;
+                var bEnd = sEnd.AddMinutes(bufferMinutes);
+
+                if (sStart > currentPointer)
+                {
+                    roomResponse.Slots.Add(new OprTimelineSlotResponse
+                    {
+                        SlotType = "Available",
+                        StartAt = currentPointer,
+                        EndAt = sStart
+                    });
+                }
+
+                var primaryProc = s.OprCase?.Procedures.FirstOrDefault(p => p.IsPrimary)?.PatientProcedure?.ProcedureNameSnapshot
+                               ?? s.OprCase?.Procedures.FirstOrDefault()?.PatientProcedure?.ProcedureNameSnapshot
+                               ?? s.OprCase?.Indication;
+
+                var leadSurgeon = s.TeamMembers.FirstOrDefault(t => t.Role == OprTeamRole.PrimarySurgeon || t.IsLead)?.Workforce?.DisplayName
+                               ?? s.OprCase?.PrimarySurgeon?.FullName;
+
+                var anesthesiologist = s.TeamMembers.FirstOrDefault(t => t.Role == OprTeamRole.Anesthesiologist)?.Workforce?.DisplayName;
+
+                roomResponse.Slots.Add(new OprTimelineSlotResponse
+                {
+                    SlotType = "Occupied",
+                    CaseId = s.OprCaseId,
+                    BookingNumber = s.OprCase?.CaseNumber,
+                    PatientName = s.OprCase?.Patient?.FullName,
+                    ProcedureName = primaryProc,
+                    StartAt = sStart,
+                    EndAt = sEnd,
+                    LeadSurgeonName = leadSurgeon,
+                    AnesthesiologistName = anesthesiologist
+                });
+
+                roomResponse.Slots.Add(new OprTimelineSlotResponse
+                {
+                    SlotType = "SterilizationBuffer",
+                    StartAt = sEnd,
+                    EndAt = bEnd,
+                    DurationMinutes = bufferMinutes,
+                    Note = "Pembersihan & Dekontaminasi Ruangan"
+                });
+
+                currentPointer = bEnd;
+            }
+
+            if (currentPointer < dayEndWib)
+            {
+                roomResponse.Slots.Add(new OprTimelineSlotResponse
+                {
+                    SlotType = "Available",
+                    StartAt = currentPointer,
+                    EndAt = dayEndWib
+                });
+            }
+
+            responseList.Add(roomResponse);
+        }
+
+        return responseList;
+    }
+
+    /// <summary>
+    /// Menyediakan ringkasan data rencana operasi terkonfirmasi untuk dikonsumsi Modul Admisi Rawat Inap (BE-OPR-013, OPS-DEC-040).
+    /// </summary>
+    public async Task<OprPatientBookingLookupResponse?> LookupBookingByPatientAsync(
+        Guid? patientId, string? bookingNumber, CancellationToken cancellationToken = default)
+    {
+        if ((!patientId.HasValue || patientId.Value == Guid.Empty) && string.IsNullOrWhiteSpace(bookingNumber))
+        {
+            throw new ArgumentException("Parameter patientId atau bookingNumber wajib diisi.");
+        }
+
+        var query = _dbContext.OprCases.AsNoTracking()
+            .Where(x => !x.IsDelete &&
+                        x.Status != OprCaseStatus.Cancelled &&
+                        x.Status != OprCaseStatus.Rejected &&
+                        x.Schedules.Any(s => s.IsCurrent && !s.IsDelete));
+
+        if (patientId.HasValue && patientId.Value != Guid.Empty)
+        {
+            query = query.Where(x => x.PatientId == patientId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(bookingNumber))
+        {
+            var trimmedBooking = bookingNumber.Trim().ToLower();
+            query = query.Where(x => x.CaseNumber.ToLower() == trimmedBooking);
+        }
+
+        var oprCase = await query
+            .Include(x => x.Patient)
+            .Include(x => x.PrimarySurgeon)
+            .Include(x => x.Procedures).ThenInclude(p => p.PatientProcedure)
+            .Include(x => x.Schedules.Where(s => s.IsCurrent && !s.IsDelete)).ThenInclude(s => s.Room)
+            .Include(x => x.Schedules.Where(s => s.IsCurrent && !s.IsDelete)).ThenInclude(s => s.TeamMembers.Where(t => t.IsCurrent && !t.IsDelete))
+                .ThenInclude(t => t.Workforce)
+            .OrderByDescending(x => x.CreateDateTime)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (oprCase == null) return null;
+
+        var schedule = oprCase.Schedules.FirstOrDefault();
+        if (schedule == null) return null;
+
+        var wibOffset = TimeSpan.FromHours(7);
+        var startWib = new DateTimeOffset(DateTime.SpecifyKind(schedule.StartAt, DateTimeKind.Utc)).ToOffset(wibOffset);
+        var endWib = new DateTimeOffset(DateTime.SpecifyKind(schedule.EndAt, DateTimeKind.Utc)).ToOffset(wibOffset);
+
+        var primaryProc = oprCase.Procedures.FirstOrDefault(p => p.IsPrimary)?.PatientProcedure?.ProcedureNameSnapshot
+                       ?? oprCase.Procedures.FirstOrDefault()?.PatientProcedure?.ProcedureNameSnapshot
+                       ?? oprCase.Indication;
+
+        var leadTeam = schedule.TeamMembers.FirstOrDefault(t => t.Role == OprTeamRole.PrimarySurgeon || t.IsLead);
+        var surgeonName = leadTeam?.Workforce?.DisplayName ?? oprCase.PrimarySurgeon?.FullName ?? string.Empty;
+        var surgeonId = oprCase.PrimarySurgeonId;
+
+        var anesTeam = schedule.TeamMembers.FirstOrDefault(t => t.Role == OprTeamRole.Anesthesiologist);
+        OprDoctorSummaryDto? anesDto = null;
+        if (anesTeam != null)
+        {
+            anesDto = new OprDoctorSummaryDto
+            {
+                Id = anesTeam.WorkforceId,
+                Name = anesTeam.Workforce?.DisplayName ?? "Dokter Anestesi"
+            };
+        }
+
+        var pedTeam = schedule.TeamMembers.FirstOrDefault(t => t.Role == OprTeamRole.Pediatrician);
+        OprDoctorSummaryDto? pedDto = null;
+        if (pedTeam != null)
+        {
+            pedDto = new OprDoctorSummaryDto
+            {
+                Id = pedTeam.WorkforceId,
+                Name = pedTeam.Workforce?.DisplayName ?? "Dokter Spesialis Anak"
+            };
+        }
+
+        var clinicalCategory = oprCase.SurgicalServiceType == OprSurgicalServiceType.Obstetric
+            ? "ObstetricSurgery"
+            : "GeneralSurgery";
+
+        return new OprPatientBookingLookupResponse
+        {
+            BookingNumber = oprCase.CaseNumber,
+            CaseId = oprCase.Id,
+            PatientId = oprCase.PatientId,
+            PatientName = oprCase.Patient?.FullName ?? string.Empty,
+            ProcedureName = primaryProc,
+            ClinicalCategory = clinicalCategory,
+            OperatingRoomName = schedule.Room?.RoomName ?? string.Empty,
+            ScheduledDate = startWib.ToString("yyyy-MM-dd"),
+            ScheduledTime = $"{startWib:HH:mm} - {endWib:HH:mm} WIB",
+            ScheduledStartAtUtc = schedule.StartAt,
+            ScheduledEndAtUtc = schedule.EndAt,
+            LeadSurgeon = new OprDoctorSummaryDto { Id = surgeonId, Name = surgeonName },
+            Anesthesiologist = anesDto,
+            Pediatrician = pedDto,
+            PreOpInstructions = "Puasa padat mulai 6-8 jam sebelum tindakan. Pasang jalur infus intravena di ruang perawatan."
+        };
+    }
+
     private static void RetireCurrentPlan(OprCase entity, Guid actorUserId, DateTime now, string? reason)
     {
         foreach (var schedule in entity.Schedules.Where(x => x.IsCurrent && !x.IsDelete))

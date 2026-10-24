@@ -412,6 +412,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         ? null
                         : request.MotherEpisodeId,
                     Notes = NormalizeText(request.Notes),
+                    SurgicalBookingNumber = request.SurgicalBookingNumber?.Trim(),
+                    ClinicalSubCategory = request.ClinicalSubCategory?.Trim(),
+                    BedHoldStatus = !string.IsNullOrWhiteSpace(request.BedHoldStatus) ? request.BedHoldStatus.Trim() : (!string.IsNullOrWhiteSpace(request.SurgicalBookingNumber) ? "InSurgery" : null),
+                    IsRoomingInBabyPlanned = request.IsRoomingInBabyPlanned,
+                    MaternityPackageId = request.MaternityPackageId,
                     IsActive = true,
                     CreateDateTime = now,
                     CreateBy = actorUserId
@@ -453,6 +458,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
                 _dbContext.Set<InpDoctorAssignment>().Add(doctorAssignment);
                 episode.DoctorAssignments.Add(doctorAssignment);
+
+                // BE-RWI-183 / RWI-DEC-357: Tri-Dokter pada kasus bedah/SC (Sp.An & Sp.A sebagai Konsulen)
+                var nextSeq = 2;
+                if (request.AnesthesiologistDoctorId.HasValue &&
+                    request.AnesthesiologistDoctorId.Value != Guid.Empty &&
+                    request.AnesthesiologistDoctorId.Value != request.DoctorId)
+                {
+                    var anAssignment = new InpDoctorAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        EpisodeId = episode.Id,
+                        DoctorId = request.AnesthesiologistDoctorId.Value,
+                        AssignmentRole = InpDoctorAssignmentRole.Consultant,
+                        AssignmentPurpose = InpDoctorAssignmentPurpose.Regular,
+                        SequenceNumber = nextSeq++,
+                        StartDateTime = now,
+                        EndDateTime = null,
+                        AssignedByUserId = actorUserId,
+                        IsActive = true,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId
+                    };
+                    _dbContext.Set<InpDoctorAssignment>().Add(anAssignment);
+                    episode.DoctorAssignments.Add(anAssignment);
+                }
+
+                if (request.PediatricianDoctorId.HasValue &&
+                    request.PediatricianDoctorId.Value != Guid.Empty &&
+                    request.PediatricianDoctorId.Value != request.DoctorId)
+                {
+                    var pedAssignment = new InpDoctorAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        EpisodeId = episode.Id,
+                        DoctorId = request.PediatricianDoctorId.Value,
+                        AssignmentRole = InpDoctorAssignmentRole.Consultant,
+                        AssignmentPurpose = InpDoctorAssignmentPurpose.Regular,
+                        SequenceNumber = nextSeq++,
+                        StartDateTime = now,
+                        EndDateTime = null,
+                        AssignedByUserId = actorUserId,
+                        IsActive = true,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId
+                    };
+                    _dbContext.Set<InpDoctorAssignment>().Add(pedAssignment);
+                    episode.DoctorAssignments.Add(pedAssignment);
+                }
 
                 await ApplyStatusChangeAsync(
                     episode,
@@ -1314,6 +1367,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         ReferralDoctorName = x.ExternalReferralDoctorName,
                         ReferralDiagnosis = x.ExternalReferralDiagnosis ?? ""
                     },
+                    SurgicalBookingNumber = x.SurgicalBookingNumber,
+                    ClinicalSubCategory = x.ClinicalSubCategory,
+                    BedHoldStatus = x.BedHoldStatus,
+                    IsRoomingInBabyPlanned = x.IsRoomingInBabyPlanned,
+                    MaternityPackageId = x.MaternityPackageId,
                     MotherEpisodeNumber = x.MotherEpisode != null
                         ? x.MotherEpisode.EpisodeNumber
                         : null,
