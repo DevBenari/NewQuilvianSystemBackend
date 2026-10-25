@@ -935,21 +935,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Bed Hold Status", Description = "Mengubah status penahanan bed selama operasi", AccessType = AccessTypes.Update, SortOrder = 5)]
         [AccessPermission("InpatientEpisode", "Update")]
-        public async Task<IActionResult> UpdateBedHoldStatus(
+        public Task<IActionResult> UpdateBedHoldStatus(
             Guid id,
             [FromBody] UpdateBedHoldStatusRequest request,
             CancellationToken cancellationToken = default)
         {
-            var actorUserId = GetCurrentUserId();
-            var result = await _episodeService.UpdateBedHoldStatusAsync(id, request, actorUserId, cancellationToken);
-            if (!result.Succeeded)
-            {
-                return FromFailure(result);
-            }
+            // Dinetralkan 25-10-2026 atas persetujuan pemilik (laporan FIX-EPS-040-BE): commit 985a1fc7
+            // memanggil InpEpisodeService.UpdateBedHoldStatusAsync dan GetCurrentUserId yang tidak
+            // pernah ada, sehingga backend tidak dapat di-build. Endpoint dibuka kembali setelah
+            // method service BE-RWI-183 dibuat.
+            IActionResult response = StatusCode(
+                StatusCodes.Status501NotImplemented,
+                ApiResponse<object>.Fail(
+                    StatusCodes.Status501NotImplemented,
+                    "Penahanan tempat tidur selama operasi (BE-RWI-183) belum tersedia."));
 
-            return Ok(ApiResponse<InpatientEpisodeDetailResponse>.Ok(
-                result.EpisodeDetail!,
-                $"Status penahanan tempat tidur berhasil diperbarui menjadi {request.BedHoldStatus}."));
+            return Task.FromResult(response);
         }
 
         /// <summary>

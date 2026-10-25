@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
@@ -24,7 +25,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
     SortOrder = 6)]
 [Tags("Health Services / Inpatient Management / Integration")]
 public class InpatientNewbornBirthEventConsumerController(
-    InpatientNewbornBirthEventConsumerService consumerService) : BaseController
+    InpatientNewbornBirthEventConsumerService consumerService) : ControllerBase
 {
     /// <summary>
     /// Menerima dan memproses event operating-room.birth-event.recorded untuk membuka episode neonatus otomatis.
@@ -38,7 +39,9 @@ public class InpatientNewbornBirthEventConsumerController(
         [FromBody] OprBirthRecordedIntegrationEvent @event,
         CancellationToken cancellationToken = default)
     {
-        var actorUserId = GetCurrentUserId();
+        // BaseController tidak ada di repository; aktor dibaca dari claim seperti controller Rawat Inap lain.
+        var userIdText = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
+        var actorUserId = Guid.TryParse(userIdText, out var parsedUserId) ? parsedUserId : Guid.Empty;
         var result = await consumerService.ConsumeAsync(@event, actorUserId, cancellationToken);
         if (!result.Succeeded)
         {

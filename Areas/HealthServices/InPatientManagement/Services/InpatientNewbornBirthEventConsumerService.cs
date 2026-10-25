@@ -66,96 +66,17 @@ public class InpatientNewbornBirthEventConsumerService(
             };
         }
 
-        // Idempotency: jika bayi untuk kasus persalinan dan event ini sudah pernah dibuat, lewati
-        var existingBaby = await dbContext.Set<MstPatient>()
-            .FirstOrDefaultAsync(x => x.DeliveryCaseId == @event.CaseId && !x.IsDelete, cancellationToken);
-
-        if (existingBaby != null)
-        {
-            var existingEpisode = await dbContext.Set<InpEpisode>()
-                .FirstOrDefaultAsync(x => x.PatientId == existingBaby.Id && !x.IsDelete, cancellationToken);
-
-            return new NewbornBirthEventConsumerResult
-            {
-                Succeeded = true,
-                AlreadyProcessed = true,
-                BabyPatientId = existingBaby.Id,
-                BabyMedicalRecordNumber = existingBaby.MedicalRecordNumber,
-                BabyEpisodeId = existingEpisode?.Id,
-                BabyEpisodeNumber = existingEpisode?.EpisodeNumber,
-                Message = "Event kelahiran bayi ini sudah diproses sebelumnya (Idempotent)."
-            };
-        }
-
-        // Cari identitas ibu dan episode rawat inap aktif sang ibu
-        var motherPatient = await dbContext.Set<MstPatient>()
-            .FirstOrDefaultAsync(x => x.Id == @event.MotherPatientId && !x.IsDelete, cancellationToken);
-
-        var motherEpisode = await dbContext.Set<InpEpisode>()
-            .FirstOrDefaultAsync(x => x.PatientId == @event.MotherPatientId && x.EpisodeStatus != InpEpisodeStatus.Discharged && !x.IsDelete, cancellationToken);
-
-        var now = DateTime.UtcNow;
-        var babyMrn = $"BY-{now:yyMMdd}-{Random.Shared.Next(1000, 9999)}";
-        var motherName = motherPatient?.Name ?? "Ibu";
-
-        // 1. Buat profil pasien bayi baru lahir
-        var babyPatient = new MstPatient
-        {
-            Id = Guid.NewGuid(),
-            MedicalRecordNumber = babyMrn,
-            Name = $"Bayi Ny. {motherName}",
-            Gender = @event.Gender,
-            BirthDate = @event.OccurredAt,
-            IsNewborn = true,
-            MotherPatientId = @event.MotherPatientId,
-            DeliveryCaseId = @event.CaseId,
-            BloodType = motherPatient?.BloodType ?? "Unknown",
-            Citizen = motherPatient?.Citizen ?? "WNI",
-            CreateDateTime = now,
-            CreateBy = actorUserId,
-            IsActive = true
-        };
-        dbContext.Set<MstPatient>().Add(babyPatient);
-
-        // 2. Buat episode rawat inap neonatus (tertataut ke episode ibu)
-        var babyEpisodeNumber = $"RWI-BY/{now:yyyyMMdd}/{Random.Shared.Next(100, 999)}";
-        var babyEpisode = new InpEpisode
-        {
-            Id = Guid.NewGuid(),
-            EpisodeNumber = babyEpisodeNumber,
-            EncounterId = motherEpisode?.EncounterId ?? Guid.NewGuid(),
-            PatientId = babyPatient.Id,
-            ServiceUnitId = motherEpisode?.ServiceUnitId ?? Guid.Empty,
-            PatientClassId = motherEpisode?.PatientClassId ?? Guid.Empty,
-            EpisodeStatus = InpEpisodeStatus.Admitted,
-            AdmittedAt = now,
-            MotherEpisodeId = motherEpisode?.Id,
-            IsRoomingInBabyPlanned = motherEpisode?.IsRoomingInBabyPlanned ?? true,
-            ClinicalSubCategory = "ObstetricSurgery",
-            Notes = $"Auto-generated kelahiran SC di OK. APGAR: {@event.ApgarScore1Min}/{@event.ApgarScore5Min}/{@event.ApgarScore10Min ?? 10}, BB: {@event.WeightGrams}g, PB: {@event.LengthCentimeters}cm.",
-            CreateDateTime = now,
-            CreateBy = actorUserId,
-            IsActive = true
-        };
-        dbContext.Set<InpEpisode>().Add(babyEpisode);
-
-        await dbContext.SaveChangesAsync(cancellationToken);
-
-        await loggerService.InfoAsync(
-            "InpatientManagement",
-            "NewbornBirthEventConsumer",
-            $"Berhasil membuka episode neonatus {babyEpisode.EpisodeNumber} untuk bayi Ny. {motherName}.",
-            new { BabyPatientId = babyPatient.Id, BabyEpisodeId = babyEpisode.Id, CaseId = @event.CaseId });
-
+        // Dinetralkan 25-10-2026 atas persetujuan pemilik (laporan FIX-EPS-040-BE). Draf commit 985a1fc7
+        // tidak dapat di-build (memakai MstPatient.Name/Citizen dan InpEpisodeStatus.Discharged yang tidak
+        // ada), dan bila hanya nama field-nya dibetulkan, draf itu akan membuat No. RM acak di luar deret
+        // nomor resmi (QBE-CODE-003) serta episode berunit layanan kosong. Admisi bayi tetap lewat layar
+        // Admisi Bayi Baru Lahir sampai consumer BE-RWI-184 dirancang ulang memakai
+        // NewbornPatientRegistrationService dan alur episode resmi. Draf aslinya ada di riwayat Git.
+        await Task.CompletedTask;
         return new NewbornBirthEventConsumerResult
         {
-            Succeeded = true,
-            AlreadyProcessed = false,
-            BabyPatientId = babyPatient.Id,
-            BabyMedicalRecordNumber = babyPatient.MedicalRecordNumber,
-            BabyEpisodeId = babyEpisode.Id,
-            BabyEpisodeNumber = babyEpisode.EpisodeNumber,
-            Message = "Episode rawat inap bayi baru lahir berhasil dibuka otomatis."
+            Succeeded = false,
+            Message = "Consumer kelahiran SC (BE-RWI-184) belum aktif. Daftarkan bayi lewat layar Admisi Bayi Baru Lahir."
         };
     }
 }

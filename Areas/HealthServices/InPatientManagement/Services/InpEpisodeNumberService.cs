@@ -1,3 +1,6 @@
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
+
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
 {
     /// <summary>
@@ -29,10 +32,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     public class InpEpisodeNumberService
     {
         private readonly InpSettingService _settingService;
+        private readonly HospitalSiteProfileQueryService _hospitalSites;
 
-        public InpEpisodeNumberService(InpSettingService settingService)
+        public InpEpisodeNumberService(InpSettingService settingService, HospitalSiteProfileQueryService hospitalSites)
         {
             _settingService = settingService;
+            _hospitalSites = hospitalSites;
+        }
+
+        /// <summary>
+        /// Waktu sekarang menurut zona rumah sakit, untuk bagian waktu pada nomor yang dibaca petugas
+        /// (FIX-EPS-040-22). Admisi pukul 11.15 WIB menghasilkan <c>…-261025111519-…</c>, bukan jam UTC
+        /// <c>041519</c>. Profil yang tidak terbaca jatuh ke <c>Asia/Jakarta</c>.
+        /// </summary>
+        public async Task<DateTime> HospitalNowAsync(CancellationToken cancellationToken = default)
+        {
+            TimeZoneInfo timeZone;
+            try
+            {
+                var profile = await _hospitalSites.GetMainSiteProfileAsync(cancellationToken);
+                timeZone = InpAdmissionText.ResolveTimeZone(profile.IsAvailable ? profile.TimeZoneId : null);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                timeZone = InpAdmissionText.ResolveTimeZone(null);
+            }
+
+            return InpAdmissionText.ToLocal(DateTime.UtcNow, timeZone);
         }
 
         /// <summary>
@@ -44,7 +70,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         {
             var prefix = await _settingService.GetEpisodeNumberPrefixAsync(cancellationToken);
 
-            return Generate(prefix, DateTime.UtcNow);
+            return Generate(prefix, await HospitalNowAsync(cancellationToken));
         }
 
         /// <summary>

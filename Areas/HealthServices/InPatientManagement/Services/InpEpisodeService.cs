@@ -243,6 +243,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Dokter penanggung jawab yang dipilih tidak ditemukan atau tidak aktif.");
             }
 
+            // FIX-EPS-040-09 (K-05): DPJP bayi non-anak wajib beralasan.
+            var newbornDoctorError = await InpNewbornAdmissionRules.ValidateNewbornDoctorAsync(
+                _dbContext, patient, request.NewbornAdmission, request.DoctorId, cancellationToken);
+            if (newbornDoctorError != null)
+                return InpEpisodeOperationResult.Invalid(newbornDoctorError);
+
+            var admissionNotes = InpNewbornAdmissionRules.MergeNonPediatricReason(
+                NormalizeText(request.Notes), request.NewbornAdmission?.NonPediatricDoctorReason);
+            if (admissionNotes?.Length > 1000)
+                return InpEpisodeOperationResult.Invalid("Catatan admisi bersama alasan DPJP melebihi 1000 karakter.");
+
             if (request.SelectedBedId.HasValue)
             {
                 var selectedBed = await _dbContext.Set<MstBed>().AsNoTracking().Include(x => x.Room)
@@ -392,7 +403,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 if (encounter == null)
                 {
-                    encounter = BuildInpatientEncounter(request, actorUserId, now);
+                    encounter = BuildInpatientEncounter(
+                        request, actorUserId, now, await _episodeNumberService.HospitalNowAsync(cancellationToken));
                     encounterCreatedByAdmission = true;
 
                     _dbContext.Set<RegPatientEncounter>().Add(encounter);
@@ -411,7 +423,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     MotherEpisodeId = request.MotherEpisodeId == Guid.Empty
                         ? null
                         : request.MotherEpisodeId,
-                    Notes = NormalizeText(request.Notes),
+                    Notes = admissionNotes,
                     SurgicalBookingNumber = request.SurgicalBookingNumber?.Trim(),
                     ClinicalSubCategory = request.ClinicalSubCategory?.Trim(),
                     BedHoldStatus = !string.IsNullOrWhiteSpace(request.BedHoldStatus) ? request.BedHoldStatus.Trim() : (!string.IsNullOrWhiteSpace(request.SurgicalBookingNumber) ? "InSurgery" : null),
@@ -703,7 +715,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             episode.MotherEpisodeId = request.MotherEpisodeId == Guid.Empty
                 ? null
                 : request.MotherEpisodeId;
-            episode.Notes = NormalizeText(request.Notes);
+            // FIX-EPS-040-09: alasan DPJP non-anak dari pembuatan episode tidak boleh hilang saat catatan disunting.
+            var updatedNotes = InpNewbornAdmissionRules.MergeNonPediatricReason(
+                NormalizeText(request.Notes), request.NewbornAdmission?.NonPediatricDoctorReason, episode.Notes);
+            if (updatedNotes?.Length > 1000)
+                return InpEpisodeOperationResult.Invalid("Catatan admisi bersama alasan DPJP melebihi 1000 karakter.");
+            episode.Notes = updatedNotes;
             episode.UpdateDateTime = now;
             episode.UpdateBy = actorUserId;
 
@@ -1578,12 +1595,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private static RegPatientEncounter BuildInpatientEncounter(
             OpenAdmissionRequest request,
             Guid actorUserId,
-            DateTime now)
+            DateTime now,
+            DateTime hospitalNow)
         {
             return new RegPatientEncounter
             {
                 Id = Guid.NewGuid(),
-                EncounterNumber = BuildInpatientEncounterNumber(now),
+                // FIX-EPS-040-22: bagian waktu nomor kunjungan memakai jam rumah sakit, bukan UTC.
+                EncounterNumber = BuildInpatientEncounterNumber(hospitalNow),
                 PatientId = request.PatientId,
                 ServiceUnitId = request.ServiceUnitId,
                 PatientClassId = request.PatientClassId,

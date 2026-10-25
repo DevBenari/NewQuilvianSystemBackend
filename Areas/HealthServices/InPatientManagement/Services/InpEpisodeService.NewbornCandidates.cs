@@ -137,7 +137,12 @@ public partial class InpEpisodeService
                 x.ServiceUnitId,
                 ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
                 x.RoomId,
-                RoomName = x.Room != null ? x.Room.RoomName : null
+                RoomName = x.Room != null ? x.Room.RoomName : null,
+                // FIX-EPS-040-12: bed dan kelas ibu untuk kartu konfirmasi rawat gabung.
+                x.BedId,
+                BedCode = x.Bed != null ? x.Bed.BedCode : null,
+                BedName = x.Bed != null ? x.Bed.BedName : null,
+                PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null
             })
             .ToListAsync(cancellationToken);
         var placements = placementRows.GroupBy(x => x.EpisodeId).ToDictionary(x => x.Key, x => x.First());
@@ -245,7 +250,7 @@ public partial class InpEpisodeService
                 DeliveryCaseNumber = item.CaseNumber,
                 RequestedAt = item.RequestedAt,
                 DeliveryCaseStatus = (int)item.Status,
-                DeliveryCaseStatusName = item.Status.ToString(),
+                DeliveryCaseStatusName = DeliveryCaseStatusLabel(item.Status),
                 MotherPatientId = item.PatientId,
                 MotherName = item.MotherName,
                 MotherMedicalRecordNumber = item.MotherMedicalRecordNumber,
@@ -261,6 +266,10 @@ public partial class InpEpisodeService
                 CurrentServiceUnitName = placement?.ServiceUnitName,
                 CurrentRoomId = placement?.RoomId,
                 CurrentRoomName = placement?.RoomName,
+                CurrentBedId = placement?.BedId,
+                CurrentBedCode = placement?.BedCode,
+                CurrentBedName = placement?.BedName,
+                CurrentPatientClassName = placement?.PatientClassName,
                 RegisteredBabyCount = registeredCount,
                 NextBirthOrderPreview = nextOrder,
                 HasActiveInpatientBaby = hasActiveBaby,
@@ -277,4 +286,15 @@ public partial class InpEpisodeService
             Items = items
         };
     }
+
+    /// <summary>
+    /// Label status kasus persalinan untuk petugas (FIX-EPS-040-13). Kandidat hanya memuat kasus
+    /// <c>InProgress</c> dan <c>Completed</c>; status lain jatuh ke nama enum agar tidak tersembunyi.
+    /// </summary>
+    private static string DeliveryCaseStatusLabel(OprCaseStatus status) => status switch
+    {
+        OprCaseStatus.InProgress => "Sedang berlangsung",
+        OprCaseStatus.Completed => "Selesai",
+        _ => status.ToString()
+    };
 }
