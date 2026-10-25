@@ -153,7 +153,18 @@ belum tercatat di laporan task. Selisih ini tercatat sebagai `PAT-STALE-002` pad
 
 ## 5. `BE-PAT-MIG-002` 🟡
 
-> **Diperbarui 24 Oktober 2026 — bukti post-rebase pemilik:** tetap 🟡 — **IMPLEMENTED — VALIDATED
+> **Diperbarui 25 Oktober 2026 — bukti post-rebase kedua pemilik:** tetap 🟡 — **IMPLEMENTED — VALIDATED
+> LOCALLY**, bukan *deployed* dan bukan *production-ready*. Kandidat akhir commit lokal `46edc6af` di atas
+> Integration `52d7e117`; source dan test MIG-002 identik dengan `f0ee1c98`. Build Release backend dan
+> project test `PASS`; PatientManagement non-ProviderReal `505`/`505`; provider-real PostgreSQL 15.19 MIG-002
+> `6`/`6` dan penuh `29`/`29` (gagal `0`, dilewati `0`, ExitCode `0`); QBE `Strict` `GitRange` `PASS`. Satu
+> percobaan provider-real sebelumnya gagal 25 kasus dengan `Connection refused` sesudah koneksi bukti
+> terputus; run ulang lulus `29`/`29` — penyebab tidak ditetapkan. Tetap **47 dari 49** requirement aktif
+> terbukti; `AC-35`/`36` membutuhkan eksekusi aktual di Staging — **`NOT RUN`**. Review leader, PR, merge,
+> dan deploy pending. `PAT-GATE-002`, Canary-A 25 pasien, dan migrasi aktual 704.506 pasien **`NOT RUN`**;
+> tidak ada otorisasi migrasi massal. [laporan](../task/report/backend/BE-PAT-MIG-002.md) bagian 11.
+>
+> **Diperbarui 24 Oktober 2026 — bukti post-rebase pemilik — jejak:** tetap 🟡 — **IMPLEMENTED — VALIDATED
 > LOCALLY**. Commit lokal `f0ee1c98` di atas Integration `35951dbb`; belum push, PR, merge, maupun deploy.
 > Build Release `0` error; build project test `PASS`; MIG-002 non-provider `202`/`202`; PatientManagement
 > non-provider `505`/`505`; membership `97`/`97`; QBE `Strict` `GitRange` `PASS` (43 berkas, 0 temuan);
@@ -235,14 +246,15 @@ dihitung bila `PAT-OQ-022` pilihan A disetujui — tidak adanya automated test *
 | `PAT-MIG2-AC-44` | *Dipindah* — guard reservasi `PatientCode` | `PAT-DEC-057` | B14 | **`BE-PAT-MIG-003`** — lihat `PAT-MIG3-AC-03`–`05` | — | `DIPINDAH` | — | — | — |
 | `PAT-MIG2-AC-45` | *Dipindah* — guard reservasi MRN | `PAT-DEC-057` | B14 | **`BE-PAT-MIG-003`** — lihat `PAT-MIG3-AC-06` | — | `DIPINDAH` | — | — | — |
 | `PAT-MIG2-AC-46` | Gerbang `NORMAL_ALLOCATION_GUARD` menuntut pemeriksa `BE-PAT-MIG-003` melaporkan `overallGuardReady = true`; pembekuan saja tidak cukup. *Diamandemen `1.3.0` (`PAT-DEC-072`): `overallGuardReady` kini mensyaratkan pendaftaran normal **dan** bayi terlindungi* | `PAT-DEC-042`, `055`, `064`, `066`, `067` | B4.2, B14.2 | `BE-PAT-MIG-002` | — | `TERPENUHI` | `PASS` — skenario `guard-tidak-aktif`, `guard-tidak-dikonfigurasi`; `GuardNormal_MemakaiPemeriksaCheckAsyncApaAdanya` | `NANTI` — gerbang pada simulasi sesudah `PAT-GATE-005` | [laporan](../task/report/backend/BE-PAT-MIG-002.md) |
-| `PAT-MIG2-AC-47` | Persistensi fisik `IsMember = false` dengan bukti provider-real. *Diamandemen `1.3.0` (`PAT-DEC-075`): INSERT menyimpan `false` dan dibaca ulang di transaksi yang sama; tanpa UPDATE `PERSIST_IS_MEMBER`* | `PAT-DEC-037`, `041`, `053`, `065`, `075` | B4.3, B10, B15 | `BE-PAT-MIG-002` | — | `TERPENUHI` | SQLite `PASS` — `IsMemberFalse_*`, `NilaiTersimpanBerbedaDariPreview_*`; **provider-real PostgreSQL 15.19 `MigrasiMassalPostgresSungguhanTests` `6`/`6` `PASS`** post-rebase pada `f0ee1c98` (penuh `29`/`29`), dijalankan pemilik; 0 `pat_proof_*` tersisa. *Jejak 22 Oktober 2026:* `SEBAGIAN` — `PENDING OWNER-RUN` | `NANTI` — audit fisik PostgreSQL | [laporan](../task/report/backend/BE-PAT-MIG-002.md) |
+| `PAT-MIG2-AC-47` | Persistensi fisik `IsMember = false` dengan bukti provider-real. *Diamandemen `1.3.0` (`PAT-DEC-075`): INSERT menyimpan `false` dan dibaca ulang di transaksi yang sama; tanpa UPDATE `PERSIST_IS_MEMBER`* | `PAT-DEC-037`, `041`, `053`, `065`, `075` | B4.3, B10, B15 | `BE-PAT-MIG-002` | — | `TERPENUHI` | SQLite `PASS` — `IsMemberFalse_*`, `NilaiTersimpanBerbedaDariPreview_*`; **provider-real PostgreSQL 15.19 `MigrasiMassalPostgresSungguhanTests` `6`/`6` `PASS`** pada kandidat akhir `46edc6af` (penuh `29`/`29`, ExitCode `0`) dan sebelumnya pada `f0ee1c98` (penuh `29`/`29`), dijalankan pemilik; 0 `pat_proof_*` tersisa. *Jejak 22 Oktober 2026:* `SEBAGIAN` — `PENDING OWNER-RUN` | `NANTI` — audit fisik PostgreSQL | [laporan](../task/report/backend/BE-PAT-MIG-002.md) |
 | `PAT-MIG2-AC-48` | Kandidat tidak dieksekusi sebelum syarat `PAT-DEC-056`; sesudahnya menjadi manifest tanpa penggantian | `PAT-DEC-040`, `PAT-DEC-056` | B1, B3.1 | `BE-PAT-MIG-002` | — | `TERPENUHI` | `PASS` — manifest = 25 kandidat dalam urutan yang sama (`Manifest_IdentitasIsiDanUrutanPersis`) | `NANTI` — sidik jari manifest eksekusi pada respons | [laporan](../task/report/backend/BE-PAT-MIG-002.md) |
 | `PAT-MIG2-AC-49` | Kolom crosswalk baru tepat sesuai `PAT-DEC-047`; `normalized_nik`/`normalized_mrn` tidak pernah dibaca untuk mencocokkan | `PAT-DEC-047`, `PAT-DEC-051` | B4.3, B9 | `BE-PAT-MIG-002` | — | `TERPENUHI` | `PASS` — kolom crosswalk pada `JalurNormal_*`; `InsertCrosswalk_KolomDanNilaiPersisKeputusan047`; `normalized_*` tidak dibaca | `NANTI` — audit kolom crosswalk pasien canary | [laporan](../task/report/backend/BE-PAT-MIG-002.md) |
 | `PAT-MIG2-AC-50` | Telepon `SAFE_TO_STORE` yang bergeser → `PHONE_ALREADY_USED`; nilai preview tidak dibuang | `PAT-DEC-050` | B3.2 | `BE-PAT-MIG-002` | — | `TERPENUHI` | `PASS` — klasifikasi `telepon-dipakai`, `telepon-dipakai-pasien-terhapus` | `TIDAK BERLAKU` — jalur konflik | [laporan](../task/report/backend/BE-PAT-MIG-002.md) |
 | `PAT-MIG2-AC-51` | SQL bertipe tanpa `::text`; gerbang `PREVIEW_SCHEMA_SIGNATURE`; NULL/nilai enum tidak dikenal → `PREVIEW_VALUE_INVALID` | `PAT-DEC-063`; `PAT-GAP-009`, `010` | B4.2, B9.1, B10 | `BE-PAT-MIG-002` | — | `TERPENUHI` | `PASS` — `SetiapSql_TanpaCastTeks_*` (18 SQL), skenario tanda tangan skema (3), `TandaTanganSkemaGagal_*`, klasifikasi enum/boolean NULL; eksekusi SQL bertipe pada PostgreSQL 15.19 lewat provider-real `A_*`/`G_*` `PASS` post-rebase (*jejak 22 Oktober 2026:* `PENDING OWNER-RUN`) | `NANTI` — hasil gerbang dan klasifikasi pada simulasi Canary-A | [laporan](../task/report/backend/BE-PAT-MIG-002.md) |
 
-Jumlah per 24 Oktober 2026 (bukti post-rebase): 49 aktif — 47 `TERPENUHI` di tahap verifikasi, termasuk
-`AC-47`; 0 `SEBAGIAN`; 2 milik runtime (`AC-35` dengan sumber terbukti, `AC-36`). *Jejak 22 Oktober 2026:*
+Jumlah per 25 Oktober 2026 (bukti post-rebase kedua, `46edc6af`) — **tidak berubah** dari 24 Oktober 2026:
+49 aktif — 47 `TERPENUHI` di tahap verifikasi, termasuk `AC-47`; 0 `SEBAGIAN`; 2 milik runtime (`AC-35`
+dengan sumber terbukti, `AC-36`), keduanya membutuhkan eksekusi aktual di Staging dan tetap `NOT RUN`. *Jejak 22 Oktober 2026:*
 46 `TERPENUHI`, 1 `SEBAGIAN` (`AC-47`, provider-real `PENDING OWNER-RUN`), 2 milik runtime.
 
 Jumlah per sesi ketiga 15 Oktober 2026: **51 ID requirement**. 49 aktif untuk `BE-PAT-MIG-002`;
@@ -322,7 +334,7 @@ rekomendasi, requirement yang terdampak ditulis ulang pada revisi berikutnya.
 | --- | --- |
 | Requirement tanpa rencana bukti verifikasi | **Tidak ada** — 49 dari 49 punya rencana bukti |
 | Requirement yang bergantung pada keputusan yang masih `BLOCKING` | **Tidak ada** per sesi ketiga 15 Oktober 2026. *Riwayat amandemen kedua: `PAT-OQ-019` → `AC-03`–`08`, `09`, `11`, `49`; `PAT-OQ-031` → `AC-46`, `PAT-MIG3-AC-06`; `PAT-OQ-036` → `AC-47`; `PAT-OQ-037` → `AC-46`, `PAT-MIG3-AC-08` — seluruhnya kini diputuskan (`PAT-DEC-063`–`066`)* |
-| Data yang dibutuhkan build dari pemilik | Paket bukti skema dan MRN **diterima** (`PAT-FACT-079`–`089`). Yang tersisa untuk build: server PostgreSQL 15 sekali pakai beserta connection string-nya (`PAT-GAP-014`, `PAT-RSK-038`) — **terpenuhi** 24 Oktober 2026: pemilik menyediakan PostgreSQL 15.19 sekali pakai dan menjalankan bukti provider-real (`6`/`6`, `29`/`29` `PASS`); lingkungan dibersihkan sesudahnya |
+| Data yang dibutuhkan build dari pemilik | Paket bukti skema dan MRN **diterima** (`PAT-FACT-079`–`089`). Yang tersisa untuk build: server PostgreSQL 15 sekali pakai beserta connection string-nya (`PAT-GAP-014`, `PAT-RSK-038`) — **terpenuhi** 24 Oktober 2026: pemilik menyediakan PostgreSQL 15.19 sekali pakai dan menjalankan bukti provider-real (`6`/`6`, `29`/`29` `PASS`); lingkungan dibersihkan sesudahnya. Diulang 25 Oktober 2026 pada kandidat akhir `46edc6af`: `6`/`6`, `29`/`29` `PASS` |
 | Bukti runtime | Belum dapat dikumpulkan; milik `PAT-GATE-002` |
 
 ---

@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` — instruksi pemilik "TASK MODE: BACKEND — Implementasikan `BE-PAT-MIG-002`", lewat `quilvian-engineering-skills:build-module-backend`. Lingkup: implementasi source + verifikasi source saja |
 | Target tulis | `NewQuilvianSystemBackend`: source PatientManagement `MasterData`, `Program.cs` (DI saja), project test `Tests/QuilvianSystemBackend.PatientManagementTests/`, `docs/module-blueprints/patient-management/**` |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
-| Commit backend saat dikerjakan | **Kandidat akhir: commit lokal `f0ee1c989b5cc7a9968d2bc11faeec40e3338860`** di branch `BE-PAT-MIG-002`, induk langsung Integration `35951dbb6ba8ce8466a958d35a98d01f67c5efa2` (bagian 10.1). Riwayat: dibangun di *working tree* di atas parent yang disetujui `c83bcdaa1e66a326ddb81dc9a431b70c76e40ed3` (22 Oktober 2026), lalu di-*commit* dan di-*rebase* ke `35951dbb`. **Belum** push, PR, merge, maupun deploy |
-| Tanggal | 22 Oktober 2026 — implementasi dan fix pass review pemilik; 24 Oktober 2026 — finalisasi dokumentasi dengan bukti post-rebase yang dilaporkan pemilik |
-| Status | 🟡 **IMPLEMENTED — VALIDATED LOCALLY.** Bukti post-rebase pada `f0ee1c98` di atas `35951dbb` (bagian 10): build Release `0` error; build project test `PASS`; MIG-002 non-provider `202`/`202`; PatientManagement non-provider `505`/`505`; membership `97`/`97`; QBE `Strict` `GitRange` `PASS` (43 berkas, 0 temuan); **PostgreSQL 15.19 provider-real MIG-002 `6`/`6` dan penuh `29`/`29` `PASS`**. 47 dari 49 AC aktif terbukti; `AC-35`/`36` milik runtime. **Belum:** review source leader; push, PR, merge, deploy; `PAT-GATE-002` dan Canary-A Staging `NOT RUN`; belum ada migrasi pasien aktual lewat worker, dan **tidak ada** otorisasi migrasi pasien saat ini. *Keadaan 22 Oktober 2026 — jejak:* 🟡 source selesai di *working tree* di atas `c83bcdaa`; provider-real `PENDING OWNER-RUN` |
+| Commit backend saat dikerjakan | **Kandidat akhir: commit lokal `46edc6afd946666178d9681f5db103310daa2b22`** di branch `BE-PAT-MIG-002`, induk langsung Integration `52d7e1175c439d4c36a4e53608f630c5823604d8` (bagian 11.1). Riwayat: dibangun di *working tree* di atas parent yang disetujui `c83bcdaa1e66a326ddb81dc9a431b70c76e40ed3` (22 Oktober 2026); di-*commit* dan di-*rebase* ke `35951dbb` sebagai `f0ee1c98` (bagian 10); lalu di-*rebase* ke `52d7e117` sebagai `46edc6af` — source dan test MIG-002 identik dengan `f0ee1c98`. **Belum** push, PR, merge, maupun deploy |
+| Tanggal | 22 Oktober 2026 — implementasi dan fix pass review pemilik; 24 Oktober 2026 — finalisasi dokumentasi dengan bukti post-rebase pertama (`f0ee1c98`); 25 Oktober 2026 — finalisasi dokumentasi dengan bukti post-rebase kedua (`46edc6af`) yang dilaporkan pemilik |
+| Status | 🟡 **IMPLEMENTED — VALIDATED LOCALLY** — bukan *deployed* dan bukan *production-ready*. Bukti post-rebase kedua pada `46edc6af` di atas `52d7e117` (bagian 11): build Release backend `PASS`; build Release project test `PASS`; PatientManagement non-provider `505`/`505`; provider-real MIG-002 `6`/`6`; provider-real penuh `29`/`29` (gagal `0`, dilewati `0`, ExitCode `0`, 1 jam 34 menit) pada PostgreSQL 15.19 sekali pakai; QBE `Strict` `GitRange` `PASS` (0 temuan). Satu percobaan provider-real sebelumnya gagal 25 kasus dengan `Connection refused` sesudah koneksi bukti terputus; run ulang `29`/`29` `PASS` (bagian 11.3). 47 dari 49 AC aktif terbukti; `AC-35`/`36` butuh eksekusi aktual di Staging — **`NOT RUN`**. **Belum:** review source leader, PR, merge, deploy; `PAT-GATE-002` `NOT RUN`; Canary-A 25 pasien `NOT RUN`; migrasi aktual 704.506 pasien `NOT RUN`; **tidak ada** otorisasi migrasi massal. *Keadaan 24 Oktober 2026 — jejak:* 🟡 IMPLEMENTED — VALIDATED LOCALLY. Bukti post-rebase pada `f0ee1c98` di atas `35951dbb` (bagian 10): build Release `0` error; build project test `PASS`; MIG-002 non-provider `202`/`202`; PatientManagement non-provider `505`/`505`; membership `97`/`97`; QBE `Strict` `GitRange` `PASS` (43 berkas, 0 temuan); **PostgreSQL 15.19 provider-real MIG-002 `6`/`6` dan penuh `29`/`29` `PASS`**. 47 dari 49 AC aktif terbukti; `AC-35`/`36` milik runtime. **Belum:** review source leader; push, PR, merge, deploy; `PAT-GATE-002` dan Canary-A Staging `NOT RUN`; belum ada migrasi pasien aktual lewat worker, dan **tidak ada** otorisasi migrasi pasien saat ini. *Keadaan 22 Oktober 2026 — jejak:* 🟡 source selesai di *working tree* di atas `c83bcdaa`; provider-real `PENDING OWNER-RUN` |
 
 ---
 
@@ -200,9 +200,10 @@ Contoh potongan respons simulasi (nilai samaran):
 
 ## 5. Verifikasi
 
-> **Bukti akhir ada di bagian 10** — validasi post-rebase pada commit `f0ee1c98` di atas Integration
-> `35951dbb`, termasuk provider-real PostgreSQL 15 `6`/`6` dan `29`/`29` `PASS`. Tabel di bawah adalah bukti
-> pra-rebase dan dipertahankan sebagai jejak.
+> **Bukti akhir ada di bagian 11** — validasi post-rebase kedua pada commit `46edc6af` di atas Integration
+> `52d7e117`, termasuk provider-real PostgreSQL 15.19 `6`/`6` dan `29`/`29` `PASS`. Bagian 10 memuat bukti
+> post-rebase pertama pada `f0ee1c98` di atas `35951dbb`. Tabel di bawah adalah bukti pra-rebase dan
+> dipertahankan sebagai jejak.
 
 Seluruh baris di bawah dijalankan ulang pada sesi lanjutan 22 Oktober 2026 di atas HEAD `c83bcdaa`
 (*working tree* task ini), kecuali disebut lain.
@@ -221,12 +222,12 @@ Seluruh baris di bawah dijalankan ulang pada sesi lanjutan 22 Oktober 2026 di at
 | QBE `tooling/qbe/Invoke-QbeConformanceCheck.ps1 -Mode Strict` (*working tree*) | 22 berkas `.cs` dievaluasi (13 berkas lingkup test); `VIOLATION 0`, `REVIEW 0`, `INFO 0`; `Final result: PASS` | `PASS` | Keluaran checker |
 | `dotnet ef migrations has-pending-model-changes --context ApplicationDbContext --configuration Release --no-build` dengan `ConnectionStrings__DefaultConnection` diarahkan ke host `.invalid` | "No changes have been made to the model since the last migration." | `PASS` | Tidak ada koneksi ke DEV/STAGING/PRODUCTION |
 
-`AUTOMATED TEST: dotnet test Tests/QuilvianSystemBackend.PatientManagementTests (non-provider) — PASS` (post-rebase `505`/`505`, bagian 10)
-`AUTOMATED TEST PROVIDER-REAL: MigrasiMassalPostgresSungguhanTests — PASS 6/6; Kategori=ProviderReal penuh — PASS 29/29` (post-rebase, PostgreSQL 15.19 sekali pakai, dijalankan pemilik — bagian 10). *Jejak 22 Oktober 2026:* `PENDING OWNER-RUN` — server bukti tidak tersedia pada sesi build
+`AUTOMATED TEST: dotnet test Tests/QuilvianSystemBackend.PatientManagementTests (non-provider) — PASS` (post-rebase `505`/`505`, bagian 10 dan 11)
+`AUTOMATED TEST PROVIDER-REAL: MigrasiMassalPostgresSungguhanTests — PASS 6/6; Kategori=ProviderReal penuh — PASS 29/29` (post-rebase, PostgreSQL 15.19 sekali pakai, dijalankan pemilik — bagian 10 dan 11). *Jejak 22 Oktober 2026:* `PENDING OWNER-RUN` — server bukti tidak tersedia pada sesi build
 
 ### 5.1 Cara menjalankan bukti provider-real (pemilik)
 
-*Sudah dijalankan pemilik — hasil post-rebase `6`/`6` dan `29`/`29` `PASS` pada bagian 10.2.*
+*Sudah dijalankan pemilik — hasil post-rebase `6`/`6` dan `29`/`29` `PASS` pada bagian 10.2 (`f0ee1c98`) dan 11.2 (`46edc6af`).*
 
 Server PostgreSQL 15 sekali pakai milik pemilik — **bukan** DEV, STAGING, atau PRODUCTION; server bukti
 mungkin membutuhkan `max_locks_per_transaction = 2048` (`F-14`):
@@ -310,7 +311,7 @@ dotnet test Tests/QuilvianSystemBackend.PatientManagementTests --filter "FullyQu
 | `AC-43` | Terpenuhi (source/test); SHA-256 runtime di `PAT-GATE-002` | Path historis tidak pernah ditulis; QR historis utuh pada uji |
 | `AC-44`, `AC-45` | Dipindah | `BE-PAT-MIG-003` |
 | `AC-46` | Terpenuhi | `NORMAL_ALLOCATION_GUARD` memakai `CheckAsync` apa adanya; guard tidak aktif/tidak dikonfigurasi → `409` |
-| `AC-47` | **Terpenuhi** — post-rebase | Uji SQLite lulus; **provider-real PostgreSQL 15.19 `MigrasiMassalPostgresSungguhanTests` `6`/`6` `PASS`** (bagian 10.2) atas tujuh hal `PAT-DEC-065`: `IsMember = false` tersimpan fisik lewat INSERT, `IsActive = true`, baca ulang `AsNoTracking` cocok dengan preview, rollback tanpa pasien maupun crosswalk, percobaan ulang idempoten, kegagalan sebelum *commit* tanpa pemetaan ter-*commit*. *Jejak 22 Oktober 2026:* sebagian — `PENDING OWNER-RUN` |
+| `AC-47` | **Terpenuhi** — post-rebase | Uji SQLite lulus; **provider-real PostgreSQL 15.19 `MigrasiMassalPostgresSungguhanTests` `6`/`6` `PASS`** (bagian 10.2) atas tujuh hal `PAT-DEC-065`: `IsMember = false` tersimpan fisik lewat INSERT, `IsActive = true`, baca ulang `AsNoTracking` cocok dengan preview, rollback tanpa pasien maupun crosswalk, percobaan ulang idempoten, kegagalan sebelum *commit* tanpa pemetaan ter-*commit*. Diulang pada kandidat akhir `46edc6af`: `6`/`6`, penuh `29`/`29` `PASS` (bagian 11.2). *Jejak 22 Oktober 2026:* sebagian — `PENDING OWNER-RUN` |
 | `AC-48` | Terpenuhi | Manifest = 25 kandidat dalam urutan yang sama, tanpa penggantian |
 | `AC-49`–`AC-51` | Terpenuhi (SQLite + teks SQL + PostgreSQL 15) | Kolom `PAT-DEC-047`; `PHONE_ALREADY_USED`; SQL bertipe, `PREVIEW_SCHEMA_SIGNATURE`, `PREVIEW_VALUE_INVALID`; eksekusi SQL bertipe pada PostgreSQL 15 lewat provider-real `A_*`/`B_*`/`G_*` lulus (bagian 10.2) |
 
@@ -364,17 +365,17 @@ dotnet test Tests/QuilvianSystemBackend.PatientManagementTests --filter "FullyQu
 Canary-A, akses basis data DEV/STAGING/PRODUCTION, pembuatan atau penerapan EF migration, eksekusi SQL ke
 environment, pembuatan QR sungguhan, inventaris filesystem server, perubahan Docker/GitHub Actions,
 deploy, commit, push, PR. `PAT-GATE-002` dan Canary-A tetap **`NOT RUN`**. Commit `f0ee1c98` (author
-`devbenari`) dan *rebase* ke `35951dbb` dibuat di luar sesi agent; agent tidak melakukan commit, push,
-*rebase*, maupun PR.
+`devbenari`) dan *rebase* ke `35951dbb`, serta *rebase* berikutnya ke `52d7e117` yang menghasilkan
+`46edc6af`, dibuat di luar sesi agent; agent tidak melakukan commit, push, *rebase*, maupun PR.
 
-**Tindakan berikutnya** (diperbarui 24 Oktober 2026; daftar 22 Oktober 2026 ada sebagai jejak di bawah).
+**Tindakan berikutnya** (diperbarui 25 Oktober 2026; daftar 22 Oktober 2026 ada sebagai jejak di bawah).
 
-1. Review source oleh leader atas commit `f0ee1c98`.
+1. Review source oleh leader atas kandidat akhir `46edc6af`.
 2. Push, PR, dan merge oleh pemilik — masing-masing atas keputusan pemilik.
 3. Deploy artefak `BE-PAT-MIG-002` ke Staging — butuh otorisasi deployment terpisah.
 4. Prasyarat `PAT-GATE-002`: bukti pembekuan keempat jalur pembuatan pasien, inventaris filesystem
    read-only, lalu otorisasi (a) simulasi dan (b) eksekusi. Sampai otorisasi itu ada, **tidak ada**
-   migrasi pasien lewat worker.
+   migrasi pasien lewat worker — baik Canary-A 25 pasien maupun migrasi 704.506 pasien.
 5. *Follow-up* terpisah: warning `NU1902`/`NU1903` `SixLabors.ImageSharp` (bagian 10.4).
 
 *Jejak 22 Oktober 2026:* (1) pemilik menjalankan uji provider-real — **selesai**, bagian 10.2; (2) review
@@ -408,7 +409,10 @@ source oleh leader; commit dan PR oleh pemilik; (3) sesudah `BE-PAT-MIG-002` ✅
 
 ---
 
-## 10. Bukti akhir post-rebase — dilaporkan pemilik
+## 10. Bukti post-rebase pertama — `f0ee1c98` di atas `35951dbb`, dilaporkan pemilik
+
+> **Digantikan bagian 11 sebagai bukti akhir** sesudah *rebase* ke Integration `52d7e117`. Isi bagian ini
+> dipertahankan sebagai jejak.
 
 Seluruh hasil pada bagian ini **dijalankan pemilik** dan dilaporkan untuk finalisasi dokumentasi
 24 Oktober 2026; tanggal eksekusi run tidak dicantumkan dalam laporan pemilik. Agent tidak menjalankan
@@ -485,3 +489,77 @@ Seluruh keputusan dan batasan migrasi yang disetujui tetap berlaku: batch kanoni
 `45eeefba-dd39-6831-1bd2-d986851f7c1f`, baseline `741`, manifest `RSMMC-CANARY-A` v1 (25 `legacy_pid`,
 urutan dan SHA-256 berurutan `c43207eb…79ad`), lantai reservasi, Pilot 715 dan 285 crosswalk historis
 tidak disentuh, serta tanpa EF migration.
+
+---
+
+## 11. Bukti akhir post-rebase kedua — `46edc6af` di atas `52d7e117`, dilaporkan pemilik
+
+Seluruh hasil pada bagian ini **dijalankan pemilik** dan dilaporkan untuk finalisasi dokumentasi
+25 Oktober 2026; tanggal eksekusi run tidak dicantumkan dalam laporan pemilik. Agent tidak menjalankan
+build, test, aplikasi, maupun akses basis data pada finalisasi ini; yang diperiksa agent hanya data Git
+baca-saja pada bagian 11.1.
+
+### 11.1 Baseline
+
+| Field | Nilai |
+| --- | --- |
+| Baseline Integration yang dipakai untuk *rebase* | `52d7e1175c439d4c36a4e53608f630c5823604d8` — `Merge pull request #308 from DevBenari/sukmagp` |
+| Commit `BE-PAT-MIG-002` yang diuji | `46edc6afd946666178d9681f5db103310daa2b22` — `feat(patient): implement RSMMC bulk migration worker`, author `devbenari`, tanggal author 23 Oktober 2026; induk langsung `52d7e117` |
+| Isi commit | 25 berkas yang sama dengan `f0ee1c98`. Tidak menyentuh `Models/`, `Repositories/`, `Migrations/`, `appsettings*`, `.sln`, `RsmmcPilot*`, maupun `contracts/` (`git show --stat 46edc6af`) |
+| Selisih terhadap `f0ee1c98` | Source dan test MIG-002 — tujuh berkas `RsmmcBulk*`/`RsmmcQrDestinationProbe`, `PatientController.cs`, dan seluruh `Tests/QuilvianSystemBackend.PatientManagementTests` — **identik** (`git diff --quiet f0ee1c98 46edc6af -- …`, exit `0`). Selisih lain berasal dari Integration `35951dbb` → `52d7e117` — antara lain `NewbornPatientRegistrationService.cs`, `PatientDtos.cs`, dan dua baris DI General Consent rawat jalan di `Program.cs`, di luar blok DI MIG-002 — serta dokumen finalisasi 24 Oktober 2026 |
+| Status Git | Hanya lokal: **belum** push, PR, merge, maupun deploy |
+
+### 11.2 Hasil validasi
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Build Release backend | `PASS` |
+| Build Release `QuilvianSystemBackend.PatientManagementTests` | `PASS` |
+| PatientManagement non-ProviderReal | `505`/`505` `PASS` |
+| PostgreSQL 15 provider-real khusus MIG-002 (`MigrasiMassalPostgresSungguhanTests`) | `6`/`6` `PASS` |
+| PostgreSQL 15 provider-real penuh (`Kategori=ProviderReal`) | `29`/`29` `PASS` — gagal `0`, dilewati `0`, ExitCode `0`, durasi 1 jam 34 menit |
+| QBE `Strict` mode `GitRange` | `PASS` — `VIOLATION 0`, `REVIEW 0`, `INFO 0` |
+
+**Jangan menjumlahkan angka di atas.** `6` termasuk di dalam `29`; suite non-provider dan provider-real
+dihitung terpisah. Bukti pemilik untuk kandidat ini tidak mencantumkan run terfokus MIG-002 non-provider
+maupun run membership tersendiri; keduanya termasuk dalam `505`/`505`. Jumlah berkas QBE tidak
+dicantumkan untuk run ini.
+
+`AUTOMATED TEST: dotnet test Tests/QuilvianSystemBackend.PatientManagementTests (non-ProviderReal) — PASS 505/505`
+`AUTOMATED TEST PROVIDER-REAL: Kategori=ProviderReal — PASS 29/29 (MigrasiMassalPostgresSungguhanTests 6/6), ExitCode 0`
+
+### 11.3 Percobaan provider-real yang gagal sebelum run lulus
+
+Bukti pemilik mencatat satu percobaan provider-real sebelumnya yang mengalami **25 kegagalan** dengan galat
+`Connection refused`, sesudah koneksi ke server bukti terputus. Pengujian ulang kemudian lulus **`29`/`29`**
+(bagian 11.2).
+
+Penyebab terputusnya koneksi **tidak** ditetapkan dalam laporan ini. Bukti yang tersedia hanya menunjukkan
+bahwa koneksi ke server bukti tidak dapat dibuka selama percobaan itu; tidak ada diagnosis penyebab yang
+terverifikasi, sehingga gangguan pada VM atau tunnel **tidak** dicatat sebagai fakta.
+
+### 11.4 Lingkungan bukti dan pembersihan
+
+| Hal | Keadaan |
+| --- | --- |
+| Server | PostgreSQL **15.19** sekali pakai; `max_locks_per_transaction = 2048` — syarat server uji saja, bukan anjuran untuk DEV/STAGING/PRODUCTION |
+| Basis data `pat_proof_*` tersisa | **Tidak ada** |
+| Kontainer bukti | Dihapus |
+| SSH tunnel dan variabel environment bukti | Dibersihkan, sesuai bukti yang tersedia dari pemilik |
+| DEV/STAGING/PRODUCTION | Tidak dipakai |
+
+### 11.5 Keadaan task dan gerbang — 25 Oktober 2026
+
+| Hal | Keadaan |
+| --- | --- |
+| Status task | 🟡 **IMPLEMENTED — VALIDATED LOCALLY** — bukan *deployed* dan bukan *production-ready* |
+| Acceptance criteria | Tetap **47 dari 49** AC aktif terbukti. `AC-35` (eksekusi ulang Canary-A tanpa duplikat) dan `AC-36` (audit sesudah Canary-A) membutuhkan eksekusi aktual di Staging — **`NOT RUN`**. `AC-44`/`45` dipindah ke `BE-PAT-MIG-003` |
+| DoD fase implementasi | Seluruhnya terpenuhi **kecuali** review source leader |
+| Review leader, PR, merge, deploy | **Pending** |
+| `PAT-GATE-002` | **`NOT RUN`** |
+| Canary-A — 25 pasien `RSMMC-CANARY-A` v1 | **`NOT RUN`** |
+| Migrasi aktual 704.506 pasien | **`NOT RUN`** |
+| Otorisasi migrasi massal | **Tidak ada** |
+| *Follow-up* terpisah | Warning `NU1902`/`NU1903` `SixLabors.ImageSharp` (bagian 10.4) tetap di luar cakupan MIG-002 |
+
+Seluruh keputusan dan batasan migrasi yang disetujui tetap berlaku tanpa perubahan.
