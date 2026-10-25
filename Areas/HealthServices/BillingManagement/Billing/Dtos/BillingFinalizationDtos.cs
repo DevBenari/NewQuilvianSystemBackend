@@ -90,7 +90,11 @@ public sealed class FinalizationPreviewResponse
     /// Kode penahan finalisasi yang dapat dibaca mesin — kontrak <c>integrasi-billing</c>
     /// <c>1.1.0</c> API 3.9: <c>BIL-FIN-020</c> invoice "perlu diperiksa",
     /// <c>BIL-FIN-021</c> masih ada layanan "tarif belum ada", <c>BIL-FIN-022</c> masih ada pelayanan
-    /// eligible yang belum masuk invoice (<c>BE-BKC-FIX-021</c>).
+    /// eligible yang belum masuk invoice (<c>BE-BKC-FIX-021</c>), <c>BIL-FIN-023</c> hasil kalkulasi tersimpan
+    /// tertinggal (item/diskon/aturan berubah sesudah dihitung; selesaikan dengan Recalculate), <c>BIL-FIN-024</c>
+    /// masih ada order belum selesai, <c>BIL-FIN-025</c> kewajiban pasien belum lunas (masih dapat diselesaikan lewat
+    /// pembayaran kasir, penangguhan AR, atau departure exception), <c>BIL-FIN-026</c> invoice belum pernah dihitung.
+    /// Setiap entri <see cref="BlockingReasons"/> kini memiliki kode pasangannya.
     /// </summary>
     public IReadOnlyList<string> BlockingCodes { get; set; } = [];
 

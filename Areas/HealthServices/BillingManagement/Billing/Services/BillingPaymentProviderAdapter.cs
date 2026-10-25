@@ -98,6 +98,14 @@ public sealed class BillingPaymentProviderOptions
     /// false = perilaku aman: tender non-tunai berstatus Pending via Deferred adapter sampai provider mengonfirmasi.
     /// </summary>
     public bool AutoAcceptWithoutProvider { get; set; } = false;
+
+    /// <summary>
+    /// Kode metode pembayaran (MstPaymentMethod.PaymentMethodCode) yang statusnya HANYA boleh ditentukan oleh
+    /// provider/gateway. Konfirmasi kasir manual (MANUAL_CASHIER) ditolak untuk metode ini; tender baru
+    /// SUCCEEDED setelah konfirmasi provider yang valid. Kosong (bawaan) berarti tidak ada metode yang
+    /// dikendalikan provider: Transfer Bank/QRIS memakai verifikasi bukti oleh kasir.
+    /// </summary>
+    public string[] ProviderControlledPaymentMethodCodes { get; set; } = [];
 }
 
 public sealed class BillingPaymentProviderTimeoutException(string message) : Exception(message);
