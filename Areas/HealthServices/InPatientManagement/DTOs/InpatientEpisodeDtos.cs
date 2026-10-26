@@ -81,7 +81,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>
         /// Nominal uang muka/deposit yang diminta dari langkah Deposit admisi.
         /// Menjadi BilDepositPaymentOrder (UNPAID) di kasir setelah episode tersimpan.
+        /// PLAN-REPAIR-EPS-041 FIX-15: batas sama dengan jalur transfer (InpAdmissionTransferService).
         /// </summary>
+        [Range(typeof(decimal), "0", "9999999999999999.99",
+            ParseLimitsInInvariantCulture = true, ConvertValueInInvariantCulture = true,
+            ErrorMessage = "Nominal deposit harus antara Rp 0 dan Rp 9.999.999.999.999.999.")]
         public decimal? RequestedDepositAmount { get; set; }
 
         /// <summary>Kebijakan deposit MstDepositPolicy yang menjadi acuan perhitungan.</summary>

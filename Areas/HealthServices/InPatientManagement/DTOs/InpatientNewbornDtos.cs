@@ -69,6 +69,13 @@ public sealed class NewbornMotherCandidateResponse
     /// <summary>Kelas perawatan penempatan aktif ibu, contoh "VIP".</summary>
     public string? CurrentPatientClassName { get; set; }
     public int RegisteredBabyCount { get; set; }
+    /// <summary>
+    /// PLAN-REPAIR-EPS-041 FIX-10: bayi yang sudah punya episode (tidak dibatalkan). Contoh: ibu dengan
+    /// 2 bayi terdaftar, salah satunya belum pernah dipesankan tempat → Admitted 1, Pending 1.
+    /// </summary>
+    public int AdmittedBabyCount { get; set; }
+    /// <summary>Bayi yang sudah punya No. RM tetapi belum punya episode — admisinya dapat dilanjutkan.</summary>
+    public int PendingBabyCount { get; set; }
     public int NextBirthOrderPreview { get; set; }
     public bool HasActiveInpatientBaby { get; set; }
     public List<NewbornRegisteredBabyDto> RegisteredBabies { get; set; } = [];
@@ -87,6 +94,8 @@ public sealed class NewbornRegisteredBabyDto
     public string? RoomName { get; set; }
     public string? BedCode { get; set; }
     public bool IsCurrentlyInRoom { get; set; }
+    /// <summary>FIX-10: true bila bayi belum punya episode, sehingga admisinya dilanjutkan dengan RM yang sama.</summary>
+    public bool IsPendingAdmission { get; set; }
 }
 
 public sealed class NewbornMotherCandidatePagedResult

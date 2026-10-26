@@ -145,7 +145,8 @@ public partial class InpBedOccupancyService
                         IsIsolationBed = b.IsIsolationBed, IsForNewborn = b.IsForNewborn,
                         HoldingEpisodeId = b.HoldingContext?.EpisodeId, HoldingEpisodeNumber = b.HoldingContext?.EpisodeNumber,
                         PatientName = b.HoldingContext?.PatientName, ReservationId = b.HoldingContext?.ReservationId,
-                        ReservationExpiresAt = b.HoldingContext?.ReservationExpiresAt
+                        ReservationExpiresAt = b.HoldingContext?.ReservationExpiresAt,
+                        ReservationReservedAt = b.HoldingContext?.ReservationReservedAt
                     }).ToList()
                 }).ToList()
             }).ToList()

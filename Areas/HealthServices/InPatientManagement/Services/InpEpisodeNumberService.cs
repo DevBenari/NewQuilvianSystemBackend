@@ -46,19 +46,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <c>041519</c>. Profil yang tidak terbaca jatuh ke <c>Asia/Jakarta</c>.
         /// </summary>
         public async Task<DateTime> HospitalNowAsync(CancellationToken cancellationToken = default)
+            => InpAdmissionText.ToLocal(DateTime.UtcNow, await HospitalTimeZoneAsync(cancellationToken));
+
+        /// <summary>
+        /// Zona waktu rumah sakit untuk teks yang dibaca petugas (PLAN-REPAIR-EPS-041 FIX-14). Profil yang
+        /// tidak terbaca jatuh ke <c>Asia/Jakarta</c>.
+        /// </summary>
+        public async Task<TimeZoneInfo> HospitalTimeZoneAsync(CancellationToken cancellationToken = default)
         {
-            TimeZoneInfo timeZone;
             try
             {
                 var profile = await _hospitalSites.GetMainSiteProfileAsync(cancellationToken);
-                timeZone = InpAdmissionText.ResolveTimeZone(profile.IsAvailable ? profile.TimeZoneId : null);
+                return InpAdmissionText.ResolveTimeZone(profile.IsAvailable ? profile.TimeZoneId : null);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
-                timeZone = InpAdmissionText.ResolveTimeZone(null);
+                return InpAdmissionText.ResolveTimeZone(null);
             }
-
-            return InpAdmissionText.ToLocal(DateTime.UtcNow, timeZone);
         }
 
         /// <summary>

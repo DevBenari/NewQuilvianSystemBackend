@@ -149,7 +149,8 @@ public partial class InpEpisodeService
 
         var babyPatients = await _dbContext.Set<MstPatient>()
             .AsNoTracking()
-            .Where(x => x.DeliveryCaseId.HasValue && caseIds.Contains(x.DeliveryCaseId.Value) && !x.IsDelete)
+            // PLAN-REPAIR-EPS-041 FIX-11: RM bayi yang dinonaktifkan tidak dihitung dan tidak ditawarkan untuk dilanjutkan.
+            .Where(x => x.DeliveryCaseId.HasValue && caseIds.Contains(x.DeliveryCaseId.Value) && !x.IsDelete && x.IsActive)
             .OrderBy(x => x.BirthOrder)
             .Select(x => new
             {
@@ -237,10 +238,13 @@ public partial class InpEpisodeService
                         EpisodeStatusName = ep?.EpisodeStatus.ToString(),
                         RoomName = bPlacement?.RoomName,
                         BedCode = bPlacement?.BedCode,
-                        IsCurrentlyInRoom = isCurrentlyInRoom
+                        IsCurrentlyInRoom = isCurrentlyInRoom,
+                        // FIX-10: tanpa episode yang hidup (episode batal sudah dikecualikan di atas).
+                        IsPendingAdmission = ep == null
                     };
                 })
                 .ToList();
+            var pendingCount = caseBabies.Count(b => b.IsPendingAdmission);
 
             var hasActiveBaby = caseBabies.Any(b => b.IsCurrentlyInRoom || b.EpisodeStatus == (int)InpEpisodeStatus.Admitted || b.EpisodeStatus == (int)InpEpisodeStatus.Draft);
 
@@ -271,6 +275,8 @@ public partial class InpEpisodeService
                 CurrentBedName = placement?.BedName,
                 CurrentPatientClassName = placement?.PatientClassName,
                 RegisteredBabyCount = registeredCount,
+                AdmittedBabyCount = caseBabies.Count - pendingCount,
+                PendingBabyCount = pendingCount,
                 NextBirthOrderPreview = nextOrder,
                 HasActiveInpatientBaby = hasActiveBaby,
                 RegisteredBabies = caseBabies

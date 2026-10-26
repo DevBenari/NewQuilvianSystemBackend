@@ -392,7 +392,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (otherDraft != null)
             {
-                warnings.Add(BuildOtherDraftWarning(otherDraft.EpisodeNumber, otherDraft.CreateDateTime));
+                warnings.Add(BuildOtherDraftWarning(
+                    otherDraft.EpisodeNumber, otherDraft.CreateDateTime,
+                    await _episodeNumberService.HospitalTimeZoneAsync(cancellationToken)));
             }
 
             var now = DateTime.UtcNow;
@@ -544,6 +546,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 // Initial Deposit Order jika nominal diminta diisi dan positif (tidak menahan admisi - RWI-DEC-095)
                 if (request.RequestedDepositAmount.HasValue && request.RequestedDepositAmount.Value > 0)
                 {
+                    // PLAN-REPAIR-EPS-041 FIX-17: rencana deposit tercatat di episode, sama dengan jalur transfer.
+                    episode.PlannedDepositAmount = request.RequestedDepositAmount.Value;
+
                     string orderNumber;
                     if (_billingNumberSeries != null)
                     {
