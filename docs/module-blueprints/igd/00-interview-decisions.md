@@ -8246,3 +8246,63 @@ Ketiganya **belum dikirim** — penyampaiannya milik pemilik, mengikuti pola `IG
 | Keputusan baru | **Nol** |
 | Register | **Tidak berubah** — 104 dari 122 aktif (85,2%) |
 | Nomor yang dipakai | `IGD-FACT-233`…`235`; `IGD-REQ-007`, `IGD-REQ-008` |
+
+---
+
+### `IGD-OQ-141` dijawab dan tiga laporan susulan diselesaikan — 26 Oktober 2026 (petang)
+
+Langkah 2 dan 3 menuju penutupan register. Keempat task yang naik tidak menuntut satu baris kode
+pun: satu ditutup keputusan pemilik, tiga ditutup laporan atas perubahan yang sudah lama di-commit
+tanpa laporan.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-236` | **`EmergencyMasterDataSeeder` tidak punya satu pun pemanggil.** Penelusuran seluruh repository menjawab nol hasil di luar definisinya, sehingga keenam `SeedXxxAsync` — level triase, indikator, cara kedatangan, jenis kasus, jenis tindak lanjut, dan pengaturan bawaan — tidak pernah dijalankan. Penjaga `IsOwnedByAnotherSource` (`:52`–`:58`) yang dirancang mencegah dua skala triase dalam satu tabel karena itu melindungi kode yang tidak aktif. **Akibat yang lebih penting:** master Pengaturan IGD tetap kosong di lingkungan mana pun yang tidak diisi manual, sehingga jalur `IMPLICIT` `IGD-DEC-112` adalah jalur yang sesungguhnya dipakai — dan objek `IMPLICIT` mewarisi `RequireRegistrationCompletionBeforeDisposition = true` dari bawaan entity (`EmgSetting.cs:40`), sehingga penjagaan registrasi sebelum disposisi selalu menyala **tanpa ada yang pernah memilihnya** |
+| `IGD-FACT-237` | **Empat endpoint daftar `ClinicalManagement` menjawab tanpa penyaring pasien.** `GET patient-assessments` (`PatientAssessmentController.cs:316`, penyaring bersyarat `:357`, `:363`), `GET patient-vital-signs` (`PatientVitalSignController.cs:191`), `GET patient-integrated-progress-notes` (`PatientIntegratedProgressNoteController.cs:273`), dan `GET patient-procedures` (`PatientProcedureController.cs:313`) menerima `patientId` dan `encounterId` sebagai parameter nullable tanpa `[Required]` dan nol `BadRequest`. Hak aksesnya menjaga **jenis data**, bukan **pasiennya**. Pembatasan per pasien karena itu ditegakkan **di layar, bukan di server** — pada layar IGD lewat `requiredScope` (7 dari 13 thunk; keenam sisanya memanggil endpoint milik IGD dan dijaga `emergencyVisitId` di hook). Pemanggil lain tidak terikat penjaga itu |
+| `IGD-FACT-238` | **Validasi Emergency Visit pada pendaftaran IGD dimatikan `1681b1737`, bukan `c8613d88c`, dan masih mati 80 hari kemudian.** Komentarnya terang: *"TEMPORARY: Seluruh required Emergency Visit sementara dinonaktifkan agar testing flow dapat langsung menuju langkah Pembayaran."* (7 Agustus 2026); `c8613d88c` hanya membersihkan kode yang sudah berkomentar mati. Hari ini `emergency-visit-step.jsx` memuat tepat satu aturan `required` — alasan episode ganda dari `FE-IGD-034`. Di backend, `ArrivalModeId` dan `CaseTypeId` nullable dan hanya diperiksa bila diisi (`EmergencyVisitService.cs:263`–`:274`), sehingga pendaftaran tanpa keduanya **sah menurut kontrak**; pasangan tanggal-jam trauma tidak punya padanan server karena backend menyimpan satu `WaktuTrauma`. Sebaliknya §1 aturan 3 — nama sementara pasien tanpa identitas — **tetap ditegakkan** di `:895`. Contoh pada kartu `FE-IGD-026` yang menyebut komentar `TEMPORARY` pada alias sementara pasien tidak tepat sasaran: komentar itu berada pada ruas Emergency Visit |
+
+#### Keputusan
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-351` | **`IGD-OQ-141` dijawab: untuk pasien IGD, diagnosis keperawatan cukup dicatat sebagai teks bebas pada ruas A (`assessmentSummary`) CPPT.** Penolakan `422` *"Kunjungan ini tidak memiliki perawatan rawat inap."* pada `nursing-care-plans` karena itu **bukan celah** dan tidak perlu diubah; modul Rawat Inap tidak disentuh. Dasarnya sifat pelayanan IGD yang singkat dan cepat. **Konsekuensi yang diterima:** diagnosis keperawatan pasien IGD tidak dapat dicari maupun dilaporkan secara terstruktur. Alternatif yang ditolak: (b) membuka `nursing-care-plans` untuk encounter IGD — menyentuh milik Rawat Inap dan menambah satu kejaran di atas `IGD-REQ-003`; (c) bentuk terstruktur milik IGD sendiri — satu gelombang MVP tersendiri; (d) menunda sebagai celah dinyatakan | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-26** | Pilihan interaktif *"Teks bebas CPPT memang bentuknya"*; `IGD-FACT-222` |
+
+**Catatan peran.** Pemilik pertanyaan ini mencantumkan juga Nursing authority, yang masih `OPEN`.
+Keputusan diambil Product/Domain Owner mengikuti pola `IGD-DEC-107` dan `IGD-DEC-135`; bila Nursing
+authority kelak ditunjuk, `IGD-DEC-351` **wajib ditinjau ulang**.
+
+#### Pertanyaan terbuka
+
+| ID | Isi | Owner |
+| --- | --- | --- |
+| `IGD-OQ-141` | ~~Diagnosis keperawatan terstruktur untuk pasien IGD~~ — **dijawab `IGD-DEC-351`** | — |
+| `IGD-OQ-143` | **Apakah empat endpoint daftar `ClinicalManagement` boleh terus menjawab tanpa penyaring pasien?** (`IGD-FACT-237`) Diserahkan sebagai rekomendasi lewat laporan `FE-IGD-025`, **tidak diperbaiki**. Opsi termurah: tolak `400` bila `patientId` maupun `encounterId` kosong, kecuali pemanggil memegang izin pelaporan lintas pasien. **Tidak menahan task IGD mana pun** — ditanyakan karena wewenang sementara IGD atas `ClinicalManagement` (`IGD-DEC-107`) tidak cukup untuk mengubah kontrak baca lintas modul | **Pemilik `ClinicalManagement`** (belum dipetakan); Security/Privacy owner (`OPEN`) |
+
+#### Perubahan status
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `FE-IGD-013` | 🟡 — kriteria 4 menunggu `IGD-OQ-141` | **✅** — kriteria 4 ditutup `IGD-DEC-351` |
+| `BE-IGD-043` | tanpa tanda | **✅** — [laporan](task/report/backend/BE-IGD-043.md) |
+| `FE-IGD-025` | tanpa tanda | **✅** — [laporan](task/report/frontend/FE-IGD-025.md) |
+| `FE-IGD-026` | tanpa tanda | **✅** — [laporan](task/report/frontend/FE-IGD-026.md) |
+
+| Lapisan | Sebelum | Sesudah |
+| --- | --- | --- |
+| Backend | 58 dari 64 aktif (90,6%) | **59 dari 64 aktif (92,2%)** |
+| Frontend | 46 dari 58 aktif (79,3%) | **49 dari 58 aktif (84,5%)** |
+| Gabungan | 104 dari 122 aktif (85,2%) | **108 dari 122 aktif (88,5%)** |
+
+Atas penyebut penuh 126 baris: **108 dari 126 (85,7%)**. Dihitung ulang baris demi baris dari kedua
+register; `BE-IGD-084` sempat tergolong batal oleh skrip hitung karena teks statusnya memuat kata
+*pembatalan* — artefak pengukur, bukan isi register.
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | `IGD-DEC-351` |
+| Pertanyaan baru | `IGD-OQ-143` |
+| Pertanyaan ditutup | `IGD-OQ-141` |
+| Perubahan source | **Nol** |
+| Nomor yang dipakai | `IGD-FACT-236`…`238`; `IGD-DEC-351`; `IGD-OQ-143` |
