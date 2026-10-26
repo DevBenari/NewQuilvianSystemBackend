@@ -13,8 +13,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Mod
 /// PPN-MASUKAN-PEMBELIAN ditulis PENDING sebesar PPNAmount (FIN-DES-043, worker tertahan
 /// FIN-OQ-020/FIN-DEC-056).
 ///
-/// Invariant: TotalAmount = SubtotalAmount - DiscountAmount + PPNAmount - DownPaymentAmount
-/// - OtherDeductionAmount (FIN-VAL-107).
+/// Invariant: TotalAmount = SubtotalAmount - DiscountAmount + PPNAmount + StampDutyAmount
+/// + ShippingCostAmount - DownPaymentAmount - OtherDeductionAmount (FIN-VAL-107, diperluas
+/// BE-FIN-123: materai dan ongkir adalah komponen PENAMBAH yang eksplisit, bukan potongan negatif).
 /// </summary>
 [Table("FinPurchasingInvoice", Schema = "public")]
 public sealed class FinPurchasingInvoice : IdentityModel
@@ -36,6 +37,16 @@ public sealed class FinPurchasingInvoice : IdentityModel
     public decimal PPNAmount { get; set; } = 0m;
     public decimal DownPaymentAmount { get; set; } = 0m;
     public decimal OtherDeductionAmount { get; set; } = 0m;
+
+    /// <summary>Bea materai pada faktur (BE-FIN-123, AP-DEC-04). Komponen penambah total; tidak
+    /// masuk dasar PPN (mengikuti BLM, yang mengirim materai terpisah dari tot_ppn). Nol untuk
+    /// invoice lama.</summary>
+    public decimal StampDutyAmount { get; set; } = 0m;
+
+    /// <summary>Ongkos kirim pada faktur (BE-FIN-123, AP-DEC-04). Komponen penambah total; tidak
+    /// masuk dasar PPN. Nol untuk invoice lama.</summary>
+    public decimal ShippingCostAmount { get; set; } = 0m;
+
     public decimal TotalAmount { get; set; }
 
     [Required, MaxLength(30)] public string Status { get; set; } = FinPurchasingInvoiceStatuses.Draft;

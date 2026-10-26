@@ -73,7 +73,7 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
         try
         {
             var items = request.Items
-                .Select(x => new GoodsReceiptItemRequest(x.PurchaseOrderItemId, x.ReceivedQuantity, x.Notes))
+                .Select(x => new GoodsReceiptItemRequest(x.PurchaseOrderItemId, x.ReceivedQuantity, x.Notes, x.BatchNumber, x.ExpiredDate))
                 .ToList();
             var goodsReceipt = await _service.CreateAsync(request.PurchaseOrderId, request.ReceivedDate, items, CurrentUserId(), cancellationToken);
             var response = ApiResponse<GoodsReceiptResponse>.Ok(Map(goodsReceipt), "Tanda Terima Barang berhasil dicatat.");
@@ -131,6 +131,8 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
                 Id = x.Id,
                 PurchaseOrderItemId = x.PurchaseOrderItemId,
                 ReceivedQuantity = x.ReceivedQuantity,
+                BatchNumber = x.BatchNumber,
+                ExpiredDate = x.ExpiredDate,
                 Notes = x.Notes
             }).ToList()
         };

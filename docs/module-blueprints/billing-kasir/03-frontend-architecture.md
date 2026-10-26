@@ -2728,3 +2728,43 @@ Ringkasan: Sisa Tagihan Sebelum Pembayaran Rp1.248.734 · Draft Deposit Pasien R
 | Overpayment deposit → saldo refund | Diizinkan Backend, **tidak diaktifkan** di layar; keputusan Finance |
 | Draft hilang saat halaman dimuat ulang | Disengaja (draft bukan transaksi; baris tender draft juga hanya state lokal) |
 | Tabrakan dengan pekerjaan paralel | `startPayment`/`concludePayment` (langkah penutup tombol tunggal) dipakai apa adanya; deposit dihitung satu pembayaran sah pada ringkasan penutup |
+
+
+# Amendment 26 Oktober 2026 — Banner dan Tombol Hitung Ulang Cakupan Bukan Alur Rutin (Revisi 3.3)
+
+> `revisi blueprint`: `3.3`, status **diterapkan di source, belum dibuild atau diuji runtime**. Frontend branch lokal `yasmina` (branch `Yasmina` pada remote tidak dapat diverifikasi dari sesi ini — GitHub MCP gagal terhubung dan remote mengembalikan 404; pekerjaan hanya pada working tree aktif, tanpa pindah branch). Kontrak Backend: `02-backend-architecture.md` §23 (hitung otomatis di transaksi yang sama; field aditif `calculationStaleReason`).
+
+## 1. Akar masalah
+
+Banner "Perhitungan cakupan tersimpan belum terbaru" dan tombol "Hitung Ulang Cakupan" punya **dua pemicu**: penanda Backend (`calculationCurrent=false`) **dan** selisih pratinjau live vs versi tersimpan (`resolveCalculationFreshness`). Karena Backend dulu tidak menghitung saat item ditambah, pemicu pertama menyala setelah hampir setiap penambahan; pemicu kedua menyala bahkan untuk selisih wajar (biaya kamar RANAP bergerak menurut waktu). Kasir terbiasa menekan tombol yang secara bisnis seharusnya tak pernah perlu.
+
+## 2. Perilaku sekarang
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Menambah item / biaya lain-lain / diskon berhasil | Backend sudah menulis versi kalkulasi di transaksi yang sama. Layar **memuat ulang** invoice (RowVersion + versi terbaru), pratinjau/rincian, dan preview finalisasi (pembagian Benefit RS). **Tidak ada** hitung ulang dari FE dan tidak ada perhitungan cakupan di sisi klien |
+| Backend menolak (perhitungan gagal) | Pesan spesifik Backend ditampilkan apa adanya; tidak ada toast sukses; perubahan tagihan dibatalkan di Backend |
+| Membuka / me-refresh / keluar-masuk Menu Pembayaran | Tidak menulis versi kalkulasi (hanya pratinjau baca-saja) |
+| Selisih pratinjau vs tersimpan saja | **Tidak** memunculkan banner/tombol. Hanya dipakai untuk penyelarasan diam-diam di dalam aksi Proses Pembayaran (`needsSyncBeforePayment`), seperti sebelumnya |
+| Backend melaporkan `calculationCurrent=false` (keadaan tidak normal: invoice lama, atau aturan tanggungan master berubah) | Peringatan **"Perhitungan tagihan belum selaras"** dengan kalimat spesifik menurut `calculationStaleReason`, angka Benefit RS ditandai belum final, dan tombol pemulihan **"Selaraskan Perhitungan"** (aksi eksplisit; `ExpectedRowVersion` + alasan + audit di Backend). Kegagalan pemulihan memakai pesan Backend; fallback: "Perhitungan tagihan belum berhasil diperbarui. Periksa kembali perubahan tagihan atau hubungi petugas yang berwenang." |
+| Kesiapan finalisasi (`readiness`) | `needsRecalculation` tidak berubah (stale atau belum pernah dihitung); kini membawa `calculationStaleReason` |
+
+## 3. Berkas
+
+| Berkas | Perubahan |
+| --- | --- |
+| `use-menu-pembayaran.js` | `calculationFreshness.needsRecalculation` = penanda Backend saja; `needsSyncBeforePayment` untuk penyelarasan di dalam Proses Pembayaran; `staleReason`/`staleMessage`; `confirmAdhoc` memuat ulang invoice + pratinjau + preview finalisasi; callback diskon ikut memuat ulang preview finalisasi (hook diskon dipindah ke bawah finalisasi); toast pemulihan "Perhitungan Tagihan Diperbarui" hanya bila sukses |
+| `menu-pembayaran-view.jsx` | Banner lama diganti peringatan keadaan tidak normal; tombol "Hitung Ulang Cakupan" → "Selaraskan Perhitungan" (tiga lokasi, semua pemulihan eksplisit) |
+| `benefit-allocation-row.jsx`, `add-tender-modal.jsx`, `finalize-invoice-modal.jsx` | Teks mengikuti penamaan baru; modal Finalisasi menambahkan kalimat sebab dari Backend |
+| `billing-finalization-readiness.js` | `CALCULATION_STALE_REASON`, `describeCalculationStaleReason`, `calculationStaleReason` pada readiness |
+| `billing-invoice-calculation-breakdown.js`, `billing-payment-outcome.js` | Teks petunjuk/komentar tidak lagi merujuk tombol rutin |
+| `use-billing-invoice-detail.js` | Fallback galat hitung ulang yang aman; komentar diperbarui (halaman tidak memicu hitung saat dibuka) |
+| `tests/unit/billing-finalization-readiness.test.mjs` (+6 tes), `billing-invoice-calculation-breakdown.test.mjs`, `billing-single-payment-action.test.mjs` | Kontrak baru dikunci |
+
+## 4. Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Verifikasi runtime (browser, mobile/desktop) | Belum. Hanya ESLint (0 masalah) dan `node --test` pada 14 berkas billing terkait (234 tes lulus) |
+| Perubahan penjamin / penetapan penanggung per item | Menu Pembayaran tidak punya alur ubah-penanggung. Halaman Edit Tagihan memakai `payment-source`, `item-payer-assignments`, dan `drug-billing-disposition`, yang di Backend **sudah** menghitung ulang secara atomik; hook-nya memanggil `onSaved` sesudah sukses dan tidak diubah. Perubahan penjamin di Registrasi berada di kepemilikan terpisah dan tidak diaudit |
+| Kebijakan aturan tanggungan master yang berubah | NEEDS BUSINESS DECISION (`02-backend-architecture.md` §23.5); layar hanya menampilkan sebab `COVERAGE_RULE_CHANGED` |

@@ -62,7 +62,8 @@ public sealed class FinanceSupplierPayableService
     public async Task<FinSupplierPayable> CreateAsync(
         Guid supplierId, string supplierInvoiceNumber, DateOnly supplierInvoiceDate, string? description,
         IReadOnlyList<SupplierPayableItemRequest> items, Guid actorUserId, CancellationToken cancellationToken,
-        Guid? sourcePurchasingInvoiceId = null, decimal? accountingEventAmountOverride = null)
+        Guid? sourcePurchasingInvoiceId = null, decimal? accountingEventAmountOverride = null,
+        DateOnly? goodsReceivedDate = null)
     {
         var invoiceNumber = ValidateReason(supplierInvoiceNumber, "Nomor faktur supplier", maxLength: 100);
         if (items is not { Count: > 0 })
@@ -114,7 +115,13 @@ public sealed class FinanceSupplierPayableService
             // Disalin dari MstSupplier saat dibuat (data-dictionary.md §4.1) — perubahan termin
             // supplier setelahnya MUST NOT mengubah utang yang sudah tercatat.
             PaymentTermDays = supplier.PaymentTermDays,
-            DueDate = supplierInvoiceDate.AddDays(supplier.PaymentTermDays),
+            // BE-FIN-124 (AP-DEC-03): dengan tanggal terima barang (invoice yang merujuk GR), jatuh
+            // tempo = tanggal terima barang + termin; tanpa itu, tanggal faktur + termin seperti semula.
+            // Basisnya disimpan supaya selisih terhadap estimasi Tukar Faktur dapat dijelaskan.
+            DueDate = (goodsReceivedDate ?? supplierInvoiceDate).AddDays(supplier.PaymentTermDays),
+            DueDateBasis = goodsReceivedDate.HasValue
+                ? FinSupplierPayableDueDateBases.GoodsReceivedDate
+                : FinSupplierPayableDueDateBases.SupplierInvoiceDate,
             Status = FinSupplierPayableStatuses.Outstanding,
             SourcePurchasingInvoiceId = sourcePurchasingInvoiceId,
             CreateDateTime = DateTime.UtcNow,

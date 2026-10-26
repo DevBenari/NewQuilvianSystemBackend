@@ -138,6 +138,8 @@ public class BillingFinalizationReadinessCodesTests : IDisposable
         Assert.Contains(BillingFinalizationBlockingCodes.CalculationStale, preview.BlockingCodes);
         Assert.Equal("BIL-FIN-023", BillingFinalizationBlockingCodes.CalculationStale);
         Assert.Contains("hitung ulang", string.Join(' ', preview.BlockingReasons), StringComparison.OrdinalIgnoreCase);
+        // Sebab stale disebut eksplisit agar layar tidak menyamakannya dengan keadaan lain.
+        Assert.Equal(BillingCalculationStaleReasons.ItemsChanged, preview.CalculationStaleReason);
     }
 
     [Fact]
@@ -163,6 +165,7 @@ public class BillingFinalizationReadinessCodesTests : IDisposable
         var preview = await _finalizationService.PreviewAsync(invoice.Id, CancellationToken.None);
 
         Assert.True(preview.CalculationCurrent);
+        Assert.Null(preview.CalculationStaleReason);
         Assert.True(preview.IsReadyForNormalFinalization);
         Assert.Empty(preview.BlockingCodes);
         Assert.Empty(preview.BlockingReasons);

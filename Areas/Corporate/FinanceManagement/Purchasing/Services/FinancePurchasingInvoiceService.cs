@@ -3,8 +3,10 @@ using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
 
@@ -47,12 +49,44 @@ public sealed class FinancePurchasingInvoiceService
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
     // ------------------------------------------------------------------------------------
+    // Daftar Purchasing Invoice — GET /, disaring supplier/status (api-contract.md §B.4, BE-FIN-122)
+    // ------------------------------------------------------------------------------------
+
+    public async Task<PagedResult<FinPurchasingInvoice>> GetPagedAsync(PurchasingInvoiceQuery query, CancellationToken cancellationToken)
+    {
+        var q = _dbContext.FinPurchasingInvoices.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (query.SupplierId.HasValue && query.SupplierId.Value != Guid.Empty)
+            q = q.Where(x => x.SupplierId == query.SupplierId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant());
+
+        var totalCount = await q.CountAsync(cancellationToken);
+
+        var items = await q.OrderByDescending(x => x.CreateDateTime)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<FinPurchasingInvoice>
+        {
+            Items = items,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            TotalData = totalCount,
+            TotalPage = (int)Math.Ceiling(totalCount / (double)query.PageSize)
+        };
+    }
+
+    // ------------------------------------------------------------------------------------
     // Pembuatan Draft (FIN-VAL-105, FIN-VAL-106, FIN-VAL-107, state-transition-matrix.md §B.4)
     // ------------------------------------------------------------------------------------
 
     public async Task<FinPurchasingInvoice> CreateAsync(
         Guid invoiceExchangeId,
-        decimal discountAmount, decimal ppnAmount, decimal downPaymentAmount, decimal otherDeductionAmount, decimal totalAmount,
+        decimal discountAmount, decimal ppnAmount, decimal downPaymentAmount, decimal otherDeductionAmount,
+        decimal stampDutyAmount, decimal shippingCostAmount, decimal totalAmount,
         IReadOnlyList<PurchasingInvoiceItemRequest> items,
         Guid actorUserId,
         CancellationToken cancellationToken)
@@ -80,7 +114,8 @@ public sealed class FinancePurchasingInvoiceService
         if (invoiceItems.Count == 0)
             throw new PurchasingBadRequestException("Purchasing Invoice wajib memiliki minimal satu baris item.");
 
-        ValidateBalance(subtotalAmount, discountAmount, ppnAmount, downPaymentAmount, otherDeductionAmount, totalAmount);
+        ValidateCharges(stampDutyAmount, shippingCostAmount);
+        ValidateBalance(subtotalAmount, discountAmount, ppnAmount, stampDutyAmount, shippingCostAmount, downPaymentAmount, otherDeductionAmount, totalAmount);
 
         var purchasingInvoice = new FinPurchasingInvoice
         {
@@ -93,6 +128,8 @@ public sealed class FinancePurchasingInvoiceService
             PPNAmount = ppnAmount,
             DownPaymentAmount = downPaymentAmount,
             OtherDeductionAmount = otherDeductionAmount,
+            StampDutyAmount = stampDutyAmount,
+            ShippingCostAmount = shippingCostAmount,
             TotalAmount = totalAmount,
             Status = FinPurchasingInvoiceStatuses.Draft,
             ApprovalTier = FinanceApprovalTierResolver.Resolve(totalAmount),
@@ -120,7 +157,8 @@ public sealed class FinancePurchasingInvoiceService
 
     public async Task<FinPurchasingInvoice> UpdateAsync(
         Guid purchasingInvoiceId, Guid expectedRowVersion,
-        decimal discountAmount, decimal ppnAmount, decimal downPaymentAmount, decimal otherDeductionAmount, decimal totalAmount,
+        decimal discountAmount, decimal ppnAmount, decimal downPaymentAmount, decimal otherDeductionAmount,
+        decimal stampDutyAmount, decimal shippingCostAmount, decimal totalAmount,
         IReadOnlyList<PurchasingInvoiceItemRequest> items,
         Guid actorUserId, CancellationToken cancellationToken)
     {
@@ -138,7 +176,8 @@ public sealed class FinancePurchasingInvoiceService
         if (invoiceItems.Count == 0)
             throw new PurchasingBadRequestException("Purchasing Invoice wajib memiliki minimal satu baris item.");
 
-        ValidateBalance(subtotalAmount, discountAmount, ppnAmount, downPaymentAmount, otherDeductionAmount, totalAmount);
+        ValidateCharges(stampDutyAmount, shippingCostAmount);
+        ValidateBalance(subtotalAmount, discountAmount, ppnAmount, stampDutyAmount, shippingCostAmount, downPaymentAmount, otherDeductionAmount, totalAmount);
 
         _dbContext.FinPurchasingInvoiceItems.RemoveRange(purchasingInvoice.Items);
         foreach (var item in invoiceItems) item.PurchasingInvoiceId = purchasingInvoice.Id;
@@ -149,6 +188,8 @@ public sealed class FinancePurchasingInvoiceService
         purchasingInvoice.PPNAmount = ppnAmount;
         purchasingInvoice.DownPaymentAmount = downPaymentAmount;
         purchasingInvoice.OtherDeductionAmount = otherDeductionAmount;
+        purchasingInvoice.StampDutyAmount = stampDutyAmount;
+        purchasingInvoice.ShippingCostAmount = shippingCostAmount;
         purchasingInvoice.TotalAmount = totalAmount;
         purchasingInvoice.ApprovalTier = FinanceApprovalTierResolver.Resolve(totalAmount);
         purchasingInvoice.UpdateDateTime = DateTime.UtcNow;
@@ -256,6 +297,25 @@ public sealed class FinancePurchasingInvoiceService
                 new($"Purchasing Invoice {purchasingInvoice.InvoiceNumber}", 1m, purchasingInvoice.TotalAmount)
             };
 
+            // BE-FIN-124 (AP-DEC-03): bila Tukar Faktur merujuk GR, jatuh tempo utang dihitung dari
+            // TANGGAL BARANG DITERIMA + termin (default BLM), bukan dari tanggal faktur. Tanpa GR,
+            // perilaku lama tetap: tanggal faktur + termin. Pembatalan GR yang sudah dirujuk Tukar
+            // Faktur ditolak (BE-FIN-121), jadi GR yang ditemukan di sini pasti masih RECEIVED; bila
+            // tidak ditemukan, jatuh tempo kembali ke tanggal faktur dan basisnya tercatat demikian.
+            DateOnly? goodsReceivedDate = null;
+            if (invoiceExchange.GoodsReceiptId.HasValue)
+            {
+                var goodsReceiptId = invoiceExchange.GoodsReceiptId.Value;
+                goodsReceivedDate = await _dbContext.FinGoodsReceipts.AsNoTracking()
+                    .Where(x => x.Id == goodsReceiptId && !x.IsDelete && x.Status == FinGoodsReceiptStatuses.Received)
+                    .Select(x => (DateOnly?)x.ReceivedDate)
+                    .SingleOrDefaultAsync(cancellationToken);
+            }
+
+            // BE-FIN-123: TotalAmount sudah memuat materai dan ongkir, jadi nilai kejadian
+            // PENGAKUAN-HUTANG-SUPPLIER (Total - PPN) otomatis memuatnya pula. Dengan begitu
+            // PENGAKUAN + PPN-MASUKAN tetap sama dengan nilai utang di buku besar pembantu. Penempatan
+            // akun untuk porsi materai/ongkir adalah keputusan Accounting, bukan Finance.
             var payable = await _supplierPayableService.CreateAsync(
                 purchasingInvoice.SupplierId,
                 invoiceExchange.SupplierInvoiceNumber,
@@ -265,7 +325,8 @@ public sealed class FinancePurchasingInvoiceService
                 actorUserId,
                 cancellationToken,
                 sourcePurchasingInvoiceId: purchasingInvoice.Id,
-                accountingEventAmountOverride: purchasingInvoice.TotalAmount - purchasingInvoice.PPNAmount);
+                accountingEventAmountOverride: purchasingInvoice.TotalAmount - purchasingInvoice.PPNAmount,
+                goodsReceivedDate: goodsReceivedDate);
 
             // FIN-DEC-046, integration-contract.md §5.8: Amount = PPN SAJA, bukan nilai invoice
             // penuh. Dilewati bila PPNAmount = 0 — kejadian bernilai nol bukan fakta yang perlu
@@ -361,6 +422,47 @@ public sealed class FinancePurchasingInvoiceService
     }
 
     // ------------------------------------------------------------------------------------
+    // Pembatalan (DRAFT/PENDING_APPROVAL -> CANCELLED) — state-transition-matrix.md §B.4,
+    // BE-FIN-126. Hanya sebelum utang terbentuk: invoice APPROVED sudah memiliki
+    // FinSupplierPayable sehingga koreksinya lewat retur atau penyesuaian utang, bukan pembatalan.
+    // Tukar Faktur sumber TIDAK diubah (tetap RECEIVED).
+    // ------------------------------------------------------------------------------------
+
+    public async Task<FinPurchasingInvoice> CancelAsync(
+        Guid purchasingInvoiceId, Guid expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var purchasingInvoice = await _dbContext.FinPurchasingInvoices
+            .SingleOrDefaultAsync(x => x.Id == purchasingInvoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Purchasing Invoice tidak ditemukan.");
+
+        EnsureCurrent(purchasingInvoice.RowVersion, expectedRowVersion);
+
+        if (purchasingInvoice.Status is not (FinPurchasingInvoiceStatuses.Draft or FinPurchasingInvoiceStatuses.PendingApproval))
+            throw new PurchasingValidationException(
+                $"Hanya Purchasing Invoice berstatus DRAFT atau PENDING_APPROVAL yang dapat dibatalkan. Status saat ini: {purchasingInvoice.Status}.");
+
+        purchasingInvoice.Status = FinPurchasingInvoiceStatuses.Cancelled;
+        purchasingInvoice.IsCancel = true;
+        purchasingInvoice.CancelDateTime = DateTime.UtcNow;
+        purchasingInvoice.CancelBy = actorUserId;
+        purchasingInvoice.UpdateDateTime = DateTime.UtcNow;
+        purchasingInvoice.UpdateBy = actorUserId;
+        purchasingInvoice.RowVersion = Guid.NewGuid();
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            throw Stale(ex);
+        }
+
+        await AuditAsync("Cancel", purchasingInvoice.Id, actorUserId);
+        return purchasingInvoice;
+    }
+
+    // ------------------------------------------------------------------------------------
     // Helper
     // ------------------------------------------------------------------------------------
 
@@ -398,12 +500,24 @@ public sealed class FinancePurchasingInvoiceService
         return (invoiceItems, subtotalAmount);
     }
 
-    /// <summary>FIN-VAL-107 — dibandingkan lewat pembulatan 2 desimal supaya sisa pembagian
-    /// floating point pada perhitungan sisi klien tidak ditolak sebagai "tidak seimbang".</summary>
-    private static void ValidateBalance(
-        decimal subtotalAmount, decimal discountAmount, decimal ppnAmount, decimal downPaymentAmount, decimal otherDeductionAmount, decimal totalAmount)
+    /// <summary>BE-FIN-123 (AP-UAT-10): materai dan ongkir adalah biaya yang MENAMBAH total. Nilai
+    /// negatif ditolak supaya biaya positif tidak dapat disamarkan sebagai potongan.</summary>
+    private static void ValidateCharges(decimal stampDutyAmount, decimal shippingCostAmount)
     {
-        var expected = subtotalAmount - discountAmount + ppnAmount - downPaymentAmount - otherDeductionAmount;
+        if (stampDutyAmount < 0)
+            throw new PurchasingBadRequestException("Bea materai tidak boleh negatif.");
+        if (shippingCostAmount < 0)
+            throw new PurchasingBadRequestException("Ongkos kirim tidak boleh negatif.");
+    }
+
+    /// <summary>FIN-VAL-107 — dibandingkan lewat pembulatan 2 desimal supaya sisa pembagian
+    /// floating point pada perhitungan sisi klien tidak ditolak sebagai "tidak seimbang".
+    /// Total = Subtotal - Diskon + PPN + Materai + Ongkir - DP - Potongan lain (BE-FIN-123).</summary>
+    private static void ValidateBalance(
+        decimal subtotalAmount, decimal discountAmount, decimal ppnAmount, decimal stampDutyAmount, decimal shippingCostAmount,
+        decimal downPaymentAmount, decimal otherDeductionAmount, decimal totalAmount)
+    {
+        var expected = subtotalAmount - discountAmount + ppnAmount + stampDutyAmount + shippingCostAmount - downPaymentAmount - otherDeductionAmount;
         if (Math.Round(expected, 2) != Math.Round(totalAmount, 2))
             throw new PurchasingValidationException("Rincian nilai invoice tidak seimbang dengan totalnya.");
     }

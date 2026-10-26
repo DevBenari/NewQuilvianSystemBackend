@@ -6,6 +6,13 @@ public sealed class GoodsReceiptItemRequestDto
 {
     public Guid PurchaseOrderItemId { get; set; }
     public decimal ReceivedQuantity { get; set; }
+
+    /// <summary>Opsional (BE-FIN-125). Satu baris PO dengan beberapa batch dikirim sebagai beberapa baris.</summary>
+    public string? BatchNumber { get; set; }
+
+    /// <summary>Opsional (BE-FIN-125). Tanggal kedaluwarsa batch.</summary>
+    public DateOnly? ExpiredDate { get; set; }
+
     public string? Notes { get; set; }
 }
 
@@ -14,6 +21,8 @@ public sealed class GoodsReceiptItemResponse
     public Guid Id { get; set; }
     public Guid PurchaseOrderItemId { get; set; }
     public decimal ReceivedQuantity { get; set; }
+    public string? BatchNumber { get; set; }
+    public DateOnly? ExpiredDate { get; set; }
     public string? Notes { get; set; }
 }
 

@@ -6593,3 +6593,69 @@ ORDER BY c."VersionNo" DESC;
 | --- | --- |
 | Pembuktian | Belum dibuild atau dijalankan; seluruh temuan dibaca dari kode |
 | Overpayment deposit → saldo refund | Diizinkan Backend, tidak diaktifkan di layar; butuh keputusan Finance |
+
+
+## 23. Adendum 26 Oktober 2026 — Perhitungan Cakupan Otomatis Mengikuti Perubahan Tagihan (Tanpa Migrasi)
+
+> Status: **diterapkan di source lokal; BELUM dibuild, BELUM diuji (xUnit), BELUM dimigrasi, BELUM dijalankan runtime.** Tidak ada perubahan skema, entity, atau migrasi; kontrak API hanya bertambah satu field (aditif). Backend branch `Yasmina`, HEAD `48011b09`. Frontend: `03-frontend-architecture.md` Revisi 3.3.
+
+### 23.1 Akar masalah
+
+| Temuan | Bukti | Akibat |
+| --- | --- | --- |
+| `UpsertChargeAsync` (jalur bersama biaya manual kasir, item katalog, biaya lain-lain, jembatan tagihan klinis, dan item MCU) menyimpan item **tanpa** menulis versi kalkulasi baru | `BillingInvoiceService.UpsertChargeAsync` | `UpdateDateTime ?? CreateDateTime` item menjadi lebih baru dari `BilCalculationVersion.CalculatedAt` → `calculationCurrent=false` pada preview finalisasi |
+| Jalur yang **sudah** menghitung otomatis: `VoidItemAsync` dan penerapan/pembatalan diskon (`BillingDiscountService`) — pola `SaveChanges` lalu `RecalculateAsync(invoice.RowVersion)` di transaksi yang sama | idem | Pola ini dipakai ulang, bukan dibuat baru |
+| Jalur ubah penanggung (`PUT {id}/payment-source`, `PUT {id}/item-payer-assignments`, `PUT {id}/drug-billing-disposition` lewat `BillingPayerEditService`) | Controller: "…dan tagihan telah dihitung ulang" (atomik) | **Sudah** menghitung otomatis sejak awal; tidak diubah di adendum ini. Dipanggil dari halaman Edit Tagihan, bukan Menu Pembayaran |
+| Penetapan ulang item yang sebelumnya ditandai superseded (keputusan `REINSTATE` pada `BillingSupersededItemReviewService`) mengembalikan item ke ACTIVE tanpa menghitung | `BillingSupersededItemReviewService` | Sama: angka cakupan tersimpan tertinggal |
+| Frontend menampilkan banner "Perhitungan cakupan tersimpan belum terbaru" dan tombol "Hitung Ulang Cakupan" bila (a) Backend menandai stale, **atau** (b) pratinjau live berbeda dari versi tersimpan | `use-menu-pembayaran.js` | Pemicu (b) juga menyala untuk selisih wajar (mis. biaya kamar RANAP bergerak menurut waktu) sehingga kasir terbiasa menekan tombol yang seharusnya tak pernah perlu |
+
+### 23.2 Perubahan Backend
+
+| Berkas | Perubahan |
+| --- | --- |
+| `BillingInvoiceService.cs` | `UpsertChargeAsync`: flag `needsCalculation` (item aktif baru, item aktif yang diperbarui oleh versi sumber lebih baru, atau item yang di-VOID oleh versi sumber lebih baru). **Replay** (versi sumber & hash sama) dan item koreksi kamar yang lahir sudah VOIDED tidak memicu versi baru. Sesudah `SaveChangesAsync` dan **sebelum commit**, `RecalculateAfterChargeChangeAsync` memanggil `BillingCalculationService.RecalculateAsync` (ikut transaksi berjalan, `ExpectedRowVersion` = token sementara yang baru disimpan). Item, receipt idempotensi, versi kalkulasi, dan RowVersion invoice commit atau rollback **bersama**. Galat kalkulasi dipetakan ke `BillingInvoiceConflictException` / `BillingInvoiceValidationException` dengan pesan spesifik dan **tidak ditelan**: perubahan tagihan dibatalkan seluruhnya |
+| `BillingSupersededItemReviewService.cs` | `REINSTATE` menghitung ulang di transaksi yang sama (`RecalculateAfterReinstateAsync`); dependensi `BillingCalculationService` opsional agar konstruktor lama tetap valid |
+| `BillingFinalizationService.cs` | `BillingCalculationStaleReasons` (`ITEMS_CHANGED`, `DISCOUNTS_CHANGED`, `COVERAGE_RULE_CHANGED`); `GetCalculationStaleReasonAsync` menggantikan perbandingan boolean (`IsCalculationCurrentAsync` = sebab `null`); pesan penahan menyebut sebabnya dan tetap memuat "Hitung ulang tagihan" |
+| `BillingFinalizationDtos.cs` | `FinalizationPreviewResponse.CalculationStaleReason` (nullable, aditif) |
+| `Tests/.../BillingAutoCalculationOnChargeTests.cs` (baru, 5 tes) dan `BillingFinalizationReadinessCodesTests.cs` (2 asersi) | **Belum dijalankan** |
+
+Satu perhitungan per operasi: `UpsertChargeAsync` memproses satu item, sehingga satu operasi = satu versi. Operasi yang memuat banyak item (mis. check-in MCU yang memanggil `AddCatalogChargeAsync` berulang dalam satu transaksi pemanggil) menghasilkan satu versi per pemanggilan, tetapi seluruhnya di transaksi pemanggil dan semuanya rollback bila salah satu gagal. Penggabungan menjadi satu versi per operasi adalah optimasi yang **belum** dikerjakan.
+
+### 23.3 Kontrak API
+
+| Hal | Kontrak |
+| --- | --- |
+| Endpoint | Tidak ada endpoint baru. `POST invoices/from-source`, `POST invoices/catalog-charges`, `POST invoices/other-charges`, dan jalur jembatan klinis/MCU kini menghasilkan versi kalkulasi di transaksi yang sama |
+| `GET finalizations/invoices/{id}/preview` | Field baru **`calculationStaleReason`** (`ITEMS_CHANGED` / `DISCOUNTS_CHANGED` / `COVERAGE_RULE_CHANGED` / `null` saat terkini). `calculationCurrent`, `blockingCodes` (`BIL-FIN-023`), dan seluruh pemeriksaan kesiapan lain **tidak berubah** |
+| Respons mutasi charge | `currentCalculationVersion` dan `rowVersion` sudah nilai terbaru; `calculationVersions` memuat **sekurang-kurangnya versi terbaru** (daftar lengkap tetap dari `GET invoices/{id}`). Klien wajib memuat ulang detail sebelum aksi yang memakai `ExpectedRowVersion` |
+| Kegagalan | Perhitungan gagal → 409 (konflik versi) atau 422 (validasi) dengan pesan "Perubahan tagihan dibatalkan karena perhitungan tagihan gagal diperbarui: …". Tidak ada sukses semu; tidak ada item yatim tanpa versi |
+| Idempotensi | Kunci idempotensi sama + isi sama = replay tanpa versi baru; isi berbeda tetap ditolak seperti sebelumnya |
+| `GET` / render / buka halaman | Tidak menulis versi (pratinjau tetap `PreviewCalculationAsync`, baca-saja) |
+
+### 23.4 Aturan bisnis yang dipertahankan
+
+| Aturan | Keterangan |
+| --- | --- |
+| Pemisahan RS Benefit | (1) **Aturan cakupan** (kategori/tarif mana yang ditanggung) dihitung mesin kalkulasi; (2) **eligibility & plafon HR** hanya dibaca saat preview; (3) **pemotongan plafon** hanya terjadi saat finalisasi (`UseAsync`, sekali, idempoten). Menambah item, membuka invoice, preview, dan draft **tidak pernah** memotong plafon |
+| Benefit RS bukan `BilTender` | Tidak berubah; alokasi penjamin internal |
+| Invoice FINAL/CLOSED | Tidak pernah dihitung ulang: `UpsertChargeAsync` menolak tagihan susulan pada invoice non-OPEN; versi terkunci tidak diubah |
+| `CalculationCurrent` | Pemeriksaan dipertahankan sebagai pagar kesiapan; tidak dipaksa `true` |
+| Snapshot finansial historis | Tidak diubah; hanya versi **baru** yang ditambahkan |
+
+### 23.5 NEEDS BUSINESS DECISION
+
+| Pertanyaan | Keadaan sekarang |
+| --- | --- |
+| Perubahan **master aturan tanggungan penjamin perusahaan** (`MstCompanyGuarantorCoverageRule`) pada invoice OPEN: berlaku surut atau tidak? | Belum diputuskan, tidak ada kebijakan yang dikarang. Perilaku yang ada dipertahankan: invoice OPEN ditandai `COVERAGE_RULE_CHANGED` (stale) dan menunggu pemulihan eksplisit/finalisasi yang menolak bila angka berubah. Opsi bila diputuskan "tidak berlaku surut": simpan identitas/versi aturan yang dipakai pada snapshot kalkulasi (belum ada kolomnya, butuh migrasi — tidak dibuat di sini) |
+| Penggabungan versi per operasi multi-item | Lihat §23.2 |
+
+### 23.6 Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Pembuktian | Tidak ada `dotnet build`, `dotnet test`, migrasi, maupun menjalankan aplikasi. Seluruhnya dibaca dari kode |
+| Risiko urutan kunci | Upsert memegang kunci sumber/item lalu kunci kalkulasi (`BIL_CALCULATION_{invoice}`), urutan yang sama dengan `VoidItemAsync`; hitung ulang manual bersamaan hanya memegang kunci kalkulasi. Inversi dengan jalur lain (mis. alokasi deposit) belum diuji; PostgreSQL membatalkan salah satu transaksi (galat dikembalikan, tidak ada sukses semu) |
+| Kegagalan kalkulasi menahan pencatatan tagihan | Disengaja (fail closed). Untuk jembatan klinis, kegagalan muncul sebagai penerusan yang perlu ditinjau (antrean rekonsiliasi), bukan hilang diam-diam |
+| Invoice lama yang sudah stale | Tidak dihitung ulang massal; tetap memakai pemulihan eksplisit (FE Revisi 3.3) atau auto-refresh finalisasi |
+| Perubahan penjamin di Registrasi | Jalur penetapan ulang penjamin dari modul Registrasi tidak diaudit di sini (kepemilikan terpisah) |
+| Biaya kamar RANAP | Pratinjau memuat akrual yang bergerak menurut waktu; versi tersimpan menangkap keadaan saat dihitung |

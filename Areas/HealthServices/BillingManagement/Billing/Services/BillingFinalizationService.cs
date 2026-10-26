@@ -1106,7 +1106,8 @@ public sealed class BillingFinalizationService
                 "Invoice belum memiliki hasil perhitungan terkini.");
 
         var allOrdersComplete = await AreAllOrdersCompleteAsync(invoice.Id, cancellationToken);
-        var calculationCurrent = await IsCalculationCurrentAsync(invoice.Id, calculation, cancellationToken);
+        var calculationStaleReason = await GetCalculationStaleReasonAsync(invoice.Id, calculation, cancellationToken);
+        var calculationCurrent = calculationStaleReason is null;
         var outstanding = await _closureService.CalculateOutstandingAsync(invoice, calculation, cancellationToken);
         var hasTariffNotFound = await HasTariffNotFoundAsync(invoice, calculation, cancellationToken);
         // BE-BKC-FIX-021 / ISSUE-BKC-001 T1: pelayanan eligible yang belum menjadi item tidak dapat
@@ -1146,7 +1147,7 @@ public sealed class BillingFinalizationService
         }
         if (!calculationCurrent)
         {
-            blockingReasons.Add("Tagihan berubah; hitung ulang sebelum finalisasi.");
+            blockingReasons.Add(DescribeCalculationStaleReason(calculationStaleReason));
             blockingCodes.Add(BillingFinalizationBlockingCodes.CalculationStale);
         }
         if (effectiveOutstanding > 0)
@@ -1188,6 +1189,7 @@ public sealed class BillingFinalizationService
             InvoiceId = invoice.Id,
             AllOrdersComplete = allOrdersComplete,
             CalculationCurrent = calculationCurrent,
+            CalculationStaleReason = calculationStaleReason,
             Outstanding = outstanding,
             IsReadyForNormalFinalization = allOrdersComplete && calculationCurrent && effectiveOutstanding == 0
                 && blockingCodes.Count == 0,
@@ -1244,8 +1246,26 @@ public sealed class BillingFinalizationService
 
     private static string DescribeNotReady(FinalizationPreviewResponse readiness) =>
         !readiness.CalculationCurrent
-            ? "Tagihan berubah sejak perhitungan terakhir; hitung ulang tagihan sebelum finalisasi."
+            ? DescribeCalculationStaleReason(readiness.CalculationStaleReason)
             : "Semua order harus selesai sebelum invoice difinalkan.";
+
+    /// <summary>
+    /// Pesan penahan yang menyebut sebab kalkulasi tertinggal dan tindakan pulihnya. Kalimat ini juga dipakai layar
+    /// sebagai sumber teks, jadi kasir tidak perlu menebak apa yang berubah.
+    /// </summary>
+    private static string DescribeCalculationStaleReason(string? reason) => reason switch
+    {
+        BillingCalculationStaleReasons.ItemsChanged =>
+            "Ada perubahan item tagihan yang belum tercermin pada perhitungan tersimpan. "
+            + "Hitung ulang tagihan, periksa rincian terbaru, lalu lanjutkan.",
+        BillingCalculationStaleReasons.DiscountsChanged =>
+            "Ada perubahan diskon yang belum tercermin pada perhitungan tersimpan. "
+            + "Hitung ulang tagihan, periksa rincian terbaru, lalu lanjutkan.",
+        BillingCalculationStaleReasons.CoverageRuleChanged =>
+            "Aturan tanggungan penjamin diperbarui sesudah perhitungan terakhir. "
+            + "Hitung ulang tagihan agar pembagian penjamin mengikuti aturan terbaru, periksa rincian, lalu lanjutkan.",
+        _ => "Perhitungan tagihan belum terkini. Hitung ulang tagihan sebelum finalisasi."
+    };
 
     private async Task<bool> AreAllOrdersCompleteAsync(Guid invoiceId, CancellationToken cancellationToken)
     {
@@ -1259,8 +1279,21 @@ public sealed class BillingFinalizationService
     private async Task<bool> IsCalculationCurrentAsync(
         Guid invoiceId,
         BilCalculationVersion calculation,
+        CancellationToken cancellationToken) =>
+        await GetCalculationStaleReasonAsync(invoiceId, calculation, cancellationToken) is null;
+
+    /// <summary>
+    /// Sebab kalkulasi tersimpan tertinggal, atau <c>null</c> bila terkini. Aturan penilaian tidak berubah dari
+    /// <c>IsCalculationCurrentAsync</c> terdahulu (perubahan terakhir item/diskon/aturan penjamin dibandingkan dengan
+    /// <c>CalculatedAt</c>); yang ditambahkan hanya penamaan sebabnya, supaya layar dapat menampilkan keadaan yang
+    /// tepat dan tidak menyamakan perubahan master dengan perubahan tagihan biasa.
+    /// </summary>
+    private async Task<string?> GetCalculationStaleReasonAsync(
+        Guid invoiceId,
+        BilCalculationVersion calculation,
         CancellationToken cancellationToken)
     {
+        var calculatedAtUtc = calculation.CalculatedAt.UtcDateTime;
         var latestItemChange = await _dbContext.BilInvoiceItems.AsNoTracking()
             .Where(x => x.InvoiceId == invoiceId)
             .Select(x => x.UpdateDateTime ?? x.CreateDateTime)
@@ -1271,14 +1304,17 @@ public sealed class BillingFinalizationService
             .Select(x => x.UpdateDateTime ?? x.CreateDateTime)
             .OrderByDescending(x => x)
             .FirstOrDefaultAsync(cancellationToken);
-        var latestChange = latestItemChange > latestDiscountChange ? latestItemChange : latestDiscountChange;
+        if (latestItemChange > calculatedAtUtc) return BillingCalculationStaleReasons.ItemsChanged;
+        if (latestDiscountChange > calculatedAtUtc) return BillingCalculationStaleReasons.DiscountsChanged;
 
         // Aturan tanggungan penjamin perusahaan yang berubah SETELAH kalkulasi tersimpan membuat porsi penjamin
         // (C) pada versi itu tidak lagi mencerminkan aturan terbaru — termasuk invoice lama yang dihitung sebelum
         // aturan diperbaiki. Pembagian Benefit RS dan finalisasi membaca versi tersimpan, jadi versi itu dianggap
-        // belum terkini sampai kasir menghitung ulang (Recalculate terkontrol: OPEN saja, ExpectedRowVersion,
-        // alasan, audit). Hanya invoice OPEN yang diperiksa: invoice yang sudah final/tutup tidak pernah berubah
-        // retroaktif karena aturan master berubah.
+        // belum terkini sampai dihitung ulang lewat Recalculate terkontrol (OPEN saja, ExpectedRowVersion, alasan,
+        // audit). Hanya invoice OPEN yang diperiksa: invoice yang sudah final/tutup tidak pernah berubah retroaktif
+        // karena aturan master berubah. Perubahan ini SENGAJA tidak dihitung ulang otomatis di sini: apakah perubahan
+        // aturan berlaku surut pada invoice OPEN yang sudah berjalan adalah keputusan bisnis (NEEDS BUSINESS
+        // DECISION), sehingga keadaannya dilaporkan apa adanya dengan sebab COVERAGE_RULE_CHANGED.
         var companyGuarantorId = await (
             from invoice in _dbContext.BilInvoices.AsNoTracking()
             join guarantor in _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
@@ -1297,10 +1333,10 @@ public sealed class BillingFinalizationService
                 .Select(x => x.UpdateDateTime ?? x.CreateDateTime)
                 .OrderByDescending(x => x)
                 .FirstOrDefaultAsync(cancellationToken);
-            if (latestRuleChange > latestChange) latestChange = latestRuleChange;
+            if (latestRuleChange > calculatedAtUtc) return BillingCalculationStaleReasons.CoverageRuleChanged;
         }
 
-        return latestChange <= calculation.CalculatedAt.UtcDateTime;
+        return null;
     }
 
     private static void ValidateFinalizeRequest(FinalizeInvoiceRequest request, Guid actorUserId)
@@ -1629,6 +1665,28 @@ public static class BillingFinalizationBlockingCodes
 
     /// <summary>Invoice belum memiliki hasil kalkulasi tersimpan sama sekali.</summary>
     public const string CalculationMissing = "BIL-FIN-026";
+}
+
+/// <summary>
+/// Sebab hasil kalkulasi tersimpan tertinggal (<see cref="FinalizationPreviewResponse.CalculationStaleReason"/>).
+/// Perubahan item, diskon, dan penanggung kini memperbarui kalkulasi dalam transaksi yang sama dengan perubahannya,
+/// sehingga <see cref="ItemsChanged"/> dan <see cref="DiscountsChanged"/> hanya tersisa untuk data lama atau
+/// kegagalan yang dibatalkan; <see cref="CoverageRuleChanged"/> adalah perubahan master di luar transaksi tagihan.
+/// </summary>
+public static class BillingCalculationStaleReasons
+{
+    /// <summary>Ada item invoice yang dibuat/diubah/dibatalkan sesudah <c>CalculatedAt</c>.</summary>
+    public const string ItemsChanged = "ITEMS_CHANGED";
+
+    /// <summary>Ada penerapan diskon yang berubah sesudah <c>CalculatedAt</c>.</summary>
+    public const string DiscountsChanged = "DISCOUNTS_CHANGED";
+
+    /// <summary>
+    /// Aturan tanggungan penjamin perusahaan berubah sesudah <c>CalculatedAt</c> (master data). Berlaku hanya untuk
+    /// invoice OPEN; invoice final/tutup tidak pernah dievaluasi ulang. Kebijakan penerapan retroaktif perubahan aturan
+    /// pada invoice OPEN belum diputuskan secara bisnis, jadi tidak dihitung ulang otomatis.
+    /// </summary>
+    public const string CoverageRuleChanged = "COVERAGE_RULE_CHANGED";
 }
 
 public abstract class BillingFinalizationException : Exception

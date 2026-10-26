@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 
 public sealed class PurchasingInvoiceItemRequestDto
@@ -27,6 +29,13 @@ public class PurchasingInvoiceResponse
     public decimal PPNAmount { get; set; }
     public decimal DownPaymentAmount { get; set; }
     public decimal OtherDeductionAmount { get; set; }
+
+    /// <summary>Bea materai (BE-FIN-123). Komponen penambah total.</summary>
+    public decimal StampDutyAmount { get; set; }
+
+    /// <summary>Ongkos kirim (BE-FIN-123). Komponen penambah total.</summary>
+    public decimal ShippingCostAmount { get; set; }
+
     public decimal TotalAmount { get; set; }
     public string Status { get; set; } = string.Empty;
     public string ApprovalTier { get; set; } = string.Empty;
@@ -49,6 +58,13 @@ public sealed class CreatePurchasingInvoiceRequest
     public decimal PPNAmount { get; set; }
     public decimal DownPaymentAmount { get; set; }
     public decimal OtherDeductionAmount { get; set; }
+
+    /// <summary>Opsional; bernilai 0 bila tidak dikirim (kompatibel dengan klien lama).</summary>
+    public decimal StampDutyAmount { get; set; }
+
+    /// <summary>Opsional; bernilai 0 bila tidak dikirim (kompatibel dengan klien lama).</summary>
+    public decimal ShippingCostAmount { get; set; }
+
     public decimal TotalAmount { get; set; }
     public List<PurchasingInvoiceItemRequestDto> Items { get; set; } = [];
 }
@@ -60,6 +76,13 @@ public sealed class UpdatePurchasingInvoiceRequest
     public decimal PPNAmount { get; set; }
     public decimal DownPaymentAmount { get; set; }
     public decimal OtherDeductionAmount { get; set; }
+
+    /// <summary>Opsional; bernilai 0 bila tidak dikirim (kompatibel dengan klien lama).</summary>
+    public decimal StampDutyAmount { get; set; }
+
+    /// <summary>Opsional; bernilai 0 bila tidak dikirim (kompatibel dengan klien lama).</summary>
+    public decimal ShippingCostAmount { get; set; }
+
     public decimal TotalAmount { get; set; }
     public List<PurchasingInvoiceItemRequestDto> Items { get; set; } = [];
 }
@@ -73,4 +96,17 @@ public sealed class RejectPurchasingInvoiceRequest
 {
     public Guid ExpectedRowVersion { get; set; }
     public string RejectionReason { get; set; } = string.Empty;
+}
+
+/// <summary>GET / — daftar Purchasing Invoice berpaging (FIN-API-1.1 §B.4, kolom Request
+/// `PurchasingInvoiceQuery`, BE-FIN-122). Filter yang tersedia: supplier dan status. Filter
+/// jatuh tempo pada kontrak sengaja BELUM disediakan: Purchasing Invoice tidak menyimpan tanggal
+/// jatuh tempo, dan basis tanggalnya (tanggal faktur, tanggal terima barang, atau tanggal Tukar
+/// Faktur) masih keputusan terbuka pemilik (AP-DEC-03).</summary>
+public sealed class PurchasingInvoiceQuery
+{
+    public Guid? SupplierId { get; set; }
+    public string? Status { get; set; }
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
 }

@@ -22,5 +22,13 @@ public sealed class FinGoodsReceiptItem : IdentityModel
 
     public decimal ReceivedQuantity { get; set; }
 
+    /// <summary>Nomor batch barang yang diterima (BE-FIN-125, AP-UAT-06). Opsional; satu baris PO
+    /// yang diterima dalam beberapa batch dicatat sebagai beberapa baris GR dengan batch berbeda.</summary>
+    [MaxLength(100)] public string? BatchNumber { get; set; }
+
+    /// <summary>Tanggal kedaluwarsa batch (BE-FIN-125, AP-UAT-06). Opsional; hanya dicatat, tidak
+    /// divalidasi terhadap tanggal terima karena aturan penolakan barang kedaluwarsa belum diputuskan.</summary>
+    public DateOnly? ExpiredDate { get; set; }
+
     [MaxLength(500)] public string? Notes { get; set; }
 }

@@ -118,6 +118,12 @@ public sealed class FinanceGoodsReceiptService
                 if (item.ReceivedQuantity <= 0)
                     throw new PurchasingBadRequestException("Kuantitas diterima harus lebih dari nol.");
 
+                // BE-FIN-125: nomor batch hanya disimpan apa adanya (dipangkas); panjang dijaga
+                // sebelum menyentuh basis data supaya galat berupa 400, bukan kegagalan simpan.
+                var batchNumber = string.IsNullOrWhiteSpace(item.BatchNumber) ? null : item.BatchNumber.Trim();
+                if (batchNumber is { Length: > 100 })
+                    throw new PurchasingBadRequestException("Nomor batch maksimal 100 karakter.");
+
                 var alreadyReceived = receivedSoFar.GetValueOrDefault(poItem.Id, 0m);
                 // FIN-VAL-104: kuantitas diterima (akumulasi) tidak boleh melebihi kuantitas baris PO.
                 if (alreadyReceived + item.ReceivedQuantity > poItem.Quantity)
@@ -130,6 +136,8 @@ public sealed class FinanceGoodsReceiptService
                     Id = Guid.NewGuid(),
                     PurchaseOrderItemId = poItem.Id,
                     ReceivedQuantity = item.ReceivedQuantity,
+                    BatchNumber = batchNumber,
+                    ExpiredDate = item.ExpiredDate,
                     Notes = string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(),
                     CreateBy = actorUserId,
                     UpdateBy = actorUserId,
@@ -193,14 +201,17 @@ public sealed class FinanceGoodsReceiptService
             if (goodsReceipt.Status != FinGoodsReceiptStatuses.Received)
                 throw new PurchasingValidationException($"Hanya GR berstatus RECEIVED yang dapat dibatalkan. Status saat ini: {goodsReceipt.Status}.");
 
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_PURCHASE_ORDER_{goodsReceipt.PurchaseOrderId}", cancellationToken);
+
             // state-transition-matrix.md §B.2: GR yang sudah dirujuk FinInvoiceExchange tidak dapat dibatalkan.
+            // Diperiksa SETELAH kunci PO diambil (bukan sebelum transaksi) karena FinanceInvoiceExchangeService.CreateAsync
+            // mengambil kunci yang sama saat menyimpan Tukar Faktur yang merujuk GR — tanpa urutan ini pemeriksaan
+            // dapat lulus tepat sebelum Tukar Faktur tersimpan, dan GR yang sudah dirujuk ikut terbatalkan.
             var linkedToInvoiceExchange = await _dbContext.FinInvoiceExchanges
                 .AnyAsync(x => x.GoodsReceiptId == goodsReceiptId && !x.IsDelete, cancellationToken);
             if (linkedToInvoiceExchange)
                 throw new PurchasingValidationException("Tanda Terima Barang ini sudah menjadi Tukar Faktur dan tidak dapat dibatalkan.");
-
-            transaction = await BeginTransactionAsync(cancellationToken);
-            await AcquireLockAsync($"FIN_PURCHASE_ORDER_{goodsReceipt.PurchaseOrderId}", cancellationToken);
 
             goodsReceipt.Status = FinGoodsReceiptStatuses.Cancelled;
             goodsReceipt.UpdateDateTime = DateTime.UtcNow;
@@ -319,4 +330,6 @@ public sealed class FinanceGoodsReceiptService
             new { GoodsReceiptId = goodsReceiptId, ActorUserId = actorUserId });
 }
 
-public sealed record GoodsReceiptItemRequest(Guid PurchaseOrderItemId, decimal ReceivedQuantity, string? Notes);
+public sealed record GoodsReceiptItemRequest(
+    Guid PurchaseOrderItemId, decimal ReceivedQuantity, string? Notes,
+    string? BatchNumber = null, DateOnly? ExpiredDate = null);

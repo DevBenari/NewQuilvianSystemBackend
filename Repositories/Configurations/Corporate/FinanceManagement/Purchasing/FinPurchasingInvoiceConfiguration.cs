@@ -22,6 +22,8 @@ public sealed class FinPurchasingInvoiceConfiguration : IEntityTypeConfiguration
         entity.Property(x => x.PPNAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.DownPaymentAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.OtherDeductionAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+        entity.Property(x => x.StampDutyAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+        entity.Property(x => x.ShippingCostAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.TotalAmount).HasPrecision(18, 2);
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired().HasDefaultValue(FinPurchasingInvoiceStatuses.Draft);
         entity.Property(x => x.ApprovalTier).HasMaxLength(10).IsRequired();

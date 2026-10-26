@@ -82,6 +82,15 @@ public sealed class FinalizationPreviewResponse
     public Guid InvoiceId { get; set; }
     public bool AllOrdersComplete { get; set; }
     public bool CalculationCurrent { get; set; }
+
+    /// <summary>
+    /// Sebab hasil kalkulasi tersimpan tertinggal (<see cref="BillingCalculationStaleReasons"/>); <c>null</c> bila
+    /// <see cref="CalculationCurrent"/> bernilai <c>true</c>. Tambahan aditif: perhitungan mengikuti perubahan item,
+    /// diskon, dan penanggung secara otomatis, jadi nilai ini hanya muncul untuk keadaan yang memang perlu perhatian
+    /// (aturan tanggungan penjamin berubah sesudah dihitung, atau data lama yang dihitung sebelum otomatisasi).
+    /// </summary>
+    public string? CalculationStaleReason { get; set; }
+
     public decimal Outstanding { get; set; }
     public bool IsReadyForNormalFinalization { get; set; }
     public IReadOnlyList<string> BlockingReasons { get; set; } = [];

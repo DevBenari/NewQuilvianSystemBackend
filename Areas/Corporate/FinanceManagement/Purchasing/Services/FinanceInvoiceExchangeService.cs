@@ -1,9 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Data;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Services;
 
@@ -86,24 +88,49 @@ public sealed class FinanceInvoiceExchangeService
         var invoiceNumber = ValidateText(supplierInvoiceNumber, "Nomor faktur supplier", 100);
 
         // FIN-DEC-051: PO dan GR boleh kosong — Tukar Faktur boleh berdiri sendiri.
+        // referencedSupplierId menampung supplier PO yang dirujuk (langsung, atau lewat GR) supaya
+        // dapat dibandingkan dengan supplier Tukar Faktur ini (AP-UAT-09). Tukar Faktur tanpa PO
+        // dan tanpa GR tidak punya pembanding, jadi tidak ditolak.
+        Guid? referencedSupplierId = null;
+
         if (purchaseOrderId.HasValue)
         {
-            var purchaseOrderExists = await _dbContext.FinPurchaseOrders
-                .AnyAsync(x => x.Id == purchaseOrderId.Value && !x.IsDelete, cancellationToken);
-            if (!purchaseOrderExists)
-                throw new KeyNotFoundException("Purchase Order yang dirujuk tidak ditemukan.");
+            referencedSupplierId = await _dbContext.FinPurchaseOrders.AsNoTracking()
+                .Where(x => x.Id == purchaseOrderId.Value && !x.IsDelete)
+                .Select(x => (Guid?)x.SupplierId)
+                .SingleOrDefaultAsync(cancellationToken)
+                ?? throw new KeyNotFoundException("Purchase Order yang dirujuk tidak ditemukan.");
         }
 
+        FinGoodsReceipt? goodsReceipt = null;
         if (goodsReceiptId.HasValue)
         {
-            var goodsReceipt = await _dbContext.FinGoodsReceipts.AsNoTracking()
+            goodsReceipt = await _dbContext.FinGoodsReceipts.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.Id == goodsReceiptId.Value && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Tanda Terima Barang yang dirujuk tidak ditemukan.");
 
             // Konsistensi data dasar: bila keduanya diisi, GR MUST milik PO yang sama.
             if (purchaseOrderId.HasValue && goodsReceipt.PurchaseOrderId != purchaseOrderId.Value)
                 throw new PurchasingBadRequestException("Tanda Terima Barang yang dirujuk bukan milik Purchase Order yang dirujuk.");
+
+            // Hanya GR tanpa PO eksplisit yang perlu dicari supplier PO-nya; bila PO sudah diberikan,
+            // GR di atas sudah dipastikan milik PO itu sehingga supplier-nya sama.
+            if (referencedSupplierId is null)
+            {
+                var goodsReceiptPurchaseOrderId = goodsReceipt.PurchaseOrderId;
+                referencedSupplierId = await _dbContext.FinPurchaseOrders.AsNoTracking()
+                    .Where(x => x.Id == goodsReceiptPurchaseOrderId && !x.IsDelete)
+                    .Select(x => (Guid?)x.SupplierId)
+                    .SingleOrDefaultAsync(cancellationToken)
+                    ?? throw new KeyNotFoundException("Purchase Order milik Tanda Terima Barang yang dirujuk tidak ditemukan.");
+            }
         }
+
+        // AP-UAT-09: supplier Tukar Faktur harus sama dengan supplier PO/GR yang dirujuk. Tanpa ini
+        // faktur supplier A dapat ditempelkan ke penerimaan supplier B, dan utangnya tetap terbentuk
+        // atas nama supplier A.
+        if (referencedSupplierId.HasValue && referencedSupplierId.Value != supplierId)
+            throw new PurchasingValidationException("Supplier Tukar Faktur harus sama dengan supplier Purchase Order yang dirujuk.");
 
         // FR-FIN-082/FIN-DEC-051: EstimatedDueDate dihitung backend dari ReceivedDate Tukar
         // Faktur ini SENDIRI + PaymentTermDays supplier — bukan dari tanggal PO/GR, dan tidak
@@ -130,8 +157,41 @@ public sealed class FinanceInvoiceExchangeService
             CancelBy = actorUserId
         };
 
-        _dbContext.FinInvoiceExchanges.Add(invoiceExchange);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        // Pasangan kunci dengan FinanceGoodsReceiptService.CancelAsync: keduanya mengambil kunci PO
+        // yang sama, sehingga GR tidak dapat dibatalkan tepat ketika Tukar Faktur yang merujuknya
+        // sedang disimpan (dan sebaliknya). Pemeriksaan status GR dibaca ulang DI DALAM kunci.
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            if (goodsReceipt is not null)
+            {
+                var lockedGoodsReceiptId = goodsReceipt.Id;
+                var lockedPurchaseOrderId = goodsReceipt.PurchaseOrderId;
+
+                transaction = await BeginTransactionAsync(cancellationToken);
+                await AcquireLockAsync($"FIN_PURCHASE_ORDER_{lockedPurchaseOrderId}", cancellationToken);
+
+                var currentGoodsReceiptStatus = await _dbContext.FinGoodsReceipts.AsNoTracking()
+                    .Where(x => x.Id == lockedGoodsReceiptId && !x.IsDelete)
+                    .Select(x => x.Status)
+                    .SingleOrDefaultAsync(cancellationToken);
+                if (currentGoodsReceiptStatus != FinGoodsReceiptStatuses.Received)
+                    throw new PurchasingValidationException("Tanda Terima Barang yang dirujuk sudah dibatalkan dan tidak dapat dijadikan dasar Tukar Faktur.");
+            }
+
+            _dbContext.FinInvoiceExchanges.Add(invoiceExchange);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
 
         await AuditAsync("Create", invoiceExchange.Id, actorUserId);
         return invoiceExchange;
@@ -210,6 +270,23 @@ public sealed class FinanceInvoiceExchangeService
 
     private static PurchasingConflictException Stale(Exception? inner = null) =>
         new("Data telah berubah. Muat ulang sebelum melanjutkan.", inner);
+
+    private async Task<IDbContextTransaction?> BeginTransactionAsync(CancellationToken cancellationToken)
+    {
+        if (!_dbContext.Database.IsRelational()) return null;
+        return await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+    }
+
+    private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
+        _dbContext.Database.IsRelational()
+            ? _dbContext.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken)
+            : Task.CompletedTask;
+
+    private static Task CommitAsync(IDbContextTransaction? transaction, CancellationToken cancellationToken) =>
+        transaction is null ? Task.CompletedTask : transaction.CommitAsync(cancellationToken);
+
+    private static Task RollbackAsync(IDbContextTransaction? transaction) =>
+        transaction is null ? Task.CompletedTask : transaction.RollbackAsync(CancellationToken.None);
 
     private Task AuditAsync(string action, Guid invoiceExchangeId, Guid actorUserId) =>
         _loggerService.AuditAsync(LogCategory, $"FinanceInvoiceExchange.{action}",
