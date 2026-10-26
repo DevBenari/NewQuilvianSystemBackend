@@ -6659,3 +6659,84 @@ Satu perhitungan per operasi: `UpsertChargeAsync` memproses satu item, sehingga 
 | Invoice lama yang sudah stale | Tidak dihitung ulang massal; tetap memakai pemulihan eksplisit (FE Revisi 3.3) atau auto-refresh finalisasi |
 | Perubahan penjamin di Registrasi | Jalur penetapan ulang penjamin dari modul Registrasi tidak diaudit di sini (kepemilikan terpisah) |
 | Biaya kamar RANAP | Pratinjau memuat akrual yang bergerak menurut waktu; versi tersimpan menangkap keadaan saat dihitung |
+
+
+## 24. Adendum 26 Oktober 2026 — AR Karyawan (RS Benefit) → Finance Receivable → Laporan HR
+
+> Status: **diterapkan di source lokal; BELUM dibuild, BELUM diuji (xUnit), BELUM dimigrasi, BELUM dijalankan runtime.** Tanpa migrasi, entity, atau tabel baru. Backend branch `Yasmina`, HEAD `cfe22fe8` (sama dengan SHA acuan). Frontend: `03-frontend-architecture.md` Revisi 3.4.
+
+### 24.1 Audit: yang sudah ada dan yang belum
+
+| Mata rantai | Keadaan | Bukti |
+| --- | --- | --- |
+| Pembagian P/E/K/D | **Sudah ada** dan authoritative: `CoveredByRuleAmount` (C), `RemainingAllowanceAmount` (S), `RsBenefitAmount` (P = min(C,S)), `ExcessOverAllowanceAmount` (E), `ExcessPaidAmount`, `ExcessRemainingAmount` (E sisa), `PatientPortionAmount` (K), `RemainingPatientObligation` (E sisa + K), `EmployeeDeferredAmount` (D), `DirectPayAmount`, `EmployeeArOrigin` | `BillingEmployeeBenefitSplitService.EvaluateSplitAsync` |
+| Urutan alokasi tender | **Sudah ada**: tender melunasi K dulu, baru E (`BENEFIT_EXCESS`); batas E dibaca dari settlement | `BillingAllocationService` |
+| Kontrak finalisasi dengan D | **Sudah ada**: `FinancingChoice`, `DirectPayAmount`, `EmployeeDeferredAmount`, `EmployeeReceivableChoiceAmount`, `EmployeeReceivableConsentGivenBy`, `EmployeeReceivableConsentNotes`; preview menerima `employeeDeferredAmount`, `financingChoice`, `consentGivenBy` sebagai query | `BillingFinalizationDtos`, `BillingFinalizationsController.Preview` |
+| Finalisasi otomatis tidak menghilangkan AR | **Sudah aman**: `TryCompleteSettledInvoiceAsync` menolak menutup invoice dengan D = 0 bila `PatientRemainingAmount > 0` ("Bayar kelebihan plafon atau finalisasi dengan penangguhan AR Karyawan.") | `BillingFinalizationService` |
+| Handoff | **Sudah ada**: PAYER (porsi RS Benefit, `IsInternalBenefit`) dan EMPLOYEE_BENEFIT (D; pemilik, hubungan, persetujuan, asal, `HandoffKey`); baris nol tidak diterbitkan | `BillingArApHandoffService.StageHandoffsForFinalizationAsync` |
+| Intake Finance → FinReceivable | **Sudah ada** dan idempoten (`SourceHandoffKey` unik): `SyncNewFactsAsync` lalu `ProcessAsync` membuat `FinReceivable` EMPLOYEE_BENEFIT, mutasi subledger `Pengakuan`, event outbox `PengakuanPiutang`, dan ACK ke Billing. **Tidak ada job terjadwal**: sinkron dipicu manual (`POST billing-intake/sync`), pemrosesan per fakta (`POST billing-intake/{id}/process`) | `FinanceBillingIntakeService` |
+| Perjanjian angsuran → Payroll | **Sudah ada**: pengajuan, persetujuan maker-checker, jadwal; persetujuan menulis `TrxPayrollVariableInput` bila `FinanceReceivablePayrollSync:Enabled` dan komponen/periode payroll sudah dikonfigurasi HR (tidak dibuat otomatis); hasil potongan kembali lewat `POST receivables/installments/payroll-results` (idempoten); HR mengeksekusi `POST payroll-runs/{runId}/installment-deductions` | `FinanceReceivableInstallmentPlanService`, `FinanceReceivablePayrollSyncService`, `PayrollRunInstallmentDeductionController` |
+| **Batas penawaran AR untuk kasir** | **Belum ada** | — |
+| **Daftar Finance EMPLOYEE_BENEFIT dengan pencarian pemilik** | **Belum ada** (pencarian hanya nomor, invoice, pasien, penjamin; `EmployeeArOrigin` tidak ada di respons) | `FinanceReceivableService.GetPagedAsync` |
+| **Laporan HR piutang benefit pegawai** | **Belum ada** (HR hanya punya eksekusi potongan dan exit clearance) | — |
+
+### 24.2 Perubahan Backend
+
+| Berkas | Perubahan |
+| --- | --- |
+| `BillingFinalizationDtos.cs`, `BillingEmployeeBenefitSplitService.cs` | Field aditif `EmployeeBenefitSplitResponse.EmployeeArMaxAmount` dan kebijakan satu tempat `BillingEmployeeArOfferPolicy.ResolveMaxOfferedAmount(E sisa)`. Yang ditawarkan ke kasir hanya **E sisa**; K tidak pernah ditawarkan. Validasi finalisasi (0 ≤ D ≤ E sisa + K, persetujuan wajib bila hubungan bukan SELF) **tidak diubah** |
+| `FinanceReceivableDtos.cs`, `FinanceReceivableService.cs` | `ReceivableResponse.EmployeeArOrigin`; `ReceivableQuery.EmployeeArOrigin` dan `BenefitOwnerWorkforceProfileId`; `Search` kini juga mencocokkan **nama/NIP karyawan dan dokter** pemilik benefit (identitas Workforce + jalur lama `MstEmployee.Id`) |
+| `EmployeeBenefitReceivableReportDtos.cs`, `EmployeeBenefitReceivableReportService.cs`, `EmployeeBenefitReceivableReportController.cs`, `Program.cs` | Laporan HR **baca-saja** `Piutang Benefit Pegawai` (daftar paged, ringkasan, rincian jadwal angsuran). Service tidak memanggil `SaveChanges` dan tidak menulis apa pun. Izin sendiri `EmployeeBenefitReceivableReport:Read` |
+| `WorkforceBenefitOwnerAcceptanceTests.cs` (+3 tes), `EmployeeBenefitReceivableReportTests.cs` (baru, 5 tes) | **Belum dijalankan** |
+
+### 24.3 Kontrak API (rute diverifikasi dari atribut controller)
+
+| Kegunaan | Rute | Catatan |
+| --- | --- | --- |
+| Pembagian benefit + kesiapan | `GET api/v1/health-services/billing-management/billing/finalizations/invoices/{invoiceId}/preview?financingChoice=EMPLOYEE_BENEFIT&employeeDeferredAmount={D}&consentGivenBy={nama}` | Respons `employeeBenefitSplit` memuat `excessRemainingAmount`, `patientPortionAmount`, `remainingPatientObligation`, `employeeDeferredAmount`, `directPayAmount`, `requiresConsent`, **`employeeArMaxAmount` (baru)**. Dengan `employeeDeferredAmount`, `isReadyForNormalFinalization` menilai invoice DENGAN penangguhan itu. D di luar 0..(E sisa + K) → 422 |
+| Draft pembayaran | — | **Tidak ada endpoint**: draft AR, deposit, dan tender adalah state frontend sampai Proses Pembayaran |
+| Tender (hanya bagian dibayar langsung) | `POST api/v1/health-services/billing-management/billing/patient-funds/settlements` lalu `POST .../settlements/{id}/tenders` | `RequestedAmount` = sisa kewajiban − D. AR tidak pernah menjadi tender atau `SuccessfulAmount` |
+| Finalisasi | `POST api/v1/health-services/billing-management/billing/finalizations/invoices/{invoiceId}` | Body: `expectedRowVersion`, `financingChoice = "EMPLOYEE_BENEFIT"`, `directPayAmount = 0`, `employeeDeferredAmount = D`, `employeeReceivableChoiceAmount = D`, `employeeReceivableConsentGivenBy`, `employeeReceivableConsentNotes`, `correlationId`, `causationId`; header `Idempotency-Key`. Replay dengan kunci sama = hasil sama; isi berbeda = 409 |
+| Status handoff | `GET .../finalizations/invoices/{invoiceId}/handoffs` | `financeStage` diturunkan dari intake + piutang; **CREATED bukan piutang diakui** |
+| Intake Finance | `POST api/v1/corporate/finance-management/billing-intake/sync`, `GET .../billing-intake`, `POST .../billing-intake/{id}/process` | Satu fakta → satu `FinReceivable` |
+| Buku piutang Finance | `GET api/v1/corporate/finance-management/receivables?debtorType=EMPLOYEE_BENEFIT&employeeArOrigin=&search=&status=&dueDateFrom=&dueDateTo=&benefitOwnerWorkforceProfileId=` ; `GET .../receivables/summary?debtorType=EMPLOYEE_BENEFIT` ; `GET .../receivables/{id}` | `EmployeeArOrigin` kini di respons |
+| Perjanjian angsuran | `POST api/v1/corporate/finance-management/receivables/{receivableId}/installment-plans`, `GET .../receivable-installment-plans`, `POST .../receivable-installment-plans/{id}/approve|reject|cancel` | Maker-checker; persetujuan menyinkronkan jadwal ke payroll HR |
+| Hasil potongan payroll | `POST api/v1/corporate/finance-management/receivables/installments/payroll-results`; eksekusi HR: `POST api/v1/corporate/human-resource/payroll-runs/{runId}/installment-deductions` | Potongan gagal ≠ lunas: baris `TERTUNGGAK`, sisa terbawa |
+| **Laporan HR (baru)** | `GET api/v1/corporate/human-resource/benefit-management/employee-benefit-receivables`, `.../summary`, `.../{receivableId}` | Query: `search`, `status`, `employeeArOrigin`, `benefitOwnerWorkforceProfileId`, `hasApprovedInstallmentPlan`, `recognizedFrom/To`, `dueDateFrom/To`, `sortBy`, `sortDirection`, `pageNumber`, `pageSize` (maks 100). Baris: tanggal pengakuan, nomor piutang, invoice, NIP/nomor dokter, nama, `WorkforceProfileId`, pasien, hubungan, nominal awal, `allocatedAmount`, `payrollDeductedAmount`, `outstandingAmount`, status, jatuh tempo, perjanjian cicilan, periode dan status potongan terakhir |
+
+### 24.4 Rekonsiliasi finansial (contoh desimal)
+
+| Besaran | Nilai | Sumber |
+| --- | --- | --- |
+| C = nilai memenuhi aturan tanggungan | 20.000.000,00 | `PrimaryAmount` kalkulasi tersimpan |
+| S = sisa plafon | 8.652.104,80 | HR (`EmployeeBenefitBalanceService.ReadAsync`) |
+| P = min(C, S) = Benefit RS | 8.652.104,80 | split; handoff PAYER, plafon dipotong **sekali saat finalisasi** |
+| E = C − P | 11.347.895,20 | split |
+| K = item non-covered | 2.197.357,09 | `CalculateOutstandingAsync` |
+| E sisa + K = sisa kewajiban pribadi | 13.545.252,29 | cocok dengan tampilan kasir |
+| D = AR Karyawan (default = E sisa) | 11.347.895,20 | pilihan kasir, ≤ `EmployeeArMaxAmount` |
+| Dibayar langsung = (E sisa + K) − D | 2.197.357,09 | tender (K lebih dulu) |
+| Handoff PAYER / EMPLOYEE_BENEFIT | 8.652.104,80 / 11.347.895,20 | keduanya terpisah, tidak tumpang tindih |
+| `FinReceivable.OutstandingAmount` setelah intake | 11.347.895,20 | disalin dari handoff, tidak dihitung ulang |
+
+Contoh split: kewajiban 10.000.000,00 = AR 7.000.000,00 + tunai 2.000.000,00 + QRIS 1.000.000,00 → terkonfirmasi 3.000.000,00 (tender), ditangguhkan 7.000.000,00, sisa tak teralokasi 0. Tender melunasi K dulu lalu E (sisa E setelah tender = D, sehingga asal piutang `OVER_ALLOWANCE`). Pembayaran tidak mengurangi plafon; tidak ada kas diakui untuk porsi AR.
+
+### 24.5 Keputusan yang membutuhkan persetujuan internal (NEEDS BUSINESS DECISION)
+
+| Pertanyaan | Keadaan sekarang |
+| --- | --- |
+| Boleh/tidaknya K (kewajiban pribadi dari item non-covered) ditangguhkan menjadi utang pegawai lewat Menu Pembayaran, batas nominalnya, dan siapa yang menyetujui | Tidak ditawarkan (`BillingEmployeeArOfferPolicy`). Layar Detail Billing/modal finalisasi lama tetap dapat memakai validasi Backend (D ≤ E sisa + K) |
+| Batas maksimum AR per pegawai/periode, jatuh tempo AR, dan jumlah cicilan | Tidak ada kebijakan di source; `DueDate` handoff = tanggal invoice, jatuh tempo mengikuti nilai tersebut |
+| Otomatisasi sinkron/proses intake Finance | Tidak ada job terjadwal (sinkron manual). Usulan aman: hosted job yang memanggil `SyncNewFactsAsync` lalu `ProcessAsync` per fakta, dipicu konfigurasi (mati bawaan), memakai kunci advisory yang sama; duplikasi dicegah `SourceHandoffKey` unik. **Belum dibuat** karena mengubah waktu pengakuan piutang dan event akuntansi |
+| Perlakuan akuntansi akun AR Karyawan | Memakai event `PengakuanPiutang` dan mapping yang ada; tidak ada COA baru yang dibuat |
+
+### 24.6 Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Pembuktian | Tanpa `dotnet build`, `dotnet test`, migrasi, atau menjalankan aplikasi. Seluruhnya dibaca/ditulis statis |
+| Layar FE pengajuan/persetujuan perjanjian angsuran | Endpoint Backend ada; **layar Finance untuk mengajukan/menyetujui angsuran belum ada** di FE (di luar cakupan ini) |
+| Izin baru | `EmployeeBenefitReceivableReport:Read` terdaftar lewat atribut akses; pemberiannya ke peran HR dilakukan administrator peran (tanpa migrasi) |
+| Draft AR | State layar; hilang saat halaman dimuat ulang (kasir memilih ulang). Setelah pembayaran sah tetapi finalisasi tertahan, sisa kewajiban = D dan kasir memilih ulang AR lalu menekan Proses Pembayaran (tanpa tender baru) |
+| Settlement lama yang diminta penuh | Settlement yang dibuat sebelum AR dipilih tetap meminta nominal penuh dan bisa tertinggal terbuka sebagian; perlu diamati di runtime |
+| Koreksi pemilik salah orang | Jalur `CorrectBenefitDebtor` existing tidak diubah |

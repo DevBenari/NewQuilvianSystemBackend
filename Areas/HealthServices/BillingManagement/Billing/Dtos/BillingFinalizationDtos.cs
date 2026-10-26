@@ -171,6 +171,15 @@ public sealed class EmployeeBenefitSplitResponse
     public decimal ChoiceAmount { get; set; }
     public decimal EmployeeReceivableAmount { get; set; }
     public decimal CashAtCashierAmount { get; set; }
+
+    /// <summary>
+    /// Batas atas nominal AR Karyawan yang DITAWARKAN kepada kasir di Menu Pembayaran (authoritative, dihitung
+    /// <see cref="QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services.BillingEmployeeArOfferPolicy"/>).
+    /// Hanya kelebihan plafon yang belum dibayar (E sisa) yang ditawarkan; nol bila benefit tidak dapat dipakai atau tidak
+    /// ada kelebihan. Ini bukan batas validasi finalisasi: <c>EmployeeDeferredAmount</c> yang diterima Backend tetap
+    /// 0 &lt;= D &lt;= E sisa + K (kontrak lama, dipakai juga oleh layar Detail Billing). Tambahan aditif.
+    /// </summary>
+    public decimal EmployeeArMaxAmount { get; set; }
     public bool IsUsable { get; set; }
     public bool RequiresConsent { get; set; }
     public string? BlockingReasonCode { get; set; }

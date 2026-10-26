@@ -99,14 +99,46 @@ public sealed class RejectPurchasingInvoiceRequest
 }
 
 /// <summary>GET / — daftar Purchasing Invoice berpaging (FIN-API-1.1 §B.4, kolom Request
-/// `PurchasingInvoiceQuery`, BE-FIN-122). Filter yang tersedia: supplier dan status. Filter
-/// jatuh tempo pada kontrak sengaja BELUM disediakan: Purchasing Invoice tidak menyimpan tanggal
-/// jatuh tempo, dan basis tanggalnya (tanggal faktur, tanggal terima barang, atau tanggal Tukar
-/// Faktur) masih keputusan terbuka pemilik (AP-DEC-03).</summary>
+/// `PurchasingInvoiceQuery`, BE-FIN-122, filter jatuh tempo BE-FIN-127). Filter: supplier, status,
+/// dan rentang jatuh tempo AKTUAL.
+///
+/// Jatuh tempo aktual adalah <c>FinSupplierPayable.DueDate</c> milik utang yang dibentuk invoice
+/// itu (<c>SourcePurchasingInvoiceId</c>); Purchasing Invoice sendiri tidak menyimpan tanggal.
+/// Invoice yang belum membentuk utang (DRAFT, PENDING_APPROVAL, REJECTED, CANCELLED) TIDAK
+/// ikut tersaring begitu salah satu <c>DueDateFrom</c>/<c>DueDateTo</c> diisi, dan utang berstatus
+/// CANCELLED tidak dihitung. Estimasi jatuh tempo Tukar Faktur tidak dipakai menyaring; ia hanya
+/// ditampilkan terpisah pada respons.</summary>
 public sealed class PurchasingInvoiceQuery
 {
     public Guid? SupplierId { get; set; }
     public string? Status { get; set; }
+
+    /// <summary>Batas bawah (inklusif) jatuh tempo aktual utang dari invoice ini.</summary>
+    public DateOnly? DueDateFrom { get; set; }
+
+    /// <summary>Batas atas (inklusif) jatuh tempo aktual utang dari invoice ini.</summary>
+    public DateOnly? DueDateTo { get; set; }
+
     [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
     [Range(1, 100)] public int PageSize { get; set; } = 25;
+}
+
+/// <summary>
+/// Baris daftar Purchasing Invoice (BE-FIN-127): seluruh field <see cref="PurchasingInvoiceResponse"/>
+/// ditambah informasi jatuh tempo. <see cref="ActualDueDate"/> kosong selama invoice belum membentuk
+/// utang; <see cref="EstimatedDueDate"/> berasal dari Tukar Faktur dan tidak pernah menggantikan tanggal aktual.
+/// </summary>
+public sealed class PurchasingInvoiceListItemResponse : PurchasingInvoiceResponse
+{
+    /// <summary>Estimasi jatuh tempo pada Tukar Faktur sumber (tanggal dokumen diterima + termin).</summary>
+    public DateOnly? EstimatedDueDate { get; set; }
+
+    /// <summary>Jatuh tempo utang yang dibentuk invoice ini. Kosong bila belum ada utang.</summary>
+    public DateOnly? ActualDueDate { get; set; }
+
+    /// <summary>SUPPLIER_INVOICE_DATE atau GOODS_RECEIVED_DATE; kosong untuk utang tanpa basis tercatat.</summary>
+    public string? DueDateBasis { get; set; }
+
+    /// <summary>Status utang yang dibentuk invoice ini (OUTSTANDING, PARTIAL, PAID, CANCELLED); kosong bila belum ada.</summary>
+    public string? PayableStatus { get; set; }
 }

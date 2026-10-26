@@ -979,6 +979,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitBalanceService>();
+    // Laporan HR baca-saja "Piutang Benefit Pegawai" (AR Karyawan dari Billing); nilai finansial tetap milik Finance.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitReceivableReportService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();

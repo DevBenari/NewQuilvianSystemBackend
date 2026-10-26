@@ -13,8 +13,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 
 /// <summary>
 /// Purchasing Invoice (BE-FIN-034, FIN-API-1.1 §B.4/§B.9, FIN-PERM-1.1 §B.4). `GET /` (daftar
-/// berpaging) ditambahkan `BE-FIN-122` dengan filter supplier dan status; filter jatuh tempo pada
-/// kontrak menunggu keputusan basis tanggal (AP-DEC-03). **Cancel** ditambahkan `BE-FIN-126`
+/// berpaging) ditambahkan `BE-FIN-122` dengan filter supplier dan status; filter rentang jatuh
+/// tempo AKTUAL (milik utang yang dibentuk invoice) ditambahkan `BE-FIN-127`. **Cancel** ditambahkan `BE-FIN-126`
 /// (26 Oktober 2026): `api-contract.md` §B.4 tidak mendaftarkan endpoint ini, tetapi
 /// `state-transition-matrix.md` §B.4 mengizinkan transisi `DRAFT`/`PENDING_APPROVAL` → `CANCELLED`.
 /// Kesenjangan kontrak itu dicatat pada roadmap `REV-22` bagian "Delta Kontrak".
@@ -43,19 +43,24 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
     [HttpGet]
     [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinancePurchasingInvoice", "Read")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResult<PurchasingInvoiceResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PurchasingInvoiceListItemResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> GetList([FromQuery] PurchasingInvoiceQuery query, CancellationToken cancellationToken)
     {
-        var result = await _service.GetPagedAsync(query, cancellationToken);
-        var mapped = new PagedResult<PurchasingInvoiceResponse>
+        try
         {
-            Items = result.Items.Select(Map).ToList(),
-            PageNumber = result.PageNumber,
-            PageSize = result.PageSize,
-            TotalData = result.TotalData,
-            TotalPage = result.TotalPage
-        };
-        return Ok(ApiResponse<PagedResult<PurchasingInvoiceResponse>>.Ok(mapped, "Daftar Purchasing Invoice berhasil diambil."));
+            var result = await _service.GetPagedAsync(query, cancellationToken);
+            var mapped = new PagedResult<PurchasingInvoiceListItemResponse>
+            {
+                Items = result.Items.Select(MapListItem).ToList(),
+                PageNumber = result.PageNumber,
+                PageSize = result.PageSize,
+                TotalData = result.TotalData,
+                TotalPage = result.TotalPage
+            };
+            return Ok(ApiResponse<PagedResult<PurchasingInvoiceListItemResponse>>.Ok(mapped, "Daftar Purchasing Invoice berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
     [HttpGet("{id:guid}")]
@@ -209,6 +214,37 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         ApprovedAt = purchasingInvoice.ApprovedAt,
         RowVersion = purchasingInvoice.RowVersion
     };
+
+    private static PurchasingInvoiceListItemResponse MapListItem(PurchasingInvoiceListRow row)
+    {
+        var invoice = row.Invoice;
+        return new PurchasingInvoiceListItemResponse
+        {
+            Id = invoice.Id,
+            InvoiceNumber = invoice.InvoiceNumber,
+            InvoiceExchangeId = invoice.InvoiceExchangeId,
+            SupplierId = invoice.SupplierId,
+            SubtotalAmount = invoice.SubtotalAmount,
+            DiscountAmount = invoice.DiscountAmount,
+            PPNAmount = invoice.PPNAmount,
+            DownPaymentAmount = invoice.DownPaymentAmount,
+            OtherDeductionAmount = invoice.OtherDeductionAmount,
+            StampDutyAmount = invoice.StampDutyAmount,
+            ShippingCostAmount = invoice.ShippingCostAmount,
+            TotalAmount = invoice.TotalAmount,
+            Status = invoice.Status,
+            ApprovalTier = invoice.ApprovalTier,
+            RequestedByUserId = invoice.RequestedByUserId,
+            RequestedAt = invoice.RequestedAt,
+            ApprovedByUserId = invoice.ApprovedByUserId,
+            ApprovedAt = invoice.ApprovedAt,
+            RowVersion = invoice.RowVersion,
+            EstimatedDueDate = row.EstimatedDueDate,
+            ActualDueDate = row.ActualDueDate,
+            DueDateBasis = row.DueDateBasis,
+            PayableStatus = row.PayableStatus
+        };
+    }
 
     private static PurchasingInvoiceDetailResponse MapDetail(FinPurchasingInvoice purchasingInvoice)
     {

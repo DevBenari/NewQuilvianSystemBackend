@@ -57,7 +57,7 @@ nilai `status` ditulis huruf kecil tetap dikenali karena dinormalkan ke huruf be
 
 **Yang sengaja belum ada:** kontrak menyebut daftar invoice "disaring supplier/status/jatuh tempo". Filter jatuh tempo **belum disediakan** karena Purchasing
 Invoice tidak menyimpan tanggal jatuh tempo, dan basis tanggalnya (tanggal faktur, tanggal terima barang, atau tanggal Tukar Faktur) adalah keputusan terbuka
-pemilik (`AP-DEC-03`). Menebaknya sekarang berarti mengunci aturan yang belum diputuskan.
+pemilik (`AP-DEC-03`). Menebaknya sekarang berarti mengunci aturan yang belum diputuskan. **Pembaruan:** setelah `BE-FIN-124` menetapkan jatuh tempo utang beserta basisnya, filter ini dikerjakan sebagai `BE-FIN-127` tanpa tabel tanggal baru.
 
 ---
 
@@ -171,7 +171,7 @@ Task ini **belum** dapat ditandai ✅ sampai pemilik mengonfirmasi `dotnet build
 | Hal | Isi |
 | --- | --- |
 | Peringatan | `role-access-rules.md` bagian 3 pada suite skill masih menyebut argumen ke-1 `[AccessPermission]` harus sama dengan `ControllerName`. Source saat ini berbeda: registry diturunkan dari `[AccessPermission]` (Phase A0, `PermissionRegistryDescriptor`), sehingga ketidaksamaan itu tidak lagi menimbulkan 403 permanen. Selisih antara teks aturan dan source ini **dilaporkan**, bukan diperbaiki oleh task ini |
-| Masalah yang diketahui | Filter jatuh tempo pada daftar invoice menunggu `AP-DEC-03`. Daftar tidak mendukung pencarian teks atau pengurutan pilihan pengguna (pola daftar Finance lain juga tidak) |
+| Masalah yang diketahui | Filter jatuh tempo pada daftar invoice dikerjakan kemudian sebagai `BE-FIN-127` (memakai jatuh tempo aktual milik utang). Daftar tidak mendukung pencarian teks atau pengurutan pilihan pengguna (pola daftar Finance lain juga tidak) |
 | Risiko tersisa | Rendah untuk kebenaran logika (query baca sederhana). Kebenaran runtime belum dibuktikan karena build belum dijalankan |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |

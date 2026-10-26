@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
@@ -49,11 +50,15 @@ public sealed class FinancePurchasingInvoiceService
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
     // ------------------------------------------------------------------------------------
-    // Daftar Purchasing Invoice — GET /, disaring supplier/status (api-contract.md §B.4, BE-FIN-122)
+    // Daftar Purchasing Invoice — GET /, disaring supplier/status/jatuh tempo aktual
+    // (api-contract.md §B.4, BE-FIN-122, BE-FIN-127)
     // ------------------------------------------------------------------------------------
 
-    public async Task<PagedResult<FinPurchasingInvoice>> GetPagedAsync(PurchasingInvoiceQuery query, CancellationToken cancellationToken)
+    public async Task<PagedResult<PurchasingInvoiceListRow>> GetPagedAsync(PurchasingInvoiceQuery query, CancellationToken cancellationToken)
     {
+        if (query.DueDateFrom.HasValue && query.DueDateTo.HasValue && query.DueDateFrom.Value > query.DueDateTo.Value)
+            throw new PurchasingBadRequestException("Rentang jatuh tempo tidak valid: tanggal awal melebihi tanggal akhir.");
+
         var q = _dbContext.FinPurchasingInvoices.AsNoTracking().Where(x => !x.IsDelete);
 
         if (query.SupplierId.HasValue && query.SupplierId.Value != Guid.Empty)
@@ -62,16 +67,74 @@ public sealed class FinancePurchasingInvoiceService
         if (!string.IsNullOrWhiteSpace(query.Status))
             q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant());
 
+        // BE-FIN-127: jatuh tempo aktual hidup pada utang yang dibentuk invoice, jadi disaring lewat
+        // EXISTS (bukan JOIN) supaya satu invoice tidak pernah muncul dua kali dan Count/paging tetap benar.
+        if (query.DueDateFrom.HasValue || query.DueDateTo.HasValue)
+        {
+            var duePayables = _dbContext.FinSupplierPayables.AsNoTracking()
+                .Where(p => !p.IsDelete
+                    && p.SourcePurchasingInvoiceId != null
+                    && p.Status != FinSupplierPayableStatuses.Cancelled);
+
+            if (query.DueDateFrom.HasValue)
+            {
+                var dueFrom = query.DueDateFrom.Value;
+                duePayables = duePayables.Where(p => p.DueDate >= dueFrom);
+            }
+
+            if (query.DueDateTo.HasValue)
+            {
+                var dueTo = query.DueDateTo.Value;
+                duePayables = duePayables.Where(p => p.DueDate <= dueTo);
+            }
+
+            q = q.Where(x => duePayables.Any(p => p.SourcePurchasingInvoiceId == x.Id));
+        }
+
         var totalCount = await q.CountAsync(cancellationToken);
 
-        var items = await q.OrderByDescending(x => x.CreateDateTime)
+        var invoices = await q.OrderByDescending(x => x.CreateDateTime)
+            .ThenBy(x => x.Id)
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<FinPurchasingInvoice>
+        // Informasi jatuh tempo hanya dibaca untuk baris pada halaman ini (dua query kecil, bukan N+1).
+        var invoiceIds = invoices.Select(x => x.Id).ToList();
+        var exchangeIds = invoices.Select(x => x.InvoiceExchangeId).ToList();
+
+        var estimatedByExchange = await _dbContext.FinInvoiceExchanges.AsNoTracking()
+            .Where(x => exchangeIds.Contains(x.Id))
+            .Select(x => new { x.Id, x.EstimatedDueDate })
+            .ToDictionaryAsync(x => x.Id, x => x.EstimatedDueDate, cancellationToken);
+
+        var payableRows = await _dbContext.FinSupplierPayables.AsNoTracking()
+            .Where(p => !p.IsDelete && p.SourcePurchasingInvoiceId != null && invoiceIds.Contains(p.SourcePurchasingInvoiceId.Value))
+            .Select(p => new { InvoiceId = p.SourcePurchasingInvoiceId.Value, p.DueDate, p.DueDateBasis, p.Status })
+            .ToListAsync(cancellationToken);
+
+        // Satu invoice seharusnya membentuk paling banyak satu utang. Bila data tidak wajar memberi
+        // lebih dari satu, utang yang tidak dibatalkan didahulukan; baris invoice tetap SATU.
+        var payableByInvoice = payableRows
+            .GroupBy(x => x.InvoiceId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(x => x.Status == FinSupplierPayableStatuses.Cancelled ? 1 : 0).First());
+
+        var rows = invoices.Select(invoice =>
         {
-            Items = items,
+            payableByInvoice.TryGetValue(invoice.Id, out var payable);
+            return new PurchasingInvoiceListRow(
+                invoice,
+                estimatedByExchange.TryGetValue(invoice.InvoiceExchangeId, out var estimated) ? (DateOnly?)estimated : null,
+                payable?.DueDate,
+                payable?.DueDateBasis,
+                payable?.Status);
+        }).ToList();
+
+        return new PagedResult<PurchasingInvoiceListRow>
+        {
+            Items = rows,
             PageNumber = query.PageNumber,
             PageSize = query.PageSize,
             TotalData = totalCount,
@@ -572,3 +635,15 @@ public sealed class FinancePurchasingInvoiceService
 }
 
 public sealed record PurchasingInvoiceItemRequest(string ProductName, decimal Quantity, decimal UnitPrice);
+
+/// <summary>
+/// Satu baris daftar invoice (BE-FIN-127): invoice beserta jatuh tempo. <c>ActualDueDate</c>,
+/// <c>DueDateBasis</c>, dan <c>PayableStatus</c> berasal dari utang yang dibentuk invoice (kosong
+/// bila belum ada); <c>EstimatedDueDate</c> berasal dari Tukar Faktur sumber dan terpisah dari tanggal aktual.
+/// </summary>
+public sealed record PurchasingInvoiceListRow(
+    FinPurchasingInvoice Invoice,
+    DateOnly? EstimatedDueDate,
+    DateOnly? ActualDueDate,
+    string? DueDateBasis,
+    string? PayableStatus);

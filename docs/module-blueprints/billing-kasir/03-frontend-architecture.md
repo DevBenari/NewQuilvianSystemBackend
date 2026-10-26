@@ -2768,3 +2768,46 @@ Banner "Perhitungan cakupan tersimpan belum terbaru" dan tombol "Hitung Ulang Ca
 | Verifikasi runtime (browser, mobile/desktop) | Belum. Hanya ESLint (0 masalah) dan `node --test` pada 14 berkas billing terkait (234 tes lulus) |
 | Perubahan penjamin / penetapan penanggung per item | Menu Pembayaran tidak punya alur ubah-penanggung. Halaman Edit Tagihan memakai `payment-source`, `item-payer-assignments`, dan `drug-billing-disposition`, yang di Backend **sudah** menghitung ulang secara atomik; hook-nya memanggil `onSaved` sesudah sukses dan tidak diubah. Perubahan penjamin di Registrasi berada di kepemilikan terpisah dan tidak diaudit |
 | Kebijakan aturan tanggungan master yang berubah | NEEDS BUSINESS DECISION (`02-backend-architecture.md` §23.5); layar hanya menampilkan sebab `COVERAGE_RULE_CHANGED` |
+
+
+# Amendment 26 Oktober 2026 — AR Karyawan / Utang Pegawai pada Metode Pembayaran, Buku Piutang Finance, dan Laporan HR (Revisi 3.4)
+
+> `revisi blueprint`: `3.4`, status **diterapkan di source, belum dibuild atau diuji runtime**. Frontend branch lokal `yasmina` (branch `Yasmina` pada remote tidak dapat diverifikasi; pekerjaan hanya pada working tree aktif, tanpa pindah branch). Kontrak Backend: `02-backend-architecture.md` §24.
+
+## 1. Perilaku
+
+| Hal | Perilaku |
+| --- | --- |
+| Tawaran | Baris **AR Karyawan / Utang Pegawai** muncul tepat sesudah Benefit RS hanya bila Backend menyatakan benefit dapat dipakai, angka otoritatif, dan `employeeArMaxAmount` > 0. Tombol **Pilih Alokasi ke AR** hanya menyimpan **draft** layar (nominal awal = batas Backend; kasir boleh menurunkan). Tanpa pilihan eksplisit, AR selalu nol |
+| Yang ditawarkan | Hanya **kelebihan plafon yang belum dibayar (E sisa)**. Kewajiban pribadi dari item non-covered (K) tidak ditawarkan dan tidak masuk AR otomatis. Kartu drawer memisahkan *Kelebihan plafon*, *Kewajiban pribadi lain*, *AR Karyawan (draft)*, dan *Dibayar langsung* |
+| Bukan tender | AR tidak punya `PaymentMethodId`, tidak masuk `settlement.rows`, tidak dikirim sebagai tender, tidak menambah `SuccessfulAmount`, dan tidak menyebut Lunas. Piutang Finance **tidak** dibuat dari layar |
+| Split payment | AR memesan sebagian sisa; baris Tunai/QRIS/Transfer/Debit hanya mengisi sisa SETELAH AR (`evaluatePaymentSubmission`). AR yang menutup seluruh sisa dapat diproses tanpa baris tender; AR sebagian tanpa baris pembayaran **tidak** dapat diproses (alasan ditampilkan) |
+| Persetujuan | Hubungan selain SELF mewajibkan nama pemberi persetujuan (catatan/nomor dokumen opsional), sama dengan aturan finalisasi Backend |
+| Satu tombol | **Proses Pembayaran** tetap satu-satunya tombol. Urutan: (1) AR diperiksa terhadap preview Backend terbaru sebelum efek apa pun (tidak sah/tidak terbaca = tidak ada yang diproses); (2) deposit RANAP bila ada; (3) settlement + tender hanya untuk sisa − AR; (4) muat ulang; (5) kesiapan dinilai Backend DENGAN D; (6) finalisasi mengirim `employeeDeferredAmount = D` + persetujuan, satu kali, idempoten |
+| Hasil | AR disebut "diteruskan ke Finance" hanya setelah finalisasi berhasil, dengan catatan bahwa piutang baru tercatat setelah Finance memproses fakta masuknya. Finalisasi tertahan = draft dipertahankan; draft dibuang hanya setelah invoice FINAL/CLOSED |
+| Progress | Segmen tersendiri bergaris vertikal "AR Karyawan (penangguhan, belum tercatat)", terpisah dari terkonfirmasi, alokasi Benefit RS, dan draft pembayaran |
+
+## 2. Berkas
+
+| Berkas | Perubahan |
+| --- | --- |
+| `billing-employee-ar-draft.js` (baru, murni) | Tawaran dari preview, validasi draft, parameter preview/finalisasi, ringkasan, pemeriksaan terhadap preview terbaru |
+| `use-billing-employee-ar-draft.js`, `employee-ar-row.jsx` (baru) | State draft (tanpa Backend) dan baris tampilan |
+| `use-menu-pembayaran.js` | Derivasi tawaran/masalah, pemesanan sisa di settlement, langkah AR pada `startPayment`, `concludePayment({ employeeAr })` |
+| `use-billing-finalization.js` | `loadReadiness({ employeeAr })` (preview dengan D), `finalizeAfterPayment(evaluation, { employeeAr })` |
+| `use-billing-settlement.js`, `billing-split-payment-rows.js` | `employeeArAmount` memesan sisa; alasan eksplisit untuk AR tidak sah/over-allocated/under-allocated |
+| `billing-payment-progress-state.js`, `billing-payment-progress.jsx`, `billing-payment-progress.module.css`, `billing-payment-outcome.js` | Segmen dan teks hasil AR |
+| `menu-pembayaran-view.jsx`, `add-tender-modal.jsx` | Baris AR, ringkasan, kartu drawer ringkas |
+| `use-employee-receivable-list.jsx`, `employee-receivable-view.jsx`, `employee-receivable-table-columns.jsx`, `app/finance/employee-receivables/benefit/page.jsx`, `receivable-constants.jsx` | **Buku Piutang Benefit Pegawai** (Finance): `debtorType=EMPLOYEE_BENEFIT` dikunci di Backend, cari nomor/invoice/pegawai/NIP/pasien, saring status/asal/jatuh tempo, ringkasan, rincian lewat Detail Buku Piutang yang ada |
+| `use-employee-benefit-receivable-report.js`, `employee-benefit-receivable-report-export.js`, `employee-benefit-receivable-report-view.jsx`, `employee-benefit-receivable-table-columns.jsx`, `app/hr/benefit/receivables/page.jsx`, `employee-benefit-receivable-report-constants.js` | **Piutang Benefit Pegawai** (HR): baca-saja, filter/pagination di Backend, ringkasan, rincian jadwal angsuran, ekspor CSV (dibatasi 5.000 baris) |
+| `menu-items.jsx` | Dua butir menu: Finance → Piutang Karyawan → Buku Piutang Benefit Pegawai (`FinanceReceivable:Read`); HR → Piutang Benefit Pegawai (`EmployeeBenefitReceivableReport:Read`) |
+| Tes | `billing-employee-ar-draft.test.mjs` (20), `employee-benefit-receivable-report.test.mjs` (7), dan penyesuaian kontrak pada tiga berkas tes billing yang ada |
+
+## 3. Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Verifikasi runtime (browser, mobile/desktop) | Belum. ESLint: 0 error (5 peringatan `set-state-in-effect`, pola yang sama dengan hook daftar yang ada); `node --test`: seluruh berkas billing terkait lulus; seluruh suite FE menyisakan 42 kegagalan lama di modul lain |
+| Layar pengajuan/persetujuan perjanjian angsuran (Finance) | Belum ada di FE; endpoint Backend tersedia |
+| Draft AR | State layar saja; hilang bila halaman dimuat ulang |
+| K sebagai AR | NEEDS BUSINESS DECISION (`02-backend-architecture.md` §24.5) |
