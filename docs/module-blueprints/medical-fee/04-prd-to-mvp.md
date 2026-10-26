@@ -48,11 +48,11 @@ terlihat, alih-alih hilang.
 | `MDF-04` | Periode dan perhitungan dari kamar operasi | Siap | — |
 | `MDF-05` | Perhitungan dari tindakan klinis dan laboratorium | **Sebagian** | Pelaksana tunggal siap; pembagian tim menunggu `MF-CQ-07` |
 | `MDF-06` | Daftar layanan yang belum dapat dihitung | Siap | — |
-| `MDF-07` | Jasa dari entri bebas kasir | **`OPEN DECISION`** | `MF-CQ-05` |
+| `MDF-07` | Jasa dari entri bebas kasir | **`OPEN DECISION`** — Billing sudah menjawab (`MF-CQ-05` ditutup 26 Oktober 2026); menunggu penguncian permukaan oleh owner dan kolom Billing | Kolom Billing `BE-BKC-089`/`091` |
 | `MDF-08` | Verifikasi, persetujuan, dan penutupan periode | Siap | — |
 | `MDF-09` | Koreksi berjenjang | Siap | — |
 | `MDF-10` | Penyerahan ke Finance | Siap | — |
-| `MDF-11` | Alir nilai jasa ke `DoctorShare` | **`OPEN DECISION`** | `MF-CQ-08` |
+| `MDF-11` | Alir nilai jasa ke `DoctorShare` | **`OPEN DECISION`** — Billing sudah menjawab (`MF-CQ-08` ditutup 26 Oktober 2026); bentuk menjadi port in-process; menunggu penguncian permukaan oleh owner | `BE-MDF-014` |
 | `MDF-12` | Tenaga medis melihat jasanya sendiri | Siap | — |
 
 Dua epic `OPEN DECISION` MUST NOT masuk gelombang pengerjaan mana pun sebelum jawabannya turun.
@@ -67,7 +67,7 @@ Dua epic `OPEN DECISION` MUST NOT masuk gelombang pengerjaan mana pun sebelum ja
 | **MVP-3 — Persetujuan** | `MDF-08`, `MDF-09` | Periode dapat diverifikasi, disetujui, dan ditutup dengan pemisahan wewenang; koreksi berjalan |
 | **MVP-4 — Penyerahan** | `MDF-10` | Hasil jasa yang disetujui terbaca Finance dan di-ACK |
 | **MVP-5 — Keterbukaan** | `MDF-12` | Tenaga medis melihat jasanya sendiri beserta rinciannya |
-| **Tertahan** | `MDF-07`, `MDF-11`, sisa `MDF-05` | Menunggu `MF-CQ-05`, `MF-CQ-08`, `MF-CQ-07` |
+| **Tertahan** | `MDF-07`, `MDF-11`, sisa `MDF-05` | `MF-CQ-05` dan `MF-CQ-08` sudah dijawab Billing; `MDF-07`/`MDF-11` menunggu penguncian permukaan dan dependency teknis. `MDF-05` menunggu `MF-CQ-07` |
 
 MVP-0 MUST selesai lebih dulu — tanpa pendaftaran registry, file model pertama pun tidak boleh
 ditulis (`MDF-DES-002`).

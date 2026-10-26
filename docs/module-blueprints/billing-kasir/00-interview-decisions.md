@@ -3762,7 +3762,7 @@ Tidak ada keputusan lama yang `superseded`. `BKC-DEC-167` (satu biaya administra
 - `BKC-AC-114` (`BKC-DEC-168`, `169`): **Nilai dari Medical Fee.** Item tindakan Rp 1.000.000 dicatat saat Medical Fee menjawab 40%; item tersimpan dengan `DoctorShare` Rp 400.000 tanpa isian petugas.
 - `BKC-AC-115` (`BKC-DEC-169`): **Medical Fee tidak terjangkau.** Medical Fee gagal merespons saat item dicatat; item tetap tercatat dengan `DoctorShare` Rp 0 dan tagihan tidak gagal.
 - `BKC-AC-116` (`BKC-DEC-170`): **Tanpa aturan.** Medical Fee menjawab `resolved: false`; `DoctorShare` Rp 0 dan tagihan dapat difinalisasi.
-- `BKC-AC-117` (`BKC-DEC-170`): **Tanpa jalur ketik.** Pemanggil mengirim `DoctorShare` Rp 250.000 untuk sumber yang dicakup Medical Fee; nilai itu tidak pernah tersimpan (bentuk penolakan atau pengabaian ditentukan desain, `BKC-OQ-143`).
+- `BKC-AC-117` (`BKC-DEC-170`): **Tanpa jalur ketik.** Pemanggil mengirim `DoctorShare` Rp 250.000 untuk kunjungan Rawat Jalan atau Rawat Inap pada salah satu dari tujuh domain klinis yang sudah diblokir `from-source` (F8); permintaan ditolak dan tidak ada nilai tersimpan. Cakupan untuk jenis kunjungan lain ditentukan desain (lihat pencabutan `BKC-OQ-143`).
 - `BKC-AC-118` (`BKC-DEC-171`, `172`): **Entri berjasa menunjuk pelaksana.** Entri `ADHOC_CATALOG` dengan `IsFeeBearing = true` dan `PerformerReferenceId` terisi tersimpan beserta pelaksananya.
 - `BKC-AC-119` (`BKC-DEC-172`): **Entri berjasa tanpa pelaksana ditolak.** `IsFeeBearing = true` tanpa `PerformerReferenceId` menghasilkan `422` dan tidak ada item tercatat.
 - `BKC-AC-120` (`BKC-DEC-172`): **Entri biasa tidak berubah.** Entri bebas bernilai Rp 20.000 tanpa penanda berjasa tersimpan seperti sebelumnya.
@@ -3774,7 +3774,7 @@ Tidak ada keputusan lama yang `superseded`. `BKC-DEC-167` (satu biaya administra
 
 | ID | Pertanyaan | Owner | Memblokir |
 | --- | --- | --- | --- |
-| `BKC-OQ-143` | **Bagaimana jalur ketik ditutup?** `POST /invoices/from-source` masih menerima `DoctorShare` dari pemanggil (F3). Apakah nilainya diabaikan, ditolak, atau parameternya dihapus pada versi kontrak berikutnya, dan sumber mana saja (`PROCEDURE`, `LABORATORY`, `OPERATING_ROOM`, `EMERGENCY`, dst.) yang termasuk "dicakup Medical Fee"? Draf `evidence/04` §2.1 mengusulkan "diabaikan lalu dihapus" tetapi pemilik belum memilih | Pemilik Billing | `DESIGN` |
+| ~~`BKC-OQ-143`~~ | **Dicabut atas permintaan pemilik Billing, 26 Oktober 2026.** Pertanyaan tentang cara menutup jalur ketik `DoctorShare` pada `POST /invoices/from-source` untuk kunjungan di luar Rawat Jalan dan Rawat Inap. Baris ini dipertahankan sebagai penanda, bukan dihapus, agar rujukan dari pass ini tetap terbaca | Pemilik Billing | Tidak memblokir apa pun |
 | `BKC-OQ-144` | **Dari mana Billing tahu penerima jasa untuk sumber non-kasir?** `resolve` membutuhkan `payeeReferenceId`, tetapi `UpsertChargeRequest` tidak membawa pelaksana dan jembatan klinis tidak menyebutnya (F7). Untuk `PROCEDURE`, `LABORATORY`, dan operasi, apakah kontrak charge ditambah pelaksana, atau Billing membacanya dari modul sumber? Tanpa ini, `BKC-DEC-168` hanya dapat berjalan penuh untuk entri kasir | Pemilik Billing bersama pemilik modul sumber | `DESIGN` untuk sumber non-kasir; entri kasir tidak tertahan |
 | `BKC-OQ-145` | **Apakah `DoctorShare = 0` karena Medical Fee tidak terjangkau dihitung ulang kemudian?** `BKC-DEC-169` hanya menyatakan tagihan tidak boleh gagal. Bila tidak dihitung ulang, item itu selamanya Rp 0 sehingga diskon dokter tidak dapat dipakai (F6), padahal aturannya ada | Pemilik Billing | `DESIGN` |
 | `BKC-OQ-146` | **Perlakuan `DoctorShare` saat item diganti, di-void, atau diretur.** Retur obat menyalin `Math.Min(original.DoctorShare, ...)` (`BillingDrugReturnService.cs:52`) dan tinjauan item pengganti menyalin nilai lama (`BillingSupersededItemReviewService.cs:442`). Apakah salinan dipertahankan atau di-resolve ulang? | Pemilik Billing | `DESIGN` |
@@ -3796,4 +3796,75 @@ Tidak ada keputusan UI baru. Penanda "layanan berjasa" dan pilihan pelaksana pad
 
 ### Langkah berikutnya
 
-Penutupan `BKC-OQ-143`..`147` belum dilakukan; kelimanya memblokir `DESIGN` dan perlu jawaban pemilik Billing sebelum `/design-business-module` menaikkan revision dan kontrak. Keputusan `BKC-DEC-168`..`175` sudah cukup untuk memulai desain bagian yang tidak bergantung pada kelimanya, yaitu kolom pelaksana entri kasir (`BKC-DEC-171`, `172`) dan perlakuan `BilApHandoff` (`BKC-DEC-173`).
+Penutupan `BKC-OQ-144`..`147` belum dilakukan pada bagian ini (kemudian ditutup, lihat pembaruan di bawah); `BKC-OQ-143` dicabut. Keputusan `BKC-DEC-168`..`175` sudah cukup untuk memulai desain bagian yang tidak bergantung pada pertanyaan itu, yaitu kolom pelaksana entri kasir (`BKC-DEC-171`, `172`) dan perlakuan `BilApHandoff` (`BKC-DEC-173`).
+
+### Pembaruan 26 Oktober 2026 (lanjutan) — Jawaban atas `BKC-OQ-143`..`147`
+
+Pemilik modul Billing menyerahkan lima jawaban. Penulisan `BKC-QQ-143`..`147` pada pesan pemilik dibaca sebagai `BKC-OQ-143`..`147`.
+Isi kelimanya adalah **temuan keadaan source saat ini**, bukan keputusan perilaku baru. Karena itu kelimanya dicatat sebagai fakta
+dan arah, dan hanya `BKC-OQ-147` memuat arah yang menyerupai keputusan. Pemilik dapat menaikkannya menjadi keputusan bila memang itu maksudnya.
+
+#### Fakta tambahan
+
+| # | Fakta | Bukti |
+| --- | --- | --- |
+| F8 | `POST /invoices/from-source` menolak tujuh domain klinis (`PROCEDURE`, `LABORATORY`, `RADIOLOGY`, `PHARMACY`, `CONSULTATION`, `OPERATING_ROOM`, `EQUIPMENT_USAGE`) **hanya** untuk kunjungan `Outpatient` dan `Inpatient`. Kunjungan `Emergency`, `MedicalCheckup`, `Telemedicine`, dan `Unknown`, serta domain di luar tujuh itu (termasuk `EMERGENCY`), masih lolos dan masih dapat membawa `DoctorShare` dari pemanggil | `BillingInvoiceService.cs:1753-1754`, `:1957-1978` |
+| F9 | Jembatan klinis tidak menyelesaikan identitas dokter pelaksana; `DoctorShare` ditetapkan `0` | `BillingClinicalChargeBridgeService.cs:305` |
+| F10 | Belum ditemukan proses yang menghitung ulang `DoctorShare` lewat Medical Fee pada alur jembatan yang diperiksa | Pemeriksaan pemilik; belum ada pencarian menyeluruh di luar jembatan |
+| F11 | Saat sumber diperbarui dengan versi lebih baru, `ApplySource` menimpa `DoctorShare` dari payload baru; void memiliki jalur sendiri. Retur obat dan tinjauan item pengganti menyalin nilai item asal | `BillingInvoiceService.cs:2531`; `BillingDrugReturnService.cs:52`; `BillingSupersededItemReviewService.cs:442` |
+| F12 | `PerformerReferenceId` belum ada pada `UpsertChargeRequest` maupun `BilInvoiceItem` | `BillingInvoiceDtos.cs:117-156`; `BilInvoiceItem.cs` |
+| F13 | Identitas pelaksana di modul sumber **tidak seragam**: kamar operasi memakai `OprTeamMember.WorkforceId`, tindakan klinis `TrxPatientProcedure.DoctorId`, laboratorium `LabOrder.ExaminerDoctorId` | `medical-fee/contracts/integration-contract.md` §2.1–2.3 |
+
+Koreksi atas rumusan jawaban `143`: `DoctorShare` pada DTO **memang dipakai** bila bukan nol, yaitu oleh pembentukan `BilApHandoff` (F5) dan batas diskon dokter (F6). Ia tidak dipakai untuk menghitung jasa medis, tetapi tidak sepenuhnya tak berpengaruh.
+
+#### Status pertanyaan
+
+| ID | Status | Yang sudah jelas | Yang masih harus diputuskan pemilik |
+| --- | --- | --- | --- |
+| ~~`BKC-OQ-143`~~ | **Dicabut** pemilik, 26 Oktober 2026 | Untuk Rawat Jalan dan Rawat Inap jalur ketik sudah tertutup (F8) | Tidak ada |
+| `BKC-OQ-144` | **Terbuka, ditegaskan fakta** | Kesenjangan nyata (F9, F12): tanpa pelaksana, `resolve` tidak dapat dipanggil untuk sumber klinis | Dari mana pelaksana diperoleh: kontrak charge ditambah pelaksana, atau Billing membacanya dari fakta modul sumber |
+| `BKC-OQ-145` | **Terbuka, ditegaskan fakta** | Tidak ada penghitungan ulang (F10); `DoctorShare` tetap `0` pada alur jembatan | Apakah penghitungan ulang diperlukan setelah `BKC-DEC-169`, dan kapan dipicu |
+| `BKC-OQ-146` | **Sebagian terjawab** | Pembaruan sumber menimpa nilai dari payload baru (F11) | Setelah bentuk A, apakah pembaruan memanggil `resolve` ulang, dan apakah salinan pada retur obat dan item pengganti dipertahankan |
+| `BKC-OQ-147` | **Arah ditetapkan, jenis entitas belum** | Rujukan mengikuti **identitas pelaksana klinis**, bukan `payeeType` Medical Fee (arah `draft`, menunggu pemilik menegaskannya sebagai keputusan) | Entitas yang dirujuk, mengingat tiga sumber memakai identitas berbeda (F13); tidak mungkin satu kolom `Guid` menunjuk semuanya tanpa jenis rujukan |
+
+`BKC-OQ-144`..`147` memblokir `DESIGN` pada bagian masing-masing. Entri kasir (`BKC-DEC-171`, `172`) tidak tertahan oleh `144` dan `145`.
+
+#### Keputusan pemilik atas `BKC-OQ-144`..`147` (26 Oktober 2026, lanjutan)
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-176` | Decision | Untuk sumber klinis (tindakan, laboratorium, operasi), dokter pelaksana diperoleh dari **fakta yang dikirim modul sumber** dan dibaca jembatan Billing. Billing **tidak** membaca tabel modul sumber secara langsung. Konsekuensinya modul sumber perlu menyertakan pelaksana pada fakta/milestone yang dibacanya | Pemilik modul Billing | `approved` (sisi Billing); butuh konfirmasi pemilik Clinical, Laboratorium, dan Operating Room | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif; F9, F12, F13. Menutup `BKC-OQ-144` |
+| `BKC-DEC-177` | Decision | `DoctorShare` **di-resolve ulang pada setiap pembaruan sumber** (upsert versi lebih baru); **tidak ada pekerjaan pemulihan terjadwal**. Nilai nol akibat Medical Fee tidak terjangkau pulih pada pembaruan berikutnya. Salinan `DoctorShare` pada retur obat dan tinjauan item pengganti **dipertahankan**. Item yang tidak pernah diperbarui tetap bernilai nol | Pemilik modul Billing | `approved` | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif; F10, F11. Menutup `BKC-OQ-145` dan `BKC-OQ-146` |
+| `BKC-DEC-178` | Decision | `PerformerReferenceId` (`Guid?`) disertai kolom jenis `PerformerType` (`string?`, mis. `DOCTOR` atau `WORKFORCE`; nilai final dikunci desain). Validasi dilakukan di service, **tanpa kunci asing polimorfik**. Rujukan mengikuti identitas pelaksana klinis, bukan `payeeType` Medical Fee. Kolom `PerformerType` ikut menjadi kolom nullable baru pada `BilInvoiceItem` di samping `BKC-DEC-171` | Pemilik modul Billing | `approved` (kebutuhan); nilai `PerformerType` `draft` | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif; F12, F13. Menutup `BKC-OQ-147` |
+
+**Contoh angka.** Tindakan Rp 1.000.000 dicatat saat Medical Fee tidak terjangkau: `DoctorShare` Rp 0. Dua hari kemudian modul tindakan mengirim versi baru item itu; Billing memanggil `resolve`, mendapat 40%, dan menimpa `DoctorShare` menjadi Rp 400.000. Bila item itu tidak pernah diperbarui, nilainya tetap Rp 0.
+Entri kasir untuk dokter berjenis `DOCTOR` tersimpan dengan `PerformerReferenceId` dan `PerformerType = DOCTOR`; anggota tim operasi berjenis `WORKFORCE`.
+
+Akibat pada pass ini: `BKC-DEC-171` bertambah satu kolom (`PerformerType`), sehingga `evidence/04` Medical Fee §2.2 perlu menambah baris yang sama.
+Kriteria penerimaan tambahan:
+
+- `BKC-AC-124` (`BKC-DEC-177`): **Pemulihan lewat pembaruan.** Item bernilai Rp 0 akibat Medical Fee tidak terjangkau, lalu diperbarui sumbernya saat Medical Fee tersedia; `DoctorShare` terisi sesuai hasil `resolve`.
+- `BKC-AC-125` (`BKC-DEC-177`): **Salinan dipertahankan.** Retur obat atas item ber-`DoctorShare` Rp 400.000 dengan nilai retur Rp 300.000 menghasilkan `DoctorShare` Rp 300.000 (`Math.Min` dengan nilai kotor), tanpa memanggil `resolve`.
+- `BKC-AC-126` (`BKC-DEC-178`): **Jenis rujukan.** Entri berjasa dengan `PerformerReferenceId` tetapi tanpa `PerformerType` ditolak `422`.
+
+#### Status akhir pertanyaan pass ini
+
+| ID | Status |
+| --- | --- |
+| ~~`BKC-OQ-143`~~ | **Dicabut** atas permintaan pemilik Billing, 26 Oktober 2026 — lihat catatan pencabutan di bawah |
+| `BKC-OQ-144` | **Ditutup** — `BKC-DEC-176`. Pekerjaan lanjutan pada modul sumber menjadi pertanyaan lintas modul baru `BKC-OQ-148` |
+| `BKC-OQ-145` | **Ditutup** — `BKC-DEC-177` |
+| `BKC-OQ-146` | **Ditutup** — `BKC-DEC-177` |
+| `BKC-OQ-147` | **Ditutup** — `BKC-DEC-178` |
+| `BKC-OQ-148` | **Terbuka, baru** — pemilik Clinical, Laboratorium, dan Operating Room belum mengonfirmasi bahwa fakta/milestone mereka akan membawa pelaksana (`BKC-DEC-176`). Memblokir `IMPLEMENTATION` `DoctorShare` sumber klinis; tidak memblokir entri kasir |
+
+
+#### Pencabutan `BKC-OQ-143` (26 Oktober 2026)
+
+Pemilik modul Billing meminta `BKC-OQ-143` dihapus. Pertanyaan dicabut tanpa jawaban dan tidak memblokir apa pun lagi. Barisnya dipertahankan sebagai penanda (dicoret) karena catatan keputusan tidak dihapus, dan agar rujukan pada `BKC-AC-117` dan tabel status tetap terbaca.
+
+Yang tetap berlaku dan perlu diketahui desain:
+
+- `BKC-DEC-170` tetap berlaku: tidak ada jalur ketik manual sebagai pengecualian.
+- Mekanisme yang benar-benar menutup jalur ketik hari ini hanya blokir tujuh domain klinis untuk Rawat Jalan dan Rawat Inap (F8). Untuk kunjungan `Emergency`, `MedicalCheckup`, `Telemedicine`, `Unknown`, dan domain di luar tujuh itu, `POST /invoices/from-source` masih menerima `DoctorShare` dari pemanggil. Pencabutan ini **tidak mengubah** keadaan tersebut.
+- Bila desain menemukan jalur itu bertentangan dengan `BKC-DEC-170`, desain wajib mengangkatnya sebagai pertanyaan baru, bukan menutupnya diam-diam.

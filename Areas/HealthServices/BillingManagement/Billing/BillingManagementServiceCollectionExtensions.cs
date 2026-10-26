@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
@@ -69,6 +70,8 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingDrugReturnService>();
         services.AddScoped<IBillingSupersededItemReviewService, BillingSupersededItemReviewService>();
         services.AddScoped<BillingSupersededItemReviewService>();
+        // BE-BKC-090 / BKC-DES-094 / BIL-INT-023: Port resolusi DoctorShare ke Medical Fee dengan implementasi bawaan Null
+        services.TryAddScoped<IBillingDoctorShareResolver, NullBillingDoctorShareResolver>();
         services.AddOptions<BillingPaymentProviderOptions>()
             .BindConfiguration(BillingPaymentProviderOptions.SectionName);
 

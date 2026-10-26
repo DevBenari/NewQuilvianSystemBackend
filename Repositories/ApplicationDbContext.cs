@@ -6,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Models;
@@ -1294,9 +1295,16 @@ namespace QuilvianSystemBackend.Repositories
         #endregion MEDICAL CHECKUP MANAGEMENT
 
         #region MEDICAL FEE MANAGEMENT
-        // MF-BP-001, BE-MDF-002. Modul Medical Fee (registry Mdf / ACTIVE). Baru daftar peran;
-        // delapan DbSet Mdf* menyusul pada BE-MDF-005, BE-MDF-007, dan BE-MDF-018.
+        // MF-BP-001, BE-MDF-002, BE-MDF-005, BE-MDF-007. Modul Medical Fee (registry Mdf / ACTIVE).
+        // Satu DbSet MdfFinanceHandoff berikutnya menyusul pada BE-MDF-018.
         public DbSet<MstMedicalFeeRole> MstMedicalFeeRoles { get; set; }
+        public DbSet<MdfSharingAgreement> MdfSharingAgreements { get; set; }
+        public DbSet<MdfSharingRule> MdfSharingRules { get; set; }
+        public DbSet<MdfFeePeriod> MdfFeePeriods { get; set; }
+        public DbSet<MdfServiceFee> MdfServiceFees { get; set; }
+        public DbSet<MdfServiceFeeDetail> MdfServiceFeeDetails { get; set; }
+        public DbSet<MdfServiceFeeAdjustment> MdfServiceFeeAdjustments { get; set; }
+        public DbSet<MdfUnresolvedService> MdfUnresolvedServices { get; set; }
         #endregion MEDICAL FEE MANAGEMENT
 
         #endregion HEALTH SERVICE

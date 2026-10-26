@@ -117,7 +117,7 @@ justru menghapus perlindungannya.
 | Menyediakan entri hasil jasa manual | Tidak ada endpoint-nya (`api-contract.md` bagian 9) |
 | Menyediakan tombol membuat penyerahan ke Finance | Penyerahan hanya lahir dari persetujuan |
 | Mengandalkan penyembunyian tombol sebagai penjagaan wewenang | Backend yang menjaga |
-| Menampilkan `DoctorShare` sebagai hasil Medical Fee | `MF-CQ-08` belum dijawab |
+| Menampilkan `DoctorShare` sebagai hasil Medical Fee | `MF-CQ-08` sudah ditutup (26 Oktober 2026), tetapi belum ada keputusan UI yang menampilkannya; bagian dokter pada tagihan juga tidak ditampilkan ke kasir (`BIL-SCR-48`) |
 | Mulai dengan data tiruan yang bentuknya ditebak | `MDF-API-1.0` sudah terkunci; bentuk itulah yang dipakai |
 
 ## 9. Urutan yang disarankan

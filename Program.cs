@@ -48,6 +48,8 @@ using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
@@ -1186,6 +1188,15 @@ try
     builder.Services.AddScoped<PettyCashCategoryService>();
     builder.Services.AddScoped<PettyCashVoucherService>();
     builder.Services.AddScoped<PettyCashBudgetService>();
+
+    // ============================================================
+    // MEDICAL FEE MANAGEMENT
+    // ============================================================
+    builder.Services.AddScoped<MedicalFeeRoleService>();
+    builder.Services.AddScoped<MedicalFeeSharingService>();
+    builder.Services.AddScoped<MedicalFeeServiceSourceAdapter>();
+    builder.Services.AddScoped<MedicalFeeCalculationService>();
+    builder.Services.AddScoped<MedicalFeePeriodService>();
 
     // Registrasi kanonik Billing/Kasir/Petty Cash/Finance. Wajib dipanggil: hanya di sini
     // BilConsumerHandoffService, service Finance, dan options penomoran didaftarkan. Diletakkan

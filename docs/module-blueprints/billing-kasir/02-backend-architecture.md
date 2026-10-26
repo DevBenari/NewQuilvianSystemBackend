@@ -6740,3 +6740,293 @@ Contoh split: kewajiban 10.000.000,00 = AR 7.000.000,00 + tunai 2.000.000,00 + Q
 | Draft AR | State layar; hilang saat halaman dimuat ulang (kasir memilih ulang). Setelah pembayaran sah tetapi finalisasi tertahan, sisa kewajiban = D dan kasir memilih ulang AR lalu menekan Proses Pembayaran (tanpa tender baru) |
 | Settlement lama yang diminta penuh | Settlement yang dibuat sebelum AR dipilih tetap meminta nominal penuh dan bisa tertinggal terbuka sebagian; perlu diamati di runtime |
 | Koreksi pemilik salah orang | Jalur `CorrectBenefitDebtor` existing tidak diubah |
+
+
+## 25. Amendment Revisi 2.4 (26 Oktober 2026) — Jasa Medis pada Item Tagihan: `DoctorShare` dari Medical Fee dan Pelaksana Entri Kasir
+
+> Status: **draft**, menunggu approval pemilik modul Billing. Approval desain **bukan** otorisasi membuat atau menjalankan migration.
+> Masukan: `BKC-DEC-168`..`178` (approved 26 Oktober 2026), `BKC-AC-114`..`126`, fakta F1–F13 pada `00-interview-decisions.md`
+> Amendment Pass 26 Oktober 2026; `BKC-OQ-143` dicabut; `BKC-OQ-148` terbuka. Rujukan lintas modul: `medical-fee/evidence/01`, `evidence/04`,
+> `MDF-INTEGRATION-1.0` §4–5.
+> Snapshot: backend `ecddd8f8` (branch `Yasmina`; working tree memuat perubahan Medical Fee belum di-commit dari sesi lain yang tidak menyentuh berkas tumpuan Billing), frontend `e2c17153b`.
+> `domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN` — slice ini tidak menambah bounded context; ia menambah satu sumber nilai
+> pada kolom yang sudah ada dan empat kolom rujukan, dan batas kepemilikannya sudah diputuskan `BKC-DEC-168`/`173`/`176`.
+
+### 25.1 Ringkasan untuk pembaca umum
+
+Hari ini kolom bagian dokter (`DoctorShare`) pada setiap baris tagihan hampir selalu bernilai nol, karena seluruh jalur pencatatan di
+Billing menulis nol (F1, F2). Revisi ini mengubah dua hal:
+
+1. **Nilai bagian dokter diambil dari Medical Fee.** Saat baris tagihan dicatat, Billing menanyakan ke Medical Fee berapa persen jasa
+   yang berlaku untuk pelaksana dan tarif itu, lalu menulis hasilnya. Bila Medical Fee tidak punya aturan atau sedang tidak dapat
+   dijangkau, nilainya nol dan tagihan **tetap** tercatat dan tetap dapat difinalisasi.
+2. **Kasir dapat menandai entri bebas sebagai layanan berjasa** dan menunjuk pelaksananya. Tanpa pelaksana, entri berjasa ditolak.
+
+**Contoh.** Kasir mencatat "Konsultasi dokter spesialis" dari katalog tarif seharga Rp 500.000 untuk dr. Rina, ditandai berjasa.
+Medical Fee menjawab 40%. Baris tersimpan dengan pelaksana dr. Rina dan bagian dokter Rp 200.000. Kalau Medical Fee belum punya aturan
+untuk tarif itu, baris tetap tersimpan dengan bagian dokter Rp 0, dan Medical Fee mencatatnya di daftar layanan yang belum dapat dihitung.
+
+### 25.2 Batas cakupan revisi ini
+
+| Masuk revisi 2.4 | Tidak masuk, beserta sebabnya |
+| --- | --- |
+| Entri `ADHOC_CATALOG` (`POST invoices/catalog-charges`) dan `ADHOC` (`POST invoices/other-charges`) yang ditandai berjasa | Sumber klinis (`PROCEDURE`, `LABORATORY`, `OPERATING_ROOM`, dst.). `BKC-DEC-176` sudah memutuskan pelaksananya datang dari fakta modul sumber, tetapi pemilik modul sumber belum mengonfirmasi (`BKC-OQ-148`). Epic-nya `OPEN DECISION` (`04-prd-to-mvp.md` revisi 2.4) |
+| Port pemanggilan Medical Fee beserta implementasi bawaan yang selalu menjawab "tidak tersedia" | Implementasi port yang sungguhan. Itu milik Medical Fee (`BE-MDF-016`), karena hanya Medical Fee yang tahu cara memilih baris tarif |
+| Kolom pelaksana dan jejak asal nilai `DoctorShare` pada `BilInvoiceItem` | Perubahan `BilApHandoff` (`BKC-DEC-173`: tidak berubah) |
+| Diskon dokter atas `DoctorShare` yang kini terisi | Perubahan aturan diskon (`BKC-DEC-174`: aturan yang ada dipakai apa adanya) |
+| — | Penutupan jalur ketik `DoctorShare` pada `POST invoices/from-source` di luar Rawat Jalan/Rawat Inap. `BKC-OQ-143` dicabut pemilik; perilaku itu **tidak diubah**. Pertentangannya dengan `BKC-DEC-170` diangkat sebagai `BKC-OQ-149` (25.11) |
+
+### 25.3 Bounded context dan kepemilikan
+
+| Hal | Pemilik | Keterangan |
+| --- | --- | --- |
+| `BilInvoiceItem` beserta kolom barunya | Billing | Billing tetap satu-satunya penulis (`BKC-DEC-169`) |
+| Aturan tarif sharing dan cara memilih barisnya | Medical Fee (`MdfSharingRule`, `MdfSharingAgreement`) | Billing **tidak** membaca tabel Medical Fee secara langsung (bentuk C ditolak, `MDF-INTEGRATION-1.0` §4.2) |
+| Identitas dokter dan tenaga kerja | HR (`MstDoctor`, `MstWorkforceProfile`) | Billing hanya memvalidasi keberadaannya; tanpa kunci asing (`BKC-DEC-178`) |
+| Kode peran pelaksana | Medical Fee (`MstMedicalFeeRole`, sudah ada di source sejak `ecddd8f8`) | Billing hanya memvalidasi bentuk kode, bukan keberadaannya (25.6) |
+| Utang jasa medis | Finance lewat `MdfFinanceHandoff` | `BilApHandoff` tetap rujukan kesiapan (`BKC-DEC-173`) |
+
+Invariant yang dijaga revisi ini:
+
+| ID | Invariant |
+| --- | --- |
+| `INV-MF-1` | Kegagalan atau ketiadaan Medical Fee **tidak pernah** membuat pencatatan baris tagihan gagal (`BKC-DEC-169`) |
+| `INV-MF-2` | `DoctorShare` tidak pernah melebihi nilai kotor baris (aturan lama, F4) |
+| `INV-MF-3` | Baris berjasa selalu punya pelaksana dan jenisnya; baris tidak berjasa tidak punya pelaksana (`BKC-DEC-172`) |
+| `INV-MF-4` | Dua pelaksana berbeda **tidak pernah** digabung dalam satu baris tagihan (25.7) |
+| `INV-MF-5` | Setiap nilai `DoctorShare` yang ditulis jalur baru dapat dijelaskan asalnya: berasal dari aturan mana, atau mengapa nol (25.5) |
+
+### 25.4 Keputusan desain
+
+| ID | Keputusan | Alasan | Trace |
+| --- | --- | --- | --- |
+| `BKC-DES-093` | Billing memanggil Medical Fee lewat **port in-process** `IBillingDoctorShareResolver` yang didefinisikan Billing, bukan lewat panggilan HTTP ke `GET medical-fee-management/sharing-rules/resolve`. Semantik masukan dan jawabannya identik dengan endpoint itu | Kedua modul berjalan dalam satu aplikasi; memanggil HTTP ke diri sendiri menambah kegagalan jaringan tanpa manfaat. Preseden: Billing sudah memakai `InsuranceCoverageService` milik Clinical Management secara in-process. Kontrak charge Billing sejak `BIL-INTEGRATION-0.4` mengizinkan transport in-process selama semantiknya terkunci. **Catatan untuk approval:** `BKC-DEC-169` menyebut endpoint; desain ini mempertahankan semantiknya, bukan jalurnya | `BKC-DEC-169` |
+| `BKC-DES-094` | Billing mendaftarkan implementasi bawaan `NullBillingDoctorShareResolver` yang selalu menjawab `Unavailable`. Medical Fee menggantinya dengan implementasinya sendiri saat `BE-MDF-016` dikerjakan | Billing dapat dirilis lebih dulu tanpa menunggu Medical Fee. Sebelum Medical Fee siap, perilakunya persis seperti hari ini: `DoctorShare` nol | `BKC-DEC-169`, `BKC-DEC-170` |
+| `BKC-DES-095` | Pemanggilan dilakukan **sebelum** transaksi Billing dibuka. Bila pemanggil sudah memegang transaksi (jalur check-in MCU, `BE-MCU-013`), pemanggilan **dilewati** dan hasilnya `NOT_APPLICABLE` | Di PostgreSQL, satu perintah yang gagal di dalam transaksi membatalkan seluruh transaksi. Bila pembacaan Medical Fee gagal di dalam transaksi Billing, baris tagihan ikut gagal dan `INV-MF-1` dilanggar | `BKC-DEC-169` |
+| `BKC-DES-096` | `DoctorShare` = nilai kotor × persentase / 100, dibulatkan 2 desimal (`MidpointRounding.AwayFromZero`, sama dengan `BillingCalculationService.Money`), lalu dibatasi tidak melebihi nilai kotor yang **dibulatkan ke bawah** 2 desimal | Nilai kotor dapat bersatuan 4 desimal (`Quantity` presisi 4). Pembulatan biasa dapat menghasilkan nilai sedikit di atas nilai kotor dan ditolak `CK_BilInvoiceItem_Amounts`. Contoh: 0,5 × Rp 20.010,01 = Rp 10.005,005; 100% dibulatkan menjadi Rp 10.005,01, melebihi nilai kotor; batas memotongnya menjadi Rp 10.005,00 | `BKC-DEC-175`, F4 |
+| `BKC-DES-097` | Dua kolom jejak ditambahkan: `DoctorShareResolution` dan `DoctorShareSharingRuleId` | Tanpa keduanya, `DoctorShare` nol tidak dapat dibedakan antara "tidak ada aturan" dan "Medical Fee sedang tidak terjangkau", padahal yang kedua pulih hanya lewat pembaruan sumber (`BKC-DEC-177`). **Penambahan di luar bunyi `BKC-DEC-171`**, diangkat untuk approval | `BKC-DEC-170`, `BKC-DEC-177`; janji Medical Fee "angka selalu dapat dijelaskan asalnya" |
+| `BKC-DES-098` | Penggabungan baris katalog yang sudah ada (`AddCatalogChargeAsync` menambah kuantitas baris aktif bertarif sama) hanya terjadi bila penanda berjasa, jenis pelaksana, pelaksana, dan peran **seluruhnya sama**. Bila berbeda, baris baru dibuat | Hari ini baris digabung hanya berdasarkan tarif atau nama (`BillingInvoiceService.cs:1391-1395`). Tanpa aturan ini, entri dr. Rina dan dr. Budi untuk tarif yang sama menjadi satu baris berpelaksana dr. Rina, dan jasa dr. Budi hilang tanpa jejak — persis kehilangan yang ingin dihentikan `MF-DEC-017` | `BKC-DEC-171`, `INV-MF-4` |
+| `BKC-DES-099` | Hash isi permintaan (`ComputePayloadHash`) menambahkan ruas pelaksana **hanya bila** `IsFeeBearing = true` | Permintaan lama dan permintaan tidak berjasa menghasilkan hash yang sama persis seperti sebelum revisi ini. Tanda terima lama tetap cocok saat permintaan dikirim ulang, dan tidak muncul konflik palsu `409` | `BKC-DEC-172` |
+| `BKC-DES-100` | Nilai `DoctorShare` hasil Medical Fee **tidak** ikut hash dan **tidak** diambil dari `request.DoctorShare`. Jalur kasir tetap mengirim `request.DoctorShare = 0` | Hasil Medical Fee dapat berbeda antara percobaan pertama dan pengiriman ulang (mis. percobaan pertama `UNAVAILABLE`). Memasukkannya ke hash membuat pengiriman ulang yang sah dianggap isi berbeda | `BKC-DEC-169`, `BKC-DEC-177` |
+| `BKC-DES-101` | Pada pembaruan sumber (versi lebih baru), `DoctorShare` dan kedua kolom jejak **ditulis ulang** dari hasil pemanggilan baru. Salinan pada tinjauan item pengganti (`BillingSupersededItemReviewService`) dan retur obat (`BillingDrugReturnService`) **menyalin** keenam kolom baru dari item asal, tanpa memanggil Medical Fee | `BKC-DEC-177` | `BKC-DEC-177` |
+| `BKC-DES-102` | Kolom pelaksana pada `UpsertChargeRequest` hanya diterima untuk `SourceDomain` `ADHOC` dan `ADHOC_CATALOG`. Untuk domain lain ditolak `422` sampai `BKC-OQ-148` ditutup | Mencegah produsen klinis mulai mengirim pelaksana sebelum kontraknya disepakati pemiliknya; bentuknya pada sumber klinis bisa berbeda | `BKC-DEC-176`, `BKC-OQ-148` |
+| `BKC-DES-103` | Kode peran divalidasi bentuknya saja (huruf besar, angka, garis bawah, maksimal 30 karakter), **tidak** dicocokkan ke `MstMedicalFeeRole` | Kode peran milik Medical Fee. Mencocokkannya membuat Billing bergantung pada tabel Medical Fee yang migration-nya belum tentu terpasang. Peran tak dikenal ditangani Medical Fee sebagai layanan belum dapat dihitung | `BKC-DEC-171` |
+
+### 25.5 Port ke Medical Fee — `IBillingDoctorShareResolver`
+
+**Masukan** (`BillingDoctorShareQuery`, record):
+
+| Field | Tipe | Isi | Padanan parameter `resolve` |
+| --- | --- | --- | --- |
+| `PerformerType` | `string` | `DOCTOR` atau `WORKFORCE` | `payeeType` = `Doctor` / `Workforce` (dipetakan) |
+| `PerformerReferenceId` | `Guid` | Rujukan pelaksana | `payeeReferenceId` |
+| `TariffId` | `Guid` | Tarif baris | `tariffId` |
+| `ServiceDate` | `DateOnly` | Tanggal `OccurredAt` menurut zona Asia/Jakarta | `serviceDate` |
+| `RoleCode` | `string?` | Kosong berarti peran utama | `roleCode` |
+
+**Jawaban** (`BillingDoctorShareResolution`, record):
+
+| Field | Tipe | Isi |
+| --- | --- | --- |
+| `Outcome` | `string` | `Resolved`, `NoRule`, `Unavailable` |
+| `SharingPercentage` | `decimal?` | 0–100, terisi hanya bila `Resolved` |
+| `SharingRuleId` | `Guid?` | Terisi hanya bila `Resolved` |
+
+Implementasi **wajib** tidak melempar exception: kesalahan apa pun diubah menjadi `Unavailable`. Billing tetap membungkus pemanggilan
+dengan penangkap kesalahan dan batas waktu `BillingDoctorShare:TimeoutMilliseconds` (bawaan 2000) sebagai pertahanan kedua.
+
+**Kapan dipanggil** (sebelum transaksi, `BKC-DES-095`):
+
+| Keadaan | Dipanggil? | `DoctorShareResolution` | `DoctorShare` |
+| --- | :---: | --- | --- |
+| Baris tidak berjasa | Tidak | `NOT_APPLICABLE` | 0 |
+| Berjasa tetapi tanpa `TariffId` (entri bebas `ADHOC` tidak punya tarif) | Tidak | `NOT_APPLICABLE` | 0 |
+| Pemanggil sudah membuka transaksi | Tidak | `NOT_APPLICABLE` | 0 |
+| Berjasa, bertarif, `Resolved` | Ya | `MEDICAL_FEE` | Rumus `BKC-DES-096` |
+| Berjasa, bertarif, `NoRule` | Ya | `NO_RULE` | 0 |
+| Berjasa, bertarif, `Unavailable`, habis waktu, atau kesalahan | Ya | `UNAVAILABLE` | 0, dan peristiwa audit `BillingInvoice.DoctorShareUnavailable` |
+| Pengiriman ulang dengan `Idempotency-Key` dan isi sama | Hasil diabaikan | Tidak berubah | Tidak berubah |
+
+Baris lama (sebelum migration) memiliki `DoctorShareResolution = NULL`, yang berarti "ditulis sebelum revisi 2.4".
+
+**Catatan untuk Medical Fee.** Entri bebas `ADHOC` tidak punya tarif, sedangkan parameter `tariffId` pada `MDF-INTEGRATION-1.0` §4.3 wajib.
+Akibatnya bagian dokter entri bebas berjasa selalu nol di Billing; Medical Fee tetap menerima pelaksananya lewat `BIL-INT-024` dan
+menentukan sendiri perlakuannya saat periode dihitung. Dicatat `BKC-OQ-150` untuk pemilik Medical Fee, tidak memblokir Billing.
+
+### 25.6 Class diagram
+
+```mermaid
+classDiagram
+    class BilInvoiceItem {
+        <<Diperbarui>>
+        +Guid Id
+        +string SourceDomain
+        +Guid? TariffId
+        +decimal Quantity
+        +decimal UnitPrice
+        +decimal DoctorShare
+        +bool IsFeeBearing
+        +string? PerformerType
+        +Guid? PerformerReferenceId
+        +string? PerformerRoleCode
+        +string? DoctorShareResolution
+        +Guid? DoctorShareSharingRuleId
+    }
+    class BillingInvoiceService {
+        <<Diperbarui>>
+        +AddCatalogChargeAsync()
+        +AddOtherChargeAsync()
+        +UpsertChargeAsync()
+        -ResolveDoctorShareAsync()
+        -ValidatePerformerAsync()
+    }
+    class IBillingDoctorShareResolver {
+        <<Baru, interface>>
+        +ResolveAsync(BillingDoctorShareQuery) BillingDoctorShareResolution
+    }
+    class NullBillingDoctorShareResolver {
+        <<Baru>>
+        +ResolveAsync() Unavailable
+    }
+    class MedicalFeeDoctorShareResolver {
+        <<Milik Medical Fee, BE-MDF-016>>
+    }
+    class BillingSupersededItemReviewService {
+        <<Diperbarui>>
+    }
+    class BillingDrugReturnService {
+        <<Diperbarui>>
+    }
+    class MstDoctor {
+        <<Sudah ada, HR>>
+    }
+    class MstWorkforceProfile {
+        <<Sudah ada, HR>>
+    }
+    BillingInvoiceService --> IBillingDoctorShareResolver : memanggil sebelum transaksi
+    IBillingDoctorShareResolver <|.. NullBillingDoctorShareResolver
+    IBillingDoctorShareResolver <|.. MedicalFeeDoctorShareResolver
+    BillingInvoiceService --> BilInvoiceItem : menulis
+    BillingInvoiceService ..> MstDoctor : validasi PerformerType DOCTOR
+    BillingInvoiceService ..> MstWorkforceProfile : validasi PerformerType WORKFORCE
+    BillingSupersededItemReviewService --> BilInvoiceItem : menyalin kolom baru
+    BillingDrugReturnService --> BilInvoiceItem : menyalin kolom baru
+```
+
+### 25.7 Penjelasan class
+
+| Class | Status | Lokasi file | Tanggung jawab | Transaksi |
+| --- | --- | --- | --- | --- |
+| `BilInvoiceItem` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceItem.cs` | Enam properti baru (25.9). Tambah kelas konstanta `BillingPerformerTypes` (`DOCTOR`, `WORKFORCE`) dan `BillingDoctorShareResolutions` (`MEDICAL_FEE`, `NO_RULE`, `UNAVAILABLE`, `NOT_APPLICABLE`) di berkas yang sama, mengikuti pola `BillingInvoiceItemStatuses` | — |
+| `BilInvoiceItemConfiguration` | Diperbarui | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInvoiceItemConfiguration.cs` | Panjang kolom, bawaan `IsFeeBearing = false`, empat check constraint baru (25.9) | — |
+| `IBillingDoctorShareResolver` | Baru | `Areas/HealthServices/BillingManagement/Billing/Services/IBillingDoctorShareResolver.cs` | Port; bersama record `BillingDoctorShareQuery` dan `BillingDoctorShareResolution` di berkas yang sama. Penyimpangan sadar dari konvensi "service tanpa interface": port ini sengaja diimplementasikan modul lain, mengikuti preseden `IAdministrationFeeCalculationService` | — |
+| `NullBillingDoctorShareResolver` | Baru | `Areas/HealthServices/BillingManagement/Billing/Services/NullBillingDoctorShareResolver.cs` | Selalu `Unavailable` | Tidak menyentuh database |
+| `BillingInvoiceService` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceService.cs` | (a) `AddCatalogChargeAsync` dan `AddOtherChargeAsync` meneruskan kolom pelaksana ke `UpsertChargeRequest`; (b) aturan penggabungan `BKC-DES-098` dan pemeriksaan replay awal pada `AddCatalogChargeAsync` membandingkan kolom pelaksana item tanda terima (beda → `409`); (c) `UpsertChargeAsync` memvalidasi pelaksana (`BIL-VAL-161`..`166`), memanggil `ResolveDoctorShareAsync` sebelum `BeginTransactionAsync`, lalu `ApplySource` menerima hasilnya sebagai parameter terpisah; (d) `ComputePayloadHash` sesuai `BKC-DES-099`; (e) `MapDetail` mengisi enam field respons baru dan nama pelaksana | Pemanggilan Medical Fee di luar transaksi; selebihnya transaksi Serializable yang sudah ada |
+| `BillingSupersededItemReviewService` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Services/BillingSupersededItemReviewService.cs` | Salinan item (`BillingSupersededItemReviewService.cs:427-453`) ikut menyalin enam kolom baru | Transaksi yang sudah ada |
+| `BillingDrugReturnService` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Services/BillingDrugReturnService.cs` | Item pengganti retur (`:44-55`) ikut menyalin enam kolom baru. Item farmasi hari ini tidak berjasa, jadi praktis menyalin nilai kosong; disalin agar aturan `BKC-DES-101` seragam | Transaksi yang sudah ada |
+| `BillingManagementServiceCollectionExtensions` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` | `TryAddScoped<IBillingDoctorShareResolver, NullBillingDoctorShareResolver>()`. `TryAdd` memastikan pendaftaran Medical Fee (`AddScoped`) tidak tertimpa urutan pendaftaran | — |
+| `BillingInvoiceDtos` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInvoiceDtos.cs` | Field baru pada `AddCatalogChargeRequest`, `AddOtherChargeRequest`, `UpsertChargeRequest`, dan respons item invoice (`contracts/api-contract.md` revisi 2.4) | — |
+| `BillingInvoicesController` | Sudah ada | `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingInvoicesController.cs` | Tidak berubah. Atribut akses tetap | — |
+| `MedicalFeeDoctorShareResolver` | Milik Medical Fee | Ditentukan blueprint Medical Fee | Implementasi port; **di luar** revisi ini | — |
+
+### 25.8 Arsitektur folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── BillingManagementServiceCollectionExtensions.cs   # Diperbarui — pendaftaran port bawaan
+├── Dtos/
+│   └── BillingInvoiceDtos.cs                          # Diperbarui — field pelaksana dan jejak
+├── Models/
+│   └── BilInvoiceItem.cs                              # Diperbarui — enam properti, dua kelas konstanta
+└── Services/
+    ├── BillingInvoiceService.cs                       # Diperbarui
+    ├── BillingSupersededItemReviewService.cs          # Diperbarui — salin kolom baru
+    ├── BillingDrugReturnService.cs                    # Diperbarui — salin kolom baru
+    ├── IBillingDoctorShareResolver.cs                 # Baru — port + dua record
+    └── NullBillingDoctorShareResolver.cs              # Baru
+Repositories/Configurations/HealthServices/BillingManagement/Billing/
+└── BilInvoiceItemConfiguration.cs                     # Diperbarui — kolom dan check constraint
+Migrations/
+└── <timestamp>_AddBilInvoiceItemPerformerAndDoctorShareTrace.cs   # Baru — RENCANA, tidak dibuat pass ini
+```
+
+Utang teknis yang tercatat, **tidak** dirapikan di sini: folder `Dtos/` (bukan `DTOs/` seperti pola standar) dan namespace
+`...Billing.Configurations` pada berkas di bawah `Repositories/Configurations/` (namespace tidak mengikuti folder).
+
+### 25.9 Status model dan kolom
+
+| Tabel | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `BilInvoiceItem` | Diperbarui | Enam kolom baru di bawah | Satu migration skema |
+| `BilApHandoff`, `BilDiscountApplication` | Sudah ada | Tidak ada | Tidak ada |
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Validasi | Sensitif |
+| --- | --- | :---: | --- | --- | --- | :---: |
+| `IsFeeBearing` | `boolean` | Ya | `false` | — | — | Tidak |
+| `PerformerType` | `varchar(20)` | Bila `IsFeeBearing` | `NULL` | 20 | `DOCTOR` / `WORKFORCE` | Tidak |
+| `PerformerReferenceId` | `uuid` | Bila `IsFeeBearing` | `NULL` | — | Ada di `MstDoctor` / `MstWorkforceProfile`, tidak dihapus, aktif. Tanpa FK | Tidak |
+| `PerformerRoleCode` | `varchar(30)` | Tidak | `NULL` | 30 | `^[A-Z0-9_]+$` | Tidak |
+| `DoctorShareResolution` | `varchar(20)` | Tidak | `NULL` (baris lama) | 20 | `MEDICAL_FEE` / `NO_RULE` / `UNAVAILABLE` / `NOT_APPLICABLE` | Tidak |
+| `DoctorShareSharingRuleId` | `uuid` | Tidak | `NULL` | — | Terisi hanya bila `MEDICAL_FEE`. Tanpa FK | Tidak |
+
+Check constraint baru:
+
+| Nama | Isi |
+| --- | --- |
+| `CK_BilInvoiceItem_PerformerRequired` | `NOT "IsFeeBearing" OR ("PerformerType" IS NOT NULL AND "PerformerReferenceId" IS NOT NULL)` |
+| `CK_BilInvoiceItem_PerformerOnlyWhenFeeBearing` | `"IsFeeBearing" OR ("PerformerType" IS NULL AND "PerformerReferenceId" IS NULL AND "PerformerRoleCode" IS NULL)` |
+| `CK_BilInvoiceItem_PerformerType` | `"PerformerType" IS NULL OR "PerformerType" IN ('DOCTOR','WORKFORCE')` |
+| `CK_BilInvoiceItem_DoctorShareResolution` | `"DoctorShareResolution" IS NULL OR ("DoctorShareResolution" IN ('MEDICAL_FEE','NO_RULE','UNAVAILABLE','NOT_APPLICABLE') AND ("DoctorShareResolution" = 'MEDICAL_FEE') = ("DoctorShareSharingRuleId" IS NOT NULL))` |
+
+Index baru: tidak ada (lihat 25.13). Check constraint lama `CK_BilInvoiceItem_Amounts` tidak berubah.
+
+### 25.10 Rencana migration
+
+| Urutan | Nama | Isi | Tanpa downtime? | Data lama | Cara mundur |
+| --- | --- | --- | :---: | --- | --- |
+| 1 | `<timestamp>_AddBilInvoiceItemPerformerAndDoctorShareTrace` | Enam kolom dan empat check constraint pada `public."BilInvoiceItem"` | Ya. Kolom nullable dan kolom `boolean` berbawaan konstan hanya mengubah metadata pada PostgreSQL 11 ke atas. Check constraint memeriksa seluruh baris sekali; seluruh baris lama lolos karena `IsFeeBearing = false` dan kolom lain `NULL` | Tidak diisi. `DoctorShareResolution = NULL` berarti "sebelum revisi 2.4" | `Down` menghapus constraint lalu kolom. Aman selama belum ada baris berjasa; bila sudah ada, data pelaksana hilang dan Medical Fee kehilangan rujukannya, jadi mundur harus disetujui pemilik |
+
+Migration ini **tidak** dibuat dan **tidak** dijalankan oleh pass desain. Ia butuh otorisasi eksplisit terpisah dari pemilik.
+Urutan terhadap migration lain yang belum dijalankan (`MVP-36`, `MVP-37`, migration revisi 2.3): tidak bergantung; menyentuh tabel yang sama
+dengan migration revisi 2.3 hanya bila migration itu juga menyentuh `BilInvoiceItem` — diperiksa ulang saat migration dibuat.
+
+### 25.11 Pertanyaan yang lahir dari desain
+
+| ID | Pertanyaan | Owner | Memblokir |
+| --- | --- | --- | --- |
+| `BKC-OQ-149` | **Pertentangan `BKC-DEC-170` dengan jalur `from-source`.** `BKC-DEC-170` melarang jalur ketik manual, tetapi `POST invoices/from-source` untuk kunjungan `Emergency`, `MedicalCheckup`, `Telemedicine`, `Unknown`, dan domain di luar tujuh yang diblokir masih menerima `DoctorShare` dari pemanggil (F8). `BKC-OQ-143` yang menanyakan hal ini dicabut pemilik, sehingga revisi 2.4 **tidak mengubah** perilakunya. Apakah pertentangan ini diterima, atau perlu keputusan baru? | Pemilik Billing | Tidak memblokir revisi 2.4. Memblokir klaim "tidak ada jalur ketik" sebagai benar untuk seluruh jenis kunjungan |
+| `BKC-OQ-150` | **Entri bebas tanpa tarif.** Bagian dokter entri `ADHOC` berjasa selalu nol karena `resolve` mewajibkan `tariffId` (25.5). Apakah Medical Fee menyediakan aturan tanpa tarif, atau entri bebas berjasa dihitung Medical Fee hanya saat periode? | Pemilik Medical Fee | Tidak memblokir Billing |
+| `BKC-OQ-151` | **Pelaksana berjenis `WORKFORCE` di layar kasir.** API menerima keduanya (`BKC-DEC-178`), tetapi belum diputuskan apakah kasir boleh memilih tenaga kerja non-dokter, dan dari daftar mana | Pemilik Billing | Tidak memblokir backend. Layar revisi 2.4 hanya menawarkan dokter sampai dijawab |
+| `BKC-OQ-148` | (lama, tetap terbuka) Konfirmasi pemilik Clinical, Laboratorium, dan Operating Room | Pemilik modul sumber | `OPEN DECISION` epic sumber klinis |
+
+### 25.12 Data master awal
+
+Tidak ada master baru. Konfigurasi baru `BillingDoctorShare:TimeoutMilliseconds` (bawaan 2000) dibaca dari `appsettings`; bila tidak ada,
+bawaan dipakai. Tidak ada nilai sensitif.
+
+### 25.13 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Panggilan HTTP ke `GET medical-fee-management/sharing-rules/resolve` | Satu aplikasi; lihat `BKC-DES-093` |
+| Billing membaca `MdfSharingRule` langsung | Bentuk C, ditolak `MDF-INTEGRATION-1.0` §4.2: logika pemilihan baris tarif terduplikasi |
+| Pekerjaan terjadwal penghitungan ulang `DoctorShare` | Ditolak `BKC-DEC-177` |
+| Kunci asing ke `MstDoctor` / `MstWorkforceProfile` | Rujukan polimorfik (`BKC-DEC-178`) |
+| Validasi `PerformerRoleCode` ke `MstMedicalFeeRole` | `BKC-DES-103` |
+| Index pada kolom pelaksana | Medical Fee membaca baris lewat tagihan yang sudah difinalisasi pada rentang periode (`MDF-INTEGRATION-1.0` §3), bukan lewat pelaksana. Ditinjau bila ada layar "jasa per dokter" di Billing |
+| Perubahan `BilApHandoff` | `BKC-DEC-173` |
+| Perubahan `BillingDiscountService` | `BKC-DEC-174`: aturan diskon dokter dipakai apa adanya; ia otomatis bekerja begitu `DoctorShare` bukan nol |
+| Kolom pelaksana untuk sumber klinis | `BKC-OQ-148` |
+| Tabel riwayat hasil Medical Fee per percobaan | Peristiwa audit `BillingInvoice.DoctorShareUnavailable` sudah cukup untuk penelusuran; tabel baru tidak membawa keputusan bisnis apa pun |
+
+### 25.14 Test strategy, observability, dan rollout
+
+| Hal | Isi |
+| --- | --- |
+| Test unit/integrasi | `BIL-AT-231`..`248` (`testing/acceptance-test-matrix.md` revisi 2.4). Port diganti test double yang dapat menjawab `Resolved`, `NoRule`, `Unavailable`, melempar exception, dan lambat melewati batas waktu |
+| Observability | Peristiwa audit `BillingInvoice.DoctorShareUnavailable` (Id item, Id invoice, `PerformerType`, korelasi; **tanpa** nama pelaksana). `DoctorShareResolution` dapat dihitung untuk pemantauan |
+| Rollout | Migration → kode Billing dengan port bawaan (perilaku tetap nol) → layar kasir → implementasi port oleh Medical Fee. Setiap langkah dapat dirilis sendiri |
+| Rollback | Kode dapat dikembalikan tanpa migration mundur; kolom baru diabaikan kode lama karena nullable dan berbawaan |
+| Privasi | Pelaksana bukan data medis pasien. Persentase sharing dan `DoctorShare` adalah data penghasilan tenaga medis; tidak dicatat ke log selain angka yang sudah tersimpan di tabel |
+
+Trace: `BKC-DEC-168`..`178`, `BKC-AC-114`..`126`, `INV-MF-1`..`5`, `BIL-VAL-161`..`168`, `BIL-INT-023`..`025`, `BIL-AT-231`..`248`.

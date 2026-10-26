@@ -7,6 +7,7 @@
 | Menjawab | `evidence/01-permintaan-untuk-owner-billing.md` — lima pertanyaan |
 | Menutup | `MF-CQ-08` (pertanyaan 1–3) dan `MF-CQ-05` (pertanyaan 4–5) |
 | Membuka | `BE-MDF-016` dan `BE-MDF-015` |
+| Status pertanyaan | **`MF-CQ-08` dan `MF-CQ-05` DITUTUP 26 Oktober 2026** (`00-interview-decisions.md` bagian "Penutupan `MF-CQ-05` dan `MF-CQ-08`"). Keputusan Billing: `BKC-DEC-168`..`178`; desain Billing revisi `2.4` approved |
 | Status | **Jawaban bagian 1 disetujui owner Billing; butir bagian 2.3 menunggu keputusan owner Billing.** Belum menjadi keputusan blueprint Billing (`BKC-DEC-*`) maupun task `BE-BKC-*` |
 | Persetujuan owner Billing | Pemilik modul Billing, pernyataan langsung dalam sesi, 26 Oktober 2026. Pemilik memilih bentuk A, nol bila tanpa aturan, dan pelaksana wajib hanya bila ditandai berjasa, lalu menyatakan "saya owner billing, lanjutkan pekerjaannya untuk bagian billing". Persetujuan ini **bukan** otorisasi migration atau implementasi kode |
 
@@ -48,6 +49,7 @@ Usulan bentuk; nama final milik Billing.
 | `IsFeeBearing` | `bool`, default `false` | Penanda kasir bahwa layanan berjasa |
 | `PerformerReferenceId` | `Guid?` | **Wajib** bila `IsFeeBearing = true`; harus menunjuk tenaga medis yang ada |
 | `PerformerRoleCode` | `string?` | Opsional; kosong dianggap peran utama |
+| `PerformerType` | `string?` | **Wajib** bersama `PerformerReferenceId` (`BKC-DEC-178`). Menyatakan jenis rujukan, mis. `DOCTOR` atau `WORKFORCE`, karena Operating Room, Clinical, dan Laboratorium memakai identitas pelaksana yang berbeda. Nilai final dikunci desain Billing |
 
 Entri `IsFeeBearing = true` tanpa pelaksana ditolak dengan `422` saat dicatat. Entri biasa (materai, administrasi, sewa) tidak berubah.
 

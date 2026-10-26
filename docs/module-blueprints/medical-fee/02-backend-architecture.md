@@ -109,8 +109,8 @@ Keempatnya menyalin pola yang sudah berjalan, bukan menciptakan yang baru.
 
 | Rumpun | Menunggu | Yang sudah dirancang |
 |---|---|---|
-| Arah alir nilai jasa ke `BilInvoiceItem.DoctorShare` | `MF-CQ-08` — owner Billing | Bentuk kontraknya pada `contracts/integration-contract.md`; mekanisme teknisnya menunggu jawaban |
-| Jasa dari entri bebas kasir | `MF-CQ-05` — owner Billing | Perlakuan sumber `ADHOC` dirancang; menunggu field pelaksana |
+| Arah alir nilai jasa ke `BilInvoiceItem.DoctorShare` | `MF-CQ-08` — **ditutup 26 Oktober 2026** | Billing memilih bentuk A lewat port in-process `IBillingDoctorShareResolver`; Medical Fee mengimplementasikannya (`BE-MDF-016`). Belum ditulis ulang pada `MDF-DES-*` maupun kontrak; menunggu penguncian owner |
+| Jasa dari entri bebas kasir | `MF-CQ-05` — **ditutup 26 Oktober 2026** | Billing menambah `IsFeeBearing`, `PerformerType`, `PerformerReferenceId`, `PerformerRoleCode`; menunggu migration Billing (`BE-BKC-089`) |
 | Pembagian tim di luar kamar operasi | `MF-CQ-07` — Clinical dan Laboratory | Bentuk data peran dirancang; menunggu modul sumber mencatat timnya |
 | Jasa radiologi | `MF-DEC-015` — sengaja ditunda | Tidak dirancang sama sekali pada revisi ini |
 

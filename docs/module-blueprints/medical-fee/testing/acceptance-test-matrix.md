@@ -169,8 +169,8 @@ itu ada.
 
 | Tidak diuji | Alasan |
 |---|---|
-| Alir `DoctorShare` ke Billing | `MDF-11` `OPEN DECISION`, `MF-CQ-08` |
-| Jasa dari entri bebas kasir | `MDF-07` `OPEN DECISION`, `MF-CQ-05` |
+| Alir `DoctorShare` ke Billing | `MDF-11` `OPEN DECISION`; `MF-CQ-08` ditutup 26 Oktober 2026. Skenario ujung-ke-ujung ada di `billing-kasir` `BIL-AT-231`..`248` |
+| Jasa dari entri bebas kasir | `MDF-07` `OPEN DECISION`; `MF-CQ-05` ditutup 26 Oktober 2026. Skenario di sisi Billing: `BIL-AT-237`..`239`, `245`, `246` |
 | Pembagian tim di luar kamar operasi | Menunggu `MF-CQ-07` |
 | Perhitungan jasa radiologi | Ditunda `MF-DEC-015` |
 | Potongan PPh 21 dan kasbon | Milik Finance (`FIN-BP-001`) |

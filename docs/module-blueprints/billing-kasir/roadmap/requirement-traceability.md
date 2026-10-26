@@ -970,3 +970,39 @@ contract_versions: BIL-API-2.0, BIL-STATE-2.0, BIL-VALIDATION-2.0, BIL-INTEGRATI
 | Pertanyaan terbuka yang tidak memblokir | `BKC-OQ-138` (aturan admin sekali per hari), `BKC-OQ-139` (instrumen koreksi pasca-tutup, Finance/AR), `BKC-OQ-140` (kredit refund di Finance intake), `BKC-OQ-141` (tinjau ulang `BKC-DEC-166`), `BKC-OQ-136` (jaminan transfer resmi, Registrasi/Rawat Inap) |
 | Gerbang manusia | `{OTORISASI-MIG-1}` dan `{OTORISASI-MIG-2}` belum diberikan. Komunikasi tiga perubahan perilaku ke kasir sebelum `BE-BKC-084` dirilis |
 | Tidak direncanakan di sini | `MVP-36`, `MVP-37` (gelombang tersendiri); `BKC-DES-092` (dicabut) |
+
+---
+
+## Gelombang Revisi 2.4 — Jasa Medis pada Item Tagihan (`MVP-38`)
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `2.4` · **approved** 26 Oktober 2026 |
+| Contract version | `BIL-API-2.1`, `BIL-STATE-2.0`, `BIL-VALIDATION-2.1`, `BIL-INTEGRATION-1.9`, `BIL-PERMISSION-1.7`, `BIL-TEST-2.2`, `BIL-CALCULATION-1.0` |
+| Source SHA | Backend `ecddd8f8` · Frontend `e2c17153b` |
+| Hash masukan | `blueprint-manifest.md` `input_hashes_revision_2_4` |
+
+| Requirement | Keputusan | Desain / kontrak | Task backend | Task frontend | Bukti (skenario) | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `FR-BKC-286` Kolom pelaksana dan jejak `DoctorShare` | `BKC-DEC-171`, `178` | `BKC-DES-097`; kamus data revisi `2.4` | `BE-BKC-089` | — | Model snapshot terverifikasi + berkas migration `20261026150000_AddBilInvoiceItemPerformerAndDoctorShareTrace.cs` | ✅ Selesai 26 Okt 2026 ([Laporan](../task/report/backend/BE-BKC-089.md)) |
+| `FR-BKC-287` Port Medical Fee + implementasi bawaan | `BKC-DEC-169` | `BKC-DES-093`, `094`; `BIL-INT-023` | `BE-BKC-090` | — | `IBillingDoctorShareResolver.cs`, `NullBillingDoctorShareResolver.cs`, registrasi DI `TryAddScoped` | ✅ Selesai 26 Okt 2026 ([Laporan](../task/report/backend/BE-BKC-090.md)) |
+| `FR-BKC-288` Entri kasir menerima pelaksana | `BKC-DEC-171`, `172`, `176`, `178` | `BKC-DES-099`, `102`, `103`; `BIL-VAL-161`..`166` | `BE-BKC-091` | `FE-BKC-047`, `FE-BKC-048` | `BIL-AT-237`, `238`, `239`, `245`, `248` | ⛔ lewat `BE-BKC-089` |
+| `FR-BKC-289` `DoctorShare` dari Medical Fee | `BKC-DEC-168`..`170`, `175`, `177` | `BKC-DES-095`, `096`, `100`, `101`; `BIL-INT-023`; `BIL-VAL-168` | `BE-BKC-092` | — | `BIL-AT-231`..`235`, `242`, `243`, `247` | ⛔ lewat `BE-BKC-091` |
+| `FR-BKC-290` Tidak menggabung dua pelaksana | `BKC-DEC-171` | `BKC-DES-098`; `BIL-VAL-167` | `BE-BKC-091` | `FE-BKC-048` | `BIL-AT-246` | ⛔ lewat `BE-BKC-089` |
+| `FR-BKC-291` Salinan item membawa kolom baru | `BKC-DEC-177` | `BKC-DES-101` | `BE-BKC-093` | — | `BIL-AT-244` | ⛔ lewat `BE-BKC-089` |
+| `FR-BKC-292` Respons dan audit | `BKC-DEC-169`, `171` | `BIL-API-2.1`; `BIL-PERMISSION-1.7` | `BE-BKC-091` (pelaksana), `BE-BKC-092` (asal nilai, audit) | `FE-BKC-049` | `BIL-AT-232`, `237` | ⛔ lewat `BE-BKC-089` |
+| `FR-BKC-293` Layar `BIL-SCR-46`..`48` | `BKC-DEC-171`, `172` | `03-frontend-architecture.md` amendment revisi `2.4` | — | `FE-BKC-047`, `048`, `049` | Uji manual + unit test frontend | ⛔ lewat `BE-BKC-091` |
+| Kriteria tanpa FR khusus: `BKC-AC-121` (`BilApHandoff` tidak berubah), `BKC-AC-122` (diskon dokter) | `BKC-DEC-173`, `174` | `BIL-INT-023` "Titik sentuh yang tidak berubah" | Diverifikasi di dalam `BE-BKC-092` | — | `BIL-AT-240`, `241` | Tidak butuh perubahan kode; dicatat agar tidak hilang |
+| `FR-BKC-294` Sumber klinis | `BKC-DEC-176` | `BIL-INT-025` | — | — | — | **`OPEN DECISION`** `BKC-OQ-148` — tidak direncanakan |
+
+### Gap dan catatan
+
+| Butir | Keadaan |
+| --- | --- |
+| Requirement tanpa task | Tidak ada untuk `FR-BKC-286`..`293`. `FR-BKC-294` sengaja tidak direncanakan |
+| `BIL-AT-240`, `241` | Tidak punya task sendiri karena perilakunya tidak berubah; diverifikasi sebagai kriteria 8 `BE-BKC-092` |
+| `BIL-AT-236` | Perilaku lama (`from-source` Rawat Jalan menolak domain klinis); diverifikasi sebagai regresi pada `BE-BKC-091` |
+| Bukti verifikasi backend | Skenario `BIL-AT-*` diverifikasi lewat proses bisnis/runtime di PostgreSQL dev, sesuai `rules/backend/TEST_POLICY.md`. Tidak adanya automated test backend **bukan** gap |
+| Gerbang manusia | `{OTORISASI-MIG-3}` belum diberikan |
+| Dependency keluar | `BE-MDF-015` ← `BE-BKC-089`, `BE-BKC-091`; `BE-MDF-016` ← `BE-BKC-090` (bentuk task Medical Fee berubah menjadi implementasi port) |
+| Pertanyaan terbuka yang tidak memblokir | `BKC-OQ-149`, `150`, `151` |

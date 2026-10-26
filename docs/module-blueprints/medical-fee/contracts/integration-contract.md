@@ -17,8 +17,8 @@
 | 3 | Laboratory | Masuk | Baca langsung | Sebagian — menunggu `MF-CQ-07` |
 | 4 | Radiology | — | — | **Ditunda** `MF-DEC-015` |
 | 5 | Billing — baca nilai layanan | Masuk | Baca langsung | Siap |
-| 6 | Billing — tulis `DoctorShare` | **Keluar** | `OPEN DECISION` | **Menunggu `MF-CQ-08`** |
-| 7 | Billing — pelaksana entri kasir | Masuk | `OPEN DECISION` | **Menunggu `MF-CQ-05`** |
+| 6 | Billing — tulis `DoctorShare` | **Keluar** | `OPEN DECISION` | `MF-CQ-08` **ditutup 26 Oktober 2026**; menunggu penguncian owner |
+| 7 | Billing — pelaksana entri kasir | Masuk | `OPEN DECISION` | `MF-CQ-05` **ditutup 26 Oktober 2026**; menunggu penguncian owner |
 | 8 | HR — kontrak kerja | Masuk | Baca + FK | Siap |
 | 9 | MasterData — tarif | Masuk | Baca + FK | Siap |
 | 10 | Finance — penyerahan hasil jasa | Keluar | Tabel handoff | Siap; Finance sudah menyesuaikan |
@@ -102,8 +102,13 @@ Medical Fee dapat berbeda dari `DoctorShare` setelah diskon dokter. Selisihnya b
 
 ## 4. Keluar — Billing, sumber `DoctorShare`
 
-> **`OPEN DECISION` — `MF-CQ-08`.** Yang tertulis di bawah adalah **bentuk yang diusulkan**,
-> bukan kesepakatan. Ia MUST NOT diimplementasikan sebelum owner Billing menjawab.
+> **`OPEN DECISION` — `MF-CQ-08` (ditutup owner Billing 26 Oktober 2026, permukaan belum dikunci).**
+> **Pembaruan:** owner Billing memilih bentuk A, tetapi diwujudkan sebagai **port in-process** `IBillingDoctorShareResolver`
+> milik Billing, bukan panggilan HTTP ke endpoint pada 4.3. Medical Fee mengimplementasikan port itu (`BE-MDF-016`). Bagian 4.2–4.3 di
+> bawah adalah teks asli dan **sudah tidak menggambarkan bentuk yang dipakai**; ia belum ditulis ulang karena penguncian permukaan
+> adalah tindakan owner Medical Fee. Rujukan: `evidence/04-balasan-owner-billing.md`; `billing-kasir` `BKC-DEC-168`..`178`,
+> `BKC-DES-093`, `BIL-INTEGRATION-1.9` `BIL-INT-023`. Teks asli: yang tertulis di bawah adalah **bentuk yang diusulkan**,
+> bukan kesepakatan. Ia MUST NOT diimplementasikan sebelum owner Billing menjawab *(syarat ini kini terpenuhi; syarat penguncian belum)*.
 
 ### 4.1 Keadaan sekarang
 
@@ -153,7 +158,11 @@ bagian 2.4): nol, kosong, atau tetap boleh diketik.
 
 ## 5. Masuk — Billing, pelaksana entri kasir
 
-> **`OPEN DECISION` — `MF-CQ-05`.**
+> **`OPEN DECISION` — `MF-CQ-05` (ditutup owner Billing 26 Oktober 2026, permukaan belum dikunci).**
+> **Pembaruan:** Billing menambah empat kolom nullable pada `BilInvoiceItem` — `IsFeeBearing`, `PerformerType`, `PerformerReferenceId`,
+> `PerformerRoleCode` — wajib hanya bila kasir menandai layanan berjasa. `PerformerType` (`DOCTOR`/`WORKFORCE`) adalah tambahan di luar
+> tabel di bawah. Baris `IsFeeBearing = false` bukan layanan berjasa dan tidak menjadi `PERFORMER_MISSING`. Tabel di bawah adalah teks
+> asli. Rujukan: `BIL-INTEGRATION-1.9` `BIL-INT-024`.
 
 Yang dibutuhkan pada entri `ADHOC` dan `ADHOC_CATALOG`:
 

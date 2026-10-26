@@ -55,8 +55,8 @@ menjadi pekerjaan yang jelas **sebelum** owner diminta menyetujuinya.
 | Pemblokir | Menahan | Pemilik | Sudah dikirim |
 |---|---|---|:---:|
 | ~~Persetujuan `MDF-DES-001`..`018`~~ | — | Yasmin | **TERCABUT 20 September 2026** |
-| `MF-CQ-08` — sumber `DoctorShare` | `BE-MDF-016` saja | Owner Billing | Ya — `evidence/01` |
-| `MF-CQ-05` — pelaksana entri kasir | `BE-MDF-015` saja | Owner Billing | Ya — `evidence/01` |
+| ~~`MF-CQ-08` — sumber `DoctorShare`~~ **DITUTUP 26 Oktober 2026** | Tidak lagi menahan `BE-MDF-016`; tersisa `BE-MDF-014` dan penguncian permukaan | Owner Billing | Dijawab — `evidence/04` |
+| ~~`MF-CQ-05` — pelaksana entri kasir~~ **DITUTUP 26 Oktober 2026** | Tidak lagi menahan `BE-MDF-015`; tersisa kolom Billing (`BE-BKC-089` ⛔, `BE-BKC-091`) | Owner Billing | Dijawab — `evidence/04` |
 | `MF-CQ-07` — pencatatan tim | Bagian tim pada `BE-MDF-009` saja | Owner Clinical + Laboratory | Ya — `evidence/03` |
 | `MF-CQ-06` — sepengetahuan HR | Tidak menahan apa pun | Owner HR | Ya — `evidence/02` |
 
@@ -82,8 +82,8 @@ ketergantungan pada owner Billing:
 
 | Permukaan | Menunggu | Bagian |
 |---|---|---|
-| Arah alir nilai jasa ke `BilInvoiceItem.DoctorShare` | `MF-CQ-08` — bentuk A, B, atau C belum dipilih | `integration-contract.md` §4 |
-| Rujukan pelaksana pada entri `ADHOC` dan `ADHOC_CATALOG` | `MF-CQ-05` | `integration-contract.md` §5 |
+| Arah alir nilai jasa ke `BilInvoiceItem.DoctorShare` | Billing memilih **bentuk A lewat port in-process** (`MF-CQ-08` ditutup 26 Oktober 2026); permukaan menunggu **penguncian oleh owner Medical Fee** | `integration-contract.md` §4 |
+| Rujukan pelaksana pada entri `ADHOC` dan `ADHOC_CATALOG` | Billing setuju (`MF-CQ-05` ditutup 26 Oktober 2026); permukaan menunggu **penguncian oleh owner Medical Fee** | `integration-contract.md` §5 |
 
 Keduanya kelak **menambah permukaan baru** yang dikunci tersendiri; kedatangannya tidak
 menaikkan versi ketujuh kontrak di atas.
@@ -108,8 +108,8 @@ Mengikuti `04-prd-to-mvp.md` bagian 4 apa adanya.
 | `MVP-3` | `MDF-08`, `MDF-09` | `BE-MDF-012`..`013` · `FE-MDF-003` | Siap setelah `MVP-2` |
 | `MVP-4` | `MDF-10` | `BE-MDF-014` · `FE-MDF-006` | Siap setelah `MVP-3`; **membuka Finance `BE-FIN-021`** |
 | `MVP-5` | `MDF-12` | `BE-MDF-017` · `FE-MDF-004` | Siap setelah `MVP-3` |
-| **Tertahan** | `MDF-07` | `BE-MDF-015` | `MF-CQ-05` — owner Billing |
-| **Tertahan** | `MDF-11` | `BE-MDF-016` | `MF-CQ-08` — owner Billing |
+| **Tertahan** | `MDF-07` | `BE-MDF-015` | Dependency, bukan lagi jawaban Billing: `BE-MDF-010`, kolom Billing `BE-BKC-089` (⛔ izin migration) dan `BE-BKC-091`, serta penguncian permukaan §5 |
+| **Tertahan** | `MDF-11` | `BE-MDF-016` | Dependency, bukan lagi jawaban Billing: `BE-MDF-014` dan penguncian permukaan §4. Port Billing sudah tersedia (`BE-BKC-090` ✅) |
 
 `MVP-0` MUST selesai lebih dulu: tanpa pendaftaran registry, file model pertama pun tidak boleh
 ditulis (`MDF-DES-002`). `MVP-1` MUST mendahului `MVP-2`: tanpa baris tarif terisi, perhitungan
@@ -137,23 +137,23 @@ Rincian lengkap 11 kolom ada di berkas anak. Tabel ini hanya indeks.
 |---|---|---|---|
 | 🟡 `BE-MDF-001` | Pendaftaran modul dan prefix `Mdf` ke registry | `MVP-0` | 🟡 Sebagian 26 Oktober 2026 — baris registry tertulis, menunggu commit pemilik: [laporan](../task/report/backend/BE-MDF-001.md) |
 | 🟡 `BE-MDF-002` | Entity daftar peran | `MVP-0` | 🟡 Sebagian 26 Oktober 2026 — source ada, build dan `T-01`..`T-06` belum dijalankan: [laporan](../task/report/backend/BE-MDF-002.md) |
-| `BE-MDF-005` | Entity kesepakatan tarif dan baris tarif | `MVP-0` | Siap |
-| `BE-MDF-007` | Entity periode, hasil jasa, rincian, koreksi, belum terhitung | `MVP-0` | Siap |
+| 🟡 `BE-MDF-005` | Entity kesepakatan tarif dan baris tarif | `MVP-0` | 🟡 Sebagian 26 Oktober 2026 — source ada, build dan `T-07`..`T-13` belum dijalankan: [laporan](../task/report/backend/BE-MDF-005.md) |
+| 🟡 `BE-MDF-007` | Entity periode, hasil jasa, rincian, koreksi, belum terhitung | `MVP-0` | 🟡 Sebagian 26 Oktober 2026 — 5 entity & EF configuration terpasang, build belum dijalankan: [laporan](../task/report/backend/BE-MDF-007.md) |
 | `BE-MDF-018` | Entity penyerahan ke Finance | `MVP-0` | Siap |
-| `BE-MDF-003` | Migration `AddMedicalFeeMasterData` | `MVP-0` | Siap — butuh otorisasi migration |
-| `BE-MDF-008` | Migration `AddMedicalFeeCalculation` | `MVP-0` | Siap — butuh otorisasi migration |
+| 🟡 `BE-MDF-003` | Migration `AddMedicalFeeMasterData` | `MVP-0` | 🟡 Sebagian 26 Oktober 2026 — migration dibuat aditif, menunggu otorisasi eksekusi DB: [laporan](../task/report/backend/BE-MDF-003.md) |
+| 🟡 `BE-MDF-008` | Migration `AddMedicalFeeCalculation` | `MVP-0` | 🟡 Sebagian 26 Oktober 2026 — migration dibuat aditif, menunggu otorisasi eksekusi DB: [laporan](../task/report/backend/BE-MDF-008.md) |
 | `BE-MDF-019` | Migration `AddMedicalFeeFinanceHandoff` | `MVP-0` | Siap — butuh otorisasi migration |
-| `BE-MDF-004` | API daftar peran | `MVP-0` | Siap |
-| `BE-MDF-006` | Layanan kesepakatan tarif berversi | `MVP-1` | Siap |
-| `BE-MDF-009` | Adapter sumber layanan | `MVP-2` | Siap — bagian tim menunggu `MF-CQ-07` |
-| `BE-MDF-010` | Mesin perhitungan periode | `MVP-2` | Siap |
+| 🟡 `BE-MDF-004` | API daftar peran | `MVP-0` | 🟡 Sebagian 26 Oktober 2026 — controller & service ada, build belum dijalankan: [laporan](../task/report/backend/BE-MDF-004.md) |
+| 🟡 `BE-MDF-006` | Layanan kesepakatan tarif berversi | `MVP-1` | 🟡 Sebagian 26 Oktober 2026 — controller & service ada, build belum dijalankan: [laporan](../task/report/backend/BE-MDF-006.md) |
+| 🟡 `BE-MDF-009` | Adapter sumber layanan | `MVP-2` | 🟡 Sebagian 26 Oktober 2026 — adapter service & DTO terpasang, build belum dijalankan: [laporan](../task/report/backend/BE-MDF-009.md) |
+| 🟡 `BE-MDF-010` | Mesin perhitungan periode | `MVP-2` | 🟡 Sebagian 26 Oktober 2026 — calculation service, period service, controller & DTO terpasang, build belum dijalankan: [laporan](../task/report/backend/BE-MDF-010.md) |
 | `BE-MDF-011` | Daftar layanan belum dapat dihitung | `MVP-2` | Siap |
 | `BE-MDF-012` | Verifikasi, persetujuan, penutupan | `MVP-3` | Siap |
 | `BE-MDF-013` | Koreksi berjenjang | `MVP-3` | Siap |
 | `BE-MDF-014` | Penyerahan ke Finance — service dan API | `MVP-4` | Siap — **membuka `BE-FIN-021`** |
 | `BE-MDF-017` | Pembatasan data untuk tenaga medis | `MVP-5` | Siap |
-| `BE-MDF-015` | Jasa dari entri bebas kasir | — | **BLOCKED** — `MF-CQ-05` |
-| `BE-MDF-016` | Alir nilai jasa ke `DoctorShare` | — | **BLOCKED** — `MF-CQ-08` |
+| `BE-MDF-015` | Jasa dari entri bebas kasir | — | **BLOCKED (dependency)** — Billing sudah menjawab (`MF-CQ-05` ditutup 26 Oktober 2026); tersisa kolom Billing `BE-BKC-089` (⛔ izin migration) dan `BE-BKC-091` |
+| `BE-MDF-016` | Alir nilai jasa ke `DoctorShare` | — | **BLOCKED (dependency)** — Billing sudah menjawab (`MF-CQ-08` ditutup 26 Oktober 2026): bentuk A lewat port `IBillingDoctorShareResolver`, port sudah ada (`BE-BKC-090` ✅); menunggu `BE-MDF-014` dan penguncian permukaan §4 |
 
 ### 6.2 Frontend — `02-frontend-roadmap.md`
 
@@ -174,16 +174,16 @@ backend-nya ada dan keduanya tercantum sebagai MUST.
 
 | Requirement | Decision | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `F-01` | `MF-DEC-016` | `MDF-DES-003`, `011` | `MDF-VAL-1.0` §1 | `BE-MDF-001`, `002`, `004` | `FE-MDF-005` | `T-01`..`T-06` | Siap |
-| `F-02`..`F-04` | `MF-DEC-004`, `012` | `MDF-DES-008`..`010` | `MDF-VAL-1.0` §2–3 | `BE-MDF-005`, `006` | `FE-MDF-001` | `T-07`..`T-24` | Siap |
-| `F-05`, `F-06`, `F-09`, `F-10` | `MF-DEC-006`, `013`, `014` | `MDF-DES-012`, `013`, `015` | `MDF-VAL-1.0` §5 | `BE-MDF-007`..`010` | `FE-MDF-002` | `T-25`..`T-38` | Siap — **bagian tim** menunggu `MF-CQ-07` |
+| `F-01` | `MF-DEC-016` | `MDF-DES-003`, `011` | `MDF-VAL-1.0` §1 | 🟡 `BE-MDF-001`, `BE-MDF-002`, `BE-MDF-004` | `FE-MDF-005` | `T-01`..`T-06` | 🟡 Sebagian 26 Oktober 2026 (`BE-MDF-004` terpetakan ke source: [laporan](../task/report/backend/BE-MDF-004.md)) |
+| `F-02`..`F-04` | `MF-DEC-004`, `012` | `MDF-DES-008`..`010` | `MDF-VAL-1.0` §2–3 | 🟡 `BE-MDF-005`, 🟡 `BE-MDF-006` | `FE-MDF-001` | `T-07`..`T-24` | 🟡 Sebagian 26 Oktober 2026 (`BE-MDF-006` terpetakan ke source: [laporan](../task/report/backend/BE-MDF-006.md)) |
+| `F-05`, `F-06`, `F-09`, `F-10` | `MF-DEC-006`, `013`, `014` | `MDF-DES-012`, `013`, `015` | `MDF-VAL-1.0` §5 | 🟡 `BE-MDF-007`..`010` | `FE-MDF-002` | `T-25`..`T-38` | 🟡 Sebagian 26 Oktober 2026 (`BE-MDF-010` terpetakan ke source: [laporan](../task/report/backend/BE-MDF-010.md); bagian tim menunggu `MF-CQ-07`) |
 | `F-07`, `F-08` | `MF-DEC-018` | `MDF-DES-014`, `016` | `MDF-API-1.0` §6 | `BE-MDF-011` | `FE-MDF-002` | `T-39`..`T-49` | Siap |
 | `F-11`..`F-13` | `MF-DEC-009` | `MDF-DES-016`, `017` | `MDF-STATE-1.0` | `BE-MDF-012` | `FE-MDF-003` | `T-50`..`T-63` | Siap |
 | `F-14`, `F-15` | `MF-DEC-007` | `MDF-DES-017` | `MDF-STATE-1.0` §3 | `BE-MDF-013` | `FE-MDF-003` | `T-64`..`T-70` | Siap |
 | `F-16` | `MF-DEC-005`, `008` | `MDF-DES-018` | `MDF-INTEGRATION-1.0` §7 | `BE-MDF-014` | `FE-MDF-006` | `T-71`..`T-79` | Siap |
 | `F-17` | `MF-DEC-010` | `MDF-DES-011` | `MDF-PERM-1.0` §5 | `BE-MDF-017` | `FE-MDF-004` | `T-80`..`T-84` | Siap |
-| Entri bebas kasir | `MF-DEC-017` | — | `MDF-INTEGRATION-1.0` §5 | `BE-MDF-015` | — | — | **BLOCKED** — `MF-CQ-05` |
-| Alir `DoctorShare` | `MF-DEC-001` | — | `MDF-INTEGRATION-1.0` §4 | `BE-MDF-016` | — | — | **BLOCKED** — `MF-CQ-08` |
+| Entri bebas kasir | `MF-DEC-017` | — | `MDF-INTEGRATION-1.0` §5 | `BE-MDF-015` | — | — | **BLOCKED (dependency)** — `MF-CQ-05` ditutup; menunggu kolom Billing |
+| Alir `DoctorShare` | `MF-DEC-001` | — | `MDF-INTEGRATION-1.0` §4 | `BE-MDF-016` | — | — | **BLOCKED (dependency)** — `MF-CQ-08` ditutup; menunggu `BE-MDF-014` |
 | Jasa radiologi | `MF-DEC-015` | — | — | — | — | — | Ditunda sengaja |
 | Audit akses data penghasilan | — | `MDF-PERM-1.0` §6 | — | `BE-MDF-017` | — | `T-85`..`T-90` | Siap |
 
@@ -193,7 +193,7 @@ backend-nya ada dan keduanya tercantum sebagai MUST.
 |---|---|---|
 | Daftar peran nyata pada tindakan poli dan laboratorium belum diketahui | `BE-MDF-002` tidak dapat mengisi data master awal | Owner Clinical + Laboratory (`MF-CQ-07` pertanyaan 2) |
 | Dokter tamu dan paruh waktu mungkin tanpa `WfpContractHistory` | Kelompok yang tarifnya paling beragam tidak dapat punya kesepakatan sah | Owner HR (`MF-CQ-06` pertanyaan 2) |
-| Perilaku bila Medical Fee belum punya tarif saat item Billing dicatat | `BE-MDF-016` tidak dapat mengunci bentuknya | Owner Billing (`MF-CQ-08` pertanyaan 3) |
+| ~~Perilaku bila Medical Fee belum punya tarif saat item Billing dicatat~~ **DIJAWAB 26 Oktober 2026** | `DoctorShare` nol, tagihan tetap final, tanpa jalur ketik (`BKC-DEC-170`) | Ditutup |
 | Pengisian kesepakatan tarif ±220 orang | Tanpa ini modul aktif tetapi tidak menghasilkan apa pun | Yasmin — pekerjaan data, MUST dijadwalkan terpisah dari `MVP-1` |
 
 Gap terakhir adalah yang paling mudah terlewat karena bukan pekerjaan kode: perangkat lunaknya

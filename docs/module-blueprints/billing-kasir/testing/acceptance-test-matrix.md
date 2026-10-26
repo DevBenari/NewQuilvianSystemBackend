@@ -670,3 +670,33 @@ Trace `BKC-DEC-150`, `BKC-DEC-151`, `BKC-DES-070`–`BKC-DES-076`, `BIL-VAL-147`
 
 Seluruh uji integrasi yang menyentuh `CHECK` atau transaksi **MUST** berjalan di PostgreSQL. F10 lolos selama ini karena
 nol test, dan InMemory tidak menegakkan `CHECK`.
+
+## Amendment 26 Oktober 2026 — Pelaksana Entri Kasir dan `DoctorShare` dari Medical Fee (Revisi 2.4)
+
+> `last_changed_in`: `BIL-TEST-2.2` atas `BIL-TEST-2.1` — status **draft**.
+> Masukan: `BKC-AC-114`..`126`, `BKC-DES-093`..`103`, `BIL-VAL-161`..`168`. Backend SHA: `ecddd8f8`.
+> Port Medical Fee diganti test double yang dapat menjawab `Resolved`, `NoRule`, `Unavailable`, melempar kesalahan, atau lambat.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `BIL-AT-231` | `BKC-AC-114`, `BKC-DES-096` | Katalog Rp 1.000.000 berjasa, port menjawab 40% | Integrasi service | `DoctorShare = 400.000,00`, `DoctorShareResolution = MEDICAL_FEE`, `DoctorShareSharingRuleId` = id dari port |
+| `BIL-AT-232` | `BKC-AC-115`, `BIL-VAL-168` | Port menjawab `Unavailable` | Integrasi service | Baris tercatat, `DoctorShare = 0`, `UNAVAILABLE`, satu peristiwa `BillingInvoice.DoctorShareUnavailable` |
+| `BIL-AT-233` | `BIL-VAL-168` | Port melempar exception | Integrasi service | Sama dengan `232`; transaksi Billing tidak dibatalkan |
+| `BIL-AT-234` | `BIL-VAL-168` | Port lambat melewati batas waktu | Integrasi service | Sama dengan `232`, `Cause = TIMEOUT` |
+| `BIL-AT-235` | `BKC-AC-116` | Port menjawab `NoRule`, lalu tagihan difinalisasi | Integrasi service | `DoctorShare = 0`, `NO_RULE`, finalisasi berhasil, tanpa peristiwa audit `DoctorShareUnavailable` |
+| `BIL-AT-236` | `BKC-AC-117` (dipersempit) | `from-source` kunjungan Rawat Jalan domain `PROCEDURE` membawa `doctorShare` 250.000 | API | Ditolak seperti sekarang (`BillingManualClinicalSourceException`), tidak ada baris |
+| `BIL-AT-237` | `BKC-AC-118` | Katalog berjasa dengan dokter aktif | API | `200`; respons item membawa `isFeeBearing`, `performerType`, `performerReferenceId`, `performerDisplayName` |
+| `BIL-AT-238` | `BKC-AC-119`, `BIL-VAL-161` | Berjasa tanpa pelaksana, pada `catalog-charges` dan `other-charges` | API | `422`, nol baris dan nol tanda terima |
+| `BIL-AT-239` | `BKC-AC-120`, `BKC-DES-099` | Entri materai tidak berjasa; dan tanda terima lama dikirim ulang setelah deploy | Integrasi service | Baris tanpa pelaksana, `NOT_APPLICABLE`; hash isi sama persis dengan rumus sebelum revisi 2.4, kirim ulang = replay |
+| `BIL-AT-240` | `BKC-AC-121`, `BKC-DEC-173` | Finalisasi tagihan berisi baris `DoctorShare` 400.000 | Integrasi service | `BilApHandoff.Amount` = jumlah `DoctorShare` − diskon dokter disetujui, penerima dokter kunjungan; rumus tidak berubah |
+| `BIL-AT-241` | `BKC-AC-122`, `BKC-DEC-174` | Diskon dokter 100.000 lalu 500.000 atas baris `DoctorShare` 400.000 | Integrasi service | 100.000 diterima setelah persetujuan; 500.000 ditolak aturan lama |
+| `BIL-AT-242` | `BKC-AC-123`, `BKC-DES-096` | Kuantitas 0,5 × Rp 20.010,01, port 100%; dan port 40% atas Rp 10.000.000 | Unit | Rp 10.005,00 (dipotong batas), bukan Rp 10.005,01; Rp 4.000.000,00 |
+| `BIL-AT-243` | `BKC-AC-124`, `BKC-DES-101` | Baris `UNAVAILABLE`, lalu versi sumber lebih baru saat port menjawab 40% | Integrasi service | `DoctorShare` terisi, `MEDICAL_FEE` |
+| `BIL-AT-244` | `BKC-AC-125`, `BKC-DES-101` | Retur obat dan pemulihan tinjauan item pengganti atas baris berkolom baru terisi | Integrasi service | Keenam kolom baru tersalin; port **tidak** dipanggil |
+| `BIL-AT-245` | `BKC-AC-126`, `BIL-VAL-162`..`165` | `performerType` kosong; `performerType = NURSE`; dokter `IsActive = false`; pelaksana diisi pada baris tidak berjasa; kode peran `operator` | API | Seluruhnya `422`, pesan sesuai validation matrix |
+| `BIL-AT-246` | `BKC-DES-098`, `BIL-VAL-167` | Katalog tarif sama: dr. Rina lalu dr. Budi; lalu dr. Rina lagi; lalu kirim ulang kunci pertama dengan dr. Budi | Integrasi service | Dua baris (Rina kuantitas 2, Budi kuantitas 1); kirim ulang berbeda pelaksana `409` |
+| `BIL-AT-247` | `BKC-DES-095` | Check-in MCU memanggil `AddCatalogChargeAsync` di dalam transaksinya, baris berjasa | Integrasi service | Port tidak dipanggil, `NOT_APPLICABLE`, transaksi MCU berhasil |
+| `BIL-AT-248` | `BIL-VAL-166` | `from-source` domain `LABORATORY` kunjungan IGD dengan field pelaksana | API | `422` "Pelaksana untuk sumber layanan ini belum didukung." |
+
+Jalur gagal tercakup: `232`–`234`, `236`, `238`, `245`, `246` (bagian 409), `248`.
+Trace `BKC-DEC-168`..`178`.

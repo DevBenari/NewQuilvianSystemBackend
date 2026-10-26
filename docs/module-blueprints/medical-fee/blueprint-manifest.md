@@ -34,7 +34,7 @@ owners:
   api: Backend/API Owner
   security: Security Owner
   frontend_authority: Product Owner — belum ada UI brief yang disetujui
-  cross_module_billing: Billing Owner (MF-CQ-05, MF-CQ-08 menunggu)
+  cross_module_billing: Billing Owner (MF-CQ-05, MF-CQ-08 DITUTUP 26 Oktober 2026; permukaan integration-contract bagian 4-5 menunggu penguncian owner Medical Fee)
   cross_module_hr: HR Owner (MF-CQ-06 menunggu)
   cross_module_clinical: Owner Clinical + Laboratory (MF-CQ-07 menunggu)
   cross_module_finance: >
@@ -88,6 +88,11 @@ contract_lock_note: >
         dipilih (integration-contract.md bagian 4);
     (2) rujukan pelaksana pada entri ADHOC dan ADHOC_CATALOG — MF-CQ-05
         (integration-contract.md bagian 5).
+  [PEMBARUAN 26 Oktober 2026] Owner Billing menjawab keduanya: bentuk A diwujudkan sebagai port in-process
+  IBillingDoctorShareResolver (bukan endpoint HTTP), dan Billing menambah kolom pelaksana. Kedua permukaan
+  MASIH BELUM TERKUNCI: penguncian adalah tindakan owner Medical Fee dan belum dilakukan. Kontrak
+  integration-contract.md bagian 4-5 belum ditulis ulang; ia masih memuat bentuk endpoint yang sudah tidak
+  dipakai Billing.
   Keduanya kelak MENAMBAH permukaan baru yang dikunci tersendiri; kedatangannya tidak
   menaikkan versi ketujuh kontrak di atas.
   Pembagian tim di luar kamar operasi (MF-CQ-07) TIDAK termasuk pengecualian ini: bentuk
@@ -101,7 +106,8 @@ external_contract_dependencies:
     KOTOR.
   BIL-INTEGRATION-0.4: >
     Kontrak charge Billing. Modul ini menuntut dua perubahan padanya (MF-CQ-05 field pelaksana
-    untuk entri kasir, MF-CQ-08 arah alir DoctorShare) — keduanya MENUNGGU owner Billing.
+    untuk entri kasir, MF-CQ-08 arah alir DoctorShare) — keduanya DIJAWAB owner Billing 26 Oktober 2026.
+    Rujukan versi BIL-INTEGRATION-0.4 sudah usang; versi berlaku BIL-INTEGRATION-1.9 (billing-kasir revisi 2.4).
   BIL-CASH-001: >
     Blueprint billing-kasir. Sumber BilInvoiceItem, BilDiscountApplication, dan kontrak charge.
 
@@ -149,16 +155,18 @@ readiness: >
         docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md sebelum file model pertama ditulis
         (QBE-MOD-002, QBE-MOD-003, QBE-NAM-004). Prefix `Mdf` diverifikasi belum dipakai.
     (b) Otorisasi terpisah untuk membuat dan menjalankan migration.
-    (c) Konfirmasi owner Billing atas MF-CQ-05 dan MF-CQ-08.
+    (c) Konfirmasi owner Billing atas MF-CQ-05 dan MF-CQ-08 — SELESAI 26 Oktober 2026.
     (d) Sepengetahuan owner HR atas MF-CQ-06.
     (e) Konfirmasi owner Clinical dan Laboratory atas MF-CQ-07.
 
 blocking_questions:
   - id: MF-CQ-08
+    status: CLOSED 2026-10-26 (owner Billing)
     blocking_for: >
       Arah alir nilai jasa kembali ke Billing. TERBESAR di antara keempatnya. Perhitungan
       internal modul ini tidak tertahan.
   - id: MF-CQ-05
+    status: CLOSED 2026-10-26 (owner Billing)
     blocking_for: Rumpun jasa dari entri bebas kasir (EPIC MDF-07)
   - id: MF-CQ-07
     blocking_for: Rumpun pembagian tim di luar operasi (EPIC MDF-05 sebagian)

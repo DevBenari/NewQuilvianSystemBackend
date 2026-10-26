@@ -2812,3 +2812,91 @@ Banner "Perhitungan cakupan tersimpan belum terbaru" dan tombol "Hitung Ulang Ca
 | Layar pengajuan/persetujuan perjanjian angsuran (Finance) | Belum ada di FE; endpoint Backend tersedia |
 | Draft AR | State layar saja; hilang bila halaman dimuat ulang |
 | K sebagai AR | NEEDS BUSINESS DECISION (`02-backend-architecture.md` §24.5) |
+
+
+# Amendment Revisi 2.4 (26 Oktober 2026) — Penanda Layanan Berjasa dan Pelaksana pada Entri Kasir
+
+> Status **draft**, menunggu approval pemilik modul Billing. Trace: `BKC-DEC-171`, `172`, `178`; `BKC-DES-098`; `BKC-OQ-151`.
+> Frontend SHA `e2c17153b`. Kontrak data: `contracts/api-contract.md` revisi 2.4 (`BIL-API-2.1`).
+
+## 1. Kebutuhan layar
+
+Tidak ada layar baru dan tidak ada butir menu baru. Dua bagian layar yang sudah ada mendapat isian tambahan; satu bagian menampilkan
+informasi tambahan.
+
+| ID | Layar / bagian | Berkas | Perubahan |
+| --- | --- | --- | --- |
+| `BIL-SCR-46` | Panel Tambah Biaya Lain-lain pada Menu Pembayaran | `menu-pembayaran-view.jsx`, hook `use-menu-pembayaran.js` (`addBillingOtherCharge`) | Penanda berjasa + pilihan pelaksana |
+| `BIL-SCR-47` | Form Buat Invoice Manual (Testing) | `create-manual-invoice-view.jsx`, hook `use-create-manual-invoice.js` (`addCatalogCharge`) | Penanda berjasa + pilihan pelaksana |
+| `BIL-SCR-48` | Daftar item tagihan pada Menu Pembayaran | `menu-pembayaran-view.jsx` | Nama pelaksana pada item berjasa |
+
+## 2. Peta butir menu
+
+| Butir | Tingkat | Induk | Route | Layar | Hak akses |
+| --- | --- | --- | --- | --- | --- |
+| (tidak ada butir baru) | — | — | — | — | — |
+
+`BIL-SCR-46` dan `BIL-SCR-48` adalah bagian anak dari layar Menu Pembayaran (jalan masuk: butir menu Menu Pembayaran yang sudah ada).
+`BIL-SCR-47` adalah bagian dari route `/health-services/billing-management/billing/invoices/create-manual` yang sudah ada.
+
+## 3. Skema fitur
+
+### `BIL-SCR-46` / `BIL-SCR-47` — isian tambahan pada entri
+
+```text
+┌──────────────────────────────────────────────────────────┐
+│ [isian lama: jenis biaya / tarif, deskripsi, kuantitas]   │
+│                                                          │
+│ [ ] Layanan berjasa (ada tenaga medis pelaksana)    (1)   │
+│                                                          │
+│   ┌ hanya tampil bila (1) dicentang ───────────────────┐ │
+│   │ Dokter pelaksana *   [ cari nama dokter ...   ▼ ] (2)│ │
+│   │ Peran                [ kosong = peran utama   ▼ ] (3)│ │
+│   └────────────────────────────────────────────────────┘ │
+│                                                          │
+│                              [ Batal ]  [ Simpan ]  (4)   │
+└──────────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| (1) | Penanda berjasa, bawaan tidak dicentang | — | `BillingInvoice : Create` (sama dengan tombol Simpan) | — |
+| (2) | Pilihan dokter aktif, dapat dicari. Wajib bila (1) dicentang | `GET api/v1/corporate/human-resource/master-data/doctors/options?onlyActive=true&search=` | Akses peran Kasir ke endpoint HR ini **perlu diverifikasi** (`permission-audit-matrix.md` revisi 2.4) | Kosong: "Dokter tidak ditemukan." Gagal memuat: "Daftar dokter tidak dapat dimuat. Coba lagi." dan Simpan dinonaktifkan selama (1) dicentang |
+| (3) | Peran pelaksana, opsional | `GET api/v1/health-services/medical-fee-management/roles` milik Medical Fee — **Rencana (belum tersedia)**, `BE-MDF-004` | — | Bila endpoint belum tersedia atau gagal, isian (3) **tidak ditampilkan** dan dikirim kosong (peran utama). Entri tetap dapat disimpan |
+| (4) | Simpan | `POST invoices/other-charges` (24A) atau `POST invoices/catalog-charges` (24B) dengan field baru | `BillingInvoice : Create` | `422`: pesan dari server ditampilkan pada isian terkait. `409`: "Permintaan yang sama memiliki isi berbeda; muat ulang lalu kirim sebagai entri baru." |
+
+Mencentang lalu menghapus centang (1) **mengosongkan** (2) dan (3), supaya tidak ada pelaksana terkirim untuk entri tidak berjasa
+(`BIL-VAL-164`). Payload selalu memuat `performerType = "DOCTOR"` bila (2) terisi; pilihan `WORKFORCE` tidak ditawarkan sampai
+`BKC-OQ-151` dijawab.
+
+### `BIL-SCR-48` — item tagihan
+
+```text
+│ Konsultasi Dokter Spesialis        1 x Rp 500.000   Rp 500.000 │
+│   Pelaksana: dr. Rina Anggraini, Sp.PD                     (5) │
+```
+
+| Wilayah | Isi | Sumber data | Kosong |
+| --- | --- | --- | --- |
+| (5) | Nama pelaksana, hanya pada item `isFeeBearing = true` | `performerDisplayName` pada item `GET invoices/{id}` | Nama `null` (rujukan sudah dihapus): "Pelaksana tidak ditemukan" |
+
+`doctorShare` dan `doctorShareResolution` **tidak** ditampilkan kepada kasir. Keduanya data penghasilan tenaga medis dan tidak
+dibutuhkan untuk menagih pasien.
+
+## 4. Penanganan keadaan
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Memuat daftar dokter | Indikator memuat pada isian (2); Simpan tetap aktif bila (1) tidak dicentang |
+| Pengiriman ganda | Pola `Idempotency-Key` yang sudah ada pada kedua hook dipakai apa adanya; satu kunci per entri, dipertahankan pada percobaan ulang hasil tidak pasti |
+| Data basi | Setelah Simpan berhasil, detail invoice dimuat ulang seperti sekarang |
+| Medical Fee tidak terjangkau | Tidak terlihat oleh kasir; entri berhasil seperti biasa |
+
+## 5. Kewenangan UI
+
+| Hal | Status |
+| --- | --- |
+| Isian (1)–(3) wajib ada, beserta aturan tampil/kosongkan | Terkunci (`BKC-DEC-171`, `172`) |
+| Bentuk kontrol (kotak centang atau sakelar), urutan isian di dalam panel, teks bantuan | `DEV_DISCRETION`, mengikuti base component Quilvian |
+| Menampilkan `WORKFORCE` | Belum diputuskan, `BKC-OQ-151` |
+| Menampilkan `doctorShare` ke kasir | Tidak, kecuali ada keputusan baru |

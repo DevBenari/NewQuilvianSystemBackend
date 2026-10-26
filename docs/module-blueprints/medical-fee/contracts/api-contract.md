@@ -289,6 +289,6 @@ tidak pernah dibuat manual.
 | `POST /service-fees` manual | Hasil jasa **hanya** lahir dari perhitungan periode. Entri manual akan melubangi seluruh jejak audit |
 | `PUT /service-fees/{id}` untuk mengubah nilai | Nilai hanya berubah lewat perhitungan ulang atau koreksi berjenjang |
 | `DELETE /unresolved-services/{id}` | Menghapus berarti menyembunyikan — persis yang `MF-DEC-018` cegah |
-| Endpoint penarikan `DoctorShare` ke Billing | `OPEN DECISION`, menunggu `MF-CQ-08`. Bentuknya ada di `integration-contract.md` |
+| Endpoint penarikan `DoctorShare` ke Billing | `OPEN DECISION`. `MF-CQ-08` ditutup 26 Oktober 2026 dengan bentuk **port in-process**, sehingga endpoint ini kemungkinan **tidak diperlukan**; menunggu penguncian owner. Bentuknya ada di `integration-contract.md` |
 | Endpoint apa pun untuk radiologi | Ditunda `MF-DEC-015` |
 | Endpoint potongan pajak atau kasbon | Milik Finance (`MF-DEC-005`) |
