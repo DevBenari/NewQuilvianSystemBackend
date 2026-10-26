@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
@@ -183,6 +184,23 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 
             // Daftar pesanan per dokter pemeriksa menyaring tepat pada kolom ini.
             entity.HasIndex(x => x.ExaminerDoctorId);
+
+            // =========================================================================
+            // BE-MCU-003 — pesanan yang dicakup paket MCU, MCU-DEC-022
+            //
+            // Arahnya sengaja dibalik: Lab menunjuk MCU, bukan sebaliknya, supaya penahanan
+            // tagihan cukup membaca kolom milik pesanan itu sendiri. Restrict: order MCU yang
+            // masih mencakup pesanan tidak boleh terhapus diam-diam.
+            // =========================================================================
+            entity.Property(x => x.CoveringMcuOrderId)
+                .IsRequired(false);
+
+            entity.HasOne<McuOrder>()
+                .WithMany()
+                .HasForeignKey(x => x.CoveringMcuOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => x.CoveringMcuOrderId);
         }
     }
 }

@@ -347,7 +347,11 @@ public class BillingCalculationService : IBillingCalculationService
                     var application = approvedDiscounts.Single(x => x.Id == discount.DiscountApplicationId);
                     if (application.Amount == discount.AppliedAmount) continue;
                     application.Amount = discount.AppliedAmount;
-                    application.UpdateDateTime = DateTime.UtcNow;
+                    // Dicap pada waktu hitung: IsCalculationCurrentAsync membandingkan perubahan diskon terakhir dengan
+                    // CalculatedAt. Dengan UtcNow (selalu sesudah CalculatedAt, yang diambil di awal) versi yang baru
+                    // saja disimpan sudah dianggap tertinggal — penyesuaian nominal oleh hitungan ini bukan perubahan
+                    // yang terjadi SESUDAH hitungan.
+                    application.UpdateDateTime = calculatedAt.UtcDateTime;
                     application.UpdateBy = actorUserId;
                 }
             }

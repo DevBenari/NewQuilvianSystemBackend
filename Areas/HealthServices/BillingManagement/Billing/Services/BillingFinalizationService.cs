@@ -176,9 +176,10 @@ public sealed class BillingFinalizationService
                 throw new BillingFinalizationBlockedException(
                     "Masih ada pelayanan yang belum masuk invoice. Selesaikan antrean rekonsiliasi sebelum memfinalkan.",
                     readiness);
+            // Tidak ada hitung ulang diam-diam di sini: finalisasi dikonfirmasi kasir atas angka yang tampil, jadi versi
+            // yang tertinggal ditolak (422 + kode BIL-FIN-023 pada checklist) dan kasir menjalankan Recalculate terkontrol.
             if (!readiness.AllOrdersComplete || !readiness.CalculationCurrent)
-                throw new BillingFinalizationBlockedException(
-                    "Invoice belum siap difinalisasi.", readiness);
+                throw new BillingFinalizationBlockedException(DescribeNotReady(readiness), readiness);
             var now = DateTimeOffset.UtcNow;
             var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
                 .SingleAsync(
@@ -342,8 +343,7 @@ public sealed class BillingFinalizationService
                     "Masih ada pelayanan yang belum masuk invoice. Selesaikan antrean rekonsiliasi sebelum memfinalkan.",
                     readiness);
             if (!readiness.AllOrdersComplete || !readiness.CalculationCurrent)
-                throw new BillingFinalizationBlockedException(
-                    "Invoice belum siap difinalisasi.", readiness);
+                throw new BillingFinalizationBlockedException(DescribeNotReady(readiness), readiness);
 
             var now = DateTimeOffset.UtcNow;
             var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
@@ -628,7 +628,7 @@ public sealed class BillingFinalizationService
                     "Invoice belum memiliki hasil perhitungan terkini.",
                     readiness);
             // BE-BKC-FIX-021: penahan yang sama dengan finalisasi manual normal.
-            if (readiness.BlockingCodes.Count > 0)
+            if (HasHardBlockingCode(readiness))
                 throw new BillingFinalizationBlockedException(
                     readiness.BlockingReasons.LastOrDefault() ?? "Invoice belum siap diselesaikan.",
                     readiness);
@@ -751,7 +751,7 @@ public sealed class BillingFinalizationService
         // BE-BKC-FIX-021: penutupan otomatis memakai penahan yang sama dengan finalisasi manual.
         if (readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.PendingClinicalCharge))
             return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup karena masih ada pelayanan yang belum masuk invoice.");
-        if (readiness.BlockingCodes.Count > 0)
+        if (HasHardBlockingCode(readiness))
             return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup: " +
                 (readiness.BlockingReasons.LastOrDefault() ?? "invoice perlu diperiksa."));
         if (readiness.Outstanding > 0)
@@ -1094,6 +1094,7 @@ public sealed class BillingFinalizationService
                 Outstanding = 0,
                 IsReadyForNormalFinalization = false,
                 BlockingReasons = ["Invoice belum memiliki hasil perhitungan."],
+                BlockingCodes = [BillingFinalizationBlockingCodes.CalculationMissing],
                 CalculationVersion = 0,
                 InvoiceRowVersion = invoice.RowVersion
             };
@@ -1137,13 +1138,23 @@ public sealed class BillingFinalizationService
 
         var blockingReasons = new List<string>();
         var blockingCodes = new List<string>();
+        // Setiap alasan membawa kode yang stabil (kontrak BIL-FIN-0NN) supaya klien tidak perlu mencocokkan teks.
         if (!allOrdersComplete)
+        {
             blockingReasons.Add("Semua order harus selesai sebelum invoice difinalkan.");
+            blockingCodes.Add(BillingFinalizationBlockingCodes.OrdersIncomplete);
+        }
         if (!calculationCurrent)
+        {
             blockingReasons.Add("Tagihan berubah; hitung ulang sebelum finalisasi.");
+            blockingCodes.Add(BillingFinalizationBlockingCodes.CalculationStale);
+        }
         if (effectiveOutstanding > 0)
+        {
             blockingReasons.Add(
                 "Tanggung jawab pasien belum lunas; ajukan write-off/adjustment atau catat departure exception untuk melanjutkan.");
+            blockingCodes.Add(BillingFinalizationBlockingCodes.PatientOutstanding);
+        }
         if (invoice.RequiresReview)
         {
             blockingReasons.Add("Invoice ini perlu diperiksa sebelum difinalkan.");
@@ -1217,6 +1228,24 @@ public sealed class BillingFinalizationService
         var breakdown = BillingCalculationService.MapResponse(calculation, invoice.RowVersion).Breakdown;
         return breakdown?.RoomCharge?.Segments?.Any(x => x.MissingTariff) == true;
     }
+
+    /// <summary>
+    /// Ada penahan "keras" yang tidak bisa diselesaikan lewat pembayaran/penangguhan? Kode turunan
+    /// (<see cref="BillingFinalizationBlockingCodes.CalculationStale"/>, <c>OrdersIncomplete</c>, <c>PatientOutstanding</c>,
+    /// <c>CalculationMissing</c>) sudah punya pemeriksaan eksplisit sendiri pada setiap jalur, jadi tidak boleh mengubah
+    /// perilaku jalur yang selama ini hanya memeriksa kode review/tarif/pelayanan tertunda.
+    /// </summary>
+    private static bool HasHardBlockingCode(FinalizationPreviewResponse readiness) =>
+        readiness.BlockingCodes.Any(code => code is not
+            (BillingFinalizationBlockingCodes.CalculationStale
+                or BillingFinalizationBlockingCodes.OrdersIncomplete
+                or BillingFinalizationBlockingCodes.PatientOutstanding
+                or BillingFinalizationBlockingCodes.CalculationMissing));
+
+    private static string DescribeNotReady(FinalizationPreviewResponse readiness) =>
+        !readiness.CalculationCurrent
+            ? "Tagihan berubah sejak perhitungan terakhir; hitung ulang tagihan sebelum finalisasi."
+            : "Semua order harus selesai sebelum invoice difinalkan.";
 
     private async Task<bool> AreAllOrdersCompleteAsync(Guid invoiceId, CancellationToken cancellationToken)
     {
@@ -1580,6 +1609,26 @@ public static class BillingFinalizationBlockingCodes
     /// atau perlu ditinjau (<c>BE-BKC-FIX-021</c>, <c>ISSUE-BKC-001</c> T1).
     /// </summary>
     public const string PendingClinicalCharge = "BIL-FIN-022";
+
+    /// <summary>
+    /// Hasil kalkulasi tersimpan tertinggal dari invoice: item atau diskon berubah (atau aturan tanggungan penjamin
+    /// berubah) sesudah <c>CalculatedAt</c>. Finalisasi tidak pernah menghitung ulang diam-diam; kasir harus menjalankan
+    /// Recalculate (OPEN saja, ExpectedRowVersion, alasan, audit) lalu memuat ulang kesiapan.
+    /// </summary>
+    public const string CalculationStale = "BIL-FIN-023";
+
+    /// <summary>Masih ada order pada item invoice yang belum selesai.</summary>
+    public const string OrdersIncomplete = "BIL-FIN-024";
+
+    /// <summary>
+    /// Kewajiban pasien belum lunas (pada kunjungan benefit: sisa K + kelebihan plafon E setelah pilihan penangguhan).
+    /// Kode ini hanya penanda; sisa tersebut masih dapat diselesaikan lewat pembayaran kasir, penangguhan AR, atau
+    /// departure exception, sehingga tidak ikut menahan penutupan otomatis (lihat <c>HasHardBlockingCode</c>).
+    /// </summary>
+    public const string PatientOutstanding = "BIL-FIN-025";
+
+    /// <summary>Invoice belum memiliki hasil kalkulasi tersimpan sama sekali.</summary>
+    public const string CalculationMissing = "BIL-FIN-026";
 }
 
 public abstract class BillingFinalizationException : Exception

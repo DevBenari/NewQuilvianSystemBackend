@@ -55,6 +55,8 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
@@ -664,6 +666,12 @@ try
     // Patient Management — allocator nomor pasien normal beserta guard reservasi RSMMC (BE-PAT-MIG-003)
     builder.Services.AddScoped<PatientIdentifierAllocationService>();
 
+    // Patient Management — worker migrasi massal pasien RSMMC (BE-PAT-MIG-002), sementara, khusus Staging
+    builder.Services.AddSingleton(RsmmcBulkApprovedBatchProfile.Canonical);
+    builder.Services.AddSingleton(RsmmcBulkCanaryManifest.CanaryAV1);
+    builder.Services.AddScoped<IRsmmcBulkMigrationStore, RsmmcBulkMigrationStore>();
+    builder.Services.AddScoped<RsmmcBulkPatientMigrationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
@@ -869,6 +877,8 @@ try
     builder.Services.AddScoped<ReferralMasterDataService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.EncounterReferralService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.ReferralDocumentStorageService>();
+    // rawat-jalan RJ-REG-REV-BE-007: General Consent pendaftaran Rawat Jalan pasien baru.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.OutpatientGeneralConsentService>();
 
     // Pemeriksaan golongan darah Bank Darah — sumber sah golongan darah pasien (DEC-BD-015),
     // bukan MstPatient.BloodType. Service ini memegang deteksi perbedaan hasil (BD-XINV-04)
@@ -906,6 +916,20 @@ try
     builder.Services.AddScoped<HmdUnitReadinessService>();
     builder.Services.AddScoped<HmdResourceService>();
     builder.Services.AddScoped<HmdCompetencyGateService>();
+
+    // MCU-BP-001, BE-MCU-004. Nomor order MCU-RSMMC- dan nomor impor MCU-IMP- lewat
+    // NumberSeriesAllocator (QBE-CODE-006), bukan MAX + 1 seperti Lab/Rad.
+    builder.Services.AddScoped<McuOrderNumberService>();
+    builder.Services.AddScoped<McuPackageService>();
+    builder.Services.AddScoped<McuReferenceDataService>();
+    builder.Services.AddScoped<McuScheduleService>();
+    builder.Services.AddScoped<McuOrderQueryService>();
+    builder.Services.AddScoped<McuBookingService>();
+    builder.Services.AddScoped<McuNoShowService>();
+    builder.Services.AddScoped<McuCheckInService>();
+    builder.Services.AddScoped<McuExaminationService>();
+    builder.Services.AddScoped<McuResumeService>();
+    builder.Services.AddScoped<McuDeliveryService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
@@ -1192,6 +1216,11 @@ try
         builder.Services.Configure<PatientMembershipLifecycleOptions>(
             builder.Configuration.GetSection(PatientMembershipLifecycleOptions.SectionName));
         builder.Services.AddHostedService<PatientMembershipLifecycleHostedService>();
+        // MCU-BP-001 BE-MCU-012: tutup hari MCU — Terjadwal yang tanggalnya lewat menjadi Tidak Hadir dan
+        // kuotanya dilepas. Saat start lalu tiap 23.59 WIB; saklar MedicalCheckup:NoShowEnabled.
+        builder.Services.Configure<McuNoShowOptions>(
+            builder.Configuration.GetSection(McuNoShowOptions.SectionName));
+        builder.Services.AddHostedService<McuNoShowHostedService>();
         // rawat-jalan BE-RJP-009: reservasi prioritas yang tidak datang ditutup saat start dan 00.05 WIB.
         builder.Services.AddHostedService<OutpatientPriorityReservationClosureHostedService>();
         builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
@@ -2068,6 +2097,11 @@ try
         // butir checklist Pra-HD yang SELURUHNYA tidak boleh dilewati (HMD-ASM-001), lima butir kesiapan
         // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
         await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
+
+        // MCU-BP-001, BE-MCU-004. Kategori kelayakan dan jenis Pemeriksaan MCU USULAN — bertanda
+        // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah
+        // diubah admin tidak ditimpa.
+        await RunStartupSeederAsync("McuReferenceDataSeeder", () => McuReferenceDataSeeder.SeedAsync(app.Services));
 
         // Gerbang integritas permission (Phase A0).
         //

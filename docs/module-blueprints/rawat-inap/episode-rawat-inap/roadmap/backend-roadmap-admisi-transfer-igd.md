@@ -62,7 +62,7 @@ flowchart TD
 
 ## 4. Rincian Spesifikasi Task Backend
 
-### 4.1 `BE-RWI-206` — Endpoint Antrean & Detail Transfer Pasien IGD / Rawat Jalan
+### 4.X ✅ `BE-RWI-206` — Endpoint Antrean & Detail Transfer Pasien IGD / Rawat Jalan
 
 - **Tujuan Bisnis:**  
   Menyajikan antrean digital terpadu di loket pendaftaran rawat inap yang menampilkan pasien-pasien dari IGD yang sudah diputuskan harus rawat inap oleh dokter IGD, sehingga petugas admisi dapat langsung memanggil keluarga/wali pasien tanpa perlu mengetik ulang data dari lembar kertas.
@@ -124,7 +124,7 @@ flowchart TD
 
 ---
 
-### 4.2 `BE-RWI-207` — Eksekusi Disposisi Transfer & Pembukaan Episode Ranap Terpadu
+### 4.X ✅ `BE-RWI-207` — Eksekusi Disposisi Transfer & Pembukaan Episode Ranap Terpadu
 
 - **Tujuan Bisnis:**  
   Menyelesaikan proses pendaftaran pasien transfer IGD dalam satu transaksi atomik: menerbitkan episode rawat inap resmi, mengalokasikan kamar/bed, menautkan riwayat kunjungan IGD asal, dan memperbarui status disposisi IGD menjadi `Executed` sehingga sistem IGD terinformasi bahwa pasien sudah resmi mendapatkan kamar.

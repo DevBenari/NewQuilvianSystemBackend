@@ -5013,3 +5013,19 @@ salah satu butir, pernyataan koreksinya menggantikan baris terkait.
    keputusan baru sebelum `FE-RWI-276` s.d. `FE-RWI-278` dimulai.
 5. Source aplikasi, database, migration, dependency package, dan deployment belum diubah. Setiap task
    tetap memerlukan pemanggilan builder tersendiri.
+
+---
+
+## Revision 64 — pembatalan FE-RWI-060 dan penetapan batas bisnis deposit admisi vs kasir (22 Oktober 2026)
+
+Pengguna (Muhammad Hamzah) menetapkan secara tegas pada 22 Oktober 2026:
+1. Alur admisi rawat inap **hanya melakukan pengisian nominal rencana deposit saja** dan tidak memerlukan penangkapan metode pembayaran (`PaymentMethodId`).
+2. Transaksi pengisian saldo deposit secara fisik, penentuan metode bayar, dan pemanggilan endpoint `POST /patient-funds/deposits/{encounterId}/top-ups` **berada sepenuhnya di Kasir (Billing Management)**, bukan di admisi rawat inap.
+3. Pengisian nominal deposit pada alur admisi saat ini (`FE-RWI-058` / `FE-INP-20`) **dinyatakan sudah benar dan tidak perlu diubah lagi**.
+4. Task `FE-RWI-060` (Nominal Deposit Terkirim Pasca Admisi via `POST /top-ups`) **dibatalkan permanen (CANCELLED)** dari lingkup frontend admisi rawat inap.
+5. Verifikasi E2E alur utama admisi (`FE-RWI-035`) disesuaikan: pembuktian alur admisi tuntas pada pencatatan nominal deposit dan pembukaan episode tanpa ketergantungan pada transaksi kasir.
+
+| ID | Jenis | Isi | Pemilik | Status | Disetujui | Sumber |
+| --- | --- | --- | --- | --- | --- | --- |
+| `RWI-DEC-354` | Decision | **Pembatalan task `FE-RWI-060` dan penetapan batas bisnis deposit admisi vs kasir.** (1) Pada alur pendaftaran rawat inap (admisi), petugas hanya mencatat nominal rencana deposit saja. Admisi tidak mengenal dan tidak memerlukan metode pembayaran (`PaymentMethodId`); (2) Pengisian saldo deposit sesungguhnya beserta transaksi finansial, pemilihan metode pembayaran, dan pemanggilan `POST /patient-funds/deposits/{encounterId}/top-ups` berada di Kasir (Billing Management); (3) Implementasi pencatatan nominal deposit di admisi saat ini (`FE-RWI-058` / `FE-INP-20`) dinyatakan sudah benar dan tidak perlu diubah lagi; (4) Task `FE-RWI-060` dibatalkan (CANCELLED); (5) Task `FE-RWI-035` diverifikasi dalam batas kewenangan admisi (tanpa transaksi finansial kasir). | Muhammad Hamzah | `approved` | Muhammad Hamzah (pengguna sesi), 2026-10-22 | Arahan eksplisit pemilik pada sesi 22 Oktober 2026: *"ke dua task ini tidak ada di admisi melainnkan pengisian deposit ada di kasir, di admisi hanya melakukan pengisian nominal saja, tolong batalkan task ini dan ubah keterangan ya, untuk saat ini mengisi deposit nominal sudah benar tidak perlu di ubah lagi"* |
+

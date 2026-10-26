@@ -335,6 +335,91 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return await ReadBackAsync(entity.Id, cancellationToken);
         }
 
+        /// <summary>
+        /// Mencabut <b>satu</b> permintaan yang belum masuk wadah (<c>BE-MCU-024</c>, keputusan
+        /// pemilik Lab 2026-10-23).
+        ///
+        /// Sebelum wadah dibentuk, yang ada baru <see cref="LabOrderedProcedure"/> — belum ada
+        /// pemeriksaan yang dapat dibatalkan lewat <see cref="CancelAsync"/>. Permintaan yang
+        /// dicabut berstatus <c>Cancelled</c> dan sejak itu ditolak pintu wadah (<c>VAL-68</c>),
+        /// sehingga tidak hidup kembali tanpa ada yang memesannya lagi. Permintaan lain pada
+        /// pesanan yang sama tidak disentuh, dan status pesanannya tidak berubah.
+        ///
+        /// Ikut transaksi pemanggil bila ada; tidak membersihkan pelacak perubahan pemanggil.
+        /// </summary>
+        public async Task CancelOrderedProcedureAsync(
+            Guid labOrderId,
+            Guid procedureId,
+            string? reason,
+            CancellationToken cancellationToken = default)
+        {
+            var order = await LoadOrderAsync(labOrderId, cancellationToken);
+
+            if (order.IsCancel || order.OrderStatus is LabOrderStatus.Cancelled or LabOrderStatus.Completed)
+                throw new LabExaminationConflictException("Pesanan laboratorium sudah selesai atau dibatalkan.");
+
+            var baris = await _dbContext.LabOrderedProcedures
+                .FirstOrDefaultAsync(x => x.LabOrderId == labOrderId && x.ProcedureId == procedureId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Permintaan pemeriksaan tidak ditemukan pada pesanan ini.");
+
+            if (baris.OrderedStatus == LabOrderedProcedureStatus.Cancelled)
+                throw new LabExaminationConflictException("Permintaan pemeriksaan ini sudah dibatalkan.");
+
+            // Permintaan yang sudah dikerjakan dari wadah dibatalkan lewat pemeriksaannya.
+            if (baris.OrderedStatus == LabOrderedProcedureStatus.Fulfilled)
+            {
+                throw new LabExaminationConflictException(
+                    "Pemeriksaan ini sudah masuk wadah. Batalkan pemeriksaannya, bukan permintaannya.");
+            }
+
+            var alasan = LabCancellationReason.Require(reason)
+                ?? throw new LabExaminationValidationException(LabCancellationReason.MissingMessage);
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            baris.OrderedStatus = LabOrderedProcedureStatus.Cancelled;
+            baris.IsCancel = true;
+            baris.CancelDateTime = now;
+            baris.CancelBy = actorUserId;
+            baris.UpdateDateTime = now;
+            baris.UpdateBy = actorUserId;
+
+            // Riwayat berlingkup pesanan: belum ada pemeriksaan yang dapat ditunjuk, sehingga
+            // nama pemeriksaannya ikut disebut di catatan.
+            var catatan = $"{baris.ProcedureNameSnapshot}: {alasan}";
+            _dbContext.LabTransitionHistories.Add(new LabTransitionHistory
+            {
+                Id = Guid.NewGuid(),
+                LabOrderId = order.Id,
+                EncounterId = order.EncounterId,
+                Scope = LabTransitionScope.LabOrder,
+                Action = "OrderedProcedure.Cancel",
+                FromStatus = LabOrderedProcedureStatus.Ordered.ToString(),
+                ToStatus = LabOrderedProcedureStatus.Cancelled.ToString(),
+                ReasonNote = catatan.Length > 1000 ? catatan[..1000] : catatan,
+                ActorUserId = actorUserId,
+                OccurredAt = now,
+                CorrelationId = order.Id,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+
+            await SaveAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabOrderedProcedure.Cancel",
+                $"Mencabut permintaan {baris.ProcedureNameSnapshot} pada pesanan {order.OrderNumber} sebelum masuk wadah.",
+                new
+                {
+                    baris.Id,
+                    baris.LabOrderId,
+                    baris.ProcedureId,
+                    ActorUserId = actorUserId
+                });
+        }
+
         // =================================================================
         // Kesegeraan dan duplo — LAB-DEC-026, BE-LAB-10
         // =================================================================
