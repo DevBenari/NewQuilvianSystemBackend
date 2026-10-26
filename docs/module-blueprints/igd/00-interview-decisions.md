@@ -8156,3 +8156,34 @@ pemilik pada pass ini.
 | Task baru | `FE-IGD-071` 🟡 — 8 dari 9 acceptance terbukti; acceptance 5 belum diuji |
 | Register | frontend 58 → **59 baris** (57 → **58 aktif**); gabungan 121 → **122 aktif**, 125 → **126 baris**. Pembilang tetap 104, sehingga gabungan 104 / 122 = **85,2%** |
 | Nomor yang dipakai | `IGD-FACT-228`; `IGD-DEC-350` |
+
+---
+
+### Koreksi `IGD-FACT-218` — datanya tersimpan; `IGD-DEC-336` diterapkan — 26 Oktober 2026 (petang)
+
+Pemilik menerapkan migration `20261026031429_PersempitIndeksCatatanDokterPerKunjungan`, membangun
+ulang, dan menjalankan aplikasi; verifikasi yang sebelumnya diserahkan kepadanya lalu dijalankan
+terhadap lingkungan yang hidup.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-229` | **`IGD-FACT-218` dikoreksi: nol ruas pengkajian hilang di jalur tulis.** `GET patient-assessments/30934288-1874-4510-a40f-0d65f8aa4c90` menjawab `200` *"Detail assessment pasien berhasil diambil."* (`ASM-20261022-00001`, 158 ruas). Kesepuluh kunci yang dipersoalkan **ADA**, dan **delapan tersimpan apa adanya** sejak 22 Oktober: `medicationHistory` *"Amlodipine 10mg, Candesartan 16mg"*, `currentIllnessHistory`, `nutritionNote`, `functionalNote`, `psychosocialNote`, `educationNote`, `statusLokalis`, serta `nutritionRiskScore` `0`. Dua sisanya `null` karena **perilaku yang benar, bukan cacat**: payload `L1-04` saling bertentangan — ia mengirim `hasFallRisk: false`, `hasAtaxia: false`, `hasPosturalInstability: false` tetapi sekaligus `fallRiskScore: 10` dan `fallRiskNote` berisi kalimat risiko jatuh. `FallRiskScore` memang tidak pernah diambil dari request melainkan diturunkan `CalculateFallRiskScore` (`PatientAssessmentController.cs:2958`, dipakai `:808`), yang mengembalikan `null` begitu `hasFallRisk` false; perapian `BE-RWI-109` (`:3040`–`:3054`) lalu mengosongkan `FallRiskScore` dan `FallRiskNote` serta menormalkan `FallRiskStatus` menjadi `NoRisk`. **Akibatnya cacat `FE-IGD-013` lebih sempit daripada rumusan pagi ini:** pelajaran *17 dari 20 field hilang diam-diam* **tidak** terulang; yang nyata hanyalah layar IGD tidak pernah membaca endpoint detail, sehingga perawat tidak dapat melihat kembali apa yang baru saja disimpannya. Perbaikannya tinggal satu bentuk — satu thunk detail — dan memperluas DTO daftar tidak lagi perlu dipertimbangkan |
+| `IGD-FACT-230` | **`IGD-DEC-336` sudah turun menjadi migration dan diterapkan.** `20261026031429_PersempitIndeksCatatanDokterPerKunjungan` memuat `Up()` berisi **hanya** `DropIndex` + `CreateIndex` atas `IX_TrxDoctorConsultation_EncounterId` dengan filter `"IsDelete" = false AND "InpEpisodeId" IS NULL AND "ClinicId" IS NOT NULL`, dan `Down()` yang mengembalikan filter lama — pembalikan sejati, bukan sekadar penghapusan indeks. `ApplicationDbContextModelSnapshot.cs` berubah **tepat satu baris**; nol perubahan tabel atau kolom lain, sehingga kehilangan blok entitas modul lain tidak terulang. Urutan yang dipakai terbukti benar: integration di-merge lebih dulu (`56a19904`, 30 commit, **nol konflik**) sehingga lima migration bawaannya mendarat tanpa perlawanan, baru kemudian migration ini di-scaffold di atasnya. Commit: dokumen dan konfigurasi `7c11b29a`, migration dan snapshot `f076ad6a` |
+| `IGD-FACT-231` | **Kueri 1 terbukti tidak pernah menjadi gerbang nyata untuk staging dan produksi.** Filter baru adalah himpunan bagian dari filter lama, sehingga setiap pasangan baris yang melanggar indeks baru pasti juga melanggar indeks lama — dan indeks lama sudah ditegakkan basis data di kedua lingkungan itu sepanjang waktu. Duplikat karena itu mustahil ada di sana. Satu-satunya lingkungan yang perlu diperiksa adalah dev, tempat uniknya dilepas manual; dan karena PostgreSQL mendukung DDL transaksional serta EF membungkus tiap migration dalam satu transaksi, kegagalan `CreateIndex` akan menggulung balik `DropIndex` tanpa meninggalkan keadaan setengah jalan. `dotnet ef database update` pemilik berjalan tanpa galat |
+
+#### Perubahan status
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `FE-IGD-013` | 🟡 — kriteria 1 gagal, persistensi belum terbukti | 🟡 — kriteria 1 gagal, **persistensi terbukti**; sisa pekerjaan menyempit menjadi satu thunk detail |
+| `FE-IGD-022` | 🟡 — delapan kolom terkena cacat baca-ulang | 🟡 — sama, dengan sebab yang kini pasti bukan kehilangan data |
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | **Nol** |
+| Fakta yang dikoreksi | `IGD-FACT-218` — bagian *"belum terbukti"*-nya dicabut oleh `IGD-FACT-229` |
+| Register | **Tidak berubah** — 104 dari 122 aktif (85,2%) |
+| Catatan data uji | Payload `L1-04` perlu diperbaiki sebelum putaran berikutnya: mengirim skor dan catatan risiko jatuh bersama `hasFallRisk: false` akan selalu menghasilkan `null`, dan itu benar |
+| Nomor yang dipakai | `IGD-FACT-229`…`231` |

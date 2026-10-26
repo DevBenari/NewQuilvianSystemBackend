@@ -65,7 +65,7 @@ putaran ini.
 | `L1-01` | **PASS** | `L1-01-akhir.png` memuat banner merah berisi pesan backend apa adanya *"Kunjungan IGD sudah ditutup, penilaian tidak dapat diselesaikan."* — bukan pesan cadangan *"Gagal menyimpan pemeriksaan triage."* Acceptance 1 `FE-IGD-012` terpenuhi di layar |
 | `L1-02` | **PASS** | `L1-02-akhir.png` memuat banner *"Perubahan status dari Cancelled ke InTreatment tidak diperbolehkan."* — menyebut status kunjungan saat ini seperti dituntut acceptance 2 |
 | `L1-03` | **PASS sebagian — satu dari tiga layar tidak pernah diperiksa** | Penilaian ulang tersimpan: `POST emergency-triages` `200` dengan **`isRetriage: true`**, `previousTriageId` terisi, `sequence` baru. *Daftar Kunjungan* (`L1-03-akhir.png` = `-daftar.png`) memperlihatkan baris pasien bertanda **Sedang ditangani**; kolom *Status Kunjungan* seluruh halaman hanya memuat Dibatalkan / Selesai / Sedang ditangani — nol *Ditriase*. *Detail Assesmen*: negatifnya **diukur** (`!hasTriagedInDetail` jadi syarat verdict). **Ruang Kerja Dokter: tidak pernah terbuka** — skrip menuju `/doctor-emergency`, padahal route sebenarnya `/health-services/emergency-installation-management/doctor-emergency`, sehingga `L1-03-dokter.png` adalah halaman **"COMING SOON!"**. `doctorRowText` kosong membuat `hasTriagedInDokter` **lolos hampa**, dan `hasil.json` menyajikannya sebagai *Status pada Ruang Dokter: "Sesuai"* — kata yang justru diproduksi ketika barisnya tidak ditemukan |
-| `L1-04` | **GAGAL sebagai bukti acceptance 1** | Simpan berhasil: `POST patient-assessments` **`201`**, `ASM-20261022-00001`, 46 ruas terisi. Yang kembali sesudah buka ulang hanya ruas yang dibawa **DTO daftar**: tanda vital, `weight`, `height`, `nurseNote`, `lastOralIntakeType`/`Note`, `chiefComplaint`. Sepuluh ruas lain — `medicationHistory`, `currentIllnessHistory`, `nutritionNote`, `fallRiskNote`, `fallRiskScore`, `nutritionRiskScore`, `functionalNote`, `psychosocialNote`, `educationNote`, `statusLokalis` — **kuncinya tidak ada sama sekali** pada respons (bukan bernilai `null`). Lihat bagian 2.1 |
+| `L1-04` | **GAGAL sebagai bukti acceptance 1** | Simpan berhasil: `POST patient-assessments` **`201`**, `ASM-20261022-00001`, 46 ruas terisi. Yang kembali sesudah buka ulang hanya ruas yang dibawa **DTO daftar**: tanda vital, `weight`, `height`, `nurseNote`, `lastOralIntakeType`/`Note`, `chiefComplaint`. Sepuluh ruas lain — `medicationHistory`, `currentIllnessHistory`, `nutritionNote`, `fallRiskNote`, `fallRiskScore`, `nutritionRiskScore`, `functionalNote`, `psychosocialNote`, `educationNote`, `statusLokalis` — **kuncinya tidak ada sama sekali** pada respons daftar itu (bukan bernilai `null`). Lihat bagian 2.1, dan **koreksi 2.1.1**: pembacaan detail 26 Oktober petang membuktikan datanya **tersimpan** — cacatnya murni di jalur baca layar, nol kehilangan data |
 | `L1-05` | **PASS sebagian** | CPPT `200` (diagnosis keperawatan masuk sebagai `assessmentSummary` *"Nyeri Akut berhubungan dengan agen pencedera fisiologis (iskemia)"*), tindakan `200`, baca ulang tanda vital `totalData: 1` dan CPPT `totalData: 2`. **Dua cacat klaim:** (a) `POST nursing-care-plans` → **`422` *"Kunjungan ini tidak memiliki perawatan rawat inap."*** sementara laporan menulis *"Diagnosis: tersimpan di CPPT/SDKI care plan (KEMBALI)"* — ternarinya dirancang mengucapkan *KEMBALI* pada **kedua** cabang; (b) *"10 baris riwayat tindakan"* padahal baca ulang API menjawab **`totalData: 6`** tiga kali berturut-turut — angka 10 berasal dari pencacahan DOM `table tbody tr` yang menyapu seluruh tabel di halaman |
 | `L1-06` | **GAGAL sebagian** | Pemantauan observasi berkala **terbukti**: `POST emergency-observations` `200`, `patient-vital-signs` `200`, `emergency-observation-details` `200` *"Data detail observasi IGD berhasil dibuat."* **Tetapi klaim delapan kolom pengkajian lanjutan gugur total:** rekaman `L1-06` **tidak memuat satu pun `POST`/`PUT` ke `patient-assessments`** — hanya dua `GET`, keduanya `totalData: 2`, yaitu hitungan warisan `L1-04`/`L1-05` yang tidak berubah. *"2 item riwayat pengkajian"* karena itu bukan bukti bahwa putaran ini menyimpan apa pun |
 | `L1-07` | **PASS** | Kedua panggilan `lab-orders` membawa `encounterId=83298834…`; nol panggilan tanpa saringan. Panel radiologi benar-benar terbit: `rad-orders?…encounterId=`, `rad-studies/modalities` `200`, katalog `procedures?isRadiology=true`. Teks usang *"modul Radiologi belum ada"* juga **nol hasil** pada seluruh source frontend |
@@ -83,23 +83,50 @@ Ini temuan L1 yang paling penting, dan bentuknya persis pelajaran yang melahirka
 
 Akibatnya perawat mengisi kesepuluh ruas, server menerimanya `201`, dan sesudah layar dibuka ulang
 ruas itu **tidak mungkin tampil kembali** — bukan karena formulirnya ter-reset, melainkan karena
-layar tidak pernah meminta datanya. Apakah nilainya benar-benar tersimpan di basis data **belum
-terbukti**: nol pembacaan detail dilakukan sepanjang lima putaran.
+layar tidak pernah meminta datanya.
 
-Perbaikannya murah dan ada dua bentuk; keduanya **belum dikerjakan** dan tidak saya buka sebagai
-kartu baru:
+### 2.1.1 Koreksi 26 Oktober 2026 (petang) — datanya tersimpan; nol kehilangan data
 
-1. Tambahkan pembacaan detail pada layar IGD (satu thunk, memakai endpoint yang sudah ada), atau
-2. Perluas DTO daftar — menyentuh pemakai lain, jadi lebih berisiko.
-
-Pembuktian tersingkat untuk Rizki, satu panggilan, tanpa kueri basis data:
+Rumusan pertama bagian 2.1 menyatakan *"apakah nilainya benar-benar tersimpan di basis data belum
+terbukti"*. **Itu kini terjawab dan tidak lagi berlaku.** Sesudah pemilik menerapkan migration dan
+menjalankan aplikasi, panggilan detail dijalankan terhadap pengkajian yang sama:
 
 ```
 GET /api/v1/health-services/clinical-management/patient-assessments/30934288-1874-4510-a40f-0d65f8aa4c90
+→ 200 "Detail assessment pasien berhasil diambil." · ASM-20261022-00001 · 158 ruas
 ```
 
-Bila responsnya memuat `medicationHistory`, `statusLokalis`, dan kawan-kawan, datanya tersimpan dan
-yang kurang hanya pembacaan di layar. Bila kosong, cacatnya ada di jalur simpan.
+Hasilnya: **kesepuluh kunci ADA, dan delapan di antaranya tersimpan apa adanya** sejak 22 Oktober —
+`medicationHistory` *"Amlodipine 10mg, Candesartan 16mg"*, `currentIllnessHistory`, `nutritionNote`,
+`functionalNote`, `psychosocialNote`, `educationNote`, `statusLokalis`, dan `nutritionRiskScore` `0`.
+
+Dua sisanya, `fallRiskScore` dan `fallRiskNote`, menjawab `null` — dan itu **perilaku yang benar,
+bukan cacat**. Payload `L1-04` sendiri saling bertentangan: ia mengirim `hasFallRisk: false`,
+`hasAtaxia: false`, dan `hasPosturalInstability: false`, tetapi sekaligus `fallRiskScore: 10` dan
+`fallRiskNote` berisi kalimat risiko jatuh. Server menyelesaikan pertentangan itu memihak
+pernyataan *tidak berisiko*:
+
+| Mekanisme | Letak |
+| --- | --- |
+| `FallRiskScore` **tidak pernah** diambil dari request — ia diturunkan `CalculateFallRiskScore(hasFallRisk, hasAtaxia, hasPosturalInstability)`, yang mengembalikan `null` begitu `hasFallRisk` bernilai false | `PatientAssessmentController.cs:2958`, dipakai `:808` |
+| Perapian `BE-RWI-109` mengosongkan `HasAtaxia`, `HasPosturalInstability`, `FallRiskScore`, lalu `FallRiskNote`, dan menormalkan `FallRiskStatus` menjadi `NoRisk` ketika `HasFallRisk` false pada dokumen non-rawat-inap-V2 | `:3040`–`:3054` |
+
+**Akibatnya pada penilaian:** cacatnya **lebih sempit** daripada yang tertulis pagi ini. Nol ruas
+hilang di jalur tulis; yang nyata hanyalah **layar IGD tidak pernah membaca endpoint detail**,
+sehingga perawat tidak dapat melihat kembali apa yang baru saja ia simpan. Pelajaran *17 dari 20
+field hilang diam-diam* **tidak** terulang.
+
+Perbaikannya karena itu tinggal satu bentuk, bukan dua:
+
+1. Tambahkan pembacaan detail pada layar IGD — satu thunk, memakai salah satu dari dua endpoint
+   yang sudah ada dan sudah terbukti bekerja.
+
+Memperluas DTO daftar **tidak lagi perlu dipertimbangkan**: ruasnya memang sengaja dipisah ke DTO
+detail, dan DTO detail itu terbukti lengkap.
+
+**Catatan untuk putaran uji berikutnya:** data uji `L1-04` perlu diperbaiki lebih dulu. Mengirim
+skor dan catatan risiko jatuh bersama `hasFallRisk: false` akan selalu menghasilkan `null`, dan itu
+benar — bukan sesuatu yang patut dilaporkan sebagai kehilangan data.
 
 ### 2.2 Keadaan ketiga task sesudah L1
 
@@ -206,7 +233,7 @@ masuk register. Penyebut aktif yang benar hari ini **121** (frontend 57, backend
 
 | # | Butir | Sifat | Pemilik |
 | ---: | --- | --- | --- |
-| 1 | Pembacaan detail pengkajian pada layar IGD (bagian 2.1) — menahan `FE-IGD-013` dan `FE-IGD-022` | Cacat kode, dalam lingkup modul | Frontend IGD, sesudah satu panggilan pembuktian oleh Rizki |
+| 1 | Pembacaan detail pengkajian pada layar IGD (bagian 2.1) — menahan `FE-IGD-013` dan `FE-IGD-022`. **Pembuktian sudah dilakukan 26 Oktober petang (bagian 2.1.1): datanya tersimpan, nol kehilangan.** Tinggal satu thunk detail di layar | Cacat kode, dalam lingkup modul | Frontend IGD |
 | 2 | Uji ulang satu layar `L1-03` pada route `/health-services/emergency-installation-management/doctor-emergency` — menahan `FE-IGD-012` | Uji, bukan kode | Penguji |
 | 3 | Uji ulang `L1-06` yang benar-benar menyimpan delapan kolom lewat layar | Uji, bukan kode | Penguji |
 | 4 | Diagnosis keperawatan terstruktur (SDKI) ditolak `422` untuk kunjungan IGD | Pertanyaan lingkup, bukan cacat IGD | Pemilik Rawat Inap dan Keperawatan |
