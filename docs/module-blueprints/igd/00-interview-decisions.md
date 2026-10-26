@@ -8306,3 +8306,90 @@ register; `BE-IGD-084` sempat tergolong batal oleh skrip hitung karena teks stat
 | Pertanyaan ditutup | `IGD-OQ-141` |
 | Perubahan source | **Nol** |
 | Nomor yang dipakai | `IGD-FACT-236`…`238`; `IGD-DEC-351`; `IGD-OQ-143` |
+
+---
+
+### `FE-IGD-052` — tab Penunjang dokter IGD dikerjakan, pemesanan tertahan izin akun dokter — 26 Oktober 2026 (petang)
+
+Langkah 4 menuju penutupan register. Tab dipasang lewat adapter per `encounterId` di atas formulir
+dan seksi rawat inap tanpa mengubahnya. Rinciannya di
+[laporan `FE-IGD-052`](task/report/frontend/FE-IGD-052.md); bukti mentah di
+`QuilvianSystemFrontendDev/test-with-agy/igd/uji-fe-igd-052-20261026/`.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-239` | **Akun dokter uji `ranger.biru@admin.com` (dr. Jenah Ali) tidak berizin memesan penunjang apa pun.** `/v1/auth/me` menjawab `roles: []`. Dengan badan kosong `{}` — sehingga tidak ada data yang dapat tercipta — `POST` lab-orders, rad-orders, blood-orders, dan hemodialysis-orders keempatnya `403` *"Anda tidak memiliki akses ke menu atau fitur ini."*; `GET` keempat daftar per `encounterId`, katalog lab, `rad-studies/modalities`, dan `blood-components/options` juga `403`; hanya `master-data/procedures` `200`. Izin yang dibutuhkan: `LabOrder`, `RadOrder`, `BloodOrder`, `HemodialysisOrder` (`Read`, `Create`), `LabCatalog`, `RadStudy`, `BloodComponent` (`Read`). Akibatnya acceptance 1–2 `FE-IGD-052` **tidak dapat diuji**, berapa pun benarnya kode. Pemberian izin adalah konfigurasi admin, bukan pekerjaan agen. Bukti: `02-izin-tulis-kosong.json`, `U1`, `U4` |
+| `IGD-FACT-240` | **Hemodialisa dapat dibaca per kunjungan sejak 22 September 2026; catatan 19 Oktober 2026 keliru.** `HmdOrderPagedQuery.EncounterId` (`HmdOrderDtos.cs:10`) diterapkan `HmdOrderService.cs:99`–`:100`, dan `GET /hemodialysis-management/hemodialysis-orders?encounterId=` menjawab `200` pada `U2`/`U3`. Dasar pengecualian hemodialisa dari `FE-IGD-056` karena itu tidak berlaku lagi. **`FE-IGD-056` tidak dibuka ulang** — membukanya menunggu keputusan pemilik |
+| `IGD-FACT-241` | **Akun perawat uji `dimas.kurniawan@rsmmc.local` berperan `SuperAdmin`.** Bukti apa pun yang memakai akun ini menguji layar dengan izin penuh, bukan izin peran perawat — pola yang sama dengan catatan `IGD-DEC-350` atas `superadmin@admin.com`. Untuk `FE-IGD-052` akun ini hanya dipakai pada `U2`/`U3`, yang menguji pembacaan dan ketahanan gagal per jenis, bukan otorisasi |
+| `IGD-FACT-242` | **Seksi riwayat Penunjang rawat inap salah memanggil komponen dasarnya — dari pembacaan source, belum diuji layar.** `SupportingHistorySection` (`supporting-history-section.jsx`) mengirim `state=` yang tidak dikenal `ClinicalStateBoundary` (yang hanya membaca `loading`/`error`/`denied`), dan `data=`/`keyExtractor=` padahal `ClinicalDataTable` membaca `rows=`/`rowKeyFn=`; kolom `buildSupportingHistoryColumns` ditulis `render(row)` sedangkan tabel memanggil `render(value, row, index)`. Akibat yang diperkirakan pada tab Penunjang dokter rawat inap: daftar **Bank Darah dan Gizi selalu tampil kosong** walau ada pesanan, dan kegagalan maupun penolakan tidak pernah tampil. Milik Rawat Inap (Muhammad Hamzah); **tidak diubah** karena acceptance 4 `FE-IGD-052` melarangnya. IGD menghindarinya dengan `SupportingOrderSection` ditambah adapter tanda tangan kolom, dan `U2-blood-bank-seksi.png` memperlihatkan kolom yang sama tampil benar lewat jalur itu |
+
+#### Perubahan status
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `FE-IGD-052` | tanpa tanda | 🟡 — acceptance 3, 4 terpenuhi; 5 tinggal `npm run build`; 1–2 tidak dapat diuji (`IGD-FACT-239`) |
+
+| Lapisan | Sebelum | Sesudah |
+| --- | --- | --- |
+| Backend | 59 dari 64 aktif (92,2%) | **Tidak berubah** |
+| Frontend | 49 dari 58 aktif (84,5%) | **Tidak berubah** — 49 ✅, 5 🟡 |
+| Gabungan | 108 dari 122 aktif (88,5%) | **Tidak berubah — 108 dari 122 (88,5%)**; atas 126 baris: 108 dari 126 (85,7%) |
+
+Dihitung ulang dari kedua register. Baris batal dikenali hanya bila statusnya diawali ⛔ dan memuat
+*dibatalkan `IGD-DEC-…`* di awal teksnya — `BE-IGD-017`, `073`, `075`, `FE-IGD-062` — sehingga baris
+✅ yang menyebut *pembatalan* tidak ikut tergolong batal.
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | **Nol**. Pemakaian formulir hemodialisa rawat inap apa adanya diambil sebagai `DEV_DISCRETION` §15.8, beserta utang teksnya, di laporan bagian 3.3 |
+| Perubahan source | Frontend: 3 berkas baru, 3 disunting (+22 baris), belum di-commit. Backend: nol |
+| Langkah operasional (bukan kartu baru) | Admin memberi izin `IGD-FACT-239` pada posisi dokter IGD; pastikan `IGD-UNK-13` dan `IGD-UNK-15`; `npm run build` oleh pemilik; lalu satu putaran pesan empat jenis |
+| Nomor yang dipakai | `IGD-FACT-239`…`242` |
+
+---
+
+### `FE-IGD-052` ✅ — izin dokter diberikan, build dijalankan, uji diulang pada hasil build — 26 Oktober 2026 (petang)
+
+Pemilik memerintahkan agen: *login memakai SuperAdmin, berikan akses kepada dokter IGD, jalankan
+`npm run build`, lalu ulangi uji layar*, dan mengizinkan `next dev` miliknya dihentikan saat build.
+Rinciannya di [laporan `FE-IGD-052`](task/report/frontend/FE-IGD-052.md) bagian 9.
+
+#### Keputusan
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-352` | **Posisi dokter IGD diberi izin memesan dan membaca penunjang**, dikerjakan agen lewat `POST /administrator/setting/role-access/policies` — bukan SQL. Sebelas izin pada departemen `676f2aa7…` / posisi `cd1cd442…` (penempatan utama dr. Jenah Ali): `LabOrder`, `RadOrder`, `BloodOrder`, `HemodialysisOrder` (`Read`, `Create`), `LabCatalog`, `RadStudy`, `BloodComponent` (`Read`). Karena endpoint itu menimpa seluruh policy target (`overwriteTarget: true`), 222 policy lama dibaca dan dicadangkan lebih dulu, lalu dikirim kembali bersama yang baru: 233 sesudahnya, **nol policy lama hilang**. Login admin memakai `dimas.kurniawan@rsmmc.local` (peran `SuperAdmin`, `IGD-FACT-241`) — satu-satunya kredensial SuperAdmin yang tersedia lewat environment, sehingga jejak audit perubahan ini atas nama akun itu. **Konsekuensi yang diterima:** izin berlaku bagi setiap pengguna pada departemen+posisi yang sama, bukan hanya dr. Jenah Ali; konfigurasi lingkungan lain tidak ikut berubah. `IGD-FACT-239` karena itu tidak lagi menahan | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-26** | Perintah pemilik di sesi; `10-beri-izin-terapkan.json`, `10-policy-dokter-sebelum.json`, `10-policy-dokter-sesudah.json` |
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-243` | **Item daftar `lab-orders` dan `rad-orders` tidak memuat `instructionVerificationStatus`; item daftar `blood-orders` memuatnya.** Ruas itu hanya ada pada respons detail (`LabOrderService.cs:2199`, `RadOrderService.cs:2781`). Akibatnya dua pemeriksaan `U5` yang menuntut ruas itu pada daftar gagal karena rancangannya, bukan karena produk; verdict `U5` tetap `FAIL` di berkasnya dan acceptance 2 dinilai dari `U5b` (endpoint detail): `LAB-RSMMC-000004` dan `RAD-RSMMC-000002` `NotRequired`, `ORD-00000002` `0` |
+| `IGD-FACT-244` | **Kolom hemodialisa rawat inap membaca ruas yang tidak dikirim daftar HD.** `buildHmdOrderColumns` membaca `status`, `orderDate`, `clinicalReason`; `GET hemodialysis-orders` mengirim `orderStatus`, `orderStatusName`, `requestedAt`, dan **tidak** mengirim `clinicalReason`. Di layar IGD hasil build pertama baris `HD-ORD-00000001` tampil *Tidak Diketahui* dengan waktu `-`. Diperbaiki di utils IGD (`normalizeEmergencyHemodialysisOrders`) tanpa menyentuh komponen rawat inap; `U6` membuktikan *Diminta* dan *26 Okt 2026, 15.26 WIB*. Layar dokter rawat inap diperkirakan menampilkan cacat yang sama — milik Rawat Inap, tidak diubah. Kolom indikasi tetap `-` sampai DTO daftar HD memuat `clinicalReason` |
+| `IGD-FACT-245` | **`IGD-UNK-13` terjawab: unit IGD berizin memesan darah.** `POST /blood-orders` dari layar dokter dengan `serviceUnitId` `4dd4827b-6b69-4cfa-9c5c-ded8ed07660e` (Instalasi Gawat Darurat) dijawab `200` dan melahirkan `ORD-00000002`, bukan `403` `UnitNotAuthorized` |
+
+#### Perubahan status
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `FE-IGD-052` | 🟡 — acceptance 1–2 tertahan izin, `npm run build` belum | **✅** — 5/5; dua build lulus; `U5`, `U5b`, `U6` pada hasil build |
+
+| Lapisan | Sebelum | Sesudah |
+| --- | --- | --- |
+| Backend | 59 dari 64 aktif (92,2%) | **Tidak berubah** |
+| Frontend | 49 dari 58 aktif (84,5%) | **50 dari 58 aktif (86,2%)** |
+| Gabungan | 108 dari 122 aktif (88,5%) | **109 dari 122 aktif (89,3%)**; atas 126 baris: 109 dari 126 (86,5%) |
+
+Dihitung ulang dari kedua register dengan aturan batal yang sama seperti entri sebelumnya.
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | `IGD-DEC-352` |
+| Fakta yang tidak lagi menahan | `IGD-FACT-239` (izin akun dokter) |
+| Pertanyaan ditutup | `IGD-UNK-13` (`IGD-FACT-245`) |
+| Perubahan source | Frontend: utils IGD +10 baris dan satu import di hook adapter, di atas enam berkas pass sebelumnya; belum di-commit. Backend: nol |
+| Data dev yang tercipta | Empat pesanan uji pada kunjungan `IGD-261009030511-26F549`: `LAB-RSMMC-000004`, `RAD-RSMMC-000002`, `ORD-00000002`, `HD-ORD-00000001` |
+| Lingkungan | `next dev` pemilik dihentikan atas izinnya dan **belum dinyalakan ulang** |
+| Nomor yang dipakai | `IGD-DEC-352`; `IGD-FACT-243`…`245` |
