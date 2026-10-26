@@ -3,10 +3,10 @@
 ```yaml
 plan_id: PLAN-REPAIR-EPS-041
 issue: ../issue/issue-041-temuan-uji-admisi-lama-bayi-transfer.md
-status_rencana: MENUNGGU_PERSETUJUAN
+status_rencana: DISETUJUI
 tanggal_rencana: "2026-10-26"
-diputuskan_oleh: null
-tanggal_keputusan: null
+diputuskan_oleh: "Pemilik modul (sesi 26-10-2026): seluruh rencana + K-01 s.d. K-06 sesuai rekomendasi"
+tanggal_keputusan: "2026-10-26"
 basis_source_backend: "e095f656 (MHamzah)"
 basis_source_frontend: "2cd1c0610 (HamzahV2)"
 ```
@@ -771,3 +771,5 @@ Hasilnya ditulis sebagai laporan live testing baru per menu di `testing/live-tes
 | Tanggal | Perubahan | Oleh |
 | --- | --- | --- |
 | 2026-10-26 | Rencana dibuat: 18 perbaikan (11 siap dikerjakan, 7 menunggu K-01 s.d. K-06 atau P-01/P-02); menunggu persetujuan pemilik | `diagnose-module-issue` |
+| 2026-10-26 | Pemilik menyetujui seluruh rencana dan K-01 (VIP 316 & 317 bed isolasi), K-02 (transfer batal tetap ditutup permanen), K-03 (lanjutkan bayi dengan RM yang ada; nonaktifkan RM yatim yang kasusnya sudah punya bayi teradmisi), K-04 (`PatientLabelHospitalCode` = RSMMC; unit NICU tidak dipindah), K-05 (batas teknis deposit), K-06 (tampilkan di Konfirmasi). P-01 dijawab: master kamar bernama "ODC 321A/321B" tetapi `RoomNumber` keduanya "321" — FIX-16 menjadi koreksi `RoomNumber` | sesi pemilik |
+| 2026-10-26 | Progres task payung `FIX-EPS-041-BE` (belum ada laporan task, belum diuji runtime): source backend FIX-01, -04, -09 (BE), -10 (BE + filter pasien nonaktif), -14, -15 (BE), -17 (BE) selesai di MHamzah, `dotnet build` ke folder terpisah PASS 0 error. Data DB Hamzah diterapkan lewat `QuilvianSystemFrontendDev/test-with-agy/scripts/admisi-1026-datafix-041.py`: FIX-05 (2 bed isolasi), FIX-11 (9 RM bayi dinonaktifkan), FIX-13, FIX-16. `FIX-EPS-041-FE` belum dimulai; harus dibangun di atas pekerjaan FE-RWI-229 (transfer 1 langkah split, 9 langkah) yang belum di-commit | `build-module-backend` |
