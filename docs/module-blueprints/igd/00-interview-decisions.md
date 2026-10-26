@@ -8049,3 +8049,110 @@ Atas permintaan pemilik sistem untuk menyusun rencana blueprint dan mengaktifkan
 | Keputusan baru | `IGD-DEC-349` |
 | Dokumen blueprint | `docs/2026-10-23-blueprint-integrasi-tagihan-pasien-igd.md` |
 | Nomor yang dipakai | `IGD-FACT-214`, `215`; `IGD-DEC-349` |
+
+---
+
+### Penilaian lima putaran uji yang menganggur — 26 Oktober 2026
+
+Lima putaran (D3, L1, L1R sebelum, L1R sesudah, E2E) sudah dieksekusi 21–22 Oktober tetapi belum
+pernah dinilai, sehingga register tidak bergerak sejak 21 Oktober. Dinilai dari bukti mentah
+menurut `IGD-DEC-332` pada backend `3eac45aa` dan frontend `169a1ff30`.
+Rinciannya di [evidence/2026-10-26-penilaian-lima-putaran-d3-l1-l1r-e2e.md](evidence/2026-10-26-penilaian-lima-putaran-d3-l1-l1r-e2e.md).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-216` | **Putaran D3 hanya mengeksekusi `A01`–`A03` dan `U08`–`U13`.** Skenario `D3-U01` sampai `D3-U07`, yang menyasar regresi `FE-IGD-050` dan `FE-IGD-051`, **tidak pernah dijalankan**: nol PNG dan nol rekaman jaringan untuk ketujuhnya, baik pada `hasil.json` maupun `percobaan.json`. Kedua task itu karena itu tidak tersentuh D3 — bukan lulus, bukan gagal |
+| `IGD-FACT-217` | **Enam klaim `PASS` dibantah berkas buktinya sendiri**, seluruhnya berasal dari kalimat naratif yang ditulis tangan di dalam skrip alih-alih dirakit dari nilai terukur: (1) `D3-U13` modal kalimat penutupan — tangkapan diambil sesudah modal tertutup dan `modalMessage` hanya dicetak ke stdout; (2) `D3-U13` menulis `visitStatus = 4` padahal nilainya **9**, sehingga penjaga `isVisitClosed === 4` bernilai false dan PASS lolos lewat cabang *or*; (3) `L1-03` *"Status pada Ruang Dokter: Sesuai"*; (4) `L1-03` *"Status pada Detail Assesmen: Sedang ditangani"* yang di-hard-code pada `v3`; (5) `L1-05` *"Diagnosis tersimpan di CPPT/SDKI care plan (KEMBALI)"* padahal `POST nursing-care-plans` menjawab `422`, dengan ternari yang mengucapkan *KEMBALI* pada kedua cabang; (6) `L1-06` *"Delapan kolom … disimpan ke patient-assessments"* padahal rekamannya nol panggilan tulis. Pembanding yang **sah**: `D3-U11` mengukur `isDisabled()` dan `count()` dari DOM **dan** menjadikannya konjungsi wajib pada verdict |
+| `IGD-FACT-218` | **Sepuluh ruas pengkajian IGD tidak dapat dibaca kembali dari layar yang menulisnya.** `medicationHistory`, `currentIllnessHistory`, `nutritionNote`, `fallRiskNote`, `fallRiskScore`, `nutritionRiskScore`, `functionalNote`, `psychosocialNote`, `educationNote`, dan `statusLokalis` diterima server (`POST patient-assessments` `201`, `ASM-20261022-00001`), tetapi kuncinya **tidak ada** pada respons yang dibaca layar. Sebabnya bukan formulir yang ter-reset: ruas itu hanya hidup di `PatientAssessmentDetailResponse` (`PatientAssessmentDtos.cs:224`), sedangkan endpoint daftar memakai `PatientAssessmentResponse` (`:6`), dan `emergency-assessment-slice.jsx` hanya punya `fetchPatientAssessments` serta `createPatientAssessment` — **nol thunk detail**. Dua endpoint detail tersedia dan tidak dipakai layar IGD: `GET patient-assessments/{id:guid}` (`PatientAssessmentController.cs:408`) dan `active-by-encounter/{encounterId:guid}` (`:443`); yang kedua hanya dipakai Nurse Station rawat jalan. **Apakah nilainya benar-benar tersimpan belum terbukti** — nol pembacaan detail sepanjang lima putaran. Ini bentuk baru dari pelajaran yang melahirkan `FE-IGD-013` (*17 dari 20 field hilang diam-diam*): datanya tidak hilang di jalur tulis, melainkan tak terjangkau di jalur baca |
+| `IGD-FACT-219` | **Layar Ruang Kerja Dokter tidak pernah terbuka pada `L1-03`.** Skrip `l1-03-v3.mjs` menuju `/doctor-emergency`, padahal route sebenarnya `/health-services/emergency-installation-management/doctor-emergency`, sehingga `L1-03-dokter.png` adalah halaman *COMING SOON!*. `doctorRowText` kosong membuat `hasTriagedInDokter` lolos hampa, dan laporan menyajikannya sebagai *"Sesuai"* — kata yang justru diproduksi ketika barisnya tidak ditemukan. Akibatnya kriteria 3 `FE-IGD-012` hanya terbukti pada dua dari tiga layar |
+| `IGD-FACT-220` | **Penjaga kunjungan tertutup pada jalur triase sempat bocor lagi, dan perbaikannya terbukti berpasangan.** Sebelum perbaikan 22 Oktober: `POST emergency-triages` berstatus `Draft` pada kunjungan `VisitStatus` 8 menjawab `200` dan responsnya membawa `id` `9116d253-f733-4b6d-a363-49bea3450900` — barisnya memang lahir — lalu status triase dapat diubah 1 → 2 pada kunjungan yang sama. Sesudah perbaikan: keduanya `409` *"Kunjungan IGD sudah ditutup, penilaian tidak dapat diselesaikan."* tanpa `data`, sementara jalur normal tetap `200` dan `VisitStatus` 2 → 3. Sebabnya terbaca di source: `KunjunganSudahDitutup(visit.VisitStatus)` kini diperiksa **sebelum** percabangan `TriageStatus == Completed` pada `EmergencyTriageController.cs:330` dan `:565`; sebelumnya ia berada **di dalam** cabang `Completed` sehingga triase `Draft` melewatinya |
+| `IGD-FACT-221` | **`E2E-10` adalah cacat nyata yang sudah hilang sendiri di `HEAD`.** `GET billing/invoices/{id}` menjawab `500` pada commit yang diuji (`025bfc6d`) karena `if (_closureService != null)` meneruskan `currentVersion` `null` ke `CalculateOutstandingAsync`, lalu `calculation.PatientAmount` (`BillingInvoiceClosureService.cs:67`) melempar `NullReferenceException`. Pada `3eac45aa` penjaganya sudah `if (_closureService != null && currentVersion is not null)` (`BillingInvoiceService.cs:1140`). Perbaikannya **bukan** pekerjaan IGD melainkan `d72dcd65` *"fix(billing): handle null BilCalculationVersion in outstanding calculation"* (19 Oktober), yang terbukti belum ada di `025bfc6d` tetapi sudah ada di `HEAD` — masuk belakangan lewat merge integration. **Nol kartu dibuka**; cukup jalankan ulang `E2E-10` pada `HEAD` |
+| `IGD-FACT-222` | **Diagnosis keperawatan terstruktur (SDKI) menolak kunjungan IGD.** `POST nursing-care-plans` untuk encounter IGD menjawab `422` *"Kunjungan ini tidak memiliki perawatan rawat inap."* Yang tersimpan hanyalah diagnosis sebagai teks bebas pada ruas `assessmentSummary` CPPT (`200`). Ini menyentuh komponen SOAP keperawatan yang dipakai bersama IGD dan Rawat Inap, sehingga bukan keputusan IGD sendiri |
+| `IGD-FACT-223` | Akun perawat `dimas.kurniawan` menerima **tujuh `403`** pada master data saat membuka ruang kerja pemeriksaan IGD: `patients/options`, `patients/{id}` (tiga kali), `doctors/kiosk/options`, `clinics/kiosk/options`, dan `doctor-schedules`. Panggilan tindak lanjutnya sendiri `200`, sehingga tab Tindak Lanjut tidak terpengaruh. Dicatat sebagai pengamatan, bukan cacat task |
+
+#### Pertanyaan terbuka
+
+| ID | Isi | Owner |
+| --- | --- | --- |
+| `IGD-OQ-141` | **Apakah pasien IGD berhak atas diagnosis keperawatan terstruktur (SDKI), atau cukup teks bebas pada CPPT?** (`IGD-FACT-222`) Hari ini jalur terstrukturnya tertutup oleh penjaga rawat inap, sehingga asuhan keperawatan IGD tercatat tanpa diagnosis keperawatan yang dapat dicari maupun dilaporkan. Opsi (a) buka `nursing-care-plans` untuk encounter IGD — menyentuh milik Rawat Inap; opsi (b) nyatakan teks bebas CPPT memang bentuk yang dikehendaki untuk IGD dan tutup acceptance 4 `FE-IGD-013` atas dasar itu; opsi (c) bentuk tersendiri milik IGD — paling mahal. **Tidak menahan** task mana pun selain penutupan penuh acceptance 4 `FE-IGD-013` | Pemilik Rawat Inap (Muhammad Hamzah) + Nursing authority (`OPEN`) + Product/Domain Owner IGD |
+
+#### Perubahan status
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `BE-IGD-070` | 🟡 2/8 | **8/8 ✅** |
+| `FE-IGD-054` | 🟢 | **5/5 ✅** |
+| `FE-IGD-055` | 🟢 | **4/4 ✅** |
+| `FE-IGD-012` | 🟡 | 🟡 **3/4** |
+| `FE-IGD-013` | 🟡 | 🟡 — kriteria 1 gagal (`IGD-FACT-218`) |
+| `FE-IGD-022` | 🟡 | 🟡 — tiga dari empat bagian lunas |
+| `BE-IGD-019` | ✅ | ✅ tetap — pasangan L1R dinilai sebagai dasar perbaikan |
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | **Nol.** Pass ini menilai bukti, tidak memutuskan kebijakan |
+| Pertanyaan terbuka baru | `IGD-OQ-141` |
+| Register | backend 57 → **58** dari 64 aktif; frontend 44 → **46** dari 57 aktif; gabungan 101 → **104** dari 121 aktif (86,0%) |
+| Koreksi penyebut | Sasaran *107 dari 120* memakai penyebut sebelum `FE-IGD-070` masuk register. Penyebut aktif yang benar **121**; kenaikan nyata **+3**, bukan +6 |
+| Syarat rilis yang lunas | R3.16.5 — `BE-IGD-070` bersama `FE-IGD-047` ✅ dan `FE-IGD-054` ✅ |
+| Nomor yang dipakai | `IGD-FACT-216`…`223`; `IGD-OQ-141` |
+
+---
+
+### Dua keputusan yang menggantung — 26 Oktober 2026
+
+Diangkat pada pass penilaian lima putaran. Keduanya **tidak** saya kerjakan: yang pertama keputusan
+tarif milik bisnis dan keuangan, yang kedua keputusan penyajian milik Product/Domain Owner.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-224` | **Fallback tarif kunjungan IGD dicari berdasarkan *nama* kelas pasien, dan berkasnya milik Rawat Inap.** `InpServiceClassResolver.ResolveAsync` (`Areas/HealthServices/InPatientManagement/Services/InpServiceClassResolver.cs`) memperlakukan encounter `Emergency` tanpa `PatientClassId` sebagai kasus khusus dan memanggil `ResolveEmergencyPricingClassAsync`, yang memindai seluruh `MstPatientClass` aktif lalu mencocokkan nama ternormalisasi terhadap konstanta `EmergencyPricingPatientClassName = "RAWAT JALAN"` (`:13`). Pencocokannya **bukan** lewat kode atau id, melainkan lewat nama yang diketik petugas master data |
+| `IGD-FACT-225` | **Kedua jalur gagalnya senyap.** `ResolveEmergencyPricingClassAsync` mengembalikan kelas hanya bila hasil cocoknya **tepat satu**; nol hasil dan dua hasil atau lebih sama-sama menjawab `(null, null)` tanpa galat dan tanpa log. Akibatnya, mengganti nama baris master `"RAWAT JALAN"` — atau menambah baris kedua bernama sama — mengubah tarif kunjungan IGD menjadi *tanpa kelas* tanpa satu pun pesan |
+| `IGD-FACT-226` | **Fallback itu memberi makan empat pemakai di luar Rawat Inap**: `BillingClinicalChargeBridgeService` (`:272`), `BillingClinicalChargeBridgeService.DrugReturn` (`:62`), `BillingCoverageAdapter` (`:164`), `CompanyGuarantorCoverageService`, dan `EncounterInsuranceService`. Jadi nilainya mengalir ke penagihan dan ke penentuan jaminan pasien IGD — termasuk layar Tagihan Pasien IGD yang disetujui `IGD-DEC-349`. Ia **sudah ter-commit tanpa keputusan** |
+| `IGD-FACT-227` | **Untuk `IGD-OQ-140`, opsi (b) ternyata nol pekerjaan backend.** Penulis sebenarnya sudah tersimpan (`StartedByUserId = actorUserId`, `DoctorConsultationController.cs:663`) **dan sudah disajikan**: ruas `StartedByUserName` ada di `DoctorConsultationDtos.cs:67` dan diisi dari `StartedByUser.DisplayName` pada kedua proyeksi lini masa (`:2149`, `:2235`). Yang kurang hanya penayangannya di layar; frontend hari ini baru memakai `startedByUserId` sebagai pembanding identitas (`use-emergency-progress-note.jsx:243`), bukan untuk menampilkan nama. Sementara itu `DoctorId` tetap diisi `queue?.DoctorId ?? request.DoctorId ?? encounter.DoctorId ?? Guid.Empty` (`:602`), yaitu DPJP |
+
+#### Pertanyaan terbuka
+
+| ID | Isi | Owner |
+| --- | --- | --- |
+| `IGD-OQ-142` | **Apakah kunjungan IGD tanpa kelas pasien memang ditarifkan sebagai "RAWAT JALAN", dan di mana keputusan itu seharusnya hidup?** (`IGD-FACT-224`…`226`) Tiga keberatan menumpuk sekaligus: (1) berkasnya milik **Rawat Inap**, padahal yang diputuskan perilaku IGD; (2) nilainya **string yang di-hard-code** dan dicocokkan lewat nama master data, sehingga penggantian nama mengubah tarif secara senyap (`IGD-FACT-225`); (3) ini keputusan **tarif**, yang menurut R3.5 adalah ranah bisnis dan keuangan, bukan ranah teknis. Opsi (a) sahkan perilakunya apa adanya dan cukup pindahkan konstantanya ke konfigurasi atau master data bertanda tegas — termurah, tetapi tetap menaruh aturan IGD di berkas Rawat Inap; opsi (b) sahkan perilakunya tetapi cocokkan lewat **kode** kelas pasien, bukan nama, dan jadikan nol-hasil sebagai galat yang terlihat alih-alih `(null, null)` senyap; opsi (c) kelas tarif tersendiri untuk IGD yang ditetapkan owner Billing — paling benar secara domain, paling mahal; opsi (d) tolak fallback-nya dan wajibkan `PatientClassId` terisi sejak pendaftaran IGD. **Tidak menahan** task IGD mana pun hari ini, tetapi menahan pernyataan bahwa tarif IGD benar | **Rizki Gunawan** (Product/Domain Owner IGD) + **Muhammad Hamzah** (pemilik berkas Rawat Inap) + **owner Billing** (keputusan tarifnya sendiri) |
+| `IGD-OQ-140` | **Tetap `open`** — bagaimana penulis catatan dokter disajikan bila berbeda dari DPJP. **Rekomendasi penilai dipertegas menjadi opsi (b) dengan bukti biaya:** biarkan `DoctorId` tetap berarti DPJP, lalu tampilkan penulis dari `StartedByUserName` pada lini masa dan *Catatan Saya*. `IGD-FACT-227` menunjukkan ruas itu **sudah terisi dan sudah terkirim** oleh backend, sehingga opsi (b) murni pekerjaan layar — nol perubahan kontrak, nol migration, nol dampak ke modul lain yang membaca `DoctorId`. Opsi (a) (mengisi `DoctorId` dari penulis) tetap ditolak karena mengubah arti ruas yang dipakai modul lain | Product/Domain Owner IGD + pemilik `ClinicalManagement` |
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | **Nol** — keduanya diangkat sebagai pertanyaan, bukan diputuskan |
+| Pertanyaan terbuka baru | `IGD-OQ-142` |
+| Pertanyaan yang dipertegas | `IGD-OQ-140` — rekomendasi opsi (b) kini disertai bukti bahwa biayanya nol di backend |
+| Nomor yang dipakai | `IGD-FACT-224`…`227`; `IGD-OQ-142` |
+
+---
+
+### Status layar Tagihan Pasien IGD diperjelas — 26 Oktober 2026
+
+`IGD-DEC-349` (23 Oktober) menyetujui integrasi layar Tagihan Pasien IGD, layarnya dikerjakan dan
+di-live-test hari itu juga, tetapi register tidak pernah bertambah baris. Pekerjaan itu karena itu
+berada **di luar hitungan**: tidak menaikkan pembilang dan tidak menambah penyebut. Diangkat ke
+pemilik pada pass ini.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-228` | **Penyamaran angka nominal rupiah yang dijanjikan `IGD-DEC-349` tidak pernah diuji.** Keputusan itu menyatakan rincian item pelayanan dibuka untuk seluruh staf IGD sementara nominal rupiah dilindungi `BillingInvoice : Read` / `PatientBillingSummary : ViewAmount`. Live browser testing 23 Oktober (`UAT-IGD-BILLING-20261023`) memuat sembilan skenario, seluruhnya `PASS`, dengan bukti lengkap di `test-with-agy/screenshots/live-igd-billing/` (8 PNG + `test-report-summary.json`) — tetapi **nol skenario menyentuh masking**, dan seluruhnya dijalankan dengan `superadmin@admin.com`. Dengan akun SuperAdmin, penyamaran memang tidak dapat dibuktikan maupun dibantah: pencarian `mask`/`ViewAmount` pada `test-live-igd-billing.mjs` juga nol hasil. Butir 3 ringkasan eksekutif laporan membahas penyajian data, bukan penyamarannya |
+
+#### Keputusan
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-350` | **Layar Tagihan Pasien IGD dikartukan sebagai satu task frontend, `FE-IGD-071`, dan nol task backend.** Pekerjaannya masuk hitungan IGD alih-alih dinyatakan di luar lingkup, supaya celah `IGD-FACT-228` punya tempat yang bertanggung jawab di roadmap. Kartu backend tidak dibuat karena endpoint `charge-summary` memang di-reuse apa adanya tanpa migration (`IGD-FACT-215`), sehingga kartu backend-nya akan kosong isi — pengecualian sadar terhadap kebiasaan memasangkan tiap task backend dengan frontend-nya. **Konsekuensi yang diterima:** penyebut aktif naik dari 121 ke 122 dan persentase gabungan turun dari 86,0% ke 85,2% tanpa ada pekerjaan yang mundur. **Syarat ✅:** acceptance 5 wajib dibuktikan dengan **dua akun berbeda izin** — satu dengan izin finansial, satu tanpa; akun SuperAdmin tidak sah untuk kriteria ini. Alternatif yang ditolak: (a) dua kartu BE + FE berpasangan — lebih konsisten dengan roadmap lain tetapi kartu backend-nya nyaris kosong; (b) dinyatakan di luar lingkup IGD sebagai integrasi milik Billing — menjaga penyebut tetap 121, tetapi celah penyamaran nominal tidak akan tercatat di roadmap IGD mana pun | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-26** | Pilihan interaktif *"Satu kartu frontend saja"*; `IGD-FACT-228` |
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | `IGD-DEC-350` |
+| Task baru | `FE-IGD-071` 🟡 — 8 dari 9 acceptance terbukti; acceptance 5 belum diuji |
+| Register | frontend 58 → **59 baris** (57 → **58 aktif**); gabungan 121 → **122 aktif**, 125 → **126 baris**. Pembilang tetap 104, sehingga gabungan 104 / 122 = **85,2%** |
+| Nomor yang dipakai | `IGD-FACT-228`; `IGD-DEC-350` |
