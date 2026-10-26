@@ -8187,3 +8187,31 @@ terhadap lingkungan yang hidup.
 | Register | **Tidak berubah** — 104 dari 122 aktif (85,2%) |
 | Catatan data uji | Payload `L1-04` perlu diperbaiki sebelum putaran berikutnya: mengirim skor dan catatan risiko jatuh bersama `hasFallRisk: false` akan selalu menghasilkan `null`, dan itu benar |
 | Nomor yang dipakai | `IGD-FACT-229`…`231` |
+
+---
+
+### Perbaikan baca-ulang dokumen pengkajian IGD — 26 Oktober 2026 (petang)
+
+Tindak lanjut langsung atas `IGD-FACT-229`: begitu persistensinya terbukti, sisa cacatnya tinggal
+jalur baca di layar, dan itu dikerjakan pada pass yang sama.
+Rinciannya di [evidence/2026-10-26-perbaikan-baca-ulang-pengkajian-fe-igd-013.md](evidence/2026-10-26-perbaikan-baca-ulang-pengkajian-fe-igd-013.md).
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-232` | **Acceptance 1 `FE-IGD-013` terpenuhi; cacat baca-ulang ditutup dengan tiga berkas frontend.** (1) Thunk `fetchPatientAssessmentDetail` ditambahkan pada `emergency-assessment-slice.jsx`, mengikuti pola `buildCreateThunk` yang sudah ada, dengan reducer yang **menggabungkan** detail ke item riwayat berdasarkan `id` dan sengaja tidak menyentuh ruas `error` bagian itu saat gagal, supaya kegagalan pengayaan tidak merusak daftar yang sudah tampil. (2) Efek pada `use-emergency-assessment-detail.jsx` mengambil detail tiap dokumen **tepat sekali**, dijaga `item.statusLokalis !== undefined` ditambah `useRef` berisi himpunan id. (3) Tujuh baris ruas ditambahkan ke daftar `fields` tab Riwayat pada `emergency-assessment-initial-tab.jsx`. **`EmergencyAssessmentRecordTab` tidak disentuh** — komponennya memang sudah generik, sehingga memperkaya item sudah cukup. **Terbukti di layar:** `FE-IGD-013-R01-riwayat.png` memuat kartu `ASM-20261022-00001` berisi *"Amlodipine 10mg, Candesartan 16mg"*, status lokalis, serta catatan gizi, fungsional, psikososial, dan edukasi — seluruhnya nilai yang disimpan 22 Oktober dan sebelumnya mustahil tampil; rekaman jaringan memuat **dua** panggilan detail `200`, tepat sejumlah dokumen pada riwayat, membuktikan penjaga sekali-ambil bekerja. *Catatan risiko jatuh* tampil `-` dan itu benar sesuai `IGD-FACT-229`. Verifikasi: ESLint **0 error / 4 warning**, terbukti identik dengan baseline `HEAD` lewat `git stash`; nol komentar baru; `globals.css` tidak disentuh; nol perubahan backend, kontrak, maupun migration. **Koreksi pengukur:** putaran pertama skrip melaporkan enam label *"tidak tampil"* padahal seluruh nilainya tampil — asersinya peka huruf besar-kecil sedangkan label dirender kapital oleh CSS; sesudah diperbaiki, 7 dari 7 label dan nilai tampil |
+
+#### Perubahan status
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `FE-IGD-013` | 🟡 — kriteria 1 gagal | 🟡 — **kriteria 1 ✅**; tersisa kriteria 4 yang menunggu `IGD-OQ-141` (keputusan pemilik, bukan pekerjaan kode) |
+| `FE-IGD-022` | 🟡 — delapan kolom terkena cacat baca-ulang | 🟡 — cacat baca-ulang **ditutup**; tujuh dari delapan kolom terbukti tersimpan, tersisa `painNote` yang belum pernah diisi putaran mana pun |
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | **Nol** |
+| Register | **Tidak berubah** — 104 dari 122 aktif (85,2%). Kedua task tetap 🟡 karena sisanya milik pemilik dan data uji, bukan kode |
+| Berkas frontend | 3 disunting; nol komponen bersama, nol CSS |
+| Nomor yang dipakai | `IGD-FACT-232` |
