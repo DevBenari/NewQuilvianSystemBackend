@@ -73372,7 +73372,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EncounterId")
                         .IsUnique()
-                        .HasFilter("\"IsDelete\" = false AND \"InpEpisodeId\" IS NULL");
+                        .HasFilter("\"IsDelete\" = false AND \"InpEpisodeId\" IS NULL AND \"ClinicId\" IS NOT NULL");
 
                     b.HasIndex("PatientId");
 
