@@ -26,6 +26,9 @@ public sealed class BilSettlementConfiguration : IEntityTypeConfiguration<BilSet
             table.HasCheckConstraint(
                 "CK_BilSettlement_Amounts",
                 "\"RequestedAmount\" > 0 AND \"SuccessfulAmount\" >= 0 AND \"AllocatedAmount\" >= 0 AND \"AllocatedAmount\" <= \"SuccessfulAmount\" AND \"SuccessfulAmount\" <= \"RequestedAmount\"");
+            table.HasCheckConstraint(
+                "CK_BilSettlement_BenefitExcess",
+                "\"BenefitExcessAuthorizedAmount\" IS NULL OR \"BenefitExcessAuthorizedAmount\" >= 0");
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.Purpose).HasMaxLength(30).IsRequired();
@@ -35,6 +38,7 @@ public sealed class BilSettlementConfiguration : IEntityTypeConfiguration<BilSet
         entity.Property(x => x.RequestedAmount).HasPrecision(18, 2);
         entity.Property(x => x.SuccessfulAmount).HasPrecision(18, 2);
         entity.Property(x => x.AllocatedAmount).HasPrecision(18, 2);
+        entity.Property(x => x.BenefitExcessAuthorizedAmount).HasPrecision(18, 2).IsRequired(false);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();
         entity.Property(x => x.StartedAt).HasColumnType("timestamp with time zone");
         entity.Property(x => x.CompletedAt).HasColumnType("timestamp with time zone");

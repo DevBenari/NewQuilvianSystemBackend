@@ -1120,3 +1120,80 @@ closing (2I–2K) tetap milik `billing-kasir`.
 | Pemetaan aksi tandai tiba/kembalikan ke `Complete` dan kirim ulang ke `Create` | Sukma Giri, bersama approval blueprint | Bila ditolak, perlu aksi tambahan di Akses Role | Tidak (disetujui bersama blueprint) |
 
 **Development lock:** `MVP-0` s.d. `MVP-2` terkunci untuk perencanaan delivery (`RJ-PRI-DEC-030`). Go-live `MVP-2` tetap menunggu `RJ-PRI-OQ-003`.
+
+# Amendment RP-GT — PRD ke MVP: Ganti tanggal reservasi (revisi `34`, `approved` 2026-10-21)
+
+## RP-GT-1. Identitas dokumen
+
+| Field | Nilai |
+|---|---|
+| Modul | Rawat Jalan, Amendment RP-GT (kode `RP`, lanjutan Amendment RP) |
+| Status | `approved` — Sukma Giri, 2026-10-21 (`RJ-PRI-DEC-039`) |
+| Repository target | `NewQuilvianSystemBackend` `b0285ff1` (`sukmagp`), `V2QuilvianSystemFrontendDev` `037c975b7` (`sukmagpV2`) |
+| Masukan | `00-interview-decisions.md` *Amendment Pass 2026-10-21* (`RJ-PRI-DEC-034` s.d. `038`), `02`/`03` *Amendment RP-GT*, `contracts/*` *Amendment RP-GT* (`RJ-PRI-RESV-001@1.2.0`), `data/data-dictionary.md` RP-GT |
+
+## RP-GT-2. Ringkasan dan masalah
+
+Hari ini, pasien yang ingin pindah tanggal harus dibatalkan lalu dibuatkan reservasi baru. Akibatnya ada tiga masalah:
+- reservasi lama sudah hilang bila reservasi baru ternyata ditolak;
+- admisi dapat lupa membatalkan reservasi lama, sehingga reservasi itu tercatat Tidak Datang;
+- nomor reservasi dan riwayatnya terputus (`F-GT-2`, `F-GT-3`).
+
+Revisi ini menambah satu aksi Ganti Tanggal sebelum hari kunjungan. Aksi ini tetap tidak memberi celah untuk memperpanjang
+hak prioritas.
+
+## RP-GT-3. Batas MVP
+
+| Titik | Isi |
+|---|---|
+| Mulai | Admisi membuka detail reservasi Menunggu Kedatangan sebelum hari kunjungan |
+| Akhir | Reservasi tersimpan pada tanggal baru, link baru dikirim lewat `wa.me`, dan riwayat mencatat penggantian |
+
+## RP-GT-4. Epic dan functional requirement
+
+### EPIC RP-09 — Ganti tanggal reservasi — `EXTEND`
+
+| FR | Requirement | Disposisi |
+|---|---|---|
+| `FR-RP-090` | Admisi dapat mengganti tanggal reservasi Menunggu Kedatangan bila hari ini (WIB) < tanggal kunjungan. Nomor dan status tetap | `EXTEND` (`OutpatientPriorityReservationService`) |
+| `FR-RP-091` | Tanggal baru diperiksa sama seperti saat membuat reservasi, ditambah: tidak boleh sama dengan tanggal lama | `EXTEND` (`ValidateVisitDate`, `FindOpenReservationAsync`, `HasActiveOutpatientEncounterOnAsync`) |
+| `FR-RP-092` | Status member dinilai ulang pada hari penggantian. Bila bukan member Aktif, ganti tanggal ditolak dan reservasi lama tetap. Bila berhasil, snapshot diganti | `EXTEND` (`OutpatientQueueClassificationService`) |
+| `FR-RP-093` | Ganti tanggal menerbitkan link baru dan mematikan link lama dalam satu penyimpanan. Teks WA versi ganti tanggal | `EXTEND` (pola kirim ulang) |
+| `FR-RP-094` | Riwayat `RESCHEDULED` mencatat tanggal lama, tanggal baru, alasan, pelaku, dan jam | `EXTEND` (`RegPriorityReservationHistory` + 2 kolom) |
+| `FR-RP-095` | Kabar realtime membawa tanggal lama dan baru, sehingga layar kedua tanggal ikut diperbarui | `EXTEND` (`QueueRealtimeService`, layar daftar) |
+| `FR-RP-096` | Hak akses memakai `OutpatientPriorityReservation : Create` | `EXISTING / REUSE` |
+
+## RP-GT-5. Skenario UAT
+
+| ID | Epic | Jalur | Kondisi awal | Langkah | Hasil yang diharapkan |
+|---|---|---|---|---|---|
+| `UAT-RP-20` | RP-09 | Berhasil | Reservasi Gold untuk besok | Ganti tanggal ke 3 hari lagi, kirim link baru | Tanggal berubah, nomor sama, link lama "tidak berlaku", link baru tampil sekali |
+| `UAT-RP-21` | RP-09 | Gagal | Reservasi untuk hari ini | Buka detail | Tombol Ganti Tanggal tidak tampil. Admisi memakai batal lalu buat baru |
+| `UAT-RP-22` | RP-09 | Gagal | Membership pasien sudah Kedaluwarsa | Ganti tanggal | Ditolak, dan reservasi lama tetap berlaku pada tanggalnya |
+| `UAT-RP-23` | RP-09 | Gagal | Pasien sudah punya reservasi di tanggal tujuan | Ganti tanggal ke tanggal itu | Ditolak dengan nomor reservasi yang sudah ada |
+
+## RP-GT-6. Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Ganti tanggal berhasil sesuai aturan, dan gagal tanpa mengubah apa pun | `R-RP-31` s.d. `R-RP-36`, `UAT-RP-20` s.d. `23` |
+| Link lama mati dan link baru berfungsi; hanya hash yang tersimpan | `R-RP-37` |
+| Hak akses dan alasan wajib | `R-RP-38` |
+| Riwayat lengkap tanpa kebocoran ke log | `R-RP-39` |
+| Konkurensi aman | `R-RP-40` |
+| Layar tanggal lama dan baru diperbarui realtime | `R-RP-41` |
+| Tidak ada regresi alur RP | `R-RP-42` |
+| Build, EF, dan QBE Strict lulus; migration `AddPriorityReservationHistoryVisitDates` diterapkan ke DB uji | Laporan task |
+
+## RP-GT-7. Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Isi | Syarat mulai |
+|---|---|---|
+| `MVP-3` | `EPIC RP-09` | Revisi `34` disetujui. `MVP-0` s.d. `MVP-2` sudah selesai (20/20 task) |
+
+| Pertanyaan | Siapa | Dampak | Memblokir |
+|---|---|---|:---:|
+| `RJ-PRI-OQ-013` tanggal baru = tanggal lama | Desain | Diadopsi sebagai `VAL-RP-23` (ditolak 400) | Tidak |
+| `RJ-PRI-OQ-014` peringatan reservasi terbuka di tanggal lain saat membuat reservasi | Sukma Giri | Kasus lupa membatalkan masih mungkin lewat tombol Buat Reservasi | Tidak (`LATER SLICE`) |
+
+**Development lock:** `MVP-3` terkunci untuk perencanaan delivery setelah revisi `34` disetujui.

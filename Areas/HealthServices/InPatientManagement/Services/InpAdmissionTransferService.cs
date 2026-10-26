@@ -21,11 +21,13 @@ public partial class InpAdmissionTransferService(
     InpBedOccupancyService bedOccupancyService, LoggerService loggerService,
     InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess,
     EncounterPaymentSourceService paymentSources, BillingDepositService deposits,
-    BillingNumberSeriesService? billingNumberSeries = null)
+    BillingNumberSeriesService? billingNumberSeries = null,
+    QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.CliTransferHandoverService? transferHandoverService = null)
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly InpBedMutationCoordinator _bedCoordinator = bedCoordinator;
     private readonly InpBedAccessService _bedAccess = bedAccess;
+    private readonly QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.CliTransferHandoverService? _transferHandoverService = transferHandoverService;
 
     public async Task<PagedResult<InpatientAdmissionTransferItemResponse>> GetPagedTransfersAsync(
         AdmissionTransferQuery query, CancellationToken cancellationToken = default)
@@ -45,7 +47,12 @@ public partial class InpAdmissionTransferService(
                 || x.EmergencyVisitNumber.ToLower().Contains(term));
         }
         var count = await itemsQuery.CountAsync(cancellationToken);
-        var items = await itemsQuery.OrderBy(x => x.DecidedAt).ThenBy(x => x.TransferId)
+        var items = await itemsQuery
+            .OrderByDescending(x => x.IsCito)
+            .ThenByDescending(x => x.IsPriorityMember)
+            .ThenBy(x => x.MemberPriorityLevel ?? int.MaxValue)
+            .ThenBy(x => x.DecidedAt)
+            .ThenBy(x => x.TransferId)
             .Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize)
             .ToListAsync(cancellationToken);
         foreach (var item in items) ApplyWaiting(item, now);

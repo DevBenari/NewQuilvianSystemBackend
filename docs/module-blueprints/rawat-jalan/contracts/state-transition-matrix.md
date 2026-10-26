@@ -256,3 +256,38 @@ perubahan adalah status kunjungan.
 | Snapshot prioritas, membership snapshot masih Aktif atau sudah Kedaluwarsa | Snapshot dipakai (prioritas) — `RJ-PRI-DEC-007` |
 | Membership snapshot Dibatalkan | Reguler — `RJ-PRI-DEC-024` |
 | Snapshot `IsPrioritySnapshot = false` (tingkat tanpa `PriorityQueue`) | Member non-prioritas, nomor Reguler |
+
+# Amendment RP-GT — `RJ-PRI-RESV-001@1.2.0` (`approved`)
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-PRI-RESV-001@1.2.0` |
+| Status | `approved` — Sukma Giri, 2026-10-21 (`RJ-PRI-DEC-039`) |
+| Traceability | `RJ-PRI-DEC-034` s.d. `036`; `INV-RP-10` |
+
+## RP-GT-A. Transisi sah tambahan
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| Menunggu Kedatangan | Ganti tanggal | Menunggu Kedatangan (tanggal baru, snapshot baru, kode baru) | Admisi (`Create`) | Hari ini (WIB) < tanggal kunjungan lama; tanggal baru ≠ tanggal lama dan berada di jendela reservasi; member Aktif hari ini; tidak ada reservasi terbuka atau kunjungan RJ aktif pada tanggal baru; alasan 10–500 karakter; `RowVersion` cocok | 400/409. Tidak ada yang berubah |
+
+Contoh: reservasi `RSV-261020-0003` untuk 25 Okt diganti pada 24 Okt ke 28 Okt. Status tetap Menunggu Kedatangan, nomor
+tetap, dan riwayat bertambah `RESCHEDULED` 25 Okt → 28 Okt.
+
+## RP-GT-B. Transisi tidak sah (menggantikan dua baris terakhir RP-C)
+
+| Dari status | Tindakan yang ditolak | Alasan | Bila dicoba |
+|---|---|---|---|
+| Menunggu Kedatangan, pada hari kunjungan | Ganti tanggal | `RJ-PRI-DEC-034`: pada hari H, batal lalu buat baru (`RJ-PRI-DEC-029`) | 409 `VAL-RP-22` |
+| Sudah Tiba | Ganti tanggal | Status Sudah Tiba hanya ada pada hari kunjungan (`INV-RP-10`) | 409 `VAL-RP-11` |
+| Semua status akhir | Ganti tanggal | `INV-RP-07` | 409 `VAL-RP-11` |
+| Apa pun | Ubah snapshot klasifikasi di luar ganti tanggal | `INV-RP-03` (revisi `34`) | Tidak ada endpoint-nya |
+
+Baris RP-C "Apa pun — Ubah tanggal — tidak ada endpoint-nya" tidak berlaku lagi sejak `1.2.0`.
+
+## RP-GT-C. Klasifikasi antrean dari reservasi yang diganti tanggalnya
+
+| Keadaan | Klasifikasi saat dilengkapi |
+|---|---|
+| Tanggal pernah diganti | Snapshot hasil penggantian **terakhir** dipakai, dengan aturan RP-D yang sama |
+| Contoh | Reservasi dibuat 20 Okt (Gold), diganti pada 24 Okt saat sudah naik Platinum. Saat dilengkapi 28 Okt, antrean memakai snapshot Platinum dari 24 Okt |

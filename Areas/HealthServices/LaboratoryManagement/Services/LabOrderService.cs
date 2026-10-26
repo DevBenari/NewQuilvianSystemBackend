@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -12,6 +12,9 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using System.Text.Json;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Services.Logging;
 using System.Linq.Expressions;
 using System.Security.Claims;
@@ -46,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// <b>membaca</b> penugasan lewat service bersama, bukan menyalinnya.
         /// </summary>
         private readonly InpatientClinicalContextService _clinicalContextService;
+        private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
 
         public LabOrderService(
             ApplicationDbContext dbContext,
@@ -54,7 +58,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             LabReportNumberService labReportNumberService,
             IHttpContextAccessor httpContextAccessor,
             LoggerService loggerService,
-            InpatientClinicalContextService clinicalContextService)
+            InpatientClinicalContextService clinicalContextService,
+            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer)
         {
             _dbContext = dbContext;
             _labSpecimenService = labSpecimenService;
@@ -63,6 +68,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
             _clinicalContextService = clinicalContextService;
+            _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
         }
 
         /// <summary>
@@ -476,6 +482,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     InstructionVerificationStatus = x.InstructionVerificationStatus.ToString(),
                     InstructionVerifiedAt = x.InstructionVerifiedAt,
                     InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
+
+                    // BE-MCU-020 — dicakup paket MCU, ruas baca.
+                    IsCoveredByMcuPackage = x.CoveringMcuOrderId != null,
+                    CoveringMcuOrderNumber = x.CoveringMcuOrderId == null
+                        ? null
+                        : _dbContext.McuOrders
+                            .Where(o => o.Id == x.CoveringMcuOrderId)
+                            .Select(o => o.OrderNumber)
+                            .FirstOrDefault(),
 
                     // r13 bagian 8 / r41 36.4 (BE-LAB-91, LAB-DEC-203). Jejak konfirmasi — sejak
                     // Konfirmasi pada Accepted tidak lagi memindahkan status (r40), jawaban confirm
@@ -998,6 +1013,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // membatalkan pesanan yang sudah sah tersimpan.
             await transaction.CommitAsync(cancellationToken);
 
+            if (entity.InpEpisodeId.HasValue && entity.InpEpisodeId.Value != Guid.Empty)
+            {
+                try
+                {
+                    var factRequest = new ClinicalMilestoneFactRequest
+                    {
+                        SourceContext = BillingSourceContract.LaboratorySourceContext,
+                        SourceAggregateId = entity.Id,
+                        SourceItemId = entity.ProcedureId,
+                        EffectType = BillingSourceContract.LaboratoryChargeEffectType,
+                        EncounterId = entity.EncounterId,
+                        OccurredAt = now,
+                        Quantity = 1m,
+                        Unit = "Pemeriksaan",
+                        TariffSnapshot = JsonSerializer.Serialize(new
+                        {
+                            source = "LaboratorySnapshot",
+                            procedureCode = procedure.ProcedureCode,
+                            procedureName = procedure.ProcedureName
+                        }),
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = "OrderRequested",
+                            orderNumber = entity.OrderNumber,
+                            procedureId = entity.ProcedureId
+                        })
+                    };
+                    await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(factRequest, actorUserId, cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    await _loggerService.ErrorAsync(LogCategory, "LabOrder.EmitChargeEligibility", "Gagal menerbitkan tagihan lab rawat inap", ex);
+                }
+            }
+
             await _loggerService.InfoAsync(
                 LogCategory,
                 "LabOrder.Create",
@@ -1037,12 +1087,89 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// <b>Endpoint lama tidak disentuh.</b> <see cref="CreateAsync"/> tetap menerima satu
         /// procedure dan tetap mengembalikan satu pesanan (<c>AC-88</c>).
         /// </summary>
-        public async Task<List<LabOrderDetailResponse>> CreateByExaminationsAsync(
+        public Task<List<LabOrderDetailResponse>> CreateByExaminationsAsync(
             CreateLabOrderByExaminationsRequest request,
+            CancellationToken cancellationToken = default) =>
+            CreateByExaminationsCoreAsync(request, coverage: null, cancellationToken);
+
+        /// <summary>
+        /// Jalur internal MCU (<c>BE-MCU-020</c>, <c>INT-MCU-05</c>, <c>MCU-COORD-002</c>): pesanan per
+        /// disiplin seperti <see cref="CreateByExaminationsAsync"/>, bertanda paket
+        /// (<c>CoveringMcuOrderId</c>) dan berdokter pemberi instruksi = dokter MCU, verifikasi
+        /// instruksi <c>NotRequired</c>.
+        /// </summary>
+        /// <remarks>
+        /// Sengaja <c>internal</c> dan tidak terhubung ke endpoint mana pun: tanda paket hanya boleh
+        /// ditulis MCU (kriteria <c>BE-MCU-003</c>). Bila pemanggil sudah membuka transaksi
+        /// (<i>Mulai pemeriksaan</i>), pesanan ikut di dalamnya.
+        /// </remarks>
+        internal Task<List<LabOrderDetailResponse>> CreateForMcuAsync(
+            CreateLabOrderByExaminationsRequest request,
+            Guid coveringMcuOrderId,
+            Guid mcuDoctorId,
+            CancellationToken cancellationToken = default) =>
+            CreateByExaminationsCoreAsync(request, new McuCoverage(coveringMcuOrderId, mcuDoctorId), cancellationToken);
+
+        /// <summary>
+        /// Memindah dokter penanggung jawab pesanan paket MCU yang masih terbuka ke dokter MCU pengganti
+        /// (<c>BE-MCU-032</c>, <c>MCU-DEC-040</c>, <c>INT-MCU-06</c> baris ganti dokter). Dokter pengganti sejak itu
+        /// menerima nilai kritis pesanan tersebut; pesanan yang sudah selesai atau batal tetap atas nama dokter lama.
+        /// </summary>
+        /// <remarks>Sengaja <c>internal</c>, hanya dipanggil MCU. Ikut transaksi pemanggil; tiap pesanan mencatat riwayat beralasan.</remarks>
+        internal async Task<int> ReassignMcuDoctorAsync(
+            Guid coveringMcuOrderId,
+            Guid newDoctorId,
+            string reason,
             CancellationToken cancellationToken = default)
+        {
+            var orders = await _dbContext.LabOrders
+                .Where(x => x.CoveringMcuOrderId == coveringMcuOrderId && !x.IsDelete && !x.IsCancel
+                    && x.OrderStatus != LabOrderStatus.Completed && x.OrderStatus != LabOrderStatus.Cancelled
+                    && x.InstructingDoctorId != newDoctorId)
+                .ToListAsync(cancellationToken);
+            if (orders.Count == 0)
+                return 0;
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+            foreach (var entity in orders)
+            {
+                entity.InstructingDoctorId = newDoctorId;
+                entity.UpdateDateTime = now;
+                entity.UpdateBy = actorUserId;
+                entity.Version++;
+
+                _labSpecimenService.AppendHistory(
+                    entity,
+                    specimen: null,
+                    LabTransitionScope.LabOrder,
+                    "Order.ReassignMcuDoctor",
+                    entity.OrderStatus.ToString(),
+                    entity.OrderStatus.ToString(),
+                    reasonCode: null,
+                    reasonNote: reason,
+                    actorUserId,
+                    now);
+            }
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+            return orders.Count;
+        }
+
+        /// <summary>Tanda paket MCU untuk pesanan yang dibuat jalur internal MCU.</summary>
+        internal sealed record McuCoverage(Guid CoveringMcuOrderId, Guid McuDoctorId);
+
+        private async Task<List<LabOrderDetailResponse>> CreateByExaminationsCoreAsync(
+            CreateLabOrderByExaminationsRequest request,
+            McuCoverage? coverage,
+            CancellationToken cancellationToken)
         {
             if (request.EncounterId == Guid.Empty)
                 throw new ArgumentException("EncounterId wajib diisi.");
+
+            // MCU-DEC-006: order MCU tidak pernah menumpang perawatan rawat inap.
+            if (coverage != null && request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+                throw new ArgumentException("Pesanan paket MCU tidak boleh menumpang perawatan rawat inap.");
 
             var procedureIds = request.Examinations?
                 .Where(x => x != Guid.Empty)
@@ -1129,9 +1256,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var terbentuk = new List<(LabOrder Order, MstProcedure Wakil)>();
 
             // LAB-DEC-072. Transaksi eksplisit, sebab yang sama dengan CreateAsync: kunci
-            // alokasi hanya berarti di dalamnya.
-            await using var transaction =
-                await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            // alokasi hanya berarti di dalamnya. BE-MCU-020: bila pemanggil (MCU) sudah membuka
+            // transaksi, pesanan ikut di dalamnya dan commit milik pemanggil.
+            await using var transaction = _dbContext.Database.CurrentTransaction == null
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
 
             // Seluruh nomor diambil SEKALIGUS, bukan satu per satu di dalam perulangan.
             //
@@ -1162,6 +1291,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     OrderStatus = LabOrderStatus.Requested,
                     RequestedAt = now,
                     RequestedByUserId = actorUserId,
+                    // BE-MCU-020: tanda paket dan dokter MCU sebagai pemberi instruksi (penerima
+                    // nilai kritis). Verifikasi instruksi tetap NotRequired (bawaan).
+                    CoveringMcuOrderId = coverage?.CoveringMcuOrderId,
+                    InstructingDoctorId = coverage?.McuDoctorId,
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
@@ -1215,7 +1348,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // kegagalan di tengah tidak meninggalkan sebagian pesanan.
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            await transaction.CommitAsync(cancellationToken);
+            if (transaction != null)
+                await transaction.CommitAsync(cancellationToken);
+
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                foreach (var (orderEntity, _) in terbentuk)
+                {
+                    var orderedProcs = await _dbContext.LabOrderedProcedures.AsNoTracking()
+                        .Where(x => x.LabOrderId == orderEntity.Id && !x.IsDelete)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var op in orderedProcs)
+                    {
+                        try
+                        {
+                            var factRequest = new ClinicalMilestoneFactRequest
+                            {
+                                SourceContext = BillingSourceContract.LaboratorySourceContext,
+                                SourceAggregateId = orderEntity.Id,
+                                SourceItemId = op.ProcedureId,
+                                EffectType = BillingSourceContract.LaboratoryChargeEffectType,
+                                EncounterId = orderEntity.EncounterId,
+                                OccurredAt = now,
+                                Quantity = 1m,
+                                Unit = "Pemeriksaan",
+                                TariffSnapshot = JsonSerializer.Serialize(new
+                                {
+                                    source = "LaboratorySnapshot",
+                                    procedureCode = op.ProcedureCodeSnapshot,
+                                    procedureName = op.ProcedureNameSnapshot
+                                }),
+                                RuleSnapshot = JsonSerializer.Serialize(new
+                                {
+                                    milestone = "OrderRequested",
+                                    orderNumber = orderEntity.OrderNumber,
+                                    procedureId = op.ProcedureId
+                                })
+                            };
+                            await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(factRequest, actorUserId, cancellationToken);
+                        }
+                        catch (Exception ex)
+                        {
+                            await _loggerService.ErrorAsync(LogCategory, "LabOrder.EmitChargeEligibility", "Gagal menerbitkan tagihan lab rawat inap by-examinations", ex);
+                        }
+                    }
+                }
+            }
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -1765,7 +1944,78 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     actorUserId,
                     cancellationToken);
 
-                handoffs.Add(MapHandoff(emission));
+                // Kosong untuk pesanan paket MCU: tidak ada tagihan Lab yang perlu dibatalkan.
+                if (emission != null)
+                    handoffs.Add(MapHandoff(emission));
+            }
+
+            if (entity.InpEpisodeId.HasValue && entity.InpEpisodeId.Value != Guid.Empty)
+            {
+                var orderedProcedures = await _dbContext.LabOrderedProcedures.AsNoTracking()
+                    .Where(x => x.LabOrderId == entity.Id && !x.IsDelete)
+                    .ToListAsync(cancellationToken);
+
+                if (orderedProcedures.Count > 0)
+                {
+                    foreach (var op in orderedProcedures)
+                    {
+                        try
+                        {
+                            var cancelFact = new ClinicalMilestoneFactRequest
+                            {
+                                SourceContext = BillingSourceContract.LaboratorySourceContext,
+                                SourceAggregateId = entity.Id,
+                                SourceItemId = op.ProcedureId,
+                                EffectType = BillingSourceContract.LaboratoryChargeEffectType,
+                                EncounterId = entity.EncounterId,
+                                OccurredAt = DateTime.UtcNow,
+                                TariffSnapshot = null,
+                                RuleSnapshot = JsonSerializer.Serialize(new
+                                {
+                                    milestone = "OrderCancelled",
+                                    orderNumber = entity.OrderNumber,
+                                    procedureId = op.ProcedureId,
+                                    reason = request.CancelReason
+                                })
+                            };
+                            var cancelRes = await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(cancelFact, actorUserId, cancellationToken);
+                            handoffs.Add(MapHandoff(cancelRes));
+                        }
+                        catch (Exception ex)
+                        {
+                            await _loggerService.ErrorAsync(LogCategory, "LabOrder.EmitClinicalCancellation", "Gagal membatalkan tagihan lab rawat inap", ex);
+                        }
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        var cancelFact = new ClinicalMilestoneFactRequest
+                        {
+                            SourceContext = BillingSourceContract.LaboratorySourceContext,
+                            SourceAggregateId = entity.Id,
+                            SourceItemId = entity.ProcedureId,
+                            EffectType = BillingSourceContract.LaboratoryChargeEffectType,
+                            EncounterId = entity.EncounterId,
+                            OccurredAt = DateTime.UtcNow,
+                            TariffSnapshot = null,
+                            RuleSnapshot = JsonSerializer.Serialize(new
+                            {
+                                milestone = "OrderCancelled",
+                                orderNumber = entity.OrderNumber,
+                                procedureId = entity.ProcedureId,
+                                reason = request.CancelReason
+                            })
+                        };
+                        var cancelRes = await _clinicalMilestoneFactProducer.EmitClinicalCancellationAsync(cancelFact, actorUserId, cancellationToken);
+                        handoffs.Add(MapHandoff(cancelRes));
+                    }
+                    catch (Exception ex)
+                    {
+                        await _loggerService.ErrorAsync(LogCategory, "LabOrder.EmitClinicalCancellation", "Gagal membatalkan tagihan lab rawat inap", ex);
+                    }
+                }
             }
 
             var detail = await GetDetailOrThrowAsync(entity.Id, cancellationToken);
@@ -1948,7 +2198,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 InstructingDoctorId = entity.InstructingDoctorId,
                 InstructionVerificationStatus = entity.InstructionVerificationStatus.ToString(),
                 InstructionVerifiedAt = entity.InstructionVerifiedAt,
-                InstructionVerifiedByUserId = entity.InstructionVerifiedByUserId
+                InstructionVerifiedByUserId = entity.InstructionVerifiedByUserId,
+                IsCoveredByMcuPackage = entity.CoveringMcuOrderId != null
             };
         }
     }

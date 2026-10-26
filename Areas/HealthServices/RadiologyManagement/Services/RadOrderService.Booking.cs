@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Responses;
 
 using MstTariff = QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff;
 
@@ -124,55 +126,123 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         }
 
         /// <summary>
-        /// Harga tampilan satu pemeriksaan untuk kelas kunjungan (aturan sama dengan
-        /// <see cref="BacaTarifAsync"/>) dan alat yang diturunkan dari pemeriksaannya.
+        /// Harga tampilan satu pemeriksaan dan alat yang diturunkan dari pemeriksaannya. Tarif dipilih dengan aturan
+        /// yang sama dengan Billing (<see cref="MstTariffSelector"/>): kelas pasien lebih dulu, lalu tarif umum;
+        /// dua tarif sama spesifik dengan harga berbeda dilaporkan <c>AMBIGUOUS</c> tanpa harga.
         /// </summary>
+        /// <param name="patientClassId">
+        /// Kelas pratinjau (opsional). Kosong = kelas kunjungan. Hanya mengubah harga yang ditampilkan; kelas
+        /// kunjungan tidak diubah dan Billing tetap menagih menurut kelas kunjungan.
+        /// </param>
         public async Task<RadOperationResult<RadBookingPriceResponse>> GetBookingPriceAsync(
             Guid encounterId,
             Guid procedureId,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            Guid? patientClassId = null)
         {
             var tindakan = await _dbContext.MstProcedures.AsNoTracking()
                 .Where(p => p.Id == procedureId && !p.IsDelete)
-                .Select(p => new { p.Id, p.ProcedureName, p.ProcedureCategoryName, p.IsRadiology })
+                .Select(p => new { p.Id, p.ProcedureName, p.ProcedureCategoryName, p.IsRadiology, p.IsActive })
                 .FirstOrDefaultAsync(cancellationToken);
-            if (tindakan == null || !tindakan.IsRadiology)
+            if (tindakan == null || !tindakan.IsRadiology || !tindakan.IsActive)
             {
                 return RadOperationResult<RadBookingPriceResponse>.NotFound(
-                    RadErrorCodes.ProcedureNotFound, "Pemeriksaan radiologi tidak ditemukan.");
+                    RadErrorCodes.ProcedureNotFound, "Pemeriksaan radiologi tidak ditemukan atau tidak aktif.");
             }
 
-            var kelas = await _dbContext.RegPatientEncounters.AsNoTracking()
-                .Where(e => e.Id == encounterId)
-                .Select(e => e.PatientClassId)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            var sekarang = DateTime.UtcNow;
-            var tarif = await _dbContext.Set<MstTariff>()
-                .AsNoTracking()
-                .Where(t => t.ProcedureId == procedureId && !t.IsDelete && t.IsActive &&
-                            (t.EffectiveStartDate == null || t.EffectiveStartDate <= sekarang) &&
-                            (t.EffectiveEndDate == null || t.EffectiveEndDate >= sekarang) &&
-                            (t.PatientClassId == null || t.PatientClassId == kelas))
-                .Select(t => new { t.PatientClassId, t.NormalPrice, t.EffectiveStartDate, t.TariffCode })
-                .ToListAsync(cancellationToken);
-
-            var pilihan = tarif
-                .OrderByDescending(t => t.PatientClassId != null)
-                .ThenByDescending(t => t.EffectiveStartDate)
-                .ThenBy(t => t.TariffCode, StringComparer.Ordinal)
-                .FirstOrDefault();
-
+            var konteks = await LoadTariffContextAsync(encounterId, cancellationToken);
+            var kelasId = patientClassId is { } dipilih && dipilih != Guid.Empty ? dipilih : konteks.EncounterClassId;
             var alat = await TurunkanAlatAsync(tindakan.ProcedureName, tindakan.ProcedureCategoryName, cancellationToken);
 
-            return RadOperationResult<RadBookingPriceResponse>.Success(new RadBookingPriceResponse
+            var respons = new RadBookingPriceResponse
             {
                 ProcedureId = tindakan.Id,
-                TariffAmount = pilihan?.NormalPrice,
                 ModalityId = alat?.Id,
                 ModalityCode = alat?.ModalityCode,
                 ModalityName = alat?.ModalityName,
-            });
+                EncounterPatientClassId = konteks.EncounterClassId,
+                EncounterPatientClassName = konteks.EncounterClassName,
+                PriceBasisPatientClassId = kelasId,
+                IsPreviewClass = kelasId != konteks.EncounterClassId,
+            };
+
+            if (!konteks.EncounterFound)
+            {
+                respons.TariffStatus = RadTariffStatuses.EncounterRequired;
+                respons.TariffMessage = DescribeTariffProblem(respons.TariffStatus, null);
+                return RadOperationResult<RadBookingPriceResponse>.Success(respons);
+            }
+
+            var sekarang = DateTime.UtcNow;
+            var pilihan = (await SelectTariffsAsync(new[] { procedureId }, kelasId, konteks.ClinicId, sekarang, cancellationToken))[procedureId];
+            var namaKelas = await LoadPatientClassNamesAsync(
+                new Guid?[] { kelasId, pilihan.Chosen?.PatientClassId }.Concat(pilihan.Tied.Select(t => t.PatientClassId)),
+                cancellationToken);
+            var namaDipakai = kelasId.HasValue ? namaKelas.GetValueOrDefault(kelasId.Value) : null;
+
+            respons.PriceBasisPatientClassName = namaDipakai;
+            respons.TariffStatus = StatusFrom(pilihan.Status);
+            respons.TariffMessage = DescribeTariffProblem(respons.TariffStatus, namaDipakai, pilihan.Tied);
+
+            if (pilihan.Chosen is { } tarif)
+            {
+                respons.TariffAmount = tarif.NormalPrice;
+                respons.TariffId = tarif.Id;
+                respons.TariffCode = tarif.TariffCode;
+                respons.TariffName = tarif.TariffName;
+                respons.TariffPatientClassId = tarif.PatientClassId;
+                respons.EffectiveStartDate = tarif.EffectiveStartDate;
+                respons.EffectiveEndDate = tarif.EffectiveEndDate;
+            }
+
+            return RadOperationResult<RadBookingPriceResponse>.Success(respons);
+        }
+
+        /// <summary>
+        /// Pilihan "Pilih Diagnosa ICD-10" Booking v1 dari master diagnosis — syarat sama dengan
+        /// <c>diagnoses/clinical-options</c> (ICD-10 klinis, aktif, dapat dipilih). Disajikan Radiologi
+        /// sendiri karena pembooking tidak memegang <c>Diagnosis : Read</c> master data — pola
+        /// <see cref="GetProcedureOptionsAsync"/>. Kode yang diawali kata kunci tampil lebih dulu.
+        /// </summary>
+        public async Task<PagedResult<RadBookingDiagnosisOptionResponse>> GetBookingDiagnosisOptionsAsync(
+            RadAssigneeOptionQuery? query,
+            CancellationToken cancellationToken = default)
+        {
+            var (halaman, ukuran, cari) = RapikanPilihan(query);
+
+            var source = _dbContext.MstDiagnoses
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && x.IsSelectableForClinicalUse &&
+                            x.DiagnosisType == "ICD10" && x.IcdVersion == "ICD-10");
+
+            if (cari != null)
+            {
+                source = source.Where(x =>
+                    x.DiagnosisCode.ToLower().Contains(cari) ||
+                    x.DiagnosisName.ToLower().Contains(cari));
+            }
+
+            var total = await source.CountAsync(cancellationToken);
+            var items = await source
+                .OrderBy(x => cari != null && x.DiagnosisCode.ToLower().StartsWith(cari) ? 0 : 1)
+                .ThenBy(x => x.DiagnosisCode)
+                .Skip((halaman - 1) * ukuran).Take(ukuran)
+                .Select(x => new RadBookingDiagnosisOptionResponse
+                {
+                    Id = x.Id,
+                    DiagnosisCode = x.DiagnosisCode,
+                    DiagnosisName = x.DiagnosisName,
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<RadBookingDiagnosisOptionResponse>
+            {
+                PageNumber = halaman,
+                PageSize = ukuran,
+                TotalData = total,
+                TotalPage = (int)Math.Ceiling(total / (double)ukuran),
+                Items = items,
+            };
         }
 
         /// <summary>Menyimpan Booking Radiologi v1: satu pesanan per pemeriksaan, satu transaksi.</summary>
@@ -244,6 +314,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 }
 
                 alatPerBaris.Add(alatId.Value);
+            }
+
+            // Tarif sah wajib ada untuk KELAS KUNJUNGAN — kelas yang dipakai Billing saat menagih. Pemeriksaan tanpa
+            // tarif sah, atau dengan tarif ambigu, tidak dibooking. Harga tidak pernah datang dari permintaan ini:
+            // Billing menetapkannya dari master tarif ketika study lolos mutu.
+            var konteksTarif = await LoadTariffContextAsync(kunjungan.Id, cancellationToken);
+            var pilihanTarif = await SelectTariffsAsync(
+                procedureIds, konteksTarif.EncounterClassId, konteksTarif.ClinicId, DateTime.UtcNow, cancellationToken);
+            foreach (var item in butir)
+            {
+                var pilihan = pilihanTarif[item.ProcedureId];
+                if (pilihan.Status == MstTariffSelectionStatus.Resolved) continue;
+
+                var alasan = DescribeTariffProblem(StatusFrom(pilihan.Status), konteksTarif.EncounterClassName, pilihan.Tied);
+                return RadOperationResult<RadBookingResponse>.Validation(
+                    pilihan.Status == MstTariffSelectionStatus.Ambiguous
+                        ? RadErrorCodes.TariffAmbiguous
+                        : RadErrorCodes.TariffNotAvailable,
+                    $"{tindakan[item.ProcedureId].ProcedureName}: {alasan}");
             }
 
             var actorUserId = GetCurrentUserId();

@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | `blueprint_id` | `PAT-BP-001` |
-| `revision` | **`6`** — 19 Oktober 2026: `PAT-DEC-069`–`077` — task prasyarat `BE-PAT-MIG-003A` (guard reservasi jalur pendaftaran bayi) dan amandemen desain `BE-PAT-MIG-002` hasil impact scan read-only (bagian 15). Riwayat revision `5`: 16 Oktober 2026: `PAT-DEC-068` — kunci allocator dua bagian tetap dan konfirmasi endpoint pemeriksa. Riwayat revision `4`: 16 Oktober 2026: amandemen pemilik sebelum build `BE-PAT-MIG-003` (`PAT-DEC-067`) — `Enabled = false` di Staging persis gagal tertutup dan endpoint pemeriksa `PAT-GATE-005`. Riwayat revision `3`: 14 Oktober 2026: amandemen untuk `BE-PAT-MIG-002`, bagian 6–14; diamandemen 15 Oktober 2026 dua kali dengan bukti Step 16 dan keputusan pemilik; **difinalkan dan disetujui 15 Oktober 2026, sesi ketiga** (`PAT-DEC-033`). Riwayat: revision `1` memuat `PAT-OQ-001`–`004` sebagai default `PROPOSED`; revision `2` (8 Oktober 2026) mencatat keputusan final review atas keempatnya dan menambah `PAT-OQ-005`–`007`. **Bagian 1–5 adalah isi revision `2` apa adanya dan tidak diubah** |
-| Status | Bagian 15 (`BE-PAT-MIG-003A` dan amandemen `BE-PAT-MIG-002`): **`approved`** — 19 Oktober 2026, instruksi tertulis pemilik (`PAT-DEC-069`–`077`). Bagian 1–5 (`BE-PAT-MIG-001`): **`approved`** — seluruh keputusan final 8 Oktober 2026, tidak ada butir terbuka. Bagian 6–14 (`BE-PAT-MIG-002` dan task prasyarat `BE-PAT-MIG-003`): **`approved`** — 15 Oktober 2026, sesi ketiga: 27 `OWNER_APPROVED`, 3 `SUPERSEDED`, 0 `BLOCKING`; `requirement-completeness-gate` `PASS` untuk kedua task (`requirement-completeness-assessment.md`); persetujuan desain `PAT-DEC-033`. *Riwayat: `draft` 14 Oktober sampai sesi kedua 15 Oktober 2026*. Revision `4` (`PAT-DEC-067`): **`approved`** 16 Oktober 2026. Revision `5` (`PAT-DEC-068`): **`approved`** 16 Oktober 2026 |
+| `revision` | **`6`** — 19 Oktober 2026; **pembaruan bukti runtime 22 Oktober 2026 tanpa kenaikan revision** (bagian 16: `PAT-FACT-092`–`097`; tidak ada keputusan baru, ID keputusan tidak berubah). Isi revision `6` 19 Oktober 2026: `PAT-DEC-069`–`077` — task prasyarat `BE-PAT-MIG-003A` (guard reservasi jalur pendaftaran bayi) dan amandemen desain `BE-PAT-MIG-002` hasil impact scan read-only (bagian 15). Riwayat revision `5`: 16 Oktober 2026: `PAT-DEC-068` — kunci allocator dua bagian tetap dan konfirmasi endpoint pemeriksa. Riwayat revision `4`: 16 Oktober 2026: amandemen pemilik sebelum build `BE-PAT-MIG-003` (`PAT-DEC-067`) — `Enabled = false` di Staging persis gagal tertutup dan endpoint pemeriksa `PAT-GATE-005`. Riwayat revision `3`: 14 Oktober 2026: amandemen untuk `BE-PAT-MIG-002`, bagian 6–14; diamandemen 15 Oktober 2026 dua kali dengan bukti Step 16 dan keputusan pemilik; **difinalkan dan disetujui 15 Oktober 2026, sesi ketiga** (`PAT-DEC-033`). Riwayat: revision `1` memuat `PAT-OQ-001`–`004` sebagai default `PROPOSED`; revision `2` (8 Oktober 2026) mencatat keputusan final review atas keempatnya dan menambah `PAT-OQ-005`–`007`. **Bagian 1–5 adalah isi revision `2` apa adanya dan tidak diubah** |
+| Status | Bagian 16 (sinkronisasi bukti runtime 22 Oktober 2026): **fakta yang dilaporkan pemilik** dan hasil pemeriksaan read-only, bukan keputusan baru — `BE-PAT-MIG-003A` ✅, `PAT-GATE-005` generasi 2 `PASS`, `PAT-RSK-042` ditutup, `PATIENT_BASELINE = 741`, F-01 `RESOLVED`. Bagian 15 (`BE-PAT-MIG-003A` dan amandemen `BE-PAT-MIG-002`): **`approved`** — 19 Oktober 2026, instruksi tertulis pemilik (`PAT-DEC-069`–`077`). Bagian 1–5 (`BE-PAT-MIG-001`): **`approved`** — seluruh keputusan final 8 Oktober 2026, tidak ada butir terbuka. Bagian 6–14 (`BE-PAT-MIG-002` dan task prasyarat `BE-PAT-MIG-003`): **`approved`** — 15 Oktober 2026, sesi ketiga: 27 `OWNER_APPROVED`, 3 `SUPERSEDED`, 0 `BLOCKING`; `requirement-completeness-gate` `PASS` untuk kedua task (`requirement-completeness-assessment.md`); persetujuan desain `PAT-DEC-033`. *Riwayat: `draft` 14 Oktober sampai sesi kedua 15 Oktober 2026*. Revision `4` (`PAT-DEC-067`): **`approved`** 16 Oktober 2026. Revision `5` (`PAT-DEC-068`): **`approved`** 16 Oktober 2026 |
 | Disetujui oleh | Bagian 1–5: pemilik/leader work item, lewat dua sesi `MODULE BLUEPRINT` 8 Oktober 2026 (akun Git `devbenari`). Bagian 6–14: pemilik (akun Git `devbenari`) — keputusan individual `PAT-DEC-034`–`066` dalam tiga sesi 15 Oktober 2026, dan persetujuan desain `PAT-DEC-033` lewat instruksi tertulis sesi ketiga yang menyetujui finalisasi bila gate kelengkapan lulus |
 | Sumber | Bagian 1–5: keputusan tertulis pengguna 8 Oktober 2026, dicatat apa adanya (bukan hasil wawancara `grill-me`). Bagian 6–14: instruksi tertulis pemilik pada sesi `BACKEND PLANNING / GOVERNANCE ONLY` 14 Oktober 2026 dan sesi lanjutan 15 Oktober 2026 (bukti database Step 16), dicatat lewat `grill-me` *amendment pass*, ditambah impact scan source read-only |
 | Cakupan | Empat work item — ditambah `BE-PAT-MIG-003A` (bagian 15, `PAT-DEC-069`). Semula tiga work item: `BE-PAT-MIG-001` (bagian 1–5), `BE-PAT-MIG-002` dan task prasyarat `BE-PAT-MIG-003` (`PAT-DEC-057`) (bagian 6–14) |
@@ -550,7 +550,7 @@ tertulisnya. Statusnya `approved` sebagai batasan, tetapi **bukan** persetujuan 
 | `PAT-DEC-062` | Inventaris filesystem read-only **wajib**: sebelum otorisasi runtime Canary-A dan sekali lagi sebelum `PAT-GATE-004`. Cakupannya `patient-qrcodes/` dan `patient-qrcodes/rsmmc-bulk/`; berkas/folder tak terduga dicatat tanpa diubah. Menjawab `PAT-OQ-034` (pilihan A) | `approved` — pemilik, 15 Oktober 2026 (sesi kedua) |
 | `PAT-DEC-063` | Skema fisik `PAT-FACT-079`–`083` diterima. SQL worker wajib **bertipe** sesuai skema: `batch_id` uuid, `legacy_pid` bigint, tujuh kolom enum integer, empat kolom boolean, kolom teks sebagai teks; **tidak ada** fallback `::text` pada implementasi bulk final. Nilai `TARGET_CREATED` dan `MIGRATED_BULK_WORKER` muat tanpa perubahan skema; tidak ada EF migration. Menjawab `PAT-OQ-019` | `approved` — pemilik, 15 Oktober 2026 (sesi ketiga) |
 | `PAT-DEC-064` | Strategi **lantai MRN** untuk allocator MRN normal di Staging: minimum numerik **890.188** (MRN pertama `00-89-01-88`); memilih MRN numerik pertama yang belum dipakai ≥ 890.188; serialisasi di tingkat database; indeks unik tetap pengaman; tidak pernah mengalokasikan di bawah 890.188 selama kampanye reservasi RSMMC aktif; hanya berlaku di bawah aturan guard Staging persis (`PAT-DEC-066`). `BE-PAT-MIG-002` sendiri tidak pernah membangkitkan MRN; MRN kanonik selalu dari perencana `FINALIZED`. Menjawab `PAT-OQ-031` (pilihan B, lantai) | `approved` — pemilik, 15 Oktober 2026 (sesi ketiga) |
-| `PAT-DEC-065` | Bukti persistensi provider-real `IsMember` memakai **PostgreSQL 15 sekali pakai** — terisolasi, bukan Staging bersama, bukan Produksi, provider Npgsql, konfigurasi EF yang sebenarnya, dan dihancurkan sesudah test. Test minimal membuktikan: `IsMember = false` tersimpan fisik `false`; `IsActive = true` tetap `true`; koreksi eksplisit `IsMember` di transaksi yang sama berhasil; baca ulang `AsNoTracking` cocok dengan preview; rollback tidak meninggalkan pasien maupun crosswalk; percobaan ulang yang idempoten tidak membuat target ganda; kegagalan sebelum *commit* tidak meninggalkan pemetaan pasien yang ter-*commit*. Bukti SQLite saja tidak cukup. Menjawab `PAT-OQ-036` (pilihan A) | `approved` — pemilik, 15 Oktober 2026 (sesi ketiga) |
+| `PAT-DEC-065` | Bukti persistensi provider-real `IsMember` memakai **PostgreSQL 15 sekali pakai** — terisolasi, bukan Staging bersama, bukan Produksi, provider Npgsql, konfigurasi EF yang sebenarnya, dan dihancurkan sesudah test. Test minimal membuktikan: `IsMember = false` tersimpan fisik `false`; `IsActive = true` tetap `true`; koreksi eksplisit `IsMember` di transaksi yang sama berhasil; baca ulang `AsNoTracking` cocok dengan preview; rollback tidak meninggalkan pasien maupun crosswalk; percobaan ulang yang idempoten tidak membuat target ganda; kegagalan sebelum *commit* tidak meninggalkan pemetaan pasien yang ter-*commit*. Bukti SQLite saja tidak cukup. Menjawab `PAT-OQ-036` (pilihan A). **Butir "koreksi eksplisit `IsMember` di transaksi yang sama berhasil" diganti `PAT-DEC-075`** (19 Oktober 2026) menjadi "INSERT menyimpan `IsMember = false`" | `approved` — pemilik, 15 Oktober 2026 (sesi ketiga); diamandemen `PAT-DEC-075` |
 | `PAT-DEC-066` | Guard reservasi berlaku **hanya** bila kedua syarat benar: `EnvironmentName == "Staging"` (persis, membedakan huruf besar-kecil) **dan** `RsmmcMigrationReservationGuard.Enabled == true`. Di Staging persis: konfigurasi reservasi yang hilang atau tidak sah = **gagal tertutup**; suffix `PatientCode` normal minimum 705.250; MRN numerik normal minimum 890.188. Produksi: kampanye reservasi migrasi tidak boleh mengubah perilaku penomoran normal, dan endpoint `BE-PAT-MIG-002` tetap mustahil di luar Staging persis. Development/Test: guard mati kecuali test integrasi secara eksplisit di-*host* sebagai Staging. Menjawab `PAT-OQ-037` (pilihan A, dengan syarat konfigurasi tambahan). Memperjelas `PAT-DEC-054`: lantai dan serialisasi berlaku saat guard aktif; di luar itu penomoran normal tetap aturan yang berlaku sekarang | `approved` — pemilik, 15 Oktober 2026 (sesi ketiga); perlakuan `Enabled = false` di Staging **diamandemen** `PAT-DEC-067` |
 | `PAT-DEC-067` | **Amandemen `PAT-DEC-066` sebelum build `BE-PAT-MIG-003`** — instruksi pemilik 16 Oktober 2026 (`TASK MODE: BACKEND`, bagian 0 dan 9). (a) Di `EnvironmentName == "Staging"` persis, allocator yang aman reservasi **wajib** dipakai dan hanya berjalan bila `RsmmcMigrationReservationGuard.Enabled == true`; `Enabled` bernilai `false`, hilang, salah bentuk, atau tidak terbaca = **gagal tertutup** — pendaftaran normal ditolak `503` / `PATIENT_RESERVATION_GUARD_CONFIG_INVALID` sebelum insert pasien, penulisan QR, dan penulisan foto, dan **tidak pernah** jatuh ke allocator lama. `Enabled = false` eksplisit di Staging **tidak** mematikan perlindungan reservasi. (b) Di luar Staging persis, perilaku allocator normal yang sekarang tidak berubah dan konfigurasi guard tidak dibutuhkan; perilaku Produksi tidak berubah. (c) Pemeriksa `PAT-GATE-005` memakai izin admin yang disetujui dan melaporkan sekurang-kurangnya `environment`, `guardEnabled`, `guardConfigurationValid`, kode dan MRN berikutnya (angka dan format), kedua lantai, `patientCodeFloorSatisfied`, `mrnFloorSatisfied`, `overallGuardReady`; diwujudkan sebagai endpoint baca-saja khusus Staging `GET /admin/migration/rsmmc-reservation-guard` dengan `Patient : Update` (kontrak `1.2.1` B14.2). Menggantikan bunyi `PAT-DEC-066` dan `PAT-GAP-002` yang menyatakan `Enabled = false` eksplisit mematikan guard. Blueprint naik ke revision `4`, kontrak ke `1.2.1` | `approved` — pemilik, 16 Oktober 2026 |
 | `PAT-DEC-068` | **Pengerasan `BE-PAT-MIG-003` sebelum bukti provider-real** — instruksi pemilik 16 Oktober 2026 (*source reconciliation / review fix pass*, bagian 4 dan 5). (a) Endpoint pemeriksa `GET /admin/migration/rsmmc-reservation-guard` **dikonfirmasi** dengan syarat: khusus `Staging` persis, dijaga `Patient : Update`, baca-saja, nol mutasi database, nol mutasi filesystem, tanpa mencadangkan nomor, tanpa data pribadi, dan hanya mengembalikan metadata guard/kesiapan/alokasi yang dibutuhkan `PAT-GATE-005`. (b) Kunci serialisasi allocator memakai namespace advisory-lock **tetap dan terdokumentasi**, bukan `hashtext()` saat runtime: `pg_advisory_xact_lock(1346458697, 1313821261)` — dua kunci Int32 tetap: namespace `0x50415449` (`"PATI"`, PATIENT_IDENTIFIER_ALLOCATION) dan kunci `0x4E4F524D` (`"NORM"`, NORMAL_PATIENT_CREATE); satu kunci global untuk seluruh pendaftaran pasien normal; bentuk transaksi (`xact`); sama bagi seluruh instance; tidak bertabrakan dengan kunci lain di repository (seluruhnya bentuk satu kunci 64-bit) maupun dengan namespace worker `BE-PAT-MIG-002` `1173286842`. Menggantikan usulan `PAT-GAP-004` (`hashtext`). Blueprint naik ke revision `5`, kontrak ke `1.2.2` | `approved` — pemilik, 16 Oktober 2026 |
@@ -950,7 +950,7 @@ Jumlah per sesi ketiga 15 Oktober 2026: **27 `OWNER_APPROVED`, 3 `SUPERSEDED`, 0
 | Pilihan D | Other |
 | Rekomendasi | A. Dibuktikan oleh test persistensi wajib (`PAT-DEC-037`) dan audit fisik pada Canary-A |
 | Diselesaikan Step 16? | Tidak. Step 16 menjawab datanya, bukan mekanismenya |
-| Status | **`OWNER_APPROVED`** — pilihan A (`PAT-DEC-053`): konfigurasi EF global tidak diubah; update eksplisit baris baru, baca ulang `AsNoTracking`, verifikasi `IsMember = false`, `IsActive = true`, dan seluruh kolom preview, rollback bila berbeda. Bukti persistensi provider-real (PostgreSQL) **wajib**; SQLite saja tidak cukup. Cara menghasilkan bukti itu belum diputuskan → `PAT-OQ-036` |
+| Status | **`OWNER_APPROVED`** — pilihan A (`PAT-DEC-053`): konfigurasi EF global tidak diubah; update eksplisit baris baru, baca ulang `AsNoTracking`, verifikasi `IsMember = false`, `IsActive = true`, dan seluruh kolom preview, rollback bila berbeda. Bukti persistensi provider-real (PostgreSQL) **wajib**; SQLite saja tidak cukup. Cara menghasilkan bukti itu belum diputuskan → `PAT-OQ-036`. *Diamandemen `PAT-DEC-075` (19 Oktober 2026): update eksplisit dicabut; yang berlaku INSERT `IsMember = false` → baca ulang `AsNoTracking` → verifikasi → rollback bila selisih* |
 
 #### `PAT-OQ-030` — P0: perlindungan reservasi `PatientCode`
 
@@ -1172,10 +1172,10 @@ Pemeriksaan agent atas daftar: 25 nilai, 25 unik, 5 negatif, satu bernilai 0. Ke
 | ID | Gerbang | Prasyarat | Keadaan |
 | --- | --- | --- | --- |
 | `PAT-GATE-001` | Eksekusi rekonsiliasi Pilot 715 | `BE-PAT-MIG-001` | **`CLOSED/PASS`** — dilaporkan pemilik 14 Oktober 2026. Rincian bukti runtime belum tercatat di blueprint (`PAT-STALE-002` pada manifest) |
-| `PAT-GATE-002` | Runtime Canary-A `BE-PAT-MIG-002` — dua otorisasi terpisah: (a) deployment Staging + simulasi; (b) eksekusi `dryRun=false` | `PAT-DEC-033`; `BE-PAT-MIG-002` ✅ untuk source; review source leader; **`PAT-GATE-005` `PASS`** (`BE-PAT-MIG-003` dideploy dan terverifikasi, `PAT-DEC-057`); manifest eksekusi `RSMMC-CANARY-A` v1 (`PAT-DEC-056`); bukti pembekuan pendaftaran normal (`PAT-DEC-055`); inventaris filesystem read-only (`PAT-DEC-062`); bukti persistensi provider-real PostgreSQL 15 sekali pakai (`PAT-DEC-065`, dihasilkan saat build) sebelum (b) | **Belum dapat diminta** |
+| `PAT-GATE-002` | Runtime Canary-A `BE-PAT-MIG-002` — dua otorisasi terpisah: (a) deployment Staging + simulasi; (b) eksekusi `dryRun=false` | `PAT-DEC-033`; `BE-PAT-MIG-002` ✅ untuk source; review source leader; **`PAT-GATE-005` `PASS`** (`BE-PAT-MIG-003` dideploy dan terverifikasi, `PAT-DEC-057`); manifest eksekusi `RSMMC-CANARY-A` v1 (`PAT-DEC-056`); bukti pembekuan pendaftaran normal (`PAT-DEC-055`); inventaris filesystem read-only (`PAT-DEC-062`); bukti persistensi provider-real PostgreSQL 15 sekali pakai (`PAT-DEC-065`, dihasilkan saat build) sebelum (b) | **Belum dapat diminta — `NOT RUN`.** Keadaan 22 Oktober 2026 (bagian 16): prasyarat runtime yang **sudah** terpenuhi — `PAT-GATE-005` generasi 2 `PASS` (`PAT-FACT-093`), `PAT-RSK-042` 0 baris (`PAT-FACT-094`), baseline tetap 741 (`PAT-FACT-095`). Yang **belum**: `BE-PAT-MIG-002` ✅ untuk source, review source leader, bukti provider-real dari build, deployment artefak `BE-PAT-MIG-002` (beserta migration Staging yang dibutuhkan artefak itu, `PAT-FACT-096`), bukti pembekuan keempat jalur pembuatan pasien, inventaris filesystem read-only, lalu otorisasi (a) dan (b). Manifest `RSMMC-CANARY-A` v1 belum pernah dijalankan |
 | `PAT-GATE-003` | Desain dan runtime Canary-B | `PAT-GATE-002` `PASS`, termasuk uji ulang idempoten; kebijakan `PAT-DEC-058` dan `PAT-DEC-059` | **Dicadangkan** — belum dirancang |
 | `PAT-GATE-004` | Gelombang lebih besar dari canary | Syarat `PAT-DEC-061`: Canary-A `PASS`, eksekusi ulang idempoten `PASS`, Canary-B `PASS`, inventaris filesystem kedua (`PAT-DEC-062`), review penyimpanan/kapasitas, verifikasi reservation guard | **Dicadangkan** — belum dirancang |
-| `PAT-GATE-005` | Deployment Staging dan verifikasi runtime `BE-PAT-MIG-003` | `BE-PAT-MIG-003` ✅ untuk source — termasuk uji PostgreSQL provider-real (`PAT-DEC-065`) — dan direview leader; otorisasi deployment terpisah; konfigurasi Staging `RsmmcMigrationReservationGuard.Enabled = true` diatur pemilik (`PAT-DEC-066`) | **Belum dapat diminta.** Lulus bila, di Staging persis, pemeriksa baca-saja allocator melaporkan guard aktif, konfigurasi sah, `PatientCode` normal berikutnya ≥ `PAT-RSMMC-705250`, dan MRN normal berikutnya ≥ `00-89-01-88` (`PAT-DEC-064`). Pembekuan pendaftaran normal (`PAT-DEC-055`) baru boleh dicabut pemilik sesudah gerbang ini `PASS` |
+| `PAT-GATE-005` | Deployment Staging dan verifikasi runtime `BE-PAT-MIG-003` | `BE-PAT-MIG-003` ✅ untuk source — termasuk uji PostgreSQL provider-real (`PAT-DEC-065`) — dan direview leader; otorisasi deployment terpisah; konfigurasi Staging `RsmmcMigrationReservationGuard.Enabled = true` diatur pemilik (`PAT-DEC-066`) | **Generasi 1 `PASS`** 19 Oktober 2026 (`PAT-FACT-090`, `BE-PAT-MIG-003`, jalur `CreatePatient`). **Generasi 2 `PASS`** 22 Oktober 2026 (`PAT-FACT-093`, `BE-PAT-MIG-003A`, jalur normal **dan** bayi `RESERVED_FLOOR`, `overallGuardReady = true`). Lulus bila, di Staging persis, pemeriksa baca-saja allocator melaporkan guard aktif, konfigurasi sah, `PatientCode` normal berikutnya ≥ `PAT-RSMMC-705250`, dan MRN normal berikutnya ≥ `00-89-01-88` (`PAT-DEC-064`); generasi 2 juga mensyaratkan kedua jalur terlindungi (`PAT-DEC-072`). **Pembekuan tetap berlaku** walau gerbang ini `PASS`: seluruh pembuatan pasien Staging — normal, admin, kiosk, dan bayi — dibekukan selama persiapan dan jendela Canary-A (`PAT-DEC-073`). *Keadaan lama — jejak: "Belum dapat diminta … Pembekuan pendaftaran normal (`PAT-DEC-055`) baru boleh dicabut pemilik sesudah gerbang ini `PASS`" — masa berlaku pembekuan diperpanjang `PAT-DEC-073`* |
 
 **Urutan 12 langkah (`PAT-DEC-029`).**
 
@@ -1285,6 +1285,13 @@ sendiri.
 Tabel 12 langkah `PAT-DEC-029` pada bagian 12 tetap berlaku untuk rincian bukti tiap langkah
 runtime; tabel ini menetapkan urutan lintas kedua task.
 
+**Keadaan 22 Oktober 2026 (bagian 16).** Langkah 1–4 selesai untuk `BE-PAT-MIG-003`, dan sisipan
+revision `6` sesudah langkah 4 juga selesai: `BE-PAT-MIG-003A` di-*merge* dan dideploy (`PAT-FACT-092`),
+`PAT-GATE-005` generasi 2 `PASS` (`PAT-FACT-093`), dan baseline `MstPatient` diukur read-only
+(`PAT-FACT-095`). Langkah 5 — implementasi source `BE-PAT-MIG-002` — **boleh dimulai** dalam sesi
+`TASK MODE: BACKEND` tersendiri lewat `build-module-backend`. Langkah 6–11 belum berjalan, dan
+masing-masing tetap butuh wewenangnya sendiri.
+
 *Langkah berikutnya versi amandemen kedua — selesai:* (1) pemilik menyerahkan bukti `PAT-OQ-019` dan
 `031` serta memutuskan `036` dan `037`; (2) agent memasukkan bukti dan menyiapkan `PAT-DEC-033`;
 (3) `requirement-completeness-gate`, `design-business-module`, dan `plan-module-delivery`.
@@ -1319,6 +1326,11 @@ dicatat di sini supaya jejaknya tetap terbaca.
 | 19 Oktober 2026 | `PAT-SRC-023`; kontrak B14.1 | "Jalur yang meng-insert `MstPatient`: hanya `CreatePatient` …"; "Ketiganya bermuara pada satu method `CreatePatient`" | Ditambah jalur bayi `NewbornPatientRegistrationService` (`PAT-SRC-031`) | `PAT-DEC-072` |
 | 19 Oktober 2026 | `PAT-DEC-053` bagian (1); kontrak B4.3 langkah 8 `PERSIST_IS_MEMBER`; `PAT-SRC-008` | UPDATE eksplisit `IsMember = false` sesudah insert | Dihapus; INSERT + baca ulang + verifikasi + rollback | `PAT-DEC-075`, `PAT-SRC-032` |
 | 19 Oktober 2026 | Kontrak B4.2 `PATIENT_BASELINE` | "Jumlah `MstPatient` = 741 + jumlah crosswalk `MIGRATED_BULK_WORKER`" | Baseline tetap yang diukur ulang read-only dan disetujui sebelum Canary-A | `PAT-DEC-077` |
+| 22 Oktober 2026 | Kontrak B4.2 `PATIENT_BASELINE`; AC-06; traceability AC-06 | Baseline tetap "diukur ulang sebelum Canary-A" tanpa nilai | Nilai tetap **741** dari pengukuran read-only 22 Oktober 2026; rumus lengkap: hitung seluruh baris `MstPatient` tanpa filter `IsDelete`, dikurangi crosswalk batch kanonik dengan `migration_status = 'MIGRATED_BULK_WORKER'`; baris Pilot dan 285 baris historis tanpa target tidak ikut | `PAT-DEC-077`, `PAT-FACT-095` |
+| 22 Oktober 2026 | Kontrak B9 baris `public."MstPatient"`; AC-47 kartu `BE-PAT-MIG-002`; `PAT-DEC-065`; `PAT-OQ-029`; `PAT-RSK-019` | "ditambah satu penulisan `IsMember = false` atas baris yang baru di-insert"; "update eksplisit hanya baris pasien baru"; "koreksi eksplisit `IsMember` … berhasil"; "Penulisan eksplisit dan verifikasi baca ulang" | INSERT `IsMember = false` → baca ulang `AsNoTracking` di transaksi yang sama → verifikasi → rollback bila selisih; tanpa UPDATE khusus. Teks lama disimpan sebagai jejak | `PAT-DEC-075` |
+| 22 Oktober 2026 | Kontrak B2 baris `Contract version`; kartu `BE-PAT-MIG-002` baris Kontrak; tabel task roadmap; traceability bagian 5.2 | `1.2.0` / `1.2.2` sebagai versi kontrak `BE-PAT-MIG-002` | Versi berlaku `1.3.0` | `PAT-DEC-069`–`077` |
+| 22 Oktober 2026 | Kontrak B4.2 contoh | "Pembangkit normal memberi `PAT-RSMMC-00742`" sesudah Canary-A | Sejak guard aktif, pendaftaran normal memperoleh `PAT-RSMMC-705250` / `00-89-01-88`, sehingga yang gagal adalah `PATIENT_BASELINE`, bukan `PREVIEW_CODE_UNMAPPED` | `PAT-FACT-093` |
+| 22 Oktober 2026 | Status `BE-PAT-MIG-003A`, `PAT-GATE-005` generasi 2, `PAT-RSK-042`, baseline, `BE-PAT-MIG-002` pada roadmap, manifest, kontrak, dan traceability | 🟡 pra-runtime; generasi 2 "belum dapat diminta"; pemeriksaan `PAT-RSK-042` dan baseline "menunggu"; `BE-PAT-MIG-002` ⛔ | `BE-PAT-MIG-003A` ✅; generasi 2 `PASS`; `PAT-RSK-042` ditutup; baseline 741; `BE-PAT-MIG-002` tanpa tanda — belum dikerjakan, boleh masuk implementasi source | `PAT-FACT-092`–`097` |
 
 **DESIGN COMPLETE — SOURCE IMPLEMENTATION MAY BEGIN WITH BE-PAT-MIG-003**
 
@@ -1362,3 +1374,95 @@ Karena itu pemilik membuka task prasyarat `BE-PAT-MIG-003A` (`PAT-DEC-069`) dan 
 | Desain worker `BE-PAT-MIG-002` | `PERSIST_IS_MEMBER` dihapus (`PAT-DEC-075`); lima kolom baru `NULL` (`PAT-DEC-076`); `PATIENT_BASELINE` memakai baseline tetap yang diukur ulang (`PAT-DEC-077`). Tetap ⛔ (`PAT-DEC-069`) |
 
 **BE-PAT-MIG-003A APPROVED FOR SOURCE IMPLEMENTATION — BE-PAT-MIG-002 REMAINS BLOCKED**
+
+*Penutup bagian 15 di atas adalah keadaan 19 Oktober 2026 dan dipertahankan sebagai jejak. Keadaan
+terkini ada di bagian 16.*
+
+---
+
+## 16. Sinkronisasi bukti runtime — 22 Oktober 2026
+
+**Apa yang terjadi, dalam bahasa sederhana.** Bagian 15 menahan `BE-PAT-MIG-002` sampai tiga hal
+terbukti di Staging: perlindungan nomor pendaftaran bayi (`BE-PAT-MIG-003A`) sudah terpasang, pemeriksa
+`PAT-GATE-005` generasi 2 menyatakan **kedua** jalur pendaftaran — pasien biasa dan bayi — aman, dan
+jumlah pasien awal sudah diukur ulang. Ketiganya kini terbukti. Pemilik juga memperbaiki satu masalah
+yang ditemukan pemeriksaan terakhir sebelum implementasi: project test `PatientManagementTests` tidak
+dapat dikompilasi (F-01).
+
+*Contoh.* Sebelum `BE-PAT-MIG-003A` dideploy, seorang bidan yang mendaftarkan bayi di Staging bisa saja
+mendapat `PAT-RSMMC-00742` — nomor yang dipesan pasien lama RSMMC `legacy_pid` -667995 (Canary-A
+no. 5). Pemeriksa generasi 2 kini melaporkan bahwa pendaftaran bayi berikutnya akan mendapat
+`PAT-RSMMC-705250`, dan hitungan read-only membuktikan tidak ada satu pun bayi yang pernah terdaftar
+lewat jalur itu di Staging.
+
+Bagian ini **tidak** membuat keputusan baru dan **tidak** mengubah ID keputusan mana pun. Isinya fakta
+yang dilaporkan pemilik dan hasil pemeriksaan read-only, ditambah keadaan yang diturunkan darinya.
+
+### 16.1 Fakta runtime dan bukti yang dilaporkan pemilik
+
+| ID | Fakta | Nilai | Asal |
+| --- | --- | --- | --- |
+| `PAT-FACT-092` | Runtime `BE-PAT-MIG-003A` | Di-*merge* ke Integration lewat PR #294, merge commit `ce34b22bd3b4fc88a4ba69e57eb5f74676f33423`. Dipromosikan lewat artefak DEV *immutable* `fb2099a96806eed6e2e0e0d2f28bfff2bc04b26c`. Staging sesudah promosi: application `Quilvian System Backend`, `releaseVersion` `0.24.1`, `buildVersion` `0.24.1-build.260`, `commitSha` `fb2099a96806eed6e2e0e0d2f28bfff2bc04b26c`, `environment` `Staging`, health `Healthy`, `RsmmcMigrationReservationGuard__Enabled = true`. Migration yang sudah diterapkan di Staging: `20261015075431_DropEncounterRescheduleHistory`, `20261016043218_AddEncounterReferralSourceType`, `20261016062203_AddDoctorCertificatePatientDependencyLevel`, `20261016080745_ReviseNewbornAdmissionFlow`, `20261016144037_AddOutpatientPriorityReservation`, `20261019090000_AddMembershipFeeCharge` | Dilaporkan pemilik 22 Oktober 2026. Diperiksa agent di Git secara read-only: `fb2099a9` adalah commit manifest versi di atas Integration `88806486` (PR #295) yang memuat `ce34b22b`; selisih source-nya terhadap `88806486` hanya `version.json` dan `.github/release/current-version.json` |
+| `PAT-FACT-093` | `PAT-GATE-005` generasi 2 | **`PASS`.** `environment = Staging`; `guardState = ACTIVE`; `guardEnabled = true`; `guardConfigurationValid = true`; `patientCodeFloor = 705250` / `PAT-RSMMC-705250`; `mrnFloor = 890188` / `00-89-01-88`; `nextPatientCodeNumeric = 705250` / `PAT-RSMMC-705250`; `nextMrnNumeric = 890188` / `00-89-01-88`; `patientCodeFloorSatisfied = true`; `mrnFloorSatisfied = true`; `normalPatientCreateAllocationMode = RESERVED_FLOOR`; `normalPatientCreateProtected = true`; `newbornPatientCreateAllocationMode = RESERVED_FLOOR`; `newbornPatientCreateProtected = true`; `overallGuardReady = true`; `checkedAtUtc` `2026-10-22T01:13:58.8831708Z`. Memenuhi `PAT-MIG3A-AC-12` | Pemeriksa read-only `GET /admin/migration/rsmmc-reservation-guard` di Staging, dijalankan pemilik 22 Oktober 2026 |
+| `PAT-FACT-094` | Pemeriksaan `PAT-RSK-042` | `SELECT COUNT(*) FROM public."MstPatient" WHERE "NewbornRegistrationKeyHash" IS NOT NULL;` → **0**. Pada saat pengukuran, tidak ada pendaftaran bayi sukses yang tercatat lewat `NewbornRegistrationKeyHash` di Staging, sehingga tidak ada bayi yang memakai nomor cadangan migrasi. `PAT-RSK-042` **ditutup** | Query read-only Staging, dijalankan pemilik 22 Oktober 2026 |
+| `PAT-FACT-095` | Baseline `MstPatient` untuk `PATIENT_BASELINE` (`PAT-DEC-077`) | `SELECT COUNT(*) FROM public."MstPatient";` → **741**. **`PATIENT_BASELINE = 741`.** Diukur read-only **sesudah** deployment `BE-PAT-MIG-003A`, migration yang dibutuhkan, `PAT-GATE-005` generasi 2 `PASS`, dan pemeriksaan `PAT-RSK-042`. Angkanya kebetulan sama dengan angka historis `PAT-FACT-038`, tetapi kewenangannya berasal dari pengukuran baru ini, bukan dari angka historis itu. Query menghitung **seluruh** baris tanpa filter `IsDelete` | Query read-only Staging, dijalankan pemilik 22 Oktober 2026 |
+| `PAT-FACT-096` | Impact scan final `BE-PAT-MIG-002` (read-only) | Pada Integration `201d367ed7722320069c69e266133fbabdaf0fc3`: `CONDITIONAL — OWNER DECISION REQUIRED`, karena project `PatientManagementTests` tidak dapat dikompilasi (F-01, `PAT-FACT-097`). Temuan lain: jalur insert `MstPatient` tidak bertambah — tiga rute `CreatePatient`, `POST /newborns`, seeder demo Operating Room, dan dua skrip SQL manual (`PAT-RSK-041`); source PatientManagement sama dengan artefak Staging; model dan konfigurasi `MstPatient` tidak berubah, sehingga desain insert B10 beserta `PAT-DEC-075`/`076` tetap sah; key1 kunci worker `1173286842` tetap berbeda dari `(1346458697, 1313821261)`; rentang nomor worker (742–705.249, MRN 27–890.187) tidak beririsan dengan lantai; sidik jari `RSMMC-CANARY-A` v1 dihitung ulang dan cocok. Dua migration Integration sesudah artefak Staging — `20261020084310_AddLabTransitionHistoryActionOccurredAtIndex` dan `20261021082302_AddPriorityReservationHistoryVisitDates` — tidak menyentuh `MstPatient` maupun skema `migration.*`; keduanya **tidak** dibutuhkan untuk build/test `BE-PAT-MIG-002`, tetapi wajib diterapkan di Staging sebelum artefak dari Integration yang lebih baru dideploy | Pemeriksaan read-only agent 22 Oktober 2026 |
+| `PAT-FACT-097` | Perbaikan prasyarat F-01 | **`RESOLVED`.** Akar masalah: test membership di `PatientManagementTests` masih memakai signature constructor lama sesudah `PatientMembershipService` dan `PatientMembershipController` mendapat dependency wajib `IMembershipFeeChargePort` (9 galat kompilasi). Diperbaiki hanya di `Tests/` lewat PR #300, commit `6a290f4b`, merge Integration `8bccaa034db955c9acb719fc1cb476ed9c71f1c3`. Validasi pemilik sebelum merge: test membership `97`/`97` PASS; `PatientManagementTests` non-provider-real `303`/`303` PASS; build Release project test `0` error; `git diff --check` PASS; source production berubah `0` berkas | Dilaporkan pemilik 22 Oktober 2026 |
+
+### 16.2 Keadaan sesudah sinkronisasi
+
+| Hal | Keadaan per 22 Oktober 2026 |
+| --- | --- |
+| `BE-PAT-MIG-003` | ✅ **SELESAI** (19 Oktober 2026, `PAT-FACT-090`) |
+| `BE-PAT-MIG-003A` | ✅ **SELESAI** — source di-*merge* (PR #294), dideploy, dan `PAT-MIG3A-AC-12` terbukti (`PAT-FACT-092`, `093`) |
+| `PAT-GATE-005` generasi 1 | `PASS` (`PAT-FACT-090`) |
+| `PAT-GATE-005` generasi 2 | `PASS` (`PAT-FACT-093`) |
+| `PAT-RSK-042` | **Ditutup** — 0 baris (`PAT-FACT-094`) |
+| `PATIENT_BASELINE` | **741**, diukur read-only 22 Oktober 2026 sesudah generasi 2 `PASS` (`PAT-FACT-095`) |
+| F-01 | **`RESOLVED`** — PR #300 / Integration `8bccaa03` (`PAT-FACT-097`) |
+| `BE-PAT-MIG-002` | Desain dan kontrak `1.3.0` `approved`. Implementasi source **belum dimulai**; runtime Canary **belum dimulai**. Implementasi source **boleh dimulai** sesudah sinkronisasi dokumen ini, dalam sesi `TASK MODE: BACKEND` tersendiri lewat `build-module-backend` |
+| `PAT-GATE-002` | `NOT RUN` — belum dapat diminta (bagian 12) |
+| `RSMMC-CANARY-A` v1 | `NOT RUN` — belum pernah disimulasikan maupun dieksekusi |
+| Pembekuan operasional Staging | **Tetap berlaku** selama persiapan dan jendela Canary-A untuk pendaftaran normal, admin, kiosk, dan bayi (`PAT-DEC-073`) |
+| Eksekusi massal | **Tidak** diberi wewenang. Gelombang lebih besar tetap milik `PAT-GATE-004` |
+
+### 16.3 Rumus `PATIENT_BASELINE` yang berlaku
+
+```text
+jumlah MstPatient yang diharapkan
+  = 741
+  + COUNT(baris migration.rsmmc_patient_crosswalk
+          WHERE last_batch_id    = '45eeefba-dd39-6831-1bd2-d986851f7c1f'
+            AND migration_status = 'MIGRATED_BULK_WORKER')
+```
+
+- Jumlah `MstPatient` dihitung dengan cara yang sama dengan pengukuran baseline: **seluruh** baris,
+  tanpa filter `IsDelete`.
+- Hanya `migration_status = 'MIGRATED_BULK_WORKER'` yang dihitung, **bukan** `match_status`. Pemetaan
+  Pilot juga memakai `match_status = TARGET_CREATED` (`PAT-FACT-062`), tetapi `migration_status`-nya
+  `MIGRATED_API_AUTO` atau `MIGRATED_API_PILOT` (`PAT-FACT-063`), sehingga Pilot tidak ikut terhitung.
+- 285 baris crosswalk historis tanpa target tidak pernah berstatus `MIGRATED_BULK_WORKER` — build
+  pertama tidak punya jalur `UPDATE` crosswalk (B9) — sehingga tidak ikut terhitung.
+- Nilai 741 ditanam di profil batch seperti manifest, bukan dibaca dari jumlah yang ada saat eksekusi
+  (`PAT-DEC-077`).
+
+*Contoh.* Sebelum Canary-A: 741 pasien, 0 baris worker → 741 = 741 + 0, gerbang lulus. Sesudah 25
+pasien Canary-A berhasil: 766 pasien, 25 baris worker → 766 = 741 + 25, lulus. Bila sesudah itu seorang
+petugas kiosk mendaftarkan satu pasien baru di Staging, jumlahnya 767 ≠ 766 → eksekusi berikutnya
+ditolak `409` sampai pemilik memutuskan penanganannya.
+
+### 16.4 Yang tidak berubah
+
+| Hal | Nilai yang dikunci |
+| --- | --- |
+| Batch kanonik | `45eeefba-dd39-6831-1bd2-d986851f7c1f` |
+| Batch Pilot historis | `2ce3929b-b5af-430b-a2b4-bdb3aaf6908f` |
+| Populasi | Kanonik 705.223; Pilot 715; bulk di luar Pilot 704.508; bulk `READY` 704.506; tertunda `280143`, `805596` |
+| Nomor | `PatientCode` migrasi 742–705.249, lantai normal 705.250; MRN kanonik 27–890.187, lantai normal 890.188 |
+| QR bulk | `patient-qrcodes/rsmmc-bulk/<MRN>/qrcode.png` (`PAT-DEC-052`) |
+| `RSMMC-CANARY-A` v1 | 25 `legacy_pid` tetap (bagian 11); sidik jari berurutan `c43207eb73f1f244db13ff930bca1c22e2e4ae779018e5cd48e26f628a5a79ad`; sidik jari himpunan `3b5affd9558d24da2fe8164c5c9d16ea230b89b4be0404889a55ad22193434aa` |
+| `IsMember` | `PAT-DEC-075`: INSERT `IsMember = false` → baca ulang `AsNoTracking` di transaksi yang sama → verifikasi `false` → rollback bila selisih; tanpa UPDATE khusus |
+| Data migrasi | Ekstraksi, perencana, preview 704.506 `PENDING`, crosswalk, dan manifest tidak dibuat ulang |
+| Kontrak | Tetap `1.3.0`; koreksi 22 Oktober 2026 hanya menyelaraskan teks dengan keputusan yang sudah `approved` (bagian 14) |
+
+**RUNTIME PREREQUISITES PASSED — BE-PAT-MIG-002 MAY ENTER SOURCE IMPLEMENTATION**

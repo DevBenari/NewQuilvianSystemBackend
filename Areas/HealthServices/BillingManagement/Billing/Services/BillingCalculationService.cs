@@ -283,6 +283,9 @@ public class BillingCalculationService : IBillingCalculationService
                     calcItem.ItemUnresolvedAmount = itemOutcome.UnresolvedAmount;
                     calcItem.ItemDataAnomalyAmount = itemOutcome.DataAnomalyAmount;
                     calcItem.ItemNonBillableResidualAmount = itemOutcome.NonBillableResidualAmount;
+                    // Item non-coverable tidak masuk daftar outcome, jadi alasan di sini selalu milik
+                    // penilaian penjamin; alasan "Pribadi/Tunai" sudah diisi CalculateItemsAndTaxesAsync.
+                    calcItem.CoverageReason = itemOutcome.CoverageReason;
                 }
                 if (outcomeByComponent.TryGetValue((calcItem.InvoiceItemId, "TAX"), out var taxOutcome))
                 {
@@ -344,7 +347,11 @@ public class BillingCalculationService : IBillingCalculationService
                     var application = approvedDiscounts.Single(x => x.Id == discount.DiscountApplicationId);
                     if (application.Amount == discount.AppliedAmount) continue;
                     application.Amount = discount.AppliedAmount;
-                    application.UpdateDateTime = DateTime.UtcNow;
+                    // Dicap pada waktu hitung: IsCalculationCurrentAsync membandingkan perubahan diskon terakhir dengan
+                    // CalculatedAt. Dengan UtcNow (selalu sesudah CalculatedAt, yang diambil di awal) versi yang baru
+                    // saja disimpan sudah dianggap tertinggal — penyesuaian nominal oleh hitungan ini bukan perubahan
+                    // yang terjadi SESUDAH hitungan.
+                    application.UpdateDateTime = calculatedAt.UtcDateTime;
                     application.UpdateBy = actorUserId;
                 }
             }
@@ -949,14 +956,25 @@ public class BillingCalculationService : IBillingCalculationService
             //    - CASH: Coverable = false (mandiri / pasien bayar 100%, dilewati oleh mesin coverage asuransi/perusahaan)
             //    - INSURANCE / COMPANY_GUARANTOR: Coverable = true (dinilai oleh aturan tanggungan penjamin)
             // 2. Bila belum ada penandaan aktif, fallback ke default master kategori (item.Category.IsCoveredByInsuranceDefault)
+            //
+            // Penugasan CASH TIDAK PERNAH diubah oleh perhitungan ulang: baik yang ditetapkan kasir (MANUAL)
+            // maupun yang dibuat otomatis (AUTO, mis. reset saat ganti penanggung) dibaca apa adanya. Yang
+            // dicatat di sini hanya alasannya, supaya layar dapat membedakan "kasir memilih Pribadi" dari
+            // "sistem mengembalikan ke Pribadi" tanpa menimpa pilihan siapa pun.
             bool coverable;
+            string? nonCoverableReason = null;
             if (assignments.TryGetValue(item.Id, out var assignment))
             {
                 coverable = !string.Equals(assignment.PayerKind, "CASH", StringComparison.OrdinalIgnoreCase);
+                if (!coverable)
+                    nonCoverableReason = string.Equals(assignment.AssignmentSource, "MANUAL", StringComparison.OrdinalIgnoreCase)
+                        ? BillingCoverageReasonCodes.CashAssignedManual
+                        : BillingCoverageReasonCodes.CashAssignedAuto;
             }
             else
             {
                 coverable = item.Category.IsCoveredByInsuranceDefault;
+                if (!coverable) nonCoverableReason = BillingCoverageReasonCodes.CategoryNotCoverable;
             }
 
             // Pajak TIDAK dihitung di sini - dialokasikan belakangan lewat ApplyInvoiceTax, yang
@@ -975,6 +993,7 @@ public class BillingCalculationService : IBillingCalculationService
                 TaxAmount = 0m,
                 NetAmount = gross - itemDiscount,
                 Coverable = coverable,
+                CoverageReason = nonCoverableReason,
                 IsPharmacy = item.Category.IsPharmacy
             });
         }

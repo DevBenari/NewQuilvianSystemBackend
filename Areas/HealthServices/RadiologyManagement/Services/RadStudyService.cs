@@ -28,7 +28,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
     /// sebab dan tanggung jawabnya.</item>
     /// </list>
     /// </summary>
-    public class RadStudyService
+    public partial class RadStudyService
     {
         private const string LogCategory = "HealthServices.RadiologyManagement";
         private const string ExaminationUnit = "Examination";
@@ -559,7 +559,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
             var handoff = await EmitChargeEligibilityAsync(study, actorUserId, cancellationToken);
 
-            if (handoff.Kind is ClinicalFactEmissionKind.Emitted or ClinicalFactEmissionKind.Replayed)
+            if (handoff?.Kind is ClinicalFactEmissionKind.Emitted or ClinicalFactEmissionKind.Replayed)
             {
                 study.BillingFactSubmitted = true;
                 study.BillingFactSubmittedAt = DateTime.UtcNow;
@@ -1490,16 +1490,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// aturan tanggung jawabnya tanpa menebak — <c>GATE-DEC-004</c> melarang pengulangan
         /// karena kesalahan internal rumah sakit otomatis menambah tagihan pasien.
         /// </summary>
-        private Task<ClinicalFactEmissionResult> EmitChargeEligibilityAsync(
+        /// <summary>
+        /// Menerbitkan fakta kelayakan tagih study; <c>null</c> bila pesanannya bertanda paket MCU
+        /// (<c>BE-MCU-020</c>, <c>MCU-DEC-022</c>) — Thorax dalam Paket Basic sudah ditagih sebagai
+        /// satu baris paket oleh MCU dan tidak boleh ditagih lagi sebagai <c>RadiologyCharge</c>.
+        /// </summary>
+        private async Task<ClinicalFactEmissionResult?> EmitChargeEligibilityAsync(
             RadStudy study,
             Guid actorUserId,
             CancellationToken cancellationToken)
         {
+            var coveredByMcuPackage = study.RadOrder != null
+                ? study.RadOrder.CoveringMcuOrderId != null
+                : await _dbContext.RadOrders.AsNoTracking()
+                    .AnyAsync(x => x.Id == study.RadOrderId && x.CoveringMcuOrderId != null, cancellationToken);
+
+            if (coveredByMcuPackage)
+                return null;
+
+            var chargeItemId = await ResolveChargeSourceItemIdAsync(study, cancellationToken);
+
             var request = new ClinicalMilestoneFactRequest
             {
                 SourceContext = BillingSourceContract.RadiologySourceContext,
                 SourceAggregateId = study.RadOrderId,
-                SourceItemId = study.Id,
+                SourceItemId = chargeItemId,
                 EffectType = BillingSourceContract.RadiologyChargeEffectType,
                 EncounterId = study.EncounterId,
                 OccurredAt = study.QualityDecidedAt ?? DateTime.UtcNow,
@@ -1515,12 +1530,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     repeatCause = study.RepeatCause?.ToString(),
                     additionalOrderId = study.AdditionalOrderId,
                     safetyRuleVersion = study.SafetyRuleVersionAtClearance,
+                    chargeIdentity = chargeItemId == study.RadOrderId ? "Order" : "Study",
                 }),
             };
 
-            return _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+            return await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
                 request, actorUserId, cancellationToken);
         }
+
+        /// <summary>
+        /// Identitas butir tagihan study: pesanan, atau study itu sendiri. Lihat <see cref="ChooseChargeSourceItemId"/>.
+        /// </summary>
+        private async Task<Guid> ResolveChargeSourceItemIdAsync(RadStudy study, CancellationToken cancellationToken)
+        {
+            var inpatientEpisodeId = await _dbContext.RadOrders
+                .AsNoTracking()
+                .Where(x => x.Id == study.RadOrderId)
+                .Select(x => x.InpEpisodeId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var inpatientOrderCharge = inpatientEpisodeId.HasValue && inpatientEpisodeId.Value != Guid.Empty;
+            if (!inpatientOrderCharge) return study.Id;
+
+            // Study lain pada pesanan ini yang faktanya sudah terkirim sudah membawa tagihan pesanan.
+            var carriedByOtherStudy = await _dbContext.RadStudies
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.RadOrderId == study.RadOrderId && x.Id != study.Id && !x.IsDelete && x.BillingFactSubmitted,
+                    cancellationToken);
+
+            return ChooseChargeSourceItemId(study.RadOrderId, study.Id, inpatientOrderCharge, carriedByOtherStudy);
+        }
+
+        /// <summary>
+        /// Aturan identitas butir tagihan Radiologi → Billing (<c>RAD-INT-001</c> revisi 2):
+        /// <list type="bullet">
+        ///   <item><description>Pesanan rawat jalan/IGD tidak menerbitkan fakta saat dibuat: butirnya selalu study.</description></item>
+        ///   <item><description>Pesanan rawat inap sudah punya fakta saat dibuat: study pertama yang lolos mutu memakai
+        ///   identitas pesanan (satu item invoice); study berikutnya (pengulangan yang sah ditagih) memakai identitas
+        ///   study sendiri sebagai tagihan tambahan. Pengulangan karena kesalahan RS tetap tidak ditagih (resolver tarif).</description></item>
+        /// </list>
+        /// </summary>
+        public static Guid ChooseChargeSourceItemId(
+            Guid radOrderId,
+            Guid radStudyId,
+            bool inpatientOrderCharge,
+            bool orderChargeCarriedByOtherStudy) =>
+            inpatientOrderCharge && !orderChargeCarriedByOtherStudy ? radOrderId : radStudyId;
 
         private Guid GetCurrentUserId()
         {

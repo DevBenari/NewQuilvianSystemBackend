@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
@@ -23,15 +24,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private readonly ApplicationDbContext _dbContext;
         private readonly RegistrationEmployeeBenefitLookupService _lookupService;
         private readonly LoggerService _loggerService;
+        private readonly WorkforceBenefitOwnerResolver _ownerResolver;
 
         public PatientWorkforceIdentityResolver(
             ApplicationDbContext dbContext,
             RegistrationEmployeeBenefitLookupService lookupService,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            WorkforceBenefitOwnerResolver? ownerResolver = null)
         {
             _dbContext = dbContext;
             _lookupService = lookupService;
             _loggerService = loggerService;
+            _ownerResolver = ownerResolver ?? new WorkforceBenefitOwnerResolver(dbContext);
         }
 
         public async Task<PatientWorkforceStatusResponse> ResolveStatusAsync(
@@ -97,30 +101,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 (!string.IsNullOrWhiteSpace(x.Card.BenefitRelationship) &&
                  !string.Equals(x.Card.BenefitRelationship, BenefitRelationshipCodes.Self, StringComparison.OrdinalIgnoreCase)));
 
-            if (familyCard != null && familyCard.Card.EmployeeId.HasValue)
+            if (familyCard != null && (familyCard.Card.BenefitOwnerWorkforceProfileId.HasValue || familyCard.Card.EmployeeId.HasValue))
             {
-                var sponsorEmployee = await _dbContext.MstEmployees.AsNoTracking()
-                    .Include(x => x.PrimaryDepartment)
-                    .Include(x => x.PrimaryPosition)
-                    .FirstOrDefaultAsync(x => x.Id == familyCard.Card.EmployeeId.Value && !x.IsDelete && !x.IsCancel, cancellationToken);
+                // Pemilik benefit keluarga: WorkforceProfileId pada kartu baru; kartu lama hanya membawa EmployeeId.
+                var sponsorProfileId = familyCard.Card.BenefitOwnerWorkforceProfileId
+                    ?? await _dbContext.MstEmployees.AsNoTracking()
+                        .Where(x => x.Id == familyCard.Card.EmployeeId!.Value && !x.IsDelete && !x.IsCancel)
+                        .Select(x => (Guid?)x.WorkforceProfileId)
+                        .FirstOrDefaultAsync(cancellationToken);
 
-                if (sponsorEmployee != null)
+                var sponsors = sponsorProfileId.HasValue
+                    ? await _ownerResolver.ResolveManyAsync(new[] { sponsorProfileId.Value }, cancellationToken)
+                    : new Dictionary<Guid, QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs.WorkforceBenefitOwner>();
+
+                if (sponsorProfileId.HasValue && sponsors.TryGetValue(sponsorProfileId.Value, out var sponsor))
                 {
-                    var isSponsorActive = sponsorEmployee.IsActive && !sponsorEmployee.ResignDate.HasValue;
+                    var isSponsorActive = sponsor.IsActive;
                     response.PersonCategory = PersonCategories.EmployeeFamily;
                     response.IdentityStatus = isSponsorActive ? WorkforceIdentityStatuses.Active : WorkforceIdentityStatuses.Inactive;
                     response.IsIdentityVerified = true;
                     response.IsActiveWorkforce = isSponsorActive;
-                    response.StaffNumber = sponsorEmployee.EmployeeNumber;
-                    response.EmployeeId = sponsorEmployee.Id;
-                    response.BenefitOwnerName = sponsorEmployee.FullName;
+                    response.StaffNumber = sponsor.StaffNumber;
+                    response.EmployeeId = sponsor.EmployeeId;
+                    response.DoctorId = sponsor.DoctorId;
+                    response.BenefitOwnerWorkforceProfileId = sponsor.WorkforceProfileId;
+                    response.BenefitOwnerType = sponsor.OwnerType;
+                    response.BenefitOwnerName = sponsor.StaffName;
                     response.BenefitRelationship = familyCard.Card.BenefitRelationship ?? "FAMILY";
-                    response.OrganizationUnitName = sponsorEmployee.PrimaryDepartment?.DepartmentName;
-                    response.PositionName = sponsorEmployee.PrimaryPosition?.PositionName;
+                    response.OrganizationUnitName = sponsor.OrganizationUnitName;
+                    response.PositionName = await GetPositionNameAsync(sponsor, cancellationToken);
 
                     if (isSponsorActive)
                     {
-                        await CheckEligibilitySafeAsync(response, sponsorEmployee.Id, familyCard.Card.FamilyMemberId, cancellationToken);
+                        await CheckEligibilitySafeAsync(response, sponsor.WorkforceProfileId, null, familyCard.Card.FamilyMemberId, cancellationToken);
                     }
                     else
                     {
@@ -225,15 +238,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 response.IsActiveWorkforce = isActive;
                 response.EmployeeId = singleEmployee.Id;
                 response.DoctorId = singleDoctor.Id;
+                response.BenefitOwnerWorkforceProfileId = singleEmployee.WorkforceProfileId;
                 response.StaffNumber = $"{singleEmployee.EmployeeNumber} / {singleDoctor.DoctorNumber}";
                 response.DoctorKind = FormatDoctorKind(singleDoctor.PracticeType);
                 response.OrganizationUnitName = singleEmployee.PrimaryDepartment?.DepartmentName;
                 response.PositionName = singleEmployee.PrimaryPosition?.PositionName;
                 response.BenefitRelationship = BenefitRelationshipCodes.Self;
 
-                if (isEmpActive)
+                // Satu SDM berperan ganda adalah satu pemilik benefit (satu WorkforceProfileId); jenis pemilik
+                // mengikuti jenis SDM pada profil, bukan peran yang kebetulan ditemukan lebih dulu.
+                if (isActive)
                 {
-                    await CheckEligibilitySafeAsync(response, singleEmployee.Id, null, cancellationToken);
+                    await CheckEligibilitySafeAsync(response, singleEmployee.WorkforceProfileId, null, null, cancellationToken);
                 }
                 else
                 {
@@ -259,11 +275,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 response.OrganizationUnitName = singleDoctor.PrimaryDepartment?.DepartmentName;
                 response.PositionName = singleDoctor.SpecialistName ?? singleDoctor.PrimaryPosition?.PositionName;
                 response.BenefitRelationship = BenefitRelationshipCodes.Self;
+                response.BenefitOwnerWorkforceProfileId = singleDoctor.WorkforceProfileId;
+                response.BenefitOwnerName = singleDoctor.FullName;
 
-                // Dokter tamu / mitra tidak memiliki kepesertaan benefit HR secara default
-                response.IsBenefitEligible = false;
-                response.BenefitStatus = "NOT_ELIGIBLE";
-                response.Message = $"{response.DoctorKind} tidak memiliki kepesertaan benefit karyawan HR.";
+                if (!isDocActive)
+                {
+                    response.IsBenefitEligible = false;
+                    response.BenefitStatus = "INACTIVE";
+                    response.Message = "Dokter sudah tidak aktif di HR.";
+                    return response;
+                }
+
+                // Dokter tetap berhak benefit hanya bila punya enrollment Medical aktif (kategori pasien tetap DOCTOR,
+                // tidak dijadikan karyawan). Dokter tamu/mitra tidak otomatis berhak: kebijakan eligibility HR yang
+                // menentukan, dan pemeriksaan di bawah menolaknya dengan alasan OWNER_TYPE_NOT_ALLOWED.
+                await CheckEligibilitySafeAsync(response, singleDoctor.WorkforceProfileId, null, null, cancellationToken);
+                if (!response.IsBenefitEligible && response.BenefitStatus == BenefitEligibilityReasonCodes.OwnerTypeNotAllowed)
+                {
+                    response.BenefitStatus = "NOT_ELIGIBLE";
+                    response.Message = $"{response.DoctorKind} tidak memiliki kepesertaan benefit karyawan HR.";
+                }
+                else if (!response.IsBenefitEligible
+                         && response.BenefitStatus == BenefitEligibilityReasonCodes.EnrollmentNotActive
+                         // Pesan spesifik dari pemeriksaan HR (jenis benefit bukan layanan RS, belum diaktifkan, dsb.)
+                         // dipertahankan; teks khusus dokter hanya menggantikan pesan umum bawaan.
+                         && response.Message == QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services
+                             .EmployeeBenefitEligibilityService.MessageFor(BenefitEligibilityReasonCodes.EnrollmentNotActive))
+                {
+                    response.Message = "Enrollment benefit Medical dokter ini belum aktif di HR. Benefit tidak dapat dipakai sampai HR mengaktifkannya.";
+                }
                 return response;
             }
 
@@ -280,10 +320,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 response.OrganizationUnitName = singleEmployee.PrimaryDepartment?.DepartmentName;
                 response.PositionName = singleEmployee.PrimaryPosition?.PositionName;
                 response.BenefitRelationship = BenefitRelationshipCodes.Self;
+                response.BenefitOwnerWorkforceProfileId = singleEmployee.WorkforceProfileId;
 
                 if (isEmpActive)
                 {
-                    await CheckEligibilitySafeAsync(response, singleEmployee.Id, null, cancellationToken);
+                    await CheckEligibilitySafeAsync(response, singleEmployee.WorkforceProfileId, singleEmployee.Id, null, cancellationToken);
                 }
                 else
                 {
@@ -308,7 +349,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private async Task CheckEligibilitySafeAsync(
             PatientWorkforceStatusResponse response,
-            Guid employeeId,
+            Guid? workforceProfileId,
+            Guid? employeeId,
             Guid? familyMemberId,
             CancellationToken cancellationToken)
         {
@@ -316,20 +358,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             {
                 var operationalDate = AppDateTimeHelper.OperationalDate();
                 var result = await _lookupService.CheckEligibilityAsync(
-                    employeeId, familyMemberId, operationalDate, cancellationToken);
+                    workforceProfileId, employeeId, familyMemberId, operationalDate, cancellationToken);
 
                 response.IsBenefitEligible = result.IsEligible;
                 response.BenefitStatus = result.IsEligible ? "ELIGIBLE" : (result.ReasonCode ?? "NOT_ELIGIBLE");
                 response.Message = result.Message;
+                if (result.IsEligible)
+                {
+                    response.BenefitPlanName = result.PlanName;
+                    response.BenefitOwnerWorkforceProfileId = result.WorkforceProfileId ?? response.BenefitOwnerWorkforceProfileId;
+                    response.BenefitOwnerType = result.OwnerType;
+                    response.BenefitOwnerName ??= result.OwnerName;
+                }
             }
             catch (Exception ex)
             {
                 await _loggerService.LogErrorAsync(LogCategory, "CheckEligibility",
-                    $"Gagal memeriksa kelayakan HR untuk pegawai {employeeId}", ex);
+                    $"Gagal memeriksa kelayakan HR untuk SDM {workforceProfileId ?? employeeId}", ex);
                 response.BenefitStatus = WorkforceIdentityStatuses.Unavailable;
                 response.IsBenefitEligible = false;
                 response.Message = "Layanan HR tidak dapat diakses saat ini. Jalur pembayaran umum dapat tetap digunakan.";
             }
+        }
+
+        private async Task<string?> GetPositionNameAsync(
+            QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs.WorkforceBenefitOwner owner, CancellationToken cancellationToken)
+        {
+            if (owner.EmployeeId.HasValue)
+                return await _dbContext.MstEmployees.AsNoTracking()
+                    .Where(x => x.Id == owner.EmployeeId.Value)
+                    .Select(x => x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : null)
+                    .FirstOrDefaultAsync(cancellationToken);
+            if (owner.DoctorId.HasValue)
+                return await _dbContext.MstDoctors.AsNoTracking()
+                    .Where(x => x.Id == owner.DoctorId.Value)
+                    .Select(x => x.SpecialistName ?? (x.PrimaryPosition != null ? x.PrimaryPosition.PositionName : null))
+                    .FirstOrDefaultAsync(cancellationToken);
+            return null;
         }
 
         private static string FormatDoctorKind(DoctorPracticeType practiceType)

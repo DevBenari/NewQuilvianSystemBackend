@@ -35,13 +35,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LabWorklistService _labWorklistService;
+        private readonly LabOrderDemandQuery _labOrderDemandQuery;
 
         public LabDashboardService(
             ApplicationDbContext dbContext,
-            LabWorklistService labWorklistService)
+            LabWorklistService labWorklistService,
+            LabOrderDemandQuery labOrderDemandQuery)
         {
             _dbContext = dbContext;
             _labWorklistService = labWorklistService;
+            _labOrderDemandQuery = labOrderDemandQuery;
         }
 
         /// <summary>
@@ -225,36 +228,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var akhir = AppDateTimeHelper.OperationalDateToUtc(new DateTime(tahun + 1, 1, 1));
 
             // r44 39.8 — pemeriksaan yang tidak gugur/batal ditambah permintaan yang belum masuk wadah,
-            // pada pesanan yang TIDAK dibatalkan. Membatalkan pesanan tidak ikut membatalkan pemeriksaan
-            // maupun permintaannya, sehingga syarat pesanan wajib ditulis di sini. Permintaan Fulfilled
-            // tidak dihitung lagi: ia sudah terwakili barisnya di pemeriksaan. Disiplin dibaca sama
-            // dengan VAL-126 — pesanan, lalu katalog.
-            var pemeriksaan = await _dbContext.LabExaminations
-                .AsNoTracking()
-                .Where(e =>
-                    !e.IsDelete &&
-                    e.ExaminationStatus != LabExaminationStatus.Voided &&
-                    e.ExaminationStatus != LabExaminationStatus.Cancelled &&
-                    e.LabOrder != null &&
-                    !e.LabOrder.IsDelete &&
-                    e.LabOrder.OrderStatus != LabOrderStatus.Cancelled &&
-                    (e.LabOrder.RequestedAt ?? e.LabOrder.CreateDateTime) >= awal &&
-                    (e.LabOrder.RequestedAt ?? e.LabOrder.CreateDateTime) < akhir)
-                .GroupBy(e => e.LabOrder!.Discipline ?? (e.Procedure != null ? e.Procedure.LabDiscipline : null))
+            // pada pesanan yang TIDAK dibatalkan; disiplin dibaca sama dengan VAL-126 — pesanan, lalu
+            // katalog. Definisinya tinggal di LabOrderDemandQuery supaya Statistik Pesanan menghitung
+            // persis sama (INV-59, BE-LAB-96).
+            var pemeriksaan = await _labOrderDemandQuery.CountedExaminations(awal, akhir)
+                .GroupBy(LabOrderDemandQuery.ExaminationDiscipline)
                 .Select(g => new { Discipline = g.Key, Count = g.Count() })
                 .ToListAsync(cancellationToken);
 
-            var belumMasukWadah = await _dbContext.LabOrderedProcedures
-                .AsNoTracking()
-                .Where(p =>
-                    !p.IsDelete &&
-                    p.OrderedStatus == LabOrderedProcedureStatus.Ordered &&
-                    p.LabOrder != null &&
-                    !p.LabOrder.IsDelete &&
-                    p.LabOrder.OrderStatus != LabOrderStatus.Cancelled &&
-                    (p.LabOrder.RequestedAt ?? p.LabOrder.CreateDateTime) >= awal &&
-                    (p.LabOrder.RequestedAt ?? p.LabOrder.CreateDateTime) < akhir)
-                .GroupBy(p => p.LabOrder!.Discipline ?? (p.Procedure != null ? p.Procedure.LabDiscipline : null))
+            var belumMasukWadah = await _labOrderDemandQuery.PendingOrderedProcedures(awal, akhir)
+                .GroupBy(LabOrderDemandQuery.OrderedProcedureDiscipline)
                 .Select(g => new { Discipline = g.Key, Count = g.Count() })
                 .ToListAsync(cancellationToken);
 
@@ -275,14 +258,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // tanggal di SQL berbeda bentuk antar-provider (alasan yang sama dengan pantau cito).
             var awalPembanding = AppDateTimeHelper.OperationalDateToUtc(new DateTime(tahun - 1, 1, 1));
 
-            var waktuPesanan = await _dbContext.LabOrders
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.OrderStatus != LabOrderStatus.Cancelled &&
-                    x.OrderStatus != LabOrderStatus.Draft &&
-                    (x.RequestedAt ?? x.CreateDateTime) >= awalPembanding &&
-                    (x.RequestedAt ?? x.CreateDateTime) < akhir)
+            var waktuPesanan = await _labOrderDemandQuery.CountedOrders(awalPembanding, akhir)
                 .Select(x => x.RequestedAt ?? x.CreateDateTime)
                 .ToListAsync(cancellationToken);
 

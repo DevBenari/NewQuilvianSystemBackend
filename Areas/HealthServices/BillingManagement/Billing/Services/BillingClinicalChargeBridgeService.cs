@@ -1,4 +1,4 @@
-﻿using System.Security.Cryptography;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
@@ -260,9 +260,7 @@ public sealed partial class BillingClinicalChargeBridgeService
                 return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.SourceRejected,
                     "Rincian tahap resep pada fakta klinis tidak dapat dibaca.", domain, detailId.Value.ToString("D")));
             sourceStatus = isDispensed ? PharmacyDispensedStatus : PharmacyPrescribedStatus;
-            if (encounter.EncounterType == EncounterType.Inpatient && !isDispensed)
-                return SyncPlan.Done(SyncOutcome.NotApplicable(BillingBridgeCodes.NoFinancialChange,
-                    "Resep rawat inap menunggu obat diserahkan sebelum ditagihkan."));
+            // FIX-DOK-008: Resep rawat inap CPOE langsung disinkronkan ke running invoice / estimasi biaya
         }
 
         var invoice = await db.Set<BilInvoice>().AsNoTracking()
@@ -879,6 +877,11 @@ public static class BillingBridgeCodes
     public const string NotBillable = "NOT_BILLABLE";
     public const string RepeatInternalError = "REPEAT_INTERNAL_ERROR";
     public const string TariffNotFound = "TARIFF_NOT_FOUND";
+    /// <summary>
+    /// Dua tarif atau lebih sama-sama paling spesifik dengan harga berbeda: tidak ada tarif yang dipilih.
+    /// Masuk antrean rekonsiliasi sampai master tarif dibereskan.
+    /// </summary>
+    public const string TariffAmbiguous = "TARIFF_AMBIGUOUS";
     public const string SourceNotFound = "SOURCE_NOT_FOUND";
     public const string FactNotFound = "FACT_NOT_FOUND";
     public const string EncounterNotFound = "ENCOUNTER_NOT_FOUND";

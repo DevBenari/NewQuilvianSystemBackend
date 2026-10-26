@@ -92,6 +92,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 ErrorCode = code,
                 ErrorMessage = message
             };
+
+        /// <summary>Meneruskan kegagalan dari langkah lain apa adanya (jenis, kode, pesan).</summary>
+        public static RadOperationResult<T> From<TOther>(RadOperationResult<TOther> failure) =>
+            new(failure.Kind) { ErrorCode = failure.ErrorCode, ErrorMessage = failure.ErrorMessage };
     }
 
     /// <summary>Kode galat radiologi yang dipakai lintas lapisan.</summary>
@@ -149,6 +153,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         public const string SafetyRuleNotFound = "RAD_SAFETY_RULE_NOT_FOUND";
         public const string SafetyRequirementNotFound = "RAD_SAFETY_REQUIREMENT_NOT_FOUND";
         public const string ProcedureNotFound = "RAD_PROCEDURE_NOT_FOUND";
+
+        /// <summary>Pemeriksaan tidak punya tarif sah untuk kelas kunjungan — tidak dapat dibooking.</summary>
+        public const string TariffNotAvailable = "RAD_TARIFF_NOT_AVAILABLE";
+
+        /// <summary>Beberapa tarif sama spesifik dengan harga berbeda — konflik master tarif, tidak dapat dibooking.</summary>
+        public const string TariffAmbiguous = "RAD_TARIFF_AMBIGUOUS";
 
         /// <summary>Isian permintaan belum lengkap atau bentuknya salah.</summary>
         public const string ValidationFailed = "RAD_VALIDATION_FAILED";

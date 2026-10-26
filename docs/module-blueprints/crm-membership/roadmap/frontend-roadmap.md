@@ -59,13 +59,13 @@ Menu selesai 2026-10-13 (3 uji unit, lint, build lulus). E2E dua peran lulus den
 
 | Field | Isi |
 |---|---|
-| Outcome | Bagian **CRM** berisi **Pendaftaran Membership** dan **Daftar Membership**, tampil bagi pemegang `PatientMembership : Read` |
-| Requirement/decision | `FR-CRM-060`; `CRM-FE-001`, `CRM-FE-002` |
+| Outcome | Bagian **CRM** berisi **Daftar Membership**, tampil bagi pemegang `PatientMembership : Read`. Pendaftaran dibuka dari tombol **+ Pendaftaran Membership** di daftar, tanpa menu sendiri (diubah 2026-10-16 oleh `CRM-DEC-033`; semula dua menu) |
+| Requirement/decision | `FR-CRM-060`; `CRM-FE-001`, `CRM-FE-002`, `CRM-DEC-033` |
 | Kontrak | Izin `v1` |
 | Reuse | `src/utils/menu-sidebar/menu-items.jsx` |
 | Cakupan | Entri menu + gating izin. Posisi menu `DEV_DISCRETION` |
 | Dependency | — |
-| Acceptance criteria | Pengguna tanpa izin tidak melihat menu. Pengguna CRM melihat dua menu |
+| Acceptance criteria | Pengguna tanpa izin tidak melihat menu. Pengguna CRM melihat satu menu, Daftar Membership, dan rute `/create` tetap menyorot menu itu. Pemegang `Create` tanpa `Read` tidak melihat grup CRM (akibat yang diterima `CRM-DEC-033`) |
 | Verifikasi | E2E dua akun |
 | Risiko/pemilik | — |
 | DoD | Kriteria terbukti |

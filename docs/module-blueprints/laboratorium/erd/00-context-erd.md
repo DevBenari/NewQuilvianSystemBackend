@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `2` |
+| Revision | `3` — 2026-10-20: hubungan baca laporan `S16b-1`/`S16b-2` ke Registrasi, Master Data, dan data pasien (A8.3); nol entity baru |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
 | Backend SHA | `c87d9c0` |
@@ -97,7 +97,7 @@ erDiagram
 
 | Konteks | Peran | Yang dibaca dari luar | Yang diterbitkan ke luar |
 |---|---|---|---|
-| `BC-LAB` Operasional Laboratorium | **Pemilik** modul ini | Kunjungan, jenis pemeriksaan, tarif, identitas pengguna | Fakta milestone klinis ke Billing |
+| `BC-LAB` Operasional Laboratorium | **Pemilik** modul ini | Kunjungan, jenis pemeriksaan, tarif, identitas pengguna. **Sejak 2026-10-20 (`LAB-DA-001` A8.3):** jenis kunjungan dan unit layanan, nama unit, No. RM dan nama pasien — **baca saja**, untuk dua laporan `S16b` | Fakta milestone klinis ke Billing |
 | `BC-REG` Registrasi | Hulu | — | Kunjungan pasien |
 | `BC-MD` Data Induk | Hulu | — | Jenis pemeriksaan, tarif, kelompok umur |
 | `BC-BIL` Billing | Hilir | Fakta milestone klinis | Seluruh akibat finansial |

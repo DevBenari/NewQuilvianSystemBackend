@@ -64,18 +64,20 @@ public sealed class InpAncillaryOrderAdapter
                 if (result.IsValid && result.TariffId.HasValue)
                 {
                     item.IsCovered = result.IsCovered;
-                    var baseLabel = result.IsCovered ? "Ditanggung" : "Tidak Di-cover";
-                    if (result.IsNeedGuarantorApproval || (!string.IsNullOrWhiteSpace(result.CoverageNote) && result.CoverageNote.Contains("Perlu persetujuan")))
-                    {
-                        baseLabel += " · Perlu persetujuan penjamin";
-                    }
-                    item.Label = baseLabel;
+                    item.Label = result.IsCovered ? "Ditanggung" : "Tidak Di-cover";
                     if (canCreate)
                     {
                         item.PriceStatus = "AVAILABLE";
                         item.EstimatedUnitPrice = result.UnitPrice;
-                        item.PriceLabel = "perkiraan — tagihan final di kasir";
+                        item.PriceLabel = null;
                     }
+                }
+                else if (result.IsCoverageApplicable)
+                {
+                    item.IsCovered = result.IsCovered;
+                    item.Label = result.IsCovered ? "Ditanggung" : "Tidak Di-cover";
+                    item.PriceStatus = canCreate ? "NOT_ESTIMABLE" : "NOT_PERMITTED";
+                    item.PriceLabel = null;
                 }
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }

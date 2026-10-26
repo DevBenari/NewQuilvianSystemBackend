@@ -131,6 +131,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                 hasil, "Kunjungan pasien berhasil diambil."));
         }
 
+        [HttpGet("booking-diagnosis-options")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<RadBookingDiagnosisOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Create", "Create Rad Order", Description = "Melihat pilihan diagnosa ICD-10 untuk booking radiologi", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("RadOrder", "Create")]
+        public async Task<IActionResult> GetBookingDiagnosisOptions(
+            [FromQuery] RadAssigneeOptionQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radOrderService.GetBookingDiagnosisOptionsAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<RadBookingDiagnosisOptionResponse>>.Ok(
+                hasil, "Daftar diagnosa ICD-10 berhasil diambil."));
+        }
+
+        // Harga + tarif sah untuk kelas kunjungan, atau kelas pratinjau bila patientClassId diisi (hanya tampilan:
+        // kelas kunjungan tidak berubah dan Billing menagih menurut kelas kunjungan).
         [HttpGet("booking-price")]
         [ProducesResponseType(typeof(ApiResponse<RadBookingPriceResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -139,9 +156,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
         public Task<IActionResult> GetBookingPrice(
             [FromQuery] Guid encounterId,
             [FromQuery] Guid procedureId,
+            [FromQuery] Guid? patientClassId = null,
             CancellationToken cancellationToken = default) =>
-            Execute(() => _radOrderService.GetBookingPriceAsync(encounterId, procedureId, cancellationToken),
+            Execute(() => _radOrderService.GetBookingPriceAsync(encounterId, procedureId, cancellationToken, patientClassId),
                 "Harga pemeriksaan berhasil diambil.");
+
+        // Pilihan "Nama Pemeriksaan" Booking: satu baris per pemeriksaan radiologi aktif beserta tarif sah untuk kelas
+        // kunjungan (atau kelas pratinjau). Izin RadOrder : Create — sama dengan membuat booking, sehingga pembooking
+        // tidak butuh RadOrder : Update (milik procedure-options Ubah Pemeriksaan) maupun Procedure : Read.
+        [HttpGet("booking-procedure-options")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<RadBookingProcedureOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Create", "Create Rad Order", Description = "Melihat pilihan pemeriksaan radiologi beserta tarif kelas pasien untuk booking radiologi", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("RadOrder", "Create")]
+        public async Task<IActionResult> GetBookingProcedureOptions(
+            [FromQuery] RadBookingProcedureOptionQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radOrderService.GetBookingProcedureOptionsAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<RadBookingProcedureOptionResponse>>.Ok(
+                hasil, "Daftar pemeriksaan radiologi untuk booking berhasil diambil."));
+        }
+
+        // Pilihan "Kelas Pasien" Booking dari master kelas pasien; kelas kunjungan ditandai sebagai kelas bawaan.
+        [HttpGet("booking-class-options")]
+        [ProducesResponseType(typeof(ApiResponse<List<RadBookingClassOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Create", "Create Rad Order", Description = "Melihat pilihan kelas pasien untuk booking radiologi", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("RadOrder", "Create")]
+        public async Task<IActionResult> GetBookingClassOptions(
+            [FromQuery] Guid? encounterId,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _radOrderService.GetBookingClassOptionsAsync(encounterId, cancellationToken);
+
+            return Ok(ApiResponse<List<RadBookingClassOptionResponse>>.Ok(
+                hasil, "Pilihan kelas pasien berhasil diambil."));
+        }
 
         [HttpPost("bookings")]
         [ProducesResponseType(typeof(ApiResponse<RadBookingResponse>), StatusCodes.Status200OK)]

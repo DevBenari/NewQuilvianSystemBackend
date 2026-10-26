@@ -1,11 +1,15 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using QuilvianSystemBackend.Services.Security;
@@ -34,6 +38,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     ///
     /// <b>Batas yang ditegakkan:</b> tidak ada satu pun jalur di sini yang membuat atau
     /// mengubah data induk pasien. Pasien wajib sudah terdaftar.
+    ///
+    /// <b>Kunjungan Medical Check-Up</b> (<c>INT-MCU-02</c>, <c>BE-MCU-001</c>) juga lewat sini:
+    /// MCU yang meng-check-in peserta, Registrasi yang membuat kunjungannya. Bedanya dengan
+    /// kunjungan penunjang, peserta MCU memang menuju klinik — antrean, skrining perawat, dan
+    /// dokter tujuannya mengikuti master klinik MCU persis seperti jalur loket.
     /// </summary>
     public class EncounterIntakeService
     {
@@ -45,6 +54,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private const string PaymentSourceCodePrefix = "EGT-RSMMC-";
         private const int CodeNumberLength = 5;
         private const int AllocationAttempts = 5;
+        private const string IntakeSavepoint = "encounter_intake";
 
         private const string DefaultOutpatientPatientClassName = "RAWAT JALAN";
 
@@ -52,17 +62,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly AccessPermissionService _accessPermissionService;
         private readonly LoggerService _loggerService;
+        private readonly OutpatientQueueClassificationService _queueClassificationService;
+        private readonly OutpatientQueueNumberAllocator _queueNumberAllocator;
+        private readonly QueueRealtimeService? _queueRealtimeService;
+        private readonly List<Func<Task>> _deferredAfterCommit = new();
 
         public EncounterIntakeService(
             ApplicationDbContext dbContext,
             IHttpContextAccessor httpContextAccessor,
             AccessPermissionService accessPermissionService,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            OutpatientQueueClassificationService queueClassificationService,
+            OutpatientQueueNumberAllocator queueNumberAllocator,
+            QueueRealtimeService? queueRealtimeService = null)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _accessPermissionService = accessPermissionService;
             _loggerService = loggerService;
+            _queueClassificationService = queueClassificationService;
+            _queueNumberAllocator = queueNumberAllocator;
+            _queueRealtimeService = queueRealtimeService;
         }
 
         /// <summary>
@@ -87,7 +107,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                 if (replay != null)
                 {
-                    return MapResult(replay, isReplay: true);
+                    return MapResult(
+                        replay,
+                        await FindQueueAsync(replay.Id, cancellationToken),
+                        isReplay: true);
                 }
             }
 
@@ -102,41 +125,210 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var patient = await LoadPatientAsync(request.PatientId, cancellationToken);
             var serviceUnit = await LoadServiceUnitAsync(request.ServiceUnitId, cancellationToken);
 
+            var visit = await ResolveVisitProfileAsync(request, cancellationToken);
+
             await ValidateReferralAsync(request, cancellationToken);
 
-            var patientInsurance = await LoadPaymentSourceReferenceAsync(request, cancellationToken);
+            var paymentReference = await LoadPaymentSourceReferenceAsync(request, visit, cancellationToken);
 
             var patientClassId = await ResolveOutpatientPatientClassIdAsync(cancellationToken);
 
             var actorUserId = GetCurrentUserId();
             var now = DateTime.UtcNow;
 
-            var encounter = await PersistAsync(
+            var (encounter, queue) = await PersistAsync(
                 request,
                 idempotencyKey,
                 patient,
                 serviceUnit,
-                patientInsurance,
+                visit,
+                paymentReference,
                 patientClassId,
                 actorUserId,
                 now,
                 cancellationToken);
 
-            await _loggerService.AuditAsync(
-                LogCategory,
-                "EncounterIntake.Register",
-                "Kunjungan dibuat lewat jalur pendaftaran modul penunjang (INT-05).",
-                new
-                {
-                    encounter.Id,
-                    encounter.EncounterNumber,
-                    encounter.PatientId,
-                    encounter.ServiceUnitId,
-                    encounter.IsReferral,
-                    ActorUserId = actorUserId
-                });
+            async Task AfterCommitAsync()
+            {
+                await NotifyQueueCreatedAsync(queue, actorUserId);
 
-            return MapResult(encounter, isReplay: false);
+                // LoggerService hanya menulis teks pesan; ruas payload bernama Id/UserId justru
+                // menimpa pelaku. Karena itu isi yang wajib tercatat ada di pesan, dan payload
+                // tidak memakai nama ruas tersebut.
+                await _loggerService.AuditAsync(
+                    LogCategory,
+                    "EncounterIntake.Register",
+                    $"Kunjungan {encounter.EncounterNumber} ({encounter.EncounterType}) dibuat lewat " +
+                    $"jalur pendaftaran modul lain (INT-05)" +
+                    (queue == null ? "." : $", antrean {queue.QueueCode} ({queue.QueueStatus})."),
+                    new
+                    {
+                        EncounterId = encounter.Id,
+                        encounter.EncounterNumber,
+                        encounter.EncounterType,
+                        encounter.PatientId,
+                        encounter.ServiceUnitId,
+                        encounter.ClinicId,
+                        QueueId = queue?.Id,
+                        encounter.IsReferral,
+                        ActorUserId = actorUserId
+                    });
+            }
+
+            // BE-MCU-013: di dalam transaksi pemanggil, kunjungan belum benar-benar ada sampai
+            // pemanggil commit. Notifikasi antrean dan audit ditunda — pemanggil menjalankannya
+            // lewat PublishDeferredAsync sesudah commit, atau membuangnya bila transaksi batal.
+            if (_dbContext.Database.CurrentTransaction != null)
+            {
+                _deferredAfterCommit.Add(AfterCommitAsync);
+            }
+            else
+            {
+                await AfterCommitAsync();
+            }
+
+            return MapResult(encounter, queue, isReplay: false);
+        }
+
+        /// <summary>
+        /// Menjalankan notifikasi antrean dan audit pendaftaran yang ditunda karena
+        /// <see cref="RegisterAsync"/> berjalan di dalam transaksi pemanggil (<c>BE-MCU-013</c>).
+        /// Dipanggil pemanggil <b>sesudah</b> transaksinya commit; tidak dipanggil bila batal.
+        /// </summary>
+        public async Task PublishDeferredAsync()
+        {
+            var pending = _deferredAfterCommit.ToList();
+            _deferredAfterCommit.Clear();
+
+            foreach (var action in pending)
+            {
+                await action();
+            }
+        }
+
+        // =================================================================
+        // Pembatalan kunjungan MCU — BE-MCU-025
+        // =================================================================
+
+        /// <summary>
+        /// Membatalkan kunjungan <c>MedicalCheckup</c> beserta antreannya untuk batal penuh MCU
+        /// (<c>MCU-DEC-021</c>). Kolom yang diisi dan aturan boleh-batal sama dengan pembatalan
+        /// Daftar Pasien Rawat Jalan (<see cref="OutpatientEncounterListService.GetCancelBlockedReason"/>);
+        /// yang berbeda hanya cakupannya — tidak memakai lingkup klinis petugas, karena pemanggilnya
+        /// MCU yang sudah memeriksa hak <c>McuOrder : Cancel</c>.
+        /// </summary>
+        /// <remarks>
+        /// Ikut transaksi pemanggil bila ada (keputusan BE-MCU-025, sama dengan <see cref="RegisterAsync"/>):
+        /// tanpa commit/rollback sendiri, dan notifikasi antrean ditunda ke <see cref="PublishDeferredAsync"/>.
+        /// Hanya kunjungan MCU yang boleh dibatalkan lewat jalur ini.
+        /// </remarks>
+        public async Task CancelMedicalCheckupAsync(
+            Guid encounterId,
+            string reason,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var normalizedReason = reason?.Trim();
+            if (string.IsNullOrEmpty(normalizedReason))
+                throw new EncounterIntakeValidationException("Alasan pembatalan wajib diisi.");
+            if (normalizedReason.Length > 250)
+                normalizedReason = normalizedReason[..250];
+
+            var ownsTransaction = _dbContext.Database.CurrentTransaction == null;
+            await using var transaction = ownsTransaction
+                ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                : null;
+
+            var encounter = _dbContext.Database.IsNpgsql()
+                ? await _dbContext.Set<RegPatientEncounter>()
+                    .FromSqlInterpolated($@"
+                        SELECT *
+                        FROM public.""RegPatientEncounter""
+                        WHERE ""Id"" = {encounterId}
+                          AND ""IsDelete"" = false
+                        FOR UPDATE")
+                    .FirstOrDefaultAsync(cancellationToken)
+                : await _dbContext.Set<RegPatientEncounter>()
+                    .FirstOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete, cancellationToken);
+
+            if (encounter == null)
+                throw new EncounterIntakeValidationException("Kunjungan tidak ditemukan.");
+
+            if (encounter.EncounterType != EncounterType.MedicalCheckup)
+                throw new EncounterIntakeValidationException("Jalur ini hanya untuk kunjungan Medical Check-Up.");
+
+            var hasActiveConsultation = await _dbContext.Set<TrxDoctorConsultation>()
+                .AnyAsync(c => c.EncounterId == encounterId && !c.IsDelete && !c.IsCancel, cancellationToken);
+
+            var blockedReason = OutpatientEncounterListService.GetCancelBlockedReason(
+                encounter.EncounterStatus,
+                encounter.IsCancel,
+                encounter.CompletedAt.HasValue,
+                hasActiveConsultation);
+
+            if (blockedReason != null)
+                throw new EncounterIntakeConflictException(blockedReason);
+
+            var now = DateTime.UtcNow;
+            encounter.CancelledAt = now;
+            encounter.CancelledByUserId = actorUserId;
+            encounter.CancelReason = normalizedReason;
+            encounter.IsCancel = true;
+            encounter.CancelDateTime = now;
+            encounter.CancelBy = actorUserId;
+            encounter.IsActive = false;
+            encounter.UpdateDateTime = now;
+            encounter.UpdateBy = actorUserId;
+
+            var cancelledQueues = await _dbContext.Set<RegQueue>()
+                .Where(x => x.EncounterId == encounterId && !x.IsDelete && !x.CompletedAt.HasValue && !x.CancelledAt.HasValue)
+                .ToListAsync(cancellationToken);
+
+            foreach (var queue in cancelledQueues)
+            {
+                queue.CancelledAt = now;
+                queue.CancelledByUserId = actorUserId;
+                queue.CancelReason = normalizedReason;
+                queue.IsCancel = true;
+                queue.CancelDateTime = now;
+                queue.CancelBy = actorUserId;
+                queue.IsActive = false;
+                queue.UpdateDateTime = now;
+                queue.UpdateBy = actorUserId;
+            }
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            async Task AfterCommitAsync()
+            {
+                foreach (var queue in cancelledQueues)
+                {
+                    try
+                    {
+                        if (_queueRealtimeService != null)
+                            await _queueRealtimeService.NotifyQueueCancelledAsync(queue, actorUserId, "Kunjungan Medical Check-Up dibatalkan.");
+                    }
+                    catch (Exception exception)
+                    {
+                        await _loggerService.WarningAsync(LogCategory, "CancelMedicalCheckupEncounter",
+                            "Notifikasi antrean batal gagal dikirim.", new { EntityId = queue.Id, Error = exception.GetType().Name });
+                    }
+                }
+
+                // Tanpa alasan batal, nama pasien, maupun data medis.
+                await _loggerService.AuditAsync(LogCategory, "CancelMedicalCheckupEncounter",
+                    $"Kunjungan Medical Check-Up {encounter.EncounterNumber} dibatalkan, {cancelledQueues.Count} antrean ikut batal.");
+            }
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+                await AfterCommitAsync();
+            }
+            else
+            {
+                _deferredAfterCommit.Add(AfterCommitAsync);
+            }
         }
 
         // =================================================================
@@ -191,6 +383,88 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     cancellationToken)
                 ?? throw new EncounterIntakeValidationException(
                     "Unit layanan tidak ditemukan atau sudah tidak aktif.");
+        }
+
+        /// <summary>
+        /// Menentukan bentuk kunjungan menurut jenisnya. <c>Outpatient</c> tetap kunjungan
+        /// penunjang tanpa antrean, persis perilaku sebelum <c>BE-MCU-001</c>.
+        /// <c>MedicalCheckup</c> mengikuti master klinik MCU seperti jalur loket
+        /// (<c>PatientEncounterController</c>), sehingga skrining perawat berjalan di nurse
+        /// station yang sama.
+        /// </summary>
+        private async Task<IntakeVisitProfile> ResolveVisitProfileAsync(
+            EncounterIntakeRequest request,
+            CancellationToken cancellationToken)
+        {
+            var clinicId = NormalizeNullableGuid(request.ClinicId);
+            var doctorId = NormalizeNullableGuid(request.DoctorId);
+
+            if (request.EncounterType == EncounterType.Outpatient)
+            {
+                // Klinik dan dokter diabaikan diam-diam akan menghasilkan kunjungan yang tidak
+                // sesuai harapan pemanggil; lebih baik ditolak.
+                if (clinicId.HasValue || doctorId.HasValue)
+                {
+                    throw new EncounterIntakeValidationException(
+                        "Klinik dan dokter hanya berlaku untuk kunjungan Medical Check-Up.");
+                }
+
+                return IntakeVisitProfile.Supporting;
+            }
+
+            if (request.EncounterType != EncounterType.MedicalCheckup)
+            {
+                throw new EncounterIntakeValidationException(
+                    "Jalur ini hanya melayani kunjungan penunjang dan Medical Check-Up.");
+            }
+
+            if (!clinicId.HasValue)
+            {
+                throw new EncounterIntakeValidationException(
+                    "Klinik Medical Check-Up wajib dipilih untuk kunjungan Medical Check-Up.");
+            }
+
+            var clinic = await _dbContext.Set<MstClinic>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.Id == clinicId.Value &&
+                         x.ServiceUnitId == request.ServiceUnitId &&
+                         x.ClinicType == ClinicType.MedicalCheckup &&
+                         x.IsAvailableForRegistration &&
+                         x.IsActive &&
+                         !x.IsDelete,
+                    cancellationToken)
+                ?? throw new EncounterIntakeValidationException(
+                    "Klinik tidak valid: bukan klinik Medical Check-Up, tidak aktif, tidak tersedia untuk registrasi, atau tidak berada pada unit layanan yang dipilih.");
+
+            if (clinic.IsDoctorRequired && !doctorId.HasValue)
+            {
+                throw new EncounterIntakeValidationException(
+                    "Dokter MCU wajib dipilih karena klinik Medical Check-Up mewajibkan dokter.");
+            }
+
+            if (doctorId.HasValue)
+            {
+                var doctorExists = await _dbContext.Set<MstDoctor>()
+                    .AsNoTracking()
+                    .AnyAsync(
+                        x => x.Id == doctorId.Value && x.IsActive && !x.IsDelete,
+                        cancellationToken);
+
+                if (!doctorExists)
+                {
+                    throw new EncounterIntakeValidationException(
+                        "Dokter tidak valid atau tidak aktif.");
+                }
+            }
+
+            return new IntakeVisitProfile(
+                EncounterType.MedicalCheckup,
+                clinic,
+                doctorId,
+                clinic.IsQueueRequired,
+                clinic.IsScreeningRequired,
+                clinic.IsDoctorRequired);
         }
 
         private async Task ValidateReferralAsync(
@@ -272,21 +546,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             }
         }
 
-        private async Task<MstPatientInsurance?> LoadPaymentSourceReferenceAsync(
+        /// <summary>Kartu sumber bayar yang dipilih: asuransi, atau kartu penjamin perusahaan.</summary>
+        private sealed record PaymentReference(
+            MstPatientInsurance? Insurance,
+            MstPatientCompanyGuarantor? CompanyCard);
+
+        private async Task<PaymentReference> LoadPaymentSourceReferenceAsync(
             EncounterIntakeRequest request,
+            IntakeVisitProfile visit,
             CancellationToken cancellationToken)
         {
             if (request.PaymentType == EncounterPaymentType.CompanyGuarantor)
             {
                 // Sama seperti jalur kiosk: Penjamin Perusahaan hanya diterima petugas admisi
                 // (RWI-ENC-PAYER-001 bagian 7), sehingga wewenangnya tidak ikut meluas ke sini.
-                throw new EncounterIntakeValidationException(
-                    "Penjamin perusahaan hanya dapat dipilih lewat pendaftaran loket.");
+                // Satu-satunya pengecualian adalah check-in MCU di meja admisi MCU (INT-MCU-02,
+                // BE-MCU-013): peserta korporat datang atas tanggungan perusahaannya.
+                if (visit.EncounterType != EncounterType.MedicalCheckup)
+                {
+                    throw new EncounterIntakeValidationException(
+                        "Penjamin perusahaan hanya dapat dipilih lewat pendaftaran loket.");
+                }
+
+                return new PaymentReference(null, await LoadCompanyCardAsync(request, cancellationToken));
             }
 
             if (request.PaymentType != EncounterPaymentType.Insurance)
             {
-                return null;
+                return new PaymentReference(null, null);
             }
 
             if (!request.PatientInsuranceId.HasValue)
@@ -295,7 +582,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     "Kartu asuransi pasien wajib dipilih untuk pembayaran Asuransi.");
             }
 
-            return await _dbContext.Set<MstPatientInsurance>()
+            var insurance = await _dbContext.Set<MstPatientInsurance>()
                 .AsNoTracking()
                 .Include(x => x.InsuranceProvider)
                 .FirstOrDefaultAsync(
@@ -306,27 +593,114 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     cancellationToken)
                 ?? throw new EncounterIntakeValidationException(
                     "Kartu asuransi tidak ditemukan atau bukan milik pasien ini.");
+
+            return new PaymentReference(insurance, null);
+        }
+
+        /// <summary>
+        /// Kartu penjamin perusahaan untuk kunjungan MCU. Pemeriksaannya disalin dari penggantian
+        /// sumber bayar loket (<c>EncounterPaymentSourceService</c>, <c>BIL-VAL-068</c>..<c>072</c>)
+        /// supaya kartu yang ditolak loket juga ditolak di sini.
+        /// </summary>
+        private async Task<MstPatientCompanyGuarantor> LoadCompanyCardAsync(
+            EncounterIntakeRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (!request.PatientCompanyGuarantorId.HasValue)
+            {
+                throw new EncounterIntakeValidationException(
+                    "Kartu penjamin perusahaan pasien wajib dipilih untuk pembayaran Penjamin Perusahaan.");
+            }
+
+            var card = await _dbContext.Set<MstPatientCompanyGuarantor>()
+                .AsNoTracking()
+                .Include(x => x.CompanyGuarantor)
+                .FirstOrDefaultAsync(x => x.Id == request.PatientCompanyGuarantorId.Value, cancellationToken);
+
+            if (card == null || card.IsDelete || !card.IsActive)
+            {
+                throw new EncounterIntakeValidationException(
+                    "Kartu penjamin yang dipilih sudah tidak berlaku. Perbarui data penjamin pasien di Registrasi.");
+            }
+
+            if (card.PatientId != request.PatientId)
+            {
+                throw new EncounterIntakeValidationException("Kartu penjamin yang dipilih bukan milik pasien ini.");
+            }
+
+            var serviceDate = AppDateTimeHelper.OperationalDate();
+
+            if ((card.EffectiveStartDate.HasValue && card.EffectiveStartDate.Value.Date > serviceDate)
+                || (card.EffectiveEndDate.HasValue && card.EffectiveEndDate.Value.Date < serviceDate))
+            {
+                throw new EncounterIntakeValidationException(
+                    "Kartu penjamin ini tidak berlaku pada tanggal pelayanan. Pilih kartu lain atau perbarui masa berlakunya di Registrasi.");
+            }
+
+            if (!card.IsEligible)
+            {
+                throw new EncounterIntakeValidationException(
+                    "Kartu penjamin ini belum dinyatakan layak. Periksa kelayakannya di Registrasi sebelum dipakai.");
+            }
+
+            var guarantor = card.CompanyGuarantor;
+            if (guarantor is null || guarantor.IsDelete || !guarantor.IsActive
+                || (guarantor.ContractStartDate.HasValue && guarantor.ContractStartDate.Value.Date > serviceDate)
+                || (guarantor.ContractEndDate.HasValue && guarantor.ContractEndDate.Value.Date < serviceDate))
+            {
+                throw new EncounterIntakeValidationException(
+                    "Kerja sama dengan perusahaan penjamin ini sudah berakhir pada tanggal pelayanan.");
+            }
+
+            // Kartu benefit karyawan internal butuh verifikasi HR (BE-FIN-106) yang hanya ada di loket.
+            if (guarantor.IsEmployeeBenefitGuarantor)
+            {
+                throw new EncounterIntakeValidationException(
+                    "Penjamin benefit karyawan internal hanya dapat dipilih lewat pendaftaran loket.");
+            }
+
+            return card;
         }
 
         // =================================================================
         // Penyimpanan
         // =================================================================
 
-        private async Task<RegPatientEncounter> PersistAsync(
+        private async Task<(RegPatientEncounter Encounter, RegQueue? Queue)> PersistAsync(
             EncounterIntakeRequest request,
             string? idempotencyKey,
             MstPatient patient,
             MstServiceUnit serviceUnit,
-            MstPatientInsurance? patientInsurance,
+            IntakeVisitProfile visit,
+            PaymentReference paymentReference,
             Guid? patientClassId,
             Guid actorUserId,
             DateTime now,
             CancellationToken cancellationToken)
         {
+            // Kunjungan berantrean memakai tanggal operasional (WIB) seperti jalur loket, karena
+            // nurse station menyaring antrean menurut tanggal itu. Kunjungan penunjang tetap
+            // memakai waktu pendaftaran seperti sebelumnya.
+            var operationalDate = DateTime.SpecifyKind(
+                AppDateTimeHelper.OperationalDate(), DateTimeKind.Utc);
+
+            // BE-MCU-013, INT-MCU-02: check-in MCU memanggil service ini di dalam transaksinya
+            // sendiri, agar kunjungan, baris paket, dan order Hadir tersimpan atau batal bersama.
+            // Bila sudah ada transaksi terbuka, service ini memakainya — percobaan ulang nomor
+            // kembali ke savepoint, dan commit tetap milik pemanggil. Tanpa transaksi pemanggil,
+            // perilakunya sama persis dengan sebelumnya.
+            var ambientTransaction = _dbContext.Database.CurrentTransaction;
+
             for (var attempt = 1; ; attempt++)
             {
-                await using var transaction =
-                    await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                await using var transaction = ambientTransaction == null
+                    ? await _dbContext.Database.BeginTransactionAsync(cancellationToken)
+                    : null;
+
+                if (ambientTransaction != null)
+                {
+                    await ambientTransaction.CreateSavepointAsync(IntakeSavepoint, cancellationToken);
+                }
 
                 var encounter = new RegPatientEncounter
                 {
@@ -335,9 +709,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         x => x.EncounterNumber, EncounterCodePrefix, cancellationToken),
                     PatientId = patient.Id,
                     ServiceUnitId = serviceUnit.Id,
+                    ClinicId = visit.Clinic?.Id,
+                    DoctorId = visit.DoctorId,
                     PatientClassId = patientClassId,
-                    EncounterDate = now,
-                    EncounterType = EncounterType.Outpatient,
+                    EncounterDate = visit.IsQueueRequired ? operationalDate : now,
+                    EncounterType = visit.EncounterType,
                     VisitType = VisitType.NewVisit,
                     RegistrationSource = EncounterRegistrationSource.WalkIn,
                     EncounterStatus = EncounterStatus.Registered,
@@ -353,10 +729,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                     // Pasien penunjang tidak mengantre dokter dan tidak menunggu skrining
                     // perawat: ia menuju unit penunjang, dan daftar kerjanya ada di modul
-                    // penunjang itu sendiri. Karena itu tidak ada RegQueue yang dibuat di sini.
-                    IsQueueRequired = false,
-                    IsDoctorRequired = false,
-                    IsScreeningRequired = false,
+                    // penunjang itu sendiri, sehingga ketiganya false dan tidak ada RegQueue.
+                    // Peserta MCU mengikuti master klinik MCU (IntakeVisitProfile).
+                    IsQueueRequired = visit.IsQueueRequired,
+                    IsDoctorRequired = visit.IsDoctorRequired,
+                    IsScreeningRequired = visit.IsScreeningRequired,
 
                     RegisteredAt = now,
                     RegisteredByUserId = actorUserId,
@@ -370,24 +747,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 };
 
                 var paymentSource = await BuildPaymentSourceAsync(
-                    encounter, request, patientInsurance, actorUserId, now, cancellationToken);
+                    encounter, request, paymentReference, actorUserId, now, cancellationToken);
 
                 encounter.PaymentSource = paymentSource;
 
                 _dbContext.Set<RegPatientEncounter>().Add(encounter);
                 _dbContext.Set<RegPatientEncounterGuarantor>().Add(paymentSource);
 
+                var queue = visit.IsQueueRequired
+                    ? await BuildQueueAsync(encounter, visit, actorUserId, now, cancellationToken)
+                    : null;
+
+                if (queue != null)
+                {
+                    _dbContext.Set<RegQueue>().Add(queue);
+                    encounter.EncounterStatus = visit.IsScreeningRequired
+                        ? EncounterStatus.WaitingForNurse
+                        : EncounterStatus.WaitingForDoctor;
+                }
+
                 try
                 {
                     await _dbContext.SaveChangesAsync(cancellationToken);
-                    await transaction.CommitAsync(cancellationToken);
 
-                    return encounter;
+                    if (transaction != null)
+                    {
+                        await transaction.CommitAsync(cancellationToken);
+                    }
+                    else
+                    {
+                        await ambientTransaction!.ReleaseSavepointAsync(IntakeSavepoint, cancellationToken);
+                    }
+
+                    return (encounter, queue);
                 }
                 catch (DbUpdateException exception) when (IsUniqueViolation(exception))
                 {
-                    await transaction.RollbackAsync(cancellationToken);
-                    DetachPending(encounter, paymentSource);
+                    if (transaction != null)
+                    {
+                        await transaction.RollbackAsync(cancellationToken);
+                    }
+                    else
+                    {
+                        await ambientTransaction!.RollbackToSavepointAsync(IntakeSavepoint, cancellationToken);
+                    }
+
+                    DetachPending(encounter, paymentSource, queue);
 
                     // Dua permintaan dengan kunci yang sama tiba bersamaan: keduanya membaca
                     // "belum ada", lalu unique index memutuskan siapa yang menang. Yang kalah
@@ -398,11 +803,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
                         if (winner != null)
                         {
-                            return winner;
+                            return (winner, await FindQueueAsync(winner.Id, cancellationToken));
                         }
                     }
 
-                    // Sisanya adalah tabrakan nomor kunjungan; nomor berikutnya dialokasikan ulang.
+                    // Sisanya adalah tabrakan nomor kunjungan atau nomor antrean; keduanya
+                    // dialokasikan ulang pada percobaan berikutnya.
                     if (attempt >= AllocationAttempts)
                     {
                         throw new EncounterIntakeConflictException(
@@ -414,21 +820,123 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         private void DetachPending(
             RegPatientEncounter encounter,
-            RegPatientEncounterGuarantor paymentSource)
+            RegPatientEncounterGuarantor paymentSource,
+            RegQueue? queue)
         {
             encounter.PaymentSource = null;
+
+            if (queue != null)
+            {
+                _dbContext.Entry(queue).State = EntityState.Detached;
+            }
+
             _dbContext.Entry(paymentSource).State = EntityState.Detached;
             _dbContext.Entry(encounter).State = EntityState.Detached;
+        }
+
+        /// <summary>
+        /// Antrean kunjungan berklinik. Klasifikasi prioritas dan nomornya memakai service yang
+        /// sama dengan jalur loket (RJ-DOC-DEC-055/056), sehingga nomor tidak bercabang dan
+        /// nurse station memperlakukan antrean ini seperti antrean poli lainnya.
+        /// </summary>
+        private async Task<RegQueue> BuildQueueAsync(
+            RegPatientEncounter encounter,
+            IntakeVisitProfile visit,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            var classification = await _queueClassificationService.ClassifyAsync(
+                encounter.PatientId,
+                encounter.EncounterDate,
+                cancellationToken);
+
+            var allocation = await _queueNumberAllocator.AllocateAsync(
+                encounter.EncounterDate,
+                encounter.ServiceUnitId,
+                encounter.ClinicId,
+                classification.IsPriorityQueue,
+                cancellationToken);
+
+            return new RegQueue
+            {
+                Id = Guid.NewGuid(),
+                EncounterId = encounter.Id,
+                PatientId = encounter.PatientId,
+                ServiceUnitId = encounter.ServiceUnitId,
+                ClinicId = encounter.ClinicId,
+                DoctorId = encounter.DoctorId,
+                QueueDate = encounter.EncounterDate,
+                QueueNumber = allocation.QueueNumber,
+                QueueCode = GenerateQueueCode(visit.Clinic, allocation.QueueNumber),
+                QueueScopeKey = allocation.QueueScopeKey,
+                QueueStatus = visit.IsScreeningRequired
+                    ? QueueStatus.WaitingForNurse
+                    : QueueStatus.WaitingForDoctor,
+                IsPriorityQueue = classification.IsPriorityQueue,
+                QueuePriorityLevelSnapshot = classification.PriorityLevel,
+                QueueAudienceSnapshot = classification.QueueAudience,
+                PublicDisplayModeSnapshot = classification.PublicDisplayMode,
+                PatientMembershipIdSnapshot = classification.PatientMembershipId,
+                MembershipTierIdSnapshot = classification.MembershipTierId,
+                MembershipTierCodeSnapshot = classification.MembershipTierCode,
+                PriorityReasonCode = classification.PriorityReasonCode,
+                IsFromKiosk = encounter.IsFromKiosk,
+                IsWalkIn = encounter.IsWalkIn,
+                IsAppointment = encounter.IsAppointment,
+                IsScreeningRequired = visit.IsScreeningRequired,
+                IsDoctorRequired = visit.IsDoctorRequired,
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId,
+                IsDelete = false,
+                IsCancel = false
+            };
+        }
+
+        private async Task NotifyQueueCreatedAsync(RegQueue? queue, Guid actorUserId)
+        {
+            if (queue == null || _queueRealtimeService == null)
+            {
+                return;
+            }
+
+            // Sama seperti jalur loket: kunjungan dan antrean sudah commit, sehingga kegagalan
+            // notifikasi realtime tidak boleh menggagalkan pendaftaran.
+            try
+            {
+                await _queueRealtimeService.NotifyQueueCreatedAsync(
+                    queue,
+                    actorUserId,
+                    "Antrean pasien baru dibuat.");
+            }
+            catch (Exception exception)
+            {
+                try
+                {
+                    await _loggerService.ErrorAsync(
+                        LogCategory,
+                        "EncounterIntake.QueueNotification",
+                        $"Kunjungan dan antrean tersimpan, tetapi notifikasi realtime gagal. EncounterId={queue.EncounterId}; QueueId={queue.Id}.",
+                        exception);
+                }
+                catch
+                {
+                    // Pencatatan kegagalan notifikasi tidak boleh menggagalkan pendaftaran.
+                }
+            }
         }
 
         private async Task<RegPatientEncounterGuarantor> BuildPaymentSourceAsync(
             RegPatientEncounter encounter,
             EncounterIntakeRequest request,
-            MstPatientInsurance? patientInsurance,
+            PaymentReference paymentReference,
             Guid actorUserId,
             DateTime now,
             CancellationToken cancellationToken)
         {
+            var patientInsurance = paymentReference.Insurance;
+
             var paymentSource = new RegPatientEncounterGuarantor
             {
                 Id = Guid.NewGuid(),
@@ -445,6 +953,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 IsDelete = false,
                 IsCancel = false
             };
+
+            if (paymentReference.CompanyCard is { } card)
+            {
+                // Snapshot yang sama dengan penggantian sumber bayar loket (EncounterPaymentSourceService),
+                // supaya Billing membaca penjamin perusahaan MCU persis seperti penjamin loket.
+                var guarantor = card.CompanyGuarantor!;
+                paymentSource.PatientCompanyGuarantorId = card.Id;
+                paymentSource.CompanyGuarantorId = card.CompanyGuarantorId;
+                paymentSource.PaymentSourceNameSnapshot = guarantor.CompanyGuarantorName;
+                paymentSource.CompanyGuarantorCodeSnapshot = guarantor.CompanyGuarantorCode;
+                paymentSource.EmployeeNumberSnapshot = card.EmployeeNumber;
+                paymentSource.EmployeeNameSnapshot = card.EmployeeName;
+                paymentSource.EmployeeIdSnapshot = card.EmployeeId;
+                paymentSource.FamilyMemberIdSnapshot = card.FamilyMemberId;
+                paymentSource.BenefitRelationshipSnapshot = card.BenefitRelationship;
+                paymentSource.BenefitPlanCodeSnapshot = card.BenefitPlanCode;
+                paymentSource.PlanNameSnapshot = card.BenefitPlanName;
+                paymentSource.ClassNameSnapshot = card.ClassName;
+                paymentSource.EffectiveStartDateSnapshot = card.EffectiveStartDate;
+                paymentSource.EffectiveEndDateSnapshot = card.EffectiveEndDate;
+                paymentSource.IsEligible = card.IsEligible;
+                paymentSource.IsPolicyActive = true;
+
+                return paymentSource;
+            }
 
             if (patientInsurance == null)
             {
@@ -490,6 +1023,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 .FirstOrDefaultAsync(
                     x => x.RegistrationIdempotencyKey == idempotencyKey && !x.IsDelete,
                     cancellationToken);
+        }
+
+        private async Task<RegQueue?> FindQueueAsync(
+            Guid encounterId,
+            CancellationToken cancellationToken)
+        {
+            return await _dbContext.Set<RegQueue>()
+                .AsNoTracking()
+                .Where(x => x.EncounterId == encounterId && !x.IsDelete)
+                .OrderBy(x => x.CreateDateTime)
+                .FirstOrDefaultAsync(cancellationToken);
         }
 
         private async Task<Guid?> ResolveOutpatientPatientClassIdAsync(
@@ -544,7 +1088,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return prefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
         }
 
-        private static EncounterIntakeResult MapResult(RegPatientEncounter encounter, bool isReplay) =>
+        // Kode antrean disamakan persis dengan PatientEncounterController.GenerateQueueCode:
+        // huruf pertama nama pendek klinik (atau nama klinik tanpa kata "Poli"/"Klinik") diikuti
+        // tiga digit nomor, sehingga layar antrean menampilkan kedua jalur dengan bentuk sama.
+        private static string GenerateQueueCode(MstClinic? clinic, int queueNumber) =>
+            $"{BuildQueueCodePrefix(clinic)}{queueNumber:D3}";
+
+        private static string BuildQueueCodePrefix(MstClinic? clinic)
+        {
+            var source = !string.IsNullOrWhiteSpace(clinic?.ShortName)
+                ? clinic.ShortName.Trim()
+                : BuildClinicNamePrefixSource(clinic?.ClinicName);
+
+            foreach (var character in source.Trim().ToUpperInvariant())
+            {
+                if (character >= 'A' && character <= 'Z')
+                {
+                    return character.ToString();
+                }
+            }
+
+            return "Q";
+        }
+
+        private static string BuildClinicNamePrefixSource(string? clinicName)
+        {
+            if (string.IsNullOrWhiteSpace(clinicName))
+            {
+                return string.Empty;
+            }
+
+            var ignoredWords = new[] { "POLI", "POLIKLINIK", "KLINIK", "CLINIC" };
+
+            return clinicName
+                .Trim()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .FirstOrDefault(token => !ignoredWords.Contains(token.ToUpperInvariant()))
+                ?? clinicName.Trim();
+        }
+
+        private static EncounterIntakeResult MapResult(
+            RegPatientEncounter encounter,
+            RegQueue? queue,
+            bool isReplay) =>
             new()
             {
                 EncounterId = encounter.Id,
@@ -552,6 +1138,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 PatientId = encounter.PatientId,
                 EncounterDate = encounter.EncounterDate,
                 EncounterStatus = encounter.EncounterStatus,
+                QueueId = queue?.Id,
+                QueueCode = queue?.QueueCode,
                 IsReplay = isReplay
             };
 
@@ -582,6 +1170,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                         user?.FindFirstValue("user_id");
 
             return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
+        }
+
+        /// <summary>Bentuk kunjungan yang sudah divalidasi: jenis, klinik, dan kebutuhan antreannya.</summary>
+        private sealed record IntakeVisitProfile(
+            EncounterType EncounterType,
+            MstClinic? Clinic,
+            Guid? DoctorId,
+            bool IsQueueRequired,
+            bool IsScreeningRequired,
+            bool IsDoctorRequired)
+        {
+            public static IntakeVisitProfile Supporting { get; } =
+                new(EncounterType.Outpatient, null, null, false, false, false);
         }
     }
 

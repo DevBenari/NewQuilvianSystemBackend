@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `f17cb984` (branch `yoga`) + working tree `BE-LAB-90` |
 | Tanggal | 2026-10-07 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — harness InMemory **47/47** (17 uji baru + 30 non-regresi `BE-LAB-90`) dan HTTP baca-saja **10/10** ke DB dev. **Batas:** penolakan `403` endpoint baru hanya dibuktikan lewat metadata atribut dan registrasi — belum diamati di runtime karena belum ada akun non-pemegang `Confirm` yang sandinya tersedia di sesi ini |
+| Status | ✅ **`SELESAI`** — 2026-10-21. Semula ⚠ (`403` endpoint baru belum diamati di runtime). `403` terbukti dengan akun asli tanpa izin `Confirm` (bagian 8) |
 
 ### Backend Governance Preflight
 
@@ -126,7 +126,7 @@ Angka diff di bawah hanya bagian `BE-LAB-91`; berkas yang sama juga memuat perub
 | — Non-regresi `BE-LAB-90` | 30 uji (`AC-283`..`AC-286`, `AC-288` metadata, `hold`, validator) | `PASS` | Validator 1625 aksi |
 | HTTP baca-saja — backend lokal Development + DB dev, superadmin | **10/10**: `200` berhalaman (16 dokter); empat ruas; pencarian `ILike` asli: "arif" (huruf kecil) 1 hasil, kode dokter, "PATOLO" (huruf besar) 4 hasil; jepit 500/0 dan `onlyActive=false` diabaikan (total sama); pencarian 150 karakter → `200`; rincian `LAB-RSMMC-000003` lima ruas terisi; `LAB-RSMMC-000002` lima ruas `null` | `PASS` | Pemeriksaan "urut nama" pada skrip HTTP hanya pengamatan (kondisinya selalu benar) — bukti urutan dari harness |
 | Pemeriksaan DB baca-saja | Dokter aktif tidak terhapus = **16** (sama dengan `totalData`); aksi `LabOrder` = 7, nol baru; versi `000002` (v4) dan `000003` (v3) tidak berubah | `PASS` | Npgsql `default_transaction_read_only=on` |
-| `403` endpoint baru di runtime | — | `NOT RUN` | Superadmin melewati izin; akun analis memegang `Confirm`; tidak ada sandi akun non-pemegang di sesi ini. Mekanisme `403` atribut yang sama terbukti di runtime pada `BE-LAB-90` (`cancel`, `pathology-context`) |
+| `403` endpoint baru di runtime | `403` (dr. Bima, Bayu); pemegang `200` | `PASS` (2026-10-21, bagian 8) | Semula `NOT RUN`: superadmin melewati izin; akun analis memegang `Confirm`; tidak ada sandi akun non-pemegang di sesi itu. Mekanisme `403` atribut yang sama terbukti di runtime pada `BE-LAB-90` (`cancel`, `pathology-context`) |
 
 Satu kegagalan harness pada putaran pertama adalah **harapan uji yang salah**, bukan kode: dokter semaian lama
 ber-`DoctorCode` kosong (bawaan `string.Empty`), bukan `"X"`. Harapan dibetulkan; urutan yang dihasilkan kode tidak
@@ -163,3 +163,13 @@ Uji manual: `NOT APPLICABLE` — task backend; layar dikerjakan `FE-LAB-51`.
 | Interupsi | `NONE` |
 | Status Git | Backend source: ` M` tiga berkas (`LabOrderController.cs`, `LabOrderService.cs`, `LabOrderDtos.cs`) — gabungan `BE-LAB-90` dan `BE-LAB-91`, belum di-commit |
 | Langkah berikutnya | `FE-LAB-51` — pemilih dokter memakai endpoint ini; verifikasinya membutuhkan pesanan *Diterima* belum dikonfirmasi (izin tulis per sesi). `403` runtime dapat ditutup bila tersedia akun non-pemegang `Confirm` |
+
+---
+
+## 8. Penutupan batas verifikasi — 2026-10-21
+
+| Hal | Isi |
+| --- | --- |
+| Akun asli | Bayu (Radiografer — **nol** izin Lab, termasuk tanpa `LabOrder : Read`), dr. Bima (Kepala Instalasi — tanpa `LabOrder : Confirm`, tanpa `LabExamination : Update`), Gilang (Analis — pemegang). Sandi diberikan pemilik modul, tidak dicatat. Kontrol sesi Bayu: `GET /auth/permissions` `200` |
+| `GET /lab-orders/examiner-doctor-options` | dr. Bima (tanpa `LabOrder : Confirm`) → **`403`**; Bayu (nol izin Lab) → **`403`**; Gilang (pemegang `Confirm`) → `200` |
+| Pemakaian layar | Konfirmasi sungguhan `LAB-RSMMC-000028` oleh Gilang memakai daftar dokter dari endpoint ini dan jejak lima ruas konfirmasi tampil tanpa muat ulang (`FE-LAB-50`/`51` bagian 9) |

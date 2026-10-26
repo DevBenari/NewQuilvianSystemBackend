@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `19` — bagian 31, pencatatan susulan kolom tabel v1 dan halaman hasil v1 (`r47`, `r48`), 2026-10-14 — `LAB-REQ-024`, `LAB-REQ-025`. Sebelumnya `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `20` — bagian 32, 2026-10-20: `EPIC-LAB-20` Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`), gelombang `MVP-15a`..`e`; kontrak **`approved` 2026-10-20** beserta keenam butir 32.10. Sebelumnya `19` — bagian 31, pencatatan susulan kolom tabel v1 dan halaman hasil v1 (`r47`, `r48`), 2026-10-14 — `LAB-REQ-024`, `LAB-REQ-025`. Sebelumnya `18` — bagian 30.1, rencana ulang sesudah wadah dibatalkan (putaran 29), 2026-10-09 — kontrak usulan `LAB-REQ-023`. Sebelumnya `17` — bagian 30, CITO dari pemesanan sampai ke pemeriksaan (putaran 28), 2026-10-09 — kontrak usulan `LAB-REQ-022`. Sebelumnya `16` — bagian 29, `EPIC-LAB-19` Beranda Lab mengikuti susunan v1 (BR-140), 2026-10-08 — kontrak usulan `LAB-REQ-021`. Sebelumnya `15` — bagian 28, lingkup kunci Lunas (putaran 27), 2026-10-08 — kontrak usulan `LAB-REQ-020`. Sebelumnya `14` — bagian 27, alur Lab dari kiosk sampai hasil mengikuti FE v1 (BR-141), 2026-10-08 — kontrak usulan `LAB-REQ-019`. Sebelumnya `13` — bagian 26, `EPIC-LAB-18` diperluas (dokter pemeriksa bagi pengonfirmasi, jejak konfirmasi), 2026-10-07 — kontrak `r41`/revision 14 masih usulan `LAB-REQ-017`. Sebelumnya `12` — bagian 25, `EPIC-LAB-18` urutan kerja v1 di daftar pasien lab, 2026-10-07 — kontrak `r40`/`r8`/`r17`/revision 13 masih usulan `LAB-REQ-016`. Sebelumnya `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1863,3 +1863,126 @@ task; tercatat di `backend-roadmap.md` dan `frontend-roadmap.md` bagian 0.3.
 **Definition of Done tambahan:** `LAB-REQ-024` disetujui — **ya** (2026-10-09); `LAB-REQ-025` disetujui — **ya** (2026-10-14,
 susulan); uji unit `lab-v1-parity-rules` — **ya** (20/20); verifikasi peramban dengan akun asli — **ya** (54/54, 2026-10-14);
 Simpan sungguhan pada Penerimaan Sampling v1 — **belum** (uji baca-saja).
+
+## 32. Amandemen 2026-10-20 — `EPIC-LAB-20` Laporan Pembatalan dan Statistik Pesanan (`S16b-1`, `S16b-2`)
+
+Menurunkan `02-backend-architecture.md` rev 22 bagian 32, `03-frontend-architecture.md` rev 18 amandemen 2026-10-20,
+`erd/data-dictionary.md` rev 13 bagian 23, dan usulan kontrak `LAB-API-v1` `r49`, `LAB-PERM-v1` revision 17,
+`LAB-VAL-v1` `r21`, `LAB-STATE-v1` `r11` — **keempatnya `approved` 2026-10-20** oleh Yoga Aji Pratama beserta keenam butir 32.10. `LAB-INT-v1` `r6` berlaku apa adanya: nol integrasi
+(A8.10). Arsitektur domain `LAB-DA-001` rev 11 bagian A8; requirement `LAB-RCG-001` rev 13 bagian 0H; decisions rev 115.
+
+**Seluruh yang disebut di bawah sudah tercatat pada dokumen itu. Nol konsep tersimpan, nol tabel, nol kolom; satu index
+(usulan).**
+
+### 32.1 Batas epic
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Pemegang izin `Read` laporan itu membuka **Laporan Pembatalan** atau **Statistik Pesanan** dan memilih periode |
+| **Titik akhir** | Tabel terbaca di layar; bagi pemegang `Export`, terunduh sebagai `.xlsx` atau tercetak lewat tombol Cetak — **setiap keluaran tercatat**. Ditambah: batal pemeriksaan dan batal wadah menolak alasan kosong. **Berhenti di situ** — nol kolom uang, penjamin, fee, kategori, atau kelompok penyakit |
+
+**Yang dianggap selesai:** kepala instalasi dapat menjawab *"siapa membatalkan apa, kapan, dan mengapa"* untuk periode
+apa pun sampai 366 hari, dengan pembatalan lama tanpa alasan terbaca jujur sebagai *Alasan tidak dicatat*; dan dapat
+melihat beban permintaan per jenis kunjungan, unit, dan disiplin dengan angka yang **sama** dengan Beranda.
+
+### 32.2 Kemampuan `MUST HAVE`
+
+| ID kemampuan asal | Kemampuan | Disposisi |
+|---|---|---|
+| `CAP-P30-06` | Riwayat pembatalan (`LabTransitionHistory`) | **`EXISTING / REUSE`** — ditambah satu index (usulan) |
+| `CAP-P30-01` | Pembatalan order beralasan wajib | **`EXISTING / REUSE`** |
+| `CAP-P30-02`, `CAP-P30-03` | Alasan wajib batal pemeriksaan dan wadah | **`EXTEND`** (status peta: `Repair`) — `VAL-155` |
+| `CAP-P30-07` | Definisi hitung Beranda | **`EXTEND`** — dipindah ke `LabOrderDemandQuery`, dipakai bersama |
+| `CAP-P30-08` | Jenis kunjungan dan unit layanan | **`EXISTING / REUSE`** — baca |
+| `CAP-P30-10` | Pola laporan operasional (periode, izin, layar) | **`EXISTING / REUSE`** |
+| `CAP-P30-11` | `.xlsx` lewat `ClosedXML` | **`EXTEND`** — penulis `.xlsx` Lab baru, pustaka sudah ada |
+| `CAP-P30-12` | Cetak lewat `react-to-print` | **`EXTEND`** — ditambah pencatat cetak server |
+| — | Laporan Pembatalan, Statistik Pesanan | **`MISSING / NEW`** — pandangan baca, nol tabel |
+
+**Yang ditunda, beserta penggantinya selama MVP:**
+
+| Ditunda | Sebab | Pengganti selama MVP |
+|---|---|---|
+| Delapan laporan `S16b-3` | Kesebelas butir belum diserahkan (`LAB-DEC-181`) | Laporan di luar sistem |
+| Rincian per kategori | `LAB-COORD-021` | Rincian per disiplin dan jenis pemeriksaan |
+| Asal *via kiosk* dan kamar perawatan | `LAB-OPEN-055` | Unit layanan *Laboratorium Klinik* menampung pasien datang langsung/kiosk |
+| Kolom *Tagihan* dan rujukan ke lab luar | `LAB-OPEN-054` | — |
+| Aksi batal per pemeriksaan di layar | `LAB-DEC-247` — `VAL-13` | Batalkan order |
+
+### 32.3 Functional requirement
+
+| ID | Kebutuhan | Dapat diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-20.1` | Laporan Pembatalan: satu baris per peristiwa `Order.Cancel`/`Examination.Cancel` menurut **waktu pembatalan WIB**; wadah bukan baris | `AC-329`, `AC-331`; `T-S16B-05`, `T-S16B-07` | `MISSING / NEW` |
+| `FR-20.2` | Dua belas kolom BR-151, termasuk No. RM, nama pasien, *Sudah layak tagih*, pembatal, unit; *Alasan tidak dicatat* bagi alasan kosong | `AC-328`; `T-S16B-04` | `MISSING / NEW` |
+| `FR-20.3` | Total per jenis atas seluruh hasil penyaring, sama di setiap halaman dan dengan berkas | `AC-332`; `T-S16B-08` | `MISSING / NEW` |
+| `FR-20.4` | Detail baris di bawah izin laporan: pesanan, pemeriksaan dan wadah, riwayat transisi | `r49` 44.2; `T-S16B-05` | `MISSING / NEW` — **usulan** 32.10 no. 4 |
+| `FR-20.5` | Statistik Pesanan: jenis kunjungan → unit → disiplin, *Pesanan* dan *Pemeriksaan*, *Sub Total*, *Total*, *Belum terklasifikasi* | `AC-333`..`AC-335`; `T-S16B-09`..`11` | `MISSING / NEW` |
+| `FR-20.6` | Definisi hitung **satu sumber** dengan Beranda; batal, `Draft`, gugur tidak dihitung; Beranda tidak berubah | `AC-334`, `AC-336`; `T-S16B-10`, `T-S16B-13` | `EXTEND` |
+| `FR-20.7` | Izin per laporan, lihat dan keluaran terpisah; hak baca daftar Lab dan `LabOperationalReport` tidak membukanya | `AC-330`; `T-S16B-06`, `T-S16B-14` | `MISSING / NEW` |
+| `FR-20.8` | Unduhan `.xlsx` dari respons yang sama dengan layar; tercatat tanpa identitas pasien dan alasan | `AC-332`; `T-S16B-08` | `EXTEND` |
+| `FR-20.9` | Cetak hanya sesudah `POST /print-log` berhasil; fail-closed; tercatat | `AC-337`; `T-S16B-12` | `EXTEND` |
+| `FR-20.10` | Batal pemeriksaan dan wadah menolak alasan kosong `422`, sesudah penjaga keadaan | `AC-326`, `AC-327`; `T-S16B-01`..`03` | `EXTEND` |
+| `FR-20.11` | Membuka daftar Laporan Pembatalan dicatat `LabCancellationReport.Read` — pelaku, periode, penyaring; tanpa identitas pasien | `T-S16B-15` | `MISSING / NEW` — **disetujui 2026-10-20** (32.10 no. 1, menutup `ARCH-GAP-LAB-14`) |
+| `FR-20.12` | Dua layar dan satu halaman detail; menu di grup *Laporan* hanya bagi pemegang `Read` | `03-frontend-architecture.md` amandemen 2026-10-20 | `MISSING / NEW` — letak menu **usulan** 32.10 no. 6 |
+
+### 32.4 Skenario UAT
+
+Seluruh data samaran. Periode: **1–31 Oktober 2026**.
+
+**Jalur berhasil — Laporan Pembatalan.** Order LAB-000031 (lima pemeriksaan) dibatalkan *pasien pulang APS* pada
+3 Oktober; Kolesterol pada LAB-000052 dibatalkan sendiri lewat integrasi *pasien puasa belum cukup* pada 31 Oktober.
+Laporan menulis **dua** baris, Kolesterol teratas; total *Order 1 · Pemeriksaan 1 · Seluruhnya 2*. Klik LAB-000031 →
+detail memuat kelima pemeriksaan dan wadahnya.
+
+**Jalur berhasil — alasan lama.** Pembatalan wadah dan pemeriksaan bulan September yang tersimpan tanpa alasan tampil
+*Alasan tidak dicatat* pada laporan September dan tetap terhitung.
+
+**Jalur berhasil — Statistik Pesanan.** Oktober: Kamar Bersalin 30 pesanan · 84 pemeriksaan Patologi Klinik; Poli
+Penyakit Dalam 42 · 156. Satu Kalium gugur lalu diambil ulang terhitung **satu** pemeriksaan. Angka Oktober sama dengan
+Beranda.
+
+**Jalur berhasil — unduh dan cetak.** dr. Bima mengunduh Statistik Pesanan Oktober (`.xlsx`) lalu menekan Cetak →
+pratinjau terbuka; dua baris log tercatat tanpa identitas pasien.
+
+**Jalur gagal — izin.** Gilang (Analis, `LabExamination : Read`) membuka alamat Laporan Pembatalan langsung → `403`; menu
+tidak tampil. Koordinator yang diberi `Read` saja tidak melihat Unduh/Cetak; `POST /print-log` dipaksa → `403`.
+
+**Jalur gagal — alasan kosong.** Integrasi memanggil batal Kolesterol tanpa alasan → `422`; Kolesterol tetap aktif; nol
+riwayat. Batal Kalium yang sudah dirilis tanpa alasan → `422` pesan rilis.
+
+**Jalur gagal — cetak tidak tercatat.** Jaringan terputus saat menekan Cetak → *"Cetak belum dapat dicatat. Coba lagi."*;
+pratinjau tidak terbuka.
+
+**Jalur gagal — periode.** Periode 1 Januari–31 Desember 2026 ditambah satu hari → `422` *"Periode laporan paling panjang
+366 hari…"*.
+
+### 32.5 Definition of Done
+
+| Butir | Bukti |
+|---|---|
+| Kontrak `r49`, `LAB-PERM-v1` rev 17, `LAB-VAL-v1` `r21`, `LAB-STATE-v1` `r11` `approved`, beserta keenam butir 32.10 | Tabel status kontrak dan `approved_by` |
+| `T-S16B-01`..`15` lulus | Laporan task dengan keluaran |
+| Beranda identik sebelum dan sesudah pemindahan definisi hitung | `T-S16B-13` |
+| Aplikasi menyala; validator izin menerima dua resource baru | `T-S16B-14` |
+| Log unduhan dan cetak tanpa identitas pasien dan alasan, terbaca di `app.log` | Kutipan log pada laporan task |
+| Admin telah memberi izin kepada jabatan pembaca | Kebijakan pada `SysAccessPolicies` |
+| Data uji Rawat Inap/IGD/Kamar Bersalin tersedia — dengan izin tulis tersendiri | `T-S16B-16` |
+
+### 32.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-15a` | Pindah definisi hitung Beranda ke `LabOrderDemandQuery` (nol perubahan perilaku) | Kontrak `approved` |
+| `MVP-15b` | `VAL-155` pada batal pemeriksaan dan wadah | `MVP-15a` tidak wajib; boleh sejajar |
+| `MVP-15c` | Statistik Pesanan BE + FE (`FR-20.5`..`20.9`, `20.12`) | `MVP-15a` |
+| `MVP-15d` | Laporan Pembatalan BE + FE (`FR-20.1`..`20.4`, `20.7`..`20.9`, `20.11`, `20.12`), index (disetujui) | `MVP-15b` dianjurkan lebih dulu supaya pembatalan baru selalu beralasan |
+| `MVP-15e` | Rilis: admin memberi izin; data uji | `MVP-15c`, `MVP-15d` |
+| `POST-MVP` | `S16b-3`; rincian kategori | Keputusan pemilik |
+
+### 32.7 Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Memblokir | Pemilik |
+|---|---|---|
+| ~~Keenam butir `02-backend-architecture.md` 32.10~~ | ✅ **Disetujui 2026-10-20** — tidak lagi memblokir | Yoga Aji Pratama |
+| Izin tulis data uji devYoga | Tidak bagi desain; ya bagi `T-S16B-16` | Yoga Aji Pratama |

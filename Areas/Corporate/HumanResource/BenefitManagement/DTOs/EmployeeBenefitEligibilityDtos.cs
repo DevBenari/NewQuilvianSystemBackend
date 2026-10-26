@@ -6,6 +6,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
 
     public sealed class BenefitEligibilityRequest
     {
+        /// <summary>
+        /// Identitas pemilik benefit (utama). Bila kosong, EmployeeId lama diterjemahkan ke WorkforceProfileId.
+        /// Bila keduanya diisi, keduanya harus menunjuk orang yang sama.
+        /// </summary>
+        public Guid? WorkforceProfileId { get; set; }
+
+        /// <summary>Kompatibilitas kontrak lama (MstEmployee.Id). Boleh kosong untuk dokter.</summary>
         public Guid EmployeeId { get; set; }
 
         /// <summary>Kosong bila pasiennya pegawai sendiri.</summary>
@@ -22,7 +29,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
         public string? Message { get; set; }
 
         // Terisi hanya bila ReasonCode = OK. Tanpa saldo (R.2.3).
-        public Guid EmployeeId { get; set; }
+
+        /// <summary>Identitas pemilik benefit yang sah (utama). Selalu terisi bila ReasonCode = OK.</summary>
+        public Guid? WorkforceProfileId { get; set; }
+
+        /// <summary>EMPLOYEE atau DOCTOR.</summary>
+        public string? OwnerType { get; set; }
+
+        /// <summary>Identitas peran; kosong bagi dokter tanpa data karyawan. Tidak pernah berisi DoctorId.</summary>
+        public Guid? EmployeeId { get; set; }
+
+        public Guid? DoctorId { get; set; }
+
+        /// <summary>NIP atau nomor dokter.</summary>
+        public string? StaffNumber { get; set; }
+        public string? StaffName { get; set; }
 
         /// <summary>
         /// NIP dan nama pegawai dari HR. Hanya untuk pemanggil di dalam proses (label kartu internal,
@@ -55,6 +76,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
     public sealed class EmployeeSearchItem
     {
         public Guid EmployeeId { get; set; }
+
+        /// <summary>Identitas pemilik benefit (tambahan; EmployeeId tetap untuk kompatibilitas).</summary>
+        public Guid WorkforceProfileId { get; set; }
         public string EmployeeNumber { get; set; } = string.Empty;
 
         /// <summary>NIK tersamar: empat digit pertama dan empat terakhir, sisanya "•".</summary>

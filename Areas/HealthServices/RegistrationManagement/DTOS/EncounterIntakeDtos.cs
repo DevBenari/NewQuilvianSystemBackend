@@ -23,6 +23,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public Guid ServiceUnitId { get; set; }
 
         /// <summary>
+        /// Jenis kunjungan. Bawaan <c>Outpatient</c> adalah kunjungan penunjang tanpa antrean —
+        /// perilaku pemanggil lama (Laboratorium, Radiologi) dan tidak berubah.
+        ///
+        /// <c>MedicalCheckup</c> (<c>INT-MCU-02</c>, <c>BE-MCU-001</c>) membuat kunjungan di klinik
+        /// MCU; antrean, skrining perawat, dan kebutuhan dokternya mengikuti master klinik, sama
+        /// seperti jalur loket. Jenis lain ditolak.
+        /// </summary>
+        public EncounterType EncounterType { get; set; } = EncounterType.Outpatient;
+
+        /// <summary>
+        /// Wajib untuk <c>MedicalCheckup</c>: klinik bertipe Medical Check-Up pada
+        /// <c>ServiceUnitId</c> yang sama. Tidak berlaku untuk <c>Outpatient</c>.
+        /// </summary>
+        public Guid? ClinicId { get; set; }
+
+        /// <summary>
+        /// Dokter MCU pemeriksa. Wajib bila klinik MCU mewajibkan dokter, karena nurse station
+        /// menolak menyelesaikan skrining antrean yang belum punya dokter tujuan. Tidak berlaku
+        /// untuk <c>Outpatient</c>.
+        /// </summary>
+        public Guid? DoctorId { get; set; }
+
+        /// <summary>
         /// Kunci idempotensi yang ditetapkan modul pemanggil, satu per percobaan pendaftaran.
         ///
         /// Boleh kosong, dan bila kosong tidak ada perlindungan pengiriman ulang sama sekali —
@@ -45,6 +68,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// kartu milik <c>PatientId</c> yang sama.
         /// </summary>
         public Guid? PatientInsuranceId { get; set; }
+
+        /// <summary>
+        /// Kartu penjamin perusahaan milik <c>PatientId</c> (<c>MstPatientCompanyGuarantor</c>). Wajib
+        /// ketika <c>PaymentType</c> bernilai <c>CompanyGuarantor</c>, yang di jalur ini hanya diterima
+        /// untuk kunjungan <c>MedicalCheckup</c> (<c>INT-MCU-02</c>, <c>BE-MCU-013</c>).
+        /// </summary>
+        public Guid? PatientCompanyGuarantorId { get; set; }
 
         public bool IsReferral { get; set; } = false;
 
@@ -90,6 +120,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime EncounterDate { get; set; }
 
         public EncounterStatus EncounterStatus { get; set; }
+
+        /// <summary>
+        /// Antrean yang dibuat bersama kunjungan. Kosong untuk kunjungan penunjang, dan untuk
+        /// klinik yang tidak mewajibkan antrean.
+        /// </summary>
+        public Guid? QueueId { get; set; }
+
+        public string? QueueCode { get; set; }
 
         /// <summary>
         /// Benar bila kunjungan ini <b>sudah ada sebelumnya</b> dan dikenali lewat kunci

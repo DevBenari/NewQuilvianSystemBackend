@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
@@ -1537,6 +1538,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (inpEpisodeId.HasValue)
                 return CreateGuard.Ok();
+
+            var emgVisitStatus = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Where(x => x.EncounterId == encounterId && !x.IsDelete)
+                .OrderByDescending(x => x.CreateDateTime)
+                .Select(x => (EmergencyVisitStatus?)x.VisitStatus)
+                .FirstOrDefaultAsync();
+
+            if (emgVisitStatus.HasValue)
+            {
+                if (emgVisitStatus.Value is EmergencyVisitStatus.Completed or EmergencyVisitStatus.Cancelled)
+                {
+                    return CreateGuard.Fail("Kunjungan IGD ini sudah berakhir, sehingga catatan dokter baru tidak dapat dibuat.");
+                }
+
+                var actorUserId = GetCurrentUserId();
+
+                var hasOpenDraft = await _dbContext.Set<TrxDoctorConsultation>()
+                    .AsNoTracking()
+                    .AnyAsync(x =>
+                        x.EncounterId == encounterId &&
+                        (x.ConsultationStatus == DoctorConsultationStatus.Draft || x.ConsultationStatus == DoctorConsultationStatus.InProgress) &&
+                        !x.IsDelete &&
+                        (x.StartedByUserId.HasValue && x.StartedByUserId.Value != Guid.Empty
+                            ? x.StartedByUserId.Value == actorUserId
+                            : x.CreateBy == actorUserId));
+
+                if (hasOpenDraft)
+                {
+                    return CreateGuard.Fail("Masih ada draf catatan dokter yang belum diselesaikan untuk kunjungan IGD ini.");
+                }
+
+                return CreateGuard.Ok();
+            }
 
             var consultationExists = await _dbContext.Set<TrxDoctorConsultation>()
                 .AsNoTracking()

@@ -664,3 +664,81 @@ lewat Jalur Lain.
 | `JoinNurseStationCluster`, `JoinAccessibleNurseStationClusters`, `JoinDoctor*` | Petugas | **Menolak** akun display | Diperbarui (tersedia) |
 | Event `QueueDisplayChanged` | Ke group display | `QueueDisplayRealtimeEventResponse`: `eventType`, `queueId`, `serviceUnitId`, `clinicId`, `queueDate`, `queueNumber`, `queueCode`, `queueStatus`, `queueStatusName`, `occurredAt`. Tidak dikirim untuk antrean prioritas | Tersedia |
 | Event `PriorityReservationChanged` | Ke `priority-reservation-board` | `PriorityReservationRealtimeEventResponse`: `reservationId`, `visitDate`, `status`, `eventCode`, `occurredAt`. Tanpa nama pasien; layar memuat ulang daftar | Tersedia |
+
+## Amendment RP-GT — `RJ-PRI-RESV-001@1.2.0` (`approved`, 21 Okt 2026)
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-PRI-RESV-001@1.2.0` |
+| Status | `approved`. Owner Sukma Giri. `approved_by` Sukma Giri, `approved_at` 2026-10-21 (`RJ-PRI-DEC-039`) |
+| Riwayat versi | `1.2.0` — **aditif, kompatibel mundur**: endpoint baru `POST /{id}/reschedule`; field baru `canReschedule` pada detail, `fromVisitDate`/`toVisitDate` pada riwayat, dan `previousVisitDate` pada event realtime; kode riwayat baru `RESCHEDULED` |
+| `input_revision` | Keputusan `RJ-PRI-DEC-034` s.d. `038` (21 Okt 2026); fakta `F-GT-1` s.d. `F-GT-7` (BE `b0285ff1`, FE `037c975b7`) |
+| Dampak kompatibilitas | Klien lama tetap jalan. Field baru dapat diabaikan. Layar daftar yang belum membaca `previousVisitDate` tetap benar, tetapi baris di tanggal lama baru hilang saat muat ulang berkala |
+
+### Health Services / Registration Management / Outpatient Priority Reservation
+
+Base URL: `api/v1/health-services/registration-management/outpatient-priority-reservations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/{id}/reschedule` | Ganti tanggal kunjungan sebelum hari kunjungan. Nomor tetap, status member dinilai ulang, link baru terbit dan link lama mati | `OutpatientPriorityReservation : Create` | `ReschedulePriorityReservationRequest` | `ApiResponse<PriorityReservationIssuedResponse>` | Rencana (belum tersedia) |
+| `GET` | `/{id}` | Detail + riwayat | `OutpatientPriorityReservation : Read` | — | `ApiResponse<PriorityReservationDetailResponse>` (+ `canReschedule`, riwayat + `fromVisitDate?`/`toVisitDate?`) | Diperbarui (rencana) |
+
+**DTO**
+
+| Class | Jenis | Field |
+|---|---|---|
+| `ReschedulePriorityReservationRequest` | Status | `expectedRowVersion` (`Guid`, wajib), `newVisitDate` (`yyyy-MM-dd`, wajib), `reason` (wajib, 10–500 karakter setelah spasi di tepi dibuang) |
+| `PriorityReservationDetailResponse` | Response | **`1.2.0`:** `canReschedule` = status Menunggu Kedatangan **dan** hari ini (WIB) < `visitDate`. Nilai ini tidak memeriksa status member atau tanggal baru; keduanya diperiksa saat simpan |
+| `PriorityReservationHistoryResponse` | Response | **`1.2.0`:** `fromVisitDate?`, `toVisitDate?` (`yyyy-MM-dd`). Hanya terisi pada `eventCode = RESCHEDULED`; `eventName` "Tanggal kunjungan diganti" |
+| `PriorityReservationIssuedResponse` | Response | Tidak berubah bentuknya. Pada ganti tanggal, `reservation.visitDate` sudah tanggal baru, `arrivalLink` adalah link baru (hanya di respons ini), dan `whatsAppMessageText` memakai versi ganti tanggal (`RJ-PRI-FE-005`) |
+
+Contoh request:
+
+```json
+{
+  "expectedRowVersion": "5c1b0f0e-2a8e-4d55-9a54-1f3c2d9e7a10",
+  "newVisitDate": "2026-10-28",
+  "reason": "Pasien ada acara keluarga pada tanggal semula"
+}
+```
+
+Contoh isi `whatsAppMessageText` (kalimat persisnya `DEV_DISCRETION`):
+
+```text
+Tanggal reservasi pasien prioritas Anda sudah diganti.
+Nomor reservasi: RSV-261020-0003
+Tanggal kunjungan baru: Senin, 28 Oktober 2026
+
+Link yang dikirim sebelumnya tidak berlaku lagi. Saat tiba di rumah sakit pada tanggal tersebut, buka link berikut lalu tekan "Saya sudah tiba":
+https://…/priority-arrival/<kode baru>
+
+Petugas kami akan menghampiri Anda di Ruang Tunggu Prioritas.
+```
+
+**Kode status `POST /{id}/reschedule`**
+
+| Kode | Arti bagi pengguna | Aturan |
+|---|---|---|
+| `200` | Tanggal diganti. Kirim link baru ke pasien | — |
+| `400` | Isian kurang atau salah: tanggal baru kosong, sama dengan tanggal lama, sebelum hari ini, terlalu jauh, atau alasan kurang dari 10 karakter | `VAL-RP-03`, `04`, `12`, `23`, `24` |
+| `403` | Pengguna tidak punya hak `Create` pada Reservasi Prioritas | — |
+| `404` | Reservasi tidak ditemukan | — |
+| `409` | Tidak sesuai keadaan: bukan Menunggu Kedatangan, sudah hari kunjungan, pasien bukan member Aktif lagi, tanggal baru sudah terisi reservasi atau kunjungan, data baru saja diubah petugas lain, atau fitur dinonaktifkan | `VAL-RP-05`, `06`, `11`, `14`, `22`, `25` |
+
+Pada semua kode selain `200`, reservasi, snapshot, dan link lama **tidak berubah**.
+
+### Hub realtime `/hubs/queues` (diperbarui `1.2.0`)
+
+| Event | Isi | Status |
+|---|---|---|
+| `PriorityReservationChanged` | `PriorityReservationRealtimeEventResponse` + **`previousVisitDate?`**. Pada `eventCode = RESCHEDULED`, `visitDate` berisi tanggal baru dan `previousVisitDate` berisi tanggal lama. Pada event lain, `previousVisitDate` kosong | Diperbarui (rencana) |
+
+Layar daftar memuat ulang bila `visitDate` **atau** `previousVisitDate` berada di rentang saringannya. Contoh: layar yang
+menyaring 25 Okt menerima event `visitDate = 2026-10-28`, `previousVisitDate = 2026-10-25`, lalu memuat ulang, sehingga
+baris Ibu Sari hilang dari daftar 25 Okt.
+
+### Health Services / Registration Management / Priority Reservation Arrival
+
+Tidak berubah. Kode lama yang sudah diganti oleh ganti tanggal dijawab `404` "Link tidak berlaku…", sama seperti setelah
+kirim ulang (`VAL-RP-07`). Kode baru dijawab `200` `NOT_YET_OPEN` dengan tanggal baru sampai hari kunjungan tiba.

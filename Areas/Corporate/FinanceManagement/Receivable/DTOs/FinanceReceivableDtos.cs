@@ -44,7 +44,15 @@ public sealed class ReceivableResponse
 
     // Employee Benefit enrichment fields (Section 7, Section 11)
     public Guid? BenefitOwnerId { get; set; }
+
+    /// <summary>Identitas canonical pemilik manfaat (karyawan atau dokter tetap); terisi pula untuk baris lama yang dapat diterjemahkan.</summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
+
+    /// <summary>EMPLOYEE atau DOCTOR.</summary>
+    public string? BenefitOwnerType { get; set; }
     public string? BenefitOwnerName { get; set; }
+
+    /// <summary>NIP (karyawan) atau nomor dokter. Nama properti dipertahankan agar layar lama tetap benar.</summary>
     public string? BenefitOwnerEmployeeNumber { get; set; }
     public string? BenefitRelationship { get; set; }
     public Guid? PatientId { get; set; }
@@ -137,6 +145,7 @@ public sealed class ReceivableDetailResponse
     public DateTimeOffset? InvoiceDate { get; set; }
     public string? BenefitOwnerName { get; set; }
     public string? BenefitOwnerEmployeeNumber { get; set; }
+    public string? BenefitOwnerType { get; set; }
     public string? BenefitRelationship { get; set; }
     public Guid? PatientId { get; set; }
     public string? PatientName { get; set; }

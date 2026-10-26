@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -99,6 +99,41 @@ public sealed class BillingSettlementsController : ControllerBase
                 Message = exception.Message,
                 Data = exception.Tender
             });
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(
+                StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingSettlementConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingSettlementValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    [HttpPost("settlements/{settlementId:guid}/tenders/{tenderId:guid}/manual-confirm")]
+    [AccessAction("ManualConfirm", "Manual Confirm Billing Tender", AccessType = AccessTypes.Update, SortOrder = 5)]
+    [AccessPermission("BillingPayment", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<TenderResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ManualConfirmTender(
+        Guid settlementId,
+        Guid tenderId,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] ManualConfirmTenderRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.ManualConfirmTenderAsync(
+                settlementId, tenderId, request, idempotencyKey, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<TenderResponse>.Ok(
+                result, "Tender pembayaran berhasil dikonfirmasi secara manual oleh kasir."));
         }
         catch (KeyNotFoundException exception)
         {

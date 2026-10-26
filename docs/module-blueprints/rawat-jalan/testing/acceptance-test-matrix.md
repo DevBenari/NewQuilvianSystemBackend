@@ -228,3 +228,24 @@ Gerbang setiap task backend: build `-p:UseSharedCompilation=false`, `dotnet ef m
 | `R-RP-28` | Scope butir 2, `RJ-PRI-FE-004` | Cari pasien Gold di Pendaftaran Pasien | E2E | Label tingkat tampil. Pasien Kedaluwarsa tanpa label |
 | `R-RP-29` | `RJ-PRI-DEC-018` | Worklist Nurse Station dan Klinis Dokter untuk antrean prioritas | E2E | Teks "Ruang Tunggu Prioritas" dari konfigurasi |
 | `R-RP-30` | Regresi | Pendaftaran Reguler petugas dan kiosk tanpa reservasi, IGD, dan Laboratorium langsung | Integ | Perilaku sama dengan sebelum perubahan, kecuali nomor Reguler melewati kelipatan 5 |
+
+# Amendment RP-GT — Ganti tanggal reservasi (`RJ-PRI-RESV-001@1.2.0`, `approved`)
+
+Pola yang sama dengan *Amendment RP*: tanpa folder `Tests/`, runtime HTTP ke `https://localhost:7185` terhadap
+`QuilvianNewDevSukma` dengan data samaran, dan keadaan DB dicatat sesudahnya. "Hari ini" dibuat lewat data uji dengan
+tanggal relatif, misalnya `H+1` = besok, karena backend memakai jam sungguhan.
+
+| ID | Requirement | Skenario | Jenis | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `R-RP-31` | AC 23, `RJ-PRI-DEC-034` | Reservasi Menunggu Kedatangan untuk `H+1`, diganti ke `H+4` dengan alasan sah | Integ | 200. `visitDate = H+4`, nomor dan status sama, `rowVersion` baru, respons memuat `arrivalLink` dan teks WA versi ganti tanggal |
+| `R-RP-32` | AC 24 (gagal) | Reservasi untuk hari ini, lalu coba ganti tanggal | Integ | 409 `VAL-RP-22`. Baris tidak berubah |
+| `R-RP-33` | AC 25 (gagal) | Reservasi Dibatalkan, lalu coba ganti tanggal | Integ | 409 `VAL-RP-11` |
+| `R-RP-34` | AC 26 (gagal) | Dari reservasi `H+1`: (a) tanggal kemarin, (b) `H+31`, (c) `H+1` (sama), (d) tanggal yang sudah punya reservasi terbuka pasien itu, (e) tanggal yang sudah punya kunjungan RJ aktif, (f) `newVisitDate` kosong | Integ | 400 `VAL-RP-03`, 400 `VAL-RP-04`, 400 `VAL-RP-23`, 409 `VAL-RP-05`, 409 `VAL-RP-06`, 400 `VAL-RP-24`. Untuk keenamnya, `VisitDate`, hash, snapshot, dan `RowVersion` tetap |
+| `R-RP-35` | AC 27 (gagal), `RJ-PRI-DEC-035` | Membership pasien dibuat Kedaluwarsa (data uji), lalu ganti tanggal | Integ | 409 `VAL-RP-25` dengan tanggal lama di pesan. Link lama tetap `200 NOT_YET_OPEN` |
+| `R-RP-36` | AC 28 | Snapshot reservasi diubah ke nilai lama (data uji, misalnya tingkat lain), lalu ganti tanggal | Integ | Ketujuh kolom snapshot sama dengan hasil klasifikasi hari ini |
+| `R-RP-37` | AC 29, `RJ-PRI-DEC-036` | Sesudah `R-RP-31`, buka link lama dan link baru; periksa kolom DB | Integ | Link lama 404, link baru 200 `NOT_YET_OPEN` dengan tanggal baru. `ArrivalCodeHash` hanya hex 64 karakter dan berbeda dari sebelumnya |
+| `R-RP-38` | AC 30 (gagal), `RJ-PRI-DEC-037` | Alasan 5 karakter; pengguna `Read` + `Screen` saja | Integ | 400 `VAL-RP-12`; 403 |
+| `R-RP-39` | AC 31, `RJ-PRI-DEC-038` | Detail sesudah `R-RP-31`; periksa log aplikasi | Integ | Riwayat `RESCHEDULED` dengan `fromVisitDate = H+1`, `toVisitDate = H+4`, alasan, dan nama pelaku. Log tanpa kode, alasan, maupun tanggal |
+| `R-RP-40` | AC 32 | Dua permintaan ganti tanggal paralel dengan `expectedRowVersion` sama | Integ (konkurensi) | Satu 200 dan satu 409 `VAL-RP-14`. Riwayat `RESCHEDULED` hanya satu |
+| `R-RP-41` | AC 33 | Klien SignalR bergabung ke board, lalu ganti tanggal; layar daftar yang menyaring tanggal lama terbuka | Integ (SignalR) + E2E | Event `RESCHEDULED` dengan `visitDate` baru dan `previousVisitDate` lama. Baris hilang dari layar tanggal lama tanpa muat ulang manual |
+| `R-RP-42` | Regresi | Buat, kirim ulang, tandai tiba, batal, penutupan akhir hari, dan alur hari H `R-RP-24` | Integ | Perilaku sama dengan sebelum revisi `34`. `canReschedule` bernilai `false` pada hari H dan pada status selain Menunggu Kedatangan |

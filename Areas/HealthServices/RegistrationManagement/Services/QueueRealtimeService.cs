@@ -80,12 +80,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         public async Task NotifyPriorityReservationChangedAsync(
             RegPriorityReservation reservation,
             string eventCode,
-            DateTime occurredAtUtc)
+            DateTime occurredAtUtc,
+            DateTime? previousVisitDate = null)
         {
             var payload = new PriorityReservationRealtimeEventResponse
             {
                 ReservationId = reservation.Id,
                 VisitDate = reservation.VisitDate,
+                PreviousVisitDate = previousVisitDate,
                 Status = reservation.Status,
                 EventCode = eventCode,
                 OccurredAt = occurredAtUtc

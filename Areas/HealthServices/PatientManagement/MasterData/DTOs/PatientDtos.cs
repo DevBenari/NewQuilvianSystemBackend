@@ -492,6 +492,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         [Required]
         public Guid DeliveryCaseId { get; set; }
 
+        [MaxLength(100)]
+        public string? FullName { get; set; }
+
         [Required]
         public DateTime? BirthDate { get; set; }
 

@@ -44,7 +44,9 @@ public sealed class BillingPatientFundsController : ControllerBase
                 encounterId, request, idempotencyKey, CurrentUserId(), cancellationToken);
             var message = result.IsReplay
                 ? "Allocation sudah diproses; hasil sebelumnya dikembalikan."
-                : "Dana deposit berhasil dialokasikan ke invoice.";
+                : (result.RefundCreditAmount > 0
+                    ? $"Dana deposit berhasil dialokasikan. Alokasi invoice: Rp {result.InvoiceAllocatedAmount:N2}, kelebihan masuk saldo refund pasien: Rp {result.RefundCreditAmount:N2}."
+                    : "Dana deposit berhasil dialokasikan ke invoice.");
             return Ok(ApiResponse<AllocationResponse>.Ok(result, message));
         }
         catch (KeyNotFoundException exception)
@@ -56,6 +58,34 @@ public sealed class BillingPatientFundsController : ControllerBase
         {
             return Conflict(ApiResponse<object>.Fail(
                 StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingAllocationValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    [HttpGet("deposits/{encounterId:guid}/allocations/quote")]
+    [AccessAction("ReadQuote", "Read Inpatient Deposit Allocation Quote", AccessType = AccessTypes.Read, SortOrder = 7)]
+    [AccessPermission("BillingDeposit", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<DepositAllocationQuoteResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetAllocationQuote(
+        Guid encounterId,
+        [FromQuery] Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _allocationService.GetAllocationQuoteAsync(
+                encounterId, invoiceId, cancellationToken);
+            return Ok(ApiResponse<DepositAllocationQuoteResponse>.Ok(
+                result, "Kutipan alokasi deposit berhasil dihitung."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(
+                StatusCodes.Status404NotFound, exception.Message));
         }
         catch (BillingAllocationValidationException exception)
         {

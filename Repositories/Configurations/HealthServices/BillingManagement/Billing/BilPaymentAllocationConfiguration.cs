@@ -11,7 +11,7 @@ public sealed class BilPaymentAllocationConfiguration : IEntityTypeConfiguration
         entity.ToTable("BilPaymentAllocation", "public", table =>
         {
             table.HasCheckConstraint("CK_BilPaymentAllocation_Amount", "\"Amount\" > 0");
-            table.HasCheckConstraint("CK_BilPaymentAllocation_TargetType", "\"TargetType\" = 'INVOICE'");
+            table.HasCheckConstraint("CK_BilPaymentAllocation_TargetType", "\"TargetType\" IN ('INVOICE','BENEFIT_EXCESS')");
             table.HasCheckConstraint(
                 "CK_BilPaymentAllocation_CalculationVersion",
                 "\"CalculationVersion\" IS NULL OR \"CalculationVersion\" > 0");

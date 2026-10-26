@@ -109,6 +109,9 @@ public sealed class FinanceSettlementRowResponse
     public string DebtorName { get; set; } = string.Empty;
 
     public Guid? BenefitOwnerId { get; set; }
+
+    /// <summary>Identitas canonical pemilik manfaat (karyawan atau dokter tetap).</summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
     public string? BenefitOwnerName { get; set; }
     public string? BenefitRelationship { get; set; }
 
@@ -188,6 +191,9 @@ public sealed class FinanceSettlementDetailResponse
     public string DebtorName { get; set; } = string.Empty;
 
     public Guid? BenefitOwnerId { get; set; }
+
+    /// <summary>Identitas canonical pemilik manfaat (karyawan atau dokter tetap).</summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
     public string? BenefitOwnerName { get; set; }
     public string? BenefitRelationship { get; set; }
 

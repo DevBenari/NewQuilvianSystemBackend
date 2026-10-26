@@ -263,3 +263,31 @@ ke aksi yang paling dekat maknanya.
 
 Masa simpan mengikuti data kunjungan Rawat Jalan, karena reservasi adalah bagian dari jejak pendaftaran. Data tidak
 dihapus, hanya ditandai.
+
+# Amendment RP-GT — `RJ-PRI-RESV-001@1.2.0` (`approved`)
+
+`last_changed_in`: `RJ-PRI-RESV-001@1.2.0`. Status `approved` (Sukma Giri, 2026-10-21, `RJ-PRI-DEC-039`). Keputusan `RJ-PRI-DEC-037`,
+`038`.
+
+## RP-GT-1. Arti aksi yang berubah
+
+| Resource | Action | `AccessType` | Arti sejak `1.2.0` |
+|---|---|---|---|
+| `OutpatientPriorityReservation` | `Create` | `Create` | Membuat reservasi, mengirim ulang link, **dan mengganti tanggal** |
+
+Tidak ada butir hak akses baru, sehingga admin tidak perlu mencentang ulang Akses Role. Deskripsi `[AccessAction]` untuk
+aksi `Create` diseragamkan pada ketiga endpoint-nya.
+
+Contoh: petugas skrining Rina hanya memegang `Read` + `Screen`. Ia tidak melihat tombol Ganti Tanggal, dan bila memanggil
+`POST /{id}/reschedule` langsung, ia menerima 403.
+
+## RP-GT-2. Audit dan privasi
+
+| Kejadian | Jejak tahan lama | Logger (`LoggerService`) |
+|---|---|---|
+| Ganti tanggal | `RegPriorityReservationHistory` `RESCHEDULED`: pelaku, sumber `Staff`, jam, alasan, `FromVisitDate`, `ToVisitDate` | `EntityId`, nomor reservasi, aksi, status. **Tanpa** kode link, hash, alasan, maupun tanggal |
+
+| Kolom (data dictionary *Amendment RP-GT*) | Sensitif | Perlakuan |
+|---|:---:|---|
+| `FromVisitDate`, `ToVisitDate` | Tidak | Tampil di riwayat detail untuk pemegang `Read` |
+| `Reason` pada `RESCHEDULED` | Ya | Sama seperti alasan lain: hanya di detail, tidak di daftar, realtime, maupun log |

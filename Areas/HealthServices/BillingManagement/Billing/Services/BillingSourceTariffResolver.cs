@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
@@ -158,11 +159,40 @@ public sealed class BillingSourceTariffResolver
             .Where(x => x.Id == request.SourceItemId)
             .Select(x => new { x.TariffId, x.ProcedureId })
             .FirstOrDefaultAsync(cancellationToken);
+
+        Guid? procedureId = examination?.ProcedureId;
+        Guid? tariffId = examination?.TariffId;
+
         if (examination is null)
+        {
+            var orderedProc = await _dbContext.Set<LabOrderedProcedure>().AsNoTracking()
+                .Where(x => x.Id == request.SourceItemId || (x.LabOrderId == request.SourceAggregateId && x.ProcedureId == request.SourceItemId))
+                .Select(x => new { x.ProcedureId })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (orderedProc != null)
+            {
+                procedureId = orderedProc.ProcedureId;
+            }
+            else
+            {
+                var order = await _dbContext.Set<LabOrder>().AsNoTracking()
+                    .Where(x => x.Id == request.SourceAggregateId || x.Id == request.SourceItemId)
+                    .Select(x => new { x.ProcedureId })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (order != null)
+                {
+                    procedureId = order.ProcedureId;
+                }
+            }
+        }
+
+        if (procedureId is null)
             return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Pemeriksaan laboratorium sumber tidak ditemukan.");
 
         var tariff = await FindTariffAsync(
-            examination.TariffId, examination.ProcedureId, request.EncounterClinicId,
+            tariffId, procedureId.Value, request.EncounterClinicId,
             request.PatientClassId, request.OccurredAt, cancellationToken);
         return Build(tariff, 1m);
     }
@@ -175,26 +205,49 @@ public sealed class BillingSourceTariffResolver
             .Where(x => x.Id == request.SourceItemId)
             .Select(x => new { x.RadOrderId, x.RepeatCause })
             .FirstOrDefaultAsync(cancellationToken);
-        if (study is null)
-            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Study radiologi sumber tidak ditemukan.");
 
-        // RJ-BIL-GATE-DEC-004: pengulangan karena kesalahan rumah sakit tidak menambah tagihan pasien.
-        if (study.RepeatCause == RadRepeatCause.InternalHospitalError)
-            return BillingTariffResolution.NotBillable(
-                BillingBridgeCodes.RepeatInternalError,
-                "Pengulangan pemeriksaan karena kesalahan rumah sakit tidak ditagihkan.");
+        Guid? procedureId = null;
+        if (study != null)
+        {
+            // RJ-BIL-GATE-DEC-004: pengulangan karena kesalahan rumah sakit tidak menambah tagihan pasien.
+            if (study.RepeatCause == RadRepeatCause.InternalHospitalError)
+                return BillingTariffResolution.NotBillable(
+                    BillingBridgeCodes.RepeatInternalError,
+                    "Pengulangan pemeriksaan karena kesalahan rumah sakit tidak ditagihkan.");
 
-        var procedureId = await _dbContext.Set<RadOrder>().AsNoTracking()
-            .Where(x => x.Id == study.RadOrderId)
-            .Select(x => (Guid?)x.ProcedureId)
-            .FirstOrDefaultAsync(cancellationToken);
+            procedureId = await _dbContext.Set<RadOrder>().AsNoTracking()
+                .Where(x => x.Id == study.RadOrderId)
+                .Select(x => (Guid?)x.ProcedureId)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+        else
+        {
+            procedureId = await _dbContext.Set<RadOrder>().AsNoTracking()
+                .Where(x => x.Id == request.SourceAggregateId || x.Id == request.SourceItemId)
+                .Select(x => (Guid?)x.ProcedureId)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
         if (procedureId is null)
-            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Order radiologi sumber tidak ditemukan.");
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Order atau study radiologi sumber tidak ditemukan.");
 
-        var tariff = await FindTariffAsync(
-            null, procedureId.Value, request.EncounterClinicId, request.PatientClassId,
-            request.OccurredAt, cancellationToken);
-        return Build(tariff, 1m);
+        // Tarif radiologi dipilih lewat MstTariffSelector (aturan yang sama dengan pratinjau harga Booking
+        // Radiologi): kelas pasien dan klinik kunjungan, paling spesifik menang. Dua tarif sama spesifik dengan
+        // harga berbeda TIDAK dipilih diam-diam; efeknya masuk antrean rekonsiliasi sampai master dibereskan.
+        var candidates = await EffectiveTariffs(request.OccurredAt)
+            .Where(x => x.ProcedureId == procedureId.Value
+                && (x.ClinicId == null || x.ClinicId == request.EncounterClinicId)
+                && (x.PatientClassId == null || x.PatientClassId == request.PatientClassId))
+            .ToListAsync(cancellationToken);
+
+        var selection = MstTariffSelector.Select(candidates, request.PatientClassId, request.EncounterClinicId);
+        if (selection.Status == MstTariffSelectionStatus.Ambiguous)
+            return BillingTariffResolution.Rejected(
+                BillingBridgeCodes.TariffAmbiguous,
+                "Terdapat lebih dari satu tarif radiologi dengan harga berbeda untuk pemeriksaan dan kelas pasien ini " +
+                $"({string.Join(", ", selection.Tied.Select(x => x.TariffCode))}). Rapikan master tarif, lalu kirim ulang.");
+
+        return Build(selection.Chosen, 1m);
     }
 
     /// <summary>
@@ -368,10 +421,20 @@ public sealed class BillingSourceTariffResolver
         if (firstTariff is null)
             return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceRejected, "Resep tidak memuat obat yang dapat ditagih.");
 
+        var drugNamesList = items.Where(x => x.IsActive && !x.IsStopped && !string.IsNullOrWhiteSpace(x.DrugNameSnapshot))
+            .Select(x => x.DrugNameSnapshot)
+            .Concat(compoundIngredients.Select(x => $"{x.CompoundName} ({x.DrugNameSnapshot})"))
+            .Distinct()
+            .ToList();
+
+        var labelText = drugNamesList.Count > 0
+            ? $"{string.Join(", ", drugNamesList)} — Resep {prescription.PrescriptionNumber}"
+            : $"Resep {prescription.PrescriptionNumber}";
+
         return BillingTariffResolution.Resolved(
             null,
             firstTariff.TariffCategoryId,
-            Truncate($"Resep {prescription.PrescriptionNumber}", 250),
+            Truncate(labelText, 250),
             1m,
             decimal.Round(total, 2, MidpointRounding.AwayFromZero));
     }

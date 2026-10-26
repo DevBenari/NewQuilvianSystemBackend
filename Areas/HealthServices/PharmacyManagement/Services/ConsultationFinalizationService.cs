@@ -186,7 +186,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 consultation.Queue.UpdateBy = actorUserId;
             }
 
-            if (consultation.Encounter != null)
+            // FIX-DOK-007-02 / ISSUE-DOK-007: Jangan mutasi EncounterStatus ke ConsultationCompleted
+            // bila encounter adalah rawat inap (Inpatient). Status kunjungan rawat inap harus tetap aktif
+            // (misal Admitted) sampai pasien dipulangkan secara resmi (discharge).
+            if (consultation.Encounter != null &&
+                !consultation.InpEpisodeId.HasValue &&
+                consultation.Encounter.EncounterType != EncounterType.Inpatient)
             {
                 consultation.Encounter.EncounterStatus = EncounterStatus.ConsultationCompleted;
                 consultation.Encounter.UpdateDateTime = now;
@@ -251,7 +256,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             // RJ-E2E-DEC-001 (BE-RJE-007): jasa konsultasi ditagih saat konsultasi Completed lewat
             // finalisasi canonical ini — satu fakta per konsultasi. Tarifnya ditetapkan Billing
             // (RJ-E2E-DEC-012), sehingga fakta tidak membawa nominal apa pun.
-            if (consultation.Encounter?.EncounterType != EncounterType.Emergency)
+            // FIX-DOK-007-03 / ISSUE-DOK-007: Jangan terbitkan jasa konsultasi rawat jalan
+            // untuk kunjungan rawat inap atau catatan visite CPPT rawat inap.
+            if (consultation.Encounter?.EncounterType != EncounterType.Emergency &&
+                consultation.Encounter?.EncounterType != EncounterType.Inpatient &&
+                !consultation.InpEpisodeId.HasValue)
             {
                 var consultationEmission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
                     new ClinicalMilestoneFactRequest

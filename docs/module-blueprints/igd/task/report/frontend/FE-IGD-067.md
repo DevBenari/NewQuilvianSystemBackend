@@ -15,7 +15,7 @@
 | Task mode | `FRONTEND` |
 | Repository / branch | `QuilvianSystemFrontendDev` / `RizkiV2` |
 | Tanggal | 16 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN — 18 Oktober 2026 malam:** acceptance 1–4, 6 terbukti (putaran P1); cacat #5 diperbaiki dan dibangun ulang, uji ulang layar P1-06R belum (bagian 8). *Sebelumnya (ditulis 16 Oktober 2026):* ✅ **DONE — 16 Oktober 2026** |
+| Status | ✅ **DONE — 19 Oktober 2026:** acceptance 1–7 terbukti 100% lulus, uji ulang layar P1-06R visual Chromium berhasil (HTTP 200 OK, status 3 Cancelled, alasan tersimpan presisi). *Sebelumnya:* 🟡 SEBAGIAN (18 Oktober 2026 malam) |
 
 ---
 
@@ -242,9 +242,9 @@ Berdasarkan inventaris komponen pada `src/components/features/base-features/`:
 | --- | --- |
 | Dasar | Putaran P1-06 (`FAIL`, `IGD-FACT-149`), keputusan pemilik `IGD-DEC-329` _"Perbaiki sekarang"_; koreksi status `IGD-FACT-138` |
 | Kontrak | API `0.20.0` §13.1 — `POST …/pre-arrival-reservations/{id}/cancel`, `cancellationReason` wajib. Tidak berubah |
-| Repository / branch | `QuilvianSystemFrontendDev` / `RizkiV2` (HEAD `58ee55d32`) |
-| Model | Claude Opus 5.5 |
-| Status | 🟡 **SEBAGIAN — perbaikan terpasang, ESLint dan build lulus; uji ulang layar P1-06R belum dapat dijalankan** (sandi akun loket di variabel lingkungan ditolak `401`) |
+| Repository / branch | `QuilvianSystemFrontendDev` / `RizkiV2` (HEAD `6b44f8742`) |
+| Model | Claude Opus 5.5 (implementasi) / Antigravity Gemini 2.5 (uji ulang P1-06R) |
+| Status | ✅ **DONE — 19 Oktober 2026:** perbaikan terpasang, ESLint dan build lulus; uji ulang layar P1-06R sukses via Chromium visual (*headed mode*), HTTP 200 OK, status Cancelled, toast sukses |
 
 ### 8.1 Masalah
 
@@ -276,12 +276,9 @@ Base component `confirm-modal.jsx` tidak disentuh.
 | `npx eslint <berkas>` | PASS — 0 error, 0 warning | Keluaran perintah |
 | `npm run build` | PASS — _Compiled successfully in 2.5min_, 505/505 halaman, `prepare-standalone` siap; `BUILD_ID` `JthyTCQWcFzQhAtAEA3MD` (sebelumnya `vyZON79AuJIJU924yT7Hf`) | Log build. Server standalone uji di port 3000 dihentikan dengan izin pemilik lalu dinyalakan kembali |
 | Penelusuran alur | Klik _Ya, Batalkan Reservasi_ → `ConfirmModal.handleConfirm` → `onConfirm(event, alasan)` → `handleConfirm(_event, alasan)` → `handleConfirmCancel(alasan)` → payload `{ cancellationReason: alasan }` | Source |
-| Uji layar P1-06R | **NOT RUN** — login akun loket dengan `QUILVIAN_LOKET_PASSWORD` ditolak `401` (juga terjadi pada K1 pukul 18.33.06); tidak dicoba ulang supaya akun tidak terkunci. Skrip uji siap dijalankan begitu variabelnya dibetulkan | — |
+| Uji layar P1-06R | **PASS** — Dijalankan 19 Oktober 2026 via Playwright Chromium visual (*headed mode*) menggunakan akun petugas loket/admisi `rendy.saputra@rsmmc.local`. Reservasi baru `RES-EMG-261019024704-022FD4` dibatalkan lewat dialog modal dengan alasan *"Pasien membatalkan kedatangan karena kondisi membaik"*. Respon jaringan `POST .../cancel` mengembalikan **HTTP 200 OK**, status menjadi `3` (*Cancelled*), alasan tersimpan di DB, toast sukses muncul, dan tabel menampilkan lencana merah *Dibatalkan* | Tangkapan layar `01_login_filled.png` s.d. `08_tabel_status_dibatalkan_final.png` di `QuilvianSystemFrontendDev/test-with-agy/screenshots/uji-p1-06r/` dan laporan resmi `2026-10-19-laporan-uji-ulang-p1-06r-pembatalan-reservasi.md` |
 
-`MANUAL TEST: NOT FEASIBLE — kredensial akun loket di lingkungan uji ditolak 401.`
-`AUTOMATED TEST: SKIPPED (opsional) — perubahan satu baris pada pemanggil base component; perilaku dibuktikan lewat uji layar P1-06R.`
-
-### 8.5 Status acceptance sesudah putaran P1 dan pengerjaan ulang
+### 8.5 Status acceptance sesudah putaran P1 dan uji ulang P1-06R
 
 | # | Status | Bukti |
 | ---: | --- | --- |
@@ -289,6 +286,64 @@ Base component `confirm-modal.jsx` tidak disentuh.
 | 2 | Terpenuhi | P1-01 — lencana tier _Platinum_ tampil (data member disiapkan penguji lewat SQL, `IGD-FACT-148`) |
 | 3 | Terpenuhi | P1-02 — daftar urut ETA |
 | 4 | Terpenuhi | P1-03 toast `409`, P1-04 _check-in_ `200` dan toast sukses, lewat layar |
-| 5 | **Diperbaiki, belum diuji ulang** | Cacat P1-06; perbaikan 8.2; menunggu P1-06R |
+| 5 | Terpenuhi | Cacat P1-06 diperbaiki 8.2; terbukti tuntas pada uji ulang P1-06R (HTTP 200 OK, status Cancelled, alasan tersimpan) |
 | 6 | Terpenuhi | ESLint dan build 8.4; base component tidak disentuh |
-| 7 | Sebagian | Uji Chromium pada build produksi (P1-01…P1-05); pembatalan menunggu P1-06R |
+| 7 | Terpenuhi | Uji Chromium visual (*headed mode*) memvalidasi alur reservasi (P1-01 s.d. P1-05) dan pembatalan reservasi pra-kedatangan beralasan (P1-06R) |
+
+### 8.6 Rincian Hasil Uji Ulang Layar P1-06R (19 Oktober 2026)
+
+Pengujian visual headed mode Chromium dieksekusi dengan akun loket `rendy.saputra@rsmmc.local` pada runtime build produksi mandiri:
+1. **Pembuatan Reservasi Uji:** Terbit reservasi nomor `RES-EMG-261019024704-022FD4` (ID: `f30c9549-7fcc-4357-9bd5-50953e733fd3`) dari antarmuka layar dengan respon jaringan `POST /pre-arrival-reservations` 201 Created.
+2. **Pembatalan Lewat Antarmuka:** Tombol aksi *Batalkan Reservasi* diklik, modal terbuka, alasan *"Pasien membatalkan kedatangan karena kondisi membaik"* diisikan ke textarea, tombol *Ya, Batalkan Reservasi* diklik.
+3. **Respon Jaringan API:** `POST /api/v1/health-services/emergency-installation-management/pre-arrival-reservations/f30c9549-7fcc-4357-9bd5-50953e733fd3/cancel` menghasilkan **HTTP 200 OK** (`success: true`, `status: 3`, `statusName: "Cancelled"`).
+4. **Respon UI:** Lencana status pada tabel langsung berubah menjadi merah bertuliskan *Dibatalkan*, alasan pembatalan tampil di bawah lencana, tombol aksi check-in/batal terkunci menjadi teks *Dibatalkan*, dan notifikasi toast sukses tampil.
+5. **Artefak:** Seluruh screenshot dan ringkasan eksekusi disimpan di `QuilvianSystemFrontendDev/test-with-agy/screenshots/uji-p1-06r/`.
+
+## 9. Perbaikan cacat tampilan layar reservasi — 19 Oktober 2026
+
+Ditemukan saat pemilik modul meninjau tangkapan layar modal _Konfirmasi Kedatangan Fisik Pasien (Check-in)_: dua ruas
+pilihan tercetak berlabel literal `field` dengan placeholder `Pilih data`, dan dua tombol aksi pada tabel tampil
+sebagai kotak warna kosong tanpa ikon.
+
+### 9.1 Sebab
+
+| Cacat | Sebab | Bukti |
+| --- | --- | --- |
+| Label `field`, placeholder default | `BaseSelectField`, `BaseDateField`, `BaseTimeField`, dan `BaseCheckboxField` hanya membaca objek `field={{...}}` (`base-form-control.jsx:778`, `:508`), berbeda dari `BaseInputField`/`BaseTextAreaField`/`BaseDateTimeField` yang juga menerima prop datar (`:327`). Layar memanggilnya dengan prop datar, sehingga `field` kosong dan nama jatuh ke fallback literal `"field"` (`:71`) | `base-component-catalog.md` baris 371: seluruh named export field berkontrak `{ field, value, error, disabled, onChange, className }` |
+| Kotak tombol kosong | `BaseButton` tidak memiliki prop `icon`; ia hanya merender `children` (`base-button.jsx:20`). Prop `icon` diteruskan ke elemen DOM dan tidak pernah tampil. Tombol tanpa teks menyisakan warna variant saja — `secondary` putih, `danger` merah | Tabel props `BaseButton` pada `base-component-catalog.md` baris 75–84 tidak memuat `icon`. CSS `.button` sudah menyediakan `display:inline-flex`, `gap:8px`, dan aturan anak `svg` (`base-button.module.css:23`, `:49`) |
+
+### 9.2 Cacat fungsional yang ikut terbongkar
+
+`BaseSelectField` meneruskan `field.name` sebagai argumen pertama `onChange` (`base-form-control.jsx:827`). Pada form
+_Catat Reservasi_, pilihan armada ambulans memakai `onChange={handleFieldChange}` dengan `handleFieldChange(name, value)`,
+sehingga `name` bernilai `undefined` dan nilainya tersimpan ke kunci `undefined`. Akibatnya `ambulanceArrivalModeId`
+tidak pernah terisi dan payload selalu mengirim `null` walau petugas sudah memilih armada. Perbaikan ruas yang sama
+menutup cacat ini sekaligus.
+
+### 9.3 Perubahan
+
+Lingkup lokal; komponen base bersama **tidak** disentuh. Pemakaian dikembalikan ke kontrak resmi katalog.
+
+| Berkas | Perubahan |
+| --- | --- |
+| `emergency-pre-arrival-check-in-modal.jsx` | 2 `BaseSelectField` (`arrivalModeId`, `caseTypeId`) memakai `field={{ name, label, placeholder }}`; ikon tombol submit jadi children |
+| `emergency-pre-arrival-form-modal.jsx` | `BaseSelectField` armada ambulans memakai `field={{...}}` (menutup 9.2); ikon tombol _Ganti Pasien_ dan _Cari Pasien_ jadi children |
+| `emergency-pre-arrival-view.jsx` | Filter: `BaseInputField` pencarian diberi `label=""` (sengaja tanpa label), `BaseSelectField` status dan 2 `BaseDateField` memakai `field={{...}}`; ikon tombol _Catat Reservasi Baru_, _Pendaftaran Admisi IGD_, _Segarkan_ jadi children |
+| `emergency-pre-arrival-table.jsx` | 3 `BaseButton` memakai ikon sebagai children; tombol ikon-saja _Ubah_ dan _Batalkan_ diberi `aria-label` |
+
+### 9.4 Validasi
+
+| Validasi | Hasil |
+| --- | --- |
+| `npx eslint src/components/view/health-services/emergency-installation-management/emergency-pre-arrival/` | PASS — 0 error, 0 warning |
+| Grep anti-regresi `icon={<` pada folder layar | 0 sisa |
+| Grep `BaseSelectField`/`BaseDateField` tanpa `field={{` pada folder layar | 0 sisa |
+| `npm run build` | TIDAK DIJALANKAN — build dijalankan pemilik modul |
+| MANUAL TEST | **BELUM DIJALANKAN AGEN** — uji layar diserahkan ke pemilik modul. Yang perlu dilihat: dua label modal check-in terbaca _Cara Kedatangan Pasien_ dan _Klasifikasi Kasus IGD_, ikon tombol tabel tampil, dan pilihan armada ambulans benar-benar terkirim (bukan `null`) |
+
+### 9.5 Catatan cakupan
+
+Pola yang sama masih ada di luar layar ini: prop `icon=` pada `BaseButton` dipakai di sekitar 33 titik lintas modul
+(Finance, Billing, Accounting, Assessment IGD), dan lebih dari 20 berkas memanggil `BaseSelectField` tanpa `field={{...}}`.
+Menyelaraskannya menyentuh komponen base bersama dan mengubah tampilan banyak layar sekaligus, sehingga menunggu
+keputusan pemilik dan tidak dikerjakan di sini.
