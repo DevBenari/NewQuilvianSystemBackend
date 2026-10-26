@@ -30,8 +30,8 @@ Payung roadmap ada di `00-delivery-roadmap.md`. Pasangan frontend-nya ada di
 ## 2. Urutan eksekusi
 
 ```text
-MVP-0   BE-MDF-001 → BE-MDF-002 → BE-MDF-005 → BE-MDF-007 → BE-MDF-018
-                   → BE-MDF-003 → BE-MDF-008 → BE-MDF-019 → BE-MDF-004
+MVP-0   BE-MDF-001 🟡 → BE-MDF-002 🟡 → BE-MDF-005 → BE-MDF-007 → BE-MDF-018
+                      → BE-MDF-003 → BE-MDF-008 → BE-MDF-019 → BE-MDF-004
 MVP-1   BE-MDF-006
 MVP-2   BE-MDF-009 → BE-MDF-010 → BE-MDF-011
 MVP-3   BE-MDF-012 → BE-MDF-013
@@ -64,8 +64,8 @@ ada sebelum migration ditulis.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BE-MDF-001` | Modul `MedicalFeeManagement` dan prefix `Mdf` terdaftar di registry | `MDF-DES-002` | — | `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Satu baris modul + prefix; `Mdf` diverifikasi belum dipakai | — | Baris tercatat sebelum file model pertama | Berkas registry ter-diff | Backend Owner — **prasyarat `QBE-MOD-002`/`003`/`NAM-004`** | Registry ter-commit terpisah dari kode |
-| `BE-MDF-002` | Entity dan configuration daftar peran | `MDF-DES-003`, `011`, `MF-DEC-016` | `MDF-VAL-1.0` §1 | `OprTeamRole` (`MF-CAP-002`) | `MstMedicalFeeRole` + configuration | `BE-MDF-001` | `RoleCode` unik; satu `OprTeamRole` dipetakan paling banyak satu peran | `T-01`..`T-06` | Backend Owner | Prefix `Mst` untuk data induk |
+| 🟡 `BE-MDF-001` | Modul `MedicalFeeManagement` dan prefix `Mdf` terdaftar di registry | `MDF-DES-002` | — | `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Satu baris modul + prefix; `Mdf` diverifikasi belum dipakai | — | Baris tercatat sebelum file model pertama | Berkas registry ter-diff | Backend Owner — **prasyarat `QBE-MOD-002`/`003`/`NAM-004`** | Registry ter-commit terpisah dari kode |
+| 🟡 `BE-MDF-002` | Entity dan configuration daftar peran | `MDF-DES-003`, `011`, `MF-DEC-016` | `MDF-VAL-1.0` §1 | `OprTeamRole` (`MF-CAP-002`) | `MstMedicalFeeRole` + configuration | `BE-MDF-001` | `RoleCode` unik; satu `OprTeamRole` dipetakan paling banyak satu peran | `T-01`..`T-06` | Backend Owner | Prefix `Mst` untuk data induk |
 | `BE-MDF-005` | Entity kesepakatan tarif dan baris tarif | `MDF-DES-008`..`010`, `MF-DEC-004`, `012` | `MDF-VAL-1.0` §2–3 | `WfpContractHistory` (`MF-CAP-009`), `MstTariff` | `MdfSharingAgreement`, `MdfSharingRule` + configuration | `BE-MDF-002` | FK `Restrict` ke kontrak HR; persentase 0..100 sebagai check constraint | `T-07`..`T-13` | Backend Owner | Menunjuk kontrak HR, **tidak menyalin** |
 | `BE-MDF-007` | Entity periode, hasil jasa, rincian, koreksi, daftar belum terhitung | `MDF-DES-010`, `012`, `013`, `014` | `MDF-VAL-1.0` §4–6 | — | `MdfFeePeriod`, `MdfServiceFee`, `MdfServiceFeeDetail`, `MdfServiceFeeAdjustment`, `MdfUnresolvedService` + configuration | `BE-MDF-002` | `FinalAmount = GrossAmount + AdjustmentAmount` sebagai check constraint; satu penerima satu hasil per periode | `T-26`, `T-30` | Backend Owner | `SharingRuleId` wajib — setiap rupiah tertelusur |
 | `BE-MDF-018` | Entity penyerahan ke Finance | `MDF-DES-018` | `MDF-VAL-1.0` §7 | Pola `BilArHandoff` | `MdfFinanceHandoff` + configuration | `BE-MDF-007` | `ServiceFeeId` dan `HandoffKey` masing-masing unik | `T-73`, `T-76` | Backend Owner | Empat kolom disalin dari hasil jasa agar Finance tidak perlu join |
@@ -83,6 +83,22 @@ ada sebelum migration ditulis.
 | `BE-MDF-017` | Pembatasan data untuk tenaga medis | `MF-DEC-010`, `MDF-PERM-1.0` §5 | `MDF-PERM-1.0` | — | Penyaringan `PayeeReferenceId` di lapis service | `BE-MDF-013` | Dokter A meminta data dokter B menerima kosong; akses id langsung menghasilkan `404` bukan `403` | `T-80`..`T-84` | Backend Owner — **risiko privasi nyata**: satu izin `View` tanpa saringan membuka penghasilan ±220 orang | Pembatasan data, bukan sekadar pembatasan endpoint |
 | `BE-MDF-015` | **BLOCKED** — jasa dari entri bebas kasir | `MF-DEC-017` | `MDF-INTEGRATION-1.0` §5 — permukaan ini **dikecualikan** dari penguncian | — | Sumber `ADHOC` dan `ADHOC_CATALOG` | `BE-MDF-010` **dan** `MF-CQ-05` | Entri kasir berjasa menunjuk pelaksananya | — | **Owner Billing** — permintaan sudah dikirim | — |
 | `BE-MDF-016` | **BLOCKED** — alir nilai jasa ke `DoctorShare` | `MF-DEC-001` | `MDF-INTEGRATION-1.0` §4 — permukaan ini **dikecualikan** | `BilInvoiceItem.DoctorShare` (`MF-CAP-003`) | Bentuk A, B, atau C sesuai jawaban Billing | `BE-MDF-014` **dan** `MF-CQ-08` | Ditentukan jawaban owner Billing | — | **Owner Billing.** Pemblokir terbesar; perhitungan internal tidak tertahan olehnya | — |
+
+### 3.1 Register status task
+
+**Arti tanda status pada dokumen ini.**
+
+| Tanda | Artinya |
+| :---: | --- |
+| ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
+| 🟡 | Sebagian. Source-nya sudah ada, tetapi acceptance criteria belum terbukti penuh. **Belum selesai** |
+| ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
+| tanpa tanda | Belum dikerjakan |
+
+| Task | Status | Laporan |
+| --- | --- | --- |
+| `BE-MDF-001` | 🟡 **SEBAGIAN 26 Oktober 2026.** Tiga dari tiga acceptance criteria terpenuhi: baris `Mdf` tercatat di `MODULE_OWNERSHIP_PREFIX_REGISTRY.md` sebelum file model pertama, prefix `Mdf` terverifikasi belum dipakai, dan berkas registry ter-diff (1 berkas, +3 baris). Satu butir DoD belum terpenuhi: "Registry ter-commit terpisah dari kode" — menunggu pemilik, karena commit tidak dilakukan agent. Checker QBE `NOT RUN` (`pwsh` tidak terpasang) dan `dotnet build` `NOT RUN` (tidak ada source berubah; pemilik meminta tanpa build otomatis). Peringatan terbuka untuk `BE-MDF-005`: sub-folder `MasterData` bentrok dengan baris `Mst` pada pencocokan pemilik | [BE-MDF-001](../task/report/backend/BE-MDF-001.md) |
+| `BE-MDF-002` | 🟡 **SEBAGIAN 26 Oktober 2026.** Dua dari dua acceptance criteria terpetakan ke source: `MstMedicalFeeRole` dan `MstMedicalFeeRoleConfiguration` dengan dua unique index parsial (`RoleCode`; `OprTeamRoleMapping` non-NULL), serta satu `DbSet`. Penegakan pada basis data belum terbukti karena migration `BE-MDF-003` belum ada. Belum terpenuhi: `T-01`..`T-06` `NOT RUN` (menuntut `BE-MDF-003` dan `BE-MDF-004`), dan `dotnet build` `NOT RUN` atas permintaan pemilik — **kode belum pernah dikompilasi**. Peringatan: model EF kini punya perubahan tanpa migration (`PendingModelChangesWarning` pada `dotnet ef database update`) sampai `BE-MDF-003` dibuat. Dependency `BE-MDF-001` masih 🟡 | [BE-MDF-002](../task/report/backend/BE-MDF-002.md) |
 
 ## 4. Rincian per gelombang
 
@@ -139,7 +155,7 @@ ada sebelum migration ditulis.
 | # | Prasyarat | Status |
 |---:|---|---|
 | 1 | QBE preflight dan kesesuaian engineering diselesaikan **pada waktu eksekusi**, dari `AGENTS.md` backend target dan dokumen engineering kanonik | Berlaku terus |
-| 2 | `BE-MDF-001` selesai sebelum file model pertama ditulis | **Belum** |
+| 2 | `BE-MDF-001` selesai sebelum file model pertama ditulis | 🟡 **Sebagian, 26 Oktober 2026.** Baris `Mdf` sudah ada di registry dan nol file model ditulis; tinggal commit terpisah oleh pemilik — [laporan](../task/report/backend/BE-MDF-001.md) |
 | 3 | Otorisasi terpisah untuk membuat **dan** menjalankan ketiga migration | **Belum** |
 | 4 | Implementasi dijalankan lewat `quilvian-engineering-skills:build-module-backend` | Berlaku terus |
 | 5 | Persetujuan `MDF-DES-001`..`018` | **Terpenuhi** 20 September 2026 |

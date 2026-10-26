@@ -3698,3 +3698,102 @@ Tidak ada keputusan UI baru.
 Pemilik modul Billing menyetujui blueprint revisi `2.3` pada 16 Oktober 2026 lewat pilihan interaktif: *"Ya, setujui revisi 2.3"*,
 setelah diberi tahu bahwa approval desain **bukan** otorisasi membuat atau menjalankan migration. Rincian di
 `blueprint-manifest.md` (`approved_by_revision_2_3`).
+
+---
+
+## Amendment Pass — Jawaban Owner Billing atas Permintaan Medical Fee (`MF-CQ-08`, `MF-CQ-05`) (26 Oktober 2026)
+
+| Field | Isi |
+| --- | --- |
+| Konteks | Modul Medical Fee (`MF-BP-001`) meminta dua perubahan pada Billing: sumber `DoctorShare` (`MF-CQ-08`) dan pelaksana pada entri bebas kasir (`MF-CQ-05`). Permintaan ada di `medical-fee/evidence/01-permintaan-untuk-owner-billing.md`; jawaban di `medical-fee/evidence/04-balasan-owner-billing.md` |
+| Blueprint | `BIL-CASH-001`, revision `2.3` (approved). Pass ini **tidak menaikkan revision**; revisi berikutnya dibuat oleh `/design-business-module` |
+| Mode | Amendment pass. Keputusan lama tidak ditimpa |
+| Backend SHA | `548785ac` pada pembacaan ini; baseline manifest `738e03a0`. Berkas yang disebut pada pass ini dibaca langsung, bukan lewat impact scan penuh |
+| Frontend SHA | Tidak diperiksa; pass ini tidak menyentuh keputusan UI |
+| Pemberi keputusan | Pemilik modul Billing (Product/Domain Owner), pernyataan langsung dalam sesi, 26 Oktober 2026 |
+
+### Scope pass ini
+
+| Di dalam scope | Di luar scope |
+| --- | --- |
+| Sumber nilai `BilInvoiceItem.DoctorShare` dan perilakunya bila Medical Fee tidak punya aturan | Rumus sharing, kontrak dokter, periode, dan pembayaran jasa (milik Medical Fee dan Finance) |
+| Pelaksana pada entri `ADHOC` dan `ADHOC_CATALOG` | Pencatatan tim pada Clinical dan Laboratorium (`MF-CQ-07`, milik owner Clinical dan Laboratorium) |
+| Perlakuan `BilApHandoff` dan diskon dokter setelah `DoctorShare` terisi | Perhitungan PPh 21 dan utang jasa medis (milik Finance) |
+
+### Fakta source yang mendasari (dibaca 26 Oktober 2026)
+
+| # | Fakta | Bukti |
+| --- | --- | --- |
+| F1 | Entri `ADHOC_CATALOG` dan `ADHOC` menulis `DoctorShare = 0` | `BillingInvoiceService.cs:1444`, `:1503` |
+| F2 | Jembatan klinis menulis `DoctorShare = 0` dengan komentar bahwa pembagian jasa milik modul medical-fee | `BillingClinicalChargeBridgeService.cs:305` |
+| F3 | Satu-satunya jalur yang dapat membawa `DoctorShare` bukan nol adalah isian pemanggil pada `POST /invoices/from-source` | `BillingInvoicesController.cs:253-260`, `BillingInvoiceService.cs:2531` |
+| F4 | `DoctorShare` tidak boleh melebihi nilai kotor baris | `BillingInvoiceService.cs:2556-2557`; check constraint `CK_BilInvoiceItem_Amounts` |
+| F5 | `BilApHandoff.Amount` = jumlah `DoctorShare` item aktif dikurangi diskon dokter yang disetujui, untuk dokter pada encounter | `BillingArApHandoffService.cs:204-212` |
+| F6 | Diskon bertipe dokter ditolak bila `DoctorShare <= 0` dan dibatasi sebesar `DoctorShare` | `BillingDiscountService.cs:567`, `:575`; `BillingCalculationService.cs:932-935` |
+| F7 | `UpsertChargeRequest` tidak memiliki bidang pelaksana; jembatan klinis tidak menyebut dokter pelaksana | `BillingInvoiceDtos.cs:117-156`; pencarian `DoctorId`/`Performer` pada `BillingClinicalChargeBridgeService.cs` tanpa hasil |
+
+Dampak F1–F3: hampir seluruh jalur sudah menulis nol, jadi perubahan di Billing lebih kecil dari yang dibayangkan permintaan awal Medical Fee.
+
+### Decision Log — pass ini
+
+| Decision ID | Type | Keputusan | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `BKC-DEC-168` | Decision | `BilInvoiceItem.DoctorShare` **bersumber dari hasil perhitungan Medical Fee**, bukan diketik petugas. Aturan tarif sharing hidup di Medical Fee; Billing tidak menyimpan atau menghitung aturan itu sendiri | Pemilik modul Billing | `approved` | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif; `MF-DEC-001`; `evidence/04` §1 nomor 1 |
+| `BKC-DEC-169` | Decision | Bentuk teknis **A — Billing menarik**: saat item dicatat (`UpsertChargeAsync`), Billing memanggil `GET api/v1/health-services/medical-fee-management/sharing-rules/resolve`. Billing tetap satu-satunya penulis `BilInvoiceItem`. **Pencatatan tagihan tidak boleh gagal** karena Medical Fee tidak dapat dijangkau | Pemilik modul Billing | `approved` | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif "A — Billing menarik"; `MDF-INTEGRATION-1.0` §4.2–4.3. Kalimat tentang kegagalan panggilan berasal dari draf `evidence/04` §2.1 yang disetujui sebagai bagian jawaban |
+| `BKC-DEC-170` | Decision | Bila Medical Fee **tidak punya aturan** (`resolved: false`), `DoctorShare = 0` dan tagihan **tetap dapat difinalisasi**. **Tidak ada jalur ketik manual** sebagai pengecualian | Pemilik modul Billing | `approved` | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif "Nol, tagihan tetap final"; opsi "boleh diketik" ditolak |
+| `BKC-DEC-171` | Decision | `BilInvoiceItem` menambah tiga kolom nullable untuk entri bebas kasir: `IsFeeBearing` (`bool`, bawaan `false`), `PerformerReferenceId` (`Guid?`), `PerformerRoleCode` (`string?`; kosong dianggap peran utama). Diisi lewat jalur `ADHOC` dan `ADHOC_CATALOG`. **Nama kolom bersifat usulan**; nama final dikunci `/design-business-module` | Pemilik modul Billing | `approved` (kebutuhan); nama `draft` | Pemilik Billing, 26 Oktober 2026 | `evidence/04` §2.2; `MF-DEC-017` |
+| `BKC-DEC-172` | Decision | Pelaksana **wajib hanya bila kasir menandai layanan berjasa** (`IsFeeBearing = true`). Entri berjasa tanpa pelaksana ditolak dengan `422`. Entri biasa (materai, administrasi, sewa) tidak berubah | Pemilik modul Billing | `approved` | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif "Wajib hanya bila kasir menandai berjasa" |
+| `BKC-DEC-173` | Decision | `BilApHandoff` **tetap terbit tanpa perubahan** dan diperlakukan hanya sebagai rujukan kesiapan, bukan sumber nilai utang. Satu-satunya sumber utang jasa medis adalah `MdfFinanceHandoff`. Medical Fee dan Finance diminta menegaskannya | Pemilik modul Billing | `approved` (sisi Billing) | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif; `FIN-INTEGRATION-0.2` §3; F5 |
+| `BKC-DEC-174` | Decision | Diskon bertipe dokter **boleh dipakai** pada item yang `DoctorShare`-nya berasal dari Medical Fee, dengan aturan yang sudah ada: maksimal sebesar `DoctorShare` dan dengan persetujuan dokter yang bersangkutan. Perubahan perilaku ini disengaja | Pemilik modul Billing | `approved` | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif "Disengaja, boleh dipakai"; F6 |
+| `BKC-DEC-175` | Decision | `DoctorShare` pada item = nilai kotor item × persentase **peran utama**. Pembagian tim dihitung Medical Fee saat periode dan tidak masuk `BilInvoiceItem` | Pemilik modul Billing | `approved` | Pemilik Billing, 26 Oktober 2026 | Pilihan interaktif "Persentase peran utama" |
+
+**Contoh angka** (`BKC-DEC-168`..`175`): tindakan Rp 1.000.000 oleh dokter A, aturan sharing berlaku 40%.
+Billing memanggil `resolve`, mendapat `resolved: true` dan `sharingPercentage: 40.00`, lalu menulis `DoctorShare = Rp 400.000`.
+Bila diskon dokter Rp 100.000 diberikan dan disetujui dokter A, nilainya sah karena tidak melebihi Rp 400.000.
+Bila untuk layanan lain Medical Fee menjawab `resolved: false`, `DoctorShare = Rp 0`, tagihan tetap final, dan layanan itu muncul di daftar belum dapat dihitung Medical Fee.
+Pada entri bebas kasir "Konsultasi tambahan" Rp 500.000, kasir menandai berjasa dan memilih dokter B; tanpa dokter B, entri ditolak `422`.
+
+### Hubungan dengan keputusan lama
+
+Tidak ada keputusan lama yang `superseded`. `BKC-DEC-167` (satu biaya administrasi) tidak terkait. Tidak ada keputusan lama tentang `DoctorShare` yang bertentangan; catatan yang dicari dengan `DoctorShare` pada `00-interview-decisions.md` tidak menemukan keputusan bisnis tentang sumber nilainya.
+
+### Acceptance Criteria — pass ini
+
+- `BKC-AC-114` (`BKC-DEC-168`, `169`): **Nilai dari Medical Fee.** Item tindakan Rp 1.000.000 dicatat saat Medical Fee menjawab 40%; item tersimpan dengan `DoctorShare` Rp 400.000 tanpa isian petugas.
+- `BKC-AC-115` (`BKC-DEC-169`): **Medical Fee tidak terjangkau.** Medical Fee gagal merespons saat item dicatat; item tetap tercatat dengan `DoctorShare` Rp 0 dan tagihan tidak gagal.
+- `BKC-AC-116` (`BKC-DEC-170`): **Tanpa aturan.** Medical Fee menjawab `resolved: false`; `DoctorShare` Rp 0 dan tagihan dapat difinalisasi.
+- `BKC-AC-117` (`BKC-DEC-170`): **Tanpa jalur ketik.** Pemanggil mengirim `DoctorShare` Rp 250.000 untuk sumber yang dicakup Medical Fee; nilai itu tidak pernah tersimpan (bentuk penolakan atau pengabaian ditentukan desain, `BKC-OQ-143`).
+- `BKC-AC-118` (`BKC-DEC-171`, `172`): **Entri berjasa menunjuk pelaksana.** Entri `ADHOC_CATALOG` dengan `IsFeeBearing = true` dan `PerformerReferenceId` terisi tersimpan beserta pelaksananya.
+- `BKC-AC-119` (`BKC-DEC-172`): **Entri berjasa tanpa pelaksana ditolak.** `IsFeeBearing = true` tanpa `PerformerReferenceId` menghasilkan `422` dan tidak ada item tercatat.
+- `BKC-AC-120` (`BKC-DEC-172`): **Entri biasa tidak berubah.** Entri bebas bernilai Rp 20.000 tanpa penanda berjasa tersimpan seperti sebelumnya.
+- `BKC-AC-121` (`BKC-DEC-173`): **Handoff AP tidak berubah.** Finalisasi tagihan dengan `DoctorShare` terisi tetap menerbitkan `BilApHandoff` dengan nilai dan penerima yang sama seperti sekarang.
+- `BKC-AC-122` (`BKC-DEC-174`): **Diskon dokter.** Diskon dokter Rp 100.000 pada item ber-`DoctorShare` Rp 400.000 diterima setelah persetujuan dokter; diskon Rp 500.000 ditolak.
+- `BKC-AC-123` (`BKC-DEC-175`): **Peran utama.** Item operasi Rp 10.000.000 dengan peran utama 40% menghasilkan `DoctorShare` Rp 4.000.000, tidak berubah oleh jumlah anggota tim.
+
+### Open Questions dan Blocker — pass ini
+
+| ID | Pertanyaan | Owner | Memblokir |
+| --- | --- | --- | --- |
+| `BKC-OQ-143` | **Bagaimana jalur ketik ditutup?** `POST /invoices/from-source` masih menerima `DoctorShare` dari pemanggil (F3). Apakah nilainya diabaikan, ditolak, atau parameternya dihapus pada versi kontrak berikutnya, dan sumber mana saja (`PROCEDURE`, `LABORATORY`, `OPERATING_ROOM`, `EMERGENCY`, dst.) yang termasuk "dicakup Medical Fee"? Draf `evidence/04` §2.1 mengusulkan "diabaikan lalu dihapus" tetapi pemilik belum memilih | Pemilik Billing | `DESIGN` |
+| `BKC-OQ-144` | **Dari mana Billing tahu penerima jasa untuk sumber non-kasir?** `resolve` membutuhkan `payeeReferenceId`, tetapi `UpsertChargeRequest` tidak membawa pelaksana dan jembatan klinis tidak menyebutnya (F7). Untuk `PROCEDURE`, `LABORATORY`, dan operasi, apakah kontrak charge ditambah pelaksana, atau Billing membacanya dari modul sumber? Tanpa ini, `BKC-DEC-168` hanya dapat berjalan penuh untuk entri kasir | Pemilik Billing bersama pemilik modul sumber | `DESIGN` untuk sumber non-kasir; entri kasir tidak tertahan |
+| `BKC-OQ-145` | **Apakah `DoctorShare = 0` karena Medical Fee tidak terjangkau dihitung ulang kemudian?** `BKC-DEC-169` hanya menyatakan tagihan tidak boleh gagal. Bila tidak dihitung ulang, item itu selamanya Rp 0 sehingga diskon dokter tidak dapat dipakai (F6), padahal aturannya ada | Pemilik Billing | `DESIGN` |
+| `BKC-OQ-146` | **Perlakuan `DoctorShare` saat item diganti, di-void, atau diretur.** Retur obat menyalin `Math.Min(original.DoctorShare, ...)` (`BillingDrugReturnService.cs:52`) dan tinjauan item pengganti menyalin nilai lama (`BillingSupersededItemReviewService.cs:442`). Apakah salinan dipertahankan atau di-resolve ulang? | Pemilik Billing | `DESIGN` |
+| `BKC-OQ-147` | **Jenis rujukan `PerformerReferenceId`.** Menunjuk `MstDoctor`, profil tenaga kerja HR, atau polimorfik seperti `payeeType` Medical Fee? Menentukan validasi dan kunci asing | Pemilik Billing bersama pemilik Medical Fee | `DESIGN` |
+
+| Prasyarat | Menahan | Jenis | Status |
+| --- | --- | --- | --- |
+| Endpoint `resolve` milik Medical Fee dikunci dan tersedia | Implementasi pemanggilan pada `UpsertChargeAsync` (`BKC-DEC-169`) | Ketergantungan modul lain (`BE-MDF-016`, yang sendiri menunggu `BE-MDF-014`) | Belum |
+| Kolom pelaksana tersedia di Billing | `BE-MDF-015` di Medical Fee | Ketergantungan balik | Belum |
+| Otorisasi membuat dan menjalankan migration kolom `BilInvoiceItem` | Implementasi | **Tindakan manusia**, terpisah dari approval keputusan ini | Belum diberikan |
+| Kontrak charge naik dari versi yang berlaku (`BIL-INTEGRATION-1.8`) | `/design-business-module` | Desain | Belum |
+| Medical Fee dan Finance menegaskan `MdfFinanceHandoff` sebagai satu-satunya sumber utang jasa (`BKC-DEC-173`) | Kepastian tidak ada pembayaran ganda | Penegasan lintas modul | Belum |
+
+Catatan: `evidence/01` dan `evidence/04` Medical Fee menyebut kontrak charge sebagai `BIL-INTEGRATION-0.4`. Manifest Billing mencatat `BIL-INTEGRATION-1.8` sebagai versi terkini. Rujukan versi pada dokumen Medical Fee perlu dikoreksi ketika kontrak dinaikkan.
+
+### Frontend Decision Authority — pass ini
+
+Tidak ada keputusan UI baru. Penanda "layanan berjasa" dan pilihan pelaksana pada layar entri kasir adalah kebutuhan UI yang timbul dari `BKC-DEC-171`/`172`, tetapi bentuk layarnya belum diputuskan dan menunggu `/design-business-module`.
+
+### Langkah berikutnya
+
+Penutupan `BKC-OQ-143`..`147` belum dilakukan; kelimanya memblokir `DESIGN` dan perlu jawaban pemilik Billing sebelum `/design-business-module` menaikkan revision dan kontrak. Keputusan `BKC-DEC-168`..`175` sudah cukup untuk memulai desain bagian yang tidak bergantung pada kelimanya, yaitu kolom pelaksana entri kasir (`BKC-DEC-171`, `172`) dan perlakuan `BilApHandoff` (`BKC-DEC-173`).

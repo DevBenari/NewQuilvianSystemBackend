@@ -135,8 +135,8 @@ Rincian lengkap 11 kolom ada di berkas anak. Tabel ini hanya indeks.
 
 | Task | Outcome ringkas | Gelombang | Keadaan |
 |---|---|---|---|
-| `BE-MDF-001` | Pendaftaran modul dan prefix `Mdf` ke registry | `MVP-0` | Siap |
-| `BE-MDF-002` | Entity daftar peran | `MVP-0` | Siap |
+| 🟡 `BE-MDF-001` | Pendaftaran modul dan prefix `Mdf` ke registry | `MVP-0` | 🟡 Sebagian 26 Oktober 2026 — baris registry tertulis, menunggu commit pemilik: [laporan](../task/report/backend/BE-MDF-001.md) |
+| 🟡 `BE-MDF-002` | Entity daftar peran | `MVP-0` | 🟡 Sebagian 26 Oktober 2026 — source ada, build dan `T-01`..`T-06` belum dijalankan: [laporan](../task/report/backend/BE-MDF-002.md) |
 | `BE-MDF-005` | Entity kesepakatan tarif dan baris tarif | `MVP-0` | Siap |
 | `BE-MDF-007` | Entity periode, hasil jasa, rincian, koreksi, belum terhitung | `MVP-0` | Siap |
 | `BE-MDF-018` | Entity penyerahan ke Finance | `MVP-0` | Siap |
@@ -205,7 +205,7 @@ bisa selesai seluruhnya dan tetap tidak berguna sampai kesepakatan tarif terisi.
 |---:|---|
 | 1 | ~~Persetujuan owner atas `MDF-DES-001`..`018`~~ — **terpenuhi 20 September 2026** |
 | 2 | QBE preflight dan kesesuaian engineering diselesaikan **pada waktu eksekusi**, dari `AGENTS.md` backend target dan dokumen engineering kanonik |
-| 3 | `BE-MDF-001` selesai sebelum file model pertama ditulis (`QBE-MOD-002`) |
+| 3 | `BE-MDF-001` selesai sebelum file model pertama ditulis (`QBE-MOD-002`) — 🟡 sebagian 26 Oktober 2026, menunggu commit pemilik: [laporan](../task/report/backend/BE-MDF-001.md) |
 | 4 | Setiap migration meminta otorisasi terpisah untuk dibuat **dan** untuk dijalankan |
 | 5 | Implementasi dijalankan lewat `quilvian-engineering-skills:build-module-backend` |
 | 6 | Tidak ada kode untuk `MDF-07`, `MDF-11`, atau radiologi — ini kriteria selesai, bukan kelalaian |
