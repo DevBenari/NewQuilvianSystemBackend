@@ -2786,6 +2786,7 @@ Banner "Perhitungan cakupan tersimpan belum terbaru" dan tombol "Hitung Ulang Ca
 | Satu tombol | **Proses Pembayaran** tetap satu-satunya tombol. Urutan: (1) AR diperiksa terhadap preview Backend terbaru sebelum efek apa pun (tidak sah/tidak terbaca = tidak ada yang diproses); (2) deposit RANAP bila ada; (3) settlement + tender hanya untuk sisa − AR; (4) muat ulang; (5) kesiapan dinilai Backend DENGAN D; (6) finalisasi mengirim `employeeDeferredAmount = D` + persetujuan, satu kali, idempoten |
 | Hasil | AR disebut "diteruskan ke Finance" hanya setelah finalisasi berhasil, dengan catatan bahwa piutang baru tercatat setelah Finance memproses fakta masuknya. Finalisasi tertahan = draft dipertahankan; draft dibuang hanya setelah invoice FINAL/CLOSED |
 | Progress | Segmen tersendiri bergaris vertikal "AR Karyawan (penangguhan, belum tercatat)", terpisah dari terkonfirmasi, alokasi Benefit RS, dan draft pembayaran |
+| AR menutup seluruh sisa (`isArOnlyPlan`) | Tidak ada yang dibayar langsung, jadi: baris Metode Pembayaran kosong, "+ Tambah Metode Pembayaran", "Sisa Belum Dialokasikan", serta "Terkonfirmasi Rp0" dan "Total rencana" pada progress **tidak ditampilkan**; baris Tunai bawaan bernominal 0 diabaikan dan tidak menahan Proses Pembayaran. Menurunkan nominal AR atau mengisi baris menampilkan semuanya kembali |
 
 ## 2. Berkas
 
