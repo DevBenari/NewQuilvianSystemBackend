@@ -666,6 +666,12 @@ try
     // Patient Management — allocator nomor pasien normal beserta guard reservasi RSMMC (BE-PAT-MIG-003)
     builder.Services.AddScoped<PatientIdentifierAllocationService>();
 
+    // Patient Management — worker migrasi massal pasien RSMMC (BE-PAT-MIG-002), sementara, khusus Staging
+    builder.Services.AddSingleton(RsmmcBulkApprovedBatchProfile.Canonical);
+    builder.Services.AddSingleton(RsmmcBulkCanaryManifest.CanaryAV1);
+    builder.Services.AddScoped<IRsmmcBulkMigrationStore, RsmmcBulkMigrationStore>();
+    builder.Services.AddScoped<RsmmcBulkPatientMigrationService>();
+
     builder.Services.AddScoped<PrescriptionAggregateService>();
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
@@ -872,6 +878,8 @@ try
     builder.Services.AddScoped<ReferralMasterDataService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.EncounterReferralService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.ReferralDocumentStorageService>();
+    // rawat-jalan RJ-REG-REV-BE-007: General Consent pendaftaran Rawat Jalan pasien baru.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services.OutpatientGeneralConsentService>();
 
     // Pemeriksaan golongan darah Bank Darah — sumber sah golongan darah pasien (DEC-BD-015),
     // bukan MstPatient.BloodType. Service ini memegang deteksi perbedaan hasil (BD-XINV-04)

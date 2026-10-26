@@ -154,6 +154,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         public const string SafetyRequirementNotFound = "RAD_SAFETY_REQUIREMENT_NOT_FOUND";
         public const string ProcedureNotFound = "RAD_PROCEDURE_NOT_FOUND";
 
+        /// <summary>Pemeriksaan tidak punya tarif sah untuk kelas kunjungan — tidak dapat dibooking.</summary>
+        public const string TariffNotAvailable = "RAD_TARIFF_NOT_AVAILABLE";
+
+        /// <summary>Beberapa tarif sama spesifik dengan harga berbeda — konflik master tarif, tidak dapat dibooking.</summary>
+        public const string TariffAmbiguous = "RAD_TARIFF_AMBIGUOUS";
+
         /// <summary>Isian permintaan belum lengkap atau bentuknya salah.</summary>
         public const string ValidationFailed = "RAD_VALIDATION_FAILED";
 

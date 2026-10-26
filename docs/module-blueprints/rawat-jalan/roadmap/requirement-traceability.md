@@ -399,6 +399,7 @@ definisi task pada [registration-revision-roadmap.md](registration-revision-road
 | `RJ-REG-REV-012` redesign Data Rujukan | `RJ-REG-REV-FE-008` | ✅ `TESTED` / `UAT_PENDING` | [FE-008](../task/report/frontend/RJ-REG-REV-FE-008.md) |
 | `RJ-REG-REV-013` kartu jadwal penuh nonaktif (`RJ-REG-DEC-010`) | `RJ-REG-REV-BE-006`, `RJ-REG-REV-FE-009` | ✅ `TESTED` / `UAT_PENDING` | [BE-006](../task/report/backend/RJ-REG-REV-BE-006.md), [FE-009](../task/report/frontend/RJ-REG-REV-FE-009.md) |
 | `RJ-REG-REV-014` step Jenis Kunjungan (`RJ-REG-DEC-011`) | `RJ-REG-REV-FE-010` | ✅ `TESTED` / `UAT_PENDING` | [FE-010](../task/report/frontend/RJ-REG-REV-FE-010.md) |
+| `RJ-REG-REV-015` General Consent RJ seperti RI, khusus pasien baru (`RJ-REG-DEC-012`) | `RJ-REG-REV-BE-007`, `RJ-REG-REV-FE-011` | ✅ `TESTED` / `UAT_PENDING` `2026-10-23` — `BE-007` runtime 24/24, `FE-011` uji layar 26/26 (jalur Lab di UAT) | [BE-007](../task/report/backend/RJ-REG-REV-BE-007.md), [FE-011](../task/report/frontend/RJ-REG-REV-FE-011.md) |
 
 **Coverage gap:** uji `403` dengan akun tanpa izin (akun uji SuperAdmin), kamera dan scanner fisik, bentrok
 reschedule `409` (dicegah penjaga pendaftaran), notifikasi realtime WebSocket.
