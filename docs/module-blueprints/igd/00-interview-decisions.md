@@ -8215,3 +8215,34 @@ Rinciannya di [evidence/2026-10-26-perbaikan-baca-ulang-pengkajian-fe-igd-013.md
 | Register | **Tidak berubah** — 104 dari 122 aktif (85,2%). Kedua task tetap 🟡 karena sisanya milik pemilik dan data uji, bukan kode |
 | Berkas frontend | 3 disunting; nol komponen bersama, nol CSS |
 | Nomor yang dipakai | `IGD-FACT-232` |
+
+---
+
+### Tiga kejaran pemilik dikirim — 26 Oktober 2026 (petang)
+
+Langkah pertama menuju penutupan register: empat task yang menunggu orang lain adalah jalur kritis,
+dan tidak satu pun dapat dipercepat dengan bekerja lebih keras.
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-233` | **`IGD-OQ-117` dan `IGD-OQ-119` tidak pernah punya dokumen permintaan.** Keduanya dibuka 6 Oktober 2026 dan tercatat *menunggu pemilik* selama dua puluh hari, tetapi penelusuran `approval-requests/` menunjukkan nol berkas yang menyebut keduanya — yang ada hanya `IGD-REQ-001`…`006`, tidak satu pun untuk Laboratorium, Radiologi, maupun Gizi. Jadi dua puluh hari itu bukan menunggu jawaban melainkan **belum ada yang ditanya**. Diperbaiki pada pass ini lewat `IGD-REQ-007` dan `IGD-REQ-008` |
+| `IGD-FACT-234` | **`IGD-REQ-004` sudah disetujui Muhammad Hamzah pada 19 Oktober 2026** (rujukan `RWI-DEC-338`…`341`), sehingga dari Rawat Inap tinggal `IGD-REQ-003`. Catatan lama yang menulis *"jawaban REQ-003..006 belum"* karena itu tidak lagi akurat untuk `REQ-004` |
+| `IGD-FACT-235` | **Dua butir `IGD-REQ-003` yang menahan `BE-IGD-077` sudah selesai separuh: sisi IGD ada, pemanggil Rawat Inap nol.** Diperiksa terhadap source sesudah merge integration `56a19904` yang memuat kerja Rawat Inap sampai 25 Oktober. `EvaluasiPenutupanKunjunganSusulanAsync` ada di `EmergencyDispositionService.AdmissionRequest.cs:1547` dan `BatalkanFormPermintaanOlehPetugasAdmisiAsync` di `:1474`; keduanya **nol pemanggil** — `InpAdmissionTransferService` belum memanggil yang pertama, dan endpoint `POST /admission-transfers/{id}/reject` belum ada. Artinya yang dibutuhkan harfiah satu baris pemanggilan dan satu endpoint tipis, bukan desain baru |
+
+#### Dokumen yang terbit
+
+| ID | Penerima | Isi | Menahan |
+| --- | --- | --- | --- |
+| [`IGD-REQ-007`](approval-requests/2026-10-26-permintaan-pemilik-lab-radiologi-dokter-pemberi-instruksi-igd.md) | Yoga Aji Pratama (Radiologi) + pemilik Laboratorium | Tiga pertanyaan `IGD-OQ-117`: boleh tidaknya `InstructingDoctorId` diwajibkan pada pesanan ber-encounter IGD, siapa dokter yang sah, dan apakah verifikasinya memakai status rawat inap. Dikutip langsung dari `LabOrderDtos.cs:127`–`133` yang menyatakan *"Pesanan poliklinik dan IGD mengabaikannya"* | `BE-IGD-071`, `FE-IGD-058` |
+| [`IGD-REQ-008`](approval-requests/2026-10-26-permintaan-pemilik-gizi-konsultasi-gizi-pasien-igd.md) | Pemilik Gizi | Satu pertanyaan `IGD-OQ-119` yang jawabannya boleh sesingkat ya atau tidak, beserta akibat tiap jawaban — termasuk menutup `FE-IGD-053` sebagai dibatalkan bila jawabannya tidak | `FE-IGD-053` |
+| [tindak lanjut `IGD-REQ-003`](approval-requests/2026-10-26-tindak-lanjut-igd-req-003-rawat-inap.md) | Muhammad Hamzah | Bukan permintaan baru. Memuat keadaan terperiksa dua butir yang tersisa (`IGD-FACT-235`), bentuk pemanggilan dan endpoint-nya, serta permintaan **satu jadwal**; ditambah konfirmasi butir 3 dan 4 | `BE-IGD-077` acceptance 3–4 |
+
+Ketiganya **belum dikirim** — penyampaiannya milik pemilik, mengikuti pola `IGD-REQ-004`.
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | **Nol** |
+| Register | **Tidak berubah** — 104 dari 122 aktif (85,2%) |
+| Nomor yang dipakai | `IGD-FACT-233`…`235`; `IGD-REQ-007`, `IGD-REQ-008` |
