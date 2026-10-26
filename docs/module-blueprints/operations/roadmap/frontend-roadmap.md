@@ -26,8 +26,8 @@ FE-OPR-001 ✅ ─┬─> FE-OPR-002 ✅
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | Kontrak backend `BE-OPR-012` siap | `FE-OPR-012` (Visualisasi Kalender Grid Timeline Ruang OK Lantai 2) |
-| 1 | `FE-OPR-004` ✅ & Kontrak `BE-OPR-014` siap | `FE-OPR-013` (Form Pencatatan Kelahiran Bayi Intraoperatif SC) |
+| 1 | Kontrak backend `BE-OPR-012` siap | `FE-OPR-012` ✅ (Visualisasi Kalender Grid Timeline Ruang OK Lantai 2) |
+| 1 | `FE-OPR-004` ✅ & Kontrak `BE-OPR-014` siap | `FE-OPR-013` ✅ (Form Pencatatan Kelahiran Bayi Intraoperatif SC) |
 
 > **Status dimutakhirkan 15 Oktober 2026.** Kolom `Dependency` lama menandai seluruh task
 > `BLOCKED BY BE-OPR-00x`; kesebelas task backend itu kini **Selesai**, sehingga penandaan itu
@@ -47,8 +47,8 @@ FE-OPR-001 ✅ ─┬─> FE-OPR-002 ✅
 | `FE-OPR-009` | E2E dan hardening frontend | Semua | **SELESAI** | hardening 10 lulus; **E2E Playwright 11/11 lulus** 15 Okt — `testing/fe-acceptance-evidence.md` |
 | `FE-OPR-010` | Borang permintaan operasi baru | `OPS-REQ-001` | **SEDANG PROSES** | 4 AC lulus: pasien/kunjungan/dokter, urutan "pilih kunjungan dulu", indikasi klinis, kegagalan simpan. **AC-5 belum terpenuhi: nol penjaga hak akses** |
 | `FE-OPR-011` | Pemetaan depo sumber stok kamar operasi | `PHA-DEPOT-ROUTING-v1` | **SELESAI** | 4 AC: kamar operasi tidak menyimpan saldo sendiri, hasil simpan vs gagal dibedakan, kegagalan muat, gerbang hak akses |
-| `FE-OPR-012` | Visualisasi Kalender Grid Timeline Ruang OK Lantai 2 & Booking Slot | `OPS-DEC-038`, `OPS-DEC-039` | **RENCANA** | Timeline grid ruangan OK 1, OK 2, OK 3; blok buffer sterilisasi 45 menit abu-abu terkunci; modal booking saat klik area kosong |
-| `FE-OPR-013` | Form Pencatatan Kelahiran Bayi Intraoperatif SC | `OPS-DEC-042` | **RENCANA** | Modal input kelahiran bayi (Jam, BB, PB, Kelamin, APGAR 1/5/10) aktif saat status SC In Progress; banner konfirmasi MRN bayi |
+| `FE-OPR-012` | Visualisasi Kalender Grid Timeline Ruang OK Lantai 2 & Booking Slot | `OPS-DEC-038`, `OPS-DEC-039` | **SELESAI** | Timeline grid ruangan OK 1, OK 2, OK 3; blok buffer sterilisasi 45 menit abu-abu terkunci; modal booking saat klik area kosong. Unit test lulus 3/3 (`operating-room-timeline.test.mjs`). |
+| `FE-OPR-013` | Form Pencatatan Kelahiran Bayi Intraoperatif SC | `OPS-DEC-042` | **SELESAI** | Modal input kelahiran bayi (Jam, BB, PB, Kelamin, APGAR 1/5/10) aktif saat status SC In Progress; banner konfirmasi MRN bayi. Unit test lulus 3/3 (`operating-room-birth-event.test.mjs`). |
 
 Dua task terakhir ditambahkan 16 Oktober 2026. Register ini sebelumnya mencatat sembilan task
 frontend, padahal modul memiliki **sebelas area layar**; borang permintaan operasi dan pemetaan

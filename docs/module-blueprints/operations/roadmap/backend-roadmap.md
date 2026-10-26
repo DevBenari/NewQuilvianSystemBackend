@@ -22,7 +22,7 @@ BE-OPR-001 ✅ ─> BE-OPR-002 ✅ ─> BE-OPR-003 ✅ ─┬─> BE-OPR-004 ✅
 | ---: | --- | --- |
 | 1 | `BE-OPR-004` ✅ selesai | `BE-OPR-012` ✅ (Timeline Grid Ruang OK & Buffer Sterilisasi Otomatis) |
 | 2 | `BE-OPR-012` ✅ selesai | `BE-OPR-013` ✅ (Lookup Booking Pasien untuk Konsumsi Admisi Ranap) |
-| 1 | `BE-OPR-006` ✅ & `BE-OPR-009` ✅ selesai | `BE-OPR-014` (Alokasi Tri-Dokter Obgyn & Pencatatan Lahir SC) |
+| 1 | `BE-OPR-006` ✅ & `BE-OPR-009` ✅ selesai | `BE-OPR-014` ✅ (Alokasi Tri-Dokter Obgyn & Pencatatan Lahir SC) |
 
 ## Status per 28 September 2026
 
@@ -80,7 +80,7 @@ tidak satu pun berupa pekerjaan pembangunan modul Operasi yang tertinggal.
 | `BE-OPR-011` | Modul hardened dan siap diuji ujung-ke-ujung | Semua requirement | Permission matrix, audit, privacy, observability, full state/concurrency/idempotency regression | Semua task backend yang tidak blocked | Semua acceptance matrix relevan lulus; build bersih; dependency blocked dilaporkan | DoD: evidence report, migration execution tetap terpisah |
 | `BE-OPR-012` | **Selesai (✅)** | Engine Timeline Jadwal Ruang OK & Buffer Sterilisasi Otomatis (45 Menit) | `OPS-DEC-038`, `OPS-DEC-039` | Endpoint `GET /rooms/timeline` dan validasi jeda sterilisasi antar-operasi | `BE-OPR-004` ✅ | Query timeline tanggal mengembalikan slot Occupied, SterilizationBuffer, dan Available; jadwal baru pada slot buffer ditolak `409 Conflict`. Uji otomatis lulus 3/3 (OperatingRoomTimelineTests). | DoD: Controller + Service + DTO + Conformance Check |
 | `BE-OPR-013` | **Selesai (✅)** | Endpoint Lookup Booking Operasi Aktif untuk Admisi Rawat Inap | `OPS-DEC-040` | Endpoint `GET /schedules/lookup-by-patient` read-only | `BE-OPR-012` ✅ | Pasien dengan jadwal aktif mengembalikan detail ruangan, jam, DPJP Sp.OG/Sp.B, Anestesi, dan Anak; data tanpa jadwal mengembalikan respons aman. Unit test lulus (OperatingRoomTimelineTests). | DoD: Controller endpoint + Auth guard + Response DTO |
-| `BE-OPR-014` | Alokasi Tim Tri-Dokter Obgyn & Pencatatan Kelahiran Bayi Intraoperatif SC | `OPS-DEC-041`, `OPS-DEC-042` | Endpoint `POST /cases/{caseId}/execution/birth-event` dan outbox event `operating-room.birth-event.recorded` | `BE-OPR-006` ✅, `BE-OPR-009` ✅ | Input Jam lahir, BB, PB, dan APGAR 1/5/10 tersimpan di database dan outbox delivery tersimpan idempotent untuk Admisi Bayi Baru Lahir | DoD: Endpoint + Outbox Integration + Conformance Check |
+| `BE-OPR-014` | **Selesai (✅)** | Alokasi Tim Tri-Dokter Obgyn & Pencatatan Kelahiran Bayi Intraoperatif SC | `OPS-DEC-041`, `OPS-DEC-042` | Endpoint `POST /cases/{caseId}/execution/birth-event` dan outbox event `operating-room.birth-event.recorded` | `BE-OPR-006` ✅, `BE-OPR-009` ✅ | Input Jam lahir, BB, PB, dan APGAR 1/5/10 tersimpan di database dan outbox delivery tersimpan idempotent untuk Admisi Bayi Baru Lahir. Unit test lulus 3/3 (OperatingRoomBirthEventTests). | DoD: Endpoint + Outbox Integration + Conformance Check |
 
 Setiap task builder hanya boleh mengerjakan satu task ID dengan acceptance criteria dan write authority eksplisit.
 
