@@ -577,7 +577,7 @@ lanjut.
 | `FR-IGD-099` | Dokter menulis resep pada catatan dokter yang belum diselesaikan, dan resepnya terbaca di layar perawat (`IGD-DEC-220`) | `EXISTING / REUSE` |
 | `FR-IGD-100` | Tindakan dokter dicatat pada catatan dokter terbuka; tindakan keperawatan dicatat perawat dengan DPJP aktif sebagai dokter penanggung jawab; keduanya tersimpan sebagai tindakan klinis umum (`IGD-DEC-225`) | `EXISTING / REUSE` + `EXTEND` (endpoint keperawatan) |
 | `FR-IGD-101` | Dokter memesan laboratorium, radiologi, bank darah, hemodialisa, dan gizi dari satu tab, dan status serta hasil yang disediakan modulnya terbaca (`IGD-DEC-220`, `228`) | `EXISTING / REUSE` |
-| `FR-IGD-102` | Perawat memesan laboratorium dan radiologi atas instruksi lisan dengan memilih dokter pemberi instruksi; dokter itu memverifikasinya dari daftar *Perlu Verifikasi* (`IGD-DEC-224`) | `EXTEND` — menunggu `IGD-OQ-117` |
+| `FR-IGD-102` | Perawat memesan laboratorium dan radiologi atas instruksi lisan dengan memilih dokter pemberi instruksi; dokter itu memverifikasinya dari daftar *Perlu Verifikasi* (`IGD-DEC-224`) | `EXTEND` — dokter pemberi instruksi = DPJP IGD aktif atau dokter jaga IGD aktif (`IGD-DEC-362`…`365`, amandemen `0.21.0`). *Sebelumnya:* menunggu `IGD-OQ-117` |
 | `FR-IGD-103` | Tindak lanjut dibuat dan dikonfirmasi dari layar dokter; layar perawat hanya menawarkan *Jalankan* (`IGD-DEC-223`) | `EXTEND` |
 | `FR-IGD-104` | Tindak lanjut baru selalu draf, dan konfirmasinya ditolak bila pasien belum punya diagnosis (`IGD-DEC-226`, `IGD-CONF-11`) | `EXTEND` |
 | `FR-IGD-105` | Penyelesaian catatan dokter pasien IGD tidak mengirim fakta jasa konsultasi; fakta resep tetap dikirim (`IGD-DEC-229`) | `EXTEND` — Farmasi |
@@ -600,8 +600,10 @@ tersimpan) dijawab `FR-IGD-097`…`100`; `FR-IGD-064` (koreksi menambah baris) d
 | `AT-IGD-206` | Berhasil | Perawat mencatat *pemasangan infus* dari layar perawat | Tindakan tampil atas nama perawat sebagai pelaksana, DPJP sebagai dokter penanggung jawab, dan ikut di ringkasan tagihan |
 | `AT-IGD-207` | Gagal | Perawat mencatat tindakan untuk pasien tanpa DPJP; lalu untuk kunjungan yang sudah selesai | Keduanya ditolak dengan pesannya masing-masing; nol baris tercatat |
 | `AT-IGD-208` | Berhasil | Dokter memesan satu pemeriksaan untuk tiap jenis: lab, radiologi, darah, hemodialisa, gizi | Kelima pesanan tercatat di modulnya dan statusnya terbaca di tab Penunjang |
-| `AT-IGD-209` | Berhasil | Perawat memesan darah lengkap atas instruksi dr. Ani; dr. Ani membuka *Perlu Verifikasi* dan memverifikasinya | Pesanan menunggu verifikasi lalu terverifikasi atas nama dr. Ani — **sesudah `IGD-OQ-117`** |
-| `AT-IGD-210` | Gagal | Perawat memesan laboratorium tanpa memilih dokter pemberi instruksi | Ditolak dengan pesan meminta dokter dipilih — **sesudah `IGD-OQ-117`** |
+| `AT-IGD-209` | Berhasil | Perawat memesan darah lengkap atas instruksi dr. Ani; dr. Ani membuka *Perlu Verifikasi* dan memverifikasinya | Pesanan menunggu verifikasi lalu terverifikasi atas nama dr. Ani — **sesudah `BE-IGD-071`** (amandemen `0.21.0`); dr. Ani adalah DPJP IGD aktif atau dokter jaga IGD aktif |
+| `AT-IGD-210` | Gagal | Perawat memesan laboratorium tanpa memilih dokter pemberi instruksi | Ditolak dengan pesan meminta dokter dipilih — **sesudah `BE-IGD-071`** |
+| `AT-IGD-249` | Gagal (API) | Perawat mengirim pesanan lab dengan dokter pemberi instruksi yang bukan DPJP IGD maupun dokter jaga IGD aktif kunjungan itu (misalnya radiolog atau konsulen) | Ditolak dengan pesan bahwa dokter yang dipilih tidak sedang bertugas atas pasien ini; nol pesanan — amandemen `0.21.0` |
+| `AT-IGD-250` | Gagal lalu berhasil | Kunjungan tanpa DPJP dan tanpa dokter jaga aktif: layar perawat tidak menawarkan dokter; dokter ditetapkan sebagai DPJP; perawat memesan lagi; DPJP lalu dialihkan dan dokter pertama memverifikasi | Pilihan kosong dengan keterangan; sesudah DPJP ditetapkan pesanan tersimpan menunggu verifikasi; verifikasi tetap oleh dokter pertama — amandemen `0.21.0` |
 | `AT-IGD-211` | Gagal lalu berhasil | Dokter membuat tindak lanjut lalu mengonfirmasi tanpa diagnosis; tambah diagnosis; konfirmasi lagi | Konfirmasi pertama ditolak dan status tetap draf; konfirmasi kedua berhasil |
 | `AT-IGD-212` | Gagal (API) | Membuat tindak lanjut langsung berstatus *Confirmed* lewat API | Ditolak dengan pesan bahwa tindak lanjut baru selalu draf |
 | `AT-IGD-213` | Berhasil (layar perawat) | Perawat membuka tab Tindak Lanjut pada pasien yang tindak lanjutnya sudah dikonfirmasi dokter, lalu menjalankannya | Hanya tombol *Jalankan* yang tersedia; sesudah dijalankan, penutupan kunjungan mengikuti `AT-IGD-186` |
@@ -616,7 +618,7 @@ tersimpan) dijawab `FR-IGD-097`…`100`; `FR-IGD-064` (koreksi menambah baris) d
 | 4 | Catatan dokter terkunci sesudah selesai dan koreksinya lewat addendum | Uji `AT-IGD-203` |
 | 5 | Untuk pasien IGD, fakta resep terkirim dan fakta jasa konsultasi tidak | Uji `AT-IGD-204` beserta pembacaan fakta tagih |
 | 6 | Tindakan dokter dan perawat terbaca ringkasan tagihan pasien | Uji `AT-IGD-205`, `206` |
-| 7 | Layar perawat hanya menawarkan *Jalankan* pada tindak lanjut; tindakan keperawatan dapat dicatat; pesanan lab/radiologi atas instruksi bekerja | Uji `AT-IGD-213`, `206`; `AT-IGD-209`, `210` sesudah `IGD-OQ-117` |
+| 7 | Layar perawat hanya menawarkan *Jalankan* pada tindak lanjut; tindakan keperawatan dapat dicatat; pesanan lab/radiologi atas instruksi bekerja | Uji `AT-IGD-213`, `206`; `AT-IGD-209`, `210`, `249`, `250` sesudah `BE-IGD-071` (amandemen `0.21.0`) |
 | 8 | Nol migration dan nol perubahan `Program.cs` | `git diff --stat` |
 | 9 | Build backend 0 error; `eslint` dan `npm run build` frontend lulus | Keluaran build |
 | 10 | Konfigurasi lingkungan dicatat dan diterapkan: unit IGD berizin memesan darah, Akses Role peran Dokter dan Perawat IGD, `ActAsRadiologist` untuk radiolog, butir menu | Daftar periksa rilis (`IGD-UNK-13`…`15`) |
@@ -625,7 +627,7 @@ tersimpan) dijawab `FR-IGD-097`…`100`; `FR-IGD-064` (koreksi menambah baris) d
 
 | ID | Pertanyaan | Memblokir? |
 | --- | --- | :-: |
-| `IGD-OQ-117` | Perluasan aturan dokter pemberi instruksi pada Laboratorium dan Radiologi untuk pasien IGD | **Sebagian** — hanya `FR-IGD-102` (kartu kaki perawat ⛔ sampai terjawab); bagian lain tidak |
+| `IGD-OQ-117` | Perluasan aturan dokter pemberi instruksi pada Laboratorium dan Radiologi untuk pasien IGD | **Dijawab 27 Oktober 2026** (`IGD-DEC-360`; rumusan `IGD-DEC-362`…`365`, amandemen `0.21.0`) — tidak lagi memblokir. *Sebelumnya:* **Sebagian** — hanya `FR-IGD-102` (kartu kaki perawat ⛔ sampai terjawab); bagian lain tidak |
 | `IGD-OQ-118` | Verifikasi pesanan perawat untuk bank darah, hemodialisa, gizi | Tidak — perawat tidak memesan ketiganya pada slice ini |
 | `IGD-OQ-119` | Apakah tim Gizi melayani order gizi dari pasien IGD | **Sebagian** — hanya jenis gizi pada `FR-IGD-101` |
 | `IGD-UNK-12` | `ClinicId` kosong pada resep IGD di alur Farmasi hilir | Tidak — dibuktikan pada uji |

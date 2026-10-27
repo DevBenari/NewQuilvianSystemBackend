@@ -274,7 +274,8 @@ functional requirement, aturan kontrak, dan cara membuktikannya. Status `approve
 | `AT-IGD-205`, `206` | `FR-IGD-100` | API §10.6; validation §12 aturan 7–12 | JSON respons + ringkasan tagihan pasien | DPJP sudah ditetapkan |
 | `AT-IGD-207` | `FR-IGD-100` | Validation §12 aturan 8, 9 | JSON `409` | Pasien tanpa DPJP; satu kunjungan selesai |
 | `AT-IGD-208` | `FR-IGD-101` | API §10.8 | PNG tab Penunjang + JSON tiap modul | Unit IGD berizin memesan darah (`IGD-UNK-13`); `IGD-OQ-119` untuk gizi |
-| `AT-IGD-209`, `210` | `FR-IGD-102` | API §10.7; validation §12 aturan 13 | JSON + PNG *Perlu Verifikasi* | **`IGD-OQ-117`** |
+| `AT-IGD-209`, `210` | `FR-IGD-102` | API §10.7; validation §12 aturan 13 | JSON + PNG *Perlu Verifikasi* | `BE-IGD-071` dibangun; DPJP atau dokter jaga IGD tercatat (amandemen `0.21.0`). *Sebelumnya:* **`IGD-OQ-117`** |
+| `AT-IGD-249`, `250` | `FR-IGD-102` | API §10.7, §10.7a; validation §12.4 aturan 13a, 13c; state §10.2 | JSON `403`; PNG pilihan kosong; JSON verifikasi sesudah pengalihan DPJP | Dokter tanpa penugasan pada kunjungan; kunjungan tanpa DPJP dan dokter jaga; pengalihan DPJP |
 | `AT-IGD-211` | `FR-IGD-104` | API §10.3; validation §12 aturan 15; state §10.1 | JSON `409` lalu `200` + PNG modal konfirmasi | Pasien tanpa diagnosis |
 | `AT-IGD-212` | `FR-IGD-104` | Validation §12 aturan 14; state §10.1 | JSON `400` | Uji API |
 | `AT-IGD-213` | `FR-IGD-103` | Permission §9.1, §9.2 | PNG tab Tindak Lanjut layar perawat + regresi `AT-IGD-186` | Tindak lanjut terkonfirmasi |

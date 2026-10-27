@@ -105,3 +105,10 @@ spesialis di bidangnya, seperti dokter radiologi, dokter yang menangani MCU, pat
 **Akibat untuk IGD:** `IGD-OQ-117` dijawab (`IGD-DEC-360`). Butir 2 lebih sempit daripada desain yang terkunci
 (*dokter aktif*, validation `0.14.0` §12.4 aturan 13), sehingga `BE-IGD-071` dan `FE-IGD-058` belum dapat
 dikerjakan sebelum aturan itu diamandemen dalam bentuk yang dapat diperiksa backend (`IGD-OQ-144`).
+
+**Pemberitahuan untuk Yoga Aji Pratama — 27 Oktober 2026 (sore).** Pemilik IGD merumuskan *kewenangan klinis* untuk
+pasien IGD di dalam rentang butir 2 jawaban Anda (`IGD-DEC-362`…`365`): dokter pemberi instruksi yang sah adalah **DPJP IGD aktif
+atau dokter jaga IGD aktif** saat pesanan dibuat; dokter konsulen dan spesialis yang tidak ditugaskan pada kunjungan
+itu tidak dapat dipilih; bila tidak ada dokter yang sah, pesanan perawat ditolak dan dokter memesan sendiri;
+verifikasi tetap milik dokter yang dipilih walaupun DPJP dialihkan. Tafsiran *spesialis di bidangnya* di atas
+digantikan rumusan ini. Tidak ada perubahan pada alur Rawat Jalan, Rawat Inap, status verifikasi, atau tabel.

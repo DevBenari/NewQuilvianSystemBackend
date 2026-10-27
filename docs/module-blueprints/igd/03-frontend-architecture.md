@@ -547,7 +547,7 @@ pasien di samping, kartu pasien, dan tab kerja — diambil dari layar rawat inap
 | --- | --- | --- | --- |
 | `SCR-IGD-D01` | Ruang Kerja Dokter IGD — daftar pasien dan enam tab kerja | Dokter | **Baru** |
 | `SCR-IGD-D02` | Catatan Saya — draf dan catatan terkunci milik dokter, beserta addendum | Dokter | **Baru** (memakai ulang tampilan rawat inap) |
-| `SCR-IGD-D03` | Perlu Verifikasi — pesanan lab dan radiologi yang dibuat perawat atas instruksi dokter itu | Dokter | **Baru** — bergantung `IGD-OQ-117` |
+| `SCR-IGD-D03` | Perlu Verifikasi — pesanan lab dan radiologi yang dibuat perawat atas instruksi dokter itu | Dokter | **Baru** — bergantung `BE-IGD-071` (`IGD-OQ-117` dijawab `IGD-DEC-360`, amandemen `0.21.0`) |
 | `SCR-IGD-P01` | Pengkajian Pasien IGD (layar perawat) — tab Tindak Lanjut, Penunjang, Tindakan | Perawat | Sudah ada — **isi berubah** |
 
 ### 15.3 Peta butir menu
@@ -618,14 +618,14 @@ milik dokter yang sama; label asal pelayanan membedakannya.
 | Daftar | Pesanan lab dan radiologi pasien IGD yang dibuat perawat atas instruksi dokter ini dan belum diverifikasi | Worklist verifikasi lab dan radiologi | `LabOrder : Read`, `RadOrder : Read` | *"Tidak ada pesanan yang menunggu verifikasi Anda."* |
 | Verifikasi | Tombol verifikasi per baris | `PUT …/verify-instruction` | `LabOrder : Verify`, `RadOrder : Verify` | Penolakan modul tampil apa adanya |
 
-Layar ini baru diaktifkan sesudah `IGD-OQ-117` terjawab.
+Layar ini diaktifkan bersama `BE-IGD-071` sesudah amandemen `0.21.0`. *Sebelumnya:* baru diaktifkan sesudah `IGD-OQ-117` terjawab.
 
 #### D. `SCR-IGD-P01` — Pengkajian Pasien IGD (layar perawat): yang berubah
 
 | Tab | Sebelum | Sesudah | Dasar |
 | --- | --- | --- | --- |
 | Tindak Lanjut | *Simpan Draf*, *Konfirmasi*, *Jalankan*, *Batalkan* | Daftar tindak lanjut beserta statusnya; **hanya *Jalankan*** untuk tindak lanjut yang sudah dikonfirmasi | `IGD-DEC-223` |
-| Penunjang | Pesanan lab tanpa dokter pemberi instruksi | Pesan lab **dan radiologi** dengan **wajib memilih dokter pemberi instruksi**; daftar status kelima jenis penunjang (baca saja untuk bank darah, hemodialisa, gizi) | `IGD-DEC-224`; `IGD-OQ-117`, `118` |
+| Penunjang | Pesanan lab tanpa dokter pemberi instruksi | Pesan lab **dan radiologi** dengan **wajib memilih dokter pemberi instruksi**; daftar status kelima jenis penunjang (baca saja untuk bank darah, hemodialisa, gizi). **`0.21.0`:** pilihan dokter pemberi instruksi hanya memuat dokter yang sah dari `GET …/emergency-doctor-assignments/instructing-doctor-options` (DPJP IGD aktif dan dokter jaga IGD aktif); daftar kosong → keterangan *"Belum ada DPJP atau dokter jaga IGD aktif untuk kunjungan ini."* dan simpan tidak ditawarkan; penolakan `400`/`403` backend tampil apa adanya di tempat aksi; rupa pemilih `DEV_DISCRETION`. Hari ini layar mengisi DPJP aktif otomatis dan baca saja — berubah | `IGD-DEC-224`; `IGD-OQ-118`; `IGD-DEC-362`, `364`, `365`, `367` |
 | Tindakan | Membaca tabel tindakan IGD lama | Membaca tindakan klinis umum `?encounterId=` + formulir *Catat tindakan keperawatan* (`emergency-nursing-actions`); bila ada isi tabel lama, tampil di bagian *Riwayat tindakan lama* (baca saja) | `IGD-DEC-225` |
 | Resep, Asuhan Keperawatan, Transfer | — | Tidak berubah | — |
 
@@ -688,7 +688,7 @@ mengikuti layar dokter rawat inap dan komponen dasar yang sudah ada.
 
 Uji layar pada hasil build dengan akun peran nyata: dokter (`DOKTER`), perawat IGD (`dimas.kurniawan`, `IGD-DEC-215`),
 penerima. Skenario `AT-IGD-200`…`213` pada PRD §10.3. Bagian *Perlu Verifikasi* dan pesanan perawat atas instruksi baru
-dapat diuji sesudah `IGD-OQ-117`.
+dapat diuji sesudah `BE-IGD-071` dibangun (amandemen `0.21.0`; skenario tambahan `AT-IGD-249`, `250`).
 
 ## 16. Dokter jaga IGD dan override beralasan — 11 Oktober 2026 (**Rencana (belum tersedia)**)
 
