@@ -1295,8 +1295,7 @@ namespace QuilvianSystemBackend.Repositories
         #endregion MEDICAL CHECKUP MANAGEMENT
 
         #region MEDICAL FEE MANAGEMENT
-        // MF-BP-001, BE-MDF-002, BE-MDF-005, BE-MDF-007. Modul Medical Fee (registry Mdf / ACTIVE).
-        // Satu DbSet MdfFinanceHandoff berikutnya menyusul pada BE-MDF-018.
+        // MF-BP-001, BE-MDF-002, BE-MDF-005, BE-MDF-007, BE-MDF-018, BE-MDF-014. Modul Medical Fee (registry Mdf / ACTIVE).
         public DbSet<MstMedicalFeeRole> MstMedicalFeeRoles { get; set; }
         public DbSet<MdfSharingAgreement> MdfSharingAgreements { get; set; }
         public DbSet<MdfSharingRule> MdfSharingRules { get; set; }
@@ -1305,6 +1304,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MdfServiceFeeDetail> MdfServiceFeeDetails { get; set; }
         public DbSet<MdfServiceFeeAdjustment> MdfServiceFeeAdjustments { get; set; }
         public DbSet<MdfUnresolvedService> MdfUnresolvedServices { get; set; }
+        public DbSet<MdfFinanceHandoff> MdfFinanceHandoffs { get; set; }
         #endregion MEDICAL FEE MANAGEMENT
 
         #endregion HEALTH SERVICE

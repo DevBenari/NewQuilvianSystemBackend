@@ -203,7 +203,7 @@ atas keputusan yang sudah diambil:
 
 | ID | Yang perlu dikonfirmasi | Owner | Memblokir |
 |---|---|---|---|
-| ~~`MF-CQ-05`~~ | `MF-DEC-017` menuntut Billing menambahkan **field pelaksana** pada entri `ADHOC` dan `ADHOC_CATALOG`. Saat ini `BilInvoiceItem` dan kontrak charge `BIL-INTEGRATION-0.4` tidak punya field itu sama sekali. **DITUTUP 26 Oktober 2026** — owner Billing setuju (`BKC-DEC-171`, `172`, `178`); lihat bagian "Penutupan `MF-CQ-05` dan `MF-CQ-08`" | Billing Owner | Tidak lagi menahan `DESIGN`. `IMPLEMENTATION` `BE-MDF-015` masih menunggu kolom Billing (`BE-BKC-089` ⛔ otorisasi migration, `BE-BKC-091`) |
+| ~~`MF-CQ-05`~~ | `MF-DEC-017` menuntut Billing menambahkan **field pelaksana** pada entri `ADHOC` dan `ADHOC_CATALOG`. Saat ini `BilInvoiceItem` dan kontrak charge `BIL-INTEGRATION-0.4` tidak punya field itu sama sekali. **DITUTUP 26 Oktober 2026** — owner Billing setuju (`BKC-DEC-171`, `172`, `178`); lihat bagian "Penutupan `MF-CQ-05` dan `MF-CQ-08`" | Billing Owner | Tidak lagi menahan `DESIGN`. `IMPLEMENTATION` `BE-MDF-015` masih menunggu `BE-BKC-091` (⛔ `{OTORISASI-MIG-3}`); `BE-BKC-089` ✅ berkas migration ada, belum dijalankan ke database |
 | `MF-CQ-06` | `MF-DEC-012` membuat tarif sharing menunjuk `WfpContractHistory` milik HR. HR perlu mengetahui bahwa datanya kini menjadi rujukan perhitungan penghasilan, sehingga perubahan status kontrak berdampak langsung pada jasa. | HR Owner | `DESIGN` untuk `MF-SC-007` — perlu sepengetahuan, bukan persetujuan atas bentuk internal Medical Fee |
 | `MF-CQ-07` | `MF-DEC-003` menuntut tindakan klinis dan laboratorium menambahkan pencatatan **tim beserta peran**, mengikuti daftar `MF-DEC-016`. Saat ini keduanya hanya menyimpan satu orang tanpa peran. | Owner Clinical + Laboratory | `DESIGN` untuk pembagian tim di luar operasi — rumpun operasi tetap dapat berjalan |
 | ~~`MF-CQ-08`~~ | **DITUTUP 26 Oktober 2026** — owner Billing memilih bentuk A, diwujudkan sebagai port in-process (`BKC-DEC-168`..`170`, `175`, `177`; `BKC-DES-093`); lihat bagian "Penutupan `MF-CQ-05` dan `MF-CQ-08`". Teks asli: **Dibuka 20 September 2026 saat gerbang `/design-business-module` diperiksa; sebelumnya terlewat.** `MF-DEC-001` memindahkan sumber kebenaran `BilInvoiceItem.DoctorShare` dari ketikan petugas Billing menjadi hasil perhitungan Medical Fee. Keputusan itu bertanda "butuh konfirmasi owner Billing" sejak Scope pass, tetapi **tidak pernah diberi closure question**, sehingga tidak muncul di daftar yang perlu dikonfirmasi. Ini perubahan **terbesar** yang dituntut modul ini pada Billing — lebih luas dari `MF-CQ-05`, karena menyentuh seluruh layanan, bukan hanya entri bebas kasir. | Billing Owner | Tidak lagi menahan `DESIGN`. Port Billing sudah tersedia (`BE-BKC-090` ✅), sehingga `BE-MDF-016` dapat dikerjakan; bukti ujung-ke-ujung menunggu `BE-BKC-092`. *(Sebelum ditutup: `DESIGN` untuk seluruh jalur nilai jasa.)* |
@@ -232,7 +232,7 @@ keseluruhan**:
 | Aturan tarif sharing dan perhitungan | Ya | `MF-CQ-06` hanya perlu sepengetahuan HR, bukan persetujuan bentuk |
 | Jasa dari layanan operasi | Ya | — data pelaksananya sudah lengkap |
 | Jasa dari tindakan klinis dan laboratorium | Sebagian | `MF-CQ-07` untuk pencatatan tim; perhitungan satu pelaksana sudah dapat dirancang |
-| Jasa dari entri bebas kasir | Ya *(sejak 26 Oktober 2026)* | ~~`MF-CQ-05`~~ ditutup; implementasi menunggu kolom Billing `BE-BKC-089`/`091` |
+| Jasa dari entri bebas kasir | Ya *(sejak 26 Oktober 2026)* | ~~`MF-CQ-05`~~ ditutup; implementasi menunggu `BE-BKC-091` (⛔ `{OTORISASI-MIG-3}`); `BE-BKC-089` ✅ berkas migration ada, belum dijalankan ke database |
 | Jasa dari radiologi | Tidak | Sengaja ditunda (`MF-DEC-015`) |
 | Verifikasi, persetujuan, periode, penyerahan ke Finance | Ya | — |
 
@@ -283,11 +283,12 @@ Akibat bagi Medical Fee:
 | Kolom tambahan | `PerformerType` (di luar dua bidang yang diminta `evidence/01` §3.2), karena sumber memakai identitas berbeda |
 | Baris tidak berjasa | Bukan layanan berjasa; **tidak** dicatat `PERFORMER_MISSING`. `MDF-INTEGRATION-1.0` §5 ("seluruh entri jatuh ke `PERFORMER_MISSING`") perlu disesuaikan |
 | Entri `ADHOC` tanpa tarif | `DoctorShare` selalu nol di Billing; perlakuan saat periode diputuskan Medical Fee (`BKC-OQ-150`) |
-| Implementasi `BE-MDF-015` | Menunggu `BE-BKC-089` (⛔ otorisasi migration) dan `BE-BKC-091` |
+| Implementasi `BE-MDF-015` | Menunggu `BE-BKC-091` (⛔ `{OTORISASI-MIG-3}`); `BE-BKC-089` ✅ berkas migration ada, belum dijalankan ke database |
 
-### Yang belum diperbarui karena di luar permintaan ini
+### Status penyelarasan dokumen (diperbarui 27 Oktober 2026)
 
-`contracts/integration-contract.md` §4–5 (masih `OPEN DECISION`), `blueprint-manifest.md`, `04-prd-to-mvp.md` (`MDF-07`, `MDF-11`),
-`02-backend-architecture.md`, `03-frontend-architecture.md`, dan roadmap (`BE-MDF-015`, `BE-MDF-016` masih `BLOCKED`).
-Rujukan `BIL-INTEGRATION-0.4` pada berkas Medical Fee perlu dikoreksi menjadi `BIL-INTEGRATION-1.9`.
+Sudah diselaraskan (hanya status dan rujukan, desain tidak ditulis ulang): `blueprint-manifest.md`, `04-prd-to-mvp.md` (`MDF-07`, `MDF-11`),
+`02-backend-architecture.md`, `03-frontend-architecture.md`, dan roadmap.
+**Selesai 27 Oktober 2026**: `contracts/integration-contract.md` §4–5 ditulis ulang sebagai `MDF-INTEGRATION-1.1` lalu dikunci owner Medical Fee; `MF-OQ-012` diputuskan pilihan A; roadmap revisi 5 menjadwalkan `BE-MDF-015`/`016` sebagai `POST-MVP`, siap setelah `BE-MDF-010`.
+Rujukan `BIL-INTEGRATION-0.4` yang masih tersisa di kepala `integration-contract.md` dikoreksi menjadi `BIL-INTEGRATION-1.9` bersama penulisan ulang kontrak itu; di `blueprint-manifest.md` ia sudah dicatat sebagai riwayat.
 

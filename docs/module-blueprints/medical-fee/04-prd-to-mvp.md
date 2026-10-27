@@ -48,14 +48,14 @@ terlihat, alih-alih hilang.
 | `MDF-04` | Periode dan perhitungan dari kamar operasi | Siap | — |
 | `MDF-05` | Perhitungan dari tindakan klinis dan laboratorium | **Sebagian** | Pelaksana tunggal siap; pembagian tim menunggu `MF-CQ-07` |
 | `MDF-06` | Daftar layanan yang belum dapat dihitung | Siap | — |
-| `MDF-07` | Jasa dari entri bebas kasir | **`OPEN DECISION`** — Billing sudah menjawab (`MF-CQ-05` ditutup 26 Oktober 2026); menunggu penguncian permukaan oleh owner dan kolom Billing | Kolom Billing `BE-BKC-089`/`091` |
+| `MDF-07` | Jasa dari entri bebas kasir | **Siap — `POST-MVP`** *(dulu `OPEN DECISION`)*. Permukaan terkunci `MDF-INTEGRATION-1.1` §5, 27 Oktober 2026; `MF-OQ-012` diputuskan pilihan A | `BE-MDF-010`. Verifikasi data nyata: `BE-BKC-091` (⛔ `{OTORISASI-MIG-3}`); kolom oleh `BE-BKC-089` ✅ belum dijalankan ke database |
 | `MDF-08` | Verifikasi, persetujuan, dan penutupan periode | Siap | — |
 | `MDF-09` | Koreksi berjenjang | Siap | — |
 | `MDF-10` | Penyerahan ke Finance | Siap | — |
-| `MDF-11` | Alir nilai jasa ke `DoctorShare` | **`OPEN DECISION`** — Billing sudah menjawab (`MF-CQ-08` ditutup 26 Oktober 2026); bentuk menjadi port in-process; menunggu penguncian permukaan oleh owner | `BE-MDF-014` |
+| `MDF-11` | Alir nilai jasa ke `DoctorShare` | **Siap — `POST-MVP`** *(dulu `OPEN DECISION`)*. Port in-process, terkunci `MDF-INTEGRATION-1.1` §4, 27 Oktober 2026 | `BE-MDF-010` *(dulu ditulis `BE-MDF-014`; resolver tidak membaca tabel penyerahan)* |
 | `MDF-12` | Tenaga medis melihat jasanya sendiri | Siap | — |
 
-Dua epic `OPEN DECISION` MUST NOT masuk gelombang pengerjaan mana pun sebelum jawabannya turun.
+Dua epic `OPEN DECISION` MUST NOT masuk gelombang pengerjaan mana pun sebelum jawabannya turun. *(Pembaruan 27 Oktober 2026: jawaban Billing turun 26 Oktober 2026, dan permukaan `contracts/integration-contract.md` §4–5 dikunci owner Medical Fee 27 Oktober 2026 sebagai `MDF-INTEGRATION-1.1`. `MDF-07` dan `MDF-11` karena itu bukan lagi `OPEN DECISION` dan masuk gelombang `POST-MVP`. Batas rilis pertama pada bagian 2 tidak berubah.)*
 
 ## 4. Gelombang pengerjaan
 
@@ -67,7 +67,8 @@ Dua epic `OPEN DECISION` MUST NOT masuk gelombang pengerjaan mana pun sebelum ja
 | **MVP-3 — Persetujuan** | `MDF-08`, `MDF-09` | Periode dapat diverifikasi, disetujui, dan ditutup dengan pemisahan wewenang; koreksi berjalan |
 | **MVP-4 — Penyerahan** | `MDF-10` | Hasil jasa yang disetujui terbaca Finance dan di-ACK |
 | **MVP-5 — Keterbukaan** | `MDF-12` | Tenaga medis melihat jasanya sendiri beserta rinciannya |
-| **Tertahan** | `MDF-07`, `MDF-11`, sisa `MDF-05` | `MF-CQ-05` dan `MF-CQ-08` sudah dijawab Billing; `MDF-07`/`MDF-11` menunggu penguncian permukaan dan dependency teknis. `MDF-05` menunggu `MF-CQ-07` |
+| **POST-MVP — Integrasi Billing** | `MDF-07`, `MDF-11` | Billing menerima persentase jasa lewat port dan menulis bagian dokter; entri kasir berjasa terhitung pada periode dengan pelaksana dan perannya. Boleh dikerjakan setelah `MVP-2` |
+| **Tertahan** | sisa `MDF-05` | `MDF-05` (pembagian tim di luar kamar operasi) menunggu `MF-CQ-07` |
 
 MVP-0 MUST selesai lebih dulu — tanpa pendaftaran registry, file model pertama pun tidak boleh
 ditulis (`MDF-DES-002`).
@@ -208,7 +209,7 @@ adalah kegagalan, bukan kelebihan — jawabannya bisa membatalkan bentuk yang di
 
 | Risiko | Dampak | Mitigasi |
 |---|---|---|
-| `MF-CQ-08` dijawab dengan bentuk selain rekomendasi | `MDF-11` dirancang ulang | Epic itu sudah dikeluarkan dari seluruh gelombang |
+| `MF-CQ-08` dijawab dengan bentuk selain rekomendasi | `MDF-11` dirancang ulang | Epic itu sudah dikeluarkan dari seluruh gelombang. *(26 Oktober 2026: dijawab bentuk A sesuai rekomendasi, tetapi sebagai port in-process, bukan endpoint HTTP; yang perlu ditulis ulang hanya §4 kontrak integrasi)* |
 | Dokter tamu tidak punya `WfpContractHistory` | Kelompok yang tarifnya paling beragam tidak dapat dihitung | Pertanyaan sudah dikirim ke owner HR; jawabannya menentukan apakah `MdfSharingAgreement` perlu jalur tanpa kontrak |
 | Kesepakatan tarif ±220 orang belum terisi saat modul aktif | Seluruh layanan jatuh ke `RULE_MISSING` | Pengisian dijadikan pekerjaan terjadwal, bukan efek samping MVP-1 |
 | Daftar belum terhitung terlalu panjang di bulan pertama | Periode tidak dapat ditutup | Pengesampingan bercatatan tersedia, dan justru untuk inilah ia ada |

@@ -22,9 +22,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Ser
 /// tetap lewat <see cref="FinanceReceivableInvoiceBatchService"/>. Satu query dasar dipakai untuk daftar dan
 /// ringkasan, sehingga angka ringkasan selalu mengikuti saringan yang sama dengan tabel.
 ///
-/// Pemetaan kategori: company → PAYER, generalPatient → PATIENT_GUARANTOR, employee → EMPLOYEE_BENEFIT.
-/// "Sudah Dibuat" = piutang menjadi anggota Batch Tagihan yang belum CANCELLED (predikat yang sama dengan
-/// <see cref="FinanceReceivableInvoiceBatchService.GetEligibleReceivablesAsync"/>).
+/// Dulu membaca daftar ini juga menyinkronkan dan mengolah fakta AR dari Billing menjadi piutang (efek samping pada
+/// GET, termasuk untuk pengguna dengan hak Read saja, dengan <c>catch</c> kosong). Itu dicabut: pemrosesan kini hanya
+/// lewat POST billing-intake/sync dan POST billing-intake/process-pending-ar (hak Sync / Process). Respons memuat
+/// <see cref="BillingDataPagedResponse.PendingFacts"/> — hitungan baca-saja — supaya fakta yang belum menjadi piutang
+/// tetap terlihat dan punya jalur pemrosesan.
+///
+/// Pemetaan kategori: company → PAYER pihak luar, internalBenefit → PAYER IsInternalBenefit, generalPatient →
+/// PATIENT_GUARANTOR, employee → EMPLOYEE_BENEFIT.
+/// "Sudah Dibuat" (billingStatus) = piutang menjadi anggota Batch Tagihan yang belum CANCELLED (predikat yang sama dengan
+/// <see cref="FinanceReceivableInvoiceBatchService.GetEligibleReceivablesAsync"/>) dan hanya bermakna untuk company.
+/// Kategori lain memakai <c>resolutionStatus</c>: status penutupan benefit / perjanjian angsuran dari data sumbernya.
 /// </summary>
 public sealed class FinanceReceivableBillingDataService
 {
@@ -41,11 +49,8 @@ public sealed class FinanceReceivableBillingDataService
 
     public async Task<BillingDataPagedResponse> GetAsync(
         BillingDataQuery request,
-        CancellationToken cancellationToken,
-        Guid? actorUserId = null)
+        CancellationToken cancellationToken)
     {
-        await EnsurePendingArHandoffsProcessedAsync(actorUserId ?? Guid.Empty, cancellationToken);
-
         var filter = ResolveFilter(request);
         var entityName = await ResolveEntityNameAsync(filter, cancellationToken);
 
@@ -81,7 +86,9 @@ public sealed class FinanceReceivableBillingDataService
                 EntityName = entityName,
                 PeriodLabel = filter.PeriodLabel
             },
-            Notice = total == 0 ? EmptyStateNotice(filter.Category) : null
+            Notice = total == 0 ? EmptyStateNotice(filter.Category) : null,
+            // Hitungan baca-saja; TIDAK memproses apa pun.
+            PendingFacts = await _intakeService.GetPendingArFactsAsync(cancellationToken)
         };
     }
 
@@ -146,57 +153,6 @@ public sealed class FinanceReceivableBillingDataService
             .ThenBy(x => x.Kind, StringComparer.Ordinal)
             .Take(limit)
             .ToList();
-    }
-
-    /// <summary>
-    /// Memastikan seluruh fakta serah terima AR (BilArHandoff) yang masih berstatus CREATED
-    /// atau fakta intake AR yang masih NEW segera disinkronkan dan diolah menjadi piutang
-    /// (FinReceivable), sehingga tagihan asuransi dari pasien yang sudah lunas kasir
-    /// otomatis tampil pada Data Tagihan A/R.
-    /// </summary>
-    private async Task EnsurePendingArHandoffsProcessedAsync(Guid actorUserId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var hasPendingHandoffs = await _dbContext.BilArHandoffs
-                .AnyAsync(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created, cancellationToken);
-
-            var hasPendingIntakes = await _dbContext.FinBillingHandoffIntakes
-                .AnyAsync(x => !x.IsDelete
-                    && x.HandoffType == FinBillingHandoffTypes.Ar
-                    && x.Status == FinBillingHandoffIntakeStatuses.New, cancellationToken);
-
-            if (hasPendingHandoffs || hasPendingIntakes)
-            {
-                if (hasPendingHandoffs)
-                {
-                    await _intakeService.SyncNewFactsAsync(actorUserId, cancellationToken);
-                }
-
-                var pendingArIntakeIds = await _dbContext.FinBillingHandoffIntakes
-                    .Where(x => !x.IsDelete
-                        && x.HandoffType == FinBillingHandoffTypes.Ar
-                        && x.Status == FinBillingHandoffIntakeStatuses.New)
-                    .Select(x => x.Id)
-                    .ToListAsync(cancellationToken);
-
-                foreach (var intakeId in pendingArIntakeIds)
-                {
-                    try
-                    {
-                        await _intakeService.ProcessAsync(intakeId, actorUserId, cancellationToken);
-                    }
-                    catch
-                    {
-                        // Lanjutkan jika ada intake tertentu yang gagal agar tidak menghambat fakta lainnya
-                    }
-                }
-            }
-        }
-        catch
-        {
-            // Kegagalan sinkronisasi otomatis tidak boleh menggagalkan pembacaan data jika database sedang sibuk
-        }
     }
 
     // ------------------------------------------------------------------------------------
@@ -277,6 +233,7 @@ public sealed class FinanceReceivableBillingDataService
 
         rows = ApplyEntity(rows, filter);
         rows = ApplyBillingStatus(rows, filter, activeBatchedIds);
+        rows = ApplyResolutionStatus(rows, filter);
         rows = ApplyPatientType(rows, filter);
         rows = ApplyDateRange(rows, filter);
         rows = ApplySearch(rows, filter);
@@ -310,6 +267,49 @@ public sealed class FinanceReceivableBillingDataService
             BillingDataStatuses.NotCreated => rows.Where(x => !activeBatchedIds.Contains(x.Receivable.Id)),
             _ => rows
         };
+
+    // Status penyelesaian menurut DATA SUMBER. Urutan prioritas sama dengan penentuan ResolutionStatus pada respons
+    // (ResolveResolutionStatus): piutang Lunas mengalahkan segalanya; untuk Karyawan, perjanjian DISETUJUI mengalahkan MENUNGGU.
+    // Perjanjian DITOLAK / DIBATALKAN dan Penutupan Benefit DIBATALKAN tidak dihitung: kembali ke "belum ada".
+    private IQueryable<BillingDataRow> ApplyResolutionStatus(IQueryable<BillingDataRow> rows, BillingDataFilter filter)
+    {
+        if (filter.ResolutionStatus == BillingDataResolutionStatuses.All) return rows;
+
+        var settledStatus = FinReceivableStatuses.Settled;
+        var draftSettlementReceivableIds = _dbContext.FinBenefitSettlementItems
+            .Where(i => !i.IsDelete
+                && i.Settlement != null
+                && !i.Settlement.IsDelete
+                && i.Settlement.Status == FinBenefitSettlementStatuses.Draf)
+            .Select(i => i.ReceivableId);
+        var approvedPlanReceivableIds = _dbContext.FinReceivableInstallmentPlans
+            .Where(p => !p.IsDelete && p.Status == FinReceivableInstallmentPlanStatuses.Disetujui)
+            .Select(p => p.ReceivableId);
+        var pendingPlanReceivableIds = _dbContext.FinReceivableInstallmentPlans
+            .Where(p => !p.IsDelete && p.Status == FinReceivableInstallmentPlanStatuses.Menunggu)
+            .Select(p => p.ReceivableId);
+
+        return filter.ResolutionStatus switch
+        {
+            BillingDataResolutionStatuses.Settled or BillingDataResolutionStatuses.Paid =>
+                rows.Where(x => x.Receivable.Status == settledStatus),
+            BillingDataResolutionStatuses.SettlementDraft =>
+                rows.Where(x => x.Receivable.Status != settledStatus && draftSettlementReceivableIds.Contains(x.Receivable.Id)),
+            BillingDataResolutionStatuses.AwaitingSettlement =>
+                rows.Where(x => x.Receivable.Status != settledStatus && !draftSettlementReceivableIds.Contains(x.Receivable.Id)),
+            BillingDataResolutionStatuses.PlanApproved =>
+                rows.Where(x => x.Receivable.Status != settledStatus && approvedPlanReceivableIds.Contains(x.Receivable.Id)),
+            BillingDataResolutionStatuses.PlanPending =>
+                rows.Where(x => x.Receivable.Status != settledStatus
+                    && pendingPlanReceivableIds.Contains(x.Receivable.Id)
+                    && !approvedPlanReceivableIds.Contains(x.Receivable.Id)),
+            BillingDataResolutionStatuses.NoPlan =>
+                rows.Where(x => x.Receivable.Status != settledStatus
+                    && !pendingPlanReceivableIds.Contains(x.Receivable.Id)
+                    && !approvedPlanReceivableIds.Contains(x.Receivable.Id)),
+            _ => rows
+        };
+    }
 
     private static IQueryable<BillingDataRow> ApplyPatientType(IQueryable<BillingDataRow> rows, BillingDataFilter filter)
     {
@@ -459,9 +459,67 @@ public sealed class FinanceReceivableBillingDataService
                 .Select(x => (x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId)),
             cancellationToken);
 
+        // Status penyelesaian dari DATA SUMBER, dimuat sekali untuk seluruh halaman (tanpa N+1) dan hanya untuk jenis
+        // piutang yang relevan: Penutupan Benefit untuk Benefit RS Internal, perjanjian angsuran untuk Karyawan.
+        var benefitReceivableIds = page.Where(x => x.IsInternalBenefit).Select(x => x.ReceivableId).Distinct().ToList();
+        var settlementByReceivable = new Dictionary<Guid, (Guid SettlementId, string Number, string Status)>();
+        if (benefitReceivableIds.Count > 0)
+        {
+            var settlementRows = await _dbContext.FinBenefitSettlementItems.AsNoTracking()
+                .Where(i => !i.IsDelete
+                    && benefitReceivableIds.Contains(i.ReceivableId)
+                    && i.Settlement != null
+                    && !i.Settlement.IsDelete
+                    && i.Settlement.Status != FinBenefitSettlementStatuses.Dibatalkan)
+                .Select(i => new
+                {
+                    i.ReceivableId,
+                    i.SettlementId,
+                    i.Settlement!.SettlementNumber,
+                    i.Settlement.Status
+                })
+                .ToListAsync(cancellationToken);
+
+            // Satu piutang paling banyak masuk satu Penutupan yang tidak dibatalkan (ditegakkan service penutupan);
+            // bila data menyimpang, yang DITERBITKAN didahulukan atas DRAF.
+            foreach (var row in settlementRows
+                         .OrderBy(r => r.Status == FinBenefitSettlementStatuses.Diterbitkan ? 0 : 1))
+            {
+                settlementByReceivable.TryAdd(row.ReceivableId, (row.SettlementId, row.SettlementNumber, row.Status));
+            }
+        }
+
+        var employeeReceivableIds = page
+            .Where(x => x.DebtorType == FinReceivableDebtorTypes.EmployeeBenefit)
+            .Select(x => x.ReceivableId).Distinct().ToList();
+        var planByReceivable = new Dictionary<Guid, (Guid PlanId, string Number, string Status)>();
+        if (employeeReceivableIds.Count > 0)
+        {
+            var planRows = await _dbContext.FinReceivableInstallmentPlans.AsNoTracking()
+                .Where(p => !p.IsDelete
+                    && employeeReceivableIds.Contains(p.ReceivableId)
+                    && (p.Status == FinReceivableInstallmentPlanStatuses.Menunggu
+                        || p.Status == FinReceivableInstallmentPlanStatuses.Disetujui
+                        || p.Status == FinReceivableInstallmentPlanStatuses.Selesai))
+                .Select(p => new { p.ReceivableId, p.Id, p.PlanNumber, p.Status, p.RequestedAt })
+                .ToListAsync(cancellationToken);
+
+            // DISETUJUI mengalahkan MENUNGGU, lalu SELESAI; sesama status, yang terbaru.
+            foreach (var row in planRows
+                         .OrderBy(r => PlanPriority(r.Status))
+                         .ThenByDescending(r => r.RequestedAt))
+            {
+                planByReceivable.TryAdd(row.ReceivableId, (row.Id, row.PlanNumber, row.Status));
+            }
+        }
+
         return page.Select(x =>
         {
             var owner = ownerLookup.Find(x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId);
+            settlementByReceivable.TryGetValue(x.ReceivableId, out var settlement);
+            planByReceivable.TryGetValue(x.ReceivableId, out var plan);
+            var hasSettlement = settlementByReceivable.ContainsKey(x.ReceivableId);
+            var hasPlan = planByReceivable.ContainsKey(x.ReceivableId);
             var billingDate = x.EncounterDate.HasValue
                 ? new DateTimeOffset(DateTime.SpecifyKind(x.EncounterDate.Value, DateTimeKind.Utc))
                 : x.RecognizedAt;
@@ -514,6 +572,22 @@ public sealed class FinanceReceivableBillingDataService
                 BillingAmount = x.BillingAmount,
                 ReceivableStatus = x.ReceivableStatus,
                 BillingStatus = x.ActiveBatchId.HasValue ? BillingDataStatuses.Created : BillingDataStatuses.NotCreated,
+                // "Belum Dibuat/Sudah Dibuat" hanya bermakna untuk PAYER pihak luar. Kategori lain punya jalur penyelesaian sendiri.
+                BillingStatusApplicable = x.DebtorType == FinReceivableDebtorTypes.Payer && !x.IsInternalBenefit,
+                ResolutionStatus = ResolveResolutionStatus(
+                    x.DebtorType, x.IsInternalBenefit, x.ReceivableStatus, x.ActiveBatchId.HasValue,
+                    hasSettlement ? settlement.Status : null, hasPlan ? plan.Status : null),
+                RecognizedAt = x.RecognizedAt,
+                SettlementId = hasSettlement ? settlement.SettlementId : null,
+                SettlementNumber = hasSettlement ? settlement.Number : null,
+                SettlementStatus = hasSettlement ? settlement.Status : null,
+                // Batas bulan UTC, sama dengan FinanceBenefitSettlementService.ParsePeriod. Jangan diganti WIB atau tanggal invoice.
+                SettlementPeriodCode = x.IsInternalBenefit
+                    ? x.RecognizedAt.UtcDateTime.ToString("yyyy-MM", CultureInfo.InvariantCulture)
+                    : null,
+                InstallmentPlanId = hasPlan ? plan.PlanId : null,
+                InstallmentPlanNumber = hasPlan ? plan.Number : null,
+                InstallmentPlanStatus = hasPlan ? plan.Status : null,
                 InvoiceBatchId = x.ActiveBatchId,
                 InvoiceBatchNumber = x.ActiveBatchNumber,
                 InvoiceBatchStatus = x.ActiveBatchStatus,
@@ -521,6 +595,42 @@ public sealed class FinanceReceivableBillingDataService
                 CreateBlockedReason = blockedReason
             };
         }).ToList();
+    }
+
+    private static int PlanPriority(string status) => status switch
+    {
+        FinReceivableInstallmentPlanStatuses.Disetujui => 0,
+        FinReceivableInstallmentPlanStatuses.Menunggu => 1,
+        _ => 2
+    };
+
+    // Status penyelesaian menurut data sumber. Urutan prioritasnya HARUS sama dengan ApplyResolutionStatus (saringan).
+    private static string ResolveResolutionStatus(
+        string debtorType, bool isInternalBenefit, string receivableStatus, bool inActiveBatch,
+        string? settlementStatus, string? planStatus)
+    {
+        var settled = receivableStatus == FinReceivableStatuses.Settled;
+
+        if (debtorType == FinReceivableDebtorTypes.EmployeeBenefit)
+        {
+            if (settled) return BillingDataResolutionStatuses.Paid;
+            if (planStatus == FinReceivableInstallmentPlanStatuses.Disetujui) return BillingDataResolutionStatuses.PlanApproved;
+            if (planStatus == FinReceivableInstallmentPlanStatuses.Menunggu) return BillingDataResolutionStatuses.PlanPending;
+            return BillingDataResolutionStatuses.NoPlan;
+        }
+
+        if (debtorType == FinReceivableDebtorTypes.Payer && isInternalBenefit)
+        {
+            if (settled) return BillingDataResolutionStatuses.Settled;
+            return settlementStatus == FinBenefitSettlementStatuses.Draf
+                ? BillingDataResolutionStatuses.SettlementDraft
+                : BillingDataResolutionStatuses.AwaitingSettlement;
+        }
+
+        if (debtorType == FinReceivableDebtorTypes.Payer)
+            return inActiveBatch ? BillingDataResolutionStatuses.Invoiced : BillingDataResolutionStatuses.AwaitingInvoice;
+
+        return settled ? BillingDataResolutionStatuses.Paid : BillingDataResolutionStatuses.Outstanding;
     }
 
     private static IQueryable<BillingDataRow> ApplySort(IQueryable<BillingDataRow> rows, BillingDataFilter filter)
@@ -869,9 +979,30 @@ public sealed class FinanceReceivableBillingDataService
 
         var (rangeFrom, rangeToExclusive, periodLabel) = ResolvePeriod(request, period);
 
+        // resolutionStatus (opsional) hanya menerima nilai milik kategorinya. Kategori company/generalPatient tidak punya
+        // status penyelesaian sumber; saringan keanggotaan Batch Tagihan untuk company tetap lewat billingStatus.
+        var resolutionAllowed = category switch
+        {
+            BillingDataCategories.InternalBenefit => new[]
+            {
+                BillingDataResolutionStatuses.All, BillingDataResolutionStatuses.AwaitingSettlement,
+                BillingDataResolutionStatuses.SettlementDraft, BillingDataResolutionStatuses.Settled
+            },
+            BillingDataCategories.Employee => new[]
+            {
+                BillingDataResolutionStatuses.All, BillingDataResolutionStatuses.NoPlan,
+                BillingDataResolutionStatuses.PlanPending, BillingDataResolutionStatuses.PlanApproved,
+                BillingDataResolutionStatuses.Paid
+            },
+            _ => new[] { BillingDataResolutionStatuses.All }
+        };
+        var resolutionStatus = Canonical(request.ResolutionStatus, BillingDataResolutionStatuses.All, "resolutionStatus",
+            resolutionAllowed);
+
         var search = request.Search?.Trim();
         return new BillingDataFilter
         {
+            ResolutionStatus = resolutionStatus,
             Category = category,
             DebtorType = category switch
             {
@@ -973,6 +1104,7 @@ public sealed class FinanceReceivableBillingDataService
         public string DebtorType { get; init; } = FinReceivableDebtorTypes.Payer;
         public Guid? EntityId { get; init; }
         public string BillingStatus { get; init; } = BillingDataStatuses.All;
+        public string ResolutionStatus { get; init; } = BillingDataResolutionStatuses.All;
         public EncounterType? EncounterType { get; init; }
         public DateTimeOffset? From { get; init; }
         public DateTimeOffset? ToExclusive { get; init; }

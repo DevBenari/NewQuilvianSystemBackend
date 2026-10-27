@@ -1,7 +1,5 @@
 using System;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using QuilvianSystemBackend.Repositories;
 
 #nullable disable
 
@@ -12,8 +10,7 @@ namespace QuilvianSystemBackend.Migrations
     /// (MdfFeePeriod, MdfServiceFee, MdfServiceFeeDetail, MdfServiceFeeAdjustment, MdfUnresolvedService)
     /// beserta indeks, foreign key, dan check constraint sesuai blueprint MDF-DES-001, MDF-DES-010..014.
     /// </summary>
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261026140000_AddMedicalFeeCalculation")]
+    /// <inheritdoc />
     public partial class AddMedicalFeeCalculation : Migration
     {
         /// <inheritdoc />

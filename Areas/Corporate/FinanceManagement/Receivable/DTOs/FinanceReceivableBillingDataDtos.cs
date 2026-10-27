@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Dtos;
 using QuilvianSystemBackend.Responses;
 using System.ComponentModel.DataAnnotations;
 
@@ -33,6 +34,36 @@ public static class BillingDataStatuses
     public const string All = "all";
     public const string NotCreated = "notCreated";
     public const string Created = "created";
+}
+
+/// <summary>
+/// Status penyelesaian piutang menurut DATA SUMBERNYA, bukan menurut keanggotaan Batch Tagihan.
+/// Opsional dan additif: <c>billingStatus</c> (created/notCreated) tetap bermakna keanggotaan Batch Tagihan.
+/// Perusahaan/Asuransi memakai <see cref="Invoiced"/>/<see cref="AwaitingInvoice"/>; Benefit RS Internal memakai
+/// status Penutupan Benefit; Karyawan memakai status perjanjian angsuran; Pasien Umum memakai
+/// <see cref="Paid"/>/<see cref="Outstanding"/>.
+/// </summary>
+public static class BillingDataResolutionStatuses
+{
+    public const string All = "all";
+
+    // company
+    public const string Invoiced = "invoiced";
+    public const string AwaitingInvoice = "awaitingInvoice";
+
+    // internalBenefit
+    public const string AwaitingSettlement = "awaitingSettlement";
+    public const string SettlementDraft = "settlementDraft";
+    public const string Settled = "settled";
+
+    // employee
+    public const string NoPlan = "noPlan";
+    public const string PlanPending = "planPending";
+    public const string PlanApproved = "planApproved";
+    public const string Paid = "paid";
+
+    // generalPatient
+    public const string Outstanding = "outstanding";
 }
 
 public static class BillingDataPatientTypes
@@ -84,7 +115,7 @@ public static class BillingDataCreateBlockedReasons
 /// </summary>
 public sealed class BillingDataQuery
 {
-    /// <summary>company | employee | generalPatient.</summary>
+    /// <summary>company | employee | generalPatient | internalBenefit.</summary>
     public string? Category { get; set; }
 
     /// <summary>Mencari No. Bill, No. Registrasi, nama pasien, No. RM; untuk kategori company juga nama asuransi/penjamin.</summary>
@@ -97,8 +128,19 @@ public sealed class BillingDataQuery
     /// </summary>
     public Guid? EntityId { get; set; }
 
-    /// <summary>all | notCreated | created.</summary>
+    /// <summary>
+    /// all | notCreated | created. Bermakna keanggotaan Batch Tagihan, jadi hanya berguna pada kategori company.
+    /// Untuk kategori lain pakai <see cref="ResolutionStatus"/>.
+    /// </summary>
     public string? BillingStatus { get; set; }
+
+    /// <summary>
+    /// Opsional. Saringan status penyelesaian menurut data sumber (lihat <see cref="BillingDataResolutionStatuses"/>).
+    /// internalBenefit: all | awaitingSettlement | settlementDraft | settled.
+    /// employee: all | noPlan | planPending | planApproved | paid.
+    /// Kategori lain hanya menerima all. Nilai yang bukan milik kategorinya → 400.
+    /// </summary>
+    public string? ResolutionStatus { get; set; }
 
     /// <summary>all | outpatient | inpatient | emergency.</summary>
     public string? PatientType { get; set; }
@@ -192,11 +234,44 @@ public sealed class BillingDataItemResponse
     public decimal BillingAmount { get; set; }
     public string ReceivableStatus { get; set; } = string.Empty;
 
-    /// <summary>created | notCreated.</summary>
+    /// <summary>created | notCreated. Keanggotaan Batch Tagihan; hanya bermakna bila <see cref="BillingStatusApplicable"/> true.</summary>
     public string BillingStatus { get; set; } = BillingDataStatuses.NotCreated;
+
+    /// <summary>
+    /// True hanya untuk PAYER pihak luar (Perusahaan/Asuransi), satu-satunya jenis yang boleh punya Batch Tagihan.
+    /// False berarti <see cref="BillingStatus"/> notCreated BUKAN pekerjaan yang tertunda: Benefit RS Internal diselesaikan
+    /// lewat Penutupan Benefit, Karyawan lewat perjanjian angsuran, Pasien Umum lewat penerimaan.
+    /// </summary>
+    public bool BillingStatusApplicable { get; set; }
+
+    /// <summary>Status penyelesaian menurut data sumber; lihat <see cref="BillingDataResolutionStatuses"/>.</summary>
+    public string ResolutionStatus { get; set; } = string.Empty;
+
+    /// <summary>Waktu pengakuan piutang. Dasar pemilihan periode Penutupan Benefit (bukan tanggal invoice).</summary>
+    public DateTimeOffset RecognizedAt { get; set; }
+
     public Guid? InvoiceBatchId { get; set; }
     public string? InvoiceBatchNumber { get; set; }
     public string? InvoiceBatchStatus { get; set; }
+
+    // --- Benefit RS Internal (IsInternalBenefit): Penutupan Benefit yang memuat piutang ini, bukan yang DIBATALKAN ---
+    public Guid? SettlementId { get; set; }
+    public string? SettlementNumber { get; set; }
+
+    /// <summary>DRAF | DITERBITKAN; null bila belum masuk Penutupan Benefit mana pun.</summary>
+    public string? SettlementStatus { get; set; }
+
+    /// <summary>
+    /// Kode periode (yyyy-MM) untuk menyiapkan Penutupan Benefit dari piutang ini. Dihitung dari <see cref="RecognizedAt"/>
+    /// menurut batas bulan UTC, persis seperti pemilihan periode FinanceBenefitSettlementService.ParsePeriod.
+    /// Hanya terisi untuk Benefit RS Internal.
+    /// </summary>
+    public string? SettlementPeriodCode { get; set; }
+
+    // --- Karyawan (EMPLOYEE_BENEFIT): perjanjian angsuran terkini (MENUNGGU, DISETUJUI, atau SELESAI) ---
+    public Guid? InstallmentPlanId { get; set; }
+    public string? InstallmentPlanNumber { get; set; }
+    public string? InstallmentPlanStatus { get; set; }
 
     public bool CanCreateInvoice { get; set; }
 
@@ -330,4 +405,10 @@ public sealed class BillingDataPagedResponse : PagedResult<BillingDataItemRespon
 
     /// <summary>Penjelasan bila hasil kosong karena sumber datanya memang belum ada (kategori employee). Null pada kasus lain.</summary>
     public string? Notice { get; set; }
+
+    /// <summary>
+    /// Fakta AR dari Billing yang belum menjadi piutang. Hanya dibaca (hitungan), TIDAK memicu pemrosesan apa pun.
+    /// Pemrosesannya lewat POST billing-intake/sync dan POST billing-intake/process-pending-ar.
+    /// </summary>
+    public PendingArFactsResponse PendingFacts { get; set; } = new();
 }

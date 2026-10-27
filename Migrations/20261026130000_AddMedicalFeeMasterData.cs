@@ -1,7 +1,5 @@
 using System;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
-using QuilvianSystemBackend.Repositories;
 
 #nullable disable
 
@@ -12,8 +10,7 @@ namespace QuilvianSystemBackend.Migrations
     /// (MstMedicalFeeRole, MdfSharingAgreement, MdfSharingRule) beserta indeks, foreign key,
     /// dan check constraint sesuai blueprint MDF-DES-001.
     /// </summary>
-    [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261026130000_AddMedicalFeeMasterData")]
+    /// <inheritdoc />
     public partial class AddMedicalFeeMasterData : Migration
     {
         /// <inheritdoc />

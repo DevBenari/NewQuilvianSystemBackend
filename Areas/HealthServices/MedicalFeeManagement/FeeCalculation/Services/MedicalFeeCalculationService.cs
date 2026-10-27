@@ -3,7 +3,9 @@ using Microsoft.Extensions.Logging;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Services;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using System.Data;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Services
@@ -18,15 +20,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly MedicalFeeServiceSourceAdapter _sourceAdapter;
+        private readonly MedicalFeeSharingRuleMatcher _ruleMatcher;
         private readonly ILogger<MedicalFeeCalculationService> _logger;
 
         public MedicalFeeCalculationService(
             ApplicationDbContext dbContext,
             MedicalFeeServiceSourceAdapter sourceAdapter,
+            MedicalFeeSharingRuleMatcher ruleMatcher,
             ILogger<MedicalFeeCalculationService> logger)
         {
             _dbContext = dbContext;
             _sourceAdapter = sourceAdapter;
+            _ruleMatcher = ruleMatcher;
             _logger = logger;
         }
 
@@ -74,6 +79,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 // =============================================================
                 // 1. Pembersihan Data Kalkulasi Sebelumnya (MDF-DES-015)
                 // =============================================================
+                var existingUnresolved = new List<MdfUnresolvedService>();
                 if (period.Status == MdfFeePeriodStatuses.Calculated)
                 {
                     // Soft delete rincian jasa lama
@@ -91,17 +97,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                         d.DeleteBy = userId;
                     }
 
-                    // Soft delete unresolved lama yang masih Open (perhitungan ulang menyegarkan daftar unresolved)
-                    var existingUnresolved = await _dbContext.MdfUnresolvedServices
+                    // Muat daftar unresolved lama yang masih Open untuk rekonsiliasi T-44 dan T-45
+                    existingUnresolved = await _dbContext.MdfUnresolvedServices
                         .Where(u => u.PeriodId == period.Id && !u.IsDelete && u.Status == MdfUnresolvedStatuses.Open)
                         .ToListAsync(ct);
-
-                    foreach (var u in existingUnresolved)
-                    {
-                        u.IsDelete = true;
-                        u.DeleteDateTime = DateTime.UtcNow;
-                        u.DeleteBy = userId;
-                    }
 
                     // Reset akumulasi kotor pada hasil jasa, pertahankan koreksi yang sudah disetujui (MDF-DES-015 butir 5)
                     foreach (var sf in period.ServiceFees)
@@ -199,7 +198,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
 
                     // Kasus 4: Tanggal Layanan Melewati Batas Masa Berlaku Kontrak HR (T-42, MDF_VAL 5.4)
                     var contract = activeAgreement.SourceContractHistory;
-                    if (contract != null && contract.EndDate.HasValue && item.ServiceDate > contract.EndDate.Value)
+                    if (contract != null && contract.EndDate.HasValue && item.ServiceDate > DateOnly.FromDateTime(contract.EndDate.Value))
                     {
                         AddUnresolved(newUnresolved, unresolvedCounts, period.Id, item,
                             MdfUnresolvedReasons.ContractExpired,
@@ -207,53 +206,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                         continue;
                     }
 
-                    // Kasus 5: Pencocokan Baris Aturan Tarif (T-41, MDF-DES-009, MDF_VAL 5.3, 5.7)
-                    var candidateRules = activeAgreement.SharingRules
-                        .Where(r => r.RoleId == item.RoleId!.Value &&
-                                    r.EffectiveStart <= item.ServiceDate &&
-                                    (r.EffectiveEnd == null || r.EffectiveEnd >= item.ServiceDate))
-                        .ToList();
+                    // Kasus 5: Pencocokan Baris Aturan Tarif (T-41, T-102, MDF-DES-009, MDF-DES-020, MDF_VAL 5.3, 5.7)
+                    var matchResult = _ruleMatcher.MatchRule(
+                        activeAgreement.SharingRules,
+                        item.RoleId!.Value,
+                        item.ServiceDate,
+                        item.TariffId,
+                        item.TariffCategoryId,
+                        item.RoleCode,
+                        item.ServiceDescription,
+                        activeAgreement.AgreementNumber);
 
-                    if (!candidateRules.Any())
+                    if (matchResult.Status == MedicalFeeSharingRuleMatchStatus.NoRule)
                     {
                         AddUnresolved(newUnresolved, unresolvedCounts, period.Id, item,
                             MdfUnresolvedReasons.RuleMissing,
-                            $"Tidak ditemukan aturan tarif untuk peran '{item.RoleCode}' pada kesepakatan {activeAgreement.AgreementNumber} per {item.ServiceDate}.");
+                            matchResult.Message!);
                         continue;
                     }
 
-                    // Menentukan kekhususan aturan (Specificity: 4=Tariff, 3=Category, 2=Role Default)
-                    var ruleGroups = candidateRules
-                        .Select(r => new
-                        {
-                            Rule = r,
-                            Specificity = r.TariffId.HasValue && item.TariffId.HasValue && r.TariffId == item.TariffId ? 4 :
-                                          r.TariffCategoryId.HasValue && item.TariffCategoryId.HasValue && r.TariffCategoryId == item.TariffCategoryId ? 3 :
-                                          !r.TariffId.HasValue && !r.TariffCategoryId.HasValue ? 2 : 1
-                        })
-                        .Where(x => x.Specificity > 1 || (!candidateRules.Any(cr => cr.TariffId.HasValue || cr.TariffCategoryId.HasValue)))
-                        .OrderByDescending(x => x.Specificity)
-                        .ToList();
-
-                    if (!ruleGroups.Any())
+                    if (matchResult.Status == MedicalFeeSharingRuleMatchStatus.Overlap)
                     {
-                        AddUnresolved(newUnresolved, unresolvedCounts, period.Id, item,
-                            MdfUnresolvedReasons.RuleMissing,
-                            $"Tidak ada baris tarif dengan lingkup tindakan yang cocok untuk layanan '{item.ServiceDescription}'.");
-                        continue;
+                        throw new InvalidOperationException(matchResult.Message);
                     }
 
-                    var topSpecificity = ruleGroups.First().Specificity;
-                    var bestMatches = ruleGroups.Where(x => x.Specificity == topSpecificity).Select(x => x.Rule).ToList();
-
-                    // Konflik Aturan: Dua baris tarif pada tingkat kekhususan yang sama (MDF_VAL 5.7 -> 422)
-                    if (bestMatches.Count > 1)
-                    {
-                        throw new InvalidOperationException(
-                            $"MDF_RULE_OVERLAP: Ditemukan {bestMatches.Count} baris aturan tarif yang bertabrakan pada tingkat kekhususan {topSpecificity} untuk peran '{item.RoleCode}' pada tanggal {item.ServiceDate}.");
-                    }
-
-                    var matchedRule = bestMatches.First();
+                    var matchedRule = matchResult.Rule!;
 
                     // =========================================================
                     // 5. Perhitungan Nilai Hak Jasa (MDF-DES-012, 013; MF-DEC-013, 014)
@@ -320,6 +297,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                     _dbContext.MdfServiceFeeDetails.AddRange(newDetails);
                 }
 
+                // Rekonsiliasi Layanan Unresolved: T-44 dan T-45
+                if (existingUnresolved.Any())
+                {
+                    var resolvedSourceKeys = newDetails
+                        .Select(d => $"{d.SourceDomain}_{d.SourceDetailId}")
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                    var newUnresolvedByKey = newUnresolved
+                        .GroupBy(u => $"{u.SourceDomain}_{u.SourceDetailId}", StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+                    foreach (var oldUnresolved in existingUnresolved)
+                    {
+                        var key = $"{oldUnresolved.SourceDomain}_{oldUnresolved.SourceDetailId}";
+
+                        // T-45: Layanan yang sebelumnya unresolved kini berhasil dihitung -> status Resolved
+                        if (resolvedSourceKeys.Contains(key))
+                        {
+                            oldUnresolved.Status = MdfUnresolvedStatuses.Resolved;
+                            oldUnresolved.ResolvedAt = DateTime.UtcNow;
+                            oldUnresolved.ResolvedBy = userId;
+                            oldUnresolved.ResolutionNote = "Terselesaikan otomatis melalui pembaruan data dan kalkulasi ulang jasa medis.";
+                            oldUnresolved.UpdateDateTime = DateTime.UtcNow;
+                            oldUnresolved.UpdateBy = userId;
+                            oldUnresolved.IsDelete = false;
+                        }
+                        // T-44: Layanan masih belum dapat dihitung -> perbarui agar tidak menghasilkan baris ganda
+                        else if (newUnresolvedByKey.TryGetValue(key, out var updated))
+                        {
+                            oldUnresolved.Reason = updated.Reason;
+                            oldUnresolved.ReasonDetail = updated.ReasonDetail;
+                            oldUnresolved.BaseAmount = updated.BaseAmount;
+                            oldUnresolved.DetectedAt = DateTime.UtcNow;
+                            oldUnresolved.UpdateDateTime = DateTime.UtcNow;
+                            oldUnresolved.UpdateBy = userId;
+                            oldUnresolved.IsDelete = false;
+
+                            // Hapus dari list newUnresolved agar tidak di-insert ganda
+                            newUnresolved.Remove(updated);
+                        }
+                        else
+                        {
+                            // Layanan tidak lagi ditemukan pada modul sumber -> soft delete
+                            oldUnresolved.IsDelete = true;
+                            oldUnresolved.DeleteDateTime = DateTime.UtcNow;
+                            oldUnresolved.DeleteBy = userId;
+                        }
+                    }
+                }
+
                 if (newUnresolved.Any())
                 {
                     _dbContext.MdfUnresolvedServices.AddRange(newUnresolved);
@@ -383,6 +410,340 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 DetectedAt = DateTime.UtcNow,
                 Status = MdfUnresolvedStatuses.Open
             });
+        }
+
+        // =====================================================================
+        // Unresolved Services Management (BE-MDF-011, MDF-DES-014, MDF-API-1.0 §6)
+        // =====================================================================
+
+        /// <summary>
+        /// Mengambil metadata filter dan opsi sort untuk tabel layanan belum terhitung.
+        /// </summary>
+        public UnresolvedFilterMetadataResponse GetUnresolvedFilterMetadata()
+        {
+            return new UnresolvedFilterMetadataResponse
+            {
+                DefaultFilter = new UnresolvedDefaultFilterResponse
+                {
+                    SortBy = "DetectedAt",
+                    SortDirection = "desc",
+                    PageNumber = 1,
+                    PageSize = 25
+                },
+                SortOptions = new List<UnresolvedSortOptionResponse>
+                {
+                    new() { Value = "DetectedAt", Label = "Waktu Terdeteksi" },
+                    new() { Value = "ServiceDate", Label = "Tanggal Layanan" },
+                    new() { Value = "Reason", Label = "Alasan Belum Terhitung" },
+                    new() { Value = "SourceDomain", Label = "Modul Sumber" },
+                    new() { Value = "Status", Label = "Status Penyelesaian" },
+                    new() { Value = "BaseAmount", Label = "Nilai Dasar (Bruto)" }
+                },
+                SortDirections = new List<string> { "asc", "desc" },
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                StatusOptions = new List<string>
+                {
+                    MdfUnresolvedStatuses.Open,
+                    MdfUnresolvedStatuses.Resolved,
+                    MdfUnresolvedStatuses.Waived
+                },
+                ReasonOptions = new List<string>
+                {
+                    MdfUnresolvedReasons.PerformerMissing,
+                    MdfUnresolvedReasons.AgreementMissing,
+                    MdfUnresolvedReasons.RuleMissing,
+                    MdfUnresolvedReasons.ContractExpired,
+                    MdfUnresolvedReasons.RoleUnmapped,
+                    MdfUnresolvedReasons.SourceUnsupported
+                },
+                SourceDomainOptions = new List<string>
+                {
+                    MdfServiceSourceDomains.OperatingRoom,
+                    MdfServiceSourceDomains.Procedure,
+                    MdfServiceSourceDomains.Laboratory,
+                    MdfServiceSourceDomains.Adhoc,
+                    MdfServiceSourceDomains.AdhocCatalog
+                },
+                ResetButtonLabel = "Reset"
+            };
+        }
+
+        /// <summary>
+        /// Mengambil ringkasan rekapitulasi layanan belum terhitung per alasan dan modul sumber.
+        /// </summary>
+        public async Task<UnresolvedSummaryResponse> GetUnresolvedSummaryAsync(Guid? periodId, CancellationToken ct = default)
+        {
+            var query = _dbContext.MdfUnresolvedServices
+                .AsNoTracking()
+                .Where(u => !u.IsDelete);
+
+            if (periodId.HasValue)
+            {
+                query = query.Where(u => u.PeriodId == periodId.Value);
+            }
+
+            var list = await query
+                .Select(u => new { u.Status, u.Reason, u.SourceDomain })
+                .ToListAsync(ct);
+
+            var byReason = new Dictionary<string, int>
+            {
+                [MdfUnresolvedReasons.PerformerMissing] = 0,
+                [MdfUnresolvedReasons.AgreementMissing] = 0,
+                [MdfUnresolvedReasons.RuleMissing] = 0,
+                [MdfUnresolvedReasons.ContractExpired] = 0,
+                [MdfUnresolvedReasons.RoleUnmapped] = 0,
+                [MdfUnresolvedReasons.SourceUnsupported] = 0
+            };
+
+            var bySourceDomain = new Dictionary<string, int>
+            {
+                [MdfServiceSourceDomains.OperatingRoom] = 0,
+                [MdfServiceSourceDomains.Procedure] = 0,
+                [MdfServiceSourceDomains.Laboratory] = 0,
+                [MdfServiceSourceDomains.Adhoc] = 0,
+                [MdfServiceSourceDomains.AdhocCatalog] = 0
+            };
+
+            int openCount = 0;
+            int resolvedCount = 0;
+            int waivedCount = 0;
+
+            foreach (var item in list)
+            {
+                if (item.Status == MdfUnresolvedStatuses.Open) openCount++;
+                else if (item.Status == MdfUnresolvedStatuses.Resolved) resolvedCount++;
+                else if (item.Status == MdfUnresolvedStatuses.Waived) waivedCount++;
+
+                if (!string.IsNullOrEmpty(item.Reason))
+                {
+                    byReason[item.Reason] = byReason.GetValueOrDefault(item.Reason) + 1;
+                }
+
+                if (!string.IsNullOrEmpty(item.SourceDomain))
+                {
+                    bySourceDomain[item.SourceDomain] = bySourceDomain.GetValueOrDefault(item.SourceDomain) + 1;
+                }
+            }
+
+            return new UnresolvedSummaryResponse
+            {
+                Total = list.Count,
+                OpenCount = openCount,
+                ResolvedCount = resolvedCount,
+                WaivedCount = waivedCount,
+                ByReason = byReason,
+                BySourceDomain = bySourceDomain
+            };
+        }
+
+        /// <summary>
+        /// Mengambil daftar layanan belum terhitung secara terpaginasi dengan filter dan pencarian.
+        /// </summary>
+        public async Task<PagedResult<UnresolvedServiceItemResponse>> GetUnresolvedPagedAsync(
+            UnresolvedServicePagedQuery query,
+            CancellationToken ct = default)
+        {
+            var baseQuery = _dbContext.MdfUnresolvedServices
+                .AsNoTracking()
+                .Include(u => u.Period)
+                .Include(u => u.Tariff)
+                .Where(u => !u.IsDelete);
+
+            if (query.PeriodId.HasValue)
+            {
+                baseQuery = baseQuery.Where(u => u.PeriodId == query.PeriodId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Reason))
+            {
+                var reasonTrim = query.Reason.Trim();
+                baseQuery = baseQuery.Where(u => u.Reason == reasonTrim);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Status))
+            {
+                var statusTrim = query.Status.Trim();
+                baseQuery = baseQuery.Where(u => u.Status == statusTrim);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.SourceDomain))
+            {
+                var domainTrim = query.SourceDomain.Trim();
+                baseQuery = baseQuery.Where(u => u.SourceDomain == domainTrim);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var term = $"%{query.Search.Trim()}%";
+                baseQuery = baseQuery.Where(u =>
+                    EF.Functions.ILike(u.SourceDetailId, term) ||
+                    (u.ReasonDetail != null && EF.Functions.ILike(u.ReasonDetail, term)) ||
+                    (u.ResolutionNote != null && EF.Functions.ILike(u.ResolutionNote, term)) ||
+                    (u.Period != null && EF.Functions.ILike(u.Period.PeriodCode, term)) ||
+                    (u.Tariff != null && EF.Functions.ILike(u.Tariff.TariffName, term)));
+            }
+
+            var totalData = await baseQuery.CountAsync(ct);
+
+            var isDesc = string.Equals(query.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+            baseQuery = (query.SortBy?.ToLowerInvariant()) switch
+            {
+                "servicedate" => isDesc ? baseQuery.OrderByDescending(u => u.ServiceDate).ThenByDescending(u => u.DetectedAt)
+                                        : baseQuery.OrderBy(u => u.ServiceDate).ThenBy(u => u.DetectedAt),
+                "reason" => isDesc ? baseQuery.OrderByDescending(u => u.Reason).ThenByDescending(u => u.DetectedAt)
+                                   : baseQuery.OrderBy(u => u.Reason).ThenBy(u => u.DetectedAt),
+                "status" => isDesc ? baseQuery.OrderByDescending(u => u.Status).ThenByDescending(u => u.DetectedAt)
+                                   : baseQuery.OrderBy(u => u.Status).ThenBy(u => u.DetectedAt),
+                "sourcedomain" => isDesc ? baseQuery.OrderByDescending(u => u.SourceDomain).ThenByDescending(u => u.DetectedAt)
+                                         : baseQuery.OrderBy(u => u.SourceDomain).ThenBy(u => u.DetectedAt),
+                "baseamount" => isDesc ? baseQuery.OrderByDescending(u => u.BaseAmount).ThenByDescending(u => u.DetectedAt)
+                                       : baseQuery.OrderBy(u => u.BaseAmount).ThenBy(u => u.DetectedAt),
+                _ => isDesc ? baseQuery.OrderByDescending(u => u.DetectedAt)
+                            : baseQuery.OrderBy(u => u.DetectedAt)
+            };
+
+            var pageNumber = query.PageNumber > 0 ? query.PageNumber : 1;
+            var pageSize = query.PageSize > 0 ? query.PageSize : 25;
+
+            var items = await baseQuery
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new UnresolvedServiceItemResponse
+                {
+                    Id = u.Id,
+                    PeriodId = u.PeriodId,
+                    PeriodCode = u.Period != null ? u.Period.PeriodCode : string.Empty,
+                    SourceDomain = u.SourceDomain,
+                    SourceDetailId = u.SourceDetailId,
+                    InvoiceItemId = u.InvoiceItemId,
+                    TariffId = u.TariffId,
+                    TariffName = u.Tariff != null ? u.Tariff.TariffName : null,
+                    ServiceDate = u.ServiceDate,
+                    BaseAmount = u.BaseAmount,
+                    Reason = u.Reason,
+                    ReasonDetail = u.ReasonDetail,
+                    DetectedAt = u.DetectedAt,
+                    Status = u.Status,
+                    ResolvedBy = u.ResolvedBy,
+                    ResolvedAt = u.ResolvedAt,
+                    ResolutionNote = u.ResolutionNote
+                })
+                .ToListAsync(ct);
+
+            return new PagedResult<UnresolvedServiceItemResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+        }
+
+        /// <summary>
+        /// Mengambil detail satu layanan belum terhitung beserta penjelasannya.
+        /// </summary>
+        public async Task<UnresolvedServiceItemResponse> GetUnresolvedByIdAsync(Guid id, CancellationToken ct = default)
+        {
+            var u = await _dbContext.MdfUnresolvedServices
+                .AsNoTracking()
+                .Include(u => u.Period)
+                .Include(u => u.Tariff)
+                .FirstOrDefaultAsync(u => u.Id == id && !u.IsDelete, ct);
+
+            if (u == null)
+            {
+                throw new KeyNotFoundException($"Layanan belum terhitung dengan ID '{id}' tidak ditemukan.");
+            }
+
+            return new UnresolvedServiceItemResponse
+            {
+                Id = u.Id,
+                PeriodId = u.PeriodId,
+                PeriodCode = u.Period != null ? u.Period.PeriodCode : string.Empty,
+                SourceDomain = u.SourceDomain,
+                SourceDetailId = u.SourceDetailId,
+                InvoiceItemId = u.InvoiceItemId,
+                TariffId = u.TariffId,
+                TariffName = u.Tariff != null ? u.Tariff.TariffName : null,
+                ServiceDate = u.ServiceDate,
+                BaseAmount = u.BaseAmount,
+                Reason = u.Reason,
+                ReasonDetail = u.ReasonDetail,
+                DetectedAt = u.DetectedAt,
+                Status = u.Status,
+                ResolvedBy = u.ResolvedBy,
+                ResolvedAt = u.ResolvedAt,
+                ResolutionNote = u.ResolutionNote
+            };
+        }
+
+        /// <summary>
+        /// Mengesampingkan layanan belum terhitung dengan catatan wajib (MDF-DES-014, MDF-VAL-1.0 §7.1, T-46..T-48).
+        /// Status berubah menjadi Waived dan tidak lagi menahan penutupan periode (MDF-DES-016).
+        /// </summary>
+        public async Task<UnresolvedServiceItemResponse> WaiveUnresolvedAsync(
+            Guid id,
+            WaiveUnresolvedServiceRequest request,
+            Guid userId,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(request?.ResolutionNote) || request.ResolutionNote.Trim().Length < 10)
+            {
+                throw new InvalidOperationException(
+                    "MDF_WAIVER_NOTE_REQUIRED: Pengesampingan layanan belum terhitung wajib disertai catatan penyelesaian minimal 10 karakter (MDF-VAL-1.0 §7.1).");
+            }
+
+            var unresolved = await _dbContext.MdfUnresolvedServices
+                .Include(u => u.Period)
+                .Include(u => u.Tariff)
+                .FirstOrDefaultAsync(u => u.Id == id && !u.IsDelete, ct);
+
+            if (unresolved == null)
+            {
+                throw new KeyNotFoundException($"Layanan belum terhitung dengan ID '{id}' tidak ditemukan.");
+            }
+
+            if (unresolved.Status != MdfUnresolvedStatuses.Open)
+            {
+                throw new InvalidOperationException(
+                    $"MDF_UNRESOLVED_STATE_INVALID: Layanan dengan status '{unresolved.Status}' tidak dapat dikesampingkan. Hanya layanan berstatus 'Open' yang dapat dikesampingkan (MDF-VAL-1.0 §7.3).");
+            }
+
+            var now = DateTime.UtcNow;
+            unresolved.Status = MdfUnresolvedStatuses.Waived;
+            unresolved.ResolvedBy = userId;
+            unresolved.ResolvedAt = now;
+            unresolved.ResolutionNote = request.ResolutionNote.Trim();
+            unresolved.UpdateDateTime = now;
+            unresolved.UpdateBy = userId;
+
+            await _dbContext.SaveChangesAsync(ct);
+
+            _logger.LogInformation("Layanan unresolved {Id} (alasan: {Reason}) berhasil dikesampingkan oleh user {UserId} dengan catatan: {Note}",
+                unresolved.Id, unresolved.Reason, userId, unresolved.ResolutionNote);
+
+            return new UnresolvedServiceItemResponse
+            {
+                Id = unresolved.Id,
+                PeriodId = unresolved.PeriodId,
+                PeriodCode = unresolved.Period != null ? unresolved.Period.PeriodCode : string.Empty,
+                SourceDomain = unresolved.SourceDomain,
+                SourceDetailId = unresolved.SourceDetailId,
+                InvoiceItemId = unresolved.InvoiceItemId,
+                TariffId = unresolved.TariffId,
+                TariffName = unresolved.Tariff != null ? unresolved.Tariff.TariffName : null,
+                ServiceDate = unresolved.ServiceDate,
+                BaseAmount = unresolved.BaseAmount,
+                Reason = unresolved.Reason,
+                ReasonDetail = unresolved.ReasonDetail,
+                DetectedAt = unresolved.DetectedAt,
+                Status = unresolved.Status,
+                ResolvedBy = unresolved.ResolvedBy,
+                ResolvedAt = unresolved.ResolvedAt,
+                ResolutionNote = unresolved.ResolutionNote
+            };
         }
     }
 }

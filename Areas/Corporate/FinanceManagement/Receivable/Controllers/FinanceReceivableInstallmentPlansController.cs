@@ -65,6 +65,15 @@ public sealed class FinanceReceivableInstallmentPlansController : ControllerBase
         Ok(ApiResponse<PagedResult<InstallmentPlanListResponse>>.Ok(
             await _service.GetPagedAsync(request, cancellationToken), "Daftar perjanjian angsuran berhasil diambil."));
 
+    /// <summary>Empat angka ringkasan layar daftar (menunggu / berjalan / ada tunggakan / selesai); tidak mengikuti saringan.</summary>
+    [HttpGet("receivable-installment-plans/summary")]
+    [AccessAction("Read", "Read Installment Plan", AccessType = AccessTypes.Read, SortOrder = 2)]
+    [AccessPermission("FinanceReceivableInstallmentPlan", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<InstallmentPlanSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<InstallmentPlanSummaryResponse>.Ok(
+            await _service.GetSummaryAsync(cancellationToken), "Ringkasan perjanjian angsuran berhasil diambil."));
+
     [HttpGet("receivable-installment-plans/{id:guid}")]
     [AccessAction("Read", "Read Installment Plan", AccessType = AccessTypes.Read, SortOrder = 2)]
     [AccessPermission("FinanceReceivableInstallmentPlan", "Read")]

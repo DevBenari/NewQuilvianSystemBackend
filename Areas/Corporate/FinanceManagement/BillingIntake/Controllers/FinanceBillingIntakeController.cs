@@ -92,6 +92,27 @@ public sealed class FinanceBillingIntakeController : ControllerBase
                 : "Tidak ada penanda baru — seluruh shift tertutup sudah memiliki penandanya."));
     }
 
+    /// <summary>
+    /// Mengolah fakta AR berstatus NEW menjadi piutang, maksimal <see cref="FinanceBillingIntakeService.ProcessPendingArBatchSize"/>
+    /// per panggilan. Dulu pemrosesan ini terjadi diam-diam saat Data Tagihan dibaca (GET); kini hanya lewat tindakan POST ini,
+    /// yang membutuhkan hak Process. Kegagalan per fakta dikembalikan pada hasil, bukan ditelan. Penemuan fakta baru tetap
+    /// POST sync. Memakai aksi Process yang sudah ada; nol resource/aksi baru.
+    /// </summary>
+    [HttpPost("process-pending-ar")]
+    [AccessAction("Process", "Process Billing Intake", AccessType = AccessTypes.Update, SortOrder = 3)]
+    [AccessPermission("FinanceBillingIntake", "Process")]
+    [ProducesResponseType(typeof(ApiResponse<ProcessPendingArResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ProcessPendingAr(CancellationToken cancellationToken)
+    {
+        var result = await _service.ProcessPendingArAsync(CurrentUserId(), cancellationToken);
+        var message = result.AttemptedCount == 0
+            ? "Tidak ada fakta AR baru yang menunggu diolah."
+            : result.FailedCount == 0
+                ? $"{result.ProcessedCount} fakta menjadi piutang, {result.SkippedSupersededCount} fakta digantikan koreksi."
+                : $"{result.ProcessedCount} fakta menjadi piutang, {result.FailedCount} gagal — lihat rincian kegagalan dan Pemantauan Fakta Masuk.";
+        return Ok(ApiResponse<ProcessPendingArResponse>.Ok(result, message));
+    }
+
     /// <summary>Menjalankan pengolahan satu fakta masuk (UAT-03) — juga dipakai untuk mengulang baris ERROR (FR-FIN-012).</summary>
     [HttpPost("{id:guid}/process")]
     [AccessAction("Process", "Process Billing Intake", AccessType = AccessTypes.Update, SortOrder = 3)]

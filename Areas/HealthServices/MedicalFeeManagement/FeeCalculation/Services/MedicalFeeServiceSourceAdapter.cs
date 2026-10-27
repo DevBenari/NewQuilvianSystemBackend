@@ -22,6 +22,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
     /// </summary>
     public class MedicalFeeServiceSourceAdapter
     {
+        private static readonly TimeZoneInfo AsiaJakartaTimeZone = GetAsiaJakartaTimeZone();
+
+        private static TimeZoneInfo GetAsiaJakartaTimeZone()
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            }
+        }
+
         private readonly ApplicationDbContext _dbContext;
         private readonly ILogger<MedicalFeeServiceSourceAdapter> _logger;
 
@@ -60,16 +74,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 .Where(r => !string.IsNullOrWhiteSpace(r.OprTeamRoleMapping))
                 .ToDictionary(r => r.OprTeamRoleMapping!.Trim(), r => r, StringComparer.OrdinalIgnoreCase);
 
-            // 2. Pemuatan pemetaan WorkforceProfileId -> DoctorId
+            var roleByCodeMap = roles
+                .Where(r => !string.IsNullOrWhiteSpace(r.RoleCode))
+                .ToDictionary(r => r.RoleCode.Trim(), r => r, StringComparer.OrdinalIgnoreCase);
+
+            // 2. Pemuatan pemetaan WorkforceProfileId -> DoctorId dan DoctorId -> DoctorName
             var doctors = await _dbContext.MstDoctors
                 .AsNoTracking()
-                .Where(d => !d.IsDelete && d.WorkforceProfileId.HasValue)
-                .Select(d => new { d.Id, d.DoctorName, WorkforceProfileId = d.WorkforceProfileId!.Value })
+                .Where(d => !d.IsDelete)
+                .Select(d => new { d.Id, DoctorName = d.FullName, d.WorkforceProfileId })
                 .ToListAsync(ct);
 
             var doctorByWorkforceMap = doctors
+                .Where(d => d.WorkforceProfileId != Guid.Empty)
                 .GroupBy(d => d.WorkforceProfileId)
-                .ToDictionary(g => g.Key, g => g.First());
+                .ToDictionary(g => g.Key, g => (Id: g.First().Id, DoctorName: g.First().DoctorName));
+
+            var doctorByIdMap = doctors
+                .ToDictionary(d => d.Id, d => d.DoctorName);
 
             // 3. Pemuatan baris tagihan Billing yang sudah final/closed pada rentang tanggal
             var invoiceItems = await _dbContext.BilInvoiceItems
@@ -105,8 +127,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 startUtc, endUtc, invoiceMap, primaryRole, ct);
             result.AddRange(labServices);
 
-            // 7. Adaptasi Entri Bebas Kasir (ADHOC & ADHOC_CATALOG) — Tertahan MF-CQ-05 jika ada
-            var adhocServices = ExtractAdhocBillingServices(invoiceItems, primaryRole);
+            // 7. Adaptasi Entri Bebas Kasir (ADHOC & ADHOC_CATALOG) — Terkunci MDF-INTEGRATION-1.1 §5 (BE-MDF-015)
+            var adhocServices = ExtractAdhocBillingServices(
+                invoiceItems, primaryRole, roleByCodeMap, doctorByIdMap, periodStart, periodEnd);
             result.AddRange(adhocServices);
 
             // CATATAN PENTING (T-38, MF-DEC-015):
@@ -132,7 +155,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             DateTime endUtc,
             Dictionary<string, BilInvoiceItem> invoiceMap,
             Dictionary<string, MstMedicalFeeRole> oprRoleMap,
-            Dictionary<Guid, dynamic> doctorByWorkforceMap,
+            Dictionary<Guid, (Guid Id, string DoctorName)> doctorByWorkforceMap,
             CancellationToken ct)
         {
             var items = new List<AdaptedServiceItem>();
@@ -226,7 +249,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                         {
                             payeeType = MdfPayeeTypes.Workforce;
                             payeeReferenceId = member.WorkforceId;
-                            payeeName = member.Workforce?.FullName ?? "Tenaga Medis Kamar Operasi";
+                            payeeName = member.Workforce?.DisplayName ?? "Tenaga Medis Kamar Operasi";
                         }
                     }
 
@@ -306,7 +329,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
 
                 var baseAmount = invoiceItem != null
                     ? (invoiceItem.Quantity * invoiceItem.UnitPrice)
-                    : (proc.Quantity * (proc.Tariff?.TariffAmount ?? 0m));
+                    : (proc.Quantity * (proc.Tariff?.NormalPrice ?? 0m));
 
                 var tariffId = invoiceItem?.TariffId ?? proc.TariffId;
                 var tariffCategoryId = invoiceItem?.CategoryId;
@@ -339,7 +362,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                     BaseAmount = baseAmount,
                     PayeeType = MdfPayeeTypes.Doctor,
                     PayeeReferenceId = payeeReferenceId,
-                    PayeeName = proc.Doctor?.DoctorName ?? string.Empty,
+                    PayeeName = proc.Doctor?.FullName ?? string.Empty,
                     RoleId = primaryRole?.Id,
                     RoleCode = primaryRole?.RoleCode,
                     RoleName = primaryRole?.RoleName,
@@ -388,7 +411,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             var examinerDoctorMap = await _dbContext.MstDoctors
                 .AsNoTracking()
                 .Where(d => examinerDoctorIds.Contains(d.Id))
-                .ToDictionaryAsync(d => d.Id, d => d.DoctorName, ct);
+                .ToDictionaryAsync(d => d.Id, d => d.FullName, ct);
 
             foreach (var lab in labOrders)
             {
@@ -460,14 +483,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
 
         /// <summary>
         /// Menarik entri bebas kasir yang mengandung hak jasa (IsFeeBearing == true)
-        /// sesuai penguncian permukaan MDF-INTEGRATION-1.0 §5.
+        /// sesuai kontrak terkunci MDF-INTEGRATION-1.1 §5 (locked 27 Oktober 2026, MDF-DES-021, BE-MDF-015).
+        /// Menutup celah G1–G4:
+        /// - G1 & T-104: Memetakan PerformerType mentah (DOCTOR/WORKFORCE) ke MdfPayeeTypes (Doctor/Workforce). Nilai lain -> PERFORMER_MISSING.
+        /// - G2 & T-105: Memakai PerformerRoleCode jika terisi; tidak dikenal/nonaktif -> ROLE_UNMAPPED; kosong -> peran utama aktif.
+        /// - G3 & T-106: Mengonversi SourceOccurredAt ke zona waktu Asia/Jakarta (WIB) sehingga layanan pukul 23.30 WIB jatuh pada tanggal WIB.
+        /// - G4: Komentar kontrak §5 disesuaikan dengan versi 1.1 yang terkunci.
+        /// - T-103: Baris IsFeeBearing == false tidak dihitung dan TIDAK dicatat ke daftar belum dapat dihitung (unresolved).
+        /// - T-107: Entri bebas ADHOC tanpa tarif (TariffId == null) dihitung memakai baris tarif bawaan peran (MF-OQ-012 pilihan A).
         /// </summary>
         private List<AdaptedServiceItem> ExtractAdhocBillingServices(
             List<BilInvoiceItem> invoiceItems,
-            MstMedicalFeeRole? primaryRole)
+            MstMedicalFeeRole? primaryRole,
+            Dictionary<string, MstMedicalFeeRole> roleByCodeMap,
+            Dictionary<Guid, string> doctorByIdMap,
+            DateOnly periodStart,
+            DateOnly periodEnd)
         {
             var items = new List<AdaptedServiceItem>();
 
+            // T-103, Rule 5.3: Baris dengan IsFeeBearing == false tidak dihitung dan TIDAK dicatat PERFORMER_MISSING.
             var feeBearingItems = invoiceItems
                 .Where(i => i.IsFeeBearing &&
                             (i.SourceDomain == MdfServiceSourceDomains.Adhoc ||
@@ -476,21 +511,88 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
 
             foreach (var item in feeBearingItems)
             {
-                var serviceDate = DateOnly.FromDateTime(item.Invoice.InvoiceDate?.UtcDateTime ?? DateTime.UtcNow);
-                var baseAmount = item.Quantity * item.UnitPrice;
+                // G3 & T-106: Tanggal layanan dari SourceOccurredAt dikonversi ke tanggal Asia/Jakarta (WIB).
+                // Layanan pukul 23.30 WIB jatuh pada tanggal WIB, bukan tanggal UTC.
+                DateTimeOffset sourceTime = item.SourceOccurredAt != default && item.SourceOccurredAt > DateTimeOffset.MinValue
+                    ? item.SourceOccurredAt
+                    : (item.Invoice.InvoiceDate ?? DateTimeOffset.UtcNow);
+
+                var localTime = TimeZoneInfo.ConvertTime(sourceTime, AsiaJakartaTimeZone);
+                var serviceDate = DateOnly.FromDateTime(localTime.DateTime);
+
+                // Pastikan tanggal layanan berada dalam rentang periode kalkulasi
+                if (serviceDate < periodStart || serviceDate > periodEnd)
+                {
+                    continue;
+                }
+
+                var baseAmount = item.Quantity * item.UnitPrice; // Nilai kotor sebelum diskon (MDF-DES-012)
 
                 string? unresolvedReason = null;
                 string? unresolvedReasonDetail = null;
 
+                // G1 & T-104: Pemetaan PerformerType mentah ke MdfPayeeTypes (Doctor / Workforce).
+                // Nilai kosong atau lain TIDAK menebak Doctor, melainkan ditandai PERFORMER_MISSING (MDF-VAL-1.0 §5.3).
+                string payeeType;
+                if (string.Equals(item.PerformerType, BillingPerformerTypes.Doctor, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(item.PerformerType, "Doctor", StringComparison.OrdinalIgnoreCase))
+                {
+                    payeeType = MdfPayeeTypes.Doctor;
+                }
+                else if (string.Equals(item.PerformerType, BillingPerformerTypes.Workforce, StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(item.PerformerType, "Workforce", StringComparison.OrdinalIgnoreCase))
+                {
+                    payeeType = MdfPayeeTypes.Workforce;
+                }
+                else
+                {
+                    payeeType = string.IsNullOrWhiteSpace(item.PerformerType) ? "UNKNOWN" : item.PerformerType.Trim();
+                    unresolvedReason = MdfUnresolvedReasons.PerformerMissing;
+                    unresolvedReasonDetail = $"Jenis pelaksana jasa ('{item.PerformerType}') pada entri kasir '{item.DescriptionSnapshot}' tidak valid atau tidak dikenal (wajib DOCTOR atau WORKFORCE).";
+                }
+
                 if (!item.PerformerReferenceId.HasValue || item.PerformerReferenceId.Value == Guid.Empty)
                 {
                     unresolvedReason = MdfUnresolvedReasons.PerformerMissing;
-                    unresolvedReasonDetail = $"Item tagihan bebas '{item.DescriptionSnapshot}' belum memiliki pelaksana jasa.";
+                    unresolvedReasonDetail = $"Item tagihan bebas '{item.DescriptionSnapshot}' belum memiliki rujukan pelaksana jasa (PerformerReferenceId kosong).";
                 }
-                else if (primaryRole == null)
+
+                // G2 & T-105: Pemilihan peran berdasarkan PerformerRoleCode
+                MstMedicalFeeRole? targetRole = null;
+                if (string.IsNullOrWhiteSpace(item.PerformerRoleCode))
                 {
-                    unresolvedReason = MdfUnresolvedReasons.RoleUnmapped;
-                    unresolvedReasonDetail = "Peran utama (IsPrimaryRole = true) belum dikonfigurasi pada data induk peran jasa medis.";
+                    // PerformerRoleCode kosong -> gunakan peran utama aktif
+                    if (primaryRole != null)
+                    {
+                        targetRole = primaryRole;
+                    }
+                    else if (unresolvedReason == null)
+                    {
+                        unresolvedReason = MdfUnresolvedReasons.RoleUnmapped;
+                        unresolvedReasonDetail = "Peran utama (IsPrimaryRole = true) belum dikonfigurasi pada data induk peran jasa medis.";
+                    }
+                }
+                else
+                {
+                    // PerformerRoleCode terisi -> cari peran aktif yang cocok pada data induk peran
+                    var roleCode = item.PerformerRoleCode.Trim();
+                    if (roleByCodeMap.TryGetValue(roleCode, out var matchedRole) && matchedRole.IsActive)
+                    {
+                        targetRole = matchedRole;
+                    }
+                    else if (unresolvedReason == null)
+                    {
+                        unresolvedReason = MdfUnresolvedReasons.RoleUnmapped;
+                        unresolvedReasonDetail = $"Kode peran pelaksana '{roleCode}' tidak ditemukan atau nonaktif pada data induk peran jasa medis.";
+                    }
+                }
+
+                // Nama penerima jika bertipe Doctor dan terdaftar di master dokter
+                var payeeName = string.Empty;
+                if (payeeType == MdfPayeeTypes.Doctor && item.PerformerReferenceId.HasValue &&
+                    doctorByIdMap.TryGetValue(item.PerformerReferenceId.Value, out var docName))
+                {
+                    payeeName = docName;
                 }
 
                 items.Add(new AdaptedServiceItem
@@ -503,13 +605,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                     ServiceDescription = item.DescriptionSnapshot,
                     ServiceDate = serviceDate,
                     BaseAmount = baseAmount,
-                    PayeeType = !string.IsNullOrWhiteSpace(item.PerformerType) ? item.PerformerType : MdfPayeeTypes.Doctor,
+                    PayeeType = payeeType,
                     PayeeReferenceId = item.PerformerReferenceId,
-                    PayeeName = string.Empty,
-                    RoleId = primaryRole?.Id,
-                    RoleCode = primaryRole?.RoleCode,
-                    RoleName = primaryRole?.RoleName,
-                    IsPrimaryRole = true,
+                    PayeeName = payeeName,
+                    RoleId = targetRole?.Id,
+                    RoleCode = targetRole?.RoleCode,
+                    RoleName = targetRole?.RoleName,
+                    IsPrimaryRole = targetRole?.IsPrimaryRole ?? false,
                     UnresolvedReason = unresolvedReason,
                     UnresolvedReasonDetail = unresolvedReasonDetail
                 });

@@ -82,6 +82,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         public MdfFeePeriod? Period { get; set; }
         public ICollection<MdfServiceFeeDetail> Details { get; set; } = new List<MdfServiceFeeDetail>();
         public ICollection<MdfServiceFeeAdjustment> Adjustments { get; set; } = new List<MdfServiceFeeAdjustment>();
+        public MdfFinanceHandoff? FinanceHandoff { get; set; }
     }
 }
 

@@ -51,14 +51,14 @@ flowchart LR
     RULE -->|persentase peran| CALC
     CALC -->|hasil jasa disetujui| HO
     HO -->|dibaca Finance, di-ACK| PAY
-    CALC -.->|OPEN DECISION: MF-CQ-08 ditutup, port in-process, menunggu penguncian| INV
+    RULE -.->|persentase lewat port; Billing yang menulis - draft MDF-INTEGRATION-1.1| INV
 
     style MDF fill:#e8f4ea,stroke:#2d6a3e,stroke-width:2px
     style RAD stroke-dasharray: 5 5
 ```
 
 Satu-satunya panah **keluar** dari Medical Fee yang mengubah data modul lain adalah panah putus
-ke `BilInvoiceItem`, dan panah itu `OPEN DECISION` (`MF-CQ-08` ditutup 26 Oktober 2026; menunggu penguncian). Catatan: dengan bentuk port, **Billing yang menulis** `DoctorShare`; Medical Fee hanya menyediakan persentase lewat implementasi port. Semua panah lain hanya
+ke `BilInvoiceItem`, dan panah itu `OPEN DECISION` (`MF-CQ-08` ditutup 26 Oktober 2026; menunggu penguncian). Catatan: dengan bentuk port, **Billing yang menulis** `DoctorShare`; Medical Fee hanya menyediakan persentase lewat implementasi port. *(Draft `MDF-INTEGRATION-1.1` §4: panah putus kini berangkat dari aturan tarif, bukan dari perhitungan, dan Medical Fee tidak lagi mengubah data modul lain mana pun.)* Semua panah lain hanya
 membaca, atau diserahkan lewat tabel handoff yang dikonsumsi modul tujuan.
 
 ## 2. Arah hubungan dan tanggung jawabnya
@@ -70,7 +70,8 @@ membaca, atau diserahkan lewat tabel handoff yang dikonsumsi modul tujuan.
 | Medical Fee | Laboratory | Baca | Query langsung | Pembagian tim menunggu `MF-CQ-07` |
 | Medical Fee | Radiology | **Tidak ada** | — | Ditunda `MF-DEC-015` |
 | Medical Fee | Billing (`BilInvoiceItem`) | Baca | Query langsung, nilai kotor baris | — |
-| Medical Fee | Billing (`DoctorShare`) | **Tulis** *(label asli; kini Billing menulis, Medical Fee menyediakan persentase lewat port)* | `OPEN DECISION` | `MF-CQ-08` ditutup; menunggu penguncian |
+| Medical Fee | Billing (`DoctorShare`) | **Jawab** — Billing bertanya, Medical Fee menjawab persentase, Billing menulis *(label 1.0: "Tulis")* | Port in-process `IBillingDoctorShareResolver` | Draft `MDF-INTEGRATION-1.1` §4; menunggu penguncian |
+| Medical Fee | Billing (pelaksana entri kasir) | Baca | Query langsung kolom `IsFeeBearing`, `PerformerType`, `PerformerReferenceId`, `PerformerRoleCode` | Draft `MDF-INTEGRATION-1.1` §5; menunggu `MF-OQ-012` dan penguncian |
 | Medical Fee | HR (`WfpContractHistory`) | Baca + FK `Restrict` | Rujukan kontrak | — |
 | Medical Fee | MasterData (`MstTariff`) | Baca + FK `Restrict` | Rujukan layanan | — |
 | Medical Fee | Finance | Serah | Tabel handoff `MdfFinanceHandoff`, ACK oleh Finance | — |

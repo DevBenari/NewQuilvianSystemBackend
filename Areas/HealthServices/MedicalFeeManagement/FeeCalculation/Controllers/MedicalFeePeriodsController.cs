@@ -167,7 +167,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Calculate", "Calculate Medical Fee Period", Description = "Menjalankan kalkulasi jasa medis untuk satu periode", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("MedicalFeePeriods", AccessTypes.Update)]
+        [AccessPermission("MedicalFeePeriods", "Calculate")]
         public async Task<IActionResult> Calculate(
             Guid id,
             [FromBody] CalculatePeriodRequest request,
@@ -210,7 +210,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Reopen", "Reopen Medical Fee Period", Description = "Membuka kembali periode kalkulasi yang berstatus Calculated ke Open", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("MedicalFeePeriods", AccessTypes.Update)]
+        [AccessPermission("MedicalFeePeriods", "Calculate")]
         public async Task<IActionResult> Reopen(
             Guid id,
             [FromBody] ReopenFeePeriodRequest request,
@@ -251,7 +251,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Verify", "Verify Medical Fee Period", Description = "Memverifikasi hasil perhitungan periode jasa medis", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("MedicalFeePeriods", AccessTypes.Update)]
+        [AccessPermission("MedicalFeePeriods", "Verify")]
         public async Task<IActionResult> Verify(
             Guid id,
             [FromBody] VerifyFeePeriodRequest request,
@@ -292,7 +292,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Return", "Return Medical Fee Period", Description = "Mengembalikan status verifikasi periode ke Calculated", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("MedicalFeePeriods", AccessTypes.Update)]
+        [AccessPermission("MedicalFeePeriods", "Verify")]
         public async Task<IActionResult> Return(
             Guid id,
             [FromBody] ReturnFeePeriodRequest request,
@@ -334,7 +334,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Approve", "Approve Medical Fee Period", Description = "Menyetujui periode kalkulasi jasa medis", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("MedicalFeePeriods", AccessTypes.Update)]
+        [AccessPermission("MedicalFeePeriods", "Approve")]
         public async Task<IActionResult> Approve(
             Guid id,
             [FromBody] ApproveFeePeriodRequest request,
@@ -376,7 +376,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Close", "Close Medical Fee Period", Description = "Menutup periode jasa medis secara permanen setelah seluruh unresolved diselesaikan", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("MedicalFeePeriods", AccessTypes.Update)]
+        [AccessPermission("MedicalFeePeriods", "Close")]
         public async Task<IActionResult> Close(
             Guid id,
             [FromBody] CloseFeePeriodRequest request,

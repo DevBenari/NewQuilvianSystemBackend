@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -173,10 +174,35 @@ public sealed class FinanceReceivableInstallmentPlanService
             query = query.Where(x => x.receivable.BenefitOwnerWorkforceProfileId == request.BenefitOwnerWorkforceProfileId.Value);
         if (!string.IsNullOrWhiteSpace(request.DeductionPeriod))
             query = query.Where(x => x.plan.FirstDeductionPeriod == request.DeductionPeriod);
+        if (request.HasArrears.HasValue)
+        {
+            var wantArrears = request.HasArrears.Value;
+            query = query.Where(x => _dbContext.FinReceivableInstallments
+                .Any(i => !i.IsDelete && i.PlanId == x.plan.Id && i.Status == FinReceivableInstallmentStatuses.Tertunggak) == wantArrears);
+        }
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
-            var term = request.Search.Trim();
-            query = query.Where(x => EF.Functions.ILike(x.plan.PlanNumber, $"%{term}%") || EF.Functions.ILike(x.receivable.ReceivableNumber, $"%{term}%"));
+            var search = request.Search.Trim().ToUpper();
+
+            // Pemilik benefit: nama atau NIP / nomor dokter. Pola yang sama dengan daftar piutang (identitas Workforce
+            // untuk karyawan maupun dokter tetap, ditambah jalur lama lewat MstEmployee.Id).
+            var matchingOwnerEmployees = _dbContext.MstEmployees.AsNoTracking()
+                .Where(e => !e.IsDelete &&
+                    (e.FullName.ToUpper().Contains(search) || e.EmployeeNumber.ToUpper().Contains(search)));
+            var matchingOwnerEmployeeIds = matchingOwnerEmployees.Select(e => e.Id);
+            var matchingOwnerEmployeeProfileIds = matchingOwnerEmployees.Select(e => e.WorkforceProfileId);
+            var matchingOwnerDoctorProfileIds = _dbContext.MstDoctors.AsNoTracking()
+                .Where(d => !d.IsDelete &&
+                    (d.FullName.ToUpper().Contains(search) || d.DoctorNumber.ToUpper().Contains(search)))
+                .Select(d => d.WorkforceProfileId);
+
+            query = query.Where(x =>
+                x.plan.PlanNumber.ToUpper().Contains(search) ||
+                x.receivable.ReceivableNumber.ToUpper().Contains(search) ||
+                (x.receivable.BenefitOwnerWorkforceProfileId.HasValue &&
+                    (matchingOwnerEmployeeProfileIds.Contains(x.receivable.BenefitOwnerWorkforceProfileId.Value) ||
+                     matchingOwnerDoctorProfileIds.Contains(x.receivable.BenefitOwnerWorkforceProfileId.Value))) ||
+                (x.receivable.BenefitOwnerId.HasValue && matchingOwnerEmployeeIds.Contains(x.receivable.BenefitOwnerId.Value)));
         }
 
         var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
@@ -195,13 +221,60 @@ public sealed class FinanceReceivableInstallmentPlanService
         var names = await GetUserNamesAsync(
             page.SelectMany(x => new Guid?[] { x.plan.RequestedBy, x.plan.ApprovedBy }), cancellationToken);
 
+        // Nama pemilik dan agregat angsuran untuk satu halaman diambil dalam kueri tetap (tidak ada N+1).
+        var owners = await FinanceBenefitOwnerDirectory.LoadAsync(
+            _dbContext,
+            page.Select(x => ((Guid?)x.receivable.BenefitOwnerId, x.receivable.BenefitOwnerWorkforceProfileId)),
+            cancellationToken);
+
+        var planIds = page.Select(x => x.plan.Id).ToList();
+        var installmentRows = planIds.Count == 0
+            ? new List<InstallmentAggregateRow>()
+            : await _dbContext.FinReceivableInstallments.AsNoTracking()
+                .Where(i => !i.IsDelete && planIds.Contains(i.PlanId))
+                .Select(i => new InstallmentAggregateRow(i.PlanId, i.PaidAmount, i.OutstandingAmount, i.Status))
+                .ToListAsync(cancellationToken);
+        var aggregates = installmentRows.GroupBy(x => x.PlanId).ToDictionary(g => g.Key, g => g.ToList());
+
         return new PagedResult<InstallmentPlanListResponse>
         {
             PageNumber = request.PageNumber,
             PageSize = request.PageSize,
             TotalData = total,
             TotalPage = (int)Math.Ceiling(total / (double)request.PageSize),
-            Items = page.Select(x => MapList(x.plan, x.receivable, names)).ToList()
+            Items = page.Select(x => MapList(
+                x.plan, x.receivable, names,
+                owners.Find(x.receivable.BenefitOwnerId, x.receivable.BenefitOwnerWorkforceProfileId),
+                aggregates.GetValueOrDefault(x.plan.Id))).ToList()
+        };
+    }
+
+    /// <summary>
+    /// Ringkasan seluruh perjanjian (tidak mengikuti saringan daftar). "Tertunggak" = perjanjian DISETUJUI yang punya
+    /// sedikitnya satu angsuran TERTUNGGAK; potongan gaji yang gagal tidak pernah dihitung sebagai terbayar.
+    /// </summary>
+    public async Task<InstallmentPlanSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
+    {
+        var byStatus = await _dbContext.FinReceivableInstallmentPlans.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .GroupBy(x => x.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
+        var arrearsCount = await _dbContext.FinReceivableInstallmentPlans.AsNoTracking()
+            .Where(x => !x.IsDelete && x.Status == FinReceivableInstallmentPlanStatuses.Disetujui)
+            .CountAsync(plan => _dbContext.FinReceivableInstallments
+                .Any(i => !i.IsDelete && i.PlanId == plan.Id && i.Status == FinReceivableInstallmentStatuses.Tertunggak),
+                cancellationToken);
+
+        int CountOf(string status) => byStatus.Where(x => x.Status == status).Select(x => x.Count).FirstOrDefault();
+
+        return new InstallmentPlanSummaryResponse
+        {
+            PendingCount = CountOf(FinReceivableInstallmentPlanStatuses.Menunggu),
+            RunningCount = CountOf(FinReceivableInstallmentPlanStatuses.Disetujui),
+            ArrearsCount = arrearsCount,
+            CompletedCount = CountOf(FinReceivableInstallmentPlanStatuses.Selesai)
         };
     }
 
@@ -222,8 +295,23 @@ public sealed class FinanceReceivableInstallmentPlanService
         var names = await GetUserNamesAsync(new Guid?[] { plan.RequestedBy, plan.ApprovedBy }, cancellationToken);
         var baseResponse = Map(plan, receivable?.ReceivableNumber, names);
 
+        WorkforceBenefitOwner? owner = null;
+        if (receivable is not null && (receivable.BenefitOwnerId.HasValue || receivable.BenefitOwnerWorkforceProfileId.HasValue))
+        {
+            var owners = await FinanceBenefitOwnerDirectory.LoadAsync(
+                _dbContext,
+                new[] { ((Guid?)receivable.BenefitOwnerId, receivable.BenefitOwnerWorkforceProfileId) },
+                cancellationToken);
+            owner = owners.Find(receivable.BenefitOwnerId, receivable.BenefitOwnerWorkforceProfileId);
+        }
+
         return new InstallmentPlanDetailResponse
         {
+            BenefitRelationship = receivable?.BenefitRelationship,
+            BenefitOwnerName = owner?.StaffName,
+            BenefitOwnerEmployeeNumber = owner?.StaffNumber,
+            BenefitOwnerType = owner?.OwnerType,
+            ReceivableOutstandingAmount = receivable?.OutstandingAmount ?? 0m,
             Id = baseResponse.Id,
             PlanNumber = baseResponse.PlanNumber,
             ReceivableId = baseResponse.ReceivableId,
@@ -234,6 +322,7 @@ public sealed class FinanceReceivableInstallmentPlanService
             FirstDeductionPeriod = baseResponse.FirstDeductionPeriod,
             Status = baseResponse.Status,
             RequestedByName = baseResponse.RequestedByName,
+            RequestedByUserId = baseResponse.RequestedByUserId,
             RequestedAt = baseResponse.RequestedAt,
             ApprovedByName = baseResponse.ApprovedByName,
             ApprovedAt = baseResponse.ApprovedAt,
@@ -527,6 +616,7 @@ public sealed class FinanceReceivableInstallmentPlanService
         FirstDeductionPeriod = x.FirstDeductionPeriod,
         Status = x.Status,
         RequestedByName = names.GetValueOrDefault(x.RequestedBy),
+        RequestedByUserId = x.RequestedBy,
         RequestedAt = x.RequestedAt,
         ApprovedByName = x.ApprovedBy.HasValue ? names.GetValueOrDefault(x.ApprovedBy.Value) : null,
         ApprovedAt = x.ApprovedAt,
@@ -536,7 +626,9 @@ public sealed class FinanceReceivableInstallmentPlanService
         RowVersion = x.RowVersion
     };
 
-    private static InstallmentPlanListResponse MapList(FinReceivableInstallmentPlan x, FinReceivable receivable, Dictionary<Guid, string?> names) => new()
+    private static InstallmentPlanListResponse MapList(
+        FinReceivableInstallmentPlan x, FinReceivable receivable, Dictionary<Guid, string?> names,
+        WorkforceBenefitOwner? owner, List<InstallmentAggregateRow>? installments) => new()
     {
         Id = x.Id,
         PlanNumber = x.PlanNumber,
@@ -548,6 +640,7 @@ public sealed class FinanceReceivableInstallmentPlanService
         FirstDeductionPeriod = x.FirstDeductionPeriod,
         Status = x.Status,
         RequestedByName = names.GetValueOrDefault(x.RequestedBy),
+        RequestedByUserId = x.RequestedBy,
         RequestedAt = x.RequestedAt,
         ApprovedByName = x.ApprovedBy.HasValue ? names.GetValueOrDefault(x.ApprovedBy.Value) : null,
         ApprovedAt = x.ApprovedAt,
@@ -558,8 +651,18 @@ public sealed class FinanceReceivableInstallmentPlanService
         BenefitOwnerId = receivable.BenefitOwnerId,
         BenefitOwnerWorkforceProfileId = receivable.BenefitOwnerWorkforceProfileId,
         BenefitRelationship = receivable.BenefitRelationship,
-        OutstandingAmount = receivable.OutstandingAmount
+        BenefitOwnerName = owner?.StaffName,
+        BenefitOwnerEmployeeNumber = owner?.StaffNumber,
+        BenefitOwnerType = owner?.OwnerType,
+        OutstandingAmount = receivable.OutstandingAmount,
+        // Angsuran sebagian yang kemudian dibatalkan tetap membawa potongan yang sudah benar-benar terjadi.
+        PaidAmount = installments?.Sum(i => i.PaidAmount) ?? 0m,
+        ArrearsInstallmentCount = installments?.Count(i => i.Status == FinReceivableInstallmentStatuses.Tertunggak) ?? 0,
+        ArrearsAmount = installments?.Where(i => i.Status == FinReceivableInstallmentStatuses.Tertunggak).Sum(i => i.OutstandingAmount) ?? 0m
     };
+
+    /// <summary>Baris angsuran minimal untuk agregat daftar (terbayar dan tunggakan) tanpa memuat entitas penuh.</summary>
+    private sealed record InstallmentAggregateRow(Guid PlanId, decimal PaidAmount, decimal OutstandingAmount, string Status);
 
     private static InstallmentResponse MapInstallment(FinReceivableInstallment x) => new()
     {

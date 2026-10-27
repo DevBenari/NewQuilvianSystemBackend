@@ -79,6 +79,17 @@ contract_versions:
   permission-audit-matrix: MDF-PERM-1.0 — locked 2026-09-20
   prd-to-mvp: MDF-MVP-1.0 — locked 2026-09-20
   acceptance-test-matrix: MDF-TEST-1.0 — locked 2026-09-20
+contract_amendments:
+  integration-contract: >
+    MDF-INTEGRATION-1.1 — locked 2026-10-27. Menulis ulang §4 (port in-process
+    IBillingDoctorShareResolver) dan §5 (pelaksana entri kasir), menambah §7.3 (BilApHandoff bukan sumber
+    utang jasa), dan membetulkan §9. Kedua permukaan yang dikecualikan pada 1.0 kini terkunci.
+  api-contract: MDF-API-1.1 — locked 2026-10-27, satu baris bagian 9 (endpoint sharing-rules/resolve tidak dibuat).
+  acceptance-test-matrix: MDF-TEST-1.1 — locked 2026-10-27, bagian 11A (T-91..T-107).
+  catatan: >
+    Disusun design-business-module 27 Oktober 2026, lalu disetujui dan dikunci owner Medical Fee pada
+    hari yang sama lewat pernyataan langsung "saya setuju dan kunci", yang mencakup rekomendasi MF-OQ-012
+    pilihan A. Dicatat apa adanya, TIDAK ditetapkan skill. Isi 1.0 yang tidak tersentuh tetap pada versinya.
 contract_lock_note: >
   Owner mengunci ketujuh kontrak turunan pada 20 September 2026. Dicatat apa adanya, TIDAK
   ditetapkan skill.
@@ -116,6 +127,8 @@ design_decision_status: >
   SELURUH MDF-DES-001..018 `approved` 20 September 2026 oleh Yasmin. Approval diberikan pada
   lapisan arsitektur secara tersendiri, bukan diturunkan dari approval keputusan bisnis di
   hulunya.
+  MDF-DES-019..021 (02-backend-architecture.md §2.7) `approved` 27 Oktober 2026 oleh owner Medical Fee
+  bersama penguncian MDF-INTEGRATION-1.1.
 
 requirement_completeness_gate_note: >
   NOT_RUN, deviasi tercatat atas keputusan owner 20 September 2026. Sebagai gantinya dipakai:
@@ -138,7 +151,8 @@ domain_architecture_readiness: >
   RISIKO YANG DITERIMA, DAN INI LEBIH BESAR DARIPADA FIN-BP-001: berbeda dari Finance yang
   murni satu arah, modul ini MENULIS BALIK ke Billing (MF-DEC-001 memindahkan sumber kebenaran
   BilInvoiceItem.DoctorShare) dan menuntut perubahan di empat modul lain. Empat konfirmasi
-  tetangga (MF-CQ-05..08) belum satu pun turun.
+  tetangga (MF-CQ-05..08) belum satu pun turun. [PEMBARUAN 26 Oktober 2026: MF-CQ-05 dan MF-CQ-08 sudah
+  dijawab owner Billing; MF-CQ-06 dan MF-CQ-07 masih menunggu.]
   Mitigasi: setiap rumpun yang bergantung pada konfirmasi itu ditandai OPEN DECISION pada
   04-prd-to-mvp.md dan MUST NOT masuk gelombang pengiriman mana pun. Rumpun yang berdiri
   sendiri — aturan tarif, perhitungan jasa operasi, verifikasi, persetujuan, periode,
@@ -168,6 +182,9 @@ blocking_questions:
   - id: MF-CQ-05
     status: CLOSED 2026-10-26 (owner Billing)
     blocking_for: Rumpun jasa dari entri bebas kasir (EPIC MDF-07)
+  - id: MF-OQ-012
+    status: CLOSED 2026-10-27 (owner Medical Fee) — pilihan A, baris tarif bawaan peran
+    blocking_for: Tidak lagi.
   - id: MF-CQ-07
     blocking_for: Rumpun pembagian tim di luar operasi (EPIC MDF-05 sebagian)
   - id: MF-CQ-06
@@ -191,13 +208,13 @@ blocking_questions:
 | `contracts/api-contract.md` | Ada | `MDF-API-1.0` — locked |
 | `contracts/state-transition-matrix.md` | Ada | `MDF-STATE-1.0` — locked |
 | `contracts/validation-matrix.md` | Ada | `MDF-VAL-1.0` — locked |
-| `contracts/integration-contract.md` | Ada | `MDF-INTEGRATION-1.0` — locked, dua permukaan dikecualikan |
+| `contracts/integration-contract.md` | Ada | `MDF-INTEGRATION-1.1` — locked 27 Oktober 2026; dua permukaan yang dikecualikan pada 1.0 kini terkunci (§4–5) |
 | `contracts/permission-audit-matrix.md` | Ada | `MDF-PERM-1.0` — locked |
 | `testing/acceptance-test-matrix.md` | Ada | `MDF-TEST-1.0` — locked |
 | `evidence/01-permintaan-untuk-owner-billing.md` | Ada | `MF-CQ-08` (sumber `DoctorShare`) dan `MF-CQ-05` (pelaksana entri kasir), berdiri sendiri |
 | `evidence/02-pemberitahuan-untuk-owner-hr.md` | Ada | `MF-CQ-06` — pemberitahuan dan tiga pertanyaan, berdiri sendiri |
-| `roadmap/00-delivery-roadmap.md` | Ada | `MDF-ROADMAP-001` revisi 4, status `ACTIVE` — payung: gelombang, traceability, coverage gap |
-| `roadmap/01-backend-roadmap.md` | Ada | `MDF-ROADMAP-BE-001` — 17 task `BE-MDF-*`; `MVP-0`..`MVP-5` siap, hanya `BE-MDF-015`/`016` tertahan owner Billing |
+| `roadmap/00-delivery-roadmap.md` | Ada | `MDF-ROADMAP-001` revisi 5, status `ACTIVE` — payung: gelombang, traceability, coverage gap |
+| `roadmap/01-backend-roadmap.md` | Ada | `MDF-ROADMAP-BE-001` revisi 2 — 19 task `BE-MDF-*` beserta grafik urutan dependency; `MVP-0`..`MVP-5` siap; `BE-MDF-015`/`016` siap `POST-MVP` setelah `BE-MDF-010` (kontrak 1.1 terkunci 27 Oktober 2026) |
 | `roadmap/02-frontend-roadmap.md` | Ada | `MDF-ROADMAP-FE-001` — 6 task `FE-MDF-*`, kemampuan `F-01`..`F-17`, DoD frontend |
 | `evidence/03-permintaan-untuk-owner-clinical-dan-laboratorium.md` | Ada | `MF-CQ-07` — pencatatan tim dan peran; bagian 5 tembusan untuk owner Radiologi |
 

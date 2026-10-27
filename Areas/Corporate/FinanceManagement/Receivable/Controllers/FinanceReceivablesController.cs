@@ -142,6 +142,8 @@ public sealed class FinanceReceivablesController : ControllerBase
     // Data Tagihan (Finance > Transaksi A/R > Tagihan/Billing). Sub-resource baca seperti summary dan aging;
     // memakai hak akses FinanceReceivable : Read yang sudah terdaftar, tanpa action baru. Daftar dan ringkasan
     // keluar dari satu query yang sama (FinanceReceivableBillingDataService).
+    // MURNI BACA: tidak lagi menyinkronkan atau mengolah fakta AR dari Billing. Fakta yang belum menjadi piutang
+    // dilaporkan pada PendingFacts, dan diolah lewat POST billing-intake/sync dan POST billing-intake/process-pending-ar.
     [HttpGet("billing-data")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceReceivable", "Read")]
@@ -152,7 +154,7 @@ public sealed class FinanceReceivablesController : ControllerBase
     {
         try
         {
-            var result = await _billingDataService.GetAsync(request, cancellationToken, CurrentUserId());
+            var result = await _billingDataService.GetAsync(request, cancellationToken);
             return Ok(ApiResponse<BillingDataPagedResponse>.Ok(result, result.Notice ?? "Data tagihan berhasil diambil."));
         }
         catch (BillingDataBadRequestException exception)
