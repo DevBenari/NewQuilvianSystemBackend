@@ -54,6 +54,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         /// </summary>
         public async Task<List<ServiceFeeAdjustmentResponse>> GetAdjustmentsByServiceFeeIdAsync(
             Guid serviceFeeId,
+            MedicalFeeActorContext? actorContext = null,
             CancellationToken ct = default)
         {
             var fee = await _dbContext.MdfServiceFees
@@ -64,6 +65,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             {
                 throw new KeyNotFoundException($"Hasil jasa medis dengan ID '{serviceFeeId}' tidak ditemukan.");
             }
+
+            // BE-MDF-017 / T-82: Pembatasan data tenaga medis di lapis service (404 jika bukan miliknya)
+            MedicalFeeDataRestrictionPolicy.AssertCanAccessServiceFee(actorContext, fee.PayeeReferenceId, serviceFeeId);
 
             var adjustments = await _dbContext.MdfServiceFeeAdjustments
                 .AsNoTracking()
@@ -83,6 +87,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         public async Task<ServiceFeeAdjustmentResponse> GetAdjustmentByIdAsync(
             Guid serviceFeeId,
             Guid adjustmentId,
+            MedicalFeeActorContext? actorContext = null,
             CancellationToken ct = default)
         {
             var fee = await _dbContext.MdfServiceFees
@@ -93,6 +98,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             {
                 throw new KeyNotFoundException($"Hasil jasa medis dengan ID '{serviceFeeId}' tidak ditemukan.");
             }
+
+            // BE-MDF-017 / T-82: Pembatasan data tenaga medis di lapis service (404 jika bukan miliknya)
+            MedicalFeeDataRestrictionPolicy.AssertCanAccessServiceFee(actorContext, fee.PayeeReferenceId, serviceFeeId);
 
             var adj = await _dbContext.MdfServiceFeeAdjustments
                 .AsNoTracking()

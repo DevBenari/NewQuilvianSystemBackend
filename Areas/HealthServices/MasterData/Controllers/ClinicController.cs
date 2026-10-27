@@ -379,7 +379,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
-            var paging = NormalizePaging(pageNumber, pageSize);
+            var paging = NormalizeOptionPaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
@@ -449,7 +449,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
-            var paging = NormalizePaging(pageNumber, pageSize);
+            var paging = NormalizeOptionPaging(pageNumber, pageSize);
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
@@ -1434,7 +1434,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 IsScreeningRequired = entity.IsScreeningRequired,
                 IsQueueRequired = entity.IsQueueRequired,
                 DefaultEstimatedServiceMinutes = entity.DefaultEstimatedServiceMinutes,
-                SortOrder = entity.SortOrder
+                SortOrder = entity.SortOrder,
+                IsActive = entity.IsActive
             };
         }
 
@@ -1457,6 +1458,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             if (pageNumber < 1) pageNumber = 1;
             if (pageSize < 1) pageSize = 25;
             if (pageSize > 100) pageSize = 100;
+
+            return (pageNumber, pageSize);
+        }
+
+        private static (int PageNumber, int PageSize) NormalizeOptionPaging(int pageNumber, int pageSize)
+        {
+            if (pageNumber < 1) pageNumber = 1;
+            if (pageSize < 1) pageSize = 25;
+            if (pageSize > 1000) pageSize = 1000;
 
             return (pageNumber, pageSize);
         }

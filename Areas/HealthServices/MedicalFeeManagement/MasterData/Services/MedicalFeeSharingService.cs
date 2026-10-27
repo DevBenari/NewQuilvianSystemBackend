@@ -4,6 +4,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -31,10 +33,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
         /// </summary>
         public async Task<PagedResult<SharingAgreementHeaderResponse>> GetPagedAsync(
             SharingAgreementPagedQuery query,
+            MedicalFeeActorContext? actorContext = null,
             CancellationToken ct = default)
         {
             var pageNumber = query.PageNumber < 1 ? 1 : query.PageNumber;
             var pageSize = query.PageSize < 1 ? 25 : (query.PageSize > 200 ? 200 : query.PageSize);
+
+            Guid? effectivePayeeRefId = query.PayeeReferenceId;
+            if (MedicalFeeDataRestrictionPolicy.ApplyListFilter(actorContext, ref effectivePayeeRefId, out bool shouldReturnEmpty))
+            {
+                if (shouldReturnEmpty)
+                {
+                    return new PagedResult<SharingAgreementHeaderResponse>
+                    {
+                        PageNumber = pageNumber,
+                        PageSize = pageSize,
+                        TotalData = 0,
+                        TotalPage = 0,
+                        Items = new List<SharingAgreementHeaderResponse>()
+                    };
+                }
+            }
 
             var q = _dbContext.MdfSharingAgreements
                 .AsNoTracking()
@@ -55,9 +74,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
                 q = q.Where(x => x.PayeeType == query.PayeeType);
             }
 
-            if (query.PayeeReferenceId.HasValue)
+            if (effectivePayeeRefId.HasValue)
             {
-                q = q.Where(x => x.PayeeReferenceId == query.PayeeReferenceId.Value);
+                q = q.Where(x => x.PayeeReferenceId == effectivePayeeRefId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(query.Status))
@@ -171,7 +190,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
         /// <summary>
         /// Mengambil detail satu kesepakatan beserta seluruh baris aturan tarifnya.
         /// </summary>
-        public async Task<SharingAgreementDetailResponse?> GetByIdAsync(Guid id, CancellationToken ct = default)
+        public async Task<SharingAgreementDetailResponse?> GetByIdAsync(
+            Guid id,
+            MedicalFeeActorContext? actorContext = null,
+            CancellationToken ct = default)
         {
             var entity = await _dbContext.MdfSharingAgreements
                 .AsNoTracking()
@@ -185,6 +207,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, ct);
 
             if (entity == null) return null;
+
+            // BE-MDF-017: Pembatasan data kesepakatan tarif untuk tenaga medis
+            MedicalFeeDataRestrictionPolicy.AssertCanAccessSharingAgreement(actorContext, entity.PayeeReferenceId, id);
 
             string payeeName = string.Empty;
             string? payeeCode = null;

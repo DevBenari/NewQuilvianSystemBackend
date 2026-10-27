@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
@@ -32,13 +33,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
         private const string LogCategory = "HealthServices.MedicalFeeManagement.MasterData.SharingAgreement";
 
         private readonly MedicalFeeSharingService _service;
+        private readonly MedicalFeeAccessGuard _accessGuard;
         private readonly LoggerService _loggerService;
 
         public MedicalFeeSharingAgreementsController(
             MedicalFeeSharingService service,
+            MedicalFeeAccessGuard accessGuard,
             LoggerService loggerService)
         {
             _service = service;
+            _accessGuard = accessGuard;
             _loggerService = loggerService;
         }
 
@@ -89,7 +93,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
         [AccessPermission("MedicalFeeSharingAgreements", "Read")]
         public async Task<IActionResult> GetPaged([FromQuery] SharingAgreementPagedQuery query, CancellationToken ct = default)
         {
-            var result = await _service.GetPagedAsync(query, ct);
+            var actorContext = await _accessGuard.ResolveActorContextAsync(User, ct);
+            var result = await _service.GetPagedAsync(query, actorContext, ct);
             return Ok(ApiResponse<PagedResult<SharingAgreementHeaderResponse>>.Ok(result, "Daftar kesepakatan tarif sharing berhasil diambil."));
         }
 
@@ -124,13 +129,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
         [AccessPermission("MedicalFeeSharingAgreements", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken ct = default)
         {
-            var agreement = await _service.GetByIdAsync(id, ct);
-            if (agreement == null)
+            try
             {
-                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kesepakatan tarif sharing tidak ditemukan atau sudah dihapus."));
-            }
+                var actorContext = await _accessGuard.ResolveActorContextAsync(User, ct);
+                var agreement = await _service.GetByIdAsync(id, actorContext, ct);
+                if (agreement == null)
+                {
+                    return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Kesepakatan tarif sharing tidak ditemukan atau sudah dihapus."));
+                }
 
-            return Ok(ApiResponse<SharingAgreementDetailResponse>.Ok(agreement, "Detail kesepakatan tarif sharing berhasil diambil."));
+                return Ok(ApiResponse<SharingAgreementDetailResponse>.Ok(agreement, "Detail kesepakatan tarif sharing berhasil diambil."));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
         }
 
         // =====================================================================

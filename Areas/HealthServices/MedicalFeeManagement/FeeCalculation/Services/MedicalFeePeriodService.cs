@@ -709,8 +709,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         /// </summary>
         public async Task<PagedResult<ServiceFeeHeaderResponse>> GetServiceFeesPagedAsync(
             ServiceFeePagedQuery query,
+            MedicalFeeActorContext? actorContext = null,
             CancellationToken ct = default)
         {
+            Guid? effectivePayeeRefId = query.PayeeReferenceId;
+            if (MedicalFeeDataRestrictionPolicy.ApplyListFilter(actorContext, ref effectivePayeeRefId, out bool shouldReturnEmpty))
+            {
+                if (shouldReturnEmpty)
+                {
+                    return new PagedResult<ServiceFeeHeaderResponse>
+                    {
+                        PageNumber = query.PageNumber <= 0 ? 1 : query.PageNumber,
+                        PageSize = query.PageSize <= 0 ? 25 : query.PageSize,
+                        TotalData = 0,
+                        TotalPage = 0,
+                        Items = new List<ServiceFeeHeaderResponse>()
+                    };
+                }
+            }
+
             var q = _dbContext.MdfServiceFees
                 .AsNoTracking()
                 .Include(sf => sf.Period)
@@ -726,9 +743,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 q = q.Where(sf => sf.PayeeType == query.PayeeType.Trim());
             }
 
-            if (query.PayeeReferenceId.HasValue)
+            if (effectivePayeeRefId.HasValue)
             {
-                q = q.Where(sf => sf.PayeeReferenceId == query.PayeeReferenceId.Value);
+                q = q.Where(sf => sf.PayeeReferenceId == effectivePayeeRefId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(query.Status))
@@ -804,7 +821,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         /// <summary>
         /// Mengambil rincian header satu hasil jasa medis berdasarkan ID.
         /// </summary>
-        public async Task<ServiceFeeHeaderResponse> GetServiceFeeByIdAsync(Guid id, CancellationToken ct = default)
+        public async Task<ServiceFeeHeaderResponse> GetServiceFeeByIdAsync(
+            Guid id,
+            MedicalFeeActorContext? actorContext = null,
+            CancellationToken ct = default)
         {
             var sf = await _dbContext.MdfServiceFees
                 .AsNoTracking()
@@ -815,6 +835,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             {
                 throw new KeyNotFoundException($"Hasil jasa medis dengan ID '{id}' tidak ditemukan.");
             }
+
+            // BE-MDF-017 / T-82: Pembatasan data tenaga medis di lapis service (404 jika bukan miliknya)
+            MedicalFeeDataRestrictionPolicy.AssertCanAccessServiceFee(actorContext, sf.PayeeReferenceId, id);
 
             var response = new ServiceFeeHeaderResponse
             {
@@ -848,16 +871,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         /// Mengambil rincian per layanan/tindakan (MdfServiceFeeDetail) untuk satu hasil jasa medis.
         /// Menjawab pertanyaan audit "Dari mana angkanya" (MDF-API-1.0 §5, MDF-DES-010).
         /// </summary>
-        public async Task<List<ServiceFeeDetailBreakdownResponse>> GetServiceFeeDetailsAsync(Guid serviceFeeId, CancellationToken ct = default)
+        public async Task<List<ServiceFeeDetailBreakdownResponse>> GetServiceFeeDetailsAsync(
+            Guid serviceFeeId,
+            MedicalFeeActorContext? actorContext = null,
+            CancellationToken ct = default)
         {
-            var exists = await _dbContext.MdfServiceFees
+            var sf = await _dbContext.MdfServiceFees
                 .AsNoTracking()
-                .AnyAsync(sf => sf.Id == serviceFeeId && !sf.IsDelete, ct);
+                .FirstOrDefaultAsync(s => s.Id == serviceFeeId && !s.IsDelete, ct);
 
-            if (!exists)
+            if (sf == null)
             {
                 throw new KeyNotFoundException($"Hasil jasa medis dengan ID '{serviceFeeId}' tidak ditemukan.");
             }
+
+            // BE-MDF-017 / T-82: Pembatasan data tenaga medis di lapis service (404 jika bukan miliknya)
+            MedicalFeeDataRestrictionPolicy.AssertCanAccessServiceFee(actorContext, sf.PayeeReferenceId, serviceFeeId);
 
             var details = await _dbContext.MdfServiceFeeDetails
                 .AsNoTracking()

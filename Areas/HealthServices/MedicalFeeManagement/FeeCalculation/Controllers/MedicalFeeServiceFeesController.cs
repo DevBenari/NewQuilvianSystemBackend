@@ -43,15 +43,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
 
         private readonly MedicalFeePeriodService _periodService;
         private readonly MedicalFeeAdjustmentService _adjustmentService;
+        private readonly MedicalFeeAccessGuard _accessGuard;
         private readonly LoggerService _loggerService;
 
         public MedicalFeeServiceFeesController(
             MedicalFeePeriodService periodService,
             MedicalFeeAdjustmentService adjustmentService,
+            MedicalFeeAccessGuard accessGuard,
             LoggerService loggerService)
         {
             _periodService = periodService;
             _adjustmentService = adjustmentService;
+            _accessGuard = accessGuard;
             _loggerService = loggerService;
         }
 
@@ -86,7 +89,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         [AccessPermission("MedicalFeeServiceFees", "View")]
         public async Task<IActionResult> GetPaged([FromQuery] ServiceFeePagedQuery query, CancellationToken ct = default)
         {
-            var result = await _periodService.GetServiceFeesPagedAsync(query, ct);
+            var actorContext = await _accessGuard.ResolveActorContextAsync(User, ct);
+            var result = await _periodService.GetServiceFeesPagedAsync(query, actorContext, ct);
             return Ok(ApiResponse<PagedResult<ServiceFeeHeaderResponse>>.Ok(result, "Daftar hasil perhitungan jasa medis berhasil diambil."));
         }
 
@@ -106,7 +110,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         {
             try
             {
-                var result = await _periodService.GetServiceFeeByIdAsync(id, ct);
+                var actorContext = await _accessGuard.ResolveActorContextAsync(User, ct);
+                var result = await _periodService.GetServiceFeeByIdAsync(id, actorContext, ct);
                 return Ok(ApiResponse<ServiceFeeHeaderResponse>.Ok(result, "Detail hasil perhitungan jasa medis berhasil diambil."));
             }
             catch (KeyNotFoundException ex)
@@ -132,7 +137,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         {
             try
             {
-                var result = await _periodService.GetServiceFeeDetailsAsync(id, ct);
+                var actorContext = await _accessGuard.ResolveActorContextAsync(User, ct);
+                var result = await _periodService.GetServiceFeeDetailsAsync(id, actorContext, ct);
                 return Ok(ApiResponse<List<ServiceFeeDetailBreakdownResponse>>.Ok(result, "Rincian tindakan pembentuk jasa medis berhasil diambil."));
             }
             catch (KeyNotFoundException ex)
@@ -275,7 +281,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         {
             try
             {
-                var result = await _adjustmentService.GetAdjustmentsByServiceFeeIdAsync(id, ct);
+                var actorContext = await _accessGuard.ResolveActorContextAsync(User, ct);
+                var result = await _adjustmentService.GetAdjustmentsByServiceFeeIdAsync(id, actorContext, ct);
                 return Ok(ApiResponse<List<ServiceFeeAdjustmentResponse>>.Ok(result, "Riwayat koreksi hasil jasa medis berhasil diambil."));
             }
             catch (KeyNotFoundException ex)
@@ -300,7 +307,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         {
             try
             {
-                var result = await _adjustmentService.GetAdjustmentByIdAsync(id, adjId, ct);
+                var actorContext = await _accessGuard.ResolveActorContextAsync(User, ct);
+                var result = await _adjustmentService.GetAdjustmentByIdAsync(id, adjId, actorContext, ct);
                 return Ok(ApiResponse<ServiceFeeAdjustmentResponse>.Ok(result, "Detail koreksi hasil jasa medis berhasil diambil."));
             }
             catch (KeyNotFoundException ex)

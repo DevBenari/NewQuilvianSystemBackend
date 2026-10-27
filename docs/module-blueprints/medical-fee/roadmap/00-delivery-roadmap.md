@@ -164,7 +164,7 @@ Rincian lengkap 11 kolom ada di berkas anak. Tabel ini hanya indeks.
 | 🟡 `BE-MDF-012` | Verifikasi, persetujuan, penutupan | `MVP-3` | 🟡 Sebagian 27 Oktober 2026 — controller hasil jasa, rincian tindakan breakdown, maker-checker 3 lapis, service & DTO terpasang, build belum dijalankan: [laporan](../task/report/backend/BE-MDF-012.md) |
 | 🟡 `BE-MDF-013` | Koreksi berjenjang | `MVP-3` | 🟡 Sebagian 27 Oktober 2026 — adjustment service, controller adjustment, endpoint sub-route service-fees, maker-checker 2 lapis, DTO & DI terpasang, build belum dijalankan: [laporan](../task/report/backend/BE-MDF-013.md) |
 | 🟡 BE-MDF-014 | Penyerahan ke Finance — service dan API | MVP-4 | 🟡 Sebagian 27 Oktober 2026 — handoff service, controller, DTO, integrasi atomis pada approve periode, DbSet & DI terpasang, membuka BE-FIN-021: [laporan](../task/report/backend/BE-MDF-014.md) |
-| `BE-MDF-017` | Pembatasan data untuk tenaga medis | `MVP-5` | Siap |
+| 🟡 `BE-MDF-017` | Pembatasan data untuk tenaga medis | `MVP-5` | 🟡 Sebagian 27 Oktober 2026 — pembatasan data lapis service, actor context, access guard, T-80..T-84 lolos: [laporan](../task/report/backend/BE-MDF-017.md) |
 | 🟡 BE-MDF-015 | Jasa dari entri kasir berjasa — perbaikan adapter, celah G1–G4 | POST-MVP | 🟡 Sebagian 27 Oktober 2026 — adapter ExtractAdhocBillingServices diperbaiki, celah G1–G4 tertutup, T-103..T-107 terpenuhi: [laporan](../task/report/backend/BE-MDF-015.md) |
 | 🟡 BE-MDF-016 | Implementasi port IBillingDoctorShareResolver dan matcher bersama | POST-MVP | 🟡 Sebagian 27 Oktober 2026 — port resolver IBillingDoctorShareResolver, rule matcher MedicalFeeSharingRuleMatcher, DI replace terpasang, T-91..T-102 terpenuhi: [laporan](../task/report/backend/BE-MDF-016.md) |
 
@@ -177,7 +177,7 @@ Rincian lengkap 11 kolom ada di berkas anak. Tabel ini hanya indeks.
 | `FE-MDF-002` | Periode, hasil jasa, rincian, belum terhitung | `BE-MDF-011` | ✅ **Selesai** ([laporan](../task/report/frontend/FE-MDF-002.md)) |
 | `FE-MDF-003` | Verifikasi, persetujuan, koreksi | `BE-MDF-013` | ✅ **Selesai** ([laporan](../task/report/frontend/FE-MDF-003.md)) |
 | `FE-MDF-006` | Pemantauan penyerahan ke Finance | `BE-MDF-014` | ✅ **Selesai** ([laporan](../task/report/frontend/FE-MDF-006.md)) |
-| `FE-MDF-004` | Tenaga medis melihat jasanya sendiri | `BE-MDF-017` | **UI brief** |
+| `FE-MDF-004` | Tenaga medis melihat jasanya sendiri | 🟡 `BE-MDF-017` | ✅ **Selesai** ([laporan](../task/report/frontend/FE-MDF-004.md)) |
 
 `FE-MDF-005` dan `FE-MDF-006` ditambahkan saat roadmap dipecah: kemampuan `F-01` dan `F-16`
 pada `03-frontend-architecture.md` sebelumnya tidak punya task frontend sama sekali, padahal
@@ -194,4 +194,4 @@ backend-nya ada dan keduanya tercantum sebagai MUST.
 | `F-11`..`F-13` | `MF-DEC-009` | `MDF-DES-016`, `017` | `MDF-STATE-1.0` | 🟡 `BE-MDF-012` | ✅ `FE-MDF-003` | `T-50`..`T-63` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-012.md), [laporan FE](../task/report/frontend/FE-MDF-003.md)) |
 | `F-14`, `F-15` | `MF-DEC-007` | `MDF-DES-017` | `MDF-STATE-1.0` §3 | 🟡 `BE-MDF-013` | ✅ `FE-MDF-003` | `T-64`..`T-70` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-013.md), [laporan FE](../task/report/frontend/FE-MDF-003.md)) |
 | `F-16` | `MF-DEC-005`, `008` | `MDF-DES-018` | `MDF-INTEGRATION-1.0` §7 | 🟡 `BE-MDF-014` | ✅ `FE-MDF-006` | `T-71`..`T-79` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-014.md), [laporan FE](../task/report/frontend/FE-MDF-006.md)) |
-| `F-17` | `MF-DEC-010` | `MDF-DES-011` | `MDF-PERM-1.0` §5 | `BE-MDF-017` | `FE-MDF-004` | `T-80`..`T-84` | Siap |
+| `F-17` | `MF-DEC-010` | `MDF-DES-011` | `MDF-PERM-1.0` §5 | 🟡 `BE-MDF-017` | ✅ `FE-MDF-004` | `T-80`..`T-84` | 🟡 BE Sebagian 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-017.md)), ✅ FE Selesai 27 Oktober 2026 ([laporan FE](../task/report/frontend/FE-MDF-004.md)) |

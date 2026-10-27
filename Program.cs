@@ -1201,6 +1201,7 @@ try
     builder.Services.AddScoped<MedicalFeePeriodService>();
     builder.Services.AddScoped<MedicalFeeAdjustmentService>();
     builder.Services.AddScoped<MedicalFeeHandoffService>();
+    builder.Services.AddScoped<MedicalFeeAccessGuard>();
 
     // Registrasi kanonik Billing/Kasir/Petty Cash/Finance. Wajib dipanggil: hanya di sini
     // BilConsumerHandoffService, service Finance, dan options penomoran didaftarkan. Diletakkan

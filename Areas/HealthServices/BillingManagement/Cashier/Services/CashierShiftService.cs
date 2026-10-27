@@ -73,19 +73,76 @@ public sealed class CashierShiftService
                     "Register kasir tidak ditemukan atau sudah tidak aktif. Pilih register lain.");
             }
 
-            if (await ActiveShifts().AnyAsync(
-                    x => x.CashierId == actorUserId || x.RegisterId == request.RegisterId,
-                    cancellationToken))
-                throw new CashierShiftConflictException(
-                    "Kasir atau register masih memiliki shift aktif.");
+            var myActiveShift = await ActiveShifts().AsNoTracking()
+                .FirstOrDefaultAsync(x => x.CashierId == actorUserId, cancellationToken);
+            if (myActiveShift is not null)
+            {
+                var details = new CashierShiftConflictDetails
+                {
+                    ConflictCode = CashierShiftConflictCodes.CashierAlreadyHasActiveShift,
+                    Message = $"Akun Anda sudah memiliki shift kasir aktif ({myActiveShift.ShiftNumber}). Silakan lanjutkan operasional pada shift tersebut atau tutup sebelum membuka shift baru.",
+                    ExistingShiftId = myActiveShift.Id,
+                    ExistingShiftNumber = myActiveShift.ShiftNumber,
+                    RegisterId = myActiveShift.RegisterId
+                };
+                throw new CashierShiftConflictException(details.Message, details.ConflictCode, details);
+            }
 
-            if (await _dbContext.BilCashierShifts.AnyAsync(
+            var registerActiveShift = await ActiveShifts().AsNoTracking()
+                .FirstOrDefaultAsync(x => x.RegisterId == request.RegisterId, cancellationToken);
+            if (registerActiveShift is not null)
+            {
+                var holdingUser = await _dbContext.Users.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == registerActiveShift.CashierId, cancellationToken);
+                var holdingUserName = holdingUser?.DisplayName ?? holdingUser?.UserName ?? "Kasir lain";
+                var details = new CashierShiftConflictDetails
+                {
+                    ConflictCode = CashierShiftConflictCodes.RegisterOccupiedByAnotherCashier,
+                    Message = $"Register '{register.RegisterName}' sedang digunakan oleh {holdingUserName} pada shift {registerActiveShift.ShiftNumber}. Pilih register lain atau lakukan proses serah terima (handover) shift resmi.",
+                    RegisterId = register.Id,
+                    RegisterName = register.RegisterName,
+                    OccupyingCashierName = holdingUserName,
+                    OccupyingShiftNumber = registerActiveShift.ShiftNumber
+                };
+                throw new CashierShiftConflictException(details.Message, details.ConflictCode, details);
+            }
+
+            var myVarianceShift = await _dbContext.BilCashierShifts.AsNoTracking()
+                .FirstOrDefaultAsync(
                     x => !x.IsDelete
-                        && (x.CashierId == actorUserId || x.RegisterId == request.RegisterId)
+                        && x.CashierId == actorUserId
                         && (x.Status == CashierShiftStatuses.ClosedWithVariance || x.Status == CashierShiftStatuses.PerluTindakLanjut),
-                    cancellationToken))
-                throw new CashierShiftConflictException(
-                    "Kasir atau register masih memiliki shift yang menunggu review selisih kas.");
+                    cancellationToken);
+            if (myVarianceShift is not null)
+            {
+                var details = new CashierShiftConflictDetails
+                {
+                    ConflictCode = CashierShiftConflictCodes.CashierVarianceReviewPending,
+                    Message = $"Akun Anda masih memiliki shift ({myVarianceShift.ShiftNumber}) yang menunggu review selisih kas atau penyelesaian tindak lanjut sebelum dapat membuka shift baru.",
+                    ExistingShiftId = myVarianceShift.Id,
+                    ExistingShiftNumber = myVarianceShift.ShiftNumber
+                };
+                throw new CashierShiftConflictException(details.Message, details.ConflictCode, details);
+            }
+
+            var registerVarianceShift = await _dbContext.BilCashierShifts.AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => !x.IsDelete
+                        && x.RegisterId == request.RegisterId
+                        && (x.Status == CashierShiftStatuses.ClosedWithVariance || x.Status == CashierShiftStatuses.PerluTindakLanjut),
+                    cancellationToken);
+            if (registerVarianceShift is not null)
+            {
+                var details = new CashierShiftConflictDetails
+                {
+                    ConflictCode = CashierShiftConflictCodes.RegisterVarianceReviewPending,
+                    Message = $"Register '{register.RegisterName}' masih memiliki shift sebelumnya ({registerVarianceShift.ShiftNumber}) yang menunggu review selisih kas atau penyelesaian tindak lanjut.",
+                    RegisterId = register.Id,
+                    RegisterName = register.RegisterName,
+                    OccupyingShiftNumber = registerVarianceShift.ShiftNumber
+                };
+                throw new CashierShiftConflictException(details.Message, details.ConflictCode, details);
+            }
 
             var now = DateTimeOffset.UtcNow;
             var shift = new BilCashierShift
@@ -914,6 +971,13 @@ public sealed class CashierShiftService
         if (shift is null)
             throw new CashierShiftValidationException(
                 "Buka shift kasir sebelum menerima uang tunai.");
+
+        var hasPendingHandover = await _dbContext.BilCashierShiftHandovers.AsNoTracking()
+            .AnyAsync(h => h.SourceShiftId == shift.Id && h.Status == CashierShiftHandoverStatuses.Pending && !h.IsDelete, cancellationToken);
+        if (hasPendingHandover)
+            throw new CashierShiftValidationException(
+                "Shift kasir sedang dalam proses serah terima (handover pending). Selesaikan atau batalkan serah terima sebelum menerima transaksi tunai.");
+
         await AcquireLockAsync($"BIL_CASHIER_SHIFT_{shift.Id:N}", cancellationToken);
         return shift;
     }
@@ -937,6 +1001,12 @@ public sealed class CashierShiftService
         if (shift.CashierId != actorUserId || !CashierShiftStatuses.IsActive(shift.Status))
             throw new CashierShiftValidationException(
                 "Buka shift kasir sebelum menerima uang tunai.");
+
+        var hasPendingReceiptHandover = await _dbContext.BilCashierShiftHandovers.AsNoTracking()
+            .AnyAsync(h => h.SourceShiftId == shift.Id && h.Status == CashierShiftHandoverStatuses.Pending && !h.IsDelete, cancellationToken);
+        if (hasPendingReceiptHandover)
+            throw new CashierShiftValidationException(
+                "Shift kasir sedang dalam proses serah terima (handover pending). Selesaikan atau batalkan serah terima sebelum menerima transaksi tunai.");
 
         var normalizedSource = sourceType.Trim().ToUpperInvariant();
         var localPrior = _dbContext.BilCashierShiftCommands.Local.Any(
@@ -1245,7 +1315,10 @@ public sealed class CashierShiftService
     }
 
     private static CashierShiftConflictException Stale(Exception? inner = null) =>
-        new("Data telah berubah. Muat ulang sebelum melanjutkan.", inner);
+        new("Data telah berubah. Muat ulang sebelum melanjutkan.",
+            CashierShiftConflictCodes.StaleData,
+            new { ConflictCode = CashierShiftConflictCodes.StaleData, Message = "Data telah berubah. Muat ulang sebelum melanjutkan." },
+            inner);
 
     private static void ValidateOpen(OpenShiftRequest request, Guid idempotencyKey, Guid actorUserId)
     {
@@ -1381,8 +1454,17 @@ public sealed class CashierShiftForbiddenException(string message) : Exception(m
 
 public sealed class CashierShiftConflictException : Exception
 {
-    public CashierShiftConflictException(string message, Exception? innerException = null)
+    public string ConflictCode { get; }
+    public object? Details { get; }
+
+    public CashierShiftConflictException(
+        string message,
+        string conflictCode = "CONFLICT",
+        object? details = null,
+        Exception? innerException = null)
         : base(message, innerException)
     {
+        ConflictCode = conflictCode;
+        Details = details ?? new { ConflictCode = conflictCode, Message = message };
     }
 }
