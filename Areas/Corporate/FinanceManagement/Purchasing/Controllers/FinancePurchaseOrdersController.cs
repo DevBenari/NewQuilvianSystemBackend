@@ -30,10 +30,15 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
 {
     private readonly FinancePurchaseOrderService _service;
     private readonly PurchasingIdempotencyService _idempotency;
-    public FinancePurchaseOrdersController(FinancePurchaseOrderService service, PurchasingIdempotencyService idempotency)
+    private readonly FinancePurchasingDocumentTrailService _trail;
+    public FinancePurchaseOrdersController(
+        FinancePurchaseOrderService service,
+        PurchasingIdempotencyService idempotency,
+        FinancePurchasingDocumentTrailService trail)
     {
         _service = service;
         _idempotency = idempotency;
+        _trail = trail;
     }
 
     [HttpGet]
@@ -73,7 +78,7 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         [FromBody] CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchaseOrder, FinPurchasingIdempotencyActions.Create, null, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -109,7 +114,7 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchaseOrder, FinPurchasingIdempotencyActions.Submit, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -130,7 +135,7 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchaseOrder, FinPurchasingIdempotencyActions.Approve, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -164,7 +169,7 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchaseOrder, FinPurchasingIdempotencyActions.Cancel, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -174,6 +179,44 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
             await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchaseOrder,
                 FinPurchasingIdempotencyActions.Cancel, purchaseOrder.Id, 200, response, cancellationToken);
             return Ok(response);
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    /// <summary>
+    /// Penutupan administratif PO (FULLY_RECEIVED → CLOSED). Bukan pelunasan: tidak membuat pembayaran
+    /// dan tidak menyentuh saldo utang. Tidak memakai Idempotency-Key — kolom Action ledger dibatasi check
+    /// constraint ('Create','Submit','Approve','Cancel','Confirm'); pengulangan ditolak oleh status CLOSED.
+    /// </summary>
+    [HttpPost("{id:guid}/close")]
+    [AccessAction("Close", "Close Purchase Order", AccessType = AccessTypes.Update, SortOrder = 7)]
+    [AccessPermission("FinancePurchaseOrder", "Close")]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseOrderResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Close(Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var purchaseOrder = await _service.CloseAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<PurchaseOrderResponse>.Ok(Map(purchaseOrder), "Purchase Order berhasil ditutup."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    /// <summary>Jejak dokumen satu rantai pembelian dengan PO ini sebagai jangkar (P01).</summary>
+    [HttpGet("{id:guid}/document-trail")]
+    [AccessAction("Read", "Read Purchase Order", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchaseOrder", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PurchasingDocumentTrailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDocumentTrail(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var trail = await _trail.GetTrailAsync(PurchasingDocumentTypes.PurchaseOrder, id, User, cancellationToken);
+            return Ok(ApiResponse<PurchasingDocumentTrailResponse>.Ok(trail, "Jejak dokumen Purchase Order berhasil diambil."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }

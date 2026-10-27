@@ -53,6 +53,15 @@ public sealed class GoodsReceiptRowVersionRequest
     public Guid ExpectedRowVersion { get; set; }
 }
 
+/// <summary>PUT /{id} — koreksi isi GR. Seluruh baris diganti dengan <see cref="Items"/>; aturan akumulasi
+/// kuantitas sama dengan pencatatan baru (FIN-VAL-104), dengan GR ini dikecualikan dari penjumlahan.</summary>
+public sealed class UpdateGoodsReceiptRequest
+{
+    public Guid ExpectedRowVersion { get; set; }
+    public DateOnly ReceivedDate { get; set; }
+    public List<GoodsReceiptItemRequestDto> Items { get; set; } = [];
+}
+
 /// <summary>GET / — daftar GR berpaging (FIN-API-1.1 §B.2, kolom Request `GoodsReceiptQuery`).
 /// SupplierId disaring lewat join ke PurchaseOrder.SupplierId — FinGoodsReceipt sendiri tidak
 /// punya kolom SupplierId (PurchaseOrderId wajib terisi, lihat FinGoodsReceipt.cs).</summary>

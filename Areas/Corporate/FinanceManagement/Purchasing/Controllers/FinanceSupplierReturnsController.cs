@@ -78,7 +78,7 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         [FromBody] CreateSupplierReturnRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.SupplierReturn, FinPurchasingIdempotencyActions.Create, null, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -100,7 +100,7 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] SupplierReturnRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.SupplierReturn, FinPurchasingIdempotencyActions.Confirm, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -121,7 +121,7 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] SupplierReturnRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.SupplierReturn, FinPurchasingIdempotencyActions.Cancel, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try

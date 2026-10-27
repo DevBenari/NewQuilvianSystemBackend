@@ -125,7 +125,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                     HandoffKey = h.HandoffKey,
                     PayeeType = h.PayeeType,
                     PayeeReferenceId = h.PayeeReferenceId,
-                    PayeeName = h.PayeeType == MdfPayeeTypes.Doctor ? $"Dokter #{h.PayeeReferenceId.ToString()[..8]}" : $"Tenaga #{h.PayeeReferenceId.ToString()[..8]}",
                     PeriodCode = h.PeriodCode,
                     GrossAmount = h.GrossAmount,
                     Status = h.Status,
@@ -137,10 +136,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 })
                 .ToListAsync(ct);
 
+            // Nama penerima diturunkan di memori: operator range [..8] tidak boleh ada di dalam expression tree EF.
+            foreach (var item in items)
+            {
+                item.PayeeName = BuildPayeeLabel(item.PayeeType, item.PayeeReferenceId);
+            }
+
             return new PagedResult<MedicalFeeHandoffItemDto>
             {
                 Items = items,
-                TotalCount = totalCount,
+                TotalData = totalCount,
+                TotalPage = (int)Math.Ceiling(totalCount / (double)pageSize),
                 PageNumber = pageNumber,
                 PageSize = pageSize
             };
@@ -172,7 +178,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 HandoffKey = handoff.HandoffKey,
                 PayeeType = handoff.PayeeType,
                 PayeeReferenceId = handoff.PayeeReferenceId,
-                PayeeName = handoff.PayeeType == MdfPayeeTypes.Doctor ? $"Dokter #{handoff.PayeeReferenceId.ToString()[..8]}" : $"Tenaga #{handoff.PayeeReferenceId.ToString()[..8]}",
+                PayeeName = BuildPayeeLabel(handoff.PayeeType, handoff.PayeeReferenceId),
                 PeriodId = sf != null ? sf.PeriodId : Guid.Empty,
                 PeriodCode = handoff.PeriodCode,
                 GrossAmount = handoff.GrossAmount,
@@ -184,8 +190,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 RowVersion = handoff.RowVersion,
                 CreateDateTime = handoff.CreateDateTime,
                 CreateBy = handoff.CreateBy,
-                LastUpdateDateTime = handoff.LastUpdateDateTime,
-                LastUpdateBy = handoff.LastUpdateBy,
+                LastUpdateDateTime = handoff.UpdateDateTime,
+                LastUpdateBy = handoff.UpdateDateTime.HasValue ? handoff.UpdateBy : (Guid?)null,
                 ServiceFeeFinalAmount = sf != null ? sf.FinalAmount : handoff.GrossAmount,
                 ServiceFeeStatus = sf != null ? sf.Status : string.Empty,
                 DetailCount = sf?.Details?.Count ?? 0
@@ -271,8 +277,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             handoff.Status = MdfFinanceHandoffStatuses.Acknowledged;
             handoff.AcknowledgedAt = now;
             handoff.RowVersion = Guid.NewGuid();
-            handoff.LastUpdateBy = actorUserId;
-            handoff.LastUpdateDateTime = now;
+            handoff.UpdateBy = actorUserId;
+            handoff.UpdateDateTime = now;
 
             await _dbContext.SaveChangesAsync(ct);
 
@@ -321,8 +327,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             handoff.Status = MdfFinanceHandoffStatuses.Failed;
             handoff.FailureReason = request.FailureReason.Trim();
             handoff.RowVersion = Guid.NewGuid();
-            handoff.LastUpdateBy = actorUserId;
-            handoff.LastUpdateDateTime = now;
+            handoff.UpdateBy = actorUserId;
+            handoff.UpdateDateTime = now;
 
             await _dbContext.SaveChangesAsync(ct);
 
@@ -368,8 +374,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             handoff.FailureReason = null;
             handoff.AcknowledgedAt = null;
             handoff.RowVersion = Guid.NewGuid();
-            handoff.LastUpdateBy = actorUserId;
-            handoff.LastUpdateDateTime = now;
+            handoff.UpdateBy = actorUserId;
+            handoff.UpdateDateTime = now;
 
             await _dbContext.SaveChangesAsync(ct);
 
@@ -437,10 +443,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             // Transisi status hasil jasa: Approved -> HandedOff (MDF-STATE-1.0 §2)
             sf.Status = MdfServiceFeeStatuses.HandedOff;
             sf.RowVersion = Guid.NewGuid();
-            sf.LastUpdateBy = actorUserId;
-            sf.LastUpdateDateTime = now;
+            sf.UpdateBy = actorUserId;
+            sf.UpdateDateTime = now;
 
             return handoff;
         }
+
+        /// <summary>Label penerima sementara (jenis + 8 karakter pertama ID rujukan) sampai nama sungguhan diselesaikan.</summary>
+        private static string BuildPayeeLabel(string payeeType, Guid payeeReferenceId) =>
+            $"{(payeeType == MdfPayeeTypes.Doctor ? "Dokter" : "Tenaga")} #{payeeReferenceId.ToString()[..8]}";
     }
 }

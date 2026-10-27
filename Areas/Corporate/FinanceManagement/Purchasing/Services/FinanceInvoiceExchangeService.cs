@@ -87,6 +87,11 @@ public sealed class FinanceInvoiceExchangeService
 
         var invoiceNumber = ValidateText(supplierInvoiceNumber, "Nomor faktur supplier", 100);
 
+        // AC-11: faktur yang sama (supplier + nomor) tidak boleh menghasilkan dua Tukar Faktur aktif
+        // atau menyentuh nomor yang sudah diakui sebagai utang — ditolak di sini, bukan baru gagal
+        // saat invoice disetujui.
+        await EnsureSupplierInvoiceNumberUnusedAsync(supplierId, invoiceNumber, null, cancellationToken);
+
         // FIN-DEC-051: PO dan GR boleh kosong — Tukar Faktur boleh berdiri sendiri.
         // referencedSupplierId menampung supplier PO yang dirujuk (langsung, atau lewat GR) supaya
         // dapat dibandingkan dengan supplier Tukar Faktur ini (AP-UAT-09). Tukar Faktur tanpa PO
@@ -198,6 +203,111 @@ public sealed class FinanceInvoiceExchangeService
     }
 
     // ------------------------------------------------------------------------------------
+    // Koreksi data dokumen (RECEIVED saja): nomor faktur, tanggal faktur, tanggal diterima.
+    // Rujukan PO/GR dan supplier tidak diubah di sini — salah rujukan dikoreksi dengan membatalkan
+    // lalu mencatat ulang, supaya validasi supplier/PO/GR (BE-FIN-121) tidak terlewati.
+    // EstimatedDueDate hanya dihitung ulang bila tanggal diterima berubah; dokumen yang tanggalnya
+    // tidak disentuh tidak dihitung ulang diam-diam terhadap termin supplier terbaru.
+    // ------------------------------------------------------------------------------------
+
+    public async Task<FinInvoiceExchange> UpdateAsync(
+        Guid invoiceExchangeId,
+        Guid expectedRowVersion,
+        string supplierInvoiceNumber,
+        DateOnly supplierInvoiceDate,
+        DateOnly receivedDate,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var invoiceNumber = ValidateText(supplierInvoiceNumber, "Nomor faktur supplier", 100);
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_INVOICE_EXCHANGE_{invoiceExchangeId:N}", cancellationToken);
+
+            var invoiceExchange = await _dbContext.FinInvoiceExchanges
+                .SingleOrDefaultAsync(x => x.Id == invoiceExchangeId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Tukar Faktur tidak ditemukan.");
+
+            EnsureCurrent(invoiceExchange.RowVersion, expectedRowVersion);
+
+            if (invoiceExchange.Status != FinInvoiceExchangeStatuses.Received)
+                throw new PurchasingValidationException(
+                    $"Hanya Tukar Faktur berstatus RECEIVED yang dapat diperbarui. Status saat ini: {invoiceExchange.Status}.");
+
+            // Dependensi: invoice aktif (DRAFT/PENDING_APPROVAL/APPROVED) menyalin nilai dari Tukar Faktur
+            // ini; selama masih hidup, datanya tidak boleh bergeser dari bawahnya.
+            var hasActiveInvoice = await _dbContext.FinPurchasingInvoices
+                .AnyAsync(x => x.InvoiceExchangeId == invoiceExchangeId && !x.IsDelete
+                    && x.Status != FinPurchasingInvoiceStatuses.Cancelled
+                    && x.Status != FinPurchasingInvoiceStatuses.Rejected, cancellationToken);
+            if (hasActiveInvoice)
+                throw new PurchasingValidationException("Tukar Faktur ini sudah memiliki Purchasing Invoice yang masih berlaku dan tidak dapat diperbarui. Batalkan invoice terkait lebih dulu.");
+
+            if (!string.Equals(invoiceExchange.SupplierInvoiceNumber, invoiceNumber, StringComparison.OrdinalIgnoreCase))
+                await EnsureSupplierInvoiceNumberUnusedAsync(invoiceExchange.SupplierId, invoiceNumber, invoiceExchange.Id, cancellationToken);
+
+            var before = new
+            {
+                invoiceExchange.SupplierInvoiceNumber,
+                invoiceExchange.SupplierInvoiceDate,
+                invoiceExchange.ReceivedDate,
+                invoiceExchange.EstimatedDueDate
+            };
+
+            if (invoiceExchange.ReceivedDate != receivedDate)
+            {
+                var paymentTermDays = await _dbContext.MstSuppliers.AsNoTracking()
+                    .Where(x => x.Id == invoiceExchange.SupplierId && !x.IsDelete)
+                    .Select(x => x.PaymentTermDays)
+                    .SingleOrDefaultAsync(cancellationToken);
+                invoiceExchange.EstimatedDueDate = receivedDate.AddDays(paymentTermDays);
+            }
+
+            invoiceExchange.SupplierInvoiceNumber = invoiceNumber;
+            invoiceExchange.SupplierInvoiceDate = supplierInvoiceDate;
+            invoiceExchange.ReceivedDate = receivedDate;
+            invoiceExchange.UpdateDateTime = DateTime.UtcNow;
+            invoiceExchange.UpdateBy = actorUserId;
+            invoiceExchange.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+
+            await AuditAsync("Update", invoiceExchange.Id, actorUserId, new
+            {
+                InvoiceExchangeId = invoiceExchange.Id,
+                ActorUserId = actorUserId,
+                Before = before,
+                After = new
+                {
+                    invoiceExchange.SupplierInvoiceNumber,
+                    invoiceExchange.SupplierInvoiceDate,
+                    invoiceExchange.ReceivedDate,
+                    invoiceExchange.EstimatedDueDate
+                }
+            });
+            return invoiceExchange;
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(ex);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // Pembatalan (RECEIVED -> CANCELLED) — state-transition-matrix.md §B.3
     // ------------------------------------------------------------------------------------
 
@@ -219,6 +329,16 @@ public sealed class FinanceInvoiceExchangeService
             throw new PurchasingValidationException("Tukar Faktur ini sudah menjadi Purchasing Invoice dan tidak dapat dibatalkan.");
         if (invoiceExchange.Status != FinInvoiceExchangeStatuses.Received)
             throw new PurchasingValidationException($"Hanya Tukar Faktur berstatus RECEIVED yang dapat dibatalkan. Status saat ini: {invoiceExchange.Status}.");
+
+        // Invoice DRAFT/PENDING_APPROVAL masih bergantung pada Tukar Faktur ini; membatalkan TF di bawahnya
+        // meninggalkan invoice yatim yang tidak akan pernah bisa disetujui. Invoice yang sudah dibatalkan
+        // atau ditolak tidak menahan — itulah jalur susun ulang (batalkan TF, catat ulang).
+        var hasActiveInvoice = await _dbContext.FinPurchasingInvoices
+            .AnyAsync(x => x.InvoiceExchangeId == invoiceExchangeId && !x.IsDelete
+                && x.Status != FinPurchasingInvoiceStatuses.Cancelled
+                && x.Status != FinPurchasingInvoiceStatuses.Rejected, cancellationToken);
+        if (hasActiveInvoice)
+            throw new PurchasingValidationException("Tukar Faktur ini masih memiliki Purchasing Invoice yang berlaku. Batalkan invoice terkait lebih dulu.");
 
         invoiceExchange.Status = FinInvoiceExchangeStatuses.Cancelled;
         invoiceExchange.UpdateDateTime = DateTime.UtcNow;
@@ -255,6 +375,35 @@ public sealed class FinanceInvoiceExchangeService
         return trimmed;
     }
 
+    /// <summary>
+    /// Nomor faktur unik per supplier (AC-11). Dibandingkan tanpa membedakan huruf besar/kecil dan
+    /// spasi tepi. Yang dihitung bentrok: Tukar Faktur lain yang belum dibatalkan, dan utang supplier
+    /// (input manual maupun dari invoice) dengan nomor yang sama — pemeriksaan utang meniru
+    /// <c>FinanceSupplierPayableService.CreateAsync</c>, hanya dipindah lebih awal supaya petugas
+    /// tidak baru tahu saat invoice disetujui.
+    /// </summary>
+    private async Task EnsureSupplierInvoiceNumberUnusedAsync(
+        Guid supplierId, string invoiceNumber, Guid? excludeInvoiceExchangeId, CancellationToken cancellationToken)
+    {
+        var normalized = invoiceNumber.Trim().ToUpper();
+
+        var duplicateExchange = await _dbContext.FinInvoiceExchanges.AsNoTracking()
+            .AnyAsync(x => !x.IsDelete
+                && x.SupplierId == supplierId
+                && x.Status != FinInvoiceExchangeStatuses.Cancelled
+                && x.SupplierInvoiceNumber.Trim().ToUpper() == normalized
+                && (!excludeInvoiceExchangeId.HasValue || x.Id != excludeInvoiceExchangeId.Value), cancellationToken);
+        if (duplicateExchange)
+            throw new PurchasingConflictException("Nomor faktur supplier ini sudah tercatat pada Tukar Faktur lain yang masih berlaku.");
+
+        var duplicatePayable = await _dbContext.FinSupplierPayables.AsNoTracking()
+            .AnyAsync(x => !x.IsDelete
+                && x.SupplierId == supplierId
+                && x.SupplierInvoiceNumber.Trim().ToUpper() == normalized, cancellationToken);
+        if (duplicatePayable)
+            throw new PurchasingConflictException("Faktur supplier ini sudah diakui sebagai utang (input manual atau invoice lain) dan tidak dapat dicatat lagi.");
+    }
+
     private static string GenerateExchangeNumber()
     {
         // KNOWN ISSUE (bersama BE-FIN-029/030/032): belum memakai provider number-series atomik
@@ -288,8 +437,8 @@ public sealed class FinanceInvoiceExchangeService
     private static Task RollbackAsync(IDbContextTransaction? transaction) =>
         transaction is null ? Task.CompletedTask : transaction.RollbackAsync(CancellationToken.None);
 
-    private Task AuditAsync(string action, Guid invoiceExchangeId, Guid actorUserId) =>
+    private Task AuditAsync(string action, Guid invoiceExchangeId, Guid actorUserId, object? extra = null) =>
         _loggerService.AuditAsync(LogCategory, $"FinanceInvoiceExchange.{action}",
             $"Perubahan Tukar Faktur dicatat. InvoiceExchangeId={invoiceExchangeId}",
-            new { InvoiceExchangeId = invoiceExchangeId, ActorUserId = actorUserId });
+            extra ?? new { InvoiceExchangeId = invoiceExchangeId, ActorUserId = actorUserId });
 }

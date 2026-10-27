@@ -24,10 +24,15 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
 {
     private readonly FinanceGoodsReceiptService _service;
     private readonly PurchasingIdempotencyService _idempotency;
-    public FinanceGoodsReceiptsController(FinanceGoodsReceiptService service, PurchasingIdempotencyService idempotency)
+    private readonly FinancePurchasingDocumentTrailService _trail;
+    public FinanceGoodsReceiptsController(
+        FinanceGoodsReceiptService service,
+        PurchasingIdempotencyService idempotency,
+        FinancePurchasingDocumentTrailService trail)
     {
         _service = service;
         _idempotency = idempotency;
+        _trail = trail;
     }
 
     [HttpGet]
@@ -67,7 +72,7 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         [FromBody] CreateGoodsReceiptRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.GoodsReceipt, FinPurchasingIdempotencyActions.Create, null, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -91,7 +96,7 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] GoodsReceiptRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.GoodsReceipt, FinPurchasingIdempotencyActions.Cancel, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -101,6 +106,51 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
             await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.GoodsReceipt,
                 FinPurchasingIdempotencyActions.Cancel, goodsReceipt.Id, 200, response, cancellationToken);
             return Ok(response);
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    /// <summary>
+    /// Koreksi isi GR (tanggal terima dan baris item) selama belum dirujuk Tukar Faktur aktif. Seluruh isi
+    /// diganti; baris lama dihapus lunak. Tidak memakai Idempotency-Key (check constraint ledger tidak
+    /// memuat aksi 'Update'); RowVersion menolak pengiriman ulang yang basi dengan 409.
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    [AccessAction("Update", "Update Goods Receipt", AccessType = AccessTypes.Update, SortOrder = 4)]
+    [AccessPermission("FinanceGoodsReceipt", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<GoodsReceiptDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateGoodsReceiptRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var items = request.Items
+                .Select(x => new GoodsReceiptItemRequest(x.PurchaseOrderItemId, x.ReceivedQuantity, x.Notes, x.BatchNumber, x.ExpiredDate))
+                .ToList();
+            await _service.UpdateAsync(id, request.ExpectedRowVersion, request.ReceivedDate, items, CurrentUserId(), cancellationToken);
+
+            // Baca ulang rincian terbaru: entity terlacak hasil update masih memuat baris lama yang dihapus lunak.
+            var updated = await _service.GetByIdAsync(id, cancellationToken);
+            if (updated is null) return NotFound(ApiResponse<object>.Fail(404, "Tanda Terima Barang tidak ditemukan."));
+            return Ok(ApiResponse<GoodsReceiptDetailResponse>.Ok(MapDetail(updated), "Tanda Terima Barang berhasil diperbarui."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    /// <summary>Jejak dokumen satu rantai pembelian dengan GR ini sebagai jangkar (P01).</summary>
+    [HttpGet("{id:guid}/document-trail")]
+    [AccessAction("Read", "Read Goods Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceGoodsReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PurchasingDocumentTrailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDocumentTrail(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var trail = await _trail.GetTrailAsync(PurchasingDocumentTypes.GoodsReceipt, id, User, cancellationToken);
+            return Ok(ApiResponse<PurchasingDocumentTrailResponse>.Ok(trail, "Jejak dokumen Tanda Terima Barang berhasil diambil."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }

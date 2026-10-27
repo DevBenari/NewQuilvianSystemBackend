@@ -784,14 +784,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                     ApprovedAt = sf.ApprovedAt,
                     ApprovedBy = sf.ApprovedBy,
                     DetailCount = _dbContext.MdfServiceFeeDetails.Count(d => d.ServiceFeeId == sf.Id && !d.IsDelete),
-                    AdjustmentCount = _dbContext.MdfFeeAdjustments.Count(a => a.ServiceFeeId == sf.Id && !a.IsDelete),
+                    AdjustmentCount = _dbContext.MdfServiceFeeAdjustments.Count(a => a.ServiceFeeId == sf.Id && !a.IsDelete),
                     RowVersion = sf.RowVersion
                 })
                 .ToListAsync(ct);
 
             await EnrichPayeeNamesAsync(items, ct);
 
-            return new PagedResult<ServiceFeeHeaderResponse>(items, totalItems, pageNumber, pageSize);
+            return new PagedResult<ServiceFeeHeaderResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalItems,
+                TotalPage = (int)Math.Ceiling(totalItems / (double)pageSize),
+                Items = items
+            };
         }
 
         /// <summary>
@@ -828,7 +835,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
                 ApprovedAt = sf.ApprovedAt,
                 ApprovedBy = sf.ApprovedBy,
                 DetailCount = await _dbContext.MdfServiceFeeDetails.CountAsync(d => d.ServiceFeeId == sf.Id && !d.IsDelete, ct),
-                AdjustmentCount = await _dbContext.MdfFeeAdjustments.CountAsync(a => a.ServiceFeeId == sf.Id && !a.IsDelete, ct),
+                AdjustmentCount = await _dbContext.MdfServiceFeeAdjustments.CountAsync(a => a.ServiceFeeId == sf.Id && !a.IsDelete, ct),
                 RowVersion = sf.RowVersion
             };
 

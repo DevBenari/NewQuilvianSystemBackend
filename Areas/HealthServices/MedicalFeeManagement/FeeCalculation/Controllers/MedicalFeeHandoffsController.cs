@@ -133,11 +133,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             try
             {
                 var result = await _handoffService.AcknowledgeAsync(id, request, userId, ct);
-                await _loggerService.LogActionAsync(
+                await _loggerService.AuditAsync(
+                    LogCategory,
                     "MedicalFeeFinanceHandoffAcknowledged",
                     $"Penyerahan hasil jasa ID '{id}' berhasil dikonfirmasi (ACK) oleh Finance. HandoffKey: {request.HandoffKey}.",
-                    userId,
-                    LogCategory);
+                    new { userId });
 
                 return Ok(ApiResponse<MedicalFeeHandoffDetailDto>.Ok(result, "Penyerahan hasil jasa berhasil dikonfirmasi oleh Finance."));
             }
@@ -181,11 +181,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             try
             {
                 var result = await _handoffService.FailAsync(id, request, userId, ct);
-                await _loggerService.LogActionAsync(
+                await _loggerService.AuditAsync(
+                    LogCategory,
                     "MedicalFeeFinanceHandoffFailed",
                     $"Penyerahan hasil jasa ID '{id}' ditolak oleh Finance. Alasan: {request.FailureReason}.",
-                    userId,
-                    LogCategory);
+                    new { userId });
 
                 return Ok(ApiResponse<MedicalFeeHandoffDetailDto>.Ok(result, "Penolakan penyerahan dari Finance berhasil dicatat."));
             }
@@ -227,11 +227,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             try
             {
                 var result = await _handoffService.ResendAsync(id, request, userId, ct);
-                await _loggerService.LogActionAsync(
+                await _loggerService.AuditAsync(
+                    LogCategory,
                     "MedicalFeeFinanceHandoffResent",
                     $"Penyerahan hasil jasa ID '{id}' berhasil dikirim ulang ke status Created dengan HandoffKey tetap: {result.HandoffKey}.",
-                    userId,
-                    LogCategory);
+                    new { userId });
 
                 return Ok(ApiResponse<MedicalFeeHandoffDetailDto>.Ok(result, "Penyerahan hasil jasa yang gagal berhasil dikirim ulang ke status Created dengan HandoffKey tetap."));
             }

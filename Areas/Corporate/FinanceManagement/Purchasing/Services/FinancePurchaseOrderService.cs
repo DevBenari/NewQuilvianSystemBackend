@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using System.Data;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Services;
 
@@ -365,8 +367,101 @@ public sealed class FinancePurchaseOrderService
     }
 
     // ------------------------------------------------------------------------------------
+    // 8. Penutupan administratif (FULLY_RECEIVED -> CLOSED) — state-transition-matrix.md §B.1.
+    //    Bukan pelunasan: tidak ada pembayaran, saldo utang, atau dokumen lain yang disentuh.
+    //    Kunci PO yang sama dengan GR/Tukar Faktur dipakai supaya penerimaan atau Tukar Faktur
+    //    baru tidak menyelinap di antara penilaian dan perubahan status.
+    // ------------------------------------------------------------------------------------
+
+    public async Task<FinPurchaseOrder> CloseAsync(
+        Guid purchaseOrderId,
+        Guid expectedRowVersion,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_PURCHASE_ORDER_{purchaseOrderId}", cancellationToken);
+
+            var purchaseOrder = await _dbContext.FinPurchaseOrders
+                .SingleOrDefaultAsync(x => x.Id == purchaseOrderId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Purchase Order tidak ditemukan.");
+
+            EnsureCurrent(purchaseOrder.RowVersion, expectedRowVersion);
+
+            var goodsReceipts = await _dbContext.FinGoodsReceipts.AsNoTracking()
+                .Where(x => x.PurchaseOrderId == purchaseOrderId && !x.IsDelete)
+                .Select(x => new ClosureGoodsReceipt(x.Id, x.GRNumber, x.Status))
+                .ToListAsync(cancellationToken);
+            var goodsReceiptIds = goodsReceipts.Select(x => x.Id).ToList();
+
+            var exchanges = await _dbContext.FinInvoiceExchanges.AsNoTracking()
+                .Where(x => !x.IsDelete
+                    && (x.PurchaseOrderId == purchaseOrderId
+                        || (x.GoodsReceiptId != null && goodsReceiptIds.Contains(x.GoodsReceiptId.Value))))
+                .Select(x => new ClosureExchange(x.Id, x.ExchangeNumber, x.GoodsReceiptId, x.Status))
+                .ToListAsync(cancellationToken);
+            var exchangeIds = exchanges.Select(x => x.Id).ToList();
+
+            var invoices = await _dbContext.FinPurchasingInvoices.AsNoTracking()
+                .Where(x => !x.IsDelete && exchangeIds.Contains(x.InvoiceExchangeId))
+                .Select(x => new ClosureInvoice(x.InvoiceExchangeId, x.InvoiceNumber, x.Status))
+                .ToListAsync(cancellationToken);
+
+            var assessment = PurchaseOrderClosurePolicy.Assess(purchaseOrder.Status, goodsReceipts, exchanges, invoices);
+            if (!assessment.CanClose)
+                throw new PurchasingValidationException(
+                    $"Purchase Order belum dapat ditutup. {string.Join(" ", assessment.BlockingReasons)}");
+
+            purchaseOrder.Status = FinPurchaseOrderStatuses.Closed;
+            purchaseOrder.UpdateDateTime = DateTime.UtcNow;
+            purchaseOrder.UpdateBy = actorUserId;
+            purchaseOrder.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+
+            await AuditAsync("Close", purchaseOrder.Id, actorUserId);
+            return purchaseOrder;
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(ex);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
     // Helper
     // ------------------------------------------------------------------------------------
+
+    private async Task<IDbContextTransaction?> BeginTransactionAsync(CancellationToken cancellationToken)
+    {
+        if (!_dbContext.Database.IsRelational()) return null;
+        return await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+    }
+
+    private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
+        _dbContext.Database.IsRelational()
+            ? _dbContext.Database.ExecuteSqlRawAsync("SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken)
+            : Task.CompletedTask;
+
+    private static Task CommitAsync(IDbContextTransaction? transaction, CancellationToken cancellationToken) =>
+        transaction is null ? Task.CompletedTask : transaction.CommitAsync(cancellationToken);
+
+    private static Task RollbackAsync(IDbContextTransaction? transaction) =>
+        transaction is null ? Task.CompletedTask : transaction.RollbackAsync(CancellationToken.None);
 
     private static (List<FinPurchaseOrderItem> Items, decimal TotalAmount) BuildItems(
         IReadOnlyList<PurchaseOrderItemRequest> items,

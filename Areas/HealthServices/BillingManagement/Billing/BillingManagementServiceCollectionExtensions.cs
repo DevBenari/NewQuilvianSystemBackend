@@ -180,6 +180,10 @@ public static class BillingManagementServiceCollectionExtensions
         // /aging SENGAJA tidak ada — FIN-DEC-059 mencabut endpoint itu; layar AP memakai
         // GET api/finance/payable/aging (FinanceApController) yang sudah berjalan.
         services.AddScoped<FinancePurchasingReportService>();
+        // Jejak dokumen (PO → GR → Tukar Faktur → Invoice → Utang → Pembayaran/Retur) dan antrean
+        // Penerimaan Invoice: keduanya baca-saja, proyeksi dokumen existing, nol tabel baru.
+        services.AddScoped<FinancePurchasingDocumentTrailService>();
+        services.AddScoped<FinancePurchasingIntakeQueueService>();
         // BE-BKC-036 / PC-DES-004: kolam anggaran dan saldo berjalan kas kecil.
         services.AddScoped<PettyCashBudgetService>();
         // BE-BKC-037 / PC-DES-001: siklus hidup voucher kas kecil penuh.

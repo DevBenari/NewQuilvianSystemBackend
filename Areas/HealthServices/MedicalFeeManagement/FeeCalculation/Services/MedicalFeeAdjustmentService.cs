@@ -194,7 +194,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             var responses = items.Select(a => MapToResponse(a, a.ServiceFee!)).ToList();
             await EnrichUserNamesAsync(responses, ct);
 
-            return new PagedResult<ServiceFeeAdjustmentResponse>(responses, totalItems, pageNumber, pageSize);
+            return new PagedResult<ServiceFeeAdjustmentResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalItems,
+                TotalPage = (int)Math.Ceiling(totalItems / (double)pageSize),
+                Items = responses
+            };
         }
 
         // =========================================================================

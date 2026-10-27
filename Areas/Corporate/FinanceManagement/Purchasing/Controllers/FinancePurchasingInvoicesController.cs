@@ -34,10 +34,18 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
 {
     private readonly FinancePurchasingInvoiceService _service;
     private readonly PurchasingIdempotencyService _idempotency;
-    public FinancePurchasingInvoicesController(FinancePurchasingInvoiceService service, PurchasingIdempotencyService idempotency)
+    private readonly FinancePurchasingDocumentTrailService _trail;
+    private readonly FinancePurchasingIntakeQueueService _intakeQueue;
+    public FinancePurchasingInvoicesController(
+        FinancePurchasingInvoiceService service,
+        PurchasingIdempotencyService idempotency,
+        FinancePurchasingDocumentTrailService trail,
+        FinancePurchasingIntakeQueueService intakeQueue)
     {
         _service = service;
         _idempotency = idempotency;
+        _trail = trail;
+        _intakeQueue = intakeQueue;
     }
 
     [HttpGet]
@@ -63,6 +71,57 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
+    /// <summary>
+    /// Antrean Penerimaan Invoice (P02): GR yang fakturnya belum datang, Tukar Faktur siap disusun invoice,
+    /// invoice dalam verifikasi, dan Tukar Faktur yang harus dicatat ulang. Proyeksi dokumen existing — bukan
+    /// tabel atau status baru. Kategori selain invoice mensyaratkan hak baca dokumen sumbernya.
+    /// </summary>
+    [HttpGet("intake-queue")]
+    [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchasingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PurchasingIntakeRow>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetIntakeQueue([FromQuery] PurchasingIntakeQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _intakeQueue.GetPagedAsync(query, User, cancellationToken);
+            return Ok(ApiResponse<PagedResult<PurchasingIntakeRow>>.Ok(result, "Antrean Penerimaan Invoice berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    [HttpGet("intake-queue/summary")]
+    [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchasingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PurchasingIntakeSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetIntakeQueueSummary([FromQuery] Guid? supplierId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _intakeQueue.GetSummaryAsync(supplierId, User, cancellationToken);
+            return Ok(ApiResponse<PurchasingIntakeSummaryResponse>.Ok(result, "Ringkasan antrean Penerimaan Invoice berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    /// <summary>Jejak dokumen satu rantai pembelian dengan Purchasing Invoice ini sebagai jangkar (P01).</summary>
+    [HttpGet("{id:guid}/document-trail")]
+    [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchasingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PurchasingDocumentTrailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDocumentTrail(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var trail = await _trail.GetTrailAsync(PurchasingDocumentTypes.PurchasingInvoice, id, User, cancellationToken);
+            return Ok(ApiResponse<PurchasingDocumentTrailResponse>.Ok(trail, "Jejak dokumen Purchasing Invoice berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinancePurchasingInvoice", "Read")]
@@ -82,7 +141,7 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         [FromBody] CreatePurchasingInvoiceRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice, FinPurchasingIdempotencyActions.Create, null, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -124,7 +183,7 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] PurchasingInvoiceRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice, FinPurchasingIdempotencyActions.Submit, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -145,7 +204,7 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] PurchasingInvoiceRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice, FinPurchasingIdempotencyActions.Approve, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try

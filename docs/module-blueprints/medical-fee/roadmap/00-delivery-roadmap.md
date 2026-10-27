@@ -172,11 +172,11 @@ Rincian lengkap 11 kolom ada di berkas anak. Tabel ini hanya indeks.
 
 | Task | Outcome ringkas | Menunggu backend | Keadaan |
 |---|---|---|---|
-| `FE-MDF-005` | Pengelolaan daftar peran | `BE-MDF-004` | **UI brief** |
-| `FE-MDF-001` | Kesepakatan tarif dan baris tarif | `BE-MDF-006` | **UI brief** |
-| `FE-MDF-002` | Periode, hasil jasa, rincian, belum terhitung | `BE-MDF-011` | **UI brief** |
-| `FE-MDF-003` | Verifikasi, persetujuan, koreksi | `BE-MDF-013` | **UI brief** |
-| `FE-MDF-006` | Pemantauan penyerahan ke Finance | `BE-MDF-014` | **UI brief** |
+| `FE-MDF-005` | Pengelolaan daftar peran | `BE-MDF-004` | ✅ **Selesai** ([laporan](../task/report/frontend/FE-MDF-005.md)) |
+| `FE-MDF-001` | Kesepakatan tarif dan baris tarif | `BE-MDF-006` | ✅ **Selesai** ([laporan](../task/report/frontend/FE-MDF-001.md)) |
+| `FE-MDF-002` | Periode, hasil jasa, rincian, belum terhitung | `BE-MDF-011` | ✅ **Selesai** ([laporan](../task/report/frontend/FE-MDF-002.md)) |
+| `FE-MDF-003` | Verifikasi, persetujuan, koreksi | `BE-MDF-013` | ✅ **Selesai** ([laporan](../task/report/frontend/FE-MDF-003.md)) |
+| `FE-MDF-006` | Pemantauan penyerahan ke Finance | `BE-MDF-014` | ✅ **Selesai** ([laporan](../task/report/frontend/FE-MDF-006.md)) |
 | `FE-MDF-004` | Tenaga medis melihat jasanya sendiri | `BE-MDF-017` | **UI brief** |
 
 `FE-MDF-005` dan `FE-MDF-006` ditambahkan saat roadmap dipecah: kemampuan `F-01` dan `F-16`
@@ -187,11 +187,11 @@ backend-nya ada dan keduanya tercantum sebagai MUST.
 
 | Requirement | Decision | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `F-01` | `MF-DEC-016` | `MDF-DES-003`, `011` | `MDF-VAL-1.0` §1 | 🟡 `BE-MDF-001`, `BE-MDF-002`, `BE-MDF-004` | `FE-MDF-005` | `T-01`..`T-06` | 🟡 Sebagian 26 Oktober 2026 (`BE-MDF-004` terpetakan ke source: [laporan](../task/report/backend/BE-MDF-004.md)) |
-| `F-02`..`F-04` | `MF-DEC-004`, `012` | `MDF-DES-008`..`010` | `MDF-VAL-1.0` §2–3 | 🟡 `BE-MDF-005`, 🟡 `BE-MDF-006` | `FE-MDF-001` | `T-07`..`T-24` | 🟡 Sebagian 26 Oktober 2026 (`BE-MDF-006` terpetakan ke source: [laporan](../task/report/backend/BE-MDF-006.md)) |
-| `F-05`, `F-06`, `F-09`, `F-10` | `MF-DEC-006`, `013`, `014` | `MDF-DES-012`, `013`, `015` | `MDF-VAL-1.0` §5 | 🟡 `BE-MDF-007`..`010` | `FE-MDF-002` | `T-25`..`T-38` | 🟡 Sebagian 26 Oktober 2026 (`BE-MDF-010` terpetakan ke source: [laporan](../task/report/backend/BE-MDF-010.md); bagian tim menunggu `MF-CQ-07`) |
-| `F-07`, `F-08` | `MF-DEC-018` | `MDF-DES-014`, `016` | `MDF-API-1.0` §6 | 🟡 `BE-MDF-011` | `FE-MDF-002` | `T-39`..`T-49` | 🟡 Sebagian 27 Oktober 2026 (`BE-MDF-011` terpetakan ke source: [laporan](../task/report/backend/BE-MDF-011.md)) |
-| `F-11`..`F-13` | `MF-DEC-009` | `MDF-DES-016`, `017` | `MDF-STATE-1.0` | 🟡 `BE-MDF-012` | `FE-MDF-003` | `T-50`..`T-63` | 🟡 Sebagian 27 Oktober 2026 (`BE-MDF-012` terpetakan ke source: [laporan](../task/report/backend/BE-MDF-012.md)) |
-| `F-14`, `F-15` | `MF-DEC-007` | `MDF-DES-017` | `MDF-STATE-1.0` §3 | 🟡 `BE-MDF-013` | `FE-MDF-003` | `T-64`..`T-70` | 🟡 Sebagian 27 Oktober 2026 (`BE-MDF-013` terpetakan ke source: [laporan](../task/report/backend/BE-MDF-013.md)) |
-| `F-16` | `MF-DEC-005`, `008` | `MDF-DES-018` | `MDF-INTEGRATION-1.0` §7 | `BE-MDF-014` | `FE-MDF-006` | `T-71`..`T-79` | Siap |
+| `F-01` | `MF-DEC-016` | `MDF-DES-003`, `011` | `MDF-VAL-1.0` §1 | 🟡 `BE-MDF-001`, `BE-MDF-002`, `BE-MDF-004` | ✅ `FE-MDF-005` | `T-01`..`T-06` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-004.md), [laporan FE](../task/report/frontend/FE-MDF-005.md)) |
+| `F-02`..`F-04` | `MF-DEC-004`, `012` | `MDF-DES-008`..`010` | `MDF-VAL-1.0` §2–3 | 🟡 `BE-MDF-005`, 🟡 `BE-MDF-006` | ✅ `FE-MDF-001` | `T-07`..`T-24` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-006.md), [laporan FE](../task/report/frontend/FE-MDF-001.md)) |
+| `F-05`, `F-06`, `F-09`, `F-10` | `MF-DEC-006`, `013`, `014` | `MDF-DES-012`, `013`, `015` | `MDF-VAL-1.0` §5 | 🟡 `BE-MDF-007`..`010` | ✅ `FE-MDF-002` | `T-25`..`T-38` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-010.md), [laporan FE](../task/report/frontend/FE-MDF-002.md)) |
+| `F-07`, `F-08` | `MF-DEC-018` | `MDF-DES-014`, `016` | `MDF-API-1.0` §6 | 🟡 `BE-MDF-011` | ✅ `FE-MDF-002` | `T-39`..`T-49` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-011.md), [laporan FE](../task/report/frontend/FE-MDF-002.md)) |
+| `F-11`..`F-13` | `MF-DEC-009` | `MDF-DES-016`, `017` | `MDF-STATE-1.0` | 🟡 `BE-MDF-012` | ✅ `FE-MDF-003` | `T-50`..`T-63` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-012.md), [laporan FE](../task/report/frontend/FE-MDF-003.md)) |
+| `F-14`, `F-15` | `MF-DEC-007` | `MDF-DES-017` | `MDF-STATE-1.0` §3 | 🟡 `BE-MDF-013` | ✅ `FE-MDF-003` | `T-64`..`T-70` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-013.md), [laporan FE](../task/report/frontend/FE-MDF-003.md)) |
+| `F-16` | `MF-DEC-005`, `008` | `MDF-DES-018` | `MDF-INTEGRATION-1.0` §7 | 🟡 `BE-MDF-014` | ✅ `FE-MDF-006` | `T-71`..`T-79` | 🟡 BE Sebagian, ✅ FE Selesai 27 Oktober 2026 ([laporan BE](../task/report/backend/BE-MDF-014.md), [laporan FE](../task/report/frontend/FE-MDF-006.md)) |
 | `F-17` | `MF-DEC-010` | `MDF-DES-011` | `MDF-PERM-1.0` §5 | `BE-MDF-017` | `FE-MDF-004` | `T-80`..`T-84` | Siap |
