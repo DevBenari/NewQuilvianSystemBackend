@@ -36,7 +36,7 @@ FE-MCU-015 (label Lab/Rad, butuh BE-MCU-020)
 
 | Gelombang | Task | Pasangan backend |
 |---|---|---|
-| Kapan saja | `FE-MCU-000` ✅ (keputusan pemilik, 2026-10-21), `FE-MCU-001` | — |
+| Kapan saja | `FE-MCU-000` ✅ (keputusan pemilik, 2026-10-21), `FE-MCU-001` ✅ | — |
 | `MVP-0` | `FE-MCU-002`, `FE-MCU-003`, `FE-MCU-004`, `FE-MCU-005` | `BE-MCU-005`, `006`, `007` |
 | `MVP-1` | `FE-MCU-006`, `FE-MCU-007`, `FE-MCU-008`, `FE-MCU-009` | `BE-MCU-010`, `011`, `013`, `014` |
 | `MVP-2` | `FE-MCU-010`, `FE-MCU-011`, `FE-MCU-015` | `BE-MCU-020`..`025` |
@@ -47,11 +47,11 @@ FE-MCU-015 (label Lab/Rad, butuh BE-MCU-020)
 | Task ID | Outcome | Kebutuhan layar | Dependency | Status |
 |---|---|---|---|---|
 | `FE-MCU-000` ✅ | Brief layar MCU: menu, route, tab/modal, tata letak — keputusan `MCU-FE-002` | Semua | Keputusan pemilik | Selesai 2026-10-21 — [`05-screen-brief.md`](../05-screen-brief.md) |
-| `FE-MCU-001` | Aturan bersama tanpa tampilan: status → aksi, masking NIK, parsing desimal, peta warna status | Semua | — | Siap |
-| `FE-MCU-002` | Lapisan data master: paket, referensi, jadwal | `FE-MCU-01`..`03` | Kontrak API | Siap |
-| `FE-MCU-003` | Layar kelola paket | `FE-MCU-01` | 000, 002, `BE-MCU-005` | Siap |
-| `FE-MCU-004` | Layar jenis Pemeriksaan MCU dan kategori kelayakan | `FE-MCU-02` | 000, 002, `BE-MCU-006` | Siap |
-| `FE-MCU-005` | Layar jadwal, kuota, pelampauan, dokter jaga | `FE-MCU-03` | 000, 002, `BE-MCU-007` | Siap |
+| `FE-MCU-001` ✅ | Aturan bersama tanpa tampilan: status → aksi, masking NIK, parsing desimal, peta warna status | Semua | — | Selesai 2026-10-23 — [laporan](../task/report/frontend/FE-MCU-001.md) |
+| `FE-MCU-002` ✅ | Lapisan data master: paket, referensi, jadwal | `FE-MCU-01`..`03` | Kontrak API | Selesai 2026-10-23 — [laporan](../task/report/frontend/FE-MCU-002.md) |
+| `FE-MCU-003` ✅ | Layar kelola paket | `FE-MCU-01` | 000, 002, `BE-MCU-005` | Selesai 2026-10-27 — [laporan](../task/report/frontend/FE-MCU-003.md) |
+| `FE-MCU-004` ✅ | Layar jenis Pemeriksaan MCU dan kategori kelayakan | `FE-MCU-02` | 000, 002, `BE-MCU-006` | Selesai 2026-10-27 — [laporan](../task/report/frontend/FE-MCU-004.md) |
+| `FE-MCU-005` ✅ | Layar jadwal, kuota, pelampauan, dokter jaga | `FE-MCU-03` | 000, 002, `BE-MCU-007` | Selesai 2026-10-27 — [laporan](../task/report/frontend/FE-MCU-005.md) |
 | `FE-MCU-006` | Lapisan data order dan check-in | `FE-MCU-04`..`06` | Kontrak API | Siap |
 | `FE-MCU-007` | Daftar Pasien MCU | `FE-MCU-04` | 000, 001, 006, `BE-MCU-010` | Siap |
 | `FE-MCU-008` | Booking, jadwal ulang, batal | `FE-MCU-05` | 007, `BE-MCU-011` | Siap |
@@ -79,10 +79,11 @@ tersendiri, Jadwal & Kuota sebagai tabel per tanggal.
 | Acceptance criteria | Baris `MCU-FE-002` di `00-interview-decisions.md` §9 dan `03-frontend-architecture.md` §2 berstatus `approved` dengan rentang yang diizinkan |
 | Status | ✅ Kriteria terpenuhi 2026-10-21 |
 
-### `FE-MCU-001` — Aturan bersama tanpa tampilan
+### `FE-MCU-001` ✅ — Aturan bersama tanpa tampilan
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-10-23 — [laporan](../task/report/frontend/FE-MCU-001.md). `mcu-order-rules.js` (9 status angka enum + label + lencana, kunci `MCU-PERM-v1`, `resolveMcuOrderActions` mengikuti tabel header **brief layar**) dan `mcu-format-rules.js` (`maskMcuNik`, desimal memakai ulang pola Lab); 12 uji unit lulus, lint dan build lulus. Suite unit penuh membawa 46 kegagalan existing di luar MCU |
 | Outcome | Modul `src/utils/health-services/medical-checkup-management/` berisi: pemetaan **status order + izin + kecocokan dokter → aksi yang ditampilkan** (`03-frontend-architecture.md` §3); masking NIK (`3201230101900001` → `3201********0001`); parsing angka desimal (`6,4` dan `6.4` → `6.4`); peta label dan warna sembilan status |
 | Requirement/decision | `MCU-DEC-031`; `MCU-FE-003`, `004`, `005`; `VAL-MCU-43` |
 | Kontrak | `MCU-STATE-v1`; `MCU-PERM-v1` |
@@ -93,10 +94,11 @@ tersendiri, Jadwal & Kuota sebagai tabel per tanggal.
 | Risiko/pemilik | Server tetap penentu akhir; aturan ini hanya menyembunyikan tombol. Pemilik: Yoga |
 | DoD | Uji unit lulus; lint lulus |
 
-### `FE-MCU-002` — Lapisan data master
+### `FE-MCU-002` ✅ — Lapisan data master
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-10-23 — [laporan](../task/report/frontend/FE-MCU-002.md). Konstanta `MCU_API`, service 19 endpoint, slice `mcuPackage`/`mcuReferenceData`/`mcuSchedule` terdaftar di store, pembaca galat bersama `mcu-request-rules.js`; 6 uji unit (method + path persis kontrak, pesan `400`/`403`/`409` apa adanya) lulus; lint dan build lulus |
 | Outcome | Slice Redux + thunk + konstanta endpoint untuk grup `Mcu Package`, `Mcu Reference Data`, `Mcu Daily Schedule` |
 | Requirement/decision | `FR-MCU-002`..`006` |
 | Kontrak | `MCU-API-v1` tiga grup di atas |
@@ -107,41 +109,44 @@ tersendiri, Jadwal & Kuota sebagai tabel per tanggal.
 | Risiko/pemilik | Pemilik: Yoga |
 | DoD | Uji unit lulus |
 
-### `FE-MCU-003` — Layar kelola paket
+### `FE-MCU-003` ✅ — Layar kelola paket
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-10-27 — [laporan](../task/report/frontend/FE-MCU-003.md). Menu *Medical Check-Up › Master Data › Paket MCU*, daftar, Buat/Ubah Paket (4 jenis komponen, persyaratan, total berjalan), Harga Perusahaan (tambah/Akhiri); 7 uji unit + E2E API-tiruan 12/12 lulus; `UAT-01` dan `UAT-02` lulus terhadap backend lokal dengan data uji devYoga (`TF-RSMMC-00452`, paket `UJI-MCU-BASIC`); lint dan build lulus |
 | Outcome | Admin MCU membuat/mengubah paket, komponen (Lab/Rad/Pemeriksaan MCU), persyaratan, nilai pengembalian dan jasa, harga perusahaan bermasa berlaku, dan mengaktifkan/menonaktifkan paket |
 | Requirement/decision | `FR-MCU-002`, `003`; `UAT-01`, `UAT-02` |
 | Kontrak | `MCU-API-v1` Mcu Package; `VAL-MCU-01`..`08` |
 | Reuse | `BaseSelectField`/`FilterSelect`, tabel standar, isian desimal `MCU-FE-004` |
-| Dependency | `FE-MCU-000` ✅, `FE-MCU-002`, `BE-MCU-005` |
+| Dependency | `FE-MCU-000` ✅, `FE-MCU-002` ✅, `BE-MCU-005` ✅ |
 | Acceptance criteria | `UAT-01`, `UAT-02`. **Contoh:** total nilai pengembalian Rp 390.000 pada paket Rp 350.000 → pesan server tampil apa adanya; isian tidak hilang |
 | Verifikasi | E2E API-tiruan + UAT terhadap backend lokal |
 | Risiko/pemilik | Pemilik: Yoga |
 | DoD | Kriteria terbukti |
 
-### `FE-MCU-004` — Layar jenis Pemeriksaan MCU dan kategori kelayakan
+### `FE-MCU-004` ✅ — Layar jenis Pemeriksaan MCU dan kategori kelayakan
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-10-27 — [laporan](../task/report/frontend/FE-MCU-004.md). Menu *Jenis Pemeriksaan MCU* dan *Kategori Kelayakan*, daftar jenis, Buat/Ubah jenis dengan tabel isian (nomor butir, kode, label, jenis, satuan, pilihan, wajib) dan sakelar status, daftar kategori + modal buat/ubah; 8 uji unit (uji mutasi terbukti menangkap) + E2E API-tiruan 9/9 lulus; kedua kriteria terbukti; UAT baca terhadap backend lokal lulus (urutan isian `TANDA_VITAL` sama dengan API); lint dan build lulus |
 | Outcome | Admin MCU mengelola jenis Pemeriksaan MCU beserta isian ber-nomor butir (teks, angka, pilihan) dan kategori kelayakan |
 | Requirement/decision | `FR-MCU-004` |
 | Kontrak | `MCU-API-v1` Mcu Reference Data; `VAL-MCU-09` |
-| Dependency | `FE-MCU-000` ✅, `FE-MCU-002`, `BE-MCU-006` |
+| Dependency | `FE-MCU-000` ✅, `FE-MCU-002` ✅, `BE-MCU-006` ✅ |
 | Acceptance criteria | Isian pilihan tanpa daftar pilihan ditolak dengan pesan server; urutan isian mengikuti nomor butir |
 | Verifikasi | E2E API-tiruan |
 | Risiko/pemilik | Isi master usulan belum diratifikasi dokter MCU (`MCU-OQ-002`/`003`). Pemilik: Yoga |
 | DoD | Kriteria terbukti |
 
-### `FE-MCU-005` — Layar jadwal, kuota, dan dokter jaga
+### `FE-MCU-005` ✅ — Layar jadwal, kuota, dan dokter jaga
 
 | Field | Isi |
 |---|---|
+| Status | ✅ Selesai 2026-10-27 — [laporan](../task/report/frontend/FE-MCU-005.md). Menu *Jadwal & Kuota*, tabel per tanggal satu bulan (sisa kuota *26/30*, pelampauan, dokter jaga), modal *Atur Rentang Tanggal* dan *Setujui Pelampauan*; dokter jaga dari `/doctors/admin/options` (keputusan pemilik 2026-10-27, sekaligus revisi perusahaan penjamin `FE-MCU-003`); 7 uji unit + E2E API-tiruan 6/6 lulus; ketiga kriteria terbukti; UAT baca lulus; lint dan build lulus |
 | Outcome | Admin MCU mengatur hari buka, kuota, dan dokter MCU jaga untuk rentang tanggal; kepala unit menyetujui pelampauan beralasan |
 | Requirement/decision | `FR-MCU-005`, `006`; `MCU-DEC-042` |
 | Kontrak | `MCU-API-v1` Mcu Daily Schedule; `VAL-MCU-13`, `14` |
-| Dependency | `FE-MCU-000` ✅, `FE-MCU-002`, `BE-MCU-007` |
+| Dependency | `FE-MCU-000` ✅, `FE-MCU-002` ✅, `BE-MCU-007` ✅ |
 | Acceptance criteria | Tampilan sisa kuota per tanggal (mis. *26/30*); kuota di bawah terpakai → pesan `409` server; tombol pelampauan hanya tampil bagi pemegang `McuSchedule : ApproveQuotaOverride` |
 | Verifikasi | E2E API-tiruan |
 | Risiko/pemilik | Pemilik: Yoga |
