@@ -123,8 +123,8 @@ flowchart LR
     MVP0["🟡 MVP-0<br/>Status kunjungan tidak mundur"]:::sebagian
     MVP1["✅ MVP-1<br/>Encounter Emergency tertaut"]:::selesai
     MVP2["✅ MVP-2<br/>Satu pasien satu episode"]:::selesai
-    MVP3["🟡 MVP-3<br/>Pengkajian tanpa antrean"]:::sebagian
-    MVP4["🟡 MVP-4<br/>Kepergian dua rangkaian status"]:::sebagian
+    MVP3["✅ MVP-3<br/>Pengkajian tanpa antrean"]:::selesai
+    MVP4["✅ MVP-4<br/>Kepergian dua rangkaian status"]:::selesai
     MVP5["🟡 MVP-5<br/>Serah terima dan riwayat dokter"]:::sebagian
     R37["✅ R3.7<br/>Migration dan master dipindah"]:::selesai
     R38["🟡 R3.8<br/>Perbaikan pasca-pemeriksaan"]:::sebagian
@@ -224,12 +224,12 @@ Jumlah panah: **0**. 3 node (18 Oktober 2026 malam: `R319` ditambahkan tanpa pan
 | `BE-IGD-023` | Kunjungan IGD menerima `Emergency` | `MVP-1` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-024` | Penghubung kunjungan ke encounter | `MVP-1` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-025` | Satu pasien satu episode aktif | `MVP-2` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
-| `BE-IGD-026` | `QueueId` pengkajian opsional | `MVP-3` | 🟡 1 dari 3 kriteria belum | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
+| `BE-IGD-026` | `QueueId` pengkajian opsional | `MVP-3` | ✅ **27 Oktober 2026** — `Down()` diuji di kontainer sekali pakai (`IGD-FACT-246`, `247`). *Sebelumnya:* 🟡 1 dari 3 kriteria belum | [BE-IGD-026](../task/report/backend/BE-IGD-026.md); [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-027` | Pengkajian tanpa antrean | `MVP-3` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-028` | Konsultasi dokter tanpa antrean | `MVP-3` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-029` | Resep IGD | `MVP-3` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-030` | Empat tabel klinis bekerja | `MVP-3` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
-| `BE-IGD-031` | Transfer menjadi Departure | `MVP-4` | 🟡 1 dari 4 kriteria belum | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
+| `BE-IGD-031` | Transfer menjadi Departure | `MVP-4` | ✅ **27 Oktober 2026** — `RENAME` balik diuji di kontainer sekali pakai (`IGD-FACT-246`). *Sebelumnya:* 🟡 1 dari 4 kriteria belum | [BE-IGD-031](../task/report/backend/BE-IGD-031.md); [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-032` | Dua kolom status kepergian | `MVP-4` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-033` | Kejadian kepergian tambah-saja | `MVP-4` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | `BE-IGD-034` | Entri susulan, koreksi, pembalikan | `MVP-4` | ✅ | [be-igd-021-035](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
@@ -749,8 +749,8 @@ keduanya duplikat satu sama lain — pola yang sama dengan cacat `BE-IGD-016`.
 | --- | --- | --- | --- |
 | `MVP-1` | Pendaftaran & triase: `EPIC IGD-01`, `EPIC IGD-10` | `MVP-0` selesai | ✅ `BE-IGD-023`, `024` |
 | `MVP-2` | Satu pasien satu episode: `EPIC IGD-02` | `MVP-1` | ✅ `BE-IGD-025` |
-| `MVP-3` | **Pengkajian IGD tuntas**: `EPIC IGD-09` | `MVP-1`; **approval pemilik `ClinicalManagement`** — dijawab sementara `IGD-DEC-107`/`108` | 🟡 empat task ✅; `BE-IGD-026` kriteria 1 belum |
-| `MVP-4` | Kepergian pasien: `EPIC IGD-05`, `EPIC IGD-06` | `MVP-1`; approval kontrak state/validation bagian kepergian — `IGD-DEC-108` | 🟡 tiga task ✅; `BE-IGD-031` kriteria 2 belum |
+| `MVP-3` | **Pengkajian IGD tuntas**: `EPIC IGD-09` | `MVP-1`; **approval pemilik `ClinicalManagement`** — dijawab sementara `IGD-DEC-107`/`108` | ✅ **lima dari lima task ✅ — 27 Oktober 2026** (`BE-IGD-026` kriteria 1 lewat uji `Down()` di kontainer sekali pakai). *Sebelumnya:* 🟡 empat task ✅; `BE-IGD-026` kriteria 1 belum |
+| `MVP-4` | Kepergian pasien: `EPIC IGD-05`, `EPIC IGD-06` | `MVP-1`; approval kontrak state/validation bagian kepergian — `IGD-DEC-108` | ✅ **empat dari empat task ✅ — 27 Oktober 2026** (`BE-IGD-031` kriteria 2 lewat uji `RENAME` balik di kontainer sekali pakai). *Sebelumnya:* 🟡 tiga task ✅; `BE-IGD-031` kriteria 2 belum |
 | `MVP-5` | Riwayat dokter & serah terima: `EPIC IGD-04`, `EPIC IGD-07` | `MVP-4` untuk `EPIC IGD-07`; `MVP-1` untuk `EPIC IGD-04` (diperjelas 15 Sep 2026) | 🟡 `BE-IGD-035` sebagian; `EPIC IGD-04` — `BE-IGD-044` ✅ (acceptance 5 terbukti 21 September 2026), `BE-IGD-045` ✅, `BE-IGD-048` ✅ |
 | `MVP-6` | Kewenangan unit: `EPIC IGD-08` | Keputusan `IGD-DEC-193`…`199` (5 Oktober 2026, sementara); data pemetaan terisi untuk uji (`IGD-DEC-196`); pengesahan akhir Security/Privacy owner masih ditunggu | ✅ `BE-IGD-039` — 5 Oktober 2026, atas penilaian pemilik (`IGD-DEC-201`); pemetaan dev diisi pemilik untuk uji: IGD dan Rawat Inap dipetakan, HCU sengaja belum. *Sebelumnya:* 🟡 `BE-IGD-039` — source 5 Oktober 2026, build dan uji menunggu; pemetaan dev 0 dari 18 unit per 15 September 2026. *Sebelumnya: siap dikerjakan; sebelumnya lagi ⛔ `BE-IGD-039`* |
 | **Belum dapat direncanakan** | Penunjang medis, pemakaian alat, billing IGD | **Tidak punya blueprint sama sekali.** Lihat R3.5 | — |
@@ -881,7 +881,7 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     CLINAPP{{"✅ Approval ClinicalManagement<br/>IGD-DEC-107, IGD-DEC-108"}}:::selesai
-    BEIGD026["🟡 BE-IGD-026<br/>QueueId pengkajian opsional"]:::sebagian
+    BEIGD026["✅ BE-IGD-026<br/>QueueId pengkajian opsional"]:::selesai
     BEIGD027["✅ BE-IGD-027<br/>Pengkajian tanpa antrean"]:::selesai
     BEIGD028["✅ BE-IGD-028<br/>Konsultasi tanpa antrean"]:::selesai
     BEIGD029["✅ BE-IGD-029<br/>Resep IGD tersimpan"]:::selesai
@@ -899,11 +899,11 @@ flowchart LR
 | 2 | `BE-IGD-026` | `BE-IGD-027`, `BE-IGD-028` — boleh paralel |
 | 3 | `BE-IGD-028` | `BE-IGD-029` |
 
-### 🟡 `BE-IGD-026` — `TrxPatientAssessment.QueueId` menjadi opsional
+### ✅ `BE-IGD-026` — `TrxPatientAssessment.QueueId` menjadi opsional
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — ditandai 15 September 2026.** Kriteria 2 dan 3 terpetakan: `TrxPatientAssessment.QueueId` kini `Guid?` (baris 42), dan jalur rawat jalan dijaga test regresi historis (suite `761 total, 759 lulus`, `IGD-DEC-110`). **Kriteria 1 belum terpenuhi:** langkah mundur migration `20260826090500_ImplementIgdFullPatientJourney` tertulis (`Down` ada), tetapi **belum pernah diuji di basis data terpisah** — laporan mencatat *"Migration tidak pernah dijalankan ke database"*, dan penerapan 27 Agustus 2026 memakai script `Up` saja. `IGD-DEC-110` tidak melepas kriteria ini karena ia bukan automated test. Bukti: [laporan gabungan](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
+| **Status** | ✅ **SELESAI — 27 Oktober 2026.** Kriteria 1 terpenuhi: `Down()` migration `20260826090500` diuji di kontainer PostgreSQL 16.15 sekali pakai — Up → `QueueId` nullable, Down → `NOT NULL` kembali, Up lagi → skema identik dengan Up pertama; sidik jari di luar sasaran tidak berubah di setiap langkah; kriteria 3 kini juga terukur (md5 baris pengkajian sama di keempat tahap). Down **ditolak** `23502` dan digulung balik penuh begitu ada pengkajian IGD tanpa antrean (`IGD-FACT-247`). Nol perubahan source. Bukti: [laporan](../task/report/backend/BE-IGD-026.md), [uji Down](../evidence/2026-10-27-uji-down-migration-be-igd-026-031.md). *Sebelumnya:* 🟡 **SEBAGIAN — ditandai 15 September 2026.** Kriteria 2 dan 3 terpetakan: `TrxPatientAssessment.QueueId` kini `Guid?` (baris 42), dan jalur rawat jalan dijaga test regresi historis (suite `761 total, 759 lulus`, `IGD-DEC-110`). **Kriteria 1 belum terpenuhi:** langkah mundur migration `20260826090500_ImplementIgdFullPatientJourney` tertulis (`Down` ada), tetapi **belum pernah diuji di basis data terpisah** — laporan mencatat *"Migration tidak pernah dijalankan ke database"*, dan penerapan 27 Agustus 2026 memakai script `Up` saja. `IGD-DEC-110` tidak melepas kriteria ini karena ia bukan automated test. Bukti: [laporan gabungan](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | **Slice** | `IGD-S04` · `EPIC IGD-09` |
 | **Scope** | `ClinicalManagement/Models/TrxPatientAssessment.cs` baris 24; konfigurasi EF; satu migration |
 | **Perubahan** | `public Guid QueueId` menjadi `public Guid? QueueId`. **Satu kolom.** Tidak ada perubahan perilaku pada jalur rawat jalan — baris lama tetap terisi |
@@ -995,7 +995,7 @@ flowchart LR
     classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
-    BEIGD031["🟡 BE-IGD-031<br/>Transfer menjadi Departure"]:::sebagian
+    BEIGD031["✅ BE-IGD-031<br/>Transfer menjadi Departure"]:::selesai
     BEIGD032["✅ BE-IGD-032<br/>Dua kolom status kepergian"]:::selesai
     BEIGD033["✅ BE-IGD-033<br/>Kejadian kepergian tambah-saja"]:::selesai
     BEIGD034["✅ BE-IGD-034<br/>Koreksi dan pembalikan berpersetujuan"]:::selesai
@@ -1026,11 +1026,11 @@ flowchart LR
 | 1 | `MVP-1` ✅ (grafik ringkasan) dan `IGD-DEC-116` ✅ | `BE-IGD-044` — **dapat dikerjakan sekarang**; rantai `EPIC IGD-04` tidak menunggu `BE-IGD-031`…`035` |
 | 2 | `BE-IGD-044`, `IGD-DEC-116` ✅, `IGD-DEC-117` ✅ | `BE-IGD-045` |
 
-### 🟡 `BE-IGD-031` — `TrxEmergencyTransfer` menjadi `TrxEmergencyDeparture`
+### ✅ `BE-IGD-031` — `TrxEmergencyTransfer` menjadi `TrxEmergencyDeparture`
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — ditandai 15 September 2026.** Tiga dari empat acceptance criteria terpetakan ke source `e89907c5`: nol baris hilang (`TrxEmergencyTransfer` 0 baris, `IGD-UNK-03`); nol route `emergency-transfers` tersisa; frontend `DEPARTURE_URL` sudah `emergency-departures` (`FE-IGD-015`). **Kriteria 2 belum terpenuhi:** langkah mundur `RENAME` balik tertulis pada migration `20260826090500` baris 270, tetapi **belum pernah diuji**. Bukti: [laporan gabungan](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
+| **Status** | ✅ **SELESAI — 27 Oktober 2026.** Kriteria 2 terpenuhi: `RENAME` balik diuji di kontainer PostgreSQL 16.15 sekali pakai — sesudah Down `TrxEmergencyTransfer` ada lagi beserta empat nama kolom lamanya, enam baris uji (`TransferStatus` 1–6) kembali dengan nilai yang sama, dan Up lagi menghasilkan skema serta baris identik dengan Up pertama. Down **tidak** memulihkan 12 index dan 7 FK lama, dan `AcceptedAt`/`AcceptedByUserId` hilang tanpa arsip (`IGD-FACT-246`) — tidak menggugurkan kriteria ini, dampak di dev nihil (0 baris, `IGD-UNK-03`). Nol perubahan source. Bukti: [laporan](../task/report/backend/BE-IGD-031.md), [uji Down](../evidence/2026-10-27-uji-down-migration-be-igd-026-031.md). *Sebelumnya:* 🟡 **SEBAGIAN — ditandai 15 September 2026.** Tiga dari empat acceptance criteria terpetakan ke source `e89907c5`: nol baris hilang (`TrxEmergencyTransfer` 0 baris, `IGD-UNK-03`); nol route `emergency-transfers` tersisa; frontend `DEPARTURE_URL` sudah `emergency-departures` (`FE-IGD-015`). **Kriteria 2 belum terpenuhi:** langkah mundur `RENAME` balik tertulis pada migration `20260826090500` baris 270, tetapi **belum pernah diuji**. Bukti: [laporan gabungan](../task/report/backend/be-igd-021-035-penyelesaian-perjalanan-pasien.md) |
 | **Slice** | `IGD-S05` · `EPIC IGD-05` |
 | **Scope** | 9 berkas source: controller, DTO, enum, model, `TrxEmergencyVisit`, dua service, konfigurasi EF, `Program.cs`, `ApplicationDbContext`. Ditambah 1 baris frontend |
 | **Perubahan** | Ganti nama menyeluruh; route `emergency-transfers` menjadi `emergency-departures`; **tanpa route usang**. Migration wajib `RENAME TABLE`, bukan drop-create |

@@ -8393,3 +8393,171 @@ Dihitung ulang dari kedua register dengan aturan batal yang sama seperti entri s
 | Data dev yang tercipta | Empat pesanan uji pada kunjungan `IGD-261009030511-26F549`: `LAB-RSMMC-000004`, `RAD-RSMMC-000002`, `ORD-00000002`, `HD-ORD-00000001` |
 | Lingkungan | `next dev` pemilik dihentikan atas izinnya dan **belum dinyalakan ulang** |
 | Nomor yang dipakai | `IGD-DEC-352`; `IGD-FACT-243`…`245` |
+
+---
+
+### Langkah 5 — keputusan `FE-IGD-057`, uji `Down()` `BE-IGD-026`/`BE-IGD-031`, dan penilaian `FE-IGD-010` — 27 Oktober 2026 (pagi)
+
+Pemilik meng-commit pekerjaan `FE-IGD-052` di kedua repo (backend `cdffb114`, frontend `25a9403fa`)
+dan membangun keduanya, lalu memerintahkan *"lanjutkan pekerjaan"*. Empat jawaban pilihan interaktif
+26 Oktober 2026 menjadi dasar pass ini; satu di antaranya keputusan produk dan dicatat di bawah. Uji
+layar T1–T4 belum dapat dijalankan karena port 3000 dan 7184 kosong; T5 dikerjakan lebih dulu karena
+tidak membutuhkan keduanya.
+
+#### Keputusan
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-353` | **`FE-IGD-057` tetap 🟢 — tidak diterima ✅ dan tidak dikerjakan ulang sekarang.** Implementasi frontend ada dan teruji (`IGD-FACT-163`), tetapi pesanan lab dan radiologi perawat IGD tidak masuk antrean verifikasi dokter selama aturan instruksi Laboratorium dan Radiologi hanya berlaku untuk episode rawat inap (`IGD-FACT-082`). Menerima ✅ berarti mencatat alur verifikasi `IGD-DEC-224` yang belum ada; mengerjakan ulang dari sisi frontend juga tidak dapat memenuhinya sebelum `BE-IGD-071` terbuka. `IGD-DEC-331` tetap berlaku; kartu dinilai ulang begitu `IGD-OQ-117` dijawab (`IGD-REQ-007`). **Konsekuensi yang diterima:** register tidak berubah, dan 🟢 tetap berada di luar kosakata status yang dihitung. Alternatif yang ditolak: (a) ✅ lewat keputusan baru — register +1, pesanan perawat tersimpan `NotRequired` tanpa verifikasi dokter; (b) dikerjakan ulang mengikuti kartu — tetap ⛔ di sisi backend | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-26** | Pilihan interaktif *"Biarkan 🟢 dulu"* (direkomendasikan agen) |
+| `IGD-DEC-354` | **`FE-IGD-010` dibatalkan — halaman detail satu kunjungan IGD tidak dibangun.** Outcome-nya, seluruh perjalanan satu pasien IGD dalam satu halaman, sudah dilayani layar Pemeriksaan Pasien IGD `emergency-assessment/[slug]` (`FE-IGD-011`) beserta padanannya di Ruang Kerja Dokter IGD; arsitektur frontend yang berlaku pun tidak lagi memuat layar itu, dan kartunya tidak pernah memenuhi prasyarat implementasi (`IGD-FACT-248`). Baris register tetap ada dengan tanda ⛔, keluar dari penyebut. **Konsekuensi yang diterima:** tidak ada tampilan baca-saja lintas peran untuk satu kunjungan; bila kelak dibutuhkan, ia dikartukan baru dengan kontrak, wewenang UI, dan kebijakan kolom sensitif yang terkunci. Alternatif yang ditolak: (b) dikartukan ulang — menunggu Security/Privacy owner yang masih `OPEN`; (c) dibiarkan sebagai warisan revision 1 — kartu yang tidak dapat dikerjakan tetap menggantung di penyebut | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-27** | Pilihan interaktif *"Batalkan"* (direkomendasikan agen); [laporan `FE-IGD-010`](task/report/frontend/FE-IGD-010.md) |
+
+#### Fakta
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-246` | **`Down()` migration `20260826090500` mengembalikan nama, bukan seluruh bentuk tabel lama.** Diuji di kontainer PostgreSQL 16.15 sekali pakai (rantai diterapkan sampai `20260826025451`, lalu Up → Down → Up). Yang pulih: `TrxEmergencyTransfer` beserta `TransferNumber`, `TransferReason`, `HandoverSummary`, `RejectionReason`; enam baris uji `TransferStatus` 1–6 kembali tepat; penempatan kamar dan tempat tidur pulih dari arsip; `QueueId` kembali `NOT NULL`; sidik jari di luar sembilan tabel sasaran identik di setiap langkah; Up kedua identik dengan Up pertama. Yang **tidak** pulih: 12 index lama (termasuk `UNIQUE` `IX_TrxEmergencyTransfer_TransferNumber`) dan 7 FK lama yang dibuang Up (`:43`–`:49`, `:75`–`:86`); `TransferStatus` kini `DEFAULT 1`; `AcceptedAt` dan `AcceptedByUserId` dibuang Up **tanpa arsip** (`:117`–`:118`) sehingga satu baris berisi kehilangan nilainya. Tabel arsip penempatan tertinggal dengan sengaja (`:244`–`:246`). Dampak nyata nihil: tabel itu 0 baris di dev saat Up diterapkan (`IGD-UNK-03`), dan membatalkan migration ini di lingkungan nyata berarti membatalkan ±250 migration modul lain lebih dulu. Tidak dikartukan |
+| `IGD-FACT-247` | **`Down()` migration `20260826090500` ditolak begitu ada satu pengkajian IGD tanpa antrean.** `SET NOT NULL` pada `TrxPatientAssessment.QueueId` (`:287`) gagal `23502: column "QueueId" of relation "TrxPatientAssessment" contains null values`; karena pernyataan itu berada di akhir Down dan EF membungkus migration dalam satu transaksi, skema, baris, dan riwayat migration sesudah penolakan identik dengan sebelumnya. Tidak ada penjaga berpesan seperti `BE-IGD-072`. **Akibat operasional:** Down tidak dapat dijalankan di dev maupun lingkungan lain yang sudah memakai pengkajian IGD, kecuali data klinis itu dipindahkan lebih dulu — keputusan data klinis, bukan langkah teknis |
+| `IGD-FACT-248` | **`FE-IGD-010` belum siap dikerjakan; kelima prasyaratnya kurang.** (1) Jejak arsitekturnya putus: baris *"Detail kunjungan"* hanya ada di `archive/03-frontend-architecture-rev4.md:30`, tidak di `03-frontend-architecture.md` yang berlaku. (2) Kartu tidak menyebut kontrak API maupun sumber data halaman perangkai. (3) Tidak ada field wewenang UI. (4) Acceptance 4 — *kolom sensitif hanya tampil bagi yang berhak* — tidak punya kebijakan: `permission-audit-matrix.md` §11.5 hanya mengatur Form Permintaan Rawat Inap, dan owner kartunya, Security/Privacy, masih `OPEN`. (5) Verifikasinya menuntut test komponen, bertentangan dengan aturan pemilik tanpa unit test. Sementara itu sebagian besar outcome-nya sudah dilayani `emergency-assessment/[slug]` (`FE-IGD-011`), yang menampilkan seluruh perjalanan satu kunjungan dalam 13 tab berstatus `available: true`. Kartu tidak dikerjakan; pilihan batal, kartu ulang, atau biarkan diserahkan ke pemilik |
+
+#### Perubahan status
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `BE-IGD-026` | 🟡 — kriteria 1 (uji langkah mundur) belum | **✅** — 3/3; 19/19 pemeriksaan `hasil.json` |
+| `BE-IGD-031` | 🟡 — kriteria 2 (uji `RENAME` balik) belum | **✅** — 4/4 |
+| `FE-IGD-057` | 🟢 | **tetap 🟢** (`IGD-DEC-353`) |
+| `FE-IGD-010` | tanpa tanda | **⛔ dibatalkan `IGD-DEC-354`** — keluar dari penyebut |
+| Gelombang `MVP-3`, `MVP-4` | `IN_PROGRESS` 🟡 | **`DONE`** ✅ |
+
+| Lapisan | Sebelum | Sesudah |
+| --- | --- | --- |
+| Backend | 59 dari 64 aktif (92,2%) | **61 dari 64 aktif (95,3%)** |
+| Frontend | 50 dari 58 aktif (86,2%) | **50 dari 57 aktif (87,7%)** — penyebut turun karena `FE-IGD-010` dibatalkan |
+| Gabungan | 109 dari 122 aktif (89,3%) | **111 dari 121 aktif (91,7%)**; atas 126 baris: 111 dari 126 (88,1%) |
+
+Dihitung ulang dari kedua register dengan aturan batal yang sama seperti entri sebelumnya: kini lima
+baris batal — `BE-IGD-017`, `073`, `075`, `FE-IGD-062`, `FE-IGD-010`. Sebelum `IGD-DEC-354`, sesudah
+T5: 111 dari 122 aktif (91,0%).
+
+| Butir | Nilai |
+| --- | --- |
+| Keputusan baru | `IGD-DEC-353`, `IGD-DEC-354` |
+| Bukti | [Uji `Down()` 27 Oktober 2026](evidence/2026-10-27-uji-down-migration-be-igd-026-031.md); bukti mentah `QuilvianSystemFrontendDev/test-with-agy/igd/uji-down-migration-be-igd-026-031-20261027/` |
+| Perubahan source | Nol di kedua repo |
+| Basis data | Dev **tidak dialamatkan**; kontainer sekali pakai dihapus beserta volumenya; Docker Desktop dimatikan lagi |
+| Dua percobaan yang gagal karena rancangan baris uji | `B1-percobaan-1` (FK induk fiktif, `23503`) dan `G-percobaan-1` (nomor pengkajian kembar) — dicatat apa adanya di berkasnya, diukur ulang dengan pemeriksaan terpisah |
+| Laporan | [`BE-IGD-026`](task/report/backend/BE-IGD-026.md), [`BE-IGD-031`](task/report/backend/BE-IGD-031.md), [`FE-IGD-010`](task/report/frontend/FE-IGD-010.md) |
+| Nomor yang dipakai | `IGD-DEC-353`, `354`; `IGD-FACT-246`…`248` |
+
+---
+
+### Langkah 5 — uji layar T1–T4 — 27 Oktober 2026 (pagi)
+
+Pemilik menyalakan backend (`dotnet run --no-build`, 09.20) dan `npm run dev` (09.20) lalu memerintahkan
+*"lanjutkan kembali"*. Setiap task dicatat di bawah segera sesudah selesai.
+
+#### T1 — `FE-IGD-012`
+
+Uji ulang `T1-L1-03R` hanya membaca: Ruang Kerja Dokter dibuka dengan akun dokter pada route yang
+benar, kartu kunjungan `IGD-261018123252-672191` ditemukan tepat satu, dan label *Sedang ditangani*
+terukur pada kartu dan header — nol *Sudah ditriage*. Prasyarat terukur lewat API: `visitStatus` 4,
+dua penilaian ulang. 10/10 pemeriksaan; tiga PNG diperiksa langsung.
+[Laporan](task/report/frontend/FE-IGD-012.md).
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `FE-IGD-012` | 🟡 3/4 — kriteria 3 kurang Ruang Kerja Dokter | **✅** 4/4 |
+
+| Lapisan | Sebelum | Sesudah |
+| --- | --- | --- |
+| Backend | 61 dari 64 aktif (95,3%) | Tidak berubah |
+| Frontend | 50 dari 57 aktif (87,7%) | **51 dari 57 aktif (89,5%)** |
+| Gabungan | 111 dari 121 aktif (91,7%) | **112 dari 121 aktif (92,6%)**; atas 126 baris: 112 dari 126 (88,9%) |
+
+Nomor baru: nol.
+
+#### T2 — `FE-IGD-070`
+
+Uji layar dengan akun loket untuk pendaftaran dan akun perawat untuk triase dan pengkajian. Dua
+penghalang ditemukan, diputuskan pemilik lewat pilihan interaktif, lalu diperbaiki lewat
+`build-module-frontend`. [Laporan](task/report/frontend/FE-IGD-070.md) bagian 9.
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-355` | **Pendaftaran IGD memanggil rute staf `/admin` untuk pasien, asuransi pasien, dan penjamin perusahaan — khusus IGD, opt-in.** Lima fungsi `emergency-registration.service.js` menerima opsi `staffRoute` yang berawal `false`; hanya keempat thunk `emergency-registration-slice.jsx` yang menyalakannya. Kontrak identik: setiap handler `…ForAdmin` mendelegasikan ke handler yang sama. **Konsekuensi yang diterima:** Pendaftaran Rawat Jalan, pemakai lain kelima fungsi itu, tetap memanggil rute kiosk dan tetap menolak loket `403` sampai pemiliknya memutuskan (`IGD-FACT-249`); IGD tidak memakai kiosk (pernyataan pemilik). Alternatif yang ditolak: (b) mengubah rute untuk IGD dan Rawat Jalan sekaligus — pengguna berperan Administrator tanpa izin `Patient` di Rawat Jalan akan mulai ditolak, tanpa sepengetahuan pemiliknya; (c) memberi izin role-access loket — tidak menolong, izinnya sudah lengkap | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-27** | Pilihan interaktif *"Perbaiki ke rute admin"* lalu *"Khusus IGD, opt-in"*; `02-sonde-rute-admin.json` |
+| `IGD-DEC-356` | **Dialog Mulai Triage dipasang kembali pada daftar triase IGD.** Import, state target/galat, dua handler, dan render `EmergencyTriageStartDialog` dikembalikan persis seperti sebelum `8cfbfa971`; komponen dialog tidak disentuh. Menegakkan `IGD-DEC-340` (penanda tanpa identitas diisi di Mulai Triage). **Konsekuensi yang diterima:** Mulai Triage kembali dua langkah — buka dialog, lalu kirim — seperti sebelum 15 Oktober 2026. Alternatif yang ditolak: (b) mengembalikan blok penanda di Assesmen Awal — membatalkan sebagian `IGD-DEC-341`; (c) menerima kunjungan tanpa penanda — `isUnknownPatient` selalu `false` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-27** | Pilihan interaktif *"Pasang ulang dialog"*; `IGD-FACT-250` |
+| `IGD-DEC-357` | **Acceptance 13 `FE-IGD-070` dibaca sebagai *nol warning baru* terhadap baseline**, sama dengan aturan ESLint seluruh pass ini. Task menambah 0 warning; tujuh warning `react-hooks` di dua berkas bersama sudah ada sebelum `52624e6cb`. **Konsekuensi yang diterima:** tujuh warning itu tetap ada. Alternatif yang ditolak: memperbaikinya — menyentuh dua berkas yang juga dipakai Rawat Jalan | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-27** | Pilihan interaktif *"Nilai 'nol warning baru'"*; `eslint --stdin` pada `52624e6cb^`, `52624e6cb`, `HEAD` |
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-249` | **Layar Pendaftaran IGD dan Rawat Jalan memanggil rute kiosk, sehingga petugas loket ditolak `403` saat menyimpan pasien baru.** `POST …/master-data/patients`, `GET …/patients/options`, `GET/POST …/patient-insurances`, dan `GET/POST …/patient-company-guarantors` dijaga `KioskReadPolicy` (`Program.cs:1259`), yang hanya meloloskan SuperAdmin, Administrator, dan akun kiosk. Akun loket `rendy.saputra` (`roles: []`) **sudah berizin**: `POST patients/admin` dan `POST patient-encounters/admin` menjawab `400` validasi, `GET patients/admin/options` `200`. `AccessPermission` hanya memberi jalan pintas bagi SuperAdmin (`AccessPermissionService.cs:345`). Admisi Rawat Inap sudah memakai `/admin`. Untuk IGD diperbaiki `IGD-DEC-355`; untuk Rawat Jalan diserahkan ke pemiliknya. Pilihan pasien ibu (`NEW_PATIENT_MOTHER_SELECT_RESOURCE`, `patients/options`) ikut menolak loket di kedua layar dan tidak diubah |
+| `IGD-FACT-250` | **Dialog Mulai Triage dilepas dari daftar triase oleh `8cfbfa971` (15 Oktober 2026, *"membuat proses tranfer pasien igd ke ranap"*)**, enam hari sebelum `FE-IGD-070` mencabut blok penanda di Assesmen Awal atas anggapan `IGD-DEC-340`. Selama 15–27 Oktober, Mulai Triage langsung memulai kunjungan dengan jam sekarang, dan sejak 21 Oktober tidak ada layar yang dapat menandai kunjungan sebagai pasien tanpa identitas. Kunjungan uji `IGD-261027025825-C11067` lahir `isUnknownPatient: false` karenanya. Ditutup `IGD-DEC-356` |
+| `IGD-FACT-251` | **Isian *Metode Pembayaran Sistem* tidak pernah tampil di Pendaftaran IGD.** `PaymentMethodStep` hanya merendernya bila `paymentMethodOptions` berisi, dan `page.jsx` maupun `EmergencyRegistrationPage` tidak pernah meneruskannya — keadaan sejak sebelum `FE-IGD-070`, untuk jenis pasien apa pun. Klausa *"metode pembayaran sistem tetap dipilih petugas"* acceptance 9 karena itu tidak punya objek; encounter terbentuk tanpanya. Tidak dikartukan |
+| `IGD-FACT-252` | **Sapaan *Mr./Mrs.* pada nama sementara tampil tetapi tidak pernah dapat tersimpan.** Nilai bawaan Jenis Kelamin adalah *Tidak diketahui* (`0`) dan aturan `Number(value) > 0` menolaknya (`IGD-DEC-342`), sehingga hanya *Tn.* dan *Ny.* yang lolos. Pesan *"Jenis kelamin wajib dipilih."* juga tetap menempel sesudah jenis kelamin lain dipilih sampai simpan berikutnya. Tidak dikartukan |
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `FE-IGD-070` | 🟡 0/14 terbukti | **🟡 14/14 terbukti di layar; tinggal `npm run build`** |
+
+Register tidak berubah. Perubahan source: `emergency-registration.service.js`, `emergency-registration-slice.jsx`,
+`emergency-triage-patient-list-view.jsx` — belum di-commit. Nomor yang dipakai: `IGD-DEC-355`…`357`;
+`IGD-FACT-249`…`252`.
+
+#### T3 — `FE-IGD-071`
+
+Sonde izin (`00-sonde-izin-finansial.json`): tidak ada dua akun non-SuperAdmin yang sama-sama dapat
+membaca rincian tagihan dengan izin finansial berbeda. Agen berhenti dan bertanya; pemilik memilih
+pemberian izin uji. [Laporan](task/report/frontend/FE-IGD-071.md).
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-358` | **Dua posisi diberi izin uji tagihan IGD lewat `POST /administrator/setting/role-access/policies`**, dengan policy lama dibaca, dicadangkan, dan dikirim kembali bersama yang baru. Posisi dokter IGD (dept `676f2aa7…` / pos `cd1cd442…`): `EncounterBillingSummary:Read` — 233 → 234. Posisi akun penerima Siti Nurhaliza (dept `3aa08cc0…` / pos `20f0bbda…`): `EncounterBillingSummary:Read`, `PatientBillingSummary:ViewAmount` — 20 → 22. **Nol policy lama hilang** pada keduanya. Login admin memakai `dimas.kurniawan` (SuperAdmin), sehingga jejak audit atas nama akun itu. **Konsekuensi yang diterima:** izin berlaku bagi seluruh pengguna kedua posisi; posisi akun penerima bukan milik IGD dan kini dapat melihat nominal tagihan IGD. Cadangan `10-policy-dokter-sebelum.json` dan `10-policy-penerima-sebelum.json` memungkinkan pemulihan. Alternatif yang ditolak: (a) pemilik menyediakan akun nyata — lebih tepat secara peran tetapi menunda; (b) menunda `FE-IGD-071` | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-27** | Pilihan interaktif *"Beri izin uji ke dua posisi"*; `10-beri-izin-dokter-terapkan.json`, `10-beri-izin-penerima-terapkan.json` |
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `FE-IGD-071` | 🟡 8/9 — acceptance 5 belum diuji | **✅** 9/9 |
+
+| Lapisan | Sebelum | Sesudah |
+| --- | --- | --- |
+| Frontend | 51 dari 57 aktif (89,5%) | **52 dari 57 aktif (91,2%)** |
+| Gabungan | 112 dari 121 aktif (92,6%) | **113 dari 121 aktif (93,4%)**; atas 126 baris: 113 dari 126 (89,7%) |
+
+Nomor yang dipakai: `IGD-DEC-358`.
+
+#### T4 — `FE-IGD-022`, lalu `npm run build`
+
+Satu baris `["painNote", "Catatan nyeri"]` ditambahkan ke daftar ruas tab Riwayat atas pilihan pemilik
+26 Oktober 2026. `PainNote` hanya bertahan bila `HasPain` `true` — `NormalizeAssessmentData` mengosongkan
+seluruh ruas nyeri bila tidak (`PatientAssessmentController.cs:3016`–`:3025`), dan itu perilaku yang benar.
+Uji mencentang *Ada Nyeri?*, menyimpan `ASM-20261027-00003` (201), lalu membaca *Catatan nyeri* di kartu
+Riwayat dan lewat `GET` detail. Pengamatan Riwayat kosong pada `FE-IGD-070` (`D4`) ternyata waktu tangkap,
+bukan cacat. [Laporan](task/report/frontend/fe-igd-022-asuhan-keperawatan-pengkajian-observasi-penunjang.md) bagian 18.
+
+`npm run build` dijalankan sekali atas seluruh perubahan pass ini, atas izin pemilik 26 Oktober 2026 (`next dev`
+pemilik dihentikan): `✓ Compiled successfully in 78s`, 517/517 halaman, standalone siap, BUILD_ID
+`HXGe2JMsrS4xsJSmiOFKW`, nol warning di log.
+
+| Task | Sebelum | Sesudah |
+| --- | :---: | :---: |
+| `FE-IGD-022` | 🟡 tiga dari empat bagian | **✅** empat dari empat |
+| `FE-IGD-070` | 🟡 14/14 di layar, menunggu build | **✅** |
+
+| Lapisan | Sebelum | Sesudah |
+| --- | --- | --- |
+| Backend | 61 dari 64 aktif (95,3%) | Tidak berubah |
+| Frontend | 52 dari 57 aktif (91,2%) | **54 dari 57 aktif (94,7%)** |
+| Gabungan | 113 dari 121 aktif (93,4%) | **115 dari 121 aktif (95,0%)**; atas 126 baris: 115 dari 126 (91,3%) |
+
+#### Ringkasan langkah 5
+
+| Butir | Nilai |
+| --- | --- |
+| Register | 109/122 (89,3%) → **115/121 (95,0%)** |
+| Naik ✅ | `BE-IGD-026`, `BE-IGD-031`, `FE-IGD-012`, `FE-IGD-070`, `FE-IGD-071`, `FE-IGD-022` |
+| Dibatalkan | `FE-IGD-010` (`IGD-DEC-354`) |
+| Gelombang `DONE` | `MVP-3`, `MVP-4` |
+| Perubahan source frontend, belum di-commit | `emergency-registration.service.js`, `emergency-registration-slice.jsx`, `emergency-triage-patient-list-view.jsx`, `emergency-assessment-initial-tab.jsx` |
+| Perubahan konfigurasi | Role-access dua posisi (`IGD-DEC-358`) |
+| Data uji dev (lewat aplikasi) | Pasien `00-00-02-81`…`83`; `ENC-RSMMC-00525`, `00526`; kunjungan `IGD-261027025825-C11067`, `IGD-261027031823-B9CDD2`; dua triase HIJAU; `ASM-20261027-00001`…`00003` |
+| Lingkungan | `next dev` pemilik **belum dinyalakan ulang** sesudah build |
+| Nomor yang dipakai sepanjang langkah 5 | `IGD-DEC-353`…`358`; `IGD-FACT-246`…`252` |
