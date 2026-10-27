@@ -1089,3 +1089,12 @@ FR-RI-187-192 dan BE-RWI-206/207, FE-RWI-227-230: 🟡 implementasi diperbaiki, 
 PLAN-REPAIR-EPS-016 untuk pasien baru/lama dilacak terpisah pada [traceability admisi bayi](requirement-traceability-admisi-bayi-016.md). BE-RWI-231 ✅ selesai source/build; FE-RWI-245 🟡 source/browser lulus, packaging standalone tertahan ENOSPC. Tidak mengubah status historis requirement revision lain atau mengklaim integrasi PostgreSQL/Billing selesai.
 
 Pembaruan handoff 15 Oktober 2026: BE-RWI-231 ✅ / FE-RWI-245 ✅ selesai pada scope kode admisi bayi baru/lama; pengguna mengambil alih build dan migration. Rincian batas runtime dan Billing tetap pada traceability slice.
+
+## Perbaikan PLAN-REPAIR-EPS-041 — 27 Oktober 2026
+
+Temuan uji Admisi Pasien Lama, Bayi, dan Transfer IGD & Poliklinik ([issue](../docs/issue/issue-041-temuan-uji-admisi-lama-bayi-transfer.md), [rencana](../docs/plan-repair/plan-repair-041-temuan-uji-admisi-lama-bayi-transfer.md)). Tidak ada task roadmap baru; register status dipegang rencana bagian 1. Tidak mengubah status requirement lain.
+
+| Task | Perbaikan | Status / bukti |
+| --- | --- | --- |
+| `FIX-EPS-041-BE` 🟡 | FIX-01, -04, -09 (BE), -10 (BE), -14, -15 (BE), -17 (BE); data FIX-05, -11, -13, -16 | `dotnet build` 0 error; runtime 27-10 lulus kecuali FIX-04 butir 2, FIX-15 butir 3 (server), FIX-13 label belum dicetak; [laporan](../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-FE` 🟡 | FIX-02, -03, -06, -07, -08, -09, -10, -12, -15, -17, -18 | lint 0 error `src/`; `test:unit` 0 kegagalan baru (41 lama); build PASS; uji browser 7/8 lulus + 1 dengan catatan; sisa: FIX-03 teks alasan, FIX-08 konsulen ⛔ aturan server (usulan K-07), FIX-09 butir 5, FIX-10 butir 4; [laporan](../task/report/frontend/FIX-EPS-041-FE.md), [laporan uji](../testing/live-testing/laporan-live-testing-verifikasi-perbaikan-041-admisi.md) |

@@ -127,6 +127,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.HasIndex(x => new { x.WorkforceProfileId, x.AttendanceDate });
             builder.HasIndex(x => new { x.RequestStatus, x.SubmittedAt });
             builder.HasIndex(x => new { x.WorkflowDefinitionId, x.RequestStatus });
+
+            builder.Property(x => x.IsOnBehalf).HasDefaultValue(false);
+            builder.Property(x => x.OnBehalfReason).HasMaxLength(500);
+            builder.Property(x => x.OnBehalfNotifiedAt).HasColumnType("timestamp with time zone");
+
+            builder.HasOne(x => x.InitiatedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.InitiatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(x => new { x.IsOnBehalf, x.RequestStatus });
         }
     }
 }

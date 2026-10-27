@@ -17,26 +17,26 @@ basis_source_frontend: "2cd1c0610 (HamzahV2)"
 
 | ID perbaikan | Menutup | Ringkasan | Area | Prioritas | Task ID | Status | Bukti |
 | --- | --- | --- | --- | :---: | --- | --- | --- |
-| `FIX-EPS-041-01` | `ISS-EPS-041-01`, `ISS-EPS-041-05` | Lengkapi respons antrean transfer: kebutuhan IGD, DPJP usulan, diagnosis, kelas diminta, identitas | BE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-02` | `ISS-EPS-041-01`, `ISS-EPS-041-05` | Verifikasi transfer menampilkan kebutuhan dan diagnosis; isi otomatis isolasi dan DPJP usulan | FE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-03` | `ISS-EPS-041-01` | Denah transfer mengirim konteks pasien ke `available-beds` | FE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-04` | `ISS-EPS-041-01`, `ISS-EPS-041-06` | `admit` meneruskan kode galat reservasi asli | BE | 2 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-05` | `ISS-EPS-041-01` | Tetapkan bed isolasi di master data | Data | 1 | — | ⛔ TERBLOKIR — menunggu K-01 | — |
-| `FIX-EPS-041-06` | `ISS-EPS-041-02` | Pemeriksaan kelayakan pasien di langkah Verifikasi transfer | FE + dokumen | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-07` | `ISS-EPS-041-03` | Teks Konfirmasi dan dialog pembatalan jalur transfer sesuai kontrak | FE | 2 | — | ⛔ TERBLOKIR — menunggu K-02 | — |
-| `FIX-EPS-041-08` | `ISS-EPS-041-04` | Simpan konsulen dan tingkat ketergantungan setelah `admit` transfer | FE | 1 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-09` | `ISS-EPS-041-06` | Rapikan label status, judul galat, tanda baca, dan kode status respons transfer | FE + BE | 3 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-10` | `ISS-EPS-041-07` | Lanjutkan admisi bayi yang identitasnya sudah ada; gerbang kembar hanya menghitung bayi berbeda | FE + BE + dokumen | 1 | — | ⛔ TERBLOKIR — menunggu K-03 | — |
-| `FIX-EPS-041-11` | `ISS-EPS-041-07` | Penanganan RM bayi tanpa episode yang sudah terbentuk | Data | 2 | — | ⛔ TERBLOKIR — menunggu K-03 dan P-02 | — |
-| `FIX-EPS-041-12` | `ISS-EPS-041-08` | Batas tanggal lahir, teks kelas, format waktu lahir, lantai denah bayi | FE | 3 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-13` | `ISS-EPS-041-08` | Pengaturan kode RS pada label dan unit layanan kamar NICU | Data | 3 | — | ⛔ TERBLOKIR — menunggu K-04 dan P-01 | — |
-| `FIX-EPS-041-14` | `ISS-EPS-041-09` | Format waktu peringatan admisi Draft lain memakai WIB dan bahasa Indonesia | BE | 3 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-15` | `ISS-EPS-041-10` | Penjaga nominal deposit jalur biasa setara jalur transfer | FE + BE | 2 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-16` | `ISS-EPS-041-11` | Perbaiki label kamar "ODC 321" ganda | Data | 3 | — | ⛔ TERBLOKIR — menunggu P-01 | — |
-| `FIX-EPS-041-17` | `ISS-EPS-041-12` | Tombol Selesai, keadaan memuat denah, waktu pesan setelah F5, `PlannedDepositAmount`, istilah "dikunci" | FE + BE | 3 | — | BELUM DIKERJAKAN | — |
-| `FIX-EPS-041-18` | `ISS-EPS-041-12` | Konfirmasi menampilkan order deposit dan tingkat ketergantungan | FE + dokumen | 3 | — | ⛔ TERBLOKIR — menunggu K-06 | — |
+| `FIX-EPS-041-01` | `ISS-EPS-041-01`, `ISS-EPS-041-05` | Lengkapi respons antrean transfer: kebutuhan IGD, DPJP usulan, diagnosis, kelas diminta, identitas | BE | 1 | `FIX-EPS-041-BE` | ✅ SELESAI — 2026-10-27; AC 4/4 terbukti di layar; `dotnet build` 0 error | [BE](../../task/report/backend/FIX-EPS-041-BE.md), [uji](../../testing/live-testing/laporan-live-testing-verifikasi-perbaikan-041-admisi.md) |
+| `FIX-EPS-041-02` | `ISS-EPS-041-01`, `ISS-EPS-041-05` | Verifikasi transfer menampilkan kebutuhan dan diagnosis; isi otomatis isolasi dan DPJP usulan | FE | 1 | `FIX-EPS-041-FE` | ✅ SELESAI — 2026-10-27; AC 4/4; lint 0 error, unit 0 kegagalan baru, build PASS | [FE](../../task/report/frontend/FIX-EPS-041-FE.md), [uji](../../testing/live-testing/laporan-live-testing-verifikasi-perbaikan-041-admisi.md) |
+| `FIX-EPS-041-03` | `ISS-EPS-041-01` | Denah transfer mengirim konteks pasien ke `available-beds` | FE | 1 | `FIX-EPS-041-FE` | 🟡 SEBAGIAN — 2026-10-27; AC 2/3 penuh: konteks pasien terkirim dan hanya bed isolasi aktif, tetapi teks alasan isolasi tidak terlihat karena kamar yang seluruhnya tidak layak tidak dapat dibuka (butir 1) | [FE](../../task/report/frontend/FIX-EPS-041-FE.md) |
+| `FIX-EPS-041-04` | `ISS-EPS-041-01`, `ISS-EPS-041-06` | `admit` meneruskan kode galat reservasi asli | BE | 2 | `FIX-EPS-041-BE` | 🟡 SEBAGIAN — 2026-10-27; AC 1/2: `422 ISOLATION_REQUIRED` terbukti; bed sedang dibersihkan → `BED_NOT_READY` belum diuji | [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-05` | `ISS-EPS-041-01` | Tetapkan bed isolasi di master data | Data | 1 | `FIX-EPS-041-BE` | ✅ SELESAI — 2026-10-26 (data, K-01: VIP 316 & 317); AC 2/2 terbukti 27-10 | [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-06` | `ISS-EPS-041-02` | Pemeriksaan kelayakan pasien di langkah Verifikasi transfer | FE + dokumen | 1 | `FIX-EPS-041-FE` | ✅ SELESAI — 2026-10-27; AC 3/3; Amandemen 010 diperluas di `05-skema-tampilan.md` | [FE](../../task/report/frontend/FIX-EPS-041-FE.md) |
+| `FIX-EPS-041-07` | `ISS-EPS-041-03` | Teks Konfirmasi dan dialog pembatalan jalur transfer sesuai kontrak | FE | 2 | `FIX-EPS-041-FE` | ✅ SELESAI — 2026-10-27 (K-02 a); AC 2/2 | [FE](../../task/report/frontend/FIX-EPS-041-FE.md) |
+| `FIX-EPS-041-08` | `ISS-EPS-041-04` | Simpan konsulen dan tingkat ketergantungan setelah `admit` transfer | FE | 1 | `FIX-EPS-041-FE` | 🟡 SEBAGIAN — 2026-10-27; AC 2/4: ketergantungan tersimpan dan tampil; konsulen ⛔ ditolak aturan server (dokter pendukung hanya pada episode Admitted/DischargePending) — menunggu keputusan K-07 | [FE](../../task/report/frontend/FIX-EPS-041-FE.md) |
+| `FIX-EPS-041-09` | `ISS-EPS-041-06` | Rapikan label status, judul galat, tanda baca, dan kode status respons transfer | FE + BE | 3 | `FIX-EPS-041-FE`, `FIX-EPS-041-BE` | 🟡 SEBAGIAN — 2026-10-27; AC 4/5: butir 5 (buka ulang URL transfer berpersetujuan) belum dibuktikan | [FE](../../task/report/frontend/FIX-EPS-041-FE.md), [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-10` | `ISS-EPS-041-07` | Lanjutkan admisi bayi yang identitasnya sudah ada; gerbang kembar hanya menghitung bayi berbeda | FE + BE + dokumen | 1 | `FIX-EPS-041-FE`, `FIX-EPS-041-BE` | 🟡 SEBAGIAN — 2026-10-27 (K-03); AC 3/4: butir 4 (ibu tanpa bayi) tidak dapat diamati karena tidak ada datanya; aktivasi bayi tidak dijalankan (pemesanan boks tanpa RM baru terbukti); kontrak 022 direvisi | [FE](../../task/report/frontend/FIX-EPS-041-FE.md), [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-11` | `ISS-EPS-041-07` | Penanganan RM bayi tanpa episode yang sudah terbentuk | Data | 2 | `FIX-EPS-041-BE` | ✅ SELESAI — 2026-10-26 (data, K-03: 9 RM dinonaktifkan, RM 35 & 74 dibiarkan); AC 2/2 | [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-12` | `ISS-EPS-041-08` | Batas tanggal lahir, teks kelas, format waktu lahir, lantai denah bayi | FE | 3 | `FIX-EPS-041-FE` | ✅ SELESAI — 2026-10-27; AC 4/4 | [FE](../../task/report/frontend/FIX-EPS-041-FE.md) |
+| `FIX-EPS-041-13` | `ISS-EPS-041-08` | Pengaturan kode RS pada label dan unit layanan kamar NICU | Data | 3 | `FIX-EPS-041-BE` | 🟡 SEBAGIAN — 2026-10-26 (data, K-04: `RSMMC`, NICU tidak dipindah); label bayi belum dicetak untuk membuktikan kode baru | [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-14` | `ISS-EPS-041-09` | Format waktu peringatan admisi Draft lain memakai WIB dan bahasa Indonesia | BE | 3 | `FIX-EPS-041-BE` | ✅ SELESAI — 2026-10-27; "…26 Oktober 2026 pukul 11.19…" untuk 04.19 UTC | [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-15` | `ISS-EPS-041-10` | Penjaga nominal deposit jalur biasa setara jalur transfer | FE + BE | 2 | `FIX-EPS-041-FE`, `FIX-EPS-041-BE` | 🟡 SEBAGIAN — 2026-10-27 (K-05 batas teknis); AC 3/4: penolakan 400 sisi server (butir 3) hanya terbukti di source dan build | [FE](../../task/report/frontend/FIX-EPS-041-FE.md), [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-16` | `ISS-EPS-041-11` | Perbaiki label kamar "ODC 321" ganda | Data | 3 | `FIX-EPS-041-BE` | ✅ SELESAI — 2026-10-26 (data, P-01); denah Lantai 3 menampilkan ODC 321A/321B | [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-17` | `ISS-EPS-041-12` | Tombol Selesai, keadaan memuat denah, waktu pesan setelah F5, `PlannedDepositAmount`, istilah "dikunci" | FE + BE | 3 | `FIX-EPS-041-FE`, `FIX-EPS-041-BE` | ✅ SELESAI — 2026-10-27; AC 5/5 | [FE](../../task/report/frontend/FIX-EPS-041-FE.md), [BE](../../task/report/backend/FIX-EPS-041-BE.md) |
+| `FIX-EPS-041-18` | `ISS-EPS-041-12` | Konfirmasi menampilkan order deposit dan tingkat ketergantungan | FE + dokumen | 3 | `FIX-EPS-041-FE` | ✅ SELESAI — 2026-10-27 (K-06); `05-skema-tampilan.md` 3.11 diamandemen | [FE](../../task/report/frontend/FIX-EPS-041-FE.md) |
 
-**Ringkasan: 0 dari 18 perbaikan selesai. 11 dapat dikerjakan sekarang; 7 menunggu keputusan pemilik atau jawaban kueri.**
+**Ringkasan (27-10-2026): 11 dari 18 perbaikan ✅ selesai; 7 🟡 sebagian. Validasi: `dotnet build` 0 error; frontend lint 0 error pada `src/`, `test:unit` 0 kegagalan baru (41 kegagalan lama identik dengan `HEAD`), `build` PASS; uji browser 8 skenario bagian 8 (7 lulus, 1 lulus dengan catatan). Satu keputusan baru dibutuhkan: usulan K-07 konsulen saat admisi (lihat riwayat bagian 9 dan laporan uji temuan VR-01).**
 
 Perbaikan admisi Draft ganda (`ISS-EPS-041-09`, bagian perilaku) tidak didaftarkan di sini; ia tetap pada `FIX-EPS-022-01` (⛔ menunggu K-01/K-02 ISSUE-022). `ISS-EPS-041-T1` (footer) diteruskan ke pemilik layout global dan tidak masuk register.
 
@@ -687,30 +687,30 @@ Dialog "Batalkan Admisi Rawat Inap?"
 ## 5. Urutan pengerjaan
 
 ```text
-FIX-EPS-041-01   tanpa dependency — boleh dikerjakan sekarang
-└── FIX-EPS-041-02
-FIX-EPS-041-03   tanpa dependency — boleh dikerjakan sekarang
-FIX-EPS-041-04   tanpa dependency — boleh dikerjakan sekarang
-FIX-EPS-041-06   revisi Amandemen 010 lebih dulu (bagian 7), lalu source
-FIX-EPS-041-08   tanpa dependency — boleh dikerjakan sekarang
-FIX-EPS-041-09   tanpa dependency; butir 6 setelah dibuktikan
-FIX-EPS-041-12   tanpa dependency — boleh dikerjakan sekarang
-FIX-EPS-041-14   tanpa dependency — boleh dikerjakan sekarang
-FIX-EPS-041-15   tanpa dependency (batas teknis); batas kebijakan setelah K-05
-FIX-EPS-041-17   tanpa dependency — boleh dikerjakan sekarang
+✅ FIX-EPS-041-01   tanpa dependency — boleh dikerjakan sekarang
+└── ✅ FIX-EPS-041-02
+🟡 FIX-EPS-041-03   tanpa dependency — boleh dikerjakan sekarang
+🟡 FIX-EPS-041-04   tanpa dependency — boleh dikerjakan sekarang
+✅ FIX-EPS-041-06   revisi Amandemen 010 lebih dulu (bagian 7), lalu source
+🟡 FIX-EPS-041-08   tanpa dependency — boleh dikerjakan sekarang
+🟡 FIX-EPS-041-09   tanpa dependency; butir 6 setelah dibuktikan
+✅ FIX-EPS-041-12   tanpa dependency — boleh dikerjakan sekarang
+✅ FIX-EPS-041-14   tanpa dependency — boleh dikerjakan sekarang
+🟡 FIX-EPS-041-15   tanpa dependency (batas teknis); batas kebijakan setelah K-05
+✅ FIX-EPS-041-17   tanpa dependency — boleh dikerjakan sekarang
 K-01 (keputusan pemilik)
-└── ⛔ FIX-EPS-041-05
+└── ✅ FIX-EPS-041-05
 K-02 (keputusan pemilik)
-└── ⛔ FIX-EPS-041-07
+└── ✅ FIX-EPS-041-07
 K-03 (keputusan pemilik)
-├── ⛔ FIX-EPS-041-10
-└── ⛔ FIX-EPS-041-11   juga menunggu P-02
+├── 🟡 FIX-EPS-041-10
+└── ✅ FIX-EPS-041-11   juga menunggu P-02
 K-04 + P-01
-└── ⛔ FIX-EPS-041-13
+└── 🟡 FIX-EPS-041-13
 P-01
-└── ⛔ FIX-EPS-041-16
+└── ✅ FIX-EPS-041-16
 K-06 (keputusan pemilik)
-└── ⛔ FIX-EPS-041-18
+└── ✅ FIX-EPS-041-18
 ```
 
 Saran urutan builder: `-01` → `-02` dan `-03` → `-06` → `-08` (kelompok jalur transfer, satu sesi uji ulang), lalu `-15`, `-14`, `-04`, `-09`, `-12`, `-17`.
@@ -773,3 +773,5 @@ Hasilnya ditulis sebagai laporan live testing baru per menu di `testing/live-tes
 | 2026-10-26 | Rencana dibuat: 18 perbaikan (11 siap dikerjakan, 7 menunggu K-01 s.d. K-06 atau P-01/P-02); menunggu persetujuan pemilik | `diagnose-module-issue` |
 | 2026-10-26 | Pemilik menyetujui seluruh rencana dan K-01 (VIP 316 & 317 bed isolasi), K-02 (transfer batal tetap ditutup permanen), K-03 (lanjutkan bayi dengan RM yang ada; nonaktifkan RM yatim yang kasusnya sudah punya bayi teradmisi), K-04 (`PatientLabelHospitalCode` = RSMMC; unit NICU tidak dipindah), K-05 (batas teknis deposit), K-06 (tampilkan di Konfirmasi). P-01 dijawab: master kamar bernama "ODC 321A/321B" tetapi `RoomNumber` keduanya "321" — FIX-16 menjadi koreksi `RoomNumber` | sesi pemilik |
 | 2026-10-26 | Progres task payung `FIX-EPS-041-BE` (belum ada laporan task, belum diuji runtime): source backend FIX-01, -04, -09 (BE), -10 (BE + filter pasien nonaktif), -14, -15 (BE), -17 (BE) selesai di MHamzah, `dotnet build` ke folder terpisah PASS 0 error. Data DB Hamzah diterapkan lewat `QuilvianSystemFrontendDev/test-with-agy/scripts/admisi-1026-datafix-041.py`: FIX-05 (2 bed isolasi), FIX-11 (9 RM bayi dinonaktifkan), FIX-13, FIX-16. `FIX-EPS-041-FE` belum dimulai; harus dibangun di atas pekerjaan FE-RWI-229 (transfer 1 langkah split, 9 langkah) yang belum di-commit | `build-module-backend` |
+| 2026-10-27 | `FIX-EPS-041-FE` dikerjakan di atas FE-RWI-229 (`be9c2f129`): FIX-02, -03, -06, -07, -08, -09, -10, -12, -15, -17, -18 (24 berkas `src`, 1 test unit baru, 3 test disesuaikan; belum di-commit). Validasi: lint 0 error pada `src/` (4 error lama di profil Chrome `test-with-agy`), `test:unit` 3851 test / 41 gagal identik dengan `HEAD`, `build` PASS; `dotnet build` backend 0 error. Uji browser bagian 8 dijalankan ([laporan](../../testing/live-testing/laporan-live-testing-verifikasi-perbaikan-041-admisi.md)): 7 lulus, 1 lulus dengan catatan. Laporan [`FIX-EPS-041-BE`](../../task/report/backend/FIX-EPS-041-BE.md) dan [`FIX-EPS-041-FE`](../../task/report/frontend/FIX-EPS-041-FE.md) ditulis; register diperbarui (11 ✅, 7 🟡). Dokumen hulu bagian 7 direvisi (`05-skema-tampilan.md` Amandemen 010 + amandemen 041, kontrak 006, `api-contract.md` §18.2, kontrak 022, plan-repair-006). Temuan baru: server menolak dokter pendukung pada episode Draft sehingga konsulen tidak dapat disimpan saat admisi di jalur mana pun — **usulan K-07** untuk pemilik: (a) izinkan pada Draft, (b) simpan sebagai rencana lalu tetapkan saat kedatangan dikonfirmasi (rekomendasi), atau (c) hapus isian konsulen dari langkah Dokter admisi. Temuan lingkungan: migration `20261022130000_MakeTransferHandoverPlacementsNullable` belum diterapkan di DB Hamzah | `build-module-frontend`, `build-module-backend`, `live-browser-testing` |
+| 2026-10-27 | Temuan lingkungan migration serah terima ditutup: `20261022130000_MakeTransferHandoverPlacementsNullable` ternyata tidak pernah terlihat oleh EF (ditulis tangan tanpa `.Designer.cs`), dan `database update` tertahan `PendingModelChangesWarning` karena migration HR `20261027104500_…` belum punya Designer/snapshot. Kedua Designer ditambahkan, snapshot diselaraskan, keduanya diterapkan di DB Hamzah atas permintaan pemilik; `has-pending-model-changes` bersih, `dotnet build` 0 error. Penyimpanan dokumen serah terima pada `admit` transfer belum diuji ulang ([laporan BE](../../task/report/backend/FIX-EPS-041-BE.md) bagian 8). Status register tidak berubah | `build-module-backend` |

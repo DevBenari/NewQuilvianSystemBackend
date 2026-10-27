@@ -11775,6 +11775,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<Guid?>("InitiatedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -11789,6 +11792,18 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOnBehalf")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("OnBehalfNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OnBehalfReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("OriginalSummaryJson")
                         .HasColumnType("jsonb");
@@ -11854,6 +11869,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("AttendanceId");
 
+                    b.HasIndex("InitiatedByUserId");
+
                     b.HasIndex("RejectionReasonId");
 
                     b.HasIndex("RequestNumber")
@@ -11869,6 +11886,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("WorkflowInstanceId")
                         .IsUnique()
                         .HasFilter("\"WorkflowInstanceId\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("IsOnBehalf", "RequestStatus");
 
                     b.HasIndex("RequestStatus", "SubmittedAt");
 
@@ -111005,6 +111024,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("AttendanceId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "InitiatedByUser")
+                        .WithMany()
+                        .HasForeignKey("InitiatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstRejectionReason", "RejectionReason")
                         .WithMany()
                         .HasForeignKey("RejectionReasonId")
@@ -111046,6 +111070,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Attendance");
 
                     b.Navigation("AttendanceDaily");
+
+                    b.Navigation("InitiatedByUser");
 
                     b.Navigation("RejectionReason");
 
