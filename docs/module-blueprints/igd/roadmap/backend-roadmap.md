@@ -269,7 +269,7 @@ Jumlah panah: **0**. 3 node (18 Oktober 2026 malam: `R319` ditambahkan tanpa pan
 | `BE-IGD-068` | Penyelesaian catatan dokter IGD tanpa fakta jasa konsultasi (`IGD-DEC-229`) — **baru** | R3.16 | ✅ **SELESAI — 21 Oktober 2026, 5 dari 5 acceptance** ([penilaian D2R-3](../evidence/2026-10-21-penilaian-putaran-d2r3.md)): acceptance 1 terbukti — sesudah `CON-20261021-00002` diselesaikan, invoice IGD pasien itu memuat fakta resep (`PHARMACY`/`DRUG`, `Resep RX-20261021-00001`, Rp650.000) dan **tidak** memuat fakta jasa konsultasi. *Sebelumnya:* 🟡 **Tetap 4 dari 5 — 20 Oktober 2026:** `D2R-R01` `NOT RUN` (verifikasi layar Billing wewenang pemilik). *Sebelumnya:* 🟡 **Tetap 4 dari 5 — dinilai ulang 20 Oktober 2026** ([penilaian](../evidence/2026-10-20-penilaian-putaran-d2.md)): `D2-U14` ditandai `PASS` oleh penguji **tanpa bukti apa pun** (`IGD-FACT-158`, ruas `bukti` kosong; catatannya menyerahkan verifikasi tagihan ke pemilik lewat layar Billing), sehingga acceptance 1 tetap belum terbukti. *Sebelumnya:* 🟡 **8 Oktober 2026 — implementasi selesai dan dibuild pemilik; 4 dari 5 acceptance** (2–4 lewat diff, 5). QBE Strict `PASS` (1 berkas, +23/−22); nol migration, nol komentar baru; CRLF tanpa BOM. Build pemilik: 0 error, 235 warning (identik baseline; dilaporkan 8 Oktober 2026). Menunggu putaran uji 1 bersama `FE-IGD-049` (`AT-IGD-204`). Tanpa UAT | [BE-IGD-068](../task/report/backend/BE-IGD-068.md) |
 | `BE-IGD-069` | Tindakan keperawatan IGD tercatat sebagai tindakan klinis umum (`IGD-DEC-225`) — **baru** | R3.16 | ✅ **9 Oktober 2026 — implementasi selesai (+232/-0), build terverifikasi, 8 dari 8 acceptance criteria terbukti pada Putaran Uji 3 (069-A1..A3 PASS)** — **disahkan dengan penyimpangan `IGD-DEC-295` (12 Oktober 2026)**: agent mencocokkan `069-A1`…`A3` dengan log backend; klaim "8 dari 8" tidak diperiksa per butir; tiga putaran tak dilaporkan dan dua tindakan tambahan di pasien uji (`IGD-FACT-118`) | [BE-IGD-069](../task/report/backend/BE-IGD-069.md) |
 | `BE-IGD-070` | Tindak lanjut lahir Draft; konfirmasi dijaga diagnosis (`IGD-DEC-223`, `226`) — **baru** | R3.16 | ✅ **26 Oktober 2026 — 8 dari 8 acceptance terbukti** lewat penilaian Putaran D3 dari bukti mentah: `D3-A01` (status 2/3/4 → `400` aturan 14, status 1 → Draft), `D3-A02` (`Differential` saja → `409`), `D3-A03` (`404` → `400` sebelum `409`), `D3-U09`…`U13` (penolakan di modal, konfirmasi sesudah `A08.1 Primary`, pembatalan dan pelaksanaan tanpa pemeriksaan diagnosis, kunjungan tertutup `visitStatus: 9`). Acceptance 7 dan 8 sudah terbukti 9 Oktober (diff dua berkas; build 0 error / 235 warning). [Penilaian lima putaran](../evidence/2026-10-26-penilaian-lima-putaran-d3-l1-l1r-e2e.md) bagian 1. *Sebelumnya:* 🟡 9 Oktober 2026 — implementasi selesai; 2 dari 8 acceptance terbukti | [BE-IGD-070](../task/report/backend/BE-IGD-070.md) |
-| `BE-IGD-071` | Pesanan lab dan radiologi perawat IGD atas instruksi dokter (`IGD-DEC-224`) — **baru** | R3.16 | ⛔ menunggu `IGD-OQ-117` (pemilik Laboratorium; pemilik Radiologi, Yoga Aji Pratama); pasangan layar `FE-IGD-057`, `FE-IGD-058` | — |
+| `BE-IGD-071` | Pesanan lab dan radiologi perawat IGD atas instruksi dokter (`IGD-DEC-224`) — **baru** | R3.16 | ⛔ **27 Oktober 2026 — `IGD-OQ-117` dijawab, kini menunggu amandemen aturan 13** — Yoga Aji Pratama (pemilik Laboratorium dan Radiologi) menyetujui perluasan ke pasien IGD, tetapi dokter pemberi instruksi wajib aktif **dan berkewenangan klinis** (`IGD-DEC-360`), lebih sempit dari *dokter aktif* pada validation `0.14.0` §12.4 aturan 13. Dimulai sesudah amandemen kontrak dan kartu, serta `IGD-OQ-144` (sumber data kewenangan klinis), dijawab. *Sebelumnya:* ⛔ menunggu `IGD-OQ-117` (pemilik Laboratorium; pemilik Radiologi, Yoga Aji Pratama); pasangan layar `FE-IGD-057`, `FE-IGD-058` | — |
 | `BE-IGD-072` | Form Permintaan Rawat Inap dari draf sampai *Menunggu TTD* (`IGD-DEC-267`…`294`) — **baru 12 Oktober 2026** | R3.18 | ✅ **SELESAI — 18 Oktober 2026: 10 dari 10 acceptance** — acceptance 8 terbukti 18 Oktober 2026 pada basis data sekali pakai (PostgreSQL 15.19 di kontainer lokal, DLL build Rizki): rollback dengan 1 form ditolak `P0001` pesan penjaga tanpa perubahan skema; rollback tabel kosong 23 migration bersih, skema = basis data pembanding sampai `20261012041938` (819 tabel); naik kembali identik (832 tabel, sidik jari kolom/index/constraint sama) — [bukti](../evidence/2026-10-18-uji-down-migration-be-igd-072.md). Tanpa UAT. *Sebelumnya:* 🟡 9 dari 10 acceptance — **17 Oktober 2026:** aturan 2, 4, 9 terbukti atas penilaian pemilik (`IGD-DEC-319`); tinggal acceptance 8 (uji penjaga `Down()`). *Sebelumnya:* 13 Oktober 2026 — uji layar dan API terbukti (kecuali aturan 2, 4, 9); penjaga `Down()` disisipkan 14 Oktober (belum diuji); build 14 Oktober 0 error, 10 warning paket NuGet | [laporan](../task/report/backend/BE-IGD-072.md) |
 | `BE-IGD-073` | Permintaan admisi Rawat Inap menerima sumber IGD — **milik Rawat Inap** | R3.18 | ⛔ 14 Oktober 2026 — dibatalkan `IGD-DEC-304`; source kembali ke `HEAD`, migration 2 di-rollback dan dihapus 14 Oktober 17.11 | [laporan](../task/report/backend/BE-IGD-073.md) |
 | `BE-IGD-074` | Tanda tangan, pengiriman ke admisi, pembatalan sesudah kirim, cetak, penahanan *Jalankan* | R3.18 | ✅ **SELESAI — 18 Oktober 2026, Putaran B6** (`IGD-FACT-128`): 10 dari 10 acceptance — #3 rincian `404` pada build (B5-10, B6-07) dan _admit_ membaca lewat `GetTransferByIdAsync` → `TransferQuery` yang sama (`InpAdmissionTransferService.cs:89`); #5 penolakan sesudah diproses `409`/`400` (B6-04); #6 `displayStatus` _Completed_ sesudah _admit_ (B6-03). _Admit_ B6-02 oleh SuperAdmin (opsi 2). Tanpa UAT. *Sebelumnya:* 🟡 **17 Oktober 2026 (malam), Putaran B5** (`IGD-FACT-126`): 7 dari 10 acceptance terbukti (#1, #2, #4, #7, #8, #9, #10); #3 dan #5 sebagian; #6 belum — sisanya menunggu satu _admit_ (Putaran B6, `IGD-FACT-127`). *Sebelumnya:* 17 Oktober 2026 — dikembalikan sesuai kartunya (`IGD-DEC-319`): TTD DPJP, antrean, dan cetak terbukti lewat Putaran B3 atas penilaian pemilik; langkah _admit_ sungguhan (C-12/B3-14) belum diuji, jadi acceptance 6 (_Selesai_ sesudah _admit_) dan bagian "sudah diproses" pada acceptance 5 belum terbukti. *Ditulis sesi lain 16 Oktober 2026:* ✅ DONE — uji regresi Putaran B3 lulus 100%, cetak surat transfer dan TTD DPJP terbukti (kartu tidak ikut disunting) | [laporan](../task/report/backend/BE-IGD-074.md) |
@@ -623,7 +623,7 @@ flowchart LR
     classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
-    BEIGD017["🟡 BE-IGD-017<br/>Solution pulih"]:::sebagian
+    BEIGD017["⛔ BE-IGD-017<br/>Solution pulih"]:::terblokir
     BEIGD018["✅ BE-IGD-018<br/>Penjaga transisi terpusat"]:::selesai
     BEIGD019["✅ BE-IGD-019<br/>Triase memakai penjaga"]:::selesai
     BEIGD020["✅ BE-IGD-020<br/>Penilaian ulang tolak Completed"]:::selesai
@@ -999,7 +999,7 @@ flowchart LR
     BEIGD032["✅ BE-IGD-032<br/>Dua kolom status kepergian"]:::selesai
     BEIGD033["✅ BE-IGD-033<br/>Kejadian kepergian tambah-saja"]:::selesai
     BEIGD034["✅ BE-IGD-034<br/>Koreksi dan pembalikan berpersetujuan"]:::selesai
-    BEIGD035["🟡 BE-IGD-035<br/>Sikap pesanan belum selesai"]:::sebagian
+    BEIGD035["✅ BE-IGD-035<br/>Sikap pesanan belum selesai"]:::selesai
     OQ076{{"✅ IGD-OQ-076 dan IGD-OQ-077<br/>Ditutup IGD-DEC-101, 102"}}:::selesai
     BEIGD044["BE-IGD-044 ✅<br/>Histori penugasan dokter tersimpan"]:::selesai
     BEIGD045["BE-IGD-045 ✅<br/>Dokter ditetapkan, dialihkan, dicari"]:::selesai
@@ -1482,7 +1482,7 @@ flowchart LR
     BEIGD040["✅ BE-IGD-040<br/>Kesimpulan observasi tersimpan"]:::selesai
     BEIGD041["✅ BE-IGD-041<br/>Penolakan penutupan sebut pesanan"]:::selesai
     BEIGD042["⛔ BE-IGD-042<br/>Encounter Outpatient ditolak"]:::terblokir
-    BEIGD043["BE-IGD-043<br/>Laporan pengaturan IGD tersirat"]:::belum
+    BEIGD043["✅ BE-IGD-043<br/>Laporan pengaturan IGD tersirat"]:::selesai
 
     DEC115 --> BEIGD040
     DEC119 --> BEIGD040
@@ -1696,7 +1696,7 @@ flowchart LR
     BEIGD046["✅ BE-IGD-046<br/>Validasi dan proyeksi tanda vital"]:::selesai
 
     subgraph frontend["Sisi layar — frontend-roadmap.md"]
-        FEIGD028["FE-IGD-028<br/>Pemantauan bertanda vital"]:::luar
+        FEIGD028["✅ FE-IGD-028<br/>Pemantauan bertanda vital"]:::luar
     end
 
     DEC122 --> BEIGD046
@@ -1737,7 +1737,7 @@ Lahir dari uji layar pemilik, bukan dari perencanaan. Saat mencoba **Simpan Peme
 triage IGD, layar menolak dengan `409`. Penelusuran menemukan cacat yang jauh lebih luas
 daripada satu layar.
 
-### 🟡 `BE-IGD-047` — Nomor urut, penanda penilaian ulang, dan penunjuk pendahulu ditetapkan server
+### ✅ `BE-IGD-047` — Nomor urut, penanda penilaian ulang, dan penunjuk pendahulu ditetapkan server
 
 **Status.** ✅ **SELESAI — 17 September 2026.** Akar masalah terbukti lewat log, kueri basis
 data pemilik, dan pembacaan source. Ketujuh perubahan ditulis, `dotnet build` lulus, dan **uji
@@ -3483,12 +3483,12 @@ flowchart LR
     classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
-    BEIGD065["🟡 BE-IGD-065<br/>Daftar kunjungan membawa DPJP aktif"]:::sebagian
-    BEIGD066["🟡 BE-IGD-066<br/>Kajian medis untuk kunjungan IGD"]:::sebagian
-    BEIGD067["🟡 BE-IGD-067<br/>Riwayat catatan dokter per kunjungan"]:::sebagian
-    BEIGD068["🟡 BE-IGD-068<br/>Jasa konsultasi IGD tidak dikirim"]:::sebagian
+    BEIGD065["✅ BE-IGD-065<br/>Daftar kunjungan membawa DPJP aktif"]:::selesai
+    BEIGD066["✅ BE-IGD-066<br/>Kajian medis untuk kunjungan IGD"]:::selesai
+    BEIGD067["✅ BE-IGD-067<br/>Riwayat catatan dokter per kunjungan"]:::selesai
+    BEIGD068["✅ BE-IGD-068<br/>Jasa konsultasi IGD tidak dikirim"]:::selesai
     BEIGD069["✅ BE-IGD-069<br/>Tindakan keperawatan IGD tercatat"]:::selesai
-    BEIGD070["BE-IGD-070<br/>Tindak lanjut Draft, konfirmasi berdiagnosis"]:::belum
+    BEIGD070["✅ BE-IGD-070<br/>Tindak lanjut Draft, konfirmasi berdiagnosis"]:::selesai
     BEIGD071["⛔ BE-IGD-071<br/>Pesanan perawat atas instruksi dokter"]:::terblokir
     OQIGD117{{"⛔ IGD-OQ-117<br/>Aturan instruksi lab dan radiologi<br/>untuk pasien IGD"}}:::terblokir
 
@@ -3749,7 +3749,7 @@ Tanpa pesan baru ke pengguna; kode status tidak berubah.
 
 **DoD.** Acceptance 1–5; laporan `task/report/backend/BE-IGD-068.md`; register, grafik, traceability.
 
-### `BE-IGD-069` — Tindakan keperawatan IGD tercatat sebagai tindakan klinis umum
+### ✅ `BE-IGD-069` — Tindakan keperawatan IGD tercatat sebagai tindakan klinis umum
 
 | Field | Isi |
 | --- | --- |
@@ -3857,7 +3857,7 @@ R3.16.5 dicatat pada laporan sebagai syarat milik pemilik.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **menunggu `IGD-OQ-117`** — perluasan aturan *dokter pemberi instruksi* pada Laboratorium dan Radiologi untuk pasien IGD; pemilik: pemilik Laboratorium dan pemilik Radiologi (Yoga Aji Pratama). Isi kartu di bawah adalah desain `approved`; dimulai hanya sesudah kedua pemilik menyetujui atau mengubahnya |
+| **Status** | ⛔ **27 Oktober 2026 — menunggu amandemen validation §12.4 aturan 13 dan `IGD-OQ-144`.** `IGD-OQ-117` dijawab Yoga Aji Pratama, pemilik Laboratorium dan Radiologi (`IGD-DEC-360`): disetujui dengan mekanisme verifikasi `NotRequired`/`Pending`/`Verified` yang sudah ada, identitas perawat penginput dan dokter pemberi instruksi terpisah, nol status dan tabel baru, `Pending` tidak menghambat pemeriksaan darurat, Rawat Jalan dan Rawat Inap tidak berubah, backend dan frontend IGD diuji bersama sebelum rilis. **Yang berubah dari kartu ini:** dokter pemberi instruksi yang sah bukan sekadar *dokter aktif* (pilihan desain 7 `IGD-DEC-230`) tetapi dokter aktif yang **menangani pasien** atau **spesialis di bidang pemeriksaannya** — rumusan yang dapat diperiksa backend belum ada (`IGD-OQ-144`). *Sebelumnya:* ⛔ **menunggu `IGD-OQ-117`** — perluasan aturan *dokter pemberi instruksi* pada Laboratorium dan Radiologi untuk pasien IGD; pemilik: pemilik Laboratorium dan pemilik Radiologi (Yoga Aji Pratama). Isi kartu di bawah adalah desain `approved`; dimulai hanya sesudah kedua pemilik menyetujui atau mengubahnya |
 | **Outcome** | Perawat IGD memesan lab atau radiologi atas instruksi lisan dengan memilih dokter pemberi instruksi; pesanan berstatus menunggu verifikasi sampai dokter itu memverifikasinya dari daftar *Perlu Verifikasi*. Pesanan oleh dokter sendiri tetap tanpa verifikasi |
 | **Slice** | `EPIC IGD-14` / `MVP-9` — pesanan perawat atas instruksi |
 | **Requirement** | `FR-IGD-102`; `AT-IGD-209`, `210`; DoD butir 7 |

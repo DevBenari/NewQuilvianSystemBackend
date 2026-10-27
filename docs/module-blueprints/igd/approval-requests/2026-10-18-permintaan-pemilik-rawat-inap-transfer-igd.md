@@ -7,7 +7,7 @@
 | `pengaju` | Rizki Gunawan — Product/Domain Owner IGD (`IGD-DEC-089`) |
 | `penerima` | **Muhammad Hamzah** — PIC Admisi Rawat Inap & InPatient Management |
 | `rujukan` | `IGD-DEC-308`, `IGD-DEC-309` (disetujui Muhammad Hamzah, 15 Oktober 2026); [spesifikasi serah terima 15 Oktober](../evidence/2026-10-15-spesifikasi-serah-terima-rawat-inap-igd-dec-308-309.md); [penilaian B6 dan keselarasan](../evidence/2026-10-18-penilaian-b6-dan-keselarasan-rawat-inap.md); `IGD-FACT-127`…`129`; `IGD-OQ-132` |
-| `status` | **`menunggu jawaban`** — butir 1–4. **Butir 5: dirinci sebagai [`IGD-REQ-004`](2026-10-18-permintaan-pemilik-rawat-inap-prioritas-antrean-transfer.md)** (18 Oktober 2026 malam), dikirim terpisah |
+| `status` | **`dijawab`** — butir 1–4, 27 Oktober 2026, lewat jawaban Muhammad Hamzah atas [tindak lanjut](2026-10-26-tindak-lanjut-igd-req-003-rawat-inap.md) (`IGD-FACT-253`). *Sebelumnya:* **`menunggu jawaban`** — butir 1–4. **Butir 5: dirinci sebagai [`IGD-REQ-004`](2026-10-18-permintaan-pemilik-rawat-inap-prioritas-antrean-transfer.md)** (18 Oktober 2026 malam), dikirim terpisah |
 | `sifat` | Operasional, lintas modul. **Bukan** artefak desain IGD |
 
 ---

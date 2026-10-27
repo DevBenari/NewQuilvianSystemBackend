@@ -7,7 +7,7 @@
 | `pengaju` | Rizki Gunawan — Product/Domain Owner IGD (`IGD-DEC-089`) |
 | `penerima` | **Yoga Aji Pratama** — pemilik Radiologi; **pemilik Laboratorium** (belum dipetakan namanya) |
 | `rujukan` | `IGD-OQ-117` (dibuka 6 Oktober 2026), `IGD-DEC-224`, `IGD-FACT-082` |
-| `status` | **`menunggu jawaban`** |
+| `status` | **`disetujui dengan perluasan syarat`** — Yoga Aji Pratama, pemilik Laboratorium dan Radiologi, 27 Oktober 2026 (`IGD-DEC-360`). *Sebelumnya:* **`menunggu jawaban`** |
 | `sifat` | Lintas modul. **Bukan** artefak desain IGD — aturan yang diminta milik Laboratorium dan Radiologi |
 | `menahan` | `BE-IGD-071` ⛔ dan `FE-IGD-058` ⛔; sebagian `FE-IGD-057` |
 
@@ -80,3 +80,28 @@ menginstruksikan rontgen itu, sistem tidak dapat menjawab.
 | Layar | `FE-IGD-057` (perawat memesan atas instruksi dokter) sudah dikerjakan 12 Oktober 2026; yang belum hanya kewajiban dan verifikasinya |
 
 Begitu ketiga pertanyaan dijawab, IGD dapat mengerjakannya tanpa permintaan lanjutan.
+
+## 7. Jawaban — Yoga Aji Pratama, 27 Oktober 2026
+
+Yoga Aji Pratama memegang Laboratorium **dan** Radiologi (pernyataan pengaju 27 Oktober 2026), sehingga jawabannya
+berlaku untuk keduanya. Ringkasan setia isinya:
+
+1. **Disetujui.** `InstructingDoctorId` wajib dicatat pada pesanan Laboratorium dan Radiologi pasien IGD yang dibuat
+   perawat atas instruksi dokter. Pesanan yang dibuat langsung oleh dokter tetap `NotRequired`.
+2. **Dokter pemberi instruksi harus aktif dan memiliki kewenangan klinis yang sesuai.** Prioritaskan DPJP aktif atau
+   dokter jaga IGD, tetapi pilihan harus mencerminkan dokter yang benar-benar memberi instruksi. Validasi di backend.
+   Penugasan DPJP Rawat Inap tidak diberlakukan langsung pada pasien IGD.
+3. **Disetujui memakai mekanisme verifikasi Rawat Inap yang sudah ada** — `NotRequired`, `Pending`, `Verified`, enum
+   tetap milik masing-masing modul. Verifikasi oleh dokter pemberi instruksi lewat akun yang tertaut identitasnya.
+
+Ketentuan implementasi: tidak mengubah alur Rawat Jalan maupun Rawat Inap; tidak membuat status verifikasi atau tabel
+baru; identitas perawat penginput dan dokter pemberi instruksi dipertahankan terpisah; `Pending` tidak otomatis
+menghambat pemeriksaan darurat (SOP klinis tetap berlaku); backend dan frontend IGD disesuaikan dan diuji bersama
+sebelum dirilis.
+
+**Tafsiran pengaju atas *kewenangan klinis*** (Rizki Gunawan, 27 Oktober 2026): *"dokter yang menangani atau memiliki
+spesialis di bidangnya, seperti dokter radiologi, dokter yang menangani MCU, patologi klinik yang ada di lab, dll."*
+
+**Akibat untuk IGD:** `IGD-OQ-117` dijawab (`IGD-DEC-360`). Butir 2 lebih sempit daripada desain yang terkunci
+(*dokter aktif*, validation `0.14.0` §12.4 aturan 13), sehingga `BE-IGD-071` dan `FE-IGD-058` belum dapat
+dikerjakan sebelum aturan itu diamandemen dalam bentuk yang dapat diperiksa backend (`IGD-OQ-144`).

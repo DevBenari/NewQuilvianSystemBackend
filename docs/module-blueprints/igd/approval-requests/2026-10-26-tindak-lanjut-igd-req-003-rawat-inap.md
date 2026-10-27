@@ -7,7 +7,7 @@
 | `pengaju` | Rizki Gunawan — Product/Domain Owner IGD (`IGD-DEC-089`) |
 | `penerima` | **Muhammad Hamzah** — PIC Admisi Rawat Inap & InPatient Management |
 | `rujukan` | `IGD-REQ-003` butir 1 dan 2; `IGD-OQ-132`; `IGD-DEC-308`, `IGD-DEC-309` |
-| `status` | **`menunggu`** — 8 hari sejak 18 Oktober 2026 |
+| `status` | **`dijawab`** — Muhammad Hamzah, 27 Oktober 2026: butir 1–4 disetujui/terkonfirmasi; pengerjaan Rawat Inap dijadwalkan 27–28 Oktober 2026; uji bersama Putaran B7 bagian 2 diusulkan Rabu 28 Oktober 2026 14.00 WIB (`IGD-FACT-253`). *Sebelumnya:* **`menunggu`** — 8 hari sejak 18 Oktober 2026 |
 | `menahan` | `BE-IGD-077` acceptance 3–4 (5 dari 7 terpenuhi) |
 
 ---
@@ -76,3 +76,22 @@ Rawat Inap, supaya kami dapat menjadwalkan uji bersama Putaran B7 bagian 2 dan m
 Bila butir 2 dinilai bukan prioritas sekarang, mohon dinyatakan begitu — kami akan memisahkan
 acceptance 4 `BE-IGD-077` sebagai celah yang dinyatakan, alih-alih menahan task itu tanpa batas
 waktu.
+
+## 6. Jawaban — Muhammad Hamzah, 27 Oktober 2026
+
+Jawaban resmi pemilik Rawat Inap (status di dokumennya: *Disetujui & Terjadwal*), disampaikan kepada pengaju
+27 Oktober 2026. Ringkasan setia isinya:
+
+| Butir | Permintaan | Jawaban | Komitmen Rawat Inap |
+| :---: | --- | --- | --- |
+| 1 | Panggil evaluasi penutupan IGD sesudah *admit* | **Disetujui penuh** | `EvaluasiPenutupanKunjunganSusulanAsync` dipanggil di `InpAdmissionTransferService.ExecuteTransferAdmissionCoreAsync` tepat sesudah status menjadi `Executed`, sebelum `SaveChangesAsync`; dikerjakan Selasa 27 Oktober 2026 |
+| 2 | Endpoint dan tombol *Tolak* beralasan | **Disetujui penuh, tidak ditunda** | `POST /admission-transfers/{id}/reject` dan modal alasan di UI Antrean Transfer; dikerjakan Rabu pagi 28 Oktober 2026 |
+| 3 | `BedManagement:UnitAssignments` admisi dan `InpatientEpisode:Create` | **Terkonfirmasi** | Dev/testing: disiapkan lewat `user-secrets`/`appsettings.Development.json`, uji tidak lagi memakai SuperAdmin. Staging dan produksi: prasyarat rilis (Release Gate R3.18.5), diinjeksi saat deployment |
+| 4 | Nilai master *KELAS II* | **Terkonfirmasi** | Permanen `isForInpatient = true`; perubahan pada uji 18 Oktober adalah koreksi data yang sah |
+| 5 | Prioritas antrean CITO dan Member | **Disetujui** | Lewat `IGD-REQ-004` (19 Oktober 2026, `IGD-FACT-234`) |
+
+**Jadwal uji bersama:** pekerjaan Rawat Inap dinyatakan tuntas Rabu siang 28 Oktober 2026; uji bersama Putaran B7
+bagian 2 diusulkan **Rabu 28 Oktober 2026 pukul 14.00 WIB** agar `BE-IGD-077` dapat ditutup.
+
+**Catatan IGD:** komitmen di atas adalah pernyataan pemilik Rawat Inap; IGD belum memverifikasinya. `BE-IGD-077` tetap
+🟡 5/7 sampai acceptance 3–4 terbukti pada uji bersama. Dicatat sebagai `IGD-FACT-253`.

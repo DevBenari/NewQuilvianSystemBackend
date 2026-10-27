@@ -5,9 +5,9 @@
 | `request_id` | `IGD-REQ-009` |
 | `tanggal` | 2026-10-27 |
 | `pengaju` | Rizki Gunawan — Product/Domain Owner IGD (`IGD-DEC-089`) |
-| `penerima` | Pemegang Pendaftaran Rawat Jalan / Registration Management (`IGD-REQ-002` mencatat: tim Rizki Gunawan) — **nama diisi pengaju saat mengirim**: ______________________ |
+| `penerima` | Pemegang Pendaftaran Rawat Jalan / Registration Management (`IGD-REQ-002` mencatat: tim Rizki Gunawan) — **Sukma** (Rawat Jalan; dijawab 27 Oktober 2026). *Sebelumnya:* nama diisi pengaju saat mengirim |
 | `rujukan` | `IGD-FACT-249`, `IGD-DEC-355`; laporan [`FE-IGD-070`](../task/report/frontend/FE-IGD-070.md) bagian 9.1 |
-| `status` | **`menunggu jawaban`** |
+| `status` | **`dijawab`** — Sukma, 27 Oktober 2026 (`IGD-FACT-254`). *Sebelumnya:* **`menunggu jawaban`** |
 | `sifat` | Lintas modul. **Bukan** artefak desain IGD dan **tidak menahan task IGD mana pun** — IGD sudah memperbaiki jalurnya sendiri |
 | `menahan` | — |
 
@@ -68,3 +68,15 @@ Petugas loket Rawat Jalan menerima pasien baru, mengisi formulir, lalu menekan *
 Layar menampilkan *"Request failed with status code 403"* — bukan pesan backend, karena penolakannya terjadi
 di lapisan otorisasi — dan pasien tidak tersimpan. Pasien yang sudah terdaftar tetap dapat dicari dan
 didaftarkan, karena pencarian pasien memakai rute yang terbuka bagi loket.
+
+## 6. Jawaban — Sukma (Rawat Jalan), 27 Oktober 2026
+
+| # | Pertanyaan | Jawaban |
+| ---: | --- | --- |
+| 1 | Apakah loket Rawat Jalan ditolak `403` saat mendaftarkan pasien baru? | **Ya** |
+| 2 | Bila ya, apakah Rawat Jalan memakai rute staf yang sama? | **Rawat Jalan cukup menyalakan `staffRoute` di slice-nya** — nol perubahan backend |
+| 3 | Adakah pengguna berperan Administrator (bukan SuperAdmin) di Rawat Jalan yang akan kehilangan akses? | **Tidak ada** |
+
+**Akibat untuk IGD:** tidak ada task IGD yang terdampak. Menyalakan `staffRoute` pada slice Rawat Jalan adalah pekerjaan
+pemilik Rawat Jalan; opsinya sudah tersedia sejak `IGD-DEC-355`. Dicatat sebagai `IGD-FACT-254`. Jawaban nomor 1 adalah
+pernyataan pemilik; IGD tidak menjalankan uji layar Rawat Jalan.
