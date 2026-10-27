@@ -72141,7 +72141,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("FromPlacementId")
+                    b.Property<Guid?>("FromPlacementId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("FromServiceUnitId")
@@ -72192,7 +72192,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("integer")
                         .HasDefaultValue(1);
 
-                    b.Property<Guid>("ToPlacementId")
+                    b.Property<Guid?>("ToPlacementId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ToServiceUnitId")
@@ -72221,7 +72221,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex(new[] { "ToServiceUnitId", "Status" }, "IX_CliTransferHandover_ToUnit_Status");
 
                     b.HasIndex(new[] { "ToPlacementId" }, "UX_CliTransferHandover_ToPlacement")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"ToPlacementId\" IS NOT NULL");
 
                     b.ToTable("CliTransferHandover", "public", t =>
                         {
@@ -73371,7 +73372,7 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EncounterId")
                         .IsUnique()
-                        .HasFilter("\"IsDelete\" = false AND \"InpEpisodeId\" IS NULL");
+                        .HasFilter("\"IsDelete\" = false AND \"InpEpisodeId\" IS NULL AND \"ClinicId\" IS NOT NULL");
 
                     b.HasIndex("PatientId");
 
@@ -84358,6 +84359,25 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<int>("EpisodeStatus")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime?>("ExternalReferralDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExternalReferralDiagnosis")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("ExternalReferralDoctorName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("ExternalReferralFacilityName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ExternalReferralNumber")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
 
                     b.Property<string>("FamilyBillingPreference")
                         .HasMaxLength(20)
@@ -107475,6 +107495,94 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("RegPatientEncounterGuarantor", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientGeneralConsent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.PrimitiveCollection<int[]>("AgreedClauses")
+                        .IsRequired()
+                        .HasColumnType("integer[]");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PatientEncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SignatureImageBase64")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("SignedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("SignerAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("SignerIdentityNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SignerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("SignerPhoneNumber")
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
+
+                    b.Property<string>("SignerRelationshipText")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SignerType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PatientEncounterId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PatientId");
+
+                    b.ToTable("RegPatientGeneralConsent", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPriorityReservation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -128203,8 +128311,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpBedPlacement", "FromPlacement")
                         .WithMany()
                         .HasForeignKey("FromPlacementId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "FromServiceUnit")
                         .WithMany()
@@ -128221,8 +128328,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpBedPlacement", "ToPlacement")
                         .WithMany()
                         .HasForeignKey("ToPlacementId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ToServiceUnit")
                         .WithMany()
@@ -135859,6 +135965,25 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PatientInsurance");
 
                     b.Navigation("PaymentMethod");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientGeneralConsent", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "PatientEncounter")
+                        .WithMany()
+                        .HasForeignKey("PatientEncounterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Patient");
+
+                    b.Navigation("PatientEncounter");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPriorityReservation", b =>

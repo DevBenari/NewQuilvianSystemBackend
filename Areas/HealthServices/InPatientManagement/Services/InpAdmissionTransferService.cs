@@ -21,11 +21,13 @@ public partial class InpAdmissionTransferService(
     InpBedOccupancyService bedOccupancyService, LoggerService loggerService,
     InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess,
     EncounterPaymentSourceService paymentSources, BillingDepositService deposits,
-    BillingNumberSeriesService? billingNumberSeries = null)
+    BillingNumberSeriesService? billingNumberSeries = null,
+    QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.CliTransferHandoverService? transferHandoverService = null)
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly InpBedMutationCoordinator _bedCoordinator = bedCoordinator;
     private readonly InpBedAccessService _bedAccess = bedAccess;
+    private readonly QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.CliTransferHandoverService? _transferHandoverService = transferHandoverService;
 
     public async Task<PagedResult<InpatientAdmissionTransferItemResponse>> GetPagedTransfersAsync(
         AdmissionTransferQuery query, CancellationToken cancellationToken = default)

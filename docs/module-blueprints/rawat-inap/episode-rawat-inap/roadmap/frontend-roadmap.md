@@ -185,7 +185,7 @@ flowchart TD
     FE035["🟡 FE-RWI-035<br/>alur utama ujung ke ujung"]:::sebagian
     FE042["✅ FE-RWI-058<br/>langkah deposit berdiri"]:::selesai
     FE043["🟡 FE-RWI-059<br/>minimum dan kekurangan terbaca"]:::sebagian
-    FE044["🟡 FE-RWI-060<br/>nominal terkirim dengan aman"]:::sebagian
+    FE044["⛔ FE-RWI-060<br/>DIBATALKAN (Kasir)"]:::terblokir
     FE045["🟡 FE-RWI-061<br/>posisi deposit pada konfirmasi"]:::sebagian
     FE057["✅ FE-RWI-057<br/>kartu bed menyebut aturannya"]:::selesai
 
@@ -203,8 +203,8 @@ flowchart TD
     FE041 --> FE035
     FE026x --> FE042
     FE042 --> FE043
-    FE042 --> FE044
-    FE044 --> FE045
+    FE042 -.->|dibatalkan (RWI-DEC-354)| FE044
+    FE042 --> FE045
     FE026x --> FE057
     BE069 --> FE057
 ```
@@ -223,8 +223,8 @@ flowchart TD
 | 8 | `FE-RWI-036` | ✅ `FE-RWI-039` — selesai 12 September 2026 |
 | 9 | seluruh task di atas | `FE-RWI-035` 🟡 — kriteria 8 tertutup 12 September 2026; sisa kriteria 1 dan 5 bukan koding |
 | 6 | `FE-RWI-026` | ✅ `FE-RWI-058` — selesai 12 September 2026 |
-| 7 | ✅ `FE-RWI-058` | `FE-RWI-059` 🟡, `FE-RWI-060` 🟡 — keduanya tertahan endpoint Billing, bukan `FE-RWI-058` |
-| 8 | `FE-RWI-060` 🟡 | `FE-RWI-061` 🟡 — tertahan `BE-BKC-040` yang nol barisnya ada |
+| 7 | ✅ `FE-RWI-058` | `FE-RWI-059` 🟡 — tertahan `BE-BKC-039`; ⛔ `FE-RWI-060` **DIBATALKAN** (22 Okt 2026, `RWI-DEC-354`, Kasir only) |
+| 8 | ✅ `FE-RWI-058` | `FE-RWI-061` 🟡 — tertahan `BE-BKC-040` yang nol barisnya ada |
 | 1 | — | ✅ **`FE-RWI-057`** — selesai 12 September 2026 |
 
 `FE-RWI-038` tidak memiliki panah masuk pada grafik karena approval-nya diberikan terpisah dan
@@ -411,7 +411,7 @@ data yang belum dikontrak harus berhenti pada gerbangnya.
 | **F10 — Cetak** | Persetujuan rawat inap dan kartu pasien tercetak dari alur | `FE-RWI-028`, `FE-RWI-029` | ✅ selesai 1 September 2026 |
 | **F11 — Aksi yang hilang** | Pasien dikonfirmasi masuk; admisi dapat dibatalkan; admisi tertinggal dapat dilanjutkan | `FE-RWI-030` s.d. `FE-RWI-032` | ✅ **selesai 1 September 2026.** Ketiga task tertutup |
 | **F12 — Repair layar existing** | Enam layar yang tampak jadi tetapi tidak dapat dipakai kembali mempunyai layout, state, dan aksi yang efektif | `FE-RWI-036` s.d. `FE-RWI-041` | ✅ **lengkap 12 September 2026.** `FE-RWI-036` s.d. `FE-RWI-038`, `FE-RWI-040`, dan `FE-RWI-041` ✅ selesai 1 September 2026; `FE-RWI-039` ✅ ditutup 12 September 2026 dengan nol baris source baru. Satu cacat pada `FE-RWI-040` — tombol Coba Lagi yang hilang — ditemukan dan diperbaiki pada tanggal itu |
-| **F14 — Deposit pada alur admisi** | Langkah Deposit ada, minimumnya benar, kekurangannya terlihat, dan nominalnya benar-benar tersimpan pada episode | `FE-RWI-058` s.d. `FE-RWI-061` | 🟡 **1 dari 4 selesai 12 September 2026.** `FE-RWI-058` ✅ — gerbang skema `RWI-UI-GAP-008` ditutup lebih dulu dengan menulis `FE-INP-20`. Ketiga sisanya 🟡 **bukan lagi karena skema**, melainkan karena endpoint Billing: `deposit-policies` dan `deposits/episodes` sama-sama **nol barisnya ada**, dan `top-ups` menuntut `PaymentMethodId` yang tidak dikenal alur admisi |
+| **F14 — Deposit pada alur admisi** | Langkah Deposit ada, minimumnya benar, dan kekurangannya terlihat pada alur admisi (transaksi fisik deposit ada di kasir) | `FE-RWI-058` s.d. `FE-RWI-061` | 🟡 **1 dari 3 task aktif selesai, 1 dibatalkan.** `FE-RWI-058` ✅ selesai 12 September 2026; ⛔ `FE-RWI-060` **DIBATALKAN (22 Oktober 2026, `RWI-DEC-354`)** karena alur admisi hanya mengisi nominal deposit tanpa metode bayar (`PaymentMethodId`), sedangkan transaksi saldo dan bukti bayar ada di Kasir; `FE-RWI-059` 🟡 dan `FE-RWI-061` 🟡 menunggu alokasi UI endpoint Billing (`BE-BKC-039` & `BE-BKC-040`) |
 | **F13 — Perapian dan kesiapan** | Navigasi rapi, jalur ganda hilang, seluruhnya terbukti | `FE-RWI-033` s.d. `FE-RWI-035` | sebagian; `FE-RWI-033` dan `FE-RWI-034` ✅ selesai 1 September 2026, `FE-RWI-035` 🟡 **6 dari 8** sejak 12 September 2026 — kriteria 8 tertutup, sisa kriteria 1 dan 5 menunggu `RWI-UI-GAP-007` dan katalog hak akses per butir |
 
 ### Keputusan penutupan verifikasi — 1 September 2026
@@ -943,8 +943,8 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Risk/blocker** | Kriteria 1 adalah e2e terpanjang pada modul ini dan menyentuh tiga bounded context. Menyiapkan data masternya lebih dulu — unit layanan bertipe rawat inap, kamar, tempat tidur, kelas, penjamin — adalah prasyarat, bukan bagian dari test. Owner: Frontend bersama penanggung jawab data master |
 | **Gerbang skema** | `RWI-UI-GAP-001` s.d. `007` harus tertutup atau dinyatakan tertahan dengan owner dan bukti yang masih berlaku; e2e tidak boleh menyamarkannya dengan mock |
 | **DoD** | Kedelapan kriteria lulus; keluaran rangkaian e2e dan bukti enam layar terlampir |
-| **Status** | 🟡 **SEBAGIAN — diperbarui 12 September 2026.** **6 dari 8** kriteria terpenuhi, 2 sebagian. ~~Lima kriteria terpenuhi, dua sebagian, satu belum~~. **Kriteria 8 kini tertutup:** ia menunggu `FE-RWI-039`, dan task itu ✅ selesai 12 September 2026, sehingga keenam layar bukti runtime `FE-RWI-036` s.d. `041` lengkap. Penutupannya dikunci dua test baru pada `tests/unit/inpatient-foundation.test.mjs` yang memeriksa keenam layar membedakan keadaan kosong dari keadaan gagal **dan** menyediakan jalan keluar saat gagal. **Satu cacat nyata ditemukan pemeriksaan itu dan diperbaiki:** layar Butir Administrasi milik `FE-RWI-040` ternyata **tidak punya tombol Coba Lagi sama sekali**, padahal kriteria 5 task itu menuntutnya dan laporannya menyatakannya ada di `Hero`; tombolnya dipasang memakai `refreshData` yang sudah diekspor hook-nya sejak semula. Yang terbukti sejak 1 September 2026 tetap berlaku: berkas e2e `inpatient-admission-flow.spec.mjs` lulus 4 dari 4, dan kriteria 2, 3, 4, 6, 7 terpenuhi. **Kriteria 1 dan 5 tetap sebagian dan tidak dapat ditutup di sini** — kriteria 1 menunggu `RWI-UI-GAP-007`, kriteria 5 menunggu katalog hak akses per butir tersedia di frontend, cacat yang sama yang menahan `FE-RWI-003` kriteria 2. Validasi 12 September 2026: `npm run test:unit` **754 lulus, 0 gagal**; `npm run lint:errors` **0 error**; `npm run build` beserta `postbuild` berhasil. Laporan: [FE-RWI-035](../task/report/frontend/FE-RWI-035.md) |
-| **Yang menahan status ✅** | ~~Satu hal saja: `FE-RWI-039`~~ — **sudah gugur 12 September 2026**, dan kriteria 8 tertutup persis seperti yang diperkirakan baris ini: tanpa perubahan source alur. Yang tersisa **dua hal, keduanya bukan koding**: `RWI-UI-GAP-007` untuk kriteria 1, dan katalog hak akses per butir di frontend untuk kriteria 5 |
+| **Status** | 🟡 **SEBAGIAN — diperbarui 22 Oktober 2026 (`RWI-DEC-354`).** **6 dari 8** kriteria terpenuhi, 2 sebagian. ~~Lima kriteria terpenuhi, dua sebagian, satu belum~~. **Kriteria 8 tertutup sejak 12 September 2026:** keenam layar bukti runtime `FE-RWI-036` s.d. `041` lengkap. **Ketetapan alur deposit (22 Oktober 2026):** alur pendaftaran rawat inap (`FLOW-RI-MVP-001`) tidak melibatkan penangkapan metode bayar atau pemanggilan transaksi top-up deposit (`POST /top-ups`). Pengisian saldo deposit dan bukti penerimaan uang berada sepenuhnya di Kasir (Billing Management). Di admisi pengisian nominal rencana deposit tuntas dan benar pada `FE-RWI-058` (`FE-INP-20`). E2E `inpatient-admission-flow.spec.mjs` lulus 4 dari 4, kriteria 2, 3, 4, 6, 7 terpenuhi. **Kriteria 1 dan 5 tetap sebagian dan bukan koding:** kriteria 1 menunggu `RWI-UI-GAP-007`, kriteria 5 menunggu katalog hak akses per butir tersedia di frontend. Validasi: `npm run test:unit` lulus; `npm run lint:errors` **0 error**; `npm run build` berhasil. Laporan: [FE-RWI-035](../task/report/frontend/FE-RWI-035.md) |
+| **Yang menahan status ✅** | Dua hal, **keduanya bukan koding**: `RWI-UI-GAP-007` untuk kriteria 1, dan katalog hak akses per butir di frontend untuk kriteria 5. Alur deposit tidak lagi menahan verifikasi admisi karena transaksi kasir resmi terpisah dari admisi (`RWI-DEC-354`). |
 
 ---
 
@@ -955,9 +955,9 @@ Empat task di bawah lahir dari `RWI-DEC-093` s.d. `RWI-DEC-096`. Seluruhnya mema
 
 **Gerbang skema `RWI-UI-GAP-008` — ✅ DITUTUP 12 September 2026.** `05-skema-tampilan.md` kini memuat skema langkah
 Deposit sebagai `FE-INP-20` pada bagian 3.5A, dan revision dokumennya naik `0.4` → `0.5`. Skemanya berstatus `draft`
-dan **belum disetujui pemilik**; ia ditulis atas permintaan pemilik untuk membuka `FE-RWI-058` dan `FE-RWI-060`.
-Dengan gerbang itu gugur, yang masih menahan `FE-RWI-059` dan `FE-RWI-061` tinggal endpoint Billing yang
-**nol barisnya ada**. Kalimat lama berbunyi:
+dan **belum disetujui pemilik**; ia ditulis atas permintaan pemilik untuk membuka `FE-RWI-058`.
+Task `FE-RWI-060` dibatalkan pada 22 Oktober 2026 (`RWI-DEC-354`) karena alur admisi rawat inap hanya mengisi nominal rencana deposit, sedangkan transaksi fisik deposit dan metode pembayaran berada di Kasir (Billing Management).
+Dengan gerbang itu gugur, yang masih menahan `FE-RWI-059` dan `FE-RWI-061` tinggal alokasi frontend endpoint Billing (`BE-BKC-039` dan `BE-BKC-040`). Kalimat lama berbunyi:
 `0.4` belum memuat skema langkah Deposit. Roadmap ini **tidak** membuat skemanya sendiri, karena
 bentuk layar adalah wewenang skema tampilan, bukan wewenang roadmap. Sampai skemanya ditulis dan
 disetujui, keempat task berada di belakang gerbang itu. Yang dapat dikerjakan lebih dulu adalah
@@ -1001,22 +1001,22 @@ penyusunan skemanya, dan itu pekerjaan desain.
 
 ---
 
-### 🟡 `FE-RWI-060` — Nominal deposit terkirim sesudah episode lahir, dan gagal dengan aman
+### ⛔ `FE-RWI-060` — [DIBATALKAN] Nominal deposit terkirim sesudah episode lahir, dan gagal dengan aman
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **TERTAHAN — temuan baru 12 September 2026.** ~~Menunggu `RWI-UI-GAP-008` saja; sisi backend sudah tersedia~~. Gerbang skema sudah gugur, **tetapi pernyataan bahwa sisi backend siap apa adanya tidak akurat.** Route `POST deposits/{encounterId}/top-ups` memang ada di `BillingPatientFundsController.cs:93`, namun badan permintaannya `DepositTopUpRequest` menuntut **`PaymentMethodId`** bertipe `Guid` non-nullable dan **`Reason`** ber-`[Required]`. Alur admisi rawat inap **nol** mengenal `paymentMethodId` — pencarian pada seluruh hook dan view `inpatient-management` mengembalikan nol hasil — dan baik scope task ini maupun `FE-RWI-058` tidak menyediakan cara menangkapnya. Mengirim `Guid.Empty` atau memilih metode pembayaran secara otomatis berarti mencatat uang atas metode yang tidak pernah dipilih petugas, dan itu **tidak dilakukan**. Rinciannya pada [laporan `FE-RWI-058`](../task/report/frontend/FE-RWI-058.md) bagian 6 dan catatan gap di bawah |
-| **Outcome** | Uang muka yang dicatat petugas benar-benar tersimpan sebagai penerimaan milik episode itu, dan admisi yang gagal tidak meninggalkan transaksi uang yang menggantung |
-| **Trace** | `RWI-DEC-093`; `FR-RI-178`; `RWI-DEC-076` titik tulis 1; `RWI-RISK-006` |
-| **Skema tampilan** | ✅ `FE-INP-20`, bagian 3.5A — ditulis 12 September 2026, status `draft` |
-| **Reuse** | Rangkaian titik tulis 1 pada `use-inpatient-admission-doctor` yang sudah menjalankan `POST /patient-encounters/admin` lalu `POST /episodes` secara berurutan |
-| **Scope** | Satu permintaan tambahan pada akhir rangkaian titik tulis 1: `POST /patient-funds/deposits/{encounterId}/top-ups` dengan header `Idempotency-Key` yang dibuat **sekali per sesi admisi**; penanganan gagal yang tidak mengulang penerimaan. Backend-nya sudah siap apa adanya — lihat `RWI-FACT-018` |
-| **Dependency** | ✅ `FE-RWI-058` selesai. ~~**Tidak lagi menunggu backend** sejak `BE-RWI-039` dibatalkan: endpoint dan idempotensinya sudah ada~~ — **pernyataan itu tidak akurat, diperiksa 12 September 2026.** Route `top-ups` ada, tetapi `DepositTopUpRequest` menuntut `PaymentMethodId` (`Guid` non-nullable) dan `Reason` (`[Required]`) yang tidak dikenal alur admisi |
-| **Wewenang UI** | Bentuk pesan gagal `DEV_DISCRETION` dengan batas: pesan **wajib** menyatakan apakah uang sudah tercatat atau belum, karena itulah yang perlu diketahui petugas di depan keluarga pasien |
-| **Acceptance criteria** | 1. Nominal terkirim hanya setelah `POST /episodes` berhasil. 2. `POST /episodes` yang ditolak 409 tidak mengirim penerimaan apa pun, dan nominal tetap terisi di layar. 3. Percobaan ulang memakai `idempotencyKey` yang sama sehingga tidak lahir kwitansi kedua. 4. Kegagalan pada penerimaan **tidak** membatalkan episode yang sudah terbentuk; layar menyatakan episodenya ada dan depositnya belum tercatat. 5. Nominal nol tidak mengirim permintaan apa pun |
-| **Verification** | E2E jalur berhasil; E2E jalur 409; E2E jalur penerimaan gagal; pemeriksaan bahwa hanya satu transaksi terbentuk pada percobaan ulang |
-| **Risk/blocker** | Owner: Frontend bersama Product/Domain. `RWI-RISK-006` ada di sini dan **tidak dapat dihapus layar** — hanya dijelaskan. Kriteria 4 adalah mitigasinya |
-| **DoD** | Kelima kriteria lulus; ketiga e2e ada; lint dan build lulus |
+| **Status** | ⛔ **DIBATALKAN (22 Oktober 2026 — `RWI-DEC-354`).** Dibatalkan atas keputusan otoritatif pemilik sistem (Muhammad Hamzah). Transaksi penerimaan deposit secara fisik, penentuan metode pembayaran (`PaymentMethodId`), dan pemanggilan `POST /patient-funds/deposits/{encounterId}/top-ups` berada sepenuhnya di Kasir (Billing Management), bukan di admisi rawat inap. Di admisi hanya melakukan pencatatan nominal rencana deposit saja, dan implementasinya saat ini (`FE-RWI-058` / `FE-INP-20`) sudah selesai dan dinyatakan benar tanpa perlu diubah lagi. |
+| **Outcome** | [DIBATALKAN] Pencatatan deposit fisik dan kwitansi dilakukan di kasir (Billing Management); admisi hanya mencatat nominal rencana deposit. |
+| **Trace** | `RWI-DEC-093`; `FR-RI-178` (dibatalkan untuk scope admisi); `RWI-DEC-354` |
+| **Skema tampilan** | ✅ `FE-INP-20`, bagian 3.5A — nominal tersimpan di `sessionStorage` tanpa mutasi jaringan kasir |
+| **Reuse** | — |
+| **Scope** | [DIBATALKAN] Tidak ada pemanggilan `POST /patient-funds/deposits/{encounterId}/top-ups` pada alur pendaftaran admisi rawat inap. |
+| **Dependency** | — |
+| **Wewenang UI** | — |
+| **Acceptance criteria** | [DIBATALKAN] Seluruh kriteria task ini dipensiunkan dari frontend admisi rawat inap. |
+| **Verification** | Verifikasi kepatuhan arsitektur: tidak ada pengiriman payload deposit dengan metode pembayaran dummy dari alur admisi. |
+| **Risk/blocker** | Risiko pembuatan transaksi keuangan liar tanpa metode bayar ditutup dengan membatalkan task ini. |
+| **DoD** | Task ditandai ⛔ DIBATALKAN di roadmap dan registri dokumen modul. |
 
 ---
 
@@ -1030,7 +1030,7 @@ penyusunan skemanya, dan itu pekerjaan desain.
 | **Skema tampilan** | ✅ `FE-INP-20`, bagian 3.5A — ditulis 12 September 2026, status `draft` |
 | **Reuse** | Panel ringkasan pada langkah Konfirmasi `FE-RWI-027`; layout detail episode `FE-RWI-026` |
 | **Scope** | Pembacaan `GET /deposits/episodes/{episodeId}`; satu panel pada langkah Konfirmasi; satu panel pada detail episode |
-| **Dependency** | `FE-RWI-060`, `BE-RWI-040` |
+| **Dependency** | `FE-RWI-058`, `BE-BKC-040` |
 | **Wewenang UI** | Penempatan panel `DEV_DISCRETION` dengan batas: kedua angka kekurangan wajib diberi label berbeda dan tidak boleh dijumlahkan menjadi satu angka |
 | **Acceptance criteria** | 1. Kekurangan terhadap minimum kebijakan dan kekurangan terhadap tagihan final ditampilkan terpisah beserta labelnya. 2. Seluruh angka berasal dari response; layar tidak menghitung apa pun. 3. Episode tanpa deposit menampilkan panel bernilai nol, bukan panel kosong atau pesan kesalahan. 4. Kegagalan membaca ringkasan menampilkan keadaan "tidak dapat dibaca", **bukan** nol |
 | **Verification** | E2E episode tanpa deposit, deposit kurang, dan deposit lebih; uji jalur gagal baca |
@@ -1123,7 +1123,7 @@ flowchart LR
 | `RWI-UI-GAP-005` baca sesi koreksi | Tidak ada GET sesi; refresh tidak memulihkan sesi terbuka. **Diverifikasi ulang 1 September 2026 oleh `FE-RWI-035`** terhadap `contracts/api-contract.md` dan `InpatientEpisodeController.cs`: keduanya hanya punya `POST` membuka sesi dan `PATCH` menutupnya. Alasan tertahannya **masih berlaku**. Owner: Backend/API | Delta `FE-RWI-018`; `FE-RWI-035` |
 | `RWI-UI-GAP-006` route dan permission pasien/encounter | ✅ **Tertutup pada level kontrak/source.** `FE-RWI-023` membuktikan route pasien `/admin`; `FE-RWI-024` membuktikan route payer `/admin/options` dan `/admin`; source backend `64d7419…` membuktikan `POST /patient-encounters/admin` dijaga `PatientEncounter : Create` | Tidak lagi menahan `FE-RWI-025`; kesiapan payer perusahaan tetap milik gap 002 |
 | `RWI-UI-GAP-007` data master/runtime belum layak | Screenshot pemilik menunjukkan pengaturan `DEFAULT` tidak ditemukan, butir administrasi kosong, papan nol bed, dan tidak ada episode untuk membuktikan aksi berbasis baris. Seeder ada di source, tetapi keterisiannya pada environment target belum terbukti. **Masih terbuka pada 1 September 2026.** `FE-RWI-035` menjalankan alurnya dengan jawaban server tiruan dan **menyatakan batas itu di kepala berkas e2e-nya**, bukan menyamarkannya — gerbang skema karena itu tidak dilanggar, tetapi juga tidak tertutup. Owner: Admin Master Data/Tim Master Data | `FE-RWI-036`–`041`; **memblokir penuh `FE-RWI-041`** dan bukti runtime `FE-RWI-035` |
-| ~~`RWI-UI-GAP-008` skema langkah Deposit~~ | ✅ **DITUTUP 12 September 2026.** `05-skema-tampilan.md` bagian 3.5A kini memuat `FE-INP-20`, dan revision dokumennya naik `0.4` → `0.5`. Skemanya berstatus `draft` dan **belum disetujui pemilik**. Penutupan gap ini membuka `FE-RWI-058`, yang ✅ selesai pada tanggal yang sama. **Ia tidak membuka `FE-RWI-059`, `FE-RWI-060`, dan `FE-RWI-061`** — ketiganya ternyata tertahan endpoint Billing, bukan skema |
+| ~~`RWI-UI-GAP-008` skema langkah Deposit~~ | ✅ **DITUTUP 12 September 2026.** `05-skema-tampilan.md` bagian 3.5A kini memuat `FE-INP-20`, dan revision dokumennya naik `0.4` → `0.5`. Skemanya berstatus `draft` dan **belum disetujui pemilik**. Penutupan gap ini membuka `FE-RWI-058`, yang ✅ selesai pada tanggal yang sama. `FE-RWI-060` dibatalkan 22 Oktober 2026 (`RWI-DEC-354`) karena alur admisi hanya mengisi nominal rencana deposit, sedangkan transaksi fisik saldo deposit ada di Kasir |
 | Approval blueprint revision 3 | ✅ **Tertutup.** `RWI-DEC-075` s.d. `RWI-DEC-079` disetujui Muhammad Hamzah pada 27 Agustus 2026 | Riwayat; tidak menyetujui revision 4 maupun 5 |
 | Approval skema/roadmap revision 5 | **Terbuka.** `05-skema-tampilan.md` `0.4` dan roadmap ini tetap `DRAFT` | Menahan pemakaian skema dan enam task repair sebagai brief UI mengikat |
 | Kecukupan kontrak backend | **Sebagian.** Ke-49 operasi baseline ada, tetapi gap 002–006 membuktikan tidak semua target layar mempunyai baca/tulis/permission yang cukup | Task sesuai baris gap; roadmap frontend tidak membuat backend |

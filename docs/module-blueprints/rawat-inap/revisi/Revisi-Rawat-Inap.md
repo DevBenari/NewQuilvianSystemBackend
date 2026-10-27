@@ -19,7 +19,7 @@
    - Tambahkan kolom catatan pada proses pemilihan kamar.
    - Tampilkan status **Upgrade** apabila kelas kamar yang dipilih lebih tinggi daripada kelas fasilitas yang dipilih pasien, dan **Downgrade** apabila kelas kamar lebih rendah.
 
-Sedang di kerjakan 🟡
+Sudah Di Kerjakan ✅
 
 4. **Fasilitas kesehatan perujuk:** Ambil daftar fasilitas kesehatan atau instansi perujuk dari data master dan tampilkan sebagai pilihan (_selection_). Setelah instansi dipilih, tampilkan alamat dan nomor telepon instansi tersebut.
 
@@ -27,15 +27,15 @@ Sedang di kerjakan 🟡
 
 6. **Pendaftaran bayi baru lahir:** Pada pendaftaran bayi baru lahir, lewati tahap pengisian identitas, metode pembayaran, dan deposit karena mengikuti data ibu. Daftar pasien yang ditampilkan untuk proses ini diambil dari pasien yang memiliki order operasi persalinan.
 
-Sedang di kerjakan 🟡
+Sudah Di Kerjakan ✅
 
 7. **Rencana penagihan ibu dan bayi:** Tempatkan proses rencana penagihan ibu dan bayi di modul Kasir, bukan di Admisi.
 
-Sedang di kerjakan 🟡
+Sudah Di Kerjakan ✅
 
 8. **Pemilihan ibu untuk bayi baru lahir:** Tambahkan pemilihan ibu pada proses pendaftaran bayi baru lahir. Tujuannya agar sistem dapat membuat kunjungan baru untuk bayi yang tetap terhubung dengan ibunya.
 
-Sedang di kerjakan 🟡
+Sudah Di Kerjakan ✅
 
 ### 1.3 Tambahan Prioritas
 
@@ -45,7 +45,7 @@ Sedang di kerjakan 🟡
 
 2. **Pilihan kamar bayi:** Saat pemilihan kamar untuk bayi baru lahir, tampilkan hanya daftar kamar bayi.
 
-Sedang di kerjakan 🟡
+Sudah Di Kerjakan ✅
 
 3. **Tombol pembatalan pendaftaran:** Tambahkan tombol **Cancel** untuk membatalkan proses pendaftaran yang sedang berlangsung. Seluruh data yang telah diinput dalam proses tersebut dihapus, kemudian pengguna diarahkan kembali ke halaman utama.
 
@@ -73,7 +73,7 @@ Sudah Di Kerjakan ✅
    - Nama petugas yang melakukan konfirmasi.
    - Aksi **Konfirmasi**.
 
-Sedang di kerjakan 🟡
+Sudah Di Kerjakan ✅
 
 2. **Tab riwayat penggunaan tempat tidur:** Tambahkan tab riwayat penggunaan yang mencatat seluruh aktivitas tempat tidur, mulai dari pemesanan, konfirmasi, hingga perpindahan tempat tidur apabila terjadi. Tampilkan riwayat dalam bentuk tabel, terutama dengan informasi waktu berikut:
    - Waktu pemesanan tempat tidur.

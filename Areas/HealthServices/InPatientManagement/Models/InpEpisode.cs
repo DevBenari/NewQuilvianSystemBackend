@@ -76,6 +76,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         [MaxLength(20)] public string? FamilyBillingPreference { get; set; }
         public decimal? PlannedDepositAmount { get; set; }
 
+        // FIX-EPS-039-03 / RWI-DEC-269 — rujukan faskes luar, teks ringkas tanpa unggah berkas.
+        // Terpisah dari AdmissionReferral (permintaan Kamar Pulih internal).
+        [MaxLength(250)] public string? ExternalReferralNumber { get; set; }
+        public DateTime? ExternalReferralDateTime { get; set; }
+        [MaxLength(200)] public string? ExternalReferralFacilityName { get; set; }
+        [MaxLength(150)] public string? ExternalReferralDoctorName { get; set; }
+        [MaxLength(1000)] public string? ExternalReferralDiagnosis { get; set; }
+
         public bool RequiresIsolation { get; set; } = false;
 
         public InpIsolationSource? IsolationSource { get; set; }

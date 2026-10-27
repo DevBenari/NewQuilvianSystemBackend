@@ -94,6 +94,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>Kunci idempoten penerbitan order deposit dari form admisi.</summary>
         [MaxLength(100)]
         public string? DepositIdempotencyKey { get; set; }
+
+        /// <summary>
+        /// Opsional (<c>FIX-EPS-039-03</c>, <c>RWI-DEC-269</c>): rujukan faskes luar yang dibawa
+        /// pasien. Dikosongkan untuk kunjungan Umum.
+        /// </summary>
+        public InpatientAdmissionExternalReferral? ExternalReferral { get; set; }
+    }
+
+    /// <summary>
+    /// Rujukan faskes luar pada admisi rawat inap (<c>FIX-EPS-039-03</c>, <c>RWI-DEC-269</c>).
+    /// Data teks ringkas tanpa unggah berkas. Bila objek ini dikirim, nomor, tanggal, faskes, dan
+    /// diagnosa wajib terisi; dokter perujuk opsional. Berbeda dari <c>AdmissionReferralId</c>,
+    /// yaitu permintaan admisi internal dari Kamar Pulih.
+    /// </summary>
+    public class InpatientAdmissionExternalReferral
+    {
+        [Required(ErrorMessage = "Nomor surat rujukan wajib diisi.")]
+        [MaxLength(250, ErrorMessage = "Nomor surat rujukan paling banyak 250 karakter.")]
+        public string ReferralNumber { get; set; } = string.Empty;
+
+        /// <summary>Waktu surat rujukan diterbitkan. Tidak boleh melewati waktu sekarang.</summary>
+        [Required(ErrorMessage = "Tanggal dan jam rujukan wajib diisi.")]
+        public DateTime? ReferralDateTime { get; set; }
+
+        [Required(ErrorMessage = "Fasilitas kesehatan perujuk wajib diisi.")]
+        [MaxLength(200, ErrorMessage = "Nama fasilitas kesehatan perujuk paling banyak 200 karakter.")]
+        public string ReferralFacilityName { get; set; } = string.Empty;
+
+        [MaxLength(150, ErrorMessage = "Nama dokter perujuk paling banyak 150 karakter.")]
+        public string? ReferralDoctorName { get; set; }
+
+        [Required(ErrorMessage = "Diagnosa atau indikasi rawat inap wajib diisi.")]
+        [MaxLength(1000, ErrorMessage = "Diagnosa atau indikasi rawat inap paling banyak 1000 karakter.")]
+        public string ReferralDiagnosis { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -146,6 +180,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     }
 
     /// <summary>
+    /// Ringkasan kelengkapan berkas admisi Workspace PPRI (BE-RWI-243, kamus data 23.3).
+    /// </summary>
+    public class AdmissionDocumentsSummaryDto
+    {
+        public Guid EpisodeId { get; set; }
+
+        /// <summary>Jumlah dokumen admisi wajib: 4 (General Consent, Serah Terima, Selisih Biaya, Deposit).</summary>
+        public int TotalRequiredDocuments { get; set; } = 4;
+
+        public int CompletedDocumentsCount { get; set; }
+
+        public bool IsAllCompleted { get; set; }
+
+        public List<string> PendingDocumentNames { get; set; } = new();
+    }
+
+    /// <summary>
     /// Bentuk balasan satu episode rawat inap.
     /// </summary>
     /// <remarks>
@@ -162,6 +213,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public BedReservationResponse? TransferReservation { get; set; }
         public QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos.DepositResponse? TransferDeposit { get; set; }
         public QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos.DepositOrderSummaryDto? DepositPaymentOrder { get; set; }
+        public AdmissionDocumentsSummaryDto? AdmissionDocumentsSummary { get; set; }
         public BedOperationMeta? OperationMeta { get; set; } public int Version { get; set; }
         public Guid Id { get; set; }
 
@@ -260,6 +312,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public Guid? MotherEpisodeId { get; set; }
 
         public InpatientNewbornAdmissionContext? NewbornAdmission { get; set; }
+
+        /// <summary>Rujukan faskes luar yang tercatat saat admisi (<c>FIX-EPS-039-03</c>); kosong untuk kunjungan Umum.</summary>
+        public InpatientAdmissionExternalReferral? ExternalReferral { get; set; }
 
         public string? MotherEpisodeNumber { get; set; }
 

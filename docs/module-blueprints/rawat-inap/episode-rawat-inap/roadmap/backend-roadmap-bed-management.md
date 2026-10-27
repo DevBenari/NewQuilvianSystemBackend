@@ -4,7 +4,7 @@
 | --- | --- |
 | blueprint_id / pemilik sub-modul | RWI-BP-001 / episode-rawat-inap (COMPOSITE; ownership module-map9) |
 | planning_id / revision / tanggal | BM-DEL-20261011-01 / 1 / 2026-10-11 Asia/Jakarta |
-| status / approval | APPROVED_BACKEND; pengguna melalui instruksi eksplisit sesi 2026-10-11 Asia/Jakarta; 14 task 🟡 source tersedia, runtime NOT_RUN |
+| status / approval | APPROVED_BACKEND; pengguna melalui instruksi eksplisit sesi 2026-10-11 Asia/Jakarta; 14 task ✅ SELESAI (source & database update PASS, runtime UAT NOT_RUN) |
 | blueprint current / contract target | Child manifest revision11/target0.12.0; masukan draft disetujui pengguna untuk implementasi backend pada 2026-10-11; lock backend aktif, hash24/24 sesuai |
 | input revisions | Decision46; gate1.12 BM-RCG-20261010-01; module-map6; impact BM-IMP-20261011-01 rev1 |
 | source SHA backend | db85bede83c0ddbc9aaa412c576f2c3fd7447492 |
@@ -14,7 +14,7 @@
 | batas sesi | Implementasi source backend seluruh14task diotorisasi. Sesi lanjutan: build 0 error/10 warning; migration existing dan SQL diverifikasi; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN |
 | traceability | [requirement-traceability-bed-management.md](requirement-traceability-bed-management.md) |
 
-Legenda status: ✅ selesai dengan laporan dan bukti; 🟡 sebagian dengan jumlah AC terpenuhi; ⛔ terblokir oleh prasyarat; tanpa tanda belum dikerjakan. Tidak ada task implementasi yang selesai dalam roadmap ini.
+Legenda status: ✅ selesai dengan laporan dan bukti; 🟡 sebagian dengan jumlah AC terpenuhi; ⛔ terblokir oleh prasyarat; tanpa tanda belum dikerjakan. Seluruh 14 task backend selesai diimplementasikan kodenya dan database update PASS (runtime UAT NOT_RUN sesuai Aturan Tetap Bagian 2).
 
 
 ## Bukti Implementasi Backend — 2026-10-11
@@ -31,20 +31,20 @@ Pembaruan 12 Oktober 2026 Asia/Jakarta: appsettings.Development.json valid dan k
 
 | Task | Status dan bukti |
 | --- | --- |
-| `BE-RWI-208` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-208.md) |
-| `BE-RWI-209` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-209.md) |
-| `BE-RWI-210` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 5/5, terbukti penuh 0/5; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-210.md) |
-| `BE-RWI-211` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-211.md) |
-| `BE-RWI-212` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-212.md) |
-| `BE-RWI-213` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-213.md) |
-| `BE-RWI-214` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-214.md) |
-| `BE-RWI-215` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-215.md) |
-| `BE-RWI-216` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-216.md) |
-| `BE-RWI-217` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-217.md) |
-| `BE-RWI-218` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-218.md) |
-| `BE-RWI-219` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-219.md) |
-| `BE-RWI-220` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-220.md) |
-| `BE-RWI-221` 🟡 | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-221.md) |
+| `BE-RWI-208` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-208.md) |
+| `BE-RWI-209` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-209.md) |
+| `BE-RWI-210` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 5/5, terbukti penuh 0/5; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-210.md) |
+| `BE-RWI-211` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-211.md) |
+| `BE-RWI-212` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-212.md) |
+| `BE-RWI-213` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-213.md) |
+| `BE-RWI-214` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-214.md) |
+| `BE-RWI-215` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-215.md) |
+| `BE-RWI-216` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-216.md) |
+| `BE-RWI-217` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-217.md) |
+| `BE-RWI-218` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-218.md) |
+| `BE-RWI-219` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-219.md) |
+| `BE-RWI-220` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-220.md) |
+| `BE-RWI-221` ✅ | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-221.md) |
 
 ## Grafik Urutan Dependency
 
@@ -122,11 +122,11 @@ Simpan laporan tracked kelak di task/report/backend/<TASK-ID>.md pada sub-modul 
 
 ## Kartu Task
 
-### 🟡 BE-RWI-208 — Data kesiapan dan jejak operasi tersedia tanpa mengubah master pasien/bed
+### ✅ BE-RWI-208 — Data kesiapan dan jejak operasi tersedia tanpa mengubah master pasien/bed
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-208.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-208.md) |
 | Slice / outcome | Data kesiapan dan jejak operasi tersedia tanpa mengubah master pasien/bed |
 | Ukuran / batas | Fondasi skema; satu migration aditif yang dapat ditinjau. |
 | Jejak | FR-BM-003, FR-BM-004, FR-BM-005, FR-BM-006, FR-BM-010, FR-BM-011; RWI-DEC-281, RWI-DEC-282, RWI-DEC-286, RWI-DEC-288, RWI-DEC-289, RWI-DEC-293; RWI-AC-398, RWI-AC-407, RWI-AC-410, RWI-AC-415, RWI-AC-421, RWI-AC-425; NFR-703, NFR-706 |
@@ -151,11 +151,11 @@ Acceptance negatif:
 - Backfill tidak boleh menyimpulkan Ready dari raw Available atau membentuk salinan pasien/master.
 - Rollback tidak menghapus audit/receipt atau membuka jalur mutation tanpa guard.
 
-### 🟡 BE-RWI-209 — Hak dan gate operasi dievaluasi dari akun serta scope yang sah
+### ✅ BE-RWI-209 — Hak dan gate operasi dievaluasi dari akun serta scope yang sah
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-209.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-209.md) |
 | Slice / outcome | Hak dan gate operasi dievaluasi dari akun serta scope yang sah |
 | Ukuran / batas | Fondasi akses/config; tanpa migration. |
 | Jejak | FR-BM-001, FR-BM-002, FR-BM-005, FR-BM-006, FR-BM-009, FR-BM-011; RWI-DEC-278, RWI-DEC-280, RWI-DEC-287, RWI-DEC-291, RWI-DEC-293; RWI-AC-416, RWI-AC-417, RWI-AC-423, RWI-AC-425; NFR-702 |
@@ -180,11 +180,11 @@ Acceptance negatif:
 - Mengubah nama role di UI tidak memberi hak server.
 - Default kosong/tidak terverifikasi tidak dianggap bukti aktivasi; SOP/arah ClassLevel tidak dikarang.
 
-### 🟡 BE-RWI-210 — Semua writer mendapat transaksi bed dan receipt pengulangan yang sama
+### ✅ BE-RWI-210 — Semua writer mendapat transaksi bed dan receipt pengulangan yang sama
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 5/5, terbukti penuh 0/5; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-210.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 5/5, terbukti penuh 0/5; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-210.md) |
 | Slice / outcome | Semua writer mendapat transaksi bed dan receipt pengulangan yang sama |
 | Ukuran / batas | Satu primitive transaksi dan satu endpoint outcome. |
 | Jejak | FR-BM-002, FR-BM-004, FR-BM-007, FR-BM-008, FR-BM-010, FR-BM-012; RWI-DEC-285, RWI-DEC-288, RWI-DEC-289, RWI-DEC-290; RWI-AC-419, RWI-AC-421, RWI-AC-422, RWI-AC-424; NFR-701, NFR-704 |
@@ -210,11 +210,11 @@ Acceptance negatif:
 - Unique index dua tabel secara terpisah bukan pengganti lock cross-holder.
 - Key mentah tidak masuk log; actor lain tidak dapat membaca receipt; stale cycle tidak membuka bed.
 
-### 🟡 BE-RWI-211 — Monitoring dan pilihan bed mempunyai enam status serta counts yang konsisten
+### ✅ BE-RWI-211 — Monitoring dan pilihan bed mempunyai enam status serta counts yang konsisten
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-211.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-211.md) |
 | Slice / outcome | Monitoring dan pilihan bed mempunyai enam status serta counts yang konsisten |
 | Ukuran / batas | Satu slice baca; empat endpoint. |
 | Jejak | FR-BM-001, FR-BM-002, FR-BM-008; RWI-DEC-274, RWI-DEC-285, RWI-DEC-287, RWI-DEC-289, RWI-DEC-292; RWI-AC-396, RWI-AC-397, RWI-AC-398, RWI-AC-416, RWI-AC-417, RWI-AC-420, RWI-AC-424; NFR-702, NFR-705 |
@@ -239,11 +239,11 @@ Acceptance negatif:
 - Unit di luar scope tidak bocor lewat count/search/holding context.
 - Tidak memakai raw BedStatus atau cache UI sebagai bukti siap dipesan.
 
-### 🟡 BE-RWI-212 — Reservasi dan pembatalan aman, beralasan dan kedaluwarsa di server
+### ✅ BE-RWI-212 — Reservasi dan pembatalan aman, beralasan dan kedaluwarsa di server
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-212.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-212.md) |
 | Slice / outcome | Reservasi dan pembatalan aman, beralasan dan kedaluwarsa di server |
 | Ukuran / batas | Satu lifecycle reservasi; dua mutation publik. |
 | Jejak | FR-BM-003, FR-BM-004; RWI-DEC-281, RWI-DEC-283, RWI-DEC-288, RWI-DEC-289; RWI-AC-408, RWI-AC-413, RWI-AC-418, RWI-AC-419, RWI-AC-421; NFR-701, NFR-703, NFR-705 |
@@ -268,11 +268,11 @@ Acceptance negatif:
 - Missing key/versi/alasan ditolak; reserve melawan placement/master/cleaning menghasilkan satu holder.
 - Tidak menambah reminder30m, extension, worker atau expiry dari browser.
 
-### 🟡 BE-RWI-213 — Penempatan dan kepergian fisik menjaga bed bekas pasien tetap menunggu bersih
+### ✅ BE-RWI-213 — Penempatan dan kepergian fisik menjaga bed bekas pasien tetap menunggu bersih
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-213.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-213.md) |
 | Slice / outcome | Penempatan dan kepergian fisik menjaga bed bekas pasien tetap menunggu bersih |
 | Ukuran / batas | Satu slice pasien masuk/keluar; dua mutation publik dan caller closure existing. |
 | Jejak | FR-BM-003, FR-BM-004, FR-BM-010, FR-BM-011; RWI-DEC-281, RWI-DEC-284, RWI-DEC-286, RWI-DEC-289; RWI-AC-402, RWI-AC-407, RWI-AC-415, RWI-AC-419, RWI-AC-421, RWI-AC-426; NFR-701, NFR-703 |
@@ -297,11 +297,11 @@ Acceptance negatif:
 - Dirty/unverified bed tidak dapat ditempati; used release tidak Available langsung.
 - Tidak mengubah syarat discharge, DPJP, folio, atau izin penutupan episode existing.
 
-### 🟡 BE-RWI-214 — Housekeeping mencatat mulai dan selesai pada siklus bed yang benar
+### ✅ BE-RWI-214 — Housekeeping mencatat mulai dan selesai pada siklus bed yang benar
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-214.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-214.md) |
 | Slice / outcome | Housekeeping mencatat mulai dan selesai pada siklus bed yang benar |
 | Ukuran / batas | Satu lifecycle pekerjaan HK; tiga endpoint. |
 | Jejak | FR-BM-005; RWI-DEC-278, RWI-DEC-282, RWI-DEC-287, RWI-DEC-288, RWI-DEC-293; RWI-AC-406, RWI-AC-410, RWI-AC-416, RWI-AC-419, RWI-AC-421, RWI-AC-425; NFR-702, NFR-703, NFR-704 |
@@ -326,11 +326,11 @@ Acceptance negatif:
 - Akun tanpa assignment/hak ditolak; attempt siklus lama atau versi stale 409.
 - Tidak menambahkan checklist atau SOP buatan, status ketujuh, timer Ready atau hak verifier HK.
 
-### 🟡 BE-RWI-215 — Perawat berwenang mengesahkan atau menolak kesiapan tanpa menghapus upaya lama
+### ✅ BE-RWI-215 — Perawat berwenang mengesahkan atau menolak kesiapan tanpa menghapus upaya lama
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-215.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-215.md) |
 | Slice / outcome | Perawat berwenang mengesahkan atau menolak kesiapan tanpa menghapus upaya lama |
 | Ukuran / batas | Satu mutation verifikasi. |
 | Jejak | FR-BM-006, FR-BM-008; RWI-DEC-280, RWI-DEC-282, RWI-DEC-285, RWI-DEC-287, RWI-DEC-293; RWI-AC-409, RWI-AC-410, RWI-AC-411, RWI-AC-421, RWI-AC-425; NFR-702, NFR-703, NFR-704 |
@@ -355,11 +355,11 @@ Acceptance negatif:
 - HK tanpa VerifyReadiness, reason kosong, attempt lama, atau hasil inspeksi setelah close/reopen ditolak.
 - Verifikasi tidak override penutupan, holder, eligibility atau SOP.
 
-### 🟡 BE-RWI-216 — Semua pintu master bed menolak perubahan yang membahayakan holder
+### ✅ BE-RWI-216 — Semua pintu master bed menolak perubahan yang membahayakan holder
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-216.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-216.md) |
 | Slice / outcome | Semua pintu master bed menolak perubahan yang membahayakan holder |
 | Ukuran / batas | Satu aggregate master bed; enam endpoint terdampak. |
 | Jejak | FR-BM-007, FR-BM-008; RWI-DEC-285, RWI-DEC-288, RWI-DEC-289; RWI-AC-412, RWI-AC-419, RWI-AC-421, RWI-AC-424; NFR-701, NFR-703, NFR-706 |
@@ -384,11 +384,11 @@ Acceptance negatif:
 - PATCH status atau PUT generik tidak dapat memasang Occupied/Reserved/Cleaning/Unknown manual untuk bypass.
 - Soft delete/activation adapter tidak melepaskan holder dan replay tidak menggandakan audit.
 
-### 🟡 BE-RWI-217 — Perubahan kamar, unit dan kelas ikut guard bed yang terdampak
+### ✅ BE-RWI-217 — Perubahan kamar, unit dan kelas ikut guard bed yang terdampak
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-217.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-217.md) |
 | Slice / outcome | Perubahan kamar, unit dan kelas ikut guard bed yang terdampak |
 | Ukuran / batas | Satu invariant hierarchy; implementasi adapter bersama, bukan tiga redesign master. |
 | Jejak | FR-BM-007, FR-BM-008, FR-BM-009; RWI-DEC-277, RWI-DEC-285, RWI-DEC-289, RWI-DEC-291; RWI-AC-405, RWI-AC-412, RWI-AC-419, RWI-AC-421, RWI-AC-424; NFR-701, NFR-703, NFR-706 |
@@ -413,11 +413,11 @@ Acceptance negatif:
 - Client tidak dapat mengirim set bed parsial/extra atau memalsukan expected version.
 - Tidak menebak arah ClassLevel; tidak membuat data master atau operasi bulk baru.
 
-### 🟡 BE-RWI-218 — Konteks transfer menunjukkan asal aktual dan perbandingan kelas yang terbukti
+### ✅ BE-RWI-218 — Konteks transfer menunjukkan asal aktual dan perbandingan kelas yang terbukti
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-218.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-218.md) |
 | Slice / outcome | Konteks transfer menunjukkan asal aktual dan perbandingan kelas yang terbukti |
 | Ukuran / batas | Satu slice baca asal/tujuan; satu endpoint baru dan enrichment endpoint existing. |
 | Jejak | FR-BM-009; RWI-DEC-275, RWI-DEC-276, RWI-DEC-277, RWI-DEC-284, RWI-DEC-291; RWI-AC-399, RWI-AC-403, RWI-AC-404, RWI-AC-405, RWI-AC-423; NFR-702, NFR-704 |
@@ -442,11 +442,11 @@ Acceptance negatif:
 - Default0 atau angka sama pada class ID berbeda tanpa proof menghasilkan Unknown; harga/nama bukan pembanding.
 - Proof mismatch atau perubahan master menahan lintas kelas; target bed sama dengan asal tidak eligible.
 
-### 🟡 BE-RWI-219 — Transfer satu langkah commit utuh dengan kategori manual dan snapshot
+### ✅ BE-RWI-219 — Transfer satu langkah commit utuh dengan kategori manual dan snapshot
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-219.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-219.md) |
 | Slice / outcome | Transfer satu langkah commit utuh dengan kategori manual dan snapshot |
 | Ukuran / batas | Satu mutation transfer, guard dan integrasi existing. |
 | Jejak | FR-BM-004, FR-BM-009, FR-BM-010; RWI-DEC-275, RWI-DEC-276, RWI-DEC-284, RWI-DEC-288, RWI-DEC-289, RWI-DEC-290; RWI-AC-399, RWI-AC-400, RWI-AC-401, RWI-AC-403, RWI-AC-404, RWI-AC-414, RWI-AC-419, RWI-AC-421, RWI-AC-422; NFR-701, NFR-703, NFR-704 |
@@ -471,11 +471,11 @@ Acceptance negatif:
 - Missing/manual-category mismatch tidak menulis history atau menebak kategori default.
 - Same key retry tidak menggandakan placement/outbox/handover; tidak menambah acceptance tujuan sebagai fase wajib.
 
-### 🟡 BE-RWI-220 — Riwayat semua hunian dan koreksi berversi dapat dibaca dengan scope yang benar
+### ✅ BE-RWI-220 — Riwayat semua hunian dan koreksi berversi dapat dibaca dengan scope yang benar
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-220.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-220.md) |
 | Slice / outcome | Riwayat semua hunian dan koreksi berversi dapat dibaca dengan scope yang benar |
 | Ukuran / batas | Satu slice riwayat yang dapat dikoreksi; lima endpoint terdampak, dua hanya reuse. |
 | Jejak | FR-BM-011, FR-BM-012; RWI-DEC-286, RWI-DEC-287, RWI-DEC-288; RWI-AC-402, RWI-AC-415, RWI-AC-416, RWI-AC-418; NFR-702, NFR-703, NFR-705 |
@@ -500,11 +500,11 @@ Acceptance negatif:
 - HK/OperationalOnly tidak memperoleh history pasien; identitas per row mengikuti hak episode.
 - Billing CLOSED atau affected-set/versions tidak cocok menolak; tidak delete committed transfer; query tidak menyalin batas31hari report.
 
-### 🟡 BE-RWI-221 — Wrapper admisi transfer IGD membuka episode dan reservasi dalam satu transaksi
+### ✅ BE-RWI-221 — Wrapper admisi transfer IGD membuka episode dan reservasi dalam satu transaksi
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 SEBAGIAN — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-221.md) |
+| Status | ✅ **SELESAI.** — 2026-10-11: QBE 61 file/0 temuan; parser C# 61 file/0 error; API39/39; hash24/24; diff-check0 error; build 0 error/10 warning; migration/SQL sesuai model; database update PASS 2026-10-12 (0 pending); runtime NOT_RUN; acceptance kartu ditelusuri 4/4, terbukti penuh 0/4; BM-G04 belum ditutup. [Laporan](../task/report/backend/BE-RWI-221.md) |
 | Slice / outcome | Wrapper admisi transfer IGD membuka episode dan reservasi dalam satu transaksi |
 | Ukuran / batas | Satu wrapper mutation existing. |
 | Jejak | FR-BM-003, FR-BM-004; RWI-DEC-281, RWI-DEC-283, RWI-DEC-289, RWI-DEC-290; RWI-AC-408, RWI-AC-419, RWI-AC-421, RWI-AC-422; NFR-701, NFR-704, NFR-706 |
