@@ -8561,3 +8561,25 @@ pemilik dihentikan): `✓ Compiled successfully in 78s`, 517/517 halaman, standa
 | Data uji dev (lewat aplikasi) | Pasien `00-00-02-81`…`83`; `ENC-RSMMC-00525`, `00526`; kunjungan `IGD-261027025825-C11067`, `IGD-261027031823-B9CDD2`; dua triase HIJAU; `ASM-20261027-00001`…`00003` |
 | Lingkungan | `next dev` pemilik **belum dinyalakan ulang** sesudah build |
 | Nomor yang dipakai sepanjang langkah 5 | `IGD-DEC-353`…`358`; `IGD-FACT-246`…`252` |
+
+Commit pass ini dibuat agen atas perintah pemilik: frontend `8ed1e101e`, backend `2c6bd535`; tanpa push.
+Pemilik sudah menyalakan ulang `npm run dev` sesudah build.
+
+---
+
+### Permintaan lintas modul — 27 Oktober 2026 (siang)
+
+| Dokumen | Penerima | Isi | Menahan |
+| --- | --- | --- | --- |
+| [`IGD-REQ-009`](approval-requests/2026-10-27-permintaan-pemegang-pendaftaran-rawat-jalan-rute-kiosk.md) | Pemegang Pendaftaran Rawat Jalan / Registration Management (nama diisi saat mengirim) | Layar Rawat Jalan memanggil rute kiosk yang sama dengan yang menolak loket IGD (`IGD-FACT-249`); tiga pertanyaan: apakah loket RJ ditolak, apakah RJ menyalakan `staffRoute`, dan apakah ada pengguna Administrator yang akan kehilangan akses. Kesimpulan untuk RJ ditarik dari kode dan sonde rute, belum dari uji layar RJ | — tidak menahan task IGD |
+
+Belum terkirim per 27 Oktober 2026: `IGD-REQ-007` (Laboratorium dan Radiologi — menahan `BE-IGD-071`,
+`FE-IGD-058`, sebagian `FE-IGD-057`), `IGD-REQ-008` (Gizi — menahan `FE-IGD-053`), tindak lanjut
+`IGD-REQ-003` (Rawat Inap — menahan `BE-IGD-077`), dan `IGD-REQ-009`. Nomor yang dipakai: `IGD-REQ-009`.
+
+### Audit kesiapan modul — 27 Oktober 2026 (siang)
+
+`verify-module-readiness` atas backend `2c6bd535` dan frontend `8ed1e101e`: **`READY_WITH_CONDITIONS`** —
+siap UAT untuk alur normal, belum siap produksi; delapan syarat C1–C8 beserta pemilik dan mitigasinya,
+serta daftar bukti `STALE` — [kesiapan modul](evidence/2026-10-27-kesiapan-modul-igd.md). Register tidak
+berubah: 115/121. Nomor baru: nol.
