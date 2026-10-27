@@ -28,7 +28,7 @@ public enum OprBodyView { Front = 1, Back = 2, Left = 3, Right = 4 }
 public enum OprCaseType { Elective = 1, Emergency = 2 }
 public enum OprPriority { Routine = 1, Urgent = 2, Emergency = 3 }
 public enum OprCaseOutcome { Completed = 1, StoppedEarly = 2 }
-public enum OprTeamRole { PrimarySurgeon = 1, AssistantSurgeon = 2, Anesthesiologist = 3, ScrubNurse = 4, CirculatingNurse = 5, Other = 99 }
+public enum OprTeamRole { PrimarySurgeon = 1, AssistantSurgeon = 2, Anesthesiologist = 3, ScrubNurse = 4, CirculatingNurse = 5, Pediatrician = 6, Other = 99 }
 public enum OprCredentialCheckStatus { Pending = 1, Valid = 2, Invalid = 3, NotAvailable = 4 }
 public enum OprReadinessRole { PrimarySurgeon = 1, Anesthesiologist = 2, Nurse = 3 }
 public enum OprChecklistPhase { SignIn = 1, TimeOut = 2, SignOut = 3 }

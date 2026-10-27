@@ -313,8 +313,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// <summary>Jenis cetakan yang wajib dicatat (<c>AdultWristband</c> = 1 atau <c>InfantWristband</c> = 2).</summary>
         public int PrintKind { get; set; }
 
-        /// <summary>Contoh "BUDI SANTOSO, Tn." atau "BY. NY. RINA SANTOSO".</summary>
+        /// <summary>Contoh "BUDI SANTOSO, Tn.", "BAGAS PRATAMA / BAYI 1", atau "BY. NY. RINA SANTOSO / BAYI 1".</summary>
         public string DisplayName { get; set; } = string.Empty;
+
+        /// <summary>Khusus gelang bayi dengan ibu tercatat, contoh "IBU: RINA SANTOSO"; selain itu <c>null</c>.</summary>
+        public string? MotherLine { get; set; }
 
         /// <summary>Contoh "12 Mar 1981".</summary>
         public string? BirthDateText { get; set; }

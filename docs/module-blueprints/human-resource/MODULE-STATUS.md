@@ -5,14 +5,14 @@
 | Blueprint ID | `HRD-BP-001` |
 | Module name | `Human Resource` |
 | Module slug | `human-resource` |
-| Revision | `9` |
+| Revision | `11` |
 | Module status | `PARTIAL` |
 | Current phase | `HRD-PH-SECURITY-CLOSED` — seluruh blocker MVP dan co-sign keamanan selesai; menunggu approval akhir manusia |
-| Last verified at | `2026-08-30` — impact scan read-only terhadap HEAD kedua repository, bukan verifikasi runtime |
+| Last verified at | `2026-10-26` — impact scan sinkronisasi drift Benefit, Exit Clearance, dan Payroll |
 | Backend source SHA — diaudit pada | `ecdc135444f0110482c9702212bcea30043983c8` (branch `AndryZain`) — **historical**, dipertahankan sebagai provenance audit lama |
-| Backend source SHA — diverifikasi berlaku pada | `16b8b71f4cd61e083213cf90722f4d768d339739` (`origin/QuilvianIntegrationBackend`, baseline canonical) |
+| Backend source SHA — diverifikasi berlaku pada | `16f6b2ad28e0e9cbd374354abe240ff3b163ace0` (baseline aktif) |
 | Backend source SHA — HEAD saat desain ditulis | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` (branch kerja `AndryZain`) |
-| Frontend source SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` (branch `AgentCodexFrontend`) |
+| Frontend source SHA | `2cd1c0610981b649f16a11bc74ac47ce6123e679` (baseline aktif) |
 | Frontend source SHA sebelumnya | `2a1cea7841a4433f8637d486204e60314c09d131` |
 
 Status modul `PARTIAL` dipilih sesuai kontrak status pada template: sekurang-kurangnya satu fase
@@ -244,6 +244,28 @@ Management dan Clinical Management — ditambah pekerjaan dokumentasi Rawat Inap
 **Kesimpulan gate.** Capability map dan decision log tetap **`CURRENT`**. Tidak ada capability
 yang perlu ditandai `STALE`, tidak ada audit ulang, dan tidak ada fakta yang perlu diperbaiki.
 Snapshot SHA disegarkan sebagai pencatatan, bukan sebagai akibat perubahan kemampuan.
+
+---
+
+
+### 6.5 Drift scan — 26 Oktober 2026 (Sinkronisasi Bukti Benefit, Exit Clearance, dan Payroll)
+
+Pemeriksaan berkas source terkini (HEAD `16f6b2a` Backend dan `2cd1c06` Frontend) menemukan bahwa sejumlah fitur HR telah diimplementasikan langsung pada source code:
+
+1. **Benefit Management (Slice `S-D3`)**:
+   - Backend: Penambahan `EmployeeBenefitEnrollmentController`, `EmployeeBenefitDependentController`, `EmployeeBenefitEnrollmentService`, `EmployeeBenefitEligibilityService`, `EmployeeBenefitBalanceService`, `WorkforceBenefitOwnerResolver`, serta model `HrdBenefitBalanceMovement` (+2.980 baris C#).
+   - Frontend: Penambahan rute `/hr/benefit/enrollments`, view detail/list/create modal, dan `employee-benefit-enrollment-service.js`.
+   - **Dampak Status**: Slice `S-D3` yang sebelumnya berstatus `BLOCKED (0 controller)` kini naik menjadi **`READY TO REUSE / IMPLEMENTED`**.
+2. **Lifecycle & Exit Clearance (Slice `S-C4`)**:
+   - Backend: Penambahan `ExitClearanceController` dan `ExitClearanceService` (+908 baris C#).
+   - Frontend: Penambahan rute `/hr/exit-clearance` beserta view dan `exit-clearance-service.js`.
+   - **Dampak Status**: Transaksi administrasi penyelesaian keluar kerja kini memiliki implementasi aktif.
+3. **Payroll Restitution & Installment Deductions (Slice `S-B5`)**:
+   - Backend: Penambahan `PayrollRestitutionController`, `PayrollRunInstallmentDeductionController`, beserta service-nya.
+4. **Security & Authorization**:
+   - Sebanyak 20 controller master data HR yang sebelumnya tidak memiliki filter otorisasi telah dilengkapi proteksi otorisasi berbasis role/permission.
+
+**Kesimpulan Sinkronisasi**: Bukti kemampuan diperbarui untuk mengakui implementasi aditif ini, dan roadmap resmi (`backend-roadmap.md` & `frontend-roadmap.md`) disusun untuk memetakan task-task yang sudah terlaksana maupun yang masih terbuka.
 
 ---
 

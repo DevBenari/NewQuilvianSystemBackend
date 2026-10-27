@@ -34,7 +34,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             "ATTENDANCE_CORRECTION_REQUEST"
         };
 
-        private static readonly string[] ActiveRequestStatuses =
+        internal static readonly string[] ActiveRequestStatuses =
         {
             AttendanceValueConstants.CorrectionRequestStatus.Draft,
             AttendanceValueConstants.CorrectionRequestStatus.Submitted,
@@ -1224,7 +1224,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 RequestedByUserName = entity.RequestedByUser?.DisplayName ??
                                       entity.RequestedByUser?.UserName ??
                                       entity.RequestedByUser?.Email ??
-                                      entity.RequestedByUser?.UserCode
+                                      entity.RequestedByUser?.UserCode,
+                IsOnBehalf = entity.IsOnBehalf,
+                OnBehalfReason = entity.OnBehalfReason,
+                InitiatedByUserId = entity.InitiatedByUserId,
+                InitiatedByUserName = entity.InitiatedByUser?.DisplayName ?? entity.InitiatedByUser?.UserName,
+                OnBehalfNotifiedAt = entity.OnBehalfNotifiedAt
             };
         }
 

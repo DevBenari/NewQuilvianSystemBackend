@@ -137,14 +137,20 @@ public partial class InpEpisodeService
                 x.ServiceUnitId,
                 ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
                 x.RoomId,
-                RoomName = x.Room != null ? x.Room.RoomName : null
+                RoomName = x.Room != null ? x.Room.RoomName : null,
+                // FIX-EPS-040-12: bed dan kelas ibu untuk kartu konfirmasi rawat gabung.
+                x.BedId,
+                BedCode = x.Bed != null ? x.Bed.BedCode : null,
+                BedName = x.Bed != null ? x.Bed.BedName : null,
+                PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null
             })
             .ToListAsync(cancellationToken);
         var placements = placementRows.GroupBy(x => x.EpisodeId).ToDictionary(x => x.Key, x => x.First());
 
         var babyPatients = await _dbContext.Set<MstPatient>()
             .AsNoTracking()
-            .Where(x => x.DeliveryCaseId.HasValue && caseIds.Contains(x.DeliveryCaseId.Value) && !x.IsDelete)
+            // PLAN-REPAIR-EPS-041 FIX-11: RM bayi yang dinonaktifkan tidak dihitung dan tidak ditawarkan untuk dilanjutkan.
+            .Where(x => x.DeliveryCaseId.HasValue && caseIds.Contains(x.DeliveryCaseId.Value) && !x.IsDelete && x.IsActive)
             .OrderBy(x => x.BirthOrder)
             .Select(x => new
             {
@@ -232,10 +238,13 @@ public partial class InpEpisodeService
                         EpisodeStatusName = ep?.EpisodeStatus.ToString(),
                         RoomName = bPlacement?.RoomName,
                         BedCode = bPlacement?.BedCode,
-                        IsCurrentlyInRoom = isCurrentlyInRoom
+                        IsCurrentlyInRoom = isCurrentlyInRoom,
+                        // FIX-10: tanpa episode yang hidup (episode batal sudah dikecualikan di atas).
+                        IsPendingAdmission = ep == null
                     };
                 })
                 .ToList();
+            var pendingCount = caseBabies.Count(b => b.IsPendingAdmission);
 
             var hasActiveBaby = caseBabies.Any(b => b.IsCurrentlyInRoom || b.EpisodeStatus == (int)InpEpisodeStatus.Admitted || b.EpisodeStatus == (int)InpEpisodeStatus.Draft);
 
@@ -245,7 +254,7 @@ public partial class InpEpisodeService
                 DeliveryCaseNumber = item.CaseNumber,
                 RequestedAt = item.RequestedAt,
                 DeliveryCaseStatus = (int)item.Status,
-                DeliveryCaseStatusName = item.Status.ToString(),
+                DeliveryCaseStatusName = DeliveryCaseStatusLabel(item.Status),
                 MotherPatientId = item.PatientId,
                 MotherName = item.MotherName,
                 MotherMedicalRecordNumber = item.MotherMedicalRecordNumber,
@@ -261,7 +270,13 @@ public partial class InpEpisodeService
                 CurrentServiceUnitName = placement?.ServiceUnitName,
                 CurrentRoomId = placement?.RoomId,
                 CurrentRoomName = placement?.RoomName,
+                CurrentBedId = placement?.BedId,
+                CurrentBedCode = placement?.BedCode,
+                CurrentBedName = placement?.BedName,
+                CurrentPatientClassName = placement?.PatientClassName,
                 RegisteredBabyCount = registeredCount,
+                AdmittedBabyCount = caseBabies.Count - pendingCount,
+                PendingBabyCount = pendingCount,
                 NextBirthOrderPreview = nextOrder,
                 HasActiveInpatientBaby = hasActiveBaby,
                 RegisteredBabies = caseBabies
@@ -277,4 +292,15 @@ public partial class InpEpisodeService
             Items = items
         };
     }
+
+    /// <summary>
+    /// Label status kasus persalinan untuk petugas (FIX-EPS-040-13). Kandidat hanya memuat kasus
+    /// <c>InProgress</c> dan <c>Completed</c>; status lain jatuh ke nama enum agar tidak tersembunyi.
+    /// </summary>
+    private static string DeliveryCaseStatusLabel(OprCaseStatus status) => status switch
+    {
+        OprCaseStatus.InProgress => "Sedang berlangsung",
+        OprCaseStatus.Completed => "Selesai",
+        _ => status.ToString()
+    };
 }

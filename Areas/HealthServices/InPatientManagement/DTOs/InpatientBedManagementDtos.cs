@@ -41,6 +41,8 @@ public class BedHoldingContext
     public string? CareDependencyLevel { get; set; }
     public Guid? ReservationId { get; set; }
     public DateTime? ReservationExpiresAt { get; set; }
+    /// <summary>PLAN-REPAIR-EPS-041 FIX-17: waktu pesan, agar layar yang memulihkan pemesanan dari papan tetap dapat menampilkannya.</summary>
+    public DateTime? ReservationReservedAt { get; set; }
 }
 public class BedOperationalResponse
 {
