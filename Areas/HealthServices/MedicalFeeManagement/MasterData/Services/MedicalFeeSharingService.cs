@@ -190,6 +190,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
         /// <summary>
         /// Mengambil detail satu kesepakatan beserta seluruh baris aturan tarifnya.
         /// </summary>
+        public Task<SharingAgreementDetailResponse?> GetByIdAsync(
+            Guid id,
+            CancellationToken ct)
+            => GetByIdAsync(id, null, ct);
+
         public async Task<SharingAgreementDetailResponse?> GetByIdAsync(
             Guid id,
             MedicalFeeActorContext? actorContext = null,
@@ -580,7 +585,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
                     $"Gagal menyimpan kesepakatan tarif sharing: {ex.Message}");
             }
 
-            var detail = await GetByIdAsync(agreementId, ct);
+            var detail = await GetByIdAsync(agreementId, ct: ct);
             return MedicalFeeServiceResult<SharingAgreementDetailResponse>.Ok(
                 detail!,
                 "Kesepakatan tarif sharing berhasil dibuat.",
@@ -694,7 +699,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
 
             await _dbContext.SaveChangesAsync(ct);
 
-            var detail = await GetByIdAsync(id, ct);
+            var detail = await GetByIdAsync(id, ct: ct);
             return MedicalFeeServiceResult<SharingAgreementDetailResponse>.Ok(
                 detail!,
                 "Kepala kesepakatan tarif sharing berhasil diperbarui.");
@@ -783,7 +788,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
 
             await _dbContext.SaveChangesAsync(ct);
 
-            var detail = await GetByIdAsync(id, ct);
+            var detail = await GetByIdAsync(id, ct: ct);
             return MedicalFeeServiceResult<SharingAgreementDetailResponse>.Ok(
                 detail!,
                 "Kesepakatan tarif sharing berhasil diaktifkan.");
@@ -843,7 +848,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.Master
 
             await _dbContext.SaveChangesAsync(ct);
 
-            var detail = await GetByIdAsync(id, ct);
+            var detail = await GetByIdAsync(id, ct: ct);
             return MedicalFeeServiceResult<SharingAgreementDetailResponse>.Ok(
                 detail!,
                 "Kesepakatan tarif sharing berhasil dihentikan.");

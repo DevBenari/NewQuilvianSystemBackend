@@ -1467,4 +1467,11 @@ public sealed class CashierShiftConflictException : Exception
         ConflictCode = conflictCode;
         Details = details ?? new { ConflictCode = conflictCode, Message = message };
     }
+
+    public CashierShiftConflictException(
+        string message,
+        Exception innerException)
+        : this(message, "CONFLICT", null, innerException)
+    {
+    }
 }

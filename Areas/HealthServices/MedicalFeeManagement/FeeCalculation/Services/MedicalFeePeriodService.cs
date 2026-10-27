@@ -821,6 +821,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
         /// <summary>
         /// Mengambil rincian header satu hasil jasa medis berdasarkan ID.
         /// </summary>
+        public Task<ServiceFeeHeaderResponse> GetServiceFeeByIdAsync(
+            Guid id,
+            CancellationToken ct)
+            => GetServiceFeeByIdAsync(id, null, ct);
+
         public async Task<ServiceFeeHeaderResponse> GetServiceFeeByIdAsync(
             Guid id,
             MedicalFeeActorContext? actorContext = null,
@@ -967,7 +972,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             _logger.LogInformation("Hasil jasa '{FeeNumber}' (ID: {FeeId}) berhasil diverifikasi oleh user '{UserId}'.",
                 sf.FeeNumber, sf.Id, userId);
 
-            return await GetServiceFeeByIdAsync(id, ct);
+            return await GetServiceFeeByIdAsync(id, ct: ct);
         }
 
         /// <summary>
@@ -1028,7 +1033,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCal
             _logger.LogInformation("Hasil jasa '{FeeNumber}' (ID: {FeeId}) dikembalikan ke status Calculated oleh user '{UserId}'. Alasan: {Reason}",
                 sf.FeeNumber, sf.Id, userId, request.Reason);
 
-            return await GetServiceFeeByIdAsync(id, ct);
+            return await GetServiceFeeByIdAsync(id, ct: ct);
         }
 
         /// <summary>
