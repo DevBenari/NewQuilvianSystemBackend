@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `a244a729f` (branch `RizkiV2`) |
 | Commit backend yang dijadikan rujukan | `8577462f` (branch `rizkiG`) |
 | Tanggal | 21 Oktober 2026 |
-| Status | 🟡 **Sebagian** — seluruh source selesai dan ESLint bersih, tetapi 13 dari 14 acceptance criteria menuntut bukti uji layar yang menjadi tugas pemilik. Belum ada satu pun tangkapan layar |
+| Status | ✅ **SELESAI — 27 Oktober 2026: 14 dari 14 acceptance terbukti lewat uji layar (bagian 9); `npm run build` lulus, BUILD_ID `HXGe2JMsrS4xsJSmiOFKW`.** *Sebelumnya pada hari yang sama:* 🟡 14/14 di layar, menunggu build. *Sebelumnya (21 Oktober 2026):* 🟡 **Sebagian** — seluruh source selesai dan ESLint bersih, tetapi 13 dari 14 acceptance criteria menuntut bukti uji layar yang menjadi tugas pemilik. Belum ada satu pun tangkapan layar |
 
 ---
 
@@ -282,3 +282,94 @@ dikerjakan dan dilaporkan apa adanya alih-alih diklaim lulus.
 | Interupsi | Dua koreksi pemilik di tengah pengerjaan (`IGD-DEC-347` dan `IGD-DEC-348`). Pemulihannya: dua berkas dikembalikan ke baseline dan diverifikasi lewat `git diff` kosong serta `eslint` bersih, bukan ditinggalkan sebagai kode mati |
 | Status Git | Tujuh berkas task ini berstatus `M` pada branch `RizkiV2`; nol berkas di-stage, nol commit, nol push |
 | Langkah berikutnya | Pemilik menjalankan uji layar 13 kriteria yang tersisa, terutama kriteria 2 (Rawat Jalan tidak menampilkan tombol dan Admisi Rawat Inap tidak berubah), kriteria 5a (formulir pasien baru biasa tetap lengkap), dan kriteria 11 (seksi 1 Assesmen Awal tetap utuh). Sesudah buktinya ada, status task dinaikkan menjadi ✅ |
+
+---
+
+## 9. Pengerjaan lanjutan — 27 Oktober 2026, uji layar dan dua perbaikan
+
+Uji layar dijalankan agen pada `npm run dev` pemilik (port 3000) dan backend `https://localhost:7184`,
+Playwright `msedge` headless. Bukti di `QuilvianSystemFrontendDev/test-with-agy/igd/uji-fe-igd-070-20261027/`
+(di-gitignore). Setiap verdict dihitung dari nilai DOM atau jaringan yang diukur; `hasil.json` dirakit
+`skrip/rakit-hasil.mjs` yang memetakan setiap acceptance ke pemeriksaan sah. PNG diperiksa langsung.
+
+### 9.1 Dua penghalang yang ditemukan uji, beserta perbaikannya
+
+| # | Penghalang | Bukti | Keputusan | Perbaikan |
+| ---: | --- | --- | --- | --- |
+| 1 | **Petugas loket ditolak `403` saat menyimpan pasien baru.** Service pendaftaran memanggil rute **kiosk** — `POST patients`, `GET patient-insurances`, `GET/POST patient-company-guarantors` — yang dijaga `KioskReadPolicy` (hanya SuperAdmin, Administrator, Kiosk; `Program.cs:1259`). Izin loket sendiri **lengkap**: `POST patients/admin` dan `patient-encounters/admin` menjawab `400` validasi, bukan `403` (`02-sonde-rute-admin.json`). Tidak ada izin role-access yang diubah | `IGD-FACT-249` | `IGD-DEC-355` — rute staf **khusus IGD, opt-in**; Rawat Jalan tidak berubah | `emergency-registration.service.js`: tiga kunci URL `…ForStaff` dan opsi `staffRoute` berawal `false` pada lima fungsi; `emergency-registration-slice.jsx`: keempat thunk IGD menyalakan `staffRoute: true` |
+| 2 | **Tidak ada layar yang dapat menandai kunjungan sebagai pasien tanpa identitas.** Dialog Mulai Triage dilepas `8cfbfa971` (15 Oktober 2026), enam hari sebelum task ini mencabut blok di Assesmen Awal (`IGD-DEC-341`) dengan anggapan penanda tetap diisi di Mulai Triage (`IGD-DEC-340`). Kunjungan B1 lahir `isUnknownPatient: false` | `IGD-FACT-250` | `IGD-DEC-356` — dialog dipasang ulang | `emergency-triage-patient-list-view.jsx`: import, state target/galat, dua handler, dan render `EmergencyTriageStartDialog` dikembalikan persis seperti sebelum `8cfbfa971`. Komponen dialog tidak disentuh |
+
+Ketiga berkas: ESLint **0 error / 0 warning** sebelum dan sesudah (identik baseline), CRLF dipertahankan,
+nol baris komentar baru, `globals.css` dan komponen bersama tidak disentuh. Pemakai lima fungsi service
+selain IGD hanya `outpatient-registration-slice.jsx`, yang tetap memanggil tanpa opsi — perilakunya
+tidak berubah. Admisi Rawat Inap sudah memakai `/admin` (`inpatient-admission-payment.service.js:35`–`:36`).
+
+### 9.2 Skenario
+
+| Berkas | Skenario | Akun | Verdict berkas | Catatan |
+| --- | --- | --- | :---: | --- |
+| `hasil-A.json` | Formulir: dua kartu, baris aksi, alias, sapaan, dua isian, Input Manual, penolakan | loket | **PASS 15/15** | Tanpa data tercipta |
+| `hasil-B1.json`, `hasil-B2.json` | Dua pendaftaran tanpa identitas berurutan sampai layar Selesai | loket | FAIL 10/12 | Dua pemeriksaan **salah rancang**: menuntut `201` sesuai teks kartu, `CreatePatientForAdmin` menjawab `200`. Verdict tidak diubah |
+| `hasil-B-ukur-ulang.json` | Ukur ulang B dari jaringan yang sama + `GET` detail pasien | loket, perawat | FAIL 16/18 | Dua pemeriksaan *kunjungan terbentuk saat pendaftaran* **salah rancang**: IGD encounter-first, kunjungan lahir saat Mulai Triage — diukur di C |
+| `hasil-C.json` | Mulai Triage dengan dialog pada pasien B2 sampai pengkajian | perawat | **TIDAK SAH** | `checks` kosong akibat bug skrip (`activeChecks` menunjuk larik yang sama lalu dikosongkan); verdict `PASS` tertulis **tidak dipakai** |
+| `hasil-C-ukur-ulang.json` | Ukur ulang C dari `jaringan-C.json` + `GET` detail kunjungan | perawat | **PASS 6/6** | Label dialog dinilai dari `C2-dialog-mulai-triage.png` |
+| `hasil-D.json` | Triase dan pengkajian pasien B1 (kunjungan tanpa penanda) | perawat | FAIL 8/9 | Satu pemeriksaan **salah rancang**: `input[name=arrivalLocation]` tidak merender atribut `name` |
+| `hasil-D-ukur-ulang.json` | Seksi 1 Assesmen Awal dari teks DOM terekam | — | **PASS 2/2** | |
+| `hasil-E.json`, `hasil-E-ukur-ulang.json` | Rawat Jalan dan Admisi | loket, perawat | FAIL | Admisi wizard 12 langkah; formulir ada di langkah 3 — pemeriksaan salah rancang dua kali |
+| `hasil-E-ukur-ulang-2.json` | Admisi sampai langkah Pendaftaran, nol panggilan tulis | perawat | **PASS 3/3** | |
+
+Akun perawat `dimas.kurniawan` berperan SuperAdmin (`IGD-FACT-241`) — satu-satunya akun perawat yang
+tersedia; acceptance task ini tidak menyangkut otorisasi. Langkah loket memakai `rendy.saputra`
+(tanpa peran SuperAdmin), sesuai alur bisnis.
+
+### 9.3 Acceptance
+
+| # | Keadaan | Bukti terukur |
+| ---: | :---: | --- |
+| 1 | ✅ | Dua kartu `btn-select-patient-type-existing/new`; baris aksi *Input Manual*, *Pasien Tanpa Identitas*, *Cek Scanner* — `A1-*.png` |
+| 2 | ✅ | Rawat Jalan: baris aksi hanya *Input Manual* dan scanner, nol tombol tanpa identitas (`E1-*.png`); Admisi langkah 3 formulir pasien baru tampil tanpa tombol, nol panggilan tulis (`E5-admisi-formulir-pasien.png`); commit task `52624e6cb` menyentuh nol berkas Rawat Inap |
+| 3 | ✅ | Alias `Mr./Mrs. X IGD 2710-0932`, selisih 0 menit dari klik; dapat disunting; *Input Manual* mengosongkan alias yang belum disunting |
+| 4 | ✅ | `Tn.` / `Ny.` / `Mr./Mrs.` terukur — `A4-sapaan-*.png`. Lihat catatan 9.4 butir 1 |
+| 5 | ✅ | Formulir hanya `fullName` dan `gender`; *Dokumen dan Kontak*, *Alamat Pasien*, *Data tambahan* tidak tampil; `POST patients/admin` **200** *"Patient berhasil dibuat."* (kartu menyebut 201) dua kali, nol pesan *wajib diisi* |
+| 5a | ✅ | Sesudah *Input Manual*: tiga bagian dan isian lengkap kembali — `A5a-formulir-input-manual.png` |
+| 6 | ✅ | Jenis Kelamin bawaan (*Tidak diketahui*) ditolak *"Jenis kelamin wajib dipilih."*, nol `POST` — `A6-*.png` |
+| 7 | ✅ | Muatan `birthDate: null`, `identityType: ""`; rekam tersimpan `birthDate` `null`; nol *"0 tahun"* di daftar triase, daftar pemeriksaan, dan header pasien (`D4-pengkajian-tersimpan.png`: *UMUR / GENDER Laki-laki*) |
+| 8 | ✅ | Dua pendaftaran berurutan, No. RM `00-00-02-82` dan `00-00-02-83`, nol `PATIENT_IDENTITY_ALREADY_EXISTS` |
+| 9 | ✅ | Kartu *Tunai* aktif, ringkasan *Pembayaran Tunai / Umum — Dipilih*, tabel penjamin tidak tampil, lanjut ke verifikasi tanpa penjamin. Lihat catatan 9.4 butir 2 |
+| 10 | ✅ | Pasien tampil di *Menunggu Triase* dengan nama alias (`C1-baris-pasien.png`); dialog Mulai Triage memuat *Pasien tanpa identitas* dan *Nama sementara* (`C2-dialog-mulai-triage.png`); `start-triage` **201** membawa `isUnknownPatient: true` + alias; `GET` detail kunjungan `IGD-261027031823-B9CDD2` menyimpan keduanya |
+| 11 | ✅ | Tab Assesmen Awal tanpa centang dan tanpa *Nama sementara*; seksi 1 utuh (sembilan label); *Perbarui Data Kedatangan* `PUT emergency-visits` **200** *"Data kunjungan IGD berhasil diubah."* dan tetap membawa penanda — `D3-perbarui-data-kedatangan.png` |
+| 12 | ✅ | Triase **HIJAU – Prioritas 3** tersimpan `200` untuk kedua pasien (`C3-triase-tersimpan.png`); pengkajian `ASM-20261027-00001` dan `ASM-20261027-00002` **201** |
+| 13 | ✅ | Menurut `IGD-DEC-357`: base component dan `globals.css` tidak disentuh; nol komentar baru; ESLint 0 error dan **nol warning baru** — task ini menambah 0 warning (`patient-selection-step.jsx` 5w dan `use-emergency-registration.js` 2w sama persis sebelum dan sesudah `52624e6cb`, diukur `eslint --stdin`); 4 warning `emergency-assessment-initial-tab.jsx` lahir sesudahnya dari pekerjaan lain |
+
+### 9.4 Catatan, tidak dikartukan
+
+1. **Sapaan *Mr./Mrs.* tampil tetapi tidak pernah dapat tersimpan** — nilai bawaan Jenis Kelamin adalah
+   *Tidak diketahui* (`0`), dan aturan `Number(value) > 0` menolaknya. Pesan *"Jenis kelamin wajib dipilih."*
+   juga tetap menempel sesudah jenis kelamin lain dipilih sampai simpan berikutnya (`A4-sapaan-P.png`) —
+   `IGD-FACT-252`.
+2. **Isian *Metode Pembayaran Sistem* tidak pernah tampil di Pendaftaran IGD** — `page.jsx` tidak
+   meneruskan `paymentMethodOptions`, sehingga klausa *"tetap dipilih petugas"* acceptance 9 tidak
+   punya objek; keadaan sejak sebelum task ini, untuk jenis pasien apa pun — `IGD-FACT-251`.
+3. **Riwayat Assesmen Awal tampil *"Belum ada assesmen awal"* 3 detik sesudah `ASM-20261027-00001`
+   tersimpan** (`D4-pengkajian-tersimpan.png`) — diperiksa pada `FE-IGD-022`.
+4. **Rute kiosk yang sama juga dipanggil Pendaftaran Rawat Jalan** — tidak diubah (`IGD-DEC-355`);
+   diserahkan ke pemilik Rawat Jalan lewat `IGD-FACT-249`.
+
+### 9.5 Data uji yang tercipta di basis data dev (lewat aplikasi)
+
+| Data | Keterangan |
+| --- | --- |
+| Pasien `00-00-02-81` *Tn. X IGD 2710-0951* | Percobaan ke-2 B1: pasien tersimpan, langkah pembayaran gagal karena skrip — **tanpa encounter** |
+| Pasien `00-00-02-82` *Tn. X IGD 2710-0953*, `ENC-RSMMC-00525`, kunjungan `IGD-261027025825-C11067` | B1: kunjungan dimulai **tanpa** dialog (sebelum `IGD-DEC-356`), `isUnknownPatient: false`; triase HIJAU; `ASM-20261027-00001` |
+| Pasien `00-00-02-83` *Ny. X IGD 2710-0954*, `ENC-RSMMC-00526`, kunjungan `IGD-261027031823-B9CDD2` | B2: dialog, `isUnknownPatient: true`; triase HIJAU; `ASM-20261027-00002` |
+
+### 9.6 Validasi
+
+| Perintah | Hasil |
+| --- | --- |
+| `npx eslint` tiga berkas perbaikan | 0 error / 0 warning — identik baseline |
+| `npx eslint --stdin` versi `52624e6cb^`, `52624e6cb`, `HEAD` | Task menambah 0 warning |
+| Komentar baru pada diff | 0 |
+| `AUTOMATED TEST` | `SKIPPED (opsional)` — aturan pemilik: tanpa unit test |
+| `npm run build` (27 Oktober 2026, atas izin pemilik; `next dev` pemilik dihentikan) | **PASS** — `✓ Compiled successfully in 78s`, 517/517 halaman, standalone siap, BUILD_ID `HXGe2JMsrS4xsJSmiOFKW`, nol warning di log; mencakup ketiga berkas perbaikan dan perubahan `FE-IGD-022` (`build-npm-run-build.log`) |
+| `MANUAL TEST` | `PASS` — skenario 9.2 |

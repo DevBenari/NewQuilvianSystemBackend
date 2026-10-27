@@ -15,7 +15,7 @@ Definisi task: [priority-reservation-frontend-roadmap.md](../../../roadmap/prior
 | Branch / baseline | FE `sukmagpV2` @ `17e0ffec0`, working tree belum di-commit |
 | Tanggal | 19 Oktober 2026 |
 | Model | Claude Opus 5 |
-| Status | ✅ Selesai — uji layar 15/15 `PASS`; rework 19 Okt 2026 (`RJ-PRI-DEC-032`) uji layar 12/12 + regresi 15/15 `PASS`; perbaikan 20 Okt 2026 (kotak cari pasien tidak bisa diketik, warna tombol dialog) 4/4 `PASS` di stack owner; teks hover tombol primer dan tata letak dialog terbit 4/4 + 4/4 `PASS` (1440 px dan 390 px), lint dan build `PASS` (bagian 8.7–8.8) |
+| Status | ✅ Selesai — rework 26 Okt 2026 (pencarian hanya member) uji layar 10/10, 12/12, 11/11 `PASS`, lint dan build `PASS` (bagian akhir); uji layar 15/15 `PASS`; rework 19 Okt 2026 (`RJ-PRI-DEC-032`) uji layar 12/12 + regresi 15/15 `PASS`; perbaikan 20 Okt 2026 (kotak cari pasien tidak bisa diketik, warna tombol dialog) 4/4 `PASS` di stack owner; teks hover tombol primer dan tata letak dialog terbit 4/4 + 4/4 `PASS` (1440 px dan 390 px), lint dan build `PASS` (bagian 8.7–8.8) |
 
 ## 2. Proses bisnis
 
@@ -411,3 +411,66 @@ September abu-abu dan tidak dapat diklik. Aturan backend tidak berubah (`VAL-RP-
 Dikerjakan bersama rework dialog Ganti Tanggal, karena memakai perubahan yang sama pada `BaseDateField`. Gerbang
 komponen, validasi (lint dan build exit 0), dan uji layar `CREATE CAL` `PASS` dicatat di
 [FE-RJP-009.md](FE-RJP-009.md) bagian 8.
+
+## Rework 26 Oktober 2026 — pencarian pasien hanya menampilkan member
+
+### Permintaan
+
+Owner meminta pencarian Pasien di dialog **Buat Reservasi Prioritas** hanya menampilkan pasien yang sudah terdaftar
+member (disertai tangkapan layar). Sebelumnya semua pasien tampil, dan pasien Reguler diberi label "Bukan member"
+(rework 19 Okt, bagian 8.2). Permintaan ini tercatat di percakapan 26 Okt 2026 dan belum dicatat sebagai keputusan
+`RJ-PRI-DEC` di `00-interview-decisions.md`.
+
+### Cara kerja
+
+| Langkah | Isi |
+| --- | --- |
+| Request | Tetap memakai `GET /patients` yang sudah ada (`CAP-RP-21`), kini dengan `sortBy=isMember`, `sortDirection=desc`, dan `pageSize=20`. Kunci `ismember` sudah tersedia di `PatientController` (pengurutan `IsMember` lalu `FullName`) |
+| Saring | Hasil yang bukan member dibuang di hook memakai `getOutpatientMembershipLabel` yang sudah ada. Karena member diurutkan lebih dulu, 20 baris teratas selalu memuat member yang cocok bila ada |
+| Kosong | Pesan berubah dari "Pasien tidak ditemukan" menjadi "Pasien member tidak ditemukan" |
+| Petunjuk | Teks petunjuk menjadi "Hanya pasien member yang tampil. Pasien Reguler didaftarkan lewat Pendaftaran Pasien." |
+| Backend | Tidak berubah. Kelayakan tetap diperiksa `GET /eligibility`. Member yang tidak Aktif tetap ditolak (`VAL-RP-25`) |
+
+Kontrak `RJ-PRI-RESV-001@1.2.0` tidak berubah. Contoh: kata kunci "RJP0" mengembalikan 7 pasien (3 member, 4 bukan
+member), dan dialog hanya menampilkan 3 pasien Gold Member.
+
+### Berkas
+
+| Berkas (repo frontend) | Status | Isi |
+| --- | --- | --- |
+| `src/lib/hooks/health-services/registration-management/priority-reservations/use-priority-reservation-create.jsx` | Diperbarui | Parameter `sortBy`/`sortDirection`/`pageSize` pencarian, saringan member, `toPatientOption` tanpa label "Bukan member" |
+| `src/components/view/health-services/registration-management/priority-reservations/priority-reservation-create-modal.jsx` | Diperbarui | Teks petunjuk dan pesan kosong |
+
+Gerbang komponen dasar: `REUSE` `BaseSelectField` (`serverSide`, `emptyText`, `renderOption`) tanpa perubahan. Tidak ada
+JSX, kelas, atau style baru.
+
+`UI GATE: PASS — REUSE BaseSelectField; tidak ada NEW atau EXTEND pada base component.`
+
+### Validasi
+
+| Langkah | Hasil |
+| --- | --- |
+| `npm run lint:errors` | exit 0 |
+| `npm run build` | exit 0 (`next dev` owner tetap berjalan) |
+| `AUTOMATED TEST: node --import ./tests/helpers/register.mjs --test tests/unit/priority-reservation-data-layer.test.mjs` | `PASS` 12/12 |
+| `MANUAL TEST` di stack owner (FE dev 3000, backend 7184, DB `QuilvianNewDevSukma`), cara manusia (`pressSequentially`), 1440 px | `PASS` 3 putaran: 10/10, 12/12, 11/11 — rincian di bawah |
+
+| Skenario | Hasil |
+| --- | --- |
+| `HINT` — petunjuk baru tampil di bawah isian Pasien | `PASS` |
+| `REQ` — setiap pencarian mengirim `sortBy=isMember&sortDirection=desc&pageSize=20` (10 kata kunci) | `PASS` |
+| `LIST` campuran — "RJP0": respons 7 (member 3, bukan member 4), pilihan 3, semuanya Gold Member | `PASS` |
+| `LIST` member saja — "uji", "RJPR": respons 20, pilihan 20, tanpa "Bukan member" | `PASS` |
+| `LIST` bukan member saja — "budi", "ibu", "ana", "pasien", "test", "KSKTEST": pilihan 0 | `PASS` |
+| `EMPTY` — "budi" (1 pasien bukan member): pesan "Pasien member tidak ditemukan" | `PASS` |
+| `SELECT` regresi — memilih member memicu `GET /eligibility` 200, pesan "Pasien dapat dibuatkan reservasi prioritas." tampil, Simpan aktif | `PASS` |
+
+Tidak ada reservasi yang disimpan selama uji ini. Tangkapan layar: `member-search-RJP0.png`, `member-search-empty.png`,
+`member-search-select.png` di scratchpad sesi `2961612c`.
+
+### Risiko
+
+- Pasien dengan `IsMember = true` tetapi membership tidak Aktif tetap muncul. Pasien itu ditolak lewat pesan kelayakan,
+  sama seperti sebelumnya.
+- Bila lebih dari 20 member cocok, hanya 20 pertama (urut nama) yang tampil. Petugas mempersempit kata kunci, sama seperti
+  batas 10 baris sebelumnya.
