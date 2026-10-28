@@ -198,4 +198,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public DateTime ExecutedAt { get; set; }
     }
+
+    /// <summary>
+    /// Permintaan penolakan rujukan transfer rawat inap oleh petugas admisi (BE-IGD-077).
+    /// </summary>
+    public class RejectAdmissionTransferRequest
+    {
+        /// <summary>Alasan penolakan rujukan transfer rawat inap (wajib diisi, maksimal 500 karakter).</summary>
+        [Required(ErrorMessage = "Alasan penolakan admisi wajib diisi.")]
+        [MaxLength(500, ErrorMessage = "Alasan penolakan admisi paling panjang 500 karakter.")]
+        public string Reason { get; set; } = string.Empty;
+    }
 }
