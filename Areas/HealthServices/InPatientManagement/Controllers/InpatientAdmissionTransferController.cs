@@ -72,5 +72,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 : Ok(ApiResponse<InpatientAdmissionTransferItemResponse>.Ok(result, "Detail rujukan transfer berhasil diambil."));
         }
 
+        /// <summary>
+        /// Menolak rujukan transfer pasien ke rawat inap dengan alasan penolakan wajib (BE-IGD-077).
+        /// </summary>
+        [HttpPost("{id:guid}/reject")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Update", "Reject Inpatient Admission Transfer", Description = "Menolak rujukan transfer pasien ke rawat inap", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("InpatientAdmissionTransfer", "Update")]
+        public async Task<IActionResult> Reject(
+            Guid id,
+            [FromBody] RejectAdmissionTransferRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Data penolakan tidak valid.", errors));
+            }
+
+            var actorUserId = User.GetUserId();
+            var result = await _service.RejectAdmissionTransferAsync(id, request, actorUserId, cancellationToken);
+
+            if (!result.Berhasil)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(
+                    result.StatusCode,
+                    result.Penolakan ?? "Permintaan transfer rawat inap gagal ditolak."));
+            }
+
+            return Ok(ApiResponse<object>.Ok(null, "Permintaan transfer rawat inap berhasil ditolak."));
+        }
     }
 }

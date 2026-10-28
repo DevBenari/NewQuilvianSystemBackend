@@ -152,6 +152,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
+                _dbContext.Set<InpAdmissionDocumentParty>().Add(party);
                 document.Party = party;
             }
             else
@@ -519,13 +520,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (document.PrivacyRequest == null)
             {
-                document.PrivacyRequest = new InpAdmissionPrivacyRequest
+                var privacyRequest = new InpAdmissionPrivacyRequest
                 {
                     Id = Guid.NewGuid(),
                     DocumentId = document.Id,
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
+                _dbContext.Set<InpAdmissionPrivacyRequest>().Add(privacyRequest);
+                document.PrivacyRequest = privacyRequest;
             }
             else
             {
@@ -561,7 +564,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     continue;
                 }
 
-                document.PrivacyEntries.Add(new InpAdmissionPrivacyEntry
+                var entry = new InpAdmissionPrivacyEntry
                 {
                     Id = Guid.NewGuid(),
                     DocumentId = document.Id,
@@ -570,7 +573,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     Text = texts[index],
                     CreateDateTime = now,
                     CreateBy = actorUserId
-                });
+                };
+                _dbContext.Set<InpAdmissionPrivacyEntry>().Add(entry);
+                document.PrivacyEntries.Add(entry);
             }
 
             foreach (var extra in document.PrivacyEntries.Where(x => x.EntryType == entryType && x.LineNo > texts.Count).ToList())
@@ -612,7 +617,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     continue;
                 }
 
-                document.BeliefItems.Add(new InpAdmissionBeliefItem
+                var beliefItem = new InpAdmissionBeliefItem
                 {
                     Id = Guid.NewGuid(),
                     DocumentId = document.Id,
@@ -620,7 +625,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     Text = texts[index],
                     CreateDateTime = now,
                     CreateBy = actorUserId
-                });
+                };
+                _dbContext.Set<InpAdmissionBeliefItem>().Add(beliefItem);
+                document.BeliefItems.Add(beliefItem);
             }
 
             foreach (var extra in document.BeliefItems.Where(x => x.ItemNo > texts.Count).ToList())
@@ -665,13 +672,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (document.CostDifferenceStatement == null)
             {
-                document.CostDifferenceStatement = new InpAdmissionCostDifferenceStatement
+                var costDifference = new InpAdmissionCostDifferenceStatement
                 {
                     Id = Guid.NewGuid(),
                     DocumentId = document.Id,
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
+                _dbContext.Set<InpAdmissionCostDifferenceStatement>().Add(costDifference);
+                document.CostDifferenceStatement = costDifference;
             }
             else
             {
@@ -702,13 +711,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         {
             if (document.DepositStatement == null)
             {
-                document.DepositStatement = new InpAdmissionDepositStatement
+                var depositStatement = new InpAdmissionDepositStatement
                 {
                     Id = Guid.NewGuid(),
                     DocumentId = document.Id,
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
+                _dbContext.Set<InpAdmissionDepositStatement>().Add(depositStatement);
+                document.DepositStatement = depositStatement;
             }
             else
             {
