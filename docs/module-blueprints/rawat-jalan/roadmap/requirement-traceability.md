@@ -419,3 +419,18 @@ Scope Registration + Surat Dokter. Keputusan `RJ-REF-DEC-001`..`007`; definisi t
 
 **Coverage gap:** uji layar Playwright, uji `403`/non-DPJP dengan akun tanpa SuperAdmin, cabang IGD runtime,
 cetak kertas (UAT).
+
+## 16. Revisi `2026-10-28` — Katalog Resep dari stok Farmasi Rawat Jalan (Amendment SF)
+
+Keputusan `RJ-DOC-DEC-084`..`090`; definisi task pada
+[doctor-consultation-roadmap.md](doctor-consultation-roadmap.md) bagian `21`.
+
+| Requirement pemilik / AC | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Hapus lokasi uji dan data stok uji (`RJ-DOC-DEC-084`) | Eksekusi data, bukan task | ✅ `2026-10-28` — 1 lokasi, 3 saldo, 3 batch, 8 mutasi, 3 pemakaian, 1 reservasi dihapus | [RJ-DOC-REV-BE-022](../task/report/backend/RJ-DOC-REV-BE-022.md) bagian 7 |
+| Depo Farmasi RJ tertaut Rawat Jalan (`RJ-DOC-DEC-085`) | Eksekusi data, bukan task | ✅ `2026-10-28` — routing RJ memilih `GDG-023` (R1) | [RJ-DOC-REV-BE-022](../task/report/backend/RJ-DOC-REV-BE-022.md) R1 |
+| Saldo Farmasi RJ untuk seluruh `MstDrug` (`RJ-DOC-DEC-086`) | Eksekusi data, bukan task | ✅ `2026-10-28` — 7.862 saldo pembuka lewat API | [RJ-DOC-REV-BE-022](../task/report/backend/RJ-DOC-REV-BE-022.md) bagian 7 |
+| Katalog Resep RJ dari stok + Pilih nonaktif bila stok `0` (`RJ-DOC-DEC-087`) | `RJ-DOC-REV-BE-022`, `RJ-DOC-REV-FE-022` | BE ✅ `2026-10-28` (R0–R8); FE ✅ `2026-10-28` (S1–S10) | [RJ-DOC-REV-BE-022](../task/report/backend/RJ-DOC-REV-BE-022.md), [RJ-DOC-REV-FE-022](../task/report/frontend/RJ-DOC-REV-FE-022.md) |
+| Sembunyikan info tanggungan asuransi di Resep RJ (`RJ-DOC-DEC-089`) | `RJ-DOC-REV-FE-023` | ✅ `2026-10-28` (C1–C6, uji kontrol) | [RJ-DOC-REV-FE-023](../task/report/frontend/RJ-DOC-REV-FE-023.md) |
+
+**Coverage gap:** stok `0` dengan data DB sungguhan diuji manual oleh owner (`RJ-DOC-DEC-086`); di layar sudah diuji lewat respons yang diubah (S6).

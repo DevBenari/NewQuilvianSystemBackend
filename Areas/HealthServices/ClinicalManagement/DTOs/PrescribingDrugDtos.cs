@@ -146,6 +146,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? CoverageNote { get; set; }
 
         public List<string> Warnings { get; set; } = new();
+
+        /// <summary>
+        /// Depo Farmasi asal stok. Terisi hanya bila katalog diminta dengan <c>fromPharmacyStock=true</c>.
+        /// </summary>
+        public Guid? StockStorageLocationId { get; set; }
+
+        public string? StockStorageLocationName { get; set; }
+
+        /// <summary>
+        /// Stok siap layan di depo dalam satuan penyerahan: saldo fisik dikurangi yang sedang ditahan,
+        /// hanya status Available dan batch yang belum kedaluwarsa.
+        /// </summary>
+        public decimal? AvailableStockQuantity { get; set; }
+
+        public bool? IsStockAvailable { get; set; }
     }
 
     public class PrescribingDrugDetailResponse : PrescribingDrugResponse
@@ -254,6 +269,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid? InsuranceProviderId { get; set; }
 
         public string? BenefitPlanCode { get; set; }
+
+        /// <summary>Depo Farmasi sumber katalog bila diminta dengan <c>fromPharmacyStock=true</c>.</summary>
+        public Guid? StockStorageLocationId { get; set; }
+
+        public string? StockStorageLocationName { get; set; }
 
         public int PageNumber { get; set; }
 
