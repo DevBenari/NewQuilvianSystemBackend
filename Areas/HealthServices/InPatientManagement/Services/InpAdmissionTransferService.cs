@@ -12,6 +12,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 
@@ -22,12 +23,14 @@ public partial class InpAdmissionTransferService(
     InpBedMutationCoordinator bedCoordinator, InpBedAccessService bedAccess,
     EncounterPaymentSourceService paymentSources, BillingDepositService deposits,
     BillingNumberSeriesService? billingNumberSeries = null,
-    QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.CliTransferHandoverService? transferHandoverService = null)
+    QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.CliTransferHandoverService? transferHandoverService = null,
+    EmergencyDispositionService? emergencyDispositionService = null)
 {
     private readonly ApplicationDbContext _dbContext = dbContext;
     private readonly InpBedMutationCoordinator _bedCoordinator = bedCoordinator;
     private readonly InpBedAccessService _bedAccess = bedAccess;
     private readonly QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.CliTransferHandoverService? _transferHandoverService = transferHandoverService;
+    private readonly EmergencyDispositionService? _emergencyDispositionService = emergencyDispositionService;
 
     public async Task<PagedResult<InpatientAdmissionTransferItemResponse>> GetPagedTransfersAsync(
         AdmissionTransferQuery query, CancellationToken cancellationToken = default)
@@ -224,8 +227,31 @@ public partial class InpAdmissionTransferService(
             disposition.ExecutedAt = DateTime.UtcNow;
             disposition.UpdateBy = actorUserId;
             disposition.UpdateDateTime = DateTime.UtcNow;
+
+            if (_emergencyDispositionService != null)
+            {
+                await _emergencyDispositionService.EvaluasiPenutupanKunjunganSusulanAsync(
+                    disposition.EmergencyVisitId, actorUserId, DateTime.UtcNow, cancellationToken);
+            }
         }
         await _dbContext.SaveChangesAsync(cancellationToken);
         return InpEpisodeOperationResult.Success(episode, "Admisi dan reservasi transfer tersimpan. Lanjutkan persetujuan pasien.");
+    }
+
+    /// <summary>
+    /// Menolak permintaan transfer rawat inap oleh petugas admisi (BE-IGD-077).
+    /// Membatalkan form permintaan IGD (Signed -> Cancelled) dengan alasan penolakan wajib.
+    /// </summary>
+    public async Task<EmergencyDispositionService.HasilBatalFormAdmisi> RejectAdmissionTransferAsync(
+        Guid transferId,
+        RejectAdmissionTransferRequest request,
+        Guid actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        if (_emergencyDispositionService == null)
+            throw new InvalidOperationException("Layanan disposisi IGD tidak tersedia.");
+
+        return await _emergencyDispositionService.BatalkanFormPermintaanOlehPetugasAdmisiAsync(
+            transferId, request.Reason, actorUserId, cancellationToken);
     }
 }

@@ -91,6 +91,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         public ClinicalDocumentIntegrityStatus? IntegrityStatus { get; set; }
 
         public string? IntegrityStatusName { get; set; }
+
+        // ---- Amandemen kontrak 0.2.0 (BE-21). Seluruhnya tambahan; klien 0.1.1 mengabaikannya. ----
+
+        /// <summary>Waktu final menurut modul pemilik. Kosong pada tiga belas jenis bawaan.</summary>
+        public DateTime? FinalizedAt { get; set; }
+
+        /// <summary>Pernah diralat di modul pemilik (`RM-DEC-042`).</summary>
+        public bool IsCorrected { get; set; }
+
+        /// <summary>Isinya dapat berubah tanpa riwayat (`RM-DEC-059`).</summary>
+        public bool IsProvisional { get; set; }
+
+        /// <summary>Nama modul pemilik dokumen. Kosong pada tiga belas jenis bawaan.</summary>
+        public string? SourceModule { get; set; }
+        /// <summary>Hanya pada baris `PeriodicObservationSummary` (`RM-DEC-052`).</summary>
+        public MedicalRecordPeriodicSummaryResponse? PeriodicSummary { get; set; }
     }
 
     /// <summary>
@@ -124,6 +140,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         public List<MedicalRecordTimelineSourceFailure> FailedSources { get; set; } = new();
 
         /// <summary>
+        /// Jenis yang diminta tetapi belum punya pembaca (kontrak 0.2.0). Dinyatakan supaya layar
+        /// tidak membacanya sebagai "tidak ada dokumen" (`RM-DEC-030`, `RM-DEC-058`). Tidak
+        /// memengaruhi <see cref="IsComplete"/>, yang tetap hanya soal sumber gagal dan pemotongan.
+        /// </summary>
+        public List<MedicalRecordUnavailableKindResponse> UnavailableKinds { get; set; } = new();
+
+        /// <summary>
         /// Benar bila ada sumber yang datanya melampaui batas pengambilan per sumber.
         ///
         /// <see cref="PagedResult{T}.TotalData"/> tetap jumlah yang sebenarnya, karena dihitung
@@ -135,5 +158,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
 
         /// <summary>Ringkasan siap tampil untuk memberi tahu pembaca bahwa daftarnya tidak utuh.</summary>
         public bool IsComplete => FailedSources.Count == 0 && !IsTruncated;
+    }
+
+    /// <summary>Satu jenis dokumen yang belum dapat ditampilkan di berkas, beserta kalimat bagi pembaca.</summary>
+    public class MedicalRecordUnavailableKindResponse
+    {
+        public ClinicalDocumentKind DocumentKind { get; set; }
+
+        public string DocumentKindName { get; set; } = string.Empty;
+
+        public string Message { get; set; } = string.Empty;
+    }
+
+    /// <summary>Ringkasan satu jenis pencatatan berkala pada satu hari (tanggal WIB).</summary>
+    public class MedicalRecordPeriodicSummaryResponse
+    {
+        public PeriodicObservationKind Kind { get; set; }
+
+        public string KindName { get; set; } = string.Empty;
+
+        /// <summary>Tanggal WIB, bentuk `yyyy-MM-dd`. Dipakai meminta rinciannya.</summary>
+        public string Date { get; set; } = string.Empty;
+
+        /// <summary>Jumlah pencatatan yang tidak dibatalkan pada hari itu.</summary>
+        public int Count { get; set; }
+    }
+
+    /// <summary>Satu pencatatan pada rincian ringkasan berkala.</summary>
+    public class PeriodicObservationEntryResponse
+    {
+        public Guid EntryId { get; set; }
+
+        public Guid? EncounterId { get; set; }
+
+        public DateTime OccurredAt { get; set; }
+
+        /// <summary>Isi pencatatan untuk dibaca petugas, mis. "112 mg/dL (glukometer)".</summary>
+        public string Value { get; set; } = string.Empty;
+
+        /// <summary>Pencatatan ini pernah direvisi.</summary>
+        public bool IsCorrected { get; set; }
     }
 }

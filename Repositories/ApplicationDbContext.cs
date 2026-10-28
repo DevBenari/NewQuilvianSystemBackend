@@ -1211,6 +1211,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MrcClinicalNoteAuthorDelegation> MrcClinicalNoteAuthorDelegations { get; set; }
         public DbSet<MrcAccessLog> MrcAccessLogs { get; set; }
         public DbSet<MstMedicalRecordAccessPurpose> MstMedicalRecordAccessPurposes { get; set; }
+        public DbSet<MrcEncounterClinicalClosure> MrcEncounterClinicalClosures { get; set; }
+        public DbSet<MrcEncounterCompletenessAssessment> MrcEncounterCompletenessAssessments { get; set; }
+        public DbSet<MstMedicalRecordCompletenessProfile> MstMedicalRecordCompletenessProfiles { get; set; }
+        public DbSet<MstMedicalRecordCompletenessProfileItem> MstMedicalRecordCompletenessProfileItems { get; set; }
         #endregion MEDICAL RECORD MANAGEMENT
 
         #region BLOOD BANK MANAGEMENT

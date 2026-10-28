@@ -46,6 +46,52 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enu
         /// <c>ClinicalDocumentIntegrityService</c>: penegakan <c>EnsureMutableAsync</c> baru
         /// dibutuhkan koreksi <c>S6</c>, dan himpunan itu milik Rekam Medis.
         /// </summary>
-        LaboratoryResult = 15
+        LaboratoryResult = 15,
+
+        // =====================================================================
+        // Amandemen RM-BP-001 revision 4 (`RM-DEC-039`, `BE-21`).
+        //
+        // Nilai 16–44 adalah dokumen milik modul lain yang dibaca berkas rekam medis lewat
+        // IMedicalRecordDocumentSource. Nomornya didaftarkan sekaligus supaya stabil, tetapi
+        // SATU nilai baru tampil di berkas hanya setelah pembacanya terdaftar. Sebelum itu
+        // nilainya dilaporkan sebagai "belum tersedia" (MedicalRecordTimelineService), tidak
+        // sebagai daftar kosong — keadaan yang pernah menimpa nilai 14 dan 15 (`RM-CAP-035`).
+        // =====================================================================
+
+        RadiologyReport = 16,
+        EmergencyTriage = 17,
+        EmergencyObservation = 18,
+        EmergencyResuscitation = 19,
+        EmergencyDisposition = 20,
+        DischargeSummary = 21,
+        AdmissionDocument = 22,
+        SurgeryReport = 23,
+        AnesthesiaRecord = 24,
+        SurgicalSafetyChecklist = 25,
+        BirthRecord = 26,
+        NutritionCareRecord = 27,
+        BloodGroupExam = 28,
+        TransfusionReactionNotice = 29,
+        Prescription = 30,
+        MedicationAdministration = 31,
+        MedicationReconciliation = 32,
+        McuResume = 33,
+        McuExaminationResult = 34,
+        NursingCarePlan = 35,
+        PhysicianVisit = 36,
+        NursingIntervention = 37,
+        TransfusionMonitoring = 38,
+        DoctorCertificate = 39,
+        CaseManagementEvaluation = 40,
+        NosocomialInfection = 41,
+        TransferHandover = 42,
+        PeriodicObservationSummary = 43,
+
+        /// <summary>
+        /// Hasil Patologi Anatomi. Sengaja TIDAK punya pembaca: laporan PA saat ini dapat dibuka
+        /// kembali sesudah dirilis (`RM-FACT-020`), sehingga ditahan dari berkas (`RM-DEC-058`).
+        /// Nilai ini ada supaya berkas dapat menyatakannya "belum tersedia".
+        /// </summary>
+        PathologyAnatomyResult = 44
     }
 }

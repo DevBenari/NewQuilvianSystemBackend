@@ -62,6 +62,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeder
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.Sources;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
@@ -660,6 +661,24 @@ try
     builder.Services.AddScoped<MedicalRecordAccessAuditService>();
     builder.Services.AddScoped<MedicalRecordAccessReviewService>();
     builder.Services.AddScoped<MedicalRecordTimelineService>();
+
+    // Pembaca sumber berkas rekam medis (INT-RM-10). Satu instance per scope dipakai untuk kedua
+    // kontraknya, supaya pembaca dokumen dan pembaca uji kelengkapan tidak berbeda pendapat.
+    // BE-22: ringkasan pencatatan berkala ClinicalManagement, milik rekam medis sendiri.
+    builder.Services.AddScoped<PeriodicObservationSummaryService>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<PeriodicObservationSummaryService>());
+    // BE-23: Laboratorium, persetujuan pemilik RM-DEC-063.
+    builder.Services.AddScoped<LabMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<LabMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<LabMedicalRecordDocumentSource>());
+    // BE-24: Radiologi, persetujuan pemilik RM-DEC-064.
+    builder.Services.AddScoped<RadMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<RadMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<RadMedicalRecordDocumentSource>());
+    // BE-36: MCU, persetujuan pemilik RM-DEC-063.
+    builder.Services.AddScoped<McuMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<McuMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<McuMedicalRecordDocumentSource>());
 
     // Patient Management — rekonsiliasi MRN Pilot RSMMC (BE-PAT-MIG-001), sementara, khusus Staging
     builder.Services.AddSingleton(RsmmcPilotApprovedBatchProfile.Canonical);
@@ -1664,6 +1683,47 @@ try
             "Seeder master kriteria telaah resep selesai.");
     }
 
+    static async Task SeedDrugStorageLocationsAsync(
+        IServiceProvider services,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("DrugStorageLocationSeeder");
+
+        var systemUserId = await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.NormalizedUserName == "SUPERADMIN" ||
+                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (systemUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Seeder master lokasi penyimpanan obat membutuhkan akun SuperAdmin.");
+        }
+
+        logger.LogInformation(
+            "Memulai seeder master lokasi penyimpanan obat.");
+
+        var result = await DrugStorageLocationSeeder.SeedAsync(
+            dbContext,
+            systemUserId,
+            cancellationToken);
+
+        logger.LogInformation(
+            "Seeder master lokasi penyimpanan obat selesai. Ditambahkan {Inserted}, dilewati {Skipped}.",
+            result.Inserted,
+            result.Skipped);
+    }
+
     static async Task SeedOperatingRoomDemoAsync(
         IServiceProvider services,
         IHostEnvironment environment,
@@ -2238,6 +2298,17 @@ try
             await RunStartupSeederAsync(
                 "PrescriptionReviewCriterionSeeder",
                 () => SeedPrescriptionReviewCriteriaAsync(app.Services));
+        }
+
+        var runDrugStorageLocationSeed =
+            builder.Configuration.GetValue<bool>(
+                "Seeders:RunDrugStorageLocationSeed");
+
+        if (runDrugStorageLocationSeed)
+        {
+            await RunStartupSeederAsync(
+                "DrugStorageLocationSeeder",
+                () => SeedDrugStorageLocationsAsync(app.Services));
         }
 
         // Seed Awal Saja
