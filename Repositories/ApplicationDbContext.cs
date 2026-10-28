@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Models;
@@ -1292,6 +1293,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<McuReleaseConsent> McuReleaseConsents { get; set; }
         public DbSet<McuResultDelivery> McuResultDeliveries { get; set; }
         #endregion MEDICAL CHECKUP MANAGEMENT
+
+        #region NURSE VIEW MANAGEMENT
+        public DbSet<NvwDisplayDevice> NvwDisplayDevices { get; set; }
+        public DbSet<NvwVitalSignInterval> NvwVitalSignIntervals { get; set; }
+        #endregion NURSE VIEW MANAGEMENT
 
         #endregion HEALTH SERVICE
 

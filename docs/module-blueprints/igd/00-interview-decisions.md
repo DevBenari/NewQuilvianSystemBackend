@@ -8868,3 +8868,15 @@ akun perawat `dimas`) dan menjalankan `langkah-oq145-20261028/skrip/10-siapkan-o
 
 `IGD-OQ-145` ditutup. Nomor baru: `IGD-DEC-371`, `IGD-FACT-262`, `263`. Nomor berikutnya: `IGD-DEC-372`, `IGD-FACT-264`,
 `IGD-OQ-146`.
+
+### Pembatasan Akses Dokter IGD & Perawat IGD — 28 Oktober 2026 (siang)
+
+Membatasi visibilitas Ruang Kerja Dokter IGD khusus untuk Dokter IGD yang sedang login dan SuperAdmin, serta mengunci
+pemeriksaan pasien IGD hanya untuk Perawat IGD. Operan dokter (handover) tetap dikelola di sisi Perawat IGD via modal
+eksisting di Ruang Kerja Pemeriksaan IGD.
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-372` | **Hak akses dan visibilitas Ruang Kerja Dokter IGD dikhususkan untuk Dokter IGD yang sedang login dan SuperAdmin; pemeriksaan IGD dikunci untuk Perawat IGD.** (a) Ruang Kerja Dokter IGD hanya dapat diakses oleh dokter yang terhubung ke data dokter dan memiliki jadwal/penugasan IGD, serta SuperAdmin; (b) Daftar pasien dokter IGD HANYA menampilkan *"Pasien Saya"* (pasien dengan DPJP aktif = dokter yang login); saringan dan opsi *"Semua Pasien IGD"* ditiadakan dari layar dokter; SuperAdmin tetap dapat melihat seluruh pasien IGD; (c) Alur pengalihan dokter (handover) antar-shift tetap dikelola di sisi Perawat IGD lewat modal alihkan dokter yang sudah ada di Ruang Kerja Pemeriksaan IGD, tanpa modal tandingan di sisi dokter; (d) Pemeriksaan triase dan asuhan keperawatan IGD hanya dapat disimpan oleh Perawat IGD aktif dan SuperAdmin; perawat unit lain ditolak 403. **Konsekuensi yang diterima:** dokter jaga IGD tidak dapat melihat pasien dokter lain; alokasi dan operan pasien sepenuhnya bergantung pada ketepatan perawat triase dan perawat jaga IGD | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-28** | Kesepakatan pemilik 28 Oktober 2026; modal alihkan dokter perawat sudah aktif |
+
+Nomor baru: `IGD-DEC-372`. Nomor berikutnya: `IGD-DEC-373`, `IGD-FACT-264`, `IGD-OQ-146`.

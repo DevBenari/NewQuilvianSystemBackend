@@ -95490,6 +95490,176 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MrcClinicalNoteAuthorDelegation", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Models.NvwDisplayDevice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeactivatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DeactivatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DeactivationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("DeviceCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("DeviceName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("DeviceStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
+                    b.Property<string>("FloorCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("LastOnlineAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LocationName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<DateTime?>("LoginIssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LoginIssuedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("LoginUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DeviceCode")
+                        .IsUnique();
+
+                    b.HasIndex("LoginUserId")
+                        .IsUnique()
+                        .HasFilter("\"LoginUserId\" IS NOT NULL");
+
+                    b.HasIndex("FloorCode", "DeviceStatus");
+
+                    b.ToTable("NvwDisplayDevice", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Models.NvwVitalSignInterval", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EwsRiskLevel")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("IntervalMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RatificationReference")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateOnly>("RatifiedOn")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EwsRiskLevel")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("NvwVitalSignInterval", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_NvwVitalSignInterval_Level", "\"EwsRiskLevel\" BETWEEN 1 AND 4");
+
+                            t.HasCheckConstraint("CK_NvwVitalSignInterval_Minutes", "\"IntervalMinutes\" BETWEEN 1 AND 1440");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziDietType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -133354,6 +133524,16 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Delegation");
 
                     b.Navigation("Integrity");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Models.NvwDisplayDevice", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "LoginUser")
+                        .WithMany()
+                        .HasForeignKey("LoginUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("LoginUser");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziMealDelivery", b =>

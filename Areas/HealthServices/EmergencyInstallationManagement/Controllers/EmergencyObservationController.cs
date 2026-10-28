@@ -46,6 +46,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly LoggerService _loggerService;
         private readonly EmergencyObservationService _emergencyObservationService;
         private readonly EmergencyVisitService _emergencyVisitService;
+        private readonly EmergencyUnitAuthorityService _emergencyUnitAuthorityService;
         private readonly EmergencyRealtimeService? _emergencyRealtimeService;
 
         public EmergencyObservationController(
@@ -53,12 +54,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             LoggerService loggerService,
             EmergencyObservationService emergencyService,
             EmergencyVisitService emergencyVisitService,
+            EmergencyUnitAuthorityService emergencyUnitAuthorityService,
             EmergencyRealtimeService? emergencyRealtimeService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyObservationService = emergencyService;
             _emergencyVisitService = emergencyVisitService;
+            _emergencyUnitAuthorityService = emergencyUnitAuthorityService;
             _emergencyRealtimeService = emergencyRealtimeService;
         }
 
@@ -169,6 +172,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            // IGD-DEC-372: Hanya Perawat IGD atau SuperAdmin yang dapat membuat observasi IGD
+            var authorityCheck = await _emergencyUnitAuthorityService.PeriksaWewenangKlinisIgdAsync(
+                User, actorUserId, now, "membuat observasi IGD", cancellationToken);
+            if (!authorityCheck.Berwenang)
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, authorityCheck.Penolakan!));
+
             var entity = new EmgObservation
             {
                 Id = Guid.NewGuid(),
@@ -248,6 +258,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+
+            // IGD-DEC-372: Hanya Perawat IGD atau SuperAdmin yang dapat mengubah observasi IGD
+            var authorityCheck = await _emergencyUnitAuthorityService.PeriksaWewenangKlinisIgdAsync(
+                User, actorUserId, now, "mengubah observasi IGD", cancellationToken);
+            if (!authorityCheck.Berwenang)
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, authorityCheck.Penolakan!));
+
             entity.EmergencyVisitId = request.EmergencyVisitId;
             entity.ObservationNumber = string.IsNullOrWhiteSpace(request.ObservationNumber) ? entity.ObservationNumber : request.ObservationNumber.Trim();
             entity.StartedAt = request.StartedAt;
