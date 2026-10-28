@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `RM-BP-001` |
-| `revision` | `3` — diperbarui 10 September 2026 |
+| `revision` | `3` — diperbarui 10 September 2026. **28 Oktober 2026:** keputusan amandemen sambungan seluruh modul disahkan (`RM-DEC-037`–`050`); desainnya belum dimulai, sehingga revision belum naik. Lihat bagian "Amandemen 28 Oktober 2026" |
 | `status` | **`approved`** — disahkan Yoga Aji Pratama 26 Agustus 2026 (`RM-DEC-027`); kontrak API menyusul 27 Agustus 2026 (`RM-DEC-028`); amandemen sambungan Laboratorium 10 September 2026 (`RM-DEC-030`–`RM-DEC-036`). **Tidak ada lagi yang menunggu pengesahan** |
 | `module` | `rekam-medis` |
 | `design_snapshot_at` | `2026-08-24`; amandemen sambungan Laboratorium `2026-09-10` |
@@ -12,8 +12,8 @@
 | `owners` | Seluruh peran dipegang **Yoga Aji Pratama**: product/domain, clinical governance, security/privacy (`RM-DEC-027`), serta API authority dan frontend authority (`RM-DEC-028`). **Tidak ada peran yang masih `OPEN`** |
 | `approved_by` | **Yoga Aji Pratama** — penanggung jawab modul |
 | `approved_at` | **26 Agustus 2026** — kepemilikan API dan frontend menyusul **27 Agustus 2026** |
-| `input_revisions` | `00-interview-decisions.md` revision **`6`** — dikoreksi 10 September 2026, sebelumnya tertulis `4` padahal berkasnya sudah revision `5`; `01-existing-capability-map.md` revision `2` (**basi**, lihat catatan hash di bawah) |
-| `input_hashes` | Decisions **`sha256:914e6cc794368c1fa0171567e3e0bdd044640602e1570c9793906181fd4db9ff`** — dihitung ulang 10 September 2026 setelah amandemen revision 6. Capability map: hash tercatat **tidak lagi cocok** dengan berkasnya; lihat "Catatan penyimpangan hash" |
+| `input_revisions` | `00-interview-decisions.md` revision **`10`** — pengesahan revision 4, 28 Oktober 2026 (revision `8` dan `9` closure pass, revision `7` amandemen sambungan seluruh modul — ketiganya hari yang sama; revision `6`, 10 September 2026); `01-existing-capability-map.md` revision **`3`** — impact scan 28 Oktober 2026 |
+| `input_hashes` | Decisions **`sha256:d7ccef575e6fae8f4e6f6b99015e4264ec080b8e6ac533175a67cf69d53a6924`** — revision 10 (pengesahan; sebelumnya `1d788ecd…` revision 9), dihitung 28 Oktober 2026 dengan `sha256sum` atas berkas di disk (berakhiran LF). Sebelumnya `6a8d3f49…` (revision 8), `59e46deb…` (revision 7), dan `914e6cc7…` (revision 6). Requirement completeness `RM-RCG-001` revision 2: `sha256:a82ce13ad01ac05a3420b2ff9daf2a227846546d2c1d78df5bda3a6300c4fb79`. Capability map revision 3: `sha256:b840e22b3a780ba180c340c2dcdc44416c14a5809913a8b01cf1175088d61dc7`. Capability map: hash tercatat **tidak lagi cocok** dengan berkasnya; lihat "Catatan penyimpangan hash" |
 | `contract_versions` | API **`0.1.1`** — `approved` 27 Agustus 2026, hash terkunci. `0.1.0` disahkan pada `RM-DEC-028`; `0.1.1` hanya menyegarkan kolom status, **bentuk kontrak tidak berubah** sehingga klien `0.1.0` tetap sah. State `0.1.0`; validation `0.1.0`; integration `0.1.0`; permission/audit `0.1.0` — keempatnya masih `draft` |
 | `compatibility_impact` | **Aditif pada skema.** Lima tabel baru; **nol perubahan kolom** pada tabel yang sedang dipakai. Tiga perubahan **perilaku** pada endpoint berjalan, dirinci pada bagian "Dampak kompatibilitas" |
 
@@ -64,7 +64,7 @@ Dihitung pada 24 Agustus 2026.
 
 | Artifact | SHA-256 |
 |---|---|
-| `00-interview-decisions.md` | ~~`2d4c37bc456a39f70d7f10e40852f5e23ba2f7f5b47b71ec0a0ed24ba248aa3c`~~ → **`914e6cc794368c1fa0171567e3e0bdd044640602e1570c9793906181fd4db9ff`** — revision `6`, dihitung ulang 10 September 2026 |
+| `00-interview-decisions.md` | ~~`2d4c37bc…`~~ → ~~`914e6cc7…`~~ (revision `6`) → ~~`59e46deb…`~~ (7) → ~~`6a8d3f49…`~~ (8) → ~~`1d788ecd…`~~ (9) → **`d7ccef575e6fae8f4e6f6b99015e4264ec080b8e6ac533175a67cf69d53a6924`** — revision `10`, dihitung 28 Oktober 2026 |
 | `01-existing-capability-map.md` | `9cacecf803c0d552623a5f1ce5841af7bea7da5fc49aaf1b3142a076dd4416ae` |
 | `02-backend-architecture.md` | `32ab3711e9203bedf2838cdadbbeb1ab6400c20d49b1b1497eaed9efaa5243a1` |
 | `03-frontend-architecture.md` | `6c5f875a2e2e005919d34816fee3e3ed7341d97a110e92a961afbe3686f42931` — **revisi 2**, dihitung ulang 27 Agustus 2026 |
@@ -276,6 +276,119 @@ Ditambahkan 10 September 2026 untuk amandemen sambungan Laboratorium:
 
 Bila commit SHA kedua repository berubah sebelum implementasi dimulai, jalankan
 `/trace-existing-capabilities` mode impact scan pada berkas di atas sebelum blueprint dipakai.
+
+---
+
+## Amandemen 28 Oktober 2026 — sambungan seluruh modul dan kelengkapan berkas
+
+**Keadaan: keputusan disahkan, desain belum dimulai.** Revision blueprint **tetap `3`**
+karena arsitektur target belum disentuh; yang berubah baru masukannya.
+
+| Butir | Keadaan |
+|---|---|
+| Keputusan | `00-interview-decisions.md` revision `7`: `RM-DEC-037` sampai `RM-DEC-050`, seluruhnya `approved` oleh Yoga Aji Pratama 28 Oktober 2026 |
+| Isi singkat | Aturan sambungan Laboratorium (`RM-DEC-030`–`035`) berlaku untuk seluruh modul: baca langsung tanpa salinan, satu izin `MedicalRecord : Read`, satu baris jejak akses, hanya dokumen final, ralat milik modul pemilik, gangguan per bagian. Ditambah **kelengkapan berkas** (cakupan 4): tiga syarat, master dokumen wajib, dan daftar kerja yang tidak menahan pelayanan |
+| Modul yang disambungkan | Laboratorium, Radiologi; IGD, Rawat Inap, Kamar Operasi, Hemodialisa, Gizi, Bank Darah; Farmasi dan `ClinicalManagement` baru; MCU (`RM-DEC-039`) |
+| Snapshot source amandemen | Backend **`363de34f`** (branch `yoga`), frontend **`f0a3b07b8`** (branch `YogaV2`) |
+| Capability map | **Revision 3 — impact scan 28 Oktober 2026** pada snapshot di atas, `sha256:b840e22b3a780ba180c340c2dcdc44416c14a5809913a8b01cf1175088d61dc7`. `RM-CAP-034` sampai `RM-CAP-070`: 3 conflict, 7 unknown, 8 closure question. Blocker Lab 5 diusulkan tertutup; 6 dan 7 tetap terbuka |
+
+### Artefak yang menjadi `STALE` terhadap amandemen ini
+
+Input hash decisions berubah, sehingga menurut aturan bagian "Artifact hashes" seluruh artefak
+desain wajib ditinjau ulang sebelum dipakai **untuk cakupan amandemen**. Bagian rilis pertama
+yang sudah dibangun tetap sah dan tidak dibongkar.
+
+| Artefak | Bagian yang terdampak |
+|---|---|
+| `01-existing-capability-map.md` | Seluruh modul pada `RM-FACT-013` belum dipetakan |
+| `02-backend-architecture.md`, `erd/*` | Jalur baca per modul, master dokumen wajib, penilaian kelengkapan |
+| `03-frontend-architecture.md` | Linimasa jenis baru, pesan gangguan per bagian, menu daftar kerja (`RM-FE-020`–`024`) |
+| `contracts/api-contract.md` | Endpoint kelengkapan dan master dokumen wajib. Kontrak `0.1.1` tetap sah untuk 26 endpoint yang ada |
+| `contracts/integration-contract.md` | Satu bagian per modul tersambung |
+| `contracts/state-transition-matrix.md`, `validation-matrix.md`, `permission-audit-matrix.md` | Keadaan kelengkapan, addendum pengesahan, izin daftar kerja |
+| `testing/acceptance-test-matrix.md` | Acceptance criteria 25 sampai 39 belum dipetakan |
+| `roadmap/*` | Belum ada task untuk amandemen |
+
+### Impact scan trigger tambahan
+
+Area backend yang kini menjadi sumber berkas: `BloodBankManagement`, `EmergencyInstallationManagement`,
+`HemodialysisManagement`, `InPatientManagement`, `LaboratoryManagement`, `MedicalCheckupManagement`,
+`NutritionManagement`, `OperatingRoomManagement`, `PharmacyManagement`, `RadiologyManagement`,
+`RegistrationManagement`, dan `ClinicalManagement`. Kontrak integrasi blueprint modul-modul itu
+ikut menjadi pemicu.
+
+### Urutan berikutnya
+
+1. ~~`/trace-existing-capabilities` mode impact scan atas dua belas area di atas~~ —
+   **selesai 28 Oktober 2026** (capability map revision 3). Menghasilkan delapan closure
+   question; ~~`/grill-me` closure pass~~ **selesai 28 Oktober 2026** (decision log revision 8,
+   `RM-DEC-051`–`059`). **Nol blocker desain tersisa.** Hasil Patologi Anatomi ditahan
+   (`RM-DEC-058`); tiga aturan final sementara menunggu konfirmasi pemilik IGD, Gizi, dan
+   Kamar Operasi tanpa menahan desain (`RM-DEC-059`).
+2. ~~`/requirement-completeness-gate` untuk cakupan amandemen~~ — **selesai 28 Oktober 2026**:
+   `02-requirement-completeness-assessment.md` (`RM-RCG-001` revision 1,
+   `sha256:3c75dd76492ebd4540a4702d1f6871a3b068831c23dc03590379088b1d8c745e`). Kesiapan
+   `PARTIALLY_READY`: delapan slice siap; S-B1 sebagian; S-B2 dan S-A1b menunggu keputusan.
+   Pemblokir baru `DEC-RM-001` (dokumen wajib kunjungan penunjang langsung) — **ditutup hari
+   yang sama** oleh `RM-DEC-060`/`061` (decision log revision 9). `RM-RCG-001` revision 2:
+   **sepuluh dari sebelas slice `READY_FOR_DOMAIN_DESIGN`**; hanya S-A1b (hasil PA) berhenti.
+2c. ~~`/plan-module-delivery`~~ — **selesai 28 Oktober 2026**: roadmap revision 2 pada ketiga berkas
+   `roadmap/`. `BE-21`–`BE-41`, `FE-10`–`FE-15`. Siap dimulai: `BE-21`, `BE-25`, `BE-37`, `BE-38`, dan
+   `FE-10`–`FE-14` paralel. Sembilan task tertahan persetujuan pemilik modul. Radiologi disetujui
+   `RM-DEC-064`.
+2b. ~~`/design-business-module`~~ — **selesai 28 Oktober 2026**, **disahkan hari yang sama**
+   (`RM-DEC-062`). Lihat bagian "Revision 4" di bawah.
+2a. ~~`/hospital-domain-architect` untuk sepuluh slice siap~~ — **selesai 28 Oktober 2026**:
+   `03-domain-architecture.md` (`RM-DA-001` revision 1,
+   `sha256:4497a3a138194883b83ac182d47f4ea1940c97602368715fcedb86b2d5e9c0e2`),
+   `DOMAIN_ARCHITECTURE_PARTIAL` — sepuluh slice siap, S-A1b berhenti. Gap baru
+   `GAP-ARCH-RM-01`: disposisi IGD ke rawat inap menutup kunjungan tanpa mengunci catatan IGD
+   (menahan implementasi, bukan desain; milik blueprint IGD).
+3. `/design-business-module` — revision blueprint naik ke `4`.
+4. `/plan-module-delivery` mengikuti urutan `RM-DEC-048`.
+
+Dua utang modul ini sendiri boleh direncanakan lebih awal tanpa menunggu langkah 1: jenis
+`HemodialysisSession`/`LaboratoryResult` yang kosong diam-diam di linimasa (`RM-FACT-014`) dan
+penanda `Susulan` untuk 13 jenis lama (`RM-DEC-043`).
+
+### Revision 4 — approved (28 Oktober 2026)
+
+| Field | Value |
+|---|---|
+| `revision` | **`4`** — **`approved`** |
+| `status` | **`approved`** — Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`). Persetujuan pemilik Laboratorium dan MCU atas pembaca di modulnya: `RM-DEC-063` |
+| Scope | Sepuluh slice `RM-DA-001`; S-A1b (PA) dikecualikan |
+| Snapshot | Backend `363de34f`; frontend `f0a3b07b8` — diverifikasi sama saat desain |
+| `contract_versions` | API **`0.2.0` approved** (aditif terhadap `0.1.1`); state, validation, integration, permission/audit **`0.2.0` approved** |
+| `compatibility_impact` | **Aditif.** Empat tabel baru, satu kolom baru ber-bawaan (`MrcClinicalNoteAddendum.AddendumPurpose`), nol perubahan pada tabel modul lain. Satu perubahan perilaku: jenis 14/15 tidak lagi kosong diam-diam |
+| Struktur | `04-prd-to-mvp.md` **baru**; `erd/kelengkapan-berkas.md` **baru**; `03-domain-architecture.md` (`RM-DA-001`) dan `02-requirement-completeness-assessment.md` (`RM-RCG-001`) baru sejak revision 3. Artefak lain menerima bagian "Amandemen revision 4" di akhir berkas, tanpa menimpa isi rilis pertama |
+
+| Artifact | SHA-256 revision 4 |
+|---|---|
+| `02-backend-architecture.md` | `f0025568bbb14b443252b5e87a10a4efa3440e2102dafe8276c9b7abc0ed0b48` |
+| `03-frontend-architecture.md` | `df567cee5c850ac4bf1a63ba591ddddc507e46ecc88a75f48839a6ced9e11af2` |
+| `03-domain-architecture.md` | `4497a3a138194883b83ac182d47f4ea1940c97602368715fcedb86b2d5e9c0e2` |
+| `04-prd-to-mvp.md` | `7adae7a669f7afba0962361c6c84288ed012e48922c6d68be3febccc1d1dbf7b` |
+| `erd/00-context-erd.md` | `bea9146918073d93b0cd3ca67b61ae56f2d872f7717dc24782230955542fb686` |
+| `erd/kelengkapan-berkas.md` | `bcc5fd43647fce38c065a6ef1e9c9c3f39452863d5bc39e24b85c6b9ea369733` |
+| `erd/data-dictionary.md` | `c50ff66e4882a38e7e3978ef98b7563a68b7cdcf3edb481bed15b100a5258ed9` |
+| `contracts/api-contract.md` | `479cab0dbd1ceb224a705fd574937d1a793774196a51a8f5b5288a551697c28f` |
+| `contracts/state-transition-matrix.md` | `161d8a76d9f9563f07b3dc0dd619187235103bcd282590dbd24618606245617f` |
+| `contracts/validation-matrix.md` | `b41d423fe09b8b943565a60f0f30718c27e2af266f0c1a057682282df3600063` |
+| `contracts/integration-contract.md` | `395ca8ba3eef116501cefcb811a18739b29bd30644a25007588e88e9f9920711` |
+| `contracts/permission-audit-matrix.md` | `dcb18e3d01346583c98bb2772939b06acdda3d2ef8b0a18143b0a21bcc46f72d` |
+| `testing/acceptance-test-matrix.md` | `ce4a991ddaa2df6ad7b0b462ef9f41bb14340534c42545200f7ed80c4db5ab79` |
+
+Dihitung ulang sesudah penanda status `approved` dipasang, `sha256sum` atas berkas di disk (LF). Mengubah satu artefak di atas tanpa menghitung ulang
+barisnya mengulang penyimpangan yang dicatat pada "Catatan penyimpangan hash".
+
+**Pengesahan revision 4 dan kontrak `0.2.0` sudah diberikan** (`RM-DEC-062`). Persetujuan
+pemilik IGD, Rawat Inap, Kamar Operasi, Hemodialisa, Gizi, Bank Darah, Farmasi, dan Radiologi untuk
+berkas pembaca di modul mereka masih menahan **gelombang** yang memuat modul itu saja; Laboratorium dan MCU sudah disetujui (`RM-DEC-063`).
+
+**Catatan untuk blueprint MCU.** `RM-DEC-040` menutup `MCU-GAP-04` dari sisi rekam medis. Berkas
+`mcu/02-requirement-completeness-assessment.md` dan `mcu/04-prd-to-mvp.md` masih menyebutnya
+ditunda; penyelarasannya milik blueprint MCU dan **tidak** disunting pada amandemen ini.
 
 ---
 

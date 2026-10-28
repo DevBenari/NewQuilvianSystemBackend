@@ -112,3 +112,23 @@ Alternatif yang ditolak dan alasannya:
 
 Konteks Penelusuran Berkas tidak memiliki ERD tersendiri karena **tidak memiliki tabel sama
 sekali**. Ia hanya membaca tabel milik konteks lain.
+
+---
+
+## Amandemen revision 4 — konteks tambahan
+
+Status **`approved`** (Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`)). Rincian: `erd/kelengkapan-berkas.md`.
+
+```mermaid
+erDiagram
+    MstPatient ||--o{ RegPatientEncounter : "berkunjung"
+    RegPatientEncounter ||--o| MrcEncounterClinicalClosure : "tutup klinis - BARU"
+    MrcEncounterClinicalClosure ||--o| MrcEncounterCompletenessAssessment : "dinilai - BARU"
+    MstMedicalRecordCompletenessProfile ||--o{ MstMedicalRecordCompletenessProfileItem : "memuat - BARU"
+    MrcClinicalDocumentIntegrity ||--o{ MrcClinicalNoteAddendum : "addendum - DIPERLUAS"
+```
+
+Dokumen modul lain — Laboratorium, Radiologi, IGD, Rawat Inap, Kamar Operasi, Hemodialisa, Gizi,
+Bank Darah, Farmasi, MCU — **tidak** digambar sebagai bagian ERD rekam medis. Rekam medis tidak
+menyimpan dan tidak memiliki tabel itu (`RM-DEC-038`); hubungannya kontrak baca
+`IMedicalRecordDocumentSource`, bukan relasi tabel.
