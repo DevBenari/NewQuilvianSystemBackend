@@ -41,6 +41,19 @@ public sealed class InvoiceExchangeRowVersionRequest
     public Guid ExpectedRowVersion { get; set; }
 }
 
+/// <summary>
+/// PUT /{id} — koreksi data dokumen. Sengaja tidak memuat supplier, PO, GR, maupun EstimatedDueDate:
+/// rujukan tidak dikoreksi di sini (batalkan lalu catat ulang), dan estimasi jatuh tempo dihitung backend
+/// dari tanggal diterima + termin supplier (FR-FIN-082).
+/// </summary>
+public sealed class UpdateInvoiceExchangeRequest
+{
+    public Guid ExpectedRowVersion { get; set; }
+    public string SupplierInvoiceNumber { get; set; } = string.Empty;
+    public DateOnly SupplierInvoiceDate { get; set; }
+    public DateOnly ReceivedDate { get; set; }
+}
+
 /// <summary>GET / — daftar Tukar Faktur berpaging (FIN-API-1.1 §B.3, kolom Request
 /// `InvoiceExchangeQuery`). Filter persis sesuai kontrak: supplier, status.</summary>
 public sealed class InvoiceExchangeQuery

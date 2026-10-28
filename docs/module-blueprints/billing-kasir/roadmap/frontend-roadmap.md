@@ -2125,3 +2125,96 @@ frontend menunggu backend yang mengimplementasikannya.
 | Bukti verifikasi | `npx eslint` 0 error/0 warning, `node --import ./tests/helpers/register.mjs --test tests/unit/superseded-item-review.test.mjs` 6 tests passed |
 | Risiko / pemilik | Sedang: keputusan final tidak dapat dibatalkan, jadi dialog konfirmasi wajib jelas. Pemilik: Frontend Engineering; Frontend Owner untuk label menu |
 | Definition of Done | Kriteria terbukti; lint dan unit test lulus; layar terjangkau dari menu; laporan tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |
+
+---
+
+# Gelombang Revisi 2.4 — Penanda Layanan Berjasa dan Pelaksana pada Entri Kasir (`MVP-38`)
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `2.4` · status **`approved`** 26 Oktober 2026 |
+| Keputusan | `BKC-DEC-171`, `172`, `178`; `BKC-DES-098`; `BKC-OQ-151` (terbuka, tidak memblokir) |
+| Contract version berlaku | `BIL-API-2.1`, `BIL-VALIDATION-2.1` |
+| Desain layar | `03-frontend-architecture.md` amendment revisi `2.4` (`BIL-SCR-46`, `BIL-SCR-47`, `BIL-SCR-48`; nol butir menu baru) |
+| Frontend baseline SHA | `e2c17153b` · Backend baseline SHA `ecddd8f8` |
+| Requirement | `FR-BKC-293` |
+
+**Legenda tanda status:** ✅ selesai terbukti · 🟡 source ada, kriteria belum terbukti penuh · ⛔ tertahan gerbang ·
+tanpa tanda = belum disentuh.
+
+## Grafik Urutan Dependency
+
+```text
+BE-BKC-091 [BE] ─┬─> FE-BKC-047 ─> FE-BKC-048
+                 │
+                 └─> FE-BKC-049
+```
+
+`[BE]` = task backend pada `backend-roadmap.md`, gelombang Revisi 2.4 (cermin baca-saja; tertahan `{OTORISASI-MIG-3}` lewat
+`BE-BKC-089`). `FE-BKC-048` menunggu `FE-BKC-047` karena memakai ulang isian pelaksana yang dibuat di sana. Jumlah pasangan
+prasyarat→task: **3**. Bebas siklus.
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | `BE-BKC-091` [BE] | `FE-BKC-047`, `FE-BKC-049` (paralel) |
+| 2 | `FE-BKC-047` | `FE-BKC-048` |
+
+Selama `BE-BKC-091` tertahan otorisasi migration, gelombang 1 ikut menunggu. Kerja paralel lebih awal **tidak** diizinkan:
+`BIL-API-2.1` sudah approved tetapi belum dikunci hash-nya.
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FE-BKC-047` | Kasir dapat menandai biaya lain-lain sebagai berjasa dan memilih dokter pelaksana | `FR-BKC-293`; `BKC-DEC-171`, `172` | `BIL-API-2.1` (`other-charges`); `BIL-VALIDATION-2.1` | Panel Tambah Biaya Lain-lain, `use-menu-pembayaran.js`, slice `addBillingOtherCharge` | `BIL-SCR-46` + isian pelaksana bersama | `BE-BKC-091` [BE] | Rincian | eslint; unit test; uji manual | Sedang; Frontend Engineering | Rincian |
+| `FE-BKC-048` | Kasir dapat menandai entri katalog sebagai berjasa dan memilih dokter pelaksana | `FR-BKC-293`; `BKC-DEC-171`, `172`; `BKC-DES-098` | `BIL-API-2.1` (`catalog-charges`) | Isian pelaksana dari `FE-BKC-047`; `use-create-manual-invoice.js`, slice `addCatalogCharge` | `BIL-SCR-47` | `FE-BKC-047` | Rincian | eslint; unit test; uji manual | Rendah; Frontend Engineering | Rincian |
+| `FE-BKC-049` | Nama pelaksana tampil pada item berjasa di Menu Pembayaran | `FR-BKC-293`; `BKC-DEC-171` | `BIL-API-2.1` (`InvoiceItemResponse`) | Daftar item `menu-pembayaran-view.jsx` | `BIL-SCR-48` | `BE-BKC-091` [BE] | Rincian | eslint; unit test; uji manual | Rendah; Frontend Engineering | Rincian |
+
+## Rincian Task
+
+### `FE-BKC-047` — `BIL-SCR-46` Penanda berjasa pada Tambah Biaya Lain-lain, beserta isian pelaksana bersama
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Pada panel Tambah Biaya Lain-lain, kasir dapat mencentang "Layanan berjasa", memilih dokter aktif, dan (bila tersedia) peran; entri tersimpan dengan pelaksananya |
+| Jejak | `FR-BKC-293`; `BKC-DEC-171`, `172`, `178`; `03-frontend-architecture.md` amendment revisi `2.4` §3 wilayah (1)–(4) |
+| Kontrak | `BIL-API-2.1`: `isFeeBearing`, `performerType`, `performerReferenceId`, `performerRoleCode` pada `POST invoices/other-charges`; `BIL-VALIDATION-2.1` `161`..`165`. Daftar dokter `GET api/v1/corporate/human-resource/master-data/doctors/options` (milik HR). Daftar peran `GET .../medical-fee-management/roles` — **Rencana (belum tersedia)** |
+| Kemampuan existing | `src/components/view/health-services/billing-management/billing-invoices/menu-pembayaran/menu-pembayaran-view.jsx`; `src/lib/hooks/health-services/billing-management/billing-invoices/use-menu-pembayaran.js` (`addBillingOtherCharge`, `:411`); `billing-invoice-slice.jsx` |
+| Cakupan | 1. Isian pelaksana yang dapat dipakai ulang (penanda, pilihan dokter yang dapat dicari, peran opsional); lokasi dan bentuk komponennya keputusan builder sesuai base component Quilvian.<br/>2. Aturan tampil: isian dokter dan peran hanya tampil bila dicentang; menghapus centang mengosongkan keduanya.<br/>3. Peran: tampil hanya bila endpoint peran tersedia dan berhasil dimuat; selain itu tidak tampil dan dikirim kosong.<br/>4. Payload: `performerType = "DOCTOR"` bila dokter terisi; `WORKFORCE` tidak ditawarkan (`BKC-OQ-151`).<br/>5. Pesan `422` ditampilkan pada isian terkait; `409` dengan pesan muat ulang |
+| Dependency | `BE-BKC-091` [BE] |
+| Acceptance criteria | 1. Entri tidak berjasa terkirim tanpa satu pun field pelaksana (payload sama dengan hari ini ditambah `isFeeBearing: false` atau tanpa field).<br/>2. Entri berjasa tanpa dokter tidak dapat disimpan dari layar; bila server tetap menolak `422`, pesannya tampil pada isian dokter.<br/>3. Daftar dokter gagal dimuat: pesan "Daftar dokter tidak dapat dimuat. Coba lagi." dan Simpan nonaktif selama berjasa dicentang.<br/>4. Endpoint peran tidak tersedia: isian peran tidak tampil dan entri tetap dapat disimpan.<br/>5. Peran Kasir dapat membaca daftar dokter (`doctors/options`, `KioskReadPolicy`); bila tidak, task berhenti dan dilaporkan sebagai defect backend/HR, **bukan** diakali di frontend |
+| Bukti verifikasi | `npx eslint` 0 error/0 warning pada berkas yang disentuh; unit test logika payload dan aturan tampil/kosongkan sesuai `rules/frontend/test-policy.md`; uji manual di dev dengan akun Kasir |
+| Risiko / pemilik | Sedang: kriteria 5 bergantung pada kebijakan otorisasi HR. Pemilik: Frontend Engineering. Bentuk kontrol, urutan isian, dan teks bantuan `DEV_DISCRETION` |
+| Definition of Done | Kriteria terbukti; lint dan unit test lulus; laporan `task/report/frontend/FE-BKC-047.md` tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |
+
+### `FE-BKC-048` — `BIL-SCR-47` Penanda berjasa pada form Buat Invoice Manual (katalog)
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Form Buat Invoice Manual (Testing) memakai isian pelaksana yang sama untuk entri katalog tarif |
+| Jejak | `FR-BKC-293`; `BKC-DEC-171`, `172`; `BKC-DES-098` |
+| Kontrak | `BIL-API-2.1` `POST invoices/catalog-charges`; `BIL-VALIDATION-2.1` `161`..`165`, `167` |
+| Kemampuan existing | `src/components/view/health-services/billing-management/billing-invoices/create-manual/create-manual-invoice-view.jsx`; `use-create-manual-invoice.js` (`addCatalogCharge`, `:231`); isian pelaksana dari `FE-BKC-047` |
+| Cakupan | Pasang isian pelaksana; teruskan empat field pada `addCatalogCharge`; tampilkan pesan `409` (`BIL-VAL-167`). Label "Testing" pada form tidak berubah (`BKC-DEC-059`) |
+| Dependency | `FE-BKC-047` |
+| Acceptance criteria | 1. Kriteria 1–4 `FE-BKC-047` berlaku pada form ini.<br/>2. Dua entri tarif sama untuk dua dokter berbeda menghasilkan dua baris pada detail invoice (`BIL-AT-246`, dibuktikan lewat layar).<br/>3. Isian pelaksana tidak diduplikasi: komponen/hook yang sama dengan `FE-BKC-047` |
+| Bukti verifikasi | `npx eslint`; unit test payload; uji manual di dev |
+| Risiko / pemilik | Rendah. Pemilik: Frontend Engineering |
+| Definition of Done | Kriteria terbukti; lint dan unit test lulus; laporan tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |
+
+### `FE-BKC-049` — `BIL-SCR-48` Nama pelaksana pada item tagihan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Item berjasa pada daftar item Menu Pembayaran menampilkan "Pelaksana: <nama>" |
+| Jejak | `FR-BKC-293`; `BKC-DEC-171`; kendali risiko `permission-audit-matrix.md` revisi `2.4` ("pelaksana tampil pada rincian tagihan") |
+| Kontrak | `BIL-API-2.1` `InvoiceItemResponse.isFeeBearing`, `performerDisplayName` |
+| Kemampuan existing | Daftar item pada `menu-pembayaran-view.jsx` |
+| Cakupan | Tampilkan baris pelaksana hanya bila `isFeeBearing = true`; nama `null` → "Pelaksana tidak ditemukan". `doctorShare` dan `doctorShareResolution` **tidak** ditampilkan |
+| Dependency | `BE-BKC-091` [BE] |
+| Acceptance criteria | 1. Item berjasa menampilkan nama dokter; item lain tidak berubah.<br/>2. `performerDisplayName = null` menampilkan "Pelaksana tidak ditemukan".<br/>3. Tidak ada angka bagian dokter yang tampil di layar kasir |
+| Bukti verifikasi | `npx eslint`; unit test fungsi format baris; uji manual di dev |
+| Risiko / pemilik | Rendah. Pemilik: Frontend Engineering. Letak dan gaya baris `DEV_DISCRETION` |
+| Definition of Done | Kriteria terbukti; lint dan unit test lulus; laporan tersusun dengan baris `MANUAL TEST` dan `AUTOMATED TEST` |

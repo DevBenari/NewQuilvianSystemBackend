@@ -1784,3 +1784,82 @@ Model: `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceItem.cs`
 | `BilInpatientEventReceipt` | Billing | `Id`, `EventType`, `EncounterId`, `InvoiceId`, `Outcome`, `ReceivedAtUtc` | `ReceiptId` dan `LinkedAt` backfill |
 | `BilPaymentAllocation` | Billing | `TargetType`, `TargetId`, `Amount`, `ReversesAllocationId` | Alokasi bersih invoice poli untuk kredit `SETTLED_BY_WRITE_OFF` |
 | `RegPatientEncounter` | Registration Management | `SourceEncounterId`, `AdmissionTransferSourceType`, `PatientId`, `EncounterType`, `IsDelete`, `IsCancel` | Kriteria backfill, **baca saja** |
+
+## Amendment 26 Oktober 2026 — Pelaksana Entri Kasir dan Jejak Asal `DoctorShare` (Revisi 2.4)
+
+> `last_changed_in`: revisi blueprint `2.4`, status **draft**. Masukan: `BKC-DEC-168`..`178`, `BKC-DES-093`..`103`. Backend SHA: `ecddd8f8`.
+> Satu tabel diperbarui, enam kolom baru, empat `CHECK` baru, nol tabel baru. Seluruh tabel mewarisi `IdentityModel`; kesepuluh kolomnya tidak diulang.
+
+### `BilInvoiceItem` — **Diperbarui**
+
+Pemilik: Billing. Model: `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceItem.cs`.
+Konfigurasi: `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInvoiceItemConfiguration.cs`.
+Dibaca Medical Fee (baca saja, `BIL-INT-024`); ditulis hanya oleh Billing.
+
+| Kolom | Tipe | Wajib | Bawaan | Relasi / index | Hapus | Aturan | Sensitif |
+|---|---|---|---|---|---|---|---|
+| `IsFeeBearing` | `boolean` | Ya | `false` | — | — | **Baru.** Penanda kasir bahwa layanan berjasa (`BKC-DEC-171`). Hanya dapat `true` pada `SourceDomain` `ADHOC`/`ADHOC_CATALOG` pada revisi ini (`BKC-DES-102`, dijaga service) | Tidak |
+| `PerformerType` | `varchar(20)` | Bila `IsFeeBearing` | `NULL` | — | — | **Baru.** `DOCTOR` → `MstDoctor.Id`; `WORKFORCE` → `MstWorkforceProfile.Id` (`BKC-DEC-178`) | Tidak |
+| `PerformerReferenceId` | `uuid` | Bila `IsFeeBearing` | `NULL` | Tanpa FK (polimorfik) | — | **Baru.** Divalidasi service: baris rujukan ada, `IsDelete = false`, `IsActive = true` | Tidak |
+| `PerformerRoleCode` | `varchar(30)` | Tidak | `NULL` | Tanpa FK ke `MstMedicalFeeRole` | — | **Baru.** Kosong = peran utama. Bentuk `^[A-Z0-9_]+$` (`BKC-DES-103`) | Tidak |
+| `DoctorShareResolution` | `varchar(20)` | Tidak | `NULL` | — | — | **Baru.** Asal nilai `DoctorShare`: `MEDICAL_FEE`, `NO_RULE`, `UNAVAILABLE`, `NOT_APPLICABLE`. `NULL` = ditulis sebelum revisi 2.4 (`BKC-DES-097`) | Tidak |
+| `DoctorShareSharingRuleId` | `uuid` | Tidak | `NULL` | Tanpa FK (milik Medical Fee) | — | **Baru.** Aturan Medical Fee yang menghasilkan nilai; terisi jika dan hanya jika `DoctorShareResolution = 'MEDICAL_FEE'` | Tidak |
+| `DoctorShare` | `numeric(18,2)` | Ya | — | — | — | Sudah ada. Kini diisi hasil Medical Fee (`BKC-DES-096`) untuk baris berjasa bertarif; selebihnya 0. Data penghasilan tenaga medis: tidak dicatat ke log | Tidak |
+| `TariffId` | `uuid` | Tidak | — | FK `MstTariff`, `Restrict` | `Restrict` | Sudah ada. Syarat pemanggilan Medical Fee | Tidak |
+
+Check constraint baru:
+
+| Nama | Isi | Menjaga |
+|---|---|---|
+| `CK_BilInvoiceItem_PerformerRequired` | `NOT "IsFeeBearing" OR ("PerformerType" IS NOT NULL AND "PerformerReferenceId" IS NOT NULL)` | `INV-MF-3`, `BIL-VAL-161` |
+| `CK_BilInvoiceItem_PerformerOnlyWhenFeeBearing` | `"IsFeeBearing" OR ("PerformerType" IS NULL AND "PerformerReferenceId" IS NULL AND "PerformerRoleCode" IS NULL)` | `INV-MF-3`, `BIL-VAL-164` |
+| `CK_BilInvoiceItem_PerformerType` | `"PerformerType" IS NULL OR "PerformerType" IN ('DOCTOR','WORKFORCE')` | `BIL-VAL-162` |
+| `CK_BilInvoiceItem_DoctorShareResolution` | `"DoctorShareResolution" IS NULL OR ("DoctorShareResolution" IN ('MEDICAL_FEE','NO_RULE','UNAVAILABLE','NOT_APPLICABLE') AND ("DoctorShareResolution" = 'MEDICAL_FEE') = ("DoctorShareSharingRuleId" IS NOT NULL))` | `INV-MF-5` |
+
+Index baru: tidak ada (`02-backend-architecture.md` §25.13). Index unik lama (`SourceDomain`, `SourceDetailId`) tidak berubah: baris katalog untuk
+pelaksana berbeda lahir dengan `SourceDetailId` baru (turunan `Idempotency-Key`), sehingga tidak bertabrakan.
+
+**Contoh baris.**
+
+| Kasus | `IsFeeBearing` | `PerformerType` | `PerformerReferenceId` | `PerformerRoleCode` | `DoctorShare` | `DoctorShareResolution` | `DoctorShareSharingRuleId` |
+|---|---|---|---|---|---|---|---|
+| Konsultasi katalog Rp 500.000, dr. Rina, aturan 40% | `true` | `DOCTOR` | id dr. Rina | `NULL` | 200.000,00 | `MEDICAL_FEE` | id aturan |
+| Sama, Medical Fee tidak terjangkau | `true` | `DOCTOR` | id dr. Rina | `NULL` | 0,00 | `UNAVAILABLE` | `NULL` |
+| Entri bebas berjasa (tanpa tarif) | `true` | `DOCTOR` | id dr. Budi | `NULL` | 0,00 | `NOT_APPLICABLE` | `NULL` |
+| Materai Rp 10.000 | `false` | `NULL` | `NULL` | `NULL` | 0,00 | `NOT_APPLICABLE` | `NULL` |
+| Baris lama sebelum migration | `false` | `NULL` | `NULL` | `NULL` | (apa adanya) | `NULL` | `NULL` |
+
+### Skema DDL `BilInvoiceItem` (kolom baru saja)
+
+> Dokumentasi bentuk, **bukan** skrip yang dijalankan. Sumber kebenaran tetap `BilInvoiceItemConfiguration` dan migration yang kelak dibuat
+> setelah otorisasi terpisah.
+
+```sql
+ALTER TABLE public."BilInvoiceItem"
+    ADD COLUMN "IsFeeBearing"             boolean     NOT NULL DEFAULT false,
+    ADD COLUMN "PerformerType"            varchar(20) NULL,
+    ADD COLUMN "PerformerReferenceId"     uuid        NULL,
+    ADD COLUMN "PerformerRoleCode"        varchar(30) NULL,
+    ADD COLUMN "DoctorShareResolution"    varchar(20) NULL,
+    ADD COLUMN "DoctorShareSharingRuleId" uuid        NULL;
+
+ALTER TABLE public."BilInvoiceItem"
+    ADD CONSTRAINT "CK_BilInvoiceItem_PerformerRequired"
+        CHECK (NOT "IsFeeBearing" OR ("PerformerType" IS NOT NULL AND "PerformerReferenceId" IS NOT NULL)),
+    ADD CONSTRAINT "CK_BilInvoiceItem_PerformerOnlyWhenFeeBearing"
+        CHECK ("IsFeeBearing" OR ("PerformerType" IS NULL AND "PerformerReferenceId" IS NULL AND "PerformerRoleCode" IS NULL)),
+    ADD CONSTRAINT "CK_BilInvoiceItem_PerformerType"
+        CHECK ("PerformerType" IS NULL OR "PerformerType" IN ('DOCTOR','WORKFORCE')),
+    ADD CONSTRAINT "CK_BilInvoiceItem_DoctorShareResolution"
+        CHECK ("DoctorShareResolution" IS NULL OR ("DoctorShareResolution" IN ('MEDICAL_FEE','NO_RULE','UNAVAILABLE','NOT_APPLICABLE')
+               AND ("DoctorShareResolution" = 'MEDICAL_FEE') = ("DoctorShareSharingRuleId" IS NOT NULL)));
+```
+
+### Tabel yang dibaca, tidak diubah
+
+| Tabel | Pemilik | Kolom kunci yang dipakai | Model |
+|---|---|---|---|
+| `MstDoctor` | HR | `Id`, `IsActive`, `IsDelete`, `FullName` (untuk nama tampilan) | `Areas/Corporate/HumanResource/MasterData/Workforce/Models/MstDoctor.cs` |
+| `MstWorkforceProfile` | HR | `Id`, `IsActive`, `IsDelete`, `DisplayName` (untuk nama tampilan) | `Areas/Corporate/HumanResource/MasterData/Workforce/Models/MstWorkforceProfile.cs` |
+
+Trace: `BKC-DEC-171`, `172`, `177`, `178`; `BKC-DES-096`..`098`, `102`, `103`.

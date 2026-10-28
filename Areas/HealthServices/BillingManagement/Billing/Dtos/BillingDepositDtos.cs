@@ -37,6 +37,8 @@ public sealed class DepositResponse
     public decimal AvailableBalance { get; set; }
     public string Status { get; set; } = string.Empty;
     public Guid RowVersion { get; set; }
+    public bool IsTopUpEligible { get; set; } = true;
+    public string? TopUpIneligibleReason { get; set; }
     public IReadOnlyList<DepositMovementResponse> Movements { get; set; } = [];
 }
 

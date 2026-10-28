@@ -45,6 +45,24 @@ public sealed class EmployeeBenefitSplitCalculationResult
 }
 
 /// <summary>
+/// Kebijakan penawaran "AR Karyawan / Utang Pegawai" kepada kasir di Menu Pembayaran. Satu tempat, supaya layar tidak
+/// menebak batasnya sendiri.
+///
+/// KEPUTUSAN SAAT INI (konservatif): yang ditawarkan hanya kelebihan plafon yang belum dibayar (E sisa, asal piutang
+/// OVER_ALLOWANCE). Kewajiban pribadi dari item non-covered (K, asal PATIENT_PORTION atau MIXED) TIDAK ditawarkan
+/// lewat Menu Pembayaran, sehingga seluruh K tidak pernah masuk AR secara otomatis.
+///
+/// NEEDS BUSINESS DECISION (pemilik Billing/Finance/HR): apakah K boleh ditangguhkan menjadi utang pegawai, sampai
+/// berapa, dan dengan persetujuan siapa. Validasi finalisasi sendiri (0 &lt;= D &lt;= E sisa + K, persetujuan wajib untuk
+/// hubungan selain SELF) tidak diubah, jadi layar Detail Billing yang sudah ada tetap dapat memakainya.
+/// </summary>
+public static class BillingEmployeeArOfferPolicy
+{
+    public static decimal ResolveMaxOfferedAmount(decimal excessRemainingAmount) =>
+        Math.Max(excessRemainingAmount, 0m);
+}
+
+/// <summary>
 /// Layanan kalkulasi pembagian porsi tagihan untuk kunjungan berpenjamin internal
 /// (RS Benefit / Employee Benefit) saat proses finalisasi invoice (BE-FIN-107, BE-FIN-108;
 /// FIN-DEC-164, 183, 184, 185, 186, 198, 202, 205, 208, 210, 218;
@@ -417,6 +435,7 @@ public sealed class BillingEmployeeBenefitSplitService
             ChoiceAmount = deferredD,
             EmployeeReceivableAmount = employeeReceivableAmount,
             CashAtCashierAmount = cashAtCashierAmount,
+            EmployeeArMaxAmount = BillingEmployeeArOfferPolicy.ResolveMaxOfferedAmount(excessRemainingAmount),
             IsUsable = true,
             RequiresConsent = requiresConsent,
             BlockingReasonCode = null,

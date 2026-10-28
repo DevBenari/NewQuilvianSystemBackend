@@ -6863,3 +6863,55 @@ Perubahan:
 5. Payroll tidak diubah: hanya piutang berpemilik benefit yang masuk, dan `CK_FinReceivable_BenefitOwner` membatasinya ke `EMPLOYEE_BENEFIT`.
 
 Belum dikerjakan: laporan umur piutang, subledger, dan dokumen laporan belum memfilter `IsInternalBenefit` (penandanya sudah tersedia). Segmen subledger `PAYER`/`PATIENT_GUARANTOR`/`EMPLOYEE_BENEFIT` tidak diubah; memisahkan akun kontrol piutang benefit internal adalah keputusan Finance/Accounting yang terpisah.
+
+
+## U. Amandemen 27 Oktober 2026 — Perluasan daftar perjanjian angsuran dan intake otomatis AR Karyawan
+
+> Status: **diterapkan di source, belum dibuild, uji xUnit belum dijalankan, tanpa migration** (tidak ada perubahan skema).
+> Dasar: perintah eksplisit pemilik pada sesi 27 Oktober 2026 (opsi C). Rinci layar FE ada di
+> `03-frontend-architecture.md` §22.13.
+
+### U.1 Daftar, ringkasan, dan rincian perjanjian angsuran (hanya baca, aditif)
+
+| Perubahan | Berkas |
+|---|---|
+| `InstallmentPlanResponse.RequestedByUserId` (dipakai FE menyembunyikan Setujui / Tolak bagi pengaju; penegakan tetap di service dan `CK_FinReceivableInstallmentPlan_MakerChecker`) | `FinanceReceivableInstallmentPlanDtos.cs`, `FinanceReceivableInstallmentPlanService.cs` |
+| `InstallmentPlanListResponse`: `BenefitOwnerName`, `BenefitOwnerEmployeeNumber`, `BenefitOwnerType` (lewat `FinanceBenefitOwnerDirectory`), `PaidAmount` (potongan yang BERHASIL), `ArrearsInstallmentCount`, `ArrearsAmount` (angsuran `TERTUNGGAK`). Satu kueri tetap per halaman, tanpa N+1 | sama |
+| `InstallmentPlanDetailResponse`: pemilik, hubungan, `ReceivableOutstandingAmount` | sama |
+| `InstallmentPlanQuery.HasArrears`; pencarian mencakup nama / NIP pemilik (`ToUpper().Contains`, bukan `EF.Functions.ILike`, agar teruji di SQLite) | sama |
+| `GET /receivable-installment-plans/summary` (`FinanceReceivableInstallmentPlan : Read`): menunggu, berjalan, ada tunggakan, selesai | `FinanceReceivableInstallmentPlansController.cs` |
+
+Uji: `FinanceReceivableInstallmentPlanListTests` (5 uji, tidak dijalankan).
+
+### U.2 Intake otomatis AR Karyawan (opsi C, dibangun MATI)
+
+**Keputusan pemilik:** Finance mengakui piutang AR Karyawan otomatis; jenis fakta lain (koleksi, deposit, kredit refund, refund,
+selisih kas, koreksi) tetap manual. `FinanceBillingIntakeService` **tidak diubah**; semua logika baru ada di berkas tambahan.
+
+| Komponen | Peran |
+|---|---|
+| `FinanceEmployeeBenefitArAutoIntakeService` | Menemukan handoff AR `EMPLOYEE_BENEFIT` berstatus `CREATED` yang melewati masa tunggu (bentuk baris intake sama dengan `SyncNewFactsAsync`), lalu mengolah baris AR berstatus `NEW` miliknya (termasuk yang sudah ditemukan sinkron manual) lewat `IBillingIntakeProcessor` |
+| `BillingIntakeProcessor` | Adaptor ke `FinanceBillingIntakeService.ProcessAsync` apa adanya: jalur yang sama dengan tombol Proses (transaksi serializable, kunci per intake, pencatatan galat, audit, ACK ke Billing) |
+| `FinanceEmployeeBenefitArIntakeSchedulerHostedService` | Irama polling; pola dan gerbang konfigurasi sama dengan `FinanceCashierShiftMarkerSchedulerHostedService` |
+| `FinanceEmployeeBenefitArIntakeSchedulerOptions` | Konfigurasi di bawah |
+
+Konfigurasi `Finance:EmployeeBenefitArIntakeScheduler` (nilai bawaan = mati; tanpa konfigurasi tidak ada perubahan perilaku):
+
+| Kunci | Bawaan | Arti |
+|---|---|---|
+| `Enabled` | `false` | Gerbang utama |
+| `PollIntervalSeconds` | `300` (minimum 30) | Jeda antar siklus |
+| `GraceMinutes` | `15` | Masa tunggu sejak handoff dibuat Billing; memberi ruang bagi koreksi sesudah finalisasi. **Angka keputusan bisnis pemilik** |
+| `MaxPerCycle` | `50` (1..500) | Batas fakta yang ditemukan dan diolah per siklus |
+| `SystemActorUserId` | kosong (`Guid.Empty`) | Aktor pada piutang, baris intake, dan audit. Disarankan akun layanan khusus agar jejak audit terbedakan dari petugas |
+
+Invariant dan batas:
+1. Hanya `BilArHandoff.DebtorType = EMPLOYEE_BENEFIT`; handoff pengganti koreksi salah orang (yang punya `BilHandoffAdjustment` ber-`CorrelationId` sama) **tidak** diambil, mengikuti `SyncNewFactsAsync`.
+2. Hanya baris intake `NEW` yang diolah. Baris `ERROR` **tidak** dicoba ulang otomatis; ia tetap terlihat di Pemantauan Finance sampai petugas menanganinya, dan siklus mencatat peringatan log berisi jumlahnya.
+3. Fakta yang sudah diolah proses lain (kunci per intake + status) dihitung "dilewati", bukan galat. Duplikat penemuan dicegah `IX_FinBillingHandoffIntake_Identity`; duplikat piutang dicegah `IX_FinReceivable_SourceHandoffKey`.
+4. Nilai piutang tetap `BilArHandoff.Amount` apa adanya; Finance tidak menghitung ulang dan tidak menulis ke tabel `Bil*` selain ACK yang sudah menjadi bagian jalur manual.
+5. Sinkron manual tetap berjalan seperti biasa dan boleh mendahului masa tunggu.
+
+Uji: `FinanceEmployeeBenefitArAutoIntakeServiceTests` (7 uji, pengolah diganti tiruan agar yang diuji pemilihan dan batasnya; tidak dijalankan).
+
+**Prasyarat sebelum `Enabled = true`:** `dotnet build` dan kedua kelas uji lulus; akun layanan dibuat dan `SystemActorUserId` diisi; petugas yang memantau baris `ERROR` ditetapkan; nomor piutang (`IFinanceReceivableNumberGenerator`) dan outbox akuntansi sudah berjalan di lingkungan itu.

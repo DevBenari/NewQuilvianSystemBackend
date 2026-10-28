@@ -31,6 +31,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public PrescriptionPaymentStatus PaymentStatus { get; set; }
 
         /// <summary>
+        /// Keadaan finansial resep menurut Billing (PHA-BE-006). Penambahan yang aditif: tidak
+        /// ada field lain yang dihapus maupun berubah arti. Isinya keterangan, bukan kewenangan.
+        /// <c>PaymentStatus</c> hanyalah salinan kenyamanan; layar MUST membaca properti ini untuk
+        /// menilai apakah izin finansialnya masih sah (K-1 opsi A).
+        /// </summary>
+        public PrescriptionFinancialClearanceResponse? FinancialClearance { get; set; }
+
+        /// <summary>
         /// Keadaan pemenuhan resep, milik <c>PharmacyManagement</c>. <b>Hanya dibaca</b> dari
         /// sub-modul Rawat Inap - <c>RUL-DOK-01</c>.
         /// </summary>
@@ -60,12 +68,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
 
     public class PrescriptionDetailResponse : PrescriptionResponse
     {
-        /// <summary>
-        /// Keadaan finansial resep menurut Billing (PHA-BE-006). Penambahan yang aditif: tidak
-        /// ada field lain yang dihapus maupun berubah arti. Isinya keterangan, bukan kewenangan.
-        /// </summary>
-        public PrescriptionFinancialClearanceResponse? FinancialClearance { get; set; }
-
         public Guid? PaymentSourceId { get; set; }
         public Guid? PatientInsuranceId { get; set; }
         public Guid? InsuranceProviderId { get; set; }

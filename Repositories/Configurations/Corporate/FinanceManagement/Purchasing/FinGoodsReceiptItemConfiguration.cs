@@ -12,6 +12,8 @@ public sealed class FinGoodsReceiptItemConfiguration : IEntityTypeConfiguration<
         entity.HasKey(x => x.Id);
 
         entity.Property(x => x.ReceivedQuantity).HasPrecision(18, 2);
+        entity.Property(x => x.BatchNumber).HasMaxLength(100);
+        entity.Property(x => x.ExpiredDate).HasColumnType("date");
         entity.Property(x => x.Notes).HasMaxLength(500);
 
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");

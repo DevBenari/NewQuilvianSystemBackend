@@ -154,11 +154,23 @@ public sealed class FinanceBillingIntakeService
             .ToListAsync(cancellationToken))
             .ToHashSet();
 
+        // Handoff lama yang sudah digantikan Berita Acara Koreksi salah orang TIDAK ikut disinkronkan sebagai tipe AR:
+        // pemiliknya keliru, dan penggantinya diakui lewat intake ADJUSTMENT. Tanpa pengecualian ini, handoff lama
+        // yang belum sempat diakui menjadi piutang atas orang yang salah.
+        var supersededArHandoffIds = SupersededArHandoffIds();
         var arCandidates = await _dbContext.BilArHandoffs.AsNoTracking()
-            .Where(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created)
+            .Where(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created && !supersededArHandoffIds.Contains(x.Id))
             .ToListAsync(cancellationToken);
+        // Satu handoff = satu fakta AR. Koreksi salah orang MENGGANTI HandoffKey pada handoff PAYER yang sama
+        // (CorrectBenefitDebtorAsync), jadi pengenalan hanya lewat kunci akan memasukkan handoff itu dua kali.
+        var existingArHandoffIds = (await _dbContext.FinBillingHandoffIntakes.AsNoTracking()
+                .Where(x => !x.IsDelete && x.HandoffType == FinBillingHandoffTypes.Ar)
+                .Select(x => x.SourceHandoffId)
+                .ToListAsync(cancellationToken))
+            .ToHashSet();
         var arToCreate = arCandidates
             .Where(x => !existingKeysByType[FinBillingHandoffTypes.Ar].Contains(x.HandoffKey)
+                     && !existingArHandoffIds.Contains(x.Id)
                      && !replacementHandoffCorrelationIds.Contains(x.CorrelationId))
             .ToList();
 
@@ -395,6 +407,306 @@ public sealed class FinanceBillingIntakeService
     }
 
     // ------------------------------------------------------------------------------------
+    // Fakta AR tertunda — hitungan BACA SAJA dan pemrosesan batch lewat POST.
+    // Dulu pemrosesan ini dipicu pembacaan Data Tagihan (GET). GET kini murni baca, sehingga pengguna dengan hak
+    // Read saja tidak dapat membentuk piutang; pemrosesan membutuhkan hak Process (dan Sync untuk penemuan fakta).
+    // ------------------------------------------------------------------------------------
+
+    /// <summary>Jumlah maksimum fakta yang dicoba per panggilan POST process-pending-ar, supaya satu request tidak berjalan tanpa batas.</summary>
+    public const int ProcessPendingArBatchSize = 100;
+
+    /// <summary>
+    /// BilArHandoff.Id dari handoff EMPLOYEE_BENEFIT lama yang sudah digantikan Berita Acara Koreksi: ada
+    /// BilHandoffAdjustment yang menunjuknya (ArHandoffId) DAN ada handoff pengganti lain dengan CorrelationId yang sama
+    /// (CorrectBenefitDebtorAsync selalu menerbitkan keduanya dalam satu transaksi). Penyesuaian Billing lain (refund,
+    /// write-off) tidak punya handoff pengganti ber-CorrelationId sama sehingga tidak ikut terdeteksi.
+    /// </summary>
+    private IQueryable<Guid> SupersededArHandoffIds() =>
+        _dbContext.BilHandoffAdjustments.AsNoTracking()
+            .Where(a => !a.IsDelete
+                && a.ArHandoffId != null
+                && _dbContext.BilArHandoffs.Any(old => !old.IsDelete
+                    && old.Id == a.ArHandoffId
+                    && old.DebtorType == BillingArDebtorTypes.EmployeeBenefit)
+                && _dbContext.BilArHandoffs.Any(replacement => !replacement.IsDelete
+                    && replacement.CorrelationId == a.CorrelationId
+                    && replacement.Id != a.ArHandoffId))
+            .Select(a => a.ArHandoffId!.Value);
+
+    public async Task<PendingArFactsResponse> GetPendingArFactsAsync(CancellationToken cancellationToken)
+    {
+        var superseded = SupersededArHandoffIds();
+        var knownArIntakes = _dbContext.FinBillingHandoffIntakes.AsNoTracking()
+            .Where(i => !i.IsDelete && i.HandoffType == FinBillingHandoffTypes.Ar);
+        var knownArKeys = knownArIntakes.Select(i => i.SourceHandoffKey);
+        var knownArHandoffIds = knownArIntakes.Select(i => i.SourceHandoffId);
+        var replacementCorrelationIds = _dbContext.BilHandoffAdjustments.AsNoTracking()
+            .Where(a => !a.IsDelete)
+            .Select(a => a.CorrelationId);
+
+        // Kriteria sama dengan SyncNewFactsAsync, supaya angka yang tampil sama dengan yang akan ditemukan sinkronisasi.
+        var undiscovered = await _dbContext.BilArHandoffs.AsNoTracking()
+            .CountAsync(h => !h.IsDelete
+                && h.Status == BillingHandoffStatuses.Created
+                && !knownArKeys.Contains(h.HandoffKey)
+                && !knownArHandoffIds.Contains(h.Id)
+                && !replacementCorrelationIds.Contains(h.CorrelationId)
+                && !superseded.Contains(h.Id), cancellationToken);
+
+        var newIntakes = await _dbContext.FinBillingHandoffIntakes.AsNoTracking()
+            .CountAsync(i => !i.IsDelete
+                && i.HandoffType == FinBillingHandoffTypes.Ar
+                && i.Status == FinBillingHandoffIntakeStatuses.New
+                && !superseded.Contains(i.SourceHandoffId), cancellationToken);
+
+        var errorIntakes = await _dbContext.FinBillingHandoffIntakes.AsNoTracking()
+            .CountAsync(i => !i.IsDelete
+                && i.HandoffType == FinBillingHandoffTypes.Ar
+                && i.Status == FinBillingHandoffIntakeStatuses.Error, cancellationToken);
+
+        return new PendingArFactsResponse
+        {
+            UndiscoveredCount = undiscovered,
+            NewIntakeCount = newIntakes,
+            ErrorIntakeCount = errorIntakes
+        };
+    }
+
+    /// <summary>
+    /// Menemukan dan langsung mengolah seluruh fakta AR (BilArHandoff) milik satu invoice yang baru difinalisasi
+    /// menjadi FinReceivable tanpa menunggu tindakan manual dari Pemantauan Finance (FR-FIN-010..013).
+    /// Berjalan segera setelah transaksi finalisasi/pembayaran di-commit (post-commit), sehingga transaksi
+    /// pembayaran kasir dan invoice FINAL/CLOSED tetap aman tersimpan bila terjadi kegagalan integrasi Finance.
+    /// </summary>
+    public async Task<int> ProcessInvoiceArHandoffsImmediatelyAsync(
+        Guid invoiceId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (invoiceId == Guid.Empty) return 0;
+
+        var supersededArHandoffIds = SupersededArHandoffIds();
+
+        var arCandidates = await _dbContext.BilArHandoffs.AsNoTracking()
+            .Where(x => !x.IsDelete
+                && x.InvoiceId == invoiceId
+                && x.Status == BillingHandoffStatuses.Created
+                && !supersededArHandoffIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        if (arCandidates.Count == 0) return 0;
+
+        var replacementCorrelationIds = (await _dbContext.BilHandoffAdjustments.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .Select(x => x.CorrelationId)
+            .ToListAsync(cancellationToken))
+            .ToHashSet();
+
+        var eligibleHandoffs = arCandidates
+            .Where(x => !replacementCorrelationIds.Contains(x.CorrelationId))
+            .ToList();
+
+        if (eligibleHandoffs.Count == 0) return 0;
+
+        return await SyncAndProcessEligibleArHandoffsAsync(eligibleHandoffs, invoiceId, actorUserId, cancellationToken);
+    }
+
+    /// <summary>
+    /// Menemukan dan mengolah seluruh fakta AR yang masih CREATED (recovery/safety net)
+    /// menjadi FinReceivable secara otomatis.
+    /// </summary>
+    public async Task<int> ProcessAllUnprocessedArHandoffsAsync(
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var supersededArHandoffIds = SupersededArHandoffIds();
+        var arCandidates = await _dbContext.BilArHandoffs.AsNoTracking()
+            .Where(x => !x.IsDelete
+                && x.Status == BillingHandoffStatuses.Created
+                && !supersededArHandoffIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        if (arCandidates.Count == 0) return 0;
+
+        var replacementCorrelationIds = (await _dbContext.BilHandoffAdjustments.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .Select(x => x.CorrelationId)
+            .ToListAsync(cancellationToken))
+            .ToHashSet();
+
+        var eligibleHandoffs = arCandidates
+            .Where(x => !replacementCorrelationIds.Contains(x.CorrelationId))
+            .ToList();
+
+        if (eligibleHandoffs.Count == 0) return 0;
+
+        return await SyncAndProcessEligibleArHandoffsAsync(eligibleHandoffs, null, actorUserId, cancellationToken);
+    }
+
+    private async Task<int> SyncAndProcessEligibleArHandoffsAsync(
+        List<BilArHandoff> eligibleHandoffs,
+        Guid? invoiceId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var eligibleHandoffKeys = eligibleHandoffs.Select(x => x.HandoffKey).ToHashSet();
+        var eligibleHandoffIds = eligibleHandoffs.Select(x => x.Id).ToHashSet();
+
+        // 1. Temukan intake yang sudah ada untuk fakta-fakta ini
+        var existingIntakes = await _dbContext.FinBillingHandoffIntakes
+            .Where(x => !x.IsDelete
+                && x.HandoffType == FinBillingHandoffTypes.Ar
+                && (eligibleHandoffKeys.Contains(x.SourceHandoffKey) || eligibleHandoffIds.Contains(x.SourceHandoffId)))
+            .ToListAsync(cancellationToken);
+
+        var existingKeysSet = existingIntakes.Select(x => x.SourceHandoffKey).ToHashSet();
+        var existingIdsSet = existingIntakes.Select(x => x.SourceHandoffId).ToHashSet();
+
+        var toCreate = eligibleHandoffs
+            .Where(x => !existingKeysSet.Contains(x.HandoffKey) && !existingIdsSet.Contains(x.Id))
+            .ToList();
+
+        if (toCreate.Count > 0)
+        {
+            var now = DateTime.UtcNow;
+            foreach (var handoff in toCreate)
+            {
+                var newIntake = new FinBillingHandoffIntake
+                {
+                    HandoffType = FinBillingHandoffTypes.Ar,
+                    SourceHandoffId = handoff.Id,
+                    SourceHandoffKey = handoff.HandoffKey,
+                    Status = FinBillingHandoffIntakeStatuses.New,
+                    CorrelationId = handoff.CorrelationId,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId
+                };
+                _dbContext.FinBillingHandoffIntakes.Add(newIntake);
+                existingIntakes.Add(newIntake);
+            }
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Bila ada balapan konkurensi (mis. sinkronisasi manual berjalan bersamaan),
+                // bersihkan change tracker dan muat ulang intake yang tersimpan
+                _dbContext.ChangeTracker.Clear();
+                existingIntakes = await _dbContext.FinBillingHandoffIntakes
+                    .Where(x => !x.IsDelete
+                        && x.HandoffType == FinBillingHandoffTypes.Ar
+                        && (eligibleHandoffKeys.Contains(x.SourceHandoffKey) || eligibleHandoffIds.Contains(x.SourceHandoffId)))
+                    .ToListAsync(cancellationToken);
+            }
+        }
+
+        // Bersihkan change tracker agar ProcessAsync mulai dengan status entitas yang bersih
+        _dbContext.ChangeTracker.Clear();
+
+        // 2. Olah fakta-fakta intake yang masih NEW menjadi FinReceivable lewat ProcessAsync
+        var processedCount = 0;
+        foreach (var intake in existingIntakes.Where(x => x.Status == FinBillingHandoffIntakeStatuses.New).ToList())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var result = await ProcessAsync(intake.Id, actorUserId, cancellationToken);
+                if (result.Status is FinBillingHandoffIntakeStatuses.Consumed or FinBillingHandoffIntakeStatuses.Acknowledged)
+                {
+                    processedCount++;
+                }
+            }
+            catch (Exception ex) when (ex is KeyNotFoundException or BillingIntakeValidationException)
+            {
+                _dbContext.ChangeTracker.Clear();
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "BillingIntake.AutoProcessArSkipped",
+                    $"Pengolahan intake AR otomatis dilewati atau sudah selesai: {ex.Message}",
+                    new { IntakeId = intake.Id, InvoiceId = invoiceId });
+            }
+        }
+
+        return processedCount;
+    }
+
+    /// <summary>
+    /// Mengolah fakta AR berstatus NEW satu per satu lewat <see cref="ProcessAsync"/> — jalur yang sama dengan POST
+    /// {id}/process, jadi penguncian, idempotensi, audit, dan histori tidak berubah. Kegagalan tiap fakta
+    /// DILAPORKAN pada hasil (dan tersimpan sebagai ERROR pada barisnya), tidak ditelan. Tidak menemukan fakta
+    /// baru (itu POST sync) dan tidak mengulang fakta ERROR (itu POST {id}/process setelah penyebabnya diperbaiki).
+    /// </summary>
+    public async Task<ProcessPendingArResponse> ProcessPendingArAsync(Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var superseded = SupersededArHandoffIds();
+        var pendingQuery = _dbContext.FinBillingHandoffIntakes.AsNoTracking()
+            .Where(i => !i.IsDelete
+                && i.HandoffType == FinBillingHandoffTypes.Ar
+                && i.Status == FinBillingHandoffIntakeStatuses.New);
+
+        // Fakta handoff lama yang digantikan koreksi ikut dicoba: ProcessArIntakeAsync menutupnya (CONSUMED) tanpa
+        // piutang, sehingga ia keluar dari antrean NEW dan tidak menjadi pekerjaan tertunda selamanya.
+        var supersededIds = await pendingQuery
+            .Where(i => superseded.Contains(i.SourceHandoffId))
+            .Select(i => i.Id)
+            .ToListAsync(cancellationToken);
+        var supersededSet = supersededIds.ToHashSet();
+
+        var batch = await pendingQuery
+            .OrderBy(i => i.CreateDateTime).ThenBy(i => i.Id)
+            .Select(i => new { i.Id, i.SourceHandoffKey })
+            .Take(ProcessPendingArBatchSize)
+            .ToListAsync(cancellationToken);
+
+        var result = new ProcessPendingArResponse { AttemptedCount = batch.Count };
+
+        foreach (var entry in batch)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                var processed = await ProcessAsync(entry.Id, actorUserId, cancellationToken);
+                if (processed.Status == FinBillingHandoffIntakeStatuses.Error)
+                {
+                    result.FailedCount++;
+                    result.Failures.Add(new ProcessPendingArFailure
+                    {
+                        IntakeId = entry.Id,
+                        SourceHandoffKey = entry.SourceHandoffKey,
+                        Message = processed.ErrorMessage ?? "Pengolahan gagal tanpa pesan galat."
+                    });
+                }
+                else if (supersededSet.Contains(entry.Id))
+                {
+                    result.SkippedSupersededCount++;
+                }
+                else
+                {
+                    result.ProcessedCount++;
+                }
+            }
+            catch (Exception exception) when (exception is KeyNotFoundException or BillingIntakeValidationException)
+            {
+                // ProcessAsync melempar ulang galat validasi (mis. sudah diolah pihak lain bersamaan). Bersihkan tracker
+                // supaya fakta berikutnya tidak membawa entitas basi, lalu laporkan.
+                _dbContext.ChangeTracker.Clear();
+                result.FailedCount++;
+                result.Failures.Add(new ProcessPendingArFailure
+                {
+                    IntakeId = entry.Id,
+                    SourceHandoffKey = entry.SourceHandoffKey,
+                    Message = exception.Message
+                });
+            }
+        }
+
+        result.RemainingCount = await pendingQuery.CountAsync(cancellationToken);
+        return result;
+    }
+
+    // ------------------------------------------------------------------------------------
     // Pengolahan (FR-FIN-010..013) — satu-satunya jalur yang membuat FinReceivable dari fakta AR.
     // ------------------------------------------------------------------------------------
 
@@ -471,6 +783,29 @@ public sealed class FinanceBillingIntakeService
             var handoff = await _dbContext.BilArHandoffs
                 .SingleOrDefaultAsync(x => x.Id == intake.SourceHandoffId && !x.IsDelete, cancellationToken)
                 ?? throw new InvalidOperationException("Fakta AR sumber tidak ditemukan di Billing.");
+
+            // Handoff lama yang sudah digantikan Berita Acara Koreksi salah orang MUST NOT menjadi piutang, termasuk intake
+            // yang telanjur berstatus NEW sebelum koreksi terbit. Piutang pengganti diakui jalur ADJUSTMENT
+            // (ProcessArAdjustmentIntakeAsync) bersamaan dengan pembatalan piutang lama bila ada. Fakta ini ditutup
+            // CONSUMED tanpa piutang supaya tidak diulang dan tidak tampil sebagai pekerjaan tertunda. Pemeriksaan ini
+            // satu transaksi dengan penguncian intake di atas; koreksi di Billing memegang kunci per-invoice sendiri
+            // dan baru terlihat di sini setelah commit-nya (isolasi Serializable).
+            var supersededArHandoffIds = SupersededArHandoffIds();
+            if (await supersededArHandoffIds.ContainsAsync(handoff.Id, cancellationToken))
+            {
+                intake.Status = FinBillingHandoffIntakeStatuses.Consumed;
+                intake.TargetEntityId = null;
+                intake.ConsumedAt = DateTimeOffset.UtcNow;
+                intake.ErrorMessage = null;
+                intake.UpdateDateTime = DateTime.UtcNow;
+                intake.UpdateBy = actorUserId;
+                intake.RowVersion = Guid.NewGuid();
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await CommitAsync(transaction, cancellationToken);
+                await AuditAsync("Intake.Ar.SupersededByCorrection", intake.Id, actorUserId, null);
+                return;
+            }
 
             // FIN-VAL-012: satu fakta AR menghasilkan satu piutang — lapis kedua di atas
             // IX_FinReceivable_SourceHandoffKey untuk pesan yang lebih jelas.

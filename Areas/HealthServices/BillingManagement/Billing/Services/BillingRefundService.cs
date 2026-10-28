@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PatientRefund.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
@@ -220,6 +221,19 @@ public sealed class BillingRefundService
             if (activeExists)
                 throw new BillingRefundConflictException(
                     "Invoice ini masih memiliki refund case aktif; selesaikan case yang sudah ada terlebih dahulu.");
+
+            if (category == "DEPOSITO")
+            {
+                var financeRefundActive = await _dbContext.FinPatientRefundRequests.AsNoTracking()
+                    .AnyAsync(x => x.InvoiceId == invoice.Id && !x.IsDelete
+                        && (x.Status == FinPatientRefundStatuses.Pending
+                            || x.Status == FinPatientRefundStatuses.Approved
+                            || x.Status == FinPatientRefundStatuses.PartiallyPaid),
+                        cancellationToken);
+                if (financeRefundActive)
+                    throw new BillingRefundConflictException(
+                        "Invoice ini masih memiliki pengajuan refund deposit yang sedang diproses di Finance.");
+            }
 
             var eligibleTenders = await LoadEligibleFundingTendersAsync(invoice.Id, cancellationToken);
             if (eligibleTenders.Count == 0)

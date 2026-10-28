@@ -126,19 +126,83 @@ public sealed class PrescriptionFinancialClearanceService
         var projection = await _dbContext.PhmPrescriptionFinancialProjections.AsNoTracking()
             .FirstOrDefaultAsync(x => x.PrescriptionId == prescriptionId && !x.IsDelete, ct);
 
-        if (projection == null)
+        return projection == null ? BuildUnknownResponse() : BuildResponse(projection);
+    }
+
+    /// <summary>
+    /// Membaca keadaan finansial banyak resep sekaligus untuk daftar resep, tanpa satu kueri per
+    /// resep: satu kueri untuk salinan dan satu untuk nomor versi surat terbaru dari Billing.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Baca murni, bentuk jawabannya sama dengan <see cref="DescribeAsync"/> untuk setiap resep
+    /// (resep tanpa salinan dijawab <c>UNKNOWN</c>, bukan dihilangkan).
+    /// </para>
+    /// <para>
+    /// Satu tambahan: <see cref="PrescriptionFinancialClearanceResponse.HasPendingBillingUpdate"/>
+    /// menandai resep yang suratnya sudah diterbitkan Billing tetapi belum tersalin — memakai
+    /// aturan yang sama dengan penyaringan <c>ConsumeAsync</c>, sehingga keduanya tidak mungkin
+    /// berbeda pendapat tentang apa yang masih tertinggal. Dengan tanda itu daftar tidak pernah
+    /// menyajikan salinan lama seolah-olah terkini ketika sapuan dibatasi atau gagal.
+    /// </para>
+    /// </remarks>
+    public async Task<IReadOnlyDictionary<Guid, PrescriptionFinancialClearanceResponse>> DescribeManyAsync(
+        IReadOnlyCollection<Guid> prescriptionIds,
+        CancellationToken ct = default)
+    {
+        var result = new Dictionary<Guid, PrescriptionFinancialClearanceResponse>();
+
+        if (prescriptionIds.Count == 0)
         {
-            return new PrescriptionFinancialClearanceResponse
-            {
-                ClearanceStatus = PrescriptionClearanceProjectionStatuses.Unknown,
-                IsCleared = false,
-                IsKnown = false,
-                HoldReasonCode = ClearanceHoldReasonCodes.Unknown,
-                HoldReason = "Keadaan pembayaran resep ini belum diketahui. Obat belum boleh diserahkan.",
-                SyncState = PrescriptionClearanceSyncStates.NeverSynced
-            };
+            return result;
         }
 
+        var ids = prescriptionIds.Distinct().ToList();
+
+        var projections = await _dbContext.PhmPrescriptionFinancialProjections.AsNoTracking()
+            .Where(x => ids.Contains(x.PrescriptionId) && !x.IsDelete)
+            .ToListAsync(ct);
+
+        var latestLetterVersions = await _dbContext.BilPrescriptionClearanceHandoffs.AsNoTracking()
+            .Where(x => ids.Contains(x.PrescriptionId) && !x.IsDelete)
+            .GroupBy(x => x.PrescriptionId)
+            .Select(g => new { PrescriptionId = g.Key, LatestVersion = g.Max(x => x.FinancialVersion) })
+            .ToListAsync(ct);
+
+        var projectionById = projections.ToDictionary(x => x.PrescriptionId);
+        var latestVersionById = latestLetterVersions.ToDictionary(x => x.PrescriptionId, x => x.LatestVersion);
+
+        foreach (var id in ids)
+        {
+            projectionById.TryGetValue(id, out var projection);
+
+            var response = projection == null ? BuildUnknownResponse() : BuildResponse(projection);
+
+            response.HasPendingBillingUpdate = latestVersionById.TryGetValue(id, out var latestVersion)
+                && (projection == null
+                    || projection.SyncState == PrescriptionClearanceSyncStates.NeverSynced
+                    || latestVersion > projection.FinancialVersion);
+
+            result[id] = response;
+        }
+
+        return result;
+    }
+
+    private static PrescriptionFinancialClearanceResponse BuildUnknownResponse()
+        => new()
+        {
+            ClearanceStatus = PrescriptionClearanceProjectionStatuses.Unknown,
+            IsCleared = false,
+            IsKnown = false,
+            HoldReasonCode = ClearanceHoldReasonCodes.Unknown,
+            HoldReason = "Keadaan pembayaran resep ini belum diketahui. Obat belum boleh diserahkan.",
+            SyncState = PrescriptionClearanceSyncStates.NeverSynced
+        };
+
+    private static PrescriptionFinancialClearanceResponse BuildResponse(
+        PhmPrescriptionFinancialProjection projection)
+    {
         var isCleared = projection.ClearanceStatus == PrescriptionClearanceProjectionStatuses.Cleared
             && MapFinancialOutcome(projection.FinancialOutcome) != null;
 

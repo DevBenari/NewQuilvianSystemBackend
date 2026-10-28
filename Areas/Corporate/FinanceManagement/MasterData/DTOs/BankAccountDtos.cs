@@ -58,10 +58,14 @@ public sealed class BankAccountDeleteResponse
 public sealed class BankAccountOptionResponse
 {
     public Guid Id { get; set; }
+
+    /// <summary>Master bank pemilik rekening. Dipakai formulir untuk menyaring rekening menurut bank terpilih.</summary>
+    public Guid BankId { get; set; }
     public string BankName { get; set; } = string.Empty;
     public string AccountNumber { get; set; } = string.Empty;
     public string AccountName { get; set; } = string.Empty;
     public string AccountType { get; set; } = string.Empty;
+    public string CurrencyCode { get; set; } = string.Empty;
 }
 
 public sealed class BankAccountSummaryResponse

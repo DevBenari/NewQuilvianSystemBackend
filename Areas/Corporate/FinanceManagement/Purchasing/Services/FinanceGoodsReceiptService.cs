@@ -27,9 +27,11 @@ public sealed class FinanceGoodsReceiptService
         _loggerService = loggerService;
     }
 
+    // Item yang digantikan koreksi (UpdateAsync) dihapus lunak dan tidak ikut dibaca — rincian GR
+    // selalu mencerminkan isi yang berlaku, riwayat nilai lama tetap ada di basis data dan audit.
     public async Task<FinGoodsReceipt?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         await _dbContext.FinGoodsReceipts
-            .Include(x => x.Items)
+            .Include(x => x.Items.Where(item => !item.IsDelete))
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
@@ -118,6 +120,12 @@ public sealed class FinanceGoodsReceiptService
                 if (item.ReceivedQuantity <= 0)
                     throw new PurchasingBadRequestException("Kuantitas diterima harus lebih dari nol.");
 
+                // BE-FIN-125: nomor batch hanya disimpan apa adanya (dipangkas); panjang dijaga
+                // sebelum menyentuh basis data supaya galat berupa 400, bukan kegagalan simpan.
+                var batchNumber = string.IsNullOrWhiteSpace(item.BatchNumber) ? null : item.BatchNumber.Trim();
+                if (batchNumber is { Length: > 100 })
+                    throw new PurchasingBadRequestException("Nomor batch maksimal 100 karakter.");
+
                 var alreadyReceived = receivedSoFar.GetValueOrDefault(poItem.Id, 0m);
                 // FIN-VAL-104: kuantitas diterima (akumulasi) tidak boleh melebihi kuantitas baris PO.
                 if (alreadyReceived + item.ReceivedQuantity > poItem.Quantity)
@@ -130,6 +138,8 @@ public sealed class FinanceGoodsReceiptService
                     Id = Guid.NewGuid(),
                     PurchaseOrderItemId = poItem.Id,
                     ReceivedQuantity = item.ReceivedQuantity,
+                    BatchNumber = batchNumber,
+                    ExpiredDate = item.ExpiredDate,
                     Notes = string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(),
                     CreateBy = actorUserId,
                     UpdateBy = actorUserId,
@@ -193,14 +203,25 @@ public sealed class FinanceGoodsReceiptService
             if (goodsReceipt.Status != FinGoodsReceiptStatuses.Received)
                 throw new PurchasingValidationException($"Hanya GR berstatus RECEIVED yang dapat dibatalkan. Status saat ini: {goodsReceipt.Status}.");
 
-            // state-transition-matrix.md §B.2: GR yang sudah dirujuk FinInvoiceExchange tidak dapat dibatalkan.
-            var linkedToInvoiceExchange = await _dbContext.FinInvoiceExchanges
-                .AnyAsync(x => x.GoodsReceiptId == goodsReceiptId && !x.IsDelete, cancellationToken);
-            if (linkedToInvoiceExchange)
-                throw new PurchasingValidationException("Tanda Terima Barang ini sudah menjadi Tukar Faktur dan tidak dapat dibatalkan.");
-
             transaction = await BeginTransactionAsync(cancellationToken);
             await AcquireLockAsync($"FIN_PURCHASE_ORDER_{goodsReceipt.PurchaseOrderId}", cancellationToken);
+
+            // state-transition-matrix.md §B.2: GR yang sudah dirujuk FinInvoiceExchange tidak dapat dibatalkan.
+            // Diperiksa SETELAH kunci PO diambil (bukan sebelum transaksi) karena FinanceInvoiceExchangeService.CreateAsync
+            // mengambil kunci yang sama saat menyimpan Tukar Faktur yang merujuk GR — tanpa urutan ini pemeriksaan
+            // dapat lulus tepat sebelum Tukar Faktur tersimpan, dan GR yang sudah dirujuk ikut terbatalkan.
+            // Tukar Faktur yang sudah DIBATALKAN tidak lagi menahan GR, asalkan tidak menyisakan invoice
+            // aktif (DRAFT/PENDING_APPROVAL/APPROVED) di bawahnya — dokumen yang masih hidup tetap
+            // mengikat GR, riwayat yang sudah dibatalkan tidak.
+            var linkedToInvoiceExchange = await _dbContext.FinInvoiceExchanges
+                .AnyAsync(x => x.GoodsReceiptId == goodsReceiptId && !x.IsDelete
+                    && (x.Status != FinInvoiceExchangeStatuses.Cancelled
+                        || _dbContext.FinPurchasingInvoices.Any(i => i.InvoiceExchangeId == x.Id && !i.IsDelete
+                            && i.Status != FinPurchasingInvoiceStatuses.Cancelled
+                            && i.Status != FinPurchasingInvoiceStatuses.Rejected)),
+                    cancellationToken);
+            if (linkedToInvoiceExchange)
+                throw new PurchasingValidationException("Tanda Terima Barang ini sudah menjadi Tukar Faktur dan tidak dapat dibatalkan.");
 
             goodsReceipt.Status = FinGoodsReceiptStatuses.Cancelled;
             goodsReceipt.UpdateDateTime = DateTime.UtcNow;
@@ -242,6 +263,166 @@ public sealed class FinanceGoodsReceiptService
         {
             await RollbackAsync(transaction);
             throw;
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Koreksi isi GR (RECEIVED, belum dirujuk Tukar Faktur aktif). Seluruh isi diganti: baris lama
+    // dihapus lunak (jejak nilai lama tetap di basis data dan audit), baris baru ditambahkan, lalu
+    // akumulasi per baris PO divalidasi ulang tanpa GR ini dan status PO dihitung ulang. Kunci PO
+    // yang sama dengan Create/Cancel/Tukar Faktur dipakai, sehingga koreksi tidak dapat berpapasan
+    // dengan Tukar Faktur yang sedang merujuk GR ini (AC-17).
+    // ------------------------------------------------------------------------------------
+
+    public async Task<FinGoodsReceipt> UpdateAsync(
+        Guid goodsReceiptId,
+        Guid expectedRowVersion,
+        DateOnly receivedDate,
+        IReadOnlyList<GoodsReceiptItemRequest> items,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (items is not { Count: > 0 })
+            throw new PurchasingBadRequestException("Tanda Terima Barang wajib memiliki minimal satu baris item.");
+
+        // ID PO tidak berubah selama GR hidup, jadi boleh dibaca sebelum kunci diambil (pola yang sama
+        // dengan CancelAsync). Seluruh keadaan lain dibaca ulang DI DALAM kunci.
+        var purchaseOrderIdLookup = await _dbContext.FinGoodsReceipts.AsNoTracking()
+            .Where(x => x.Id == goodsReceiptId && !x.IsDelete)
+            .Select(x => (Guid?)x.PurchaseOrderId)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (!purchaseOrderIdLookup.HasValue)
+            throw new KeyNotFoundException("Tanda Terima Barang tidak ditemukan.");
+        var purchaseOrderId = purchaseOrderIdLookup.Value;
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_PURCHASE_ORDER_{purchaseOrderId}", cancellationToken);
+
+            var goodsReceipt = await _dbContext.FinGoodsReceipts
+                .Include(x => x.Items.Where(item => !item.IsDelete))
+                .SingleOrDefaultAsync(x => x.Id == goodsReceiptId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Tanda Terima Barang tidak ditemukan.");
+
+            EnsureCurrent(goodsReceipt.RowVersion, expectedRowVersion);
+
+            if (goodsReceipt.Status != FinGoodsReceiptStatuses.Received)
+                throw new PurchasingValidationException($"Hanya GR berstatus RECEIVED yang dapat diperbarui. Status saat ini: {goodsReceipt.Status}.");
+
+            // Dependensi: Tukar Faktur aktif (bukan CANCELLED) yang merujuk GR ini mengikat isinya, karena
+            // invoice dan utang yang lahir darinya bergantung pada kuantitas dan tanggal terima GR ini.
+            var hasActiveExchange = await _dbContext.FinInvoiceExchanges
+                .AnyAsync(x => x.GoodsReceiptId == goodsReceiptId && !x.IsDelete
+                    && x.Status != FinInvoiceExchangeStatuses.Cancelled, cancellationToken);
+            if (hasActiveExchange)
+                throw new PurchasingValidationException("Tanda Terima Barang ini sudah dirujuk Tukar Faktur yang masih berlaku dan tidak dapat diperbarui. Batalkan Tukar Faktur terkait lebih dulu.");
+
+            var purchaseOrder = await _dbContext.FinPurchaseOrders
+                .Include(x => x.Items)
+                .SingleOrDefaultAsync(x => x.Id == purchaseOrderId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Purchase Order tidak ditemukan.");
+
+            if (purchaseOrder.Status is not (FinPurchaseOrderStatuses.Approved
+                or FinPurchaseOrderStatuses.PartiallyReceived or FinPurchaseOrderStatuses.FullyReceived))
+                throw new PurchasingValidationException($"Purchase Order berstatus {purchaseOrder.Status} tidak dapat menerima koreksi Tanda Terima Barang.");
+
+            var poItemsById = purchaseOrder.Items.ToDictionary(x => x.Id);
+
+            // Akumulasi seluruh GR aktif LAIN — GR ini digantikan isinya, jadi tidak ikut dihitung.
+            var receivedElsewhere = await _dbContext.FinGoodsReceiptItems
+                .Where(x => !x.IsDelete && x.GoodsReceipt!.PurchaseOrderId == purchaseOrderId && !x.GoodsReceipt.IsDelete
+                    && x.GoodsReceipt.Status != FinGoodsReceiptStatuses.Cancelled && x.GoodsReceiptId != goodsReceiptId)
+                .GroupBy(x => x.PurchaseOrderItemId)
+                .Select(g => new { PurchaseOrderItemId = g.Key, Total = g.Sum(x => x.ReceivedQuantity) })
+                .ToDictionaryAsync(x => x.PurchaseOrderItemId, x => x.Total, cancellationToken);
+
+            var receivedAfter = new Dictionary<Guid, decimal>(receivedElsewhere);
+            var newItems = new List<FinGoodsReceiptItem>();
+            foreach (var item in items)
+            {
+                if (!poItemsById.TryGetValue(item.PurchaseOrderItemId, out var poItem))
+                    throw new PurchasingBadRequestException($"Baris PO {item.PurchaseOrderItemId} tidak ditemukan pada Purchase Order ini.");
+                if (item.ReceivedQuantity <= 0)
+                    throw new PurchasingBadRequestException("Kuantitas diterima harus lebih dari nol.");
+
+                var batchNumber = string.IsNullOrWhiteSpace(item.BatchNumber) ? null : item.BatchNumber.Trim();
+                if (batchNumber is { Length: > 100 })
+                    throw new PurchasingBadRequestException("Nomor batch maksimal 100 karakter.");
+
+                var accumulated = receivedAfter.GetValueOrDefault(poItem.Id, 0m) + item.ReceivedQuantity;
+                if (accumulated > poItem.Quantity)
+                    throw new PurchasingValidationException("Kuantitas diterima melebihi kuantitas yang dipesan pada baris ini.");
+                receivedAfter[poItem.Id] = accumulated;
+
+                newItems.Add(new FinGoodsReceiptItem
+                {
+                    Id = Guid.NewGuid(),
+                    GoodsReceiptId = goodsReceipt.Id,
+                    PurchaseOrderItemId = poItem.Id,
+                    ReceivedQuantity = item.ReceivedQuantity,
+                    BatchNumber = batchNumber,
+                    ExpiredDate = item.ExpiredDate,
+                    Notes = string.IsNullOrWhiteSpace(item.Notes) ? null : item.Notes.Trim(),
+                    CreateBy = actorUserId,
+                    UpdateBy = actorUserId,
+                    DeleteBy = actorUserId,
+                    CancelBy = actorUserId
+                });
+            }
+
+            var before = new
+            {
+                ReceivedDate = goodsReceipt.ReceivedDate,
+                Items = goodsReceipt.Items.Select(x => new { x.PurchaseOrderItemId, x.ReceivedQuantity, x.BatchNumber, x.ExpiredDate }).ToList()
+            };
+
+            var now = DateTime.UtcNow;
+            foreach (var oldItem in goodsReceipt.Items)
+            {
+                oldItem.IsDelete = true;
+                oldItem.DeleteDateTime = now;
+                oldItem.DeleteBy = actorUserId;
+                oldItem.UpdateDateTime = now;
+                oldItem.UpdateBy = actorUserId;
+            }
+            _dbContext.FinGoodsReceiptItems.AddRange(newItems);
+
+            goodsReceipt.ReceivedDate = receivedDate;
+            goodsReceipt.UpdateDateTime = now;
+            goodsReceipt.UpdateBy = actorUserId;
+            goodsReceipt.RowVersion = Guid.NewGuid();
+
+            RecomputePurchaseOrderStatus(purchaseOrder, receivedAfter, actorUserId);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+
+            var after = new
+            {
+                ReceivedDate = receivedDate,
+                Items = newItems.Select(x => new { x.PurchaseOrderItemId, x.ReceivedQuantity, x.BatchNumber, x.ExpiredDate }).ToList()
+            };
+            await AuditAsync("Update", goodsReceipt.Id, actorUserId, new { GoodsReceiptId = goodsReceipt.Id, ActorUserId = actorUserId, Before = before, After = after });
+
+            // Pemanggil membaca rincian terbaru lewat GetByIdAsync; koleksi Items pada entity terlacak ini
+            // masih memuat baris lama yang sudah dihapus lunak, jadi tidak boleh dipetakan ke respons.
+            return goodsReceipt;
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(ex);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
         }
     }
 
@@ -313,10 +494,12 @@ public sealed class FinanceGoodsReceiptService
     private static Task RollbackAsync(IDbContextTransaction? transaction) =>
         transaction is null ? Task.CompletedTask : transaction.RollbackAsync(CancellationToken.None);
 
-    private Task AuditAsync(string action, Guid goodsReceiptId, Guid actorUserId) =>
+    private Task AuditAsync(string action, Guid goodsReceiptId, Guid actorUserId, object? extra = null) =>
         _loggerService.AuditAsync(LogCategory, $"FinanceGoodsReceipt.{action}",
             $"Perubahan Tanda Terima Barang dicatat. GoodsReceiptId={goodsReceiptId}",
-            new { GoodsReceiptId = goodsReceiptId, ActorUserId = actorUserId });
+            extra ?? new { GoodsReceiptId = goodsReceiptId, ActorUserId = actorUserId });
 }
 
-public sealed record GoodsReceiptItemRequest(Guid PurchaseOrderItemId, decimal ReceivedQuantity, string? Notes);
+public sealed record GoodsReceiptItemRequest(
+    Guid PurchaseOrderItemId, decimal ReceivedQuantity, string? Notes,
+    string? BatchNumber = null, DateOnly? ExpiredDate = null);

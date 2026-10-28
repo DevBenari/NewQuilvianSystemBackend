@@ -142,6 +142,8 @@ public sealed class FinanceReceivablesController : ControllerBase
     // Data Tagihan (Finance > Transaksi A/R > Tagihan/Billing). Sub-resource baca seperti summary dan aging;
     // memakai hak akses FinanceReceivable : Read yang sudah terdaftar, tanpa action baru. Daftar dan ringkasan
     // keluar dari satu query yang sama (FinanceReceivableBillingDataService).
+    // MURNI BACA: tidak lagi menyinkronkan atau mengolah fakta AR dari Billing. Fakta yang belum menjadi piutang
+    // dilaporkan pada PendingFacts, dan diolah lewat POST billing-intake/sync dan POST billing-intake/process-pending-ar.
     [HttpGet("billing-data")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceReceivable", "Read")]
@@ -152,7 +154,7 @@ public sealed class FinanceReceivablesController : ControllerBase
     {
         try
         {
-            var result = await _billingDataService.GetAsync(request, cancellationToken, CurrentUserId());
+            var result = await _billingDataService.GetAsync(request, cancellationToken);
             return Ok(ApiResponse<BillingDataPagedResponse>.Ok(result, result.Notice ?? "Data tagihan berhasil diambil."));
         }
         catch (BillingDataBadRequestException exception)
@@ -174,6 +176,18 @@ public sealed class FinanceReceivablesController : ControllerBase
         [FromQuery] BillingDataPayerOptionQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<List<BillingDataPayerOptionResponse>>.Ok(
             await _billingDataService.GetPayerOptionsAsync(request, cancellationToken), "Pilihan asuransi/perusahaan berhasil diambil."));
+
+    // Isi field pilihan karyawan pada Data Tagihan kategori employee.
+    // Berisi hanya karyawan yang terkait piutang EMPLOYEE_BENEFIT (tidak memuat pasien umum).
+    // Mendukung pencarian nama/No. RM dan paginasi (PageNumber, PageSize).
+    [HttpGet("billing-data/employee-options")]
+    [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceivable", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<BillingDataEmployeeOptionResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetBillingDataEmployeeOptions(
+        [FromQuery] BillingDataEmployeeOptionQuery request, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<PagedResult<BillingDataEmployeeOptionResponse>>.Ok(
+            await _billingDataService.GetEmployeeOptionsAsync(request, cancellationToken), "Pilihan karyawan berhasil diambil."));
 
     // Laporan AR (Finance > Transaksi A/R > Laporan & Monitoring > Report AR).
     // Read-only report yang menampilkan daftar invoice Billing lunas per pasien dikelompokkan menurut penjamin (Payer/Asuransi/Perusahaan) ASC.

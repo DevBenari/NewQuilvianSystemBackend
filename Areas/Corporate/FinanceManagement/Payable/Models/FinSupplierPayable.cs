@@ -43,6 +43,14 @@ public sealed class FinSupplierPayable : IdentityModel
 
     public DateOnly DueDate { get; set; }
 
+    /// <summary>
+    /// Tanggal acuan yang dipakai menghitung <see cref="DueDate"/> (BE-FIN-124, AP-DEC-03):
+    /// <see cref="FinSupplierPayableDueDateBases"/>. NULL untuk baris yang dibuat sebelum kolom ini
+    /// ada dan untuk saldo awal hasil migrasi (jatuh tempo dibawa dari berkas migrasi) — basisnya
+    /// tidak tercatat, bukan berarti kosong.
+    /// </summary>
+    [MaxLength(30)] public string? DueDateBasis { get; set; }
+
     /// <summary>Disalin dari MstSupplier.PaymentTermDays saat dibuat — perubahan termin supplier setelahnya MUST NOT mengubah utang yang sudah tercatat.</summary>
     public int PaymentTermDays { get; set; }
 
@@ -67,6 +75,16 @@ public sealed class FinSupplierPayable : IdentityModel
 
     /// <summary>BE-FIN-058, FIN-DES-079: Buku mutasi perubahan saldo utang supplier.</summary>
     public ICollection<FinSupplierPayableMovement> Movements { get; set; } = new List<FinSupplierPayableMovement>();
+}
+
+/// <summary>Dasar perhitungan jatuh tempo utang supplier (BE-FIN-124).</summary>
+public static class FinSupplierPayableDueDateBases
+{
+    /// <summary>Tanggal faktur supplier + termin. Jalur input manual dan invoice tanpa GR.</summary>
+    public const string SupplierInvoiceDate = "SUPPLIER_INVOICE_DATE";
+
+    /// <summary>Tanggal barang diterima (GR) + termin. Invoice yang Tukar Fakturnya merujuk GR (default BLM).</summary>
+    public const string GoodsReceivedDate = "GOODS_RECEIVED_DATE";
 }
 
 public static class FinSupplierPayableStatuses

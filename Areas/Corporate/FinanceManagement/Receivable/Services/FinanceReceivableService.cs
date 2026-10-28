@@ -66,11 +66,41 @@ public sealed class FinanceReceivableService
         var query = _dbContext.FinReceivables.AsNoTracking().Where(x => !x.IsDelete);
         if (!string.IsNullOrWhiteSpace(request.Status)) query = query.Where(x => x.Status == request.Status);
         if (!string.IsNullOrWhiteSpace(request.DebtorType)) query = query.Where(x => x.DebtorType == request.DebtorType);
+        if (!string.IsNullOrWhiteSpace(request.EmployeeArOrigin))
+        {
+            var origin = request.EmployeeArOrigin.Trim().ToUpper();
+            query = query.Where(x => x.EmployeeArOrigin == origin);
+        }
+        if (request.BenefitOwnerWorkforceProfileId.HasValue)
+        {
+            // Piutang lama hanya membawa MstEmployee.Id; diterjemahkan ke Workforce tanpa mengubah datanya.
+            var ownerProfileId = request.BenefitOwnerWorkforceProfileId.Value;
+            var ownerEmployeeIds = _dbContext.MstEmployees.AsNoTracking()
+                .Where(e => e.WorkforceProfileId == ownerProfileId)
+                .Select(e => e.Id);
+            query = query.Where(x =>
+                x.BenefitOwnerWorkforceProfileId == ownerProfileId ||
+                (!x.BenefitOwnerWorkforceProfileId.HasValue && x.BenefitOwnerId.HasValue &&
+                    ownerEmployeeIds.Contains(x.BenefitOwnerId.Value)));
+        }
         if (request.DueDateFrom.HasValue) query = query.Where(x => x.DueDate >= request.DueDateFrom.Value);
         if (request.DueDateTo.HasValue) query = query.Where(x => x.DueDate <= request.DueDateTo.Value);
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToUpper();
+
+            // Pemilik benefit (EMPLOYEE_BENEFIT): nama atau NIP / nomor dokter. Pencarian berbasis identitas Workforce
+            // (karyawan maupun dokter tetap) ditambah jalur lama lewat MstEmployee.Id.
+            var matchingOwnerEmployees = _dbContext.MstEmployees.AsNoTracking()
+                .Where(e => !e.IsDelete &&
+                    (e.FullName.ToUpper().Contains(search) || e.EmployeeNumber.ToUpper().Contains(search)));
+            var matchingOwnerEmployeeIds = matchingOwnerEmployees.Select(e => e.Id);
+            var matchingOwnerEmployeeProfileIds = matchingOwnerEmployees.Select(e => e.WorkforceProfileId);
+            var matchingOwnerDoctorProfileIds = _dbContext.MstDoctors.AsNoTracking()
+                .Where(d => !d.IsDelete &&
+                    (d.FullName.ToUpper().Contains(search) || d.DoctorNumber.ToUpper().Contains(search)))
+                .Select(d => d.WorkforceProfileId);
+
             var matchingInvoiceIds = _dbContext.BilInvoices.AsNoTracking()
                 .Where(i => i.InvoiceNumber.ToUpper().Contains(search))
                 .Select(i => i.Id);
@@ -93,7 +123,11 @@ public sealed class FinanceReceivableService
                 x.ReceivableNumber.ToUpper().Contains(search) ||
                 (x.InvoiceId.HasValue && matchingInvoiceIds.Contains(x.InvoiceId.Value)) ||
                 matchingReceivableIdsFromPatient.Contains(x.Id) ||
-                (x.DebtorReferenceId.HasValue && (matchingCompanyDebtorIds.Contains(x.DebtorReferenceId.Value) || matchingInsuranceDebtorIds.Contains(x.DebtorReferenceId.Value))));
+                (x.DebtorReferenceId.HasValue && (matchingCompanyDebtorIds.Contains(x.DebtorReferenceId.Value) || matchingInsuranceDebtorIds.Contains(x.DebtorReferenceId.Value))) ||
+                (x.BenefitOwnerWorkforceProfileId.HasValue &&
+                    (matchingOwnerEmployeeProfileIds.Contains(x.BenefitOwnerWorkforceProfileId.Value) ||
+                     matchingOwnerDoctorProfileIds.Contains(x.BenefitOwnerWorkforceProfileId.Value))) ||
+                (x.BenefitOwnerId.HasValue && matchingOwnerEmployeeIds.Contains(x.BenefitOwnerId.Value)));
         }
 
         var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
@@ -615,6 +649,7 @@ public sealed class FinanceReceivableService
         BenefitOwnerId = x.BenefitOwnerId,
         BenefitOwnerWorkforceProfileId = x.BenefitOwnerWorkforceProfileId,
         BenefitRelationship = x.BenefitRelationship,
+        EmployeeArOrigin = x.EmployeeArOrigin,
         OriginalAmount = x.OriginalAmount,
         OutstandingAmount = x.OutstandingAmount,
         AllocatedAmount = x.AllocatedAmount,

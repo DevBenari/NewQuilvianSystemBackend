@@ -82,16 +82,37 @@ public sealed class RegisterService
                 x.RegisterName.ToLower().Contains(keyword));
         }
 
-        return await query
+        var registers = await query
             .OrderBy(x => x.RegisterName)
-            .Select(x => new RegisterOptionResponse
+            .ToListAsync(cancellationToken);
+
+        var activeShifts = await _dbContext.BilCashierShifts.AsNoTracking()
+            .Where(s => !s.IsDelete && (s.Status == "OPEN" || s.Status == "REOPENED"))
+            .Select(s => new { s.RegisterId, s.ShiftNumber, s.CashierId })
+            .ToListAsync(cancellationToken);
+
+        var cashierIds = activeShifts.Select(s => s.CashierId).Distinct().ToList();
+        var cashierMap = await _dbContext.Users.AsNoTracking()
+            .Where(u => cashierIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.DisplayName ?? u.UserName, cancellationToken);
+
+        var shiftMap = activeShifts.ToDictionary(s => s.RegisterId, s => s);
+
+        return registers.Select(x =>
+        {
+            var shift = shiftMap.GetValueOrDefault(x.Id);
+            var cashierName = shift != null ? cashierMap.GetValueOrDefault(shift.CashierId) : null;
+            return new RegisterOptionResponse
             {
                 Id = x.Id,
                 RegisterCode = x.RegisterCode,
                 RegisterName = x.RegisterName,
-                Location = x.Location
-            })
-            .ToListAsync(cancellationToken);
+                Location = x.Location,
+                IsOccupied = shift != null,
+                OccupiedByCashierName = cashierName,
+                OccupiedShiftNumber = shift?.ShiftNumber
+            };
+        }).ToList();
     }
 
     public async Task<RegisterResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)

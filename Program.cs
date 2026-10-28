@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -48,6 +49,8 @@ using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
@@ -1005,6 +1008,8 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitBalanceService>();
+    // Laporan HR baca-saja "Piutang Benefit Pegawai" (AR Karyawan dari Billing); nilai finansial tetap milik Finance.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitReceivableReportService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
@@ -1212,11 +1217,28 @@ try
     builder.Services.AddScoped<PettyCashVoucherService>();
     builder.Services.AddScoped<PettyCashBudgetService>();
 
+    // ============================================================
+    // MEDICAL FEE MANAGEMENT
+    // ============================================================
+    builder.Services.AddScoped<MedicalFeeRoleService>();
+    builder.Services.AddScoped<MedicalFeeSharingService>();
+    builder.Services.AddScoped<MedicalFeeSharingRuleMatcher>();
+    builder.Services.AddScoped<MedicalFeeServiceSourceAdapter>();
+    builder.Services.AddScoped<MedicalFeeCalculationService>();
+    builder.Services.AddScoped<MedicalFeePeriodService>();
+    builder.Services.AddScoped<MedicalFeeAdjustmentService>();
+    builder.Services.AddScoped<MedicalFeeHandoffService>();
+    builder.Services.AddScoped<MedicalFeeAccessGuard>();
+
     // Registrasi kanonik Billing/Kasir/Petty Cash/Finance. Wajib dipanggil: hanya di sini
     // BilConsumerHandoffService, service Finance, dan options penomoran didaftarkan. Diletakkan
     // setelah registrasi manual di atas supaya adapter payment provider berbasis konfigurasi
     // (Billing:PaymentProvider:AutoAcceptWithoutProvider) yang berlaku.
     builder.Services.AddBillingManagement();
+
+    // BE-MDF-016: Resolusi persentase bagi hasil dokter untuk Billing (MDF-INTEGRATION-1.1 §4, BKC-DEC-169, MDF-DES-019).
+    // Menggantikan implementasi bawaan NullBillingDoctorShareResolver dari AddBillingManagement().
+    builder.Services.Replace(ServiceDescriptor.Scoped<IBillingDoctorShareResolver, MedicalFeeDoctorShareResolver>());
 
     // BE-FIN-074: dua kunci konfigurasi bukti pembayaran langsung (FIN-DES-092). Diregistrasi
     // tanpa syarat (bukan di dalam blok runBackgroundJobs) karena dikonsumsi endpoint HTTP
@@ -1275,6 +1297,14 @@ try
         builder.Services.Configure<FinanceCashierShiftMarkerSchedulerOptions>(
             builder.Configuration.GetSection("Finance:CashierShiftMarkerScheduler"));
         builder.Services.AddHostedService<FinanceCashierShiftMarkerSchedulerHostedService>();
+        // Intake otomatis AR Karyawan (EMPLOYEE_BENEFIT) Finance. Dibangun mati: Enabled = false adalah nilai bawaan
+        // FinanceEmployeeBenefitArIntakeSchedulerOptions. Hanya menemukan dan mengolah handoff AR Karyawan yang sudah
+        // melewati masa tunggu, lewat FinanceBillingIntakeService.ProcessAsync yang sudah ada; jenis fakta lain tetap manual.
+        builder.Services.AddScoped<IBillingIntakeProcessor, BillingIntakeProcessor>();
+        builder.Services.AddScoped<FinanceEmployeeBenefitArAutoIntakeService>();
+        builder.Services.Configure<FinanceEmployeeBenefitArIntakeSchedulerOptions>(
+            builder.Configuration.GetSection("Finance:EmployeeBenefitArIntakeScheduler"));
+        builder.Services.AddHostedService<FinanceEmployeeBenefitArIntakeSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveAccrualSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();

@@ -2039,3 +2039,173 @@ Nomor gelombang menyambung gelombang `REV-19` (`BE-FIN-103`, `105` = 1; `104`, `
 | Satu task besar untuk seluruh jembatan | Dipecah agar master, jadwal, inti, batch, dan koreksi dapat diverifikasi sendiri |
 | Task pengujian otomatis | Kebijakan backend |
 | Restitusi salah orang selama jembatan | `BE-FIN-111` tetap menunggu mesin; selama jembatan, restitusi dikerjakan penggajian di luar sistem atas pemberitahuan Finance (prosedur, bukan kode) |
+
+
+---
+
+# AMENDMENT ROADMAP REVISI 22 — Finance AP Mengikuti BLM: Slice A (Konsistensi Supplier dan Jenjang Persetujuan Pembayaran), Daftar Dokumen AP, dan Slice B (Komponen Faktur, Jatuh Tempo, Batch, Pembatalan Invoice)
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-22
+blueprint_revision: 20   # tidak berubah; delta kontrak dicatat pada bagian "Delta Kontrak", revisi kontrak menyusul
+roadmap_status: disetujui pemilik untuk dikerjakan (Slice A, BE-FIN-122, dan BE-FIN-123..127); sisa Slice B menunggu keputusan pemilik (lihat "Yang Sengaja TIDAK Dibuat")
+decisions: [FIN-DEC-045, FIN-DEC-051, FIN-DEC-052]   # dirujuk; amendment ini tidak menerbitkan FIN-DEC baru
+contracts_referenced: [FIN-VAL-052, FIN-VAL-096]      # dipenuhi, bukan diubah
+source_sha: 48011b0989aaf36173c618e69499d635f0eafbed (branch Yasmina)
+task_range_backend: BE-FIN-120..BE-FIN-127
+tanggal: 26 Oktober 2026
+sumber_requirement: Proses_Bisnis_AP_Quilvian_V2_Mengikuti_BLM.md (AP-UAT-06, AP-UAT-09, AP-UAT-10, AP-UAT-11, AP-UAT-14, AP-UAT-15, AP-UAT-19, AP-UAT-21); persetujuan pemilik Finance pada sesi chat 26 Oktober 2026
+keputusan_pemilik: >
+  26 Oktober 2026, instruksi "lanjutkan pengerjaan slice b" atas rekomendasi agen pada pesan sebelumnya. DITERIMA: AP-DEC-03 jatuh tempo utang =
+  tanggal terima barang + termin bila Tukar Faktur merujuk GR (selain itu tanggal faktur + termin), basisnya disimpan; AP-DEC-04 materai dan
+  ongkir = komponen penambah total di luar dasar PPN. KOREKSI atas rekomendasi: nilai kejadian PENGAKUAN-HUTANG-SUPPLIER TIDAK dipisah dari
+  materai/ongkir, karena memisahkannya membuat buku besar kurang dari buku pembantu. BELUM diputuskan: AP-DEC-05 (banyak GR per faktur) dan
+  mutasi pembalik pembatalan utang (menunggu Accounting).
+```
+
+## Sifat Gelombang Ini
+
+Dokumen proses bisnis AP yang mengikuti BLM (26 Oktober 2026) menyebut enam temuan kontrol pada jalur Purchasing/AP. Pembacaan source
+pada commit `48011b09` membuktikan **tiga** di antaranya adalah celah kontrol yang tidak membutuhkan perubahan skema maupun keputusan bisnis
+baru, sehingga dikerjakan lebih dulu sebagai **Slice A**:
+
+1. Pembayaran supplier tidak memeriksa bahwa utang yang dilunasi milik penerima pembayaran itu sendiri (`AP-UAT-14`).
+2. Persetujuan pembayaran tidak menegakkan jenjang nominal walau kontrak `FIN-VAL-052` mewajibkannya (`AP-UAT-15`).
+3. Tukar Faktur tidak memeriksa bahwa supplier-nya sama dengan supplier PO/GR yang dirujuk (`AP-UAT-09`), dan pembatalan GR memeriksa
+   rujukan Tukar Faktur sebelum kunci PO diambil sehingga ada celah balapan.
+
+`REV-22` mendaftarkan dua task perbaikan (`BE-FIN-120`, `BE-FIN-121`) dan satu task `Slice B` yang tidak menunggu keputusan apa pun:
+`BE-FIN-122`, yaitu tiga endpoint daftar (Purchasing Invoice, Pembayaran, Retur Pembelian) yang **sudah diwajibkan kontrak terkunci**
+`FIN-API-1.0` dan `FIN-API-1.1` tetapi belum ada kodenya (`AP-UAT-21`). Task `Slice B` lainnya (komponen materai/ongkir, basis jatuh tempo,
+banyak GR per faktur, mutasi pembalik pembatalan utang, batch/expired pada GR, tautan baris invoice ke PO/GR, action lifecycle selain daftar,
+dan identitas sumber BLM) **belum didaftarkan** karena bergantung pada keputusan pemilik yang belum ada. Grafik tetap Mermaid karena berkas
+ini sudah Mermaid.
+
+**Pembaruan 26 Oktober 2026 (lanjutan Slice B).** Pemilik menerima rekomendasi agen untuk dua keputusan (lihat `keputusan_pemilik` di atas),
+sehingga empat task didaftarkan: `BE-FIN-123` (materai dan ongkir pada invoice), `BE-FIN-124` (jatuh tempo utang mengikuti tanggal terima
+barang, beserta basisnya), `BE-FIN-125` (batch dan kedaluwarsa pada baris GR), dan `BE-FIN-126` (pembatalan Purchasing Invoice yang sudah
+diizinkan `state-transition-matrix.md` §B.4). Ketiga task pertama berbagi **satu** migration, `20261026120000_AddPurchasingApBlmComponents`,
+supaya hanya satu berkas Designer besar yang bertambah.
+
+**Pembaruan lanjutan (26 Oktober 2026, setelah dokumen konsolidasi audit ulang).** Dokumen `Integrasi_AP_Quilvian_V2_BLM_Konsolidasi_dan_Gap.md`
+(commit audit `cfe22fe8`) memuat `AUD-AP-04`: filter jatuh tempo pada daftar invoice tidak membutuhkan tabel tanggal baru, cukup memakai
+`FinSupplierPayable.DueDate` milik utang yang dibentuk invoice. Itu satu-satunya butir sisa yang tidak bergantung pada keputusan baru, sehingga
+didaftarkan sebagai `BE-FIN-127`. Butir lain pada dokumen itu (`AUD-AP-01`..`03`, `05`..`09`) tetap menunggu keputusan atau rancangan lebih dulu.
+
+## Backend Governance Preflight
+
+| Field | Nilai |
+| --- | --- |
+| Area | Corporate |
+| Module / Submodule | FinanceManagement / Payable (`BE-FIN-120`, `BE-FIN-122`) dan FinanceManagement / Purchasing (`BE-FIN-121`, `BE-FIN-122`, `BE-FIN-127`) |
+| Owner / Prefix | `Fin` (`MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 17 Payable dan baris 20 Purchasing, status `ACTIVE`) |
+| Applicability | `TOUCHED LEGACY` — mengubah method pada service yang sudah ada. `BE-FIN-123`..`125` menambah lima kolom pada tabel yang sudah berjalan; nol entity dan tabel baru, sehingga tidak ada entri registry baru |
+| Migration | `20261026120000_AddPurchasingApBlmComponents` (satu migration bersama `BE-FIN-123`..`125`): `FinPurchasingInvoice.StampDutyAmount` dan `ShippingCostAmount` (`numeric(18,2)`, default 0), `FinSupplierPayable.DueDateBasis` (`varchar(30)`, nullable), `FinGoodsReceiptItem.BatchNumber` (`varchar(100)`, nullable) dan `ExpiredDate` (`date`, nullable). Berkas migration, Designer, dan pembaruan snapshot disertakan; **belum diterapkan ke database** |
+| QBE ID berlaku | `QBE-VAL-001` (invarian bisnis divalidasi), `QBE-TXN-001` (konsistensi lintas-record dikunci), `QBE-SVC-001` (aturan tetap di service, bukan controller), `QBE-API-001` (envelope dan kode status), `QBE-PERM-001` (metadata Access dipakai ulang tanpa baris permission baru), `QBE-LOG-001` (audit aktor tetap dicatat), `QBE-DTO-001` (daftar `BE-FIN-122` tidak mengekspos entity EF), `QBE-PAGE-001` (paging dan filter mengikuti pola daftar Finance yang sudah ada), `QBE-CFG-002` (konfigurasi EF tabel yang disentuh diperbarui), `QBE-DEL-001` (pembatalan invoice `BE-FIN-126` lewat aksi `cancel` berjejak aktor, bukan penghapusan) |
+
+## Grafik Urutan Dependency — REV-22 Backend
+
+```mermaid
+flowchart LR
+    BE120["BE-FIN-120 🟡<br/>Pembayaran: supplier alokasi dan jenjang persetujuan"]
+    BE121["BE-FIN-121 🟡<br/>Tukar Faktur: supplier, status GR, dan kunci pembatalan GR"]
+    BE122["BE-FIN-122 🟡<br/>Daftar Purchasing Invoice, Pembayaran, dan Retur Pembelian"]
+    BE123["BE-FIN-123 🟡<br/>Materai dan ongkir pada Purchasing Invoice"]
+    BE124["BE-FIN-124 🟡<br/>Jatuh tempo utang mengikuti tanggal terima barang"]
+    BE125["BE-FIN-125 🟡<br/>Batch dan kedaluwarsa pada baris GR"]
+    BE126["BE-FIN-126 🟡<br/>Pembatalan Purchasing Invoice"]
+    BE127["BE-FIN-127 🟡<br/>Filter jatuh tempo aktual pada daftar invoice"]
+    BE121 --> BE124
+    BE122 --> BE127
+    BE124 --> BE127
+```
+
+**Pemeriksaan konsistensi.** `REV-22` memiliki **3** pasangan dependency. `BE-FIN-121` → `BE-FIN-124`: jatuh tempo mengikuti tanggal terima
+barang hanya aman karena `BE-FIN-121` menjamin GR yang sudah dirujuk Tukar Faktur tidak dapat dibatalkan. `BE-FIN-122` → `BE-FIN-127` dan
+`BE-FIN-124` → `BE-FIN-127`: filter jatuh tempo menambah parameter pada daftar yang dibuat `BE-FIN-122` dan membaca `DueDate` utang yang
+nilainya ditetapkan `BE-FIN-124`. `BE-FIN-123`..`125` berbagi satu migration tetapi tidak saling menunggu. Jumlah pasangan pada `REV-19` dan
+`REV-21` tidak berubah. Bebas siklus.
+
+## Tabel Gelombang Eksekusi — REV-22 Backend
+
+| Gelombang | Boleh mulai setelah | Task |
+|---:|---|---|
+| 1 | — | `BE-FIN-120` 🟡 |
+| 1 | — | `BE-FIN-121` 🟡 |
+| 1 | — | `BE-FIN-122` 🟡 |
+| 1 | — | `BE-FIN-123` 🟡 |
+| 1 | — | `BE-FIN-125` 🟡 |
+| 1 | — | `BE-FIN-126` 🟡 |
+| 2 | `BE-FIN-121` 🟡 | `BE-FIN-124` 🟡 |
+| 3 | `BE-FIN-122` 🟡, `BE-FIN-124` 🟡 | `BE-FIN-127` 🟡 |
+
+## Tabel Task REV-22 Backend
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 🟡 `BE-FIN-120` | Pembayaran supplier hanya melunasi utang milik supplier penerimanya, dan hanya penyetuju yang sesuai jenjang nominal yang dapat menyetujui pembayaran | `AP-UAT-14`, `AP-UAT-15`; `FIN-DEC-022`, `FIN-DEC-052` | `FIN-VAL-052` (403, dipenuhi), `FIN-VAL-096` (400, dipenuhi); aturan supplier alokasi = penerima (422, **baru, belum bernomor** — lihat Delta Kontrak) | `FinancePaymentService`, `FinanceApprovalAuthorizationService` (pola `FinancePurchasingInvoiceService.ApproveAsync`) | Validasi supplier pada `CreateDraftAsync` dan `UpdateDraftAsync`; `FinanceApprovalAuthorizationService` disuntikkan ke `FinancePaymentService`; `PaymentForbiddenException` dan pemetaan 403 pada `FinancePaymentsController`; nol endpoint baru, nol migration | — | 1. Draft pembayaran SUPPLIER ke Supplier B dengan alokasi ke utang Supplier A ditolak `422`, tidak ada pembayaran tersimpan. 2. Mengubah draft agar mengalokasikan utang supplier lain ditolak `422`, alokasi lama tetap utuh. 3. `PaymentType = MEDICAL_SERVICE` dengan alokasi utang supplier ditolak `400`. 4. Draft ke supplier pemilik utang tetap berhasil (UI saat ini mengirim `payeeReferenceId = supplierId`). 5. Persetujuan `TIER_2` (>= Rp 50.000.000) oleh Supervisor Finance ditolak `403`, oleh Manajer Finance diterima; `TIER_1` diterima Supervisor atau Manajer; pengguna tanpa role Finance ditolak `403`. 6. Persetujuan oleh pengaju tetap ditolak `422` sebelum pemeriksaan jenjang | QBE preflight; review diff; verifikasi kontrak API; verifikasi proses bisnis; test otomatis pada `PharmacyTests` atas persetujuan pemilik (lihat catatan di bawah tabel); `dotnet build` atas permintaan pemilik | Pemilik Finance. **Risiko:** pembayaran `TIER_2` tidak dapat disetujui bila belum ada pengguna ber-role `Manajer Finance`; role disiapkan `FinanceApprovalRoleSeeder`, penempatannya data lingkungan | Preflight; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** Kriteria 1–6 terpetakan ke source dan ke empat test supplier serta lima test jenjang. **Belum terpenuhi:** `dotnet build` **NOT RUN** dan test otomatis ditulis tetapi **NOT RUN** (instruksi pemilik: build dan test dijalankan mandiri); verifikasi penempatan role Finance pada database lingkungan belum dilakukan. Bukti: [laporan BE-FIN-120](../task/report/backend/BE-FIN-120.md) |
+| 🟡 `BE-FIN-121` | Faktur supplier hanya dapat ditautkan ke PO/GR milik supplier yang sama, GR yang sudah dibatalkan tidak dapat menjadi dasar faktur, dan GR yang sudah dirujuk faktur tidak dapat dibatalkan | `AP-UAT-09`; `FIN-DEC-051` | Aturan supplier TF = supplier PO/GR (422, **baru, belum bernomor**) dan GR `CANCELLED` tidak dapat dirujuk TF (422, **baru, belum bernomor**) — lihat Delta Kontrak | `FinanceInvoiceExchangeService`, `FinanceGoodsReceiptService` (pola kunci `FIN_PURCHASE_ORDER_{id}` + `Serializable`) | Validasi supplier pada `CreateAsync` (PO langsung atau lewat GR); pembacaan ulang status GR di dalam kunci PO; pemeriksaan rujukan TF pada `CancelAsync` GR dipindah ke dalam kunci yang sama; nol endpoint baru, nol migration | — | 1. TF atas nama Supplier B yang merujuk PO Supplier A ditolak `422`. 2. TF atas nama Supplier B yang hanya merujuk GR milik PO Supplier A ditolak `422`. 3. Supplier sama lewat PO dan GR diterima, `EstimatedDueDate` = tanggal terima + termin supplier. 4. TF tanpa PO dan tanpa GR tetap diterima (`FIN-DEC-051`). 5. TF yang merujuk GR berstatus `CANCELLED` ditolak `422`. 6. Pembatalan GR yang sudah dirujuk TF tetap ditolak `422`, dan pemeriksaannya berjalan setelah kunci PO diambil | QBE preflight; review diff; verifikasi proses bisnis; test otomatis pada `PharmacyTests` atas persetujuan pemilik; `dotnet build` atas permintaan pemilik | Pemilik Finance. **Risiko:** perilaku kunci dua permintaan bersamaan hanya terbukti di PostgreSQL, bukan di basis data uji; kegagalan serialisasi (`40001`) belum dipetakan menjadi `409` (pola yang sama dengan service lain) | Preflight; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** Kriteria 1–6 terpetakan ke source dan ke enam test. **Belum terpenuhi:** `dotnet build` **NOT RUN**, test otomatis ditulis tetapi **NOT RUN**, dan perilaku kunci bersamaan tidak dibuktikan (basis data uji hanya meniru bentuk fungsi kunci). Bukti: [laporan BE-FIN-121](../task/report/backend/BE-FIN-121.md) |
+| 🟡 `BE-FIN-122` | Petugas Finance dapat mencari dan menelusuri Purchasing Invoice, Pembayaran, dan Retur Pembelian lewat daftar berpaging bersaring, tanpa harus mengetahui ID dokumennya | `AP-UAT-21`; `FIN-DEC-045` | `FIN-API-1.1` §B.4 (`GET /purchasing-invoices`) dan §B.5 (`GET /supplier-returns`), `FIN-API-1.0` (`GET /payments`) — sudah diwajibkan kontrak, **dipenuhi**; filter jatuh tempo pada invoice menyusul sebagai `BE-FIN-127` | Pola `GetPagedAsync`/`GetList` pada `FinancePurchaseOrderService`, `FinanceInvoiceExchangeService`, dan `FinanceSupplierReturnService.GetDepositsPagedAsync` | `PurchasingInvoiceQuery`, `SupplierReturnQuery`, `PaymentQuery` (DTO); `GetPagedAsync` pada tiga service; `GetList` pada tiga controller; hak akses `FinancePurchasingInvoice : Read`, `FinanceSupplierReturn : Read`, `FinancePayment : Read` (sama dengan `GetById`, tidak ada baris permission baru); nol migration | — | 1. `GET .../purchasing-invoices` mengembalikan daftar berpaging terurut terbaru, dapat disaring `supplierId` dan `status`. 2. `GET .../supplier-returns` dapat disaring `purchasingInvoiceId`, `supplierId` (lewat invoice asal), dan `status`. 3. `GET .../payments` dapat disaring `paymentType`, `payeeReferenceId`, dan `status`. 4. `pageSize` di atas 100 atau `pageNumber` di bawah 1 ditolak `400`. 5. Dokumen yang dihapus lunak (`IsDelete`) tidak muncul. 6. Pengguna tanpa hak `Read` pada resource itu ditolak `403` | QBE preflight; review diff; verifikasi kontrak API; `dotnet build` atas permintaan pemilik | Pemilik Finance. **Risiko:** `payeeReferenceId` pada daftar pembayaran sensitif bila penerimanya tenaga medis; hak akses `Read` sama dengan rincian pembayaran yang sudah ada | Preflight; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** Kriteria 1–6 terpetakan ke source. **Belum terpenuhi:** `dotnet build` **NOT RUN**. Tanpa test otomatis: persetujuan pemilik atas test hanya mencakup `BE-FIN-120` dan `BE-FIN-121`. Bukti: [laporan BE-FIN-122](../task/report/backend/BE-FIN-122.md) |
+| 🟡 `BE-FIN-123` | Faktur supplier dengan materai dan ongkir dapat dicatat dengan komponen yang jelas, tanpa menyamarkan biaya sebagai potongan negatif | `AP-UAT-10`; `AP-DEC-04` (diterima 26 Oktober 2026) | `FIN-VAL-107` **diperluas** (rumus total) dan `FIN-API-1.1` §B.4 bertambah dua field aditif — lihat Delta Kontrak | `FinancePurchasingInvoiceService`, pola kolom aditif `AddPPNAmountToFinSupplierReturn` | Kolom `StampDutyAmount` dan `ShippingCostAmount` pada `FinPurchasingInvoice` (migration bersama); DTO Create, Update, dan Response; `ValidateCharges` dan `ValidateBalance`; controller meneruskan dan memetakan; nilai kejadian Accounting tidak dipisah (`Total - PPN` otomatis memuatnya) | — | 1. Subtotal Rp 900.000, PPN Rp 99.000, materai Rp 10.000, ongkir Rp 15.000, total Rp 1.024.000 diterima. 2. Total Rp 999.000 untuk komponen yang sama ditolak `422` "tidak seimbang". 3. Materai atau ongkir negatif ditolak `400`. 4. Klien lama yang tidak mengirim kedua field tetap diterima (default 0). 5. Setelah disetujui: utang Rp 1.024.000, kejadian `PENGAKUAN-HUTANG-SUPPLIER` Rp 925.000, `PPN-MASUKAN-PEMBELIAN` Rp 99.000 (jumlahnya sama dengan utang) | QBE preflight; review diff; verifikasi kontrak API; verifikasi proses bisnis; `dotnet build` dan penerapan migration atas permintaan pemilik | Pemilik Finance. **Risiko:** akun untuk porsi materai dan ongkir pada kejadian pengakuan adalah keputusan Accounting; migration belum diterapkan | Preflight; file migration, Designer, dan snapshot siap; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** Kriteria 1–5 terpetakan ke source. **Belum terpenuhi:** `dotnet build` **NOT RUN**, migration belum diterapkan, tanpa test otomatis. Bukti: [laporan BE-FIN-123](../task/report/backend/BE-FIN-123.md) |
+| 🟡 `BE-FIN-124` | Jatuh tempo utang dari invoice yang merujuk Tanda Terima Barang dihitung dari tanggal barang diterima, dan dasar perhitungannya tersimpan | `AP-UAT-11`; `AP-DEC-03` (diterima 26 Oktober 2026) | Aturan jatuh tempo ledger (`data-dictionary.md` §4.1: tanggal faktur + termin) **berubah untuk invoice ber-GR**; `SupplierPayableResponse` bertambah `dueDateBasis` (aditif) — lihat Delta Kontrak | `FinanceSupplierPayableService.CreateAsync`, `FinancePurchasingInvoiceService.ApproveAsync` | Kolom `DueDateBasis` pada `FinSupplierPayable` (migration bersama); parameter opsional `goodsReceivedDate` pada `CreateAsync`; `ApproveAsync` membaca tanggal terima GR dari Tukar Faktur; konstanta `FinSupplierPayableDueDateBases`; DTO dan pemetaan controller | `BE-FIN-121` 🟡 | 1. Termin 30 hari, GR diterima 10 Oktober 2026, faktur bertanggal 8 Oktober 2026: jatuh tempo 9 November 2026 (bukan 7 November), basis `GOODS_RECEIVED_DATE`. 2. Invoice dari Tukar Faktur tanpa GR: tanggal faktur + termin, basis `SUPPLIER_INVOICE_DATE` (perilaku lama). 3. Input utang manual: tanggal faktur + termin, basis `SUPPLIER_INVOICE_DATE`. 4. Utang lama: jatuh tempo tidak berubah, `dueDateBasis` kosong. 5. Rincian dan daftar utang menampilkan `dueDateBasis` | QBE preflight; review diff; verifikasi proses bisnis; `dotnet build` dan penerapan migration atas permintaan pemilik | Pemilik Finance. **Risiko:** pergeseran jatuh tempo memengaruhi aging utang baru ber-GR; estimasi jatuh tempo pada Tukar Faktur tetap terpisah dan tidak berubah | Preflight; migration bersama siap; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** Kriteria 1–5 terpetakan ke source. **Belum terpenuhi:** `dotnet build` **NOT RUN**, migration belum diterapkan, tanpa test otomatis. Bukti: [laporan BE-FIN-124](../task/report/backend/BE-FIN-124.md) |
+| 🟡 `BE-FIN-125` | Barang yang diterima dalam beberapa batch tercatat lengkap dengan nomor batch dan tanggal kedaluwarsanya | `AP-UAT-06` | `FIN-API-1.1` §B.2: request dan response baris GR bertambah dua field opsional (aditif) | `FinanceGoodsReceiptService.CreateAsync`, pola akumulasi kuantitas `BE-FIN-032` | Kolom `BatchNumber` dan `ExpiredDate` pada `FinGoodsReceiptItem` (migration bersama); DTO request dan response; service menyimpan dan memangkas nomor batch; controller memetakan | — | 1. PO 100 unit diterima batch A 60 dan batch B 40 dalam satu GR: akumulasi 100, PO `FULLY_RECEIVED`. 2. Batch B 41: ditolak `422` (melebihi pesanan, `FIN-VAL-104`). 3. Nomor batch dan tanggal kedaluwarsa tampil pada rincian GR. 4. Nomor batch di atas 100 karakter ditolak `400`. 5. GR tanpa batch tetap diterima; GR lama tampil dengan batch kosong | QBE preflight; review diff; verifikasi proses bisnis; `dotnet build` dan penerapan migration atas permintaan pemilik | Pemilik Finance. **Risiko:** kedaluwarsa hanya dicatat; aturan menolak barang kedaluwarsa belum diputuskan. Stok obat/alkes tetap tanggung jawab domain persediaan (`AP-DEC-09`) | Preflight; migration bersama siap; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** Kriteria 1–5 terpetakan ke source. **Belum terpenuhi:** `dotnet build` **NOT RUN**, migration belum diterapkan, tanpa test otomatis. Bukti: [laporan BE-FIN-125](../task/report/backend/BE-FIN-125.md) |
+| 🟡 `BE-FIN-126` | Purchasing Invoice yang belum disetujui dapat dibatalkan dengan jejak pembatal dan waktu, tanpa menyentuh utang | `AP-UAT-19`; `FIN-DEC-045` | `state-transition-matrix.md` §B.4 (DRAFT/PENDING_APPROVAL → CANCELLED) sudah mengizinkan; `api-contract.md` §B.4 belum mendaftarkan endpoint dan `permission-audit-matrix.md` belum mendaftarkan aksi `Cancel` — lihat Delta Kontrak | Pola `Cancel` pada `FinanceInvoiceExchangeService` dan `FinanceSupplierReturnService` | `CancelAsync` pada service; `POST /purchasing-invoices/{id}/cancel`; aksi akses baru `FinancePurchasingInvoice : Cancel` (tipe `Update`); nol migration | — | 1. Invoice `DRAFT` dibatalkan: status `CANCELLED`, pembatal dan waktu tercatat. 2. `PENDING_APPROVAL` dibatalkan: sama. 3. `APPROVED`, `REJECTED`, atau `CANCELLED` ditolak `422`. 4. `ExpectedRowVersion` usang ditolak `409`. 5. Tukar Faktur sumber tetap `RECEIVED`; tidak ada utang dan tidak ada kejadian Accounting terbentuk. 6. Pengguna tanpa hak `Cancel` ditolak `403` | QBE preflight; review diff; verifikasi kontrak API; `dotnet build` atas permintaan pemilik | Pemilik Finance. **Risiko:** setelah invoice dibatalkan, Tukar Faktur tetap terikat pada invoice itu (satu Tukar Faktur satu invoice, indeks unik); untuk menyusun invoice baru, Tukar Faktur dibatalkan lalu dicatat ulang. Hak `Cancel` baru tampil di layar Akses Role dan awalnya tidak diberikan kepada siapa pun selain SuperAdmin | Preflight; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** Kriteria 1–6 terpetakan ke source. **Belum terpenuhi:** `dotnet build` **NOT RUN**, tanpa test otomatis. Bukti: [laporan BE-FIN-126](../task/report/backend/BE-FIN-126.md) |
+| 🟡 `BE-FIN-127` | Petugas Finance dapat menyaring daftar invoice menurut rentang jatuh tempo aktual utang dan melihat estimasi dari Tukar Faktur secara terpisah | `AUD-AP-04` (dokumen konsolidasi audit ulang); `AP-UAT-21` | `FIN-API-1.1` §B.4: "disaring supplier/status/jatuh tempo" — **dipenuhi**; response daftar bertambah empat field aditif — lihat Delta Kontrak | `FinSupplierPayable.DueDate`/`DueDateBasis`/`Status` lewat `SourcePurchasingInvoiceId` (nilai ditetapkan `BE-FIN-124`), `FinInvoiceExchange.EstimatedDueDate`, pola `GetPagedAsync` `BE-FIN-122` | `PurchasingInvoiceQuery.DueDateFrom`/`DueDateTo`; `GetPagedAsync` menyaring lewat `EXISTS` pada utang tidak dibatalkan dan mengembalikan `PurchasingInvoiceListRow`; `PurchasingInvoiceListItemResponse` (`estimatedDueDate`, `actualDueDate`, `dueDateBasis`, `payableStatus`); controller memetakan dan menangani `400`; nol migration, nol tabel baru | `BE-FIN-122` 🟡, `BE-FIN-124` 🟡 | 1. Invoice `APPROVED` dengan utang jatuh tempo 9 November 2026 muncul pada rentang 1–30 November 2026 dan tidak muncul pada rentang 1–30 Oktober 2026. 2. Invoice `DRAFT` tidak muncul pada filter jatuh tempo apa pun, tetapi tetap muncul pada daftar tanpa filter dengan `actualDueDate` kosong. 3. Utang berstatus `CANCELLED` tidak dihitung pada filter. 4. `estimatedDueDate` dari Tukar Faktur tampil terpisah dan tidak pernah menggantikan `actualDueDate`. 5. Satu invoice tampil satu kali; `totalData` dan paging tidak berubah akibat filter. 6. `dueDateFrom` melebihi `dueDateTo` ditolak `400`. 7. Hanya `dueDateFrom` atau hanya `dueDateTo` diterima | QBE preflight; review diff; verifikasi kontrak API; verifikasi proses bisnis; `dotnet build` atas permintaan pemilik | Pemilik Finance. **Risiko:** terjemahan EF atas `EXISTS` dengan `IQueryable` tertangkap hanya terbukti saat build dan dijalankan terhadap PostgreSQL | Preflight; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** Kriteria 1–7 terpetakan ke source. **Belum terpenuhi:** `dotnet build` **NOT RUN**, kueri belum dijalankan terhadap PostgreSQL, tanpa test otomatis. Bukti: [laporan BE-FIN-127](../task/report/backend/BE-FIN-127.md) |
+
+**Catatan test otomatis.** Kebijakan backend (`TEST_POLICY.md`) melarang pembuatan test otomatis tanpa permintaan eksplisit pemilik pada task
+aktif. Rencana kerja Slice A yang diajukan di sesi chat 26 Oktober 2026 memuat butir "Test untuk keempatnya" dan **disetujui pemilik**, sehingga
+test ditulis pada project `Tests/QuilvianSystemBackend.PharmacyTests` yang sudah memuat test Finance lain. Tidak ada project, paket, atau entri
+solusi baru. Persetujuan itu mencakup `BE-FIN-120` dan `BE-FIN-121` saja; `BE-FIN-122`..`126` tidak disertai test. Butir ini bukan preseden untuk task lain.
+
+## Delta Kontrak yang Harus Dicatat
+
+| Perubahan | Keadaan kontrak | Tindakan |
+|---|---|---|
+| Persetujuan pembayaran menegakkan jenjang nominal (403) | Sudah diwajibkan `FIN-VAL-052`; source tertinggal | Tidak ada perubahan kontrak |
+| `PaymentType` harus `SUPPLIER` untuk utang supplier (400) | Sudah diwajibkan `FIN-VAL-096`; source tertinggal | Tidak ada perubahan kontrak |
+| Supplier alokasi = penerima pembayaran (422) | **Belum ada** di `validation-matrix.md` | Perlu `FIN-VAL` baru pada revisi kontrak berikutnya |
+| Supplier Tukar Faktur = supplier PO/GR yang dirujuk (422) | **Belum ada** di `validation-matrix.md` | Perlu `FIN-VAL` baru pada revisi kontrak berikutnya |
+| GR berstatus `CANCELLED` tidak dapat dirujuk Tukar Faktur (422) | **Belum ada** di `validation-matrix.md` maupun `state-transition-matrix.md` §B.3 | Perlu `FIN-VAL` baru pada revisi kontrak berikutnya |
+| `POST /payments/{id}/approve` dapat menjawab `403` | Kode status baru pada endpoint existing (aditif) | Dokumentasi `ProducesResponseType` ditambahkan; konsumen yang belum menangani `403` perlu diperiksa |
+| `GET /purchasing-invoices`, `GET /supplier-returns`, `GET /payments` | Sudah terdaftar di `api-contract.md` §B.4, §B.5, dan `FIN-API-1.0` dengan status "Rencana (belum tersedia)" | Dipenuhi `BE-FIN-122`; kolom Status pada kontrak diperbarui saat revisi kontrak berikutnya |
+| Filter jatuh tempo pada `GET /purchasing-invoices` | Kontrak menyebut "disaring supplier/status/jatuh tempo" | Dipenuhi `BE-FIN-127` memakai jatuh tempo AKTUAL milik utang (bukan estimasi Tukar Faktur). Response daftar bertambah `estimatedDueDate`, `actualDueDate`, `dueDateBasis`, `payableStatus` (aditif); kontrak perlu memuatnya |
+| Filter `GET /supplier-returns` dan `GET /payments` | Kontrak tidak merinci filter | `BE-FIN-122` menyediakan filter yang sudah menjadi kolom data (invoice asal, supplier, status; jenis, penerima, status) |
+| Rumus total invoice (`FIN-VAL-107`) | Rumus terkunci: Subtotal − Diskon + PPN − DP − Potongan lain | `BE-FIN-123` memperluasnya dengan materai dan ongkir (penambah); perlu `FIN-VAL-107` revisi pada kontrak berikutnya |
+| Request dan response Purchasing Invoice | Belum memuat `stampDutyAmount` dan `shippingCostAmount` | Aditif, default 0; kontrak `FIN-API-1.1` §B.4 perlu diperbarui |
+| Jatuh tempo utang ber-GR (`data-dictionary.md` §4.1) | Terkunci: tanggal faktur + termin | `BE-FIN-124` mengubahnya menjadi tanggal terima barang + termin bila Tukar Faktur merujuk GR; `SupplierPayableResponse` bertambah `dueDateBasis` |
+| Baris GR | `FIN-API-1.1` §B.2 belum memuat `batchNumber` dan `expiredDate` | Aditif, opsional |
+| `POST /purchasing-invoices/{id}/cancel` dan hak `FinancePurchasingInvoice : Cancel` | Transisi diizinkan `state-transition-matrix.md` §B.4, tetapi endpoint dan aksi akses belum terdaftar di `api-contract.md` §B.4 dan `permission-audit-matrix.md` | Dibangun `BE-FIN-126`; kontrak dan matriks hak akses perlu diperbarui |
+
+Amendment ini **tidak mengedit** artefak kontrak yang berstatus approved. Tiga aturan baru dicatat di sini sampai pemilik menerbitkan revisi
+kontrak lewat `manage-module-blueprint` atau `design-business-module`.
+
+## Traceability REV-22
+
+| Requirement / Keputusan | Task | Kontrak | Kriteria |
+|---|---|---|---|
+| `AP-UAT-14` (dokumen proses bisnis AP BLM), `FIN-VAL-096` | `BE-FIN-120` 🟡 | `FIN-VAL-096`; aturan baru belum bernomor | `BE-FIN-120` butir 1–4 |
+| `AP-UAT-15`, `FIN-DEC-022`, `FIN-DEC-052` | `BE-FIN-120` 🟡 | `FIN-VAL-052` | `BE-FIN-120` butir 5–6 |
+| `AP-UAT-09`, `FIN-DEC-051` | `BE-FIN-121` 🟡 | aturan baru belum bernomor | `BE-FIN-121` butir 1–4 |
+| Celah balapan pembatalan GR terhadap pembuatan TF (temuan audit 26 Oktober 2026) | `BE-FIN-121` 🟡 | aturan baru belum bernomor; `state-transition-matrix.md` §B.2 | `BE-FIN-121` butir 5–6 |
+| `AP-UAT-21` (daftar invoice, pembayaran, dan retur dapat dicari dan ditelusuri statusnya) | `BE-FIN-122` 🟡 | `FIN-API-1.1` §B.4, §B.5; `FIN-API-1.0` | `BE-FIN-122` butir 1–6 |
+| `AP-UAT-10` (materai, ongkir, diskon tambahan: komponen jelas, total sesuai kontrak) | `BE-FIN-123` 🟡 | `FIN-VAL-107` diperluas | `BE-FIN-123` butir 1–5 |
+| `AP-UAT-11` (tanggal GR, faktur, dan TF berbeda: jatuh tempo sesuai keputusan, estimasi terpisah) | `BE-FIN-124` 🟡 | aturan jatuh tempo ledger berubah untuk invoice ber-GR | `BE-FIN-124` butir 1–5 |
+| `AP-UAT-06` (beberapa batch dan kedaluwarsa: detail tidak hilang) | `BE-FIN-125` 🟡 | `FIN-API-1.1` §B.2 diperluas aditif | `BE-FIN-125` butir 1–5 |
+| `AP-UAT-19` (edit atau hapus dokumen final ditolak, koreksi sah dijelaskan) — bagian invoice | `BE-FIN-126` 🟡 | `state-transition-matrix.md` §B.4 | `BE-FIN-126` butir 1–6 |
+| `AUD-AP-04` (filter jatuh tempo pada daftar invoice; tanggal aktual dari utang, estimasi terpisah) | `BE-FIN-127` 🟡 | `FIN-API-1.1` §B.4 | `BE-FIN-127` butir 1–7 |
+
+**Gap traceability.** Berkas `requirement-traceability.md` tidak ada pada blueprint Finance; traceability ditulis di dalam roadmap per revisi,
+sehingga tabel di atas adalah satu-satunya tempat bukti `REV-22`.
+
+## Yang Sengaja TIDAK Dibuat
+
+| Yang dipertimbangkan | Alasan |
+|---|---|
+| Pemisahan nilai materai/ongkir dari kejadian `PENGAKUAN-HUTANG-SUPPLIER` (kode event tersendiri) | Membutuhkan kode event baru dari Accounting. Selama belum ada, nilai kejadian memuat materai dan ongkir supaya sama dengan buku pembantu utang (`BE-FIN-123`) |
+| Task satu faktur untuk banyak GR atau banyak PO | Menunggu keputusan pemilik (`AP-DEC-05`); membutuhkan tabel relasi baru dan migration |
+| Task mutasi pembalik dan event Accounting untuk pembatalan utang | Menunggu konfirmasi pemilik Accounting soal kode event pembalik |
+| Task kondisi barang dan UOM terima pada GR; tautan baris invoice ke PO/GR item | Batch dan kedaluwarsa sudah dikerjakan (`BE-FIN-125`). Kondisi, UOM terima, dan tautan baris membutuhkan keputusan pemetaan produk/satuan (`AP-DEC-09`, C01) |
+| Task action lifecycle yang kurang selain daftar dan pembatalan invoice (penutupan PO, update GR/TF, pembatalan lalu penyusunan ulang invoice pada Tukar Faktur yang sama) | Menunggu keputusan aturan status yang disahkan. Daftar sudah `BE-FIN-122`; pembatalan invoice sudah `BE-FIN-126` |
+| Task identitas sumber BLM dan integrasi otomatis | Dokumen proses bisnis menempatkannya sebagai tahap lanjutan |
+| Task pengujian otomatis tersendiri | Kebijakan backend; test pada `BE-FIN-120`/`121` adalah pengecualian atas persetujuan pemilik. `BE-FIN-122`..`126` tidak disertai test |

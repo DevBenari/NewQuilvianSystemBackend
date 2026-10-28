@@ -51,4 +51,12 @@ public class PrescriptionFinancialClearanceResponse
 
     /// <summary>Waktu berlaku menurut Billing.</summary>
     public DateTimeOffset? EffectiveAt { get; set; }
+
+    /// <summary>
+    /// Benar bila Billing sudah menerbitkan surat yang lebih baru daripada salinan ini dan surat itu
+    /// belum tersalin — misalnya sapuan pada daftar resep dibatasi jumlahnya atau gagal. Selama
+    /// benar, keadaan di atas MUST NOT disajikan sebagai keadaan terkini. Hanya diisi oleh daftar
+    /// resep; detail dan layar kerja mengonsumsi suratnya lebih dulu sehingga selalu salah.
+    /// </summary>
+    public bool HasPendingBillingUpdate { get; set; }
 }

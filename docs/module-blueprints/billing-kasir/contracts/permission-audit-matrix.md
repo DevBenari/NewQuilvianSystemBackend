@@ -734,3 +734,38 @@ Seluruhnya lewat `_loggerService.AuditAsync`, kategori Billing. Payload **MUST N
 | Pembacaan daftar dan detail tinjauan | **Tidak dicatat** | Memakai `GET`, mengikuti konvensi project |
 
 Trace `BKC-DEC-158`, `BKC-DEC-162`, `BKC-DES-086`, `BKC-DES-089`, A3. Tests: `BIL-AT-221`, `BIL-AT-224`.
+
+## Amendment 26 Oktober 2026 — Pelaksana Entri Kasir dan `DoctorShare` dari Medical Fee (Revisi 2.4)
+
+> `last_changed_in`: `BIL-PERMISSION-1.7` atas `BIL-PERMISSION-1.6` — status **draft**.
+> Masukan: `BKC-DEC-169`, `172`, `173`, `178`; `BKC-DES-093`..`095`. Backend SHA: `ecddd8f8`.
+> **Nol Resource dan nol Action baru.** Yang bergerak hanya peristiwa audit dan catatan kewenangan.
+
+### Hak akses
+
+| Hal | Keadaan |
+|---|---|
+| Menandai berjasa dan memilih pelaksana | Bagian dari `BillingInvoice : Create` yang sudah ada pada `POST catalog-charges` dan `POST other-charges`. Tidak ada Action terpisah |
+| Membaca pelaksana dan asal `DoctorShare` | Bagian dari `BillingInvoice : Read` |
+| Membaca daftar dokter | Milik HR (`GET .../master-data/doctors/options`, `[Authorize(Policy = KioskReadPolicy)]`). Pemberian untuk peran Kasir **perlu diverifikasi**, bukan dirancang di sini |
+
+### Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Penjaga | Yang dijaganya | Yang **tidak** dijaganya | Risiko |
+|---|---|---|---|
+| `BIL-VAL-161`..`165` | Pelaksana ada, aktif, dan berjenis sah | Bahwa pelaksana yang dipilih **benar-benar** yang mengerjakan layanan | Jasa jatuh ke orang yang salah. Risiko ini **diterima** Medical Fee (`MF-DEC-017`, "bergantung pada ketelitian kasir") dan Billing (`BKC-DEC-172`). Kendalinya: pelaksana tampil pada rincian tagihan dan pada verifikasi periode Medical Fee |
+| `INV-MF-4` (`BKC-DES-098`) | Dua pelaksana tidak tergabung dalam satu baris | — | — |
+| Port tanpa Action | Medical Fee tidak dapat dipanggil dari luar lewat port ini | — | Port in-process; tidak ada permukaan HTTP baru |
+
+### Peristiwa audit
+
+Seluruhnya lewat `_loggerService.AuditAsync`, kategori Billing. Payload **MUST NOT** memuat nama pasien, NIK, nomor rekam medis, diagnosis,
+maupun nama pelaksana. Persentase sharing tidak dicatat.
+
+| Peristiwa | Kapan | Payload |
+|---|---|---|
+| `BillingInvoice.DoctorShareUnavailable` | **Baru.** Medical Fee menjawab `Unavailable`, melempar kesalahan, atau melewati batas waktu | `InvoiceId`, `InvoiceItemId`, `SourceDomain`, `PerformerType`, `Cause` (`NOT_INSTALLED`/`TIMEOUT`/`ERROR`/`UNAVAILABLE`), `CorrelationId`, `ActorUserId` |
+| `BillingInvoice.CreateCharge`, `BillingInvoice.UpsertCharge` | Sudah ada | Ditambah `IsFeeBearing` dan `DoctorShareResolution`. Tidak ditambah `PerformerReferenceId` |
+| `NoRule` dan `NOT_APPLICABLE` | **Tidak** ada peristiwa | Tersimpan permanen di `DoctorShareResolution` |
+
+Trace `BKC-DEC-169`, `172`, `178`; `BKC-DES-097`. Tests: `BIL-AT-232`..`234`.

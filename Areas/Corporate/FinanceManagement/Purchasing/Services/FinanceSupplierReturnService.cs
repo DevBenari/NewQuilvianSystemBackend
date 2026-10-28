@@ -44,6 +44,41 @@ public sealed class FinanceSupplierReturnService
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
     // ------------------------------------------------------------------------------------
+    // Daftar Retur Pembelian — GET /, disaring invoice asal/supplier/status (api-contract.md §B.5, BE-FIN-122)
+    // Supplier disaring lewat Purchasing Invoice asal karena FinSupplierReturn tidak punya kolom itu.
+    // ------------------------------------------------------------------------------------
+
+    public async Task<PagedResult<FinSupplierReturn>> GetPagedAsync(SupplierReturnQuery query, CancellationToken cancellationToken)
+    {
+        var q = _dbContext.FinSupplierReturns.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (query.PurchasingInvoiceId.HasValue && query.PurchasingInvoiceId.Value != Guid.Empty)
+            q = q.Where(x => x.PurchasingInvoiceId == query.PurchasingInvoiceId.Value);
+
+        if (query.SupplierId.HasValue && query.SupplierId.Value != Guid.Empty)
+            q = q.Where(x => x.PurchasingInvoice!.SupplierId == query.SupplierId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant());
+
+        var totalCount = await q.CountAsync(cancellationToken);
+
+        var items = await q.OrderByDescending(x => x.CreateDateTime)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<FinSupplierReturn>
+        {
+            Items = items,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            TotalData = totalCount,
+            TotalPage = (int)Math.Ceiling(totalCount / (double)query.PageSize)
+        };
+    }
+
+    // ------------------------------------------------------------------------------------
     // Pencatatan (DRAFT) — FIN-VAL-110, FIN-VAL-111, state-transition-matrix.md §B.5
     // ------------------------------------------------------------------------------------
 

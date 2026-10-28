@@ -1565,3 +1565,102 @@ Content-Type: application/json
 | `422` | Keputusan tidak diizinkan untuk status invoice saat ini (`BIL-VAL-154`, `BIL-VAL-155`) |
 
 Trace `BKC-DEC-158`, `BKC-DEC-162`, `BKC-DES-089`, A2, A3. Tests: `BIL-AT-218`–`BIL-AT-224`.
+
+## Amendment 26 Oktober 2026 — Pelaksana Entri Kasir dan `DoctorShare` dari Medical Fee (Revisi 2.4)
+
+> `last_changed_in`: `BIL-API-2.1` atas `BIL-API-2.0` — status **draft**. Owner: pemilik modul Billing; `approved_by`/`approved_at`: belum.
+> Masukan: `BKC-DEC-168`..`178`, `BKC-DES-093`..`103`. Backend SHA: `ecddd8f8`. Kompatibilitas: **aditif**. Seluruh field request baru
+> opsional dan berbawaan "tidak berjasa"; pemanggil lama tidak berubah. Nol endpoint baru, nol endpoint dihapus, nol perubahan hak akses.
+
+### Health Services / Billing Management / Billing / Invoices
+
+Base URL: `api/v1/health-services/billing-management/billing/invoices`
+Contract version: `BIL-API-2.1` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/catalog-charges` | Tambah biaya dari katalog tarif; **kini** dapat ditandai berjasa beserta pelaksananya | `BillingInvoice : Create` | `AddCatalogChargeRequest` (diperbarui) | `ApiResponse<InvoiceDetailResponse>` | Endpoint diimplementasikan; **field baru Rencana (belum tersedia)** |
+| `POST` | `/other-charges` | Tambah biaya lain-lain bebas; **kini** dapat ditandai berjasa beserta pelaksananya | `BillingInvoice : Create` | `AddOtherChargeRequest` (diperbarui) | `ApiResponse<InvoiceDetailResponse>` | Endpoint diimplementasikan; **field baru Rencana (belum tersedia)** |
+| `POST` | `/from-source` | Tambah/perbarui charge idempotent; field pelaksana hanya diterima untuk `ADHOC`/`ADHOC_CATALOG` | `BillingInvoice : Create` | `UpsertChargeRequest` (diperbarui) | `ApiResponse<InvoiceDetailResponse>` | Endpoint diimplementasikan; **field baru Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail invoice; item **kini** membawa pelaksana dan asal `DoctorShare` | `BillingInvoice : Read` | — | `ApiResponse<InvoiceDetailResponse>` | Endpoint diimplementasikan; **field baru Rencana (belum tersedia)** |
+
+Seluruh endpoint yang mengembalikan `InvoiceDetailResponse` (termasuk void, recalculate, dan diskon) ikut membawa field item baru, karena
+memakai pemetaan yang sama (`MapDetail`).
+
+#### Field baru pada `AddCatalogChargeRequest` dan `AddOtherChargeRequest`
+
+| Field | Tipe | Wajib | Bawaan | Batas | Aturan |
+| --- | --- | :---: | --- | --- | --- |
+| `isFeeBearing` | `boolean` | Tidak | `false` | — | `true` = layanan berjasa |
+| `performerType` | `string` | Bila `isFeeBearing` | `null` | 20 | `DOCTOR` atau `WORKFORCE` (`BIL-VAL-162`) |
+| `performerReferenceId` | `uuid` | Bila `isFeeBearing` | `null` | — | Id `MstDoctor` atau `MstWorkforceProfile` yang aktif (`BIL-VAL-163`) |
+| `performerRoleCode` | `string` | Tidak | `null` | 30 | Kosong = peran utama (`BIL-VAL-165`) |
+
+`UpsertChargeRequest` menerima empat field yang sama, dengan syarat tambahan `BIL-VAL-166`. Field `doctorShare` pada `UpsertChargeRequest`
+**tidak berubah** bentuk maupun perilakunya (`BKC-OQ-149`).
+
+Contoh request `POST /catalog-charges`:
+
+```json
+{
+  "encounterId": "3b9f2c1e-7a4d-4e0b-9c55-1f2a3b4c5d6e",
+  "tariffId": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d",
+  "quantity": 1,
+  "isFeeBearing": true,
+  "performerType": "DOCTOR",
+  "performerReferenceId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+  "performerRoleCode": null,
+  "correlationId": "5f4e3d2c-1b0a-4987-8654-3210fedcba98",
+  "causationId": "5f4e3d2c-1b0a-4987-8654-3210fedcba98"
+}
+```
+
+Header `Idempotency-Key` tetap wajib.
+
+#### Field baru pada `InvoiceItemResponse`
+
+| Field | Tipe | Isi |
+| --- | --- | --- |
+| `isFeeBearing` | `boolean` | Penanda berjasa |
+| `performerType` | `string?` | `DOCTOR` / `WORKFORCE` |
+| `performerReferenceId` | `uuid?` | Rujukan pelaksana |
+| `performerRoleCode` | `string?` | Kode peran; `null` = peran utama |
+| `performerDisplayName` | `string?` | `MstDoctor.FullName` atau `MstWorkforceProfile.DisplayName`; `null` bila tidak berjasa atau rujukan sudah dihapus |
+| `doctorShareResolution` | `string?` | `MEDICAL_FEE`, `NO_RULE`, `UNAVAILABLE`, `NOT_APPLICABLE`; `null` = baris sebelum revisi 2.4 |
+
+`DoctorShareSharingRuleId` **tidak** dibawa ke respons: ia rujukan internal Medical Fee dan tidak dibutuhkan layar Billing.
+
+Contoh potongan item pada respons:
+
+```json
+{
+  "id": "e7f8a9b0-c1d2-4e3f-8a9b-0c1d2e3f4a5b",
+  "sourceDomain": "ADHOC_CATALOG",
+  "descriptionSnapshot": "Konsultasi Dokter Spesialis",
+  "quantity": 1,
+  "unitPrice": 500000.00,
+  "doctorShare": 200000.00,
+  "grossAmount": 500000.00,
+  "isFeeBearing": true,
+  "performerType": "DOCTOR",
+  "performerReferenceId": "c1d2e3f4-a5b6-4c7d-8e9f-0a1b2c3d4e5f",
+  "performerRoleCode": null,
+  "performerDisplayName": "dr. Rina Anggraini, Sp.PD",
+  "doctorShareResolution": "MEDICAL_FEE",
+  "status": "ACTIVE"
+}
+```
+
+#### Kode status dan artinya bagi pengguna
+
+| Kode | Kapan | Arti |
+| --- | --- | --- |
+| `200` | Baris tercatat, termasuk saat Medical Fee tidak terjangkau (`doctorShareResolution = UNAVAILABLE`) | Berhasil. Bagian dokter nol tidak berarti gagal |
+| `409` | Pengiriman ulang `catalog-charges` dengan `Idempotency-Key` sama tetapi pelaksana berbeda (`BIL-VAL-167`) | Pakai permintaan baru |
+| `422` | `BIL-VAL-161`..`166` | Isian pelaksana belum benar; pesan menyebut yang perlu diperbaiki |
+
+Endpoint pihak lain yang dipakai layar (tidak diubah revisi ini): `GET api/v1/corporate/human-resource/master-data/doctors/options`
+(daftar dokter, milik HR). Kewenangan petugas kasir membaca endpoint itu **perlu diverifikasi** saat task frontend dikerjakan
+(atributnya `[Authorize(Policy = KioskReadPolicy)]`, `DoctorController.cs:654-656`).
+
+Trace: `BKC-DEC-171`, `172`, `174`, `178`; `BKC-DES-097`, `098`, `102`; `BIL-VAL-161`..`167`; `BIL-AT-231`..`248`.

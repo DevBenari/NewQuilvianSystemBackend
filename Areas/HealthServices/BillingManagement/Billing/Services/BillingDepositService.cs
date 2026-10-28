@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PatientRefund.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PatientRefund.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
@@ -47,12 +50,20 @@ public sealed class BillingDepositService
         if (encounterId == Guid.Empty)
             throw new BillingDepositValidationException("EncounterId wajib diisi.");
 
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete && !x.IsCancel, cancellationToken)
+            ?? throw new KeyNotFoundException("Encounter tidak ditemukan.");
+
         var account = await _dbContext.BilDepositAccounts.AsNoTracking()
             .Include(x => x.Movements)
             .SingleOrDefaultAsync(x => x.EncounterId == encounterId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Deposit rawat inap belum tersedia.");
 
-        return MapDeposit(account);
+        var (isTopUpEligible, topUpIneligibleReason) = await ResolveTopUpEligibilityAsync(encounter, account, cancellationToken);
+        var response = MapDeposit(account);
+        response.IsTopUpEligible = isTopUpEligible;
+        response.TopUpIneligibleReason = topUpIneligibleReason;
+        return response;
     }
 
     public async Task<DepositWorkspaceResponse> GetDepositWorkspaceAsync(
@@ -86,7 +97,7 @@ public sealed class BillingDepositService
         var account = await _dbContext.BilDepositAccounts.AsNoTracking()
             .SingleOrDefaultAsync(x => x.EncounterId == encounterId && !x.IsDelete, cancellationToken);
 
-        var topUpEligibility = ResolveTopUpEligibility(encounter, account);
+        var topUpEligibility = await ResolveTopUpEligibilityAsync(encounter, account, cancellationToken);
 
         if (account is null)
         {
@@ -648,6 +659,13 @@ public sealed class BillingDepositService
             var account = await _dbContext.BilDepositAccounts
                 .Include(x => x.Movements)
                 .SingleOrDefaultAsync(x => x.EncounterId == encounterId && !x.IsDelete, cancellationToken);
+
+            var (isTopUpEligible, topUpIneligibleReason) = await ResolveTopUpEligibilityAsync(encounter, account, cancellationToken);
+            if (!isTopUpEligible)
+            {
+                throw new BillingDepositValidationException(topUpIneligibleReason ?? "Tagihan sudah lunas, top-up deposit tidak tersedia.");
+            }
+
             var now = DateTimeOffset.UtcNow;
 
             if (account is null)
@@ -995,14 +1013,57 @@ public sealed class BillingDepositService
                 $"Metode {paymentMethodName} mewajibkan nomor referensi / nomor transaksi.");
     }
 
-    private static (bool IsEligible, string? Reason) ResolveTopUpEligibility(
+    private async Task<(bool IsEligible, string? Reason)> ResolveTopUpEligibilityAsync(
         RegPatientEncounter encounter,
-        BilDepositAccount? account)
+        BilDepositAccount? account,
+        CancellationToken cancellationToken)
     {
         if (encounter.EncounterStatus is EncounterStatus.Cancelled or EncounterStatus.NoShow)
             return (false, "Kunjungan yang dibatalkan atau tidak hadir tidak dapat menerima deposit.");
         if (account is not null && account.Status != BillingDepositAccountStatuses.Active)
             return (false, "Akun deposit sudah ditutup dan tidak dapat menerima top-up baru.");
+
+        // Validasi posisi tagihan pasien: jika tagihan pasien sudah lunas/terselesaikan, top-up dilarang
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .Where(x => x.EncounterId == encounter.Id && !x.IsDelete)
+            .OrderByDescending(x => x.CreateDateTime)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (invoice != null)
+        {
+            if (invoice.Status == BillingInvoiceStatuses.Closed)
+            {
+                return (false, "Tagihan sudah lunas, top-up deposit tidak tersedia.");
+            }
+
+            var calc = await _dbContext.BilCalculationVersions.AsNoTracking()
+                .Where(x => x.InvoiceId == invoice.Id && !x.IsDelete)
+                .OrderByDescending(x => x.VersionNo)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var closureService = new BillingInvoiceClosureService(_dbContext);
+            decimal outstanding;
+            if (calc != null)
+            {
+                outstanding = await closureService.CalculateOutstandingAsync(invoice, calc, cancellationToken);
+            }
+            else
+            {
+                var totalPaid = await _dbContext.BilPaymentAllocations.AsNoTracking()
+                    .Where(x => x.TargetType == BillingAllocationTargetTypes.Invoice && x.TargetId == invoice.Id && !x.IsDelete)
+                    .SumAsync(x => (decimal?)(x.ReversesAllocationId.HasValue ? -x.Amount : x.Amount), cancellationToken) ?? 0m;
+                var totalCharges = invoice.Items?
+                    .Where(x => x.Status == BillingInvoiceItemStatuses.Active && !x.IsDelete)
+                    .Sum(x => x.Quantity * x.UnitPrice) ?? 0m;
+                outstanding = Math.Max(0m, totalCharges - totalPaid);
+            }
+
+            if (outstanding <= 0m)
+            {
+                return (false, "Tagihan sudah lunas, top-up deposit tidak tersedia.");
+            }
+        }
+
         return (true, null);
     }
 
@@ -1305,6 +1366,404 @@ public sealed class BillingDepositService
             Movements = movements
         };
     }
+
+    public async Task<DepositRefundEligibilityResponse> GetDepositRefundEligibilityAsync(
+        Guid encounterId,
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        if (encounterId == Guid.Empty)
+            throw new BillingDepositValidationException("EncounterId wajib diisi.");
+        if (invoiceId == Guid.Empty)
+            throw new BillingDepositValidationException("InvoiceId wajib diisi.");
+
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Kunjungan pasien tidak ditemukan.");
+
+        var patient = await _dbContext.MstPatients.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == encounter.PatientId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Data pasien tidak ditemukan.");
+
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+
+        var response = new DepositRefundEligibilityResponse
+        {
+            EncounterId = encounterId,
+            InvoiceId = invoiceId,
+            InvoiceNumber = invoice.InvoiceNumber,
+            PatientId = patient.Id,
+            MedicalRecordNumber = patient.MedicalRecordNumber,
+            PatientName = patient.FullName,
+            IsEligible = false
+        };
+
+        if (invoice.EncounterId != encounterId)
+        {
+            response.IneligibilityReason = "Invoice tidak terhubung dengan kunjungan ini.";
+            return response;
+        }
+
+        if (!string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
+        {
+            response.IneligibilityReason = "Refund sisa deposit hanya berlaku untuk pasien rawat inap (RANAP).";
+            return response;
+        }
+
+        var account = await _dbContext.BilDepositAccounts.AsNoTracking()
+            .Include(x => x.Movements)
+            .SingleOrDefaultAsync(x => x.EncounterId == encounterId && !x.IsDelete, cancellationToken);
+
+        if (account == null)
+        {
+            response.IneligibilityReason = "Akun deposit rawat inap belum dibuat untuk kunjungan ini.";
+            return response;
+        }
+
+        response.DepositRowVersion = account.RowVersion;
+        response.DepositAvailableBalance = account.AvailableBalance;
+
+        var activeMovements = account.Movements.Where(x => !x.IsDelete).ToList();
+        response.TotalDepositReceived = activeMovements
+            .Where(x => x.MovementType == BillingDepositMovementTypes.TopUp)
+            .Sum(x => x.Amount);
+
+        var allocations = await _dbContext.BilPaymentAllocations.AsNoTracking()
+            .Include(x => x.Settlement)
+            .Where(x => x.TargetType == BillingAllocationTargetTypes.Invoice
+                && x.TargetId == invoiceId
+                && !x.IsDelete
+                && x.ReversesAllocationId == null)
+            .ToListAsync(cancellationToken);
+
+        var depositAllocated = allocations
+            .Where(x => x.Settlement != null && x.Settlement.Purpose == BillingSettlementPurposes.InvoicePayment)
+            .Sum(x => x.Amount);
+
+        var movementAllocated = activeMovements
+            .Where(x => x.MovementType == BillingDepositMovementTypes.Allocation)
+            .Sum(x => x.Amount);
+
+        var totalAllocated = Math.Max(depositAllocated, movementAllocated);
+        response.TotalDepositAllocated = totalAllocated;
+
+        if (totalAllocated <= 0)
+        {
+            response.IneligibilityReason = "Deposit belum digunakan untuk membayar tagihan. Pilihan pengajuan hanya terbuka setelah deposit berhasil digunakan membayar tagihan rawat inap.";
+            return response;
+        }
+
+        var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete)
+            .OrderByDescending(x => x.VersionNo)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        decimal outstanding;
+        if (calculation != null)
+        {
+            var closureService = new BillingInvoiceClosureService(_dbContext);
+            outstanding = await closureService.CalculateOutstandingAsync(invoice, calculation, cancellationToken);
+        }
+        else
+        {
+            var itemsTotal = await _dbContext.BilInvoiceItems.AsNoTracking()
+                .Where(x => x.InvoiceId == invoiceId && x.Status == BillingInvoiceItemStatuses.Active && !x.IsDelete)
+                .SumAsync(x => x.Quantity * x.UnitPrice, cancellationToken);
+            var netAllocated = allocations.Sum(x => x.Amount);
+            outstanding = Math.Max(0m, itemsTotal - netAllocated);
+        }
+
+        if (outstanding > 0)
+        {
+            response.IneligibilityReason = $"Tagihan pasien belum lunas (sisa tagihan Rp {outstanding:N2}). Sisa deposit hanya dapat direfund setelah tagihan terselesaikan.";
+            return response;
+        }
+
+        if (account.AvailableBalance <= 0)
+        {
+            response.IneligibilityReason = "Tidak ada sisa saldo deposit yang tersedia untuk direfund.";
+            return response;
+        }
+
+        var activeRequests = await _dbContext.FinPatientRefundRequests.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId
+                && !x.IsDelete
+                && (x.Status == FinPatientRefundStatuses.Pending
+                    || x.Status == FinPatientRefundStatuses.Approved
+                    || x.Status == FinPatientRefundStatuses.PartiallyPaid))
+            .ToListAsync(cancellationToken);
+
+        var reserved = activeRequests.Sum(x => (x.ApprovedAmount ?? x.RequestedAmount) - x.PaidAmount);
+        response.ReservedRefundAmount = reserved;
+
+        var maxRefundable = Math.Max(0m, account.AvailableBalance - reserved);
+        response.MaxRefundableAmount = maxRefundable;
+
+        if (maxRefundable <= 0)
+        {
+            response.IneligibilityReason = "Seluruh sisa saldo deposit telah dicadangkan pada antrean pengajuan refund Finance yang sedang berjalan.";
+            return response;
+        }
+
+        var activeBillingRefund = await _dbContext.BilRefundCases.AsNoTracking()
+            .AnyAsync(x => !x.IsDelete
+                && x.InvoiceId == invoiceId
+                && x.RefundCategory == "DEPOSITO"
+                && x.Status != BillingRefundCaseStatuses.Rejected
+                && x.Status != BillingRefundCaseStatuses.Executed,
+                cancellationToken);
+
+        if (activeBillingRefund)
+        {
+            response.IneligibilityReason = "Invoice ini masih memiliki kasus refund deposito aktif di loket kasir.";
+            return response;
+        }
+
+        response.IsEligible = true;
+        return response;
+    }
+
+    public async Task<DepositRefundResponse> CreateDepositRefundRequestAsync(
+        Guid encounterId,
+        CreateDepositRefundRequest request,
+        Guid idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (encounterId == Guid.Empty)
+            throw new BillingDepositValidationException("EncounterId wajib diisi.");
+        if (request.InvoiceId == Guid.Empty)
+            throw new BillingDepositValidationException("InvoiceId wajib diisi.");
+        if (idempotencyKey == Guid.Empty)
+            throw new BillingDepositValidationException("IdempotencyKey wajib diisi.");
+        if (request.RequestedAmount <= 0)
+            throw new BillingDepositValidationException("Nominal pengajuan refund harus lebih besar dari nol.");
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            throw new BillingDepositValidationException("Alasan pengajuan refund wajib diisi.");
+
+        // Pengembalian sisa deposit selalu Transfer Bank; aturannya sama dengan sisi Finance
+        // (PatientRefundTransferPolicy) supaya kedua pintu pengajuan tidak berbeda pendapat.
+        if (!PatientRefundTransferPolicy.TryNormalizeMethod(request.PaymentMethod, out var method))
+            throw new BillingDepositValidationException(PatientRefundTransferPolicy.TransferOnlyMessage);
+
+        if (!request.BankAccountId.HasValue || request.BankAccountId.Value == Guid.Empty)
+            throw new BillingDepositValidationException("Rekening pengirim wajib dipilih dari master rekening bank rumah sakit.");
+        if (string.IsNullOrWhiteSpace(request.PayeeBankName))
+            throw new BillingDepositValidationException("Nama bank tujuan pasien wajib diisi.");
+        if (string.IsNullOrWhiteSpace(request.PayeeAccountNumber))
+            throw new BillingDepositValidationException("Nomor rekening tujuan pasien wajib diisi.");
+        if (string.IsNullOrWhiteSpace(request.PayeeAccountName))
+            throw new BillingDepositValidationException("Nama penerima (pemilik rekening tujuan) wajib diisi.");
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            if (_dbContext.Database.IsRelational())
+            {
+                transaction = await _dbContext.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable, cancellationToken);
+                await AcquireLockAsync($"BIL_DEPOSIT_{encounterId:N}", cancellationToken);
+                await AcquireLockAsync($"BIL_INVOICE_{request.InvoiceId:N}", cancellationToken);
+            }
+
+            var priorRequest = await _dbContext.FinPatientRefundRequests.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey && !x.IsDelete, cancellationToken);
+
+            if (priorRequest != null)
+            {
+                var priorInvoice = await _dbContext.BilInvoices.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.Id == priorRequest.InvoiceId, cancellationToken);
+                var priorPatient = await _dbContext.MstPatients.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.Id == priorRequest.PatientId, cancellationToken);
+                var priorAccount = await _dbContext.BilDepositAccounts.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.EncounterId == encounterId && !x.IsDelete, cancellationToken);
+
+                if (transaction != null) await transaction.CommitAsync(cancellationToken);
+
+                return new DepositRefundResponse
+                {
+                    RefundRequestId = priorRequest.Id,
+                    RefundableCreditId = priorRequest.RefundableCreditId,
+                    EncounterId = encounterId,
+                    InvoiceId = priorRequest.InvoiceId,
+                    InvoiceNumber = priorInvoice?.InvoiceNumber ?? string.Empty,
+                    MedicalRecordNumber = priorPatient?.MedicalRecordNumber ?? string.Empty,
+                    PatientName = priorPatient?.FullName ?? string.Empty,
+                    RequestedAmount = priorRequest.RequestedAmount,
+                    Status = priorRequest.Status,
+                    PaymentMethod = priorRequest.PaymentMethod ?? method,
+                    PayeeBankName = priorRequest.PayeeBankName,
+                    PayeeAccountNumber = priorRequest.PayeeAccountNumber,
+                    PayeeAccountName = priorRequest.PayeeAccountName,
+                    Reason = priorRequest.Reason,
+                    RemainingDepositBalance = priorAccount?.AvailableBalance ?? 0m,
+                    IsReplay = true,
+                    SubmittedAt = priorRequest.SubmittedAt
+                };
+            }
+
+            // Dilakukan SETELAH kiriman ulang (idempotency) dikembalikan di atas: pengajuan yang sudah
+            // sah tidak boleh gagal hanya karena rekening kemudian dinonaktifkan.
+            var source = await PatientRefundTransferPolicy.ResolveSourceAccountAsync(
+                _dbContext, request.BankAccountId, request.SenderBankId, cancellationToken);
+            if (!source.IsValid)
+                throw new BillingDepositValidationException(source.Error!);
+
+            var payeeError = PatientRefundTransferPolicy.ValidatePayee(
+                source.Account!, request.PayeeBankName, request.PayeeAccountNumber, request.PayeeAccountName);
+            if (payeeError is not null)
+                throw new BillingDepositValidationException(payeeError);
+
+            var eligibility = await GetDepositRefundEligibilityAsync(encounterId, request.InvoiceId, cancellationToken);
+            if (!eligibility.IsEligible)
+            {
+                throw new BillingDepositValidationException(eligibility.IneligibilityReason ?? "Deposit tidak memenuhi syarat untuk diajukan refund.");
+            }
+
+            if (request.RequestedAmount > eligibility.MaxRefundableAmount)
+            {
+                throw new BillingDepositValidationException(
+                    $"Nominal pengajuan (Rp {request.RequestedAmount:N2}) melebihi maksimum saldo yang dapat direfund (Rp {eligibility.MaxRefundableAmount:N2}).");
+            }
+
+            var account = await _dbContext.BilDepositAccounts
+                .SingleOrDefaultAsync(x => x.EncounterId == encounterId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Akun deposit rawat inap tidak ditemukan.");
+
+            if (request.ExpectedDepositRowVersion != Guid.Empty && account.RowVersion != request.ExpectedDepositRowVersion)
+            {
+                throw new BillingDepositConflictException("Data saldo deposit telah berubah. Muat ulang sebelum melanjutkan.");
+            }
+
+            var invoice = await _dbContext.BilInvoices.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == request.InvoiceId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+
+            var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Kunjungan tidak ditemukan.");
+
+            var patient = await _dbContext.MstPatients.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == encounter.PatientId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pasien tidak ditemukan.");
+
+            var now = DateTimeOffset.UtcNow;
+            var correlationId = request.CorrelationId != Guid.Empty ? request.CorrelationId : Guid.NewGuid();
+            var causationId = request.CausationId != Guid.Empty ? request.CausationId : correlationId;
+
+            account.AvailableBalance -= request.RequestedAmount;
+            account.RowVersion = Guid.NewGuid();
+            account.UpdateDateTime = DateTime.UtcNow;
+            account.UpdateBy = actorUserId;
+
+            var movement = new BilDepositMovement
+            {
+                DepositAccountId = account.Id,
+                MovementType = BillingDepositMovementTypes.Release,
+                Amount = request.RequestedAmount,
+                Reason = $"Pencadangan pengajuan refund sisa deposit ke Finance: {request.Reason.Trim()}",
+                OccurredAt = now,
+                IdempotencyKey = idempotencyKey,
+                CorrelationId = correlationId,
+                CausationId = causationId,
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+            _dbContext.BilDepositMovements.Add(movement);
+
+            var credit = new BilRefundableCredit
+            {
+                Id = Guid.NewGuid(),
+                InvoiceId = invoice.Id,
+                SourceType = BillingRefundableCreditSourceTypes.Settlement,
+                SourceId = movement.Id,
+                OriginalAmount = request.RequestedAmount,
+                AvailableAmount = request.RequestedAmount,
+                Status = BillingRefundableCreditStatuses.Available,
+                RecognizedAt = now,
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+            _dbContext.BilRefundableCredits.Add(credit);
+
+            var refundRequest = new FinPatientRefundRequest
+            {
+                Id = Guid.NewGuid(),
+                PatientId = patient.Id,
+                InvoiceId = invoice.Id,
+                RefundableCreditId = credit.Id,
+                RequestedAmount = request.RequestedAmount,
+                ApprovedAmount = null,
+                PaidAmount = 0m,
+                Status = FinPatientRefundStatuses.Pending,
+                Reason = request.Reason.Trim(),
+                PaymentMethod = method,
+                BankAccountId = source.Account!.BankAccountId,
+                PayeeBankName = request.PayeeBankName?.Trim(),
+                PayeeAccountNumber = request.PayeeAccountNumber?.Trim(),
+                PayeeAccountName = request.PayeeAccountName?.Trim(),
+                RequestedBy = actorUserId,
+                SubmittedAt = now,
+                IdempotencyKey = idempotencyKey,
+                CorrelationId = correlationId,
+                RowVersion = Guid.NewGuid(),
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+            _dbContext.FinPatientRefundRequests.Add(refundRequest);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            if (transaction != null) await transaction.CommitAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "BillingDeposit.RefundRequested",
+                "Kasir mengajukan refund sisa deposit rawat inap ke antrean persetujuan Finance.",
+                new
+                {
+                    RefundRequestId = refundRequest.Id,
+                    refundRequest.InvoiceId,
+                    refundRequest.PatientId,
+                    refundRequest.RequestedAmount,
+                    RemainingBalance = account.AvailableBalance,
+                    refundRequest.PaymentMethod,
+                    ActorUserId = actorUserId
+                });
+
+            return new DepositRefundResponse
+            {
+                RefundRequestId = refundRequest.Id,
+                RefundableCreditId = credit.Id,
+                EncounterId = encounterId,
+                InvoiceId = invoice.Id,
+                InvoiceNumber = invoice.InvoiceNumber,
+                MedicalRecordNumber = patient.MedicalRecordNumber,
+                PatientName = patient.FullName,
+                RequestedAmount = refundRequest.RequestedAmount,
+                Status = refundRequest.Status,
+                PaymentMethod = method,
+                PayeeBankName = refundRequest.PayeeBankName,
+                PayeeAccountNumber = refundRequest.PayeeAccountNumber,
+                PayeeAccountName = refundRequest.PayeeAccountName,
+                Reason = refundRequest.Reason,
+                RemainingDepositBalance = account.AvailableBalance,
+                IsReplay = false,
+                SubmittedAt = refundRequest.SubmittedAt
+            };
+        }
+        catch
+        {
+            if (transaction != null) await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+        finally
+        {
+            if (transaction != null) await transaction.DisposeAsync();
+        }
+    }
+
 }
 
 public sealed class BillingDepositValidationException(string message) : Exception(message);

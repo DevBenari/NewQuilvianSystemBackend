@@ -12,8 +12,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 
 /// <summary>
 /// Retur Pembelian dan Deposit Retur (BE-FIN-035, FIN-API-1.1 §B.5, FIN-PERM-1.1 §B.5).
-/// `GET /` (daftar retur berpaging) belum ada service-nya — gap yang sama seperti controller
-/// Purchasing lain (`BE-FIN-032`/`033`/`034`).
+/// `GET /` (daftar retur berpaging) ditambahkan `BE-FIN-122`.
 ///
 /// **Delta kontrak (dicatat, bukan didiamkan):** `api-contract.md` §B.5 hanya mendaftarkan
 /// `GET /`, `GET /{id}`, `POST /`, `GET /deposits` — tidak ada `POST /{id}/confirm` maupun
@@ -42,6 +41,24 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
         _idempotency = idempotency;
     }
 
+    [HttpGet]
+    [AccessAction("Read", "Read Supplier Return", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceSupplierReturn", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<SupplierReturnResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetList([FromQuery] SupplierReturnQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetPagedAsync(query, cancellationToken);
+        var mapped = new PagedResult<SupplierReturnResponse>
+        {
+            Items = result.Items.Select(Map).ToList(),
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize,
+            TotalData = result.TotalData,
+            TotalPage = result.TotalPage
+        };
+        return Ok(ApiResponse<PagedResult<SupplierReturnResponse>>.Ok(mapped, "Daftar Retur Pembelian berhasil diambil."));
+    }
+
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Supplier Return", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("FinanceSupplierReturn", "Read")]
@@ -61,7 +78,7 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         [FromBody] CreateSupplierReturnRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.SupplierReturn, FinPurchasingIdempotencyActions.Create, null, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -83,7 +100,7 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] SupplierReturnRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.SupplierReturn, FinPurchasingIdempotencyActions.Confirm, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -104,7 +121,7 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] SupplierReturnRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.SupplierReturn, FinPurchasingIdempotencyActions.Cancel, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try

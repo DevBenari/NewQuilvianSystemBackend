@@ -7440,6 +7440,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateOnly>("DueDate")
                         .HasColumnType("date");
 
+                    b.Property<string>("DueDateBasis")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<bool>("IsCancel")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -8100,6 +8104,10 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("BatchNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
@@ -8119,6 +8127,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("ExpiredDate")
+                        .HasColumnType("date");
 
                     b.Property<Guid>("GoodsReceiptId")
                         .HasColumnType("uuid");
@@ -8265,6 +8276,67 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             t.HasCheckConstraint("CK_FinInvoiceExchange_Status", "\"Status\" IN ('RECEIVED','LINKED_TO_INVOICE','CANCELLED')");
                         });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinInvoiceExchangeGoodsReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GoodsReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("InvoiceExchangeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoodsReceiptId")
+                        .HasDatabaseName("IX_FinInvoiceExchangeGoodsReceipt_GoodsReceiptId");
+
+                    b.HasIndex("InvoiceExchangeId", "GoodsReceiptId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinInvoiceExchangeGoodsReceipt_ExchangeGoodsReceipt")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("FinInvoiceExchangeGoodsReceipt", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchaseOrder", b =>
@@ -8621,6 +8693,18 @@ namespace QuilvianSystemBackend.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
 
+                    b.Property<decimal>("ShippingCostAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("StampDutyAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -8739,6 +8823,80 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_FinPurchasingInvoiceItem_PurchasingInvoiceId");
 
                     b.ToTable("FinPurchasingInvoiceItem", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingInvoiceItemAllocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AllocatedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("AllocatedQuantity")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GoodsReceiptItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("PurchasingInvoiceItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GoodsReceiptItemId")
+                        .HasDatabaseName("IX_FinPurchasingInvoiceItemAllocation_GoodsReceiptItemId");
+
+                    b.HasIndex("PurchasingInvoiceItemId", "GoodsReceiptItemId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPurchasingInvoiceItemAllocation_InvoiceItem_GrItem")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("FinPurchasingInvoiceItemAllocation", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPurchasingInvoiceItemAllocation_Amount", "\"AllocatedAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_FinPurchasingInvoiceItemAllocation_Quantity", "\"AllocatedQuantity\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinSupplierReturn", b =>
@@ -64260,6 +64418,13 @@ namespace QuilvianSystemBackend.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("DoctorShareResolution")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid?>("DoctorShareSharingRuleId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("InvoiceId")
                         .HasColumnType("uuid");
 
@@ -64273,6 +64438,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<bool>("IsFeeBearing")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
                     b.Property<Guid>("LastCausationId")
                         .HasColumnType("uuid");
 
@@ -64281,6 +64451,17 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<Guid>("LastIdempotencyKey")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PerformerReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PerformerRoleCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("PerformerType")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 4)
@@ -64354,6 +64535,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("BilInvoiceItem", "public", t =>
                         {
                             t.HasCheckConstraint("CK_BilInvoiceItem_Amounts", "\"UnitPrice\" >= 0 AND \"DoctorShare\" >= 0 AND \"DoctorShare\" <= (\"Quantity\" * \"UnitPrice\")");
+
+                            t.HasCheckConstraint("CK_BilInvoiceItem_DoctorShareResolution", "\"DoctorShareResolution\" IS NULL OR (\"DoctorShareResolution\" IN ('MEDICAL_FEE','NO_RULE','UNAVAILABLE','NOT_APPLICABLE') AND (\"DoctorShareResolution\" = 'MEDICAL_FEE') = (\"DoctorShareSharingRuleId\" IS NOT NULL))");
+
+                            t.HasCheckConstraint("CK_BilInvoiceItem_PerformerOnlyWhenFeeBearing", "\"IsFeeBearing\" OR (\"PerformerType\" IS NULL AND \"PerformerReferenceId\" IS NULL AND \"PerformerRoleCode\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_BilInvoiceItem_PerformerRequired", "NOT \"IsFeeBearing\" OR (\"PerformerType\" IS NOT NULL AND \"PerformerReferenceId\" IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_BilInvoiceItem_PerformerType", "\"PerformerType\" IS NULL OR \"PerformerType\" IN ('DOCTOR','WORKFORCE')");
 
                             t.HasCheckConstraint("CK_BilInvoiceItem_Quantity", "\"Quantity\" > 0");
 
@@ -95248,6 +95437,910 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("McuResume", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfFeePeriod", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CalculatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CalculatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ClosedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("PeriodCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateOnly>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodStart")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Open");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PeriodCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("Status", "PeriodStart");
+
+                    b.ToTable("MdfFeePeriod", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MdfFeePeriod_Maker", "\"VerifiedBy\" IS NULL OR \"ApprovedBy\" IS NULL OR \"VerifiedBy\" <> \"ApprovedBy\"");
+
+                            t.HasCheckConstraint("CK_MdfFeePeriod_Range", "\"PeriodEnd\" >= \"PeriodStart\"");
+
+                            t.HasCheckConstraint("CK_MdfFeePeriod_Status", "\"Status\" IN ('Open','Calculated','Verified','Approved','Closed')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfFinanceHandoff", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CausationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("GrossAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("HandoffKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PayeeReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PayeeType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("PeriodCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ServiceFeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Created");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("HandoffKey")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ServiceFeeId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PeriodCode", "PayeeType");
+
+                    b.HasIndex("Status", "CreateDateTime");
+
+                    b.ToTable("MdfFinanceHandoff", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MdfFinanceHandoff_Amount", "\"GrossAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_MdfFinanceHandoff_Status", "\"Status\" IN ('Created','Acknowledged','Failed')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AdjustmentAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CalculatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FeeNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("FinalAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("GrossAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PayeeReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PayeeType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Doctor");
+
+                    b.Property<Guid>("PeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Calculated");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FeeNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("PeriodId", "Status");
+
+                    b.HasIndex("PayeeType", "PayeeReferenceId", "Status");
+
+                    b.HasIndex("PeriodId", "PayeeType", "PayeeReferenceId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MdfServiceFee", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MdfServiceFee_Gross", "\"GrossAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_MdfServiceFee_Maker", "\"VerifiedBy\" IS NULL OR \"ApprovedBy\" IS NULL OR \"VerifiedBy\" <> \"ApprovedBy\"");
+
+                            t.HasCheckConstraint("CK_MdfServiceFee_Status", "\"Status\" IN ('Calculated','Verified','Approved','HandedOff')");
+
+                            t.HasCheckConstraint("CK_MdfServiceFee_Total", "\"FinalAmount\" = \"GrossAmount\" + \"AdjustmentAmount\"");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFeeAdjustment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdjustmentNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Direction")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasDefaultValue("Addition");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ServiceFeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Pending");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdjustmentNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ServiceFeeId", "Status");
+
+                    b.ToTable("MdfServiceFeeAdjustment", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MdfServiceFeeAdjustment_Amount", "\"Amount\" > 0");
+
+                            t.HasCheckConstraint("CK_MdfServiceFeeAdjustment_Direction", "\"Direction\" IN ('Addition','Deduction')");
+
+                            t.HasCheckConstraint("CK_MdfServiceFeeAdjustment_Maker", "\"ApprovedBy\" IS NULL OR \"ApprovedBy\" <> \"RequestedBy\"");
+
+                            t.HasCheckConstraint("CK_MdfServiceFeeAdjustment_Status", "\"Status\" IN ('Pending','Approved','Rejected')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFeeDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BaseAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("CalculatedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("InvoiceItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("ServiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("ServiceFeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("SharingPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<Guid>("SharingRuleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SourceDetailId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SourceDomain")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("TariffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceItemId");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("ServiceFeeId");
+
+                    b.HasIndex("SharingRuleId");
+
+                    b.HasIndex("TariffId");
+
+                    b.HasIndex("SourceDomain", "SourceDetailId");
+
+                    b.ToTable("MdfServiceFeeDetail", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MdfServiceFeeDetail_Base", "\"BaseAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_MdfServiceFeeDetail_Percentage", "\"SharingPercentage\" >= 0 AND \"SharingPercentage\" <= 100");
+
+                            t.HasCheckConstraint("CK_MdfServiceFeeDetail_Source", "\"SourceDomain\" IN ('OPERATING_ROOM','PROCEDURE','LABORATORY','ADHOC','ADHOC_CATALOG')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfUnresolvedService", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("BaseAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("DetectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("InvoiceItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("PeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ReasonDetail")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("ResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("ServiceDate")
+                        .HasColumnType("date");
+
+                    b.Property<string>("SourceDetailId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SourceDomain")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Open");
+
+                    b.Property<Guid?>("TariffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Reason");
+
+                    b.HasIndex("TariffId");
+
+                    b.HasIndex("PeriodId", "Status");
+
+                    b.HasIndex("PeriodId", "SourceDomain", "SourceDetailId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MdfUnresolvedService", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MdfUnresolvedService_Reason", "\"Reason\" IN ('PERFORMER_MISSING','AGREEMENT_MISSING','RULE_MISSING','CONTRACT_EXPIRED','ROLE_UNMAPPED','SOURCE_UNSUPPORTED')");
+
+                            t.HasCheckConstraint("CK_MdfUnresolvedService_Status", "\"Status\" IN ('Open','Resolved','Waived')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MdfSharingAgreement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AgreementNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("EffectiveEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("EffectiveStart")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("PayeeReferenceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PayeeType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Doctor");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SourceContractHistoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AgreementNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("SourceContractHistoryId");
+
+                    b.HasIndex("PayeeType", "PayeeReferenceId", "Status");
+
+                    b.ToTable("MdfSharingAgreement", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MdfSharingAgreement_PayeeType", "\"PayeeType\" IN ('Doctor','Workforce')");
+
+                            t.HasCheckConstraint("CK_MdfSharingAgreement_Period", "\"EffectiveEnd\" IS NULL OR \"EffectiveEnd\" >= \"EffectiveStart\"");
+
+                            t.HasCheckConstraint("CK_MdfSharingAgreement_Status", "\"Status\" IN ('Draft','Active','Expired','Terminated')");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MdfSharingRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AgreementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("EffectiveEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("EffectiveStart")
+                        .HasColumnType("date");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("RoleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("SharingPercentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<Guid?>("SupersededByRuleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TariffCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TariffId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RoleId");
+
+                    b.HasIndex("SupersededByRuleId");
+
+                    b.HasIndex("TariffCategoryId");
+
+                    b.HasIndex("TariffId");
+
+                    b.HasIndex("AgreementId", "EffectiveStart", "EffectiveEnd");
+
+                    b.ToTable("MdfSharingRule", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MdfSharingRule_Percentage", "\"SharingPercentage\" >= 0 AND \"SharingPercentage\" <= 100");
+
+                            t.HasCheckConstraint("CK_MdfSharingRule_Period", "\"EffectiveEnd\" IS NULL OR \"EffectiveEnd\" >= \"EffectiveStart\"");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MstMedicalFeeRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrimaryRole")
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("OprTeamRoleMapping")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("RoleCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("RoleName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("OprTeamRoleMapping")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false AND \"OprTeamRoleMapping\" IS NOT NULL");
+
+                    b.HasIndex("RoleCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MstMedicalFeeRole", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcAccessLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -110773,6 +111866,25 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Supplier");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinInvoiceExchangeGoodsReceipt", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinGoodsReceipt", "GoodsReceipt")
+                        .WithMany()
+                        .HasForeignKey("GoodsReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinInvoiceExchange", "InvoiceExchange")
+                        .WithMany()
+                        .HasForeignKey("InvoiceExchangeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GoodsReceipt");
+
+                    b.Navigation("InvoiceExchange");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchaseOrder", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstSupplier", "Supplier")
@@ -110823,6 +111935,25 @@ namespace QuilvianSystemBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("PurchasingInvoice");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingInvoiceItemAllocation", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinGoodsReceiptItem", "GoodsReceiptItem")
+                        .WithMany()
+                        .HasForeignKey("GoodsReceiptItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinPurchasingInvoiceItem", "PurchasingInvoiceItem")
+                        .WithMany()
+                        .HasForeignKey("PurchasingInvoiceItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("GoodsReceiptItem");
+
+                    b.Navigation("PurchasingInvoiceItem");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models.FinSupplierReturn", b =>
@@ -133607,6 +134738,142 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ReopenedByDoctor");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfFinanceHandoff", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFee", "ServiceFee")
+                        .WithOne("FinanceHandoff")
+                        .HasForeignKey("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfFinanceHandoff", "ServiceFeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ServiceFee");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFee", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfFeePeriod", "Period")
+                        .WithMany("ServiceFees")
+                        .HasForeignKey("PeriodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Period");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFeeAdjustment", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFee", "ServiceFee")
+                        .WithMany("Adjustments")
+                        .HasForeignKey("ServiceFeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ServiceFee");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFeeDetail", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MstMedicalFeeRole", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFee", "ServiceFee")
+                        .WithMany("Details")
+                        .HasForeignKey("ServiceFeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MdfSharingRule", "SharingRule")
+                        .WithMany()
+                        .HasForeignKey("SharingRuleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff", "Tariff")
+                        .WithMany()
+                        .HasForeignKey("TariffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Role");
+
+                    b.Navigation("ServiceFee");
+
+                    b.Navigation("SharingRule");
+
+                    b.Navigation("Tariff");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfUnresolvedService", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfFeePeriod", "Period")
+                        .WithMany("UnresolvedServices")
+                        .HasForeignKey("PeriodId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff", "Tariff")
+                        .WithMany()
+                        .HasForeignKey("TariffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Period");
+
+                    b.Navigation("Tariff");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MdfSharingAgreement", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpContractHistory", "SourceContractHistory")
+                        .WithMany()
+                        .HasForeignKey("SourceContractHistoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SourceContractHistory");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MdfSharingRule", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MdfSharingAgreement", "Agreement")
+                        .WithMany("SharingRules")
+                        .HasForeignKey("AgreementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MstMedicalFeeRole", "Role")
+                        .WithMany("SharingRules")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MdfSharingRule", "SupersededByRule")
+                        .WithMany()
+                        .HasForeignKey("SupersededByRuleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariffCategory", "TariffCategory")
+                        .WithMany()
+                        .HasForeignKey("TariffCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff", "Tariff")
+                        .WithMany()
+                        .HasForeignKey("TariffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Agreement");
+
+                    b.Navigation("Role");
+
+                    b.Navigation("SupersededByRule");
+
+                    b.Navigation("Tariff");
+
+                    b.Navigation("TariffCategory");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcAccessLog", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMedicalRecordAccessPurpose", "AccessPurpose")
@@ -138406,6 +139673,32 @@ namespace QuilvianSystemBackend.Migrations
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models.McuPackageComponent", b =>
                 {
                     b.Navigation("Requirements");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfFeePeriod", b =>
+                {
+                    b.Navigation("ServiceFees");
+
+                    b.Navigation("UnresolvedServices");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models.MdfServiceFee", b =>
+                {
+                    b.Navigation("Adjustments");
+
+                    b.Navigation("Details");
+
+                    b.Navigation("FinanceHandoff");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MdfSharingAgreement", b =>
+                {
+                    b.Navigation("SharingRules");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models.MstMedicalFeeRole", b =>
+                {
+                    b.Navigation("SharingRules");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models.MrcClinicalDocumentIntegrity", b =>
