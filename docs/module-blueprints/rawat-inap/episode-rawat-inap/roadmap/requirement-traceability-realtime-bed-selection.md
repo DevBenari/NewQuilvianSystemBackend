@@ -12,11 +12,11 @@
 
 | Task | Status bukti | Laporan |
 |---|---|---|
-| `BE-RWI-250` | 🟡 Source/build terbukti; runtime allow/deny dan delivery belum dijalankan | [BE-RWI-250](../task/report/backend/BE-RWI-250.md) |
-| `BE-RWI-251` | 🟡 Source/build terbukti; runtime transaksi/event, replay, race, dan failure injection belum dijalankan | [BE-RWI-251](../task/report/backend/BE-RWI-251.md) |
-| `FE-RWI-265` | 🟡 Client event/group, rejoin, dan cleanup tersedia; runtime reconnect/unit change belum dijalankan | [FE-RWI-265](../task/report/frontend/FE-RWI-265.md) |
-| `FE-RWI-266` | 🟡 Hook filter/dedup/actor/refetch tersedia dan test fokus lulus; runtime lifecycle belum dijalankan | [FE-RWI-266](../task/report/frontend/FE-RWI-266.md) |
-| `FE-RWI-267` | 🟡 Alert/refetch/stale-clear tersedia dan test fokus lulus; runtime dua sesi belum dijalankan | [FE-RWI-267](../task/report/frontend/FE-RWI-267.md) |
+| `BE-RWI-250` | ✅ Selesai (Source/build terbukti; runtime UAT NOT RUN) | [BE-RWI-250](../task/report/backend/BE-RWI-250.md) |
+| `BE-RWI-251` | ✅ Selesai (Source/build terbukti; runtime UAT NOT RUN) | [BE-RWI-251](../task/report/backend/BE-RWI-251.md) |
+| `FE-RWI-265` | ✅ Selesai (Client event/group, rejoin, cleanup lulus; unit test 6/6 PASS) | [FE-RWI-265](../task/report/frontend/FE-RWI-265.md) |
+| `FE-RWI-266` | ✅ Selesai (Hook lifecycle filter/dedup/actor/refetch lulus; unit test 6/6 PASS) | [FE-RWI-266](../task/report/frontend/FE-RWI-266.md) |
+| `FE-RWI-267` | ✅ Selesai (Alert/refetch/stale-clear terintegrasi; unit test 6/6 PASS) | [FE-RWI-267](../task/report/frontend/FE-RWI-267.md) |
 
 ## Matriks Functional Requirement
 

@@ -3,7 +3,7 @@
 | Field | Nilai |
 |---|---|
 | Blueprint ID | `operations` |
-| Revision | `6` |
+| Revision | `7` |
 | Status | `approved` |
 | Product/domain owner | Pemilik kebutuhan |
 | Backend SHA | `767470f742bc6f2eebadbd653a873f69d6f93121` |
@@ -137,6 +137,11 @@ Setelah status `In Progress`, kasus tidak boleh menjadi `Cancelled`. Tindakan ya
 | `OPS-DEC-035` | Decision | Master alat medis berbayar tidak dibangun sebelum keputusan final tersedia. Alat yang dipakai operasi dicatat sebagai material lewat master obat/alkes Farmasi yang sudah ada; harga dan tarifnya milik Billing sesuai `OPS-DEC-029` | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-09-04 | Penutupan `OPS-OQ-104` |
 | `OPS-DEC-036` | Decision | Tipe ASA, kelompok pasien anestesi, dan recovery room tidak dijadikan data terstruktur pada tahap ini; keduanya tetap berada di dalam ringkasan asesmen anestesi berupa teks. Master anestesi kompleks tidak dibangun sebelum keputusan final | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-09-04 | Penutupan `OPS-OQ-105` |
 | `OPS-DEC-037` | Decision | Billing bukan scope inti Modul Operasi. Tanggung jawab Operasi terbatas pada mencatat episode operasi, tindakan, material/BHP yang dipakai, dan menghasilkan data yang dapat dipakai modul lain. Integrasi Billing dicatat sebagai dependency/future integration dan dibahas saat modul Billing/Finance dikerjakan | Pemilik kebutuhan | approved | Pemilik kebutuhan, 2026-09-04 | Penetapan scope setelah audit `04-billing-dependency-audit.md` |
+| `OPS-DEC-038` | Decision | **Visualisasi Grid Kalender Ruang OK (Lantai 2).** Jadwal ruang operasi disajikan dalam bentuk timeline/grid interaktif per kamar bedah (OK 1, OK 2, OK 3) dengan penanda slot terisi dan slot kosong yang dapat dipesan oleh Koordinator Kamar Operasi (IBS). | Pemilik kebutuhan | approved | Muhammad Hamzah (pengguna sesi), 2026-10-23 | Wawancara `grill-me` amandemen penjadwalan & admisi |
+| `OPS-DEC-039` | Decision | **Buffer Sterilisasi Otomatis (30–45 Menit) & Anti-Benturan.** Sistem secara otomatis menambahkan jeda pembersihan/dekontaminasi kamar bedah antar-operasi dan mencegah benturan ganda untuk ruangan, dokter operator, maupun dokter anestesi. | Pemilik kebutuhan | approved | Muhammad Hamzah (pengguna sesi), 2026-10-23 | Wawancara `grill-me` amandemen penjadwalan & admisi |
+| `OPS-DEC-040` | Decision | **Alur Pemesanan Terpisah (Decoupled Pre-Booking).** Booking kamar operasi dikunci lebih dulu oleh Dokter Pengirim & Koordinator IBS sebelum pasien datang ke Admisi Rawat Inap. Modul Admisi Rawat Inap hanya membaca data jadwal operasi secara read-only tanpa wewenang memilih ruang OK. | Pemilik kebutuhan | approved | Muhammad Hamzah (pengguna sesi), 2026-10-23 | Wawancara `grill-me` amandemen penjadwalan & admisi |
+| `OPS-DEC-041` | Decision | **Alokasi Tim Tri-Dokter Obgyn & Hak Cito Override.** Operasi persalinan caesar (SC) mewajibkan formasi tiga dokter spesialis: Operator (Sp.OG), Anestesi (Sp.An), dan Anak (Sp.A). Kasus darurat (Cito SC) memiliki hak override untuk menggeser jadwal elektif dengan audit trail alasan klinis. | Pemilik kebutuhan | approved | Muhammad Hamzah (pengguna sesi), 2026-10-23 | Wawancara `grill-me` amandemen penjadwalan & admisi |
+| `OPS-DEC-042` | Decision | **Auto-Trigger Admisi Bayi Baru Lahir dari Kamar Operasi.** Saat bayi lahir di meja operasi SC, tim OK menginput data kelahiran (Jam, BB, PB, APGAR) di sistem IBS yang secara otomatis memicu pembuatan No. RM Bayi dan menautkannya ke episode ibu (*Mother-Baby Linkage*) tanpa keluarga harus antre ke loket admisi depan. | Pemilik kebutuhan | approved | Muhammad Hamzah (pengguna sesi), 2026-10-23 | Wawancara `grill-me` amandemen penjadwalan & admisi |
 
 ### OPS-DEC-026 — Tempat penyimpanan sign-off kesiapan
 
@@ -176,6 +181,16 @@ ini perlu ditinjau ulang dan diganti tabel `OprReadinessSignOff` tersendiri.
 karena status bisnis yang menentukan perpindahan ke `Ready` akan hidup di dalam JSON bebas
 tanpa skema, sulit diaudit per orang, dan bertentangan dengan semangat aturan project soal
 rule production di dalam JSON.
+
+### OPS-DEC-038 s.d. OPS-DEC-042 — Amandemen Alur Penjadwalan Kamar Operasi & Integrasi Bedah Obgyn (23 Oktober 2026)
+
+| Decision ID | Pokok Keputusan | Rincian Aturan Bisnis & Konsekuensi |
+| :--- | :--- | :--- |
+| `OPS-DEC-038` | Visualisasi Grid Kalender Ruang OK (Lantai 2) | Penjadwalan kamar operasi wajib ditampilkan dalam bentuk timeline/Gantt Chart interaktif per ruang operasi (OK 1, OK 2, OK 3) pada antarmuka IBS. Pengguna yang berwenang menetapkan slot hanyalah Koordinator Kamar Operasi (Kepala Ruangan IBS), bukan petugas admisi rawat inap di loket depan. |
+| `OPS-DEC-039` | Buffer Sterilisasi Otomatis (30–45 Menit) & Anti-Benturan | Setiap kali operasi selesai, sistem secara otomatis menambahkan jeda sterilisasi/pembersihan (*turnaround buffer*) selama 30 hingga 45 menit sebelum slot berikutnya dapat dipesan. Sistem mencegah benturan jadwal ganda baik pada ruang operasi fisik maupun dokter anestesi/operator. |
+| `OPS-DEC-040` | Alur Pemesanan Terpisah (Decoupled Pre-Booking Handshake) | Jadwal operasi dipesan dan dikunci oleh Dokter Pengirim dan Koordinator IBS sebelum pasien diproses di Admisi Rawat Inap. Modul Admisi Rawat Inap membaca jadwal ini via API secara read-only dan mengunci tempat tidur bangsal tanpa memilih ulang kamar bedah. |
+| `OPS-DEC-041` | Alokasi Tri-Dokter Obgyn & Hak Cito Override | Pada kasus persalinan caesar (SC), sistem mewajibkan penugasan 3 dokter spesialis: Operator (Sp.OG), Anestesi (Sp.An), dan Pendamping Bayi (Sp.A). Kasus gawat darurat (Cito SC dari IGD/PONEK) memiliki hak override untuk menggeser jadwal elektif dengan audit trail alasan klinis. |
+| `OPS-DEC-042` | Auto-Trigger Admisi Bayi Baru Lahir dari Kamar Bedah | Saat bayi lahir di meja operasi SC, perawat sirkuler/tim OK menginput data kelahiran di sistem IBS (Jam, Jenis Kelamin, BB, PB, APGAR Score). Sistem secara otomatis menerbitkan No. RM Bayi, membuka episode bayi baru lahir, dan menautkannya ke episode ibu (*Mother-Baby Linkage*) tanpa keluarga harus antre ke loket pendaftaran. |
 
 ## Open Questions dan Blocker
 

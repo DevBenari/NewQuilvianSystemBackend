@@ -1,7 +1,7 @@
 namespace QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Options;
 
 /// <summary>
-/// Buffer dan tim minimum penjadwalan operasi (OPS-DEC-016, OPS-DEC-017).
+/// Buffer dan tim minimum penjadwalan operasi (OPS-DEC-016, OPS-DEC-017, OPS-DEC-039).
 /// Nilai dikonfigurasi pada seksi <c>OperatingRoom:Scheduling</c>.
 /// </summary>
 public class OperatingRoomSchedulingOptions
@@ -11,8 +11,8 @@ public class OperatingRoomSchedulingOptions
     /// <summary>Buffer persiapan sebelum irisan pertama bila permintaan tidak menyebutkan nilai.</summary>
     public int DefaultBufferBeforeMinutes { get; set; } = 15;
 
-    /// <summary>Buffer pembersihan ruang setelah operasi bila permintaan tidak menyebutkan nilai.</summary>
-    public int DefaultBufferAfterMinutes { get; set; } = 30;
+    /// <summary>Buffer pembersihan ruang setelah operasi bila permintaan tidak menyebutkan nilai (OPS-DEC-039: 45 menit).</summary>
+    public int DefaultBufferAfterMinutes { get; set; } = 45;
 
     /// <summary>Durasi minimum satu blok jadwal.</summary>
     public int MinimumDurationMinutes { get; set; } = 15;

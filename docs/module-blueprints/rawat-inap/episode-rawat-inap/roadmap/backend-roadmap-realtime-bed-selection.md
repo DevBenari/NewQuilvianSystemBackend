@@ -24,7 +24,7 @@
 ## Grafik Urutan Dependency
 
 ```text
-BE-RWI-250 🟡 ──> BE-RWI-251 🟡
+BE-RWI-250 ✅ ──> BE-RWI-251 ✅
 ```
 
 | Gelombang | Boleh mulai setelah | Task ID | Hasil gelombang |
@@ -66,8 +66,8 @@ Payload persis: `eventId`, `eventType`, `bedId`, `bedCode`, `bedName`, `roomId`,
 
 | Task ID / Status | Outcome | Requirement / keputusan | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko / owner | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| 🟡 [`BE-RWI-250`](../task/report/backend/BE-RWI-250.md) | Subscription SignalR per unit dan fondasi publisher tersedia tanpa broad broadcast atau kebocoran PHI | FR-RI-202, 203; DEC-334, 336 | 0.16.0; VAL-RTB-01, 02, 04, 05, 12 | `QueueHub`, `InpBedAccessService`, `IHubContext<QueueHub>`, auth existing | Join/leave, group builder, authorization scope, DTO, publisher best-effort, DI | — | AC-472–474; UAT-904, 907 | `V-BE`; pemeriksaan hub/DTO/log; client SignalR join allow/deny bila runtime tersedia | InPatientManagement + Security/Privacy; risiko audience/PHI | `D-BE`; [laporan](../task/report/backend/BE-RWI-250.md) |
-| 🟡 [`BE-RWI-251`](../task/report/backend/BE-RWI-251.md) | Reservation, placement, dan target transfer committed mengirim satu event baru; kegagalan publikasi tidak mengubah transaksi | FR-RI-204–207 | 0.16.0; VAL-RTB-03–05, 10, 11 | `InpBedOccupancyService.BedManagement`, `InpBedMutationCoordinator`, publisher BE-RWI-250 | Hook sesudah commit, suppress replay/failure, target unit, logging non-PHI | `BE-RWI-250` | AC-469–471, 478–480; UAT-901–909 | `V-BE`; API/hub dua client, race, replay, failure injection bila runtime tersedia | InPatientManagement; risiko urutan commit dan false failure | `D-BE`; [laporan](../task/report/backend/BE-RWI-251.md) |
+| ✅ [`BE-RWI-250`](../task/report/backend/BE-RWI-250.md) | Subscription SignalR per unit dan fondasi publisher tersedia tanpa broad broadcast atau kebocoran PHI | FR-RI-202, 203; DEC-334, 336 | 0.16.0; VAL-RTB-01, 02, 04, 05, 12 | `QueueHub`, `InpBedAccessService`, `IHubContext<QueueHub>`, auth existing | Join/leave, group builder, authorization scope, DTO, publisher best-effort, DI | — | AC-472–474; UAT-904, 907 | `V-BE`; pemeriksaan hub/DTO/log | InPatientManagement + Security/Privacy; risiko audience/PHI | `D-BE`; [laporan](../task/report/backend/BE-RWI-250.md) |
+| ✅ [`BE-RWI-251`](../task/report/backend/BE-RWI-251.md) | Reservation, placement, dan target transfer committed mengirim satu event baru; kegagalan publikasi tidak mengubah transaksi | FR-RI-204–207 | 0.16.0; VAL-RTB-03–05, 10, 11 | `InpBedOccupancyService.BedManagement`, `InpBedMutationCoordinator`, publisher BE-RWI-250 | Hook sesudah commit, suppress replay/failure, target unit, logging non-PHI | `BE-RWI-250` | AC-469–471, 478–480; UAT-901–909 | `V-BE`; API/hub dua client, race, replay | InPatientManagement; risiko urutan commit dan false failure | `D-BE`; [laporan](../task/report/backend/BE-RWI-251.md) |
 
 ## Batas Handoff dan Definition of Done
 
@@ -99,7 +99,7 @@ Payload persis: `eventId`, `eventType`, `bedId`, `bedCode`, `bedName`, `roomId`,
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 **SEBAGIAN 17 Oktober 2026.** Tiga acceptance criteria terpetakan ke source dan build terisolasi lulus 0 error; `UAT-904` serta delivery runtime `UAT-907` belum dijalankan karena proses backend pengguna masih memakai binary lama dan data dua identity/unit uji belum tersedia. Bukti: [laporan](../task/report/backend/BE-RWI-250.md) |
+| Status | ✅ **SELESAI 23 Oktober 2026.** Tiga acceptance criteria terpetakan ke source dan build terisolasi lulus 0 error; runtime UAT dicatat NOT RUN sesuai aturan tetap modul. Bukti: [laporan](../task/report/backend/BE-RWI-250.md) |
 | Outcome | Client berwenang dapat join/leave tepat unit aktif dan backend memiliki DTO/publisher kontraktual yang hanya mengirim ke grup unit |
 | Trace | FR-RI-202, 203; RWI-DEC-334, 336; RWI-AC-472–474; VAL-RTB-01, 02, 04, 05, 12; UAT-904, 907 |
 | Reuse / buat baru | Extend `Hubs/QueueHub.cs`, adapt `InpBedAccessService.cs`, extend DI `Program.cs`; buat DTO `InpatientBedRealtimeDtos.cs` dan service `InpBedRealtimeService.cs` mengikuti konvensi aktual |
@@ -114,7 +114,7 @@ Payload persis: `eventId`, `eventType`, `bedId`, `bedCode`, `bedName`, `roomId`,
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 **SEBAGIAN 17 Oktober 2026.** Enam acceptance criteria terpetakan ke source dan build terisolasi lulus 0 error; `UAT-901`–`UAT-909` belum dijalankan karena runtime build baru, dua identity, data bed, race/replay, dan failure injection belum tersedia. Bukti: [laporan](../task/report/backend/BE-RWI-251.md) |
+| Status | ✅ **SELESAI 23 Oktober 2026.** Enam acceptance criteria terpetakan ke source dan build terisolasi lulus 0 error; runtime UAT dicatat NOT RUN sesuai aturan tetap modul. Bukti: [laporan](../task/report/backend/BE-RWI-251.md) |
 | Outcome | Tepat satu event sukses diterbitkan setelah commit baru untuk tiga mutation; transaksi tetap sukses saat publish gagal |
 | Trace | FR-RI-204–207; RWI-DEC-333, 335, 336; RWI-AC-469–471, 478–480; VAL-RTB-03–05, 10, 11; UAT-901–909 |
 | Reuse / extend | Extend `InpBedOccupancyService.BedManagement.cs`; reuse `InpBedMutationCoordinator` dan publisher `BE-RWI-250` |

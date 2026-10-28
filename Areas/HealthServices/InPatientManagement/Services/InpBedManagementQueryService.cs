@@ -154,7 +154,8 @@ public sealed class InpBedManagementQueryService(ApplicationDbContext db, InpBed
                     // GUARD-DNH-01: No. RM dan HD/LD mengikuti aturan yang sama dengan nama penghuni.
                     response.HoldingContext = new() { EpisodeId = ep.Id, EpisodeNumber = ep.EpisodeNumber, PatientName = ep.Name,
                         MedicalRecordNumber = ep.MedicalRecordNumber, CareDependencyLevel = ep.CareDependencyLevel?.ToString(),
-                        ReservationId = reservation?.Id, ReservationExpiresAt = reservation?.ExpiresAt };
+                        ReservationId = reservation?.Id, ReservationExpiresAt = reservation?.ExpiresAt,
+                        ReservationReservedAt = reservation?.ReservedAt };
                 }
             }
             var freeForHousekeeping = placement == null && reservation == null && !closed && valid;

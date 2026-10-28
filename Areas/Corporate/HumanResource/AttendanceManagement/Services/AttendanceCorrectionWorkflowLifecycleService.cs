@@ -64,6 +64,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
             var previousStatus = request.RequestStatus;
             var targetStatus = MapRequestStatus(workflow.WorkflowStatus);
 
+            // [DECISION] HRD-DEC-022: Guard agar synchronize tidak menurunkan status Applied kembali ke Approved atau status sebelumnya
+            if (string.Equals(previousStatus, AttendanceValueConstants.CorrectionRequestStatus.Applied, StringComparison.OrdinalIgnoreCase))
+            {
+                targetStatus = AttendanceValueConstants.CorrectionRequestStatus.Applied;
+            }
+
             request.WorkflowDefinitionId = workflow.WorkflowDefinitionId;
             request.WorkflowInstanceId = workflow.Id;
             request.RequestStatus = targetStatus;

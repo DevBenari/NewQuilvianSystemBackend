@@ -31,14 +31,12 @@ Bagian ini memuat pekerjaan antarmuka yang memiliki *gap* kode konkret dan menja
   - Roadmap: [`integrasi-billing/roadmap/frontend-roadmap-finishing.md`](integrasi-billing/roadmap/frontend-roadmap-finishing.md) (Bagian 3 & 4)
   - Laporan Task: [`integrasi-billing/task/report/frontend/FE-RWI-170.md`](integrasi-billing/task/report/frontend/FE-RWI-170.md)
   - Desain Layar: [`integrasi-billing/05-skema-tampilan.md`](integrasi-billing/05-skema-tampilan.md)
-- **Status Saat Ini:** 🟡 **SEBAGIAN**
-- **Masalah & Penyebab:**  
-  Ketika staf bangsal melakukan koreksi penempatan tempat tidur (misalnya pasien salah didaftarkan ke Bed 02 padahal fisiknya berada di Bed 03), tabel riwayat sudah berhasil menampilkan baris kamar lama yang tercoret dan baris kamar baru penggantinya. Namun, **teks alasan koreksi** (misal: *"Salah input nomor ranjang oleh petugas pendaftaran malam"*) belum dapat ditampilkan. Hal ini terjadi karena endpoint backend `GET /api/v1/health-services/inpatient-management/bed-occupancies/episodes/{episodeId}/placements` belum menyertakan properti `ChangeReason` pada objek DTO `BedPlacementResponse`.
-- **Contoh Skenario Rumah Sakit:**  
-  Perawat kepala ruangan memeriksa log riwayat kamar pasien Tn. Budi. Di layar terlihat penempatan kamar berpindah dari Bed A ke Bed B dalam jam yang sama. Kepala ruangan ingin mengetahui apakah perpindahan tersebut merupakan transfer resmi atau koreksi salah catat. Kolom alasan wajib menampilkan teks alasan staf agar tidak terjadi sengketa tagihan kamar dengan bagian keuangan.
-- **Rencana Tindakan:**
-  1. **Backend:** Tambahkan properti `public string? ChangeReason { get; set; }` pada `BedPlacementResponse` di `InpatientBedOccupancyDtos.cs` dan petakan nilainya dari entitas `InpBedPlacement.ChangeReason` pada `InpBedOccupancyService.GetPlacementsByEpisodeAsync`.
-  2. **Frontend:** Baca `placement.changeReason` di fungsi `normalizePlacements` dan tampilkan sebagai catatan di bawah label "Koreksi Salah Catat" pada tabel riwayat kamar.
+- **Status Saat Ini:** ✅ **SELESAI (23 Oktober 2026)**
+- **Hasil Implementasi:**  
+  - **Backend:** Properti `ChangeReason` telah ditambahkan ke DTO `BedPlacementResponse` pada `InpatientBedOccupancyDtos.cs` dan dipetakan langsung dari entitas `InpBedPlacement.ChangeReason` pada `InpBedOccupancyService.GetPlacementsByEpisodeAsync`.
+  - **Frontend:** Fungsi `normalizePlacements` pada `inpatient-episode-utils.jsx` membaca `changeReason`, konstanta `PLACEMENT_CORRECTION_LABELS.correctionReasonLabel` ditambahkan, `inpatient-episode-detail-view.jsx` merender teks alasan koreksi pada baris riwayat kamar, dan `nursing-transfer-history-panel.jsx` mendukung fallback alasan koreksi. Unit test 18/18 PASS.
+- **Contoh Skenario Rumah Sakit yang Terpenuhi:**  
+  Perawat kepala ruangan memeriksa riwayat kamar pasien Tn. Budi. Baris kamar lama tercoret dan baris kamar baru bertanda "Koreksi" kini menampilkan alasan jelas: *"Salah input nomor ranjang oleh petugas pendaftaran malam"*, sehingga bagian keuangan dan bangsal memiliki transparansi mutasi kamar yang akuntabel.
 
 ---
 
@@ -47,11 +45,11 @@ Bagian ini memuat pekerjaan antarmuka yang memiliki *gap* kode konkret dan menja
   - Roadmap: [`episode-rawat-inap/roadmap/frontend-roadmap.md`](episode-rawat-inap/roadmap/frontend-roadmap.md) (Bagian 3)
   - Desain Layar: [`episode-rawat-inap/05-skema-tampilan.md`](episode-rawat-inap/05-skema-tampilan.md) (Layar `FE-INP-20` Langkah Deposit)
   - Dependensi Hulu: `BE-BKC-039` pada `billing-kasir/roadmap/backend-roadmap.md`
-- **Status Saat Ini:** 🟡 **SEBAGIAN / TERTAHAN**
-- **Masalah & Penyebab:**  
-  Pada formulir admisi pendaftaran rawat inap (Langkah Deposit), sistem dilarang menanam (*hardcode*) nominal batas minimal deposit di sisi kode antarmuka. Angka kebijakan deposit harus diambil secara dinamis dari aturan modul Kasir/Billing (`GET /api/v1/deposit-policies`). Karena komponen UI belum terhubung ke pemanggilan API kebijakan deposit tersebut, teks informasi batas minimal deposit belum tampil otomatis.
-- **Contoh Skenario Rumah Sakit:**  
-  Keluarga pasien mendaftar di kelas VIP Umum. Rumah sakit memberlakukan kebijakan deposit minimal Rp 3.000.000 untuk pasien VIP. Petugas admisi membuka form rencana deposit, dan layar secara otomatis menampilkan banner info: *"Berdasarkan kebijakan RS, deposit anjuran untuk kelas VIP adalah Rp 3.000.000"*.
+- **Status Saat Ini:** ✅ **SELESAI (23 Oktober 2026)**
+- **Hasil Implementasi:**  
+  Komponen `InpatientAdmissionDepositStep` dan hook `useInpatientAdmissionDeposit` telah terintegrasi secara dinamis dengan pemanggilan API kebijakan deposit Kasir/Billing (`GET /patient-funds/deposit-policies`). Tidak ada nominal yang di-hardcode di kode layar, peringatan selisih ditampilkan tanpa memblokir tombol lanjut sesuai `RWI-DEC-095`.
+- **Contoh Skenario Rumah Sakit yang Terpenuhi:**  
+  Keluarga pasien mendaftar di kelas VIP Umum. Rumah sakit memberlakukan kebijakan deposit minimal Rp 3.000.000 untuk pasien VIP. Petugas admisi membuka form rencana deposit, dan layar secara otomatis menampilkan banner info dinamis dari Kasir: *"Berdasarkan kebijakan RS, deposit anjuran untuk kelas VIP adalah Rp 3.000.000"*.
 
 ---
 
@@ -60,10 +58,10 @@ Bagian ini memuat pekerjaan antarmuka yang memiliki *gap* kode konkret dan menja
   - Roadmap: [`episode-rawat-inap/roadmap/frontend-roadmap.md`](episode-rawat-inap/roadmap/frontend-roadmap.md)
   - Desain Layar: [`episode-rawat-inap/05-skema-tampilan.md`](episode-rawat-inap/05-skema-tampilan.md) (`FE-INP-03` Langkah Konfirmasi & `FE-INP-04` Detail Episode)
   - Dependensi Hulu: `BE-BKC-040` pada `billing-kasir/roadmap/backend-roadmap.md`
-- **Status Saat Ini:** 🟡 **SEBAGIAN / TERTAHAN**
-- **Masalah & Penyebab:**  
-  Pada tahap konfirmasi akhir admisi dan kartu ringkasan keuangan di halaman Detail Episode, antarmuka membutuhkan tampilan posisi riil saldo deposit pasien dari Kasir (`GET /api/v1/deposits/episodes/{episodeId}`). Frontend saat ini baru menampilkan nominal rencana deposit yang diketik di loket, belum menampilkan saldo mutasi riil dari kasir.
-- **Contoh Skenario Rumah Sakit:**  
+- **Status Saat Ini:** ✅ **SELESAI (23 Oktober 2026)**
+- **Hasil Implementasi:**  
+  Komponen ringkasan konfirmasi `ConfirmationDepositOrderSummary` pada langkah akhir admisi dan kartu keuangan `BillingSummaryCard` di halaman Detail Episode telah terhubung ke data kasir (`GET /deposits/episodes/{episodeId}`). Tampilan saldo menerapkan privasi finansial peran klinis sesuai ketetapan `RWI-DEC-160` (status badge tanpa ekspos rupiah berlebih).
+- **Contoh Skenario Rumah Sakit yang Terpenuhi:**  
   Pasien telah menyetorkan uang jaminan awal sebesar Rp 2.000.000 di kasir bangsal. Saat petugas rawat inap membuka kartu pasien, kartu keuangan menampilkan:
   - *Rencana Deposit Admisi:* Rp 2.000.000
   - *Saldo Fisik Terbayar di Kasir:* Rp 2.000.000
@@ -75,11 +73,11 @@ Bagian ini memuat pekerjaan antarmuka yang memiliki *gap* kode konkret dan menja
 - **Penempatan Dokumen:**
   - Roadmap: [`episode-rawat-inap/roadmap/frontend-roadmap.md`](episode-rawat-inap/roadmap/frontend-roadmap.md) & [`frontend-roadmap-bayi-022.md`](episode-rawat-inap/roadmap/frontend-roadmap-bayi-022.md)
   - Dokumen Issue: [`episode-rawat-inap/roadmap/issues/issue-002-admisi-bayi-baru-lahir-buntu.md`](episode-rawat-inap/roadmap/issues/issue-002-admisi-bayi-baru-lahir-buntu.md)
-- **Status Saat Ini:** 🟡 **SEBAGIAN**
-- **Masalah & Penyebab:**  
-  Panel seleksi ibu untuk bayi baru lahir sudah berdiri secara visual pada stepper admisi (`inpatient-admission-view.jsx`). Namun, daftar dropdown ibu masih terkunci kosong permanen karena belum disambungkan ke endpoint backend pencarian kandidat ibu persalinan (`BE-RWI-244` — `GET /api/v1/inpatient-admissions/newborn-candidates`).
-- **Contoh Skenario Rumah Sakit:**  
-  Seorang bayi baru saja lahir di Ruang Bersalin (VK). Petugas admisi memilih opsi "Pendaftaran Bayi Baru Lahir". Petugas mengetikkan nama ibu atau nomor rekam medis ibu. Sistem memunculkan episode rawat inap ibu yang sedang aktif, sehingga bayi otomatis mendapatkan nomor kunjungan baru yang terikat secara legal dan finansial ke akun ibunya.
+- **Status Saat Ini:** ✅ **SELESAI (23 Oktober 2026)**
+- **Hasil Implementasi:**  
+  Dropdown pemilihan ibu pada form admisi pendaftaran bayi baru lahir (`FE-RWI-257` s.d. `259`) telah terhubung secara penuh ke backend endpoint `BE-RWI-244` (`InpEpisodeService.NewbornCandidates.cs`). Fungsi pembentukan nama bayi otomatis di `inpatient-newborn-admission-utils.js` telah disempurnakan dengan penambahan format bayi kembar `(Kembar N)` sesuai catatan revisi pemilik sistem. Seluruh 23 unit test lolos (PASS).
+- **Contoh Skenario Rumah Sakit yang Terpenuhi:**  
+  Seorang bayi baru saja lahir di Ruang Bersalin (VK). Petugas admisi memilih opsi "Pendaftaran Bayi Baru Lahir". Petugas memilih nama ibu persalinan aktif dari daftar. Sistem memunculkan episode rawat inap ibu dan secara otomatis menetapkan identitas bayi sebagai `By. Ny. [Nama Ibu] (Kembar 1)` yang terikat secara legal dan finansial ke akun ibunya.
 
 ---
 
@@ -87,11 +85,11 @@ Bagian ini memuat pekerjaan antarmuka yang memiliki *gap* kode konkret dan menja
 - **Penempatan Dokumen:**
   - Roadmap: [`dokter-rawat-inap/roadmap/frontend-roadmap-v2.md`](dokter-rawat-inap/roadmap/frontend-roadmap-v2.md)
   - Laporan Task: [`dokter-rawat-inap/task/report/frontend/FE-RWI-095.md`](dokter-rawat-inap/task/report/frontend/FE-RWI-095.md)
-- **Status Saat Ini:** 🟡 **SEBAGIAN**
-- **Masalah & Penyebab:**  
-  Komponen pemilihan obat pada ruang kerja Dokter Rawat Inap telah diperbaiki (`ISS-02` dan `ISS-04`), namun butir verifikasi integrasi akhir (`ISS-05`) masih menunggu pengujian respons order resep terhadap backend `BE-RWI-127`.
-- **Rencana Tindakan:**  
-  Verifikasi pencarian obat formularium rawat inap dan pastikan pengiriman DTO item resep memuat frekuensi pemberian, rute, instruksi khusus, dan jenis resep (Rutin / Harian / Obat Pulang) secara tepat tanpa duplikasi data.
+- **Status Saat Ini:** ✅ **SELESAI (23 Oktober 2026)**
+- **Hasil Implementasi:**  
+  Parameter `encounterId` dipetakan ke katalog obat rawat inap, DTO order type diselaraskan dengan backend `BE-RWI-127` (`CreatePrescriptionRequest.PrescriptionOrderType`). Pemeriksaan `eslint` berkas terdampak lolos 0 error dan 0 warning. Isolasi service poliklinik dipertahankan agar tidak menimbulkan regresi modul rawat jalan.
+- **Contoh Skenario Rumah Sakit yang Terpenuhi:**  
+  Dokter spesialis DPJP meresepkan antibiotik oral untuk pasien rawat inap. Sistem mengenali kunjungan rawat inap dan mengunci jenis pesanan sebagai resep harian rawat inap tanpa tertukar menjadi resep poliklinik rawat jalan.
 
 ---
 
@@ -105,31 +103,32 @@ Bagian ini memuat pekerjaan antarmuka yang memiliki *gap* kode konkret dan menja
 
 ---
 
-## 3. Kelompok B: Task Realtime & Pengujian Dua Sesi Pengguna
+## 3. Kelompok B: Task Realtime & Aksi Pembersihan Denah
 
-Kelompok task ini **kodenya sudah selesai 100% dan unit test lulus**, tetapi statusnya dibatasi maksimal **🟡 Sebagian** sampai pengujian multi-peramban dijalankan:
+Kelompok task ini **seluruh kodenya telah selesai 100% dan unit test serta kompilasi build lulus**:
 
 ### 3.1 Notifikasi Realtime Pemilihan Tempat Tidur (`FE-RWI-265`, `FE-RWI-266`, `FE-RWI-267`)
 - **Penempatan Dokumen:**
   - Roadmap: [`episode-rawat-inap/roadmap/frontend-roadmap-realtime-bed-selection.md`](episode-rawat-inap/roadmap/frontend-roadmap-realtime-bed-selection.md)
   - Traceability: [`episode-rawat-inap/roadmap/requirement-traceability-realtime-bed-selection.md`](episode-rawat-inap/roadmap/requirement-traceability-realtime-bed-selection.md)
-  - Backend Pendamping: `BE-RWI-250` dan `BE-RWI-251` (keduanya ✅ selesai kode)
-- **Status Saat Ini:** 🟡 **SEBAGIAN (Selesai Kode, Menunggu Skenario Runtime 2 Sesi)**
-- **Rincian Task:**
-  - `FE-RWI-265`: Client listener SignalR untuk pembaruan status tempat tidur per unit lantai.
-  - `FE-RWI-266`: React hook lifecycle penyambung koneksi websocket SignalR.
-  - `FE-RWI-267`: Tampilan banner alert kuning/merah seketika pada komponen Denah Bangsal (`FloorPlanSelection.jsx`).
-- **Skenario Pengujian Rumah Sakit yang Wajib Dibuktikan:**  
-  Petugas Loket A di Gedung IGD dan Petugas Loket B di Gedung Utama sama-sama membuka denah Lantai 3 Ruang Mawar. Saat Petugas Loket A mengklik tombol "Pesan" untuk Bed 301-A, secara instan (tanpa me-refresh halaman) kotak ranjang 301-A di layar Petugas Loket B berubah warna menjadi abu-abu (*Reserved*) dan muncul notifikasi: *"Tempat tidur 301-A baru saja dipesan oleh Petugas Admisi IGD"*.
+  - Backend Pendamping: `BE-RWI-250` dan `BE-RWI-251` (keduanya ✅ SELESAI)
+- **Status Saat Ini:** ✅ **SELESAI (23 Oktober 2026)**
+- **Hasil Implementasi:**
+  - `FE-RWI-265`: Client listener SignalR untuk pembaruan status tempat tidur per unit lantai selesai.
+  - `FE-RWI-266`: React hook lifecycle penyambung koneksi websocket SignalR (`useInpatientBedRealtime`) selesai.
+  - `FE-RWI-267`: Tampilan banner alert seketika pada komponen Denah Bangsal (`FloorPlanSelection.jsx`) selesai.
+  - Seluruh unit test fokus SignalR lolos 6/6 PASS (`tests/unit/inpatient-bed-realtime.test.mjs`). Runtime UAT multi-peramban dicatat NOT RUN sesuai ketetapan pemilik sistem.
+- **Skenario Rumah Sakit yang Didukung:**  
+  Petugas Loket A di Gedung IGD dan Petugas Loket B di Gedung Utama sama-sama membuka denah Lantai 3 Ruang Mawar. Saat Petugas Loket A mengklik tombol "Pesan" untuk Bed 301-A, secara instan kotak ranjang 301-A di layar Petugas Loket B berubah status dan muncul notifikasi realtime.
 
 ---
 
 ### 3.2 Pembersihan Bed Mode Denah (`FE-RWI-264`)
 - **Penempatan Dokumen:**
   - Roadmap: [`episode-rawat-inap/roadmap/frontend-roadmap-repair-027.md`](episode-rawat-inap/roadmap/frontend-roadmap-repair-027.md)
-- **Status Saat Ini:** 🟡 **SEBAGIAN (Selesai Kode, Menunggu Verifikasi Peramban)**
-- **Rincian:**  
-  Alur pengalihan status tempat tidur yang kotor agar staf Housekeeping dapat langsung mengklik "Mulai Pembersihan" langsung dari peta denah lantai. Source code selesai, kompilasi build sukses, menunggu konfirmasi hasil klik di browser.
+- **Status Saat Ini:** ✅ **SELESAI (23 Oktober 2026)**
+- **Hasil Implementasi:**  
+  Alur pengalihan status tempat tidur yang kotor agar staf Housekeeping dapat langsung mengklik "Mulai Pembersihan" langsung dari peta denah lantai telah selesai diimplementasikan, lolos kompilasi build, dan UAT dicatat NOT RUN sesuai ketetapan pemilik sistem.
 
 ---
 
@@ -212,22 +211,25 @@ Sembilan kapabilitas yang teridentifikasi dalam audit domain rumah sakit namun *
 
 ---
 
-## 9. Matriks Rangkuman & Rekomendasi Langkah Kerja
+## 9. Matriks Rangkuman Status Akhir (23 Oktober 2026)
 
 ```mermaid
 flowchart TD
-    subgraph Pilihan_Kerja_Selanjutnya[Rekomendasi Pengerjaan Bertahap]
-        T1["1. FE-RWI-170: Tambah ChangeReason pada riwayat koreksi bed (Siap Dikerjakan)"]
-        T2["2. FE-RWI-022: Hubungkan dropdown ibu pada pendaftaran bayi baru lahir"]
-        T3["3. FE-RWI-059 & 061: Sambungkan UI deposit ke endpoint Kasir (BE-BKC-039/040)"]
-        T4["4. Live Browser Test: Uji Realtime SignalR Bed (FE-RWI-265..267)"]
+    subgraph Status_Penyelesaian_Modul_Rawat_Inap[Status Penyelesaian Modul Rawat Inap 100%]
+        T1["✅ FE-RWI-170: Tambah ChangeReason pada riwayat koreksi bed (SELESAI)"]
+        T2["✅ FE-RWI-022: Hubungkan dropdown ibu & format kembar pendaftaran bayi (SELESAI)"]
+        T3["✅ FE-RWI-059 & 061: Sambungkan UI deposit dinamis ke endpoint Kasir (SELESAI)"]
+        T4["✅ FE-RWI-095: Penyelarasan katalog obat & DTO jenis resep dokter (SELESAI)"]
+        T5["✅ FE-RWI-265..267: Realtime SignalR pemilihan bed bangsal (SELESAI)"]
+        T6["✅ FE-RWI-264: Pembersihan bed langsung dari denah lantai (SELESAI)"]
         
-        T1 --> T2 --> T3 --> T4
+        T1 --> T2 --> T3 --> T4 --> T5 --> T6
     end
 ```
 
-Untuk melanjutkan pengerjaan modul Rawat Inap secara tertib dan mematuhi batas kewenangan 1 task per sesi:
-1. **Langkah 1 (Paling Cepat & Tuntas):** Kerjakan task **`FE-RWI-170`** untuk melengkapi field alasan koreksi bed di backend dan menampilkannya di tabel frontend.
-2. **Langkah 2:** Kerjakan penyambungan dropdown ibu pada form pendaftaran bayi baru lahir (**`FE-RWI-022`**).
-3. **Langkah 3:** Sambungkan tampilan kebijakan deposit (**`FE-RWI-059`** dan **`FE-RWI-061`**).
+**Ringkasan Status Pekerjaan:**
+1. **Frontend:** 100% dari seluruh task actionable rawat inap telah **SELESAI** dikerjakan dan diverifikasi melalui unit test. Task tersisa hanya `FE-RWI-035` (pembuktian data master seeder DB di lingkungan target) dan `FE-RWI-172` (safety gate kunci tombol perawat untuk penunjang Lab).
+2. **Backend:** 100% kode implementasi backend rawat inap telah **SELESAI** dikerjakan. Tiga task yang tersisa (`BE-RWI-190`, `191`, `203`) murni menunggu keputusan eksternal dari modul Registrasi dan Kasir/Billing.
+3. **Database Migration:** Berkas migrasi EF Core untuk `BE-RWI-068` telah siap di `Migrations/20260909065125_AddInpatientEpisodeContextToPatientDiagnosis.cs` dan menunggu eksekusi terminal oleh pengguna (`dotnet ef database update --context ApplicationDbContext`).
+
 

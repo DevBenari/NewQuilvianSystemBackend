@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -55,6 +56,71 @@ internal static class InpNewbornAdmissionRules
             : "Kasus persalinan ibu tidak ditemukan, bukan layanan obstetri, atau tidak lagi dapat dipakai.";
     }
 
+    public const string NonPediatricReasonPrefix = "Alasan DPJP non-Anak: ";
+
+    /// <summary>
+    /// Spesialisasi anak dikenali dari nama spesialisasi dokter ("Anak", "Bedah Anak", "Pediatri").
+    /// Master spesialisasi belum punya penanda khusus anak; aturan ini dipusatkan di sini supaya
+    /// mudah diganti bila penanda itu ditambahkan (K-05 ISSUE-EPS-040).
+    /// </summary>
+    public static bool IsPediatricSpecialty(string? specialtyName) =>
+        !string.IsNullOrWhiteSpace(specialtyName) &&
+        (specialtyName.Contains("anak", StringComparison.OrdinalIgnoreCase) ||
+         specialtyName.Contains("pediatri", StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// K-05 (25-10-2026): DPJP bayi boleh dokter non-anak hanya dengan alasan tertulis.
+    /// Contoh: dr. Gigi tanpa alasan → ditolak; dengan "Sp.A jaga sedang operasi" → diterima.
+    /// </summary>
+    public static async Task<string?> ValidateNewbornDoctorAsync(
+        ApplicationDbContext db,
+        MstPatient patient,
+        InpatientNewbornAdmissionContext? context,
+        Guid doctorId,
+        CancellationToken ct)
+    {
+        if (!patient.IsNewborn || context == null) return null;
+
+        var doctor = await db.Set<MstDoctor>().AsNoTracking()
+            .Where(x => x.Id == doctorId)
+            .Select(x => new
+            {
+                x.SpecialistName,
+                SpecializationName = x.Specialization != null ? x.Specialization.SpecializationName : null
+            })
+            .FirstOrDefaultAsync(ct);
+
+        if (doctor == null || IsPediatricSpecialty(doctor.SpecialistName) || IsPediatricSpecialty(doctor.SpecializationName))
+            return null;
+
+        return string.IsNullOrWhiteSpace(context.NonPediatricDoctorReason)
+            ? "Alasan memilih dokter non-Anak sebagai DPJP bayi wajib diisi."
+            : null;
+    }
+
+    /// <summary>
+    /// Menggabungkan alasan DPJP non-anak ke catatan admisi tanpa menggandakan baris yang sama.
+    /// Bila request tidak membawa alasan, baris lama pada catatan sebelumnya dipertahankan.
+    /// </summary>
+    public static string? MergeNonPediatricReason(string? notes, string? reason, string? previousNotes = null)
+    {
+        var cleanReason = string.IsNullOrWhiteSpace(reason)
+            ? ExtractNonPediatricReason(previousNotes)
+            : reason.Trim();
+        if (cleanReason == null) return notes;
+
+        var line = NonPediatricReasonPrefix + cleanReason;
+        if (notes?.Contains(line, StringComparison.Ordinal) == true) return notes;
+        return string.IsNullOrWhiteSpace(notes) ? line : $"{notes.TrimEnd()}\n{line}";
+    }
+
+    private static string? ExtractNonPediatricReason(string? notes) =>
+        notes?.Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.StartsWith(NonPediatricReasonPrefix, StringComparison.Ordinal))
+            .Select(line => line[NonPediatricReasonPrefix.Length..].Trim())
+            .FirstOrDefault(value => value.Length > 0);
+
     public static void ApplyContext(InpEpisode episode, InpatientNewbornAdmissionContext? context)
     {
         if (context == null) return;
@@ -97,6 +163,14 @@ internal static class InpNewbornAdmissionRules
         if (isAdmission && patient.IsNewborn && episode?.RequiresNeonatalIntensiveCare == true &&
             !bed.IsIntensiveCareBed && !room.IsIntensiveCare)
             failures.Add(("NEWBORN_INTENSIVE_REQUIRED", "Bayi membutuhkan tempat neonatal dengan kemampuan intensif."));
+        // FIX-EPS-040-03: neonatal terpisah hanya di kamar khusus bayi. Boks di kamar perawatan dewasa
+        // adalah boks rawat gabung milik ibu yang menempati kamar itu (issue-031 kartu 2).
+        if (isAdmission && patient.IsNewborn && episode?.NewbornCareMode == "Neonatal" && !room.IsForNewborn)
+            failures.Add(("NEWBORN_NEONATAL_ROOM_REQUIRED", "Boks rawat gabung hanya untuk bayi dari ibu di kamar ini. Pilih kamar ruang bayi."));
+        // FIX-EPS-040-04 (K-02, 25-10-2026): bed intensif tidak dipakai bayi non-intensif di alur admisi.
+        if (isAdmission && patient.IsNewborn && episode?.NewbornCareMode == "Neonatal" &&
+            episode.RequiresNeonatalIntensiveCare == false && (bed.IsIntensiveCareBed || room.IsIntensiveCare))
+            failures.Add(("NEWBORN_INTENSIVE_BED_RESERVED", "Bed intensif hanya untuk bayi yang membutuhkan NICU."));
         return failures;
     }
 }

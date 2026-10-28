@@ -48,6 +48,7 @@
 | `FR-RP-095` | `RJ-PRI-DEC-038` | `INT-RP-07` (`1.2.0`) | `BE-RJP-013` | `FE-RJP-009` | `R-RP-41` | ✅ 2026-10-21 (BE, FE) |
 | `FR-RP-096` | `RJ-PRI-DEC-037` | `permission-audit-matrix.md` RP-GT-1 | `BE-RJP-013` | `FE-RJP-009` | `R-RP-38` | ✅ 2026-10-21 (BE, FE) |
 | Kalender menonaktifkan tanggal lampau (Buat Reservasi, Ganti Tanggal) | `RJ-PRI-DEC-040` | `VAL-RP-03` (tetap di backend) | — | `FE-RJP-004`, `FE-RJP-009` (rework) | Uji layar `RESCHEDULE CAL`, `CREATE CAL`, `REGRESI` ([FE-RJP-009 §8](../task/report/frontend/FE-RJP-009.md)) | ✅ 2026-10-21 |
+| Pencarian pasien Buat Reservasi hanya menampilkan member | Permintaan owner 26 Okt 2026 (belum dicatat sebagai `RJ-PRI-DEC`) | `VAL-RP-25` (tetap di backend) | — | `FE-RJP-004` (rework) | Uji layar `REQ`, `LIST`, `EMPTY`, `SELECT` ([FE-RJP-004](../task/report/frontend/FE-RJP-004.md), bagian akhir) | ✅ 2026-10-26 |
 | Konkurensi dan regresi ganti tanggal | `RJ-PRI-DEC-034` | `VAL-RP-14`, `02` GT.2 | `BE-RJP-013` | — | `R-RP-40`, `R-RP-42` | ✅ 2026-10-21 (BE) |
 
 ## 2. Acceptance criteria decision log ke skenario
