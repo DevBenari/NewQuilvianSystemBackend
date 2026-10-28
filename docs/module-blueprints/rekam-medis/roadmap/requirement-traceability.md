@@ -221,7 +221,7 @@ source_commits: { backend: 363de34f, frontend: f0a3b07b8 }
 | `FR-RM-030` Farmasi | `RM-DEC-039` | A4.10 | `INT-RM-10i` | `BE-35` | `FE-10` | `AT-RM-44` | **Tertahan persetujuan modul** |
 | `FR-RM-031` Ringkasan berkala | `RM-DEC-052` | A4.10 | API A1 | `BE-22` | `FE-11` | `AT-RM-52` | **Backend selesai** (`BE-22`); frontend direncanakan |
 | `FR-RM-040` MCU | `RM-DEC-040`, `065`, `066` | A4.10 (dikoreksi) | `INT-RM-10j` | `BE-36` | `FE-10` | `AT-RM-44`, `UAT-09`, `UAT-10` | **Backend selesai** (`BE-36`); frontend direncanakan |
-| `FR-RM-050`, `051` Penutupan klinis | `RM-DEC-051` | A4.12 | State S-A | `BE-25` | — | `AT-RM-56`, `57` | Direncanakan |
+| `FR-RM-050`, `051` Penutupan klinis | `RM-DEC-051` | A4.12 | State S-A | `BE-25` | — | `AT-RM-56`, `57` | **Backend selesai** (`BE-25`, 13 uji lulus); tanpa layar |
 | `FR-RM-052` Susulan | `RM-DEC-006`, `043` | A4.9 | API A1 | `BE-26` | `FE-10` | `AT-RM-47`, `58` | Direncanakan |
 | `FR-RM-053` Disposisi IGD mengunci | `RM-DEC-003` | A4.12 | `INT-RM-12` | `BE-27` | — | `AT-RM-59` | **Tertahan persetujuan modul** |
 | `FR-RM-060`–`062` Profil dokumen wajib | `RM-DEC-045`, `047`, `060`, `061` | A4.8 | API A3 | `BE-37` | `FE-13` | `AT-RM-69`, `70`, `71` | Direncanakan |

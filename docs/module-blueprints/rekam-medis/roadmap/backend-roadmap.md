@@ -1426,8 +1426,8 @@ module_owner_approvals:   # untuk berkas pembaca di folder modul lain
 | `BE-22` | `MVP-0` | `RM-04` | Model `ClinicalManagement` baru + ringkasan berkala | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-22.md` |
 | `BE-23` | `MVP-1` | `RM-02` | Pembaca Laboratorium (PK/Mikro) + pemeriksaan tertunda termasuk PA | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-23.md` |
 | `BE-24` | `MVP-1` | `RM-02` | Pembaca Radiologi + pemeriksaan tertunda | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-24.md` |
-| `BE-25` | `MVP-2` | `RM-06` | Penutupan klinis kunjungan | **`SIAP`** |
-| `BE-26` | `MVP-2` | `RM-06` | Penanda `Susulan` di linimasa | `TERTAHAN DEPENDENCY` (`BE-25`) |
+| `BE-25` | `MVP-2` | `RM-06` | Penutupan klinis kunjungan | **`SELESAI`** 28 Oktober 2026 — 13 uji lulus, laporan `task/report/backend/BE-25.md` |
+| `BE-26` | `MVP-2` | `RM-06` | Penanda `Susulan` di linimasa | **`SIAP`** — `BE-21` dan `BE-25` selesai |
 | `BE-27` | `MVP-2` | `RM-06` | Disposisi IGD ke rawat inap mengunci dan mencatat penutupan | **`TERTAHAN PERSETUJUAN MODUL`** — IGD |
 | `BE-28` | `MVP-2` | `RM-06` | Pemanggil penutupan meneruskan `ClinicalClosureSource` | **`TERTAHAN PERSETUJUAN MODUL`** — Registrasi, IGD, Rawat Inap, Billing (opsional) |
 | `BE-29` | `MVP-3` | `RM-03` | Pembaca IGD | **`TERTAHAN PERSETUJUAN MODUL`** — IGD |
@@ -1539,7 +1539,7 @@ dinilai penuh begitu `BE-39` selesai.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-25` |
-| **Status** | **`SIAP`** |
+| **Status** | **`SELESAI`** — 28 Oktober 2026, laporan `task/report/backend/BE-25.md`. `dotnet test` → `Passed: 13` (seluruh project `62`), `Failed: 0`. Selisih terhadap scope: model, enum, configuration, DbSet, dan migration sudah dibuat lebih dulu (R2.2); task ini hanya mengubah `ClinicalDocumentIntegrityService.cs`. Kriteria 2 "nol galat" dijamin pada empat jalur bertransaksi; dua jalur tanpa transaksi (PATCH status, antrean dokter) gagal utuh lalu dapat diulang — penyempurnaannya calon `BE-28` |
 | **Outcome** | Setiap kunjungan yang ditutup sejak rilis punya tepat satu waktu tutup klinis yang tidak berubah |
 | **Trace** | `RM-DEC-051`; `AGG-RM-02`; `RM-CAP-036`; `FR-RM-050`, `FR-RM-051`; `NFR-001`, `NFR-002` |
 | **Kontrak** | State `0.2.0` S-A; integration `INT-RM-12` |
@@ -1556,7 +1556,7 @@ dinilai penuh begitu `BE-39` selesai.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-26` |
-| **Status** | `TERTAHAN DEPENDENCY` — `BE-21`, `BE-25` |
+| **Status** | **`SIAP`** — `BE-21` dan `BE-25` selesai 28 Oktober 2026 |
 | **Outcome** | Dokumen jenis apa pun yang final sesudah tutup klinis bertanda `Susulan` |
 | **Trace** | `RM-DEC-006`, `043`, `051`; `RM-CAP-037`; `RM-FACT-011`, `018`; `FR-RM-052` |
 | **Kontrak** | API A1 (`isLateEntry`, `clinicalClosedAt`, `isClinicalClosureDerived`) |
