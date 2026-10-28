@@ -62,6 +62,19 @@ pasien umum, pasien lama biasa, Kamar Pulih, dan transfer tidak berubah.
 encounter sumber penjamin, payment source beserta versi waktunya, episode/lokasi ibu saat ini,
 jumlah bayi terdaftar, dan preview urutan berikutnya.
 
+**Revisi PLAN-REPAIR-EPS-041 (K-03, 27 Oktober 2026).** Respons kandidat ditambah `admittedBabyCount` (bayi yang punya
+episode tidak batal), `pendingBabyCount` (bayi ber-RM tanpa episode hidup), dan `registeredBabies[].isPendingAdmission`;
+`registeredBabyCount` tetap untuk kompatibilitas, dan bayi berstatus nonaktif tidak dihitung. Contoh: ibu dengan satu
+bayi yang identitasnya tersimpan tetapi belum dipesankan tempat → `registeredBabyCount: 1`, `admittedBabyCount: 0`,
+`pendingBabyCount: 1`, `isPendingAdmission: true`.
+
+Langkah 1 (`newborn-context`) menampilkan bayi `isPendingAdmission` sebagai "Admisi belum selesai" dengan aksi
+**Lanjutkan admisi bayi ini**: pasien bayi yang ada dipakai, langkah 2 dilewati (tetap terbaca baca-saja bila petugas
+mundur), dan alur lanjut ke `doctor` — tanpa `POST` pasien baru. Konfirmasi "Ini bayi yang berbeda (kelahiran kembar,
+Bayi ke-n)" hanya wajib saat membuat bayi **baru** sementara kasus sudah punya bayi lain; tanpa centang, layar menolak
+dengan pesan yang menyebut kedua pilihan. Sekuens `PatNewbornBirthSequence` tidak berubah. Laporan:
+[`FIX-EPS-041-BE`](../task/report/backend/FIX-EPS-041-BE.md), [`FIX-EPS-041-FE`](../task/report/frontend/FIX-EPS-041-FE.md).
+
 #### Health Services / Patient Management / Master Data / Patient
 
 | Method | Path | Kegunaan | Hak akses |

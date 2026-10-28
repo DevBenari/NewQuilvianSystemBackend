@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
@@ -118,7 +119,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (response.DraftEpisode?.CreatedAt is { } draftCreatedAt)
             {
-                response.Warnings.Add(BuildOtherDraftWarning(response.DraftEpisode.EpisodeNumber, draftCreatedAt));
+                response.Warnings.Add(BuildOtherDraftWarning(
+                    response.DraftEpisode.EpisodeNumber, draftCreatedAt,
+                    await _episodeNumberService.HospitalTimeZoneAsync(cancellationToken)));
             }
 
             var first = response.Blockers.FirstOrDefault();
@@ -133,10 +136,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// Kalimat peringatan admisi <c>Draft</c> ganda, dipakai bersama oleh pembukaan admisi dan
         /// pemeriksaan kelayakan supaya keduanya tidak bercabang.
         /// </summary>
-        private static string BuildOtherDraftWarning(string episodeNumber, DateTime createdAt) =>
-            "Pasien ini punya admisi lain yang sedang disiapkan, yaitu " +
-            $"{episodeNumber} sejak {createdAt:dd MMMM yyyy HH:mm}. " +
-            "Lanjutkan bila memang admisi terpisah, atau batalkan yang lama lebih dulu.";
+        /// <remarks>
+        /// PLAN-REPAIR-EPS-041 FIX-14: waktu dibaca pada zona rumah sakit dan bulan berbahasa Indonesia.
+        /// Contoh Draft dibuat 03:44 UTC → "sejak 26 Oktober 2026 pukul 10.44".
+        /// </remarks>
+        private static string BuildOtherDraftWarning(string episodeNumber, DateTime createdAtUtc, TimeZoneInfo timeZone)
+        {
+            var local = InpAdmissionText.ToLocal(createdAtUtc, timeZone);
+
+            return "Pasien ini punya admisi lain yang sedang disiapkan, yaitu " +
+                $"{episodeNumber} sejak {InpAdmissionText.FormatLongDate(local)} pukul {local:HH.mm}. " +
+                "Lanjutkan bila memang admisi terpisah, atau batalkan yang lama lebih dulu.";
+        }
 
         private static void AddBlocker(InpatientAdmissionEligibilityResponse response, string code, string message)
         {

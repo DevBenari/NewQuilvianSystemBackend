@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Services;
 using QuilvianSystemBackend.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
@@ -18,7 +19,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     /// tinggi <c>InfantWristbandMaxAgeYears</c> tahun (bawaan 5); selain itu Gelang Dewasa.
     ///
     /// <para>
-    /// <b>Sapaan.</b> "BY. NY. <i>nama ibu</i>" untuk bayi baru lahir; "An." di bawah 17 tahun;
+    /// <b>Sapaan.</b> Bayi baru lahir memakai nama resmi pasien ditambah baris "IBU: <i>nama ibu</i>"
+    /// (ISSUE-EPS-040); "An." di bawah 17 tahun;
     /// "Tn." pria 17 tahun ke atas; "Ny." wanita 17 tahun ke atas berstatus menikah, cerai, janda,
     /// atau berpisah; "Nn." wanita 17 tahun ke atas belum menikah; tanpa sapaan bila status nikah
     /// tidak diketahui.
@@ -27,7 +29,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     /// <para>
     /// Contoh (dicetak 7 Oktober 2026): Budi Santoso, pria, lahir 12 Maret 1981 → Gelang Dewasa
     /// "BUDI SANTOSO, Tn." · "12 Mar 1981" · "45 th". Bayi Ny. Rina umur 3 hari → Gelang Bayi
-    /// "BY. NY. RINA SANTOSO" dan dua label kecil. Anak 4 tahun → Gelang Bayi bersapaan "An.".
+    /// "BY. NY. RINA SANTOSO / BAYI 1", baris "IBU: RINA SANTOSO", dan dua label kecil. Anak 4 tahun
+    /// → Gelang Bayi bersapaan "An.".
     /// Wanita 30 tahun status nikah tidak diketahui → Gelang Dewasa tanpa sapaan.
     /// </para>
     ///
@@ -107,32 +110,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         /// <summary>
-        /// Nama pada gelang. Bayi baru lahir yang ibunya tercatat: "BY. NY. <i>NAMA IBU</i>"; selain
-        /// itu "<i>NAMA</i>, <i>sapaan</i>" atau nama saja bila sapaan tidak dapat ditentukan.
+        /// Nama pada gelang. Bayi baru lahir: nama resmi pasien kapital ditambah "/ BAYI <i>n</i>",
+        /// sama persis dengan baris nama label pasien (K-01 ISSUE-EPS-040). Bayi tanpa nama khusus
+        /// sudah bernama "By. Ny. <i>ibu</i>" sejak pendaftaran, jadi tidak dirangkai ulang di sini.
+        /// Selain bayi: "<i>NAMA</i>, <i>sapaan</i>" atau nama saja bila sapaan tidak dapat ditentukan.
         /// </summary>
+        /// <remarks>
+        /// Contoh: bayi "Bagas Pratama" urutan 1 → "BAGAS PRATAMA / BAYI 1"; bayi tanpa nama khusus
+        /// dari ibu "Ny. Siti Aminah" → "BY. NY. SITI AMINAH / BAYI 1".
+        /// </remarks>
         public static string BuildDisplayName(
             string fullName,
             bool isNewborn,
-            string? motherName,
             Gender? gender,
             MaritalStatus maritalStatus,
             DateTime? birthDate,
             DateTime today,
             int? birthOrder = null)
         {
-            if (isNewborn && !string.IsNullOrWhiteSpace(motherName))
-            {
-                return $"BY. NY. {motherName.Trim().ToUpperInvariant()}{(birthOrder > 0 ? $" / BAYI {birthOrder}" : string.Empty)}";
-            }
-
             var name = (fullName ?? string.Empty).Trim().ToUpperInvariant();
 
-            // Bayi baru lahir tanpa ibu tercatat tidak diberi "BY. NY." karangan.
-            var salutation = isNewborn
-                ? null
-                : ResolveSalutation(false, gender, maritalStatus, birthDate, today);
+            if (isNewborn)
+            {
+                return birthOrder > 0 ? $"{name} / BAYI {birthOrder}" : name;
+            }
+
+            var salutation = ResolveSalutation(false, gender, maritalStatus, birthDate, today);
 
             return salutation == null ? name : $"{name}, {salutation}";
+        }
+
+        /// <summary>
+        /// Baris ibu pada gelang bayi (MTG-BAYI-04, K-01 ISSUE-EPS-040): "IBU: <i>NAMA IBU</i>" tanpa
+        /// sapaan. <c>null</c> untuk pasien bukan bayi atau bayi yang ibunya tidak tercatat.
+        /// </summary>
+        /// <remarks>Contoh: ibu "Ny. Siti Aminah" → "IBU: SITI AMINAH".</remarks>
+        public static string? BuildMotherLine(bool isNewborn, string? motherName)
+        {
+            if (!isNewborn || string.IsNullOrWhiteSpace(motherName))
+            {
+                return null;
+            }
+
+            return $"IBU: {NewbornPatientNaming.NormalizeMotherName(motherName).ToUpperInvariant()}";
         }
 
         public static int? AgeInYears(DateTime? birthDate, DateTime today)

@@ -15,6 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/human-resource/master-data/shift-patterns")]
     [Route("api/v1/corporate/human-resource/master-data/shiftpatterns")]
     [Tags("Corporate / Human Resource / Master Data / ShiftPattern")]
     [AccessController(moduleCode:"HUMAN_RESOURCE_MASTER_DATA",moduleName:"Human Resource Master Data",displayName:"ShiftPattern",AreaName="Corporate",ControllerName="ShiftPattern",Description="Master ShiftPattern",SortOrder=20)]

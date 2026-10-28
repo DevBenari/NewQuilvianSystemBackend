@@ -1,8 +1,11 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
@@ -52,18 +55,24 @@ public sealed class NewbornPatientRegistrationService
     private const string MedicalRecordSequenceKey = "PATIENT_MEDICAL_RECORD";
     private const string ReservationGuardRejectedMessage =
         "Pendaftaran pasien bayi sedang tidak tersedia: perlindungan nomor pasien migrasi RSMMC belum aktif.";
+    /// <summary>Toleransi selisih jam perangkat petugas dan server untuk "waktu lahir belum terjadi".</summary>
+    private static readonly TimeSpan BirthClockTolerance = TimeSpan.FromMinutes(5);
+    private static readonly Regex NewbornNamePattern = new(@"^[\p{L}\p{M}\s.,'\-]+$", RegexOptions.Compiled);
     private readonly ApplicationDbContext _dbContext;
     private readonly NumberSeriesAllocator _numberSeriesAllocator;
     private readonly PatientIdentifierAllocationService _identifierAllocationService;
+    private readonly HospitalSiteProfileQueryService _hospitalSites;
 
     public NewbornPatientRegistrationService(
         ApplicationDbContext dbContext,
         NumberSeriesAllocator numberSeriesAllocator,
-        PatientIdentifierAllocationService identifierAllocationService)
+        PatientIdentifierAllocationService identifierAllocationService,
+        HospitalSiteProfileQueryService hospitalSites)
     {
         _dbContext = dbContext;
         _numberSeriesAllocator = numberSeriesAllocator;
         _identifierAllocationService = identifierAllocationService;
+        _hospitalSites = hospitalSites;
     }
 
     /// <summary>
@@ -90,10 +99,22 @@ public sealed class NewbornPatientRegistrationService
             return Invalid("Kasus persalinan wajib dipilih.");
         if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Trim().Length is < 8 or > 200)
             return Invalid("Idempotency-Key wajib diisi antara 8 sampai 200 karakter.");
-        if (!request.BirthDate.HasValue || request.BirthDate.Value.Date > DateTime.UtcNow.Date)
+        if (!request.BirthDate.HasValue)
             return Invalid("Tanggal lahir bayi wajib valid dan tidak boleh di masa depan.");
-        if (!request.BirthTime.HasValue)
+        if (!request.BirthTime.HasValue || request.BirthTime.Value < TimeSpan.Zero || request.BirthTime.Value >= TimeSpan.FromDays(1))
             return Invalid("Jam lahir bayi wajib diisi.");
+
+        // FIX-EPS-040-05/06: tanggal dan jam lahir adalah waktu rumah sakit, jadi dibandingkan dengan
+        // "sekarang" pada zona rumah sakit — bukan tanggal UTC yang tertinggal satu hari pukul 00.00–06.59 WIB.
+        var hospitalTimeZone = await ResolveHospitalTimeZoneAsync(cancellationToken);
+        var hospitalNow = InpAdmissionText.ToLocal(DateTime.UtcNow, hospitalTimeZone);
+        var birthMoment = request.BirthDate.Value.Date + request.BirthTime.Value;
+        if (birthMoment > hospitalNow + BirthClockTolerance)
+            return Invalid($"Waktu lahir belum terjadi. Waktu rumah sakit sekarang {hospitalNow:dd-MM-yyyy} pukul {hospitalNow:HH.mm}.");
+
+        // FIX-EPS-040-21: nama bayi hanya huruf, spasi, titik, koma, apostrof, dan tanda hubung.
+        if (!string.IsNullOrWhiteSpace(request.FullName) && !NewbornNamePattern.IsMatch(request.FullName.Trim()))
+            return Invalid("Nama hanya boleh berisi huruf, spasi, titik, koma, apostrof, dan tanda hubung.");
         if (!request.Gender.HasValue || request.Gender is not (Gender.Male or Gender.Female))
             return Invalid("Jenis kelamin bayi wajib dipilih.");
         if (request.BirthWeightGram is < 0 || request.BirthLengthCm is < 0)
@@ -164,6 +185,13 @@ public sealed class NewbornPatientRegistrationService
                 return await RollbackAsync(transaction, NewbornRegistrationStatus.BusinessRuleRejected,
                     "Kasus harus berupa persalinan obstetri yang sedang berlangsung atau sudah selesai.", cancellationToken);
 
+            // FIX-EPS-040-07 (K-03, 25-10-2026): bayi tidak lahir lebih dari satu hari sebelum kasus
+            // persalinannya diminta. Contoh: kasus diminta 23-10-2026 → tanggal lahir paling awal 22-10-2026.
+            var caseRequestedDate = InpAdmissionText.ToLocal(deliveryCase.RequestedAt, hospitalTimeZone).Date;
+            if (request.BirthDate.Value.Date < caseRequestedDate.AddDays(-1))
+                return await RollbackAsync(transaction, NewbornRegistrationStatus.Invalid,
+                    $"Tanggal lahir lebih awal dari kasus persalinan (diminta {caseRequestedDate:dd-MM-yyyy}).", cancellationToken);
+
             if (!string.IsNullOrWhiteSpace(request.IdentityNumber))
             {
                 var identityExists = await _dbContext.MstPatients
@@ -222,7 +250,7 @@ public sealed class NewbornPatientRegistrationService
                 medicalRecordNumber = await AllocateMedicalRecordNumberAsync(actorUserId, cancellationToken);
             }
 
-            var motherName = NormalizeMotherName(mother.FullName);
+            var motherName = NewbornPatientNaming.NormalizeMotherName(mother.FullName);
             var patientFullName = !string.IsNullOrWhiteSpace(request.FullName)
                 ? request.FullName.Trim()
                 : $"By. Ny. {motherName}";
@@ -404,15 +432,21 @@ public sealed class NewbornPatientRegistrationService
     private static string Sha256(string value)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
-    private static string NormalizeMotherName(string value)
+    /// <summary>
+    /// Zona waktu rumah sakit dari profil site utama. Profil yang tidak terbaca jatuh ke
+    /// <c>Asia/Jakarta</c>, sama dengan Workspace PPRI (<c>InpAdmissionSourceReader.ResolveTimeZone</c>).
+    /// </summary>
+    private async Task<TimeZoneInfo> ResolveHospitalTimeZoneAsync(CancellationToken cancellationToken)
     {
-        var normalized = value.Trim();
-        foreach (var prefix in new[] { "Ny. ", "Ny ", "Nyonya ", "Ibu " })
+        try
         {
-            if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                return normalized[prefix.Length..].Trim();
+            var profile = await _hospitalSites.GetMainSiteProfileAsync(cancellationToken);
+            return InpAdmissionText.ResolveTimeZone(profile.IsAvailable ? profile.TimeZoneId : null);
         }
-        return normalized;
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return InpAdmissionText.ResolveTimeZone(null);
+        }
     }
 
     private static string? Normalize(string? value)

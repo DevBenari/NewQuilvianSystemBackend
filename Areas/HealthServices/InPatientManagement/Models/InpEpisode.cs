@@ -84,6 +84,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         [MaxLength(150)] public string? ExternalReferralDoctorName { get; set; }
         [MaxLength(1000)] public string? ExternalReferralDiagnosis { get; set; }
 
+        /// <summary>Nomor booking jadwal operasi IBS yang terhubung (BE-RWI-182, OPS-DEC-040).</summary>
+        [MaxLength(50)]
+        public string? SurgicalBookingNumber { get; set; }
+
+        /// <summary>Sub-kategori klinis: ObstetricSurgery, GynecologicSurgery, GeneralSurgery, ODC (BE-RWI-182).</summary>
+        [MaxLength(50)]
+        public string? ClinicalSubCategory { get; set; }
+
+        /// <summary>Status penahanan tempat tidur: None, InSurgery, InRecovery (BE-RWI-183, RWI-DEC-355).</summary>
+        [MaxLength(30)]
+        public string? BedHoldStatus { get; set; }
+
+        /// <summary>Menandai apakah pasien SC memesan boks bayi rawat gabung di bangsal nifas (BE-RWI-183, RWI-DEC-357).</summary>
+        public bool IsRoomingInBabyPlanned { get; set; } = false;
+
+        /// <summary>ID paket persalinan/SC jika pasien memilih tarif paket terpadu (BE-RWI-183, RWI-DEC-358).</summary>
+        public Guid? MaternityPackageId { get; set; }
+
         public bool RequiresIsolation { get; set; } = false;
 
         public InpIsolationSource? IsolationSource { get; set; }

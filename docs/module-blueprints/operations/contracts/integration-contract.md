@@ -10,6 +10,8 @@ Contract `opr-integration-v1`; status `approved`; approved by pemilik kebutuhan 
 | `OPR-INT-004` | HR/Credentialing → Operasi | Penjadwalan/start | workforce, role, active/privilege validity, period | correlation schedule ID | Tolak assignment invalid; bila layanan belum ada tandai dependency blocked |
 | `OPR-INT-005` | Operasi → Unit tujuan | Recovery release/handover | encounter, destination, condition summary, device/therapy/risk/instruction, sender | handover ID | Case belum `Completed` sampai diterima; retry tidak membuat handover kedua |
 | `OPR-INT-006` | Operasi → Notification | Jadwal/status/handover berubah | event, recipient references, safe summary | event ID | Gagal notifikasi tidak rollback transaksi klinis; retry terpisah |
+| `OPR-INT-007` | Operasi ↔ Inpatient Admission | Pendaftaran rawat inap membaca booking operasi terkonfirmasi (`OPS-DEC-040`) | patientId, bookingNumber, scheduledAt, roomId, leadSurgeon, anesthesiologist, pediatrician | correlation booking ID | Read-only lookup; kegagalan jaringan menampilkan retry tanpa menghalangi pencarian pasien |
+| `OPR-INT-008` | Operasi → Inpatient Newborn | Kelahiran bayi dicatat di kamar bedah SC (`OPS-DEC-042`) | caseId, motherEncounterId, birthTime, gender, weightGrams, lengthCm, apgarScores | `case:birth:newborn` | Idempotent event; Admisi Bayi Baru Lahir menerbitkan MRN bayi dan menautkan episode ke ibu |
 
 Transport sinkron/asinkron diputuskan saat capability downstream tersedia. Kontrak bisnis tetap: operasi lokal harus bertahan saat downstream sementara gagal, delivery dapat dipantau, dan retry idempotent.
 
