@@ -151,3 +151,51 @@ urutan yang benar. Bila kelak `RM-CAP-019` diperbaiki, pemicu ini tidak perlu be
 | Addendum tidak mengubah status | `RM-DEC-004` | `AT-RM-17` |
 | Jejak akses tidak dapat diubah | `RM-DEC-015` | `AT-RM-08` |
 | Status awal hasil pengisian data lama | `RM-DEC-014` | `AT-RM-21` |
+
+
+---
+
+# Amandemen — State transition `0.2.0` (`approved`)
+
+Input: `RM-DA-001` bagian G. Disahkan Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`).
+
+## S-A. Penutupan klinis kunjungan
+
+| Dari | Tindakan | Ke | Siapa | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (tidak ada) | Penguncian pertama kunjungan | Tercatat | Context penutup (otomatis) | Kunjungan ada | — |
+| Tercatat | Penguncian berikutnya | Tercatat (tidak berubah) | — | — | Diabaikan, bukan galat |
+| Tercatat | Rekonsiliasi IGD mengubah `CompletedAt` | Tercatat (tidak berubah) | — | — | Tidak ada jalur ubah; mengubah `ClinicalClosedAt` **tidak sah** |
+| Tercatat | Hapus atau batal | — | — | — | **Tidak sah.** Tidak ada endpoint |
+
+## S-B. Penilaian kelengkapan
+
+Keadaan adalah kesimpulan. Setiap penilaian ulang boleh berpindah ke keadaan mana pun menurut
+urutan prioritas `Undetermined` → `AwaitingResult` → `Incomplete` → `Complete`.
+
+| Dari | Tindakan | Ke | Siapa | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (tidak ada) | Tutup klinis | Hasil penilaian pertama | Sistem | Kunjungan tidak batal | — |
+| Keadaan apa pun | Nilai ulang | Hasil penilaian | Sistem, atau `MedicalRecordCompleteness : Evaluate` | Kunjungan sudah tutup klinis | `409` bila masih berjalan |
+| Bukan `Complete` | Nilai ulang dengan nol kekurangan dan nol gangguan | `Complete` | Sistem | — | — |
+| Keadaan apa pun | Nilai ulang dengan satu sumber gagal | `Undetermined` | Sistem | — | Menghasilkan `Complete` **tidak sah** |
+| Keadaan apa pun | Kunjungan batal | `IsExcluded = true` | Sistem | — | Keluar dari daftar kerja; baris tidak dihapus |
+| `Complete` | Turun ke keadaan lain | Keadaan baru | Sistem | — | `FirstCompletedAt` **tidak** dihapus |
+| Keadaan apa pun | Pengguna mengubah keadaan langsung | — | — | — | **Tidak sah.** Tidak ada endpoint |
+
+## S-C. Addendum pengesahan
+
+| Dari (status catatan) | Tindakan | Ke | Siapa | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `LockedUnsigned` | Buat addendum `Attestation` | `LockedUnsigned` (tetap) dan kekurangan tuntas | Penulis asli; pengganti lewat `as-substitute` | Belum ada pengesahan lain | `409` `VAL-RM-A02` |
+| `Signed`, `Draft`, `Cancelled` | Buat addendum `Attestation` | — | — | — | `409` `VAL-RM-A01` |
+| `LockedUnsigned` | Ubah status menjadi `Signed` lewat pengesahan | — | — | — | **Tidak sah** (`RM-DEC-049`) |
+
+## S-D. Profil dokumen wajib
+
+| Dari | Tindakan | Ke | Siapa | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| (tidak ada) | Buat | Aktif | `MedicalRecordCompletenessProfile : Create` | `VAL-RM-A04`–`A07`, `A10` | `400` atau `409` |
+| Aktif | Nonaktifkan | Nonaktif | `MedicalRecordCompletenessProfile : Update` | — | — |
+| Nonaktif | Aktifkan | Aktif | `MedicalRecordCompletenessProfile : Update` | Kunci tidak bentrok dengan profil aktif lain | `409` |
+| Aktif atau Nonaktif | Hapus | — | — | — | **Tidak sah.** Hanya nonaktif |

@@ -120,6 +120,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         /// <summary>Sumber yang gagal dihitung. Kosong berarti seluruh angka di atas lengkap.</summary>
         public List<MedicalRecordTimelineSourceFailure> FailedSources { get; set; } = new();
 
+        /// <summary>Jenis yang belum punya pembaca dan karena itu tidak dihitung (kontrak 0.2.0).</summary>
+        public List<MedicalRecordUnavailableKindResponse> UnavailableKinds { get; set; } = new();
+
         public bool IsComplete => FailedSources.Count == 0;
     }
 
