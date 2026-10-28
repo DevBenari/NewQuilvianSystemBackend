@@ -244,6 +244,70 @@ public sealed class BillingPatientFundsController : ControllerBase
         }
     }
 
+
+    [HttpGet("deposits/{encounterId:guid}/refund-eligibility")]
+    [AccessAction("ReadRefundEligibility", "Read Inpatient Deposit Refund Eligibility", AccessType = AccessTypes.Read, SortOrder = 8)]
+    [AccessPermission("BillingDeposit", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<DepositRefundEligibilityResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetDepositRefundEligibility(
+        Guid encounterId,
+        [FromQuery] Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetDepositRefundEligibilityAsync(encounterId, invoiceId, cancellationToken);
+            return Ok(ApiResponse<DepositRefundEligibilityResponse>.Ok(
+                result, "Kelayakan refund sisa deposit berhasil diperiksa."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(
+                StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingDepositValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
+    [HttpPost("deposits/{encounterId:guid}/refund-requests")]
+    [AccessAction("CreateRefundRequest", "Create Inpatient Deposit Refund Request", AccessType = AccessTypes.Create, SortOrder = 9)]
+    [AccessPermission("BillingDeposit", "Create")]
+    [ProducesResponseType(typeof(ApiResponse<DepositRefundResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateDepositRefundRequest(
+        Guid encounterId,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] CreateDepositRefundRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.CreateDepositRefundRequestAsync(
+                encounterId, request, idempotencyKey, CurrentUserId(), cancellationToken);
+            var message = result.IsReplay
+                ? "Pengajuan refund sisa deposit sudah diproses; hasil sebelumnya dikembalikan."
+                : "Pengajuan refund sisa deposit berhasil dikirim ke antrean persetujuan Finance.";
+            return Ok(ApiResponse<DepositRefundResponse>.Ok(result, message));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(
+                StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingDepositConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(
+                StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingDepositValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     private Guid CurrentUserId()
     {
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier)

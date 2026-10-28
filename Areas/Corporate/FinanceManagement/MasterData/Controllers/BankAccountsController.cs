@@ -51,9 +51,10 @@ public sealed class BankAccountsController : ControllerBase
     public async Task<IActionResult> GetOptions(
         [FromQuery] bool onlyActive = true,
         [FromQuery] string? accountType = null,
+        [FromQuery] Guid? bankId = null,
         CancellationToken cancellationToken = default) =>
         Ok(ApiResponse<List<BankAccountOptionResponse>>.Ok(
-            await _service.GetOptionsAsync(onlyActive, accountType, cancellationToken),
+            await _service.GetOptionsAsync(onlyActive, accountType, bankId, cancellationToken),
             "Data pilihan rekening bank berhasil diambil."));
 
     [HttpGet("{id:guid}")]

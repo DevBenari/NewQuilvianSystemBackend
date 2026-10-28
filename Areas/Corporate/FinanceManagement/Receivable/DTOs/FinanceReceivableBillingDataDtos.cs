@@ -118,13 +118,17 @@ public sealed class BillingDataQuery
     /// <summary>company | employee | generalPatient | internalBenefit.</summary>
     public string? Category { get; set; }
 
-    /// <summary>Mencari No. Bill, No. Registrasi, nama pasien, No. RM; untuk kategori company juga nama asuransi/penjamin.</summary>
+    /// <summary>
+    /// Mencari No. Bill, No. Registrasi, nama pasien, No. RM; untuk kategori company juga nama asuransi/penjamin.
+    /// Khusus kategori employee: dibatasi hanya mencari nama karyawan dan No. RM karyawan.
+    /// </summary>
     [MaxLength(200)] public string? Search { get; set; }
 
     /// <summary>
-    /// Pilihan satu penjamin/pasien. Untuk company: Id asuransi (MstInsuranceProvider.Id) ATAU Id perusahaan
-    /// penjamin (MstCompanyGuarantor.Id), keduanya dari GET billing-data/payer-options. Untuk employee dan
-    /// generalPatient: Id pasien (MstPatient.Id).
+    /// Pilihan satu penjamin/karyawan/pasien. Untuk company: Id asuransi (MstInsuranceProvider.Id) ATAU Id perusahaan
+    /// penjamin (MstCompanyGuarantor.Id), keduanya dari GET billing-data/payer-options. Untuk employee: Id identitas
+    /// karyawan / pemilik benefit (WorkforceProfileId atau MstEmployee.Id) dari GET billing-data/employee-options.
+    /// Untuk generalPatient dan internalBenefit: Id pasien (MstPatient.Id).
     /// </summary>
     public Guid? EntityId { get; set; }
 
@@ -394,6 +398,37 @@ public sealed class BillingDataPayerOptionResponse
 
     /// <summary>insurance | company.</summary>
     public string Kind { get; set; } = string.Empty;
+}
+
+/// <summary>Parameter GET /receivables/billing-data/employee-options (isi pilihan karyawan pada Piutang Karyawan).</summary>
+public sealed class BillingDataEmployeeOptionQuery
+{
+    [MaxLength(200)] public string? Search { get; set; }
+
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+
+    public int? Limit { get; set; }
+}
+
+/// <summary>Satu pilihan karyawan yang terkait piutang EMPLOYEE_BENEFIT.</summary>
+public sealed class BillingDataEmployeeOptionResponse
+{
+    /// <summary>Id penanda identitas karyawan (WorkforceProfileId).</summary>
+    public Guid Id { get; set; }
+
+    /// <summary>Nama karyawan.</summary>
+    public string Name { get; set; } = string.Empty;
+
+    /// <summary>No. RM karyawan bila terverifikasi; null bila karyawan belum pernah memiliki rekam medis.</summary>
+    public string? MedicalRecordNumber { get; set; }
+
+    /// <summary>Alias kompatibilitas UI untuk nama karyawan.</summary>
+    public string Label => Name;
+
+    /// <summary>Keterangan No. RM untuk baris kedua dropdown ("No. RM xx").</summary>
+    public string? Description => !string.IsNullOrWhiteSpace(MedicalRecordNumber) ? $"No. RM {MedicalRecordNumber}" : null;
 }
 
 public sealed class BillingDataPagedResponse : PagedResult<BillingDataItemResponse>

@@ -234,6 +234,7 @@ public sealed class BillingFinalizationService
             await AuditFinalizationAsync(record, actorUserId, false);
             if (closureChange.Changed)
                 await AuditClosureChangeAsync(closureChange, actorUserId);
+            await TriggerPostCommitArIntakeAsync(invoice.Id, actorUserId, cancellationToken);
             var response = Map(record, false);
             response.EmployeeBenefitSplit = splitResult?.Response;
             return response;
@@ -433,6 +434,7 @@ public sealed class BillingFinalizationService
             await AuditFinalizationAsync(record, actorUserId, false);
             if (closureChange.Changed)
                 await AuditClosureChangeAsync(closureChange, actorUserId);
+            await TriggerPostCommitArIntakeAsync(invoice.Id, actorUserId, cancellationToken);
 
             await _loggerService.AuditAsync(
                 LogCategory,
@@ -682,6 +684,7 @@ public sealed class BillingFinalizationService
             await AuditFinalizationAsync(record, actorUserId, false);
             if (closureChange.Changed)
                 await AuditClosureChangeAsync(closureChange, actorUserId);
+            await TriggerPostCommitArIntakeAsync(invoice.Id, actorUserId, cancellationToken);
 
             return await MapCompleteResponseAsync(record, false, cancellationToken);
         }
@@ -919,6 +922,36 @@ public sealed class BillingFinalizationService
         return (true, null);
     }
 
+    /// <summary>
+    /// Memicu pengolahan otomatis fakta AR milik invoice yang baru difinalisasi segera setelah transaksi
+    /// finalisasi di-commit (post-commit). Dilindungi oleh try-catch agar kegagalan integrasi Finance
+    /// tidak membatalkan atau merusak respons finalisasi yang sudah berhasil di Billing.
+    /// </summary>
+    public async Task TriggerPostCommitArIntakeAsync(
+        Guid invoiceId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (_arApHandoffService is null) return;
+        try
+        {
+            await _arApHandoffService.ProcessInvoiceArHandoffsImmediatelyAsync(
+                invoiceId, actorUserId, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await _loggerService.WarningAsync(
+                LogCategory,
+                "BillingInvoice.AutoArIntakeFailed",
+                $"Penemuan dan pengolahan otomatis fakta AR untuk invoice {invoiceId} gagal: {ex.Message}",
+                new { InvoiceId = invoiceId, Error = ex.Message });
+        }
+    }
+
     internal async Task<(BilFinalizationRecord Record, InvoiceClosureChange ClosureChange)> ExecuteInternalFinalizationAndClosureAsync(
         BilInvoice invoice,
         BilCalculationVersion calculation,
@@ -989,50 +1022,10 @@ public sealed class BillingFinalizationService
         await RecognizeUnappliedReferredAdminCreditAsync(
             invoice, calculation, calculationVersion, actorUserId, now, cancellationToken);
 
-        // BE-FIN-108: Kurangi plafon di HR tepat satu kali di dalam batas transaksi pemanggil
-        // (FIN-DEC-202, FIN-DEC-205, FIN-INTEGRATION-1.9 R.3, FR-FIN-244, AC 1-5).
-        // Plafon hanya dipotong untuk porsi RS Benefit (PayerAmount = P = min(C, S)).
-        // Bila P = 0, pemakaian plafon dilewati per AC 4 / R.3.4 langkah 5.
-        if (employeeBenefitSplit is { IsEmployeeBenefitVisit: true, PayerAmount: > 0m }
-            && employeeBenefitSplit.PayerHandoffKey.HasValue
-            && _balanceService is not null)
-        {
-            if (string.IsNullOrWhiteSpace(employeeBenefitSplit.BenefitPersonKind)
-                || !employeeBenefitSplit.BenefitPersonId.HasValue)
-            {
-                throw new BillingFinalizationValidationException(
-                    "Identitas kepesertaan benefit pegawai tidak lengkap untuk pemotongan plafon.");
-            }
-
-            var useResult = await _balanceService.UseAsync(new BenefitBalanceUseRequest
-            {
-                SourceHandoffKey = employeeBenefitSplit.PayerHandoffKey.Value,
-                InvoiceId = invoice.Id,
-                BenefitPersonKind = employeeBenefitSplit.BenefitPersonKind,
-                BenefitPersonId = employeeBenefitSplit.BenefitPersonId.Value,
-                Amount = employeeBenefitSplit.PayerAmount,
-                ActorUserId = actorUserId
-            }, cancellationToken);
-
-            if (string.Equals(useResult.Result, BenefitUseResults.Insufficient, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BillingFinalizationValidationException(
-                    useResult.Message ?? $"Sisa plafon tidak cukup. Sisa saat ini Rp {useResult.RemainingAmount:N0}.");
-            }
-
-            if (string.Equals(useResult.Result, BenefitUseResults.KeyConflict, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BillingFinalizationConflictException(
-                    useResult.Message ?? "Konflik kunci serah terima saat pemakaian plafon benefit.");
-            }
-
-            if (!string.Equals(useResult.Result, BenefitUseResults.Applied, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(useResult.Result, BenefitUseResults.AlreadyApplied, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BillingFinalizationValidationException(
-                    useResult.Message ?? $"Gagal memakai plafon benefit pegawai: {useResult.Result}.");
-            }
-        }
+        // Keputusan bisnis terbaru: Pemotongan plafon benefit pegawai TIDAK dilakukan saat finalisasi Billing.
+        // Billing hanya membentuk handoff dan AR Benefit RS Internal (FinReceivable IsInternalBenefit = true).
+        // Plafon baru dipotong oleh Finance saat persetujuan penerbitan penutupan benefit (FinanceBenefitSettlementService.PostAsync).
+        // (Lihat StageHandoffsForFinalizationAsync di atas).
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 

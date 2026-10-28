@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -54,11 +54,10 @@ public sealed class FinanceEmployeeBenefitArAutoIntakeService(ApplicationDbConte
         var limit = Math.Clamp(maxPerCycle, 1, 500);
         var cutoff = (now ?? DateTimeOffset.UtcNow) - (grace < TimeSpan.Zero ? TimeSpan.Zero : grace);
 
-        // Handoff AR Karyawan yang masih CREATED (belum diakui Finance). Penyaringan waktu dilakukan di memori: jumlahnya
+        // Handoff AR yang masih CREATED (belum diakui Finance). Penyaringan waktu dilakukan di memori: jumlahnya
         // dibatasi oleh yang belum diolah, dan perbandingan DateTimeOffset tidak seragam di semua penyedia basis data.
         var handoffs = await dbContext.BilArHandoffs.AsNoTracking()
-            .Where(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created
-                        && x.DebtorType == BillingArDebtorTypes.EmployeeBenefit)
+            .Where(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created)
             .ToListAsync(cancellationToken);
         if (handoffs.Count == 0) return new EmployeeBenefitArAutoIntakeResult(0, 0, 0, 0);
 
