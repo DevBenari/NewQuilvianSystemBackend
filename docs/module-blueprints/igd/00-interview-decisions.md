@@ -8780,3 +8780,91 @@ dilepas; kolom `Dependency` kartu disesuaikan sehingga jumlah panah tetap sama d
 gelombang 1 backend; `FE-IGD-057`, `058` gelombang 4 frontend; `FE-IGD-053` dicoret. Urutan kerja berpasangan langkah 8
 dan syarat rilis R3.16.5: ketiga task dirilis dan diuji bersama (`IGD-DEC-360`). Pemeriksaan tanda node/judul terhadap
 register: nol selisih. Register 115/120 tidak berubah. Nomor baru: nol.
+
+### `BE-IGD-071` 🟡 — source selesai, menunggu build — 27 Oktober 2026 (sore)
+
+Dikerjakan lewat `build-module-backend` atas perintah pemilik (*"langsung kerjakan BE-IGD-071"*). Lima berkas: tiga di IGD
+(service penentu dokter sah, endpoint `instructing-doctor-options`, DTO) dan dua service Laboratorium/Radiologi (cabang
+encounter IGD tanpa episode). QBE Strict `PASS`; acceptance 8 dan 12 terpenuhi lewat diff. Worklist dan verifikasi tidak
+disunting — keduanya sudah tidak terikat episode, sehingga `IGD-DEC-363` terpenuhi tanpa perubahan. Temuan yang dicatat,
+tidak diperbaiki: jalur `POST /lab-orders/by-examinations` tidak memanggil penentu instruksi sama sekali (juga untuk rawat
+inap; milik Laboratorium; tidak dipakai layar IGD). Register tidak berubah: 115/120. Nomor baru: nol.
+[Laporan](task/report/backend/BE-IGD-071.md).
+
+### `BE-IGD-071` 🟡 — build Rizki dan uji API — 27 Oktober 2026 (petang)
+
+Rizki membangun backend (DLL 15.29.22, 422 warning dengan `-p:RunAnalyzers=false`) dan menjalankannya (proses mulai
+15.45.09). Skrip `uji-api.mjs` dijalankan sekali; dua `FAIL`-nya ditelusuri dari data mentah dan diukur ulang dengan skrip
+terpisah (`uji-ulang.mjs`, `uji-ulang-k6.mjs`) tanpa mengubah verdict run 1. Terpenuhi: acceptance 1 (API), 3, 4, 5, 8, 9,
+12, 13. Belum lengkap: 2, 6, 7, 10, 11 — seluruhnya karena prasyarat lingkungan (`IGD-OQ-145`); nol cacat kode. Semua
+pesanan uji (8) dibatalkan; DPJP kunjungan uji Aldo Barbeto dikembalikan ke dr. Jenah Ali sesudah empat pengalihan uji.
+Register tidak berubah: 115/120. [Laporan](task/report/backend/BE-IGD-071.md).
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-255` | **`500` pada A10 (rad tanpa dokter) berasal dari lingkungan, bukan kode.** Server basis data dev `160.22.250.77:5432` tidak terjangkau 08.48.05–08.48.48 UTC 27 Oktober 2026; permintaan gagal di `AccessPermissionFilter` (`AccessPermissionService.HasAccessAsync`, `TimeoutException`) sebelum mencapai `RadOrderService`, bersama enam *worker* latar pada detik yang sama. Diukur ulang 08.57 UTC: `400` *"Pilih dokter yang memberi instruksi."* |
+| `IGD-FACT-256` | **Posisi dokter IGD (dept `676f2aa7…`, posisi `cd1cd442…`) tidak memegang `LabOrder : Verify` maupun `RadOrder : Verify`.** Izin `IGD-DEC-352` hanya 11 butir tanpa `Verify`; izin efektif dr. Jenah Ali (327 butir) memuat `Create`/`Read` Lab dan Rad tanpa `Verify`. Akibatnya `PUT …/verify-instruction` ditolak gerbang izin `403` *"Anda tidak memiliki akses ke menu atau fitur ini."* — kriteria 6 dan 10 bagian verifikasi tidak dapat diuji, dan `FE-IGD-058` tidak dapat memverifikasi dari layar sampai izin diberikan |
+| `IGD-FACT-257` | **Akun dr. B4 IGD Utama (`QUILVIAN_DOKTER2_*`) tertaut ke dokter, tetapi hanya memegang 53 izin efektif tanpa satu pun butir `LabOrder`/`RadOrder`,** walaupun `/auth/me` menampilkan departemen dan posisi yang sama dengan dr. Jenah Ali. Izin dihitung dari baris penempatan `ApplicationUserOrganizations` yang aktif dan berlaku, bukan dari profil `/auth/me`. Akun ini dapat menjadi DPJP lewat pengalihan, tetapi tidak dapat memesan atau membaca worklist |
+| `IGD-FACT-258` | **Data dev tidak cukup untuk tiga kriteria:** kelima dokter `on-duty-doctors` ber-`scheduleId` kosong (nol dokter jaga IGD — kriteria 2, 7 `basis 2`); kelima episode rawat inap berstatus `Cancelled` (jalur `Pending` rawat inap tidak diuji — penolakan `400`/`403` tetap teruji karena aturan instruksi berjalan sebelum cek status); nol encounter rawat jalan pada 100 encounter terbaru dan pada `outpatient-encounters` 1–28 Oktober |
+| `IGD-FACT-259` | **Satu pemeriksaan skrip uji ulang salah rancang:** cek *pesanan tidak tampil di worklist DPJP baru* membaca respons `403` dr. B4 IGD Utama sebagai daftar kosong dan lolos palsu. Verdict tidak diubah; diukur ulang dengan arah dibalik (DPJP baru = dr. Jenah Ali, worklist `200` diperiksa eksplisit) — `PASS` untuk lab dan rad. Audit seluruh GET ketiga log: tidak ada lolos palsu lain. Pelajaran untuk skrip berikutnya: setiap cek *kosong*/*tidak berubah* wajib memeriksa status GET-nya |
+
+| ID | Pertanyaan | Owner | Menahan | Dapat jalan tanpa jawaban |
+| --- | --- | --- | --- | --- |
+| ~~`IGD-OQ-145`~~ — **dipenuhi 28 Oktober 2026 (`IGD-FACT-263`, `IGD-DEC-371`)** | **Prasyarat lingkungan untuk sisa acceptance `BE-IGD-071`:** (a) beri izin `LabOrder : Verify` dan `RadOrder : Verify` ke posisi dokter IGD (`IGD-FACT-256`) — `POST role-access/policies` menimpa seluruh policy, jadi baca, cadangkan, kirim gabungan; (b) satu jadwal shift IGD berlaku untuk dokter uji (`IGD-FACT-258`); (c) data rawat inap aktif dan rawat jalan untuk regresi 11, atau terima kriteria 11 lewat diff dan penolakan yang sudah teruji; (d) penempatan akun dr. B4 IGD Utama bila dipakai sebagai dokter kedua (`IGD-FACT-257`) | Rizki Gunawan (izin, data uji); admin jadwal jaga | `BE-IGD-071` acceptance 2, 6, 7, 10, 11; verifikasi dari layar `FE-IGD-058` | Ya — `FE-IGD-057` dan `FE-IGD-058` dapat dibangun; putaran uji bersama menunggu (a) |
+
+Nomor baru: `IGD-FACT-255`…`259`, `IGD-OQ-145`. Nomor berikutnya: `IGD-DEC-369`, `IGD-FACT-260`, `IGD-OQ-146`.
+
+### `FE-IGD-057` 🟡 dan `FE-IGD-058` 🟡 — implementasi — 28 Oktober 2026
+
+Dikerjakan lewat `build-module-frontend` atas perintah pemilik, sesudah uji API `BE-IGD-071`. `FE-IGD-057`: panel lab dan
+radiologi perawat memakai pemilih dari `GET …/instructing-doctor-options` (tanpa pilihan otomatis; daftar kosong
+menyembunyikan tombol kirim lewat prop opsional `showSubmit` pada `EmergencyAssessmentFormCard`). `FE-IGD-058`: halaman
+`…/doctor-emergency/needs-review` dan angka ringkasan ketiga *Perlu verifikasi*. Keduanya `eslint` nol temuan baru dan nol
+komentar baru; uji layar dan `npm run build` belum (backend mati, `next dev` pemilik berjalan). Register tidak berubah:
+115/120. Laporan: [FE-IGD-057](task/report/frontend/FE-IGD-057.md), [FE-IGD-058](task/report/frontend/FE-IGD-058.md).
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-369` | **Dua pilihan pemilik untuk `FE-IGD-058`, 28 Oktober 2026:** (a) angka ringkasan dan tombol *Perlu Verifikasi* ditambahkan ke `doctor-emergency-view.jsx` dan `emergency-physician-constant.jsx` di atas perubahan pemilik yang belum di-commit, di baris yang berbeda; (b) pesanan batal yang ikut terkirim worklist tetap ditampilkan dengan lencana *Dibatalkan* dan tanpa tombol *Verifikasi*, sehingga angka ringkasan tetap sama dengan `totalData` server. **Konsekuensi yang diterima:** commit berikutnya kedua berkas memuat perubahan pemilik dan task ini sekaligus kecuali dipisahkan; dokter melihat baris batal sampai Laboratorium/Radiologi memperbaiki worklist | Rizki Gunawan | `approved` | Pilihan interaktif 28 Oktober 2026 | [Laporan FE-IGD-058](task/report/frontend/FE-IGD-058.md) |
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-260` | **Worklist verifikasi instruksi Laboratorium dan Radiologi memuat pesanan yang sudah dibatalkan** (`orderStatus` `Cancelled`, `instructionVerificationStatus` tetap `Pending`) — terlihat pada pesanan uji `BE-IGD-071` yang dibatalkan 27 Oktober (`20-jaringan-api.json`). `GetInstructionVerificationWorklistAsync` kedua modul tidak disunting `BE-IGD-071`; perbaikan milik Laboratorium/Radiologi (Yoga Aji Pratama) |
+| `IGD-FACT-261` | **`normalizeInstructionReviewItem` (frontend, Rawat Inap) tidak membaca `orderId`**, satu-satunya penanda pada DTO worklist lab/rad (`LabOrderInstructionVerificationItemResponse`, `RadOrderInstructionVerificationItemResponse`); `rawId` kosong membuat tombol verifikasi lab/rad pada *Perlu Review* rawat inap tidak pernah tampil. IGD memakai normalizer sendiri; berkas Rawat Inap tidak disentuh — pemilik Rawat Inap (Muhammad Hamzah) |
+
+Nomor baru: `IGD-DEC-369`, `IGD-FACT-260`, `261`. Nomor berikutnya: `IGD-DEC-370`, `IGD-FACT-262`, `IGD-OQ-146`.
+
+### Batas IGD di transfer, uji layar `FE-IGD-057`/`058`, K10 — 28 Oktober 2026 (pagi)
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-370` | **IGD berhenti di transfer pasien ke Rawat Inap.** Begitu pasien ditangani Rawat Inap, verifikasi pesanan lab/radiologinya dan layar *Perlu Review* rawat inap adalah urusan Rawat Inap; IGD tidak ikut campur. Akibatnya: (a) `IGD-FACT-261` tidak ditindaklanjuti IGD dan tidak diajukan sebagai permintaan dari IGD; (b) halaman *Perlu Verifikasi* IGD dan angka ringkasannya hanya memuat pesanan tanpa episode rawat inap — worklist diambil seluruhnya (per 100) dan baris ber-`inpEpisodeId` dibuang di layar, sehingga angka dan paging tetap sama dengan isi daftar. **Konsekuensi yang diterima:** ruang kerja dokter IGD mengambil seluruh worklist lab dan radiologi saat dibuka | Rizki Gunawan | `approved` | Pesan pemilik dan pilihan interaktif 28 Oktober 2026 | [Laporan FE-IGD-058](task/report/frontend/FE-IGD-058.md) |
+
+Sesudah Rizki menyalakan backend (09.28, DLL sama), `npm run build` lulus tiga kali (build akhir `xyBFHuOLnm2WBo0PDNvBU`) dan
+uji layar dijalankan pada server standalone. `FE-IGD-057`: 4/4 skenario `PASS` pada putaran akhir; dua putaran awal
+berhenti karena salah rancang skrip (urutan dan opsi modalitas), putaran ketiga menemukan kalimat kosong tampil dua kali —
+diperbaiki di `EmergencyAssessmentFormCard`. `FE-IGD-058`: putaran pertama menemukan halaman rusak dirender karena
+`rowKey` dikirim sebagai string ke `DataTable` — diperbaiki; putaran kedua membuktikan angka ringkasan = halaman = API
+(11) dan *"—"* saat gagal; satu cek salah rancang (peka huruf) diukur ulang terpisah — `PASS`. `BE-IGD-071` K10 rad oleh
+dokter `PASS` (cek jumlah salah rancang, diukur ulang dari data mentah). Semua pesanan uji dibatalkan. Register tetap
+115/120. Nomor baru: `IGD-DEC-370`. Nomor berikutnya: `IGD-DEC-371`, `IGD-FACT-262`, `IGD-OQ-146`.
+
+### `IGD-OQ-145` dipenuhi; `BE-IGD-071`, `FE-IGD-057`, `FE-IGD-058` ✅ — 28 Oktober 2026 (siang)
+
+Atas perintah Rizki (*"anda yang melakukan dengan login menggunakan superAdmin"*), agen login dengan akun SuperAdmin (bukan
+akun perawat `dimas`) dan menjalankan `langkah-oq145-20261028/skrip/10-siapkan-oq145.mjs` — mode baca lebih dulu, lalu
+`--terapkan`. Kredensial tidak ditulis ke berkas mana pun. Sesudahnya `uji-ulang-oq145.mjs` (backend) 16/16 `PASS`,
+`uji-layar-057.mjs --dokter-jaga` 2/2 `PASS`, `uji-layar-058b.mjs` 3/3 `PASS`. Register 115 → **118/120** (98,3%); `MVP-9`
+`DONE`. Semua perubahan source dan dokumen belum di-commit.
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-371` | **`BE-IGD-071` kriteria 11 (regresi rawat inap dan rawat jalan) diterima lewat diff dan uji API atas data yang ada:** cabang episode tidak disunting, encounter tanpa `EmgVisit` tetap `NotRequired`, penolakan rawat inap `400`/`403` teruji untuk lab dan radiologi; jalur `Pending` rawat inap dan pesanan rawat jalan tidak diuji karena datanya tidak ada di dev — sesuai bukti kartu *"Diff + uji API bila data ada"*. Dengan itu `BE-IGD-071`, `FE-IGD-057`, `FE-IGD-058` ditandai ✅. **Konsekuensi yang diterima:** jalur `Pending` rawat inap pasca-perubahan belum pernah dijalankan nyata | Rizki Gunawan | `approved` | Pilihan interaktif 28 Oktober 2026 | [Laporan BE-IGD-071](task/report/backend/BE-IGD-071.md) |
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-262` | **Akar masalah akun dr. B4 IGD Utama (`IGD-FACT-257`):** penugasan HR Medis / Dokter Umum (`5ffed00b…`, aktif sejak 1 Oktober 2026) sah tetapi tidak pernah terproyeksi ke `ApplicationUserOrganizations`; izin efektif 53 sama persis dengan izin posisi Medis / Dokter IGD — satu-satunya penugasannya yang terproyeksi. `PUT` nilai-sama atas penugasan itu (nilai terbukti tidak berubah) memicu `SyncAuthorizationProjectionAsync` → izin efektif 262. Penugasan lain yang dibuat sebelum Phase A0 bisa mengalami hal yang sama |
+| `IGD-FACT-263` | **Tindakan `IGD-OQ-145` dengan akun SuperAdmin:** (a) `POST role-access/policies` Medis / Dokter Umum + `LabOrder : Verify`, `RadOrder : Verify` — 234 → 236 izin, nol izin lama hilang, cadangan `10-policy-dokter-umum-sebelum-terapkan.json`; (b) `PUT` penugasan `IGD-FACT-262`; (c) jadwal `DSCH-RSMMC-00007` (`3991fbc8…`) dr. B4 IGD Utama, tanggal tertentu 28 Oktober 2026 00.00–23.59, Instalasi Gawat Darurat / Klinik Gawat Darurat (IGD), kuota 0, tanpa walk-in, appointment, kiosk — hanya berlaku hari itu. Variabel `QUILVIAN_UNIT_IGD` di mesin uji **bukan** id unit Instalasi Gawat Darurat (`4dd4827b…`) |
+
+`IGD-OQ-145` ditutup. Nomor baru: `IGD-DEC-371`, `IGD-FACT-262`, `263`. Nomor berikutnya: `IGD-DEC-372`, `IGD-FACT-264`,
+`IGD-OQ-146`.
