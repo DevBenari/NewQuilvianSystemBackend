@@ -196,3 +196,37 @@ Sistem hanya menyediakan daftarnya.
 | `SuperAdmin` tunduk aturan | `RM-DEC-017` | `RM-CAP-025` | `AT-RM-13` |
 | `PrivateNote` selalu beralasan | `RM-DEC-022` | `RM-CAP-027` | `AT-RM-16` |
 | Kolom sensitif tidak masuk log | Aturan output dokumentasi | — | `AT-RM-23` |
+
+
+---
+
+# Amandemen — Permission dan audit `0.2.0` (`approved`)
+
+Disahkan Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`).
+
+Izin baru terdaftar otomatis lewat `AccessMenuSeeder`. Pemegangnya diatur pengelola akses lewat
+kebijakan per departemen-posisi (`CONFIGURABLE_DEFAULT`, `RM-RCG-001`).
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+|---|---|---|---|:---:|
+| `GET /medical-records/{patientId}/periodic-observations` | `MedicalRecord` | `Read` | `[AccessPermission("MedicalRecord", "Read")]` | Tidak (jejak akses berkas berlaku) |
+| `GET /medical-record-completeness/filters/metadata`, `/summary`, `/`, `/encounters/{encounterId}` | `MedicalRecordCompleteness` | `Read` | `[AccessPermission("MedicalRecordCompleteness", "Read")]` | Tidak |
+| `POST /medical-record-completeness/encounters/{encounterId}/evaluate` | `MedicalRecordCompleteness` | `Evaluate` | `[AccessPermission("MedicalRecordCompleteness", "Evaluate")]` | Ya |
+| `GET /medical-record-completeness-profiles/…` | `MedicalRecordCompletenessProfile` | `Read` | `[AccessPermission("MedicalRecordCompletenessProfile", "Read")]` | Tidak |
+| `POST /medical-record-completeness-profiles` | `MedicalRecordCompletenessProfile` | `Create` | `[AccessPermission("MedicalRecordCompletenessProfile", "Create")]` | Ya |
+| `PUT /medical-record-completeness-profiles/{id}`, `PATCH /{id}/status` | `MedicalRecordCompletenessProfile` | `Update` | `[AccessPermission("MedicalRecordCompletenessProfile", "Update")]` | Ya |
+| `POST /clinical-note-addendums/…` dengan `purpose = Attestation` | `ClinicalNoteAddendum` | `Create` / `CreateAsSubstitute` | Tidak berubah | Ya |
+
+## Kewajiban audit
+
+| Kejadian | Isi teks pesan log | Larangan |
+|---|---|---|
+| Profil dibuat, diubah, diaktifkan, dinonaktifkan | Kode profil, jenis kunjungan, jenis unit, kondisi, dan daftar kriteria **sebelum dan sesudah** — ditulis di teks pesan, karena `AuditAsync` tidak menyimpan objek payload | — |
+| Nilai ulang manual | Id kunjungan, keadaan sebelum dan sesudah | **Dilarang** memuat `Deficiencies`, nama pasien, atau nama penulis |
+| Pengesahan addendum | Id catatan, jenis dokumen, `purpose` | Dilarang memuat isi addendum |
+| Penutupan klinis | Tidak dicatat logger tersendiri; barisnya sendiri adalah jejak | — |
+| Pemeriksaan berkala | Hanya ringkasan jumlah per putaran | Dilarang per kunjungan |
+
+Daftar kerja menampilkan nama pasien dan nama penulis, sehingga **izin
+`MedicalRecordCompleteness : Read` tidak boleh disamakan dengan `MedicalRecord : Read`** —
+pemegangnya ditetapkan tersendiri.

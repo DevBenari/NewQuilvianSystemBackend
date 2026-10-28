@@ -1347,3 +1347,385 @@ Tiga hal yang mengikat urutan di atas:
 | Perubahan pada `AccessPermissionService` | Ditolak arsitektur bagian 11 |
 | Perapian nama domain `HealthService` menjadi `HealthServices` | Utang teknis yang harus jadi task tersendiri dengan approval pemilik arsitektur |
 | Keutuhan untuk dua belas jenis dokumen selain CPPT | Rilis berikutnya, sesuai arsitektur bagian 7 |
+
+
+---
+
+# Roadmap revision 2 — Amandemen: berkas lintas modul dan kelengkapan
+
+```yaml
+module_id: RM-BP-001
+blueprint_revision: 4
+roadmap_revision: 2
+status: APPROVED_INPUTS   # seluruh masukan disahkan; task berstatus sendiri-sendiri
+owners:
+  product_domain: Yoga Aji Pratama
+  clinical_governance: Yoga Aji Pratama
+  security_privacy: Yoga Aji Pratama
+  api_authority: Yoga Aji Pratama
+approved_by: [Yoga Aji Pratama]
+approved_at: 2026-10-28        # RM-DEC-062
+input_revisions:
+  interview_decisions: 10
+  capability_map: 3
+  requirement_completeness: RM-RCG-001 r2
+  domain_architecture: RM-DA-001 r1 (DOMAIN_ARCHITECTURE_PARTIAL)
+  backend_architecture: 4 (bagian "Amandemen revision 4")
+  prd_to_mvp: 1
+artifact_hashes:
+  interview_decisions: sha256:d7ccef575e6fae8f4e6f6b99015e4264ec080b8e6ac533175a67cf69d53a6924
+  # hash artefak revision 4 lainnya: blueprint-manifest.md bagian "Revision 4 — approved"
+contract_versions:
+  api: 0.2.0 (approved 2026-10-28)
+  state_transition: 0.2.0 (approved)
+  validation: 0.2.0 (approved)
+  integration: 0.2.0 (approved)
+  permission_audit: 0.2.0 (approved)
+source_commits:
+  backend: 363de34f
+  frontend: f0a3b07b8
+module_owner_approvals:   # untuk berkas pembaca di folder modul lain
+  laboratorium: approved (RM-DEC-063)
+  mcu: approved (RM-DEC-063)
+  radiologi: approved (RM-DEC-064)
+  igd: PENDING — Rizki Gunawan (IGD-DEC-089)
+  rawat_inap: PENDING — Muhammad Hamzah (RWI-DEC-061)
+  kamar_operasi: PENDING — Muhammad Hamzah (dibangun di blueprint Rawat Inap)
+  hemodialisa: PENDING — Muhammad Hamzah (HMD-DEC-006)
+  bank_darah: PENDING — pemilik proses BDRS
+  farmasi: PENDING — pemilik tercatat "user" pada blueprint Farmasi; belum dipastikan
+  gizi: PENDING — pemilik belum tercatat
+```
+
+## R2.1 Cara membaca bagian ini
+
+| Status task | Arti |
+|---|---|
+| `SIAP` | Seluruh masukan disahkan; boleh diserahkan ke `build-module-backend` dengan approval task |
+| `TERTAHAN PERSETUJUAN MODUL` | Task menulis di folder modul lain yang pemiliknya belum menyetujui. Bukan keputusan bisnis yang terbuka — desain dan kontraknya sudah disahkan |
+| `TERTAHAN DEPENDENCY` | Menunggu task lain selesai |
+
+**Aturan yang mengikat setiap task backend:**
+
+1. QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md`
+   backend dan dokumen engineering canonical — tidak disalin di sini.
+2. **Pembuatan maupun eksekusi migration memerlukan instruksi dan konfirmasi terpisah** dari user
+   (`CLAUDE.md` backend). Task yang memuat migration menyiapkan perubahan model dan configuration;
+   pembuatan berkas migration dijalankan hanya setelah instruksi itu ada.
+3. Build backend tanpa analyzer (`-p:RunAnalyzers=False`); server lokal dimatikan sebelum build.
+4. Controller baru mendeklarasikan `filters/metadata` dan `summary` tepat sesudah konstruktor dan
+   tidak memakai `<summary>` XML pada action.
+5. Pembaca di folder modul lain **hanya** menambah satu berkas service dan pendaftaran DI; tidak
+   mengubah perilaku modul itu, kecuali `BE-27` yang memang mengubah satu jalur IGD.
+
+## R2.2 Ringkasan task
+
+| Task | Gelombang | Epic | Ringkas | Status |
+|---|---|---|---|---|
+| `BE-21` | `MVP-0` | `RM-01` | Registry jenis, kontrak sumber, batas waktu per sumber, `unavailableKinds` | **`SELESAI`** 28 Oktober 2026 — 11 uji lulus, laporan `task/report/backend/BE-21.md` |
+| `BE-22` | `MVP-0` | `RM-04` | Model `ClinicalManagement` baru + ringkasan berkala | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-22.md` |
+| `BE-23` | `MVP-1` | `RM-02` | Pembaca Laboratorium (PK/Mikro) + pemeriksaan tertunda termasuk PA | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-23.md` |
+| `BE-24` | `MVP-1` | `RM-02` | Pembaca Radiologi + pemeriksaan tertunda | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-24.md` |
+| `BE-25` | `MVP-2` | `RM-06` | Penutupan klinis kunjungan | **`SIAP`** |
+| `BE-26` | `MVP-2` | `RM-06` | Penanda `Susulan` di linimasa | `TERTAHAN DEPENDENCY` (`BE-25`) |
+| `BE-27` | `MVP-2` | `RM-06` | Disposisi IGD ke rawat inap mengunci dan mencatat penutupan | **`TERTAHAN PERSETUJUAN MODUL`** — IGD |
+| `BE-28` | `MVP-2` | `RM-06` | Pemanggil penutupan meneruskan `ClinicalClosureSource` | **`TERTAHAN PERSETUJUAN MODUL`** — Registrasi, IGD, Rawat Inap, Billing (opsional) |
+| `BE-29` | `MVP-3` | `RM-03` | Pembaca IGD | **`TERTAHAN PERSETUJUAN MODUL`** — IGD |
+| `BE-30` | `MVP-3` | `RM-03` | Pembaca Rawat Inap | **`TERTAHAN PERSETUJUAN MODUL`** — Rawat Inap |
+| `BE-31` | `MVP-3` | `RM-03` | Pembaca Kamar Operasi | **`TERTAHAN PERSETUJUAN MODUL`** — Kamar Operasi |
+| `BE-32` | `MVP-3` | `RM-03` | Pembaca Hemodialisa | **`TERTAHAN PERSETUJUAN MODUL`** — Hemodialisa |
+| `BE-33` | `MVP-3` | `RM-03` | Pembaca Gizi | **`TERTAHAN PERSETUJUAN MODUL`** — Gizi |
+| `BE-34` | `MVP-3` | `RM-03` | Pembaca Bank Darah | **`TERTAHAN PERSETUJUAN MODUL`** — Bank Darah |
+| `BE-35` | `MVP-3` | `RM-04` | Pembaca Farmasi | **`TERTAHAN PERSETUJUAN MODUL`** — Farmasi |
+| `BE-36` | `MVP-4` | `RM-05` | Pembaca MCU | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-36.md`; acceptance dikoreksi `RM-DEC-065`/`066` |
+| `BE-37` | `MVP-5` | `RM-07` | Profil dokumen wajib + isi awal + endpoint master | **`SIAP`** |
+| `BE-38` | `MVP-5` | `RM-09` | Addendum pengesahan | **`SIAP`** |
+| `BE-39` | `MVP-6` | `RM-08` | Penilaian kelengkapan + endpoint daftar kerja | `TERTAHAN DEPENDENCY` (`BE-23`, `BE-25`, `BE-37`, `BE-38`) |
+| `BE-40` | `MVP-6` | `RM-08` | Pemeriksaan berkala dan pemicu penilaian ulang | `TERTAHAN DEPENDENCY` (`BE-39`) |
+| `BE-41` | `MVP-6` | — | Swagger, catatan rilis, pemberitahuan perubahan perilaku amandemen | `TERTAHAN DEPENDENCY` (seluruh task) |
+
+**Skema amandemen sudah diterapkan ke devYoga — 28 Oktober 2026, atas instruksi user.** Lapisan persistensi
+`BE-25`, `BE-37`, `BE-38`, dan `BE-39` (model, enum, configuration, DbSet) dibuat lebih dulu, lalu satu migration
+`20261028070658_AddMedicalRecordCompletenessFoundation` diterapkan bersama enam migration modul lain yang tertunda
+(riwayat 362 → 369, nol tertunda; uji kering naik → `ROLLBACK` lebih dulu). **Layanan, endpoint, dan seeder keempat task
+belum dikerjakan** — statusnya tetap seperti tabel di atas; bagian migration pada masing-masing task sudah tuntas.
+Dua selisih terhadap A4.6–A4.7: (1) **satu** migration gabungan, bukan empat, karena keempatnya dirilis bersama; (2) kolom
+`SortOrder` pada `MstMedicalRecordCompletenessProfile` dan butirnya **tidak** dibuat — QBE melarang `SortOrder` presentasi
+generik yang dipersistensi pada kode baru; daftar profil diurutkan menurut kode, butir menurut nilai kriteria.
+
+**Yang dapat berjalan sekarang tanpa menunggu siapa pun:** `BE-21`, `BE-25`, `BE-37`, `BE-38`,
+lalu `BE-22`, `BE-23`, `BE-24`, `BE-36`, `BE-26`, dan `BE-39`/`BE-40`. Delapan pembaca yang
+tertahan **tidak** menahan `BE-39`: kriteria yang dijawab modul tanpa pembaca menghasilkan
+kekurangan `SourceUnavailable` dan keadaan `Undetermined` — jujur, sesuai `RM-DEC-044`. Kunjungan
+Rawat Jalan poliklinik, Telemedicine, serta Rawat Jalan unit Laboratorium dan Radiologi sudah dapat
+dinilai penuh begitu `BE-39` selesai.
+
+## R2.3 Milestone B6 — Fondasi amandemen (`MVP-0`)
+
+### `BE-21` — Registry jenis, kontrak sumber, dan batas waktu per sumber
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-21` |
+| **Status** | **`SELESAI`** — 28 Oktober 2026. Laporan `task/report/backend/BE-21.md`. Tiga selisih aditif terhadap rencana dicatat di laporan bagian 7: `UnavailableKinds` juga pada ringkasan berkas; enum `CompletenessCriterion`/`CompletenessCondition` dibuat di sini (bukan `BE-37`); `IsComplete` tidak dipengaruhi jenis belum tersedia |
+| **Outcome** | Linimasa tidak pernah lagi menjawab kosong diam-diam; satu sumber lambat tidak membatalkan berkas |
+| **Trace** | `RM-DEC-030`, `044`, `058`; `RM-CAP-034`, `035`; `FR-RM-001`, `FR-RM-002`; `GAP-ARCH-RM-05` |
+| **Kontrak** | API `0.2.0` A1 (`unavailableKinds`, `failedSources`); integration `0.2.0` `INT-RM-10` |
+| **Reuse** | `MedicalRecordTimelineService`, `FailedSources`, `MedicalRecordTimelineSourceFailure` |
+| **Scope** | `Enums/ClinicalDocumentKind.cs` (nilai 16–44); `Services/Sources/IMedicalRecordDocumentSource.cs`, `IMedicalRecordCompletenessProbe.cs`; `DTOs/MedicalRecordSourceDtos.cs`; `MedicalRecordTimelineService.cs`: daftar jenis dari registry, `unavailableKinds`, batas waktu per sumber dan per berkas, pembedaan pembatalan pengguna dari batas waktu (A4.9 no. 1–3); konfigurasi `MedicalRecord:SourceTimeoutSeconds`, `FileTimeoutSeconds`. Jenis 14 dan 15 dilaporkan `unavailableKinds` sampai `BE-23`/`BE-32` mengisinya |
+| **Dependency** | — |
+| **Acceptance criteria** | 1) Jenis tanpa pembaca muncul di `unavailableKinds`, tidak di linimasa kosong. 2) Sumber dipalsukan 10 detik → masuk `failedSources`, respons `200`. 3) Pembatalan oleh pengguna tetap membatalkan permintaan. 4) Klien `0.1.1` tetap dapat membaca respons |
+| **Verification** | `AT-RM-49`, `AT-RM-50`, `AT-RM-51`; uji kompatibilitas bentuk respons. **Hasil:** `dotnet test Tests/QuilvianSystemBackend.MedicalRecordTests` → `Passed: 11`, `Failed: 0` |
+| **Risk/owner** | Mengubah perilaku layanan yang dipakai layar berjalan. Pemilik: rekam medis |
+| **DoD** | Kriteria 1–4 terbukti uji; build lolos |
+
+### `BE-22` — Model `ClinicalManagement` baru dan ringkasan berkala
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-22` |
+| **Status** | **`SELESAI`** — 28 Oktober 2026, laporan `task/report/backend/BE-22.md`. `dotnet test` → `Passed: 49`, `Failed: 0` |
+| **Outcome** | Rencana asuhan, visite dokter, intervensi, monitoring transfusi, surat dokter, evaluasi manajemen kasus, infeksi nosokomial, dan serah terima tampil; pencatatan berkala tampil satu baris per jenis per hari |
+| **Trace** | `RM-DEC-039` kelompok C, `RM-DEC-052`; `RM-CAP-059`–`067`; `FR-RM-031` |
+| **Kontrak** | API `0.2.0` A1 (`periodicSummary`, `GET /{patientId}/periodic-observations`); validation `VAL-RM-A11` |
+| **Reuse** | Penarik generik `AmbilAsync` (`RM-CAP-042`) |
+| **Scope** | `MedicalRecordTimelineService.cs` (cabang jenis 35–43); `PeriodicObservationSummaryService.cs`; `Enums/PeriodicObservationKind.cs`; `MedicalRecordController.cs` (endpoint baru). **Nol** berkas di `ClinicalManagement` |
+| **Dependency** | `BE-21` |
+| **Acceptance criteria** | 1) Tiap jenis 35–42 tampil bila final menurut A4.10. 2) Enam pengukuran satu hari, satu batal → satu baris berjumlah 5. 3) Tanggal ringkasan memakai tanggal WIB (`NFR-005`). 4) `kind`/`date` tidak sah → `400` |
+| **Verification** | `AT-RM-52`; uji per jenis |
+| **Risk/owner** | Banyak jenis sekaligus menambah waktu baca berurutan; diukur terhadap batas `BE-21`. Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji |
+
+## R2.4 Milestone B7 — Sumber penunjang (`MVP-1`)
+
+### `BE-23` — Pembaca Laboratorium
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-23` |
+| **Status** | **`SELESAI`** — 28 Oktober 2026, laporan `task/report/backend/BE-23.md`. `dotnet test` → `Passed: 19`, `Failed: 0`. Satu butir DoD terbuka: kewajiban `S6` belum dicatat di blueprint Laboratorium |
+| **Outcome** | Hasil PK dan Mikrobiologi yang dirilis tampil; pemeriksaan tertunda (termasuk PA) tersedia untuk kelengkapan |
+| **Trace** | `RM-DEC-030`–`035`, `057`, `058`; `RM-CAP-043`, `069`; `FR-RM-010`; blocker 7 |
+| **Kontrak** | Integration `0.2.0` `INT-RM-10a`; API A1 |
+| **Reuse** | Rantai `LabExamination` → `LabOrder.EncounterId` → `RegPatientEncounters` (pola `RadReportService.GetByPatientAsync`) |
+| **Scope** | **Baru** `Areas/HealthServices/LaboratoryManagement/Services/LabMedicalRecordDocumentSource.cs` (pembaca + uji kelengkapan pemeriksaan tertunda); pendaftaran DI di `Program.cs`. `isCorrected = false` sampai `S6`. PA dikecualikan dari bacaan, **tidak** dari pemeriksaan tertunda |
+| **Dependency** | `BE-21` |
+| **Acceptance criteria** | 1) Hasil `ReleasedAt` terisi tampil; belum dirilis tidak. 2) Hasil PA tidak pernah tampil. 3) Pemeriksaan PA belum dirilis terhitung tertunda. 4) Pengguna tanpa izin Lab tetap melihat hasil. 5) Nol kolom baru di tabel Lab |
+| **Verification** | `AT-RM-46`, `AT-RM-51`, `AT-RM-53` |
+| **Risk/owner** | Kewajiban `S6` (`RM-DEC-057`) wajib dicatat di roadmap Laboratorium. Pemilik: rekam medis + Laboratorium |
+| **DoD** | Kriteria terbukti uji; catatan kewajiban `S6` masuk blueprint Laboratorium |
+
+### `BE-24` — Pembaca Radiologi
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-24` |
+| **Status** | **`SELESAI`** — 28 Oktober 2026, laporan `task/report/backend/BE-24.md`. `dotnet test` → `Passed: 25`, `Failed: 0` |
+| **Outcome** | Laporan radiologi dirilis tampil, versi amandemen bertanda pernah diralat |
+| **Trace** | `RM-DEC-038`, `041`, `042`; `RM-CAP-045`, `058`; `FR-RM-011` |
+| **Kontrak** | `INT-RM-10b` |
+| **Reuse** | `RadReportService.GetByPatientAsync` apa adanya, dipanggil dalam proses |
+| **Scope** | **Baru** `RadiologyManagement/Services/RadMedicalRecordDocumentSource.cs` + uji pemeriksaan tertunda; DI |
+| **Dependency** | `BE-21` |
+| **Acceptance criteria** | 1) Hanya laporan dirilis. 2) `CurrentVersionNumber > 1` → `isCorrected`. 3) Tidak memeriksa `RadReport : Read`. 4) Order tanpa laporan dirilis terhitung tertunda |
+| **Verification** | `AT-RM-45`, `AT-RM-48` |
+| **Risk/owner** | Rendah. Pemilik: rekam medis + Radiologi |
+| **DoD** | Kriteria terbukti uji |
+
+## R2.5 Milestone B8 — Penutupan klinis dan Susulan (`MVP-2`)
+
+### `BE-25` — Penutupan klinis kunjungan
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-25` |
+| **Status** | **`SIAP`** |
+| **Outcome** | Setiap kunjungan yang ditutup sejak rilis punya tepat satu waktu tutup klinis yang tidak berubah |
+| **Trace** | `RM-DEC-051`; `AGG-RM-02`; `RM-CAP-036`; `FR-RM-050`, `FR-RM-051`; `NFR-001`, `NFR-002` |
+| **Kontrak** | State `0.2.0` S-A; integration `INT-RM-12` |
+| **Reuse** | `ClinicalDocumentIntegrityService.LockOpenDocumentsForEncounterAsync` dan enam pemanggilnya |
+| **Scope** | **Baru** `Models/MrcEncounterClinicalClosure.cs`, `Enums/ClinicalClosureSource.cs`, `Repositories/Configurations/HealthServices/MedicalRecordManagement/MrcEncounterClinicalClosureConfiguration.cs`, DbSet; **Diperbarui** `ClinicalDocumentIntegrityService.cs` (parameter opsional `ClinicalClosureSource`, pencatatan idempoten). Migration `AddMrcEncounterClinicalClosure` — **menunggu instruksi terpisah**. Nol berkas di modul lain |
+| **Dependency** | — |
+| **Acceptance criteria** | 1) Dua penutupan → satu baris, waktu pertama. 2) Penutupan serentak → satu baris, nol galat. 3) Kunjungan tanpa catatan konsep tetap tercatat. 4) Rekonsiliasi IGD tidak mengubah baris. 5) Gagal mencatat → penutupan kunjungan gagal |
+| **Verification** | `AT-RM-56`, `AT-RM-57` |
+| **Risk/owner** | Masuk transaksi enam jalur penutupan; diuji per jalur. Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji; migration disiapkan menunggu instruksi |
+
+### `BE-26` — Penanda Susulan
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-26` |
+| **Status** | `TERTAHAN DEPENDENCY` — `BE-21`, `BE-25` |
+| **Outcome** | Dokumen jenis apa pun yang final sesudah tutup klinis bertanda `Susulan` |
+| **Trace** | `RM-DEC-006`, `043`, `051`; `RM-CAP-037`; `RM-FACT-011`, `018`; `FR-RM-052` |
+| **Kontrak** | API A1 (`isLateEntry`, `clinicalClosedAt`, `isClinicalClosureDerived`) |
+| **Reuse** | `BE-25`; urutan sumber data lama A4.12 |
+| **Scope** | `MedicalRecordTimelineService.cs`; DTO linimasa |
+| **Dependency** | `BE-21`, `BE-25` |
+| **Acceptance criteria** | 1) Final 1 detik sesudah tutup → `Susulan`; 1 detik sebelum → tidak. 2) Berlaku juga untuk 13 jenis lama. 3) Kunjungan lama memakai waktu turunan dan bertanda `isClinicalClosureDerived` |
+| **Verification** | `AT-RM-47`, `AT-RM-58` |
+| **Risk/owner** | Rendah. Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji; `RM-FACT-011` ditutup |
+
+### `BE-27` — Disposisi IGD ke rawat inap mengunci catatan
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-27` |
+| **Status** | **`TERTAHAN PERSETUJUAN MODUL`** — pemilik IGD Rizki Gunawan |
+| **Outcome** | Catatan IGD pasien yang lanjut rawat inap terkunci dan kunjungannya tercatat tutup klinis |
+| **Trace** | `RM-DEC-003`; `GAP-ARCH-RM-01`; `FR-RM-053` |
+| **Kontrak** | `INT-RM-12` |
+| **Reuse** | `LockOpenDocumentsForEncounterAsync` |
+| **Scope** | `EmergencyInstallationManagement/Services/EmergencyDispositionService.AdmissionRequest.cs` sekitar baris 1585–1598: memanggil penguncian di dalam transaksi yang sama, sumber `EmergencyAdmissionDisposition` |
+| **Dependency** | `BE-25` |
+| **Acceptance criteria** | 1) Catatan konsep IGD menjadi `LockedUnsigned`. 2) Penutupan klinis tercatat. 3) Penguncian gagal → disposisi gagal |
+| **Verification** | `AT-RM-59` |
+| **Risk/owner** | Mengubah jalur IGD yang sedang dipakai. Pemilik: IGD |
+| **DoD** | Persetujuan pemilik IGD tercatat; kriteria terbukti uji |
+
+### `BE-28` — Sumber penutupan diteruskan pemanggil (opsional)
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-28` |
+| **Status** | **`TERTAHAN PERSETUJUAN MODUL`** — Registrasi, IGD, Rawat Inap, Billing |
+| **Outcome** | `ClosureSource` mencerminkan jalur sebenarnya, bukan bawaan `EncounterStatusPatch` |
+| **Trace** | `INT-RM-12` |
+| **Scope** | Enam pemanggil pada tabel `INT-RM-12`; satu argumen per pemanggil |
+| **Dependency** | `BE-25` |
+| **Acceptance criteria** | Setiap jalur menulis `ClosureSource` yang sesuai |
+| **Verification** | Uji per jalur |
+| **Risk/owner** | **Tidak memblokir apa pun** — tanpa task ini sumber tercatat bawaan. Pemilik: modul masing-masing |
+| **DoD** | Kriteria terbukti uji |
+
+## R2.6 Milestone B9 — Sumber pelayanan dan Farmasi (`MVP-3`)
+
+Ketujuh task berbentuk sama: **satu berkas baru** `<Prefix>MedicalRecordDocumentSource.cs` di
+`Services/` modul pemilik, pendaftaran DI, dan uji. Kolom final, waktu final, jalan ke pasien,
+`isCorrected`, dan `isProvisional` mengikuti `02-backend-architecture.md` A4.10; kriteria dan kondisi
+mengikuti A4.11. Dependency semua: `BE-21`. Reuse: model modul itu sendiri, tanpa perubahan.
+
+| Task | Modul / berkas | Jenis | Kriteria dan kondisi yang dijawab | Acceptance criteria khusus | Verifikasi | Status |
+|---|---|---|---|---|---|---|
+| `BE-29` | IGD / `EmgMedicalRecordDocumentSource.cs` | 17–20 | `EmergencyTriage`, `EmergencyDisposition` | Triase `Superseded` tampil sebagai triase yang digantikan; disposisi `Draft` tidak tampil dan tidak memenuhi | `AT-RM-44`, AC-50 | **`TERTAHAN PERSETUJUAN MODUL`** — Rizki Gunawan |
+| `BE-30` | Rawat Inap / `InpMedicalRecordDocumentSource.cs` | 21, 22 | `InpatientGeneralConsent`, `DischargeSummary` | Ringkasan tanpa `SignedAt` tidak tampil; persetujuan registrasi tidak memenuhi `InpatientGeneralConsent` | `AT-RM-45`, `AT-RM-60` | **`TERTAHAN PERSETUJUAN MODUL`** — Muhammad Hamzah |
+| `BE-31` | Kamar Operasi / `OprMedicalRecordDocumentSource.cs` | 23–26 | `SurgeryReport`, `AnesthesiaRecord`, `SurgicalSafetyChecklist`; kondisi `Surgery` | Kasus `Cancelled`/`Rejected`/`Postponed` tidak memicu kondisi | `AT-RM-61` | **`TERTAHAN PERSETUJUAN MODUL`** — Muhammad Hamzah |
+| `BE-32` | Hemodialisa / `HmdMedicalRecordDocumentSource.cs` | 14 | `HemodialysisSessionSigned`; kondisi `HemodialysisSession` | Jenis 14 keluar dari `unavailableKinds` | `AT-RM-66` | **`TERTAHAN PERSETUJUAN MODUL`** — Muhammad Hamzah |
+| `BE-33` | Gizi / `GziMedicalRecordDocumentSource.cs` | 27 | — | `isProvisional = true` | `AT-RM-54` | **`TERTAHAN PERSETUJUAN MODUL`** — pemilik Gizi belum tercatat |
+| `BE-34` | Bank Darah / `BbkMedicalRecordDocumentSource.cs` | 28, 29 | — | Golongan darah tanpa kunjungan tetap tampil | `AT-RM-44` | **`TERTAHAN PERSETUJUAN MODUL`** — pemilik proses BDRS |
+| `BE-35` | Farmasi / `PhmMedicalRecordDocumentSource.cs` | 30–32 | — | Resep `Draft` tidak tampil | `AT-RM-44` | **`TERTAHAN PERSETUJUAN MODUL`** — pemilik Farmasi belum dipastikan |
+
+Outcome bersama: dokumen final modul tersebut tampil di berkas tanpa izin modul asal. Risiko:
+rendah per modul — hanya menambah berkas baca. DoD bersama: persetujuan pemilik modul tercatat
+pada decision log; kriteria terbukti uji; `AT-RM-44` lulus untuk modul itu.
+
+## R2.7 Milestone B10 — MCU (`MVP-4`)
+
+### `BE-36` — Pembaca MCU
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-36` |
+| **Status** | **`SELESAI`** — 28 Oktober 2026, laporan `task/report/backend/BE-36.md`. `dotnet test` → `Passed: 34`, `Failed: 0`. Desain semula keliru membaca `Corrected` sebagai final (`RM-FACT-022`); dikoreksi `RM-DEC-065`, `RM-DEC-066` |
+| **Outcome** | Resume dan hasil MCU terverifikasi tampil |
+| **Trace** | `RM-DEC-040`; `RM-CAP-057`; `FR-RM-040`; `MCU-GAP-04` |
+| **Kontrak** | `INT-RM-10j` |
+| **Scope** | **Baru** `MedicalCheckupManagement/Services/McuMedicalRecordDocumentSource.cs` (jenis 33, 34; kriteria `McuResume`); DI |
+| **Dependency** | `BE-21` |
+| **Acceptance criteria** | ~~1) Resume `Verified`/`Corrected` tampil; `Draft`/`Approved` tidak. 2) Resume `Corrected` → `isCorrected`.~~ **Diganti `RM-DEC-065`/`066` (28 Oktober 2026):** 1) Versi terakhir yang pernah diverifikasi tampil; order tanpa versi terverifikasi tidak; selama koreksi berketerangan "sedang dikoreksi" tanpa isi konsep. 2) Versi terverifikasi > 1 → `isCorrected`. 3) Peserta tanpa `PatientId` tidak muncul dan tidak menimbulkan galat. 4) Hasil pemeriksaan memakai nilai versi terverifikasi |
+| **Verification** | `AT-RM-44`; UAT-09, UAT-10 |
+| **Risk/owner** | Blueprint MCU masih menyebut `MCU-GAP-04` ditunda — diselaraskan di blueprint MCU. Pemilik: rekam medis + MCU |
+| **DoD** | Kriteria terbukti uji |
+
+## R2.8 Milestone B11 — Master dan addendum (`MVP-5`)
+
+### `BE-37` — Profil dokumen wajib
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-37` |
+| **Status** | **`SIAP`** |
+| **Outcome** | Sebelas profil awal tersedia dan dapat dikelola tanpa rilis program |
+| **Trace** | `RM-DEC-045`, `047`, `053`–`056`, `060`, `061`; `RM-CAP-038`; `FR-RM-060`–`062` |
+| **Kontrak** | API `0.2.0` A3; validation `VAL-RM-A04`–`A07`, `A10`; permission `MedicalRecordCompletenessProfile : Read/Create/Update` |
+| **Reuse** | Pola `MedicalRecordAccessPurposeController`/`Service` |
+| **Scope** | **Baru** `MasterData/Models/MstMedicalRecordCompletenessProfile.cs`, `…ProfileItem.cs`; configuration di `Repositories/Configurations/HealthServices/MedicalRecordManagement/`; `Enums/CompletenessCriterion.cs`, `CompletenessCondition.cs`; `MasterData/Services/MedicalRecordCompletenessProfileService.cs`; `MasterData/Controllers/MedicalRecordCompletenessProfileController.cs`; `MasterData/DTOs/MedicalRecordCompletenessProfileDtos.cs`; `MasterData/Seeders/MedicalRecordCompletenessProfileSeeder.cs` (A4.8, idempoten). Migration `AddMedicalRecordCompletenessProfile` — **menunggu instruksi terpisah** |
+| **Dependency** | — |
+| **Acceptance criteria** | 1) Seeder mengisi sebelas profil; dijalankan dua kali tetap sebelas. 2) `VAL-RM-A04`–`A07`, `A10` terbukti. 3) Perubahan profil tercatat logger dengan sebelum-sesudah di teks pesan. 4) Profil hanya dinonaktifkan, tidak dihapus |
+| **Verification** | `AT-RM-70`; uji seeder |
+| **Risk/owner** | Isi awal bukan SOP rumah sakit (`RM-DEC-047`). Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji; migration disiapkan menunggu instruksi |
+
+### `BE-38` — Addendum pengesahan
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-38` |
+| **Status** | **`SIAP`** |
+| **Outcome** | Catatan `LockedUnsigned` dapat disahkan penulisnya tanpa mengubah statusnya |
+| **Trace** | `RM-DEC-049`; `RM-CAP-039`; `FR-RM-080`, `FR-RM-081` |
+| **Kontrak** | API A4; state S-C; validation `VAL-RM-A01`–`A03` |
+| **Reuse** | `ClinicalNoteAddendumService`, jalur `as-substitute`, endpoint `/authority` |
+| **Scope** | `Models/MrcClinicalNoteAddendum.cs` (`AddendumPurpose`); `Enums/ClinicalNoteAddendumPurpose.cs`; configuration (index unik terfilter); `ClinicalNoteAddendumService.cs`; DTO addendum. Migration `AddMrcClinicalNoteAddendumPurpose` — **menunggu instruksi terpisah** |
+| **Dependency** | — |
+| **Acceptance criteria** | 1) Pengesahan atas `LockedUnsigned` tersimpan; status tetap. 2) Atas `Signed` → `409`. 3) Pengesahan kedua → `409`. 4) Bukan penulis tanpa jalur pengganti → `403`. 5) Klien lama tanpa `purpose` tetap membuat addendum koreksi |
+| **Verification** | `AT-RM-72`, `AT-RM-73`, `AT-RM-74` |
+| **Risk/owner** | Rendah. Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji |
+
+## R2.9 Milestone B12 — Kelengkapan (`MVP-6`)
+
+### `BE-39` — Penilaian kelengkapan dan daftar kerja
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-39` |
+| **Status** | `TERTAHAN DEPENDENCY` — `BE-23`, `BE-25`, `BE-37`, `BE-38` |
+| **Outcome** | Petugas rekam medis melihat kunjungan yang belum lengkap beserta seluruh kekurangannya |
+| **Trace** | `RM-DEC-045`, `046`, `050`, `051`, `053`–`056`, `060`; `AGG-RM-03`; `RM-CAP-040`; `FR-RM-070`–`074`; `NFR-003`, `NFR-006` |
+| **Kontrak** | API A2; state S-B; validation `VAL-RM-A08`, `A09`; permission `MedicalRecordCompleteness : Read/Evaluate` |
+| **Reuse** | `MrcClinicalDocumentIntegrity` untuk syarat 1; profil `BE-37`; pembaca uji yang sudah ada |
+| **Scope** | **Baru** `Models/MrcEncounterCompletenessAssessment.cs` + configuration; `Enums/CompletenessState.cs`, `CompletenessDeficiencyType.cs`; `Services/MedicalRecordCompletenessService.cs` (penyusunan profil A4.11, kriteria generik `ClinicalManagement`, panggilan seluruh `IMedicalRecordCompletenessProbe`); `Controllers/MedicalRecordCompletenessController.cs`; `DTOs/MedicalRecordCompletenessDtos.cs`; penilaian pertama dipicu penutupan klinis. Migration `AddMrcEncounterCompletenessAssessment` — **menunggu instruksi terpisah** |
+| **Dependency** | `BE-23`, `BE-25`, `BE-37`, `BE-38` |
+| **Acceptance criteria** | 1) Urutan keadaan dan rincian lengkap. 2) Pembaca gagal atau belum ada → `Undetermined`, tidak pernah `Complete`. 3) RJ unit Laboratorium `Complete` setelah dirilis. 4) Kunjungan berjalan/batal → `409`. 5) Kunjungan sebelum rilis dinilai tanpa disimpan. 6) Penutupan, pemulangan, tagihan tidak tertahan. 7) Logger tanpa `Deficiencies` |
+| **Verification** | `AT-RM-60`–`AT-RM-68`, `AT-RM-71` |
+| **Risk/owner** | Kunjungan IGD/Rawat Inap tetap `Undetermined` sampai `BE-29`–`BE-31` — **sesuai desain**, wajib diberitahukan pada catatan rilis. Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji; migration disiapkan menunggu instruksi |
+
+### `BE-40` — Pemeriksaan berkala dan pemicu penilaian ulang
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-40` |
+| **Status** | `TERTAHAN DEPENDENCY` — `BE-39` |
+| **Outcome** | Dokumen yang final belakangan tertangkap tanpa petugas menekan apa pun |
+| **Trace** | `GAP-ARCH-RM-04`; `FR-RM-075`; `NFR-007` |
+| **Reuse** | Pola hosted service yang sudah ada (`AccAccountingEventSchedulerHostedService`) |
+| **Scope** | **Baru** `Services/MedicalRecordCompletenessRecheckHostedService.cs`; konfigurasi A4.13; pemicu dari addendum pengesahan, tanda tangan, dan perubahan profil |
+| **Dependency** | `BE-39` |
+| **Acceptance criteria** | 1) Kunjungan ≤ 30 hari belum lengkap dinilai ulang sesuai `NextCheckAt`. 2) Maksimal 200 per putaran. 3) Perubahan profil menilai ulang kunjungan belum `Complete`. 4) Log hanya ringkasan jumlah |
+| **Verification** | `AT-RM-69`; uji layanan berkala dengan jam semu di tingkat unit |
+| **Risk/owner** | Beban basis data; dipantau setelah rilis. Pemilik: rekam medis |
+| **DoD** | Kriteria terbukti uji |
+
+### `BE-41` — Swagger dan catatan rilis amandemen
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `BE-41` |
+| **Status** | `TERTAHAN DEPENDENCY` — task amandemen yang dirilis |
+| **Outcome** | Konsumen tahu perubahan perilaku linimasa dan keterbatasan sementara |
+| **Scope** | `catatan-rilis.md`; deskripsi Swagger pada grup — **tanpa** `<summary>` XML pada action |
+| **Acceptance criteria** | Catatan rilis menyebut: jenis 14/15 tidak lagi kosong; `unavailableKinds`; keadaan `Undetermined` untuk kunjungan yang sumbernya belum tersambung; PA belum tersedia |
+| **DoD** | Catatan terbit bersama rilis |
+
+## R2.10 Risiko amandemen
+
+| Risiko | Dampak | Penanganan | Pemilik |
+|---|---|---|---|
+| Delapan pemilik modul belum menyetujui | Sebagian sumber `Undetermined` | Task independen; berkas jujur menyatakan gangguan | Pemilik modul masing-masing |
+| Pembacaan berurutan lambat | Berkas lambat | Batas waktu `BE-21`; pilihan context per sumber dicatat sebagai lanjutan | Rekam medis |
+| Migration butuh instruksi terpisah | Task selesai kode tetapi belum berjalan di basis data | Dicatat per task | User |
+| PostgreSQL < 15 | Index `NULLS NOT DISTINCT` gagal | Index ekspresi `COALESCE` | Rekam medis |

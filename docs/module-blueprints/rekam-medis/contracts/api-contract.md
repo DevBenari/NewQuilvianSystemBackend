@@ -458,3 +458,111 @@ atas `RM-CAP-019` — celah itu tetap terbuka dan tercatat sebagai keterbatasan 
 | Perubahan `PUT` CPPT | `RM-DEC-019` | `RM-CAP-011`, `012`, `013` | `AT-RM-01`, `AT-RM-19`, `AT-RM-20` |
 | Perubahan `PATCH` status kunjungan | `RM-DEC-003` | `RM-CAP-018` | `AT-RM-03` |
 | Perilaku `SuperAdmin` | `RM-DEC-017` | `RM-CAP-025` | `AT-RM-13` |
+
+
+---
+
+# Amandemen — Contract version `0.2.0`
+
+| Field | Value |
+|---|---|
+| Contract version | **`0.2.0`** — status **`approved`** |
+| Owner | API authority: Yoga Aji Pratama (`RM-DEC-028`) |
+| `approved_by` / `approved_at` | Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`) |
+| Input | Decision log revision `9`; `RM-DA-001` revision 1; `02-backend-architecture.md` bagian "Amandemen revision 4" |
+| Backend SHA | `363de34f` |
+| Compatibility impact | **Aditif terhadap `0.1.1`.** Klien `0.1.1` tetap berjalan: field baru pada respons linimasa bersifat tambahan, field `purpose` pada addendum opsional dengan bawaan `Correction`. Satu perubahan **perilaku**: jenis dokumen yang dahulu kosong diam-diam (14, 15) kini berisi atau dilaporkan "belum tersedia" |
+
+## A1. Health Services / Medical Record Management / Medical Record — diperbarui
+
+Base URL: `api/v1/health-services/medical-record-management/medical-records`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/{patientId}/timeline` | Linimasa berkas — kini mencakup seluruh sumber | `MedicalRecord : Read` | `MedicalRecordTimelineQuery` (tidak berubah) | `ApiResponse<MedicalRecordTimelineResponse>` — ditambah field di bawah | Tersedia; **perluasan Rencana (belum tersedia)** |
+| `GET` | `/{patientId}/documents/{documentKind}/{documentId}` | Rincian satu dokumen; jenis baru diteruskan ke modul pemilik | `MedicalRecord : Read` | — | `ApiResponse<MedicalRecordDocumentResponse>` | Tersedia; **jenis baru Rencana (belum tersedia)** |
+| `GET` | `/{patientId}/periodic-observations` | Rincian satu ringkasan pencatatan berkala | `MedicalRecord : Read` | Query `kind` (`PeriodicObservationKind`), `date` (tanggal WIB) | `ApiResponse<List<PeriodicObservationEntryResponse>>` | **Rencana (belum tersedia)** |
+
+Field tambahan pada setiap baris linimasa (`MedicalRecordTimelineItemResponse`):
+
+| Field | Tipe | Arti |
+|---|---|---|
+| `isLateEntry` | boolean | Dokumen final sesudah tutup klinis kunjungannya (`RM-DEC-043`) |
+| `clinicalClosedAt` | datetime atau null | Waktu tutup klinis yang dipakai |
+| `isClinicalClosureDerived` | boolean | `true` bila waktu tutup diturunkan dari data lama |
+| `isCorrected` | boolean | Pernah diralat di modul pemilik (`RM-DEC-042`) |
+| `isProvisional` | boolean | "Dapat berubah" (`RM-DEC-059`) |
+| `sourceModule` | string | Nama modul pemilik |
+| `periodicSummary` | objek atau null | Untuk `PeriodicObservationSummary`: `kind`, `date`, `count` |
+
+Field tambahan pada selubung `MedicalRecordTimelineResponse`:
+
+| Field | Tipe | Arti |
+|---|---|---|
+| `unavailableKinds` | larik | Jenis yang belum tersambung, mis. `PathologyAnatomyResult`, beserta kalimat keterangannya (`RM-DEC-058`) |
+| `failedSources` | larik (sudah ada) | Kini juga memuat sumber yang melewati batas waktu |
+
+Kode status: `200` berkas terbaca, **termasuk** bila sebagian sumber gagal; `403` tanpa izin
+atau keperluan akses belum diisi; `404` pasien tidak ada; `409` pasien digabung (rilis pertama).
+
+## A2. Health Services / Medical Record Management / Medical Record Completeness — baru
+
+Base URL: `api/v1/health-services/medical-record-management/medical-record-completeness`
+Controller `MedicalRecordCompletenessController` — seluruh endpoint **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Pilihan saringan: keadaan, jenis kunjungan, jenis unit, jenis kekurangan | `MedicalRecordCompleteness : Read` | — | `ApiResponse<MedicalRecordCompletenessFilterMetadataResponse>` |
+| `GET` | `/summary` | Jumlah kunjungan per keadaan | `MedicalRecordCompleteness : Read` | Query sama dengan daftar | `ApiResponse<MedicalRecordCompletenessSummaryResponse>` |
+| `GET` | `/` | Daftar kerja: kunjungan yang tutup klinis sejak rilis; bawaan menyaring yang belum `Complete` | `MedicalRecordCompleteness : Read` | `MedicalRecordCompletenessPagedQuery`: `state`, `encounterType`, `serviceUnitId`, `deficiencyType`, `closedFrom`, `closedTo`, `search` (nomor RM atau nama), `page`, `pageSize` | `ApiResponse<PagedResult<MedicalRecordCompletenessListItemResponse>>` |
+| `GET` | `/encounters/{encounterId}` | Penilaian tersimpan satu kunjungan beserta seluruh kekurangannya | `MedicalRecordCompleteness : Read` | — | `ApiResponse<MedicalRecordCompletenessDetailResponse>` |
+| `POST` | `/encounters/{encounterId}/evaluate` | Menilai ulang satu kunjungan sekarang. Kunjungan sebelum rilis dinilai **tanpa disimpan** (`isPersisted = false`) | `MedicalRecordCompleteness : Evaluate` | — | `ApiResponse<MedicalRecordCompletenessDetailResponse>` |
+
+`MedicalRecordCompletenessDetailResponse`: `encounterId`, `patientId`, `medicalRecordNumber`,
+`encounterType`, `serviceUnitName`, `clinicalClosedAt`, `isClinicalClosureDerived`, `state`,
+`stateLabel`, `deficiencies[]` (`type`, `typeLabel`, `label`, `documentKind`, `documentId`,
+`responsibleUserName`), `evaluatedAt`, `firstCompletedAt`, `isPersisted`, `profileCodes[]`.
+
+Kode status: `200`; `403`; `404` kunjungan tidak ada; `409` kunjungan masih berjalan atau batal
+(`VAL-RM-A08`, `VAL-RM-A09`).
+
+## A3. Health Services / Master Data / Medical Record Completeness Profile — baru
+
+Base URL: `api/v1/health-services/master-data/medical-record-completeness-profiles`
+Controller `MedicalRecordCompletenessProfileController` — seluruh endpoint **Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Pilihan jenis kunjungan, jenis unit, kondisi | `MedicalRecordCompletenessProfile : Read` | — | `ApiResponse<MedicalRecordCompletenessProfileFilterMetadataResponse>` |
+| `GET` | `/summary` | Jumlah profil aktif dan nonaktif | `MedicalRecordCompletenessProfile : Read` | — | `ApiResponse<MedicalRecordCompletenessProfileSummaryResponse>` |
+| `GET` | `/` | Daftar profil | `MedicalRecordCompletenessProfile : Read` | `PagedQuery`: `encounterType`, `serviceUnitType`, `condition`, `isActive`, `search` | `ApiResponse<PagedResult<MedicalRecordCompletenessProfileListItemResponse>>` |
+| `GET` | `/criteria/options` | Katalog kriteria beserta keterangannya | `MedicalRecordCompletenessProfile : Read` | — | `ApiResponse<List<OptionResponse>>` |
+| `GET` | `/{id}` | Satu profil beserta butirnya | `MedicalRecordCompletenessProfile : Read` | — | `ApiResponse<MedicalRecordCompletenessProfileDetailResponse>` |
+| `POST` | `/` | Membuat profil beserta butirnya | `MedicalRecordCompletenessProfile : Create` | `CreateMedicalRecordCompletenessProfileRequest`: `code`, `name`, `encounterType`, `serviceUnitType`, `condition`, `items[]` (`criterion`, `sortOrder`) | `ApiResponse<MedicalRecordCompletenessProfileDetailResponse>` |
+| `PUT` | `/{id}` | Mengubah profil dan mengganti butirnya | `MedicalRecordCompletenessProfile : Update` | `UpdateMedicalRecordCompletenessProfileRequest` (sama, tanpa `code`) | `ApiResponse<MedicalRecordCompletenessProfileDetailResponse>` |
+| `PATCH` | `/{id}/status` | Aktif atau nonaktif | `MedicalRecordCompletenessProfile : Update` | `{ isActive }` | `ApiResponse<MedicalRecordCompletenessProfileDetailResponse>` |
+
+Kode status: `200`/`201`; `400` (`VAL-RM-A04`, `A06`, `A10`); `403`; `404`; `409` kode atau kunci
+kembar (`VAL-RM-A05`, `A07`).
+
+## A4. Health Services / Medical Record Management / Clinical Note Addendum — diperbarui
+
+Base URL: `api/v1/health-services/medical-record-management/clinical-note-addendums`
+
+| Method | Path | Perubahan | Hak akses | Status |
+|---|---|---|---|---|
+| `POST` | `/by-document/{documentKind}/{documentId}` | Request menerima `purpose` opsional: `Correction` (bawaan) atau `Attestation` | `ClinicalNoteAddendum : Create` (tidak berubah) | Tersedia; **`purpose` Rencana (belum tersedia)** |
+| `POST` | `/by-document/{documentKind}/{documentId}/as-substitute` | Sama | `ClinicalNoteAddendum : CreateAsSubstitute` (tidak berubah) | Sama |
+| `GET` | `/by-document/{documentKind}/{documentId}` | Respons menambah `purpose` per addendum | `ClinicalNoteAddendum : Read` | Sama |
+
+Kode status baru: `409` bila pengesahan atas catatan yang bukan `LockedUnsigned`, atau catatan
+sudah disahkan (`VAL-RM-A01`, `VAL-RM-A02`).
+
+## A5. Traceability amandemen
+
+| Endpoint | Keputusan | Kemampuan | Uji |
+|---|---|---|---|
+| Linimasa diperbarui | `RM-DEC-038`–`044`, `052`, `057`, `058` | `RM-CAP-034`, `035`, `043`–`067` | `AT-RM-44`–`AT-RM-55` |
+| Kelengkapan | `RM-DEC-045`, `046`, `050`, `051`, `053`–`056`, `060` | `RM-CAP-036`–`040` | `AT-RM-56`–`AT-RM-68` |
+| Profil dokumen wajib | `RM-DEC-045`, `047`, `060`, `061` | `RM-CAP-038` | `AT-RM-69`–`AT-RM-71` |
+| Addendum `purpose` | `RM-DEC-049` | `RM-CAP-039` | `AT-RM-72`–`AT-RM-74` |
