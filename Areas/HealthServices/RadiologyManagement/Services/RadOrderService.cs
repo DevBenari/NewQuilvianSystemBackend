@@ -18,6 +18,7 @@ using System.Security.Claims;
 using InpatientClinicalContextService =
     QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.InpatientClinicalContextService;
 using MstTariff = QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff;
+using EmergencyDoctorAssignmentService = QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services.EmergencyDoctorAssignmentService;
 using MstDoctorForInstruction =
     QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor;
 
@@ -48,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// </summary>
         private readonly InpatientClinicalContextService _clinicalContextService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+        private readonly EmergencyDoctorAssignmentService? _emergencyDoctorAssignmentService;
 
         public RadOrderService(
             ApplicationDbContext dbContext,
@@ -56,7 +58,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             RadOrderNumberService orderNumberService,
             InpatientClinicalContextService clinicalContextService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
-            RadPhotoNumberService? photoNumberService = null)
+            RadPhotoNumberService? photoNumberService = null,
+            EmergencyDoctorAssignmentService? emergencyDoctorAssignmentService = null)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
@@ -65,7 +68,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             _clinicalContextService = clinicalContextService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _photoNumberService = photoNumberService;
+            _emergencyDoctorAssignmentService = emergencyDoctorAssignmentService;
         }
+
+        private EmergencyDoctorAssignmentService PenentuDokterIgd() =>
+            _emergencyDoctorAssignmentService
+            ?? throw new InvalidOperationException("Penentu dokter pemberi instruksi IGD tidak tersedia.");
 
         /// <summary>No. Foto v1, diberikan saat Konfirmasi. Opsional hanya untuk harness uji jalur baca.</summary>
         private readonly RadPhotoNumberService? _photoNumberService;
@@ -2329,6 +2337,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
                     instructingDoctorId = request.InstructingDoctorId.Value;
                     instructionStatus = RadOrderInstructionVerificationStatus.Pending;
+                }
+            }
+            else if (coverage == null)
+            {
+                var kunjunganIgdId = await PenentuDokterIgd().AmbilKunjunganUntukEncounterAsync(
+                    request.EncounterId, cancellationToken);
+
+                if (kunjunganIgdId.HasValue)
+                {
+                    var actorDoctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                        _httpContextAccessor.HttpContext?.User, actorUserId, cancellationToken);
+
+                    if (!actorDoctorId.HasValue)
+                    {
+                        if (!request.InstructingDoctorId.HasValue || request.InstructingDoctorId.Value == Guid.Empty)
+                        {
+                            return RadOperationResult<RadOrderDetailResponse>.Validation(
+                                RadErrorCodes.InstructingDoctorRequired,
+                                "Pilih dokter yang memberi instruksi.");
+                        }
+
+                        var sah = await PenentuDokterIgd().ApakahDokterPemberiInstruksiSahAsync(
+                            kunjunganIgdId.Value, request.InstructingDoctorId.Value, cancellationToken);
+
+                        if (!sah)
+                        {
+                            return RadOperationResult<RadOrderDetailResponse>.Forbidden(
+                                RadErrorCodes.InstructingDoctorNotAssigned,
+                                "Dokter yang dipilih tidak sedang bertugas atas pasien ini.");
+                        }
+
+                        instructingDoctorId = request.InstructingDoctorId.Value;
+                        instructionStatus = RadOrderInstructionVerificationStatus.Pending;
+                    }
                 }
             }
 

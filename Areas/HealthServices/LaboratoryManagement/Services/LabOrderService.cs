@@ -18,6 +18,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Services.Logging;
 using System.Linq.Expressions;
 using System.Security.Claims;
+using EmergencyDoctorAssignmentService = QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services.EmergencyDoctorAssignmentService;
 
 using InpatientClinicalContextService =
     QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.InpatientClinicalContextService;
@@ -50,6 +51,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// </summary>
         private readonly InpatientClinicalContextService _clinicalContextService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+        private readonly EmergencyDoctorAssignmentService _emergencyDoctorAssignmentService;
 
         public LabOrderService(
             ApplicationDbContext dbContext,
@@ -59,7 +61,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             IHttpContextAccessor httpContextAccessor,
             LoggerService loggerService,
             InpatientClinicalContextService clinicalContextService,
-            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer)
+            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
+            EmergencyDoctorAssignmentService emergencyDoctorAssignmentService)
         {
             _dbContext = dbContext;
             _labSpecimenService = labSpecimenService;
@@ -69,6 +72,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             _loggerService = loggerService;
             _clinicalContextService = clinicalContextService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
+            _emergencyDoctorAssignmentService = emergencyDoctorAssignmentService;
         }
 
         /// <summary>
@@ -720,12 +724,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// </para>
         /// </remarks>
         private async Task<(Guid? InstructingDoctorId, LabOrderInstructionVerificationStatus Status)> ResolveInstructionAsync(
+            Guid encounterId,
             Guid? inpEpisodeId,
             Guid? instructingDoctorId,
             CancellationToken cancellationToken)
         {
             if (!inpEpisodeId.HasValue || inpEpisodeId.Value == Guid.Empty)
-                return (null, LabOrderInstructionVerificationStatus.NotRequired);
+                return await ResolveInstructionIgdAsync(encounterId, instructingDoctorId, cancellationToken);
 
             var user = _httpContextAccessor.HttpContext?.User;
             var actorDoctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
@@ -741,6 +746,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 inpEpisodeId.Value, instructingDoctorId.Value, DateTime.UtcNow, cancellationToken);
 
             if (!bertugas)
+                throw new UnauthorizedAccessException("Dokter yang dipilih tidak sedang bertugas atas pasien ini.");
+
+            return (instructingDoctorId.Value, LabOrderInstructionVerificationStatus.Pending);
+        }
+
+        private async Task<(Guid? InstructingDoctorId, LabOrderInstructionVerificationStatus Status)> ResolveInstructionIgdAsync(
+            Guid encounterId,
+            Guid? instructingDoctorId,
+            CancellationToken cancellationToken)
+        {
+            var kunjunganIgdId = await _emergencyDoctorAssignmentService.AmbilKunjunganUntukEncounterAsync(
+                encounterId, cancellationToken);
+
+            if (!kunjunganIgdId.HasValue)
+                return (null, LabOrderInstructionVerificationStatus.NotRequired);
+
+            var actorDoctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                _httpContextAccessor.HttpContext?.User, GetCurrentUserId(), cancellationToken);
+
+            if (actorDoctorId.HasValue)
+                return (null, LabOrderInstructionVerificationStatus.NotRequired);
+
+            if (!instructingDoctorId.HasValue || instructingDoctorId.Value == Guid.Empty)
+                throw new ArgumentException("Pilih dokter yang memberi instruksi.");
+
+            var sah = await _emergencyDoctorAssignmentService.ApakahDokterPemberiInstruksiSahAsync(
+                kunjunganIgdId.Value, instructingDoctorId.Value, cancellationToken);
+
+            if (!sah)
                 throw new UnauthorizedAccessException("Dokter yang dipilih tidak sedang bertugas atas pasien ini.");
 
             return (instructingDoctorId.Value, LabOrderInstructionVerificationStatus.Pending);
@@ -917,7 +951,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             // BE-RWI-104 / FR-DOK-106, VAL-DOK-46, VAL-DOK-47. Hanya pesanan rawat inap yang
             // dibaca; pesanan poliklinik dan IGD melewati blok ini tanpa perubahan apa pun.
-            var instruksi = await ResolveInstructionAsync(request.InpEpisodeId, request.InstructingDoctorId, cancellationToken);
+            var instruksi = await ResolveInstructionAsync(request.EncounterId, request.InpEpisodeId, request.InstructingDoctorId, cancellationToken);
 
             var procedure = await _dbContext.Set<MstProcedure>()
                 .AsNoTracking()

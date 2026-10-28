@@ -182,4 +182,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public string DisplayLabel { get; set; } = string.Empty;
     }
+
+    public class EmergencyInstructingDoctorOptionResponse
+    {
+        public Guid DoctorId { get; set; }
+
+        public string DoctorName { get; set; } = string.Empty;
+
+        public int Basis { get; set; }
+
+        public string Label { get; set; } = string.Empty;
+    }
 }
