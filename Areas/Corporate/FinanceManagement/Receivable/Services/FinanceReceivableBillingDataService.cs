@@ -104,7 +104,7 @@ public sealed class FinanceReceivableBillingDataService
             "termasuk di sini; lihat kategori Benefit RS Internal.",
         BillingDataCategories.InternalBenefit =>
             "Belum ada piutang Benefit RS Internal. Porsi ini terbentuk setelah kasir mengonfirmasi finalisasi Benefit RS " +
-            "dan Finance mengolah serah terima dari Billing. Penyelesaiannya lewat Penutupan Benefit, bukan penerimaan uang.",
+            "dan Finance mengolah serah terima dari Billing.",
         _ => null
     };
 
@@ -118,13 +118,41 @@ public sealed class FinanceReceivableBillingDataService
         var limit = Math.Clamp(request.Limit, 1, 50);
         var search = request.Search?.Trim();
 
-        var insurance = _dbContext.MstInsuranceProviders.AsNoTracking().Where(x => !x.IsDelete && x.IsActive);
         var companies = _dbContext.MstCompanyGuarantors.AsNoTracking().Where(x => !x.IsDelete && x.IsActive);
         if (!string.IsNullOrEmpty(search))
         {
             var pattern = BuildContainsPattern(search);
-            insurance = insurance.Where(x => EF.Functions.ILike(x.InsuranceProviderName, pattern, "\\"));
             companies = companies.Where(x => EF.Functions.ILike(x.CompanyGuarantorName, pattern, "\\"));
+        }
+
+        // Untuk Benefit RS Internal: penjamin adalah penjamin internal (MstCompanyGuarantor), bukan asuransi pihak luar.
+        if (string.Equals(request.Category, BillingDataCategories.InternalBenefit, StringComparison.OrdinalIgnoreCase))
+        {
+            var internalGuarantorIds = _dbContext.FinReceivables.AsNoTracking()
+                .Where(r => !r.IsDelete && r.IsInternalBenefit && r.DebtorReferenceId.HasValue)
+                .Select(r => r.DebtorReferenceId!.Value);
+
+            var internalCompanies = companies.Where(x => x.IsEmployeeBenefitGuarantor || internalGuarantorIds.Contains(x.Id));
+            var hasSpecific = await internalCompanies.AnyAsync(cancellationToken);
+            var query = hasSpecific ? internalCompanies : companies;
+
+            return await query
+                .OrderBy(x => x.CompanyGuarantorName).ThenBy(x => x.Id)
+                .Take(limit)
+                .Select(x => new BillingDataPayerOptionResponse
+                {
+                    Id = x.Id,
+                    Name = x.CompanyGuarantorName,
+                    Kind = BillingDataPayerKinds.Company
+                })
+                .ToListAsync(cancellationToken);
+        }
+
+        var insurance = _dbContext.MstInsuranceProviders.AsNoTracking().Where(x => !x.IsDelete && x.IsActive);
+        if (!string.IsNullOrEmpty(search))
+        {
+            var pattern = BuildContainsPattern(search);
+            insurance = insurance.Where(x => EF.Functions.ILike(x.InsuranceProviderName, pattern, "\\"));
         }
 
         // Masing-masing diambil sebanyak Limit lalu digabung dan dipotong lagi, sehingga hasil akhir benar
@@ -454,11 +482,10 @@ public sealed class FinanceReceivableBillingDataService
         if (!filter.EntityId.HasValue) return rows;
         var entityId = filter.EntityId.Value;
 
-        // Jangan menyaring dengan nama: kunci stabilnya Id penjamin (company), Id karyawan / pemilik benefit (employee),
-        // atau Id pasien (generalPatient & internalBenefit).
-        // Penjamin company = asuransi (DebtorReferenceId) ATAU perusahaan penjamin. Perusahaan hanya dicocokkan
-        // lewat kunjungan bila DebtorReferenceId kosong, supaya piutang asuransi tidak ikut terambil.
-        if (filter.Category == BillingDataCategories.Company)
+        // Jangan menyaring dengan nama: kunci stabilnya Id penjamin (company & internalBenefit), Id karyawan / pemilik benefit (employee),
+        // atau Id pasien (generalPatient).
+        // Penjamin = asuransi/perusahaan (DebtorReferenceId) ATAU perusahaan penjamin pada kunjungan.
+        if (filter.Category == BillingDataCategories.Company || filter.Category == BillingDataCategories.InternalBenefit)
         {
             return rows.Where(x => x.Receivable.DebtorReferenceId == entityId
                 || (x.Receivable.DebtorReferenceId == null && x.CompanyGuarantorId == entityId));
@@ -567,9 +594,9 @@ public sealed class FinanceReceivableBillingDataService
         if (filter.SearchPattern is null) return rows;
         var pattern = filter.SearchPattern;
 
-        // Kategori company juga dicari lewat nama asuransi, nama perusahaan penjamin, dan nama penjamin yang
+        // Kategori company dan internalBenefit juga dicari lewat nama asuransi, nama perusahaan penjamin, dan nama penjamin yang
         // tersimpan pada kunjungan.
-        if (filter.Category == BillingDataCategories.Company)
+        if (filter.Category == BillingDataCategories.Company || filter.Category == BillingDataCategories.InternalBenefit)
         {
             return rows.Where(x =>
                 (x.Invoice != null && EF.Functions.ILike(x.Invoice.InvoiceNumber, pattern, "\\"))
@@ -695,6 +722,7 @@ public sealed class FinanceReceivableBillingDataService
             .ToListAsync(cancellationToken);
 
         var isCompany = filter.Category == BillingDataCategories.Company;
+        var isInternalBenefit = filter.Category == BillingDataCategories.InternalBenefit;
 
         // Pemilik benefit (karyawan) dibaca lewat resolver HR bersama untuk seluruh halaman sekaligus (tanpa N+1);
         // hanya untuk baris yang memang punya pemilik benefit. Menampilkan pemilik, bukan hanya nama pasien.
@@ -779,7 +807,7 @@ public sealed class FinanceReceivableBillingDataService
 
             var blockedReason = ResolveCreateBlockedReason(
                 x.DebtorType, x.DebtorReferenceId, x.ActiveBatchId.HasValue, x.AnyBatchMembership, x.ReceivableStatus,
-                x.IsInternalBenefit);
+                x.IsInternalBenefit, hasSettlement);
 
             return new BillingDataItemResponse
             {
@@ -807,9 +835,9 @@ public sealed class FinanceReceivableBillingDataService
                 EmployeeArOrigin = x.EmployeeArOrigin,
                 BenefitOwnerName = owner?.StaffName,
                 BenefitOwnerStaffNumber = owner?.StaffNumber,
-                PayerName = isCompany ? x.ProviderName ?? x.CompanyName ?? x.GuarantorName : x.PatientName,
-                PayerId = isCompany ? x.DebtorReferenceId ?? x.CompanyGuarantorId : null,
-                PayerKind = !isCompany
+                PayerName = (isCompany || isInternalBenefit) ? (x.ProviderName ?? x.CompanyName ?? x.GuarantorName ?? (isInternalBenefit ? "Benefit RS Internal" : null)) : x.PatientName,
+                PayerId = (isCompany || isInternalBenefit) ? (x.DebtorReferenceId ?? x.CompanyGuarantorId) : null,
+                PayerKind = (!isCompany && !isInternalBenefit)
                     ? null
                     : x.ProviderName != null
                         ? BillingDataPayerKinds.Insurance
@@ -817,8 +845,8 @@ public sealed class FinanceReceivableBillingDataService
                 BillingAmount = x.BillingAmount,
                 ReceivableStatus = x.ReceivableStatus,
                 BillingStatus = x.ActiveBatchId.HasValue ? BillingDataStatuses.Created : BillingDataStatuses.NotCreated,
-                // "Belum Dibuat/Sudah Dibuat" hanya bermakna untuk PAYER pihak luar. Kategori lain punya jalur penyelesaian sendiri.
-                BillingStatusApplicable = x.DebtorType == FinReceivableDebtorTypes.Payer && !x.IsInternalBenefit,
+                // "Belum Dibuat/Sudah Dibuat" berlaku untuk PAYER (baik Perusahaan/Asuransi maupun Benefit RS Internal).
+                BillingStatusApplicable = x.DebtorType == FinReceivableDebtorTypes.Payer,
                 ResolutionStatus = ResolveResolutionStatus(
                     x.DebtorType, x.IsInternalBenefit, x.ReceivableStatus, x.ActiveBatchId.HasValue,
                     hasSettlement ? settlement.Status : null, hasPlan ? plan.Status : null),
@@ -903,8 +931,8 @@ public sealed class FinanceReceivableBillingDataService
             // 2. Dalam group: Tanggal DESC (kunjungan / diakui)
             // 3. NoBill ASC
             // 4. Item.Id ASC
-            _ => filter.Category == BillingDataCategories.Company
-                ? rows.OrderBy(x => x.Provider != null ? x.Provider.InsuranceProviderName : "")
+            _ => (filter.Category == BillingDataCategories.Company || filter.Category == BillingDataCategories.InternalBenefit)
+                ? rows.OrderBy(x => x.Provider != null ? x.Provider.InsuranceProviderName : (x.CompanyName ?? ""))
                     .ThenBy(x => x.Encounter == null)
                     .ThenByDescending(x => x.Encounter != null ? (DateTime?)x.Encounter.EncounterDate : null)
                     .ThenByDescending(x => x.Receivable.RecognizedAt)
@@ -963,7 +991,6 @@ public sealed class FinanceReceivableBillingDataService
                     break;
 
                 case BillingDataCategories.GeneralPatient:
-                case BillingDataCategories.InternalBenefit:
                     groupId = item.PatientId.HasValue
                         ? item.PatientId.Value.ToString()
                         : (!string.IsNullOrWhiteSpace(item.MedicalRecordNumber)
@@ -974,7 +1001,20 @@ public sealed class FinanceReceivableBillingDataService
                     {
                         NoRM = item.MedicalRecordNumber,
                         EmployeeId = null,
-                        // Hanya terisi untuk Benefit RS Internal; piutang pasien umum tidak punya pemilik benefit.
+                        BenefitOwnerName = null,
+                        BenefitOwnerStaffNumber = null
+                    };
+                    break;
+
+                case BillingDataCategories.InternalBenefit:
+                    groupId = item.PayerId.HasValue
+                        ? item.PayerId.Value.ToString()
+                        : (!string.IsNullOrWhiteSpace(item.PayerName) ? item.PayerName.Trim() : "-");
+                    groupName = !string.IsNullOrWhiteSpace(item.PayerName) ? item.PayerName.Trim() : "Benefit RS Internal";
+                    meta = new BillingDataGroupMeta
+                    {
+                        NoRM = null,
+                        EmployeeId = null,
                         BenefitOwnerName = item.BenefitOwnerName,
                         BenefitOwnerStaffNumber = item.BenefitOwnerStaffNumber
                     };
@@ -1028,7 +1068,7 @@ public sealed class FinanceReceivableBillingDataService
         else
         {
             // Multiple groups across pages: hitung agregasi dari database tanpa N+1 query
-            if (filter.Category == BillingDataCategories.Company)
+            if (filter.Category == BillingDataCategories.Company || filter.Category == BillingDataCategories.InternalBenefit)
             {
                 var payerGuids = pageRows
                     .Where(x => x.PayerId.HasValue)
@@ -1144,10 +1184,10 @@ public sealed class FinanceReceivableBillingDataService
     // sehingga belum bisa digabung ulang.
     private static string? ResolveCreateBlockedReason(
         string debtorType, Guid? debtorReferenceId, bool inActiveBatch, bool anyMembership, string receivableStatus,
-        bool isInternalBenefit)
+        bool isInternalBenefit, bool hasActiveSettlement = false)
     {
         if (debtorType != FinReceivableDebtorTypes.Payer) return BillingDataCreateBlockedReasons.NotPayer;
-        if (isInternalBenefit) return BillingDataCreateBlockedReasons.InternalBenefit;
+        if (hasActiveSettlement) return BillingDataCreateBlockedReasons.ActiveSettlement;
         if (debtorReferenceId is null) return BillingDataCreateBlockedReasons.NoDebtorReference;
         if (inActiveBatch) return BillingDataCreateBlockedReasons.AlreadyInBatch;
         if (anyMembership) return BillingDataCreateBlockedReasons.InCancelledBatch;
@@ -1179,13 +1219,13 @@ public sealed class FinanceReceivableBillingDataService
             {
                 BillingDataCategories.Company => "Semua Perusahaan",
                 BillingDataCategories.Employee => "Semua Karyawan",
-                BillingDataCategories.InternalBenefit => "Semua Penerima Benefit RS",
+                BillingDataCategories.InternalBenefit => "Semua Penjamin Internal",
                 _ => "Semua Pasien"
             };
         }
 
         var entityId = filter.EntityId.Value;
-        if (filter.Category == BillingDataCategories.Company)
+        if (filter.Category == BillingDataCategories.Company || filter.Category == BillingDataCategories.InternalBenefit)
         {
             // Pilihan penjamin = asuransi atau perusahaan penjamin; Id keduanya berasal dari tabel master berbeda.
             var insuranceName = await _dbContext.MstInsuranceProviders.AsNoTracking()

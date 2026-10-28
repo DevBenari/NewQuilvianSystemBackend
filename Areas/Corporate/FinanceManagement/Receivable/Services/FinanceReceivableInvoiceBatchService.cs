@@ -568,21 +568,34 @@ public sealed class FinanceReceivableInvoiceBatchService
     // ulang. Bukan FIN-VAL bernomor; murni definisi teknis "layak digabung".
     // ------------------------------------------------------------------------------------
 
+    public Task<List<EligibleReceivableResponse>> GetEligibleReceivablesAsync(
+        Guid debtorReferenceId, CancellationToken cancellationToken) =>
+        GetEligibleReceivablesAsync(debtorReferenceId, null, cancellationToken);
+
     public async Task<List<EligibleReceivableResponse>> GetEligibleReceivablesAsync(
-        Guid debtorReferenceId, CancellationToken cancellationToken)
+        Guid debtorReferenceId, string? category, CancellationToken cancellationToken)
     {
         var activeBatchMemberIds = _dbContext.FinReceivableInvoiceBatchItems
             .Where(x => !x.IsDelete && x.IsActiveMembership)
             .Select(x => x.ReceivableId);
 
-        return await _dbContext.FinReceivables.AsNoTracking()
+        var query = _dbContext.FinReceivables.AsNoTracking()
             .Where(x => !x.IsDelete
                 && x.DebtorType == FinReceivableDebtorTypes.Payer
-                // Porsi Benefit RS internal bukan tagihan ke pihak luar: diselesaikan lewat Penutupan Benefit.
-                && !x.IsInternalBenefit
                 && x.DebtorReferenceId == debtorReferenceId
                 && (x.Status == FinReceivableStatuses.Outstanding || x.Status == FinReceivableStatuses.Partial)
-                && !activeBatchMemberIds.Contains(x.Id))
+                && !activeBatchMemberIds.Contains(x.Id));
+
+        if (string.Equals(category, BillingDataCategories.InternalBenefit, StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(x => x.IsInternalBenefit);
+        }
+        else if (string.Equals(category, BillingDataCategories.Company, StringComparison.OrdinalIgnoreCase))
+        {
+            query = query.Where(x => !x.IsInternalBenefit);
+        }
+
+        return await query
             .OrderBy(x => x.DueDate)
             .Select(x => new EligibleReceivableResponse
             {
@@ -621,13 +634,28 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchBadRequestException(
                 $"Batch Tagihan AR hanya menerima piutang berjenis PAYER. Piutang {nonPayer[0].ReceivableNumber} berjenis {nonPayer[0].DebtorType}.");
 
-        // Porsi Benefit Karyawan RS (PAYER dengan IsInternalBenefit) adalah biaya rumah sakit sendiri, bukan tagihan ke
-        // perusahaan/asuransi; ditolak di server, bukan hanya disembunyikan dari daftar.
-        var internalBenefit = receivables.Where(x => x.IsInternalBenefit).ToList();
-        if (internalBenefit.Count > 0)
+        // Pemisahan kategori: piutang Benefit RS Internal dan piutang penjamin pihak luar tidak boleh dicampur dalam satu batch.
+        var anyInternal = receivables.Any(x => x.IsInternalBenefit);
+        var anyExternal = receivables.Any(x => !x.IsInternalBenefit);
+        if (anyInternal && anyExternal)
             throw new ReceivableInvoiceBatchBadRequestException(
-                $"Piutang {internalBenefit[0].ReceivableNumber} adalah porsi Benefit RS internal dan tidak dapat digabung ke Batch Tagihan AR. " +
-                "Selesaikan lewat Penutupan Benefit.");
+                "Tidak dapat mencampur piutang Benefit RS Internal dan piutang penjamin pihak luar dalam satu Batch Tagihan AR.");
+
+        // Untuk Benefit RS Internal: pastikan tidak ada piutang yang sedang berada dalam dokumen Penutupan Benefit aktif (bukan DIBATALKAN).
+        if (anyInternal)
+        {
+            var inActiveSettlement = await _dbContext.FinBenefitSettlementItems.AsNoTracking()
+                .Where(i => !i.IsDelete
+                    && distinctIds.Contains(i.ReceivableId)
+                    && i.Settlement != null && !i.Settlement.IsDelete
+                    && i.Settlement.Status != FinBenefitSettlementStatuses.Dibatalkan)
+                .Select(i => i.ReceivableId)
+                .ToListAsync(cancellationToken);
+
+            if (inActiveSettlement.Count > 0)
+                throw new ReceivableInvoiceBatchConflictException(
+                    $"Sebagian piutang Benefit RS Internal ({string.Join(", ", inActiveSettlement)}) sudah tercatat dalam dokumen Penutupan Benefit yang aktif.");
+        }
 
         // Hanya piutang yang masih bisa ditagihkan (OUTSTANDING/PARTIAL) ATAU sudah lunas dibayar (SETTLED, mis.
         // gabungan asuransi + excess tunai) dan bernilai positif yang boleh ditagihkan. Status pembayaran (SETTLED)

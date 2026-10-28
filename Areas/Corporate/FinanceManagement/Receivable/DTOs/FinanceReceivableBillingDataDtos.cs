@@ -107,6 +107,7 @@ public static class BillingDataCreateBlockedReasons
     public const string AlreadyInBatch = "ALREADY_IN_BATCH";
     public const string InCancelledBatch = "IN_CANCELLED_BATCH";
     public const string StatusNotEligible = "STATUS_NOT_ELIGIBLE";
+    public const string ActiveSettlement = "ACTIVE_SETTLEMENT";
 }
 
 /// <summary>
@@ -384,6 +385,7 @@ public sealed class BillingDataSummaryResponse
 /// <summary>Parameter GET /receivables/billing-data/payer-options (isi dropdown pilihan asuransi/perusahaan).</summary>
 public sealed class BillingDataPayerOptionQuery
 {
+    [MaxLength(50)] public string? Category { get; set; }
     [MaxLength(200)] public string? Search { get; set; }
 
     /// <summary>Jumlah maksimum pilihan (1-50, bawaan 20). Gunakan Search untuk mempersempit; daftar tidak dikirim utuh.</summary>

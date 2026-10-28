@@ -24,6 +24,7 @@ public sealed class ReceivableInvoiceBatchQuery
 public sealed class EligibleReceivableQuery
 {
     [Required] public Guid DebtorReferenceId { get; set; }
+    [MaxLength(50)] public string? Category { get; set; }
 }
 
 public sealed class EligibleReceivableResponse
