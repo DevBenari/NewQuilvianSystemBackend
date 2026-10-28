@@ -212,6 +212,67 @@ public sealed class DrugStockService
         };
     }
 
+    // ============================================ 1d. stok untuk katalog resep dokter
+
+    /// <summary>
+    /// Obat yang punya saldo di satu lokasi, sebagai potongan query yang dapat digabung.
+    /// </summary>
+    /// <remarks>
+    /// Dikembalikan sebagai query, bukan daftar, supaya katalog resep dapat menyaring dan
+    /// memaginasi master obat langsung di basis data tanpa menarik ribuan id ke memori. Saldo
+    /// yang sudah nol tetap terhitung: obatnya memang dikelola depo ini, dan dokter perlu
+    /// melihat bahwa stoknya habis alih-alih mengira obatnya tidak dikenal.
+    /// </remarks>
+    public IQueryable<Guid> QueryStockedDrugIds(Guid storageLocationId) =>
+        _dbContext.PhmDrugStockBalances.AsNoTracking()
+            .Where(x => !x.IsDelete && x.StorageLocationId == storageLocationId)
+            .Select(x => x.DrugId);
+
+    /// <summary>
+    /// Jumlah yang benar-benar dapat dilayankan per obat pada satu lokasi.
+    /// </summary>
+    /// <remarks>
+    /// Aturannya sama dengan kandidat FEFO pada pengeluaran: hanya status siap pakai, batch
+    /// yang belum kedaluwarsa, dikurangi yang sudah ditahan. Dengan begitu angka di katalog
+    /// dokter tidak menjanjikan stok yang kelak ditolak saat resep ditahan. Obat tanpa baris
+    /// yang memenuhi syarat itu dikembalikan sebagai nol.
+    /// </remarks>
+    public async Task<Dictionary<Guid, decimal>> GetAvailableQuantitiesAsync(
+        Guid storageLocationId, IReadOnlyCollection<Guid> drugIds,
+        CancellationToken cancellationToken = default)
+    {
+        if (drugIds.Count == 0) return [];
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var rows = await _dbContext.PhmDrugStockBalances.AsNoTracking()
+            .Where(x => !x.IsDelete &&
+                        x.StorageLocationId == storageLocationId &&
+                        drugIds.Contains(x.DrugId) &&
+                        x.Status == DrugStockStatus.Available &&
+                        x.QuantityOnHand > x.QuantityReserved &&
+                        (x.DrugBatch!.ExpiryDate == null || x.DrugBatch.ExpiryDate >= today))
+            .GroupBy(x => x.DrugId)
+            .Select(g => new
+            {
+                DrugId = g.Key,
+                Available = g.Sum(x => x.QuantityOnHand - x.QuantityReserved)
+            })
+            .ToListAsync(cancellationToken);
+
+        var available = rows.ToDictionary(x => x.DrugId, x => x.Available);
+
+        return drugIds.Distinct().ToDictionary(id => id, id => available.GetValueOrDefault(id));
+    }
+
+    /// <summary>Nama lokasi untuk ditampilkan, atau <c>null</c> bila lokasinya sudah dihapus.</summary>
+    public Task<string?> GetStorageLocationNameAsync(Guid storageLocationId,
+        CancellationToken cancellationToken = default) =>
+        _dbContext.MstDrugStorageLocations.AsNoTracking()
+            .Where(x => x.Id == storageLocationId && !x.IsDelete)
+            .Select(x => (string?)x.StorageLocationName)
+            .FirstOrDefaultAsync(cancellationToken);
+
     // ======================================================== 1c. daftar batch
 
     public async Task<PagedResult<DrugBatchResponse>> GetBatchesAsync(DrugBatchQuery request,
