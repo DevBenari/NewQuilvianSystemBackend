@@ -149,9 +149,11 @@ public partial class InpAdmissionTransferService(
         {
             EpisodeId = episode.Id, BedId = request.BedId, ExpectedBedVersion = request.ExpectedBedVersion
         }, actorUserId, cancellationToken);
+        // PLAN-REPAIR-EPS-041 FIX-04: kode aturan yang gagal (mis. ISOLATION_REQUIRED) diteruskan apa adanya;
+        // BED_NOT_READY hanya dipakai bila reservasi tidak menyebut kode sendiri.
         if (bedResult.Status != InpEpisodeOperationStatus.Success)
             throw new InpBedOperationException(bedResult.Status == InpEpisodeOperationStatus.Conflict ? 409 : 422,
-                "BED_NOT_READY", bedResult.Message);
+                string.IsNullOrWhiteSpace(bedResult.Code) ? "BED_NOT_READY" : bedResult.Code, bedResult.Message);
 
         if (request.DepositAmount > 0)
         {

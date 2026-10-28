@@ -927,6 +927,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         }
 
         /// <summary>
+        /// Memperbarui status penahanan ranjang bangsal (Bed Hold) selama operasi (BE-RWI-183, RWI-DEC-355).
+        /// </summary>
+        [HttpPatch("{id:guid}/bed-hold")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientEpisodeDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Bed Hold Status", Description = "Mengubah status penahanan bed selama operasi", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("InpatientEpisode", "Update")]
+        public Task<IActionResult> UpdateBedHoldStatus(
+            Guid id,
+            [FromBody] UpdateBedHoldStatusRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            // Dinetralkan 25-10-2026 atas persetujuan pemilik (laporan FIX-EPS-040-BE): commit 985a1fc7
+            // memanggil InpEpisodeService.UpdateBedHoldStatusAsync dan GetCurrentUserId yang tidak
+            // pernah ada, sehingga backend tidak dapat di-build. Endpoint dibuka kembali setelah
+            // method service BE-RWI-183 dibuat.
+            IActionResult response = StatusCode(
+                StatusCodes.Status501NotImplemented,
+                ApiResponse<object>.Fail(
+                    StatusCodes.Status501NotImplemented,
+                    "Penahanan tempat tidur selama operasi (BE-RWI-183) belum tersedia."));
+
+            return Task.FromResult(response);
+        }
+
+        /// <summary>
         /// Menerjemahkan penolakan service menjadi kode status yang sudah ditetapkan kontrak.
         /// Kode tidak boleh ditentukan controller sendiri: aturan bisnislah yang menentukan
         /// apakah sesuatu adalah isian yang kurang, tabrakan keadaan, atau penolakan aturan.

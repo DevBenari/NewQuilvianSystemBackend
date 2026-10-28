@@ -438,4 +438,108 @@ public sealed class OperatingRoomExecutionService
                 "Data telah diperbarui pengguna lain. Muat ulang lalu coba kembali.");
         }
     }
+
+    /// <summary>
+    /// Mencatat kejadian kelahiran bayi intraoperatif persalinan SC dan menerbitkan outbox event (BE-OPR-014, OPS-DEC-041, OPS-DEC-042).
+    /// </summary>
+    public async Task<OprBirthEventResponse> RecordBirthEventAsync(
+        Guid caseId,
+        RecordBirthEventRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var oprCase = await _dbContext.OprCases
+            .FirstOrDefaultAsync(x => x.Id == caseId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Kasus operasi tidak ditemukan.");
+
+        var actorUserId = GetUserId(_httpContextAccessor);
+        var now = DateTime.UtcNow;
+
+        var birthEvent = new OprBirthEvent
+        {
+            Id = Guid.NewGuid(),
+            OprCaseId = caseId,
+            BirthDateTime = request.BirthDateTime,
+            Gender = string.IsNullOrWhiteSpace(request.Gender) ? "Male" : request.Gender.Trim(),
+            WeightGrams = request.WeightGrams,
+            LengthCentimeters = request.LengthCentimeters,
+            HeadCircumferenceCm = request.HeadCircumferenceCm,
+            ApgarScore1Min = request.ApgarScore1Min,
+            ApgarScore5Min = request.ApgarScore5Min,
+            ApgarScore10Min = request.ApgarScore10Min,
+            ResuscitationNote = request.ResuscitationNote?.Trim(),
+            ConditionNote = request.ConditionNote?.Trim(),
+            RecordedByDoctorId = request.RecordedByDoctorId,
+            CreateDateTime = now,
+            CreateBy = actorUserId
+        };
+
+        _dbContext.OprBirthEvents.Add(birthEvent);
+
+        // BE-OPR-014 / OPS-DEC-042: Terbitkan Outbox Integration Event untuk Modul Rawat Inap (BE-RWI-184)
+        var outboxPayload = new
+        {
+            EventId = Guid.NewGuid(),
+            EventType = "operating-room.birth-event.recorded",
+            Version = "1.0",
+            OccurredAt = birthEvent.BirthDateTime,
+            CaseId = caseId,
+            BirthEventId = birthEvent.Id,
+            MotherPatientId = oprCase.PatientId,
+            Gender = birthEvent.Gender,
+            WeightGrams = birthEvent.WeightGrams,
+            LengthCentimeters = birthEvent.LengthCentimeters,
+            HeadCircumferenceCm = birthEvent.HeadCircumferenceCm,
+            ApgarScore1Min = birthEvent.ApgarScore1Min,
+            ApgarScore5Min = birthEvent.ApgarScore5Min,
+            ApgarScore10Min = birthEvent.ApgarScore10Min,
+            ConditionNote = birthEvent.ConditionNote
+        };
+
+        var integrationDelivery = new OprIntegrationDelivery
+        {
+            Id = Guid.NewGuid(),
+            OprCaseId = caseId,
+            EventId = outboxPayload.EventId,
+            EventType = outboxPayload.EventType,
+            EventVersion = outboxPayload.Version,
+            OccurredAt = birthEvent.BirthDateTime,
+            PayloadJson = System.Text.Json.JsonSerializer.Serialize(outboxPayload),
+            Destination = "InpatientManagement.NewbornAdmission",
+            MessageType = "IntegrationEvent",
+            IdempotencyKey = $"opr-birth-{caseId}-{birthEvent.Id}",
+            CorrelationId = caseId.ToString(),
+            PayloadReference = $"OprBirthEvent/{birthEvent.Id}",
+            Status = OprDeliveryStatus.Pending,
+            CreateDateTime = now,
+            CreateBy = actorUserId
+        };
+
+        _dbContext.OprIntegrationDeliveries.Add(integrationDelivery);
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        await _loggerService.InfoAsync(
+            "OperatingRoom",
+            "RecordBirthEvent",
+            $"Kelahiran bayi intraoperatif berhasil dicatat untuk kasus {caseId}.",
+            new { CaseId = caseId, BirthEventId = birthEvent.Id });
+
+        return new OprBirthEventResponse
+        {
+            Id = birthEvent.Id,
+            OprCaseId = birthEvent.OprCaseId,
+            BirthDateTime = birthEvent.BirthDateTime,
+            Gender = birthEvent.Gender,
+            WeightGrams = birthEvent.WeightGrams,
+            LengthCentimeters = birthEvent.LengthCentimeters,
+            HeadCircumferenceCm = birthEvent.HeadCircumferenceCm,
+            ApgarScore1Min = birthEvent.ApgarScore1Min,
+            ApgarScore5Min = birthEvent.ApgarScore5Min,
+            ApgarScore10Min = birthEvent.ApgarScore10Min,
+            ResuscitationNote = birthEvent.ResuscitationNote,
+            ConditionNote = birthEvent.ConditionNote,
+            RecordedByDoctorId = birthEvent.RecordedByDoctorId,
+            CreatedAt = birthEvent.CreateDateTime
+        };
+    }
 }

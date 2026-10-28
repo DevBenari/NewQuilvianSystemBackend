@@ -9,6 +9,11 @@ public sealed class InpatientNewbornAdmissionContext
     [Required, MaxLength(20)] public string CareMode { get; set; } = string.Empty;
     [Required, MaxLength(200)] public string CareSource { get; set; } = string.Empty;
     public bool RequiresIntensiveCare { get; set; }
+    /// <summary>
+    /// Wajib bila DPJP bayi bukan dokter anak (K-05 ISSUE-EPS-040). Disimpan sebagai baris
+    /// "Alasan DPJP non-Anak: …" pada catatan admisi; tidak punya kolom sendiri.
+    /// </summary>
+    [MaxLength(300)] public string? NonPediatricDoctorReason { get; set; }
     [Obsolete("Penagihan invoice adalah ranah Billing/Cashier/AR dan tidak dipilih saat admisi bayi.")]
     [MaxLength(20)] public string? FamilyBillingPreference { get; set; }
     [Obsolete("Bayi tidak membuat rencana deposit tambahan pada admisi.")]
@@ -57,7 +62,20 @@ public sealed class NewbornMotherCandidateResponse
     public string? CurrentServiceUnitName { get; set; }
     public Guid? CurrentRoomId { get; set; }
     public string? CurrentRoomName { get; set; }
+    /// <summary>Bed penempatan aktif ibu, contoh "303-A" (FIX-EPS-040-12).</summary>
+    public Guid? CurrentBedId { get; set; }
+    public string? CurrentBedCode { get; set; }
+    public string? CurrentBedName { get; set; }
+    /// <summary>Kelas perawatan penempatan aktif ibu, contoh "VIP".</summary>
+    public string? CurrentPatientClassName { get; set; }
     public int RegisteredBabyCount { get; set; }
+    /// <summary>
+    /// PLAN-REPAIR-EPS-041 FIX-10: bayi yang sudah punya episode (tidak dibatalkan). Contoh: ibu dengan
+    /// 2 bayi terdaftar, salah satunya belum pernah dipesankan tempat → Admitted 1, Pending 1.
+    /// </summary>
+    public int AdmittedBabyCount { get; set; }
+    /// <summary>Bayi yang sudah punya No. RM tetapi belum punya episode — admisinya dapat dilanjutkan.</summary>
+    public int PendingBabyCount { get; set; }
     public int NextBirthOrderPreview { get; set; }
     public bool HasActiveInpatientBaby { get; set; }
     public List<NewbornRegisteredBabyDto> RegisteredBabies { get; set; } = [];
@@ -76,6 +94,8 @@ public sealed class NewbornRegisteredBabyDto
     public string? RoomName { get; set; }
     public string? BedCode { get; set; }
     public bool IsCurrentlyInRoom { get; set; }
+    /// <summary>FIX-10: true bila bayi belum punya episode, sehingga admisinya dilanjutkan dengan RM yang sama.</summary>
+    public bool IsPendingAdmission { get; set; }
 }
 
 public sealed class NewbornMotherCandidatePagedResult

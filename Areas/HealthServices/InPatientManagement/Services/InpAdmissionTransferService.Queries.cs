@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 
@@ -81,7 +82,43 @@ public partial class InpAdmissionTransferService
                         && m.MembershipTier != null && !m.MembershipTier.IsDelete && m.MembershipTier.IsActive
                         && m.MembershipTier.PriorityQueue)
                     .Select(m => (int?)m.MembershipTier!.PriorityLevel)
-                    .FirstOrDefault()
+                    .FirstOrDefault(),
+
+                // PLAN-REPAIR-EPS-041 FIX-01: identitas, kebutuhan klinis, dan DPJP usulan dari permintaan
+                // rawat inap IGD yang ditandatangani. Urutan anggota sama dengan proyeksi Poliklinik di bawah
+                // karena keduanya digabung dengan Concat.
+                Gender = x.EmergencyVisit.Patient == null ? null
+                    : x.EmergencyVisit.Patient.Gender == Gender.Male ? "Laki-laki"
+                    : x.EmergencyVisit.Patient.Gender == Gender.Female ? "Perempuan" : null,
+                NationalId = x.EmergencyVisit.Patient != null ? x.EmergencyVisit.Patient.IdentityNumber : null,
+                PhoneNumber = x.EmergencyVisit.Patient != null ? x.EmergencyVisit.Patient.PhoneNumber : null,
+                NeedsIsolation = _dbContext.Set<EmgAdmissionRequest>().Any(f => f.DispositionId == x.Id && !f.IsDelete
+                    && f.Status == EmergencyAdmissionRequestStatus.Signed && f.NeedsIsolation),
+                NeedsIntensiveCare = _dbContext.Set<EmgAdmissionRequest>().Any(f => f.DispositionId == x.Id && !f.IsDelete
+                    && f.Status == EmergencyAdmissionRequestStatus.Signed && f.NeedsIntensiveCare),
+                NeedsOxygenSupport = _dbContext.Set<EmgAdmissionRequest>().Any(f => f.DispositionId == x.Id && !f.IsDelete
+                    && f.Status == EmergencyAdmissionRequestStatus.Signed && f.NeedsOxygenSupport),
+                NeedsSpecialMonitoring = _dbContext.Set<EmgAdmissionRequest>().Any(f => f.DispositionId == x.Id && !f.IsDelete
+                    && f.Status == EmergencyAdmissionRequestStatus.Signed && f.NeedsSpecialMonitoring),
+                EstimatedLengthOfStayDays = _dbContext.Set<EmgAdmissionRequest>()
+                    .Where(f => f.DispositionId == x.Id && !f.IsDelete && f.Status == EmergencyAdmissionRequestStatus.Signed)
+                    .OrderByDescending(f => f.SignedAt)
+                    .Select(f => (int?)f.EstimatedLengthOfStayDays)
+                    .FirstOrDefault(),
+                ProposedInpatientDoctorId = _dbContext.Set<EmgAdmissionRequest>()
+                    .Where(f => f.DispositionId == x.Id && !f.IsDelete && f.Status == EmergencyAdmissionRequestStatus.Signed
+                        && f.ProposedInpatientDoctor != null && f.ProposedInpatientDoctor.IsActive && !f.ProposedInpatientDoctor.IsDelete)
+                    .OrderByDescending(f => f.SignedAt)
+                    .Select(f => f.ProposedInpatientDoctorId)
+                    .FirstOrDefault(),
+                ProposedInpatientDoctorName = _dbContext.Set<EmgAdmissionRequest>()
+                    .Where(f => f.DispositionId == x.Id && !f.IsDelete && f.Status == EmergencyAdmissionRequestStatus.Signed
+                        && f.ProposedInpatientDoctor != null)
+                    .OrderByDescending(f => f.SignedAt)
+                    .Select(f => f.ProposedInpatientDoctor!.FullName)
+                    .FirstOrDefault(),
+                Diagnosis = null,
+                RequestedRoomClass = null
             });
 
         // Sumber Poliklinik hanya Surat Pengantar Rawat Inap; Surat Rujukan biasa bukan pengajuan admisi.
@@ -139,7 +176,22 @@ public partial class InpAdmissionTransferService
                         && m.MembershipTier != null && !m.MembershipTier.IsDelete && m.MembershipTier.IsActive
                         && m.MembershipTier.PriorityQueue)
                     .Select(m => (int?)m.MembershipTier!.PriorityLevel)
-                    .FirstOrDefault()
+                    .FirstOrDefault(),
+
+                // PLAN-REPAIR-EPS-041 FIX-01: urutan anggota sama dengan proyeksi IGD. Surat pengantar
+                // tidak memuat kebutuhan klinis IGD; yang dibawa adalah diagnosis dan kelas yang diminta.
+                Gender = p.Gender == Gender.Male ? "Laki-laki" : p.Gender == Gender.Female ? "Perempuan" : null,
+                NationalId = p.IdentityNumber,
+                PhoneNumber = p.PhoneNumber,
+                NeedsIsolation = false,
+                NeedsIntensiveCare = false,
+                NeedsOxygenSupport = false,
+                NeedsSpecialMonitoring = false,
+                EstimatedLengthOfStayDays = null,
+                ProposedInpatientDoctorId = null,
+                ProposedInpatientDoctorName = null,
+                Diagnosis = c.ReferralDiagnosis ?? c.Diagnosis,
+                RequestedRoomClass = c.RequestedRoomClass
             };
         return sourceType == "Emergency" ? emergency : sourceType == "Outpatient" ? outpatient : emergency.Concat(outpatient);
     }

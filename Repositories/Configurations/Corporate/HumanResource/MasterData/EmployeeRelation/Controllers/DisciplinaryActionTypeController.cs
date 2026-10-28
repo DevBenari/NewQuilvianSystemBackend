@@ -16,6 +16,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Employe
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/human-resource/master-data/action-types")]
     [Route("api/v1/corporate/human-resource/master-data/actiontypes")]
     [AccessController(
         moduleCode: "HUMAN_RESOURCE_MASTER_DATA",

@@ -15,6 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/human-resource/master-data/work-calendars")]
     [Route("api/v1/corporate/human-resource/master-data/workcalendars")]
     [Tags("Corporate / Human Resource / Master Data / WorkCalendar")]
     [AccessController(moduleCode:"HUMAN_RESOURCE_MASTER_DATA",moduleName:"Human Resource Master Data",displayName:"WorkCalendar",AreaName="Corporate",ControllerName="WorkCalendar",Description="Master WorkCalendar",SortOrder=20)]

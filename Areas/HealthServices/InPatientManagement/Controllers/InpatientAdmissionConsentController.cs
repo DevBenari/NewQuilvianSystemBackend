@@ -26,7 +26,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         Description = "Formulir persetujuan rawat inap dan tanda tangan digital pasien / penanggung jawab",
         SortOrder = 20
     )]
-    [Tags("InpatientAdmissionConsent")]
+    [Tags("Health Services / Inpatient Management / Inpatient Admission Consent")]
     public class InpatientAdmissionConsentController : ControllerBase
     {
         private readonly InpatientAdmissionConsentService _consentService;
