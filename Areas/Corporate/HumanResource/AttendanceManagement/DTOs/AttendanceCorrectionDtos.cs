@@ -95,6 +95,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         public DateTime? AppliedAt { get; set; }
         public DateTime CreateDateTime { get; set; }
         public string? RequestedByUserName { get; set; }
+        public bool IsOnBehalf { get; set; }
+        public string? OnBehalfReason { get; set; }
+        public Guid? InitiatedByUserId { get; set; }
+        public string? InitiatedByUserName { get; set; }
+        public DateTime? OnBehalfNotifiedAt { get; set; }
     }
 
     public class AttendanceCorrectionPagedResponse
@@ -199,6 +204,35 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
 
         [Required, MaxLength(1500)]
         public string Reason { get; set; } = string.Empty;
+
+        public List<Guid> ExceptionIds { get; set; } = new();
+
+        [MinLength(1)]
+        public List<AttendanceCorrectionDetailInputRequest> Details { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Permohonan koreksi presensi atas nama pegawai (On-Behalf) oleh HR Admin.
+    /// [DECISION] HRD-DEC-028.
+    /// </summary>
+    public class CreateAttendanceCorrectionOnBehalfRequest
+    {
+        [Required]
+        public Guid WorkforceProfileId { get; set; }
+
+        [Required]
+        public Guid AttendanceDailyId { get; set; }
+
+        public Guid? RequestReasonId { get; set; }
+
+        [Required, MaxLength(50)]
+        public string CorrectionType { get; set; } = string.Empty;
+
+        [Required, MaxLength(1500)]
+        public string Reason { get; set; } = string.Empty;
+
+        [Required, MaxLength(500)]
+        public string OnBehalfReason { get; set; } = string.Empty;
 
         public List<Guid> ExceptionIds { get; set; } = new();
 

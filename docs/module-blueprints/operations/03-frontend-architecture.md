@@ -20,9 +20,9 @@ Anestesi, consent, checklist, tim, implant, diagnosis, dan dokumentasi adalah ba
 | Aktor | Aksi UI yang boleh ditawarkan |
 |---|---|
 | Dokter pemohon/bedah | Membuat permintaan, melihat kasus terkait, mulai operasi, catatan/finalisasi/addendum, pembatalan sesuai status |
-| Koordinator | Menjadwalkan, reschedule/postpone, menetapkan ruang dan tim |
+| Koordinator | Menjadwalkan via visualisasi grid/timeline kalender ruang OK (Lantai 2), buffer sterilisasi otomatis, menetapkan ruang dan tim tri-dokter Obgyn, serta Cito override (`OPS-DEC-038` s.d. `OPS-DEC-041`) |
 | Dokter anestesi | Sign-off anestesi, catatan anestesi, keputusan recovery, pembatalan sebelum mulai |
-| Perawat | Persiapan/checklist, pemakaian material, pemantauan recovery, handover |
+| Perawat | Persiapan/checklist, pemakaian material, pemantauan recovery, handover, pencatatan kelahiran bayi intraoperatif SC (`OPS-DEC-042`) |
 | Penerima unit tujuan | Menerima atau menolak handover dengan alasan |
 | Pengguna laporan | Melihat laporan sesuai permission |
 

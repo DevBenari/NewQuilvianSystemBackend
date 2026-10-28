@@ -407,7 +407,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         ? InpAdmissionPrintKind.InfantWristband
                         : InpAdmissionPrintKind.AdultWristband),
                     DisplayName = InpWristbandRules.BuildDisplayName(
-                        patient.FullName, patient.IsNewborn, patient.MotherName, patient.Gender, patient.MaritalStatus, patient.BirthDate, today, patient.BirthOrder),
+                        patient.FullName, patient.IsNewborn, patient.Gender, patient.MaritalStatus, patient.BirthDate, today, patient.BirthOrder),
+                    MotherLine = InpWristbandRules.BuildMotherLine(patient.IsNewborn, patient.MotherName),
                     BirthDateText = patient.BirthDate.HasValue ? InpAdmissionText.FormatShortDate(patient.BirthDate.Value) : null,
                     AgeText = ageText,
                     MedicalRecordNumber = patient.MedicalRecordNumber,

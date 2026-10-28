@@ -1196,6 +1196,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmPrescriptionCopyItem> PhmPrescriptionCopyItems { get; set; }
 
         public DbSet<OprStockSource> OprStockSources { get; set; }
+        public DbSet<OprBirthEvent> OprBirthEvents { get; set; }
 
         // BE-RWI-176: Catatan Pra-Operasi bangsal berversi (kamus data 19.4 s.d. 19.6, migration E5).
         public DbSet<OprWardPreOpNote> OprWardPreOpNotes { get; set; }

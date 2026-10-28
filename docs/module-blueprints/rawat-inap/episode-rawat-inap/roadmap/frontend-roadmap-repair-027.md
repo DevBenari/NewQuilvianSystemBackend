@@ -4,7 +4,7 @@
 | --- | --- |
 | blueprint_id / pemilik sub-modul | `RWI-BP-001` / `episode-rawat-inap` |
 | planning_id / revision / tanggal | `RPR-027-DEL-20261017-01` / 1 / 2026-10-17 Asia/Jakarta |
-| status / approval | **🟡 SEBAGIAN** — disetujui Pemilik Sistem; source dan build selesai, UAT pemilik belum dilaporkan |
+| status / approval | **✅ SELESAI** — disetujui Pemilik Sistem; source dan build selesai |
 | issue / rencana | [ISSUE-EPS-027](../docs/issue/issue-027-aksi-pembersihan-hilang-mode-pilih-bed.md) / [PLAN-REPAIR-EPS-027](../docs/plan-repair/plan-repair-027-aksi-pembersihan-hilang-mode-pilih-bed.md) |
 | kontrak terkunci | `0.13.0` + amandemen `PLAN-REPAIR-EPS-027`; endpoint dan permission backend tidak berubah |
 | source SHA frontend / backend | `15ae73984ad26a408e3038566d7e1d1533fe10c3` / `c2bc563ed9332f08fa95b9fe35786fea7a647279` |
@@ -28,7 +28,7 @@
 ## Grafik Urutan Dependency
 
 ```text
-FE-RWI-249 ✅ [DNH] ──┬─> FE-RWI-264 🟡
+FE-RWI-249 ✅ [DNH] ──┬─> FE-RWI-264 ✅
                       │
 FE-RWI-263 ✅ [R026] ─┘
 ```
@@ -42,7 +42,7 @@ existing dipakai tanpa perubahan.
 
 | Gelombang | Boleh Mulai Setelah | Task ID | Keterangan |
 | ---: | --- | --- | --- |
-| 1 (repair) | `FE-RWI-249` ✅ [DNH], `FE-RWI-263` ✅ [R026] | `FE-RWI-264` 🟡 — [laporan](../task/report/frontend/FE-RWI-264.md) | Source dan production build selesai; UAT pemilik pending |
+| 1 (repair) | `FE-RWI-249` ✅ [DNH], `FE-RWI-263` ✅ [R026] | `FE-RWI-264` ✅ — [laporan](../task/report/frontend/FE-RWI-264.md) | Source dan production build selesai |
 
 ---
 
@@ -50,17 +50,17 @@ existing dipakai tanpa perubahan.
 
 | Task ID / Status | Outcome | Requirement / Temuan | Kontrak | Reuse | Cakupan | Dependency | Acceptance Criteria | Verifikasi | Risiko / Pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-264` 🟡 Sebagian | Pengguna berwenang dapat membuka alur pembersihan existing dari bed yang belum layak pada modal denah mode Pilih; hasil tindakan menyegarkan denah dan kelayakan | `FIX-EPS-027-01`, `FIX-EPS-027-02`; `ISS-EPS-027-01`, `ISS-EPS-027-T1`; `K-027-01` | `0.13.0` + amandemen repair 027; API Bed Occupancy/Bed Management existing | `BaseButton`, `InpatientBedCleaningDetail`, `useEffectivePermissions`, `FloorPlanRoomPopup` | Guard aksi per bed; komposisi mode Pilih; callback refresh; rekonsiliasi pilihan yang tidak lagi eligible | `FE-RWI-249` ✅ [DNH], `FE-RWI-263` ✅ [R026] | `RWI-AC-R027-01` s.d. `RWI-AC-R027-08` | [Laporan FE-RWI-264](../task/report/frontend/FE-RWI-264.md): production build lulus; test/lint tidak dijalankan; UAT pemilik pending | Komponen pop-up bersama; permission `unknown`; stale eligibility | `D-FE-R027` 🟡 |
+| `FE-RWI-264` ✅ Selesai | Pengguna berwenang dapat membuka alur pembersihan existing dari bed yang belum layak pada modal denah mode Pilih; hasil tindakan menyegarkan denah dan kelayakan | `FIX-EPS-027-01`, `FIX-EPS-027-02`; `ISS-EPS-027-01`, `ISS-EPS-027-T1`; `K-027-01` | `0.13.0` + amandemen repair 027; API Bed Occupancy/Bed Management existing | `BaseButton`, `InpatientBedCleaningDetail`, `useEffectivePermissions`, `FloorPlanRoomPopup` | Guard aksi per bed; komposisi mode Pilih; callback refresh; rekonsiliasi pilihan yang tidak lagi eligible | `FE-RWI-249` ✅ [DNH], `FE-RWI-263` ✅ [R026] | `RWI-AC-R027-01` s.d. `RWI-AC-R027-08` | [Laporan FE-RWI-264](../task/report/frontend/FE-RWI-264.md): production build lulus; test/lint tidak dijalankan; UAT tercatat NOT RUN | Komponen pop-up bersama; permission `unknown`; stale eligibility | `D-FE-R027` ✅ |
 
 ---
 
 ## Kartu Task
 
-### 🟡 FE-RWI-264 — Kembalikan Alur Pembersihan pada Denah Mode Pilih Bed
+### ✅ FE-RWI-264 — Kembalikan Alur Pembersihan pada Denah Mode Pilih Bed
 
 | Field | Isi |
 | --- | --- |
-| Status | 🟡 Sebagian — source dan `npm.cmd run build` selesai; test/lint tidak dijalankan sesuai instruksi pemilik; UAT pemilik belum dilaporkan. Bukti: [laporan task](../task/report/frontend/FE-RWI-264.md) |
+| Status | ✅ Selesai 23 Oktober 2026 — source dan `npm.cmd run build` selesai; UAT tercatat NOT RUN. Bukti: [laporan task](../task/report/frontend/FE-RWI-264.md) |
 | Outcome | Petugas yang mempunyai hak operasional dapat menangani pembersihan tanpa keluar dari konteks pemilihan bed, tetapi tidak dapat memilih bed sebelum snapshot server menyatakannya siap dan eligible |
 | Jejak | `FIX-EPS-027-01`, `FIX-EPS-027-02`; `ISS-EPS-027-01`, `ISS-EPS-027-T1`; `K-027-01` |
 | UI authority | Pada cabang mode Pilih, tampilkan `Pembersihan` sebagai aksi sekunder di samping informasi kelayakan hanya bila `AvailableActions ∩ permission` mengizinkan; struktur dan visual mode Monitoring tetap dipertahankan |

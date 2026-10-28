@@ -42,6 +42,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     /// </remarks>
     public partial class InpBedOccupancyService
     {
+        /// <summary>Alasan tidak layak yang lebih tepat daripada <c>BED_NOT_READY</c> (FIX-EPS-040-16).</summary>
+        private static readonly HashSet<string> SpecificUnavailableCodes =
+            ["BED_INACTIVE", "BED_CLOSED", "BED_RESERVED_BY_OTHER", "BED_OCCUPIED_BY_OTHER"];
+
         private readonly ApplicationDbContext _dbContext;
         private readonly InpBedMutationCoordinator _bedCoordinator;
         private readonly InpBedAccessService _bedAccess;
@@ -1500,6 +1504,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     EndDateTime = x.EndDateTime,
                     EndReason = x.EndReason != null ? (int)x.EndReason : null,
                     TransferReason = x.TransferReason,
+                    ChangeReason = x.ChangeReason,
                     PlacedByUserId = x.PlacedByUserId,
                     EndedByUserId = x.EndedByUserId,
                     IsCurrent = x.EndDateTime == null,
@@ -1666,8 +1671,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             }
             var episodeId = episode?.Id ?? Guid.Empty;
             var ownReservation = episode != null && (bedReservations?.Any(x => x.EpisodeId == episode.Id) ?? false);
-            if (!operational.IsBookable && !(ownReservation && operational.StatusCode == "Reserved" && root?.State == InpBedReadinessState.Ready && operational.ConflictCode == null))
-                result.Add(1, "BED_NOT_READY", "Bed belum siap atau masih dipegang. Muat ulang kesiapan bed.", 422);
+            var bedNotReady = !operational.IsBookable && !(ownReservation && operational.StatusCode == "Reserved" && root?.State == InpBedReadinessState.Ready && operational.ConflictCode == null);
 
             // --- Aturan 1: tempat tidur aktif dan tidak sedang ditutup -------------------
             if (bed.IsDelete || !bed.IsActive)
@@ -1714,6 +1718,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         : BedTakenMessage(bed.BedCode),
                     409);
             }
+
+            // FIX-EPS-040-16: "belum siap atau masih dipegang" hanya bila belum ada alasan yang lebih
+            // tepat; bed yang ditempati atau dipesan pasien lain cukup memakai alasannya sendiri.
+            if (bedNotReady && !result.Failures.Any(x => SpecificUnavailableCodes.Contains(x.Code)))
+                result.Add(1, "BED_NOT_READY", "Bed belum siap atau masih dipegang. Muat ulang kesiapan bed.", 422);
 
             // Aturan 3 bukan penolakan. Pemesanan milik episode ini yang masih berlaku dipakai,
             // dan pemesanan yang sudah gugur tidak menghalangi apa pun — RWI-RULE-015.

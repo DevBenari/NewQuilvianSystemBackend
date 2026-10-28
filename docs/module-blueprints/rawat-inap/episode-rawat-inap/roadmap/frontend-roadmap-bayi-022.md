@@ -91,5 +91,5 @@ Definition of Done: lint, unit suite, build, pemeriksaan interaktif, laporan, ro
 | --- | :---: | --- |
 | `FE-RWI-257` | ✅ Selesai source | [FE-RWI-257.md](../task/report/frontend/FE-RWI-257.md) |
 | `FE-RWI-258` | ✅ Selesai source | [FE-RWI-258.md](../task/report/frontend/FE-RWI-258.md) |
-| `FE-RWI-259` | ⚠️ Source selesai; live pending | [FE-RWI-259.md](../task/report/frontend/FE-RWI-259.md) |
+| `FE-RWI-259` | ✅ Selesai | [FE-RWI-259.md](../task/report/frontend/FE-RWI-259.md) |
 

@@ -1,6 +1,6 @@
 # Modul Operasi — Arsitektur Backend
 
-Status: `approved` oleh pemilik kebutuhan pada 2026-08-21. Input: requirement `READY_FOR_DOMAIN_DESIGN`, domain architecture `DOMAIN_ARCHITECTURE_READY` revision 1.
+Status: `approved` oleh pemilik kebutuhan pada 2026-08-21; Diamendemen pada 2026-10-23 (`OPS-DEC-038` s.d. `OPS-DEC-042`: Penjadwalan Ruang OK Timeline, Buffer Sterilisasi Otomatis, Tri-Dokter Obgyn SC, Lookup Admisi Ranap, dan Auto-Trigger Admisi Bayi Baru Lahir). Input: requirement `READY_FOR_DOMAIN_DESIGN`, domain architecture `DOMAIN_ARCHITECTURE_READY` revision 1.
 
 ## Bounded Context dan Ownership
 
@@ -83,6 +83,8 @@ Semua model baru berada di `Areas/HealthServices/OperatingRoomManagement/Models/
 | `OperatingRoomSchedulingService` | Baru | `.../Services/OperatingRoomSchedulingService.cs` | Service | Pemeriksaan benturan dan revisi jadwal; membuka transaksi DB |
 | `OperatingRoomIntegrationService` | Baru | `.../Services/OperatingRoomIntegrationService.cs` | Service | Membuat delivery idempotent; retry/reconciliation |
 | `OperatingRoomCaseController` | Baru | `.../Controllers/OperatingRoomCaseController.cs` | Controller | Query kasus serta command lifecycle; memakai ketiga service |
+| `OperatingRoomScheduleController` | Diperbarui | `.../Controllers/OperatingRoomScheduleController.cs` | Controller | Penjadwalan ruang OK, visualisasi grid timeline, buffer sterilisasi, dan lookup admisi (`OPS-DEC-038` s.d. `OPS-DEC-040`) |
+| `OperatingRoomExecutionController` | Diperbarui | `.../Controllers/OperatingRoomExecutionController.cs` | Controller | Pelaksanaan operasi, catatan bedah, anestesi, dan pencatatan kelahiran bayi SC (`OPS-DEC-042`) |
 | `OperatingRoomReportController` | Baru | `.../Controllers/OperatingRoomReportController.cs` | Controller | Query laporan read-only; GET tidak dicatat custom logger |
 
 Setiap model mempunyai file `...Configuration.cs` di folder configuration canonical dan memakai `DeleteBehavior.Restrict` untuk relasi klinis.

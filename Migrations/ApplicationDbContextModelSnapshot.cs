@@ -11798,6 +11798,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<Guid?>("InitiatedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -11812,6 +11815,18 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOnBehalf")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("OnBehalfNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OnBehalfReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("OriginalSummaryJson")
                         .HasColumnType("jsonb");
@@ -11877,6 +11892,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("AttendanceId");
 
+                    b.HasIndex("InitiatedByUserId");
+
                     b.HasIndex("RejectionReasonId");
 
                     b.HasIndex("RequestNumber")
@@ -11892,6 +11909,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("WorkflowInstanceId")
                         .IsUnique()
                         .HasFilter("\"WorkflowInstanceId\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("IsOnBehalf", "RequestStatus");
 
                     b.HasIndex("RequestStatus", "SubmittedAt");
 
@@ -84328,6 +84347,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("AdmittedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("BedHoldStatus")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
@@ -84360,6 +84383,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<int>("ClearanceStatus")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ClinicalSubCategory")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("timestamp with time zone");
@@ -84449,6 +84476,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsRoomingInBabyPlanned")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("IsSupervisorOverridden")
                         .HasColumnType("boolean");
 
@@ -84467,6 +84497,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<int?>("IsolationSource")
                         .HasColumnType("integer");
+
+                    b.Property<Guid?>("MaternityPackageId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid?>("MotherEpisodeId")
                         .HasColumnType("uuid");
@@ -84523,6 +84556,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("SupervisorOverrideReason")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("SurgicalBookingNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -97956,6 +97993,89 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("OprAnesthesiaRecord", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprBirthEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("ApgarScore10Min")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ApgarScore1Min")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ApgarScore5Min")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("BirthDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConditionNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Gender")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("HeadCircumferenceCm")
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("LengthCentimeters")
+                        .HasColumnType("decimal(8,2)");
+
+                    b.Property<Guid>("OprCaseId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("RecordedByDoctorId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResuscitationNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("WeightGrams")
+                        .HasColumnType("decimal(8,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OprCaseId");
+
+                    b.ToTable("OprBirthEvent", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprCase", b =>
@@ -111757,6 +111877,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("AttendanceId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "InitiatedByUser")
+                        .WithMany()
+                        .HasForeignKey("InitiatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstRejectionReason", "RejectionReason")
                         .WithMany()
                         .HasForeignKey("RejectionReasonId")
@@ -111798,6 +111923,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Attendance");
 
                     b.Navigation("AttendanceDaily");
+
+                    b.Navigation("InitiatedByUser");
 
                     b.Navigation("RejectionReason");
 
@@ -134526,6 +134653,17 @@ namespace QuilvianSystemBackend.Migrations
                         .WithOne()
                         .HasForeignKey("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprAnesthesiaRecord", "OprCaseId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("OprCase");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprBirthEvent", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprCase", "OprCase")
+                        .WithMany()
+                        .HasForeignKey("OprCaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("OprCase");

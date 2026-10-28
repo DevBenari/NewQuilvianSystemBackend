@@ -120,6 +120,8 @@ Sudah Di Kerjakan ✅
 
 1. **Identitas bayi baru lahir pada gelang pasien:** Jika pasien yang didaftarkan adalah bayi baru lahir, tampilkan nama pada gelang dengan format **By. Ny. [Nama Ibu]**. Jika bayi kembar, tambahkan penanda, misalnya **(Kembar 1)**. Nomor kembar bertambah secara berurutan untuk bayi yang terhubung dengan ibu yang sama.
 
+Sudah Di Kerjakan ✅
+
 2. **Estimasi Biaya:** Perhitungan estimasi Biaya mengikuti penjelasan yang sebelumnya diberikan melalui ChatGPT.
 
 https://chatgpt.com/share/e/6ad09df7-2b1c-83ec-98e2-ff0a0ec399d7
