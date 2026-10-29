@@ -1378,7 +1378,7 @@ preview draft tidak dapat dicetak, surat yang menjadi dasar kunjungan aktif dibe
 | Field | Isi |
 | --- | --- |
 | **Sumber requirement** | Sukma Giri, 28 Okt 2026, permintaan langsung (poin 1–3) |
-| **Keputusan** | `RJ-DOC-DEC-084`..`090` ([00-interview-decisions.md](../00-interview-decisions.md), *Amendment SF*); fakta `F-SF-1`..`4` |
+| **Keputusan** | `RJ-DOC-DEC-084`..`093` ([00-interview-decisions.md](../00-interview-decisions.md), *Amendment SF*); fakta `F-SF-1`..`4` |
 | **Data (sudah dieksekusi, bukan task)** | `DEC-084` pembersihan data uji, `DEC-085` tautan `GDG-023` ke `SU-OPD-001`, `DEC-086` saldo pembuka `GDG-023` |
 | **Kontrak** | `GET /api/v1/health-services/clinical-management/prescribing-drugs` menerima `fromPharmacyStock` (bool, opsional, bawaan `false`). Bila `true`: depo dari `PharmacyDepotRoutingService`; gagal routing → `400` berisi pesan routing; hanya obat yang punya saldo di depo; item menambah `stockStorageLocationId`, `stockStorageLocationName`, `availableStockQuantity`, `isStockAvailable`; `canSelect` ikut `false` bila stok tersedia `0`. Tanpa parameter, respons identik dengan sebelumnya |
 | **`IMPLEMENTATION_AUTHORITY`** | `GRANTED`, `CROSS-REPO MODE`, untuk `RJ-DOC-REV-BE-022` dan `RJ-DOC-REV-FE-022` (`RJ-DOC-DEC-088`). Tanpa migration, commit, push, merge, deploy |
@@ -1389,7 +1389,8 @@ Legenda tanda status: `✅` selesai, `🟡` sebagian, `⛔` terblokir, tanpa tan
 ### Grafik Urutan Dependency
 
 ```text
-RJ-DOC-REV-BE-022 ✅ ─> RJ-DOC-REV-FE-022 ✅ ─> RJ-DOC-REV-FE-023 ✅
+RJ-DOC-REV-BE-022 ✅ ─┬─> RJ-DOC-REV-FE-022 ✅ ─> RJ-DOC-REV-FE-023 ✅
+                      └─> RJ-DOC-REV-BE-023 ✅
 ```
 
 | Gelombang | Task | Boleh mulai bila |
@@ -1397,12 +1398,14 @@ RJ-DOC-REV-BE-022 ✅ ─> RJ-DOC-REV-FE-022 ✅ ─> RJ-DOC-REV-FE-023 ✅
 | 1 | `RJ-DOC-REV-BE-022` | Wewenang `RJ-DOC-DEC-088`; data `DEC-084`..`086` sudah dieksekusi |
 | 2 | `RJ-DOC-REV-FE-022` | `BE-022` selesai |
 | 3 | `RJ-DOC-REV-FE-023` | `FE-022` selesai; wewenang `RJ-DOC-DEC-090` |
+| 3 | `RJ-DOC-REV-BE-023` | `BE-022` selesai; wewenang `RJ-DOC-DEC-093` |
 
 ### 21.1 Task backend
 
 | Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
 | --- | --- | --- | --- | --- | --- |
 | ✅ `RJ-DOC-REV-BE-022` | **Katalog resep berbasis stok depo.** `PrescribingDrugController.GetDrugs` menerima `fromPharmacyStock`. Bila `true`: (1) depo dari `PharmacyDepotRoutingService.ResolveAsync(encounterId)`; gagal → `400` dengan pesan routing. (2) Query obat dibatasi pada obat yang punya `PhmDrugStockBalance` tidak terhapus di depo itu. (3) Stok tersedia per obat halaman = jumlah `QuantityOnHand − QuantityReserved` berstatus `Available`, batch belum kedaluwarsa (aturan sama dengan kandidat FEFO). (4) Item respons menambah empat ruas kontrak; `canSelect = false` dan pesan kesiapan "Stok … habis" bila stok tersedia `0`. Tanpa parameter, perilaku lama identik (`DEC-087`) | — | 1. Kunjungan Rawat Jalan + `fromPharmacyStock=true` → `200`, `stockStorageLocationName` = `FARMASI RAWAT JALAN`, `availableStockQuantity` sama dengan query baca-saja saldo. 2. Saldo obat dibuat `0` → obat tetap tampil, `isStockAvailable=false`, `canSelect=false`. 3. Obat tanpa saldo di depo tidak tampil; `totalData` hanya menghitung obat bersaldo. 4. Tanpa parameter → respons sama dengan sebelum perubahan (jumlah dan ruas lama). 5. Encounter tanpa depo → `400` pesan routing | Build Release; EF tanpa perubahan model; QBE Strict; runtime HTTP R0..Rn ke `7185` dengan `QuilvianNewDevSukma` | ✅ `COMPLETE` `2026-10-28` — build Release `0 Error` (417 warning lama), EF tanpa perubahan model, QBE Strict `PASS` (3 berkas, VIOLATION 0), runtime `9/9 PASS` (R0–R8, baca-saja). AC 2 (stok `0`) dan cabang obat tanpa saldo AC 3 dibuktikan lewat kode; runtime `NOT RUN` karena seluruh obat berstok (`RJ-DOC-DEC-086`), uji stok `0` oleh owner. Delta: nama depo juga di tingkat halaman. Tanpa migration. Branch `sukmagp`, belum di-commit. [Laporan](../task/report/backend/RJ-DOC-REV-BE-022.md) |
+| ✅ `RJ-DOC-REV-BE-023` | **Seeder stok Farmasi RJ dan sinkron master (`RJ-DOC-DEC-091`, `092`).** (1) `PharmacyOpeningStockSeeder` di `PharmacyManagement/Seeders` membaca CSV tertanam salinan saldo `GDG-023` Sukma (kode obat, batch, kedaluwarsa, status, jumlah); per baris: cari obat per kode, buat batch bila belum ada, buat saldo bila belum ada beserta mutasi `OpeningBalance`, lewati yang sudah ada. (2) Tautkan `GDG-023` ke `SU-OPD-001` bila kosong. (3) Flag `Seeders:RunPharmacyOpeningStockSeed` bawaan `false`, menolak Production, jalan sesudah `DrugStorageLocationSeeder`. (4) Eksekusi ke `QuilvianNewDevMaster` lewat harness: pembersihan `DEC-092`, `DrugStorageLocationSeeder`, lalu seeder stok | `BE-022` | 1. Dijalankan ke Sukma: 0 baris baru (idempoten), tautan tidak berubah. 2. Uji sisip dalam transaksi yang dibatalkan: baris baru menghasilkan batch, saldo, dan satu mutasi `OpeningBalance` yang jumlahnya sama dengan saldo. 3. Production → ditolak tanpa menulis. 4. Master sesudah eksekusi: tidak ada lokasi uji, 123 gudang dengan id sama dengan Sukma, saldo `GDG-023` sama dengan Sukma per kode obat, batch, status, dan jumlah; total kartu stok = total saldo. 5. Build, EF tanpa perubahan model, QBE Strict | Build Release; EF; QBE Strict; harness ke Sukma dan master dengan pratinjau baca-saja sebelum menulis | ✅ `COMPLETE` `2026-10-29` — build Release `0 Error` (417 warning lama), EF tanpa perubahan model, QBE Strict `PASS` (2 berkas), harness `7/7` (Sukma T1–T3 dibatalkan; master M1 timeout otomatis rollback, M2 `COMMIT`: hapus data uji, 123 gudang, 7.864 saldo, 7.862 kartu stok; M3–M4 master identik dengan Sukma, kartu stok = saldo). Tanpa migration. Startup aplikasi sungguhan dengan flag `true` tidak dijalankan. Branch `sukmagp`, belum di-commit. [Laporan](../task/report/backend/RJ-DOC-REV-BE-023.md) |
 
 ### 21.2 Task frontend
 

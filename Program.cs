@@ -1694,6 +1694,64 @@ try
             result.Skipped);
     }
 
+    static async Task SeedPharmacyOpeningStockAsync(
+        IServiceProvider services,
+        IHostEnvironment environment,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("PharmacyOpeningStockSeeder");
+
+        var systemUserId = await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.NormalizedUserName == "SUPERADMIN" ||
+                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (systemUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Seeder stok Farmasi Rawat Jalan membutuhkan akun SuperAdmin.");
+        }
+
+        var result = await PharmacyOpeningStockSeeder.SeedAsync(
+            dbContext,
+            environment.EnvironmentName,
+            systemUserId,
+            ct: cancellationToken);
+
+        if (result.RefusedReason is not null)
+        {
+            logger.LogWarning("[PharmacyOpeningStock] {Reason}", result.RefusedReason);
+            return;
+        }
+
+        if (result.UnknownDrugCodes.Count > 0 || result.ExpiryConflicts.Count > 0)
+        {
+            logger.LogWarning(
+                "[PharmacyOpeningStock] Dilewati: {Unknown} kode obat tidak dikenal, {Conflict} batch berbeda kedaluwarsa.",
+                result.UnknownDrugCodes.Count,
+                result.ExpiryConflicts.Count);
+        }
+
+        logger.LogInformation(
+            "Seeder stok Farmasi Rawat Jalan selesai. Saldo baru {Balances}, batch baru {Batches}, " +
+            "kartu stok {Mutations}, dilewati {Skipped}, tautan Rawat Jalan {Linked}.",
+            result.BalancesCreated,
+            result.BatchesCreated,
+            result.MutationsCreated,
+            result.Skipped,
+            result.LinkedServiceUnit);
+    }
+
     static async Task SeedOperatingRoomDemoAsync(
         IServiceProvider services,
         IHostEnvironment environment,
@@ -2279,6 +2337,18 @@ try
             await RunStartupSeederAsync(
                 "DrugStorageLocationSeeder",
                 () => SeedDrugStorageLocationsAsync(app.Services));
+        }
+
+        // Sesudah DrugStorageLocationSeeder karena saldonya ditempatkan di GDG-023 (RJ-DOC-DEC-091).
+        var runPharmacyOpeningStockSeed =
+            builder.Configuration.GetValue<bool>(
+                "Seeders:RunPharmacyOpeningStockSeed");
+
+        if (runPharmacyOpeningStockSeed)
+        {
+            await RunStartupSeederAsync(
+                "PharmacyOpeningStockSeeder",
+                () => SeedPharmacyOpeningStockAsync(app.Services, app.Environment));
         }
 
         // Seed Awal Saja
