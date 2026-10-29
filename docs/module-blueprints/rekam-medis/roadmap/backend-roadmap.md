@@ -1428,15 +1428,15 @@ module_owner_approvals:   # untuk berkas pembaca di folder modul lain
 | `BE-24` | `MVP-1` | `RM-02` | Pembaca Radiologi + pemeriksaan tertunda | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-24.md` |
 | `BE-25` | `MVP-2` | `RM-06` | Penutupan klinis kunjungan | **`SELESAI`** 28 Oktober 2026 — 13 uji lulus, laporan `task/report/backend/BE-25.md` |
 | `BE-26` | `MVP-2` | `RM-06` | Penanda `Susulan` di linimasa | **`SELESAI`** 29 Oktober 2026 — 23 uji lulus (seluruh project `85`), laporan `task/report/backend/BE-26.md` |
-| `BE-27` | `MVP-2` | `RM-06` | Disposisi IGD ke rawat inap mengunci dan mencatat penutupan | **`TERTAHAN PERSETUJUAN MODUL`** — IGD |
-| `BE-28` | `MVP-2` | `RM-06` | Pemanggil penutupan meneruskan `ClinicalClosureSource` | **`TERTAHAN PERSETUJUAN MODUL`** — Registrasi, IGD, Rawat Inap, Billing (opsional) |
-| `BE-29` | `MVP-3` | `RM-03` | Pembaca IGD | **`TERTAHAN PERSETUJUAN MODUL`** — IGD |
-| `BE-30` | `MVP-3` | `RM-03` | Pembaca Rawat Inap | **`TERTAHAN PERSETUJUAN MODUL`** — Rawat Inap |
-| `BE-31` | `MVP-3` | `RM-03` | Pembaca Kamar Operasi | **`TERTAHAN PERSETUJUAN MODUL`** — Kamar Operasi |
-| `BE-32` | `MVP-3` | `RM-03` | Pembaca Hemodialisa | **`TERTAHAN PERSETUJUAN MODUL`** — Hemodialisa |
-| `BE-33` | `MVP-3` | `RM-03` | Pembaca Gizi | **`TERTAHAN PERSETUJUAN MODUL`** — Gizi |
-| `BE-34` | `MVP-3` | `RM-03` | Pembaca Bank Darah | **`TERTAHAN PERSETUJUAN MODUL`** — Bank Darah |
-| `BE-35` | `MVP-3` | `RM-04` | Pembaca Farmasi | **`TERTAHAN PERSETUJUAN MODUL`** — Farmasi |
+| `BE-27` | `MVP-2` | `RM-06` | Disposisi IGD ke rawat inap mengunci dan mencatat penutupan | **`SELESAI`** 29 Oktober 2026 — 7 uji lulus (seluruh project `151`), laporan `task/report/backend/BE-27.md` |
+| `BE-28` | `MVP-2` | `RM-06` | Pemanggil penutupan meneruskan `ClinicalClosureSource` | **`SELESAI`** 29 Oktober 2026 — seluruh jalur, 17 uji lulus (seluruh project `168`), laporan `task/report/backend/BE-28.md` |
+| `BE-29` | `MVP-3` | `RM-03` | Pembaca IGD | **`SELESAI`** 29 Oktober 2026 — 9 uji lulus (seluruh project `184`), laporan `task/report/backend/BE-29.md` |
+| `BE-30` | `MVP-3` | `RM-03` | Pembaca Rawat Inap | **`SELESAI`** 29 Oktober 2026 — 7 uji lulus (seluruh project `175`), laporan `task/report/backend/BE-30.md` |
+| `BE-31` | `MVP-3` | `RM-03` | Pembaca Kamar Operasi | **`SIAP`** — disetujui Muhammad Hamzah dan Ikbal Yuliyanto, 29 Oktober 2026 (`RM-DEC-071`) |
+| `BE-32` | `MVP-3` | `RM-03` | Pembaca Hemodialisa | **`SIAP`** — disetujui Muhammad Hamzah, 29 Oktober 2026 (`RM-DEC-072`) |
+| `BE-33` | `MVP-3` | `RM-03` | Pembaca Gizi | **`SIAP`** — disetujui Ikbal Yuliyanto, 29 Oktober 2026 (`RM-DEC-073`) |
+| `BE-34` | `MVP-3` | `RM-03` | Pembaca Bank Darah | **`SIAP`** — disetujui Sukma, 29 Oktober 2026 (`RM-DEC-074`) |
+| `BE-35` | `MVP-3` | `RM-04` | Pembaca Farmasi | **`SIAP`** — disetujui Ikbal Yuliyanto, 29 Oktober 2026 (`RM-DEC-075`) |
 | `BE-36` | `MVP-4` | `RM-05` | Pembaca MCU | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-36.md`; acceptance dikoreksi `RM-DEC-065`/`066` |
 | `BE-37` | `MVP-5` | `RM-07` | Profil dokumen wajib + isi awal + endpoint master | **`SELESAI`** 29 Oktober 2026 — 17 uji lulus (seluruh project `102`), laporan `task/report/backend/BE-37.md` |
 | `BE-38` | `MVP-5` | `RM-09` | Addendum pengesahan | **`SELESAI`** 29 Oktober 2026 — 12 uji lulus (seluruh project `114`), laporan `task/report/backend/BE-38.md` |
@@ -1573,7 +1573,7 @@ dinilai penuh begitu `BE-39` selesai.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-27` |
-| **Status** | **`TERTAHAN PERSETUJUAN MODUL`** — pemilik IGD Rizki Gunawan |
+| **Status** | **`SELESAI`** — 29 Oktober 2026, laporan `task/report/backend/BE-27.md`. `dotnet test` → `Passed: 7` (seluruh project `151`), `Failed: 0`. Jalur utama ternyata sudah mengunci lewat `EmergencyVisitService.TryCloseAfterDispositionAsync` sebelum audit `GAP-ARCH-RM-01`; yang ditutup task ini adalah sumber penutupan `EmergencyAdmissionDisposition` dan jalur cadangan baris 1585–1598 yang memang tanpa penguncian |
 | **Outcome** | Catatan IGD pasien yang lanjut rawat inap terkunci dan kunjungannya tercatat tutup klinis |
 | **Trace** | `RM-DEC-003`; `GAP-ARCH-RM-01`; `FR-RM-053` |
 | **Kontrak** | `INT-RM-12` |
@@ -1590,7 +1590,7 @@ dinilai penuh begitu `BE-39` selesai.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-28` |
-| **Status** | **`TERTAHAN PERSETUJUAN MODUL`** — Registrasi, IGD, Rawat Inap, Billing |
+| **Status** | **`SELESAI`** — 29 Oktober 2026, laporan `task/report/backend/BE-28.md`. `dotnet test` → `Passed: 17` (seluruh project `168`), `Failed: 0`. Seluruh pemanggil penguncian meneruskan sumbernya; jalur IGD membedakan disposisi rawat inap dari penutupan IGD lain. Transaksi pada dua jalur tanpa transaksi (catatan `BE-25`) **tidak** ditambahkan — di luar batas "satu argumen per pemanggil" |
 | **Outcome** | `ClosureSource` mencerminkan jalur sebenarnya, bukan bawaan `EncounterStatusPatch` |
 | **Trace** | `INT-RM-12` |
 | **Scope** | Enam pemanggil pada tabel `INT-RM-12`; satu argumen per pemanggil |
@@ -1609,13 +1609,13 @@ mengikuti A4.11. Dependency semua: `BE-21`. Reuse: model modul itu sendiri, tanp
 
 | Task | Modul / berkas | Jenis | Kriteria dan kondisi yang dijawab | Acceptance criteria khusus | Verifikasi | Status |
 |---|---|---|---|---|---|---|
-| `BE-29` | IGD / `EmgMedicalRecordDocumentSource.cs` | 17–20 | `EmergencyTriage`, `EmergencyDisposition` | Triase `Superseded` tampil sebagai triase yang digantikan; disposisi `Draft` tidak tampil dan tidak memenuhi | `AT-RM-44`, AC-50 | **`TERTAHAN PERSETUJUAN MODUL`** — Rizki Gunawan |
-| `BE-30` | Rawat Inap / `InpMedicalRecordDocumentSource.cs` | 21, 22 | `InpatientGeneralConsent`, `DischargeSummary` | Ringkasan tanpa `SignedAt` tidak tampil; persetujuan registrasi tidak memenuhi `InpatientGeneralConsent` | `AT-RM-45`, `AT-RM-60` | **`TERTAHAN PERSETUJUAN MODUL`** — Muhammad Hamzah |
-| `BE-31` | Kamar Operasi / `OprMedicalRecordDocumentSource.cs` | 23–26 | `SurgeryReport`, `AnesthesiaRecord`, `SurgicalSafetyChecklist`; kondisi `Surgery` | Kasus `Cancelled`/`Rejected`/`Postponed` tidak memicu kondisi | `AT-RM-61` | **`TERTAHAN PERSETUJUAN MODUL`** — Muhammad Hamzah |
-| `BE-32` | Hemodialisa / `HmdMedicalRecordDocumentSource.cs` | 14 | `HemodialysisSessionSigned`; kondisi `HemodialysisSession` | Jenis 14 keluar dari `unavailableKinds` | `AT-RM-66` | **`TERTAHAN PERSETUJUAN MODUL`** — Muhammad Hamzah |
-| `BE-33` | Gizi / `GziMedicalRecordDocumentSource.cs` | 27 | — | `isProvisional = true` | `AT-RM-54` | **`TERTAHAN PERSETUJUAN MODUL`** — pemilik Gizi belum tercatat |
-| `BE-34` | Bank Darah / `BbkMedicalRecordDocumentSource.cs` | 28, 29 | — | Golongan darah tanpa kunjungan tetap tampil | `AT-RM-44` | **`TERTAHAN PERSETUJUAN MODUL`** — pemilik proses BDRS |
-| `BE-35` | Farmasi / `PhmMedicalRecordDocumentSource.cs` | 30–32 | — | Resep `Draft` tidak tampil | `AT-RM-44` | **`TERTAHAN PERSETUJUAN MODUL`** — pemilik Farmasi belum dipastikan |
+| `BE-29` | IGD / `EmgMedicalRecordDocumentSource.cs` | 17–20 | `EmergencyTriage`, `EmergencyDisposition` | Triase `Superseded` tampil sebagai triase yang digantikan; disposisi `Draft` tidak tampil dan tidak memenuhi | `AT-RM-44`, AC-50 | **`SELESAI`** 29 Oktober 2026 — 9 uji lulus (seluruh project `184`), laporan `task/report/backend/BE-29.md`; disposisi final = `Confirmed`/`ConfirmedAt` |
+| `BE-30` | Rawat Inap / `InpMedicalRecordDocumentSource.cs` | 21, 22 | `InpatientGeneralConsent`, `DischargeSummary` | Ringkasan tanpa `SignedAt` tidak tampil; persetujuan registrasi tidak memenuhi `InpatientGeneralConsent` | `AT-RM-45`, `AT-RM-60` | **`SELESAI`** 29 Oktober 2026 — 7 uji lulus (seluruh project `175`), laporan `task/report/backend/BE-30.md` |
+| `BE-31` | Kamar Operasi / `OprMedicalRecordDocumentSource.cs` | 23–26 | `SurgeryReport`, `AnesthesiaRecord`, `SurgicalSafetyChecklist`; kondisi `Surgery` | Kasus `Cancelled`/`Rejected`/`Postponed` tidak memicu kondisi | `AT-RM-61` | **`SIAP`** — disetujui Muhammad Hamzah dan Ikbal Yuliyanto, 29 Oktober 2026 (`RM-DEC-071`); catatan kelahiran final saat tersimpan |
+| `BE-32` | Hemodialisa / `HmdMedicalRecordDocumentSource.cs` | 14 | `HemodialysisSessionSigned`; kondisi `HemodialysisSession` | Jenis 14 keluar dari `unavailableKinds` | `AT-RM-66` | **`SIAP`** — disetujui Muhammad Hamzah, 29 Oktober 2026 (`RM-DEC-072`) |
+| `BE-33` | Gizi / `GziMedicalRecordDocumentSource.cs` | 27 | — | `isProvisional = true` | `AT-RM-54` | **`SIAP`** — disetujui Ikbal Yuliyanto, 29 Oktober 2026 (`RM-DEC-073`) |
+| `BE-34` | Bank Darah / `BbkMedicalRecordDocumentSource.cs` | 28, 29 | — | Golongan darah tanpa kunjungan tetap tampil | `AT-RM-44` | **`SIAP`** — disetujui Sukma, 29 Oktober 2026 (`RM-DEC-074`) |
+| `BE-35` | Farmasi / `PhmMedicalRecordDocumentSource.cs` | 30–32 | — | Resep `Draft` tidak tampil | `AT-RM-44` | **`SIAP`** — disetujui Ikbal Yuliyanto, 29 Oktober 2026 (`RM-DEC-075`) |
 
 Outcome bersama: dokumen final modul tersebut tampil di berkas tanpa izin modul asal. Risiko:
 rendah per modul — hanya menambah berkas baca. DoD bersama: persetujuan pemilik modul tercatat

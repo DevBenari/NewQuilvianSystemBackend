@@ -895,8 +895,12 @@ public sealed class BillingFinalizationService
 
         if (_integrityService != null)
         {
+            // BE-28 / RM-DEC-070: sumber penutupan klinis jalur ini. Bila kunjungan sudah tutup
+            // klinis lewat jalur lain, baris lama dipertahankan — waktu tutup klinis tidak bergeser.
             await _integrityService.LockOpenDocumentsForEncounterAsync(
-                encounter.Id, actorUserId, occurredAt.UtcDateTime, encounter.CompletedAt, cancellationToken: cancellationToken);
+                encounter.Id, actorUserId, occurredAt.UtcDateTime, encounter.CompletedAt,
+                closureSource: QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.BillingFinalization,
+                cancellationToken: cancellationToken);
         }
 
         await _loggerService.AuditAsync(

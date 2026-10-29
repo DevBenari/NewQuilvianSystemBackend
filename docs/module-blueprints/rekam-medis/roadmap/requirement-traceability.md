@@ -217,13 +217,13 @@ source_commits: { backend: 363de34f, frontend: f0a3b07b8 }
 | `FR-RM-003` Pemberitahuan cakupan | — (`RM-CAP-041`) | F4.1 | — | — | `FE-10` | Uji UI | Direncanakan |
 | `FR-RM-010` Hasil lab PK/Mikro | `RM-DEC-030`–`035`, `057` | A4.10 | `INT-RM-10a` | `BE-23` | `FE-10` | `AT-RM-53`, `AT-RM-51`, `AT-RM-46` | **Backend selesai** (`BE-23`); frontend direncanakan |
 | `FR-RM-011` Laporan radiologi | `RM-DEC-038`, `042` | A4.10 | `INT-RM-10b` | `BE-24` | `FE-10` | `AT-RM-45`, `AT-RM-48` | **Backend selesai** (`BE-24`); frontend direncanakan |
-| `FR-RM-020`–`022` Sumber pelayanan | `RM-DEC-039`, `041`, `059` | A4.10 | `INT-RM-10c`–`10h` | `BE-29`–`BE-34` | `FE-10` | `AT-RM-44`, `45`, `54` | **Tertahan persetujuan modul** |
-| `FR-RM-030` Farmasi | `RM-DEC-039` | A4.10 | `INT-RM-10i` | `BE-35` | `FE-10` | `AT-RM-44` | **Tertahan persetujuan modul** |
+| `FR-RM-020`–`022` Sumber pelayanan | `RM-DEC-039`, `041`, `059` | A4.10 | `INT-RM-10c`–`10h` | `BE-29`–`BE-34` | `FE-10` | `AT-RM-44`, `45`, `54` | **Sebagian selesai** — `BE-29` IGD dan `BE-30` Rawat Inap selesai (`AT-RM-44` IGD, `AT-RM-45`); `BE-31`–`BE-34` siap dikerjakan (`RM-DEC-071`–`074`) |
+| `FR-RM-030` Farmasi | `RM-DEC-039` | A4.10 | `INT-RM-10i` | `BE-35` | `FE-10` | `AT-RM-44` | **Siap dikerjakan** — persetujuan Farmasi 29 Oktober 2026 (`RM-DEC-075`) |
 | `FR-RM-031` Ringkasan berkala | `RM-DEC-052` | A4.10 | API A1 | `BE-22` | `FE-11` | `AT-RM-52` | **Backend selesai** (`BE-22`); frontend direncanakan |
 | `FR-RM-040` MCU | `RM-DEC-040`, `065`, `066` | A4.10 (dikoreksi) | `INT-RM-10j` | `BE-36` | `FE-10` | `AT-RM-44`, `UAT-09`, `UAT-10` | **Backend selesai** (`BE-36`); frontend direncanakan |
 | `FR-RM-050`, `051` Penutupan klinis | `RM-DEC-051` | A4.12 | State S-A | `BE-25` | — | `AT-RM-56`, `57` | **Backend selesai** (`BE-25`, 13 uji lulus); tanpa layar |
 | `FR-RM-052` Susulan | `RM-DEC-006`, `043` | A4.9 | API A1 | `BE-26` | `FE-10` | `AT-RM-47`, `58` | **Backend selesai** (`BE-26`, 23 uji lulus, laporan `task/report/backend/BE-26.md`); layar menunggu `FE-10` |
-| `FR-RM-053` Disposisi IGD mengunci | `RM-DEC-003` | A4.12 | `INT-RM-12` | `BE-27` | — | `AT-RM-59` | **Tertahan persetujuan modul** |
+| `FR-RM-053` Disposisi IGD mengunci | `RM-DEC-003` | A4.12 | `INT-RM-12` | `BE-27` | — | `AT-RM-59` | **Backend selesai** (`BE-27`, 7 uji lulus, laporan `task/report/backend/BE-27.md`); `AT-RM-59` terbukti |
 | `FR-RM-060`–`062` Profil dokumen wajib | `RM-DEC-045`, `047`, `060`, `061` | A4.8 | API A3 | `BE-37` | `FE-13` | `AT-RM-69`, `70`, `71` | **Backend master selesai** (`BE-37`, 17 uji lulus, laporan `task/report/backend/BE-37.md`); `AT-RM-70` terbukti; `AT-RM-71` terbukti lewat `BE-39`, `AT-RM-69` lewat `BE-40` |
 | `FR-RM-070`–`074` Penilaian dan daftar kerja | `RM-DEC-045`, `046`, `050`, `053`–`056`, `060` | A4.11 | API A2, state S-B | `BE-39` | `FE-14` | `AT-RM-60`–`68` | **Backend selesai** (`BE-39`, 21 uji lulus, laporan `task/report/backend/BE-39.md`); `AT-RM-60`–`68` dan `71` terbukti (pembaca IGD, Rawat Inap, Kamar Operasi, Hemodialisa memakai pembaca tiruan sampai `BE-29`–`BE-32`) |
 | `FR-RM-075` Pemeriksaan berkala | — (`GAP-ARCH-RM-04`) | A4.13 | — | `BE-40` | — | `AT-RM-69` | **Backend selesai** (`BE-40`, 9 uji lulus, laporan `task/report/backend/BE-40.md`); `AT-RM-69` terbukti |
@@ -234,9 +234,9 @@ source_commits: { backend: 363de34f, frontend: f0a3b07b8 }
 | Celah | Sebab | Penanganan |
 |---|---|---|
 | `AT-RM-44` untuk IGD, Rawat Inap, Kamar Operasi, Hemodialisa, Gizi, Bank Darah, Farmasi belum dapat dijalankan | Pembacanya tertahan persetujuan pemilik modul | Uji dijalankan per modul begitu persetujuan turun |
-| AC-50 (disposisi `Draft`/`Confirmed`) tanpa uji backend sampai `BE-29` | Tertahan persetujuan IGD | Dicatat terbuka |
-| AC-43, AC-60 untuk Rawat Inap terbukti hanya dengan pembaca tiruan sampai `BE-30` | Tertahan persetujuan Rawat Inap | Uji `BE-39` memakai pembaca tiruan; diulang dengan pembaca nyata |
-| `ClosureSource` per jalur (`BE-28`) | Opsional, tertahan persetujuan | Tidak memblokir apa pun |
+| AC-50 (disposisi `Draft`/`Confirmed`) tanpa uji backend sampai `BE-29` | **Tertutup** — terbukti uji `BE-29` | Dicatat terbuka |
+| AC-43, AC-60 untuk Rawat Inap terbukti hanya dengan pembaca tiruan sampai `BE-30` | **Tertutup** — `AT-RM-60` diulang dengan pembaca nyata `BE-30` | Uji `BE-39` memakai pembaca tiruan; diulang dengan pembaca nyata |
+| `ClosureSource` per jalur (`BE-28`) | **Selesai** (`BE-28`, laporan `task/report/backend/BE-28.md`) | Tidak memblokir apa pun |
 | Hasil PA | `RM-DEC-058`, open question 18 | Di luar rilis amandemen |
 | Indikator mutu kelengkapan | Ditunda `04-prd-to-mvp.md` bagian 8 | `FirstCompletedAt` tersedia |
 
@@ -247,14 +247,15 @@ source_commits: { backend: 363de34f, frontend: f0a3b07b8 }
 | Laboratorium | Yoga Aji Pratama | **Ya**, `RM-DEC-063` | — |
 | MCU | Yoga Aji Pratama | **Ya**, `RM-DEC-063` | — |
 | Radiologi | Yoga Aji Pratama (`RAD-DEC-014`) | **Ya**, `RM-DEC-064` | — |
-| IGD | Rizki Gunawan (`IGD-DEC-089`) | Belum | `BE-27`, `BE-28` (sebagian), `BE-29` |
-| Rawat Inap | Muhammad Hamzah (`RWI-DEC-061`) | Belum | `BE-28` (sebagian), `BE-30` |
-| Kamar Operasi | Muhammad Hamzah (blueprint Rawat Inap) | Belum | `BE-31` |
-| Hemodialisa | Muhammad Hamzah (`HMD-DEC-006`) | Belum | `BE-32` |
-| Gizi | Belum tercatat | Belum | `BE-33` |
-| Bank Darah | Pemilik proses BDRS | Belum | `BE-34` |
-| Farmasi | Tercatat "user"; belum dipastikan | Belum | `BE-35` |
-| Registrasi, Billing | Pemilik masing-masing | Belum | `BE-28` (sebagian, opsional) |
+| IGD | Rizki Gunawan (`IGD-DEC-089`) | **Ya**, `RM-DEC-067` | — |
+| Rawat Inap | Muhammad Hamzah (`RWI-DEC-061`) | **Ya**, `RM-DEC-069` | — |
+| Kamar Operasi | Muhammad Hamzah (blueprint Rawat Inap) dan Ikbal Yuliyanto (registry `Opr`) | **Ya**, `RM-DEC-071` | — |
+| Hemodialisa | Muhammad Hamzah (`HMD-DEC-006`) | **Ya**, `RM-DEC-072` | — |
+| Gizi | Ikbal Yuliyanto (registry `Gzi`) | **Ya**, `RM-DEC-073` | — |
+| Bank Darah | Sukma (pemilik proses BDRS) | **Ya**, `RM-DEC-074` | — |
+| Farmasi | Ikbal Yuliyanto | **Ya**, `RM-DEC-075` | — |
+| Registrasi | Sukma / Andry | **Ya**, `RM-DEC-068` | — |
+| Billing | Yasmina | **Ya**, `RM-DEC-070` | — |
 
 ## T2.4 Ringkasan
 
@@ -263,5 +264,5 @@ source_commits: { backend: 363de34f, frontend: f0a3b07b8 }
 | Task backend amandemen | 21 (`BE-21`–`BE-41`) |
 | Task frontend amandemen | 6 (`FE-10`–`FE-15`) |
 | Dapat dimulai sekarang tanpa menunggu siapa pun | `BE-21`, `BE-25`, `BE-37`, `BE-38`; seluruh `FE-10`–`FE-14` secara paralel |
-| Tertahan persetujuan modul | 9 (`BE-27`–`BE-35`) |
+| Tertahan persetujuan modul | **Nol** — `BE-27`–`BE-35` disetujui 29 Oktober 2026 (`RM-DEC-067`–`075`) |
 | Keputusan bisnis yang masih memblokir | **Nol** |

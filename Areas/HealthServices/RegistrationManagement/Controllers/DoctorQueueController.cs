@@ -607,11 +607,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             if (queue.Encounter != null)
             {
+                // BE-28 / RM-DEC-068: sumber penutupan klinis jalur ini.
                 await _integrityService.LockOpenDocumentsForEncounterAsync(
                     queue.Encounter.Id,
                     actorUserId,
                     now,
                     now,
+                    closureSource: QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.DoctorQueue,
                     cancellationToken: cancellationToken);
             }
 

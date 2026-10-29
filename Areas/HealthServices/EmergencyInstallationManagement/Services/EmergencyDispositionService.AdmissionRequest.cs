@@ -1553,7 +1553,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var visitService = _serviceProvider?.GetService(typeof(EmergencyVisitService)) as EmergencyVisitService;
             if (visitService != null)
             {
-                await visitService.TryCloseAfterDispositionAsync(visitId, actorUserId, now, null, ct);
+                // BE-27 / RM-DEC-067: jalur utama sudah mengunci catatan lewat ApplyEncounterClosureAsync;
+                // di sini sumber penutupannya dinyatakan sebagai disposisi rawat inap.
+                await visitService.TryCloseAfterDispositionAsync(
+                    visitId, actorUserId, now, null, ct,
+                    QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.EmergencyAdmissionDisposition);
                 return;
             }
 
@@ -1596,6 +1600,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                         encounter.CompletedAt = now;
                         encounter.UpdateDateTime = now;
                         encounter.UpdateBy = actorUserId;
+
+                        // BE-27 / GAP-ARCH-RM-01 / RM-DEC-067: catatan konsep IGD dikunci dan tutup
+                        // klinis dicatat di unit kerja yang sama. Bila gagal, exception keluar dari
+                        // sini dan disposisi ikut gagal — kunjungan tidak pernah tertutup tanpa terkunci.
+                        var integritas = _integrityService
+                            ?? new QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.ClinicalDocumentIntegrityService(_dbContext);
+
+                        await integritas.LockOpenDocumentsForEncounterAsync(
+                            encounter.Id,
+                            actorUserId,
+                            now,
+                            encounter.CompletedAt,
+                            closureSource: QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.EmergencyAdmissionDisposition,
+                            cancellationToken: ct);
                     }
                 }
 

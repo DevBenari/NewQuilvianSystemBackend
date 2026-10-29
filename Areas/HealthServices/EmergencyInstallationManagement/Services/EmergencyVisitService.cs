@@ -644,13 +644,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// dipotong ke batas kolomnya; bila kosong dipakai
         /// <see cref="AlasanBakuPembatalanEncounter"/>. Diabaikan untuk <c>Completed</c>.
         /// </param>
+        /// <param name="closureSource">
+        /// Jalur penutupan klinis yang dicatat rekam medis (`BE-27`, `INT-RM-12`). Kosong = bawaan
+        /// penguncian. Ditaruh terakhir supaya pemanggil lama tidak berubah.
+        /// </param>
         public async Task<bool> ApplyEncounterClosureAsync(
             EmgVisit visit,
             EmergencyVisitStatus terminalStatus,
             Guid actorUserId,
             DateTime now,
             string? catatanPembatalan = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource? closureSource = null)
         {
             ArgumentNullException.ThrowIfNull(visit);
 
@@ -691,6 +696,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     actorUserId,
                     now,
                     encounter.CompletedAt,
+                    // BE-28 / RM-DEC-067: jalur IGD tercatat EmergencyVisit kecuali pemanggil
+                    // menyatakan lain (disposisi rawat inap, BE-27).
+                    closureSource: closureSource
+                        ?? QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.EmergencyVisit,
                     cancellationToken: cancellationToken);
 
                 return true;
@@ -726,12 +735,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             public bool Dipromosikan { get; init; }
         }
 
+        /// <param name="closureSource">
+        /// Jalur penutupan klinis yang dicatat rekam medis; disposisi rawat inap meneruskan
+        /// <c>EmergencyAdmissionDisposition</c> (`BE-27`). Kosong = bawaan penguncian.
+        /// </param>
         public async Task<HasilPenutupanSusulan> TryCloseAfterDispositionAsync(
             Guid emergencyVisitId,
             Guid actorUserId,
             DateTime now,
             Guid? dispositionPemicuId = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource? closureSource = null)
         {
             var visit = await _dbContext.Set<EmgVisit>()
                 .FirstOrDefaultAsync(x => x.Id == emergencyVisitId && !x.IsDelete, cancellationToken);
@@ -770,12 +784,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             visit.UpdateDateTime = now;
             visit.UpdateBy = actorUserId;
 
+            // BE-28: tindak lanjut yang menuntut permintaan rawat inap adalah disposisi rawat inap,
+            // termasuk bila penutupannya baru terjadi sesudah penahan tuntas.
+            if (closureSource == null
+                && await _dispositionService.ButuhFormPermintaanRawatInapAsync(dispositionId.Value, cancellationToken))
+            {
+                closureSource = QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.EmergencyAdmissionDisposition;
+            }
+
             var encounterDitutup = await ApplyEncounterClosureAsync(
                 visit,
                 EmergencyVisitStatus.Completed,
                 actorUserId,
                 now,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken,
+                closureSource: closureSource);
 
             return new HasilPenutupanSusulan(true, dispositionId, null, encounterDitutup) { Dipromosikan = dipromosikan };
         }
