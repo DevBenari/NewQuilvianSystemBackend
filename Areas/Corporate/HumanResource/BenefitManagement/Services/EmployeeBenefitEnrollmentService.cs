@@ -91,6 +91,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
             if (query.WorkforceProfileId.HasValue) source = source.Where(x => x.e.WorkforceProfileId == query.WorkforceProfileId.Value);
             if (query.BenefitPlanId.HasValue) source = source.Where(x => x.e.BenefitPlanId == query.BenefitPlanId.Value);
             if (!string.IsNullOrWhiteSpace(query.EnrollmentStatus)) source = source.Where(x => x.e.EnrollmentStatus == query.EnrollmentStatus);
+            if (query.StartDate.HasValue)
+            {
+                var startUtc = AppDateTimeHelper.OperationalDateToUtc(query.StartDate.Value);
+                source = source.Where(x => (x.e.EffectiveStartDate ?? x.e.EnrollmentDate) >= startUtc);
+            }
+            if (query.EndDate.HasValue)
+            {
+                var endExclusiveUtc = AppDateTimeHelper.OperationalDateToUtc(query.EndDate.Value).AddDays(1);
+                source = source.Where(x => (x.e.EffectiveStartDate ?? x.e.EnrollmentDate) < endExclusiveUtc);
+            }
             if (!string.IsNullOrWhiteSpace(query.Search))
             {
                 var keyword = query.Search.Trim().ToLower();
@@ -100,7 +110,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.
                     || (x.doc != null && (x.doc.DoctorNumber.ToLower().Contains(keyword) || x.doc.FullName.ToLower().Contains(keyword))));
             }
 
-            var pageSize = Math.Clamp(query.PageSize, 1, 50);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
             var pageNumber = Math.Max(query.PageNumber, 1);
             var total = await source.CountAsync(cancellationToken);
             var rows = await source
