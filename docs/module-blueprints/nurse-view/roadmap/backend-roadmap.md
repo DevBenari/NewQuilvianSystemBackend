@@ -28,7 +28,7 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     BENV001["✅ BE-NV-001<br/>Fondasi registry, model, configuration"]:::selesai
-    BENV002["BE-NV-002<br/>API admin perangkat display"]:::belum
+    BENV002["✅ BE-NV-002<br/>API admin perangkat display"]:::selesai
     BENV003["BE-NV-003<br/>Login dan runtime akun perangkat"]:::belum
     BENV004["BE-NV-004<br/>API interval ukur ulang TTV"]:::belum
     BENV005["BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::belum
@@ -72,7 +72,7 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
 | ✅ `BE-NV-001` | Fondasi registry, model, configuration | `NV-DEC-016`, `024`, `029`; `G-01` | `0.1.0` data-dictionary | `IdentityModel`, pola configuration | Registry, 2 model, 1 enum, 2 configuration, 2 DbSet | — | Kartu | QBE preflight; build oleh Rizki; migration diterapkan Rizki | Salah prefix → QBE gagal / Rizki | Kartu |
-| `BE-NV-002` | API admin perangkat display | `FR-NV-001`–`005`; `NV-DEC-016`, `022` | `0.1.0` api §1 | `NumberSeriesAllocator`, `UserManager`, pola `QueueDisplayDeviceController` (alur saja) | Service + controller + DTO | `BE-NV-001` | Kartu | HTTP via Swagger oleh Rizki | Kata sandi bocor ke log / Rizki | Kartu |
+| ✅ `BE-NV-002` | API admin perangkat display | `FR-NV-001`–`005`; `NV-DEC-016`, `022` | `0.1.0` api §1 | `NumberSeriesAllocator`, `UserManager`, pola `QueueDisplayDeviceController` (alur saja) | Service + controller + DTO | `BE-NV-001` | Kartu | HTTP via Swagger oleh Rizki | Kata sandi bocor ke log / Rizki | Kartu |
 | `BE-NV-003` | Login dan runtime akun perangkat | `FR-NV-018`; `NV-DEC-009`, `022`, `030` | `0.1.0` api §3 `/current` | `ResolveQueueDisplayLoginContextAsync`, policy `QueueDisplayRuntimeRead` | `AuthController`, `AuthorizationPolicies`, `Program.cs`, context service, runtime controller | `BE-NV-002` | Kartu, termasuk regresi `NV-AC-023`–`027` | HTTP + login empat jenis akun | **Regresi login seluruh sistem** / Rizki, syarat lead | Kartu |
 | `BE-NV-004` | API interval ukur ulang TTV | `FR-NV-020`–`022`; `NV-DEC-010` | `0.1.0` api §2 | Pola ganti-seluruh `NursingShiftController` | Service + controller + DTO | `BE-NV-001` | Kartu | HTTP via Swagger | Angka bawaan diselipkan / Rizki | Kartu |
 | `BE-NV-005` | Papan lantai tersusun dan tersamarkan | `FR-NV-010`–`016`, `021`; `NV-DEC-006`–`020`, `025`, `026`, `027` | `0.1.0` api §3 `/board` | `ProjectBatchAsync` (`internal`, disetujui Hamzah), `TrxPatientVitalSign`, instrumen risiko jatuh, `TrxPatientAllergy`, `InpNurseAssignment` | Query service, masking helper, DTO papan, endpoint `/board` | `BE-NV-003`, `BE-NV-004` | Kartu | HTTP dengan akun perangkat + pencarian teks identitas di response | **Kebocoran identitas** / Rizki | Kartu |
@@ -93,10 +93,11 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 | Verifikasi | QBE preflight oleh agent; `dotnet build -p:RunAnalyzers=false` oleh Rizki; migration `AddNurseViewManagement` dibuat dan diterapkan Rizki di DB lokal |
 | DoD | AC-1–4 terpetakan ke source; build Rizki lulus; migration diterapkan; laporan `task/report/backend/BE-NV-001.md` |
 
-### BE-NV-002 — API admin perangkat display
+### ✅ BE-NV-002 — API admin perangkat display
 
 | Field | Isi |
 |---|---|
+| Status | ✅ SELESAI — 2026-10-29. 8/8 endpoint api §1 dan VAL-NV-01–08 terpetakan ke source; QBE Strict `PASS` (7 berkas, 0 violation, 0 review); pasangan atribut akses 8/8 cocok; build Rizki `PASS` (pernyataan owner, DLL 10:14); uji HTTP 29 Okt **12/12 `PASS`** (putaran 2 sesudah data lantai diisi Rizki). Verifikasi developer, bukan UAT. `authorization-verifier` dijalankan terpisah. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`BE-NV-002.md`](../task/report/backend/BE-NV-002.md) |
 | Outcome | Admin IT dapat mendaftarkan, mengubah, membuat login, mengatur ulang login, dan menonaktifkan perangkat |
 | Trace | `FR-NV-001`–`005`; `NV-DEC-016`, `022`; `VAL-NV-01`–`08`; state-transition §1 |
 | Cakupan | `NvwDisplayDeviceService`, `NvwDisplayDeviceController` (8 endpoint api §1), `NvwDisplayDeviceDtos.cs`. Kode dari `NumberSeriesAllocator` deret `NVW_DISPLAY_DEVICE`, awalan `NVW`, 6 digit, `NEVER`. Login via `UserManager`; nonaktif → kunci akun + security stamp baru; reset → sandi baru + security stamp + buka kunci. `AccessController` modul `HEALTH_SERVICE_NURSE_VIEW`; `[AccessPermission("NurseViewDisplayDevice", "Read"/"Create"/"Update")]`. Logging tanpa kata sandi. Registrasi service mengikuti pola registrasi yang dipakai modul lain (restu `NV-DEC-030`) |

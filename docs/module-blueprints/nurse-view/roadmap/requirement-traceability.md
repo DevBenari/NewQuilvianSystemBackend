@@ -15,11 +15,11 @@ belum dikerjakan.
 
 | Requirement | Decision | Desain/kontrak | Task backend | Task frontend | Bukti | Status |
 |---|---|---|---|---|---|---|
-| `FR-NV-001` daftarkan perangkat, kode number series | `NV-DEC-016` | api §1, `VAL-NV-01`–`03` | `BE-NV-002` | `FE-NV-002` | `UAT-01`, `VAL-NV-02` | belum |
-| `FR-NV-002` buat login sekali | `NV-DEC-022` | state §1, `VAL-NV-05` | `BE-NV-002` | `FE-NV-002` | `NV-AC-018`, `UAT-03` | belum |
-| `FR-NV-003` atur ulang login | `NV-DEC-022` | state §1, `VAL-NV-06` | `BE-NV-002` | `FE-NV-002` | uji HTTP token lama | belum |
-| `FR-NV-004` nonaktifkan | `NV-DEC-016` | state §1, `VAL-NV-07`, `08`, `15` | `BE-NV-002`, `BE-NV-003` | `FE-NV-002`, `FE-NV-003` | `NV-AC-016`, `UAT-02` | belum |
-| `FR-NV-005` online/offline | `G-07` | api §1 `IsOnline` | `BE-NV-002`, `BE-NV-003` | `FE-NV-001` | tangkapan layar | belum |
+| `FR-NV-001` daftarkan perangkat, kode number series | `NV-DEC-016` | api §1, `VAL-NV-01`–`03` | `BE-NV-002` | `FE-NV-002` | `UAT-01`, `VAL-NV-02` | 🟡 gagal FE-NV-002 §6 **no. 5** — toast sukses simpan tidak tampil; lainnya `PASS`: uji HTTP BE-NV-002 no. 1–3, layar no. 3–4 (29 Okt) ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
+| `FR-NV-002` buat login sekali | `NV-DEC-022` | state §1, `VAL-NV-05` | `BE-NV-002` | `FE-NV-002` | `NV-AC-018`, `UAT-03` | ✅ BE-NV-002 §5 no. 4–6 + FE-NV-002 §6 no. 8–9 `PASS` (29 Okt); kata sandi tidak ada di halaman, storage, respons detail, dan log ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
+| `FR-NV-003` atur ulang login | `NV-DEC-022` | state §1, `VAL-NV-06` | `BE-NV-002` | `FE-NV-002` | uji HTTP token lama | ✅ BE-NV-002 §5 no. 10 + FE-NV-002 §6 no. 14–16 `PASS` (29 Okt) ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
+| `FR-NV-004` nonaktifkan | `NV-DEC-016` | state §1, `VAL-NV-07`, `08`, `15` | `BE-NV-002`, `BE-NV-003` | `FE-NV-002`, `FE-NV-003` | `NV-AC-016`, `UAT-02` | 🟡 bagian admin terbukti: BE-NV-002 §5 no. 8–9 + FE-NV-002 §6 no. 11–13 `PASS` (29 Okt); penolakan runtime papan menunggu `BE-NV-003`/`FE-NV-003` ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
+| `FR-NV-005` online/offline | `G-07` | api §1 `IsOnline` | `BE-NV-002`, `BE-NV-003` | `FE-NV-001` | tangkapan layar | 🟡 kolom Online tampil ("Belum Pernah Online", FE-NV-001 ✅); pengisian `LastOnlineAt` menunggu `BE-NV-003` ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
 | `FR-NV-010` bed per lantai per bangsal | `NV-DEC-006`, `025` | api §3 | `BE-NV-005` | `FE-NV-005` | `NV-AC-001`, `021` | belum |
 | `FR-NV-011` identitas samaran | `NV-DEC-008` | §4.7 masking | `BE-NV-005` | `FE-NV-005` | `NV-AC-002`, `UAT-04`, `UAT-05` | belum |
 | `FR-NV-012` perawat PJ | `NV-DEC-012` | api §3 | `BE-NV-005` | `FE-NV-005` | `NV-AC-008` | belum |

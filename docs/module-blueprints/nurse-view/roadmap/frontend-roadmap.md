@@ -26,7 +26,7 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     subgraph backend["Prasyarat backend — backend-roadmap.md"]
-        BENV002["BE-NV-002<br/>API admin perangkat display"]:::luar
+        BENV002["✅ BE-NV-002<br/>API admin perangkat display"]:::luar
         BENV003["BE-NV-003<br/>Login dan runtime akun perangkat"]:::luar
         BENV004["BE-NV-004<br/>API interval ukur ulang TTV"]:::luar
         BENV005["BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::luar
@@ -34,8 +34,8 @@ flowchart LR
         BENV007["BE-NV-007<br/>Sinyal realtime saat TTV disimpan"]:::luar
     end
 
-    FENV001["FE-NV-001<br/>Daftar perangkat dan menu"]:::belum
-    FENV002["FE-NV-002<br/>Form perangkat dan aksi login"]:::belum
+    FENV001["✅ FE-NV-001<br/>Daftar perangkat dan menu"]:::selesai
+    FENV002["🟡 FE-NV-002<br/>Form perangkat dan aksi login"]:::sebagian
     FENV003["FE-NV-003<br/>Login TV dialihkan ke papan"]:::belum
     FENV004["FE-NV-004<br/>Layar interval TTV dan menu"]:::belum
     FENV005["FE-NV-005<br/>Papan lantai tampil di TV"]:::belum
@@ -72,8 +72,8 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 |---|---|---|---|---|---|---|---|---|---|---|
-| `FE-NV-001` | Daftar perangkat dan menu | `FR-NV-005`; `NV-DEC-016` | api §1 | Pola daftar `queue-display-devices` | Layar `FE-NVW-01`, butir menu "Display Nurse View" | `BE-NV-002` | Kartu | lint + uji layar | — / Rizki | Kartu |
-| `FE-NV-002` | Form perangkat dan aksi login | `FR-NV-001`–`004`; `NV-DEC-022` | api §1 | Pola form `queue-display-devices/[slug]` | Layar `FE-NVW-02` | `BE-NV-002`, `FE-NV-001` | Kartu | lint + uji layar | Kata sandi tersimpan di state/log / Rizki | Kartu |
+| ✅ `FE-NV-001` | Daftar perangkat dan menu | `FR-NV-005`; `NV-DEC-016` | api §1 | Pola daftar `queue-display-devices` | Layar `FE-NVW-01`, butir menu "Display Nurse View" | `BE-NV-002` | Kartu | lint + uji layar | — / Rizki | Kartu |
+| 🟡 `FE-NV-002` | Form perangkat dan aksi login | `FR-NV-001`–`004`; `NV-DEC-022` | api §1 | Pola form `queue-display-devices/[slug]` | Layar `FE-NVW-02` | `BE-NV-002`, `FE-NV-001` | Kartu | lint + uji layar | Kata sandi tersimpan di state/log / Rizki | Kartu |
 | `FE-NV-003` | Login TV dialihkan ke papan | `FR-NV-018`; `NV-DEC-009`, `030` | api §3 `/current` | Pola `queue-display` di `use-base-login.jsx`, `proxy.js` | Berkas bersama FE + kerangka route `/nurse-view-display` | `BE-NV-003` | Kartu, termasuk regresi | lint + login empat akun | **Regresi redirect** / Rizki, syarat lead | Kartu |
 | `FE-NV-004` | Layar interval TTV dan menu | `FR-NV-020`–`022`; `NV-DEC-010` | api §2 | Komponen form/tabel yang ada | Layar `FE-NVW-03`, butir menu "Interval TTV Nurse View" | `BE-NV-004` | Kartu | lint + uji layar | Angka bawaan di form / Rizki | Kartu |
 | `FE-NV-005` | Papan lantai tampil di TV | `FR-NV-010`–`016`, `021`, `030`, `031`; `NV-DEC-007`, `013`, `014`, `017` | api §3 `/board` | Pola layar `queue-display-screen-view`, hook refresh, pendengar `offline` | Layar `FE-NVW-04` tanpa header roster dan tanpa realtime | `BE-NV-005`, `FE-NV-003` | Kartu | lint + uji di TV/peramban layar penuh | Keterbacaan ±3 m / Rizki | Kartu |
@@ -82,20 +82,22 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 
 ## Kartu task
 
-### FE-NV-001 — Daftar perangkat dan menu
+### ✅ FE-NV-001 — Daftar perangkat dan menu
 
 | Field | Isi |
 |---|---|
+| Status | ✅ SELESAI — 2026-10-29. Skema `FE-NVW-01` dan butir menu terpetakan ke source; `npx eslint` 0 error, 2 warning `EXISTING WARNING` (pola rujukan job-level); grep anti-regresi UI 0 temuan; UI GATE PASS (seluruh REUSE); `npm run build` `PASS` (BUILD_ID 10:26). Uji layar 29 Okt (FE-NV-002 §6): no. 1, 2, 3, 17, 18, 19 seluruhnya `PASS`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`FE-NV-001.md`](../task/report/frontend/FE-NV-001.md) |
 | Outcome | Admin IT melihat daftar perangkat Nurse View, menyaring per lantai/status, dan membuka menu dari sidebar |
 | Cakupan | Route `/administrator/master-data/nurse-view-devices` (`page.jsx`), view daftar, service API, butir menu di `src/utils/menu-sidebar/menu-items.jsx` (Administrator › Master Data, dekat "Display Antrian"). Keadaan memuat/kosong/gagal sesuai skema §3.1. Tombol Tambah dijaga `NurseViewDisplayDevice : Create` |
 | Acceptance criteria | Skema `FE-NVW-01` lengkap; online/offline dari `IsOnline`/`LastOnlineAt` (`FR-NV-005`); butir menu terjangkau |
 | DEV_DISCRETION | Nama butir, urutan, ikon, warna |
 | DoD | AC terpetakan; `npm run lint` lulus; tangkapan layar; laporan `task/report/frontend/FE-NV-001.md` |
 
-### FE-NV-002 — Form perangkat dan aksi login
+### 🟡 FE-NV-002 — Form perangkat dan aksi login
 
 | Field | Isi |
 |---|---|
+| Status | 🟡 SEBAGIAN — 2026-10-29. Form, detail, dan tiga aksi login/nonaktif terpetakan ke source; lint dan grep sama dengan `FE-NV-001`; UI GATE PASS; build `PASS`. Uji layar gabungan 29 Okt: 19/20 `PASS`; **gagal: no. 5** — toast hijau "Data Berhasil Disimpan" tidak tampil karena hilang saat `router.push` ke detail (pola sama dengan rujukan job-level; belum diperbaiki). Laporan: [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md) |
 | Outcome | Admin membuat/mengubah perangkat dan menjalankan Buat Login, Atur Ulang Login, Nonaktifkan |
 | Cakupan | Route `create` dan `[slug]`; pilihan lantai dari `GET /floors`; tombol mengikuti `AvailableActions`; konfirmasi + alasan nonaktif; kotak kata sandi sekali tampil dengan Salin. Kata sandi **tidak** masuk Redux/global state, localStorage, maupun `console`. Kirim ganda dikunci; `409` → pesan + muat ulang |
 | Acceptance criteria | `NV-AC-016`, `018`; `VAL-NV-01`–`08` tampil di bawah isian; `UAT-01`–`03` |

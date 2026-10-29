@@ -57,6 +57,7 @@ using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
@@ -931,6 +932,8 @@ try
     builder.Services.AddScoped<McuExaminationService>();
     builder.Services.AddScoped<McuResumeService>();
     builder.Services.AddScoped<McuDeliveryService>();
+
+    builder.Services.AddScoped<NvwDisplayDeviceService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
