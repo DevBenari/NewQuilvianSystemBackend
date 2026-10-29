@@ -1427,7 +1427,7 @@ module_owner_approvals:   # untuk berkas pembaca di folder modul lain
 | `BE-23` | `MVP-1` | `RM-02` | Pembaca Laboratorium (PK/Mikro) + pemeriksaan tertunda termasuk PA | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-23.md` |
 | `BE-24` | `MVP-1` | `RM-02` | Pembaca Radiologi + pemeriksaan tertunda | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-24.md` |
 | `BE-25` | `MVP-2` | `RM-06` | Penutupan klinis kunjungan | **`SELESAI`** 28 Oktober 2026 — 13 uji lulus, laporan `task/report/backend/BE-25.md` |
-| `BE-26` | `MVP-2` | `RM-06` | Penanda `Susulan` di linimasa | **`SIAP`** — `BE-21` dan `BE-25` selesai |
+| `BE-26` | `MVP-2` | `RM-06` | Penanda `Susulan` di linimasa | **`SELESAI`** 29 Oktober 2026 — 23 uji lulus (seluruh project `85`), laporan `task/report/backend/BE-26.md` |
 | `BE-27` | `MVP-2` | `RM-06` | Disposisi IGD ke rawat inap mengunci dan mencatat penutupan | **`TERTAHAN PERSETUJUAN MODUL`** — IGD |
 | `BE-28` | `MVP-2` | `RM-06` | Pemanggil penutupan meneruskan `ClinicalClosureSource` | **`TERTAHAN PERSETUJUAN MODUL`** — Registrasi, IGD, Rawat Inap, Billing (opsional) |
 | `BE-29` | `MVP-3` | `RM-03` | Pembaca IGD | **`TERTAHAN PERSETUJUAN MODUL`** — IGD |
@@ -1438,10 +1438,10 @@ module_owner_approvals:   # untuk berkas pembaca di folder modul lain
 | `BE-34` | `MVP-3` | `RM-03` | Pembaca Bank Darah | **`TERTAHAN PERSETUJUAN MODUL`** — Bank Darah |
 | `BE-35` | `MVP-3` | `RM-04` | Pembaca Farmasi | **`TERTAHAN PERSETUJUAN MODUL`** — Farmasi |
 | `BE-36` | `MVP-4` | `RM-05` | Pembaca MCU | **`SELESAI`** 28 Oktober 2026 — laporan `task/report/backend/BE-36.md`; acceptance dikoreksi `RM-DEC-065`/`066` |
-| `BE-37` | `MVP-5` | `RM-07` | Profil dokumen wajib + isi awal + endpoint master | **`SIAP`** |
-| `BE-38` | `MVP-5` | `RM-09` | Addendum pengesahan | **`SIAP`** |
-| `BE-39` | `MVP-6` | `RM-08` | Penilaian kelengkapan + endpoint daftar kerja | `TERTAHAN DEPENDENCY` (`BE-23`, `BE-25`, `BE-37`, `BE-38`) |
-| `BE-40` | `MVP-6` | `RM-08` | Pemeriksaan berkala dan pemicu penilaian ulang | `TERTAHAN DEPENDENCY` (`BE-39`) |
+| `BE-37` | `MVP-5` | `RM-07` | Profil dokumen wajib + isi awal + endpoint master | **`SELESAI`** 29 Oktober 2026 — 17 uji lulus (seluruh project `102`), laporan `task/report/backend/BE-37.md` |
+| `BE-38` | `MVP-5` | `RM-09` | Addendum pengesahan | **`SELESAI`** 29 Oktober 2026 — 12 uji lulus (seluruh project `114`), laporan `task/report/backend/BE-38.md` |
+| `BE-39` | `MVP-6` | `RM-08` | Penilaian kelengkapan + endpoint daftar kerja | **`SELESAI`** 29 Oktober 2026 — 21 uji lulus (seluruh project `135`), laporan `task/report/backend/BE-39.md` |
+| `BE-40` | `MVP-6` | `RM-08` | Pemeriksaan berkala dan pemicu penilaian ulang | **`SELESAI`** 29 Oktober 2026 — 9 uji lulus (seluruh project `144`), laporan `task/report/backend/BE-40.md` |
 | `BE-41` | `MVP-6` | — | Swagger, catatan rilis, pemberitahuan perubahan perilaku amandemen | `TERTAHAN DEPENDENCY` (seluruh task) |
 
 **Skema amandemen sudah diterapkan ke devYoga — 28 Oktober 2026, atas instruksi user.** Lapisan persistensi
@@ -1556,7 +1556,7 @@ dinilai penuh begitu `BE-39` selesai.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-26` |
-| **Status** | **`SIAP`** — `BE-21` dan `BE-25` selesai 28 Oktober 2026 |
+| **Status** | **`SELESAI`** — 29 Oktober 2026, laporan `task/report/backend/BE-26.md`. `dotnet test` → `Passed: 23` (seluruh project `85`), `Failed: 0`. Waktu final 13 jenis lama tidak ditetapkan desain; dipakai waktu tanda tangan keutuhan, lalu waktu masuk baris (`CreateDateTime`) — selisih dicatat di laporan bagian 7 |
 | **Outcome** | Dokumen jenis apa pun yang final sesudah tutup klinis bertanda `Susulan` |
 | **Trace** | `RM-DEC-006`, `043`, `051`; `RM-CAP-037`; `RM-FACT-011`, `018`; `FR-RM-052` |
 | **Kontrak** | API A1 (`isLateEntry`, `clinicalClosedAt`, `isClinicalClosureDerived`) |
@@ -1646,7 +1646,7 @@ pada decision log; kriteria terbukti uji; `AT-RM-44` lulus untuk modul itu.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-37` |
-| **Status** | **`SIAP`** |
+| **Status** | **`SELESAI`** — 29 Oktober 2026, laporan `task/report/backend/BE-37.md`. `dotnet test` → `Passed: 17` (seluruh project `102`), `Failed: 0`. Model, enum, configuration, dan migration sudah ada sejak R2.2; task ini menambah DTO, service, controller, seeder, dan pendaftarannya. Selisih kontrak A3: `items[].sortOrder` tidak diterima (kolomnya tidak dibuat, R2.2) |
 | **Outcome** | Sebelas profil awal tersedia dan dapat dikelola tanpa rilis program |
 | **Trace** | `RM-DEC-045`, `047`, `053`–`056`, `060`, `061`; `RM-CAP-038`; `FR-RM-060`–`062` |
 | **Kontrak** | API `0.2.0` A3; validation `VAL-RM-A04`–`A07`, `A10`; permission `MedicalRecordCompletenessProfile : Read/Create/Update` |
@@ -1663,7 +1663,7 @@ pada decision log; kriteria terbukti uji; `AT-RM-44` lulus untuk modul itu.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-38` |
-| **Status** | **`SIAP`** |
+| **Status** | **`SELESAI`** — 29 Oktober 2026, laporan `task/report/backend/BE-38.md`. `dotnet test` → `Passed: 12` (seluruh project `114`), `Failed: 0`. Kolom, enum, index unik terfilter, dan migration sudah ada sejak R2.2; task ini mengubah service, DTO, dan controller addendum. Penandaan kunjungan untuk dinilai ulang (A4.12) belum dikerjakan — milik pemicu penilaian ulang `BE-40` |
 | **Outcome** | Catatan `LockedUnsigned` dapat disahkan penulisnya tanpa mengubah statusnya |
 | **Trace** | `RM-DEC-049`; `RM-CAP-039`; `FR-RM-080`, `FR-RM-081` |
 | **Kontrak** | API A4; state S-C; validation `VAL-RM-A01`–`A03` |
@@ -1682,7 +1682,7 @@ pada decision log; kriteria terbukti uji; `AT-RM-44` lulus untuk modul itu.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-39` |
-| **Status** | `TERTAHAN DEPENDENCY` — `BE-23`, `BE-25`, `BE-37`, `BE-38` |
+| **Status** | **`SELESAI`** — 29 Oktober 2026, laporan `task/report/backend/BE-39.md`. `dotnet test` → `Passed: 21` (seluruh project `135`), `Failed: 0`. Model, enum, configuration, dan migration sudah ada sejak R2.2. **Pemicu penilaian pertama** diputuskan pemilik modul 29 Oktober 2026: penutupan klinis hanya menaruh id kunjungan di antrean memori, dan worker latar menilainya di luar transaksi penutupan. Isi antrean hilang saat restart; disusul `BE-40` |
 | **Outcome** | Petugas rekam medis melihat kunjungan yang belum lengkap beserta seluruh kekurangannya |
 | **Trace** | `RM-DEC-045`, `046`, `050`, `051`, `053`–`056`, `060`; `AGG-RM-03`; `RM-CAP-040`; `FR-RM-070`–`074`; `NFR-003`, `NFR-006` |
 | **Kontrak** | API A2; state S-B; validation `VAL-RM-A08`, `A09`; permission `MedicalRecordCompleteness : Read/Evaluate` |
@@ -1699,7 +1699,7 @@ pada decision log; kriteria terbukti uji; `AT-RM-44` lulus untuk modul itu.
 | Field | Isi |
 |---|---|
 | **Task ID** | `BE-40` |
-| **Status** | `TERTAHAN DEPENDENCY` — `BE-39` |
+| **Status** | **`SELESAI`** — 29 Oktober 2026, laporan `task/report/backend/BE-40.md`. `dotnet test` → `Passed: 9` (seluruh project `144`), `Failed: 0`. Kedua kewajiban tambahan dari `BE-38`/`BE-39` tertutup: addendum pengesahan dan tanda tangan memicu penilaian ulang lewat antrean memori, dan setiap putaran menyusul penutupan klinis yang belum punya penilaian |
 | **Outcome** | Dokumen yang final belakangan tertangkap tanpa petugas menekan apa pun |
 | **Trace** | `GAP-ARCH-RM-04`; `FR-RM-075`; `NFR-007` |
 | **Reuse** | Pola hosted service yang sudah ada (`AccAccountingEventSchedulerHostedService`) |

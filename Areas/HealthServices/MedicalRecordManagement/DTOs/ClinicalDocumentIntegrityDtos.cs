@@ -180,6 +180,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         [Required(ErrorMessage = "Alasan koreksi wajib diisi.")]
         [MaxLength(500, ErrorMessage = "Alasan koreksi terlalu panjang. Batasnya 500 huruf.")]
         public string CorrectionReason { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Maksud addendum (kontrak 0.2.0 A4, `BE-38`). Opsional: kosong berarti <c>Correction</c>,
+        /// sehingga klien lama tetap membuat addendum koreksi. <c>Attestation</c> mengesahkan
+        /// catatan <c>LockedUnsigned</c> tanpa mengubah statusnya (`RM-DEC-049`).
+        /// </summary>
+        public ClinicalNoteAddendumPurpose? Purpose { get; set; }
     }
 
     public class ClinicalNoteAddendumResponse
@@ -197,5 +204,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         public string CorrectionReason { get; set; } = string.Empty;
 
         public DateTime SignedAt { get; set; }
+
+        /// <summary>Maksud addendum; addendum lama seluruhnya <c>Correction</c> (`BE-38`).</summary>
+        public ClinicalNoteAddendumPurpose Purpose { get; set; } = ClinicalNoteAddendumPurpose.Correction;
     }
 }

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Responses;
 
@@ -107,6 +108,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         public string? SourceModule { get; set; }
         /// <summary>Hanya pada baris `PeriodicObservationSummary` (`RM-DEC-052`).</summary>
         public MedicalRecordPeriodicSummaryResponse? PeriodicSummary { get; set; }
+
+        // ---- Amandemen kontrak 0.2.0 (BE-26): penanda Susulan, dihitung saat dibaca (`RM-DEC-043`). ----
+
+        /// <summary>
+        /// Dokumen final SESUDAH tutup klinis kunjungannya (`RM-DEC-006`, `043`, `051`). Final tepat
+        /// pada waktu tutup tidak bertanda. Tidak disimpan di mana pun.
+        /// </summary>
+        public bool IsLateEntry { get; set; }
+
+        /// <summary>Waktu tutup klinis kunjungan yang dipakai pembanding. Kosong bila kunjungan belum ditutup.</summary>
+        public DateTime? ClinicalClosedAt { get; set; }
+
+        /// <summary>
+        /// Waktu tutup diturunkan dari data lama (A4.12), karena kunjungan ditutup sebelum
+        /// penutupan klinis dicatat (`BE-25`). Waktu turunan tidak disimpan.
+        /// </summary>
+        public bool IsClinicalClosureDerived { get; set; }
+
+        /// <summary>
+        /// Waktu baris masuk sistem pada tabel asalnya. Hanya dipakai menghitung
+        /// <see cref="IsLateEntry"/> bagi jenis tanpa waktu final; bukan bagian kontrak.
+        /// </summary>
+        [JsonIgnore]
+        internal DateTime? EnteredAt { get; set; }
     }
 
     /// <summary>

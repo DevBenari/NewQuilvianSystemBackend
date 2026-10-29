@@ -222,12 +222,12 @@ source_commits: { backend: 363de34f, frontend: f0a3b07b8 }
 | `FR-RM-031` Ringkasan berkala | `RM-DEC-052` | A4.10 | API A1 | `BE-22` | `FE-11` | `AT-RM-52` | **Backend selesai** (`BE-22`); frontend direncanakan |
 | `FR-RM-040` MCU | `RM-DEC-040`, `065`, `066` | A4.10 (dikoreksi) | `INT-RM-10j` | `BE-36` | `FE-10` | `AT-RM-44`, `UAT-09`, `UAT-10` | **Backend selesai** (`BE-36`); frontend direncanakan |
 | `FR-RM-050`, `051` Penutupan klinis | `RM-DEC-051` | A4.12 | State S-A | `BE-25` | — | `AT-RM-56`, `57` | **Backend selesai** (`BE-25`, 13 uji lulus); tanpa layar |
-| `FR-RM-052` Susulan | `RM-DEC-006`, `043` | A4.9 | API A1 | `BE-26` | `FE-10` | `AT-RM-47`, `58` | Direncanakan |
+| `FR-RM-052` Susulan | `RM-DEC-006`, `043` | A4.9 | API A1 | `BE-26` | `FE-10` | `AT-RM-47`, `58` | **Backend selesai** (`BE-26`, 23 uji lulus, laporan `task/report/backend/BE-26.md`); layar menunggu `FE-10` |
 | `FR-RM-053` Disposisi IGD mengunci | `RM-DEC-003` | A4.12 | `INT-RM-12` | `BE-27` | — | `AT-RM-59` | **Tertahan persetujuan modul** |
-| `FR-RM-060`–`062` Profil dokumen wajib | `RM-DEC-045`, `047`, `060`, `061` | A4.8 | API A3 | `BE-37` | `FE-13` | `AT-RM-69`, `70`, `71` | Direncanakan |
-| `FR-RM-070`–`074` Penilaian dan daftar kerja | `RM-DEC-045`, `046`, `050`, `053`–`056`, `060` | A4.11 | API A2, state S-B | `BE-39` | `FE-14` | `AT-RM-60`–`68` | Direncanakan |
-| `FR-RM-075` Pemeriksaan berkala | — (`GAP-ARCH-RM-04`) | A4.13 | — | `BE-40` | — | `AT-RM-69` | Direncanakan |
-| `FR-RM-080`, `081` Addendum pengesahan | `RM-DEC-049` | A4.12 | API A4, state S-C | `BE-38` | `FE-12` | `AT-RM-72`–`74` | Direncanakan |
+| `FR-RM-060`–`062` Profil dokumen wajib | `RM-DEC-045`, `047`, `060`, `061` | A4.8 | API A3 | `BE-37` | `FE-13` | `AT-RM-69`, `70`, `71` | **Backend master selesai** (`BE-37`, 17 uji lulus, laporan `task/report/backend/BE-37.md`); `AT-RM-70` terbukti; `AT-RM-71` terbukti lewat `BE-39`, `AT-RM-69` lewat `BE-40` |
+| `FR-RM-070`–`074` Penilaian dan daftar kerja | `RM-DEC-045`, `046`, `050`, `053`–`056`, `060` | A4.11 | API A2, state S-B | `BE-39` | `FE-14` | `AT-RM-60`–`68` | **Backend selesai** (`BE-39`, 21 uji lulus, laporan `task/report/backend/BE-39.md`); `AT-RM-60`–`68` dan `71` terbukti (pembaca IGD, Rawat Inap, Kamar Operasi, Hemodialisa memakai pembaca tiruan sampai `BE-29`–`BE-32`) |
+| `FR-RM-075` Pemeriksaan berkala | — (`GAP-ARCH-RM-04`) | A4.13 | — | `BE-40` | — | `AT-RM-69` | **Backend selesai** (`BE-40`, 9 uji lulus, laporan `task/report/backend/BE-40.md`); `AT-RM-69` terbukti |
+| `FR-RM-080`, `081` Addendum pengesahan | `RM-DEC-049` | A4.12 | API A4, state S-C | `BE-38` | `FE-12` | `AT-RM-72`–`74` | **Backend selesai** (`BE-38`, 12 uji lulus, laporan `task/report/backend/BE-38.md`); `AT-RM-73`, `74` terbukti; `AT-RM-72` terbukti kecuali "rincian tidak ditandatangani hilang" yang menunggu penilaian `BE-39` |
 
 ## T2.2 Coverage gap
 

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Linq.Expressions;
+using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
@@ -302,7 +303,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 .Take(ukuranHalaman)
                 .ToList();
 
-            await LengkapiStatusKeutuhanAsync(permintaan.PatientId, isiHalaman, cancellationToken);
+            var waktuTandaTangan = await LengkapiStatusKeutuhanAsync(permintaan.PatientId, isiHalaman, cancellationToken);
+            await LengkapiPenandaSusulanAsync(isiHalaman, waktuTandaTangan, cancellationToken);
 
             foreach (var baris in isiHalaman)
             {
@@ -944,7 +946,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             var baris = await terurut
                 .Take(batas)
-                .Select(proyeksi)
+                .Select(SertakanWaktuMasuk(proyeksi))
                 .ToListAsync(cancellationToken);
 
             return (jumlah, baris);
@@ -964,8 +966,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// jenis dokumen memang belum tunduk aturan keutuhan pada rilis pertama (RM-DEC-019).
         /// Keadaan itu ditandai <see cref="MedicalRecordTimelineItemResponse.IsIntegrityEnforced"/>
         /// supaya layar dapat menyatakannya terbuka sesuai RM-FE-009.
+        ///
+        /// Mengembalikan waktu tanda tangan dokumen yang sudah ditandatangani, dipakai penanda
+        /// Susulan sebagai waktu final jenis yang tunduk aturan keutuhan (`BE-26`).
         /// </summary>
-        private async Task LengkapiStatusKeutuhanAsync(
+        private async Task<Dictionary<(ClinicalDocumentKind, Guid), DateTime>> LengkapiStatusKeutuhanAsync(
             Guid patientId,
             List<MedicalRecordTimelineItemResponse> isiHalaman,
             CancellationToken cancellationToken)
@@ -977,7 +982,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             }
 
             if (isiHalaman.Count == 0)
-                return;
+                return [];
 
             var idDokumen = isiHalaman.Select(x => x.DocumentId).Distinct().ToList();
 
@@ -990,12 +995,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 {
                     x.DocumentKind,
                     x.DocumentId,
-                    x.IntegrityStatus
+                    x.IntegrityStatus,
+                    x.SignedAt
                 })
                 .ToListAsync(cancellationToken);
 
             if (keutuhan.Count == 0)
-                return;
+                return [];
 
             // Dicocokkan memakai pasangan jenis dan id, bukan id saja. Id dokumen hanya unik di
             // dalam tabel asalnya, jadi mencocokkan dengan id saja berisiko salah pasang.
@@ -1010,6 +1016,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
                 baris.IntegrityStatus = status;
                 baris.IntegrityStatusName = NamaStatusKeutuhan(status);
+            }
+
+            return keutuhan
+                .Where(x => x.SignedAt.HasValue)
+                .ToDictionary(x => (x.DocumentKind, x.DocumentId), x => x.SignedAt!.Value);
+        }
+
+        // =====================================================================
+        // Penanda Susulan (BE-26)
+        // =====================================================================
+
+        /// <summary>
+        /// Menandai baris yang final SESUDAH tutup klinis kunjungannya (`RM-DEC-043`, `051`).
+        ///
+        /// Dihitung saat dibaca dan tidak disimpan. Hanya isi halaman yang ditanyakan, sehingga
+        /// biayanya paling banyak lima query kecil berapa pun banyaknya dokumen pasien.
+        ///
+        /// WAKTU FINAL, sumber pertama yang tersedia:
+        /// <list type="number">
+        /// <item>waktu final dari modul pemilik atau model `ClinicalManagement` baru (<c>FinalizedAt</c>);</item>
+        /// <item>waktu tanda tangan pada daftar keutuhan, untuk jenis lama yang sudah ditandatangani;</item>
+        /// <item>waktu baris masuk sistem — jenis lama tanpa status final dianggap final saat tersimpan,
+        /// sama seperti sumber sementara pada A4.10, dan sesuai "tanggal masuk" `RM-DEC-006`.</item>
+        /// </list>
+        /// Waktu kejadian klinis (<c>OccurredAt</c>) sengaja tidak dipakai: waktu itu diisi petugas
+        /// dan dapat dimundurkan, sehingga catatan yang dientri belakangan akan lolos dari penanda.
+        ///
+        /// Final TEPAT pada waktu tutup tidak bertanda — penandanya "sesudah", bukan "sejak".
+        /// </summary>
+        private async Task LengkapiPenandaSusulanAsync(
+            List<MedicalRecordTimelineItemResponse> isiHalaman,
+            IReadOnlyDictionary<(ClinicalDocumentKind, Guid), DateTime> waktuTandaTangan,
+            CancellationToken cancellationToken)
+        {
+            var idKunjungan = isiHalaman
+                .Where(x => x.EncounterId.HasValue && x.EncounterId.Value != Guid.Empty)
+                .Select(x => x.EncounterId!.Value)
+                .Distinct()
+                .ToList();
+
+            if (idKunjungan.Count == 0)
+                return;
+
+            // Urutan sumber waktu tutup (A4.12) ada di ClinicalClosureTimeReader, dipakai bersama
+            // penilaian kelengkapan (BE-39).
+            var waktuTutup = await ClinicalClosureTimeReader.ReadAsync(_dbContext, idKunjungan, cancellationToken);
+
+            foreach (var baris in isiHalaman)
+            {
+                if (baris.EncounterId is not { } kunjungan
+                    || !waktuTutup.TryGetValue(kunjungan, out var tutup))
+                    continue;
+
+                baris.ClinicalClosedAt = tutup.Waktu;
+                baris.IsClinicalClosureDerived = tutup.Turunan;
+
+                var final = baris.FinalizedAt
+                    ?? (waktuTandaTangan.TryGetValue((baris.DocumentKind, baris.DocumentId), out var ditandatangani)
+                        ? ditandatangani
+                        : baris.EnteredAt);
+
+                baris.IsLateEntry = final.HasValue && final.Value > tutup.Waktu;
             }
         }
 
@@ -1322,7 +1390,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                     DelegationId = x.DelegationId,
                     AddendumText = x.AddendumText,
                     CorrectionReason = x.CorrectionReason,
-                    SignedAt = x.SignedAt
+                    SignedAt = x.SignedAt,
+                    Purpose = x.AddendumPurpose
                 })
                 .ToListAsync(cancellationToken);
 
@@ -1935,6 +2004,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             return Expression.Lambda<Func<TEntity, bool>>(
                 pembanding(pemilih.Body, parameter),
                 pemilih.Parameters);
+        }
+
+        private static readonly PropertyInfo PropertiWaktuMasuk =
+            typeof(MedicalRecordTimelineItemResponse).GetProperty(
+                nameof(MedicalRecordTimelineItemResponse.EnteredAt),
+                BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        /// <summary>
+        /// Menambahkan waktu masuk baris (<c>CreateDateTime</c>) ke proyeksi sebuah sumber, untuk
+        /// penanda Susulan pada jenis tanpa waktu final (`BE-26`).
+        ///
+        /// Ditambahkan di sini, satu kali, bukan pada dua puluh satu proyeksi di
+        /// <see cref="AmbilJenisAsync"/> — sumber baru otomatis ikut dan tidak mungkin terlupa.
+        /// Proyeksi yang bukan inisialisasi objek dibiarkan apa adanya.
+        /// </summary>
+        private static Expression<Func<TEntity, MedicalRecordTimelineItemResponse>> SertakanWaktuMasuk<TEntity>(
+            Expression<Func<TEntity, MedicalRecordTimelineItemResponse>> proyeksi)
+            where TEntity : IdentityModel
+        {
+            if (proyeksi.Body is not MemberInitExpression isi)
+                return proyeksi;
+
+            var entitas = proyeksi.Parameters[0];
+            var waktuMasuk = Expression.Convert(
+                Expression.Property(entitas, nameof(IdentityModel.CreateDateTime)),
+                typeof(DateTime?));
+
+            return Expression.Lambda<Func<TEntity, MedicalRecordTimelineItemResponse>>(
+                Expression.MemberInit(isi.NewExpression, isi.Bindings.Append(Expression.Bind(PropertiWaktuMasuk, waktuMasuk))),
+                entitas);
         }
 
         /// <summary>
