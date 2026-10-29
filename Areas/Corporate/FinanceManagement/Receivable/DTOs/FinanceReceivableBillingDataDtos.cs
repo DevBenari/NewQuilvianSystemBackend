@@ -211,6 +211,9 @@ public sealed class BillingDataItemResponse
     public string? BenefitOwnerName { get; set; }
     public string? BenefitOwnerStaffNumber { get; set; }
 
+    /// <summary>Identitas canonical pemilik benefit (WorkforceProfileId).</summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
+
     /// <summary>Nama penjamin: asuransi, perusahaan penjamin, atau nama penjamin pada kunjungan; nama pasien untuk kategori lain.</summary>
     public string? PayerName { get; set; }
 
@@ -330,6 +333,9 @@ public sealed class BillingDataGroupMeta
     /// <summary>Pemilik benefit (kategori employee dan internalBenefit): pegawai pemegang plafon, bukan pasien penerima manfaat.</summary>
     public string? BenefitOwnerName { get; set; }
     public string? BenefitOwnerStaffNumber { get; set; }
+
+    /// <summary>Identitas canonical pemilik benefit (WorkforceProfileId).</summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
 }
 
 /// <summary>Subtotal billing amount per tanggal kalender di dalam kelompok yang sama.</summary>

@@ -440,6 +440,26 @@ public sealed class FinanceReceivableBillingDataService
                     .OrderByDescending(g => g.IsPrimary)
                     .ThenBy(g => g.Priority)
                     .Select(g => g.EmployeeNumberSnapshot)
+                    .FirstOrDefault(),
+                WorkforceProfileId = receivable.BenefitOwnerWorkforceProfileId
+                    ?? _dbContext.RegPatientEncounterGuarantors
+                        .Where(g => g.EncounterId == item.EncounterId && g.IsActive && !g.IsDelete && (g.WorkforceProfileIdSnapshot != null || (g.PatientCompanyGuarantor != null && g.PatientCompanyGuarantor.BenefitOwnerWorkforceProfileId != null)))
+                        .OrderByDescending(g => g.IsPrimary)
+                        .ThenBy(g => g.Priority)
+                        .Select(g => g.WorkforceProfileIdSnapshot ?? (g.PatientCompanyGuarantor != null ? g.PatientCompanyGuarantor.BenefitOwnerWorkforceProfileId : null))
+                        .FirstOrDefault(),
+                EmployeeId = receivable.BenefitOwnerId
+                    ?? _dbContext.RegPatientEncounterGuarantors
+                        .Where(g => g.EncounterId == item.EncounterId && g.IsActive && !g.IsDelete && (g.EmployeeIdSnapshot != null || (g.PatientCompanyGuarantor != null && g.PatientCompanyGuarantor.EmployeeId != null)))
+                        .OrderByDescending(g => g.IsPrimary)
+                        .ThenBy(g => g.Priority)
+                        .Select(g => g.EmployeeIdSnapshot ?? (g.PatientCompanyGuarantor != null ? g.PatientCompanyGuarantor.EmployeeId : null))
+                        .FirstOrDefault(),
+                BenefitOwnerNameSnapshot = _dbContext.RegPatientEncounterGuarantors
+                    .Where(g => g.EncounterId == item.EncounterId && g.IsActive && !g.IsDelete && g.EmployeeNameSnapshot != null)
+                    .OrderByDescending(g => g.IsPrimary)
+                    .ThenBy(g => g.Priority)
+                    .Select(g => g.EmployeeNameSnapshot)
                     .FirstOrDefault()
             };
 
@@ -516,15 +536,33 @@ public sealed class FinanceReceivableBillingDataService
     // Perjanjian DITOLAK / DIBATALKAN dan Penutupan Benefit DIBATALKAN tidak dihitung: kembali ke "belum ada".
     private IQueryable<BillingDataRow> ApplyResolutionStatus(IQueryable<BillingDataRow> rows, BillingDataFilter filter)
     {
-        if (filter.ResolutionStatus == BillingDataResolutionStatuses.All) return rows;
-
         var settledStatus = FinReceivableStatuses.Settled;
-        var draftSettlementReceivableIds = _dbContext.FinBenefitSettlementItems
+        var activeSettlementReceivableIds = _dbContext.FinBenefitSettlementItems
             .Where(i => !i.IsDelete
                 && i.Settlement != null
                 && !i.Settlement.IsDelete
-                && i.Settlement.Status == FinBenefitSettlementStatuses.Draf)
+                && i.Settlement.Status != FinBenefitSettlementStatuses.Dibatalkan)
             .Select(i => i.ReceivableId);
+
+        // Khusus untuk tab Benefit RS Internal: secara bawaan (ResolutionStatus == "all" atau "awaitingSettlement"),
+        // tagihan yang sudah masuk draf penutupan aktif langsung dikeluarkan dari tabel kerja utama Data Tagihan.
+        // Dokumen penutupan tersebut dikelola di Daftar Draf & Riwayat Penutupan Benefit.
+        if (filter.Category == BillingDataCategories.InternalBenefit)
+        {
+            if (filter.ResolutionStatus == BillingDataResolutionStatuses.SettlementDraft)
+            {
+                return rows.Where(x => x.Receivable.Status != settledStatus && activeSettlementReceivableIds.Contains(x.Receivable.Id));
+            }
+            if (filter.ResolutionStatus == BillingDataResolutionStatuses.Settled || filter.ResolutionStatus == BillingDataResolutionStatuses.Paid)
+            {
+                return rows.Where(x => x.Receivable.Status == settledStatus);
+            }
+            // Bawaan (All atau AwaitingSettlement): hanya tampilkan yang belum masuk draf aktif dan belum settled
+            return rows.Where(x => x.Receivable.Status != settledStatus && !activeSettlementReceivableIds.Contains(x.Receivable.Id));
+        }
+
+        if (filter.ResolutionStatus == BillingDataResolutionStatuses.All) return rows;
+
         var approvedPlanReceivableIds = _dbContext.FinReceivableInstallmentPlans
             .Where(p => !p.IsDelete && p.Status == FinReceivableInstallmentPlanStatuses.Disetujui)
             .Select(p => p.ReceivableId);
@@ -537,9 +575,9 @@ public sealed class FinanceReceivableBillingDataService
             BillingDataResolutionStatuses.Settled or BillingDataResolutionStatuses.Paid =>
                 rows.Where(x => x.Receivable.Status == settledStatus),
             BillingDataResolutionStatuses.SettlementDraft =>
-                rows.Where(x => x.Receivable.Status != settledStatus && draftSettlementReceivableIds.Contains(x.Receivable.Id)),
+                rows.Where(x => x.Receivable.Status != settledStatus && activeSettlementReceivableIds.Contains(x.Receivable.Id)),
             BillingDataResolutionStatuses.AwaitingSettlement =>
-                rows.Where(x => x.Receivable.Status != settledStatus && !draftSettlementReceivableIds.Contains(x.Receivable.Id)),
+                rows.Where(x => x.Receivable.Status != settledStatus && !activeSettlementReceivableIds.Contains(x.Receivable.Id)),
             BillingDataResolutionStatuses.PlanApproved =>
                 rows.Where(x => x.Receivable.Status != settledStatus && approvedPlanReceivableIds.Contains(x.Receivable.Id)),
             BillingDataResolutionStatuses.PlanPending =>
@@ -594,9 +632,8 @@ public sealed class FinanceReceivableBillingDataService
         if (filter.SearchPattern is null) return rows;
         var pattern = filter.SearchPattern;
 
-        // Kategori company dan internalBenefit juga dicari lewat nama asuransi, nama perusahaan penjamin, dan nama penjamin yang
-        // tersimpan pada kunjungan.
-        if (filter.Category == BillingDataCategories.Company || filter.Category == BillingDataCategories.InternalBenefit)
+        // Kategori company dicari lewat nomor dokumen, pasien, asuransi, dan nama perusahaan penjamin.
+        if (filter.Category == BillingDataCategories.Company)
         {
             return rows.Where(x =>
                 (x.Invoice != null && EF.Functions.ILike(x.Invoice.InvoiceNumber, pattern, "\\"))
@@ -604,6 +641,60 @@ public sealed class FinanceReceivableBillingDataService
                 || (x.Patient != null && EF.Functions.ILike(x.Patient.FullName, pattern, "\\"))
                 || (x.Patient != null && EF.Functions.ILike(x.Patient.MedicalRecordNumber, pattern, "\\"))
                 || (x.Provider != null && EF.Functions.ILike(x.Provider.InsuranceProviderName, pattern, "\\"))
+                || _dbContext.MstCompanyGuarantors.Any(c =>
+                    !c.IsDelete
+                    && (c.Id == x.CompanyGuarantorId || c.Id == x.Receivable.DebtorReferenceId)
+                    && EF.Functions.ILike(c.CompanyGuarantorName, pattern, "\\"))
+                || _dbContext.RegPatientEncounterGuarantors.Any(g =>
+                    g.EncounterId == x.Item.EncounterId
+                    && g.IsActive
+                    && !g.IsDelete
+                    && g.PaymentSourceNameSnapshot != null
+                    && EF.Functions.ILike(g.PaymentSourceNameSnapshot, pattern, "\\")));
+        }
+
+        // Kategori internalBenefit: prioritas utama pencarian adalah nama pemilik benefit (karyawan biasa / dokter),
+        // mencakup MstWorkforceProfile (DisplayName, Employee.FullName, Doctor.FullName) dan snapshot nama pegawai.
+        if (filter.Category == BillingDataCategories.InternalBenefit)
+        {
+            return rows.Where(x =>
+                // 1. Nama pemilik benefit dari MstWorkforceProfile / MstEmployee / MstDoctor
+                _dbContext.MstWorkforceProfiles.Any(w =>
+                    !w.IsDelete
+                    && (
+                        (x.WorkforceProfileId != null && w.Id == x.WorkforceProfileId)
+                        || (x.Receivable.BenefitOwnerWorkforceProfileId != null && w.Id == x.Receivable.BenefitOwnerWorkforceProfileId)
+                        || (x.EmployeeId != null && w.Employee != null && w.Employee.Id == x.EmployeeId)
+                        || (x.Receivable.BenefitOwnerId != null && w.Employee != null && w.Employee.Id == x.Receivable.BenefitOwnerId)
+                        || _dbContext.RegPatientEncounterGuarantors.Any(g =>
+                            g.EncounterId == x.Item.EncounterId
+                            && g.IsActive
+                            && !g.IsDelete
+                            && (
+                                (g.WorkforceProfileIdSnapshot != null && g.WorkforceProfileIdSnapshot == w.Id)
+                                || (g.EmployeeIdSnapshot != null && w.Employee != null && w.Employee.Id == g.EmployeeIdSnapshot)
+                                || (g.PatientCompanyGuarantor != null && (
+                                    (g.PatientCompanyGuarantor.BenefitOwnerWorkforceProfileId != null && g.PatientCompanyGuarantor.BenefitOwnerWorkforceProfileId == w.Id)
+                                    || (g.PatientCompanyGuarantor.EmployeeId != null && w.Employee != null && w.Employee.Id == g.PatientCompanyGuarantor.EmployeeId)
+                                ))
+                            ))
+                    )
+                    && (EF.Functions.ILike(w.DisplayName, pattern, "\\")
+                        || (w.Employee != null && EF.Functions.ILike(w.Employee.FullName, pattern, "\\"))
+                        || (w.Doctor != null && EF.Functions.ILike(w.Doctor.FullName, pattern, "\\"))))
+                // 2. Snapshot nama pemilik benefit pada penjamin kunjungan
+                || _dbContext.RegPatientEncounterGuarantors.Any(g =>
+                    g.EncounterId == x.Item.EncounterId
+                    && g.IsActive
+                    && !g.IsDelete
+                    && g.EmployeeNameSnapshot != null
+                    && EF.Functions.ILike(g.EmployeeNameSnapshot, pattern, "\\"))
+                // 3. Pencarian tagihan: No. Bill, No. Reg, No. RM, dan Nama Pasien
+                || (x.Invoice != null && EF.Functions.ILike(x.Invoice.InvoiceNumber, pattern, "\\"))
+                || (x.Encounter != null && EF.Functions.ILike(x.Encounter.EncounterNumber, pattern, "\\"))
+                || (x.Patient != null && EF.Functions.ILike(x.Patient.FullName, pattern, "\\"))
+                || (x.Patient != null && EF.Functions.ILike(x.Patient.MedicalRecordNumber, pattern, "\\"))
+                // 4. Nama penjamin internal
                 || _dbContext.MstCompanyGuarantors.Any(c =>
                     !c.IsDelete
                     && (c.Id == x.CompanyGuarantorId || c.Id == x.Receivable.DebtorReferenceId)
@@ -677,8 +768,9 @@ public sealed class FinanceReceivableBillingDataService
                 x.Receivable.DebtorReferenceId,
                 x.Receivable.IsInternalBenefit,
                 x.Receivable.EmployeeArOrigin,
-                x.Receivable.BenefitOwnerId,
-                x.Receivable.BenefitOwnerWorkforceProfileId,
+                BenefitOwnerId = x.EmployeeId ?? x.Receivable.BenefitOwnerId,
+                BenefitOwnerWorkforceProfileId = x.WorkforceProfileId ?? x.Receivable.BenefitOwnerWorkforceProfileId,
+                x.BenefitOwnerNameSnapshot,
                 x.Receivable.OriginalAmount,
                 x.Receivable.OutstandingAmount,
                 DueDate = (DateOnly?)x.Receivable.DueDate,
@@ -789,6 +881,7 @@ public sealed class FinanceReceivableBillingDataService
         return page.Select(x =>
         {
             var owner = ownerLookup.Find(x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId);
+            var canonicalProfileId = owner?.WorkforceProfileId ?? ownerLookup.ResolveProfileId(x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId);
             settlementByReceivable.TryGetValue(x.ReceivableId, out var settlement);
             planByReceivable.TryGetValue(x.ReceivableId, out var plan);
             var hasSettlement = settlementByReceivable.ContainsKey(x.ReceivableId);
@@ -833,8 +926,9 @@ public sealed class FinanceReceivableBillingDataService
                 DebtorReferenceId = x.DebtorReferenceId,
                 IsInternalBenefit = x.IsInternalBenefit,
                 EmployeeArOrigin = x.EmployeeArOrigin,
-                BenefitOwnerName = owner?.StaffName,
-                BenefitOwnerStaffNumber = owner?.StaffNumber,
+                BenefitOwnerName = owner?.StaffName ?? x.BenefitOwnerNameSnapshot,
+                BenefitOwnerStaffNumber = owner?.StaffNumber ?? x.EmployeeNumber,
+                BenefitOwnerWorkforceProfileId = canonicalProfileId,
                 PayerName = (isCompany || isInternalBenefit) ? (x.ProviderName ?? x.CompanyName ?? x.GuarantorName ?? (isInternalBenefit ? "Benefit RS Internal" : null)) : x.PatientName,
                 PayerId = (isCompany || isInternalBenefit) ? (x.DebtorReferenceId ?? x.CompanyGuarantorId) : null,
                 PayerKind = (!isCompany && !isInternalBenefit)
@@ -906,7 +1000,7 @@ public sealed class FinanceReceivableBillingDataService
         return settled ? BillingDataResolutionStatuses.Paid : BillingDataResolutionStatuses.Outstanding;
     }
 
-    private static IQueryable<BillingDataRow> ApplySort(IQueryable<BillingDataRow> rows, BillingDataFilter filter)
+    private IQueryable<BillingDataRow> ApplySort(IQueryable<BillingDataRow> rows, BillingDataFilter filter)
     {
         var descending = filter.Descending;
         return filter.SortBy switch
@@ -927,12 +1021,28 @@ public sealed class FinanceReceivableBillingDataService
                 ? rows.OrderByDescending(x => x.Item.Amount).ThenBy(x => x.Item.Id)
                 : rows.OrderBy(x => x.Item.Amount).ThenBy(x => x.Item.Id),
             // Bawaan ("grouped" / "date"): Urutan stabil seperti V1.
-            // 1. Group alphabetical (Payer untuk Company, Patient untuk Employee dan GeneralPatient)
+            // 1. Group alphabetical (Payer untuk Company, Benefit Owner untuk InternalBenefit, Patient untuk Employee dan GeneralPatient)
             // 2. Dalam group: Tanggal DESC (kunjungan / diakui)
             // 3. NoBill ASC
             // 4. Item.Id ASC
-            _ => (filter.Category == BillingDataCategories.Company || filter.Category == BillingDataCategories.InternalBenefit)
-                ? rows.OrderBy(x => x.Provider != null ? x.Provider.InsuranceProviderName : (x.CompanyName ?? ""))
+            _ => filter.Category == BillingDataCategories.InternalBenefit
+                ? rows.OrderBy(x => _dbContext.MstWorkforceProfiles
+                        .Where(w => w.Id == (x.WorkforceProfileId ?? x.Receivable.BenefitOwnerWorkforceProfileId))
+                        .Select(w => w.Doctor != null ? w.Doctor.FullName : (w.Employee != null ? w.Employee.FullName : w.DisplayName))
+                        .FirstOrDefault() ?? x.BenefitOwnerNameSnapshot ?? "")
+                    .ThenBy(x => (Guid?)(x.WorkforceProfileId ?? x.Receivable.BenefitOwnerWorkforceProfileId))
+                    .ThenBy(x => x.Encounter == null)
+                    .ThenByDescending(x => x.Encounter != null ? (DateTime?)x.Encounter.EncounterDate : null)
+                    .ThenByDescending(x => x.Receivable.RecognizedAt)
+                    .ThenBy(x => x.Invoice != null ? x.Invoice.InvoiceNumber : "")
+                    .ThenBy(x => x.Item.Id)
+                : filter.Category == BillingDataCategories.Company
+                ? rows.OrderBy(x => x.Provider != null
+                    ? x.Provider.InsuranceProviderName
+                    : (_dbContext.MstCompanyGuarantors
+                        .Where(c => !c.IsDelete && (c.Id == x.CompanyGuarantorId || c.Id == x.Receivable.DebtorReferenceId))
+                        .Select(c => c.CompanyGuarantorName)
+                        .FirstOrDefault() ?? ""))
                     .ThenBy(x => x.Encounter == null)
                     .ThenByDescending(x => x.Encounter != null ? (DateTime?)x.Encounter.EncounterDate : null)
                     .ThenByDescending(x => x.Receivable.RecognizedAt)
@@ -1007,16 +1117,27 @@ public sealed class FinanceReceivableBillingDataService
                     break;
 
                 case BillingDataCategories.InternalBenefit:
-                    groupId = item.PayerId.HasValue
-                        ? item.PayerId.Value.ToString()
-                        : (!string.IsNullOrWhiteSpace(item.PayerName) ? item.PayerName.Trim() : "-");
-                    groupName = !string.IsNullOrWhiteSpace(item.PayerName) ? item.PayerName.Trim() : "Benefit RS Internal";
+                    if (item.BenefitOwnerWorkforceProfileId.HasValue)
+                    {
+                        groupId = item.BenefitOwnerWorkforceProfileId.Value.ToString();
+                        groupName = !string.IsNullOrWhiteSpace(item.BenefitOwnerName)
+                            ? item.BenefitOwnerName.Trim()
+                            : "Pemilik Benefit Belum Teridentifikasi";
+                    }
+                    else
+                    {
+                        // Fallback stabil: bila pemilik benefit belum dapat diresolusikan, pisahkan per piutang agar tidak bercampur
+                        groupId = $"unidentified-{item.Id}";
+                        groupName = "Pemilik Benefit Belum Teridentifikasi";
+                    }
+
                     meta = new BillingDataGroupMeta
                     {
                         NoRM = null,
-                        EmployeeId = null,
-                        BenefitOwnerName = item.BenefitOwnerName,
-                        BenefitOwnerStaffNumber = item.BenefitOwnerStaffNumber
+                        EmployeeId = item.BenefitOwnerStaffNumber ?? item.EmployeeId,
+                        BenefitOwnerName = !string.IsNullOrWhiteSpace(item.BenefitOwnerName) ? item.BenefitOwnerName.Trim() : groupName,
+                        BenefitOwnerStaffNumber = item.BenefitOwnerStaffNumber ?? item.EmployeeId,
+                        BenefitOwnerWorkforceProfileId = item.BenefitOwnerWorkforceProfileId
                     };
                     break;
 
@@ -1059,16 +1180,49 @@ public sealed class FinanceReceivableBillingDataService
                 fullGroupTotals[g.Key] = (totalAmount, itemCount, patientCount);
             }
         }
-        else if (isSingleEntitySelected && groupBuckets.Count == 1)
+        else if (isSingleEntitySelected && filter.Category != BillingDataCategories.InternalBenefit && groupBuckets.Count == 1)
         {
-            // Satu entitas terpilih dan hanya 1 grup: total group sama dengan summary grand total
+            // Satu entitas terpilih dan hanya 1 grup (hanya untuk kategori Company): total group sama dengan summary grand total
             fullGroupTotals[groupBuckets[0].Key] = (totalFilteredAmount, totalFilteredCount,
                 groupBuckets[0].Select(x => x.Item.PatientId).Where(p => p != null).Distinct().Count());
         }
         else
         {
             // Multiple groups across pages: hitung agregasi dari database tanpa N+1 query
-            if (filter.Category == BillingDataCategories.Company || filter.Category == BillingDataCategories.InternalBenefit)
+            if (filter.Category == BillingDataCategories.InternalBenefit)
+            {
+                var profileGuids = groupBuckets
+                    .Select(g => Guid.TryParse(g.Key, out var id) ? id : (Guid?)null)
+                    .Where(id => id.HasValue)
+                    .Select(id => id!.Value)
+                    .Distinct()
+                    .ToList();
+
+                if (profileGuids.Count > 0)
+                {
+                    var ownerAggs = await rows
+                        .Where(x => (x.WorkforceProfileId != null && profileGuids.Contains(x.WorkforceProfileId.Value))
+                            || (x.Receivable.BenefitOwnerWorkforceProfileId != null && profileGuids.Contains(x.Receivable.BenefitOwnerWorkforceProfileId.Value)))
+                        .GroupBy(x => (Guid?)(x.WorkforceProfileId ?? x.Receivable.BenefitOwnerWorkforceProfileId))
+                        .Select(g => new
+                        {
+                            ProfileId = g.Key,
+                            TotalAmount = g.Sum(x => x.Item.Amount),
+                            ItemCount = g.Count(),
+                            PatientCount = g.Where(x => x.Item.PatientId != null).Select(x => x.Item.PatientId).Distinct().Count()
+                        })
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var agg in ownerAggs)
+                    {
+                        if (agg.ProfileId.HasValue)
+                        {
+                            fullGroupTotals[agg.ProfileId.Value.ToString()] = (agg.TotalAmount, agg.ItemCount, agg.PatientCount);
+                        }
+                    }
+                }
+            }
+            else if (filter.Category == BillingDataCategories.Company)
             {
                 var payerGuids = pageRows
                     .Where(x => x.PayerId.HasValue)
@@ -1446,6 +1600,15 @@ internal sealed class BillingDataRow
 
     /// <summary>Nomor identitas/NIP karyawan pasien bila tersedia pada penjamin kunjungan.</summary>
     public string? EmployeeNumber { get; set; }
+
+    /// <summary>Identitas canonical pemilik benefit (WorkforceProfileId) dari penjamin kunjungan atau kartu penjamin.</summary>
+    public Guid? WorkforceProfileId { get; set; }
+
+    /// <summary>Identitas legacy pemilik benefit (MstEmployee.Id) dari penjamin kunjungan atau kartu penjamin.</summary>
+    public Guid? EmployeeId { get; set; }
+
+    /// <summary>Snapshot nama pemilik benefit dari penjamin kunjungan bila tersedia.</summary>
+    public string? BenefitOwnerNameSnapshot { get; set; }
 }
 
 /// <summary>Parameter tidak valid (kategori, status, jenis pasien, periode, atau rentang tanggal) → 400.</summary>
