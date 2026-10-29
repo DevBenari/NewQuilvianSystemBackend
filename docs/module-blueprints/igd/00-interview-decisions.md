@@ -8880,3 +8880,43 @@ eksisting di Ruang Kerja Pemeriksaan IGD.
 | `IGD-DEC-372` | **Hak akses dan visibilitas Ruang Kerja Dokter IGD dikhususkan untuk Dokter IGD yang sedang login dan SuperAdmin; pemeriksaan IGD dikunci untuk Perawat IGD.** (a) Ruang Kerja Dokter IGD hanya dapat diakses oleh dokter yang terhubung ke data dokter dan memiliki jadwal/penugasan IGD, serta SuperAdmin; (b) Daftar pasien dokter IGD HANYA menampilkan *"Pasien Saya"* (pasien dengan DPJP aktif = dokter yang login); saringan dan opsi *"Semua Pasien IGD"* ditiadakan dari layar dokter; SuperAdmin tetap dapat melihat seluruh pasien IGD; (c) Alur pengalihan dokter (handover) antar-shift tetap dikelola di sisi Perawat IGD lewat modal alihkan dokter yang sudah ada di Ruang Kerja Pemeriksaan IGD, tanpa modal tandingan di sisi dokter; (d) Pemeriksaan triase dan asuhan keperawatan IGD hanya dapat disimpan oleh Perawat IGD aktif dan SuperAdmin; perawat unit lain ditolak 403. **Konsekuensi yang diterima:** dokter jaga IGD tidak dapat melihat pasien dokter lain; alokasi dan operan pasien sepenuhnya bergantung pada ketepatan perawat triase dan perawat jaga IGD | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-10-28** | Kesepakatan pemilik 28 Oktober 2026; modal alihkan dokter perawat sudah aktif |
 
 Nomor baru: `IGD-DEC-372`. Nomor berikutnya: `IGD-DEC-373`, `IGD-FACT-264`, `IGD-OQ-146`.
+
+### Putaran B7 bagian 2 — `BE-IGD-077` tuntas — 28 Oktober 2026 (sore)
+
+Kode Rawat Inap untuk `IGD-REQ-003` butir 1 dan 2 (commit Muhammad Hamzah `32e4f401` backend, `b5f6f9927` frontend) masuk
+`rizkiG` `1f4212e8` dan `RizkiV2` `fc5af984f` lewat integration. Atas perintah Rizki, uji bersama dijalankan sendiri oleh tim
+IGD tanpa melibatkan Rawat Inap: aksi admisi lewat API Rawat Inap yang ada, nol perubahan kode Rawat Inap. Atas izin Rizki,
+izin dan scope petugas admisi dipasang dengan akun SuperAdmin. [Laporan uji](testing/2026-10-28-laporan-uji-putaran-b7-bagian2.md).
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-264` | **Putaran B7 bagian 2 lulus seluruhnya (11 langkah `PASS`), akun admisi bukan SuperAdmin.** B7-06a: admit sebelum pasien tiba → tindak lanjut `Executed`, kunjungan `Disposed`, belum ditutup; B7-06b: _Catat Tiba_ sesudahnya → `Completed`; B7-07: admit sesudah pasien tiba → `Completed` dalam penyimpanan yang sama (selisih 0 detik dari `executedAt`); TOLAK-C: `POST reject` sesudah admit → `409` dengan pesan persis acceptance 3, dan T3 membuktikan data IGD tidak berubah; T1: tolak biasa → form `Cancelled`/`CancelledByAdmission`, alasan persis, event `AdmissionRejected`, tindak lanjut tetap `Confirmed`. `BE-IGD-077` 7 dari 7 acceptance. Kode Rawat Inap dinilai sesuai bentuk tindak lanjut 26 Oktober; tiga catatan non-blocker untuk Rawat Inap di laporan uji bagian 1 |
+| `IGD-FACT-265` | **Persiapan akses petugas admisi dengan akun SuperAdmin:** (a) satu-satunya pengguna admisi `admisi.b4@rsmmc.local` ditempatkan di Pendaftaran / Petugas Pendaftaran, bukan Admission Officer (jabatan itu tanpa pengguna); (b) `POST role-access/policies` Pendaftaran / Petugas Pendaftaran + `InpatientAdmissionTransfer : Update` — 36 → 37, nol izin lama hilang; akibatnya seluruh Petugas Pendaftaran dapat menolak transfer; (c) `BedManagement:UnitAssignments:4` di user-secrets PC kantor untuk B4 di unit Rawat Inap, terbaca tanpa restart; validator opsi hanya menerima operasi dari daftar tetap (`InpatientEpisode:Read` tidak termasuk); (d) sandi B4 tidak diubah; (e) `POST admit` mewajibkan header `Idempotency-Key` |
+
+`IGD-OQ-132` ditutup oleh `IGD-FACT-264`. Register 118 → **119/120** (99,2%); `MVP-11` 10 dari 10 task ✅, menunggu
+`verify-module-readiness`. Nomor baru: `IGD-FACT-264`, `265`. Nomor berikutnya: `IGD-DEC-373`, `IGD-FACT-266`, `IGD-OQ-146`.
+
+### `BE-IGD-042` — pencabutan masa transisi `Outpatient` — 29 Oktober 2026
+
+Rizki menjalankan kueri prasyarat kartu `BE-IGD-042` sendiri; agent tidak menjalankan kueri basis data. Dengan hasil nol,
+`PeriksaJenisEncounter` kini hanya menerima `Emergency`. [Laporan BE-IGD-042](task/report/backend/BE-IGD-042.md).
+
+| ID | Isi | Owner | Status | Disetujui | Bukti |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-373` | **Acceptance 5 `BE-IGD-042` diamandemen:** paragraf *"Masa transisi"* pada doc-comment `PeriksaJenisEncounter` **dihapus tanpa komentar pengganti**, alih-alih ditulis ulang. Alasannya, aturan nol baris komentar baru dan larangan menyunting komentar lama (ditegaskan ulang 1 Oktober 2026); membiarkannya justru meninggalkan keterangan yang salah. Dasar pencabutan (kueri owner, tanggal, `IGD-DEC-109`) dicatat di laporan task dan `IGD-FACT-266`, bukan di source. **Konsekuensi yang diterima:** komentar lama lain yang menyebut masa transisi (doc-comment `ApplyEncounterClosureAsync`) tetap apa adanya | Rizki Gunawan | `approved` | Pilihan interaktif 29 Oktober 2026 | [Laporan BE-IGD-042](task/report/backend/BE-IGD-042.md) bagian 3.2 |
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-266` | **Syarat pencabutan `IGD-DEC-109` terpenuhi lewat data, bukan lewat migration.** Kueri Rizki di `QuilvianNewDevRizki`, 28 Oktober 2026 16.37: `EmgVisit` aktif ber-encounter `Outpatient` = **0**, yang masih terbuka = **0**. Migration `ChangeEmergencyEncounterTypeToEmergency` tidak pernah dibuat. Uji API sesudah build Rizki 29 Oktober 2026 08.55: `Outpatient` → `400` pesan `IGD-DEC-120`, `Emergency` lolos cek jenis, kunjungan lama terbaca tanpa berubah — 4 dari 4 `PASS`, nol data baru. Run sebelum build baru (DLL 28 Oktober 15.32) menunjukkan `Outpatient` masih lolos cek jenis — pembanding perilaku lama. Lingkungan rilis perlu mengulang kueri yang sama |
+
+Register 119 → **120/120** (100%); seluruh task aktif kedua roadmap ✅. Nomor baru: `IGD-DEC-373`, `IGD-FACT-266`. Nomor
+berikutnya: `IGD-DEC-374`, `IGD-FACT-267`, `IGD-OQ-146`.
+
+### Audit kesiapan modul — 29 Oktober 2026
+
+| ID | Isi |
+| --- | --- |
+| `IGD-FACT-267` | **`verify-module-readiness` 29 Oktober 2026: modul `READY_WITH_CONDITIONS`, `MVP-11` `READY_WITH_CONDITIONS`** ([kesiapan modul](evidence/2026-10-29-kesiapan-modul-igd.md)). Register dihitung ulang dari berkas: backend 64/64, frontend 56/56, semua bertautan ke laporan yang ada. Syarat C1–C3 audit 27 Oktober lunas. Syarat baru **C9**: `IGD-DEC-372` diimplementasikan di commit `00cbca33`/`6be6e4774` sebagai `BE-IGD-086`/`FE-IGD-072` **tanpa kartu roadmap**. `PeriksaWewenangKlinisIgdAsync` menentukan staf IGD dari kecocokan nama departemen/jabatan dan `IsSuperAdmin` dari `IsInRole`/`UserType` (dilarang aturan role-access); 18 baris komentar `//` baru; penolakan triase `403` belum diuji. Penyaring daftar dokter (butir b) terbukti lewat tiga `GET`: dokter non-SuperAdmin hanya melihat kunjungan ber-DPJP dirinya (20 dan 6 dari 255) |
+| `IGD-FACT-268` | **Konfigurasi uji `IGD-FACT-265` dicabut 29 Oktober 2026 atas perintah Rizki:** (a) `POST role-access/policies` Pendaftaran / Petugas Pendaftaran dikembalikan ke cadangan — 37 → 36, sama persis dengan `policy-petugas-pendaftaran-sebelum.json`; `POST admission-transfers/{id}/reject` oleh B4 kini `403`; (b) 11 kunci `BedManagement:UnitAssignments:4` dihapus dari user-secrets PC kantor, isi sama dengan cadangan `.bak-20261028`; endpoint bed tetap `200`. Admit oleh B4 tidak diuji ulang (akan menulis data). Variabel lingkungan `QUILVIAN_ADMISI_*` dan `QUILVIAN_SUPERADMIN_*` tetap di mesin |
+
+Nomor baru: `IGD-FACT-267`, `268`. Nomor berikutnya: `IGD-DEC-374`, `IGD-FACT-269`, `IGD-OQ-146`.

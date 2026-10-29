@@ -2760,7 +2760,7 @@ flowchart LR
         BEIGD072P["✅ BE-IGD-072<br/>Form IGD draf sampai minta TTD"]:::luar
         BEIGD073P["⛔ BE-IGD-073<br/>Permintaan admisi bersumber IGD"]:::luar
         BEIGD074P["✅ BE-IGD-074<br/>Tandatangani, kirim, tahan Jalankan"]:::luar
-        BEIGD077P["🟡 BE-IGD-077<br/>Tolak admisi & penutupan susulan dua arah"]:::luar
+        BEIGD077P["✅ BE-IGD-077<br/>Tolak admisi & penutupan susulan dua arah"]:::luar
     end
 
     FEIGD059["✅ FE-IGD-059<br/>Form perawat draf dan minta TTD"]:::selesai

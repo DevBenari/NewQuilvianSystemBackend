@@ -15,8 +15,8 @@
 | Klasifikasi | `MEDIUM` — penambahan titik sentuh internal IGD untuk dipanggil modul Rawat Inap (advisory lock & row lock `FOR UPDATE`) |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` (branch `rizkiG`): 4 berkas IGD; laporan ini, roadmap, traceability |
-| Tanggal | 16 Oktober 2026 |
-| Status | ✅ **SELESAI / DONE — Build & Live Browser Testing Lulus.** Implementasi 4 berkas selesai: `AdmissionRejected = 8` ditambahkan ke enum kejadian, DTOs diekspos dengan `AdmissionRejectionReason`, `EmergencyDispositionService` mendukung pemanggilan `BatalkanFormPermintaanOlehPetugasAdmisiAsync`, `EvaluasiPenutupanKunjunganSusulanAsync`, `BacaRingkasanPermintaanRawatInapAsync`, serta penanganan pesan penolakan *Jalankan* aturan 30 pada `AlasanJalankanRawatInapDitolakAsync`. QBE Strict `PASS` (0 violation, 0 review, 0 info). Kompilasi `dotnet build` lulus (0 error). Terbukti lulus 100% pada Live Browser Testing Putaran B3 (`2026-10-16-laporan-uji-putaran-b3-transfer-igd.md`). |
+| Tanggal | 16 Oktober 2026; dinilai ulang 17–18 Oktober 2026; tuntas 28 Oktober 2026 (Putaran B7 bagian 2) |
+| Status | ✅ **SELESAI — 7 dari 7 acceptance, 28 Oktober 2026 (Putaran B7 bagian 2, `IGD-FACT-264`, [laporan uji](../../../testing/2026-10-28-laporan-uji-putaran-b7-bagian2.md)).** Implementation ✅ · DevVerif ✅ · UAT belum. Acceptance 3 dan 4 terbukti runtime sesudah kode Rawat Inap `32e4f401` masuk; lihat bagian 7. *Sebelumnya:* 🟡 5 dari 7 (17–18 Oktober 2026, `IGD-DEC-319`, `IGD-FACT-123`, `128`, `131`). *Penilaian awal 16 Oktober 2026:* ✅ **SELESAI / DONE — Build & Live Browser Testing Lulus.** Implementasi 4 berkas selesai: `AdmissionRejected = 8` ditambahkan ke enum kejadian, DTOs diekspos dengan `AdmissionRejectionReason`, `EmergencyDispositionService` mendukung pemanggilan `BatalkanFormPermintaanOlehPetugasAdmisiAsync`, `EvaluasiPenutupanKunjunganSusulanAsync`, `BacaRingkasanPermintaanRawatInapAsync`, serta penanganan pesan penolakan *Jalankan* aturan 30 pada `AlasanJalankanRawatInapDitolakAsync`. QBE Strict `PASS` (0 violation, 0 review, 0 info). Kompilasi `dotnet build` lulus (0 error). Terbukti lulus 100% pada Live Browser Testing Putaran B3 (`2026-10-16-laporan-uji-putaran-b3-transfer-igd.md`). |
 
 ### Backend Governance Preflight
 
@@ -100,8 +100,8 @@ Final result: PASS
 | ---: | --- | :---: | --- |
 | 1 | Method `BatalkanFormPermintaanOlehPetugasAdmisiAsync` membatalkan form aktif (`Signed` → `Cancelled`), mengeset displayStatus `CancelledByAdmission`, dan mencatat `EmgAdmissionRequestEvent` dengan `EventType = AdmissionRejected` dan alasan tolak | ✅ Terpenuhi | Terpasang di `EmergencyDispositionService.AdmissionRequest.cs` baris 1445–1510 |
 | 2 | Penolakan form oleh admisi tidak membatalkan tindak lanjut DPJP IGD (`EmgDisposition.Status` tetap `Confirmed`) | ✅ Terpenuhi | Terbukti dari implementasi: status `EmgDisposition` tidak disentuh saat penolakan |
-| 3 | Percobaan penolakan pada form yang tindak lanjutnya sudah `Executed` mengembalikan penolakan `409 Conflict` (*"Permintaan rawat inap tidak dapat ditolak karena proses admisi sudah dijalankan."*) | ✅ Terpenuhi | Terpasang penjaga konkurensi di dalam row lock `FOR UPDATE` |
-| 4 | Method `EvaluasiPenutupanKunjunganSusulanAsync` menutup kunjungan IGD (`Completed`) bila dokumen serah terima kepergian SBAR telah diterima dan kedatangan dicatat ruangan sebelum admisi selesai | ✅ Terpenuhi | Terpasang pemanggilan `TryCloseAfterDispositionAsync` / fallback penutupan terkoordinasi |
+| 3 | Percobaan penolakan pada form yang tindak lanjutnya sudah `Executed` mengembalikan penolakan `409 Conflict` (*"Permintaan rawat inap tidak dapat ditolak karena proses admisi sudah dijalankan."*) | ✅ Terpenuhi — runtime 28 Oktober 2026 | TOLAK-C: `POST admission-transfers/{id}/reject` sesudah admit → `409` dengan pesan persis; T3: data IGD tidak berubah. *Sebelumnya:* hanya terpasang di source |
+| 4 | Method `EvaluasiPenutupanKunjunganSusulanAsync` menutup kunjungan IGD (`Completed`) bila dokumen serah terima kepergian SBAR telah diterima dan kedatangan dicatat ruangan sebelum admisi selesai | ✅ Terpenuhi — runtime 28 Oktober 2026 | B7-07: admit sesudah pasien tiba → kunjungan `Completed`, selisih 0 detik dari `executedAt`; B7-06a/b: admit lebih dulu → `Disposed`, lalu `Completed` saat tiba. Fungsi IGD diperbaiki `BE-IGD-083`; pemanggil Rawat Inap `32e4f401`. *Sebelumnya:* hanya terpasang di source dan cacat (`IGD-FACT-128`) |
 | 5 | Method `BacaRingkasanPermintaanRawatInapAsync` membaca data ringkasan (`isCito`, kebutuhan khusus, usulan unit/kelas/DPJP) tanpa error | ✅ Terpenuhi | Overload static baru `BacaRingkasanPermintaanRawatInapAsync(ApplicationDbContext, Guid dispositionId, CancellationToken)` |
 | 6 | Transaksi dan konkurensi: Mengambil kunci advisory `EMG_ADMISSION_REQUEST_{visitId}` dan kueri baris `EmgDisposition` dengan `FOR UPDATE` | ✅ Terpenuhi | Terpasang `KunciKunjunganAsync` dan `KunciTindakLanjutAsync` |
 | 7 | QBE Strict `PASS`, nol baris komentar baru, nol perubahan `Program.cs`, build backend 0 error | ✅ Terpenuhi | QBE Strict `PASS`, nol komentar baru; `dotnet build` lulus (0 error); pengujian live browser Putaran B3 terbukti lulus 100%. |
@@ -115,3 +115,22 @@ Final result: PASS
    ```
 2. Melanjutkan ke implementasi frontend `FE-IGD-064` (penanganan status `CancelledByAdmission`, tampilan badge tolak admisi beralasan, pengaktifan kembali tombol Buat Form, dan helper penolakan pada tombol Jalankan).
 3. Serah terima spesifikasi integrasi ke tim Rawat Inap (Muhammad Hamzah) untuk implementasi endpoint `POST /admission-transfers/{id}/reject` dan pemanggilan `EvaluasiPenutupanKunjunganSusulanAsync` pada transaksi *admit*.
+
+---
+
+## 7. Penutupan — Putaran B7 bagian 2, 28 Oktober 2026
+
+Kode Rawat Inap untuk [`IGD-REQ-003`](../../../approval-requests/2026-10-26-tindak-lanjut-igd-req-003-rawat-inap.md) butir 1 dan 2
+(commit `32e4f401`) masuk `rizkiG` `1f4212e8` lewat integration dan dinilai sesuai bentuk yang diminta. Uji dijalankan tim IGD
+sendiri lewat API Rawat Inap yang ada, dengan akun admisi Petugas Pendaftaran yang bukan SuperAdmin (`IGD-FACT-265`).
+
+| Langkah | Hasil |
+| --- | --- |
+| B7-06a — admit sebelum pasien tiba | `PASS` — tindak lanjut `Executed`, kunjungan `Disposed`, belum ditutup |
+| B7-06b — pasien tiba sesudah admit | `PASS` — kunjungan `Completed` |
+| B7-07 — admit sesudah pasien tiba | `PASS` — kunjungan `Completed` dalam penyimpanan admit yang sama |
+| TOLAK-C + T3 — tolak sesudah admit | `PASS` — `409` dengan pesan persis; data IGD tidak berubah |
+| TOLAK-E + T1 — tolak biasa | `PASS` — form `Cancelled` / `CancelledByAdmission`, alasan persis, event `AdmissionRejected`, tindak lanjut tetap `Confirmed` |
+
+Nol berkas source IGD berubah pada penutupan ini. Rincian, persiapan, dan batas bukti: [laporan uji](../../../testing/2026-10-28-laporan-uji-putaran-b7-bagian2.md).
+
