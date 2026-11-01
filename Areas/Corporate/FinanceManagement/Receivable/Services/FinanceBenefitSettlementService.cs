@@ -3,10 +3,19 @@ using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Constants;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using System.Data;
 using System.Globalization;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 
@@ -16,17 +25,37 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Ser
 /// non-mutasi, draf, penerbitan atomic (seluruh kartu tertutup atau nol sama sekali), pembatalan
 /// dengan mutasi pembalik. BUKAN FinReceipt (nol uang diterima) dan BUKAN penghapusan buku
 /// (FIN-DEC-178) — satu-satunya jalur penutupan adalah mutasi PELUNASAN-INTERNAL.
+/// Plafon benefit pegawai dipotong di HR saat Finance menerbitkan (PostAsync) persetujuan penutupan benefit.
 /// </summary>
 public sealed class FinanceBenefitSettlementService
 {
     private const string LogCategory = "Corporate.FinanceManagement.Receivable.BenefitSettlement";
+
+    private sealed class BenefitSettlementScope
+    {
+        public string? AccountingPeriodCode { get; set; }
+        public Guid? DebtorReferenceId { get; set; }
+        public Guid? PatientId { get; set; }
+        public string? PatientType { get; set; }
+        public string? ResolutionStatus { get; set; }
+        public string? StartDate { get; set; }
+        public string? EndDate { get; set; }
+        public string? Period { get; set; }
+        public string? Search { get; set; }
+        public List<Guid>? ReceivableIds { get; set; }
+    }
     private readonly ApplicationDbContext _dbContext;
     private readonly FinanceSubledgerMovementService _subledgerMovementService;
+    private readonly EmployeeBenefitBalanceService? _balanceService;
 
-    public FinanceBenefitSettlementService(ApplicationDbContext dbContext, FinanceSubledgerMovementService subledgerMovementService)
+    public FinanceBenefitSettlementService(
+        ApplicationDbContext dbContext,
+        FinanceSubledgerMovementService subledgerMovementService,
+        EmployeeBenefitBalanceService? balanceService = null)
     {
         _dbContext = dbContext;
         _subledgerMovementService = subledgerMovementService;
+        _balanceService = balanceService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -35,13 +64,27 @@ public sealed class FinanceBenefitSettlementService
 
     public async Task<BenefitSettlementPreviewResponse> PreviewAsync(PreviewBenefitSettlementRequest request, CancellationToken cancellationToken)
     {
-        var debtorName = await GetDebtorNameAsync(request.DebtorReferenceId, cancellationToken);
-        var items = await GetEligibleItemsAsync(request.AccountingPeriodCode, request.DebtorReferenceId, cancellationToken);
-
-        return new BenefitSettlementPreviewResponse
+        var scope = new BenefitSettlementScope
         {
             AccountingPeriodCode = request.AccountingPeriodCode,
             DebtorReferenceId = request.DebtorReferenceId,
+            PatientId = request.PatientId,
+            PatientType = request.PatientType,
+            ResolutionStatus = request.ResolutionStatus,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            Period = request.Period,
+            Search = request.Search,
+            ReceivableIds = request.ReceivableIds
+        };
+
+        var (items, periodCode, debtorReferenceId) = await GetEligibleItemsAsync(scope, cancellationToken);
+        var debtorName = debtorReferenceId.HasValue ? await GetDebtorNameAsync(debtorReferenceId.Value, cancellationToken) : null;
+
+        return new BenefitSettlementPreviewResponse
+        {
+            AccountingPeriodCode = periodCode,
+            DebtorReferenceId = debtorReferenceId ?? Guid.Empty,
             DebtorName = debtorName,
             TotalAmount = items.Sum(x => x.Amount),
             ItemCount = items.Count,
@@ -56,38 +99,55 @@ public sealed class FinanceBenefitSettlementService
     public async Task<BenefitSettlementDetailResponse> CreateAsync(
         CreateBenefitSettlementRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var items = await GetEligibleItemsAsync(request.AccountingPeriodCode, request.DebtorReferenceId, cancellationToken);
+        var scope = new BenefitSettlementScope
+        {
+            AccountingPeriodCode = request.AccountingPeriodCode,
+            DebtorReferenceId = request.DebtorReferenceId,
+            PatientId = request.PatientId,
+            PatientType = request.PatientType,
+            ResolutionStatus = request.ResolutionStatus,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            Period = request.Period,
+            Search = request.Search,
+            ReceivableIds = request.ReceivableIds
+        };
+
+        var (items, periodCode, debtorReferenceId) = await GetEligibleItemsAsync(scope, cancellationToken);
         if (items.Count == 0)
             throw new BenefitSettlementValidationException(
-                $"Tidak ada piutang porsi benefit yang perlu ditutup untuk periode {request.AccountingPeriodCode}."); // FIN-VAL-242
+                $"Tidak ada piutang porsi benefit yang perlu ditutup untuk kriteria/periode ini."); // FIN-VAL-242
+
+        if (!debtorReferenceId.HasValue || debtorReferenceId.Value == Guid.Empty)
+            throw new BenefitSettlementValidationException("Penjamin internal untuk penutupan benefit tidak dapat ditentukan.");
 
         IDbContextTransaction? transaction = null;
         try
         {
             transaction = await BeginTransactionAsync(cancellationToken);
-            await AcquireLockAsync($"FIN_BENEFIT_SETTLEMENT_{request.AccountingPeriodCode}_{request.DebtorReferenceId:N}", cancellationToken);
+            await AcquireLockAsync($"FIN_BENEFIT_SETTLEMENT_{periodCode}_{debtorReferenceId.Value:N}", cancellationToken);
 
             // FIN-VAL-241 lapis service — lapis keras IX_FinBenefitSettlement_Period_Debtor_NotCancelled.
             var hasActive = await _dbContext.FinBenefitSettlements.AsNoTracking().AnyAsync(
-                x => !x.IsDelete && x.AccountingPeriodCode == request.AccountingPeriodCode
-                    && x.DebtorReferenceId == request.DebtorReferenceId && x.Status != FinBenefitSettlementStatuses.Dibatalkan,
+                x => !x.IsDelete && x.AccountingPeriodCode == periodCode
+                    && x.DebtorReferenceId == debtorReferenceId.Value && x.Status != FinBenefitSettlementStatuses.Dibatalkan,
                 cancellationToken);
             if (hasActive)
             {
                 var existingNumber = await _dbContext.FinBenefitSettlements.AsNoTracking()
-                    .Where(x => !x.IsDelete && x.AccountingPeriodCode == request.AccountingPeriodCode
-                        && x.DebtorReferenceId == request.DebtorReferenceId && x.Status != FinBenefitSettlementStatuses.Dibatalkan)
+                    .Where(x => !x.IsDelete && x.AccountingPeriodCode == periodCode
+                        && x.DebtorReferenceId == debtorReferenceId.Value && x.Status != FinBenefitSettlementStatuses.Dibatalkan)
                     .Select(x => x.SettlementNumber).FirstOrDefaultAsync(cancellationToken);
                 throw new BenefitSettlementConflictException(
-                    $"Periode {request.AccountingPeriodCode} untuk penjamin ini sudah pernah ditutup pada {existingNumber}.");
+                    $"Periode {periodCode} untuk penjamin ini sudah pernah ditutup pada {existingNumber}.");
             }
 
             var now = DateTimeOffset.UtcNow;
             var settlement = new FinBenefitSettlement
             {
                 SettlementNumber = GenerateSettlementNumber(),
-                AccountingPeriodCode = request.AccountingPeriodCode,
-                DebtorReferenceId = request.DebtorReferenceId,
+                AccountingPeriodCode = periodCode,
+                DebtorReferenceId = debtorReferenceId.Value,
                 TotalAmount = items.Sum(x => x.Amount),
                 ItemCount = items.Count,
                 Status = FinBenefitSettlementStatuses.Draf,
@@ -115,7 +175,7 @@ public sealed class FinanceBenefitSettlementService
             catch (DbUpdateException exception)
             {
                 throw new BenefitSettlementConflictException(
-                    $"Periode {request.AccountingPeriodCode} untuk penjamin ini sudah pernah ditutup.", exception);
+                    $"Periode {periodCode} untuk penjamin ini sudah pernah ditutup.", exception);
             }
 
             await CommitAsync(transaction, cancellationToken);
@@ -174,6 +234,57 @@ public sealed class FinanceBenefitSettlementService
                 if (receivable.Status is not (FinReceivableStatuses.Outstanding or FinReceivableStatuses.Partial))
                     throw new BenefitSettlementConflictException(
                         $"Piutang {receivable.ReceivableNumber} sudah ditutup atau sudah lunas, sehingga dikeluarkan dari daftar — nol kartu diterbitkan.");
+            }
+
+            // FIN-DEC-202 / Persetujuan Finance memotong plafon benefit di HR secara atomic.
+            // Plafon dipotong sebesar nominal kartu piutang yang disetujui untuk ditutup.
+            // Bila salah satu gagal (saldo tidak cukup, tidak aktif, atau konflik), transaksi dibatalkan (nol kartu ditutup).
+            if (_balanceService != null)
+            {
+                foreach (var item in settlement.Items)
+                {
+                    var receivable = receivables[item.ReceivableId];
+                    if (item.Amount <= 0) continue;
+
+                    var handoffKey = receivable.SourceHandoffKey ?? receivable.Id;
+                    var invoiceId = receivable.InvoiceId ?? Guid.Empty;
+
+                    var (personKind, personId) = await ResolveBenefitPersonAsync(receivable, cancellationToken);
+                    if (string.IsNullOrWhiteSpace(personKind) || !personId.HasValue)
+                    {
+                        throw new BenefitSettlementValidationException(
+                            $"Identitas kepesertaan benefit pegawai tidak lengkap untuk pemotongan plafon pada piutang {receivable.ReceivableNumber}.");
+                    }
+
+                    var useResult = await _balanceService.UseAsync(new BenefitBalanceUseRequest
+                    {
+                        SourceHandoffKey = handoffKey,
+                        InvoiceId = invoiceId,
+                        BenefitPersonKind = personKind,
+                        BenefitPersonId = personId.Value,
+                        Amount = item.Amount,
+                        ActorUserId = actorUserId
+                    }, cancellationToken);
+
+                    if (string.Equals(useResult.Result, BenefitUseResults.Insufficient, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new BenefitSettlementValidationException(
+                            useResult.Message ?? $"Sisa plafon tidak cukup untuk {receivable.ReceivableNumber}. Sisa saat ini Rp {useResult.RemainingAmount:N0}.");
+                    }
+
+                    if (string.Equals(useResult.Result, BenefitUseResults.KeyConflict, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new BenefitSettlementConflictException(
+                            useResult.Message ?? $"Konflik kunci serah terima saat pemotongan plafon benefit untuk {receivable.ReceivableNumber}.");
+                    }
+
+                    if (!string.Equals(useResult.Result, BenefitUseResults.Applied, StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(useResult.Result, BenefitUseResults.AlreadyApplied, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new BenefitSettlementValidationException(
+                            useResult.Message ?? $"Gagal memotong plafon benefit pegawai untuk {receivable.ReceivableNumber}: {useResult.Result}.");
+                    }
+                }
             }
 
             var now = DateTimeOffset.UtcNow;
@@ -288,6 +399,18 @@ public sealed class FinanceBenefitSettlementService
                         referenceNumber: settlement.SettlementNumber,
                         notes: $"Pembalik pelunasan internal — {settlement.SettlementNumber} dibatalkan: {request.CancelReason}",
                         cancellationToken: cancellationToken);
+
+                    // Kembalikan pemotongan plafon benefit di HR secara simetris
+                    if (_balanceService != null)
+                    {
+                        var handoffKey = receivable.SourceHandoffKey ?? receivable.Id;
+                        await _balanceService.ReturnAsync(new BenefitBalanceReturnRequest
+                        {
+                            SourceHandoffKey = handoffKey,
+                            Reason = $"Pembalik pelunasan benefit {settlement.SettlementNumber}: {request.CancelReason}",
+                            ActorUserId = actorUserId
+                        }, cancellationToken);
+                    }
                 }
             }
 
@@ -353,52 +476,171 @@ public sealed class FinanceBenefitSettlementService
     // Helper
     // ------------------------------------------------------------------------------------
 
-    private async Task<List<BenefitSettlementItemResponse>> GetEligibleItemsAsync(
-        string periodCode, Guid debtorReferenceId, CancellationToken cancellationToken)
-    {
-        var (periodStart, periodEnd) = ParsePeriod(periodCode);
+    private Task<(List<BenefitSettlementItemResponse> Items, string PeriodCode, Guid? DebtorReferenceId)> GetEligibleItemsAsync(
+        string periodCode, Guid debtorReferenceId, CancellationToken cancellationToken) =>
+        GetEligibleItemsAsync(new BenefitSettlementScope { AccountingPeriodCode = periodCode, DebtorReferenceId = debtorReferenceId }, cancellationToken);
 
-        // FIN-VAL-243: piutang yang sudah ditutup pelunasan lain (TIDAK dibatalkan) dikeluarkan.
-        // Catatan (BE-FIN-092 §3): tidak dapat ditegakkan DB constraint lintas tabel — murni
-        // lapis service, SATU-SATUNYA penegak invarian ini.
+    private async Task<(List<BenefitSettlementItemResponse> Items, string PeriodCode, Guid? DebtorReferenceId)> GetEligibleItemsAsync(
+        BenefitSettlementScope scope, CancellationToken cancellationToken)
+    {
+        DateTimeOffset? rangeFrom = null;
+        DateTimeOffset? rangeToExclusive = null;
+        string? determinedPeriodCode = !string.IsNullOrWhiteSpace(scope.AccountingPeriodCode)
+            ? scope.AccountingPeriodCode.Trim()
+            : null;
+
+        if (!string.IsNullOrWhiteSpace(scope.StartDate) && DateOnly.TryParse(scope.StartDate.Trim(), CultureInfo.InvariantCulture, out var parsedStart))
+        {
+            rangeFrom = FinanceBusinessDate.GetStartOfDayUtc(parsedStart);
+            determinedPeriodCode ??= $"{parsedStart.Year:D4}-{parsedStart.Month:D2}";
+        }
+
+        if (!string.IsNullOrWhiteSpace(scope.EndDate) && DateOnly.TryParse(scope.EndDate.Trim(), CultureInfo.InvariantCulture, out var parsedEnd))
+        {
+            rangeToExclusive = FinanceBusinessDate.GetEndOfDayUtc(parsedEnd);
+            determinedPeriodCode ??= $"{parsedEnd.Year:D4}-{parsedEnd.Month:D2}";
+        }
+
+        if (!rangeFrom.HasValue && !rangeToExclusive.HasValue && !string.IsNullOrWhiteSpace(determinedPeriodCode))
+        {
+            var (start, end) = ParsePeriod(determinedPeriodCode);
+            rangeFrom = start;
+            rangeToExclusive = end;
+        }
+
+        determinedPeriodCode ??= $"{DateTime.UtcNow.Year:D4}-{DateTime.UtcNow.Month:D2}";
+
         var closedReceivableIds = _dbContext.FinBenefitSettlementItems.AsNoTracking()
-            .Where(i => i.Settlement!.Status != FinBenefitSettlementStatuses.Dibatalkan)
+            .Where(i => !i.IsDelete && i.Settlement != null && !i.Settlement.IsDelete && i.Settlement.Status != FinBenefitSettlementStatuses.Dibatalkan)
             .Select(i => i.ReceivableId);
 
         var query =
-            from receivable in _dbContext.FinReceivables.AsNoTracking()
-            where !receivable.IsDelete
-                && receivable.DebtorType == FinReceivableDebtorTypes.Payer
-                // Hanya piutang benefit internal (biaya RS sendiri); piutang PAYER pihak luar tidak pernah ditutup lewat jalur nol-kas ini.
-                && receivable.IsInternalBenefit
-                && receivable.DebtorReferenceId == debtorReferenceId
-                && (receivable.Status == FinReceivableStatuses.Outstanding || receivable.Status == FinReceivableStatuses.Partial)
-                && receivable.RecognizedAt >= periodStart && receivable.RecognizedAt < periodEnd
-                && !closedReceivableIds.Contains(receivable.Id)
-            select receivable;
-
-        var receivables = await query.ToListAsync(cancellationToken);
-        if (receivables.Count == 0) return [];
-
-        var receivableIds = receivables.Select(x => x.Id).ToList();
-        var invoiceIds = receivables.Where(x => x.InvoiceId.HasValue).Select(x => x.InvoiceId!.Value).ToList();
-        var invoiceNumbers = await _dbContext.BilInvoices.AsNoTracking()
-            .Where(x => invoiceIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.InvoiceNumber, cancellationToken);
-        var patientNames = await (
             from item in _dbContext.FinReceivableItems.AsNoTracking()
-            join patient in _dbContext.MstPatients.AsNoTracking() on item.PatientId equals patient.Id
-            where receivableIds.Contains(item.ReceivableId) && item.PatientId.HasValue
-            select new { item.ReceivableId, patient.FullName })
-            .ToDictionaryAsync(x => x.ReceivableId, x => x.FullName, cancellationToken);
+            join receivable in _dbContext.FinReceivables.AsNoTracking()
+                on item.ReceivableId equals receivable.Id
+            join invoiceJoin in _dbContext.BilInvoices.AsNoTracking()
+                on item.InvoiceId equals (Guid?)invoiceJoin.Id into invoiceGroup
+            from invoice in invoiceGroup.DefaultIfEmpty()
+            join encounterJoin in _dbContext.RegPatientEncounters.AsNoTracking()
+                on item.EncounterId equals (Guid?)encounterJoin.Id into encounterGroup
+            from encounter in encounterGroup.DefaultIfEmpty()
+            join patientJoin in _dbContext.MstPatients.AsNoTracking()
+                on item.PatientId equals (Guid?)patientJoin.Id into patientGroup
+            from patient in patientGroup.DefaultIfEmpty()
+            where !item.IsDelete
+                && !receivable.IsDelete
+                && receivable.DebtorType == FinReceivableDebtorTypes.Payer
+                && receivable.IsInternalBenefit
+                && (receivable.Status == FinReceivableStatuses.Outstanding || receivable.Status == FinReceivableStatuses.Partial)
+                && !closedReceivableIds.Contains(receivable.Id)
+            select new { item, receivable, invoice, encounter, patient };
 
-        return receivables.Select(r => new BenefitSettlementItemResponse
+        if (scope.DebtorReferenceId.HasValue && scope.DebtorReferenceId.Value != Guid.Empty)
         {
-            ReceivableId = r.Id,
+            query = query.Where(x => x.receivable.DebtorReferenceId == scope.DebtorReferenceId.Value);
+        }
+
+        if (scope.PatientId.HasValue && scope.PatientId.Value != Guid.Empty)
+        {
+            query = query.Where(x => x.item.PatientId == scope.PatientId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(scope.PatientType) && !string.Equals(scope.PatientType, "all", StringComparison.OrdinalIgnoreCase))
+        {
+            var encType = scope.PatientType.Trim().ToLowerInvariant() switch
+            {
+                "outpatient" => EncounterType.Outpatient,
+                "inpatient" => EncounterType.Inpatient,
+                "emergency" => EncounterType.Emergency,
+                _ => (EncounterType?)null
+            };
+            if (encType.HasValue)
+            {
+                query = query.Where(x => x.encounter != null && x.encounter.EncounterType == encType.Value);
+            }
+        }
+
+        if (rangeFrom.HasValue)
+        {
+            var fromOffset = rangeFrom.Value;
+            var fromUtc = fromOffset.UtcDateTime;
+            query = query.Where(x =>
+                (x.encounter != null && x.encounter.EncounterDate >= fromUtc)
+                || (x.encounter == null && x.receivable.RecognizedAt >= fromOffset));
+        }
+
+        if (rangeToExclusive.HasValue)
+        {
+            var toOffset = rangeToExclusive.Value;
+            var toUtc = toOffset.UtcDateTime;
+            query = query.Where(x =>
+                (x.encounter != null && x.encounter.EncounterDate < toUtc)
+                || (x.encounter == null && x.receivable.RecognizedAt < toOffset));
+        }
+
+        if (!string.IsNullOrWhiteSpace(scope.Search))
+        {
+            var pattern = $"%{scope.Search.Trim()}%";
+            query = query.Where(x =>
+                (x.invoice != null && EF.Functions.ILike(x.invoice.InvoiceNumber, pattern, "\\"))
+                || (x.encounter != null && EF.Functions.ILike(x.encounter.EncounterNumber, pattern, "\\"))
+                || (x.patient != null && EF.Functions.ILike(x.patient.FullName, pattern, "\\"))
+                || (x.patient != null && EF.Functions.ILike(x.patient.MedicalRecordNumber, pattern, "\\")));
+        }
+
+        if (scope.ReceivableIds != null && scope.ReceivableIds.Count > 0)
+        {
+            query = query.Where(x => scope.ReceivableIds.Contains(x.receivable.Id));
+        }
+
+        var rows = await query
+            .Select(x => new
+            {
+                ReceivableId = x.receivable.Id,
+                x.receivable.ReceivableNumber,
+                x.receivable.OutstandingAmount,
+                x.receivable.DebtorReferenceId,
+                InvoiceNumber = x.invoice != null ? x.invoice.InvoiceNumber : null,
+                PatientName = x.patient != null ? x.patient.FullName : null,
+                MedicalRecordNumber = x.patient != null ? x.patient.MedicalRecordNumber : null,
+                PatientType = x.encounter != null ? x.encounter.EncounterType.ToString() : null,
+                TransactionDate = (DateTimeOffset?)(x.invoice != null && x.invoice.InvoiceDate.HasValue
+                    ? x.invoice.InvoiceDate.Value
+                    : (x.encounter != null ? new DateTimeOffset(x.encounter.EncounterDate, TimeSpan.Zero) : x.receivable.RecognizedAt))
+            })
+            .ToListAsync(cancellationToken);
+
+        var distinctReceivables = rows
+            .GroupBy(x => x.ReceivableId)
+            .Select(g => g.First())
+            .ToList();
+
+        var resultItems = distinctReceivables.Select(r => new BenefitSettlementItemResponse
+        {
+            ReceivableId = r.ReceivableId,
             ReceivableNumber = r.ReceivableNumber,
-            InvoiceNumber = r.InvoiceId.HasValue ? invoiceNumbers.GetValueOrDefault(r.InvoiceId.Value) : null,
-            PatientName = patientNames.GetValueOrDefault(r.Id),
-            Amount = r.OutstandingAmount
+            InvoiceNumber = r.InvoiceNumber,
+            PatientName = r.PatientName,
+            Amount = r.OutstandingAmount,
+            MedicalRecordNumber = r.MedicalRecordNumber,
+            PatientType = r.PatientType,
+            TransactionDate = r.TransactionDate
         }).ToList();
+
+        var debtorReferenceId = scope.DebtorReferenceId.HasValue && scope.DebtorReferenceId.Value != Guid.Empty
+            ? scope.DebtorReferenceId.Value
+            : (distinctReceivables.Count > 0 ? distinctReceivables.First().DebtorReferenceId : (Guid?)null);
+
+        if (!debtorReferenceId.HasValue)
+        {
+            var defaultGuarantorId = await _dbContext.FinReceivables.AsNoTracking()
+                .Where(r => !r.IsDelete && r.IsInternalBenefit && r.DebtorReferenceId.HasValue)
+                .Select(r => r.DebtorReferenceId)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (defaultGuarantorId.HasValue) debtorReferenceId = defaultGuarantorId.Value;
+        }
+
+        return (resultItems, determinedPeriodCode, debtorReferenceId);
     }
 
     private static (DateTimeOffset Start, DateTimeOffset End) ParsePeriod(string periodCode)
@@ -451,12 +693,26 @@ public sealed class FinanceBenefitSettlementService
         var invoiceByReceivable = invoiceIds.ToDictionary(x => x.Id, x => x.InvoiceId!.Value);
         var invoiceNumbers = await _dbContext.BilInvoices.AsNoTracking()
             .Where(x => invoiceByReceivable.Values.Contains(x.Id)).ToDictionaryAsync(x => x.Id, x => x.InvoiceNumber, cancellationToken);
-        var patientNames = await (
+        var patientDetails = await (
             from item in _dbContext.FinReceivableItems.AsNoTracking()
-            join patient in _dbContext.MstPatients.AsNoTracking() on item.PatientId equals patient.Id
-            where receivableIds.Contains(item.ReceivableId) && item.PatientId.HasValue
-            select new { item.ReceivableId, patient.FullName })
-            .ToDictionaryAsync(x => x.ReceivableId, x => x.FullName, cancellationToken);
+            join patient in _dbContext.MstPatients.AsNoTracking() on item.PatientId equals patient.Id into pGroup
+            from patient in pGroup.DefaultIfEmpty()
+            join enc in _dbContext.RegPatientEncounters.AsNoTracking() on item.EncounterId equals enc.Id into eGroup
+            from enc in eGroup.DefaultIfEmpty()
+            where receivableIds.Contains(item.ReceivableId)
+            select new
+            {
+                item.ReceivableId,
+                FullName = patient != null ? patient.FullName : null,
+                MedicalRecordNumber = patient != null ? patient.MedicalRecordNumber : null,
+                PatientType = enc != null ? enc.EncounterType.ToString() : null,
+                EncounterDate = enc != null ? (DateTimeOffset?)new DateTimeOffset(enc.EncounterDate, TimeSpan.Zero) : null
+            })
+            .ToListAsync(cancellationToken);
+
+        var patientDataByReceivable = patientDetails
+            .GroupBy(x => x.ReceivableId)
+            .ToDictionary(g => g.Key, g => g.First());
 
         return new BenefitSettlementDetailResponse
         {
@@ -474,13 +730,20 @@ public sealed class FinanceBenefitSettlementService
             AccountingEventId = settlement.AccountingEventId,
             Notes = settlement.Notes,
             RowVersion = settlement.RowVersion,
-            Items = settlement.Items.Select(i => new BenefitSettlementItemResponse
+            Items = settlement.Items.Select(i =>
             {
-                ReceivableId = i.ReceivableId,
-                ReceivableNumber = receivableNumbers.GetValueOrDefault(i.ReceivableId),
-                InvoiceNumber = invoiceByReceivable.TryGetValue(i.ReceivableId, out var invId) ? invoiceNumbers.GetValueOrDefault(invId) : null,
-                PatientName = patientNames.GetValueOrDefault(i.ReceivableId),
-                Amount = i.Amount
+                var pData = patientDataByReceivable.GetValueOrDefault(i.ReceivableId);
+                return new BenefitSettlementItemResponse
+                {
+                    ReceivableId = i.ReceivableId,
+                    ReceivableNumber = receivableNumbers.GetValueOrDefault(i.ReceivableId),
+                    InvoiceNumber = invoiceByReceivable.TryGetValue(i.ReceivableId, out var invId) ? invoiceNumbers.GetValueOrDefault(invId) : null,
+                    PatientName = pData?.FullName,
+                    MedicalRecordNumber = pData?.MedicalRecordNumber,
+                    PatientType = pData?.PatientType,
+                    TransactionDate = pData?.EncounterDate,
+                    Amount = i.Amount
+                };
             }).ToList()
         };
     }
@@ -510,6 +773,91 @@ public sealed class FinanceBenefitSettlementService
         Notes = x.Notes,
         RowVersion = x.RowVersion
     };
+
+    private async Task<(string? Kind, Guid? Id)> ResolveBenefitPersonAsync(FinReceivable receivable, CancellationToken cancellationToken)
+    {
+        var handoffKey = receivable.SourceHandoffKey ?? receivable.Id;
+
+        // 1. Cek riwayat mutasi USE yang sudah ada untuk kunci handoff ini (idempotensi / histori)
+        var existingMovement = await _dbContext.Set<HrdBenefitBalanceMovement>().AsNoTracking()
+            .Where(x => x.SourceHandoffKey == handoffKey && x.MovementType == BenefitMovementTypes.Use)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (existingMovement != null)
+        {
+            var personId = existingMovement.BenefitPersonKind == BenefitPersonKinds.Enrollment
+                ? existingMovement.EmployeeBenefitEnrollmentId
+                : existingMovement.EmployeeBenefitDependentId ?? existingMovement.EmployeeBenefitEnrollmentId;
+            return (existingMovement.BenefitPersonKind, personId);
+        }
+
+        // 2. Telusuri dari invoice asal -> encounter -> penjamin internal
+        if (receivable.InvoiceId.HasValue && _balanceService != null)
+        {
+            var invoice = await _dbContext.BilInvoices.AsNoTracking()
+                .Where(x => x.Id == receivable.InvoiceId.Value)
+                .Select(x => new { x.Id, x.EncounterId, x.InvoiceDate })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (invoice != null)
+            {
+                var guarantors = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
+                    .Include(x => x.CompanyGuarantor)
+                    .Where(x => x.EncounterId == invoice.EncounterId && x.IsActive && !x.IsDelete && !x.IsCancel)
+                    .OrderByDescending(x => x.IsPrimary)
+                    .ThenBy(x => x.Priority)
+                    .ToListAsync(cancellationToken);
+
+                var benefitGuarantor = guarantors.FirstOrDefault(x =>
+                    (x.CompanyGuarantor != null && x.CompanyGuarantor.IsEmployeeBenefitGuarantor)
+                    || x.EmployeeIdSnapshot.HasValue
+                    || x.WorkforceProfileIdSnapshot.HasValue);
+
+                if (benefitGuarantor != null)
+                {
+                    var ownerProfileId = benefitGuarantor.WorkforceProfileIdSnapshot
+                        ?? (benefitGuarantor.EmployeeIdSnapshot.HasValue
+                            ? await _dbContext.MstEmployees.AsNoTracking()
+                                .Where(x => x.Id == benefitGuarantor.EmployeeIdSnapshot.Value)
+                                .Select(x => (Guid?)x.WorkforceProfileId)
+                                .FirstOrDefaultAsync(cancellationToken)
+                            : null);
+
+                    var asOfDate = (invoice.InvoiceDate ?? receivable.RecognizedAt).UtcDateTime;
+                    var balanceResult = await _balanceService.ReadAsync(new BenefitBalanceReadRequest
+                    {
+                        WorkforceProfileId = ownerProfileId,
+                        EmployeeId = benefitGuarantor.EmployeeIdSnapshot ?? Guid.Empty,
+                        FamilyMemberId = benefitGuarantor.FamilyMemberIdSnapshot,
+                        AsOfDate = asOfDate
+                    }, cancellationToken);
+
+                    if (balanceResult.IsUsable && !string.IsNullOrWhiteSpace(balanceResult.BenefitPersonKind) && balanceResult.BenefitPersonId.HasValue)
+                    {
+                        return (balanceResult.BenefitPersonKind, balanceResult.BenefitPersonId);
+                    }
+                }
+            }
+        }
+
+        // 3. Cadangan: dari metadata pemilik pada receivable
+        if ((receivable.BenefitOwnerWorkforceProfileId.HasValue || receivable.BenefitOwnerId.HasValue) && _balanceService != null)
+        {
+            var asOfDate = receivable.RecognizedAt.UtcDateTime;
+            var balanceResult = await _balanceService.ReadAsync(new BenefitBalanceReadRequest
+            {
+                WorkforceProfileId = receivable.BenefitOwnerWorkforceProfileId,
+                EmployeeId = receivable.BenefitOwnerId ?? Guid.Empty,
+                AsOfDate = asOfDate
+            }, cancellationToken);
+
+            if (balanceResult.IsUsable && !string.IsNullOrWhiteSpace(balanceResult.BenefitPersonKind) && balanceResult.BenefitPersonId.HasValue)
+            {
+                return (balanceResult.BenefitPersonKind, balanceResult.BenefitPersonId);
+            }
+        }
+
+        return (null, null);
+    }
 
     private static string GenerateSettlementNumber()
     {

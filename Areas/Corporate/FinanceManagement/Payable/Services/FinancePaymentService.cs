@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Services;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
 
@@ -26,19 +27,22 @@ public sealed class FinancePaymentService
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
     private readonly FinanceSupplierReturnService _supplierReturnService;
     private readonly FinanceSubledgerMovementService _subledgerMovementService;
+    private readonly FinanceApprovalAuthorizationService _approvalAuthorizationService;
 
     public FinancePaymentService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
         FinanceAccountingOutboxService accountingOutboxService,
         FinanceSupplierReturnService supplierReturnService,
-        FinanceSubledgerMovementService subledgerMovementService)
+        FinanceSubledgerMovementService subledgerMovementService,
+        FinanceApprovalAuthorizationService approvalAuthorizationService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _accountingOutboxService = accountingOutboxService;
         _supplierReturnService = supplierReturnService;
         _subledgerMovementService = subledgerMovementService;
+        _approvalAuthorizationService = approvalAuthorizationService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -90,6 +94,8 @@ public sealed class FinancePaymentService
                 var payable = await _dbContext.FinSupplierPayables.AsNoTracking()
                     .SingleOrDefaultAsync(x => x.Id == alloc.PayableId && !x.IsDelete, cancellationToken)
                     ?? throw new KeyNotFoundException($"Utang supplier {alloc.PayableId} tidak ditemukan.");
+
+                EnsureSupplierAllocationMatchesPayee(normalizedPaymentType, payeeReferenceId, payable);
 
                 if (payable.Status is FinSupplierPayableStatuses.Cancelled or FinSupplierPayableStatuses.Paid)
                     throw new PaymentValidationException(
@@ -263,6 +269,8 @@ public sealed class FinancePaymentService
                     .SingleOrDefaultAsync(x => x.Id == alloc.PayableId && !x.IsDelete, cancellationToken)
                     ?? throw new KeyNotFoundException($"Utang supplier {alloc.PayableId} tidak ditemukan.");
 
+                EnsureSupplierAllocationMatchesPayee(payment.PaymentType, payment.PayeeReferenceId, payable);
+
                 if (payable.Status is FinSupplierPayableStatuses.Cancelled or FinSupplierPayableStatuses.Paid)
                     throw new PaymentValidationException($"Utang {payable.PayableNumber} berstatus {payable.Status} sehingga tidak dapat dibayar.");
 
@@ -429,6 +437,16 @@ public sealed class FinancePaymentService
         // FIN-VAL-051 & CK_FinPayment_MakerChecker: Pengaju tidak boleh menyetujui pembayarannya sendiri
         if (actorUserId == payment.RequestedBy)
             throw new PaymentValidationException("Pengaju tidak boleh menyetujui pembayarannya sendiri.");
+
+        // FIN-VAL-052 (403): penyetuju harus sesuai jenjang nominal. Sebelumnya hanya self-approval
+        // yang dicegah, sehingga pembayaran TIER_2 (>= Rp 50.000.000) dapat disetujui siapa pun yang
+        // memegang permission Approve. Pola sama dengan FinancePurchasingInvoiceService.ApproveAsync.
+        // ApprovalTier pada FinPayment boleh null (kolom nullable, baris lama); bila kosong jenjang
+        // dihitung ulang dari total supaya tidak ada pembayaran besar yang lolos tanpa jenjang.
+        var approvalTier = payment.ApprovalTier ?? FinanceApprovalTierResolver.Resolve(payment.TotalAmount);
+        var canApprove = await _approvalAuthorizationService.CanApproveAsync(actorUserId, approvalTier, cancellationToken);
+        if (!canApprove)
+            throw new PaymentForbiddenException("Nominal pembayaran ini memerlukan persetujuan tingkat yang lebih tinggi.");
 
         payment.Status = FinPaymentStatuses.Approved;
         payment.ApprovedBy = actorUserId;
@@ -946,6 +964,40 @@ public sealed class FinancePaymentService
             .SingleOrDefaultAsync(x => x.Id == paymentId && !x.IsDelete, cancellationToken);
 
     // ------------------------------------------------------------------------------------
+    // Daftar Pembayaran — GET /, disaring jenis/penerima/status (api-contract.md FIN-API-1.0, BE-FIN-122)
+    // ------------------------------------------------------------------------------------
+
+    public async Task<PagedResult<FinPayment>> GetPagedAsync(PaymentQuery query, CancellationToken cancellationToken)
+    {
+        var q = _dbContext.FinPayments.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(query.PaymentType))
+            q = q.Where(x => x.PaymentType == query.PaymentType.Trim().ToUpperInvariant());
+
+        if (query.PayeeReferenceId.HasValue && query.PayeeReferenceId.Value != Guid.Empty)
+            q = q.Where(x => x.PayeeReferenceId == query.PayeeReferenceId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant());
+
+        var totalCount = await q.CountAsync(cancellationToken);
+
+        var items = await q.OrderByDescending(x => x.CreateDateTime)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<FinPayment>
+        {
+            Items = items,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            TotalData = totalCount,
+            TotalPage = (int)Math.Ceiling(totalCount / (double)query.PageSize)
+        };
+    }
+
+    // ------------------------------------------------------------------------------------
     // Internal Resolvers & Validators
     // ------------------------------------------------------------------------------------
     //
@@ -968,6 +1020,22 @@ public sealed class FinancePaymentService
         if (normalized is not (FinPaymentMethods.Transfer or FinPaymentMethods.Cash or FinPaymentMethods.Cheque))
             throw new PaymentBadRequestException("PaymentMethod harus TRANSFER, CASH, atau CHEQUE.");
         return normalized;
+    }
+
+    /// <summary>
+    /// FIN-VAL-096 (400) dan AP-UAT-14 (422): utang supplier hanya boleh dilunasi lewat pembayaran
+    /// bertipe SUPPLIER yang ditujukan kepada supplier pemilik utang itu sendiri. Pada pembayaran
+    /// SUPPLIER, PayeeReferenceId adalah SupplierId — nilai yang sama dipakai ReserveAsync untuk
+    /// mencocokkan Deposit Retur (FIN-VAL-113), jadi pemeriksaan ini tidak menambah arti baru.
+    /// </summary>
+    private static void EnsureSupplierAllocationMatchesPayee(string paymentType, Guid payeeReferenceId, FinSupplierPayable payable)
+    {
+        if (paymentType != FinPaymentTypes.Supplier)
+            throw new PaymentBadRequestException("Jenis pembayaran tidak cocok dengan utang yang dipilih.");
+
+        if (payable.SupplierId != payeeReferenceId)
+            throw new PaymentValidationException(
+                $"Utang {payable.PayableNumber} milik supplier lain dan tidak dapat dibayarkan kepada penerima pembayaran ini.");
     }
 
     private static string ValidatePayableType(string? payableType)
@@ -1050,3 +1118,4 @@ public sealed record PaymentDeductionRequest(string DeductionType, string Direct
 public sealed class PaymentBadRequestException(string message) : Exception(message);
 public sealed class PaymentValidationException(string message) : Exception(message);
 public sealed class PaymentConflictException(string message, Exception? innerException = null) : Exception(message, innerException);
+public sealed class PaymentForbiddenException(string message) : Exception(message);

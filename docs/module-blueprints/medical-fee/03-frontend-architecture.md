@@ -135,7 +135,7 @@ justru menghapus perlindungannya.
 | Menyediakan cara menghapus layanan belum terhitung | Tidak ada endpoint-nya, dan itu disengaja |
 | Menyediakan entri hasil jasa manual | Tidak ada endpoint-nya (`api-contract.md` bagian 9) |
 | Mengandalkan penyembunyian tombol sebagai penjagaan wewenang | Backend yang menjaga |
-| Menampilkan `DoctorShare` sebagai hasil Medical Fee | `OPEN DECISION`, `MF-CQ-08` |
+| Menampilkan `DoctorShare` sebagai hasil Medical Fee | `OPEN DECISION` — `MF-CQ-08` ditutup 26 Oktober 2026, tetapi belum ada keputusan UI yang menampilkannya |
 
 ## 8. Yang belum diputuskan dan menunggu Product Owner
 

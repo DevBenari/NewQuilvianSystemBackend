@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -52,17 +53,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         private readonly LoggerService _loggerService;
         private readonly MedicalRecordAccessAuditService _accessAuditService;
         private readonly MedicalRecordTimelineService _timelineService;
+        private readonly PeriodicObservationSummaryService _periodicService;
 
         public MedicalRecordController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             MedicalRecordAccessAuditService accessAuditService,
-            MedicalRecordTimelineService timelineService)
+            MedicalRecordTimelineService timelineService,
+            PeriodicObservationSummaryService periodicService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _accessAuditService = accessAuditService;
             _timelineService = timelineService;
+            _periodicService = periodicService;
         }
 
         [HttpGet("filters/metadata")]
@@ -229,6 +233,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                     StatusCodes.Status400BadRequest, "Jenis dokumen tidak dikenali."));
             }
 
+            // VAL-RM-A12 (kontrak 0.2.0): jenis tanpa pembaca dijawab dengan kalimat yang jujur,
+            // bukan "dokumen tidak ditemukan" — dokumennya mungkin ada, hanya belum tersambung.
+            if (_timelineService.JenisBelumTersedia.Contains(documentKind))
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    documentKind == ClinicalDocumentKind.PathologyAnatomyResult
+                        ? "Hasil Patologi Anatomi belum tersedia di berkas rekam medis."
+                        : $"{MedicalRecordTimelineService.NamaJenis(documentKind)} belum tersambung ke berkas rekam medis."));
+            }
+
             var (akses, penolakan) = await NilaiAksesAsync(
                 patientId, MedicalRecordAccessScope.DocumentDetail,
                 accessPurposeId, accessReason, cancellationToken);
@@ -255,6 +270,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 hasil.IsIntegrityEnforced
                     ? "Detail dokumen berhasil dibuka."
                     : "Detail dokumen berhasil dibuka. Jenis dokumen ini belum tunduk aturan keutuhan rekam medis."));
+        }
+
+        [HttpGet("{patientId:guid}/periodic-observations")]
+        [ProducesResponseType(typeof(ApiResponse<List<PeriodicObservationEntryResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status503ServiceUnavailable)]
+        [AccessAction("Read", "Read Medical Record", Description = "Membuka rincian ringkasan pencatatan berkala", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("MedicalRecord", "Read")]
+        public async Task<IActionResult> GetPeriodicObservations(
+            Guid patientId,
+            [FromQuery] string? kind,
+            [FromQuery] string? date,
+            [FromQuery] Guid? accessPurposeId = null,
+            [FromQuery] string? accessReason = null,
+            CancellationToken cancellationToken = default)
+        {
+            // VAL-RM-A11 (kontrak 0.2.0). Diurai sendiri supaya galatnya tetap berbentuk
+            // ApiResponse dengan kalimat yang dipahami pengguna, bukan ProblemDetails bawaan.
+            if (!Enum.TryParse<PeriodicObservationKind>(kind, ignoreCase: true, out var jenis)
+                || !Enum.IsDefined(jenis)
+                || !DateOnly.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var tanggal))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest, "Jenis pencatatan atau tanggal tidak dikenal."));
+            }
+
+            var (akses, penolakan) = await NilaiAksesAsync(
+                patientId, MedicalRecordAccessScope.DocumentDetail,
+                accessPurposeId, accessReason, cancellationToken);
+
+            if (penolakan != null)
+                return penolakan;
+
+            var hasil = await _periodicService.GetDayEntriesAsync(patientId, jenis, tanggal, cancellationToken);
+
+            await CatatPembukaanAsync("MedicalRecord.GetPeriodicObservations", patientId, akses);
+
+            return Ok(ApiResponse<List<PeriodicObservationEntryResponse>>.Ok(
+                hasil, "Rincian pencatatan berkala berhasil dibuka."));
         }
 
         [HttpGet("{patientId:guid}/documents/{documentKind}/{documentId:guid}/private-note")]

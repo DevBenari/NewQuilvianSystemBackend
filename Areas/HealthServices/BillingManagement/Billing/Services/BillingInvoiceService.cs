@@ -2079,6 +2079,9 @@ public sealed class BillingInvoiceService
                     && x.Status != BillingInvoiceItemStatuses.Voided && !x.IsDelete,
                 cancellationToken);
             var isReplay = false;
+            // true hanya bila perubahan ini benar-benar mengubah kewajiban finansial invoice (item baru aktif,
+            // atau item ada yang diperbarui/di-VOID oleh versi sumber yang lebih baru).
+            var needsCalculation = false;
             BilInvoiceItem item;
             if (existingItem is not null)
             {
@@ -2112,6 +2115,7 @@ public sealed class BillingInvoiceService
                     invoice.RowVersion = Guid.NewGuid();
                     invoice.UpdateDateTime = DateTime.UtcNow;
                     invoice.UpdateBy = actorUserId;
+                    needsCalculation = true;
 
                     // BE-BKC-067 / PHA-DEC-068 / BIL-AT-138: Jika harga atau kuantitas obat pada resep
                     // yang sudah pernah CLEARED dikoreksi naik, terbitkan surat pencabutan clearance (REVOKED / PRESCRIPTION_CHARGE_INCREASED).
@@ -2188,6 +2192,7 @@ public sealed class BillingInvoiceService
                     ApplySource(item, request, source, payloadHash, idempotencyKey, actorUserId, false);
                     _dbContext.BilInvoiceItems.Add(item);
                     invoice.RowVersion = Guid.NewGuid();
+                    needsCalculation = item.Status == BillingInvoiceItemStatuses.Active;
 
                     // BE-BKC-075 / BKC-DEC-116 / BKC-DES-046 / BIL-VAL-123: Auto-Reblock jika invoice rawat inap sudah berstatus CLEARED
                     // BE-RWI-147 / FIN-CON-01: label rawat inap seragam "RANAP".
@@ -2219,6 +2224,16 @@ public sealed class BillingInvoiceService
             });
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // Perhitungan cakupan dan kewajiban mengikuti perubahan tagihan DI TRANSAKSI YANG SAMA (pola yang sama
+            // dengan VoidItemAsync dan jalur diskon): item/receipt sudah tersimpan di atas, lalu satu versi kalkulasi
+            // authoritative dibuat dari data itu. Kasir tidak perlu "Hitung Ulang Cakupan" sesudahnya, dan
+            // BillingFinalizationService.IsCalculationCurrentAsync melihat versi ini lebih baru dari perubahan item.
+            // Replay (SourceVersion sama, isi sama) tidak mengubah angka apa pun sehingga tidak melahirkan versi baru;
+            // item koreksi kamar yang lahir sudah VOIDED juga tidak mengubah angka.
+            if (needsCalculation)
+                await RecalculateAfterChargeChangeAsync(invoice, createdInvoice, actorUserId, cancellationToken);
+
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditAsync(createdInvoice ? "BillingInvoice.CreateCharge" : "BillingInvoice.UpsertCharge",
                 invoice, item, request.CorrelationId, actorUserId, isReplay);
@@ -2389,6 +2404,52 @@ public sealed class BillingInvoiceService
         finally
         {
             if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    /// <summary>
+    /// Membuat versi kalkulasi authoritative sesudah item invoice dibuat atau diubah. Dipanggil SESUDAH item dan
+    /// receipt tersimpan dan SEBELUM transaksi di-commit, jadi item dan versi kalkulasinya commit atau rollback
+    /// bersama (<see cref="BillingCalculationService.RecalculateAsync"/> ikut transaksi berjalan, tidak membuka
+    /// sendiri). <c>invoice</c> adalah instance yang sedang dilacak; <c>RowVersion</c>-nya adalah token sementara yang
+    /// baru saja disimpan, sehingga ExpectedRowVersion pasti cocok.
+    ///
+    /// Kegagalan kalkulasi TIDAK dianggap sukses dan TIDAK ditelan: perubahan tagihan dibatalkan seluruhnya (rollback),
+    /// dengan pesan spesifik dari mesin kalkulasi. Untuk pemanggil jembatan klinis, kegagalan ini muncul sebagai
+    /// penerusan yang perlu ditinjau (antrean rekonsiliasi), bukan hilang diam-diam.
+    /// </summary>
+    private async Task RecalculateAfterChargeChangeAsync(
+        BilInvoice invoice,
+        bool createdInvoice,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _calculationService.RecalculateAsync(
+                invoice.Id,
+                new RecalculateInvoiceRequest
+                {
+                    ExpectedRowVersion = invoice.RowVersion,
+                    Reason = createdInvoice
+                        ? "Perhitungan otomatis: invoice dibuat dengan item tagihan pertama."
+                        : "Perhitungan otomatis: item tagihan ditambahkan atau diubah."
+                },
+                actorUserId,
+                cancellationToken);
+        }
+        catch (BillingCalculationConflictException exception)
+        {
+            throw new BillingInvoiceConflictException(
+                $"Perubahan tagihan dibatalkan karena perhitungan tagihan gagal diperbarui: {exception.Message} "
+                + "Muat ulang tagihan lalu ulangi, atau hubungi petugas yang berwenang.",
+                exception);
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            throw new BillingInvoiceValidationException(
+                $"Perubahan tagihan dibatalkan karena perhitungan tagihan gagal diperbarui: {exception.Message} "
+                + "Periksa kembali data tagihan atau hubungi petugas yang berwenang.");
         }
     }
 

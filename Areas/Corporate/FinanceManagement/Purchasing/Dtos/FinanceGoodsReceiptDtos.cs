@@ -6,6 +6,13 @@ public sealed class GoodsReceiptItemRequestDto
 {
     public Guid PurchaseOrderItemId { get; set; }
     public decimal ReceivedQuantity { get; set; }
+
+    /// <summary>Opsional (BE-FIN-125). Satu baris PO dengan beberapa batch dikirim sebagai beberapa baris.</summary>
+    public string? BatchNumber { get; set; }
+
+    /// <summary>Opsional (BE-FIN-125). Tanggal kedaluwarsa batch.</summary>
+    public DateOnly? ExpiredDate { get; set; }
+
     public string? Notes { get; set; }
 }
 
@@ -14,6 +21,8 @@ public sealed class GoodsReceiptItemResponse
     public Guid Id { get; set; }
     public Guid PurchaseOrderItemId { get; set; }
     public decimal ReceivedQuantity { get; set; }
+    public string? BatchNumber { get; set; }
+    public DateOnly? ExpiredDate { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -42,6 +51,15 @@ public sealed class CreateGoodsReceiptRequest
 public sealed class GoodsReceiptRowVersionRequest
 {
     public Guid ExpectedRowVersion { get; set; }
+}
+
+/// <summary>PUT /{id} — koreksi isi GR. Seluruh baris diganti dengan <see cref="Items"/>; aturan akumulasi
+/// kuantitas sama dengan pencatatan baru (FIN-VAL-104), dengan GR ini dikecualikan dari penjumlahan.</summary>
+public sealed class UpdateGoodsReceiptRequest
+{
+    public Guid ExpectedRowVersion { get; set; }
+    public DateOnly ReceivedDate { get; set; }
+    public List<GoodsReceiptItemRequestDto> Items { get; set; } = [];
 }
 
 /// <summary>GET / — daftar GR berpaging (FIN-API-1.1 §B.2, kolom Request `GoodsReceiptQuery`).

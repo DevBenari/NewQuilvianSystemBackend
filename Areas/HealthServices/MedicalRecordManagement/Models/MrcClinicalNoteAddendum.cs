@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -21,6 +22,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Mod
 
         [Required]
         public Guid IntegrityId { get; set; }
+
+        /// <summary>
+        /// Maksud addendum (`RM-DEC-049`, `BE-38`). Bawaan <c>Correction</c>; seluruh addendum lama
+        /// otomatis berarti koreksi. <c>Attestation</c> hanya atas catatan <c>LockedUnsigned</c>,
+        /// paling banyak satu per catatan.
+        /// </summary>
+        public ClinicalNoteAddendumPurpose AddendumPurpose { get; set; } = ClinicalNoteAddendumPurpose.Correction;
 
         /// <summary>Urutan koreksi, dimulai dari 1. Unik bersama <see cref="IntegrityId"/>.</summary>
         public int Sequence { get; set; }

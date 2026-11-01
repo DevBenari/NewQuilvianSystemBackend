@@ -4,9 +4,61 @@
 blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
-revision: 2.3
+revision: 2.4
 status: approved
-approved_baseline_revision: 2.3
+approved_baseline_revision: 2.4
+approved_by_revision_2_4: Pemilik modul Billing (Product/Domain Owner) — pernyataan langsung dalam sesi, 26 Oktober 2026
+approved_at_revision_2_4: 2026-10-26
+approval_evidence_revision_2_4: >
+  Pernyataan pemilik modul Billing: "iya saya setuju kerjakan /quilvian-engineering-skills:plan-module-delivery",
+  menjawab ringkasan desain revisi 2.4 yang menutup dengan "setelah Anda menyetujui revisi 2.4, termasuk dua butir
+  di atas, saya bisa menjalankan /plan-module-delivery" dan menyatakan bahwa persetujuan desain bukan otorisasi
+  migration. Dua butir yang diangkat eksplisit dan karenanya IKUT disetujui: BKC-DES-093 (port in-process, bukan
+  endpoint HTTP) dan BKC-DES-097 (dua kolom jejak DoctorShareResolution dan DoctorShareSharingRuleId).
+approval_scope_revision_2_4: >
+  Mengikuti pola approval_scope_revision_2_1: bentuk SINGLE, satu approval. Mencakup BKC-DES-093..103 dan set kontrak
+  BIL-API-2.1, BIL-VALIDATION-2.1, BIL-INTEGRATION-1.9, BIL-PERMISSION-1.7, BIL-TEST-2.2 (BIL-STATE-2.0 dan
+  BIL-CALCULATION-1.0 tidak bergerak). Teks "draft" pada header amendment revisi 2.4 di berkas desain sengaja tidak
+  diubah (keterlambatan editorial, bukan perbedaan isi; preseden revisi 2.1).
+approval_exclusions_revision_2_4: >
+  TIDAK mencakup: (1) otorisasi membuat atau menjalankan migration AddBilInvoiceItemPerformerAndDoctorShareTrace;
+  (2) EPIC BKC-31 (OPEN DECISION, BKC-OQ-148); (3) jawaban BKC-OQ-149..151; (4) penegasan Medical Fee dan Finance
+  atas BKC-DEC-173; (5) implementasi port oleh Medical Fee (BE-MDF-016) maupun perubahan dokumen Medical Fee.
+status_derivation_revision_2_4: >
+  Revisi 2.4 (Jasa Medis pada Item Tagihan: DoctorShare dari Medical Fee dan Pelaksana Entri Kasir) kini
+  `approved` (approved_by_revision_2_4); revisi 2.3 tetap approved dan tidak dibatalkan. [Teks asli saat draft:
+  approval belum diberikan.] Dasar keputusan: BKC-DEC-168..178 (approved pemilik Billing 26 Oktober 2026, menjawab permintaan
+  Medical Fee MF-CQ-08 dan MF-CQ-05). BKC-OQ-143 dicabut pemilik. Keputusan arsitektur BKC-DES-093..103.
+  Satu migration skema (AddBilInvoiceItemPerformerAndDoctorShareTrace), butuh otorisasi eksplisit terpisah.
+  DUA BUTIR DIANGKAT EKSPLISIT UNTUK APPROVAL karena tidak persis bunyi keputusan bisnis: (1) BKC-DES-093 -
+  Billing memanggil Medical Fee lewat port in-process, bukan endpoint HTTP yang disebut BKC-DEC-169, dengan
+  semantik identik; (2) BKC-DES-097 - dua kolom jejak (DoctorShareResolution, DoctorShareSharingRuleId) di luar
+  empat kolom BKC-DEC-171/178. Pertanyaan terbuka: BKC-OQ-148 (memblokir EPIC BKC-31 saja), BKC-OQ-149..151
+  (tidak memblokir MVP-38).
+design_amendment_revision_2_4: >
+  /design-business-module 26 Oktober 2026 (Opus 5.5), backend ecddd8f8 (branch Yasmina), frontend e2c17153b.
+  Berkas tumpuan dibaca langsung pada SHA itu: BillingInvoiceService.cs (UpsertChargeAsync termasuk perubahan
+  adendum §23, AddCatalogChargeAsync, AddOtherChargeAsync, ComputePayloadHash, ApplySource, UpsertManualChargeAsync),
+  BillingClinicalChargeBridgeService.cs, BillingArApHandoffService.cs, BillingDiscountService.cs,
+  BillingSupersededItemReviewService.cs, BillingDrugReturnService.cs, BilInvoiceItem.cs,
+  BilInvoiceItemConfiguration.cs, BillingInvoiceDtos.cs, BillingInvoicesController.cs; HR MstDoctor.cs,
+  MstWorkforceProfile.cs, DoctorController.cs; Medical Fee MstMedicalFeeRole.cs. Capability map TIDAK diperbarui
+  (milik trace-existing-capabilities; tidak memuat DoctorShare maupun pelaksana).
+  TEMUAN DESAIN: (D1) penggabungan baris katalog berdasarkan tarif/nama saja akan menyatukan dua pelaksana
+  (BKC-DES-098); (D2) pembacaan Medical Fee di dalam transaksi Serializable Billing dapat membatalkan seluruh
+  transaksi bila gagal, sehingga dipanggil sebelum transaksi dan dilewati bila pemanggil sudah bertransaksi
+  (BKC-DES-095); (D3) hash isi permintaan memuat DoctorShare dari request, sehingga hasil Medical Fee tidak boleh
+  masuk hash (BKC-DES-100); (D4) pembulatan dapat melampaui nilai kotor berpresisi 4 desimal (BKC-DES-096);
+  (D5) entri ADHOC tidak bertarif sementara resolve mewajibkan tariffId (BKC-OQ-150).
+  Berkas yang ditambah amendment: 02-backend-architecture.md §25, 03-frontend-architecture.md (amendment revisi
+  2.4), 04-prd-to-mvp.md (amendment revisi 2.4: EPIC BKC-30, EPIC BKC-31 OPEN DECISION, MVP-38),
+  data/data-dictionary.md, contracts/api-contract.md, contracts/validation-matrix.md,
+  contracts/integration-contract.md, contracts/permission-audit-matrix.md, testing/acceptance-test-matrix.md,
+  dan satu flowchart baru flowcharts/jasa-medis-pada-item-tagihan.md. contracts/state-transition-matrix.md TIDAK
+  disunting (nol status dan nol transisi baru).
+  YANG SENGAJA TIDAK DISENTUH: 00-interview-decisions.md (milik grill-me), 01-existing-capability-map.md, roadmap/
+  (milik plan-module-delivery), dan seluruh dokumen Medical Fee. Koreksi rujukan BIL-INTEGRATION-0.4 pada dokumen
+  Medical Fee dilaporkan, tidak diedit.
 approved_by_revision_2_3: Pemilik modul Billing (Product/Domain Owner) — pilihan interaktif dalam sesi, 16 Oktober 2026
 approved_at_revision_2_3: 2026-10-16
 approval_evidence_revision_2_3: >
@@ -623,10 +675,17 @@ last_revision_note: >
   menaruh Petty Cash sebagai rumpun di dalam struktur SINGLE yang sudah ada sudah diambil pada
   00-interview-decisions.md amendment 7 September 2026, mengikuti preseden Shift Kasir, Diskon,
   Deposit, Refund, dan Pengecualian Finansial.
-backend_commit_sha: 738e03a0
-frontend_commit_sha: 8ad45262b
-previous_backend_commit_sha: d268a41f
-previous_frontend_commit_sha: 0b45dd8cd
+backend_commit_sha: ecddd8f8
+frontend_commit_sha: e2c17153b
+previous_backend_commit_sha: 738e03a0
+previous_frontend_commit_sha: 8ad45262b
+snapshot_note_revision_2_4: >
+  Disegarkan /design-business-module revisi 2.4. Hanya berkas tumpuan revisi 2.4 yang dibaca ulang (lihat
+  design_amendment_revision_2_4). Bukti revisi 2.3 dan adendum §22-24 di luar berkas itu TIDAK diaudit ulang.
+  Working tree backend saat desain memuat perubahan belum di-commit dari sesi lain pada area Medical Fee
+  (MstMedicalFeeRole.cs, MdfSharingAgreement.cs, MdfSharingRule.cs beserta configuration-nya, ApplicationDbContext.cs,
+  QBE_EXCEPTIONS.json, roadmap Medical Fee, laporan BE-MDF-005). Tidak satu pun berkas tumpuan Billing revisi 2.4
+  tersentuh; port BKC-DES-093 sengaja tidak bergantung pada bentuk tabel Mdf* itu.
 snapshot_note_revision_2_3: >
   Disegarkan oleh /design-business-module revisi 2.3 setelah impact scan terbatas pada area amendment.
   Working tree backend saat audit memuat perubahan belum di-commit (sembilan controller Billing, satu baris
@@ -908,10 +967,22 @@ superseded_design_decisions:
   BKC-DES-002: digantikan BKC-DES-015 — ComponentKey bertipe teks tidak jadi dipakai; bentuk (ComponentId, ComponentType) yang sudah terimplementasi BE-BKC-FIX-003 yang diadopsi
 narrowed_design_decisions:
   BKC-DES-013: dipersempit dua kali (BUKAN digugurkan). Revisi 0.8 (BKC-DES-021): makna UnresolvedAmount menyisakan jalur rule NotCovered + IsAllowExcessPaymentByPatient=false saja; residual perhitungan pindah ke NonBillableResidualAmount. Revisi 0.9 (BKC-DES-026/027, approved 5 Sep 2026): dipersempit lagi menjadi NOL jalur — UnresolvedAmount selalu 0 pada versi kalkulasi baru; field/kolomnya tetap dipertahankan sebagai bukti perhitungan versi lama
+input_hashes_revision_2_4:
+  00-interview-decisions.md: 7b08eca4a120c1b0b3b4eb06b173dac9514745ba20bef35d12808df4d5590f4b
+  01-existing-capability-map.md: 61a79e7042842cdb2de7b03aedc679926301b9b86ba1dec84560b3338701af4b
+  ../medical-fee/evidence/04-balasan-owner-billing.md: 5de01964c76bbfde29c89188ffb283c681383c5532b5bdb680895bb201cd528d
 input_hashes_revision_2_2:
   00-interview-decisions.md: 719fd01d1c4091ba72d804d330ddf723eca23bcb9d4337f5984a54e56f2f0bb3
   01-existing-capability-map.md: e41457038d1669ab14f4c1998435228370b3b9a15cdcdb65563b43c87a8658e5
 contract_versions:
+  api: BIL-API-2.1 (draft, revisi 2.4 — field pelaksana pada catalog-charges, other-charges, from-source; enam field item invoice; nol endpoint baru) atas BIL-API-2.0
+  state: BIL-STATE-2.0 — TIDAK BERGERAK pada revisi 2.4 (nol status dan nol transisi baru)
+  validation: BIL-VALIDATION-2.1 (draft, revisi 2.4 — BIL-VAL-161..168) atas BIL-VALIDATION-2.0
+  integration: BIL-INTEGRATION-1.9 (draft, revisi 2.4 — BIL-INT-023 port Medical Fee, BIL-INT-024 Medical Fee membaca pelaksana, BIL-INT-025 sumber klinis OPEN DECISION) atas BIL-INTEGRATION-1.8
+  permission: BIL-PERMISSION-1.7 (draft, revisi 2.4 — nol Resource/Action baru; peristiwa audit BillingInvoice.DoctorShareUnavailable; payload CreateCharge/UpsertCharge ditambah dua field) atas BIL-PERMISSION-1.6
+  testing: BIL-TEST-2.2 (draft, revisi 2.4 — BIL-AT-231..248) atas BIL-TEST-2.1
+  calculation: BIL-CALCULATION-1.0 — TIDAK BERGERAK pada revisi 2.4 (rumus tagihan pasien tidak berubah; rumus DoctorShare dicatat pada BKC-DES-096)
+contract_versions_set_sebelum_revisi_2_4:
   api: BIL-API-2.0 (draft, revisi 2.3 — response kalkulasi: referredOutpatientAdminVoided dihapus, arti referredOutpatientAdminCreditedAmount berubah, lima field baru; tiga endpoint baru superseded-item-reviews) atas BIL-API-1.9
   state: BIL-STATE-2.0 (draft, revisi 2.3 — keadaan turunan ADMIN_CHARGED/ADMIN_SUPERSEDED; kredit REFERRED_OUTPATIENT_ADMIN lahir saat finalisasi; siklus BilSupersededItemReview final) atas BIL-STATE-1.9
   validation: BIL-VALIDATION-2.0 (draft, revisi 2.3 — penegasan kedua BIL-VAL-126; BIL-VAL-151..160) atas BIL-VALIDATION-1.9

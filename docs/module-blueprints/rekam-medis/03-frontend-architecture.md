@@ -858,3 +858,76 @@ menomori ulang akan memutus rujukan itu tanpa ada yang menyadarinya.
 Satu koreksi ikut dibawa revisi ini: acceptance criteria `FE-07` nomor 3 berbunyi rute baru
 perlu didaftarkan pada `tests/e2e/route-smoke.spec.mjs`. **Tidak ada langkah pendaftaran** —
 berkas uji itu menelusuri `src/app` sendiri. Kriteria itu disesuaikan pada roadmap.
+
+
+---
+
+# Amandemen revision 4 — Kontrak fungsional frontend (`approved`)
+
+Disahkan Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`).
+
+Input: `RM-DEC-048`, `RM-FE-020`–`024`; kontrak API `0.2.0`. Frontend SHA `f0a3b07b8`.
+Urutan kewenangan tetap: keamanan/privasi/invariant → brief UI yang disahkan → konvensi project
+→ `DEV_DISCRETION`.
+
+## F4.1 Layar dan perubahannya
+
+| Layar | Status | Lokasi (konvensi yang ada) | Isi |
+|---|---|---|---|
+| Berkas pasien `medical-records/[slug]` | **Diperbarui** | `src/components/view/health-services/medical-record-management/medical-records/` | Jenis dokumen baru di linimasa; penanda `Susulan`, pernah diralat, dapat berubah; baris ringkasan berkala yang dapat dibuka; keterangan "belum tersedia" untuk PA; gangguan per sumber memakai `medical-record-completeness-alert.jsx` yang ada |
+| Pemberitahuan cakupan | **Diperbarui** | `medical-record-scope-notices.jsx` | Kalimat "aturan keutuhan baru berlaku pada CPPT" diganti daftar jenis yang benar-benar ditegakkan (`RM-CAP-041`) |
+| Aksi addendum | **Diperbarui** | `medical-record-addendum-actions.jsx` | Pilihan "Sahkan isi catatan" hanya untuk catatan `LockedUnsigned` yang belum disahkan |
+| **Daftar kerja Kelengkapan Berkas** | **Baru** | `src/app/health-services/medical-record-management/completeness/` + komponen sejajar | Saringan, daftar kunjungan, rincian kekurangan, tombol nilai ulang |
+| **Profil Dokumen Wajib** | **Baru** | `src/app/health-services/master-data/medical-record-completeness-profiles/` | Daftar, tambah, ubah, aktif/nonaktif profil dan butir kriteria |
+
+## F4.2 Menu
+
+| Entri | Grup | Dasar | Keadaan |
+|---|---|---|---|
+| Kelengkapan Berkas | **Rekam Medis** | `RM-DEC-048`, `RM-FE-024` — penempatan terkunci | Baru |
+| Profil Dokumen Wajib | Master Data → **Pasien & Rekam Medis**, di sebelah "Keperluan Akses Rekam Medis" | Konvensi project: master rekam medis yang ada sudah ditempatkan di sana (`menu-items.jsx:1306-1331`) | Baru |
+
+Urutan entri di dalam grup = `DEV_DISCRETION`.
+
+## F4.3 Aksi per peran
+
+| Aksi | Izin | Bila tidak punya izin |
+|---|---|---|
+| Membuka berkas dan seluruh isinya | `MedicalRecord : Read` | Perilaku rilis pertama |
+| Membuka daftar kerja | `MedicalRecordCompleteness : Read` | Menu tidak ditampilkan; akses langsung → halaman tanpa izin |
+| Nilai ulang | `MedicalRecordCompleteness : Evaluate` | Tombol tidak digambar |
+| Mengelola profil | `MedicalRecordCompletenessProfile : Read/Create/Update` | Sama |
+| Mengesahkan catatan | `ClinicalNoteAddendum : Create` / `CreateAsSubstitute` dan endpoint `/authority` yang ada | Tombol tidak digambar |
+
+Penyaringan menu per izin masih utang terbuka rilis pertama (`RM-FE-013`); dua entri baru
+mengikuti mekanisme yang sama begitu utang itu ditutup.
+
+## F4.4 Data dan keadaan layar
+
+| Keadaan | Berkas pasien | Daftar kerja |
+|---|---|---|
+| Memuat | Kerangka linimasa | Kerangka tabel |
+| Sebagian sumber gagal | Blok "RIWAYAT INI TIDAK LENGKAP" menyebut sumbernya + coba lagi (sudah ada, `RM-FE-012`, `RM-FE-020`) | — |
+| Jenis belum tersedia | Keterangan per jenis dari `unavailableKinds`, **berbeda** dari "tidak ada dokumen" (`RM-FE-017`) | — |
+| Kosong | "Belum ada dokumen" — hanya bila nol gangguan dan nol jenis belum tersedia | "Tidak ada kunjungan yang perlu ditindaklanjuti" |
+| Penilaian basi | — | Waktu `evaluatedAt` selalu terlihat; membuka rincian memanggil `evaluate` lebih dulu |
+| `Undetermined` | — | Ditampilkan sebagai keadaan sendiri, tidak digabung dengan `Incomplete` |
+| Kirim ganda | Tombol "Sahkan" terkunci selama permintaan berjalan | Tombol nilai ulang terkunci selama permintaan berjalan |
+| `409` | Pesan dari server apa adanya | Pesan dari server apa adanya |
+
+## F4.5 Kewenangan UI dan `DEV_DISCRETION`
+
+| ID | Butir | Kewenangan |
+|---|---|---|
+| `RM-FE-020`–`024` | Lihat decision log | Terkunci |
+| `RM-FE-025` | Bentuk visual penanda `Susulan`, pernah diralat, dapat berubah | `DEV_DISCRETION` — wajib dapat dibedakan satu sama lain dan dari status keutuhan (`RM-FE-008`) |
+| `RM-FE-026` | Bentuk baris ringkasan berkala dan rinciannya (baris dapat dibuka, modal, atau panel) | `DEV_DISCRETION` |
+| `RM-FE-027` | Kolom daftar kerja | Minimum terkunci: nomor RM, nama pasien, jenis kunjungan, unit, waktu tutup klinis, keadaan, jumlah kekurangan, waktu penilaian. Urutan dan lebar = `DEV_DISCRETION` |
+| `RM-FE-028` | Bentuk rincian kekurangan (drawer, halaman, atau baris dapat dibuka) | `DEV_DISCRETION`; seluruh kekurangan wajib terlihat (`RM-FE-023`) |
+| `RM-FE-029` | Form profil | `DEV_DISCRETION` mengikuti pola layar Keperluan Akses Rekam Medis |
+
+## F4.6 Privasi
+
+Daftar kerja memuat nama pasien dan nama penulis. Ia **tidak** menampilkan isi dokumen; untuk
+membaca isi, petugas membuka berkas pasien lewat jalur rilis pertama, sehingga pemeriksaan
+keperluan akses dan jejak akses tetap berlaku.

@@ -5,6 +5,7 @@
 | Blueprint ID | `MF-BP-001` |
 | Revision | `1` |
 | Status | `approved` — seluruh `MDF-DES-001`..`018` disetujui Yasmin 20 September 2026 |
+| Amendment | **`approved` 27 Oktober 2026** — `MDF-DES-019`..`021` (§2.7) beserta class, folder, dan pendaftaran turunannya, oleh owner Medical Fee (*"saya setuju dan kunci"*). Lahir dari jawaban owner Billing (`MF-CQ-05`, `MF-CQ-08`) |
 | Masukan | `00-interview-decisions.md` revisi 2 (`MF-DEC-001`..`018`), `01-existing-capability-map.md` revisi 1 |
 | Backend SHA | `09101d05` (branch `Yasmina`) |
 | Frontend SHA | `66f36b432` |
@@ -58,7 +59,7 @@ hasil yang sudah disetujui ke Finance.
 
 ## 2. Keputusan arsitektur
 
-Seluruhnya `approved` 20 September 2026.
+`MDF-DES-001`..`018` `approved` 20 September 2026. `MDF-DES-019`..`021` pada §2.7 `approved` 27 Oktober 2026.
 
 ### 2.1 Penempatan dan penamaan
 
@@ -109,10 +110,37 @@ Keempatnya menyalin pola yang sudah berjalan, bukan menciptakan yang baru.
 
 | Rumpun | Menunggu | Yang sudah dirancang |
 |---|---|---|
-| Arah alir nilai jasa ke `BilInvoiceItem.DoctorShare` | `MF-CQ-08` — owner Billing | Bentuk kontraknya pada `contracts/integration-contract.md`; mekanisme teknisnya menunggu jawaban |
-| Jasa dari entri bebas kasir | `MF-CQ-05` — owner Billing | Perlakuan sumber `ADHOC` dirancang; menunggu field pelaksana |
+| Arah alir nilai jasa ke `BilInvoiceItem.DoctorShare` | `MF-CQ-08` — **ditutup 26 Oktober 2026** | Billing memilih bentuk A lewat port in-process `IBillingDoctorShareResolver`; Medical Fee mengimplementasikannya (`BE-MDF-016`). Dirancang pada `MDF-DES-019`, `020` (§2.7, draft) dan `integration-contract.md` §4 (`MDF-INTEGRATION-1.1` draft); menunggu approval dan penguncian owner |
+| Jasa dari entri bebas kasir | `MF-CQ-05` — **ditutup 26 Oktober 2026** | Billing menambah `IsFeeBearing`, `PerformerType`, `PerformerReferenceId`, `PerformerRoleCode`; kolom sudah ada di source Billing (`BE-BKC-089` ✅), migration belum dijalankan ke database (`{OTORISASI-MIG-3}`); pengisian dari entri kasir menunggu `BE-BKC-091` |
 | Pembagian tim di luar kamar operasi | `MF-CQ-07` — Clinical dan Laboratory | Bentuk data peran dirancang; menunggu modul sumber mencatat timnya |
 | Jasa radiologi | `MF-DEC-015` — sengaja ditunda | Tidak dirancang sama sekali pada revisi ini |
+
+Baris "Jasa dari entri bebas kasir" kini dirancang pada `MDF-DES-021` (§2.7, draft) dan `integration-contract.md` §5, kecuali
+perlakuan entri bebas tanpa tarif (`MF-OQ-012`).
+
+### 2.7 Amendment 27 Oktober 2026 — integrasi Billing (`approved`)
+
+Ketiga keputusan ini **disetujui owner Medical Fee 27 Oktober 2026** bersama penguncian `MDF-INTEGRATION-1.1`. Ketiganya
+menurunkan dari jawaban owner Billing yang sudah approved di sisi Billing (`BKC-DEC-168`..`178`, `BKC-DES-093`..`103`),
+bukan membuat keputusan bisnis baru.
+
+| ID | Keputusan | Dasar | Konsekuensi |
+|---|---|---|---|
+| `MDF-DES-019` | Medical Fee mengimplementasikan port milik Billing `IBillingDoctorShareResolver` sebagai `MedicalFeeDoctorShareResolver`, didaftarkan dengan `services.Replace(...)` setelah pemanggilan terakhir `AddBillingManagement()`. **Tidak ada** endpoint HTTP `sharing-rules/resolve` | `BKC-DES-093`, `094`; `MF-CQ-08`. Billing mendaftar bawaan dengan `TryAddScoped`, dan `Program.cs` memanggil `AddBillingManagement()` dua kali | Medical Fee tidak menulis kolom Billing mana pun. Pendaftaran yang memakai `TryAddScoped` akan kalah diam-diam, jadi `Replace` wajib dan diuji (`T-101`) |
+| `MDF-DES-020` | Pemilihan baris tarif dipindah dari dalam `MedicalFeeCalculationService` ke satu komponen tanpa akses database, `MedicalFeeSharingRuleMatcher`, yang dipakai **bersama** oleh perhitungan periode dan resolver port | Alasan yang sama dengan penolakan bentuk C pada `MDF-INTEGRATION-1.0` §4.2: dua salinan logika pemilihan tarif akan menyimpang diam-diam | Jawaban ke Billing saat tagihan dicatat dan hasil jasa periode untuk layanan yang sama dijamin memakai baris tarif yang sama (`T-102`). `MedicalFeeCalculationService` berubah tanpa perubahan perilaku |
+| `MDF-DES-021` | Entri kasir `ADHOC`/`ADHOC_CATALOG` hanya dibaca bila `IsFeeBearing = true`. `PerformerType` dipetakan ke `MdfPayeeTypes`, `PerformerRoleCode` dipakai (kosong → peran utama), dan tanggal layanan diambil dari `SourceOccurredAt` dalam tanggal Asia/Jakarta | `BIL-INT-024`; `BKC-DEC-171`, `172`, `178`; tanggal mengikuti `BIL-INT-023` | Baris tidak berjasa bukan `PERFORMER_MISSING`. Tanggal yang sama di kedua modul membuat baris tarif yang dipilih sama. Menutup celah as-is G1–G4 pada `integration-contract.md` §5.6 |
+
+**Pertanyaan yang lahir dari desain ini**
+
+| ID | Pertanyaan | Memblokir | Pemilik |
+|---|---|---|---|
+| ~~`MF-OQ-012`~~ | Entri bebas `ADHOC` berjasa tanpa tarif. **Diputuskan 27 Oktober 2026: pilihan A** — dihitung memakai baris tarif bawaan peran; tanpa baris itu `RULE_MISSING` (`integration-contract.md` §5.4) | Tidak lagi | Owner Medical Fee |
+
+**Dependency teknis yang terbaca dari desain ini.** Resolver hanya membutuhkan peran (`BE-MDF-002`/`004`), kesepakatan dan
+baris tarif (`BE-MDF-005`/`006`), migration master (`BE-MDF-003`), serta matcher yang diekstrak dari `BE-MDF-010`. Ia **tidak**
+membaca tabel penyerahan ke Finance. Ketergantungan `BE-MDF-016` pada `BE-MDF-014` di roadmap tidak terlihat dasarnya dari sisi
+desain. *(Ditinjau `plan-module-delivery` 27 Oktober 2026: dependency dipindah ke `BE-MDF-010`,
+`01-backend-roadmap.md` revisi 2.)*
 
 ---
 
@@ -152,6 +180,41 @@ classDiagram
     MdfSharingAgreement "1" --> "1..*" MdfSharingRule : memuat
     MstMedicalFeeRole "1" --> "0..*" MdfSharingRule : menentukan porsi
 ```
+
+### 3.1a Port ke Billing — draft `MDF-DES-019`, `020`
+
+```mermaid
+classDiagram
+    direction LR
+    class IBillingDoctorShareResolver {
+        <<interface — milik Billing>>
+        +ResolveAsync(BillingDoctorShareQuery, CancellationToken) BillingDoctorShareResolution
+    }
+    class NullBillingDoctorShareResolver {
+        <<milik Billing — diganti>>
+        selalu Unavailable
+    }
+    class MedicalFeeDoctorShareResolver {
+        <<Baru — Medical Fee>>
+        baca saja, tanpa exception
+    }
+    class MedicalFeeSharingRuleMatcher {
+        <<Baru — Medical Fee>>
+        +Match(agreements, query) MatchResult
+    }
+    class MedicalFeeCalculationService {
+        <<Diperbarui>>
+    }
+    IBillingDoctorShareResolver <|.. NullBillingDoctorShareResolver
+    IBillingDoctorShareResolver <|.. MedicalFeeDoctorShareResolver
+    MedicalFeeDoctorShareResolver --> MedicalFeeSharingRuleMatcher
+    MedicalFeeCalculationService --> MedicalFeeSharingRuleMatcher
+    MedicalFeeDoctorShareResolver ..> MdfSharingAgreement : AsNoTracking
+    MedicalFeeDoctorShareResolver ..> MstMedicalFeeRole : AsNoTracking
+```
+
+Satu matcher dipakai dua jalur: pertanyaan Billing saat tagihan dicatat, dan perhitungan periode. Itulah yang menjamin
+keduanya memilih baris tarif yang sama.
 
 ### 3.2 Perhitungan Jasa
 
@@ -374,10 +437,19 @@ classDiagram
 | `MedicalFeeAdjustmentService` | `Baru` | `FeeCalculation/Services/MedicalFeeAdjustmentService.cs` | Pengajuan dan persetujuan koreksi, menegakkan maker-checker | `MedicalFeeServiceFeesController` | Ya |
 | `MedicalFeeServiceSourceAdapter` | `Baru` | `FeeCalculation/Services/MedicalFeeServiceSourceAdapter.cs` | Satu-satunya tempat yang tahu cara membaca pelaksana dari tiap sumber layanan | `MedicalFeeCalculationService` | Tidak — baca saja |
 | `MedicalFeeHandoffService` | `Baru` | `Handoff/Services/MedicalFeeHandoffService.cs` | Menulis fakta penyerahan di transaksi yang sama dengan persetujuan | `MedicalFeePeriodService` | Ikut transaksi pemanggil |
+| `MedicalFeeSharingRuleMatcher` *(draft `MDF-DES-020`)* | `Baru` | `MasterData/Services/MedicalFeeSharingRuleMatcher.cs` | Memilih satu baris tarif dari kesepakatan dan baris tarif yang **sudah dimuat** pemanggil: peran, masa berlaku, kontrak HR, kekhususan tarif → kategori → bawaan peran, dan deteksi tabrakan. Mengembalikan baris terpilih atau kode alasan (`AGREEMENT_MISSING`, `CONTRACT_EXPIRED`, `RULE_MISSING`, `RULE_OVERLAP`). Tanpa akses database, tanpa exception untuk keadaan bisnis | `MedicalFeeCalculationService`, `MedicalFeeDoctorShareResolver` | Tidak — fungsi murni |
+| `MedicalFeeDoctorShareResolver` *(draft `MDF-DES-019`)* | `Baru` | `MasterData/Services/MedicalFeeDoctorShareResolver.cs` | Implementasi port Billing `IBillingDoctorShareResolver`: memetakan masukan, memuat peran, kesepakatan, dan kategori tarif (`AsNoTracking`, maksimal tiga query), memanggil matcher, lalu menjawab `Resolved`/`NoRule`/`Unavailable` sesuai `integration-contract.md` §4.4. Seluruh kesalahan dijawab `Unavailable` | Billing — `BillingInvoiceService` lewat port (`BE-BKC-092`) | Tidak — baca saja, sebelum transaksi Billing |
+
+**`MedicalFeeCalculationService` — `Diperbarui` (draft `MDF-DES-020`).** Kasus 3–5 pada pemrosesan layanan (pencarian kesepakatan,
+pemeriksaan kontrak HR, pemilihan baris tarif) diganti pemanggilan `MedicalFeeSharingRuleMatcher`. Perilakunya MUST tetap sama;
+`MDF_RULE_OVERLAP` tetap menggagalkan perhitungan periode seperti sekarang.
+
+**`MedicalFeeServiceSourceAdapter` — `Diperbarui` (draft `MDF-DES-021`).** Pembacaan entri `ADHOC`/`ADHOC_CATALOG` mengikuti
+`integration-contract.md` §5.3 dan menutup celah G1–G4 pada §5.6.
 
 `MedicalFeeServiceSourceAdapter` adalah tempat perbedaan antar sumber layanan diisolasi. Kamar
 operasi dibaca dari tim beserta perannya; tindakan klinis dan laboratorium dibaca sebagai satu
-pelaksana; entri bebas kasir menunggu `MF-CQ-05`; radiologi tidak dibaca sama sekali. Tanpa
+pelaksana; entri bebas kasir dibaca dari kolom pelaksana Billing setelah permukaan kontrak dikunci (`MF-CQ-05` ditutup 26 Oktober 2026); radiologi tidak dibaca sama sekali. Tanpa
 adapter ini, perbedaan itu akan tersebar ke seluruh service perhitungan.
 
 ### 4.11 Controller
@@ -408,7 +480,9 @@ Areas/HealthServices/MedicalFeeManagement/          # BARU — wajib didaftarkan
 │   ├── Models/MdfSharingAgreement.cs                                # Baru
 │   ├── Models/MdfSharingRule.cs                                     # Baru
 │   ├── Services/MedicalFeeRoleService.cs                            # Baru
-│   └── Services/MedicalFeeSharingService.cs                         # Baru
+│   ├── Services/MedicalFeeSharingService.cs                         # Baru
+│   ├── Services/MedicalFeeSharingRuleMatcher.cs                     # Baru — draft MDF-DES-020
+│   └── Services/MedicalFeeDoctorShareResolver.cs                    # Baru — draft MDF-DES-019, implementasi port Billing
 ├── FeeCalculation/
 │   ├── Controllers/MedicalFeePeriodsController.cs                   # Baru
 │   ├── Controllers/MedicalFeeServiceFeesController.cs               # Baru
@@ -453,6 +527,7 @@ mengikuti yang jamak.
 |---|---|---|
 | `Repositories/ApplicationDbContext.cs` | Tambah 9 `DbSet<T>` | Pola existing `DbSet<FinPettyCashBudget>` |
 | `Program.cs` | Tambah 7 `AddScoped<T>()` | Pola existing `AddScoped<PettyCashBudgetService>()` |
+| `Program.cs` *(draft `MDF-DES-019`, `020`)* | Tambah `AddScoped<MedicalFeeSharingRuleMatcher>()` dan `services.Replace(ServiceDescriptor.Scoped<IBillingDoctorShareResolver, MedicalFeeDoctorShareResolver>())`, **setelah** pemanggilan terakhir `AddBillingManagement()` | `TryAddScoped` pada `BillingManagementServiceCollectionExtensions` membuat pendaftaran sejenis kalah; `Replace` menyisakan tepat satu implementasi |
 | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Tambah baris `MedicalFeeManagement` / `Mdf` | `QBE-MOD-002` — **MUST** sebelum file model pertama |
 
 ---
@@ -470,7 +545,7 @@ mengikuti yang jamak.
 | `MdfServiceFeeAdjustment` | `Baru` | Seluruh kolom | Tabel baru |
 | `MdfUnresolvedService` | `Baru` | Seluruh kolom | Tabel baru |
 | `MdfFinanceHandoff` | `Baru` | Seluruh kolom | Tabel baru |
-| `BilInvoiceItem` | `Diperbarui` — **milik Billing**, `OPEN DECISION` | Tambah rujukan pelaksana untuk sumber `ADHOC` dan `ADHOC_CATALOG` (`MF-CQ-05`); arah pengisian `DoctorShare` (`MF-CQ-08`) | **Migration milik tim Billing**, menunggu jawaban |
+| `BilInvoiceItem` | `Diperbarui` — **milik Billing**, `OPEN DECISION` | Tambah rujukan pelaksana untuk sumber `ADHOC` dan `ADHOC_CATALOG` (`MF-CQ-05`); arah pengisian `DoctorShare` (`MF-CQ-08`) | **Migration milik tim Billing.** Jawaban sudah turun (`MF-CQ-05`, `MF-CQ-08` ditutup 26 Oktober 2026); kolom oleh `BE-BKC-089` ✅, eksekusi ke database menunggu `{OTORISASI-MIG-3}` |
 | `TrxPatientProcedure` | `Diperbarui` — **milik Clinical**, `OPEN DECISION` | Pencatatan tim beserta peran (`MF-CQ-07`) | **Milik tim Clinical** |
 | `LabOrder` | `Diperbarui` — **milik Laboratory**, `OPEN DECISION` | Pencatatan tim beserta peran; pengisian pemeriksa diwajibkan (`MF-CQ-07`) | **Milik tim Laboratory** |
 | `OprTeamMember`, `MstTariff`, `MstDoctor`, `WfpContractHistory` | `Sudah ada` | Tidak ada | Dipakai apa adanya |
@@ -538,3 +613,8 @@ persetujuan hasil jasa.
 | Menimpa baris tarif saat tarif berubah | Akan mengubah hasil periode lalu. Diganti baris baru bermasa berlaku (`MDF-DES-009`) |
 | Pencocokan otomatis pelaksana dari dokter penanggung jawab kunjungan | Berisiko memberi jasa kepada orang yang tidak mengerjakan. Ditolak eksplisit saat `MF-CQ-04` diputuskan |
 | Entity perhitungan untuk radiologi | Sengaja ditunda (`MF-DEC-015`); datanya belum ada di modul sumber |
+| Endpoint HTTP `GET sharing-rules/resolve` *(draft `MDF-DES-019`)* | Billing memanggil lewat port in-process. Endpoint sebagai jalur kedua akan menyimpang dari port dan membuka data penghasilan ke permukaan baru |
+| Mendaftarkan resolver dengan `TryAddScoped` | Kalah diam-diam dari implementasi bawaan Billing; aplikasi tetap menyala dan `DoctorShare` tetap nol tanpa tanda apa pun |
+| Salinan logika pemilihan baris tarif di dalam resolver | Akan menyimpang dari perhitungan periode. Diganti `MedicalFeeSharingRuleMatcher` bersama (`MDF-DES-020`) |
+| Medical Fee menulis `BilInvoiceItem.DoctorShare` | Billing yang menulis dari jawaban port (`BKC-DES-093`). Medical Fee tidak menulis tabel modul lain mana pun |
+| Tabel atau kolom baru untuk menyimpan jawaban port | Jejak jawaban sudah disimpan Billing (`DoctorShareResolution`, `DoctorShareSharingRuleId`). Nol migration Medical Fee untuk amendment ini |

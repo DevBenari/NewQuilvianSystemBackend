@@ -37,6 +37,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public string RegisterCode { get; set; } = string.Empty;
         public string RegisterName { get; set; } = string.Empty;
         public string? Location { get; set; }
+        public bool IsOccupied { get; set; }
+        public string? OccupiedByCashierName { get; set; }
+        public string? OccupiedShiftNumber { get; set; }
     }
 
     public sealed class RegisterStatusResponse

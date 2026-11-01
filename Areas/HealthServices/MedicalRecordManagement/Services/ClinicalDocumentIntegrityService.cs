@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs;
@@ -45,7 +47,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
     /// <item><see cref="RegisterSignedAsync"/> TIDAK menyimpan, dengan alasan yang sama.
     /// Dipakai pada saat dokumen difinalkan.</item>
     /// <item><see cref="LockOpenDocumentsForEncounterAsync"/> TIDAK menyimpan. Pemanggil wajib
-    /// menjalankannya di dalam transaksi penutupan kunjungan.</item>
+    /// menjalankannya di dalam transaksi penutupan kunjungan. Satu-satunya pengecualian adalah
+    /// baris penutupan klinis (`BE-25`): bila pemanggil sudah membuka transaksi, baris itu
+    /// langsung disisipkan di dalam transaksi tersebut — tetap ikut batal bersama
+    /// transaksinya.</item>
     /// <item><see cref="SignAsync"/> menyimpan sendiri, karena hanya menyentuh satu baris
     /// keutuhan dan tidak mengubah isi dokumen apa pun.</item>
     /// </list>
@@ -539,6 +544,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         ///
         /// Aman dipanggil berulang — dokumen yang sudah terkunci dilewati.
         ///
+        /// Panggilan pertama untuk sebuah kunjungan sekaligus mencatat penutupan klinisnya
+        /// (`BE-25`, `RM-DEC-051`, `AGG-RM-02`), termasuk pada kunjungan yang tidak punya satu
+        /// pun catatan konsep. Panggilan berikutnya tidak mengubah catatan itu.
+        ///
         /// TIDAK menyimpan. Pemanggil wajib menjalankannya di dalam transaksi penutupan
         /// kunjungan, supaya penutupan ikut dibatalkan bila penguncian gagal.
         /// </summary>
@@ -547,6 +556,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// dapat memuat sangat banyak dokumen; mengambilnya sekaligus membuat transaksi
         /// menahan tabel terlalu lama.
         /// </param>
+        /// <param name="closureSource">
+        /// Jalur yang menutup kunjungan. Opsional supaya pemanggil yang belum diperbarui tetap
+        /// terkompilasi; bawaannya <see cref="ClinicalClosureSource.EncounterStatusPatch"/>
+        /// sampai pemanggil meneruskan sumbernya sendiri (`INT-RM-12`, `BE-28`).
+        /// </param>
         /// <returns>Jumlah dokumen yang terkunci oleh pemanggilan ini.</returns>
         public async Task<int> LockOpenDocumentsForEncounterAsync(
             Guid encounterId,
@@ -554,6 +568,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             DateTime nowUtc,
             DateTime? encounterClosedAtUtc = null,
             int batchSize = 200,
+            ClinicalClosureSource closureSource = ClinicalClosureSource.EncounterStatusPatch,
             CancellationToken cancellationToken = default)
         {
             if (encounterId == Guid.Empty)
@@ -561,6 +576,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             if (batchSize <= 0)
                 throw new InvalidOperationException("Ukuran potongan penguncian harus lebih dari nol.");
+
+            if (!Enum.IsDefined(closureSource))
+                throw new InvalidOperationException("Sumber penutupan klinis tidak valid.");
+
+            // NFR-001: dicatat sebelum penguncian dan di unit kerja yang sama. Bila pencatatan
+            // gagal, exception-nya keluar dari sini dan penutupan kunjungan ikut gagal.
+            await RecordClinicalClosureAsync(
+                encounterId,
+                actorUserId,
+                KeUtc(encounterClosedAtUtc ?? nowUtc),
+                closureSource,
+                KeUtc(nowUtc),
+                cancellationToken);
 
             var jumlahTerkunci = 0;
 
@@ -596,6 +624,176 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             return jumlahTerkunci;
         }
+
+        /// <summary>
+        /// Mencatat penutupan klinis kunjungan tepat sekali (`BE-25`, `AGG-RM-02`, state S-A).
+        ///
+        /// Baris yang sudah ada tidak pernah disentuh — termasuk ketika rekonsiliasi IGD kelak
+        /// mengubah <c>CompletedAt</c> lalu kunjungan dikunci ulang (`RM-DEC-051`). Tidak ada
+        /// jalur ubah maupun hapus.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Dua cara menulis, dipilih menurut ada-tidaknya transaksi pemanggil:
+        /// </para>
+        /// <list type="bullet">
+        /// <item>
+        /// <b>Pemanggil sudah membuka transaksi</b> — empat dari enam jalur hari ini. Baris
+        /// disisipkan langsung dengan <c>ON CONFLICT ("EncounterId") DO NOTHING</c>. Dua penutupan
+        /// serentak tidak saling menggagalkan: yang kedua menunggu yang pertama, lalu tidak
+        /// menulis apa pun (`NFR-002`). Penyisipan berada di dalam transaksi pemanggil, sehingga
+        /// ikut batal bila penutupan kunjungannya batal (`NFR-001`).
+        /// </item>
+        /// <item>
+        /// <b>Pemanggil belum membuka transaksi</b> — PATCH status kunjungan dan penyelesaian
+        /// antrean dokter. Penyisipan langsung di sini akan tersimpan lebih dulu walau penutupan
+        /// kunjungannya kemudian gagal, jadi barisnya hanya ditambahkan ke unit kerja dan ikut
+        /// <c>SaveChanges</c> pemanggil. Akibatnya dua penutupan yang benar-benar bersamaan pada
+        /// jalur ini membuat yang kedua gagal pada index unik; penutupan itu batal utuh, dan
+        /// pengulangannya mendapati baris sudah ada lalu berjalan normal.
+        /// </item>
+        /// </list>
+        /// </remarks>
+        private async Task RecordClinicalClosureAsync(
+            Guid encounterId,
+            Guid actorUserId,
+            DateTime clinicalClosedAtUtc,
+            ClinicalClosureSource closureSource,
+            DateTime nowUtc,
+            CancellationToken cancellationToken)
+        {
+            // Sudah ditambahkan pada unit kerja ini tetapi belum tersimpan — pembacaan basis data
+            // di bawah tidak akan melihatnya. Pola yang sama dengan RegisterAsync.
+            var sudahDitambahkan = _dbContext.ChangeTracker
+                .Entries<MrcEncounterClinicalClosure>()
+                .Any(x => x.Entity.EncounterId == encounterId);
+
+            if (sudahDitambahkan)
+                return;
+
+            var patientId = await AmbilPasienKunjunganAsync(encounterId, cancellationToken);
+            Guid? closedByUserId = actorUserId == Guid.Empty ? null : actorUserId;
+
+            if (_dbContext.Database.CurrentTransaction != null)
+            {
+                await SisipkanPenutupanKlinisAsync(
+                    encounterId, patientId, clinicalClosedAtUtc, closureSource,
+                    closedByUserId, actorUserId, nowUtc, cancellationToken);
+                return;
+            }
+
+            // Tanpa penyaring IsDelete: index unik juga tidak menyaringnya, dan baris penutupan
+            // memang tidak pernah dihapus.
+            var sudahTercatat = await _dbContext.Set<MrcEncounterClinicalClosure>()
+                .AnyAsync(x => x.EncounterId == encounterId, cancellationToken);
+
+            if (sudahTercatat)
+                return;
+
+            await _dbContext.Set<MrcEncounterClinicalClosure>().AddAsync(new MrcEncounterClinicalClosure
+            {
+                Id = Guid.NewGuid(),
+                EncounterId = encounterId,
+                PatientId = patientId,
+                ClinicalClosedAt = clinicalClosedAtUtc,
+                ClosureSource = closureSource,
+                ClosedByUserId = closedByUserId,
+                CreateDateTime = nowUtc,
+                CreateBy = actorUserId
+            }, cancellationToken);
+        }
+
+        /// <summary>
+        /// Penyisipan idempoten di dalam transaksi pemanggil. Nama tabel dan kolom berasal dari
+        /// model EF, bukan dari masukan pengguna; seluruh nilai dikirim sebagai parameter.
+        /// </summary>
+        private async Task SisipkanPenutupanKlinisAsync(
+            Guid encounterId,
+            Guid patientId,
+            DateTime clinicalClosedAtUtc,
+            ClinicalClosureSource closureSource,
+            Guid? closedByUserId,
+            Guid actorUserId,
+            DateTime nowUtc,
+            CancellationToken cancellationToken)
+        {
+            var sql = _dbContext.GetService<ISqlGenerationHelper>();
+            var entityType = _dbContext.Model.FindEntityType(typeof(MrcEncounterClinicalClosure))
+                ?? throw new InvalidOperationException("Model penutupan klinis tidak terdaftar.");
+
+            var tabel = sql.DelimitIdentifier(entityType.GetTableName()!, entityType.GetSchema());
+            string Kolom(string nama) => sql.DelimitIdentifier(nama);
+
+            var perintah =
+                $"INSERT INTO {tabel} (" +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.Id))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.EncounterId))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.PatientId))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.ClinicalClosedAt))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.ClosureSource))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.ClosedByUserId))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.CreateDateTime))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.CreateBy))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.UpdateBy))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.DeleteBy))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.CancelBy))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.IsCancel))}, " +
+                $"{Kolom(nameof(MrcEncounterClinicalClosure.IsDelete))}) " +
+                "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11}, {12}) " +
+                $"ON CONFLICT ({Kolom(nameof(MrcEncounterClinicalClosure.EncounterId))}) DO NOTHING";
+
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                perintah,
+                [
+                    Guid.NewGuid(),
+                    encounterId,
+                    patientId,
+                    clinicalClosedAtUtc,
+                    (int)closureSource,
+                    (object?)closedByUserId ?? DBNull.Value,
+                    nowUtc,
+                    actorUserId,
+                    Guid.Empty,
+                    Guid.Empty,
+                    Guid.Empty,
+                    false,
+                    false
+                ],
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Pasien pemilik kunjungan. Kunjungan yang tidak ditemukan menggagalkan penutupan —
+        /// state S-A mensyaratkan kunjungannya ada.
+        /// </summary>
+        private async Task<Guid> AmbilPasienKunjunganAsync(
+            Guid encounterId,
+            CancellationToken cancellationToken)
+        {
+            var kunjunganLokal = _dbContext.ChangeTracker
+                .Entries<RegPatientEncounter>()
+                .Select(x => x.Entity)
+                .FirstOrDefault(x => x.Id == encounterId);
+
+            var patientId = kunjunganLokal?.PatientId
+                ?? await _dbContext.Set<RegPatientEncounter>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == encounterId)
+                    .Select(x => (Guid?)x.PatientId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+            if (patientId is null || patientId == Guid.Empty)
+                throw new InvalidOperationException("Kunjungan untuk penutupan klinis tidak ditemukan.");
+
+            return patientId.Value;
+        }
+
+        private static DateTime KeUtc(DateTime nilai) => nilai.Kind switch
+        {
+            DateTimeKind.Utc => nilai,
+            DateTimeKind.Local => nilai.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(nilai, DateTimeKind.Utc)
+        };
 
         /// <summary>
         /// Mengambil baris keutuhan sebuah dokumen, atau null bila belum terdaftar.
