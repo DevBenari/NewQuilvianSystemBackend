@@ -1580,7 +1580,9 @@ Tidak ada service IGD yang dipanggil modul lain, dan tidak ada service modul lai
 | --- | --- | --- | --- | --- | --- |
 | `EmergencyVisitController` | Controller | **Diperbarui** | `Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyVisitController.cs` | `GET /` + saringan `doctorId` (EXISTS penugasan berjalan dengan `DoctorId` itu) dan `ongoing` (status bukan `Completed`/`Cancelled`); proyeksi `ActiveDoctorId`/`ActiveDoctorName` dari penugasan berjalan, di kueri yang sama. `GET /{id}` mengisi kedua ruas yang sama. Atribut akses tidak berubah | Tidak |
 | `EmergencyVisitDtos.cs` (`EmergencyVisitResponse`) | DTO (Response) | **Diperbarui** | `…/DTOs/EmergencyVisitDtos.cs` | + `ActiveDoctorId` (`Guid?`), `ActiveDoctorName` (`string?`) | — |
-| `EmergencyDoctorAssignmentService` | Service | **Diperbarui** | `…/Services/EmergencyDoctorAssignmentService.cs` | + `KueriBerjalan()` — satu-satunya definisi *penugasan berjalan* (`EffectiveTo` kosong), dipakai `AmbilAktifAsync` dan daftar kunjungan, supaya arti DPJP aktif tidak bercabang | Tidak |
+| `EmergencyDoctorAssignmentService` | Service | **Diperbarui** | `…/Services/EmergencyDoctorAssignmentService.cs` | + `KueriBerjalan()` — satu-satunya definisi *penugasan berjalan* (`EffectiveTo` kosong), dipakai `AmbilAktifAsync` dan daftar kunjungan, supaya arti DPJP aktif tidak bercabang. **`0.21.0`:** + `ApakahDokterPemberiInstruksiSahAsync(emergencyVisitId, doctorId, ct)` dan `AmbilDokterPemberiInstruksiSahAsync(emergencyVisitId, ct)` — satu-satunya definisi *dokter pemberi instruksi yang sah* (penugasan berjalan `KueriBerjalan()` ∪ jadwal shift IGD berlaku `KueriJadwalIgdBerlaku` pada jam operasional), dipanggil `LabOrderService`, `RadOrderService`, dan controller; baca saja | Tidak |
+| `EmergencyDoctorAssignmentController` | Controller | **Diperbarui** (`0.21.0`) | `…/Controllers/EmergencyDoctorAssignmentController.cs` | + `GET instructing-doctor-options?emergencyVisitId=` — `[AccessPermission("EmergencyDoctorAssignment", "Read")]`; memanggil `AmbilDokterPemberiInstruksiSahAsync` (API §10.7a) | Tidak |
+| `EmergencyDoctorAssignmentDtos.cs` (`EmergencyInstructingDoctorOptionResponse`) | DTO (Option) | **Baru** di berkas yang ada (`0.21.0`) | `…/DTOs/EmergencyDoctorAssignmentDtos.cs` | `DoctorId` (`Guid`), `DoctorName` (`string`), `Basis` (`int`: 1 DPJP, 2 dokter jaga), `Label` (`string`) | — |
 | `EmergencyDispositionService` | Service | **Diperbarui** | `…/Services/EmergencyDispositionService.cs` | `ValidateRequestAsync`: status awal selain Draft → pesan validation §12 aturan 14. + `ValidateDiagnosisBeforeConfirmAsync(EmgVisit, ct)`: menghitung diagnosis menurut aturan 15 dari `TrxPatientDiagnosis` (baca-saja, `AsNoTracking`); `null` bila ada, pesan aturan 15 bila tidak | Tidak |
 | `EmergencyDispositionController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDispositionController.cs` | `UpdateDispositionStatus`: sesudah `CanTransition` dan hanya untuk target `Confirmed`, panggil `ValidateDiagnosisBeforeConfirmAsync`; penolakan `409`. Urutan validation §12 | Tidak berubah |
 | `DoctorConsultationController` | Controller | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Controllers/DoctorConsultationController.cs` | + `GET encounters/{encounterId}/soap-timeline` — `[AccessAction("Read", …)]`, `[AccessPermission("DoctorConsultation", "Read")]`; encounter wajib milik kunjungan IGD (pola `ValidateWithoutQueueGateAsync`); butir dibentuk `ToTimelineItem` yang sudah ada | Tidak |
@@ -1589,8 +1591,8 @@ Tidak ada service IGD yang dipanggil modul lain, dan tidak ada service modul lai
 | `PatientProcedureController` | Controller | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Controllers/PatientProcedureController.cs` | + `POST emergency-nursing-actions` — `[AccessAction("Create", "Create Emergency Nursing Action", …)]` dan `[AccessPermission("PatientProcedure", "Create")]` — pola yang sama dengan `inpatient-orders`; meneruskan ke service | — |
 | `PatientProcedureOrderService` | Service | **Diperbarui** | `Areas/HealthServices/ClinicalManagement/Services/PatientProcedureOrderService.cs` | + `CreateEmergencyNursingActionAsync`: validation §12 aturan 7–12; DPJP aktif sebagai `DoctorId`; penyusun snapshot tarif yang sama dengan pembuatan tindakan lain; `ProcedureSource = NursingAction`, `ProcedureStatus = Completed`, `IsExecuted = true`, `PerformedByUserId`/`ExecutedByUserId` = perawat | **Ya** — satu `SaveChanges`; idempotensi diperiksa paling awal |
 | `PatientProcedureDtos.cs` (`CreateEmergencyNursingActionRequest`) | DTO (Create) | **Baru** di berkas yang ada | `Areas/HealthServices/ClinicalManagement/DTOs/PatientProcedureDtos.cs` | `EncounterId`, `ProcedureId`, `Quantity?`, `PerformedAt?`, `ClinicalNote?` (maks. 1000), `IdempotencyKey` (maks. 100) | — |
-| `LabOrderService` | Service | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs` | `ResolveInstructionAsync`: cabang encounter IGD tanpa episode — pembuat bukan dokter wajib `InstructingDoctorId` dokter aktif, status `Pending`; worklist verifikasi memuat pesanan itu. **Menunggu `IGD-OQ-117`** | Tidak berubah |
-| `RadOrderService` | Service | **Diperbarui** | `Areas/HealthServices/RadiologyManagement/Services/RadOrderService.cs` | Sama dengan `LabOrderService`. **Menunggu `IGD-OQ-117`** | Tidak berubah |
+| `LabOrderService` | Service | **Diperbarui** | `Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs` | `ResolveInstructionAsync`: cabang encounter IGD tanpa episode — pembuat bukan dokter wajib `InstructingDoctorId` dokter aktif, status `Pending`; worklist verifikasi memuat pesanan itu. **`0.21.0`:** dokter yang dipilih wajib lolos `EmergencyDoctorAssignmentService.ApakahDokterPemberiInstruksiSahAsync` — gagal `403` dengan pesan rawat inap yang sudah ada; tanpa dokter `400`; cabang episode rawat inap tidak berubah (validation §12.4 aturan 13–13c). *Sebelumnya:* menunggu `IGD-OQ-117` | Tidak berubah |
+| `RadOrderService` | Service | **Diperbarui** | `Areas/HealthServices/RadiologyManagement/Services/RadOrderService.cs` | Sama dengan `LabOrderService` (`0.21.0`). *Sebelumnya:* menunggu `IGD-OQ-117` | Tidak berubah |
 | `ConsultationFinalizationService` | Service | **Diperbarui** | `Areas/HealthServices/PharmacyManagement/Services/ConsultationFinalizationService.cs` | Lewati pengiriman fakta `ConsultationCompleted` bila encounter berjenis `EncounterType.Emergency` (dibaca dari `RegPatientEncounter`); fakta resep tetap. Tidak membaca tabel IGD | Tidak berubah |
 
 ### 15.5 Arsitektur folder
@@ -1598,11 +1600,13 @@ Tidak ada service IGD yang dipanggil modul lain, dan tidak ada service modul lai
 ```text
 Areas/HealthServices/EmergencyInstallationManagement/
 ├── Controllers/
+│   ├── EmergencyDoctorAssignmentController.cs Diperbarui  (+instructing-doctor-options, 0.21.0)
 │   ├── EmergencyVisitController.cs            Diperbarui  (saringan doctorId, ongoing; ruas DPJP)
 │   └── EmergencyDispositionController.cs      Diperbarui  (penjaga diagnosis saat konfirmasi)
 ├── DTOs/EmergencyVisitDtos.cs                 Diperbarui  (+2 ruas response)
+├── DTOs/EmergencyDoctorAssignmentDtos.cs      Diperbarui  (+EmergencyInstructingDoctorOptionResponse, 0.21.0)
 └── Services/
-    ├── EmergencyDoctorAssignmentService.cs    Diperbarui  (+KueriBerjalan)
+    ├── EmergencyDoctorAssignmentService.cs    Diperbarui  (+KueriBerjalan; +penentu dokter pemberi instruksi sah, 0.21.0)
     └── EmergencyDispositionService.cs         Diperbarui  (status awal Draft; +penjaga diagnosis)
 
 Areas/HealthServices/ClinicalManagement/
@@ -1615,8 +1619,8 @@ Areas/HealthServices/ClinicalManagement/
 │   └── PatientProcedureDtos.cs                Diperbarui  (+CreateEmergencyNursingActionRequest)
 └── Services/PatientProcedureOrderService.cs   Diperbarui  (+CreateEmergencyNursingActionAsync)
 
-Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs      Diperbarui  (instruksi IGD — IGD-OQ-117)
-Areas/HealthServices/RadiologyManagement/Services/RadOrderService.cs       Diperbarui  (instruksi IGD — IGD-OQ-117)
+Areas/HealthServices/LaboratoryManagement/Services/LabOrderService.cs      Diperbarui  (instruksi IGD — 0.21.0, IGD-DEC-362)
+Areas/HealthServices/RadiologyManagement/Services/RadOrderService.cs       Diperbarui  (instruksi IGD — 0.21.0, IGD-DEC-362)
 Areas/HealthServices/PharmacyManagement/Services/ConsultationFinalizationService.cs  Diperbarui  (IGD-DEC-229)
 
 Migrations/        TIDAK ada migration

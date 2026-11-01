@@ -39,6 +39,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly LoggerService _loggerService;
         private readonly EmergencyTriageService _emergencyTriageService;
         private readonly EmergencyVisitService _emergencyVisitService;
+        private readonly EmergencyUnitAuthorityService _emergencyUnitAuthorityService;
         private readonly EmergencyRealtimeService? _emergencyRealtimeService;
 
         public EmergencyTriageController(
@@ -46,12 +47,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             LoggerService loggerService,
             EmergencyTriageService emergencyService,
             EmergencyVisitService emergencyVisitService,
+            EmergencyUnitAuthorityService emergencyUnitAuthorityService,
             EmergencyRealtimeService? emergencyRealtimeService = null)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _emergencyTriageService = emergencyService;
             _emergencyVisitService = emergencyVisitService;
+            _emergencyUnitAuthorityService = emergencyUnitAuthorityService;
             _emergencyRealtimeService = emergencyRealtimeService;
         }
 
@@ -261,6 +264,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+
+            // IGD-DEC-372: Hanya Perawat IGD atau SuperAdmin yang dapat membuat triage IGD
+            var authorityCheck = await _emergencyUnitAuthorityService.PeriksaWewenangKlinisIgdAsync(
+                User, actorUserId, now, "membuat triage IGD", cancellationToken);
+            if (!authorityCheck.Berwenang)
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, authorityCheck.Penolakan!));
 
             var triageLevel = await _emergencyTriageService.GetTriageLevelAsync(request.TriageLevelId, cancellationToken);
 
@@ -476,6 +486,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+
+            // IGD-DEC-372: Hanya Perawat IGD atau SuperAdmin yang dapat mengubah triage IGD
+            var authorityCheck = await _emergencyUnitAuthorityService.PeriksaWewenangKlinisIgdAsync(
+                User, actorUserId, now, "mengubah triage IGD", cancellationToken);
+            if (!authorityCheck.Berwenang)
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, authorityCheck.Penolakan!));
+
             entity.EmergencyVisitId = request.EmergencyVisitId;
             entity.TriageLevelId = request.TriageLevelId;
             entity.PatientVitalSignId = request.PatientVitalSignId;
@@ -634,6 +652,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyTriage", "Update")]
         public async Task<IActionResult> Retriage(Guid id, [FromBody] RetriageEmergencyTriageRequest request, CancellationToken cancellationToken = default)
         {
+            var actorUserId = GetCurrentUserId();
+            var authorityCheck = await _emergencyUnitAuthorityService.PeriksaWewenangKlinisIgdAsync(
+                User, actorUserId, DateTime.UtcNow, "retriage IGD", cancellationToken);
+            if (!authorityCheck.Berwenang)
+                return StatusCode(StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, authorityCheck.Penolakan!));
+
             var outcome = await _emergencyTriageService.RetriageAsync(
                 id,
                 request,
