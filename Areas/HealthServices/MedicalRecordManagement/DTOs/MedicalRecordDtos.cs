@@ -142,7 +142,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
 
         public List<ClinicalDocumentKind> RequestedKinds { get; set; } = new();
 
+        /// <summary>Sumber yang gagal dibaca atau melewati batas waktunya. Kosong berarti seluruh sumber terbaca.</summary>
         public List<MedicalRecordTimelineSourceFailure> FailedSources { get; set; } = new();
+
+        /// <summary>
+        /// Jenis yang diminta tetapi belum punya pembaca, beserta kalimat bagi pembaca (kontrak 0.2.0
+        /// A1, `RM-DEC-058`). Saat ini hanya hasil Patologi Anatomi. Tampilkan sebagai "belum
+        /// tersedia", bukan "tidak ada dokumen". Tidak memengaruhi <see cref="IsComplete"/>.
+        /// </summary>
+        public List<MedicalRecordUnavailableKindResponse> UnavailableKinds { get; set; } = new();
 
         public bool IsTruncated { get; set; }
 

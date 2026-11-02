@@ -203,6 +203,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 Access = KeteranganAkses(akses),
                 RequestedKinds = hasil.RequestedKinds,
                 FailedSources = hasil.FailedSources,
+                UnavailableKinds = hasil.UnavailableKinds,
                 IsTruncated = hasil.IsTruncated,
                 IsComplete = hasil.IsComplete
             };

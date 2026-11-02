@@ -663,6 +663,14 @@ try
     builder.Services.AddScoped<MedicalRecordAccessReviewService>();
     builder.Services.AddScoped<MedicalRecordTimelineService>();
 
+    // BE-39 / RM-DEC-045, 046. Penilaian kelengkapan berkas per kunjungan. Penutupan klinis hanya
+    // menaruh id kunjungan di antrean memori; worker menilainya di luar transaksi penutupan.
+    builder.Services.AddScoped<MedicalRecordCompletenessService>();
+    builder.Services.AddSingleton<MedicalRecordCompletenessQueue>();
+    builder.Services.AddHostedService<MedicalRecordCompletenessQueueWorker>();
+    // BE-40 / GAP-ARCH-RM-04. Pemeriksaan berkala kunjungan yang belum lengkap (A4.13).
+    builder.Services.AddHostedService<MedicalRecordCompletenessRecheckHostedService>();
+
     // Pembaca sumber berkas rekam medis (INT-RM-10). Satu instance per scope dipakai untuk kedua
     // kontraknya, supaya pembaca dokumen dan pembaca uji kelengkapan tidak berbeda pendapat.
     // BE-22: ringkasan pencatatan berkala ClinicalManagement, milik rekam medis sendiri.
@@ -680,6 +688,28 @@ try
     builder.Services.AddScoped<McuMedicalRecordDocumentSource>();
     builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<McuMedicalRecordDocumentSource>());
     builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<McuMedicalRecordDocumentSource>());
+    // BE-30: Rawat Inap, persetujuan pemilik RM-DEC-069.
+    builder.Services.AddScoped<InpMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    // BE-35: Farmasi, persetujuan pemilik RM-DEC-075. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, PhmMedicalRecordDocumentSource>();
+    // BE-34: Bank Darah, persetujuan pemilik proses BDRS RM-DEC-074. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, BbkMedicalRecordDocumentSource>();
+    // BE-33: Gizi, persetujuan pemilik RM-DEC-073. Tanpa kriteria kelengkapan, jadi bukan pembaca uji.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, GziMedicalRecordDocumentSource>();
+    // BE-32: Hemodialisa, persetujuan pemilik RM-DEC-072.
+    builder.Services.AddScoped<HmdMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<HmdMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<HmdMedicalRecordDocumentSource>());
+    // BE-31: Kamar Operasi, persetujuan pemilik RM-DEC-071.
+    builder.Services.AddScoped<OprMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<OprMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<OprMedicalRecordDocumentSource>());
+    // BE-29: IGD, persetujuan pemilik RM-DEC-067.
+    builder.Services.AddScoped<EmgMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<EmgMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<EmgMedicalRecordDocumentSource>());
 
     // Patient Management — rekonsiliasi MRN Pilot RSMMC (BE-PAT-MIG-001), sementara, khusus Staging
     builder.Services.AddSingleton(RsmmcPilotApprovedBatchProfile.Canonical);
@@ -884,6 +914,9 @@ try
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
     // mengisinya tanpa meminta perubahan kode.
     builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
+
+    // BE-37 / RM-DEC-045. Master profil dokumen wajib kelengkapan berkas rekam medis.
+    builder.Services.AddScoped<MedicalRecordCompletenessProfileService>();
 
     // BE-RWI-055 / FR-KEP-010. Master batas waktu pengkajian beserta pemilihan kebijakan
     // yang berlaku saat pengkajian dibuat. Dipakai layar master dan jalur pembuatan
@@ -2205,6 +2238,11 @@ try
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah
         // diubah admin tidak ditimpa.
         await RunStartupSeederAsync("McuReferenceDataSeeder", () => McuReferenceDataSeeder.SeedAsync(app.Services));
+
+        // RM-BP-001, BE-37. Sebelas profil dokumen wajib awal (A4.8) — bukan SOP rumah sakit
+        // (RM-DEC-047). Idempoten; profil yang sudah diubah petugas rekam medis tidak ditimpa.
+        await RunStartupSeederAsync("MedicalRecordCompletenessProfileSeeder",
+            () => MedicalRecordCompletenessProfileSeeder.SeedAsync(app.Services));
 
         // Gerbang integritas permission (Phase A0).
         //
