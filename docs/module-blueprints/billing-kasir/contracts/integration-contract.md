@@ -651,3 +651,60 @@ Trace `BKC-DEC-155`, `BKC-DES-077`–`BKC-DES-080`, `CAP-BIL-11`. Tests: `BIL-AT
 | Kredit sebelum dicairkan | **Tidak** tersinkron ke Finance intake, yang hanya menarik `ALLOCATION_EXCESS` dan `SETTLEMENT` (`FinanceBillingIntakeService.cs:203-206`). Mengubahnya menyentuh berkas milik Finance, jadi dicatat `BKC-OQ-140` dan **tidak** dirancang di sini |
 
 Trace `BKC-DEC-119`, `BKC-DEC-160`, `BKC-DEC-163`, A1. Tests: `BIL-AT-214`–`BIL-AT-217`.
+
+## Amendment 26 Oktober 2026 — Integrasi Medical Fee: Sumber `DoctorShare` dan Pelaksana Entri Kasir (Revisi 2.4)
+
+> `last_changed_in`: `BIL-INTEGRATION-1.9` atas `BIL-INTEGRATION-1.8` — status **draft**.
+> Masukan: `BKC-DEC-168`..`178`, `BKC-DES-093`..`102`; rujukan `MDF-INTEGRATION-1.0` §3–5, `FIN-INTEGRATION-0.2` §3. Backend SHA: `ecddd8f8`.
+> Menjawab permintaan Medical Fee `MF-CQ-08` dan `MF-CQ-05` (`medical-fee/evidence/04-balasan-owner-billing.md`).
+> **Koreksi rujukan:** dokumen Medical Fee menyebut kontrak charge Billing sebagai `BIL-INTEGRATION-0.4`; versi yang berlaku adalah set ini.
+
+### `BIL-INT-023` — Billing menanyakan persentase jasa ke Medical Fee
+
+| Field | Isi |
+|---|---|
+| Arah | Billing memanggil Medical Fee; Billing menulis tabelnya sendiri |
+| Mekanisme | Port in-process `IBillingDoctorShareResolver` (`BKC-DES-093`). Semantik sama dengan `GET api/v1/health-services/medical-fee-management/sharing-rules/resolve` (`MDF-INTEGRATION-1.0` §4.3) |
+| Pemilik port | Billing (mendefinisikan dan mendaftarkan implementasi bawaan) |
+| Pemilik implementasi | Medical Fee (`BE-MDF-016`). Sebelum terpasang, implementasi bawaan menjawab `Unavailable` (`BKC-DES-094`) |
+| Kapan | Saat baris berjasa bertarif dicatat atau diperbarui versi sumbernya, **sebelum** transaksi Billing (`BKC-DES-095`) |
+| Masukan | `PerformerType` (dipetakan `DOCTOR` → `Doctor`, `WORKFORCE` → `Workforce`), `PerformerReferenceId`, `TariffId`, `ServiceDate` (tanggal Asia/Jakarta dari `OccurredAt`), `RoleCode` |
+| Jawaban | `Resolved` + persentase + id aturan; `NoRule`; `Unavailable` |
+| Batas waktu | `BillingDoctorShare:TimeoutMilliseconds`, bawaan 2000 ms |
+| Kegagalan | Tidak ada. Kesalahan, habis waktu, atau tanpa implementasi → `DoctorShare = 0`, `DoctorShareResolution = UNAVAILABLE`, peristiwa audit. Baris **selalu** tercatat (`INV-MF-1`) |
+| Idempotensi | Hasil tidak ikut hash isi permintaan (`BKC-DES-100`); pengiriman ulang yang sah tidak memanggil ulang |
+| Pemulihan | Lewat pembaruan sumber berikutnya saja (`BKC-DEC-177`); tidak ada pekerjaan terjadwal |
+| Yang dilarang | Billing membaca `MdfSharingRule`/`MdfSharingAgreement` langsung; Medical Fee menulis `BilInvoiceItem` |
+
+**Contoh.** Rp 500.000 × 40% = Rp 200.000 (`Resolved`). Rp 500.000 tanpa aturan = Rp 0 (`NoRule`). Medical Fee belum dipasang = Rp 0 (`Unavailable`).
+
+### `BIL-INT-024` — Medical Fee membaca pelaksana entri kasir dari `BilInvoiceItem`
+
+| Field | Isi |
+|---|---|
+| Arah | Medical Fee membaca tabel Billing, **baca saja** |
+| Yang dibaca | `IsFeeBearing`, `PerformerType`, `PerformerReferenceId`, `PerformerRoleCode`, bersama kolom yang sudah dibaca (`SourceDomain`, `SourceDetailId`, `Quantity`, `UnitPrice`, `Status`) |
+| Cakupan | Baris `ADHOC`/`ADHOC_CATALOG` dengan `IsFeeBearing = true` |
+| Arti nilai | `PerformerRoleCode = NULL` → peran utama (`IsPrimaryRole`). `PerformerType` dipetakan seperti `BIL-INT-023` |
+| Baris tidak berjasa | Bukan layanan berjasa; Medical Fee **tidak** mencatatnya sebagai `PERFORMER_MISSING` |
+| Baris lama sebelum migration | `IsFeeBearing = false`; perlakuannya milik Medical Fee (`MDF-INTEGRATION-1.0` §5 menyebut seluruhnya jatuh ke `PERFORMER_MISSING`; perlu disesuaikan Medical Fee bila baris tidak berjasa memang bukan layanan berjasa) |
+| Membuka | `BE-MDF-015` |
+
+### `BIL-INT-025` — Pelaksana dari fakta modul sumber klinis (`OPEN DECISION`)
+
+| Field | Isi |
+|---|---|
+| Keputusan | `BKC-DEC-176`: pelaksana sumber klinis dibawa fakta/milestone modul sumber, dibaca jembatan Billing |
+| Keadaan | **`OPEN DECISION` — `BKC-OQ-148`.** Pemilik Clinical, Laboratorium, dan Operating Room belum mengonfirmasi. Bentuk field pada fakta mereka belum dirancang |
+| Selama terbuka | Jembatan klinis tetap menulis `DoctorShare = 0`, `DoctorShareResolution = NOT_APPLICABLE`; `UpsertChargeRequest` menolak field pelaksana untuk domain klinis (`BIL-VAL-166`). Medical Fee tetap menghitung jasa sumber klinis dari tabel sumber saat periode (`MDF-INTEGRATION-1.0` §2) |
+| MUST NOT | Diimplementasikan sebelum `BKC-OQ-148` ditutup |
+
+### Titik sentuh yang tidak berubah
+
+| Titik sentuh | Keadaan |
+|---|---|
+| `BilApHandoff` | Tetap terbit dengan rumus dan penerima yang sama (`BillingArApHandoffService.cs:204-212`). Rujukan kesiapan, **bukan** sumber utang (`BKC-DEC-173`, `FIN-INTEGRATION-0.2` §3). Satu-satunya sumber utang jasa medis: `MdfFinanceHandoff`. **Meminta penegasan** Medical Fee dan Finance |
+| Diskon dokter | Aturan lama; kini dapat terpakai (`BKC-DEC-174`) |
+| `POST from-source` untuk kunjungan di luar Rawat Jalan/Rawat Inap | `DoctorShare` dari pemanggil masih diterima (`BKC-OQ-149`) |
+
+Trace `BKC-DEC-168`..`178`. Tests: `BIL-AT-231`..`248`.

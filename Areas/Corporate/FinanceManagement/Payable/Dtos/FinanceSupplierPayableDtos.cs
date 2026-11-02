@@ -42,6 +42,11 @@ public class SupplierPayableResponse
     public decimal PaidAmount { get; set; }
     public decimal AdjustedAmount { get; set; }
     public DateOnly DueDate { get; set; }
+
+    /// <summary>Dasar perhitungan <see cref="DueDate"/>: SUPPLIER_INVOICE_DATE atau GOODS_RECEIVED_DATE
+    /// (BE-FIN-124). Null untuk utang lama dan saldo awal migrasi.</summary>
+    public string? DueDateBasis { get; set; }
+
     public int PaymentTermDays { get; set; }
     public string Status { get; set; } = string.Empty;
     public Guid RowVersion { get; set; }

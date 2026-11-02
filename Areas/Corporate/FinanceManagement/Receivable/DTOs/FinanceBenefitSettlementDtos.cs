@@ -4,14 +4,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dto
 
 public sealed class PreviewBenefitSettlementRequest
 {
-    [Required, RegularExpression(@"^\d{4}-(0[1-9]|1[0-2])$")] public string AccountingPeriodCode { get; set; } = string.Empty;
-    [Required] public Guid DebtorReferenceId { get; set; }
+    [RegularExpression(@"^\d{4}-(0[1-9]|1[0-2])$")] public string? AccountingPeriodCode { get; set; }
+    public Guid? DebtorReferenceId { get; set; }
+    public Guid? PatientId { get; set; }
+    public string? PatientType { get; set; }
+    public string? ResolutionStatus { get; set; }
+    public string? StartDate { get; set; }
+    public string? EndDate { get; set; }
+    public string? Period { get; set; }
+    public string? Search { get; set; }
+    public List<Guid>? ReceivableIds { get; set; }
 }
 
 public sealed class CreateBenefitSettlementRequest
 {
-    [Required, RegularExpression(@"^\d{4}-(0[1-9]|1[0-2])$")] public string AccountingPeriodCode { get; set; } = string.Empty;
-    [Required] public Guid DebtorReferenceId { get; set; }
+    [RegularExpression(@"^\d{4}-(0[1-9]|1[0-2])$")] public string? AccountingPeriodCode { get; set; }
+    public Guid? DebtorReferenceId { get; set; }
+    public Guid? PatientId { get; set; }
+    public string? PatientType { get; set; }
+    public string? ResolutionStatus { get; set; }
+    public string? StartDate { get; set; }
+    public string? EndDate { get; set; }
+    public string? Period { get; set; }
+    public string? Search { get; set; }
+    public List<Guid>? ReceivableIds { get; set; }
     [MaxLength(500)] public string? Notes { get; set; }
 }
 
@@ -32,6 +48,7 @@ public sealed class BenefitSettlementQuery
     public string? AccountingPeriodCode { get; set; }
     public Guid? DebtorReferenceId { get; set; }
     public string? Status { get; set; }
+    public string? Search { get; set; }
     public string SortBy { get; set; } = "accountingPeriodCode";
     public string SortDirection { get; set; } = "desc";
     [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
@@ -45,6 +62,9 @@ public sealed class BenefitSettlementItemResponse
     public string? InvoiceNumber { get; set; }
     public string? PatientName { get; set; }
     public decimal Amount { get; set; }
+    public string? MedicalRecordNumber { get; set; }
+    public string? PatientType { get; set; }
+    public DateTimeOffset? TransactionDate { get; set; }
 }
 
 public sealed class BenefitSettlementPreviewResponse
@@ -67,6 +87,11 @@ public class BenefitSettlementResponse
     public decimal TotalAmount { get; set; }
     public int ItemCount { get; set; }
     public string Status { get; set; } = string.Empty;
+    public string ApprovalStatus { get; set; } = "MENUNGGU_PERSETUJUAN";
+    public string? ApprovedByName { get; set; }
+    public DateTimeOffset? ApprovedAt { get; set; }
+    public string? ApprovalNotes { get; set; }
+    public string? RejectionReason { get; set; }
     public string? PostedByName { get; set; }
     public DateTimeOffset? PostedAt { get; set; }
     public string? CancelReason { get; set; }

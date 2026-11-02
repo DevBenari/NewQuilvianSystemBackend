@@ -27,6 +27,7 @@ public sealed class FinSupplierPayableConfiguration : IEntityTypeConfiguration<F
         entity.Property(x => x.PaidAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.AdjustedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.DueDate).HasColumnType("date");
+        entity.Property(x => x.DueDateBasis).HasMaxLength(30);
         entity.Property(x => x.PaymentTermDays).HasDefaultValue(0);
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired().HasDefaultValue(FinSupplierPayableStatuses.Outstanding);
         entity.Property(x => x.RowVersion).IsConcurrencyToken();

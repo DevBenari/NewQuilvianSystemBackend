@@ -2728,3 +2728,175 @@ Ringkasan: Sisa Tagihan Sebelum Pembayaran Rp1.248.734 · Draft Deposit Pasien R
 | Overpayment deposit → saldo refund | Diizinkan Backend, **tidak diaktifkan** di layar; keputusan Finance |
 | Draft hilang saat halaman dimuat ulang | Disengaja (draft bukan transaksi; baris tender draft juga hanya state lokal) |
 | Tabrakan dengan pekerjaan paralel | `startPayment`/`concludePayment` (langkah penutup tombol tunggal) dipakai apa adanya; deposit dihitung satu pembayaran sah pada ringkasan penutup |
+
+
+# Amendment 26 Oktober 2026 — Banner dan Tombol Hitung Ulang Cakupan Bukan Alur Rutin (Revisi 3.3)
+
+> `revisi blueprint`: `3.3`, status **diterapkan di source, belum dibuild atau diuji runtime**. Frontend branch lokal `yasmina` (branch `Yasmina` pada remote tidak dapat diverifikasi dari sesi ini — GitHub MCP gagal terhubung dan remote mengembalikan 404; pekerjaan hanya pada working tree aktif, tanpa pindah branch). Kontrak Backend: `02-backend-architecture.md` §23 (hitung otomatis di transaksi yang sama; field aditif `calculationStaleReason`).
+
+## 1. Akar masalah
+
+Banner "Perhitungan cakupan tersimpan belum terbaru" dan tombol "Hitung Ulang Cakupan" punya **dua pemicu**: penanda Backend (`calculationCurrent=false`) **dan** selisih pratinjau live vs versi tersimpan (`resolveCalculationFreshness`). Karena Backend dulu tidak menghitung saat item ditambah, pemicu pertama menyala setelah hampir setiap penambahan; pemicu kedua menyala bahkan untuk selisih wajar (biaya kamar RANAP bergerak menurut waktu). Kasir terbiasa menekan tombol yang secara bisnis seharusnya tak pernah perlu.
+
+## 2. Perilaku sekarang
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Menambah item / biaya lain-lain / diskon berhasil | Backend sudah menulis versi kalkulasi di transaksi yang sama. Layar **memuat ulang** invoice (RowVersion + versi terbaru), pratinjau/rincian, dan preview finalisasi (pembagian Benefit RS). **Tidak ada** hitung ulang dari FE dan tidak ada perhitungan cakupan di sisi klien |
+| Backend menolak (perhitungan gagal) | Pesan spesifik Backend ditampilkan apa adanya; tidak ada toast sukses; perubahan tagihan dibatalkan di Backend |
+| Membuka / me-refresh / keluar-masuk Menu Pembayaran | Tidak menulis versi kalkulasi (hanya pratinjau baca-saja) |
+| Selisih pratinjau vs tersimpan saja | **Tidak** memunculkan banner/tombol. Hanya dipakai untuk penyelarasan diam-diam di dalam aksi Proses Pembayaran (`needsSyncBeforePayment`), seperti sebelumnya |
+| Backend melaporkan `calculationCurrent=false` (keadaan tidak normal: invoice lama, atau aturan tanggungan master berubah) | Peringatan **"Perhitungan tagihan belum selaras"** dengan kalimat spesifik menurut `calculationStaleReason`, angka Benefit RS ditandai belum final, dan tombol pemulihan **"Selaraskan Perhitungan"** (aksi eksplisit; `ExpectedRowVersion` + alasan + audit di Backend). Kegagalan pemulihan memakai pesan Backend; fallback: "Perhitungan tagihan belum berhasil diperbarui. Periksa kembali perubahan tagihan atau hubungi petugas yang berwenang." |
+| Kesiapan finalisasi (`readiness`) | `needsRecalculation` tidak berubah (stale atau belum pernah dihitung); kini membawa `calculationStaleReason` |
+
+## 3. Berkas
+
+| Berkas | Perubahan |
+| --- | --- |
+| `use-menu-pembayaran.js` | `calculationFreshness.needsRecalculation` = penanda Backend saja; `needsSyncBeforePayment` untuk penyelarasan di dalam Proses Pembayaran; `staleReason`/`staleMessage`; `confirmAdhoc` memuat ulang invoice + pratinjau + preview finalisasi; callback diskon ikut memuat ulang preview finalisasi (hook diskon dipindah ke bawah finalisasi); toast pemulihan "Perhitungan Tagihan Diperbarui" hanya bila sukses |
+| `menu-pembayaran-view.jsx` | Banner lama diganti peringatan keadaan tidak normal; tombol "Hitung Ulang Cakupan" → "Selaraskan Perhitungan" (tiga lokasi, semua pemulihan eksplisit) |
+| `benefit-allocation-row.jsx`, `add-tender-modal.jsx`, `finalize-invoice-modal.jsx` | Teks mengikuti penamaan baru; modal Finalisasi menambahkan kalimat sebab dari Backend |
+| `billing-finalization-readiness.js` | `CALCULATION_STALE_REASON`, `describeCalculationStaleReason`, `calculationStaleReason` pada readiness |
+| `billing-invoice-calculation-breakdown.js`, `billing-payment-outcome.js` | Teks petunjuk/komentar tidak lagi merujuk tombol rutin |
+| `use-billing-invoice-detail.js` | Fallback galat hitung ulang yang aman; komentar diperbarui (halaman tidak memicu hitung saat dibuka) |
+| `tests/unit/billing-finalization-readiness.test.mjs` (+6 tes), `billing-invoice-calculation-breakdown.test.mjs`, `billing-single-payment-action.test.mjs` | Kontrak baru dikunci |
+
+## 4. Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Verifikasi runtime (browser, mobile/desktop) | Belum. Hanya ESLint (0 masalah) dan `node --test` pada 14 berkas billing terkait (234 tes lulus) |
+| Perubahan penjamin / penetapan penanggung per item | Menu Pembayaran tidak punya alur ubah-penanggung. Halaman Edit Tagihan memakai `payment-source`, `item-payer-assignments`, dan `drug-billing-disposition`, yang di Backend **sudah** menghitung ulang secara atomik; hook-nya memanggil `onSaved` sesudah sukses dan tidak diubah. Perubahan penjamin di Registrasi berada di kepemilikan terpisah dan tidak diaudit |
+| Kebijakan aturan tanggungan master yang berubah | NEEDS BUSINESS DECISION (`02-backend-architecture.md` §23.5); layar hanya menampilkan sebab `COVERAGE_RULE_CHANGED` |
+
+
+# Amendment 26 Oktober 2026 — AR Karyawan / Utang Pegawai pada Metode Pembayaran, Buku Piutang Finance, dan Laporan HR (Revisi 3.4)
+
+> `revisi blueprint`: `3.4`, status **diterapkan di source, belum dibuild atau diuji runtime**. Frontend branch lokal `yasmina` (branch `Yasmina` pada remote tidak dapat diverifikasi; pekerjaan hanya pada working tree aktif, tanpa pindah branch). Kontrak Backend: `02-backend-architecture.md` §24.
+
+## 1. Perilaku
+
+| Hal | Perilaku |
+| --- | --- |
+| Tawaran | Baris **AR Karyawan / Utang Pegawai** muncul tepat sesudah Benefit RS hanya bila Backend menyatakan benefit dapat dipakai, angka otoritatif, dan `employeeArMaxAmount` > 0. Tombol **Pilih Alokasi ke AR** hanya menyimpan **draft** layar (nominal awal = batas Backend; kasir boleh menurunkan). Tanpa pilihan eksplisit, AR selalu nol |
+| Yang ditawarkan | Hanya **kelebihan plafon yang belum dibayar (E sisa)**. Kewajiban pribadi dari item non-covered (K) tidak ditawarkan dan tidak masuk AR otomatis. Kartu drawer memisahkan *Kelebihan plafon*, *Kewajiban pribadi lain*, *AR Karyawan (draft)*, dan *Dibayar langsung* |
+| Bukan tender | AR tidak punya `PaymentMethodId`, tidak masuk `settlement.rows`, tidak dikirim sebagai tender, tidak menambah `SuccessfulAmount`, dan tidak menyebut Lunas. Piutang Finance **tidak** dibuat dari layar |
+| Split payment | AR memesan sebagian sisa; baris Tunai/QRIS/Transfer/Debit hanya mengisi sisa SETELAH AR (`evaluatePaymentSubmission`). AR yang menutup seluruh sisa dapat diproses tanpa baris tender; AR sebagian tanpa baris pembayaran **tidak** dapat diproses (alasan ditampilkan) |
+| Persetujuan | Hubungan selain SELF mewajibkan nama pemberi persetujuan (catatan/nomor dokumen opsional), sama dengan aturan finalisasi Backend |
+| Satu tombol | **Proses Pembayaran** tetap satu-satunya tombol. Urutan: (1) AR diperiksa terhadap preview Backend terbaru sebelum efek apa pun (tidak sah/tidak terbaca = tidak ada yang diproses); (2) deposit RANAP bila ada; (3) settlement + tender hanya untuk sisa − AR; (4) muat ulang; (5) kesiapan dinilai Backend DENGAN D; (6) finalisasi mengirim `employeeDeferredAmount = D` + persetujuan, satu kali, idempoten |
+| Hasil | AR disebut "diteruskan ke Finance" hanya setelah finalisasi berhasil, dengan catatan bahwa piutang baru tercatat setelah Finance memproses fakta masuknya. Finalisasi tertahan = draft dipertahankan; draft dibuang hanya setelah invoice FINAL/CLOSED |
+| Progress | Segmen tersendiri bergaris vertikal "AR Karyawan (penangguhan, belum tercatat)", terpisah dari terkonfirmasi, alokasi Benefit RS, dan draft pembayaran |
+| AR menutup seluruh sisa (`isArOnlyPlan`) | Tidak ada yang dibayar langsung, jadi: baris Metode Pembayaran kosong, "+ Tambah Metode Pembayaran", "Sisa Belum Dialokasikan", serta "Terkonfirmasi Rp0" dan "Total rencana" pada progress **tidak ditampilkan**; baris Tunai bawaan bernominal 0 diabaikan dan tidak menahan Proses Pembayaran. Menurunkan nominal AR atau mengisi baris menampilkan semuanya kembali |
+
+## 2. Berkas
+
+| Berkas | Perubahan |
+| --- | --- |
+| `billing-employee-ar-draft.js` (baru, murni) | Tawaran dari preview, validasi draft, parameter preview/finalisasi, ringkasan, pemeriksaan terhadap preview terbaru |
+| `use-billing-employee-ar-draft.js`, `employee-ar-row.jsx` (baru) | State draft (tanpa Backend) dan baris tampilan |
+| `use-menu-pembayaran.js` | Derivasi tawaran/masalah, pemesanan sisa di settlement, langkah AR pada `startPayment`, `concludePayment({ employeeAr })` |
+| `use-billing-finalization.js` | `loadReadiness({ employeeAr })` (preview dengan D), `finalizeAfterPayment(evaluation, { employeeAr })` |
+| `use-billing-settlement.js`, `billing-split-payment-rows.js` | `employeeArAmount` memesan sisa; alasan eksplisit untuk AR tidak sah/over-allocated/under-allocated |
+| `billing-payment-progress-state.js`, `billing-payment-progress.jsx`, `billing-payment-progress.module.css`, `billing-payment-outcome.js` | Segmen dan teks hasil AR |
+| `menu-pembayaran-view.jsx`, `add-tender-modal.jsx` | Baris AR, ringkasan, kartu drawer ringkas |
+| `use-employee-receivable-list.jsx`, `employee-receivable-view.jsx`, `employee-receivable-table-columns.jsx`, `app/finance/employee-receivables/benefit/page.jsx`, `receivable-constants.jsx` | **Buku Piutang Benefit Pegawai** (Finance): `debtorType=EMPLOYEE_BENEFIT` dikunci di Backend, cari nomor/invoice/pegawai/NIP/pasien, saring status/asal/jatuh tempo, ringkasan, rincian lewat Detail Buku Piutang yang ada |
+| `use-employee-benefit-receivable-report.js`, `employee-benefit-receivable-report-export.js`, `employee-benefit-receivable-report-view.jsx`, `employee-benefit-receivable-table-columns.jsx`, `app/hr/benefit/receivables/page.jsx`, `employee-benefit-receivable-report-constants.js` | **Piutang Benefit Pegawai** (HR): baca-saja, filter/pagination di Backend, ringkasan, rincian jadwal angsuran, ekspor CSV (dibatasi 5.000 baris) |
+| `menu-items.jsx` | Dua butir menu: Finance → Piutang Karyawan → Buku Piutang Benefit Pegawai (`FinanceReceivable:Read`); HR → Piutang Benefit Pegawai (`EmployeeBenefitReceivableReport:Read`) |
+| Tes | `billing-employee-ar-draft.test.mjs` (20), `employee-benefit-receivable-report.test.mjs` (7), dan penyesuaian kontrak pada tiga berkas tes billing yang ada |
+
+## 3. Belum dikerjakan / batas
+
+| Hal | Status |
+| --- | --- |
+| Verifikasi runtime (browser, mobile/desktop) | Belum. ESLint: 0 error (5 peringatan `set-state-in-effect`, pola yang sama dengan hook daftar yang ada); `node --test`: seluruh berkas billing terkait lulus; seluruh suite FE menyisakan 42 kegagalan lama di modul lain |
+| Layar pengajuan/persetujuan perjanjian angsuran (Finance) | Belum ada di FE; endpoint Backend tersedia |
+| Draft AR | State layar saja; hilang bila halaman dimuat ulang |
+| K sebagai AR | NEEDS BUSINESS DECISION (`02-backend-architecture.md` §24.5) |
+
+
+# Amendment Revisi 2.4 (26 Oktober 2026) — Penanda Layanan Berjasa dan Pelaksana pada Entri Kasir
+
+> Status **draft**, menunggu approval pemilik modul Billing. Trace: `BKC-DEC-171`, `172`, `178`; `BKC-DES-098`; `BKC-OQ-151`.
+> Frontend SHA `e2c17153b`. Kontrak data: `contracts/api-contract.md` revisi 2.4 (`BIL-API-2.1`).
+
+## 1. Kebutuhan layar
+
+Tidak ada layar baru dan tidak ada butir menu baru. Dua bagian layar yang sudah ada mendapat isian tambahan; satu bagian menampilkan
+informasi tambahan.
+
+| ID | Layar / bagian | Berkas | Perubahan |
+| --- | --- | --- | --- |
+| `BIL-SCR-46` | Panel Tambah Biaya Lain-lain pada Menu Pembayaran | `menu-pembayaran-view.jsx`, hook `use-menu-pembayaran.js` (`addBillingOtherCharge`) | Penanda berjasa + pilihan pelaksana |
+| `BIL-SCR-47` | Form Buat Invoice Manual (Testing) | `create-manual-invoice-view.jsx`, hook `use-create-manual-invoice.js` (`addCatalogCharge`) | Penanda berjasa + pilihan pelaksana |
+| `BIL-SCR-48` | Daftar item tagihan pada Menu Pembayaran | `menu-pembayaran-view.jsx` | Nama pelaksana pada item berjasa |
+
+## 2. Peta butir menu
+
+| Butir | Tingkat | Induk | Route | Layar | Hak akses |
+| --- | --- | --- | --- | --- | --- |
+| (tidak ada butir baru) | — | — | — | — | — |
+
+`BIL-SCR-46` dan `BIL-SCR-48` adalah bagian anak dari layar Menu Pembayaran (jalan masuk: butir menu Menu Pembayaran yang sudah ada).
+`BIL-SCR-47` adalah bagian dari route `/health-services/billing-management/billing/invoices/create-manual` yang sudah ada.
+
+## 3. Skema fitur
+
+### `BIL-SCR-46` / `BIL-SCR-47` — isian tambahan pada entri
+
+```text
+┌──────────────────────────────────────────────────────────┐
+│ [isian lama: jenis biaya / tarif, deskripsi, kuantitas]   │
+│                                                          │
+│ [ ] Layanan berjasa (ada tenaga medis pelaksana)    (1)   │
+│                                                          │
+│   ┌ hanya tampil bila (1) dicentang ───────────────────┐ │
+│   │ Dokter pelaksana *   [ cari nama dokter ...   ▼ ] (2)│ │
+│   │ Peran                [ kosong = peran utama   ▼ ] (3)│ │
+│   └────────────────────────────────────────────────────┘ │
+│                                                          │
+│                              [ Batal ]  [ Simpan ]  (4)   │
+└──────────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Hak akses | Kosong / gagal |
+| --- | --- | --- | --- | --- |
+| (1) | Penanda berjasa, bawaan tidak dicentang | — | `BillingInvoice : Create` (sama dengan tombol Simpan) | — |
+| (2) | Pilihan dokter aktif, dapat dicari. Wajib bila (1) dicentang | `GET api/v1/corporate/human-resource/master-data/doctors/options?onlyActive=true&search=` | Akses peran Kasir ke endpoint HR ini **perlu diverifikasi** (`permission-audit-matrix.md` revisi 2.4) | Kosong: "Dokter tidak ditemukan." Gagal memuat: "Daftar dokter tidak dapat dimuat. Coba lagi." dan Simpan dinonaktifkan selama (1) dicentang |
+| (3) | Peran pelaksana, opsional | `GET api/v1/health-services/medical-fee-management/roles` milik Medical Fee — **Rencana (belum tersedia)**, `BE-MDF-004` | — | Bila endpoint belum tersedia atau gagal, isian (3) **tidak ditampilkan** dan dikirim kosong (peran utama). Entri tetap dapat disimpan |
+| (4) | Simpan | `POST invoices/other-charges` (24A) atau `POST invoices/catalog-charges` (24B) dengan field baru | `BillingInvoice : Create` | `422`: pesan dari server ditampilkan pada isian terkait. `409`: "Permintaan yang sama memiliki isi berbeda; muat ulang lalu kirim sebagai entri baru." |
+
+Mencentang lalu menghapus centang (1) **mengosongkan** (2) dan (3), supaya tidak ada pelaksana terkirim untuk entri tidak berjasa
+(`BIL-VAL-164`). Payload selalu memuat `performerType = "DOCTOR"` bila (2) terisi; pilihan `WORKFORCE` tidak ditawarkan sampai
+`BKC-OQ-151` dijawab.
+
+### `BIL-SCR-48` — item tagihan
+
+```text
+│ Konsultasi Dokter Spesialis        1 x Rp 500.000   Rp 500.000 │
+│   Pelaksana: dr. Rina Anggraini, Sp.PD                     (5) │
+```
+
+| Wilayah | Isi | Sumber data | Kosong |
+| --- | --- | --- | --- |
+| (5) | Nama pelaksana, hanya pada item `isFeeBearing = true` | `performerDisplayName` pada item `GET invoices/{id}` | Nama `null` (rujukan sudah dihapus): "Pelaksana tidak ditemukan" |
+
+`doctorShare` dan `doctorShareResolution` **tidak** ditampilkan kepada kasir. Keduanya data penghasilan tenaga medis dan tidak
+dibutuhkan untuk menagih pasien.
+
+## 4. Penanganan keadaan
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Memuat daftar dokter | Indikator memuat pada isian (2); Simpan tetap aktif bila (1) tidak dicentang |
+| Pengiriman ganda | Pola `Idempotency-Key` yang sudah ada pada kedua hook dipakai apa adanya; satu kunci per entri, dipertahankan pada percobaan ulang hasil tidak pasti |
+| Data basi | Setelah Simpan berhasil, detail invoice dimuat ulang seperti sekarang |
+| Medical Fee tidak terjangkau | Tidak terlihat oleh kasir; entri berhasil seperti biasa |
+
+## 5. Kewenangan UI
+
+| Hal | Status |
+| --- | --- |
+| Isian (1)–(3) wajib ada, beserta aturan tampil/kosongkan | Terkunci (`BKC-DEC-171`, `172`) |
+| Bentuk kontrol (kotak centang atau sakelar), urutan isian di dalam panel, teks bantuan | `DEV_DISCRETION`, mengikuti base component Quilvian |
+| Menampilkan `WORKFORCE` | Belum diputuskan, `BKC-OQ-151` |
+| Menampilkan `doctorShare` ke kasir | Tidak, kecuali ada keputusan baru |
