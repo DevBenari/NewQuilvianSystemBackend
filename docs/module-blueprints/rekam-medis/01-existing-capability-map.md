@@ -3,8 +3,10 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `RM-BP-001` |
-| Revision | `2` |
-| Mode | Audit penuh (bukan impact scan) |
+| Revision | `3` — **impact scan 28 Oktober 2026** untuk amandemen sambungan seluruh modul (bagian terakhir dokumen ini). Revision 2 di bawahnya dibiarkan utuh sebagai riwayat dan **basi** terhadap SHA terbaru |
+| Mode | Revision 2: audit penuh. Revision 3: impact scan terbatas pada cakupan `RM-DEC-037`–`050` |
+| Revision 3 — SHA | Backend `363de34f` (branch `yoga`); frontend `f0a3b07b8` (branch `YogaV2`) |
+| Revision 3 — input keputusan | `00-interview-decisions.md` revision `7`, `sha256:59e46deb…`, seluruh `RM-DEC-037`–`050` `approved` |
 | Backend root/SHA | `NewQuilvianSystemBackend` / `ab37e3a2e80f0e34efe22ec0f6a8c9b90a3ae45e` |
 | Frontend root/SHA | `QuilvianSystemFrontendDev` / `c4e2ef2a6080f3ce328d2faad79be1893ac13e22` |
 | Tanggal audit | 24 Agustus 2026 |
@@ -470,3 +472,196 @@ karena seluruh kesimpulan audit bertumpu padanya:
 
 Tambahan: bila migration baru ditambahkan pada `Migrations/`, periksa ulang batas audit nomor 1
 sebelum map ini dipakai sebagai dasar desain.
+
+---
+
+# Revision 3 — Impact scan 28 Oktober 2026
+
+Bagian ini menjawab pertanyaan yang ditinggalkan amandemen revision 7 decision log: **dokumen
+apa di tiap modul yang boleh masuk berkas, kapan ia dianggap final, bagaimana menemukannya dari
+id pasien, dan bagaimana mengetahui ia pernah diralat.** Seluruh temuan adalah fakta source pada
+SHA backend `363de34f` dan frontend `f0a3b07b8`. Rekomendasi ditandai tersendiri.
+
+## Batas audit revision 3
+
+| No | Batas | Akibatnya |
+|---:|---|---|
+| 1 | Database, runtime, dan data tidak diperiksa | Sama seperti revision 2. Jumlah baris, isi data lama, dan perilaku nyata endpoint tidak dinilai |
+| 2 | **Uji otomatis tidak dijalankan** | Klaim "Ready to reuse" bertumpu pada pembacaan kode, bukan hasil uji |
+| 3 | Penelusuran per modul **terbatas pada model, enum, dan rute baca** | Aturan internal tiap modul (siapa boleh memfinalkan, alur koreksinya) tidak ditelusuri; itu milik blueprint modul masing-masing |
+| 4 | Kontrak integrasi blueprint modul lain hanya dibaca bagian yang menyebut rekam medis | Bila sebuah modul sudah memutuskan arti "final" di dokumen keputusannya tetapi belum di kode, temuan ini tidak menangkapnya |
+
+## Journey yang ditelusuri
+
+**Journey 1 — dokter membuka berkas pasien.** Layar `medical-records/[slug]` memanggil
+`MedicalRecordTimelineService`, yang menanyai setiap jenis dokumen secara terpisah. Bila satu
+sumber melempar galat, sumber itu masuk `FailedSources` dan layar menampilkan blok peringatan
+"RIWAYAT INI TIDAK LENGKAP" (`medical-record-completeness-alert.jsx`). **Jalur gangguan per
+bagian sudah ada.** Yang belum ada: sumber dari modul lain.
+
+**Journey 2 — kunjungan ditutup.** Penutupan kunjungan terjadi di **beberapa tempat berbeda**,
+masing-masing memanggil `LockOpenDocumentsForEncounterAsync` (lihat `RM-CAP-036`). Penilaian
+kelengkapan dan penanda `Susulan` harus berangkat dari salah satu waktu penutupan itu.
+
+## Capability register revision 3
+
+### Kelompok E — Fondasi rekam medis untuk amandemen
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `RM-CAP-034` | Gangguan per bagian pada linimasa (`RM-DEC-044`) | Rekam Medis | `MedicalRecordTimelineDtos.cs:124` `FailedSources`; `MedicalRecordTimelineService.cs:153-160` menangkap galat per sumber; `medical-record-completeness-alert.jsx` | **Ready to reuse** | Sumber modul baru cukup ikut pola yang sama. Keadaan `Tidak dapat dipastikan` pada kelengkapan belum ada (`RM-CAP-040`) | Rendah |
+| `RM-CAP-035` | Jenis 14 dan 15 tidak boleh kosong diam-diam | Rekam Medis | `ClinicalDocumentKind.cs` memuat `HemodialysisSession = 14`, `LaboratoryResult = 15`; `AmbilJenisAsync` tidak punya cabangnya dan jatuh ke `_ => Task.FromResult((0, …))` (`MedicalRecordTimelineService.cs` ±baris 470). `TentukanJenis` mengembalikan `SeluruhJenis` bila saringan kosong | **Repair** | Kedua jenis diminta pada setiap pembukaan berkas lalu dijawab kosong tanpa galat — persis keadaan yang dilarang `RM-DEC-030` | **Tinggi** — dokter membaca "tidak ada hasil lab" padahal ada |
+| `RM-CAP-036` | Satu waktu penutupan kunjungan sebagai dasar `Susulan` dan kelengkapan | Registrasi, Rawat Inap, IGD, Billing | `RegPatientEncounter.CompletedAt` diisi oleh `BillingFinalizationService.cs:891-892`, `PatientEncounterController.cs:1672-1675`, `EmergencyVisitService.cs:682`, `EmergencyDispositionService.AdmissionRequest.cs:1595-1596`. **Diubah ulang** oleh `EmergencyEncounterReconciliation.cs:188` dan dikembalikan pada `:262`. Rawat inap mengunci dokumen saat **episode** ditutup (`InpDischargeService.Closure.cs:853`, `encounterClosedAtUtc: now`), sedangkan kunjungannya baru `Completed` saat finalisasi tagihan. Waktu kunci per dokumen tersimpan di `MrcClinicalDocumentIntegrity.LockedEncounterClosedAt` | **Conflict** | Ada dua arti "kunjungan ditutup": tutup klinis (episode/visit) dan tutup administratif (`CompletedAt`). Untuk rawat inap jaraknya bisa berhari-hari | **Tinggi** — tanpa satu arti, dokumen yang sama bisa bertanda `Susulan` atau tidak tergantung sumber waktu yang dipakai |
+| `RM-CAP-037` | Penanda `Susulan` dihitung saat dibaca (`RM-DEC-043`) | Rekam Medis | Nol temuan `Susulan`/`LateEntry`/`IsLate` (`RM-FACT-018`) | **Missing** | Bergantung `RM-CAP-036` dan waktu final per modul (kelompok F) | Sedang |
+| `RM-CAP-038` | Master dokumen wajib (`RM-DEC-045`, `047`) | Rekam Medis | Nol model, controller, atau seeder dokumen wajib di `MedicalRecordManagement` maupun `MasterData` | **Missing** | Entity baru memang diperlukan | Rendah |
+| `RM-CAP-039` | Addendum pengesahan atas catatan `LockedUnsigned` (`RM-DEC-049`) | Rekam Medis | `MrcClinicalNoteAddendum` dan `ClinicalNoteAddendumService` sudah ada; `MrcClinicalDocumentIntegrity.AddendumCount` ada. Tidak ada pembeda "addendum pengesahan" dari addendum koreksi biasa | **Extend** | Butuh penanda jenis addendum atau aturan "addendum bertanda tangan pertama = pengesahan" — pilihan desain | Sedang |
+| `RM-CAP-040` | Penilaian kelengkapan per kunjungan dan daftar kerja (`RM-DEC-045`, `046`, `050`) | Rekam Medis | Nol service, endpoint, dan layar. `medical-record-completeness-alert.jsx` **bukan** kelengkapan berkas — ia peringatan sumber linimasa yang gagal. Namanya mirip, artinya berbeda | **Missing** | Perlu dibedakan namanya di desain supaya tidak tertukar | Sedang |
+| `RM-CAP-041` | Pemberitahuan cakupan di layar berkas | Rekam Medis (frontend) | `medical-record-scope-notices.jsx:17-19` berbunyi "Aturan keutuhan dokumen baru berlaku pada CPPT". Source backend menegakkan **lima** jenis (`ClinicalDocumentIntegrityService.cs:87-93`) | **Repair** | Kalimat basi sejak jenis lain didaftarkan | Rendah — tetapi melanggar semangat `RM-FE-006`: layar wajib jujur tentang cakupannya |
+| `RM-CAP-042` | Penarik sumber generik `AmbilAsync` | Rekam Medis | Menuntut entity menyediakan `PatientId` langsung (`RM-FACT-010`) | **Reuse with adapter** | Cocok untuk model yang punya `PatientId` (kelompok G). Model tanpa `PatientId` butuh penerjemah di modul pemilik (`RM-DEC-038`) | Rendah |
+
+### Kelompok F — Sumber per modul (menjawab open question 13)
+
+"Final" di kolom keempat adalah **apa yang ditunjukkan source hari ini**, bukan keputusan.
+Kolom kelima adalah kolom yang paling layak menjadi waktu final untuk `RM-DEC-043`.
+
+| ID | Modul | Dokumen | Final menurut source | Waktu final | Jalan ke pasien | Penanda pernah diralat | Status |
+|---|---|---|---|---|---|---|---|
+| `RM-CAP-043` | Laboratorium | Hasil per pemeriksaan (`LabExamination`) | `ReleasedAt != null`; status hasil **diturunkan** (`LabResultStatus.Released`, `LAB-DEC-080`) | `ReleasedAt` | `LabExamination.LabOrderId` → `LabOrder.EncounterId` → `RegPatientEncounter.PatientId`. Nol `PatientId` | **Belum ada.** `ReopenCount` hanya penyuntingan **sebelum** rilis (`LabExamination.cs:266-275`). Koreksi hasil terrilis (`S6`) belum dibangun; `LabResultCorrectionReason` baru master | **Extend** |
+| `RM-CAP-044` | Laboratorium | Laporan patologi (`LabPathologyReport`) | `FinalizedAt` ada; hubungan dengan rilis per pemeriksaan **tidak ditelusuri** | Belum pasti | Lewat `LabOrderId`, sama seperti di atas | Belum ada | **Unknown** |
+| `RM-CAP-045` | Radiologi | Laporan bacaan (`RadReport` + `RadReportVersion`) | Status bukan `Pending`/`Drafted`/`Validated` **dan** `FirstReleasedAt != null` | `FirstReleasedAt` | `RadReportService.GetByPatientAsync` sudah menerjemahkan id pasien lewat `RegPatientEncounters` | `CurrentVersionNumber > 1`; versi amandemen bertanda `IsAmendment`, `AmendmentReason`; `LastReleasedAt` | **Reuse with adapter** — lihat `RM-CAP-058` |
+| `RM-CAP-046` | IGD | Triase (`EmgTriage`) | `TriageStatus = Completed` | `CompletedAt` | `EmergencyVisitId` → `EmgVisit.PatientId` | Status `Superseded` = triase diganti triase baru | **Extend** |
+| `RM-CAP-047` | IGD | Disposisi (`EmgDisposition`) | `Confirmed` atau `Executed` — **dua kandidat** | `ConfirmedAt` / `ExecutedAt` | Lewat `EmgVisit.PatientId` | Tidak ditemukan | **Unknown** — arti final milik blueprint IGD |
+| `RM-CAP-048` | IGD | Observasi, resusitasi | `Completed` (observasi juga `Escalated`; resusitasi juga `Stopped`) | `EndedAt` / `CompletedAt` | Lewat `EmgVisit.PatientId` | Tidak ditemukan | **Extend** |
+| `RM-CAP-049` | Rawat Inap | Ringkasan pulang (`InpDischargeSummary`) | `SignedAt != null` | `SignedAt` | `EpisodeId` → `InpEpisode.PatientId` | `InpDischargeSummaryRevision` (sesi koreksi, `SupersededAt`) — ada baris revisi = pernah diralat | **Extend** |
+| `RM-CAP-050` | Rawat Inap | Dokumen admisi (`InpAdmissionDocument`), termasuk `GeneralConsent = 7` | `Status = Completed` | `CompletedAt` | `PatientId` langsung | `Superseded` + `PreviousVersion` | **Extend** |
+| `RM-CAP-051` | Kamar Operasi | Laporan operasi (`OprExecutionRecord`), catatan anestesi (`OprAnesthesiaRecord`) | `OprRecordStatus.Final` | `FinalizedAt` | `OprCaseId` → `OprCase.PatientId` | Laporan operasi: `OprExecutionAddendum`. Anestesi: tidak ditemukan | **Extend** |
+| `RM-CAP-052` | Kamar Operasi | Checklist keselamatan (`OprSafetyChecklist`), catatan kelahiran (`OprBirthEvent`) | Checklist `Completed`; kelahiran **tanpa status** — final saat tersimpan | `SignedAt`; `BirthDateTime` (waktu kejadian, bukan waktu final) | Lewat `OprCase.PatientId` | Checklist: kolom `Revision`. Kelahiran: tidak ada | Checklist **Extend**; kelahiran **Unknown** |
+| `RM-CAP-053` | Hemodialisa | Catatan sesi (`HmdSession`) | `SessionStatus = Finalized` dan terdaftar di mesin keutuhan (`HmdSessionFinalizationService`) | `SignedAt` | `EpisodeId` → `HmdEpisode.PatientId` | Addendum mesin keutuhan rekam medis (`AddendumCount`) | **Extend** — sudah ikut mesin keutuhan, tinggal cabang linimasa (`RM-CAP-035`) |
+| `RM-CAP-054` | Gizi | Catatan asuhan gizi (`GziNutritionCareRecord`) | **Tanpa status.** Ditambahkan sekali (`NutritionOrderService.cs:405-431`), tetapi diagnosisnya dapat diganti lewat `PUT records/{recordId}/diagnoses` (`NutritionRequirementController.cs:129`) | `VisitAt` (waktu kunjungan, bukan waktu final) | `NutritionOrderId` → `GziNutritionOrder.PatientId` | Tidak ada | **Unknown** — arti final milik blueprint Gizi |
+| `RM-CAP-055` | Bank Darah | Golongan darah (`BbkBloodGroupExam`), reaksi transfusi (`BbkTransfusionReactionNotice`) | Golongan darah `Validated`; reaksi `Acknowledged` | `ValidatedAt`; `AcknowledgedAt` | `PatientId` langsung (golongan darah **tanpa** `EncounterId`) | Golongan darah: `BbkBloodGroupConflictResolution` untuk selisih hasil | **Reuse with adapter** |
+| `RM-CAP-056` | Farmasi | Resep (`PhmPrescription`), pemberian obat (`PhmMedicationAdministration`), rekonsiliasi | Resep: `Submitted` (status alur `FulfillmentStatus` terpisah). Pemberian: `DoseStatus = Administered`. Rekonsiliasi: `DecidedAt` | `SubmittedAt`; `AdministeredAt`/`RecordedAt`; `DecidedAt` | `PatientId` langsung (resep, pemberian) | Pemberian: `PhmMedicationAdministrationRevision` | **Reuse with adapter** |
+| `RM-CAP-057` | MCU | Resume (`McuResume`), hasil (`McuExaminationResult`) | Resume `Verified` (atau `Corrected`); hasil **tanpa status** — final mengikuti resume/order `Verified` | `VerifiedAt` | `McuOrderId` → `McuOrder.PatientId` — **nullable**: peserta tanpa nomor rekam medis tidak dapat dijangkau | Resume `Corrected`, `ReopenedAt`; nilai hasil `McuExaminationResultValueRevision` | **Extend** |
+
+### Kelompok G — Model `ClinicalManagement` yang belum terbaca
+
+Seluruh model di bawah menyimpan `PatientId` langsung, sehingga **dapat ditarik dengan
+`AmbilAsync` tanpa penerjemah** (`RM-CAP-042`). Yang perlu diputuskan saat desain adalah mana
+yang memang dokumen berkas dan mana yang sekadar pencatatan berkala.
+
+| ID | Model | Final menurut source | Waktu | Ralat | Sifat |
+|---|---|---|---|---|---|
+| `RM-CAP-059` | `CliNursingCarePlan` | Tanpa status; `OpenedAt` | `OpenedAt` | `CliNursingCarePlanItemRevision` | Dokumen |
+| `RM-CAP-060` | `CliPhysicianVisit` | `Recorded` (selain `Cancelled`) | Waktu catat | Tidak ditemukan | Dokumen |
+| `RM-CAP-061` | `CliNursingIntervention` | `Finalized` | `FinalizedAt` | Tidak ditemukan | Dokumen |
+| `RM-CAP-062` | `CliTransfusionMonitoring` | `Completed` (juga `Stopped`) | `CompletedAt` | Tidak ditemukan | **Dokumen wajib bersyarat** `RM-DEC-047` |
+| `RM-CAP-063` | `CliDoctorCertificate` | `Issued` | Tidak ditemukan kolom waktu terbit | Tidak ditemukan | Dokumen |
+| `RM-CAP-064` | `CliCaseManagementEvaluation` | `Completed` | `CompletedAt` | Tidak ditemukan | Dokumen |
+| `RM-CAP-065` | `TrxNosocomialInfection` | `VerifiedAt` | `VerifiedAt` | Tidak ditemukan | Dokumen |
+| `RM-CAP-066` | `CliDailyObservation`, `CliFluidBalanceEntry`, `CliBloodGlucoseReading`, `CliEquipmentUsage`, `CliWsdDrain`, `CliSurgicalSiteSurveillance` | `Active` (selain `Cancelled`) | Waktu ukur | `RevisionNumber` + tabel `*Revision` | Pencatatan berkala — **calon banjir linimasa**; satu pasien rawat inap dapat menghasilkan ratusan baris |
+| `RM-CAP-067` | `CliTransferHandover` | Tanpa `PatientId`; lewat `InpEpisodeId` | `ReceivedAt` | Tidak ditemukan | Dokumen, **butuh penerjemah** |
+
+### Kelompok H — Jalur baca berlingkup pasien (menjawab open question 15)
+
+| ID | Jalur | Bukti | Status | Catatan |
+|---|---|---|---|---|
+| `RM-CAP-058` | Radiologi `GetByPatientAsync` | `RadReportService.cs:568`; hanya laporan yang sudah dirilis, kunjungan pasien lewat subquery satu perjalanan; DTO memuat `FirstReleasedAt`, `LastReleasedAt`, `CurrentVersionNumber` | **Reuse with adapter** | Wajib dipanggil sebagai **service dalam proses**, bukan lewat HTTP: rute `GET by-patient/{patientId}` dijaga `RadReport : Read`, sedangkan `RM-DEC-040` hanya menuntut `MedicalRecord : Read` |
+| `RM-CAP-068` | Bank Darah `GET patient/{patientId}/valid` | `BbkBloodGroupExamController.cs:187` | **Reuse with adapter** | Namanya menunjukkan hanya golongan darah yang berlaku, bukan riwayat. Isi kembaliannya belum dibaca |
+| `RM-CAP-069` | Laboratorium berlingkup pasien | Satu-satunya: `kiosk/pending-by-patient/{patientId}` (`LabOrderController.cs:286`), untuk kiosk. Jalur hasil hanya `by-order` | **Missing** | Blocker 7 tetap terbuka |
+| `RM-CAP-070` | IGD, Rawat Inap, Kamar Operasi, Hemodialisa, Gizi, Farmasi, MCU | Nol jalur hasil/dokumen berlingkup pasien yang cocok. `OperatingRoomScheduleLookupController` `lookup-by-patient` dan `NutritionDietController` `patients` bukan jalur dokumen | **Missing** | Lima di antaranya (Farmasi, Bank Darah, sebagian `ClinicalManagement`, Rawat Inap dokumen admisi, Kamar Operasi lewat `OprCase`) cukup sederhana karena `PatientId` tersedia satu langkah |
+
+### Kelompok I — Pemetaan dokumen wajib `RM-DEC-047` (menjawab open question 14)
+
+| Butir dokumen wajib | Sumber | Syarat terpenuhi | Status |
+|---|---|---|---|
+| Asesmen (Rawat Jalan, IGD) | `TrxPatientAssessment` | `AssessmentStatus = Completed` | **Ready to reuse** — tetapi lihat closure question 3 tentang jenisnya |
+| Asesmen awal (Rawat Inap) | `TrxPatientAssessment` | `AssessmentType` `Initial` (keperawatan) **dan/atau** `MedicalInitial` (medis) | **Unknown** — dua jenis asesmen awal; closure question 3 |
+| Diagnosis utama | `TrxPatientDiagnosis` | `IsPrimary = true` **atau** `DiagnosisType = Primary` — dua penanda, keduanya dipakai frontend (7 dan 11 berkas) | **Conflict** — closure question 4 |
+| CPPT/SOAP dokter | `TrxPatientIntegratedProgressNote` (`ProfessionType`) **atau** `TrxDoctorConsultation` | Belum pasti | **Unknown** — closure question 5 |
+| CPPT (Rawat Inap) | `TrxPatientIntegratedProgressNote` | Minimal satu, tidak dibatalkan | **Ready to reuse** |
+| Triase | `EmgTriage` | `Completed` | **Extend** (`RM-CAP-046`) |
+| Disposisi | `EmgDisposition` | `Confirmed` atau `Executed` | **Unknown** (`RM-CAP-047`) |
+| Persetujuan umum (Rawat Inap) | `RegPatientGeneralConsent` (registrasi, per kunjungan, `SignedAt`) **dan** `InpAdmissionDocument` `GeneralConsent` (admisi, `Completed`) | Dua tempat menyimpan persetujuan umum | **Conflict** — closure question 6 |
+| Ringkasan pulang | `InpDischargeSummary` | `SignedAt != null` | **Extend** (`RM-CAP-049`) |
+| Resume MCU | `McuResume` | `Verified` atau `Corrected` | **Extend** (`RM-CAP-057`) |
+| Laporan operasi, catatan anestesi | `OprExecutionRecord`, `OprAnesthesiaRecord` | `Final` | **Extend** (`RM-CAP-051`) |
+| Checklist keselamatan | `OprSafetyChecklist` | `Completed` | **Extend** (`RM-CAP-052`) |
+| Pemicu "kunjungan memuat operasi" | `OprCase` per `EncounterId` | Kasus berstatus `Completed` (bukan `Cancelled`/`Rejected`/`Postponed`) | **Ready to reuse** |
+| Catatan sesi HD + pemicunya | `HmdSession` per `EncounterId` atau `InpEpisodeId` | Sesi `Finalized` dan `MrcClinicalDocumentIntegrity` `Signed`; pemicu = sesi `Completed` ke atas | **Extend** |
+| Monitoring transfusi + pemicunya | `CliTransfusionMonitoring` per `EncounterId` | `Completed`; pemicu = baris apa pun yang tidak `Cancelled` | **Ready to reuse** |
+
+## Blocker Laboratorium 5, 6, 7
+
+| Blocker | Temuan revision 3 | Usulan keadaan |
+|---|---|---|
+| 5 — entri hasil belum ada | Nilai hasil, finalisasi, validasi, dan rilis tersimpan di `LabExamination` (`ResultNumeric`, `FinalizedAt`, `ValidatedAt`, `ReleasedAt`). Hasil dirilis didaftarkan sebagai `ClinicalDocumentKind.LaboratoryResult` | **Tertutup** |
+| 6 — mekanisme ralat hasil terrilis | Hanya master alasan (`LabResultCorrectionReasonController`). Nol pemakaian di service koreksi. `ReopenCount` khusus sebelum rilis | **Tetap terbuka.** Penanda "pernah diralat" untuk hasil lab belum punya sumber |
+| 7 — jalur baca berlingkup pasien | `RM-CAP-069` | **Tetap terbuka** |
+
+## Conflict dan Unknown revision 3
+
+### Conflict
+
+| ID | Pertentangan | Yang harus memutuskan |
+|---|---|---|
+| `RM-CAP-036` | Dua arti "kunjungan ditutup" — tutup klinis dan tutup administratif — dan `CompletedAt` IGD dapat diubah rekonsiliasi | Pemilik rekam medis (closure question 1) |
+| Pemetaan diagnosis utama | `IsPrimary` dan `DiagnosisType.Primary` hidup berdampingan | Pemilik rekam medis bersama `ClinicalManagement` (closure question 4) |
+| Pemetaan persetujuan umum | Registrasi dan admisi rawat inap sama-sama menyimpannya | Pemilik rekam medis (closure question 6) |
+
+### Unknown
+
+| ID | Yang belum pasti | Cara memastikannya |
+|---|---|---|
+| `RM-CAP-044` | Hubungan laporan patologi dengan rilis per pemeriksaan | Penelusuran terarah di blueprint Laboratorium |
+| `RM-CAP-047` | Arti final disposisi IGD | Kontrak blueprint IGD; bila belum ada, pemilik IGD |
+| `RM-CAP-052` | Catatan kelahiran tanpa status | Pemilik Kamar Operasi/Kamar Bersalin |
+| `RM-CAP-054` | Arti final catatan asuhan gizi | Pemilik Gizi |
+| `RM-CAP-063` | Waktu terbit surat dokter | Penelusuran kolom audit warisan (`CreateDateTime`) saat desain |
+| `RM-CAP-068` | Isi kembalian jalur Bank Darah | Baca service-nya saat desain |
+| Seluruh kelompok F–I | Kualitas data nyata (berapa dokumen lama tanpa waktu final) | Perlu akses database; batas audit nomor 1 |
+
+## Yang paling penting dari impact scan ini
+
+1. **Kabar baik: fondasi gangguan per bagian sudah ada** (`RM-CAP-034`). Menambah sumber modul
+   lain tidak perlu merancang ulang cara layar menghadapi gangguan.
+2. **Satu kerusakan sedang terjadi hari ini** (`RM-CAP-035`): hasil laboratorium dan sesi
+   hemodialisa selalu tampil kosong di berkas. Ini bukan soal amandemen — ia sudah melanggar
+   `RM-DEC-030` — dan tidak menunggu siapa pun.
+3. **Dua belas sumber, tiga pola jalan ke pasien.** Model dengan `PatientId` langsung (Farmasi,
+   Bank Darah, sebagian besar `ClinicalManagement`, dokumen admisi) dapat ditarik dengan helper
+   yang ada. Model yang berpusat pada kunjungan atau kasus (Laboratorium, Radiologi, Kamar
+   Operasi, Hemodialisa, Gizi, IGD, ringkasan pulang, MCU) butuh penerjemah di modul pemiliknya
+   — dan **baru Radiologi yang punya**.
+4. **Pencatatan berkala dapat membanjiri linimasa** (`RM-CAP-066`). Keputusan "semua model
+   `ClinicalManagement` masuk" (`RM-DEC-039` kelompok C) perlu dibatasi saat desain; ini
+   pilihan tampilan, bukan aturan bisnis baru.
+5. **Waktu penutupan kunjungan harus diputuskan lebih dulu** (`RM-CAP-036`). Penanda `Susulan`,
+   cakupan daftar kerja, dan batas tanggal rilis `RM-DEC-050` seluruhnya bergantung padanya.
+
+## Closure questions revision 3
+
+Seluruhnya keputusan manusia; tidak satu pun dapat dijawab source.
+
+| No | Pertanyaan | Menahan |
+|---:|---|---|
+| 1 | Waktu penutupan kunjungan yang dipakai untuk `Susulan` dan kelengkapan: tutup klinis (episode rawat inap/visit IGD ditutup, saat dokumen dikunci) atau tutup administratif (`CompletedAt`, untuk rawat inap saat finalisasi tagihan)? Dan bila rekonsiliasi IGD mengubah `CompletedAt`, apakah penanda ikut berubah? | Desain `RM-DEC-043`, `046`, `050` |
+| 2 | Apakah pencatatan berkala (`RM-CAP-066`) masuk linimasa sebagai baris per pengukuran, sebagai ringkasan per hari, atau tidak masuk? | Desain kelompok C |
+| 3 | Asesmen awal rawat inap: keperawatan (`Initial`), medis (`MedicalInitial`), atau keduanya wajib? Asesmen rawat jalan/IGD: jenis apa saja yang dihitung? | Master dokumen wajib |
+| 4 | Diagnosis utama dibaca dari `IsPrimary`, `DiagnosisType = Primary`, atau salah satunya cukup? | Master dokumen wajib |
+| 5 | "CPPT/SOAP dokter" dipenuhi oleh CPPT berprofesi dokter, konsultasi dokter (`TrxDoctorConsultation`), atau salah satunya? | Master dokumen wajib |
+| 6 | Persetujuan umum rawat inap dipenuhi oleh persetujuan registrasi, dokumen admisi `GeneralConsent`, atau salah satunya? | Master dokumen wajib |
+| 7 | Hasil laboratorium sudah dapat tampil, tetapi penanda "pernah diralat" belum punya sumber (blocker 6). Tampilkan hasil lab sekarang tanpa penanda — dengan keterangan bahwa ralat belum terlacak — atau tunggu `S6`? | Urutan `RM-DEC-048` langkah 1 |
+| 8 | Disposisi IGD final saat `Confirmed` atau `Executed`; catatan asuhan gizi final kapan; catatan kelahiran final kapan? | Sumber IGD, Gizi, Kamar Operasi. Boleh dijawab pemilik modul masing-masing |
+
+## Impact scan trigger revision 3
+
+Tandai bagian ini **stale** bila berkas berikut berubah:
+
+| Berkas | Temuan |
+|---|---|
+| `Areas/HealthServices/MedicalRecordManagement/Services/MedicalRecordTimelineService.cs` | `RM-CAP-034`, `035`, `042` |
+| `Areas/HealthServices/MedicalRecordManagement/Services/ClinicalDocumentIntegrityService.cs` | `RM-CAP-041`, `053` |
+| `Areas/HealthServices/BillingManagement/Billing/Services/BillingFinalizationService.cs`, `Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs`, `Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs`, `EmergencyEncounterReconciliation.cs`, `RegistrationManagement/Controllers/PatientEncounterController.cs` | `RM-CAP-036` |
+| `Areas/HealthServices/LaboratoryManagement/Models/LabExamination.cs`, `Controllers/LabOrderController.cs`, `Controllers/LabExaminationController.cs` | `RM-CAP-043`, `069`, blocker 5–7 |
+| `Areas/HealthServices/RadiologyManagement/Services/RadReportService.cs` | `RM-CAP-045`, `058` |
+| Model pada kelompok F dan G | Arti final, waktu final, dan penanda ralat |
+| `src/components/view/health-services/medical-record-management/medical-records/medical-record-scope-notices.jsx`, `medical-record-completeness-alert.jsx` | `RM-CAP-034`, `041` |

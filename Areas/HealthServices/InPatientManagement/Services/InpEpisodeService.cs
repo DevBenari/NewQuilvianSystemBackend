@@ -190,6 +190,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var newbornError = InpNewbornAdmissionRules.ValidateContext(request.NewbornAdmission, patient);
             if (newbornError != null)
                 return InpEpisodeOperationResult.BusinessRuleRejected(newbornError);
+            var externalReferralError = ValidateExternalReferral(request.ExternalReferral);
+            if (externalReferralError != null)
+                return InpEpisodeOperationResult.Invalid(externalReferralError);
             var deliveryCaseError = await InpNewbornAdmissionRules.ValidateDeliveryCaseAsync(
                 _dbContext, request.NewbornAdmission, patient, cancellationToken);
             if (deliveryCaseError != null)
@@ -239,6 +242,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return InpEpisodeOperationResult.Invalid(
                     "Dokter penanggung jawab yang dipilih tidak ditemukan atau tidak aktif.");
             }
+
+            // FIX-EPS-040-09 (K-05): DPJP bayi non-anak wajib beralasan.
+            var newbornDoctorError = await InpNewbornAdmissionRules.ValidateNewbornDoctorAsync(
+                _dbContext, patient, request.NewbornAdmission, request.DoctorId, cancellationToken);
+            if (newbornDoctorError != null)
+                return InpEpisodeOperationResult.Invalid(newbornDoctorError);
+
+            var admissionNotes = InpNewbornAdmissionRules.MergeNonPediatricReason(
+                NormalizeText(request.Notes), request.NewbornAdmission?.NonPediatricDoctorReason);
+            if (admissionNotes?.Length > 1000)
+                return InpEpisodeOperationResult.Invalid("Catatan admisi bersama alasan DPJP melebihi 1000 karakter.");
 
             if (request.SelectedBedId.HasValue)
             {
@@ -378,7 +392,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             if (otherDraft != null)
             {
-                warnings.Add(BuildOtherDraftWarning(otherDraft.EpisodeNumber, otherDraft.CreateDateTime));
+                warnings.Add(BuildOtherDraftWarning(
+                    otherDraft.EpisodeNumber, otherDraft.CreateDateTime,
+                    await _episodeNumberService.HospitalTimeZoneAsync(cancellationToken)));
             }
 
             var now = DateTime.UtcNow;
@@ -389,7 +405,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 if (encounter == null)
                 {
-                    encounter = BuildInpatientEncounter(request, actorUserId, now);
+                    encounter = BuildInpatientEncounter(
+                        request, actorUserId, now, await _episodeNumberService.HospitalNowAsync(cancellationToken));
                     encounterCreatedByAdmission = true;
 
                     _dbContext.Set<RegPatientEncounter>().Add(encounter);
@@ -408,13 +425,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     MotherEpisodeId = request.MotherEpisodeId == Guid.Empty
                         ? null
                         : request.MotherEpisodeId,
-                    Notes = NormalizeText(request.Notes),
+                    Notes = admissionNotes,
+                    SurgicalBookingNumber = request.SurgicalBookingNumber?.Trim(),
+                    ClinicalSubCategory = request.ClinicalSubCategory?.Trim(),
+                    BedHoldStatus = !string.IsNullOrWhiteSpace(request.BedHoldStatus) ? request.BedHoldStatus.Trim() : (!string.IsNullOrWhiteSpace(request.SurgicalBookingNumber) ? "InSurgery" : null),
+                    IsRoomingInBabyPlanned = request.IsRoomingInBabyPlanned,
+                    MaternityPackageId = request.MaternityPackageId,
                     IsActive = true,
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
 
                 InpNewbornAdmissionRules.ApplyContext(episode, request.NewbornAdmission);
+                ApplyExternalReferral(episode, request.ExternalReferral);
                 _dbContext.Set<InpEpisode>().Add(episode);
 
                 if (isOdcPatient && patient.PatientType != PatientType.OneDayCare)
@@ -450,6 +473,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 _dbContext.Set<InpDoctorAssignment>().Add(doctorAssignment);
                 episode.DoctorAssignments.Add(doctorAssignment);
 
+                // BE-RWI-183 / RWI-DEC-357: Tri-Dokter pada kasus bedah/SC (Sp.An & Sp.A sebagai Konsulen)
+                var nextSeq = 2;
+                if (request.AnesthesiologistDoctorId.HasValue &&
+                    request.AnesthesiologistDoctorId.Value != Guid.Empty &&
+                    request.AnesthesiologistDoctorId.Value != request.DoctorId)
+                {
+                    var anAssignment = new InpDoctorAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        EpisodeId = episode.Id,
+                        DoctorId = request.AnesthesiologistDoctorId.Value,
+                        AssignmentRole = InpDoctorAssignmentRole.Consultant,
+                        AssignmentPurpose = InpDoctorAssignmentPurpose.Regular,
+                        SequenceNumber = nextSeq++,
+                        StartDateTime = now,
+                        EndDateTime = null,
+                        AssignedByUserId = actorUserId,
+                        IsActive = true,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId
+                    };
+                    _dbContext.Set<InpDoctorAssignment>().Add(anAssignment);
+                    episode.DoctorAssignments.Add(anAssignment);
+                }
+
+                if (request.PediatricianDoctorId.HasValue &&
+                    request.PediatricianDoctorId.Value != Guid.Empty &&
+                    request.PediatricianDoctorId.Value != request.DoctorId)
+                {
+                    var pedAssignment = new InpDoctorAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        EpisodeId = episode.Id,
+                        DoctorId = request.PediatricianDoctorId.Value,
+                        AssignmentRole = InpDoctorAssignmentRole.Consultant,
+                        AssignmentPurpose = InpDoctorAssignmentPurpose.Regular,
+                        SequenceNumber = nextSeq++,
+                        StartDateTime = now,
+                        EndDateTime = null,
+                        AssignedByUserId = actorUserId,
+                        IsActive = true,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId
+                    };
+                    _dbContext.Set<InpDoctorAssignment>().Add(pedAssignment);
+                    episode.DoctorAssignments.Add(pedAssignment);
+                }
+
                 await ApplyStatusChangeAsync(
                     episode,
                     fromStatus: null,
@@ -475,6 +546,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 // Initial Deposit Order jika nominal diminta diisi dan positif (tidak menahan admisi - RWI-DEC-095)
                 if (request.RequestedDepositAmount.HasValue && request.RequestedDepositAmount.Value > 0)
                 {
+                    // PLAN-REPAIR-EPS-041 FIX-17: rencana deposit tercatat di episode, sama dengan jalur transfer.
+                    episode.PlannedDepositAmount = request.RequestedDepositAmount.Value;
+
                     string orderNumber;
                     if (_billingNumberSeries != null)
                     {
@@ -646,7 +720,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             episode.MotherEpisodeId = request.MotherEpisodeId == Guid.Empty
                 ? null
                 : request.MotherEpisodeId;
-            episode.Notes = NormalizeText(request.Notes);
+            // FIX-EPS-040-09: alasan DPJP non-anak dari pembuatan episode tidak boleh hilang saat catatan disunting.
+            var updatedNotes = InpNewbornAdmissionRules.MergeNonPediatricReason(
+                NormalizeText(request.Notes), request.NewbornAdmission?.NonPediatricDoctorReason, episode.Notes);
+            if (updatedNotes?.Length > 1000)
+                return InpEpisodeOperationResult.Invalid("Catatan admisi bersama alasan DPJP melebihi 1000 karakter.");
+            episode.Notes = updatedNotes;
             episode.UpdateDateTime = now;
             episode.UpdateBy = actorUserId;
 
@@ -1302,6 +1381,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         FamilyBillingPreference = x.FamilyBillingPreference ?? "Separate",
                         PlannedDepositAmount = x.PlannedDepositAmount
                     },
+                    ExternalReferral = x.ExternalReferralNumber == null ? null : new InpatientAdmissionExternalReferral
+                    {
+                        ReferralNumber = x.ExternalReferralNumber,
+                        ReferralDateTime = x.ExternalReferralDateTime,
+                        ReferralFacilityName = x.ExternalReferralFacilityName ?? "",
+                        ReferralDoctorName = x.ExternalReferralDoctorName,
+                        ReferralDiagnosis = x.ExternalReferralDiagnosis ?? ""
+                    },
+                    SurgicalBookingNumber = x.SurgicalBookingNumber,
+                    ClinicalSubCategory = x.ClinicalSubCategory,
+                    BedHoldStatus = x.BedHoldStatus,
+                    IsRoomingInBabyPlanned = x.IsRoomingInBabyPlanned,
+                    MaternityPackageId = x.MaternityPackageId,
                     MotherEpisodeNumber = x.MotherEpisode != null
                         ? x.MotherEpisode.EpisodeNumber
                         : null,
@@ -1411,6 +1503,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
+            // BE-RWI-243: Ringkasan kelengkapan berkas admisi Workspace PPRI secara non-blocking
+            try
+            {
+                var admissionDocs = await _dbContext.Set<InpAdmissionDocument>()
+                    .AsNoTracking()
+                    .Where(x => x.EpisodeId == episodeId && !x.IsDelete)
+                    .Select(x => new { x.DocumentType, x.Status })
+                    .ToListAsync(cancellationToken);
+
+                var completedTypes = admissionDocs
+                    .Where(x => x.Status == InpAdmissionDocumentStatus.Completed)
+                    .Select(x => x.DocumentType)
+                    .ToHashSet();
+
+                var pendingNames = new List<string>();
+
+                // 1. General Consent
+                if (!completedTypes.Contains(InpAdmissionDocumentType.GeneralConsent))
+                    pendingNames.Add("General Consent");
+
+                // 2. Formulir Serah Terima Pasien Baru
+                if (!completedTypes.Contains(InpAdmissionDocumentType.NewPatientHandover))
+                    pendingNames.Add("Checklist Serah Terima Pasien Baru");
+
+                // 3. Surat Pernyataan Selisih Biaya
+                if (!completedTypes.Contains(InpAdmissionDocumentType.CostDifferenceStatement))
+                    pendingNames.Add("Surat Pernyataan Selisih Biaya");
+
+                // 4. Bukti Pelunasan Deposit
+                var hasCompletedDepositDoc = completedTypes.Contains(InpAdmissionDocumentType.DepositSettlementStatement);
+                var depositOrderPending = detail.DepositPaymentOrder != null && detail.DepositPaymentOrder.OutstandingAmount > 0;
+                if (!hasCompletedDepositDoc && depositOrderPending)
+                {
+                    pendingNames.Add("Bukti Pelunasan Deposit");
+                }
+
+                var totalRequired = 4;
+                var completedCount = totalRequired - pendingNames.Count;
+                if (completedCount < 0) completedCount = 0;
+
+                detail.AdmissionDocumentsSummary = new AdmissionDocumentsSummaryDto
+                {
+                    EpisodeId = episodeId,
+                    TotalRequiredDocuments = totalRequired,
+                    CompletedDocumentsCount = completedCount,
+                    IsAllCompleted = pendingNames.Count == 0,
+                    PendingDocumentNames = pendingNames
+                };
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Non-blocking: kegagalan penghitungan dokumen admisi tidak pernah menggagalkan detail episode
+                detail.AdmissionDocumentsSummary = new AdmissionDocumentsSummaryDto
+                {
+                    EpisodeId = episodeId,
+                    TotalRequiredDocuments = 4,
+                    CompletedDocumentsCount = 0,
+                    IsAllCompleted = false,
+                    PendingDocumentNames = ["General Consent", "Checklist Serah Terima Pasien Baru", "Surat Pernyataan Selisih Biaya", "Bukti Pelunasan Deposit"]
+                };
+            }
+
             if (warnings != null && warnings.Count > 0)
             {
                 detail.Warnings.AddRange(warnings);
@@ -1446,12 +1600,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private static RegPatientEncounter BuildInpatientEncounter(
             OpenAdmissionRequest request,
             Guid actorUserId,
-            DateTime now)
+            DateTime now,
+            DateTime hospitalNow)
         {
             return new RegPatientEncounter
             {
                 Id = Guid.NewGuid(),
-                EncounterNumber = BuildInpatientEncounterNumber(now),
+                // FIX-EPS-040-22: bagian waktu nomor kunjungan memakai jam rumah sakit, bukan UTC.
+                EncounterNumber = BuildInpatientEncounterNumber(hospitalNow),
                 PatientId = request.PatientId,
                 ServiceUnitId = request.ServiceUnitId,
                 PatientClassId = request.PatientClassId,
@@ -1559,6 +1715,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private static string? NormalizeText(string? value)
         {
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        /// <summary>
+        /// Toleransi selisih jam peramban dan server saat memeriksa tanggal rujukan di masa depan.
+        /// </summary>
+        private static readonly TimeSpan ExternalReferralClockSkew = TimeSpan.FromMinutes(5);
+
+        /// <summary>
+        /// Waktu tanpa zona dianggap UTC, sama seperti rujukan kunjungan modul Pendaftaran
+        /// (<c>EncounterReferralService.ToUtc</c>); layar mengirimkannya dalam UTC.
+        /// </summary>
+        private static DateTime ToUtcReferralTime(DateTime value)
+            => value.Kind switch
+            {
+                DateTimeKind.Utc => value,
+                DateTimeKind.Local => value.ToUniversalTime(),
+                _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+            };
+
+        /// <summary>
+        /// FIX-EPS-039-03 — kelengkapan isian dijaga atribut DTO; yang diperiksa di sini adalah
+        /// aturan yang tidak dapat dinyatakan atribut: rujukan tidak boleh bertanggal di masa depan.
+        /// Contoh: rujukan bertanggal besok ditolak, rujukan tadi pagi diterima.
+        /// </summary>
+        private static string? ValidateExternalReferral(InpatientAdmissionExternalReferral? referral)
+        {
+            if (referral == null) return null;
+
+            if (string.IsNullOrWhiteSpace(referral.ReferralNumber) ||
+                string.IsNullOrWhiteSpace(referral.ReferralFacilityName) ||
+                string.IsNullOrWhiteSpace(referral.ReferralDiagnosis) ||
+                !referral.ReferralDateTime.HasValue)
+            {
+                return "Data rujukan belum lengkap. Nomor, tanggal dan jam, fasilitas perujuk, dan diagnosa wajib diisi.";
+            }
+
+            if (ToUtcReferralTime(referral.ReferralDateTime.Value) > DateTime.UtcNow.Add(ExternalReferralClockSkew))
+            {
+                return "Tanggal dan jam rujukan tidak boleh melewati waktu sekarang.";
+            }
+
+            return null;
+        }
+
+        private static void ApplyExternalReferral(InpEpisode episode, InpatientAdmissionExternalReferral? referral)
+        {
+            if (referral == null) return;
+
+            episode.ExternalReferralNumber = NormalizeText(referral.ReferralNumber);
+            episode.ExternalReferralDateTime = referral.ReferralDateTime.HasValue
+                ? ToUtcReferralTime(referral.ReferralDateTime.Value)
+                : null;
+            episode.ExternalReferralFacilityName = NormalizeText(referral.ReferralFacilityName);
+            episode.ExternalReferralDoctorName = NormalizeText(referral.ReferralDoctorName);
+            episode.ExternalReferralDiagnosis = NormalizeText(referral.ReferralDiagnosis);
         }
 
         private static string Truncate(string value, int maxLength)

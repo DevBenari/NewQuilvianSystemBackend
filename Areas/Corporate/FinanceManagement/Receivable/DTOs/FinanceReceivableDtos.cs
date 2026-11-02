@@ -7,6 +7,15 @@ public sealed class ReceivableQuery
     public string? Search { get; set; }
     public string? Status { get; set; }
     public string? DebtorType { get; set; }
+
+    /// <summary>
+    /// Saringan asal piutang karyawan: OVER_ALLOWANCE / PATIENT_PORTION / MIXED (BillingEmployeeArOrigins). Hanya bermakna
+    /// untuk DebtorType EMPLOYEE_BENEFIT; baris lain tidak membawa asal sehingga tidak ikut tersaring masuk.
+    /// </summary>
+    public string? EmployeeArOrigin { get; set; }
+
+    /// <summary>Saringan pemilik benefit (MstWorkforceProfile.Id); piutang lama diterjemahkan lewat MstEmployee.</summary>
+    public Guid? BenefitOwnerWorkforceProfileId { get; set; }
     public DateOnly? DueDateFrom { get; set; }
     public DateOnly? DueDateTo { get; set; }
     public string SortBy { get; set; } = "dueDate";
@@ -55,6 +64,9 @@ public sealed class ReceivableResponse
     /// <summary>NIP (karyawan) atau nomor dokter. Nama properti dipertahankan agar layar lama tetap benar.</summary>
     public string? BenefitOwnerEmployeeNumber { get; set; }
     public string? BenefitRelationship { get; set; }
+
+    /// <summary>Asal piutang karyawan (OVER_ALLOWANCE / PATIENT_PORTION / MIXED); disalin dari handoff Billing, hanya EMPLOYEE_BENEFIT.</summary>
+    public string? EmployeeArOrigin { get; set; }
     public Guid? PatientId { get; set; }
     public string? PatientName { get; set; }
     public string? PatientMedicalRecordNumber { get; set; }

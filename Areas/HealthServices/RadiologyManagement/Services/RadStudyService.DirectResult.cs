@@ -196,6 +196,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             try
             {
                 var handoff = await EmitChargeEligibilityAsync(study, GetCurrentUserId(), cancellationToken);
+
+                // BE-MCU-020: pesanan paket MCU tidak menagih apa pun — bukan kegagalan kirim.
+                if (handoff == null)
+                {
+                    return;
+                }
+
                 if (handoff.Kind is ClinicalFactEmissionKind.Emitted or ClinicalFactEmissionKind.Replayed)
                 {
                     study.BillingFactSubmitted = true;

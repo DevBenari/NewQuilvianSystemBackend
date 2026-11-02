@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Models;
@@ -127,6 +128,23 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Radio
 
             builder.HasIndex(x => x.RadiographerUserId);
             builder.HasIndex(x => x.ExaminingDoctorId);
+
+            // =========================================================================
+            // BE-MCU-003 — pesanan yang dicakup paket MCU, MCU-DEC-022
+            //
+            // Arahnya sengaja dibalik: Radiologi menunjuk MCU, bukan sebaliknya, supaya penahanan
+            // tagihan cukup membaca kolom milik pesanan itu sendiri. Restrict: order MCU yang
+            // masih mencakup pesanan tidak boleh terhapus diam-diam.
+            // =========================================================================
+            builder.Property(x => x.CoveringMcuOrderId)
+                .IsRequired(false);
+
+            builder.HasOne<McuOrder>()
+                .WithMany()
+                .HasForeignKey(x => x.CoveringMcuOrderId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(x => x.CoveringMcuOrderId);
 
             // Daftar tunggu verifikasi membaca "pesanan Pending milik dokter ini".
             builder.HasIndex(x => new { x.InstructingDoctorId, x.InstructionVerificationStatus });

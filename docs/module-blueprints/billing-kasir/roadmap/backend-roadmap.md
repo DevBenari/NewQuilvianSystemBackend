@@ -3297,3 +3297,171 @@ sebagai: verifikasi skenario yang menyentuh `CHECK` dilakukan pada basis data Po
 | Menjalankan dry-run dan migration `BackfillTransferOriginEncounterLinks` | Pemilik repository/basis data | `{OTORISASI-MIG-2}` — belum diberikan; dry-run dibaca pemilik lebih dulu |
 | QBE preflight dan kesesuaian engineering | Diselesaikan saat eksekusi task | Dari `AGENTS.md` backend target dan dokumen engineering canonical |
 | Komunikasi perubahan perilaku ke kasir | Pemilik modul Billing | Wajib sebelum `BE-BKC-084` dirilis |
+
+---
+
+# Gelombang Revisi 2.4 — Jasa Medis pada Item Tagihan (`MVP-38`)
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `2.4` · status **`approved`** 26 Oktober 2026 (`blueprint-manifest.md` `approved_by_revision_2_4`) |
+| Keputusan bisnis | `BKC-DEC-168`..`178` (seluruhnya `approved`) |
+| Keputusan arsitektur | `BKC-DES-093`..`103` (approved bersama revisi `2.4`, termasuk `BKC-DES-093` port in-process dan `BKC-DES-097` kolom jejak) |
+| Contract version berlaku | `BIL-API-2.1`, `BIL-STATE-2.0`, `BIL-VALIDATION-2.1`, `BIL-INTEGRATION-1.9`, `BIL-PERMISSION-1.7`, `BIL-TEST-2.2`, `BIL-CALCULATION-1.0` |
+| Backend baseline SHA | `ecddd8f8` (working tree memuat perubahan Medical Fee dari sesi lain; tidak menyentuh berkas tumpuan) |
+| Frontend baseline SHA | `e2c17153b` |
+| Requirement yang direncanakan | `FR-BKC-286`..`292`. `FR-BKC-293` ada di `frontend-roadmap.md` |
+| Tidak direncanakan | `EPIC BKC-31` / `FR-BKC-294` — **`OPEN DECISION`** `BKC-OQ-148`; tidak masuk gelombang mana pun |
+
+**Legenda tanda status:** ✅ selesai terbukti · 🟡 source ada, kriteria belum terbukti penuh · ⛔ tertahan gerbang ·
+tanpa tanda = belum disentuh.
+
+## Konteks Bisnis Rumah Sakit dan Alur Operasional
+
+Kasir mencatat "Konsultasi Dokter Spesialis" Rp 500.000 dari katalog tarif untuk pasien yang diperiksa dr. Rina. Hari ini baris itu
+tidak menyimpan siapa dokternya, dan bagian dokternya nol. Akibatnya jasa dr. Rina untuk layanan itu tidak pernah sampai ke perhitungan
+jasa bulanan Medical Fee, dan tim keuangan harus mencarinya manual di Excel.
+
+Gelombang ini memberi kasir penanda "layanan berjasa" beserta pilihan dokter. Billing lalu menanyakan persentase jasa ke Medical Fee,
+misalnya 40%, dan menulis bagian dokter Rp 200.000. Kalau Medical Fee belum punya aturan atau sedang gangguan, bagian dokter tetap nol
+dan tagihan tetap berjalan. Sampai Medical Fee memasang implementasinya (`BE-MDF-016`), perilaku angka sama persis dengan hari ini.
+
+## Grafik Urutan Dependency
+
+```text
+{OTORISASI-MIG-3 ⛔} ─> BE-BKC-089 ✅─┬─> BE-BKC-091 ─┬─> BE-BKC-092
+                                      │               │
+                                      │  BE-BKC-090 ✅┘
+                                      │
+                                      └─> BE-BKC-093
+```
+
+`{OTORISASI-MIG-3 ⛔}` = otorisasi eksplisit pemilik untuk **membuat dan menjalankan** migration
+`AddBilInvoiceItemPerformerAndDoctorShareTrace` (`AGENTS.md` bagian Keselamatan Basis Data). Approval desain revisi `2.4`
+**bukan** otorisasi itu.
+
+`BE-BKC-092` menunggu `BE-BKC-091` **dan** `BE-BKC-090`; ketergantungannya pada `BE-BKC-089` berlaku lewat `BE-BKC-091`.
+Jumlah pasangan prasyarat→task: **5** (sama dengan isi kolom `Dependency`). Bebas siklus.
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `BE-BKC-090` ✅ selesai 26 Oktober 2026 ([Laporan](../task/report/backend/BE-BKC-090.md)). Membuka `BE-MDF-016` di Medical Fee |
+| ⛔ | `{OTORISASI-MIG-3}` | `BE-BKC-089` ✅ selesai 26 Oktober 2026 ([Laporan](../task/report/backend/BE-BKC-089.md)), lalu `BE-BKC-091` dan `BE-BKC-093` (paralel), lalu `BE-BKC-092` (juga menunggu `BE-BKC-090`) |
+
+### Dependency keluar ke roadmap Medical Fee
+
+Ditulis di sini sebagai informasi; roadmap Medical Fee **tidak** disunting oleh perencanaan ini.
+
+| Task Medical Fee | Menunggu task Billing | Sebab |
+| --- | --- | --- |
+| `BE-MDF-015` (jasa dari entri bebas kasir) | `BE-BKC-089`, `BE-BKC-091` | Kolom pelaksana harus ada (`089`) dan benar-benar terisi dari entri kasir (`091`) |
+| `BE-MDF-016` (alir nilai jasa ke `DoctorShare`) | `BE-BKC-090`; bukti ujung-ke-ujung butuh `BE-BKC-092` | **Bentuk task berubah:** Medical Fee mengimplementasikan port `IBillingDoctorShareResolver` dan mendaftarkannya dengan `AddScoped`, bukan menyediakan endpoint yang dipanggil Billing (`BKC-DES-093`, `BIL-INT-023`) |
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BE-BKC-089` | Basis data menyimpan pelaksana dan asal `DoctorShare` pada baris tagihan | `FR-BKC-286`; `BKC-DEC-171`, `178`; `BKC-DES-097` | Kamus data revisi `2.4` | `BilInvoiceItem`, `BilInvoiceItemConfiguration` | Model, configuration, satu migration | `{OTORISASI-MIG-3}` | 4/4 terpenuhi | Analisis diff; kesesuaian snapshot & kamus data; migration Up/Down (build otomatis dilepas) | Sedang; Backend Engineering | ✅ Selesai 26 Okt 2026 ([Laporan](../task/report/backend/BE-BKC-089.md)) |
+| `BE-BKC-090` | Port ke Medical Fee tersedia dan terdaftar, dengan jawaban bawaan "tidak tersedia" | `FR-BKC-287`; `BKC-DEC-169`; `BKC-DES-093`, `094` | `BIL-INTEGRATION-1.9` `BIL-INT-023` | Preseden `IAdministrationFeeCalculationService` | Dua berkas baru, satu pendaftaran DI | — | 3/3 terpenuhi | Analisis diff; kesesuaian kontrak §25.5; DI TryAdd (build otomatis dilepas) | Rendah; Backend Engineering | ✅ Selesai 26 Okt 2026 ([Laporan](../task/report/backend/BE-BKC-090.md)) |
+| `BE-BKC-091` | Kasir dapat mencatat entri berjasa beserta pelaksananya; dua pelaksana tidak pernah tergabung | `FR-BKC-288`, `290`, `292` (bagian pelaksana); `BKC-DEC-171`, `172`, `176`, `178`; `BKC-DES-098`, `099`, `102`, `103` | `BIL-API-2.1`; `BIL-VALIDATION-2.1` `161`..`167` | `AddCatalogChargeAsync`, `AddOtherChargeAsync`, `UpsertChargeAsync`, `MapDetail` | DTO, validasi, hash, penggabungan, respons | `BE-BKC-089` | Rincian | QBE; diff; build; kontrak API; proses bisnis di dev | Sedang; Backend Engineering | Rincian |
+| `BE-BKC-092` | `DoctorShare` diisi dari Medical Fee lewat port, tanpa pernah menggagalkan pencatatan | `FR-BKC-289`, `292` (bagian asal nilai dan audit); `BKC-DEC-168`..`170`, `175`, `177`; `BKC-DES-095`..`097`, `100`, `101` | `BIL-INTEGRATION-1.9` `BIL-INT-023`; `BIL-VALIDATION-2.1` `168`; `BIL-PERMISSION-1.7` | `UpsertChargeAsync`, `ApplySource`, `BillingCalculationService.Money` | Pemanggilan sebelum transaksi, rumus, kolom jejak, audit, konfigurasi batas waktu | `BE-BKC-091`, `BE-BKC-090` | Rincian | QBE; diff; build; proses bisnis di dev dengan implementasi port pengganti | **Tinggi** (jalur pencatatan semua charge); Backend Engineering | Rincian |
+| `BE-BKC-093` | Salinan item (tinjauan item pengganti, retur obat) membawa kolom baru tanpa memanggil Medical Fee | `FR-BKC-291`; `BKC-DEC-177`; `BKC-DES-101` | Kamus data revisi `2.4` | `BillingSupersededItemReviewService`, `BillingDrugReturnService` | Dua titik salinan | `BE-BKC-089` | Rincian | QBE; diff; build; proses bisnis di dev | Rendah; Backend Engineering | Rincian |
+
+## Rincian Task
+
+### ✅ `BE-BKC-089` — Model, configuration, dan migration kolom pelaksana dan jejak `DoctorShare`
+
+| Field | Isi |
+| --- | --- |
+| Status | ✅ **SELESAI 26 Oktober 2026.** Cakupan 1–3 terpasang (`BilInvoiceItem.cs`, `BilInvoiceItemConfiguration.cs`, `20261026150000_AddBilInvoiceItemPerformerAndDoctorShareTrace.cs`, `ApplicationDbContextModelSnapshot.cs`). Seluruh kriteria penerimaan terbukti secara struktural dan analitis. Butir DoD `dotnet build` dilepas atas instruksi pengguna 26 Oktober 2026 (*tanpa dotnet build automatis*). Laporan: [`task/report/backend/BE-BKC-089.md`](../task/report/backend/BE-BKC-089.md). |
+| Outcome | `BilInvoiceItem` memiliki enam kolom baru dan empat check constraint persis seperti kamus data revisi `2.4` |
+| Jejak | `FR-BKC-286`; `BKC-DEC-171`, `178`; `BKC-DES-097`; `INV-MF-3`, `INV-MF-5` |
+| Kontrak | `data/data-dictionary.md` amendment revisi `2.4`; `02-backend-architecture.md` §25.9–25.10 |
+| Kemampuan existing | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceItem.cs`; `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInvoiceItemConfiguration.cs` |
+| Cakupan | 1. Enam properti pada `BilInvoiceItem` (`IsFeeBearing`, `PerformerType`, `PerformerReferenceId`, `PerformerRoleCode`, `DoctorShareResolution`, `DoctorShareSharingRuleId`) beserta kelas konstanta `BillingPerformerTypes` dan `BillingDoctorShareResolutions` di berkas yang sama.<br/>2. Configuration: panjang kolom, `HasDefaultValue(false)` untuk `IsFeeBearing`, empat `HasCheckConstraint` baru di blok `ToTable` yang sudah ada.<br/>3. Satu migration `<timestamp>_AddBilInvoiceItemPerformerAndDoctorShareTrace`. Tanpa index baru. Tanpa pengisian data lama |
+| Dependency | `{OTORISASI-MIG-3}` |
+| Acceptance criteria | 1. Model snapshot memuat enam kolom dan empat constraint persis seperti kamus data.<br/>2. `Up()` hanya memuat perubahan cakupan 1–2; `Down()` menghapus constraint lalu kolom.<br/>3. Setelah migration dijalankan di dev, seluruh baris lama tetap valid (`IsFeeBearing = false`, kolom lain `NULL`).<br/>4. Menyisipkan baris `IsFeeBearing = true` tanpa pelaksana ditolak basis data (`CK_BilInvoiceItem_PerformerRequired`) |
+| Bukti verifikasi | QBE preflight; review diff (hanya berkas di atas + migration); `dotnet restore` + `dotnet build`; penerapan migration di PostgreSQL dev **oleh pihak berwenang** dan hasilnya dicatat |
+| Risiko / pemilik | Sedang: menyentuh tabel yang dipakai semua tagihan. Migration hanya mengubah metadata kecuali pemeriksaan constraint sekali jalan. Pemilik: Backend Engineering; eksekusi migration oleh pemilik repository/basis data |
+| Definition of Done | Cakupan 1–3 terpasang; kriteria 1–4 terbukti atau dicatat NOT RUN beralasan; build lulus; laporan `task/report/backend/BE-BKC-089.md` tersusun |
+
+### ✅ `BE-BKC-090` — Port `IBillingDoctorShareResolver` dan implementasi bawaan
+
+| Field | Isi |
+| --- | --- |
+| Status | ✅ **SELESAI 26 Oktober 2026.** Cakupan 1–3 terpasang (`IBillingDoctorShareResolver.cs`, `NullBillingDoctorShareResolver.cs`, `BillingManagementServiceCollectionExtensions.cs`). Ketiga kriteria penerimaan terbukti. Butir DoD `dotnet build` dilepas atas instruksi pengguna 26 Oktober 2026 (*tanpa dotnet build automatis*). Laporan: [`task/report/backend/BE-BKC-090.md`](../task/report/backend/BE-BKC-090.md) |
+| Outcome | Billing punya satu titik panggil ke Medical Fee yang kontraknya terkunci, dan aplikasi tetap berjalan normal sebelum Medical Fee memasang implementasinya |
+| Jejak | `FR-BKC-287`; `BKC-DEC-169`; `BKC-DES-093`, `094` |
+| Kontrak | `02-backend-architecture.md` §25.5 (masukan, jawaban, aturan tidak melempar); `BIL-INTEGRATION-1.9` `BIL-INT-023` |
+| Kemampuan existing | Preseden port: `IAdministrationFeeCalculationService.cs`; pendaftaran di `BillingManagementServiceCollectionExtensions.cs` |
+| Cakupan | 1. `Areas/HealthServices/BillingManagement/Billing/Services/IBillingDoctorShareResolver.cs`: interface `ResolveAsync(BillingDoctorShareQuery, CancellationToken)`, record `BillingDoctorShareQuery` dan `BillingDoctorShareResolution`, konstanta `Outcome` (`Resolved`, `NoRule`, `Unavailable`).<br/>2. `NullBillingDoctorShareResolver.cs`: selalu `Unavailable`, tanpa akses basis data.<br/>3. `TryAddScoped<IBillingDoctorShareResolver, NullBillingDoctorShareResolver>()` pada `BillingManagementServiceCollectionExtensions.cs`. Belum ada pemanggil |
+| Dependency | — |
+| Acceptance criteria | 1. Aplikasi start dan `IBillingDoctorShareResolver` terselesaikan menjadi `NullBillingDoctorShareResolver`.<br/>2. Pendaftaran `AddScoped` lain untuk interface yang sama, di mana pun urutannya, menang atas implementasi bawaan (dibuktikan lewat pembacaan kode `TryAdd`).<br/>3. Bentuk record sama persis dengan §25.5, termasuk `ServiceDate` bertipe `DateOnly` dan `RoleCode` nullable |
+| Bukti verifikasi | QBE preflight; review diff; `dotnet restore` + `dotnet build`; start aplikasi di dev |
+| Risiko / pemilik | Rendah. Pemilik: Backend Engineering. **Kontrak port dikunci oleh task ini**; perubahan bentuk sesudahnya butuh revisi kontrak karena Medical Fee mengimplementasikannya |
+| Definition of Done | Cakupan 1–3 terpasang; kriteria terbukti; build lulus; laporan tersusun; pemilik Medical Fee diberi tahu bahwa `BE-MDF-016` dapat dimulai |
+
+### `BE-BKC-091` — Entri kasir berjasa: DTO, validasi, hash, penggabungan, dan respons
+
+| Field | Isi |
+| --- | --- |
+| Outcome | `POST catalog-charges` dan `POST other-charges` menerima penanda berjasa dan pelaksana; data tersimpan dan tampil di detail invoice; dua pelaksana tidak pernah tergabung dalam satu baris |
+| Jejak | `FR-BKC-288`, `FR-BKC-290`, `FR-BKC-292` (field pelaksana dan nama tampilan); `BKC-DEC-171`, `172`, `176`, `178`; `BKC-DES-098`, `099`, `102`, `103` |
+| Kontrak | `BIL-API-2.1` (field request dan respons); `BIL-VALIDATION-2.1` `BIL-VAL-161`..`167` |
+| Kemampuan existing | `BillingInvoiceService.AddCatalogChargeAsync` (`:1356-1452`), `AddOtherChargeAsync` (`:1462-`), `UpsertChargeAsync` (`:1981-`), `ApplySource` (`:2517-`), `ComputePayloadHash` (`:2586-2635`), `MapDetail`; `BillingInvoiceDtos.cs` |
+| Cakupan | 1. Empat field opsional pada `AddCatalogChargeRequest`, `AddOtherChargeRequest`, `UpsertChargeRequest`; diteruskan ke `UpsertChargeRequest` pada kedua jalur kasir.<br/>2. Validasi `BIL-VAL-161`..`166` di `UpsertChargeAsync` sebelum transaksi; pencarian `MstDoctor`/`MstWorkforceProfile` `AsNoTracking`.<br/>3. `ApplySource` menulis empat kolom pelaksana.<br/>4. `ComputePayloadHash`: ruas pelaksana ditambahkan **hanya bila** `IsFeeBearing = true` (`BKC-DES-099`).<br/>5. `AddCatalogChargeAsync`: pemeriksaan replay awal membandingkan kolom pelaksana item tanda terima (`BIL-VAL-167`, `409`); penggabungan baris hanya bila keempat kolom pelaksana sama (`BKC-DES-098`); jalur gabung mengirim `DoctorShare = 0`.<br/>6. `InvoiceItemResponse` dan `MapDetail`: `isFeeBearing`, `performerType`, `performerReferenceId`, `performerRoleCode`, `performerDisplayName` (dimuat satu kali per detail invoice, bukan per baris).<br/>Tidak termasuk: pemanggilan Medical Fee dan `doctorShareResolution` (milik `BE-BKC-092`). Pada task ini `DoctorShareResolution` ditulis `NOT_APPLICABLE` untuk setiap baris baru |
+| Dependency | `BE-BKC-089` |
+| Acceptance criteria | Skenario dari `testing/acceptance-test-matrix.md` revisi `2.4`, diverifikasi lewat proses bisnis/runtime:<br/>1. (`BIL-AT-237`) entri katalog berjasa dengan dokter aktif tersimpan dan detail invoice membawa field pelaksana serta nama dokter.<br/>2. (`BIL-AT-238`) berjasa tanpa pelaksana `422`, nol baris dan nol tanda terima, pada kedua endpoint.<br/>3. (`BIL-AT-239`) entri tidak berjasa tersimpan seperti sebelumnya; hash isi permintaannya sama dengan rumus lama (dibuktikan dengan membandingkan hash tanda terima lama yang dikirim ulang = replay).<br/>4. (`BIL-AT-245`) kelima isian salah menghasilkan `422` dengan pesan sesuai validation matrix.<br/>5. (`BIL-AT-246`) dr. Rina, dr. Budi, dr. Rina untuk tarif sama → dua baris; kirim ulang kunci pertama dengan dokter lain `409`.<br/>6. (`BIL-AT-248`) `from-source` domain `LABORATORY` dengan field pelaksana `422` |
+| Bukti verifikasi | QBE preflight; review diff; `dotnet restore` + `dotnet build`; verifikasi kontrak API (request/response sesuai `BIL-API-2.1`); verifikasi proses bisnis di PostgreSQL dev |
+| Risiko / pemilik | Sedang: mengubah aturan penggabungan baris katalog yang sudah dipakai kasir, dan rumus hash yang dipakai idempotensi. Pemilik: Backend Engineering |
+| Definition of Done | Cakupan 1–6 terpasang; kriteria terbukti atau NOT RUN beralasan; build lulus; laporan tersusun |
+
+### `BE-BKC-092` — `DoctorShare` dari Medical Fee lewat port
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Baris berjasa bertarif mendapat `DoctorShare` dari Medical Fee; ketiadaan atau kegagalan Medical Fee tidak pernah menggagalkan pencatatan; asal setiap nilai tercatat |
+| Jejak | `FR-BKC-289`, `FR-BKC-292` (asal nilai, audit); `BKC-DEC-168`, `169`, `170`, `175`, `177`; `BKC-DES-095`, `096`, `097`, `100`, `101`; `INV-MF-1`, `INV-MF-2`, `INV-MF-5` |
+| Kontrak | `BIL-INTEGRATION-1.9` `BIL-INT-023`; `BIL-VALIDATION-2.1` `BIL-VAL-168`; `BIL-PERMISSION-1.7` (peristiwa `BillingInvoice.DoctorShareUnavailable`, payload `CreateCharge`/`UpsertCharge`); `BIL-API-2.1` (`doctorShareResolution`) |
+| Kemampuan existing | `UpsertChargeAsync`, `ApplySource`, pola `Money` (`BillingCalculationService.cs:1393`), `LoggerService.AuditAsync` |
+| Cakupan | 1. `ResolveDoctorShareAsync` dipanggil **sebelum** `BeginTransactionAsync`; dilewati (`NOT_APPLICABLE`) bila tidak berjasa, tanpa `TariffId`, atau `CurrentTransaction != null` (`BKC-DES-095`). Tanggal layanan = tanggal `OccurredAt` menurut Asia/Jakarta.<br/>2. Pembungkus batas waktu `BillingDoctorShare:TimeoutMilliseconds` (bawaan 2000) dan penangkap kesalahan; hasil gagal = `UNAVAILABLE`.<br/>3. Rumus `BKC-DES-096` (pembulatan `AwayFromZero` dua desimal, dibatasi nilai kotor dibulatkan ke bawah).<br/>4. `ApplySource` menerima hasil sebagai parameter terpisah; `request.DoctorShare` dan hash tidak memakai hasil itu (`BKC-DES-100`). Replay tidak menulis ulang.<br/>5. Pembaruan versi sumber menulis ulang `DoctorShare`, `DoctorShareResolution`, `DoctorShareSharingRuleId` (`BKC-DES-101`).<br/>6. Peristiwa audit `BillingInvoice.DoctorShareUnavailable` setelah commit; payload `CreateCharge`/`UpsertCharge` ditambah `IsFeeBearing` dan `DoctorShareResolution`.<br/>7. `doctorShareResolution` pada `InvoiceItemResponse` |
+| Dependency | `BE-BKC-091`, `BE-BKC-090` |
+| Acceptance criteria | Diverifikasi di PostgreSQL dev dengan implementasi port **pengganti sementara** yang didaftarkan hanya di lingkungan verifikasi lalu dilepas (bukan kode yang di-commit), menjawab sesuai skenario:<br/>1. (`BIL-AT-231`) 40% atas Rp 1.000.000 → Rp 400.000, `MEDICAL_FEE`, id aturan tersimpan.<br/>2. (`BIL-AT-232`..`234`) `Unavailable`, exception, dan lambat → baris tercatat, Rp 0, `UNAVAILABLE`, satu peristiwa audit, transaksi tidak batal.<br/>3. (`BIL-AT-235`) `NoRule` → Rp 0, `NO_RULE`, finalisasi berhasil.<br/>4. (`BIL-AT-242`) 0,5 × Rp 20.010,01 pada 100% → Rp 10.005,00.<br/>5. (`BIL-AT-243`) baris `UNAVAILABLE` diperbarui versi sumber saat port menjawab 40% → nilai terisi.<br/>6. (`BIL-AT-247`) check-in MCU berjasa di dalam transaksinya → port tidak dipanggil, `NOT_APPLICABLE`.<br/>7. Dengan `NullBillingDoctorShareResolver` (keadaan produksi sebelum `BE-MDF-016`), seluruh angka tagihan identik dengan sebelum task ini.<br/>8. (`BIL-AT-240`, `241`) Finalisasi tagihan ber-`DoctorShare` Rp 400.000 menerbitkan `BilApHandoff` dengan rumus dan penerima lama; diskon dokter Rp 100.000 diterima setelah persetujuan dan Rp 500.000 ditolak. Perilaku ini tidak diubah kode, hanya dibuktikan |
+| Bukti verifikasi | QBE preflight; review diff; `dotnet restore` + `dotnet build`; verifikasi proses bisnis dan runtime di dev; bila implementasi pengganti tidak dapat dipasang di dev, kriteria 1–6 dicatat **NOT RUN** beserta alasannya dan diverifikasi ulang setelah `BE-MDF-016` |
+| Risiko / pemilik | **Tinggi**: `UpsertChargeAsync` adalah jalur bersama seluruh charge (kasir, katalog, jembatan klinis, MCU) dan baru diubah adendum §23. Kesalahan urutan dapat menggagalkan semua pencatatan tagihan. Pemilik: Backend Engineering |
+| Definition of Done | Cakupan 1–7 terpasang; kriteria terbukti atau NOT RUN beralasan; kriteria 7 **wajib** terbukti; build lulus; laporan tersusun |
+
+### `BE-BKC-093` — Salinan item membawa kolom pelaksana dan jejak
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Item salinan dari tinjauan item pengganti dan retur obat menyalin enam kolom baru dari item asal, tanpa memanggil Medical Fee |
+| Jejak | `FR-BKC-291`; `BKC-DEC-177`; `BKC-DES-101` |
+| Kontrak | Kamus data revisi `2.4` |
+| Kemampuan existing | `BillingSupersededItemReviewService.cs:427` (`newItem`), `BillingDrugReturnService.cs:45` (`replacement`) |
+| Cakupan | Tambah enam penugasan kolom pada kedua inisialisasi objek. Tidak ada perubahan lain |
+| Dependency | `BE-BKC-089` |
+| Acceptance criteria | (`BIL-AT-244`) Pemulihan tinjauan atas item berjasa menghasilkan item salinan dengan pelaksana, `DoctorShare`, dan jejak yang sama; item retur menyalin kolom yang sama; Medical Fee tidak dipanggil (dibuktikan pembacaan kode: kedua jalur tidak melalui `UpsertChargeAsync`) |
+| Bukti verifikasi | QBE preflight; review diff; `dotnet restore` + `dotnet build`; proses bisnis di dev bila data tinjauan tersedia, selain itu NOT RUN beralasan |
+| Risiko / pemilik | Rendah. Tanpa task ini, basis data tidak menolak apa pun (kolom baru kosong dan `IsFeeBearing` bawaan `false` lolos seluruh constraint), sehingga cacatnya senyap: item berjasa yang dipulihkan kehilangan pelaksananya tanpa jejak. Pemilik: Backend Engineering |
+| Definition of Done | Cakupan terpasang; kriteria terbukti atau NOT RUN beralasan; build lulus; laporan tersusun |
+
+## Catatan Kebijakan Test
+
+Sesuai `rules/backend/TEST_POLICY.md`, kriteria dan DoD di atas **tidak** menuntut automated test. Kode `BIL-AT-*` dipakai sebagai
+**skenario verifikasi** proses bisnis dan runtime. Kolom "Jenis test" pada `testing/acceptance-test-matrix.md` amendment `2.4`
+("Integrasi service", "Unit", "API") dibaca sebagai lapisan tempat skenario diperiksa, bukan kewajiban membuat project test.
+Implementasi port pengganti untuk verifikasi `BE-BKC-092` **MUST NOT** di-commit dan **MUST NOT** berupa controller, endpoint,
+atau runner di `Program.cs` (`TEST_POLICY.md` bagian 2).
+
+## Wewenang yang Tetap Terpisah
+
+| Wewenang | Pemilik | Catatan |
+| --- | --- | --- |
+| Menulis source backend | Diminta per task saat handoff ke `build-module-backend` | Approval roadmap bukan otorisasi menulis kode |
+| Membuat dan menjalankan migration `AddBilInvoiceItemPerformerAndDoctorShareTrace` | Pemilik repository/basis data | `{OTORISASI-MIG-3}` — belum diberikan |
+| QBE preflight dan kesesuaian engineering | Diselesaikan saat eksekusi task | Dari `AGENTS.md` backend target dan dokumen engineering canonical |
+| Implementasi port `IBillingDoctorShareResolver` | Medical Fee (`BE-MDF-016`) | Di luar roadmap ini |
+| Penegasan `MdfFinanceHandoff` satu-satunya sumber utang jasa (`BKC-DEC-173`) | Pemilik Medical Fee dan Finance | Bukan prasyarat teknis; prasyarat klaim "tidak ada pembayaran ganda" |

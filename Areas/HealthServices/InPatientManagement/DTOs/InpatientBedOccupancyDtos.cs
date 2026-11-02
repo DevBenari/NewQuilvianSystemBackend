@@ -274,6 +274,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         /// <summary>Batas waktu reservasi aktif. Kosong bila tempat tidur tidak sedang dipesan.</summary>
         public DateTime? ReservationExpiresAt { get; set; }
+
+        /// <summary>
+        /// Waktu reservasi aktif dibuat (PLAN-REPAIR-EPS-041 FIX-17). Kosong bila tempat tidur tidak
+        /// sedang dipesan. Dipakai layar admisi yang memulihkan pemesanan setelah halaman dimuat ulang.
+        /// </summary>
+        public DateTime? ReservationReservedAt { get; set; }
     }
 
     /// <summary>Bentuk permintaan memesan tempat tidur untuk satu episode <c>Draft</c>.</summary>
@@ -447,5 +453,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         /// <summary>Benar bila baris ini lahir dari koreksi salah catat, bukan dari transfer.</summary>
         public bool IsCorrection { get; set; }
+
+        /// <summary>
+        /// Alasan koreksi salah catat (atau alasan perubahan penempatan).
+        /// Ditampilkan pada riwayat penempatan kamar — kontrak integrasi-billing 1.1.0 API 3.4.
+        /// </summary>
+        public string? ChangeReason { get; set; }
     }
 }

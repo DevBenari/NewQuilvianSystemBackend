@@ -293,7 +293,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             // BE-RWI-037.
             entity.HasIndex(x => x.EncounterId)
                 .IsUnique()
-                .HasFilter("\"IsDelete\" = false AND \"InpEpisodeId\" IS NULL");
+                .HasFilter("\"IsDelete\" = false AND \"InpEpisodeId\" IS NULL AND \"ClinicId\" IS NOT NULL");
 
             entity.HasIndex(x => x.QueueId)
                 .IsUnique()

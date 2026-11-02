@@ -172,3 +172,35 @@ terpisah.
 **Radiologi tidak pernah memanggil Billing untuk bertanya soal uang, dan tidak pernah memanggil
 Clinical Management untuk menitipkan hasil.** Arahnya selalu satu: Radiologi menerbitkan,
 modul lain membaca.
+
+
+---
+
+## 6. Adendum 23 Oktober 2026 — Identitas Butir Tagihan, Pesanan Rawat Inap, dan Tarif Ambigu
+
+Status: **diterapkan di source, belum dibuild atau diuji runtime; menunggu persetujuan pemilik modul.** Tidak mengubah
+pemicu tagihan rawat jalan/IGD (`QualityAccepted`).
+
+### 6.1 Temuan audit
+
+| Temuan | Bukti |
+|---|---|
+| Pesanan **rawat inap** (`InpEpisodeId` terisi) sudah menerbitkan fakta tagih **saat dibuat** (`milestone = OrderRequested`, identitas butir = **pesanan**), dan fakta pembatalan saat pesanan dibatalkan. Ini keputusan `PLAN-REPAIR-008` / `FIX-DOK-008-06` (CPOE → billing tanpa draf), tetapi belum tertulis di kontrak bagian 1 yang menyebut "pesanan dibuat bukan pemicu tagihan" | `RadOrderService.CreateAsync` / `CancelAsync` |
+| Study yang lolos mutu menerbitkan fakta lain dengan identitas butir = **study**. Identitas fakta = (SourceContext, SourceAggregateId, **SourceItemId**, EffectType) dan item invoice unik per (SourceDomain, SourceDetailId), sehingga satu pemeriksaan rawat inap melahirkan **dua item invoice** (pesanan + study): tagihan ganda | `ClinicalMilestoneFactProducer.FindLatestFactAsync`, `BilInvoiceItemConfiguration` |
+| Resolver tarif memilih tarif dengan urutan kelas/klinik lalu **kode tarif**; dua tarif sama spesifik berharga berbeda dipilih diam-diam menurut kode | `BillingSourceTariffResolver.FindTariffAsync` |
+
+### 6.2 Aturan baru
+
+| Aturan | Isi |
+|---|---|
+| Identitas butir study | Rawat jalan/IGD: butir = study (tidak berubah). Rawat inap: study pertama yang lolos mutu memakai identitas **pesanan** (revisi atas fakta pesanan: satu item invoice); study berikutnya (pengulangan yang sah ditagih) memakai identitas study sebagai tagihan tambahan. Pengulangan karena `InternalHospitalError` tetap `NotBillable` |
+| Penentu "study pertama" | Tidak ada study lain pada pesanan yang sama dengan `BillingFactSubmitted = true` |
+| Tarif radiologi | Dipilih `MstTariffSelector` (kelas pasien + klinik kunjungan, paling spesifik menang). Dua tarif sama spesifik berharga berbeda → efek ditolak dengan kode `TARIFF_AMBIGUOUS` dan masuk antrean rekonsiliasi; tidak dipilih acak, termurah, maupun termahal |
+
+### 6.3 Belum dikerjakan / batas
+
+| Hal | Status |
+|---|---|
+| Item invoice ganda yang **sudah terbentuk** pada data development (study rawat inap yang lolos mutu sejak 20 Oktober 2026) | Tidak diperbaiki otomatis. Deteksi baca-saja disediakan pada laporan tugas; koreksi lewat mekanisme void/adjustment Billing yang ada, bukan UPDATE langsung |
+| Pesanan rawat inap yang study pertamanya ditolak mutu lalu diulang karena faktor pasien | Pengulangan itu kini memakai identitas pesanan (satu tagihan) selama study sebelumnya belum membawa tagihan; aturan bisnis tambahan bila ingin ditagih dua kali ada di pemilik modul |
+| Pembuktian | Belum dibuild atau dijalankan; tes xUnit ditulis (`RadiologyBookingTariffTests`) tetapi belum dijalankan |

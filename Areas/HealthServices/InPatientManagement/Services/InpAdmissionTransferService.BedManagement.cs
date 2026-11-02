@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 
@@ -39,6 +40,59 @@ public partial class InpAdmissionTransferService
             await loggerService.AuditAsync("HealthServices.InPatient.AdmissionTransfer", "AdmissionTransfer.Created",
                 "Admisi transfer dan rencana deposit tersimpan atomik.",
                 new { EpisodeId = episode.Id, episode.EncounterId, ActorUserId = actorUserId, meta.ResultEntityId });
+
+        // BE-RWI-241: Otomasi pemicu pembuatan serah terima klinis transfer berstatus PendingSend (NotSent)
+        if (!meta.IsReplay && _transferHandoverService != null)
+        {
+            try
+            {
+                var source = await GetTransferByIdAsync(request.TransferDispositionId, cancellationToken, request.SourceType);
+                var fromUnitId = Guid.Empty;
+                if (request.SourceType == "Emergency" && source?.EmergencyVisitId != null)
+                {
+                    fromUnitId = await _dbContext.Set<EmgVisit>()
+                        .Where(v => v.Id == source.EmergencyVisitId.Value)
+                        .Select(v => v.ServiceUnitId)
+                        .FirstOrDefaultAsync(cancellationToken);
+                }
+                else if (source?.SourceEncounterId != null)
+                {
+                    fromUnitId = await _dbContext.RegPatientEncounters
+                        .Where(e => e.Id == source.SourceEncounterId.Value)
+                        .Select(e => e.ServiceUnitId)
+                        .FirstOrDefaultAsync(cancellationToken);
+                }
+
+                if (fromUnitId == Guid.Empty)
+                {
+                    fromUnitId = await _dbContext.Set<QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit>()
+                        .Where(u => !u.IsDelete && u.IsActive &&
+                            (request.SourceType == "Emergency"
+                                ? u.ServiceUnitType == QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums.ServiceUnitType.Emergency
+                                : u.ServiceUnitType == QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums.ServiceUnitType.Outpatient))
+                        .Select(u => u.Id)
+                        .FirstOrDefaultAsync(cancellationToken);
+                }
+
+                if (fromUnitId != Guid.Empty)
+                {
+                    await _transferHandoverService.CreateForAdmissionTransferAsync(
+                        episode.Id,
+                        fromUnitId,
+                        request.ServiceUnitId,
+                        actorUserId,
+                        source?.SourceEncounterId,
+                        cancellationToken);
+                }
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                await loggerService.AuditAsync("HealthServices.InPatient.AdmissionTransfer", "AdmissionTransfer.HandoverTriggerFailed",
+                    $"Pemicu dokumen serah terima transfer otomatis tertunda: {ex.Message}",
+                    new { EpisodeId = episode.Id, ActorUserId = actorUserId, Exception = ex.Message });
+            }
+        }
+
         var outcome = InpEpisodeOperationResult.Success(episode, "Admisi transfer dan reservasi tersimpan. Lanjutkan persetujuan pasien.");
         outcome.OperationMeta = meta;
         return outcome;

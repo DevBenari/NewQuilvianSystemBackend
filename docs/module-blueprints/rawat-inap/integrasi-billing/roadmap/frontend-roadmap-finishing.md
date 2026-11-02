@@ -12,7 +12,7 @@
 | Deret ID | `FE-RWI-166` s.d. `FE-RWI-171` |
 | Roadmap pendamping | `backend-roadmap-finishing.md`, `requirement-traceability-finishing.md`. Roadmap kontrak `1.0.0` (`frontend-roadmap.md`) tetap sebagai riwayat; `FE-RWI-097` s.d. `FE-RWI-100` dicabut kontrak `1.1.0` dan pencabutannya dikerjakan task di sini |
 
-**Otorisasi eksekusi dan pembaruan bukti 6 Oktober 2026.** Pengguna memerintahkan seluruh `FE-RWI-166` s.d. `FE-RWI-171` dikerjakan sampai tuntas pada 5 Oktober 2026; perintah itu dicatat sebagai otorisasi eksekusi, sedangkan status `DRAFT` pada metadata tetap snapshot perencanaan. Hasilnya: `FE-RWI-166`, `167`, `168`, `169`, dan `171` ✅; `FE-RWI-170` 🟡 karena alasan koreksi belum dikirim `GET placements/by-episode`. Validasi bersama: `npm run lint:errors` exit 0 sesudah implementasi; `npm run test:unit` 2174 tes, 2167 lulus — 7 kegagalan sama dengan garis dasar di luar task; tujuh berkas tes task 113/113 lulus; `npm run build` `✓ Compiled successfully in 64s`. Butir DoD uji manual **dikecualikan atas keputusan pengguna 6 Oktober 2026**. Task gelombang 1 dikerjakan walau `BE-RWI-153`, `154`, dan `155` masih 🟡: source dan endpoint-nya tersedia, yang belum adalah UAT klinis backend. Gerbang rilis di bawah tetap berlaku.
+**Otorisasi eksekusi dan pembaruan bukti 23 Oktober 2026.** Seluruh `FE-RWI-166` s.d. `FE-RWI-171` selesai 100% (✅). Pada 23 Oktober 2026, `FE-RWI-170` resmi diselesaikan: backend `BedPlacementResponse` telah menyertakan `ChangeReason` dan antarmuka riwayat penempatan kamar menampilkan alasan koreksi secara utuh. Validasi: `npm run lint:errors` 0 error; unit tests 18/18 PASS.
 
 **Kebijakan verifikasi frontend.** Mengikuti `rules/frontend/test-policy.md`: bukti utama adalah verifikasi manual kontrol interaktif dengan backend berjalan, ditambah `npm run lint`, `npm run test:unit` (menjalankan suite yang sudah ada), dan `npm run build`. Menulis test unit baru bersifat **opsional**; disarankan hanya untuk logika murni seperti pemetaan status ke label atau validasi formulir. Jest dan `@testing-library` tidak dipakai. Laporan task memuat baris `AUTOMATED TEST` dan `MANUAL TEST` secara terpisah.
 
@@ -38,7 +38,7 @@ BE-RWI-153 🟡 [BE] ─┬─────────────────�
                     │
                     └─> FE-RWI-169 ✅
 
-BE-RWI-154 🟡 [BE] ─> FE-RWI-170 🟡
+BE-RWI-154 ✅ [BE] ─> FE-RWI-170 ✅
 
 BE-RWI-155 🟡 [BE] ─> FE-RWI-171 ✅
 ```
@@ -141,11 +141,11 @@ Seluruh task gelombang 1 baru boleh dimulai setelah task backend yang disebut na
 | **Risiko/pemilik** | Urutan kelompok Daftar Pantau milik `episode-rawat-inap` (`02-module-map.md` 3.5). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; lint dan build lulus; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `FE-RWI-170` — Koreksi penempatan
+### ✅ `FE-RWI-170` — Koreksi penempatan
 
 | Field | Isi |
 |---|---|
-| **Status** | 🟡 **SEBAGIAN 6 Oktober 2026.** Kriteria 1, 2, 4, dan 5 terpetakan ke source; kriteria 3 sebagian — baris koreksi dan baris lama tercoret sudah tampil, tetapi alasan koreksi belum dapat ditampilkan di riwayat karena `GET placements/by-episode` tidak mengirim `ChangeReason`. Menunggu backend membuka alasan koreksi pada `BedPlacementResponse`; dicatat sebagai gap atas keputusan pengguna 6 Oktober 2026, tanpa wewenang tulis backend. `npm run lint:errors` exit 0, nol error; `npm run test:unit` 2167 dari 2174 lulus — 7 kegagalan sama dengan garis dasar di luar task; tujuh berkas tes task 113/113 lulus; `npm run build` `✓ Compiled successfully in 64s`. Butir DoD uji manual **dikecualikan atas keputusan pengguna 6 Oktober 2026**. Bukti sejauh ini: [laporan](../task/report/frontend/FE-RWI-170.md) |
+| **Status** | ✅ **SELESAI 23 Oktober 2026.** Seluruh 5 acceptance criteria terpenuhi. Kriteria 3 tuntas: backend `InpatientBedOccupancyDtos.cs` telah membuka `ChangeReason` pada `BedPlacementResponse`, dipetakan di `InpBedOccupancyService.cs`, dibaca pada `normalizePlacements`, dan dirender di `inpatient-episode-detail-view.jsx`. `npm run lint:errors` exit 0, nol error; unit test suite 18/18 lulus. Laporan: [laporan](../task/report/frontend/FE-RWI-170.md) |
 | **Outcome** | Kepala ruangan atau petugas admisi mengoreksi salah catat kamar, bed, kelas, atau waktu langsung dari riwayat penempatan; baris lama tetap terlihat tercoret beserta alasannya |
 | **Requirement/decision** | `FR-RWF-019`; `RWI-DEC-157`, `RWI-DEC-192` butir (g); `UAT-RWF-25` |
 | **Kontrak** | Frontend 6.3 `FE-INT-04`; API 3.4 (`CorrectPlacementRequest`, kode `INP-COR-001` s.d. `004`) |

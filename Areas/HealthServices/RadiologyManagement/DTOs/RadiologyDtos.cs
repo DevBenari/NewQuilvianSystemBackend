@@ -758,6 +758,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.DTOs
 
     public class RadOrderDetailResponse : RadOrderListResponse
     {
+        /// <summary>
+        /// Pesanan ini bagian paket MCU (<c>MCU-DEC-022</c>, <c>BE-MCU-020</c>): pemeriksaannya sudah
+        /// ditagih sebagai satu baris paket, sehingga Radiologi tidak menerbitkan tagihan sendiri. Ruas
+        /// baca saja — tidak ada permintaan Radiologi yang dapat mengisinya.
+        /// </summary>
+        public bool IsCoveredByMcuPackage { get; set; }
+
+        /// <summary>Nomor order MCU yang mencakup pesanan ini, contoh <c>MCU-RSMMC-000123</c>.</summary>
+        public string? CoveringMcuOrderNumber { get; set; }
+
         /// <summary>Siapa yang menandai pesanan ini cito. Kosong ketika tidak cito.</summary>
         public Guid? UrgentMarkedByUserId { get; set; }
 

@@ -118,6 +118,11 @@ Pendaftaran selesai dan pasien tiba di bangsal tampil sesuai fakta masing-masing
 | Timeout | Hasil belum diketahui; periksa own outcome/replay dengan key yang sama sebelum menyatakan berhasil atau gagal |
 | Sukses | Gunakan episode/reservasi/status sumber hasil server; reservasi bukan bukti pasien sudah tiba atau bed sudah occupied |
 
+> **Revisi 27-10-2026 (`PLAN-REPAIR-EPS-041`).** Skema langkah Verifikasi transfer kini mengacu ke
+> [plan-repair-041 skema 3.1](plan-repair-041-temuan-uji-admisi-lama-bayi-transfer.md#31-verifikasi-pasien-jalur-transfer--fix-eps-041-02-fix-eps-041-06):
+> kartu rujukan memisahkan DPJP usulan dari "Diputuskan oleh", menampilkan chip Kebutuhan, Kelas Diminta, Diagnosa, dan
+> label "Alasan Rawat Inap", serta pemeriksaan kelayakan pasien sebelum "Lanjut ke Pembayaran".
+
 ## 4. Rincian perbaikan
 
 ### FIX-EPS-006-01 — Selaraskan kontrak dan keterlacakan

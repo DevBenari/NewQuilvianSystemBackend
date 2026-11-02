@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
@@ -107,6 +108,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 return InpAdmissionResult<InpatientAdmissionConsentResponse>.Fail(
                     StatusCodes.Status422UnprocessableEntity, NewbornSignerMessage, NewbornSignerCode);
+            }
+
+            var signerIdentityError = ValidateSignerIdentity(
+                isSelfSigner, request.SignerIdentityNumber, request.SignerPhoneNumber, request.SignerRelationshipText);
+            if (signerIdentityError != null)
+            {
+                return InpAdmissionResult<InpatientAdmissionConsentResponse>.Fail(
+                    StatusCodes.Status400BadRequest, signerIdentityError);
             }
 
             // 4. Cari dokumen persetujuan rawat inap aktif yang sudah ada untuk episode ini
@@ -369,6 +378,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 return InpAdmissionResult<InpatientAdmissionConsentResponse>.Fail(
                     StatusCodes.Status422UnprocessableEntity, NewbornSignerMessage, NewbornSignerCode);
+            }
+
+            var revisionIdentityError = ValidateSignerIdentity(
+                isSelfSigner, request.SignerIdentityNumber, request.SignerPhoneNumber, request.SignerRelationshipText);
+            if (revisionIdentityError != null)
+            {
+                return InpAdmissionResult<InpatientAdmissionConsentResponse>.Fail(
+                    StatusCodes.Status400BadRequest, revisionIdentityError);
             }
 
             var newSignature = InpAdmissionText.Clean(request.SignatureImageBase64);
@@ -831,6 +848,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
         private static string? TruncatePhone(string? phone)
             => phone != null && phone.Length > 13 ? phone[..13] : phone;
+
+        /// <summary>
+        /// Identitas penanda tangan sesuai skema 3.12 (FIX-EPS-040-08, K-04 25-10-2026). Nomor identitas
+        /// berupa NIK 16 angka atau paspor 6–9 huruf/angka; No. HP 10–13 angka. Untuk penanda tangan
+        /// selain pasien sendiri, ketiga isian (identitas, HP, hubungan) wajib.
+        /// </summary>
+        /// <remarks>
+        /// Contoh: "3174015505950001" dan "A1234567" diterima; "ABCDE&lt;script&gt;999" dan "1234567890"
+        /// (10 angka) ditolak.
+        /// </remarks>
+        private static string? ValidateSignerIdentity(bool isSelfSigner, string? identityNumber, string? phoneNumber, string? relationshipText)
+        {
+            var identity = InpAdmissionText.Clean(identityNumber);
+            var phone = InpAdmissionText.Clean(phoneNumber);
+
+            if (!isSelfSigner)
+            {
+                if (identity == null) return "NIK atau nomor paspor penanda tangan wajib diisi.";
+                if (phone == null) return "No. HP penanda tangan wajib diisi.";
+                if (InpAdmissionText.Clean(relationshipText) == null) return "Hubungan penanda tangan dengan pasien wajib diisi.";
+            }
+
+            if (identity != null && !SignerNikPattern.IsMatch(identity) && !SignerPassportPattern.IsMatch(identity))
+                return "NIK harus 16 angka, atau paspor 6–9 huruf/angka.";
+
+            if (phone != null && !SignerPhonePattern.IsMatch(phone))
+                return "No. HP penanda tangan harus 10–13 angka.";
+
+            return null;
+        }
+
+        private static readonly Regex SignerNikPattern = new(@"^\d{16}$", RegexOptions.Compiled);
+        private static readonly Regex SignerPassportPattern = new(@"^[A-Za-z0-9]{6,9}$", RegexOptions.Compiled);
+        private static readonly Regex SignerPhonePattern = new(@"^\d{10,13}$", RegexOptions.Compiled);
 
         private static DateTime? ToUtc(DateTime? value) => value?.Kind switch
         {

@@ -146,6 +146,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
+            // Surat clearance Billing yang belum tersalin dikonsumsi lebih dulu, SEBELUM saringan,
+            // pengurutan, dan paginasi dijalankan (PHA-API-CLEARANCE-v1). Tanpa ini daftar terus
+            // membaca PaymentStatus/FulfillmentStatus lama sampai seseorang membuka detail resep,
+            // dan saringan "Lunas" tidak menemukan resep yang tagihannya sudah beres.
+            await SyncPendingFinancialClearanceAsync(cancellationToken);
+
             var query = ApplyFilters(
                 BuildBaseQuery().AsNoTracking(),
                 search,
@@ -169,13 +175,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
+            var items = entities.Select(ToResponse).ToList();
+
+            // Keadaan finansial seluruh item halaman dibaca sekaligus (dua kueri, bukan satu per
+            // resep). Layar memakai ini — bukan PaymentStatus saja — untuk menilai apakah izin
+            // finansial sebuah resep masih sah, termasuk setelah pembayaran dibalik (K-1 opsi A).
+            var clearances = await _financialClearanceService.DescribeManyAsync(
+                items.Select(x => x.Id).ToList(), cancellationToken);
+
+            foreach (var item in items)
+            {
+                item.FinancialClearance = clearances.TryGetValue(item.Id, out var clearance) ? clearance : null;
+            }
+
             var result = new ResponsePrescriptionPagedResult
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = entities.Select(ToResponse).ToList()
+                Items = items
             };
 
             return Ok(ApiResponse<ResponsePrescriptionPagedResult>.Ok(
@@ -979,6 +998,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
 
         private static string? NormalizeNullableText(string? value)
             => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        /// <summary>
+        /// Batas surat per sapuan pada pembacaan daftar. Cukup besar untuk menghabiskan surat baru
+        /// antar-polling, cukup kecil supaya satu permintaan tidak menanggung tumpukan surat lama;
+        /// sisanya habis bertahap pada pembacaan berikutnya dan, selama belum habis, resep yang
+        /// bersangkutan ditandai <c>HasPendingBillingUpdate</c>.
+        /// </summary>
+        private const int ClearanceReadSweepLimit = 100;
+
+        /// <summary>
+        /// Mengonsumsi surat clearance yang belum tersalin sebelum daftar dibaca. Gagal di sini
+        /// tidak menggagalkan daftar: salinan lama tetap dikembalikan, tetapi resep yang suratnya
+        /// belum tersalin ditandai <c>HasPendingBillingUpdate</c> sehingga tidak disajikan sebagai
+        /// keadaan terkini, dan gerbang pekerjaan Farmasi tetap membaca salinan (fail-closed).
+        /// </summary>
+        private async Task SyncPendingFinancialClearanceAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                await _financialClearanceService.ConsumePendingAsync(
+                    GetCurrentUserId(), ClearanceReadSweepLimit, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Perubahan setengah jalan dibuang agar tidak ikut tersimpan oleh penyimpanan lain
+                // pada permintaan yang sama.
+                _dbContext.ChangeTracker.Clear();
+
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "Prescription.GetPrescriptions.ConsumePendingClearance",
+                    "Sapuan surat clearance sebelum daftar resep gagal; daftar dikembalikan dengan salinan terakhir.",
+                    new { ex.GetType().Name, ex.Message });
+            }
+        }
 
         private Guid GetCurrentUserId()
         {

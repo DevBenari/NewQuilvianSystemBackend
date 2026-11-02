@@ -142,6 +142,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
         PaidAmount = payable.PaidAmount,
         AdjustedAmount = payable.AdjustedAmount,
         DueDate = payable.DueDate,
+        DueDateBasis = payable.DueDateBasis,
         PaymentTermDays = payable.PaymentTermDays,
         Status = payable.Status,
         RowVersion = payable.RowVersion
@@ -163,6 +164,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
             PaidAmount = mapped.PaidAmount,
             AdjustedAmount = mapped.AdjustedAmount,
             DueDate = mapped.DueDate,
+            DueDateBasis = mapped.DueDateBasis,
             PaymentTermDays = mapped.PaymentTermDays,
             Status = mapped.Status,
             RowVersion = mapped.RowVersion,

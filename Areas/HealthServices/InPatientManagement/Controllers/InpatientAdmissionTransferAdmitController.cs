@@ -26,7 +26,10 @@ public class InpatientAdmissionTransferAdmitController(InpAdmissionTransferServi
     {
         var result = await service.ExecuteTransferAdmissionAsync(request, User.GetUserId(), ct);
         var detail = await service.GetAdmissionResultAsync(result, ct);
-        return StatusCode(StatusCodes.Status201Created, ApiResponse<object>.Ok(detail, result.Message));
+        // PLAN-REPAIR-EPS-041 FIX-09: kode status di badan respons sama dengan kode HTTP 201.
+        var response = ApiResponse<object>.Ok(detail, result.Message);
+        response.StatusCode = StatusCodes.Status201Created;
+        return StatusCode(StatusCodes.Status201Created, response);
     }
 }
 

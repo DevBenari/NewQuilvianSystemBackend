@@ -318,3 +318,73 @@ pesan satu pemeriksaan laboratorium.
 Sesudah itu, dua celah terbesar yang tersisa adalah **sikap pesanan serah terima**
 (temuan 3 — menahan penutupan kunjungan tanpa jalan keluar lewat antarmuka) dan **resusitasi**
 (temuan 4).
+
+---
+
+## 18. Pengerjaan lanjutan — 27 Oktober 2026: ruas `painNote`, task ditutup
+
+**Status sesudah bagian ini:** ✅ **SELESAI — empat dari empat bagian.** Bagian (1b), (2), dan (3) lunas
+26 Oktober 2026; tujuh dari delapan kolom bagian (1a) terbukti tersimpan dan terbaca sesudah thunk detail
+`IGD-FACT-232`. Yang tersisa hanya `painNote`, yang belum pernah diisi putaran mana pun.
+
+### 18.1 Perubahan
+
+Atas pilihan pemilik 26 Oktober 2026 (*"Tambah satu baris Riwayat"*), lewat `build-module-frontend`:
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/components/view/health-services/emergency-installation-management/emergency-assessment-view/components/emergency-assessment-initial-tab.jsx` | +1 baris: `["painNote", "Catatan nyeri"]` pada daftar `fields` tab Riwayat, sesudah *Skala nyeri* |
+
+Nol perubahan kontrak — `PainNote` sudah ada di `PatientAssessmentDetailResponse` (`PatientAssessmentDtos.cs:307`)
+dan di payload simpan. Nol komponen, nol CSS, nol komentar baru, `globals.css` tidak disentuh.
+`UI GATE`: `REUSE` — `EmergencyAssessmentRecordTab` apa adanya.
+
+**Syarat backend yang diukur lebih dulu:** `NormalizeAssessmentData` (`PatientAssessmentController.cs:3016`–`:3025`)
+mengosongkan seluruh ruas nyeri, termasuk `PainNote`, bila `HasPain` `false` — perilaku yang benar. Uji karena
+itu mencentang *"Ada Nyeri?"* lebih dulu, lalu mengisi isian nyeri wajib bersyarat dan tanda vital wajib.
+
+### 18.2 Uji layar
+
+Bukti di `QuilvianSystemFrontendDev/test-with-agy/igd/uji-fe-igd-022-20261027/` (di-gitignore). `npm run dev`
+pemilik; akun perawat `dimas.kurniawan` (SuperAdmin — `IGD-FACT-241`; acceptance tidak menyangkut otorisasi).
+Pasien `00-00-02-83` *Ny. X IGD 2710-0954* (kunjungan `IGD-261027031823-B9CDD2`).
+
+| Berkas | Verdict | Catatan |
+| --- | :---: | --- |
+| `percobaan-1/`, `percobaan-2/`, `percobaan-3/` | — | Pemilih label `text-is` tak cocok (label memuat tanda wajib); tombol simpan nonaktif karena tanda vital wajib belum diisi. **Nol data tercipta** |
+| `hasil-T4.json` | FAIL 1/6 | Simpan **berhasil** (lihat jaringan), tetapi pemeriksaannya **salah rancang**: rekaman `POST` belum tersedia saat diperiksa, dan klik segmen Riwayat lewat `getByRole` tidak terjadi. Verdict tidak diubah |
+| `hasil-T4b.json` | **PASS 5/5** | Ukur ulang baca-saja dari `jaringan-T4.json` + `GET` detail + layar |
+| `hasil-T4c.json` | **PASS 1/1** | Pengamatan `FE-IGD-070` 9.4 butir 3 ditutup — lihat 18.3 |
+
+| Pemeriksaan `T4b` | Terukur |
+| --- | --- |
+| Simpan | `POST patient-assessments` **201** `ASM-20261027-00003`, muatan `hasPain: true`, `painNote` *"Uji FE-IGD-022 0339: nyeri bertambah saat lengan kanan digerakkan"* |
+| Tersimpan | `GET patient-assessments/28e41f9a…` **200**: `painNote` sama persis, `hasPain: true` |
+| Layar membaca detail | `GET …/28e41f9a…` **200** dari layar |
+| Kartu Riwayat | Kartu `ASM-20261027-00003` memuat **CATATAN NYERI** berisi teks itu, di samping *Skala Nyeri 4* — `T4b-riwayat-kartu-asm-00003.png`, diperiksa langsung |
+
+### 18.3 Pengamatan
+
+- **Riwayat kosong sesudah simpan pada `FE-IGD-070` (`D4-pengkajian-tersimpan.png`) bukan cacat.** Dibuka ulang,
+  pasien `00-00-02-82` menampilkan *Riwayat Dokumen Pengkajian 1* dengan `ASM-20261027-00001` (`hasil-T4c.json`);
+  rekaman T4 membuktikan daftar dan detail dimuat ulang otomatis sesudah simpan. Tangkapan D4 diambil sebelum
+  muat ulang selesai.
+- Kartu Riwayat menampilkan *STATUS* sebagai angka mentah (`2`), bukan label. Kosmetik, sudah ada sebelumnya;
+  tidak dikartukan.
+
+### 18.4 Validasi
+
+| Perintah | Hasil |
+| --- | --- |
+| `npx eslint` berkas yang diubah vs `git show HEAD:… \| npx eslint --stdin` | 0 error / 4 warning sebelum dan sesudah — **nol warning baru**; CRLF dipertahankan; nol komentar baru |
+| `npm run build` (27 Oktober 2026, atas izin pemilik; `next dev` pemilik dihentikan) | **PASS** — `✓ Compiled successfully in 78s`, 517/517 halaman, standalone siap, BUILD_ID `HXGe2JMsrS4xsJSmiOFKW`, nol warning di log (`uji-fe-igd-070-20261027/build-npm-run-build.log`) |
+| `AUTOMATED TEST` | `SKIPPED (opsional)` — aturan pemilik |
+| `MANUAL TEST` | `PASS` — 18.2 |
+
+### 18.5 Data uji
+
+`ASM-20261027-00003` pada pasien `00-00-02-83`, dibuat lewat layar.
+
+### 18.6 Langkah berikutnya
+
+Tidak ada untuk kartu ini.

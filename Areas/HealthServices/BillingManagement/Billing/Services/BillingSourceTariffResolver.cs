@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
@@ -230,10 +231,23 @@ public sealed class BillingSourceTariffResolver
         if (procedureId is null)
             return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Order atau study radiologi sumber tidak ditemukan.");
 
-        var tariff = await FindTariffAsync(
-            null, procedureId.Value, request.EncounterClinicId, request.PatientClassId,
-            request.OccurredAt, cancellationToken);
-        return Build(tariff, 1m);
+        // Tarif radiologi dipilih lewat MstTariffSelector (aturan yang sama dengan pratinjau harga Booking
+        // Radiologi): kelas pasien dan klinik kunjungan, paling spesifik menang. Dua tarif sama spesifik dengan
+        // harga berbeda TIDAK dipilih diam-diam; efeknya masuk antrean rekonsiliasi sampai master dibereskan.
+        var candidates = await EffectiveTariffs(request.OccurredAt)
+            .Where(x => x.ProcedureId == procedureId.Value
+                && (x.ClinicId == null || x.ClinicId == request.EncounterClinicId)
+                && (x.PatientClassId == null || x.PatientClassId == request.PatientClassId))
+            .ToListAsync(cancellationToken);
+
+        var selection = MstTariffSelector.Select(candidates, request.PatientClassId, request.EncounterClinicId);
+        if (selection.Status == MstTariffSelectionStatus.Ambiguous)
+            return BillingTariffResolution.Rejected(
+                BillingBridgeCodes.TariffAmbiguous,
+                "Terdapat lebih dari satu tarif radiologi dengan harga berbeda untuk pemeriksaan dan kelas pasien ini " +
+                $"({string.Join(", ", selection.Tied.Select(x => x.TariffCode))}). Rapikan master tarif, lalu kirim ulang.");
+
+        return Build(selection.Chosen, 1m);
     }
 
     /// <summary>
@@ -407,10 +421,20 @@ public sealed class BillingSourceTariffResolver
         if (firstTariff is null)
             return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceRejected, "Resep tidak memuat obat yang dapat ditagih.");
 
+        var drugNamesList = items.Where(x => x.IsActive && !x.IsStopped && !string.IsNullOrWhiteSpace(x.DrugNameSnapshot))
+            .Select(x => x.DrugNameSnapshot)
+            .Concat(compoundIngredients.Select(x => $"{x.CompoundName} ({x.DrugNameSnapshot})"))
+            .Distinct()
+            .ToList();
+
+        var labelText = drugNamesList.Count > 0
+            ? $"{string.Join(", ", drugNamesList)} — Resep {prescription.PrescriptionNumber}"
+            : $"Resep {prescription.PrescriptionNumber}";
+
         return BillingTariffResolution.Resolved(
             null,
             firstTariff.TariffCategoryId,
-            Truncate($"Resep {prescription.PrescriptionNumber}", 250),
+            Truncate(labelText, 250),
             1m,
             decimal.Round(total, 2, MidpointRounding.AwayFromZero));
     }

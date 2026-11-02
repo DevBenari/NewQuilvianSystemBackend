@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Dtos;
 
 public sealed class PaymentAllocationResponse
@@ -125,5 +127,17 @@ public sealed class MarkPaymentPaidRequest
 {
     public Guid ExpectedRowVersion { get; set; }
     public string? ReferenceNumber { get; set; }
+}
+
+/// <summary>GET / — daftar pembayaran keluar berpaging (FIN-API-1.0, kolom Request `PaymentQuery`,
+/// BE-FIN-122). Kontrak hanya menyebut "beserta statusnya"; filter yang disediakan adalah jenis
+/// pembayaran, penerima, dan status.</summary>
+public sealed class PaymentQuery
+{
+    public string? PaymentType { get; set; }
+    public Guid? PayeeReferenceId { get; set; }
+    public string? Status { get; set; }
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
 }
 

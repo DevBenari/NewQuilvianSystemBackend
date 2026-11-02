@@ -5,18 +5,19 @@ blueprint_id: HRD-BP-001
 module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
-revision: 10
+blueprint_shape: SINGLE
+revision: 11
 status: DRAFT
 design_readiness: PARTIAL
 current_phase: HRD-PH-SECURITY-CLOSED
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-08-31T06:00:00Z
-last_verified_at: 2026-08-31T06:00:00Z
+updated_at: 2026-10-26T16:20:00Z
+last_verified_at: 2026-10-26T16:20:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
-backend_source_sha_current: e0ee42c752a5f92c5b1663ff88bef07a5859f79f
-frontend_source_sha: fff76a1b394d4b247c70a04f106c8ec098c9696e
-frontend_source_sha_previous: 2a1cea7841a4433f8637d486204e60314c09d131
+backend_source_sha_current: 16f6b2ad28e0e9cbd374354abe240ff3b163ace0
+frontend_source_sha: 2cd1c0610981b649f16a11bc74ac47ce6123e679
+frontend_source_sha_previous: fff76a1b394d4b247c70a04f106c8ec098c9696e
 skill_suite_version: 1.0.0-rc2
 input_revision_hash: da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083
 decision_revision: 15

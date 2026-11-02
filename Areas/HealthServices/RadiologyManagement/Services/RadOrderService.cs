@@ -18,6 +18,7 @@ using System.Security.Claims;
 using InpatientClinicalContextService =
     QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.InpatientClinicalContextService;
 using MstTariff = QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariff;
+using EmergencyDoctorAssignmentService = QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services.EmergencyDoctorAssignmentService;
 using MstDoctorForInstruction =
     QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor;
 
@@ -48,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         /// </summary>
         private readonly InpatientClinicalContextService _clinicalContextService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+        private readonly EmergencyDoctorAssignmentService? _emergencyDoctorAssignmentService;
 
         public RadOrderService(
             ApplicationDbContext dbContext,
@@ -56,7 +58,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             RadOrderNumberService orderNumberService,
             InpatientClinicalContextService clinicalContextService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
-            RadPhotoNumberService? photoNumberService = null)
+            RadPhotoNumberService? photoNumberService = null,
+            EmergencyDoctorAssignmentService? emergencyDoctorAssignmentService = null)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
@@ -65,7 +68,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
             _clinicalContextService = clinicalContextService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _photoNumberService = photoNumberService;
+            _emergencyDoctorAssignmentService = emergencyDoctorAssignmentService;
         }
+
+        private EmergencyDoctorAssignmentService PenentuDokterIgd() =>
+            _emergencyDoctorAssignmentService
+            ?? throw new InvalidOperationException("Penentu dokter pemberi instruksi IGD tidak tersedia.");
 
         /// <summary>No. Foto v1, diberikan saat Konfirmasi. Opsional hanya untuk harness uji jalur baca.</summary>
         private readonly RadPhotoNumberService? _photoNumberService;
@@ -1239,6 +1247,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
             var detail = MapDetail(entity);
 
+            // BE-MCU-020 — nomor order MCU yang mencakup pesanan ini, ruas baca.
+            if (entity.CoveringMcuOrderId.HasValue)
+            {
+                detail.CoveringMcuOrderNumber = await _dbContext.McuOrders.AsNoTracking()
+                    .Where(x => x.Id == entity.CoveringMcuOrderId.Value)
+                    .Select(x => x.OrderNumber)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
             detail.Patient = await BacaKonteksPasienAsync(entity.EncounterId, cancellationToken);
 
             // RAD-CONF-001 bagian 8 butir 4. Konfirmator dan waktunya dibaca dari riwayat, bukan
@@ -2184,10 +2201,77 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
          * Pembuatan dan perpindahan status
          * ================================================================ */
 
-        public async Task<RadOperationResult<RadOrderDetailResponse>> CreateAsync(
+        public Task<RadOperationResult<RadOrderDetailResponse>> CreateAsync(
             CreateRadOrderRequest request,
+            CancellationToken cancellationToken = default) =>
+            CreateCoreAsync(request, coverage: null, cancellationToken);
+
+        /// <summary>
+        /// Jalur internal MCU (<c>BE-MCU-020</c>, <c>INT-MCU-06</c>, <c>MCU-COORD-008</c>): satu pesanan
+        /// per komponen, bertanda paket (<c>CoveringMcuOrderId</c>) dan berdokter pemberi instruksi =
+        /// dokter MCU, verifikasi instruksi <c>NotRequired</c>.
+        /// </summary>
+        /// <remarks>
+        /// Sengaja <c>internal</c> dan tidak terhubung ke endpoint mana pun: tanda paket hanya boleh
+        /// ditulis MCU. Ikut transaksi pemanggil bila ada, seperti <see cref="CreateAsync"/>.
+        /// </remarks>
+        internal Task<RadOperationResult<RadOrderDetailResponse>> CreateForMcuAsync(
+            CreateRadOrderRequest request,
+            Guid coveringMcuOrderId,
+            Guid mcuDoctorId,
+            CancellationToken cancellationToken = default) =>
+            CreateCoreAsync(request, new McuCoverage(coveringMcuOrderId, mcuDoctorId), cancellationToken);
+
+        /// <summary>
+        /// Memindah dokter penanggung jawab pesanan paket MCU yang masih terbuka ke dokter MCU pengganti
+        /// (<c>BE-MCU-032</c>, <c>MCU-DEC-040</c>, <c>INT-MCU-06</c> baris ganti dokter). Pesanan yang sudah selesai
+        /// atau batal tetap atas nama dokter lama.
+        /// </summary>
+        /// <remarks>Sengaja <c>internal</c>, hanya dipanggil MCU. Ikut transaksi pemanggil; tiap pesanan mencatat riwayat beralasan.</remarks>
+        internal async Task<int> ReassignMcuDoctorAsync(
+            Guid coveringMcuOrderId,
+            Guid newDoctorId,
+            string reason,
             CancellationToken cancellationToken = default)
         {
+            var orders = await _dbContext.RadOrders
+                .Where(x => x.CoveringMcuOrderId == coveringMcuOrderId && !x.IsDelete && !x.IsCancel
+                    && x.OrderStatus != RadOrderStatus.Completed && x.OrderStatus != RadOrderStatus.Cancelled
+                    && x.InstructingDoctorId != newDoctorId)
+                .ToListAsync(cancellationToken);
+            if (orders.Count == 0)
+                return 0;
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+            foreach (var order in orders)
+            {
+                order.InstructingDoctorId = newDoctorId;
+                Touch(order, actorUserId, now);
+                AddHistory(order, "Order.ReassignMcuDoctor", order.OrderStatus.ToString(), order.OrderStatus.ToString(),
+                    reasonCode: null, reasonNote: reason, actorUserId, now);
+            }
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+            return orders.Count;
+        }
+
+        /// <summary>Tanda paket MCU untuk pesanan yang dibuat jalur internal MCU.</summary>
+        internal sealed record McuCoverage(Guid CoveringMcuOrderId, Guid McuDoctorId);
+
+        private async Task<RadOperationResult<RadOrderDetailResponse>> CreateCoreAsync(
+            CreateRadOrderRequest request,
+            McuCoverage? coverage,
+            CancellationToken cancellationToken)
+        {
+            // MCU-DEC-006: order MCU tidak pernah menumpang perawatan rawat inap.
+            if (coverage != null && request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                return RadOperationResult<RadOrderDetailResponse>.Validation(
+                    RadErrorCodes.InvalidTransition,
+                    "Pesanan paket MCU tidak boleh menumpang perawatan rawat inap.");
+            }
+
             var actorUserId = GetCurrentUserId();
             var now = DateTime.UtcNow;
 
@@ -2255,6 +2339,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                     instructionStatus = RadOrderInstructionVerificationStatus.Pending;
                 }
             }
+            else if (coverage == null)
+            {
+                var kunjunganIgdId = await PenentuDokterIgd().AmbilKunjunganUntukEncounterAsync(
+                    request.EncounterId, cancellationToken);
+
+                if (kunjunganIgdId.HasValue)
+                {
+                    var actorDoctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                        _httpContextAccessor.HttpContext?.User, actorUserId, cancellationToken);
+
+                    if (!actorDoctorId.HasValue)
+                    {
+                        if (!request.InstructingDoctorId.HasValue || request.InstructingDoctorId.Value == Guid.Empty)
+                        {
+                            return RadOperationResult<RadOrderDetailResponse>.Validation(
+                                RadErrorCodes.InstructingDoctorRequired,
+                                "Pilih dokter yang memberi instruksi.");
+                        }
+
+                        var sah = await PenentuDokterIgd().ApakahDokterPemberiInstruksiSahAsync(
+                            kunjunganIgdId.Value, request.InstructingDoctorId.Value, cancellationToken);
+
+                        if (!sah)
+                        {
+                            return RadOperationResult<RadOrderDetailResponse>.Forbidden(
+                                RadErrorCodes.InstructingDoctorNotAssigned,
+                                "Dokter yang dipilih tidak sedang bertugas atas pasien ini.");
+                        }
+
+                        instructingDoctorId = request.InstructingDoctorId.Value;
+                        instructionStatus = RadOrderInstructionVerificationStatus.Pending;
+                    }
+                }
+            }
 
             // Kunci alokasi nomor pesanan hanya berlaku di dalam transaksi.
             await using var transaksi = _dbContext.Database.CurrentTransaction == null
@@ -2263,8 +2381,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
 
             var entity = new RadOrder
             {
-                InstructingDoctorId = instructingDoctorId,
+                // BE-MCU-020: pesanan paket MCU berdokter pemberi instruksi = dokter MCU, tanpa
+                // verifikasi instruksi (bukan pesanan perawat rawat inap).
+                InstructingDoctorId = coverage?.McuDoctorId ?? instructingDoctorId,
                 InstructionVerificationStatus = instructionStatus,
+                CoveringMcuOrderId = coverage?.CoveringMcuOrderId,
 
                 // Bentuk nomor Lab (RAD-RSMMC-000042), dialokasikan MAX + 1 di bawah advisory
                 // lock — QBE-CODE-003. Index unik pada database menjadi penjaga terakhirnya.
@@ -2707,6 +2828,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 RadiographerUserId = entity.RadiographerUserId,
                 ExaminingDoctorId = entity.ExaminingDoctorId,
                 PrintFilm = entity.PrintFilm,
+                IsCoveredByMcuPackage = entity.CoveringMcuOrderId != null,
                 Studies = entity.Studies
                     .Where(x => !x.IsDelete)
                     .OrderBy(x => x.StudySequence)

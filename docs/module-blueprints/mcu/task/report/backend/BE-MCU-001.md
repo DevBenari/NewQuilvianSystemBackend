@@ -140,8 +140,9 @@ dipakai pada uji berjalan sudah ada dan tidak diubah.
 Uji manual: `PASS` (lewat API, bukan layar).
 
 **Uji yang ditulis (harness SQLite, tanpa basis data bersama):** kunjungan MCU + antrean beserta
-semua ruasnya; nomor antrean berurutan (`M002`, `M004` — nomor 1/3/5/10/15 dicadangkan untuk
-prioritas, sama seperti loket); kirim ulang; klinik MCU tanpa antrean; regresi `Outpatient`
+semua ruasnya; nomor antrean berurutan mengikuti alokator loket (`M001`, `M002` sejak
+`RJ-PRI-DEC-004` — prioritas memakai kelipatan 5; sebelum aturan itu di-merge, nomornya `M002`,
+`M004` karena cadangan 1/3/5/10/15); kirim ulang; klinik MCU tanpa antrean; regresi `Outpatient`
 (jenis, sumber, status, tanpa klinik/dokter/antrean, tanggal = waktu pendaftaran); `Outpatient`
 dengan klinik/dokter ditolak; empat jenis kunjungan lain ditolak; empat bentuk klinik tidak sah;
 dokter kosong dan dokter tidak dikenal; tanpa kewenangan.
@@ -176,7 +177,7 @@ dokter kosong dan dokter tidak dikenal; tanpa kewenangan.
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Harness SQLite baru juga melepas check constraint regex PostgreSQL (` ~ `, modul Finance), yang membuat `EnsureCreated` gagal di SQLite. Harness `PatientManagementTests` belum melepasnya dan kemungkinan ikut gagal sejak constraint itu masuk — di luar scope, tidak diubah |
-| Masalah yang diketahui | **Untuk `BE-MCU-013` (check-in), bukan cacat task ini:** (a) `RegisterAsync` membuka transaksinya sendiri, padahal `INT-MCU-02` memintanya berjalan **di dalam** transaksi check-in. Perlu dukungan transaksi pemanggil, termasuk menunda notifikasi realtime sampai commit luar. (b) `CompanyGuarantor` masih ditolak jalur ini, padahal `INT-MCU-02` memakai penjamin perusahaan untuk peserta korporat. (c) Kunjungan tercatat `RegistrationSource = WalkIn`/`IsWalkIn = true` dan kelas pasien *RAWAT JALAN* — perlu dipastikan untuk peserta booking dan tarif paket. Ketiganya perubahan service Registrasi lagi |
+| Masalah yang diketahui | **Untuk `BE-MCU-013` (check-in), bukan cacat task ini:** (a) `RegisterAsync` membuka transaksinya sendiri, padahal `INT-MCU-02` memintanya berjalan **di dalam** transaksi check-in. Perlu dukungan transaksi pemanggil, termasuk menunda notifikasi realtime sampai commit luar. (b) `CompanyGuarantor` masih ditolak jalur ini, padahal `INT-MCU-02` memakai penjamin perusahaan untuk peserta korporat. (c) Kunjungan tercatat `RegistrationSource = WalkIn`/`IsWalkIn = true` dan kelas pasien *RAWAT JALAN* — perlu dipastikan untuk peserta booking dan tarif paket. Ketiganya perubahan service Registrasi lagi. **Pembaruan 2026-10-22 (`BE-MCU-013`):** (a) dan (b) ditutup — `RegisterAsync` kini ikut transaksi pemanggil (notifikasi/audit ditunda sampai commit) dan menerima penjamin perusahaan untuk kunjungan MCU; (c) tetap terbuka, lihat [`BE-MCU-013`](BE-MCU-013.md) §7 |
 | Risiko tersisa | Sesudah skrining, kunjungan MCU berstatus *Menunggu Dokter* dan masuk daftar antrean dokter (dokter MCU). Bila dokter menyelesaikan konsultasi dari layar antrean dokter rawat jalan, status kunjungan bisa bergerak di luar alur MCU. Perlu disikapi di `BE-MCU-023`/`030` (`MCU-COORD-004`). Notifikasi realtime pada jalur balapan kunci-sama bisa terkirim dua kali — hanya kosmetik |
 | Perubahan sampingan | `NONE`. Build menulis ulang keluaran `bin/obj` saja |
 | Interupsi | `NONE` |

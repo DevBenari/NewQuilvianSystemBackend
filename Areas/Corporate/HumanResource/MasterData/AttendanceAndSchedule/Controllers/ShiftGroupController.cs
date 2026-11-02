@@ -15,6 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
 {
     [ApiController]
     [Authorize]
+    [Route("api/v1/corporate/human-resource/master-data/shift-groups")]
     [Route("api/v1/corporate/human-resource/master-data/shiftgroups")]
     [Tags("Corporate / Human Resource / Master Data / ShiftGroup")]
     [AccessController(moduleCode:"HUMAN_RESOURCE_MASTER_DATA",moduleName:"Human Resource Master Data",displayName:"ShiftGroup",AreaName="Corporate",ControllerName="ShiftGroup",Description="Master ShiftGroup",SortOrder=20)]

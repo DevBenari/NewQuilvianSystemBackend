@@ -69,6 +69,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// </summary>
         public Guid? PatientInsuranceId { get; set; }
 
+        /// <summary>
+        /// Kartu penjamin perusahaan milik <c>PatientId</c> (<c>MstPatientCompanyGuarantor</c>). Wajib
+        /// ketika <c>PaymentType</c> bernilai <c>CompanyGuarantor</c>, yang di jalur ini hanya diterima
+        /// untuk kunjungan <c>MedicalCheckup</c> (<c>INT-MCU-02</c>, <c>BE-MCU-013</c>).
+        /// </summary>
+        public Guid? PatientCompanyGuarantorId { get; set; }
+
         public bool IsReferral { get; set; } = false;
 
         [MaxLength(250)]

@@ -79,6 +79,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private ReferralDocumentStorageService ReferralDocumentStorage =>
             HttpContext.RequestServices.GetRequiredService<ReferralDocumentStorageService>();
 
+        // RJ-REG-REV-BE-007: diambil per request dengan alasan yang sama.
+        private OutpatientGeneralConsentService GeneralConsentService =>
+            HttpContext.RequestServices.GetRequiredService<OutpatientGeneralConsentService>();
+
         // rawat-jalan Amendment RP (BE-RJP-008): diambil per request dengan alasan yang sama.
         private OutpatientPriorityReservationService PriorityReservationService =>
             HttpContext.RequestServices.GetRequiredService<OutpatientPriorityReservationService>();
@@ -595,6 +599,76 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var response = await _encounterReferralService.GetAsync(encounterId, HttpContext.RequestAborted);
 
             return Ok(ApiResponse<EncounterReferralResponse>.Ok(response!, result.Message));
+        }
+
+        /// <summary>
+        /// General Consent Rawat Jalan yang tersimpan pada kunjungan (<c>RJ-REG-REV-BE-007</c>).
+        /// </summary>
+        [HttpGet("{encounterId:guid}/general-consent")]
+        [ProducesResponseType(typeof(ApiResponse<OutpatientGeneralConsentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Encounter", Description = "Melihat General Consent Rawat Jalan kunjungan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientEncounter", "Read")]
+        public async Task<IActionResult> GetGeneralConsent(Guid encounterId)
+        {
+            var response = await GeneralConsentService.GetAsync(encounterId, HttpContext.RequestAborted);
+
+            if (response == null)
+            {
+                var encounterExists = await GeneralConsentService.EncounterExistsAsync(encounterId, HttpContext.RequestAborted);
+
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    encounterExists ? OutpatientGeneralConsentService.NotFoundMessage : "Kunjungan tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<OutpatientGeneralConsentResponse>.Ok(
+                response,
+                "General Consent berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Menyimpan General Consent pendaftaran Rawat Jalan pasien baru sesudah kunjungan terbentuk
+        /// (<c>RJ-REG-REV-BE-007</c>, <c>RJ-REG-DEC-012</c>). Satu dokumen per kunjungan: penyimpanan
+        /// ulang mengembalikan consent yang sudah ada tanpa menimpanya.
+        /// </summary>
+        [HttpPut("{encounterId:guid}/general-consent")]
+        [ProducesResponseType(typeof(ApiResponse<OutpatientGeneralConsentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Create", "Save Outpatient General Consent", Description = "Menyimpan General Consent pendaftaran Rawat Jalan", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("PatientEncounter", "Create")]
+        public async Task<IActionResult> SaveGeneralConsent(
+            Guid encounterId,
+            [FromBody] OutpatientGeneralConsentSaveRequest request)
+        {
+            var result = await GeneralConsentService.SaveAsync(
+                encounterId,
+                request,
+                GetCurrentUserId(),
+                HttpContext.RequestAborted);
+
+            if (result.Status == OutpatientGeneralConsentResultStatus.NotFound)
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message));
+
+            if (result.Status != OutpatientGeneralConsentResultStatus.Success)
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message));
+
+            // Tanpa nama, NIK, maupun citra tanda tangan: hanya kunjungan dan jenis penanda tangan.
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientEncounter.SaveGeneralConsent",
+                "Menyimpan General Consent Rawat Jalan kunjungan.",
+                new
+                {
+                    EncounterId = encounterId,
+                    ConsentId = result.Consent!.ConsentId,
+                    result.Consent.SignerType,
+                    Controller = "PatientEncounter",
+                    Action = "SaveGeneralConsent"
+                });
+
+            return Ok(ApiResponse<OutpatientGeneralConsentResponse>.Ok(result.Consent, result.Message));
         }
 
         /// <summary>

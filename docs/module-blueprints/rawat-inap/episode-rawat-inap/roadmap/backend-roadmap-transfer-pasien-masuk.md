@@ -48,10 +48,10 @@ Garis selalu prasyarat → task. Ketiga task backend ini independen secara modul
 ## Register Task
 
 | Task ID / Status | Outcome | Requirement / Decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance Criteria | Verifikasi | Risiko / Pemilik | DoD |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BE-RWI-241` | Otomasi pemicu pembuatan serah terima klinis saat admisi transfer disubmit | FR-TRF-001 | 0.14.0 draft; lock TRF-DEL-20261016-01 | `InpAdmissionTransferService`, `CliTransferHandoverService` | Service admisi transfer memanggil pembuatan dokumen serah terima `PendingSend` beserta snapshot TTV & obat | — | TRF-AC-001, TRF-AC-002 | V-BE + UAT-TRF-01 | InPatientManagement + ClinicalManagement; transaksi multi-service | D-BE |
-| `BE-RWI-242` | Ekstensi penerimaan serah terima klinis dengan validasi wajib PPJA dan pencegahan akun sama | FR-TRF-003, FR-TRF-004, FR-TRF-005 | 0.14.0 draft | `CliTransferHandoverService`, `TransferHandoverController` | Update DTO `AcceptTransferHandoverRequest`, validasi PPJA wajib, penugasan perawat bangsal, rekonsiliasi obat | — | TRF-AC-003, TRF-AC-004, TRF-AC-005 | V-BE + UAT-TRF-02 | ClinicalManagement; integritas penugasan perawat bangsal | D-BE |
-| `BE-RWI-243` | Endpoint detail episode menyajikan ringkasan kelengkapan berkas admisi PPRI | FR-TRF-007 | 0.14.0 draft | `InpatientEpisodeDetailService`, `InpAdmissionDocumentService` | Penambahan agregat `AdmissionDocumentsSummary` pada `InpEpisodeDetailDto` | — | TRF-AC-006, TRF-AC-007 | V-BE + UAT-TRF-03 | InPatientManagement; performa pembacaan census/detail | D-BE |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BE-RWI-241` ✅ | Otomasi pemicu pembuatan serah terima klinis saat admisi transfer disubmit | FR-TRF-001 | 0.14.0 draft; lock TRF-DEL-20261016-01 | `InpAdmissionTransferService`, `CliTransferHandoverService` | Service admisi transfer memanggil pembuatan dokumen serah terima `PendingSend` beserta snapshot TTV & obat | — | TRF-AC-001, TRF-AC-002 | V-BE + UAT-TRF-01 | InPatientManagement + ClinicalManagement; transaksi multi-service | D-BE |
+| `BE-RWI-242` ✅ | Ekstensi penerimaan serah terima klinis dengan validasi wajib PPJA dan pencegahan akun sama | FR-TRF-003, FR-TRF-004, FR-TRF-005 | 0.14.0 draft | `CliTransferHandoverService`, `TransferHandoverController` | Update DTO `AcceptTransferHandoverRequest`, validasi PPJA wajib, penugasan perawat bangsal, rekonsiliasi obat | — | TRF-AC-003, TRF-AC-004, TRF-AC-005 | V-BE + UAT-TRF-02 | ClinicalManagement; integritas penugasan perawat bangsal | D-BE |
+| `BE-RWI-243` ✅ | Endpoint detail episode menyajikan ringkasan kelengkapan berkas admisi PPRI | FR-TRF-007 | 0.14.0 draft | `InpatientEpisodeDetailService`, `InpAdmissionDocumentService` | Penambahan agregat `AdmissionDocumentsSummary` pada `InpEpisodeDetailDto` | — | TRF-AC-006, TRF-AC-007 | V-BE + UAT-TRF-03 | InPatientManagement; performa pembacaan census/detail | D-BE |
 
 ---
 
@@ -73,7 +73,7 @@ Laporan tracked disimpan di `task/report/backend/<TASK-ID>.md`.
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ Selesai |
 | Outcome | Pendaftaran admisi transfer IGD/Rajal otomatis menerbitkan dokumen serah terima klinis berstatus `PendingSend` lengkap dengan snapshot TTV dan obat dari unit asal |
 | Ukuran / Batas | Satu ekstensi method pada `InpAdmissionTransferService.ExecuteTransferAdmissionAsync` |
 | Jejak | FR-TRF-001; TRF-AC-001, TRF-AC-002 |
@@ -99,7 +99,7 @@ Laporan tracked disimpan di `task/report/backend/<TASK-ID>.md`.
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ Selesai |
 | Outcome | Endpoint penerimaan serah terima klinis (`PATCH /transfer-handovers/{id}/accept`) mewajibkan penetapan PPJA, menolak akun penerima yang sama dengan pengirim, dan mencatat rekonsiliasi obat |
 | Ukuran / Batas | Satu pembaruan DTO + satu penambahan validasi dan penyimpanan penugasan perawat di `CliTransferHandoverService` |
 | Jejak | FR-TRF-003, FR-TRF-004, FR-TRF-005; TRF-AC-003, TRF-AC-004, TRF-AC-005 |
@@ -126,7 +126,7 @@ Laporan tracked disimpan di `task/report/backend/<TASK-ID>.md`.
 
 | Field | Isi |
 | --- | --- |
-| Status | Belum dikerjakan |
+| Status | ✅ Selesai |
 | Outcome | Kueri detail episode rawat inap menyajikan ringkasan kelengkapan berkas admisi Workspace PPRI secara non-blocking |
 | Ukuran / Batas | Satu penambahan properti DTO dan agregat penghitungan di `InpatientEpisodeDetailService` |
 | Jejak | FR-TRF-007; TRF-AC-006, TRF-AC-007 |

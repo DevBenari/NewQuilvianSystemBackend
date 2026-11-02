@@ -109,6 +109,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// Level prioritas tier keanggotaan (angka lebih kecil = prioritas lebih tinggi). Bernilai null jika reguler/non-member.
         /// </summary>
         public int? MemberPriorityLevel { get; set; }
+
+        // PLAN-REPAIR-EPS-041 FIX-01: kebutuhan klinis dari permintaan rawat inap IGD yang sudah
+        // ditandatangani. Sumber Poliklinik tidak memuatnya, sehingga selalu false/null di sana.
+        public bool NeedsIsolation { get; set; }
+        public bool NeedsIntensiveCare { get; set; }
+        public bool NeedsOxygenSupport { get; set; }
+        public bool NeedsSpecialMonitoring { get; set; }
+        public int? EstimatedLengthOfStayDays { get; set; }
+
+        /// <summary>DPJP rawat inap yang diusulkan IGD, berbeda dari dokter jaga yang memutuskan disposisi.</summary>
+        public Guid? ProposedInpatientDoctorId { get; set; }
+        public string? ProposedInpatientDoctorName { get; set; }
+
+        /// <summary>Diagnosis surat pengantar rawat inap Poliklinik (FIX-01); null untuk sumber IGD.</summary>
+        public string? Diagnosis { get; set; }
+
+        /// <summary>Kelas kamar yang diminta pada surat pengantar Poliklinik (FIX-01); null untuk sumber IGD.</summary>
+        public string? RequestedRoomClass { get; set; }
     }
 
     /// <summary>
@@ -179,5 +197,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public string TransferStatus { get; set; } = "Executed";
 
         public DateTime ExecutedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Permintaan penolakan rujukan transfer rawat inap oleh petugas admisi (BE-IGD-077).
+    /// </summary>
+    public class RejectAdmissionTransferRequest
+    {
+        /// <summary>Alasan penolakan rujukan transfer rawat inap (wajib diisi, maksimal 500 karakter).</summary>
+        [Required(ErrorMessage = "Alasan penolakan admisi wajib diisi.")]
+        [MaxLength(500, ErrorMessage = "Alasan penolakan admisi paling panjang 500 karakter.")]
+        public string Reason { get; set; } = string.Empty;
     }
 }

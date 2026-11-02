@@ -27,13 +27,21 @@ public sealed class BillingSupersededItemReviewService : IBillingSupersededItemR
 
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
+    private readonly BillingCalculationService? _calculationService;
 
+    /// <param name="calculationService">
+    /// Mesin kalkulasi untuk memperbarui versi kalkulasi saat item dipulihkan (REINSTATE). Opsional agar konstruksi
+    /// lama tetap sah; DI selalu menyediakannya. Bila kosong, perhitungan tidak diperbarui di sini dan invoice
+    /// terbaca "belum terkini" oleh penjaga finalisasi — tidak pernah terbaca terkini secara keliru.
+    /// </param>
     public BillingSupersededItemReviewService(
         ApplicationDbContext dbContext,
-        LoggerService loggerService)
+        LoggerService loggerService,
+        BillingCalculationService? calculationService = null)
     {
         _dbContext = dbContext ?? throw new ArgumentNullException(nameof(dbContext));
         _loggerService = loggerService ?? throw new ArgumentNullException(nameof(loggerService));
+        _calculationService = calculationService;
     }
 
     /// <inheritdoc />
@@ -476,6 +484,12 @@ public sealed class BillingSupersededItemReviewService : IBillingSupersededItemR
             _dbContext.BilSupersededItemReviews.Add(review);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // Item yang dipulihkan menambah kewajiban invoice OPEN: versi kalkulasi dibuat di transaksi yang sama
+            // (commit atau rollback bersama keputusan tinjauan), bukan dibiarkan tertinggal untuk dihitung manual.
+            if (reinstatedInvoiceItemId.HasValue)
+                await RecalculateAfterReinstateAsync(invoice, actorUserId, cancellationToken);
+
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
 
             // 7. Audit log resmi tanpa PII (BIL-AT-224)
@@ -493,6 +507,40 @@ public sealed class BillingSupersededItemReviewService : IBillingSupersededItemR
         {
             if (transaction is not null) await transaction.RollbackAsync(cancellationToken);
             throw;
+        }
+    }
+
+    private async Task RecalculateAfterReinstateAsync(
+        BilInvoice invoice,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (_calculationService is null) return;
+
+        try
+        {
+            await _calculationService.RecalculateAsync(
+                invoice.Id,
+                new RecalculateInvoiceRequest
+                {
+                    ExpectedRowVersion = invoice.RowVersion,
+                    Reason = "Perhitungan otomatis: item biaya yang di-void keliru dipulihkan."
+                },
+                actorUserId,
+                cancellationToken);
+        }
+        catch (BillingCalculationConflictException exception)
+        {
+            throw new BillingSupersededItemReviewConflictException(
+                $"Keputusan dibatalkan karena perhitungan tagihan gagal diperbarui: {exception.Message} "
+                + "Muat ulang tagihan lalu ulangi, atau hubungi petugas yang berwenang.",
+                exception);
+        }
+        catch (BillingCalculationValidationException exception)
+        {
+            throw new BillingSupersededItemReviewValidationException(
+                $"Keputusan dibatalkan karena perhitungan tagihan gagal diperbarui: {exception.Message} "
+                + "Periksa kembali data tagihan atau hubungi petugas yang berwenang.");
         }
     }
 

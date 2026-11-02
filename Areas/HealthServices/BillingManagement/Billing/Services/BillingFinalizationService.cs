@@ -176,9 +176,10 @@ public sealed class BillingFinalizationService
                 throw new BillingFinalizationBlockedException(
                     "Masih ada pelayanan yang belum masuk invoice. Selesaikan antrean rekonsiliasi sebelum memfinalkan.",
                     readiness);
+            // Tidak ada hitung ulang diam-diam di sini: finalisasi dikonfirmasi kasir atas angka yang tampil, jadi versi
+            // yang tertinggal ditolak (422 + kode BIL-FIN-023 pada checklist) dan kasir menjalankan Recalculate terkontrol.
             if (!readiness.AllOrdersComplete || !readiness.CalculationCurrent)
-                throw new BillingFinalizationBlockedException(
-                    "Invoice belum siap difinalisasi.", readiness);
+                throw new BillingFinalizationBlockedException(DescribeNotReady(readiness), readiness);
             var now = DateTimeOffset.UtcNow;
             var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
                 .SingleAsync(
@@ -233,6 +234,7 @@ public sealed class BillingFinalizationService
             await AuditFinalizationAsync(record, actorUserId, false);
             if (closureChange.Changed)
                 await AuditClosureChangeAsync(closureChange, actorUserId);
+            await TriggerPostCommitArIntakeAsync(invoice.Id, actorUserId, cancellationToken);
             var response = Map(record, false);
             response.EmployeeBenefitSplit = splitResult?.Response;
             return response;
@@ -342,8 +344,7 @@ public sealed class BillingFinalizationService
                     "Masih ada pelayanan yang belum masuk invoice. Selesaikan antrean rekonsiliasi sebelum memfinalkan.",
                     readiness);
             if (!readiness.AllOrdersComplete || !readiness.CalculationCurrent)
-                throw new BillingFinalizationBlockedException(
-                    "Invoice belum siap difinalisasi.", readiness);
+                throw new BillingFinalizationBlockedException(DescribeNotReady(readiness), readiness);
 
             var now = DateTimeOffset.UtcNow;
             var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
@@ -433,6 +434,7 @@ public sealed class BillingFinalizationService
             await AuditFinalizationAsync(record, actorUserId, false);
             if (closureChange.Changed)
                 await AuditClosureChangeAsync(closureChange, actorUserId);
+            await TriggerPostCommitArIntakeAsync(invoice.Id, actorUserId, cancellationToken);
 
             await _loggerService.AuditAsync(
                 LogCategory,
@@ -628,7 +630,7 @@ public sealed class BillingFinalizationService
                     "Invoice belum memiliki hasil perhitungan terkini.",
                     readiness);
             // BE-BKC-FIX-021: penahan yang sama dengan finalisasi manual normal.
-            if (readiness.BlockingCodes.Count > 0)
+            if (HasHardBlockingCode(readiness))
                 throw new BillingFinalizationBlockedException(
                     readiness.BlockingReasons.LastOrDefault() ?? "Invoice belum siap diselesaikan.",
                     readiness);
@@ -682,6 +684,7 @@ public sealed class BillingFinalizationService
             await AuditFinalizationAsync(record, actorUserId, false);
             if (closureChange.Changed)
                 await AuditClosureChangeAsync(closureChange, actorUserId);
+            await TriggerPostCommitArIntakeAsync(invoice.Id, actorUserId, cancellationToken);
 
             return await MapCompleteResponseAsync(record, false, cancellationToken);
         }
@@ -751,7 +754,7 @@ public sealed class BillingFinalizationService
         // BE-BKC-FIX-021: penutupan otomatis memakai penahan yang sama dengan finalisasi manual.
         if (readiness.BlockingCodes.Contains(BillingFinalizationBlockingCodes.PendingClinicalCharge))
             return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup karena masih ada pelayanan yang belum masuk invoice.");
-        if (readiness.BlockingCodes.Count > 0)
+        if (HasHardBlockingCode(readiness))
             return (false, "Pembayaran berhasil, tetapi invoice belum dapat ditutup: " +
                 (readiness.BlockingReasons.LastOrDefault() ?? "invoice perlu diperiksa."));
         if (readiness.Outstanding > 0)
@@ -919,6 +922,36 @@ public sealed class BillingFinalizationService
         return (true, null);
     }
 
+    /// <summary>
+    /// Memicu pengolahan otomatis fakta AR milik invoice yang baru difinalisasi segera setelah transaksi
+    /// finalisasi di-commit (post-commit). Dilindungi oleh try-catch agar kegagalan integrasi Finance
+    /// tidak membatalkan atau merusak respons finalisasi yang sudah berhasil di Billing.
+    /// </summary>
+    public async Task TriggerPostCommitArIntakeAsync(
+        Guid invoiceId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (_arApHandoffService is null) return;
+        try
+        {
+            await _arApHandoffService.ProcessInvoiceArHandoffsImmediatelyAsync(
+                invoiceId, actorUserId, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await _loggerService.WarningAsync(
+                LogCategory,
+                "BillingInvoice.AutoArIntakeFailed",
+                $"Penemuan dan pengolahan otomatis fakta AR untuk invoice {invoiceId} gagal: {ex.Message}",
+                new { InvoiceId = invoiceId, Error = ex.Message });
+        }
+    }
+
     internal async Task<(BilFinalizationRecord Record, InvoiceClosureChange ClosureChange)> ExecuteInternalFinalizationAndClosureAsync(
         BilInvoice invoice,
         BilCalculationVersion calculation,
@@ -989,50 +1022,10 @@ public sealed class BillingFinalizationService
         await RecognizeUnappliedReferredAdminCreditAsync(
             invoice, calculation, calculationVersion, actorUserId, now, cancellationToken);
 
-        // BE-FIN-108: Kurangi plafon di HR tepat satu kali di dalam batas transaksi pemanggil
-        // (FIN-DEC-202, FIN-DEC-205, FIN-INTEGRATION-1.9 R.3, FR-FIN-244, AC 1-5).
-        // Plafon hanya dipotong untuk porsi RS Benefit (PayerAmount = P = min(C, S)).
-        // Bila P = 0, pemakaian plafon dilewati per AC 4 / R.3.4 langkah 5.
-        if (employeeBenefitSplit is { IsEmployeeBenefitVisit: true, PayerAmount: > 0m }
-            && employeeBenefitSplit.PayerHandoffKey.HasValue
-            && _balanceService is not null)
-        {
-            if (string.IsNullOrWhiteSpace(employeeBenefitSplit.BenefitPersonKind)
-                || !employeeBenefitSplit.BenefitPersonId.HasValue)
-            {
-                throw new BillingFinalizationValidationException(
-                    "Identitas kepesertaan benefit pegawai tidak lengkap untuk pemotongan plafon.");
-            }
-
-            var useResult = await _balanceService.UseAsync(new BenefitBalanceUseRequest
-            {
-                SourceHandoffKey = employeeBenefitSplit.PayerHandoffKey.Value,
-                InvoiceId = invoice.Id,
-                BenefitPersonKind = employeeBenefitSplit.BenefitPersonKind,
-                BenefitPersonId = employeeBenefitSplit.BenefitPersonId.Value,
-                Amount = employeeBenefitSplit.PayerAmount,
-                ActorUserId = actorUserId
-            }, cancellationToken);
-
-            if (string.Equals(useResult.Result, BenefitUseResults.Insufficient, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BillingFinalizationValidationException(
-                    useResult.Message ?? $"Sisa plafon tidak cukup. Sisa saat ini Rp {useResult.RemainingAmount:N0}.");
-            }
-
-            if (string.Equals(useResult.Result, BenefitUseResults.KeyConflict, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BillingFinalizationConflictException(
-                    useResult.Message ?? "Konflik kunci serah terima saat pemakaian plafon benefit.");
-            }
-
-            if (!string.Equals(useResult.Result, BenefitUseResults.Applied, StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(useResult.Result, BenefitUseResults.AlreadyApplied, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new BillingFinalizationValidationException(
-                    useResult.Message ?? $"Gagal memakai plafon benefit pegawai: {useResult.Result}.");
-            }
-        }
+        // Keputusan bisnis terbaru: Pemotongan plafon benefit pegawai TIDAK dilakukan saat finalisasi Billing.
+        // Billing hanya membentuk handoff dan AR Benefit RS Internal (FinReceivable IsInternalBenefit = true).
+        // Plafon baru dipotong oleh Finance saat persetujuan penerbitan penutupan benefit (FinanceBenefitSettlementService.PostAsync).
+        // (Lihat StageHandoffsForFinalizationAsync di atas).
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 
@@ -1094,6 +1087,7 @@ public sealed class BillingFinalizationService
                 Outstanding = 0,
                 IsReadyForNormalFinalization = false,
                 BlockingReasons = ["Invoice belum memiliki hasil perhitungan."],
+                BlockingCodes = [BillingFinalizationBlockingCodes.CalculationMissing],
                 CalculationVersion = 0,
                 InvoiceRowVersion = invoice.RowVersion
             };
@@ -1105,7 +1099,8 @@ public sealed class BillingFinalizationService
                 "Invoice belum memiliki hasil perhitungan terkini.");
 
         var allOrdersComplete = await AreAllOrdersCompleteAsync(invoice.Id, cancellationToken);
-        var calculationCurrent = await IsCalculationCurrentAsync(invoice.Id, calculation, cancellationToken);
+        var calculationStaleReason = await GetCalculationStaleReasonAsync(invoice.Id, calculation, cancellationToken);
+        var calculationCurrent = calculationStaleReason is null;
         var outstanding = await _closureService.CalculateOutstandingAsync(invoice, calculation, cancellationToken);
         var hasTariffNotFound = await HasTariffNotFoundAsync(invoice, calculation, cancellationToken);
         // BE-BKC-FIX-021 / ISSUE-BKC-001 T1: pelayanan eligible yang belum menjadi item tidak dapat
@@ -1137,13 +1132,23 @@ public sealed class BillingFinalizationService
 
         var blockingReasons = new List<string>();
         var blockingCodes = new List<string>();
+        // Setiap alasan membawa kode yang stabil (kontrak BIL-FIN-0NN) supaya klien tidak perlu mencocokkan teks.
         if (!allOrdersComplete)
+        {
             blockingReasons.Add("Semua order harus selesai sebelum invoice difinalkan.");
+            blockingCodes.Add(BillingFinalizationBlockingCodes.OrdersIncomplete);
+        }
         if (!calculationCurrent)
-            blockingReasons.Add("Tagihan berubah; hitung ulang sebelum finalisasi.");
+        {
+            blockingReasons.Add(DescribeCalculationStaleReason(calculationStaleReason));
+            blockingCodes.Add(BillingFinalizationBlockingCodes.CalculationStale);
+        }
         if (effectiveOutstanding > 0)
+        {
             blockingReasons.Add(
                 "Tanggung jawab pasien belum lunas; ajukan write-off/adjustment atau catat departure exception untuk melanjutkan.");
+            blockingCodes.Add(BillingFinalizationBlockingCodes.PatientOutstanding);
+        }
         if (invoice.RequiresReview)
         {
             blockingReasons.Add("Invoice ini perlu diperiksa sebelum difinalkan.");
@@ -1177,6 +1182,7 @@ public sealed class BillingFinalizationService
             InvoiceId = invoice.Id,
             AllOrdersComplete = allOrdersComplete,
             CalculationCurrent = calculationCurrent,
+            CalculationStaleReason = calculationStaleReason,
             Outstanding = outstanding,
             IsReadyForNormalFinalization = allOrdersComplete && calculationCurrent && effectiveOutstanding == 0
                 && blockingCodes.Count == 0,
@@ -1218,6 +1224,42 @@ public sealed class BillingFinalizationService
         return breakdown?.RoomCharge?.Segments?.Any(x => x.MissingTariff) == true;
     }
 
+    /// <summary>
+    /// Ada penahan "keras" yang tidak bisa diselesaikan lewat pembayaran/penangguhan? Kode turunan
+    /// (<see cref="BillingFinalizationBlockingCodes.CalculationStale"/>, <c>OrdersIncomplete</c>, <c>PatientOutstanding</c>,
+    /// <c>CalculationMissing</c>) sudah punya pemeriksaan eksplisit sendiri pada setiap jalur, jadi tidak boleh mengubah
+    /// perilaku jalur yang selama ini hanya memeriksa kode review/tarif/pelayanan tertunda.
+    /// </summary>
+    private static bool HasHardBlockingCode(FinalizationPreviewResponse readiness) =>
+        readiness.BlockingCodes.Any(code => code is not
+            (BillingFinalizationBlockingCodes.CalculationStale
+                or BillingFinalizationBlockingCodes.OrdersIncomplete
+                or BillingFinalizationBlockingCodes.PatientOutstanding
+                or BillingFinalizationBlockingCodes.CalculationMissing));
+
+    private static string DescribeNotReady(FinalizationPreviewResponse readiness) =>
+        !readiness.CalculationCurrent
+            ? DescribeCalculationStaleReason(readiness.CalculationStaleReason)
+            : "Semua order harus selesai sebelum invoice difinalkan.";
+
+    /// <summary>
+    /// Pesan penahan yang menyebut sebab kalkulasi tertinggal dan tindakan pulihnya. Kalimat ini juga dipakai layar
+    /// sebagai sumber teks, jadi kasir tidak perlu menebak apa yang berubah.
+    /// </summary>
+    private static string DescribeCalculationStaleReason(string? reason) => reason switch
+    {
+        BillingCalculationStaleReasons.ItemsChanged =>
+            "Ada perubahan item tagihan yang belum tercermin pada perhitungan tersimpan. "
+            + "Hitung ulang tagihan, periksa rincian terbaru, lalu lanjutkan.",
+        BillingCalculationStaleReasons.DiscountsChanged =>
+            "Ada perubahan diskon yang belum tercermin pada perhitungan tersimpan. "
+            + "Hitung ulang tagihan, periksa rincian terbaru, lalu lanjutkan.",
+        BillingCalculationStaleReasons.CoverageRuleChanged =>
+            "Aturan tanggungan penjamin diperbarui sesudah perhitungan terakhir. "
+            + "Hitung ulang tagihan agar pembagian penjamin mengikuti aturan terbaru, periksa rincian, lalu lanjutkan.",
+        _ => "Perhitungan tagihan belum terkini. Hitung ulang tagihan sebelum finalisasi."
+    };
+
     private async Task<bool> AreAllOrdersCompleteAsync(Guid invoiceId, CancellationToken cancellationToken)
     {
         var activeItems = await _dbContext.BilInvoiceItems.AsNoTracking()
@@ -1230,8 +1272,21 @@ public sealed class BillingFinalizationService
     private async Task<bool> IsCalculationCurrentAsync(
         Guid invoiceId,
         BilCalculationVersion calculation,
+        CancellationToken cancellationToken) =>
+        await GetCalculationStaleReasonAsync(invoiceId, calculation, cancellationToken) is null;
+
+    /// <summary>
+    /// Sebab kalkulasi tersimpan tertinggal, atau <c>null</c> bila terkini. Aturan penilaian tidak berubah dari
+    /// <c>IsCalculationCurrentAsync</c> terdahulu (perubahan terakhir item/diskon/aturan penjamin dibandingkan dengan
+    /// <c>CalculatedAt</c>); yang ditambahkan hanya penamaan sebabnya, supaya layar dapat menampilkan keadaan yang
+    /// tepat dan tidak menyamakan perubahan master dengan perubahan tagihan biasa.
+    /// </summary>
+    private async Task<string?> GetCalculationStaleReasonAsync(
+        Guid invoiceId,
+        BilCalculationVersion calculation,
         CancellationToken cancellationToken)
     {
+        var calculatedAtUtc = calculation.CalculatedAt.UtcDateTime;
         var latestItemChange = await _dbContext.BilInvoiceItems.AsNoTracking()
             .Where(x => x.InvoiceId == invoiceId)
             .Select(x => x.UpdateDateTime ?? x.CreateDateTime)
@@ -1242,14 +1297,17 @@ public sealed class BillingFinalizationService
             .Select(x => x.UpdateDateTime ?? x.CreateDateTime)
             .OrderByDescending(x => x)
             .FirstOrDefaultAsync(cancellationToken);
-        var latestChange = latestItemChange > latestDiscountChange ? latestItemChange : latestDiscountChange;
+        if (latestItemChange > calculatedAtUtc) return BillingCalculationStaleReasons.ItemsChanged;
+        if (latestDiscountChange > calculatedAtUtc) return BillingCalculationStaleReasons.DiscountsChanged;
 
         // Aturan tanggungan penjamin perusahaan yang berubah SETELAH kalkulasi tersimpan membuat porsi penjamin
         // (C) pada versi itu tidak lagi mencerminkan aturan terbaru — termasuk invoice lama yang dihitung sebelum
         // aturan diperbaiki. Pembagian Benefit RS dan finalisasi membaca versi tersimpan, jadi versi itu dianggap
-        // belum terkini sampai kasir menghitung ulang (Recalculate terkontrol: OPEN saja, ExpectedRowVersion,
-        // alasan, audit). Hanya invoice OPEN yang diperiksa: invoice yang sudah final/tutup tidak pernah berubah
-        // retroaktif karena aturan master berubah.
+        // belum terkini sampai dihitung ulang lewat Recalculate terkontrol (OPEN saja, ExpectedRowVersion, alasan,
+        // audit). Hanya invoice OPEN yang diperiksa: invoice yang sudah final/tutup tidak pernah berubah retroaktif
+        // karena aturan master berubah. Perubahan ini SENGAJA tidak dihitung ulang otomatis di sini: apakah perubahan
+        // aturan berlaku surut pada invoice OPEN yang sudah berjalan adalah keputusan bisnis (NEEDS BUSINESS
+        // DECISION), sehingga keadaannya dilaporkan apa adanya dengan sebab COVERAGE_RULE_CHANGED.
         var companyGuarantorId = await (
             from invoice in _dbContext.BilInvoices.AsNoTracking()
             join guarantor in _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
@@ -1268,10 +1326,10 @@ public sealed class BillingFinalizationService
                 .Select(x => x.UpdateDateTime ?? x.CreateDateTime)
                 .OrderByDescending(x => x)
                 .FirstOrDefaultAsync(cancellationToken);
-            if (latestRuleChange > latestChange) latestChange = latestRuleChange;
+            if (latestRuleChange > calculatedAtUtc) return BillingCalculationStaleReasons.CoverageRuleChanged;
         }
 
-        return latestChange <= calculation.CalculatedAt.UtcDateTime;
+        return null;
     }
 
     private static void ValidateFinalizeRequest(FinalizeInvoiceRequest request, Guid actorUserId)
@@ -1580,6 +1638,48 @@ public static class BillingFinalizationBlockingCodes
     /// atau perlu ditinjau (<c>BE-BKC-FIX-021</c>, <c>ISSUE-BKC-001</c> T1).
     /// </summary>
     public const string PendingClinicalCharge = "BIL-FIN-022";
+
+    /// <summary>
+    /// Hasil kalkulasi tersimpan tertinggal dari invoice: item atau diskon berubah (atau aturan tanggungan penjamin
+    /// berubah) sesudah <c>CalculatedAt</c>. Finalisasi tidak pernah menghitung ulang diam-diam; kasir harus menjalankan
+    /// Recalculate (OPEN saja, ExpectedRowVersion, alasan, audit) lalu memuat ulang kesiapan.
+    /// </summary>
+    public const string CalculationStale = "BIL-FIN-023";
+
+    /// <summary>Masih ada order pada item invoice yang belum selesai.</summary>
+    public const string OrdersIncomplete = "BIL-FIN-024";
+
+    /// <summary>
+    /// Kewajiban pasien belum lunas (pada kunjungan benefit: sisa K + kelebihan plafon E setelah pilihan penangguhan).
+    /// Kode ini hanya penanda; sisa tersebut masih dapat diselesaikan lewat pembayaran kasir, penangguhan AR, atau
+    /// departure exception, sehingga tidak ikut menahan penutupan otomatis (lihat <c>HasHardBlockingCode</c>).
+    /// </summary>
+    public const string PatientOutstanding = "BIL-FIN-025";
+
+    /// <summary>Invoice belum memiliki hasil kalkulasi tersimpan sama sekali.</summary>
+    public const string CalculationMissing = "BIL-FIN-026";
+}
+
+/// <summary>
+/// Sebab hasil kalkulasi tersimpan tertinggal (<see cref="FinalizationPreviewResponse.CalculationStaleReason"/>).
+/// Perubahan item, diskon, dan penanggung kini memperbarui kalkulasi dalam transaksi yang sama dengan perubahannya,
+/// sehingga <see cref="ItemsChanged"/> dan <see cref="DiscountsChanged"/> hanya tersisa untuk data lama atau
+/// kegagalan yang dibatalkan; <see cref="CoverageRuleChanged"/> adalah perubahan master di luar transaksi tagihan.
+/// </summary>
+public static class BillingCalculationStaleReasons
+{
+    /// <summary>Ada item invoice yang dibuat/diubah/dibatalkan sesudah <c>CalculatedAt</c>.</summary>
+    public const string ItemsChanged = "ITEMS_CHANGED";
+
+    /// <summary>Ada penerapan diskon yang berubah sesudah <c>CalculatedAt</c>.</summary>
+    public const string DiscountsChanged = "DISCOUNTS_CHANGED";
+
+    /// <summary>
+    /// Aturan tanggungan penjamin perusahaan berubah sesudah <c>CalculatedAt</c> (master data). Berlaku hanya untuk
+    /// invoice OPEN; invoice final/tutup tidak pernah dievaluasi ulang. Kebijakan penerapan retroaktif perubahan aturan
+    /// pada invoice OPEN belum diputuskan secara bisnis, jadi tidak dihitung ulang otomatis.
+    /// </summary>
+    public const string CoverageRuleChanged = "COVERAGE_RULE_CHANGED";
 }
 
 public abstract class BillingFinalizationException : Exception

@@ -53,3 +53,23 @@ Sesuai kebutuhan Analisis Bisnis (Tahap C alur admisi transfer IGD):
 ## Koreksi bukti 12 Oktober 2026 - EPS-006
 
 Status saat ini: 🟡 SEBAGIAN. Laporan historis tidak menjadi bukti runtime slice transfer current. Source diperbaiki pada MHamzah/HamzahV2 dengan [kontrak EPS-006](../../../contracts/admission-transfer-repair-006.md). Bukti build, unit, browser dan batas migration/database ada di [FIX-EPS-006-08](../frontend/FIX-EPS-006-08.md). Tidak mengklaim transaksi PostgreSQL PROVEN.
+
+
+---
+
+## Pembaruan 26 Oktober 2026 — Harmonisasi Pola State Switch 1-Step (Standar Pasien Lama)
+
+### 1. Latar Belakang & Persetujuan Pengguna
+Mengikuti arahan pengguna tertanggal 26 Oktober 2026, antrean transfer IGD & Poliklinik diharmonisasi dengan pola pendaftaran Pasien Lama (`InpatientAdmissionExistingPatientSplitStep`). Pemilihan antrean transfer dan verifikasi data rujukan disatukan ke dalam **1 Langkah Tunggal dengan fitur Switch**:
+1. **Pola State Switch Terpadu:**
+   - **State A (`!hasSelectedTransfer`):** Tabel antrean transfer IGD & Poliklinik full-width (`InpatientAdmissionTransferList`).
+   - **State B (`hasSelectedTransfer`):** Verifikasi data pasien dan rujukan klinis 2-kolom seimbang (`InpatientAdmissionTransferReviewStep`) dengan tombol `[Pilih Pasien Lain]` di kanan atas header untuk kembali ke State A secara instan.
+2. **Penyederhanaan Stepper:**
+   - Stepper alur transfer disederhanakan dari 10 tahapan menjadi **9 tahapan terpadu**, mengurangi fragmentasi dan beban kognitif petugas admisi.
+
+### 2. Berkas yang Diubah / Dibuat
+- `src/components/view/health-services/inpatient-management/admission-transfers/inpatient-admission-transfer-split-step.jsx` (Komponen wrapper terpadu baru).
+- `src/components/view/health-services/inpatient-management/admission-transfers/inpatient-admission-transfer-review-step.jsx` & `.module.css` (Penambahan tombol header switcher dan penyelarasan label navigasi).
+- `src/components/view/health-services/inpatient-management/inpatient-admission-view.jsx` (Integrasi komponen split step dan penyelarasan handler URL).
+- `src/lib/constants/health-services/inpatient-management/inpatient-admission-flow-constants.jsx` (Pembaruan konstanta `INPATIENT_ADMISSION_TRANSFER_STEPS` menjadi 9 langkah).
+- `tests/unit/inpatient-admission-transfer.test.mjs` (Validasi stepper 9 langkah lulus 100%).

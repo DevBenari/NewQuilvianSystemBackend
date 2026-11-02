@@ -1571,6 +1571,19 @@ Class: `InpatientAdmissionTransferItemResponse`
 | **`IsPriorityMember`** *(Baru)* | `bool` | Ya | **True bila pasien memiliki membership CRM aktif (`MstPatientMembership.MembershipStatus == Active`), hari ini dalam periode berlaku, dan tier memiliki `PriorityQueue == true`.** | Tidak |
 | **`MemberTierName`** *(Baru)* | `string?` | Tidak | **Nama tier membership pasien (misal `"Platinum"`, `"Gold"`).** Null jika non-member / reguler. | Tidak |
 | **`MemberPriorityLevel`** *(Baru)* | `int?` | Tidak | **Tingkat prioritas antrean tier (`MstMembershipTier.PriorityLevel`). Angka lebih kecil menduduki prioritas lebih tinggi.** Null jika non-member. | Tidak |
+| **`NeedsIsolation`** *(PLAN-REPAIR-EPS-041)* | `bool` | Ya | Tanda isolasi pada `EmgAdmissionRequest` bertanda tangan; selalu `false` untuk Poli. Dipakai mengisi awal sakelar isolasi. | Ya |
+| **`NeedsIntensiveCare`**, **`NeedsOxygenSupport`**, **`NeedsSpecialMonitoring`** *(PLAN-REPAIR-EPS-041)* | `bool` | Ya | Kebutuhan klinis permintaan IGD; selalu `false` untuk Poli. Tampil sebagai chip "Kebutuhan". | Ya |
+| **`EstimatedLengthOfStayDays`** *(PLAN-REPAIR-EPS-041)* | `int?` | Tidak | Perkiraan lama rawat dari permintaan IGD. | Tidak |
+| **`ProposedInpatientDoctorId`** / **`ProposedInpatientDoctorName`** *(PLAN-REPAIR-EPS-041)* | `Guid?` / `string?` | Tidak | DPJP rawat inap yang diusulkan IGD (ID hanya bila dokter aktif). Berbeda dari `DecidedByDoctor*` (dokter jaga yang memutuskan). | Tidak |
+| **`Diagnosis`** *(PLAN-REPAIR-EPS-041)* | `string?` | Tidak | Diagnosis surat pengantar Poli (`ReferralDiagnosis`, atau `Diagnosis` bila kosong); kosong untuk IGD. | Ya |
+| **`RequestedRoomClass`** *(PLAN-REPAIR-EPS-041)* | `string?` | Tidak | Kelas kamar yang diminta surat pengantar Poli, contoh `"Kelas I"`; kosong untuk IGD. | Tidak |
+
+> **Koreksi PLAN-REPAIR-EPS-041 (27-10-2026).** `Gender`, `NationalId`, dan `PhoneNumber` kini benar-benar diisi dari
+> master pasien; `Gender` bernilai `"Laki-laki"`/`"Perempuan"` (bukan `"Male"`/`"Female"` seperti tertulis di atas).
+> Pada `POST /admission-transfers/admit`, kegagalan reservasi meneruskan kode aturan aslinya (`422 ISOLATION_REQUIRED`,
+> `NEWBORN_BED_ONLY`, dst.) pada `errors.code`; `BED_NOT_READY` hanya bila reservasi tidak menyebut kode. Respons sukses
+> HTTP 201 ber-`statusCode: 201` di badan. Rincian: [`admission-transfer-repair-006.md`](admission-transfer-repair-006.md)
+> bagian revisi 041 dan laporan [`FIX-EPS-041-BE`](../task/report/backend/FIX-EPS-041-BE.md).
 
 ### 18.3 Aturan Pengurutan Server (Sorting Invariant)
 

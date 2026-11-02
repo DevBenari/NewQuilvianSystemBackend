@@ -339,6 +339,38 @@
 >
 > **Kompatibilitas: aman** — pemanggil yang mengirim angka tetap diterima; endpoint tambahan.
 
+> **Amandemen revision 19 — 2026-10-23.** Booking Radiologi digerakkan tarif dan kelas pasien (status: **diterapkan di source,
+> belum dibuild atau diuji runtime**). Penyebab dropdown "Pemeriksaan tidak ditemukan": Booking memakai `procedure-options`
+> (izin `RadOrder : Update`) yang membaca `MstProcedure` aktif ber-`IsRadiology` — bukan master tarif — sehingga kosong bila
+> master pemeriksaan belum bertanda radiologi, dan 403 bagi pembooking yang hanya memegang `RadOrder : Create`.
+>
+> 1. `GET rad-orders/booking-procedure-options` — `RadOrder : Create`; **daftar dibangun dari tarif radiologi** (kategori tarif
+>    bertanda radiologi / bernama "Radiology") dan dicari menurut **nama tarif (`MstTariff.TariffName`)**, kode tarif, serta nama/kode
+>    pemeriksaan. Nama tarif yang belum dapat dipesan tetap tampil nonaktif beserta alasannya: `PROCEDURE_NOT_MAPPED` (ProcedureId
+>    tarif kosong; satu baris per nama betapapun banyak varian) dan `PROCEDURE_NOT_RADIOLOGY` (pemeriksaan bertarif radiologi tetapi
+>    belum bertanda `IsRadiology`). Pemetaan tidak pernah ditebak dari kemiripan nama atau kode. Query `search`,
+>    `encounterId`, `patientClassId` (kelas pratinjau, opsional), `pageNumber`, `pageSize` (≤ 50).
+>    `PagedResult<RadBookingProcedureOptionResponse { Id, ProcedureCode, ProcedureName, ProcedureCategoryName,
+>    ExternalProcedureCode, DisplayName, TariffStatus, IsSelectable, UnavailableReason, TariffAmount, TariffId, TariffCode,
+>    TariffName, TariffPatientClassId, TariffPatientClassName, EffectiveStartDate, EffectiveEndDate }>`.
+>    **Satu baris per pemeriksaan** (bukan per varian tarif kelas). `TariffStatus`: `RESOLVED` | `NOT_FOUND` | `AMBIGUOUS` |
+>    `ENCOUNTER_REQUIRED`. Hanya `RESOLVED` yang `IsSelectable`; yang lain tampil dengan `UnavailableReason`, diurutkan setelah
+>    yang dapat dipilih. Tarif dipilih `MstTariffSelector` (aturan sama dengan Billing): kelas pasien lebih dulu, lalu tarif
+>    umum; tarif kelas lain tidak pernah dipakai; dua tarif sama spesifik berharga berbeda = `AMBIGUOUS` (tidak dipilih acak).
+> 2. `GET rad-orders/booking-class-options?encounterId=` — `RadOrder : Create`; `List<RadBookingClassOptionResponse { Id,
+>    PatientClassCode, PatientClassName, IsEncounterClass, SortOrder }>` dari `MstPatientClass` aktif dan
+>    `IsForTariffMapping`; kelas kunjungan selalu ikut dan bertanda `IsEncounterClass`.
+> 3. `GET rad-orders/booking-price` menerima `patientClassId` (opsional, kelas pratinjau). Respons **bertambah** field
+>    `TariffStatus`, `TariffMessage`, `TariffId`, `TariffCode`, `TariffName`, `TariffPatientClassId`, `EffectiveStartDate`,
+>    `EffectiveEndDate`, `PriceBasisPatientClassId/Name`, `EncounterPatientClassId/Name`, `IsPreviewClass`. `TariffAmount`
+>    tetap ada dan kini `null` untuk tarif tidak ada atau ambigu (tidak pernah 0). Kelas pratinjau **tidak** mengubah kelas
+>    kunjungan dan tidak memengaruhi penagihan.
+> 4. `POST rad-orders/bookings` kini menolak (`400`, `RAD_TARIFF_NOT_AVAILABLE` / `RAD_TARIFF_AMBIGUOUS`) pemeriksaan yang tidak
+>    punya tarif sah untuk **kelas kunjungan**; harga tidak pernah dikirim klien.
+>
+> **Kompatibilitas: aman untuk pembaca** — endpoint dan field tambahan; `procedure-options` tidak berubah. **Tidak aman bagi
+> pemanggil yang membooking pemeriksaan tanpa tarif sah**: kini ditolak (disengaja). Tidak ada migration.
+
 Endpoint yang **belum ada di kode** diberi label `Rencana (belum tersedia)`. Yang tidak berlabel
 sudah dapat dipakai sekarang.
 

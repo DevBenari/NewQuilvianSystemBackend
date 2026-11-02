@@ -297,19 +297,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// jalur keduanya masih bocor. Kini keduanya memanggil method ini, sehingga rumusannya
         /// tidak dapat lagi menyimpang satu sama lain.
         /// </para>
-        ///
-        /// <para>
-        /// <b>Masa transisi.</b> <c>IGD-DEC-109</c> menetapkan <c>Outpatient</c> tetap diterima
-        /// sampai migration <c>ChangeEmergencyEncounterTypeToEmergency</c> benar-benar
-        /// diterapkan. Seluruh kunjungan IGD lama bertipe <c>Outpatient</c>; menolaknya
-        /// sekarang memutus setiap kunjungan yang sudah ada. Setelah migration itu berjalan
-        /// dan jumlah barisnya cocok, <c>Outpatient</c> dihapus dari daftar di bawah — satu
-        /// baris perubahan, satu tempat.
-        /// </para>
         /// </remarks>
         public static string? PeriksaJenisEncounter(EncounterType encounterType)
         {
-            if (encounterType is EncounterType.Emergency or EncounterType.Outpatient)
+            if (encounterType is EncounterType.Emergency)
                 return null;
 
             return "Encounter yang dipilih bukan kunjungan IGD. Pilih atau buat encounter " +

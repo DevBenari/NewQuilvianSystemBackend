@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
@@ -5,6 +6,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.Sources;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
@@ -16,6 +18,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
     /// <summary>
     /// Menggabungkan tiga belas sumber dokumen klinis menjadi satu riwayat berurut waktu
     /// (RM-DEC-002, RM-CAP-004, arsitektur backend bagian 5.8).
+    ///
+    /// SEJAK `BE-21` (RM-BP-001 revision 4): selain tiga belas jenis bawaan, dokumen modul lain
+    /// dibaca lewat <see cref="IMedicalRecordDocumentSource"/> yang diimplementasikan modul
+    /// pemiliknya. Jenis yang dikenal tetapi belum punya pembaca dilaporkan sebagai "belum
+    /// tersedia", dan setiap sumber dibaca dengan batas waktu sendiri (A4.9, A4.14).
     ///
     /// MASALAH YANG DISELESAIKAN. Sebelum service ini ada, menampilkan satu halaman rekam medis
     /// berarti memanggil sampai tiga belas endpoint terpisah, masing-masing dengan penomoran
@@ -61,10 +68,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
     {
         private readonly ApplicationDbContext _dbContext;
 
-        public MedicalRecordTimelineService(ApplicationDbContext dbContext)
+        /// <summary>Pembaca sumber modul lain per jenis dokumen (`INT-RM-10`, `BE-21`).</summary>
+        private readonly IReadOnlyDictionary<ClinicalDocumentKind, IMedicalRecordDocumentSource> _sumberPerJenis;
+
+        private readonly TimeSpan _batasWaktuSumber;
+        private readonly TimeSpan _batasWaktuBerkas;
+
+        public MedicalRecordTimelineService(
+            ApplicationDbContext dbContext,
+            IEnumerable<IMedicalRecordDocumentSource> sources,
+            IConfiguration configuration)
         {
             _dbContext = dbContext;
+
+            // Satu jenis hanya boleh punya satu pembaca. Bila dua pembaca terdaftar untuk jenis
+            // yang sama, yang terdaftar lebih dulu dipakai — urutannya mengikuti pendaftaran DI
+            // sehingga tetap deterministik. Melempar galat di sini justru menutup seluruh berkas
+            // pasien karena satu kesalahan pendaftaran.
+            var sumber = new Dictionary<ClinicalDocumentKind, IMedicalRecordDocumentSource>();
+            foreach (var pembaca in sources)
+            {
+                foreach (var jenis in pembaca.Kinds)
+                {
+                    if (!JenisBawaan.Contains(jenis))
+                        sumber.TryAdd(jenis, pembaca);
+                }
+            }
+
+            _sumberPerJenis = sumber;
+
+            // A4.14: bawaan teknis, bukan kebijakan rumah sakit; dapat diubah per lingkungan.
+            _batasWaktuSumber = TimeSpan.FromSeconds(
+                Math.Max(1, configuration.GetValue("MedicalRecord:SourceTimeoutSeconds", BatasWaktuSumberBawaanDetik)));
+            _batasWaktuBerkas = TimeSpan.FromSeconds(
+                Math.Max(1, configuration.GetValue("MedicalRecord:FileTimeoutSeconds", BatasWaktuBerkasBawaanDetik)));
         }
+
+        /// <summary>Batas waktu bawaan satu sumber, dalam detik (A4.14).</summary>
+        public const int BatasWaktuSumberBawaanDetik = 3;
+
+        /// <summary>Batas waktu bawaan satu pembukaan berkas, dalam detik (A4.14).</summary>
+        public const int BatasWaktuBerkasBawaanDetik = 20;
 
         /// <summary>Ukuran halaman bawaan bila pemanggil tidak menentukannya.</summary>
         public const int UkuranHalamanBawaan = 25;
@@ -92,9 +136,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// </summary>
         private const int BatasRingkasan = 50;
 
-        /// <summary>Seluruh jenis dokumen yang dapat digabungkan service ini.</summary>
+        /// <summary>
+        /// Seluruh nilai jenis dokumen yang dikenal sistem, termasuk yang belum punya pembaca.
+        ///
+        /// Dipakai pilihan saringan dan penghitungan jenis yang ditegakkan. Untuk menentukan
+        /// jenis yang benar-benar DIBACA, pakai <see cref="JenisTersedia"/> — bukan daftar ini.
+        /// Memakai daftar ini sebagai daftar baca adalah penyebab jenis 14 dan 15 tampil kosong
+        /// diam-diam (`RM-CAP-035`).
+        /// </summary>
         public static readonly IReadOnlyList<ClinicalDocumentKind> SeluruhJenis =
             Enum.GetValues<ClinicalDocumentKind>();
+
+        /// <summary>
+        /// Jenis yang dibaca service ini sendiri dari `ClinicalManagement`: tiga belas jenis rilis
+        /// pertama, ditambah delapan model yang lahir sesudahnya (`BE-22`, `RM-CAP-059`–`065`, `067`).
+        /// </summary>
+        public static readonly IReadOnlySet<ClinicalDocumentKind> JenisBawaan = new HashSet<ClinicalDocumentKind>
+        {
+            ClinicalDocumentKind.ProgressNote,
+            ClinicalDocumentKind.Consultation,
+            ClinicalDocumentKind.Assessment,
+            ClinicalDocumentKind.Diagnosis,
+            ClinicalDocumentKind.Procedure,
+            ClinicalDocumentKind.VitalSign,
+            ClinicalDocumentKind.Allergy,
+            ClinicalDocumentKind.MedicalHistory,
+            ClinicalDocumentKind.FamilyHistory,
+            ClinicalDocumentKind.ClinicalDocument,
+            ClinicalDocumentKind.NoteAttachment,
+            ClinicalDocumentKind.MedicalCertificate,
+            ClinicalDocumentKind.Consent,
+            ClinicalDocumentKind.NursingCarePlan,
+            ClinicalDocumentKind.PhysicianVisit,
+            ClinicalDocumentKind.NursingIntervention,
+            ClinicalDocumentKind.TransfusionMonitoring,
+            ClinicalDocumentKind.DoctorCertificate,
+            ClinicalDocumentKind.CaseManagementEvaluation,
+            ClinicalDocumentKind.NosocomialInfection,
+            ClinicalDocumentKind.TransferHandover
+        };
+
+        /// <summary>Jenis yang punya pembaca: tiga belas jenis bawaan ditambah jenis milik pembaca sumber.</summary>
+        public IReadOnlyList<ClinicalDocumentKind> JenisTersedia =>
+            SeluruhJenis.Where(x => JenisBawaan.Contains(x) || _sumberPerJenis.ContainsKey(x)).ToList();
+
+        /// <summary>Jenis yang dikenal tetapi belum punya pembaca — dilaporkan, tidak dilewati.</summary>
+        public IReadOnlyList<ClinicalDocumentKind> JenisBelumTersedia =>
+            SeluruhJenis.Where(x => !JenisBawaan.Contains(x) && !_sumberPerJenis.ContainsKey(x)).ToList();
 
         /// <summary>
         /// Mengambil riwayat klinis seorang pasien dari sumber-sumber yang diminta.
@@ -114,7 +202,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 ? UkuranHalamanBawaan
                 : Math.Min(permintaan.PageSize, UkuranHalamanMaksimal);
 
-            var jenisDiminta = TentukanJenis(permintaan.DocumentKinds);
+            var (jenisDiminta, belumTersedia) = TentukanJenis(permintaan.DocumentKinds);
 
             // Baris yang perlu dikumpulkan agar halaman yang diminta dapat dibentuk. Kasus
             // terburuk: seluruh isi halaman berasal dari satu sumber saja, jadi setiap sumber
@@ -125,6 +213,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             var hasil = new MedicalRecordTimelineResult
             {
                 RequestedKinds = jenisDiminta.ToList(),
+                UnavailableKinds = KeteranganBelumTersedia(belumTersedia),
 
                 // Halaman yang terlalu jauh tidak dapat dijamin utuh, karena setiap sumber
                 // dibatasi. Keadaan itu dinyatakan, bukan didiamkan.
@@ -133,36 +222,74 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             var gabungan = new List<MedicalRecordTimelineItemResponse>();
             var jumlahSeluruhnya = 0;
+            var jamBerkas = Stopwatch.StartNew();
 
-            foreach (var jenis in jenisDiminta)
+            // Sumber dibaca BERURUTAN, bukan serentak: seluruhnya memakai satu ApplicationDbContext
+            // per permintaan, dan EF Core menolak dua query bersamaan pada satu context (A4.9 no. 3).
+            foreach (var jenis in jenisDiminta.Where(JenisBawaan.Contains))
             {
-                try
+                var (berhasil, nilai) = await BacaDenganBatasWaktuAsync(
+                    [jenis],
+                    batas => AmbilJenisAsync(jenis, permintaan, batasPerSumber, batas),
+                    jamBerkas,
+                    hasil.FailedSources,
+                    cancellationToken);
+
+                if (!berhasil)
+                    continue;
+
+                var (jumlah, baris) = nilai;
+                jumlahSeluruhnya += jumlah;
+
+                // Menyentuh batas berarti kemungkinan masih ada dokumen lain yang tidak ikut
+                // terambil.
+                if (baris.Count >= batasPerSumber)
+                    hasil.IsTruncated = true;
+
+                gabungan.AddRange(baris);
+            }
+
+            // Satu pembaca dipanggil satu kali untuk seluruh jenisnya yang diminta. Bila ia gagal,
+            // seluruh jenisnya tercatat gagal — jenis lain tidak terpengaruh.
+            foreach (var kelompok in jenisDiminta
+                         .Where(_sumberPerJenis.ContainsKey)
+                         .GroupBy(x => _sumberPerJenis[x]))
+            {
+                var pembaca = kelompok.Key;
+                var jenisPembaca = kelompok.ToList();
+
+                var (berhasil, halamanSumber) = await BacaDenganBatasWaktuAsync(
+                    jenisPembaca,
+                    batas => pembaca.ReadAsync(new MedicalRecordSourceQuery
+                    {
+                        PatientId = permintaan.PatientId,
+                        Kinds = jenisPembaca,
+                        EncounterId = permintaan.EncounterId,
+                        StartDate = permintaan.StartDate,
+                        EndDate = permintaan.EndDate,
+                        NewestFirst = permintaan.NewestFirst,
+                        Limit = batasPerSumber
+                    }, batas),
+                    jamBerkas,
+                    hasil.FailedSources,
+                    cancellationToken);
+
+                if (!berhasil)
+                    continue;
+
+                foreach (var jenis in jenisPembaca)
                 {
-                    var (jumlah, baris) = await AmbilJenisAsync(
-                        jenis, permintaan, batasPerSumber, cancellationToken);
+                    jumlahSeluruhnya += halamanSumber.Totals.GetValueOrDefault(jenis);
 
-                    jumlahSeluruhnya += jumlah;
+                    var barisJenis = halamanSumber.Items
+                        .Where(x => x.Kind == jenis)
+                        .Take(batasPerSumber)
+                        .ToList();
 
-                    // Menyentuh batas berarti kemungkinan masih ada dokumen lain yang tidak
-                    // ikut terambil.
-                    if (baris.Count >= batasPerSumber)
+                    if (barisJenis.Count >= batasPerSumber)
                         hasil.IsTruncated = true;
 
-                    gabungan.AddRange(baris);
-                }
-                catch (OperationCanceledException)
-                {
-                    // Pembatalan permintaan bukan kegagalan sumber. Teruskan apa adanya.
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    hasil.FailedSources.Add(new MedicalRecordTimelineSourceFailure
-                    {
-                        DocumentKind = jenis,
-                        DocumentKindName = NamaJenis(jenis),
-                        Message = ex.Message
-                    });
+                    gabungan.AddRange(barisJenis.Select(x => KeBarisLinimasa(x, pembaca.SourceModule)));
                 }
             }
 
@@ -201,24 +328,130 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         // =====================================================================
 
         /// <summary>
-        /// Menentukan jenis dokumen mana yang benar-benar ditanyakan ke basis data.
+        /// Memisahkan jenis yang diminta menjadi jenis yang dibaca dan jenis yang belum punya
+        /// pembaca.
         ///
-        /// Daftar kosong berarti seluruh tiga belas jenis. Nilai kembar dan nilai yang tidak
-        /// dikenal dibuang lebih dulu supaya tidak ada query yang terkirim dua kali.
+        /// Daftar kosong berarti seluruh jenis yang dikenal. Nilai kembar dan nilai yang tidak
+        /// dikenal dibuang lebih dulu supaya tidak ada query yang terkirim dua kali. Jenis tanpa
+        /// pembaca TIDAK dilewati diam-diam: ia dikembalikan supaya dilaporkan sebagai "belum
+        /// tersedia" (`RM-DEC-030`, `RM-DEC-058`, `RM-CAP-035`).
         /// </summary>
-        private static IReadOnlyList<ClinicalDocumentKind> TentukanJenis(
-            IReadOnlyCollection<ClinicalDocumentKind>? diminta)
+        private (IReadOnlyList<ClinicalDocumentKind> Dibaca, IReadOnlyList<ClinicalDocumentKind> BelumTersedia)
+            TentukanJenis(IReadOnlyCollection<ClinicalDocumentKind>? diminta)
         {
-            if (diminta == null || diminta.Count == 0)
-                return SeluruhJenis;
+            var terpilih = diminta == null || diminta.Count == 0
+                ? SeluruhJenis.ToList()
+                : diminta.Where(x => Enum.IsDefined(x)).Distinct().ToList();
 
-            var terpilih = diminta
-                .Where(x => Enum.IsDefined(x))
-                .Distinct()
+            var dibaca = terpilih
+                .Where(x => JenisBawaan.Contains(x) || _sumberPerJenis.ContainsKey(x))
                 .ToList();
 
-            return terpilih;
+            var belumTersedia = terpilih.Except(dibaca).ToList();
+
+            return (dibaca, belumTersedia);
         }
+
+        /// <summary>Kalimat bagi pembaca berkas untuk setiap jenis yang belum tersedia.</summary>
+        private static List<MedicalRecordUnavailableKindResponse> KeteranganBelumTersedia(
+            IEnumerable<ClinicalDocumentKind> jenis) => jenis
+            .Select(x => new MedicalRecordUnavailableKindResponse
+            {
+                DocumentKind = x,
+                DocumentKindName = NamaJenis(x),
+                Message = x == ClinicalDocumentKind.PathologyAnatomyResult
+                    ? "Hasil Patologi Anatomi belum tersedia di berkas rekam medis."
+                    : $"{NamaJenis(x)} belum tersambung ke berkas rekam medis. Dokumen jenis ini belum dapat ditampilkan di sini."
+            })
+            .ToList();
+
+        /// <summary>
+        /// Membaca satu sumber dengan batas waktu per sumber dan batas waktu seluruh berkas
+        /// (A4.14, `RM-DEC-044`).
+        ///
+        /// DUA JENIS PEMBATALAN DIBEDAKAN. Pembatalan dari pengguna — permintaan HTTP diputus —
+        /// diteruskan apa adanya, karena tidak ada lagi yang menunggu jawabannya. Pembatalan
+        /// karena batas waktu sumber habis justru dicatat sebagai gangguan sumber, supaya satu
+        /// sumber lambat tidak membatalkan seluruh berkas. Sebelum `BE-21` seluruh
+        /// <see cref="OperationCanceledException"/> diteruskan, sehingga batas waktu per sumber
+        /// tidak mungkin dipasang.
+        /// </summary>
+        private async Task<(bool Berhasil, T Nilai)> BacaDenganBatasWaktuAsync<T>(
+            IReadOnlyList<ClinicalDocumentKind> jenis,
+            Func<CancellationToken, Task<T>> baca,
+            Stopwatch jamBerkas,
+            List<MedicalRecordTimelineSourceFailure> gagal,
+            CancellationToken cancellationToken)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var sisaBerkas = _batasWaktuBerkas - jamBerkas.Elapsed;
+            if (sisaBerkas <= TimeSpan.Zero)
+            {
+                CatatGagal(gagal, jenis, "Sumber tidak dibaca karena batas waktu pembukaan berkas sudah habis.");
+                return (false, default!);
+            }
+
+            using var batas = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            batas.CancelAfter(sisaBerkas < _batasWaktuSumber ? sisaBerkas : _batasWaktuSumber);
+
+            try
+            {
+                return (true, await baca(batas.Token));
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (OperationCanceledException) when (batas.IsCancellationRequested)
+            {
+                CatatGagal(gagal, jenis, "Sumber tidak menjawab dalam batas waktu.");
+                return (false, default!);
+            }
+            catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Npgsql dapat membungkus pembatalan karena batas waktu dalam galatnya sendiri.
+                CatatGagal(gagal, jenis, batas.IsCancellationRequested
+                    ? "Sumber tidak menjawab dalam batas waktu."
+                    : ex.Message);
+                return (false, default!);
+            }
+        }
+
+        private static void CatatGagal(
+            List<MedicalRecordTimelineSourceFailure> gagal,
+            IEnumerable<ClinicalDocumentKind> jenis,
+            string pesan)
+        {
+            foreach (var x in jenis)
+            {
+                gagal.Add(new MedicalRecordTimelineSourceFailure
+                {
+                    DocumentKind = x,
+                    DocumentKindName = NamaJenis(x),
+                    Message = pesan
+                });
+            }
+        }
+
+        /// <summary>Mengubah dokumen final dari modul lain menjadi satu baris linimasa.</summary>
+        private static MedicalRecordTimelineItemResponse KeBarisLinimasa(
+            MedicalRecordFinalDocumentDescriptor dokumen,
+            string modul) => new()
+            {
+                DocumentKind = dokumen.Kind,
+                DocumentId = dokumen.DocumentId,
+                EncounterId = dokumen.EncounterId,
+                OccurredAt = dokumen.OccurredAt ?? dokumen.FinalizedAt,
+                FinalizedAt = dokumen.FinalizedAt,
+                DocumentNumber = dokumen.DocumentNumber,
+                Title = dokumen.Title,
+                Summary = dokumen.Summary,
+                IsCorrected = dokumen.IsCorrected,
+                IsProvisional = dokumen.IsProvisional,
+                SourceModule = modul,
+                PeriodicSummary = dokumen.PeriodicSummary
+            };
 
         /// <summary>
         /// Menghubungkan satu jenis dokumen dengan tabel asalnya.
@@ -467,6 +700,173 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                     },
                     cancellationToken),
 
+
+                // ---- BE-22: model ClinicalManagement yang lahir sesudah rilis pertama ----
+
+                ClinicalDocumentKind.NursingCarePlan => AmbilAsync<CliNursingCarePlan>(
+                    permintaan, batas,
+                    x => x.PatientId,
+                    x => x.EncounterId,
+                    x => x.OpenedAt,
+                    x => new MedicalRecordTimelineItemResponse
+                    {
+                        DocumentKind = ClinicalDocumentKind.NursingCarePlan,
+                        DocumentId = x.Id,
+                        EncounterId = x.EncounterId,
+                        OccurredAt = x.OpenedAt,
+                        FinalizedAt = x.OpenedAt,
+                        Title = "Rencana Asuhan Keperawatan",
+                        Summary = x.Items.Where(i => !i.IsDelete).OrderBy(i => i.AuthoredAt).Select(i => i.ProblemStatement).FirstOrDefault(),
+                        IsCancelled = x.IsCancel,
+                        IsCorrected = _dbContext.CliNursingCarePlanItemRevisions.Any(r => !r.IsDelete && x.Items.Any(i => i.Id == r.CarePlanItemId))
+                    },
+                    cancellationToken),
+
+                ClinicalDocumentKind.PhysicianVisit => AmbilAsync<CliPhysicianVisit>(
+                    permintaan, batas,
+                    x => x.PatientId,
+                    x => x.EncounterId,
+                    x => x.VisitDateTime,
+                    x => new MedicalRecordTimelineItemResponse
+                    {
+                        DocumentKind = ClinicalDocumentKind.PhysicianVisit,
+                        DocumentId = x.Id,
+                        EncounterId = x.EncounterId,
+                        OccurredAt = x.VisitDateTime,
+                        FinalizedAt = x.VisitDateTime,
+                        DocumentNumber = x.PhysicianVisitNumber,
+                        Title = x.VisitRole == PhysicianVisitRole.Dpjp ? "Visite DPJP"
+                            : x.VisitRole == PhysicianVisitRole.Consultant ? "Visite Konsulen" : "Visite Dokter Jaga",
+                        Summary = x.Note,
+                        IsCancelled = x.IsCancel,
+                        IsCorrected = x.CorrectsVisitId != null
+                    },
+                    cancellationToken,
+                    x => x.VisitStatus == PhysicianVisitStatus.Recorded),
+
+                ClinicalDocumentKind.NursingIntervention => AmbilAsync<CliNursingIntervention>(
+                    permintaan, batas,
+                    x => x.PatientId,
+                    x => x.EncounterId,
+                    x => x.PerformedAt,
+                    x => new MedicalRecordTimelineItemResponse
+                    {
+                        DocumentKind = ClinicalDocumentKind.NursingIntervention,
+                        DocumentId = x.Id,
+                        EncounterId = x.EncounterId,
+                        OccurredAt = x.PerformedAt,
+                        FinalizedAt = x.FinalizedAt,
+                        Title = x.InterventionName,
+                        Summary = x.ResultNote,
+                        IsCancelled = x.IsCancel
+                    },
+                    cancellationToken,
+                    x => x.RecordStatus == NursingInterventionStatus.Finalized),
+
+                ClinicalDocumentKind.TransfusionMonitoring => AmbilAsync<CliTransfusionMonitoring>(
+                    permintaan, batas,
+                    x => x.PatientId,
+                    x => x.EncounterId,
+                    x => x.TransfusionStartedAt,
+                    x => new MedicalRecordTimelineItemResponse
+                    {
+                        DocumentKind = ClinicalDocumentKind.TransfusionMonitoring,
+                        DocumentId = x.Id,
+                        EncounterId = x.EncounterId,
+                        OccurredAt = x.TransfusionStartedAt,
+                        FinalizedAt = x.CompletedAt ?? x.StoppedAt,
+                        Title = "Monitoring Transfusi",
+                        Summary = x.Status == CliTransfusionMonitoringStatus.Stopped ? "Dihentikan: " + x.StopReason : "Selesai",
+                        IsCancelled = x.IsCancel
+                    },
+                    cancellationToken,
+                    x => x.Status == CliTransfusionMonitoringStatus.Completed || x.Status == CliTransfusionMonitoringStatus.Stopped),
+
+                ClinicalDocumentKind.DoctorCertificate => AmbilAsync<CliDoctorCertificate>(
+                    permintaan, batas,
+                    x => x.PatientId,
+                    x => x.EncounterId,
+                    x => x.IssuedDate,
+                    x => new MedicalRecordTimelineItemResponse
+                    {
+                        DocumentKind = ClinicalDocumentKind.DoctorCertificate,
+                        DocumentId = x.Id,
+                        EncounterId = x.EncounterId,
+                        OccurredAt = x.IssuedDate,
+                        FinalizedAt = x.IssuedDate,
+                        DocumentNumber = x.CertificateNumber,
+                        Title = x.CertificateType == DoctorCertificateType.SickLeave ? "Surat Keterangan Sakit"
+                            : x.CertificateType == DoctorCertificateType.Health ? "Surat Keterangan Sehat"
+                            : x.CertificateType == DoctorCertificateType.InpatientReferral ? "Surat Pengantar Rawat Inap"
+                            : "Surat Admisi Rawat Inap",
+                        Summary = x.Purpose,
+                        IsCancelled = x.IsCancel
+                    },
+                    cancellationToken,
+                    x => x.CertificateStatus == DoctorCertificateStatus.Issued),
+
+                ClinicalDocumentKind.CaseManagementEvaluation => AmbilAsync<CliCaseManagementEvaluation>(
+                    permintaan, batas,
+                    x => x.PatientId,
+                    x => x.EncounterId,
+                    x => x.ClinicalDateTime,
+                    x => new MedicalRecordTimelineItemResponse
+                    {
+                        DocumentKind = ClinicalDocumentKind.CaseManagementEvaluation,
+                        DocumentId = x.Id,
+                        EncounterId = x.EncounterId,
+                        OccurredAt = x.ClinicalDateTime,
+                        FinalizedAt = x.CompletedAt,
+                        DocumentNumber = x.EvaluationNumber,
+                        Title = "Evaluasi Manajemen Kasus",
+                        IsCancelled = x.IsCancel
+                    },
+                    cancellationToken,
+                    x => x.EvaluationStatus == CaseManagementEvaluationStatus.Completed),
+
+                ClinicalDocumentKind.NosocomialInfection => AmbilAsync<TrxNosocomialInfection>(
+                    permintaan, batas,
+                    x => x.PatientId,
+                    x => x.EncounterId,
+                    x => x.OnsetDateTime,
+                    x => new MedicalRecordTimelineItemResponse
+                    {
+                        DocumentKind = ClinicalDocumentKind.NosocomialInfection,
+                        DocumentId = x.Id,
+                        EncounterId = x.EncounterId,
+                        OccurredAt = x.OnsetDateTime,
+                        FinalizedAt = x.VerifiedAt,
+                        DocumentNumber = x.NosocomialRecordNumber,
+                        Title = "Infeksi Nosokomial",
+                        Summary = x.Status == NosocomialInfectionStatus.Confirmed ? "Terkonfirmasi"
+                            : x.Status == NosocomialInfectionStatus.RuledOut ? "Disingkirkan"
+                            : x.Status == NosocomialInfectionStatus.Resolved ? "Sembuh" : "Dicurigai",
+                        IsCancelled = x.IsCancel
+                    },
+                    cancellationToken,
+                    x => x.VerifiedAt != null && x.Status != NosocomialInfectionStatus.Cancelled),
+
+                // Serah terima tidak menyimpan PatientId; pasien dan kunjungan dibaca dari episode
+                // rawat inapnya (baca saja, tanpa berkas di modul Rawat Inap).
+                ClinicalDocumentKind.TransferHandover => AmbilAsync<CliTransferHandover>(
+                    permintaan, batas,
+                    x => x.Episode!.PatientId,
+                    x => x.Episode!.EncounterId,
+                    x => x.ReceivedAt!.Value,
+                    x => new MedicalRecordTimelineItemResponse
+                    {
+                        DocumentKind = ClinicalDocumentKind.TransferHandover,
+                        DocumentId = x.Id,
+                        EncounterId = x.Episode!.EncounterId,
+                        OccurredAt = x.ReceivedAt!.Value,
+                        FinalizedAt = x.ReceivedAt,
+                        Title = "Serah Terima Pindah Ruang",
+                        Summary = x.SoapSummary,
+                        IsCancelled = x.IsCancel
+                    },
+                    cancellationToken,
+                    x => x.Status == CliTransferHandoverStatus.Accepted && x.ReceivedAt != null),
+
                 _ => Task.FromResult((0, new List<MedicalRecordTimelineItemResponse>()))
             };
 
@@ -496,13 +896,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             Expression<Func<TEntity, Guid?>> kunjungan,
             Expression<Func<TEntity, DateTime>> tanggal,
             Expression<Func<TEntity, MedicalRecordTimelineItemResponse>> proyeksi,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            Expression<Func<TEntity, bool>>? syaratFinal = null)
             where TEntity : IdentityModel
         {
             var query = _dbContext.Set<TEntity>()
                 .AsNoTracking()
                 .Where(Bandingkan(pasien, permintaan.PatientId, Expression.Equal))
                 .Where(x => !x.IsDelete);
+
+            // BE-22: model yang punya status alur kerja hanya dibaca bila sudah final menurut
+            // modulnya (`RM-DEC-041`). Tiga belas jenis rilis pertama tidak memakai syarat ini.
+            if (syaratFinal != null)
+                query = query.Where(syaratFinal);
 
             if (!permintaan.IncludeCancelled)
                 query = query.Where(x => !x.IsCancel);
@@ -726,6 +1132,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             hasil.DocumentCounts = jumlah;
             hasil.FailedSources = gagal;
+            hasil.UnavailableKinds = KeteranganBelumTersedia(JenisBelumTersedia);
             hasil.TotalDocument = jumlah.Sum(x => x.Total);
 
             return hasil;
@@ -752,35 +1159,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             var jumlah = new List<MedicalRecordDocumentCountResponse>();
             var gagal = new List<MedicalRecordTimelineSourceFailure>();
+            var jamBerkas = Stopwatch.StartNew();
 
-            foreach (var jenis in SeluruhJenis)
+            void Catat(ClinicalDocumentKind jenis, int total) => jumlah.Add(new MedicalRecordDocumentCountResponse
             {
-                try
-                {
-                    // Batas nol: hanya menghitung, tidak mengambil baris.
-                    var (total, _) = await AmbilJenisAsync(jenis, permintaan, 0, cancellationToken);
+                DocumentKind = jenis,
+                DocumentKindName = NamaJenis(jenis),
+                Total = total,
+                IsIntegrityEnforced = ClinicalDocumentIntegrityService.DitegakkanUntuk(jenis)
+            });
 
-                    jumlah.Add(new MedicalRecordDocumentCountResponse
+            // Jenis tanpa pembaca tidak dihitung nol — angka nol terbaca "pasien tidak punya
+            // dokumen jenis ini". Jenis itu dilaporkan lewat JenisBelumTersedia oleh pemanggil.
+            foreach (var jenis in SeluruhJenis.Where(JenisBawaan.Contains))
+            {
+                // Batas nol: hanya menghitung, tidak mengambil baris.
+                var (berhasil, nilai) = await BacaDenganBatasWaktuAsync(
+                    [jenis],
+                    batas => AmbilJenisAsync(jenis, permintaan, 0, batas),
+                    jamBerkas,
+                    gagal,
+                    cancellationToken);
+
+                if (berhasil)
+                    Catat(jenis, nilai.Jumlah);
+            }
+
+            foreach (var kelompok in SeluruhJenis
+                         .Where(_sumberPerJenis.ContainsKey)
+                         .GroupBy(x => _sumberPerJenis[x]))
+            {
+                var jenisPembaca = kelompok.ToList();
+
+                var (berhasil, halamanSumber) = await BacaDenganBatasWaktuAsync(
+                    jenisPembaca,
+                    batas => kelompok.Key.ReadAsync(new MedicalRecordSourceQuery
                     {
-                        DocumentKind = jenis,
-                        DocumentKindName = NamaJenis(jenis),
-                        Total = total,
-                        IsIntegrityEnforced = ClinicalDocumentIntegrityService.DitegakkanUntuk(jenis)
-                    });
-                }
-                catch (OperationCanceledException)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    gagal.Add(new MedicalRecordTimelineSourceFailure
-                    {
-                        DocumentKind = jenis,
-                        DocumentKindName = NamaJenis(jenis),
-                        Message = ex.Message
-                    });
-                }
+                        PatientId = patientId,
+                        Kinds = jenisPembaca,
+                        Limit = 0
+                    }, batas),
+                    jamBerkas,
+                    gagal,
+                    cancellationToken);
+
+                if (!berhasil)
+                    continue;
+
+                foreach (var jenis in jenisPembaca)
+                    Catat(jenis, halamanSumber.Totals.GetValueOrDefault(jenis));
             }
 
             return (jumlah, gagal);
@@ -812,12 +1239,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             if (documentId == Guid.Empty || !Enum.IsDefined(documentKind))
                 return null;
 
+            // Jenis milik modul lain dibaca langsung ke pemiliknya; isinya tidak disimpan di sini.
+            if (_sumberPerJenis.TryGetValue(documentKind, out var pembaca))
+            {
+                var rincian = await pembaca.ReadDetailAsync(documentKind, documentId, patientId, cancellationToken);
+                return rincian == null ? null : await LengkapiRincianAsync(new MedicalRecordDocumentDetailResponse
+                {
+                    DocumentKind = documentKind,
+                    DocumentKindName = NamaJenis(documentKind),
+                    DocumentId = documentId,
+                    PatientId = patientId,
+                    EncounterId = rincian.EncounterId,
+                    DocumentNumber = Potong(rincian.DocumentNumber),
+                    Title = Potong(rincian.Title),
+                    OccurredAt = rincian.OccurredAt ?? rincian.FinalizedAt,
+                    IsIntegrityEnforced = ClinicalDocumentIntegrityService.DitegakkanUntuk(documentKind),
+                    Sections = rincian.Sections
+                }, cancellationToken);
+            }
+
+            if (!JenisBawaan.Contains(documentKind))
+                return null;
+
             var isi = await AmbilIsiDokumenAsync(patientId, documentKind, documentId, cancellationToken);
 
             if (isi == null)
                 return null;
 
-            var hasil = new MedicalRecordDocumentDetailResponse
+            return await LengkapiRincianAsync(new MedicalRecordDocumentDetailResponse
             {
                 DocumentKind = documentKind,
                 DocumentKindName = NamaJenis(documentKind),
@@ -831,7 +1280,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 HasPrivateNote = isi.HasPrivateNote,
                 IsIntegrityEnforced = ClinicalDocumentIntegrityService.DitegakkanUntuk(documentKind),
                 Sections = isi.Sections
-            };
+            }, cancellationToken);
+        }
+
+        /// <summary>Menempelkan status keutuhan dan addendum pada rincian satu dokumen.</summary>
+        private async Task<MedicalRecordDocumentDetailResponse> LengkapiRincianAsync(
+            MedicalRecordDocumentDetailResponse hasil,
+            CancellationToken cancellationToken)
+        {
+            var documentKind = hasil.DocumentKind;
+            var documentId = hasil.DocumentId;
 
             var keutuhan = await _dbContext.Set<MrcClinicalDocumentIntegrity>()
                 .AsNoTracking()
@@ -1309,6 +1767,132 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                         e.ConsentDateTime, e.IsCancel, false, bagian);
                 }
 
+                // ---- BE-22: rincian model ClinicalManagement yang lahir sesudah rilis pertama ----
+                // Aturan final sama dengan linimasa: dokumen yang belum final tidak dibuka.
+
+                case ClinicalDocumentKind.NursingCarePlan:
+                {
+                    var e = await _dbContext.CliNursingCarePlans.AsNoTracking()
+                        .Where(x => x.Id == documentId && x.PatientId == patientId && !x.IsDelete)
+                        .Select(x => new
+                        {
+                            x.EncounterId, x.OpenedAt, x.IsCancel,
+                            Butir = x.Items.Where(i => !i.IsDelete).OrderBy(i => i.AuthoredAt)
+                                .Select(i => new { i.ProblemStatement, i.GoalStatement, i.PlannedIntervention, i.ItemStatus }).ToList()
+                        })
+                        .FirstOrDefaultAsync(cancellationToken);
+                    if (e == null) return null;
+
+                    var nomor = 1;
+                    foreach (var b in e.Butir)
+                    {
+                        Tambah(bagian, $"Masalah {nomor}", b.ProblemStatement);
+                        Tambah(bagian, $"Tujuan {nomor}", b.GoalStatement);
+                        Tambah(bagian, $"Rencana tindakan {nomor}", b.PlannedIntervention);
+                        Tambah(bagian, $"Keadaan {nomor}", b.ItemStatus == NursingCarePlanItemStatus.Active ? "Aktif"
+                            : b.ItemStatus == NursingCarePlanItemStatus.Resolved ? "Teratasi" : "Dihentikan");
+                        nomor++;
+                    }
+
+                    return new IsiDokumen(e.EncounterId, null, "Rencana Asuhan Keperawatan", e.OpenedAt, e.IsCancel, false, bagian);
+                }
+
+                case ClinicalDocumentKind.PhysicianVisit:
+                {
+                    var e = await _dbContext.CliPhysicianVisits.AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == documentId && x.PatientId == patientId && !x.IsDelete
+                                                  && x.VisitStatus == PhysicianVisitStatus.Recorded, cancellationToken);
+                    if (e == null) return null;
+
+                    Tambah(bagian, "Peran", e.VisitRole == PhysicianVisitRole.Dpjp ? "DPJP"
+                        : e.VisitRole == PhysicianVisitRole.Consultant ? "Konsulen" : "Dokter jaga");
+                    Tambah(bagian, "Catatan", e.Note);
+
+                    return new IsiDokumen(e.EncounterId, e.PhysicianVisitNumber, "Visite Dokter", e.VisitDateTime, e.IsCancel, false, bagian);
+                }
+
+                case ClinicalDocumentKind.NursingIntervention:
+                {
+                    var e = await _dbContext.CliNursingInterventions.AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == documentId && x.PatientId == patientId && !x.IsDelete
+                                                  && x.RecordStatus == NursingInterventionStatus.Finalized, cancellationToken);
+                    if (e == null) return null;
+
+                    Tambah(bagian, "Intervensi", e.InterventionName);
+                    Tambah(bagian, "Hasil", e.ResultNote);
+
+                    return new IsiDokumen(e.EncounterId, null, e.InterventionName, e.PerformedAt, e.IsCancel, false, bagian);
+                }
+
+                case ClinicalDocumentKind.TransfusionMonitoring:
+                {
+                    var e = await _dbContext.CliTransfusionMonitorings.AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == documentId && x.PatientId == patientId && !x.IsDelete
+                                                  && (x.Status == CliTransfusionMonitoringStatus.Completed
+                                                      || x.Status == CliTransfusionMonitoringStatus.Stopped), cancellationToken);
+                    if (e == null) return null;
+
+                    Tambah(bagian, "Keadaan", e.Status == CliTransfusionMonitoringStatus.Stopped ? "Dihentikan" : "Selesai");
+                    Tambah(bagian, "Alasan dihentikan", e.StopReason);
+
+                    return new IsiDokumen(e.EncounterId, null, "Monitoring Transfusi", e.TransfusionStartedAt, e.IsCancel, false, bagian);
+                }
+
+                case ClinicalDocumentKind.DoctorCertificate:
+                {
+                    var e = await _dbContext.CliDoctorCertificates.AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == documentId && x.PatientId == patientId && !x.IsDelete
+                                                  && x.CertificateStatus == DoctorCertificateStatus.Issued, cancellationToken);
+                    if (e == null) return null;
+
+                    Tambah(bagian, "Keperluan", e.Purpose);
+                    Tambah(bagian, "Diagnosis", e.Diagnosis);
+                    Tambah(bagian, "Ringkasan klinis", e.ClinicalSummary);
+                    Tambah(bagian, "Catatan tambahan", e.AdditionalNote);
+
+                    return new IsiDokumen(e.EncounterId, e.CertificateNumber, "Surat Dokter", e.IssuedDate, e.IsCancel, false, bagian);
+                }
+
+                case ClinicalDocumentKind.CaseManagementEvaluation:
+                {
+                    var e = await _dbContext.CliCaseManagementEvaluations.AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == documentId && x.PatientId == patientId && !x.IsDelete
+                                                  && x.EvaluationStatus == CaseManagementEvaluationStatus.Completed, cancellationToken);
+                    if (e == null) return null;
+
+                    return new IsiDokumen(e.EncounterId, e.EvaluationNumber, "Evaluasi Manajemen Kasus", e.ClinicalDateTime, e.IsCancel, false, bagian);
+                }
+
+                case ClinicalDocumentKind.NosocomialInfection:
+                {
+                    var e = await _dbContext.TrxNosocomialInfections.AsNoTracking()
+                        .FirstOrDefaultAsync(x => x.Id == documentId && x.PatientId == patientId && !x.IsDelete
+                                                  && x.VerifiedAt != null && x.Status != NosocomialInfectionStatus.Cancelled, cancellationToken);
+                    if (e == null) return null;
+
+                    Tambah(bagian, "Jenis infeksi", e.InfectionTypeOther ?? e.InfectionType.ToString());
+                    Tambah(bagian, "Terkait alat", e.IsDeviceAssociated ? e.DeviceName ?? "Ya" : "Tidak");
+                    Tambah(bagian, "Kriteria terpenuhi", e.CriteriaMet);
+
+                    return new IsiDokumen(e.EncounterId, e.NosocomialRecordNumber, "Infeksi Nosokomial", e.OnsetDateTime, e.IsCancel, false, bagian);
+                }
+
+                case ClinicalDocumentKind.TransferHandover:
+                {
+                    var e = await _dbContext.CliTransferHandovers.AsNoTracking()
+                        .Where(x => x.Id == documentId && x.Episode!.PatientId == patientId && !x.IsDelete
+                                    && x.Status == CliTransferHandoverStatus.Accepted && x.ReceivedAt != null)
+                        .Select(x => new { x.Episode!.EncounterId, x.ReceivedAt, x.IsCancel, x.SoapSummary, x.HandedItems, x.SpecialInstructions })
+                        .FirstOrDefaultAsync(cancellationToken);
+                    if (e == null) return null;
+
+                    Tambah(bagian, "Ringkasan SOAP", e.SoapSummary);
+                    Tambah(bagian, "Barang yang diserahkan", e.HandedItems);
+                    Tambah(bagian, "Instruksi khusus", e.SpecialInstructions);
+
+                    return new IsiDokumen(e.EncounterId, null, "Serah Terima Pindah Ruang", e.ReceivedAt!.Value, e.IsCancel, false, bagian);
+                }
+
                 default:
                     return null;
             }
@@ -1446,6 +2030,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             ClinicalDocumentKind.NoteAttachment => "Lampiran Catatan",
             ClinicalDocumentKind.MedicalCertificate => "Surat Keterangan",
             ClinicalDocumentKind.Consent => "Persetujuan Tindakan",
+            ClinicalDocumentKind.HemodialysisSession => "Sesi Hemodialisa",
+            ClinicalDocumentKind.LaboratoryResult => "Hasil Laboratorium",
+            ClinicalDocumentKind.RadiologyReport => "Hasil Radiologi",
+            ClinicalDocumentKind.EmergencyTriage => "Triase IGD",
+            ClinicalDocumentKind.EmergencyObservation => "Observasi IGD",
+            ClinicalDocumentKind.EmergencyResuscitation => "Resusitasi IGD",
+            ClinicalDocumentKind.EmergencyDisposition => "Disposisi IGD",
+            ClinicalDocumentKind.DischargeSummary => "Ringkasan Pulang",
+            ClinicalDocumentKind.AdmissionDocument => "Dokumen Admisi Rawat Inap",
+            ClinicalDocumentKind.SurgeryReport => "Laporan Operasi",
+            ClinicalDocumentKind.AnesthesiaRecord => "Catatan Anestesi",
+            ClinicalDocumentKind.SurgicalSafetyChecklist => "Checklist Keselamatan Operasi",
+            ClinicalDocumentKind.BirthRecord => "Catatan Kelahiran",
+            ClinicalDocumentKind.NutritionCareRecord => "Asuhan Gizi",
+            ClinicalDocumentKind.BloodGroupExam => "Pemeriksaan Golongan Darah",
+            ClinicalDocumentKind.TransfusionReactionNotice => "Reaksi Transfusi",
+            ClinicalDocumentKind.Prescription => "Resep",
+            ClinicalDocumentKind.MedicationAdministration => "Pemberian Obat",
+            ClinicalDocumentKind.MedicationReconciliation => "Rekonsiliasi Obat",
+            ClinicalDocumentKind.McuResume => "Resume MCU",
+            ClinicalDocumentKind.McuExaminationResult => "Hasil Pemeriksaan MCU",
+            ClinicalDocumentKind.NursingCarePlan => "Rencana Asuhan Keperawatan",
+            ClinicalDocumentKind.PhysicianVisit => "Visite Dokter",
+            ClinicalDocumentKind.NursingIntervention => "Intervensi Keperawatan",
+            ClinicalDocumentKind.TransfusionMonitoring => "Monitoring Transfusi",
+            ClinicalDocumentKind.DoctorCertificate => "Surat Dokter",
+            ClinicalDocumentKind.CaseManagementEvaluation => "Evaluasi Manajemen Kasus",
+            ClinicalDocumentKind.NosocomialInfection => "Infeksi Nosokomial",
+            ClinicalDocumentKind.TransferHandover => "Serah Terima Pindah Ruang",
+            ClinicalDocumentKind.PeriodicObservationSummary => "Ringkasan Pencatatan Berkala",
+            ClinicalDocumentKind.PathologyAnatomyResult => "Hasil Patologi Anatomi",
             _ => jenis.ToString()
         };
 

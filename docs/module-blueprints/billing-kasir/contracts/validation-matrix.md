@@ -757,3 +757,35 @@ poli Oktober belum dibayar, kreditnya Rp 0 dan tagihan poli Oktober menampilkan 
 | `BIL-VAL-160` | Kredit admin Rawat Jalan tidak boleh membuat porsi pasien negatif; sisanya dicatat di `ReferredOutpatientAdminUnappliedCreditAmount` | Kalkulasi invoice `RANAP` | — | Invariant; diuji `BIL-AT-209` | — |
 
 Trace `BKC-DEC-119`, `BKC-DEC-158`, `BKC-DEC-161`, `BKC-DEC-162`, A1–A3.
+
+## Amendment 26 Oktober 2026 — Pelaksana Entri Kasir dan `DoctorShare` dari Medical Fee (Revisi 2.4)
+
+> `last_changed_in`: `BIL-VALIDATION-2.1` atas `BIL-VALIDATION-2.0` — status **draft**.
+> Masukan: `BKC-DEC-169`..`178`, `BKC-DES-093`..`103`. Backend SHA: `ecddd8f8`.
+
+### Aturan baru
+
+| ID | Aturan | Konteks | Kondisi gagal | Pesan / akibat | Kode |
+|---|---|---|---|---|---|
+| `BIL-VAL-161` | Layanan berjasa wajib menunjuk pelaksana beserta jenisnya | `POST catalog-charges`, `POST other-charges`, `POST from-source` | `isFeeBearing = true` dan `performerType` atau `performerReferenceId` kosong | "Pilih tenaga medis pelaksana untuk layanan berjasa." | `422` |
+| `BIL-VAL-162` | Jenis pelaksana hanya `DOCTOR` atau `WORKFORCE` | Sama | Nilai lain | "Jenis pelaksana tidak dikenal." | `422` |
+| `BIL-VAL-163` | Pelaksana harus ada, tidak dihapus, dan aktif pada master sesuai jenisnya | Sama | Tidak ditemukan, `IsDelete = true`, atau `IsActive = false` | "Tenaga medis pelaksana tidak ditemukan atau sudah tidak aktif." | `422` |
+| `BIL-VAL-164` | Pelaksana dan peran hanya diisi untuk layanan berjasa | Sama | `isFeeBearing = false` tetapi salah satu field pelaksana terisi | "Pelaksana hanya diisi bila layanan ditandai berjasa." | `422` |
+| `BIL-VAL-165` | Kode peran berbentuk huruf besar, angka, atau garis bawah, maksimal 30 karakter | Sama | Bentuk lain | "Kode peran pelaksana tidak valid." | `422` |
+| `BIL-VAL-166` | Field pelaksana pada `from-source` hanya untuk `SourceDomain` `ADHOC` atau `ADHOC_CATALOG` | `POST from-source` (dan pemanggil internal `UpsertChargeAsync`) | Domain lain dengan field pelaksana terisi | "Pelaksana untuk sumber layanan ini belum didukung." | `422` |
+| `BIL-VAL-167` | Pengiriman ulang `catalog-charges` dengan `Idempotency-Key` sama harus membawa pelaksana yang sama dengan baris yang tercatat | `POST catalog-charges` | Berbeda pada `isFeeBearing`, `performerType`, `performerReferenceId`, atau `performerRoleCode` | "Permintaan yang sama memiliki isi berbeda; gunakan permintaan baru." | `409` |
+| `BIL-VAL-168` | Kegagalan, kelambatan, atau ketiadaan Medical Fee **MUST NOT** menggagalkan pencatatan baris | `UpsertChargeAsync` | — | Invariant `INV-MF-1`: baris tercatat dengan `DoctorShare = 0` dan `doctorShareResolution = UNAVAILABLE`; diuji `BIL-AT-232`..`234` | — |
+
+### Aturan lama yang ditegaskan
+
+| ID / aturan | Penegasan revisi 2.4 |
+|---|---|
+| `DoctorShare` tidak melebihi nilai kotor (`BillingInvoiceService.cs:2556-2557`, `CK_BilInvoiceItem_Amounts`) | Berlaku juga untuk nilai hasil Medical Fee; dijaga rumus `BKC-DES-096` sebelum disimpan, sehingga pesan lama "DoctorShare tidak boleh melebihi gross item." tidak pernah muncul dari jalur ini |
+| Penolakan tujuh domain klinis Rawat Jalan/Rawat Inap pada `from-source` (`BillingInvoiceService.cs:1753-1754`) | **Tidak berubah** (`BKC-OQ-143` dicabut; `BKC-OQ-149`) |
+| Diskon dokter maksimal sebesar `DoctorShare` (`BillingDiscountService.cs:567`, `:575`) | **Tidak berubah**; kini dapat terpakai karena `DoctorShare` bukan nol (`BKC-DEC-174`) |
+
+**Contoh.** Kasir menandai "Tindakan jahit luka" berjasa tetapi lupa memilih dokter: ditolak `BIL-VAL-161`, tidak ada baris tercatat.
+Kasir memilih dokter yang sudah keluar dari rumah sakit (`IsActive = false`): ditolak `BIL-VAL-163`.
+Kasir mengisi dokter pada entri "Materai" tanpa menandai berjasa: ditolak `BIL-VAL-164`.
+
+Trace `BKC-DEC-169`, `170`, `172`, `176`, `178`; `BKC-DES-095`, `096`, `102`, `103`.

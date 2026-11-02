@@ -118,7 +118,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Frontend lama (`FE-RWI-098`, `FE-RWI-099`) masih memanggil endpoint yang dihapus; rilis bersama `FE-RWI-167` dan `FE-RWI-168`. Pemilik: Muhammad Hamzah |
 | **DoD** | Kelima kriteria terbukti; `dotnet build` tanpa error; laporan `../task/report/backend/BE-RWI-146.md`; roadmap dan `requirement-traceability-finishing.md` diperbarui |
 
-### 🟡 `BE-RWI-147` — Tarif kamar satu jalur dan label `RANAP` seragam
+### ✅ `BE-RWI-147` — Tarif kamar satu jalur dan label `RANAP` seragam
 
 | Field | Isi |
 |---|---|
@@ -134,7 +134,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Invoice lama berlabel `INPATIENT` di lingkungan uji: dilaporkan sebagai temuan, **tidak** dimigrasi tanpa wewenang. Pemilik: Yasmina |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-148` — Rupiah tagihan disaring berdasarkan permission
+### ✅ `BE-RWI-148` — Rupiah tagihan disaring berdasarkan permission
 
 | Field | Isi |
 |---|---|
@@ -150,7 +150,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Pemetaan peran ke `ViewAmount` adalah konfigurasi hak akses (`FIN-UNK-05`). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-149` — Bentuk data integrasi `1.1.0` (`I1`, `I2`)
+### ✅ `BE-RWI-149` — Bentuk data integrasi `1.1.0` (`I1`, `I2`)
 
 | Field | Isi |
 |---|---|
@@ -166,7 +166,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Wewenang menerapkan migration ke database terpisah. Pemilik: Muhammad Hamzah (Rawat Inap), Yasmina (Billing) |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked mencatat status penerapan migration apa adanya; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-150` — Penerima ketukan pintu Billing dan invoice `RANAP` otomatis
+### ✅ `BE-RWI-150` — Penerima ketukan pintu Billing dan invoice `RANAP` otomatis
 
 | Field | Isi |
 |---|---|
@@ -182,7 +182,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Pemilik: Yasmina (Billing) |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-151` — Outbox jujur
+### ✅ `BE-RWI-151` — Outbox jujur
 
 | Field | Isi |
 |---|---|
@@ -214,7 +214,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-153` — Keluar ruangan berjejak dan gerbang penutupan
+### ✅ `BE-RWI-153` — Keluar ruangan berjejak dan gerbang penutupan
 
 | Field | Isi |
 |---|---|
@@ -230,7 +230,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Perubahan perilaku pulang yang terasa bagi perawat dan kasir; penutupan pemakaian alat saat keluar ruangan ditambahkan `BE-RWI-168` (`keperawatan`). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-154` — Koreksi salah catat penempatan
+### ✅ `BE-RWI-154` — Koreksi salah catat penempatan
 
 | Field | Isi |
 |---|---|
@@ -246,7 +246,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Penanda `IsSuperseded` dipakai transfer dan koreksi. Pemilik: Muhammad Hamzah, Yasmina |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-155` — Jembatan layanan klinis `RANAP`, biaya admin, dan finalisasi
+### ✅ `BE-RWI-155` — Jembatan layanan klinis `RANAP`, biaya admin, dan finalisasi
 
 | Field | Isi |
 |---|---|
@@ -262,7 +262,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Pemilik: Yasmina |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-156` — Rincian Tagihan Pasien per kelompok
+### ✅ `BE-RWI-156` — Rincian Tagihan Pasien per kelompok
 
 | Field | Isi |
 |---|---|
@@ -278,7 +278,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Pemetaan kategori tarif ke kelompok (G-04). Pemilik: Yasmina |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-157` — Putar ulang terkontrol dan pemantauan outbox
+### ✅ `BE-RWI-157` — Putar ulang terkontrol dan pemantauan outbox
 
 | Field | Isi |
 |---|---|
@@ -294,7 +294,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Menjalankan putar ulang di produksi (`I5`) **bukan** bagian task ini; butuh wewenang tertulis tersendiri (`RWI-DEC-169` butir 5). Pemilik: Muhammad Hamzah |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-158` — Retur obat membatalkan tagihan
+### ✅ `BE-RWI-158` — Retur obat membatalkan tagihan
 
 | Field | Isi |
 |---|---|
@@ -310,7 +310,7 @@ Seluruh kolom "Kartu" dirinci pada kartu task di bawah.
 | **Risiko/pemilik** | Perubahan di modul Farmasi milik Ikbal Yulianto (disetujui `RWI-DEC-210`) |
 | **DoD** | Kriteria terbukti; build tanpa error; laporan tracked; roadmap dan traceability diperbarui |
 
-### 🟡 `BE-RWI-159` — Tautan biaya operasi kunjungan asal ke invoice `RANAP`
+### ✅ `BE-RWI-159` — Tautan biaya operasi kunjungan asal ke invoice `RANAP`
 
 | Field | Isi |
 |---|---|

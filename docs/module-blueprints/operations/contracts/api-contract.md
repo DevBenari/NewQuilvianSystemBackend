@@ -17,6 +17,8 @@ Base URL: `api/v1/health-services/operating-room-management/cases`
 | `PATCH` | `/{id}/postpone` | Menunda kasus | `OperatingRoomSchedule : Update` | `PostponeOprCaseRequest` | `ApiResponse<OprCaseStatusResponse>` | Rencana |
 | `PATCH` | `/{id}/start` | Memulai operasi | `OperatingRoomExecution : Update` | `StartOprCaseRequest` | `ApiResponse<OprCaseStatusResponse>` | Rencana |
 | `PATCH` | `/{id}/cancel` | Membatalkan sebelum mulai | `OperatingRoomCase : Cancel` | `CancelOprCaseRequest` | `ApiResponse<OprCaseStatusResponse>` | Rencana |
+| `GET` | `/rooms/timeline` | Visualisasi kalender/grid jadwal seluruh ruang OK (Lantai 2) per tanggal dengan slot terisi & buffer sterilisasi (`OPS-DEC-038`, `OPS-DEC-039`) | `OperatingRoomSchedule : Read` | `date=YYYY-MM-DD` | `ApiResponse<List<OprRoomTimelineResponse>>` | Rencana |
+| `GET` | `/schedules/lookup-by-patient` | Mencari data booking operasi aktif pasien untuk konsumsi Admisi Rawat Inap (`OPS-DEC-040`) | `OperatingRoomCase : Read` | `patientId=GUID` / `bookingNo=string` | `ApiResponse<OprActiveBookingSummaryResponse>` | Rencana |
 
 ## Health Services / Operating Room Management / Preparation
 
@@ -42,6 +44,7 @@ Base URL: `api/v1/health-services/operating-room-management/cases/{caseId}/execu
 | `PUT` | `/recovery` | Menyimpan pemantauan/keputusan recovery | `OperatingRoomAnesthesia : Update` | `SaveOprRecoveryRequest` | `ApiResponse<OprRecoveryResponse>` | Rencana |
 | `POST` | `/handovers` | Mengirim handover | `OperatingRoomHandover : Update` | `CreateOprHandoverRequest` | `ApiResponse<OprHandoverResponse>` | Rencana |
 | `PATCH` | `/handovers/{id}/accept` | Unit tujuan menerima handover | `OperatingRoomHandover : Update` | `AcceptOprHandoverRequest` | `ApiResponse<OprCaseStatusResponse>` | Rencana |
+| `POST` | `/birth-event` | Mencatat kelahiran bayi pada persalinan SC (Jam, BB, PB, Jenis Kelamin, APGAR 1/5/10) dan memicu auto-admisi bayi (`OPS-DEC-042`) | `OperatingRoomExecution : Update` | `RecordOprBirthEventRequest` | `ApiResponse<OprBirthEventResponse>` | Rencana |
 
 ## Health Services / Operating Room Management / Reports
 

@@ -22,10 +22,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public Guid InpEpisodeId { get; set; }
 
-        public Guid FromPlacementId { get; set; }
+        public Guid? FromPlacementId { get; set; }
 
-        /// <summary>Unik: satu dokumen per penempatan tujuan (idempotensi <c>INT-RWF-26</c>).</summary>
-        public Guid ToPlacementId { get; set; }
+        /// <summary>Unik: satu dokumen per penempatan tujuan (idempotensi <c>INT-RWF-26</c>). Nullable untuk serah terima admisi transfer awal.</summary>
+        public Guid? ToPlacementId { get; set; }
 
         public Guid FromServiceUnitId { get; set; }
 

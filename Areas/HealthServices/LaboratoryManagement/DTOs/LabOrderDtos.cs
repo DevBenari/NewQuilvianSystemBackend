@@ -408,6 +408,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public List<LabOrderedProcedureResponse> OrderedProcedures { get; set; } = new();
 
         /// <summary>
+        /// Pesanan ini bagian paket MCU (<c>MCU-DEC-022</c>, <c>BE-MCU-020</c>): pemeriksaannya sudah
+        /// ditagih sebagai satu baris paket, sehingga Lab tidak menerbitkan tagihan sendiri. Ruas baca
+        /// saja — tidak ada permintaan Lab yang dapat mengisinya.
+        /// </summary>
+        public bool IsCoveredByMcuPackage { get; set; }
+
+        /// <summary>Nomor order MCU yang mencakup pesanan ini, contoh <c>MCU-RSMMC-000123</c>.</summary>
+        public string? CoveringMcuOrderNumber { get; set; }
+
+        /// <summary>
         /// Penunjuk konfirmator (<c>LAB-API-v1</c> <c>r13</c>).
         ///
         /// Ada di detail, bukan di daftar, karena yang membutuhkannya adalah aksi lanjutan —

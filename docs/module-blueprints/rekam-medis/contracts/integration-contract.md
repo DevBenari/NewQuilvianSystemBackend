@@ -127,3 +127,62 @@ Karena itu pembatalan tidak pernah menyentuh data klinis yang sudah ada.
 | Penguncian saat kunjungan ditutup | `RM-DEC-003` lapis kedua | `AT-RM-03` |
 | Kegagalan penilaian kunjungan menutup rapat | `RM-DEC-016` | `AT-RM-25` |
 | Urutan penerapan | `RM-DEC-014`, `RM-DEC-019` | `AT-RM-21` |
+
+
+---
+
+# Amandemen — Integration `0.2.0` (`approved`)
+
+Disahkan Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`). Persetujuan pemilik Laboratorium dan MCU untuk `INT-RM-10a` dan `INT-RM-10j`: `RM-DEC-063`.
+
+Input: `RM-DA-001` bagian J. Seluruh integrasi **internal dan dalam proses**; nol sistem luar.
+
+## Kontrak `IMedicalRecordDocumentSource` (`INT-RM-10`)
+
+| Aspek | Ketentuan |
+|---|---|
+| Arah | Rekam medis memanggil; modul pemilik menjawab |
+| Masukan | `PatientId`, jenis yang diminta, saringan kunjungan dan rentang tanggal, batas baris |
+| Keluaran | `MedicalRecordFinalDocumentDescriptor`: `kind`, `documentId`, `encounterId` (boleh kosong), `finalizedAt`, `documentNumber`, `title`, `summary` (≤ 300 karakter), `isCorrected`, `isProvisional`, `authorUserId` |
+| Kewajiban pemilik | Hanya dokumen final; wajib waktu final; tidak menulis apa pun; tidak memeriksa izin modulnya sendiri (`RM-DEC-040`) |
+| Gagal | Lempar galat → dicatat gangguan sumber. Lewat batas waktu → gangguan sumber |
+| Idempotensi | Baca saja |
+
+## Kontrak `IMedicalRecordCompletenessProbe` (`INT-RM-11`, `INT-RM-13`)
+
+| Aspek | Ketentuan |
+|---|---|
+| Masukan | `EncounterId`, `PatientId`, kriteria yang diminta |
+| Keluaran | Kriteria terpenuhi; kondisi yang ada; pemeriksaan tertunda (`documentKind`, `documentId`, nama pemeriksaan) |
+| Gagal | Kunjungan `Undetermined` |
+
+## Pembaca per modul dan persetujuan yang dibutuhkan
+
+| ID | Pembaca | Berkas di modul | Persetujuan pemilik modul | Kewajiban khusus |
+|---|---|---|---|---|
+| `INT-RM-10a` | `LabMedicalRecordDocumentSource` | Laboratorium | Yoga Aji Pratama (pemilik Laboratorium) | `S6` tidak dirilis sebelum `isCorrected` tersambung (`RM-DEC-057`); pemeriksaan PA tertunda tetap dilaporkan (`RM-DEC-058`) |
+| `INT-RM-10b` | `RadMedicalRecordDocumentSource` | Radiologi | Pemilik Radiologi | Memakai `RadReportService.GetByPatientAsync` dalam proses |
+| `INT-RM-10c` | `EmgMedicalRecordDocumentSource` | IGD | Pemilik IGD | Konfirmasi arti final disposisi (`RM-DEC-059`); jalur disposisi rawat inap memanggil penguncian (`GAP-ARCH-RM-01`) |
+| `INT-RM-10d` | `InpMedicalRecordDocumentSource` | Rawat Inap | Pemilik Rawat Inap | — |
+| `INT-RM-10e` | `OprMedicalRecordDocumentSource` | Kamar Operasi | Pemilik Kamar Operasi | Konfirmasi arti final catatan kelahiran (`RM-DEC-059`) |
+| `INT-RM-10f` | `HmdMedicalRecordDocumentSource` | Hemodialisa | Pemilik Hemodialisa | — |
+| `INT-RM-10g` | `GziMedicalRecordDocumentSource` | Gizi | Pemilik Gizi | Konfirmasi arti final asuhan gizi; `isProvisional = true` (`RM-DEC-059`) |
+| `INT-RM-10h` | `BbkMedicalRecordDocumentSource` | Bank Darah | Pemilik Bank Darah | — |
+| `INT-RM-10i` | `PhmMedicalRecordDocumentSource` | Farmasi | Pemilik Farmasi | — |
+| `INT-RM-10j` | `McuMedicalRecordDocumentSource` | MCU | Yoga Aji Pratama (pemilik MCU) | `MCU-GAP-04` diselaraskan di blueprint MCU |
+
+## Penutupan klinis (`INT-RM-12`)
+
+| Pemanggil | Berkas | Keadaan |
+|---|---|---|
+| `PatientEncounterController` | `RegistrationManagement/Controllers/PatientEncounterController.cs:1674` | Sudah memanggil penguncian; tinggal meneruskan `ClinicalClosureSource` |
+| `DoctorQueueController` | `RegistrationManagement/Controllers/DoctorQueueController.cs:610` | Sama |
+| `NurseStationQueueController` | `RegistrationManagement/Controllers/NurseStationQueueController.cs:356` | Sama |
+| `EmergencyVisitService` | `EmergencyInstallationManagement/Services/EmergencyVisitService.cs:689` | Sama |
+| `InpDischargeService` | `InPatientManagement/Services/InpDischargeService.Closure.cs:853` | Sama |
+| `BillingFinalizationService` | `BillingManagement/Billing/Services/BillingFinalizationService.cs:898` | Sama |
+| `EmergencyDispositionService` (disposisi rawat inap) | `EmergencyInstallationManagement/Services/EmergencyDispositionService.AdmissionRequest.cs:1585-1598` | **Belum memanggil** — wajib ditambah (`GAP-ARCH-RM-01`), persetujuan pemilik IGD |
+
+Pemanggilan tetap **di dalam transaksi penutupan** seperti hari ini. Parameter sumber bersifat
+opsional sehingga pemanggil yang belum diperbarui tetap terkompilasi; sumbernya tercatat
+`EncounterStatusPatch` sebagai bawaan sampai pemanggil diperbarui.

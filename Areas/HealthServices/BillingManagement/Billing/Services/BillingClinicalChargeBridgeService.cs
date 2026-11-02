@@ -877,6 +877,11 @@ public static class BillingBridgeCodes
     public const string NotBillable = "NOT_BILLABLE";
     public const string RepeatInternalError = "REPEAT_INTERNAL_ERROR";
     public const string TariffNotFound = "TARIFF_NOT_FOUND";
+    /// <summary>
+    /// Dua tarif atau lebih sama-sama paling spesifik dengan harga berbeda: tidak ada tarif yang dipilih.
+    /// Masuk antrean rekonsiliasi sampai master tarif dibereskan.
+    /// </summary>
+    public const string TariffAmbiguous = "TARIFF_AMBIGUOUS";
     public const string SourceNotFound = "SOURCE_NOT_FOUND";
     public const string FactNotFound = "FACT_NOT_FOUND";
     public const string EncounterNotFound = "ENCOUNTER_NOT_FOUND";

@@ -82,6 +82,15 @@ public sealed class FinalizationPreviewResponse
     public Guid InvoiceId { get; set; }
     public bool AllOrdersComplete { get; set; }
     public bool CalculationCurrent { get; set; }
+
+    /// <summary>
+    /// Sebab hasil kalkulasi tersimpan tertinggal (<see cref="BillingCalculationStaleReasons"/>); <c>null</c> bila
+    /// <see cref="CalculationCurrent"/> bernilai <c>true</c>. Tambahan aditif: perhitungan mengikuti perubahan item,
+    /// diskon, dan penanggung secara otomatis, jadi nilai ini hanya muncul untuk keadaan yang memang perlu perhatian
+    /// (aturan tanggungan penjamin berubah sesudah dihitung, atau data lama yang dihitung sebelum otomatisasi).
+    /// </summary>
+    public string? CalculationStaleReason { get; set; }
+
     public decimal Outstanding { get; set; }
     public bool IsReadyForNormalFinalization { get; set; }
     public IReadOnlyList<string> BlockingReasons { get; set; } = [];
@@ -90,7 +99,11 @@ public sealed class FinalizationPreviewResponse
     /// Kode penahan finalisasi yang dapat dibaca mesin — kontrak <c>integrasi-billing</c>
     /// <c>1.1.0</c> API 3.9: <c>BIL-FIN-020</c> invoice "perlu diperiksa",
     /// <c>BIL-FIN-021</c> masih ada layanan "tarif belum ada", <c>BIL-FIN-022</c> masih ada pelayanan
-    /// eligible yang belum masuk invoice (<c>BE-BKC-FIX-021</c>).
+    /// eligible yang belum masuk invoice (<c>BE-BKC-FIX-021</c>), <c>BIL-FIN-023</c> hasil kalkulasi tersimpan
+    /// tertinggal (item/diskon/aturan berubah sesudah dihitung; selesaikan dengan Recalculate), <c>BIL-FIN-024</c>
+    /// masih ada order belum selesai, <c>BIL-FIN-025</c> kewajiban pasien belum lunas (masih dapat diselesaikan lewat
+    /// pembayaran kasir, penangguhan AR, atau departure exception), <c>BIL-FIN-026</c> invoice belum pernah dihitung.
+    /// Setiap entri <see cref="BlockingReasons"/> kini memiliki kode pasangannya.
     /// </summary>
     public IReadOnlyList<string> BlockingCodes { get; set; } = [];
 
@@ -158,6 +171,15 @@ public sealed class EmployeeBenefitSplitResponse
     public decimal ChoiceAmount { get; set; }
     public decimal EmployeeReceivableAmount { get; set; }
     public decimal CashAtCashierAmount { get; set; }
+
+    /// <summary>
+    /// Batas atas nominal AR Karyawan yang DITAWARKAN kepada kasir di Menu Pembayaran (authoritative, dihitung
+    /// <see cref="QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services.BillingEmployeeArOfferPolicy"/>).
+    /// Hanya kelebihan plafon yang belum dibayar (E sisa) yang ditawarkan; nol bila benefit tidak dapat dipakai atau tidak
+    /// ada kelebihan. Ini bukan batas validasi finalisasi: <c>EmployeeDeferredAmount</c> yang diterima Backend tetap
+    /// 0 &lt;= D &lt;= E sisa + K (kontrak lama, dipakai juga oleh layar Detail Billing). Tambahan aditif.
+    /// </summary>
+    public decimal EmployeeArMaxAmount { get; set; }
     public bool IsUsable { get; set; }
     public bool RequiresConsent { get; set; }
     public string? BlockingReasonCode { get; set; }

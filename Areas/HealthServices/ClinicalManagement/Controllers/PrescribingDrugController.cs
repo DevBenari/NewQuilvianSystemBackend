@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -32,17 +33,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly ApplicationDbContext _dbContext;
         private readonly EncounterInsuranceService _encounterInsuranceService;
         private readonly InsuranceCoverageService _insuranceCoverageService;
+        private readonly PharmacyDepotRoutingService _depotRoutingService;
+        private readonly DrugStockService _drugStockService;
         private readonly LoggerService _loggerService;
 
         public PrescribingDrugController(
             ApplicationDbContext dbContext,
             EncounterInsuranceService encounterInsuranceService,
             InsuranceCoverageService insuranceCoverageService,
+            PharmacyDepotRoutingService depotRoutingService,
+            DrugStockService drugStockService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
             _encounterInsuranceService = encounterInsuranceService;
             _insuranceCoverageService = insuranceCoverageService;
+            _depotRoutingService = depotRoutingService;
+            _drugStockService = drugStockService;
             _loggerService = loggerService;
         }
 
@@ -98,6 +105,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] bool? isHighAlert,
             [FromQuery] bool? isCompoundIngredientAllowed,
             [FromQuery] bool? isConsumable,
+            [FromQuery] bool? fromPharmacyStock,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "drugName",
             [FromQuery] string? sortDirection = "asc",
@@ -130,6 +138,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // Katalog berbasis stok (RJ-DOC-DEC-087): depo ditentukan routing encounter yang sama
+            // dengan reservasi resep, sehingga obat yang tampil adalah obat yang kelak ditahan.
+            Guid? stockLocationId = null;
+            string? stockLocationName = null;
+
+            if (fromPharmacyStock == true)
+            {
+                var depot = await _depotRoutingService.ResolveAsync(encounterId, cancellationToken);
+
+                if (!depot.IsSuccess || !depot.StorageLocationId.HasValue)
+                {
+                    return BadRequest(ApiResponse<object>.Fail(
+                        StatusCodes.Status400BadRequest,
+                        depot.Message
+                    ));
+                }
+
+                stockLocationId = depot.StorageLocationId.Value;
+                stockLocationName = await _drugStockService.GetStorageLocationNameAsync(
+                    stockLocationId.Value,
+                    cancellationToken
+                );
+            }
+
             var query = ApplyFilters(
                 BuildDrugQuery(),
                 drugCategoryId,
@@ -142,12 +174,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 search
             );
 
+            if (stockLocationId.HasValue)
+            {
+                var stockedDrugIds = _drugStockService.QueryStockedDrugIds(stockLocationId.Value);
+                query = query.Where(x => stockedDrugIds.Contains(x.Id));
+            }
+
             var totalData = await query.CountAsync(cancellationToken);
 
-            var drugs = await ApplySorting(query, sortBy, sortDirection)
+            var drugs = await ApplySorting(query, sortBy, sortDirection, search)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
+
+            var availableStock = stockLocationId.HasValue
+                ? await _drugStockService.GetAvailableQuantitiesAsync(
+                    stockLocationId.Value,
+                    drugs.Select(x => x.Id).ToList(),
+                    cancellationToken)
+                : null;
 
             var items = new List<PrescribingDrugResponse>();
 
@@ -160,7 +205,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     cancellationToken: cancellationToken
                 );
 
-                items.Add(MapResponse(drug, coverage));
+                var item = MapResponse(drug, coverage);
+
+                if (availableStock != null)
+                {
+                    ApplyStock(
+                        item,
+                        stockLocationId!.Value,
+                        stockLocationName,
+                        availableStock.GetValueOrDefault(drug.Id));
+                }
+
+                items.Add(item);
             }
 
             var result = new PrescribingDrugPagedResponse
@@ -174,6 +230,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 PatientClassId = context.PatientClassId,
                 InsuranceProviderId = context.InsuranceProviderId ?? context.CompanyGuarantorId,
                 BenefitPlanCode = context.BenefitPlanCode,
+                StockStorageLocationId = stockLocationId,
+                StockStorageLocationName = stockLocationName,
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalData = totalData,
@@ -195,6 +253,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     isHighAlert,
                     isCompoundIngredientAllowed,
                     isConsumable,
+                    fromPharmacyStock,
+                    stockLocationId,
                     search,
                     sortBy,
                     sortDirection,
@@ -382,14 +442,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private static IQueryable<MstDrug> ApplySorting(
             IQueryable<MstDrug> query,
             string? sortBy,
-            string? sortDirection)
+            string? sortDirection,
+            string? search = null)
         {
             var isDesc = string.Equals(
                 sortDirection,
                 "desc",
                 StringComparison.OrdinalIgnoreCase);
 
-            return (sortBy ?? "drugName").ToLowerInvariant() switch
+            var normalizedSortBy = (sortBy ?? "drugName").ToLowerInvariant();
+
+            // Jika ada kata kunci pencarian dan pengurutan default (nama obat atau urutan standar),
+            // prioritaskan obat yang paling relevan dengan kata kunci nama obat:
+            if (!string.IsNullOrWhiteSpace(search) && (normalizedSortBy == "drugname" || normalizedSortBy == "sortorder"))
+            {
+                var keyword = search.Trim().ToLower();
+
+                query = query.OrderBy(x =>
+                    x.DrugName.ToLower() == keyword ? 1 :
+                    x.DrugName.ToLower().StartsWith(keyword) ? 2 :
+                    x.DrugName.ToLower().Contains(keyword) ? 3 :
+                    (x.GenericName != null && x.GenericName.ToLower().StartsWith(keyword)) ? 4 :
+                    (x.BrandName != null && x.BrandName.ToLower().Contains(keyword)) ? 5 :
+                    (x.GenericName != null && x.GenericName.ToLower().Contains(keyword)) ? 6 :
+                    7);
+
+                return isDesc
+                    ? ((IOrderedQueryable<MstDrug>)query).ThenByDescending(x => x.DrugName)
+                    : ((IOrderedQueryable<MstDrug>)query).ThenBy(x => x.DrugName);
+            }
+
+            return normalizedSortBy switch
             {
                 "drugcode" => isDesc
                     ? query.OrderByDescending(x => x.DrugCode)
@@ -680,6 +763,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
         }
 
+        /// <summary>
+        /// Menempelkan stok depo pada satu baris katalog dan menutup pemilihan bila stoknya habis.
+        /// </summary>
+        /// <remarks>
+        /// Pesan stok habis ditaruh paling depan karena layar dokter menampilkan pesan kesiapan
+        /// pertama sebagai alasan tombol Pilih nonaktif.
+        /// </remarks>
+        private static void ApplyStock(
+            PrescribingDrugResponse item,
+            Guid storageLocationId,
+            string? storageLocationName,
+            decimal availableQuantity)
+        {
+            item.StockStorageLocationId = storageLocationId;
+            item.StockStorageLocationName = storageLocationName;
+            item.AvailableStockQuantity = availableQuantity;
+            item.IsStockAvailable = availableQuantity > 0;
+
+            if (availableQuantity > 0)
+                return;
+
+            item.CanSelect = false;
+            item.ReadinessMessages.Insert(
+                0,
+                $"Stok obat di {storageLocationName ?? "depo Farmasi"} habis.");
+
+            if (item.ReadinessStatus == "Ready")
+                item.ReadinessStatus = "OutOfStock";
+        }
+
         private static bool HasClinicalInformation(MstDrug drug)
         {
             return new[]
@@ -785,6 +898,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     Type = "bool?",
                     IsRequired = false,
                     Description = "Filter barang habis pakai / alkes. Default false untuk peresepan obat."
+                },
+                new()
+                {
+                    Name = "fromPharmacyStock",
+                    Type = "bool?",
+                    IsRequired = false,
+                    Description = "Bila true, hanya obat yang punya saldo di depo Farmasi hasil routing encounter, beserta stok tersedia per obat."
                 },
                 new()
                 {

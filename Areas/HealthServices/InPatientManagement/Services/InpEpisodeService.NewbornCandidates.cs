@@ -137,17 +137,67 @@ public partial class InpEpisodeService
                 x.ServiceUnitId,
                 ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
                 x.RoomId,
-                RoomName = x.Room != null ? x.Room.RoomName : null
+                RoomName = x.Room != null ? x.Room.RoomName : null,
+                // FIX-EPS-040-12: bed dan kelas ibu untuk kartu konfirmasi rawat gabung.
+                x.BedId,
+                BedCode = x.Bed != null ? x.Bed.BedCode : null,
+                BedName = x.Bed != null ? x.Bed.BedName : null,
+                PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null
             })
             .ToListAsync(cancellationToken);
         var placements = placementRows.GroupBy(x => x.EpisodeId).ToDictionary(x => x.Key, x => x.First());
 
-        var babyCounts = await _dbContext.Set<MstPatient>()
+        var babyPatients = await _dbContext.Set<MstPatient>()
             .AsNoTracking()
-            .Where(x => x.DeliveryCaseId.HasValue && caseIds.Contains(x.DeliveryCaseId.Value) && !x.IsDelete)
-            .GroupBy(x => x.DeliveryCaseId!.Value)
-            .Select(x => new { DeliveryCaseId = x.Key, Count = x.Count() })
-            .ToDictionaryAsync(x => x.DeliveryCaseId, x => x.Count, cancellationToken);
+            // PLAN-REPAIR-EPS-041 FIX-11: RM bayi yang dinonaktifkan tidak dihitung dan tidak ditawarkan untuk dilanjutkan.
+            .Where(x => x.DeliveryCaseId.HasValue && caseIds.Contains(x.DeliveryCaseId.Value) && !x.IsDelete && x.IsActive)
+            .OrderBy(x => x.BirthOrder)
+            .Select(x => new
+            {
+                x.Id,
+                DeliveryCaseId = x.DeliveryCaseId!.Value,
+                x.FullName,
+                x.MedicalRecordNumber,
+                x.BirthOrder
+            })
+            .ToListAsync(cancellationToken);
+
+        var babyPatientIds = babyPatients.Select(b => b.Id).ToList();
+        var babyEpisodeRows = await _dbContext.Set<InpEpisode>()
+            .AsNoTracking()
+            .Where(x => babyPatientIds.Contains(x.PatientId) && !x.IsDelete && !x.IsCancel)
+            .OrderByDescending(x => x.CreateDateTime)
+            .Select(x => new
+            {
+                x.Id,
+                x.PatientId,
+                x.EpisodeNumber,
+                x.EpisodeStatus
+            })
+            .ToListAsync(cancellationToken);
+        var babyEpisodes = babyEpisodeRows
+            .GroupBy(x => x.PatientId)
+            .ToDictionary(x => x.Key, x => x.First());
+
+        var babyEpisodeIds = babyEpisodes.Values.Select(x => x.Id).ToList();
+        var babyPlacementRows = await _dbContext.Set<InpBedPlacement>()
+            .AsNoTracking()
+            .Where(x => babyEpisodeIds.Contains(x.EpisodeId) && x.EndDateTime == null && !x.IsDelete)
+            .OrderByDescending(x => x.SequenceNumber)
+            .Select(x => new
+            {
+                x.EpisodeId,
+                RoomName = x.Room != null ? x.Room.RoomName : null,
+                BedCode = x.Bed != null ? x.Bed.BedCode : null
+            })
+            .ToListAsync(cancellationToken);
+        var babyPlacements = babyPlacementRows
+            .GroupBy(x => x.EpisodeId)
+            .ToDictionary(x => x.Key, x => x.First());
+
+        var babyCounts = babyPatients
+            .GroupBy(x => x.DeliveryCaseId)
+            .ToDictionary(g => g.Key, g => g.Count());
 
         var sequences = await _dbContext.Set<PatNewbornBirthSequence>()
             .AsNoTracking()
@@ -169,13 +219,42 @@ public partial class InpEpisodeService
             var registeredCount = babyCounts.GetValueOrDefault(item.Id);
             var nextOrder = Math.Max(registeredCount, sequences.GetValueOrDefault(item.Id)) + 1;
 
+            var caseBabies = babyPatients
+                .Where(b => b.DeliveryCaseId == item.Id)
+                .Select(b =>
+                {
+                    babyEpisodes.TryGetValue(b.Id, out var ep);
+                    var bPlacement = ep != null && babyPlacements.TryGetValue(ep.Id, out var bp) ? bp : null;
+                    var isCurrentlyInRoom = ep != null && ep.EpisodeStatus == InpEpisodeStatus.Admitted && bPlacement != null;
+                    return new NewbornRegisteredBabyDto
+                    {
+                        PatientId = b.Id,
+                        FullName = b.FullName,
+                        MedicalRecordNumber = b.MedicalRecordNumber,
+                        BirthOrder = b.BirthOrder ?? 0,
+                        EpisodeId = ep?.Id,
+                        EpisodeNumber = ep?.EpisodeNumber,
+                        EpisodeStatus = ep != null ? (int)ep.EpisodeStatus : null,
+                        EpisodeStatusName = ep?.EpisodeStatus.ToString(),
+                        RoomName = bPlacement?.RoomName,
+                        BedCode = bPlacement?.BedCode,
+                        IsCurrentlyInRoom = isCurrentlyInRoom,
+                        // FIX-10: tanpa episode yang hidup (episode batal sudah dikecualikan di atas).
+                        IsPendingAdmission = ep == null
+                    };
+                })
+                .ToList();
+            var pendingCount = caseBabies.Count(b => b.IsPendingAdmission);
+
+            var hasActiveBaby = caseBabies.Any(b => b.IsCurrentlyInRoom || b.EpisodeStatus == (int)InpEpisodeStatus.Admitted || b.EpisodeStatus == (int)InpEpisodeStatus.Draft);
+
             items.Add(new NewbornMotherCandidateResponse
             {
                 DeliveryCaseId = item.Id,
                 DeliveryCaseNumber = item.CaseNumber,
                 RequestedAt = item.RequestedAt,
                 DeliveryCaseStatus = (int)item.Status,
-                DeliveryCaseStatusName = item.Status.ToString(),
+                DeliveryCaseStatusName = DeliveryCaseStatusLabel(item.Status),
                 MotherPatientId = item.PatientId,
                 MotherName = item.MotherName,
                 MotherMedicalRecordNumber = item.MotherMedicalRecordNumber,
@@ -191,8 +270,16 @@ public partial class InpEpisodeService
                 CurrentServiceUnitName = placement?.ServiceUnitName,
                 CurrentRoomId = placement?.RoomId,
                 CurrentRoomName = placement?.RoomName,
+                CurrentBedId = placement?.BedId,
+                CurrentBedCode = placement?.BedCode,
+                CurrentBedName = placement?.BedName,
+                CurrentPatientClassName = placement?.PatientClassName,
                 RegisteredBabyCount = registeredCount,
-                NextBirthOrderPreview = nextOrder
+                AdmittedBabyCount = caseBabies.Count - pendingCount,
+                PendingBabyCount = pendingCount,
+                NextBirthOrderPreview = nextOrder,
+                HasActiveInpatientBaby = hasActiveBaby,
+                RegisteredBabies = caseBabies
             });
         }
 
@@ -205,4 +292,15 @@ public partial class InpEpisodeService
             Items = items
         };
     }
+
+    /// <summary>
+    /// Label status kasus persalinan untuk petugas (FIX-EPS-040-13). Kandidat hanya memuat kasus
+    /// <c>InProgress</c> dan <c>Completed</c>; status lain jatuh ke nama enum agar tidak tersembunyi.
+    /// </summary>
+    private static string DeliveryCaseStatusLabel(OprCaseStatus status) => status switch
+    {
+        OprCaseStatus.InProgress => "Sedang berlangsung",
+        OprCaseStatus.Completed => "Selesai",
+        _ => status.ToString()
+    };
 }

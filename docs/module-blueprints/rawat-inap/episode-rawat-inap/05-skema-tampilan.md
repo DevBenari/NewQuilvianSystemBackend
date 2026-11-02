@@ -1861,7 +1861,9 @@ Pulih), "Lanjutkan Admisi {nomor}" (admisi lain masih Draft — peringatan, Lanj
 "Periksa Ulang" (gagal diperiksa). Badge kartu identitas mengikuti hasil pemeriksaan ("Siap Melanjutkan", "Sedang
 Dirawat", "Kunjungan Aktif", "Permintaan Kamar Pulih", "Ada Admisi Disiapkan", "Belum Terperiksa"), bukan lagi selalu
 "Siap Melanjutkan". Aturan yang sama berlaku pada langkah Informasi Pasien Lama jalur Kamar Pulih (tombol "Lanjut ke
-Tipe Pasien"), dengan permintaan Kamar Pulih yang sedang dipakai tidak dihitung sebagai penghalang. Langkah Pilih Bed
+Tipe Pasien"), dengan permintaan Kamar Pulih yang sedang dipakai tidak dihitung sebagai penghalang, dan — sejak
+`PLAN-REPAIR-EPS-041` (27-10-2026) — pada langkah Antrean & Verifikasi Transfer IGD & Poliklinik (tombol "Lanjut ke
+Pembayaran"), dengan kunjungan rawat jalan aktif tidak dihitung sebagai penghalang (lihat amandemen 041 di bawah). Langkah Pilih Bed
 (3.9) memeriksa ulang kelayakan sebelum kunjungan dibuat; penolakannya tampil pada alert langkah itu tanpa permintaan
 tulis apa pun. Skema sebelum-sesudah ada pada [`PLAN-REPAIR-EPS-010`](docs/plan-repair/plan-repair-010-pasien-lama-sudah-dirawat-lolos.md) bagian 3.
 
@@ -1906,3 +1908,52 @@ dimulai, denah dimuat ulang dan status `Cleaning` tetap tidak menampilkan `Pilih
 Sesudah verifikasi kesiapan berhasil, tombol pemilihan baru boleh tampil bila snapshot terbaru
 juga menyatakan `Available` dan `Eligibility.IsEligible = true`. Bila aksi kosong, permission
 ditolak/belum diketahui, atau refresh gagal, frontend tidak menyimpulkan kesiapan sendiri.
+
+## Amandemen PLAN-REPAIR-EPS-041 — 27 Oktober 2026
+
+Dasar: [`PLAN-REPAIR-EPS-041`](docs/plan-repair/plan-repair-041-temuan-uji-admisi-lama-bayi-transfer.md) (disetujui
+pemilik 26-10-2026, K-01 s.d. K-06). Skema sebelum → sesudah lengkap ada pada bagian 3 rencana itu; amandemen ini
+mencatat perubahan aturannya saja.
+
+**1. Antrean & Verifikasi Transfer IGD & Poliklinik (langkah 1 jalur transfer, skema 3.1 rencana).** Begitu permintaan
+dipilih, layar memeriksa `GET /episodes/admission-eligibility?patientId=` untuk pasien sumber, memakai alert, tombol
+tindak lanjut, dan badge yang sama dengan Amandemen PLAN-REPAIR-EPS-010. Bedanya satu: penghalang
+`ACTIVE_ENCOUNTER_EXISTS` tidak diterapkan, karena kunjungan Poli/IGD asal memang masih aktif dan `admit` transfer tidak
+menolaknya (`InpEpisodeService.OpenAdmissionAsync` hanya menolak pasien yang sedang dirawat dan permintaan Kamar Pulih).
+Contoh: surat pengantar Poli untuk Ny. S yang sedang dirawat di VIP 302 → badge "Sedang Dirawat", alert dengan
+"Pindah Tempat Tidur" / "Lihat Detail Episode", tombol "Lanjut ke Pembayaran" tidak membawa ke langkah 2 dan tidak ada
+permintaan tulis. Pasien dengan admisi Draft lain hanya mendapat peringatan. Seperti langkah Pasien Lama pada source
+saat ini, tombol Lanjut dinonaktifkan selama hasilnya menolak (dengan `title` berisi alasannya) — selisih dari kalimat
+Amandemen 010 "tombolnya tidak dimatikan" ini mengikuti source yang berlaku dan dicatat pada laporan `FIX-EPS-041-FE`.
+
+Kartu rujukan memisahkan **DPJP Usulan Rawat Inap** (IGD) dari **Diputuskan Oleh**, menampilkan chip **Kebutuhan**
+(Isolasi, Perawatan Intensif, Oksigen, Monitoring Khusus — hanya yang bernilai benar), **Kelas Diminta** dan
+**Diagnosa** (sumber Poli; disembunyikan bila kosong), dan label "Diagnosa / Indikasi" diganti **Alasan Rawat Inap**.
+Langkah Dokter jalur transfer terisi awal dari DPJP usulan (lalu dokter yang memutuskan bila kosong) dan dari kebutuhan
+isolasi IGD beserta keterangan awal "Permintaan IGD menyebut kebutuhan isolasi"; isian yang sudah diubah petugas tetap
+menang.
+
+**2. Pilih Bed jalur transfer.** Karena belum ada episode, `available-beds` dikirim dengan `patientId`,
+`requiresIsolation`, dan `includeIneligible`, sehingga denah hanya mengaktifkan bed yang lolos aturan pasien itu
+(contoh: pasien isolasi hanya VIP 316/317; pasien biasa tidak ditawari bed isolasi maupun ODC).
+
+**3. Konfirmasi (3.11).** Tambahan baca-saja: **Tingkat Ketergantungan** (High/Low Dependency atau "Belum dinilai") dan
+kartu **Order Pembayaran Deposit** bila episode punya order (`depositPaymentOrder`). "Status Tempat Tidur" memakai label
+Indonesia ("Dipesan"), bukan nama enum. Pada jalur transfer, kalimat kunci menjadi "…Pada admisi transfer, pembatalan
+menutup permintaan IGD/Poli ini; bila pasien perlu dirawat ulang, IGD/Poli menerbitkan permintaan baru." dan dialog
+Batalkan Admisi menyebut nomor kunjungan sumber yang tidak kembali ke antrean (kontrak EPS-006/K-02). Bila dokter
+pendukung atau ketergantungan gagal tersimpan sesudah `admit`, Booking/Konfirmasi menampilkan peringatan; tombol
+"Simpan Ulang" hanya muncul untuk kegagalan yang dapat diulang. Penolakan karena aturan server (dokter pendukung pada
+episode Draft) ditampilkan dengan kalimat server dan arahan menetapkannya dari Detail Episode sesudah kedatangan.
+
+**4. Cetak Persetujuan.** "Selesai" pada langkah terakhir langsung membuka Daftar Kerja Episode bila persetujuan sudah
+tersimpan; catatan lewati-cetak berbunyi "…Data admisi sudah diperiksa pada langkah Konfirmasi."
+
+**5. Admisi bayi langkah 1 (melengkapi amandemen `RWI-BAYI-022-2.0.0`, skema 3.2 rencana).** Daftar "Riwayat Bayi pada
+Kasus Persalinan Ini" menandai bayi yang sudah ber-RM tetapi belum punya episode hidup sebagai "Admisi belum selesai"
+dengan tombol **Lanjutkan admisi bayi ini** (memakai pasien bayi itu dan langsung ke langkah Perawatan dan DPJP;
+langkah Identitas tetap terbaca bila petugas mundur). Centang konfirmasi menjadi **"Ini bayi yang berbeda (kelahiran
+kembar, Bayi ke-n)"** dan hanya wajib saat membuat bayi baru sementara kasus sudah punya bayi lain. Picker tanggal lahir
+menonaktifkan tanggal di luar aturan validasi (hari ini WIB sampai satu hari sebelum kasus diminta), waktu lahir tampil
+"26 Okt 2026, 09.30 WIB", nama kelas tidak lagi ditulis "Kelas KELAS I", dan denah Perinatologi/NICU dibuka pada lantai
+ruang bayi tanpa menimpa lantai terakhir peramban.

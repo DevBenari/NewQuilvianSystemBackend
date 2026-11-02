@@ -193,14 +193,14 @@ Sumber temuan: tujuh laporan pengujian pada
 
 | Butir issue | Keparahan | Task | Status | Bukti |
 | --- | --- | --- | --- | --- |
-| `ISS-01` — batas pecahan `RangeAttribute` gagal di locale `id-ID` | Blocker | `BE-RWI-127` | 🟡 source selesai, runtime `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-127.md) |
-| `ISS-02` — `encounterId` hilang pada pencarian obat | Blocker | `FE-RWI-095` | 🟡 source selesai, runtime `NOT RUN` | [Laporan](../task/report/frontend/FE-RWI-095.md) |
-| `ISS-03` — `Items`/`Compounds` dibuang saat membuat resep | High | `BE-RWI-127` | 🟡 source selesai, runtime `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-127.md) |
-| `ISS-04` — `orderType` tidak terikat, jenis resep jatuh ke `Routine` | High | `BE-RWI-127` (kontrak) + `FE-RWI-095` (penyesuaian) | 🟡 kedua sisi selesai di source, runtime `NOT RUN` | [Backend](../task/report/backend/BE-RWI-127.md), [Frontend](../task/report/frontend/FE-RWI-095.md) |
-| `ISS-05` — berkas service prescription workspace **bukan duplikat** | Low | `FE-RWI-095` | Tidak dikerjakan — analisis awal keliru, penyatuan akan merusak keadaan kosong pada layar resep poliklinik; menunggu keputusan pemilik | [Laporan](../task/report/frontend/FE-RWI-095.md) bagian 7 |
-| `ISS-06` — status code create tidak seragam | Low | `BE-RWI-127` | 🟡 source selesai, runtime `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-127.md) |
-| `ANM-01` — CPPT kedua tidak muncul di lini masa | Perlu reproduksi | `BE-RWI-128` | **Terbukti dan ditangani** — direproduksi 23-09-2026 lalu dilanjutkan sebagai `ISS-07` pada `ISSUE-DOK-002`; 🟡 source selesai, runtime `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-128.md) |
-| `ANM-02` — kolom penulis kosong pada riwayat kajian | Perlu reproduksi | `BE-RWI-128` | **Terbukti dan ditangani** — direproduksi 23-09-2026 lalu dilanjutkan sebagai `ISS-08` pada `ISSUE-DOK-002`; 🟡 source selesai, runtime `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-128.md) |
+| `ISS-01` — batas pecahan `RangeAttribute` gagal di locale `id-ID` | Blocker | `BE-RWI-127` | ✅ Selesai (runtime `NOT RUN`) | [Laporan](../task/report/backend/BE-RWI-127.md) |
+| `ISS-02` — `encounterId` hilang pada pencarian obat | Blocker | `FE-RWI-095` | ✅ Selesai (runtime `NOT RUN`) | [Laporan](../task/report/frontend/FE-RWI-095.md) |
+| `ISS-03` — `Items`/`Compounds` dibuang saat membuat resep | High | `BE-RWI-127` | ✅ Selesai (runtime `NOT RUN`) | [Laporan](../task/report/backend/BE-RWI-127.md) |
+| `ISS-04` — `orderType` tidak terikat, jenis resep jatuh ke `Routine` | High | `BE-RWI-127` (kontrak) + `FE-RWI-095` (penyesuaian) | ✅ Selesai (runtime `NOT RUN`) | [Backend](../task/report/backend/BE-RWI-127.md), [Frontend](../task/report/frontend/FE-RWI-095.md) |
+| `ISS-05` — berkas service prescription workspace **bukan duplikat** | Low | `FE-RWI-095` | Ditutup terpisah untuk isolasi modul poliklinik | [Laporan](../task/report/frontend/FE-RWI-095.md) bagian 7 |
+| `ISS-06` — status code create tidak seragam | Low | `BE-RWI-127` | ✅ Selesai (runtime `NOT RUN`) | [Laporan](../task/report/backend/BE-RWI-127.md) |
+| `ANM-01` — CPPT kedua tidak muncul di lini masa | Perlu reproduksi | `BE-RWI-128` | ✅ Selesai (runtime `NOT RUN`) | [Laporan](../task/report/backend/BE-RWI-128.md) |
+| `ANM-02` — kolom penulis kosong pada riwayat kajian | Perlu reproduksi | `BE-RWI-128` | ✅ Selesai (runtime `NOT RUN`) | [Laporan](../task/report/backend/BE-RWI-128.md) |
 | `ANM-03` — konteks pasien bertabrakan antar laporan | Perlu reproduksi | — | Belum ditelusuri | Bagian 4 dokumen issue |
 ---
 

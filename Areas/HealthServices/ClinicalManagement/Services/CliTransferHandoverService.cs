@@ -28,7 +28,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
     /// </remarks>
     public sealed class CliTransferHandoverService
     {
-        /// <summary>422 — penerima sama dengan pengirim.</summary>
+        /// <summary>422 — Penetapan Perawat Penanggung Jawab Asuhan (PPJA) wajib diisi saat menerima pasien transfer (CLI-TRH-001).</summary>
+        public const string NursePpjaRequiredCode = "CLI-TRH-001";
+
+        /// <summary>400 — Penerima serah terima klinis tidak boleh akun yang sama dengan perawat pengirim (CLI-TRH-002).</summary>
+        public const string SenderReceiverSameAccountCode = "CLI-TRH-002";
+
+        /// <summary>422 — Alasan penolakan serah terima minimal 10 karakter (CLI-TRH-003).</summary>
+        public const string RejectionReasonRequiredCode = "CLI-TRH-003";
+
+        /// <summary>409 — Dokumen serah terima klinis tidak dalam status siap diterima (Sent) (CLI-TRH-004).</summary>
+        public const string HandoverNotSentCode = "CLI-TRH-004";
+
+        /// <summary>422 — penerima sama dengan pengirim (legacy code).</summary>
         public const string SameAccountCode = "CLI-TRH-001";
 
         /// <summary>422 — penerima harus bertugas di unit tujuan (pasien menempati bed aktif di unit itu).</summary>
@@ -59,6 +71,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         // ---------------------------------------------------------------------
         // Pembuatan (tanpa endpoint)
         // ---------------------------------------------------------------------
+
+        /// <summary>
+        /// Membuat dokumen serah terima klinis untuk transfer admisi (IGD/Rajal ke Ranap) - BE-RWI-241.
+        /// Idempoten per InpEpisodeId.
+        /// </summary>
+        public async Task<Guid?> CreateForAdmissionTransferAsync(
+            Guid episodeId,
+            Guid fromServiceUnitId,
+            Guid toServiceUnitId,
+            Guid actorUserId,
+            Guid? sourceEncounterId,
+            CancellationToken cancellationToken = default)
+        {
+            var existing = await _dbContext.CliTransferHandovers.AsNoTracking()
+                .Where(x => x.InpEpisodeId == episodeId && !x.IsDelete)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (existing.HasValue) return existing;
+
+            var now = DateTime.UtcNow;
+            var snapshot = await BuildSnapshotAsync(episodeId, now, cancellationToken, sourceEncounterId);
+
+            var document = new CliTransferHandover
+            {
+                Id = Guid.NewGuid(),
+                InpEpisodeId = episodeId,
+                FromServiceUnitId = fromServiceUnitId,
+                ToServiceUnitId = toServiceUnitId,
+                FromPlacementId = null,
+                ToPlacementId = null,
+                Status = CliTransferHandoverStatus.NotSent,
+                SnapshotJson = JsonSerializer.Serialize(snapshot, SnapshotJson),
+                Version = 0,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+            _dbContext.CliTransferHandovers.Add(document);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                _dbContext.Entry(document).State = EntityState.Detached;
+                return await _dbContext.CliTransferHandovers.AsNoTracking()
+                    .Where(x => x.InpEpisodeId == episodeId && !x.IsDelete)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            await _loggerService.AuditAsync(LogCategory, "CliTransferHandover.CreateForAdmissionTransfer",
+                "Membuat dokumen serah terima transfer dari admisi IGD/Rajal.",
+                new { DocumentId = document.Id, EpisodeId = episodeId, FromServiceUnitId = fromServiceUnitId, ToServiceUnitId = toServiceUnitId });
+            return document.Id;
+        }
 
         /// <summary>
         /// Membuat dokumen <c>NotSent</c> untuk satu transfer antarunit. Idempoten per penempatan tujuan.
@@ -144,8 +212,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             var placementIds = placements.Select(p => p.Id).ToList();
             var documented = await _dbContext.CliTransferHandovers.AsNoTracking()
-                .Where(x => placementIds.Contains(x.ToPlacementId))
-                .Select(x => x.ToPlacementId)
+                .Where(x => x.ToPlacementId.HasValue && placementIds.Contains(x.ToPlacementId.Value))
+                .Select(x => x.ToPlacementId!.Value)
                 .ToListAsync(cancellationToken);
             var documentedSet = documented.ToHashSet();
 
@@ -225,6 +293,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 : await _dbContext.Users.AsNoTracking().Where(x => userIds.Contains(x.Id))
                     .ToDictionaryAsync(x => x.Id, x => x.DisplayName, cancellationToken);
 
+            var activeNurse = await _dbContext.Set<InpNurseAssignment>()
+                .AsNoTracking()
+                .Where(x => x.EpisodeId == document.InpEpisodeId && x.EndDateTime == null && !x.IsDelete)
+                .OrderByDescending(x => x.SequenceNumber)
+                .Select(x => new { x.EmployeeId, EmployeeName = x.Employee != null ? x.Employee.FullName : null })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var snapshot = Deserialize(document.SnapshotJson);
+
             return new TransferHandoverResponse
             {
                 Id = document.Id,
@@ -246,13 +323,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 SoapSummary = document.SoapSummary,
                 HandedItems = document.HandedItems,
                 SpecialInstructions = document.SpecialInstructions,
-                Snapshot = Deserialize(document.SnapshotJson),
+                Snapshot = snapshot,
                 SentByName = document.SentByUserId.HasValue && names.TryGetValue(document.SentByUserId.Value, out var sender) ? sender : null,
                 SentAt = document.SentAt,
                 ReceivedByName = document.ReceivedByUserId.HasValue && names.TryGetValue(document.ReceivedByUserId.Value, out var receiver) ? receiver : null,
                 ReceivedAt = document.ReceivedAt,
                 RejectionReason = document.RejectionReason,
-                Version = document.Version
+                Version = document.Version,
+                AssignedNurseId = activeNurse?.EmployeeId,
+                AssignedNurseName = activeNurse?.EmployeeName,
+                AssignedRole = activeNurse != null ? "PrimaryNursePPJA" : null,
+                Notes = snapshot?.AcceptanceNotes,
+                MedicationReconciliations = snapshot?.MedicationReconciliations
             };
         }
 
@@ -309,8 +391,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         }
 
         /// <summary>
-        /// Terima atau tolak beralasan oleh pemegang <c>TransferHandover : Receive</c> yang bukan pengirim.
-        /// Menerima menuntut pasien sudah menempati bed aktif di unit tujuan (<c>VAL-RWF-91</c>).
+        /// Menerima atau menolak serah terima transfer (PATCH /{id}/accept) — BE-RWI-242.
         /// </summary>
         public async Task<CliTransferHandoverResult> AcceptAsync(Guid id, AcceptTransferHandoverRequest request,
             Guid actorUserId, CancellationToken cancellationToken = default)
@@ -319,38 +400,108 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 .Include(x => x.Episode)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (document == null) return CliTransferHandoverResult.NotFound();
+
+            // CLI-TRH-004: Menerima dokumen yang statusnya bukan Sent ditolak 409 Conflict.
             if (document.Status != CliTransferHandoverStatus.Sent)
-                return CliTransferHandoverResult.Fail(StatusCodes.Status409Conflict, null,
-                    "Hanya serah terima yang sudah dikirim yang dapat diterima atau ditolak.");
+                return CliTransferHandoverResult.Fail(StatusCodes.Status409Conflict, HandoverNotSentCode,
+                    "Dokumen serah terima klinis tidak dalam status siap diterima (Sent).");
+
             if (document.Version != request.ExpectedVersion)
                 return CliTransferHandoverResult.VersionChanged();
 
-            // VAL-RWF-92: tolak wajib beralasan.
-            var reason = string.IsNullOrWhiteSpace(request.RejectionReason) ? null : request.RejectionReason.Trim();
-            if (!request.Accept && reason == null)
-                return CliTransferHandoverResult.Fail(StatusCodes.Status400BadRequest, null, "Isi alasan penolakan");
-
-            // VAL-RWF-91: penerima (atau penolak) ≠ pengirim.
-            if (document.SentByUserId == actorUserId)
-                return CliTransferHandoverResult.Fail(StatusCodes.Status422UnprocessableEntity, SameAccountCode,
-                    "Pengirim tidak dapat menerima serah terima sendiri");
-
-            if (request.Accept && (document.Episode == null ||
-                !await _patientLocation.IsPatientInUnitAsync(document.Episode.PatientId, document.ToServiceUnitId, cancellationToken)))
-                return CliTransferHandoverResult.Fail(StatusCodes.Status422UnprocessableEntity, NotInDestinationUnitCode,
-                    "Penerima harus bertugas di unit tujuan pasien");
+            // VAL-RWF-91 / CLI-TRH-002: Penerima atau penolak TIDAK BOLEH akun yang sama dengan perawat pengirim / pembuat.
+            if ((document.SentByUserId.HasValue && document.SentByUserId.Value == actorUserId) ||
+                document.CreateBy == actorUserId)
+                return CliTransferHandoverResult.Fail(StatusCodes.Status400BadRequest, SenderReceiverSameAccountCode,
+                    "Penerima serah terima klinis tidak boleh akun yang sama dengan perawat pengirim.");
 
             var now = DateTime.UtcNow;
-            document.Status = request.Accept ? CliTransferHandoverStatus.Accepted : CliTransferHandoverStatus.Rejected;
+
+            if (!request.Accept)
+            {
+                // CLI-TRH-003: Alasan penolakan minimal 10 karakter.
+                var reason = string.IsNullOrWhiteSpace(request.RejectionReason) ? null : request.RejectionReason.Trim();
+                if (string.IsNullOrWhiteSpace(reason) || reason.Length < 10)
+                    return CliTransferHandoverResult.Fail(StatusCodes.Status422UnprocessableEntity, RejectionReasonRequiredCode,
+                        "Alasan penolakan serah terima minimal 10 karakter.");
+
+                document.Status = CliTransferHandoverStatus.Rejected;
+                document.ReceivedByUserId = actorUserId;
+                document.ReceivedAt = now;
+                document.RejectionReason = Truncate(reason, 1000);
+                document.Version++;
+                document.UpdateDateTime = now;
+                document.UpdateBy = actorUserId;
+                return await SaveAndReadAsync(document, "Serah terima transfer ditolak.", cancellationToken);
+            }
+
+            // Jalur Accept == true:
+            // CLI-TRH-001: Penetapan Perawat PPJA wajib diisi saat menerima pasien transfer.
+            if (!request.AssignedNurseId.HasValue || request.AssignedNurseId.Value == Guid.Empty)
+                return CliTransferHandoverResult.Fail(StatusCodes.Status422UnprocessableEntity, NursePpjaRequiredCode,
+                    "Penetapan Perawat Penanggung Jawab Asuhan (PPJA) wajib diisi saat menerima pasien transfer.");
+
+            var nurse = await _dbContext.Set<QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstEmployee>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.AssignedNurseId.Value && !x.IsDelete && x.IsActive, cancellationToken);
+            if (nurse == null)
+                return CliTransferHandoverResult.Fail(StatusCodes.Status422UnprocessableEntity, null,
+                    "Perawat PPJA yang dipilih tidak ditemukan atau tidak aktif.");
+
+            // Validasi keberadaan pasien di unit (jika internal bed transfer antarunit)
+            if (document.FromPlacementId.HasValue && (document.Episode == null ||
+                !await _patientLocation.IsPatientInUnitAsync(document.Episode.PatientId, document.ToServiceUnitId, cancellationToken)))
+                return CliTransferHandoverResult.Fail(StatusCodes.Status422UnprocessableEntity, NotInDestinationUnitCode,
+                    "Penerima harus bertugas di unit tujuan pasien.");
+
+            // Catat penugasan perawat PPJA ke data penugasan episode (InpNurseAssignment)
+            var activeAssignments = await _dbContext.Set<InpNurseAssignment>()
+                .Where(x => x.EpisodeId == document.InpEpisodeId && x.EndDateTime == null && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+            foreach (var a in activeAssignments)
+            {
+                a.EndDateTime = now;
+                a.IsActive = false;
+                a.UpdateDateTime = now;
+                a.UpdateBy = actorUserId;
+            }
+
+            var lastSeq = await _dbContext.Set<InpNurseAssignment>()
+                .Where(x => x.EpisodeId == document.InpEpisodeId)
+                .Select(x => (int?)x.SequenceNumber)
+                .MaxAsync(cancellationToken) ?? 0;
+
+            var newAssignment = new InpNurseAssignment
+            {
+                Id = Guid.NewGuid(),
+                EpisodeId = document.InpEpisodeId,
+                EmployeeId = request.AssignedNurseId.Value,
+                SequenceNumber = lastSeq + 1,
+                StartDateTime = now,
+                EndDateTime = null,
+                AssignedByUserId = actorUserId,
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+            _dbContext.Set<InpNurseAssignment>().Add(newAssignment);
+
+            // Simpan catatan rekonsiliasi obat & penerimaan ke SnapshotJson
+            var snap = Deserialize(document.SnapshotJson) ?? new TransferHandoverSnapshot { CapturedAt = now };
+            if (request.MedicationReconciliations != null && request.MedicationReconciliations.Count > 0)
+                snap.MedicationReconciliations = request.MedicationReconciliations;
+            if (!string.IsNullOrWhiteSpace(request.Notes))
+                snap.AcceptanceNotes = Truncate(request.Notes, 1000);
+            document.SnapshotJson = JsonSerializer.Serialize(snap, SnapshotJson);
+
+            document.Status = CliTransferHandoverStatus.Accepted;
             document.ReceivedByUserId = actorUserId;
             document.ReceivedAt = now;
-            if (!request.Accept) document.RejectionReason = Truncate(reason, 1000);
             document.Version++;
             document.UpdateDateTime = now;
             document.UpdateBy = actorUserId;
-            return await SaveAndReadAsync(document,
-                request.Accept ? "Serah terima transfer berhasil diterima." : "Serah terima transfer ditolak.",
-                cancellationToken);
+
+            return await SaveAndReadAsync(document, "Serah terima transfer berhasil diterima dan perawat PPJA telah ditetapkan.", cancellationToken);
         }
 
         // ---------------------------------------------------------------------
@@ -358,17 +509,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         // ---------------------------------------------------------------------
 
         private async Task<TransferHandoverSnapshot> BuildSnapshotAsync(Guid episodeId, DateTime now,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, Guid? sourceEncounterId = null)
         {
             var episode = await _dbContext.InpEpisodes.AsNoTracking()
                 .Where(x => x.Id == episodeId)
                 .Select(x => new { x.EncounterId, x.PatientId })
-                .FirstAsync(cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
 
             var snapshot = new TransferHandoverSnapshot { CapturedAt = now };
+            if (episode == null) return snapshot;
+
+            var encounterIds = new List<Guid> { episode.EncounterId };
+            if (sourceEncounterId.HasValue && sourceEncounterId.Value != Guid.Empty && !encounterIds.Contains(sourceEncounterId.Value))
+            {
+                encounterIds.Add(sourceEncounterId.Value);
+            }
 
             var vital = await _dbContext.Set<TrxPatientVitalSign>().AsNoTracking()
-                .Where(x => x.EncounterId == episode.EncounterId && x.PatientId == episode.PatientId && !x.IsDelete &&
+                .Where(x => x.EncounterId.HasValue && encounterIds.Contains(x.EncounterId.Value) && x.PatientId == episode.PatientId && !x.IsDelete &&
                     !x.IsCancel && UsableVitalStatuses.Contains(x.VitalSignStatus))
                 .OrderByDescending(x => x.ObservationDateTime)
                 .FirstOrDefaultAsync(cancellationToken);
@@ -386,7 +544,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             }
 
             var pain = await _dbContext.Set<TrxPatientAssessment>().AsNoTracking()
-                .Where(x => x.EncounterId == episode.EncounterId && x.PatientId == episode.PatientId && !x.IsDelete &&
+                .Where(x => encounterIds.Contains(x.EncounterId) && x.PatientId == episode.PatientId && !x.IsDelete &&
                     !x.IsCancel && x.AssessmentType == PatientAssessmentType.PainMonitoring &&
                     x.AssessmentStatus == PatientAssessmentStatus.Completed &&
                     x.PainAssessmentState != PainAssessmentState.NotAssessed)
@@ -412,7 +570,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             }
 
             var fallRisk = await _dbContext.Set<TrxPatientAssessment>().AsNoTracking()
-                .Where(x => x.EncounterId == episode.EncounterId && x.PatientId == episode.PatientId && !x.IsDelete &&
+                .Where(x => encounterIds.Contains(x.EncounterId) && x.PatientId == episode.PatientId && !x.IsDelete &&
                     !x.IsCancel && x.AssessmentType == PatientAssessmentType.FallRisk &&
                     x.AssessmentStatus == PatientAssessmentStatus.Completed)
                 .OrderByDescending(x => x.AssessmentDateTime)

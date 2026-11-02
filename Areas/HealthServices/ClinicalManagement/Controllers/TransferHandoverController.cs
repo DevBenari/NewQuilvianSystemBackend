@@ -88,10 +88,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             CancellationToken cancellationToken = default)
             => ToResult(await _service.SendAsync(id, request, GetCurrentUserId(), cancellationToken));
 
-        /// <summary>Terima, atau tolak beralasan.</summary>
+        /// <summary>Menerima pasien transfer sekaligus menetapkan perawat PPJA, atau menolak beralasan.</summary>
         /// <remarks>
-        /// Penerima sama dengan pengirim → 422 <c>CLI-TRH-001</c>; pasien belum menempati bed aktif di
-        /// unit tujuan → 422 <c>CLI-TRH-002</c>; tolak tanpa alasan → 400; versi berubah → 409.
+        /// Tanpa PPJA → 422 <c>CLI-TRH-001</c>; penerima sama dengan pengirim → 400 <c>CLI-TRH-002</c>;
+        /// tolak tanpa alasan min 10 karakter → 422 <c>CLI-TRH-003</c>; status bukan Sent → 409 <c>CLI-TRH-004</c>.
         /// </remarks>
         [HttpPatch("{id:guid}/accept")]
         [ProducesResponseType(typeof(ApiResponse<TransferHandoverResponse>), StatusCodes.Status200OK)]

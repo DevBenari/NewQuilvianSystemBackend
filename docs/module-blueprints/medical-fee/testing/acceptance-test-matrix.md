@@ -3,6 +3,7 @@
 | Field | Nilai |
 |---|---|
 | Kontrak | `MDF-TEST-1.0` — `locked` 20 September 2026 |
+| Amendment | `MDF-TEST-1.1` — **`locked` 27 Oktober 2026** oleh owner Medical Fee: bagian 11A (`T-91`..`T-107`) |
 | Blueprint ID | `MF-BP-001` |
 | Lapis | `U` unit, `I` integrasi, `E` end-to-end |
 
@@ -165,12 +166,37 @@ itu ada.
 | T-89 | Akses ke hasil jasa orang lain tercatat | I | Idem |
 | T-90 | Soft delete mengisi `DeleteBy` dan `DeleteDateTime` | U | `IdentityModel` |
 
+## 11A. Port `DoctorShare` dan entri kasir — `MDF-TEST-1.1` **locked**
+
+Dikunci 27 Oktober 2026. Mengikuti `integration-contract.md` §4–5 (`MDF-INTEGRATION-1.1`) dan `MDF-DES-019`..`021`. Skenario
+ujung-ke-ujung tetap milik Billing (`BIL-AT-231`..`248`); uji di bawah menjaga sisi Medical Fee.
+
+| # | Uji | Lapis | Aturan |
+|---:|---|:---:|---|
+| T-91 | Baris tarif bertarif persis berlaku → `Resolved`, persentase dan id baris benar | U | §4.4 langkah 5, 7 |
+| T-92 | Tanpa baris tarif persis, baris berlingkup kategori dari `MstTariff.TariffCategoryId` dipakai | I | §4.4 langkah 5 |
+| T-93 | `RoleCode` kosong memakai peran utama aktif | U | §4.3 |
+| T-94 | `RoleCode` tidak dikenal atau nonaktif → `NoRule` | U | §4.4 langkah 2 |
+| T-95 | Penerima tanpa kesepakatan aktif pada tanggal itu → `NoRule` | U | §4.4 langkah 3 |
+| T-96 | Kontrak HR berakhir sebelum tanggal layanan → `NoRule` | U | §4.4 langkah 4 |
+| T-97 | Dua baris sama khusus berlaku bersamaan → `Unavailable`, tercatat log peringatan | U | §4.4 langkah 6 |
+| T-98 | `PerformerType` selain `DOCTOR`/`WORKFORCE` → `Unavailable` | U | §4.3 |
+| T-99 | Kesalahan basis data dan token dibatalkan → `Unavailable`, tidak ada exception keluar | I | §4.5 butir 1–2 |
+| T-100 | Setelah panggilan, `ChangeTracker` kosong dan tidak ada transaksi terbuka | I | §4.5 butir 3 |
+| T-101 | Container menghasilkan `MedicalFeeDoctorShareResolver` untuk port, dan hanya satu pendaftaran tersisa | I | §4.5 butir 6; `MDF-DES-019` |
+| T-102 | Untuk layanan yang sama, baris tarif jawaban port sama dengan yang dipakai perhitungan periode | I | `MDF-DES-020` |
+| T-103 | Entri `ADHOC` dengan `IsFeeBearing = false` tidak dihitung dan tidak dicatat `PERFORMER_MISSING` | I | §5.3; `MDF-DES-021` |
+| T-104 | Entri berjasa `DOCTOR` tersimpan sebagai `PayeeType = Doctor` dan bernomor berawalan `DOC` | I | §5.3; celah G1 |
+| T-105 | `PerformerRoleCode` terisi dipakai; kode tidak dikenal → `ROLE_UNMAPPED` | I | §5.3; celah G2 |
+| T-106 | Layanan pukul 23.30 WIB jatuh pada tanggal WIB, bukan tanggal UTC | U | §5.3; celah G3 |
+| T-107 | Entri bebas berjasa tanpa tarif dihitung dengan baris tarif bawaan peran; tanpa baris itu → `RULE_MISSING` | I | §5.3–5.4; `MF-OQ-012` pilihan A |
+
 ## 12. Yang sengaja tidak diuji pada revisi ini
 
 | Tidak diuji | Alasan |
 |---|---|
-| Alir `DoctorShare` ke Billing | `MDF-11` `OPEN DECISION`, `MF-CQ-08` |
-| Jasa dari entri bebas kasir | `MDF-07` `OPEN DECISION`, `MF-CQ-05` |
+| Alir `DoctorShare` ke Billing — ujung ke ujung | Sisi Medical Fee kini dijaga bagian 11A. Skenario ujung-ke-ujung tetap di `billing-kasir` `BIL-AT-231`..`248` |
+| Jasa dari entri bebas kasir — ujung ke ujung | Sisi Medical Fee dijaga bagian 11A. Skenario di sisi Billing: `BIL-AT-237`..`239`, `245`, `246` |
 | Pembagian tim di luar kamar operasi | Menunggu `MF-CQ-07` |
 | Perhitungan jasa radiologi | Ditunda `MF-DEC-015` |
 | Potongan PPh 21 dan kasbon | Milik Finance (`FIN-BP-001`) |

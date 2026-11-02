@@ -1303,6 +1303,79 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         }
 
         /// <summary>
+        /// Endpoint admin sementara, khusus environment Staging, untuk membuat pasien RSMMC dari target
+        /// preview kanonik dalam urutan manifest eksekusi yang disimpan server (`BE-PAT-MIG-002`).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>dryRun</c> yang tidak dikirim berarti simulasi. Seluruh aturan berada di
+        /// <see cref="RsmmcBulkPatientMigrationService"/>; controller hanya menyediakan aktor, penulis QR
+        /// namespace <c>rsmmc-bulk</c>, dan pemeriksa QR baca-saja.
+        /// </para>
+        /// <para>
+        /// Diletakkan sesudah aksi <c>UpdatePatient</c> dan sebelum aksi rekonsiliasi Pilot, supaya
+        /// deskriptor pertama kunci aksi <c>Update</c> — label layar Akses Role — tetap milik
+        /// <c>UpdatePatient</c> dan urutan aksi Pilot tidak berubah (kontrak B8).
+        /// </para>
+        /// </remarks>
+        [HttpPost("admin/migration/rsmmc-bulk-patients/migrate")]
+        [ProducesResponseType(typeof(ApiResponse<RsmmcBulkPatientMigrationResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction(
+            "Update",
+            "Migrate RSMMC Bulk Patients",
+            Description = "Membuat pasien RSMMC dari target preview kanonik sesuai manifest eksekusi (khusus Staging)",
+            AccessType = AccessTypes.Update,
+            SortOrder = 3
+        )]
+        [AccessPermission("Patient", "Update")]
+        public async Task<IActionResult> MigrateRsmmcBulkPatients(
+            [FromBody] RsmmcBulkPatientMigrationRequest request,
+            [FromServices] RsmmcBulkPatientMigrationService migrationService,
+            CancellationToken cancellationToken)
+        {
+            var result = await migrationService.MigrateAsync(
+                request,
+                GetCurrentUserId(),
+                CreateRsmmcBulkQrArtifactStore(),
+                CreateRsmmcQrDestinationProbe(),
+                HttpContext.TraceIdentifier,
+                cancellationToken
+            );
+
+            return result.Outcome switch
+            {
+                RsmmcBulkPatientMigrationOutcome.Completed => Ok(ApiResponse<RsmmcBulkPatientMigrationResponse>.Ok(
+                    result.Data,
+                    result.Message
+                )),
+                RsmmcBulkPatientMigrationOutcome.EnvironmentRejected => StatusCode(
+                    StatusCodes.Status403Forbidden,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        result.Message,
+                        new { code = result.ErrorCode }
+                    )
+                ),
+                RsmmcBulkPatientMigrationOutcome.GateRejected => StatusCode(
+                    StatusCodes.Status409Conflict,
+                    ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        result.Message,
+                        new { code = result.ErrorCode, gates = result.Data?.Gates }
+                    )
+                ),
+                _ => BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    result.Message,
+                    new { code = result.ErrorCode }
+                ))
+            };
+        }
+
+        /// <summary>
         /// Endpoint admin sementara, khusus environment Staging, untuk memindahkan MRN 715 pasien
         /// Pilot V1 RSMMC ke rencana MRN kanonik beserta QR barunya (`BE-PAT-MIG-001`).
         /// </summary>
@@ -1384,6 +1457,48 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                     RenderQrCodePngBytes,
                     CombineUrlPath
                 )
+            );
+        }
+
+        // Penulis QR yang sama dengan Pilot, dengan folder dasar patient-qrcodes/rsmmc-bulk
+        // (PAT-DEC-052). Folder penyimpanan baru diminta saat QR benar-benar akan ditulis.
+        private RsmmcPilotQrArtifactStore CreateRsmmcBulkQrArtifactStore()
+        {
+            return new RsmmcPilotQrArtifactStore(
+                new RsmmcPilotQrArtifactLayout(
+                    GetPublicRequestPath(),
+                    Path.Combine(PatientQrCodeFolderName, RsmmcBulkApprovedBatchProfile.QrNamespaceFolderName),
+                    PatientQrCodeFileName
+                ),
+                () => (GetFileStoragePaths().RootPath, ResolveQrLogoPath()),
+                new RsmmcPilotQrArtifactFormat(
+                    SanitizePathSegment,
+                    BuildPatientQrPayload,
+                    RenderQrCodePngBytes,
+                    CombineUrlPath
+                )
+            );
+        }
+
+        // Pemeriksa baca-saja untuk simulasi: memakai penentu lokasi yang tidak membuat folder
+        // (PAT-DEC-046), bukan GetFileStoragePaths.
+        private RsmmcQrDestinationProbe CreateRsmmcQrDestinationProbe()
+        {
+            var publicRequestPath = GetPublicRequestPath();
+
+            return new RsmmcQrDestinationProbe(
+                () => ResolveFileStorageRootPath(publicRequestPath),
+                new RsmmcPilotQrArtifactLayout(
+                    publicRequestPath,
+                    Path.Combine(PatientQrCodeFolderName, RsmmcBulkApprovedBatchProfile.QrNamespaceFolderName),
+                    PatientQrCodeFileName
+                ),
+                new RsmmcPilotQrArtifactLayout(
+                    publicRequestPath,
+                    PatientQrCodeFolderName,
+                    PatientQrCodeFileName
+                ),
+                SanitizePathSegment
             );
         }
 
@@ -2027,13 +2142,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
         private (string RootPath, string PublicRequestPath) GetFileStoragePaths()
         {
             var publicRequestPath = GetPublicRequestPath();
+            var rootPath = ResolveFileStorageRootPath(publicRequestPath);
 
+            Directory.CreateDirectory(rootPath);
+
+            return (rootPath, publicRequestPath);
+        }
+
+        // Dipisahkan dari GetFileStoragePaths supaya lokasi penyimpanan dapat dihitung tanpa membuat
+        // folder, misalnya oleh pemeriksa QR baca-saja migrasi massal RSMMC.
+        private string ResolveFileStorageRootPath(string publicRequestPath)
+        {
             var configuredRoot = _configuration["FileStorage:UploadRootPath"];
 
             if (!string.IsNullOrWhiteSpace(configuredRoot))
             {
-                Directory.CreateDirectory(configuredRoot);
-                return (configuredRoot, publicRequestPath);
+                return configuredRoot;
             }
 
             var webRootPath = _environment.WebRootPath;
@@ -2043,10 +2167,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterDat
                 webRootPath = Path.Combine(_environment.ContentRootPath, "wwwroot");
             }
 
-            var rootPath = Path.Combine(webRootPath, publicRequestPath.TrimStart('/'));
-            Directory.CreateDirectory(rootPath);
-
-            return (rootPath, publicRequestPath);
+            return Path.Combine(webRootPath, publicRequestPath.TrimStart('/'));
         }
 
         // Dipisahkan dari GetFileStoragePaths supaya path publik dapat dihitung tanpa membuat

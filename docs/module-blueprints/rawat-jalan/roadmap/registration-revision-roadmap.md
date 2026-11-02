@@ -43,6 +43,7 @@ bentrok dengan ID requirement.
 | `RJ-REG-REV-012` (REV-12) | Redesign Data Rujukan | 5 | — | `RJ-REG-REV-FE-008` |
 | `RJ-REG-REV-013` (amendemen 15 Okt 2026) | Kartu jadwal dokter yang kuotanya penuh dinonaktifkan dan diberi keterangan *Penuh* | 6 | `RJ-REG-REV-BE-006` | `RJ-REG-REV-FE-009` |
 | `RJ-REG-REV-014` (amendemen 15 Okt 2026) | Step baru *Jenis Kunjungan* sebelum Data Kunjungan; pilihan Jenis Kunjungan dihapus dari Data Kunjungan | 7 | — | `RJ-REG-REV-FE-010` |
+| `RJ-REG-REV-015` (amendemen 23 Okt 2026) | General Consent RJ seperti RI (tanda tangan RJ tetap), hanya pasien baru, tersimpan ke backend | 9 | `RJ-REG-REV-BE-007` | `RJ-REG-REV-FE-011` |
 
 ## 2. Keputusan pemilik (14 Okt 2026, Sukma Giri)
 
@@ -59,6 +60,7 @@ bentrok dengan ID requirement.
 | `RJ-REG-DEC-009` | Delta implementasi (`DEV_DISCRETION`): REV-05 untuk **pasien baru** memakai jalur kanonik yang sama dengan scanner (`photoBase64` pada create pasien); kamera/upload manual menghasilkan gambar yang sama bentuknya. Upload untuk **pasien lama** memakai jalur `RJ-REG-DEC-008` |
 | `RJ-REG-DEC-010` | Amendemen 15 Okt 2026 (Sukma Giri): badge kuota di kartu jadwal dokter dihapus. Jadwal yang kuotanya penuh pada tanggal kunjungan dinonaktifkan dan diberi keterangan *Penuh*. Data kuota terpakai disediakan **endpoint backend baru di area Registration**, bukan field tambahan di master data `doctor-schedules/admin`. Hitungannya wajib sama dengan validasi simpan `PatientEncounterController.ValidateDoctorScheduleQuotaAsync`: antrean `RegQueue` aktif (tidak dihapus, tidak batal) per `QueueDate` + `DoctorScheduleId`; total dibandingkan `MaxPatientQuota`, walk-in dengan `MaxWalkInQuota`, appointment dengan `MaxAppointmentQuota`; nilai kuota `0` berarti tanpa batas. Validasi simpan tetap menjadi penjaga akhir |
 | `RJ-REG-DEC-011` | Amendemen 15 Okt 2026 (Sukma Giri): Pendaftaran RJ mendapat step tersendiri **Jenis Kunjungan** (Umum / Rujukan-Tindak Lanjut) tepat sesudah Cari/Input Pasien dan sebelum Data Kunjungan. Pilihan Jenis Kunjungan dihapus dari step Data Kunjungan. Urutan step: Umum = Pasien → Jenis Kunjungan → Data Kunjungan → Pembayaran → General Consent → Verifikasi → Selesai; Rujukan menyisipkan Data Rujukan sesudah Data Kunjungan seperti sebelumnya (`RJ-DOC-DEC-072`). Mengganti Rujukan → Umum yang sudah berisi data rujukan tetap meminta konfirmasi. Payload `visitType` dan backend tidak berubah. Tampilan kartu pilihan bersifat `DEV_DISCRETION` |
+| `RJ-REG-DEC-012` | Amendemen 23 Okt 2026 (Sukma Giri): General Consent Pendaftaran RJ disamakan dengan General Consent Rawat Inap — pihak penanda tangan (jenis + nama, NIK, hubungan, No. HP, alamat) dan 12 butir klausul RS MMC yang wajib disetujui semua. Teks klausul sama dengan RI, kecuali kata *rawat inap* pada butir 12 diganti *rawat jalan* (ID + EN). Bagian tanda tangan digital RJ yang sudah ada dipertahankan. Step General Consent **hanya** ada pada pendaftaran **pasien baru**; pendaftaran pasien lama langsung dari Pembayaran ke Verifikasi. Consent disimpan ke backend lewat endpoint susulan sesudah kunjungan terbentuk (poli dan Lab); gagal simpan ditangani tombol *Coba lagi* di layar Selesai. Endpoint create kunjungan tidak diubah. Migration diterapkan hanya ke `QuilvianNewDevSukma` (bagian 9) |
 
 ## Grafik Urutan Dependency
 
@@ -92,6 +94,9 @@ RJ-REF-REV-BE-001 ✅ ─┬─> RJ-REF-REV-FE-001 🟡
                       └─> RJ-REF-REV-BE-003 ✅ ─> RJ-REF-REV-FE-003 🟡
 RJ-REF-REV-BE-002 ✅ ─┬─> RJ-REF-REV-FE-002 🟡
                       └─> RJ-REF-REV-BE-003
+
+Batch 9 (bagian 9, amendemen 23 Okt 2026)
+RJ-REG-REV-BE-007 ✅ ─> RJ-REG-REV-FE-011 ✅
 ```
 
 | Gelombang | Task | Boleh mulai bila |
@@ -102,6 +107,8 @@ RJ-REF-REV-BE-002 ✅ ─┬─> RJ-REF-REV-FE-002 🟡
 | 4 | `BE-006` | Keputusan `RJ-REG-DEC-010` |
 | 5 | `FE-009` | `BE-006` selesai |
 | 6 | `FE-010` | Keputusan `RJ-REG-DEC-011` |
+| 7 | `BE-007` | Keputusan `RJ-REG-DEC-012` |
+| 8 | `FE-011` | `BE-007` selesai |
 
 Urutan eksekusi mengikuti batch master prompt (1 → 5), lalu batch amendemen 6 dan 7.
 
@@ -156,6 +163,7 @@ Requirement `RJ-REG-REV-001`..`012` berstatus **`TESTED` → `UAT_PENDING`**, bu
 | `RJ-REG-REV-001`..`012` | `TESTED` / `UAT_PENDING` |
 | `RJ-REG-REV-013` | `TESTED` / `UAT_PENDING` |
 | `RJ-REG-REV-014` | `TESTED` / `UAT_PENDING` |
+| `RJ-REG-REV-015` | `TESTED` / `UAT_PENDING` (23 Okt 2026; `BE-007` ✅, `FE-011` ✅) |
 
 ## 6. Rekonsiliasi per batch
 
@@ -335,3 +343,27 @@ Permintaan Sukma Giri (16 Okt 2026): tab Surat Dokter → Surat Pengantar Rawat 
 | 🟡 `RJ-DOC-ADM-FE-001` | Select wajib *Tingkat Ketergantungan Pasien* di form Surat Pengantar (terkunci setelah terbit), dikirim di payload, tampil di preview surat ("Ketergantungan") dan saat surat terbit dimuat ulang | ESLint tanpa temuan baru, build sukses, unit 13/13; uji layar `NOT RUN` | 🟡 |
 
 Belum termasuk: menampilkan tingkat ketergantungan di layar Admisi Transfer Rawat Inap (modul Rawat Inap, di luar scope).
+
+## 9. Amendemen 23 Oktober 2026 — General Consent RJ seperti Rawat Inap, khusus pasien baru
+
+### 9.0 Dasar
+
+| Field | Isi |
+| --- | --- |
+| Sumber requirement | Sukma Giri, 23 Okt 2026: "general consent pada rawat jalan samakan seperti general consent rawat inap, tapi untuk ttd digital nya tetep pertahankan. General consent pada rawat jalan hanya muncul pada pendaftaran pasien baru saja, hilangkan di pendaftaran pasien lama" |
+| Keputusan | `RJ-REG-DEC-012` (bagian 2): teks klausul disesuaikan ke rawat jalan pada butir 12; disimpan ke backend; endpoint susulan; migration hanya ke `QuilvianNewDevSukma` |
+| Requirement | `RJ-REG-REV-015` |
+| Keadaan awal | Step General Consent RJ FE-only (demo): Hubungan dengan Pasien, Jenis Pasien, Poliklinik, Penerimaan Panduan Rawat Jalan, Keterangan, tanda tangan. Tidak terkirim ke backend. Muncul untuk pasien baru maupun lama |
+| Pola rujukan | RI: `inpatient-admission-consent-form-step.jsx`, `INPATIENT_MMC_CONSENT_ITEMS`, `InpatientAdmissionConsentService` (BE-RWI-205). Endpoint susulan: unggah surat rujukan `RJ-DOC-REV-FE-019` |
+
+### 9.1 Task backend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-REG-REV-BE-007` | **Penyimpanan General Consent RJ per kunjungan.** Entity `RegPatientGeneralConsent` (pasien, kunjungan unik, jenis penanda tangan, nama, NIK, hubungan, No. HP, alamat, klausul disetujui, citra tanda tangan PNG, waktu tanda tangan server, petugas) + satu migration. `PUT /api/v1/health-services/registration-management/patient-encounters/{encounterId}/general-consent` (izin `PatientEncounter : Create`; dokumen tunggal per kunjungan, `transaction-endpoint-standard` §2.3) dan `GET` di path yang sama (izin `PatientEncounter : Read`). Endpoint create kunjungan tidak berubah | `RJ-REG-DEC-012` | 1. Isian sah pada kunjungan Rawat Jalan → `200`, tersimpan, terbaca ulang lewat `GET`. 2. Klausul tidak lengkap 1–12, nama < 3 karakter, jenis penanda tangan tidak dikenal, tanda tangan kosong/bukan PNG, No. HP bukan angka atau > 13 digit → `400`. 3. Kunjungan tidak ada → `404`; bukan Rawat Jalan atau batal → `400`. 4. Simpan ulang pada kunjungan yang sudah ber-consent → `200` dengan data yang sudah ada, tidak ganda dan tidak ditimpa. 5. `GET` sebelum ada consent → `404`. 6. Waktu tanda tangan dan petugas diisi server. 7. Audit tanpa PII | Build Release; EF tanpa drift; QBE Strict; migration ke `QuilvianNewDevSukma`; runtime HTTP | ✅ `23 Okt 2026` — build Release `0 Error`, EF tanpa drift, migration `20261023035602_AddRegPatientGeneralConsent` diterapkan ke `QuilvianNewDevSukma`, QBE Strict `PASS` (8 berkas), runtime R0–R14 24/24 `PASS`. Belum: uji `403` akun tanpa izin (UAT). [Laporan](../task/report/backend/RJ-REG-REV-BE-007.md) |
+
+### 9.2 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-REG-REV-FE-011` | **Step General Consent seperti RI, khusus pasien baru.** Isian step diganti susunan RI: Pihak Penanda Tangan (Pasien Sendiri / Orang Tua / Wali yang Sah / Suami-Istri / Keluarga Lainnya; Pasien Sendiri terisi dari data pasien baru), 12 butir klausul bilingual dengan *Pilih Semua* dan hitungan disetujui. Bagian tanda tangan digital RJ tetap. Step hanya ada pada bar step pasien baru (Umum dan Rujukan); pasien lama: Pembayaran → Verifikasi. Sesudah kunjungan terbentuk, consent dikirim ke `BE-007`; gagal → notice + *Coba lagi* di layar Selesai, kunjungan tetap terdaftar | `BE-007` | 1. Pasien baru: bar step memuat General Consent; pasien lama: tidak, tombol Pembayaran bertuliskan *Lanjut ke Verifikasi*, Kembali dari Verifikasi membuka Pembayaran. 2. Tidak dapat lanjut bila klausul < 12, nama < 3 karakter, atau tanda tangan kosong. 3. Isian dan tanda tangan bertahan saat Kembali lalu Lanjut. 4. Consent tersimpan sesudah submit (poli dan Lab) dan terbaca ulang via API. 5. Gagal simpan menampilkan *Coba lagi* tanpa mendaftar ulang. 6. Pendaftaran IGD dan RI tidak berubah | ESLint; build; uji fungsi; uji layar | ✅ `23 Okt 2026` — ESLint dan `lint:errors` exit 0, `npm run build` sukses, uji fungsi 10/10, uji layar 26/26 `PASS` (pasien baru, gagal simpan → Coba lagi, pasien lama), consent terbaca ulang via API. Belum: jalur rujukan Lab di layar (UAT). Unit suite 42 gagal di modul lain. [Laporan](../task/report/frontend/RJ-REG-REV-FE-011.md) |

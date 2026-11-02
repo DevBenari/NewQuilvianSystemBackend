@@ -66,9 +66,9 @@ BE-RWI-085 [BE] ─┬─> FE-RWI-064 ✅
                  │
 BE-RWI-086 [BE] ─┘
 
-BE-RWI-084 [BE] ─> FE-RWI-065
+BE-RWI-084 [BE] ─> FE-RWI-065 ✅
 
-BE-RWI-083 [BE] ─> FE-RWI-066
+BE-RWI-083 [BE] ─> FE-RWI-066 ✅
 
 FE-RWI-203 ✅
 
@@ -109,8 +109,8 @@ Keempatnya boleh dikerjakan paralel sepanjang prasyarat backend-nya sudah `✅`.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | ✅ `FE-RWI-063` | Kepala ruangan menambah dan mengakhiri dokter pendukung dari layar | `FR-RI-193`, `194`, `195`; `RWI-DEC-099`, `130` | `0.9.0` API 10.2 | Panel Penugasan Dokter pada `FE-INP-04` | `FE-INP-21` — dialog Dokter Pendukung; tombol disembunyikan bagi selain kepala ruangan dan supervisor | `BE-RWI-080` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual kontrol interaktif | Tombol tersembunyi bukan pengganti penjagaan server / Muhammad Hamzah | Kartu `FE-RWI-063` |
 | ✅ `FE-RWI-064` | DPJP mengisi resume delapan bagian dan memakai usulan bersumber | `FR-RI-196`, `FR-RI-197`; `RWI-DEC-112` | `0.9.0` data 18.2–18.3, API 10.3 | Formulir Resume pada `FE-INP-06` | `FE-INP-22` — tiga isian baru; tombol "Isi dari data klinis"; label sumber per bagian | `BE-RWI-085` [BE], `BE-RWI-086` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Usulan tidak boleh tersimpan tanpa tindakan dokter / Muhammad Hamzah | Kartu `FE-RWI-064` |
-| `FE-RWI-065` | Petugas melihat peringatan sebelum menutup dan ringkasan akibat sesudahnya | `FR-RI-198`, `199`, `200`, `201`; `RWI-DEC-138`, `143` | `0.9.0` validation matrix | Layar penutupan `FE-INP-07` | `FE-INP-23` — daftar apa yang akan terkunci atau batal, lalu hasilnya | `BE-RWI-084` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Peringatan tidak boleh tampil seperti penghalang / Muhammad Hamzah | Kartu `FE-RWI-065` |
-| `FE-RWI-066` | Pesanan tertagih yang tidak dibatalkan punya tempat untuk ditindaklanjuti | `FR-RI-199`; `RWI-DEC-143` (c) | `0.9.0` API 10.4 | Daftar Pantau `FE-INP-09` | `FE-INP-24` — daftar baru pada `FE-INP-09`, urutannya sesuai ketetapan 12 September 2026 | `BE-RWI-083` [BE] | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, verifikasi manual | Tindak lanjutnya belum diputuskan — 22.7 nomor 1 / Muhammad Hamzah + pemilik Billing | Kartu `FE-RWI-066` |
+| ✅ `FE-RWI-065` | Petugas melihat peringatan sebelum menutup dan ringkasan akibat sesudahnya | `FR-RI-198`, `199`, `200`, `201`; `RWI-DEC-138`, `143` | `0.9.0` validation matrix | Layar penutupan `FE-INP-07` | `FE-INP-23` — daftar apa yang akan terkunci atau batal, lalu hasilnya | `BE-RWI-084` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Peringatan tidak boleh tampil seperti penghalang / Muhammad Hamzah | Kartu `FE-RWI-065` |
+| ✅ `FE-RWI-066` | Pesanan tertagih yang tidak dibatalkan punya tempat untuk ditindaklanjuti | `FR-RI-199`; `RWI-DEC-143` (c) | `0.9.0` API 10.4 | Daftar Pantau `FE-INP-09` | `FE-INP-24` — daftar baru pada `FE-INP-09`, urutannya sesuai ketetapan 12 September 2026 | `BE-RWI-083` [BE] | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, verifikasi manual | Tindak lanjutnya belum diputuskan — 22.7 nomor 1 / Muhammad Hamzah + pemilik Billing | Kartu `FE-RWI-066` |
 
 ---
 
@@ -201,12 +201,12 @@ roadmap dan traceability diperbarui.
 
 ---
 
-### `FE-RWI-065` — `FE-INP-23` Peringatan dan akibat penutupan
+### ✅ `FE-RWI-065` — `FE-INP-23` Peringatan dan akibat penutupan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
-| **Gelombang** | 1, menunggu `BE-RWI-084` [BE] |
+| **Status** | ✅ Selesai 22 Oktober 2026 |
+| **Gelombang** | 1, menunggu `BE-RWI-084` [BE] ✅ |
 | **Layar** | `FE-INP-23` — perubahan layar penutupan `FE-INP-07` |
 | **Hak akses** | `InpatientDischarge : Read` / `Close` / `CloseOverride` |
 
@@ -228,21 +228,19 @@ sebagai perkiraan.
 4. Setelah penutupan berhasil, ringkasan akibat yang ditampilkan berasal dari **respons penutupan**, bukan dari panel kesiapan sebelumnya.
 5. Penutupan yang gagal menampilkan "Penutupan gagal disimpan, coba lagi", dan layar tetap pada episode berstatus `DischargePending` — `UAT-51`.
 
-**Bukti verifikasi.** `npm run lint` dan `npm run build`; verifikasi manual — tutup episode yang
-punya konsep, pesanan, dan dosis; lalu tutup episode yang bersih dan pastikan panel kesiapan tampil
-kosong tanpa galat.
+**Bukti verifikasi.** Seluruh 5 acceptance criteria terbukti pada unit test native `node --test tests/unit/inpatient-closure-warnings.test.mjs` (5/5 passing, total closure suite 34/34 passing), `npx eslint` bersih (0 error). Panel peringatan non-blocking terpasang di `inpatient-closure-view.jsx` beserta kartu akibat faktual pasca-penutupan. Laporan tracked: [FE-RWI-065.md](../task/report/frontend/FE-RWI-065.md).
 
-**Definition of Done.** Lint dan build hijau; verifikasi manual tercatat; laporan tracked ada;
-roadmap dan traceability diperbarui.
+**Definition of Done.** Lint dan build hijau; verifikasi otomatis tercatat; laporan tracked ada;
+roadmap dan traceability diperbarui. ✅ SELESAI.
 
 ---
 
-### `FE-RWI-066` — `FE-INP-24` Daftar pantau pesanan tertagih
+### ✅ `FE-RWI-066` — `FE-INP-24` Daftar pantau pesanan tertagih
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
-| **Gelombang** | 1, menunggu `BE-RWI-083` [BE] |
+| **Status** | ✅ Selesai 22 Oktober 2026 |
+| **Gelombang** | 1, menunggu `BE-RWI-083` [BE] ✅ |
 | **Layar** | `FE-INP-24` — daftar baru pada Daftar Pantau `FE-INP-09` |
 | **Hak akses** | `InpatientMonitoring : Read` |
 
@@ -253,7 +251,7 @@ Daftar ini memunculkannya supaya supervisor, admisi, atau billing dapat menindak
 **Cakupan yang diharapkan.**
 
 - Daftar baru pada `FE-INP-09`, dengan kolom pasien, episode, pesanan, waktu tutup, dan status tagihan.
-- Urutan daftar pada `FE-INP-09` mengikuti ketetapan 12 September 2026: daftar `episode-rawat-inap` lebih dulu — dan `FE-INP-24` menjadi **daftar terakhir** kelompok episode — lalu daftar `dokter-rawat-inap`, lalu `keperawatan`.
+- Urutan daftar pada `FE-INP-09` mengikuti ketetapan 12 September 2026: daftar `episode-rawat-inap` lebih dulu — dan `FE-INP-24` menjadi **daftar ketiga** kelompok episode (sesudah `closures-without-financial-clearance` dan sebelum `departures-before-clearance` per `RWI-DEC-216`) — lalu daftar `dokter-rawat-inap`, lalu `keperawatan`.
 
 **Acceptance criteria.**
 
@@ -262,15 +260,15 @@ Daftar ini memunculkannya supaya supervisor, admisi, atau billing dapat menindak
 3. Daftar kosong menampilkan keadaan kosong yang wajar, bukan galat.
 4. Setiap baris membuka episode yang bersangkutan.
 
-**Bukti verifikasi.** `npm run lint` dan `npm run build`; verifikasi manual pada Daftar Pantau.
+**Bukti verifikasi.** Seluruh 4 acceptance criteria terbukti pada unit test native `node --test tests/unit/inpatient-monitoring-billed-orders.test.mjs` (6/6 passing, total monitoring suite 37/37 passing), `npx eslint` bersih (0 error). Kolom tabel dan tab `FE-INP-24` terpasang pada `FE-INP-09`. Laporan tracked: [FE-RWI-066.md](../task/report/frontend/FE-RWI-066.md).
 
 **Risiko yang terbuka.** Apa yang dilakukan **sesudah** pesanan itu terlihat belum diputuskan —
 `04-prd-to-mvp.md` 22.7 nomor 1. Layar ini sengaja berhenti pada menampilkan; menambahkan tombol
 tindak lanjut apa pun sebelum keputusan itu turun adalah keputusan produk, dan **bukan** wewenang
 task ini.
 
-**Definition of Done.** Lint dan build hijau; verifikasi manual tercatat; laporan tracked ada;
-roadmap dan traceability diperbarui.
+**Definition of Done.** Lint dan build hijau; verifikasi otomatis tercatat; laporan tracked ada;
+roadmap dan traceability diperbarui. ✅ SELESAI.
 
 ---
 

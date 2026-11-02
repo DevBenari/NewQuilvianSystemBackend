@@ -24,10 +24,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
     public class AttendanceCorrectionController : ControllerBase
     {
         private readonly AttendanceCorrectionService _service;
+        private readonly AttendanceCorrectionOnBehalfService _onBehalfService;
 
-        public AttendanceCorrectionController(AttendanceCorrectionService service)
+        public AttendanceCorrectionController(
+            AttendanceCorrectionService service,
+            AttendanceCorrectionOnBehalfService onBehalfService)
         {
             _service = service;
+            _onBehalfService = onBehalfService;
         }
 
         [HttpGet("filters/metadata")]
@@ -143,6 +147,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 result.Data.ContentType,
                 result.Data.FileName,
                 enableRangeProcessing: true);
+        }
+
+        /// <summary>
+        /// Mengajukan permohonan koreksi kehadiran atas nama staf (On-Behalf) oleh HR Admin.
+        /// [DECISION] HRD-DEC-028.
+        /// </summary>
+        [HttpPost("on-behalf")]
+        [ProducesResponseType(typeof(ApiResponse<AttendanceCorrectionDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("CreateOnBehalf", "Create Attendance Correction On-Behalf", Description = "Membuat permohonan koreksi kehadiran atas nama pegawai oleh HR Admin", AccessType = AccessTypes.Create, SortOrder = 10)]
+        [AccessPermission("AttendanceCorrection", "CreateOnBehalf")]
+        public async Task<IActionResult> CreateOnBehalf(
+            [FromBody] CreateAttendanceCorrectionOnBehalfRequest request,
+            CancellationToken cancellationToken)
+        {
+            var actorUserId = GetCurrentUserId();
+            if (actorUserId == Guid.Empty)
+            {
+                return Unauthorized(ApiResponse<object>.Fail(
+                    StatusCodes.Status401Unauthorized,
+                    "Identitas user login tidak valid."));
+            }
+
+            return ToActionResult(await _onBehalfService.CreateOnBehalfAsync(request, actorUserId, cancellationToken));
         }
 
         private IActionResult ToActionResult<T>(AttendanceCorrectionServiceResult<T> result)

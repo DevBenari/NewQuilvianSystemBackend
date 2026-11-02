@@ -58,4 +58,28 @@ HTTP 201 memakai detail episode ber-ID `id`, ditambah `sourceEncounterId`, `admi
 
 Antrean menghitung jumlah seluruh hasil pencarian dan filter asal; jumlah overdue memakai filter yang sama dengan tambahan overdueOnly. Ambang existing tetap lebih dari 60 menit. Frontend menunggu keputusan permission Read berstatus allowed sebelum membaca antrean/detail.
 
+### Revisi PLAN-REPAIR-EPS-041 (27 Oktober 2026) — respons antrean dan kode galat `admit`
+
+Diperluas tanpa mengubah nama maupun nilai kolom lama (`FIX-EPS-041-01`, `-04`, `-09`; laporan
+[`FIX-EPS-041-BE`](../task/report/backend/FIX-EPS-041-BE.md)). Kolom berikut ditambahkan pada setiap item
+`GET /admission-transfers` dan `GET /admission-transfers/{id}`:
+
+| Kolom | Tipe | Sumber IGD (`EmgAdmissionRequest` berstatus `Signed`) | Sumber Poli (`CliDoctorCertificate`) |
+| --- | --- | --- | --- |
+| `needsIsolation`, `needsIntensiveCare`, `needsOxygenSupport`, `needsSpecialMonitoring` | boolean | Tanda kebutuhan pada permintaan | Selalu `false` |
+| `estimatedLengthOfStayDays` | integer, boleh kosong | Perkiraan lama rawat | Kosong |
+| `proposedInpatientDoctorId`, `proposedInpatientDoctorName` | GUID/teks, boleh kosong | DPJP rawat inap yang diusulkan IGD (ID hanya bila dokter aktif) | Kosong |
+| `diagnosis` | teks, boleh kosong | Kosong | `ReferralDiagnosis`, atau `Diagnosis` bila kosong |
+| `requestedRoomClass` | teks, boleh kosong | Kosong | Kelas kamar yang diminta, contoh "Kelas I" |
+| `gender`, `nationalId`, `phoneNumber` | teks, boleh kosong | Kini terisi dari master pasien ("Laki-laki"/"Perempuan") | Sama |
+
+Contoh: permintaan IGD suspek TB → `needsIsolation: true`, `needsOxygenSupport: false`,
+`proposedInpatientDoctorName: "dr. Rendy Pangalila"`, `decidedByDoctorName: "dr. Joni Abraham Pratama"`. Surat pengantar
+Poli DBD → `diagnosis: "Demam Berdarah Dengue"`, `requestedRoomClass: "Kelas I"`.
+
+`POST /admission-transfers/admit`: kegagalan reservasi kini meneruskan kode aturan aslinya pada `errors.code`
+(contoh `422 ISOLATION_REQUIRED` untuk pasien isolasi pada bed non-isolasi); `BED_NOT_READY` hanya dipakai bila hasil
+reservasi tidak menyebut kode. Respons sukses ber-HTTP 201 kini juga ber-`statusCode: 201` di badan. Kontrak EPS-006/K-02
+tetap: admisi transfer yang dibatalkan tidak mengembalikan permintaan ke antrean.
+
 Migration `20261012041938_AddAdmissionTransferOrigin` disiapkan bersama Designer dan snapshot. Belum diterapkan; rilis dan uji integrasi PostgreSQL membutuhkan lingkungan uji berwenang yang sudah memakai migration ini. Pembuatan automated test backend NOT APPLICABLE menurut kebijakan repository; validasi backend memakai build, QBE dan review transaksi.

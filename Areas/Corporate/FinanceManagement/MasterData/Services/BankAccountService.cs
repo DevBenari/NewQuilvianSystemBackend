@@ -69,11 +69,12 @@ public sealed class BankAccountService
         return Map(entity, entity.Bank);
     }
 
-    public async Task<List<BankAccountOptionResponse>> GetOptionsAsync(bool onlyActive, string? accountType, CancellationToken cancellationToken)
+    public async Task<List<BankAccountOptionResponse>> GetOptionsAsync(bool onlyActive, string? accountType, Guid? bankId, CancellationToken cancellationToken)
     {
         var query = BaseQuery();
         if (onlyActive) query = query.Where(x => x.IsActive);
         if (!string.IsNullOrWhiteSpace(accountType)) query = query.Where(x => x.AccountType == accountType);
+        if (bankId.HasValue && bankId.Value != Guid.Empty) query = query.Where(x => x.BankId == bankId.Value);
 
         var entities = await query
             .OrderBy(x => x.Bank!.BankName).ThenBy(x => x.AccountName)
@@ -82,10 +83,12 @@ public sealed class BankAccountService
         return entities.Select(x => new BankAccountOptionResponse
         {
             Id = x.Id,
+            BankId = x.BankId,
             BankName = x.Bank?.BankName ?? string.Empty,
             AccountNumber = x.AccountNumber,
             AccountName = x.AccountName,
-            AccountType = x.AccountType
+            AccountType = x.AccountType,
+            CurrencyCode = x.CurrencyCode
         }).ToList();
     }
 

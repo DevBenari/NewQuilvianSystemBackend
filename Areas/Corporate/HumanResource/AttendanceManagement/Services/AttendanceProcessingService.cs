@@ -288,6 +288,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                     "Workforce profile tidak ditemukan, tidak aktif, atau belum mempunyai user account aktif.");
             }
 
+            // [DECISION] HRD-DEC-028: Guard penutupan periode presensi
+            var isPeriodClosed = await _dbContext.Set<HrdAttendancePeriod>().AsNoTracking()
+                .AnyAsync(p => p.StartDate <= request.WorkDate && p.EndDate >= request.WorkDate &&
+                               p.PeriodStatus == AttendanceValueConstants.AttendancePeriodStatus.Closed &&
+                               !p.IsDelete, cancellationToken);
+            if (isPeriodClosed)
+            {
+                return AttendanceProcessingServiceResult<AttendanceProcessingExecutionResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Periode kehadiran untuk tanggal {request.WorkDate:yyyy-MM-dd} telah ditutup (Closed). Pemrosesan presensi retroactive ditolak tanpa pembukaan resmi periode.");
+            }
+
             var run = await CreateRunAsync(
                 request.ForceReprocess
                     ? AttendanceValueConstants.ProcessingRunMode.Reprocess
@@ -356,6 +368,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
                 return AttendanceProcessingServiceResult<AttendanceProcessingExecutionResponse>.Fail(
                     StatusCodes.Status409Conflict,
                     $"Correlation id sudah digunakan oleh processing run {existingCorrelation.RunNumber}.");
+            }
+
+            // [DECISION] HRD-DEC-028: Guard penutupan periode pada rentang tanggal
+            var closedPeriod = await _dbContext.Set<HrdAttendancePeriod>().AsNoTracking()
+                .FirstOrDefaultAsync(p => p.StartDate <= request.EndDate && p.EndDate >= request.StartDate &&
+                                          p.PeriodStatus == AttendanceValueConstants.AttendancePeriodStatus.Closed &&
+                                          !p.IsDelete, cancellationToken);
+            if (closedPeriod != null)
+            {
+                return AttendanceProcessingServiceResult<AttendanceProcessingExecutionResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Rentang pemrosesan beririsan dengan periode kehadiran {closedPeriod.PeriodName} yang telah ditutup (Closed). Pemrosesan presensi retroactive ditolak.");
             }
 
             var workforces = await ResolveTargetWorkforcesAsync(request, cancellationToken);

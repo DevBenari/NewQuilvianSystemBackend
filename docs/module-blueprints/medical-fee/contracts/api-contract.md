@@ -3,6 +3,7 @@
 | Field | Nilai |
 |---|---|
 | Kontrak | `MDF-API-1.0` — `locked` 20 September 2026 |
+| Amendment | `MDF-API-1.1` — **`locked` 27 Oktober 2026** oleh owner Medical Fee, hanya satu baris pada bagian 9 (endpoint `sharing-rules/resolve` tidak dibuat). Nol endpoint berubah |
 | Blueprint ID | `MF-BP-001` |
 | Route dasar | `api/v1/health-services/medical-fee-management` |
 | Pembungkus | `ApiResponse<T>` untuk tunggal, `ApiResponse<PagedResult<T>>` untuk daftar |
@@ -289,6 +290,6 @@ tidak pernah dibuat manual.
 | `POST /service-fees` manual | Hasil jasa **hanya** lahir dari perhitungan periode. Entri manual akan melubangi seluruh jejak audit |
 | `PUT /service-fees/{id}` untuk mengubah nilai | Nilai hanya berubah lewat perhitungan ulang atau koreksi berjenjang |
 | `DELETE /unresolved-services/{id}` | Menghapus berarti menyembunyikan — persis yang `MF-DEC-018` cegah |
-| Endpoint penarikan `DoctorShare` ke Billing | `OPEN DECISION`, menunggu `MF-CQ-08`. Bentuknya ada di `integration-contract.md` |
+| `GET /sharing-rules/resolve` — penarikan persentase `DoctorShare` oleh Billing | **Tidak dibuat** *(`MDF-API-1.1`, locked 27 Oktober 2026)*. Billing bertanya lewat port in-process `IBillingDoctorShareResolver` yang diimplementasikan Medical Fee (`MDF-DES-019`; `integration-contract.md` §4, `MDF-INTEGRATION-1.1`). Endpoint HTTP sebagai jalur kedua akan menyimpang dari port dan membuka data penghasilan ke permukaan baru |
 | Endpoint apa pun untuk radiologi | Ditunda `MF-DEC-015` |
 | Endpoint potongan pajak atau kasbon | Milik Finance (`MF-DEC-005`) |

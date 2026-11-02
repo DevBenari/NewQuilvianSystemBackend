@@ -859,7 +859,7 @@ traceability diperbarui.
 
 ---
 
-### `BE-RWI-127` — Perbaikan temuan pengujian: culture invariant, isi resep, dan status code create
+### ✅ `BE-RWI-127` — Perbaikan temuan pengujian: culture invariant, isi resep, dan status code create
 
 | Field | Isi |
 | --- | --- |
@@ -899,7 +899,7 @@ pemilik pada 23 September 2026.
 **Definition of Done.** Laporan tracked ada; roadmap dan traceability diperbarui; verifikasi runtime
 dijalankan pemilik lalu status dinaikkan ke ✅.
 
-### `BE-RWI-128` — Perbaikan anomali CPPT dari konsultasi dan penulis kajian medis rawat inap
+### ✅ `BE-RWI-128` — Perbaikan anomali CPPT dari konsultasi dan penulis kajian medis rawat inap
 
 | Field | Isi |
 | --- | --- |

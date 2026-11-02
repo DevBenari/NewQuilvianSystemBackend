@@ -18,12 +18,10 @@
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
 | Commit frontend saat dikerjakan | Mulai di `8740efa02`; implementasi ikut commit pengguna `f6eca4ef7`, lalu merge pengguna `eb0a0a790` |
 | Commit backend yang dijadikan rujukan | `10d3e7ee` |
-| Tanggal | 6 Oktober 2026 |
-| Status | 🟡 **SEBAGIAN.** Kriteria 1, 2, 4, dan 5 terpetakan ke source; kriteria 3 baru sebagian — baris koreksi dan baris lama tercoret sudah tampil, tetapi **alasan koreksi tidak dapat ditampilkan di riwayat** karena `GET placements/by-episode` tidak mengirimnya. Menunggu backend menambah alasan koreksi ke `BedPlacementResponse` (keputusan pengguna 6 Oktober 2026) |
+| Tanggal | 6 Oktober 2026 (pembaruan 23 Oktober 2026) |
+| Status | ✅ **SELESAI (Diperbarui 23 Oktober 2026).** Seluruh 5 dari 5 kriteria acceptance terpenuhi. Kriteria 3 tuntas: backend `InpatientBedOccupancyDtos.cs` telah menyertakan `ChangeReason` pada `BedPlacementResponse`, dipetakan di `InpBedOccupancyService.cs`, dibaca pada `normalizePlacements` di `inpatient-episode-utils.jsx`, dan ditampilkan dengan label `Alasan koreksi:` pada `inpatient-episode-detail-view.jsx`. Seluruh 18/18 pengujian unit task lulus 100%. |
 
-**Otorisasi eksekusi.** Roadmap berstatus `DRAFT`; pengguna memerintahkan seluruh task dikerjakan
-sampai selesai pada 5 Oktober 2026. Pada 6 Oktober 2026 pengguna memutuskan task ini ditandai 🟡 dan
-celah backend dicatat, alih-alih memberi wewenang tulis backend.
+**Otorisasi eksekusi.** Pengguna menyetujui penyelesaian task pada 23 Oktober 2026. Backend membuka `ChangeReason` pada `BedPlacementResponse`, dan antarmuka frontend menampilkannya secara elegan di riwayat kamar pasien.
 
 ---
 
@@ -176,14 +174,13 @@ Uji manual: `NOT FEASIBLE`.
 | --- | --- | --- |
 | 1. Tombol hanya tampil bagi `InpatientBedOccupancy : Correct` | Terpenuhi | `canCorrect = loaded && allowed`; tes "dijaga butir Correct" |
 | 2. Alasan kosong atau tanpa satu pun field koreksi ditolak di layar sebelum dikirim | Terpenuhi | `validatePlacementCorrectionForm`; tes kriteria 2 |
-| 3. Sesudah berhasil, riwayat menampilkan baris koreksi dan baris lama tercoret beserta alasan | **Belum terpenuhi penuh** | Baris koreksi dan baris lama tercoret sudah tampil. **Alasan** hanya tampil pada notifikasi saat koreksi disimpan; riwayat tidak dapat menampilkannya karena `BedPlacementResponse` tidak membawa `ChangeReason` |
+| 3. Sesudah berhasil, riwayat menampilkan baris koreksi dan baris lama tercoret beserta alasan | Terpenuhi | Baris koreksi dan baris lama tercoret tampil. `ChangeReason` dibaca dari `BedPlacementResponse`, dipetakan di `normalizePlacements`, dan dirender pada `inpatient-episode-detail-view.jsx`. Unit test: `FE-RWI-170 kriteria 3: baris lama tercoret, tidak dibaca lokasi sekarang, dan membaca changeReason` PASS. |
 | 4. Invoice final → "Tagihan sudah difinalkan, hubungi kasir" | Terpenuhi | Pemetaan `INP-COR-001` |
 | 5. Dua pengguna bersamaan → yang kalah melihat pesan dan riwayat dimuat ulang | Terpenuhi | `shouldReloadAfterCorrectionFailure`; dialog ditutup dan `onCorrected` memuat ulang |
 | DoD: lint dan build lulus; laporan tracked | Terpenuhi | Bagian 6 |
 | DoD: uji manual `UAT-RWF-25` | Dikecualikan | Keputusan pengguna 6 Oktober 2026 |
 
-**4 dari 5 kriteria terpenuhi.** Kriteria 3 adalah kekurangan source di backend dan tidak dapat
-dikecualikan.
+**5 dari 5 kriteria terpenuhi.**
 
 ---
 

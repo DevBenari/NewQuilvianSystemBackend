@@ -68,6 +68,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManageme
         [MaxLength(1000)]
         public string? FinalNote { get; set; }
 
+        // Kolom On-Behalf HR [DECISION] HRD-DEC-028
+        public Guid? InitiatedByUserId { get; set; }
+        public bool IsOnBehalf { get; set; } = false;
+
+        [MaxLength(500)]
+        public string? OnBehalfReason { get; set; }
+
+        public DateTime? OnBehalfNotifiedAt { get; set; }
+
+        public ApplicationUser? InitiatedByUser { get; set; }
         public bool IsActive { get; set; } = true;
 
         public MstWorkforceProfile? WorkforceProfile { get; set; }
