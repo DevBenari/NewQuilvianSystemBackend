@@ -26,10 +26,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Control
     public class NvwDisplayRuntimeController : ControllerBase
     {
         private readonly NvwDeviceContextService _deviceContext;
+        private readonly NvwFloorBoardQueryService _floorBoard;
 
-        public NvwDisplayRuntimeController(NvwDeviceContextService deviceContext)
+        public NvwDisplayRuntimeController(
+            NvwDeviceContextService deviceContext,
+            NvwFloorBoardQueryService floorBoard)
         {
             _deviceContext = deviceContext;
+            _floorBoard = floorBoard;
         }
 
         [HttpGet("current")]
@@ -45,5 +49,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Control
                     User.FindFirstValue(NvwDeviceContextService.SessionStampClaim),
                     cancellationToken),
                 "Informasi perangkat Nurse View berhasil diambil.");
+
+        [HttpGet("board")]
+        [Authorize(Policy = AuthorizationPolicies.NurseViewDisplayRead)]
+        [ProducesResponseType(typeof(ApiResponse<NvwFloorBoardResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction(P.Read, "Read Nurse View Floor Board", Description = "Melihat papan lantai milik perangkat Nurse View yang login", AccessType = AccessTypes.Read, SortOrder = 2)]
+        public async Task<IActionResult> GetBoard(CancellationToken cancellationToken = default)
+        {
+            var resolved = await _deviceContext.ResolveActiveDeviceAsync(
+                NvwHttp.ActorId(User),
+                User.FindFirstValue(NvwDeviceContextService.SessionStampClaim),
+                cancellationToken);
+
+            if (!resolved.IsSuccess || resolved.Value == null)
+                return NvwHttp.Map(
+                    this,
+                    NvwResult<NvwFloorBoardResponse>.Forbidden(
+                        resolved.Code ?? NvwErrorCodes.NotDisplayAccount,
+                        resolved.Message ?? NvwMessages.NotDisplayAccount),
+                    string.Empty);
+
+            return Ok(ApiResponse<NvwFloorBoardResponse>.Ok(
+                await _floorBoard.GetBoardAsync(resolved.Value.FloorCode, cancellationToken),
+                "Papan lantai berhasil diambil."));
+        }
     }
 }

@@ -27,7 +27,7 @@ flowchart LR
 
     subgraph backend["Prasyarat backend — backend-roadmap.md"]
         BENV002["✅ BE-NV-002<br/>API admin perangkat display"]:::luar
-        BENV003["BE-NV-003<br/>Login dan runtime akun perangkat"]:::luar
+        BENV003["✅ BE-NV-003<br/>Login dan runtime akun perangkat"]:::luar
         BENV004["✅ BE-NV-004<br/>API interval ukur ulang TTV"]:::luar
         BENV005["BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::luar
         BENV006["BE-NV-006<br/>Header perawat jaga dari roster"]:::luar
@@ -36,7 +36,7 @@ flowchart LR
 
     FENV001["✅ FE-NV-001<br/>Daftar perangkat dan menu"]:::selesai
     FENV002["✅ FE-NV-002<br/>Form perangkat dan aksi login"]:::selesai
-    FENV003["FE-NV-003<br/>Login TV dialihkan ke papan"]:::belum
+    FENV003["🟡 FE-NV-003<br/>Login TV dialihkan ke papan"]:::sebagian
     FENV004["✅ FE-NV-004<br/>Layar interval TTV dan menu"]:::selesai
     FENV005["FE-NV-005<br/>Papan lantai tampil di TV"]:::belum
     FENV006["FE-NV-006<br/>Header perawat jaga tampil"]:::belum
@@ -74,7 +74,7 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 |---|---|---|---|---|---|---|---|---|---|---|
 | ✅ `FE-NV-001` | Daftar perangkat dan menu | `FR-NV-005`; `NV-DEC-016` | api §1 | Pola daftar `queue-display-devices` | Layar `FE-NVW-01`, butir menu "Display Nurse View" | `BE-NV-002` | Kartu | lint + uji layar | — / Rizki | Kartu |
 | ✅ `FE-NV-002` | Form perangkat dan aksi login | `FR-NV-001`–`004`; `NV-DEC-022` | api §1 | Pola form `queue-display-devices/[slug]` | Layar `FE-NVW-02` | `BE-NV-002`, `FE-NV-001` | Kartu | lint + uji layar | Kata sandi tersimpan di state/log / Rizki | Kartu |
-| `FE-NV-003` | Login TV dialihkan ke papan | `FR-NV-018`; `NV-DEC-009`, `030` | api §3 `/current` | Pola `queue-display` di `use-base-login.jsx`, `proxy.js` | Berkas bersama FE + kerangka route `/nurse-view-display` | `BE-NV-003` | Kartu, termasuk regresi | lint + login empat akun | **Regresi redirect** / Rizki, syarat lead | Kartu |
+| 🟡 `FE-NV-003` | Login TV dialihkan ke papan | `FR-NV-018`; `NV-DEC-009`, `030` | api §3 `/current` | Pola `queue-display` di `use-base-login.jsx`, `proxy.js` | Berkas bersama FE + kerangka route `/nurse-view-display` | `BE-NV-003` | Kartu, termasuk regresi | lint + login empat akun | **Regresi redirect** / Rizki, syarat lead | Kartu |
 | ✅ `FE-NV-004` | Layar interval TTV dan menu | `FR-NV-020`–`022`; `NV-DEC-010` | api §2 | Komponen form/tabel yang ada | Layar `FE-NVW-03`, butir menu "Interval TTV Nurse View" | `BE-NV-004` | Kartu | lint + uji layar | Angka bawaan di form / Rizki | Kartu |
 | `FE-NV-005` | Papan lantai tampil di TV | `FR-NV-010`–`016`, `021`, `030`, `031`; `NV-DEC-007`, `013`, `014`, `017` | api §3 `/board` | Pola layar `queue-display-screen-view`, hook refresh, pendengar `offline` | Layar `FE-NVW-04` tanpa header roster dan tanpa realtime | `BE-NV-005`, `FE-NV-003` | Kartu | lint + uji di TV/peramban layar penuh | Keterbacaan ±3 m / Rizki | Kartu |
 | `FE-NV-006` | Header perawat jaga tampil | `FR-NV-017`; `NV-DEC-021` | api §3 `Wards[]` | — | Header per bangsal di `FE-NVW-04` | `BE-NV-006`, `FE-NV-005` | Kartu | lint + uji layar | — / Rizki | Kartu |
@@ -104,10 +104,11 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 | DEV_DISCRETION | Modal atau inline untuk konfirmasi; tata letak form |
 | DoD | AC terpetakan; lint lulus; rekaman alur buat → login → reset → nonaktif; laporan `FE-NV-002.md` |
 
-### FE-NV-003 — Login TV dialihkan ke papan
+### 🟡 FE-NV-003 — Login TV dialihkan ke papan
 
 | Field | Isi |
 |---|---|
+| Status | 🟡 SEBAGIAN — 2 November 2026. Cabang login, penguncian route, dan kerangka `/nurse-view-display` terpetakan ke source; `npx eslint` `0 errors`, 1 warning `EXISTING WARNING`; UI GATE PASS; uji TV 9/9 `PASS` (67 cek) dan regresi redirect 5/5 sama dengan baseline. **Belum terpenuhi:** rute admin `404` di dev server sejak start 15.10 dan penyebabnya belum terbukti, jadi "tidak mengganggu rute lain" belum bisa dinyatakan; penutupnya: hapus cache Turbopack dan start ulang `next dev`. `npm run build` `NOT RUN` (dev server aktif; DoD kartu tidak memintanya). Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`FE-NV-003.md`](../task/report/frontend/FE-NV-003.md) |
 | Outcome | Akun perangkat Nurse View yang login langsung masuk `/nurse-view-display`; akun lain tidak berubah |
 | Cakupan | `src/lib/hooks/auth/use-base-login.jsx`: cabang baru meniru cabang display antrean, menyetel cookie `isNurseViewAccount`. `src/proxy.js`: konstanta `NURSE_VIEW_DISPLAY_PATH`, redirect, dan penguncian route. Kerangka `src/app/nurse-view-display/` (`layout.jsx`, `page.jsx`) yang memanggil `GET /current` dan menangani `401`/`403` → layar login |
 | Acceptance criteria | `NV-AC-016`; **`NV-AC-023`–`027`** dan `UAT-11` dari sisi redirect: perawat → dashboard, Kiosk → `/kiosk`, display antrean → `/queue-display`, Nurse View → `/nurse-view-display` |
