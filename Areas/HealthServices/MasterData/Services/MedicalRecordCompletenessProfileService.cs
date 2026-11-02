@@ -604,9 +604,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
             CompletenessCriterion.InpatientGeneralConsent => "Ada persetujuan umum rawat inap pada dokumen admisi yang berstatus selesai.",
             CompletenessCriterion.DischargeSummary => "Ada ringkasan pulang yang sudah ditandatangani.",
             CompletenessCriterion.McuResume => "Ada versi resume MCU yang pernah diverifikasi.",
-            CompletenessCriterion.SurgeryReport => "Ada laporan operasi yang sudah final.",
-            CompletenessCriterion.AnesthesiaRecord => "Ada catatan anestesi yang sudah final.",
-            CompletenessCriterion.SurgicalSafetyChecklist => "Ada daftar tilik keselamatan operasi yang berstatus selesai.",
+            CompletenessCriterion.SurgeryReport => "Setiap kasus operasi yang selesai punya laporan operasi yang sudah final.",
+            CompletenessCriterion.AnesthesiaRecord => "Setiap kasus operasi yang selesai punya catatan anestesi yang sudah final.",
+            CompletenessCriterion.SurgicalSafetyChecklist => "Setiap kasus operasi yang selesai punya daftar tilik keselamatan fase Sign In, Time Out, dan Sign Out yang berstatus selesai.",
             CompletenessCriterion.HemodialysisSessionSigned => "Setiap sesi hemodialisa yang selesai sudah ditandatangani.",
             CompletenessCriterion.TransfusionMonitoring => "Setiap monitoring transfusi yang tidak dibatalkan berstatus selesai.",
             _ => string.Empty

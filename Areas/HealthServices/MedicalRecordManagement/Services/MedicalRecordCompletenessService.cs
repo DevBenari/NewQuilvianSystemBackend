@@ -344,10 +344,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 }
             }
 
-            // Kondisi yang tidak dijawab sumber mana pun (operasi, sesi hemodialisa sampai pembacanya
-            // tersambung) dianggap tidak ada: menuntutnya akan membuat SETIAP kunjungan tidak dapat
-            // dipastikan. Kunjungan yang memang berkondisi itu tetap tertahan oleh kriteria jenis
-            // kunjungannya sendiri yang juga belum tersambung.
+            // Kondisi yang tidak dijawab sumber mana pun (sesi hemodialisa sampai BE-32 tersambung)
+            // dianggap tidak ada: menuntutnya akan membuat SETIAP kunjungan tidak dapat dipastikan.
+            // Kondisi operasi dijawab OprMedicalRecordDocumentSource sejak BE-31; bila pembaca itu
+            // gagal, kriteria operasinya sudah dinyatakan gangguan sumber di atas (RM-DEC-044).
             var kriteriaDituntut = (profilDasar?.Criteria ?? [])
                 .Concat(profilKondisi.Where(x => kondisiAda.Contains(x.Condition)).SelectMany(x => x.Criteria))
                 .Distinct()
