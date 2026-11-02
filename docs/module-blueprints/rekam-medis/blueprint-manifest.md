@@ -385,6 +385,7 @@ barisnya mengulang penyimpangan yang dicatat pada "Catatan penyimpangan hash".
 **Pengesahan revision 4 dan kontrak `0.2.0` sudah diberikan** (`RM-DEC-062`). Persetujuan
 pemilik IGD, Rawat Inap, Kamar Operasi, Hemodialisa, Gizi, Bank Darah, Farmasi, dan Radiologi untuk
 berkas pembaca di modul mereka masih menahan **gelombang** yang memuat modul itu saja; Laboratorium dan MCU sudah disetujui (`RM-DEC-063`).
+**Tidak berlaku lagi sejak 29 Oktober 2026** — seluruh persetujuan turun (`RM-DEC-064`, `067`–`075`); lihat "Keadaan delivery amandemen" di bawah.
 
 **Catatan untuk blueprint MCU.** `RM-DEC-040` menutup `MCU-GAP-04` dari sisi rekam medis. Berkas
 `mcu/02-requirement-completeness-assessment.md` dan `mcu/04-prd-to-mvp.md` masih menyebutnya
@@ -393,6 +394,47 @@ ditunda; penyelarasannya milik blueprint MCU dan **tidak** disunting pada amande
 ---
 
 ## Langkah berikutnya
+
+### Keadaan delivery amandemen — 2 November 2026
+
+**Seluruh 21 task backend amandemen (`BE-21`–`BE-41`) `SELESAI`.** `dotnet test
+Tests/QuilvianSystemBackend.MedicalRecordTests` → 225 lulus. Laporan per task di
+`task/report/backend/`.
+
+| Tahap | Keadaan |
+|---|---|
+| Persetujuan pemilik modul sumber | **Lengkap** 29 Oktober 2026 — `RM-DEC-063`, `064`, `067`–`075`. Kalimat "masih menahan gelombang" pada bagian Revision 4 di atas sudah tidak berlaku |
+| Pembaca sumber | Seluruhnya tersambung: Laboratorium, Radiologi, IGD, Rawat Inap, Kamar Operasi, Hemodialisa, Gizi, Bank Darah, Farmasi, MCU. Satu-satunya jenis "belum tersedia": hasil Patologi Anatomi (`RM-DEC-058`) |
+| Kelengkapan berkas | Penilaian, daftar kerja, master profil, dan pemeriksaan berkala hidup. Asumsi sementara "kondisi tanpa pembaca dianggap tidak ada" sudah tidak berlaku untuk kondisi mana pun |
+| Keputusan baru selama delivery | `RM-DEC-076` (kriteria Kamar Operasi per kasus, checklist tiga fase) — decision log Riwayat Pass revisi 12 |
+| Skema | Migration `20261028070658_AddMedicalRecordCompletenessFoundation` diterapkan di devYoga 28 Oktober 2026; lingkungan lain belum |
+| Catatan rilis | Bagian "Rilis amandemen `0.2.0`" di `catatan-rilis.md` — **menunggu pengesahan** pemilik API |
+| Frontend | `FE-10`–`FE-14` `SIAP` dan kini dapat diuji terhadap backend nyata; `FE-15` menunggu |
+
+**Yang tersisa — menunggu tindakan manusia:**
+
+| Sisa | Pemilik |
+|---|---|
+| Mengesahkan catatan rilis amandemen (`catatan-rilis.md` bagian A9) | Yoga Aji Pratama |
+| Menerapkan migration amandemen di luar devYoga | User, dengan instruksi terpisah |
+| Menyelaraskan sebelas profil dokumen wajib dengan SOP rumah sakit (`RM-DEC-047`) | Pemilik proses rekam medis |
+| Menilai ulang kunjungan beroperasi atau ber-HD yang dulu `Complete` karena asumsi sementara (`catatan-rilis.md` A7 butir 3) | Unit rekam medis |
+| Layar `FE-10`–`FE-15` | Frontend |
+
+**Catatan untuk pass blueprint berikutnya (`manage-module-blueprint`).** Butir di bawah ini
+**sengaja tidak disunting** selama delivery, karena artefaknya terkunci hash di bagian
+"Revision 4 — approved" dan menyuntingnya di luar pass membuat desain *stale* tanpa jejak:
+
+| Butir | Keadaan |
+|---|---|
+| Field `revision`, `input_revisions`, `input_hashes`, `contract_versions` pada tabel atas | Masih menyebut revision `3` dan kontrak `0.1.1`; bagian Revision 4 di atas yang benar |
+| Decision log | Sudah bertambah sesudah revision 10: persetujuan modul (Riwayat Pass 11, `RM-DEC-067`–`075`) dan `RM-DEC-076` (Riwayat Pass 12). Hash `d7ccef57…` tidak lagi cocok |
+| `02-backend-architecture.md` | Hash di disk (`f73af022…`) berbeda dari yang tercatat (`f0025568…`); perubahan berasal dari commit `ef73ca75` hari yang sama dengan penguncian. Perlu diperiksa, lalu dihitung ulang |
+| Kolom status `contracts/api-contract.md` A1–A4, `04-prd-to-mvp.md`, `03-frontend-architecture.md` | Masih `Rencana (belum tersedia)` padahal seluruh endpoint hidup. Penyegaran status `0.2.1` (bentuk tidak berubah, preseden `0.1.1`) |
+| Selisih kontrak yang terkumpul selama delivery | `unavailableKinds` juga pada `/summary` (`BE-21`); `items[].sortOrder` tidak diterima dan bentuk `/criteria/options` (`BE-37`); bentuk daftar kerja dan `404` "belum dinilai" (`BE-39`); calon `isUnderCorrection` MCU (`BE-36`). Seluruhnya dirinci di laporan task dan `catatan-rilis.md` A2.3 |
+| `A4.11` Kamar Operasi dan Hemodialisa | Dipertajam `RM-DEC-076` (per kasus, tiga fase) dan tafsir "`Completed` ke atas" = sesi berakhir termasuk `Stopped` (`BE-32`) |
+
+### Keadaan rilis pertama — 10 September 2026
 
 **Diperbarui 10 September 2026.** Rilis pertama modul rekam medis **sudah tuntas dikerjakan** —
 21 task backend dan 10 task frontend seluruhnya `SELESAI`. Yang tersisa dari rilis pertama
@@ -435,7 +477,7 @@ sebenarnya sudah selesai, dan menugaskan orang membangun controller yang sudah a
 | Sisa | Task | Sifatnya |
 |---|---|---|
 | Isi awal master keperluan akses | `BE-09` bagian kedua | Menunggu SOP rekam medis rumah sakit. Tabelnya ada, layar pengisinya ada, **isinya nol** — dan selama nol, pembukaan berkas pasien di luar rawatan selalu ditolak |
-| Penelaahan data lama | `BE-08` | Alat dan panduannya selesai; yang tersisa menjalankannya pada data nyata lalu memberi tahu unit rekam medis |
+| ~~Penelaahan data lama~~ | `BE-08` | **Selesai di devYoga 2 November 2026** — 10 CPPT terkunci tanpa tanda tangan, nol tersisa. Di produksi: penelaahan ulang dan pemberitahuan unit rekam medis menjadi syarat pemasangan |
 | Pemberitahuan ke penulis CPPT | `BE-15` | Bukan pekerjaan kode. Lihat `BE-15-pemberitahuan-penulis-cppt.md` |
 
 ### Utang kode yang ditemukan audit 10 September 2026
@@ -445,9 +487,9 @@ tidak pernah masuk daftar task:
 
 | Utang | Bukti | Sifatnya |
 |---|---|---|
-| `RM-DEC-006` disahkan tetapi nol implementasi | Penanda `Susulan` tidak ditemukan di backend maupun frontend | Menahan `RM-DEC-035` dan `RM-FE-001`. **Milik modul ini sendiri, tidak menunggu siapa pun** |
-| Layar penelusuran hanya membaca 13 dari 20 model `ClinicalManagement` | Tujuh model tidak terbaca, termasuk rencana asuhan keperawatan dan visite dokter | Jarak ini **melebar sendiri** setiap `ClinicalManagement` bertambah tabel |
-| Sambungan ke modul penunjang belum ada | Nol jalur Laboratorium → Rekam Medis pada kedua kontrak integrasi | Aturannya sudah diputuskan `RM-DEC-030`–`RM-DEC-036`; implementasinya menunggu entri hasil lab |
+| ~~`RM-DEC-006` disahkan tetapi nol implementasi~~ — **ditutup** `BE-26`, 29 Oktober 2026 | Penanda `Susulan` tidak ditemukan di backend maupun frontend | Menahan `RM-DEC-035` dan `RM-FE-001`. **Milik modul ini sendiri, tidak menunggu siapa pun** |
+| ~~Layar penelusuran hanya membaca 13 dari 20 model `ClinicalManagement`~~ — **ditutup di backend** `BE-22`, 28 Oktober 2026; layar `FE-10`/`FE-11` | Tujuh model tidak terbaca, termasuk rencana asuhan keperawatan dan visite dokter | Jarak ini **melebar sendiri** setiap `ClinicalManagement` bertambah tabel |
+| ~~Sambungan ke modul penunjang belum ada~~ — **ditutup** `BE-23`, `BE-24`, 28 Oktober 2026 | Nol jalur Laboratorium → Rekam Medis pada kedua kontrak integrasi | Aturannya sudah diputuskan `RM-DEC-030`–`RM-DEC-036`; implementasinya menunggu entri hasil lab |
 
 ### Utang yang tercatat terbuka
 

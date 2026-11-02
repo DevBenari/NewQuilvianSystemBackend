@@ -73,6 +73,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
 
         public DateTime ClinicalClosedAt { get; set; }
 
+        /// <summary>
+        /// `1` Complete — seluruh syarat terpenuhi; `2` Incomplete — ada dokumen wajib yang belum
+        /// ada atau catatan belum ditandatangani; `3` AwaitingResult — ada hasil penunjang yang belum
+        /// dirilis; `4` Undetermined — ada sumber yang gagal dibaca, belum tersambung, atau profilnya
+        /// tidak ditemukan, sehingga kelengkapan belum dapat dipastikan. `Undetermined` tidak pernah
+        /// berarti lengkap (`RM-DEC-044`).
+        /// </summary>
         public CompletenessState State { get; set; }
 
         public string StateLabel { get; set; } = string.Empty;
@@ -104,6 +111,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         /// <summary>Benar bila waktu tutup diturunkan dari data lama (kunjungan sebelum rilis).</summary>
         public bool IsClinicalClosureDerived { get; set; }
 
+        /// <summary>
+        /// `1` Complete — seluruh syarat terpenuhi; `2` Incomplete — ada dokumen wajib yang belum
+        /// ada atau catatan belum ditandatangani; `3` AwaitingResult — ada hasil penunjang yang belum
+        /// dirilis; `4` Undetermined — ada sumber yang gagal dibaca, belum tersambung, atau profilnya
+        /// tidak ditemukan, sehingga kelengkapan belum dapat dipastikan. `Undetermined` tidak pernah
+        /// berarti lengkap (`RM-DEC-044`).
+        /// </summary>
         public CompletenessState State { get; set; }
 
         public string StateLabel { get; set; } = string.Empty;

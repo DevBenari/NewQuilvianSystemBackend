@@ -7,8 +7,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
     /// <summary>
     /// Keterangan satu permintaan riwayat rekam medis.
     ///
-    /// Seluruh pembatas ada di sini karena penggabungan tiga belas sumber tanpa pembatas dapat
+    /// Seluruh pembatas ada di sini karena penggabungan seluruh sumber tanpa pembatas dapat
     /// membebani basis data. Lihat `RM-CAP-004` dan acceptance criteria `BE-13` nomor 2 dan 3.
+    /// Sejak kontrak 0.2.0 sumbernya tiga belas jenis bawaan, model `ClinicalManagement` baru,
+    /// dan pembaca setiap modul pemilik dokumen (Laboratorium, Radiologi, IGD, Rawat Inap, Kamar
+    /// Operasi, Hemodialisa, Gizi, Bank Darah, Farmasi, MCU).
     /// </summary>
     public class MedicalRecordTimelineQuery
     {
@@ -16,10 +19,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         public Guid PatientId { get; set; }
 
         /// <summary>
-        /// Jenis dokumen yang diminta. Bila kosong, seluruh tiga belas jenis diambil.
+        /// Jenis dokumen yang diminta. Bila kosong, seluruh jenis yang punya pembaca diambil;
+        /// jenis tanpa pembaca dilaporkan lewat `unavailableKinds`.
         ///
-        /// Mengisi kolom ini adalah cara paling ampuh menekan jumlah query: satu jenis dokumen
-        /// berarti satu query, bukan tiga belas.
+        /// Mengisi kolom ini adalah cara paling ampuh menekan jumlah query: hanya sumber jenis
+        /// yang diminta yang dibaca.
         /// </summary>
         public IReadOnlyCollection<ClinicalDocumentKind>? DocumentKinds { get; set; }
 
@@ -49,8 +53,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
     /// <summary>
     /// Satu baris riwayat, apa pun jenis dokumen asalnya.
     ///
-    /// Bentuknya sengaja seragam untuk tiga belas sumber supaya layar rekam medis dapat
-    /// menampilkannya sebagai satu daftar, bukan tiga belas daftar terpisah.
+    /// Bentuknya sengaja seragam untuk seluruh sumber supaya layar rekam medis dapat
+    /// menampilkannya sebagai satu daftar, bukan satu daftar per modul.
     /// </summary>
     public class MedicalRecordTimelineItemResponse
     {
@@ -62,7 +66,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         /// <summary>Id baris pada tabel asalnya. Dipakai untuk membuka detail dokumen.</summary>
         public Guid DocumentId { get; set; }
 
-        /// <summary>Kunjungan yang menaungi dokumen. Dapat kosong pada dokumen yang tidak terikat kunjungan.</summary>
+        /// <summary>
+        /// Kunjungan yang menaungi dokumen. Kosong pada dokumen yang tidak terikat kunjungan —
+        /// misalnya golongan darah Bank Darah (`RM-DEC-074`). Dokumen seperti itu tidak muncul
+        /// bila linimasa disaring per kunjungan.
+        /// </summary>
         public Guid? EncounterId { get; set; }
 
         /// <summary>Waktu kejadian dokumen. Inilah yang dipakai mengurutkan seluruh daftar.</summary>
@@ -82,9 +90,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
         /// <summary>
         /// Apakah jenis dokumen ini sudah tunduk aturan keutuhan pada rilis sekarang.
         ///
-        /// Rilis pertama hanya menegakkan CPPT (`RM-DEC-019`). Nilai `false` WAJIB dinyatakan
-        /// terbuka di layar sesuai `RM-FE-009`, bukan didiamkan seolah-olah dokumennya sudah
-        /// terlindungi.
+        /// Rilis pertama hanya menegakkan CPPT (`RM-DEC-019`); kini juga konsultasi, asesmen,
+        /// tindakan, dan sesi hemodialisa. Nilai `false` WAJIB dinyatakan terbuka di layar sesuai
+        /// `RM-FE-009`, bukan didiamkan seolah-olah dokumennya sudah terlindungi. Dokumen modul
+        /// lain dikunci oleh modul pemiliknya; finalnya dinyatakan `finalizedAt`.
         /// </summary>
         public bool IsIntegrityEnforced { get; set; }
 
@@ -95,16 +104,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTO
 
         // ---- Amandemen kontrak 0.2.0 (BE-21). Seluruhnya tambahan; klien 0.1.1 mengabaikannya. ----
 
-        /// <summary>Waktu final menurut modul pemilik. Kosong pada tiga belas jenis bawaan.</summary>
+        /// <summary>
+        /// Waktu final menurut modul pemilik (`RM-DEC-043`), mis. waktu rilis hasil laboratorium
+        /// atau waktu pengesahan sesi hemodialisa. Kosong pada tiga belas jenis bawaan.
+        /// </summary>
         public DateTime? FinalizedAt { get; set; }
 
-        /// <summary>Pernah diralat di modul pemilik (`RM-DEC-042`).</summary>
+        /// <summary>
+        /// Pernah diralat lewat mekanisme modul pemilik (`RM-DEC-042`) — addendum, revisi, versi
+        /// pengganti, atau keputusan pengganti. Isi yang tampil adalah versi yang berlaku.
+        /// </summary>
         public bool IsCorrected { get; set; }
 
-        /// <summary>Isinya dapat berubah tanpa riwayat (`RM-DEC-059`).</summary>
+        /// <summary>
+        /// Isinya dapat berubah tanpa riwayat (`RM-DEC-059`). Tampilkan berlabel "Dapat berubah".
+        /// Saat ini hanya catatan asuhan gizi (`RM-DEC-073`).
+        /// </summary>
         public bool IsProvisional { get; set; }
 
-        /// <summary>Nama modul pemilik dokumen. Kosong pada tiga belas jenis bawaan.</summary>
+        /// <summary>Nama modul pemilik dokumen, mis. "Laboratorium" atau "Bank Darah". Kosong pada tiga belas jenis bawaan.</summary>
         public string? SourceModule { get; set; }
         /// <summary>Hanya pada baris `PeriodicObservationSummary` (`RM-DEC-052`).</summary>
         public MedicalRecordPeriodicSummaryResponse? PeriodicSummary { get; set; }

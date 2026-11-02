@@ -692,6 +692,16 @@ try
     builder.Services.AddScoped<InpMedicalRecordDocumentSource>();
     builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
     builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    // BE-35: Farmasi, persetujuan pemilik RM-DEC-075. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, PhmMedicalRecordDocumentSource>();
+    // BE-34: Bank Darah, persetujuan pemilik proses BDRS RM-DEC-074. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, BbkMedicalRecordDocumentSource>();
+    // BE-33: Gizi, persetujuan pemilik RM-DEC-073. Tanpa kriteria kelengkapan, jadi bukan pembaca uji.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, GziMedicalRecordDocumentSource>();
+    // BE-32: Hemodialisa, persetujuan pemilik RM-DEC-072.
+    builder.Services.AddScoped<HmdMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<HmdMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<HmdMedicalRecordDocumentSource>());
     // BE-31: Kamar Operasi, persetujuan pemilik RM-DEC-071.
     builder.Services.AddScoped<OprMedicalRecordDocumentSource>();
     builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<OprMedicalRecordDocumentSource>());
