@@ -1,26 +1,16 @@
 {
-  "backendVersion": "0.25.0",
-  "description": "Release 0.25.0 enhances Billing Management, Clinical Management, Emergency Management, Finance Management, Human Resource Management, Inpatient Management, Laboratory Management, Patient Management, Pharmacy Management, Radiology Management, Registration Management capabilities. Includes improvements across Laboratory Reporting, Specimen Management, Billing Workflow, Finance Workflow, Pharmacy Workflow, Radiology Workflow. Includes 7 database migration update(s).",
+  "description": "Release 0.26.0 enhances Billing Management, Clinical Management, Emergency Management, Finance Management, Human Resource Management, Inpatient Management, Laboratory Management, Medical Record Management, Operating Room Management, Patient Management, Pharmacy Management, Radiology Management, Registration Management capabilities. Includes improvements across Specimen Management, Billing Workflow, Finance Workflow, Pharmacy Workflow, Radiology Workflow. Includes 17 database migration update(s).",
+  "releaseName": "Quilvian 0.26.0 - Enterprise Platform Enhancement",
   "releaseMetadata": {
-    "generatedAt": "2026-10-23T03:32:41",
-    "generatedBy": "Quilvian Release Generator",
-    "migrations": [
-      "20261019100000_AddWorkforceBenefitOwnerIdentity.cs",
-      "20261019110000_AddWorkforceBenefitOwnerConstraints.cs",
-      "20261020084310_AddLabTransitionHistoryActionOccurredAtIndex.cs",
-      "20261020120000_AddFinancePatientRefundQueue.cs",
-      "20261021082302_AddPriorityReservationHistoryVisitDates.cs",
-      "20261021100000_DropEnrollmentMakerCheckerConstraint.cs",
-      "20261022120000_SeparateBenefitExcessPaymentAndInternalBenefitAr.cs"
-    ],
     "features": [
-      "Laboratory Reporting",
       "Specimen Management",
       "Billing Workflow",
       "Finance Workflow",
       "Pharmacy Workflow",
       "Radiology Workflow"
     ],
+    "generatedAt": "2026-11-02T04:46:27",
+    "migrationCount": 17,
     "modules": [
       "Billing Management",
       "Clinical Management",
@@ -29,12 +19,33 @@
       "Human Resource Management",
       "Inpatient Management",
       "Laboratory Management",
+      "Medical Record Management",
+      "Operating Room Management",
       "Patient Management",
       "Pharmacy Management",
       "Radiology Management",
       "Registration Management"
     ],
-    "migrationCount": 7
+    "generatedBy": "Quilvian Release Generator",
+    "migrations": [
+      "20260930144500_AddInpatientDoctorMedicalAssessmentOperationalColumns.cs",
+      "20261021073245_AddMedicalCheckupManagement.cs",
+      "20261022021727_AddCoveringMcuOrderToLabRadOrders.cs",
+      "20261022081149_AddBillingRefundCaseItem.cs",
+      "20261022130000_MakeTransferHandoverPlacementsNullable.cs",
+      "20261023035602_AddRegPatientGeneralConsent.cs",
+      "20261023062116_AddInpEpisodeExternalReferral.cs",
+      "20261026030735_AddOprBirthEventAndInpEpisodeSurgicalFields.cs",
+      "20261026031429_PersempitIndeksCatatanDokterPerKunjungan.cs",
+      "20261026120000_AddPurchasingApBlmComponents.cs",
+      "20261026130000_AddMedicalFeeMasterData.cs",
+      "20261026140000_AddMedicalFeeCalculation.cs",
+      "20261026150000_AddBilInvoiceItemPerformerAndDoctorShareTrace.cs",
+      "20261027104500_AddOnBehalfFieldsToAttendanceCorrectionRequest.cs",
+      "20261028022135_AddPurchasingApAllocationAndMedicalFeeFinanceHandoff.cs",
+      "20261028070658_AddMedicalRecordCompletenessFoundation.cs",
+      "20261028082048_AddNurseViewManagement.cs"
+    ]
   },
-  "releaseName": "Quilvian 0.25.0 - Enterprise Platform Enhancement"
+  "backendVersion": "0.26.0"
 }
