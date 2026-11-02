@@ -28,7 +28,7 @@ flowchart LR
     subgraph backend["Prasyarat backend — backend-roadmap.md"]
         BENV002["✅ BE-NV-002<br/>API admin perangkat display"]:::luar
         BENV003["BE-NV-003<br/>Login dan runtime akun perangkat"]:::luar
-        BENV004["🟡 BE-NV-004<br/>API interval ukur ulang TTV"]:::luar
+        BENV004["✅ BE-NV-004<br/>API interval ukur ulang TTV"]:::luar
         BENV005["BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::luar
         BENV006["BE-NV-006<br/>Header perawat jaga dari roster"]:::luar
         BENV007["BE-NV-007<br/>Sinyal realtime saat TTV disimpan"]:::luar
@@ -118,7 +118,7 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 
 | Field | Isi |
 |---|---|
-| Status | ✅ SELESAI — 2 November 2026. Route, butir menu, skema §3.3, dan mode baca saja terpetakan ke source; tanpa angka bawaan. `npx eslint` 8 berkas `0 errors`, 1 warning `EXISTING WARNING`; grep anti-regresi 0; UI GATE PASS (seluruh REUSE). Uji dengan backend sungguhan: no. 1–12 `PASS` (no. 11 dan 12 memakai keadaan simulasi). No. 13 `FAIL` milik `BE-NV-004` dan tidak mengubah layar. `UAT-07` butuh `FE-NV-005`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`FE-NV-004.md`](../task/report/frontend/FE-NV-004.md) |
+| Status | ✅ SELESAI — 2 November 2026. Route, butir menu, skema §3.3, dan mode baca saja terpetakan ke source; tanpa angka bawaan. `npx eslint` 8 berkas `0 errors`, 1 warning `EXISTING WARNING`; grep anti-regresi 0; UI GATE PASS (seluruh REUSE). Uji dengan backend sungguhan: no. 1–12 `PASS` (no. 11 dan 12 memakai keadaan simulasi). No. 13 milik `BE-NV-004`: `PASS` pada uji ulang, dan tidak mengubah layar. `UAT-07` butuh `FE-NV-005`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`FE-NV-004.md`](../task/report/frontend/FE-NV-004.md) |
 | Outcome | Admin mengisi interval per tingkat EWS beserta nomor dan tanggal pengesahan |
 | Cakupan | Route `/administrator/master-data/nurse-view-vital-sign-intervals`; butir menu; skema §3.3; isian tanpa angka bawaan; mode baca saja bila tanpa `NurseViewVitalSignInterval : Update` |
 | Acceptance criteria | `NV-AC-004`; `VAL-NV-09`–`13`; `UAT-07`, `UAT-08`; status "Belum dikonfigurasi" saat kosong |

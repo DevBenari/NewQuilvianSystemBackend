@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `Areas/HealthServices/NurseViewManagement/{Controllers,DTOs,Services}`, `Program.cs` (registrasi service), laporan dan status roadmap |
 | Model | Claude Opus 5.5 |
-| Commit backend saat dikerjakan | `8e4991cb` (branch `rizkiG`); source di-commit Rizki sebagai `91a3f8e2` |
+| Commit backend saat dikerjakan | `8e4991cb` (branch `rizkiG`); source di-commit Rizki sebagai `91a3f8e2`, perbaikan no. 13 sebagai `80e2a284` |
 | Tanggal | 2026-11-02 |
-| Status | 🟡 **SEBAGIAN** — QBE Strict `PASS`, build Rizki lulus, uji gabungan 12 dari 13 `PASS`. **Gagal: no. 13** — rujukan pencabutan interval tidak tersimpan di mana pun (§7). Perbaikan sudah ditulis sesuai keputusan Rizki 2 Nov, tetapi **belum di-build dan belum diuji ulang**. Verifikasi developer, bukan UAT |
+| Status | ✅ **SELESAI 2 November 2026** — QBE Strict `PASS`, build Rizki lulus, uji gabungan no. 1–12 `PASS`, no. 13 `PASS` pada uji ulang sesudah perbaikan. Verifikasi developer, bukan UAT. Riwayat: 🟡 SEBAGIAN sebelumnya pada hari yang sama karena no. 13 `FAIL` |
 
 ---
 
@@ -125,11 +125,14 @@ Kode status: `200` berhasil · `400` isian salah · `403` tanpa hak akses.
 | Prasyarat data | `NvwVitalSignInterval` 0 baris, 0 aktif, sehingga uji tidak menimpa angka yang ada | `PASS` | `SELECT` baca saja (`default_transaction_read_only=on`) 2026-11-02 |
 | `dotnet build ./QuilvianSystemBackend.sln -p:RunAnalyzers=false` | "Build succeeded with 412 warning(s) in 1738,5s", tanpa error | `PASS (pernyataan owner)` | Tangkapan layar Rizki 2 Nov; `QuilvianSystemBackend.dll` 10.05 memuat `NvwVitalSignIntervalController`; proses backend mulai 10.06; `GET` tanpa login dijawab `401` |
 | Uji gabungan layar + HTTP | No. 1–12 `PASS`, no. 13 `FAIL` | `FAIL` | [`FE-NV-004.md`](../frontend/FE-NV-004.md) §6; 16 cek HTTP validasi server ada pada no. 9 |
+| QBE Strict sesudah perbaikan no. 13, atas 3 berkas | VIOLATION 0 · REVIEW 0 · `Final result: PASS`, `Files evaluated: 3` | `PASS` | Keluaran checker 2026-11-02 |
+| Build kedua, sesudah perbaikan no. 13 | Rizki menyatakan sudah build | `PASS (pernyataan owner)` | `QuilvianSystemBackend.dll` 11.43, lebih baru dari source 10.29, dan memuat `BuildAuditMessage`; proses backend mulai 11.46; `GET` tanpa login `401` |
+| Uji ulang no. 13 | 8/8 cek | `PASS` | `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-004-20261102/ulang-no13-2026-11-02T04-47-20-559Z/S13-ulang.json` |
 | `bash tools/authorization-verifier/verify-authorization.sh` | Belum | `NOT RUN` | Skrip menjalankan `dotnet build`, jadi perintahnya milik Rizki |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
-Uji manual: `FAIL` pada no. 13 saja. Skenario gabungan dengan layar ada di
+Uji manual: `PASS`. No. 13 `FAIL` pada putaran pertama, lalu `PASS` pada uji ulang. Skenario gabungan dengan layar ada di
 [`FE-NV-004.md`](../frontend/FE-NV-004.md) §6, sesuai keputusan Rizki 2 Nov agar uji cukup sekali.
 Bukti: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-004-20261102/run-2026-11-02T03-16-57-438Z/`.
 
@@ -138,7 +141,18 @@ Bukti: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-004-20261102/r
 - Validasi: 11 kasus penolakan dijawab `400` dengan pesan dan kode persis matriks, tanpa perubahan data.
 - Batas: 1 dan 1440 menit serta tanggal hari ini diterima; pencabutan tanpa rujukan ditolak `VAL-NV-12`.
 - Hak akses: akun LOKET mendapat `403` pada `GET` dan `PUT`.
-- Keadaan akhir: `GET` `200`, nol baris aktif, enam baris riwayat uji.
+- Keadaan akhir putaran pertama: `GET` `200`, nol baris aktif, enam baris riwayat uji.
+
+**Uji ulang no. 13 (2 Nov, 11.47 WIB).** Lewat HTTP dengan sesi layar, tanpa SQL tulis. Dua baris log yang
+terbaca langsung dari `Logs/quilvian-backend-20261102.json`, keduanya berpelaku `superadmin`:
+
+```text
+Interval ukur ulang TTV diganti: Sedang=240, Kritis=15. Rujukan: UJI-DEV-NV-004-N13-SET-04-47-20; disahkan 2026-11-02.
+Seluruh interval dicabut. Rujukan: UJI-DEV-NV-004-N13-CABUT-04-47-20; disahkan 2026-11-02.
+```
+
+Pesan respons API tidak memuat rujukan, `items:[null]` tetap `400`, dan log nol kata sandi. Keadaan akhir:
+`GET` `200`, belum dikonfigurasi; `SELECT` baca saja menunjukkan nol baris aktif dan delapan baris riwayat uji.
 
 ---
 
@@ -150,7 +164,7 @@ Bukti: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-004-20261102/r
 | `VAL-NV-09`–`13` | Terpenuhi | No. 9 |
 | `UAT-08` Kritis 0 ditolak | Sisi API terverifikasi developer; UAT belum dijalankan | No. 9, kasus "Menit 0" |
 | `IsConfigured = false` saat kosong | Terpenuhi | No. 1, 8 |
-| Rujukan pencabutan tercatat (`G-03`) | **Belum terpenuhi** | No. 13; lihat §7 |
+| Rujukan pencabutan tercatat (`G-03`) | Terpenuhi lewat log, sesuai keputusan Rizki 2 Nov; tidak permanen | No. 13 uji ulang; batasnya di §7 |
 | DoD — build lulus | Terpenuhi | §5, pernyataan owner + DLL |
 | DoD — laporan ada | Terpenuhi | Berkas ini |
 
@@ -166,10 +180,10 @@ Bukti: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-004-20261102/r
 
 | Hal | Isi |
 | --- | --- |
-| Status migration/database | Tanpa migration. Uji meninggalkan enam baris `NvwVitalSignInterval` bertanda hapus berujukan `UJI-DEV-NV-004-*` di DB dev; nol baris aktif |
-| Masalah yang diketahui | **No. 13: rujukan pencabutan tidak tersimpan di mana pun.** Pencabutan tidak menyisipkan baris, dan rujukan baris lama tidak boleh ditimpa, jadi tabel tidak punya tempat untuknya. `LoggerService.WriteAsync` memakai `data` hanya untuk mengambil `Path`, `UserId`, dan sejenisnya, sehingga payload tidak ditulis: pencarian `RatificationReference` di log hari uji menghasilkan nol baris. **Koreksi:** versi laporan ini sebelumnya, yang ikut commit `91a3f8e2`, menyatakan rujukan pencabutan tersimpan di log; pernyataan itu keliru. Yang tercatat hanya siapa dan kapan (`DeleteBy`, `DeleteDateTime`, baris log aksi). **Keputusan Rizki 2 Nov:** nomor SK, tanggal, dan angka ditulis ke pesan log aksi, tanpa migration dan tanpa mengubah `LoggerService`. Source sudah diubah; menunggu build. **Batas yang diterima:** berkas log hanya disimpan 14 berkas (`RetainedFileCountLimit`), jadi jejak ini tidak permanen. Catatan serupa untuk `BE-NV-002` §3.3: payload log perangkat juga tidak tertulis; kata sandi tetap tidak masuk log |
+| Status migration/database | Tanpa migration. Uji meninggalkan delapan baris `NvwVitalSignInterval` bertanda hapus berujukan `UJI-DEV-NV-004-*` di DB dev; nol baris aktif, jadi status tetap "Belum dikonfigurasi" |
+| Masalah yang diketahui | **No. 13 ditutup 2 Nov (`PASS` pada uji ulang).** Catatan temuannya: rujukan pencabutan semula tidak tersimpan di mana pun. Pencabutan tidak menyisipkan baris, dan rujukan baris lama tidak boleh ditimpa, jadi tabel tidak punya tempat untuknya. `LoggerService.WriteAsync` memakai `data` hanya untuk mengambil `Path`, `UserId`, dan sejenisnya, sehingga payload tidak ditulis: pencarian `RatificationReference` di log hari uji menghasilkan nol baris. **Koreksi:** versi laporan ini sebelumnya, yang ikut commit `91a3f8e2`, menyatakan rujukan pencabutan tersimpan di log; pernyataan itu keliru. Yang tercatat hanya siapa dan kapan (`DeleteBy`, `DeleteDateTime`, baris log aksi). **Keputusan Rizki 2 Nov:** nomor SK, tanggal, dan angka ditulis ke pesan log aksi, tanpa migration dan tanpa mengubah `LoggerService`. **Batas yang diterima:** berkas log hanya disimpan 14 berkas (`RetainedFileCountLimit`), jadi jejak ini tidak permanen. Catatan serupa untuk `BE-NV-002` §3.3: payload log perangkat juga tidak tertulis; kata sandi tetap tidak masuk log |
 | Risiko tersisa | `GET` membaca rujukan dari baris aktif terbaru. Satu himpunan selalu memakai rujukan yang sama, dan kunci transaksi menjaga hal itu |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Source awal ada di commit `91a3f8e2`. Perbaikan no. 13 (`NvwHttp.cs`, controller, service), koreksi dokumen ini, dan status roadmap belum di-commit |
-| Langkah berikutnya | Rizki mematikan backend, menjalankan `dotnet build ./QuilvianSystemBackend.sln -p:RunAnalyzers=false`, lalu menyalakannya lagi. Sesudah itu ulangi no. 13 saja: `node test-with-agy/nurse-view/uji-nv-004-20261102/ulang-no13.mjs` |
+| Status Git | Source ada di commit `91a3f8e2` dan `80e2a284`. Pembaruan hasil uji ulang pada dokumen ini dan status roadmap belum di-commit |
+| Langkah berikutnya | `BE-NV-003` + `FE-NV-003` |

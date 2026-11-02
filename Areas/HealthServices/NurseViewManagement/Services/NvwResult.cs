@@ -65,6 +65,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string RatificationReference = "VAL-NV-12";
         public const string RatifiedOn = "VAL-NV-13";
         public const string IntervalItemsRequired = "NV-INTERVAL-ITEMS";
+        public const string NotDisplayAccount = "VAL-NV-14";
+        public const string DeviceInactive = "VAL-NV-15";
+        public const string SessionStale = "NV-SESSION-STALE";
     }
 
     public static class NvwMessages
@@ -87,5 +90,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string RatifiedOnRequired = "Tanggal pengesahan wajib diisi.";
         public const string RatifiedOnFuture = "Tanggal pengesahan tidak boleh melewati hari ini.";
         public const string IntervalItemsRequired = "Daftar interval wajib dikirim. Kirim daftar kosong untuk mencabut seluruh interval.";
+        public const string NotDisplayAccount = "Akun ini bukan akun display Nurse View.";
+        public const string DeviceInactive = "Perangkat display dinonaktifkan. Hubungi IT.";
+        public const string SessionStale = "Sesi perangkat sudah tidak berlaku. Silakan login ulang.";
     }
 }

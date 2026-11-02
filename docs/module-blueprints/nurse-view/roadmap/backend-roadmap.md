@@ -30,7 +30,7 @@ flowchart LR
     BENV001["✅ BE-NV-001<br/>Fondasi registry, model, configuration"]:::selesai
     BENV002["✅ BE-NV-002<br/>API admin perangkat display"]:::selesai
     BENV003["BE-NV-003<br/>Login dan runtime akun perangkat"]:::belum
-    BENV004["🟡 BE-NV-004<br/>API interval ukur ulang TTV"]:::sebagian
+    BENV004["✅ BE-NV-004<br/>API interval ukur ulang TTV"]:::selesai
     BENV005["BE-NV-005<br/>Papan lantai tersusun dan tersamarkan"]:::belum
     BENV006["BE-NV-006<br/>Header perawat jaga dari roster"]:::belum
     BENV007["BE-NV-007<br/>Sinyal realtime saat TTV disimpan"]:::belum
@@ -74,7 +74,7 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 | ✅ `BE-NV-001` | Fondasi registry, model, configuration | `NV-DEC-016`, `024`, `029`; `G-01` | `0.1.0` data-dictionary | `IdentityModel`, pola configuration | Registry, 2 model, 1 enum, 2 configuration, 2 DbSet | — | Kartu | QBE preflight; build oleh Rizki; migration diterapkan Rizki | Salah prefix → QBE gagal / Rizki | Kartu |
 | ✅ `BE-NV-002` | API admin perangkat display | `FR-NV-001`–`005`; `NV-DEC-016`, `022` | `0.1.0` api §1 | `NumberSeriesAllocator`, `UserManager`, pola `QueueDisplayDeviceController` (alur saja) | Service + controller + DTO | `BE-NV-001` | Kartu | HTTP via Swagger oleh Rizki | Kata sandi bocor ke log / Rizki | Kartu |
 | `BE-NV-003` | Login dan runtime akun perangkat | `FR-NV-018`; `NV-DEC-009`, `022`, `030` | `0.1.0` api §3 `/current` | `ResolveQueueDisplayLoginContextAsync`, policy `QueueDisplayRuntimeRead` | `AuthController`, `AuthorizationPolicies`, `Program.cs`, context service, runtime controller | `BE-NV-002` | Kartu, termasuk regresi `NV-AC-023`–`027` | HTTP + login empat jenis akun | **Regresi login seluruh sistem** / Rizki, syarat lead | Kartu |
-| 🟡 `BE-NV-004` | API interval ukur ulang TTV | `FR-NV-020`–`022`; `NV-DEC-010` | `0.1.0` api §2 | Pola ganti-seluruh `NursingShiftController` | Service + controller + DTO | `BE-NV-001` | Kartu | HTTP via Swagger | Angka bawaan diselipkan / Rizki | Kartu |
+| ✅ `BE-NV-004` | API interval ukur ulang TTV | `FR-NV-020`–`022`; `NV-DEC-010` | `0.1.0` api §2 | Pola ganti-seluruh `NursingShiftController` | Service + controller + DTO | `BE-NV-001` | Kartu | HTTP via Swagger | Angka bawaan diselipkan / Rizki | Kartu |
 | `BE-NV-005` | Papan lantai tersusun dan tersamarkan | `FR-NV-010`–`016`, `021`; `NV-DEC-006`–`020`, `025`, `026`, `027` | `0.1.0` api §3 `/board` | `ProjectBatchAsync` (`internal`, disetujui Hamzah), `TrxPatientVitalSign`, instrumen risiko jatuh, `TrxPatientAllergy`, `InpNurseAssignment` | Query service, masking helper, DTO papan, endpoint `/board` | `BE-NV-003`, `BE-NV-004` | Kartu | HTTP dengan akun perangkat + pencarian teks identitas di response | **Kebocoran identitas** / Rizki | Kartu |
 | `BE-NV-006` | Header perawat jaga dari roster | `FR-NV-017`; `NV-DEC-012`, `021`, `027` | `0.1.0` api §3 `Wards[].OnDutyNurses` | `TrxShiftAssignment`, `MapCpptProfessionType` | Query roster di service papan; `MapCpptProfessionType` → `internal static` | `BE-NV-005` | Kartu | HTTP dengan roster kosong dan berisi | Lintas modul keperawatan / Rizki + Hamzah | Kartu |
 | `BE-NV-007` | Sinyal realtime saat TTV disimpan | `FR-NV-032`; `NV-DEC-023`, `026`, `027` | `0.1.0` api §4 | `QueueHub`, pola `InpBedRealtimeService` (best-effort) | `NvwRealtimeService`, `QueueHub.JoinNurseViewFloor`, satu panggilan di `PatientVitalSignController` | `BE-NV-005` | Kartu | Hub + simpan TTV | Lintas modul keperawatan, simpan TTV tidak boleh gagal / Rizki + Hamzah | Kartu |
@@ -117,11 +117,11 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 | Risiko | Syarat lead: login keseluruhan tidak boleh terganggu. Bila satu regresi gagal, task tetap 🟡 dan tidak boleh digabung |
 | DoD | AC terpetakan; regresi lulus dan direkam; laporan `BE-NV-003.md` mencantumkan diff ringkas per berkas bersama |
 
-### 🟡 BE-NV-004 — API interval ukur ulang TTV
+### ✅ BE-NV-004 — API interval ukur ulang TTV
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 SEBAGIAN — 2 November 2026. Service, controller, dan DTO terpetakan ke api §2. QBE Strict `PASS` (5 berkas, 0 violation, 0 review); build Rizki `PASS` (412 warning, 0 error; DLL 10.05). Uji gabungan 12 dari 13 `PASS`; `VAL-NV-09`–`13` terbukti lewat HTTP. **Gagal: no. 13** — rujukan pencabutan interval tidak tersimpan di mana pun, karena tabel tidak punya tempatnya dan `LoggerService` tidak menulis payload. Perbaikan sesuai keputusan Rizki 2 Nov (pesan log aksi) sudah di source, **belum di-build dan belum diuji ulang**. `authorization-verifier` `NOT RUN`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`BE-NV-004.md`](../task/report/backend/BE-NV-004.md) |
+| Status | ✅ SELESAI — 2 November 2026. Service, controller, dan DTO terpetakan ke api §2. QBE Strict `PASS` (5 berkas, lalu 3 berkas perbaikan; 0 violation, 0 review); build Rizki `PASS` (412 warning, 0 error; build kedua DLL 11.43). Uji gabungan no. 1–12 `PASS`; `VAL-NV-09`–`13` terbukti lewat HTTP. No. 13 `FAIL` pada putaran pertama (rujukan pencabutan tidak tersimpan), lalu `PASS` 8/8 pada uji ulang sesudah rujukan ditulis ke pesan log aksi (keputusan Rizki 2 Nov; jejak log tidak permanen). `authorization-verifier` `NOT RUN`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`BE-NV-004.md`](../task/report/backend/BE-NV-004.md) |
 | Outcome | Admin memasukkan interval yang disahkan Komite; tanpa interval sistem aman-gagal |
 | Trace | `FR-NV-020`–`022`; `NV-DEC-010`; `G-01`, `G-03`; `VAL-NV-09`–`13` |
 | Cakupan | `NvwVitalSignIntervalService` (`GetActiveAsync`, `ReplaceAsync` dalam satu transaksi: baris lama `IsDelete`, baris baru disisipkan), `NvwVitalSignIntervalController` (`[AccessPermission("NurseViewVitalSignInterval", "Read"/"Update")]`), DTO |

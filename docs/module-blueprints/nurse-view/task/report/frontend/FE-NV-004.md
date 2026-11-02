@@ -11,7 +11,7 @@
 | Trace | `FR-NV-020`–`022`; `NV-DEC-010`; `NV-AC-004`; `VAL-NV-09`–`13`; layar `FE-NVW-03` (`03-frontend-architecture.md` §3.3) |
 | Contract version | `0.1.0` — `approved` |
 | Wewenang UI | Isi layar dikunci skema §3.3; nama butir menu dan urutannya `DEV_DISCRETION` |
-| Dependency | `BE-NV-004` 🟡 — build lulus; kegagalan no. 13 ada pada jejak log backend dan tidak mengubah layar |
+| Dependency | `BE-NV-004` ✅ |
 | Klasifikasi | `MEDIUM` — berkas diubah lebih dari 4, logika sedang, kontrak yang ada, keadaan baca saja berkaitan dengan izin |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` (branch `RizkiV2`) |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `298f2cecc` + working tree (belum di-commit) |
 | Commit backend yang dijadikan rujukan | `8e4991cb` + working tree `BE-NV-004` |
 | Tanggal | 2026-11-02 |
-| Status | ✅ **SELESAI 2 November 2026** — `npx eslint` 0 error; uji dengan backend sungguhan no. 1–12 `PASS`. No. 13 `FAIL` milik backend dan dicatat di `BE-NV-004`. Verifikasi developer, bukan UAT |
+| Status | ✅ **SELESAI 2 November 2026** — `npx eslint` 0 error; uji dengan backend sungguhan no. 1–12 `PASS`. No. 13 milik backend: `FAIL` pada putaran pertama, `PASS` pada uji ulang (`BE-NV-004`). Verifikasi developer, bukan UAT |
 
 ---
 
@@ -129,11 +129,11 @@ menit. Untuk angka klinis, perilaku itu bertentangan dengan `UAT-08`, yang mensy
 | Grep anti-regresi UI | Semua 0; juga nol `style={{` dan nol angka bawaan | `PASS` | 6 berkas baru |
 | Nol komentar baris | Nol hasil | `PASS` | `grep` |
 | Smoke layar dengan API **disimulasikan** di peramban | 15/15 cek lulus, `pageErrors` 0, nol tulis ke DB | `PASS` (layar saja) | `test-with-agy/nurse-view/uji-nv-004-20261102/smoke-2026-11-02T02-26-25-937Z/`. **Bukan bukti `BE-NV-004` dan bukan dasar status selesai** |
-| Uji gabungan dengan backend sungguhan (2 Nov) | No. 1–12 `PASS`; no. 13 `FAIL` (milik backend) | `PASS` untuk lingkup layar | Tabel di bawah |
+| Uji gabungan dengan backend sungguhan (2 Nov) | No. 1–12 `PASS`; no. 13 (milik backend) `PASS` pada uji ulang | `PASS` | Tabel di bawah |
 | `npm run build` | Dijalankan Rizki 10.08; hasilnya belum dinyatakan | `NOT RUN` oleh agen | `.next/BUILD_ID` tertulis 10.12. Build kedua mulai 10.14 dan berhenti saat `npm run dev` dinyalakan 10.14.44. DoD kartu meminta lint + uji layar |
 
 `AUTOMATED TEST: SKIPPED (opsional) — ketentuan proyek.`
-`MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-11-02; no. 1–12 PASS, no. 13 FAIL (backend).`
+`MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-11-02; no. 1–12 PASS; no. 13 (backend) FAIL lalu PASS pada uji ulang.`
 
 ### Skenario uji gabungan BE-NV-004 + FE-NV-004 — hasil 2026-11-02
 
@@ -157,12 +157,12 @@ nol email. Aktor: `QUILVIAN_SUPERADMIN_*`; no. 10: `QUILVIAN_LOKET_*`.
 | 10 | Akun LOKET | `GET` dan `PUT` `403`; "Ups! Akses Ditolak"; bukan "Belum dikonfigurasi" | Hak akses | `PASS` (`S10`) |
 | 11 | Baca saja (daftar izin disimulasikan) | Isian terkunci; tombol simpan tidak ada | Mode baca saja | `PASS`; `GET` asli `200` (`S11`) |
 | 12 | `GET` 500 (disimulasikan) → Coba lagi | Galat tampil, bukan "Belum dikonfigurasi"; pulih sesudah coba lagi | 500 bukan kosong | `PASS` (`S12`, `S12a`) |
-| 13 | Pindai log backend — **milik `BE-NV-004`** | Aksi dan rujukan pencabutan tercatat; nol kata sandi | `G-03`, `QBE-LOG-001` | **`FAIL`**: lima baris aksi tercatat beserta aktor dan nol kata sandi, tetapi rujukan pencabutan tidak tercatat (`S13`; `BE-NV-004` §7) |
+| 13 | Pindai log backend — **milik `BE-NV-004`** | Aksi dan rujukan pencabutan tercatat; nol kata sandi | `G-03`, `QBE-LOG-001` | **`FAIL`**: lima baris aksi tercatat beserta aktor dan nol kata sandi, tetapi rujukan pencabutan tidak tercatat (`S13`; `BE-NV-004` §7). **Uji ulang 2 Nov sesudah perbaikan backend: `PASS`**, 8/8 cek (`ulang-no13-2026-11-02T04-47-20-559Z/S13-ulang.json`) |
 
 No. 11 memakai daftar izin simulasi karena belum ada akun uji yang hanya punya hak baca interval.
 Dengan begitu, konfigurasi Akses Role sungguhan untuk kepala ruang tidak ikut terbukti.
 
-Keadaan akhir: `GET` `200`, belum dikonfigurasi; DB nol baris aktif dan enam baris riwayat uji.
+Keadaan akhir sesudah uji ulang: `GET` `200`, belum dikonfigurasi; DB nol baris aktif dan delapan baris riwayat uji.
 
 ## 7. Acceptance criteria dan Definition of Done
 
@@ -183,8 +183,8 @@ Keadaan akhir: `GET` `200`, belum dikonfigurasi; DB nol baris aktif dan enam bar
 | --- | --- |
 | Peringatan | Warning lint satu, lihat §6 |
 | Masalah yang diketahui | Komponen bersama `normalizeNumberInputValue` meng-clamp diam-diam bila `min`/`max` diisi. Layar lain yang memakai pola itu, misalnya `inpatient-setting`, berperilaku sama. Di luar lingkup, tidak diperbaiki |
-| Dependency backend | `BE-NV-004` 🟡: perbaikan no. 13 menunggu build. Perbaikan itu tidak mengubah kontrak maupun layar ini |
+| Dependency backend | `BE-NV-004` ✅. Perbaikan no. 13 tidak mengubah kontrak maupun layar ini |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | ` M src/lib/state/store.jsx`, ` M src/utils/menu-sidebar/menu-items.jsx`, enam berkas baru di atas, dan dua berkas perbaikan `FE-NV-002`. Belum di-commit |
-| Langkah berikutnya | `BE-NV-003` + `FE-NV-003` sesudah keputusan rujukan pencabutan `BE-NV-004` |
+| Status Git | Source frontend ada di commit `1e6ecf29d`. Hasil uji pada dokumen ini belum di-commit |
+| Langkah berikutnya | `BE-NV-003` + `FE-NV-003` |

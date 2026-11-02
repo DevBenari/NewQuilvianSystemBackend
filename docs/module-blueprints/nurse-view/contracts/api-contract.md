@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 |---|---|
-| `last_changed_in` | `0.1.0` · status `approved` — Rizki Gunawan, 2026-10-28 (`NV-DEC-028`) |
+| `last_changed_in` | `0.1.1` · status `approved` — Rizki Gunawan, 2026-11-02 (`NV-DEC-031`). Sebelumnya `0.1.0`, 2026-10-28 (`NV-DEC-028`) |
 | Owner | Rizki Gunawan · `approved_by` Rizki Gunawan · `approved_at` 2026-10-28 |
 | `input_revision` | `00-interview-decisions.md` rev `2`; `02-backend-architecture.md` rev `1` |
 | Kompatibilitas | Seluruh endpoint baru; tidak ada endpoint lama yang berubah perilaku |
@@ -106,6 +106,12 @@ DPJP, diagnosis, `EpisodeId`, `PatientId`.
 
 **Kode status.** `200` berhasil. `401` belum login atau token kedaluwarsa. `403` akun bukan akun
 perangkat Nurse View, atau perangkat `Inactive` — TV kembali ke layar login.
+
+**Catatan `0.1.1`.** Akun tanpa klaim perangkat ditolak policy dengan `403` tanpa isi, sama seperti
+`QueueDisplayRuntimeController`. Pesan `VAL-NV-14` hanya keluar bila klaim ada tetapi perangkatnya
+tidak lagi ditemukan. Token yang terbit sebelum Atur Ulang Login terakhir ditolak `403` kode
+`NV-SESSION-STALE` ("Sesi perangkat sudah tidak berlaku. Silakan login ulang.") dan `401` pada
+`POST /auth/refresh`, memenuhi `state-transition-matrix` "sesi lama tidak berlaku".
 
 ## 4. Realtime — `QueueHub` (`/hubs/queues`)
 
