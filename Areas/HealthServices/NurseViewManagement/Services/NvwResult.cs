@@ -59,6 +59,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string AlreadyInactive = "VAL-NV-08";
         public const string CodeAllocationFailed = "NV-CODE-ALLOCATION";
         public const string LoginAccountConflict = "NV-LOGIN-ACCOUNT";
+        public const string EwsLevelUnknown = "VAL-NV-09";
+        public const string EwsLevelDuplicate = "VAL-NV-10";
+        public const string IntervalOutOfRange = "VAL-NV-11";
+        public const string RatificationReference = "VAL-NV-12";
+        public const string RatifiedOn = "VAL-NV-13";
+        public const string IntervalItemsRequired = "NV-INTERVAL-ITEMS";
     }
 
     public static class NvwMessages
@@ -74,5 +80,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         public const string DeviceNotFound = "Perangkat Nurse View tidak ditemukan.";
         public const string CodeAllocationFailed = "Kode perangkat gagal diterbitkan. Coba lagi.";
         public const string LoginAccountConflict = "Akun login untuk kode perangkat ini sudah ada. Hubungi tim IT.";
+        public const string EwsLevelUnknown = "Tingkat risiko EWS tidak dikenal.";
+        public const string EwsLevelDuplicate = "Setiap tingkat risiko hanya boleh diisi satu kali.";
+        public const string IntervalOutOfRange = "Interval harus antara 1 dan 1440 menit (24 jam).";
+        public const string RatificationReference = "Nomor surat/notulen pengesahan Komite Keperawatan wajib diisi.";
+        public const string RatifiedOnRequired = "Tanggal pengesahan wajib diisi.";
+        public const string RatifiedOnFuture = "Tanggal pengesahan tidak boleh melewati hari ini.";
+        public const string IntervalItemsRequired = "Daftar interval wajib dikirim. Kirim daftar kosong untuk mencabut seluruh interval.";
     }
 }

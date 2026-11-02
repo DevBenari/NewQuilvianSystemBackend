@@ -15,7 +15,7 @@ belum dikerjakan.
 
 | Requirement | Decision | Desain/kontrak | Task backend | Task frontend | Bukti | Status |
 |---|---|---|---|---|---|---|
-| `FR-NV-001` daftarkan perangkat, kode number series | `NV-DEC-016` | api §1, `VAL-NV-01`–`03` | `BE-NV-002` | `FE-NV-002` | `UAT-01`, `VAL-NV-02` | 🟡 gagal FE-NV-002 §6 **no. 5** — toast sukses simpan tidak tampil; lainnya `PASS`: uji HTTP BE-NV-002 no. 1–3, layar no. 3–4 (29 Okt) ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
+| `FR-NV-001` daftarkan perangkat, kode number series | `NV-DEC-016` | api §1, `VAL-NV-01`–`03` | `BE-NV-002` | `FE-NV-002` | `UAT-01`, `VAL-NV-02` | ✅ FE-NV-002 §6 no. 5 `PASS` uji ulang 2 Nov: toast hijau tampil, `POST` `201` satu kali, kode `NVW-000003` (29 Okt sempat `FAIL`); uji HTTP BE-NV-002 no. 1–3 dan layar no. 3–4 `PASS` (29 Okt). Verifikasi developer, UAT belum dijalankan ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
 | `FR-NV-002` buat login sekali | `NV-DEC-022` | state §1, `VAL-NV-05` | `BE-NV-002` | `FE-NV-002` | `NV-AC-018`, `UAT-03` | ✅ BE-NV-002 §5 no. 4–6 + FE-NV-002 §6 no. 8–9 `PASS` (29 Okt); kata sandi tidak ada di halaman, storage, respons detail, dan log ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
 | `FR-NV-003` atur ulang login | `NV-DEC-022` | state §1, `VAL-NV-06` | `BE-NV-002` | `FE-NV-002` | uji HTTP token lama | ✅ BE-NV-002 §5 no. 10 + FE-NV-002 §6 no. 14–16 `PASS` (29 Okt) ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
 | `FR-NV-004` nonaktifkan | `NV-DEC-016` | state §1, `VAL-NV-07`, `08`, `15` | `BE-NV-002`, `BE-NV-003` | `FE-NV-002`, `FE-NV-003` | `NV-AC-016`, `UAT-02` | 🟡 bagian admin terbukti: BE-NV-002 §5 no. 8–9 + FE-NV-002 §6 no. 11–13 `PASS` (29 Okt); penolakan runtime papan menunggu `BE-NV-003`/`FE-NV-003` ([`BE-NV-002.md`](../task/report/backend/BE-NV-002.md), [`FE-NV-002.md`](../task/report/frontend/FE-NV-002.md)) |
@@ -29,9 +29,9 @@ belum dikerjakan.
 | `FR-NV-016` bed tak berpenghuni | `NV-DEC-015` | api §3 `StatusLabel` | `BE-NV-005` | `FE-NV-005` | `NV-AC-010` | belum |
 | `FR-NV-017` header perawat jaga | `NV-DEC-012`, `021` | §4.6 langkah 9 | `BE-NV-006` | `FE-NV-006` | `NV-AC-009`, `017` | belum |
 | `FR-NV-018` hanya lantai sendiri | `NV-DEC-009` | permission §3 | `BE-NV-003`, `BE-NV-005` | `FE-NV-003` | `NV-AC-015`, `UAT-06` | belum |
-| `FR-NV-020` ganti-seluruh interval | `NV-DEC-010` | api §2, `VAL-NV-09`–`13` | `BE-NV-004` | `FE-NV-004` | `UAT-08` | belum |
+| `FR-NV-020` ganti-seluruh interval | `NV-DEC-010` | api §2, `VAL-NV-09`–`13` | `BE-NV-004` | `FE-NV-004` | `UAT-08` | 🟡 source `BE-NV-004` + `FE-NV-004` ada; QBE `PASS`, eslint 0 error, smoke layar simulasi 15/15 (2 Nov). Build backend dan uji nyata belum ([`BE-NV-004.md`](../task/report/backend/BE-NV-004.md), [`FE-NV-004.md`](../task/report/frontend/FE-NV-004.md)) |
 | `FR-NV-021` tanda lewat jadwal | `NV-DEC-010` | api §3 `IsOverdue` | `BE-NV-005` | `FE-NV-005` | `NV-AC-005`, `UAT-07` | belum |
-| `FR-NV-022` aman-gagal tanpa interval | `NV-DEC-010`, `G-01` | api §2 `IsConfigured` | `BE-NV-004`, `BE-NV-005` | `FE-NV-004`, `FE-NV-005` | `NV-AC-004` | belum |
+| `FR-NV-022` aman-gagal tanpa interval | `NV-DEC-010`, `G-01` | api §2 `IsConfigured` | `BE-NV-004`, `BE-NV-005` | `FE-NV-004`, `FE-NV-005` | `NV-AC-004` | 🟡 `IsConfigured` dan status layar ada di source (2 Nov); build dan uji nyata belum; penerapan di papan menunggu `BE-NV-005`/`FE-NV-005` ([`BE-NV-004.md`](../task/report/backend/BE-NV-004.md), [`FE-NV-004.md`](../task/report/frontend/FE-NV-004.md)) |
 | `FR-NV-030` muat ulang 60 detik | `NV-DEC-023`, `026` | api §3 `/current` | `BE-NV-003` | `FE-NV-005` | `NV-AC-014`, `020`, `UAT-09` | belum |
 | `FR-NV-031` pita data basi | `NV-DEC-014` | fe §5 | — | `FE-NV-005` | `NV-AC-006`, `UAT-10` | belum |
 | `FR-NV-032` push TTV | `NV-DEC-023`, `027` | api §4 | `BE-NV-007` | `FE-NV-007` | `NV-AC-019`, `022` | belum |

@@ -956,6 +956,7 @@ try
     builder.Services.AddScoped<McuDeliveryService>();
 
     builder.Services.AddScoped<NvwDisplayDeviceService>();
+    builder.Services.AddScoped<NvwVitalSignIntervalService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,

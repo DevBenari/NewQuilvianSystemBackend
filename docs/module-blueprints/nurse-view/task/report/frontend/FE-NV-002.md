@@ -16,10 +16,10 @@
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` (branch `RizkiV2`) |
 | Model | Claude Opus 5.5 |
-| Commit frontend saat dikerjakan | `fc5af984f` |
-| Commit backend yang dijadikan rujukan | `4af76bcb` + working tree `BE-NV-002` |
-| Tanggal | 2026-10-29 |
-| Status | 🟡 **SEBAGIAN** — source, lint, dan build selesai; uji layar gabungan 29 Okt: 19/20 `PASS`, **no. 5 `FAIL`** (toast hijau sesudah simpan tidak tampil karena hilang saat pindah ke detail) |
+| Commit frontend saat dikerjakan | `fc5af984f`; perbaikan no. 5 di atas `298f2cecc` + working tree (belum di-commit) |
+| Commit backend yang dijadikan rujukan | `4af76bcb` + working tree `BE-NV-002`; perbaikan no. 5: `8e4991cb` |
+| Tanggal | 2026-10-29; perbaikan dan uji ulang no. 5: 2026-11-02 |
+| Status | ✅ **SELESAI 2 November 2026** — uji layar gabungan 29 Okt 19/20 `PASS`; no. 5 diperbaiki dan uji ulang 2 Nov `PASS` (19/19 cek terukur). Verifikasi developer, bukan UAT. Riwayat: 🟡 SEBAGIAN 29 Okt karena no. 5 `FAIL` |
 
 ---
 
@@ -70,6 +70,8 @@ Sama dengan `FE-NV-001` §3.1.
 | `src/components/view/administrator/master-data/nurse-view-device/detail/nurse-view-device-detail-view.jsx` | **Baru.** `BaseDetailView` + tiga `ConfirmModal` |
 | `src/components/view/administrator/master-data/nurse-view-device/add/nurse-view-device-form-view.jsx` | **Baru.** `BaseEditorView` |
 | `src/app/administrator/master-data/nurse-view-devices/create/page.jsx`, `[slug]/page.jsx`, `[slug]/update/page.jsx` | **Baru.** Route tipis; token kosong/cadangan/> 180 karakter → `notFound()` |
+| `src/lib/hooks/administrator/master-data/nurse-view-device/use-master-data-nurse-view-device-editor.jsx` | **Diubah 2 Nov (no. 5).** Sesudah simpan, toast tampil di form dan pindah halaman ditunda 1,5 detik (`SUCCESS_REDIRECT_DELAY_MS`, `redirectTimerRef`). Selama jeda, `actionLoading` tetap `true` sehingga isian dan tombol terkunci. Penanda `isMountedRef` dan pembersihan timer mencegah pengalihan sesudah pengguna pindah menu. Berlaku untuk tambah dan perbarui |
+| `src/utils/administrator/master-data/nurse-view-device/nurse-view-device-utils.jsx` | **Diubah 2 Nov (no. 5).** `createToast` mengisi `variant: type`, karena `ToastStack` membaca `toast.variant`. Sebelumnya semua toast modul ini jatuh ke gaya `info` dan tidak mungkin hijau atau merah |
 
 ### 3.3 Kepatuhan arsitektur dan privasi
 
@@ -77,7 +79,8 @@ Sama dengan `FE-NV-001` §3.1.
 | --- | --- |
 | Kata sandi tidak masuk Redux, storage, maupun log | Disimpan hanya di state lokal hook detail selama modal terbuka; thunk login tidak menulis `lastActionResponse`; tidak ada `console` |
 | Kode bisnis tidak dikirim saat create | `deviceCode` tidak ada di field form maupun payload |
-| Kirim ganda | Tombol aksi dan `ConfirmModal` terkunci selama `actionLoading` |
+| Kirim ganda | Tombol aksi dan `ConfirmModal` terkunci selama `actionLoading`. Sejak 2 Nov, form juga terkunci selama jeda 1,5 detik sesudah simpan, dan `handleSubmit` menolak kiriman selama jeda itu |
+| Pindah halaman sesudah simpan | Keputusan Rizki 2 Nov: pakai ulang pola redirect tertunda `queue-display-device` dan `kiosk-device` (24 hook editor memakainya). **Delta terhadap standar master data:** rujukan `job-level` dan standar itu memakai "toast hijau lalu `router.push`", yang justru membuat toast hilang. Penjaga kirim ganda selama jeda adalah tambahan; modul rujukan tidak memilikinya |
 
 **Tabel keputusan base component (UI GATE):**
 
@@ -91,7 +94,7 @@ Sama dengan `FE-NV-001` §3.1.
 | Form | `BaseEditorView` + `optionMap.floors` | `REUSE` |
 | Toast | `ToastStack` milik `BaseDetailView`/`BaseEditorView` | `REUSE` |
 
-`UI GATE: PASS — seluruh elemen REUSE.`
+`UI GATE: PASS — seluruh elemen REUSE.` Perbaikan 2 Nov tidak menambah elemen UI; hanya hook dan utility yang berubah.
 
 ## 4. State yang ditangani di layar
 
@@ -101,7 +104,11 @@ Sama dengan `FE-NV-001` §3.1.
 | Tidak ditemukan | "Data perangkat Nurse View tidak ditemukan." |
 | Tautan rusak/kedaluwarsa | "Tautan detail perangkat tidak valid. Silakan buka ulang dari daftar data." |
 | Gagal aksi | Toast merah berisi pesan backend apa adanya (`409`, `422`, `400`) |
-| Form belum lengkap | Pesan per field + toast "Form Belum Lengkap" |
+| Form belum lengkap | Pesan per field + toast merah "Form Belum Lengkap" |
+| Simpan berhasil | Toast hijau "Data Berhasil Disimpan", tombol "Menyimpan..." terkunci, lalu sekitar 1,5 detik kemudian pindah ke detail |
+
+Koreksi 2 Nov: sebelum perbaikan, seluruh toast modul ini bergaya `info`. Kata "merah" pada laporan
+29 Okt ditulis tanpa mengukur warnanya.
 
 ## 5. Endpoint yang dikonsumsi
 
@@ -125,9 +132,38 @@ Sama dengan `FE-NV-001` §3.1.
 | Grep anti-regresi UI | Semua 0 | `PASS` | `FE-NV-001` §6 |
 | `npm run build` | Lulus | `PASS (pernyataan owner)` | Rizki menyatakan sudah build; `.next/BUILD_ID` `7H3ZrbK00TFmEZdHVvLuE` 2026-10-29 10:26, lebih baru dari source Nurse View terakhir (09:57). Layar uji dilayani `next dev` (lencana N), sah selama pengembangan |
 | Uji layar gabungan BE-NV-002 + FE-NV-001/002 | 19 `PASS`, 1 `FAIL` (no. 5) | `FAIL` | Hasil per skenario di bawah |
+| `npx eslint` atas dua berkas perbaikan (2 Nov) | 0 error, 1 warning `react-hooks/set-state-in-effect` pada `setResolvedId("")` | `EXISTING WARNING` | Baris lama, tidak disentuh perbaikan ini |
+| Grep anti-regresi UI atas dua berkas perbaikan (2 Nov) | Semua 0 | `PASS` | Tidak ada JSX atau style yang berubah |
+| Uji ulang no. 5 dari layar (2 Nov) | 19/19 cek terukur lulus | `PASS` | Bagian "Uji ulang no. 5" di bawah |
+| `npm run build` sesudah perbaikan 2 Nov | Tidak dijalankan | `NOT RUN` | Dev server aktif di port 3000, dan DoD kartu hanya meminta lint + uji layar. Build terakhir tetap yang 29 Okt |
 
 `AUTOMATED TEST: SKIPPED (opsional) — ketentuan proyek.`
-`MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-10-29, dua putaran; 19/20 PASS, no. 5 FAIL.`
+`MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-10-29, dua putaran; 19/20 PASS, no. 5 FAIL. Uji ulang no. 5 2026-11-02: PASS.`
+
+### Uji ulang no. 5 — hasil 2026-11-02
+
+Aktor `QUILVIAN_SUPERADMIN_*` (sandi hanya dari variabel lingkungan). Menu dibuka lewat klik sidebar.
+Verdict dihitung skrip dari DOM dan respons, tidak ditulis tangan; `pageErrors` 0 dan seluruh `GET`
+modul ini `200`. Bukti: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-fe-nv-002-no5-20261102/run-2026-11-02T01-54-16-959Z/`
+(di-ignore git). JSON bukti sudah dipindai: nol kata sandi dan nol email.
+
+| Yang diukur | Hasil terukur | Bukti |
+| --- | --- | --- |
+| Simpan | `POST` `201`; payload `{deviceName:"TV NS Lantai 3", floorCode:"3", locationName:null, description:null}` tanpa `deviceCode` | `S05.json` |
+| Toast | Judul "Data Berhasil Disimpan", isi "Perangkat Nurse View berhasil didaftarkan.", kelas `region-toast-success` | `S05.json`, `S05a-toast-di-form.png` |
+| Warna | Latar kepala toast `rgba(22, 163, 74, 0.12)`, ikon `rgb(22, 163, 74)`: hijau | `S05.json` |
+| Urutan | Toast tampil saat masih di `/create`; pindah ke detail 1.826 ms sesudah respons `POST` | `S05.json` |
+| Kirim ganda | Selama jeda tombol `disabled`, `aria-busy="true"`, teks "Menyimpan..."; `requestSubmit()` sungguh memicu event submit, tetapi `POST` tetap satu kali | `S05.json` |
+| Detail | URL tanpa UUID; `GET` detail `200`; kode `NVW-000003` sama dengan respons `POST`; "Status: Belum ada login" | `S05.json`, `S05b-detail.png` |
+
+Dua pemeriksaan tambahan atas perubahan yang sama. Keduanya bukan nomor skenario:
+
+| Pemeriksaan | Hasil terukur | Bukti |
+| --- | --- | --- |
+| Perbarui tanpa mengubah isian, hanya pada perangkat buatan uji ini | `PASS`: `PUT` `200`; toast hijau tampil di `/update`; tombol terkunci; kembali ke detail | `T1-perbarui.json`, `T1-perbarui-toast-di-form.png` |
+| Jumlah data dan toast galat | `PASS`: total daftar 2 → 3 (kedua `GET` `200`); simpan kosong memunculkan toast `region-toast-error` berlatar `rgba(239, 68, 68, 0.12)`: merah; tanpa request tulis | `T2-galat-dan-jumlah.json`, `T2-toast-galat-merah.png` |
+
+Skenario no. 1–4 dan 6–20 tidak diulang, sesuai instruksi Rizki. Hasilnya tetap yang 29 Okt.
 
 ### Skenario uji gabungan dari layar — hasil 2026-10-29
 
@@ -178,7 +214,7 @@ PNG kembar yang memang diharapkan:
 | 2 | Klik butir itu | Halaman daftar; bila belum ada data: "Belum ada perangkat Nurse View." | `GET /` | `PASS`: route `/administrator/master-data/nurse-view-devices`; `GET /` `200`, `totalData` 0; teks kosong tampil (P1 `S02`) |
 | 3 | Buka saringan Lantai | Lantai dari data kamar, contoh "Lantai 3 · 20 bed" | `GET /floors` | `PASS` (P2): `GET /floors` `200`; opsi "Semua lantai", "Lantai 2 · 17 bed", "Lantai 3 · 66 bed", "Lantai 4 · 43 bed", "Lantai 5 · 30 bed", "Lantai 8 · 13 bed", "Lantai 9 · 20 bed", sama jumlahnya dengan data API (`S03`). P1: `BLOCKED (data)` |
 | 4 | **+ Tambah Perangkat Nurse View** → klik Simpan tanpa isian | Pesan "Nama Perangkat wajib diisi." dan "Lantai wajib dipilih."; tidak ada request | Validasi form | `PASS`: kedua pesan tampil di bawah isian + toast "Form Belum Lengkap"; 0 request non-GET (P1 `S04`) |
-| 5 | Isi "TV NS Lantai 3", pilih Lantai 3 → Simpan | Toast hijau, pindah ke detail, kode `NVW-000001`, status "Belum ada login" | `FR-NV-001` | **`FAIL`**: `POST` `201` dengan payload `{deviceName, floorCode:"3"}` tanpa `deviceCode`; pindah ke detail; `NVW-000001`; "Status: Belum ada login". **Toast hijau "Data Berhasil Disimpan" tidak tampil** di halaman detail (`S05b.png`). Penyebab (dibaca dari source, tidak diperbaiki): `use-master-data-nurse-view-device-editor.jsx` memanggil `addToast` lalu langsung `router.push` ke detail; toast tersimpan di state editor yang ikut hilang saat halaman berganti. Rujukan `job-level` memakai pola yang sama |
+| 5 | Isi "TV NS Lantai 3", pilih Lantai 3 → Simpan | Toast hijau, pindah ke detail, kode `NVW-000001`, status "Belum ada login" | `FR-NV-001` | **`FAIL`**: `POST` `201` dengan payload `{deviceName, floorCode:"3"}` tanpa `deviceCode`; pindah ke detail; `NVW-000001`; "Status: Belum ada login". **Toast hijau "Data Berhasil Disimpan" tidak tampil** di halaman detail (`S05b.png`). Penyebab (dibaca dari source, tidak diperbaiki): `use-master-data-nurse-view-device-editor.jsx` memanggil `addToast` lalu langsung `router.push` ke detail; toast tersimpan di state editor yang ikut hilang saat halaman berganti. Rujukan `job-level` memakai pola yang sama. **Uji ulang 2 Nov: `PASS`** (`NVW-000003`, lihat bagian uji ulang di atas). Saat perbaikan ditemukan sebab kedua: `createToast` tidak mengisi `variant`, sehingga toast tidak mungkin hijau walau tampil |
 | 6 | Perhatikan tombol detail | Kembali, Perbarui, Buat Login, Nonaktifkan; **tidak ada** Hapus | `AvailableActions` | `PASS`: keempat tombol masing-masing 1; Hapus 0; Atur Ulang Login 0 (`S06`) |
 | 7 | Perhatikan URL | Tidak ada UUID | Token route privat | `PASS`: URL detail tanpa pola UUID dan tanpa id perangkat (`S07.json`) |
 | 8 | **Buat Login** → Ya, Buat Login | Modal berisi nama pengguna `nvw-000001` dan kata sandi; Salin bekerja | `FR-NV-002` | `PASS`: `POST /login` `200` (payload `version` 0); modal "Catat Login Perangkat" berisi `nvw-000001` + kata sandi terisi; Salin → toast "Tersalin" dan papan klip memuat keduanya (dicocokkan di memori) (`S08`, sandi disamarkan) |
@@ -214,22 +250,22 @@ tombol mengikuti status. **Hasil 29 Okt:** keduanya `PASS` (`BE-NV-002` §5 no. 
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `NV-AC-016` perangkat dinonaktifkan → ditolak | Sebagian | Kunci akun teruji di no. 13 (`401`); penolakan runtime papan di `BE-NV-003` |
+| `NV-AC-016` perangkat dinonaktifkan → ditolak | Terpenuhi untuk lingkup task ini | Kunci akun teruji di no. 13 (`401`). Penolakan runtime papan adalah lingkup `BE-NV-003` dan **belum dikerjakan** |
 | `NV-AC-018` kata sandi sekali tampil | Terpenuhi | No. 8–9: sandi hanya di modal; tidak ada di halaman, storage, respons detail, maupun log |
 | `VAL-NV-01`–`08` tampil di bawah isian / toast | Terpenuhi untuk yang diuji | No. 4 (wajib isi), 10 (`VAL-NV-04`), 11 (alasan) |
-| `UAT-01`–`03` | Sebagian | `UAT-01` butuh `FE-NV-003` untuk tampilnya papan |
+| `UAT-01`–`03` | Sisi layar perangkat terverifikasi developer; UAT **belum dijalankan** | No. 5, 8–16. Tampilnya papan pada `UAT-01` butuh `FE-NV-003` |
 | DoD — lint | Terpenuhi | §6 |
-| DoD — rekaman alur buat → login → reset → nonaktif | Terpenuhi, dengan satu kegagalan | No. 5–16 terekam (JSON + PNG). No. 5 `FAIL`: toast sukses simpan tidak tampil |
+| DoD — rekaman alur buat → login → reset → nonaktif | Terpenuhi | No. 5–16 terekam (JSON + PNG) 29 Okt. No. 5 yang `FAIL` saat itu `PASS` pada uji ulang 2 Nov |
 
 ## 8. Catatan penutup
 
 | Hal | Isi |
 | --- | --- |
 | Peringatan | Kredensial di modal ditampilkan dengan `<dl>` polos tanpa CSS baru; tampilannya mengikuti gaya bawaan modal |
-| Masalah yang diketahui | **No. 5:** toast "Data Berhasil Disimpan" hilang karena `router.push` ke detail langsung sesudah `addToast` di hook editor. Tidak diperbaiki di sesi uji ini |
+| Masalah yang diketahui | **No. 5 ditutup 2 Nov.** Temuan di luar lingkup, tidak diperbaiki: (1) form login bersama (`base-login-view.jsx`) tanpa `method="post"`, sehingga klik sebelum hydration mengirim email dan sandi lewat query URL; (2) 90 dari 109 `createToast`, termasuk `job-level`, tidak mengisi `variant`, jadi berpotensi salah warna (belum diaudit per modul); (3) standar master data di suite skill masih meresepkan "toast hijau lalu `router.push`"; (4) skrip lama `test-with-agy/igd` memuat kata sandi literal (folder di-ignore git) |
 | Dependency backend | `BE-NV-002` ✅ (12/12 uji HTTP) |
-| Data uji di DB dev | `NVW-000001` "TV NS Lantai 3 (tab 1)", Lantai 4, Aktif (dari uji layar); `NVW-000002` dari uji HTTP |
+| Data uji di DB dev | `NVW-000001` "TV NS Lantai 3 (tab 1)", Lantai 4, Aktif (dari uji layar); `NVW-000002` dari uji HTTP; `NVW-000003` "TV NS Lantai 3", Lantai 3, Belum ada login (uji ulang 2 Nov, sudah satu kali `PUT` tanpa perubahan isian) |
 | Perubahan sampingan | `NONE` |
-| Interupsi | `NONE` |
-| Status Git | Lihat `FE-NV-001` §8 (satu perubahan bersama) |
-| Langkah berikutnya | Putuskan perbaikan no. 5. Contohnya: detail membaca toast titipan sekali pakai, atau toast cukup di layar detail. Lalu uji ulang no. 5 saja → `FE-NV-002` ✅. Sesudah itu `BE-NV-004`/`FE-NV-004` atau `BE-NV-003`/`FE-NV-003` |
+| Interupsi | Run pertama 2 Nov (08.51 WIB) gagal di login: skrip mengklik sebelum hydration, sehingga form terkirim native dan email + sandi SuperAdmin masuk query `GET /login`. Nilainya sampai ke log dev server, keluaran alat sesi agen, dan satu `ringkasan.json`. Folder run itu dihapus; run itu nol request tulis. Skrip kini menunggu hydration, memblokir URL berisi `password`, dan membersihkan semua bentuk encoding. Fakta ini diteruskan ke lead; tindakannya milik lead |
+| Status Git | Frontend: ` M .../nurse-view-device/use-master-data-nurse-view-device-editor.jsx`, ` M .../nurse-view-device/nurse-view-device-utils.jsx`. Backend: hanya berkas `docs/module-blueprints/nurse-view/` ini. Belum di-commit |
+| Langkah berikutnya | `BE-NV-004` + `FE-NV-004` (keputusan Rizki 2 Nov) |
