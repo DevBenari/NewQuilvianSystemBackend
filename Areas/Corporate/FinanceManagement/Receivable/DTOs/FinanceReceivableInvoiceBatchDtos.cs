@@ -286,6 +286,15 @@ public sealed class ReceivableInvoiceBatchPaymentHistoryResponse
 
 public sealed class ReceivableInvoiceBatchDetailResponse : ReceivableInvoiceBatchResponse
 {
+    /// <summary>True untuk Invoice AR piutang karyawan/dokter: dilunasi lewat potong gaji perjanjian angsuran, bukan kasir/bank.</summary>
+    public bool IsEmployeeBenefit { get; set; }
+
+    /// <summary>Alasan pembayaran kasir/bank tidak ditawarkan (terisi bila IsEmployeeBenefit). Null = tidak diblokir karena jenis invoice.</summary>
+    public string? PaymentBlockedReason { get; set; }
+
+    /// <summary>Perjanjian angsuran terkini (MENUNGGU/DISETUJUI/SELESAI) atas piutang anggota invoice karyawan. Null = belum ada perjanjian.</summary>
+    public ReceivableInvoiceBatchInstallmentPlanResponse? InstallmentPlan { get; set; }
+
     public decimal TotalReceivable { get; set; }
     public decimal TotalAllocated { get; set; }
     public decimal TotalOutstanding { get; set; }
@@ -398,6 +407,11 @@ public sealed class ReceivableInvoiceBatchRecapPatientResponse
 
 public sealed class ReceivableInvoiceBatchDocumentResponse
 {
+    public bool IsEmployeeBenefit { get; set; }
+
+    /// <summary>Cara pelunasan yang dicetak pada dokumen. Untuk invoice karyawan: potong gaji sesuai perjanjian angsuran.</summary>
+    public string? PaymentInstruction { get; set; }
+
     public Guid BatchId { get; set; }
     public string BatchNumber { get; set; } = string.Empty;
     public string InvoiceNo => BatchNumber;
@@ -1009,3 +1023,16 @@ public sealed class ClaimManagementPagedResponse
 }
 
 
+
+/// <summary>Ringkasan perjanjian angsuran pada detail Invoice AR karyawan. Angka resmi tetap dibaca dari endpoint perjanjian.</summary>
+public sealed class ReceivableInvoiceBatchInstallmentPlanResponse
+{
+    public Guid Id { get; set; }
+    public string PlanNumber { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public int InstallmentCount { get; set; }
+    public decimal InstallmentAmount { get; set; }
+    public decimal TotalAgreedAmount { get; set; }
+    public string FirstDeductionPeriod { get; set; } = string.Empty;
+    public DateTimeOffset? ApprovedAt { get; set; }
+}

@@ -19,7 +19,7 @@ public sealed class FinReceivableInvoiceBatch : IdentityModel
 
     [Required, MaxLength(50)] public string BatchNumber { get; set; } = string.Empty;
 
-    /// <summary>Tetap PAYER pada rilis ini (FIN-DEC-048).</summary>
+    /// <summary>PAYER (perusahaan/asuransi, FIN-DEC-048) atau EMPLOYEE_BENEFIT (Invoice AR piutang karyawan/dokter yang dilunasi lewat potong gaji).</summary>
     [Required, MaxLength(30)] public string DebtorType { get; set; } = FinReceivableInvoiceBatchDebtorTypes.Payer;
 
     /// <summary>Kunci pengelompokan — sama dengan FinReceivable.DebtorReferenceId anggotanya.</summary>
@@ -133,4 +133,11 @@ public static class FinReceivableInvoiceBatchClaimStatuses
 public static class FinReceivableInvoiceBatchDebtorTypes
 {
     public const string Payer = "PAYER";
+
+    /// <summary>
+    /// Invoice AR atas piutang manfaat karyawan/dokter. Pelunasannya TIDAK lewat kwitansi/kasir (PostPaymentAsync menolaknya),
+    /// melainkan hasil potong gaji perjanjian angsuran yang diterapkan FinanceReceivablePayrollSyncService.
+    /// DebtorReferenceId = identitas pemilik benefit (WorkforceProfileId), bukan penjamin perusahaan.
+    /// </summary>
+    public const string EmployeeBenefit = "EMPLOYEE_BENEFIT";
 }

@@ -411,6 +411,7 @@ try
     // untuk service lain — di luar cakupan BE-FIN-093.
     builder.Services.AddScoped<FinancePatientRefundService>();
     builder.Services.AddScoped<FinanceReceivableInstallmentPlanService>();
+    builder.Services.AddScoped<FinanceInstallmentDeductionEvidenceService>();
     // BE-FIN-094: pola Configure<T> sama persis dengan LeavePayrollIntegrationOptions (HR).
     builder.Services.Configure<FinanceReceivablePayrollSyncOptions>(
         builder.Configuration.GetSection("Finance:ReceivablePayrollSync"));

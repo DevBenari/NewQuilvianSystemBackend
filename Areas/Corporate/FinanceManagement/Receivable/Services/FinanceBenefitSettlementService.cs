@@ -158,7 +158,7 @@ public sealed class FinanceBenefitSettlementService
                 TotalAmount = items.Sum(x => x.Amount),
                 ItemCount = items.Count,
                 Status = FinBenefitSettlementStatuses.Draf,
-                Notes = request.Notes,
+                Notes = HrdBenefitSettlementApprovalService.SanitizeUserNotes(request.Notes),
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = actorUserId
             };
@@ -342,7 +342,9 @@ public sealed class FinanceBenefitSettlementService
             settlement.Status = FinBenefitSettlementStatuses.Diterbitkan;
             settlement.PostedBy = actorUserId;
             settlement.PostedAt = now;
-            if (!string.IsNullOrWhiteSpace(request.Notes)) settlement.Notes = request.Notes;
+            // Catatan Finance mengganti catatan dokumen, tetapi keputusan HRD yang sudah tercatat tidak boleh hilang.
+            if (!string.IsNullOrWhiteSpace(request.Notes))
+                settlement.Notes = HrdBenefitSettlementApprovalService.PreserveApprovalDecision(settlement.Notes, request.Notes);
             settlement.UpdateDateTime = DateTime.UtcNow;
             settlement.UpdateBy = actorUserId;
             settlement.RowVersion = Guid.NewGuid();

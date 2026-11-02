@@ -73,6 +73,16 @@ public sealed class FinanceReceivableBillingDataService
 
         var groups = await BuildGroupsAsync(rows, pageRows, filter, total, totalAmount, cancellationToken);
 
+        // Integritas data (kategori employee): piutang yang pemilik benefitnya tidak dapat diselesaikan, baik dari piutang
+        // maupun dari penjamin aktif kunjungan. Dilaporkan apa adanya; tidak diberi identitas karangan dari nama.
+        var unresolvedOwnerCount = filter.Category == BillingDataCategories.Employee && total > 0
+            ? await rows
+                .Where(x => x.WorkforceProfileId == null && x.EmployeeId == null)
+                .Select(x => x.Receivable.Id)
+                .Distinct()
+                .CountAsync(cancellationToken)
+            : 0;
+
         return new BillingDataPagedResponse
         {
             PageNumber = filter.PageNumber,
@@ -89,6 +99,7 @@ public sealed class FinanceReceivableBillingDataService
                 PeriodLabel = filter.PeriodLabel
             },
             Notice = total == 0 ? EmptyStateNotice(filter.Category) : null,
+            UnresolvedOwnerCount = unresolvedOwnerCount,
             // Hitungan baca-saja; TIDAK memproses apa pun.
             PendingFacts = await _intakeService.GetPendingArFactsAsync(cancellationToken)
         };
@@ -186,9 +197,17 @@ public sealed class FinanceReceivableBillingDataService
     }
 
     /// <summary>
-    /// Isi field pilihan karyawan pada Data Tagihan kategori employee.
-    /// Berisi hanya karyawan yang terkait dengan piutang EMPLOYEE_BENEFIT yang masuk dalam cakupan Data Tagihan.
-    /// Pasien umum TIDAK dimuat. Mendukung pencarian nama karyawan dan No. RM karyawan, serta paginasi.
+    /// Isi field pilihan pemilik piutang (karyawan atau dokter) pada Data Tagihan kategori employee. Berisi hanya pemilik
+    /// yang punya piutang EMPLOYEE_BENEFIT dalam cakupan Data Tagihan; pasien umum TIDAK dimuat. Identitas yang dikembalikan
+    /// (Id) adalah WorkforceProfileId — kunci yang sama dengan filter EntityId, sehingga satu pilihan menyaring tabel pada
+    /// pemilik yang tepat dan dua orang bernama sama tetap terpisah.
+    ///
+    /// Pemilik ditentukan dengan urutan yang SAMA dengan baris tabel: (1) pemilik pada piutang (WorkforceProfileId, atau
+    /// BenefitOwnerId lama yang dijembatani lewat MstEmployee), (2) bila piutang tanpa pemilik, penjamin aktif kunjungan
+    /// (snapshot profil/karyawan atau kartu penjamin internal). Nama TIDAK pernah dipakai sebagai kunci; piutang yang
+    /// pemiliknya tidak dapat diselesaikan tidak diberi identitas karangan (dilaporkan lewat UnresolvedOwnerCount pada
+    /// GET billing-data). Pencarian nama dan No. RM dijalankan di database (case-insensitive, LIKE ter-escape); tidak ada
+    /// ekspresi yang bergantung pada dictionary di dalam query EF Core.
     /// </summary>
     public async Task<PagedResult<BillingDataEmployeeOptionResponse>> GetEmployeeOptionsAsync(
         BillingDataEmployeeOptionQuery request, CancellationToken cancellationToken)
@@ -198,176 +217,75 @@ public sealed class FinanceReceivableBillingDataService
             : Math.Clamp(request.PageSize, 1, 100);
         var pageNumber = Math.Max(1, request.PageNumber);
         var search = request.Search?.Trim();
+        var pattern = string.IsNullOrEmpty(search) ? null : BuildContainsPattern(search);
 
-        var activeBatchedIds = ActiveBatchedReceivableIds();
-        var debtorType = FinReceivableDebtorTypes.EmployeeBenefit;
-
-        // 1. Ambil seluruh piutang EMPLOYEE_BENEFIT yang masuk cakupan Data Tagihan
-        var receivablesQuery = _dbContext.FinReceivables.AsNoTracking()
-            .Where(r => !r.IsDelete
-                && r.DebtorType == debtorType
-                && r.Status != FinReceivableStatuses.Cancelled
-                && (activeBatchedIds.Contains(r.Id)
-                    || r.Status == FinReceivableStatuses.Outstanding
-                    || r.Status == FinReceivableStatuses.Partial
-                    || r.Status == FinReceivableStatuses.Settled));
-
-        var distinctOwners = await receivablesQuery
-            .Select(r => new { r.BenefitOwnerWorkforceProfileId, r.BenefitOwnerId })
-            .Distinct()
-            .ToListAsync(cancellationToken);
-
-        if (distinctOwners.Count == 0)
+        PagedResult<BillingDataEmployeeOptionResponse> Empty() => new()
         {
-            return new PagedResult<BillingDataEmployeeOptionResponse>
-            {
-                Items = new List<BillingDataEmployeeOptionResponse>(),
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalData = 0,
-                TotalPage = 1
-            };
+            Items = new List<BillingDataEmployeeOptionResponse>(),
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = 0,
+            TotalPage = 1
+        };
+
+        var scope = await ResolveEmployeeOwnerScopeAsync(cancellationToken);
+        if (scope.ProfileIds.Count == 0) return Empty();
+
+        var scopeProfileIds = scope.ProfileIds.ToList();
+
+        // Kandidat: tanpa pencarian = seluruh pemilik; dengan pencarian = nama cocok ATAU No. RM pemilik cocok.
+        List<Guid> candidateIds = scopeProfileIds;
+        if (pattern is not null)
+        {
+            var nameMatchedIds = await _dbContext.MstWorkforceProfiles.AsNoTracking()
+                .Where(w => !w.IsDelete
+                    && scopeProfileIds.Contains(w.Id)
+                    && (EF.Functions.ILike(w.DisplayName, pattern, "\\")
+                        || (w.Employee != null && EF.Functions.ILike(w.Employee.FullName, pattern, "\\"))
+                        || (w.Doctor != null && EF.Functions.ILike(w.Doctor.FullName, pattern, "\\"))))
+                .Select(w => w.Id)
+                .ToListAsync(cancellationToken);
+
+            var mrnMatches = await FindVerifiedMedicalRecordNumbersAsync(scopeProfileIds, scope, pattern, cancellationToken);
+
+            candidateIds = nameMatchedIds.Concat(mrnMatches.Keys).Distinct().ToList();
+            if (candidateIds.Count == 0) return Empty();
         }
 
-        // 2. Terjemahkan BenefitOwnerId historis ke WorkforceProfileId
-        var legacyEmployeeIds = distinctOwners
-            .Where(x => !x.BenefitOwnerWorkforceProfileId.HasValue && x.BenefitOwnerId.HasValue)
-            .Select(x => x.BenefitOwnerId!.Value)
-            .Distinct()
-            .ToList();
-
-        var profileByEmployee = legacyEmployeeIds.Count > 0
-            ? await _dbContext.MstEmployees.AsNoTracking()
-                .Where(e => legacyEmployeeIds.Contains(e.Id))
-                .ToDictionaryAsync(e => e.Id, e => e.WorkforceProfileId, cancellationToken)
-            : new Dictionary<Guid, Guid>();
-
-        var allProfileIds = distinctOwners
-            .Select(x => x.BenefitOwnerWorkforceProfileId
-                ?? (x.BenefitOwnerId.HasValue && profileByEmployee.TryGetValue(x.BenefitOwnerId.Value, out var pId) ? pId : (Guid?)null))
-            .Where(x => x.HasValue)
-            .Select(x => x!.Value)
-            .Distinct()
-            .ToList();
-
-        // 3. Muat profil karyawan/dokter dari MstWorkforceProfile
         var profiles = await _dbContext.MstWorkforceProfiles.AsNoTracking()
-            .Where(w => allProfileIds.Contains(w.Id) && !w.IsDelete)
+            .Where(w => !w.IsDelete && candidateIds.Contains(w.Id))
             .Select(w => new
             {
                 w.Id,
                 w.DisplayName,
                 EmployeeFullName = w.Employee != null ? w.Employee.FullName : null,
                 DoctorFullName = w.Doctor != null ? w.Doctor.FullName : null,
-                IdentityNumber = w.Employee != null ? w.Employee.IdentityNumber : null
+                EmployeeNumber = w.Employee != null ? w.Employee.EmployeeNumber : null,
+                DoctorNumber = w.Doctor != null ? w.Doctor.DoctorNumber : null
             })
             .ToListAsync(cancellationToken);
 
-        // 4. Telusuri No. RM karyawan yang terverifikasi (TIDAK memakai No. RM anggota keluarga)
-        // 4a. Dari piutang dengan BenefitRelationship == "SELF"
-        var selfPatientMrns = await (
-            from item in _dbContext.FinReceivableItems.AsNoTracking()
-            join r in receivablesQuery on item.ReceivableId equals r.Id
-            join p in _dbContext.MstPatients.AsNoTracking() on item.PatientId equals p.Id
-            where !item.IsDelete && !p.IsDelete
-                && r.BenefitRelationship != null && EF.Functions.ILike(r.BenefitRelationship, "SELF")
-            select new
-            {
-                ProfileId = r.BenefitOwnerWorkforceProfileId
-                    ?? (r.BenefitOwnerId.HasValue && profileByEmployee.ContainsKey(r.BenefitOwnerId.Value) ? profileByEmployee[r.BenefitOwnerId.Value] : (Guid?)null),
-                p.MedicalRecordNumber
-            }
-        ).Where(x => x.ProfileId.HasValue).Distinct().ToListAsync(cancellationToken);
-
-        var mrnByProfile = new Dictionary<Guid, string>();
-        foreach (var row in selfPatientMrns.Where(x => x.ProfileId.HasValue && !string.IsNullOrWhiteSpace(x.MedicalRecordNumber)))
-        {
-            mrnByProfile.TryAdd(row.ProfileId!.Value, row.MedicalRecordNumber);
-        }
-
-        // 4b. Dari kartu penjamin internal MstPatientCompanyGuarantor dengan BenefitRelationship == "SELF"
-        var unmappedProfileIds = allProfileIds.Where(id => !mrnByProfile.ContainsKey(id)).ToList();
-        if (unmappedProfileIds.Count > 0)
-        {
-            var cardMrns = await (
-                from cg in _dbContext.MstPatientCompanyGuarantors.AsNoTracking()
-                join p in _dbContext.MstPatients.AsNoTracking() on cg.PatientId equals p.Id
-                where !cg.IsDelete && !cg.IsCancel && cg.IsActive && !p.IsDelete
-                    && cg.BenefitRelationship != null && EF.Functions.ILike(cg.BenefitRelationship, "SELF")
-                    && cg.BenefitOwnerWorkforceProfileId != null
-                    && unmappedProfileIds.Contains(cg.BenefitOwnerWorkforceProfileId.Value)
-                select new
-                {
-                    ProfileId = cg.BenefitOwnerWorkforceProfileId!.Value,
-                    p.MedicalRecordNumber
-                }
-            ).Distinct().ToListAsync(cancellationToken);
-
-            foreach (var card in cardMrns.Where(x => !string.IsNullOrWhiteSpace(x.MedicalRecordNumber)))
-            {
-                mrnByProfile.TryAdd(card.ProfileId, card.MedicalRecordNumber);
-            }
-        }
-
-        // 4c. Dari pencocokan NIK terverifikasi (bila ada NIK valid pada MstEmployee yang cocok ke MstPatient)
-        unmappedProfileIds = allProfileIds.Where(id => !mrnByProfile.ContainsKey(id)).ToList();
-        if (unmappedProfileIds.Count > 0)
-        {
-            var nikPairs = profiles
-                .Where(p => unmappedProfileIds.Contains(p.Id) && !string.IsNullOrWhiteSpace(p.IdentityNumber) && p.IdentityNumber.Length >= 8)
-                .Select(p => new { p.Id, p.IdentityNumber })
-                .ToList();
-
-            if (nikPairs.Count > 0)
-            {
-                var niks = nikPairs.Select(x => x.IdentityNumber).Distinct().ToList();
-                var patientNiks = await _dbContext.MstPatients.AsNoTracking()
-                    .Where(p => !p.IsDelete && p.IdentityNumber != null && niks.Contains(p.IdentityNumber))
-                    .Select(p => new { p.IdentityNumber, p.MedicalRecordNumber })
-                    .ToListAsync(cancellationToken);
-
-                var mrnByNik = patientNiks
-                    .Where(x => !string.IsNullOrWhiteSpace(x.IdentityNumber) && !string.IsNullOrWhiteSpace(x.MedicalRecordNumber))
-                    .ToDictionary(x => x.IdentityNumber!, x => x.MedicalRecordNumber);
-
-                foreach (var pair in nikPairs)
-                {
-                    if (mrnByNik.TryGetValue(pair.IdentityNumber!, out var mrn))
-                    {
-                        mrnByProfile.TryAdd(pair.Id, mrn);
-                    }
-                }
-            }
-        }
-
-        // 5. Rakit daftar opsi
-        var candidates = new List<BillingDataEmployeeOptionResponse>();
+        var candidates = new List<BillingDataEmployeeOptionResponse>(profiles.Count);
         foreach (var profile in profiles)
         {
-            var name = !string.IsNullOrWhiteSpace(profile.EmployeeFullName)
-                ? profile.EmployeeFullName
-                : (!string.IsNullOrWhiteSpace(profile.DoctorFullName) ? profile.DoctorFullName : profile.DisplayName);
+            var isEmployee = !string.IsNullOrWhiteSpace(profile.EmployeeFullName);
+            var isDoctorOnly = !isEmployee && !string.IsNullOrWhiteSpace(profile.DoctorFullName);
+            var staffNumber = FirstNonBlank(isDoctorOnly ? profile.DoctorNumber : profile.EmployeeNumber);
+            var name = FirstNonBlank(profile.EmployeeFullName, profile.DoctorFullName, profile.DisplayName, staffNumber);
 
-            mrnByProfile.TryGetValue(profile.Id, out var mrn);
+            // Profil tanpa nama apa pun tidak dapat ditampilkan; tidak diberi nama karangan.
+            if (name is null) continue;
 
             candidates.Add(new BillingDataEmployeeOptionResponse
             {
                 Id = profile.Id,
                 Name = name,
-                MedicalRecordNumber = mrn
+                OwnerType = isDoctorOnly ? "DOCTOR" : (isEmployee ? "EMPLOYEE" : null),
+                StaffNumber = staffNumber
             });
         }
 
-        // 6. Saring berdasarkan Search (nama karyawan ATAU No. RM karyawan)
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            candidates = candidates
-                .Where(c => c.Name.Contains(search, StringComparison.OrdinalIgnoreCase)
-                    || (c.MedicalRecordNumber != null && c.MedicalRecordNumber.Contains(search, StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-        }
-
-        // 7. Urutkan nama karyawan ASC, lalu Id ASC
+        // Urut nama ASC lalu Id ASC; pagination atas himpunan pemilik (bukan atas piutang).
         candidates = candidates
             .OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase)
             .ThenBy(c => c.Id)
@@ -377,6 +295,16 @@ public sealed class FinanceReceivableBillingDataService
         var totalPage = Math.Max(1, (int)Math.Ceiling((double)totalData / pageSize));
         var items = candidates.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 
+        // No. RM terverifikasi hanya dicari untuk pemilik pada halaman ini (tanpa N+1 dan tanpa memuat seluruh pasien).
+        var pageMrns = await FindVerifiedMedicalRecordNumbersAsync(items.Select(c => c.Id).ToList(), scope, null, cancellationToken);
+        foreach (var item in items)
+        {
+            if (pageMrns.TryGetValue(item.Id, out var numbers) && numbers.Count > 0)
+            {
+                item.MedicalRecordNumber = numbers[0];
+            }
+        }
+
         return new PagedResult<BillingDataEmployeeOptionResponse>
         {
             Items = items,
@@ -385,6 +313,433 @@ public sealed class FinanceReceivableBillingDataService
             TotalData = totalData,
             TotalPage = totalPage
         };
+    }
+
+    private static string? FirstNonBlank(params string?[] values) =>
+        values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value))?.Trim();
+
+    /// <summary>Piutang EMPLOYEE_BENEFIT dalam cakupan Data Tagihan (predikat yang sama dengan BuildQuery, tingkat piutang).</summary>
+    private IQueryable<FinReceivable> EmployeeScopeReceivables()
+    {
+        var activeBatchedIds = ActiveBatchedReceivableIds();
+        var debtorType = FinReceivableDebtorTypes.EmployeeBenefit;
+
+        return _dbContext.FinReceivables.AsNoTracking()
+            .Where(r => !r.IsDelete
+                && r.DebtorType == debtorType
+                && r.Status != FinReceivableStatuses.Cancelled
+                && (activeBatchedIds.Contains(r.Id)
+                    || r.Status == FinReceivableStatuses.Outstanding
+                    || r.Status == FinReceivableStatuses.Partial
+                    || r.Status == FinReceivableStatuses.Settled)
+                && _dbContext.FinReceivableItems.Any(i => i.ReceivableId == r.Id && !i.IsDelete));
+    }
+
+    /// <summary>Hasil resolusi pemilik canonical untuk seluruh piutang karyawan dalam cakupan.</summary>
+    private sealed class EmployeeOwnerScope
+    {
+        /// <summary>WorkforceProfileId seluruh pemilik yang berhasil diselesaikan.</summary>
+        public HashSet<Guid> ProfileIds { get; } = new();
+
+        /// <summary>MstEmployee.Id (identitas lama) -> WorkforceProfileId.</summary>
+        public Dictionary<Guid, Guid> ProfileByEmployee { get; } = new();
+
+        /// <summary>Hanya untuk piutang TANPA pemilik pada dirinya: piutang -> profil dari penjamin aktif kunjungan.</summary>
+        public Dictionary<Guid, Guid> SnapshotProfileByReceivable { get; } = new();
+    }
+
+    private async Task<EmployeeOwnerScope> ResolveEmployeeOwnerScopeAsync(CancellationToken cancellationToken)
+    {
+        // Batas eksplisit untuk penelusuran lewat penjamin kunjungan (hanya piutang tanpa pemilik pada dirinya).
+        const int maxOwnerlessReceivables = 5000;
+
+        var scope = new EmployeeOwnerScope();
+        var receivables = EmployeeScopeReceivables();
+        var legacyEmployeeIds = new HashSet<Guid>();
+
+        // 1. Pemilik yang tercatat pada piutang.
+        var ownerPairs = await receivables
+            .Where(r => r.BenefitOwnerWorkforceProfileId != null || r.BenefitOwnerId != null)
+            .Select(r => new { r.BenefitOwnerWorkforceProfileId, r.BenefitOwnerId })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        foreach (var pair in ownerPairs)
+        {
+            if (pair.BenefitOwnerWorkforceProfileId.HasValue)
+                scope.ProfileIds.Add(pair.BenefitOwnerWorkforceProfileId.Value);
+            else if (pair.BenefitOwnerId.HasValue)
+                legacyEmployeeIds.Add(pair.BenefitOwnerId.Value);
+        }
+
+        // 2. Piutang tanpa pemilik: telusuri penjamin aktif kunjungan (urutan yang sama dengan proyeksi tabel).
+        var ownerlessIds = await receivables
+            .Where(r => r.BenefitOwnerWorkforceProfileId == null && r.BenefitOwnerId == null)
+            .Select(r => r.Id)
+            .Take(maxOwnerlessReceivables)
+            .ToListAsync(cancellationToken);
+
+        var snapshotEmployeeByReceivable = new Dictionary<Guid, Guid>();
+        if (ownerlessIds.Count > 0)
+        {
+            var guarantorRows = await (
+                from item in _dbContext.FinReceivableItems.AsNoTracking()
+                join g in _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
+                    on item.EncounterId equals (Guid?)g.EncounterId
+                where !item.IsDelete
+                    && ownerlessIds.Contains(item.ReceivableId)
+                    && g.IsActive
+                    && !g.IsDelete
+                select new
+                {
+                    item.ReceivableId,
+                    g.IsPrimary,
+                    g.Priority,
+                    g.WorkforceProfileIdSnapshot,
+                    g.EmployeeIdSnapshot,
+                    CardProfileId = g.PatientCompanyGuarantor != null ? g.PatientCompanyGuarantor.BenefitOwnerWorkforceProfileId : null,
+                    CardEmployeeId = g.PatientCompanyGuarantor != null ? g.PatientCompanyGuarantor.EmployeeId : null
+                }).ToListAsync(cancellationToken);
+
+            foreach (var group in guarantorRows.GroupBy(x => x.ReceivableId))
+            {
+                var ordered = group.OrderByDescending(x => x.IsPrimary).ThenBy(x => x.Priority).ToList();
+                var profileId = ordered.Select(x => x.WorkforceProfileIdSnapshot ?? x.CardProfileId).FirstOrDefault(id => id.HasValue);
+                var employeeId = ordered.Select(x => x.EmployeeIdSnapshot ?? x.CardEmployeeId).FirstOrDefault(id => id.HasValue);
+
+                if (profileId.HasValue)
+                {
+                    scope.SnapshotProfileByReceivable[group.Key] = profileId.Value;
+                    scope.ProfileIds.Add(profileId.Value);
+                }
+                else if (employeeId.HasValue)
+                {
+                    snapshotEmployeeByReceivable[group.Key] = employeeId.Value;
+                    legacyEmployeeIds.Add(employeeId.Value);
+                }
+            }
+        }
+
+        // 3. Identitas lama (MstEmployee.Id) dijembatani ke WorkforceProfileId. Yang tidak ditemukan tidak diberi identitas karangan.
+        if (legacyEmployeeIds.Count > 0)
+        {
+            var employeeIds = legacyEmployeeIds.ToList();
+            var mapped = await _dbContext.MstEmployees.AsNoTracking()
+                .Where(e => employeeIds.Contains(e.Id))
+                .Select(e => new { e.Id, e.WorkforceProfileId })
+                .ToListAsync(cancellationToken);
+
+            foreach (var employee in mapped)
+            {
+                scope.ProfileByEmployee[employee.Id] = employee.WorkforceProfileId;
+                scope.ProfileIds.Add(employee.WorkforceProfileId);
+            }
+        }
+
+        foreach (var pair in snapshotEmployeeByReceivable)
+        {
+            if (scope.ProfileByEmployee.TryGetValue(pair.Value, out var snapshotProfileId))
+            {
+                scope.SnapshotProfileByReceivable[pair.Key] = snapshotProfileId;
+            }
+        }
+
+        return scope;
+    }
+
+    /// <summary>
+    /// No. RM PEMILIK benefit yang terverifikasi, per WorkforceProfileId. Hanya tiga sumber yang sah, berurutan prioritas:
+    /// (a) pasien pada piutang berhubungan SELF, (b) kartu penjamin internal berhubungan SELF, (c) NIK pegawai yang sama
+    /// dengan NIK pasien (NIK sah &gt;= 8 karakter). No. RM pasien tanggungan TIDAK pernah dianggap No. RM pemilik.
+    /// Dengan <paramref name="pattern"/>, penyaringan No. RM dilakukan di database dan hanya pemilik yang cocok dikembalikan.
+    /// Semua pemetaan dictionary dilakukan di memori SETELAH data dibaca (tidak ada dictionary di dalam query EF Core).
+    /// </summary>
+    private async Task<Dictionary<Guid, List<string>>> FindVerifiedMedicalRecordNumbersAsync(
+        IReadOnlyCollection<Guid> profileIds, EmployeeOwnerScope scope, string? pattern, CancellationToken cancellationToken)
+    {
+        var result = new Dictionary<Guid, List<string>>();
+        if (profileIds.Count == 0) return result;
+
+        var profileList = profileIds.ToList();
+        var profileSet = new HashSet<Guid>(profileList);
+
+        void Add(Guid profileId, string? medicalRecordNumber)
+        {
+            if (!profileSet.Contains(profileId) || string.IsNullOrWhiteSpace(medicalRecordNumber)) return;
+            if (!result.TryGetValue(profileId, out var list))
+            {
+                list = new List<string>();
+                result[profileId] = list;
+            }
+            if (!list.Contains(medicalRecordNumber)) list.Add(medicalRecordNumber);
+        }
+
+        // Jembatan identitas lama <-> canonical untuk pemilik yang diminta.
+        var employeeRows = await _dbContext.MstEmployees.AsNoTracking()
+            .Where(e => profileList.Contains(e.WorkforceProfileId))
+            .Select(e => new { e.Id, e.WorkforceProfileId })
+            .ToListAsync(cancellationToken);
+        var profileByEmployee = employeeRows.ToDictionary(e => e.Id, e => e.WorkforceProfileId);
+        foreach (var pair in scope.ProfileByEmployee)
+        {
+            if (profileSet.Contains(pair.Value)) profileByEmployee[pair.Key] = pair.Value;
+        }
+        var employeeIds = profileByEmployee.Keys.ToList();
+        var snapshotReceivableIds = scope.SnapshotProfileByReceivable
+            .Where(pair => profileSet.Contains(pair.Value))
+            .Select(pair => pair.Key)
+            .ToList();
+
+        // (a) Pasien pada piutang berhubungan SELF = pemilik itu sendiri.
+        var receivables = EmployeeScopeReceivables();
+        var selfQuery =
+            from item in _dbContext.FinReceivableItems.AsNoTracking()
+            join r in receivables on item.ReceivableId equals r.Id
+            join p in _dbContext.MstPatients.AsNoTracking() on item.PatientId equals (Guid?)p.Id
+            where !item.IsDelete
+                && !p.IsDelete
+                && r.BenefitRelationship != null
+                && EF.Functions.ILike(r.BenefitRelationship, "SELF")
+                && ((r.BenefitOwnerWorkforceProfileId != null && profileList.Contains(r.BenefitOwnerWorkforceProfileId.Value))
+                    || (r.BenefitOwnerId != null && employeeIds.Contains(r.BenefitOwnerId.Value))
+                    || snapshotReceivableIds.Contains(r.Id))
+            select new
+            {
+                ReceivableId = r.Id,
+                r.BenefitOwnerWorkforceProfileId,
+                r.BenefitOwnerId,
+                p.MedicalRecordNumber
+            };
+        if (pattern is not null)
+        {
+            selfQuery = selfQuery.Where(x => EF.Functions.ILike(x.MedicalRecordNumber, pattern, "\\"));
+        }
+
+        var selfRows = await selfQuery.Distinct().ToListAsync(cancellationToken);
+        foreach (var row in selfRows.OrderBy(x => x.MedicalRecordNumber, StringComparer.Ordinal))
+        {
+            Guid? ownerProfileId = row.BenefitOwnerWorkforceProfileId;
+            if (!ownerProfileId.HasValue && row.BenefitOwnerId.HasValue
+                && profileByEmployee.TryGetValue(row.BenefitOwnerId.Value, out var legacyProfileId))
+            {
+                ownerProfileId = legacyProfileId;
+            }
+            if (!ownerProfileId.HasValue && scope.SnapshotProfileByReceivable.TryGetValue(row.ReceivableId, out var snapshotProfileId))
+            {
+                ownerProfileId = snapshotProfileId;
+            }
+            if (ownerProfileId.HasValue) Add(ownerProfileId.Value, row.MedicalRecordNumber);
+        }
+
+        // (b) Kartu penjamin internal berhubungan SELF.
+        var cardQuery =
+            from cg in _dbContext.MstPatientCompanyGuarantors.AsNoTracking()
+            join p in _dbContext.MstPatients.AsNoTracking() on cg.PatientId equals p.Id
+            where !cg.IsDelete
+                && !cg.IsCancel
+                && cg.IsActive
+                && !p.IsDelete
+                && cg.BenefitRelationship != null
+                && EF.Functions.ILike(cg.BenefitRelationship, "SELF")
+                && ((cg.BenefitOwnerWorkforceProfileId != null && profileList.Contains(cg.BenefitOwnerWorkforceProfileId.Value))
+                    || (cg.EmployeeId != null && employeeIds.Contains(cg.EmployeeId.Value)))
+            select new { cg.BenefitOwnerWorkforceProfileId, cg.EmployeeId, p.MedicalRecordNumber };
+        if (pattern is not null)
+        {
+            cardQuery = cardQuery.Where(x => EF.Functions.ILike(x.MedicalRecordNumber, pattern, "\\"));
+        }
+
+        var cardRows = await cardQuery.Distinct().ToListAsync(cancellationToken);
+        foreach (var row in cardRows.OrderBy(x => x.MedicalRecordNumber, StringComparer.Ordinal))
+        {
+            Guid? ownerProfileId = row.BenefitOwnerWorkforceProfileId;
+            if (!ownerProfileId.HasValue && row.EmployeeId.HasValue
+                && profileByEmployee.TryGetValue(row.EmployeeId.Value, out var cardLegacyProfileId))
+            {
+                ownerProfileId = cardLegacyProfileId;
+            }
+            if (ownerProfileId.HasValue) Add(ownerProfileId.Value, row.MedicalRecordNumber);
+        }
+
+        // (c) NIK pegawai yang sama dengan NIK pasien (hanya NIK sah, >= 8 karakter).
+        var nikRows = await _dbContext.MstWorkforceProfiles.AsNoTracking()
+            .Where(w => !w.IsDelete
+                && profileList.Contains(w.Id)
+                && w.Employee != null
+                && w.Employee.IdentityNumber != null
+                && w.Employee.IdentityNumber.Length >= 8)
+            .Select(w => new { w.Id, IdentityNumber = w.Employee!.IdentityNumber })
+            .ToListAsync(cancellationToken);
+
+        if (nikRows.Count > 0)
+        {
+            var niks = nikRows.Select(x => x.IdentityNumber).Distinct().ToList();
+            var patientQuery = _dbContext.MstPatients.AsNoTracking()
+                .Where(p => !p.IsDelete && p.IdentityNumber != null && niks.Contains(p.IdentityNumber));
+            if (pattern is not null)
+            {
+                patientQuery = patientQuery.Where(p => EF.Functions.ILike(p.MedicalRecordNumber, pattern, "\\"));
+            }
+
+            var patientRows = await patientQuery
+                .Select(p => new { p.IdentityNumber, p.MedicalRecordNumber })
+                .ToListAsync(cancellationToken);
+
+            var mrnsByNik = patientRows
+                .Where(x => !string.IsNullOrWhiteSpace(x.IdentityNumber) && !string.IsNullOrWhiteSpace(x.MedicalRecordNumber))
+                .GroupBy(x => x.IdentityNumber!)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.MedicalRecordNumber).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToList());
+
+            foreach (var row in nikRows)
+            {
+                if (!mrnsByNik.TryGetValue(row.IdentityNumber, out var numbers)) continue;
+                foreach (var number in numbers) Add(row.Id, number);
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Piutang karyawan/dokter pada hasil filter yang dapat diajukan perjanjian angsuran. Filter, pencarian, dan identitas
+    /// pemilik IDENTIK dengan GET billing-data (kategori dipaksa employee), dihitung atas seluruh hasil filter. HANYA MEMBACA:
+    /// tidak membuat perjanjian, tidak mengubah saldo. Dipakai tombol Perjanjian Angsuran untuk memutuskan: buka form satu
+    /// piutang, tampilkan pilihan piutang, atau jelaskan bahwa tidak ada yang eligible.
+    /// </summary>
+    public async Task<BillingDataInstallmentCandidatesResponse> GetInstallmentCandidatesAsync(
+        BillingDataQuery request, CancellationToken cancellationToken)
+    {
+        const int maxCandidates = 100;
+
+        var filter = ResolveFilter(new BillingDataQuery
+        {
+            Category = BillingDataCategories.Employee,
+            Search = request.Search,
+            EntityId = request.EntityId,
+            ResolutionStatus = request.ResolutionStatus,
+            PatientType = request.PatientType,
+            Period = request.Period,
+            StartDate = request.StartDate,
+            EndDate = request.EndDate,
+            PageNumber = 1,
+            PageSize = 1
+        });
+        var rows = BuildQuery(filter);
+
+        var activePlanReceivableIds = _dbContext.FinReceivableInstallmentPlans
+            .Where(p => !p.IsDelete
+                && (p.Status == FinReceivableInstallmentPlanStatuses.Menunggu
+                    || p.Status == FinReceivableInstallmentPlanStatuses.Disetujui))
+            .Select(p => p.ReceivableId);
+
+        var eligibleRows = rows.Where(x =>
+            (x.Receivable.Status == FinReceivableStatuses.Outstanding || x.Receivable.Status == FinReceivableStatuses.Partial)
+            && x.Receivable.OutstandingAmount > 0m
+            && !activePlanReceivableIds.Contains(x.Receivable.Id));
+
+        var filteredCount = await rows.Select(x => x.Receivable.Id).Distinct().CountAsync(cancellationToken);
+        var eligibleCount = await eligibleRows.Select(x => x.Receivable.Id).Distinct().CountAsync(cancellationToken);
+
+        var response = new BillingDataInstallmentCandidatesResponse
+        {
+            FilteredReceivableCount = filteredCount,
+            EligibleCount = eligibleCount
+        };
+        if (eligibleCount == 0) return response;
+
+        // Pemilik berbeda menurut identitas canonical; BenefitOwnerId lama diterjemahkan ke WorkforceProfileId.
+        var ownerPairs = await eligibleRows
+            // Identitas BARIS (sama dengan tabel): pemilik pada piutang, lalu penjamin aktif kunjungan.
+            .Select(x => new { BenefitOwnerWorkforceProfileId = x.WorkforceProfileId, BenefitOwnerId = x.EmployeeId })
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        var legacyEmployeeIds = ownerPairs
+            .Where(p => !p.BenefitOwnerWorkforceProfileId.HasValue && p.BenefitOwnerId.HasValue)
+            .Select(p => p.BenefitOwnerId!.Value)
+            .Distinct()
+            .ToList();
+        var profileByEmployee = legacyEmployeeIds.Count > 0
+            ? await _dbContext.MstEmployees.AsNoTracking()
+                .Where(e => legacyEmployeeIds.Contains(e.Id))
+                .ToDictionaryAsync(e => e.Id, e => e.WorkforceProfileId, cancellationToken)
+            : new Dictionary<Guid, Guid>();
+
+        var ownerProfileIds = new HashSet<Guid>();
+        var hasUnidentifiedOwner = false;
+        foreach (var pair in ownerPairs)
+        {
+            if (pair.BenefitOwnerWorkforceProfileId.HasValue)
+                ownerProfileIds.Add(pair.BenefitOwnerWorkforceProfileId.Value);
+            else if (pair.BenefitOwnerId.HasValue && profileByEmployee.TryGetValue(pair.BenefitOwnerId.Value, out var mappedProfileId))
+                ownerProfileIds.Add(mappedProfileId);
+            else
+                hasUnidentifiedOwner = true;
+        }
+        response.EligibleOwnerCount = ownerProfileIds.Count + (hasUnidentifiedOwner ? 1 : 0);
+
+        // Daftar dibatasi; urutan terbaru dulu. Satu piutang bisa punya banyak rincian, jadi digabung per piutang.
+        var listRows = await eligibleRows
+            .OrderByDescending(x => x.Receivable.RecognizedAt)
+            .ThenBy(x => x.Receivable.Id)
+            .Select(x => new
+            {
+                ReceivableId = x.Receivable.Id,
+                x.Receivable.ReceivableNumber,
+                x.Receivable.RecognizedAt,
+                ReceivableStatus = x.Receivable.Status,
+                x.Receivable.OriginalAmount,
+                x.Receivable.OutstandingAmount,
+                BenefitOwnerWorkforceProfileId = x.WorkforceProfileId,
+                BenefitOwnerId = x.EmployeeId,
+                x.Receivable.BenefitRelationship,
+                InvoiceNumber = x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+                EncounterDate = x.Encounter != null ? (DateTime?)x.Encounter.EncounterDate : null,
+                PatientName = x.Patient != null ? x.Patient.FullName : null,
+                PatientMrn = x.Patient != null ? x.Patient.MedicalRecordNumber : null
+            })
+            .Take(maxCandidates * 5)
+            .ToListAsync(cancellationToken);
+
+        var distinctRows = listRows.GroupBy(r => r.ReceivableId).Select(g => g.First()).Take(maxCandidates).ToList();
+        response.HasMore = eligibleCount > distinctRows.Count;
+
+        var owners = await FinanceBenefitOwnerDirectory.LoadAsync(
+            _dbContext,
+            distinctRows.Select(r => ((Guid?)r.BenefitOwnerId, r.BenefitOwnerWorkforceProfileId)),
+            cancellationToken);
+
+        foreach (var row in distinctRows)
+        {
+            var owner = owners.Find(row.BenefitOwnerId, row.BenefitOwnerWorkforceProfileId);
+            response.Candidates.Add(new BillingDataInstallmentCandidate
+            {
+                ReceivableId = row.ReceivableId,
+                ReceivableNumber = row.ReceivableNumber,
+                InvoiceNumber = row.InvoiceNumber,
+                BillingDate = row.EncounterDate.HasValue
+                    ? new DateTimeOffset(DateTime.SpecifyKind(row.EncounterDate.Value, DateTimeKind.Utc))
+                    : row.RecognizedAt,
+                PatientName = row.PatientName,
+                PatientMedicalRecordNumber = row.PatientMrn,
+                BenefitRelationship = row.BenefitRelationship,
+                OriginalAmount = row.OriginalAmount,
+                OutstandingAmount = row.OutstandingAmount,
+                ReceivableStatus = row.ReceivableStatus,
+                OwnerWorkforceProfileId = owner?.WorkforceProfileId ?? row.BenefitOwnerWorkforceProfileId,
+                OwnerName = owner?.StaffName,
+                OwnerStaffNumber = owner?.StaffNumber,
+                OwnerType = owner?.OwnerType
+            });
+        }
+
+        if (response.EligibleOwnerCount == 1 && response.Candidates.Count > 0)
+        {
+            response.OwnerWorkforceProfileId = response.Candidates[0].OwnerWorkforceProfileId;
+            response.OwnerName = response.Candidates[0].OwnerName;
+        }
+
+        return response;
     }
 
     // ------------------------------------------------------------------------------------
@@ -513,10 +868,18 @@ public sealed class FinanceReceivableBillingDataService
 
         if (filter.Category == BillingDataCategories.Employee)
         {
+            // entityId = WorkforceProfileId (canonical) atau MstEmployee.Id (tautan lama). Piutang disaring lewat PEMILIK
+            // benefitnya: identitas canonical, identitas lama, dan jembatan keduanya lewat MstEmployee.
+            // Identitas BARIS (x.WorkforceProfileId / x.EmployeeId) = pemilik pada piutang, lalu penjamin aktif kunjungan,
+            // persis yang menentukan nama pemilik pada tabel dan pilihan di employee-options. Memakai kolom piutang saja
+            // membuat pemilik yang tampil di tabel lewat snapshot penjamin tidak dapat difilter.
             return rows.Where(x =>
-                x.Receivable.BenefitOwnerWorkforceProfileId == entityId
-                || x.Receivable.BenefitOwnerId == entityId
-                || _dbContext.MstEmployees.Any(e => e.Id == x.Receivable.BenefitOwnerId && e.WorkforceProfileId == entityId));
+                x.WorkforceProfileId == entityId
+                || x.EmployeeId == entityId
+                || (x.EmployeeId != null
+                    && _dbContext.MstEmployees.Any(e => e.Id == x.EmployeeId && e.WorkforceProfileId == entityId))
+                || (x.WorkforceProfileId != null
+                    && _dbContext.MstEmployees.Any(e => e.Id == entityId && e.WorkforceProfileId == x.WorkforceProfileId)));
         }
 
         return rows.Where(x => x.Item.PatientId == entityId);
@@ -709,31 +1072,55 @@ public sealed class FinanceReceivableBillingDataService
 
         if (filter.Category == BillingDataCategories.Employee)
         {
-            // Batasi HANYA pada nama karyawan dan No. RM karyawan (bukan No. Bill, No. Reg, atau nama/No. RM pasien keluarga).
+            // Batasi HANYA pada nama pemilik benefit (karyawan/dokter) dan No. RM pemilik benefit — bukan No. Bill, No. Reg,
+            // atau nama/No. RM pasien tanggungan. Setiap klausa mengikat ke PEMILIK piutang lewat identitas canonical
+            // (WorkforceProfileId) atau identitas lama (MstEmployee.Id); pemilik tanpa identitas tidak pernah cocok dengan pemilik lain.
             return rows.Where(x =>
-                // 1. Nama karyawan dari MstWorkforceProfile / MstEmployee / MstDoctor
+                // 1. Nama pemilik dari MstWorkforceProfile / MstEmployee / MstDoctor
                 _dbContext.MstWorkforceProfiles.Any(w =>
                     !w.IsDelete
-                    && (w.Id == x.Receivable.BenefitOwnerWorkforceProfileId
-                        || (x.Receivable.BenefitOwnerId != null && w.Employee != null && w.Employee.Id == x.Receivable.BenefitOwnerId))
+                    && ((x.WorkforceProfileId != null && w.Id == x.WorkforceProfileId)
+                        || (x.EmployeeId != null && w.Employee != null && w.Employee.Id == x.EmployeeId))
                     && (EF.Functions.ILike(w.DisplayName, pattern, "\\")
                         || (w.Employee != null && EF.Functions.ILike(w.Employee.FullName, pattern, "\\"))
                         || (w.Doctor != null && EF.Functions.ILike(w.Doctor.FullName, pattern, "\\"))))
-                // Bila piutang SELF: nama pasien adalah nama karyawan
+                // Bila piutang SELF: nama pasien adalah nama pemilik
                 || ((x.Receivable.BenefitRelationship != null && EF.Functions.ILike(x.Receivable.BenefitRelationship, "SELF"))
                     && x.Patient != null && EF.Functions.ILike(x.Patient.FullName, pattern, "\\"))
-                // 2. No. RM karyawan:
-                // a. Bila piutang SELF: No. RM pasien pada piutang ini adalah No. RM karyawan
+                // 2. No. RM pemilik:
+                // a. Bila piutang SELF: No. RM pasien pada piutang ini adalah No. RM pemilik
                 || ((x.Receivable.BenefitRelationship != null && EF.Functions.ILike(x.Receivable.BenefitRelationship, "SELF"))
                     && x.Patient != null && EF.Functions.ILike(x.Patient.MedicalRecordNumber, pattern, "\\"))
-                // b. Kartu SELF karyawan di MstPatientCompanyGuarantor
+                // b. Kartu SELF pemilik di MstPatientCompanyGuarantor. Kedua sisi dibandingkan hanya bila TIDAK null
+                //    (null = null bukan kecocokan), dan identitas lama/canonical dijembatani lewat MstEmployee.
                 || _dbContext.MstPatientCompanyGuarantors.Any(cg =>
                     !cg.IsDelete && !cg.IsCancel && cg.IsActive
                     && cg.BenefitRelationship != null && EF.Functions.ILike(cg.BenefitRelationship, "SELF")
-                    && (cg.BenefitOwnerWorkforceProfileId == x.Receivable.BenefitOwnerWorkforceProfileId
-                        || (cg.EmployeeId != null && cg.EmployeeId == x.Receivable.BenefitOwnerId))
                     && cg.Patient != null && !cg.Patient.IsDelete
-                    && EF.Functions.ILike(cg.Patient.MedicalRecordNumber, pattern, "\\")));
+                    && EF.Functions.ILike(cg.Patient.MedicalRecordNumber, pattern, "\\")
+                    && ((cg.BenefitOwnerWorkforceProfileId != null
+                            && cg.BenefitOwnerWorkforceProfileId == x.WorkforceProfileId)
+                        || (cg.BenefitOwnerWorkforceProfileId != null && x.EmployeeId != null
+                            && _dbContext.MstEmployees.Any(e => e.Id == x.EmployeeId
+                                && e.WorkforceProfileId == cg.BenefitOwnerWorkforceProfileId))
+                        || (cg.EmployeeId != null && cg.EmployeeId == x.EmployeeId)
+                        || (cg.EmployeeId != null && x.WorkforceProfileId != null
+                            && _dbContext.MstEmployees.Any(e => e.Id == cg.EmployeeId
+                                && e.WorkforceProfileId == x.WorkforceProfileId))))
+                // c. Pencocokan NIK terverifikasi (sumber yang sama dengan No. RM pada pilihan karyawan): NIK pemilik cocok
+                //    dengan NIK pasien yang No. RM-nya dicari. Hanya NIK sah (>= 8 karakter), tidak pernah lewat nama.
+                || _dbContext.MstWorkforceProfiles.Any(w =>
+                    !w.IsDelete
+                    && ((x.WorkforceProfileId != null && w.Id == x.WorkforceProfileId)
+                        || (x.EmployeeId != null && w.Employee != null && w.Employee.Id == x.EmployeeId))
+                    && w.Employee != null
+                    && w.Employee.IdentityNumber != null
+                    && w.Employee.IdentityNumber.Length >= 8
+                    && _dbContext.MstPatients.Any(p =>
+                        !p.IsDelete
+                        && p.IdentityNumber != null
+                        && p.IdentityNumber == w.Employee.IdentityNumber
+                        && EF.Functions.ILike(p.MedicalRecordNumber, pattern, "\\"))));
         }
 
         return rows.Where(x =>

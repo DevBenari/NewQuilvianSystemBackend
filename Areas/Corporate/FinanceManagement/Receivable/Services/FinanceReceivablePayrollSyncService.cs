@@ -42,15 +42,18 @@ public sealed class FinanceReceivablePayrollSyncService
     private readonly LoggerService _loggerService;
     private readonly FinanceSubledgerMovementService _subledgerMovementService;
     private readonly FinanceReceivablePayrollSyncOptions _options;
+    private readonly FinanceReceivableInvoiceBatchStatusSynchronizer _batchStatusSynchronizer;
 
     public FinanceReceivablePayrollSyncService(
         ApplicationDbContext dbContext, LoggerService loggerService, FinanceSubledgerMovementService subledgerMovementService,
-        IOptions<FinanceReceivablePayrollSyncOptions> options)
+        IOptions<FinanceReceivablePayrollSyncOptions> options,
+        FinanceReceivableInvoiceBatchStatusSynchronizer batchStatusSynchronizer)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _subledgerMovementService = subledgerMovementService;
         _options = options.Value;
+        _batchStatusSynchronizer = batchStatusSynchronizer;
     }
 
     /// <summary>
@@ -489,6 +492,8 @@ public sealed class FinanceReceivablePayrollSyncService
             }
         }
 
+        // Invoice AR piutang karyawan (bila sudah dibuat) mengikuti saldo piutang: ISSUED -> PARTIALLY_PAID -> PAID. Tanpa batch = tanpa efek.
+        await _batchStatusSynchronizer.SynchronizeByReceivableIdsAsync(new[] { receivable.Id }, actorUserId, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);
         await _loggerService.AuditAsync(LogCategory, "Result.Processed",
             $"Hasil potongan payroll dicatat. InstallmentId={installment.Id} Status={request.Status} Deducted={deductedAmount:N2}",
@@ -660,6 +665,8 @@ public sealed class FinanceReceivablePayrollSyncService
             : newDeductedAmount > 0
                 ? FinReceivableInstallmentStatuses.TerbayarSebagian
                 : FinReceivableInstallmentStatuses.Tertunggak;
+
+        await _batchStatusSynchronizer.SynchronizeByReceivableIdsAsync(new[] { receivable.Id }, actorUserId, cancellationToken);
 
         await _dbContext.SaveChangesAsync(cancellationToken);
 

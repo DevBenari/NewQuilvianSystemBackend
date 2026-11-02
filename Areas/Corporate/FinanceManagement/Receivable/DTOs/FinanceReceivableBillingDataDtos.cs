@@ -432,11 +432,75 @@ public sealed class BillingDataEmployeeOptionResponse
     /// <summary>No. RM karyawan bila terverifikasi; null bila karyawan belum pernah memiliki rekam medis.</summary>
     public string? MedicalRecordNumber { get; set; }
 
+    /// <summary>EMPLOYEE atau DOCTOR; null bila jenis SDM tidak dapat ditentukan.</summary>
+    public string? OwnerType { get; set; }
+
+    /// <summary>NIP (karyawan) atau nomor dokter. Pembeda dua orang bernama sama; bukan pengganti Id.</summary>
+    public string? StaffNumber { get; set; }
+
     /// <summary>Alias kompatibilitas UI untuk nama karyawan.</summary>
     public string Label => Name;
 
-    /// <summary>Keterangan No. RM untuk baris kedua dropdown ("No. RM xx").</summary>
-    public string? Description => !string.IsNullOrWhiteSpace(MedicalRecordNumber) ? $"No. RM {MedicalRecordNumber}" : null;
+    /// <summary>Keterangan baris kedua dropdown: jenis, nomor pegawai/dokter, dan "No. RM xx" bila ada.</summary>
+    public string? Description
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (OwnerType == "DOCTOR") parts.Add("Dokter");
+            else if (OwnerType == "EMPLOYEE") parts.Add("Karyawan");
+            if (!string.IsNullOrWhiteSpace(StaffNumber)) parts.Add(OwnerType == "DOCTOR" ? $"No. Dokter {StaffNumber}" : $"NIP {StaffNumber}");
+            if (!string.IsNullOrWhiteSpace(MedicalRecordNumber)) parts.Add($"No. RM {MedicalRecordNumber}");
+            return parts.Count > 0 ? string.Join(" · ", parts) : null;
+        }
+    }
+}
+
+/// <summary>
+/// Piutang karyawan/dokter pada hasil filter Data Tagihan yang BENAR-BENAR dapat diajukan perjanjian angsuran.
+/// Dihitung atas seluruh hasil filter (bukan hanya halaman tabel), memakai filter yang sama dengan GET billing-data.
+/// Satu perjanjian dibuat untuk SATU piutang; endpoint ini tidak membuat apa pun.
+/// </summary>
+public sealed class BillingDataInstallmentCandidatesResponse
+{
+    /// <summary>Jumlah kartu piutang berbeda pada hasil filter (semua status).</summary>
+    public int FilteredReceivableCount { get; set; }
+
+    /// <summary>Jumlah kartu piutang yang eligible: berjalan (OUTSTANDING/PARTIAL), masih bersisa, dan belum punya perjanjian MENUNGGU/DISETUJUI.</summary>
+    public int EligibleCount { get; set; }
+
+    /// <summary>Jumlah pemilik benefit berbeda (identitas canonical) di antara piutang eligible; pemilik tanpa identitas dihitung satu pemilik tak dikenal.</summary>
+    public int EligibleOwnerCount { get; set; }
+
+    /// <summary>Terisi hanya bila seluruh piutang eligible milik satu pemilik canonical.</summary>
+    public Guid? OwnerWorkforceProfileId { get; set; }
+    public string? OwnerName { get; set; }
+
+    /// <summary>True bila piutang eligible lebih banyak daripada yang dimuat pada <see cref="Candidates"/>.</summary>
+    public bool HasMore { get; set; }
+
+    public List<BillingDataInstallmentCandidate> Candidates { get; set; } = new();
+}
+
+public sealed class BillingDataInstallmentCandidate
+{
+    public Guid ReceivableId { get; set; }
+    public string ReceivableNumber { get; set; } = string.Empty;
+    public string? InvoiceNumber { get; set; }
+    public DateTimeOffset BillingDate { get; set; }
+
+    /// <summary>Pasien penerima layanan (bisa tanggungan). Bukan pemilik benefit.</summary>
+    public string? PatientName { get; set; }
+    public string? PatientMedicalRecordNumber { get; set; }
+    public string? BenefitRelationship { get; set; }
+    public decimal OriginalAmount { get; set; }
+    public decimal OutstandingAmount { get; set; }
+    public string ReceivableStatus { get; set; } = string.Empty;
+
+    public Guid? OwnerWorkforceProfileId { get; set; }
+    public string? OwnerName { get; set; }
+    public string? OwnerStaffNumber { get; set; }
+    public string? OwnerType { get; set; }
 }
 
 public sealed class BillingDataPagedResponse : PagedResult<BillingDataItemResponse>
@@ -448,6 +512,13 @@ public sealed class BillingDataPagedResponse : PagedResult<BillingDataItemRespon
 
     /// <summary>Penjelasan bila hasil kosong karena sumber datanya memang belum ada (kategori employee). Null pada kasus lain.</summary>
     public string? Notice { get; set; }
+
+    /// <summary>
+    /// Kategori employee: jumlah piutang pada hasil filter yang pemilik benefitnya TIDAK dapat diidentifikasi (tanpa
+    /// WorkforceProfileId/BenefitOwnerId pada piutang maupun pada penjamin aktif kunjungan). Piutang ini tidak dapat dicari
+    /// atau difilter menurut pemilik dan perlu diperbaiki di sumber datanya. Nol untuk kategori lain.
+    /// </summary>
+    public int UnresolvedOwnerCount { get; set; }
 
     /// <summary>
     /// Fakta AR dari Billing yang belum menjadi piutang. Hanya dibaca (hitungan), TIDAK memicu pemrosesan apa pun.

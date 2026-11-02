@@ -10375,6 +10375,148 @@ namespace QuilvianSystemBackend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInstallmentDeductionEvidence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal>("DeductedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTimeOffset?>("DeductionDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DeductionPeriod")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DocumentNumber")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("InstallmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid?>("PayrollPeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PlanId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProofId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ReceivableId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResultStatus")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("BUKTI_DIUNGGAH");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("VerificationNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTimeOffset?>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VerifiedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstallmentId", "DocumentNumber")
+                        .IsUnique()
+                        .HasDatabaseName("UX_FinReceivableInstallmentDeductionEvidence_Active")
+                        .HasFilter("\"IsDelete\" = false AND \"Status\" <> 'DITOLAK'");
+
+                    b.HasIndex("PlanId")
+                        .HasDatabaseName("IX_FinReceivableInstallmentDeductionEvidence_PlanId");
+
+                    b.HasIndex("ProofId")
+                        .HasDatabaseName("IX_FinReceivableInstallmentDeductionEvidence_ProofId");
+
+                    b.HasIndex("ReceivableId")
+                        .HasDatabaseName("IX_FinReceivableInstallmentDeductionEvidence_ReceivableId");
+
+                    b.ToTable("FinReceivableInstallmentDeductionEvidence", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinReceivableInstallmentDeductionEvidence_Amount", "\"DeductedAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_FinReceivableInstallmentDeductionEvidence_ResultStatus", "\"ResultStatus\" IN ('BERHASIL','SEBAGIAN','GAGAL')");
+
+                            t.HasCheckConstraint("CK_FinReceivableInstallmentDeductionEvidence_Status", "\"Status\" IN ('BUKTI_DIUNGGAH','TERVERIFIKASI','DITOLAK')");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInstallmentPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -10503,8 +10645,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("FinReceivableInstallmentPlan", "public", t =>
                         {
                             t.HasCheckConstraint("CK_FinReceivableInstallmentPlan_Amount", "\"InstallmentCount\" > 0 AND \"InstallmentAmount\" > 0");
-
-                            t.HasCheckConstraint("CK_FinReceivableInstallmentPlan_MakerChecker", "\"ApprovedBy\" IS NULL OR \"ApprovedBy\" <> \"RequestedBy\"");
 
                             t.HasCheckConstraint("CK_FinReceivableInstallmentPlan_Status", "\"Status\" IN ('MENUNGGU','DISETUJUI','DITOLAK','SELESAI','DIBATALKAN')");
 
@@ -10726,7 +10866,7 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             t.HasCheckConstraint("CK_FinReceivableInvoiceBatch_ClaimStatus", "\"ClaimStatus\" IS NULL OR \"ClaimStatus\" IN ('SUBMITTED','PAYER_VERIFIED','APPROVED','CLOSED')");
 
-                            t.HasCheckConstraint("CK_FinReceivableInvoiceBatch_DebtorType", "\"DebtorType\" = 'PAYER'");
+                            t.HasCheckConstraint("CK_FinReceivableInvoiceBatch_DebtorType", "\"DebtorType\" IN ('PAYER','EMPLOYEE_BENEFIT')");
 
                             t.HasCheckConstraint("CK_FinReceivableInvoiceBatch_Status", "\"Status\" IN ('DRAFT','ISSUED','PARTIALLY_PAID','PAID','CANCELLED')");
                         });
@@ -112295,6 +112435,27 @@ namespace QuilvianSystemBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("Plan");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInstallmentDeductionEvidence", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInstallment", "Installment")
+                        .WithMany()
+                        .HasForeignKey("InstallmentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_FinReceivableInstallmentDeductionEvidence_Installment");
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinTransactionProof", "Proof")
+                        .WithMany()
+                        .HasForeignKey("ProofId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_FinReceivableInstallmentDeductionEvidence_Proof");
+
+                    b.Navigation("Installment");
+
+                    b.Navigation("Proof");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInstallmentPlan", b =>

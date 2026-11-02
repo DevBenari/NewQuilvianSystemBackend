@@ -120,12 +120,18 @@ public sealed class FinanceReceivableInvoiceBatchService
                 .ToDictionaryAsync(p => p.Id, p => p.InsuranceProviderName, cancellationToken)
             : new Dictionary<Guid, string>();
 
+        var employeeNames = await ResolveEmployeeBatchOwnerNamesAsync(
+            pagedRows.Where(r => r.Batch.DebtorType == FinReceivableInvoiceBatchDebtorTypes.EmployeeBenefit)
+                .Select(r => r.Batch.Id).ToList(),
+            cancellationToken);
+
         var items = pagedRows.Select(r =>
         {
             var b = r.Batch;
             var mapped = Map(b);
             string? debtorName = null;
-            if (companyNames.TryGetValue(b.DebtorReferenceId, out var cName)) debtorName = cName;
+            if (b.DebtorType == FinReceivableInvoiceBatchDebtorTypes.EmployeeBenefit && employeeNames.TryGetValue(b.Id, out var eName)) debtorName = eName;
+            else if (companyNames.TryGetValue(b.DebtorReferenceId, out var cName)) debtorName = cName;
             else if (insuranceNames.TryGetValue(b.DebtorReferenceId, out var iName)) debtorName = iName;
 
             var visitCode = ResolveBatchVisitCode(b);
@@ -207,6 +213,13 @@ public sealed class FinanceReceivableInvoiceBatchService
             .Where(x => x.Id == batch.DebtorReferenceId && !x.IsDelete)
             .Select(x => x.InsuranceProviderName)
             .FirstOrDefaultAsync(cancellationToken);
+
+        var isEmployeeBatch = batch.DebtorType == FinReceivableInvoiceBatchDebtorTypes.EmployeeBenefit;
+        if (isEmployeeBatch)
+        {
+            var employeeNames = await ResolveEmployeeBatchOwnerNamesAsync(new[] { batch.Id }, cancellationToken);
+            debtorName = employeeNames.GetValueOrDefault(batch.Id) ?? debtorName;
+        }
 
         var visitCode = ResolveBatchVisitCode(batch);
 
@@ -435,7 +448,38 @@ public sealed class FinanceReceivableInvoiceBatchService
         string invoiceStatusText = isCancelled ? "Dibatalkan" : "Aktif";
         string paymentStatus = isPaid ? "Lunas" : (isPartiallyPaid ? "Sebagian Lunas" : "Belum Lunas");
 
-        bool canProcessPayment = !isCancelled && !isPaid && !hasActivePayment;
+        // CanProcessPayment = kelayakan PEMBAYARAN BARU (termasuk pembayaran tambahan pada invoice berstatus
+        // PARTIALLY_PAID): batch belum PAID/CANCELLED dan masih ada anggota dengan sisa piutang yang dapat dibayar.
+        // Keberadaan pembayaran aktif TIDAK lagi menutupnya; koreksi receipt lama dibaca dari HasActivePayment.
+        bool hasPayableOutstanding = members.Any(m =>
+            m.OutstandingAmount > 0m
+            && m.ReceivableStatus != FinReceivableStatuses.Cancelled
+            && m.ReceivableStatus != FinReceivableStatuses.WrittenOff);
+        // Invoice karyawan tidak pernah menawarkan pembayaran kasir/bank: pelunasannya hanya lewat potong gaji.
+        bool canProcessPayment = !isEmployeeBatch && !isCancelled && !isPaid && hasPayableOutstanding;
+
+        ReceivableInvoiceBatchInstallmentPlanResponse? installmentPlan = null;
+        if (isEmployeeBatch)
+        {
+            installmentPlan = await _dbContext.FinReceivableInstallmentPlans.AsNoTracking()
+                .Where(p => !p.IsDelete && receivableIds.Contains(p.ReceivableId)
+                    && (p.Status == FinReceivableInstallmentPlanStatuses.Menunggu
+                        || p.Status == FinReceivableInstallmentPlanStatuses.Disetujui
+                        || p.Status == FinReceivableInstallmentPlanStatuses.Selesai))
+                .OrderByDescending(p => p.RequestedAt)
+                .Select(p => new ReceivableInvoiceBatchInstallmentPlanResponse
+                {
+                    Id = p.Id,
+                    PlanNumber = p.PlanNumber,
+                    Status = p.Status,
+                    InstallmentCount = p.InstallmentCount,
+                    InstallmentAmount = p.InstallmentAmount,
+                    TotalAgreedAmount = p.TotalAgreedAmount,
+                    FirstDeductionPeriod = p.FirstDeductionPeriod,
+                    ApprovedAt = p.ApprovedAt
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+        }
         bool canCancel = !isCancelled && (isDraft || isIssued || isPartiallyPaid || isPaid);
         bool canRevive = isCancelled;
 
@@ -488,6 +532,9 @@ public sealed class FinanceReceivableInvoiceBatchService
             ClaimApprovedAt = mapped.ClaimApprovedAt,
             ClaimClosedAt = mapped.ClaimClosedAt,
             CanProcessPayment = canProcessPayment,
+            IsEmployeeBenefit = isEmployeeBatch,
+            PaymentBlockedReason = isEmployeeBatch ? EmployeePaymentBlockedReason : null,
+            InstallmentPlan = installmentPlan,
             CanCancel = canCancel,
             HasActivePayment = hasActivePayment,
             ActivePaymentCount = activePaymentCount,
@@ -628,15 +675,25 @@ public sealed class FinanceReceivableInvoiceBatchService
         if (missing.Count > 0)
             throw new KeyNotFoundException($"Piutang tidak ditemukan: {string.Join(", ", missing)}.");
 
-        // Bukan FIN-VAL bernomor — batas skema §C.13: DebtorType batch dipatok PAYER (FIN-DEC-048).
-        var nonPayer = receivables.Where(x => x.DebtorType != FinReceivableDebtorTypes.Payer).ToList();
-        if (nonPayer.Count > 0)
+        // Invoice AR piutang karyawan/dokter (EMPLOYEE_BENEFIT) adalah jenis batch tersendiri: tidak boleh dicampur dengan piutang
+        // penjamin, dan satu invoice hanya untuk satu pemilik benefit. Selain itu batch tetap hanya menerima PAYER (FIN-DEC-048).
+        var employeeCount = receivables.Count(x => x.DebtorType == FinReceivableDebtorTypes.EmployeeBenefit);
+        var isEmployeeBatch = employeeCount > 0;
+        if (isEmployeeBatch && employeeCount != receivables.Count)
             throw new ReceivableInvoiceBatchBadRequestException(
-                $"Batch Tagihan AR hanya menerima piutang berjenis PAYER. Piutang {nonPayer[0].ReceivableNumber} berjenis {nonPayer[0].DebtorType}.");
+                "Piutang karyawan tidak dapat digabung dengan piutang penjamin dalam satu Invoice AR.");
+
+        if (!isEmployeeBatch)
+        {
+            var nonPayer = receivables.Where(x => x.DebtorType != FinReceivableDebtorTypes.Payer).ToList();
+            if (nonPayer.Count > 0)
+                throw new ReceivableInvoiceBatchBadRequestException(
+                    $"Batch Tagihan AR hanya menerima piutang berjenis PAYER atau EMPLOYEE_BENEFIT. Piutang {nonPayer[0].ReceivableNumber} berjenis {nonPayer[0].DebtorType}.");
+        }
 
         // Pemisahan kategori: piutang Benefit RS Internal dan piutang penjamin pihak luar tidak boleh dicampur dalam satu batch.
-        var anyInternal = receivables.Any(x => x.IsInternalBenefit);
-        var anyExternal = receivables.Any(x => !x.IsInternalBenefit);
+        var anyInternal = !isEmployeeBatch && receivables.Any(x => x.IsInternalBenefit);
+        var anyExternal = !isEmployeeBatch && receivables.Any(x => !x.IsInternalBenefit);
         if (anyInternal && anyExternal)
             throw new ReceivableInvoiceBatchBadRequestException(
                 "Tidak dapat mencampur piutang Benefit RS Internal dan piutang penjamin pihak luar dalam satu Batch Tagihan AR.");
@@ -671,10 +728,16 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchValidationException(
                 $"Piutang {notBillable[0].ReceivableNumber} berstatus {notBillable[0].Status} dan tidak dapat ditagihkan. Hanya piutang OUTSTANDING, PARTIAL, atau SETTLED dengan nilai lebih dari nol yang dapat digabung.");
 
-        // FIN-VAL-115: seluruh piutang dalam satu batch harus milik penjamin yang sama.
-        var debtorReferenceIds = receivables.Select(x => x.DebtorReferenceId).Distinct().ToList();
+        // FIN-VAL-115: seluruh piutang dalam satu batch harus milik penjamin yang sama. Untuk invoice karyawan, "penjamin"
+        // adalah pemilik benefit (identitas canonical WorkforceProfileId; piutang lama jatuh ke EmployeeId lalu DebtorReferenceId).
+        var debtorReferenceIds = (isEmployeeBatch
+                ? receivables.Select(x => x.BenefitOwnerWorkforceProfileId ?? x.BenefitOwnerId ?? x.DebtorReferenceId)
+                : receivables.Select(x => x.DebtorReferenceId))
+            .Distinct().ToList();
         if (debtorReferenceIds.Count > 1 || debtorReferenceIds[0] is null)
-            throw new ReceivableInvoiceBatchBadRequestException("Seluruh piutang dalam satu batch harus milik penjamin yang sama.");
+            throw new ReceivableInvoiceBatchBadRequestException(isEmployeeBatch
+                ? "Seluruh piutang dalam satu Invoice AR karyawan harus milik pemilik benefit yang sama dan teridentifikasi."
+                : "Seluruh piutang dalam satu batch harus milik penjamin yang sama.");
         var debtorReferenceId = debtorReferenceIds[0]!.Value;
 
         // FIN-VAL-114: piutang yang sudah tergabung batch aktif tidak boleh digabung lagi.
@@ -751,18 +814,20 @@ public sealed class FinanceReceivableInvoiceBatchService
         const int paymentTermDays = 30;
         var batchDueDate = effectiveInvoiceDate.AddDays(paymentTermDays);
 
-        // 4. Nomor Invoice AR resmi menggunakan format {SEQUENCE}/{VISIT_CODE}/RSMMC/{ROMAN_MONTH}/{YEAR}
+        // 4. Nomor Invoice AR resmi menggunakan format {SEQUENCE}/{VISIT_CODE}/RSMMC/{ROMAN_MONTH}/{YEAR}.
+        // Invoice karyawan memakai urutan sendiri dan penanda -KRY pada kode kunjungan: {SEQUENCE}/{VISIT_CODE}-KRY/RSMMC/...
         var invoiceNumber = await GenerateArInvoiceNumberAsync(
             visitCode,
             effectiveInvoiceDate,
             actorUserId,
-            cancellationToken);
+            cancellationToken,
+            isEmployeeBenefit: isEmployeeBatch);
 
         var batch = new FinReceivableInvoiceBatch
         {
             Id = Guid.NewGuid(),
             BatchNumber = invoiceNumber,
-            DebtorType = FinReceivableDebtorTypes.Payer,
+            DebtorType = isEmployeeBatch ? FinReceivableInvoiceBatchDebtorTypes.EmployeeBenefit : FinReceivableInvoiceBatchDebtorTypes.Payer,
             DebtorReferenceId = debtorReferenceId,
             VisitCode = visitCode,
             ServiceType = batchServiceType,
@@ -1236,6 +1301,8 @@ public sealed class FinanceReceivableInvoiceBatchService
             .SingleOrDefaultAsync(x => x.Id == batchId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
 
+        EnsureNotEmployeeBenefit(batch, "Klaim penjamin");
+
         EnsureCurrent(batch.RowVersion, expectedRowVersion);
 
         var effective = ResolveEffectiveClaimStatus(batch);
@@ -1268,6 +1335,8 @@ public sealed class FinanceReceivableInvoiceBatchService
         var batch = await _dbContext.FinReceivableInvoiceBatches
             .SingleOrDefaultAsync(x => x.Id == batchId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
+
+        EnsureNotEmployeeBenefit(batch, "Klaim penjamin");
 
         EnsureCurrent(batch.RowVersion, expectedRowVersion);
 
@@ -1312,6 +1381,8 @@ public sealed class FinanceReceivableInvoiceBatchService
         var batch = await _dbContext.FinReceivableInvoiceBatches
             .SingleOrDefaultAsync(x => x.Id == batchId && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
+
+        EnsureNotEmployeeBenefit(batch, "Klaim penjamin");
 
         EnsureCurrent(batch.RowVersion, expectedRowVersion);
 
@@ -1366,6 +1437,15 @@ public sealed class FinanceReceivableInvoiceBatchService
         var picEmail = company?.PicEmail ?? insurance?.PicEmail;
         var contractNumber = company?.ContractNumber ?? insurance?.ContractNumber;
         var debtorType = company is not null ? "CompanyGuarantor" : (insurance is not null ? "InsuranceProvider" : "Corporate");
+
+        // Invoice karyawan: debitur adalah pemilik benefit (bukan perusahaan/asuransi), dan pelunasannya lewat potong gaji.
+        var isEmployeeBatch = batch.DebtorType == FinReceivableInvoiceBatchDebtorTypes.EmployeeBenefit;
+        if (isEmployeeBatch)
+        {
+            var employeeNames = await ResolveEmployeeBatchOwnerNamesAsync(new[] { batch.Id }, cancellationToken);
+            debtorName = employeeNames.GetValueOrDefault(batch.Id) ?? "-";
+            debtorType = "EmployeeBenefit";
+        }
 
         // 2. Resolve Active Official Bank Accounts from V2 Master Data
         var bankAccounts = await _dbContext.MstBankAccounts
@@ -1439,10 +1519,14 @@ public sealed class FinanceReceivableInvoiceBatchService
             DueDate = batch.DueDate,
             IsBankAccountConfigured = bankAccounts.Count > 0,
             BankAccounts = bankAccounts,
-            Receipts = receipts
+            Receipts = receipts,
+            IsEmployeeBenefit = isEmployeeBatch,
+            PaymentInstruction = isEmployeeBatch
+                ? "Pelunasan melalui potong gaji sesuai perjanjian angsuran yang disetujui HRD. Tidak ada pembayaran ke rekening rumah sakit."
+                : null
         };
 
-        if (bankAccounts.Count == 0)
+        if (!isEmployeeBatch && bankAccounts.Count == 0)
         {
             response.Warnings.Add("Rekening pembayaran rumah sakit belum dikonfigurasi pada master data.");
         }
@@ -1943,15 +2027,21 @@ public sealed class FinanceReceivableInvoiceBatchService
         };
     }
 
+    /// <summary>
+    /// Nomor Invoice AR: {urutan}/{kode kunjungan}/RSMMC/{bulan romawi}/{tahun}. Invoice piutang karyawan memakai urutan
+    /// tersendiri (FIN_AR_INVOICE_EMPLOYEE) dan kode kunjungan berakhiran -KRY, mis. 0001/OP-KRY/RSMMC/X/2026, sehingga
+    /// tidak pernah bertabrakan dengan nomor invoice penjamin dan mudah dibedakan.
+    /// </summary>
     public async Task<string> GenerateArInvoiceNumberAsync(
         string visitCode,
         DateOnly invoiceDate,
         Guid actorUserId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool isEmployeeBenefit = false)
     {
         var allocationRequest = new NumberAllocationRequest(
-            SequenceKey: "FIN_AR_INVOICE",
-            Prefix: "AR",
+            SequenceKey: isEmployeeBenefit ? "FIN_AR_INVOICE_EMPLOYEE" : "FIN_AR_INVOICE",
+            Prefix: isEmployeeBenefit ? "ARK" : "AR",
             ResetPolicy: NumberSeriesResetPolicies.Never,
             SequenceDigits: 4,
             ActorUserId: actorUserId,
@@ -1965,7 +2055,8 @@ public sealed class FinanceReceivableInvoiceBatchService
         }
 
         var monthRoman = ToRomanMonth(invoiceDate.Month);
-        return $"{sequenceNumber:D4}/{visitCode}/RSMMC/{monthRoman}/{invoiceDate.Year}";
+        var visitSegment = isEmployeeBenefit ? $"{visitCode}-KRY" : visitCode;
+        return $"{sequenceNumber:D4}/{visitSegment}/RSMMC/{monthRoman}/{invoiceDate.Year}";
     }
 
     public static string ToRomanMonth(int month) => month switch
@@ -2081,6 +2172,11 @@ public sealed class FinanceReceivableInvoiceBatchService
 
         EnsureCurrent(batch.RowVersion, request.ExpectedRowVersion);
 
+        // Invoice AR karyawan dilunasi hanya oleh hasil potong gaji (perjanjian angsuran), tidak lewat kwitansi/bank. Memblokirnya
+        // di sini mencegah dua jalur pengurangan saldo atas piutang yang sama.
+        if (batch.DebtorType == FinReceivableInvoiceBatchDebtorTypes.EmployeeBenefit)
+            throw new ReceivableInvoiceBatchValidationException(EmployeePaymentBlockedReason);
+
         // Transisi kompatibilitas: legacy batch berstatus DRAFT otomatis dinormalisasi ke ISSUED saat menerima pembayaran pertama
         if (batch.Status == FinReceivableInvoiceBatchStatuses.Draft)
         {
@@ -2095,16 +2191,14 @@ public sealed class FinanceReceivableInvoiceBatchService
         if (batch.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
             throw new ReceivableInvoiceBatchValidationException("Batch Tagihan AR sudah dibatalkan (CANCELLED).");
 
-        // Periksa apakah batch ini sudah memiliki pembayaran aktif yang belum dibalik (Section 7)
-        var memberRecIds = batch.Items
-            .Where(x => !x.IsDelete && x.IsActiveMembership)
-            .Select(x => x.ReceivableId)
-            .Distinct()
-            .ToList();
-        if (memberRecIds.Count > 0 && await HasActiveAllocationsForReceivablesAsync(memberRecIds, cancellationToken))
-        {
-            throw new ReceivableInvoiceBatchValidationException("Invoice ini sudah memiliki pembayaran aktif. Gunakan koreksi pembayaran atau batalkan invoice jika diperlukan.");
-        }
+        // Pembayaran tambahan: alokasi aktif dari receipt sebelumnya TIDAK memblokir pembayaran baru. Receipt lama tidak
+        // disentuh (koreksi tetap lewat reverse + allocate pada receipt itu sendiri). Pengamannya ada pada validasi per
+        // anggota di bawah (piutang harus masih bersisa dan total alokasi + potongan tidak boleh melebihi
+        // OutstandingAmount), yang dibaca ulang dari database setelah lock diperoleh.
+        // Guard "pembayaran aktif" dulu ikut mencegah receipt ganda dari klik ganda; setelah dilepas, Idempotency-Key
+        // menjadi satu-satunya pelindung itu, sehingga wajib diisi.
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+            throw new ReceivableInvoiceBatchBadRequestException("Header Idempotency-Key wajib diisi untuk memproses pembayaran.");
 
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -2269,18 +2363,38 @@ public sealed class FinanceReceivableInvoiceBatchService
                 await AcquireLockAsync($"FIN_RECEIVABLE_{recId:N}", cancellationToken);
             }
 
-            // Validasi ulang di bawah lock untuk mencegah race conditions
-            EnsureCurrent(batch.RowVersion, request.ExpectedRowVersion);
+            // Validasi ulang di bawah lock untuk mencegah race conditions. Snapshot batch dan piutang di atas dibaca
+            // SEBELUM lock, sedangkan pembayaran tambahan lain, koreksi, atau alokasi dari modul Collection bisa
+            // memutakhirkannya sementara request ini menunggu, maka keadaan terbaru dibaca ulang dari database.
+            var freshBatch = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+                .Where(x => x.Id == batchId && !x.IsDelete)
+                .Select(x => new { x.RowVersion, x.Status })
+                .SingleOrDefaultAsync(cancellationToken)
+                ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
 
-            if (batch.Status == FinReceivableInvoiceBatchStatuses.Paid)
+            EnsureCurrent(freshBatch.RowVersion, request.ExpectedRowVersion);
+
+            if (freshBatch.Status == FinReceivableInvoiceBatchStatuses.Paid)
                 throw new ReceivableInvoiceBatchValidationException("Batch Tagihan AR sudah lunas (PAID).");
 
-            if (batch.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
+            if (freshBatch.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
                 throw new ReceivableInvoiceBatchValidationException("Batch Tagihan AR sudah dibatalkan (CANCELLED).");
 
-            if (memberRecIds.Count > 0 && await HasActiveAllocationsForReceivablesAsync(memberRecIds, cancellationToken))
+            var allocatedReceivableIds = request.MemberAllocations.Select(m => m.ReceivableId).Distinct().ToList();
+            var freshBalances = await _dbContext.FinReceivables.AsNoTracking()
+                .Where(r => allocatedReceivableIds.Contains(r.Id) && !r.IsDelete)
+                .Select(r => new { r.Id, r.OutstandingAmount, r.AllocatedAmount })
+                .ToDictionaryAsync(r => r.Id, cancellationToken);
+            foreach (var recId in allocatedReceivableIds)
             {
-                throw new ReceivableInvoiceBatchValidationException("Invoice ini sudah memiliki pembayaran aktif. Gunakan koreksi pembayaran atau batalkan invoice jika diperlukan.");
+                var tracked = memberMap[recId];
+                if (!freshBalances.TryGetValue(recId, out var fresh)
+                    || fresh.OutstandingAmount != tracked.OutstandingAmount
+                    || fresh.AllocatedAmount != tracked.AllocatedAmount)
+                {
+                    // Saldo berubah setelah snapshot dibaca: alokasi di atas dihitung dari saldo basi, jadi ditolak.
+                    throw Stale();
+                }
             }
 
             // Re-check idempotency key under transaction lock
@@ -2637,10 +2751,51 @@ public sealed class FinanceReceivableInvoiceBatchService
                 EF.Functions.ILike(x.BatchNumber, pattern)
                 || (x.Note != null && EF.Functions.ILike(x.Note, pattern))
                 || _dbContext.MstCompanyGuarantors.Any(c => !c.IsDelete && c.Id == x.DebtorReferenceId && EF.Functions.ILike(c.CompanyGuarantorName, pattern))
-                || _dbContext.MstInsuranceProviders.Any(p => !p.IsDelete && p.Id == x.DebtorReferenceId && EF.Functions.ILike(p.InsuranceProviderName, pattern)));
+                || _dbContext.MstInsuranceProviders.Any(p => !p.IsDelete && p.Id == x.DebtorReferenceId && EF.Functions.ILike(p.InsuranceProviderName, pattern))
+                // Invoice karyawan/dokter: DebtorReferenceId = WorkforceProfileId pemilik benefit; cari lewat nama atau NIP / nomor dokter.
+                || (x.DebtorType == FinReceivableInvoiceBatchDebtorTypes.EmployeeBenefit
+                    && (_dbContext.MstEmployees.Any(e => !e.IsDelete && e.WorkforceProfileId == x.DebtorReferenceId
+                            && (EF.Functions.ILike(e.FullName, pattern) || EF.Functions.ILike(e.EmployeeNumber, pattern)))
+                        || _dbContext.MstDoctors.Any(d => !d.IsDelete && d.WorkforceProfileId == x.DebtorReferenceId
+                            && (EF.Functions.ILike(d.FullName, pattern) || EF.Functions.ILike(d.DoctorNumber, pattern))))));
         }
 
         return query;
+    }
+
+    private const string EmployeePaymentBlockedReason =
+        "Invoice AR piutang karyawan dilunasi melalui potong gaji sesuai perjanjian angsuran, bukan lewat pembayaran kasir/bank. " +
+        "Saldo berkurang saat HRD/Payroll menyampaikan hasil potongan yang sah.";
+
+    private static void EnsureNotEmployeeBenefit(FinReceivableInvoiceBatch batch, string action)
+    {
+        if (batch.DebtorType == FinReceivableInvoiceBatchDebtorTypes.EmployeeBenefit)
+            throw new ReceivableInvoiceBatchValidationException(
+                $"{action} hanya untuk invoice penjamin. Invoice AR piutang karyawan tidak mempunyai alur klaim penjamin.");
+    }
+
+    /// <summary>Nama pemilik benefit per batch karyawan (kunci: Id batch), dari piutang anggotanya lewat resolver Workforce bersama.</summary>
+    private async Task<Dictionary<Guid, string>> ResolveEmployeeBatchOwnerNamesAsync(
+        IReadOnlyCollection<Guid> batchIds, CancellationToken cancellationToken)
+    {
+        if (batchIds.Count == 0) return new Dictionary<Guid, string>();
+
+        var rows = await _dbContext.FinReceivableInvoiceBatchItems.AsNoTracking()
+            .Where(i => !i.IsDelete && batchIds.Contains(i.BatchId) && i.Receivable != null)
+            .Select(i => new { i.BatchId, i.Receivable!.BenefitOwnerId, i.Receivable.BenefitOwnerWorkforceProfileId })
+            .ToListAsync(cancellationToken);
+
+        var lookup = await FinanceBenefitOwnerDirectory.LoadAsync(
+            _dbContext, rows.Select(r => (r.BenefitOwnerId, r.BenefitOwnerWorkforceProfileId)), cancellationToken);
+
+        var names = new Dictionary<Guid, string>();
+        foreach (var row in rows)
+        {
+            if (names.ContainsKey(row.BatchId)) continue;
+            var owner = lookup.Find(row.BenefitOwnerId, row.BenefitOwnerWorkforceProfileId);
+            if (!string.IsNullOrWhiteSpace(owner?.StaffName)) names[row.BatchId] = owner!.StaffName!;
+        }
+        return names;
     }
 
     private static string? ResolveBatchVisitCode(FinReceivableInvoiceBatch b)
@@ -3513,7 +3668,8 @@ public sealed class FinanceReceivableInvoiceBatchService
             visitCode,
             effectiveInvoiceDate,
             actorUserId,
-            cancellationToken);
+            cancellationToken,
+            isEmployeeBenefit: batch.DebtorType == FinReceivableInvoiceBatchDebtorTypes.EmployeeBenefit);
 
         var newTotalAmount = receivables.Sum(r => r.OriginalAmount - r.AdjustedAmount - r.WrittenOffAmount);
 
