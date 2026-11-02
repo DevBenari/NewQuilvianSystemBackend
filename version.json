@@ -1,51 +1,27 @@
 {
-  "description": "Release 0.26.0 enhances Billing Management, Clinical Management, Emergency Management, Finance Management, Human Resource Management, Inpatient Management, Laboratory Management, Medical Record Management, Operating Room Management, Patient Management, Pharmacy Management, Radiology Management, Registration Management capabilities. Includes improvements across Specimen Management, Billing Workflow, Finance Workflow, Pharmacy Workflow, Radiology Workflow. Includes 17 database migration update(s).",
-  "releaseName": "Quilvian 0.26.0 - Enterprise Platform Enhancement",
+  "releaseName": "Quilvian 0.27.0 - Enterprise Platform Enhancement",
+  "backendVersion": "0.27.0",
+  "description": "Release 0.27.0 enhances Billing Management, Blood Bank Management, Emergency Management, Inpatient Management, Medical Record Management, Nutrition Management, Operating Room Management, Pharmacy Management, Registration Management capabilities. Includes improvements across Billing Workflow, Pharmacy Workflow, Blood Bank Workflow.",
   "releaseMetadata": {
-    "features": [
-      "Specimen Management",
-      "Billing Workflow",
-      "Finance Workflow",
-      "Pharmacy Workflow",
-      "Radiology Workflow"
-    ],
-    "generatedAt": "2026-11-02T04:46:27",
-    "migrationCount": 17,
     "modules": [
       "Billing Management",
-      "Clinical Management",
+      "Blood Bank Management",
       "Emergency Management",
-      "Finance Management",
-      "Human Resource Management",
       "Inpatient Management",
-      "Laboratory Management",
       "Medical Record Management",
+      "Nutrition Management",
       "Operating Room Management",
-      "Patient Management",
       "Pharmacy Management",
-      "Radiology Management",
       "Registration Management"
     ],
-    "generatedBy": "Quilvian Release Generator",
-    "migrations": [
-      "20260930144500_AddInpatientDoctorMedicalAssessmentOperationalColumns.cs",
-      "20261021073245_AddMedicalCheckupManagement.cs",
-      "20261022021727_AddCoveringMcuOrderToLabRadOrders.cs",
-      "20261022081149_AddBillingRefundCaseItem.cs",
-      "20261022130000_MakeTransferHandoverPlacementsNullable.cs",
-      "20261023035602_AddRegPatientGeneralConsent.cs",
-      "20261023062116_AddInpEpisodeExternalReferral.cs",
-      "20261026030735_AddOprBirthEventAndInpEpisodeSurgicalFields.cs",
-      "20261026031429_PersempitIndeksCatatanDokterPerKunjungan.cs",
-      "20261026120000_AddPurchasingApBlmComponents.cs",
-      "20261026130000_AddMedicalFeeMasterData.cs",
-      "20261026140000_AddMedicalFeeCalculation.cs",
-      "20261026150000_AddBilInvoiceItemPerformerAndDoctorShareTrace.cs",
-      "20261027104500_AddOnBehalfFieldsToAttendanceCorrectionRequest.cs",
-      "20261028022135_AddPurchasingApAllocationAndMedicalFeeFinanceHandoff.cs",
-      "20261028070658_AddMedicalRecordCompletenessFoundation.cs",
-      "20261028082048_AddNurseViewManagement.cs"
-    ]
-  },
-  "backendVersion": "0.26.0"
+    "migrations": [],
+    "generatedAt": "2026-11-02T07:20:04",
+    "migrationCount": 0,
+    "features": [
+      "Billing Workflow",
+      "Pharmacy Workflow",
+      "Blood Bank Workflow"
+    ],
+    "generatedBy": "Quilvian Release Generator"
+  }
 }
