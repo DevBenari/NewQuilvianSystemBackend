@@ -413,12 +413,20 @@ Mengubah bentuk kontrak membuat versi baru dan membatalkan gerbang ini.
 
 | Task | Gelombang | Epic | Ringkas | Endpoint backend | Status |
 |---|---|---|---|---|---|
-| `FE-10` | `MVP-0`–`MVP-2` | `RM-01`, `RM-02`, `RM-06` | Linimasa: jenis baru, penanda, `unavailableKinds`, pemberitahuan cakupan | `BE-21`, `BE-26` | **`SIAP`** (paralel) |
-| `FE-11` | `MVP-0` | `RM-04` | Baris ringkasan berkala dan rinciannya | `BE-22` | **`SIAP`** (paralel) |
-| `FE-12` | `MVP-5` | `RM-09` | Aksi "Sahkan isi catatan" | `BE-38` | **`SIAP`** (paralel) |
-| `FE-13` | `MVP-5` | `RM-07` | Layar Profil Dokumen Wajib + menu | `BE-37` | **`SIAP`** (paralel) |
-| `FE-14` | `MVP-6` | `RM-08` | Daftar kerja Kelengkapan Berkas + menu | `BE-39` | **`SIAP`** (paralel) |
-| `FE-15` | `MVP-6` | — | Uji antarmuka amandemen dan kesiapan | Seluruh di atas | `TERTAHAN DEPENDENCY` |
+| `FE-10` | `MVP-0`–`MVP-2` | `RM-01`, `RM-02`, `RM-06` | Linimasa: jenis baru, penanda, `unavailableKinds`, pemberitahuan cakupan | `BE-21`, `BE-26` | **`SELESAI`** 2 November 2026 — diuji terhadap backend nyata; Laporan `task/report/frontend/FE-10.md` |
+| `FE-11` | `MVP-0` | `RM-04` | Baris ringkasan berkala dan rinciannya | `BE-22` | **`SELESAI`** 2 November 2026 — diuji terhadap backend nyata; laporan `task/report/frontend/FE-11.md` |
+| `FE-12` | `MVP-5` | `RM-09` | Aksi "Sahkan isi catatan" | `BE-38` | **`SELESAI`** 2 November 2026 — layar berkas; diuji terhadap backend nyata tanpa menulis; laporan `task/report/frontend/FE-12.md`. Layar "Catatan Saya" tidak termasuk (`RM-DEC-077`) |
+| `FE-13` | `MVP-5` | `RM-07` | Layar Profil Dokumen Wajib + menu | `BE-37` | **`SELESAI`** 2 November 2026 — diuji terhadap backend nyata tanpa menyimpan (`VAL-RM-A04`–`A07` dan UAT-14 terbukti); laporan `task/report/frontend/FE-13.md`. UAT-13 penuh menunggu `FE-14` |
+| `FE-14` | `MVP-6` | `RM-08` | Daftar kerja Kelengkapan Berkas + menu | `BE-39` | **`SELESAI`** 2 November 2026 — kriteria 1–5 terbukti; diuji terhadap backend nyata tanpa menyimpan penilaian (UAT-16 terbukti); laporan `task/report/frontend/FE-14.md`. UAT-15 dan UAT-17 menunggu kunjungan tutup klinis sesudah rilis di devYoga |
+| `FE-15` | `MVP-6` | — | Uji antarmuka amandemen dan kesiapan | Seluruh di atas | **`SELESAI`** 2 November 2026 — 7 dari 19 UAT lulus terhadap backend nyata; 12 dicatat terbuka beserta sebab dan bukti pengganti (keputusan pemilik modul: data uji dibuat di sesi UAT terpisah); laporan kesiapan `testing/uat-amandemen-0.2.0.md`, laporan task `task/report/frontend/FE-15.md` |
+
+**Keadaan backend 2 November 2026: seluruh endpoint yang dipakai `FE-10`–`FE-14` sudah tersedia** —
+`BE-21`–`BE-41` `SELESAI`, termasuk pembaca seluruh modul sumber (`BE-23`, `BE-24`, `BE-29`–`BE-36`).
+Penyelesaian akhir task frontend kini dapat diuji ulang terhadap backend nyata. Dua hal yang perlu
+diketahui layar: (1) `unavailableKinds` baru ikut terkirim pada selubung `/timeline` sejak `BE-41`;
+(2) keterbatasan yang wajib tampil di layar dirinci `catatan-rilis.md` bagian A7 (label "Dapat
+berubah" untuk Gizi, golongan darah tanpa kunjungan, keterangan keberlakuan golongan darah). Status
+keenam task frontend tidak diubah di sini.
 
 ## `FE-10` — Linimasa lintas modul
 
