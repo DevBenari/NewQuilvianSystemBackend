@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Services
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
+using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Controllers
 {
@@ -47,6 +48,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             [FromQuery] string? queueGroupCode,
             CancellationToken cancellationToken = default)
         {
+            // Akun perangkat display: perbarui Terakhir Online di master display admisi.
+            var deviceIdClaim = User.FindFirstValue("queue_display_device_id") ?? User.FindFirstValue("display_device_id");
+            if (Guid.TryParse(deviceIdClaim, out var deviceId))
+                await _ticketService.TouchDisplayDeviceAsync(deviceId, cancellationToken);
+
             return Ok(ApiResponse<AdmissionQueueDisplayResponse>.Ok(
                 await _ticketService.GetDisplayAsync(queueGroupCode, cancellationToken),
                 "Display antrean admisi berhasil diambil."));

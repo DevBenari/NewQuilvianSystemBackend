@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Enums;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -77,6 +79,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private const string SequenceKeyPrefix = "REG_ADMISSION_TICKET_";
         private const int AllocatorSequenceDigits = 4;
         private const int DisplayRecentCallCount = 5;
+        private const int DisplayWaitingCount = 8;
 
         public const string ActionCall = "call";
         public const string ActionRecall = "recall";
@@ -833,6 +836,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             var waitingCount = await query.CountAsync(x => x.Status == AdmissionTicketStatus.Waiting, cancellationToken);
 
+            // Menunggu lebih dulu sesuai urutan terbit; Dilewati di belakang karena menunggu panggil ulang.
+            var waitingTickets = await query
+                .Where(x => x.Status == AdmissionTicketStatus.Waiting || x.Status == AdmissionTicketStatus.Skipped)
+                .OrderBy(x => x.Status == AdmissionTicketStatus.Skipped)
+                .ThenBy(x => x.IssuedAt)
+                .ThenBy(x => x.SequenceNumber)
+                .Take(DisplayWaitingCount)
+                .Select(x => new AdmissionQueueDisplayWaitingResponse
+                {
+                    TicketId = x.Id,
+                    DisplayNumber = x.DisplayNumber,
+                    QueueGroupName = x.QueueGroupName,
+                    Status = x.Status,
+                    IssuedAt = x.IssuedAt
+                })
+                .ToListAsync(cancellationToken);
+
             var current = calls.FirstOrDefault();
             if (current != null)
             {
@@ -845,8 +865,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 ServiceDate = serviceDate,
                 Current = current,
                 RecentCalls = calls.Skip(1).ToList(),
-                WaitingCount = waitingCount
+                WaitingCount = waitingCount,
+                WaitingTickets = waitingTickets
             };
+        }
+
+        /// <summary>
+        /// Menandai perangkat display admisi sedang online (kolom Terakhir Online di master display),
+        /// sama seperti endpoint runtime display poli. Hanya perangkat aktif ber-layout Admisi.
+        /// </summary>
+        public async Task TouchDisplayDeviceAsync(Guid displayDeviceId, CancellationToken cancellationToken = default)
+        {
+            if (displayDeviceId == Guid.Empty)
+                return;
+
+            var nowUtc = DateTime.UtcNow;
+
+            await _dbContext.Set<MstQueueDisplayDevice>()
+                .Where(x => x.Id == displayDeviceId &&
+                            !x.IsDelete &&
+                            x.IsActive &&
+                            x.LayoutType == QueueDisplayLayoutType.AdmissionBoard)
+                .ExecuteUpdateAsync(
+                    setters => setters
+                        .SetProperty(x => x.LastOnlineDateTime, nowUtc)
+                        .SetProperty(x => x.LastErrorMessage, (string?)null),
+                    cancellationToken);
         }
 
         // ── Pemetaan publik ─────────────────────────────────────────────────────────

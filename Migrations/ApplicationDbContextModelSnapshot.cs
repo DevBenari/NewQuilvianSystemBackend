@@ -2161,7 +2161,7 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<Guid>("NurseStationClusterId")
+                    b.Property<Guid?>("NurseStationClusterId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("PairingCode")
@@ -110263,8 +110263,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.Administrator.MasterData.Models.MstNurseStationCluster", "NurseStationCluster")
                         .WithMany()
                         .HasForeignKey("NurseStationClusterId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "ServiceUnit")
                         .WithMany()

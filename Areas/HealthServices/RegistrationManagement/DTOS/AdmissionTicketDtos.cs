@@ -336,6 +336,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public List<AdmissionQueueDisplayCallResponse> RecentCalls { get; set; } = new();
 
         public int WaitingCount { get; set; }
+
+        /// <summary>Nomor menunggu terdepan (Menunggu dan Dilewati), tanpa identitas pasien.</summary>
+        public List<AdmissionQueueDisplayWaitingResponse> WaitingTickets { get; set; } = new();
+    }
+
+    public class AdmissionQueueDisplayWaitingResponse
+    {
+        public Guid TicketId { get; set; }
+
+        public string DisplayNumber { get; set; } = string.Empty;
+
+        public string QueueGroupName { get; set; } = string.Empty;
+
+        public AdmissionTicketStatus Status { get; set; }
+
+        public DateTime IssuedAt { get; set; }
     }
 
     /// <summary>Kabar realtime tanpa identitas pasien (bagian 8.5).</summary>

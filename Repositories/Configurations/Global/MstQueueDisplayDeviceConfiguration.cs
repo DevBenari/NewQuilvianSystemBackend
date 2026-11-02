@@ -13,8 +13,9 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Global
 
             entity.HasKey(x => x.Id);
 
+            // Kosong untuk display Admisi Rawat Jalan (AdmissionBoard).
             entity.Property(x => x.NurseStationClusterId)
-                .IsRequired();
+                .IsRequired(false);
 
             entity.Property(x => x.ServiceUnitId)
                 .IsRequired(false);

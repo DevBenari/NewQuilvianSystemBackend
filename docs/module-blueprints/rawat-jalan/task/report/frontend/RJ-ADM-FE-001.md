@@ -58,3 +58,35 @@ Pilihan yang ditawarkan untuk elemen WRAP kiosk: **A. Ikuti pola visual kiosk Ce
 - "Loket" adalah loket petugas di perangkat (disimpan lokal) untuk memanggil, bukan penyaring daftar.
 - Butuh perubahan backend (dicatat di RJ-ADM-BE-001): `POST admission-queues/{id}/call`, Selesaikan dari Dipanggil, rentang `serviceDateFrom/To` pada list dan summary.
 - Validasi: belum build/uji browser.
+
+## Revisi 2026-11-02 — Display Antrean Admisi mengikuti display perawat/dokter
+
+- `/queue-display/admission` kini memakai markup dan `queue-display-screen.module.css` milik display poli: top bar (logo, judul, suara, layar penuh, keluar, jam), panel Nomor Dipanggil, tabel Panggilan Sebelumnya, tabel Antrean Menunggu, popup panggilan bergaya popup dokter.
+- `BrandLogo`, `HeaderClock`, `ActionButton`, `clearQueueDisplaySession`, `requestQueueDisplayLogout` di `queue-display-screen-view.jsx` hanya diberi `export` (tanpa perubahan perilaku).
+- Dimuat lewat `dynamic(..., { ssr: false })` seperti `queue-display-client`. CSS display versi pertama dihapus.
+- Validasi: belum build/uji browser.
+
+## Revisi 2026-11-02 — setup display Admisi lewat master display
+
+- Form master display: layout "Admisi Rawat Jalan" membuat kolom Cluster tidak wajib, dikunci, dan dikosongkan (`applyQueueDisplayLayoutRules`, hanya salinan field untuk tampilan/validasi).
+- `/queue-display` mengalihkan perangkat ber-layout Admisi ke `/queue-display/admission` (layout dibaca dari sesi login `LayoutTypeName`).
+- Validasi: belum build/uji browser.
+
+## Revisi 2026-11-02 — submenu Display Antrian: Pelayanan dan Admisi
+
+- Menu Administrator → Master Data → Display Antrian menjadi grup: **Pelayanan** (`/administrator/master-data/queue-display-devices`, display perawat/dokter) dan **Admisi** (`/administrator/master-data/admission-queue-display-devices`). Route Admisi sengaja tidak di bawah route Pelayanan agar highlight sidebar (prefix match) tidak ganda.
+- List view/hook menerima `scope`; daftar dan ringkasan mengirim `displayScope`; kolom Klaster disembunyikan pada Admisi; opsi filter layout disesuaikan per scope.
+- Tambah dari Admisi: layout terisi "Admisi Rawat Jalan" dan dikunci, cluster dikunci; tambah dari Pelayanan: layout Admisi tidak ditawarkan. Detail/ubah memakai route bersama; Kembali/hapus mengarah ke submenu sesuai layout perangkat.
+- Validasi: belum build/uji browser.
+
+## Revisi 2026-11-02 — pemisahan data dan form Display Admisi
+
+- Bug: `normalizeQueryParams` di `master-data-queue-display-device-slice` membuang `displayScope`, sehingga submenu Pelayanan dan Admisi menampilkan data yang sama; `LAYOUT_TYPE_VALUES` tidak memuat 6 sehingga layout Admisi tersimpan sebagai 0. Keduanya diperbaiki.
+- Form Admisi hanya memuat field relevan: Unit Layanan, Cluster, Tipe Layout, Tampilkan Nama Pasien/Dokter/Poli, dan Mode Audiens disembunyikan (`QUEUE_DISPLAY_ADMISSION_HIDDEN_FIELDS`). Form Pelayanan tidak lagi menawarkan layout Admisi (tambah maupun ubah). Judul/deskripsi form mengikuti jenis display.
+- DB dev (read-only): tidak ada display Admisi aktif; 3 display uji layout 6 dari 29 Okt sudah `IsDelete`.
+- Validasi: belum build/uji browser.
+
+## Revisi 2026-11-02 — kolom tabel Display Antrean Admisi
+
+- `buildAdmissionQueueDisplayDeviceColumns`: No, Kode Layar, Nama Layar, Tipe Perangkat, Lokasi / Lantai / Ruangan, Panggilan Suara, Terakhir Online (Online/Offline ≤ 5 menit + waktu), Session Device, Dibuat Oleh, Status. Tanpa Klaster, Unit Layanan, Tipe Tata Letak. Tabel Pelayanan tidak berubah.
+- Validasi: belum build/uji browser.

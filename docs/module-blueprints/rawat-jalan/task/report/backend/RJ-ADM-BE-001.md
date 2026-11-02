@@ -82,3 +82,23 @@ Build → `has-pending-model-changes` → `database update` (dev pemilik) → bu
 - `availableActions`: Menunggu `call, cancel`; Dipanggil `recall, skip, start-service, complete, cancel`.
 - List dan summary menerima `serviceDateFrom/serviceDateTo` (inklusif); `serviceDate` tunggal tetap diterima. Summary menambah `serviceDateTo`. Urutan list: tanggal terbaru dulu, lalu nomor.
 - Tanpa perubahan schema/migration. Validasi: **belum build** (instruksi pemilik).
+
+## Revisi 2026-11-02 — data display
+
+- `GET admission-queue-display` menambah `waitingTickets` (maks. 8: Menunggu urut terbit, lalu Dilewati) tanpa identitas pasien. Tanpa perubahan schema. Validasi: belum build.
+
+## Revisi 2026-11-02 — master display untuk layout Admisi Rawat Jalan
+
+- `QueueDisplayLayoutType.AdmissionBoard = 6` (label "Admisi Rawat Jalan"); opsi metadata dibangkitkan dari enum.
+- `MstQueueDisplayDevice.NurseStationClusterId` menjadi nullable; validasi master: cluster wajib kecuali layout Admisi, dan dikosongkan untuk layout Admisi (`ResolveClusterId`). DTO master/login/runtime ikut `Guid?`.
+- Redirect login perangkat (`AuthController` dan `QueueDisplayDeviceController.BuildQueueDisplayRedirectPath`) ke `/queue-display/admission` untuk layout Admisi; parameter cluster hanya dikirim bila ada.
+- `queue-display-runtime/current` menambah `layoutType`; query poli berbasis cluster aman untuk perangkat tanpa cluster.
+- Migration `20261102140000_MakeQueueDisplayDeviceClusterOptional` (AlterColumn nullable) + snapshot, disusun tangan. Validasi: **belum build**, belum `database update`.
+
+## Revisi 2026-11-02 — `displayScope` pada master display
+
+- `GET queue-display-devices` dan `GET queue-display-devices/summary` menerima `displayScope` = `service` (selain layout Admisi) atau `admission` (layout Admisi); kosong = semua. Tanpa perubahan schema. Validasi: belum build.
+
+## Revisi 2026-11-02 — Terakhir Online display admisi
+
+- `GET admission-queue-display` memperbarui `MstQueueDisplayDevice.LastOnlineDateTime` untuk akun perangkat (`queue_display_device_id`) ber-layout Admisi (`AdmissionTicketService.TouchDisplayDeviceAsync`, `ExecuteUpdate`). Tanpa schema. Validasi: belum build.
