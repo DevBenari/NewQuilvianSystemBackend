@@ -313,12 +313,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         public async Task<AdmissionQueueSummaryResponse> GetSummaryAsync(
             DateTime? serviceDate,
+            DateTime? serviceDateFrom,
+            DateTime? serviceDateTo,
             string? queueGroupCode,
             CancellationToken cancellationToken = default)
         {
-            var date = ResolveServiceDate(serviceDate);
+            var (from, to) = ResolveServiceDateRange(serviceDate, serviceDateFrom, serviceDateTo);
             var query = _dbContext.RegAdmissionTickets.AsNoTracking()
-                .Where(x => !x.IsDelete && x.ServiceDate == date);
+                .Where(x => !x.IsDelete && x.ServiceDate >= from && x.ServiceDate <= to);
 
             if (!string.IsNullOrWhiteSpace(queueGroupCode))
             {
@@ -335,7 +337,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             return new AdmissionQueueSummaryResponse
             {
-                ServiceDate = date,
+                ServiceDate = from,
+                ServiceDateTo = to,
                 Total = counts.Sum(x => x.Count),
                 Waiting = CountOf(AdmissionTicketStatus.Waiting),
                 Called = CountOf(AdmissionTicketStatus.Called),
@@ -351,12 +354,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             AdmissionQueueListQuery query,
             CancellationToken cancellationToken = default)
         {
-            var date = ResolveServiceDate(query.ServiceDate);
+            var (from, to) = ResolveServiceDateRange(query.ServiceDate, query.ServiceDateFrom, query.ServiceDateTo);
             var pageNumber = Math.Max(1, query.PageNumber);
             var pageSize = Math.Clamp(query.PageSize, 1, 100);
 
             var source = _dbContext.RegAdmissionTickets.AsNoTracking()
-                .Where(x => !x.IsDelete && x.ServiceDate == date);
+                .Where(x => !x.IsDelete && x.ServiceDate >= from && x.ServiceDate <= to);
 
             if (!string.IsNullOrWhiteSpace(query.QueueGroupCode))
             {
@@ -387,8 +390,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             var totalData = await source.CountAsync(cancellationToken);
 
+            // Hari terbaru di atas; di dalam satu hari mengikuti urutan nomor terbit.
             var items = await ProjectListItems(source
-                    .OrderBy(x => x.QueueGroupCode)
+                    .OrderByDescending(x => x.ServiceDate)
+                    .ThenBy(x => x.QueueGroupCode)
                     .ThenBy(x => x.SequenceNumber)
                     .Skip((pageNumber - 1) * pageSize)
                     .Take(pageSize))
@@ -493,20 +498,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
-            var held = await _dbContext.RegAdmissionTickets.AsNoTracking()
-                .Where(x => !x.IsDelete &&
-                            x.ServiceDate == serviceDate &&
-                            x.CounterCode == counterCode &&
-                            (x.Status == AdmissionTicketStatus.Called || x.Status == AdmissionTicketStatus.Serving))
-                .Select(x => x.DisplayNumber)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (held != null)
-            {
-                return AdmissionTicketCommandResult.Fail(
-                    AdmissionTicketOutcome.Conflict,
-                    $"{ResolveCounterName(counter)} masih melayani nomor {held}. Mulai pelayanan, lewati, atau selesaikan nomor itu terlebih dahulu.");
-            }
+            var heldError = await ResolveCounterHeldErrorAsync(counter, null, cancellationToken);
+            if (heldError != null)
+                return AdmissionTicketCommandResult.Fail(AdmissionTicketOutcome.Conflict, heldError);
 
             RegAdmissionTicket? ticket;
 
@@ -559,6 +553,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             await transaction.CommitAsync(cancellationToken);
 
             return await FinishCallAsync(ticket, RegAdmissionTicketHistory.EventCalled, nowUtc, $"Nomor {ticket.DisplayNumber} dipanggil ke {ticket.CounterName}.");
+        }
+
+        /// <summary>
+        /// Panggil satu tiket Menunggu yang dipilih petugas dari daftar ke loketnya. Loket yang
+        /// masih memegang nomor Dipanggil/Dilayani ditolak, sama seperti Panggil Berikutnya.
+        /// </summary>
+        public async Task<AdmissionTicketCommandResult> CallAsync(
+            Guid ticketId,
+            AdmissionTicketCounterRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var counter = _options.FindActiveCounter(request.CounterCode);
+            if (counter == null)
+                return AdmissionTicketCommandResult.Fail(AdmissionTicketOutcome.Invalid, "Pilih loket admisi yang aktif sebelum memanggil.");
+
+            var heldError = await ResolveCounterHeldErrorAsync(counter, ticketId, cancellationToken);
+            if (heldError != null)
+                return AdmissionTicketCommandResult.Fail(AdmissionTicketOutcome.Conflict, heldError);
+
+            return await MutateAsync(
+                ticketId,
+                actorUserId,
+                RegAdmissionTicketHistory.EventCalled,
+                cancellationToken,
+                (ticket, nowUtc) =>
+                {
+                    if (ticket.Status != AdmissionTicketStatus.Waiting)
+                        return Invalid(ticket, "dipanggil");
+
+                    if (!counter.Serves(ticket.QueueGroupCode))
+                        return "Kelompok antrean tiket ini tidak dilayani loket yang dipilih.";
+
+                    ApplyCall(ticket, counter, actorUserId, nowUtc);
+                    return null;
+                },
+                isCall: true);
         }
 
         /// <summary>Panggil Ulang tiket Dipanggil, atau panggil kembali tiket Dilewati (UAT-06).</summary>
@@ -655,7 +686,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 cancellationToken,
                 (ticket, nowUtc) =>
                 {
-                    if (ticket.Status != AdmissionTicketStatus.Serving)
+                    // Dipanggil juga boleh ditutup langsung, misalnya pasien hanya bertanya di loket.
+                    if (ticket.Status is not (AdmissionTicketStatus.Called or AdmissionTicketStatus.Serving))
                         return Invalid(ticket, "diselesaikan");
 
                     var note = NormalizeText(request.Note, 500);
@@ -933,6 +965,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             };
         }
 
+        /// <summary>Satu loket hanya memegang satu nomor Dipanggil/Dilayani pada satu waktu.</summary>
+        private async Task<string?> ResolveCounterHeldErrorAsync(
+            AdmissionQueueCounterOptions counter,
+            Guid? exceptTicketId,
+            CancellationToken cancellationToken)
+        {
+            var serviceDate = ToServiceDate(DateTime.UtcNow);
+            var counterCode = counter.Code.Trim();
+
+            var held = await _dbContext.RegAdmissionTickets.AsNoTracking()
+                .Where(x => !x.IsDelete &&
+                            x.ServiceDate == serviceDate &&
+                            x.CounterCode == counterCode &&
+                            x.Id != exceptTicketId &&
+                            (x.Status == AdmissionTicketStatus.Called || x.Status == AdmissionTicketStatus.Serving))
+                .Select(x => x.DisplayNumber)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return held == null
+                ? null
+                : $"{ResolveCounterName(counter)} masih memegang nomor {held}. Mulai pelayanan, lewati, atau selesaikan nomor itu terlebih dahulu.";
+        }
+
         private static void ApplyCall(RegAdmissionTicket ticket, AdmissionQueueCounterOptions counter, Guid actorUserId, DateTime nowUtc)
         {
             ticket.Status = AdmissionTicketStatus.Called;
@@ -1082,8 +1137,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         private static List<string> ResolveAvailableActions(AdmissionTicketStatus status, Guid? encounterId) =>
             status switch
             {
-                AdmissionTicketStatus.Waiting => new List<string> { ActionCancel },
-                AdmissionTicketStatus.Called => new List<string> { ActionRecall, ActionStartService, ActionSkip, ActionCancel },
+                AdmissionTicketStatus.Waiting => new List<string> { ActionCall, ActionCancel },
+                AdmissionTicketStatus.Called =>
+                    new List<string> { ActionRecall, ActionSkip, ActionStartService, ActionComplete, ActionCancel },
                 AdmissionTicketStatus.Serving when encounterId == null =>
                     new List<string> { ActionOpenRegistration, ActionComplete, ActionCancel },
                 AdmissionTicketStatus.Serving => new List<string> { ActionComplete },
@@ -1130,10 +1186,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
         internal static string BuildDisplayNumber(string prefix, int sequenceNumber) =>
             $"{prefix}-{sequenceNumber.ToString($"D{AdmissionQueueOptions.DisplaySequenceDigits}")}";
 
-        private static DateTime ResolveServiceDate(DateTime? serviceDate) =>
-            serviceDate.HasValue
-                ? DateTime.SpecifyKind(serviceDate.Value.Date, DateTimeKind.Utc)
-                : ToServiceDate(DateTime.UtcNow);
+        /// <summary>
+        /// Rentang tanggal pelayanan inklusif. Rentang menang atas tanggal tunggal; sisi yang kosong
+        /// diisi sisi lainnya; tanpa isian sama sekali berarti hari ini. Awal &gt; akhir ditukar.
+        /// </summary>
+        private static (DateTime From, DateTime To) ResolveServiceDateRange(
+            DateTime? serviceDate,
+            DateTime? serviceDateFrom,
+            DateTime? serviceDateTo)
+        {
+            static DateTime Normalize(DateTime value) => DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
+
+            var from = serviceDateFrom ?? serviceDateTo ?? serviceDate;
+            var to = serviceDateTo ?? serviceDateFrom ?? serviceDate;
+
+            if (!from.HasValue || !to.HasValue)
+            {
+                var today = ToServiceDate(DateTime.UtcNow);
+                return (today, today);
+            }
+
+            var start = Normalize(from.Value);
+            var end = Normalize(to.Value);
+            return start <= end ? (start, end) : (end, start);
+        }
 
         /// <summary>Tanggal pelayanan WIB, disimpan sebagai <c>date</c>.</summary>
         private static DateTime ToServiceDate(DateTime utc)

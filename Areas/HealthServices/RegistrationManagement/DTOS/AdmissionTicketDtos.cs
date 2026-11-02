@@ -94,8 +94,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
     public class AdmissionQueueListQuery
     {
-        /// <summary>Tanggal pelayanan WIB; kosong berarti hari ini.</summary>
+        /// <summary>Tanggal pelayanan WIB tunggal; dipakai bila rentang kosong. Kosong semua berarti hari ini.</summary>
         public DateTime? ServiceDate { get; set; }
+
+        /// <summary>Awal rentang tanggal pelayanan WIB (inklusif).</summary>
+        public DateTime? ServiceDateFrom { get; set; }
+
+        /// <summary>Akhir rentang tanggal pelayanan WIB (inklusif).</summary>
+        public DateTime? ServiceDateTo { get; set; }
 
         [MaxLength(30)]
         public string? QueueGroupCode { get; set; }
@@ -117,7 +123,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
     public class AdmissionQueueSummaryResponse
     {
+        /// <summary>Awal rentang; sama dengan <see cref="ServiceDateTo"/> bila satu hari.</summary>
         public DateTime ServiceDate { get; set; }
+
+        public DateTime ServiceDateTo { get; set; }
 
         public int Total { get; set; }
 

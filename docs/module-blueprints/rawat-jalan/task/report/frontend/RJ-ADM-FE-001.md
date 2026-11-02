@@ -50,3 +50,11 @@ Pilihan yang ditawarkan untuk elemen WRAP kiosk: **A. Ikuti pola visual kiosk Ce
 2. Kiosk perlu mode cetak senyap (kiosk-printing) agar dialog cetak tidak muncul.
 3. Menu kiosk memakai warna literal mengikuti item kiosk lain pada berkas yang sama (legacy).
 4. Pendaftaran mandiri kiosk (pasien baru/lama) tetap menampilkan nomor antrean poli — jalur itu di luar scope blueprint ini.
+
+## Revisi 2026-11-02 — layout dan alur aksi Daftar Antrean Admisi (sketsa pemilik)
+
+- Layout: Hero → 6 kartu ringkasan → satu panel "Daftar Tiket" (Start date, End date, Periode, Loket, Status, Cari, Baris, ↻) → tabel No, No. Admisi, Waktu Ambil, Loket / Panggil, Kunjungan, Status, Aksi. Bar loket, tombol Panggil Berikutnya, dan bar tiket dipegang dihapus.
+- Aksi: Menunggu → Panggil, Batalkan Tiket. Dipanggil → Panggil Ulang, Lewati, Mulai Pelayanan, Selesaikan, Batalkan Tiket. Mulai Pelayanan mengubah tiket menjadi Dilayani lalu langsung membuka Pendaftaran Pasien (`?admissionTicketId=`).
+- "Loket" adalah loket petugas di perangkat (disimpan lokal) untuk memanggil, bukan penyaring daftar.
+- Butuh perubahan backend (dicatat di RJ-ADM-BE-001): `POST admission-queues/{id}/call`, Selesaikan dari Dipanggil, rentang `serviceDateFrom/To` pada list dan summary.
+- Validasi: belum build/uji browser.

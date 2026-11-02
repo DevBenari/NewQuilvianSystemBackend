@@ -72,11 +72,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("AdmissionQueue", "Read")]
         public async Task<IActionResult> GetSummary(
             [FromQuery] DateTime? serviceDate,
+            [FromQuery] DateTime? serviceDateFrom,
+            [FromQuery] DateTime? serviceDateTo,
             [FromQuery] string? queueGroupCode,
             CancellationToken cancellationToken = default)
         {
             return Ok(ApiResponse<AdmissionQueueSummaryResponse>.Ok(
-                await _ticketService.GetSummaryAsync(serviceDate, queueGroupCode, cancellationToken),
+                await _ticketService.GetSummaryAsync(serviceDate, serviceDateFrom, serviceDateTo, queueGroupCode, cancellationToken),
                 "Ringkasan antrean admisi berhasil diambil."));
         }
 
@@ -134,6 +136,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     Voice = result.Voice
                 },
                 result.Message));
+        }
+
+        /// <summary>Panggil satu tiket Menunggu yang dipilih dari daftar ke loket petugas.</summary>
+        [HttpPost("{id:guid}/call")]
+        [ProducesResponseType(typeof(ApiResponse<AdmissionTicketActionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Call", "Call Admission Queue", Description = "Memanggil dan memanggil ulang nomor antrean admisi", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("AdmissionQueue", "Call")]
+        public async Task<IActionResult> Call(
+            Guid id,
+            [FromBody] AdmissionTicketCounterRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _ticketService.CallAsync(id, request, GetCurrentUserId(), cancellationToken);
+            return await RespondAsync(result, "AdmissionQueue.Call", "Memanggil antrean admisi.", "Call");
         }
 
         [HttpPost("{id:guid}/recall")]

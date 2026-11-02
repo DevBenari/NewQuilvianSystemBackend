@@ -74,3 +74,11 @@ Migration, Designer, dan snapshot **disusun tangan tanpa build**. Designer hanya
 ## Task berikutnya
 
 Build → `has-pending-model-changes` → `database update` (dev pemilik) → bukti UAT-01..13 → ubah status ke ✅.
+
+## Revisi 2026-11-02 — dukungan layout Daftar Antrean Admisi
+
+- `POST admission-queues/{id}/call` (`AdmissionQueue : Call`): panggil satu tiket Menunggu ke loket; loket yang masih memegang nomor ditolak 409 (`ResolveCounterHeldErrorAsync`, dipakai bersama call-next).
+- `complete` kini juga dari Dipanggil (catatan wajib bila belum tertaut kunjungan).
+- `availableActions`: Menunggu `call, cancel`; Dipanggil `recall, skip, start-service, complete, cancel`.
+- List dan summary menerima `serviceDateFrom/serviceDateTo` (inklusif); `serviceDate` tunggal tetap diterima. Summary menambah `serviceDateTo`. Urutan list: tanggal terbaru dulu, lalu nomor.
+- Tanpa perubahan schema/migration. Validasi: **belum build** (instruksi pemilik).
