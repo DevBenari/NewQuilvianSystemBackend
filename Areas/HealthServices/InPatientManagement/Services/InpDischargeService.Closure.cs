@@ -855,6 +855,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         actorUserId,
                         now,
                         encounterClosedAtUtc: now,
+                        // BE-28 / RM-DEC-069: sumber penutupan klinis jalur ini.
+                        closureSource: QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.InpatientDischarge,
                         cancellationToken: cancellationToken);
 
                 // ---------------------------------------------------------------------

@@ -59,9 +59,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
     {
         private readonly ApplicationDbContext _dbContext;
 
-        public ClinicalDocumentIntegrityService(ApplicationDbContext dbContext)
+        /// <summary>Antrean penilaian kelengkapan pertama (`BE-39`). Kosong pada uji yang tidak membutuhkannya.</summary>
+        private readonly MedicalRecordCompletenessQueue? _completenessQueue;
+
+        public ClinicalDocumentIntegrityService(
+            ApplicationDbContext dbContext,
+            MedicalRecordCompletenessQueue? completenessQueue = null)
         {
             _dbContext = dbContext;
+            _completenessQueue = completenessQueue;
         }
 
         /// <summary>
@@ -456,6 +462,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
+            // BE-40: pemicu penilaian ulang kelengkapan. Hanya antrean memori — tanda tangan tidak
+            // menunggu penilaian dan tidak dapat gagal karenanya. Kunjungan yang belum tutup klinis
+            // dilepas begitu saja oleh worker.
+            _completenessQueue?.EnqueueReevaluation(keutuhan.EncounterId);
+
             return (IntegrityGuardResult.Allowed(), keutuhan);
         }
 
@@ -589,6 +600,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
                 closureSource,
                 KeUtc(nowUtc),
                 cancellationToken);
+
+            // BE-39 / RM-DEC-046: penilaian kelengkapan pertama TIDAK dijalankan di sini. Hanya id
+            // kunjungan yang ditaruh di antrean memori — tanpa basis data, tanpa galat — lalu
+            // dinilai di luar transaksi penutupan sesudah transaksinya di-commit.
+            _completenessQueue?.Enqueue(encounterId);
 
             var jumlahTerkunci = 0;
 

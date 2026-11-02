@@ -1671,8 +1671,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             // penguncian gagal, perubahan status kunjungan ikut dibatalkan.
             if (request.EncounterStatus == EncounterStatus.Completed)
             {
+                // BE-28 / RM-DEC-068: sumber penutupan klinis jalur ini.
                 await _integrityService.LockOpenDocumentsForEncounterAsync(
-                    entity.Id, actorUserId, now, entity.CompletedAt ?? now);
+                    entity.Id, actorUserId, now, entity.CompletedAt ?? now,
+                    closureSource: QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums.ClinicalClosureSource.EncounterStatusPatch);
             }
 
             await _dbContext.SaveChangesAsync();
