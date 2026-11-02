@@ -533,6 +533,17 @@ try
             $"{OutpatientQueueNumberOptions.MinimumPriorityNumberMultiple}.")
         .ValidateOnStart();
 
+    // rawat-jalan Cetak Antrean Admisi v1.1 — tiket antrean admisi anonim dari kiosk, Daftar
+    // Antrean Admisi, dan display admisi. Nomor admisi dari NumberSeriesAllocator (QBE-CODE-006).
+    builder.Services.AddOptions<AdmissionQueueOptions>()
+        .Bind(builder.Configuration.GetSection(AdmissionQueueOptions.SectionName))
+        .Validate(
+            options => options.IsValid(),
+            $"{AdmissionQueueOptions.SectionName}: kode dan awalan kelompok aktif wajib unik, awalan 1-5 huruf, " +
+            "dan kode loket aktif wajib unik.")
+        .ValidateOnStart();
+    builder.Services.AddScoped<AdmissionTicketService>();
+
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();
 
