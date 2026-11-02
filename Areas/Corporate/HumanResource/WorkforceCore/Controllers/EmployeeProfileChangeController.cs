@@ -183,6 +183,38 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
 
 
 
+        [HttpPost("on-behalf")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(
+            typeof(ApiResponse<EmployeeProfileChangeResponse>),
+            StatusCodes.Status201Created)]
+        [ProducesResponseType(
+            typeof(ApiResponse<object>),
+            StatusCodes.Status400BadRequest)]
+        [AccessAction(
+            "Create",
+            "Create On-Behalf Employee Profile Change",
+            Description = "Mengajukan permohonan perubahan profil atas nama pegawai lain",
+            AccessType = AccessTypes.Create,
+            SortOrder = 4)]
+        [AccessPermission("EmployeeProfileChange", "Create")]
+        public async Task<IActionResult> CreateOnBehalf(
+            [FromForm] CreateOnBehalfProfileChangeRequest request,
+            CancellationToken cancellationToken)
+        {
+            if (!TryGetCurrentUserId(out var actorUserId))
+            {
+                return UnauthorizedResponse();
+            }
+
+            var result = await _service.CreateOnBehalfDraftAsync(
+                request,
+                actorUserId,
+                cancellationToken);
+
+            return ToActionResult(result);
+        }
+
         [HttpPost("{id:guid}/start-verification")]
         [ProducesResponseType(
             typeof(ApiResponse<EmployeeProfileChangeResponse>),

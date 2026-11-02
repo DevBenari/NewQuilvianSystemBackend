@@ -58061,6 +58061,435 @@ namespace QuilvianSystemBackend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdInitialPlacementBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BatchName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("BatchNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("BatchStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ExecutionSummary")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("FailedRows")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SubmittedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("TotalRows")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ValidatedRows")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BatchNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("BatchStatus");
+
+                    b.ToTable("HrdInitialPlacementBatch", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdInitialPlacementBatchRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("BaseSalary")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("BatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EffectiveStartDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("GeneratedOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsValid")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ManagerWorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("OrganizationUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PositionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SalaryGradeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ValidationMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("ManagerWorkforceProfileId");
+
+                    b.HasIndex("OrganizationUnitId");
+
+                    b.HasIndex("PositionId");
+
+                    b.HasIndex("WorkforceProfileId");
+
+                    b.HasIndex("BatchId", "WorkforceProfileId")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("HrdInitialPlacementBatchRow", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActionCategory")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("ActionOrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CancellationRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancellationRequestedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CounterOrderNumber")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("EffectiveDate")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime?>("ExecutedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("LinkedSalaryAssignmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("OrderStatus")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTime>("PostingDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReasonText")
+                        .IsRequired()
+                        .HasMaxLength(1500)
+                        .HasColumnType("character varying(1500)");
+
+                    b.Property<DateTime?>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("RejectedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("SignedDocumentFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("SignedDocumentPath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SubmittedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("TargetBaseSalary")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("TargetDepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TargetManagerProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TargetOrganizationUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("TargetPositionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("WorkflowDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("WorkflowInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("WorkforceProfileId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionOrderNumber")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("LinkedSalaryAssignmentId");
+
+                    b.HasIndex("TargetDepartmentId");
+
+                    b.HasIndex("TargetManagerProfileId");
+
+                    b.HasIndex("TargetOrganizationUnitId");
+
+                    b.HasIndex("TargetPositionId");
+
+                    b.HasIndex("WorkflowDefinitionId");
+
+                    b.HasIndex("WorkflowInstanceId")
+                        .IsUnique()
+                        .HasFilter("\"WorkflowInstanceId\" IS NOT NULL AND \"IsDelete\" = false");
+
+                    b.HasIndex("OrderStatus", "EffectiveDate");
+
+                    b.HasIndex("WorkforceProfileId", "EffectiveDate");
+
+                    b.ToTable("HrdPersonnelActionOrder", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrderAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<Guid>("PersonnelActionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UploadedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PersonnelActionOrderId");
+
+                    b.ToTable("HrdPersonnelActionOrderAttachment", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.TrxEmployeeDemotion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -58327,11 +58756,29 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("EvidenceFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("EvidenceFilePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSubmittedOnBehalf")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("OnBehalfNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("OnBehalfReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("RejectedAt")
                         .HasColumnType("timestamp with time zone");
@@ -58367,6 +58814,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("SubmittedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid?>("SubmittedByWorkforceProfileId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
 
@@ -58386,6 +58836,8 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("RequestReasonId");
+
+                    b.HasIndex("SubmittedByWorkforceProfileId");
 
                     b.HasIndex("WorkflowDefinitionId");
 
@@ -60115,6 +60567,12 @@ namespace QuilvianSystemBackend.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("CanApproveRequests")
                         .HasColumnType("boolean");
 
@@ -60175,6 +60633,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("OrganizationUnitId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("PersonnelActionOrderId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
 
@@ -60191,6 +60652,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ManagerPositionId");
 
                     b.HasIndex("OrganizationUnitId");
+
+                    b.HasIndex("PersonnelActionOrderId");
 
                     b.HasIndex("WorkforceProfileId")
                         .IsUnique()
@@ -60210,6 +60673,12 @@ namespace QuilvianSystemBackend.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("AssignmentNumber")
@@ -60285,6 +60754,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("OrganizationUnitId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("PersonnelActionOrderId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("PositionId")
                         .HasColumnType("uuid");
 
@@ -60312,6 +60784,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("MstWorkforceProfileId");
 
+                    b.HasIndex("PersonnelActionOrderId");
+
                     b.HasIndex("PositionId");
 
                     b.HasIndex("WorkLocationId");
@@ -60333,6 +60807,12 @@ namespace QuilvianSystemBackend.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedByUserId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("AssignmentType")
@@ -60407,6 +60887,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("OrganizationUnitId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("PersonnelActionOrderId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("PositionId")
                         .HasColumnType("uuid");
 
@@ -60436,6 +60919,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("OrganizationAssignmentId");
 
                     b.HasIndex("OrganizationUnitId");
+
+                    b.HasIndex("PersonnelActionOrderId");
 
                     b.HasIndex("PositionId");
 
@@ -60523,6 +61008,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("PayrollPeriodId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("PersonnelActionOrderId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("SalaryGradeId")
                         .HasColumnType("uuid");
 
@@ -60543,6 +61031,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("EmployeeGradeId");
 
                     b.HasIndex("PayrollPeriodId");
+
+                    b.HasIndex("PersonnelActionOrderId");
 
                     b.HasIndex("SalaryGradeId");
 
@@ -84192,9 +84682,18 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("EpisodeId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateOnly?>("FollowUpDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("FollowUpDoctorId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("FollowUpInstruction")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("FollowUpServiceUnitId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ImportantFindingsSummary")
                         .HasMaxLength(4000)
@@ -84242,6 +84741,12 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EpisodeId")
                         .IsUnique();
+
+                    b.HasIndex("FollowUpDate");
+
+                    b.HasIndex("FollowUpDoctorId");
+
+                    b.HasIndex("FollowUpServiceUnitId");
 
                     b.HasIndex("SignedAt");
 
@@ -84296,9 +84801,18 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<DateOnly?>("FollowUpDate")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("FollowUpDoctorId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("FollowUpInstruction")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid?>("FollowUpServiceUnitId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ImportantFindingsSummary")
                         .HasMaxLength(4000)
@@ -126322,6 +126836,124 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("WorkflowStep");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdInitialPlacementBatchRow", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdInitialPlacementBatch", "Batch")
+                        .WithMany("Rows")
+                        .HasForeignKey("BatchId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstDepartment", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "ManagerWorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("ManagerWorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "OrganizationUnit")
+                        .WithMany()
+                        .HasForeignKey("OrganizationUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstPosition", "Position")
+                        .WithMany()
+                        .HasForeignKey("PositionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Batch");
+
+                    b.Navigation("Department");
+
+                    b.Navigation("ManagerWorkforceProfile");
+
+                    b.Navigation("OrganizationUnit");
+
+                    b.Navigation("Position");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrder", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.WfpSalaryAssignment", "LinkedSalaryAssignment")
+                        .WithMany()
+                        .HasForeignKey("LinkedSalaryAssignmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstDepartment", "TargetDepartment")
+                        .WithMany()
+                        .HasForeignKey("TargetDepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "TargetManagerProfile")
+                        .WithMany()
+                        .HasForeignKey("TargetManagerProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstOrganizationUnit", "TargetOrganizationUnit")
+                        .WithMany()
+                        .HasForeignKey("TargetOrganizationUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstPosition", "TargetPosition")
+                        .WithMany()
+                        .HasForeignKey("TargetPositionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstWorkflowDefinition", "WorkflowDefinition")
+                        .WithMany()
+                        .HasForeignKey("WorkflowDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Models.TrxWorkflowInstance", "WorkflowInstance")
+                        .WithMany()
+                        .HasForeignKey("WorkflowInstanceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("WorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LinkedSalaryAssignment");
+
+                    b.Navigation("TargetDepartment");
+
+                    b.Navigation("TargetManagerProfile");
+
+                    b.Navigation("TargetOrganizationUnit");
+
+                    b.Navigation("TargetPosition");
+
+                    b.Navigation("WorkflowDefinition");
+
+                    b.Navigation("WorkflowInstance");
+
+                    b.Navigation("WorkforceProfile");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrderAttachment", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrder", "PersonnelActionOrder")
+                        .WithMany("Attachments")
+                        .HasForeignKey("PersonnelActionOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PersonnelActionOrder");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.TrxEmployeeDemotion", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstEmployeeGrade", "FromEmployeeGrade")
@@ -126422,6 +127054,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("RequestReasonId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "SubmittedByWorkforceProfile")
+                        .WithMany()
+                        .HasForeignKey("SubmittedByWorkforceProfileId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workflow.Models.MstWorkflowDefinition", "WorkflowDefinition")
                         .WithMany()
                         .HasForeignKey("WorkflowDefinitionId")
@@ -126434,6 +127071,8 @@ namespace QuilvianSystemBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("RequestReason");
+
+                    b.Navigation("SubmittedByWorkforceProfile");
 
                     b.Navigation("WorkflowDefinition");
 
@@ -127173,6 +127812,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("OrganizationUnitId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrder", "PersonnelActionOrder")
+                        .WithMany()
+                        .HasForeignKey("PersonnelActionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "WorkforceProfile")
                         .WithMany()
                         .HasForeignKey("WorkforceProfileId")
@@ -127186,6 +127830,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ManagerWorkforceProfile");
 
                     b.Navigation("OrganizationUnit");
+
+                    b.Navigation("PersonnelActionOrder");
 
                     b.Navigation("WorkforceProfile");
                 });
@@ -127227,6 +127873,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("OrganizationUnitId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrder", "PersonnelActionOrder")
+                        .WithMany()
+                        .HasForeignKey("PersonnelActionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstPosition", "Position")
                         .WithMany()
                         .HasForeignKey("PositionId")
@@ -127255,6 +127906,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("LegalEntity");
 
                     b.Navigation("OrganizationUnit");
+
+                    b.Navigation("PersonnelActionOrder");
 
                     b.Navigation("Position");
 
@@ -127305,6 +127958,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("OrganizationUnitId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrder", "PersonnelActionOrder")
+                        .WithMany()
+                        .HasForeignKey("PersonnelActionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models.MstPosition", "Position")
                         .WithMany()
                         .HasForeignKey("PositionId")
@@ -127333,6 +127991,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Navigation("OrganizationUnit");
 
+                    b.Navigation("PersonnelActionOrder");
+
                     b.Navigation("Position");
 
                     b.Navigation("WorkforceProfile");
@@ -127348,6 +128008,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstPayrollPeriod", "PayrollPeriod")
                         .WithMany()
                         .HasForeignKey("PayrollPeriodId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrder", "PersonnelActionOrder")
+                        .WithMany()
+                        .HasForeignKey("PersonnelActionOrderId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.PayrollAndBenefit.Models.MstSalaryGrade", "SalaryGrade")
@@ -127371,6 +128036,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("EmployeeGrade");
 
                     b.Navigation("PayrollPeriod");
+
+                    b.Navigation("PersonnelActionOrder");
 
                     b.Navigation("SalaryGrade");
 
@@ -133003,12 +133670,26 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", "FollowUpDoctor")
+                        .WithMany()
+                        .HasForeignKey("FollowUpDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstServiceUnit", "FollowUpServiceUnit")
+                        .WithMany()
+                        .HasForeignKey("FollowUpServiceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", "SignedByDoctor")
                         .WithMany()
                         .HasForeignKey("SignedByDoctorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Episode");
+
+                    b.Navigation("FollowUpDoctor");
+
+                    b.Navigation("FollowUpServiceUnit");
 
                     b.Navigation("SignedByDoctor");
                 });
@@ -139432,6 +140113,16 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("StatusHistories");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdInitialPlacementBatch", b =>
+                {
+                    b.Navigation("Rows");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.HrdPersonnelActionOrder", b =>
+                {
+                    b.Navigation("Attachments");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Models.TrxEmployeeProfileChangeRequest", b =>

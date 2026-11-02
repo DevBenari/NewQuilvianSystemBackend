@@ -1276,6 +1276,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 ));
             }
 
+            // Guard HRD-DEC-047: Perubahan Unit Organisasi atau Jabatan Utama tidak boleh melalui Master Data form
+            if (entity.PrimaryDepartmentId != request.PrimaryDepartmentId || entity.PrimaryPositionId != request.PrimaryPositionId)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Perubahan Unit Organisasi atau Jabatan Utama tidak dapat dilakukan langsung melalui Master Data Pegawai. Perubahan struktur kepegawaian wajib diajukan melalui Surat Keputusan (SK) Kepegawaian (Personnel Action Order)."
+                ));
+            }
+
             var requiredValidation = ValidateRequiredEmployeeRequest(request);
 
             if (!requiredValidation.IsValid)

@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `02-backend-architecture.md` |
-| Revision | `1` |
+| Revision | `2` |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner desain | Technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
@@ -13,8 +13,8 @@
 | Backend SHA yang diaudit (historis) | `ecdc135444f0110482c9702212bcea30043983c8` |
 | Backend SHA baseline terverifikasi | `16b8b71f4cd61e083213cf90722f4d768d339739` |
 | Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` (branch `AgentCodexFrontend`) |
-| `input_revision` — decision log | `00-interview-decisions.md` revision `15` |
-| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `16` (Amendment Pass Workforce Core & Employee 360, `HRD-DEC-046` s.d. `HRD-DEC-057`) |
+| `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | `input_revision` — capability map | `01-existing-capability-map.md` revision `1.1` |
 | `input_hash` — capability map | `f66edd1514d28ce338130d9aaebfd40ee5678a0037667a3b07fdfbd1326cc510` |
 | `input_revision` — roadmap | `roadmap/00-slice-roadmap.md` revision `3` |
@@ -68,7 +68,7 @@ Tiga penanda dipakai konsisten, sama seperti pada berkas `flows/`:
 | --- | --- | --- |
 | `S0-A` | Pendaftaran prefix `Wfp` dan `Hrd` pada registry | `READY FOR DESIGN` |
 | `S0-B` | Route canonical kebab-case beserta compatibility alias | `READY FOR DESIGN` |
-| `S-A1` | Enam halaman daftar lintas-pegawai Administrasi Kepegawaian | `READY FOR DESIGN` |
+| `S-A1` | Workforce Core & Employee 360: enam daftar lintas-pegawai, Dokumen Peristiwa Kepegawaian (SK Mutasi/Promosi/Rotasi/Demosi/Penugasan Sementara), Employee 360, verifikasi perubahan data & pengajuan atas nama, dan batch data awal penempatan (`HRD-DEC-046` s.d. `HRD-DEC-057`) | `READY FOR DESIGN` |
 | `S-A2` s.d. `S-A6` | Layanan mandiri pegawai: cuti, lembur, ubah jadwal/tukar shift, koreksi kehadiran, perubahan data, pengunduran diri, kehadiran | `READY FOR DESIGN` |
 | `S-A7` | Kotak masuk persetujuan terpadu beserta mesin SLA dan eskalasi | `READY FOR DESIGN` |
 | `S-B1` | Administrasi kehadiran, termasuk koreksi atas nama pegawai | `READY FOR DESIGN` |
@@ -130,7 +130,7 @@ salah satunya tanpa yang lain akan meninggalkan sistem dalam keadaan yang salah.
 | ID | Bounded context | Aggregate root | Invariant utama yang dijaga |
 | --- | --- | --- | --- |
 | `BC-HR-01` | Master dan Referensi HR | Setiap entity `Mst*` berdiri sendiri | Kode master unik dan tidak dapat dipakai ulang; master yang sedang dirujuk transaksi berjalan tidak boleh dinonaktifkan diam-diam |
-| `BC-HR-02` | Profil dan Administrasi Workforce | `MstWorkforceProfile` | Satu orang punya tepat satu profil workforce; seluruh berkas turunan (alamat, pendidikan, penempatan, gaji) tidak dapat hidup tanpa profil induknya |
+| `BC-HR-02` | Profil dan Administrasi Workforce | `MstWorkforceProfile` dan `HrdPersonnelActionOrder` | Satu orang = satu profil workforce (`HRD-DEC-051`); penempatan berlaku-efektif adalah satu-satunya sumber kebenaran (`HRD-DEC-047`); tepat satu penempatan utama per jenis per tanggal (`HRD-DEC-049`); mutasi/promosi/rotasi/demosi/penugasan sementara dijalankan sebagai satu dokumen peristiwa (SK) yang disetujui utuh pola T8 dengan scan SK wajib (`HRD-DEC-048`, `HRD-DEC-056`) dan hanya dapat dibatalkan sebelum tanggal berlaku (`HRD-DEC-057`); berlaku surut hanya pada periode kehadiran terbuka (`HRD-DEC-050`); data sensitif dilarang diedit langsung (`HRD-DEC-052`); atasan hanya melihat profil kerja bawahan langsung pada Employee 360 (`HRD-DEC-053`); data awal penempatan lewat batch yang disetujui sekali (`HRD-DEC-054`); enam layar Administrasi Kepegawaian memantau dan memulai aksi tanpa edit inline (`HRD-DEC-055`) |
 | `BC-HR-03` | Penjadwalan Kerja | `WfpWorkScheduleAssignment` dan `TrxRosterPeriod` | Satu pegawai tidak boleh punya dua jadwal efektif yang bertabrakan pada tanggal yang sama; jadwal pada periode kehadiran tertutup tidak dapat diubah |
 | `BC-HR-04` | Kehadiran | `HrdAttendancePeriod` sebagai penjaga periode; `HrdAttendanceDaily` sebagai satuan kerja harian | Rekaman mentah tidak pernah ditulis ulang; periode tidak dapat ditutup selama masih ada pengecualian pemblokir; hasil olahan selalu dapat dihitung ulang dari rekaman mentah |
 | `BC-HR-05` | Cuti dan Saldo | `WfpLeaveBalance` sebagai buku besar; `WfpLeaveRequest` sebagai transaksi | Saldo tidak pernah berubah tanpa satu baris buku besar; jumlah baris buku besar selalu sama dengan saldo berjalan |
@@ -229,41 +229,75 @@ classDiagram
     class MstWorkforceProfile {
         +Guid Id
         +string WorkforceCode
+        +string OfficialIdNumber
         +Guid? EmployeeId
         +Guid? DoctorId
+        +Guid? ExternalUserId
         +bool IsActive
     }
     class WfpOrganizationAssignment {
         +Guid Id
         +Guid WorkforceProfileId
         +Guid OrganizationUnitId
-        +DateTime EffectiveDate
+        +DateTime EffectiveStartDate
+        +DateTime? EffectiveEndDate
         +bool IsPrimary
+        +string ApprovalStatus
+        +Guid? PersonnelActionOrderId
     }
     class WfpPositionAssignment {
         +Guid Id
         +Guid WorkforceProfileId
         +Guid PositionId
-        +DateTime EffectiveDate
+        +DateTime EffectiveStartDate
+        +DateTime? EffectiveEndDate
+        +bool IsPrimary
+        +string ApprovalStatus
+        +Guid? PersonnelActionOrderId
     }
     class WfpManagerAssignment {
         +Guid Id
         +Guid WorkforceProfileId
         +Guid ManagerWorkforceProfileId
-        +DateTime EffectiveDate
+        +DateTime EffectiveStartDate
+        +DateTime? EffectiveEndDate
+        +bool IsPrimary
+        +string ApprovalStatus
+        +Guid? PersonnelActionOrderId
     }
     class WfpSalaryAssignment {
         +Guid Id
         +Guid WorkforceProfileId
         +decimal BasicSalary
-        +DateTime EffectiveDate
+        +DateTime EffectiveStartDate
+        +DateTime? EffectiveEndDate
         +bool IsPrimary
+        +string ApprovalStatus
+        +Guid? PersonnelActionOrderId
+    }
+    class HrdPersonnelActionOrder {
+        +Guid Id
+        +string ActionOrderNumber
+        +Guid WorkforceProfileId
+        +string ActionCategory
+        +DateTime EffectiveDate
+        +string OrderStatus
+        +string ReasonText
+        +string SignedDocumentPath
+        +Guid? TargetOrganizationUnitId
+        +Guid? TargetPositionId
+        +Guid? TargetManagerProfileId
+        +Guid? LinkedSalaryAssignmentId
+        +Guid? WorkflowInstanceId
     }
     class TrxEmployeeProfileChangeRequest {
         +Guid Id
         +Guid WorkforceProfileId
         +string RequestStatus
         +string RequestCategory
+        +bool IsOnBehalf
+        +Guid? InitiatedByUserId
+        +string OnBehalfReason
     }
     class TrxEmployeeProfileChangeDetail {
         +Guid Id
@@ -271,13 +305,28 @@ classDiagram
         +string FieldName
         +string OldValue
         +string NewValue
+        +bool IsSensitive
     }
+    class HrdInitialPlacementBatch {
+        +Guid Id
+        +string BatchNumber
+        +string BatchStatus
+        +int TotalRows
+        +Guid SubmittedByUserId
+        +Guid? ApprovedByUserId
+    }
+
     MstWorkforceProfile "1" --> "0..*" WfpOrganizationAssignment : ditempatkan pada
     MstWorkforceProfile "1" --> "0..*" WfpPositionAssignment : menjabat
     MstWorkforceProfile "1" --> "0..*" WfpManagerAssignment : beratasan
     MstWorkforceProfile "1" --> "0..*" WfpSalaryAssignment : bergaji
+    MstWorkforceProfile "1" --> "0..*" HrdPersonnelActionOrder : peristiwa kepegawaian
+    HrdPersonnelActionOrder "1" --> "0..1" WfpOrganizationAssignment : menghasilkan penempatan unit
+    HrdPersonnelActionOrder "1" --> "0..1" WfpPositionAssignment : menghasilkan penempatan jabatan
+    HrdPersonnelActionOrder "1" --> "0..1" WfpManagerAssignment : menghasilkan relasi atasan
     MstWorkforceProfile "1" --> "0..*" TrxEmployeeProfileChangeRequest : mengajukan
     TrxEmployeeProfileChangeRequest "1" --> "1..*" TrxEmployeeProfileChangeDetail : merinci
+    HrdInitialPlacementBatch "1" --> "1..*" MstWorkforceProfile : menetapkan awal
 ```
 
 ### 4.2 `BC-HR-04` — Kehadiran
@@ -641,45 +690,113 @@ Kolom **Status** memakai tiga nilai saja: `Baru`, `Diperbarui`, `Sudah ada`.
 
 | Aspek | Penjelasan |
 | --- | --- |
-| **Status** | `Sudah ada` |
+| **Status** | `Sudah ada` (dengan penguatan invariant) |
 | **Lokasi file** | `Areas/Corporate/HumanResource/MasterData/Workforce/Models/MstWorkforceProfile.cs` |
 | Kategori | Master |
-| Tanggung jawab utama | Menjadi identitas tunggal seseorang di mata modul HR. Baik pegawai tetap, dokter, maupun pengguna eksternal seperti mahasiswa praktik, semuanya punya tepat satu baris di sini. Seluruh berkas kepegawaian, kehadiran, cuti, dan lembur menunjuk ke baris ini, bukan ke tabel pegawai maupun dokter secara langsung |
-| Field penting | `WorkforceCode`, `EmployeeId`, `DoctorId`, `ExternalUserId`, `WorkforceTypeId`, `IsActive` |
-| Navigation property dan relasi | Punya banyak `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpManagerAssignment`, `WfpSalaryAssignment`, dan seluruh entity `Wfp*` lainnya |
-| Pemakaian dalam alur bisnis | Aktif sejak pegawai pertama kali didaftarkan, dan tetap aktif sesudah pegawai berhenti — barisnya **tidak** dihapus, hanya ditandai tidak aktif, agar riwayat kehadiran dan payroll tetap dapat ditelusuri |
-| Catatan desain | **Jangan** membuat entity pegawai baru untuk keperluan kehadiran, cuti, atau lembur. Seluruh transaksi HR menunjuk `WorkforceProfileId`. Ini adalah pagar utama terhadap duplikasi data orang |
+| Tanggung jawab utama | Menjadi identitas tunggal seseorang di mata modul HR (`HRD-DEC-046`, `HRD-DEC-051`). Baik pegawai tetap, dokter, maupun pengguna eksternal, semuanya memiliki tepat satu baris profil. Kunci identitas orang adalah nomor identitas resmi (NIK untuk WNI, nomor paspor untuk WNA). Satu profil dapat membawa multi-peran (misal: Dokter mitra sekaligus Pegawai struktural kepala instalasi). Seluruh berkas kepegawaian, penempatan, kehadiran, cuti, lembur, dan payroll menunjuk ke baris ini |
+| Field penting | `WorkforceCode`, `OfficialIdNumber`, `EmployeeId`, `DoctorId`, `ExternalUserId`, `WorkforceTypeId`, `IsActive`, `PrimaryDepartmentId`, `PrimaryPositionId` |
+| Navigation property dan relasi | Punya banyak `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpManagerAssignment`, `WfpSalaryAssignment`, `HrdPersonnelActionOrder`, dan seluruh entity berkas `Wfp*` lainnya |
+| Pemakaian dalam alur bisnis | Dibuat saat orang pertama kali terdaftar. Form master data Pegawai/Dokter/Pengguna Eksternal hanya mengisi penempatan awal saat pembuatan pertama (`MASTER_FORM_SETS_INITIAL_ONLY`). Sesudahnya, form master data dilarang mengubah unit atau jabatan (`NO_PLACEMENT_CHANGE_FROM_MASTER_FORM`). Kolom `PrimaryDepartmentId` dan `PrimaryPositionId` adalah cerminan sistem dari penempatan utama yang berlaku hari ini (`ASSIGNMENT_IS_SOURCE_OF_TRUTH`) |
+| Catatan desain | Dilarang membuat entity profil/pegawai baru untuk keperluan kehadiran, cuti, atau lembur. Pencegahan profil yatim (`NO_ORPHAN_PROFILE`) wajib ditegakkan |
 | Ekuivalen model lama | — |
 
-### 5.2 `WfpSalaryAssignment`
+### 5.2 `WfpOrganizationAssignment`
 
 | Aspek | Penjelasan |
 | --- | --- |
-| **Status** | `Sudah ada` |
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpOrganizationAssignment.cs` |
+| Kategori | Transaksi penempatan |
+| Tanggung jawab utama | Menjadi satu-satunya sumber kebenaran penempatan unit organisasi pegawai per tanggal efektif (`HRD-DEC-047`). Menjaga invariant bahwa pada satu tanggal seorang pegawai aktif wajib memiliki tepat satu penempatan unit utama (`EXACTLY_ONE_PRIMARY_PER_DATE`, `NO_PRIMARY_GAP_WHILE_ACTIVE`). Penempatan rangkap/Plt diperbolehkan asal bertanda bukan-utama (`SECONDARY_ALLOWED`) |
+| Field penting | `WorkforceProfileId`, `OrganizationUnitId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsPrimary`, `ApprovalStatus`, `PersonnelActionOrderId`, `WorkflowInstanceId` |
+| Navigation property dan relasi | Menunjuk ke `MstWorkforceProfile`, `MstOrganizationUnit`, opsional `HrdPersonnelActionOrder` dan `TrxWorkflowInstance` |
+| Pemakaian dalam alur bisnis | Dihasilkan dari Dokumen Peristiwa SK (`HRD-DEC-048`), perubahan berdiri sendiri (`HRD-DEC-036`), atau Batch Data Awal (`HRD-DEC-054`). Saat penempatan utama baru berlaku, penempatan utama lama otomatis ditutup per sehari sebelum tanggal mulai baru (`NEW_PRIMARY_CLOSES_OLD`) |
+| Catatan desain | Wajib memuat kolom persetujuan (`HRD-DEC-031`). Tidak boleh diedit atau dihapus secara langsung dari tabel lintas-pegawai (`HRD-DEC-055`) |
+
+### 5.3 `WfpPositionAssignment`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpPositionAssignment.cs` |
+| Kategori | Transaksi penempatan |
+| Tanggung jawab utama | Menjadi sumber kebenaran jabatan pegawai per tanggal efektif (`HRD-DEC-047`). Tepat satu jabatan utama per tanggal (`HRD-DEC-049`). Menolak catatan kembar persis pada tanggal beririsan (`NO_EXACT_DUPLICATE`) |
+| Field penting | `WorkforceProfileId`, `PositionId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsPrimary`, `ApprovalStatus`, `PersonnelActionOrderId`, `WorkflowInstanceId` |
+| Navigation property dan relasi | Menunjuk ke `MstWorkforceProfile`, `MstPosition`, opsional `HrdPersonnelActionOrder` |
+| Pemakaian dalam alur bisnis | Dihasilkan dari promosi/demosi/rotasi pada Dokumen Peristiwa SK atau perubahan jabatan tersendiri |
+| Catatan desain | Berlaku surut hanya sampai periode kehadiran yang masih terbuka (`HRD-DEC-050`) |
+
+### 5.4 `WfpManagerAssignment`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpManagerAssignment.cs` |
+| Kategori | Transaksi penempatan |
+| Tanggung jawab utama | Menjadi sumber kebenaran relasi atasan langsung pegawai per tanggal efektif (`HRD-DEC-047`). Menentukan rute persetujuan bawahan (`RequesterManager`) dan hak lihat Employee 360 (`HRD-DEC-053`). Hanya atasan utama yang menerima rute persetujuan bawaan (`ONLY_PRIMARY_MANAGER_ROUTES_APPROVAL`) |
+| Field penting | `WorkforceProfileId`, `ManagerWorkforceProfileId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsPrimary`, `ApprovalStatus`, `PersonnelActionOrderId` |
+| Navigation property dan relasi | Menunjuk ke `MstWorkforceProfile` (pegawai) dan `MstWorkforceProfile` (atasan) |
+| Pemakaian dalam alur bisnis | Mengatur rantai komando operasional unit. Penugasan Plt tidak otomatis mengalihkan rute persetujuan bawaan tanpa delegasi alur resmi |
+
+### 5.5 `WfpSalaryAssignment`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` |
 | **Lokasi file** | `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpSalaryAssignment.cs` |
-| Kategori | Transaksi administrasi |
-| Tanggung jawab utama | Menyimpan penetapan gaji seorang pegawai beserta tanggal mulai berlakunya. Perubahan gaji **tidak** menimpa baris lama; ia membuat baris baru dengan tanggal berlaku yang berbeda, sehingga riwayat gaji dapat dibaca utuh |
-| Field penting | `WorkforceProfileId`, `BasicSalary`, `SalaryGradeId`, `EffectiveDate`, `IsPrimary`, `ApprovalStatus` |
-| Navigation property dan relasi | Milik `MstWorkforceProfile`; menunjuk `MstSalaryGrade` |
-| Pemakaian dalam alur bisnis | Dibuat HR Admin saat pengangkatan, kenaikan gaji, atau penyesuaian. Dibaca payroll saat menyiapkan komponen gaji |
-| Catatan desain | Yang berlaku adalah **tanggal mulai berlaku**, bukan tanggal pencatatan. Penetapan yang berlaku surut ke periode payroll yang sudah tertutup adalah `[OPEN]` — `HRD-Q-18`; desain final menunggu jawaban. Jangan mengarang perilaku retroaktifnya |
-| Ekuivalen model lama | — |
-| Catatan kewenangan | Jalur persetujuan untuk penetapan gaji **tidak terbukti ada** pada audit `PHASE 2A.1`. Kolom `ApprovalStatus` ada dan endpoint `PATCH {id}/approval` ada, tetapi mesin persetujuan berjenjangnya tidak. `[OPEN]` — `HRD-Q-19` |
+| Kategori | Transaksi remunerasi |
+| Tanggung jawab utama | Menyimpan penetapan gaji pokok dan golongan/struktur gaji per tanggal efektif (`HRD-DEC-031`). Nominal gaji bersifat rahasia/sensitif (`HRD-DEC-033`, `HRD-DEC-037`) |
+| Field penting | `WorkforceProfileId`, `BasicSalary` (Sensitif), `SalaryGradeId`, `SalaryStructureId`, `EffectiveStartDate`, `EffectiveEndDate`, `IsPrimary`, `ApprovalStatus`, `PersonnelActionOrderId` |
+| Navigation property dan relasi | Menunjuk ke `MstWorkforceProfile`, `MstSalaryGrade`, `MstSalaryStructure` |
+| Pemakaian dalam alur bisnis | Dihubungkan ke Dokumen SK bila timbul dari peristiwa kepegawaian, namun alur approval penetapannya tetap terpisah (`SALARY_STAYS_SEPARATE`) |
+| Catatan kewenangan | Nominal gaji disembunyikan dari daftar lintas-pegawai dan Employee 360 atasan. Hanya pengguna dengan butir sensitif `ViewAmount` yang dapat melihatnya |
 
-### 5.3 `TrxEmployeeProfileChangeRequest`
+### 5.6 `HrdPersonnelActionOrder`
 
 | Aspek | Penjelasan |
 | --- | --- |
-| **Status** | `Sudah ada` |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforceCore/Models/HrdPersonnelActionOrder.cs` |
+| Kategori | Transaksi operasional (Dokumen Peristiwa / SK Kepegawaian) |
+| Tanggung jawab utama | Mengelola satu peristiwa kepegawaian (Mutasi, Promosi, Rotasi, Demosi, Penugasan Sementara) sebagai satu kesatuan dokumen utuh (`HRD-DEC-048`). Memuat perubahan unit, jabatan, dan atasan dengan pasangan "dari" dan "ke". Disetujui atau ditolak secara utuh (`ALL_OR_NOTHING`). Menjaga rantai approval pola T8 (`HRD-DEC-056`) dengan syarat wajib unggah scan SK resmi bertandatangan (`SIGNED_SK_ATTACHMENT_REQUIRED`) sebelum diajukan |
+| Field penting | `ActionOrderNumber`, `WorkforceProfileId`, `ActionCategory`, `EffectiveDate`, `OrderStatus`, `ReasonText`, `SignedDocumentPath`, `SignedDocumentFileName`, `TargetOrganizationUnitId`, `TargetPositionId`, `TargetManagerProfileId`, `LinkedSalaryAssignmentId`, `WorkflowInstanceId` |
+| Navigation property dan relasi | Menunjuk `MstWorkforceProfile`, unit tujuan, jabatan tujuan, atasan tujuan, dan `TrxWorkflowInstance` |
+| Pemakaian dalam alur bisnis | Dibuat HR Admin (`Draft`), diunggah scan SK, diajukan (`Submitted`), disetujui HR Manager (`Scheduled` atau langsung `Applied` jika retroaktif ke periode terbuka), lalu pada tanggal berlaku sistem menutup penempatan lama dan membuka penempatan baru serta mencatat satu baris riwayat kepegawaian. Pembatalan hanya diizinkan sebelum tanggal berlaku (`HRD-DEC-057`) |
+| Catatan desain | Menggantikan pemisahan 5 tabel transaksi lama (`TrxEmployeeTransfer`, dll.) menjadi satu aggregate root yang padu sesuai konvensi canonical `Hrd*` (`HRD-DEC-019`) |
+
+### 5.7 `TrxEmployeeProfileChangeRequest`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` |
 | **Lokasi file** | `Areas/Corporate/HumanResource/WorkforceCore/Models/TrxEmployeeProfileChangeRequest.cs` |
 | Kategori | Transaksi administrasi |
-| Tanggung jawab utama | Menampung permohonan pegawai untuk mengubah data pribadinya. Perubahan **tidak** langsung berlaku; ia menunggu verifikasi lalu penerapan |
-| Field penting | `WorkforceProfileId`, `RequestStatus`, `RequestCategory`, `SubmittedAt`, `AppliedAt` |
+| Tanggung jawab utama | Menampung permohonan perubahan data pribadi pegawai baik diajukan mandiri maupun atas nama pegawai oleh HR (`HRD-DEC-052`). Data sensitif (rekening bank, NIK, NPWP, tanggungan) dilarang diubah langsung (`SENSITIVE_NO_DIRECT_EDIT`), wajib lewat permohonan berbukti |
+| Field penting | `WorkforceProfileId`, `RequestStatus`, `RequestCategory`, `IsOnBehalf`, `InitiatedByUserId`, `OnBehalfReason`, `OnBehalfNotifiedAt`, `EvidenceFilePath`, `SubmittedAt`, `AppliedAt` |
 | Navigation property dan relasi | Punya banyak `TrxEmployeeProfileChangeDetail` dan `TrxEmployeeProfileChangeVerification` |
-| Pemakaian dalam alur bisnis | Diajukan pegawai lewat layanan mandiri, diverifikasi HR, lalu diterapkan ke profil |
-| Catatan desain | Kosakata statusnya **berbeda** dari cuti walau sebagian nama nilainya sama. Nilai yang berlaku: `Draft`, `Submitted`, `UnderVerification`, `NeedRevision`, `Approved`, `Rejected`, `Cancelled`, `Applied` — divalidasi array privat `EmployeeProfileChangeService.RequestStatuses`. **Jangan** memakai `LeaveRequestValueConstants.Status` di sini `[EXISTING]` — `HRD-Q-21` tertutup |
-| Ekuivalen model lama | — |
-| Kelas QBE bila disentuh | `TOUCHED LEGACY` — prefix `Trx` milik HR; ratchet menjadi `HrdEmployeeProfileChangeRequest` berlaku **hanya** bila task memodifikasi entity, konfigurasi EF, tabel, kolom, relasi, index, atau migration-nya (`HRD-DEC-019` bagian 16.5) |
+| Pemakaian dalam alur bisnis | Diajukan pegawai atau HR atas nama pegawai. Diverifikasi oleh petugas HR yang berbeda dari pembuat (`VERIFIER_MUST_DIFFER_FROM_CREATOR`). Setelah disetujui, diterapkan ke berkas profil pegawai (`Applied`) |
+| Kelas QBE bila disentuh | `TOUCHED LEGACY` — prefix `Trx` diratchet bertahap per `HRD-DEC-019` saat disentuh task |
+
+### 5.8 `HrdInitialPlacementBatch` dan `HrdInitialPlacementBatchRow`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforceCore/Models/HrdInitialPlacementBatch.cs` |
+| Kategori | Batch administrasi data awal |
+| Tanggung jawab utama | Menampung proses migrasi/input data awal penempatan kepegawaian bagi 55 pegawai existing yang belum memiliki jabatan, atasan, dan gaji (`HRD-DEC-054`). Batch divalidasi sistem terhadap invariant penempatan tunggal (`HRD-DEC-049`), disetujui sekali oleh HR Manager, dan setiap pegawai hanya boleh masuk batch satu kali seumur hidup (`ONCE_PER_EMPLOYEE`) |
+| Field penting | `BatchNumber`, `BatchStatus`, `TotalRows`, `ValidatedRows`, `FailedRows`, `SubmittedByUserId`, `ApprovedByUserId`, `ApprovedAt` |
+| Pemakaian dalam alur bisnis | HR Admin mengunduh template, mengisi data, mengunggah dan memvalidasi batch, lalu mengajukan approval. Setelah disetujui, sistem menerbitkan penempatan awal dan menandai jejak audit sebagai data awal baseline |
+
+### 5.9 Controller dan Service Workforce Core
+
+| Komponen | Status | Lokasi | Tanggung Jawab |
+| --- | --- | --- | --- |
+| `WorkforceCoreCrossEmployeeController` | `Diperbarui` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menyediakan 5 endpoint daftar pantau lintas-pegawai (organisasi, jabatan, atasan, riwayat, gaji tanpa nominal) beserta saringan dan pencarian (`HRD-DEC-012`, `HRD-DEC-055`) |
+| `HrdPersonnelActionOrderController` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menangani siklus hidup Dokumen Peristiwa SK: pembuatan draft, unggah scan SK, pengajuan, approval/reject, pengajuan batal, dan eksekusi penempatan (`HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057`) |
+| `Employee360Controller` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menyajikan profil komprehensif pegawai 360 dengan filter otorisasi ketat: tampilan lengkap untuk HR, tampilan terbatas profil kerja untuk Atasan Langsung bawahan aktif hari ini, dan penolakan 403 untuk bukan bawahan (`HRD-DEC-053`) |
+| `EmployeeProfileChangeController` | `Diperbarui` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menangani transaksi permohonan perubahan data sisi HR: daftar permohonan, verifikasi, keputusan, apply, dan endpoint pembuatan pengajuan atas nama pegawai (`HRD-DEC-052`) |
+| `InitialPlacementBatchController` | `Baru` | `Areas/Corporate/HumanResource/WorkforceCore/Controllers/` | Menangani unduh template, unggah, validasi baris, pengajuan, dan approval batch data awal penempatan (`HRD-DEC-054`) |
 
 ### 5.4 `HrdAttendanceRawLog`
 
@@ -1250,6 +1367,7 @@ lingkungan bersama adalah wewenang terpisah lagi.
 | 4 | `AddAcknowledgementOverrideFieldsToLeaveRecall` | Tiga kolom override acknowledgement | **Ya** | Tidak perlu | `Down` menghapus ketiga kolom |
 | 5 | `AddReminderEscalationFieldsToWorkflowApproverAssignment` | Empat kolom pengingat dan eskalasi, index `(AssignmentStatus, DueAt)` | **Ya**, dengan catatan | `ReminderCount` diisi `0` oleh nilai bawaan | `Down` menghapus keempat kolom dan index |
 | 6 | `AddSchedulingOperationalIndexes` | Index `(WorkforceProfileId, ShiftDate, IsActive)` pada `TrxShiftAssignment`; `(RosterPeriodId, WorkforceProfileId)` pada `TrxRosterAssignment`; `(WorkforceProfileId, OnCallDate)` pada `TrxOnCallAssignment` | **Ya**, dengan catatan | Tidak perlu | `Down` menghapus ketiga index |
+| 7 | `AddPersonnelActionOrderAndAssignmentApprovalFields` | Tabel baru `HrdPersonnelActionOrder`, `HrdInitialPlacementBatch`, `HrdInitialPlacementBatchRow`; penambahan kolom persetujuan (`ApprovalStatus`, `PersonnelActionOrderId`, `SubmittedByUserId`, `ApprovedByUserId`, dll.) pada `WfpOrganizationAssignment`, `WfpPositionAssignment`, `WfpManagerAssignment`, `WfpSalaryAssignment`; penambahan kolom on-behalf (`IsOnBehalf`, `InitiatedByUserId`, `OnBehalfReason`) pada `TrxEmployeeProfileChangeRequest` | **Ya** | Nilai bawaan `ApprovalStatus = 'Approved'` untuk baris penempatan aktif lama; `IsOnBehalf = false` untuk permohonan lama | `Down` menghapus tabel baru dan kolom tambahan |
 
 **Catatan pada nomor 5 dan 6.** Membuat index pada tabel besar mengunci tabel selama pembuatan
 bila dijalankan biasa. Pada PostgreSQL, index dibuat `CONCURRENTLY` agar layanan tetap berjalan.
@@ -1301,6 +1419,10 @@ ditolak. Setiap baris menyebut alasannya, bukan sekadar "tidak perlu".
 | Entity ringkasan untuk kotak masuk terpadu | `ApprovalInboxService` sudah menjawab lintas domain dengan query. Membuat tabel ringkasan menciptakan sumber kebenaran kedua yang pasti melenceng dari yang pertama |
 | State machine persetujuan universal yang menggantikan status domain | `[DECISION]` `HRD-DEC-018`. Assignment adalah lapisan **routing dan keputusan**, bukan pengganti status domain. Cuti tetap punya `LeaveRequestStatus`, lembur tetap punya `RequestStatus`, dan keduanya tetap berbeda |
 | Salinan `MstPatient` atau entity pasien versi HR | Milik Patient Management. HR tidak memerlukannya sama sekali |
+| Edit dan hapus inline pada tabel penempatan lintas-pegawai | Ditolak (`HRD-DEC-047`, `HRD-DEC-055`). Penempatan berlaku-efektif adalah catatan resmi. Perubahan wajib lewat Dokumen Peristiwa SK (`HRD-DEC-048`) atau alur perubahan penempatan berotorisasi (`HRD-DEC-036`) |
+| Lima entity terpisah untuk mutasi, promosi, rotasi, demosi, penugasan sementara | Ditolak (`HRD-DEC-048`, `HRD-DEC-019`). Disatukan menjadi aggregate root terpadu `HrdPersonnelActionOrder` yang dapat mengikat perubahan unit, jabatan, dan atasan sekaligus dalam satu SK |
+| Persetujuan swa-setuju pada Dokumen Peristiwa SK dan penempatan | Ditolak (`HRD-DEC-031`, `HRD-DEC-056`). Pembuat dokumen dilarang menyetujui dokumennya sendiri; alur wajib dialihkan ke penyetuju lebih tinggi bila personel terbatas |
+| Pembatalan Dokumen SK yang sudah berstatus Berlaku | Ditolak (`HRD-DEC-057`). SK yang sudah berlaku historisnya tidak boleh dihapus/dibatalkan; pemulihan keadaan wajib melalui penerbitan Dokumen SK baru |
 | Entity jadwal praktik dokter di dalam HR | `[DECISION]` `HRD-DEC-006`. Jadwal praktik milik Health Services dan dipakai untuk pendaftaran pasien. HR **bukan** sumber kebenarannya |
 | Tabel akun aplikasi, role, atau permission versi HR | Milik Administrator/Identity. HR hanya mengirim permintaan buat dan cabut akses. Kontraknya `[OPEN]` — `HRD-DEP-003` |
 | Tabel penyimpanan berkas fisik versi HR | Milik shared platform. HR menyimpan metadata dan rujukan path saja |
@@ -1346,6 +1468,8 @@ menyebut **bentuk dan siapa yang mengisi**, bukan angkanya.
 | `MstTrainingCatalog`, `MstTrainingCategory`, `MstMandatoryTrainingRule` | Katalog pelatihan, kategorinya, dan pelatihan wajib per peran beserta intervalnya | `[OPEN]` `HRD-Q-06` untuk intervalnya | Struktur sudah ada |
 | `MstViolationType`, `MstSanctionType`, `MstDisciplinaryActionType`, `MstEmployeeRelationCaseType` | Jenis pelanggaran, sanksi, tindakan, dan kasus | Kebijakan kedisiplinan | Sudah ada |
 | `MstPayrollPeriod`, `MstPayrollComponent`, `MstPayrollComponentCategory` | Periode gaji dan komponennya | Kebijakan penggajian | Sudah ada |
+| `MstTransferReason`, `MstPromotionReason` | Alasan mutasi, rotasi, promosi, dan demosi | Kebijakan kepegawaian RS | Sudah ada di master data |
+| `HrdInitialPlacementBatch` (Data Awal) | Penempatan awal unit, jabatan, dan atasan untuk 55 pegawai aktif existing yang belum memiliki relasi lengkap | SK pengangkatan/penempatan terakhir yang sebenarnya (`HRD-DEC-054`) | Rencana batch data awal; disetujui sekali oleh HR Manager |
 
 **Temuan yang paling menentukan kesiapan rilis:** tanpa isi `MstWorkflowDefinition` dan
 `MstWorkflowStep` untuk ketujuh jenis transaksi, **tidak satu pun alur persetujuan HR dapat

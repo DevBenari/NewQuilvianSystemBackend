@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `15` — revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Revision | `16` — **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
 | Status | `draft`. Sebelas keputusan rekayasa dan produk teknis sudah `approved` oleh pemilik teknis yang ditetapkan `HRD-DEC-015`. Dua keputusan sensitif — `HRD-DEC-005` gerbang kredensial dan `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai Komite Medik dan K3RS mengesahkan. Nilai kebijakan PRD pasal 28 belum tersentuh |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
@@ -3208,6 +3208,638 @@ nominal. Keterlihatan massal **tetap** di luar MVP. Batas payroll `HRD-DEC-035` 
 | `contracts/permission-audit-matrix.md` | Catatan faktor disesuaikan |
 | `contracts/validation-matrix.md` | Aturan masa kerja dikeluarkan |
 | `testing/acceptance-test-matrix.md` | Skenario masa kerja dikeluarkan |
+
+**Tidak ada file source, migration, entity, controller, database, seed, maupun frontend yang
+diubah pada pass ini.**
+
+---
+
+## 31. Amendment Pass — Workforce Core & Employee 360 (`S-A1`), 2 November 2026
+
+| Field | Isi |
+| --- | --- |
+| Mode | **Amendment pass**. Blueprint sudah memuat keputusan `approved`, sehingga keputusan lama tidak ditimpa; pass ini hanya menambah |
+| Pemicu | Laporan pengguna: layar `/hr/workforce-core/employee-profile-changes` hanya menampilkan tabel kosong. Pengguna meminta pengecekan apakah sub-modul 02 benar-benar sudah dikerjakan |
+| Acuan bisnis | `docs/Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` bab **02. Workforce Core & Employee 360** |
+| Backend | `NewQuilvianSystemBackend`, branch `MHamzah`, HEAD `396c8363` |
+| Frontend | `QuilvianSystemFrontendDev`, branch `HamzahV2`, HEAD `9c4000724` |
+| Database | `QuilvianNewDevHamzah`, dibaca **read-only** lewat `psycopg2` |
+| Capability map | `01-existing-capability-map.md` diaudit pada BE `e0ee42c` dan FE `fff76a1b39`. **SHA keduanya sudah berbeda dari HEAD sekarang**, sehingga map berpotensi basi. Impact scan `trace-existing-capabilities` ditawarkan sesudah pass ini. Fakta pada bagian 31.2 diperiksa langsung pada HEAD di atas |
+| Owner keputusan | Pengguna sebagai pemilik teknis dan produk (`HRD-DEC-015`) |
+
+**Batas pass ini:** dokumentasi dan wawancara saja. Tidak ada source aplikasi, migration,
+database, seed, maupun frontend yang diubah.
+
+### 31.1 Kenapa pass ini dibuka
+
+Pengguna membuka menu **Sumber Daya Manusia → Administrasi Kepegawaian → Perubahan Data
+Karyawan** dan hanya melihat tabel kosong tanpa pesan apa pun. Roadmap menandai `FE-HRD-002` dan
+`BE-HRD-003` sudah selesai, sehingga tabel kosong itu tampak seperti "belum ada data". Audit
+menunjukkan keadaannya berbeda: layar itu **rusak**, dan sejumlah kemampuan bisnis bab 02 Buku
+Panduan memang belum ada.
+
+### 31.2 Fakta hasil audit
+
+| ID | Type | Temuan | Bukti | Klasifikasi |
+| --- | --- | --- | --- | --- |
+| `HRD-TF-008` | Fact | Keenam layar `/hr/workforce-core/*` memanggil alamat API yang **tidak ada**. Frontend memanggil `/api/v1/hr/workforce-core/cross-employee/...`, sedangkan backend melayani `/api/v1/corporate/human-resource/workforce-core/...`. Uji langsung ke backend lokal: alamat frontend menjawab **404**, alamat backend menjawab **401** (ada, tetapi perlu login) | FE `src/lib/services/hr/workforce-core-cross-employee-service.js` baris 6 @ `9c4000724`; BE `Areas/Corporate/HumanResource/WorkforceCore/Controllers/WorkforceCoreCrossEmployeeController.cs` baris 13 @ `396c8363` | `REPAIR` |
+| `HRD-TF-009` | Fact | Pesan galat tidak pernah tampil. View mengirim prop `description` ke `InformationAlert`, padahal komponen itu hanya membaca `message` dan `children`, sehingga ia tidak menggambar apa pun. Pengguna melihat tabel kosong, bukan pesan "gagal memuat" | FE `src/components/view/hr/workforce-core/workforce-core-cross-employee-list-view.jsx` baris 112–116; `src/components/features/base-features/information-alert.jsx` baris 47–66 @ `9c4000724` | `REPAIR` |
+| `HRD-TF-010` | Fact | Layar Perubahan Data Karyawan memanggil `.../cross-employee/employee-profile-changes`, padahal `WorkforceCoreCrossEmployeeController` tidak punya endpoint itu. Daftar lintas-pegawai yang sudah ada adalah `GET api/v1/corporate/human-resource/employee-profile-changes` | BE `Areas/Corporate/HumanResource/WorkforceCore/Controllers/EmployeeProfileChangeController.cs` baris 18 dan 89 @ `396c8363` | `REPAIR` |
+| `HRD-TF-011` | Conflict | Roadmap menandai `FE-HRD-002` dan `BE-HRD-003` ✅, tetapi layar itu tidak bekerja saat diuji langsung. Tanda selesai itu tidak didukung bukti uji end-to-end | `roadmap/frontend-roadmap.md` baris 95; `roadmap/backend-roadmap.md` baris 102 | Status task perlu ditinjau ulang |
+| `HRD-TF-012` | Fact | Mutasi, promosi, rotasi, demosi, dan penugasan sementara **punya tabel tetapi tidak punya alur**. `TrxEmployeeTransfer`, `TrxEmployeePromotion`, `TrxEmployeeRotation`, `TrxEmployeeDemotion`, dan `TrxTemporaryAssignment` hanya dirujuk konfigurasi EF; tidak ada controller maupun service. Isi tabelnya 0 baris. `TrxEmployeeTransfer` sudah dirancang sebagai dokumen peristiwa: punya nomor, status, tanggal efektif, rujukan penempatan asal dan tujuan, serta rujukan definisi alur | BE `Areas/Corporate/HumanResource/WorkforceCore/Models/TrxEmployeeTransfer.cs` baris 11–41 @ `396c8363` | `MISSING` |
+| `HRD-TF-013` | Fact | **Jalan pintas yang merusak riwayat.** Bila HR mengubah unit atau jabatan utama lewat form Master Data Pegawai (`PUT .../master-data/employees/{id}`), sistem mencabut tanda "utama" dari penempatan lama **tanpa mengisi tanggal berakhirnya**, lalu membuat penempatan baru dengan tanggal mulai = **tanggal masuk kerja**, bukan tanggal pindah. Pola yang sama ada pada Dokter dan Pengguna Eksternal. Jalan ini juga melewati persetujuan `HRD-DEC-031` | BE `.../MasterData/Workforce/Controllers/EmployeeController.cs` baris 1355–1356, 1416, 2157–2223; `DoctorController.cs` baris 1456; `ExternalUserController.cs` baris 1288 @ `396c8363` | `CONFLICT` terhadap `HRD-DEC-031` dan bab 02 Buku Panduan |
+| `HRD-TF-014` | Fact | **Dikoreksi 2 November 2026 oleh impact scan capability map revisi `1.2`.** Penempatan jabatan dan relasi atasan **hanya** menolak catatan **kembar persis** (jabatan atau atasan yang sama, jenis yang sama) pada periode beririsan. Penandaan utama dibalik oleh `ClearPrimaryAsync` tanpa memperhatikan tanggal, sehingga dua penempatan utama berbeda pada tanggal beririsan tetap lolos. Penempatan organisasi tidak punya pemeriksaan tumpang tindih sama sekali; yang dicek hanya nomor penugasan ganda. Validasi periode penuh hanya ada pada penetapan gaji (struktur dan grade yang sama) dan tanggungan. *Versi awal baris ini menyatakan jabatan dan atasan "tidak diperiksa sama sekali"; pernyataan itu keliru.* | BE `WfpPositionAssignmentController.cs` baris 396–400 dan `ClearPrimaryAsync`; `WfpManagerAssignmentController.cs` baris 373–378; `WfpOrganizationAssignmentController.cs` baris 412–413; `WfpSalaryAssignmentController.cs` baris 389–394; `WfpDependentController.cs` baris 680–693 @ `396c8363` | `EXTEND` (jabatan, atasan); `MISSING` (organisasi) |
+| `HRD-TF-015` | Fact | `HRD-DEC-031` belum diterapkan: hanya `WfpSalaryAssignment` yang punya kolom persetujuan (`ApprovedByUserId`, `ApprovedAt`). Penempatan organisasi, jabatan, dan atasan belum punya. Temuan bagian 26.1 masih berlaku | BE `WfpSalaryAssignment.cs` baris 45–46 @ `396c8363` | `EXTEND` (sudah tercatat) |
+| `HRD-TF-016` | Fact | Data inti belum terisi: 55 profil workforce dan 55 penempatan organisasi, tetapi **0** penempatan jabatan, **0** relasi atasan, **0** penetapan gaji, **0** riwayat kontrak, dan **0** permohonan perubahan data. Akibatnya pengajuan cuti dan lembur tidak punya atasan penyetuju | Query hitung baris read-only, 2 November 2026 | Data |
+| `HRD-TF-017` | Fact | 14 dari 55 profil workforce tidak terhubung ke Pegawai, Dokter, maupun Pengguna Eksternal (profil yatim). Seeder demo kamar operasi termasuk salah satu sumber yang membuat profil langsung | Query read-only; BE `Areas/HealthServices/OperatingRoomManagement/Seeders/OperatingRoomDemoSeeder.cs` baris 167, 208, 256 @ `396c8363` | Data |
+| `HRD-TF-018` | Fact | NIK hanya dijaga unik **di dalam** tabel masing-masing (`MstEmployee`, `MstDoctor`), tidak lintas tabel. Hari ini belum ada NIK yang muncul di kedua tabel, dan belum ada profil yang punya data Pegawai sekaligus Dokter. Setiap pembuatan Pegawai atau Dokter selalu membuat profil workforce baru | BE `Repositories/Configurations/.../MstEmployeeConfiguration.cs` baris 144; `MstDoctorConfiguration.cs` baris 104; `EmployeeController.cs` baris 1066; `DoctorController.cs` baris 1062 @ `396c8363` | Bahan `HRD-Q-61` |
+| `HRD-TF-019` | Fact | Yang **sudah bekerja**: editor berkas per pegawai lewat `/hr/master-data/employee/[employeeSlug]/workforce/[resourceKey]`; 15 controller per profil; alur Perubahan Data Karyawan di backend (layanan mandiri → verifikasi → setuju/tolak/minta revisi → terapkan); ringkasan profil `GET .../workforce-profiles/{workforceProfileId}/overview` | BE `Areas/Corporate/HumanResource/WorkforceCore/**`, `WorkforceProfileManagement/Controllers/WorkforceDetailController.cs` baris 24; FE `src/components/features/workforce/**` | `READY TO REUSE` |
+
+**Contoh dampak `HRD-TF-013` dengan data samaran.** Perawat "Rina" masuk kerja 1 Maret 2022 di
+Rawat Inap. Pada 1 November 2026 HR mengubah unit utamanya menjadi ICU lewat form Master Data
+Pegawai. Hasilnya di database:
+
+| Penempatan | Utama? | Mulai | Berakhir |
+| --- | --- | --- | --- |
+| Rawat Inap | Tidak | 1 Maret 2022 | *(kosong)* |
+| ICU | Ya | **1 Maret 2022** | *(kosong)* |
+
+Sistem kini "mengatakan" Rina sudah bertugas di ICU sejak 2022 dan masih bertugas di Rawat Inap
+sampai hari ini. Laporan kehadiran, jadwal, dan audit akreditasi per periode menjadi salah, dan
+tidak ada yang menyetujui perpindahan itu.
+
+### 31.3 `HRD-DEC-046` — Batas scope sub-modul Workforce Core & Employee 360
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 |
+
+**Kalimat batas scope:** sub-modul ini mengatur satu identitas kerja per orang beserta seluruh
+data kepegawaiannya yang berlaku per tanggal efektif, dan cara HR melihat serta mengubahnya, baik
+per pegawai maupun lintas pegawai.
+
+**Di dalam scope:**
+
+1. Satu orang = satu profil workforce: pencegahan duplikat dan penanganan profil yatim.
+2. Data pribadi per profil: alamat, rekening bank, pendidikan, keluarga, tanggungan, kontak
+   darurat, dokumen.
+3. Penempatan yang berlaku per tanggal efektif: organisasi, jabatan, atasan, dan penetapan gaji
+   (metadata, bukan perhitungan), termasuk aturan tumpang tindih dan penempatan utama.
+4. Peristiwa mutasi, promosi, rotasi, demosi, dan penugasan sementara.
+5. Pencatatan riwayat kepegawaian dan riwayat kontrak.
+6. Employee 360: tampilan utuh satu pegawai, dan siapa boleh melihat bagian mana.
+7. Enam layar lintas-pegawai menu Administrasi Kepegawaian.
+8. Sisi HR dari Perubahan Data Karyawan: verifikasi, setujui, tolak, minta revisi, terapkan.
+
+**Di luar scope — untuk modul lain:**
+
+| Kebutuhan | Pemilik | Titik sentuh dengan sub-modul ini |
+| --- | --- | --- |
+| Master referensi: unit, jabatan, grade, struktur gaji, alasan mutasi | 01 Master Data HR | Sub-modul ini hanya merujuk master yang aktif |
+| Kandidat menjadi pegawai, onboarding, perpanjangan dan berakhirnya kontrak, masa percobaan, pengunduran diri | 04, 05, 20 | Profil dibuat dari kandidat yang diterima; kontrak dicatat di sini, siklusnya diatur di 05 |
+| Perhitungan gaji dan kebijakan gaji (`HRD-DEC-041` s.d. `HRD-DEC-045`) | 10 Payroll | Payroll membaca penetapan gaji yang berlaku pada periode |
+| Kredensial dan kewenangan klinis | 14 — `BLOCKED` | Tidak disentuh |
+| Rekam kesehatan kerja dan kasus disiplin | 18, 19 | Hanya rujukan dengan kontrol akses (`HRD-DEC-010`) |
+| Mesin kotak masuk persetujuan dan form layanan mandiri pegawai | 21 | Relasi atasan dari sini menentukan rute persetujuan; permohonan perubahan data masuk dari layanan mandiri |
+| Pembuatan akun login aplikasi | Administrator (`HRD-DEP-003`) | Tidak dirancang di sini |
+
+### 31.4 Bentuk blueprint
+
+Bentuk blueprint **tetap `SINGLE`** sesuai `HRD-DEC-003` (`approved`). Pass ini mengubah isi slice
+`S-A1` dan tidak membuka sub-blueprint baru. `shape_decided_by: USER` lewat keputusan lama,
+sehingga tidak ditanyakan ulang.
+
+### 31.5 Keputusan lama yang tetap mengikat dan tidak ditanyakan ulang
+
+| Keputusan | Isi singkat | Pengaruh pada pass ini |
+| --- | --- | --- |
+| `HRD-DEC-012` | Enam menu Administrasi Kepegawaian dibuatkan halaman daftar lintas-pegawai | Halaman tetap dipertahankan; `HRD-TF-008` s.d. `HRD-TF-010` adalah perbaikan, bukan desain ulang |
+| `HRD-DEC-019` | Prefix `Wfp` dan `Mst` tetap; `Trx` di-ratchet saat disentuh | Entity mutasi/promosi `Trx*` yang mulai dipakai wajib mengikuti ratchet |
+| `HRD-DEC-031` | Perubahan gaji, organisasi, jabatan, dan atasan wajib disetujui; penyetuju ≠ pembuat | Berlaku untuk seluruh jalan perubahan, termasuk jalan pintas `HRD-TF-013` |
+| `HRD-DEC-033` | Nominal gaji tidak tampil di daftar lintas-pegawai | Berlaku juga untuk Employee 360 bagi pengguna tanpa `ViewAmount` |
+| `HRD-DEC-034` `T6`, `T8` | Rantai bawaan Perubahan Data Karyawan dan perubahan penempatan/remunerasi | Dipakai apa adanya |
+| `HRD-DEC-036` | Empat definisi alur terpisah untuk gaji, organisasi, jabatan, atasan | Kaitannya dengan mutasi/promosi ditanyakan pada `HRD-Q-58` |
+
+### 31.6 Pertanyaan terbuka pass ini
+
+Pertanyaan diajukan satu per satu. Status setiap baris diperbarui ketika pengguna menjawab.
+
+| ID | Pertanyaan | Owner | Memblokir | Status |
+| --- | --- | --- | --- | --- |
+| `HRD-Q-57` | Mana sumber kebenaran "unit dan jabatan saat ini": kolom di Master Data Pegawai atau catatan penempatan berlaku-efektif? (`HRD-TF-013`) | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-047` |
+| `HRD-Q-58` | Mutasi/promosi sebagai satu dokumen peristiwa (SK) atau sebagai perubahan penempatan satu per satu? | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-048` |
+| `HRD-Q-59` | Aturan penempatan utama dan rangkap per tanggal: boleh tumpang tindih atau tidak? | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-049` |
+| `HRD-Q-60` | Penempatan berlaku surut: boleh atau tidak, dan sampai batas apa? | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-050` |
+| `HRD-Q-61` | Dokter yang juga pegawai struktural: satu profil atau dua? Apa kunci identitas orang? | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-051` |
+| `HRD-Q-62` | Data pribadi sensitif (rekening, NIK, tanggungan) boleh diubah HR langsung atau wajib lewat permohonan berverifikasi? | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-052` |
+| `HRD-Q-63` | Employee 360: bagian mana yang boleh dilihat atasan atas anak buahnya? | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-053` |
+| `HRD-Q-64` | Pengisian awal penempatan jabatan, atasan, dan gaji untuk pegawai yang sudah ada | Pengguna | `IMPLEMENTATION` | `resolved` — `HRD-DEC-054` |
+| `HRD-Q-65` | Enam layar lintas-pegawai: hanya daftar baca, atau juga tempat memulai tindakan? | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-055` |
+| `HRD-Q-66` | Dokumen peristiwa (SK): siapa penyetujunya, dan bagaimana membatalkan SK yang sudah disetujui tetapi belum berlaku? Lahir dari `HRD-DEC-048` | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-056`, `HRD-DEC-057` |
+| `HRD-Q-67` | Prosedur penggabungan dua profil lama yang ternyata milik orang yang sama, dan siapa yang berwenang menyetujuinya. Lahir dari `HRD-DEC-051` | Pengguna | `LATER SLICE` | `draft` |
+
+### 31.7 Keputusan yang lahir pada pass ini
+
+#### `HRD-DEC-047` — Penempatan berlaku-efektif adalah satu-satunya sumber kebenaran unit dan jabatan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-57` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 |
+| Bukti pemicu | `HRD-TF-013` |
+
+**Isi keputusan.** Catatan penempatan berlaku-efektif (`WfpOrganizationAssignment`,
+`WfpPositionAssignment`, `WfpManagerAssignment`) adalah **satu-satunya** sumber kebenaran untuk
+pertanyaan "pegawai ini bertugas di unit apa, dengan jabatan apa, melapor ke siapa, pada tanggal
+tertentu".
+
+| Aturan | Bunyi |
+| --- | --- |
+| `ASSIGNMENT_IS_SOURCE_OF_TRUTH` | Kolom `PrimaryDepartmentId` dan `PrimaryPositionId` pada `MstEmployee`, `MstDoctor`, `MstExternalUser`, `MstWorkforceProfile`, serta salinan pada akun pengguna **hanya cerminan**. Nilainya diisi sistem dari penempatan utama yang berlaku hari ini, **MUST NOT** diisi tangan |
+| `MASTER_FORM_SETS_INITIAL_ONLY` | Form Master Data Pegawai/Dokter/Pengguna Eksternal boleh mengisi unit dan jabatan **hanya saat data pertama kali dibuat**. Isian itu menjadi penempatan pertama, dengan tanggal mulai = tanggal masuk kerja |
+| `NO_PLACEMENT_CHANGE_FROM_MASTER_FORM` | Sesudah data dibuat, form Master Data **MUST NOT** dapat mengubah unit atau jabatan. Perpindahan wajib lewat penempatan atau peristiwa mutasi yang tunduk pada `HRD-DEC-031` |
+| `MIRROR_FOLLOWS_EFFECTIVE_DATE` | Bila penempatan baru berlaku di masa depan, cerminan baru berubah pada tanggal mulainya, bukan pada tanggal penempatan dicatat |
+
+**Contoh.** Rina masuk kerja 1 Maret 2022 di Rawat Inap. HR mencatat perpindahan ke ICU yang
+berlaku 1 Desember 2026, dan perpindahan itu disetujui 20 November 2026.
+
+| Tanggal | Penempatan utama yang berlaku | Kolom cerminan di Master Data |
+| --- | --- | --- |
+| 20 November 2026 | Rawat Inap (1 Maret 2022 – 30 November 2026) | Rawat Inap |
+| 1 Desember 2026 | ICU (mulai 1 Desember 2026) | ICU — diperbarui sistem pada tanggal ini |
+
+**Akibat yang harus dirancang kemudian (bukan diputuskan di sini):** form edit Master Data
+mengunci isian unit dan jabatan; jalan pintas `EnsureWorkforcePrimaryOrganizationAssignmentAsync`
+pada tiga controller master diganti; perlu proses terjadwal yang memperbarui cerminan saat
+penempatan masa depan mulai berlaku; data 55 penempatan yang sudah ada perlu diperiksa tanggal
+mulainya karena dibuat dengan pola lama.
+
+#### `HRD-DEC-048` — Mutasi, promosi, rotasi, demosi, dan penugasan sementara dijalankan sebagai satu dokumen peristiwa (SK)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-58` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 |
+| Bukti pemicu | `HRD-TF-012`; contoh kasus bab 02 Buku Panduan |
+| Mengamandemen | Cakupan `HRD-DEC-036`, lihat tabel di bawah. `HRD-DEC-036` **tidak** digantikan |
+
+**Isi keputusan.** Setiap peristiwa kepegawaian — **Mutasi, Promosi, Rotasi, Demosi, Penugasan
+Sementara** — dicatat sebagai **satu dokumen peristiwa** yang mengikat seluruh perubahan
+penempatan di dalamnya.
+
+| Aturan | Bunyi |
+| --- | --- |
+| `ONE_EVENT_ONE_DOCUMENT` | Satu peristiwa = satu dokumen, dengan satu nomor SK, satu tanggal efektif, satu alasan, dan satu persetujuan |
+| `EVENT_CARRIES_PLACEMENTS` | Dokumen memuat perubahan unit, jabatan, dan atasan yang terjadi karena peristiwa itu, dengan pasangan "dari" dan "ke" |
+| `ALL_OR_NOTHING` | Dokumen disetujui atau ditolak **utuh**. Tidak ada keadaan "unit disetujui, jabatan ditolak" |
+| `APPLY_ON_EFFECTIVE_DATE` | Setelah disetujui, pada tanggal efektif sistem menutup penempatan lama per **sehari sebelum** tanggal efektif, membuat penempatan baru mulai tanggal efektif, dan mencatat satu baris riwayat kepegawaian yang merujuk dokumen itu |
+| `NO_DOUBLE_APPROVAL` | Penempatan yang lahir dari dokumen peristiwa yang sudah disetujui **tidak** disetujui ulang lewat alur penempatan `HRD-DEC-036` |
+| `SALARY_STAYS_SEPARATE` | Perubahan penetapan gaji akibat peristiwa (misalnya kenaikan karena promosi) **tetap** lewat alur Penetapan Gaji sendiri, karena data gaji sensitif (`HRD-DEC-033`, `HRD-DEC-037`). Penetapan gaji itu **ditautkan** ke dokumen peristiwa |
+| `APPROVER_MUST_DIFFER_FROM_CREATOR` | Invariant `HRD-DEC-031` berlaku penuh atas dokumen peristiwa |
+
+**Pembagian dengan `HRD-DEC-036` sesudah amandemen:**
+
+| Jenis perubahan | Jalur | Contoh |
+| --- | --- | --- |
+| Peristiwa kepegawaian | **Dokumen peristiwa** (`HRD-DEC-048`) | Rina pindah ke ICU sekaligus menjadi Ketua Tim mulai 1 Desember 2026 |
+| Perubahan penempatan yang berdiri sendiri, bukan peristiwa | **Empat alur terpisah** `HRD-DEC-036` | Atasan langsung Budi diganti karena kepala ruangannya pensiun, tanpa Budi pindah unit maupun jabatan |
+| Perubahan penetapan gaji | **Alur Penetapan Gaji** `HRD-DEC-036` #1, ditautkan ke dokumen bila lahir dari peristiwa | Gaji Rina disesuaikan karena promosi, ditautkan ke SK promosinya |
+
+**Contoh lengkap.** HR Admin "Sari" membuat dokumen Promosi + Mutasi untuk Rina:
+
+| Isian | Dari | Ke |
+| --- | --- | --- |
+| Unit | Rawat Inap Lantai 3 | ICU |
+| Jabatan | Perawat Pelaksana | Ketua Tim |
+| Atasan langsung | Kepala Ruangan Rawat Inap Lantai 3 | Kepala Ruangan ICU |
+| Tanggal efektif | — | 1 Desember 2026 |
+| Nomor SK | — | SK/xxx/XI/2026 (samaran) |
+
+HR Manager "Dodi" menyetujuinya pada 20 November 2026. Sari tidak boleh menyetujui dokumennya
+sendiri. Pada 1 Desember 2026 sistem menutup ketiga penempatan lama per 30 November 2026,
+membuat tiga penempatan baru mulai 1 Desember 2026, dan mencatat satu riwayat kepegawaian
+"Promosi + Mutasi" yang merujuk SK tersebut. Mulai hari itu, pengajuan cuti Rina dirutekan ke
+Kepala Ruangan ICU.
+
+**Yang belum diputuskan di sini** dan dicatat sebagai `HRD-Q-66`: rantai penyetuju dokumen
+peristiwa (apakah cukup pola `T8` HR Admin → HR Manager/`CorporateHr`, atau perlu Direktur), dan
+perilaku pembatalan dokumen yang sudah disetujui tetapi tanggal efektifnya belum tiba.
+
+**Catatan penamaan.** Entity `TrxEmployeeTransfer`, `TrxEmployeePromotion`, `TrxEmployeeRotation`,
+`TrxEmployeeDemotion`, dan `TrxTemporaryAssignment` yang mulai dipakai tunduk pada ratchet
+`HRD-DEC-019`. Apakah lima tabel itu tetap terpisah atau disatukan adalah keputusan desain
+`design-business-module`, bukan keputusan pass ini.
+
+#### `HRD-DEC-049` — Satu penempatan utama per jenis per tanggal, rangkap dan Plt boleh
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-59` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 |
+| Bukti pemicu | `HRD-TF-014` |
+
+**Isi keputusan.** Aturan berikut berlaku terpisah untuk penempatan organisasi, penempatan
+jabatan, dan relasi atasan.
+
+| Aturan | Bunyi |
+| --- | --- |
+| `EXACTLY_ONE_PRIMARY_PER_DATE` | Pada satu tanggal, seorang pegawai punya **tepat satu** penempatan utama per jenis. Dua penempatan utama sejenis yang tanggalnya beririsan **ditolak** |
+| `NO_PRIMARY_GAP_WHILE_ACTIVE` | Sejak tanggal masuk kerja sampai tanggal berakhirnya hubungan kerja, pegawai aktif **tidak boleh** tanpa unit utama. Penutupan penempatan utama tanpa pengganti ditolak, kecuali karena hubungan kerja berakhir |
+| `SECONDARY_ALLOWED` | Penempatan tambahan (rangkap atau Plt) **boleh** beririsan dengan penempatan utama dan dengan penempatan tambahan lain, asal bertanda bukan-utama |
+| `NO_EXACT_DUPLICATE` | Dua penempatan dengan unit dan jabatan yang **sama persis** pada tanggal yang beririsan **ditolak**, utama maupun tambahan |
+| `ONLY_PRIMARY_MANAGER_ROUTES_APPROVAL` | Hanya atasan **utama** yang berlaku pada tanggal pengajuan yang menerima rute persetujuan bawaan (`RequesterManager`). Atasan tambahan tidak otomatis menerima rute |
+| `NEW_PRIMARY_CLOSES_OLD` | Bila penempatan utama baru disetujui, penempatan utama lama ditutup otomatis per **sehari sebelum** tanggal mulai yang baru |
+
+**Contoh dengan data samaran.** Ns. "Andi" adalah Kepala Ruangan ICU dan juga Ketua Komite PPI.
+
+| Penempatan | Jenis | Mulai | Berakhir | Diterima? | Alasan |
+| --- | --- | --- | --- | --- | --- |
+| ICU — Kepala Ruangan | Utama | 1 Jan 2025 | — | Ya | — |
+| Komite PPI — Ketua | Tambahan | 1 Mar 2025 | — | Ya | Rangkap boleh |
+| IGD — Kepala Ruangan | Utama | 1 Jun 2026 | — | **Tidak**, bila dicatat langsung tanpa menutup ICU | Dua utama beririsan |
+| IGD — Plt Kepala Ruangan | Tambahan | 10 Jun 2026 | 24 Jun 2026 | Ya | Plt boleh selama tanda bukan-utama |
+| ICU — Kepala Ruangan | Tambahan | 1 Feb 2025 | — | **Tidak** | Kembar persis dengan penempatan utama |
+
+Selama 10–24 Juni 2026 Andi menjadi Plt di IGD. Pengajuan cuti staf IGD **tidak** otomatis
+dirutekan ke Andi hanya karena penempatan Plt itu. Pengalihan wewenang persetujuan selama Plt
+adalah urusan delegasi persetujuan sub-modul 21 (`HRD-Q-13`), bukan aturan penempatan ini.
+
+#### `HRD-DEC-050` — Berlaku surut hanya sampai periode kehadiran yang masih terbuka
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-60` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 |
+
+**Isi keputusan.** Tanggal efektif dokumen peristiwa (`HRD-DEC-048`) dan perubahan penempatan
+berdiri sendiri (`HRD-DEC-036`) boleh lebih awal dari tanggal pencatatan, dengan batas berikut.
+
+| Aturan | Bunyi |
+| --- | --- |
+| `RETRO_ONLY_INTO_OPEN_PERIOD` | Tanggal efektif yang mundur **hanya** diterima bila masih berada di dalam periode kehadiran yang **belum ditutup** |
+| `RETRO_INTO_CLOSED_PERIOD_REJECTED` | Bila tanggal efektif jatuh di periode kehadiran yang sudah ditutup, pengajuan **ditolak**. Periode harus dibuka lebih dulu lewat prosedur modul kehadiran (sub-modul 07, di luar scope) |
+| `RETRO_REASON_REQUIRED` | Setiap tanggal efektif yang lebih awal dari tanggal pencatatan wajib disertai alasan |
+| `RETRO_STILL_NEEDS_APPROVAL` | Berlaku surut **tidak** melewati persetujuan `HRD-DEC-031` |
+| `NO_REROUTE_OF_PROCESSED_REQUESTS` | Pengajuan cuti, lembur, atau koreksi yang **sudah diproses** dengan atasan lama **tidak** dirutekan ulang. Pengajuan yang masih menunggu persetujuan mengikuti aturan delegasi/eskalasi sub-modul 21 dan tidak dipindahkan otomatis oleh keputusan ini |
+| `CHECK_AT_APPROVAL_TIME` | Pemeriksaan periode dilakukan saat **persetujuan** dan saat **penerapan**, bukan hanya saat pengajuan dibuat, karena periode dapat ditutup di antaranya |
+
+**Contoh.** Hari ini 5 Desember 2026. Periode kehadiran November sudah ditutup; periode Desember
+masih terbuka.
+
+| Tanggal efektif | Hasil | Alasan |
+| --- | --- | --- |
+| 1 Desember 2026 | Diterima, alasan wajib | Masih di periode terbuka |
+| 15 November 2026 | **Ditolak** | Periode November sudah ditutup |
+| 10 Desember 2026 | Diterima, tanpa alasan surut | Bukan berlaku surut |
+
+**Kasus antara.** SK berlaku 1 Desember diajukan 28 November, saat periode Desember masih terbuka.
+Bila periode Desember **ditutup** sebelum SK disetujui, persetujuan ditolak sistem dengan pesan
+yang menjelaskan periode sudah ditutup.
+
+**Catatan titik sentuh:** pemeriksaan ini membutuhkan keadaan periode dari modul kehadiran.
+Bentuk kontraknya ditetapkan `design-business-module`, bukan di pass ini.
+
+#### `HRD-DEC-051` — Satu nomor identitas = satu profil workforce dengan peran jamak
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-61` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 |
+| Bukti pemicu | `HRD-TF-017`, `HRD-TF-018` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `ONE_PERSON_ONE_PROFILE` | Satu orang hanya punya **satu** profil workforce, apa pun jenis tenaganya |
+| `IDENTITY_KEY_IS_OFFICIAL_ID` | Kunci identitas orang adalah nomor identitas resmi: **NIK KTP** bagi WNI, **nomor paspor** bagi WNA. Keunikan diperiksa **lintas seluruh jenis** (Pegawai, Dokter, Pengguna Eksternal), bukan per tabel |
+| `MULTIPLE_ROLES_PER_PROFILE` | Satu profil boleh punya beberapa peran sekaligus, misalnya Dokter dan Pegawai. Peran Dokter membawa data praktik; peran Pegawai membawa penempatan, gaji, cuti, dan kehadiran |
+| `LINK_NOT_DUPLICATE` | Bila HR membuat data Pegawai atau Dokter dengan nomor identitas yang sudah terdaftar, sistem **menautkan** ke profil yang ada dan **MUST NOT** membuat profil baru |
+| `NO_ORPHAN_PROFILE` | Profil tanpa satu pun peran tidak boleh dibuat. Profil yatim yang sudah ada ditinjau HR: ditautkan ke data orangnya, atau dinonaktifkan |
+
+**Contoh.** dr. "Hendra", Sp.JP, sudah terdaftar sebagai Dokter dengan NIK 3171xxxxxxxx0001
+(samaran). Pada Januari 2027 ia diangkat menjadi Kepala Instalasi Jantung sebagai pegawai tetap.
+
+| Langkah | Perilaku lama | Perilaku sesuai keputusan |
+| --- | --- | --- |
+| HR membuat data Pegawai dengan NIK yang sama | Profil kedua terbentuk; NIK lolos karena hanya dicek di tabel Pegawai | Sistem menemukan profil dr. Hendra dan menawarkan menambah peran Pegawai pada profil itu |
+| Pengajuan cuti, jadwal, dan Employee 360 | Terbelah di dua profil | Satu profil, satu riwayat |
+
+**Pertanyaan turunan yang dicatat, bukan diputuskan:** apa yang dilakukan bila ternyata dua
+profil lama milik orang yang sama — prosedur **penggabungan profil** beserta siapa yang
+berwenang menyetujuinya. Hari ini belum ada kasusnya (`HRD-TF-018`: 0 NIK kembar lintas tabel),
+sehingga dicatat sebagai `HRD-Q-67` dengan sifat `LATER SLICE`.
+
+**Akibat yang harus dirancang kemudian:** pemeriksaan keunikan lintas tabel; tipe tunggal
+`UserType` pada `MstWorkforceProfile` dirancang ulang menjadi peran jamak; pembuatan profil pada
+`EmployeeController`, `DoctorController`, `ExternalUserController`, dan seeder demo disesuaikan.
+Bentuk teknisnya diputuskan `design-business-module`.
+
+#### `HRD-DEC-052` — Data pribadi sensitif hanya berubah lewat permohonan berbukti yang diverifikasi orang lain
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-62` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` oleh pemilik produk. Keputusan ini memperketat kontrol, bukan melonggarkannya, sehingga **tidak** memblokir desain. Mengikuti pola `HRD-DEC-033`, **co-sign keamanan** dicatat sebagai tindak lanjut sebelum rilis produksi |
+| Disetujui | Pengguna, 2026-11-02 |
+
+**Isi keputusan.** Data pribadi dibagi dua kelompok.
+
+| Kelompok | Isi | Jalur perubahan |
+| --- | --- | --- |
+| **Sensitif** | Rekening bank; nomor identitas (NIK/paspor); NPWP; status pernikahan; tanggungan dan anggota keluarga yang memengaruhi pajak, BPJS, atau benefit | **Hanya** lewat permohonan Perubahan Data Karyawan berbukti dokumen, lalu diverifikasi petugas HR **lain** |
+| **Non-sensitif** | Alamat domisili, kontak darurat, riwayat pendidikan, dokumen umum | HR boleh mengubah langsung, dengan jejak audit (siapa, kapan, nilai lama, nilai baru) |
+
+| Aturan | Bunyi |
+| --- | --- |
+| `SENSITIVE_NO_DIRECT_EDIT` | Endpoint ubah langsung untuk data sensitif **MUST NOT** dapat dipakai HR untuk mengubah nilai yang sudah ada. Satu-satunya jalan adalah permohonan |
+| `ON_BEHALF_ALLOWED` | HR boleh membuat permohonan **atas nama** pegawai, misalnya bila pegawai tidak bisa mengakses layanan mandiri. Permohonan menyimpan HR pembuat, pegawai yang diwakili, alasan, dan bukti. Polanya serupa `HRD-DEC-028` |
+| `EVIDENCE_REQUIRED` | Permohonan data sensitif wajib melampirkan bukti, misalnya buku tabungan untuk rekening, atau KTP/kartu keluarga untuk identitas dan tanggungan |
+| `VERIFIER_MUST_DIFFER_FROM_CREATOR` | Petugas yang memverifikasi **MUST NOT** sama dengan pembuat permohonan, termasuk bila pembuatnya HR yang mengajukan atas nama pegawai |
+| `OLD_VALUE_UNTIL_APPLIED` | Selama permohonan belum diterapkan, data lama tetap berlaku (`AC-F01-06`) |
+
+**Contoh.** Petugas HR "Sari" menerima laporan bahwa pegawai "Budi" ganti bank.
+
+| Langkah | Hasil |
+| --- | --- |
+| Sari mengubah nomor rekening Budi langsung di berkas pegawai | **Ditolak**: rekening adalah data sensitif dan wajib lewat permohonan |
+| Sari membuat permohonan atas nama Budi dan melampirkan foto buku tabungan | Permohonan tersimpan, status menunggu verifikasi |
+| Sari mencoba memverifikasi permohonannya sendiri | **Ditolak**: verifikator harus orang lain |
+| HR "Dodi" memverifikasi dan menyetujui | Rekening baru diterapkan; payroll berikutnya memakai rekening baru |
+| Sari mengubah alamat domisili Budi langsung | Diterima dan tercatat di jejak audit |
+
+**Hubungan dengan keputusan lama.** Rantai `T6` (`HRD-DEC-034`) tetap: Perubahan Data Karyawan
+diverifikasi `SiteHr` tanpa persetujuan atasan. Keputusan ini menambah dua hal: larangan ubah
+langsung untuk data sensitif, dan izin pengajuan atas nama pegawai.
+
+#### `HRD-DEC-053` — Atasan hanya melihat profil kerja bawahan langsung pada Employee 360
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-63`; menutup baris `[OPEN]` "Atasan — cakupan yang boleh dilihat" pada `flows/01-employee-administration.md` bagian 2 |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved`. Butir "kesimpulan kelayakan kerja" mengikuti status `HRD-DEC-010`, yang masih `draft` menunggu K3RS. Sampai `HRD-DEC-010` disahkan, butir itu **tidak** ditampilkan |
+| Disetujui | Pengguna, 2026-11-02 |
+
+**Siapa yang terhitung "bawahan".** Hanya pegawai yang **atasan utamanya** pada tanggal hari ini
+adalah pengguna tersebut (`HRD-DEC-049`). Atasan tambahan dan Plt **tidak** otomatis mendapat
+akses. Akses berhenti otomatis ketika relasi atasan berakhir.
+
+**Isi Employee 360 bagi atasan:**
+
+| Boleh dilihat | Tidak boleh dilihat |
+| --- | --- |
+| Nama, nomor pegawai, foto | Nominal gaji dan data penetapan gaji |
+| Unit, jabatan, atasan, termasuk rangkap | Rekening bank |
+| Status kontrak dan tanggal berakhirnya | NIK, paspor, NPWP |
+| Riwayat mutasi, promosi, rotasi, demosi, penugasan sementara | Alamat domisili |
+| Pendidikan dan sertifikasi kompetensi | Keluarga dan tanggungan |
+| Ringkasan cuti dan kehadiran | Dokumen pribadi |
+| Kontak darurat | Detail rekam kesehatan |
+| Kesimpulan kelayakan kerja (menunggu `HRD-DEC-010`) | Kasus disiplin |
+
+**Contoh.** Kepala Ruangan ICU "Andi" membuka Employee 360 milik Rina, yang atasan utamanya
+adalah Andi sejak 1 Desember 2026. Andi melihat bahwa kontrak Rina berakhir 31 Maret 2027 dan
+sertifikat BTCLS-nya masih berlaku, tetapi tidak melihat gaji maupun rekening Rina. Bila Andi
+membuka profil perawat IGD yang **bukan** bawahannya, sistem menolak dengan kode 403 (tidak punya
+hak akses).
+
+**Batas.** Keputusan ini mengatur **atasan**. Akses HR Admin, HR Manager, Payroll Officer, dan
+Auditor pada Employee 360 mengikuti `contracts/permission-audit-matrix.md` dan `HRD-DEC-032`,
+`HRD-DEC-033`, `HRD-DEC-039`, `HRD-DEC-044`, dan tidak diubah di sini.
+
+#### `HRD-DEC-054` — Data awal penempatan diisi lewat batch yang disetujui sekali
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-64` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02, setelah penjelasan ulang secara rinci |
+| Bukti pemicu | `HRD-TF-016` (0 penempatan jabatan, atasan, gaji); `HRD-TF-013` (55 penempatan unit bertanggal mulai = tanggal masuk) |
+
+**Isi keputusan.** Pengisian data awal penempatan bagi pegawai yang sudah ada dilakukan lewat
+**batch data awal**: satu kumpulan data yang divalidasi sistem, lalu disetujui **sekali** sebagai
+satu kesatuan.
+
+| Aturan | Bunyi |
+| --- | --- |
+| `INITIAL_BATCH_SCOPE` | Batch memuat penempatan unit, jabatan, dan atasan per pegawai, dengan tanggal mulai sesuai **SK terakhir yang sebenarnya**, bukan tanggal masuk kerja. Batch yang sama boleh mengoreksi 55 penempatan unit lama yang tanggalnya keliru |
+| `INITIAL_BATCH_VALIDATED` | Setiap baris diperiksa terhadap `HRD-DEC-049` (tepat satu utama, tanpa kembar persis, tanpa lubang) dan terhadap master yang aktif. Batch yang masih punya baris salah **tidak bisa** diajukan |
+| `INITIAL_BATCH_ONE_APPROVAL` | Satu batch disetujui **sekali** oleh HR Manager / `CorporateHr`. Persetujuan itu berlaku bagi seluruh barisnya |
+| `APPROVER_MUST_DIFFER_FROM_CREATOR` | Pembuat batch **MUST NOT** menyetujui batchnya sendiri (`HRD-DEC-031`) |
+| `ONCE_PER_EMPLOYEE` | Seorang pegawai **hanya boleh sekali** masuk batch data awal. Pegawai yang sudah pernah masuk batch data awal yang disetujui ditolak bila dimasukkan lagi. Sesudahnya, setiap perubahan wajib lewat dokumen peristiwa (`HRD-DEC-048`) atau alur berdiri sendiri (`HRD-DEC-036`) |
+| `INITIAL_BATCH_AUDIT_MARK` | Setiap catatan hasil batch ditandai "data awal" di jejak audit, beserta nomor batch, pembuat, penyetuju, dan waktu persetujuan |
+| `SALARY_BATCH_SEPARATE` | Penetapan gaji awal dibuat sebagai **batch terpisah** dan hanya dapat disetujui pengguna yang memegang hak sensitif gaji (`HRD-DEC-033`, `HRD-DEC-037`). Nominal tidak tampil kepada pengguna tanpa hak itu |
+
+**Contoh alur.**
+
+| Langkah | Pelaku | Yang terjadi |
+| --- | --- | --- |
+| 1 | HR Admin "Sari" | Mengunduh template; daftar 55 pegawai beserta unitnya saat ini sudah terisi |
+| 2 | Sari | Mengisi jabatan, atasan, dan tanggal mulai sesuai SK terakhir |
+| 3 | Sistem | Memeriksa unggahan: "Baris 12: atasan tidak ditemukan", "Baris 30: dua unit utama pada 1 Jan 2025" |
+| 4 | Sari | Memperbaiki, mengunggah ulang, lalu mengajukan batch #1 |
+| 5 | HR Manager "Dodi" | Meninjau daftar batch #1 lalu menyetujuinya sekali; 165 catatan berlaku |
+| 6 | Sari | Mencoba memasukkan Budi ke batch #2. **Ditolak**: Budi sudah masuk batch data awal #1 |
+
+**Yang diputuskan kemudian oleh `design-business-module`:** format berkas unggahan, batas jumlah
+baris per batch, dan apakah batch ditolak utuh atau boleh dikembalikan untuk perbaikan.
+
+#### `HRD-DEC-055` — Enam layar Administrasi Kepegawaian menjadi daftar pantau yang dapat memulai tindakan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-65` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 |
+| Memperjelas | `HRD-DEC-012`. Keenam layar tetap ada; fungsinya ditambah. `HRD-DEC-012` **tidak** digantikan |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `MONITORING_LIST` | Setiap layar menampilkan daftar seluruh pegawai dengan saringan periode, unit, dan status |
+| `ROW_STATUS_LABEL` | Setiap baris penempatan menunjukkan keadaannya: **Dijadwalkan** (disetujui, belum mulai), **Menunggu persetujuan**, **Berlaku**, atau **Berakhir** |
+| `START_ACTION_FROM_ROW` | Dari baris seorang pegawai, HR dapat **memulai** tindakan: membuat dokumen peristiwa (`HRD-DEC-048`), memulai perubahan penempatan berdiri sendiri (`HRD-DEC-036`), atau membuka Employee 360. Tombol hanya tampil bila pengguna memegang hak aksesnya |
+| `NO_INLINE_EDIT_DELETE` | Tabel **MUST NOT** menyediakan edit atau hapus langsung atas penempatan (`HRD-DEC-047`) |
+| `APPROVAL_STAYS_IN_INBOX` | Persetujuan tetap dimulai dari kotak masuk terpadu (`HRD-DEC-011`), lalu diselesaikan di halaman detail transaksi. **Tidak ada** persetujuan massal dari daftar |
+| `PROFILE_CHANGE_IS_TRANSACTION_PAGE` | Layar Perubahan Data Karyawan adalah halaman transaksi permohonan itu. HR verifikator membuka **satu** permohonan, melihat buktinya, lalu menjalankan Verifikasi, Setujui, Tolak, Minta Revisi, atau Terapkan, sesuai `HRD-DEC-052` |
+| `SALARY_LIST_NO_AMOUNT` | Layar Penetapan Gaji tetap tanpa nominal (`HRD-DEC-033`) |
+
+**Contoh.** HR Admin "Sari" membuka layar Relasi Atasan, menyaring unit Rawat Inap Lantai 3, dan
+melihat Budi tanpa atasan utama. Dari baris Budi, Sari menekan "Ubah atasan". Pengajuan masuk ke
+kotak masuk HR Manager "Dodi", dan baris Budi kini berlabel **Menunggu persetujuan**. Setelah Dodi
+menyetujui di halaman detail, label berubah menjadi **Berlaku**. Sari tidak pernah bisa mengubah
+kolom atasan langsung di tabel.
+
+**Hubungan dengan perbaikan.** Perbaikan `HRD-TF-008` s.d. `HRD-TF-010` (alamat API, pesan galat,
+endpoint Perubahan Data) tetap dikerjakan sebagai `REPAIR`, terlepas dari keputusan ini. Letak
+menu dan bentuk tampilan (tab, modal, atau halaman) adalah `DEV_DISCRETION` dalam batas aturan di
+atas.
+
+#### `HRD-DEC-056` — Dokumen peristiwa (SK) disetujui dengan pola `T8` dan wajib melampirkan scan SK
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-66` bagian 1 |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 |
+| Dasar | `HRD-DEC-034` rantai `T8`, `HRD-DEC-031` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `EVENT_CHAIN_FOLLOWS_T8` | Kelima jenis dokumen peristiwa — Mutasi, Promosi, Rotasi, Demosi, Penugasan Sementara — memakai rantai bawaan HR Admin → HR Manager / `CorporateHr` |
+| `APPROVER_MUST_DIFFER_FROM_CREATOR` | Penyetuju **MUST NOT** sama dengan pembuat dokumen. Bila hanya ada satu petugas, alur dieskalasi ke penyetuju lebih tinggi sesuai konfigurasi, **MUST NOT** menjadi swa-setuju |
+| `SIGNED_SK_ATTACHMENT_REQUIRED` | Dokumen wajib memuat nomor SK dan **scan SK yang sudah ditandatangani** pejabat berwenang sebelum dapat diajukan |
+| `DIRECTOR_STEP_BY_CONFIG` | Langkah persetujuan Direktur **tidak** menjadi bawaan. Bila rumah sakit membutuhkannya, langkah itu ditambahkan per jenis peristiwa lewat konfigurasi alur, tanpa pengembangan ulang (`HRD-DEC-034`) |
+
+**Contoh.** Sari membuat SK Promosi Rina, mengisi nomor SK, tetapi lupa mengunggah scan SK. Tombol
+Ajukan ditolak dengan pesan "Lampiran SK yang sudah ditandatangani wajib diunggah". Setelah scan
+diunggah, dokumen masuk ke kotak masuk Dodi.
+
+#### `HRD-DEC-057` — SK hanya dapat dibatalkan sebelum tanggal berlaku, lewat persetujuan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-66` bagian 2 |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `CANCEL_ONLY_BEFORE_EFFECTIVE` | Dokumen berstatus **Dijadwalkan** (sudah disetujui, tanggal berlaku belum tiba) boleh dibatalkan |
+| `CANCEL_NEEDS_APPROVAL` | Pembatalan diajukan dengan alasan wajib dan disetujui orang lain, dengan rantai yang sama seperti dokumennya |
+| `CANCEL_LEAVES_NO_PLACEMENT` | Dokumen yang dibatalkan **tidak pernah** diterapkan. Penempatan lama tetap berlaku tanpa perubahan |
+| `NO_CANCEL_AFTER_EFFECTIVE` | Dokumen berstatus **Berlaku** **MUST NOT** dibatalkan. Pengembalian keadaan dilakukan dengan dokumen peristiwa baru, sehingga riwayat tetap mencerminkan kejadian sebenarnya |
+| `CANCEL_IN_HISTORY` | Riwayat kepegawaian mencatat pembatalan beserta alasan, pengaju, penyetuju, dan waktunya |
+
+**Perubahan status dokumen peristiwa:**
+
+| Dari | Tindakan | Ke | Siapa | Syarat |
+| --- | --- | --- | --- | --- |
+| `Draft` | Ajukan | `Menunggu persetujuan` | HR Admin | Nomor SK dan scan SK sudah ada (`HRD-DEC-056`); tanggal berlaku lolos `HRD-DEC-050` |
+| `Menunggu persetujuan` | Setujui | `Dijadwalkan` | HR Manager / `CorporateHr`, bukan pembuat | Periode masih terbuka saat persetujuan |
+| `Menunggu persetujuan` | Tolak | `Ditolak` | HR Manager / `CorporateHr`, bukan pembuat | Alasan wajib |
+| `Dijadwalkan` | Tanggal berlaku tiba | `Berlaku` | Sistem | Penempatan diterapkan sesuai `HRD-DEC-048` dan `HRD-DEC-049` |
+| `Dijadwalkan` | Batalkan, lalu pembatalan disetujui | `Dibatalkan` | Diajukan HR Admin; disetujui HR Manager / `CorporateHr`, bukan pengaju | Alasan wajib |
+| `Berlaku` | Batalkan | — ditolak | — | Buat dokumen peristiwa baru |
+
+Bila tanggal berlaku sudah lewat saat dokumen disetujui (berlaku surut, `HRD-DEC-050`), dokumen
+langsung berpindah dari `Dijadwalkan` ke `Berlaku` pada saat persetujuan.
+
+**Contoh.** SK mutasi Rina ke ICU disetujui 20 November dan berlaku 1 Desember 2026. Pada 25
+November, Sari mengajukan pembatalan dengan alasan "ICU belum siap dibuka". Dodi menyetujuinya.
+Pada 1 Desember tidak terjadi apa pun; Rina tetap di Rawat Inap, dan riwayatnya mencatat "SK
+mutasi dibatalkan 25 November 2026". Bila pembatalan baru diminta 3 Desember, sistem menolak dan
+HR membuat SK mutasi baru dari ICU kembali ke Rawat Inap.
+
+**Catatan.** Nama status di atas adalah kosakata bisnis. Nilai teknisnya ditetapkan
+`design-business-module` dan ditulis pada `contracts/state-transition-matrix.md`.
+
+### 31.8 Ringkasan penutupan pass
+
+**Keputusan yang lahir pada pass ini:**
+
+| ID | Isi singkat | Status |
+| --- | --- | --- |
+| `HRD-DEC-046` | Batas scope sub-modul Workforce Core & Employee 360 | `approved` |
+| `HRD-DEC-047` | Penempatan berlaku-efektif adalah satu-satunya sumber kebenaran unit dan jabatan | `approved` |
+| `HRD-DEC-048` | Mutasi/promosi/rotasi/demosi/penugasan sementara sebagai satu dokumen peristiwa (SK); mengamandemen cakupan `HRD-DEC-036` | `approved` |
+| `HRD-DEC-049` | Tepat satu penempatan utama per jenis per tanggal; rangkap dan Plt boleh | `approved` |
+| `HRD-DEC-050` | Berlaku surut hanya sampai periode kehadiran yang masih terbuka | `approved` |
+| `HRD-DEC-051` | Satu nomor identitas = satu profil workforce dengan peran jamak | `approved` |
+| `HRD-DEC-052` | Data pribadi sensitif hanya berubah lewat permohonan berbukti yang diverifikasi orang lain | `approved`; co-sign keamanan sebelum rilis produksi |
+| `HRD-DEC-053` | Atasan hanya melihat profil kerja bawahan langsung pada Employee 360 | `approved`; butir kelayakan kerja menunggu `HRD-DEC-010` |
+| `HRD-DEC-054` | Data awal penempatan lewat batch yang disetujui sekali, satu kali per pegawai | `approved` |
+| `HRD-DEC-055` | Enam layar Administrasi Kepegawaian menjadi daftar pantau yang dapat memulai tindakan | `approved` |
+| `HRD-DEC-056` | SK disetujui dengan pola `T8`, wajib scan SK | `approved` |
+| `HRD-DEC-057` | SK hanya dapat dibatalkan sebelum tanggal berlaku, lewat persetujuan | `approved` |
+
+**Keputusan lama yang diubah cakupannya, tidak digantikan:** `HRD-DEC-036` (oleh `HRD-DEC-048`),
+`HRD-DEC-012` (oleh `HRD-DEC-055`).
+
+**Bentuk blueprint:** tetap `SINGLE` (`HRD-DEC-003`). Seluruh hasil pass ini masuk slice `S-A1`.
+
+**Pertanyaan yang masih terbuka:**
+
+| ID / butir | Isi | Owner | Memblokir |
+| --- | --- | --- | --- |
+| `HRD-Q-67` | Prosedur penggabungan dua profil lama milik orang yang sama | Pengguna | `LATER SLICE` — hari ini 0 kasus |
+| Co-sign `HRD-DEC-052` | Tinjauan keamanan atas aturan data sensitif | Pemilik keamanan | Rilis produksi, **bukan** desain |
+| `HRD-DEC-010` | Butir kesimpulan kelayakan kerja pada Employee 360 | K3RS | Hanya butir itu; sisa Employee 360 boleh jalan |
+| `HRD-DEP-003` | Integrasi profil ke akun aplikasi | Administrator | Tidak memblokir `S-A1` |
+
+**Blocker desain untuk `S-A1`:** **tidak ada.** Seluruh pertanyaan yang memblokir `DESIGN` sudah
+tertutup.
+
+**Acceptance criteria yang sudah dapat diuji:**
+
+| ID | Kriteria | Cara menguji | Dasar |
+| --- | --- | --- | --- |
+| `AC-WFC-01` | Layar Penempatan Organisasi menampilkan data | Pada database dev saat ini, layar menampilkan 55 baris, bukan tabel kosong | `HRD-TF-008` |
+| `AC-WFC-02` | Kegagalan memuat terlihat oleh pengguna | Matikan backend; layar menampilkan pesan "gagal memuat", bukan tabel kosong | `HRD-TF-009` |
+| `AC-WFC-03` | Unit dan jabatan tidak dapat diubah dari form Master Data | Ubah pegawai yang sudah ada; isian unit dan jabatan terkunci, dan API menolak perubahan keduanya | `HRD-DEC-047` |
+| `AC-WFC-04` | Dua unit utama yang beririsan ditolak | Ajukan penempatan utama kedua yang tanggalnya beririsan tanpa menutup yang lama; ditolak | `HRD-DEC-049` |
+| `AC-WFC-05` | Berlaku surut ke periode tertutup ditolak | Tutup periode November, ajukan SK berlaku 15 November; ditolak | `HRD-DEC-050` |
+| `AC-WFC-06` | NIK yang sama tidak membuat profil baru | Buat Pegawai dengan NIK milik Dokter yang sudah ada; jumlah profil workforce tidak bertambah | `HRD-DEC-051` |
+| `AC-WFC-07` | Rekening tidak dapat diubah langsung | HR mengubah rekening lewat berkas pegawai; ditolak. Lewat permohonan, pembuat tidak bisa memverifikasi sendiri | `HRD-DEC-052` |
+| `AC-WFC-08` | Atasan tidak melihat data sensitif dan bukan-bawahan | Login sebagai atasan; gaji, rekening, NIK tidak tampil; profil bukan-bawahan menjawab 403 | `HRD-DEC-053` |
+| `AC-WFC-09` | Batch data awal hanya sekali per pegawai | Masukkan pegawai yang sudah ada di batch disetujui ke batch baru; ditolak | `HRD-DEC-054` |
+| `AC-WFC-10` | Tidak ada edit langsung di tabel lintas-pegawai | Periksa keenam layar; tidak ada tombol edit atau hapus penempatan | `HRD-DEC-055` |
+| `AC-WFC-11` | SK diterapkan utuh pada tanggal berlaku | SK berisi unit, jabatan, atasan disetujui; pada tanggal berlaku ketiganya berubah bersamaan, yang lama ditutup sehari sebelumnya | `HRD-DEC-048` |
+| `AC-WFC-12` | Pembuat SK tidak dapat menyetujuinya, dan scan SK wajib | Pembuat mencoba menyetujui; ditolak. Ajukan tanpa scan; ditolak | `HRD-DEC-056` |
+| `AC-WFC-13` | SK hanya batal sebelum berlaku | Batalkan SK `Dijadwalkan` dengan persetujuan; penempatan tidak berubah. Batalkan SK `Berlaku`; ditolak | `HRD-DEC-057` |
+
+**Yang sengaja ditinggalkan karena di luar scope:** seluruh daftar "Di luar scope" pada bagian
+31.3, termasuk siklus kontrak (05), perhitungan gaji (10), kredensial klinis (14), dan delegasi
+persetujuan selama Plt (21).
+
+**Artefak hilir yang kini tertinggal dari decision log.** `blueprint-manifest.md` **sengaja tidak
+diubah** pada pass ini: `input_revision_hash` dan `decision_revision: 15` tetap menunjuk dasar
+desain lama, sehingga selisihnya terdeteksi. Artefak berikut perlu diperbarui
+`design-business-module`: `02-backend-architecture.md`, `03-frontend-architecture.md`,
+`04-prd-to-mvp.md`, `data/data-dictionary.md`, kelima berkas `contracts/`,
+`flows/01-employee-administration.md`, dan `testing/acceptance-test-matrix.md`. Tanda ✅ pada
+`FE-HRD-002` dan `BE-HRD-003` di roadmap perlu ditinjau ulang (`HRD-TF-011`).
+
+### 31.9 Berkas yang berubah pada pass ini
+
+| Berkas | Perubahan |
+| --- | --- |
+| `00-interview-decisions.md` | Revisi naik ke `16`; bagian 31 ditambahkan |
 
 **Tidak ada file source, migration, entity, controller, database, seed, maupun frontend yang
 diubah pada pass ini.**

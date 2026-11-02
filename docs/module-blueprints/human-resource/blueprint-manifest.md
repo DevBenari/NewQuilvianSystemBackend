@@ -6,40 +6,40 @@ module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
 blueprint_shape: SINGLE
-revision: 11
+revision: 12
 status: DRAFT
 design_readiness: PARTIAL
-current_phase: HRD-PH-SECURITY-CLOSED
+current_phase: HRD-PH-SLICE-A1-PLANNED
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-10-26T16:20:00Z
-last_verified_at: 2026-10-26T16:20:00Z
+updated_at: 2026-11-02T14:03:00Z
+last_verified_at: 2026-11-02T14:03:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
 backend_source_sha_current: 16f6b2ad28e0e9cbd374354abe240ff3b163ace0
 frontend_source_sha: 2cd1c0610981b649f16a11bc74ac47ce6123e679
 frontend_source_sha_previous: fff76a1b394d4b247c70a04f106c8ec098c9696e
 skill_suite_version: 1.0.0-rc2
-input_revision_hash: da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083
-decision_revision: 15
+input_revision_hash: 26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee
+decision_revision: 16
 backend_baseline_branch: QuilvianIntegrationBackend
 capability_map_revision: 1.1
 capability_map_hash: f66edd1514d28ce338130d9aaebfd40ee5678a0037667a3b07fdfbd1326cc510
-contract_versions: v5
+contract_versions: v6
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
 artifact_hashes:
-  00-interview-decisions.md: da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083
-  01-existing-capability-map.md: f66edd1514d28ce338130d9aaebfd40ee5678a0037667a3b07fdfbd1326cc510
-  02-backend-architecture.md: 0de9837052ca4b227973c6c0eddb21ce60e96a428ce81422f6d9df7898fd2c36
-  03-frontend-architecture.md: aba2582d8618c96e095d1a9450d7cbf5a06230a97d218564e826378fe73f9fff
-  04-prd-to-mvp.md: 09350c8ce125bc60cb93e524669818d56e46af6a1df063ad779ee0a23c919719
-  data/data-dictionary.md: d565692c9f39118263bcfd9d12ff1f07bf45523da301cc2958f1ec036a3c09a9
-  contracts/api-contract.md: b9c9327a5a49e0c51dec7e7719beac50f1ad032ca8d77608f17be864c47bfb6a
-  contracts/state-transition-matrix.md: 14c8c8b832e953d57015043d803d27c4338b63c7c9d46fb2123a2d207d7736e5
-  contracts/validation-matrix.md: 383d5b51a8b26492a1b48ccb3afa0fab2389db2e3731cab49cd8c9f25703e621
-  contracts/integration-contract.md: bd5ff823143d6a8df25ddbc01a96a437fb9f499539ce69cf4822120b7bf92530
-  contracts/permission-audit-matrix.md: 581bdc331e4ab275e01f8bf5b00d9408958682521172f6b85931730e49afc11c
-  testing/acceptance-test-matrix.md: 092cae68125abd4710e3e9361912a9535eba03f7f7a10c7fdfe34548e566f3c1
-  flowcharts/00-alur-utama.md: ef9b4d06e170d56963b72c398c197e1dd91cb184ba8bfea636ac5f2e189be485
+  00-interview-decisions.md: 26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee
+  01-existing-capability-map.md: 907a91e004d584cbb0f11cf7e0daa222a4bad2ff1d281f2b2ef3ee63e3235363
+  02-backend-architecture.md: 68653d1ea4f270d2a2a344de66ba24d88060a33ba23eca8c6469523f1a48be69
+  03-frontend-architecture.md: 50178b7348dd986ebca72f2ff3ca9c45a0e6b6193bde449e58e80092fd67dac5
+  04-prd-to-mvp.md: cd754e55d8641213200e5ea8f2a569dc3f1256621654983f5dd21b130fca0513
+  data/data-dictionary.md: 8fcaa08e6d3a73448e88960f2871d34f7b0f72b1051eebe08ab41fcc7a36abde
+  contracts/api-contract.md: 6b4973369194e39c0de5daaba3b79bc33f4cb930c5912a07c13c3f75b4178501
+  contracts/state-transition-matrix.md: bc4946ee46c43d00e2fdcbd4f4312f82abee033bfbd9842fb1031403e3ce0975
+  contracts/validation-matrix.md: fe611091ba0c919b8733a48142f4f343bbc33dbcb4778b824537a9abb2530eef
+  contracts/integration-contract.md: d78fcda2086faf88fa4131c01fb5632758f0f8e40f46877f46c3561a19eda8ae
+  contracts/permission-audit-matrix.md: 163ee1d463d27b04d4884136da15145bbcc6d9a0d5e6313787dfec17628b00fe
+  testing/acceptance-test-matrix.md: b0f8b874f6fb24b4299e716ecd89119698b940f2fce5c0e3110aa35589834cc2
+  flowcharts/00-alur-utama.md: 6dc4067df95a433861d738c25f8c90839ddc9fce57ecaeff1a50055e32745103
 active_dependency_ids:
   - HRD-DEP-001
   - HRD-DEP-002
@@ -48,7 +48,7 @@ active_dependency_ids:
   - HRD-DEP-005
   - HRD-DEP-006
   - HRD-DEP-007
-active_roadmap_revision: 3
+active_roadmap_revision: 4
 supersedes: null
 ```
 

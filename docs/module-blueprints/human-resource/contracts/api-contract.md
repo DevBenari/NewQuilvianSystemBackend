@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/api-contract.md` |
-| `contract_version` | `v5` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
-| `last_changed_in` | `v4` |
+| `contract_version` | `v6` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
+| `last_changed_in` | `v6` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Backend, mengikuti `rules/backend/engineering/BACKEND_ENGINEERING_CONTRACT.md` |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `15` |
-| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
+| `input_revision` | `02-backend-architecture.md` revision `2`; `00-interview-decisions.md` revision `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`) |
+| `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | **Tidak ada perubahan yang memutus kontrak berjalan.** Seluruh perubahan bersifat penambahan endpoint atau penambahan route template alias |
 
@@ -765,6 +765,61 @@ Base URL: `api/v1/corporate/human-resource/employee-profile-changes`
 | `POST` | `/{id:guid}/request-revision` | Meminta pemohon memperbaiki | `EmployeeProfileChange : Update` | `RequestRevisionRequest` | `ApiResponse<ProfileChangeDetailResponse>` | |
 | `POST` | `/{id:guid}/apply` | Menerapkan perubahan ke profil pegawai | `EmployeeProfileChange : Update` | — | `ApiResponse<ProfileChangeDetailResponse>` | |
 | `POST` | `/{id:guid}/workflow/synchronize` | Menyelaraskan status dengan mesin persetujuan | `EmployeeProfileChange : Update` | — | `ApiResponse<ProfileChangeDetailResponse>` | |
+| `POST` | `/on-behalf` | HR mengajukan permohonan atas nama pegawai yang kesulitan akses | `EmployeeProfileChange : CreateOnBehalf` | `CreateProfileChangeOnBehalfRequest` | `ApiResponse<ProfileChangeDetailResponse>` | **Rencana (belum tersedia)** |
+
+### Corporate / Human Resource / Workforce Core / Personnel Action Order
+
+Base URL: `api/v1/corporate/human-resource/personnel-action-orders`
+
+Mengelola seluruh peristiwa kepegawaian (Mutasi, Promosi, Rotasi, Demosi, Penugasan Sementara) sebagai satu kesatuan dokumen utuh (`HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057`).
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Pilihan kategori, status, dan saringan SK | `PersonnelActionOrder : Read` | — | `ApiResponse<FilterMetadataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Ringkasan jumlah SK per status | `PersonnelActionOrder : Read` | — | `ApiResponse<SummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar dokumen peristiwa seluruh pegawai | `PersonnelActionOrder : Read` | Query | `ApiResponse<PagedResult<PersonnelActionOrderListResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Detail lengkap satu SK dan penempatan | `PersonnelActionOrder : Read` | — | `ApiResponse<PersonnelActionOrderDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat draf dokumen peristiwa baru | `PersonnelActionOrder : Create` | `CreatePersonnelActionOrderRequest` | `ApiResponse<PersonnelActionOrderDetailResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id:guid}` | Mengubah isi draf dokumen peristiwa | `PersonnelActionOrder : Update` | `UpdatePersonnelActionOrderRequest` | `ApiResponse<PersonnelActionOrderDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/attachments` | Mengunggah berkas scan SK resmi bertandatangan | `PersonnelActionOrder : Update` | Multipart Form Data | `ApiResponse<AttachmentResponse>` | **Rencana (belum tersedia)** — Wajib sebelum `/submit` (`HRD-DEC-056`) |
+| `GET` | `/{id:guid}/attachments/{attachmentId:guid}` | Mengunduh berkas scan SK bertandatangan | `PersonnelActionOrder : Read` | — | Berkas PDF/Gambar | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/submit` | Mengajukan SK untuk persetujuan (pola T8) | `PersonnelActionOrder : Update` | — | `ApiResponse<PersonnelActionOrderDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/approve` | Menyetujui SK (`APPROVER_MUST_DIFFER_FROM_CREATOR`) | `PersonnelActionOrder : Approve` | — | `ApiResponse<PersonnelActionOrderDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/reject` | Menolak SK | `PersonnelActionOrder : Approve` | `RejectOrderRequest` | `ApiResponse<PersonnelActionOrderDetailResponse>` | **Rencana (belum tersedia)** — Alasan wajib diisi |
+| `POST` | `/{id:guid}/cancel-request` | Mengajukan pembatalan SK terjadwal | `PersonnelActionOrder : Cancel` | `CancelOrderRequest` | `ApiResponse<PersonnelActionOrderDetailResponse>` | **Rencana (belum tersedia)** — Hanya sebelum tgl berlaku (`HRD-DEC-057`) |
+| `POST` | `/{id:guid}/cancel-approve` | Menyetujui pembatalan SK | `PersonnelActionOrder : Approve` | — | `ApiResponse<PersonnelActionOrderDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/apply` | Menerapkan penempatan baru dan menutup penempatan lama pada tanggal berlaku | `PersonnelActionOrder : Process` | — | `ApiResponse<PersonnelActionOrderDetailResponse>` | **Rencana (belum tersedia)** |
+
+### Corporate / Human Resource / Workforce Core / Employee 360
+
+Base URL: `api/v1/corporate/human-resource/workforce-profiles/{workforceProfileId:guid}/employee-360`
+
+Menyajikan profil komprehensif pegawai dengan kontrol akses berbasis relasi (`HR` vs `Atasan Langsung`, `HRD-DEC-053`).
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Mengambil profil Employee 360 | `Employee360 : Read` | — | `ApiResponse<Employee360Response>` | **Rencana (belum tersedia)** |
+
+**Aturan Otorisasi Employee 360 (`HRD-DEC-053`):**
+1. Petugas HR: melihat seluruh profil kerja, kontrak, riwayat karir, sertifikat, kehadiran, cuti. Nominal gaji hanya tampil jika memegang `WfpSalaryAssignment : ViewAmount`.
+2. Atasan Langsung: hanya dapat membuka Employee 360 pegawai yang **atasan utamanya pada tanggal hari ini** adalah pengguna tersebut (`ONLY_PRIMARY_MANAGER_ROUTES_APPROVAL`). Melihat profil kerja, kontrak, riwayat mutasi/promosi, kompetensi, kontak darurat, ringkasan cuti/kehadiran. **Dilarang keras menampilkan nominal gaji, rekening bank, NIK, NPWP, keluarga/tanggungan, dan catatan disiplin.**
+3. Pengguna yang bukan HR dan bukan atasan langsung bawahan: **Ditolak HTTP 403 Forbidden**.
+
+### Corporate / Human Resource / Workforce Core / Initial Placement Batch
+
+Base URL: `api/v1/corporate/human-resource/workforce-core/initial-batches`
+
+Mengelola batch pengisian data awal penempatan bagi 55 pegawai aktif (`HRD-DEC-054`).
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/template` | Mengunduh template batch dengan prefill 55 pegawai aktif | `InitialPlacementBatch : Read` | — | Berkas XLSX/CSV | **Rencana (belum tersedia)** |
+| `POST` | `/validate` | Memvalidasi integritas baris penempatan awal | `InitialPlacementBatch : Create` | Multipart File | `ApiResponse<BatchValidationResultResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mengunggah dan menyimpan batch data awal (Draft) | `InitialPlacementBatch : Create` | `CreateInitialBatchRequest` | `ApiResponse<InitialBatchDetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar riwayat batch data awal | `InitialPlacementBatch : Read` | Query | `ApiResponse<PagedResult<InitialBatchListResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Detail satu batch dan seluruh barisnya | `InitialPlacementBatch : Read` | — | `ApiResponse<InitialBatchDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/submit` | Mengajukan batch data awal untuk persetujuan | `InitialPlacementBatch : Update` | — | `ApiResponse<InitialBatchDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/approve` | Menyetujui batch sekali dan menerapkan penempatan awal | `InitialPlacementBatch : Approve` | — | `ApiResponse<InitialBatchDetailResponse>` | **Rencana (belum tersedia)** — Disetujui sekali (`HRD-DEC-054`) |
 
 ### Corporate / Human Resource / Workforce Profile Management / Workforce Profile Overview
 

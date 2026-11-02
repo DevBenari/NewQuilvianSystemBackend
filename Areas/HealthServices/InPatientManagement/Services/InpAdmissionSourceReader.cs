@@ -142,7 +142,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                             .Where(n => n.EndDateTime == null && !n.IsDelete)
                             .OrderByDescending(n => n.SequenceNumber)
                             .Select(n => n.Employee != null ? n.Employee.FullName : null)
-                            .FirstOrDefault()
+                            .FirstOrDefault(),
+                        x.ExternalReferralDoctorName,
+                        x.ExternalReferralFacilityName
                     })
                     .FirstOrDefaultAsync(cancellationToken);
 
@@ -215,6 +217,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     AttendingDoctorName = episode.AttendingDoctorName,
                     FloorNurseName = episode.FloorNurseName,
                     AdmissionConfirmedByName = string.IsNullOrWhiteSpace(confirmedByName) ? null : confirmedByName,
+                    ExternalReferralDoctorName = episode.ExternalReferralDoctorName,
+                    ExternalReferralFacilityName = episode.ExternalReferralFacilityName,
                     CurrentPlacement = current,
                     Placements = placements
                 });
@@ -517,6 +521,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
         /// <summary>Petugas yang mengonfirmasi admisi (IPD "Administrasi Rawat Inap").</summary>
         public string? AdmissionConfirmedByName { get; init; }
+
+        /// <summary>
+        /// Dokter perujuk luar yang dicatat petugas admisi pada episode — sumber ketiga IPD
+        /// (<c>BE-RWI-257</c>, amandemen <c>RWI-DEC-254</c> 2026-11-02).
+        /// </summary>
+        public string? ExternalReferralDoctorName { get; init; }
+
+        /// <summary>Fasilitas perujuk luar yang dicatat petugas admisi pada episode.</summary>
+        public string? ExternalReferralFacilityName { get; init; }
 
         /// <summary>Penempatan berjalan; kosong bila pasien belum atau tidak lagi menempati bed.</summary>
         public InpAdmissionPlacementInfo? CurrentPlacement { get; init; }

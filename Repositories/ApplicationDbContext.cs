@@ -233,6 +233,10 @@ namespace QuilvianSystemBackend.Repositories
 
         #region CORPORATE - HUMAN RESOURCE - WORKFORCE CORE
         public DbSet<WfpOrganizationAssignment> WfpOrganizationAssignments { get; set; }
+        public DbSet<HrdPersonnelActionOrder> HrdPersonnelActionOrders { get; set; }
+        public DbSet<HrdPersonnelActionOrderAttachment> HrdPersonnelActionOrderAttachments { get; set; }
+        public DbSet<HrdInitialPlacementBatch> HrdInitialPlacementBatches { get; set; }
+        public DbSet<HrdInitialPlacementBatchRow> HrdInitialPlacementBatchRows { get; set; }
         public DbSet<WfpBankAccount> WfpBankAccounts { get; set; }
         public DbSet<WfpDocument> WfpDocuments { get; set; }
         public DbSet<WfpEducation> WfpEducations { get; set; }

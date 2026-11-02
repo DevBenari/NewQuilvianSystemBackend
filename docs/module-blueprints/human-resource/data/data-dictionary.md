@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `data/data-dictionary.md` |
-| `contract_version` | `v5` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
-| `last_changed_in` | `v5` |
+| `contract_version` | `v6` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
+| `last_changed_in` | `v6` |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik basis data untuk keputusan yang merusak data |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `02-backend-architecture.md` revision `1`; `00-interview-decisions.md` revision `15` |
-| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
+| `input_revision` | `02-backend-architecture.md` revision `2`; `00-interview-decisions.md` revision `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`) |
+| `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` (branch kerja `AndryZain`) |
 | Backend baseline canonical | `origin/QuilvianIntegrationBackend` (`HRD-DEC-021`), diverifikasi pada `16b8b71` |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — seluruh tabel dalam cakupan bersifat administratif ketenagakerjaan |
@@ -56,10 +56,7 @@ dokumen yang sudah ditandai hapus tidak menghalangi penomoran baru.
 | `Diperbarui` | Seluruh kolom, termasuk kolom yang sudah ada dan tidak berubah |
 | `Sudah ada` | Kolom kunci saja — PK, FK, kolom status, dan kolom yang dipakai aturan bisnis modul ini — ditambah rujukan ke file model sebagai sumber lengkap |
 
-**Tidak ada tabel berstatus `Baru` pada rancangan ini.** `HRD-DEC-031` menambah kolom pada empat entity penempatan dan remunerasi — lihat bagian 2.7 — **tanpa** membuat tabel baru. Seluruh kemampuan target dipenuhi dengan
-`EXTEND` terhadap tabel yang sudah ada. Ini bukan kebetulan: `02-backend-architecture.md` bagian
-7.4 mencatatnya sebagai keputusan, dan bagian 9 mencatat kemampuan yang sengaja **tidak**
-mendapat tabel sendiri.
+Tabel berstatus **`Baru`** pada rancangan ini adalah `HrdPersonnelActionOrder`, `HrdInitialPlacementBatch`, dan `HrdInitialPlacementBatchRow` yang lahir dari keputusan `HRD-DEC-048` dan `HRD-DEC-054`. Tabel lainnya berstatus `Diperbarui` (`EXTEND`) melalui penambahan kolom persetujuan, tautan SK, dan pengajuan atas nama pada entity yang sudah ada.
 
 ### 0.3 Penanda kolom rencana
 
@@ -93,7 +90,10 @@ rancangan ini punya barisnya di sini.
 | `WfpOrganizationAssignment` | **`Diperbarui`** | Human Resource | `HRD-DEC-031`: tambah seluruh kolom persetujuan dan wiring workflow |
 | `WfpPositionAssignment` | **`Diperbarui`** | Human Resource | `HRD-DEC-031`: sama |
 | `WfpManagerAssignment` | **`Diperbarui`** | Human Resource | `HRD-DEC-031`: sama. `CanApproveRequests` yang sudah ada **tidak** berubah artinya |
-| `TrxEmployeeProfileChangeRequest` | `Sudah ada` | Human Resource | Permohonan ubah data diri |
+| `HrdPersonnelActionOrder` | **`Baru`** | Human Resource | `HRD-DEC-048`: Dokumen Peristiwa Kepegawaian (SK Mutasi/Promosi/Rotasi/Demosi/Penugasan Sementara) |
+| `HrdInitialPlacementBatch` | **`Baru`** | Human Resource | `HRD-DEC-054`: Batch data awal penempatan kepegawaian 55 pegawai existing |
+| `HrdInitialPlacementBatchRow` | **`Baru`** | Human Resource | `HRD-DEC-054`: Rincian baris penempatan per pegawai dalam batch data awal |
+| `TrxEmployeeProfileChangeRequest` | **`Diperbarui`** | Human Resource | `HRD-DEC-052`: tambah kolom pengajuan atas nama dan bukti berkas sensitif |
 | `HrdAttendanceRawLog` | `Sudah ada` | Human Resource | Rekaman mentah dari mesin absensi |
 | `HrdAttendanceDaily` | `Sudah ada` | Human Resource | Hasil olahan kehadiran per hari |
 | `HrdAttendancePeriod` | `Sudah ada` | Human Resource | Periode kehadiran, tutup dan buka |
@@ -550,6 +550,7 @@ Kolom berikut ditambahkan **sama bentuknya** pada `WfpSalaryAssignment`,
 | `RejectedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | **`RENCANA`.** Penolak |
 | `RejectedAt` | `timestamp with time zone` | Tidak | — | — | — | — | Tidak | **`RENCANA`.** Waktu ditolak |
 | `RejectionReason` | `varchar(500)` | Tidak | — | — | — | — | **Ya** | **`RENCANA`.** Alasan penolakan; dapat menyebut keadaan pribadi |
+| `PersonnelActionOrderId` | `uuid` | Tidak | — | Index | FK ke `HrdPersonnelActionOrder` | `Restrict` | Tidak | **`RENCANA`.** Tautan ke Dokumen Peristiwa SK yang melahirkan penempatan ini (`HRD-DEC-048`) |
 
 #### 2.7.2 Kolom persetujuan yang sudah ada, dan yang belum
 
@@ -601,6 +602,81 @@ CREATE UNIQUE INDEX "IX_WfpOrganizationAssignment_WorkflowInstanceId"
 -- WfpSalaryAssignment TIDAK menambahkan "ApprovedByUserId" dan "ApprovedAt":
 -- keduanya sudah ada di tabel itu.
 ```
+
+### 2.8 `HrdPersonnelActionOrder` (`Baru`)
+
+| Aspek | Isi |
+| --- | --- |
+| Tabel dan schema | `public."HrdPersonnelActionOrder"` |
+| File model | `Areas/Corporate/HumanResource/WorkforceCore/Models/HrdPersonnelActionOrder.cs` |
+| File configuration | `Repositories/Configurations/Corporate/HumanResource/WorkforceCore/HrdPersonnelActionOrderConfiguration.cs` |
+| Alasan dibuat | `HRD-DEC-048` menetapkan bahwa setiap peristiwa kepegawaian (Mutasi, Promosi, Rotasi, Demosi, Penugasan Sementara) dicatat sebagai satu dokumen peristiwa (SK) utuh yang mengikat perubahan unit, jabatan, dan atasan |
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `ActionOrderNumber` | `varchar(60)` | Ya | — | Unique, terfilter `"IsDelete" = false` | — | — | Tidak | Nomor SK resmi yang dilihat pengguna |
+| `WorkforceProfileId` | `uuid` | Ya | — | Index bersama `EffectiveDate` | FK ke `MstWorkforceProfile` | `Restrict` | Tidak | Pegawai yang mengalami peristiwa kepegawaian |
+| `ActionCategory` | `varchar(40)` | Ya | — | Index | — | — | Tidak | Mutasi, Promosi, Rotasi, Demosi, Penugasan Sementara |
+| `EffectiveDate` | `date` | Ya | — | Index bersama `OrderStatus` | — | — | Tidak | Tanggal mulai berlakunya SK (`HRD-DEC-048`) |
+| `OrderStatus` | `varchar(30)` | Ya | `"Draft"` | Index | — | — | Tidak | `Draft`, `PendingApproval`, `Scheduled`, `Applied`, `Rejected`, `Cancelled` |
+| `ReasonText` | `varchar(1500)` | Ya | — | — | — | — | **Ya** | Alasan diterbitkannya SK kepegawaian |
+| `SignedDocumentPath` | `varchar(500)` | Ya | — | — | — | — | Tidak | **Wajib diisi sebelum diajukan** (`HRD-DEC-056`). Path berkas scan SK resmi bertandatangan |
+| `SignedDocumentFileName` | `varchar(255)` | Ya | — | — | — | — | Tidak | Nama berkas scan SK asli |
+| `TargetOrganizationUnitId` | `uuid` | Tidak | — | — | FK ke `MstOrganizationUnit` | `Restrict` | Tidak | Unit organisasi baru (bila ada mutasi/rotasi) |
+| `TargetPositionId` | `uuid` | Tidak | — | — | FK ke `MstPosition` | `Restrict` | Tidak | Jabatan baru (bila ada promosi/demosi/rotasi) |
+| `TargetManagerProfileId` | `uuid` | Tidak | — | — | FK ke `MstWorkforceProfile` | `Restrict` | Tidak | Atasan langsung baru |
+| `LinkedSalaryAssignmentId` | `uuid` | Tidak | — | — | FK ke `WfpSalaryAssignment` | `Restrict` | Tidak | Tautan ke penetapan gaji penyesuaian (jika ada) |
+| `WorkflowDefinitionId` | `uuid` | Tidak | — | — | FK ke `MstWorkflowDefinition` | `Restrict` | Tidak | Definisi alur persetujuan T8 |
+| `WorkflowInstanceId` | `uuid` | Tidak | — | Unique terfilter bukan-null | FK ke `TrxWorkflowInstance` | `Restrict` | Tidak | Satu SK paling banyak satu instance workflow |
+| `SubmittedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Akun HR Admin pembuat SK |
+| `SubmittedAt` | `timestamptz` | Tidak | — | — | — | — | Tidak | Waktu SK diajukan |
+| `ApprovedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Penyetuju (`APPROVER_MUST_DIFFER_FROM_CREATOR`) |
+| `ApprovedAt` | `timestamptz` | Tidak | — | — | — | — | Tidak | Waktu SK disetujui |
+| `RejectedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Akun penolak |
+| `RejectedAt` | `timestamptz` | Tidak | — | — | — | — | Tidak | Waktu SK ditolak |
+| `RejectionReason` | `varchar(500)` | Tidak | — | — | — | — | **Ya** | Alasan penolakan SK wajib diisi |
+| `CancellationRequestedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | Akun pengaju pembatalan SK (`HRD-DEC-057`) |
+| `CancellationRequestedAt` | `timestamptz` | Tidak | — | — | — | — | Tidak | Waktu pengajuan batal diajukan |
+| `CancellationReason` | `varchar(500)` | Tidak | — | — | — | — | **Ya** | Alasan pembatalan SK terjadwal |
+| `ExecutedAt` | `timestamptz` | Tidak | — | — | — | — | Tidak | Waktu penempatan diterapkan ke sistem |
+
+### 2.9 `TrxEmployeeProfileChangeRequest` (`Diperbarui`)
+
+| Aspek | Isi |
+| --- | --- |
+| Tabel dan schema | `public."TrxEmployeeProfileChangeRequest"` |
+| File model | `Areas/Corporate/HumanResource/WorkforceCore/Models/TrxEmployeeProfileChangeRequest.cs` |
+| Alasan berubah | `HRD-DEC-052` mengizinkan pengajuan permohonan atas nama pegawai oleh HR dan mewajibkan berkas bukti untuk perubahan data sensitif |
+
+| Kolom Tambahan | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `IsOnBehalf` | `boolean` | Ya | `false` | Index bersama `RequestStatus` | — | — | Tidak | **`RENCANA`.** Menandai pengajuan yang dibuat HR atas nama pegawai |
+| `InitiatedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | **`RENCANA`.** Akun HR pembuat pengajuan atas nama |
+| `OnBehalfReason` | `varchar(500)` | Tidak | — | — | — | — | **Ya** | **`RENCANA`.** Alasan mengapa HR yang mengajukan |
+| `OnBehalfNotifiedAt` | `timestamptz` | Tidak | — | — | — | — | Tidak | **`RENCANA`.** Waktu pegawai diberi notifikasi permohonan |
+| `EvidenceFilePath` | `varchar(500)` | Tidak | — | — | — | — | Tidak | **`RENCANA`.** Path berkas bukti resmi (wajib untuk data sensitif) |
+| `EvidenceFileName` | `varchar(255)` | Tidak | — | — | — | — | Tidak | **`RENCANA`.** Nama berkas bukti asli |
+
+### 2.10 `HrdInitialPlacementBatch` dan `HrdInitialPlacementBatchRow` (`Baru`)
+
+| Aspek | Isi |
+| --- | --- |
+| Tabel dan schema | `public."HrdInitialPlacementBatch"` dan `public."HrdInitialPlacementBatchRow"` |
+| File model | `Areas/Corporate/HumanResource/WorkforceCore/Models/HrdInitialPlacementBatch.cs` |
+| Alasan dibuat | `HRD-DEC-054` mengatur pengisian data awal penempatan bagi 55 pegawai existing yang belum memiliki jabatan, atasan, dan gaji melalui satu batch tervalidasi yang disetujui sekali |
+
+| Kolom Header | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `uuid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama batch |
+| `BatchNumber` | `varchar(50)` | Ya | — | Unique, terfilter | — | — | Tidak | Nomor batch data awal |
+| `BatchStatus` | `varchar(30)` | Ya | `"Draft"` | Index | — | — | Tidak | `Draft`, `Validated`, `Submitted`, `Approved`, `Rejected` |
+| `TotalRows` | `integer` | Ya | `0` | — | — | — | Tidak | Jumlah pegawai dalam batch |
+| `ValidatedRows` | `integer` | Ya | `0` | — | — | — | Tidak | Baris lolos validasi |
+| `FailedRows` | `integer` | Ya | `0` | — | — | — | Tidak | Baris gagal validasi |
+| `SubmittedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | HR Admin pengunggah |
+| `ApprovedByUserId` | `uuid` | Tidak | — | — | FK ke `ApplicationUser` | `Restrict` | Tidak | HR Manager penyetuju (`APPROVER_MUST_DIFFER_FROM_CREATOR`) |
+| `ApprovedAt` | `timestamptz` | Tidak | — | — | — | — | Tidak | Waktu batch disetujui dan diterapkan |
 
 ---
 

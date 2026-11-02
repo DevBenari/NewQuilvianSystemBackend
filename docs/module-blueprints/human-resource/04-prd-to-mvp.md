@@ -8,8 +8,8 @@
 | Modul | Human Resource (`human-resource`, prefix `HRD`) |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `04-prd-to-mvp.md` |
-| `contract_version` | `v5` |
-| `last_changed_in` | `v5` |
+| `contract_version` | `v6` |
+| `last_changed_in` | `v6` |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner | Pemilik produk HR bersama technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
@@ -18,8 +18,8 @@
 | Backend SHA baseline | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Backend baseline canonical | `origin/QuilvianIntegrationBackend` (`HRD-DEC-021`), diverifikasi `16b8b71` |
 | Frontend SHA baseline | `fff76a1b394d4b247c70a04f106c8ec098c9696e` |
-| `input_revision` | `02-backend-architecture.md` rev `1`; `03-frontend-architecture.md` rev `1`; seluruh `contracts/` `v1`; `data/data-dictionary.md` `v1`; `flowcharts/**` |
-| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
+| `input_revision` | `02-backend-architecture.md` rev `2`; `03-frontend-architecture.md` rev `2`; seluruh `contracts/` `v6`; `data/data-dictionary.md` `v6`; `flowcharts/**` |
+| `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — seluruh kemampuan dalam cakupan bersifat administratif ketenagakerjaan |
 | Ringkasan cakupan | Menutup rantai pekerjaan HR harian dari jadwal terbit sampai payroll diserahkan, dengan pengecualian kemampuan klinis dan enam domain tanpa API yang tetap `BLOCKED` |
 
@@ -305,6 +305,54 @@ persetujuan penempatan dan remunerasi**; `MISSING / NEW` untuk layar.
 > **Keadaan hari ini:** perilaku ini **belum ada**. Endpoint persetujuan gaji memakai butir hak
 > akses yang sama dengan buat dan ubah, dan tidak ada pemeriksaan status persetujuan sebelum
 > penempatan berlaku. Tiga entity penempatan lainnya belum punya kolom persetujuan sama sekali.
+
+> **`FR-HRD-013` — Satu orang = satu profil workforce (`HRD-DEC-051`)**
+>
+> Setiap individu yang bekerja di rumah sakit (Pegawai, Dokter, Pengguna Eksternal) hanya memiliki tepat satu profil workforce berdasarkan nomor identitas resmi (NIK/paspor).
+>
+> **Contoh:** HR mendaftarkan dr. Hendra yang sudah ada di modul dokter menjadi pegawai tetap; sistem mendeteksi NIK yang sama dan menautkan peran Pegawai ke profil yang sudah ada tanpa menduplikasi profil (`AC-WFC-06`).
+
+> **`FR-HRD-014` — Penempatan berlaku-efektif adalah satu-satunya sumber kebenaran (`HRD-DEC-047`)**
+>
+> Formulir edit Master Data Pegawai terkunci dan dilarang mengubah unit organisasi atau jabatan secara langsung. Perpindahan wajib lewat dokumen mutasi/promosi resmi.
+>
+> **Contoh:** HR membuka form edit Budi Santoso; dropdown unit dan jabatan dalam keadaan disable/terkunci (`AC-WFC-03`).
+
+> **`FR-HRD-015` — Dokumen Peristiwa Kepegawaian (SK Mutasi/Promosi/Rotasi/Demosi) disetujui utuh (`HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057`)**
+>
+> Seluruh perubahan unit, jabatan, dan atasan akibat suatu peristiwa kepegawaian diikat dalam satu dokumen SK utuh. Wajib melampirkan berkas scan SK resmi bertandatangan sebelum diajukan. Penyetuju dilarang sama dengan pembuat SK.
+>
+> **Contoh:** SK Promosi Ns. Rina mengikat pemindahan ke unit ICU, jabatan Ketua Tim, dan atasan Ka. Ruangan ICU. Disetujui utuh oleh HR Manager Dodi. Pembatalan SK hanya diizinkan sebelum tanggal berlaku (`AC-WFC-11`, `AC-WFC-12`, `AC-WFC-13`).
+
+> **`FR-HRD-016` — Tepat satu penempatan utama per jenis per tanggal (`HRD-DEC-049`)**
+>
+> Pada satu tanggal, seorang pegawai aktif wajib memiliki tepat satu penempatan unit utama. Dua penempatan utama sejenis yang bertabrakan tanggalnya ditolak sistem.
+>
+> **Contoh:** Pengajuan penempatan utama baru kedua ditolak jika tanggalnya beririsan dengan penempatan utama yang masih aktif (`AC-WFC-04`).
+
+> **`FR-HRD-017` — Berlaku surut dibatasi pada periode kehadiran terbuka (`HRD-DEC-050`)**
+>
+> Tanggal efektif peristiwa kepegawaian yang berlaku surut hanya diterima jika jatuh pada periode kehadiran yang masih berstatus terbuka.
+>
+> **Contoh:** SK berlaku surut ke periode November yang sudah ditutup otomatis ditolak sistem (`AC-WFC-05`).
+
+> **`FR-HRD-018` — Data sensitif hanya berubah lewat permohonan berbukti verifikasi orang lain (`HRD-DEC-052`)**
+>
+> Rekening bank, NIK, NPWP, dan tanggungan dilarang diedit langsung oleh HR di berkas profil. HR dapat mengajukan atas nama pegawai dengan melampirkan berkas bukti resmi. Petugas yang memverifikasi wajib berbeda dari pembuat pengajuan.
+>
+> **Contoh:** HR Sari mengajukan perubahan rekening atas nama Budi dengan foto buku tabungan. Sari dilarang memverifikasi permohonannya sendiri (`AC-WFC-07`).
+
+> **`FR-HRD-019` — Employee 360 terpadu dengan kontrol otorisasi ketat (`HRD-DEC-053`)**
+>
+> Menampilkan profil 360 pegawai: HR melihat profil utuh (nominal gaji jika punya izin ViewAmount), sedangkan atasan langsung hanya melihat profil kerja bawahan aktif hari ini (nominal gaji, rekening bank, NIK, dan kasus disiplin disembunyikan total).
+>
+> **Contoh:** Ka. Ruangan membuka profil perawat ICU bawahannya; data karir dan sertifikasi tampil, gaji dan rekening tersembunyi. Membuka perawat unit lain ditolak 403 Forbidden (`AC-WFC-08`).
+
+> **`FR-HRD-020` — Batch data awal penempatan kepegawaian disetujui sekali (`HRD-DEC-054`)**
+>
+> Pengisian data awal jabatan, atasan, dan gaji untuk 55 pegawai aktif existing dilakukan melalui satu batch data awal yang divalidasi sistem dan disetujui sekali oleh HR Manager. Setiap pegawai hanya boleh masuk batch sekali seumur hidup.
+>
+> **Contoh:** Mengunggah batch penempatan 55 pegawai; sistem memvalidasi kelengkapan relasi. Pegawai yang sudah masuk batch disetujui ditolak bila dimasukkan ke batch baru (`AC-WFC-09`).
 
 > **`FR-HRD-019` — Kebijakan gaji memakai empat dimensi yang dapat dikonfigurasi**
 >
@@ -1039,6 +1087,78 @@ Seluruh nama pada skenario di bawah adalah **nama samaran**. Tidak ada data pega
 >
 > **Hasil yang diharapkan:** setiap pembacaan tercatat, dan **tidak satu pun** catatan memuat
 > angka gajinya.
+
+> **`UAT-20` — Form Master Data mengunci unit dan jabatan (`AC-WFC-03`)**
+>
+> **Kondisi awal:** Pegawai aktif Budi Santoso sudah memiliki penempatan unit dan jabatan.
+>
+> **Langkah:** HR Admin membuka form edit master data pegawai Budi dan mencoba mengubah unit kerja.
+>
+> **Hasil yang diharapkan:** dropdown unit dan jabatan dalam keadaan terkunci (disabled) dan API menolak pengubahan langsung dengan kode 422.
+
+> **`UAT-21` — Penolakan dua penempatan unit utama yang bertabrakan (`AC-WFC-04`)**
+>
+> **Kondisi awal:** Pegawai memiliki penempatan unit utama di Rawat Inap (1 Jan 2025 - selesai).
+>
+> **Langkah:** HR Admin mengajukan penempatan unit utama kedua di ICU mulai 1 Juni 2026 tanpa menutup penempatan Rawat Inap.
+>
+> **Hasil yang diharapkan:** sistem menolak pengajuan dengan pesan bahwa penempatan utama tidak boleh bertumpuk (kode 409).
+
+> **`UAT-22` — Penolakan SK berlaku surut ke periode kehadiran tertutup (`AC-WFC-05`)**
+>
+> **Kondisi awal:** Periode kehadiran November sudah berstatus Closed; periode Desember Open.
+>
+> **Langkah:** HR Admin mengajukan SK mutasi berlaku efektif 15 November.
+>
+> **Hasil yang diharapkan:** sistem menolak pengajuan karena tanggal efektif jatuh pada periode yang sudah ditutup (kode 409).
+
+> **`UAT-23` — Satu nomor NIK tidak membuat profil ganda (`AC-WFC-06`)**
+>
+> **Kondisi awal:** dr. Hendra terdaftar di modul dokter dengan NIK 3171xxx dan memiliki 1 profil workforce.
+>
+> **Langkah:** HR Admin mendaftarkan Pegawai baru dengan NIK yang sama.
+>
+> **Hasil yang diharapkan:** sistem tidak menambah baris profil workforce baru, melainkan menautkan peran Pegawai ke profil dr. Hendra yang sudah ada.
+
+> **`UAT-24` — Rekening bank dilarang diedit langsung dan verifikator wajib berbeda (`AC-WFC-07`)**
+>
+> **Kondisi awal:** HR Admin Sari menerima permintaan ganti rekening dari pegawai.
+>
+> **Langkah:** Sari mencoba mengubah nomor rekening di profil pegawai (ditolak). Sari membuat permohonan atas nama pegawai melampirkan foto buku tabungan, lalu mencoba memverifikasi sendiri.
+>
+> **Hasil yang diharapkan:** verifikasi mandiri ditolak 403 Forbidden. Permohonan hanya dapat disetujui oleh petugas HR lain (Dodi).
+
+> **`UAT-25` — Pembatasan tampilan Employee 360 bagi Atasan Langsung (`AC-WFC-08`)**
+>
+> **Kondisi awal:** Ka. Ruangan ICU login ke sistem. Ns. Rina adalah bawahan langsung aktif hari ini; Ns. Siti adalah perawat IGD (bukan bawahan).
+>
+> **Langkah:** Ka. Ruangan membuka Employee 360 Rina, lalu mencoba membuka Employee 360 Siti.
+>
+> **Hasil yang diharapkan:** Profil Rina menampilkan data kerja, kontak darurat, dan riwayat mutasi tanpa nominal gaji, rekening bank, NIK, dan kasus disiplin. Membuka profil Siti ditolak HTTP 403 Forbidden.
+
+> **`UAT-26` — Batch data awal penempatan disetujui sekali (`AC-WFC-09`)**
+>
+> **Kondisi awal:** 55 pegawai aktif diunggah dalam Batch Data Awal #1 dan disetujui HR Manager.
+>
+> **Langkah:** HR Admin mencoba memasukkan kembali salah satu pegawai ke Batch Data Awal #2.
+>
+> **Hasil yang diharapkan:** validasi sistem menolak baris tersebut karena pegawai sudah pernah masuk batch baseline yang disetujui (aturan once-per-employee).
+
+> **`UAT-27` — Penerapan SK utuh pada tanggal berlaku (`AC-WFC-11`)**
+>
+> **Kondisi awal:** SK Promosi dan Mutasi Rina ke ICU disetujui berstatus Scheduled dengan tanggal berlaku 1 Desember 2026.
+>
+> **Langkah:** sistem menjalankan job terjadwal pada 1 Desember 2026.
+>
+> **Hasil yang diharapkan:** penempatan unit lama di Rawat Inap ditutup per 30 November, penempatan ICU aktif per 1 Desember, jabatan Ketua Tim aktif, dan satu baris riwayat kepegawaian tercatat merujuk nomor SK tersebut.
+
+> **`UAT-28` — Wajib scan SK dan larangan pembatalan SK berlaku (`AC-WFC-12`, `AC-WFC-13`)**
+>
+> **Kondisi awal:** HR Admin membuat draft SK promosi.
+>
+> **Langkah:** HR Admin mencoba mengajukan SK tanpa berkas scan SK resmi (ditolak). Setelah scan diunggah dan disetujui hingga berstatus Berlaku, HR mencoba membatalkan SK tersebut.
+>
+> **Hasil yang diharapkan:** pengajuan tanpa scan ditolak 400. Pembatalan SK yang sudah berstatus Berlaku ditolak 409; sistem mewajibkan penerbitan SK baru.
 
 ---
 

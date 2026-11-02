@@ -4,16 +4,16 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `03-frontend-architecture.md` |
-| Revision | `1` |
+| Revision | `2` |
 | Status | `draft` — **belum** `approved` |
 | Owner desain | Technical owner (`HRD-DEC-015`), dengan ruang `DEV_DISCRETION` sesuai `HRD-FE-03` |
 | `approved_by` / `approved_at` | **Belum ada** |
 | Repository target | `QuilvianSystemFrontendDev` |
 | Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` (branch `AgentCodexFrontend`) |
 | Backend SHA rujukan kontrak | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
-| `input_revision` — arsitektur backend | `02-backend-architecture.md` revision `1` |
-| `input_revision` — decision log | `00-interview-decisions.md` revision `15` |
-| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
+| `input_revision` — arsitektur backend | `02-backend-architecture.md` revision `2` |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `16` (Amendment Pass Workforce Core & Employee 360, `HRD-DEC-046` s.d. `HRD-DEC-057`) |
+| `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Kompatibilitas | Tidak ada halaman existing yang dihapus. Satu halaman dipindahkan lokasinya (`S-A6`) dengan pengalihan |
 
 ---
@@ -85,13 +85,19 @@ berbeda.
 
 | ID | Layar | Route | Slice | Disposisi |
 | --- | --- | --- | --- | --- |
-| `FE-HRD-01` | Daftar Perubahan Data Karyawan | `/hr/workforce-core/employee-profile-changes` | `S-A1` | `MISSING / NEW` |
-| `FE-HRD-02` | Daftar Penempatan Organisasi | `/hr/workforce-core/organization-assignments` | `S-A1` | `MISSING / NEW` |
-| `FE-HRD-03` | Daftar Penempatan Jabatan | `/hr/workforce-core/position-assignments` | `S-A1` | `MISSING / NEW` |
-| `FE-HRD-04` | Daftar Relasi Atasan | `/hr/workforce-core/manager-assignments` | `S-A1` | `MISSING / NEW` |
-| `FE-HRD-05` | Daftar Riwayat Kepegawaian | `/hr/workforce-core/employment-histories` | `S-A1` | `MISSING / NEW` |
-| `FE-HRD-06` | Daftar Penetapan Gaji | `/hr/workforce-core/salary-assignments` | `S-A1` | `MISSING / NEW` — nominal disembunyikan `[DECISION]` `HRD-DEC-033` |
-| `FE-HRD-07` | Detail Permohonan Perubahan Data | `/hr/workforce-core/employee-profile-changes/[slug]` | `S-A1` | `MISSING / NEW` — layar anak dari `FE-HRD-01` |
+| `FE-HRD-01` | Daftar Perubahan Data Karyawan | `/hr/workforce-core/employee-profile-changes` | `S-A1` | `MISSING / NEW` — halaman transaksi verifikasi HR (`HRD-DEC-052`, `HRD-DEC-055`) |
+| `FE-HRD-02` | Daftar Penempatan Organisasi | `/hr/workforce-core/organization-assignments` | `S-A1` | `MISSING / NEW` — daftar pantau penempatan unit (`HRD-DEC-047`, `HRD-DEC-055`) |
+| `FE-HRD-03` | Daftar Penempatan Jabatan | `/hr/workforce-core/position-assignments` | `S-A1` | `MISSING / NEW` — daftar pantau jabatan pegawai (`HRD-DEC-049`) |
+| `FE-HRD-04` | Daftar Relasi Atasan | `/hr/workforce-core/manager-assignments` | `S-A1` | `MISSING / NEW` — daftar pantau atasan langsung (`HRD-DEC-049`) |
+| `FE-HRD-05` | Daftar Riwayat Kepegawaian | `/hr/workforce-core/employment-histories` | `S-A1` | `MISSING / NEW` — linimasa peristiwa dan SK kepegawaian |
+| `FE-HRD-06` | Daftar Penetapan Gaji | `/hr/workforce-core/salary-assignments` | `S-A1` | `MISSING / NEW` — nominal disembunyikan (`HRD-DEC-033`) |
+| `FE-HRD-07` | Detail & Verifikasi Perubahan Data | `/hr/workforce-core/employee-profile-changes/[slug]` | `S-A1` | `MISSING / NEW` — layar verifikasi berkas bukti & approval (`HRD-DEC-052`) |
+| `FE-HRD-08` | Daftar Dokumen Peristiwa Kepegawaian (SK) | `/hr/workforce-core/personnel-actions` | `S-A1` | `MISSING / NEW` — daftar SK mutasi/promosi/rotasi/demosi (`HRD-DEC-048`) |
+| `FE-HRD-09` | Formulir Pembuatan Dokumen SK | `/hr/workforce-core/personnel-actions/create` | `S-A1` | `MISSING / NEW` — layar pembuat SK & unggah scan bertandatangan (`HRD-DEC-056`) |
+| `FE-HRD-09a` | Detail, Unggah Scan & Persetujuan SK | `/hr/workforce-core/personnel-actions/[slug]` | `S-A1` | `MISSING / NEW` — pratinjau SK, lampiran scan, approval T8, pembatalan (`HRD-DEC-057`) |
+| `FE-HRD-09b` | Tampilan Employee 360 Terpadu | `/hr/workforce-core/employee-360/[slug]` | `S-A1` | `MISSING / NEW` — tampilan 360: HR penuh vs Atasan terbatas (`HRD-DEC-053`) |
+| `FE-HRD-09c` | Batch Data Awal Penempatan | `/hr/workforce-core/initial-batches` | `S-A1` | `MISSING / NEW` — impor & validasi data awal penempatan pegawai (`HRD-DEC-054`) |
+| `FE-HRD-09d` | Form Pengajuan Perubahan Data Atas Nama | `/hr/workforce-core/employee-profile-changes/create-on-behalf` | `S-A1` | `MISSING / NEW` — HR mengajukan ubah data atas nama pegawai (`HRD-DEC-052`) |
 
 ### 2.2 Kelompok B — Layanan mandiri pegawai (`S-A2` s.d. `S-A6`)
 
@@ -294,6 +300,8 @@ tampilan.
 | Relasi Atasan | 2 | Administrasi Kepegawaian | `/hr/workforce-core/manager-assignments` | `FE-HRD-04` | `WfpManagerAssignment : Read` | Sudah ada, halaman **belum** ada |
 | Riwayat Kepegawaian | 2 | Administrasi Kepegawaian | `/hr/workforce-core/employment-histories` | `FE-HRD-05` | `WfpEmploymentHistory : Read` | Sudah ada, halaman **belum** ada |
 | Penetapan Gaji | 2 | Administrasi Kepegawaian | `/hr/workforce-core/salary-assignments` | `FE-HRD-06` | `WfpSalaryAssignment : Read` | Sudah ada, halaman **belum** ada |
+| Dokumen SK Kepegawaian | 2 | Administrasi Kepegawaian | `/hr/workforce-core/personnel-actions` | `FE-HRD-08` | `PersonnelActionOrder : Read` | Baru |
+| Batch Data Awal | 2 | Administrasi Kepegawaian | `/hr/workforce-core/initial-batches` | `FE-HRD-09c` | `InitialPlacementBatch : Read` | Baru |
 | Kehadiran | 1 | Sumber Daya Manusia | — | — | — | Baru |
 | Periode Kehadiran | 2 | Kehadiran | `/hr/attendance/periods` | `FE-HRD-40` | `AttendancePeriod : Read` | Baru |
 | Kehadiran Harian | 2 | Kehadiran | `/hr/attendance/dailies` | `FE-HRD-42` | `AttendanceDaily : Read` | Baru |
@@ -361,7 +369,11 @@ tampilan.
 
 | Layar | Dicapai dari |
 | --- | --- |
-| `FE-HRD-07` Detail Permohonan Perubahan Data | `FE-HRD-01`, dengan menekan baris pada daftar |
+| `FE-HRD-07` Detail & Verifikasi Perubahan Data | `FE-HRD-01`, dengan menekan baris pada daftar (`HRD-DEC-055`) |
+| `FE-HRD-09` Formulir Pembuatan Dokumen SK | `FE-HRD-08`, tombol "Buat Dokumen SK", atau tombol "Mulai SK" dari baris layar pantau (`HRD-DEC-055`) |
+| `FE-HRD-09a` Detail, Unggah Scan & Persetujuan SK | `FE-HRD-08`, dengan menekan nomor SK pada tabel |
+| `FE-HRD-09b` Tampilan Employee 360 Terpadu | Seluruh layar Administrasi Kepegawaian (`FE-HRD-01` s.d. `06`), tombol "Lihat Profil 360", atau kotak masuk persetujuan atasan (`HRD-DEC-053`) |
+| `FE-HRD-09d` Form Pengajuan Perubahan Data Atas Nama | `FE-HRD-01`, tombol "Ajukan Atas Nama Pegawai" (`HRD-DEC-052`) |
 | `FE-HRD-15` Formulir Pengajuan Cuti | `FE-HRD-14`, tombol Ajukan Cuti |
 | `FE-HRD-16` Detail Pengajuan Cuti | `FE-HRD-14`, menekan baris |
 | `FE-HRD-21` Formulir Pengajuan Lembur | `FE-HRD-20`, tombol Ajukan Lembur |
@@ -475,6 +487,131 @@ Layar ini digambar terpisah karena datanya sensitif. Aturan keterlihatannya suda
    jaringan dan tetap terbaca siapa pun yang membuka alat pengembang peramban.
 2. **Butir baca umum tidak membuka nominal.** `WfpSalaryAssignment : Read` maupun `: ReadAll`
    **tidak** menyiratkan `: ViewAmount`. Frontend **MUST NOT** menyimpulkan sebaliknya.
+
+### 4.2a `FE-HRD-08` dan `FE-HRD-09a` — Dokumen SK Kepegawaian (`HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057`)
+
+Layar ini mengelola seluruh peristiwa kepegawaian (Mutasi, Promosi, Rotasi, Demosi, Penugasan Sementara) dalam satu dokumen utuh.
+
+```text
++- Dokumen SK Kepegawaian ---------------------------------------- FE-HRD-08 -+
+| [Total SK: 12 | Menunggu Persetujuan: 3 | Dijadwalkan: 4 | Berlaku: 5]        |
++-------------------------------------------------------------------------------+
+| [cari nomor SK/nama] [Kategori v] [Status v] [Periode Tanggal v] [+ Buat SK]  |
++-------------------------------------------------------------------------------+
+| No SK       | Pegawai | Kategori | Dari -> Ke          | Tgl Berlaku | Status |
+| ----------- | ------- | -------- | ------------------- | ----------- | ------ |
+| SK/001/2026 | Rina    | Promosi  | Rawat Inap -> ICU   | 01/12/2026  | Jadwal |
+|             |         | + Mutasi | Staf -> Ketua Tim   |             |        |
++-------------------------------------------------------------------------------+
+| Aksi per baris: [Lihat Detail & Scan SK] [Batalkan (jika Dijadwalkan)]        |
++-------------------------------------------------------------------------------+
+```
+
+```text
++- Detail & Persetujuan Dokumen SK ------------------------------ FE-HRD-09a -+
+| Nomor SK: SK/001/2026   | Kategori: Promosi & Mutasi | Status: Menunggu       |
+| Pegawai : Ns. Rina (NIK: 3171xxx)                    | Tgl Efektif: 01/12/2026|
++-------------------------------------------------------------------------------+
+| Perubahan Penempatan:                                                         |
+| - Unit Organisasi: Rawat Inap Lantai 3 -> ICU                                |
+| - Jabatan        : Perawat Pelaksana -> Ketua Tim                             |
+| - Atasan Langsung: Ka. Ruang Rawat Inap -> Ka. Ruang ICU                      |
+| - Tautan Gaji    : Penyesuaian Gaji Promosi (Alur Terpisah - HRD-DEC-048)     |
++-------------------------------------------------------------------------------+
+| Lampiran Wajib: Scan SK Bertandatangan                                        |
+| [Pratinjau PDF SK: sk-rina-promosi-signed.pdf]                [Unduh Berkas]  |
++-------------------------------------------------------------------------------+
+| Alasan Peristiwa: Pengembangan kompetensi dan rotasi berkala unit kritis.    |
+| Jejak Pengajuan : Dibuat oleh Sari (HR Admin) pada 20/11/2026                 |
++-------------------------------------------------------------------------------+
+| Aksi Penyetuju (HR Manager Dodi):                                             |
+| [Setujui SK]  [Tolak SK (Alasan wajib)]  [Minta Perbaikan]                    |
+| *Penyetuju dilarang sama dengan pembuat (HRD-DEC-031). Tombol disable jika self|
++-------------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan | Angka SK per status | `GET .../personnel-action-orders/summary` | `PersonnelActionOrder : Read` | Gagal -> kartu ringkasan diganti tombol coba lagi |
+| Tabel SK | Daftar peristiwa kepegawaian | `GET .../personnel-action-orders` | `PersonnelActionOrder : Read` | Kosong -> "Belum ada dokumen peristiwa kepegawaian." |
+| Unggah Scan SK | Berkas scan bertandatangan | `POST .../{id}/attachments` | `PersonnelActionOrder : Update` | Wajib terunggah sebelum tombol Ajukan aktif (`HRD-DEC-056`) |
+| Persetujuan | Setujui / Tolak SK | `POST .../{id}/approve` atau `/reject` | `PersonnelActionOrder : Approve` | Pembuat dilarang menyetujui sendiri (`HRD-DEC-031`). Gagal periode tertutup -> 409 (`HRD-DEC-050`) |
+| Pembatalan | Pengajuan batal SK terjadwal | `POST .../{id}/cancel-request` | `PersonnelActionOrder : Cancel` | Hanya diizinkan sebelum tanggal berlaku tiba (`HRD-DEC-057`) |
+
+### 4.2b `FE-HRD-09b` — Tampilan Employee 360 Terpadu (`HRD-DEC-053`)
+
+Layar ini menyajikan profil utuh seorang pegawai dengan kendali akses berbasis peran (`HR` vs `Atasan Langsung`).
+
+```text
++- Employee 360 ------------------------------------------------ FE-HRD-09b -+
+| [Foto] Ns. Rina, S.Kep                                                        |
+| No. Pegawai: EMP-00421  | Status: Tetap | Tgl Masuk: 01/03/2022               |
++-------------------------------------------------------------------------------+
+| [Tab: Profil Kerja] [Tab: Riwayat SK] [Tab: Kehadiran & Cuti] [Tab: Pribadi*] |
++-------------------------------------------------------------------------------+
+| Unit Utama    : ICU (berlaku sejak 01/12/2026)                                |
+| Jabatan Utama : Ketua Tim                                                     |
+| Atasan Langsung: Ns. Andi (Kepala Ruangan ICU)                                |
+| Unit Tambahan : Tim Tanggap Bencana (Plt / Sekunder)                          |
+| Masa Kontrak  : Berlaku s.d. 31/12/2027 (Aktif)                               |
+| Sertifikasi   : BTCLS (berlaku s.d. 2028), Kardiologi Dasar                   |
++-------------------------------------------------------------------------------+
+| Ringkasan Tahun Ini:                                                          |
+| - Kehadiran: 98.4% (Hadir: 210, Terlambat: 2, Koreksi: 1)                     |
+| - Saldo Cuti: 8 hari tersisa dari hak 12 hari                                 |
++-------------------------------------------------------------------------------+
+| *Tab Pribadi & Kompensasi (HANYA UNTUK HR - DIBLOKIR UNTUK ATASAN):          |
+| - Gaji Pokok & Tunjangan: Hanya pemegang hak ViewAmount                       |
+| - Rekening Bank & NPWP  : Tersembunyi untuk Atasan Langsung (HRD-DEC-053)     |
+| - Catatan Kedisiplinan  : Tersembunyi untuk Atasan Langsung                   |
++-------------------------------------------------------------------------------+
+```
+
+| Wilayah | Tampilan HR | Tampilan Atasan Langsung (`HRD-DEC-053`) | Bukan Atasan Langsung |
+| --- | --- | --- | --- |
+| Identitas Kerja | Nama, NIK, No. Pegawai, Unit, Jabatan, Atasan, Status Kontrak | Nama, No. Pegawai, Unit, Jabatan, Atasan, Status Kontrak (**NIK & Paspor disembunyikan**) | **Ditolak 403 Forbidden** |
+| Riwayat Karir & SK | Seluruh riwayat mutasi, promosi, rotasi, demosi | Riwayat mutasi/promosi/rotasi unit & jabatan | Ditolak 403 |
+| Kompetensi & Diklat | Lengkap beserta sertifikat | Lengkap sertifikasi kompetensi | Ditolak 403 |
+| Kehadiran & Cuti | Ringkasan dan detail kehadiran/cuti | Ringkasan kehadiran dan cuti bawahan | Ditolak 403 |
+| Gaji & Rekening | Tampil jika memegang `ViewAmount` | **DILARANG TAMPIL (HRD-DEC-053)** | Ditolak 403 |
+| Catatan Disiplin | Sesuai izin HR | **DILARANG TAMPIL (HRD-DEC-053)** | Ditolak 403 |
+
+### 4.2c `FE-HRD-01` dan `FE-HRD-07` — Daftar & Detail Verifikasi Perubahan Data Karyawan (`HRD-DEC-052`, `HRD-DEC-055`)
+
+```text
++- Perubahan Data Karyawan (Sisi HR) ---------------------------- FE-HRD-01 -+
+| [Total Permohonan: 15 | Menunggu Verifikasi: 6 | Perlu Revisi: 2 | Disetujui: 7]
++-------------------------------------------------------------------------------+
+| [Cari nama/NIK] [Kategori v] [Status v]            [+ Ajukan Atas Nama Pegawai]|
++-------------------------------------------------------------------------------+
+| No Pengajuan | Pegawai | Kategori | Diajukan Oleh | Tgl Pengajuan | Status    |
+| ------------ | ------- | -------- | ------------- | ------------- | --------- |
+| REQ-CHG-0081 | Budi    | Rekening | HR Sari (ONB) | 20/11/2026    | Menunggu  |
+| REQ-CHG-0082 | Siti    | Alamat   | Mandiri       | 21/11/2026    | Diverifikasi
++-------------------------------------------------------------------------------+
+| Aksi: [Buka Verifikasi] -> menuju FE-HRD-07                                  |
++-------------------------------------------------------------------------------+
+```
+
+```text
++- Detail & Verifikasi Perubahan Data --------------------------- FE-HRD-07 -+
+| No: REQ-CHG-0081 | Pegawai: Budi Santoso (NIK: 3201xxx) | Kategori: Rekening  |
+| Pengaju: HR Sari (Atas Nama Pegawai - HRD-DEC-052)                            |
+| Alasan Pengajuan Atas Nama: Pegawai dinas lapangan dan kesulitan akses portal|
++-------------------------------------------------------------------------------+
+| Rincian Perubahan Field Sensitif:                                             |
+| - Nama Bank        : BCA -> Mandiri                                           |
+| - Nomor Rekening   : 1234567890 -> 9876543210 (Sensitif)                      |
+| - Nama Pemilik     : Budi Santoso -> Budi Santoso                             |
++-------------------------------------------------------------------------------+
+| Berkas Bukti Wajib:                                                           |
+| [Lampiran: foto-buku-tabungan-mandiri.jpg]                     [Lihat Bukti]  |
++-------------------------------------------------------------------------------+
+| Verifikasi HR (Petugas Dodi):                                                 |
+| [Mulai Verifikasi] [Setujui] [Minta Revisi (Alasan)] [Tolak (Alasan)] [Terapkan]|
+| *Verifikator MUST NOT sama dengan pengaju (Sari tidak bisa verifikasi sendiri)|
++-------------------------------------------------------------------------------+
+```
 
 Status keputusan ini **`SECURITY_APPROVED`** — diputuskan pemilik produk dan ditandatangani
 `Project final decision authority — Security` pada 2026-08-30.

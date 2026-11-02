@@ -172,6 +172,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         }
 
         /// <summary>
+        /// Daftar pasien rawat inap aktif yang tanda vital terakhirnya berisiko Tinggi atau Kritis,
+        /// atau ditandai perlu lapor dokter — <c>BE-RWI-255</c>.
+        /// </summary>
+        /// <remarks>
+        /// Pasangan baca-saja dari penanda <c>NeedDoctorNotification</c> yang disetel server saat
+        /// tanda vital disimpan. Daftar ini tidak mengirim pemberitahuan dan tidak memadamkan
+        /// penanda; keduanya menunggu protokol eskalasi (<c>FIX-KEP-015-08</c>, K-03).
+        /// </remarks>
+        [HttpGet("ews-alerts")]
+        [ProducesResponseType(typeof(ApiResponse<EwsAlertPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat daftar pasien dengan EWS tinggi atau kritis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetEwsAlerts(
+            [FromQuery] InpatientEwsAlertQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _censusQueryService.GetEwsAlertsPagedAsync(
+                query,
+                cancellationToken);
+
+            return Ok(ApiResponse<EwsAlertPagedResult>.Ok(
+                result,
+                "Daftar pasien dengan EWS tinggi atau kritis berhasil diambil."));
+        }
+
+        /// <summary>
         /// Laporan selisih antara salinan status tempat tidur dan catatan penempatan.
         /// </summary>
         /// <remarks>

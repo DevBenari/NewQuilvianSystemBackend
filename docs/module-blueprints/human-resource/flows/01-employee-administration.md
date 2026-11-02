@@ -60,9 +60,9 @@ ini, tetapi keenamnya menunjuk halaman yang tidak ada. `[EXISTING]` — cacat pr
 | Aktor | Yang dikerjakan | Provenance |
 | --- | --- | --- |
 | HR Admin | Membuat dan mengubah penempatan, riwayat, dan penetapan gaji | `[EXISTING]` |
-| HR Manager | Menyetujui perubahan yang melampaui kewenangan HR Admin | `[OPEN]` — batas kewenangannya belum ditetapkan |
-| Pegawai | Mengajukan permohonan perubahan data pribadinya | `[EXISTING]` |
-| Atasan | Melihat data anak buahnya | `[OPEN]` — cakupan yang boleh dilihat belum ditetapkan |
+| HR Manager | Menyetujui perubahan penempatan, Dokumen Peristiwa SK, penetapan gaji, dan batch data awal | `[DECISION]` — `HRD-DEC-031`, `HRD-DEC-048`, `HRD-DEC-054`, `HRD-DEC-056` |
+| Pegawai | Mengajukan permohonan perubahan data pribadinya lewat layanan mandiri | `[EXISTING]` |
+| Atasan | Melihat profil kerja bawahan langsung pada Employee 360 (tanpa gaji/rekening/NIK/disiplin) | `[DECISION]` — `HRD-DEC-053` |
 | Petugas payroll | Membaca penetapan gaji yang berlaku pada satu periode | Data: `[EXISTING]`. Halaman lintas-pegawai — target: `[DECISION]` `HRD-DEC-012`, saat ini: `[EXISTING]` `MISSING` |
 | Auditor | Membaca berkas pegawai tanpa mengubah | `[OPEN]` — peran read-only belum terbukti ada |
 
@@ -242,9 +242,9 @@ editor, dan kontrak backend per-profil semuanya sudah ada. `[DECISION]` `HRD-DEC
 | ID | Isi | Dampak |
 | --- | --- | --- |
 | `HRD-Q-06` | Nilai kebijakan pada PRD pasal 28 | Tidak memblokir alurnya |
-| `HRD-Q-18` | **Baru.** Apa yang terjadi bila penetapan gaji berlaku surut ke periode payroll yang sudah tertutup? Ini berpotensi mengubah gaji yang sudah dibayarkan | Memblokir desain final penetapan gaji berlaku surut |
-| `HRD-Q-19` | **Baru.** Apakah penetapan gaji dan penempatan memerlukan persetujuan? Source tidak menunjukkan jalur persetujuan untuk keduanya, padahal keduanya sensitif | Memblokir desain final jalur persetujuan administrasi |
-| `HRD-Q-20` | **Baru.** Siapa yang boleh membaca penetapan gaji pegawai lain, dan sampai tingkat apa? | Memblokir desain final hak akses halaman lintas-pegawai |
+| `HRD-Q-18` | Penetapan gaji dan penempatan berlaku surut ke periode tertutup | **Tertutup lewat `HRD-DEC-050`:** Berlaku surut hanya diizinkan ke periode kehadiran yang masih terbuka. Jika periode sudah ditutup, pengajuan ditolak sistem |
+| `HRD-Q-19` | Persetujuan perubahan penempatan, SK kepegawaian, dan penetapan gaji | **Tertutup lewat `HRD-DEC-031`, `HRD-DEC-048`, `HRD-DEC-056`:** Wajib disetujui pola T8; penyetuju dilarang sama dengan pembuat dokumen |
+| `HRD-Q-20` | Keterlihatan nominal gaji pada daftar lintas-pegawai dan Employee 360 | **Tertutup lewat `HRD-DEC-033` & `HRD-DEC-053`:** Nominal disembunyikan di daftar lintas-pegawai dan tersembunyi dari atasan; hanya dapat dibaca di detail oleh pemegang izin `ViewAmount` |
 | `HRD-Q-21` | ~~Apakah `EmployeeProfileChange` memakai kosakata status yang sama dengan pengajuan HR lain?~~ | **Tertutup lewat audit source, 27 Agustus 2026.** Tidak — kosakatanya berbeda (`EmployeeProfileChangeService.RequestStatuses`, bukan `LeaveRequestValueConstants.Status`). Lihat bagian 9. Transition edge dan kewenangan aktor tetap `[OPEN]` |
 
 ## 16. Acceptance Criteria

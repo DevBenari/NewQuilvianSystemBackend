@@ -336,6 +336,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                     AppliedAt = x.AppliedAt,
                     CurrentStepOrder = x.CurrentStepOrder,
                     DetailCount = x.Details.Count(d => !d.IsDelete),
+                    IsSubmittedOnBehalf = x.IsSubmittedOnBehalf,
+                    SubmittedByWorkforceProfileId = x.SubmittedByWorkforceProfileId,
+                    OnBehalfReason = x.OnBehalfReason,
+                    OnBehalfNotifiedAt = x.OnBehalfNotifiedAt,
+                    EvidenceFilePath = x.EvidenceFilePath,
+                    EvidenceFileName = x.EvidenceFileName,
                     PendingVerificationCount = x.Verifications.Count(v => !v.IsDelete && v.VerificationStatus == "Pending"),
                     VerifiedVerificationCount = x.Verifications.Count(v => !v.IsDelete && v.VerificationStatus == "Verified"),
                     Description = x.Description,
@@ -414,7 +420,149 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 "Detail permintaan perubahan profil berhasil diambil.");
         }
 
-        public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> CreateDraftAsync(
+                public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> CreateOnBehalfDraftAsync(
+            CreateOnBehalfProfileChangeRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUser = await _dbContext.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == actorUserId, cancellationToken);
+
+            var validation = await ValidateHeaderAndDetailsAsync(
+                request.WorkforceProfileId,
+                request.WorkflowDefinitionId,
+                request.RequestReasonId,
+                request.RequestCategory,
+                request.Details,
+                cancellationToken);
+
+            if (!validation.Success)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    validation.StatusCode,
+                    validation.Message);
+            }
+
+            var hasOpenRequest = await _dbContext.Set<TrxEmployeeProfileChangeRequest>()
+                .AsNoTracking()
+                .AnyAsync(x =>
+                    x.WorkforceProfileId == request.WorkforceProfileId &&
+                    !x.IsDelete &&
+                    (x.RequestStatus == "Draft" ||
+                     x.RequestStatus == "Submitted" ||
+                     x.RequestStatus == "UnderVerification" ||
+                     x.RequestStatus == "NeedRevision" ||
+                     x.RequestStatus == "Approved"),
+                    cancellationToken);
+
+            if (hasOpenRequest)
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Workforce profile masih memiliki permintaan perubahan profil yang belum selesai.");
+            }
+
+            string? evidenceStoragePath = null;
+            string? originalFileName = null;
+            if (request.EvidenceFile != null && request.EvidenceFile.Length > 0)
+            {
+                var fileValidation = ValidateEvidenceFile(request.EvidenceFile);
+                if (!fileValidation.Success)
+                {
+                    return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                        fileValidation.StatusCode,
+                        fileValidation.Message);
+                }
+
+                var ext = Path.GetExtension(request.EvidenceFile.FileName).ToLowerInvariant();
+                var uniqueName = $"{Guid.NewGuid():N}{ext}";
+                var relPath = Path.Combine("Uploads", "ProfileChanges", uniqueName).Replace('\\', '/');
+                var physPath = Path.Combine(Directory.GetCurrentDirectory(), "Storage", relPath);
+                var dir = Path.GetDirectoryName(physPath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                using (var stream = new FileStream(physPath, FileMode.Create))
+                {
+                    await request.EvidenceFile.CopyToAsync(stream, cancellationToken);
+                }
+                evidenceStoragePath = relPath;
+                originalFileName = request.EvidenceFile.FileName;
+            }
+
+            var now = DateTime.UtcNow;
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
+            {
+                await AcquireRequestNumberLockAsync(cancellationToken);
+
+                var entity = new TrxEmployeeProfileChangeRequest
+                {
+                    Id = Guid.NewGuid(),
+                    WorkforceProfileId = request.WorkforceProfileId,
+                    WorkflowDefinitionId = NormalizeGuid(request.WorkflowDefinitionId),
+                    RequestReasonId = NormalizeGuid(request.RequestReasonId),
+                    RequestNumber = await GenerateRequestNumberAsync(cancellationToken),
+                    RequestCategory = NormalizeCategory(request.RequestCategory),
+                    RequestStatus = "Draft",
+                    RequestReasonText = NormalizeText(request.RequestReasonText),
+                    RequestedByUserId = actorUserId,
+                    IsSubmittedOnBehalf = true,
+                    SubmittedByWorkforceProfileId = actorUser?.WorkforceProfileId,
+                    OnBehalfReason = NormalizeText(request.OnBehalfReason),
+                    OnBehalfNotifiedAt = now,
+                    EvidenceFilePath = evidenceStoragePath,
+                    EvidenceFileName = originalFileName,
+                    CurrentStepOrder = 0,
+                    Description = NormalizeText(request.Description),
+                    CreateDateTime = now,
+                    CreateBy = actorUserId,
+                    IsDelete = false,
+                    IsCancel = false
+                };
+
+                _dbContext.Set<TrxEmployeeProfileChangeRequest>().Add(entity);
+
+                var detailsResult = await BuildDetailEntitiesAsync(
+                    entity.Id,
+                    request.WorkforceProfileId,
+                    request.Details,
+                    actorUserId,
+                    now,
+                    cancellationToken);
+
+                if (!detailsResult.Success || detailsResult.Data == null)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                        detailsResult.StatusCode,
+                        detailsResult.Message);
+                }
+
+                _dbContext.Set<TrxEmployeeProfileChangeDetail>().AddRange(detailsResult.Data);
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                await _loggerService.InfoAsync(
+                    LogCategory,
+                    "EmployeeProfileChange.CreateOnBehalfDraft",
+                    "Membuat draft perubahan profil pegawai atas nama.");
+
+                return await GetByIdAsync(entity.Id, cancellationToken);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
+        }
+
+public async Task<EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>> CreateDraftAsync(
             CreateEmployeeProfileChangeRequest request,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
@@ -795,6 +943,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
             if (entity == null)
                 return NotFoundResult();
 
+            if (entity.RequestedByUserId == actorUserId || (entity.IsSubmittedOnBehalf && entity.CreateBy == actorUserId))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Pemohon atau staf yang mengajukan permohonan atas nama tidak boleh memverifikasi permohonannya sendiri.");
+            }
+
             if (entity.RequestStatus != "UnderVerification")
             {
                 return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
@@ -916,6 +1071,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
 
             if (entity == null)
                 return NotFoundResult();
+
+            if (entity.RequestedByUserId == actorUserId || (entity.IsSubmittedOnBehalf && entity.CreateBy == actorUserId))
+            {
+                return EmployeeProfileChangeServiceResult<EmployeeProfileChangeResponse>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Pemohon atau staf yang mengajukan permohonan atas nama tidak boleh menyetujui permohonannya sendiri.");
+            }
 
             if (entity.RequestStatus != "UnderVerification")
             {
@@ -2090,6 +2252,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Serv
                 AppliedByUserName = GetActorName(actorNames, entity.AppliedByUserId),
                 CurrentStepOrder = entity.CurrentStepOrder,
                 DetailCount = entity.Details.Count(x => !x.IsDelete),
+                IsSubmittedOnBehalf = entity.IsSubmittedOnBehalf,
+                SubmittedByWorkforceProfileId = entity.SubmittedByWorkforceProfileId,
+                OnBehalfReason = entity.OnBehalfReason,
+                OnBehalfNotifiedAt = entity.OnBehalfNotifiedAt,
+                EvidenceFilePath = entity.EvidenceFilePath,
+                EvidenceFileName = entity.EvidenceFileName,
                 PendingVerificationCount = entity.Verifications.Count(x =>
                     !x.IsDelete &&
                     x.VerificationStatus == "Pending"),

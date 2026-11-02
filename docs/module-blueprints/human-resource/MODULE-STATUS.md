@@ -5,10 +5,10 @@
 | Blueprint ID | `HRD-BP-001` |
 | Module name | `Human Resource` |
 | Module slug | `human-resource` |
-| Revision | `11` |
+| Revision | `13` |
 | Module status | `PARTIAL` |
-| Current phase | `HRD-PH-SECURITY-CLOSED` — seluruh blocker MVP dan co-sign keamanan selesai; menunggu approval akhir manusia |
-| Last verified at | `2026-10-26` — impact scan sinkronisasi drift Benefit, Exit Clearance, dan Payroll |
+| Current phase | `HRD-PH-SLICE-A1-BACKEND-COMPLETE` — Seluruh task backend Slice S-A1 (`BE-HRD-023` s.d. `BE-HRD-028`) telah selesai diimplementasikan lengkap dengan model, konfigurasi, migrasi EF Core, domain services, web API controllers, guard penguncian form master data, dan laporan tracked task |
+| Last verified at | `2026-11-02` — implementasi penuh seluruh task backend Slice S-A1 (BE-HRD-023..028) |
 | Backend source SHA — diaudit pada | `ecdc135444f0110482c9702212bcea30043983c8` (branch `AndryZain`) — **historical**, dipertahankan sebagai provenance audit lama |
 | Backend source SHA — diverifikasi berlaku pada | `16f6b2ad28e0e9cbd374354abe240ff3b163ace0` (baseline aktif) |
 | Backend source SHA — HEAD saat desain ditulis | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` (branch kerja `AndryZain`) |
@@ -53,7 +53,7 @@ Perbedaan `BLOCKED` dan `DEFERRED` sering tertukar, padahal akibatnya berbeda ja
 | Kelompok kemampuan | Slice | Kesiapan desain | Alasan |
 | --- | --- | --- | --- |
 | Fondasi registry dan penamaan route | `S0-A`, `S0-B` | `READY FOR DESIGN` | Keputusan `HRD-DEC-016` dan `HRD-DEC-019` sudah `approved` |
-| Administrasi kepegawaian | `S-A1` | `READY FOR DESIGN` | Kontrak backend sudah ada dan sudah dipakai; `HRD-DEC-012` sudah `approved` |
+| Administrasi kepegawaian | `S-A1` | `READY FOR IMPLEMENTATION` | Desain selesai (rev 2), kontrak v6 terkunci, roadmap BE-HRD-023..028 & FE-HRD-022..028 siap dieksekusi |
 | Layanan mandiri pegawai | `S-A2` s.d. `S-A6` | `READY FOR DESIGN` | 13 controller layanan mandiri sudah ada; `HRD-DEC-007` mengunci konvensi route |
 | Kotak masuk persetujuan terpadu | `S-A7` | `READY FOR DESIGN` | `HRD-DEC-011` dan `HRD-DEC-018` sudah `approved` |
 | Administrasi kehadiran | `S-B1` | `READY FOR DESIGN` | 71 endpoint sudah ada termasuk tutup dan buka periode |

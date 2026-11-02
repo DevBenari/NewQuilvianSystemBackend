@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `testing/acceptance-test-matrix.md` |
-| `contract_version` | `v5` |
-| `last_changed_in` | `v5` |
+| `contract_version` | `v6` |
+| `last_changed_in` | `v6` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik proses untuk skenario UAT |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `contracts/state-transition-matrix.md` `v2`; `contracts/validation-matrix.md` `v2`; `contracts/api-contract.md` `v2`; `flowcharts/**` |
-| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
+| `input_revision` | `contracts/state-transition-matrix.md` `v6`; `contracts/validation-matrix.md` `v6`; `contracts/api-contract.md` `v6`; `00-interview-decisions.md` rev `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`) |
+| `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` |
 
@@ -84,6 +84,19 @@ Baris yang dibatalkan ditandai `Dibatalkan` beserta alasannya, bukan dihapus.
 | `AT-HRD-A1-04` | HR tidak membuat atau mencabut akun aplikasi sendiri | **Gagal:** tidak ada satu pun endpoint HR yang membuat atau menghapus akun aplikasi | `MANUAL` | Hasil penelusuran endpoint beserta kesimpulannya |
 | `AT-HRD-A1-05` | Nilai gaji tidak masuk log | **Gagal:** memicu jalur yang menyentuh nilai gaji tidak meninggalkan nominal di log | `INTEGRATION` | Isi log yang diperiksa, dengan nominal tersamarkan |
 | `AT-HRD-A1-06` | Perubahan berlaku surut ke periode tertutup ditolak | **Gagal:** penerapan dengan tanggal berlaku pada periode tertutup ditolak beserta pesan yang terbaca pengguna | `INTEGRATION` | Test penolakan beserta kodenya |
+| `AT-HRD-A1-15` | Layar Penempatan Organisasi memuat 55 baris (`AC-WFC-01`) | **Berhasil:** pada database dev saat ini, tabel menampilkan 55 baris data, bukan tabel kosong | `E2E` | Screenshot tampilan dan verifikasi 55 baris data |
+| `AT-HRD-A1-16` | Informasi kesalahan jaringan ramah pengguna (`AC-WFC-02`) | **Gagal:** matikan backend; tabel menampilkan pesan "Data gagal dimuat" dan tombol coba lagi, bukan tabel kosong | `E2E` | Uji keadaan backend offline dan verifikasi InformationAlert |
+| `AT-HRD-A1-17` | Form Master Data mengunci unit & jabatan (`AC-WFC-03`) | **Gagal:** HR membuka form edit pegawai yang ada; dropdown unit & jabatan disable dan API menolak pengubahan langsung dengan kode 422 | `INTEGRATION` | Test validasi controller master pegawai |
+| `AT-HRD-A1-18` | Tepat satu unit utama per tanggal (`AC-WFC-04`) | **Gagal:** ajukan penempatan unit utama kedua yang tanggalnya beririsan tanpa menutup penempatan lama; ditolak 409 | `UNIT` | Test invariant penempatan utama tunggal |
+| `AT-HRD-A1-19` | Penolakan SK berlaku surut ke periode tertutup (`AC-WFC-05`) | **Gagal:** tutup periode kehadiran November; ajukan SK berlaku efektif 15 November; ditolak 409 | `INTEGRATION` | Test integrasi penjaga periode kehadiran |
+| `AT-HRD-A1-20` | Nomor identitas unik lintas jenis tenaga (`AC-WFC-06`) | **Berhasil:** daftarkan Pegawai baru dengan NIK milik Dokter yang sudah ada; jumlah profil workforce tidak bertambah dan peran ditautkan | `INTEGRATION` | Test pembuatan profil dengan NIK kembar |
+| `AT-HRD-A1-21` | Rekening sensitif dilarang diedit langsung (`AC-WFC-07`) | **Gagal:** HR mengedit rekening via master ditolak; lewat permohonan atas nama, pembuat dilarang memverifikasi sendiri (ditolak 403) | `INTEGRATION` | Test otorisasi verifikasi permohonan |
+| `AT-HRD-A1-22` | Kontrol akses Employee 360 atasan (`AC-WFC-08`) | **Berhasil:** login atasan ICU; profil bawahan tampil tanpa nominal gaji/rekening/NIK. Buka profil perawat IGD ditolak 403 Forbidden | `CONTRACT` | Test otorisasi dan serialisasi DTO Employee 360 |
+| `AT-HRD-A1-23` | Batch data awal sekali seumur hidup (`AC-WFC-09`) | **Gagal:** masukkan pegawai yang sudah pernah masuk batch yang disetujui ke batch baru; validasi baris menolak baris tersebut | `INTEGRATION` | Test validasi batch initial placement |
+| `AT-HRD-A1-24` | Tanpa edit/hapus inline di tabel penempatan (`AC-WFC-10`) | **Berhasil:** periksa keenam layar Administrasi Kepegawaian; tidak ada tombol edit atau hapus pada baris tabel | `E2E` | Audit tampilan antarmuka frontend |
+| `AT-HRD-A1-25` | Eksekusi SK utuh pada tanggal berlaku (`AC-WFC-11`) | **Berhasil:** SK berisi unit, jabatan, atasan disetujui; pada tanggal berlaku ketiganya berubah bersamaan dan unit lama ditutup H-1 | `INTEGRATION` | Test job terjadwal eksekusi penempatan SK |
+| `AT-HRD-A1-26` | Wajib scan SK dan larangan swa-setuju (`AC-WFC-12`) | **Gagal:** ajukan SK tanpa scan SK resmi ditolak 400; pembuat SK mencoba menyetujui sendiri ditolak 403 | `INTEGRATION` | Test validasi pengajuan dan approval SK |
+| `AT-HRD-A1-27` | SK hanya batal sebelum tanggal berlaku (`AC-WFC-13`) | **Berhasil:** batalkan SK Dijadwalkan dengan persetujuan; penempatan tidak berubah. **Gagal:** batalkan SK Berlaku ditolak 409 | `INTEGRATION` | Test state transition pembatalan SK |
 
 ---
 

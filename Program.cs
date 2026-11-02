@@ -975,6 +975,10 @@ try
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services.WorkforceCoreCrossEmployeeQueryService>();
+    // Workforce Core - Unified SK Kepegawaian, Employee 360, & Initial Batch Placement (BE-HRD-024..027)
+    builder.Services.AddScoped<IHrdPersonnelActionOrderService, HrdPersonnelActionOrderService>();
+    builder.Services.AddScoped<IHrdEmployee360Service, HrdEmployee360Service>();
+    builder.Services.AddScoped<IHrdInitialPlacementBatchService, HrdInitialPlacementBatchService>();
     builder.Services.AddScoped<WorkflowService>();
     builder.Services.AddScoped<WorkflowFileStorageService>();
     builder.Services.AddScoped<WorkflowCommentService>();

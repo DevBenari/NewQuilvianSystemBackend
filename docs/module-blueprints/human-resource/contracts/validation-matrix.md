@@ -4,13 +4,13 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/validation-matrix.md` |
-| `contract_version` | `v5` |
-| `last_changed_in` | `v5` |
+| `contract_version` | `v6` |
+| `last_changed_in` | `v6` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Belum ada** |
-| `input_revision` | `00-interview-decisions.md` revision `15`; `contracts/state-transition-matrix.md` `v1` |
-| `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
+| `input_revision` | `00-interview-decisions.md` revision `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`); `contracts/state-transition-matrix.md` `v6` |
+| `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
 | Dampak kompatibilitas | Tidak ada aturan yang dihapus. Aturan baru bersifat memperketat, bukan melonggarkan |
 
@@ -298,8 +298,28 @@ walaupun keduanya tampil pada satu halaman.
 | Sekurang-kurangnya satu rincian | Mengajukan perubahan data | Tidak ada satu pun rincian perubahan yang diisi | "Isi sekurang-kurangnya satu data yang ingin diubah." | `400` |
 | Tanggal berlaku wajib | Menempatkan organisasi, jabatan, atasan, atau gaji | Tanggal mulai berlaku tidak diisi | "Tanggal mulai berlaku wajib diisi." | `400` |
 | Hanya satu penempatan utama | Menandai penempatan sebagai utama | Sudah ada penempatan lain yang ditandai utama pada tanggal yang sama | "Sudah ada penempatan utama pada tanggal ini." | `409` |
-| Nominal gaji tidak ditampilkan pada daftar lintas-pegawai | Membuka daftar penetapan gaji seluruh pegawai | — | Bukan penolakan. Selama `HRD-Q-20` belum dijawab, kolom nominal **MUST NOT** ada pada daftar lintas-pegawai `[OPEN]` | — |
-| Gaji berlaku surut ke periode tertutup | Menetapkan gaji dengan tanggal berlaku di masa lalu | Periode payroll yang tersentuh sudah tertutup | **`[OPEN]` `HRD-Q-18`** — perilakunya belum diputuskan. **MUST NOT** dirancang sekarang | — |
+| Nominal gaji tidak ditampilkan pada daftar lintas-pegawai | Membuka daftar penetapan gaji seluruh pegawai | — | Bukan penolakan. Nominal disembunyikan secara baku (`HRD-DEC-033`) dan tidak dikirim backend | — |
+| Berlaku surut ke periode tertutup ditolak | Menetapkan penempatan atau SK dengan tanggal berlaku di masa lalu | Periode kehadiran yang tersentuh sudah tertutup (`HRD-DEC-050`) | "Tanggal berlaku jatuh pada periode kehadiran yang sudah ditutup. Tanggal efektif hanya diterima pada periode kehadiran yang masih terbuka." | `409` |
+
+---
+
+### 7.0 Validasi Workforce Core & Dokumen Peristiwa Kepegawaian — `HRD-DEC-046` s.d. `HRD-DEC-057`
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-WFC-01` Satu orang satu profil workforce | Pendaftaran Pegawai, Dokter, Pengguna Eksternal | Nomor NIK KTP atau Paspor sudah terdaftar pada profil workforce yang ada (`HRD-DEC-051`) | "Nomor identitas ini sudah terdaftar atas nama *nama*. Profil tidak dapat digandakan; sistem akan menautkan peran ke profil tersebut." | `409` |
+| `VR-WFC-02` Kunci unit & jabatan pada form master | Form edit Master Data Pegawai | Pengguna mencoba mengubah unit organisasi atau jabatan dari form master (`HRD-DEC-047`) | "Unit dan jabatan tidak dapat diubah langsung dari formulir master data. Gunakan dokumen mutasi atau promosi resmi." | `422` |
+| `VR-WFC-03` Tepat satu unit utama per tanggal | Penempatan organisasi (`WfpOrganizationAssignment`) | Penempatan utama baru beririsan dengan penempatan utama lama tanpa menutup yang lama (`HRD-DEC-049`) | "Pegawai sudah memiliki penempatan unit utama yang aktif pada tanggal ini. Penempatan utama tidak boleh bertumpuk." | `409` |
+| `VR-WFC-04` Penempatan kembar persis ditolak | Penempatan organisasi, jabatan, atasan | Penempatan dengan unit dan jabatan yang sama persis diajukan pada rentang tanggal yang beririsan (`HRD-DEC-049`) | "Penempatan dengan unit dan jabatan yang sama persis sudah ada pada rentang tanggal ini." | `409` |
+| `VR-WFC-05` Berlaku surut ke periode tertutup ditolak | Dokumen SK (`HrdPersonnelActionOrder`) dan penempatan | Tanggal efektif jatuh pada periode kehadiran yang sudah berstatus `Closed` (`HRD-DEC-050`) | "Tanggal berlaku jatuh pada periode kehadiran yang sudah ditutup. Buka kembali periodenya lebih dulu bila memang perlu." | `409` |
+| `VR-WFC-06` Alasan wajib berlaku surut | Dokumen SK dan penempatan | Tanggal efektif lebih awal dari tanggal pengajuan tanpa alasan (`HRD-DEC-050`) | "Alasan penetapan tanggal berlaku surut wajib diisi." | `400` |
+| `VR-WFC-07` Wajib unggah scan SK resmi bertandatangan | Pengajuan Dokumen SK | Dokumen SK diajukan (`/submit`) tanpa melampirkan berkas scan SK resmi yang bertandatangan (`HRD-DEC-056`) | "Lampiran berkas scan SK resmi yang sudah ditandatangani pejabat berwenang wajib diunggah sebelum dokumen diajukan." | `400` |
+| `VR-WFC-08` Penyetuju SK berbeda dari pembuat | Persetujuan Dokumen SK (`/approve`) | Akun pengguna yang menyetujui SK sama dengan pembuat dokumen SK (`HRD-DEC-031`, `HRD-DEC-056`) | "Anda tidak dapat menyetujui dokumen yang Anda buat sendiri. Dokumen dialihkan kepada pejabat penyetuju yang berwenang." | `403` |
+| `VR-WFC-09` SK hanya batal sebelum tanggal berlaku | Pembatalan Dokumen SK (`/cancel-request`) | Dokumen SK sudah berstatus `Applied` atau tanggal efektif sudah lewat (`HRD-DEC-057`) | "Dokumen peristiwa yang sudah berlaku tidak dapat dibatalkan. Terbitkan dokumen SK baru untuk mengembalikan posisi pegawai." | `409` |
+| `VR-WFC-10` Data pribadi sensitif dilarang edit langsung | Berkas profil pegawai (`MstWorkforceProfile`) | HR mencoba mengubah langsung rekening bank, NIK, NPWP, atau tanggungan tanpa permohonan (`HRD-DEC-052`) | "Data pribadi sensitif (rekening bank, NIK, NPWP, tanggungan) tidak dapat diubah langsung. Gunakan permohonan perubahan data berbukti dokumen." | `422` |
+| `VR-WFC-11` Pemisahan verifikator perubahan data | Verifikasi perubahan data (`EmployeeProfileChange`) | Petugas yang memverifikasi sama dengan pengaju (termasuk HR pengaju atas nama) (`HRD-DEC-052`) | "Petugas yang memverifikasi perubahan data tidak boleh sama dengan yang membuat permohonan." | `403` |
+| `VR-WFC-12` Batasan Employee 360 atasan langsung | Akses Employee 360 (`Employee360`) | Pengguna membuka Employee 360 pegawai yang bukan bawahan langsungnya hari ini (`HRD-DEC-053`) | "Anda tidak memiliki kewenangan untuk melihat data pegawai ini." | `403` |
+| `VR-WFC-13` Batch data awal sekali per pegawai | Batch data awal penempatan (`HrdInitialPlacementBatch`) | Pegawai yang sudah pernah masuk batch yang disetujui dimasukkan lagi ke batch baru (`HRD-DEC-054`) | "Pegawai ini sudah pernah terdaftar pada batch data awal yang disetujui. Perubahan selanjutnya wajib lewat SK mutasi/promosi resmi." | `422` |
 
 ---
 

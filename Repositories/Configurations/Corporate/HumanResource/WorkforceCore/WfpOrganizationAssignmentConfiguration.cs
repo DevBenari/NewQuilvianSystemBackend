@@ -22,6 +22,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.Property(x => x.EffectiveStartDate).HasColumnType("date");
             builder.Property(x => x.EffectiveEndDate).HasColumnType("date");
 
+            builder.HasOne(x => x.PersonnelActionOrder).WithMany().HasForeignKey(x => x.PersonnelActionOrderId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.WorkforceProfile).WithMany().HasForeignKey(x => x.WorkforceProfileId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.LegalEntity).WithMany().HasForeignKey(x => x.LegalEntityId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.HospitalSite).WithMany().HasForeignKey(x => x.HospitalSiteId).OnDelete(DeleteBehavior.Restrict);
@@ -32,6 +33,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.HumanResou
             builder.HasOne(x => x.WorkLocation).WithMany().HasForeignKey(x => x.WorkLocationId).OnDelete(DeleteBehavior.Restrict);
             builder.HasOne(x => x.EmployeeGrade).WithMany().HasForeignKey(x => x.EmployeeGradeId).OnDelete(DeleteBehavior.Restrict);
 
+            builder.HasIndex(x => x.PersonnelActionOrderId);
             builder.HasIndex(x => new { x.WorkforceProfileId, x.EffectiveStartDate, x.EffectiveEndDate });
             builder.HasIndex(x => new { x.OrganizationUnitId, x.IsActive });
             builder.HasIndex(x => new { x.DepartmentId, x.PositionId, x.IsActive });

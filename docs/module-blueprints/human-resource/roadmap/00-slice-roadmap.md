@@ -3,11 +3,11 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `3` — revisi `1` PHASE 1; revisi `2` menyerap `HRD-DEC-019` dan memperbaiki hitungan slice serta definisi angka 68/67; **revisi `3` (`PHASE 2B.1`, 28 Agustus 2026) memperbarui classification `S-B4` (roster/shift-harian/darurat/siaga: `MISSING API` → target `EXTEND`, `HRD-DEC-026`), menambahkan catatan HR-on-behalf pada `S-B1` (`HRD-DEC-028`), Early Leave Permission pada `S-B2` (`HRD-DEC-029`), dan mesin SLA/eskalasi pada `S-A7` (`HRD-DEC-030`)** |
+| Roadmap revision | `4` — revisi `1` PHASE 1; revisi `2` menyerap `HRD-DEC-019` dan memperbaiki hitungan slice serta definisi angka 68/67; revisi `3` (`PHASE 2B.1`, 28 Agustus 2026) memperbarui classification `S-B4`, catatan HR-on-behalf pada `S-B1`, Early Leave Permission pada `S-B2`, dan mesin SLA/eskalasi pada `S-A7`; **revisi `4` (`PHASE 2B.2`, 2 November 2026) menyerap keputusan `HRD-DEC-046` s.d. `HRD-DEC-057` untuk target state Slice `S-A1` mencakup Dokumen SK Kepegawaian (`HrdPersonnelActionOrder`), Employee 360 Dual-View, Initial Placement Batch, dan Penguncian Form Master Data** |
 | Status | `DRAFT` |
-| Backend SHA | `ecdc135` |
-| Frontend SHA | `2a1cea784` |
-| Masukan | `00-interview-decisions.md` rev `3`, `01-existing-capability-map.md` rev `1.1` |
+| Backend SHA | `16f6b2a` |
+| Frontend SHA | `2cd1c06` |
+| Masukan | `00-interview-decisions.md` rev `16`, `01-existing-capability-map.md` rev `1.1`, `02-backend-architecture.md` rev `2`, `03-frontend-architecture.md` rev `2` |
 
 Dokumen ini memecah modul HR menjadi slice yang dapat dikerjakan. Ia **bukan** daftar task.
 Pemecahan menjadi task backend dan frontend yang berukuran kecil adalah pekerjaan
@@ -145,20 +145,24 @@ Contoh bentuk yang benar dan yang salah:
 Seluruh slice pada gelombang ini memakai endpoint yang **sudah ada**. Pekerjaannya dominan
 frontend, dan itu yang membuat risikonya paling rendah sekaligus nilainya paling cepat terasa.
 
-### `S-A1` — Enam halaman daftar lintas-pegawai Administrasi Kepegawaian
+### `S-A1` — Administrasi Kepegawaian, Dokumen SK, dan Employee 360 (Workforce Core)
+
+Slice `S-A1` dibagi menjadi dua tahap pelaksanaan terstruktur:
+1. **Tahap 1 (Selesai — `PASS`)**: Penyediaan 6 layar dan rute daftar lintas-pegawai Administrasi Kepegawaian (Penempatan Organisasi, Penugasan Jabatan, Penetapan Manajer, Riwayat Kerja, Penetapan Gaji, dan Perubahan Profil). Diimplementasikan lewat task `BE-HRD-003` dan `FE-HRD-002`.
+2. **Tahap 2 (Target State — `READY FOR IMPLEMENTATION`)**: Tata kelola dokumen Surat Keputusan (SK) Kepegawaian (`HrdPersonnelActionOrder`), pembatasan mutasi retroaktif oleh periode presensi terbuka, integritas 1 NIK = 1 Profil, Employee 360 dual-view (HR vs Manager), inisialisasi batch penempatan awal 55 pegawai, dan penguncian form master data pegawai menjadi read-only berbasis wewenang SK (`HRD-DEC-046` s.d. `HRD-DEC-057`).
 
 | Aspek | Isi |
 | --- | --- |
-| **Current State** | Enam menu menunjuk `/hr/workforce-core/*` yang tidak punya halaman. Namun kemampuannya **sudah ada dan sudah dipakai**: data yang sama dapat dilihat dan diubah dari halaman detail pegawai lewat editor profil, yang memanggil 14 controller `WorkforceCore` |
-| **Target State** | Enam halaman daftar yang menampilkan data seluruh pegawai pada satu periode. Contoh: seluruh penetapan gaji yang berlaku bulan ini, bukan gaji satu orang |
-| **Backend Impact** | `EXTEND`. Controller yang ada bersifat per profil, dengan pola `workforce-profiles/{workforceProfileId}/<sumber-daya>`. Daftar lintas-pegawai membutuhkan endpoint baru yang tidak terikat satu profil. `EmployeeProfileChangeController` sudah punya bentuk lintas-pegawai dan dapat menjadi contoh |
-| **Frontend Impact** | Enam kelompok halaman baru di `src/app/hr/workforce-core/**`. Redux dan komponen editor yang sudah ada dipakai ulang, tidak dibuat baru |
-| **Database Impact** | Tidak ada tabel baru. Kemungkinan perlu index untuk mendukung filter periode dan unit |
-| **Dependency** | Tidak ada dependency modul lain |
-| **Blocking Decision** | `HRD-DEC-012` sudah `approved` |
-| **QBE Impact** | `NEW CODE` untuk endpoint daftar lintas-pegawai; wajib memakai `ApiResponse<T>` dan `PagedResult<T>`. Entity baru **tidak** dibuat, sehingga `QBE-MOD-002` tidak terpicu |
-| **Migration Risk** | Rendah. Penambahan index dapat dijalankan tanpa mematikan layanan |
-| **Acceptance Criteria** | 1. Setiap `pathname` di bawah `corporateHumanResource` punya `page.jsx` yang cocok. 2. HR Admin dapat melihat seluruh penetapan gaji yang berlaku pada satu periode tanpa membuka pegawai satu per satu. 3. Halaman detail pegawai tetap berfungsi seperti sebelumnya. 4. Tidak ada komponen editor baru yang menduplikasi yang sudah ada |
+| **Current State** | 6 layar daftar lintas-pegawai telah aktif dan terhubung ke backend (Tahap 1). Namun, mutasi penempatan dan jabatan saat ini masih bisa diubah langsung pada form master data pegawai tanpa SK resmi; pegawai eksisting (55 staf) belum memiliki catatan penempatan organisasi, jabatan, atasan, dan gaji yang terstruktur; dan belum tersedia agregat SK terpadu untuk mutasi, promosi, rotasi, demosi, serta penugasan sementara |
+| **Target State** | 1. Seluruh perubahan organisasi, jabatan, atasan, dan gaji wajib melalui agregat `HrdPersonnelActionOrder` dengan nomor SK unik, tanggal berlaku, tanggal pembukuan, alasan kedinasan, dan tautan wajib berkas pindai fisik ber-TTD (`HRD-DEC-048`, `056`).<br>2. Form Master Data Pegawai mengunci field unit dan jabatan menjadi read-only (`HRD-DEC-047`).<br>3. Mutasi retroaktif divalidasi ketat terhadap status periode presensi terbuka (`HRD-DEC-050`).<br>4. Tersedia layar Profil Terpadu Pegawai (Employee 360) dengan dual-view: HR View (lengkap) vs Direct Manager View (terbatas pada profil kedinasan bawahan langsung aktif, data kompensasi/rekening/disiplin/keluarga disembunyikan ketat) (`HRD-DEC-053`).<br>5. Inisialisasi data penempatan awal 55 pegawai eksisting dijalankan via mekanisme batch satu kali yang tervalidasi (`HRD-DEC-054`).<br>6. Perubahan data profil mandiri via ESS dan kuasa HR (on-behalf) wajib diverifikasi petugas HR berbeda (`HRD-DEC-052`) |
+| **Backend Impact** | `NEW CODE` & `EXTEND`:<br>- Entitas baru `HrdPersonnelActionOrder`, `HrdPersonnelActionOrderAttachment`, `HrdInitialPlacementBatch`, `HrdInitialPlacementBatchRow`<br>- Perluasan kolom audit persetujuan dan FK `PersonnelActionOrderId` pada tabel penempatan (`Wfp*Assignment`) dan permohonan profil (`TrxEmployeeProfileChangeRequest`)<br>- Controller baru: `HrdPersonnelActionOrderController`, `HrdEmployee360Controller`, `HrdInitialPlacementBatchController`<br>- Controller perluasan: `EmployeeProfileChangeController` (tambah `POST /on-behalf`) |
+| **Frontend Impact** | - 7 komponen/layar baru di `src/app/hr/workforce-core/**`:<br>  * `FE-HRD-08`: Daftar SK Kepegawaian (`/personnel-action-orders`)<br>  * `FE-HRD-09`: Form Penerbitan SK (`/personnel-action-orders/create`)<br>  * `FE-HRD-09a`: Detail & Persetujuan SK (`/personnel-action-orders/[id]`)<br>  * `FE-HRD-09b`: Employee 360 Dual-View (`/employee-360/[id]`)<br>  * `FE-HRD-09c`: Batch Penempatan Awal (`/initial-placement-batch`)<br>  * `FE-HRD-09d`: Pengajuan Kuasa HR (`/employee-profile-changes/on-behalf`)<br>  * Form Master Data Pegawai: kunci input unit & jabatan jadi read-only |
+| **Database Impact** | Migration 7 (`AddPersonnelActionOrderAndAssignmentApprovalFields`) menambahkan tabel baru dan kolom FK tanpa menghapus tabel penempatan yang ada |
+| **Dependency** | Tahap 1: —<br>Tahap 2: Menunggu kelulusan Migration 7 dan modul penyimpanan dokumen terkelola (attachment scan SK) |
+| **Blocking Decision** | Tidak ada. Seluruh keputusan `HRD-DEC-046` s.d. `HRD-DEC-057` telah `approved` pada revisi 16 |
+| **QBE Impact** | `NEW CODE` untuk entitas operasional baru ber-prefix `Hrd` (mematuhi `QBE-MOD-002` dan entri registry resmi). Menggunakan `ApiResponse<T>`, logging, dan authorisasi `[AccessAction]` |
+| **Migration Risk** | Rendah-Sedang. Tabel baru dan kolom nullable ditambahkan ke skema; inisialisasi batch baseline 55 pegawai dijalankan dalam transaksi atomik ber-rollback |
+| **Acceptance Criteria** | 1. Tersedia API dan layar CRUD Dokumen SK Kepegawaian (Draft, Submit, Approve, Apply, Cancel).<br>2. Form Master Data Pegawai tidak mengizinkan pemindahan unit atau jabatan secara langsung.<br>3. Sistem menolak SK mutasi retroaktif bila tanggal efektif jatuh pada periode presensi tertutup.<br>4. Tampilan Employee 360 menyembunyikan kompensasi, rekening, NIK, keluarga, dan disiplin bagi Atasan Langsung.<br>5. Batch penempatan awal 55 pegawai berhasil dieksekusi tanpa melanggar aturan 1 penempatan utama per tanggal.<br>6. Pengajuan perubahan data oleh HR atas nama pegawai (on-behalf) mewajibkan verifikasi petugas berbeda |
 | **Release Status** | `READY` |
 
 ### `S-A2` — Layanan mandiri cuti
