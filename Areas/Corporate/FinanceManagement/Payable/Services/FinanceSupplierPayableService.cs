@@ -62,7 +62,8 @@ public sealed class FinanceSupplierPayableService
     public async Task<FinSupplierPayable> CreateAsync(
         Guid supplierId, string supplierInvoiceNumber, DateOnly supplierInvoiceDate, string? description,
         IReadOnlyList<SupplierPayableItemRequest> items, Guid actorUserId, CancellationToken cancellationToken,
-        Guid? sourcePurchasingInvoiceId = null, decimal? accountingEventAmountOverride = null)
+        Guid? sourcePurchasingInvoiceId = null, decimal? accountingEventAmountOverride = null,
+        DateOnly? goodsReceivedDate = null)
     {
         var invoiceNumber = ValidateReason(supplierInvoiceNumber, "Nomor faktur supplier", maxLength: 100);
         if (items is not { Count: > 0 })
@@ -114,7 +115,13 @@ public sealed class FinanceSupplierPayableService
             // Disalin dari MstSupplier saat dibuat (data-dictionary.md §4.1) — perubahan termin
             // supplier setelahnya MUST NOT mengubah utang yang sudah tercatat.
             PaymentTermDays = supplier.PaymentTermDays,
-            DueDate = supplierInvoiceDate.AddDays(supplier.PaymentTermDays),
+            // BE-FIN-124 (AP-DEC-03): dengan tanggal terima barang (invoice yang merujuk GR), jatuh
+            // tempo = tanggal terima barang + termin; tanpa itu, tanggal faktur + termin seperti semula.
+            // Basisnya disimpan supaya selisih terhadap estimasi Tukar Faktur dapat dijelaskan.
+            DueDate = (goodsReceivedDate ?? supplierInvoiceDate).AddDays(supplier.PaymentTermDays),
+            DueDateBasis = goodsReceivedDate.HasValue
+                ? FinSupplierPayableDueDateBases.GoodsReceivedDate
+                : FinSupplierPayableDueDateBases.SupplierInvoiceDate,
             Status = FinSupplierPayableStatuses.Outstanding,
             SourcePurchasingInvoiceId = sourcePurchasingInvoiceId,
             CreateDateTime = DateTime.UtcNow,
@@ -676,6 +683,19 @@ public sealed class FinanceSupplierPayableService
     // maker-checker (tidak ada status REQUESTED pada FinSupplierPayable).
     // ------------------------------------------------------------------------------------
 
+    /// <summary>
+    /// Saklar jalur pembatalan utang. Pembatalan hanya mengubah <c>Status</c>; ia belum menulis mutasi
+    /// pembalik pada <c>FinSupplierPayableMovement</c> (posisi as-of dihitung dari mutasi, jadi utang
+    /// berstatus CANCELLED tetap terhitung) dan belum menulis kejadian pembalik ke outbox Accounting
+    /// (kejadian <c>PENGAKUAN-HUTANG-SUPPLIER</c> yang sudah dibuat tetap berlaku di buku besar). Kode
+    /// kejadian pembalik, perlakuan PPN, tanggal bisnis, dan jenis mutasi pembalik adalah keputusan
+    /// Accounting yang belum disahkan, jadi jalur ini TIDAK aktif sampai kontraknya ada. Koreksi
+    /// sementara lewat Penyesuaian Utang (maker-checker) atau Retur Pembelian, yang sudah menulis mutasi
+    /// dan kejadiannya dengan benar. Mengubah nilai ini menjadi <c>true</c> BUKAN cukup — pembalikan
+    /// mutasi dan outbox harus ditambahkan secara atomik dalam transaksi yang sama lebih dulu.
+    /// </summary>
+    private static readonly bool PayableCancellationReversalRatified = false;
+
     public async Task<FinSupplierPayable> CancelAsync(Guid payableId, Guid expectedRowVersion, Guid actorUserId, CancellationToken cancellationToken)
     {
         var payable = await _dbContext.FinSupplierPayables
@@ -688,6 +708,38 @@ public sealed class FinanceSupplierPayableService
         if (payable.Status != FinSupplierPayableStatuses.Outstanding)
             throw new PayableValidationException(
                 $"Utang berstatus {payable.Status} tidak dapat dibatalkan. Pembatalan hanya berlaku selama belum ada pembayaran sama sekali.");
+
+        if (!PayableCancellationReversalRatified)
+            throw new PayableValidationException(
+                "Pembatalan utang belum tersedia karena kontrak pembalikan mutasi dan kejadian Accounting belum disahkan. Koreksi lewat Penyesuaian Utang atau Retur Pembelian.");
+
+        // Guard dependensi untuk saat jalur ini dinyalakan: utang yang diacu invoice, alokasi pembayaran
+        // berjalan, penyesuaian, atau mutasi selain pengakuan awal tidak boleh dibatalkan sekadar dengan
+        // mengganti status.
+        if (payable.SourcePurchasingInvoiceId.HasValue)
+            throw new PayableValidationException(
+                "Utang yang dibentuk dari Purchasing Invoice tidak dapat dibatalkan lewat jalur ini. Koreksi lewat Retur Pembelian atau Penyesuaian Utang.");
+
+        var hasLiveAllocation = await _dbContext.FinPaymentAllocations
+            .AnyAsync(x => x.SupplierPayableId == payableId && !x.IsDelete
+                && x.Payment != null && !x.Payment.IsDelete
+                && x.Payment.Status != FinPaymentStatuses.Rejected
+                && x.Payment.Status != FinPaymentStatuses.Cancelled, cancellationToken);
+        if (hasLiveAllocation)
+            throw new PayableValidationException("Utang ini sudah dialokasikan pada pembayaran yang masih berjalan atau sudah dibayar dan tidak dapat dibatalkan.");
+
+        var hasLiveAdjustment = await _dbContext.FinPayableAdjustments
+            .AnyAsync(x => x.SupplierPayableId == payableId && !x.IsDelete
+                && x.Status != FinPayableAdjustmentStatuses.Rejected, cancellationToken);
+        if (hasLiveAdjustment)
+            throw new PayableValidationException("Utang ini memiliki penyesuaian yang masih berlaku dan tidak dapat dibatalkan.");
+
+        var hasLaterMovement = await _dbContext.FinSupplierPayableMovements
+            .AnyAsync(x => x.SupplierPayableId == payableId && !x.IsDelete
+                && x.MovementType != FinSupplierPayableMovementTypes.Pengakuan
+                && x.MovementType != FinSupplierPayableMovementTypes.PembukaanMigrasi, cancellationToken);
+        if (hasLaterMovement)
+            throw new PayableValidationException("Utang ini sudah memiliki mutasi saldo selain pengakuan awal dan tidak dapat dibatalkan.");
 
         payable.Status = FinSupplierPayableStatuses.Cancelled;
         payable.UpdateDateTime = DateTime.UtcNow;

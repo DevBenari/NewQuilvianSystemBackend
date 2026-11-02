@@ -2,7 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
-using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PatientRefund.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PatientRefund.Models;
@@ -84,6 +83,9 @@ public sealed class FinancePatientRefundService
             .ToListAsync(cancellationToken);
 
         var requestLookup = requests.ToLookup(x => x.RefundableCreditId);
+        var senderAccounts = await LoadSenderAccountsAsync(
+            requests.Where(x => x.BankAccountId.HasValue).Select(x => x.BankAccountId!.Value).Distinct().ToList(),
+            cancellationToken);
         var items = new List<PatientRefundItemDto>();
 
         foreach (var row in creditRows)
@@ -104,6 +106,8 @@ public sealed class FinancePatientRefundService
                         PatientName = row.Patient.FullName,
                         InvoiceId = row.Invoice.Id,
                         InvoiceNumber = row.Invoice.InvoiceNumber,
+                        EncounterId = row.Encounter.Id,
+                        EncounterNumber = row.Encounter.EncounterNumber,
                         SourceType = row.Credit.SourceType,
                         SourceId = row.Credit.SourceId,
                         RecognizedAt = row.Credit.RecognizedAt,
@@ -145,6 +149,8 @@ public sealed class FinancePatientRefundService
                         PatientName = row.Patient.FullName,
                         InvoiceId = row.Invoice.Id,
                         InvoiceNumber = row.Invoice.InvoiceNumber,
+                        EncounterId = row.Encounter.Id,
+                        EncounterNumber = row.Encounter.EncounterNumber,
                         SourceType = row.Credit.SourceType,
                         SourceId = row.Credit.SourceId,
                         RecognizedAt = row.Credit.RecognizedAt,
@@ -156,6 +162,14 @@ public sealed class FinancePatientRefundService
                         Status = req.Status,
                         Reason = req.Reason,
                         PaymentMethod = req.PaymentMethod,
+                        BankAccountId = req.BankAccountId,
+                        SenderBankId = SenderAccountOf(senderAccounts, req.BankAccountId)?.BankId,
+                        SenderBankName = SenderAccountOf(senderAccounts, req.BankAccountId)?.Bank?.BankName,
+                        SenderAccountNumber = SenderAccountOf(senderAccounts, req.BankAccountId)?.AccountNumber,
+                        SenderAccountName = SenderAccountOf(senderAccounts, req.BankAccountId)?.AccountName,
+                        PayeeBankName = req.PayeeBankName,
+                        PayeeAccountNumber = req.PayeeAccountNumber,
+                        PayeeAccountName = req.PayeeAccountName,
                         ReferenceNumber = req.ReferenceNumber,
                         RequestedBy = req.RequestedBy,
                         ApprovedBy = req.ApprovedBy,
@@ -180,6 +194,8 @@ public sealed class FinancePatientRefundService
                         PatientName = row.Patient.FullName,
                         InvoiceId = row.Invoice.Id,
                         InvoiceNumber = row.Invoice.InvoiceNumber,
+                        EncounterId = row.Encounter.Id,
+                        EncounterNumber = row.Encounter.EncounterNumber,
                         SourceType = row.Credit.SourceType,
                         SourceId = row.Credit.SourceId,
                         RecognizedAt = row.Credit.RecognizedAt,
@@ -240,6 +256,26 @@ public sealed class FinancePatientRefundService
 
         return (pagedItems, totalCount);
     }
+
+    private async Task<Dictionary<Guid, MstBankAccount>> LoadSenderAccountsAsync(
+        IReadOnlyCollection<Guid> bankAccountIds,
+        CancellationToken cancellationToken)
+    {
+        if (bankAccountIds.Count == 0)
+            return new Dictionary<Guid, MstBankAccount>();
+
+        var accounts = await _dbContext.MstBankAccounts.AsNoTracking()
+            .Include(x => x.Bank)
+            .Where(x => bankAccountIds.Contains(x.Id))
+            .ToListAsync(cancellationToken);
+
+        return accounts.ToDictionary(x => x.Id);
+    }
+
+    private static MstBankAccount? SenderAccountOf(
+        IReadOnlyDictionary<Guid, MstBankAccount> accounts,
+        Guid? bankAccountId)
+        => bankAccountId.HasValue && accounts.TryGetValue(bankAccountId.Value, out var account) ? account : null;
 
     public async Task<PatientRefundSummaryDto> GetSummaryAsync(CancellationToken cancellationToken)
     {
@@ -305,12 +341,13 @@ public sealed class FinancePatientRefundService
         var depositAccount = await _dbContext.BilDepositAccounts.AsNoTracking()
             .SingleOrDefaultAsync(x => x.EncounterId == invoice.EncounterId && !x.IsDelete, cancellationToken);
 
-        string? bankAccountName = null;
+        // Rekening pengirim diturunkan dari master rekening bank + master bank, bukan dari teks yang
+        // pernah dikirim browser. Rekening tujuan pasien (Payee*) tetap data terpisah di bawah.
+        MstBankAccount? senderAccount = null;
         if (request?.BankAccountId.HasValue == true)
         {
-            var bankAccount = await _dbContext.Set<MstBankAccount>().AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == request.BankAccountId.Value, cancellationToken);
-            bankAccountName = bankAccount?.AccountName;
+            var senderAccounts = await LoadSenderAccountsAsync([request.BankAccountId.Value], cancellationToken);
+            senderAccount = SenderAccountOf(senderAccounts, request.BankAccountId);
         }
 
         return new PatientRefundDetailDto
@@ -323,6 +360,8 @@ public sealed class FinancePatientRefundService
             PatientName = patient.FullName,
             InvoiceId = invoice.Id,
             InvoiceNumber = invoice.InvoiceNumber,
+            EncounterId = encounter.Id,
+            EncounterNumber = encounter.EncounterNumber,
             ServiceType = invoice.ServiceType,
             DepositAccountNumber = depositAccount?.AccountNumber,
             SourceType = credit.SourceType,
@@ -337,7 +376,11 @@ public sealed class FinancePatientRefundService
             Reason = request?.Reason,
             PaymentMethod = request?.PaymentMethod,
             BankAccountId = request?.BankAccountId,
-            BankAccountName = bankAccountName,
+            BankAccountName = senderAccount?.AccountName,
+            SenderBankId = senderAccount?.BankId,
+            SenderBankName = senderAccount?.Bank?.BankName,
+            SenderAccountNumber = senderAccount?.AccountNumber,
+            SenderAccountName = senderAccount?.AccountName,
             PayeeBankName = request?.PayeeBankName,
             PayeeAccountNumber = request?.PayeeAccountNumber,
             PayeeAccountName = request?.PayeeAccountName,
@@ -366,6 +409,10 @@ public sealed class FinancePatientRefundService
             throw new FinancePatientRefundValidationException("Nominal pengajuan harus lebih besar dari nol.");
         if (string.IsNullOrWhiteSpace(dto.Reason))
             throw new FinancePatientRefundValidationException("Alasan pengajuan refund wajib diisi.");
+        if (!PatientRefundTransferPolicy.TryNormalizeMethod(dto.PaymentMethod, out var paymentMethod))
+            throw new FinancePatientRefundValidationException(PatientRefundTransferPolicy.TransferOnlyMessage);
+        if (dto.RefundableCreditId == Guid.Empty)
+            throw new FinancePatientRefundValidationException("Sumber saldo refund wajib dipilih dari daftar saldo refund.");
 
         IDbContextTransaction? transaction = null;
         try
@@ -374,9 +421,13 @@ public sealed class FinancePatientRefundService
             {
                 transaction = await _dbContext.Database.BeginTransactionAsync(
                     IsolationLevel.Serializable, cancellationToken);
+                // Satu saldo satu antrean: dua pengajuan atas saldo yang sama berjalan bergantian,
+                // sehingga pemeriksaan cadangan di bawah selalu melihat pengajuan yang sudah tersimpan.
+                await AcquireLockAsync($"FIN_REFUNDABLE_CREDIT_{dto.RefundableCreditId:N}", cancellationToken);
             }
 
-            // Cek idempotency
+            // Cek idempotency. Kiriman ulang dikembalikan apa adanya, SEBELUM rekening diperiksa ulang,
+            // supaya pengajuan yang sudah sah tidak gagal hanya karena rekening kemudian dinonaktifkan.
             var existing = await _dbContext.Set<FinPatientRefundRequest>()
                 .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
             if (existing is not null)
@@ -385,11 +436,23 @@ public sealed class FinancePatientRefundService
                 return await GetByIdAsync(existing.Id, cancellationToken);
             }
 
+            // Rekening pengirim diperiksa ulang terhadap master (tidak mempercayai label/nomor browser),
+            // dan rekening tujuan pasien dijaga tetap terpisah dari rekening pengirim.
+            var source = await PatientRefundTransferPolicy.ResolveSourceAccountAsync(
+                _dbContext, dto.BankAccountId, dto.SenderBankId, cancellationToken);
+            if (!source.IsValid)
+                throw new FinancePatientRefundValidationException(source.Error!);
+
+            var payeeError = PatientRefundTransferPolicy.ValidatePayee(
+                source.Account!, dto.PayeeBankName, dto.PayeeAccountNumber, dto.PayeeAccountName);
+            if (payeeError is not null)
+                throw new FinancePatientRefundValidationException(payeeError);
+
             var credit = await _dbContext.BilRefundableCredits
                 .SingleOrDefaultAsync(x => x.Id == dto.RefundableCreditId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Saldo refundable credit tidak ditemukan.");
 
-            if (credit.AvailableAmount <= 0)
+            if (credit.Status != BillingRefundableCreditStatuses.Available || credit.AvailableAmount <= 0)
                 throw new FinancePatientRefundValidationException("Saldo refundable credit sudah habis.");
 
             // Cek reservation
@@ -426,8 +489,8 @@ public sealed class FinancePatientRefundService
                 Reason = dto.Reason.Trim(),
                 RequestedBy = actorUserId,
                 SubmittedAt = DateTimeOffset.UtcNow,
-                PaymentMethod = dto.PaymentMethod ?? FinPatientRefundPaymentMethods.Transfer,
-                BankAccountId = dto.BankAccountId,
+                PaymentMethod = paymentMethod,
+                BankAccountId = source.Account!.BankAccountId,
                 PayeeBankName = dto.PayeeBankName?.Trim(),
                 PayeeAccountNumber = dto.PayeeAccountNumber?.Trim(),
                 PayeeAccountName = dto.PayeeAccountName?.Trim(),
@@ -454,10 +517,17 @@ public sealed class FinancePatientRefundService
                     entity.InvoiceId,
                     entity.RequestedAmount,
                     entity.PaymentMethod,
+                    entity.BankAccountId,
                     ActorUserId = actorUserId
                 });
 
             return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+        catch (Exception exception) when (IsConcurrencyFailure(exception))
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new FinancePatientRefundConflictException(
+                "Pengajuan bersamaan atas saldo yang sama sedang diproses. Muat ulang daftar lalu coba lagi.", exception);
         }
         catch
         {
@@ -494,6 +564,29 @@ public sealed class FinancePatientRefundService
         if (approvedAmount <= 0 || approvedAmount > entity.RequestedAmount)
             throw new FinancePatientRefundValidationException("Nominal persetujuan harus positif dan tidak melebihi nominal pengajuan.");
 
+        // Pengajuan lama bermetode tunai tidak lagi dapat disetujui: pengembalian dana pasien hanya
+        // melalui Transfer Bank.
+        if (!PatientRefundTransferPolicy.TryNormalizeMethod(entity.PaymentMethod, out _))
+            throw new FinancePatientRefundValidationException(
+                $"{PatientRefundTransferPolicy.TransferOnlyMessage} Pengajuan ini bermetode {entity.PaymentMethod}; tolak lalu minta kasir mengajukan ulang sebagai Transfer Bank.");
+
+        // Rekening pengirim diperiksa ulang pada saat persetujuan (bisa saja dinonaktifkan sejak
+        // diajukan). Penyetuju boleh merevisinya di sini; revisi dicatat pada audit, dan setelah
+        // persetujuan rekening terkunci kecuali diubah saat pencairan dengan alasan tertulis.
+        var source = await PatientRefundTransferPolicy.ResolveSourceAccountAsync(
+            _dbContext, dto.BankAccountId ?? entity.BankAccountId, dto.SenderBankId, cancellationToken);
+        if (!source.IsValid)
+            throw new FinancePatientRefundValidationException(source.Error!);
+
+        var payeeError = PatientRefundTransferPolicy.ValidatePayee(
+            source.Account!, entity.PayeeBankName, entity.PayeeAccountNumber, entity.PayeeAccountName);
+        if (payeeError is not null)
+            throw new FinancePatientRefundValidationException(
+                $"{payeeError} Tolak pengajuan ini bila data tujuan tidak dapat dilengkapi.");
+
+        var previousBankAccountId = entity.BankAccountId;
+        entity.BankAccountId = source.Account!.BankAccountId;
+
         entity.ApprovedAmount = approvedAmount;
         entity.ApprovedBy = actorUserId;
         entity.ApprovedAt = DateTimeOffset.UtcNow;
@@ -503,7 +596,15 @@ public sealed class FinancePatientRefundService
         entity.UpdateDateTime = DateTime.UtcNow;
         entity.UpdateBy = actorUserId;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new FinancePatientRefundConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
 
         await _loggerService.AuditAsync(
             LogCategory,
@@ -513,6 +614,9 @@ public sealed class FinancePatientRefundService
             {
                 entity.Id,
                 entity.ApprovedAmount,
+                PreviousBankAccountId = previousBankAccountId,
+                entity.BankAccountId,
+                SourceAccountRevised = previousBankAccountId.HasValue && previousBankAccountId != entity.BankAccountId,
                 ApprovedBy = actorUserId
             });
 
@@ -549,7 +653,56 @@ public sealed class FinancePatientRefundService
         entity.UpdateDateTime = DateTime.UtcNow;
         entity.UpdateBy = actorUserId;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        // Pemulihan saldo deposit jika pengajuan berasal dari sisa deposit ranap (release reservasi)
+        var credit = await _dbContext.BilRefundableCredits
+            .SingleOrDefaultAsync(x => x.Id == entity.RefundableCreditId && !x.IsDelete, cancellationToken);
+        if (credit != null && credit.SourceType == BillingRefundableCreditSourceTypes.Settlement)
+        {
+            var depositMovement = await _dbContext.BilDepositMovements.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == credit.SourceId && !x.IsDelete, cancellationToken);
+            if (depositMovement != null)
+            {
+                var depositAccount = await _dbContext.BilDepositAccounts
+                    .SingleOrDefaultAsync(x => x.Id == depositMovement.DepositAccountId && !x.IsDelete, cancellationToken);
+                if (depositAccount != null)
+                {
+                    depositAccount.AvailableBalance += entity.RequestedAmount;
+                    depositAccount.RowVersion = Guid.NewGuid();
+                    depositAccount.UpdateDateTime = DateTime.UtcNow;
+                    depositAccount.UpdateBy = actorUserId;
+
+                    var reverseMovement = new BilDepositMovement
+                    {
+                        DepositAccountId = depositAccount.Id,
+                        MovementType = BillingDepositMovementTypes.Release,
+                        Amount = entity.RequestedAmount,
+                        ReversesMovementId = depositMovement.Id,
+                        Reason = $"Pemulihan saldo deposit karena penolakan refund Finance: {dto.RejectionReason.Trim()}",
+                        OccurredAt = DateTimeOffset.UtcNow,
+                        IdempotencyKey = Guid.NewGuid(),
+                        CorrelationId = entity.CorrelationId,
+                        CausationId = entity.Id,
+                        CreateDateTime = DateTime.UtcNow,
+                        CreateBy = actorUserId
+                    };
+                    _dbContext.BilDepositMovements.Add(reverseMovement);
+                }
+            }
+            credit.AvailableAmount = 0m;
+            credit.Status = BillingRefundableCreditStatuses.Exhausted;
+            credit.UpdateDateTime = DateTime.UtcNow;
+            credit.UpdateBy = actorUserId;
+        }
+
+        try
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            throw new FinancePatientRefundConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
+        }
 
         await _loggerService.AuditAsync(
             LogCategory,
@@ -563,6 +716,31 @@ public sealed class FinancePatientRefundService
             });
 
         return await GetByIdAsync(entity.Id, cancellationToken);
+    }
+
+    private Task AcquireLockAsync(string key, CancellationToken cancellationToken) =>
+        _dbContext.Database.ExecuteSqlRawAsync(
+            "SELECT pg_advisory_xact_lock(hashtext({0}));", [key], cancellationToken);
+
+    /// <summary>
+    /// Kegagalan serialisasi transaksi (SQLSTATE 40001) atau tabrakan penyimpanan akibat dua permintaan
+    /// bersamaan. Keduanya berarti pihak lain lebih dulu; pemakai diminta memuat ulang, bukan menerima 500.
+    /// </summary>
+    private static bool IsConcurrencyFailure(Exception exception)
+    {
+        if (exception is DbUpdateException)
+            return true;
+
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (string.Equals(current.GetType().Name, "PostgresException", StringComparison.OrdinalIgnoreCase))
+            {
+                var sqlState = current.GetType().GetProperty("SqlState")?.GetValue(current) as string;
+                if (sqlState == "40001") return true;
+            }
+        }
+
+        return false;
     }
 
     public async Task<PatientRefundDetailDto> ExecutePaymentAsync(
@@ -596,6 +774,37 @@ public sealed class FinancePatientRefundService
             if (dto.PaidAmount <= 0 || dto.PaidAmount > remainingToPay)
                 throw new FinancePatientRefundValidationException($"Nominal pembayaran tidak valid. Sisa yang harus dibayar: Rp {remainingToPay:N2}.");
 
+            // Pencairan hanya melalui Transfer Bank. Diperiksa di server — bukan hanya di formulir —
+            // dan berlaku juga bagi pengajuan lama bermetode tunai.
+            if (!PatientRefundTransferPolicy.TryNormalizeMethod(dto.PaymentMethod, out _)
+                || !PatientRefundTransferPolicy.TryNormalizeMethod(entity.PaymentMethod, out _))
+                throw new FinancePatientRefundValidationException(PatientRefundTransferPolicy.TransferOnlyMessage);
+
+            if (string.IsNullOrWhiteSpace(dto.ReferenceNumber))
+                throw new FinancePatientRefundValidationException("Nomor referensi bukti transfer bank wajib diisi.");
+
+            // Rekening pengirim: memakai rekening pada pengajuan yang disetujui dan diperiksa ulang
+            // (bisa dinonaktifkan sejak disetujui). Mengganti rekening saat pencairan diperbolehkan —
+            // agar pencairan tidak buntu — tetapi harus lolos pemeriksaan yang sama, disertai alasan
+            // tertulis pada catatan, dan dicatat pada audit.
+            var storedBankAccountId = entity.BankAccountId;
+            var requestedBankAccountId = dto.BankAccountId ?? storedBankAccountId;
+            var sourceChanged = storedBankAccountId.HasValue && requestedBankAccountId != storedBankAccountId;
+
+            if (sourceChanged && string.IsNullOrWhiteSpace(dto.Notes))
+                throw new FinancePatientRefundValidationException(
+                    "Rekening pengirim berbeda dari rekening yang disetujui. Tuliskan alasan penggantian pada catatan pembayaran.");
+
+            var source = await PatientRefundTransferPolicy.ResolveSourceAccountAsync(
+                _dbContext, requestedBankAccountId, null, cancellationToken);
+            if (!source.IsValid)
+                throw new FinancePatientRefundValidationException(source.Error!);
+
+            var payeeError = PatientRefundTransferPolicy.ValidatePayee(
+                source.Account!, entity.PayeeBankName, entity.PayeeAccountNumber, entity.PayeeAccountName);
+            if (payeeError is not null)
+                throw new FinancePatientRefundValidationException(payeeError);
+
             var credit = await _dbContext.BilRefundableCredits
                 .SingleOrDefaultAsync(x => x.Id == entity.RefundableCreditId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Saldo refundable credit tidak ditemukan.");
@@ -624,36 +833,17 @@ public sealed class FinancePatientRefundService
                 entity.Status = FinPatientRefundStatuses.PartiallyPaid;
             }
 
-            if (!string.IsNullOrWhiteSpace(dto.PaymentMethod)) entity.PaymentMethod = dto.PaymentMethod;
-            if (dto.BankAccountId.HasValue) entity.BankAccountId = dto.BankAccountId;
-            if (!string.IsNullOrWhiteSpace(dto.ReferenceNumber)) entity.ReferenceNumber = dto.ReferenceNumber.Trim();
+            entity.PaymentMethod = FinPatientRefundPaymentMethods.Transfer;
+            entity.BankAccountId = source.Account!.BankAccountId;
+            entity.ReferenceNumber = dto.ReferenceNumber.Trim();
             if (!string.IsNullOrWhiteSpace(dto.Notes)) entity.ExecutionNotes = dto.Notes.Trim();
             entity.ExecutedBy = actorUserId;
             entity.RowVersion = Guid.NewGuid();
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = actorUserId;
 
-            // 3. Catat buku mutasi kas jika menggunakan metode CASH
-            if (string.Equals(entity.PaymentMethod, FinPatientRefundPaymentMethods.Cash, StringComparison.OrdinalIgnoreCase))
-            {
-                var cashMovement = new FinCashMovement
-                {
-                    MovementType = "PEMBAYARAN-TUNAI-LANGSUNG",
-                    Direction = FinCashMovementDirections.Out,
-                    Amount = dto.PaidAmount,
-                    BusinessDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                    OccurredAt = DateTimeOffset.UtcNow,
-                    SourceReferenceType = "PATIENT_REFUND",
-                    SourceReferenceId = entity.Id.ToString(),
-                    PaymentMethodCode = "CASH",
-                    Notes = $"Pencairan refund pasien ID {entity.Id}: {entity.Reason}",
-                    CorrelationId = entity.CorrelationId,
-                    CausationId = entity.CorrelationId,
-                    CreateDateTime = DateTime.UtcNow,
-                    CreateBy = actorUserId
-                };
-                _dbContext.Set<FinCashMovement>().Add(cashMovement);
-            }
+            // 3. Pencairan tunai tidak lagi didukung (metode selalu Transfer Bank), sehingga tidak ada
+            //    mutasi kas yang dicatat di sini.
 
             // 4. Terbitkan kejadian Finance -> Accounting Outbox (satu kali)
             await _outboxService.StageEventAsync(new AccountingOutboxEventRequest
@@ -681,11 +871,20 @@ public sealed class FinancePatientRefundService
                     entity.PaidAmount,
                     entity.PaymentMethod,
                     entity.ReferenceNumber,
+                    entity.BankAccountId,
+                    PreviousBankAccountId = storedBankAccountId,
+                    SourceAccountChanged = sourceChanged,
                     CreditAvailableAfter = credit.AvailableAmount,
                     ExecutedBy = actorUserId
                 });
 
             return await GetByIdAsync(entity.Id, cancellationToken);
+        }
+        catch (Exception exception) when (IsConcurrencyFailure(exception))
+        {
+            if (transaction is not null) await transaction.RollbackAsync(CancellationToken.None);
+            throw new FinancePatientRefundConflictException(
+                "Data telah berubah. Muat ulang sebelum melanjutkan.", exception);
         }
         catch
         {

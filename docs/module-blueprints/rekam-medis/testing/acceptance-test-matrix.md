@@ -181,3 +181,63 @@ ulang — bukan berarti dokternya lalai.
 | `RM-DEC-020` | `AT-RM-14`, `26`, `27` |
 | `RM-DEC-021` | `AT-RM-02` |
 | `RM-DEC-022` | `AT-RM-16`, `37` |
+
+
+---
+
+# Amandemen revision 4 — Uji penerimaan `AT-RM-44` sampai `AT-RM-74` (`approved`)
+
+Disahkan Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`).
+
+Kolom "AC" menunjuk acceptance criteria pada `00-interview-decisions.md`. Jalur gagal diberi tanda **(gagal)**.
+
+## Sambungan berkas
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `AT-RM-44` | AC-25, `RM-DEC-038` | Pasien dengan satu dokumen final di tiap modul membuka berkas | Integrasi (harness) | Setiap dokumen muncul di linimasa; nol baris salinan di tabel `Mrc*` |
+| `AT-RM-45` | AC-26, `RM-DEC-041` **(gagal)** | Laporan radiologi `Drafted`, ringkasan pulang tanpa `SignedAt` | Integrasi | Keduanya **tidak** tampil |
+| `AT-RM-46` | AC-27, `RM-DEC-040` | Pengguna hanya punya `MedicalRecord : Read` | Integrasi | Dokumen semua modul tampil; tepat satu baris `MrcAccessLog` |
+| `AT-RM-47` | AC-28, `RM-DEC-043` | Hasil dirilis 1 detik sesudah `ClinicalClosedAt` dan 1 detik sebelumnya | Unit | Pertama `isLateEntry = true`, kedua `false` |
+| `AT-RM-48` | AC-29, `RM-DEC-042` | Laporan radiologi versi 2; ringkasan pulang punya revisi | Integrasi | `isCorrected = true` pada keduanya |
+| `AT-RM-49` | AC-30, `RM-DEC-044` **(gagal)** | Pembaca IGD dipalsukan melempar galat | Integrasi | Berkas `200`; IGD di `failedSources`; sumber lain tampil |
+| `AT-RM-50` | `GAP-ARCH-RM-05` **(gagal)** | Pembaca Farmasi dipalsukan menunggu 10 detik | Integrasi | Farmasi di `failedSources` sebagai batas waktu; permintaan **tidak** batal seluruhnya |
+| `AT-RM-51` | AC-39, AC-49, `RM-DEC-058` | Pasien dengan pemeriksaan PA yang dirilis | Integrasi | PA tidak tampil; `unavailableKinds` memuat `PathologyAnatomyResult` |
+| `AT-RM-52` | AC-42, `RM-DEC-052` | Enam pengukuran gula darah satu hari, satu dibatalkan | Integrasi | Satu baris ringkasan berjumlah 5; rincian memuat 5 |
+| `AT-RM-53` | AC-48, `RM-DEC-057` | Hasil PK dirilis, hasil Mikrobiologi belum | Integrasi | PK tampil; Mikrobiologi tidak |
+| `AT-RM-54` | AC-51, `RM-DEC-059` | Pasien dengan catatan asuhan gizi | Integrasi | `isProvisional = true` |
+| `AT-RM-55` | `VAL-RM-A12` **(gagal)** | Meminta rincian dokumen PA | API | `404` dengan pesan "belum tersedia" |
+
+## Penutupan klinis dan kelengkapan
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `AT-RM-56` | `AGG-RM-02` | Kunjungan ditutup dua kali lewat dua jalur | Integrasi | Tepat satu baris `MrcEncounterClinicalClosure`; waktu = penutupan pertama |
+| `AT-RM-57` | AC-41, `RM-DEC-051` **(gagal)** | Rekonsiliasi IGD mengubah `CompletedAt` | Integrasi | `ClinicalClosedAt` tidak berubah; penanda `Susulan` tidak berubah |
+| `AT-RM-58` | AC-40 | Episode RI ditutup Senin, tagihan final Kamis, hasil dirilis Selasa | Integrasi | Hasil `Susulan`; kunjungan masuk daftar kerja sejak Senin |
+| `AT-RM-59` | `GAP-ARCH-RM-01` | Disposisi IGD ke rawat inap | Integrasi | Catatan konsep IGD menjadi `LockedUnsigned`; baris penutupan klinis tercatat |
+| `AT-RM-60` | AC-31, AC-47 | Kunjungan RI tanpa ringkasan pulang, hanya persetujuan registrasi | Integrasi | `Incomplete`; dua rincian |
+| `AT-RM-61` | AC-32 | Kunjungan RJ tanpa operasi; kunjungan RI dengan operasi tanpa catatan anestesi | Integrasi | RJ tidak dituntut laporan operasi; RI `Incomplete` "catatan anestesi belum ada" |
+| `AT-RM-62` | AC-36, `RM-FE-023` | Ringkasan pulang tidak ada dan kultur belum dirilis | Integrasi | `AwaitingResult` dengan dua rincian |
+| `AT-RM-63` | AC-30, `RM-DEC-044` **(gagal)** | Pembaca Kamar Operasi gagal saat menilai | Integrasi | `Undetermined`; **tidak pernah** `Complete` |
+| `AT-RM-64` | AC-35, `VAL-RM-A08`, `A09` **(gagal)** | Nilai ulang kunjungan berjalan dan kunjungan batal | API | `409` dengan pesan masing-masing; keduanya tidak muncul di daftar kerja |
+| `AT-RM-65` | AC-38, `RM-DEC-050` | Kunjungan yang tutup sebelum rilis | API | Tidak di daftar kerja; `evaluate` mengembalikan `isPersisted = false`; nol baris tersimpan |
+| `AT-RM-66` | AC-52, AC-53, AC-54, `RM-DEC-060` | RJ di unit Laboratorium, Hemodialisa, dan poliklinik | Integrasi | Lab `Complete` setelah dirilis tanpa dokumen dokter; HD cukup sesi bertanda tangan; poliklinik tetap dituntut tiga butir |
+| `AT-RM-67` | AC-45, AC-43, AC-44, AC-46 | Diagnosis `Primary` tanpa `IsPrimary`; asesmen ulang saja; konsultasi tanpa CPPT | Unit | Masing-masing: terpenuhi; tidak terpenuhi; terpenuhi |
+| `AT-RM-68` | AC-34, `RM-DEC-046` | Kunjungan belum lengkap ditutup dan pasien dipulangkan | Integrasi | Keduanya berhasil; nol penolakan dari rekam medis |
+
+## Profil dokumen wajib
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `AT-RM-69` | AC-33 | Menambah kriteria pada profil `RJ` lewat API | Integrasi | Kunjungan RJ yang belum `Complete` dinilai ulang dan menampilkan kekurangan baru, tanpa rilis program |
+| `AT-RM-70` | `VAL-RM-A04`–`A07` **(gagal)** | Profil tanpa jenis kunjungan; kode kembar; kriteria kembar | API | `400`, `409`, `409` |
+| `AT-RM-71` | `RuleNotFound` | Kunjungan berjenis `Unknown` | Integrasi | `Undetermined` dengan rincian aturan tidak ada |
+
+## Addendum pengesahan
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|---|
+| `AT-RM-72` | AC-37, `RM-DEC-049` | Penulis mengesahkan catatan `LockedUnsigned` | Integrasi | Addendum `Attestation` tersimpan; status tetap `LockedUnsigned`; rincian "tidak ditandatangani" hilang |
+| `AT-RM-73` | `VAL-RM-A01`, `A02` **(gagal)** | Pengesahan atas catatan `Signed`; pengesahan kedua | API | `409` dua-duanya |
+| `AT-RM-74` | `VAL-RM-A03` **(gagal)** | Pengguna lain tanpa jalur pengganti mencoba mengesahkan | API | `403` |

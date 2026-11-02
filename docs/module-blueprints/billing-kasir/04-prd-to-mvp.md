@@ -3650,3 +3650,140 @@ Sesudah revisi ini:
 > dijawab pemilik: item tarif admin **tidak dipakai** (`BKC-DEC-167`), sehingga adendum `BKC-DES-092` dicabut. Uji penerimaan
 > tambahan yang tetap berlaku hanya `BIL-AT-230` (kata "Administrasi" pada deskripsi tidak berpengaruh), dan butir DoD
 > `FR-BKC-279`–`282` mencakupnya.
+
+---
+
+# Amendment 26 Oktober 2026 — Jasa Medis pada Item Tagihan (Revisi 2.4)
+
+## A. Identitas Dokumen
+
+| Field | Nilai |
+|---|---|
+| Revisi blueprint | `2.4` — status **draft**; revisi `2.3` tetap `approved` dan berlaku |
+| Masukan keputusan bisnis | `BKC-DEC-168`..`178` (approved 26 Oktober 2026); `BKC-OQ-143` dicabut; `BKC-OQ-148` terbuka |
+| Kriteria penerimaan | `BKC-AC-114`..`126`; uji `BIL-AT-231`..`248` |
+| Keputusan arsitektur | `BKC-DES-093`..`103` (`02-backend-architecture.md` §25) |
+| Kemampuan asal | **Belum ada ID `CAP-BIL-*`.** Capability map (revisi `0.6`) tidak memuat `DoctorShare` maupun pelaksana; fakta source F1–F13 dicatat langsung di decision log. Perlu impact scan `trace-existing-capabilities` |
+| Permintaan lintas modul | Medical Fee `MF-CQ-08`, `MF-CQ-05` (`medical-fee/evidence/01`, `evidence/04`) |
+| Backend SHA | `ecddd8f8` · Frontend SHA `e2c17153b` |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada konteks atau konsep domain baru; batas kepemilikan diputuskan `BKC-DEC-168`, `173`, `176` |
+
+## B. Ringkasan Eksekutif
+
+Medical Fee sedang dibangun untuk menghitung jasa tenaga medis. Supaya angkanya tidak lagi diketik, Billing menyerahkan dua hal:
+bagian dokter pada setiap baris tagihan kini diambil dari aturan tarif Medical Fee, dan kasir dapat menandai entri bebas sebagai layanan
+berjasa beserta pelaksananya. Tagihan pasien tidak berubah sepeser pun, dan pencatatan tagihan tidak pernah gagal karena Medical Fee.
+
+## C. Masalah Produk
+
+| Masalah | Akibat yang dirasakan |
+|---|---|
+| Entri biaya bebas kasir tidak menyimpan siapa pelaksananya | Jasa dokter untuk layanan yang diinput kasir hilang tanpa jejak dari perhitungan jasa bulanan |
+| `DoctorShare` hampir selalu nol (F1, F2) | Diskon bertipe dokter praktis tidak dapat dipakai; `BilApHandoff` selalu nol |
+| Tidak ada sumber angka jasa yang dapat dijelaskan | Perhitungan jasa ±220 dokter per bulan dikerjakan manual di Excel (transcript meeting 15 Juli 2026, dikutip `medical-fee/evidence/01`) |
+
+## D. Batas Rilis
+
+| Batas | Titik konkret |
+|---|---|
+| **Titik mulai** | Kasir mencatat entri dari katalog tarif atau biaya lain-lain |
+| **Titik akhir** | Baris tagihan tersimpan dengan pelaksana (bila berjasa), `DoctorShare` dari Medical Fee atau nol beserta asal nilainya, dan dapat dibaca Medical Fee |
+| **Pelaku sasaran** | Kasir; Billing (otomatis); Medical Fee (pembaca dan penyedia persentase) |
+
+## E. Kemampuan `MUST HAVE`
+
+| Kemampuan | ID kemampuan asal | Status |
+|---|---|---|
+| Penanda berjasa dan pelaksana pada entri katalog dan biaya lain-lain | Belum ada (lihat A) | **Wajib** (`BKC-DEC-171`, `172`) |
+| `DoctorShare` dari Medical Fee lewat port, nol bila tanpa aturan atau tidak terjangkau | Belum ada | **Wajib** (`BKC-DEC-168`..`170`, `175`) |
+| Pencatatan tidak pernah gagal karena Medical Fee | Belum ada | **Wajib** (`INV-MF-1`) |
+| Tulis ulang pada pembaruan sumber; salin pada retur dan item pengganti | Belum ada | **Wajib** (`BKC-DEC-177`) |
+| Baris katalog tidak menggabung dua pelaksana | Belum ada | **Wajib** (`BKC-DES-098`) |
+
+## F. Kemampuan yang Ditunda
+
+| Kemampuan | Alasan bersebab | Penggantinya selama ditunda |
+|---|---|---|
+| `DoctorShare` dan pelaksana untuk sumber klinis | Pemilik modul sumber belum mengonfirmasi (`BKC-OQ-148`) | Jembatan klinis tetap menulis nol (perilaku hari ini); Medical Fee menghitung jasa sumber klinis langsung dari tabel sumber saat periode |
+| Pilihan pelaksana non-dokter di layar kasir | `BKC-OQ-151` | API sudah menerimanya; layar hanya menawarkan dokter |
+| Bagian dokter untuk entri bebas tanpa tarif | `BKC-OQ-150`, milik Medical Fee | Nol di Billing; pelaksana tetap terbaca Medical Fee |
+| Implementasi port yang sungguhan | Milik Medical Fee (`BE-MDF-016`) | Implementasi bawaan menjawab "tidak tersedia"; `DoctorShare` nol seperti hari ini |
+
+## G. Epic dan Functional Requirement
+
+### `EPIC BKC-30` — Jasa Medis pada Entri Kasir (`MUST HAVE`)
+
+| ID | Functional requirement | Disposisi backend |
+|---|---|---|
+| `FR-BKC-286` | Enam kolom baru dan empat check constraint pada `BilInvoiceItem` (`data/data-dictionary.md` revisi 2.4), lewat satu migration yang dibuat dan dijalankan dengan otorisasi terpisah | `EXTEND` |
+| `FR-BKC-287` | Port `IBillingDoctorShareResolver` dan implementasi bawaan `NullBillingDoctorShareResolver`, terdaftar dengan `TryAddScoped` | `MISSING / NEW` |
+| `FR-BKC-288` | `catalog-charges` dan `other-charges` menerima penanda berjasa dan pelaksana; validasi `BIL-VAL-161`..`165`; `from-source` `BIL-VAL-166` | `EXTEND` |
+| `FR-BKC-289` | `UpsertChargeAsync` memanggil port sebelum transaksi (`BKC-DES-095`), menghitung `DoctorShare` (`BKC-DES-096`), mencatat asal nilainya (`BKC-DES-097`), dan menulis ulang pada pembaruan sumber (`BKC-DES-101`). Hash isi sesuai `BKC-DES-099`/`100` | `EXTEND` |
+| `FR-BKC-290` | Penggabungan baris katalog hanya untuk pelaksana yang sama; pengiriman ulang berbeda pelaksana `409` (`BKC-DES-098`, `BIL-VAL-167`) | `EXTEND` |
+| `FR-BKC-291` | Tinjauan item pengganti dan retur obat menyalin enam kolom baru (`BKC-DES-101`) | `EXTEND` |
+| `FR-BKC-292` | Respons item membawa pelaksana, nama tampilan, dan asal `DoctorShare`; peristiwa audit `BillingInvoice.DoctorShareUnavailable` | `EXTEND` |
+| `FR-BKC-293` | Layar `BIL-SCR-46`, `47`, `48` (`03-frontend-architecture.md` amendment revisi 2.4) | `EXTEND` (frontend) |
+
+### `EPIC BKC-31` — Pelaksana dan `DoctorShare` untuk Sumber Klinis (**`OPEN DECISION`**)
+
+| ID | Functional requirement | Disposisi backend |
+|---|---|---|
+| `FR-BKC-294` | Fakta modul sumber membawa pelaksana; jembatan Billing meneruskannya ke port (`BKC-DEC-176`, `BIL-INT-025`) | `OPEN DECISION` — `BKC-OQ-148` |
+
+`EPIC BKC-31` **MUST NOT** masuk gelombang mana pun sampai `BKC-OQ-148` ditutup.
+
+## H. Skenario UAT
+
+### Jalur berhasil
+
+| Skenario | Langkah | Hasil |
+|---|---|---|
+| Konsultasi berjasa dari katalog | Kasir memilih tarif Rp 500.000, mencentang berjasa, memilih dr. Rina, menyimpan | Baris tersimpan; nama dr. Rina tampil di bawah item |
+| Medical Fee sudah terpasang | Sama, aturan 40% berlaku | `DoctorShare` Rp 200.000 (dibuktikan lewat data, tidak tampil ke kasir) |
+| Medical Fee belum terpasang | Sama | Baris tersimpan seperti biasa; `DoctorShare` Rp 0, asal "tidak terjangkau" |
+| Dua dokter, tarif sama | dr. Rina lalu dr. Budi untuk tarif yang sama | Dua baris terpisah |
+| Entri materai | Kasir menyimpan tanpa mencentang berjasa | Tidak ada perbedaan dari hari ini |
+
+### Jalur gagal
+
+| Skenario | Langkah | Hasil |
+|---|---|---|
+| Lupa memilih dokter | Centang berjasa tanpa dokter, simpan | Ditolak; pesan meminta memilih pelaksana; tidak ada baris |
+| Dokter tidak aktif | Memilih dokter yang sudah dinonaktifkan HR (lewat data lama di layar) | Ditolak; tidak ada baris |
+| Medical Fee gangguan | Port melempar kesalahan | Baris **tetap** tersimpan; jejak audit tercatat |
+| Kirim ulang berbeda dokter | Percobaan ulang kunci yang sama dengan dokter lain | Ditolak `409` |
+| Produsen klinis mengirim pelaksana | `from-source` domain `LABORATORY` dengan pelaksana | Ditolak `422` |
+
+## I. Definition of Done
+
+| Butir | Dijawab dengan bukti |
+|---|---|
+| Migration `AddBilInvoiceItemPerformerAndDoctorShareTrace` dibuat dan dijalankan dengan otorisasi eksplisit terpisah | Laporan task dan catatan otorisasi |
+| `FR-BKC-286`..`292` terimplementasi dengan `BIL-AT-231`..`248` tercatat dan lulus | Laporan task |
+| `FR-BKC-293` terimplementasi; akses peran Kasir ke daftar dokter HR terverifikasi | Laporan task frontend |
+| Perilaku sebelum Medical Fee terpasang terbukti identik dengan hari ini (`DoctorShare` nol, tagihan tidak berubah) | `BIL-AT-232`, `BIL-AT-239` |
+| `dotnet build` dan test dijalankan dan hasilnya tercatat | Laporan task |
+| Medical Fee diberi tahu port, `BIL-INT-024`, dan `BKC-OQ-150` | Balasan pada `medical-fee/evidence/04` atau berkas evidence baru |
+| Medical Fee dan Finance menegaskan `MdfFinanceHandoff` satu-satunya sumber utang jasa (`BKC-DEC-173`) | Catatan penegasan |
+
+## J. Urutan Pengiriman
+
+| Urutan | Gelombang | Isi | Prasyarat |
+|---:|---|---|---|
+| 1 | `MVP-38` | `FR-BKC-286` (migration) | Otorisasi migration |
+| 2 | `MVP-38` | `FR-BKC-287`..`292` | Urutan 1 |
+| 3 | `MVP-38` | `FR-BKC-293` | Urutan 2 |
+| 4 | Di luar Billing | Implementasi port oleh Medical Fee (`BE-MDF-016`), Medical Fee membaca pelaksana (`BE-MDF-015`) | Urutan 2 (port) dan urutan 1 (kolom) |
+| — | `POST-MVP` | `EPIC BKC-31` | `BKC-OQ-148` ditutup |
+
+`MVP-38` tidak bergantung pada `MVP-36`, `MVP-37`, maupun revisi 2.3.
+
+## K. Pertanyaan Terbuka Sebelum Development Lock
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `BKC-OQ-148` | Konfirmasi modul sumber klinis membawa pelaksana | Pemilik Clinical, Laboratorium, Operating Room | `EPIC BKC-31` saja |
+| `BKC-OQ-149` | Pertentangan `BKC-DEC-170` dengan `from-source` di luar Rawat Jalan/Rawat Inap | Pemilik Billing | Tidak memblokir `MVP-38` |
+| `BKC-OQ-150` | Bagian dokter entri bebas tanpa tarif | Pemilik Medical Fee | Tidak memblokir |
+| `BKC-OQ-151` | Pelaksana non-dokter di layar kasir | Pemilik Billing | Tidak memblokir |
+| Approval desain | `BKC-DES-093` (port in-process, bukan endpoint) dan `BKC-DES-097` (dua kolom jejak di luar bunyi `BKC-DEC-171`) perlu disetujui eksplisit | Pemilik Billing | **Memblokir** `plan-module-delivery` |

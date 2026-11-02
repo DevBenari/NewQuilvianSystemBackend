@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.MedicalRecordManagement
@@ -21,6 +22,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Medic
             // Urutan koreksi terbaca pasti dan tidak dapat kembar.
             builder.HasIndex(x => new { x.IntegrityId, x.Sequence })
                 .IsUnique();
+
+            // BE-38: bawaan Correction supaya addendum lama terbaca koreksi; paling banyak satu
+            // pengesahan per catatan (VAL-RM-A02).
+            builder.Property(x => x.AddendumPurpose).HasDefaultValue(ClinicalNoteAddendumPurpose.Correction);
+            builder.HasIndex(x => x.IntegrityId, "IX_MrcClinicalNoteAddendum_IntegrityId_Attestation")
+                .IsUnique()
+                .HasFilter("\"AddendumPurpose\" = 2 AND \"IsDelete\" = false");
 
             builder.HasIndex(x => x.AuthorUserId);
             builder.HasIndex(x => x.DelegationId);

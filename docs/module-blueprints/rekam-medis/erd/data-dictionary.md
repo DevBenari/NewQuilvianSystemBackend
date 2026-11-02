@@ -422,3 +422,105 @@ seseorang.
 
 Perkiraan volume beserta dasar perhitungannya ada pada
 [jejak-akses.md](jejak-akses.md) bagian 4.
+
+---
+
+# Amandemen revision 4 — Kamus data kelengkapan berkas dan penutupan klinis
+
+Status **`approved`** (Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`)). ERD: `erd/kelengkapan-berkas.md`. Seluruh tabel mewarisi `IdentityModel`;
+kesepuluh kolom auditnya tidak diulang.
+
+## `MrcEncounterClinicalClosure` — Baru
+
+Satu baris per kunjungan yang sudah tutup klinis (`AGG-RM-02`, `RM-DEC-051`). Insert-only.
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Validasi | Sensitif |
+|---|---|:---:|---|---|---|:---:|
+| `Id` | `uuid` | Ya | baru | — | PK | Tidak |
+| `EncounterId` | `uuid` | Ya | — | — | FK `RegPatientEncounter`; unik | Tidak |
+| `PatientId` | `uuid` | Ya | — | — | FK `MstPatient`; sama dengan pasien kunjungan | Tidak |
+| `ClinicalClosedAt` | `timestamptz` | Ya | — | — | UTC; `encounterClosedAtUtc` dari pemanggil, atau waktu sekarang | Tidak |
+| `ClosureSource` | `integer` (`ClinicalClosureSource`) | Ya | — | — | Nilai enum sah | Tidak |
+| `ClosedByUserId` | `uuid` | Tidak | — | — | Pelaku penutupan | Tidak |
+
+Contoh (data samaran): kunjungan rawat inap `…-4F1A` ditutup episodenya Senin 27 Oktober 2026
+pukul 10.15 WIB → `ClinicalClosedAt = 2026-10-27T03:15:00Z`, `ClosureSource = 6` (`InpatientDischarge`).
+
+## `MrcEncounterCompletenessAssessment` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Validasi | Sensitif |
+|---|---|:---:|---|---|---|:---:|
+| `Id` | `uuid` | Ya | baru | — | PK | Tidak |
+| `EncounterId` | `uuid` | Ya | — | — | FK; unik | Tidak |
+| `PatientId` | `uuid` | Ya | — | — | FK | Tidak |
+| `ClinicalClosureId` | `uuid` | Ya | — | — | FK; unik | Tidak |
+| `State` | `integer` (`CompletenessState`) | Ya | — | — | `Complete`, `Incomplete`, `AwaitingResult`, `Undetermined` | Tidak |
+| `DeficiencyCount` | `integer` | Ya | `0` | ≥ 0 | Sama dengan panjang `Deficiencies` | Tidak |
+| `Deficiencies` | `jsonb` | Ya | `[]` | — | Larik objek; lihat bentuk di bawah | **Ya** — memuat id penulis |
+| `EvaluatedAt` | `timestamptz` | Ya | — | — | UTC | Tidak |
+| `ProfileFingerprint` | `varchar(64)` | Ya | — | 64 | Sidik profil yang dipakai (id + waktu ubah), untuk mengenali penilaian yang dibuat dengan aturan lama | Tidak |
+| `FirstCompletedAt` | `timestamptz` | Tidak | — | — | Diisi sekali saat pertama kali `Complete`; tidak dihapus bila keadaan turun | Tidak |
+| `NextCheckAt` | `timestamptz` | Tidak | — | — | Kosong bila `Complete` | Tidak |
+| `IsExcluded` | `boolean` | Ya | `false` | — | `true` bila kunjungan kemudian batal | Tidak |
+| `Version` | `integer` | Ya | `0` | — | Concurrency token; naik setiap simpan | Tidak |
+
+Bentuk satu butir `Deficiencies`:
+
+| Field | Tipe | Isi |
+|---|---|---|
+| `type` | angka `CompletenessDeficiencyType` | Jenis kekurangan |
+| `criterion` | angka `CompletenessCriterion` atau `null` | Untuk `MissingRequiredDocument` |
+| `documentKind` | angka `ClinicalDocumentKind` atau `null` | Untuk `UnsignedDocument`, `PendingResult` |
+| `documentId` | `uuid` atau `null` | Dokumen di sumbernya |
+| `sourceKind` | angka `ClinicalDocumentKind` atau `null` | Untuk `SourceUnavailable` |
+| `responsibleUserId` | `uuid` atau `null` | Penulis yang perlu dihubungi |
+| `label` | teks ≤ 200 | Kalimat untuk petugas, mis. "Catatan anestesi belum ada". **Dilarang** memuat isi klinis |
+
+`Deficiencies` dan seluruh barisnya **tidak boleh** masuk payload logger.
+
+## `MstMedicalRecordCompletenessProfile` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Validasi | Sensitif |
+|---|---|:---:|---|---|---|:---:|
+| `Id` | `uuid` | Ya | baru | — | PK | Tidak |
+| `Code` | `varchar(30)` | Ya | — | 30 | Unik di antara baris tidak terhapus; huruf besar, angka, `-` | Tidak |
+| `Name` | `varchar(150)` | Ya | — | 150 | Tidak kosong | Tidak |
+| `EncounterType` | `integer` (`EncounterType`) | Tidak | — | — | Wajib bila `Condition = None` | Tidak |
+| `ServiceUnitType` | `integer` (`ServiceUnitType`) | Tidak | — | — | Kosong = semua jenis unit | Tidak |
+| `Condition` | `integer` (`CompletenessCondition`) | Ya | `0` | — | — | Tidak |
+| `IsActive` | `boolean` | Ya | `true` | — | — | Tidak |
+| `SortOrder` | `integer` | Ya | `0` | — | — | Tidak |
+
+Kunci unik `(EncounterType, ServiceUnitType, Condition)` membandingkan nilai kosong sebagai sama.
+`NULLS NOT DISTINCT` membutuhkan PostgreSQL 15 atau lebih baru; bila server lebih lama, implementer
+memakai index ekspresi `COALESCE(…, -1)`.
+
+## `MstMedicalRecordCompletenessProfileItem` — Baru
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Validasi | Sensitif |
+|---|---|:---:|---|---|---|:---:|
+| `Id` | `uuid` | Ya | baru | — | PK | Tidak |
+| `ProfileId` | `uuid` | Ya | — | — | FK profil | Tidak |
+| `Criterion` | `integer` (`CompletenessCriterion`) | Ya | — | — | Nilai katalog sah; unik per profil | Tidak |
+| `SortOrder` | `integer` | Ya | `0` | — | — | Tidak |
+| `IsActive` | `boolean` | Ya | `true` | — | — | Tidak |
+
+## `MrcClinicalNoteAddendum` — Diperbarui
+
+Hanya kolom baru yang ditulis; kolom lain lihat bagian rilis pertama di atas.
+
+| Kolom | Tipe | Wajib | Bawaan | Batas | Validasi | Sensitif |
+|---|---|:---:|---|---|---|:---:|
+| `AddendumPurpose` | `integer` (`ClinicalNoteAddendumPurpose`) | Ya | `1` (`Correction`) | — | `2` (`Attestation`) hanya bila catatan `LockedUnsigned`; paling banyak satu `Attestation` per catatan | Tidak |
+
+## Tabel yang sudah ada dan dipakai aturan amandemen
+
+| Tabel | Kolom kunci yang dipakai | Model |
+|---|---|---|
+| `RegPatientEncounter` | `Id`, `PatientId`, `EncounterType`, `ServiceUnitId`, `EncounterStatus`, `CompletedAt`, `IsReferral` | `RegistrationManagement/Models/RegPatientEncounter.cs` |
+| `MstServiceUnit` | `Id`, `ServiceUnitType` | `MasterData/Models/MstServiceUnit.cs` |
+| `MrcClinicalDocumentIntegrity` | `DocumentKind`, `DocumentId`, `EncounterId`, `IntegrityStatus`, `LockedEncounterClosedAt` | `MedicalRecordManagement/Models/MrcClinicalDocumentIntegrity.cs` |
+| `TrxPatientAssessment` | `EncounterId`, `AssessmentType`, `AssessmentStatus` | `ClinicalManagement/Models/TrxPatientAssessment.cs` |
+| `TrxPatientDiagnosis` | `EncounterId`, `IsPrimary`, `DiagnosisType`, `DiagnosisStatus` | `ClinicalManagement/Models/TrxPatientDiagnosis.cs` |
+| `TrxPatientIntegratedProgressNote` | `EncounterId`, `ProfessionType`, `IsCancel` | `ClinicalManagement/Models/TrxPatientIntegratedProgressNote.cs` |
+| Tabel sumber modul lain | Kolom final dan waktu final pada `02-backend-architecture.md` A4.10 | Model masing-masing modul |

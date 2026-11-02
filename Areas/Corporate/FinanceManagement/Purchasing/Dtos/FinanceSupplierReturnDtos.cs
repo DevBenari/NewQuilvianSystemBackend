@@ -71,6 +71,18 @@ public sealed class SupplierReturnDepositResponse
     public Guid RowVersion { get; set; }
 }
 
+/// <summary>GET / — daftar Retur Pembelian berpaging (FIN-API-1.1 §B.5, kolom Request
+/// `SupplierReturnQuery`, BE-FIN-122). Kontrak tidak merinci filternya; yang disediakan hanya
+/// yang sudah menjadi kolom data: Purchasing Invoice asal, supplier (lewat invoice asal), dan status.</summary>
+public sealed class SupplierReturnQuery
+{
+    public Guid? PurchasingInvoiceId { get; set; }
+    public Guid? SupplierId { get; set; }
+    public string? Status { get; set; }
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
+}
+
 public sealed class SupplierReturnDepositQuery
 {
     public Guid? SupplierId { get; set; }

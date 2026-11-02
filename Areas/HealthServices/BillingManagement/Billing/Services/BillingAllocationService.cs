@@ -132,6 +132,21 @@ public sealed class BillingAllocationService
                 throw new BillingAllocationConflictException(
                     "Data telah berubah. Muat ulang sebelum melanjutkan.");
 
+            // Validasi kesiapan pembayaran akhir rawat inap dari keputusan DPJP dan administrasi episode
+            if (string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
+            {
+                var readiness = await InpatientClearanceService.EvaluateInpatientDischargePaymentReadinessAsync(
+                    _dbContext, invoice.EncounterId, cancellationToken);
+                if (!readiness.CanProcessPayment)
+                {
+                    var reason = readiness.Blockers.Count > 0
+                        ? string.Join(" ", readiness.Blockers)
+                        : "Persyaratan pemulangan rawat inap belum lengkap.";
+                    throw new BillingAllocationValidationException(
+                        $"Alokasi deposit untuk pembayaran akhir rawat inap belum dapat diproses: {reason}");
+                }
+            }
+
             var calculation = await LoadCurrentCalculationAsync(invoice, cancellationToken);
             var positionBefore = await CalculateInvoicePositionAsync(
                 invoice.Id, calculation.PatientAmount, cancellationToken);
@@ -252,6 +267,14 @@ public sealed class BillingAllocationService
                 await _consumerHandoffService.PublishForClearanceChangeAsync(
                     invoice.Id,
                     PrescriptionClearanceReasonCodes.InvoiceSettled,
+                    actorUserId,
+                    now,
+                    request.CorrelationId,
+                    request.CorrelationId,
+                    cancellationToken);
+                await _consumerHandoffService.PublishForInpatientClearanceAsync(
+                    invoice.Id,
+                    InpatientClearanceReasonCodes.InvoiceSettled,
                     actorUserId,
                     now,
                     request.CorrelationId,

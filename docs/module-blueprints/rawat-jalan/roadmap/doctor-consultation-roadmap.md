@@ -1370,3 +1370,43 @@ kelas perawatan dan tanggal klien dihapus, diterbitkan lewat tombol sendiri oleh
 preview draft tidak dapat dicetak, surat yang menjadi dasar kunjungan aktif dibekukan. Surat Pengantar Rawat Inap
 (`InpatientAdmissionLetter`) tidak berubah. Amandemen rujukan pendaftaran bagian 19 (`RJ-DOC-REV-BE-018/019`,
 `FE-019/020`) diperluas oleh `RJ-REF-REV-BE-001`/`FE-001` tanpa mengubah status lamanya.
+
+## 21. Revisi `2026-10-28` — Katalog Resep dari stok Farmasi Rawat Jalan (Amendment SF)
+
+### 21.0 Dasar dan wewenang
+
+| Field | Isi |
+| --- | --- |
+| **Sumber requirement** | Sukma Giri, 28 Okt 2026, permintaan langsung (poin 1–3) |
+| **Keputusan** | `RJ-DOC-DEC-084`..`090` ([00-interview-decisions.md](../00-interview-decisions.md), *Amendment SF*); fakta `F-SF-1`..`4` |
+| **Data (sudah dieksekusi, bukan task)** | `DEC-084` pembersihan data uji, `DEC-085` tautan `GDG-023` ke `SU-OPD-001`, `DEC-086` saldo pembuka `GDG-023` |
+| **Kontrak** | `GET /api/v1/health-services/clinical-management/prescribing-drugs` menerima `fromPharmacyStock` (bool, opsional, bawaan `false`). Bila `true`: depo dari `PharmacyDepotRoutingService`; gagal routing → `400` berisi pesan routing; hanya obat yang punya saldo di depo; item menambah `stockStorageLocationId`, `stockStorageLocationName`, `availableStockQuantity`, `isStockAvailable`; `canSelect` ikut `false` bila stok tersedia `0`. Tanpa parameter, respons identik dengan sebelumnya |
+| **`IMPLEMENTATION_AUTHORITY`** | `GRANTED`, `CROSS-REPO MODE`, untuk `RJ-DOC-REV-BE-022` dan `RJ-DOC-REV-FE-022` (`RJ-DOC-DEC-088`). Tanpa migration, commit, push, merge, deploy |
+| **Migration** | Tidak ada |
+
+Legenda tanda status: `✅` selesai, `🟡` sebagian, `⛔` terblokir, tanpa tanda = belum dimulai.
+
+### Grafik Urutan Dependency
+
+```text
+RJ-DOC-REV-BE-022 ✅ ─> RJ-DOC-REV-FE-022 ✅ ─> RJ-DOC-REV-FE-023 ✅
+```
+
+| Gelombang | Task | Boleh mulai bila |
+| ---: | --- | --- |
+| 1 | `RJ-DOC-REV-BE-022` | Wewenang `RJ-DOC-DEC-088`; data `DEC-084`..`086` sudah dieksekusi |
+| 2 | `RJ-DOC-REV-FE-022` | `BE-022` selesai |
+| 3 | `RJ-DOC-REV-FE-023` | `FE-022` selesai; wewenang `RJ-DOC-DEC-090` |
+
+### 21.1 Task backend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-BE-022` | **Katalog resep berbasis stok depo.** `PrescribingDrugController.GetDrugs` menerima `fromPharmacyStock`. Bila `true`: (1) depo dari `PharmacyDepotRoutingService.ResolveAsync(encounterId)`; gagal → `400` dengan pesan routing. (2) Query obat dibatasi pada obat yang punya `PhmDrugStockBalance` tidak terhapus di depo itu. (3) Stok tersedia per obat halaman = jumlah `QuantityOnHand − QuantityReserved` berstatus `Available`, batch belum kedaluwarsa (aturan sama dengan kandidat FEFO). (4) Item respons menambah empat ruas kontrak; `canSelect = false` dan pesan kesiapan "Stok … habis" bila stok tersedia `0`. Tanpa parameter, perilaku lama identik (`DEC-087`) | — | 1. Kunjungan Rawat Jalan + `fromPharmacyStock=true` → `200`, `stockStorageLocationName` = `FARMASI RAWAT JALAN`, `availableStockQuantity` sama dengan query baca-saja saldo. 2. Saldo obat dibuat `0` → obat tetap tampil, `isStockAvailable=false`, `canSelect=false`. 3. Obat tanpa saldo di depo tidak tampil; `totalData` hanya menghitung obat bersaldo. 4. Tanpa parameter → respons sama dengan sebelum perubahan (jumlah dan ruas lama). 5. Encounter tanpa depo → `400` pesan routing | Build Release; EF tanpa perubahan model; QBE Strict; runtime HTTP R0..Rn ke `7185` dengan `QuilvianNewDevSukma` | ✅ `COMPLETE` `2026-10-28` — build Release `0 Error` (417 warning lama), EF tanpa perubahan model, QBE Strict `PASS` (3 berkas, VIOLATION 0), runtime `9/9 PASS` (R0–R8, baca-saja). AC 2 (stok `0`) dan cabang obat tanpa saldo AC 3 dibuktikan lewat kode; runtime `NOT RUN` karena seluruh obat berstok (`RJ-DOC-DEC-086`), uji stok `0` oleh owner. Delta: nama depo juga di tingkat halaman. Tanpa migration. Branch `sukmagp`, belum di-commit. [Laporan](../task/report/backend/RJ-DOC-REV-BE-022.md) |
+
+### 21.2 Task frontend
+
+| Task | Isi | Dependency | Acceptance criteria | Bukti | Status |
+| --- | --- | --- | --- | --- | --- |
+| ✅ `RJ-DOC-REV-FE-022` | **Stok di katalog Resep RJ.** (1) `useDoctorDrugCatalog` mengirim `fromPharmacyStock=true` (Obat Biasa dan Racikan). (2) `DoctorPrescriptionDrugCatalogPanel` menampilkan stok tersedia dan satuannya per baris serta nama depo. (3) Stok `0` → tombol **Pilih** nonaktif dengan keterangan stok habis; baris tetap tampil. (4) Pesan katalog menyebut stok Farmasi, bukan formularium master. Rawat Inap dan IGD tidak berubah | `BE-022` | 1. Baris menampilkan stok sesuai respons backend. 2. Stok `0` → Pilih nonaktif, `title` menjelaskan stok habis. 3. Racikan memakai sumber yang sama. 4. Galat routing tampil sebagai pesan katalog dengan Coba Lagi. 5. ESLint tanpa error baru; `npm run build` `PASS` | ESLint; `npm run build`; uji layar Playwright terhadap backend uji; laporan task dengan UI GATE | ✅ `COMPLETE` `2026-10-28` — ESLint `0 error` (3 berkas) dan `lint:errors` exit 0, `npm run build` `PASS`, UI GATE REUSE 4 / NEW 0, grep anti-regresi 0 temuan, uji layar Playwright `10/10 PASS` (dev 3000 → backend uji 7185; stok `0` dan galat routing lewat respons yang diubah di peramban). `npm run test:unit` `EXISTING / ENVIRONMENT ISSUE` (glob tidak didukung Node 20; suite manual 3.929/3.970, 41 gagal di berkas yang tidak disentuh). Branch `sukmagpV2`, belum di-commit. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-022.md) |
+| ✅ `RJ-DOC-REV-FE-023` | **Sembunyikan info tanggungan asuransi di Resep RJ (`RJ-DOC-DEC-089`).** (1) Satu konstanta saklar tampilan coverage resep RJ, bawaan mati. (2) Katalog Obat Biasa dan Racikan: tanpa badge Dicover, Perlu persetujuan, Perlu surat jaminan; harga tampil "Harga satuan" tanpa Estimasi pasien/Ditanggung Rp. (3) Form obat terpilih: tanpa chip Ditanggung/Tidak Ditanggung. (4) Modal Detail obat di tab Resep RJ: tanpa badge coverage dan pembatasan. Komponen bersama mendapat prop opsional dengan bawaan perilaku lama, sehingga Rawat Inap dan IGD tidak berubah | `FE-022` | 1. Pasien berasuransi: katalog, form, dan modal detail tidak menampilkan Ditanggung/Tidak Ditanggung, Dicover, Estimasi pasien, Ditanggung Rp, Perlu persetujuan, Perlu surat jaminan. 2. Harga tampil "Harga satuan Rp … per <satuan>". 3. Membalik konstanta menampilkan kembali seluruh info. 4. Katalog Rawat Inap tidak berubah. 5. ESLint tanpa error baru; `npm run build` `PASS` | ESLint; `npm run build`; uji layar Playwright pasien berasuransi; laporan task dengan UI GATE | ✅ `COMPLETE` `2026-10-28` — ESLint `0 error` (9 berkas), `lint:errors` exit 0, `npm run build` `PASS`, UI GATE REUSE 1 / EXTEND 3 / NEW 0 (prop opsional `showCoverage`, bawaan `true`), grep anti-regresi 0 temuan, uji layar `6/6 PASS` dengan respons berisi coverage lengkap, uji kontrol konstanta `true` memunculkan kembali seluruh label. Unit test 41 gagal identik dengan run sebelumnya (`EXISTING`). Tabel *Resep yang Dipilih* dan AC 4 (Rawat Inap) dibuktikan lewat kode. Branch `sukmagpV2`, belum di-commit. [Laporan](../task/report/frontend/RJ-DOC-REV-FE-023.md) |

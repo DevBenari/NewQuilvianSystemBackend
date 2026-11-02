@@ -386,3 +386,124 @@ keterangan cakupan. Kebebasan berlaku pada bentuknya, bukan pada ada atau tidakn
 | Portal pasien untuk melihat rekam medisnya sendiri | Di luar scope. `SelfServices` tidak memuat kemampuan klinis apa pun |
 | Penyuntingan catatan klinis dari layar rekam medis | Melanggar `RM-DEC-001` |
 | Pengunduhan seluruh riwayat sebagai satu berkas | Menciptakan salinan rekam medis di luar sistem tanpa jejak. Perlu keputusan pelepasan informasi lebih dulu |
+
+
+---
+
+# Roadmap revision 2 — Amandemen frontend
+
+```yaml
+module_id: RM-BP-001
+blueprint_revision: 4
+roadmap_revision: 2
+approved_by: [Yoga Aji Pratama]
+approved_at: 2026-10-28          # RM-DEC-062
+frontend_architecture: 03-frontend-architecture.md bagian "Amandemen revision 4"
+contract_versions:
+  api: 0.2.0 (approved, hash di blueprint-manifest.md "Revision 4 — approved")
+source_commits:
+  backend: 363de34f
+  frontend: f0a3b07b8
+```
+
+**Gerbang paralel terbuka.** Kontrak API `0.2.0` sudah disahkan dan hash-nya tercatat, sehingga
+task frontend boleh dikerjakan paralel dengan backend memakai API tiruan. Penyelesaian akhir
+setiap task tetap menunggu endpoint backend yang dipakainya, dan diuji ulang terhadap backend nyata.
+Mengubah bentuk kontrak membuat versi baru dan membatalkan gerbang ini.
+
+| Task | Gelombang | Epic | Ringkas | Endpoint backend | Status |
+|---|---|---|---|---|---|
+| `FE-10` | `MVP-0`–`MVP-2` | `RM-01`, `RM-02`, `RM-06` | Linimasa: jenis baru, penanda, `unavailableKinds`, pemberitahuan cakupan | `BE-21`, `BE-26` | **`SIAP`** (paralel) |
+| `FE-11` | `MVP-0` | `RM-04` | Baris ringkasan berkala dan rinciannya | `BE-22` | **`SIAP`** (paralel) |
+| `FE-12` | `MVP-5` | `RM-09` | Aksi "Sahkan isi catatan" | `BE-38` | **`SIAP`** (paralel) |
+| `FE-13` | `MVP-5` | `RM-07` | Layar Profil Dokumen Wajib + menu | `BE-37` | **`SIAP`** (paralel) |
+| `FE-14` | `MVP-6` | `RM-08` | Daftar kerja Kelengkapan Berkas + menu | `BE-39` | **`SIAP`** (paralel) |
+| `FE-15` | `MVP-6` | — | Uji antarmuka amandemen dan kesiapan | Seluruh di atas | `TERTAHAN DEPENDENCY` |
+
+## `FE-10` — Linimasa lintas modul
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-10` |
+| **Outcome** | Dokter membaca berkas lintas modul dan dapat membedakan susulan, pernah diralat, dapat berubah, belum tersedia, dan gangguan |
+| **Trace** | `RM-DEC-042`–`044`, `058`, `059`; `RM-FE-017`, `020`–`022`, `025`; `RM-CAP-041` |
+| **Kontrak** | API `0.2.0` A1 |
+| **Reuse** | `medical-record-timeline-list.jsx`, `medical-record-completeness-alert.jsx`, `medical-record-scope-notices.jsx`, `use-medical-record-timeline.js` |
+| **Scope** | Label jenis dari `documentKindName` backend; penanda tiga jenis; keterangan per `unavailableKinds`; teks pemberitahuan cakupan mengikuti jenis yang ditegakkan |
+| **Dependency** | Kontrak `0.2.0`; selesai akhir: `BE-21`, `BE-26` |
+| **Acceptance criteria** | 1) "Belum tersedia" dapat dibedakan dari "tidak ada dokumen". 2) Tiga penanda dapat dibedakan satu sama lain dan dari status keutuhan (`RM-FE-008`). 3) Pemberitahuan tidak lagi berbunyi "hanya CPPT" |
+| **Verification** | `node --import ./tests/helpers/register.mjs --test tests/unit/` untuk util penanda; E2E dengan API tiruan |
+| **DEV_DISCRETION** | Bentuk visual penanda (`RM-FE-025`) |
+| **DoD** | Kriteria terbukti; diuji ulang terhadap backend nyata |
+
+## `FE-11` — Ringkasan berkala
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-11` |
+| **Outcome** | Satu baris per jenis per hari yang dapat dibuka rinciannya |
+| **Trace** | `RM-DEC-052`; `RM-FE-026` |
+| **Kontrak** | A1 `periodicSummary`, `GET /{patientId}/periodic-observations` |
+| **Scope** | Baris ringkasan pada linimasa; rincian per hari; keadaan memuat/galat untuk rincian |
+| **Dependency** | Selesai akhir: `BE-22` |
+| **Acceptance criteria** | 1) Jumlah pada baris sama dengan jumlah rincian. 2) Galat rincian tidak menutup linimasa |
+| **Verification** | Uji unit util; E2E API tiruan |
+| **DEV_DISCRETION** | Baris dapat dibuka, modal, atau panel (`RM-FE-026`) |
+| **DoD** | Kriteria terbukti |
+
+## `FE-12` — Aksi pengesahan catatan
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-12` |
+| **Outcome** | Penulis mengesahkan catatan `LockedUnsigned` dari layar berkas atau "Catatan Saya Belum Ditandatangani" |
+| **Trace** | `RM-DEC-049`; `VAL-RM-A01`–`A03` |
+| **Kontrak** | A4 (`purpose = Attestation`) |
+| **Reuse** | `medical-record-addendum-actions.jsx`, `clinical-note-addendum.service.js`, endpoint `/authority` |
+| **Scope** | Tombol hanya untuk `LockedUnsigned` yang belum disahkan; kunci kirim ganda; pesan `409` apa adanya |
+| **Dependency** | Selesai akhir: `BE-38` |
+| **Acceptance criteria** | 1) Tombol tidak digambar untuk catatan `Signed`. 2) Klik ganda menghasilkan satu permintaan. 3) Sesudah berhasil, status catatan tetap tampil "terkunci tanpa tanda tangan" dengan keterangan sudah disahkan |
+| **Verification** | E2E API tiruan; UAT-18, UAT-19 |
+| **DoD** | Kriteria terbukti |
+
+## `FE-13` — Profil Dokumen Wajib
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-13` |
+| **Outcome** | Pengelola master mengubah daftar dokumen wajib tanpa rilis program |
+| **Trace** | `RM-DEC-045`, `047`, `060`; `RM-FE-029` |
+| **Kontrak** | A3 |
+| **Reuse** | Pola layar Keperluan Akses Rekam Medis (`FE-06`) |
+| **Scope** | `src/app/health-services/master-data/medical-record-completeness-profiles/` dan komponennya; menu di Master Data → Pasien & Rekam Medis |
+| **Dependency** | Selesai akhir: `BE-37` |
+| **Acceptance criteria** | 1) Profil tanpa butir dapat disimpan (unit Laboratorium/Radiologi). 2) Pesan `VAL-RM-A04`–`A07` tampil apa adanya. 3) Tidak ada tombol hapus — hanya nonaktif |
+| **Verification** | E2E API tiruan; UAT-13, UAT-14 |
+| **DEV_DISCRETION** | Bentuk form (`RM-FE-029`) |
+| **DoD** | Kriteria terbukti |
+
+## `FE-14` — Daftar kerja Kelengkapan Berkas
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-14` |
+| **Outcome** | Petugas rekam medis melihat kunjungan belum lengkap, seluruh kekurangannya, dan penulis yang perlu dihubungi |
+| **Trace** | `RM-DEC-046`, `048`; `RM-FE-023`, `024`, `027`, `028`; `VAL-RM-A08`, `A09` |
+| **Kontrak** | A2 |
+| **Scope** | `src/app/health-services/medical-record-management/completeness/` dan komponennya; menu di grup Rekam Medis; saringan; rincian; tombol nilai ulang; `Undetermined` tampil sebagai keadaan sendiri; `evaluatedAt` selalu terlihat |
+| **Dependency** | Selesai akhir: `BE-39` |
+| **Acceptance criteria** | 1) Kolom minimum `RM-FE-027` ada. 2) Seluruh kekurangan terlihat. 3) Membuka rincian memanggil `evaluate` lebih dulu. 4) Daftar kerja tidak menampilkan isi dokumen. 5) Tombol nilai ulang tidak digambar tanpa `Evaluate` |
+| **Verification** | E2E API tiruan; UAT-15, UAT-16, UAT-17 |
+| **DEV_DISCRETION** | Urutan kolom, bentuk rincian (`RM-FE-027`, `028`) |
+| **DoD** | Kriteria terbukti |
+
+## `FE-15` — Uji antarmuka dan kesiapan amandemen
+
+| Field | Isi |
+|---|---|
+| **Task ID** | `FE-15` |
+| **Outcome** | Bukti UAT-01 sampai UAT-19 pada backend nyata |
+| **Dependency** | `FE-10`–`FE-14` dan task backend pasangannya |
+| **Acceptance criteria** | Setiap UAT bertanda lulus atau dicatat terbuka beserta sebabnya (mis. sumber tertahan persetujuan modul) |
+| **Verification** | E2E standalone; laporan UAT |
+| **DoD** | Laporan kesiapan masuk `testing/` |

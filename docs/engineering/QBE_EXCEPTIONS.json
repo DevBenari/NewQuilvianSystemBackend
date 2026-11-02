@@ -10,6 +10,26 @@
       "ApprovedBy": "Muhammad Hamzah",
       "ApprovalReference": "BE-RWI-245",
       "NoExpiryRationale": "Model persisted pencacah urutan bayi obstetri ditempatkan di folder PatientManagement/MasterData mengikuti struktur controller pasien eksisting."
+    },
+    {
+      "ExceptionId": "EXP-QBE-MOD-002-MDF-001",
+      "RuleId": "QBE-MOD-002",
+      "Scope": "Areas/HealthServices/MedicalFeeManagement/MasterData/Models/MdfSharingAgreement.cs",
+      "Reason": "Entity operasional kesepakatan tarif sharing medis (BE-MDF-005) menggunakan prefix Mdf sesuai domain MedicalFeeManagement namun ditempatkan di sub-folder MasterData sesuai blueprint MDF-DES-001.",
+      "Status": "ACTIVE",
+      "ApprovedBy": "Yasmin",
+      "ApprovalReference": "BE-MDF-005",
+      "NoExpiryRationale": "Model persisted kesepakatan tarif ditempatkan di folder MedicalFeeManagement/MasterData mengikuti struktur blueprint MF-BP-001 revisi 1."
+    },
+    {
+      "ExceptionId": "EXP-QBE-MOD-002-MDF-002",
+      "RuleId": "QBE-MOD-002",
+      "Scope": "Areas/HealthServices/MedicalFeeManagement/MasterData/Models/MdfSharingRule.cs",
+      "Reason": "Entity operasional baris aturan tarif sharing medis (BE-MDF-005) menggunakan prefix Mdf sesuai domain MedicalFeeManagement namun ditempatkan di sub-folder MasterData sesuai blueprint MDF-DES-001.",
+      "Status": "ACTIVE",
+      "ApprovedBy": "Yasmin",
+      "ApprovalReference": "BE-MDF-005",
+      "NoExpiryRationale": "Model persisted aturan tarif sharing ditempatkan di folder MedicalFeeManagement/MasterData mengikuti struktur blueprint MF-BP-001 revisi 1."
     }
   ]
 }

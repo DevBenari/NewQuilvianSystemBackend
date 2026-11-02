@@ -930,5 +930,19 @@ public sealed class BillingArApHandoffService
                 CorrelationId = correlationId,
                 ActorUserId = actorUserId
             });
+
+    /// <summary>
+    /// Memicu sinkronisasi dan pengolahan otomatis fakta AR (BilArHandoff) milik invoice yang baru difinalisasi
+    /// menjadi FinReceivable di Finance segera setelah commit (FR-FIN-010..013).
+    /// </summary>
+    public async Task<int> ProcessInvoiceArHandoffsImmediatelyAsync(
+        Guid invoiceId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (_intakeService is null) return 0;
+        return await _intakeService.ProcessInvoiceArHandoffsImmediatelyAsync(
+            invoiceId, actorUserId, cancellationToken);
+    }
 }
 

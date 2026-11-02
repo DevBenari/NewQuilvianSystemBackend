@@ -143,3 +143,25 @@ Sebaliknya, tiga aturan berikut **tidak** dapat dijamin basis data dan wajib ada
 | `PrivateNote` | `RM-DEC-022` | `AT-RM-16` |
 | Pasien hasil penggabungan | `RM-CAP-007` | `AT-RM-22` |
 | Perubahan perilaku CPPT | `RM-DEC-019` | `AT-RM-19`, `AT-RM-20` |
+
+
+---
+
+# Amandemen — Validation `0.2.0` (`approved`)
+
+Disahkan Yoga Aji Pratama, 28 Oktober 2026 (`RM-DEC-062`).
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-RM-A01` | Addendum `Attestation` | Catatan bukan `LockedUnsigned` | "Pengesahan hanya untuk catatan yang terkunci tanpa tanda tangan." | `409` |
+| `VAL-RM-A02` | Addendum `Attestation` | Sudah ada pengesahan pada catatan itu | "Catatan ini sudah disahkan sebelumnya." | `409` |
+| `VAL-RM-A03` | Addendum `Attestation` | Pembuat bukan penulis asli dan tidak memakai jalur pengganti yang sah | Pesan addendum yang sudah ada (`RM-DEC-004`, `RM-DEC-020`) | `403` |
+| `VAL-RM-A04` | Profil | `Condition = None` tanpa `EncounterType` | "Pilih jenis kunjungan untuk profil ini." | `400` |
+| `VAL-RM-A05` | Profil | Kode atau kunci (jenis kunjungan, jenis unit, kondisi) sudah dipakai profil lain | "Profil untuk jenis kunjungan dan unit ini sudah ada." | `409` |
+| `VAL-RM-A06` | Butir profil | Kriteria tidak ada di katalog | "Kriteria tidak dikenal." | `400` |
+| `VAL-RM-A07` | Butir profil | Kriteria yang sama dipilih dua kali | "Kriteria yang sama tidak boleh dipilih dua kali." | `409` |
+| `VAL-RM-A08` | Nilai ulang | Kunjungan masih berjalan | "Kunjungan ini masih berjalan. Kelengkapan dinilai setelah pelayanan selesai." | `409` |
+| `VAL-RM-A09` | Nilai ulang | Kunjungan batal | "Kunjungan ini dibatalkan dan tidak dinilai kelengkapannya." | `409` |
+| `VAL-RM-A10` | Profil | `ServiceUnitType` atau `EncounterType` bukan nilai enum sah | "Jenis kunjungan atau jenis unit tidak dikenal." | `400` |
+| `VAL-RM-A11` | Ringkasan berkala | `kind` tidak dikenal atau `date` tidak sah | "Jenis pencatatan atau tanggal tidak dikenal." | `400` |
+| `VAL-RM-A12` | Rincian dokumen | Jenis `PathologyAnatomyResult` | "Hasil Patologi Anatomi belum tersedia di berkas rekam medis." | `404` |
