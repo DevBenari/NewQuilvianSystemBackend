@@ -135,7 +135,7 @@ Koreksi 2 Nov: sebelum perbaikan, seluruh toast modul ini bergaya `info`. Kata "
 | `npx eslint` atas dua berkas perbaikan (2 Nov) | 0 error, 1 warning `react-hooks/set-state-in-effect` pada `setResolvedId("")` | `EXISTING WARNING` | Baris lama, tidak disentuh perbaikan ini |
 | Grep anti-regresi UI atas dua berkas perbaikan (2 Nov) | Semua 0 | `PASS` | Tidak ada JSX atau style yang berubah |
 | Uji ulang no. 5 dari layar (2 Nov) | 19/19 cek terukur lulus | `PASS` | Bagian "Uji ulang no. 5" di bawah |
-| `npm run build` sesudah perbaikan 2 Nov | Tidak dijalankan | `NOT RUN` | Dev server aktif di port 3000, dan DoD kartu hanya meminta lint + uji layar. Build terakhir tetap yang 29 Okt |
+| `npm run build` sesudah perbaikan 2 Nov | Dijalankan Rizki 10.08; hasilnya belum dinyatakan | `NOT RUN` oleh agen | `.next/BUILD_ID` tertulis 10.12. Uji ulang no. 5 sendiri berjalan pada dev server sebelum itu. DoD kartu hanya meminta lint + uji layar |
 
 `AUTOMATED TEST: SKIPPED (opsional) — ketentuan proyek.`
 `MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-10-29, dua putaran; 19/20 PASS, no. 5 FAIL. Uji ulang no. 5 2026-11-02: PASS.`

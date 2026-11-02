@@ -54,12 +54,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Control
                     ? "Seluruh interval dicabut. Tanda lewat jadwal tidak tampil di TV."
                     : "Interval ukur ulang TTV berhasil disimpan.",
                 _logger, P.VitalSignInterval.Resource, P.Update,
-                x => new
-                {
-                    x.IsConfigured,
-                    Items = x.Items.Select(item => new { item.EwsRiskLevel, item.IntervalMinutes }).ToList(),
-                    request.RatificationReference,
-                    request.RatifiedOn
-                });
+                logMessage: _ => NvwVitalSignIntervalService.BuildAuditMessage(request));
     }
 }

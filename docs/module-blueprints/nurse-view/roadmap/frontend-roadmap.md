@@ -37,7 +37,7 @@ flowchart LR
     FENV001["✅ FE-NV-001<br/>Daftar perangkat dan menu"]:::selesai
     FENV002["✅ FE-NV-002<br/>Form perangkat dan aksi login"]:::selesai
     FENV003["FE-NV-003<br/>Login TV dialihkan ke papan"]:::belum
-    FENV004["🟡 FE-NV-004<br/>Layar interval TTV dan menu"]:::sebagian
+    FENV004["✅ FE-NV-004<br/>Layar interval TTV dan menu"]:::selesai
     FENV005["FE-NV-005<br/>Papan lantai tampil di TV"]:::belum
     FENV006["FE-NV-006<br/>Header perawat jaga tampil"]:::belum
     FENV007["FE-NV-007<br/>Papan bereaksi pada sinyal"]:::belum
@@ -75,7 +75,7 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 | ✅ `FE-NV-001` | Daftar perangkat dan menu | `FR-NV-005`; `NV-DEC-016` | api §1 | Pola daftar `queue-display-devices` | Layar `FE-NVW-01`, butir menu "Display Nurse View" | `BE-NV-002` | Kartu | lint + uji layar | — / Rizki | Kartu |
 | ✅ `FE-NV-002` | Form perangkat dan aksi login | `FR-NV-001`–`004`; `NV-DEC-022` | api §1 | Pola form `queue-display-devices/[slug]` | Layar `FE-NVW-02` | `BE-NV-002`, `FE-NV-001` | Kartu | lint + uji layar | Kata sandi tersimpan di state/log / Rizki | Kartu |
 | `FE-NV-003` | Login TV dialihkan ke papan | `FR-NV-018`; `NV-DEC-009`, `030` | api §3 `/current` | Pola `queue-display` di `use-base-login.jsx`, `proxy.js` | Berkas bersama FE + kerangka route `/nurse-view-display` | `BE-NV-003` | Kartu, termasuk regresi | lint + login empat akun | **Regresi redirect** / Rizki, syarat lead | Kartu |
-| 🟡 `FE-NV-004` | Layar interval TTV dan menu | `FR-NV-020`–`022`; `NV-DEC-010` | api §2 | Komponen form/tabel yang ada | Layar `FE-NVW-03`, butir menu "Interval TTV Nurse View" | `BE-NV-004` | Kartu | lint + uji layar | Angka bawaan di form / Rizki | Kartu |
+| ✅ `FE-NV-004` | Layar interval TTV dan menu | `FR-NV-020`–`022`; `NV-DEC-010` | api §2 | Komponen form/tabel yang ada | Layar `FE-NVW-03`, butir menu "Interval TTV Nurse View" | `BE-NV-004` | Kartu | lint + uji layar | Angka bawaan di form / Rizki | Kartu |
 | `FE-NV-005` | Papan lantai tampil di TV | `FR-NV-010`–`016`, `021`, `030`, `031`; `NV-DEC-007`, `013`, `014`, `017` | api §3 `/board` | Pola layar `queue-display-screen-view`, hook refresh, pendengar `offline` | Layar `FE-NVW-04` tanpa header roster dan tanpa realtime | `BE-NV-005`, `FE-NV-003` | Kartu | lint + uji di TV/peramban layar penuh | Keterbacaan ±3 m / Rizki | Kartu |
 | `FE-NV-006` | Header perawat jaga tampil | `FR-NV-017`; `NV-DEC-021` | api §3 `Wards[]` | — | Header per bangsal di `FE-NVW-04` | `BE-NV-006`, `FE-NV-005` | Kartu | lint + uji layar | — / Rizki | Kartu |
 | `FE-NV-007` | Papan bereaksi pada sinyal | `FR-NV-032`; `NV-DEC-023` | api §4 | `queue-realtime-client.js` / `signalrHubClient.jsx` | Join grup lantai, muat ulang saat event | `BE-NV-007`, `FE-NV-005` | Kartu | lint + simpan TTV sambil mengamati TV | — / Rizki | Kartu |
@@ -114,11 +114,11 @@ prasyarat frontend; prasyarat backend disebut pada kolom kedua dan wajib ✅ leb
 | Risiko | Syarat lead `NV-DEC-030`. Cabang Kiosk dan display antrean **tidak disunting** isinya |
 | DoD | AC terpetakan; lint lulus; rekaman login empat akun; laporan `FE-NV-003.md` mencantumkan diff ringkas kedua berkas bersama |
 
-### 🟡 FE-NV-004 — Layar interval TTV dan menu
+### ✅ FE-NV-004 — Layar interval TTV dan menu
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 SEBAGIAN — 2 November 2026. Route, butir menu, skema §3.3, dan mode baca saja terpetakan ke source; tanpa angka bawaan. `npx eslint` 8 berkas `0 errors`, 1 warning `EXISTING WARNING`; grep anti-regresi 0; UI GATE PASS (seluruh REUSE). Smoke layar dengan API **disimulasikan** 15/15, bukan dasar status selesai. **Belum terpenuhi:** uji gabungan dengan backend sungguhan (13 skenario, skrip siap), karena `BE-NV-004` belum di-build; tangkapan layar DoD baru dari simulasi. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`FE-NV-004.md`](../task/report/frontend/FE-NV-004.md) |
+| Status | ✅ SELESAI — 2 November 2026. Route, butir menu, skema §3.3, dan mode baca saja terpetakan ke source; tanpa angka bawaan. `npx eslint` 8 berkas `0 errors`, 1 warning `EXISTING WARNING`; grep anti-regresi 0; UI GATE PASS (seluruh REUSE). Uji dengan backend sungguhan: no. 1–12 `PASS` (no. 11 dan 12 memakai keadaan simulasi). No. 13 `FAIL` milik `BE-NV-004` dan tidak mengubah layar. `UAT-07` butuh `FE-NV-005`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`FE-NV-004.md`](../task/report/frontend/FE-NV-004.md) |
 | Outcome | Admin mengisi interval per tingkat EWS beserta nomor dan tanggal pengesahan |
 | Cakupan | Route `/administrator/master-data/nurse-view-vital-sign-intervals`; butir menu; skema §3.3; isian tanpa angka bawaan; mode baca saja bila tanpa `NurseViewVitalSignInterval : Update` |
 | Acceptance criteria | `NV-AC-004`; `VAL-NV-09`–`13`; `UAT-07`, `UAT-08`; status "Belum dikonfigurasi" saat kosong |

@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `Areas/HealthServices/NurseViewManagement/{Controllers,DTOs,Services}`, `Program.cs` (registrasi service), laporan dan status roadmap |
 | Model | Claude Opus 5.5 |
-| Commit backend saat dikerjakan | `8e4991cb` (branch `rizkiG`), perubahan belum di-commit |
+| Commit backend saat dikerjakan | `8e4991cb` (branch `rizkiG`); source di-commit Rizki sebagai `91a3f8e2` |
 | Tanggal | 2026-11-02 |
-| Status | 🟡 **SEBAGIAN** — source lengkap dan QBE Strict `PASS` (5 berkas). **Belum:** `dotnet build` oleh Rizki dan uji HTTP. Build terakhir 1 Nov 15.55 lebih tua dari source ini (2 Nov 09.02), dan route masih menjawab `404` pada 2 Nov 09.27 |
+| Status | 🟡 **SEBAGIAN** — QBE Strict `PASS`, build Rizki lulus, uji gabungan 12 dari 13 `PASS`. **Gagal: no. 13** — rujukan pencabutan interval tidak tersimpan di mana pun (§7). Perbaikan sudah ditulis sesuai keputusan Rizki 2 Nov, tetapi **belum di-build dan belum diuji ulang**. Verifikasi developer, bukan UAT |
 
 ---
 
@@ -81,10 +81,13 @@ membaca bila diberi `: Read`.
 | Berkas | Perubahan |
 | --- | --- |
 | `Areas/HealthServices/NurseViewManagement/Services/NvwVitalSignIntervalService.cs` | **Baru.** `GetActiveAsync`, `ReplaceAsync` |
-| `Areas/HealthServices/NurseViewManagement/Controllers/NvwVitalSignIntervalController.cs` | **Baru.** `GET /` dan `PUT /`; tanpa akses `ApplicationDbContext` langsung; log aksi memuat aktor, isi, dan rujukan |
+| `Areas/HealthServices/NurseViewManagement/Controllers/NvwVitalSignIntervalController.cs` | **Baru.** `GET /` dan `PUT /`; tanpa akses `ApplicationDbContext` langsung; log aksi memuat aktor, waktu, dan pesan. Payload yang dikirim ke `LoggerService` tidak ditulis ke log (§7) |
 | `Areas/HealthServices/NurseViewManagement/DTOs/NvwVitalSignIntervalDtos.cs` | **Baru.** Request dan response sesuai api §2 |
 | `Areas/HealthServices/NurseViewManagement/Services/NvwResult.cs` | +13 baris: kode dan pesan `VAL-NV-09`–`13` persis matriks, ditambah dua pesan delta di §3.3 |
 | `Program.cs` | +1 baris: `AddScoped<NvwVitalSignIntervalService>()` |
+| `Areas/HealthServices/NurseViewManagement/Services/NvwVitalSignIntervalService.cs` (perbaikan no. 13) | `BuildAuditMessage` menyusun pesan log. Contoh: "Interval ukur ulang TTV diganti: Sedang=240, Kritis=15. Rujukan: SK-KOMKEP/012/X/2026; disahkan 2026-10-20." atau "Seluruh interval dicabut. Rujukan: …; disahkan …." |
+| `Areas/HealthServices/NurseViewManagement/Controllers/NvwVitalSignIntervalController.cs` (perbaikan no. 13) | Payload log yang tidak pernah tertulis diganti pesan dari `BuildAuditMessage`. Pesan hanya disusun bila simpan berhasil, jadi `items:[null]` tetap `400`. Respons API tidak berubah |
+| `Areas/HealthServices/NurseViewManagement/Controllers/NvwHttp.cs` (perbaikan no. 13) | Parameter opsional `logMessage` pada `RespondAsync`. Pemanggil lain tidak berubah |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 
@@ -120,15 +123,22 @@ Kode status: `200` berhasil · `400` isian salah · `403` tanpa hak akses.
 | Pasangan `[AccessAction]` ↔ `[AccessPermission]` ↔ `ControllerName` | 2/2 cocok | `PASS` | Pemeriksaan manual atas controller |
 | Nol komentar baris | Nol hasil | `PASS` | `grep` atas 3 berkas baru |
 | Prasyarat data | `NvwVitalSignInterval` 0 baris, 0 aktif, sehingga uji tidak menimpa angka yang ada | `PASS` | `SELECT` baca saja (`default_transaction_read_only=on`) 2026-11-02 |
-| `dotnet build ./QuilvianSystemBackend.sln -p:RunAnalyzers=false` | Belum memuat source ini | `NOT RUN` | `bin/Debug/net9.0/QuilvianSystemBackend.dll` 1 Nov 15.55, sedangkan source 2 Nov 09.02 |
-| Uji HTTP | Belum | `NOT RUN` | `GET` tanpa login dijawab `404` pada 09.27; bila route ada, jawabannya `401` |
-| `bash tools/authorization-verifier/verify-authorization.sh` | Belum | `NOT RUN` | Dijalankan sesudah build |
+| `dotnet build ./QuilvianSystemBackend.sln -p:RunAnalyzers=false` | "Build succeeded with 412 warning(s) in 1738,5s", tanpa error | `PASS (pernyataan owner)` | Tangkapan layar Rizki 2 Nov; `QuilvianSystemBackend.dll` 10.05 memuat `NvwVitalSignIntervalController`; proses backend mulai 10.06; `GET` tanpa login dijawab `401` |
+| Uji gabungan layar + HTTP | No. 1–12 `PASS`, no. 13 `FAIL` | `FAIL` | [`FE-NV-004.md`](../frontend/FE-NV-004.md) §6; 16 cek HTTP validasi server ada pada no. 9 |
+| `bash tools/authorization-verifier/verify-authorization.sh` | Belum | `NOT RUN` | Skrip menjalankan `dotnet build`, jadi perintahnya milik Rizki |
 
 `AUTOMATED TEST: NOT APPLICABLE — backend tidak memelihara project test otomatis (rules/backend/TEST_POLICY.md)`
 
-Uji manual: `REQUIRED`. Skenario gabungan dengan layar ada di
+Uji manual: `FAIL` pada no. 13 saja. Skenario gabungan dengan layar ada di
 [`FE-NV-004.md`](../frontend/FE-NV-004.md) §6, sesuai keputusan Rizki 2 Nov agar uji cukup sekali.
-Skripnya sudah siap: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-004-20261102/uji-interval.mjs`.
+Bukti: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-004-20261102/run-2026-11-02T03-16-57-438Z/`.
+
+**Yang terbukti untuk backend (2 Nov):**
+- Ganti-seluruh: `GET` hanya memuat tingkat terbaru (`2:180`, `3:60`). `SELECT` baca saja menunjukkan dua baris lama bertanda hapus, dengan penghapus dan waktunya, dan angka lamanya tetap 720 dan 240.
+- Validasi: 11 kasus penolakan dijawab `400` dengan pesan dan kode persis matriks, tanpa perubahan data.
+- Batas: 1 dan 1440 menit serta tanggal hari ini diterima; pencabutan tanpa rujukan ditolak `VAL-NV-12`.
+- Hak akses: akun LOKET mendapat `403` pada `GET` dan `PUT`.
+- Keadaan akhir: `GET` `200`, nol baris aktif, enam baris riwayat uji.
 
 ---
 
@@ -136,11 +146,12 @@ Skripnya sudah siap: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `NV-AC-004` tanpa interval tidak ada tanda | Terpetakan ke source; belum diuji | `IsConfigured = false` saat kosong. Tanda di papan lingkup `BE-NV-005` |
-| `VAL-NV-09`–`13` | Terpetakan ke source; belum diuji | `NvwVitalSignIntervalService.ReplaceAsync` |
-| `UAT-08` Kritis 0 ditolak | Terpetakan ke source; belum diuji | `VAL-NV-11` |
-| `IsConfigured = false` saat kosong | Terpetakan ke source; belum diuji | `GetActiveAsync` |
-| DoD — build lulus | **Belum terpenuhi** | Menunggu Rizki |
+| `NV-AC-004` tanpa interval tidak ada tanda | Terpenuhi untuk lingkup task ini | No. 1: `IsConfigured = false`. Tanda di papan lingkup `BE-NV-005` |
+| `VAL-NV-09`–`13` | Terpenuhi | No. 9 |
+| `UAT-08` Kritis 0 ditolak | Sisi API terverifikasi developer; UAT belum dijalankan | No. 9, kasus "Menit 0" |
+| `IsConfigured = false` saat kosong | Terpenuhi | No. 1, 8 |
+| Rujukan pencabutan tercatat (`G-03`) | **Belum terpenuhi** | No. 13; lihat §7 |
+| DoD — build lulus | Terpenuhi | §5, pernyataan owner + DLL |
 | DoD — laporan ada | Terpenuhi | Berkas ini |
 
 **Backend Governance Preflight:** Area `HealthServices` · Module `NurseViewManagement` · prefix `Nvw`
@@ -155,10 +166,10 @@ Skripnya sudah siap: `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-
 
 | Hal | Isi |
 | --- | --- |
-| Status migration/database | Tanpa migration. Belum ada penulisan data dari task ini |
-| Masalah yang diketahui | **Rujukan pencabutan hanya tersimpan di log aplikasi.** Pencabutan tidak menyisipkan baris, dan rujukan baris lama tidak boleh ditimpa, jadi tabel tidak punya tempat untuknya. Penghapus dan waktunya tetap tercatat pada baris lama. Bila Komite butuh jejak permanen, perlu perubahan kamus data dan migration; itu keputusan Rizki |
+| Status migration/database | Tanpa migration. Uji meninggalkan enam baris `NvwVitalSignInterval` bertanda hapus berujukan `UJI-DEV-NV-004-*` di DB dev; nol baris aktif |
+| Masalah yang diketahui | **No. 13: rujukan pencabutan tidak tersimpan di mana pun.** Pencabutan tidak menyisipkan baris, dan rujukan baris lama tidak boleh ditimpa, jadi tabel tidak punya tempat untuknya. `LoggerService.WriteAsync` memakai `data` hanya untuk mengambil `Path`, `UserId`, dan sejenisnya, sehingga payload tidak ditulis: pencarian `RatificationReference` di log hari uji menghasilkan nol baris. **Koreksi:** versi laporan ini sebelumnya, yang ikut commit `91a3f8e2`, menyatakan rujukan pencabutan tersimpan di log; pernyataan itu keliru. Yang tercatat hanya siapa dan kapan (`DeleteBy`, `DeleteDateTime`, baris log aksi). **Keputusan Rizki 2 Nov:** nomor SK, tanggal, dan angka ditulis ke pesan log aksi, tanpa migration dan tanpa mengubah `LoggerService`. Source sudah diubah; menunggu build. **Batas yang diterima:** berkas log hanya disimpan 14 berkas (`RetainedFileCountLimit`), jadi jejak ini tidak permanen. Catatan serupa untuk `BE-NV-002` §3.3: payload log perangkat juga tidak tertulis; kata sandi tetap tidak masuk log |
 | Risiko tersisa | `GET` membaca rujukan dari baris aktif terbaru. Satu himpunan selalu memakai rujukan yang sama, dan kunci transaksi menjaga hal itu |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | `M Program.cs`, `M Areas/HealthServices/NurseViewManagement/Services/NvwResult.cs`, tiga berkas baru di `Areas/HealthServices/NurseViewManagement/`; laporan dan roadmap di `docs/module-blueprints/nurse-view/`. Belum di-commit |
-| Langkah berikutnya | Rizki mematikan backend, menjalankan `dotnet build ./QuilvianSystemBackend.sln -p:RunAnalyzers=false`, lalu menyalakannya lagi. Sesudah itu uji gabungan `FE-NV-004` §6 dijalankan |
+| Status Git | Source awal ada di commit `91a3f8e2`. Perbaikan no. 13 (`NvwHttp.cs`, controller, service), koreksi dokumen ini, dan status roadmap belum di-commit |
+| Langkah berikutnya | Rizki mematikan backend, menjalankan `dotnet build ./QuilvianSystemBackend.sln -p:RunAnalyzers=false`, lalu menyalakannya lagi. Sesudah itu ulangi no. 13 saja: `node test-with-agy/nurse-view/uji-nv-004-20261102/ulang-no13.mjs` |

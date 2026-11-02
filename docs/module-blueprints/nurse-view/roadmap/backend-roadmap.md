@@ -121,7 +121,7 @@ untuk tanda lewat jadwal. Tanpa angka sah papan tetap aman-gagal, tetapi service
 
 | Field | Isi |
 |---|---|
-| Status | 🟡 SEBAGIAN — 2 November 2026. Service, controller, dan DTO terpetakan ke api §2; `VAL-NV-09`–`13` terpetakan ke source. QBE Strict `PASS` (5 berkas, 0 violation, 0 review). **Belum terpenuhi:** `dotnet build` oleh Rizki (DLL 1 Nov 15.55 lebih tua dari source 2 Nov 09.02) dan uji HTTP/layar (route masih `404` pada 09.27). Skrip uji gabungan siap. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`BE-NV-004.md`](../task/report/backend/BE-NV-004.md) |
+| Status | 🟡 SEBAGIAN — 2 November 2026. Service, controller, dan DTO terpetakan ke api §2. QBE Strict `PASS` (5 berkas, 0 violation, 0 review); build Rizki `PASS` (412 warning, 0 error; DLL 10.05). Uji gabungan 12 dari 13 `PASS`; `VAL-NV-09`–`13` terbukti lewat HTTP. **Gagal: no. 13** — rujukan pencabutan interval tidak tersimpan di mana pun, karena tabel tidak punya tempatnya dan `LoggerService` tidak menulis payload. Perbaikan sesuai keputusan Rizki 2 Nov (pesan log aksi) sudah di source, **belum di-build dan belum diuji ulang**. `authorization-verifier` `NOT RUN`. Verifikasi developer, bukan UAT. Unit test dikecualikan atas keputusan Rizki Gunawan. Laporan: [`BE-NV-004.md`](../task/report/backend/BE-NV-004.md) |
 | Outcome | Admin memasukkan interval yang disahkan Komite; tanpa interval sistem aman-gagal |
 | Trace | `FR-NV-020`–`022`; `NV-DEC-010`; `G-01`, `G-03`; `VAL-NV-09`–`13` |
 | Cakupan | `NvwVitalSignIntervalService` (`GetActiveAsync`, `ReplaceAsync` dalam satu transaksi: baris lama `IsDelete`, baris baru disisipkan), `NvwVitalSignIntervalController` (`[AccessPermission("NurseViewVitalSignInterval", "Read"/"Update")]`), DTO |

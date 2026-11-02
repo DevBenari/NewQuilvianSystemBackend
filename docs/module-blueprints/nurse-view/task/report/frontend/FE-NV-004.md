@@ -11,7 +11,7 @@
 | Trace | `FR-NV-020`–`022`; `NV-DEC-010`; `NV-AC-004`; `VAL-NV-09`–`13`; layar `FE-NVW-03` (`03-frontend-architecture.md` §3.3) |
 | Contract version | `0.1.0` — `approved` |
 | Wewenang UI | Isi layar dikunci skema §3.3; nama butir menu dan urutannya `DEV_DISCRETION` |
-| Dependency | `BE-NV-004` 🟡 — source ada, belum di-build |
+| Dependency | `BE-NV-004` 🟡 — build lulus; kegagalan no. 13 ada pada jejak log backend dan tidak mengubah layar |
 | Klasifikasi | `MEDIUM` — berkas diubah lebih dari 4, logika sedang, kontrak yang ada, keadaan baca saja berkaitan dengan izin |
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` (branch `RizkiV2`) |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `298f2cecc` + working tree (belum di-commit) |
 | Commit backend yang dijadikan rujukan | `8e4991cb` + working tree `BE-NV-004` |
 | Tanggal | 2026-11-02 |
-| Status | 🟡 **SEBAGIAN** — source lengkap, `npx eslint` 0 error, smoke layar dengan API simulasi 15/15. **Belum:** uji gabungan dengan backend sungguhan, karena `BE-NV-004` belum di-build |
+| Status | ✅ **SELESAI 2 November 2026** — `npx eslint` 0 error; uji dengan backend sungguhan no. 1–12 `PASS`. No. 13 `FAIL` milik backend dan dicatat di `BE-NV-004`. Verifikasi developer, bukan UAT |
 
 ---
 
@@ -129,47 +129,52 @@ menit. Untuk angka klinis, perilaku itu bertentangan dengan `UAT-08`, yang mensy
 | Grep anti-regresi UI | Semua 0; juga nol `style={{` dan nol angka bawaan | `PASS` | 6 berkas baru |
 | Nol komentar baris | Nol hasil | `PASS` | `grep` |
 | Smoke layar dengan API **disimulasikan** di peramban | 15/15 cek lulus, `pageErrors` 0, nol tulis ke DB | `PASS` (layar saja) | `test-with-agy/nurse-view/uji-nv-004-20261102/smoke-2026-11-02T02-26-25-937Z/`. **Bukan bukti `BE-NV-004` dan bukan dasar status selesai** |
-| Uji gabungan dengan backend sungguhan | Belum | `NOT RUN` | Menunggu build `BE-NV-004` |
-| `npm run build` | Tidak dijalankan | `NOT RUN` | Dev server aktif di port 3000; DoD kartu meminta lint + uji layar |
+| Uji gabungan dengan backend sungguhan (2 Nov) | No. 1–12 `PASS`; no. 13 `FAIL` (milik backend) | `PASS` untuk lingkup layar | Tabel di bawah |
+| `npm run build` | Dijalankan Rizki 10.08; hasilnya belum dinyatakan | `NOT RUN` oleh agen | `.next/BUILD_ID` tertulis 10.12. Build kedua mulai 10.14 dan berhenti saat `npm run dev` dinyalakan 10.14.44. DoD kartu meminta lint + uji layar |
 
 `AUTOMATED TEST: SKIPPED (opsional) — ketentuan proyek.`
-`MANUAL TEST: REQUIRED — smoke simulasi selesai; uji gabungan menunggu build backend.`
+`MANUAL TEST: DONE — Playwright (Edge headless, ignoreHTTPSErrors) 2026-11-02; no. 1–12 PASS, no. 13 FAIL (backend).`
 
-### Skenario uji gabungan BE-NV-004 + FE-NV-004 — skrip siap, belum dijalankan
+### Skenario uji gabungan BE-NV-004 + FE-NV-004 — hasil 2026-11-02
 
-Skrip: `test-with-agy/nurse-view/uji-nv-004-20261102/uji-interval.mjs`. Verdict dihitung dari DOM,
-respons, dan `SELECT` baca saja. Skrip berhenti tanpa menulis bila interval sudah terisi, dan uji
-berakhir dalam keadaan kosong. Baris uji bertanda hapus tetap tersisa sebagai riwayat.
+Skrip: `test-with-agy/nurse-view/uji-nv-004-20261102/uji-interval.mjs`. Bukti:
+`run-2026-11-02T03-16-57-438Z/` (di-ignore git). Verdict dihitung dari DOM, respons, dan `SELECT` baca
+saja, tanpa SQL tulis. Menu dibuka lewat klik sidebar; pengecualiannya no. 11 dan 12, yang langsung
+membuka URL karena keadaannya disimulasikan. `pageErrors` 0. JSON bukti dipindai: nol kata sandi dan
+nol email. Aktor: `QUILVIAN_SUPERADMIN_*`; no. 10: `QUILVIAN_LOKET_*`.
 
-| No | Langkah | Hasil yang diharapkan | Membuktikan | Hasil |
+| No | Langkah | Hasil yang diharapkan | Membuktikan | Hasil 2 Nov |
 | ---: | --- | --- | --- | --- |
-| 1 | Klik sidebar Master Data › Interval TTV Nurse View | Butir sesudah Display Nurse View; `GET` `200`; "Belum dikonfigurasi"; empat isian kosong | Menu, `NV-AC-004`, `G-01` | `NOT RUN` |
-| 2 | Simpan tanpa isian | Pesan rujukan dan tanggal + toast merah; nol `PUT` | `VAL-NV-12` | `NOT RUN` |
-| 3 | Isi rujukan + tanggal saja | Toast "Belum Ada Interval"; nol `PUT`; tanggal masa depan nonaktif | `VAL-NV-13` | `NOT RUN` |
-| 4 | Kritis 0, lalu 2000 | Angka tidak berubah; pesan batas; nol `PUT` | `UAT-08`, `VAL-NV-11` | `NOT RUN` |
-| 5 | Rendah 720 + Sedang 240 → Simpan → F5 | `PUT` `200`; toast hijau; status + jejak ubah; nilai bertahan | `FR-NV-020` | `NOT RUN` |
-| 6 | Simpan tanpa perubahan | Toast info; nol `PUT` | Riwayat tidak kembar | `NOT RUN` |
-| 7 | Kosongkan Rendah, Sedang 180, Tinggi 60, rujukan baru | `GET` hanya dua tingkat baru; dua baris lama bertanda hapus di DB | Ganti-seluruh, `BE-NV-004` | `NOT RUN` |
-| 8 | Kosongkan semua → Batal → Ya, Cabut | Batal nol `PUT`; Ya: `Items` kosong; status kembali kosong | `FR-NV-022` | `NOT RUN` |
-| 9 | `PUT` langsung dengan isian salah (11 kasus) + batas 1 dan 1440 | `400` dengan pesan persis matriks; batas diterima | `VAL-NV-09`–`13` | `NOT RUN` |
-| 10 | Akun LOKET | `GET` dan `PUT` `403`; "Ups! Akses Ditolak"; bukan "Belum dikonfigurasi" | Hak akses | `NOT RUN` |
-| 11 | Baca saja (daftar izin disimulasikan) | Isian terkunci; tombol simpan tidak ada | Mode baca saja | `NOT RUN` |
-| 12 | `GET` 500 (disimulasikan) → Coba lagi | Galat tampil, bukan "Belum dikonfigurasi"; pulih sesudah coba lagi | 500 bukan kosong | `NOT RUN` |
-| 13 | Pindai log backend | Aksi dan rujukan pencabutan tercatat; nol kata sandi | `G-03`, `QBE-LOG-001` | `NOT RUN` |
+| 1 | Klik sidebar Master Data › Interval TTV Nurse View | Butir sesudah Display Nurse View; `GET` `200`; "Belum dikonfigurasi"; empat isian kosong | Menu, `NV-AC-004`, `G-01` | `PASS`: urutan Display Antrian › Display Nurse View › **Interval TTV Nurse View** › Cluster; `isConfigured` false, `items` kosong; DB nol baris (`S01`) |
+| 2 | Simpan tanpa isian | Pesan rujukan dan tanggal + toast merah; nol `PUT` | `VAL-NV-12` | `PASS` (`S02`) |
+| 3 | Isi rujukan + tanggal saja | Toast "Belum Ada Interval"; nol `PUT`; tanggal masa depan nonaktif | `VAL-NV-13` | `PASS` (`S03`) |
+| 4 | Kritis 0, lalu 2000 | Angka tidak berubah; pesan batas; nol `PUT` | `UAT-08`, `VAL-NV-11` | `PASS`: isian tetap "0" dan "2000" (`S04`) |
+| 5 | Rendah 720 + Sedang 240 → Simpan → F5 | `PUT` `200`; toast hijau; status + jejak ubah; nilai bertahan | `FR-NV-020` | `PASS`: payload persis kontrak; toast `rgba(22, 163, 74, 0.12)`; sesudah F5 isian 720 dan 240, label Rendah dan Sedang; DB dua baris aktif (`S05`) |
+| 6 | Simpan tanpa perubahan | Toast info; nol `PUT` | Riwayat tidak kembar | `PASS` (`S06`) |
+| 7 | Kosongkan Rendah, Sedang 180, Tinggi 60, rujukan baru | `GET` hanya dua tingkat baru; dua baris lama bertanda hapus di DB | Ganti-seluruh, `BE-NV-004` | `PASS`: `GET` `2:180`, `3:60`; baris 720 dan 240 bertanda hapus, dengan penghapus dan waktu (`S07`) |
+| 8 | Kosongkan semua → Batal → Ya, Cabut | Batal nol `PUT`; Ya: `Items` kosong; status kembali kosong | `FR-NV-022` | `PASS`: DB nol baris aktif, empat baris riwayat (`S08a`, `S08b`) |
+| 9 | `PUT` langsung dengan isian salah (11 kasus) + batas 1 dan 1440 | `400` dengan pesan persis matriks; batas diterima | `VAL-NV-09`–`13` | `PASS`: 16 cek; data tidak berubah oleh penolakan; pencabutan tanpa rujukan juga `400` (`S09`) |
+| 10 | Akun LOKET | `GET` dan `PUT` `403`; "Ups! Akses Ditolak"; bukan "Belum dikonfigurasi" | Hak akses | `PASS` (`S10`) |
+| 11 | Baca saja (daftar izin disimulasikan) | Isian terkunci; tombol simpan tidak ada | Mode baca saja | `PASS`; `GET` asli `200` (`S11`) |
+| 12 | `GET` 500 (disimulasikan) → Coba lagi | Galat tampil, bukan "Belum dikonfigurasi"; pulih sesudah coba lagi | 500 bukan kosong | `PASS` (`S12`, `S12a`) |
+| 13 | Pindai log backend — **milik `BE-NV-004`** | Aksi dan rujukan pencabutan tercatat; nol kata sandi | `G-03`, `QBE-LOG-001` | **`FAIL`**: lima baris aksi tercatat beserta aktor dan nol kata sandi, tetapi rujukan pencabutan tidak tercatat (`S13`; `BE-NV-004` §7) |
 
 No. 11 memakai daftar izin simulasi karena belum ada akun uji yang hanya punya hak baca interval.
 Dengan begitu, konfigurasi Akses Role sungguhan untuk kepala ruang tidak ikut terbukti.
+
+Keadaan akhir: `GET` `200`, belum dikonfigurasi; DB nol baris aktif dan enam baris riwayat uji.
 
 ## 7. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| `NV-AC-004` tanpa interval tidak ada tanda | Status layar terpetakan; belum diuji nyata | Smoke; tanda di TV lingkup `FE-NV-005` |
-| `VAL-NV-09`–`13` | Terpetakan; belum diuji nyata | `validateIntervalForm`; pesan matriks |
-| `UAT-07`, `UAT-08` | `UAT-08` terpetakan dan lulus smoke; `UAT-07` butuh `BE-NV-005`/`FE-NV-005`. UAT belum dijalankan | Smoke |
-| Status "Belum dikonfigurasi" saat kosong | Terpetakan; lulus smoke | `1-kosong.png` |
+| `NV-AC-004` tanpa interval tidak ada tanda | Terpenuhi untuk lingkup task ini | No. 1, 8. Tanda di TV lingkup `FE-NV-005` |
+| `VAL-NV-09`–`13` | Terpenuhi | No. 2–4 di layar, no. 9 di server |
+| `UAT-07`, `UAT-08` | `UAT-08` terverifikasi developer (no. 4). `UAT-07` butuh `BE-NV-005`/`FE-NV-005`. UAT **belum dijalankan** | §6 |
+| Status "Belum dikonfigurasi" saat kosong | Terpenuhi | No. 1, 8; `S01-kosong.png` |
+| Mode baca saja tanpa hak `Update` | Terpenuhi, dengan daftar izin simulasi | No. 11 |
 | DoD — lint | Terpenuhi | §6 |
-| DoD — tangkapan layar kosong dan terisi | **Hanya dari simulasi** | Belum dari backend sungguhan |
+| DoD — tangkapan layar kosong dan terisi | Terpenuhi | `S01-kosong.png`, `S05-terisi.png`, `S07-diganti.png` |
 | DoD — laporan ada | Terpenuhi | Berkas ini |
 
 ## 8. Catatan penutup
@@ -178,8 +183,8 @@ Dengan begitu, konfigurasi Akses Role sungguhan untuk kepala ruang tidak ikut te
 | --- | --- |
 | Peringatan | Warning lint satu, lihat §6 |
 | Masalah yang diketahui | Komponen bersama `normalizeNumberInputValue` meng-clamp diam-diam bila `min`/`max` diisi. Layar lain yang memakai pola itu, misalnya `inpatient-setting`, berperilaku sama. Di luar lingkup, tidak diperbaiki |
-| Dependency backend | `BE-NV-004` 🟡: menunggu build oleh Rizki |
+| Dependency backend | `BE-NV-004` 🟡: perbaikan no. 13 menunggu build. Perbaikan itu tidak mengubah kontrak maupun layar ini |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | ` M src/lib/state/store.jsx`, ` M src/utils/menu-sidebar/menu-items.jsx`, enam berkas baru di atas, dan dua berkas perbaikan `FE-NV-002`. Belum di-commit |
-| Langkah berikutnya | Sesudah Rizki build dan menyalakan ulang backend: `node test-with-agy/nurse-view/uji-nv-004-20261102/uji-interval.mjs` |
+| Langkah berikutnya | `BE-NV-003` + `FE-NV-003` sesudah keputusan rujukan pencabutan `BE-NV-004` |

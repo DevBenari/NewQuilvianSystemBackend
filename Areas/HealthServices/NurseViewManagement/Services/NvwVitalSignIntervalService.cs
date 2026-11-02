@@ -31,6 +31,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
             _ => level.ToString()
         };
 
+        public static string BuildAuditMessage(NvwVitalSignIntervalReplaceRequest request)
+        {
+            var items = (request.Items ?? new List<NvwVitalSignIntervalItemRequest>())
+                .OrderBy(x => x.EwsRiskLevel)
+                .Select(x => $"{LevelLabel(x.EwsRiskLevel)}={x.IntervalMinutes}")
+                .ToList();
+
+            var change = items.Count == 0
+                ? "Seluruh interval dicabut."
+                : $"Interval ukur ulang TTV diganti: {string.Join(", ", items)}.";
+
+            return $"{change} Rujukan: {request.RatificationReference?.Trim()}; disahkan {request.RatifiedOn?.ToString("yyyy-MM-dd")}.";
+        }
+
         public async Task<NvwVitalSignIntervalSetResponse> GetActiveAsync(CancellationToken cancellationToken)
         {
             var rows = await _dbContext.NvwVitalSignIntervals.AsNoTracking()
