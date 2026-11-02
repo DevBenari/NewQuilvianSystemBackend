@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.Membership.Models;
@@ -1311,6 +1312,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MdfUnresolvedService> MdfUnresolvedServices { get; set; }
         public DbSet<MdfFinanceHandoff> MdfFinanceHandoffs { get; set; }
         #endregion MEDICAL FEE MANAGEMENT
+
+        #region NURSE VIEW MANAGEMENT
+        public DbSet<NvwDisplayDevice> NvwDisplayDevices { get; set; }
+        public DbSet<NvwVitalSignInterval> NvwVitalSignIntervals { get; set; }
+        #endregion NURSE VIEW MANAGEMENT
 
         #endregion HEALTH SERVICE
 

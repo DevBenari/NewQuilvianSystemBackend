@@ -656,6 +656,97 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return items;
         }
 
+        public async Task<Guid?> AmbilKunjunganUntukEncounterAsync(
+            Guid encounterId,
+            CancellationToken cancellationToken = default)
+        {
+            if (encounterId == Guid.Empty)
+                return null;
+
+            return await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.EncounterId == encounterId)
+                .OrderByDescending(x => x.CreateDateTime)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<EmergencyInstructingDoctorOptionResponse>?> AmbilDokterPemberiInstruksiSahAsync(
+            Guid emergencyVisitId,
+            CancellationToken cancellationToken = default)
+        {
+            var kunjunganAda = await _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == emergencyVisitId && !x.IsDelete, cancellationToken);
+
+            if (!kunjunganAda)
+                return null;
+
+            return await HitungDokterPemberiInstruksiSahAsync(emergencyVisitId, cancellationToken);
+        }
+
+        public async Task<bool> ApakahDokterPemberiInstruksiSahAsync(
+            Guid emergencyVisitId,
+            Guid doctorId,
+            CancellationToken cancellationToken = default)
+        {
+            if (doctorId == Guid.Empty)
+                return false;
+
+            var daftar = await HitungDokterPemberiInstruksiSahAsync(emergencyVisitId, cancellationToken);
+            return daftar.Any(x => x.DoctorId == doctorId);
+        }
+
+        private const int DasarDpjp = 1;
+        private const int DasarDokterJaga = 2;
+
+        private async Task<List<EmergencyInstructingDoctorOptionResponse>> HitungDokterPemberiInstruksiSahAsync(
+            Guid emergencyVisitId,
+            CancellationToken cancellationToken)
+        {
+            var dpjp = await KueriBerjalan()
+                .Where(x => x.EmergencyVisitId == emergencyVisitId)
+                .OrderByDescending(x => x.EffectiveFrom)
+                .Select(ProyeksiResponse)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var dokterJaga = await KueriJadwalIgdBerlaku(GetOperationalNow())
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Doctor!.FullName)
+                .Select(x => new { x.DoctorId, DoctorName = x.Doctor!.FullName })
+                .ToListAsync(cancellationToken);
+
+            var hasil = new List<EmergencyInstructingDoctorOptionResponse>();
+
+            if (dpjp != null)
+            {
+                var namaDpjp = dpjp.DoctorName ?? string.Empty;
+                hasil.Add(new EmergencyInstructingDoctorOptionResponse
+                {
+                    DoctorId = dpjp.DoctorId,
+                    DoctorName = namaDpjp,
+                    Basis = DasarDpjp,
+                    Label = $"{namaDpjp} — DPJP"
+                });
+            }
+
+            foreach (var jaga in dokterJaga)
+            {
+                if (hasil.Any(x => x.DoctorId == jaga.DoctorId))
+                    continue;
+
+                hasil.Add(new EmergencyInstructingDoctorOptionResponse
+                {
+                    DoctorId = jaga.DoctorId,
+                    DoctorName = jaga.DoctorName,
+                    Basis = DasarDokterJaga,
+                    Label = $"{jaga.DoctorName} — Dokter jaga IGD"
+                });
+            }
+
+            return hasil;
+        }
+
         private IQueryable<MstDoctorSchedule> KueriJadwalIgdBerlaku(DateTime waktuOperasional)
         {
             var today = waktuOperasional.Date;
