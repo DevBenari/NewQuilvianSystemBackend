@@ -72,8 +72,9 @@ public sealed class HrdBenefitSettlementApprovalService
 
         // Petakan status persetujuan HRD
         var mappedList = new List<HrdBenefitSettlementApprovalItemResponse>();
-        var userIds = allItems.Select(x => x.CreateBy).Where(id => id.HasValue).Select(id => id!.Value)
-            .Concat(allItems.Select(x => x.UpdateBy).Where(id => id.HasValue).Select(id => id!.Value))
+        var userIds = allItems.Select(x => x.CreateBy)
+            .Concat(allItems.Select(x => x.UpdateBy))
+            .Where(id => id != Guid.Empty)
             .Distinct()
             .ToList();
 
@@ -127,7 +128,7 @@ public sealed class HrdBenefitSettlementApprovalService
             }
 
             debtorNames.TryGetValue(item.DebtorReferenceId, out var debtorName);
-            var createdByName = item.CreateBy.HasValue && userNames.TryGetValue(item.CreateBy.Value, out var cName) ? cName : "Finance";
+            var createdByName = item.CreateBy != Guid.Empty && userNames.TryGetValue(item.CreateBy, out var cName) ? cName : "Finance";
             var approvedByName = approvalMeta.ApproverUserId.HasValue && userNames.TryGetValue(approvalMeta.ApproverUserId.Value, out var aName) ? aName : null;
 
             ownerCountsBySettlement.TryGetValue(item.Id, out var ownerCount);
@@ -185,8 +186,8 @@ public sealed class HrdBenefitSettlementApprovalService
             .Select(x => x.CompanyGuarantorName)
             .FirstOrDefaultAsync(cancellationToken) ?? "RS Benefit Internal";
 
-        var createdByName = settlement.CreateBy.HasValue
-            ? await _dbContext.Users.AsNoTracking().Where(u => u.Id == settlement.CreateBy.Value).Select(u => u.UserName ?? u.Email).FirstOrDefaultAsync(cancellationToken)
+        var createdByName = settlement.CreateBy != Guid.Empty
+            ? await _dbContext.Users.AsNoTracking().Where(u => u.Id == settlement.CreateBy).Select(u => u.UserName ?? u.Email).FirstOrDefaultAsync(cancellationToken)
             : "Finance";
 
         var approvedByName = approvalMeta.ApproverUserId.HasValue
@@ -271,7 +272,7 @@ public sealed class HrdBenefitSettlementApprovalService
             else if (enc != null && patients.TryGetValue(enc.PatientId, out var p2)) patient = p2;
 
             // Resolusi data profil pemilik
-            string ownerName = receivable.BenefitOwnerNameSnapshot ?? "-";
+            string ownerName = "-";
             string staffNumber = "-";
             string ownerKind = "Pegawai";
             string planName = "Benefit Medical RS";
@@ -342,8 +343,8 @@ public sealed class HrdBenefitSettlementApprovalService
                 MedicalRecordNumber = patient?.MedicalRecordNumber ?? "-",
                 PatientName = patient?.FullName ?? "-",
                 PatientType = enc?.EncounterType.ToString() ?? "Outpatient",
-                ServiceDate = enc?.EncounterDate.HasValue == true
-                    ? new DateTimeOffset(DateTime.SpecifyKind(enc.EncounterDate.Value, DateTimeKind.Utc))
+                ServiceDate = enc != null
+                    ? new DateTimeOffset(DateTime.SpecifyKind(enc.EncounterDate, DateTimeKind.Utc))
                     : receivable.RecognizedAt,
                 Amount = item.Amount,
                 BenefitOwnerWorkforceProfileId = receivable.BenefitOwnerWorkforceProfileId,
