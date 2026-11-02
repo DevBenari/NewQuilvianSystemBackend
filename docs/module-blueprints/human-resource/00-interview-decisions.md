@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `16` — **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Revision | `17` — **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-020` s.d. `HRD-TF-027`, pertanyaan `HRD-Q-68` s.d. `HRD-Q-79`. Sedang berjalan.** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
 | Status | `draft`. Sebelas keputusan rekayasa dan produk teknis sudah `approved` oleh pemilik teknis yang ditetapkan `HRD-DEC-015`. Dua keputusan sensitif — `HRD-DEC-005` gerbang kredensial dan `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai Komite Medik dan K3RS mengesahkan. Nilai kebijakan PRD pasal 28 belum tersentuh |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
@@ -3843,3 +3843,199 @@ desain lama, sehingga selisihnya terdeteksi. Artefak berikut perlu diperbarui
 
 **Tidak ada file source, migration, entity, controller, database, seed, maupun frontend yang
 diubah pada pass ini.**
+
+---
+
+## 32. Amendment Pass — Workforce Planning & Staffing (`S-D1`), 2 November 2026
+
+| Field | Isi |
+| --- | --- |
+| Mode | **Amendment pass**. Blueprint sudah memuat keputusan `approved`, sehingga keputusan lama tidak ditimpa; pass ini hanya menambah |
+| Pemicu | Pengguna meminta bab **03. Workforce Planning & Staffing** pada Buku Panduan dijadikan bahan pembaruan blueprint modul HR |
+| Acuan bisnis | `docs/Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` bab 03, baris 269–349 |
+| Backend | `NewQuilvianSystemBackend`, branch `MHamzah`, HEAD `396c8363`. Working tree punya perubahan belum di-commit pada `MasterData/AttendanceAndSchedule/DTOs/*` — tidak menyentuh `WorkforcePlanning` |
+| Frontend | `QuilvianSystemFrontendDev`, branch `HamzahV2`, HEAD `9c4000724` |
+| Database | `QuilvianNewDevHamzah`, dibaca **read-only** lewat `psycopg2` |
+| Capability map | `01-existing-capability-map.md` revisi `1.2`. Bagian 1–13 berstatus `STALE` untuk domain di luar Workforce Core. Fakta `WorkforcePlanning` pada bagian 32.2 diperiksa **langsung pada HEAD di atas**; isi folder model tidak berubah sejak commit `f958e7c0` (26 Juli 2026), sehingga temuan `HRD-CAP-19` masih berlaku |
+| Owner keputusan | Pengguna sebagai pemilik teknis dan produk (`HRD-DEC-015`) |
+
+**Batas pass ini:** dokumentasi dan wawancara saja. Tidak ada source aplikasi, migration,
+database, seed, maupun frontend yang diubah.
+
+### 32.1 Kenapa pass ini dibuka
+
+Slice `S-D1` (Perencanaan Tenaga Kerja) berstatus `BLOCKED` sejak 27 Agustus 2026 karena dua hal:
+`HRD-DEC-004` mengizinkan model datanya diturunkan ulang dari proses bisnis rumah sakit, dan
+`HRD-Q-05` belum menjawab apakah tabelnya sudah berisi data. Saat itu belum ada acuan proses
+bisnis yang cukup untuk menurunkan ulang model tersebut. Bab 03 Buku Panduan kini menyediakan
+acuan itu. Pass ini mengubah acuan tersebut menjadi keputusan yang dapat diuji.
+
+### 32.2 Fakta hasil audit
+
+| ID | Type | Temuan | Bukti | Klasifikasi |
+| --- | --- | --- | --- | --- |
+| `HRD-TF-020` | Fact | Domain `WorkforcePlanning` berisi **11 model**. Sepuluh di antaranya **tidak punya controller, service, maupun DTO**; mereka hanya dirujuk oleh model lain, konfigurasi EF, dan `ApplicationDbContext`. Frontend tidak punya satu pun layar perencanaan tenaga, formasi, gap, atau permintaan headcount | BE `Areas/Corporate/HumanResource/WorkforcePlanning/Models/*.cs` @ `396c8363`; pencarian `manpower`, `headcount`, `staffing`, `workforce-planning` pada FE `src/**` @ `9c4000724` → 0 berkas | `MISSING` |
+| `HRD-TF-021` | Conflict | `MstWorkforceRequirement` berada di folder `WorkforcePlanning`, tetapi isinya **bukan kebutuhan jumlah tenaga**. Ia adalah daftar **persyaratan berkas dan kualifikasi** per jenis tenaga — kategori `Document`, `Education`, `License`, `ClinicalPrivilege`, `BankAccount`, dan seterusnya — dengan isian `IsFileRequired`, `IsExpiredDateRequired`, `IsVerificationRequired`. Ia sudah dilayani `WorkforceRequirementController` dan layar `/hr/master-data/workforce-requirement`. Isi tabel: 1 baris kategori `License` | BE `MasterData/Workforce/Controllers/WorkforceRequirementController.cs` baris 23, 40–56 @ `396c8363`; FE `src/app/hr/master-data/workforce-requirement/` | `READY TO REUSE` sebagai master persyaratan berkas. **MUST NOT** dipakai sebagai sumber "berapa tenaga yang dibutuhkan" |
+| `HRD-TF-022` | Fact | Pada database dev, **seluruh sepuluh tabel perencanaan tenaga berisi 0 baris**: `MstPositionHeadcountPlan`, `MstShiftSkillRequirement`, `MstStaffingRatio`, `MstStaffingStandard`, `TrxAnnualManpowerPlan`, `TrxManpowerPlanDetail`, `TrxStaffingGapAnalysis`, `TrxHeadcountRequest`, `TrxDailyStaffingRequirement`, `TrxWorkforceAllocation`. Tabel tetangga juga kosong: `TrxJobRequisition` 0, `TrxEmergencyStaffingRequest` 0, `TrxShiftAssignment` 0. Bukti ini **hanya** berlaku untuk database dev; database lain belum diperiksa | Query hitung baris read-only pada `QuilvianNewDevHamzah`, 2 November 2026 | Bahan `HRD-Q-69` dan `HRD-Q-05` |
+| `HRD-TF-023` | Fact | Model kandidat yang ada sudah memetakan hampir seluruh langkah bab 03: standar kebutuhan tenaga (`MstStaffingStandard`, jenis `FixedHeadcount`, `WorkloadBased`, `RatioBased`, `ServiceCoverage`, `Custom`), rasio (`MstStaffingRatio`, pembulatan `Ceiling`/`Floor`/`Nearest`), komposisi keahlian per shift (`MstShiftSkillRequirement`), formasi per jabatan per tahun (`MstPositionHeadcountPlan`), rencana tahunan beserta rinciannya (`TrxAnnualManpowerPlan`, `TrxManpowerPlanDetail`), analisis selisih (`TrxStaffingGapAnalysis`), permintaan tambahan tenaga (`TrxHeadcountRequest`, jenis `Additional`, `Replacement`, `Temporary`, `Project`, `Seasonal`), kebutuhan harian per shift (`TrxDailyStaffingRequirement`), dan alokasi orang ke kebutuhan harian (`TrxWorkforceAllocation`). Seluruh status ditulis sebagai teks bebas tanpa daftar baku | BE `WorkforcePlanning/Models/*.cs` @ `396c8363` | Kandidat sesuai `HRD-DEC-004` — bukan jawaban |
+| `HRD-TF-024` | Fact | Titik sambung ke sub-modul tetangga **sudah ada di skema**: `TrxJobRequisition` (Rekrutmen) punya `AnnualManpowerPlanId`, `ManpowerPlanDetailId`, dan `HeadcountRequestId`. `TrxShiftAssignment` (Penjadwalan) punya `DailyStaffingRequirementId` dan `ShiftSkillRequirementId`. `TrxWorkforceAllocation` merujuk `WfpOrganizationAssignment` (Workforce Core) | BE `RecruitmentManagement/Models/TrxJobRequisition.cs` baris 21–23, 97; `SchedulingManagement/Models/TrxShiftAssignment.cs` baris 28–29 @ `396c8363` | Titik sentuh |
+| `HRD-TF-025` | Fact | **Tumpang tindih pada model kandidat.** (a) `MstPositionHeadcountPlan` dan `TrxManpowerPlanDetail` sama-sama menyimpan headcount saat ini, dianggarkan, dan target per jabatan per tahun; `MstPositionHeadcountPlan` ber-prefix master tetapi punya siklus status `Draft`/`Proposed`/`Approved`/`Closed`/`Cancelled` layaknya transaksi. (b) `TrxDailyStaffingRequirement` + `TrxWorkforceAllocation` beririsan dengan `TrxShiftAssignment` dan `TrxEmergencyStaffingRequest` milik Penjadwalan (`HRD-DEC-026`) | Perbandingan properti antar model @ `396c8363` | Bahan `HRD-Q-68`, `HRD-Q-72` |
+| `HRD-TF-026` | Fact | **Data masukan untuk menghitung "tenaga tersedia" belum ada.** `WfpPositionAssignment` 0 baris, sedangkan `WfpOrganizationAssignment` 55 baris. Master pendukung tersedia: `MstPosition` 31, `MstDepartment` 10, `MstOrganizationUnit` 5, `MstProfession` 10, `MstCompetency` 3, `MstCostCenter` 5, `MstShift` 4. Selisih per jabatan tidak dapat menghasilkan angka yang bermakna sebelum batch data awal `HRD-DEC-054` (`S-A1`) selesai | Query hitung baris read-only, 2 November 2026 | Dependency ke `S-A1` |
+| `HRD-TF-027` | Fact | Model kandidat menyimpan angka biaya: `AverageMonthlyCost`, `EstimatedAnnualCost`, `TotalEstimatedAnnualCost`, `ApprovedBudgetAmount`, `EstimatedMonthlyCost`. Angka ini adalah **anggaran agregat**, bukan gaji perorangan, sehingga `HRD-DEC-033` tidak otomatis berlaku | `TrxAnnualManpowerPlan.cs`, `TrxManpowerPlanDetail.cs`, `TrxHeadcountRequest.cs` @ `396c8363` | Bahan `HRD-Q-75` |
+| `HRD-TF-028` | Fact | Repository mengenal **lingkungan staging dan produksi**: workflow `dev-to-staging.yml` dan `staging-to-production.yml`; yang kedua punya gerbang manual `database_ready` ("Production database is ready for this exact release"). Connection string kedua lingkungan **tidak** ada di repository — `appsettings.json` berisi `Database=DO_NOT_CONNECT`, hanya `appsettings.Development.json` yang menunjuk `QuilvianNewDevHamzah`. Isi tabel di staging dan produksi **tidak dapat diperiksa** dari sesi ini | BE `.github/workflows/staging-to-production.yml` baris 17–18, 57–63; `appsettings.json`; `appsettings.Development.json` @ `396c8363` | Bahan `HRD-Q-69` |
+
+### 32.3 Batas scope — disetujui lewat `HRD-DEC-058`
+
+Draf di bawah dikonfirmasi pengguna tanpa koreksi pada 2 November 2026, bersama jawaban opsi A
+atas `HRD-Q-68`. Rinciannya ada pada bagian 32.7.
+
+**Kalimat batas scope:** sub-modul ini mengatur berapa tenaga yang dibutuhkan setiap
+unit — jumlah, profesi, kompetensi, dan kapan — membandingkannya dengan tenaga yang benar-benar
+ada, lalu mengubah selisih yang disetujui menjadi permintaan tambahan tenaga yang siap diteruskan
+ke rekrutmen.
+
+**Di dalam scope:**
+
+1. Standar kebutuhan tenaga per unit dengan metode yang dapat dikonfigurasi, berversi, dan
+   bertanggal berlaku.
+2. Komposisi keahlian minimum (*skill mix*) per unit dan per shift, sebagai **aturan**.
+3. Formasi jabatan per unit per tahun.
+4. Rencana kebutuhan tenaga tahunan beserta rinciannya dan persetujuannya.
+5. Analisis selisih kebutuhan terhadap tenaga yang tersedia.
+6. Permintaan tambahan tenaga (*headcount request*) beserta persetujuannya.
+7. Serah terima permintaan yang disetujui ke rekrutmen, dan penelusuran sampai posisi terisi.
+
+**Di luar scope — untuk modul lain:**
+
+| Kebutuhan | Pemilik | Titik sentuh dengan sub-modul ini |
+| --- | --- | --- |
+| Master unit, jabatan, profesi, spesialisasi, kompetensi, cost center, shift | 01 Master Data HR | Hanya merujuk master yang aktif |
+| Siapa menduduki unit dan jabatan apa | 02 Workforce Core (`HRD-DEC-047`) | Dibaca untuk menghitung tenaga tersedia |
+| Requisition, lowongan, kandidat, seleksi, offer, hiring | 04 Rekrutmen (`S-D2`) | Requisition merujuk permintaan headcount yang disetujui |
+| Penyusunan roster, penugasan shift, penggantian, tenaga darurat, siaga, **serta kebutuhan tenaga harian per tanggal dan alokasi orang ke shift** | 06 Penjadwalan (`HRD-DEC-026`, `HRD-DEC-058`) | 06 membaca standar dan skill mix dari sub-modul ini untuk memeriksa roster; 03 menerima ringkasan kekurangan tenaga per periode sebagai bahan perencanaan |
+| Saldo dan jadwal cuti | 08 Cuti | Dibaca untuk menghitung tenaga yang sedang cuti panjang |
+| Kompetensi pegawai dan pelatihan | 16 Learning & Competency | Dibaca untuk menghitung tenaga yang memenuhi kompetensi |
+| Kredensial dan kewenangan klinis | 14 — `BLOCKED` | Tidak disentuh |
+| Persyaratan berkas per jenis tenaga (`MstWorkforceRequirement`) | 01 Master Data HR (`HRD-TF-021`) | Tidak dipakai sebagai kebutuhan jumlah tenaga |
+| Perhitungan biaya gaji riil | 10 Payroll | Tidak dipakai; biaya pada rencana adalah estimasi anggaran |
+
+### 32.4 Bentuk blueprint
+
+Bentuk blueprint **tetap `SINGLE`** sesuai `HRD-DEC-003` (`approved`). Pass ini mengisi slice
+`S-D1` dan tidak membuka sub-blueprint baru. `shape_decided_by: USER` lewat keputusan lama,
+sehingga tidak ditanyakan ulang.
+
+### 32.5 Keputusan lama yang tetap mengikat dan tidak ditanyakan ulang
+
+| Keputusan | Isi singkat | Pengaruh pada pass ini |
+| --- | --- | --- |
+| `HRD-DEC-004` | Domain tanpa controller diturunkan ulang dari proses bisnis; model existing hanya kandidat | Sebelas model pada `HRD-TF-023` boleh digabung, dipecah, atau dibuang saat desain |
+| `HRD-DEC-019` | `Mst` untuk master, `Hrd` untuk entity operasional baru, `Trx` di-ratchet saat disentuh | Entity transaksi perencanaan yang dipakai wajib ber-prefix `Hrd` |
+| `HRD-DEC-026` | Roster, penugasan shift, penggantian, tenaga darurat, dan siaga adalah target Penjadwalan | Tidak dipindah ke sub-modul ini |
+| `HRD-DEC-031` | Penyetuju **MUST** berbeda dari pembuat; unit satu petugas dieskalasi | Berlaku untuk persetujuan rencana dan permintaan headcount |
+| `HRD-DEC-034` | Rantai persetujuan bawaan per jenis transaksi, bukan satu untuk semua | Rantai rencana tahunan dan permintaan headcount ditanyakan pada `HRD-Q-74` |
+| `HRD-DEC-047`, `HRD-DEC-049` | Penempatan berlaku-efektif adalah sumber kebenaran; satu penempatan utama per jenis per tanggal | Dasar menghitung tenaga tersedia (`HRD-Q-71`) |
+| `HRD-DEC-048` | Mutasi dan promosi dijalankan sebagai dokumen SK | Dasar redistribusi internal (`HRD-Q-77`) |
+
+### 32.6 Pertanyaan terbuka pass ini
+
+Pertanyaan diajukan satu per satu. Status setiap baris diperbarui ketika pengguna menjawab.
+Nilai klinis seperti "rasio perawat ICU 1:1" **bukan** pertanyaan pass ini: sistem hanya
+menyediakan tempat menyetelnya, sedangkan nilainya diputuskan pemilik klinis rumah sakit.
+
+| ID | Pertanyaan | Owner | Memblokir | Status |
+| --- | --- | --- | --- | --- |
+| `HRD-Q-68` | Batas scope sub-modul 03, terutama: kebutuhan tenaga **harian per shift** milik 03 atau 06 Penjadwalan? | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-058` |
+| `HRD-Q-69` | Selain database dev, adakah database lain (staging/produksi/impor V1) yang mungkin sudah berisi data perencanaan tenaga? Menentukan penutupan `HRD-Q-05` untuk `S-D1` | Pengguna / pemilik database | `DESIGN` untuk `S-D1` | `resolved` — `HRD-DEC-059` |
+| `HRD-Q-70` | Metode standar kebutuhan tenaga mana yang wajib pada rilis pertama. *Pertanyaan "siapa mengesahkan standar" dipindah ke `HRD-Q-74` agar satu pertanyaan satu keputusan* | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-71` | Definisi "tenaga tersedia": siapa yang dihitung dan siapa yang dikurangi (paruh waktu, rangkap/Plt, cuti panjang, masa orientasi, alih daya, dokter mitra) | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-72` | Formasi jabatan dan rencana tahunan: satu objek atau dua, dan bagaimana formasi berubah di tengah tahun | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-73` | Permintaan headcount wajib berasal dari rencana/selisih yang disetujui, atau boleh mendadak (mis. pengganti pegawai resign) dengan persetujuan pengecualian | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-74` | Rantai persetujuan **standar kebutuhan tenaga**, rencana tahunan, dan permintaan headcount, termasuk peran Finance/anggaran dan Direktur | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-75` | Siapa boleh melihat angka biaya dan anggaran (`HRD-TF-027`) | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-76` | Serah terima ke rekrutmen: satu permintaan → satu atau banyak requisition, siapa membuatnya, kapan permintaan dianggap terpenuhi, dan apa yang terjadi bila dibatalkan setelah lowongan dibuka | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-77` | Redistribusi internal sebagai jalan pemenuhan selisih (contoh ICU: 4 rekrut baru + 2 pindahan) | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-78` | Revisi rencana tahunan yang sudah disetujui di tengah tahun | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-79` | Selisih dihitung langsung setiap kali dibuka, atau disimpan sebagai potret per tanggal | Pengguna | `DESIGN` | `draft` |
+
+Daftar ini dapat bertambah bila jawaban pengguna memunculkan pertanyaan turunan.
+
+### 32.7 Keputusan yang lahir pada pass ini
+
+#### `HRD-DEC-058` — Sub-modul 03 memegang aturan kebutuhan tenaga; Penjadwalan menjalankannya setiap hari
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-68` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 — memilih opsi A yang direkomendasikan, dan mengonfirmasi daftar scope bagian 32.3 tanpa koreksi |
+| Bukti pemicu | `HRD-TF-024`, `HRD-TF-025` (b) |
+
+**Isi keputusan.** Batas scope pada bagian 32.3 berlaku. Pembagian kerja dengan 06 Penjadwalan
+adalah sebagai berikut:
+
+| Aturan | Bunyi |
+| --- | --- |
+| `WFP_OWNS_STANDARD` | Sub-modul 03 adalah **satu-satunya** tempat menyetel standar kebutuhan tenaga dan komposisi keahlian minimum per unit dan per shift. Penjadwalan **MUST NOT** membuat aturan minimum tenaga sendiri |
+| `SCHEDULING_OWNS_DAILY` | Kebutuhan tenaga per tanggal, alokasi orang ke shift, deteksi kekurangan tenaga pada roster, penggantian, dan tenaga darurat adalah milik 06 Penjadwalan. Sub-modul 03 **MUST NOT** mencatat siapa bertugas pada shift tertentu |
+| `SCHEDULING_READS_STANDARD` | Saat roster disusun dan sebelum diterbitkan, Penjadwalan membaca standar yang berlaku pada tanggal shift itu dari sub-modul 03 |
+| `WFP_RECEIVES_SHORTAGE_SUMMARY` | Sub-modul 03 menerima **ringkasan** kekurangan tenaga per unit per periode dari Penjadwalan sebagai bahan perencanaan, bukan rincian per orang per shift |
+| `DAILY_MODELS_MOVE_TO_SCHEDULING` | `TrxDailyStaffingRequirement` dan `TrxWorkforceAllocation` tidak dirancang pada `S-D1`. Keduanya menjadi kandidat milik 06 yang boleh digabung dengan `TrxShiftAssignment` atau dibuang saat desain Penjadwalan |
+
+**Contoh.** Standar ICU di sub-modul 03: shift malam minimal 3 perawat, minimal 1 di antaranya
+berkompetensi ICU, berlaku mulai 1 Desember 2026.
+
+| Langkah | Terjadi di | Isi |
+| --- | --- | --- |
+| 1 | 03 | Standar di atas disetel dan disahkan |
+| 2 | 06 | Kepala ruangan menyusun roster Desember: malam 5 Desember diisi Rina (kompeten ICU), Budi, Sari |
+| 3 | 06 | Pemeriksaan roster lolos: 3 perawat, 1 kompeten ICU |
+| 4 | 06 | Rina cuti mendadak. Shift malam 5 Desember ditandai **kurang tenaga**: tinggal 2 orang dan tidak ada yang kompeten ICU. Kepala ruangan mencari pengganti atau mengajukan tenaga darurat |
+| 5 | 03 | Akhir Desember, sub-modul 03 menerima ringkasan "ICU: 9 shift kurang tenaga". Angka ini menjadi bahan rencana kebutuhan tahun berikutnya |
+
+**Akibat yang harus dirancang kemudian (bukan diputuskan di sini):** bentuk kontrak baca standar
+dari Penjadwalan ke sub-modul 03; bentuk ringkasan kekurangan tenaga beserta periodenya;
+pemeriksaan standar pada roster masuk cakupan target `HRD-DEC-026`; nasib dua tabel harian
+diputuskan saat desain Penjadwalan, bukan pada `S-D1`.
+
+#### `HRD-DEC-059` — `HRD-Q-05` ditutup untuk `S-D1`, dengan pengaman tabel kosong pada setiap migration
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-69`; `HRD-Q-05` **hanya untuk sepuluh tabel `WorkforcePlanning`**. Untuk `S-D2` s.d. `S-D5`, `HRD-Q-05` tetap terbuka |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-02 — memilih opsi A yang direkomendasikan |
+| Bukti | `HRD-TF-020` (tidak ada API yang dapat menulis), `HRD-TF-022` (0 baris di database dev), `HRD-TF-028` (staging dan produksi tidak dapat diperiksa dari sesi ini), ditambah pernyataan pengguna bahwa tidak ada impor manual atau skrip ke tabel-tabel ini |
+
+**Isi keputusan.** Sepuluh tabel perencanaan tenaga pada `HRD-TF-022` dianggap **kosong di
+seluruh lingkungan**. `S-D1` boleh dirancang dengan penurunan ulang bebas sesuai `HRD-DEC-004`:
+model lama boleh digabung, dipecah, diganti nama, atau dibuang. Karena isi staging dan produksi
+tidak diperiksa langsung, anggapan itu dijaga oleh pengaman berikut.
+
+| Aturan | Bunyi |
+| --- | --- |
+| `EMPTY_TABLE_GUARD` | Setiap migration yang mengubah struktur, mengganti nama, atau membuang salah satu dari sepuluh tabel itu **MUST** lebih dulu memeriksa jumlah barisnya. Bila ada satu baris saja, migration **MUST** berhenti dengan pesan galat yang menyebut nama tabel dan jumlah barisnya, tanpa mengubah apa pun |
+| `GUARD_FAILURE_REOPENS_DECISION` | Bila pengaman itu berhenti di lingkungan mana pun, `HRD-DEC-059` kembali menjadi `draft`, dan desain wajib menambah pemetaan data lama sebelum migration dijalankan ulang |
+| `PRODUCTION_GATE_CHECK` | Rilis produksi yang membawa migration tersebut melewati gerbang `database_ready` pada `staging-to-production.yml`, disertai hasil hitung baris kesepuluh tabel di produksi |
+| `NO_GUARD_BYPASS` | Pengaman **MUST NOT** dimatikan, dilewati, atau diganti `DROP ... CASCADE` demi memperlancar rilis |
+
+**Contoh.** Desain `S-D1` menggabungkan `MstPositionHeadcountPlan` ke rincian rencana tahunan
+yang baru, lalu membuang tabel lamanya.
+
+| Lingkungan | Isi `MstPositionHeadcountPlan` | Hasil migration |
+| --- | --- | --- |
+| Dev | 0 baris | Berjalan, tabel lama dibuang |
+| Staging | 0 baris | Berjalan |
+| Produksi — skenario aman | 0 baris | Berjalan |
+| Produksi — skenario tak terduga | 12 baris hasil impor Excel | **Berhenti**: "Tabel MstPositionHeadcountPlan berisi 12 baris; migration dibatalkan". Tidak ada data hilang; keputusan dibuka ulang |
+
+**Yang perlu diperbarui di luar decision log (bukan oleh pass ini):** `01-prerequisite-readiness.md`
+mencatat bukti di atas sebagai dasar perubahan status `S-D1`; `MODULE-STATUS.md`,
+`roadmap/00-slice-roadmap.md` bagian `S-D1`, dan `roadmap/backend-roadmap.md` `BE-HRD-017`
+menyesuaikan status terkunci karena `HRD-Q-05`. Perubahan status dilakukan
+`manage-module-blueprint` setelah pass ini selesai. Aturan manifest bahwa status `BLOCKED` hanya
+boleh naik dengan bukti yang tercatat tetap dihormati.

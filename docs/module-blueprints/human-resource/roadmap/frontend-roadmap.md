@@ -38,15 +38,15 @@ contract_versions:
 Roadmap frontend HR memuat **28 task** antarmuka pengguna:
 
 ```text
-FE-HRD-021 ✅ ───> FE-HRD-001 ✅ ───┬─> FE-HRD-002 ✅ ──┬─> FE-HRD-022 ──┬─> FE-HRD-023
-                                    │                   │                ├─> FE-HRD-024
-BE-HRD-025 [BE] ────────────────────┼───────────────────┘                └─> FE-HRD-028
+FE-HRD-021 ✅ ───> FE-HRD-001 ✅ ───┬─> FE-HRD-002 ✅ ──┬─> FE-HRD-022 ✅ ─┬─> FE-HRD-023 ✅
+                                    │                   │                  ├─> FE-HRD-024 ✅
+BE-HRD-025 ✅ [BE] ─────────────────┼───────────────────┘                  └─> FE-HRD-028 ✅
                                     │
-BE-HRD-026 [BE] ────────────────────┼─> FE-HRD-025
+BE-HRD-026 ✅ [BE] ─────────────────┼─> FE-HRD-025 ✅
                                     │
-BE-HRD-027 [BE] ────────────────────┼─> FE-HRD-026
+BE-HRD-027 ✅ [BE] ─────────────────┼─> FE-HRD-026 ✅
                                     │
-BE-HRD-028 [BE] ────────────────────┼─> FE-HRD-027
+BE-HRD-028 ✅ [BE] ─────────────────┼─> FE-HRD-027 ✅
                                     │
 BE-HRD-004 ✅ [BE] ─────────────────┼─> FE-HRD-003 ✅ ───┬─> FE-HRD-008 ✅
                                     │                    │
@@ -90,8 +90,8 @@ BE-HRD-019 ✅ [BE] ─────────────────┴─> F
 | **3** | Task gelombang 2, `BE-HRD-006..009` ✅ [BE] | `FE-HRD-008` ✅, `FE-HRD-009` ✅, `FE-HRD-010` ✅, `FE-HRD-011` ✅, `FE-HRD-012` ✅ | ✅ Selesai |
 | **4** | Task gelombang 3 terkait, `BE-HRD-010..014` ✅ [BE] | `FE-HRD-013` ✅, `FE-HRD-015` ✅, `FE-HRD-017` ✅ | ✅ Selesai |
 | **5** | Task gelombang 4 terkait, `BE-HRD-015..019` ✅ [BE] | `FE-HRD-016` ✅, `FE-HRD-018` ✅, `FE-HRD-020` ✅ | ✅ Selesai |
-| **6** | `FE-HRD-002` ✅, `BE-HRD-025..028` [BE] | `FE-HRD-022`, `FE-HRD-025`, `FE-HRD-026`, `FE-HRD-027` | Belum dikerjakan |
-| **7** | `FE-HRD-022`, `FE-HRD-021` ✅ | `FE-HRD-023`, `FE-HRD-024`, `FE-HRD-028` | Belum dikerjakan |
+| **6** | `FE-HRD-002` ✅, `BE-HRD-025..028` ✅ [BE] | `FE-HRD-022` ✅, `FE-HRD-025` ✅, `FE-HRD-026` ✅, `FE-HRD-027` ✅ | ✅ Selesai |
+| **7** | `FE-HRD-022` ✅, `FE-HRD-021` ✅ | `FE-HRD-023` ✅, `FE-HRD-024` ✅, `FE-HRD-028` ✅ | ✅ Selesai |
 | **⛔** | Menunggu `{DEC-HRD-008}` (Komite Medik) | `FE-HRD-014` ⛔ (Layar Kredensial Medis & SPK/RKK) | ⛔ Terblokir |
 | **⛔** | Menunggu `{DEC-HRD-010}` (K3RS / MCU Pegawai) | `FE-HRD-019` ⛔ (Layar Kesehatan Staf K3RS) | ⛔ Terblokir |
 
@@ -122,6 +122,13 @@ BE-HRD-019 ✅ [BE] ─────────────────┴─> F
 | `FE-HRD-019` | `S-C6` | Layar Rekam Medis Kerja & Pemantauan Kesehatan Karyawan K3RS | ⛔ | Terblokir `{DEC-HRD-010}` |
 | `FE-HRD-020` | `S-D3` | Layar Pengelolaan Kepesertaan Benefit Karyawan & Penjamin Tanggungan | ✅ | [FE-HRD-020.md](../task/report/frontend/FE-HRD-020.md) |
 | `FE-HRD-021` | `IN-01` | Verifikasi dan Pemeliharaan 62 Kelompok Layar Master Data HR Terpasang | ✅ | Terpasang Aktif |
+| `FE-HRD-022` | `S-A1` | Layar Daftar Dokumen SK Kepegawaian (`/hr/workforce-core/personnel-actions`) | ✅ | [FE-HRD-022.md](../task/report/frontend/FE-HRD-022.md) |
+| `FE-HRD-023` | `S-A1` | Rute Halaman & Daftar SK Kepegawaian (`/hr/personnel-action-orders`) | ✅ | [FE-HRD-023.md](../task/report/frontend/FE-HRD-023.md) |
+| `FE-HRD-024` | `S-A1` | Form Penerbitan SK, Upload Pindai Fisik, & Layar Detail Approval SK | ✅ | [FE-HRD-024.md](../task/report/frontend/FE-HRD-024.md) |
+| `FE-HRD-025` | `S-A1` | Antarmuka Profil Terpadu Pegawai (Employee 360) Dual-View Segregation | ✅ | [FE-HRD-025.md](../task/report/frontend/FE-HRD-025.md) |
+| `FE-HRD-026` | `S-A1` | Layar Batch Inisialisasi Penempatan Awal Pegawai (55 Staf Eksisting) | ✅ | [FE-HRD-026.md](../task/report/frontend/FE-HRD-026.md) |
+| `FE-HRD-027` | `S-A1` | Form Permohonan Perubahan Data Kuasa HR (On-Behalf) Berkas Kuasa | ✅ | [FE-HRD-027.md](../task/report/frontend/FE-HRD-027.md) |
+| `FE-HRD-028` | `S-A1` | Penguncian Form Master Data Pegawai (Lock Unit & Jabatan Read-Only) | ✅ | [FE-HRD-028.md](../task/report/frontend/FE-HRD-028.md) |
 
 ---
 
@@ -253,7 +260,8 @@ BE-HRD-019 ✅ [BE] ─────────────────┴─> F
 
 ### `FE-HRD-022` — Layar Daftar Dokumen SK Kepegawaian (`/hr/workforce-core/personnel-action-orders`)
 * **Slice**: `S-A1` (Workforce Core Target State)
-* **Status**: Belum dikerjakan (tanpa tanda)
+* **Status**: ✅ Selesai (02 November 2026).
+* **Laporan**: [FE-HRD-022.md](../task/report/frontend/FE-HRD-022.md)
 * **Outcome**: Petugas HR rumah sakit memiliki dasbor terpusat untuk melihat, memantau, mencari, dan menyaring dokumen SK Kepegawaian (mutasi unit, promosi/demosi jabatan, penetapan atasan, perubahan gaji) lengkap dengan statistik status dan aksi navigasi.
 * **Traceability**: `FE-HRD-08`, `HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-057`, `FR-HRD-013`, `03-frontend-architecture.md` §2.1 & §4.2a.
 * **Contract Version**: API Contract v6, Frontend Architecture rev 2.
@@ -280,7 +288,8 @@ BE-HRD-019 ✅ [BE] ─────────────────┴─> F
 
 ### `FE-HRD-023` — Form Penerbitan SK Kepegawaian Baru (`/hr/workforce-core/personnel-action-orders/create`)
 * **Slice**: `S-A1` (Workforce Core Target State)
-* **Status**: Belum dikerjakan (tanpa tanda)
+* **Status**: ✅ Selesai (02 November 2026).
+* **Laporan**: [FE-HRD-023.md](../task/report/frontend/FE-HRD-023.md)
 * **Outcome**: Form penerbitan SK kepegawaian baru yang memandu petugas HR mengisi metadata SK, memilih penempatan/jabatan tujuan, dan mewajibkan unggah berkas pindai fisik bertanda tangan sebelum draft dapat diajukan ke jenjang persetujuan.
 * **Traceability**: `FE-HRD-09`, `HRD-DEC-048`, `HRD-DEC-056`, `FR-HRD-013`, `VR-WFC-04`, `03-frontend-architecture.md` §2.1 & §4.2a.
 * **Contract Version**: API Contract v6, Validation Matrix v6.
@@ -305,7 +314,8 @@ BE-HRD-019 ✅ [BE] ─────────────────┴─> F
 
 ### `FE-HRD-024` — Layar Detail & Aksi Persetujuan SK (`/hr/workforce-core/personnel-action-orders/[id]`)
 * **Slice**: `S-A1` (Workforce Core Target State)
-* **Status**: Belum dikerjakan (tanpa tanda)
+* **Status**: ✅ Selesai (02 November 2026).
+* **Laporan**: [FE-HRD-024.md](../task/report/frontend/FE-HRD-024.md)
 * **Outcome**: Antarmuka detail dokumen SK kepegawaian yang menyajikan perbandingan komparatif (*before vs after* penempatan), pratinjau dokumen lampiran fisik SK, riwayat persetujuan, serta tombol aksi persetujuan/penolakan dan penerbitan SK kontra/pembatalan.
 * **Traceability**: `FE-HRD-09a`, `HRD-DEC-031`, `HRD-DEC-048`, `HRD-DEC-057`, `FR-HRD-020`, `VR-WFC-05`, `VR-WFC-12`, `03-frontend-architecture.md` §2.1 & §4.2a.
 * **Contract Version**: API Contract v6, State Transition Matrix v6.
@@ -331,7 +341,8 @@ BE-HRD-019 ✅ [BE] ─────────────────┴─> F
 
 ### `FE-HRD-025` — Antarmuka Profil Terpadu Pegawai (Employee 360) Dual-View (`/employee-360/[id]`)
 * **Slice**: `S-A1` (Workforce Core Target State)
-* **Status**: Belum dikerjakan (tanpa tanda)
+* **Status**: ✅ Selesai (02 November 2026).
+* **Laporan**: [FE-HRD-025.md](../task/report/frontend/FE-HRD-025.md)
 * **Outcome**: Layar ringkasan komprehensif 360 derajat profil staf rumah sakit yang cerdas mengenali peran login: jika dibuka oleh HR menampilkan profil lengkap (kedinasan, kompensasi, rekening, berkas keluarga, dan disiplin); jika dibuka oleh Atasan Langsung hanya menampilkan data kedinasan, riwayat jabatan, dan kompetensi bawahan aktif tanpa menampilkan data finansial/disiplin/keluarga.
 * **Traceability**: `FE-HRD-09b`, `HRD-DEC-053`, `FR-HRD-018`, `VR-WFC-06`, `VR-WFC-07`, `03-frontend-architecture.md` §2.1 & §4.2b.
 * **Contract Version**: API Contract v6, Frontend Architecture rev 2.
@@ -357,7 +368,8 @@ BE-HRD-019 ✅ [BE] ─────────────────┴─> F
 
 ### `FE-HRD-026` — Layar Batch Inisialisasi Penempatan Awal Pegawai (`/initial-placement-batch`)
 * **Slice**: `S-A1` (Workforce Core Target State)
-* **Status**: Belum dikerjakan (tanpa tanda)
+* **Status**: ✅ Selesai (02 November 2026).
+* **Laporan**: [FE-HRD-026.md](../task/report/frontend/FE-HRD-026.md)
 * **Outcome**: Antarmuka khusus petugas HR untuk memverifikasi draf penempatan awal bagi 55 pegawai eksisting yang belum memiliki assignment terstruktur, melakukan validasi baris, dan memicu eksekusi batch satu kali dengan pemantauan progress.
 * **Traceability**: `FE-HRD-09c`, `HRD-DEC-054`, `FR-HRD-019`, `VR-WFC-08`, `VR-WFC-09`, `03-frontend-architecture.md` §2.1.
 * **Contract Version**: API Contract v6, Data Dictionary v6.
@@ -382,7 +394,8 @@ BE-HRD-019 ✅ [BE] ─────────────────┴─> F
 
 ### `FE-HRD-027` — Form Permohonan Perubahan Data Kuasa HR (On-Behalf) (`/employee-profile-changes/on-behalf`)
 * **Slice**: `S-A1` (Workforce Core Target State)
-* **Status**: Belum dikerjakan (tanpa tanda)
+* **Status**: ✅ Selesai (02 November 2026).
+* **Laporan**: [FE-HRD-027.md](../task/report/frontend/FE-HRD-027.md)
 * **Outcome**: Antarmuka bagi petugas HR untuk menginput permohonan perubahan data identitas/keluarga/kontak atas nama staf (on-behalf) yang berhalangan hadir atau membutuhkan asistensi administrasi, lengkap dengan pengunggahan dokumen dasar kuasa dan integrasi ke layar daftar review.
 * **Traceability**: `FE-HRD-09d`, `HRD-DEC-052`, `FR-HRD-016`, `FR-HRD-017`, `VR-WFC-10`, `03-frontend-architecture.md` §2.1 & §4.2c, menutup temuan `ISS-HRD-001-T7` dan rencana perbaikan `FIX-HRD-001-09`.
 * **Contract Version**: API Contract v6, Validation Matrix v6.
@@ -406,7 +419,8 @@ BE-HRD-019 ✅ [BE] ─────────────────┴─> F
 
 ### `FE-HRD-028` — Penguncian Form Master Data Pegawai (Lock Unit & Jabatan Menjadi Read-Only)
 * **Slice**: `S-A1` (Workforce Core Target State)
-* **Status**: Belum dikerjakan (tanpa tanda)
+* **Status**: ✅ Selesai (02 November 2026).
+* **Laporan**: [FE-HRD-028.md](../task/report/frontend/FE-HRD-028.md)
 * **Outcome**: Penyelarasan tata kelola pada form edit Master Data Pegawai (`/hr/master-data/employees/[id]`) dengan mengunci field pilihan Unit Organisasi dan Formasi Jabatan menjadi disabled / read-only, disertai banner edukasi yang mengarahkan user bahwa pemindahan unit dan penugasan jabatan wajib melalui penerbitan SK Kepegawaian resmi.
 * **Traceability**: `HRD-DEC-047`, `FR-HRD-014`, `03-frontend-architecture.md` §3.3.
 * **Contract Version**: Frontend Architecture rev 2, API Contract v6.

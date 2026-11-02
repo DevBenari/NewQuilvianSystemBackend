@@ -1,4 +1,4 @@
-﻿# Requirement Traceability — Modul Human Resource
+# Requirement Traceability — Modul Human Resource
 
 ## Metadata
 
@@ -6,10 +6,10 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 3
+roadmap_revision: 4
 status: ACTIVE
-status_synced_at: "2026-11-02 — pemutakhiran rantai telusur requirement bisnis target state Slice S-A1 (HRD-DEC-046 s.d. HRD-DEC-057)"
-planning_updated_at: "2026-11-02 — perencanaan task BE-HRD-023..028 dan FE-HRD-022..028"
+status_synced_at: "2026-11-02 — implementasi penuh end-to-end Slice S-A1 (BE-HRD-023..028 dan FE-HRD-022..028)"
+planning_updated_at: "2026-11-02 — verifikasi dan penyelesaian task FE-HRD-022..028"
 generated_at: "2026-10-26"
 owners:
   - "Module Lead & Quality Assurance"
@@ -52,10 +52,10 @@ source_commits:
 | `S-D3` | Pendaftaran Benefit Pegawai, Asuransi Tanggungan, dan Plafon | `HRD-DEC-003`, `HRD-DEC-019` | API §Benefit, Validation §Benefit | `BE-HRD-019` ✅ | `FE-HRD-020` ✅ | ✅ BE controller enrollment aktif; FE kepesertaan asuransi & tanggungan aktif ([Laporan FE](../task/report/frontend/FE-HRD-020.md)) |
 | `S0-A` | Pendaftaran Prefix Resmi `Hrd` dan `Wfp` pada Registry Modul | `HRD-DEC-019`, `QBE-MOD-002` | Dokumen Engineering Canonical | `BE-HRD-001` ✅ | — | ✅ Terbukti penuh pada registry (baris 11, 12, 118) |
 | `S0-B` | Rute API Canonical Kebab-Case dan Compatibility Alias | `HRD-DEC-016`, `QBE-NAM` | API §MasterData | `BE-HRD-002` ✅ | `FE-HRD-001` ✅ | ✅ Terbukti Penuh (8 master data FE constants & BE controllers diselaraskan) ([Laporan FE](../task/report/frontend/FE-HRD-001.md)) |
-| `IN-02-SK` | Dokumen SK Kepegawaian & Alur Persetujuan Mutasi/Rotasi/Demosi | `HRD-DEC-048`, `050`, `056`, `057` | API §PersonnelActionOrder, State §Order, Validation §SK | `BE-HRD-023` ✅, `024` ✅, `025` ✅ | `FE-HRD-022`, `023`, `024` | ✅ BE Selesai & Terverifikasi (Model, Service, Controller SK Aktif) |
-| `IN-02-360` | Profil Terpadu Pegawai (Employee 360) Dual-View HR vs Manager | `HRD-DEC-053`, `FR-HRD-018` | API §Employee360, Validation §360 | `BE-HRD-026` ✅ | `FE-HRD-025` | ✅ BE Selesai & Terverifikasi (Service & Controller Dual-Mode 360 Aktif) |
-| `IN-02-BATCH` | Inisialisasi Batch Penempatan Awal Staf Eksisting (55 Staf) | `HRD-DEC-054`, `FR-HRD-019` | API §InitialPlacementBatch, Data §Batch | `BE-HRD-027` ✅ | `FE-HRD-026` | ✅ BE Selesai & Terverifikasi (Service & Controller Batch Penempatan 55 Pegawai Aktif) |
-| `IN-02-OB` | Permohonan Perubahan Profil Mandiri & Kuasa HR (On-Behalf) | `HRD-DEC-047`, `052`, `FR-HRD-017` | API §EmployeeProfileChange, Validation §OnBehalf | `BE-HRD-028` ✅ | `FE-HRD-027`, `FE-HRD-028` | ✅ BE Selesai & Terverifikasi (Guard Form Master Data & Endpoint On-Behalf Aktif) |
+| `IN-02-SK` | Dokumen SK Kepegawaian & Alur Persetujuan Mutasi/Rotasi/Demosi | `HRD-DEC-048`, `050`, `056`, `057` | API §PersonnelActionOrder, State §Order, Validation §SK | `BE-HRD-023` ✅, `024` ✅, `025` ✅ | `FE-HRD-022` ✅, `023` ✅, `024` ✅ | ✅ Selesai Penuh (BE & FE SK Kepegawaian aktif, Laporan [FE-022](../task/report/frontend/FE-HRD-022.md) s.d. [FE-024](../task/report/frontend/FE-HRD-024.md)) |
+| `IN-02-360` | Profil Terpadu Pegawai (Employee 360) Dual-View HR vs Manager | `HRD-DEC-053`, `FR-HRD-018` | API §Employee360, Validation §360 | `BE-HRD-026` ✅ | `FE-HRD-025` ✅ | ✅ Selesai Penuh (BE & FE Employee 360 Dual-View aktif, Laporan [FE-025](../task/report/frontend/FE-HRD-025.md)) |
+| `IN-02-BATCH` | Inisialisasi Batch Penempatan Awal Staf Eksisting (55 Staf) | `HRD-DEC-054`, `FR-HRD-019` | API §InitialPlacementBatch, Data §Batch | `BE-HRD-027` ✅ | `FE-HRD-026` ✅ | ✅ Selesai Penuh (BE & FE Batch Penempatan Awal aktif, Laporan [FE-026](../task/report/frontend/FE-HRD-026.md)) |
+| `IN-02-OB` | Permohonan Perubahan Profil Mandiri & Kuasa HR (On-Behalf) | `HRD-DEC-047`, `052`, `FR-HRD-017` | API §EmployeeProfileChange, Validation §OnBehalf | `BE-HRD-028` ✅ | `FE-HRD-027` ✅, `FE-HRD-028` ✅ | ✅ Selesai Penuh (BE & FE Kuasa HR & Master Data Form Lock aktif, Laporan [FE-027](../task/report/frontend/FE-HRD-027.md), [FE-028](../task/report/frontend/FE-HRD-028.md)) |
 
 ---
 
@@ -90,10 +90,10 @@ source_commits:
 | `BE-HRD-026` | API Employee 360 Dual-View | `HrdEmployee360Controller.cs`, `HrdEmployee360Service.cs` | — | ✅ Selesai | [BE-HRD-026.md](../task/report/backend/BE-HRD-026.md) |
 | `BE-HRD-027` | API Batch Penempatan Awal | `HrdInitialPlacementBatchController.cs`, `HrdInitialPlacementBatchService.cs` | — | ✅ Selesai | [BE-HRD-027.md](../task/report/backend/BE-HRD-027.md) |
 | `BE-HRD-028` | API Kuasa HR & Lock Master Data | `EmployeeProfileChangeController.cs`, `EmployeeController.cs` | — | ✅ Selesai | [BE-HRD-028.md](../task/report/backend/BE-HRD-028.md) |
-| `FE-HRD-022` | Layar Daftar Dokumen SK | — | `src/app/hr/workforce-core/personnel-action-orders/**` | Direncanakan | — |
-| `FE-HRD-023` | Form Penerbitan SK Baru | — | `src/app/hr/workforce-core/personnel-action-orders/create/**` | Direncanakan | — |
-| `FE-HRD-024` | Layar Detail & Aksi SK | — | `src/app/hr/workforce-core/personnel-action-orders/[id]/**` | Direncanakan | — |
-| `FE-HRD-025` | Antarmuka Employee 360 Dual-View | — | `src/app/hr/workforce-core/employee-360/[id]/**` | Direncanakan | — |
-| `FE-HRD-026` | Layar Batch Penempatan Awal | — | `src/app/hr/workforce-core/initial-placement-batch/**` | Direncanakan | — |
-| `FE-HRD-027` | Form Permohonan Kuasa HR | — | `src/app/hr/workforce-core/employee-profile-changes/on-behalf/**` | Direncanakan | — |
-| `FE-HRD-028` | Penguncian Form Master Data | — | `src/components/view/hr/master-data/employees/**` | Direncanakan | — |
+| `FE-HRD-022` | Layar Daftar Dokumen SK | `HrdPersonnelActionOrderController.cs` | `src/app/hr/workforce-core/personnel-actions/**`, service, slice | ✅ Lulus Linter & Test Unit | [FE-HRD-022.md](../task/report/frontend/FE-HRD-022.md) |
+| `FE-HRD-023` | Rute Halaman & Daftar SK | `HrdPersonnelActionOrderController.cs` | `src/app/hr/personnel-action-orders/**`, view | ✅ Lulus Linter & Test Unit | [FE-HRD-023.md](../task/report/frontend/FE-HRD-023.md) |
+| `FE-HRD-024` | Form Penerbitan & Detail SK | `HrdPersonnelActionOrderController.cs` | `src/app/hr/workforce-core/personnel-actions/create/**`, `[id]/**` | ✅ Lulus Linter & Test Unit | [FE-HRD-024.md](../task/report/frontend/FE-HRD-024.md) |
+| `FE-HRD-025` | Antarmuka Employee 360 Dual-View | `HrdEmployee360Controller.cs` | `src/app/hr/workforce-core/employee-360/[id]/**`, service | ✅ Lulus Linter & Test Unit | [FE-HRD-025.md](../task/report/frontend/FE-HRD-025.md) |
+| `FE-HRD-026` | Layar Batch Penempatan Awal | `HrdInitialPlacementBatchController.cs` | `src/app/hr/workforce-core/initial-batches/**`, service | ✅ Lulus Linter & Test Unit | [FE-HRD-026.md](../task/report/frontend/FE-HRD-026.md) |
+| `FE-HRD-027` | Form Permohonan Kuasa HR | `EmployeeProfileChangeController.cs` | `src/app/hr/workforce-core/employee-profile-changes/create-on-behalf/**` | ✅ Lulus Linter & Test Unit | [FE-HRD-027.md](../task/report/frontend/FE-HRD-027.md) |
+| `FE-HRD-028` | Penguncian Form Master Data | `EmployeeController.cs` | `src/components/view/hr/master-data/employees/form/**` | ✅ Lulus Linter & Test Unit | [FE-HRD-028.md](../task/report/frontend/FE-HRD-028.md) |

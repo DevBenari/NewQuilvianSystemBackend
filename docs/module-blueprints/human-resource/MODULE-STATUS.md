@@ -5,10 +5,10 @@
 | Blueprint ID | `HRD-BP-001` |
 | Module name | `Human Resource` |
 | Module slug | `human-resource` |
-| Revision | `13` |
+| Revision | `14` |
 | Module status | `PARTIAL` |
-| Current phase | `HRD-PH-SLICE-A1-BACKEND-COMPLETE` — Seluruh task backend Slice S-A1 (`BE-HRD-023` s.d. `BE-HRD-028`) telah selesai diimplementasikan lengkap dengan model, konfigurasi, migrasi EF Core, domain services, web API controllers, guard penguncian form master data, dan laporan tracked task |
-| Last verified at | `2026-11-02` — implementasi penuh seluruh task backend Slice S-A1 (BE-HRD-023..028) |
+| Current phase | `HRD-PH-SLICE-A1-COMPLETE` — Seluruh task backend Slice S-A1 (`BE-HRD-023` s.d. `BE-HRD-028`) dan task frontend Slice S-A1 (`FE-HRD-022` s.d. `FE-HRD-028`) telah selesai diimplementasikan penuh end-to-end lengkap dengan model, konfigurasi, migrasi EF Core, domain services, web API controllers, antarmuka Next.js App Router, guard penguncian form master data, pengujian unit komprehensif, dan laporan tracked task |
+| Last verified at | `2026-11-02` — implementasi penuh end-to-end seluruh task backend (BE-HRD-023..028) dan frontend (FE-HRD-022..028) Slice S-A1 |
 | Backend source SHA — diaudit pada | `ecdc135444f0110482c9702212bcea30043983c8` (branch `AndryZain`) — **historical**, dipertahankan sebagai provenance audit lama |
 | Backend source SHA — diverifikasi berlaku pada | `16f6b2ad28e0e9cbd374354abe240ff3b163ace0` (baseline aktif) |
 | Backend source SHA — HEAD saat desain ditulis | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` (branch kerja `AndryZain`) |
@@ -53,7 +53,7 @@ Perbedaan `BLOCKED` dan `DEFERRED` sering tertukar, padahal akibatnya berbeda ja
 | Kelompok kemampuan | Slice | Kesiapan desain | Alasan |
 | --- | --- | --- | --- |
 | Fondasi registry dan penamaan route | `S0-A`, `S0-B` | `READY FOR DESIGN` | Keputusan `HRD-DEC-016` dan `HRD-DEC-019` sudah `approved` |
-| Administrasi kepegawaian | `S-A1` | `READY FOR IMPLEMENTATION` | Desain selesai (rev 2), kontrak v6 terkunci, roadmap BE-HRD-023..028 & FE-HRD-022..028 siap dieksekusi |
+| Administrasi kepegawaian | `S-A1` | `IMPLEMENTED` | Desain selesai (rev 2), implementasi penuh BE-HRD-023..028 dan FE-HRD-022..028 selesai dengan pengujian unit (22 pass), registri traceability, dan penguncian form master data |
 | Layanan mandiri pegawai | `S-A2` s.d. `S-A6` | `READY FOR DESIGN` | 13 controller layanan mandiri sudah ada; `HRD-DEC-007` mengunci konvensi route |
 | Kotak masuk persetujuan terpadu | `S-A7` | `READY FOR DESIGN` | `HRD-DEC-011` dan `HRD-DEC-018` sudah `approved` |
 | Administrasi kehadiran | `S-B1` | `READY FOR DESIGN` | 71 endpoint sudah ada termasuk tutup dan buka periode |
@@ -124,13 +124,9 @@ kontrak roadmap pada template.
 
 | Backend | Frontend | Integrasi | Verifikasi |
 | --- | --- | --- | --- |
-| `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
+| `PARTIAL` | `PARTIAL` | `NOT_STARTED` | `PARTIAL` |
 
-Perlu ditegaskan supaya tidak salah baca: `NOT_STARTED` di sini berarti **belum ada satu pun
-task blueprint yang dikerjakan**, bukan berarti tidak ada source code. Backend HR sudah memuat
-150 controller dan 1.343 endpoint, dan frontend sudah memuat 64 kelompok halaman master data.
-Semua itu dibuat di luar alur blueprint, sehingga tidak dihitung sebagai pengiriman yang
-tertelusur.
+Slice `S-A1` (Workforce Core Target State) telah diselesaikan penuh secara end-to-end baik di backend (`BE-HRD-023` s.d. `BE-HRD-028`) maupun frontend (`FE-HRD-022` s.d. `FE-HRD-028`), diverifikasi dengan 22 pengujian unit komprehensif, dan didokumentasikan dalam laporan tracked task resmi. Fase-fase lain tetap mengikuti roadmap bertahap.
 
 ---
 
