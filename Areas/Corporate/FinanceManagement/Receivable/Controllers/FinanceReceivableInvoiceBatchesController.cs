@@ -216,7 +216,7 @@ public sealed class FinanceReceivableInvoiceBatchesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<List<EligibleReceivableResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetEligibleReceivables([FromQuery] EligibleReceivableQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<List<EligibleReceivableResponse>>.Ok(
-            await _service.GetEligibleReceivablesAsync(request.DebtorReferenceId, cancellationToken),
+            await _service.GetEligibleReceivablesAsync(request.DebtorReferenceId, request.Category, cancellationToken),
             "Daftar piutang yang memenuhi syarat digabung berhasil diambil."));
 
     [HttpGet("create-context")]
