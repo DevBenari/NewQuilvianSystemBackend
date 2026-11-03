@@ -223,7 +223,7 @@ Urutan penyusunan, satu query per langkah, tanpa query per bed:
 6. TTV sah terakhir per episode: `InpEpisodeId` cocok, `VitalSignStatus` ∈ {`Recorded`, `Verified`, `Corrected`}, `IsActive`, tidak dihapus; terbaru menurut `ObservationDateTime`.
 7. Hasil instrumen `FallRiskScale` terakhir per episode dari pengkajian `Completed`.
 8. Ada/tidaknya alergi `Active` per pasien.
-9. Roster: `TrxShiftAssignment` `Published`, bukan libur, `ScheduledStartAt ≤ sekarang < ScheduledEndAt`, `OrganizationUnitId` = organisasi bangsal, profesi perawat atau bidan.
+9. Roster: `TrxShiftAssignment` `Published`, bukan libur, `ScheduledStartAt ≤ sekarang < ScheduledEndAt`, `OrganizationUnitId` = organisasi bangsal, profesi perawat atau bidan. Sejak `0.1.2` (`NV-DEC-033`): unit kosong → `TrxRosterPeriod.OrganizationUnitId`; profesi roster kosong → `MstEmployee.ProfessionId`; profesi disaring `IsClinicalProfession` + `MapCpptProfessionType`.
 10. Interval aktif.
 11. Penyamaran identitas dan perhitungan "lewat jadwal" di memori.
 

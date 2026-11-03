@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 |---|---|
-| `last_changed_in` | `0.1.1` · status `approved` — Rizki Gunawan, 2026-11-02 (`NV-DEC-031`). Sebelumnya `0.1.0`, 2026-10-28 (`NV-DEC-028`) |
+| `last_changed_in` | `0.1.2` · status `approved` — Rizki Gunawan, 2026-11-03 (`NV-DEC-033`). Sebelumnya `0.1.1`, 2026-11-02 (`NV-DEC-031`); `0.1.0`, 2026-10-28 (`NV-DEC-028`) |
 | Owner | Rizki Gunawan · `approved_by` Rizki Gunawan · `approved_at` 2026-10-28 |
 | `input_revision` | `00-interview-decisions.md` rev `2`; `02-backend-architecture.md` rev `1` |
 | Kompatibilitas | Seluruh endpoint baru; tidak ada endpoint lama yang berubah perilaku |
@@ -112,6 +112,11 @@ perangkat Nurse View, atau perangkat `Inactive` — TV kembali ke layar login.
 tidak lagi ditemukan. Token yang terbit sebelum Atur Ulang Login terakhir ditolak `403` kode
 `NV-SESSION-STALE` ("Sesi perangkat sudah tidak berlaku. Silakan login ulang.") dan `401` pada
 `POST /auth/refresh`, memenuhi `state-transition-matrix` "sesi lama tidak berlaku".
+
+**Catatan `0.1.2`.** `RosterAvailable = true` hanya bila `OnDutyNurses` berisi minimal satu perawat/bidan
+jaga; bangsal tanpa `OrganizationUnitId`, roster kosong, atau roster tanpa perawat/bidan menjawab `false`
+dengan daftar kosong. `ShiftLabel` berisi nama shift, atau jam "07.00–14.00" bila nama kosong. Bentuk
+field tidak berubah (`NV-DEC-033`).
 
 ## 4. Realtime — `QueueHub` (`/hubs/queues`)
 

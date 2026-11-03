@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
@@ -12,6 +13,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
 {
     public class NvwFloorBoardQueryService
     {
+        private const string PublishedShiftStatus = "Published";
+
+        private static readonly TimeZoneInfo OperationalTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Jakarta");
+
         private readonly ApplicationDbContext _dbContext;
         private readonly InpBedManagementQueryService _bedQueries;
         private readonly NvwVitalSignIntervalService _intervals;
@@ -78,24 +83,123 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
                 occupants.Values.Select(x => x.PatientId).Distinct().ToList(),
                 cancellationToken);
             var intervalByLevel = intervalSet.Items.ToDictionary(x => x.EwsRiskLevel, x => x.IntervalMinutes);
+            var onDutyNurses = await LoadOnDutyNursesAsync(
+                projection.Units.Values
+                    .Where(x => x.OrganizationUnitId.HasValue)
+                    .Select(x => x.OrganizationUnitId!.Value)
+                    .Distinct()
+                    .ToList(),
+                nowUtc,
+                cancellationToken);
 
             board.Wards = projection.Rows
                 .GroupBy(x => x.ServiceUnitId)
-                .Select(ward => new NvwWardBoardResponse
+                .Select(ward =>
                 {
-                    ServiceUnitId = ward.Key,
-                    ServiceUnitName = projection.Units.TryGetValue(ward.Key, out var unit) ? unit.ServiceUnitName : string.Empty,
-                    RosterAvailable = false,
-                    Beds = ward
-                        .Select(row => BuildCard(row, episodeByBed, occupants, nurses, vitalSigns, highFallRisk, allergicPatients, intervalByLevel, nowUtc))
-                        .OrderByDescending(card => card.IsCritical)
-                        .ThenBy(card => card.BedCode, StringComparer.OrdinalIgnoreCase)
-                        .ToList()
+                    projection.Units.TryGetValue(ward.Key, out var unit);
+                    var nursesOnDuty = unit?.OrganizationUnitId is Guid organizationUnitId &&
+                                       onDutyNurses.TryGetValue(organizationUnitId, out var found)
+                        ? found
+                        : new List<NvwOnDutyNurseResponse>();
+
+                    return new NvwWardBoardResponse
+                    {
+                        ServiceUnitId = ward.Key,
+                        ServiceUnitName = unit?.ServiceUnitName ?? string.Empty,
+                        RosterAvailable = nursesOnDuty.Count > 0,
+                        OnDutyNurses = nursesOnDuty,
+                        Beds = ward
+                            .Select(row => BuildCard(row, episodeByBed, occupants, nurses, vitalSigns, highFallRisk, allergicPatients, intervalByLevel, nowUtc))
+                            .OrderByDescending(card => card.IsCritical)
+                            .ThenBy(card => card.BedName, StringComparer.OrdinalIgnoreCase)
+                            .ThenBy(card => card.BedCode, StringComparer.OrdinalIgnoreCase)
+                            .ToList()
+                    };
                 })
                 .OrderBy(ward => ward.ServiceUnitName, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
             return board;
+        }
+
+        private async Task<Dictionary<Guid, List<NvwOnDutyNurseResponse>>> LoadOnDutyNursesAsync(
+            List<Guid> organizationUnitIds,
+            DateTime nowUtc,
+            CancellationToken cancellationToken)
+        {
+            if (organizationUnitIds.Count == 0)
+                return new Dictionary<Guid, List<NvwOnDutyNurseResponse>>();
+
+            var unitIds = organizationUnitIds.Cast<Guid?>().ToList();
+
+            var shifts = await _dbContext.TrxShiftAssignments.AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    !x.IsDayOff &&
+                    x.AssignmentStatus == PublishedShiftStatus &&
+                    x.ScheduledStartAt <= nowUtc &&
+                    x.ScheduledEndAt > nowUtc &&
+                    x.RosterAssignment != null &&
+                    !x.RosterAssignment.IsDelete &&
+                    x.RosterAssignment.IsActive &&
+                    unitIds.Contains(x.OrganizationUnitId ?? x.RosterAssignment.RosterPeriod!.OrganizationUnitId))
+                .Select(x => new OnDutyShift(
+                    (x.OrganizationUnitId ?? x.RosterAssignment!.RosterPeriod!.OrganizationUnitId)!.Value,
+                    x.WorkforceProfileId,
+                    x.WorkforceProfile != null ? x.WorkforceProfile.DisplayName : null,
+                    x.RosterAssignment!.ProfessionId ?? x.WorkforceProfile!.Employee!.ProfessionId,
+                    x.Shift != null ? x.Shift.ShiftName : null,
+                    x.ScheduledStartAt,
+                    x.ScheduledEndAt))
+                .ToListAsync(cancellationToken);
+
+            var professionIds = shifts
+                .Where(x => x.ProfessionId.HasValue)
+                .Select(x => x.ProfessionId!.Value)
+                .Distinct()
+                .ToList();
+
+            if (professionIds.Count == 0)
+                return new Dictionary<Guid, List<NvwOnDutyNurseResponse>>();
+
+            var nursingProfessionIds = (await _dbContext.MstProfessions.AsNoTracking()
+                    .Where(x => professionIds.Contains(x.Id) && !x.IsDelete && x.IsActive && x.IsClinicalProfession)
+                    .Select(x => new { x.Id, x.ProfessionCode, x.ProfessionName, x.ProfessionGroup })
+                    .ToListAsync(cancellationToken))
+                .Where(x => InpatientClinicalContextService.MapCpptProfessionType(x.ProfessionCode, x.ProfessionName, x.ProfessionGroup) is "Nurse" or "Midwife")
+                .Select(x => x.Id)
+                .ToHashSet();
+
+            return shifts
+                .Where(x =>
+                    x.ProfessionId.HasValue &&
+                    nursingProfessionIds.Contains(x.ProfessionId.Value) &&
+                    !string.IsNullOrWhiteSpace(x.DisplayName))
+                .GroupBy(x => x.OrganizationUnitId)
+                .ToDictionary(
+                    unit => unit.Key,
+                    unit => unit
+                        .GroupBy(x => x.WorkforceProfileId)
+                        .Select(person => person.OrderBy(x => x.ScheduledStartAt).First())
+                        .OrderBy(x => x.DisplayName, StringComparer.OrdinalIgnoreCase)
+                        .Select(x => new NvwOnDutyNurseResponse
+                        {
+                            DisplayName = x.DisplayName!.Trim(),
+                            ShiftLabel = ShiftLabel(x)
+                        })
+                        .ToList());
+        }
+
+        private static string ShiftLabel(OnDutyShift shift)
+        {
+            if (!string.IsNullOrWhiteSpace(shift.ShiftName))
+                return shift.ShiftName.Trim();
+
+            var start = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(shift.ScheduledStartAt, DateTimeKind.Utc), OperationalTimeZone);
+            var end = TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(shift.ScheduledEndAt, DateTimeKind.Utc), OperationalTimeZone);
+
+            return $"{start:HH.mm}–{end:HH.mm}";
         }
 
         private static NvwBedCardResponse BuildCard(
@@ -303,6 +407,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
         }
 
         private sealed record Occupant(Guid PatientId, bool RequiresIsolation, NvwMaskedPatientResponse Masked);
+
+        private sealed record OnDutyShift(
+            Guid OrganizationUnitId,
+            Guid WorkforceProfileId,
+            string? DisplayName,
+            Guid? ProfessionId,
+            string? ShiftName,
+            DateTime ScheduledStartAt,
+            DateTime ScheduledEndAt);
 
         private sealed record LatestVitalSign(
             Guid EpisodeId,

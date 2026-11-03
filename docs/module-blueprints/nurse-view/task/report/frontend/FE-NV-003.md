@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `1e6ecf29d`; source di-commit Rizki sebagai `5bb240c65` |
 | Commit backend yang dijadikan rujukan | `d936447e` |
 | Tanggal | 2026-11-02 |
-| Status | 🟡 **SEBAGIAN 2 November 2026** — seluruh skenario `PASS`: regresi 9/9, uji TV 9/9. **Belum ditutup:** rute admin menjawab `404` pada dev server dan penyebabnya belum terbukti, lihat §8. `npx eslint` 0 error. Verifikasi developer, bukan UAT |
+| Status | ✅ **SELESAI 3 November 2026** — regresi 9/9 dan uji TV 9/9 `PASS` (2 Nov); halaman detail admin Kiosk, Display Antrian, dan Display Nurse View terbuka normal dari sidebar sesudah `next dev` start ulang (3 Nov, `rute-admin-2026-11-03T01-57-26-338Z`). `npx eslint` 0 error. Verifikasi developer, bukan UAT. Riwayat: 🟡 SEBAGIAN 2 November 2026 karena rute admin `404` di dev server belum terbukti penyebabnya |
 
 ---
 
@@ -141,6 +141,7 @@ Tidak ada pola baru. `globals.css` tidak diubah.
 | N9 cookie basi di browser bekas TV, perawat tetap ke dashboard | 3 cek | `PASS` | Idem |
 | Regresi redirect perawat, SuperAdmin, LOKET, Kiosk, display | 5/5 sama dengan baseline | `PASS` | `perbandingan-2026-11-02T09-07-48-904Z` |
 | Grep anti-regresi | Warna literal 0, `!important` 0, tombol mentah 0, komentar baru 0 | `PASS` | Keluaran perintah |
+| Rute lain tidak terganggu: Kiosk, Display Antrian, Display Nurse View dibuka dari sidebar sampai halaman detail | 3/3 tombol aksi tampil, tanpa "Coming Soon", 0 galat halaman; juga `200` untuk `/health-services/billing-management/billing/charge-reconciliations` yang semula `404` | `PASS` | `rute-admin-2026-11-03T01-57-26-338Z` |
 
 Bukti berada di `QuilvianSystemFrontendDev/test-with-agy/nurse-view/uji-nv-003-20261102/`.
 
@@ -171,7 +172,7 @@ memintanya).
 | DoD — lint lulus | Terpenuhi | §6 |
 | DoD — rekaman login empat akun | Terpenuhi | §6 |
 | DoD — diff ringkas berkas bersama | Terpenuhi | §3.2 |
-| Tidak mengganggu rute lain | **Belum terbukti** | §8 |
+| Tidak mengganggu rute lain | Terpenuhi | §6 baris terakhir, §8. Route `/nurse-view-display` tetap ada dan rute lain menjawab normal |
 
 ---
 
@@ -180,9 +181,9 @@ memintanya).
 | Hal | Isi |
 | --- | --- |
 | Peringatan | `npm run build` `NOT RUN` |
-| Masalah yang diketahui | **Rute admin `404` pada dev server, penyebab belum terbukti.** `next dev` yang dinyalakan pukul 15.10 dan 15.23 mencocokkan banyak rute ke `/_not-found`. Sesudah start pukul 15.23 masih `404`: halaman detail `kiosk-device/[slug]`, `queue-display-devices/[slug]`, `nurse-view-devices/[slug]`, dan `/health-services/billing-management/billing/charge-reconciliations`; `/administrator/master-data/kiosk-device` kembali `200`. Pada pukul 13.04 rute yang sama masih berjalan. Dugaan terkuat: cache Turbopack `.next/dev/cache/turbopack` (7,6 GB, sejak 29 Agustus), karena `next dev` siap dalam 5 detik untuk 933 halaman. Berkas rute lain tidak diubah commit `5bb240c65`, tetapi folder route baru ditambahkan pada rentang waktu yang sama, jadi kaitannya belum bisa disingkirkan tanpa uji |
+| Masalah yang diketahui | **Ditutup 3 Nov: rute admin `404` di dev server.** `next dev` yang start pukul 15.10 dan 15.23 tanggal 2 Nov mencocokkan banyak rute ke `/_not-found`; yang start pukul 08.53 tanggal 3 Nov normal. **Dugaan cache Turbopack terbukti keliru**: cache tidak dihapus (7,7 GB) dan rute tetap kembali normal, tanpa perubahan kode rute. Penyebab pastinya tidak terbukti. Yang teramati: RAM bebas saat kedua start bermasalah sangat rendah (0,7 GB pada pukul 15.11). Klasifikasi `EXISTING / ENVIRONMENT ISSUE`: rute dan kode yang sama berjalan normal pada start berikutnya |
 | Dependency backend | `BE-NV-003` ✅ |
 | Perubahan sampingan | `NONE` |
 | Interupsi | Permintaan menghentikan `next dev` milik Rizki ditolak pengaman sesi; tidak dilakukan. Percobaan start kedua gagal sendiri karena server Rizki masih memegang kunci |
-| Status Git | Source task ini ada di commit `5bb240c65`. Working tree berisi berkas `FE-NV-005` yang belum dipasang ke route |
-| Langkah berikutnya | Rizki menghentikan `next dev`, menghapus `.next\dev\cache\turbopack`, menyalakan ulang; bila halaman detail admin kembali, status menjadi ✅ |
+| Status Git | Source task ini ada di commit `5bb240c65`; laporan di `61b5e3f35` (frontend) dan `6489c32c` (backend). Pembaruan status ini belum di-commit |
+| Langkah berikutnya | `BE-NV-005` + `FE-NV-005` |

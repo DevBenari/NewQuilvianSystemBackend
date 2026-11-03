@@ -195,6 +195,6 @@ restu `NV-DEC-030`).
 | Masalah yang diketahui | `/fingerprint-login` sengaja tidak menyertakan konteks Nurse View, karena akun perangkat tidak punya kredensial sidik jari |
 | Risiko tersisa | Sesi TV 90 hari; status tetap diperiksa di setiap permintaan, sehingga penonaktifan tetap berlaku pada permintaan berikutnya. `NV-DEC-032` tentang tiga berkas frontend tambahan masih perlu disampaikan Rizki ke lead |
 | Perubahan sampingan | `NONE` |
-| Interupsi | Dev server menjawab `404` pada rute admin, lihat `FE-NV-003.md` §8. Permintaan menghentikan `next dev` milik Rizki ditolak pengaman sesi, sehingga tidak dilakukan |
-| Status Git | Source task ini ada di commit `d936447e`. Working tree berisi kode `BE-NV-005` yang belum dibuild, serta laporan ini dan status roadmap yang belum di-commit |
+| Interupsi | Dev server sempat menjawab `404` pada rute admin (2 Nov); ternyata masalah lingkungan dan normal sesudah start ulang 3 Nov, lihat `FE-NV-003.md` §8. Permintaan menghentikan `next dev` milik Rizki ditolak pengaman sesi, sehingga tidak dilakukan |
+| Status Git | Source task ini ada di commit `d936447e`; laporan di `6489c32c`. Pembaruan baris Interupsi di atas belum di-commit |
 | Langkah berikutnya | `BE-NV-005` + `FE-NV-005` |

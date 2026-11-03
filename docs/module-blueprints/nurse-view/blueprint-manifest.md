@@ -23,7 +23,7 @@ approved_at: 2026-10-28
 backend_commit_sha: a6f977a3      # branch rizkiG
 frontend_commit_sha: 76b0c6e4b    # branch RizkiV2
 contract_versions:
-  set: 0.1.1   # delta NV-DEC-031, 2026-11-02; sebelumnya 0.1.0
+  set: 0.1.2   # delta NV-DEC-033, 2026-11-03; sebelumnya 0.1.1 (NV-DEC-031), 0.1.0
   status: approved
 registry:
   area: HealthServices
@@ -31,7 +31,7 @@ registry:
   prefix: Nvw
   status: APPROVED oleh pemilik modul (NV-DEC-029); baris ditulis di MVP-0
 input_revisions:
-  00-interview-decisions.md: 3 (+ NV-DEC-027, 028, 029, 030, 031, 032)
+  00-interview-decisions.md: 4 (+ NV-DEC-027, 028, 029, 030, 031, 032, 033)
   01-existing-capability-map.md: 1
   02-requirement-completeness-assessment.md: 1
   rawat-inap/keperawatan/docs/task-lintas-modul/TLM-NV-001: DISETUJUI 2026-10-28
