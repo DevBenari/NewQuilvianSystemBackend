@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Models;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Models;
@@ -1317,6 +1318,24 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<NvwDisplayDevice> NvwDisplayDevices { get; set; }
         public DbSet<NvwVitalSignInterval> NvwVitalSignIntervals { get; set; }
         #endregion NURSE VIEW MANAGEMENT
+
+        #region OPTICAL MANAGEMENT
+        // OPT-BP-001, BE-OPT-002. 12 tabel Opt* milik modul Optik (registry Opt / ACTIVE 2026-11-03).
+        // Pemeriksaan refraksi, resep, pesanan, keluhan garansi, profil barang, dan pengaturan; kunjungan,
+        // stok, tagihan, dan barang tetap milik Registrasi, Farmasi, Billing, dan Master Data.
+        public DbSet<OptRefractionExam> OptRefractionExams { get; set; }
+        public DbSet<OptRefractionExamRevision> OptRefractionExamRevisions { get; set; }
+        public DbSet<OptPrescription> OptPrescriptions { get; set; }
+        public DbSet<OptPrescriptionVersion> OptPrescriptionVersions { get; set; }
+        public DbSet<OptOrder> OptOrders { get; set; }
+        public DbSet<OptOrderItem> OptOrderItems { get; set; }
+        public DbSet<OptOrderCancellation> OptOrderCancellations { get; set; }
+        public DbSet<OptOrderStatusHistory> OptOrderStatusHistories { get; set; }
+        public DbSet<OptWarrantyClaim> OptWarrantyClaims { get; set; }
+        public DbSet<OptItemProfile> OptItemProfiles { get; set; }
+        public DbSet<OptSetting> OptSettings { get; set; }
+        public DbSet<OptSettingRevision> OptSettingRevisions { get; set; }
+        #endregion OPTICAL MANAGEMENT
 
         #endregion HEALTH SERVICE
 
