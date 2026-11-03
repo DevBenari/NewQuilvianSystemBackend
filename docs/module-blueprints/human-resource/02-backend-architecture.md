@@ -4,10 +4,10 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `02-backend-architecture.md` |
-| Revision | `2` |
+| Revision | `3` — 3 November 2026: bagian 16 menambah arsitektur `S-D1` Perencanaan Tenaga Kerja. Revision `2` tetap utuh pada bagian 1–15 |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner desain | Technical owner (`HRD-DEC-015`) |
-| `approved_by` / `approved_at` | **Belum ada** |
+| `approved_by` / `approved_at` | **Hanya bagian 16** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
 | Backend baseline canonical | `origin/QuilvianIntegrationBackend` (`HRD-DEC-021`) |
 | Backend SHA saat dokumen ini ditulis | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` (branch kerja `AndryZain`) |
 | Backend SHA yang diaudit (historis) | `ecdc135444f0110482c9702212bcea30043983c8` |
@@ -81,10 +81,11 @@ Tiga penanda dipakai konsisten, sama seperti pada berkas `flows/`:
 | `S-C4` | Lifecycle dan offboarding | `READY FOR DESIGN` |
 | `S-C5` | Hubungan karyawan dan kedisiplinan | `READY FOR DESIGN` |
 | `S-E` | Ratchet penamaan `Trx` saat entity disentuh — aturan lintas-slice | `READY FOR DESIGN` |
+| `S-D1` | Perencanaan tenaga kerja: standar kebutuhan tenaga, formasi berversi, rencana tahunan dan addendum, potret gap, permintaan headcount beserta pemenuhan dan pembatalannya (`HRD-DEC-058` s.d. `HRD-DEC-072`). **Dirancang pada bagian 16** | `READY FOR DESIGN` sejak 3 November 2026 |
 
 ### 1.2 Yang **tidak** dirancang di sini, beserta alasannya
 
-Enam kelompok kemampuan berikut **sengaja tidak diberi arsitektur target**. Tidak ada class,
+Kelompok kemampuan berikut **sengaja tidak diberi arsitektur target**. Sejak revision `3`, `S-D1` keluar dari daftar ini dan dirancang pada bagian 16. Tidak ada class,
 tidak ada endpoint, tidak ada relasi, dan tidak ada rencana migration untuk keenamnya di dokumen
 ini. Merancangnya berarti mengarang kewenangan yang belum diberikan siapa pun.
 
@@ -92,7 +93,7 @@ ini. Merancangnya berarti mengarang kewenangan yang belum diberikan siapa pun.
 | --- | --- | --- | --- |
 | `S-C1` | Kredensial, lisensi, kewenangan klinis, SPK/RKK, OPPE, FPPE | `HRD-DEP-005`, `HRD-DEP-007`, `HRD-Q-08` | Komite Medik, setelah `requirement-completeness-gate` dan `hospital-domain-architect` |
 | `S-C6` | Kesehatan dan keselamatan kerja staf | `HRD-DEP-007`, `HRD-DEC-010` masih `draft` | K3RS |
-| `S-D1` | Perencanaan tenaga kerja | `HRD-Q-05` | Pemilik database |
+| ~~`S-D1`~~ | ~~Perencanaan tenaga kerja~~ | **Dirancang pada bagian 16** — `HRD-Q-05` ditutup untuk `S-D1` lewat `HRD-DEC-059` | — |
 | `S-D2` | Rekrutmen dan hiring | `HRD-Q-05` | Pemilik database |
 | `S-D3` | Benefit | `HRD-Q-05` | Pemilik database |
 | `S-D4` | Layanan HR dan tiket kepegawaian | `HRD-Q-05` | Pemilik database |
@@ -206,7 +207,8 @@ modul HR wajib punya barisnya di sini, beserta jawaban tegas: **dibuat ulang ata
 | Penyimpanan berkas fisik (ijazah, STR, sertifikat, bukti koreksi) | Shared platform | Ya | **Tidak.** HR hanya menyimpan metadata dan rujukan path. Kontraknya `[OPEN]` — `HRD-DEP-006` |
 | Kredensial, lisensi, kewenangan klinis, SPK/RKK | Human Resource + Komite Medik | Ya, sebagai data yang sudah ada | **Tidak dan tidak dirancang.** `S-C1` `BLOCKED` |
 | Rekam kesehatan kerja staf | K3RS | Ya, sebagai data yang sudah ada | **Tidak dan tidak dirancang.** `S-C6` `BLOCKED` |
-| Perencanaan tenaga kerja, rekrutmen, benefit, tiket HR | Human Resource | Belum | **Tidak pada pass ini.** `S-D1` s.d. `S-D4` `BLOCKED` oleh `HRD-Q-05` |
+| Perencanaan tenaga kerja | Human Resource — `S-D1` | Ya | **Ya, entity baru.** Rinciannya pada tabel kepemilikan `S-D1` bagian 16.2 |
+| Rekrutmen, benefit, tiket HR | Human Resource | Belum | **Tidak pada pass ini.** `S-D2` s.d. `S-D4` `BLOCKED` oleh `HRD-Q-05` |
 
 **Aturan yang mengikat tabel ini:** tidak boleh ada dua modul yang menjadi sumber kebenaran untuk
 fakta yang sama. Bila sebuah task kelak merasa perlu membuat entity yang menduplikasi baris mana
@@ -1717,3 +1719,605 @@ cacat, bukan kelalaian penulisan.
 6. Tidak ada perbaikan atas cacat implementasi yang ditemukan. Ketiganya —
    `synchronize` menurunkan `Applied`, `reverse` tanpa guard, dan dua controller tanpa
    `[AccessPermission]` — dicatat sebagai temuan untuk task terpisah.
+
+---
+
+## 16. Slice `S-D1` — Perencanaan Tenaga Kerja (revision `3`, 3 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-03. Jawaban pemilik: "Yang masih draft semua ya saya setujui", atas pertanyaan approval desain `S-D1` |
+| Backend SHA saat bagian ini ditulis | `26066c76e69b021f68b63b31bde2258cd9d1bb74` (branch `MHamzah`) |
+| Frontend SHA | `66b7e5600e1707e4153ca07981ddef054856c8c9` (branch `HamzahV2`) |
+| `input_revision` — decision log | `00-interview-decisions.md` revision `17`, bagian 32 (`HRD-DEC-058` s.d. `HRD-DEC-072`) |
+| `input_revision` — capability map | `01-existing-capability-map.md` revision `1.3`, bagian 15 (`HRD-CAP-48` s.d. `HRD-CAP-66`) |
+| `input_revision` — prasyarat | `01-prerequisite-readiness.md` revision `3`, bagian 4 |
+| Kesiapan requirement | Tidak memakai `requirement-completeness-gate`, mengikuti preseden modul HR: gerbang itu diwajibkan untuk slice klinis. `S-D1` administratif; nilai kebijakan klinis seperti rasio perawat **tidak** diputuskan di sini (`HRD-DEC-060` `CLINICAL_VALUES_NOT_DECIDED_HERE`) |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — tidak ada batas klinis, billing pasien, maupun master bersama lintas modul yang perlu diselesaikan |
+| Kompatibilitas | **Hanya penambahan.** 16 tabel baru; tidak ada tabel yang diubah atau dibuang pada slice ini |
+
+Bagian ini menggantikan baris `S-D1` pada bagian 1.2 ("tidak dirancang"). Bagian lain dokumen ini
+tidak berubah.
+
+### 16.1 Bounded context dan ownership
+
+| ID | Bounded context | Aggregate root | Invariant utama |
+| --- | --- | --- | --- |
+| `BC-HR-11` | Perencanaan Tenaga Kerja | `HrdStaffingStandard`, `HrdPositionFormation`, `HrdManpowerPlan`, `HrdHeadcountRequest`, `HrdStaffingGapSnapshot` | Standar berlaku hanya setelah disahkan `T9`, tepat satu versi per unit per tanggal; formasi berversi dan hanya lahir dari dokumen yang disetujui (`HRD-DEC-062`); dua permintaan tidak mengklaim kursi yang sama (`HRD-DEC-063`); kursi terpenuhi hanya oleh penempatan yang mulai berlaku dan cocok (`HRD-DEC-066`); potret gap tidak pernah berubah (`HRD-DEC-069`); biaya tidak pernah dari gaji riil (`HRD-DEC-065`) |
+
+**Kenapa lima aggregate, bukan satu.** Kelimanya punya siklus hidup dan pemilik persetujuan sendiri:
+standar disahkan `T9`; rencana `T10`; permintaan `T11`/`T12`; formasi tidak pernah disetujui
+langsung karena ia **hasil** dokumen lain; potret tidak punya siklus sama sekali. Menggabungkannya
+membuat satu persetujuan mengunci data yang bukan miliknya.
+
+**Batas transaksi.**
+
+| Kejadian | Yang ditulis dalam satu transaksi | Bila gagal |
+| --- | --- | --- |
+| Rencana, addendum, atau batch formasi awal disetujui | Status dokumen → `Approved`/`Applied`; versi formasi baru untuk setiap baris; penutupan versi lama (`EffectiveEndDate` = tanggal mulai baru − 1 hari); penandaan permintaan yang kini melebihi formasi | Seluruhnya batal; dokumen tetap pada langkah terakhir yang sah; tidak ada versi formasi setengah jadi |
+| Permintaan diajukan | Status `Submitted`; potret gap pengajuan; dimulainya instance workflow | Seluruhnya batal; permintaan tetap `Draft` |
+| Permintaan di luar formasi disetujui | Status `ReadyForRecruitment`; versi formasi baru | Seluruhnya batal |
+| Pembatalan kursi disetujui | Kursi → `Cancelled`; versi formasi turun bila kursi lahir dari `T12` | Seluruhnya batal |
+| Kursi ditautkan ke penempatan | Kursi → `Linked`; pemeriksaan kecocokan dan keunikan | Ditolak; kursi tetap `Open` |
+
+Seluruh perubahan formasi untuk satu pasangan unit × jabatan diserialkan dengan
+`pg_advisory_xact_lock(hashtext('HRD_WFP_FORMATION_<unit>_<jabatan>'))`, mengikuti pola
+`EmployeeBenefitEnrollmentService.cs:726`. Pemeriksaan sisa kursi memakai kunci yang sama, sehingga
+dua permintaan yang diajukan bersamaan tidak dapat sama-sama lolos (`NO_DOUBLE_CLAIM_ON_SEATS`).
+
+**Concurrency.** Setiap tabel dokumen (`HrdStaffingStandard`, `HrdManpowerPlan`,
+`HrdHeadcountRequest`, `HrdInitialFormationBatch`) memakai kolom `RowVersion` dengan
+`IsConcurrencyToken()`, mengikuti `TrxEmployeeBenefitEnrollmentConfiguration`. Dua petugas yang
+menyunting draf yang sama: penyimpanan kedua ditolak 409 dan diminta memuat ulang.
+
+### 16.2 Tabel kepemilikan data `S-D1`
+
+| Kelompok data | Modul pemilik | Dipakai `S-D1` | Dibuat ulang di `S-D1` |
+| --- | --- | :---: | --- |
+| Standar kebutuhan tenaga, skill mix, angka beban | HR — `S-D1` | Ya | **Ya, baru.** Model kandidat `MstStaffingStandard`, `MstStaffingRatio`, `MstShiftSkillRequirement` ditolak (bagian 16.10) |
+| Formasi jabatan berversi | HR — `S-D1` | Ya | **Ya, baru.** `MstPositionHeadcountPlan` ditolak |
+| Rencana tahunan dan addendum | HR — `S-D1` | Ya | **Ya, baru.** `TrxAnnualManpowerPlan`, `TrxManpowerPlanDetail` ditolak |
+| Permintaan headcount dan kursinya | HR — `S-D1` | Ya | **Ya, baru.** `TrxHeadcountRequest` ditolak |
+| Potret gap | HR — `S-D1` | Ya | **Ya, baru.** `TrxStaffingGapAnalysis` ditolak |
+| Kebutuhan harian per shift dan alokasi orang ke shift | 06 Penjadwalan (`HRD-DEC-058`) | **Tidak** | **Tidak.** `TrxDailyStaffingRequirement` dan `TrxWorkforceAllocation` dibiarkan untuk desain Penjadwalan |
+| Unit, jabatan, profesi, kompetensi, shift, grade gaji, jenis tenaga | 01 Master Data HR | Ya, baca | Tidak |
+| Penempatan organisasi/jabatan, SK, profil workforce | 02 Workforce Core | Ya, baca | Tidak. Porsi kerja menjadi dependency 02 (`HRD-CAP-53`) |
+| Cuti yang disetujui | 08 Cuti | Ya, baca | Tidak |
+| Hasil kompetensi | 16 Learning & Competency | Ya, baca | Tidak |
+| Pengunduran diri yang disetujui | 20 Lifecycle | Ya, baca | Tidak |
+| Instance dan langkah persetujuan, matriks persetujuan | `BC-HR-07` Persetujuan Bersama | Ya | Tidak. Matriks diperluas pencocokannya (bagian 16.7) |
+| Requisition, lowongan, kandidat | 04 Rekrutmen (`S-D2`, `BLOCKED`) | Tidak | Tidak. Diganti tautan manual (`HRD-DEC-066`) |
+| Persyaratan berkas per jenis tenaga (`MstWorkforceRequirement`) | 01 Master Data HR | **Tidak** | Tidak. **MUST NOT** dipakai sebagai kebutuhan jumlah tenaga (`HRD-TF-023`) |
+| Peran aplikasi | Administrator / Identity | Ya | Tidak. Finance / Anggaran, Direktur, Recruiter `MAPPING_REQUIRED` |
+
+### 16.3 Class diagram
+
+Diagram dipecah tiga agar masing-masing muat satu layar. Field lengkap ada di
+`data/data-dictionary.md` bagian 8.
+
+#### 16.3.1 Standar dan formasi
+
+```mermaid
+classDiagram
+    class HrdStaffingStandard {
+        +Guid Id
+        +string StandardNumber
+        +Guid OrganizationUnitId
+        +int VersionNumber
+        +DateOnly EffectiveStartDate
+        +DateOnly? EffectiveEndDate
+        +StaffingStandardStatus StandardStatus
+    }
+    class HrdStaffingStandardLine {
+        +Guid StaffingStandardId
+        +Guid PositionId
+        +StaffingCalculationMethod CalculationMethod
+        +decimal? ReliefFactor
+        +StaffingRoundingMethod RoundingMethod
+        +bool CountsOutsourced
+    }
+    class HrdStaffingSkillMixRule {
+        +Guid StaffingStandardId
+        +Guid? ShiftId
+        +Guid CompetencyId
+        +decimal MinimumQualifiedHeadcount
+    }
+    class HrdStaffingWorkloadInput {
+        +Guid OrganizationUnitId
+        +Guid PositionId
+        +DateOnly PeriodStartDate
+        +decimal WorkloadValue
+        +string SourceNote
+    }
+    class HrdPositionFormation {
+        +Guid OrganizationUnitId
+        +Guid PositionId
+        +int VersionNumber
+        +decimal FormationQuantity
+        +DateOnly EffectiveStartDate
+        +PositionFormationSourceType SourceType
+        +Guid SourceDocumentId
+    }
+    class HrdInitialFormationBatch {
+        +string BatchNumber
+        +string SourceDocumentReference
+        +string? SourceDocumentPath
+        +InitialFormationBatchStatus BatchStatus
+    }
+    class HrdInitialFormationBatchRow {
+        +Guid OrganizationUnitId
+        +Guid PositionId
+        +decimal FormationQuantity
+        +bool IsValid
+    }
+    HrdStaffingStandard "1" --> "1..*" HrdStaffingStandardLine : memuat
+    HrdStaffingStandard "1" --> "0..*" HrdStaffingSkillMixRule : memuat
+    HrdStaffingStandard "0..1" --> "0..1" HrdStaffingStandard : menggantikan
+    HrdInitialFormationBatch "1" --> "1..*" HrdInitialFormationBatchRow : memuat
+    HrdInitialFormationBatchRow "0..1" --> "0..1" HrdPositionFormation : melahirkan versi 1
+    HrdPositionFormation "0..1" --> "0..1" HrdPositionFormation : versi sebelumnya
+```
+
+#### 16.3.2 Rencana tahunan dan potret gap
+
+```mermaid
+classDiagram
+    class HrdManpowerPlan {
+        +string PlanNumber
+        +ManpowerPlanKind PlanKind
+        +Guid? ParentPlanId
+        +int PlanYear
+        +DateOnly ReferenceDate
+        +ManpowerPlanStatus PlanStatus
+        +decimal? FinanceAdjustedTotal
+    }
+    class HrdManpowerPlanLine {
+        +Guid OrganizationUnitId
+        +Guid PositionId
+        +Guid SalaryGradeId
+        +decimal CurrentFormationQuantity
+        +decimal? RecommendedQuantity
+        +decimal ProposedFormationQuantity
+        +DateOnly EffectiveStartDate
+        +CostCalculationStatus CostStatus
+    }
+    class HrdStaffingGapSnapshot {
+        +StaffingGapSnapshotType SnapshotType
+        +DateOnly ReferenceDate
+        +Guid? SourceDocumentId
+        +DateOnly? PeriodMonth
+    }
+    class HrdStaffingGapSnapshotLine {
+        +Guid OrganizationUnitId
+        +Guid PositionId
+        +decimal? FilledFte
+        +decimal? PermanentGap
+        +bool LeaveDataComplete
+    }
+    class HrdPositionFormation
+    HrdManpowerPlan "1" --> "1..*" HrdManpowerPlanLine : memuat
+    HrdManpowerPlan "0..1" --> "0..*" HrdManpowerPlan : addendum dari
+    HrdManpowerPlanLine "0..1" --> "0..1" HrdPositionFormation : melahirkan versi
+    HrdStaffingGapSnapshot "1" --> "1..*" HrdStaffingGapSnapshotLine : memuat
+    HrdManpowerPlan "1" ..> "0..*" HrdStaffingGapSnapshot : dipotret saat diajukan
+```
+
+#### 16.3.3 Permintaan headcount dan pemenuhannya
+
+```mermaid
+classDiagram
+    class HrdHeadcountRequest {
+        +string RequestNumber
+        +Guid OrganizationUnitId
+        +Guid PositionId
+        +HeadcountRequestType RequestType
+        +HeadcountRequestStatus RequestStatus
+        +int ExternalSeatCount
+        +int InternalSeatCount
+        +bool IsOverFormationAfterAddendum
+    }
+    class HrdHeadcountRequestSeat {
+        +int SeatNumber
+        +decimal SeatFte
+        +HeadcountFulfilmentSource FulfilmentSource
+        +HeadcountSeatStatus SeatStatus
+        +Guid? ReplacedWorkforceProfileId
+        +Guid? LinkedPositionAssignmentId
+        +Guid? LinkedPersonnelActionOrderId
+    }
+    class HrdHeadcountRequestCancellation {
+        +string CancellationNumber
+        +HeadcountCancellationStatus CancellationStatus
+        +string Reason
+    }
+    class HrdFulfilmentPlanChange {
+        +Guid SeatId
+        +HeadcountFulfilmentSource FromSource
+        +HeadcountFulfilmentSource ToSource
+        +string Reason
+    }
+    class WfpPositionAssignment
+    class HrdPersonnelActionOrder
+    class HrdPositionFormation
+    HrdHeadcountRequest "1" --> "1..*" HrdHeadcountRequestSeat : memuat
+    HrdHeadcountRequest "1" --> "0..*" HrdHeadcountRequestCancellation : dibatalkan sebagian lewat
+    HrdHeadcountRequestCancellation "0..1" --> "1..*" HrdHeadcountRequestSeat : membatalkan
+    HrdHeadcountRequest "1" --> "0..*" HrdFulfilmentPlanChange : riwayat rencana pemenuhan
+    HrdHeadcountRequestSeat "0..1" --> "0..1" WfpPositionAssignment : dipenuhi oleh
+    HrdHeadcountRequestSeat "0..1" --> "0..1" HrdPersonnelActionOrder : kursi internal lewat SK
+    HrdHeadcountRequest "0..1" --> "0..1" HrdPositionFormation : melahirkan versi (T12)
+```
+
+`WfpPositionAssignment` dan `HrdPersonnelActionOrder` milik Workforce Core; `S-D1` hanya
+merujuknya.
+
+### 16.4 Penjelasan setiap class
+
+#### 16.4.1 `HrdStaffingStandard`, `HrdStaffingStandardLine`, `HrdStaffingSkillMixRule`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` (ketiganya) |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforcePlanning/Models/HrdStaffingStandard.cs` — satu berkas memuat ketiga class, mengikuti pola `HrdInitialPlacementBatch.cs` yang memuat kelas barisnya |
+| Kategori | Transaksi kebijakan berversi |
+| Tanggung jawab utama | Menyimpan aturan "berapa tenaga yang dibutuhkan" satu unit, satu versi per periode. Setiap baris jabatan memilih satu metode: jumlah tetap/minimum, rasio terhadap beban, atau cakupan layanan (`HRD-DEC-060`). Aturan skill mix per shift ikut di dalam versi yang sama, karena Penjadwalan membacanya bersama-sama (`HRD-DEC-058` `WFP_OWNS_STANDARD`) |
+| Field penting | Header: `StandardNumber`, `OrganizationUnitId`, `VersionNumber`, `EffectiveStartDate`, `EffectiveEndDate`, `StandardStatus`, `SupersedesStandardId`, `WorkflowInstanceId`. Baris: `PositionId`, `ProfessionId`, `CalculationMethod`, `MinimumHeadcount`, `RatioStaffQuantity`, `RatioWorkloadQuantity`, `WorkloadUnit`, `ShiftsPerDay`, `StaffPerShift`, `ServiceHoursPerDay`, `ReliefFactor`, `RoundingMethod`, `CountsOutsourced`. Skill mix: `ShiftId`, `ProfessionId`, `CompetencyId`, `MinimumCompetencyLevel`, `MinimumQualifiedHeadcount`, `IsMandatory` |
+| Relasi | Menunjuk `MstHospitalSite`, `MstOrganizationUnit`, `MstPosition`, `MstProfession`, `MstShift`, `MstCompetency`; versi baru menunjuk versi yang digantikannya |
+| Pemakaian dalam alur bisnis | HR Admin atau Kepala Unit menyusun draf → mengajukan → `T9` (HR Manager, lalu Direktur yang membawahi unit) → `Scheduled` atau langsung `Active` pada tanggal berlakunya → versi lama `Superseded` sehari sebelumnya |
+| Catatan desain | Faktor cadangan dan cara pembulatan **wajib dipilih** pemilik standar; sistem tidak menetapkan nilai bawaan (`HRD-DEC-060`). Metode ABK dicadangkan sebagai nilai enum berikutnya tanpa perilaku. Standar yang belum `Active` **MUST NOT** dipakai hitungan gap maupun Penjadwalan |
+| Ekuivalen model lama | `MstStaffingStandard`, `MstStaffingRatio`, `MstShiftSkillRequirement` — ditolak, bagian 16.10 |
+
+#### 16.4.2 `HrdStaffingWorkloadInput`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforcePlanning/Models/HrdStaffingWorkloadInput.cs` |
+| Kategori | Transaksi isian |
+| Tanggung jawab utama | Menyimpan angka beban per unit × jabatan per periode, misalnya "rata-rata 7 pasien ICU terisi per hari, Januari–Maret 2027", beserta keterangan sumbernya (`HRD-DEC-060` `MANUAL_WORKLOAD_INPUT`) |
+| Field penting | `OrganizationUnitId`, `PositionId`, `PeriodStartDate`, `PeriodEndDate`, `WorkloadValue`, `SourceNote` |
+| Pemakaian dalam alur bisnis | Dipakai hitungan rekomendasi untuk baris bermetode rasio. Tidak melewati persetujuan karena hanya memengaruhi angka rekomendasi, bukan formasi |
+| Catatan desain | Sengaja **tidak** menunjuk baris standar, agar isian tetap berlaku saat standar naik versi |
+| Ekuivalen model lama | — |
+
+#### 16.4.3 `HrdPositionFormation`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforcePlanning/Models/HrdPositionFormation.cs` |
+| Kategori | Hasil berversi (bukan dokumen yang disetujui langsung) |
+| Tanggung jawab utama | "Buku formasi berlaku": berapa kursi jabatan yang sah per unit × jabatan pada suatu tanggal (`HRD-DEC-062`). Setiap versi menyimpan dokumen sumber yang melahirkannya |
+| Field penting | `OrganizationUnitId`, `PositionId`, `VersionNumber`, `FormationQuantity`, `EffectiveStartDate`, `EffectiveEndDate`, `SourceType`, `SourceDocumentId`, `SourceDocumentNumber`, `ApprovedByUserId`, `ApprovedAt`, `PreviousFormationId` |
+| Pemakaian dalam alur bisnis | Dibuat **hanya** oleh `HrdPositionFormationService` saat batch awal, rencana, addendum, permintaan `T12`, atau pembatalan kursi `T12` disetujui. Tidak ada endpoint tulis |
+| Catatan desain | `NO_DIRECT_FORMATION_EDIT`: kolom selain `EffectiveEndDate` tidak pernah diubah setelah ditulis. `FORMATION_CARRIES_FORWARD`: versi terakhir dibiarkan terbuka (`EffectiveEndDate` kosong) sampai digantikan |
+| Ekuivalen model lama | `MstPositionHeadcountPlan` — ditolak |
+
+#### 16.4.4 `HrdInitialFormationBatch` dan `HrdInitialFormationBatchRow`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforcePlanning/Models/HrdInitialFormationBatch.cs` |
+| Kategori | Batch administrasi data awal |
+| Tanggung jawab utama | Mengisi formasi versi 1 dari dokumen formasi resmi rumah sakit (`HRD-DEC-070`) |
+| Field penting | Batch: `BatchNumber`, `HospitalSiteId`, `SourceDocumentReference`, `SourceDocumentPath`, `SourceDocumentFileName`, `BatchStatus`, `TotalRows`, `ValidRows`, `InvalidRows`, `WorkflowInstanceId`. Baris: `OrganizationUnitId`, `PositionId`, `FormationQuantity`, `EffectiveStartDate`, `IsValid`, `ValidationMessage`, `CreatedFormationId` |
+| Pemakaian dalam alur bisnis | HR Admin mengunduh templat → mengisi → validasi → unggah scan dokumen → ajukan → `T10` → `Applied`: versi 1 lahir per baris |
+| Catatan desain | **Tidak meniru** `HrdInitialPlacementBatch`: batch formasi **MUST** melewati persetujuan orang lain (`T10`), dan **MUST NOT** dapat diajukan selama `InvalidRows > 0` atau scan dokumen belum ada — dua cacat yang tercatat `HRD-TF-033` dan `HRD-TF-034` |
+| Ekuivalen model lama | — |
+
+#### 16.4.5 `HrdManpowerPlan` dan `HrdManpowerPlanLine`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforcePlanning/Models/HrdManpowerPlan.cs` |
+| Kategori | Dokumen usulan |
+| Tanggung jawab utama | Rencana kebutuhan tenaga tahunan **dan** addendumnya dalam satu bentuk; `PlanKind` membedakan keduanya (`HRD-DEC-062`, `HRD-DEC-068`). Baris menyimpan potret formasi saat ini, angka rekomendasi beserta rinciannya, angka usulan, alasan bila berbeda dari rekomendasi, tanggal berlaku, dan estimasi biaya dari gaji tengah grade |
+| Field penting | Header: `PlanNumber`, `PlanKind`, `ParentPlanId`, `AddendumSequence`, `HospitalSiteId`, `PlanYear`, `PeriodStartDate`, `PeriodEndDate`, `ReferenceDate`, `PlanStatus`, `TotalEstimatedCost`, `FinanceAdjustedTotal`, `FinanceAdjustmentReason`. Baris: `OrganizationUnitId`, `PositionId`, `SalaryGradeId`, `CurrentFormationQuantity`, `RecommendedQuantity`, `RecommendationBreakdown`, `ProposedFormationQuantity`, `ChangeQuantity`, `DeviationReason`, `EffectiveStartDate`, `MonthlyRateSnapshot`, `MonthsInPeriod`, `EstimatedCost`, `IncrementalCost`, `CostStatus`, `CreatedFormationId` |
+| Pemakaian dalam alur bisnis | HR Admin menyusun dari usulan unit → hitung ulang → ajukan (potret gap tersimpan) → `T10` (HR Manager, Finance, Direktur Utama) → `Approved`: versi formasi baru lahir per baris |
+| Catatan desain | `APPROVED_PLAN_LOCKED`: tidak ada endpoint ubah untuk status `Approved`. Addendum **MUST** merujuk rencana induk berstatus `Approved` dan hanya memuat baris yang berubah. Biaya selalu dari `MstSalaryGrade.MidpointSalary` (`HRD-DEC-065`) |
+| Ekuivalen model lama | `TrxAnnualManpowerPlan`, `TrxManpowerPlanDetail` — ditolak |
+
+#### 16.4.6 `HrdHeadcountRequest`, `HrdHeadcountRequestSeat`, `HrdHeadcountRequestCancellation`, `HrdFulfilmentPlanChange`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` (keempatnya) |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforcePlanning/Models/HrdHeadcountRequest.cs` (memuat `HrdHeadcountRequestSeat`); `HrdHeadcountRequestCancellation.cs`; `HrdFulfilmentPlanChange.cs` |
+| Kategori | Dokumen permintaan beserta kursinya |
+| Tanggung jawab utama | Satu permintaan untuk satu unit × jabatan, dipecah menjadi **kursi**. Setiap kursi punya porsi kerja, sumber pemenuhan (luar/internal), orang yang digantikan bila pengganti, dan tautan ke penempatan atau SK yang memenuhinya (`HRD-DEC-063`, `HRD-DEC-066`, `HRD-DEC-067`). Pembatalan kursi dan perubahan rencana pemenuhan tercatat sebagai baris tersendiri (`HRD-DEC-071`) |
+| Field penting | Permintaan: `RequestNumber`, `OrganizationUnitId`, `PositionId`, `SalaryGradeId`, `RequestType`, `RequestStatus`, `RequiredStartDate`, `TemporaryEndDate`, `TemporaryReasonWorkforceProfileId`, `Justification`, `RequestedQuantity`, `ExternalSeatCount`, `InternalSeatCount`, `FormationVersionIdAtSubmission`, `RemainingSeatsAtSubmission`, `EstimatedCost`, `FinanceAdjustedCost`, `IsOverFormationAfterAddendum`, `IsOverdue`, `CreatedFormationId`. Kursi: `SeatNumber`, `SeatFte`, `FulfilmentSource`, `SeatStatus`, `ReplacedWorkforceProfileId`, `LinkedPositionAssignmentId`, `LinkedPersonnelActionOrderId`, `FulfilledAt`, `CancellationId` |
+| Pemakaian dalam alur bisnis | Kepala Unit mengajukan → `T11` atau `T12` → `ReadyForRecruitment` → Recruiter melihat kursi luar; HR menyiapkan SK untuk kursi internal → kursi `Linked` → `Fulfilled` saat penempatannya mulai berlaku → permintaan `PartiallyFulfilled` lalu `Fulfilled` atau `Closed` |
+| Catatan desain | Satu penempatan dan satu SK masing-masing hanya boleh menautkan satu kursi aktif (indeks unik terfilter). Kursi pecahan memakai `SeatFte` 0,10–1,00, sehingga sisa formasi 0,5 dapat diminta sebagai satu kursi paruh waktu — jawaban atas "pembulatan permintaan pecahan" yang ditinggalkan `HRD-DEC-063` |
+| Ekuivalen model lama | `TrxHeadcountRequest` — ditolak |
+
+#### 16.4.7 `HrdStaffingGapSnapshot` dan `HrdStaffingGapSnapshotLine`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforcePlanning/Models/HrdStaffingGapSnapshot.cs` |
+| Kategori | Potret tidak dapat diubah |
+| Tanggung jawab utama | Mengunci angka gap per unit × jabatan pada saat dokumen diajukan, atau pada akhir bulan, lengkap dengan lapisan `HRD-DEC-061` dan penanda kelengkapan data (`HRD-DEC-069`) |
+| Field penting | Header: `SnapshotType`, `HospitalSiteId`, `ReferenceDate`, `SourceDocumentType`, `SourceDocumentId`, `PeriodMonth`, `TakenAt`, `ReconstructedAt`. Baris: `FormationQuantity`, `FilledFte`, `ToBeVacatedFte`, `TemporarilyUnavailableFte`, `NotYetCompetentFte`, `ConcurrentAssignmentCount`, `OutsourcedFte`, `PermanentGap`, `TemporaryGap`, `CompetencyGap`, `PlacementDataComplete`, `LeaveDataComplete`, `CompetencyDataComplete`, `WorkforceTypeDataComplete`, `ShortageSummaryCount` |
+| Catatan desain | Tidak ada endpoint ubah maupun hapus (`SNAPSHOT_IMMUTABLE`). Potret susulan wajib berjenis `Reconstructed` (`MISSED_SNAPSHOT_NOT_FAKED`). Lapisan yang datanya belum ada disimpan `null`, bukan 0 |
+| Ekuivalen model lama | `TrxStaffingGapAnalysis` — ditolak |
+
+#### 16.4.8 `HrdWorkforcePlanningSetting`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Corporate/HumanResource/WorkforcePlanning/Models/HrdWorkforcePlanningSetting.cs` |
+| Kategori | Pengaturan kebijakan per rumah sakit |
+| Tanggung jawab utama | Menyimpan dua angka kebijakan yang sengaja tidak ditetapkan sistem: batas hari cuti yang dianggap "tidak tersedia sementara" (`HRD-DEC-061`) dan batas umur permintaan yang ditandai "lewat batas" (`HRD-DEC-071`) |
+| Field penting | `HospitalSiteId` (unik), `LongLeaveThresholdDays`, `OverdueRequestThresholdDays`, `ChangeReason` |
+| Catatan desain | Selama kosong, lapisan "tidak tersedia sementara" tampil "data belum tersedia" dan tanda "lewat batas" tidak pernah menyala. Hanya HR Manager yang mengubah |
+| Ekuivalen model lama | — |
+
+#### 16.4.9 Service
+
+Seluruh service `Baru` berada di `Areas/Corporate/HumanResource/WorkforcePlanning/Services/`,
+didaftarkan `AddScoped<T>()` di `Program.cs` dekat registrasi HR lain (pola baris 979).
+
+| Service | Fungsi utama | Dipanggil oleh | Membuka transaksi |
+| --- | --- | --- | :---: |
+| `HrdStaffingStandardService` | Draf, versi, pengajuan `T9`, aktivasi, penggantian versi; baca standar berlaku per tanggal untuk Penjadwalan | `HrdStaffingStandardController`, scheduler, integrasi workflow | Ya |
+| `HrdStaffingRecommendationService` | Menghitung angka rekomendasi per baris beserta rinciannya | Standard dan plan service | Tidak |
+| `HrdStaffingWorkloadService` | Isian angka beban | `HrdStaffingWorkloadController` | Ya |
+| `HrdPositionFormationService` | Satu-satunya penulis formasi: buat versi, tutup versi lama, baca formasi berlaku dan riwayat | Batch, plan, request service — **tidak** dipanggil controller untuk menulis | Ikut transaksi pemanggil |
+| `HrdInitialFormationBatchService` | Templat, validasi, unggah dokumen, pengajuan `T10`, penerapan | `HrdInitialFormationBatchController`, integrasi workflow | Ya |
+| `HrdManpowerPlanService` | Rencana dan addendum: hitung ulang, pengajuan `T10`, koreksi Finance, penerapan, penandaan permintaan yang melebihi formasi | `HrdManpowerPlanController`, integrasi workflow | Ya |
+| `HrdHeadcountRequestService` | Permintaan: sisa kursi, pengajuan `T11`/`T12`, tarik kembali, antrean Recruiter, perubahan rencana pemenuhan, pembatalan `T13` | `HrdHeadcountRequestController`, integrasi workflow, scheduler | Ya |
+| `HrdHeadcountFulfilmentService` | Tautkan dan lepas penempatan atau SK ke kursi; ubah kursi `Linked` → `Fulfilled` | `HrdHeadcountRequestController`, scheduler | Ya |
+| `HrdStaffingGapCalculationService` | Menghitung lapisan dan tiga gap per unit × jabatan pada tanggal acuan, beserta penanda kelengkapan | Gap controller, snapshot service, plan dan request service | Tidak |
+| `HrdStaffingGapSnapshotService` | Potret pengajuan, bulanan, dan rekonstruksi | Plan dan request service, scheduler | Ikut transaksi pemanggil |
+| `HrdWorkforcePlanningCostService` | Tarif gaji tengah grade pada tanggal; hitung estimasi; penyamaran angka biaya bagi yang tidak berhak | Plan dan request service | Tidak |
+| `HrdWorkforcePlanningWorkflowIntegrationService` | Memulai instance untuk lima jenis rujukan; menerima keputusan akhir dan meneruskannya ke service domain | Service domain; `WorkflowReferenceLifecycleService` | Ya |
+| `HrdWorkforcePlanningSchedulerService` | Harian: aktivasi standar, kursi `Linked` → `Fulfilled`, kursi kembali `Open` bila SK batal, tanda "lewat batas". Akhir bulan: potret bulanan | `HrdWorkforcePlanningSchedulerHostedService` | Ya, per langkah |
+| `HrdWorkforcePlanningSchedulerHostedService` | Pembungkus `BackgroundService`, didaftarkan `AddHostedService` dekat `Program.cs:1287` | Host aplikasi | — |
+| `HrdWorkforcePlanningSettingService` | Baca dan ubah pengaturan | `HrdWorkforcePlanningSettingController` | Ya |
+
+Nomor `StandardNumber`, `BatchNumber`, `PlanNumber`, `RequestNumber`, dan `CancellationNumber`
+dialokasikan `Areas/Platform/NumberSeriesManagement/Services/NumberSeriesAllocator.cs` di luar
+transaksi pemanggil, mengikuti `EmployeeBenefitEnrollmentService.cs:323-330` (`QBE-CODE-002`,
+`QBE-CODE-003`). Controller tidak pernah membuat nomor.
+
+**Service yang `Diperbarui`:**
+
+| Service | Lokasi | Perubahan |
+| --- | --- | --- |
+| `WorkflowService` | `Areas/Corporate/HumanResource/WorkflowManagement/Services/WorkflowService.cs` | Pencocokan `MstApprovalMatrix` pada baris 1621 dan 1669 kini menelusuri unit induk lewat `ParentOrganizationUnitId` sampai baris cocok ditemukan (`HRD-DEC-072` `MATRIX_FOLLOWS_UNIT_ANCESTOR`). Baris unit yang lebih dekat menang atas baris unit induk. Tanpa perubahan perilaku bagi baris matriks yang sudah ada, karena saat ini matriks kosong |
+| `WorkflowReferenceLifecycleService` | `.../WorkflowManagement/Services/WorkflowReferenceLifecycleService.cs` | Lima jenis rujukan baru didaftarkan: `WorkforceStaffingStandard`, `WorkforceInitialFormationBatch`, `WorkforceManpowerPlan`, `WorkforceHeadcountRequest`, `WorkforceHeadcountCancellation` |
+
+**Yang dipakai ulang tanpa perubahan:** penolakan langkah tanpa penyetuju dan pembuangan pembuat dari
+daftar penyetuju sudah ada di `WorkflowService.cs:534-556`. `UNRESOLVED_STEP_FAILS_CLOSED` dan
+`APPROVER_MUST_DIFFER_FROM_CREATOR` cukup memakai perilaku itu, dengan syarat langkah `T9` s.d.
+`T13` didefinisikan `AllowSelfApproval = false`.
+
+#### 16.4.10 Controller
+
+Seluruhnya `Baru`, di `Areas/Corporate/HumanResource/WorkforcePlanning/Controllers/`, memakai
+`[AccessController]` di kelas dan `[AccessPermission(...)]` di setiap endpoint. Tidak satu pun
+mengakses `ApplicationDbContext` langsung (`QBE-SVC-001`).
+
+| Controller | Service yang dipakai | Grup Swagger | Endpoint yang diurus |
+| --- | --- | --- | --- |
+| `HrdStaffingStandardController` | `HrdStaffingStandardService`, `HrdStaffingRecommendationService` | `Corporate / Human Resource / Workforce Planning / Staffing Standard` | Daftar, detail, draf versi baru, ubah draf, ajukan, batalkan, rekomendasi, standar berlaku |
+| `HrdStaffingWorkloadController` | `HrdStaffingWorkloadService` | `Corporate / Human Resource / Workforce Planning / Staffing Workload` | Daftar, buat, ubah |
+| `HrdPositionFormationController` | `HrdPositionFormationService` | `Corporate / Human Resource / Workforce Planning / Position Formation` | Daftar berlaku, riwayat — **baca saja** |
+| `HrdInitialFormationBatchController` | `HrdInitialFormationBatchService` | `Corporate / Human Resource / Workforce Planning / Initial Formation Batch` | Templat, validasi, buat, ubah, unggah dokumen, ajukan, batalkan, daftar, detail |
+| `HrdManpowerPlanController` | `HrdManpowerPlanService` | `Corporate / Human Resource / Workforce Planning / Manpower Plan` | Daftar, detail, buat rencana, buat addendum, ubah, hitung ulang, ajukan, batalkan, koreksi Finance, potret |
+| `HrdHeadcountRequestController` | `HrdHeadcountRequestService`, `HrdHeadcountFulfilmentService` | `Corporate / Human Resource / Workforce Planning / Headcount Request` | Daftar, detail, sisa kursi, buat, ubah, ajukan, tarik kembali, koreksi Finance, perubahan rencana pemenuhan, pembatalan, tautan pemenuhan |
+| `HrdRecruitmentQueueController` | `HrdHeadcountRequestService` | `Corporate / Human Resource / Workforce Planning / Recruitment Queue` | Antrean kursi luar untuk Recruiter, tanpa kolom biaya |
+| `HrdStaffingGapController` | `HrdStaffingGapCalculationService`, `HrdStaffingGapSnapshotService` | `Corporate / Human Resource / Workforce Planning / Staffing Gap` | Gap langsung, daftar potret, detail potret |
+| `HrdWorkforcePlanningSettingController` | `HrdWorkforcePlanningSettingService` | `Corporate / Human Resource / Workforce Planning / Setting` | Baca, ubah |
+
+Persetujuan **tidak** punya endpoint di controller domain. Seluruh keputusan `T9` s.d. `T13`
+dijalankan lewat kotak masuk persetujuan yang sudah ada (`HRD-DEC-018`), lalu diteruskan ke domain
+oleh `HrdWorkforcePlanningWorkflowIntegrationService`.
+
+#### 16.4.11 DTO, enum, konstanta, dan configuration
+
+| Jenis | Lokasi | Isi |
+| --- | --- | --- |
+| DTO | `Areas/Corporate/HumanResource/WorkforcePlanning/DTOs/` | `StaffingStandardDtos.cs`, `StaffingWorkloadDtos.cs`, `PositionFormationDtos.cs`, `InitialFormationBatchDtos.cs`, `ManpowerPlanDtos.cs`, `HeadcountRequestDtos.cs`, `StaffingGapDtos.cs`, `WorkforcePlanningSettingDtos.cs`. Bentuk request dan response per endpoint pada `contracts/api-contract.md` bagian 13 |
+| Enum | `Areas/Corporate/HumanResource/WorkforcePlanning/Enums/` | Daftar pada tabel di bawah |
+| Konstanta | `Areas/Corporate/HumanResource/WorkforcePlanning/Constants/WorkforcePlanningValueConstants.cs` | Lima jenis rujukan workflow, kunci number series, nama kunci advisory lock |
+| Configuration | `Repositories/Configurations/Corporate/HumanResource/WorkforcePlanning/` | Satu berkas per tabel baru, `Hrd<Nama>Configuration.cs`; index, unique, dan `DeleteBehavior` pada `data/data-dictionary.md` bagian 8 |
+| DbSet | `Repositories/ApplicationDbContext.cs` | 16 `DbSet` baru, jamak: `HrdStaffingStandards`, `HrdStaffingStandardLines`, dan seterusnya |
+
+| Enum | Nilai | Bawaan |
+| --- | --- | --- |
+| `StaffingStandardStatus` | `Draft=1`, `Submitted=2`, `Returned=3`, `Rejected=4`, `Scheduled=5`, `Active=6`, `Superseded=7`, `Cancelled=8` | `Draft` |
+| `StaffingCalculationMethod` | `FixedMinimum=1`, `WorkloadRatio=2`, `ServiceCoverage=3`, `WorkloadAnalysis=4` (dicadangkan, **tidak** dapat dipilih pada rilis ini) | — wajib dipilih |
+| `StaffingRoundingMethod` | `Ceiling=1`, `Floor=2`, `Nearest=3`, `NoRounding=4` | — wajib dipilih |
+| `PositionFormationSourceType` | `InitialBatch=1`, `ManpowerPlan=2`, `PlanAddendum=3`, `HeadcountRequest=4`, `HeadcountCancellation=5` | — |
+| `InitialFormationBatchStatus` | `Draft=1`, `Submitted=2`, `Returned=3`, `Rejected=4`, `Applied=5`, `Cancelled=6` | `Draft` |
+| `ManpowerPlanKind` | `AnnualPlan=1`, `Addendum=2` | — |
+| `ManpowerPlanStatus` | `Draft=1`, `Submitted=2`, `Returned=3`, `Rejected=4`, `Approved=5`, `Cancelled=6` | `Draft` |
+| `CostCalculationStatus` | `Calculated=1`, `RateUnavailable=2` | — |
+| `HeadcountRequestType` | `Replacement=1`, `AdditionalWithinFormation=2`, `AdditionalBeyondFormation=3`, `Temporary=4` | — |
+| `HeadcountRequestStatus` | `Draft=1`, `Submitted=2`, `Returned=3`, `Rejected=4`, `Withdrawn=5`, `ReadyForRecruitment=6`, `PartiallyFulfilled=7`, `Fulfilled=8`, `Closed=9` | `Draft` |
+| `HeadcountSeatStatus` | `Open=1`, `Linked=2`, `Fulfilled=3`, `Frozen=4`, `Cancelled=5` | `Open` |
+| `HeadcountFulfilmentSource` | `External=1`, `Internal=2` | — |
+| `HeadcountCancellationStatus` | `Submitted=1`, `Approved=2`, `Rejected=3` | `Submitted` |
+| `StaffingGapSnapshotType` | `Submission=1`, `Monthly=2`, `Reconstructed=3` | — |
+
+Jenis `Project` dan `Seasonal` pada model kandidat **dilebur** ke `Temporary`: keduanya sama-sama
+berakhir pada tanggal tertentu dan tidak mengubah formasi. Jawaban atas butir yang ditinggalkan
+`HRD-DEC-063`.
+
+### 16.5 Arsitektur folder
+
+```text
+Areas/Corporate/HumanResource/WorkforcePlanning/
+├── Constants/
+│   └── WorkforcePlanningValueConstants.cs              Baru
+├── Controllers/                                       Baru — 9 controller pada 16.4.10
+├── DTOs/                                              Baru — 8 berkas pada 16.4.11
+├── Enums/                                             Baru — 14 enum pada 16.4.11
+├── Models/
+│   ├── HrdStaffingStandard.cs                         Baru (+ Line, SkillMixRule)
+│   ├── HrdStaffingWorkloadInput.cs                    Baru
+│   ├── HrdPositionFormation.cs                        Baru
+│   ├── HrdInitialFormationBatch.cs                    Baru (+ Row)
+│   ├── HrdManpowerPlan.cs                             Baru (+ Line)
+│   ├── HrdHeadcountRequest.cs                         Baru (+ Seat)
+│   ├── HrdHeadcountRequestCancellation.cs             Baru
+│   ├── HrdFulfilmentPlanChange.cs                     Baru
+│   ├── HrdStaffingGapSnapshot.cs                      Baru (+ Line)
+│   ├── HrdWorkforcePlanningSetting.cs                 Baru
+│   ├── MstPositionHeadcountPlan.cs                    Sudah ada — kandidat ditolak, tidak disentuh
+│   ├── MstShiftSkillRequirement.cs                    Sudah ada — idem; masih dirujuk TrxShiftAssignment
+│   ├── MstStaffingRatio.cs                            Sudah ada — idem
+│   ├── MstStaffingStandard.cs                         Sudah ada — idem; masih dirujuk TrxDailyStaffingRequirement
+│   ├── MstWorkforceRequirement.cs                     Sudah ada — milik master persyaratan berkas; utang teknis lokasi
+│   ├── TrxAnnualManpowerPlan.cs                       Sudah ada — kandidat ditolak; masih dirujuk TrxJobRequisition
+│   ├── TrxDailyStaffingRequirement.cs                 Sudah ada — milik desain Penjadwalan (HRD-DEC-058)
+│   ├── TrxHeadcountRequest.cs                         Sudah ada — kandidat ditolak; masih dirujuk TrxJobRequisition
+│   ├── TrxManpowerPlanDetail.cs                       Sudah ada — kandidat ditolak; masih dirujuk TrxJobRequisition
+│   ├── TrxStaffingGapAnalysis.cs                      Sudah ada — kandidat ditolak
+│   └── TrxWorkforceAllocation.cs                      Sudah ada — milik desain Penjadwalan (HRD-DEC-058)
+└── Services/                                          Baru — 15 service pada 16.4.9
+
+Repositories/Configurations/Corporate/HumanResource/WorkforcePlanning/
+└── Hrd*Configuration.cs                               Baru — 16 berkas; konfigurasi kandidat lama tidak disentuh
+```
+
+**Utang teknis yang tercatat, tidak dirapikan diam-diam:**
+
+| Penyimpangan | Keadaan | Penanganan |
+| --- | --- | --- |
+| `MstWorkforceRequirement` berada di folder `WorkforcePlanning`, bukan `MasterData` | Model master persyaratan berkas yang sudah dipakai layar | Pemindahan folder adalah task tersendiri dengan approval pemilik arsitektur backend; **MUST NOT** ikut task `S-D1` |
+| Sepuluh model kandidat `Mst*`/`Trx*` tetap terdaftar sebagai `DbSet` | Tabel kosong, tidak dipakai `S-D1` | Dibuang lewat migration pembersihan terpisah, bagian 16.7 |
+
+### 16.6 Status model dan dampak migration
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| 16 tabel `Hrd*` pada 16.4 | `Baru` | Seluruh kolom pada `data/data-dictionary.md` bagian 8 | Membuat tabel; tidak menyentuh data mana pun |
+| `MstApprovalMatrix` | `Sudah ada` | Tidak ada | Tidak ada. Perluasan pencocokan hanya pada kode `WorkflowService` |
+| `WfpPositionAssignment`, `WfpOrganizationAssignment`, `HrdPersonnelActionOrder` | `Sudah ada` | Tidak ada. Porsi kerja adalah dependency 02 (`HRD-CAP-53`), dirancang di Workforce Core | Tidak ada |
+| `MstSalaryGrade`, `MstPosition`, `MstOrganizationUnit`, `MstShift`, `MstCompetency`, `MstProfession`, `MstHospitalSite` | `Sudah ada` | Tidak ada | Tidak ada; hanya dirujuk FK |
+| Sepuluh model kandidat `WorkforcePlanning` | `Sudah ada` | Tidak ada pada slice ini | Tidak ada pada slice ini |
+
+### 16.7 Rencana migration
+
+**Peringatan:** blueprint tidak memberi wewenang membuat atau menjalankan migration. Rencana ini
+adalah bahan task implementasi.
+
+| Urutan | Migration | Isi | Tanpa downtime? | Pengisian data lama | Langkah mundur |
+| ---: | --- | --- | :---: | --- | --- |
+| 1 | `AddWorkforcePlanningCore` | Membuat 16 tabel `Hrd*` beserta index, unique, dan FK | **Ya** — hanya `CREATE TABLE` dan `CREATE INDEX` pada tabel baru yang kosong | Tidak ada; seluruh tabel lahir kosong | `Down()` membuang ke-16 tabel. Aman selama belum ada data; setelah ada data, mundur hanya lewat migration baru yang mempertahankan isi |
+| — | `RetireWorkforcePlanningCandidateTables` | Membuang tabel kandidat yang ditolak | **Tidak dijadwalkan pada `S-D1`** | — | — |
+
+**Kenapa pembersihan kandidat tidak ikut `S-D1`.** Lima dari sepuluh tabel kandidat masih dirujuk FK
+milik slice lain: `TrxJobRequisition` (`S-D2`) merujuk `TrxAnnualManpowerPlan`,
+`TrxManpowerPlanDetail`, dan `TrxHeadcountRequest`; `TrxShiftAssignment` dan
+`TrxDailyStaffingRequirement` (Penjadwalan) merujuk `MstShiftSkillRequirement`, `MstStaffingStandard`,
+dan `TrxStaffingGapAnalysis`. Membuangnya sekarang berarti mengubah tabel milik dua slice lain di
+dalam task `S-D1`. Pembersihan dilakukan **setelah** desain `S-D2` dan Penjadwalan menetapkan nasib
+FK itu, dalam satu migration yang:
+
+1. **MUST** membuka setiap pembuangan tabel dengan blok `DO $$ … IF EXISTS (SELECT 1 FROM … ) THEN RAISE EXCEPTION … END IF; $$`, mengikuti `Migrations/20260902072756_DropTableMstBillingCategory.cs:36-42` (`HRD-DEC-059` `EMPTY_TABLE_GUARD`);
+2. **MUST NOT** memakai `DROP … CASCADE` (`NO_GUARD_BYPASS`);
+3. bila pengaman berhenti di lingkungan mana pun, `HRD-DEC-059` kembali `draft` dan `S-D1` kembali
+   `BLOCKED` untuk pembersihan itu (`GUARD_FAILURE_REOPENS_DECISION`).
+
+### 16.8 Rencana data master awal
+
+Tanpa isian di bawah, `S-D1` tidak dapat dipakai sama sekali.
+
+| Data | Isi minimum | Sumber nilai | Diisi lewat |
+| --- | --- | --- | --- |
+| Jabatan direktur | Sekurang-kurangnya "Direktur Utama" dan satu jabatan direktur per direktorat yang membawahi unit pemohon, misalnya "Direktur Pelayanan Medis" | Struktur organisasi rumah sakit | Master jabatan yang sudah ada |
+| Penempatan pemegang jabatan direktur | Satu penempatan utama aktif per jabatan direktur | SK pengangkatan | Batch penempatan awal atau SK (`S-A1`) |
+| Matriks persetujuan langkah Direktur | Satu baris per direktorat untuk `T9` dan `T12` dengan sumber penyetuju `Position`, ditambah satu baris `IsFallback` ke jabatan Direktur Utama (`HRD-DEC-072`) | Struktur organisasi | Master matriks persetujuan yang sudah ada |
+| Definisi alur `T9` s.d. `T13` | Lima definisi beserta langkahnya sesuai `HRD-DEC-064` dan `HRD-DEC-071`; setiap langkah `AllowSelfApproval = false` | `HRD-DEC-064` | Master definisi workflow yang sudah ada |
+| Number series | Lima kunci: standar, batch formasi, rencana, permintaan, pembatalan | Konvensi penomoran HR | Konfigurasi number series |
+| Pengaturan perencanaan | Satu baris per rumah sakit: batas hari cuti panjang, batas umur permintaan | Kebijakan HR rumah sakit — **bukan** nilai sistem | Layar pengaturan, oleh HR Manager |
+| Grade gaji | Gaji tengah terisi untuk setiap grade yang dipakai baris rencana dan permintaan | Struktur gaji rumah sakit | Master grade gaji yang sudah ada (5 baris di dev) |
+| Pemetaan peran | Finance / Anggaran, Direktur, Recruiter ke peran aplikasi | Administrator | `HRD-DEC-032` — `MAPPING_REQUIRED` |
+
+### 16.9 Hitungan yang dirancang
+
+**Rekomendasi per baris standar** (`HrdStaffingRecommendationService`):
+
+| Metode | Rumus | Contoh |
+| --- | --- | --- |
+| `FixedMinimum` | `MinimumHeadcount` | Farmasi: 4 → **4** |
+| `WorkloadRatio` | `WorkloadValue ÷ RatioWorkloadQuantity × RatioStaffQuantity` per shift × `ShiftsPerDay` × `ReliefFactor`, lalu dibulatkan menurut `RoundingMethod` | ICU: 7 ÷ 1 × 1 = 7; 7 × 3 = 21; 21 × 1,5 = 31,5 → **32** bila `Ceiling` |
+| `ServiceCoverage` | `ShiftsPerDay` × `StaffPerShift` × `ReliefFactor`, lalu dibulatkan | IGD: 3 × 2 = 6; 6 × 1,5 = 9 → **9** |
+
+Rincian hitung disimpan sebagai teks pada `HrdManpowerPlanLine.RecommendationBreakdown` agar dapat
+dibaca tanpa menghitung ulang. Bila angka beban periode itu belum diisi, rekomendasi baris rasio
+kosong dan tampil "angka beban belum diisi".
+
+**Lapisan tenaga tersedia dan tiga gap** (`HrdStaffingGapCalculationService`, `HRD-DEC-061`), per
+unit × jabatan pada tanggal acuan `D`:
+
+| Lapisan | Sumber | Aturan |
+| --- | --- | --- |
+| Terisi | `WfpOrganizationAssignment` dan `WfpPositionAssignment` utama yang aktif pada `D` | Jumlah porsi kerja; porsi kerja yang belum ada dihitung 1 |
+| Akan kosong | Pengunduran diri `Approved` dengan hari kerja terakhir di dalam periode; penempatan utama yang `EffectiveEndDate`-nya di dalam periode; SK pindah keluar yang `Scheduled` | Bagian dari terisi |
+| Tidak tersedia sementara | Cuti berstatus disetujui yang beririsan dengan periode dan lamanya ≥ `LongLeaveThresholdDays` | Kosong bila pengaturan belum diisi |
+| Belum memenuhi kompetensi | Orang terisi yang tidak punya `WfpCompetencyAssessment` aktif untuk setiap kompetensi wajib pada skill mix standar berlaku | Kosong bila standar tidak punya skill mix wajib |
+| Rangkap/Plt | Penempatan bukan utama di unit × jabatan itu | Informasi; tidak menambah terisi |
+| Alih daya | Orang dengan kategori sumber tenaga alih daya | Kosong sampai master jenis tenaga diisi (dependency 01) |
+
+| Gap | Rumus |
+| --- | --- |
+| Permanen | formasi berlaku − (terisi − akan kosong); ditambah alih daya hanya bila `CountsOutsourced = true` pada baris standar |
+| Sementara | tidak tersedia sementara |
+| Kompetensi | belum memenuhi kompetensi |
+
+**Sisa kursi** (`HrdHeadcountRequestService`, `HRD-DEC-063` `REMAINING_SEATS`) = formasi berlaku −
+(terisi − akan kosong) − jumlah `SeatFte` kursi `Open`/`Linked` pada permintaan lain untuk unit ×
+jabatan yang sama yang berstatus `Submitted`, `ReadyForRecruitment`, atau `PartiallyFulfilled`.
+
+### 16.10 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Memakai ulang `MstStaffingStandard`, `MstStaffingRatio`, `MstShiftSkillRequirement` | Prefix master untuk dokumen bersiklus persetujuan; rasio terpisah dari standar membuat satu versi tersebar di dua aggregate; tidak punya versi maupun rujukan `T9` |
+| Memakai ulang `MstPositionHeadcountPlan` | Berprefix master tetapi bersiklus status, terikat `PlanYear`, tanpa versi dan dokumen sumber (`HRD-TF-027`) |
+| Memakai ulang `TrxAnnualManpowerPlan` dan `TrxManpowerPlanDetail` | Tanpa konsep addendum; `Trx*` dilarang untuk `NEW CODE` (`QBE-NAM-001`) |
+| Memakai ulang `TrxHeadcountRequest` | Tanpa kursi, rencana pemenuhan, maupun tautan pemenuhan |
+| Memakai ulang `TrxStaffingGapAnalysis` | Tanpa lapisan `HRD-DEC-061` dan tanpa penanda kelengkapan |
+| Me-rename kandidat `Trx*` menjadi `Hrd*` (ratchet) | Tiga di antaranya dirujuk `TrxJobRequisition`; rename memaksa menyentuh model `S-D2` yang masih `BLOCKED` |
+| Kebutuhan harian dan alokasi per shift | Milik Penjadwalan (`HRD-DEC-058`) |
+| Kolom "kepala unit" pada master unit | Ditolak `HRD-DEC-072`; direktur dibaca dari penempatan jabatan |
+| Endpoint ubah atau hapus formasi | `NO_DIRECT_FORMATION_EDIT` |
+| Endpoint ubah atau hapus potret | `SNAPSHOT_IMMUTABLE` |
+| Endpoint persetujuan di controller domain | Persetujuan satu pintu lewat kotak masuk (`HRD-DEC-018`) |
+| Kedaluwarsa otomatis permintaan | `NO_AUTO_EXPIRY` (`HRD-DEC-071`) |
+| Penarikan otomatis angka beban dari data pasien | `HRD-DEP-005` `MISSING`; ditunda (`HRD-DEC-060`) |
+| Metode Analisis Beban Kerja | Ditunda; nilai enum dicadangkan (`HRD-DEC-060` `ABK_LATER_SLICE`) |
+
+### 16.11 Strategi test `S-D1`
+
+Backend tidak memelihara proyek automated test (`rules/backend/TEST_POLICY.md`). Bukti verifikasi
+tiap task: `dotnet build`, pemeriksaan QBE, dan uji API terhadap database dev mengikuti
+`testing/acceptance-test-matrix.md` bagian 15. Uji yang paling penting dan paling mudah terlewat:
+dua pengajuan bersamaan atas sisa kursi yang sama, potret yang tidak berubah sesudah data berubah,
+dan pengaman tabel kosong pada migration pembersihan.
+
+### 16.12 Traceability `S-D1`
+
+| Keputusan | Dirancang pada |
+| --- | --- |
+| `HRD-DEC-058` | 16.2, 16.10 |
+| `HRD-DEC-059` | 16.7 |
+| `HRD-DEC-060` | 16.4.1, 16.4.2, 16.9 |
+| `HRD-DEC-061` | 16.4.7, 16.4.8, 16.9 |
+| `HRD-DEC-062` | 16.4.3, 16.4.5 |
+| `HRD-DEC-063` | 16.4.6, 16.9 |
+| `HRD-DEC-064`, `HRD-DEC-072` | 16.4.9 (`WorkflowService`), 16.8 |
+| `HRD-DEC-065` | 16.4.5, 16.4.9 (`HrdWorkforcePlanningCostService`) |
+| `HRD-DEC-066`, `HRD-DEC-067` | 16.4.6 |
+| `HRD-DEC-068` | 16.4.5 |
+| `HRD-DEC-069` | 16.4.7 |
+| `HRD-DEC-070` | 16.4.4 |
+| `HRD-DEC-071` | 16.4.6, 16.4.8 |

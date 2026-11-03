@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `17` — **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-020` s.d. `HRD-TF-027`, pertanyaan `HRD-Q-68` s.d. `HRD-Q-79`. Sedang berjalan.** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Revision | `17` — **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
 | Status | `draft`. Sebelas keputusan rekayasa dan produk teknis sudah `approved` oleh pemilik teknis yang ditetapkan `HRD-DEC-015`. Dua keputusan sensitif — `HRD-DEC-005` gerbang kredensial dan `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai Komite Medik dan K3RS mengesahkan. Nilai kebijakan PRD pasal 28 belum tersentuh |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
@@ -3872,17 +3872,27 @@ acuan itu. Pass ini mengubah acuan tersebut menjadi keputusan yang dapat diuji.
 
 ### 32.2 Fakta hasil audit
 
+> **Catatan penomoran, 3 November 2026.** Fakta pada tabel ini semula bernomor `HRD-TF-020` s.d.
+> `HRD-TF-030`. Nomor `HRD-TF-020` dan `HRD-TF-021` ternyata sudah lebih dulu dipakai
+> `01-existing-capability-map.md` bagian 14.4 (revisi `1.2`, 2 November 2026) untuk temuan lain, dan
+> dirujuk `docs/issue/issue-001-*` serta `flowcharts/administrasi-kepegawaian.md`. Agar tidak ada satu
+> ID dengan dua arti, seluruh fakta bagian 32 digeser dua nomor menjadi `HRD-TF-022` s.d. `HRD-TF-032`,
+> termasuk setiap rujukannya pada bagian 32 dan `01-prerequisite-readiness.md` bagian 4. Isi fakta tidak
+> berubah. `HRD-TF-020` dan `HRD-TF-021` tetap milik capability map.
+
 | ID | Type | Temuan | Bukti | Klasifikasi |
 | --- | --- | --- | --- | --- |
-| `HRD-TF-020` | Fact | Domain `WorkforcePlanning` berisi **11 model**. Sepuluh di antaranya **tidak punya controller, service, maupun DTO**; mereka hanya dirujuk oleh model lain, konfigurasi EF, dan `ApplicationDbContext`. Frontend tidak punya satu pun layar perencanaan tenaga, formasi, gap, atau permintaan headcount | BE `Areas/Corporate/HumanResource/WorkforcePlanning/Models/*.cs` @ `396c8363`; pencarian `manpower`, `headcount`, `staffing`, `workforce-planning` pada FE `src/**` @ `9c4000724` → 0 berkas | `MISSING` |
-| `HRD-TF-021` | Conflict | `MstWorkforceRequirement` berada di folder `WorkforcePlanning`, tetapi isinya **bukan kebutuhan jumlah tenaga**. Ia adalah daftar **persyaratan berkas dan kualifikasi** per jenis tenaga — kategori `Document`, `Education`, `License`, `ClinicalPrivilege`, `BankAccount`, dan seterusnya — dengan isian `IsFileRequired`, `IsExpiredDateRequired`, `IsVerificationRequired`. Ia sudah dilayani `WorkforceRequirementController` dan layar `/hr/master-data/workforce-requirement`. Isi tabel: 1 baris kategori `License` | BE `MasterData/Workforce/Controllers/WorkforceRequirementController.cs` baris 23, 40–56 @ `396c8363`; FE `src/app/hr/master-data/workforce-requirement/` | `READY TO REUSE` sebagai master persyaratan berkas. **MUST NOT** dipakai sebagai sumber "berapa tenaga yang dibutuhkan" |
-| `HRD-TF-022` | Fact | Pada database dev, **seluruh sepuluh tabel perencanaan tenaga berisi 0 baris**: `MstPositionHeadcountPlan`, `MstShiftSkillRequirement`, `MstStaffingRatio`, `MstStaffingStandard`, `TrxAnnualManpowerPlan`, `TrxManpowerPlanDetail`, `TrxStaffingGapAnalysis`, `TrxHeadcountRequest`, `TrxDailyStaffingRequirement`, `TrxWorkforceAllocation`. Tabel tetangga juga kosong: `TrxJobRequisition` 0, `TrxEmergencyStaffingRequest` 0, `TrxShiftAssignment` 0. Bukti ini **hanya** berlaku untuk database dev; database lain belum diperiksa | Query hitung baris read-only pada `QuilvianNewDevHamzah`, 2 November 2026 | Bahan `HRD-Q-69` dan `HRD-Q-05` |
-| `HRD-TF-023` | Fact | Model kandidat yang ada sudah memetakan hampir seluruh langkah bab 03: standar kebutuhan tenaga (`MstStaffingStandard`, jenis `FixedHeadcount`, `WorkloadBased`, `RatioBased`, `ServiceCoverage`, `Custom`), rasio (`MstStaffingRatio`, pembulatan `Ceiling`/`Floor`/`Nearest`), komposisi keahlian per shift (`MstShiftSkillRequirement`), formasi per jabatan per tahun (`MstPositionHeadcountPlan`), rencana tahunan beserta rinciannya (`TrxAnnualManpowerPlan`, `TrxManpowerPlanDetail`), analisis selisih (`TrxStaffingGapAnalysis`), permintaan tambahan tenaga (`TrxHeadcountRequest`, jenis `Additional`, `Replacement`, `Temporary`, `Project`, `Seasonal`), kebutuhan harian per shift (`TrxDailyStaffingRequirement`), dan alokasi orang ke kebutuhan harian (`TrxWorkforceAllocation`). Seluruh status ditulis sebagai teks bebas tanpa daftar baku | BE `WorkforcePlanning/Models/*.cs` @ `396c8363` | Kandidat sesuai `HRD-DEC-004` — bukan jawaban |
-| `HRD-TF-024` | Fact | Titik sambung ke sub-modul tetangga **sudah ada di skema**: `TrxJobRequisition` (Rekrutmen) punya `AnnualManpowerPlanId`, `ManpowerPlanDetailId`, dan `HeadcountRequestId`. `TrxShiftAssignment` (Penjadwalan) punya `DailyStaffingRequirementId` dan `ShiftSkillRequirementId`. `TrxWorkforceAllocation` merujuk `WfpOrganizationAssignment` (Workforce Core) | BE `RecruitmentManagement/Models/TrxJobRequisition.cs` baris 21–23, 97; `SchedulingManagement/Models/TrxShiftAssignment.cs` baris 28–29 @ `396c8363` | Titik sentuh |
-| `HRD-TF-025` | Fact | **Tumpang tindih pada model kandidat.** (a) `MstPositionHeadcountPlan` dan `TrxManpowerPlanDetail` sama-sama menyimpan headcount saat ini, dianggarkan, dan target per jabatan per tahun; `MstPositionHeadcountPlan` ber-prefix master tetapi punya siklus status `Draft`/`Proposed`/`Approved`/`Closed`/`Cancelled` layaknya transaksi. (b) `TrxDailyStaffingRequirement` + `TrxWorkforceAllocation` beririsan dengan `TrxShiftAssignment` dan `TrxEmergencyStaffingRequest` milik Penjadwalan (`HRD-DEC-026`) | Perbandingan properti antar model @ `396c8363` | Bahan `HRD-Q-68`, `HRD-Q-72` |
-| `HRD-TF-026` | Fact | **Data masukan untuk menghitung "tenaga tersedia" belum ada.** `WfpPositionAssignment` 0 baris, sedangkan `WfpOrganizationAssignment` 55 baris. Master pendukung tersedia: `MstPosition` 31, `MstDepartment` 10, `MstOrganizationUnit` 5, `MstProfession` 10, `MstCompetency` 3, `MstCostCenter` 5, `MstShift` 4. Selisih per jabatan tidak dapat menghasilkan angka yang bermakna sebelum batch data awal `HRD-DEC-054` (`S-A1`) selesai | Query hitung baris read-only, 2 November 2026 | Dependency ke `S-A1` |
-| `HRD-TF-027` | Fact | Model kandidat menyimpan angka biaya: `AverageMonthlyCost`, `EstimatedAnnualCost`, `TotalEstimatedAnnualCost`, `ApprovedBudgetAmount`, `EstimatedMonthlyCost`. Angka ini adalah **anggaran agregat**, bukan gaji perorangan, sehingga `HRD-DEC-033` tidak otomatis berlaku | `TrxAnnualManpowerPlan.cs`, `TrxManpowerPlanDetail.cs`, `TrxHeadcountRequest.cs` @ `396c8363` | Bahan `HRD-Q-75` |
-| `HRD-TF-028` | Fact | Repository mengenal **lingkungan staging dan produksi**: workflow `dev-to-staging.yml` dan `staging-to-production.yml`; yang kedua punya gerbang manual `database_ready` ("Production database is ready for this exact release"). Connection string kedua lingkungan **tidak** ada di repository — `appsettings.json` berisi `Database=DO_NOT_CONNECT`, hanya `appsettings.Development.json` yang menunjuk `QuilvianNewDevHamzah`. Isi tabel di staging dan produksi **tidak dapat diperiksa** dari sesi ini | BE `.github/workflows/staging-to-production.yml` baris 17–18, 57–63; `appsettings.json`; `appsettings.Development.json` @ `396c8363` | Bahan `HRD-Q-69` |
+| `HRD-TF-022` | Fact | Domain `WorkforcePlanning` berisi **11 model**. Sepuluh di antaranya **tidak punya controller, service, maupun DTO**; mereka hanya dirujuk oleh model lain, konfigurasi EF, dan `ApplicationDbContext`. Frontend tidak punya satu pun layar perencanaan tenaga, formasi, gap, atau permintaan headcount | BE `Areas/Corporate/HumanResource/WorkforcePlanning/Models/*.cs` @ `396c8363`; pencarian `manpower`, `headcount`, `staffing`, `workforce-planning` pada FE `src/**` @ `9c4000724` → 0 berkas | `MISSING` |
+| `HRD-TF-023` | Conflict | `MstWorkforceRequirement` berada di folder `WorkforcePlanning`, tetapi isinya **bukan kebutuhan jumlah tenaga**. Ia adalah daftar **persyaratan berkas dan kualifikasi** per jenis tenaga — kategori `Document`, `Education`, `License`, `ClinicalPrivilege`, `BankAccount`, dan seterusnya — dengan isian `IsFileRequired`, `IsExpiredDateRequired`, `IsVerificationRequired`. Ia sudah dilayani `WorkforceRequirementController` dan layar `/hr/master-data/workforce-requirement`. Isi tabel: 1 baris kategori `License` | BE `MasterData/Workforce/Controllers/WorkforceRequirementController.cs` baris 23, 40–56 @ `396c8363`; FE `src/app/hr/master-data/workforce-requirement/` | `READY TO REUSE` sebagai master persyaratan berkas. **MUST NOT** dipakai sebagai sumber "berapa tenaga yang dibutuhkan" |
+| `HRD-TF-024` | Fact | Pada database dev, **seluruh sepuluh tabel perencanaan tenaga berisi 0 baris**: `MstPositionHeadcountPlan`, `MstShiftSkillRequirement`, `MstStaffingRatio`, `MstStaffingStandard`, `TrxAnnualManpowerPlan`, `TrxManpowerPlanDetail`, `TrxStaffingGapAnalysis`, `TrxHeadcountRequest`, `TrxDailyStaffingRequirement`, `TrxWorkforceAllocation`. Tabel tetangga juga kosong: `TrxJobRequisition` 0, `TrxEmergencyStaffingRequest` 0, `TrxShiftAssignment` 0. Bukti ini **hanya** berlaku untuk database dev; database lain belum diperiksa | Query hitung baris read-only pada `QuilvianNewDevHamzah`, 2 November 2026 | Bahan `HRD-Q-69` dan `HRD-Q-05` |
+| `HRD-TF-025` | Fact | Model kandidat yang ada sudah memetakan hampir seluruh langkah bab 03: standar kebutuhan tenaga (`MstStaffingStandard`, jenis `FixedHeadcount`, `WorkloadBased`, `RatioBased`, `ServiceCoverage`, `Custom`), rasio (`MstStaffingRatio`, pembulatan `Ceiling`/`Floor`/`Nearest`), komposisi keahlian per shift (`MstShiftSkillRequirement`), formasi per jabatan per tahun (`MstPositionHeadcountPlan`), rencana tahunan beserta rinciannya (`TrxAnnualManpowerPlan`, `TrxManpowerPlanDetail`), analisis selisih (`TrxStaffingGapAnalysis`), permintaan tambahan tenaga (`TrxHeadcountRequest`, jenis `Additional`, `Replacement`, `Temporary`, `Project`, `Seasonal`), kebutuhan harian per shift (`TrxDailyStaffingRequirement`), dan alokasi orang ke kebutuhan harian (`TrxWorkforceAllocation`). Seluruh status ditulis sebagai teks bebas tanpa daftar baku | BE `WorkforcePlanning/Models/*.cs` @ `396c8363` | Kandidat sesuai `HRD-DEC-004` — bukan jawaban |
+| `HRD-TF-026` | Fact | Titik sambung ke sub-modul tetangga **sudah ada di skema**: `TrxJobRequisition` (Rekrutmen) punya `AnnualManpowerPlanId`, `ManpowerPlanDetailId`, dan `HeadcountRequestId`. `TrxShiftAssignment` (Penjadwalan) punya `DailyStaffingRequirementId` dan `ShiftSkillRequirementId`. `TrxWorkforceAllocation` merujuk `WfpOrganizationAssignment` (Workforce Core) | BE `RecruitmentManagement/Models/TrxJobRequisition.cs` baris 21–23, 97; `SchedulingManagement/Models/TrxShiftAssignment.cs` baris 28–29 @ `396c8363` | Titik sentuh |
+| `HRD-TF-027` | Fact | **Tumpang tindih pada model kandidat.** (a) `MstPositionHeadcountPlan` dan `TrxManpowerPlanDetail` sama-sama menyimpan headcount saat ini, dianggarkan, dan target per jabatan per tahun; `MstPositionHeadcountPlan` ber-prefix master tetapi punya siklus status `Draft`/`Proposed`/`Approved`/`Closed`/`Cancelled` layaknya transaksi. (b) `TrxDailyStaffingRequirement` + `TrxWorkforceAllocation` beririsan dengan `TrxShiftAssignment` dan `TrxEmergencyStaffingRequest` milik Penjadwalan (`HRD-DEC-026`) | Perbandingan properti antar model @ `396c8363` | Bahan `HRD-Q-68`, `HRD-Q-72` |
+| `HRD-TF-028` | Fact | **Data masukan untuk menghitung "tenaga tersedia" belum ada.** `WfpPositionAssignment` 0 baris, sedangkan `WfpOrganizationAssignment` 55 baris. Master pendukung tersedia: `MstPosition` 31, `MstDepartment` 10, `MstOrganizationUnit` 5, `MstProfession` 10, `MstCompetency` 3, `MstCostCenter` 5, `MstShift` 4. Selisih per jabatan tidak dapat menghasilkan angka yang bermakna sebelum batch data awal `HRD-DEC-054` (`S-A1`) selesai | Query hitung baris read-only, 2 November 2026 | Dependency ke `S-A1` |
+| `HRD-TF-029` | Fact | Model kandidat menyimpan angka biaya: `AverageMonthlyCost`, `EstimatedAnnualCost`, `TotalEstimatedAnnualCost`, `ApprovedBudgetAmount`, `EstimatedMonthlyCost`. Angka ini adalah **anggaran agregat**, bukan gaji perorangan, sehingga `HRD-DEC-033` tidak otomatis berlaku | `TrxAnnualManpowerPlan.cs`, `TrxManpowerPlanDetail.cs`, `TrxHeadcountRequest.cs` @ `396c8363` | Bahan `HRD-Q-75` |
+| `HRD-TF-030` | Fact | Repository mengenal **lingkungan staging dan produksi**: workflow `dev-to-staging.yml` dan `staging-to-production.yml`; yang kedua punya gerbang manual `database_ready` ("Production database is ready for this exact release"). Connection string kedua lingkungan **tidak** ada di repository — `appsettings.json` berisi `Database=DO_NOT_CONNECT`, hanya `appsettings.Development.json` yang menunjuk `QuilvianNewDevHamzah`. Isi tabel di staging dan produksi **tidak dapat diperiksa** dari sesi ini | BE `.github/workflows/staging-to-production.yml` baris 17–18, 57–63; `appsettings.json`; `appsettings.Development.json` @ `396c8363` | Bahan `HRD-Q-69` |
+| `HRD-TF-031` | Fact | **Belum ada cara membedakan jenis dan porsi kerja tenaga.** (a) Tidak ada kolom porsi kerja (*FTE*, misalnya 0,5 untuk paruh waktu) pada penempatan organisasi, penempatan jabatan, maupun profil workforce. (b) Master `MstWorkforceType` hanya berisi `Legacy Employee`, `Legacy Doctor`, `Legacy External User`; `MstEmploymentType` hanya `Legacy Employment Type`; `MstWorkerSource` kosong. Akibatnya tenaga tetap, kontrak, paruh waktu, alih daya, dan dokter mitra belum dapat dibedakan. (c) `WfpPositionAssignment.AssignmentType` sudah mengenal `Substantive`, `Acting`, `Functional`, `Project`, `Temporary`. (d) Dari 55 penempatan organisasi berjenis `Primary`, 12 bertanda `IsPrimary = false` — sisa pola `HRD-TF-013` | BE `WorkforceCore/Models/WfpPositionAssignment.cs` baris 32–33; `WfpOrganizationAssignment.cs` baris 33–42; `MasterData/Workforce/Models/MstWorkforceProfile.cs` @ `396c8363`; query read-only 3 November 2026 | Bahan `HRD-Q-71`; dependency ke 01 dan 02 |
+| `HRD-TF-032` | Fact | Master `MstSalaryGrade` sudah menyimpan **gaji minimum, tengah, dan maksimum per grade** (`MinimumSalary`, `MidpointSalary`, `MaximumSalary`), terhubung ke `MstEmployeeGrade`, bertanggal berlaku, dan dilayani `SalaryGradeController` dengan hak akses `SalaryGrade : Read`. Isi database dev: 5 baris. Sebaliknya, penetapan gaji perorangan `WfpSalaryAssignment` masih 0 baris | BE `MasterData/PayrollAndBenefit/Models/MstSalaryGrade.cs` baris 13–39; `Controllers/SalaryGradeController.cs` baris 17, 46 @ `396c8363`; query read-only 3 November 2026 | Bahan `HRD-Q-75` |
 
 ### 32.3 Batas scope — disetujui lewat `HRD-DEC-058`
 
@@ -3916,7 +3926,7 @@ ke rekrutmen.
 | Saldo dan jadwal cuti | 08 Cuti | Dibaca untuk menghitung tenaga yang sedang cuti panjang |
 | Kompetensi pegawai dan pelatihan | 16 Learning & Competency | Dibaca untuk menghitung tenaga yang memenuhi kompetensi |
 | Kredensial dan kewenangan klinis | 14 — `BLOCKED` | Tidak disentuh |
-| Persyaratan berkas per jenis tenaga (`MstWorkforceRequirement`) | 01 Master Data HR (`HRD-TF-021`) | Tidak dipakai sebagai kebutuhan jumlah tenaga |
+| Persyaratan berkas per jenis tenaga (`MstWorkforceRequirement`) | 01 Master Data HR (`HRD-TF-023`) | Tidak dipakai sebagai kebutuhan jumlah tenaga |
 | Perhitungan biaya gaji riil | 10 Payroll | Tidak dipakai; biaya pada rencana adalah estimasi anggaran |
 
 ### 32.4 Bentuk blueprint
@@ -3929,7 +3939,7 @@ sehingga tidak ditanyakan ulang.
 
 | Keputusan | Isi singkat | Pengaruh pada pass ini |
 | --- | --- | --- |
-| `HRD-DEC-004` | Domain tanpa controller diturunkan ulang dari proses bisnis; model existing hanya kandidat | Sebelas model pada `HRD-TF-023` boleh digabung, dipecah, atau dibuang saat desain |
+| `HRD-DEC-004` | Domain tanpa controller diturunkan ulang dari proses bisnis; model existing hanya kandidat | Sebelas model pada `HRD-TF-025` boleh digabung, dipecah, atau dibuang saat desain |
 | `HRD-DEC-019` | `Mst` untuk master, `Hrd` untuk entity operasional baru, `Trx` di-ratchet saat disentuh | Entity transaksi perencanaan yang dipakai wajib ber-prefix `Hrd` |
 | `HRD-DEC-026` | Roster, penugasan shift, penggantian, tenaga darurat, dan siaga adalah target Penjadwalan | Tidak dipindah ke sub-modul ini |
 | `HRD-DEC-031` | Penyetuju **MUST** berbeda dari pembuat; unit satu petugas dieskalasi | Berlaku untuk persetujuan rencana dan permintaan headcount |
@@ -3947,16 +3957,18 @@ menyediakan tempat menyetelnya, sedangkan nilainya diputuskan pemilik klinis rum
 | --- | --- | --- | --- | --- |
 | `HRD-Q-68` | Batas scope sub-modul 03, terutama: kebutuhan tenaga **harian per shift** milik 03 atau 06 Penjadwalan? | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-058` |
 | `HRD-Q-69` | Selain database dev, adakah database lain (staging/produksi/impor V1) yang mungkin sudah berisi data perencanaan tenaga? Menentukan penutupan `HRD-Q-05` untuk `S-D1` | Pengguna / pemilik database | `DESIGN` untuk `S-D1` | `resolved` — `HRD-DEC-059` |
-| `HRD-Q-70` | Metode standar kebutuhan tenaga mana yang wajib pada rilis pertama. *Pertanyaan "siapa mengesahkan standar" dipindah ke `HRD-Q-74` agar satu pertanyaan satu keputusan* | Pengguna | `DESIGN` | `draft` |
-| `HRD-Q-71` | Definisi "tenaga tersedia": siapa yang dihitung dan siapa yang dikurangi (paruh waktu, rangkap/Plt, cuti panjang, masa orientasi, alih daya, dokter mitra) | Pengguna | `DESIGN` | `draft` |
-| `HRD-Q-72` | Formasi jabatan dan rencana tahunan: satu objek atau dua, dan bagaimana formasi berubah di tengah tahun | Pengguna | `DESIGN` | `draft` |
-| `HRD-Q-73` | Permintaan headcount wajib berasal dari rencana/selisih yang disetujui, atau boleh mendadak (mis. pengganti pegawai resign) dengan persetujuan pengecualian | Pengguna | `DESIGN` | `draft` |
-| `HRD-Q-74` | Rantai persetujuan **standar kebutuhan tenaga**, rencana tahunan, dan permintaan headcount, termasuk peran Finance/anggaran dan Direktur | Pengguna | `DESIGN` | `draft` |
-| `HRD-Q-75` | Siapa boleh melihat angka biaya dan anggaran (`HRD-TF-027`) | Pengguna | `DESIGN` | `draft` |
-| `HRD-Q-76` | Serah terima ke rekrutmen: satu permintaan → satu atau banyak requisition, siapa membuatnya, kapan permintaan dianggap terpenuhi, dan apa yang terjadi bila dibatalkan setelah lowongan dibuka | Pengguna | `DESIGN` | `draft` |
-| `HRD-Q-77` | Redistribusi internal sebagai jalan pemenuhan selisih (contoh ICU: 4 rekrut baru + 2 pindahan) | Pengguna | `DESIGN` | `draft` |
-| `HRD-Q-78` | Revisi rencana tahunan yang sudah disetujui di tengah tahun | Pengguna | `DESIGN` | `draft` |
-| `HRD-Q-79` | Selisih dihitung langsung setiap kali dibuka, atau disimpan sebagai potret per tanggal | Pengguna | `DESIGN` | `draft` |
+| `HRD-Q-70` | Metode standar kebutuhan tenaga mana yang wajib pada rilis pertama. *Pertanyaan "siapa mengesahkan standar" dipindah ke `HRD-Q-74` agar satu pertanyaan satu keputusan* | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-060` |
+| `HRD-Q-71` | Definisi "tenaga tersedia": siapa yang dihitung dan siapa yang dikurangi (paruh waktu, rangkap/Plt, cuti panjang, masa orientasi, alih daya, dokter mitra) | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-061` |
+| `HRD-Q-72` | Formasi jabatan dan rencana tahunan: satu objek atau dua, dan bagaimana formasi berubah di tengah tahun | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-062` |
+| `HRD-Q-73` | Permintaan headcount wajib berasal dari rencana/selisih yang disetujui, atau boleh mendadak (mis. pengganti pegawai resign) dengan persetujuan pengecualian | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-063` |
+| `HRD-Q-74` | Rantai persetujuan **standar kebutuhan tenaga**, rencana tahunan, dan permintaan headcount, termasuk peran Finance/anggaran dan Direktur | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-064` |
+| `HRD-Q-75` | Siapa boleh melihat angka biaya dan anggaran (`HRD-TF-029`) | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-065` |
+| `HRD-Q-76` | Serah terima ke rekrutmen: satu permintaan → satu atau banyak requisition, siapa membuatnya, dan kapan permintaan dianggap terpenuhi. *Pembatalan dipindah ke `HRD-Q-81`* | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-066` |
+| `HRD-Q-77` | Redistribusi internal sebagai jalan pemenuhan selisih (contoh ICU: 4 rekrut baru + 2 pindahan) | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-067` |
+| `HRD-Q-78` | Revisi rencana tahunan yang sudah disetujui di tengah tahun | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-068` |
+| `HRD-Q-79` | Selisih dihitung langsung setiap kali dibuka, atau disimpan sebagai potret per tanggal | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-069` |
+| `HRD-Q-80` | Formasi awal: bagaimana formasi pertama diisi untuk unit dan jabatan yang sudah berjalan, dan siapa yang menyetujuinya. Lahir dari `HRD-DEC-062` | Pengguna | `IMPLEMENTATION` | `resolved` — `HRD-DEC-070` |
+| `HRD-Q-81` | Pembatalan dan kedaluwarsa permintaan headcount yang sudah disetujui, termasuk bila lowongan sudah dibuka. Dipecah dari `HRD-Q-76` | Pengguna | `DESIGN` | `resolved` — `HRD-DEC-071` |
 
 Daftar ini dapat bertambah bila jawaban pengguna memunculkan pertanyaan turunan.
 
@@ -3971,7 +3983,7 @@ Daftar ini dapat bertambah bila jawaban pengguna memunculkan pertanyaan turunan.
 | Owner | Pengguna (`HRD-DEC-015`) |
 | Status | `approved` |
 | Disetujui | Pengguna, 2026-11-02 — memilih opsi A yang direkomendasikan, dan mengonfirmasi daftar scope bagian 32.3 tanpa koreksi |
-| Bukti pemicu | `HRD-TF-024`, `HRD-TF-025` (b) |
+| Bukti pemicu | `HRD-TF-026`, `HRD-TF-027` (b) |
 
 **Isi keputusan.** Batas scope pada bagian 32.3 berlaku. Pembagian kerja dengan 06 Penjadwalan
 adalah sebagai berikut:
@@ -4009,9 +4021,9 @@ diputuskan saat desain Penjadwalan, bukan pada `S-D1`.
 | Owner | Pengguna (`HRD-DEC-015`) |
 | Status | `approved` |
 | Disetujui | Pengguna, 2026-11-02 — memilih opsi A yang direkomendasikan |
-| Bukti | `HRD-TF-020` (tidak ada API yang dapat menulis), `HRD-TF-022` (0 baris di database dev), `HRD-TF-028` (staging dan produksi tidak dapat diperiksa dari sesi ini), ditambah pernyataan pengguna bahwa tidak ada impor manual atau skrip ke tabel-tabel ini |
+| Bukti | `HRD-TF-022` (tidak ada API yang dapat menulis), `HRD-TF-024` (0 baris di database dev), `HRD-TF-030` (staging dan produksi tidak dapat diperiksa dari sesi ini), ditambah pernyataan pengguna bahwa tidak ada impor manual atau skrip ke tabel-tabel ini |
 
-**Isi keputusan.** Sepuluh tabel perencanaan tenaga pada `HRD-TF-022` dianggap **kosong di
+**Isi keputusan.** Sepuluh tabel perencanaan tenaga pada `HRD-TF-024` dianggap **kosong di
 seluruh lingkungan**. `S-D1` boleh dirancang dengan penurunan ulang bebas sesuai `HRD-DEC-004`:
 model lama boleh digabung, dipecah, diganti nama, atau dibuang. Karena isi staging dan produksi
 tidak diperiksa langsung, anggapan itu dijaga oleh pengaman berikut.
@@ -4039,3 +4051,662 @@ mencatat bukti di atas sebagai dasar perubahan status `S-D1`; `MODULE-STATUS.md`
 menyesuaikan status terkunci karena `HRD-Q-05`. Perubahan status dilakukan
 `manage-module-blueprint` setelah pass ini selesai. Aturan manifest bahwa status `BLOCKED` hanya
 boleh naik dengan bukti yang tercatat tetap dihormati.
+
+#### `HRD-DEC-060` — Rilis pertama memuat tiga metode standar; Analisis Beban Kerja menyusul
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-70` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | Buku Panduan bab 03 "Yang harus dipahami developer"; `HRD-TF-025` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `MVP_METHODS` | Rilis pertama menyediakan tiga metode: **jumlah tetap/minimum**, **rasio terhadap beban**, dan **cakupan layanan**. Metode dipilih per standar, sehingga tiap unit boleh memakai metode berbeda |
+| `ABK_LATER_SLICE` | **Analisis Beban Kerja (ABK)** — kebutuhan dihitung dari total jam kegiatan dibagi waktu kerja efektif — ditunda ke slice berikutnya. Unit yang memakai ABK menghitungnya di luar sistem, lalu memasukkan hasilnya sebagai jumlah tetap/minimum |
+| `METHOD_EXTENSIBLE` | Metode baru **MUST** dapat ditambahkan tanpa merombak standar dan rencana yang sudah ada. Aturan metode **MUST NOT** ditulis sebagai percabangan tetap di source, sejalan dengan pola `HRD-DEC-043` |
+| `MANUAL_WORKLOAD_INPUT` | Angka beban untuk metode rasio — misalnya rata-rata pasien terisi per hari — **diisi manual** per unit per periode, beserta keterangan sumbernya. Penarikan otomatis dari data bed atau kunjungan pasien ditunda karena `HRD-DEP-005` masih `UNKNOWN` |
+| `SHIFT_TO_HEADCOUNT_CONVERSION` | Untuk unit yang berjalan bergiliran, kebutuhan per shift diubah menjadi kebutuhan orang dengan jumlah shift per hari dan **faktor cadangan** (*relief factor*) untuk libur dan cuti. Faktor cadangan disetel per standar |
+| `CALCULATION_IS_RECOMMENDATION` | Hasil hitungan adalah **angka rekomendasi** dan **MUST** ditampilkan beserta rincian hitungnya. Kepala unit boleh mengusulkan angka lain di rencana tahunan dengan alasan tertulis. Angka yang berlaku ditetapkan lewat persetujuan (`HRD-Q-74`), bukan oleh rumus |
+| `CLINICAL_VALUES_NOT_DECIDED_HERE` | Nilai seperti rasio perawat ICU atau jumlah dokter jaga IGD adalah kebijakan rumah sakit. Sistem hanya menyimpan, memberi versi, dan memberi tanggal berlaku; isinya diputuskan pemilik yang berwenang |
+
+**Contoh perhitungan ketiga metode.** Angka di bawah hanya contoh, bukan kebijakan.
+
+| Unit | Metode | Isian | Rincian hitung | Rekomendasi |
+| --- | --- | --- | --- | --- |
+| Farmasi Rawat Jalan | Jumlah tetap/minimum | Minimal 4 apoteker | — | 4 |
+| ICU | Rasio terhadap beban | Rasio 1 perawat : 1 pasien; rata-rata 7 pasien terisi; 3 shift; faktor cadangan 1,5 | 7 ÷ 1 = 7 per shift; 7 × 3 = 21; 21 × 1,5 = 31,5 | 32 bila pembulatan ke atas |
+| IGD | Cakupan layanan | 24 jam, 3 shift, 2 dokter per shift, faktor cadangan 1,5 | 3 × 2 = 6; 6 × 1,5 = 9 | 9 |
+
+Kepala ICU lalu mengusulkan 30, bukan 32, dengan alasan "2 bed dialihkan menjadi HCU mulai Juli".
+Angka 30 itulah yang diajukan untuk disetujui; angka 32 tetap tersimpan sebagai rekomendasi
+pembanding.
+
+**Yang belum ditetapkan di sini:** cara pembulatan bawaan (model kandidat sudah punya pilihan
+`Ceiling`, `Floor`, `Nearest`, `NoRounding` per standar) dan nilai faktor cadangan bawaan. Keduanya
+disetel per standar oleh pemilik standar, bukan ditetapkan sistem.
+
+#### `HRD-DEC-061` — Tenaga tersedia dihitung dalam porsi kerja, hanya dari penempatan utama, dan ditampilkan berlapis
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-71` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | Buku Panduan bab 03 "HR membandingkan kebutuhan dengan tenaga aktif, vacancy, cuti panjang, turnover dan kompetensi"; `HRD-TF-028`, `HRD-TF-031` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `REFERENCE_DATE` | Tenaga tersedia selalu dihitung **per tanggal acuan** yang tercatat, misalnya 1 Januari 2027 untuk rencana tahun 2027. Angka tanpa tanggal acuan **MUST NOT** ditampilkan |
+| `FTE_BASED_COUNT` | Tenaga dihitung dalam **porsi kerja** (*FTE*). Penuh waktu = 1; paruh waktu sesuai porsinya, misalnya 0,5. Bila porsi kerja belum diisi, nilainya dianggap 1 |
+| `PRIMARY_PLACEMENT_ONLY` | Yang dihitung hanya **penempatan utama** yang aktif pada tanggal acuan (`HRD-DEC-047`, `HRD-DEC-049`). Rangkap dan Plt **MUST NOT** dihitung di unit kedua; di sana hanya tampil sebagai informasi. Satu orang **MUST NOT** terhitung di dua unit |
+| `OUTSOURCE_COUNTED_SEPARATELY` | Tenaga alih daya dan dokter mitra dihitung pada lapisan tersendiri. Mereka ikut menutup kebutuhan **hanya** bila standar unit itu menyatakannya |
+| `LAYERED_AVAILABILITY` | Sistem menampilkan lapisan: **terisi**; **akan kosong** dalam periode; **tidak tersedia sementara** karena cuti yang lamanya mencapai batas hari tertentu; **belum memenuhi kompetensi**; **rangkap/Plt** sebagai informasi; dan **alih daya** |
+| `THREE_GAP_TYPES` | Dari lapisan itu diturunkan tiga gap dengan tindak lanjut berbeda: **gap permanen** = kebutuhan − (terisi − akan kosong), ditindaklanjuti dengan permintaan headcount; **gap sementara** = tidak tersedia sementara, ditindaklanjuti dengan pengganti sementara atau roster di 06; **gap kompetensi** = belum memenuhi kompetensi, ditindaklanjuti dengan pelatihan di 16 |
+| `UNKNOWN_IS_NOT_ZERO` | Bila data suatu lapisan belum tersedia — misalnya data cuti atau kompetensi — lapisan itu **MUST** tampil "data belum tersedia", bukan 0, dan gap yang bergantung padanya ditandai belum lengkap |
+
+**Contoh dengan data samaran.** ICU, kebutuhan yang disetujui 32, tanggal acuan 1 Januari 2027.
+
+| Orang | Kondisi | Terisi | Lapisan lain |
+| --- | --- | ---: | --- |
+| 26 perawat | Tetap, penuh waktu, utama di ICU | 26 | — |
+| Budi | Paruh waktu 50% | 0,5 | — |
+| Dodi | Cuti besar Januari–Maret | 1 | Tidak tersedia sementara: 1 |
+| Rani | Masih orientasi, belum lulus kompetensi ICU | 1 | Belum memenuhi kompetensi: 1 |
+| Tono | Resign efektif 31 Desember | 1 | Akan kosong: 1 |
+| Sari | Utama di Rawat Inap, Plt Kepala Ruang ICU | 0 | Rangkap/Plt (info): 1 |
+| 2 orang | Alih daya dari vendor | 0 | Alih daya: 2 |
+| **Jumlah** | | **29,5** | |
+
+| Gap | Hitungan | Tindak lanjut |
+| --- | --- | --- |
+| Permanen | 32 − (29,5 − 1) = **3,5** | Permintaan headcount; jumlah akhirnya diputuskan lewat persetujuan |
+| Sementara | **1** | Pengganti sementara atau roster di 06 |
+| Kompetensi | **1** | Pelatihan di 16, bukan rekrutmen |
+
+**Dependency yang lahir dari keputusan ini — dicatat, tidak dirancang di sini:**
+
+| Kebutuhan | Pemilik | Keadaan hari ini |
+| --- | --- | --- |
+| Kolom porsi kerja pada penempatan | 02 Workforce Core | Belum ada (`HRD-TF-031` a) |
+| Isi master jenis tenaga yang nyata: tetap, kontrak, paruh waktu, alih daya, mitra | 01 Master Data HR | Hanya nilai `Legacy` (`HRD-TF-031` b) |
+| Penempatan jabatan pegawai yang ada | 02, batch `HRD-DEC-054` | 0 baris (`HRD-TF-028`) |
+| Data cuti yang disetujui | 08 Cuti | Tersedia, bentuk baca belum dirancang |
+| Hasil kompetensi pegawai | 16 Learning & Competency | Bentuk baca belum dirancang |
+| Tanggal berakhir yang sudah pasti: resign disetujui, kontrak berakhir | 20, 05 | Bentuk baca belum dirancang |
+
+**Yang belum ditetapkan di sini:** batas hari cuti yang dianggap "tidak tersedia sementara" —
+disetel per kebijakan rumah sakit, bukan oleh sistem — dan apakah kontrak yang mendekati akhir
+tetapi belum diputuskan perpanjangannya ikut dihitung "akan kosong".
+
+#### `HRD-DEC-062` — Formasi dan rencana tahunan adalah dua hal terpisah; formasi berubah hanya lewat dokumen yang disetujui
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-72` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | `HRD-TF-027` (a); Buku Panduan bab 03 "Approved gap harus dapat ditelusuri sampai requisition dan hiring" |
+
+**Isi keputusan.**
+
+| Istilah | Arti yang dikunci |
+| --- | --- |
+| **Formasi** | Jumlah kursi jabatan yang **sah berlaku** per unit dan jabatan pada suatu tanggal. Formasi adalah angka "kebutuhan yang disetujui" pada hitungan gap `HRD-DEC-061` |
+| **Rencana tahunan** | **Dokumen usulan** perubahan kebutuhan tenaga untuk satu tahun — tambah, ganti, kurangi — beserta estimasi anggarannya. Rencana bukan formasi |
+
+| Aturan | Bunyi |
+| --- | --- |
+| `FORMATION_EFFECTIVE_DATED` | Formasi disimpan berversi dan bertanggal berlaku. Pada satu tanggal, setiap pasangan unit dan jabatan **MUST** punya tepat satu versi formasi yang berlaku |
+| `NO_DIRECT_FORMATION_EDIT` | Formasi **MUST NOT** diubah langsung oleh siapa pun, termasuk HR Manager. Perubahan hanya lahir dari dokumen sumber yang disetujui: rencana tahunan, permintaan headcount di luar formasi (`HRD-Q-73`), atau revisi rencana (`HRD-Q-78`) |
+| `FORMATION_SOURCE_REQUIRED` | Setiap versi formasi **MUST** menyimpan rujukan ke dokumen sumber yang menyetujuinya, beserta penyetuju dan waktunya |
+| `PLAN_APPROVAL_CREATES_VERSION` | Saat rencana tahunan disetujui, sistem membuat versi formasi baru yang berlaku pada tanggal mulai periode rencana |
+| `FORMATION_CARRIES_FORWARD` | Versi lama tetap berlaku sampai versi baru menggantikannya. Pergantian tahun tanpa rencana yang disetujui **MUST NOT** membuat formasi kosong |
+| `FORMATION_DOES_NOT_MOVE_PEOPLE` | Perubahan formasi **MUST NOT** mengubah penempatan siapa pun. Bila formasi turun di bawah jumlah terisi, selisihnya tampil sebagai **kelebihan**; penyesuaian orang tetap lewat SK (`HRD-DEC-048`) |
+
+**Contoh riwayat formasi ICU — jabatan Perawat Pelaksana.**
+
+| Versi | Formasi | Berlaku | Dokumen sumber | Disetujui |
+| --- | ---: | --- | --- | --- |
+| 1 | 28 | 1 Januari 2026 | Formasi awal (`HRD-Q-80`) | — |
+| 2 | 30 | 1 Januari 2027 | Rencana Tahunan 2027 | Desember 2026 |
+| 3 | 32 | 1 April 2027 | Permintaan headcount HC-2027-014 (2 bed tambahan) | Maret 2027 |
+
+Pada 15 Februari 2027 formasi yang berlaku adalah 30. Pada 1 Mei 2027 formasi yang berlaku adalah 32.
+Bila Rencana 2028 belum disetujui sampai 1 Januari 2028, formasi 32 tetap berlaku.
+
+**Akibat yang harus dirancang kemudian (bukan diputuskan di sini):** model kandidat
+`MstPositionHeadcountPlan` dan `TrxManpowerPlanDetail` dipisah perannya sesuai tabel di atas,
+dan prefix entity formasi ditentukan saat desain sesuai `HRD-DEC-019`. Formasi awal untuk rumah
+sakit yang belum punya data formasi di sistem ditanyakan pada `HRD-Q-80`.
+
+#### `HRD-DEC-063` — Permintaan headcount dibedakan dari formasinya: di dalam formasi lewat jalur biasa, di luar formasi lewat jalur pengecualian
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-73` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | Buku Panduan bab 03 langkah 4–6; `HRD-DEC-062`; model kandidat `TrxHeadcountRequest.RequestType` |
+
+**Isi keputusan.**
+
+| Jenis permintaan | Artinya | Pengaruh ke formasi | Jalur persetujuan |
+| --- | --- | --- | --- |
+| **Pengganti** | Mengisi kursi yang ditinggalkan atau akan ditinggalkan seseorang | Tidak berubah | Biasa |
+| **Tambahan dalam formasi** | Mengisi kursi formasi yang masih kosong | Tidak berubah | Biasa |
+| **Tambahan di luar formasi** | Menambah kursi melebihi formasi yang berlaku | Bertambah setelah disetujui | **Pengecualian** — lebih panjang |
+| **Sementara** | Mengisi sementara karena seseorang tidak tersedia, dengan tanggal berakhir | Tidak berubah | Biasa |
+
+Rantai "biasa" dan "pengecualian" ditetapkan pada `HRD-Q-74`.
+
+| Aturan | Bunyi |
+| --- | --- |
+| `REMAINING_SEATS` | **Sisa kursi** = formasi berlaku − (terisi − akan kosong) − jumlah permintaan lain untuk unit dan jabatan yang sama yang masih berjalan atau sudah disetujui tetapi belum terpenuhi. Angka ini dihitung pada saat permintaan diajukan dan diperiksa ulang saat disetujui |
+| `NO_DOUBLE_CLAIM_ON_SEATS` | Dua permintaan **MUST NOT** mengklaim kursi yang sama. Contoh: sisa kursi 1,5 dan sudah ada permintaan 1 yang berjalan, maka permintaan "dalam formasi" berikutnya hanya boleh 0,5 |
+| `WITHIN_FORMATION_LIMIT` | Permintaan pengganti atau tambahan dalam formasi yang jumlahnya melebihi sisa kursi **MUST** ditolak, dengan pesan yang menyebut sisa kursi. Pemohon mengajukan ulang sebagai tambahan di luar formasi |
+| `REPLACEMENT_REFERENCES_SEAT` | Permintaan pengganti **MUST** merujuk orang yang digantikan, dan orang itu sudah tercatat berstatus akan kosong atau sudah keluar |
+| `BEYOND_FORMATION_FLAGGED` | Tambahan di luar formasi **MUST** ditandai "melebihi formasi" dan **MUST** disertai alasan tertulis. Setelah disetujui, sistem membuat versi formasi baru sesuai `HRD-DEC-062` |
+| `TEMPORARY_HAS_END_AND_REASON` | Permintaan sementara **MUST** menyebut alasan — misalnya orang yang sedang cuti besar — dan tanggal berakhir. Ia **MUST NOT** mengubah formasi |
+
+**Contoh dengan data samaran.** Formasi ICU 2027 untuk Perawat Pelaksana adalah 30.
+
+| Langkah | Kejadian | Terisi − akan kosong | Sisa kursi | Hasil |
+| --- | --- | ---: | ---: | --- |
+| 1 | Tono resign efektif 31 Desember | 29,5 − 1 = 28,5 | 1,5 | — |
+| 2 | Kepala ICU mengajukan 1 pengganti Tono | 28,5 | 1,5 → 0,5 | Jalur biasa; formasi tetap 30 |
+| 3 | Kepala ICU mengajukan 1 tambahan "dalam formasi" | 28,5 | 0,5 | **Ditolak**: "Sisa kursi Perawat Pelaksana ICU 0,5" |
+| 4 | Kepala ICU mengajukan 1 tenaga sementara Januari–Maret untuk cuti besar Dodi | — | tidak dihitung | Jalur biasa; formasi tetap 30 |
+| 5 | Maret 2027: 2 bed baru; Kepala ICU mengajukan +2 "di luar formasi" | — | — | Jalur pengecualian. Setelah disetujui, formasi menjadi 32 mulai 1 April 2027 |
+
+**Yang belum ditetapkan di sini:** apakah jenis `Project` dan `Seasonal` pada model kandidat
+dipertahankan sebagai jenis tersendiri atau dilebur ke **Sementara**; dan pembulatan permintaan
+pecahan seperti 0,5. Keduanya diputuskan saat desain.
+
+#### `HRD-DEC-064` — Rantai persetujuan berjenjang sesuai dampak: `T9` s.d. `T12`
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-74` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | Buku Panduan bab 03 aktor "Direktur terkait" dan "Finance/Budget untuk headcount cost", langkah 5 "Approval manajemen dan budget"; `HRD-DEC-034`, `HRD-DEC-063` |
+
+**Isi keputusan.** Empat rantai persetujuan bawaan baru melengkapi `T1` s.d. `T8`. Setiap langkah
+memakai `ApprovalMode` `Any`.
+
+| ID | Dokumen | Pemrakarsa | Langkah 1 | Langkah 2 | Langkah 3 | Langkah 4 | Finalisasi |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `T9` | Standar kebutuhan tenaga, baru atau versi baru | HR Admin atau Kepala Unit | HR Manager — periksa | Direktur yang membawahi unit — sahkan | — | — | Standar berlaku pada tanggal berlakunya |
+| `T10` | Rencana tahunan | HR Admin, menghimpun usulan tiap unit | HR Manager — periksa | Finance — kecukupan anggaran | Direktur Utama — sahkan | — | Versi formasi baru dibuat (`HRD-DEC-062`) |
+| `T11` | Permintaan headcount **dalam formasi** dan **sementara** | Kepala Unit | HR site — verifikasi sisa kursi dan data | HR Manager — setuju | — | — | Siap diteruskan ke rekrutmen |
+| `T12` | Permintaan headcount **di luar formasi** | Kepala Unit | HR site — verifikasi | HR Manager | Finance — anggaran | Direktur yang membawahi unit | Versi formasi baru dibuat, lalu siap diteruskan ke rekrutmen |
+
+| Aturan | Bunyi |
+| --- | --- |
+| `APPROVER_MUST_DIFFER_FROM_CREATOR` | Berlaku mutlak pada `T9` s.d. `T12`, sama seperti `T8` (`HRD-DEC-031`). Bila pemrakarsa dan calon penyetuju adalah orang yang sama, langkah itu naik ke penyetuju lebih tinggi yang berwenang, **MUST NOT** menjadi swa-setuju |
+| `DIRECTOR_FROM_ORG_STRUCTURE` | "Direktur yang membawahi unit" dibaca dari struktur organisasi pada tanggal pengajuan. Bila tidak dapat ditemukan, langkah itu naik ke Direktur Utama |
+| `UNRESOLVED_STEP_FAILS_CLOSED` | Bila penyetuju suatu langkah tidak dapat ditemukan sama sekali — misalnya peran Finance belum dipetakan — dokumen **MUST NOT** diajukan dan langkah itu **MUST NOT** dilewati. Pemohon menerima pesan yang menyebut langkah yang belum punya penyetuju |
+| `RECHECK_ON_FINAL_APPROVAL` | Sisa kursi pada `T11` diperiksa ulang pada langkah persetujuan terakhir (`HRD-DEC-063` `REMAINING_SEATS`). Bila sisa kursi sudah tidak cukup karena permintaan lain lebih dulu disetujui, persetujuan **MUST** ditolak sistem dengan pesan yang jelas |
+| `BUDGETED_SEATS_SKIP_FINANCE` | `T11` sengaja tidak melewati Finance dan Direktur, karena kursinya sudah dianggarkan lewat formasi yang disetujui `T10` atau `T12` |
+
+**Peran fungsional baru.** Dua peran berikut belum ada pada baseline `HRD-DEC-032` dan berstatus
+**`MAPPING_REQUIRED`**. Nama peran aplikasinya **MUST NOT** dikarang; pemetaannya tindakan
+administrator.
+
+| Peran fungsional | Dipakai pada | Tugas |
+| --- | --- | --- |
+| **Finance / Anggaran** | `T10` langkah 2, `T12` langkah 3 | Menilai kecukupan anggaran tenaga kerja |
+| **Direktur** — Direktur Utama dan direktur yang membawahi unit | `T9` langkah 2, `T10` langkah 3, `T12` langkah 4 | Mengesahkan kebijakan dan penambahan kursi |
+
+**Contoh dengan data samaran.**
+
+| Dokumen | Jalan persetujuan | Lama yang diharapkan |
+| --- | --- | --- |
+| Pengganti Tono di ICU (`T11`) | Kepala ICU → HR site memeriksa sisa kursi 1,5 → HR Manager setuju | Pendek; Finance dan Direktur tidak terlibat |
+| +2 Perawat Pelaksana untuk bed baru ICU (`T12`) | Kepala ICU → HR site → HR Manager → Finance → Direktur Pelayanan | Lebih panjang; formasi menjadi 32 setelah disetujui |
+| Kepala ICU sekaligus pemegang peran HR Manager | Langkah HR Manager naik ke penyetuju lebih tinggi sesuai konfigurasi | Tidak ada swa-setuju |
+
+**Yang belum ditetapkan di sini:** apakah konfigurasi per unit (`HRD-DEC-034`) boleh menghapus
+langkah Finance pada `T10` dan `T12`; dan batas waktu atau eskalasi tiap langkah, yang mengikuti
+`HRD-DEC-030` (bawaan mati).
+
+#### `HRD-DEC-065` — Biaya rencana dan permintaan dihitung dari tarif standar grade, bukan dari gaji riil
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-75` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | `HRD-TF-029`, `HRD-TF-032`; `HRD-DEC-033`, `HRD-DEC-044` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `STANDARD_RATE_COST` | Estimasi biaya = porsi kerja × **gaji tengah** (`MidpointSalary`) grade gaji yang berlaku pada tanggal mulai baris itu × jumlah bulan dalam periode |
+| `NEVER_FROM_ACTUAL_SALARY` | Perhitungan biaya **MUST NOT** membaca penetapan gaji perorangan (`WfpSalaryAssignment`) maupun data payroll. Angka biaya **MUST NOT** dapat dipakai menebak gaji seseorang |
+| `COST_SHOWS_FORMULA` | Angka biaya **MUST** selalu tampil berlabel **estimasi** dan disertai rincian hitungnya |
+| `GRADE_REQUIRED_PER_LINE` | Setiap baris rencana dan permintaan **MUST** menyebut grade. Bila grade itu tidak punya grade gaji yang berlaku, biaya tampil "**tarif belum tersedia**", bukan 0 (`UNKNOWN_IS_NOT_ZERO`, `HRD-DEC-061`) |
+| `FINANCE_ADJUSTMENT` | Pada langkah Finance di `T10` dan `T12`, Finance boleh menetapkan angka total yang berbeda, misalnya untuk memasukkan tunjangan, dengan alasan tertulis. Estimasi awal dan angka Finance **MUST** sama-sama tersimpan. Langkah Finance **MUST NOT** disetujui selama masih ada baris "tarif belum tersedia" tanpa angka koreksi Finance |
+
+**Siapa boleh melihat angka biaya.**
+
+| Peran | Hak lihat | Alasan |
+| --- | --- | --- |
+| HR Admin | Ya | Penyusun rencana dan pemeriksa permintaan |
+| HR Manager, Finance, Direktur | Ya | Penyetuju pada `T10` s.d. `T12` |
+| Kepala Unit | Hanya rencana dan permintaan **unitnya sendiri** | Pemrakarsa perlu tahu dampak biaya usulannya |
+| Auditor | Baca saja | Sesuai baseline `HRD-DEC-032` |
+| Petugas payroll | **Tidak** | Konsisten dengan `HRD-DEC-044` |
+
+**Contoh dengan data samaran.** Permintaan +2 Perawat Pelaksana ICU di luar formasi, grade III,
+mulai 1 April 2027. Gaji tengah grade III yang berlaku Rp 6.500.000 (angka contoh).
+
+| Isian | Nilai |
+| --- | --- |
+| Rincian hitung | 2 × Rp 6.500.000 × 9 bulan (April–Desember) |
+| Estimasi biaya | **Rp 117.000.000** — berlabel estimasi |
+| Koreksi Finance | Rp 140.400.000, alasan "ditambah tunjangan shift dan BPJS ±20%" |
+| Yang tersimpan | Keduanya, beserta nama Finance dan waktunya |
+
+Contoh kebocoran yang dicegah: formasi Kepala Ruang ICU hanya 1 orang, yaitu Sari. Karena biaya
+dihitung dari gaji tengah grade, angka biaya jabatan itu tidak sama dengan gaji Sari dan tidak dapat
+dipakai menebaknya.
+
+**Yang perlu diperhatikan saat desain:** angka biaya ini bukan pembacaan gaji perorangan, sehingga
+tidak termasuk audit pembacaan gaji sensitif `HRD-DEC-039`. Namun pembaca yang cermat dapat
+menurunkan gaji tengah grade dari total biaya. Itu informasi rentang grade, bukan gaji seseorang,
+dan diterima oleh keputusan ini.
+
+#### `HRD-DEC-066` — Recruiter membuat requisition dari antrean; permintaan terpenuhi saat penempatan orang baru mulai berlaku
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-76` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | Buku Panduan bab 03 langkah 6–7 dan "Approved gap harus dapat ditelusuri sampai requisition dan hiring"; `HRD-TF-026`; `S-D2` masih `BLOCKED` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `READY_FOR_RECRUITMENT` | Permintaan yang lolos persetujuan terakhir `T11` atau `T12` berstatus **Siap Direkrut** dan masuk antrean Recruiter |
+| `RECRUITER_CREATES_REQUISITIONS` | Recruiter membuat **satu atau lebih** requisition dari satu permintaan. Persetujuan **MUST NOT** membuat requisition secara otomatis |
+| `REQUISITION_WITHIN_APPROVED` | Jumlah lowongan seluruh requisition dari satu permintaan **MUST NOT** melebihi jumlah yang disetujui dikurangi kursi yang sudah terpenuhi |
+| `FULFILLED_ON_EFFECTIVE_PLACEMENT` | Satu kursi permintaan dihitung **terpenuhi** pada tanggal penempatan utama orang baru di unit dan jabatan permintaan itu **mulai berlaku** (`HRD-DEC-047`). Kandidat menerima tawaran, atau catatan hiring dibuat, **belum** memenuhi kursi |
+| `PLACEMENT_MUST_MATCH_REQUEST` | Penempatan yang ditautkan **MUST** cocok unit dan jabatannya dengan permintaan. Penempatan yang tidak cocok **MUST** ditolak ditautkan |
+| `ONE_PLACEMENT_ONE_SEAT` | Satu penempatan **MUST NOT** memenuhi lebih dari satu kursi, maupun kursi pada dua permintaan berbeda |
+| `PARTIAL_FULFILMENT` | Status permintaan: **Terpenuhi sebagian (k dari n)** sampai seluruh kursi terpenuhi, lalu **Terpenuhi** |
+| `MANUAL_LINK_UNTIL_RECRUITMENT_EXISTS` | Selama modul Rekrutmen (`S-D2`) belum punya API, HR Admin atau Recruiter menautkan penempatan orang baru ke permintaan secara manual. Tautan menyimpan siapa dan kapan. Setelah Rekrutmen tersedia, jalur manual tetap tersedia untuk kasus yang tidak lewat requisition |
+
+**Contoh dengan data samaran.** Permintaan HC-2027-014: +2 Perawat Pelaksana ICU, disetujui Maret 2027.
+
+| Tanggal | Kejadian | Status permintaan | Gap permanen ICU |
+| --- | --- | --- | ---: |
+| 20 Maret | Persetujuan terakhir `T12` | Siap Direkrut | 2 |
+| 25 Maret | Recruiter membuat 1 requisition berisi 2 lowongan | Siap Direkrut | 2 |
+| 15 April | Wati menerima tawaran | Siap Direkrut — **belum** terpenuhi | 2 |
+| 2 Mei | Penempatan utama Wati di ICU mulai berlaku; HR menautkannya ke HC-2027-014 | Terpenuhi sebagian (1 dari 2) | 1 |
+| 1 Juni | Penempatan orang kedua mulai berlaku | **Terpenuhi** | 0 |
+| 5 Juni | HR mencoba menautkan penempatan seseorang di Rawat Inap ke HC-2027-014 | Tetap Terpenuhi | Ditolak: unit tidak cocok |
+
+**Akibat yang harus dirancang kemudian (bukan diputuskan di sini):** peran fungsional **Recruiter**
+belum ada pada baseline `HRD-DEC-032` dan berstatus `MAPPING_REQUIRED`; sementara itu tautan manual
+dikerjakan HR Admin. Bila orang baru keluar sesudah kursinya terpenuhi, permintaan tetap tercatat
+**Terpenuhi** sebagai sejarah; kursi yang kosong lagi muncul sebagai gap baru lewat `HRD-DEC-061`
+dan ditindaklanjuti dengan permintaan pengganti.
+
+#### `HRD-DEC-067` — Satu permintaan boleh dipenuhi dari luar maupun lewat pindahan internal, dengan rencana pemenuhan yang dicatat
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-77` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan, termasuk usulan bahwa perubahan rencana pemenuhan cukup oleh HR Manager dengan alasan |
+| Bukti pemicu | Buku Panduan bab 03 contoh kasus ICU "empat headcount baru dan dua redistribusi internal"; `HRD-DEC-048`, `HRD-DEC-056`, `HRD-DEC-066` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `FULFILMENT_PLAN_REQUIRED` | Setiap permintaan headcount **MUST** memuat **rencana pemenuhan**: berapa kursi dari rekrutmen luar dan berapa dari pindahan internal. Jumlah keduanya **MUST** sama dengan jumlah yang diminta |
+| `RECRUITER_SEES_EXTERNAL_ONLY` | Antrean Recruiter hanya menampilkan kursi yang direncanakan dari luar. Batas `REQUISITION_WITHIN_APPROVED` (`HRD-DEC-066`) dihitung terhadap jumlah kursi luar |
+| `INTERNAL_VIA_SK` | Kursi internal dipenuhi lewat SK mutasi atau rotasi di Workforce Core, mengikuti persetujuan `HRD-DEC-056`. Sub-modul ini **MUST NOT** memindahkan orang sendiri |
+| `SAME_FULFILMENT_RULE` | Kursi internal terpenuhi dengan aturan yang sama seperti kursi luar: pada tanggal penempatan utama orang itu di unit dan jabatan permintaan mulai berlaku (`HRD-DEC-066`) |
+| `SOURCE_UNIT_NOT_AUTO_REPLACED` | Pindahan internal menurunkan jumlah terisi di unit asal, sehingga gap di sana terlihat lewat `HRD-DEC-061`. Sistem **MUST NOT** otomatis membuat permintaan pengganti untuk unit asal; Kepala Unit asal yang memutuskan |
+| `FULFILMENT_PLAN_CHANGE` | Rencana pemenuhan boleh diubah setelah permintaan disetujui — misalnya 2 internal menjadi 1 internal + 1 luar — **hanya** oleh HR Manager, dengan alasan tertulis, tanpa mengulang rantai persetujuan. Jumlah total kursi **MUST NOT** berubah lewat jalan ini. HR Manager yang juga pemrakarsa permintaan **MUST NOT** mengubahnya sendiri (`HRD-DEC-031`) |
+| `PLAN_CHANGE_RESPECTS_FULFILLED` | Kursi yang sudah terpenuhi **MUST NOT** dipindah jenis pemenuhannya |
+
+**Contoh dengan data samaran.** Permintaan ICU +6 di luar formasi, rencana pemenuhan 4 luar + 2 internal.
+
+| Tanggal | Kejadian | Kursi luar | Kursi internal | Gap Rawat Inap |
+| --- | --- | --- | --- | ---: |
+| 20 Maret | `T12` disetujui; formasi ICU naik 6 | 4 di antrean Recruiter | 2 menunggu SK | 0 |
+| 10 April | SK mutasi Andi dan Maya dari Rawat Inap ke ICU per 1 Mei disetujui | 4 | 2 dijadwalkan | 0 |
+| 15 April | SK Maya dibatalkan sebelum berlaku (`HRD-DEC-057`). HR Manager mengubah rencana menjadi 5 luar + 1 internal, alasan "Maya batal dimutasi" | **5** | 1 | 0 |
+| 1 Mei | Penempatan Andi di ICU mulai berlaku | 5 | **1 terpenuhi** | **1** — tidak ada permintaan otomatis |
+| 3 Mei | Kepala Rawat Inap mengajukan 1 pengganti lewat `T11` | — | — | 1, sedang diproses |
+
+#### `HRD-DEC-068` — Rencana tahunan yang disetujui dikunci; perubahan di tengah tahun lewat addendum
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-78` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | `HRD-DEC-062` (`NO_DIRECT_FORMATION_EDIT`), `HRD-DEC-063`, `HRD-DEC-064` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `APPROVED_PLAN_LOCKED` | Rencana tahunan yang sudah disetujui **MUST NOT** diedit maupun dibuka kembali |
+| `ADDENDUM_CHANGED_LINES_ONLY` | Perubahan di tengah tahun dibuat sebagai **addendum** bernomor — misalnya Addendum 01/2027 — yang merujuk rencana induknya dan hanya memuat baris yang berubah: tambah, kurang, atau pindah kursi antar-unit, masing-masing dengan tanggal berlaku dan alasan |
+| `ADDENDUM_FULL_T10` | Addendum melewati rantai `T10` penuh: HR Manager, Finance, Direktur Utama |
+| `ADDENDUM_CREATES_FORMATION_VERSION` | Addendum yang disetujui membuat versi formasi baru pada tanggal berlakunya (`HRD-DEC-062`) |
+| `SINGLE_SEAT_ADDITION_STAYS_T12` | Penambahan kursi yang mendesak untuk satu unit tetap boleh lewat permintaan di luar formasi `T12` (`HRD-DEC-063`). Addendum dipakai untuk pengurangan, pemindahan kursi antar-unit, atau perubahan beberapa unit sekaligus |
+| `OVERSTAFF_SHOWN_NOT_MOVED` | Bila formasi turun di bawah jumlah terisi, unit tampil **kelebihan**. Tidak ada orang yang dipindah otomatis; penyesuaian lewat SK di Workforce Core |
+| `PENDING_REQUESTS_FLAGGED` | Permintaan headcount yang masih berjalan dan kini melebihi formasi baru **MUST** ditandai "melebihi formasi setelah addendum". Penanganannya mengikuti `HRD-Q-81` |
+| `ADDENDA_IN_SEQUENCE` | Satu rencana boleh punya beberapa addendum berurutan. Rencana asli beserta seluruh addendumnya **MUST** tetap dapat dibaca utuh |
+
+**Contoh dengan data samaran.** Rencana 2027 disetujui Desember 2026; formasi ICU Perawat
+Pelaksana 32 sejak 1 April 2027 (lewat `T12`). Juli 2027: 2 bed ICU dialihkan menjadi HCU baru.
+
+| Langkah | Kejadian | Formasi ICU | Formasi HCU | Terisi ICU | Tampilan ICU |
+| --- | --- | ---: | ---: | ---: | --- |
+| 1 | HR Admin membuat Addendum 01/2027: ICU −2, HCU +2, berlaku 1 Agustus 2027 | 32 | — | 32 | Sesuai |
+| 2 | Addendum disetujui HR Manager, Finance, Direktur Utama | 32 | — | 32 | Sesuai |
+| 3 | 1 Agustus 2027: versi formasi baru berlaku | **30** | **2** | 32 | **Kelebihan 2** |
+| 4 | SK mutasi 2 perawat dari ICU ke HCU berlaku 15 Agustus | 30 | 2 | 30 | Sesuai |
+
+**Yang belum ditetapkan di sini:** apakah tanggal berlaku addendum boleh mundur ke masa lalu. Bila
+boleh, gap pada periode lampau berubah sesudah dilaporkan; batasnya diputuskan saat desain dengan
+mempertimbangkan `HRD-DEC-050`.
+
+#### `HRD-DEC-069` — Gap dihitung langsung untuk pemantauan dan disimpan sebagai potret terkunci untuk dokumen dan laporan bulanan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-79` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | `HRD-DEC-061`, `HRD-DEC-063`, `HRD-DEC-064`; model kandidat `TrxStaffingGapAnalysis` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `LIVE_MONITORING` | Layar pemantauan menghitung gap **langsung** setiap kali dibuka, pada tanggal acuan hari ini atau tanggal yang dipilih |
+| `SNAPSHOT_ON_SUBMIT` | Saat rencana tahunan, addendum, atau permintaan headcount **diajukan** — termasuk diajukan ulang sesudah revisi — sistem otomatis menyimpan **potret gap** yang menempel ke dokumen itu. Pengajuan ulang menambah potret baru; potret lama tetap tersimpan |
+| `SNAPSHOT_IMMUTABLE` | Potret **MUST NOT** diubah atau dihapus oleh siapa pun |
+| `SUBMITTED_VS_CURRENT` | Pada setiap langkah persetujuan `T10` s.d. `T12`, penyetuju **MUST** melihat angka potret saat diajukan dan angka langsung saat ini secara berdampingan |
+| `MONTHLY_SNAPSHOT` | Setiap akhir bulan sistem menyimpan potret per unit dan jabatan, berisi seluruh lapisan `HRD-DEC-061`. Potret bulanan menjadi bahan tren, laporan, dan rencana tahun berikutnya, bersama ringkasan kekurangan tenaga dari Penjadwalan (`HRD-DEC-058`) |
+| `SNAPSHOT_RECORDS_COMPLETENESS` | Potret **MUST** mencatat lapisan mana yang saat itu masih "data belum tersedia", agar angka lama tidak dibaca seolah lengkap |
+| `MISSED_SNAPSHOT_NOT_FAKED` | Bila proses bulanan gagal berjalan, bulan itu tampil "potret tidak tersedia". Sistem **MUST NOT** mengisinya diam-diam dengan angka hari ini. Pengisian susulan boleh dilakukan hanya dengan label "direkonstruksi" beserta tanggal pembuatannya |
+| `REMAINING_SEATS_LIVE` | Hitungan sisa kursi saat pengajuan dan saat persetujuan terakhir tetap memakai angka langsung (`HRD-DEC-063`, `HRD-DEC-064`) |
+
+**Contoh dengan data samaran.**
+
+| Tanggal | Kejadian | Gap langsung ICU | Potret pada permintaan HC-2027-014 |
+| --- | --- | ---: | --- |
+| 10 Maret | Kepala ICU mengajukan permintaan | 3,5 | Potret 1: **3,5** |
+| 15 Maret | Andi pindah masuk ke ICU | 2,5 | Potret 1: 3,5 |
+| 18 Maret | Finance membuka permintaan; layar menampilkan "saat diajukan 3,5 — sekarang 2,5". Finance mengembalikan untuk revisi | 2,5 | Potret 1: 3,5 |
+| 19 Maret | Kepala ICU mengajukan ulang dengan jumlah baru | 2,5 | Potret 1: 3,5; Potret 2: **2,5** |
+| 31 Maret | Potret bulanan Maret disimpan | 2,5 | — |
+
+#### `HRD-DEC-070` — Formasi awal diisi lewat batch yang disetujui sekali, berdasarkan dokumen formasi resmi
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-80` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | `HRD-TF-024` (formasi 0 baris); `HRD-DEC-062`; preseden `HRD-DEC-054` |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `INITIAL_FORMATION_BATCH` | Formasi pertama diisi lewat **batch formasi awal** per unit × jabatan, lewat impor atau input manual oleh HR Admin |
+| `SOURCE_DOCUMENT_REQUIRED` | Batch **MUST** melampirkan scan dokumen formasi resmi yang menjadi sumbernya — misalnya SK Direktur tentang formasi jabatan. Batch tanpa lampiran **MUST NOT** dapat diajukan |
+| `INITIAL_BATCH_T10` | Batch melewati rantai `T10`: HR Manager, Finance, Direktur Utama |
+| `CREATES_VERSION_ONE` | Batch yang disetujui membuat **versi 1** formasi untuk setiap barisnya, dengan tanggal berlaku sesuai dokumen sumber |
+| `ONCE_PER_UNIT_POSITION` | Setiap pasangan unit × jabatan **MUST NOT** masuk batch formasi awal lebih dari sekali. Batch boleh dibuat bertahap, misalnya per direktorat. Kesalahan yang ditemukan sesudah disetujui diperbaiki lewat addendum (`HRD-DEC-068`), bukan batch ulang |
+| `NO_FORMATION_IS_SAFE` | Unit × jabatan yang belum punya formasi tetap dapat mengajukan permintaan headcount; seluruhnya diperlakukan sebagai **di luar formasi** (`T12`) |
+| `INDEPENDENT_OF_PLACEMENT_BATCH` | Batch formasi awal tidak menunggu batch penempatan `HRD-DEC-054`. Selama penempatan jabatan belum diisi, lapisan terisi tampil "data belum tersedia" (`HRD-DEC-061`) |
+
+**Contoh dengan data samaran.** Rumah sakit memiliki SK Direktur No. 12/2026 tentang Formasi Jabatan,
+berlaku 1 Januari 2026.
+
+| Langkah | Kejadian | Hasil |
+| --- | --- | --- |
+| 1 | HR Admin membuat Batch Formasi Awal 01 berisi unit-unit Direktorat Keperawatan, termasuk ICU: 28 Perawat Pelaksana, 3 Ketua Tim, 1 Kepala Ruang; melampirkan scan SK 12/2026 | Draf |
+| 2 | Batch disetujui HR Manager, Finance, Direktur Utama | Formasi versi 1 berlaku 1 Januari 2026 |
+| 3 | HR Admin mencoba memasukkan "ICU — Perawat Pelaksana" ke Batch Formasi Awal 02 | **Ditolak**: pasangan itu sudah punya formasi awal |
+| 4 | Kepala Farmasi, yang unitnya belum masuk batch, mengajukan 1 pengganti apoteker | Diperlakukan sebagai di luar formasi, lewat `T12` |
+| 5 | Ditemukan formasi Ketua Tim ICU seharusnya 4, bukan 3 | Diperbaiki lewat Addendum 01/2026 |
+
+#### `HRD-DEC-071` — Hanya kursi yang belum terpenuhi yang dapat dibatalkan, lowongan ditutup lebih dulu, dan formasi dari `T12` ikut turun
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-81` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | `HRD-DEC-062`, `HRD-DEC-063`, `HRD-DEC-066`, `HRD-DEC-068`; pola `HRD-DEC-030` (tindakan otomatis bawaan mati) |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `WITHDRAW_BEFORE_FINAL_APPROVAL` | Sebelum persetujuan terakhir, pemohon boleh **menarik kembali** permintaannya tanpa persetujuan siapa pun |
+| `CANCEL_AFTER_APPROVAL_NEEDS_APPROVAL` | Sesudah disetujui, pembatalan diajukan Kepala Unit atau HR dengan alasan tertulis dan disetujui HR Manager. Penyetuju **MUST** berbeda dari pengaju (`HRD-DEC-031`) |
+| `ONLY_UNFILLED_SEATS` | Yang dapat dibatalkan **hanya** kursi yang belum terpenuhi. Kursi yang sudah terpenuhi **MUST** tetap tercatat terpenuhi beserta tautan penempatannya |
+| `CLOSE_VACANCY_FIRST` | Bila masih ada lowongan terbuka untuk kursi yang akan dibatalkan, sistem **MUST** menolak pembatalan dengan pesan "tutup atau kurangi lowongan lebih dulu". Keputusan atas kandidat yang sedang diproses tetap di tangan Recruiter; selama Rekrutmen (`S-D2`) belum ada, dicatat manual |
+| `T12_CANCEL_REDUCES_FORMATION` | Pembatalan kursi yang lahir dari permintaan di luar formasi (`T12`) **otomatis** membuat versi formasi baru yang berkurang sebanyak kursi yang dibatalkan, berlaku pada tanggal pembatalan disetujui, dengan dokumen pembatalan sebagai sumbernya (`HRD-DEC-062`). Persetujuan HR Manager cukup, karena arahnya mengurangi anggaran |
+| `WITHIN_FORMATION_CANCEL_KEEPS_FORMATION` | Pembatalan kursi dari permintaan dalam formasi atau sementara (`T11`) **MUST NOT** mengubah formasi; kursinya kembali menjadi sisa kursi |
+| `NO_AUTO_EXPIRY` | Tidak ada kedaluwarsa otomatis. Permintaan yang kursinya belum terpenuhi melewati batas waktu yang disetel ditandai "**lewat batas**" di layar pantauan HR Manager, lalu HR Manager memutuskan dibatalkan atau dilanjutkan |
+| `EXCESS_SEATS_FROZEN_AFTER_ADDENDUM` | Kursi yang ditandai "melebihi formasi setelah addendum" (`HRD-DEC-068`) **MUST** dibekukan dari antrean Recruiter, sampai HR Manager membatalkannya atau ada persetujuan `T12` baru |
+
+**Contoh dengan data samaran.** Permintaan HC-2027-014: +2 Perawat Pelaksana ICU di luar formasi.
+
+| Tanggal | Kejadian | Formasi ICU | Status kursi |
+| --- | --- | ---: | --- |
+| 20 Maret | `T12` disetujui | 30 → **32** | 2 Siap Direkrut |
+| 2 Mei | Penempatan Wati di ICU mulai berlaku | 32 | 1 terpenuhi, 1 Siap Direkrut |
+| 5 Juni | Manajemen membatalkan bed tambahan kedua; Kepala ICU mengajukan pembatalan 1 kursi | 32 | **Ditolak**: masih ada 1 lowongan terbuka dengan 3 kandidat |
+| 10 Juni | Recruiter menutup lowongan dan mencatat hasil bagi ketiga kandidat | 32 | 1 terpenuhi, 1 Siap Direkrut |
+| 12 Juni | Pembatalan diajukan ulang dan disetujui HR Manager | 32 → **31** | 1 terpenuhi (Wati), 1 dibatalkan |
+
+Tanpa aturan `T12_CANCEL_REDUCES_FORMATION`, formasi tetap 32. Sebulan kemudian kursi kosong itu
+dapat diisi lewat `T11` yang hanya sampai HR Manager, sehingga anggaran yang disetujui Direktur untuk
+bed yang batal dibuka terpakai tanpa persetujuan Direktur.
+
+**Yang belum ditetapkan di sini:** nilai batas waktu "lewat batas", yang disetel per kebijakan
+rumah sakit; dan nama status akhir permintaan yang sebagian terpenuhi dan sebagian dibatalkan, yang
+ditetapkan pada `contracts/state-transition-matrix.md` saat desain.
+
+### 32.8 Ringkasan penutupan pass
+
+**Keputusan yang lahir pada pass ini:**
+
+| ID | Isi singkat | Status |
+| --- | --- | --- |
+| `HRD-DEC-058` | Batas scope sub-modul 03; 03 memegang standar dan skill mix, 06 Penjadwalan menjalankan kebutuhan harian | `approved` |
+| `HRD-DEC-059` | `HRD-Q-05` ditutup **hanya** untuk sepuluh tabel `WorkforcePlanning`, dengan pengaman tabel kosong pada setiap migration | `approved` |
+| `HRD-DEC-060` | Rilis pertama memuat metode jumlah tetap/minimum, rasio, dan cakupan layanan; ABK menyusul; hasil hitung hanya rekomendasi | `approved` |
+| `HRD-DEC-061` | Tenaga tersedia dihitung per tanggal acuan, dalam porsi kerja, dari penempatan utama, berlapis; tiga jenis gap | `approved` |
+| `HRD-DEC-062` | Formasi dan rencana tahunan terpisah; formasi berversi dan hanya berubah lewat dokumen yang disetujui | `approved` |
+| `HRD-DEC-063` | Permintaan dalam formasi lewat jalur biasa, di luar formasi lewat jalur pengecualian; tidak ada klaim kursi ganda | `approved` |
+| `HRD-DEC-064` | Rantai persetujuan baru `T9` s.d. `T12`; langkah tanpa penyetuju gagal tertutup | `approved` |
+| `HRD-DEC-065` | Biaya dari gaji tengah grade, bukan gaji riil; hak lihat biaya per peran | `approved` |
+| `HRD-DEC-066` | Recruiter membuat requisition dari antrean; kursi terpenuhi saat penempatan orang baru mulai berlaku | `approved` |
+| `HRD-DEC-067` | Rencana pemenuhan luar dan internal; kursi internal lewat SK | `approved` |
+| `HRD-DEC-068` | Rencana yang disetujui dikunci; perubahan lewat addendum | `approved` |
+| `HRD-DEC-069` | Gap langsung untuk pemantauan, potret terkunci untuk dokumen dan bulanan | `approved` |
+| `HRD-DEC-070` | Formasi awal lewat batch berdokumen sumber yang disetujui sekali | `approved` |
+| `HRD-DEC-071` | Pembatalan hanya kursi yang belum terpenuhi, lowongan ditutup dulu, formasi dari `T12` ikut turun; tanpa kedaluwarsa otomatis | `approved` |
+
+**Keputusan lama yang diubah cakupannya, tidak digantikan:** `HRD-Q-05` kini tertutup untuk `S-D1`
+lewat `HRD-DEC-059`, tetapi **tetap terbuka** untuk `S-D2` s.d. `S-D5`. `HRD-DEC-034` bertambah empat
+rantai `T9` s.d. `T12`. `HRD-DEC-032` bertambah tiga peran fungsional `MAPPING_REQUIRED`: Finance /
+Anggaran, Direktur, dan Recruiter.
+
+**Bentuk blueprint:** tetap `SINGLE` (`HRD-DEC-003`). Seluruh hasil pass ini masuk slice `S-D1`.
+
+**Gambaran proses yang kini terkunci.**
+
+1. HR Admin atau Kepala Unit menyusun **standar kebutuhan tenaga**; disahkan lewat `T9`.
+2. HR Admin mengisi **formasi awal** lewat batch berdokumen sumber; disahkan lewat `T10`.
+3. Sistem menghitung **gap** langsung per tanggal acuan; potret disimpan tiap akhir bulan.
+4. HR Admin menghimpun **rencana tahunan** dari usulan unit; disahkan lewat `T10`; formasi versi baru lahir.
+5. Kepala Unit mengajukan **permintaan headcount**: dalam formasi lewat `T11`, di luar formasi lewat `T12`.
+6. Permintaan yang disetujui masuk **antrean Recruiter**, atau dipenuhi lewat **SK mutasi** untuk kursi internal.
+7. Kursi **terpenuhi** saat penempatan orang baru mulai berlaku; gap ikut turun.
+8. Perubahan di tengah tahun lewat **addendum**; pembatalan hanya kursi yang belum terpenuhi.
+
+**Pertanyaan yang masih terbuka dan butir yang sengaja dibiarkan terbuka:**
+
+| ID / butir | Isi | Owner | Memblokir |
+| --- | --- | --- | --- |
+| Nilai kebijakan standar | Rasio, jumlah minimum, jam layanan, faktor cadangan per unit — misalnya rasio perawat ICU | Pemilik kebijakan rumah sakit (`HRD-Q-01`, masih `OPEN`) dan pemilik klinis | **Bukan** desain; isi standar sebelum dipakai produksi |
+| Detail desain | Pembulatan bawaan; batas hari cuti "tidak tersedia sementara"; kontrak yang mendekati akhir; jenis `Project`/`Seasonal`; pembulatan permintaan pecahan; boleh tidaknya konfigurasi menghapus langkah Finance; tanggal berlaku addendum yang mundur; nilai batas "lewat batas"; nama status akhir permintaan | `design-business-module`, dikonfirmasi pengguna | `DESIGN` — diputuskan saat desain, bukan blocker pass ini |
+| Pemetaan peran | Finance / Anggaran, Direktur, Recruiter | Administrator (`HRD-DEC-032`) | Rilis, **bukan** desain |
+| `HRD-DEP-005` | Penarikan otomatis angka beban dari data bed/kunjungan | Health Services | `LATER SLICE` |
+| ABK | Metode Analisis Beban Kerja | Pengguna | `LATER SLICE` (`HRD-DEC-060`) |
+
+**Dependency ke sub-modul tetangga** — dicatat, tidak dirancang di sini:
+
+| Kebutuhan | Pemilik | Keadaan |
+| --- | --- | --- |
+| Kolom porsi kerja pada penempatan | 02 Workforce Core | Belum ada (`HRD-TF-031`) |
+| Isi master jenis tenaga yang nyata | 01 Master Data HR | Hanya nilai `Legacy` (`HRD-TF-031`) |
+| Penempatan jabatan pegawai yang ada | 02, batch `HRD-DEC-054` | 0 baris (`HRD-TF-028`) |
+| Data cuti, kompetensi, tanggal berakhir yang pasti | 08, 16, 05, 20 | Bentuk baca belum dirancang |
+| Pemeriksaan roster terhadap standar, ringkasan kekurangan tenaga | 06 Penjadwalan (`HRD-DEC-026`, `HRD-DEC-058`) | Belum dirancang |
+| Requisition dari antrean | 04 Rekrutmen (`S-D2`) | `BLOCKED`; sementara tautan manual (`HRD-DEC-066`) |
+
+**Blocker desain untuk `S-D1`:** **tidak ada dari sisi keputusan bisnis.** Seluruh pertanyaan yang
+memblokir `DESIGN` sudah tertutup. Status `S-D1` pada manifest, `MODULE-STATUS.md`, roadmap, dan
+`01-prerequisite-readiness.md` **belum** diubah oleh pass ini; perubahannya dilakukan
+`manage-module-blueprint` dengan bukti `HRD-DEC-059`.
+
+**Acceptance criteria yang sudah dapat diuji:**
+
+| ID | Kriteria | Cara menguji | Dasar |
+| --- | --- | --- | --- |
+| `AC-WFP-01` | Migration perencanaan tenaga berhenti bila tabel lama berisi data | Isi 1 baris `MstPositionHeadcountPlan` di database uji, jalankan migration; migration berhenti dengan pesan menyebut nama tabel dan jumlah baris, tanpa perubahan | `HRD-DEC-059` |
+| `AC-WFP-02` | Hanya tiga metode tersedia, dan rekomendasi tampil dengan rinciannya | Buat standar ICU rasio 1:1, 7 pasien, 3 shift, faktor 1,5; tampil "7 × 3 × 1,5 = 31,5" dan rekomendasi sesuai pembulatan standar. Metode ABK tidak dapat dipilih | `HRD-DEC-060` |
+| `AC-WFP-03` | Standar belum disahkan tidak dipakai | Buat standar baru tanpa menyelesaikan `T9`; hitungan gap tetap memakai standar lama | `HRD-DEC-064` |
+| `AC-WFP-04` | Rangkap/Plt tidak terhitung dua kali, paruh waktu dihitung porsinya | Sari utama di Rawat Inap dan Plt di ICU; ICU tidak menghitung Sari. Budi 50% terhitung 0,5 | `HRD-DEC-061` |
+| `AC-WFP-05` | Data yang belum ada tidak tampil 0 | Kosongkan data kompetensi; lapisan kompetensi tampil "data belum tersedia" dan gap kompetensi ditandai belum lengkap | `HRD-DEC-061` |
+| `AC-WFP-06` | Formasi tidak dapat diedit langsung | Panggil ubah formasi sebagai HR Manager; ditolak | `HRD-DEC-062` |
+| `AC-WFP-07` | Formasi tidak kosong saat pergantian tahun | Tanpa Rencana 2028 yang disetujui, pada 1 Januari 2028 formasi 2027 tetap berlaku | `HRD-DEC-062` |
+| `AC-WFP-08` | Permintaan dalam formasi tidak melebihi sisa kursi | Sisa kursi 0,5; ajukan 1 "dalam formasi"; ditolak dengan pesan sisa kursi | `HRD-DEC-063` |
+| `AC-WFP-09` | Dua permintaan tidak mengklaim kursi yang sama | Sisa 1,5 dan ada permintaan 1 berjalan; permintaan dalam formasi kedua hanya boleh 0,5 | `HRD-DEC-063` |
+| `AC-WFP-10` | Tidak ada swa-setuju dan tidak ada langkah dilewati | Kepala ICU yang juga HR Manager mengajukan `T11`; langkah HR Manager naik ke penyetuju lebih tinggi. Peran Finance belum dipetakan; `T12` tidak dapat diajukan | `HRD-DEC-064` |
+| `AC-WFP-11` | Biaya dari gaji tengah grade dan dibatasi per peran | +2 grade III × 9 bulan = 2 × gaji tengah × 9. Petugas payroll membuka biaya: 403. Kepala unit lain: 403 | `HRD-DEC-065` |
+| `AC-WFP-12` | Kursi terpenuhi saat penempatan mulai berlaku, bukan saat menerima tawaran | Wati menerima tawaran 15 April; status tetap Siap Direkrut. Penempatan berlaku 2 Mei; status Terpenuhi sebagian | `HRD-DEC-066` |
+| `AC-WFP-13` | Penempatan tidak cocok ditolak ditautkan | Tautkan penempatan Rawat Inap ke permintaan ICU; ditolak | `HRD-DEC-066` |
+| `AC-WFP-14` | Recruiter hanya melihat kursi luar | Permintaan +6 dengan rencana 4 luar + 2 internal; antrean Recruiter menampilkan 4 | `HRD-DEC-067` |
+| `AC-WFP-15` | Rencana disetujui terkunci, addendum membuat versi formasi | Ubah Rencana 2027 yang disetujui; ditolak. Addendum ICU −2 disetujui; formasi ICU turun pada tanggal berlakunya | `HRD-DEC-068` |
+| `AC-WFP-16` | Potret pengajuan terkunci dan tampil berdampingan | Ajukan saat gap 3,5; pindahkan satu orang masuk; penyetuju melihat "saat diajukan 3,5 — sekarang 2,5"; potret tidak dapat diubah | `HRD-DEC-069` |
+| `AC-WFP-17` | Batch formasi awal berdokumen dan sekali per unit × jabatan | Ajukan batch tanpa lampiran; ditolak. Masukkan pasangan yang sudah punya formasi awal; ditolak | `HRD-DEC-070` |
+| `AC-WFP-18` | Pembatalan menunggu lowongan ditutup, dan kursi `T12` menurunkan formasi | Batalkan kursi dengan lowongan terbuka; ditolak. Tutup lowongan, batalkan; formasi 32 menjadi 31 | `HRD-DEC-071` |
+| `AC-WFP-19` | Sub-modul 03 tidak mencatat siapa bertugas pada shift | Tidak ada endpoint sub-modul 03 yang menerima atau mengembalikan penugasan per orang per shift | `HRD-DEC-058` |
+
+**Yang sengaja ditinggalkan karena di luar scope:** seluruh daftar "Di luar scope" pada bagian 32.3,
+termasuk eksekusi kebutuhan harian dan alokasi shift (06), requisition sampai hiring (04), isi master
+jenis tenaga (01), kolom porsi kerja (02), serta nilai kebijakan klinis.
+
+**Artefak hilir yang kini tertinggal dari decision log.** `blueprint-manifest.md` **sengaja tidak
+diubah** pada pass ini, sehingga selisih `input_revision_hash` dan `decision_revision` tetap
+terdeteksi. Artefak berikut perlu diperbarui `design-business-module` untuk `S-D1`:
+`02-backend-architecture.md` (bagian `WorkforcePlanning` masih "BLOCKED — tidak dirancang"),
+`03-frontend-architecture.md`, `04-prd-to-mvp.md`, `data/data-dictionary.md`, kelima berkas
+`contracts/`, `flowcharts/**` (belum ada flowchart perencanaan tenaga), dan
+`testing/acceptance-test-matrix.md`. `roadmap/backend-roadmap.md` `BE-HRD-017` dan
+`roadmap/requirement-traceability.md` `IN-03` masih menyebut terblokir `HRD-Q-05`.
+
+### 32.9 Berkas yang berubah pada pass ini
+
+| Berkas | Perubahan |
+| --- | --- |
+| `00-interview-decisions.md` | Revisi naik ke `17`; bagian 32 ditambahkan |
+
+**Tidak ada file source, migration, entity, controller, database, seed, maupun frontend yang
+diubah pada pass ini.** Seluruh pemeriksaan database dilakukan read-only.
+
+### 32.10 Keputusan susulan saat desain `S-D1` — 3 November 2026
+
+Dua pertanyaan penutup capability map revisi `1.3` (bagian 15.9) diselesaikan sebelum desain
+`S-D1` ditulis. Satu dijawab pengguna, satu ditutup bukti source.
+
+#### `HRD-DEC-072` — "Direktur yang membawahi unit" adalah pemegang jabatan direktur, ditetapkan lewat matriks persetujuan
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-TQ-14`; memperjelas `HRD-DEC-064` `DIRECTOR_FROM_ORG_STRUCTURE` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A yang direkomendasikan |
+| Bukti pemicu | `HRD-CAP-57`; mesin workflow sudah mendukung sumber penyetuju `Position` dan baris cadangan `IsFallback` pada `MstApprovalMatrix` (`WorkflowManagement/Models/WorkflowValueConstants.cs`, `WorkflowService.cs:1791-1798`) |
+
+**Isi keputusan.**
+
+| Aturan | Bunyi |
+| --- | --- |
+| `DIRECTOR_IS_POSITION_HOLDER` | Direktur adalah orang yang memegang **penempatan jabatan** direktur yang berlaku pada tanggal pengajuan (`HRD-DEC-047`). Tidak ada kolom "kepala unit" baru di master unit organisasi |
+| `DIRECTOR_VIA_APPROVAL_MATRIX` | Pasangan "direktorat → jabatan direktur" ditetapkan lewat baris matriks persetujuan pada langkah Direktur di `T9` dan `T12`, bukan ditulis di source |
+| `MATRIX_FOLLOWS_UNIT_ANCESTOR` | Satu baris matriks untuk sebuah direktorat berlaku bagi seluruh unit di bawahnya. Penelusuran naik lewat unit induk sampai baris yang cocok ditemukan |
+| `DIRECTOR_FALLBACK_TO_PRESIDENT_DIRECTOR` | Bila jabatan direktur yang dituju sedang kosong, langkah itu naik ke pemegang jabatan Direktur Utama lewat baris cadangan. Bila keduanya kosong, `UNRESOLVED_STEP_FAILS_CLOSED` berlaku |
+
+**Contoh.** Kepala ICU mengajukan +2 Perawat Pelaksana di luar formasi. Sistem menelusuri Unit ICU →
+Departemen Keperawatan → Direktorat Pelayanan Medis, lalu menemukan baris matriks "Direktorat
+Pelayanan Medis → jabatan Direktur Pelayanan Medis". Pemegang jabatan itu, dr. Budi, menerima langkah
+ke-4. Bila dr. Budi diganti lewat SK, penyetujunya ikut berganti tanpa ada data yang perlu diubah.
+
+**Akibat yang dirancang di `02-backend-architecture.md` bagian 16:** pencocokan matriks perlu naik
+ke unit induk (`EXTEND` pada mesin workflow); master jabatan direktur dan penempatannya wajib diisi
+sebelum `T9`/`T12` dapat diajukan.
+
+#### `HRD-TQ-13` — ditutup oleh bukti source
+
+Checker `tooling/qbe/Invoke-QbeConformanceCheck.ps1` fungsi `Resolve-RegistryOwnership` mencocokkan
+model di `Areas/Corporate/HumanResource/WorkforcePlanning/Models/` ke **tepat satu** baris registry,
+yaitu `Corporate / SelfServices` · `Human Resource` · `BUSINESS DOMAIN` · `Hrd` · `ACTIVE / LEGACY`.
+Baris `Wfp`, `Mst`, dan `Wfl` tidak cocok dengan segmen `WorkforcePlanning`. Entity baru `S-D1`
+memakai prefix `Hrd` tanpa baris registry tambahan.

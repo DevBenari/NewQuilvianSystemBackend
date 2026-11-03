@@ -5,10 +5,10 @@
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/integration-contract.md` |
 | `contract_version` | `v5` |
-| `last_changed_in` | `v4` |
+| `last_changed_in` | `v7` — bagian 11 (`S-D1`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v4` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik modul tetangga untuk setiap batas |
-| `approved_by` / `approved_at` | **Belum ada** |
+| `approved_by` / `approved_at` | **Hanya bagian 11** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
 | `input_revision` | `00-interview-decisions.md` revision `15`; `flows/00-module-context-flow.md` |
 | `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
@@ -434,3 +434,51 @@ ada bukti bahwa tabelnya kosong.
 | `INT-HR-09` cuti ke kehadiran | `HRD-DEC-029` | `flows/03-leave.md`, `flows/08-early-leave-permission.md` |
 | `INT-HR-10` kehadiran ke lembur | — | `flows/04-overtime.md` |
 | `INT-HR-11` persetujuan bersama | `HRD-DEC-011`, `HRD-DEC-018`, `HRD-DEC-030` | `flows/09-unified-approval.md` |
+
+---
+
+## 11. Perencanaan Tenaga Kerja — `S-D1` (`last_changed_in` `v7`, 3 November 2026)
+
+`S-D1` hanya punya **satu** batas dengan modul lain, dan batas itu ditunda. Seluruh sambungan
+lainnya berada di dalam modul HR. Tidak ada panggilan asinkron, antrean pesan, maupun sistem luar.
+
+### 11.1 Batas dengan modul lain
+
+#### `INT-HR-12` — Angka beban dari data pelayanan pasien
+
+| Aspek | Isi |
+| --- | --- |
+| Arah | Health Services → HR |
+| Kegunaan | Mengisi angka beban metode rasio, misalnya rata-rata pasien ICU terisi per hari |
+| Keadaan | **Tidak dirancang pada rilis ini.** `HRD-DEP-005` `MISSING`; `HRD-DEC-060` `MANUAL_WORKLOAD_INPUT` menetapkan isian manual beserta sumbernya |
+| Pengganti selama rilis ini | Layar angka beban; petugas menyalin dari rekap sensus yang sudah ada |
+| Risiko bila dipaksakan sekarang | HR menjadi pembaca data pasien tanpa kontrak dan tanpa batas privasi |
+
+### 11.2 Sambungan di dalam modul HR
+
+| ID | Arah | Cara kerja | Bila sumber tidak tersedia | Risiko |
+| --- | --- | --- | --- | --- |
+| `INT-HR-13` | Perencanaan → Penjadwalan | Penjadwalan membaca standar berlaku per unit per tanggal lewat `GET .../workforce-planning/staffing-standards/effective` sebelum roster diterbitkan (`HRD-DEC-058` `SCHEDULING_READS_STANDARD`) | `404` berarti unit belum punya standar; Penjadwalan **MUST NOT** mengarang aturan minimum sendiri (`WFP_OWNS_STANDARD`) | Dua sumber aturan minimum bila Penjadwalan membuatnya sendiri |
+| `INT-HR-14` | Penjadwalan → Perencanaan | Ringkasan kekurangan tenaga per unit per bulan masuk ke potret bulanan (`WFP_RECEIVES_SHORTAGE_SUMMARY`) | **Belum ada** — Penjadwalan belum memeriksa standar (`HRD-CAP-59`). Kolom `ShortageSummaryCount` tetap kosong | Rencana tahun depan tanpa bukti kekurangan harian. Bentuk kontraknya ditetapkan desain Penjadwalan; `S-D1` hanya menyediakan tempatnya |
+| `INT-HR-15` | Workforce Core → Perencanaan | Membaca penempatan organisasi dan jabatan utama yang aktif per tanggal; membaca SK untuk kursi internal dan "akan kosong" | Penempatan jabatan yang belum diisi membuat lapisan terisi bertanda belum lengkap | Angka terisi salah bila penempatan lama bertanggal salah (`HRD-TF-013`) |
+| `INT-HR-16` | Cuti, Kompetensi, Lifecycle → Perencanaan | Membaca cuti yang disetujui, hasil kompetensi aktif, dan pengunduran diri yang disetujui | Lapisannya kosong dan bertanda belum lengkap (`UNKNOWN_IS_NOT_ZERO`) | Gap kompetensi terbaca 0 padahal datanya belum ada |
+| `INT-HR-17` | Perencanaan → Rekrutmen | Kursi luar yang siap direkrut muncul di antrean Recruiter; pemenuhan ditautkan manual dari penempatan (`HRD-DEC-066` `MANUAL_LINK_UNTIL_RECRUITMENT_EXISTS`) | Rekrutmen (`S-D2`) belum punya API; tautan manual tetap jalan | Rekrutmen di luar sistem tanpa tautan membuat kursi tidak pernah terpenuhi |
+| `INT-HR-18` | Perencanaan ↔ Persetujuan Bersama | Lima jenis rujukan `T9` s.d. `T13`; keputusan akhir diteruskan ke domain. Langkah Direktur memakai matriks persetujuan dengan sumber `Position` dan penelusuran unit induk (`HRD-DEC-072`) | Penyetuju tidak ditemukan → pengajuan ditolak `400` (`WorkflowService.cs:534-541`) | Matriks tanpa baris cadangan membuat `T9` dan `T12` tidak dapat diajukan sama sekali |
+
+**Idempotensi.** Keputusan akhir workflow dapat terkirim ulang. `HrdWorkforcePlanningWorkflowIntegrationService`
+**MUST** memeriksa status dokumen sebelum menerapkan: keputusan "setujui" untuk dokumen yang sudah
+`Approved`/`Applied`/`ReadyForRecruitment` diabaikan dan dicatat, bukan menghasilkan versi formasi
+kedua. Scheduler harian juga **MUST** idempoten: menjalankannya dua kali pada hari yang sama tidak
+mengubah kursi yang sudah `Fulfilled` dan tidak membuat potret bulanan kedua.
+
+### 11.3 Ringkasan kesiapan
+
+| ID | Batas | Boleh dirancang sekarang | Yang menghalangi |
+| --- | --- | :---: | --- |
+| `INT-HR-12` | Angka beban dari data pasien | **Tidak** | `HRD-DEP-005` |
+| `INT-HR-13` | Standar ke Penjadwalan | **Ya** — kontrak bacanya pada `api-contract.md` bagian 13 | Pemakaiannya dirancang di sisi Penjadwalan |
+| `INT-HR-14` | Ringkasan kekurangan ke Perencanaan | **Sebagian** — tempatnya ada, bentuknya menunggu desain Penjadwalan | `HRD-CAP-59` |
+| `INT-HR-15` | Penempatan dan SK | **Ya** | — |
+| `INT-HR-16` | Cuti, kompetensi, pengunduran diri | **Ya** | — |
+| `INT-HR-17` | Antrean Recruiter | **Ya**, dengan tautan manual | `S-D2` `BLOCKED` untuk bentuk otomatisnya |
+| `INT-HR-18` | Persetujuan `T9` s.d. `T13` | **Ya** | Pemetaan peran Finance / Anggaran dan Direktur untuk rilis |

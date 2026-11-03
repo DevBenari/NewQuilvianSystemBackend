@@ -89,6 +89,7 @@ pelaporan — milik Finance, dan bentuk serah terimanya masih terbuka (`HRD-Q-10
 | Pelatihan, penilaian kinerja, kedisiplinan, dan pengunduran diri | `kompetensi-dan-pelatihan.md`, `manajemen-kinerja.md`, `hubungan-karyawan-dan-disiplin.md`, `offboarding.md` |
 | Kredensial dan kewenangan klinis | **Tidak digambar di mana pun.** `S-C1` `BLOCKED` |
 | Kesehatan kerja staf | **Tidak digambar di mana pun.** `S-C6` `BLOCKED` |
+| Perencanaan tenaga kerja: standar, formasi, rencana tahunan, permintaan headcount | `standar-kebutuhan-tenaga.md`, `formasi-dan-rencana-tahunan.md`, `permintaan-headcount.md`. Sengaja tidak masuk diagram pokok karena siklusnya tahunan dan per kebutuhan, bukan harian; titik sambungnya ke alur pokok adalah penempatan pegawai baru dan pembacaan standar oleh Penjadwalan |
 
 ## 5. Traceability
 
@@ -100,3 +101,4 @@ pelaporan — milik Finance, dan bentuk serah terimanya masih terbuka (`HRD-Q-10
 | Kotak masuk persetujuan | `HRD-DEC-011`, `HRD-DEC-018` | `S-A7` | `AT-HRD-A7-01` |
 | Penutupan periode | `HRD-DEC-022` | `S-B1` | `AT-HRD-B1-05` |
 | Batas serah terima payroll | `HRD-DEC-009`, `HRD-Q-10`, `HRD-Q-11` | `S-B5` | `AT-HRD-B5-01` |
+| Perencanaan tenaga kerja | `HRD-DEC-058` s.d. `HRD-DEC-072` | `S-D1` | `AT-HRD-D1-01` s.d. `AT-HRD-D1-21` |

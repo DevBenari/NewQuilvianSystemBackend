@@ -5,10 +5,10 @@
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `data/data-dictionary.md` |
 | `contract_version` | `v6` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
-| `last_changed_in` | `v6` |
+| `last_changed_in` | `v7` — bagian 8 (`S-D1`) ditambahkan 3 November 2026; bagian 1–7 tidak berubah sejak `v6` |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik basis data untuk keputusan yang merusak data |
-| `approved_by` / `approved_at` | **Belum ada** |
+| `approved_by` / `approved_at` | **Hanya bagian 8** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
 | `input_revision` | `02-backend-architecture.md` revision `2`; `00-interview-decisions.md` revision `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`) |
 | `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` (branch kerja `AndryZain`) |
@@ -1336,3 +1336,613 @@ kelayakan. Preseden bentuknya sudah ada pada `MstBenefitEligibilityRule` — lih
 - **Tidak ada kolom yang diturunkan dari nama layar atau nama menu.** Setiap kolom di dokumen ini
   berasal dari file model yang sudah ada, atau dari keputusan `HRD-DEC-*` yang tercatat.
 - **Tidak ada dokumen yang ditandai `approved`.** Approval tetap tindakan manusia.
+
+---
+
+## 8. Slice `S-D1` — Perencanaan Tenaga Kerja (`last_changed_in` `v7`, 3 November 2026)
+
+Sumber desain: `02-backend-architecture.md` bagian 16. Keputusan: `HRD-DEC-058` s.d. `HRD-DEC-072`.
+Seluruh tabel mewarisi `IdentityModel` (bagian 0.1); kolom auditnya tidak diulang.
+
+Konvensi yang berlaku untuk seluruh tabel bagian ini:
+
+| Konvensi | Isi |
+| --- | --- |
+| Schema dan nama | `public."Hrd<Nama>"`, tunggal PascalCase; `DbSet` jamak |
+| Tanggal tanpa jam | `DateOnly` → `date` |
+| Waktu kejadian | `DateTime` UTC → `timestamp with time zone` |
+| Enum | `HasConversion<int>()` → `integer` |
+| Uang | `decimal(18,2)` → `numeric(18,2)` |
+| Jumlah orang dan porsi kerja | `decimal(9,2)` → `numeric(9,2)` |
+| Token konkurensi | `RowVersion` `Guid`, diganti setiap pembaruan, `IsConcurrencyToken()` — mengikuti `TrxEmployeeBenefitEnrollment` |
+| Perilaku hapus | `Restrict` untuk seluruh FK ke master dan ke aggregate lain; `Cascade` hanya dari induk aggregate ke barisnya sendiri |
+| Indeks unik terfilter | Selalu menyertakan `"IsDelete" = false` |
+
+### 8.1 Status dan kepemilikan tabel
+
+| Entity | Status | Owner | Catatan |
+| --- | --- | --- | --- |
+| `HrdStaffingStandard` | Baru | HR — `S-D1` | Aggregate root standar |
+| `HrdStaffingStandardLine` | Baru | HR — `S-D1` | Baris jabatan standar |
+| `HrdStaffingSkillMixRule` | Baru | HR — `S-D1` | Dibaca Penjadwalan (`HRD-DEC-058`) |
+| `HrdStaffingWorkloadInput` | Baru | HR — `S-D1` | Angka beban manual |
+| `HrdWorkforcePlanningSetting` | Baru | HR — `S-D1` | Satu baris per rumah sakit |
+| `HrdPositionFormation` | Baru | HR — `S-D1` | Ditulis sistem saja |
+| `HrdInitialFormationBatch` | Baru | HR — `S-D1` | — |
+| `HrdInitialFormationBatchRow` | Baru | HR — `S-D1` | — |
+| `HrdManpowerPlan` | Baru | HR — `S-D1` | Rencana dan addendum |
+| `HrdManpowerPlanLine` | Baru | HR — `S-D1` | — |
+| `HrdHeadcountRequest` | Baru | HR — `S-D1` | — |
+| `HrdHeadcountRequestSeat` | Baru | HR — `S-D1` | — |
+| `HrdHeadcountRequestCancellation` | Baru | HR — `S-D1` | — |
+| `HrdFulfilmentPlanChange` | Baru | HR — `S-D1` | — |
+| `HrdStaffingGapSnapshot` | Baru | HR — `S-D1` | Tidak dapat diubah |
+| `HrdStaffingGapSnapshotLine` | Baru | HR — `S-D1` | Tidak dapat diubah |
+| `WfpOrganizationAssignment`, `WfpPositionAssignment` | Sudah ada | 02 Workforce Core | Dibaca; **MUST NOT** disalin |
+| `HrdPersonnelActionOrder` | Sudah ada | 02 Workforce Core | Dirujuk kursi internal |
+| `WfpLeaveRequest` | Sudah ada | 08 Cuti | Dibaca |
+| `WfpCompetencyAssessment` | Sudah ada | 16 Learning & Competency | Dibaca |
+| `TrxResignationRequest` | Sudah ada | 20 Lifecycle | Dibaca |
+| `MstSalaryGrade`, `MstPosition`, `MstOrganizationUnit`, `MstShift`, `MstCompetency`, `MstProfession`, `MstHospitalSite`, `MstApprovalMatrix` | Sudah ada | 01 Master Data HR / `BC-HR-07` | Dirujuk FK atau dibaca |
+| Sepuluh kandidat `WorkforcePlanning` (`MstPositionHeadcountPlan` … `TrxWorkforceAllocation`) | Sudah ada | HR | **Tidak dipakai** `S-D1`; lihat `02-backend-architecture.md` 16.10 |
+
+### 8.2 Tabel baru — seluruh kolom
+
+#### `HrdStaffingStandard`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `StandardNumber` | `string(50)` | Ya | — | Unique | — | — | Tidak | Dari number series |
+| `HospitalSiteId` | `Guid` | Ya | — | Index | FK `MstHospitalSite` | `Restrict` | Tidak | Rumah sakit |
+| `OrganizationUnitId` | `Guid` | Ya | — | Index | FK `MstOrganizationUnit` | `Restrict` | Tidak | Unit pemilik standar |
+| `VersionNumber` | `int` | Ya | — | Unique bersama `OrganizationUnitId` | — | — | Tidak | Naik 1 setiap versi |
+| `EffectiveStartDate` | `DateOnly` | Ya | — | Index bersama `OrganizationUnitId` | — | — | Tidak | Tanggal mulai berlaku |
+| `EffectiveEndDate` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Diisi sistem saat digantikan |
+| `StandardStatus` | `StaffingStandardStatus` | Ya | `Draft` | Index | — | — | Tidak | Lihat state matrix bagian 11.1 |
+| `Justification` | `string(1000)?` | Saat diajukan | — | — | — | — | **Ya** | Alasan perubahan; teks bebas |
+| `SupersedesStandardId` | `Guid?` | Tidak | — | Index | FK `HrdStaffingStandard` | `Restrict` | Tidak | Versi yang digantikan |
+| `WorkflowDefinitionId` | `Guid?` | Tidak | — | — | FK `MstWorkflowDefinition` | `Restrict` | Tidak | Definisi `T9` |
+| `WorkflowInstanceId` | `Guid?` | Tidak | — | Index | — | — | Tidak | Instance `T9` |
+| `SubmittedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Pengaju |
+| `SubmittedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `ApprovedByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Penyetuju langkah terakhir |
+| `ApprovedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `ActivatedAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | Saat status menjadi `Active` |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Token konkurensi |
+
+#### `HrdStaffingStandardLine`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `StaffingStandardId` | `Guid` | Ya | — | Unique bersama `PositionId` | FK `HrdStaffingStandard` | `Cascade` | Tidak | Induk |
+| `PositionId` | `Guid` | Ya | — | Index | FK `MstPosition` | `Restrict` | Tidak | Jabatan |
+| `ProfessionId` | `Guid?` | Tidak | — | — | FK `MstProfession` | `Restrict` | Tidak | Profesi bila relevan |
+| `CalculationMethod` | `StaffingCalculationMethod` | Ya | — | — | — | — | Tidak | `WorkloadAnalysis` ditolak validasi |
+| `MinimumHeadcount` | `decimal(9,2)?` | Untuk `FixedMinimum` | — | — | — | — | Tidak | ≥ 0 |
+| `RatioStaffQuantity` | `decimal(9,2)?` | Untuk `WorkloadRatio` | — | — | — | — | Tidak | > 0; contoh 1 perawat |
+| `RatioWorkloadQuantity` | `decimal(9,2)?` | Untuk `WorkloadRatio` | — | — | — | — | Tidak | > 0; contoh 1 pasien |
+| `WorkloadUnit` | `string(50)?` | Untuk `WorkloadRatio` | — | — | — | — | Tidak | Contoh "pasien terisi per hari" |
+| `ShiftsPerDay` | `int?` | Untuk `WorkloadRatio` dan `ServiceCoverage` | — | — | — | — | Tidak | 1–6 |
+| `StaffPerShift` | `decimal(9,2)?` | Untuk `ServiceCoverage` | — | — | — | — | Tidak | > 0 |
+| `ServiceHoursPerDay` | `decimal(5,2)?` | Untuk `ServiceCoverage` | — | — | — | — | Tidak | 0 < x ≤ 24; informasi jam layanan |
+| `ReliefFactor` | `decimal(5,2)?` | Untuk `WorkloadRatio` dan `ServiceCoverage` | — | — | — | — | Tidak | ≥ 1,00; **tanpa** nilai bawaan sistem |
+| `RoundingMethod` | `StaffingRoundingMethod` | Ya | — | — | — | — | Tidak | **Tanpa** nilai bawaan sistem |
+| `CountsOutsourced` | `bool` | Ya | `false` | — | — | — | Tidak | Alih daya ikut menutup kebutuhan |
+| `Notes` | `string(500)?` | Tidak | — | — | — | — | Tidak | — |
+
+#### `HrdStaffingSkillMixRule`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `StaffingStandardId` | `Guid` | Ya | — | Unique bersama `ShiftId`, `CompetencyId`, `ProfessionId` | FK `HrdStaffingStandard` | `Cascade` | Tidak | Induk |
+| `ShiftId` | `Guid?` | Tidak | — | — | FK `MstShift` | `Restrict` | Tidak | Kosong = seluruh shift |
+| `ProfessionId` | `Guid?` | Tidak | — | — | FK `MstProfession` | `Restrict` | Tidak | — |
+| `CompetencyId` | `Guid` | Ya | — | Index | FK `MstCompetency` | `Restrict` | Tidak | Kompetensi yang diwajibkan |
+| `MinimumCompetencyLevel` | `string(50)?` | Tidak | — | — | — | — | Tidak | — |
+| `MinimumQualifiedHeadcount` | `decimal(9,2)` | Ya | — | — | — | — | Tidak | > 0 |
+| `IsMandatory` | `bool` | Ya | `true` | — | — | — | Tidak | Wajib dipenuhi setiap shift |
+| `Notes` | `string(500)?` | Tidak | — | — | — | — | Tidak | — |
+
+#### `HrdStaffingWorkloadInput`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `OrganizationUnitId` | `Guid` | Ya | — | Unique terfilter bersama `PositionId`, `PeriodStartDate` | FK `MstOrganizationUnit` | `Restrict` | Tidak | — |
+| `PositionId` | `Guid` | Ya | — | — | FK `MstPosition` | `Restrict` | Tidak | — |
+| `PeriodStartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `PeriodEndDate` | `DateOnly` | Ya | — | — | — | — | Tidak | ≥ `PeriodStartDate` |
+| `WorkloadValue` | `decimal(12,2)` | Ya | — | — | — | — | Tidak | > 0 |
+| `SourceNote` | `string(500)` | Ya | — | — | — | — | Tidak | Contoh "rekap sensus harian ICU Q4 2026" |
+
+#### `HrdWorkforcePlanningSetting`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `HospitalSiteId` | `Guid` | Ya | — | Unique terfilter | FK `MstHospitalSite` | `Restrict` | Tidak | Satu baris per rumah sakit |
+| `LongLeaveThresholdDays` | `int?` | Tidak | — | — | — | — | Tidak | Kosong = lapisan "tidak tersedia sementara" belum dapat dihitung |
+| `OverdueRequestThresholdDays` | `int?` | Tidak | — | — | — | — | Tidak | Kosong = tanda "lewat batas" tidak pernah menyala |
+| `ChangeReason` | `string(500)` | Ya | — | — | — | — | Tidak | Alasan perubahan terakhir |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+#### `HrdPositionFormation`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `HospitalSiteId` | `Guid` | Ya | — | Index | FK `MstHospitalSite` | `Restrict` | Tidak | — |
+| `OrganizationUnitId` | `Guid` | Ya | — | Unique bersama `PositionId`, `VersionNumber`; unique bersama `PositionId`, `EffectiveStartDate` | FK `MstOrganizationUnit` | `Restrict` | Tidak | — |
+| `PositionId` | `Guid` | Ya | — | — | FK `MstPosition` | `Restrict` | Tidak | — |
+| `VersionNumber` | `int` | Ya | — | — | — | — | Tidak | 1, 2, 3, … per unit × jabatan |
+| `FormationQuantity` | `decimal(9,2)` | Ya | — | — | — | — | Tidak | ≥ 0 |
+| `EffectiveStartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `EffectiveEndDate` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Satu-satunya kolom yang boleh diubah sesudah ditulis |
+| `SourceType` | `PositionFormationSourceType` | Ya | — | — | — | — | Tidak | — |
+| `SourceDocumentId` | `Guid` | Ya | — | Index | — | — | Tidak | Id dokumen sumber; tanpa FK karena sumbernya lima tabel berbeda |
+| `SourceDocumentNumber` | `string(50)` | Ya | — | — | — | — | Tidak | Nomor dokumen sumber untuk tampilan riwayat |
+| `ApprovedByUserId` | `Guid` | Ya | — | — | — | — | Tidak | Penyetuju terakhir dokumen sumber |
+| `ApprovedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `PreviousFormationId` | `Guid?` | Tidak | — | — | FK `HrdPositionFormation` | `Restrict` | Tidak | — |
+
+#### `HrdInitialFormationBatch`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `BatchNumber` | `string(50)` | Ya | — | Unique | — | — | Tidak | — |
+| `HospitalSiteId` | `Guid` | Ya | — | Index | FK `MstHospitalSite` | `Restrict` | Tidak | — |
+| `SourceDocumentReference` | `string(200)` | Ya | — | — | — | — | Tidak | Contoh "SK Direktur No. 12/2026" |
+| `SourceDocumentPath` | `string(500)?` | Saat diajukan | — | — | — | — | Tidak | Lokasi scan; disimpan lewat pola `WorkflowFileStorageService` |
+| `SourceDocumentFileName` | `string(255)?` | Saat diajukan | — | — | — | — | Tidak | — |
+| `BatchStatus` | `InitialFormationBatchStatus` | Ya | `Draft` | Index | — | — | Tidak | — |
+| `TotalRows` | `int` | Ya | `0` | — | — | — | Tidak | — |
+| `ValidRows` | `int` | Ya | `0` | — | — | — | Tidak | — |
+| `InvalidRows` | `int` | Ya | `0` | — | — | — | Tidak | Harus 0 sebelum diajukan |
+| `Notes` | `string(1000)?` | Tidak | — | — | — | — | Tidak | — |
+| `WorkflowDefinitionId` | `Guid?` | Tidak | — | — | FK `MstWorkflowDefinition` | `Restrict` | Tidak | `T10` |
+| `WorkflowInstanceId` | `Guid?` | Tidak | — | Index | — | — | Tidak | — |
+| `SubmittedByUserId`, `SubmittedAt`, `ApprovedByUserId`, `ApprovedAt`, `AppliedAt` | `Guid?` / `DateTime?` | Tidak | — | — | — | — | Tidak | Jejak siklus |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+#### `HrdInitialFormationBatchRow`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `BatchId` | `Guid` | Ya | — | Unique bersama `OrganizationUnitId`, `PositionId` | FK `HrdInitialFormationBatch` | `Cascade` | Tidak | — |
+| `OrganizationUnitId` | `Guid` | Ya | — | Index bersama `PositionId` | FK `MstOrganizationUnit` | `Restrict` | Tidak | — |
+| `PositionId` | `Guid` | Ya | — | — | FK `MstPosition` | `Restrict` | Tidak | — |
+| `FormationQuantity` | `decimal(9,2)` | Ya | — | — | — | — | Tidak | ≥ 0 |
+| `EffectiveStartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | Sesuai dokumen sumber |
+| `IsValid` | `bool` | Ya | `false` | — | — | — | Tidak | — |
+| `ValidationMessage` | `string(500)?` | Tidak | — | — | — | — | Tidak | — |
+| `CreatedFormationId` | `Guid?` | Tidak | — | — | FK `HrdPositionFormation` | `Restrict` | Tidak | Diisi saat `Applied` |
+
+#### `HrdManpowerPlan`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `PlanNumber` | `string(50)` | Ya | — | Unique | — | — | Tidak | — |
+| `PlanKind` | `ManpowerPlanKind` | Ya | — | — | — | — | Tidak | — |
+| `HospitalSiteId` | `Guid` | Ya | — | Unique terfilter bersama `PlanYear` untuk `AnnualPlan` yang tidak `Rejected`/`Cancelled` | FK `MstHospitalSite` | `Restrict` | Tidak | Satu rencana tahunan per rumah sakit per tahun |
+| `PlanYear` | `int` | Ya | — | — | — | — | Tidak | — |
+| `PeriodStartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `PeriodEndDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `ParentPlanId` | `Guid?` | Untuk `Addendum` | — | Unique bersama `AddendumSequence` | FK `HrdManpowerPlan` | `Restrict` | Tidak | Rencana induk |
+| `AddendumSequence` | `int?` | Untuk `Addendum` | — | — | — | — | Tidak | 01, 02, … |
+| `ReferenceDate` | `DateOnly` | Ya | — | — | — | — | Tidak | Tanggal acuan gap |
+| `PlanStatus` | `ManpowerPlanStatus` | Ya | `Draft` | Index | — | — | Tidak | — |
+| `Justification` | `string(2000)?` | Saat diajukan | — | — | — | — | **Ya** | Teks bebas |
+| `CurrencyCode` | `string(3)` | Ya | `IDR` | — | — | — | Tidak | — |
+| `TotalEstimatedCost` | `decimal(18,2)?` | Tidak | — | — | — | — | **Ya** | Biaya; hanya untuk `WorkforcePlanningCost : Read` |
+| `FinanceAdjustedTotal` | `decimal(18,2)?` | Tidak | — | — | — | — | **Ya** | Angka koreksi Finance |
+| `FinanceAdjustmentReason` | `string(1000)?` | Bila koreksi | — | — | — | — | **Ya** | — |
+| `FinanceAdjustedByUserId`, `FinanceAdjustedAt` | `Guid?` / `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `WorkflowDefinitionId`, `WorkflowInstanceId` | `Guid?` | Tidak | — | Index pada instance | FK definisi `Restrict` | — | Tidak | `T10` |
+| `SubmittedByUserId`, `SubmittedAt`, `ApprovedByUserId`, `ApprovedAt` | `Guid?` / `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+#### `HrdManpowerPlanLine`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `PlanId` | `Guid` | Ya | — | Unique bersama `OrganizationUnitId`, `PositionId` | FK `HrdManpowerPlan` | `Cascade` | Tidak | — |
+| `OrganizationUnitId` | `Guid` | Ya | — | Index | FK `MstOrganizationUnit` | `Restrict` | Tidak | — |
+| `PositionId` | `Guid` | Ya | — | — | FK `MstPosition` | `Restrict` | Tidak | — |
+| `SalaryGradeId` | `Guid` | Ya | — | — | FK `MstSalaryGrade` | `Restrict` | Tidak | Dasar biaya (`GRADE_REQUIRED_PER_LINE`) |
+| `CurrentFormationQuantity` | `decimal(9,2)` | Ya | `0` | — | — | — | Tidak | Potret saat hitung ulang |
+| `RecommendedQuantity` | `decimal(9,2)?` | Tidak | — | — | — | — | Tidak | Kosong bila standar atau angka beban belum ada |
+| `RecommendationBreakdown` | `string(1000)?` | Tidak | — | — | — | — | Tidak | Rincian hitung |
+| `ProposedFormationQuantity` | `decimal(9,2)` | Ya | — | — | — | — | Tidak | ≥ 0 |
+| `ChangeQuantity` | `decimal(9,2)` | Ya | `0` | — | — | — | Tidak | Usulan − saat ini; dihitung sistem |
+| `DeviationReason` | `string(1000)?` | Bila usulan ≠ rekomendasi | — | — | — | — | **Ya** | Teks bebas |
+| `EffectiveStartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | Rencana: awal periode; addendum: per baris |
+| `MonthlyRateSnapshot` | `decimal(18,2)?` | Tidak | — | — | — | — | **Ya** | Gaji tengah grade pada tanggal berlaku |
+| `MonthsInPeriod` | `int` | Ya | — | — | — | — | Tidak | Bulan dari tanggal berlaku sampai akhir periode |
+| `EstimatedCost` | `decimal(18,2)?` | Tidak | — | — | — | — | **Ya** | Usulan × tarif × bulan |
+| `IncrementalCost` | `decimal(18,2)?` | Tidak | — | — | — | — | **Ya** | Perubahan × tarif × bulan |
+| `CostStatus` | `CostCalculationStatus` | Ya | — | — | — | — | Tidak | — |
+| `CreatedFormationId` | `Guid?` | Tidak | — | — | FK `HrdPositionFormation` | `Restrict` | Tidak | Diisi saat disetujui |
+
+#### `HrdHeadcountRequest`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `RequestNumber` | `string(50)` | Ya | — | Unique | — | — | Tidak | — |
+| `HospitalSiteId` | `Guid` | Ya | — | — | FK `MstHospitalSite` | `Restrict` | Tidak | — |
+| `OrganizationUnitId` | `Guid` | Ya | — | Index bersama `PositionId`, `RequestStatus` | FK `MstOrganizationUnit` | `Restrict` | Tidak | — |
+| `PositionId` | `Guid` | Ya | — | — | FK `MstPosition` | `Restrict` | Tidak | — |
+| `SalaryGradeId` | `Guid` | Ya | — | — | FK `MstSalaryGrade` | `Restrict` | Tidak | Dasar biaya |
+| `RequestType` | `HeadcountRequestType` | Ya | — | — | — | — | Tidak | — |
+| `RequestStatus` | `HeadcountRequestStatus` | Ya | `Draft` | — | — | — | Tidak | — |
+| `RequiredStartDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `TemporaryEndDate` | `DateOnly?` | Untuk `Temporary` | — | — | — | — | Tidak | — |
+| `TemporaryReasonWorkforceProfileId` | `Guid?` | Untuk `Temporary` | — | — | FK `MstWorkforceProfile` | `Restrict` | Tidak | Orang yang tidak tersedia |
+| `Justification` | `string(2000)?` | Untuk `AdditionalBeyondFormation` | — | — | — | — | **Ya** | Teks bebas |
+| `RequestedQuantity` | `decimal(9,2)` | Ya | `0` | — | — | — | Tidak | Jumlah `SeatFte`; dihitung sistem |
+| `ExternalSeatCount` | `int` | Ya | `0` | — | — | — | Tidak | Rencana pemenuhan luar |
+| `InternalSeatCount` | `int` | Ya | `0` | — | — | — | Tidak | Rencana pemenuhan internal |
+| `FormationVersionIdAtSubmission` | `Guid?` | Tidak | — | — | FK `HrdPositionFormation` | `Restrict` | Tidak | Formasi saat diajukan |
+| `RemainingSeatsAtSubmission` | `decimal(9,2)?` | Tidak | — | — | — | — | Tidak | — |
+| `EstimatedMonthlyRate` | `decimal(18,2)?` | Tidak | — | — | — | — | **Ya** | — |
+| `EstimatedCost` | `decimal(18,2)?` | Tidak | — | — | — | — | **Ya** | — |
+| `CostStatus` | `CostCalculationStatus` | Ya | — | — | — | — | Tidak | — |
+| `FinanceAdjustedCost` | `decimal(18,2)?` | Tidak | — | — | — | — | **Ya** | `T12` saja |
+| `FinanceAdjustmentReason` | `string(1000)?` | Bila koreksi | — | — | — | — | **Ya** | — |
+| `FinanceAdjustedByUserId`, `FinanceAdjustedAt` | `Guid?` / `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `IsOverFormationAfterAddendum` | `bool` | Ya | `false` | Index | — | — | Tidak | `PENDING_REQUESTS_FLAGGED` |
+| `IsOverdue` | `bool` | Ya | `false` | Index | — | — | Tidak | Tanda "lewat batas" |
+| `CreatedFormationId` | `Guid?` | Tidak | — | — | FK `HrdPositionFormation` | `Restrict` | Tidak | Untuk `T12` |
+| `WorkflowDefinitionId`, `WorkflowInstanceId` | `Guid?` | Tidak | — | Index pada instance | FK definisi `Restrict` | — | Tidak | `T11` atau `T12` |
+| `SubmittedByUserId`, `SubmittedAt`, `ApprovedByUserId`, `ApprovedAt`, `ReadyForRecruitmentAt`, `WithdrawnAt`, `ClosedAt` | `Guid?` / `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | — |
+
+#### `HrdHeadcountRequestSeat`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `HeadcountRequestId` | `Guid` | Ya | — | Unique bersama `SeatNumber` | FK `HrdHeadcountRequest` | `Cascade` | Tidak | — |
+| `SeatNumber` | `int` | Ya | — | — | — | — | Tidak | 1, 2, … |
+| `SeatFte` | `decimal(4,2)` | Ya | `1.00` | — | — | — | Tidak | 0,10–1,00 |
+| `FulfilmentSource` | `HeadcountFulfilmentSource` | Ya | — | — | — | — | Tidak | — |
+| `SeatStatus` | `HeadcountSeatStatus` | Ya | `Open` | Index | — | — | Tidak | — |
+| `ReplacedWorkforceProfileId` | `Guid?` | Untuk `Replacement` | — | — | FK `MstWorkforceProfile` | `Restrict` | Tidak | Orang yang digantikan |
+| `LinkedPositionAssignmentId` | `Guid?` | Tidak | — | **Unique terfilter**: tidak kosong dan `SeatStatus` ≠ `Cancelled` | FK `WfpPositionAssignment` | `Restrict` | Tidak | `ONE_PLACEMENT_ONE_SEAT` |
+| `LinkedPersonnelActionOrderId` | `Guid?` | Tidak | — | **Unique terfilter** seperti di atas | FK `HrdPersonnelActionOrder` | `Restrict` | Tidak | Kursi internal sebelum penempatan berlaku |
+| `LinkedByUserId`, `LinkedAt` | `Guid?` / `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `FulfilledAt` | `DateOnly?` | Tidak | — | — | — | — | Tidak | Tanggal mulai penempatan |
+| `CancellationId` | `Guid?` | Tidak | — | Index | FK `HrdHeadcountRequestCancellation` | `Restrict` | Tidak | — |
+| `CancelledAt` | `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+
+#### `HrdHeadcountRequestCancellation`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `CancellationNumber` | `string(50)` | Ya | — | Unique | — | — | Tidak | — |
+| `HeadcountRequestId` | `Guid` | Ya | — | Index | FK `HrdHeadcountRequest` | `Restrict` | Tidak | — |
+| `CancellationStatus` | `HeadcountCancellationStatus` | Ya | `Submitted` | — | — | — | Tidak | — |
+| `Reason` | `string(1000)` | Ya | — | — | — | — | **Ya** | Teks bebas |
+| `RequestedByUserId` | `Guid` | Ya | — | — | — | — | Tidak | — |
+| `DecidedByUserId`, `DecidedAt` | `Guid?` / `DateTime?` | Tidak | — | — | — | — | Tidak | — |
+| `CreatedFormationId` | `Guid?` | Tidak | — | — | FK `HrdPositionFormation` | `Restrict` | Tidak | Bila kursi berasal dari `T12` |
+| `WorkflowInstanceId` | `Guid?` | Tidak | — | — | — | — | Tidak | `T13` |
+
+#### `HrdFulfilmentPlanChange`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `HeadcountRequestId` | `Guid` | Ya | — | Index | FK `HrdHeadcountRequest` | `Restrict` | Tidak | — |
+| `SeatId` | `Guid` | Ya | — | — | FK `HrdHeadcountRequestSeat` | `Restrict` | Tidak | — |
+| `FromSource` | `HeadcountFulfilmentSource` | Ya | — | — | — | — | Tidak | — |
+| `ToSource` | `HeadcountFulfilmentSource` | Ya | — | — | — | — | Tidak | ≠ `FromSource` |
+| `Reason` | `string(1000)` | Ya | — | — | — | — | **Ya** | Teks bebas |
+| `ChangedByUserId` | `Guid` | Ya | — | — | — | — | Tidak | HR Manager |
+| `ChangedAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+
+#### `HrdStaffingGapSnapshot`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `SnapshotType` | `StaffingGapSnapshotType` | Ya | — | — | — | — | Tidak | — |
+| `HospitalSiteId` | `Guid` | Ya | — | Unique terfilter bersama `PeriodMonth` untuk `Monthly` | FK `MstHospitalSite` | `Restrict` | Tidak | Satu potret bulanan per bulan |
+| `ReferenceDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `SourceDocumentType` | `PositionFormationSourceType?` | Untuk `Submission` | — | Index bersama `SourceDocumentId` | — | — | Tidak | Dipakai `ManpowerPlan`, `PlanAddendum`, `HeadcountRequest` |
+| `SourceDocumentId` | `Guid?` | Untuk `Submission` | — | — | — | — | Tidak | — |
+| `PeriodMonth` | `DateOnly?` | Untuk `Monthly` dan `Reconstructed` | — | — | — | — | Tidak | Hari pertama bulan |
+| `TakenAt` | `DateTime` | Ya | — | — | — | — | Tidak | — |
+| `ReconstructedAt` | `DateTime?` | Untuk `Reconstructed` | — | — | — | — | Tidak | `MISSED_SNAPSHOT_NOT_FAKED` |
+
+#### `HrdStaffingGapSnapshotLine`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | — |
+| `SnapshotId` | `Guid` | Ya | — | Unique bersama `OrganizationUnitId`, `PositionId` | FK `HrdStaffingGapSnapshot` | `Cascade` | Tidak | — |
+| `OrganizationUnitId` | `Guid` | Ya | — | — | FK `MstOrganizationUnit` | `Restrict` | Tidak | — |
+| `PositionId` | `Guid` | Ya | — | — | FK `MstPosition` | `Restrict` | Tidak | — |
+| `FormationQuantity` | `decimal(9,2)?` | Tidak | — | — | — | — | Tidak | Kosong bila belum ada formasi |
+| `FilledFte`, `ToBeVacatedFte`, `TemporarilyUnavailableFte`, `NotYetCompetentFte`, `OutsourcedFte` | `decimal(9,2)?` | Tidak | — | — | — | — | Tidak | Kosong = data belum tersedia, **bukan** 0 |
+| `ConcurrentAssignmentCount` | `int?` | Tidak | — | — | — | — | Tidak | Rangkap/Plt sebagai informasi |
+| `PermanentGap`, `TemporaryGap`, `CompetencyGap` | `decimal(9,2)?` | Tidak | — | — | — | — | Tidak | — |
+| `PlacementDataComplete`, `LeaveDataComplete`, `CompetencyDataComplete`, `WorkforceTypeDataComplete` | `bool` | Ya | `false` | — | — | — | Tidak | `SNAPSHOT_RECORDS_COMPLETENESS` |
+| `ShortageSummaryCount` | `int?` | Tidak | — | — | — | — | Tidak | Dari Penjadwalan; kosong sampai tersedia |
+
+### 8.3 Tabel `Sudah ada` — kolom kunci yang dibaca `S-D1`
+
+| Tabel | Kolom yang dibaca | Aturan yang memakainya | Model |
+| --- | --- | --- | --- |
+| `WfpOrganizationAssignment` | `WorkforceProfileId`, `OrganizationUnitId`, `IsPrimary`, `AssignmentType`, `EffectiveStartDate`, `EffectiveEndDate` | Lapisan terisi, rangkap/Plt | `Areas/Corporate/HumanResource/WorkforceCore/Models/WfpOrganizationAssignment.cs` |
+| `WfpPositionAssignment` | `Id`, `WorkforceProfileId`, `OrganizationUnitId`, `PositionId`, `IsPrimary`, `AssignmentType`, `EffectiveStartDate`, `EffectiveEndDate`, `PersonnelActionOrderId` | Terisi; tautan kursi; kursi internal terpenuhi | `.../WorkforceCore/Models/WfpPositionAssignment.cs` |
+| `HrdPersonnelActionOrder` | `Id`, `OrderStatus`, `EffectiveDate`, `TargetOrganizationUnitId`, `TargetPositionId` | Kursi internal; akan kosong (SK pindah keluar) | `.../WorkforceCore/Models/HrdPersonnelActionOrder.cs` |
+| `WfpLeaveRequest` | `WorkforceProfileId`, `StartDate`, `EndDate`, `LeaveRequestStatus` | Tidak tersedia sementara | `.../LeaveManagement/Models/WfpLeaveRequest.cs` |
+| `WfpCompetencyAssessment` | `WorkforceProfileId`, `CompetencyId`, `AssessmentDate`, `ExpiredDate`, `VerifiedAt` | Belum memenuhi kompetensi | `.../LearningAndDevelopment/Models/WfpCompetencyAssessment.cs` |
+| `TrxResignationRequest` | `WorkforceProfileId`, `ProposedLastWorkingDate`, `RequestStatus` | Akan kosong | `.../LifecycleManagement/Models/TrxResignationRequest.cs` |
+| `MstSalaryGrade` | `Id`, `MidpointSalary`, `EffectiveStartDate`, `EffectiveEndDate`, `IsActive` | Estimasi biaya | `.../MasterData/PayrollAndBenefit/Models/MstSalaryGrade.cs` |
+| `MstOrganizationUnit` | `Id`, `ParentOrganizationUnitId`, `UnitType` | Penelusuran direktorat (`HRD-DEC-072`) | `.../MasterData/Organization/Models/MstOrganizationUnit.cs` |
+| `MstApprovalMatrix` | `WorkflowStepId`, `OrganizationUnitId`, `ApproverSourceType`, `ApproverPositionId`, `IsFallback` | Langkah Direktur | `.../MasterData/Workflow/Models/MstApprovalMatrix.cs` |
+
+### 8.4 Skema tabel dalam bentuk DDL
+
+> **Peringatan.** Sama seperti bagian 4.1: DDL di bawah adalah **dokumentasi bentuk tabel**, bukan
+> skrip yang dijalankan. Configuration EF Core untuk tabel ini **belum ada**; bentuk ini menjadi acuan
+> saat configuration ditulis, dan configuration itulah yang kemudian menjadi sumber kebenaran.
+> Kolom audit `IdentityModel` tidak ditulis ulang.
+
+```sql
+-- Bentuk tabel sebagaimana akan dihasilkan EF Core. Bukan skrip untuk dijalankan.
+CREATE TABLE public."HrdStaffingStandard" (
+    "Id" uuid NOT NULL, "StandardNumber" varchar(50) NOT NULL,
+    "HospitalSiteId" uuid NOT NULL, "OrganizationUnitId" uuid NOT NULL,
+    "VersionNumber" integer NOT NULL, "EffectiveStartDate" date NOT NULL, "EffectiveEndDate" date,
+    "StandardStatus" integer NOT NULL,
+    "Justification" varchar(1000),                       -- SENSITIF
+    "SupersedesStandardId" uuid, "WorkflowDefinitionId" uuid, "WorkflowInstanceId" uuid,
+    "SubmittedByUserId" uuid, "SubmittedAt" timestamptz, "ApprovedByUserId" uuid,
+    "ApprovedAt" timestamptz, "ActivatedAt" timestamptz, "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdStaffingStandard" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdStaffingStandard_MstOrganizationUnit" FOREIGN KEY ("OrganizationUnitId")
+        REFERENCES public."MstOrganizationUnit" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_HrdStaffingStandard_Supersedes" FOREIGN KEY ("SupersedesStandardId")
+        REFERENCES public."HrdStaffingStandard" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdStaffingStandard_StandardNumber" ON public."HrdStaffingStandard" ("StandardNumber");
+CREATE UNIQUE INDEX "IX_HrdStaffingStandard_Unit_Version" ON public."HrdStaffingStandard" ("OrganizationUnitId", "VersionNumber");
+
+CREATE TABLE public."HrdStaffingStandardLine" (
+    "Id" uuid NOT NULL, "StaffingStandardId" uuid NOT NULL, "PositionId" uuid NOT NULL,
+    "ProfessionId" uuid, "CalculationMethod" integer NOT NULL,
+    "MinimumHeadcount" numeric(9,2), "RatioStaffQuantity" numeric(9,2), "RatioWorkloadQuantity" numeric(9,2),
+    "WorkloadUnit" varchar(50), "ShiftsPerDay" integer, "StaffPerShift" numeric(9,2),
+    "ServiceHoursPerDay" numeric(5,2), "ReliefFactor" numeric(5,2), "RoundingMethod" integer NOT NULL,
+    "CountsOutsourced" boolean NOT NULL DEFAULT false, "Notes" varchar(500),
+    CONSTRAINT "PK_HrdStaffingStandardLine" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdStaffingStandardLine_Standard" FOREIGN KEY ("StaffingStandardId")
+        REFERENCES public."HrdStaffingStandard" ("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_HrdStaffingStandardLine_MstPosition" FOREIGN KEY ("PositionId")
+        REFERENCES public."MstPosition" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdStaffingStandardLine_Standard_Position" ON public."HrdStaffingStandardLine" ("StaffingStandardId", "PositionId");
+
+CREATE TABLE public."HrdStaffingSkillMixRule" (
+    "Id" uuid NOT NULL, "StaffingStandardId" uuid NOT NULL, "ShiftId" uuid, "ProfessionId" uuid,
+    "CompetencyId" uuid NOT NULL, "MinimumCompetencyLevel" varchar(50),
+    "MinimumQualifiedHeadcount" numeric(9,2) NOT NULL, "IsMandatory" boolean NOT NULL DEFAULT true,
+    "Notes" varchar(500),
+    CONSTRAINT "PK_HrdStaffingSkillMixRule" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdStaffingSkillMixRule_Standard" FOREIGN KEY ("StaffingStandardId")
+        REFERENCES public."HrdStaffingStandard" ("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_HrdStaffingSkillMixRule_MstCompetency" FOREIGN KEY ("CompetencyId")
+        REFERENCES public."MstCompetency" ("Id") ON DELETE RESTRICT
+);
+
+CREATE TABLE public."HrdStaffingWorkloadInput" (
+    "Id" uuid NOT NULL, "OrganizationUnitId" uuid NOT NULL, "PositionId" uuid NOT NULL,
+    "PeriodStartDate" date NOT NULL, "PeriodEndDate" date NOT NULL,
+    "WorkloadValue" numeric(12,2) NOT NULL, "SourceNote" varchar(500) NOT NULL,
+    CONSTRAINT "PK_HrdStaffingWorkloadInput" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_HrdStaffingWorkloadInput_Unit_Position_Period" ON public."HrdStaffingWorkloadInput"
+    ("OrganizationUnitId", "PositionId", "PeriodStartDate") WHERE "IsDelete" = false;
+
+CREATE TABLE public."HrdWorkforcePlanningSetting" (
+    "Id" uuid NOT NULL, "HospitalSiteId" uuid NOT NULL, "LongLeaveThresholdDays" integer,
+    "OverdueRequestThresholdDays" integer, "ChangeReason" varchar(500) NOT NULL, "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdWorkforcePlanningSetting" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_HrdWorkforcePlanningSetting_Site" ON public."HrdWorkforcePlanningSetting" ("HospitalSiteId") WHERE "IsDelete" = false;
+
+CREATE TABLE public."HrdPositionFormation" (
+    "Id" uuid NOT NULL, "HospitalSiteId" uuid NOT NULL, "OrganizationUnitId" uuid NOT NULL,
+    "PositionId" uuid NOT NULL, "VersionNumber" integer NOT NULL, "FormationQuantity" numeric(9,2) NOT NULL,
+    "EffectiveStartDate" date NOT NULL, "EffectiveEndDate" date, "SourceType" integer NOT NULL,
+    "SourceDocumentId" uuid NOT NULL, "SourceDocumentNumber" varchar(50) NOT NULL,
+    "ApprovedByUserId" uuid NOT NULL, "ApprovedAt" timestamptz NOT NULL, "PreviousFormationId" uuid,
+    CONSTRAINT "PK_HrdPositionFormation" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdPositionFormation_Previous" FOREIGN KEY ("PreviousFormationId")
+        REFERENCES public."HrdPositionFormation" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdPositionFormation_Unit_Position_Version" ON public."HrdPositionFormation" ("OrganizationUnitId", "PositionId", "VersionNumber");
+CREATE UNIQUE INDEX "IX_HrdPositionFormation_Unit_Position_Start" ON public."HrdPositionFormation" ("OrganizationUnitId", "PositionId", "EffectiveStartDate");
+
+CREATE TABLE public."HrdInitialFormationBatch" (
+    "Id" uuid NOT NULL, "BatchNumber" varchar(50) NOT NULL, "HospitalSiteId" uuid NOT NULL,
+    "SourceDocumentReference" varchar(200) NOT NULL, "SourceDocumentPath" varchar(500),
+    "SourceDocumentFileName" varchar(255), "BatchStatus" integer NOT NULL,
+    "TotalRows" integer NOT NULL DEFAULT 0, "ValidRows" integer NOT NULL DEFAULT 0,
+    "InvalidRows" integer NOT NULL DEFAULT 0, "Notes" varchar(1000),
+    "WorkflowDefinitionId" uuid, "WorkflowInstanceId" uuid, "SubmittedByUserId" uuid,
+    "SubmittedAt" timestamptz, "ApprovedByUserId" uuid, "ApprovedAt" timestamptz,
+    "AppliedAt" timestamptz, "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdInitialFormationBatch" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_HrdInitialFormationBatch_BatchNumber" ON public."HrdInitialFormationBatch" ("BatchNumber");
+
+CREATE TABLE public."HrdInitialFormationBatchRow" (
+    "Id" uuid NOT NULL, "BatchId" uuid NOT NULL, "OrganizationUnitId" uuid NOT NULL,
+    "PositionId" uuid NOT NULL, "FormationQuantity" numeric(9,2) NOT NULL, "EffectiveStartDate" date NOT NULL,
+    "IsValid" boolean NOT NULL DEFAULT false, "ValidationMessage" varchar(500), "CreatedFormationId" uuid,
+    CONSTRAINT "PK_HrdInitialFormationBatchRow" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdInitialFormationBatchRow_Batch" FOREIGN KEY ("BatchId")
+        REFERENCES public."HrdInitialFormationBatch" ("Id") ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX "IX_HrdInitialFormationBatchRow_Batch_Unit_Position" ON public."HrdInitialFormationBatchRow" ("BatchId", "OrganizationUnitId", "PositionId");
+
+CREATE TABLE public."HrdManpowerPlan" (
+    "Id" uuid NOT NULL, "PlanNumber" varchar(50) NOT NULL, "PlanKind" integer NOT NULL,
+    "HospitalSiteId" uuid NOT NULL, "PlanYear" integer NOT NULL, "PeriodStartDate" date NOT NULL,
+    "PeriodEndDate" date NOT NULL, "ParentPlanId" uuid, "AddendumSequence" integer,
+    "ReferenceDate" date NOT NULL, "PlanStatus" integer NOT NULL,
+    "Justification" varchar(2000),                        -- SENSITIF
+    "CurrencyCode" varchar(3) NOT NULL DEFAULT 'IDR',
+    "TotalEstimatedCost" numeric(18,2),                   -- SENSITIF
+    "FinanceAdjustedTotal" numeric(18,2),                 -- SENSITIF
+    "FinanceAdjustmentReason" varchar(1000),              -- SENSITIF
+    "FinanceAdjustedByUserId" uuid, "FinanceAdjustedAt" timestamptz,
+    "WorkflowDefinitionId" uuid, "WorkflowInstanceId" uuid, "SubmittedByUserId" uuid,
+    "SubmittedAt" timestamptz, "ApprovedByUserId" uuid, "ApprovedAt" timestamptz, "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdManpowerPlan" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdManpowerPlan_Parent" FOREIGN KEY ("ParentPlanId")
+        REFERENCES public."HrdManpowerPlan" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdManpowerPlan_PlanNumber" ON public."HrdManpowerPlan" ("PlanNumber");
+CREATE UNIQUE INDEX "IX_HrdManpowerPlan_Site_Year_Annual" ON public."HrdManpowerPlan" ("HospitalSiteId", "PlanYear")
+    WHERE "PlanKind" = 1 AND "PlanStatus" NOT IN (4, 6) AND "IsDelete" = false;
+CREATE UNIQUE INDEX "IX_HrdManpowerPlan_Parent_Sequence" ON public."HrdManpowerPlan" ("ParentPlanId", "AddendumSequence")
+    WHERE "ParentPlanId" IS NOT NULL;
+
+CREATE TABLE public."HrdManpowerPlanLine" (
+    "Id" uuid NOT NULL, "PlanId" uuid NOT NULL, "OrganizationUnitId" uuid NOT NULL, "PositionId" uuid NOT NULL,
+    "SalaryGradeId" uuid NOT NULL, "CurrentFormationQuantity" numeric(9,2) NOT NULL DEFAULT 0,
+    "RecommendedQuantity" numeric(9,2), "RecommendationBreakdown" varchar(1000),
+    "ProposedFormationQuantity" numeric(9,2) NOT NULL, "ChangeQuantity" numeric(9,2) NOT NULL DEFAULT 0,
+    "DeviationReason" varchar(1000),                      -- SENSITIF
+    "EffectiveStartDate" date NOT NULL,
+    "MonthlyRateSnapshot" numeric(18,2),                  -- SENSITIF
+    "MonthsInPeriod" integer NOT NULL,
+    "EstimatedCost" numeric(18,2),                        -- SENSITIF
+    "IncrementalCost" numeric(18,2),                      -- SENSITIF
+    "CostStatus" integer NOT NULL, "CreatedFormationId" uuid,
+    CONSTRAINT "PK_HrdManpowerPlanLine" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdManpowerPlanLine_Plan" FOREIGN KEY ("PlanId")
+        REFERENCES public."HrdManpowerPlan" ("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_HrdManpowerPlanLine_MstSalaryGrade" FOREIGN KEY ("SalaryGradeId")
+        REFERENCES public."MstSalaryGrade" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdManpowerPlanLine_Plan_Unit_Position" ON public."HrdManpowerPlanLine" ("PlanId", "OrganizationUnitId", "PositionId");
+
+CREATE TABLE public."HrdHeadcountRequest" (
+    "Id" uuid NOT NULL, "RequestNumber" varchar(50) NOT NULL, "HospitalSiteId" uuid NOT NULL,
+    "OrganizationUnitId" uuid NOT NULL, "PositionId" uuid NOT NULL, "SalaryGradeId" uuid NOT NULL,
+    "RequestType" integer NOT NULL, "RequestStatus" integer NOT NULL, "RequiredStartDate" date NOT NULL,
+    "TemporaryEndDate" date, "TemporaryReasonWorkforceProfileId" uuid,
+    "Justification" varchar(2000),                        -- SENSITIF
+    "RequestedQuantity" numeric(9,2) NOT NULL DEFAULT 0,
+    "ExternalSeatCount" integer NOT NULL DEFAULT 0, "InternalSeatCount" integer NOT NULL DEFAULT 0,
+    "FormationVersionIdAtSubmission" uuid, "RemainingSeatsAtSubmission" numeric(9,2),
+    "EstimatedMonthlyRate" numeric(18,2),                 -- SENSITIF
+    "EstimatedCost" numeric(18,2),                        -- SENSITIF
+    "CostStatus" integer NOT NULL,
+    "FinanceAdjustedCost" numeric(18,2),                  -- SENSITIF
+    "FinanceAdjustmentReason" varchar(1000),              -- SENSITIF
+    "FinanceAdjustedByUserId" uuid, "FinanceAdjustedAt" timestamptz,
+    "IsOverFormationAfterAddendum" boolean NOT NULL DEFAULT false, "IsOverdue" boolean NOT NULL DEFAULT false,
+    "CreatedFormationId" uuid, "WorkflowDefinitionId" uuid, "WorkflowInstanceId" uuid,
+    "SubmittedByUserId" uuid, "SubmittedAt" timestamptz, "ApprovedByUserId" uuid, "ApprovedAt" timestamptz,
+    "ReadyForRecruitmentAt" timestamptz, "WithdrawnAt" timestamptz, "ClosedAt" timestamptz,
+    "RowVersion" uuid NOT NULL,
+    CONSTRAINT "PK_HrdHeadcountRequest" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdHeadcountRequest_MstPosition" FOREIGN KEY ("PositionId")
+        REFERENCES public."MstPosition" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdHeadcountRequest_RequestNumber" ON public."HrdHeadcountRequest" ("RequestNumber");
+CREATE INDEX "IX_HrdHeadcountRequest_Unit_Position_Status" ON public."HrdHeadcountRequest" ("OrganizationUnitId", "PositionId", "RequestStatus");
+
+CREATE TABLE public."HrdHeadcountRequestSeat" (
+    "Id" uuid NOT NULL, "HeadcountRequestId" uuid NOT NULL, "SeatNumber" integer NOT NULL,
+    "SeatFte" numeric(4,2) NOT NULL DEFAULT 1.00, "FulfilmentSource" integer NOT NULL,
+    "SeatStatus" integer NOT NULL, "ReplacedWorkforceProfileId" uuid,
+    "LinkedPositionAssignmentId" uuid, "LinkedPersonnelActionOrderId" uuid,
+    "LinkedByUserId" uuid, "LinkedAt" timestamptz, "FulfilledAt" date,
+    "CancellationId" uuid, "CancelledAt" timestamptz,
+    CONSTRAINT "PK_HrdHeadcountRequestSeat" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdHeadcountRequestSeat_Request" FOREIGN KEY ("HeadcountRequestId")
+        REFERENCES public."HrdHeadcountRequest" ("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_HrdHeadcountRequestSeat_WfpPositionAssignment" FOREIGN KEY ("LinkedPositionAssignmentId")
+        REFERENCES public."WfpPositionAssignment" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_HrdHeadcountRequestSeat_HrdPersonnelActionOrder" FOREIGN KEY ("LinkedPersonnelActionOrderId")
+        REFERENCES public."HrdPersonnelActionOrder" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdHeadcountRequestSeat_Request_Seat" ON public."HrdHeadcountRequestSeat" ("HeadcountRequestId", "SeatNumber");
+CREATE UNIQUE INDEX "IX_HrdHeadcountRequestSeat_LinkedPositionAssignment" ON public."HrdHeadcountRequestSeat" ("LinkedPositionAssignmentId")
+    WHERE "LinkedPositionAssignmentId" IS NOT NULL AND "SeatStatus" <> 5 AND "IsDelete" = false;
+CREATE UNIQUE INDEX "IX_HrdHeadcountRequestSeat_LinkedPersonnelActionOrder" ON public."HrdHeadcountRequestSeat" ("LinkedPersonnelActionOrderId")
+    WHERE "LinkedPersonnelActionOrderId" IS NOT NULL AND "SeatStatus" <> 5 AND "IsDelete" = false;
+
+CREATE TABLE public."HrdHeadcountRequestCancellation" (
+    "Id" uuid NOT NULL, "CancellationNumber" varchar(50) NOT NULL, "HeadcountRequestId" uuid NOT NULL,
+    "CancellationStatus" integer NOT NULL,
+    "Reason" varchar(1000) NOT NULL,                      -- SENSITIF
+    "RequestedByUserId" uuid NOT NULL, "DecidedByUserId" uuid, "DecidedAt" timestamptz,
+    "CreatedFormationId" uuid, "WorkflowInstanceId" uuid,
+    CONSTRAINT "PK_HrdHeadcountRequestCancellation" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdHeadcountRequestCancellation_Request" FOREIGN KEY ("HeadcountRequestId")
+        REFERENCES public."HrdHeadcountRequest" ("Id") ON DELETE RESTRICT
+);
+CREATE UNIQUE INDEX "IX_HrdHeadcountRequestCancellation_Number" ON public."HrdHeadcountRequestCancellation" ("CancellationNumber");
+
+CREATE TABLE public."HrdFulfilmentPlanChange" (
+    "Id" uuid NOT NULL, "HeadcountRequestId" uuid NOT NULL, "SeatId" uuid NOT NULL,
+    "FromSource" integer NOT NULL, "ToSource" integer NOT NULL,
+    "Reason" varchar(1000) NOT NULL,                      -- SENSITIF
+    "ChangedByUserId" uuid NOT NULL, "ChangedAt" timestamptz NOT NULL,
+    CONSTRAINT "PK_HrdFulfilmentPlanChange" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdFulfilmentPlanChange_Seat" FOREIGN KEY ("SeatId")
+        REFERENCES public."HrdHeadcountRequestSeat" ("Id") ON DELETE RESTRICT
+);
+
+CREATE TABLE public."HrdStaffingGapSnapshot" (
+    "Id" uuid NOT NULL, "SnapshotType" integer NOT NULL, "HospitalSiteId" uuid NOT NULL,
+    "ReferenceDate" date NOT NULL, "SourceDocumentType" integer, "SourceDocumentId" uuid,
+    "PeriodMonth" date, "TakenAt" timestamptz NOT NULL, "ReconstructedAt" timestamptz,
+    CONSTRAINT "PK_HrdStaffingGapSnapshot" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_HrdStaffingGapSnapshot_Site_Month" ON public."HrdStaffingGapSnapshot" ("HospitalSiteId", "PeriodMonth")
+    WHERE "SnapshotType" = 2 AND "IsDelete" = false;
+
+CREATE TABLE public."HrdStaffingGapSnapshotLine" (
+    "Id" uuid NOT NULL, "SnapshotId" uuid NOT NULL, "OrganizationUnitId" uuid NOT NULL, "PositionId" uuid NOT NULL,
+    "FormationQuantity" numeric(9,2), "FilledFte" numeric(9,2), "ToBeVacatedFte" numeric(9,2),
+    "TemporarilyUnavailableFte" numeric(9,2), "NotYetCompetentFte" numeric(9,2), "OutsourcedFte" numeric(9,2),
+    "ConcurrentAssignmentCount" integer, "PermanentGap" numeric(9,2), "TemporaryGap" numeric(9,2),
+    "CompetencyGap" numeric(9,2), "PlacementDataComplete" boolean NOT NULL DEFAULT false,
+    "LeaveDataComplete" boolean NOT NULL DEFAULT false, "CompetencyDataComplete" boolean NOT NULL DEFAULT false,
+    "WorkforceTypeDataComplete" boolean NOT NULL DEFAULT false, "ShortageSummaryCount" integer,
+    CONSTRAINT "PK_HrdStaffingGapSnapshotLine" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_HrdStaffingGapSnapshotLine_Snapshot" FOREIGN KEY ("SnapshotId")
+        REFERENCES public."HrdStaffingGapSnapshot" ("Id") ON DELETE CASCADE
+);
+CREATE UNIQUE INDEX "IX_HrdStaffingGapSnapshotLine_Snapshot_Unit_Position" ON public."HrdStaffingGapSnapshotLine" ("SnapshotId", "OrganizationUnitId", "PositionId");
+```
+
+FK ke master yang tidak ditulis di atas — `HospitalSiteId`, `ProfessionId`, `ShiftId`,
+`WorkflowDefinitionId`, `TemporaryReasonWorkforceProfileId`, `ReplacedWorkforceProfileId`,
+`CreatedFormationId`, `FormationVersionIdAtSubmission`, `CancellationId` — seluruhnya `ON DELETE
+RESTRICT` sesuai tabel bagian 8.2. Disingkat agar blok tetap terbaca.
+
+### 8.5 Kolom sensitif `S-D1`
+
+| Tabel | Kolom sensitif | Sebab |
+| --- | --- | --- |
+| `HrdManpowerPlan`, `HrdManpowerPlanLine`, `HrdHeadcountRequest` | Seluruh kolom biaya: `TotalEstimatedCost`, `FinanceAdjustedTotal`, `MonthlyRateSnapshot`, `EstimatedCost`, `IncrementalCost`, `EstimatedMonthlyRate`, `FinanceAdjustedCost` | Anggaran; hanya untuk pemegang `WorkforcePlanningCost : Read` (`HRD-DEC-065`). Bukan gaji perorangan, tetapi tetap tidak masuk logger |
+| Seluruh tabel `S-D1` dengan teks bebas | `Justification`, `DeviationReason`, `FinanceAdjustmentReason`, `Reason` | Teks bebas kerap memuat keadaan pribadi, misalnya "Maya batal dimutasi karena sakit" |

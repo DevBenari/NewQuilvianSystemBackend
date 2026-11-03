@@ -5,10 +5,10 @@
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `testing/acceptance-test-matrix.md` |
 | `contract_version` | `v6` |
-| `last_changed_in` | `v6` |
+| `last_changed_in` | `v7` — bagian 15 (`S-D1`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v6` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`), bersama pemilik proses untuk skenario UAT |
-| `approved_by` / `approved_at` | **Belum ada** |
+| `approved_by` / `approved_at` | **Hanya bagian 15** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
 | `input_revision` | `contracts/state-transition-matrix.md` `v6`; `contracts/validation-matrix.md` `v6`; `contracts/api-contract.md` `v6`; `00-interview-decisions.md` rev `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`) |
 | `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
@@ -303,7 +303,7 @@ Baris yang dibatalkan ditandai `Dibatalkan` beserta alasannya, bukan dihapus.
 | --- | --- | --- |
 | Kredensial, kewenangan klinis, SPK/RKK, OPPE, FPPE | `S-C1` | `BLOCKED`. Menuliskan skenario ujinya berarti menetapkan kewenangan praktik yang belum ada — `HRD-Q-08` |
 | Kesehatan dan keselamatan kerja staf | `S-C6` | `BLOCKED`. Aturan aksesnya belum disahkan K3RS — `HRD-DEC-010` masih `draft` |
-| Perencanaan tenaga kerja, rekrutmen, benefit, layanan HR | `S-D1` s.d. `S-D4` | `BLOCKED` oleh `HRD-Q-05` |
+| Rekrutmen, benefit, layanan HR | `S-D2` s.d. `S-D4` | `BLOCKED` oleh `HRD-Q-05`. Perencanaan tenaga kerja (`S-D1`) kini punya bagian 15 |
 | Perjalanan dinas dan reimbursement | `S-D5` | `DEFERRED`, dan tetap terikat `HRD-Q-05` |
 
 **Ketiadaan baris untuk keempat kelompok di atas adalah batas yang disengaja**, bukan cakupan
@@ -327,7 +327,46 @@ pengujian yang terlewat.
 | Pengembangan orang dan lifecycle `S-C2` s.d. `S-C5` | 16 | 2 |
 | Aturan lintas-slice `S-E` | 4 | 0 |
 | Privasi dan audit | 5 | 0 |
-| **Jumlah** | **96** | **5** |
+| Perencanaan tenaga kerja `S-D1` — bagian 15 | 27 | 0 |
+| **Jumlah** | **123** | **5** |
 
 Setiap kelompok yang dapat diuji memuat sekurang-kurangnya satu skenario berhasil dan satu
 skenario gagal, sesuai aturan pada bagian 0.1.
+
+---
+
+## 15. Perencanaan tenaga kerja — `S-D1` (`last_changed_in` `v7`, 3 November 2026)
+
+Kolom "AC asal" merujuk acceptance criteria decision log bagian 32.8. Backend tidak memelihara
+proyek automated test (`rules/backend/TEST_POLICY.md`); jenis `INTEGRATION` dibuktikan lewat uji API
+terhadap database dev dan dicatat di laporan task.
+
+| ID | Requirement | Skenario | Jenis | Bukti yang diharapkan | AC asal |
+| --- | --- | --- | --- | --- | --- |
+| `AT-HRD-D1-01` | Pengaman tabel kosong pada migration pembersihan (`HRD-DEC-059`) | **Gagal:** isi 1 baris `MstPositionHeadcountPlan` di database uji, jalankan migration pembersihan; migration berhenti dan menyebut nama tabel serta jumlah barisnya, tanpa perubahan apa pun | `MIGRATION` | Keluaran migration dan hitung baris sesudahnya | `AC-WFP-01` |
+| `AT-HRD-D1-01b` | Sama | **Berhasil:** pada database tanpa isi, migration berjalan | `MIGRATION` | Keluaran migration | `AC-WFP-01` |
+| `AT-HRD-D1-02` | Tiga metode dan rincian rekomendasi (`HRD-DEC-060`) | **Berhasil:** standar ICU rasio 1:1, angka beban 7, 3 shift, faktor 1,5, pembulatan ke atas → rekomendasi 32 dengan rincian "7 ÷ 1 × 1 = 7 per shift; 7 × 3 = 21; 21 × 1,5 = 31,5 → 32" | `INTEGRATION` | Response rekomendasi | `AC-WFP-02` |
+| `AT-HRD-D1-02b` | Sama | **Gagal:** memilih metode Analisis Beban Kerja ditolak `VR-WFP-02`; mengajukan tanpa faktor cadangan ditolak `VR-WFP-04` | `UNIT` | Pesan penolakan | `AC-WFP-02` |
+| `AT-HRD-D1-03` | Standar belum sah tidak dipakai | **Gagal:** standar versi 2 masih `Submitted`; gap dan rekomendasi tetap memakai versi 1 | `INTEGRATION` | Response gap menyebut versi standar yang dipakai | `AC-WFP-03` |
+| `AT-HRD-D1-04` | Pengesahan `T9` sampai berlaku | **Berhasil:** standar disetujui HR Manager lalu Direktur; berlaku pada tanggalnya dan versi lama `Superseded` sehari sebelumnya | `INTEGRATION` | Status kedua versi sesudah scheduler berjalan | — |
+| `AT-HRD-D1-05` | Rangkap/Plt tidak terhitung dua kali, porsi kerja dihitung (`HRD-DEC-061`) | **Berhasil:** Sari utama di Rawat Inap dan Plt di ICU tidak menambah terisi ICU; Budi 50% terhitung 0,5 | `INTEGRATION` | Response gap ICU | `AC-WFP-04` |
+| `AT-HRD-D1-05b` | Data belum ada tidak tampil 0 | **Gagal pemalsuan:** dengan pengaturan cuti panjang kosong, lapisan "tidak tersedia sementara" bernilai `null` dan baris bertanda belum lengkap; layar menulis "data belum tersedia" | `INTEGRATION`, `UI` | Response dan tangkapan layar | `AC-WFP-05` |
+| `AT-HRD-D1-06` | Formasi tidak dapat diedit langsung (`HRD-DEC-062`) | **Gagal:** `PUT` atau `DELETE` ke formasi sebagai HR Manager menjawab `405`; layar Formasi Jabatan tidak punya tombol ubah | `INTEGRATION`, `UI` | Response dan tangkapan layar | `AC-WFP-06` |
+| `AT-HRD-D1-07` | Formasi tidak kosong saat pergantian tahun | **Berhasil:** tanpa Rencana 2028 yang disetujui, formasi pada 1 Januari 2028 sama dengan versi terakhir 2027 | `INTEGRATION` | Response formasi berlaku per tanggal | `AC-WFP-07` |
+| `AT-HRD-D1-08` | Sisa kursi dijaga (`HRD-DEC-063`) | **Gagal:** sisa kursi 0,5, permintaan dalam formasi 1 kursi penuh ditolak `VR-WFP-22` dengan angka sisa kursi | `INTEGRATION` | Response `422` | `AC-WFP-08` |
+| `AT-HRD-D1-08b` | Sama | **Berhasil:** permintaan 1 kursi berporsi 0,5 diterima | `INTEGRATION` | Response `201` lalu `Submitted` | `AC-WFP-08` |
+| `AT-HRD-D1-09` | Tidak ada klaim kursi ganda | **Gagal:** dua permintaan diajukan bersamaan atas sisa kursi 1; tepat satu lolos, satu ditolak | `INTEGRATION` | Dua response; hitung kursi `Submitted` | `AC-WFP-09` |
+| `AT-HRD-D1-10` | Tidak ada swa-setuju dan tidak ada langkah dilewati (`HRD-DEC-064`) | **Gagal:** Kepala ICU yang juga HR Manager tidak muncul sebagai penyetuju langkah HR Manager; dengan peran Finance belum dipetakan, permintaan `T12` ditolak `400` saat diajukan | `INTEGRATION` | Daftar penyetuju instance; response `400` | `AC-WFP-10` |
+| `AT-HRD-D1-11` | Biaya dari gaji tengah grade dan dibatasi (`HRD-DEC-065`) | **Berhasil:** +2 grade III × 9 bulan = 2 × gaji tengah × 9. **Gagal:** Petugas payroll dan Recruiter tidak menerima kolom biaya; Kepala Unit lain menerima `404` | `INTEGRATION` | Response per peran | `AC-WFP-11` |
+| `AT-HRD-D1-12` | Kursi terisi saat penempatan berlaku (`HRD-DEC-066`) | **Berhasil:** penempatan Wati berlaku 2 Mei; sampai 1 Mei kursi `Linked`, sesudah scheduler 2 Mei `Fulfilled` dan permintaan `PartiallyFulfilled` | `INTEGRATION` | Status kursi dan permintaan per tanggal | `AC-WFP-12` |
+| `AT-HRD-D1-13` | Penempatan tidak cocok ditolak | **Gagal:** menautkan penempatan Rawat Inap ke permintaan ICU ditolak `VR-WFP-29`; menautkan penempatan yang sudah dipakai kursi lain ditolak `VR-WFP-30` | `INTEGRATION` | Response `422` dan `409` | `AC-WFP-13` |
+| `AT-HRD-D1-14` | Rencana pemenuhan luar dan internal (`HRD-DEC-067`) | **Berhasil:** permintaan +6 dengan 4 luar + 2 internal; antrean Recruiter memuat 4. HR Manager mengubah satu kursi internal ke luar; antrean memuat 5. **Gagal:** HR Manager pembuat permintaan mencoba mengubah; ditolak `VR-WFP-33` | `INTEGRATION` | Isi antrean; response `403` | `AC-WFP-14` |
+| `AT-HRD-D1-15` | Rencana terkunci, addendum melahirkan versi (`HRD-DEC-068`) | **Gagal:** mengubah Rencana 2027 yang `Approved` ditolak `VR-WFP-17`. **Berhasil:** Addendum ICU −2 disetujui; formasi ICU turun pada tanggal berlakunya dan permintaan berjalan yang berlebih ditandai | `INTEGRATION` | Response dan riwayat formasi | `AC-WFP-15` |
+| `AT-HRD-D1-16` | Potret terkunci dan tampil berdampingan (`HRD-DEC-069`) | **Berhasil:** ajukan saat gap 3,5; satu orang pindah masuk; penyetuju melihat "saat diajukan 3,5 — sekarang 2,5". **Gagal:** endpoint ubah potret tidak ada (`405`) | `INTEGRATION`, `UI` | Response potret dan gap langsung | `AC-WFP-16` |
+| `AT-HRD-D1-16b` | Potret bulanan yang terlewat tidak dipalsukan | **Gagal pemalsuan:** scheduler dimatikan sepanjang Februari; bulan itu tampil "potret tidak tersedia"; pengisian susulan berjenis `Reconstructed` | `INTEGRATION` | Daftar potret | — |
+| `AT-HRD-D1-17` | Batch formasi awal berdokumen dan sekali per unit × jabatan (`HRD-DEC-070`) | **Gagal:** mengajukan tanpa scan ditolak `VR-WFP-13`; mengajukan dengan baris tidak valid ditolak `VR-WFP-12`; memasukkan unit × jabatan yang sudah berformasi ditolak `VR-WFP-11`. **Berhasil:** batch disetujui lewat `T10` melahirkan versi 1, dan penyetujunya bukan pengaju | `INTEGRATION` | Response dan formasi versi 1 | `AC-WFP-17` |
+| `AT-HRD-D1-18` | Pembatalan kursi (`HRD-DEC-071`) | **Gagal:** membatalkan kursi dengan lowongan terbuka ditolak `VR-WFP-36`; membatalkan kursi `Fulfilled` ditolak `VR-WFP-35`. **Berhasil:** sesudah lowongan ditutup, pembatalan `T13` disetujui dan formasi 32 menjadi 31 | `INTEGRATION` | Response dan riwayat formasi | `AC-WFP-18` |
+| `AT-HRD-D1-19` | Sub-modul 03 tidak mencatat penugasan per shift (`HRD-DEC-058`) | **Berhasil:** tidak ada endpoint `S-D1` yang menerima atau mengembalikan penugasan orang per shift; Penjadwalan membaca standar lewat `GET .../staffing-standards/effective` | `INTEGRATION` | Daftar endpoint Swagger grup Workforce Planning | `AC-WFP-19` |
+| `AT-HRD-D1-20` | Direktur dari matriks persetujuan (`HRD-DEC-072`) | **Berhasil:** permintaan ICU di luar formasi sampai ke pemegang jabatan Direktur Pelayanan Medis lewat penelusuran unit induk. **Gagal tertutup:** jabatan direktur kosong → naik ke Direktur Utama; keduanya kosong → pengajuan ditolak | `INTEGRATION` | Penyetuju pada instance; response `400` | — |
+| `AT-HRD-D1-21` | Koreksi biaya Finance (`HRD-DEC-065` `FINANCE_ADJUSTMENT`) | **Berhasil:** Finance mengisi koreksi pada langkahnya; angka awal dan koreksi sama-sama tersimpan. **Gagal:** HR Manager mencoba koreksi ditolak `VR-WFP-20`; Finance menyetujui padahal ada baris tanpa tarif dan tanpa koreksi ditolak `VR-WFP-21` | `INTEGRATION` | Response dan isi dokumen | — |
+| `AT-HRD-D1-22` | Menu dapat dicapai dan tidak bertabrakan makna | **Berhasil:** kesembilan butir menu `S-D1` terlihat sesuai hak akses; butir "Kebutuhan Tenaga Kerja" lama sudah tidak bermakna sama dengan grup baru | `UI` | Tangkapan layar sidebar per peran | — |

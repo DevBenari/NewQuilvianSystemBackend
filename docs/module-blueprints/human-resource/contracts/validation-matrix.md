@@ -5,10 +5,10 @@
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/validation-matrix.md` |
 | `contract_version` | `v6` |
-| `last_changed_in` | `v6` |
+| `last_changed_in` | `v7` — bagian 12 (`S-D1`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v6` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`) |
-| `approved_by` / `approved_at` | **Belum ada** |
+| `approved_by` / `approved_at` | **Hanya bagian 12** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
 | `input_revision` | `00-interview-decisions.md` revision `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`); `contracts/state-transition-matrix.md` `v6` |
 | `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
@@ -487,3 +487,76 @@ Tabel ini adalah daftar pekerjaan pengerasan validasi. Setiap barisnya adalah at
 Aturan validasi untuk kredensial, kewenangan klinis, kesehatan kerja staf, perencanaan tenaga
 kerja, rekrutmen, benefit, tiket HR, perjalanan dinas, dan reimbursement **tidak** ditulis di
 sini. Seluruhnya `BLOCKED` atau `DEFERRED`.
+
+---
+
+## 12. Perencanaan Tenaga Kerja — `S-D1` (`last_changed_in` `v7`, 3 November 2026)
+
+Seluruh aturan di bawah **belum ditegakkan di kode**. Nomor `VR-WFP-nn` stabil dan dirujuk
+`testing/acceptance-test-matrix.md` bagian 15.
+
+### 12.1 Standar kebutuhan tenaga dan angka beban
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-WFP-01` Satu draf terbuka per unit | Membuat draf standar | Sudah ada draf atau versi yang dikembalikan untuk unit itu | "Unit ini masih punya draf standar yang belum selesai. Lanjutkan draf itu atau batalkan lebih dulu." | `409` |
+| `VR-WFP-02` Metode yang tersedia | Menyimpan baris standar | Metode Analisis Beban Kerja dipilih | "Metode Analisis Beban Kerja belum tersedia pada rilis ini. Hitung di luar sistem lalu isi hasilnya sebagai jumlah tetap." | `422` |
+| `VR-WFP-03` Isian lengkap per metode | Mengajukan standar | Jumlah tetap tanpa angka minimum; rasio tanpa rasio, satuan beban, jumlah shift, atau faktor cadangan; cakupan layanan tanpa jumlah shift, orang per shift, atau faktor cadangan | "Baris jabatan {jabatan} belum lengkap untuk metode {metode}: {isian yang kurang}." | `422` |
+| `VR-WFP-04` Faktor cadangan dan pembulatan dipilih sendiri | Mengajukan standar | Faktor cadangan kosong pada metode yang memerlukannya, atau cara pembulatan belum dipilih | "Faktor cadangan dan cara pembulatan wajib dipilih. Sistem tidak menetapkan nilai bawaan." | `422` |
+| `VR-WFP-05` Faktor cadangan minimal 1 | Menyimpan baris | Faktor cadangan < 1,00 | "Faktor cadangan paling kecil 1,00." | `400` |
+| `VR-WFP-06` Tanggal berlaku tidak mundur | Mengajukan standar | Tanggal berlaku sebelum hari ini | "Tanggal berlaku standar tidak boleh di masa lalu." | `422` |
+| `VR-WFP-07` Satu jabatan satu baris | Menyimpan standar | Jabatan yang sama muncul dua kali | "Jabatan {jabatan} sudah ada pada standar ini." | `409` |
+| `VR-WFP-08` Sumber angka beban wajib | Mengisi angka beban | Keterangan sumber kosong | "Tuliskan sumber angka beban, misalnya rekap sensus harian." | `400` |
+| `VR-WFP-09` Angka beban tidak ganda | Mengisi angka beban | Sudah ada isian untuk unit, jabatan, dan tanggal mulai periode yang sama | "Angka beban periode ini sudah diisi. Ubah isian yang ada." | `409` |
+
+### 12.2 Formasi dan batch formasi awal
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-WFP-10` Formasi tidak dapat diubah langsung | Endpoint tulis apa pun ke formasi | — | Tidak ada endpointnya; method lain menjawab "Formasi hanya berubah lewat dokumen yang disetujui." | `405` |
+| `VR-WFP-11` Sekali per unit × jabatan | Menyimpan atau mengajukan batch | Unit × jabatan sudah punya formasi, atau sudah ada di batch lain yang belum ditolak/dibatalkan | "{unit} — {jabatan} sudah punya formasi awal. Perubahan formasi dilakukan lewat addendum." | `409` |
+| `VR-WFP-12` Tidak ada baris gagal | Mengajukan batch | `InvalidRows > 0` | "Masih ada {n} baris yang belum valid. Perbaiki semua baris sebelum mengajukan." | `422` |
+| `VR-WFP-13` Scan dokumen wajib | Mengajukan batch | Scan dokumen sumber belum diunggah | "Unggah scan dokumen formasi resmi sebelum mengajukan." | `422` |
+| `VR-WFP-14` Jenis berkas | Mengunggah scan | Bukan PDF, JPG, atau PNG, atau lebih dari 10 MB | "Berkas harus PDF, JPG, atau PNG dengan ukuran paling besar 10 MB." | `400` |
+
+### 12.3 Rencana tahunan dan addendum
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-WFP-15` Satu rencana tahunan per tahun | Membuat rencana | Sudah ada rencana tahunan untuk rumah sakit dan tahun yang sama yang tidak ditolak atau dibatalkan | "Rencana tahunan {tahun} sudah ada. Perubahan di tengah tahun memakai addendum." | `409` |
+| `VR-WFP-16` Addendum hanya dari rencana yang disetujui | Membuat addendum | Rencana induk belum `Approved` | "Addendum hanya dapat dibuat dari rencana yang sudah disetujui." | `422` |
+| `VR-WFP-17` Rencana yang disetujui terkunci | Mengubah rencana | Status `Approved` | "Rencana yang sudah disetujui tidak dapat diubah. Buat addendum." | `409` |
+| `VR-WFP-18` Grade wajib per baris | Mengajukan rencana atau addendum | Baris tanpa grade | "Pilih grade untuk {unit} — {jabatan}. Biaya dihitung dari gaji tengah grade." | `422` |
+| `VR-WFP-19` Alasan bila berbeda dari rekomendasi | Mengajukan | Usulan ≠ rekomendasi dan alasan kosong | "Usulan {unit} — {jabatan} berbeda dari rekomendasi {angka}. Tuliskan alasannya." | `422` |
+| `VR-WFP-20` Koreksi Finance hanya pada langkahnya | Koreksi biaya | Pemanggil bukan penyetuju langkah Finance yang sedang aktif | "Koreksi biaya hanya dapat dilakukan Finance pada langkah persetujuan Finance." | `403` |
+| `VR-WFP-21` Tarif belum tersedia harus dikoreksi | Menyetujui langkah Finance | Ada baris "tarif belum tersedia" tanpa angka koreksi Finance | "Ada baris yang tarif gradenya belum tersedia. Isi angka koreksi sebelum menyetujui." | `422` |
+
+### 12.4 Permintaan headcount dan pemenuhannya
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-WFP-22` Sisa kursi cukup | Mengajukan permintaan dalam formasi atau pengganti | Jumlah porsi kerja kursi > sisa kursi | "Sisa kursi {jabatan} {unit} hanya {sisa}. Kurangi jumlah, atau ajukan sebagai tambahan di luar formasi." | `422` |
+| `VR-WFP-23` Sisa kursi diperiksa ulang | Persetujuan terakhir `T11` | Sisa kursi tidak lagi cukup karena permintaan lain lebih dulu disetujui | "Sisa kursi sudah terpakai permintaan lain. Permintaan ini dikembalikan untuk disesuaikan." | `409` |
+| `VR-WFP-24` Pengganti menyebut orangnya | Mengajukan permintaan pengganti | Kursi tanpa orang yang digantikan, atau orang itu belum berstatus akan kosong/keluar | "Pilih pegawai yang digantikan. Pegawai itu harus sudah tercatat akan keluar atau sudah keluar." | `422` |
+| `VR-WFP-25` Sementara punya alasan dan akhir | Mengajukan permintaan sementara | Tanggal akhir atau orang yang tidak tersedia kosong | "Permintaan sementara wajib menyebut pegawai yang digantikan sementara dan tanggal berakhirnya." | `422` |
+| `VR-WFP-26` Di luar formasi punya alasan | Mengajukan permintaan di luar formasi | Alasan kosong | "Tuliskan alasan penambahan kursi di luar formasi." | `422` |
+| `VR-WFP-27` Rencana pemenuhan lengkap | Mengajukan | Jumlah kursi luar + internal ≠ jumlah kursi | "Tentukan sumber pemenuhan setiap kursi: rekrut luar atau pindahan internal." | `422` |
+| `VR-WFP-28` Porsi kerja kursi | Menyimpan kursi | `SeatFte` di luar 0,10–1,00 | "Porsi kerja satu kursi antara 0,10 dan 1,00." | `400` |
+| `VR-WFP-29` Penempatan harus cocok | Menautkan pemenuhan | Unit atau jabatan penempatan berbeda dengan permintaan, atau penempatan bukan utama | "Penempatan ini untuk {unit} — {jabatan}, tidak cocok dengan permintaan." | `422` |
+| `VR-WFP-30` Satu penempatan satu kursi | Menautkan pemenuhan | Penempatan atau SK sudah menautkan kursi lain yang tidak dibatalkan | "Penempatan ini sudah memenuhi kursi {nomor permintaan}." | `409` |
+| `VR-WFP-31` Sumber sesuai jenis kursi | Menautkan pemenuhan | Kursi internal ditautkan ke penempatan hasil rekrut, atau kursi luar ditautkan ke SK | "Kursi internal dipenuhi lewat SK; kursi rekrut luar dipenuhi lewat penempatan pegawai baru." | `422` |
+| `VR-WFP-32` Lepas tautan hanya sebelum berlaku | Melepas tautan | Kursi sudah `Fulfilled` | "Kursi ini sudah terisi dan tidak dapat dilepas." | `409` |
+| `VR-WFP-33` Perubahan rencana pemenuhan | Mengubah sumber kursi | Pemanggil bukan HR Manager, HR Manager adalah pembuat permintaan, kursi sudah terisi, atau alasan kosong | "Perubahan rencana pemenuhan hanya oleh HR Manager yang bukan pembuat permintaan, untuk kursi yang belum terisi, dengan alasan." | `403` / `422` |
+| `VR-WFP-34` Tarik kembali sebelum disetujui | Menarik kembali | Permintaan sudah siap direkrut | "Permintaan sudah disetujui. Gunakan pembatalan kursi." | `409` |
+| `VR-WFP-35` Batal hanya kursi kosong | Mengajukan pembatalan | Kursi yang dipilih sudah `Fulfilled` atau `Linked` | "Kursi {nomor} sudah terisi atau sedang ditautkan dan tidak dapat dibatalkan." | `422` |
+| `VR-WFP-36` Tutup lowongan dulu | Mengajukan pembatalan | Masih ada lowongan terbuka untuk kursi itu | "Masih ada lowongan terbuka untuk kursi ini. Tutup atau kurangi lowongan lebih dulu." | `409` |
+
+### 12.5 Biaya, potret, dan pengaturan
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `VR-WFP-37` Biaya hanya bagi yang berhak | Membaca rencana atau permintaan | Pemanggil tanpa `WorkforcePlanningCost : Read` | Bukan penolakan; kolom biaya dikirim kosong dan layar menulis "Biaya tidak ditampilkan untuk peran Anda." | — |
+| `VR-WFP-38` Kepala Unit hanya unitnya | Membaca atau mengajukan | Unit di luar cakupan organisasi pengguna | Daftar tidak memuatnya; detail menjawab "Data tidak ditemukan." | `404` |
+| `VR-WFP-39` Potret tidak dapat diubah | Endpoint tulis apa pun ke potret | — | Tidak ada endpointnya | `405` |
+| `VR-WFP-40` Alasan perubahan pengaturan | Mengubah pengaturan | Alasan kosong | "Tuliskan alasan perubahan pengaturan." | `400` |
+| `VR-WFP-41` Batas hari wajar | Mengubah pengaturan | Batas cuti panjang atau umur permintaan < 1 atau > 365 | "Isi angka antara 1 dan 365 hari." | `400` |

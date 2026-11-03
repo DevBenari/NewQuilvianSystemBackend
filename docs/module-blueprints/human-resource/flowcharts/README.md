@@ -96,6 +96,9 @@ dengan menyunting salah satunya diam-diam.
 | [`manajemen-kinerja.md`](./manajemen-kinerja.md) | Siklus penilaian kinerja | `S-C3` | `READY FOR DESIGN` |
 | [`offboarding.md`](./offboarding.md) | Pengunduran diri sampai serah terima selesai | `S-C4` | `READY FOR DESIGN` |
 | [`hubungan-karyawan-dan-disiplin.md`](./hubungan-karyawan-dan-disiplin.md) | Laporan insiden sampai tindakan disiplin berlaku | `S-C5` | `READY FOR DESIGN` |
+| [`standar-kebutuhan-tenaga.md`](./standar-kebutuhan-tenaga.md) | Standar kebutuhan tenaga dari draf sampai berlaku, dan angka rekomendasi | `S-D1` | `READY FOR DESIGN` — ditambahkan 3 November 2026 |
+| [`formasi-dan-rencana-tahunan.md`](./formasi-dan-rencana-tahunan.md) | Batch formasi awal, rencana tahunan, dan addendum | `S-D1` | `READY FOR DESIGN` — ditambahkan 3 November 2026 |
+| [`permintaan-headcount.md`](./permintaan-headcount.md) | Permintaan headcount sampai setiap kursi terisi atau dibatalkan | `S-D1` | `READY FOR DESIGN` — ditambahkan 3 November 2026 |
 
 ### 5.1 Proses yang sengaja TIDAK dibuatkan flowchart
 
@@ -103,7 +106,7 @@ dengan menyunting salah satunya diam-diam.
 | --- | --- | --- |
 | Kredensial, kewenangan klinis, SPK/RKK, OPPE, FPPE | `S-C1` | `BLOCKED`. Menggambar alurnya berarti mengarang batas kewenangan praktik yang belum ditetapkan Komite Medik — `HRD-Q-08` |
 | Kesehatan dan keselamatan kerja staf | `S-C6` | `BLOCKED`. Aturan akses rekam kesehatan kerja belum disahkan K3RS — `HRD-DEC-010` masih `draft` |
-| Perencanaan tenaga kerja, rekrutmen, benefit, layanan HR | `S-D1` s.d. `S-D4` | `BLOCKED` oleh `HRD-Q-05`. Isi tabelnya belum diketahui |
+| Rekrutmen, benefit, layanan HR | `S-D2` s.d. `S-D4` | `BLOCKED` oleh `HRD-Q-05`. Isi tabelnya belum diketahui. Perencanaan tenaga kerja (`S-D1`) kini punya tiga berkas di atas |
 | Perjalanan dinas dan reimbursement | `S-D5` | `DEFERRED`, dan tetap terikat `HRD-Q-05` |
 
 Ketiadaan berkas untuk keempat kelompok di atas **bukan** kelalaian. Ia adalah batas yang

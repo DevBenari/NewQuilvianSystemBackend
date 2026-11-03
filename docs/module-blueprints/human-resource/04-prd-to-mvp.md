@@ -9,10 +9,10 @@
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `04-prd-to-mvp.md` |
 | `contract_version` | `v6` |
-| `last_changed_in` | `v6` |
+| `last_changed_in` | `v7` — bagian 21 (`S-D1`) ditambahkan 3 November 2026; bagian 1–20 tidak berubah kecuali dua baris rujukan |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner | Pemilik produk HR bersama technical owner (`HRD-DEC-015`) |
-| `approved_by` / `approved_at` | **Belum ada** |
+| `approved_by` / `approved_at` | **Hanya bagian 21** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
 | Repository backend | `NewQuilvianSystemBackend`, branch kerja `AndryZain` |
 | Repository frontend | `QuilvianSystemFrontendDev`, branch `AgentCodexFrontend` |
 | Backend SHA baseline | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
@@ -186,7 +186,7 @@ membuat pengguna kehilangan pekerjaan yang selama ini bisa dilakukan.
 | Kredensial dan kewenangan klinis | `HRD-CAP-12` | **`BLOCKED`**, bukan ditunda karena prioritas. Batas keselamatan klinisnya belum ditetapkan Komite Medik — `HRD-Q-08` | Berjalan di luar sistem. **Tidak ada penggantinya di dalam sistem, dan tidak boleh diadakan** |
 | OPPE dan FPPE | `HRD-CAP-13` | **`BLOCKED`**. Belum ada satu pun entity maupun endpoint, dan pemiliknya belum menetapkan apa pun | Sama |
 | Kesehatan dan keselamatan kerja staf | `HRD-CAP-16` | **`BLOCKED`**. Aturan akses rekam kesehatan kerja belum disahkan K3RS — `HRD-DEC-010` masih `draft` | Sama |
-| Perencanaan tenaga kerja | `HRD-CAP-19` | **`BLOCKED`** oleh `HRD-Q-05` | Berjalan di luar sistem |
+| Perencanaan tenaga kerja | `HRD-CAP-19` | Tidak lagi `BLOCKED` sejak `HRD-DEC-059`. **Dirancang pada bagian 21** dengan gelombang tersendiri `MVP-7` s.d. `MVP-10` | Berjalan di luar sistem sampai gelombang itu selesai |
 | Rekrutmen dan hiring | `HRD-CAP-20` | **`BLOCKED`** oleh `HRD-Q-05`. Domain terbesar yang sepenuhnya tanpa perilaku | Sama |
 | Layanan HR dan tiket kepegawaian | `HRD-CAP-21` | **`BLOCKED`** oleh `HRD-Q-05` | Sama |
 | Perjalanan dinas dan reimbursement | `HRD-CAP-22` | **`DEFERRED`** karena prioritas paling rendah, dan tetap terikat `HRD-Q-05` | Sama |
@@ -1228,7 +1228,7 @@ diselesaikan. Mendahulukan kehadiran justru menghasilkan tumpukan pengecualian p
 | Apa dampak izin pulang cepat terhadap saldo dan pembayaran? (`HRD-Q-47`) | Pemilik proses HR | Layar izin pulang cepat tidak dapat diselesaikan | **Ya** untuk `EPIC HRD-03` bagian izin pulang cepat |
 | Apa bentuk data yang diterima Finance? (`HRD-Q-10`) | Pemilik produk bersama Finance | Hanya memblokir batas serah terima itu sendiri. `HRD-DEC-035` memindahkan orkestrasi payroll ke `POST-MVP`, sehingga MVP administratif tidak tertahan | Tidak |
 | Apa yang terjadi bila Finance menolak satu batch? (`HRD-Q-11`) | Pemilik produk bersama Finance | Sama seperti di atas. Di luar jalur kritis MVP sejak `HRD-DEC-035` | Tidak |
-| Apa isi tabel 67 entity yang belum punya API? (`HRD-Q-05`) | Pemilik basis data | Keputusan skema yang merusak data tidak boleh diambil. Ikut menahan pemasangan unique constraint pada penempatan shift | **Ya** untuk seluruh `POST-MVP` domain tanpa API |
+| Apa isi tabel 67 entity yang belum punya API? (`HRD-Q-05`) | Pemilik basis data | Keputusan skema yang merusak data tidak boleh diambil. Ikut menahan pemasangan unique constraint pada penempatan shift. **Sudah ditutup untuk `S-D1`** lewat `HRD-DEC-059` | **Ya** untuk `S-D2` s.d. `S-D5` |
 | Siapa wakil Komite Medik? (`HRD-Q-08`) | Manajemen | Kredensial dan kewenangan klinis tetap `BLOCKED` | **Ya** untuk `S-C1` |
 | Apakah `HRD-DEC-010` disahkan K3RS? | K3RS | Kesehatan kerja staf tetap `BLOCKED` | **Ya** untuk `S-C6` |
 | Apakah pemisahan peran pengusul dan penyetuju diperlukan pada tindakan disiplin? (`HRD-Q-51`) | Pemilik proses HR | Seseorang dapat mengusulkan sekaligus menyetujui sanksi | **Ya** untuk `S-C5` |
@@ -1241,3 +1241,335 @@ diselesaikan. Mendahulukan kehadiran justru menghasilkan tumpukan pengecualian p
 **Dokumen ini memuat pertanyaan memblokir yang belum terjawab.** Sesuai kontrak, ia tetap boleh
 berstatus `draft`, tetapi **MUST NOT** diteruskan ke `/plan-module-delivery` sebelum pertanyaan
 yang memblokir gelombang pengiriman dijawab pemiliknya.
+
+---
+
+## 21. Bagian `S-D1` — Perencanaan Tenaga Kerja (`last_changed_in` `v7`, 3 November 2026)
+
+Bagian ini menerapkan kedua puluh bagian wajib kontrak PRD → MVP **khusus untuk `S-D1`**. Bagian
+1–20 di atas tidak berubah, kecuali baris `HRD-CAP-19` pada bagian 8 dan baris `HRD-Q-05` pada
+bagian 20.2 yang kini merujuk ke sini. Aturan yang sama mengikat: bagian ini menurunkan, tidak
+menciptakan. Seluruh entity, status, hak akses, dan endpoint berasal dari
+`02-backend-architecture.md` bagian 16, `data/data-dictionary.md` bagian 8, `flowcharts/`, dan
+`contracts/` bagian `S-D1`.
+
+### 21.1 Identitas
+
+| Field | Value |
+| --- | --- |
+| Slice | `S-D1` Perencanaan Tenaga Kerja |
+| Status | `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-03. Jawaban pemilik: "Yang masih draft semua ya saya setujui", atas pertanyaan approval desain `S-D1` |
+| Backend SHA baseline | `26066c76e69b021f68b63b31bde2258cd9d1bb74` (branch `MHamzah`) |
+| Frontend SHA baseline | `66b7e5600e1707e4153ca07981ddef054856c8c9` (branch `HamzahV2`) |
+| `input_revision` | `00-interview-decisions.md` rev `17` bagian 32; `01-existing-capability-map.md` rev `1.3` bagian 15; `02-backend-architecture.md` rev `3` bagian 16; `03-frontend-architecture.md` rev `3` bagian 12; kontrak `v7` |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — administratif; nilai kebijakan klinis tidak diputuskan di sini |
+| Ringkasan cakupan | Dari standar kebutuhan tenaga dan formasi resmi sampai setiap kursi tambahan terisi orang yang benar-benar bertugas, lengkap dengan persetujuan, biaya estimasi, dan potret yang dapat diaudit |
+
+### 21.2 Ringkasan eksekutif
+
+Hari ini rumah sakit menentukan kebutuhan tenaga di luar sistem. Akibatnya kepala unit meminta
+tenaga lewat jalur informal, HR tidak dapat menjawab "kursi tambahan ICU tahun ini diisi siapa", dan
+Direktur menyetujui anggaran tanpa angka gap yang tetap. `S-D1` menutup rantai itu: standar
+disahkan, formasi resmi tercatat berversi, gap dihitung jujur ("data belum tersedia" bila datanya
+belum ada), permintaan melewati persetujuan sesuai dampaknya, dan setiap kursi tercatat terisi oleh
+siapa dan kapan.
+
+### 21.3 Masalah produk
+
+| Yang ada hari ini | Bukti | Yang belum ada |
+| --- | --- | --- |
+| 11 model perencanaan tenaga, 10 di antaranya tanpa controller dan tanpa isi | `HRD-TF-022`, `HRD-TF-024` | Perilaku apa pun |
+| Master grade gaji dengan gaji tengah | `HRD-CAP-60` | Pemakaiannya untuk estimasi biaya |
+| SK mutasi yang menolak swa-setuju | `HRD-CAP-58` | Tautannya ke kursi permintaan |
+| Matriks persetujuan dengan sumber penyetuju jabatan | `HRD-DEC-072` | Isinya, dan penelusuran unit induk |
+| Menu "Kebutuhan Tenaga Kerja" | `HRD-TF-036` | Ternyata membuka persyaratan berkas, bukan perencanaan |
+| Layar perencanaan | `HRD-CAP-65` | Tidak ada satu pun |
+
+### 21.4 Visi produk
+
+1. Standar kebutuhan tenaga per unit disahkan dan berlaku pada tanggalnya.
+2. Formasi resmi tercatat berversi, bersumber dokumen yang disetujui.
+3. Gap dihitung dari formasi dan penempatan yang benar-benar berlaku.
+4. Kebutuhan tahunan diusulkan dan disahkan bersama estimasi biayanya.
+5. Kebutuhan mendadak diajukan sebagai kursi dan disetujui sesuai dampaknya.
+6. Setiap kursi terisi oleh penempatan yang mulai berlaku, dari luar atau dari dalam.
+7. Setiap angka yang dipakai untuk memutuskan tetap dapat dibaca kembali.
+
+### 21.5 Batas rilis `S-D1`
+
+**Titik mulai:**
+
+1. Matriks persetujuan, jabatan direktur, dan definisi `T9` s.d. `T13` sudah terisi.
+2. HR Admin mengunggah dokumen formasi resmi rumah sakit.
+
+**Titik akhir:**
+
+1. Satu permintaan di luar formasi untuk ICU disetujui sampai Direktur.
+2. Kursinya terisi oleh satu pegawai baru dan satu pindahan internal.
+3. Satu kursi sisanya dibatalkan dengan formasi ikut turun.
+4. Potret bulanan bulan itu tersimpan.
+
+### 21.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab di `S-D1` |
+| --- | --- |
+| HR Admin | Menyusun standar, batch formasi awal, rencana, addendum; menautkan pemenuhan |
+| HR Manager | Menyetujui langkah HR; mengubah rencana pemenuhan; menyetujui pembatalan; mengatur kebijakan perencanaan |
+| Kepala Unit | Mengusulkan standar; mengisi angka beban; mengajukan permintaan headcount untuk unitnya |
+| Finance / Anggaran | Menilai anggaran dan mengoreksi biaya estimasi |
+| Direktur | Mengesahkan standar, rencana, dan kursi di luar formasi |
+| Recruiter | Melihat antrean kursi luar dan menautkan pegawai baru |
+| Auditor | Membaca seluruh jejak |
+
+### 21.7 Pemilihan kemampuan
+
+| Kemampuan | ID kemampuan asal | Keputusan |
+| --- | --- | --- |
+| Standar kebutuhan tenaga tiga metode | `HRD-CAP-48` | Wajib; tanpa standar tidak ada rekomendasi maupun aturan untuk Penjadwalan |
+| Skill mix per shift sebagai aturan | `HRD-CAP-49` | Wajib; sumber tunggal aturan minimum (`HRD-DEC-058`) |
+| Formasi berversi | `HRD-CAP-50` | Wajib; tanpa formasi setiap permintaan menjadi di luar formasi |
+| Batch formasi awal | `HRD-CAP-61` | Wajib; formasi hari ini 0 baris |
+| Rencana tahunan dan addendum | `HRD-CAP-51` | Wajib; satu-satunya jalan mengurangi atau memindah kursi |
+| Gap langsung dan potret | `HRD-CAP-52`, `HRD-CAP-53` | Wajib; dasar setiap persetujuan |
+| Permintaan headcount, kursi, pembatalan | `HRD-CAP-54` | Wajib; inti rantai |
+| Rantai `T9` s.d. `T13` dan direktur dari matriks | `HRD-CAP-55`, `HRD-CAP-57` | Wajib |
+| Estimasi biaya dari grade | `HRD-CAP-60` | Wajib; Finance tidak dapat menilai tanpa angka |
+| Kursi internal lewat SK | `HRD-CAP-58` | Wajib; contoh ICU "4 rekrut + 2 pindahan" |
+| Antrean Recruiter dengan tautan manual | `HRD-CAP-63` | Wajib; pengganti Rekrutmen yang belum ada |
+| Pemisahan menu | `HRD-CAP-64` | Wajib; dua menu bermakna sama menyesatkan |
+
+### 21.8 Kemampuan yang ditunda
+
+| Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama rilis ini |
+| --- | --- | --- | --- |
+| Metode Analisis Beban Kerja | `HRD-CAP-48` | Butuh katalog kegiatan dan waktu baku per profesi yang belum ada (`HRD-DEC-060`) | Dihitung di luar sistem, hasilnya diisi sebagai jumlah tetap/minimum |
+| Angka beban otomatis dari data pasien | `INT-HR-12` | `HRD-DEP-005` `MISSING`; tidak ada kontrak privasi data pasien | Isian manual beserta sumbernya |
+| Requisition otomatis dari permintaan | `HRD-CAP-63` | `S-D2` `BLOCKED` | Antrean Recruiter dan tautan manual |
+| Ringkasan kekurangan tenaga dari Penjadwalan | `HRD-CAP-59` | Penjadwalan belum memeriksa standar | Kolom potret kosong; perencana memakai catatan unit |
+| Pembersihan sepuluh tabel kandidat | `HRD-CAP-19` | Lima di antaranya dirujuk tabel `S-D2` dan Penjadwalan | Tabel dibiarkan kosong dan tidak dipakai |
+| Porsi kerja per penempatan | `HRD-CAP-53` | Milik Workforce Core | Dihitung 1 sampai kolomnya ada |
+| Kategori alih daya pada jenis tenaga | `HRD-CAP-53` | Milik Master Data HR | Lapisan alih daya tampil "data belum tersedia" |
+
+### 21.9 Alur bisnis target — `FLOW-HRD-MVP-002`
+
+1. HR Admin mengisi formasi awal dari SK formasi resmi; disetujui `T10`.
+2. Kepala ICU dan HR Admin menyusun standar ICU; disahkan `T9`.
+3. Kepala ICU mengisi angka beban Januari–Maret.
+4. HR Admin menyusun Rencana 2027, menghitung ulang, lalu mengajukan; potret gap terkunci.
+5. Finance mengoreksi biaya; Direktur Utama mengesahkan; formasi 2027 lahir.
+6. Maret: ICU membuka 2 bed; Kepala ICU mengajukan +2 di luar formasi beserta rencana pemenuhan.
+7. Rantai `T12` sampai Direktur Pelayanan Medis; formasi naik.
+8. Recruiter melihat kursi luar; HR menyiapkan SK untuk kursi internal.
+9. Penempatan mulai berlaku; kursi terisi; gap turun.
+10. Akhir bulan, potret bulanan tersimpan.
+
+Gambar alurnya ada di `flowcharts/standar-kebutuhan-tenaga.md`, `formasi-dan-rencana-tahunan.md`,
+dan `permintaan-headcount.md`.
+
+### 21.10 Epic dan functional requirement
+
+#### `EPIC HRD-11` — Standar kebutuhan tenaga dan angka beban
+
+Disposisi backend: `MISSING / NEW`.
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-HRD-092` | Standar disimpan per unit dengan versi bertanggal berlaku; satu versi berlaku per tanggal. **Contoh:** versi 2 berlaku 1 Desember 2026, versi 1 otomatis berakhir 30 November 2026 |
+| `FR-HRD-093` | Setiap baris memilih satu dari tiga metode; Analisis Beban Kerja ditolak. **Contoh:** memilih ABK menghasilkan pesan `VR-WFP-02` |
+| `FR-HRD-094` | Rekomendasi dihitung beserta rinciannya. **Contoh:** ICU 7 × 3 × 1,5 = 31,5 → 32 |
+| `FR-HRD-095` | Standar hanya dipakai setelah disahkan `T9` |
+| `FR-HRD-096` | Angka beban diisi per unit × jabatan × periode beserta sumbernya; isian ganda ditolak |
+| `FR-HRD-097` | Penjadwalan dapat membaca standar berlaku per unit per tanggal |
+
+#### `EPIC HRD-12` — Formasi berversi dan batch formasi awal
+
+Disposisi backend: `MISSING / NEW`.
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-HRD-098` | Formasi tidak dapat diubah lewat endpoint apa pun; method tulis menjawab `405` |
+| `FR-HRD-099` | Setiap versi menyimpan dokumen sumber, penyetuju, dan waktunya |
+| `FR-HRD-100` | Versi terakhir tetap berlaku sampai digantikan. **Contoh:** tanpa Rencana 2028, formasi 1 Januari 2028 = formasi akhir 2027 |
+| `FR-HRD-101` | Batch formasi awal wajib scan dokumen, tanpa baris tidak valid, dan disetujui `T10` oleh orang lain; satu unit × jabatan hanya sekali |
+
+#### `EPIC HRD-13` — Gap langsung dan potret
+
+Disposisi backend: `MISSING / NEW`.
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-HRD-102` | Gap dihitung per tanggal acuan dalam porsi kerja, hanya dari penempatan utama. **Contoh:** Sari (Plt di ICU) tidak menambah terisi ICU |
+| `FR-HRD-103` | Tiga gap: permanen, sementara, kompetensi. **Contoh:** formasi 32, terisi 29,5, akan kosong 1 → gap permanen 3,5 |
+| `FR-HRD-104` | Data yang belum ada bernilai kosong dan tampil "data belum tersedia", bukan 0 |
+| `FR-HRD-105` | Potret tersimpan saat dokumen diajukan dan setiap akhir bulan; tidak dapat diubah; bulan yang terlewat tidak diisi diam-diam |
+
+#### `EPIC HRD-14` — Rencana tahunan, addendum, dan biaya
+
+Disposisi backend: `MISSING / NEW`.
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-HRD-106` | Satu rencana tahunan per rumah sakit per tahun; rencana `Approved` terkunci |
+| `FR-HRD-107` | Addendum hanya dari rencana `Approved`, memuat baris yang berubah, melewati `T10` penuh |
+| `FR-HRD-108` | Usulan yang berbeda dari rekomendasi wajib beralasan |
+| `FR-HRD-109` | Biaya = porsi × gaji tengah grade × bulan, berlabel estimasi. **Contoh:** 2 × Rp 6.500.000 × 9 = Rp 117.000.000 |
+| `FR-HRD-110` | Finance boleh mengoreksi total pada langkahnya; angka awal tetap tersimpan |
+| `FR-HRD-111` | Pemegang tanpa `WorkforcePlanningCost : Read` tidak menerima angka biaya |
+| `FR-HRD-112` | Persetujuan rencana melahirkan versi formasi dan menandai permintaan yang kini melebihi formasi |
+
+#### `EPIC HRD-15` — Permintaan headcount, pemenuhan, dan pembatalan
+
+Disposisi backend: `MISSING / NEW`; tautan SK `EXTEND` pada pemakaian `HrdPersonnelActionOrder`.
+
+| FR | Perilaku yang dapat diuji |
+| --- | --- |
+| `FR-HRD-113` | Permintaan dalam formasi tidak boleh melebihi sisa kursi, dengan pemeriksaan ulang pada persetujuan terakhir |
+| `FR-HRD-114` | Dua permintaan yang diajukan bersamaan tidak dapat mengklaim kursi yang sama |
+| `FR-HRD-115` | Jalur `T11` untuk dalam formasi dan sementara; `T12` untuk di luar formasi yang menaikkan formasi |
+| `FR-HRD-116` | Direktur ditemukan dari matriks persetujuan lewat unit induk; kosong naik ke Direktur Utama; keduanya kosong → pengajuan ditolak |
+| `FR-HRD-117` | Kursi terisi hanya saat penempatan cocok mulai berlaku; satu penempatan satu kursi |
+| `FR-HRD-118` | Kursi luar muncul di antrean Recruiter; kursi internal dipenuhi lewat SK |
+| `FR-HRD-119` | HR Manager bukan pembuat dapat mengubah sumber kursi yang belum terisi, dengan alasan |
+| `FR-HRD-120` | Pembatalan hanya kursi yang belum terisi, setelah lowongannya ditutup, disetujui `T13`; formasi dari `T12` ikut turun |
+| `FR-HRD-121` | Permintaan melewati batas umur ditandai "lewat batas", tanpa pembatalan otomatis |
+
+### 21.11 Model status
+
+| Entity | Status | Invariant utama |
+| --- | --- | --- |
+| Standar | `Draft`, `Submitted`, `Returned`, `Rejected`, `Scheduled`, `Active`, `Superseded`, `Cancelled` | Satu `Active` per unit per tanggal |
+| Batch formasi awal | `Draft`, `Submitted`, `Returned`, `Rejected`, `Applied`, `Cancelled` | Tidak ada `Applied` tanpa `T10` |
+| Rencana dan addendum | `Draft`, `Submitted`, `Returned`, `Rejected`, `Approved`, `Cancelled` | `Approved` terkunci |
+| Permintaan | `Draft`, `Submitted`, `Returned`, `Rejected`, `Withdrawn`, `ReadyForRecruitment`, `PartiallyFulfilled`, `Fulfilled`, `Closed` | Sisa kursi tidak pernah negatif akibat permintaan |
+| Kursi | `Open`, `Linked`, `Fulfilled`, `Frozen`, `Cancelled` | Kursi `Fulfilled` tidak pernah dibatalkan |
+| Pembatalan | `Submitted`, `Approved`, `Rejected` | Pengaju ≠ penyetuju |
+
+Rinciannya: `contracts/state-transition-matrix.md` bagian 11.
+
+### 21.12 Sasaran arsitektur
+
+| Dipakai ulang | Diperluas | Baru |
+| --- | --- | --- |
+| Mesin workflow dan kotak masuk; penolakan langkah tanpa penyetuju; grade gaji; SK; penempatan; proyeksi cakupan organisasi; number series; pola scheduler; pola pengaman migration | Pencocokan matriks persetujuan lewat unit induk; lima jenis rujukan workflow | 16 tabel `Hrd*`, 15 service, 9 controller, 13 layar |
+
+### 21.13 Sasaran kemampuan API
+
+Seluruhnya **Rencana (belum tersedia)** dan merupakan bagian dari `contracts/api-contract.md`
+bagian 13.
+
+| Grup `[Tags]` | Base URL | Epic |
+| --- | --- | --- |
+| `Corporate / Human Resource / Workforce Planning / Staffing Standard` | `.../workforce-planning/staffing-standards` | `EPIC HRD-11` |
+| `Corporate / Human Resource / Workforce Planning / Staffing Workload` | `.../workforce-planning/staffing-workloads` | `EPIC HRD-11` |
+| `Corporate / Human Resource / Workforce Planning / Position Formation` | `.../workforce-planning/position-formations` | `EPIC HRD-12` |
+| `Corporate / Human Resource / Workforce Planning / Initial Formation Batch` | `.../workforce-planning/initial-formation-batches` | `EPIC HRD-12` |
+| `Corporate / Human Resource / Workforce Planning / Staffing Gap` | `.../workforce-planning/staffing-gaps` | `EPIC HRD-13` |
+| `Corporate / Human Resource / Workforce Planning / Manpower Plan` | `.../workforce-planning/manpower-plans` | `EPIC HRD-14` |
+| `Corporate / Human Resource / Workforce Planning / Headcount Request` | `.../workforce-planning/headcount-requests` | `EPIC HRD-15` |
+| `Corporate / Human Resource / Workforce Planning / Recruitment Queue` | `.../workforce-planning/recruitment-queue` | `EPIC HRD-15` |
+| `Corporate / Human Resource / Workforce Planning / Setting` | `.../workforce-planning/settings` | `EPIC HRD-13`, `EPIC HRD-15` |
+
+### 21.14 Matriks kewenangan
+
+| Peran | String hak akses utama |
+| --- | --- |
+| HR Admin | `WorkforceStaffingStandard : Create`, `WorkforceInitialFormationBatch : Submit`, `WorkforceManpowerPlan : Submit`, `WorkforceHeadcountRequest : LinkFulfilment` |
+| HR Manager | Seluruh butir HR Admin, ditambah `WorkforceHeadcountRequest : ChangeFulfilmentPlan`, `WorkforcePlanningSetting : Update` |
+| Kepala Unit | `WorkforceHeadcountRequest : Submit`, `WorkforceStaffingWorkload : Create`, `WorkforceStaffingStandard : Submit` — unitnya sendiri |
+| Finance / Anggaran | `WorkforcePlanningCost : Read`, `WorkforcePlanningCost : Adjust` |
+| Recruiter | `WorkforceRecruitmentQueue : Read`, `WorkforceHeadcountRequest : LinkFulfilment` |
+| Petugas payroll | Tidak ada |
+
+Daftar lengkap: `contracts/permission-audit-matrix.md` bagian 11.
+
+### 21.15 Batas integrasi dan billing
+
+| `S-D1` **MUST NOT** | Sebabnya |
+| --- | --- |
+| Membaca data pasien untuk angka beban | `INT-HR-12` ditunda |
+| Mencatat siapa bertugas pada shift tertentu | Milik Penjadwalan (`HRD-DEC-058`) |
+| Membuat requisition atau lowongan | Milik Rekrutmen (`S-D2`) |
+| Memindahkan pegawai | Lewat SK Workforce Core |
+| Membaca gaji perorangan | `HRD-DEC-065` |
+| Menyentuh billing pasien | Tidak ada hubungannya |
+
+### 21.16 Guardrail regulasi
+
+Buku Panduan bab 03 merujuk Permenkes 13 Tahun 2025 (Pengelolaan SDM Kesehatan) dan Standar
+Akreditasi Rumah Sakit 2024. Yang mengikat rilis ini: kebutuhan tenaga harus dapat ditelusuri dari
+standar sampai pengisian, dan nilai standar klinis — misalnya rasio perawat ICU — **MUST** ditetapkan
+pemilik kebijakan rumah sakit, bukan sistem (`HRD-DEC-060` `CLINICAL_VALUES_NOT_DECIDED_HERE`). Isi
+regulasi tidak diverifikasi pada desain ini dan tetap tanggung jawab pemilik kebijakan.
+
+### 21.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan |
+| --- | --- |
+| `NFR-010` | Pemeriksaan sisa kursi dan penulisan formasi diserialkan per unit × jabatan dengan advisory lock; dua pengajuan bersamaan tidak sama-sama lolos |
+| `NFR-011` | Persetujuan yang melahirkan formasi bersifat atomik: seluruh baris berhasil, atau tidak satu pun |
+| `NFR-012` | Draf memakai `RowVersion`; penyimpanan atas versi usang ditolak `409` |
+| `NFR-013` | Keputusan workflow yang terkirim ulang dan scheduler yang berjalan dua kali tidak menghasilkan versi formasi atau potret kedua |
+| `NFR-014` | Angka biaya dan teks alasan tidak masuk logger dan tidak disimpan di penyimpanan sisi klien |
+| `NFR-015` | Seluruh tanggal acuan memakai tanggal operasional rumah sakit; waktu kejadian disimpan UTC |
+
+### 21.18 Skenario UAT
+
+| ID | Epic | Kondisi awal | Langkah | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-29` | `EPIC HRD-11` | ICU tanpa standar | Susun standar rasio 1:1, 3 shift, faktor 1,5, pembulatan ke atas; isi angka beban 7; ajukan; HR Manager dan Direktur menyetujui | Standar `Active`; rekomendasi 32 beserta rinciannya |
+| `UAT-30` | `EPIC HRD-11` | Draf standar ICU | Ajukan tanpa memilih faktor cadangan | Ditolak dengan pesan bahwa faktor cadangan wajib dipilih |
+| `UAT-31` | `EPIC HRD-12` | Formasi kosong | Isi batch dari SK Direktur 12/2026, unggah scan, ajukan; tiga penyetuju menyetujui | Formasi ICU versi 1 = 28, bersumber batch itu |
+| `UAT-32` | `EPIC HRD-12` | Batch dengan satu baris tidak valid | Ajukan | Ditolak; tombol ajukan nonaktif sampai baris diperbaiki |
+| `UAT-33` | `EPIC HRD-13` | ICU formasi 32; Budi paruh waktu; Sari Plt; pengaturan cuti panjang belum diisi | Buka Pemantauan Gap | Terisi memakai 0,5 untuk Budi; Sari tidak dihitung; kolom cuti panjang "data belum tersedia" |
+| `UAT-34` | `EPIC HRD-13` | Permintaan diajukan saat gap 3,5 | Satu orang pindah masuk; Finance membuka permintaan | Tampil "saat diajukan 3,5 — sekarang 2,5"; potret tidak dapat diubah |
+| `UAT-35` | `EPIC HRD-14` | Formasi 2026 berlaku | Susun Rencana 2027 +2 untuk ICU; Finance mengoreksi biaya; Direktur Utama menyetujui | Formasi ICU 30 mulai 1 Januari 2027; angka awal dan koreksi Finance sama-sama terlihat |
+| `UAT-36` | `EPIC HRD-14` | Rencana 2027 `Approved` | Ubah salah satu barisnya | Ditolak; diarahkan membuat addendum |
+| `UAT-37` | `EPIC HRD-15` | ICU formasi 30, terisi 28,5 | Ajukan pengganti Tono 1 kursi; HR site dan HR Manager menyetujui | `ReadyForRecruitment`; kursi muncul di antrean Recruiter |
+| `UAT-38` | `EPIC HRD-15` | Sisa kursi 0,5 | Ajukan 1 kursi penuh dalam formasi | Ditolak dengan pesan menyebut sisa kursi 0,5 |
+| `UAT-39` | `EPIC HRD-15` | Permintaan +2 di luar formasi `ReadyForRecruitment`, 1 kursi luar dan 1 internal | Tautkan penempatan Wati dan SK Andi; tunggu tanggal berlaku; batalkan kursi ketiga dari permintaan lain setelah lowongannya ditutup | Kursi terisi pada tanggal mulai; pembatalan menurunkan formasi |
+| `UAT-40` | `EPIC HRD-15` | Kursi dengan lowongan masih terbuka | Ajukan pembatalan | Ditolak; diminta menutup lowongan lebih dulu |
+
+### 21.19 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Formasi awal dapat diisi dan disetujui orang lain | `UAT-31`, `AT-HRD-D1-17` |
+| Standar tidak berlaku sebelum disahkan | `AT-HRD-D1-03`, `AT-HRD-D1-04` |
+| Gap tidak pernah menampilkan 0 untuk data yang belum ada | `UAT-33`, `AT-HRD-D1-05b` |
+| Formasi tidak dapat diubah langsung | `AT-HRD-D1-06` |
+| Dua permintaan tidak dapat mengklaim kursi yang sama | `AT-HRD-D1-09` |
+| Direktur ditemukan dari matriks, dan langkah tanpa penyetuju tidak dilewati | `AT-HRD-D1-20` |
+| Biaya tidak terbaca peran yang tidak berhak | `AT-HRD-D1-11` |
+| Kursi terisi hanya saat penempatan berlaku | `UAT-39`, `AT-HRD-D1-12` |
+| Pembatalan kursi `T12` menurunkan formasi | `AT-HRD-D1-18` |
+| Potret tidak dapat diubah | `AT-HRD-D1-16` |
+| Seluruh layar `S-D1` dapat dicapai lewat menu | `AT-HRD-D1-22` |
+| Data master awal terisi | `02-backend-architecture.md` bagian 16.8 — seluruh baris terisi |
+
+### 21.20 Urutan pengiriman dan pertanyaan terbuka
+
+| Gelombang | Epic | Syarat mulai |
+| --- | --- | --- |
+| `MVP-7` | Fondasi `S-D1`: migration `AddWorkforcePlanningCore`, enum, number series, jenis rujukan workflow, penelusuran unit induk pada matriks, pengaturan; `EPIC HRD-12` batch formasi awal dan formasi | `S-A1` sudah menyediakan penempatan dan SK; blueprint `S-D1` disetujui |
+| `MVP-8` | `EPIC HRD-11` standar dan angka beban; `EPIC HRD-13` gap langsung | `MVP-7` selesai — gap butuh formasi |
+| `MVP-9` | `EPIC HRD-15` permintaan, pemenuhan, pembatalan; potret pengajuan | `MVP-8` selesai — permintaan butuh gap dan sisa kursi |
+| `MVP-10` | `EPIC HRD-14` rencana tahunan, addendum, biaya; potret bulanan | `MVP-9` selesai — addendum menandai permintaan yang berjalan |
+| `POST-MVP` | Seluruh baris bagian 21.8 | Di luar rilis `S-D1` |
+
+Penempatan `MVP-7` s.d. `MVP-10` **sesudah** `MVP-6` adalah usulan: urutan di dalam `S-D1` mengikat,
+tetapi apakah `S-D1` ikut rilis pertama modul atau dirilis tersendiri adalah keputusan pemilik produk.
+
+**Tidak ada gelombang yang memuat epic berstatus `OPEN DECISION`.**
+
+| Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+| --- | --- | --- | :---: |
+| `S-D1` ikut rilis pertama modul, atau dirilis tersendiri? | Pemilik produk | Hanya penamaan rilis; urutan gelombang tetap | Tidak |
+| Nama grup dan butir menu, termasuk pengganti "Kebutuhan Tenaga Kerja" (`HRD-FE-04`) | Pemilik produk | Usulan kerja dipakai sementara | Tidak |
+| Pemetaan peran Finance / Anggaran, Direktur, Recruiter (`HRD-DEC-032`) | Administrator | `T10` dan `T12` tidak dapat diajukan | Tidak untuk pengembangan; **Ya untuk rilis** |
+| Nilai standar per unit, misalnya rasio perawat ICU (`HRD-Q-01`) | Pemilik kebijakan rumah sakit | Standar tidak dapat diisi untuk dipakai produksi | Tidak untuk pengembangan; **Ya untuk rilis** |
+| Cacat batch penempatan awal `HRD-TF-033`, `HRD-TF-034` | Pemilik `S-A1` | Angka terisi `S-D1` bersandar pada penempatan yang dibuat batch itu | Tidak |
+
+**Untuk bagian 21 tidak ada pertanyaan yang memblokir development lock.** Setelah pemilik menyetujui
+`02-backend-architecture.md` bagian 16, `03-frontend-architecture.md` bagian 12, kontrak `v7`, dan
+bagian ini, `S-D1` boleh diteruskan ke `/plan-module-delivery`. Pertanyaan memblokir pada bagian 20.2
+menyangkut epic lain dan tidak menahan `S-D1`.

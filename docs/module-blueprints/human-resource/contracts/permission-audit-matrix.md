@@ -5,10 +5,10 @@
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/permission-audit-matrix.md` |
 | `contract_version` | `v5` |
-| `last_changed_in` | `v5` |
+| `last_changed_in` | `v7` — bagian 11 (`S-D1`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v5` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Pemilik keamanan bersama technical owner (`HRD-DEC-015`) |
-| `approved_by` / `approved_at` | **Belum ada** |
+| `approved_by` / `approved_at` | **Hanya bagian 11** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
 | `input_revision` | `contracts/api-contract.md` `v1`; `data/data-dictionary.md` `v1` |
 | `input_hash` — decision log | `da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
@@ -637,3 +637,67 @@ keduanya akan membuat pembatasan tidak mungkin dilakukan.
 | Butir hak akses baru untuk roster | `HRD-DEC-026` | `flows/05-work-scheduling.md` |
 | Butir hak akses baru untuk pengingat dan eskalasi | `HRD-DEC-030` | `flows/09-unified-approval.md` |
 | Dua controller tanpa hak akses per aksi | Audit endpoint pada baseline saat ini | `contracts/api-contract.md` bagian 10 |
+
+---
+
+## 11. Perencanaan Tenaga Kerja — `S-D1` (`last_changed_in` `v7`, 3 November 2026)
+
+Pemetaan endpoint ke butir hak akses ada pada kolom `Hak akses` di `api-contract.md` bagian 13 dan
+**tidak** diulang di sini. Seluruh butir di bawah **Rencana (belum tersedia)**.
+
+### 11.1 Butir hak akses baru
+
+| Resource | Action | Untuk apa | Sumber keputusan |
+| --- | --- | --- | --- |
+| `WorkforceStaffingStandard` | `Read`, `Create`, `Update`, `Submit`, `Cancel` | Standar kebutuhan tenaga | `HRD-DEC-060`, `HRD-DEC-064` |
+| `WorkforceStaffingWorkload` | `Read`, `Create`, `Update` | Angka beban manual | `HRD-DEC-060` |
+| `WorkforcePositionFormation` | `Read` | Formasi berlaku dan riwayatnya — **tidak ada** action tulis | `HRD-DEC-062` |
+| `WorkforceInitialFormationBatch` | `Read`, `Create`, `Update`, `Submit`, `Cancel` | Batch formasi awal | `HRD-DEC-070` |
+| `WorkforceManpowerPlan` | `Read`, `Create`, `Update`, `Submit`, `Cancel` | Rencana tahunan dan addendum | `HRD-DEC-062`, `HRD-DEC-068` |
+| `WorkforcePlanningCost` | `Read`, `Adjust` | Melihat angka biaya; koreksi biaya oleh Finance | `HRD-DEC-065` |
+| `WorkforceHeadcountRequest` | `Read`, `Create`, `Update`, `Submit`, `Withdraw`, `RequestCancellation`, `ChangeFulfilmentPlan`, `LinkFulfilment` | Permintaan headcount dan kursinya | `HRD-DEC-063`, `HRD-DEC-066`, `HRD-DEC-067`, `HRD-DEC-071` |
+| `WorkforceRecruitmentQueue` | `Read` | Antrean kursi luar bagi Recruiter | `HRD-DEC-066` |
+| `WorkforceStaffingGap` | `Read` | Gap langsung dan potret | `HRD-DEC-061`, `HRD-DEC-069` |
+| `WorkforcePlanningSetting` | `Read`, `Update` | Pengaturan kebijakan perencanaan | `HRD-DEC-061`, `HRD-DEC-071` |
+
+`WorkforcePlanningCost` sengaja dipisah dari `Read` dokumen, mengikuti pola `: ViewAmount` pada
+`HRD-DEC-033`: Recruiter dan Petugas payroll dapat diberi baca dokumen tertentu tanpa melihat biaya.
+
+### 11.2 Peta peran ke butir hak akses
+
+| Peran | Butir | Batas tambahan |
+| --- | --- | --- |
+| **HR Admin** | Standar `Read`, `Create`, `Update`, `Submit`, `Cancel`; angka beban seluruh action; formasi `Read`; batch seluruh action; rencana seluruh action; `WorkforcePlanningCost : Read`; permintaan `Read`, `LinkFulfilment`; antrean `Read`; gap `Read`; pengaturan `Read` | Pemrakarsa `T9` dan `T10` |
+| **HR Manager** | Seluruh butir HR Admin; ditambah permintaan `ChangeFulfilmentPlan`, `RequestCancellation`; pengaturan `Update` | Penyetuju langkah 1 `T9`, `T10`, `T12`; langkah 2 `T11`; satu-satunya langkah `T13` |
+| **Kepala Unit** | Standar `Read`, `Create`, `Update`, `Submit`; angka beban `Read`, `Create`, `Update`; formasi `Read`; rencana `Read`; `WorkforcePlanningCost : Read`; permintaan `Read`, `Create`, `Update`, `Submit`, `Withdraw`, `RequestCancellation`; gap `Read` | **Hanya unit dalam cakupan organisasinya** — dijaga aturan bisnis, bagian 11.3 |
+| **Finance / Anggaran** | Rencana `Read`; permintaan `Read`; `WorkforcePlanningCost : Read`, `: Adjust`; gap `Read` | Penyetuju langkah Finance `T10` dan `T12`. `MAPPING_REQUIRED` |
+| **Direktur** | Standar `Read`; rencana `Read`; permintaan `Read`; `WorkforcePlanningCost : Read`; gap `Read` | Penyetuju langkah terakhir `T9`, `T10`, `T12`. `MAPPING_REQUIRED` |
+| **Recruiter** | `WorkforceRecruitmentQueue : Read`; permintaan `LinkFulfilment` | **Tanpa** `WorkforcePlanningCost`. `MAPPING_REQUIRED` |
+| **Auditor** | Seluruh butir `Read` di atas, termasuk `WorkforcePlanningCost : Read` | Tidak boleh memegang action selain `Read` |
+| **Petugas payroll** | **Tidak ada** | Konsisten dengan `HRD-DEC-044` |
+
+### 11.3 Kewenangan yang tidak dapat dijaga mesin hak akses
+
+| Penjaga di aturan bisnis | Yang dijaganya | Yang **tidak** dijaganya | Risiko bila hilang |
+| --- | --- | --- | --- |
+| Cakupan unit Kepala Unit lewat proyeksi organisasi pengguna (`OrganizationAuthorizationProjectionService`) | Kepala ICU hanya melihat dan mengajukan untuk ICU | Bila penempatan organisasi Kepala Unit salah, cakupannya ikut salah (`HRD-TF-021`) | Kepala Unit melihat biaya unit lain |
+| Pemisahan pembuat dan penyetuju (`AllowSelfApproval = false`) | Pembuat tidak menjadi penyetuju langkah mana pun | Dua orang yang bersekongkol | Swa-setuju formasi |
+| Koreksi biaya hanya oleh penyetuju langkah Finance yang aktif | `WorkforcePlanningCost : Adjust` di luar langkahnya ditolak | Finance yang menyetujui angka koreksinya sendiri — diterima, karena koreksi adalah bagian dari langkah Finance | Angka anggaran berubah tanpa jejak bila penjaga ini hilang |
+| Perubahan rencana pemenuhan hanya oleh HR Manager bukan pembuat | `ChangeFulfilmentPlan` oleh pembuat ditolak | — | Kursi luar dialihkan ke internal tanpa kendali |
+| Tautan pemenuhan harus cocok dan unik | Satu penempatan satu kursi | Penempatan yang sendirinya salah unit | Kursi terisi oleh orang yang bekerja di unit lain |
+
+### 11.4 Audit
+
+| Kejadian yang wajib meninggalkan jejak tahan lama | Lapisan |
+| --- | --- |
+| Setiap perpindahan status standar, batch, rencana, permintaan, kursi, dan pembatalan | Custom logger (selain `GET`), ditambah kolom `SubmittedBy`/`ApprovedBy` pada tabelnya |
+| Setiap versi formasi | Barisnya sendiri — `SourceType`, `SourceDocumentId`, `ApprovedByUserId`, `ApprovedAt` tidak pernah diubah |
+| Koreksi biaya Finance | Angka awal dan angka koreksi sama-sama tersimpan, beserta pelaku dan waktunya |
+| Perubahan rencana pemenuhan | Baris `HrdFulfilmentPlanChange` |
+| Perubahan pengaturan | Custom logger dengan alasan |
+| Potret gap | Barisnya sendiri; tidak dapat diubah |
+
+Payload logger hanya memuat `EntityId`, controller, action, dan status. Kolom bertanda sensitif pada
+`data/data-dictionary.md` bagian 8.5 — angka biaya dan teks alasan — **MUST NOT** masuk logger.
+Membaca angka biaya **tidak** termasuk audit pembacaan gaji sensitif `HRD-DEC-039`, karena angkanya
+dari gaji tengah grade, bukan gaji perorangan (`HRD-DEC-065`).

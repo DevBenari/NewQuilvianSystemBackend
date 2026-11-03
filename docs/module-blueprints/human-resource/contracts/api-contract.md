@@ -5,10 +5,10 @@
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/api-contract.md` |
 | `contract_version` | `v6` — angka set kontrak disimpan di `blueprint-manifest.md` field `contract_versions` |
-| `last_changed_in` | `v6` |
+| `last_changed_in` | `v7` — bagian 13 (`S-D1`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v6` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Backend, mengikuti `rules/backend/engineering/BACKEND_ENGINEERING_CONTRACT.md` |
-| `approved_by` / `approved_at` | **Belum ada** |
+| `approved_by` / `approved_at` | **Hanya bagian 13** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
 | `input_revision` | `02-backend-architecture.md` revision `2`; `00-interview-decisions.md` revision `16` (`HRD-DEC-046` s.d. `HRD-DEC-057`) |
 | `input_hash` — decision log | `26da64e129b0c34a17b67b0a41f47986b1aedae92a600077d936b0741eb574ee` |
 | Backend SHA | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
@@ -1035,7 +1035,7 @@ menjadi task implementasi tersendiri.
 | --- | --- |
 | Kredensial, lisensi, kewenangan klinis, SPK/RKK, OPPE, FPPE | `S-C1` `BLOCKED`. Lima controller yang ada hari ini **tidak** dituliskan bentuk targetnya |
 | Rekam kesehatan kerja staf | `S-C6` `BLOCKED`. Satu controller yang ada hari ini **tidak** dituliskan bentuk targetnya |
-| Perencanaan tenaga kerja, rekrutmen, benefit, tiket HR | `S-D1` s.d. `S-D4` `BLOCKED` oleh `HRD-Q-05` |
+| Rekrutmen, benefit, tiket HR | `S-D2` s.d. `S-D4` `BLOCKED` oleh `HRD-Q-05`. Perencanaan tenaga kerja (`S-D1`) dirancang pada bagian 13 |
 | Perjalanan dinas dan reimbursement | `S-D5` `DEFERRED` |
 | Kalkulasi payroll lintas domain dan persetujuan tingkat run | `MISSING` di source, dan `HRD-Q-49` belum menjawab bagaimana putaran payroll dimulai |
 | Bentuk data serah terima ke Finance | `[OPEN]` `HRD-Q-10`. Merancangnya berarti menetapkan kontrak lintas modul secara sepihak |
@@ -1062,3 +1062,191 @@ menjadi task implementasi tersendiri.
 | Batas serah terima payroll | `HRD-DEC-009`; `HRD-CAP-10` | `flows/10-payroll-processing-handoff.md` |
 | Daftar periksa offboarding | `HRD-CAP-17` | `flows/11-lifecycle-offboarding.md` |
 | Layanan mandiri pegawai | `HRD-DEC-007`; `HRD-CAP-25` | `flows/01` s.d. `flows/08` |
+
+---
+
+## 13. Perencanaan Tenaga Kerja — `S-D1` (`last_changed_in` `v7`, 3 November 2026)
+
+Sumber desain: `02-backend-architecture.md` bagian 16. **Seluruh endpoint pada bagian ini belum ada
+di kode** dan berlabel **Rencana (belum tersedia)**. Pola bagian 0.1 dan kode status bagian 0.3
+berlaku. Base URL bersama: `api/v1/corporate/human-resource/workforce-planning`.
+
+Aturan yang berlaku untuk seluruh grup:
+
+| Aturan | Isi |
+| --- | --- |
+| Pembaruan dokumen | Request ubah, ajukan, batal, dan tarik kembali **MUST** membawa `RowVersion`; versi usang → `409` |
+| Persetujuan | **Tidak ada** endpoint setuju/tolak/kembalikan di bagian ini. Keputusan `T9` s.d. `T13` lewat kotak masuk persetujuan, bagian 6 |
+| Cakupan unit | Kepala Unit hanya melihat dan mengajukan untuk unit di dalam cakupan organisasinya; di luar itu `GET` daftar tidak memuatnya dan `GET {id}` menjawab `404` |
+| Kolom biaya | Hanya terisi bila pemanggil memegang `WorkforcePlanningCost : Read`; selain itu kolom biaya bernilai `null` dan `costVisible = false` |
+
+### Corporate / Human Resource / Workforce Planning / Staffing Standard
+
+Base URL: `api/v1/corporate/human-resource/workforce-planning/staffing-standards`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar standar per unit, versi, dan status | `WorkforceStaffingStandard : Read` | `StaffingStandardPagedQuery` | `ApiResponse<PagedResult<StaffingStandardListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail satu versi beserta baris dan skill mix | `WorkforceStaffingStandard : Read` | — | `ApiResponse<StaffingStandardResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/effective` | Standar yang berlaku untuk satu unit pada satu tanggal — **kontrak baca untuk Penjadwalan** | `WorkforceStaffingStandard : Read` | `organizationUnitId`, `date` | `ApiResponse<StaffingStandardResponse>`; `404` bila belum ada standar berlaku | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat draf versi baru untuk satu unit; bila sudah ada versi aktif, isinya disalin sebagai titik awal | `WorkforceStaffingStandard : Create` | `CreateStaffingStandardRequest` | `ApiResponse<StaffingStandardResponse>` `201` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah draf atau versi yang dikembalikan, termasuk baris dan skill mix | `WorkforceStaffingStandard : Update` | `UpdateStaffingStandardRequest` | `ApiResponse<StaffingStandardResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/recommendation` | Angka rekomendasi per baris beserta rincian hitung, untuk periode tertentu | `WorkforceStaffingStandard : Read` | `periodStartDate` | `ApiResponse<StaffingRecommendationResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/submit` | Mengajukan ke `T9` | `WorkforceStaffingStandard : Submit` | `SubmitDocumentRequest` | `ApiResponse<StaffingStandardResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan draf atau versi yang dikembalikan | `WorkforceStaffingStandard : Cancel` | `CancelDocumentRequest` | `ApiResponse<StaffingStandardResponse>` | **Rencana (belum tersedia)** |
+
+`CreateStaffingStandardRequest`: `organizationUnitId`, `effectiveStartDate`. `UpdateStaffingStandardRequest`:
+`effectiveStartDate`, `justification`, `lines[]` (`positionId`, `professionId`, `calculationMethod`,
+`minimumHeadcount`, `ratioStaffQuantity`, `ratioWorkloadQuantity`, `workloadUnit`, `shiftsPerDay`,
+`staffPerShift`, `serviceHoursPerDay`, `reliefFactor`, `roundingMethod`, `countsOutsourced`, `notes`),
+`skillMixRules[]` (`shiftId`, `professionId`, `competencyId`, `minimumCompetencyLevel`,
+`minimumQualifiedHeadcount`, `isMandatory`), `rowVersion`.
+
+`StaffingRecommendationResponse` per baris: `positionId`, `calculationMethod`, `recommendedQuantity`,
+`breakdown` (contoh "7 ÷ 1 × 1 = 7 per shift; 7 × 3 = 21; 21 × 1,5 = 31,5 → 32"), `missingInput`
+(contoh "angka beban belum diisi").
+
+### Corporate / Human Resource / Workforce Planning / Staffing Workload
+
+Base URL: `api/v1/corporate/human-resource/workforce-planning/staffing-workloads`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar angka beban per unit, jabatan, periode | `WorkforceStaffingWorkload : Read` | `StaffingWorkloadPagedQuery` | `ApiResponse<PagedResult<StaffingWorkloadResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mengisi angka beban satu periode | `WorkforceStaffingWorkload : Create` | `UpsertStaffingWorkloadRequest` | `ApiResponse<StaffingWorkloadResponse>` `201` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Memperbaiki angka beban | `WorkforceStaffingWorkload : Update` | `UpsertStaffingWorkloadRequest` | `ApiResponse<StaffingWorkloadResponse>` | **Rencana (belum tersedia)** |
+
+`UpsertStaffingWorkloadRequest`: `organizationUnitId`, `positionId`, `periodStartDate`, `periodEndDate`,
+`workloadValue`, `sourceNote`.
+
+### Corporate / Human Resource / Workforce Planning / Position Formation
+
+Base URL: `api/v1/corporate/human-resource/workforce-planning/position-formations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Formasi yang berlaku per unit × jabatan pada satu tanggal | `WorkforcePositionFormation : Read` | `PositionFormationPagedQuery` (`hospitalSiteId`, `organizationUnitId`, `positionId`, `date`) | `ApiResponse<PagedResult<PositionFormationResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/history` | Seluruh versi satu unit × jabatan beserta dokumen sumbernya | `WorkforcePositionFormation : Read` | `organizationUnitId`, `positionId` | `ApiResponse<List<PositionFormationResponse>>` | **Rencana (belum tersedia)** |
+
+**Tidak ada** `POST`, `PUT`, `PATCH`, maupun `DELETE` (`NO_DIRECT_FORMATION_EDIT`). Permintaan
+dengan method lain ke base URL ini menjawab `405`.
+
+### Corporate / Human Resource / Workforce Planning / Initial Formation Batch
+
+Base URL: `api/v1/corporate/human-resource/workforce-planning/initial-formation-batches`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/template` | Mengunduh templat isian | `WorkforceInitialFormationBatch : Read` | — | Berkas `xlsx` | **Rencana (belum tersedia)** |
+| `POST` | `/validate` | Memeriksa baris sebelum disimpan | `WorkforceInitialFormationBatch : Read` | `List<InitialFormationBatchRowRequest>` | `ApiResponse<List<InitialFormationBatchRowValidationResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar batch | `WorkforceInitialFormationBatch : Read` | `PagedQuery` | `ApiResponse<PagedResult<InitialFormationBatchListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail batch beserta baris | `WorkforceInitialFormationBatch : Read` | — | `ApiResponse<InitialFormationBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat draf batch | `WorkforceInitialFormationBatch : Create` | `CreateInitialFormationBatchRequest` | `ApiResponse<InitialFormationBatchResponse>` `201` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah draf | `WorkforceInitialFormationBatch : Update` | `UpdateInitialFormationBatchRequest` | `ApiResponse<InitialFormationBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/source-document` | Mengunggah scan dokumen formasi resmi | `WorkforceInitialFormationBatch : Update` | `multipart/form-data` berkas PDF/JPG/PNG | `ApiResponse<InitialFormationBatchResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/source-document` | Mengunduh scan dokumen | `WorkforceInitialFormationBatch : Read` | — | Berkas | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/submit` | Mengajukan ke `T10` | `WorkforceInitialFormationBatch : Submit` | `SubmitDocumentRequest` | `ApiResponse<InitialFormationBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan draf atau batch yang dikembalikan | `WorkforceInitialFormationBatch : Cancel` | `CancelDocumentRequest` | `ApiResponse<InitialFormationBatchResponse>` | **Rencana (belum tersedia)** |
+
+`CreateInitialFormationBatchRequest`: `hospitalSiteId`, `sourceDocumentReference`, `notes`,
+`rows[]` (`organizationUnitId`, `positionId`, `formationQuantity`, `effectiveStartDate`).
+
+### Corporate / Human Resource / Workforce Planning / Manpower Plan
+
+Base URL: `api/v1/corporate/human-resource/workforce-planning/manpower-plans`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar rencana dan addendum | `WorkforceManpowerPlan : Read` | `ManpowerPlanPagedQuery` | `ApiResponse<PagedResult<ManpowerPlanListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail beserta baris; kolom biaya mengikuti aturan di atas | `WorkforceManpowerPlan : Read` | — | `ApiResponse<ManpowerPlanResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat draf rencana tahunan | `WorkforceManpowerPlan : Create` | `CreateManpowerPlanRequest` | `ApiResponse<ManpowerPlanResponse>` `201` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/addenda` | Membuat draf addendum dari rencana `Approved` | `WorkforceManpowerPlan : Create` | `CreateManpowerPlanAddendumRequest` | `ApiResponse<ManpowerPlanResponse>` `201` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah draf atau dokumen yang dikembalikan | `WorkforceManpowerPlan : Update` | `UpdateManpowerPlanRequest` | `ApiResponse<ManpowerPlanResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/recalculate` | Menghitung ulang formasi saat ini, rekomendasi, dan biaya pada draf | `WorkforceManpowerPlan : Update` | `rowVersion` | `ApiResponse<ManpowerPlanResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/submit` | Mengajukan ke `T10`; potret gap tersimpan | `WorkforceManpowerPlan : Submit` | `SubmitDocumentRequest` | `ApiResponse<ManpowerPlanResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancel` | Membatalkan draf atau dokumen yang dikembalikan | `WorkforceManpowerPlan : Cancel` | `CancelDocumentRequest` | `ApiResponse<ManpowerPlanResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/finance-adjustment` | Koreksi angka total oleh Finance pada langkah Finance `T10` | `WorkforcePlanningCost : Adjust` | `FinanceAdjustmentRequest` (`adjustedTotal`, `reason`, `rowVersion`) | `ApiResponse<ManpowerPlanResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/gap-snapshots` | Potret gap yang menempel pada dokumen | `WorkforceStaffingGap : Read` | — | `ApiResponse<List<StaffingGapSnapshotResponse>>` | **Rencana (belum tersedia)** |
+
+`UpdateManpowerPlanRequest`: `referenceDate`, `justification`, `lines[]` (`organizationUnitId`,
+`positionId`, `salaryGradeId`, `proposedFormationQuantity`, `deviationReason`, `effectiveStartDate`),
+`rowVersion`. Kolom potret (`currentFormationQuantity`, `recommendedQuantity`, biaya) diisi sistem
+lewat `/recalculate` dan tidak diterima dari request.
+
+### Corporate / Human Resource / Workforce Planning / Headcount Request
+
+Base URL: `api/v1/corporate/human-resource/workforce-planning/headcount-requests`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar permintaan | `WorkforceHeadcountRequest : Read` | `HeadcountRequestPagedQuery` (status, unit, jabatan, `isOverdue`, `isOverFormationAfterAddendum`) | `ApiResponse<PagedResult<HeadcountRequestListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail beserta kursi, potret, pembatalan, dan riwayat rencana pemenuhan | `WorkforceHeadcountRequest : Read` | — | `ApiResponse<HeadcountRequestResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/remaining-seats` | Sisa kursi langsung satu unit × jabatan | `WorkforceHeadcountRequest : Read` | `organizationUnitId`, `positionId`, `date` | `ApiResponse<RemainingSeatsResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat draf | `WorkforceHeadcountRequest : Create` | `CreateHeadcountRequestRequest` | `ApiResponse<HeadcountRequestResponse>` `201` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah draf atau dokumen yang dikembalikan | `WorkforceHeadcountRequest : Update` | `UpdateHeadcountRequestRequest` | `ApiResponse<HeadcountRequestResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/submit` | Mengajukan ke `T11` atau `T12` menurut jenisnya; potret gap tersimpan | `WorkforceHeadcountRequest : Submit` | `SubmitDocumentRequest` | `ApiResponse<HeadcountRequestResponse>`; `422` bila sisa kursi tidak cukup | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/withdraw` | Menarik kembali sebelum persetujuan terakhir | `WorkforceHeadcountRequest : Withdraw` | `WithdrawRequest` (`reason`, `rowVersion`) | `ApiResponse<HeadcountRequestResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/finance-adjustment` | Koreksi biaya oleh Finance pada langkah Finance `T12` | `WorkforcePlanningCost : Adjust` | `FinanceAdjustmentRequest` | `ApiResponse<HeadcountRequestResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/fulfilment-plan` | Mengubah sumber pemenuhan kursi yang belum terpenuhi | `WorkforceHeadcountRequest : ChangeFulfilmentPlan` | `ChangeFulfilmentPlanRequest` (`seats[]` `{seatId, toSource}`, `reason`, `rowVersion`) | `ApiResponse<HeadcountRequestResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/cancellations` | Mengajukan pembatalan kursi yang belum terpenuhi ke `T13` | `WorkforceHeadcountRequest : RequestCancellation` | `CreateHeadcountCancellationRequest` (`seatIds[]`, `reason`) | `ApiResponse<HeadcountCancellationResponse>` `201`; `409` bila lowongan kursi itu masih terbuka | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/seats/{seatId}/fulfilment-link` | Menautkan penempatan atau SK ke kursi | `WorkforceHeadcountRequest : LinkFulfilment` | `LinkFulfilmentRequest` (`positionAssignmentId` **atau** `personnelActionOrderId`) | `ApiResponse<HeadcountRequestResponse>` | **Rencana (belum tersedia)** |
+| `DELETE` | `/{id}/seats/{seatId}/fulfilment-link` | Melepas tautan selama penempatan belum berlaku | `WorkforceHeadcountRequest : LinkFulfilment` | `reason` | `ApiResponse<HeadcountRequestResponse>`; `409` bila kursi sudah `Fulfilled` | **Rencana (belum tersedia)** |
+
+`CreateHeadcountRequestRequest`: `organizationUnitId`, `positionId`, `salaryGradeId`, `requestType`,
+`requiredStartDate`, `temporaryEndDate`, `temporaryReasonWorkforceProfileId`, `justification`,
+`seats[]` (`seatFte`, `fulfilmentSource`, `replacedWorkforceProfileId`).
+
+### Corporate / Human Resource / Workforce Planning / Recruitment Queue
+
+Base URL: `api/v1/corporate/human-resource/workforce-planning/recruitment-queue`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Kursi luar berstatus `Open` dari permintaan `ReadyForRecruitment` atau `PartiallyFulfilled`; kursi `Frozen` tidak muncul | `WorkforceRecruitmentQueue : Read` | `PagedQuery` | `ApiResponse<PagedResult<RecruitmentQueueItemResponse>>` — **tanpa** kolom biaya | **Rencana (belum tersedia)** |
+
+Antrean ini dilayani `HrdRecruitmentQueueController` tersendiri — `[Tags]` di repository ini dipasang per
+controller — agar Recruiter tidak perlu hak baca permintaan secara utuh.
+
+### Corporate / Human Resource / Workforce Planning / Staffing Gap
+
+Base URL: `api/v1/corporate/human-resource/workforce-planning/staffing-gaps`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Gap **langsung** per unit × jabatan pada tanggal acuan, beserta lapisan dan penanda kelengkapan | `WorkforceStaffingGap : Read` | `hospitalSiteId`, `organizationUnitId`, `referenceDate` | `ApiResponse<List<StaffingGapLineResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/snapshots` | Daftar potret pengajuan, bulanan, dan rekonstruksi | `WorkforceStaffingGap : Read` | `StaffingGapSnapshotPagedQuery` | `ApiResponse<PagedResult<StaffingGapSnapshotListItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/snapshots/{id}` | Detail satu potret | `WorkforceStaffingGap : Read` | — | `ApiResponse<StaffingGapSnapshotResponse>` | **Rencana (belum tersedia)** |
+
+`StaffingGapLineResponse`: `organizationUnitId`, `positionId`, `formationQuantity`, `filledFte`,
+`toBeVacatedFte`, `temporarilyUnavailableFte`, `notYetCompetentFte`, `concurrentAssignmentCount`,
+`outsourcedFte`, `permanentGap`, `temporaryGap`, `competencyGap`, dan empat penanda kelengkapan. Nilai
+`null` berarti **data belum tersedia**, bukan nol. Tidak ada endpoint ubah atau hapus potret.
+
+### Corporate / Human Resource / Workforce Planning / Setting
+
+Base URL: `api/v1/corporate/human-resource/workforce-planning/settings`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Pengaturan satu rumah sakit | `WorkforcePlanningSetting : Read` | `hospitalSiteId` | `ApiResponse<WorkforcePlanningSettingResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/` | Mengubah pengaturan | `WorkforcePlanningSetting : Update` | `UpdateWorkforcePlanningSettingRequest` (`hospitalSiteId`, `longLeaveThresholdDays`, `overdueRequestThresholdDays`, `changeReason`, `rowVersion`) | `ApiResponse<WorkforcePlanningSettingResponse>` | **Rencana (belum tersedia)** |
+
+### 13.1 Persetujuan `T9` s.d. `T13` lewat kotak masuk
+
+Kelima rantai memakai endpoint kotak masuk persetujuan bagian 6 tanpa endpoint baru. Jenis rujukan
+yang muncul di kotak masuk:
+
+| Rantai | Jenis rujukan | Dokumen |
+| --- | --- | --- |
+| `T9` | `WorkforceStaffingStandard` | Standar kebutuhan tenaga |
+| `T10` | `WorkforceManpowerPlan`, `WorkforceInitialFormationBatch` | Rencana tahunan, addendum, batch formasi awal |
+| `T11`, `T12` | `WorkforceHeadcountRequest` | Permintaan headcount |
+| `T13` | `WorkforceHeadcountCancellation` | Pembatalan kursi permintaan yang sudah disetujui (`HRD-DEC-071`); satu langkah HR Manager |
+
+### 13.2 Endpoint `Sudah ada` yang dibaca `S-D1`
+
+| Grup | Endpoint | Dipakai untuk |
+| --- | --- | --- |
+| `Corporate / Human Resource / Master Data / Salary Grade` | `GET .../master-data/salary-grades/options` | Pilihan grade pada rencana dan permintaan |
+| `Corporate / Human Resource / Workforce Core / Personnel Action Order` | `POST .../personnel-action-orders` dan alurnya | Kursi internal dipenuhi lewat SK |
+| `Corporate / Human Resource / Workflow Management / Approval Inbox` | Bagian 6 | Seluruh persetujuan `T9` s.d. `T13` |

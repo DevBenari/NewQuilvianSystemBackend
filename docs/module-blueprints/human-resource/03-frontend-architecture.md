@@ -4,10 +4,10 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `03-frontend-architecture.md` |
-| Revision | `2` |
+| Revision | `3` — 3 November 2026: bagian 12 menambah layar `S-D1` Perencanaan Tenaga Kerja. Bagian 1–11 tidak berubah |
 | Status | `draft` — **belum** `approved` |
 | Owner desain | Technical owner (`HRD-DEC-015`), dengan ruang `DEV_DISCRETION` sesuai `HRD-FE-03` |
-| `approved_by` / `approved_at` | **Belum ada** |
+| `approved_by` / `approved_at` | **Hanya bagian 12** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
 | Repository target | `QuilvianSystemFrontendDev` |
 | Frontend SHA | `fff76a1b394d4b247c70a04f106c8ec098c9696e` (branch `AgentCodexFrontend`) |
 | Backend SHA rujukan kontrak | `e0ee42c752a5f92c5b1663ff88bef07a5859f79f` |
@@ -190,7 +190,7 @@ Seluruhnya di bawah `src/app/self-services/human-resource/employee/**` sesuai `H
 | --- | --- |
 | Kredensial, lisensi, kewenangan klinis, SPK/RKK, OPPE, FPPE | `S-C1` `BLOCKED` |
 | Rekam kesehatan kerja staf | `S-C6` `BLOCKED` |
-| Perencanaan tenaga kerja, rekrutmen, benefit, tiket HR | `S-D1` s.d. `S-D4` `BLOCKED` |
+| Rekrutmen, benefit, tiket HR | `S-D2` s.d. `S-D4` `BLOCKED`. Perencanaan tenaga kerja (`S-D1`) dirancang pada bagian 12 |
 | Perjalanan dinas dan reimbursement | `S-D5` `DEFERRED` |
 | Izin pulang cepat sebagai kemampuan berdiri sendiri | Backend-nya `MISSING`, dan policy-nya `[OPEN]` `HRD-Q-47`. Membuat layarnya sekarang berarti membuat layar tanpa endpoint |
 | Layar payroll di luar dua serah terima | Kalkulasi run-level `MISSING` di backend, dan `HRD-Q-49` belum dijawab. Layar tanpa endpoint bukan pekerjaan yang bisa diselesaikan |
@@ -1070,3 +1070,241 @@ manual** untuk setiap layar, dengan bukti yang dicatat pada laporan task:
 4. Tidak ada keputusan warna, ikon, urutan menu, atau component library.
 5. Tidak ada nama butir menu yang dinyatakan final.
 6. Tidak ada dokumen yang ditandai `approved`.
+
+---
+
+## 12. Slice `S-D1` — Perencanaan Tenaga Kerja (revision `3`, 3 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `approved` — Pengguna (pemilik teknis dan produk, `HRD-DEC-015`), 2026-11-03, bersama bagian 16 arsitektur backend, kontrak `v7`, dan `04-prd-to-mvp.md` bagian 21 |
+| Frontend SHA | `66b7e5600e1707e4153ca07981ddef054856c8c9` (branch `HamzahV2`) |
+| Kontrak yang dikonsumsi | `contracts/api-contract.md` bagian 13 — seluruh endpoint **Rencana (belum tersedia)** |
+| Keadaan hari ini | Tidak ada satu pun route, view, service, maupun butir menu perencanaan tenaga (`HRD-CAP-65`) |
+| Pola layar | Mengikuti halaman HR terdekat: daftar transaksi pola A (bagian 4.1), dan layar dokumen bertahap seperti SK (bagian 4.2a) |
+
+### 12.1 Kebutuhan layar
+
+| ID | Layar | Route | Jalan masuk | Status |
+| --- | --- | --- | --- | --- |
+| `FE-HRD-97` | Pemantauan Gap Tenaga | `/hr/workforce-planning/staffing-gaps` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-98` | Daftar Standar Kebutuhan Tenaga | `/hr/workforce-planning/staffing-standards` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-99` | Penyusun dan Detail Standar | `/hr/workforce-planning/staffing-standards/[id]` | Layar anak dari `FE-HRD-98` | `MISSING / NEW` |
+| `FE-HRD-100` | Angka Beban | `/hr/workforce-planning/staffing-workloads` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-101` | Formasi Jabatan | `/hr/workforce-planning/position-formations` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-102` | Batch Formasi Awal | `/hr/workforce-planning/initial-formation-batches` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-103` | Detail Batch Formasi Awal | `/hr/workforce-planning/initial-formation-batches/[id]` | Layar anak dari `FE-HRD-102` | `MISSING / NEW` |
+| `FE-HRD-104` | Daftar Rencana Tahunan dan Addendum | `/hr/workforce-planning/manpower-plans` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-105` | Penyusun dan Detail Rencana | `/hr/workforce-planning/manpower-plans/[id]` | Layar anak dari `FE-HRD-104` | `MISSING / NEW` |
+| `FE-HRD-106` | Daftar Permintaan Headcount | `/hr/workforce-planning/headcount-requests` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-107` | Form dan Detail Permintaan | `/hr/workforce-planning/headcount-requests/[id]` | Layar anak dari `FE-HRD-106`; juga dari tombol "Ajukan permintaan" pada `FE-HRD-97` | `MISSING / NEW` |
+| `FE-HRD-108` | Antrean Rekrutmen | `/hr/workforce-planning/recruitment-queue` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-109` | Pengaturan Perencanaan | `/hr/workforce-planning/settings` | Butir menu | `MISSING / NEW` |
+
+Persetujuan `T9` s.d. `T13` **tidak** punya layar baru. Tugasnya muncul di Kotak Masuk Persetujuan
+`FE-HRD-30` dan detailnya di `FE-HRD-31`; layar detail dokumen (`FE-HRD-99`, `FE-HRD-103`,
+`FE-HRD-105`, `FE-HRD-107`) dibuka dari tautan tugas itu.
+
+### 12.2 Peta butir menu
+
+```text
+Sumber Daya Manusia                         <- tingkat 0, sudah ada, anaknya di field `subMenu`
+└── Perencanaan Tenaga Kerja                <- grup tingkat 1, BARU, anaknya di field `subItems`
+    ├── Pemantauan Gap Tenaga               -> /hr/workforce-planning/staffing-gaps
+    ├── Permintaan Headcount                -> /hr/workforce-planning/headcount-requests
+    ├── Antrean Rekrutmen                   -> /hr/workforce-planning/recruitment-queue
+    ├── Rencana Tahunan                     -> /hr/workforce-planning/manpower-plans
+    ├── Formasi Jabatan                     -> /hr/workforce-planning/position-formations
+    ├── Standar Kebutuhan Tenaga            -> /hr/workforce-planning/staffing-standards
+    ├── Angka Beban                         -> /hr/workforce-planning/staffing-workloads
+    ├── Batch Formasi Awal                  -> /hr/workforce-planning/initial-formation-batches
+    └── Pengaturan Perencanaan              -> /hr/workforce-planning/settings
+```
+
+| Butir menu | Tingkat | Induk | `pathname` | Layar | Butir hak akses | Status |
+| --- | :---: | --- | --- | --- | --- | --- |
+| Perencanaan Tenaga Kerja | 1 | Sumber Daya Manusia | — | — | — | Baru |
+| Pemantauan Gap Tenaga | 2 | Perencanaan Tenaga Kerja | `/hr/workforce-planning/staffing-gaps` | `FE-HRD-97` | `WorkforceStaffingGap : Read` | Baru |
+| Permintaan Headcount | 2 | Perencanaan Tenaga Kerja | `/hr/workforce-planning/headcount-requests` | `FE-HRD-106` | `WorkforceHeadcountRequest : Read` | Baru |
+| Antrean Rekrutmen | 2 | Perencanaan Tenaga Kerja | `/hr/workforce-planning/recruitment-queue` | `FE-HRD-108` | `WorkforceRecruitmentQueue : Read` | Baru |
+| Rencana Tahunan | 2 | Perencanaan Tenaga Kerja | `/hr/workforce-planning/manpower-plans` | `FE-HRD-104` | `WorkforceManpowerPlan : Read` | Baru |
+| Formasi Jabatan | 2 | Perencanaan Tenaga Kerja | `/hr/workforce-planning/position-formations` | `FE-HRD-101` | `WorkforcePositionFormation : Read` | Baru |
+| Standar Kebutuhan Tenaga | 2 | Perencanaan Tenaga Kerja | `/hr/workforce-planning/staffing-standards` | `FE-HRD-98` | `WorkforceStaffingStandard : Read` | Baru |
+| Angka Beban | 2 | Perencanaan Tenaga Kerja | `/hr/workforce-planning/staffing-workloads` | `FE-HRD-100` | `WorkforceStaffingWorkload : Read` | Baru |
+| Batch Formasi Awal | 2 | Perencanaan Tenaga Kerja | `/hr/workforce-planning/initial-formation-batches` | `FE-HRD-102` | `WorkforceInitialFormationBatch : Read` | Baru |
+| Pengaturan Perencanaan | 2 | Perencanaan Tenaga Kerja | `/hr/workforce-planning/settings` | `FE-HRD-109` | `WorkforcePlanningSetting : Read` | Baru |
+
+**Butir menu lama yang bertabrakan makna (`HRD-TF-036`).** Butir "Kebutuhan Tenaga Kerja" pada grup
+Master Data › Pegawai & Workforce (`key: corporateWorkforceRequirement`, `menu-items.jsx:251`) membuka
+master **persyaratan berkas**, bukan perencanaan tenaga. Yang mengikat: kedua butir **MUST NOT**
+memakai nama bermakna "kebutuhan tenaga". Usulan kerja untuk butir lama: **"Persyaratan Berkas Tenaga
+Kerja"**; `pathname`-nya tidak berubah. Nama akhir milik pemilik produk (`HRD-FE-04`).
+
+Seluruh nama butir di atas adalah **usulan kerja** — status `OPEN`, `HRD-FE-04`. Urutan dan ikon
+`DEV_DISCRETION`. Pendaftaran grup ini **MUST** menjadi acceptance criteria task layar pertama
+`S-D1` yang dikerjakan.
+
+### 12.3 Skema fitur per layar
+
+#### 12.3.1 `FE-HRD-97` — Pemantauan Gap Tenaga
+
+```text
++- Pemantauan Gap Tenaga ------------------------------------------ FE-HRD-97 -+
+| [Rumah sakit v] [Unit v] [Tanggal acuan: 01-01-2027]   [Lihat potret bulanan]|
++-------------------------------------------------------------------------------+
+| Unit | Jabatan | Formasi | Terisi | Akan kosong | Cuti panjang | Belum      |
+|      |         |         |        |             |              | kompeten   |
+|      |         |         |        |             |              |            |
+| Gap permanen | Gap sementara | Gap kompetensi | Rangkap | Alih daya | [Ajukan]|
++-------------------------------------------------------------------------------+
+| sel kosong data -> "data belum tersedia" (miring), BUKAN angka 0             |
+| memuat -> kerangka baris                                                      |
+| kosong -> "Belum ada formasi untuk saringan ini. Isi formasi awal lebih dulu."|
+| gagal  -> "Data gap gagal dimuat."                            [Coba lagi]     |
++-------------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Saringan | Rumah sakit, unit, tanggal acuan | Master yang sudah ada | `WorkforceStaffingGap : Read` | — |
+| Tabel gap | Lapisan dan tiga gap per unit × jabatan | `GET .../staffing-gaps` | `WorkforceStaffingGap : Read` | Nilai `null` tampil "data belum tersedia"; baris yang belum lengkap diberi penanda "data belum lengkap" |
+| Tombol Ajukan | Membuka `FE-HRD-107` berisi unit dan jabatan baris itu | — | `WorkforceHeadcountRequest : Create` | Disembunyikan bila tidak berhak |
+| Potret bulanan | Daftar potret | `GET .../staffing-gaps/snapshots` | `WorkforceStaffingGap : Read` | Bulan tanpa potret tampil "potret tidak tersedia"; potret susulan berlabel "direkonstruksi" |
+
+#### 12.3.2 `FE-HRD-99` — Penyusun dan Detail Standar
+
+```text
++- Standar STD-HRD-000014 - ICU, versi 3 ---------------------- FE-HRD-99 -+
+| Draft   berlaku mulai 01-12-2026   menggantikan versi 2                  |
+| [Simpan] [Ajukan] [Batalkan]                                             |
++--------------------------------------------------------------------------+
+| Baris jabatan                                                            |
+| Jabatan | Metode | Isian metode | Faktor cadangan | Pembulatan | Alih daya |
+|         |        |              | (wajib dipilih) | (wajib)    | dihitung? |
++--------------------------------------------------------------------------+
+| Skill mix per shift                                                      |
+| Shift | Kompetensi | Minimal orang | Wajib?                              |
++--------------------------------------------------------------------------+
+| Rekomendasi periode [Jan 2027 v]                                         |
+| Perawat Pelaksana: 7 ÷ 1 × 1 = 7 per shift; 7 × 3 = 21; 21 × 1,5 = 31,5 → 32|
++--------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala | Nomor, unit, versi, status, tanggal berlaku | `GET .../staffing-standards/{id}` | `WorkforceStaffingStandard : Read` | Gagal → seluruh layar diganti pesan dan tombol coba lagi |
+| Tombol | Simpan, Ajukan, Batalkan | — | `: Update`, `: Submit`, `: Cancel` | Hanya tampil pada `Draft` dan `Returned`; versi `Active` hanya baca |
+| Baris jabatan | Isian per metode; kolom yang tidak dipakai metode itu disembunyikan | Sama | `: Update` | Isian kurang → pesan per baris dari `VR-WFP-03`, `VR-WFP-04` |
+| Metode | Tiga pilihan; Analisis Beban Kerja **tidak** muncul sebagai pilihan | `GET .../staffing-standards/filters/metadata` | — | — |
+| Rekomendasi | Angka dan rinciannya | `GET .../staffing-standards/{id}/recommendation` | `: Read` | Angka beban belum diisi → "angka beban belum diisi" beserta tautan ke `FE-HRD-100` |
+| Riwayat persetujuan | Langkah dan penyetuju | Detail instance workflow yang sudah ada | `ApprovalInbox : Read` | — |
+
+#### 12.3.3 `FE-HRD-105` — Penyusun dan Detail Rencana
+
+```text
++- Rencana RMP-HRD-000003 - Tahun 2027 (Addendum 01) --------- FE-HRD-105 -+
+| Submitted - menunggu Finance     tanggal acuan 01-01-2027                 |
+| [Simpan] [Hitung ulang] [Ajukan] [Batalkan]   [Koreksi biaya]             |
++---------------------------------------------------------------------------+
+| Unit | Jabatan | Grade | Formasi kini | Rekomendasi | Usulan | Perubahan |
+|      |         |       |              | (rincian)   |        | Alasan    |
+| Berlaku mulai | Estimasi biaya (estimasi) | Biaya perubahan           |
++---------------------------------------------------------------------------+
+| Total estimasi: Rp …   Koreksi Finance: Rp … ("ditambah tunjangan …")    |
+| Potret gap saat diajukan  |  angka sekarang                              |
++---------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Tombol penyusun | Simpan, Hitung ulang, Ajukan, Batalkan | — | `WorkforceManpowerPlan : Update`, `: Submit`, `: Cancel` | Hanya pada `Draft`/`Returned`; rencana `Approved` hanya baca dan menampilkan tombol "Buat addendum" (`: Create`) |
+| Koreksi biaya | Isian angka dan alasan | `POST .../finance-adjustment` | `WorkforcePlanningCost : Adjust` | Hanya tampil bagi penyetuju langkah Finance yang sedang aktif |
+| Kolom biaya | Estimasi, berlabel "estimasi", dengan rincian "2 × gaji tengah grade III × 9 bulan" | `GET .../manpower-plans/{id}` | `WorkforcePlanningCost : Read` | Tidak berhak → "Biaya tidak ditampilkan untuk peran Anda."; tarif tidak ada → "tarif belum tersedia" |
+| Potret | Angka saat diajukan berdampingan dengan angka sekarang | `GET .../manpower-plans/{id}/gap-snapshots` dan `GET .../staffing-gaps` | `WorkforceStaffingGap : Read` | — |
+
+#### 12.3.4 `FE-HRD-107` — Form dan Detail Permintaan Headcount
+
+```text
++- Permintaan HC-2027-014 - ICU, Perawat Pelaksana ------------ FE-HRD-107 -+
+| ReadyForRecruitment   di luar formasi   1 dari 2 kursi terisi   [lewat batas]|
+| [Ajukan] [Tarik kembali] [Ubah rencana pemenuhan] [Batalkan kursi]         |
++---------------------------------------------------------------------------+
+| Sisa kursi saat ini: 0,5 (formasi 30 - terisi 28,5 - permintaan lain 1)  |
++---------------------------------------------------------------------------+
+| Kursi | Porsi | Sumber | Status | Digantikan | Dipenuhi oleh | [Tautkan]  |
++---------------------------------------------------------------------------+
+| Potret saat diajukan 3,5 | sekarang 2,5      | Estimasi biaya (estimasi) |
+| Riwayat: perubahan rencana pemenuhan, pembatalan, persetujuan            |
++---------------------------------------------------------------------------+
+```
+
+| Wilayah | Isi | Sumber data | Butir hak akses | Bila kosong atau gagal |
+| --- | --- | --- | --- | --- |
+| Kepala | Nomor, unit, jabatan, jenis, status, penanda melebihi formasi dan lewat batas | `GET .../headcount-requests/{id}` | `WorkforceHeadcountRequest : Read` | — |
+| Sisa kursi | Angka langsung beserta rinciannya | `GET .../headcount-requests/remaining-seats` | `: Read` | Formasi belum ada → "Unit ini belum punya formasi; permintaan diproses sebagai di luar formasi." |
+| Tombol | Ajukan, Tarik kembali, Ubah rencana pemenuhan, Batalkan kursi | — | `: Submit`, `: Withdraw`, `: ChangeFulfilmentPlan`, `: RequestCancellation` | Disembunyikan bila tidak berhak atau statusnya tidak mengizinkan |
+| Kursi | Daftar kursi; tombol Tautkan dan Lepas per kursi | Sama | `: LinkFulfilment` | Kursi `Frozen` diberi keterangan "dibekukan sesudah addendum" |
+| Biaya | Estimasi dan koreksi Finance | Sama | `WorkforcePlanningCost : Read` | Tidak berhak → kalimat VR-WFP-37 |
+
+#### 12.3.5 Layar daftar dan layar sederhana
+
+`FE-HRD-98`, `FE-HRD-100`, `FE-HRD-101`, `FE-HRD-102`, `FE-HRD-104`, `FE-HRD-106`, dan `FE-HRD-108`
+mengikuti **Pola A** bagian 4.1. Yang khas per layar:
+
+| Layar | Kolom inti | Bunyi keadaan kosong | Yang khas |
+| --- | --- | --- | --- |
+| `FE-HRD-98` | Unit, versi, status, berlaku mulai, berlaku sampai | "Belum ada standar untuk saringan ini." | Tombol "Buat versi baru" (`WorkforceStaffingStandard : Create`) |
+| `FE-HRD-100` | Unit, jabatan, periode, angka, sumber | "Belum ada angka beban untuk periode ini." | Isian langsung di layar ini (`: Create`, `: Update`) |
+| `FE-HRD-101` | Unit, jabatan, formasi, berlaku mulai, dokumen sumber | "Belum ada formasi. Isi lewat Batch Formasi Awal." | **Tanpa** tombol tambah, ubah, atau hapus. Klik baris membuka riwayat versi |
+| `FE-HRD-102` | Nomor batch, dokumen sumber, status, jumlah baris valid/tidak valid | "Belum ada batch formasi awal." | Tombol "Ajukan" pada detail `FE-HRD-103` nonaktif selama ada baris tidak valid atau scan belum diunggah |
+| `FE-HRD-104` | Nomor, jenis, tahun, status, total estimasi | "Belum ada rencana untuk tahun ini." | Kolom total biaya hanya bagi pemegang `WorkforcePlanningCost : Read` |
+| `FE-HRD-106` | Nomor, unit, jabatan, jenis, status, kursi terisi/total | "Belum ada permintaan pada saringan ini." | Saringan "lewat batas" dan "melebihi formasi" |
+| `FE-HRD-108` | Nomor permintaan, unit, jabatan, kursi, tanggal dibutuhkan | "Tidak ada kursi yang menunggu direkrut." | **Tanpa** kolom biaya |
+| `FE-HRD-109` | Dua isian angka dan alasan | — | Simpan hanya `WorkforcePlanningSetting : Update` |
+
+### 12.4 Aksi per peran
+
+Diturunkan dari `contracts/permission-audit-matrix.md` bagian 11.2.
+
+| Peran | Layar yang terlihat | Aksi |
+| --- | --- | --- |
+| HR Admin | Seluruh layar kecuali aksi khusus HR Manager | Menyusun standar, batch, rencana; menautkan pemenuhan |
+| HR Manager | Seluruh layar | Ditambah mengubah rencana pemenuhan dan pengaturan; menyetujui lewat kotak masuk |
+| Kepala Unit | Gap, permintaan, standar, angka beban, formasi, rencana — **unitnya sendiri** | Mengajukan permintaan dan standar; mengisi angka beban |
+| Finance / Anggaran | Rencana, permintaan, gap | Koreksi biaya pada langkah Finance |
+| Direktur | Standar, rencana, permintaan, gap | Mengesahkan lewat kotak masuk |
+| Recruiter | Antrean Rekrutmen | Menautkan pemenuhan |
+| Auditor | Seluruh layar baca | Tidak ada |
+
+### 12.5 Penanganan keadaan yang khas `S-D1`
+
+Bagian 7 berlaku seluruhnya. Tambahannya:
+
+| Keadaan | Perlakuan yang mengikat |
+| --- | --- |
+| Data belum tersedia | Nilai `null` dari backend **MUST** tampil "data belum tersedia", **MUST NOT** diubah menjadi 0 di sisi layar (`UNKNOWN_IS_NOT_ZERO`) |
+| Angka berubah sejak diajukan | Layar detail dokumen yang sedang disetujui menampilkan angka potret dan angka sekarang berdampingan (`SUBMITTED_VS_CURRENT`) |
+| Dua petugas menyunting draf yang sama | `409` → "Dokumen ini sudah diubah orang lain. Muat ulang sebelum menyimpan." Isian yang belum tersimpan tidak dibuang diam-diam |
+| Pengiriman ganda | Tombol Ajukan, Tautkan, dan Batalkan kursi dinonaktifkan selama permintaan berjalan |
+| Sesudah aksi | Mengajukan permintaan memuat ulang gap dan sisa kursi; menautkan kursi memuat ulang antrean Recruiter |
+| Biaya | Angka biaya **MUST** selalu berlabel "estimasi" dan tidak disimpan di penyimpanan sisi klien |
+
+### 12.6 Kewenangan UI `S-D1`
+
+Bagian 8 berlaku seluruhnya. Yang khas:
+
+| Keputusan | Wewenang |
+| --- | --- |
+| Tiga belas layar, route, dan jalan masuknya | Dokumen ini |
+| Formasi tanpa tombol ubah | Mengikat — `HRD-DEC-062` |
+| Nilai `null` sebagai "data belum tersedia" | Mengikat — `HRD-DEC-061` |
+| Penyusun standar dan rencana sebagai satu layar berbagian atau berlangkah | `DEV_DISCRETION` |
+| Nama grup dan butir menu, termasuk pengganti nama "Kebutuhan Tenaga Kerja" | `OPEN` — pemilik produk, `HRD-FE-04` |
+
+### 12.7 Ketergantungan test
+
+| Uji | Bergantung pada |
+| --- | --- |
+| Unit test service frontend `S-D1` dengan pola `tests/unit/workforce-core-cross-employee.test.mjs` | Kontrak `api-contract.md` bagian 13 |
+| Uji tampilan gap dengan data belum lengkap | Database dev dengan pengaturan perencanaan kosong |
+| Uji alur persetujuan | Matriks persetujuan, jabatan direktur, dan definisi `T9` s.d. `T13` terisi |

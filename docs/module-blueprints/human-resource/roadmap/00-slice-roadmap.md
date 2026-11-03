@@ -61,7 +61,7 @@ beserta kelas keberlakuannya: `NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATI
 | `HRD-PH-004` | `S-B5` | `READY` sebagian |
 | `HRD-PH-005` | `S-C1` | `BLOCKED` |
 | `HRD-PH-006` | `S-C6` | `BLOCKED` |
-| `HRD-PH-007` | `S-D1` s.d. `S-D5` | `BLOCKED` |
+| `HRD-PH-007` | `S-D1` s.d. `S-D5` | `READY` untuk `S-D1`: desain disetujui dan task direncanakan 3 November 2026 (`backend-roadmap.md` dan `frontend-roadmap.md` revision `5`); `S-D2` s.d. `S-D4` `BLOCKED`; `S-D5` `DEFERRED` |
 | `HRD-PH-008` | `S-C2` s.d. `S-C5` | `READY` |
 | `HRD-PH-009` | `S-E` | **Bukan fase yang dijadwalkan.** Aturan lintas-slice yang berlaku sepanjang implementasi |
 
@@ -519,7 +519,7 @@ kelayakan kerja tanpa isi medis.
 | **QBE Impact** | `QBE-DB-001` audit dependency fisik sebelum rename atau perubahan. `QBE-DB-002` dilarang `DROP` lalu `CREATE` bila perubahan yang mempertahankan data masih aman. `QBE-MOD-002` entity operasional baru wajib memakai prefix `Hrd` sesuai `HRD-DEC-019` |
 | **Migration Risk** | **Tinggi.** Ini satu-satunya kelompok slice yang berpotensi menghasilkan migration destruktif |
 | **Acceptance Criteria** | Tidak ditetapkan. Kriteria yang berlaku sekarang: **tidak ada migration destruktif yang boleh direncanakan sebelum isi tabel diketahui** |
-| **Release Status** | `S-D1` s.d. `S-D4` `BLOCKED`. `S-D5` `DEFERRED` — secara teknis sama, tetapi prioritasnya paling rendah, dan tetap tidak boleh jalan sebelum `HRD-Q-05` |
+| **Release Status** | **`S-D1` `READY` sejak 3 November 2026; desain disetujui dan task direncanakan pada hari yang sama** (`BE-HRD-017`, `BE-HRD-029` s.d. `BE-HRD-051`, `FE-HRD-029` s.d. `FE-HRD-043`) — `HRD-Q-05` ditutup untuk sepuluh tabel `WorkforcePlanning` lewat `HRD-DEC-059`, dijaga `EMPTY_TABLE_GUARD`; bukti pada `01-prerequisite-readiness.md` bagian 4; keputusan bisnis `HRD-DEC-058` s.d. `HRD-DEC-071`. `S-D2` s.d. `S-D4` `BLOCKED`. `S-D5` `DEFERRED` — secara teknis sama, tetapi prioritasnya paling rendah, dan tetap tidak boleh jalan sebelum `HRD-Q-05` |
 
 Satu pengecualian yang wajib diingat: `MstWorkforceRequirement` milik `WorkforcePlanning`
 **sudah** dilayani `WorkforceRequirementController` dan sudah dipakai frontend lewat
@@ -620,9 +620,9 @@ Contoh supaya batasnya jelas:
 
 | Release Status | Jumlah slice | Slice |
 | --- | ---: | --- |
-| `READY` | **18** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-B1` s.d. `S-B4` (4), `S-C2` s.d. `S-C5` (4), `S-E` (1) |
+| `READY` | **19** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-B1` s.d. `S-B4` (4), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1, sejak 3 November 2026) |
 | `PARTIAL` | 1 | `S-B5` |
-| `BLOCKED` | 6 | `S-C1`, `S-C6`, `S-D1`, `S-D2`, `S-D3`, `S-D4` |
+| `BLOCKED` | 5 | `S-C1`, `S-C6`, `S-D2`, `S-D3`, `S-D4` |
 | `DEFERRED` | 1 | `S-D5` |
 | **Total** | **26** | |
 
