@@ -1118,7 +1118,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             {
                 // RegQueue sementara hanya membawa Id untuk nama berkas cache; tidak disimpan.
                 var voiceKey = new RegQueue { Id = ticketId, QueueCode = displayNumber };
-                var text = $"Nomor antrean {SpellDisplayNumber(displayNumber)}. Silakan menuju {counterName ?? "loket admisi"}.";
+                var text = _queueVoiceService.BuildAdmissionCallText(displayNumber, counterName);
 
                 return await _queueVoiceService.GetOrCreateQueueCallAudioAsync(
                     voiceKey,
@@ -1131,15 +1131,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 // Suara hanya pelengkap; panggilan tetap sah tanpa audio.
                 return null;
             }
-        }
-
-        /// <summary><c>A-015</c> dibaca "A, 15" agar mesin suara tidak mengeja tanda hubung.</summary>
-        private static string SpellDisplayNumber(string displayNumber)
-        {
-            var parts = displayNumber.Split('-', 2);
-            return parts.Length == 2 && int.TryParse(parts[1], out var number)
-                ? $"{string.Join(" ", parts[0].ToCharArray())}, {number}"
-                : displayNumber;
         }
 
         private static IQueryable<AdmissionTicketListItemResponse> ProjectListItems(IQueryable<RegAdmissionTicket> source) =>
