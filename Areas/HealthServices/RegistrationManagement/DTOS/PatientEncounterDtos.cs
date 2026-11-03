@@ -540,6 +540,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         /// Prioritas berstatus Sudah Tiba. Hanya diterima di <c>POST /admin</c>; kiosk menolaknya.
         /// </summary>
         public Guid? PriorityReservationId { get; set; }
+
+        /// <summary>
+        /// rawat-jalan Cetak Antrean Admisi v1.1 (bagian 8.3): tiket admisi berstatus Dilayani yang
+        /// menjadi asal registrasi ini. Ditautkan dan ditandai Selesai di transaksi kunjungan yang
+        /// sama. Hanya diterima di <c>POST /admin</c>; kiosk menolaknya.
+        /// </summary>
+        public Guid? AdmissionTicketId { get; set; }
     }
 
     /// <summary>
@@ -618,6 +625,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public EncounterReferralCreatedResponse? Referral { get; set; }
 
         public bool IsFutureVisit { get; set; }
+
+        /// <summary>Tiket admisi yang tertaut ke kunjungan ini; null bila tidak dari antrean admisi.</summary>
+        public Guid? AdmissionTicketId { get; set; }
+
+        /// <summary>Nomor admisi yang tertaut, contoh <c>A-015</c>.</summary>
+        public string? AdmissionTicketDisplayNumber { get; set; }
 
         public bool IsQueueCreated { get; set; }
 

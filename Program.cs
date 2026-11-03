@@ -539,6 +539,17 @@ try
             $"{OutpatientQueueNumberOptions.MinimumPriorityNumberMultiple}.")
         .ValidateOnStart();
 
+    // rawat-jalan Cetak Antrean Admisi v1.1 — tiket antrean admisi anonim dari kiosk, Daftar
+    // Antrean Admisi, dan display admisi. Nomor admisi dari NumberSeriesAllocator (QBE-CODE-006).
+    builder.Services.AddOptions<AdmissionQueueOptions>()
+        .Bind(builder.Configuration.GetSection(AdmissionQueueOptions.SectionName))
+        .Validate(
+            options => options.IsValid(),
+            $"{AdmissionQueueOptions.SectionName}: kode dan awalan kelompok aktif wajib unik, awalan 1-5 huruf, " +
+            "dan kode loket aktif wajib unik.")
+        .ValidateOnStart();
+    builder.Services.AddScoped<AdmissionTicketService>();
+
     // BE-KSK-001 — Cek Nomor Rekam Medis dari Kiosk (baca-saja).
     builder.Services.AddScoped<KioskPatientLookupService>();
 
@@ -911,6 +922,10 @@ try
     // validasi dan persistence tetap di luar controller serta memakai NumberSeriesAllocator
     // untuk kode DRG-RSMMC yang atomik dan durabel.
     builder.Services.AddScoped<DrugRegistrationService>();
+
+    // Kode display antrian QDD-RSMMC dialokasikan service ini lewat NumberSeriesAllocator,
+    // bukan oleh QueueDisplayDeviceController (QBE-CODE-002/006).
+    builder.Services.AddScoped<QueueDisplayDeviceCodeService>();
 
     // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
@@ -1763,6 +1778,64 @@ try
             result.Skipped);
     }
 
+    static async Task SeedPharmacyOpeningStockAsync(
+        IServiceProvider services,
+        IHostEnvironment environment,
+        CancellationToken cancellationToken = default)
+    {
+        await using var scope = services.CreateAsyncScope();
+
+        var dbContext = scope.ServiceProvider
+            .GetRequiredService<ApplicationDbContext>();
+
+        var logger = scope.ServiceProvider
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("PharmacyOpeningStockSeeder");
+
+        var systemUserId = await dbContext.Users
+            .AsNoTracking()
+            .Where(x =>
+                x.NormalizedUserName == "SUPERADMIN" ||
+                x.NormalizedEmail == "SUPERADMIN@ADMIN.COM")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (systemUserId == Guid.Empty)
+        {
+            throw new InvalidOperationException(
+                "Seeder stok Farmasi Rawat Jalan membutuhkan akun SuperAdmin.");
+        }
+
+        var result = await PharmacyOpeningStockSeeder.SeedAsync(
+            dbContext,
+            environment.EnvironmentName,
+            systemUserId,
+            ct: cancellationToken);
+
+        if (result.RefusedReason is not null)
+        {
+            logger.LogWarning("[PharmacyOpeningStock] {Reason}", result.RefusedReason);
+            return;
+        }
+
+        if (result.UnknownDrugCodes.Count > 0 || result.ExpiryConflicts.Count > 0)
+        {
+            logger.LogWarning(
+                "[PharmacyOpeningStock] Dilewati: {Unknown} kode obat tidak dikenal, {Conflict} batch berbeda kedaluwarsa.",
+                result.UnknownDrugCodes.Count,
+                result.ExpiryConflicts.Count);
+        }
+
+        logger.LogInformation(
+            "Seeder stok Farmasi Rawat Jalan selesai. Saldo baru {Balances}, batch baru {Batches}, " +
+            "kartu stok {Mutations}, dilewati {Skipped}, tautan Rawat Jalan {Linked}.",
+            result.BalancesCreated,
+            result.BatchesCreated,
+            result.MutationsCreated,
+            result.Skipped,
+            result.LinkedServiceUnit);
+    }
+
     static async Task SeedOperatingRoomDemoAsync(
         IServiceProvider services,
         IHostEnvironment environment,
@@ -2353,6 +2426,18 @@ try
             await RunStartupSeederAsync(
                 "DrugStorageLocationSeeder",
                 () => SeedDrugStorageLocationsAsync(app.Services));
+        }
+
+        // Sesudah DrugStorageLocationSeeder karena saldonya ditempatkan di GDG-023 (RJ-DOC-DEC-091).
+        var runPharmacyOpeningStockSeed =
+            builder.Configuration.GetValue<bool>(
+                "Seeders:RunPharmacyOpeningStockSeed");
+
+        if (runPharmacyOpeningStockSeed)
+        {
+            await RunStartupSeederAsync(
+                "PharmacyOpeningStockSeeder",
+                () => SeedPharmacyOpeningStockAsync(app.Services, app.Environment));
         }
 
         // Seed Awal Saja

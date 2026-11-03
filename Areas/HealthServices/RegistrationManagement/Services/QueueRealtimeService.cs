@@ -67,6 +67,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return $"{QueueDisplayClusterGroupPrefix}:{nurseStationClusterId:D}";
         }
 
+        /// <summary>Event tiket antrean admisi (rawat-jalan Cetak Antrean Admisi v1.1).</summary>
+        public const string AdmissionQueueEventName = "AdmissionQueueChanged";
+
+        /// <summary>Group Daftar Antrean Admisi untuk pemegang <c>AdmissionQueue : Read</c>.</summary>
+        public const string AdmissionQueueBoardGroupName = "admission-queue-board";
+
+        /// <summary>Group display antrean admisi publik; payload tanpa identitas pasien (bagian 8.5).</summary>
+        public const string AdmissionQueueDisplayGroupName = "admission-queue-display";
+
+        /// <summary>
+        /// Kabar perubahan tiket admisi ke daftar petugas dan display. Payload hanya nomor admisi,
+        /// loket, dan status — tidak pernah identitas pasien maupun nomor antrean poli internal.
+        /// Upaya terbaik: kegagalan kirim hanya dicatat.
+        /// </summary>
+        public async Task NotifyAdmissionTicketChangedAsync(
+            RegAdmissionTicket ticket,
+            string eventCode,
+            string? audioUrl,
+            DateTime occurredAtUtc)
+        {
+            var payload = new AdmissionQueueRealtimeEventResponse
+            {
+                TicketId = ticket.Id,
+                ServiceDate = ticket.ServiceDate,
+                DisplayNumber = ticket.DisplayNumber,
+                QueueGroupCode = ticket.QueueGroupCode,
+                CounterName = ticket.CounterName,
+                Status = ticket.Status,
+                EventCode = eventCode,
+                CallAttemptCount = ticket.CallAttemptCount,
+                AudioUrl = audioUrl,
+                OccurredAt = occurredAtUtc
+            };
+
+            try
+            {
+                await _hubContext.Clients
+                    .Groups(AdmissionQueueBoardGroupName, AdmissionQueueDisplayGroupName)
+                    .SendAsync(AdmissionQueueEventName, payload);
+            }
+            catch (Exception exception)
+            {
+                Serilog.Log.Error(
+                    exception,
+                    "Kabar realtime antrean admisi gagal dikirim. EntityId={EntityId}; Event={EventCode}.",
+                    ticket.Id,
+                    eventCode);
+            }
+        }
+
         /// <summary>Event daftar Reservasi Prioritas di layar admisi (RJ-PRI-DEC-014, 026).</summary>
         public const string PriorityReservationEventName = "PriorityReservationChanged";
 
