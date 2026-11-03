@@ -936,6 +936,9 @@ namespace QuilvianSystemBackend.Repositories
         // rawat-jalan Amendment RP (BE-RJP-005) — Reservasi Pasien Prioritas.
         public DbSet<RegPriorityReservation> RegPriorityReservations { get; set; }
         public DbSet<RegPriorityReservationHistory> RegPriorityReservationHistories { get; set; }
+        // rawat-jalan Cetak Antrean Admisi v1.1 — tiket antrean admisi anonim dari kiosk.
+        public DbSet<RegAdmissionTicket> RegAdmissionTickets { get; set; }
+        public DbSet<RegAdmissionTicketHistory> RegAdmissionTicketHistories { get; set; }
         public DbSet<RegEncounterReferral> RegEncounterReferrals { get; set; }
         public DbSet<RegEncounterReferralDocument> RegEncounterReferralDocuments { get; set; }
         public DbSet<RegEncounterReferralRevision> RegEncounterReferralRevisions { get; set; }

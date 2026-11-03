@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     public class QueueDisplayDeviceResponse
     {
         public Guid Id { get; set; }
-        public Guid NurseStationClusterId { get; set; }
+        public Guid? NurseStationClusterId { get; set; }
         public string? ClusterCode { get; set; }
         public string? ClusterName { get; set; }
         public Guid? ServiceUnitId { get; set; }
@@ -63,7 +63,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
     public class QueueDisplayDeviceOptionResponse
     {
         public Guid Id { get; set; }
-        public Guid NurseStationClusterId { get; set; }
+        public Guid? NurseStationClusterId { get; set; }
         public string? ClusterName { get; set; }
         public string DisplayCode { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
@@ -181,8 +181,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
 
     public class CreateQueueDisplayDeviceRequest
     {
-        [Required]
-        public Guid NurseStationClusterId { get; set; }
+        /// <summary>Wajib untuk layout display poli; kosong untuk layout Admisi Rawat Jalan.</summary>
+        public Guid? NurseStationClusterId { get; set; }
         public Guid? ServiceUnitId { get; set; }
         [Required]
         [MaxLength(150)]
@@ -269,7 +269,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.DTOs
         public string DeviceCode { get; set; } = string.Empty;
         public string DeviceName { get; set; } = string.Empty;
 
-        public Guid NurseStationClusterId { get; set; }
+        public Guid? NurseStationClusterId { get; set; }
         public string? ClusterName { get; set; }
         public Guid? ServiceUnitId { get; set; }
         public string? ServiceUnitName { get; set; }

@@ -80,6 +80,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 ShowClinicName = device.ShowClinicName,
                 QueueAudienceMode = device.QueueAudienceMode,
                 RefreshIntervalSeconds = device.RefreshIntervalSeconds,
+                LayoutType = device.LayoutType,
                 ServerDateTime = DateTime.UtcNow
             };
 
@@ -308,8 +309,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 .FirstOrDefaultAsync(x => !x.IsDelete && x.IsActive && x.DisplayCode.ToUpper() == userCode);
         }
 
-        private async Task<List<Guid>> GetClinicIdsByClusterIdAsync(Guid clusterId)
+        /// <summary>Perangkat tanpa cluster (layout Admisi Rawat Jalan) tidak memiliki poli.</summary>
+        private async Task<List<Guid>> GetClinicIdsByClusterIdAsync(Guid? clusterId)
         {
+            if (!clusterId.HasValue || clusterId.Value == Guid.Empty)
+            {
+                return new List<Guid>();
+            }
+
             return await _dbContext.Set<MstNurseStationClusterClinic>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete && x.IsActive && x.NurseStationClusterId == clusterId)
