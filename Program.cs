@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -48,6 +49,8 @@ using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalFeeManagement.FeeCalculation.Services;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
@@ -57,6 +60,7 @@ using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services.Sources;
@@ -670,6 +674,14 @@ try
     builder.Services.AddScoped<MedicalRecordAccessReviewService>();
     builder.Services.AddScoped<MedicalRecordTimelineService>();
 
+    // BE-39 / RM-DEC-045, 046. Penilaian kelengkapan berkas per kunjungan. Penutupan klinis hanya
+    // menaruh id kunjungan di antrean memori; worker menilainya di luar transaksi penutupan.
+    builder.Services.AddScoped<MedicalRecordCompletenessService>();
+    builder.Services.AddSingleton<MedicalRecordCompletenessQueue>();
+    builder.Services.AddHostedService<MedicalRecordCompletenessQueueWorker>();
+    // BE-40 / GAP-ARCH-RM-04. Pemeriksaan berkala kunjungan yang belum lengkap (A4.13).
+    builder.Services.AddHostedService<MedicalRecordCompletenessRecheckHostedService>();
+
     // Pembaca sumber berkas rekam medis (INT-RM-10). Satu instance per scope dipakai untuk kedua
     // kontraknya, supaya pembaca dokumen dan pembaca uji kelengkapan tidak berbeda pendapat.
     // BE-22: ringkasan pencatatan berkala ClinicalManagement, milik rekam medis sendiri.
@@ -687,6 +699,28 @@ try
     builder.Services.AddScoped<McuMedicalRecordDocumentSource>();
     builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<McuMedicalRecordDocumentSource>());
     builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<McuMedicalRecordDocumentSource>());
+    // BE-30: Rawat Inap, persetujuan pemilik RM-DEC-069.
+    builder.Services.AddScoped<InpMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<InpMedicalRecordDocumentSource>());
+    // BE-35: Farmasi, persetujuan pemilik RM-DEC-075. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, PhmMedicalRecordDocumentSource>();
+    // BE-34: Bank Darah, persetujuan pemilik proses BDRS RM-DEC-074. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, BbkMedicalRecordDocumentSource>();
+    // BE-33: Gizi, persetujuan pemilik RM-DEC-073. Tanpa kriteria kelengkapan, jadi bukan pembaca uji.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, GziMedicalRecordDocumentSource>();
+    // BE-32: Hemodialisa, persetujuan pemilik RM-DEC-072.
+    builder.Services.AddScoped<HmdMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<HmdMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<HmdMedicalRecordDocumentSource>());
+    // BE-31: Kamar Operasi, persetujuan pemilik RM-DEC-071.
+    builder.Services.AddScoped<OprMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<OprMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<OprMedicalRecordDocumentSource>());
+    // BE-29: IGD, persetujuan pemilik RM-DEC-067.
+    builder.Services.AddScoped<EmgMedicalRecordDocumentSource>();
+    builder.Services.AddScoped<IMedicalRecordDocumentSource>(sp => sp.GetRequiredService<EmgMedicalRecordDocumentSource>());
+    builder.Services.AddScoped<IMedicalRecordCompletenessProbe>(sp => sp.GetRequiredService<EmgMedicalRecordDocumentSource>());
 
     // Patient Management — rekonsiliasi MRN Pilot RSMMC (BE-PAT-MIG-001), sementara, khusus Staging
     builder.Services.AddSingleton(RsmmcPilotApprovedBatchProfile.Canonical);
@@ -892,6 +926,9 @@ try
     // mengisinya tanpa meminta perubahan kode.
     builder.Services.AddScoped<MedicalRecordAccessPurposeService>();
 
+    // BE-37 / RM-DEC-045. Master profil dokumen wajib kelengkapan berkas rekam medis.
+    builder.Services.AddScoped<MedicalRecordCompletenessProfileService>();
+
     // BE-RWI-055 / FR-KEP-010. Master batas waktu pengkajian beserta pemilihan kebijakan
     // yang berlaku saat pengkajian dibuat. Dipakai layar master dan jalur pembuatan
     // pengkajian; selama masternya kosong tidak satu pun pengkajian dinyatakan terlambat.
@@ -962,6 +999,8 @@ try
     builder.Services.AddScoped<McuResumeService>();
     builder.Services.AddScoped<McuDeliveryService>();
 
+    builder.Services.AddScoped<NvwDisplayDeviceService>();
+
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
     // sehingga pencacahnya bertahan walau transaksi bisnis pemanggil dibatalkan (DEC-PLT-008).
@@ -1016,6 +1055,10 @@ try
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitDependentService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitEligibilityService>();
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitBalanceService>();
+    // Laporan HR baca-saja "Piutang Benefit Pegawai" (AR Karyawan dari Billing); nilai finansial tetap milik Finance.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitReceivableReportService>();
+    // Persetujuan penutupan benefit RS internal oleh HRD.
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.HrdBenefitSettlementApprovalService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();
@@ -1223,11 +1266,28 @@ try
     builder.Services.AddScoped<PettyCashVoucherService>();
     builder.Services.AddScoped<PettyCashBudgetService>();
 
+    // ============================================================
+    // MEDICAL FEE MANAGEMENT
+    // ============================================================
+    builder.Services.AddScoped<MedicalFeeRoleService>();
+    builder.Services.AddScoped<MedicalFeeSharingService>();
+    builder.Services.AddScoped<MedicalFeeSharingRuleMatcher>();
+    builder.Services.AddScoped<MedicalFeeServiceSourceAdapter>();
+    builder.Services.AddScoped<MedicalFeeCalculationService>();
+    builder.Services.AddScoped<MedicalFeePeriodService>();
+    builder.Services.AddScoped<MedicalFeeAdjustmentService>();
+    builder.Services.AddScoped<MedicalFeeHandoffService>();
+    builder.Services.AddScoped<MedicalFeeAccessGuard>();
+
     // Registrasi kanonik Billing/Kasir/Petty Cash/Finance. Wajib dipanggil: hanya di sini
     // BilConsumerHandoffService, service Finance, dan options penomoran didaftarkan. Diletakkan
     // setelah registrasi manual di atas supaya adapter payment provider berbasis konfigurasi
     // (Billing:PaymentProvider:AutoAcceptWithoutProvider) yang berlaku.
     builder.Services.AddBillingManagement();
+
+    // BE-MDF-016: Resolusi persentase bagi hasil dokter untuk Billing (MDF-INTEGRATION-1.1 §4, BKC-DEC-169, MDF-DES-019).
+    // Menggantikan implementasi bawaan NullBillingDoctorShareResolver dari AddBillingManagement().
+    builder.Services.Replace(ServiceDescriptor.Scoped<IBillingDoctorShareResolver, MedicalFeeDoctorShareResolver>());
 
     // BE-FIN-074: dua kunci konfigurasi bukti pembayaran langsung (FIN-DES-092). Diregistrasi
     // tanpa syarat (bukan di dalam blok runBackgroundJobs) karena dikonsumsi endpoint HTTP
@@ -1286,6 +1346,14 @@ try
         builder.Services.Configure<FinanceCashierShiftMarkerSchedulerOptions>(
             builder.Configuration.GetSection("Finance:CashierShiftMarkerScheduler"));
         builder.Services.AddHostedService<FinanceCashierShiftMarkerSchedulerHostedService>();
+        // Intake otomatis AR Karyawan (EMPLOYEE_BENEFIT) Finance. Dibangun mati: Enabled = false adalah nilai bawaan
+        // FinanceEmployeeBenefitArIntakeSchedulerOptions. Hanya menemukan dan mengolah handoff AR Karyawan yang sudah
+        // melewati masa tunggu, lewat FinanceBillingIntakeService.ProcessAsync yang sudah ada; jenis fakta lain tetap manual.
+        builder.Services.AddScoped<IBillingIntakeProcessor, BillingIntakeProcessor>();
+        builder.Services.AddScoped<FinanceEmployeeBenefitArAutoIntakeService>();
+        builder.Services.Configure<FinanceEmployeeBenefitArIntakeSchedulerOptions>(
+            builder.Configuration.GetSection("Finance:EmployeeBenefitArIntakeScheduler"));
+        builder.Services.AddHostedService<FinanceEmployeeBenefitArIntakeSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveAccrualSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
         builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
@@ -2239,6 +2307,11 @@ try
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah
         // diubah admin tidak ditimpa.
         await RunStartupSeederAsync("McuReferenceDataSeeder", () => McuReferenceDataSeeder.SeedAsync(app.Services));
+
+        // RM-BP-001, BE-37. Sebelas profil dokumen wajib awal (A4.8) — bukan SOP rumah sakit
+        // (RM-DEC-047). Idempoten; profil yang sudah diubah petugas rekam medis tidak ditimpa.
+        await RunStartupSeederAsync("MedicalRecordCompletenessProfileSeeder",
+            () => MedicalRecordCompletenessProfileSeeder.SeedAsync(app.Services));
 
         // Gerbang integritas permission (Phase A0).
         //

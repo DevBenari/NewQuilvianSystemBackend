@@ -365,6 +365,105 @@ public sealed class WorkforceBenefitOwnerAcceptanceTests : IDisposable
         Assert.False(string.IsNullOrWhiteSpace(result.Response.BenefitOwnerName));
     }
 
+    // ------------------------------------------------------------------ AR Karyawan: batas penawaran di Menu Pembayaran
+
+    private async Task<(BilInvoice Invoice, BilCalculationVersion Calculation, BillingEmployeeBenefitSplitService Split)> SeedArOfferCaseAsync(
+        decimal allowance, decimal covered, string relationship = BenefitRelationshipCodes.Self)
+    {
+        var (profileId, _) = AddDoctor(limit: allowance);
+        var encounterId = Guid.NewGuid();
+        var invoice = new BilInvoice
+        {
+            Id = Guid.NewGuid(), EncounterId = encounterId, InvoiceNumber = $"UJI-AR-{Guid.NewGuid():N}"[..14],
+            ServiceType = "OUTPATIENT", Status = "OPEN", RowVersion = Guid.NewGuid(), CreateDateTime = DateTime.UtcNow
+        };
+        _db.Set<BilInvoice>().Add(invoice);
+        _db.Set<RegPatientEncounterGuarantor>().Add(new RegPatientEncounterGuarantor
+        {
+            PaymentSourceNumber = $"UJI-PS-{Guid.NewGuid():N}"[..14], EncounterId = encounterId, PatientId = Guid.NewGuid(),
+            PaymentType = EncounterPaymentType.CompanyGuarantor, IsActive = true, IsPrimary = true, Priority = 1,
+            EmployeeIdSnapshot = null, WorkforceProfileIdSnapshot = profileId,
+            BenefitRelationshipSnapshot = relationship, CreateDateTime = DateTime.UtcNow
+        });
+        await _db.SaveChangesAsync();
+
+        var calculation = new BilCalculationVersion
+        {
+            InvoiceId = invoice.Id, GrossAmount = covered + 100_000m, PrimaryAmount = covered, ExcessAmount = 0m,
+            PatientAmount = 100_000m, Reason = "uji", BreakdownSnapshot = "{}", CalculatedAt = DateTimeOffset.UtcNow
+        };
+        var split = new BillingEmployeeBenefitSplitService(_db, _balance, _logger, _eligibility.OwnerResolver);
+        return (invoice, calculation, split);
+    }
+
+    [Fact]
+    public async Task BillingSplit_ArOffer_IsLimitedToExcessRemaining_AndNeverIncludesPatientPortion()
+    {
+        // C = 1.000.000, S = 600.000 -> P = 600.000, E = 400.000; K (item non-covered) = 100.000.
+        var (invoice, calculation, split) = await SeedArOfferCaseAsync(allowance: 600_000m, covered: 1_000_000m);
+
+        var preview = await split.EvaluateSplitAsync(
+            invoice, calculation, patientOutstanding: 100_000m, choiceAmount: 0m, consentGivenBy: null, isFinalizing: false,
+            cancellationToken: default);
+
+        Assert.NotNull(preview);
+        Assert.Equal(400_000m, preview!.Response.ExcessRemainingAmount);
+        Assert.Equal(100_000m, preview.Response.PatientPortionAmount);
+        Assert.Equal(500_000m, preview.Response.RemainingPatientObligation);
+        // Yang ditawarkan ke kasir hanya E sisa; seluruh K tidak pernah ikut tawaran AR.
+        Assert.Equal(400_000m, preview.Response.EmployeeArMaxAmount);
+        Assert.Equal(0m, preview.Response.EmployeeDeferredAmount);
+
+        // AR sebagian dari E: asal OVER_ALLOWANCE, sisanya dibayar langsung (tidak menyentuh batas penawaran).
+        var partial = await split.EvaluateSplitAsync(
+            invoice, calculation, patientOutstanding: 100_000m, choiceAmount: 0m, consentGivenBy: null, isFinalizing: false,
+            cancellationToken: default, financingChoice: "EMPLOYEE_BENEFIT", employeeDeferredAmount: 250_000m);
+
+        Assert.Equal(250_000m, partial!.EmployeeDeferredAmount);
+        Assert.Equal(250_000m, partial.EmployeeReceivableAmount);
+        Assert.Equal(250_000m, partial.DirectPayAmount);
+        Assert.Equal(BillingEmployeeArOrigins.OverAllowance, partial.EmployeeArOrigin);
+        Assert.Equal(400_000m, partial.Response.EmployeeArMaxAmount);
+    }
+
+    [Fact]
+    public async Task BillingSplit_ArOffer_IsZeroWhenNoExcess()
+    {
+        // C = 500.000 <= S = 600.000 -> tidak ada kelebihan plafon, jadi tidak ada yang ditawarkan sebagai AR.
+        var (invoice, calculation, split) = await SeedArOfferCaseAsync(allowance: 600_000m, covered: 500_000m);
+
+        var preview = await split.EvaluateSplitAsync(
+            invoice, calculation, patientOutstanding: 100_000m, choiceAmount: 0m, consentGivenBy: null, isFinalizing: false,
+            cancellationToken: default);
+
+        Assert.NotNull(preview);
+        Assert.True(preview!.Response.IsUsable);
+        Assert.Equal(0m, preview.Response.ExcessRemainingAmount);
+        Assert.Equal(0m, preview.Response.EmployeeArMaxAmount);
+    }
+
+    [Fact]
+    public async Task BillingSplit_ArDeferral_ForDependent_RequiresConsent_WhenFinalizing()
+    {
+        var (invoice, calculation, split) = await SeedArOfferCaseAsync(
+            allowance: 600_000m, covered: 1_000_000m, relationship: BenefitRelationshipCodes.Spouse);
+
+        var preview = await split.EvaluateSplitAsync(
+            invoice, calculation, patientOutstanding: 100_000m, choiceAmount: 0m, consentGivenBy: null, isFinalizing: false,
+            cancellationToken: default, financingChoice: "EMPLOYEE_BENEFIT", employeeDeferredAmount: 200_000m);
+        Assert.True(preview!.Response.RequiresConsent);
+
+        // Finalisasi tanpa pemberi persetujuan ditolak; dengan persetujuan lolos.
+        await Assert.ThrowsAsync<BillingFinalizationValidationException>(() => split.EvaluateSplitAsync(
+            invoice, calculation, patientOutstanding: 100_000m, choiceAmount: 0m, consentGivenBy: " ", isFinalizing: true,
+            cancellationToken: default, financingChoice: "EMPLOYEE_BENEFIT", employeeDeferredAmount: 200_000m));
+
+        var accepted = await split.EvaluateSplitAsync(
+            invoice, calculation, patientOutstanding: 100_000m, choiceAmount: 0m, consentGivenBy: "Pegawai Uji", isFinalizing: true,
+            cancellationToken: default, financingChoice: "EMPLOYEE_BENEFIT", employeeDeferredAmount: 200_000m);
+        Assert.Equal("Pegawai Uji", accepted!.ConsentGivenBy);
+    }
+
     // ------------------------------------------------------------------ AC-16: tidak ada pasien/No. RM/karyawan palsu
 
     [Fact]

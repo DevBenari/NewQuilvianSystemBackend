@@ -13,11 +13,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 
 /// <summary>
 /// Purchasing Invoice (BE-FIN-034, FIN-API-1.1 §B.4/§B.9, FIN-PERM-1.1 §B.4). `GET /` (daftar
-/// berpaging) belum ada service-nya — gap yang sama seperti controller Purchasing lain
-/// (`BE-FIN-032`/`033`). **Cancel tidak dibangun** — `api-contract.md` §B.4 tidak mendaftarkan
-/// endpoint ini sama sekali walau `state-transition-matrix.md` §B.4 mengizinkan transisi
-/// `DRAFT`/`PENDING_APPROVAL` → `CANCELLED`; acceptance criteria roadmap `BE-FIN-034` juga tidak
-/// menyebutnya. Dicatat sebagai kesenjangan dokumen, bukan diam-diam ditambah di sini.
+/// berpaging) ditambahkan `BE-FIN-122` dengan filter supplier dan status; filter rentang jatuh
+/// tempo AKTUAL (milik utang yang dibentuk invoice) ditambahkan `BE-FIN-127`. **Cancel** ditambahkan `BE-FIN-126`
+/// (26 Oktober 2026): `api-contract.md` §B.4 tidak mendaftarkan endpoint ini, tetapi
+/// `state-transition-matrix.md` §B.4 mengizinkan transisi `DRAFT`/`PENDING_APPROVAL` → `CANCELLED`.
+/// Kesenjangan kontrak itu dicatat pada roadmap `REV-22` bagian "Delta Kontrak".
 ///
 /// `Approve` dapat melempar exception dari `FinanceSupplierPayableService` (`Payable*Exception`)
 /// selain dari `Purchasing*Exception` milik submodul ini sendiri — keduanya ditangani di sini
@@ -34,10 +34,92 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
 {
     private readonly FinancePurchasingInvoiceService _service;
     private readonly PurchasingIdempotencyService _idempotency;
-    public FinancePurchasingInvoicesController(FinancePurchasingInvoiceService service, PurchasingIdempotencyService idempotency)
+    private readonly FinancePurchasingDocumentTrailService _trail;
+    private readonly FinancePurchasingIntakeQueueService _intakeQueue;
+    public FinancePurchasingInvoicesController(
+        FinancePurchasingInvoiceService service,
+        PurchasingIdempotencyService idempotency,
+        FinancePurchasingDocumentTrailService trail,
+        FinancePurchasingIntakeQueueService intakeQueue)
     {
         _service = service;
         _idempotency = idempotency;
+        _trail = trail;
+        _intakeQueue = intakeQueue;
+    }
+
+    [HttpGet]
+    [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchasingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PurchasingInvoiceListItemResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetList([FromQuery] PurchasingInvoiceQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetPagedAsync(query, cancellationToken);
+            var mapped = new PagedResult<PurchasingInvoiceListItemResponse>
+            {
+                Items = result.Items.Select(MapListItem).ToList(),
+                PageNumber = result.PageNumber,
+                PageSize = result.PageSize,
+                TotalData = result.TotalData,
+                TotalPage = result.TotalPage
+            };
+            return Ok(ApiResponse<PagedResult<PurchasingInvoiceListItemResponse>>.Ok(mapped, "Daftar Purchasing Invoice berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    /// <summary>
+    /// Antrean Penerimaan Invoice (P02): GR yang fakturnya belum datang, Tukar Faktur siap disusun invoice,
+    /// invoice dalam verifikasi, dan Tukar Faktur yang harus dicatat ulang. Proyeksi dokumen existing — bukan
+    /// tabel atau status baru. Kategori selain invoice mensyaratkan hak baca dokumen sumbernya.
+    /// </summary>
+    [HttpGet("intake-queue")]
+    [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchasingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PurchasingIntakeRow>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetIntakeQueue([FromQuery] PurchasingIntakeQuery query, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _intakeQueue.GetPagedAsync(query, User, cancellationToken);
+            return Ok(ApiResponse<PagedResult<PurchasingIntakeRow>>.Ok(result, "Antrean Penerimaan Invoice berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    [HttpGet("intake-queue/summary")]
+    [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchasingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PurchasingIntakeSummaryResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetIntakeQueueSummary([FromQuery] Guid? supplierId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _intakeQueue.GetSummaryAsync(supplierId, User, cancellationToken);
+            return Ok(ApiResponse<PurchasingIntakeSummaryResponse>.Ok(result, "Ringkasan antrean Penerimaan Invoice berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    /// <summary>Jejak dokumen satu rantai pembelian dengan Purchasing Invoice ini sebagai jangkar (P01).</summary>
+    [HttpGet("{id:guid}/document-trail")]
+    [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePurchasingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PurchasingDocumentTrailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDocumentTrail(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var trail = await _trail.GetTrailAsync(PurchasingDocumentTypes.PurchasingInvoice, id, User, cancellationToken);
+            return Ok(ApiResponse<PurchasingDocumentTrailResponse>.Ok(trail, "Jejak dokumen Purchasing Invoice berhasil diambil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
     [HttpGet("{id:guid}")]
@@ -59,7 +141,7 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         [FromBody] CreatePurchasingInvoiceRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice, FinPurchasingIdempotencyActions.Create, null, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -67,7 +149,8 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
             var items = MapItemRequests(request.Items);
             var purchasingInvoice = await _service.CreateAsync(
                 request.InvoiceExchangeId, request.DiscountAmount, request.PPNAmount, request.DownPaymentAmount,
-                request.OtherDeductionAmount, request.TotalAmount, items, CurrentUserId(), cancellationToken);
+                request.OtherDeductionAmount, request.StampDutyAmount, request.ShippingCostAmount,
+                request.TotalAmount, items, CurrentUserId(), cancellationToken);
             var response = ApiResponse<PurchasingInvoiceResponse>.Ok(Map(purchasingInvoice), "Purchasing Invoice berhasil disusun.");
             await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice,
                 FinPurchasingIdempotencyActions.Create, purchasingInvoice.Id, 201, response, cancellationToken);
@@ -86,7 +169,8 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
             var items = MapItemRequests(request.Items);
             var purchasingInvoice = await _service.UpdateAsync(
                 id, request.ExpectedRowVersion, request.DiscountAmount, request.PPNAmount, request.DownPaymentAmount,
-                request.OtherDeductionAmount, request.TotalAmount, items, CurrentUserId(), cancellationToken);
+                request.OtherDeductionAmount, request.StampDutyAmount, request.ShippingCostAmount,
+                request.TotalAmount, items, CurrentUserId(), cancellationToken);
             return Ok(ApiResponse<PurchasingInvoiceResponse>.Ok(Map(purchasingInvoice), "Purchasing Invoice berhasil diperbarui."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
@@ -99,7 +183,7 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] PurchasingInvoiceRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice, FinPurchasingIdempotencyActions.Submit, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -120,7 +204,7 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] PurchasingInvoiceRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice, FinPurchasingIdempotencyActions.Approve, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -147,6 +231,23 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
+    [HttpPost("{id:guid}/cancel")]
+    [AccessAction("Cancel", "Cancel Purchasing Invoice", AccessType = AccessTypes.Update, SortOrder = 6)]
+    [AccessPermission("FinancePurchasingInvoice", "Cancel")]
+    [ProducesResponseType(typeof(ApiResponse<PurchasingInvoiceResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Cancel(Guid id, [FromBody] PurchasingInvoiceRowVersionRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var purchasingInvoice = await _service.CancelAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<PurchasingInvoiceResponse>.Ok(Map(purchasingInvoice), "Purchasing Invoice berhasil dibatalkan."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
     private static List<PurchasingInvoiceItemRequest> MapItemRequests(List<PurchasingInvoiceItemRequestDto> items) =>
         items.Select(x => new PurchasingInvoiceItemRequest(x.ProductName, x.Quantity, x.UnitPrice)).ToList();
 
@@ -161,6 +262,8 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         PPNAmount = purchasingInvoice.PPNAmount,
         DownPaymentAmount = purchasingInvoice.DownPaymentAmount,
         OtherDeductionAmount = purchasingInvoice.OtherDeductionAmount,
+        StampDutyAmount = purchasingInvoice.StampDutyAmount,
+        ShippingCostAmount = purchasingInvoice.ShippingCostAmount,
         TotalAmount = purchasingInvoice.TotalAmount,
         Status = purchasingInvoice.Status,
         ApprovalTier = purchasingInvoice.ApprovalTier,
@@ -170,6 +273,37 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         ApprovedAt = purchasingInvoice.ApprovedAt,
         RowVersion = purchasingInvoice.RowVersion
     };
+
+    private static PurchasingInvoiceListItemResponse MapListItem(PurchasingInvoiceListRow row)
+    {
+        var invoice = row.Invoice;
+        return new PurchasingInvoiceListItemResponse
+        {
+            Id = invoice.Id,
+            InvoiceNumber = invoice.InvoiceNumber,
+            InvoiceExchangeId = invoice.InvoiceExchangeId,
+            SupplierId = invoice.SupplierId,
+            SubtotalAmount = invoice.SubtotalAmount,
+            DiscountAmount = invoice.DiscountAmount,
+            PPNAmount = invoice.PPNAmount,
+            DownPaymentAmount = invoice.DownPaymentAmount,
+            OtherDeductionAmount = invoice.OtherDeductionAmount,
+            StampDutyAmount = invoice.StampDutyAmount,
+            ShippingCostAmount = invoice.ShippingCostAmount,
+            TotalAmount = invoice.TotalAmount,
+            Status = invoice.Status,
+            ApprovalTier = invoice.ApprovalTier,
+            RequestedByUserId = invoice.RequestedByUserId,
+            RequestedAt = invoice.RequestedAt,
+            ApprovedByUserId = invoice.ApprovedByUserId,
+            ApprovedAt = invoice.ApprovedAt,
+            RowVersion = invoice.RowVersion,
+            EstimatedDueDate = row.EstimatedDueDate,
+            ActualDueDate = row.ActualDueDate,
+            DueDateBasis = row.DueDateBasis,
+            PayableStatus = row.PayableStatus
+        };
+    }
 
     private static PurchasingInvoiceDetailResponse MapDetail(FinPurchasingInvoice purchasingInvoice)
     {
@@ -185,6 +319,8 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
             PPNAmount = mapped.PPNAmount,
             DownPaymentAmount = mapped.DownPaymentAmount,
             OtherDeductionAmount = mapped.OtherDeductionAmount,
+            StampDutyAmount = mapped.StampDutyAmount,
+            ShippingCostAmount = mapped.ShippingCostAmount,
             TotalAmount = mapped.TotalAmount,
             Status = mapped.Status,
             ApprovalTier = mapped.ApprovalTier,

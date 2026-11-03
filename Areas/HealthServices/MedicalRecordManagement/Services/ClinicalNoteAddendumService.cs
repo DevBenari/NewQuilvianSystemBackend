@@ -24,13 +24,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly ClinicalDocumentIntegrityService _integrityService;
+        private readonly MedicalRecordCompletenessQueue? _completenessQueue;
 
         public ClinicalNoteAddendumService(
             ApplicationDbContext dbContext,
-            ClinicalDocumentIntegrityService integrityService)
+            ClinicalDocumentIntegrityService integrityService,
+            MedicalRecordCompletenessQueue? completenessQueue = null)
         {
             _dbContext = dbContext;
             _integrityService = integrityService;
+            _completenessQueue = completenessQueue;
         }
 
         /// <summary>
@@ -156,7 +159,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// Menyimpan sendiri, karena hanya menyisipkan satu addendum dan memperbarui penghitung
         /// pada baris keutuhan. Isi dokumen induk tidak tersentuh — itulah inti addendum.
         /// </summary>
-        public async Task<(IntegrityGuardResult Result, MrcClinicalNoteAddendum? Addendum)> CreateAsync(
+        public Task<(IntegrityGuardResult Result, MrcClinicalNoteAddendum? Addendum)> CreateAsync(
             ClinicalDocumentKind documentKind,
             Guid documentId,
             Guid actorUserId,
@@ -167,7 +170,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             string? ipAddress,
             DateTime nowUtc,
             CancellationToken cancellationToken = default)
+            => CreateAsync(documentKind, documentId, actorUserId, actorHasSubstituteAuthority,
+                addendumText, correctionReason, deviceInfo, ipAddress, nowUtc,
+                ClinicalNoteAddendumPurpose.Correction, cancellationToken);
+
+        /// <summary>
+        /// Sama dengan overload di atas, dengan maksud addendum (`BE-38`, `RM-DEC-049`). Overload
+        /// terpisah supaya pemanggil di modul lain yang meneruskan token secara posisional tidak
+        /// berubah.
+        ///
+        /// ADDENDUM PENGESAHAN (<see cref="ClinicalNoteAddendumPurpose.Attestation"/>) menyatakan isi
+        /// catatan <c>LockedUnsigned</c> benar. Urutan pemeriksaannya mengikuti S-C:
+        /// <list type="number">
+        /// <item>catatan bukan <c>LockedUnsigned</c> → <c>409</c> `VAL-RM-A01`;</item>
+        /// <item>sudah ada pengesahan → <c>409</c> `VAL-RM-A02`;</item>
+        /// <item>bukan penulis dan tanpa jalur pengganti sah → <c>403</c> `VAL-RM-A03`, pesan addendum
+        /// yang sudah ada.</item>
+        /// </list>
+        /// Status catatan TIDAK berubah — tetap <c>LockedUnsigned</c> sebagai jejak jujur bahwa
+        /// catatan tidak pernah ditandatangani pada waktunya.
+        /// </summary>
+        public async Task<(IntegrityGuardResult Result, MrcClinicalNoteAddendum? Addendum)> CreateAsync(
+            ClinicalDocumentKind documentKind,
+            Guid documentId,
+            Guid actorUserId,
+            bool actorHasSubstituteAuthority,
+            string addendumText,
+            string correctionReason,
+            string? deviceInfo,
+            string? ipAddress,
+            DateTime nowUtc,
+            ClinicalNoteAddendumPurpose purpose,
+            CancellationToken cancellationToken = default)
         {
+            if (!Enum.IsDefined(purpose))
+            {
+                return (IntegrityGuardResult.Denied(
+                    StatusCodes.Status400BadRequest, "Maksud addendum tidak dikenal."), null);
+            }
+
             if (string.IsNullOrWhiteSpace(addendumText))
             {
                 return (IntegrityGuardResult.Denied(
@@ -178,6 +219,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             {
                 return (IntegrityGuardResult.Denied(
                     StatusCodes.Status400BadRequest, "Alasan koreksi wajib diisi."), null);
+            }
+
+            if (purpose == ClinicalNoteAddendumPurpose.Attestation)
+            {
+                var penolakan = await PeriksaPengesahanAsync(documentKind, documentId, cancellationToken);
+                if (penolakan != null)
+                    return (penolakan, null);
             }
 
             var kewenangan = await ResolveAuthorityAsync(
@@ -211,6 +259,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             var addendum = new MrcClinicalNoteAddendum
             {
                 IntegrityId = keutuhan.Id,
+                AddendumPurpose = purpose,
                 Sequence = urutanTerakhir + 1,
                 AuthorUserId = actorUserId,
                 IsSubstituteAuthor = kewenangan.IsSubstituteAuthor,
@@ -232,9 +281,71 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             keutuhan.UpdateDateTime = nowUtc;
             keutuhan.UpdateBy = actorUserId;
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException) when (purpose == ClinicalNoteAddendumPurpose.Attestation)
+            {
+                // Dua pengesahan atas catatan yang sama hampir bersamaan: keduanya lolos
+                // pemeriksaan di atas, lalu index unik terfilter menolak salah satunya. Yang ditolak
+                // dijawab VAL-RM-A02, dan tidak ada yang tersimpan setengah.
+                _dbContext.Entry(addendum).State = EntityState.Detached;
+                _dbContext.Entry(keutuhan).State = EntityState.Unchanged;
+
+                var sudahDisahkan = await _dbContext.Set<MrcClinicalNoteAddendum>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.IntegrityId == keutuhan.Id
+                                   && x.AddendumPurpose == ClinicalNoteAddendumPurpose.Attestation
+                                   && !x.IsDelete, cancellationToken);
+
+                // Tabrakan lain (mis. nomor urut kembar dengan koreksi serentak) bukan VAL-RM-A02;
+                // perilakunya sama dengan addendum koreksi sebelum BE-38.
+                if (!sudahDisahkan)
+                    throw;
+
+                return (IntegrityGuardResult.Denied(StatusCodes.Status409Conflict, SudahDisahkanMessage), null);
+            }
+
+            // A4.12 / BE-40: pengesahan menuntaskan kekurangan "tidak ditandatangani", sehingga
+            // kunjungannya dinilai ulang. Hanya antrean memori; addendum tidak menunggu penilaian.
+            if (purpose == ClinicalNoteAddendumPurpose.Attestation)
+                _completenessQueue?.EnqueueReevaluation(keutuhan.EncounterId);
 
             return (IntegrityGuardResult.Allowed(), addendum);
+        }
+
+        public const string BukanTerkunciTanpaTandaTanganMessage =
+            "Pengesahan hanya untuk catatan yang terkunci tanpa tanda tangan.";
+
+        public const string SudahDisahkanMessage = "Catatan ini sudah disahkan sebelumnya.";
+
+        /// <summary>
+        /// Syarat pengesahan yang berasal dari keadaan catatan (`VAL-RM-A01`, `A02`). Catatan yang
+        /// belum terdaftar pada daftar keutuhan dibiarkan lolos ke pemeriksaan kewenangan, yang
+        /// sudah menjawabnya dengan arahan yang tepat.
+        /// </summary>
+        private async Task<IntegrityGuardResult?> PeriksaPengesahanAsync(
+            ClinicalDocumentKind documentKind,
+            Guid documentId,
+            CancellationToken cancellationToken)
+        {
+            var keutuhan = await _integrityService.FindAsync(documentKind, documentId, cancellationToken);
+            if (keutuhan == null)
+                return null;
+
+            if (keutuhan.IntegrityStatus != ClinicalDocumentIntegrityStatus.LockedUnsigned)
+                return IntegrityGuardResult.Denied(StatusCodes.Status409Conflict, BukanTerkunciTanpaTandaTanganMessage);
+
+            var sudahDisahkan = await _dbContext.Set<MrcClinicalNoteAddendum>()
+                .AsNoTracking()
+                .AnyAsync(x => x.IntegrityId == keutuhan.Id
+                               && x.AddendumPurpose == ClinicalNoteAddendumPurpose.Attestation
+                               && !x.IsDelete, cancellationToken);
+
+            return sudahDisahkan
+                ? IntegrityGuardResult.Denied(StatusCodes.Status409Conflict, SudahDisahkanMessage)
+                : null;
         }
 
         /// <summary>

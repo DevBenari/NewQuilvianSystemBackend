@@ -7,7 +7,7 @@
 | `pengaju` | Rizki Gunawan — Product/Domain Owner IGD (`IGD-DEC-089`) |
 | `penerima` | **Pemilik Gizi** (belum dipetakan namanya) |
 | `rujukan` | `IGD-OQ-119` (dibuka 6 Oktober 2026), `IGD-FACT-082` |
-| `status` | **`menunggu jawaban`** |
+| `status` | **`dijawab: tidak`** — Iqbal, pemilik Gizi, 27 Oktober 2026; disahkan pemilik IGD sebagai keputusan Gizi (`IGD-DEC-361`). *Sebelumnya:* **`menunggu jawaban`** |
 | `sifat` | **Pertanyaan operasional, bukan permintaan kode.** Jawabannya bisa satu kata |
 | `menahan` | `FE-IGD-053` ⛔ |
 
@@ -57,3 +57,24 @@ ketidakpastian. Yang tidak berguna hanya diamnya.
 
 Permintaan ini **hanya** tentang jenis pesanan gizi pada tab Penunjang Medis IGD. Asuhan gizi rawat
 inap, alur gizi yang sudah berjalan, dan pesanan gizi dari poliklinik **tidak diubah sama sekali**.
+
+## 6. Jawaban — Iqbal (pemilik Gizi), 27 Oktober 2026
+
+Jawaban yang diterima pengaju berbentuk analisis dan rekomendasi, dan menyatakan sendiri bahwa bagian *"tidak selama
+masih IGD"* adalah rekomendasi berdasarkan implementasi yang ada, belum keputusan operasional tercatat. Pengaju
+**mengesahkannya sebagai keputusan pemilik Gizi** pada 27 Oktober 2026 (`IGD-DEC-361`).
+
+Jawaban singkat yang disahkan:
+
+> Tidak selama pasien masih berada di IGD. Konsultasi Gizi baru dilayani setelah pasien diputuskan dan resmi masuk
+> Rawat Inap. Encounter IGD sebaiknya ditolak oleh modul Gizi agar tidak ada order yang masuk tetapi tidak terlayani.
+
+Alur yang berlaku: pasien masih IGD → tidak dapat memesan konsultasi gizi; dokter memutuskan rawat inap → admisi
+Rawat Inap → encounter/episode Rawat Inap aktif → konsultasi gizi dapat dipesan → masuk worklist Tim Gizi. Dasar yang
+disebut: frontend Gizi menyaring `jenisKunjungan: "IP"` (`list-pasien-gizi.jsx`), sedangkan backend Nutrition menerima
+order berbasis `EncounterId` — tanpa penolakan, order IGD dapat masuk tetapi tidak pernah tampil di worklist.
+
+Pertanyaan 3 dijawab **ya**: modul Gizi sebaiknya menolak encounter IGD secara eksplisit, misalnya *"Konsultasi Gizi hanya
+dapat dipesan setelah pasien masuk Rawat Inap."* Penolakan itu pekerjaan modul Gizi, bukan task IGD.
+
+**Akibat untuk IGD:** `IGD-OQ-119` dijawab *tidak*; `FE-IGD-053` dibatalkan (`IGD-DEC-361`), sesuai bagian 4 dokumen ini.

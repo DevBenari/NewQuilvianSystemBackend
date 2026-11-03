@@ -268,8 +268,8 @@ public sealed class CashierShiftsController : ControllerBase
         CashierShiftForbiddenException => StatusCode(
             StatusCodes.Status403Forbidden,
             ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message)),
-        CashierShiftConflictException => Conflict(ApiResponse<object>.Fail(
-            StatusCodes.Status409Conflict, exception.Message)),
+        CashierShiftConflictException conflictEx => Conflict(ApiResponse<object>.Fail(
+            StatusCodes.Status409Conflict, conflictEx.Message, conflictEx.Details)),
         CashierShiftValidationException => UnprocessableEntity(ApiResponse<object>.Fail(
             StatusCodes.Status422UnprocessableEntity, exception.Message)),
         _ => throw exception

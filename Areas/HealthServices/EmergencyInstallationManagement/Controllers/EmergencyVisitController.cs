@@ -42,6 +42,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private readonly EmergencyVisitService _emergencyVisitService;
         private readonly EmergencyDispositionService _emergencyDispositionService;
         private readonly EmergencyDoctorAssignmentService _emergencyDoctorAssignmentService;
+        private readonly EmergencyUnitAuthorityService _emergencyUnitAuthorityService;
         private readonly EmergencyRealtimeService? _emergencyRealtimeService;
 
         public EmergencyVisitController(
@@ -50,6 +51,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             EmergencyVisitService emergencyService,
             EmergencyDispositionService emergencyDispositionService,
             EmergencyDoctorAssignmentService emergencyDoctorAssignmentService,
+            EmergencyUnitAuthorityService emergencyUnitAuthorityService,
             EmergencyRealtimeService? emergencyRealtimeService = null)
         {
             _dbContext = dbContext;
@@ -57,6 +59,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _emergencyVisitService = emergencyService;
             _emergencyDispositionService = emergencyDispositionService;
             _emergencyDoctorAssignmentService = emergencyDoctorAssignmentService;
+            _emergencyUnitAuthorityService = emergencyUnitAuthorityService;
             _emergencyRealtimeService = emergencyRealtimeService;
         }
 
@@ -88,6 +91,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         )
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+
+            var isSuperAdmin = _emergencyUnitAuthorityService.IsSuperAdmin(User);
+            var currentDoctorId = await _emergencyUnitAuthorityService.ResolveDoctorIdAsync(User, GetCurrentUserId(), cancellationToken);
+
+            // IGD-DEC-372: Dokter IGD non-SuperAdmin hanya melihat pasien di mana ia bertindak sebagai DPJP aktif
+            if (!isSuperAdmin && currentDoctorId.HasValue)
+            {
+                doctorId = currentDoctorId.Value;
+            }
+
             // Navigasi dimuat karena balasan kini memuat nama, bukan hanya identifier.
             IQueryable<EmgVisit> query = _dbContext.Set<EmgVisit>()
                 .AsNoTracking()

@@ -3,6 +3,29 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Dtos;
 
+public static class CashierShiftConflictCodes
+{
+    public const string CashierAlreadyHasActiveShift = "CASHIER_ALREADY_HAS_ACTIVE_SHIFT";
+    public const string RegisterOccupiedByAnotherCashier = "REGISTER_OCCUPIED_BY_ANOTHER_CASHIER";
+    public const string CashierVarianceReviewPending = "CASHIER_VARIANCE_REVIEW_PENDING";
+    public const string RegisterVarianceReviewPending = "REGISTER_VARIANCE_REVIEW_PENDING";
+    public const string StaleData = "STALE_DATA";
+    public const string ReceivingCashierAlreadyHasActiveShift = "RECEIVING_CASHIER_HAS_ACTIVE_SHIFT";
+    public const string ShiftAlreadyHasPendingHandover = "SHIFT_HAS_PENDING_HANDOVER";
+}
+
+public sealed class CashierShiftConflictDetails
+{
+    public string ConflictCode { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public Guid? ExistingShiftId { get; set; }
+    public string? ExistingShiftNumber { get; set; }
+    public Guid? RegisterId { get; set; }
+    public string? RegisterName { get; set; }
+    public string? OccupyingCashierName { get; set; }
+    public string? OccupyingShiftNumber { get; set; }
+}
+
 public sealed class CashierShiftQuery
 {
     public Guid? CashierId { get; set; }

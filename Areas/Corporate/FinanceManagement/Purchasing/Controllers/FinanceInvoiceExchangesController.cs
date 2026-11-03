@@ -24,10 +24,15 @@ public sealed class FinanceInvoiceExchangesController : ControllerBase
 {
     private readonly FinanceInvoiceExchangeService _service;
     private readonly PurchasingIdempotencyService _idempotency;
-    public FinanceInvoiceExchangesController(FinanceInvoiceExchangeService service, PurchasingIdempotencyService idempotency)
+    private readonly FinancePurchasingDocumentTrailService _trail;
+    public FinanceInvoiceExchangesController(
+        FinanceInvoiceExchangeService service,
+        PurchasingIdempotencyService idempotency,
+        FinancePurchasingDocumentTrailService trail)
     {
         _service = service;
         _idempotency = idempotency;
+        _trail = trail;
     }
 
     [HttpGet]
@@ -67,7 +72,7 @@ public sealed class FinanceInvoiceExchangesController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         [FromBody] CreateInvoiceExchangeRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.InvoiceExchange, FinPurchasingIdempotencyActions.Create, null, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -91,7 +96,7 @@ public sealed class FinanceInvoiceExchangesController : ControllerBase
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         Guid id, [FromBody] InvoiceExchangeRowVersionRequest request, CancellationToken cancellationToken)
     {
-        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.InvoiceExchange, FinPurchasingIdempotencyActions.Cancel, id, cancellationToken);
         if (replay is not null) return Replay(replay);
 
         try
@@ -101,6 +106,47 @@ public sealed class FinanceInvoiceExchangesController : ControllerBase
             await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.InvoiceExchange,
                 FinPurchasingIdempotencyActions.Cancel, invoiceExchange.Id, 200, response, cancellationToken);
             return Ok(response);
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    /// <summary>
+    /// Koreksi nomor faktur, tanggal faktur, dan tanggal diterima selama Tukar Faktur masih RECEIVED dan
+    /// belum memiliki invoice yang berlaku. Supplier dan rujukan PO/GR tidak dapat diubah di sini.
+    /// Tidak memakai Idempotency-Key (check constraint ledger tidak memuat aksi 'Update'); RowVersion
+    /// menolak pengiriman ulang yang basi dengan 409.
+    /// </summary>
+    [HttpPut("{id:guid}")]
+    [AccessAction("Update", "Update Invoice Exchange", AccessType = AccessTypes.Update, SortOrder = 4)]
+    [AccessPermission("FinanceInvoiceExchange", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<InvoiceExchangeResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInvoiceExchangeRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var invoiceExchange = await _service.UpdateAsync(
+                id, request.ExpectedRowVersion, request.SupplierInvoiceNumber, request.SupplierInvoiceDate,
+                request.ReceivedDate, CurrentUserId(), cancellationToken);
+            return Ok(ApiResponse<InvoiceExchangeResponse>.Ok(Map(invoiceExchange), "Tukar Faktur berhasil diperbarui."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    /// <summary>Jejak dokumen satu rantai pembelian dengan Tukar Faktur ini sebagai jangkar (P01).</summary>
+    [HttpGet("{id:guid}/document-trail")]
+    [AccessAction("Read", "Read Invoice Exchange", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceInvoiceExchange", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PurchasingDocumentTrailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDocumentTrail(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var trail = await _trail.GetTrailAsync(PurchasingDocumentTypes.InvoiceExchange, id, User, cancellationToken);
+            return Ok(ApiResponse<PurchasingDocumentTrailResponse>.Ok(trail, "Jejak dokumen Tukar Faktur berhasil diambil."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }

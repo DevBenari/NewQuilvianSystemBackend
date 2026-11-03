@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.Options;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
@@ -1070,6 +1070,19 @@ public sealed class BillingSettlementService
                 await AuditClosureChangeAsync(closureChange, actorUserId);
             foreach (var invChange in reversedInvoiceClosureChanges.Where(c => c.Changed))
                 await AuditClosureChangeAsync(invChange, actorUserId);
+
+            // POST-COMMIT: jika invoice lunas dan statusnya FINAL atau CLOSED, olah handoff AR yang baru saja di-commit
+            if (tender.Settlement?.InvoiceId.HasValue == true)
+            {
+                var settledInvoiceId = tender.Settlement.InvoiceId.Value;
+                var finalizedInvoice = await _dbContext.BilInvoices.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.Id == settledInvoiceId && !x.IsDelete, cancellationToken);
+                if (finalizedInvoice is not null && finalizedInvoice.Status is BillingInvoiceStatuses.Final or BillingInvoiceStatuses.Closed)
+                {
+                    await _finalizationService.TriggerPostCommitArIntakeAsync(settledInvoiceId, actorUserId, cancellationToken);
+                }
+            }
+
             return MapTender(tender, false, autoCompletionIncompleteReason);
         }
         catch (DbUpdateConcurrencyException exception)
@@ -1270,24 +1283,32 @@ public sealed class BillingSettlementService
         {
             var invoice = await _dbContext.BilInvoices.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
-            if (invoice is null || invoice.Status != BillingInvoiceStatuses.Open) return;
+            if (invoice is null) return;
 
-            var readiness = await _finalizationService.PreviewAsync(invoiceId, cancellationToken);
-            if (!readiness.IsReadyForNormalFinalization || readiness.Outstanding > 0) return;
+            if (invoice.Status == BillingInvoiceStatuses.Open)
+            {
+                var readiness = await _finalizationService.PreviewAsync(invoiceId, cancellationToken);
+                if (!readiness.IsReadyForNormalFinalization || readiness.Outstanding > 0) return;
 
-            var correlationId = Guid.NewGuid();
-            await _finalizationService.FinalizeAsync(
-                invoiceId,
-                new FinalizeInvoiceRequest
-                {
-                    ExpectedRowVersion = invoice.RowVersion,
-                    Reason = "Finalisasi otomatis: tanggung jawab pasien lunas.",
-                    CorrelationId = correlationId,
-                    CausationId = settlement.CorrelationId
-                },
-                Guid.NewGuid(),
-                actorUserId,
-                cancellationToken);
+                var correlationId = Guid.NewGuid();
+                await _finalizationService.FinalizeAsync(
+                    invoiceId,
+                    new FinalizeInvoiceRequest
+                    {
+                        ExpectedRowVersion = invoice.RowVersion,
+                        Reason = "Finalisasi otomatis: tanggung jawab pasien lunas.",
+                        CorrelationId = correlationId,
+                        CausationId = settlement.CorrelationId
+                    },
+                    Guid.NewGuid(),
+                    actorUserId,
+                    cancellationToken);
+            }
+            else if (invoice.Status is BillingInvoiceStatuses.Final or BillingInvoiceStatuses.Closed)
+            {
+                // Bila invoice sudah difinalkan (mis. oleh TryCompleteSettledInvoiceAsync), pastikan handoff AR sudah terolah ke Finance
+                await _finalizationService.TriggerPostCommitArIntakeAsync(invoiceId, actorUserId, cancellationToken);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -1674,6 +1695,22 @@ public sealed class BillingSettlementService
             if (invoice.Status != BillingInvoiceStatuses.Open)
                 throw new BillingSettlementValidationException(
                     "Hanya invoice OPEN yang dapat menerima settlement.");
+
+            // Validasi kesiapan pembayaran akhir rawat inap dari keputusan DPJP dan administrasi episode
+            if (string.Equals(invoice.ServiceType, "RANAP", StringComparison.OrdinalIgnoreCase))
+            {
+                var readiness = await InpatientClearanceService.EvaluateInpatientDischargePaymentReadinessAsync(
+                    _dbContext, invoice.EncounterId, cancellationToken);
+                if (!readiness.CanProcessPayment)
+                {
+                    var reason = readiness.Blockers.Count > 0
+                        ? string.Join(" ", readiness.Blockers)
+                        : "Persyaratan pemulangan rawat inap belum lengkap.";
+                    throw new BillingSettlementValidationException(
+                        $"Pembayaran akhir rawat inap belum dapat diproses: {reason}");
+                }
+            }
+
             var calculation = await _dbContext.BilCalculationVersions.AsNoTracking()
                 .SingleOrDefaultAsync(
                     x => x.InvoiceId == invoice.Id

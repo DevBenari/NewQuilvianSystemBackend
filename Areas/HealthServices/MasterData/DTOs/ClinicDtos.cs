@@ -74,6 +74,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs
         public bool IsQueueRequired { get; set; }
         public int DefaultEstimatedServiceMinutes { get; set; }
         public int SortOrder { get; set; }
+        public bool IsActive { get; set; } = true;
     }
 
     public class ClinicOptionPagedResponse

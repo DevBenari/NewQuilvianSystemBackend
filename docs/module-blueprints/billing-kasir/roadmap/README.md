@@ -336,3 +336,24 @@ Rincian lengkap: [backend § Gelombang MVP-35](./backend-roadmap.md) dan [tracea
 
 
 
+
+## Amendment 26 Oktober 2026 — Revisi 2.4, gelombang `MVP-38` (Jasa Medis pada Item Tagihan)
+
+Dasar: blueprint revisi `2.4` approved 26 Oktober 2026; `BKC-DEC-168`..`178`; `BKC-DES-093`..`103`; kontrak `BIL-API-2.1`,
+`BIL-VALIDATION-2.1`, `BIL-INTEGRATION-1.9`, `BIL-PERMISSION-1.7`, `BIL-TEST-2.2`. Backend `ecddd8f8`, frontend `e2c17153b`.
+
+### Ringkasan Gelombang `MVP-38`
+
+| Gelombang | Task ID | Cakupan | Status |
+| :---: | --- | --- | :---: |
+| BE 1 | `BE-BKC-090` | Port `IBillingDoctorShareResolver` + implementasi bawaan | ✅ Selesai 26 Okt 2026 ([Laporan](../task/report/backend/BE-BKC-090.md)) |
+| BE ⛔ | `BE-BKC-089` | Enam kolom + empat constraint + migration | ✅ Selesai 26 Okt 2026 ([Laporan](../task/report/backend/BE-BKC-089.md)) |
+| BE ⛔ | `BE-BKC-091`, `BE-BKC-093` | Entri kasir berjasa; salinan item | ⛔ lewat `BE-BKC-089` |
+| BE ⛔ | `BE-BKC-092` | `DoctorShare` dari Medical Fee | ⛔ lewat `BE-BKC-091` |
+| FE 1–2 | `FE-BKC-047`, `FE-BKC-049`, lalu `FE-BKC-048` | `BIL-SCR-46`..`48` | ⛔ lewat `BE-BKC-091` |
+
+**Satu migration** (`AddBilInvoiceItemPerformerAndDoctorShareTrace`), butuh otorisasi terpisah. `EPIC BKC-31` (`FR-BKC-294`)
+`OPEN DECISION` — tidak direncanakan. Dependency keluar: `BE-MDF-015` ← `BE-BKC-089`, `091`; `BE-MDF-016` ← `BE-BKC-090`.
+
+Rincian lengkap: [backend § Gelombang Revisi 2.4](./backend-roadmap.md), [frontend § Gelombang Revisi 2.4](./frontend-roadmap.md),
+dan [traceability § Gelombang Revisi 2.4](./requirement-traceability.md).

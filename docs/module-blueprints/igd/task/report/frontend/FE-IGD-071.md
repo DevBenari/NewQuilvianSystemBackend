@@ -121,3 +121,30 @@ Kedua PNG diperiksa langsung: bilah fakta sama (No. RM, penjamin *Tunai*, invoic
 ## 8. Langkah berikutnya
 
 Tidak ada untuk kartu ini.
+
+## 9. Izin uji posisi penerima dicabut — 27 Oktober 2026 (siang, langkah 6 T3)
+
+Status kartu **tidak berubah: ✅ 9/9.** Bukti acceptance 5 (bagian 4) sudah diukur pada saat izin berlaku dan
+tetap sah; yang berubah hanya konfigurasi dev sesudahnya.
+
+Atas pilihan pemilik (`IGD-DEC-359`), kedua izin uji `IGD-DEC-358` dicabut dari posisi akun penerima
+Siti Nurhaliza (dept `3aa08cc0…` / pos `20f0bbda…`), karena posisi itu bukan milik IGD. Izin posisi dokter IGD
+(`EncounterBillingSummary:Read`, 233 → 234) **tidak** disentuh.
+
+| Langkah | Hasil terukur |
+| --- | --- |
+| Periksa (baca saja, 14.13 WIB) | Keadaan sekarang 22 izin = cadangan `10-policy-penerima-sebelum.json` (20) + tepat dua izin `IGD-DEC-358`; nol izin cadangan hilang. Keadaan sekarang dicadangkan |
+| Terapkan (14.21 WIB) | `POST …/role-access/policies` berisi 20 izin cadangan → `200`, `totalAllowed` 20 |
+| Verifikasi policy | `GET` sesudahnya: 20 izin, himpunannya identik dengan cadangan; kedua izin `IGD-DEC-358` tidak ada; nol izin cadangan hilang (`sesuaiHarapan: true`) |
+| Verifikasi izin efektif akun | `GET /v1/auth/permissions` Siti sebelum dan sesudah: berkurang tepat `EncounterBillingSummary:Read` dan `PatientBillingSummary:ViewAmount`; selisih lain hanya stempel waktu respons — diperiksa agen dari JSON mentah |
+
+Login admin memakai `dimas.kurniawan` (SuperAdmin), sehingga jejak audit atas nama akun itu. Bukti (gitignored):
+`QuilvianSystemFrontendDev/test-with-agy/igd/langkah6-t3-izin-penerima-20261027/` — skrip
+`skrip/20-pulihkan-izin-penerima.mjs`, `hasil-20-periksa.json`, `hasil-20-terapkan.json`,
+`20-policy-penerima-sekarang-terapkan.json` (cadangan keadaan 22 izin), `20-policy-penerima-sesudah.json`,
+`20-izin-efektif-penerima-sebelum-terapkan.json`, `20-izin-efektif-penerima-sesudah.json`. Sandi tidak tertulis
+di skrip maupun JSON.
+
+**Akibat yang perlu diketahui:** di antara akun uji `QUILVIAN_*`, keadaan kembali seperti sonde
+`00-sonde-izin-finansial.json` — tidak ada pasangan non-SuperAdmin berbeda izin finansial. Uji ulang penyamaran
+nominal memerlukan izin uji baru atas perintah pemilik.

@@ -19,7 +19,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Contro
 /// batalkan. Potongan/tambahan disusun sebagai bagian body `Create`/`Update` — service ini tidak
 /// punya method tulis terpisah untuk `POST/DELETE /payments/{id}/deductions`, jadi kedua endpoint
 /// itu **tidak** dibangun di sini (dicatat sebagai gap terbuka, bukan dikarang). `GET /payments`
-/// (daftar berpaging) pada `FIN-API-1.0` juga belum ada service-nya.
+/// (daftar berpaging) pada `FIN-API-1.0` ditambahkan `BE-FIN-122`.
 ///
 /// Ambang nominal approval berjenjang (Rp 50.000.000) sudah diratifikasi `FIN-DEC-052`.
 /// `FinancePaymentService` menghitungnya lewat `FinanceApprovalTierResolver` (BE-FIN-028),
@@ -40,6 +40,24 @@ public sealed class FinancePaymentsController : ControllerBase
 {
     private readonly FinancePaymentService _service;
     public FinancePaymentsController(FinancePaymentService service) => _service = service;
+
+    [HttpGet]
+    [AccessAction("Read", "Read Payment", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinancePayment", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<PaymentResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetList([FromQuery] PaymentQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetPagedAsync(query, cancellationToken);
+        var mapped = new PagedResult<PaymentResponse>
+        {
+            Items = result.Items.Select(MapPayment).ToList(),
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize,
+            TotalData = result.TotalData,
+            TotalPage = result.TotalPage
+        };
+        return Ok(ApiResponse<PagedResult<PaymentResponse>>.Ok(mapped, "Daftar pembayaran berhasil diambil."));
+    }
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Payment", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -104,6 +122,9 @@ public sealed class FinancePaymentsController : ControllerBase
     [HttpPost("{id:guid}/approve")]
     [AccessAction("Approve", "Approve Payment", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("FinancePayment", "Approve")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Approve(Guid id, [FromBody] PaymentRowVersionRequest request, CancellationToken cancellationToken)
     {
         try
@@ -284,6 +305,7 @@ public sealed class FinancePaymentsController : ControllerBase
     private IActionResult Failure(Exception exception) => exception switch
     {
         KeyNotFoundException => NotFound(ApiResponse<object>.Fail(404, exception.Message)),
+        PaymentForbiddenException => StatusCode(403, ApiResponse<object>.Fail(403, exception.Message)),
         PaymentConflictException or PurchasingConflictException => Conflict(ApiResponse<object>.Fail(409, exception.Message)),
         PaymentValidationException or PurchasingValidationException => UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)),
         PaymentBadRequestException or PurchasingBadRequestException => BadRequest(ApiResponse<object>.Fail(400, exception.Message)),
@@ -292,6 +314,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     private static bool IsHandled(Exception exception) => exception is
         KeyNotFoundException
+        or PaymentForbiddenException
         or PaymentConflictException or PurchasingConflictException
         or PaymentValidationException or PurchasingValidationException
         or PaymentBadRequestException or PurchasingBadRequestException;

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Services;
 
@@ -21,19 +22,45 @@ public sealed class PurchasingIdempotencyService
     public sealed record CachedResult(int StatusCode, string ResponseBody);
 
     /// <summary>
+    /// Opsi serialisasi yang sama dengan keluaran MVC (<c>JsonSerializerDefaults.Web</c>, camelCase).
+    /// Sebelumnya badan replay ditulis dengan opsi bawaan (PascalCase) sehingga replay berbeda bentuk
+    /// dari respons pertama dan klien yang membaca <c>data.grNumber</c> mendapat <c>undefined</c>.
+    /// Baris lama yang sudah tersimpan PascalCase tetap dikirim apa adanya.
+    /// </summary>
+    private static readonly JsonSerializerOptions ResponseJsonOptions = new(JsonSerializerDefaults.Web);
+
+    /// <summary>
     /// Guid.Empty (header tidak dikirim) sengaja diperlakukan sebagai "nol dedup" di sini, bukan
     /// ditolak di lapisan ini — <c>[ApiController]</c> pada seluruh controller Purchasing sudah
     /// menolak `400` otomatis untuk parameter <see cref="Guid"/> wajib yang headernya tidak ada,
     /// jadi jalur ini praktiknya hanya tercapai bila header memang terisi.
+    ///
+    /// AC-18: kunci hanya boleh mengulang hasil aksi yang SAMA. Kunci yang sudah terpakai oleh
+    /// entity/aksi lain, atau oleh dokumen lain pada aksi bersumber-ID, dijawab `409` — bukan
+    /// mengembalikan hasil transaksi lain. <paramref name="entityId"/> null pada aksi Create (ID
+    /// dokumen baru belum ada saat permintaan masuk). Perbandingan isi permintaan (fingerprint
+    /// payload) membutuhkan kolom baru dan belum diaktifkan — lihat spesifikasi schema.
     /// </summary>
-    public async Task<CachedResult?> TryReplayAsync(Guid idempotencyKey, CancellationToken cancellationToken)
+    public async Task<CachedResult?> TryReplayAsync(
+        Guid idempotencyKey, string entityType, string action, Guid? entityId, CancellationToken cancellationToken)
     {
         if (idempotencyKey == Guid.Empty) return null;
 
         var record = await _dbContext.FinPurchasingIdempotencyRecords.AsNoTracking()
             .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
+        if (record is null) return null;
 
-        return record is null ? null : new CachedResult(record.ResponseStatusCode, record.ResponseBody);
+        var sameBinding = record.EntityType == entityType
+            && record.Action == action
+            && (!entityId.HasValue || record.EntityId == entityId.Value);
+        if (!sameBinding)
+        {
+            var conflict = ApiResponse<object>.Fail(
+                409, "Idempotency-Key ini sudah dipakai untuk aksi atau dokumen lain. Gunakan kunci baru untuk aksi ini.");
+            return new CachedResult(409, JsonSerializer.Serialize(conflict, ResponseJsonOptions));
+        }
+
+        return new CachedResult(record.ResponseStatusCode, record.ResponseBody);
     }
 
     /// <summary>
@@ -59,7 +86,7 @@ public sealed class PurchasingIdempotencyService
             Action = action,
             EntityId = entityId,
             ResponseStatusCode = statusCode,
-            ResponseBody = JsonSerializer.Serialize(responseBody),
+            ResponseBody = JsonSerializer.Serialize(responseBody, ResponseJsonOptions),
         });
 
         try

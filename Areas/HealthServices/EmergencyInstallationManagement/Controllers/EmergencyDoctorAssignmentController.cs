@@ -129,6 +129,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 data, "Dokter penanggung jawab IGD berhasil diambil."));
         }
 
+        [HttpGet("instructing-doctor-options")]
+        [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<EmergencyInstructingDoctorOptionResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Emergency Doctor Assignment", Description = "Melihat dokter pemberi instruksi yang sah untuk pesanan penunjang perawat IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDoctorAssignment", "Read")]
+        public async Task<IActionResult> GetInstructingDoctorOptions(
+            [FromQuery] Guid emergencyVisitId,
+            CancellationToken cancellationToken = default)
+        {
+            if (emergencyVisitId == Guid.Empty)
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest, "EmergencyVisitId wajib diisi."));
+
+            var data = await _service.AmbilDokterPemberiInstruksiSahAsync(emergencyVisitId, cancellationToken);
+            if (data == null)
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, "Kunjungan IGD tidak ditemukan."));
+
+            return Ok(ApiResponse<IReadOnlyList<EmergencyInstructingDoctorOptionResponse>>.Ok(
+                data, "Daftar dokter pemberi instruksi berhasil diambil."));
+        }
+
         /// <summary>
         /// Menetapkan dokter penanggung jawab pertama pada satu kunjungan IGD.
         /// </summary>

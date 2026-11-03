@@ -1231,3 +1231,101 @@ flowchart LR
 | ✅ `FE-FIN-051` | Pejabat Finance melihat dan menetapkan periode peralihan ke mesin payroll | `FR-FIN-258`; `FIN-DEC-222` | `FIN-API-1.11` `S.2` | Layar master `DirectPaymentThreshold` (pola nilai aktif berversi) | Layar `FIN-LYR-PG-03`; butir menu "Peralihan Potong Gaji" di Master Data Keuangan; riwayat; form tetapkan dengan alasan wajib | `BE-FIN-115` [BE] | 1. Tanpa nilai: tampil "Seluruh periode memakai pencatatan manual". 2. Alasan kosong tidak dapat dikirim. 3. Penolakan mundur ditampilkan dengan pesan backend | `npm run lint:errors`; `npm run build`; verifikasi manual | Frontend Owner | Lint PASS; build PASS; laporan tracked. ✅ **SELESAI (Diverifikasi penuh oleh pengguna)**|
 
 **`FE-FIN-047` diperluas** pada tabel `REV-19`: isian nama pemberi persetujuan muncul bila `RequiresConsent` bernilai benar.
+
+---
+
+# AMENDMENT ROADMAP REVISI 22 — Frontend Finance AP Mengikuti BLM: Biaya Invoice, Batch Penerimaan, Daftar Dokumen, dan Pembatalan Invoice
+
+```yaml
+blueprint_id: FIN-BP-001
+roadmap_revision: REV-22
+blueprint_revision: 20   # tidak berubah; delta kontrak dicatat pada amendment REV-22 di 01-backend-roadmap.md
+roadmap_status: frontend dikerjakan atas instruksi pemilik Finance pada sesi chat 26 Oktober 2026; sisa paket FE-AP menunggu keputusan (lihat "Yang Sengaja TIDAK Dibuat")
+contracts_referenced: [FIN-API-1.1, FIN-VAL-104, FIN-VAL-107]   # dirujuk; amendment ini tidak mengubah kontrak
+frontend_commit_sha: 7257982bbebeb47ee222341b86de3ed257fd7a46 (branch yasmina)
+backend_commit_sha_referenced: cfe22fe881017fc26783bdc82daf56a3778e3af2 (branch Yasmina; BE-FIN-127 belum di-commit)
+task_range_frontend: FE-FIN-052..FE-FIN-055
+tanggal: 26 Oktober 2026
+sumber_requirement: Integrasi_AP_Quilvian_V2_BLM_Konsolidasi_dan_Gap.md, Bagian IX "Audit frontend AP pada branch yasmina" (paket FE-AP-01..FE-AP-04); AP-UAT-06, AP-UAT-10, AP-UAT-19, AP-UAT-21
+permintaan_pemilik: >
+  26 Oktober 2026: "analisa file diatas dan lakukan perbaikan serta penyesuaian FE. akan tetapi, fe sesuaikan dengan style css dan
+  components yang sudah ada". Amendment ini mendaftarkan empat task agar laporan tracked memiliki task ID; nomor mengikuti urutan terakhir
+  (FE-FIN-051) dan tidak mengubah task, kontrak, atau dependency yang sudah ada.
+```
+
+## Sifat Gelombang Ini
+
+Dokumen konsolidasi audit (Bagian IX) membuktikan frontend AP tertinggal dari empat task backend `REV-22` yang sudah ada kodenya: komponen biaya invoice (`BE-FIN-123`), batch dan kedaluwarsa GR
+(`BE-FIN-125`), daftar dokumen (`BE-FIN-122`, `BE-FIN-127`), dan pembatalan invoice (`BE-FIN-126`). Karena backend-nya sudah ada, pekerjaan ini adalah **penyambungan dan validasi di layar**,
+bukan pembuatan endpoint. Seluruh task memakai komponen dasar, CSS Module, dan token yang sudah ada; tidak ada komponen, token, atau CSS baru.
+
+Tiga paket lain pada dokumen audit **tidak** didaftarkan karena bergantung pada backend atau keputusan yang belum ada (lihat "Yang Sengaja TIDAK Dibuat").
+
+## Grafik Urutan Dependency — REV-22 Frontend
+
+`[BE]` = task backend pada `01-backend-roadmap.md`, cermin baca-saja.
+
+```mermaid
+flowchart LR
+    B122["BE-FIN-122 [BE]"]
+    B123["BE-FIN-123 [BE]"]
+    B125["BE-FIN-125 [BE]"]
+    B126["BE-FIN-126 [BE]"]
+    B127["BE-FIN-127 [BE]"]
+    F052["FE-FIN-052 🟡<br/>Materai dan ongkir pada form dan detail Invoice Supplier"]
+    F053["FE-FIN-053 🟡<br/>Batch dan kedaluwarsa pada Penerimaan Barang"]
+    F054["FE-FIN-054 🟡<br/>Daftar Invoice Supplier dan Retur Pembelian"]
+    F055["FE-FIN-055 🟡<br/>Batalkan Purchasing Invoice dari detail"]
+    B123 --> F052
+    B125 --> F053
+    B122 --> F054
+    B127 --> F054
+    B126 --> F055
+```
+
+**Pemeriksaan konsistensi.** `REV-22` frontend memiliki **5** pasangan dependency, seluruhnya dari task backend ke task frontend, sama dengan jumlah entri kolom `Dependency` pada tabel di bawah
+(`FE-FIN-054` memiliki dua). Tidak ada pasangan frontend ke frontend. Jumlah pasangan `REV-19` (8) dan `REV-21` (6) tidak berubah. Bebas siklus.
+
+## Tabel Gelombang Eksekusi — REV-22 Frontend
+
+| Gelombang | Boleh mulai setelah | Task |
+|---:|---|---|
+| 1 | `BE-FIN-123` 🟡 [BE] | `FE-FIN-052` 🟡 |
+| 1 | `BE-FIN-125` 🟡 [BE] | `FE-FIN-053` 🟡 |
+| 1 | `BE-FIN-122` 🟡 dan `BE-FIN-127` 🟡 [BE] | `FE-FIN-054` 🟡 |
+| 1 | `BE-FIN-126` 🟡 [BE] | `FE-FIN-055` 🟡 |
+
+## Tabel Task REV-22 Frontend
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 🟡 `FE-FIN-052` | Petugas Finance mencatat dan melihat bea materai serta ongkos kirim pada Invoice Supplier, dan total yang dikirim layar sama dengan hitungan backend | `AP-UAT-10`; `AP-DEC-04` | `FIN-VAL-107` diperluas dan `FIN-API-1.1` §B.4 dua field aditif (delta `BE-FIN-123`) | Form dan detail Purchasing Invoice (`FE-FIN-009`) | Isian Bea Materai dan Ongkos Kirim, rumus total, prefill Perbarui, penolakan nilai negatif, penjagaan simpan bila rincian lama belum termuat, tampilan detail (termasuk Potongan Lain yang sebelumnya tidak tampil) | `BE-FIN-123` 🟡 [BE] | 1. Form menampilkan Materai dan Ongkir, total = Subtotal − Diskon + PPN + Materai + Ongkir − Uang Muka − Potongan Lain. 2. Perbarui memuat dan mengirim kembali biaya tersimpan sehingga total tidak turun. 3. Nilai negatif dicegah di layar. 4. Detail menampilkan Materai, Ongkir, dan Potongan Lain. 5. Perbarui ditolak di layar bila rincian lama belum termuat | `npm run lint:errors`; unit test utilitas; `npm run build`; verifikasi manual | Frontend Owner. **Risiko:** editor lama dapat menurunkan nilai invoice berbiaya tanpa pesan galat | Lint PASS; build PASS; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** AC 1–5 terpetakan ke source dan 7 test unit (lulus). ESLint: 0 error, 8 warning pola lama. **Belum terpenuhi:** `npm run build` **NOT RUN**; uji manual **NOT FEASIBLE** (migration `BE-FIN-123` belum diterapkan). Bukti: [laporan FE-FIN-052](../task/report/frontend/FE-FIN-052.md) |
+| 🟡 `FE-FIN-053` | Petugas Finance mencatat penerimaan barang per batch lengkap dengan kedaluwarsa, melihat sisa yang dapat diterima, dan membuka kembali rincian batch | `AP-UAT-06`; `FIN-VAL-104` | `FIN-API-1.1` §B.2 dua field aditif pada baris GR (delta `BE-FIN-125`) | Modal Catat Tanda Terima Barang dan riwayat GR pada detail PO (`FE-FIN-008`), daftar Penerimaan Barang (`FE-FIN-018`) | Kolom Sisa, No. Batch, Kedaluwarsa; beberapa batch untuk satu baris PO; sisa dari GR aktif; rincian batch pada riwayat GR; daftar Penerimaan Barang membuka PO induk | `BE-FIN-125` 🟡 [BE] | 1. Modal memuat Sisa, No. Batch, Kedaluwarsa. 2. Satu baris PO dapat diterima dalam beberapa batch dan dikirim sebagai beberapa item. 3. Total batch melebihi sisa dicegah di layar; sisa 0 menonaktifkan baris. 4. Riwayat GR dapat dibuka dan batch serta kedaluwarsa terbaca. 5. Riwayat gagal dimuat → peringatan, batas sementara kuantitas PO. 6. Daftar Penerimaan Barang membuka PO induk | `npm run lint:errors`; unit test utilitas; `npm run build`; verifikasi manual | Frontend Owner. **Risiko:** sisa dihitung dari satu permintaan rincian per GR aktif | Lint PASS; build PASS; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** AC 1–6 terpetakan ke source dan 8 test unit (lulus). ESLint: 0 error, 8 warning pola lama. **Belum terpenuhi:** `npm run build` **NOT RUN**; uji manual **NOT FEASIBLE** (migration `BE-FIN-125` belum diterapkan). Bukti: [laporan FE-FIN-053](../task/report/frontend/FE-FIN-053.md) |
+| 🟡 `FE-FIN-054` | Petugas Finance mencari, menyaring, dan membuka kembali Invoice Supplier dan Retur Pembelian lewat daftar berpaging, tanpa harus mengetahui ID dokumen | `AP-UAT-21`; `AUD-AP-04`; `FIN-DEC-045` | `FIN-API-1.1` §B.4 dan §B.5 (delta `BE-FIN-122`, `BE-FIN-127`) | Pola daftar `invoice-exchange-view.jsx` (`FE-FIN-008`), `FilterDatePicker`, daftar Deposit Retur (`FE-FIN-009`) | Indeks Invoice Supplier menjadi tabel berpaging (supplier, status, rentang jatuh tempo aktual; kolom Estimasi dan Aktual terpisah); indeks Retur Pembelian menggantikan `redirect` ke deposit; pemilih Purchasing Invoice Disetujui pada form Catat Retur; `?stage=intake` tidak diubah | `BE-FIN-122` 🟡 [BE], `BE-FIN-127` 🟡 [BE] | 1. Indeks Invoice Supplier berupa tabel berpaging bersaring dengan Estimasi dan Aktual jatuh tempo terpisah beserta dasar dan status utang; klik dua kali membuka detail. 2. Rentang tanggal terbalik dicegah di layar. 3. `?stage=intake` tetap membuka halaman petunjuk lama. 4. `/supplier-returns` berupa daftar retur berpaging, tidak lagi `redirect`; Daftar Deposit tetap tersedia. 5. Form Catat Retur tanpa invoice menampilkan pemilih invoice Disetujui. 6. Memuat, kosong, galat, dan akses ditolak tampil. **7. Daftar Pembayaran — TIDAK dikerjakan** | `npm run lint:errors`; `npm run build`; verifikasi manual | Frontend Owner. **Risiko:** pemilih invoice memuat satu halaman tanpa pencarian teks; nama supplier daftar retur butuh satu permintaan per baris | Lint PASS; build PASS; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** AC 1–6 terpetakan ke source. **Belum terpenuhi:** AC 7 (Daftar Pembayaran tidak dikerjakan); `npm run build` **NOT RUN**; uji manual **NOT FEASIBLE** (backend `BE-FIN-122`/`127` belum di-build). ESLint: 0 error, 8 warning pola lama. Bukti: [laporan FE-FIN-054](../task/report/frontend/FE-FIN-054.md) |
+| 🟡 `FE-FIN-055` | Petugas Finance membatalkan Purchasing Invoice yang belum disetujui dari layar detail, dengan konfirmasi, hak akses, dan jalur menyusun ulang yang jelas | `AP-UAT-19`; `AUD-AP-08` (pilihan 1); `FIN-DEC-045` | `state-transition-matrix.md` §B.4; `POST /purchasing-invoices/{id}/cancel` dan hak `FinancePurchasingInvoice : Cancel` (delta `BE-FIN-126`) | Detail Purchasing Invoice (`FE-FIN-009`), `ConfirmModal`, `InformationAlert`, pola `usePermission` layar Accounting | Tombol Batalkan (status guard dan hak), dialog konfirmasi, `ExpectedRowVersion` dan muat ulang saat `409`, pemberitahuan dan tautan Tukar Faktur sumber pada invoice dibatalkan, hasil aksi tidak mengosongkan rincian item | `BE-FIN-126` 🟡 [BE] | 1. Tombol hanya pada DRAFT dan PENDING_APPROVAL. 2. Tanpa hak `Cancel` tombol nonaktif dengan keterangan. 3. Konfirmasi menjelaskan Tukar Faktur tetap terkunci dan jalur menyusun ulang. 4. Permintaan membawa `ExpectedRowVersion`; versi usang → pesan backend dan detail dimuat ulang. 5. Invoice dibatalkan tetap dapat dibuka; rincian item tidak hilang setelah aksi; ada tombol menuju Tukar Faktur sumber | `npm run lint:errors`; unit test aturan status; `npm run build`; verifikasi manual | Frontend Owner. **Risiko:** hak `Cancel` baru belum diberikan ke role mana pun selain SuperAdmin; invoice `REJECTED` tidak dapat dibatalkan (batas backend) | Lint PASS; build PASS; laporan tracked. 🟡 **SEBAGIAN, 26 Oktober 2026.** AC 1–5 terpetakan ke source dan 1 test unit (lulus). ESLint: 0 error, 8 warning pola lama. **Belum terpenuhi:** `npm run build` **NOT RUN**; uji manual **NOT FEASIBLE** (hak `Cancel` belum diberikan; backend belum di-build). Bukti: [laporan FE-FIN-055](../task/report/frontend/FE-FIN-055.md) |
+
+**Catatan validasi gabungan.** `npx eslint` atas 28 berkas: 0 error, 8 warning (`react-hooks/set-state-in-effect` x7, `react-hooks/refs` x1) dengan aturan dan pola yang sama seperti hook sejenis yang tidak diubah.
+Test baru: 16 lulus pada `tests/unit/finance-purchasing-ap-blm.test.mjs`. Skrip `npm run test:unit` gagal pada Node 20/Windows karena glob tidak di-expand (`EXISTING / ENVIRONMENT ISSUE`); dengan glob yang di-expand shell,
+suite penuh memberi 3851 test, 3809 lulus, 42 gagal pada 28 berkas test yang tidak merujuk berkas purchasing mana pun yang diubah (`UNRELATED EXISTING ISSUE`, baseline tidak dijalankan ulang).
+
+## Traceability REV-22 Frontend
+
+| Requirement / Keputusan | Task | Kontrak | Kriteria |
+|---|---|---|---|
+| `AP-UAT-10` (materai, ongkir: komponen jelas, total sesuai kontrak) — sisi layar | `FE-FIN-052` 🟡 | `FIN-VAL-107` diperluas | `FE-FIN-052` butir 1–5 |
+| `AP-UAT-06` (beberapa batch dan kedaluwarsa: detail tidak hilang) — sisi layar | `FE-FIN-053` 🟡 | `FIN-API-1.1` §B.2 diperluas aditif; `FIN-VAL-104` | `FE-FIN-053` butir 1–6 |
+| `AP-UAT-21` (dokumen dapat dicari dan dibuka kembali lintas sesi) dan `AUD-AP-04` — sisi layar, Invoice Supplier dan Retur | `FE-FIN-054` 🟡 | `FIN-API-1.1` §B.4, §B.5 | `FE-FIN-054` butir 1–6; butir 7 (Pembayaran) belum |
+| `AP-UAT-19` (dokumen final tidak diubah sembarang; koreksi sah dijelaskan) dan `AUD-AP-08` — bagian invoice | `FE-FIN-055` 🟡 | `state-transition-matrix.md` §B.4 | `FE-FIN-055` butir 1–5 |
+
+**Gap traceability.** Berkas `requirement-traceability.md` tidak ada pada blueprint Finance; traceability ditulis di dalam roadmap per revisi, sehingga tabel di atas adalah satu-satunya tempat bukti `REV-22` frontend.
+
+## Yang Sengaja TIDAK Dibuat
+
+| Yang dipertimbangkan | Alasan |
+|---|---|
+| `FE-AP-05` — membedakan "Penerimaan Invoice" dari "Invoice Supplier" | Dua penyebab. (1) Sidebar membuang query string (`normalizeRoutePath`), sehingga butir menu `?stage=intake` membuka route yang sama dengan Invoice Supplier; membedakannya butuh route terpisah. (2) Antrean intake (bukti faktur/SJ, kelengkapan, tindak lanjut) butuh keputusan pemilik proses; tanpa itu, mengubah judul akan melaporkan alur yang belum ada. Halaman `?stage=intake` lama dibiarkan |
+| Daftar Pembayaran operasional (`GET /payments`, `BE-FIN-122`) | Layar `/finance/payable/payment` adalah layar membayar utang; belum ada detail pembayaran maupun antrean persetujuan. Daftar tanpa itu belum menutup kebutuhan verifikasi alur per role (`FE-AP-07`) |
+| `FE-AP-06` — multi-GR, kondisi, UOM, tautan baris invoice ke PO/GR | Menunggu `AUD-AP-01`, `03`, `07` di backend (`AP-DEC-05`, `AP-DEC-09`); tidak ada kontrak untuk disambungkan |
+| `FE-AP-07` — close PO, update TF/GR, mutasi pembalik, idempotensi retry | Menunggu `AUD-AP-02`, `05`, `06`, `09`, `10` di backend |
+| Migrasi form Invoice Supplier dan modal GR ke `BaseTextField`/`DataTable` | Di luar cakupan; modul Purchasing memakai pola Bootstrap lokal dan perubahan massal berisiko regresi |
+| Test e2e dan uji runtime otomatis | Tidak diminta; dev server dan browser tidak dinyalakan tanpa permintaan pemilik |
