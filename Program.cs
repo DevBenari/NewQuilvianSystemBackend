@@ -921,6 +921,10 @@ try
     // untuk kode DRG-RSMMC yang atomik dan durabel.
     builder.Services.AddScoped<DrugRegistrationService>();
 
+    // Kode display antrian QDD-RSMMC dialokasikan service ini lewat NumberSeriesAllocator,
+    // bukan oleh QueueDisplayDeviceController (QBE-CODE-002/006).
+    builder.Services.AddScoped<QueueDisplayDeviceCodeService>();
+
     // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
     // mengisinya tanpa meminta perubahan kode.
