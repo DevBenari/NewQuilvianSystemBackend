@@ -218,6 +218,8 @@
 		02-backend-architecture.md bagian 18.2 — bukan diselundupkan.
 		-->
 		<EmbeddedResource Include="Areas\HealthServices\LaboratoryManagement\Seeders\Data\lab-specimen-detail-types.csv" />
+		<!-- Salinan saldo Farmasi Rawat Jalan QuilvianNewDevSukma 28 Okt 2026 (RJ-DOC-DEC-091). -->
+		<EmbeddedResource Include="Areas\HealthServices\PharmacyManagement\Seeders\Data\pharmacy-opening-stock-frj.csv" />
 
 
 		<Content Remove="Areas\HealthServices\DeviceManagement\**" />

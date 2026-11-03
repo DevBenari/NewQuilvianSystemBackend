@@ -11,8 +11,8 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        [Required]
-        public Guid NurseStationClusterId { get; set; }
+        /// <summary>Kosong untuk layout <c>AdmissionBoard</c> yang tidak terikat cluster poli.</summary>
+        public Guid? NurseStationClusterId { get; set; }
 
         public Guid? ServiceUnitId { get; set; }
 
