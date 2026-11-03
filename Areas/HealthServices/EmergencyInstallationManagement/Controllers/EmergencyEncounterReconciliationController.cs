@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Attributes;
@@ -69,8 +72,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var summary = new EmergencyEncounterReconciliationSummaryResponse
             {
                 TotalRuns = await query.CountAsync(cancellationToken),
-                ActiveRuns = await query.CountAsync(x => !x.IsReversed, cancellationToken),
-                ReversedRuns = await query.CountAsync(x => x.IsReversed, cancellationToken),
+                ActiveRuns = await query.CountAsync(x => x.Status == EmergencyReconciliationRunStatus.Executed, cancellationToken),
+                ReversedRuns = await query.CountAsync(x => x.Status == EmergencyReconciliationRunStatus.Reversed, cancellationToken),
                 TotalReconciledEncounters = await query.SumAsync(x => x.CountK1 + x.CountK1Outpatient, cancellationToken)
             };
 
@@ -100,7 +103,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     Id = x.Id,
                     RunNumber = x.RunNumber,
                     ExecutedAt = x.ExecutedAt,
-                    IsReversed = x.IsReversed
+                    IsReversed = x.Status == EmergencyReconciliationRunStatus.Reversed
                 })
                 .ToListAsync(cancellationToken);
 

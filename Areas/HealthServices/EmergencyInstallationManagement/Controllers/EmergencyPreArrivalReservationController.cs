@@ -32,13 +32,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private const string LogCategory = "HealthServices.EmergencyInstallation";
         private const string NamaController = "EmergencyPreArrivalReservation";
 
+        private readonly ApplicationDbContext _dbContext;
         private readonly EmergencyPreArrivalReservationService _service;
         private readonly LoggerService _loggerService;
 
         public EmergencyPreArrivalReservationController(
+            ApplicationDbContext dbContext,
             EmergencyPreArrivalReservationService service,
             LoggerService loggerService)
         {
+            _dbContext = dbContext;
             _service = service;
             _loggerService = loggerService;
         }
@@ -70,10 +73,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var summary = new EmergencyPreArrivalReservationSummaryResponse
             {
                 TotalReservation = await query.CountAsync(cancellationToken),
-                IncomingReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.Incoming, cancellationToken),
-                CheckedInReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.CheckedIn, cancellationToken),
+                IncomingReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.PendingArrival, cancellationToken),
+                CheckedInReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.Arrived, cancellationToken),
                 CancelledReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.Cancelled, cancellationToken),
-                ExpiredReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.Expired, cancellationToken)
+                ExpiredReservation = 0
             };
 
             return Ok(ApiResponse<EmergencyPreArrivalReservationSummaryResponse>.Ok(summary, "Ringkasan reservasi pra-kedatangan IGD berhasil diambil."));
@@ -88,12 +91,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             CancellationToken cancellationToken = default)
         {
             var query = _dbContext.Set<EmgPreArrivalReservation>().AsNoTracking()
+                .Include(x => x.Patient)
                 .Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
                 var keyword = search.Trim().ToLower();
-                query = query.Where(x => x.ReservationNumber.ToLower().Contains(keyword) || x.PatientName.ToLower().Contains(keyword));
+                query = query.Where(x => x.ReservationNumber.ToLower().Contains(keyword)
+                    || x.CallerName.ToLower().Contains(keyword)
+                    || (x.Patient != null && x.Patient.FullName.ToLower().Contains(keyword)));
             }
 
             var items = await query.OrderByDescending(x => x.EstimatedArrivalDateTime)
@@ -102,7 +108,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 {
                     Id = x.Id,
                     ReservationNumber = x.ReservationNumber,
-                    PatientName = x.PatientName,
+                    PatientName = x.Patient != null ? x.Patient.FullName : x.CallerName,
                     Status = x.Status,
                     EstimatedArrivalDateTime = x.EstimatedArrivalDateTime
                 })

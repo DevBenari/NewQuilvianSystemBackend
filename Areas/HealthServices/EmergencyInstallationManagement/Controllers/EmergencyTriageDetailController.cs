@@ -69,8 +69,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var summary = new EmergencyTriageDetailSummaryResponse
             {
                 TotalTriageDetail = await query.CountAsync(cancellationToken),
-                ActiveTriageDetail = await query.CountAsync(x => x.IsActive, cancellationToken),
-                InactiveTriageDetail = await query.CountAsync(x => !x.IsActive, cancellationToken)
+                ActiveTriageDetail = await query.CountAsync(x => x.IsMatched, cancellationToken),
+                InactiveTriageDetail = await query.CountAsync(x => !x.IsMatched, cancellationToken)
             };
 
             return Ok(ApiResponse<EmergencyTriageDetailSummaryResponse>.Ok(summary, "Ringkasan detail triase IGD berhasil diambil."));
@@ -86,7 +86,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             CancellationToken cancellationToken = default)
         {
             var query = _dbContext.Set<EmgTriageDetail>().AsNoTracking()
-                .Where(x => !x.IsDelete && x.IsActive);
+                .Where(x => !x.IsDelete);
 
             if (emergencyTriageId.HasValue && emergencyTriageId.Value != Guid.Empty)
                 query = query.Where(x => x.EmergencyTriageId == emergencyTriageId.Value);

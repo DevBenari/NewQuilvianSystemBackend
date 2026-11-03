@@ -66,7 +66,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 DefaultFilter = new EmergencyDispositionDefaultFilterResponse(),
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                SortableFields = new List<string> { "dispositiondatetime", "createdatetime" }
+                SortableFields = new List<string> { "decidedat", "createdatetime" }
             };
 
             return Ok(ApiResponse<EmergencyDispositionFilterMetadataResponse>.Ok(result, "Metadata filter tindak lanjut IGD berhasil diambil."));
@@ -84,7 +84,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 TotalDisposition = await query.CountAsync(cancellationToken),
                 ActiveDisposition = await query.CountAsync(x => x.IsActive, cancellationToken),
-                ProposedDisposition = await query.CountAsync(x => x.DispositionStatus == EmergencyDispositionStatus.Proposed, cancellationToken),
+                ProposedDisposition = await query.CountAsync(x => x.DispositionStatus == EmergencyDispositionStatus.Draft, cancellationToken),
                 ConfirmedDisposition = await query.CountAsync(x => x.DispositionStatus == EmergencyDispositionStatus.Confirmed, cancellationToken),
                 CancelledDisposition = await query.CountAsync(x => x.DispositionStatus == EmergencyDispositionStatus.Cancelled, cancellationToken)
             };
@@ -114,7 +114,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 query = query.Where(x => x.DispositionType != null && x.DispositionType.Name.ToLower().Contains(keyword));
             }
 
-            var items = await query.OrderByDescending(x => x.DispositionDateTime)
+            var items = await query.OrderByDescending(x => x.DecidedAt)
                 .Take(100)
                 .Select(x => new EmergencyDispositionOptionResponse
                 {
@@ -123,7 +123,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     DispositionTypeId = x.DispositionTypeId,
                     DispositionTypeName = x.DispositionType != null ? x.DispositionType.Name : null,
                     DispositionStatus = x.DispositionStatus,
-                    DispositionDateTime = x.DispositionDateTime
+                    DispositionDateTime = x.DecidedAt
                 })
                 .ToListAsync(cancellationToken);
 

@@ -75,7 +75,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 DefaultFilter = new EmergencyObservationDefaultFilterResponse(),
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                SortableFields = new List<string> { "startdatetime", "createdatetime" }
+                SortableFields = new List<string> { "startedat", "createdatetime" }
             };
 
             return Ok(ApiResponse<EmergencyObservationFilterMetadataResponse>.Ok(result, "Metadata filter observasi IGD berhasil diambil."));
@@ -93,10 +93,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 TotalObservation = await query.CountAsync(cancellationToken),
                 ActiveObservation = await query.CountAsync(x => x.IsActive, cancellationToken),
-                PlannedObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.Planned, cancellationToken),
-                InProgressObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.InProgress, cancellationToken),
+                PlannedObservation = 0,
+                InProgressObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.Active, cancellationToken),
                 CompletedObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.Completed, cancellationToken),
-                DiscontinuedObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.Discontinued, cancellationToken)
+                DiscontinuedObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.Cancelled, cancellationToken)
             };
 
             return Ok(ApiResponse<EmergencyObservationSummaryResponse>.Ok(summary, "Ringkasan observasi IGD berhasil diambil."));
@@ -123,7 +123,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 query = query.Where(x => x.ObservationLocation != null && x.ObservationLocation.ToLower().Contains(keyword));
             }
 
-            var items = await query.OrderByDescending(x => x.StartDateTime)
+            var items = await query.OrderByDescending(x => x.StartedAt)
                 .Take(100)
                 .Select(x => new EmergencyObservationOptionResponse
                 {
@@ -131,7 +131,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     EmergencyVisitId = x.EmergencyVisitId,
                     ObservationLocation = x.ObservationLocation,
                     ObservationStatus = x.ObservationStatus,
-                    StartDateTime = x.StartDateTime
+                    StartDateTime = x.StartedAt
                 })
                 .ToListAsync(cancellationToken);
 

@@ -60,7 +60,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 DefaultFilter = new EmergencyResuscitationDefaultFilterResponse(),
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                SortableFields = new List<string> { "startdatetime", "resuscitationnumber", "createdatetime" }
+                SortableFields = new List<string> { "startedat", "resuscitationnumber", "createdatetime" }
             };
 
             return Ok(ApiResponse<EmergencyResuscitationFilterMetadataResponse>.Ok(result, "Metadata filter resusitasi IGD berhasil diambil."));
@@ -80,7 +80,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 ActiveResuscitation = await query.CountAsync(x => x.IsActive, cancellationToken),
                 InProgressResuscitation = await query.CountAsync(x => x.ResuscitationStatus == EmergencyResuscitationStatus.InProgress, cancellationToken),
                 CompletedResuscitation = await query.CountAsync(x => x.ResuscitationStatus == EmergencyResuscitationStatus.Completed, cancellationToken),
-                TerminatedResuscitation = await query.CountAsync(x => x.ResuscitationStatus == EmergencyResuscitationStatus.Terminated, cancellationToken)
+                TerminatedResuscitation = await query.CountAsync(x => x.ResuscitationStatus == EmergencyResuscitationStatus.Stopped, cancellationToken)
             };
 
             return Ok(ApiResponse<EmergencyResuscitationSummaryResponse>.Ok(summary, "Ringkasan resusitasi IGD berhasil diambil."));
@@ -107,7 +107,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 query = query.Where(x => x.ResuscitationNumber.ToLower().Contains(keyword));
             }
 
-            var items = await query.OrderByDescending(x => x.StartDateTime)
+            var items = await query.OrderByDescending(x => x.StartedAt)
                 .Take(100)
                 .Select(x => new EmergencyResuscitationOptionResponse
                 {
@@ -115,7 +115,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     EmergencyVisitId = x.EmergencyVisitId,
                     ResuscitationNumber = x.ResuscitationNumber,
                     ResuscitationStatus = x.ResuscitationStatus,
-                    StartDateTime = x.StartDateTime
+                    StartDateTime = x.StartedAt
                 })
                 .ToListAsync(cancellationToken);
 

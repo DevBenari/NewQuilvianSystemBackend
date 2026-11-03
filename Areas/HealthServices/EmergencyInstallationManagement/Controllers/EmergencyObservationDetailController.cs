@@ -57,7 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 DefaultFilter = new EmergencyObservationDetailDefaultFilterResponse(),
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                SortableFields = new List<string> { "observationdatetime", "createdatetime" }
+                SortableFields = new List<string> { "recordedat", "createdatetime" }
             };
 
             return Ok(ApiResponse<EmergencyObservationDetailFilterMetadataResponse>.Ok(result, "Metadata filter detail observasi IGD berhasil diambil."));
@@ -102,13 +102,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 query = query.Where(x => x.ClinicalConditionSummary != null && x.ClinicalConditionSummary.ToLower().Contains(keyword));
             }
 
-            var items = await query.OrderByDescending(x => x.ObservationDateTime)
+            var items = await query.OrderByDescending(x => x.RecordedAt)
                 .Take(100)
                 .Select(x => new EmergencyObservationDetailOptionResponse
                 {
                     Id = x.Id,
                     EmergencyObservationId = x.EmergencyObservationId,
-                    ObservationDateTime = x.ObservationDateTime,
+                    ObservationDateTime = x.RecordedAt,
                     ClinicalConditionSummary = x.ClinicalConditionSummary
                 })
                 .ToListAsync(cancellationToken);

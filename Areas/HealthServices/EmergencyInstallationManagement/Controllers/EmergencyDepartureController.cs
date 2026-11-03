@@ -69,7 +69,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var summary = new EmergencyDepartureSummaryResponse
             {
                 TotalDeparture = await query.CountAsync(cancellationToken),
-                PendingDeparture = await query.CountAsync(x => x.PhysicalStatus == EmergencyPhysicalStatus.Pending, cancellationToken),
+                PendingDeparture = await query.CountAsync(x => x.PhysicalStatus == EmergencyPhysicalStatus.Prepared, cancellationToken),
                 DepartedCount = await query.CountAsync(x => x.PhysicalStatus == EmergencyPhysicalStatus.Departed, cancellationToken),
                 ArrivedCount = await query.CountAsync(x => x.PhysicalStatus == EmergencyPhysicalStatus.Arrived, cancellationToken),
                 HandoverAcceptedCount = await query.CountAsync(x => x.HandoverStatus == EmergencyHandoverStatus.Accepted, cancellationToken),

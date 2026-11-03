@@ -149,7 +149,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             {
                 DefaultFilter = new EmergencyTriageDefaultFilterResponse(),
                 PageSizeOptions = new List<int> { 10, 25, 50, 100 },
-                SortableFields = new List<string> { "triagedatetime", "sequence", "createdatetime" }
+                SortableFields = new List<string> { "startedat", "sequence", "createdatetime" }
             };
 
             return Ok(ApiResponse<EmergencyTriageFilterMetadataResponse>.Ok(result, "Metadata filter triase IGD berhasil diambil."));
@@ -197,7 +197,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 query = query.Where(x => x.TriageReason != null && x.TriageReason.ToLower().Contains(keyword));
             }
 
-            var items = await query.OrderByDescending(x => x.TriageDateTime)
+            var items = await query.OrderByDescending(x => x.StartedAt)
                 .Take(100)
                 .Select(x => new EmergencyTriageOptionResponse
                 {
@@ -206,7 +206,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     TriageReason = x.TriageReason ?? string.Empty,
                     TriageLevelName = x.TriageLevel != null ? x.TriageLevel.Name : null,
                     TriageStatus = x.TriageStatus,
-                    TriageDateTime = x.TriageDateTime
+                    TriageDateTime = x.StartedAt
                 })
                 .ToListAsync(cancellationToken);
 
