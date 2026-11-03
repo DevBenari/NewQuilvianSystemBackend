@@ -59,6 +59,8 @@ using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.OpticalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalCheckupManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
@@ -988,6 +990,20 @@ try
     builder.Services.AddScoped<HmdUnitReadinessService>();
     builder.Services.AddScoped<HmdResourceService>();
     builder.Services.AddScoped<HmdCompetencyGateService>();
+
+    // OPT-BP-001, BE-OPT-004. Nomor dokumen Optik (OPT-EXM/RX/ORD/CLM-RSMMC-) lewat NumberSeriesAllocator
+    // (QBE-CODE-006) dan pembaca izin praktik per tanggal kalender WIB (OPT-DEC-012).
+    builder.Services.AddScoped<OptNumberService>();
+    builder.Services.AddScoped<OptPractitionerLicenseReader>();
+    // BE-OPT-005. Data referensi Optik: metadata, katalog + stok depo Optik, profil barang, pengaturan.
+    builder.Services.AddScoped<OptReferenceDataService>();
+    // BE-OPT-010. Kunjungan Optik lewat EncounterIntakeService (Registrasi tetap pemilik kunjungan).
+    builder.Services.AddScoped<OptVisitService>();
+    builder.Services.AddScoped<OptPractitionerGuard>();
+    builder.Services.AddScoped<OptRefractionExamService>();
+    builder.Services.AddScoped<OptPrescriptionService>();
+    // BE-OPT-013: pembaca Rekam Medis Optik (pemeriksaan refraksi + resep), persetujuan pemilik OPT-APR-007. Tanpa kriteria kelengkapan.
+    builder.Services.AddScoped<IMedicalRecordDocumentSource, OptMedicalRecordDocumentSource>();
 
     // MCU-BP-001, BE-MCU-004. Nomor order MCU-RSMMC- dan nomor impor MCU-IMP- lewat
     // NumberSeriesAllocator (QBE-CODE-006), bukan MAX + 1 seperti Lab/Rad.
@@ -2311,6 +2327,11 @@ try
         // belum diratifikasi pada keterangannya (MCU-OQ-002/003). Idempoten; isian yang sudah
         // diubah admin tidak ditimpa.
         await RunStartupSeederAsync("McuReferenceDataSeeder", () => McuReferenceDataSeeder.SeedAsync(app.Services));
+
+        // OPT-BP-001, BE-OPT-001/004. Satu unit layanan Optik (ServiceUnitType.Optical, SU-OPT-001) dan satu
+        // OptSetting bawaan. Idempoten; nilai yang sudah diubah admin tidak disentuh. Bila migration
+        // AddOpticalManagement belum diterapkan, pengaturan dilewati dengan peringatan (startup tidak mati).
+        await RunStartupSeederAsync("OptReferenceDataSeeder", () => OptReferenceDataSeeder.SeedAsync(app.Services));
 
         // RM-BP-001, BE-37. Sebelas profil dokumen wajib awal (A4.8) — bukan SOP rumah sakit
         // (RM-DEC-047). Idempoten; profil yang sudah diubah petugas rekam medis tidak ditimpa.

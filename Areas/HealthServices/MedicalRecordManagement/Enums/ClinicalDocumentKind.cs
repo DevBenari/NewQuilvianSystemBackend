@@ -92,6 +92,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enu
         /// kembali sesudah dirilis (`RM-FACT-020`), sehingga ditahan dari berkas (`RM-DEC-058`).
         /// Nilai ini ada supaya berkas dapat menyatakannya "belum tersedia".
         /// </summary>
-        PathologyAnatomyResult = 44
+        PathologyAnatomyResult = 44,
+
+        // =====================================================================
+        // Optik — OPT-BP-001, BE-OPT-013, OPT-DEC-050 (OPT-APR-007, disetujui pemilik Rekam
+        // Medis). Setiap VERSI hasil ukur dan setiap VERSI resep adalah dokumen tersendiri:
+        // DocumentId = Id OptRefractionExamRevision / OptPrescriptionVersion. Keduanya masuk
+        // JenisYangDitegakkan, sehingga revisi menambah dokumen baru, bukan mengubah yang lama.
+        // =====================================================================
+
+        /// <summary>Pemeriksaan refraksi Optik (visus, autorefraktometer, koreksi subjektif).</summary>
+        OpticalRefraction = 45,
+
+        /// <summary>Resep kacamata atau lensa kontak Optik, termasuk salinan resep luar.</summary>
+        OpticalPrescription = 46
     }
 }
