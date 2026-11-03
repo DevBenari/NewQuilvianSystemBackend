@@ -701,3 +701,52 @@ Payload logger hanya memuat `EntityId`, controller, action, dan status. Kolom be
 `data/data-dictionary.md` bagian 8.5 — angka biaya dan teks alasan — **MUST NOT** masuk logger.
 Membaca angka biaya **tidak** termasuk audit pembacaan gaji sensitif `HRD-DEC-039`, karena angkanya
 dari gaji tengah grade, bukan gaji perorangan (`HRD-DEC-065`).
+
+
+---
+
+## 12. Rekrutmen dan Hiring — `S-D2` (`last_changed_in` `v8`, 3 November 2026)
+
+### 12.1 Butir Hak Akses Baru
+
+| Resource | Action | Peruntukan | Dasar Keputusan |
+| --- | --- | --- | --- |
+| `JobRequisition` | `Read`, `Create`, `Update`, `Submit`, `Cancel` | Pengelolaan alokasi requisition formasi | `HRD-DEC-073` |
+| `JobVacancy` | `Read`, `Create`, `Update`, `Publish`, `Close` | Pengelolaan lowongan dan publikasi | `HRD-DEC-073` |
+| `Candidate` | `Read`, `Create`, `Update`, `UploadDocument` | Registrasi pelamar dan berkas kualifikasi | `HRD-DEC-075` |
+| `CandidateScreening` | `Read`, `Evaluate` | Penapisan berkas dan validasi STR klinis | `HRD-DEC-076` |
+| `CandidateEvaluation` | `Read`, `Evaluate` | Formulir wawancara HR | `HRD-DEC-077` |
+| `ClinicalAssessment` | `Read`, `Evaluate` | Uji kompetensi klinis unit (Hak Veto Mutlak) | `HRD-DEC-077` |
+| `JobOffer` | `Read`, `Create`, `Update`, `Approve`, `Cancel` | Penyusunan dan persetujuan standar penawaran upah | `HRD-DEC-078`, `HRD-DEC-079` |
+| `JobOfferTier2` | `Approve` | Persetujuan penawaran melebihi plafon skala grade | `HRD-DEC-079` |
+| `OccupationalHealthClearance` | `Evaluate` | Input kesimpulan kelaikan fisik MCU (K3RS) | `HRD-DEC-078` |
+| `TalentPool` | `Read`, `Promote` | Manajemen kandidat cadangan dan promosi cepat | `HRD-DEC-080` |
+| `HiringHandoff` | `Execute` | Serah terima kandidat final ke Onboarding | `HRD-DEC-075` |
+
+### 12.2 Peta Peran ke Butir Hak Akses
+
+| Peran | Hak Akses yang Dipegang | Batas / Larangan Tambahan |
+| --- | --- | --- |
+| **HR Recruiter** | `JobRequisition` (seluruh action), `JobVacancy` (seluruh action), `Candidate` (seluruh action), `CandidateScreening` (seluruh action), `CandidateEvaluation : Evaluate`, `JobOffer : Read, Create, Update`, `TalentPool : Read, Promote` | DILARANG melihat detail diagnosa medis MCU; DILARANG swa-setuju offer |
+| **HR Manager** | Seluruh hak akses HR Recruiter; ditambah `JobRequisition : Approve`, `JobOffer : Approve`, `HiringHandoff : Execute` | Penyetuju offer standar (`T13`) |
+| **Kepala Unit / Hiring Manager** | `Candidate : Read` (khusus pelamar unitnya), `ClinicalAssessment : Evaluate`, `JobOffer : Approve` (standar `T13`) | Pemegang hak veto klinis; hanya dapat melihat pelamar unitnya |
+| **Dokter K3RS / MCU** | `OccupationalHealthClearance : Evaluate` | Penginput kesimpulan kelaikan fisik MCU pra-kerja; memegang rekam medis |
+| **Direktur Keuangan (Finance)** | `JobOfferTier2 : Approve` | Penyetuju eskalasi offer di atas plafon grade (`T14`) |
+| **Direktur Utama** | `JobOfferTier2 : Approve` | Pengesah tertinggi offer di atas plafon grade (`T14`) |
+| **Auditor** | Seluruh butir `Read` pada domain ini | DILARANG memegang action tulis apa pun |
+
+### 12.3 Kewenangan yang Tidak Dapat Dijaga Mesin Hak Akses
+
+1. **Hak Veto Klinis**: Jika Asesor Klinis Unit memilih `NOT_RECOMMENDED`, logika domain pada `RecruitmentService` mengunci status pelamar dan memblokir penerbitan penawaran kerja, bahkan jika user yang login adalah HR Manager (`HRD-DEC-077`).
+2. **Kerahasiaan Medis MCU**: Lapisan DTO `McuClearanceSummaryResponse` tidak pernah memetakan kolom rekam medis/diagnosa dari modul K3RS, sehingga akun HR secara struktural tidak dapat menerima data tersebut (`HRD-DEC-078`).
+3. **Pemisahan Pembuat dan Penyetuju (*AllowSelfApproval = false*)**: Pembuat draf penawaran dilarang menyetujui penawarannya sendiri (`HRD-DEC-079`).
+
+### 12.4 Audit Logging S-D2
+
+Kejadian yang wajib dicatat dalam audit log permanen:
+- Setiap perubahan status Requisition, Vacancy, Application, dan Job Offer.
+- Hasil penapisan administrasi STR (nomor STR, masa berlaku, dan hasil lolos/gugur).
+- Nilai evaluasi wawancara HR dan uji klinis unit beserta nama akun penilainya.
+- Keputusan persetujuan penawaran kerja bertingkat (waktu, akun penyetuju, dan alasan catatan).
+- Input kesimpulan kelaikan fisik MCU oleh tim dokter K3RS.
+- Aksi promosi cepat kandidat cadangan dari Talent Pool.

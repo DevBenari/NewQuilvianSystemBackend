@@ -1573,3 +1573,92 @@ tetapi apakah `S-D1` ikut rilis pertama modul atau dirilis tersendiri adalah kep
 `02-backend-architecture.md` bagian 16, `03-frontend-architecture.md` bagian 12, kontrak `v7`, dan
 bagian ini, `S-D1` boleh diteruskan ke `/plan-module-delivery`. Pertanyaan memblokir pada bagian 20.2
 menyangkut epic lain dan tidak menahan `S-D1`.
+
+
+---
+
+## 22. Bagian `S-D2` — Rekrutmen dan Hiring (`last_changed_in` `v8`, 3 November 2026)
+
+### 22.1 Identitas
+
+| Field | Value |
+| --- | --- |
+| Slice | `S-D2` Rekrutmen dan Hiring |
+| Status | `draft` — mengikuti keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` pada `00-interview-decisions.md` revisi 18 |
+| Backend SHA baseline | `e8d47c77` |
+| Frontend SHA baseline | `cfa82fbb3` |
+| `input_revision` | `00-interview-decisions.md` rev `18` bagian 33; `02-backend-architecture.md` rev `4` bagian 17; `03-frontend-architecture.md` rev `4` bagian 13 |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` — keputusan bisnis dan regulasi klinis (STR/Akreditasi) telah disahkan |
+| Ringkasan cakupan | Pengadaan tenaga kerja rumah sakit dari requisition formasi hingga penyerahan kandidat siap orientasi ke Sub-modul 05 |
+
+### 22.2 Ringkasan eksekutif
+
+Rekrutmen rumah sakit bukan sekadar mengumpulkan CV atau mencatat data pelamar. Kesalahan rekrutmen dapat berakibat fatal
+terhadap keselamatan pasien (*patient safety*), risiko hukum tenaga kesehatan tanpa izin sah (STR), pemborosan biaya tes kesehatan,
+serta pembengkakan anggaran upah rumah sakit.
+
+`S-D2` menutup seluruh risiko tersebut: lowongan wajib berbasis alokasi formasi yang disahkan Direktur (`HRD-DEC-073`),
+pelamar klinis tanpa STR aktif otomatis gugur administrasi (`HRD-DEC-076`), asesor unit memiliki hak veto klinis mutlak (`HRD-DEC-077`),
+MCU pra-kerja hanya dibiayai untuk kandidat yang menyepakati tawaran dengan masking kerahasiaan rekam medis (`HRD-DEC-078`),
+paket upah divalidasi terhadap batas skala grade dengan eskalasi Direksi (`HRD-DEC-079`), dan kandidat cadangan berperingkat
+disiagakan dalam Talent Pool untuk promosi cepat jika kandidat utama mundur (`HRD-DEC-080`).
+
+### 22.3 Batas MVP S-D2
+
+- **Titik Mulai**: Kursi luar (*external seat*) dari `HeadcountRequest` berstatus `APPROVED` di Sub-modul 03.
+- **Titik Akhir**: Surat penawaran berstatus `FINAL_ACCEPTED` dengan kelaikan MCU `FIT`, diserahterimakan menjadi draf `WorkforceProfile` berstatus `Pending Onboarding` ke Sub-modul 05.
+
+### 22.4 Kemampuan MUST HAVE & Epic
+
+#### `EPIC HRD-16`: Permintaan Requisition dan Penayangan Lowongan
+- `FR-REC-01`: Pembuatan draf `HrdJobRequisition` wajib menarik kursi yang tersedia dari `HeadcountRequestId` aktif (`HRD-DEC-073`).
+- `FR-REC-02`: Pembuatan lowongan `HrdJobVacancy` dengan kuota kursi, batas waktu lamaran, dan penanda peran klinis `IsClinical`.
+
+#### `EPIC HRD-17`: Registrasi Pelamar dan Penapisan STR Klinis Otomatis
+- `FR-REC-03`: Pendaftaran pelamar dengan validasi unik NIK/KTP terhadap buku induk `WorkforceProfile` existing (`HRD-DEC-075`).
+- `FR-REC-04`: Penapisan berkas administrasi: pelamar posisi klinis tanpa STR aktif atau tanggal kedaluwarsa STR < hari ini otomatis gugur (*Auto-Reject*) (`HRD-DEC-076`).
+
+#### `EPIC HRD-18`: Evaluasi Wawancara HR dan Hak Veto Klinis Unit
+- `FR-REC-05`: Penjadwalan wawancara independen dan pengisian formulir evaluasi HR (`HRD-DEC-077`).
+- `FR-REC-06`: Formulir uji kompetensi klinis oleh Kepala Ruang/Asesor Profesi; rekomendasi `NOT_RECOMMENDED` mengunci kandidat dari tahapan penawaran (*Clinical Veto*).
+
+#### `EPIC HRD-19`: Penawaran Bersyarat dan Kelaikan MCU Pra-Kerja
+- `FR-REC-07`: Penerbitan Surat Penawaran Kerja Bersyarat (*Conditional Job Offer*) sebelum MCU pra-kerja (`HRD-DEC-078`).
+- `FR-REC-08`: Integrasi kesimpulan kelaikan kerja MCU (`FIT`, `FIT_WITH_RESTRICTIONS`, `UNFIT`) dengan perlindungan kerahasiaan diagnosa medis.
+
+#### `EPIC HRD-20`: Persetujuan Penawaran Bertingkat dan Serah Terima Onboarding
+- `FR-REC-09`: Evaluasi penawaran upah terhadap `MstSalaryGrade`: jalur standar `T13` (Unit & HR Manager) vs jalur eskalasi `T14` (Finance & Direktur Utama) (`HRD-DEC-079`).
+- `FR-REC-10`: Konversi kandidat `FINAL_ACCEPTED` menjadi draf profil tenaga kerja baru di Sub-modul 02 berstatus `Pending Onboarding` (`HRD-DEC-075`).
+
+#### `EPIC HRD-21`: Bank Kandidat Cadangan (*Talent Pool*)
+- `FR-REC-11`: Penampungan otomatis kandidat kompeten berstatus `TALENT_POOL_QUALIFIED` dengan masa retensi 6 bulan (`HRD-DEC-080`).
+- `FR-REC-12`: Promosi cepat (*Fast-Track*) kandidat cadangan berperingkat tertinggi saat kandidat utama menolak tawaran (*Offer Rejected*) atau tidak hadir (*No-Show*).
+
+### 22.5 Skenario UAT
+
+| ID | Epic | Skenario Uji | Tindakan | Hasil yang Diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-REC-01` | `EPIC HRD-16` | Buka lowongan tanpa requisition | Buat lowongan tanpa memilih nomor requisition yang sah | Sistem menolak dengan pesan validasi formasi |
+| `UAT-REC-02` | `EPIC HRD-17` | Pelamar perawat STR kadaluwarsa | Unggah dokumen pelamar perawat dengan tanggal STR kemarin | Sistem otomatis menetapkan status *Screening Rejected* |
+| `UAT-REC-03` | `EPIC HRD-17` | Mantan karyawan melamar kembali | Input NIK yang sudah ada di database `WorkforceProfile` | Sistem mendeteksi profil lama dan menautkan lamaran (*rehire flow*) |
+| `UAT-REC-04` | `EPIC HRD-18` | Veto klinis kepala ruang ICU | Kepala ICU memberi nilai `NOT_RECOMMENDED` | Status kandidat menjadi *Assessment Failed*, tombol penawaran terkunci |
+| `UAT-REC-05` | `EPIC HRD-19` | Privasi rekam medis MCU | Login akun HR Recruiter, buka data MCU kandidat | Hanya tampil kesimpulan kelaikan kerja; detail rekam medis tersembunyi |
+| `UAT-REC-06` | `EPIC HRD-20` | Penawaran gaji di atas plafon grade | Input penawaran gaji pokok di atas `MaximumSalary` | Rantai persetujuan otomatis mewajibkan Direktur Keuangan dan Dirut |
+| `UAT-REC-07` | `EPIC HRD-21` | Promosi cepat dari talent pool | Kandidat utama menolak offer; recruiter memilih promosi cadangan | Surat penawaran baru terbit untuk kandidat cadangan peringkat 1 |
+
+### 22.6 Definition of Done (DoD) S-D2
+
+1. [x] Keputusan bisnis `HRD-DEC-073` s.d. `HRD-DEC-080` disahkan pemilik teknis dan produk.
+2. [ ] Seluruh 12 entitas model ber-prefix `Hrd` terkonfigurasi pada EF Core DbContext.
+3. [ ] Migration membersihkan 20 tabel lama dilengkapi blok pengaman `EMPTY_TABLE_GUARD`.
+4. [ ] Endpoint API `[Tags("RecruitmentManagement")]` lulus kompilasi `dotnet build` dan uji QBE.
+5. [ ] Layar frontend `FE-HRD-110` s.d. `FE-HRD-122` terpasang dengan base-form-control Quilvian.
+6. [ ] Validasi hak veto klinis dan perlindungan rekam medis MCU terverifikasi lulus uji.
+
+### 22.7 Urutan Pengiriman Gelombang
+
+| Gelombang | Epic | Keterangan |
+| --- | --- | --- |
+| `MVP-11` | `EPIC HRD-16`, `EPIC HRD-17` | Fondasi requisition, lowongan, registrasi pelamar, dan gerbang STR klinis |
+| `MVP-12` | `EPIC HRD-18`, `EPIC HRD-19` | Evaluasi wawancara, uji klinis, conditional offer, dan integrasi MCU pra-kerja |
+| `MVP-13` | `EPIC HRD-20`, `EPIC HRD-21` | Persetujuan bertingkat, serah terima onboarding, dan talent pool promosi cepat |

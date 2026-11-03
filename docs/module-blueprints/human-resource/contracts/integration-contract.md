@@ -482,3 +482,31 @@ mengubah kursi yang sudah `Fulfilled` dan tidak membuat potret bulanan kedua.
 | `INT-HR-16` | Cuti, kompetensi, pengunduran diri | **Ya** | — |
 | `INT-HR-17` | Antrean Recruiter | **Ya**, dengan tautan manual | `S-D2` `BLOCKED` untuk bentuk otomatisnya |
 | `INT-HR-18` | Persetujuan `T9` s.d. `T13` | **Ya** | Pemetaan peran Finance / Anggaran dan Direktur untuk rilis |
+
+
+---
+
+## 12. Rekrutmen dan Hiring — `S-D2` (`last_changed_in` `v8`, 3 November 2026)
+
+### 12.1 Batas dengan modul/sistem eksternal
+
+#### `INT-HR-19` — Verifikasi Registrasi Tenaga Kesehatan (SatuSehat SDMK / Konsil KTKI-KKI)
+- **Arah**: Kemenkes / Konsil -> HR Rekrutmen.
+- **Kegunaan**: Verifikasi keaslian dan keaktifan nomor STR pelamar klinis secara realtime API.
+- **Status Rilis Ini**: Ditunda (`POST-MVP`). Pada rilis ini pelamar mengunggah berkas STR dan Recruiter melakukan verifikasi manual terhadap web resmi KTKI/KKI (`HRD-DEC-076`).
+
+### 12.2 Sambungan di dalam modul HR
+
+| ID | Arah | Cara Kerja | Bila Sumber Tidak Tersedia | Risiko / Pencegahan |
+| --- | --- | --- | --- | --- |
+| `INT-HR-20` | Perencanaan (`S-D1`) -> Rekrutmen (`S-D2`) | `HrdJobRequisition` menarik alokasi kursi luar dari `HrdHeadcountRequest` berstatus `APPROVED` (`HRD-DEC-073`) | Jika formasi belum disetujui, requisition tidak dapat dibuat | Mencegah pembukaan lowongan tanpa plafon formasi |
+| `INT-HR-21` | Master Data (`01`) -> Rekrutmen (`S-D2`) | Evaluasi nominal draf surat penawaran terhadap rentang `MstSalaryGrade` (`HRD-DEC-079`) | `404` jika grade tidak ditemukan; penawaran draf ditolak | Mencegah penawaran di luar skala upah rumah sakit |
+| `INT-HR-22` | Occupational Health (`18`) -> Rekrutmen (`S-D2`) | Dokter K3RS menginput status kelaikan kerja (`FIT`, `UNFIT`, dll); modul rekrutmen membaca kesimpulan tanpa detail rekam medis (`HRD-DEC-078`) | Status kelaikan tetap `PENDING`; penawaran definitif tertahan | Melindungi privasi medis kandidat dan keselamatan kerja RS |
+| `INT-HR-23` | Rekrutmen (`S-D2`) -> Workforce Core (`02`) | Serah terima kandidat `FINAL_ACCEPTED` membuat draf `WorkforceProfile` berstatus `Pending Onboarding` dengan deteksi NIK anti-duplikasi (`HRD-DEC-075`) | Jika gagal simpan, status handoff tetap `PENDING` dan dapat diulang (*retryable*) | Mencegah duplikasi entitas pegawai mantan karyawan |
+| `INT-HR-24` | Rekrutmen (`S-D2`) -> Perencanaan (`S-D1`) | Saat penempatan resmi berlaku di Workforce Core, `FulfilledSeats` pada requisition dan headcount request bertambah otomatis | Jika penempatan dibatalkan sebelum berlaku, kursi kembali terbuka | Sinkronisasi akurat antara rekrutmen dan gap tenaga |
+
+### 12.3 Idempotency dan Kegagalan Komunikasi
+
+- **Submit Pendaftaran Pelamar**: Idempotent berdasarkan `NationalIdNumber` (NIK KTP). Submit berulang untuk NIK yang sama mengembalikan data kandidat yang sudah terdaftar.
+- **Serah Terima Onboarding**: Idempotent berdasarkan `JobOfferId`. Eksekusi berulang tidak menciptakan ID profil pegawai ganda.
+- **Penanganan Pembatalan Kursi**: Jika kandidat menolak penawaran (*Offer Rejected*) atau batal hadir dinas (*No-Show*), kursi otomatis kembali ke status `In-Progress`, memicu notifikasi promosi cepat bagi kandidat peringkat 1 di `HrdTalentPool` (`HRD-DEC-080`).

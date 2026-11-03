@@ -370,3 +370,27 @@ terhadap database dev dan dicatat di laporan task.
 | `AT-HRD-D1-20` | Direktur dari matriks persetujuan (`HRD-DEC-072`) | **Berhasil:** permintaan ICU di luar formasi sampai ke pemegang jabatan Direktur Pelayanan Medis lewat penelusuran unit induk. **Gagal tertutup:** jabatan direktur kosong → naik ke Direktur Utama; keduanya kosong → pengajuan ditolak | `INTEGRATION` | Penyetuju pada instance; response `400` | — |
 | `AT-HRD-D1-21` | Koreksi biaya Finance (`HRD-DEC-065` `FINANCE_ADJUSTMENT`) | **Berhasil:** Finance mengisi koreksi pada langkahnya; angka awal dan koreksi sama-sama tersimpan. **Gagal:** HR Manager mencoba koreksi ditolak `VR-WFP-20`; Finance menyetujui padahal ada baris tanpa tarif dan tanpa koreksi ditolak `VR-WFP-21` | `INTEGRATION` | Response dan isi dokumen | — |
 | `AT-HRD-D1-22` | Menu dapat dicapai dan tidak bertabrakan makna | **Berhasil:** kesembilan butir menu `S-D1` terlihat sesuai hak akses; butir "Kebutuhan Tenaga Kerja" lama sudah tidak bermakna sama dengan grup baru | `UI` | Tangkapan layar sidebar per peran | — |
+
+
+---
+
+## 16. Rekrutmen dan Hiring — `S-D2` (`last_changed_in` `v8`, 3 November 2026)
+
+Kolom "AC Asal" merujuk acceptance criteria decision log bagian 33.6 (`HRD-DEC-073` s.d. `HRD-DEC-080`).
+Uji integrasi diverifikasi terhadap endpoint API backend `RecruitmentManagement` dan database development `QuilvianNewDevHamzah`.
+
+| ID | Requirement | Skenario | Jenis | Bukti yang Diharapkan | AC Asal |
+| --- | --- | --- | --- | --- | --- |
+| `AT-HRD-D2-01` | Requisition wajib berbasis formasi (`HRD-DEC-073`) | **Gagal:** Buat lowongan baru tanpa memilih `JobRequisitionId` berstatus `APPROVED` | `INTEGRATION` | Response `400 Bad Request` | `AC-REC-01` |
+| `AT-HRD-D2-02` | Kuota kursi tidak melebihi sisa alokasi formasi | **Gagal:** Sisa alokasi formasi luar 2 kursi; ajukan requisition 3 kursi | `INTEGRATION` | Response `422 Unprocessable` dengan pesan kuota terlampaui | `AC-REC-01` |
+| `AT-HRD-D2-03` | Pengaman tabel kosong migration (`HRD-DEC-074`) | **Gagal:** Isi 1 baris di tabel `TrxJobRequisition` dev uji, jalankan migration; migration berhenti dan membatalkan transaksi | `MIGRATION` | Pesan galat migration `EMPTY_TABLE_GUARD` | `AC-REC-02` |
+| `AT-HRD-D2-03b` | Migration berhasil pada database kosong | **Berhasil:** Jalankan migration pada database kosong; 20 tabel lama dibersihkan dan 12 tabel baru terbuat | `MIGRATION` | Skema database terupdate bersih | `AC-REC-02` |
+| `AT-HRD-D2-04` | Anti-duplikasi profil NIK eks-karyawan (`HRD-DEC-075`) | **Berhasil:** Pelamar dengan NIK yang sudah terdaftar di `WorkforceProfile` menerima penawaran kerja; sistem menautkan ke profil lama tanpa ID baru | `INTEGRATION` | `HrdCandidate.WorkforceProfileId` terisi ID lama; `WorkforceProfile` tidak bertambah baris orang | `AC-REC-03` |
+| `AT-HRD-D2-05` | Hard gate STR aktif posisi klinis (`HRD-DEC-076`) | **Gagal:** Pelamar perawat mendaftar dengan STR yang kadaluwarsa kemarin; sistem otomatis menggugurkan di tahap screening | `INTEGRATION`, `UI` | Status lamaran `REJECTED`, jadwal wawancara terkunci | `AC-REC-04` |
+| `AT-HRD-D2-06` | Hak veto klinis unit pengguna (`HRD-DEC-077`) | **Gagal:** Asesor unit klinis memilih rekomendasi `NOT_RECOMMENDED`; login akun HR Manager mencoba membuatkan Job Offer | `INTEGRATION`, `UI` | Response `403 Forbidden` - Hak veto klinis aktif | `AC-REC-05` |
+| `AT-HRD-D2-07` | Masking privasi rekam medis MCU (`HRD-DEC-078`) | **Berhasil:** Dokter K3RS menginput hasil tes lab & diagnosa; akun HR membuka antarmuka pelamar; detail klinis disembunyikan | `INTEGRATION`, `UI` | Tampilan hanya memuat status kelaikan (`FIT`/`UNFIT`) | `AC-REC-06` |
+| `AT-HRD-D2-08` | Penawaran bersyarat mendahului MCU (`HRD-DEC-078`) | **Gagal:** Jadwalkan MCU untuk kandidat yang belum menerima surat penawaran bersyarat | `INTEGRATION` | Response `409 Conflict` | `VR-REC-15` |
+| `AT-HRD-D2-09` | Persetujuan offer melebihi batas grade (`HRD-DEC-079`) | **Berhasil:** Penawaran gaji di atas `MaximumSalary` dari `SalaryGrade` otomatis mengarahkan ke approval Direktur Keuangan & Dirut | `INTEGRATION` | Log persetujuan memuat tier `T14` | `AC-REC-07` |
+| `AT-HRD-D2-10` | Promosi cepat dari Talent Pool (`HRD-DEC-080`) | **Berhasil:** Kandidat utama menolak offer; recruiter menekan tombol promosi cadangan; offer baru terbit bagi kandidat peringkat 1 | `INTEGRATION`, `UI` | Status kandidat cadangan menjadi `PROMOTED`, offer baru terbuat | `AC-REC-08` |
+| `AT-HRD-D2-11` | Kadaluwarsa retensi Talent Pool (`HRD-DEC-080`) | **Gagal:** Mencoba mempromosikan kandidat yang telah berada di Talent Pool > 6 bulan | `INTEGRATION` | Response `422 Unprocessable` - Status expired | `VR-REC-19` |
+| `AT-HRD-D2-12` | Serah terima onboarding aman (`HRD-DEC-075`) | **Berhasil:** Pelamar lolos MCU `FIT` diserahterimakan; draf `WorkforceProfile` berstatus `Pending Onboarding` terbentuk | `INTEGRATION` | Response `200` dan baris baru di `WfpProfile` | `AC-REC-03` |

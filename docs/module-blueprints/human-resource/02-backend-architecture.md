@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `02-backend-architecture.md` |
-| Revision | `3` — 3 November 2026: bagian 16 menambah arsitektur `S-D1` Perencanaan Tenaga Kerja. Revision `2` tetap utuh pada bagian 1–15 |
+| Revision | `4` — 3 November 2026: bagian 17 menambah arsitektur `S-D2` Rekrutmen dan Hiring (`HRD-DEC-073` s.d. `HRD-DEC-080`). Revision `3` tetap utuh pada bagian 16 |
 | Status | `draft` — **belum** `approved`. Approval adalah tindakan manusia, bukan keluaran skill |
 | Owner desain | Technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Hanya bagian 16** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
@@ -94,7 +94,7 @@ ini. Merancangnya berarti mengarang kewenangan yang belum diberikan siapa pun.
 | `S-C1` | Kredensial, lisensi, kewenangan klinis, SPK/RKK, OPPE, FPPE | `HRD-DEP-005`, `HRD-DEP-007`, `HRD-Q-08` | Komite Medik, setelah `requirement-completeness-gate` dan `hospital-domain-architect` |
 | `S-C6` | Kesehatan dan keselamatan kerja staf | `HRD-DEP-007`, `HRD-DEC-010` masih `draft` | K3RS |
 | ~~`S-D1`~~ | ~~Perencanaan tenaga kerja~~ | **Dirancang pada bagian 16** — `HRD-Q-05` ditutup untuk `S-D1` lewat `HRD-DEC-059` | — |
-| `S-D2` | Rekrutmen dan hiring | `HRD-Q-05` | Pemilik database |
+| ~~`S-D2`~~ | ~~Rekrutmen dan hiring~~ | **Dirancang pada bagian 17** — `HRD-Q-05` ditutup untuk `S-D2` lewat `HRD-DEC-074` | — |
 | `S-D3` | Benefit | `HRD-Q-05` | Pemilik database |
 | `S-D4` | Layanan HR dan tiket kepegawaian | `HRD-Q-05` | Pemilik database |
 | `S-D5` | Perjalanan dinas dan reimbursement | `DEFERRED` — prioritas terendah, tetap tunduk `HRD-Q-05` | Pemilik produk |
@@ -2321,3 +2321,353 @@ dan pengaman tabel kosong pada migration pembersihan.
 | `HRD-DEC-069` | 16.4.7 |
 | `HRD-DEC-070` | 16.4.4 |
 | `HRD-DEC-071` | 16.4.6, 16.4.8 |
+
+
+---
+
+## 17. Desain Arsitektur Backend S-D2 — Rekrutmen dan Hiring (RecruitmentManagement)
+
+### 17.1 Ringkasan dan Batas Tanggung Jawab
+
+Arsitektur backend untuk Delivery Slice `S-D2` (Rekrutmen dan Hiring) diturunkan secara resmi dari keputusan bisnis
+`HRD-DEC-073` s.d. `HRD-DEC-080`. Slice ini bertugas mengelola pengadaan tenaga kerja rumah sakit mulai dari penarikan
+alokasi kursi dari `HeadcountRequest` (Sub-modul 03), penayangan lowongan, penampungan berkas pelamar, penapisan
+dokumen profesi klinis (STR), wawancara HR dan asesmen klinis unit dengan hak veto klinis, penerbitan penawaran bersyarat,
+pemeriksaan MCU pra-kerja dengan perlindungan privasi medis, persetujuan penawaran bertingkat, pengelolaan talent pool,
+hingga serah terima kandidat ke Sub-modul 05 Onboarding.
+
+| Aspek | Batas Tanggung Jawab |
+| --- | --- |
+| Hulu (Input) | Membaca `HeadcountRequest` yang disetujui (`HRD-DEC-073`); membaca master jabatan, unit, spesialisasi, dan `MstSalaryGrade` |
+| Internal S-D2 | Requisition, Vacancy, Candidate, Application, Document, Screening, Evaluation, Offer, OfferApproval, McuCheck, TalentPool, HiringHandoff |
+| Hilir (Output) | Menyerahkan draf `WorkforceProfile` berstatus `Pending Onboarding` ke Sub-modul 05; mengembalikan kursi ke status terpenuhi di Sub-modul 03 |
+| Yang DILARANG | Membuat `WorkforceProfile` aktif sebelum offer accepted (`HRD-DEC-075`); menampilkan detail diagnosis medis MCU ke HR (`HRD-DEC-078`); menganulir veto klinis unit (`HRD-DEC-077`) |
+
+### 17.2 Class Diagram Bounded Context RecruitmentManagement
+
+```mermaid
+classDiagram
+    class HrdJobRequisition {
+        +Guid Id
+        +string RequisitionNumber
+        +Guid HeadcountRequestId
+        +Guid OrganizationUnitId
+        +Guid PositionId
+        +Guid EmploymentTypeId
+        +int RequestedSeats
+        +int FulfilledSeats
+        +string PriorityLevel
+        +DateTime RequiredStartDate
+        +DateTime TargetFulfillmentDate
+        +Guid SalaryGradeId
+        +string Status
+        +string BusinessJustification
+    }
+
+    class HrdJobVacancy {
+        +Guid Id
+        +string VacancyNumber
+        +Guid JobRequisitionId
+        +string Title
+        +string Description
+        +string Requirements
+        +DateTime PublishDate
+        +DateTime ClosingDate
+        +int TargetSeats
+        +int FilledSeats
+        +string VacancyType
+        +bool IsClinical
+        +string WorkforceCategory
+        +string Status
+    }
+
+    class HrdCandidate {
+        +Guid Id
+        +string CandidateNumber
+        +string NationalIdNumber
+        +string FullName
+        +string Gender
+        +DateTime BirthDate
+        +string Email
+        +string PhoneNumber
+        +string Address
+        +Guid? WorkforceProfileId
+        +bool IsBlacklisted
+    }
+
+    class HrdCandidateApplication {
+        +Guid Id
+        +string ApplicationNumber
+        +Guid CandidateId
+        +Guid JobVacancyId
+        +DateTime AppliedDate
+        +string ApplicationSource
+        +string CurrentStage
+        +string Status
+    }
+
+    class HrdCandidateDocument {
+        +Guid Id
+        +Guid CandidateId
+        +Guid ApplicationId
+        +string DocumentType
+        +string DocumentNumber
+        +DateTime? ExpiryDate
+        +string FileUrl
+        +string VerificationStatus
+        +Guid? VerifiedByWorkforceProfileId
+    }
+
+    class HrdCandidateScreening {
+        +Guid Id
+        +Guid ApplicationId
+        +DateTime ScreeningDate
+        +Guid ScreenedByWorkforceProfileId
+        +bool IsClinicalPosition
+        +bool HasValidStr
+        +DateTime? StrExpiryDate
+        +string Result
+        +string ScreeningNotes
+    }
+
+    class HrdCandidateEvaluation {
+        +Guid Id
+        +Guid ApplicationId
+        +string EvaluationType
+        +Guid EvaluatorWorkforceProfileId
+        +DateTime EvaluationDate
+        +decimal CompetencyScore
+        +decimal BehavioralScore
+        +string Recommendation
+        +bool IsClinicalVeto
+        +string FeedbackNotes
+    }
+
+    class HrdJobOffer {
+        +Guid Id
+        +string OfferNumber
+        +Guid ApplicationId
+        +Guid CandidateId
+        +Guid JobRequisitionId
+        +Guid PositionId
+        +Guid SalaryGradeId
+        +decimal OfferedBaseSalary
+        +decimal OfferedFixedAllowance
+        +bool IsAboveGradeMax
+        +string OfferStatus
+        +string RequiredMcuStatus
+        +DateTime? OfferSentDate
+        +DateTime? TargetJoinDate
+    }
+
+    class HrdJobOfferApproval {
+        +Guid Id
+        +Guid JobOfferId
+        +string ApprovalTier
+        +Guid ApproverWorkforceProfileId
+        +string ApproverRole
+        +int StepOrder
+        +string Status
+        +DateTime? DecisionDate
+        +string Comments
+    }
+
+    class HrdPreEmploymentMedicalCheck {
+        +Guid Id
+        +Guid JobOfferId
+        +Guid CandidateId
+        +DateTime CheckDate
+        +Guid ExaminedByWorkforceProfileId
+        +string FitnessStatus
+        +string RestrictionsNotes
+        +DateTime? MedicalClearanceDate
+    }
+
+    class HrdTalentPool {
+        +Guid Id
+        +Guid CandidateId
+        +Guid ApplicationId
+        +Guid PositionId
+        +decimal RankScore
+        +string Status
+        +DateTime EntryDate
+        +DateTime ExpiryDate
+        +Guid? PromotedToJobOfferId
+    }
+
+    class HrdCandidateHiringHandoff {
+        +Guid Id
+        +Guid JobOfferId
+        +Guid CandidateId
+        +Guid WorkforceProfileId
+        +DateTime HandoffDate
+        +string HandoffStatus
+        +Guid TargetUnitId
+        +Guid TargetPositionId
+        +DateTime ScheduledOrientationDate
+    }
+
+    HrdJobRequisition "1" --> "*" HrdJobVacancy : publishes
+    HrdJobVacancy "1" --> "*" HrdCandidateApplication : receives
+    HrdCandidate "1" --> "*" HrdCandidateApplication : submits
+    HrdCandidateApplication "1" --> "*" HrdCandidateDocument : contains
+    HrdCandidateApplication "1" --> "0..1" HrdCandidateScreening : evaluated_by
+    HrdCandidateApplication "1" --> "*" HrdCandidateEvaluation : assessed_by
+    HrdCandidateApplication "1" --> "0..1" HrdJobOffer : results_in
+    HrdJobOffer "1" --> "*" HrdJobOfferApproval : approved_by
+    HrdJobOffer "1" --> "0..1" HrdPreEmploymentMedicalCheck : verified_by
+    HrdCandidateApplication "0..1" --> "0..1" HrdTalentPool : retained_in
+    HrdJobOffer "1" --> "0..1" HrdCandidateHiringHandoff : hands_off_to
+```
+
+### 17.3 Penjelasan Class & Tanggung Jawab
+
+| Nama Class | Layer | Status | Lokasi File | Fungsi Utama |
+| --- | --- | --- | --- | --- |
+| `HrdJobRequisition` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas permohonan pengadaan tenaga berbasis alokasi kursi luar `HeadcountRequest` |
+| `HrdJobVacancy` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas lowongan kerja publikasi dengan kuota, batas tanggal, dan kualifikasi profesi |
+| `HrdCandidate` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas identitas pelamar independen dengan validasi unik NIK/KTP |
+| `HrdCandidateApplication` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas pelacakan berkas lamaran per lowongan dan tahap siklus rekrutmen |
+| `HrdCandidateDocument` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas penyimpanan dan status verifikasi dokumen legalitas/profesi (STR, Ijazah, Pelatihan) |
+| `HrdCandidateScreening` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas rekam penapisan berkas administrasi dan gerbang otomatis STR aktif posisi klinis |
+| `HrdCandidateEvaluation` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas formulir penilaian wawancara HR dan uji klinis dengan hak veto mutlak |
+| `HrdJobOffer` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas surat penawaran kerja bersyarat dengan rincian remunerasi dan status respon |
+| `HrdJobOfferApproval` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas log persetujuan bertingkat (`T13` standar vs `T14` plafon gaji terlampaui) |
+| `HrdPreEmploymentMedicalCheck` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas kesimpulan kelaikan fisik kerja (Fit/Unfit) tanpa membocorkan rekam medis detail |
+| `HrdTalentPool` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas bank data kandidat cadangan berperingkat aktif 6 bulan untuk promosi cepat |
+| `HrdCandidateHiringHandoff` | Model | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` | Entitas serah terima kandidat yang menerima tawaran ke Sub-modul 05 Onboarding |
+| `JobRequisitionController` | Controller | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Controllers/` | Endpoint API pengelolaan requisition dan penarikan alokasi kursi |
+| `JobVacancyController` | Controller | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Controllers/` | Endpoint API penayangan lowongan, syarat kualifikasi, dan penutupan kuota |
+| `CandidateController` | Controller | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Controllers/` | Endpoint API pendaftaran pelamar, unggah berkas, dan penapisan administrasi |
+| `CandidateEvaluationController` | Controller | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Controllers/` | Endpoint API penjadwalan evaluasi, input nilai HR, dan input uji klinis unit |
+| `JobOfferController` | Controller | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Controllers/` | Endpoint API draf penawaran kerja, persetujuan bertingkat, dan konfirmasi respon kandidat |
+| `TalentPoolController` | Controller | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Controllers/` | Endpoint API penelusuran kandidat cadangan dan aksi promosi cepat (*Fast-Track*) |
+| `RecruitmentService` | Service | Baru | `Areas/Corporate/HumanResource/RecruitmentManagement/Services/` | Logika bisnis validasi kuota kursi, gerbang STR aktif, hak veto klinis, dan eskalasi offer |
+
+### 17.4 Arsitektur Folder Backend
+
+Pohon folder canonical untuk domain `RecruitmentManagement`:
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/Corporate/HumanResource/RecruitmentManagement/
+│   ├── Controllers/
+│   │   ├── JobRequisitionController.cs
+│   │   ├── JobVacancyController.cs
+│   │   ├── CandidateController.cs
+│   │   ├── CandidateEvaluationController.cs
+│   │   ├── JobOfferController.cs
+│   │   └── TalentPoolController.cs
+│   ├── Models/
+│   │   ├── HrdJobRequisition.cs
+│   │   ├── HrdJobVacancy.cs
+│   │   ├── HrdCandidate.cs
+│   │   ├── HrdCandidateApplication.cs
+│   │   ├── HrdCandidateDocument.cs
+│   │   ├── HrdCandidateScreening.cs
+│   │   ├── HrdCandidateEvaluation.cs
+│   │   ├── HrdJobOffer.cs
+│   │   ├── HrdJobOfferApproval.cs
+│   │   ├── HrdPreEmploymentMedicalCheck.cs
+│   │   ├── HrdTalentPool.cs
+│   │   └── HrdCandidateHiringHandoff.cs
+│   ├── Services/
+│   │   ├── IRecruitmentService.cs
+│   │   ├── RecruitmentService.cs
+│   │   ├── ICandidateEvaluationService.cs
+│   │   └── CandidateEvaluationService.cs
+│   └── DTOs/
+│       ├── JobRequisitionDto.cs
+│       ├── JobVacancyDto.cs
+│       ├── CandidateApplicationDto.cs
+│       ├── CandidateDocumentDto.cs
+│       ├── CandidateEvaluationDto.cs
+│       ├── JobOfferDto.cs
+│       └── TalentPoolDto.cs
+└── Repositories/Configurations/Corporate/HumanResource/RecruitmentManagement/
+    ├── HrdJobRequisitionConfiguration.cs
+    ├── HrdJobVacancyConfiguration.cs
+    ├── HrdCandidateConfiguration.cs
+    ├── HrdCandidateApplicationConfiguration.cs
+    ├── HrdCandidateDocumentConfiguration.cs
+    ├── HrdCandidateScreeningConfiguration.cs
+    ├── HrdCandidateEvaluationConfiguration.cs
+    ├── HrdJobOfferConfiguration.cs
+    ├── HrdJobOfferApprovalConfiguration.cs
+    ├── HrdPreEmploymentMedicalCheckConfiguration.cs
+    ├── HrdTalentPoolConfiguration.cs
+    └── HrdCandidateHiringHandoffConfiguration.cs
+```
+
+### 17.5 Status Model & Dampak Migration
+
+Sesuai `HRD-DEC-074`, 20 model kandidat lama yang terbukti 0 baris dibuang dan digantikan oleh 12 entitas baru ber-prefix `Hrd`.
+
+| Tabel Lama (Dibersihkan) | Status | Tindakan Migration |
+| --- | --- | --- |
+| `MstAssessmentMethod`, `MstCandidateStatus`, `MstInterviewTemplate`, `MstRecruitmentSource`, `MstRecruitmentStage` | Dibuang | Dibersihkan dengan pengaman `EMPTY_TABLE_GUARD` |
+| `TrxJobRequisition`, `TrxJobRequisitionApproval`, `TrxJobVacancy` | Diganti | Digantikan oleh `HrdJobRequisition`, `HrdJobVacancy` |
+| `TrxCandidate`, `TrxCandidateApplication`, `TrxCandidateDocument`, `TrxCandidateScreening` | Diganti | Digantikan oleh `HrdCandidate`, `HrdCandidateApplication`, `HrdCandidateDocument`, `HrdCandidateScreening` |
+| `TrxCandidateAssessment`, `TrxCandidateInterview`, `TrxInterviewEvaluation` | Digabung | Digabung menjadi satu model seragam `HrdCandidateEvaluation` |
+| `TrxJobOffer` | Diganti | Digantikan oleh `HrdJobOffer` dan `HrdJobOfferApproval` |
+| `TrxPreEmploymentMedicalCheck` | Diganti | Digantikan oleh `HrdPreEmploymentMedicalCheck` |
+| `TrxReferenceCheck`, `TrxBackgroundCheck` | Disederhanakan | Terintegrasi ke verifikasi berkas dan MCU |
+| `TrxCandidateHiring` | Diganti | Digantikan oleh `HrdCandidateHiringHandoff` |
+
+### 17.6 Rencana Migration & Penerapan EMPTY_TABLE_GUARD
+
+Setiap file migration pembersihan 20 tabel lama **WAJIB** menyertakan blok pengaman SQL berikut:
+
+```sql
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM public."TrxJobRequisition" LIMIT 1) THEN
+        RAISE EXCEPTION 'MIGRATION ABORTED: Tabel TrxJobRequisition berisi data riil!';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public."TrxCandidate" LIMIT 1) THEN
+        RAISE EXCEPTION 'MIGRATION ABORTED: Tabel TrxCandidate berisi data riil!';
+    END IF;
+    -- Dilanjutkan untuk seluruh 20 tabel kandidat rekrutmen lama
+END $$;
+
+DROP TABLE IF EXISTS public."TrxCandidateHiring";
+DROP TABLE IF EXISTS public."TrxJobOffer";
+-- Diteruskan hingga 20 tabel lama terhapus bersih
+```
+
+### 17.7 Rencana Data Master Awal
+
+| Master Data | Isi Minimum Awal | Sumber Nilai |
+| --- | --- | --- |
+| Sumber Rekrutmen (*Recruitment Source*) | `Career Portal RS`, `Job Portal Eksternal`, `Rujukan Karyawan (Referral)`, `Bursa Kerja Kampus / Poltekkes`, `Internal RS` | Standar HR |
+| Kategori Dokumen (*Document Types*) | `KTP / Identitas`, `Ijazah Profesi`, `STR (Surat Tanda Registrasi)`, `Sertifikat BTCLS`, `Sertifikat ACLS/ATLS`, `Curriculum Vitae`, `Surat Keterangan Sehat` | Regulasi Kemenkes & RS |
+| Skala Upah (*Salary Grade*) | Menggunakan data aktif `MstSalaryGrade` (5 baris di database dev) untuk validasi rentang plafon gaji penawaran | Sub-modul 01 |
+
+### 17.8 Yang Sengaja Tidak Dibuat
+
+1. **Pembuatan Profil Pegawai Dini**: Tidak membuat `WorkforceProfile` selama tahap wawancara/tes untuk mencegah mengotori tabel master pegawai (`HRD-DEC-075`).
+2. **Detail Rekam Medis MCU di Modul Rekrutmen**: Tidak membuat tabel hasil lab/rontgen darah di modul rekrutmen; seluruh detail klinis tetap milik Sub-modul 18 K3RS (`HRD-DEC-078`).
+3. **Penerbitan Kontrak Kerja / Surat Keputusan (SK)**: Pembuatan kontrak kerja resmi (PKWT/PKWTT) merupakan domain Sub-modul 05 Onboarding & Lifecycle.
+
+### 17.9 Strategi Test & Verifikasi Backend
+
+- **Kompilasi**: `dotnet build` tanpa error maupun warning baru.
+- **Pemeriksaan Arsitektur QBE**: Skrip `Invoke-QbeConformanceCheck.ps1` memvalidasi kepemilikan prefix `Hrd` pada namespace `RecruitmentManagement`.
+- **Pengujian Fungsional Database**:
+  - Validasi bahwa requisition menolak alokasi melebihi kursi luar `HeadcountRequest`.
+  - Validasi gerbang otomatis penolakan pelamar klinis tanpa STR aktif.
+  - Validasi hak veto klinis: rekomendasi `NOT_RECOMMENDED` dari unit memblokir penerbitan offer.
+  - Validasi eskalasi persetujuan offer jika gaji melebihi `MaximumSalary` dari `MstSalaryGrade`.
+
+### 17.10 Traceability S-D2
+
+| Keputusan Bisnis | Implementasi Arsitektur Backend |
+| --- | --- |
+| `HRD-DEC-073` | Bagian 17.1, 17.2 (`HrdJobRequisition.HeadcountRequestId`) |
+| `HRD-DEC-074` | Bagian 17.5, 17.6 (`EMPTY_TABLE_GUARD` pada migration) |
+| `HRD-DEC-075` | Bagian 17.2, 17.3 (`HrdCandidate.NationalIdNumber` deduplication & `HrdCandidateHiringHandoff`) |
+| `HRD-DEC-076` | Bagian 17.2, 17.3 (`HrdCandidateScreening.HasValidStr` auto-reject) |
+| `HRD-DEC-077` | Bagian 17.2, 17.3 (`HrdCandidateEvaluation.IsClinicalVeto`) |
+| `HRD-DEC-078` | Bagian 17.2, 17.3 (`HrdJobOffer.OfferStatus = CONDITIONAL_ACCEPTED` & `HrdPreEmploymentMedicalCheck`) |
+| `HRD-DEC-079` | Bagian 17.2, 17.3 (`HrdJobOffer.IsAboveGradeMax` & `HrdJobOfferApproval.ApprovalTier`) |
+| `HRD-DEC-080` | Bagian 17.2, 17.3 (`HrdTalentPool` dengan status `ACTIVE` & retensi 6 bulan) |

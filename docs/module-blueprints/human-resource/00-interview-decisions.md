@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `HRD-BP-001` |
-| Revision | `17` — **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
+| Revision | `18` — **Revision `18` (bagian 33) adalah Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (`S-D2`), 3 November 2026: audit HEAD BE `e8d47c77` / FE `cfa82fbb3`, temuan `HRD-TF-033` s.d. `HRD-TF-038`, keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` — seluruhnya `approved` oleh pengguna; menutup `HRD-Q-05` dan membuka blocker `HRD-BLK-004` untuk `S-D2`.** **Revision `17` (bagian 32) adalah Amendment Pass Workforce Planning & Staffing (`S-D1`), 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-022` s.d. `HRD-TF-029`, `HRD-TF-030` s.d. `HRD-TF-032` (3 November 2026), pertanyaan `HRD-Q-68` s.d. `HRD-Q-81`, keputusan `HRD-DEC-058` s.d. `HRD-DEC-071` — seluruhnya `approved`, ditutup 3 November 2026; ditambah `HRD-DEC-072` saat desain (bagian 32.10).** **Revision `16` (bagian 31) adalah Amendment Pass Workforce Core & Employee 360, 2 November 2026: audit HEAD BE `396c8363` / FE `9c4000724`, `HRD-TF-008` s.d. `HRD-TF-019`, scope `HRD-DEC-046`, pertanyaan `HRD-Q-57` s.d. `HRD-Q-65`.** revision `0` Scope Pass, `1` Closure Pass, `2` Amendment Pass, `3` Amendment Pass 1.1 Konsistensi dan Penamaan, seluruhnya 27 Agustus 2026. Revision `2` menyerap `HRD-DEC-016` s.d. `HRD-DEC-018` dan menarik `HRD-TF-001`. **Revision `3` menyerap `HRD-DEC-019`** kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`, ditambah perbaikan hitungan slice dan definisi angka 68/67. Revision `4` menutup `HRD-Q-16` dan `HRD-Q-17` lewat `HRD-DEC-020` dan `HRD-DEC-021`. Revision `5` mendaftarkan `HRD-Q-18` s.d. `HRD-Q-33` yang lahir dari PHASE 2A. **Revision `6` (bagian 20) adalah PHASE 2A.1 — Flow Evidence Hardening**: audit source read-only atas flow 01–04, menutup `HRD-Q-21`, `HRD-Q-24`, `HRD-Q-28`, dan bagian source-resolvable `HRD-Q-22`; menemukan tiga celah implementasi baru (`HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`); dan menurunkan sejumlah edge transisi dari `[EXISTING]` menjadi `[OPEN]` atau `PERMISSION_MAPPING`. **Revision `7` (bagian 21) adalah PHASE 2A.2 — Owner Decision Closure**: `HRD-DEC-022` s.d. `HRD-DEC-025` menutup `HRD-Q-34`, `HRD-Q-35`, `HRD-Q-36`, dan sisa `HRD-Q-22`; header baseline SHA dipisah audited vs current verified. **Revision `8` (bagian 22) adalah PHASE 2B**: flow 05–09 ditulis (penjadwalan kerja, ubah jadwal/tukar shift, koreksi kehadiran, izin pulang cepat, kotak masuk terpadu); mendaftarkan `HRD-Q-37` s.d. `HRD-Q-46`; menutup `HRD-Q-12` dan `HRD-Q-13`; mencatat satu kontradiksi belum-rekonsiliasi terhadap flow 03 (`HRD-Q-44`). **Revision `9` (bagian 23) adalah PHASE 2B.1 — Source Closure & Product Decision Pass**: menutup `HRD-Q-39`, `HRD-Q-41`, `HRD-Q-44`, `HRD-Q-46`, dan `AC-F07-02` lewat audit source; `HRD-DEC-026` s.d. `HRD-DEC-030` menutup `HRD-Q-37`, `HRD-Q-38`, `HRD-Q-40`, `HRD-Q-42`, `HRD-Q-43`, dan `HRD-Q-45`; mendaftarkan `HRD-Q-47`; mengoreksi wording flow 05 dan flow 08; memperbarui classification roadmap; mengoreksi cakupan `PHASE 2C` menjadi flow 10–14. **Revision `10` (bagian 24–25) mencatat `HRD-Q-48` (fallback 480 menit) dan penegasan klasifikasi `TrxLeaveRequestApproval`, lalu menulis `PHASE 2C`**: flow 10–14 (payroll `PARTIAL`, lifecycle/offboarding, kompetensi/pelatihan, kinerja, hubungan karyawan/disiplin); mendaftarkan `HRD-Q-49` s.d. `HRD-Q-53`. Tidak ada source code, database, atau frontend yang diubah pada revision manapun sejak revision 5. Seluruh pass sebelumnya tetap utuh dan ditandai HISTORICAL SNAPSHOT |
 | Status | `draft`. Sebelas keputusan rekayasa dan produk teknis sudah `approved` oleh pemilik teknis yang ditetapkan `HRD-DEC-015`. Dua keputusan sensitif — `HRD-DEC-005` gerbang kredensial dan `HRD-DEC-010` privasi rekam kesehatan — tetap `draft` sampai Komite Medik dan K3RS mengesahkan. Nilai kebijakan PRD pasal 28 belum tersentuh |
 | Pass | **Scope pass**, **Closure pass**, **Amendment pass**, lalu **Amendment pass 1.1**. Rinciannya ada di bagian 14, 15, dan 16 |
 | Module | `human-resource` / `HumanResource`, prefix entity `Hrd` |
@@ -4710,3 +4710,212 @@ model di `Areas/Corporate/HumanResource/WorkforcePlanning/Models/` ke **tepat sa
 yaitu `Corporate / SelfServices` · `Human Resource` · `BUSINESS DOMAIN` · `Hrd` · `ACTIVE / LEGACY`.
 Baris `Wfp`, `Mst`, dan `Wfl` tidak cocok dengan segmen `WorkforcePlanning`. Entity baru `S-D1`
 memakai prefix `Hrd` tanpa baris registry tambahan.
+
+
+---
+
+## 33. Pass Wawancara 4: Sub-modul 04 Recruitment & Hiring (Slice S-D2) — 3 November 2026
+
+### 33.1 Pengantar dan dasar audit
+
+Bagian ini mencatat hasil wawancara keputusan bisnis (/grill-me) untuk sub-modul **04. Recruitment & Hiring**
+(Delivery Slice `S-D2`), merujuk pada acuan `Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` Bagian 04.
+
+| Komponen | Keadaan per 3 November 2026 |
+| --- | --- |
+| Backend | `NewQuilvianSystemBackend`, HEAD `e8d47c77` |
+| Frontend | `QuilvianSystemFrontendDev`, HEAD `cfa82fbb3` |
+| Database | `QuilvianNewDevHamzah`, dibaca **read-only** lewat script Python `check_recruitment_tables.py` |
+| Status Slice | Semula `BLOCKED` oleh `HRD-BLK-004` dan `HRD-Q-05`; kini **terbuka** lewat keputusan `HRD-DEC-074` |
+| Owner keputusan | Pengguna sebagai pemilik teknis dan produk (`HRD-DEC-015`) |
+
+### 33.2 Fakta yang dikumpulkan sebelum wawancara
+
+| ID | Type | Temuan | Bukti | Klasifikasi |
+| --- | --- | --- | --- | --- |
+| `HRD-TF-033` | Fact | Domain `RecruitmentManagement` memiliki **20 model** dan 20 berkas konfigurasi EF Core, tetapi memiliki **0 controller dan 0 endpoint operasional**. Frontend tidak memiliki satu pun halaman atau rute rekrutmen | BE `Areas/Corporate/HumanResource/RecruitmentManagement/Models/*.cs` @ `e8d47c77`; FE `src/**` → 0 berkas rekrutmen | `MISSING` |
+| `HRD-TF-034` | Fact | Pada database development `QuilvianNewDevHamzah`, **seluruh 20 tabel rekrutmen berisi 0 baris**: `MstAssessmentMethod`, `MstCandidateStatus`, `MstInterviewTemplate`, `MstRecruitmentSource`, `MstRecruitmentStage`, `TrxBackgroundCheck`, `TrxCandidateApplication`, `TrxCandidateAssessment`, `TrxCandidate`, `TrxCandidateDocument`, `TrxCandidateHiring`, `TrxCandidateInterview`, `TrxCandidateScreening`, `TrxInterviewEvaluation`, `TrxJobOffer`, `TrxJobRequisitionApproval`, `TrxJobRequisition`, `TrxJobVacancy`, `TrxPreEmploymentMedicalCheck`, `TrxReferenceCheck`. Seluruhnya kosong murni | Query hitung baris *read-only* pada PostgreSQL `QuilvianNewDevHamzah`, 3 November 2026 | Bukti penutupan `HRD-Q-05` untuk `S-D2` |
+| `HRD-TF-035` | Fact | Keterhubungan antrean rekrutmen dengan perencanaan tenaga kerja telah disahkan pada `HRD-DEC-066` dan `HRD-DEC-067`: hanya kursi pemenuhan luar (*external seats*) dari permintaan headcount yang disetujui yang masuk antrean Recruiter | `00-interview-decisions.md` bagian 32.7 (`HRD-DEC-066`, `HRD-DEC-067`) | Titik sentuh hulu |
+| `HRD-TF-036` | Fact | Master data pendukung skala upah `MstSalaryGrade` sudah aktif dan memuat batas `MinimumSalary`, `MidpointSalary`, dan `MaximumSalary` per grade | BE `MasterData/PayrollAndBenefit/Models/MstSalaryGrade.cs` | Titik sentuh remunerasi |
+| `HRD-TF-037` | Fact | Rumah sakit memiliki perbedaan regulasi mendasar antara tenaga non-klinis dan tenaga klinis (dokter, perawat, nakes) yang menuntut izin registrasi sah (STR) sesuai Permenkes 13/2025 dan KMK Akreditasi RS 2024 | `Buku_Panduan_Sistem_Modul_HRD_Quilvian_V2_.md` Bagian 04 baris 359, 361 | Regulasi Kemenkes & Akreditasi |
+
+### 33.3 Batas ruang lingkup (Scope)
+
+**Kalimat batas scope:** Sub-modul ini mengelola siklus pengadaan tenaga kerja rumah sakit mulai dari penarikan kursi formasi yang disetujui, pembukaan requisition dan lowongan kerja, penampungan dan penapisan berkas administrasi/profesi pelamar, evaluasi wawancara dan uji klinis independen, pemeriksaan latar belakang dan MCU pra-kerja, hingga penerbitan surat penawaran kerja (*job offer*) dan serah terima kandidat yang menerima tawaran ke tahap orientasi tanpa membuat profil orang ganda.
+
+**Di dalam scope:**
+1. Pengelolaan *Job Requisition* berbasis sisa alokasi kursi luar dari *Headcount Request* yang disetujui di Sub-modul 03.
+2. Manajemen lowongan (*Job Vacancy*): persyaratan formasi, publikasi, kuota, dan masa berlaku.
+3. Bank data pelamar (*Candidate & CandidateApplication*) dan penyimpanan berkas kualifikasi.
+4. Penapisan administrasi (*Screening*), termasuk gerbang wajib STR aktif untuk tenaga klinis.
+5. Penjadwalan dan pengisian evaluasi wawancara HR serta uji kompetensi klinis/teknis oleh Kepala Unit / Asesor Profesi.
+6. Pemeriksaan latar belakang (*Background Check*) dan verifikasi referensi kerja.
+7. Integrasi status kelaikan medis pra-kerja (*Pre-Employment Medical Checkup*) dengan perlindungan kerahasiaan rekam medis.
+8. Penyusunan, persetujuan bertingkat (*Tiered Offer Approval*), dan pengiriman Surat Penawaran Kerja (*Job Offer*).
+9. Pengelolaan kandidat cadangan (*Talent Pool*) dan jalur promosi cepat (*Fast-Track Promotion*).
+10. Serah terima kandidat yang menerima penawaran (*Hiring Handoff*) menjadi draf profil tenaga kerja berstatus `Pending Onboarding`.
+
+**Di luar scope — untuk modul lain:**
+- Perhitungan standar beban kerja, penetapan formasi, dan pengajuan headcount (milik Sub-modul 03 *Workforce Planning* / `S-D1`).
+- Penandatanganan kontrak kerja definitif, orientasi rumah sakit, orientasi unit, dan evaluasi masa percobaan (milik Sub-modul 05 *Onboarding & Lifecycle*).
+- Kredensial formal klinis dan penerbitan SPK/RKK (milik Sub-modul 14 *Credentialing & Privilege*).
+- Rekam medis klinis, pemeriksaan laboratorium/radiologi MCU detail (milik Sub-modul 18 *Occupational Health* / Modul Rawat Jalan/MCU).
+- Penjadwalan shift dinas harian (milik Sub-modul 06 *Scheduling*).
+- Master struktur organisasi, jabatan, profesi, dan standar gaji grade (milik Sub-modul 01 *Master Data HR*).
+
+### 33.4 Bentuk blueprint
+
+Bentuk blueprint modul HR **tetap `SINGLE`** (`HRD-BP-001`) sesuai keputusan mengikat `HRD-DEC-003`. Sub-modul 04 dirancang sebagai irisan pengantaran **Delivery Slice `S-D2`**.
+
+### 33.5 Keputusan yang lahir pada pass ini
+
+#### `HRD-DEC-073` — Pembukaan Requisition dan Rekrutmen Wajib Berakar dari Headcount Request yang Disahkan (Strict Requisition-Driven)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A |
+| Bukti pemicu | `HRD-DEC-066`, `HRD-DEC-067` |
+
+**Isi keputusan:**
+1. `STRICT_REQUISITION_REQUIRED`: Tidak ada lowongan kerja (*Job Vacancy*) atau proses seleksi yang dapat dibuka tanpa memiliki referensi `JobRequisitionId` yang sah.
+2. `REQUISITION_ROOTED_IN_HEADCOUNT`: Setiap requisition wajib menarik kursi dari `HeadcountRequestId` yang telah disetujui (Sub-modul 03 *Workforce Planning*, jalur `T11` formasi reguler atau `T12` luar formasi).
+3. `SEAT_QUOTA_ENFORCEMENT`: Kuota kursi pada requisition tidak boleh melebihi sisa alokasi kursi luar (*external seats*) pada permintaan headcount terkait.
+4. `URGENT_NEEDS_ACCELERATED_AT_WFP`: Kebutuhan mendesak diselesaikan melalui eskalasi persetujuan di Sub-modul 03, bukan dengan membuat jalur pintas tanpa formasi di rekrutmen.
+
+#### `HRD-DEC-074` — Penutupan Blocker `HRD-Q-05` untuk `S-D2` & Penerapan Pengaman Tabel Kosong (`EMPTY_TABLE_GUARD`)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Menutup | `HRD-Q-05` khusus untuk 20 entitas `RecruitmentManagement`; membuka blocker `HRD-BLK-004` untuk `S-D2` |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A |
+| Bukti | `HRD-TF-033`, `HRD-TF-034` (seluruh 20 tabel rekrutmen dev bernilai 0 baris), konfirmasi ketiadaan data riil di staging/produksi |
+
+**Isi keputusan:**
+1. `RECRUITMENT_TABLES_ASSUMED_EMPTY`: Seluruh 20 tabel kandidat rekrutmen dinyatakan kosong di semua lingkungan. Model data diturunkan ulang secara optimal dari proses bisnis rumah sakit (`HRD-DEC-004`).
+2. `EMPTY_TABLE_GUARD`: Setiap berkas *migration* yang mengubah struktur, menghapus, atau menata ulang tabel lama **WAJIB** menyertakan skrip pemeriksaan hitung baris (*row count check*). Jika terdeteksi ada >= 1 baris data, migration wajib membatalkan transaksi seketika tanpa mengubah data apa pun.
+3. `GUARD_FAILURE_REOPENS_DECISION`: Jika pengaman terpicu berhenti di lingkungan mana pun, keputusan ini otomatis dibuka kembali (*reopened*) ke status `draft` untuk dirancang skrip migrasi data.
+
+#### `HRD-DEC-075` — Pemisahan Entitas Kandidat dari Buku Induk Pegawai dan Pencegahan Duplikasi Data NIK/KTP
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A |
+| Bukti pemicu | Prinsip dasar pencegahan entitas orang ganda di Quilvian; `Buku Panduan HRD V2` poin 369, 420 |
+
+**Isi keputusan:**
+1. `CANDIDATE_LIFECYCLE_ISOLATED`: Entitas `Candidate` dan `CandidateApplication` terisolasi dari tabel `WorkforceProfile` selama tahapan seleksi (pendaftaran, penapisan berkas, asesmen, wawancara, MCU).
+2. `CONVERSION_ON_OFFER_ACCEPTED`: Draf profil tenaga kerja baru dibuat **HANYA** saat kandidat resmi menerima surat penawaran (*Job Offer status = ACCEPTED*). Status awal di *Workforce Core* adalah `Pending Onboarding` (belum aktif dinas, belum memiliki akses klinis).
+3. `NIK_DEDUPLICATION_GATE`: Sistem memvalidasi NIK/KTP pelamar terhadap database `WorkforceProfile`. Jika NIK telah terdaftar (misalnya mantan pegawai / alumni yang melamar kembali), sistem **DILARANG** membuat profil orang baru; sistem menautkan berkas lamaran ke `WorkforceProfileId` lama dan menyiapkan draf penempatan baru (*rehire flow*).
+
+#### `HRD-DEC-076` — Gerbang Penapisan Wajib Dokumen Profesi Tenaga Klinis (Clinical Credential Screening Gate)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A |
+| Bukti pemicu | Standar Akreditasi RS KPS 9–11; Permenkes 13/2025; Permenkes 6/2026 |
+
+**Isi keputusan:**
+1. `CLINICAL_POSITION_IDENTIFICATION`: Setiap lowongan kerja (`JobVacancy`) memiliki klasifikasi peran `IsClinical` / `WorkforceCategory` (Tenaga Klinis vs Non-Klinis).
+2. `MANDATORY_CREDENTIAL_DOCUMENTS`: Untuk lowongan bertipe `CLINICAL`, sistem mewajibkan pengunggahan dokumen legalitas profesi: Nomor & Tanggal Kadaluwarsa STR (Surat Tanda Registrasi), Ijazah Profesi, serta Sertifikat Pelatihan Wajib (misal: BTCLS untuk perawat, ACLS untuk dokter).
+3. `HARD_GATE_AUTO_REJECT_ON_SCREENING`: Pelamar posisi klinis yang tidak melampirkan STR atau masa berlaku STR-nya telah habis pada tanggal penapisan berkas **otomatis berstatus Gugur Administrasi (*Screening Rejected*)** dan diblokir dari penjadwalan wawancara/asesmen klinis.
+4. `RENEWAL_EXCEPTION_SUPPORT`: Jika STR sedang dalam proses perpanjangan resmi di Konsil (KTKI/KKI), pelamar dapat mengunggah bukti Surat Keterangan Proses Perpanjangan Resmi ber-nomor registrasi yang wajib diverifikasi manual oleh Recruiter.
+
+#### `HRD-DEC-077` — Evaluasi Dua Jalur Independen dan Hak Veto Klinis Unit Pengguna
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A |
+| Bukti pemicu | Keselamatan Pasien (*Patient Safety*); `Buku Panduan HRD V2` poin 367 |
+
+**Isi keputusan:**
+1. `INDEPENDENT_EVALUATION_TRACKS`: Evaluasi kandidat terdiri dari dua tahap penilaian terpisah: (1) Sesi Wawancara HR/Recruiter; (2) Sesi Uji Kompetensi Klinis/Teknis oleh Kepala Unit / Asesor Profesi.
+2. `SEPARATE_EVALUATION_FORMS`: Masing-masing penilai mengisi formulir evaluasi tersendiri dengan rubrik skor dan rekomendasi akhir: `RECOMMENDED`, `CONSIDERED`, atau `NOT_RECOMMENDED`.
+3. `CLINICAL_TECHNICAL_VETO`: Rekomendasi `NOT_RECOMMENDED` dari Asesor Unit/Klinis bersifat **HAK VETO MUTLAK**. Kandidat otomatis berstatus `ASSESSMENT_FAILED` dan sistem mengunci kandidat dari tahap penawaran kerja (*Job Offer*).
+4. `HR_CANNOT_OVERRIDE_CLINICAL_VETO`: Tim HR DILARANG menganulir (*override*) penolakan klinis tanpa persetujuan komite profesi terkait demi menjaga keselamatan pasien.
+
+#### `HRD-DEC-078` — Penawaran Kerja Bersyarat, Pelaksanaan MCU Pra-Kerja, dan Perlindungan Kerahasiaan Medis
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A |
+| Bukti pemicu | Efisiensi biaya operasional RS; Kerahasiaan data medis UU Kesehatan; `HRD-DEC-010` |
+
+**Isi keputusan:**
+1. `CONDITIONAL_OFFER_FIRST`: Surat Penawaran Kerja (*Job Offer*) diterbitkan dan disepakati kandidat terlebih dahulu dengan klausul tegas bahwa penawaran ini sah mengikat bila kandidat dinyatakan **FIT** pada pemeriksaan MCU pra-kerja.
+2. `MCU_COST_EFFICIENCY`: Pemeriksaan MCU pra-kerja hanya dijadwalkan dan dibiayai rumah sakit bagi kandidat yang telah menyepakati paket penawaran kerja bersyarat.
+3. `MEDICAL_CONFIDENTIALITY_SEPARATION`: Rekam medis, diagnosa dokter, dan hasil laboratorium MCU adalah **RAHASIA MEDIS** di bawah wewenang tim *Occupational Health / K3RS* (Sub-modul 18). Modul Rekrutmen DILARANG menampilkan detail diagnosis penyakit kepada staf HR umum.
+4. `FITNESS_STATUS_CONTRACT`: Modul Rekrutmen hanya menerima 4 status kesimpulan kelaikan kerja dari dokter MCU:
+   - `FIT` -> Penawaran definitif, lanjut ke onboarding.
+   - `FIT_WITH_RESTRICTIONS` -> Layak dengan catatan; HR dan Unit mengonfirmasi penyesuaian kerja.
+   - `TEMPORARILY_UNFIT` -> Ditangguhkan sementara untuk pengobatan hingga batas waktu tertentu.
+   - `PERMANENTLY_UNFIT` -> Penawaran otomatis batal demi hukum (*offer rescinded*).
+
+#### `HRD-DEC-079` — Rantai Persetujuan Surat Penawaran Kerja Bertingkat Berbasis Plafon Skala Upah (Tiered Job Offer Approval Chain)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A |
+| Bukti pemicu | Tata kelola anggaran rumah sakit; Master `MstSalaryGrade` (`HRD-TF-036`) |
+
+**Isi keputusan:**
+1. `OFFER_SALARY_GRADE_VALIDATION`: Setiap penyusunan draf `JobOffer` wajib membaca master skala upah (`MstSalaryGrade`) posisi terkait guna mengevaluasi rentang gaji pokok dan tunjangan terhadap batas `MinimumSalary` s.d. `MaximumSalary`.
+2. `TIER_1_STANDARD_OFFER_CHAIN`: Jika nominal paket gaji berada di dalam rentang grade (<= MaximumSalary), persetujuan cukup melibatkan **Hiring Manager / Kepala Unit** dan **HR Manager** (rantai persetujuan `T13`).
+3. `TIER_2_EXCEPTION_OFFER_CHAIN`: Jika penawaran dinegosiasikan melebihi plafon maksimum grade (> MaximumSalary), sistem **mewajibkan eskalasi persetujuan tambahan ke Direktur Keuangan (Finance) dan Direktur Utama** (rantai persetujuan `T14`). Dilarang menerbitkan penawaran di atas plafon grade tanpa persetujuan Direktur Utama.
+
+#### `HRD-DEC-080` — Pengelolaan Kandidat Cadangan Berperingkat (Talent Pool) dan Pemenuhan Ulang Kursi Cepat (Fast-Track Promotion)
+
+| Field | Isi |
+| --- | --- |
+| Type | Decision |
+| Owner | Pengguna (`HRD-DEC-015`) |
+| Status | `approved` |
+| Disetujui | Pengguna, 2026-11-03 — memilih opsi A |
+| Bukti pemicu | Kesiapan layanan operasional RS (*service continuity*); efisiensi *time-to-fill* |
+
+**Isi keputusan:**
+1. `TALENT_POOL_QUALIFIED_STATUS`: Kandidat yang dinyatakan lulus uji kompetensi klinis dan direkomendasikan oleh Unit, namun kuota kursi telah terpenuhi oleh kandidat lain berperingkat lebih tinggi, dialihkan ke status `TALENT_POOL_QUALIFIED` (Kandidat Cadangan Aktif) dengan masa retensi aktif 6 bulan.
+2. `FAST_TRACK_PROMOTION_ON_VACANCY`: Bila kandidat utama menolak penawaran (*Offer Rejected*) atau tidak hadir saat hari pertama orientasi (*No-Show*), kursi lowongan otomatis kembali dibuka (*In-Progress*), dan Recruiter dapat langsung mempromosikan (*fast-track*) kandidat cadangan berperingkat tertinggi dari Talent Pool untuk diterbitkan Surat Penawaran Kerja baru tanpa mengulang penayangan lowongan dan uji klinis dari awal.
+3. `EXPIRED_TALENT_POOL`: Kandidat cadangan yang masa berlakunya telah melewati 6 bulan otomatis berstatus kedaluwarsa (*Archived / Inactive*), dan wajib melalui uji klinis ulang bila melamar di kemudian hari demi memastikan kompetensi klinis terkini.
+
+---
+
+### 33.6 Ringkasan penutupan pass dan kriteria penerimaan (Acceptance Criteria)
+
+**Acceptance Criteria yang Dapat Diuji untuk Slice S-D2:**
+
+| ID | Kriteria | Cara Menguji | Dasar |
+| --- | --- | --- | --- |
+| `AC-REC-01` | Pembukaan lowongan tanpa requisition disetujui ditolak | Coba buat lowongan baru tanpa memilih `JobRequisitionId` berstatus disetujui; sistem menolak dengan pesan galat | `HRD-DEC-073` |
+| `AC-REC-02` | Migration rekrutmen berhenti bila tabel lama berisi data | Isi 1 baris di tabel `TrxJobRequisition` uji; jalankan migration; migration berhenti dengan pesan menyebut nama tabel dan jumlah baris tanpa merusak data | `HRD-DEC-074` |
+| `AC-REC-03` | Tidak ada entitas profil ganda untuk mantan karyawan | Daftarkan pelamar dengan NIK yang sudah terdaftar di `WorkforceProfile`; terima offer; sistem menautkan ke profil lama tanpa membuat ID profil baru | `HRD-DEC-075` |
+| `AC-REC-04` | Pelamar klinis tanpa STR aktif otomatis gugur administrasi | Buat pelamar posisi perawat dengan tanggal STR kadaluwarsa; jalankan penapisan; sistem otomatis menetapkan status Gugur Administrasi dan memblokir sesi wawancara | `HRD-DEC-076` |
+| `AC-REC-05` | Penolakan oleh Asesor Klinis tidak dapat dianulir HR | Input rekomendasi `NOT_RECOMMENDED` pada formulir evaluasi Kepala Unit; login sebagai HR Manager; tombol persetujuan atau penerbitan offer terkunci | `HRD-DEC-077` |
+| `AC-REC-06` | Diagnosa medis tidak tampil pada antarmuka HR Recruiter | Dokter MCU menginput hasil MCU dengan diagnosa klinis; buka antarmuka Recruiter; Recruiter hanya melihat kesimpulan kelaikan `FIT`/`UNFIT` tanpa akses detail diagnosa | `HRD-DEC-078` |
+| `AC-REC-07` | Penawaran melebihi batas grade wajib eskalasi Direksi | Susun penawaran dengan gaji di atas `MaximumSalary` dari `SalaryGrade`; sistem otomatis mengarahkan ke rantai persetujuan `T14` (Finance & Direktur Utama) | `HRD-DEC-079` |
+| `AC-REC-08` | Promosi cepat kandidat cadangan saat kandidat utama menolak offer | Tandai penawaran kandidat 1 sebagai ditolak (*Offer Rejected*); buka lowongan; sistem menyediakan tombol "Promosikan dari Talent Pool" untuk kandidat peringkat 2 | `HRD-DEC-080` |
+
+**Status Akhir Pass:**
+- Seluruh 8 keputusan kritis untuk **Sub-modul 04 Recruitment & Hiring (`S-D2`)** telah **DISETUJUI PENUH (`approved`)**.
+- Blocker `HRD-BLK-004` dan pertanyaan `HRD-Q-05` untuk domain `RecruitmentManagement` resmi **DITUTUP**.
+- Delivery Slice `S-D2` kini berstatus **`READY FOR DESIGN`**.

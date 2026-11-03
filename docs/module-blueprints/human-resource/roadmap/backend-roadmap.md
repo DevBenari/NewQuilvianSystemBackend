@@ -6,16 +6,17 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 5
+roadmap_revision: 6
 status: ACTIVE
 status_synced_at: "2026-11-03 — tanda status task lama disalin apa adanya dari revision 2; tidak ada task yang naik atau turun status pada revision ini"
-planning_updated_at: "2026-11-03 — Slice S-D1 Perencanaan Tenaga Kerja dipecah menjadi 24 task (BE-HRD-017, BE-HRD-029 s.d. BE-HRD-051) per gelombang MVP-7 s.d. MVP-10; grafik urutan dependency ditulis ulang per slice"
+planning_updated_at: "2026-11-03 — Slice S-D2 Rekrutmen & Hiring dipecah menjadi 12 task (BE-HRD-018 fondasi dan BE-HRD-052 s.d. BE-HRD-062) per gelombang MVP-11 s.d. MVP-13 & Verifikasi; grafik urutan dependency S-D2 ditambahkan"
 generated_at: "2026-10-26"
 owners:
   - "Technical Owner — HR Module Lead"
 approved_by:
   - "User Approved (26 Oktober 2026) — roadmap awal"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D1 yang menjadi dasar task BE-HRD-017 dan BE-HRD-029 s.d. BE-HRD-051"
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D2 yang menjadi dasar task BE-HRD-018 dan BE-HRD-052 s.d. BE-HRD-062"
 blueprint_manifest_revision: 14
 decision_revision: 17
 decision_ids_s_d1: "HRD-DEC-058 s.d. HRD-DEC-072"
@@ -43,7 +44,44 @@ locked_input_hashes_s_d1:
   contracts/integration-contract.md: c8d397fbae7f16108c72bdae7fbd86ff95a2f3af69162a4004f60cb92477489f
   contracts/permission-audit-matrix.md: e41eca8c8f9c53b0dd5f10a2c294892128e0c00d8eb760f67a48dcb8a5fcb182
   testing/acceptance-test-matrix.md: ee5e5bb1e29a9519f76d5995021f11cfaa8384c4888471b442d076d0ef44db9b
+decision_ids_s_d2: "HRD-DEC-073 s.d. HRD-DEC-080"
+contract_versions_s_d2:
+  - "API Contract v8 bagian 14 — task S-D2"
+  - "State Transition Matrix v8 bagian 12 — task S-D2"
+  - "Validation Matrix v8 bagian 13 — task S-D2"
+  - "Permission Audit Matrix v8 bagian 12 — task S-D2"
+  - "Integration Contract v8 bagian 12 — task S-D2"
+  - "Data Dictionary v8 bagian 9 — task S-D2"
+locked_input_hashes_s_d2:
+  00-interview-decisions.md: 446d1d3b80bea248f67d799866a542cb457107929eb56c3ddf6df31f1dec6403
+  02-backend-architecture.md: ba94e9c31fc17152ac83fa743d36a15511ac1a7dc2b815dc8f4f792908c1461d
+  03-frontend-architecture.md: 40da6cf7196418a1e63d9a60a82b8e923d5edc0a2d17dba861050d628612d882
+  04-prd-to-mvp.md: f5b38f09d91040c346e2b00af127ce71cb26fa176cce52afb059fe8f6b86ec13
+  data/data-dictionary.md: c47155da69744639f89798f3fdf562a2d72eec71725642c8f6ab35a7f421166d
+  contracts/api-contract.md: a6a58e82890cc70b84549f3d38a260984b21f7c7f0e7e6fba3bf192e3522f007
+  contracts/state-transition-matrix.md: e53a0b773b38ca85e640ba12a8e20d47f3ac23207f380804592cea6eb23c13d4
+  contracts/validation-matrix.md: 752e4e95b1c7cda71b9b5924bed3dd84e161669627ae7c28ee333f5f9d94737f
+  contracts/integration-contract.md: fa83373df222f40e49ffd890502801805a8cb7c05bcf7d9b89daa0212647dce2
+  contracts/permission-audit-matrix.md: d2d3b1cd35785a525ad93fc101cc3a4898288e970cc32efbc9533b1bd72b9ff3
+  flowcharts/rekrutmen-dan-seleksi.md: 63a769add4cad6bee23de31bf4f31c3b9ae3f228b517f7b0168a8f34e6ad6849
+  testing/acceptance-test-matrix.md: 395c8540be5aa56c48ff3eff63092ee4fbbc3d7e65947682871dc2dc2de422e0
 ```
+
+**Apa yang berubah pada revision 6.**
+
+1. **`BE-HRD-018` tidak lagi placeholder.** Gerbang `{DEC-HRD-004}` / `HRD-BLK-004` dan `HRD-Q-05`
+   untuk `S-D2` terpenuhi lewat keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` dan audit tabel kosong
+   `EMPTY_TABLE_GUARD` (`HRD-DEC-074`). ID `BE-HRD-018` diaktifkan sebagai task fondasi skema, 12 model
+   `Hrd` baru, dan migration pembersihan 20 tabel legacy tanpa data.
+2. **Sebelas task backend `S-D2` baru**, `BE-HRD-052` s.d. `BE-HRD-062`, untuk seluruh kapabilitas
+   rekrutmen rumah sakit: Job Requisition terikat formasi WFP, Lowongan Kerja klinis, Direktori Pelamar & NIK Rehire,
+   Penapisan Dokumen STR Otomatis, Evaluasi Wawancara HR & Uji Klinis Hak Veto Mutlak, Penawaran Bersyarat, Persetujuan
+   Bertingkat Standard T13 vs Eskalasi T14, MCU Pra-Kerja Masking Diagnosa Medis K3RS, Talent Pool Promosi Cepat,
+   serta Serah Terima ke Onboarding & Sinkronisasi Kursi WFP.
+3. **Penyelesaian celah `{HRD-PLAN-GAP-01}` pada `S-D1`.** Kehadiran task `BE-HRD-053` yang menerbitkan
+   lowongan kerja aktif (`HrdJobVacancy`) membuka prasyarat bagi validasi `VR-WFP-36` pada task `BE-HRD-045`.
+4. **Grafik urutan dependency diperluas.** Menambahkan Grafik B9 (MVP-11), B10 (MVP-12), B11 (MVP-13),
+   dan B12 (Verifikasi S-D2) dengan representasi pohon teks yang sepenuhnya bebas siklus.
 
 **Apa yang berubah pada revision 5.**
 
@@ -71,8 +109,8 @@ locked_input_hashes_s_d1:
 
 ## Grafik Urutan Dependency
 
-Roadmap backend HR memuat **51 task**: 27 task lama (`BE-HRD-001` s.d. `BE-HRD-028`, tanpa
-`BE-HRD-017`) dan 24 task `S-D1`. Karena jauh melewati 15 node, grafiknya dipecah: satu grafik
+Roadmap backend HR memuat **63 task**: 26 task lama (`BE-HRD-001` s.d. `BE-HRD-028`, tanpa
+`BE-HRD-017` dan `BE-HRD-018`), 24 task `S-D1` (`BE-HRD-017`, `BE-HRD-029` s.d. `BE-HRD-051`), dan 12 task `S-D2` (`BE-HRD-018`, `BE-HRD-052` s.d. `BE-HRD-062`). Karena jauh melewati 15 node, grafiknya dipecah: satu grafik
 ringkasan antar-slice, lalu satu grafik per slice.
 
 Cara membaca:
@@ -101,9 +139,12 @@ S0-A ✅ ─> S0-B ✅ ─┬─> S-A1 ✅ ─┬─> S-A2..S-A7 ✅ ─┬─> 
                     └─> S-E ✅
 
 S-D1 MVP-8 ─> S-D1 MVP-9 ─> S-D1 MVP-10 ─> S-D1 Verifikasi ⛔
+
+S-D1 MVP-9 [B6] ─> S-D2 MVP-11 ─> S-D2 MVP-12 ─> S-D2 MVP-13 ─> S-D2 Verifikasi
 ```
 
-Slice `S-C1`, `S-C6`, `S-D2`, `S-D4`, dan `S-D5` tidak menunggu slice lain. Penahannya adalah
+Slice `S-C1`, `S-C6`, `S-D4`, dan `S-D5` tidak menunggu slice lain. Penahannya adalah
+gerbang keputusan pada Grafik B3. `S-D2` sudah aktif sepenuhnya mengikuti persetujuan desain `v8`. Penahannya adalah
 gerbang keputusan pada Grafik B3. `S-D1 Verifikasi` bertanda ⛔ karena kedua task-nya menunggu
 pemetaan peran `{HRD-DEC-032}`.
 
@@ -146,28 +187,27 @@ BE-HRD-002 ✅ [B1] ─┬─> BE-HRD-006 ✅ ─┬─> BE-HRD-007 ✅ ─┬�
 
 {DEC-HRD-010 ⛔} ─> BE-HRD-016 ⛔
 
-{DEC-HRD-004 ⛔} ─┬─> BE-HRD-018 ⛔
-                  │
-                  ├─> BE-HRD-020 ⛔
+{DEC-HRD-004 ⛔} ─┬─> BE-HRD-020 ⛔
                   │
                   └─> BE-HRD-021
 ```
 
 `{DEC-HRD-008}` = gerbang keselamatan klinis dan persetujuan Komite Medik atas SPK/RKK dokter.
 `{DEC-HRD-010}` = gerbang privasi rekam kesehatan staf dan pengesahan K3RS. `{DEC-HRD-004}` =
-audit isi tabel tanpa API sebelum skema diturunkan ulang. `BE-HRD-017` tidak lagi berada di bawah
-`{DEC-HRD-004}`: untuk `S-D1` gerbang itu terpenuhi lewat `HRD-DEC-059`.
+audit isi tabel tanpa API sebelum skema diturunkan ulang. `BE-HRD-017` dan `BE-HRD-018` tidak lagi berada di bawah
+`{DEC-HRD-004}`: untuk `S-D1` gerbang itu terpenuhi lewat `HRD-DEC-059`, dan untuk `S-D2` gerbang itu terpenuhi lewat
+`HRD-DEC-073` s.d. `HRD-DEC-080` dan audit tabel kosong `EMPTY_TABLE_GUARD` (`HRD-DEC-074`). `BE-HRD-018` menjadi task pertama `S-D2` pada Grafik B9..
 
 ### Grafik B4 — `S-D1` `MVP-7`: fondasi, formasi, dan batch formasi awal
 
 ```text
-BE-HRD-023 ✅ [B1] ─> BE-HRD-017 ─┬─> BE-HRD-030 ─┬─> BE-HRD-033
+BE-HRD-023 ✅ [B1] ─> BE-HRD-017 ✅ ─┬─> BE-HRD-030 ✅ ─┬─> BE-HRD-033 ✅
                                   │               │
-                                  ├─> BE-HRD-032 ─┘
+                                  ├─> BE-HRD-032 ✅ ┘
                                   │
-                                  └─> BE-HRD-031
+                                  └─> BE-HRD-031 ✅
 
-BE-HRD-005 ✅ [B1] ─> BE-HRD-029
+BE-HRD-005 ✅ [B1] ─> BE-HRD-029 ✅
 ```
 
 ### Grafik B5 — `S-D1` `MVP-8`: angka beban, standar kebutuhan tenaga, dan gap langsung
@@ -177,11 +217,11 @@ BE-HRD-017 [B4] ─> BE-HRD-034 ─┬──┬─> BE-HRD-035 ─┬─> BE-HRD
                                │  │               │
 BE-HRD-029 [B4] ───────────────┘  │               └──┬──┬─> BE-HRD-037
                                   │                  │  │
-BE-HRD-030 [B4] ──────────────────┘                  │  │
+BE-HRD-030 ✅ [B4] ───────────────┘                  │  │
                                                      │  │
-BE-HRD-031 [B4] ─────────────────────────────────────┘  │
+BE-HRD-031 ✅ [B4] ──────────────────────────────────┘  │
                                                         │
-BE-HRD-032 [B4] ────────────────────────────────────────┘
+BE-HRD-032 ✅ [B4] ──────────────────────────────────┘
 ```
 
 ### Grafik B6 — `S-D1` `MVP-9`: biaya, potret pengajuan, permintaan headcount, pemenuhan, dan pembatalan
@@ -191,7 +231,7 @@ BE-HRD-017 [B4] ─> BE-HRD-038 ─┬──┬─> BE-HRD-040 ─> BE-HRD-041 �
                                │  │
 BE-HRD-037 [B5] ─> BE-HRD-039 ─┘  │
                                   │
-BE-HRD-030 [B4] ──────────────────┘
+BE-HRD-030 ✅ [B4] ───────────────┘
 
 BE-HRD-041 ──────┬─> BE-HRD-043 ─> BE-HRD-044 ─┬─> BE-HRD-045 ⛔
                  │                             │
@@ -219,7 +259,7 @@ BE-HRD-041 [B6] ───────────────────┘  �
 ### Grafik B8 — `S-D1`: data runtime dev dan verifikasi ujung-ke-ujung
 
 ```text
-BE-HRD-030 [B4] ────┬─> BE-HRD-050 ⛔ ─┬──┬──┬─> BE-HRD-051 ⛔
+BE-HRD-030 ✅ [B4] ─┬─> BE-HRD-050 ⛔ ─┬──┬──┬─> BE-HRD-051 ⛔
                     │                  │  │  │
 {HRD-DEC-032 ⛔} ───┘                  │  │  │
                                        │  │  │
@@ -230,6 +270,49 @@ BE-HRD-047 [B7] ─────────────────────�
 BE-HRD-048 [B7] ─────────────────────────────┘
 ```
 
+### Grafik B9 — `S-D2` `MVP-11`: Fondasi data, Requisition, Lowongan, dan Registrasi Pelamar
+
+```text
+BE-HRD-017 [B4] ─> BE-HRD-018 ─┬─> BE-HRD-052 ─> BE-HRD-053 ─┬─> BE-HRD-054
+                               │                             │
+BE-HRD-041 [B6] ───────────────┘                             │
+                                                             │
+BE-HRD-003 ✅ [B1] ───────────────────────────────────────────┘
+```
+
+### Grafik B10 — `S-D2` `MVP-12`: Penapisan Kredensial STR, Evaluasi Klinis Veto, dan Penawaran Kerja Bersyarat
+
+```text
+BE-HRD-054 [B9] ─> BE-HRD-055 ─> BE-HRD-056 ─┬─> BE-HRD-057
+                                             │
+BE-HRD-002 ✅ [B1] ───────────────────────────┤
+                                             │
+                                             └─> BE-HRD-060 [B11]
+```
+
+### Grafik B11 — `S-D2` `MVP-13`: MCU K3RS, Persetujuan Bertingkat, Talent Pool, dan Handoff Onboarding
+
+```text
+BE-HRD-057 [B10] ─┬─> BE-HRD-058 ─┬─> BE-HRD-061
+                  │               │
+BE-HRD-030 ✅ [B4]─┘               │
+                                  │
+BE-HRD-057 [B10] ─────> BE-HRD-059 ┤
+                                  │
+BE-HRD-052 [B9] ──────────────────┘
+
+BE-HRD-056 [B10] ─> BE-HRD-060
+```
+
+### Grafik B12 — `S-D2`: Data runtime dev dan verifikasi ujung-ke-ujung
+
+```text
+BE-HRD-060 [B11] ─┬─> BE-HRD-062
+                  │
+BE-HRD-061 [B11] ─┘
+```
+
+
 **Legenda node gerbang `S-D1`:**
 
 - `{HRD-PLAN-GAP-01 ⛔}` = sumber data "lowongan terbuka" untuk `VR-WFP-36` belum dirancang.
@@ -237,9 +320,9 @@ BE-HRD-048 [B7] ─────────────────────�
 - `{HRD-DEC-032 ⛔}` = pemetaan peran HR Manager, Finance / Anggaran, Direktur, dan Recruiter ke
   peran aplikasi masih `MAPPING_REQUIRED`.
 
-**Pemeriksaan silang.** Jumlah pasangan prasyarat → task pada grafik: B1 10, B2 12, B3 5, B4 7,
-B5 8, B6 12, B7 9, B8 6 — total **69**. Jumlah entri kolom `Dependency` pada register di bawah juga
-**69** (27 untuk task lama, 42 untuk task `S-D1`). Grafiknya bebas siklus.
+**Pemeriksaan silang.** Jumlah pasangan prasyarat → task pada grafik: B1 10, B2 12, B3 4 (BE-HRD-018 pindah ke S-D2), B4 7,
+B5 8, B6 12, B7 9, B8 6, B9 6, B10 4, B11 7, B12 2 — total **87**. Jumlah entri kolom `Dependency` pada register di bawah juga
+**87** (26 untuk task lama tanpa BE-HRD-017/018, 42 untuk task `S-D1`, 19 untuk task `S-D2`). Grafiknya bebas siklus.
 
 ---
 
@@ -268,13 +351,23 @@ bersamaan dengan `BE-HRD-030` (`MVP-7`), tetapi tetap baru dirilis dan diuji UAT
 | **11** | `BE-HRD-040` | `BE-HRD-041` (`MVP-9`) |
 | **12** | `BE-HRD-036`, `BE-HRD-041`, `BE-HRD-046` | `BE-HRD-042`, `BE-HRD-043` (`MVP-9`); `BE-HRD-047` (`MVP-10`) |
 | **13** | `BE-HRD-043` | `BE-HRD-044` (`MVP-9`) |
-| **⛔** | `{HRD-PLAN-GAP-01}` dan `BE-HRD-044` | `BE-HRD-045` ⛔ (penjaga "tutup lowongan dulu") |
+| **14** | `BE-HRD-044`, `BE-HRD-053` (`S-D2`) | `BE-HRD-045` (`MVP-9`, penjaga "tutup lowongan dulu" — gap `{HRD-PLAN-GAP-01}` terselesaikan oleh `BE-HRD-053`) |
+| **6** | `BE-HRD-017` ✅ | **`BE-HRD-018`** (`S-D2` `MVP-11`, fondasi skema, 12 model & migration `EMPTY_TABLE_GUARD`) — **boleh dikerjakan sekarang** |
+| **12** | `BE-HRD-018`, `BE-HRD-041` | `BE-HRD-052` (`S-D2` `MVP-11`, Job Requisition dari WFP) |
+| **13** | `BE-HRD-052` | `BE-HRD-053` (`S-D2` `MVP-11`, Job Vacancies & Clinical Flag) |
+| **14** | `BE-HRD-053`, `BE-HRD-003` ✅ | `BE-HRD-054` (`S-D2` `MVP-11`, Candidate Directory & NIK Rehire) |
+| **15** | `BE-HRD-054` | `BE-HRD-055` (`S-D2` `MVP-12`, Penapisan Berkas & Gerbang STR Otomatis) |
+| **16** | `BE-HRD-055` | `BE-HRD-056` (`S-D2` `MVP-12`, Evaluasi Wawancara HR & Uji Hak Veto Klinis Unit) |
+| **17** | `BE-HRD-056`, `BE-HRD-002` ✅ | `BE-HRD-057` (`S-D2` `MVP-12`, Conditional Job Offer & Plafon Upah); `BE-HRD-060` (`S-D2` `MVP-13`, Talent Pool) |
+| **18** | `BE-HRD-057`, `BE-HRD-030` ✅ | `BE-HRD-058` (`S-D2` `MVP-13`, Persetujuan Bertingkat T13 vs T14); `BE-HRD-059` (`S-D2` `MVP-13`, MCU Clearance & Masking Medis) |
+| **19** | `BE-HRD-058`, `BE-HRD-059`, `BE-HRD-052` | `BE-HRD-061` (`S-D2` `MVP-13`, Serah Terima Onboarding & Sinkronisasi Kursi WFP) |
+| **20** | `BE-HRD-060`, `BE-HRD-061` | `BE-HRD-062` (`S-D2` Verifikasi Ujung-ke-Ujung Rekrutmen) |
 | **⛔** | `{HRD-PLAN-GAP-02}`, `BE-HRD-041`, `BE-HRD-046` | `BE-HRD-049` ⛔ (kait sebelum persetujuan untuk `VR-WFP-21` dan `VR-WFP-23`) |
 | **⛔** | `{HRD-DEC-032}` dan `BE-HRD-030` | `BE-HRD-050` ⛔ (data runtime dev `S-D1`) |
 | **⛔** | `BE-HRD-050` ⛔, `BE-HRD-044`, `BE-HRD-047`, `BE-HRD-048` | `BE-HRD-051` ⛔ (verifikasi ujung-ke-ujung `S-D1`) |
 | **⛔** | `{DEC-HRD-008}` | `BE-HRD-011` ⛔ (Kredensial & SPK/RKK Klinis) |
 | **⛔** | `{DEC-HRD-010}` | `BE-HRD-016` ⛔ (Kesehatan Kerja Staf & MCU K3RS) |
-| **⛔** | `{DEC-HRD-004}` | `BE-HRD-018` ⛔ (Rekrutmen & Hiring), `BE-HRD-020` ⛔ (Tiket Layanan HR) |
+| **⛔** | `{DEC-HRD-004}` | `BE-HRD-020` ⛔ (Tiket Layanan HR) |
 | **DEFERRED** | Prioritas bisnis terjadwal; tetap di bawah `{DEC-HRD-004}` | `BE-HRD-021` (Perjalanan Dinas & Reimbursement) |
 
 ---
@@ -319,8 +412,19 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-014` | `S-C4` | Transaksi Exit Clearance, Pengembalian Aset, dan Offboarding Karyawan | ✅ | `BE-HRD-002` |
 | `BE-HRD-015` | `S-C5` | Pencatatan Kasus Hubungan Karyawan, Pembinaan Disiplin, dan Sanksi | ✅ | `BE-HRD-014` |
 | `BE-HRD-016` | `S-C6` | Kesehatan dan Keselamatan Kerja Staf (K3RS) | ⛔ | `{DEC-HRD-010 ⛔}` |
-| `BE-HRD-017` | `S-D1` · `MVP-7` | Fondasi data `S-D1`: 16 tabel `Hrd*`, enum, konstanta, migration `AddWorkforcePlanningCore`. **Lingkup ditetapkan 3 November 2026**; sebelumnya placeholder di bawah `{DEC-HRD-004}` | | `BE-HRD-023` ✅ |
-| `BE-HRD-018` | `S-D2` | Rekrutmen, Seleksi Pelamar, dan Penawaran Kerja (Hiring) | ⛔ | `{DEC-HRD-004 ⛔}` |
+| `BE-HRD-017` | `S-D1` · `MVP-7` | Fondasi data `S-D1`: 16 tabel `Hrd*`, enum, konstanta, migration `AddWorkforcePlanningCore` | ✅ | `BE-HRD-023` ✅ |
+| `BE-HRD-018` | `S-D2` | Fondasi skema, 12 model `Hrd`, enum, dan migration pembersihan 20 tabel legacy dengan `EMPTY_TABLE_GUARD` | | `BE-HRD-017` |
+| `BE-HRD-052` | `S-D2` | API Permintaan Requisition dari Alokasi Formasi WFP (`HrdJobRequisition`) | | `BE-HRD-018`, `BE-HRD-041` |
+| `BE-HRD-053` | `S-D2` | API Pengelolaan Lowongan Kerja (*Job Vacancies*) & Penanda Klinis `IsClinical` | | `BE-HRD-052` |
+| `BE-HRD-054` | `S-D2` | API Direktori Pelamar, Validasi Unik NIK & Penanganan Pelamar Mantan Karyawan / Rehire | | `BE-HRD-053`, `BE-HRD-003` |
+| `BE-HRD-055` | `S-D2` | API Penapisan Berkas Administrasi & Gerbang Otomatis STR Klinis (`Auto-Reject`) | | `BE-HRD-054` |
+| `BE-HRD-056` | `S-D2` | API Evaluasi Wawancara HR & Uji Klinis dengan Penegakan Hak Veto Klinis Mutlak | | `BE-HRD-055` |
+| `BE-HRD-057` | `S-D2` | API Penawaran Kerja Bersyarat (*Conditional Job Offer*) & Evaluasi Plafon Skala Upah | | `BE-HRD-056`, `BE-HRD-002` |
+| `BE-HRD-058` | `S-D2` | API Rantai Persetujuan Penawaran Bertingkat Standard T13 vs Eskalasi T14 | | `BE-HRD-057`, `BE-HRD-030` |
+| `BE-HRD-059` | `S-D2` | API Pemeriksaan Kesehatan Pra-Kerja (MCU) & Masking Diagnosa Medis K3RS | | `BE-HRD-057` |
+| `BE-HRD-060` | `S-D2` | API Bank Kandidat Cadangan (*Talent Pool*) & Promosi Cepat Fast-Track | | `BE-HRD-056` |
+| `BE-HRD-061` | `S-D2` | API Serah Terima Rekrutmen ke Onboarding Sub-modul 05 & Sinkronisasi Kursi WFP | | `BE-HRD-058`, `BE-HRD-059`, `BE-HRD-052` |
+| `BE-HRD-062` | `S-D2` | Data Runtime Dev & Verifikasi Alur Bisnis Ujung-ke-Ujung S-D2 | | `BE-HRD-060`, `BE-HRD-061` |
 | `BE-HRD-019` | `S-D3` | Pendaftaran Benefit Karyawan, Penjaminan Tanggungan, dan Mutasi Saldo | ✅ | `BE-HRD-002` |
 | `BE-HRD-020` | `S-D4` | Layanan Bantuan dan Tiket Kepegawaian (HR Helpdesk) | ⛔ | `{DEC-HRD-004 ⛔}` |
 | `BE-HRD-021` | `S-D5` | Pengajuan Perjalanan Dinas dan Klaim Biaya (Reimbursement) | tanpa tanda | `{DEC-HRD-004 ⛔}` |
@@ -331,7 +435,7 @@ dipakai sementara), dan apakah `S-D1` ikut rilis pertama modul atau dirilis ters
 | `BE-HRD-026` | `S-A1` | Controller & Service Profil Terpadu Pegawai (Employee 360) dengan Dual-Mode Masking Keamanan | ✅ | `BE-HRD-024` |
 | `BE-HRD-027` | `S-A1` | Service & Controller Inisialisasi Penempatan Baseline Pegawai Eksisting (55 Staf) | ✅ | `BE-HRD-024` |
 | `BE-HRD-028` | `S-A1` | Endpoint Kuasa HR (On-Behalf) Perubahan Profil Pegawai & Penguncian Form Master Data | ✅ | `BE-HRD-024` |
-| `BE-HRD-029` | `S-D1` · `MVP-7` | Penelusuran unit induk pada matriks persetujuan untuk langkah Direktur (`HRD-DEC-072`) | | `BE-HRD-005` ✅ |
+| `BE-HRD-029` | `S-D1` · `MVP-7` | Penelusuran unit induk pada matriks persetujuan untuk langkah Direktur (`HRD-DEC-072`) | ✅ | `BE-HRD-005` ✅ |
 | `BE-HRD-030` | `S-D1` · `MVP-7` | Lima jenis rujukan workflow dan layanan integrasi persetujuan `S-D1` | | `BE-HRD-017` |
 | `BE-HRD-031` | `S-D1` · `MVP-7` | Pengaturan perencanaan per rumah sakit | | `BE-HRD-017` |
 | `BE-HRD-032` | `S-D1` · `MVP-7` | Buku formasi berversi: satu-satunya penulis formasi dan API baca | | `BE-HRD-017` |
@@ -684,7 +788,7 @@ Bacalah bagian ini sekali; setiap kartu di bawah menganggapnya berlaku.
 
 ### `BE-HRD-017` — Fondasi data `S-D1`: 16 tabel `Hrd*`, enum, konstanta, dan migration `AddWorkforcePlanningCore`
 * **Slice / MVP**: `S-D1` / `MVP-7`
-* **Status**: Belum dikerjakan. **Lingkup ditetapkan 3 November 2026.** Sebelumnya placeholder "Perencanaan Kebutuhan Tenaga Kerja" yang tertahan `{DEC-HRD-004}`; gerbang itu terpenuhi lewat `HRD-DEC-059`, desain `S-D1` disetujui, dan placeholder dipecah menjadi task ini serta `BE-HRD-029` s.d. `BE-HRD-051`.
+* **Status**: Selesai (✅) — 3 November 2026, [Laporan Tracked](../task/report/backend/BE-HRD-017.md). Kode terkompilasi 0 error & Migration EF Core `AddWorkforcePlanningCore` tergenerasi bersih. (Catatan: migrasi fisik database dev memerlukan otorisasi eksekusi database terpisah).
 * **Outcome**: Database punya 16 tabel baru yang masih kosong untuk seluruh data perencanaan tenaga — standar, angka beban, formasi, batch formasi awal, rencana, permintaan beserta kursinya, pembatalan, perubahan rencana pemenuhan, potret gap, dan pengaturan — tanpa satu pun tabel lama yang berubah.
 * **Requirement/decision**: `HRD-DEC-059`, `HRD-DEC-019` (prefix `Hrd`), `HRD-TQ-13` (registry), `NFR-012`; `02-backend-architecture.md` bagian 16.4–16.7.
 * **Kontrak**: Data Dictionary v7 bagian 8.2–8.4; Backend Architecture rev 3 bagian 16.4.11, 16.5, 16.7.
@@ -711,7 +815,7 @@ Bacalah bagian ini sekali; setiap kartu di bawah menganggapnya berlaku.
 
 ### `BE-HRD-029` — Penelusuran unit induk pada matriks persetujuan untuk langkah Direktur
 * **Slice / MVP**: `S-D1` / `MVP-7`
-* **Status**: Belum dikerjakan. Prasyaratnya sudah ✅ — **boleh dikerjakan sekarang**.
+* **Status**: Selesai (✅) — 3 November 2026, [Laporan Tracked](../task/report/backend/BE-HRD-029.md). Logika penelusuran unit induk dan fallback matriks terkompilasi 0 error.
 * **Outcome**: Langkah "Direktur yang membawahi unit" pada `T9` dan `T12` menemukan orangnya sendiri. Contoh: Kepala ICU mengajukan standar; sistem menelusuri Unit ICU → Departemen Keperawatan → Direktorat Pelayanan Medis, menemukan baris matriks "Direktorat Pelayanan Medis → jabatan Direktur Pelayanan Medis", dan menugaskan pemegang jabatan itu. Bila jabatan itu kosong, tugas naik ke Direktur Utama; bila keduanya kosong, pengajuan ditolak.
 * **Requirement/decision**: `HRD-DEC-072` (`DIRECTOR_IS_POSITION_HOLDER`, `DIRECTOR_VIA_APPROVAL_MATRIX`, `MATRIX_FOLLOWS_UNIT_ANCESTOR`, `DIRECTOR_FALLBACK_TO_PRESIDENT_DIRECTOR`), `HRD-DEC-064` (`UNRESOLVED_STEP_FAILS_CLOSED`), `FR-HRD-116`, `AT-HRD-D1-20`, `INT-HR-18`.
 * **Kontrak**: Backend Architecture rev 3 bagian 16.4.9 (`WorkflowService` diperbarui); Integration v7 bagian 11.2.
@@ -1178,6 +1282,228 @@ Bacalah bagian ini sekali; setiap kartu di bawah menganggapnya berlaku.
 * **Risiko & pemilik**: Pemilik: Backend Technical Lead. Risiko: data dev bercampur data uji lain — memakai unit uji khusus.
 * **Definition of Done**: Seluruh skenario yang tidak tertahan gap terbukti, laporan tracked ada.
 * **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum `S-D1`).
+
+
+### `BE-HRD-018` — Fondasi skema, 12 model `Hrd`, enum, dan migration pembersihan 20 tabel legacy dengan `EMPTY_TABLE_GUARD`
+* **Slice / MVP**: `S-D2` / `MVP-11`
+* **Status**: Belum dikerjakan. Gerbang `{DEC-HRD-004}` dicabut mengikuti keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` dan audit tabel kosong (`HRD-DEC-074`).
+* **Outcome**: Database dev memiliki 12 entitas baru ber-prefix `Hrd` pada namespace `Areas/Corporate/HumanResource/RecruitmentManagement/Models/` terdaftar di `ApplicationDbContext`, dan 20 tabel legacy tanpa data dibersihkan lewat migration `RetireLegacyRecruitmentAndWfpCandidateTables` yang dilengkapi blok pengaman `EMPTY_TABLE_GUARD` (memastikan jumlah baris = 0 sebelum tabel di-drop).
+* **Requirement/decision**: `HRD-DEC-073`, `HRD-DEC-074`, `HRD-DEC-075`, `02-backend-architecture.md` bagian 17.4–17.7, `Data Dictionary v8` bagian 9.
+* **Kontrak**: Data Dictionary v8 bagian 9; Backend Architecture rev 4 bagian 17.4 s.d. 17.7.
+* **Reuse**: Pola model EntityBase, audit trail, concurrency token (`RowVersion`), composite index, dan isolasi entity configuration.
+* **Cakupan**:
+  1. 12 berkas model `Hrd` di `Areas/Corporate/HumanResource/RecruitmentManagement/Models/`: `HrdJobRequisition`, `HrdJobVacancy`, `HrdCandidate`, `HrdCandidateApplication`, `HrdCandidateDocument`, `HrdCandidateScreening`, `HrdCandidateEvaluation`, `HrdJobOffer`, `HrdJobOfferApproval`, `HrdPreEmploymentMedicalCheck`, `HrdTalentPool`, `HrdCandidateHiringHandoff`.
+  2. 12 konfigurasi EF Core di `.../RecruitmentManagement/Configurations/` dengan indeks unik dan FK.
+  3. Enum rekrutmen di `.../RecruitmentManagement/Enums/`: `JobRequisitionStatus`, `JobVacancyStatus`, `CandidateStatus`, `ApplicationStage`, `DocumentType`, `ScreeningStatus`, `ClinicalScreeningResult`, `EvaluationType`, `EvaluationRecommendation`, `JobOfferStatus`, `JobOfferApprovalTier`, `ApprovalStatus`, `McuClearanceResult`, `TalentPoolStatus`, `HandoffStatus`.
+  4. Migration EF Core `RetireLegacyRecruitmentAndWfpCandidateTables` dengan `EMPTY_TABLE_GUARD` dan `AddRecruitmentManagementCoreEntities`.
+* **Dependency**: `BE-HRD-017`
+* **Acceptance criteria**:
+  1. Migration script memeriksa isi 20 tabel legacy; jika ada data > 0, migration melempar exception fail-closed dan membatalkan proses.
+  2. Seluruh 12 entitas terdaftar pada `ApplicationDbContext` dengan relasi FK dan indeks unik (NIK, Nomor Requisition, Nomor Lowongan, Nomor Offer).
+  3. Kompilasi `dotnet build` 0 error, QBE preflight lolos.
+* **Bukti verifikasi**: `dotnet build` 0 error; verifikasi script migration SQL; bukti pendaftaran model pada DbContext.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead. Risiko: ketergantungan nama tabel legacy — guarded by `EMPTY_TABLE_GUARD`.
+* **Definition of Done**: 12 model, 12 konfigurasi EF, enum, dan migration script terkompilasi bersih; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-052` — API Permintaan Requisition dari Alokasi Formasi WFP (`HrdJobRequisition`)
+* **Slice / MVP**: `S-D2` / `MVP-11`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-018`.
+* **Outcome**: API untuk membuat, melihat detail, mengajukan, dan membatalkan draf Job Requisition yang terikat wajib ke alokasi kursi luar (*external seat*) dari `HeadcountRequest` WFP yang disahkan Direktur (`HRD-DEC-073`).
+* **Requirement/decision**: `HRD-DEC-073`, `FR-REC-01`, `VR-REC-01` s.d. `VR-REC-03`, `AT-HRD-D2-01`, `AT-HRD-D2-02`, `INT-HR-20`.
+* **Kontrak**: API Contract v8 bagian 14.1 grup `Job Requisition`, Validation v8 bagian 13.1, State Transition v8 bagian 12.1.
+* **Reuse**: Pola CQRS/Service HRD, wrapper response `ApiResponse<T>`, pagination helper.
+* **Cakupan**: `JobRequisitionController`, `IJobRequisitionService`, DTOs, validasi `HeadcountRequestId` wajib ada dan berstatus `APPROVED`, validasi kuota kursi diminta <= sisa kursi belum terpakai di WFP.
+* **Dependency**: `BE-HRD-018`, `BE-HRD-041`
+* **Acceptance criteria**:
+  1. Pembuatan requisition tanpa `HeadcountRequestId` atau dengan headcount yang belum `APPROVED` ditolak `422` (`VR-REC-01`).
+  2. Jumlah kursi yang diminta melebihi sisa kursi eksternal pada alokasi formasi ditolak `422` (`VR-REC-02`).
+  3. Pembatalan requisition hanya diizinkan bila belum memiliki lowongan kerja aktif atau pelamar dalam proses seleksi (`VR-REC-03`).
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev skenario validasi kursi dan status WFP.
+* **Risiko & pemilik**: Pemilik: Backend Recruitment Lead. Risiko: data kuota kursi race condition — dikunci via transactional check.
+* **Definition of Done**: Controller, service, dan validasi requisition aktif sesuai kontrak; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-053` — API Pengelolaan Lowongan Kerja (*Job Vacancies*) & Penanda Klinis `IsClinical`
+* **Slice / MVP**: `S-D2` / `MVP-11`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-052`.
+* **Outcome**: API untuk membuat draf lowongan kerja, mempublikasikan (*publish*), memperbarui, dan menutup (*close*) lowongan kerja dengan alokasi kuota kursi dari requisition yang sah dan penandaan peran klinis `IsClinical` (`HRD-DEC-073`, `HRD-DEC-076`). Menutup celah `{HRD-PLAN-GAP-01}` untuk `VR-WFP-36` pada `S-D1`.
+* **Requirement/decision**: `HRD-DEC-073`, `HRD-DEC-076`, `FR-REC-02`, `VR-REC-04`, `AT-HRD-D2-03`, `UAT-REC-01`.
+* **Kontrak**: API Contract v8 bagian 14.2 grup `Job Vacancy`, Validation v8 bagian 13.2, State Transition v8 bagian 12.2.
+* **Reuse**: Base controller, permission filter `RecruitmentJobVacancy : Write/Read`.
+* **Cakupan**: `JobVacancyController`, `IJobVacancyService`, DTOs, endpoint `GET /vacancies`, `GET /vacancies/{id}`, `POST /vacancies`, `PUT /vacancies/{id}`, `POST /vacancies/{id}/publish`, `POST /vacancies/{id}/close`.
+* **Dependency**: `BE-HRD-052`
+* **Acceptance criteria**:
+  1. Lowongan hanya dapat dibuat dengan mereferensikan requisition berstatus `APPROVED` (`VR-REC-04`).
+  2. Total kuota lowongan aktif tidak boleh melampaui jumlah kursi yang disetujui pada requisition induk.
+  3. Penanda `IsClinical` otomatis diwarisi dari master jabatan atau diatur eksplisit bila posisi merupakan tenaga medis/keperawatan/nakes lain.
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev publikasi dan penutupan lowongan.
+* **Risiko & pemilik**: Pemilik: Backend Recruitment Lead. Risiko kecil.
+* **Definition of Done**: Controller dan service lowongan kerja selesai dan terverifikasi; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-054` — API Direktori Pelamar, Validasi Unik NIK & Penanganan Pelamar Mantan Karyawan / Rehire
+* **Slice / MVP**: `S-D2` / `MVP-11`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-053`.
+* **Outcome**: API untuk mendaftarkan pelamar baru atau memproses lamaran pelamar ke lowongan tertentu, dengan validasi format NIK 16 digit dan deteksi mantan pegawai di `WorkforceProfile` (`HRD-DEC-075`). Data pelamar diisolasi dan belum membentuk profil pegawai aktif.
+* **Requirement/decision**: `HRD-DEC-075`, `FR-REC-03`, `VR-REC-05`, `VR-REC-06`, `AT-HRD-D2-04`, `UAT-REC-03`, `INT-HR-21`.
+* **Kontrak**: API Contract v8 bagian 14.3 grup `Candidate Directory`, Validation v8 bagian 13.3, State Transition v8 bagian 12.3.
+* **Reuse**: Isolasi data kandidat, integrasi read-only ke `WorkforceProfile` existing untuk pencocokan NIK.
+* **Cakupan**: `CandidateController`, `ICandidateService`, DTOs, endpoint `GET /candidates`, `GET /candidates/{id}`, `POST /candidates`, `PUT /candidates/{id}`, `POST /candidates/apply`.
+* **Dependency**: `BE-HRD-053`, `BE-HRD-003`
+* **Acceptance criteria**:
+  1. Pendaftaran pelamar dengan NIK non-16 digit angka ditolak `422` (`VR-REC-05`).
+  2. Pelamar yang NIK-nya ditemukan pada `WorkforceProfile` ditandai sebagai pelamar rehire (`IsRehire = true`), dengan tautan ke profil lama tanpa menduplikasi identitas (`HRD-DEC-075`).
+  3. Pelamar yang sudah memiliki lamaran aktif pada lowongan yang sama tidak dapat mendaftar ganda (`VR-REC-06`).
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev registrasi pelamar baru dan mantan karyawan.
+* **Risiko & pemilik**: Pemilik: Backend Recruitment Lead. Risiko: integritas data NIK — ditegakkan lewat indeks unik dan normalisasi string.
+* **Definition of Done**: API direktori kandidat dan flow rehire terpasang; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-055` — API Penapisan Berkas Administrasi & Gerbang Otomatis STR Klinis (`Auto-Reject`)
+* **Slice / MVP**: `S-D2` / `MVP-12`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-054`.
+* **Outcome**: API untuk mengunggah dokumen pelamar (CV, Ijazah, STR, SIP) dan menjalankan evaluasi penapisan berkas administrasi. Untuk lowongan klinis (`IsClinical = true`), sistem menegakkan aturan hukum: STR wajib aktif dan tanggal kedaluwarsa >= hari ini; jika tidak, status otomatis gugur (*Auto-Reject*) tanpa intervensi manual (`HRD-DEC-076`).
+* **Requirement/decision**: `HRD-DEC-076`, `FR-REC-04`, `VR-REC-07` s.d. `VR-REC-09`, `AT-HRD-D2-05`, `UAT-REC-02`.
+* **Kontrak**: API Contract v8 bagian 14.4 grup `Candidate Screening`, Validation v8 bagian 13.4, State Transition v8 bagian 12.4.
+* **Reuse**: File upload abstraction, validation filter.
+* **Cakupan**: `CandidateScreeningController`, `ICandidateScreeningService`, DTOs, endpoint `POST /candidates/{id}/documents`, `GET /candidates/{id}/documents`, `POST /screenings`, `GET /screenings/{id}`, `POST /screenings/{id}/evaluate`.
+* **Dependency**: `BE-HRD-054`
+* **Acceptance criteria**:
+  1. Pelamar untuk lowongan klinis tanpa unggahan dokumen tipe STR ditolak saat evaluasi administrasi (`VR-REC-07`).
+  2. STR klinis dengan masa berlaku kedaluwarsa (`StrExpiryDate < Today`) otomatis menetapkan status screening `REJECTED` dengan alasan `EXPIRED_STR_AUTO_REJECT` (`VR-REC-08`, `AT-HRD-D2-05`).
+  3. Pelamar non-klinis dapat melangkah ke tahap evaluasi tanpa kewajiban STR (`VR-REC-09`).
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev penapisan pelamar perawat dengan STR aktif vs STR kedaluwarsa.
+* **Risiko & pemilik**: Pemilik: Backend Recruitment Lead bersama Komite Kredensial RS. Risiko keselamatan pasien: tenaga klinis tanpa izin — dicegah total oleh auto-reject.
+* **Definition of Done**: Controller penapisan berkas dan logika auto-reject STR terpasang sesuai kontrak; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-056` — API Evaluasi Wawancara HR & Uji Klinis dengan Penegakan Hak Veto Klinis Mutlak
+* **Slice / MVP**: `S-D2` / `MVP-12`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-055`.
+* **Outcome**: API penjadwalan evaluasi, formulir wawancara HR, dan formulir uji kompetensi teknis/klinis oleh Asesor Profesi / Kepala Ruang. Jika asesor memberi rekomendasi `NOT_RECOMMENDED`, kandidat gugur permanen (*Clinical Veto*) dan tidak dapat ditawar oleh HR (`HRD-DEC-077`).
+* **Requirement/decision**: `HRD-DEC-077`, `FR-REC-05`, `FR-REC-06`, `VR-REC-10` s.d. `VR-REC-12`, `AT-HRD-D2-06`, `UAT-REC-04`.
+* **Kontrak**: API Contract v8 bagian 14.5 grup `Candidate Evaluation`, Validation v8 bagian 13.5, State Transition v8 bagian 12.5.
+* **Reuse**: Role permission `RecruitmentEvaluation : ClinicalAssess` vs `RecruitmentEvaluation : HrAssess`.
+* **Cakupan**: `CandidateEvaluationController`, `ICandidateEvaluationService`, DTOs, endpoint `GET /evaluations`, `GET /evaluations/{id}`, `POST /evaluations/schedule`, `POST /evaluations/{id}/submit-hr`, `POST /evaluations/{id}/submit-clinical`.
+* **Dependency**: `BE-HRD-055`
+* **Acceptance criteria**:
+  1. Evaluasi klinis hanya dapat diisi oleh user berwenang asesor unit klinis (`VR-REC-10`).
+  2. Hasil evaluasi klinis `NOT_RECOMMENDED` langsung mengubah status lamaran menjadi `ASSESSMENT_FAILED`, mengunci kandidat dari proses penerbitan penawaran kerja (`VR-REC-11`, `HRD-DEC-077`).
+  3. Kandidat klinis yang belum menyelesaikan kedua evaluasi (HR dan Klinis) tidak dapat diteruskan ke penawaran (`VR-REC-12`).
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev skenario veto klinis kepala ICU.
+* **Risiko & pemilik**: Pemilik: Backend Recruitment Lead. Risiko: intervensi non-klinis membatalkan veto klinis — dicegah pada domain logic level.
+* **Definition of Done**: API evaluasi dual-track terpasang dengan clinical veto guard; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-057` — API Penawaran Kerja Bersyarat (*Conditional Job Offer*) & Evaluasi Plafon Skala Upah
+* **Slice / MVP**: `S-D2` / `MVP-12`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-056`.
+* **Outcome**: API pembuatan dan penerbitan Surat Penawaran Kerja Bersyarat (*Conditional Job Offer*) sebelum pelaksanaan MCU pra-kerja (`HRD-DEC-078`), validasi komponen gaji pokok terhadap `MstSalaryGrade`, dan penentuan tier persetujuan penawaran (`T13` vs `T14`) (`HRD-DEC-079`).
+* **Requirement/decision**: `HRD-DEC-078`, `HRD-DEC-079`, `FR-REC-07`, `FR-REC-09`, `VR-REC-13`, `VR-REC-14`, `AT-HRD-D2-07`, `UAT-REC-06`, `INT-HR-22`.
+* **Kontrak**: API Contract v8 bagian 14.6 grup `Job Offer`, Validation v8 bagian 13.6, State Transition v8 bagian 12.6.
+* **Reuse**: Master skala upah `MstSalaryGrade` existing untuk validasi batas atas gaji.
+* **Cakupan**: `JobOfferController`, `IJobOfferService`, DTOs, endpoint `GET /offers`, `GET /offers/{id}`, `POST /offers`, `PUT /offers/{id}`, `POST /offers/{id}/send-conditional`, `POST /offers/{id}/candidate-respond`.
+* **Dependency**: `BE-HRD-056`, `BE-HRD-002`
+* **Acceptance criteria**:
+  1. Penawaran kerja hanya dapat dibuat untuk kandidat yang lulus seluruh evaluasi (`RECOMMENDED`) (`VR-REC-13`).
+  2. Sistem mengevaluasi gaji pokok terhadap grade: jika <= `MaximumSalary`, alur persetujuan disetel ke `TIER_13_STANDARD`; jika > `MaximumSalary`, alur otomatis dinaikkan ke `TIER_14_EXCEPTIONAL` (`VR-REC-14`, `HRD-DEC-079`).
+  3. Penerbitan conditional offer ke pelamar mencantumkan syarat mutlak: kelaikan MCU dan verifikasi dokumen legalitas.
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev perhitungan tier penawaran gaji normal vs di atas plafon grade.
+* **Risiko & pemilik**: Pemilik: Backend Recruitment Lead. Risiko: kebocoran anggaran upah — dicegah oleh validasi tier otomatis.
+* **Definition of Done**: API penawaran bersyarat dan penentuan tier terpasang; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-058` — API Rantai Persetujuan Penawaran Bertingkat Standard T13 vs Eskalasi T14
+* **Slice / MVP**: `S-D2` / `MVP-13`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-057`.
+* **Outcome**: API untuk pemrosesan langkah-langkah persetujuan penawaran kerja oleh pejabat berwenang: Jalur Standar `T13` (Unit Head & HR Manager) vs Jalur Eskalasi `T14` (Unit Head, HR Manager, Finance Director, dan Direktur Utama) (`HRD-DEC-079`).
+* **Requirement/decision**: `HRD-DEC-079`, `FR-REC-09`, `VR-REC-15`, `VR-REC-16`, `AT-HRD-D2-08`.
+* **Kontrak**: API Contract v8 bagian 14.6 grup `Job Offer Approval`, Validation v8 bagian 13.6, State Transition v8 bagian 12.6.
+* **Reuse**: Pola persetujuan terintegrasi dan kotak masuk persetujuan `BE-HRD-005` / `BE-HRD-030`.
+* **Cakupan**: `JobOfferApprovalController`, `IJobOfferApprovalService`, DTOs, endpoint `GET /offers/{id}/approvals`, `POST /offers/{id}/approve`, `POST /offers/{id}/reject-approval`.
+* **Dependency**: `BE-HRD-057`, `BE-HRD-030`
+* **Acceptance criteria**:
+  1. Penawaran jalur `T14` tidak dapat disahkan tanpa persetujuan Direktur Keuangan dan Direktur Utama (`VR-REC-15`).
+  2. Penyetuju tidak boleh sama dengan pembuat surat penawaran (*Self-Approval Forbidden*) (`VR-REC-16`).
+  3. Penolakan salah satu langkah persetujuan mengembalikan status offer ke `REJECTED_BY_APPROVER` dengan catatan alasan wajib terisi.
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev rantai persetujuan bertingkat T13 dan T14.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead bersama Finance. Risiko keterlambatan persetujuan direksi — didukung notifikasi approval inbox.
+* **Definition of Done**: API persetujuan penawaran kerja bertingkat aktif sesuai kontrak; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-059` — API Pemeriksaan Kesehatan Pra-Kerja (MCU) & Masking Diagnosa Medis K3RS
+* **Slice / MVP**: `S-D2` / `MVP-13`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-057`.
+* **Outcome**: API pendaftaran rujukan MCU pra-kerja bagi kandidat yang telah menyetujui conditional offer (`HRD-DEC-078`), pencatatan kelaikan kerja oleh Dokter K3RS (`FIT`, `FIT_WITH_RESTRICTIONS`, `UNFIT`), dan penerapan masking kerahasiaan diagnosa medis rekam kesehatan staf (`HRD-DEC-010`, `HRD-DEC-078`).
+* **Requirement/decision**: `HRD-DEC-078`, `HRD-DEC-010`, `FR-REC-08`, `VR-REC-17`, `AT-HRD-D2-09`, `UAT-REC-05`.
+* **Kontrak**: API Contract v8 bagian 14.7 grup `MCU Clearance`, Validation v8 bagian 13.7, State Transition v8 bagian 12.7.
+* **Reuse**: Role permission `RecruitmentMcu : DoctorWrite` vs `RecruitmentMcu : HrReadConclusion`.
+* **Cakupan**: `McuClearanceController`, `IMcuClearanceService`, DTOs, endpoint `GET /mcu-clearance`, `GET /mcu-clearance/{id}`, `POST /mcu-clearance/register`, `POST /mcu-clearance/{id}/record-result`.
+* **Dependency**: `BE-HRD-057`
+* **Acceptance criteria**:
+  1. Rujukan MCU hanya dapat diterbitkan untuk kandidat yang berstatus `CONDITIONAL_ACCEPTED` (`VR-REC-17`).
+  2. Diagnosa medis klinis terenkripsi/terisolasi; respons API untuk peran Recruiter/HR Manager hanya menyajikan enum kelaikan kerja tanpa narasi riwayat penyakit (`AT-HRD-D2-09`, `UAT-REC-05`).
+  3. Kandidat dengan hasil MCU `UNFIT` otomatis membatalkan tawaran kerja (*Offer Revoked*).
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev verifikasi respon masking untuk non-medis.
+* **Risiko & pemilik**: Pemilik: Backend Recruitment Lead bersama Komite K3RS. Risiko hukum pelanggaran kerahasiaan rekam medis — dilindungi masking level DTO & permission.
+* **Definition of Done**: API MCU clearance terpasang dengan perlindungan privasi medis; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-060` — API Bank Kandidat Cadangan (*Talent Pool*) & Promosi Cepat Fast-Track
+* **Slice / MVP**: `S-D2` / `MVP-13`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-056`.
+* **Outcome**: API untuk mengelola bank data kandidat cadangan berperingkat yang lulus seluruh seleksi namun tidak terpilih karena keterbatasan kuota kursi (`HRD-DEC-080`), dengan batas retensi 6 bulan, dan fitur promosi cepat (*Fast-Track*) untuk mengisi kursi yang ditinggalkan kandidat utama yang menolak tawaran (*Offer Rejected*) atau tidak hadir (*No-Show*).
+* **Requirement/decision**: `HRD-DEC-080`, `FR-REC-11`, `FR-REC-12`, `VR-REC-18`, `VR-REC-19`, `AT-HRD-D2-10`, `UAT-REC-07`.
+* **Kontrak**: API Contract v8 bagian 14.8 grup `Talent Pool`, Validation v8 bagian 13.8, State Transition v8 bagian 12.8.
+* **Reuse**: Logika pemeringkatan dan pencarian talent pool.
+* **Cakupan**: `TalentPoolController`, `ITalentPoolService`, DTOs, endpoint `GET /talent-pool`, `GET /talent-pool/{id}`, `POST /talent-pool/{id}/fast-track-promote`.
+* **Dependency**: `BE-HRD-056`
+* **Acceptance criteria**:
+  1. Kandidat cadangan hanya dapat dipromosikan jika masa retensi pada talent pool belum kedaluwarsa (<= 6 bulan sejak penetapan) (`VR-REC-18`).
+  2. Promosi cepat memunculkan draf penawaran baru secara instan tanpa mengulang tahapan tes wawancara dan uji klinis (`VR-REC-19`, `AT-HRD-D2-10`).
+  3. Pemeringkatan kandidat cadangan disajikan berurutan berdasarkan total skor gabungan evaluasi HR dan Asesor Unit.
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev promosi cepat kandidat cadangan peringkat teratas.
+* **Risiko & pemilik**: Pemilik: Backend Recruitment Lead. Risiko retensi data pelamar — dibatasi 6 bulan otomatis.
+* **Definition of Done**: API talent pool dan fast-track promotion selesai dan terverifikasi; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-061` — API Serah Terima Rekrutmen ke Onboarding Sub-modul 05 & Sinkronisasi Kursi WFP
+* **Slice / MVP**: `S-D2` / `MVP-13`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-058`, `BE-HRD-059`, `BE-HRD-052`.
+* **Outcome**: API untuk menerbitkan dokumen serah terima (*Hiring Handoff*) bagi kandidat yang telah menandatangani penawaran final (`FINAL_ACCEPTED`) dan berstatus kelaikan kerja `FIT`/`FIT_WITH_RESTRICTIONS`, membentuk draf `WorkforceProfile` berstatus `Pending Onboarding` di Sub-modul 02 (`HRD-DEC-075`), serta menyinkronkan status kursi pada `HeadcountRequest` WFP menjadi `FULFILLED` (`INT-HR-20`, `INT-HR-23`).
+* **Requirement/decision**: `HRD-DEC-075`, `HRD-DEC-078`, `FR-REC-10`, `VR-REC-20`, `AT-HRD-D2-11`, `INT-HR-20`, `INT-HR-23`.
+* **Kontrak**: API Contract v8 bagian 14.9 grup `Hiring Handoff`, Validation v8 bagian 13.9, State Transition v8 bagian 12.9, Integration v8 bagian 12.
+* **Reuse**: Integrasi ke `WorkforceProfile` Sub-modul 02 dan sinkronisasi kursi `WfpHeadcountRequestSeat` Sub-modul 03.
+* **Cakupan**: `HiringHandoffController`, `IHiringHandoffService`, DTOs, endpoint `GET /handoffs`, `GET /handoffs/{id}`, `POST /handoffs/generate`, `POST /handoffs/{id}/confirm-transfer`.
+* **Dependency**: `BE-HRD-058`, `BE-HRD-059`, `BE-HRD-052`
+* **Acceptance criteria**:
+  1. Serah terima hanya dapat diproses bila offer berstatus `FINAL_ACCEPTED` dan hasil MCU berstatus `FIT` atau `FIT_WITH_RESTRICTIONS` (`VR-REC-20`).
+  2. Draf `WorkforceProfile` baru tercipta dengan status `Pending Onboarding`, NIK yang tervalidasi, tanpa hak akses login aktif sebelum orientasi selesai (`AT-HRD-D2-11`).
+  3. Kursi pemenuhan pada `HeadcountRequestSeat` WFP terkait terikat dengan ID kandidat dan statusnya berubah menjadi `FULFILLED` (`INT-HR-20`).
+* **Bukti verifikasi**: `dotnet build` 0 error; uji API dev serah terima dan verifikasi draf profil karyawan.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead. Risiko sinkronisasi antar sub-modul — dieksekusi dalam unit of work terisolasi.
+* **Definition of Done**: API serah terima onboarding dan sinkronisasi WFP aktif; laporan tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
+
+### `BE-HRD-062` — Data Runtime Dev & Verifikasi Alur Bisnis Ujung-ke-Ujung S-D2
+* **Slice / MVP**: `S-D2` / Verifikasi
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-060`, `BE-HRD-061`.
+* **Outcome**: Verifikasi alur bisnis rekrutmen rumah sakit ujung-ke-ujung terbukti sukses di database dev: mulai dari penarikan kursi formasi WFP, pembukaan lowongan klinis perawat, pendaftaran kandidat dengan auto-reject STR kedaluwarsa, rehire mantan pegawai, penegakan veto klinis kepala ICU, penerbitan conditional offer, evaluasi eskalasi gaji T14, MCU clearance dengan masking rekam medis, serah terima kandidat siap onboarding, hingga promosi cepat talent pool cadangan.
+* **Requirement/decision**: `AT-HRD-D2-01` s.d. `AT-HRD-D2-12`, `UAT-REC-01` s.d. `UAT-REC-07`, `04-prd-to-mvp.md` bagian 22.5 & 22.6.
+* **Kontrak**: Seluruh kontrak v8 bagian `S-D2`.
+* **Reuse**: Master data jabatan, unit, grade gaji, dan headcount WFP dev.
+* **Cakupan**: Eksekusi skenario uji API dev, pencatatan log request/response per skenario, tanpa modifikasi source runtime di luar perbaikan bug bila ditemukan.
+* **Dependency**: `BE-HRD-060`, `BE-HRD-061`
+* **Acceptance criteria**:
+  1. Seluruh skenario `AT-HRD-D2-01` s.d. `AT-HRD-D2-12` dan `UAT-REC-01` s.d. `UAT-REC-07` dibuktikan via API dan tercatat di laporan.
+  2. Perlindungan kerahasiaan diagnosa MCU terbukti: token HR non-medis tidak dapat membaca diagnosa klinis.
+  3. Pelamar perawat STR kedaluwarsa terbukti gugur otomatis.
+  4. Hak veto klinis kepala ICU terbukti mengunci status kandidat.
+* **Bukti verifikasi**: Laporan pengujian ujung-ke-ujung terstruktur dengan potongan payload request/response dev.
+* **Risiko & pemilik**: Pemilik: Backend Technical Lead bersama QA. Risiko isolasi data — menggunakan unit kerja uji khusus rekrutmen.
+* **Definition of Done**: Seluruh skenario uji terbukti di dev; laporan verifikasi tracked tersedia.
+* **Handoff**: QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi (catatan umum S-D2).
 
 ### Requirement `S-D1` yang sengaja tidak punya task backend
 

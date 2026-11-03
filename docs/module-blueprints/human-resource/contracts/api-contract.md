@@ -1250,3 +1250,94 @@ yang muncul di kotak masuk:
 | `Corporate / Human Resource / Master Data / Salary Grade` | `GET .../master-data/salary-grades/options` | Pilihan grade pada rencana dan permintaan |
 | `Corporate / Human Resource / Workforce Core / Personnel Action Order` | `POST .../personnel-action-orders` dan alurnya | Kursi internal dipenuhi lewat SK |
 | `Corporate / Human Resource / Workflow Management / Approval Inbox` | Bagian 6 | Seluruh persetujuan `T9` s.d. `T13` |
+
+
+---
+
+## 14. Rekrutmen dan Hiring — `S-D2` (`last_changed_in` `v8`, 3 November 2026)
+
+Sumber desain: `02-backend-architecture.md` bagian 17. **Seluruh endpoint pada bagian ini belum ada di kode** dan berlabel
+**Rencana (belum tersedia)**. Pola bagian 0.1 dan kode status bagian 0.3 berlaku.
+Base URL bersama: `api/v1/corporate/human-resource/recruitment`.
+
+### 14.1 Grup `[Tags("RecruitmentManagement - Requisitions")]`
+Base path: `/requisitions`
+
+| Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar requisition terpaginasi | `Recruitment : Read` | Query (`page`, `pageSize`, `status`, `unitId`) | `ApiResponse<PagedResult<JobRequisitionResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail requisition beserta kuota kursi | `Recruitment : Read` | — | `ApiResponse<JobRequisitionDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat requisition dari Headcount Request | `Recruitment : Create` | `CreateJobRequisitionRequest` (`headcountRequestId`, `positionId`, `requestedSeats`, `targetDate`) | `ApiResponse<JobRequisitionResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah draf requisition | `Recruitment : Update` | `UpdateJobRequisitionRequest` (`requestedSeats`, `targetDate`, `rowVersion`) | `ApiResponse<JobRequisitionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/submit` | Mengajukan requisition untuk disahkan | `Recruitment : Update` | `SubmitJobRequisitionRequest` (`rowVersion`) | `ApiResponse<JobRequisitionResponse>` | **Rencana (belum tersedia)** |
+
+### 14.2 Grup `[Tags("RecruitmentManagement - Vacancies")]`
+Base path: `/vacancies`
+
+| Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar lowongan kerja terpaginasi | `Recruitment : Read` | Query (`page`, `pageSize`, `status`, `isClinical`) | `ApiResponse<PagedResult<JobVacancyResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail lowongan dan syarat kualifikasi | `Recruitment : Read` | — | `ApiResponse<JobVacancyDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat lowongan kerja baru dari Requisition | `Recruitment : Create` | `CreateJobVacancyRequest` (`jobRequisitionId`, `title`, `targetSeats`, `publishDate`, `closingDate`, `isClinical`) | `ApiResponse<JobVacancyResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/publish` | Mempublikasikan lowongan kerja | `Recruitment : Update` | `PublishJobVacancyRequest` (`rowVersion`) | `ApiResponse<JobVacancyResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/close` | Menutup lowongan kerja | `Recruitment : Update` | `CloseJobVacancyRequest` (`rowVersion`) | `ApiResponse<JobVacancyResponse>` | **Rencana (belum tersedia)** |
+
+### 14.3 Grup `[Tags("RecruitmentManagement - Candidates")]`
+Base path: `/candidates`
+
+| Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar pelamar terpaginasi | `Candidate : Read` | Query (`page`, `pageSize`, `searchNik`, `searchName`) | `ApiResponse<PagedResult<CandidateSummaryResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail profil pelamar dan dokumen | `Candidate : Read` | — | `ApiResponse<CandidateDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mendaftarkan pelamar baru (validasi NIK KTP) | `Candidate : Create` | `RegisterCandidateRequest` (`nationalIdNumber`, `fullName`, `email`, `phone`, `birthDate`, `gender`) | `ApiResponse<CandidateResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/documents` | Mengunggah dokumen pelamar (STR, Ijazah, dll) | `Candidate : Update` | `UploadCandidateDocumentRequest` (`documentType`, `documentNumber`, `expiryDate`, `fileUrl`) | `ApiResponse<CandidateDocumentResponse>` | **Rencana (belum tersedia)** |
+
+### 14.4 Grup `[Tags("RecruitmentManagement - Screenings")]`
+Base path: `/screenings`
+
+| Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/evaluate` | Penapisan berkas otomatis (Hard gate STR) | `Recruitment : Update` | `EvaluateScreeningRequest` (`applicationId`) | `ApiResponse<ScreeningResultResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/application/{applicationId}` | Melihat hasil penapisan berkas | `Recruitment : Read` | — | `ApiResponse<ScreeningResultResponse>` | **Rencana (belum tersedia)** |
+
+### 14.5 Grup `[Tags("RecruitmentManagement - Evaluations")]`
+Base path: `/evaluations`
+
+| Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/hr` | Submit formulir evaluasi wawancara HR | `Recruitment : Evaluate` | `SubmitHrEvaluationRequest` (`applicationId`, `behavioralScore`, `recommendation`, `notes`) | `ApiResponse<CandidateEvaluationResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/clinical` | Submit uji klinis unit (dengan hak veto mutlak) | `ClinicalAssessment : Evaluate` | `SubmitClinicalEvaluationRequest` (`applicationId`, `competencyScore`, `recommendation`, `notes`) | `ApiResponse<CandidateEvaluationResponse>` | **Rencana (belum tersedia)** |
+
+### 14.6 Grup `[Tags("RecruitmentManagement - Offers")]`
+Base path: `/offers`
+
+| Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar surat penawaran terpaginasi | `JobOffer : Read` | Query (`page`, `pageSize`, `status`) | `ApiResponse<PagedResult<JobOfferSummaryResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail surat penawaran kerja | `JobOffer : Read` | — | `ApiResponse<JobOfferDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat draf surat penawaran bersyarat | `JobOffer : Create` | `CreateJobOfferRequest` (`applicationId`, `offeredBaseSalary`, `offeredFixedAllowance`, `targetJoinDate`) | `ApiResponse<JobOfferResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/approve` | Persetujuan bertingkat (T13 standar / T14 eskalasi) | `JobOffer : Approve` | `ApproveJobOfferRequest` (`decision`, `comments`, `rowVersion`) | `ApiResponse<JobOfferResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/respond` | Mencatat konfirmasi kandidat (Accepted/Rejected) | `JobOffer : Update` | `CandidateOfferResponseRequest` (`responseStatus`, `rejectionReason`) | `ApiResponse<JobOfferResponse>` | **Rencana (belum tersedia)** |
+
+### 14.7 Grup `[Tags("RecruitmentManagement - MedicalClearance")]`
+Base path: `/medical-clearance`
+
+| Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/result` | Input status kelaikan fisik MCU (oleh dokter K3RS) | `OccupationalHealth : Evaluate` | `SubmitMcuClearanceRequest` (`jobOfferId`, `fitnessStatus`, `restrictionsNotes`) | `ApiResponse<McuClearanceResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{jobOfferId}` | Melihat status kelaikan MCU (masking diagnosa) | `Recruitment : Read` | — | `ApiResponse<McuClearanceSummaryResponse>` | **Rencana (belum tersedia)** |
+
+### 14.8 Grup `[Tags("RecruitmentManagement - TalentPool")]`
+Base path: `/talent-pool`
+
+| Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar kandidat cadangan aktif berperingkat | `Recruitment : Read` | Query (`positionId`, `minScore`) | `ApiResponse<List<TalentPoolCandidateResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/promote` | Promosi cepat kandidat cadangan ke offer baru | `Recruitment : Update` | `PromoteTalentPoolRequest` (`jobRequisitionId`, `targetJoinDate`) | `ApiResponse<JobOfferResponse>` | **Rencana (belum tersedia)** |
+
+### 14.9 Grup `[Tags("RecruitmentManagement - HiringHandoffs")]`
+Base path: `/handoffs`
+
+| Method | Path | Deskripsi | Hak Akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/execute` | Serah terima kandidat final ke Onboarding | `Recruitment : Execute` | `ExecuteHiringHandoffRequest` (`jobOfferId`, `scheduledOrientationDate`) | `ApiResponse<HiringHandoffResponse>` | **Rencana (belum tersedia)** |

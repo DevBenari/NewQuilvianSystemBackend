@@ -1308,3 +1308,88 @@ Bagian 8 berlaku seluruhnya. Yang khas:
 | Unit test service frontend `S-D1` dengan pola `tests/unit/workforce-core-cross-employee.test.mjs` | Kontrak `api-contract.md` bagian 13 |
 | Uji tampilan gap dengan data belum lengkap | Database dev dengan pengaturan perencanaan kosong |
 | Uji alur persetujuan | Matriks persetujuan, jabatan direktur, dan definisi `T9` s.d. `T13` terisi |
+
+
+---
+
+## 13. Slice `S-D2` — Rekrutmen dan Hiring (revision `4`, 3 November 2026)
+
+| Field | Value |
+| --- | --- |
+| Status | `draft` — mengikuti hasil wawancara `HRD-DEC-073` s.d. `HRD-DEC-080` |
+| Frontend SHA | `cfa82fbb3` (branch `HamzahV2`) |
+| Kontrak yang dikonsumsi | `contracts/api-contract.md` bagian 14 — seluruh endpoint Rencana `[Tags("RecruitmentManagement")]` |
+| Keadaan hari ini | Tidak ada satu pun route, view, service, maupun butir menu rekrutmen |
+| Pola layar | Mengikuti standar field base component Quilvian (`@/components/features/base-features/base-form-control`, `BaseButton`, `StatusBadge`, `InformationAlert`) |
+
+### 13.1 Kebutuhan layar
+
+| ID | Layar | Route | Jalan Masuk | Status |
+| --- | --- | --- | --- | --- |
+| `FE-HRD-110` | Antrean & Permintaan Requisition | `/hr/recruitment/requisitions` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-111` | Detail & Draf Requisition | `/hr/recruitment/requisitions/[id]` | Layar anak dari `FE-HRD-110` | `MISSING / NEW` |
+| `FE-HRD-112` | Pengelolaan Lowongan Kerja (*Job Vacancies*) | `/hr/recruitment/vacancies` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-113` | Detail Lowongan & Pelamar Masuk | `/hr/recruitment/vacancies/[id]` | Layar anak dari `FE-HRD-112` | `MISSING / NEW` |
+| `FE-HRD-114` | Direktori Data Pelamar (*Candidate Directory*) | `/hr/recruitment/candidates` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-115` | Detail Pelamar & Penapisan Berkas (*Screening*) | `/hr/recruitment/candidates/[id]` | Layar anak dari `FE-HRD-114` | `MISSING / NEW` |
+| `FE-HRD-116` | Formulir Wawancara HR | `/hr/recruitment/evaluations/hr/[id]` | Layar anak dari `FE-HRD-115` | `MISSING / NEW` |
+| `FE-HRD-117` | Formulir Uji Klinis / Asesor Unit | `/hr/recruitment/evaluations/clinical/[id]` | Layar anak dari `FE-HRD-115` | `MISSING / NEW` |
+| `FE-HRD-118` | Daftar Penawaran Kerja (*Job Offers*) | `/hr/recruitment/offers` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-119` | Detail Penawaran & Persetujuan Bertingkat | `/hr/recruitment/offers/[id]` | Layar anak dari `FE-HRD-118` | `MISSING / NEW` |
+| `FE-HRD-120` | Pemantauan Kelaikan MCU Pra-Kerja | `/hr/recruitment/mcu-clearance` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-121` | Bank Kandidat Cadangan (*Talent Pool*) | `/hr/recruitment/talent-pool` | Butir menu | `MISSING / NEW` |
+| `FE-HRD-122` | Serah Terima ke Onboarding (*Hiring Handoff*) | `/hr/recruitment/handoffs` | Butir menu | `MISSING / NEW` |
+
+### 13.2 Peta butir menu
+
+```text
+Sumber Daya Manusia                         <- tingkat 0, sudah ada
+  ├── Pengadaan & Rekrutmen                <- tingkat 1, grup baru
+  │     ├── Permintaan Requisition         <- /hr/recruitment/requisitions (Recruitment : Read)
+  │     ├── Lowongan Kerja                 <- /hr/recruitment/vacancies (Recruitment : Read)
+  │     ├── Bank Pelamar                   <- /hr/recruitment/candidates (Candidate : Read)
+  │     ├── Surat Penawaran (Offer)        <- /hr/recruitment/offers (JobOffer : Read)
+  │     ├── Pemantauan MCU Pra-Kerja       <- /hr/recruitment/mcu-clearance (Recruitment : Read)
+  │     ├── Talent Pool Cadangan           <- /hr/recruitment/talent-pool (Recruitment : Read)
+  │     └── Serah Terima Onboarding        <- /hr/recruitment/handoffs (Recruitment : Read)
+```
+
+### 13.3 Skema fitur per layar
+
+#### A. Layar Penapisan Pelamar Klinis (`FE-HRD-115`)
+- Menampilkan dokumen STR dengan status verifikasi.
+- Jika tanggal masa berlaku STR < tanggal hari ini, badge merah **"STR KADALUWARSA / GUGUR ADMINISTRASI"** terkunci otomatis (`HRD-DEC-076`).
+- Tombol "Jadwalkan Wawancara" dinonaktifkan permanen jika STR tidak valid.
+
+#### B. Layar Uji Klinis Unit (`FE-HRD-117`)
+- Menampilkan rubrik skor keterampilan klinis dan SOP darurat.
+- Rekomendasi Unit: `RECOMMENDED`, `CONSIDERED`, `NOT_RECOMMENDED`.
+- Jika dipilih `NOT_RECOMMENDED`, muncul peringatan konfirmasi: *"Penolakan klinis bersifat hak veto mutlak demi patient safety dan tidak dapat dianulir tim HR"* (`HRD-DEC-077`).
+
+#### C. Layar Penawaran Kerja & Persetujuan Bertingkat (`FE-HRD-119`)
+- Menampilkan input gaji pokok & tunjangan, otomatis membaca batas `MinimumSalary` s.d. `MaximumSalary` dari `SalaryGrade`.
+- Jika penawaran > `MaximumSalary`, muncul badge kuning *"Penawaran Melebihi Plafon Grade — Wajib Persetujuan Direktur Keuangan dan Direktur Utama"* (`HRD-DEC-079`).
+
+#### D. Layar Pemantauan MCU Pra-Kerja (`FE-HRD-120`)
+- **Masking Privasi Medis**: Staf HR hanya melihat status `FIT`, `FIT_WITH_RESTRICTIONS`, `TEMPORARILY_UNFIT`, `PERMANENTLY_UNFIT` beserta catatan pembatasan tugas kerja (`HRD-DEC-078`).
+- Rincian hasil tes lab, rontgen, dan diagnosa klinis disembunyikan total (*medical confidentiality*).
+
+#### E. Layar Talent Pool & Promosi Cepat (`FE-HRD-121`)
+- Daftar kandidat cadangan berperingkat aktif 6 bulan (`HRD-DEC-080`).
+- Menyediakan tombol *"Promosikan ke Penawaran Baru"* yang langsung aktif jika kursi requisition sebelumnya berstatus batal/mundur (*Offer Rejected / No-Show*).
+
+### 13.4 Penanganan kesalahan dan state khusus
+
+| Kasus | Penanganan di Layar |
+| --- | --- |
+| Pembukaan lowongan tanpa requisition disetujui | Tombol "Buat Lowongan" meminta pemilihan requisition aktif; form menolak submit jika kuota kursi = 0 |
+| Pelamar klinis tanpa STR aktif | Status otomatis `Screening Rejected`, sistem menampilkan pesan alasan penolakan regulasi STR |
+| Asesor klinis menolak kandidat | Tombol "Buat Job Offer" otomatis hilang/terkunci pada kandidat tersebut (`HRD-DEC-077`) |
+| Diagnosa MCU sensitif | Komponen UI tidak pernah memuat field `MedicalDiagnosisDetail`; hanya menampilkan `FitnessStatus` dan `Restrictions` |
+| Kandidat menolak tawaran | Muncul modal opsi: "Tutup Kursi" atau "Pilih Kandidat Cadangan dari Talent Pool" |
+
+### 13.5 Kewenangan UI S-D2
+
+- Seluruh form menggunakan base-form-control tanpa styling inline / warna custom.
+- Penanda hak veto klinis dan validasi plafon grade gaji bersifat mengikat arsitektur.
+- Layout tabel, tab filter status (Draft/Screening/Interview/Offer), dan pagination bersifat `DEV_DISCRETION`.

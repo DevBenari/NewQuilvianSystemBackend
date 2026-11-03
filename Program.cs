@@ -988,6 +988,23 @@ try
     builder.Services.AddScoped<WorkflowReferenceLifecycleService>();
     builder.Services.AddScoped<EmployeeProfileChangeWorkflowIntegrationService>();
 
+    // BE-HRD-030: Layanan Integrasi Persetujuan Workflow S-D1 Perencanaan Tenaga Kerja
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdWorkforcePlanningWorkflowIntegrationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningWorkflowIntegrationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningWorkflowIntegrationService>();
+
+    // BE-HRD-031: Pengaturan Kebijakan Perencanaan Tenaga Kerja Rumah Sakit
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdWorkforcePlanningSettingService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSettingService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdWorkforcePlanningSettingService>();
+
+    // BE-HRD-032: Buku Formasi Berversi dan Penulis Tunggal Formasi
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdPositionFormationService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdPositionFormationService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdPositionFormationService>();
+
+    // BE-HRD-033: Batch Formasi Awal dan Penerap Keputusan T10
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IHrdInitialFormationBatchService, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdInitialFormationBatchService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdInitialFormationBatchService>();
+    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.IWorkforcePlanningDecisionApplier, QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforcePlanning.Services.HrdInitialFormationBatchDecisionApplier>();
+
     builder.Services.AddScoped<ScheduleChangeService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowLifecycleService>();
     builder.Services.AddScoped<ScheduleChangeWorkflowIntegrationService>();

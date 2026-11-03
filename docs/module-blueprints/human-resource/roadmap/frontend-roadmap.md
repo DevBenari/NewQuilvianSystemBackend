@@ -6,16 +6,17 @@
 module_id: human-resource
 blueprint_id: HRD-BP-001
 blueprint_shape: SINGLE
-roadmap_revision: 5
+roadmap_revision: 6
 status: ACTIVE
 status_synced_at: "2026-11-03 — PLAN-REPAIR-HRD-002: FE-HRD-026 dan FE-HRD-027 dikoreksi ke 🟡 (acceptance criteria belum terbukti, menunggu FIX-HRD-002-09); FE-HRD-022, FE-HRD-024, FE-HRD-025 dikerjakan ulang dan tetap ✅. Sebelumnya: tanda FE-HRD-011, FE-HRD-015, FE-HRD-016, FE-HRD-018 diselaraskan ke 🟡 mengikuti register"
-planning_updated_at: "2026-11-03 — Slice S-D1 Perencanaan Tenaga Kerja dipecah menjadi 15 task (FE-HRD-029 s.d. FE-HRD-043) per gelombang MVP-7 s.d. MVP-10; grafik urutan dependency ditulis ulang per slice; kolom Dependency ditambahkan pada register"
+planning_updated_at: "2026-11-03 — Slice S-D2 Rekrutmen & Hiring dipecah menjadi 14 task (FE-HRD-044 s.d. FE-HRD-057) untuk 13 layar FE-HRD-110 s.d. FE-HRD-122 per gelombang MVP-11 s.d. MVP-13 & Verifikasi; grafik urutan dependency S-D2 ditambahkan"
 generated_at: "2026-10-26"
 owners:
   - "Frontend Technical Owner — HR UI Lead"
 approved_by:
   - "User Approved (26 Oktober 2026) — roadmap awal"
   - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D1 yang menjadi dasar task FE-HRD-029 s.d. FE-HRD-043"
+  - "Pengguna, pemilik teknis dan produk (HRD-DEC-015), 3 November 2026 — desain S-D2 yang menjadi dasar task FE-HRD-044 s.d. FE-HRD-057"
 blueprint_manifest_revision: 14
 decision_ids_s_d1: "HRD-DEC-058 s.d. HRD-DEC-072"
 source_commits:
@@ -34,7 +35,36 @@ locked_input_hashes_s_d1:
   contracts/permission-audit-matrix.md: e41eca8c8f9c53b0dd5f10a2c294892128e0c00d8eb760f67a48dcb8a5fcb182
   contracts/validation-matrix.md: 27055a3971cea05d93075a527bc18acbeb911727f0fbdb3fa137a54aece5bd31
   testing/acceptance-test-matrix.md: ee5e5bb1e29a9519f76d5995021f11cfaa8384c4888471b442d076d0ef44db9b
+decision_ids_s_d2: "HRD-DEC-073 s.d. HRD-DEC-080"
+contract_versions_s_d2:
+  - "API Contract v8 bagian 14 — task S-D2"
+  - "Frontend Architecture rev 4 bagian 13 — task S-D2"
+  - "Permission Audit Matrix v8 bagian 12 — task S-D2"
+  - "Validation Matrix v8 bagian 13 — pesan yang ditampilkan layar S-D2"
+locked_input_hashes_s_d2:
+  00-interview-decisions.md: 446d1d3b80bea248f67d799866a542cb457107929eb56c3ddf6df31f1dec6403
+  02-backend-architecture.md: ba94e9c31fc17152ac83fa743d36a15511ac1a7dc2b815dc8f4f792908c1461d
+  03-frontend-architecture.md: 40da6cf7196418a1e63d9a60a82b8e923d5edc0a2d17dba861050d628612d882
+  04-prd-to-mvp.md: f5b38f09d91040c346e2b00af127ce71cb26fa176cce52afb059fe8f6b86ec13
+  data/data-dictionary.md: c47155da69744639f89798f3fdf562a2d72eec71725642c8f6ab35a7f421166d
+  contracts/api-contract.md: a6a58e82890cc70b84549f3d38a260984b21f7c7f0e7e6fba3bf192e3522f007
+  contracts/state-transition-matrix.md: e53a0b773b38ca85e640ba12a8e20d47f3ac23207f380804592cea6eb23c13d4
+  contracts/validation-matrix.md: 752e4e95b1c7cda71b9b5924bed3dd84e161669627ae7c28ee333f5f9d94737f
+  contracts/integration-contract.md: fa83373df222f40e49ffd890502801805a8cb7c05bcf7d9b89daa0212647dce2
+  contracts/permission-audit-matrix.md: d2d3b1cd35785a525ad93fc101cc3a4898288e970cc32efbc9533b1bd72b9ff3
+  flowcharts/rekrutmen-dan-seleksi.md: 63a769add4cad6bee23de31bf4f31c3b9ae3f228b517f7b0168a8f34e6ad6849
+  testing/acceptance-test-matrix.md: 395c8540be5aa56c48ff3eff63092ee4fbbc3d7e65947682871dc2dc2de422e0
 ```
+
+**Apa yang berubah pada revision 6.**
+
+1. **Empat belas task `S-D2` baru**, `FE-HRD-044` s.d. `FE-HRD-057`, untuk 13 layar `FE-HRD-110` s.d.
+   `FE-HRD-122` pada `03-frontend-architecture.md` bagian 13.
+2. **Grafik urutan dependency diperluas.** Menambahkan Grafik F10 (MVP-11), Grafik F11 (MVP-12),
+   dan Grafik F12 (MVP-13 & Verifikasi S-D2) dengan representasi pohon teks yang sepenuhnya bebas siklus.
+3. **Penyelarasan hak veto klinis dan proteksi privasi medis.** Layar evaluasi klinis `FE-HRD-051`
+   dilengkapi dialog konfirmasi hak veto klinis mutlak, dan layar `FE-HRD-054` memproteksi riwayat
+   diagnosa medis pelamar dari staf non-K3RS.
 
 **Apa yang berubah pada revision 5.**
 
@@ -90,11 +120,13 @@ IN-01 ✅ ─┬─> S0-B ✅ ─┬─> S-A1 ✅
           │            │
           │            └─> S-A2..S-A7 ✅
           │
-          └─> S-D1 MVP-7 ─> S-D1 MVP-8 ─> S-D1 MVP-9 ─> S-D1 MVP-10
+          ├─> S-D1 MVP-7 ─> S-D1 MVP-8 ─> S-D1 MVP-9 ─> S-D1 MVP-10
+          │
+          └─> S-D2 MVP-11 ─> S-D2 MVP-12 ─> S-D2 MVP-13 ─> S-D2 Verifikasi
 ```
 
 `S-B1` s.d. `S-B5` 🟡, `S-C2` s.d. `S-C5` 🟡, dan `S-D3` ✅ tidak menunggu slice frontend lain;
-prasyaratnya task backend. `S-C1` dan `S-C6` ⛔ tertahan gerbang keputusan.
+prasyaratnya task backend. `S-C1` dan `S-C6` ⛔ tertahan gerbang keputusan. `S-D2` sudah aktif sepenuhnya mengikuti persetujuan desain `v8`.
 
 ### Grafik F1 — Fondasi (`IN-01`, `S0-B`)
 
@@ -235,9 +267,56 @@ FE-HRD-039 [F8] ─────────────────────�
 FE-HRD-040 [F8] ────────────────────────────────────────────────┘
 ```
 
+### Grafik F10 — `S-D2` `MVP-11`: Requisition, Lowongan, dan Direktori Pelamar
+
+```text
+BE-HRD-052 [BE] ─> FE-HRD-044 ─┬─> FE-HRD-045
+                               │
+BE-HRD-053 [BE] ─┬─────────────┴─> FE-HRD-046 ─> FE-HRD-047
+                 │
+BE-HRD-054 [BE] ─┴──────────────────────────────> FE-HRD-048
+```
+
+### Grafik F11 — `S-D2` `MVP-12`: Penapisan STR, Evaluasi Wawancara, Uji Klinis Veto, Penawaran & MCU
+
+```text
+FE-HRD-048 [F10] ─┬─> FE-HRD-049 ─┬─> FE-HRD-050
+                  │               │
+BE-HRD-055 [BE] ──┘               ├─> FE-HRD-051
+                                  │
+BE-HRD-056 [BE] ──────────────────┘
+
+BE-HRD-057 [BE] ──> FE-HRD-052 ─┬─> FE-HRD-053
+                                │
+BE-HRD-058 [BE] ────────────────┤
+                                │
+BE-HRD-059 [BE] ────────────────┴─> FE-HRD-054
+```
+
+### Grafik F12 — `S-D2` `MVP-13` & Verifikasi: Talent Pool, Handoff Onboarding, dan Verifikasi Menu
+
+```text
+BE-HRD-060 [BE] ───────────────────────────> FE-HRD-055 ─┬─> FE-HRD-057
+                                                         │
+FE-HRD-053 [F11] ─┬────────────────────────> FE-HRD-056 ─┤
+                  │                                      │
+FE-HRD-054 [F11] ─┤                                      │
+                  │                                      │
+BE-HRD-061 [BE] ──┘                                      │
+                                                         │
+FE-HRD-045 [F10] ────────────────────────────────────────┤
+                                                         │
+FE-HRD-047 [F10] ────────────────────────────────────────┤
+                                                         │
+FE-HRD-050 [F11] ────────────────────────────────────────┤
+                                                         │
+FE-HRD-051 [F11] ────────────────────────────────────────┘
+```
+
+
 **Pemeriksaan silang.** Jumlah pasangan prasyarat → task: F1 2, F2 11, F3 15, F4 9, F5 5, F6 6,
-F7 8, F8 12, F9 10 — total **78**. Jumlah entri kolom `Dependency` pada register juga **78** (42
-untuk task lama, 36 untuk task `S-D1`). Grafiknya bebas siklus.
+F7 8, F8 12, F9 10, F10 6, F11 11, F12 12 — total **107**. Jumlah entri kolom `Dependency` pada register juga **107** (42
+untuk task lama, 36 untuk task `S-D1`, 29 untuk task `S-D2`). Grafiknya bebas siklus.
 
 ---
 
@@ -259,6 +338,10 @@ Urutan **rilis dan UAT** tetap `MVP-7` → `MVP-8` → `MVP-9` → `MVP-10` (`04
 | **4** | Prasyarat frontend gelombang 3 masing-masing; backend `BE-HRD-025` s.d. `BE-HRD-028` ✅, `BE-HRD-039` | `FE-HRD-008` ✅, `FE-HRD-022` ✅, `FE-HRD-025` ✅, `FE-HRD-026` 🟡, `FE-HRD-027` 🟡; `FE-HRD-034` (`MVP-8`); `FE-HRD-037`, `FE-HRD-040` (`BE-HRD-039`) — `MVP-9`; `FE-HRD-042` (`MVP-10`) |
 | **5** | `FE-HRD-022`; `FE-HRD-037`, `FE-HRD-039`; backend `BE-HRD-044` | `FE-HRD-023` ✅, `FE-HRD-024` ✅, `FE-HRD-028` ✅; `FE-HRD-038` (`MVP-9`) — menunggu `BE-HRD-044` |
 | **6** | `FE-HRD-030`, `FE-HRD-031`, `FE-HRD-034`, `FE-HRD-038`, `FE-HRD-039`, `FE-HRD-040`, `FE-HRD-042` | `FE-HRD-043` (verifikasi menu dan keterjangkauan layar `S-D1`) |
+| **1** | — dari sisi frontend; backend: `BE-HRD-052` [BE], `BE-HRD-054` [BE], `BE-HRD-057` [BE], `BE-HRD-060` [BE] | `FE-HRD-044` (`MVP-11`), `FE-HRD-048` (`MVP-11`), `FE-HRD-052` (`MVP-12`), `FE-HRD-055` (`MVP-13`) |
+| **2** | `FE-HRD-044`, `FE-HRD-048`, `FE-HRD-052`; backend: `BE-HRD-053` [BE], `BE-HRD-055` [BE], `BE-HRD-058` [BE], `BE-HRD-059` [BE] | `FE-HRD-045` (`MVP-11`), `FE-HRD-046` (`MVP-11`), `FE-HRD-049` (`MVP-12`), `FE-HRD-053` (`MVP-13`), `FE-HRD-054` (`MVP-13`) |
+| **3** | `FE-HRD-046`, `FE-HRD-049`, `FE-HRD-053`, `FE-HRD-054`; backend: `BE-HRD-056` [BE], `BE-HRD-061` [BE] | `FE-HRD-047` (`MVP-11`), `FE-HRD-050` (`MVP-12`), `FE-HRD-051` (`MVP-12`), `FE-HRD-056` (`MVP-13`) |
+| **4** | Seluruh layar `FE-HRD-045`, `FE-HRD-047`, `FE-HRD-050`, `FE-HRD-051`, `FE-HRD-053`, `FE-HRD-054`, `FE-HRD-055`, `FE-HRD-056` | `FE-HRD-057` (verifikasi menu, hak akses, dan keterjangkauan layar `S-D2`) |
 | **⛔** | `{DEC-HRD-008}` — Komite Medik | `FE-HRD-014` ⛔ (Layar Kredensial Medis & SPK/RKK) |
 | **⛔** | `{DEC-HRD-010}` — K3RS / MCU Pegawai | `FE-HRD-019` ⛔ (Layar Kesehatan Staf K3RS) |
 
@@ -328,6 +411,20 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 | `FE-HRD-041` | `S-D1` · `MVP-10` | Layar Daftar Rencana Tahunan dan Addendum (`FE-HRD-104`) | | `FE-HRD-029`, `BE-HRD-046` [BE] | — |
 | `FE-HRD-042` | `S-D1` · `MVP-10` | Layar Penyusun dan Detail Rencana (`FE-HRD-105`) | | `FE-HRD-041` | — |
 | `FE-HRD-043` | `S-D1` · Verifikasi | Verifikasi menu, hak akses, dan keterjangkauan seluruh layar `S-D1` | | `FE-HRD-030`, `FE-HRD-031`, `FE-HRD-034`, `FE-HRD-038`, `FE-HRD-039`, `FE-HRD-040`, `FE-HRD-042` | — |
+| `FE-HRD-044` | `S-D2` · `MVP-11` | Layar Antrean & Permintaan Requisition (`FE-HRD-110`, `/hr/recruitment/requisitions`) | | `BE-HRD-052` [BE] | — |
+| `FE-HRD-045` | `S-D2` · `MVP-11` | Layar Detail & Draf Requisition (`FE-HRD-111`, `/hr/recruitment/requisitions/[id]`) | | `FE-HRD-044` | — |
+| `FE-HRD-046` | `S-D2` · `MVP-11` | Layar Pengelolaan Lowongan Kerja (*Job Vacancies*) (`FE-HRD-112`, `/hr/recruitment/vacancies`) | | `FE-HRD-044`, `BE-HRD-053` [BE] | — |
+| `FE-HRD-047` | `S-D2` · `MVP-11` | Layar Detail Lowongan & Pelamar Masuk (`FE-HRD-113`, `/hr/recruitment/vacancies/[id]`) | | `FE-HRD-046` | — |
+| `FE-HRD-048` | `S-D2` · `MVP-11` | Layar Direktori Data Pelamar & NIK Rehire Flow (`FE-HRD-114`, `/hr/recruitment/candidates`) | | `BE-HRD-054` [BE] | — |
+| `FE-HRD-049` | `S-D2` · `MVP-12` | Layar Detail Pelamar & Penapisan STR Klinis Otomatis (`FE-HRD-115`, `/hr/recruitment/candidates/[id]`) | | `FE-HRD-048`, `BE-HRD-055` [BE] | — |
+| `FE-HRD-050` | `S-D2` · `MVP-12` | Layar Formulir Evaluasi Wawancara HR (`FE-HRD-116`, `/hr/recruitment/evaluations/hr/[id]`) | | `FE-HRD-049`, `BE-HRD-056` [BE] | — |
+| `FE-HRD-051` | `S-D2` · `MVP-12` | Layar Formulir Uji Klinis / Asesor Unit dengan Hak Veto Klinis (`FE-HRD-117`, `/hr/recruitment/evaluations/clinical/[id]`) | | `FE-HRD-049`, `BE-HRD-056` [BE] | — |
+| `FE-HRD-052` | `S-D2` · `MVP-12` | Layar Daftar Penawaran Kerja (*Job Offers*) (`FE-HRD-118`, `/hr/recruitment/offers`) | | `BE-HRD-057` [BE] | — |
+| `FE-HRD-053` | `S-D2` · `MVP-13` | Layar Detail Penawaran & Rantai Persetujuan Bertingkat T13/T14 (`FE-HRD-119`, `/hr/recruitment/offers/[id]`) | | `FE-HRD-052`, `BE-HRD-058` [BE] | — |
+| `FE-HRD-054` | `S-D2` · `MVP-13` | Layar Pemantauan Kelaikan MCU Pra-Kerja & Masking Medis K3RS (`FE-HRD-120`, `/hr/recruitment/mcu-clearance`) | | `FE-HRD-052`, `BE-HRD-059` [BE] | — |
+| `FE-HRD-055` | `S-D2` · `MVP-13` | Layar Bank Kandidat Cadangan (*Talent Pool*) & Fast-Track Promotion (`FE-HRD-121`, `/hr/recruitment/talent-pool`) | | `BE-HRD-060` [BE] | — |
+| `FE-HRD-056` | `S-D2` · `MVP-13` | Layar Serah Terima ke Onboarding (*Hiring Handoff*) (`FE-HRD-122`, `/hr/recruitment/handoffs`) | | `FE-HRD-053`, `FE-HRD-054`, `BE-HRD-061` [BE] | — |
+| `FE-HRD-057` | `S-D2` · Verifikasi | Verifikasi Menu, Hak Akses, dan Keterjangkauan Seluruh Layar Rekrutmen `S-D2` | | `FE-HRD-045`, `FE-HRD-047`, `FE-HRD-050`, `FE-HRD-051`, `FE-HRD-053`, `FE-HRD-054`, `FE-HRD-055`, `FE-HRD-056` | — |
 
 ---
 
@@ -959,3 +1056,257 @@ selesai; layar cukup menampilkan pesan apa pun yang dikirim backend.
 * **Bukti verifikasi**: Tangkapan layar sidebar per peran dan per aturan di laporan; `npm run build` pada commit yang diverifikasi.
 * **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko: akun uji tidak mewakili peran produksi — dicatat sebagai batas bukti.
 * **Definition of Done**: Kelima kriteria terbukti dengan tangkapan layar; laporan tracked ada.
+
+
+### `FE-HRD-044` — Layar Antrean & Permintaan Requisition
+* **Slice / MVP**: `S-D2` / `MVP-11`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-052` [BE].
+* **Outcome**: HR Recruiter dan Kepala Unit dapat melihat daftar antrean requisition formasi, status pengajuan, serta kuota kursi eksternal yang diizinkan dari alokasi WFP.
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-110`), `FR-REC-01`, `VR-REC-01`, `VR-REC-02`.
+* **Kontrak**: API Contract v8 bagian 14.1 grup `Job Requisition`.
+* **Kewenangan UI**: Standard table layout dengan filter status dan tombol "Buat Requisition".
+* **Reuse**: `@/components/features/base-features/base-form-control`, `BaseButton`, `StatusBadge`.
+* **Cakupan**: Route `/hr/recruitment/requisitions`, view, service, penambahan grup menu "Rekrutmen & Seleksi" pada `menu-items.jsx`.
+* **Dependency**: `BE-HRD-052` [BE]
+* **Acceptance criteria**:
+  1. Menampilkan tabel daftar requisition: Nomor, Jabatan, Unit Kerja, Jumlah Kursi, Status, Tanggal Pengajuan.
+  2. Tombol "Buat Requisition" membuka modal/form untuk memilih `HeadcountRequestId` yang berstatus `APPROVED`.
+  3. Pesan validasi kursi `VR-REC-02` tampil jelas jika kursi melebihi alokasi WFP.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko kecil.
+* **Definition of Done**: Layar daftar requisition aktif sesuai kontrak; laporan tracked tersedia.
+
+### `FE-HRD-045` — Layar Detail & Draf Requisition
+* **Slice / MVP**: `S-D2` / `MVP-11`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-044`.
+* **Outcome**: Pengguna dapat meninjau rincian requisition, justifikasi penambahan tenaga, alokasi kursi WFP terkait, serta melakukan aksi ajukan (*submit*) atau batalkan (*cancel*).
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-111`), `FR-REC-01`, `VR-REC-03`.
+* **Kontrak**: API Contract v8 bagian 14.1.
+* **Kewenangan UI**: Detail layout dengan timeline status.
+* **Reuse**: Card token, `InformationAlert`, `StatusBadge`.
+* **Cakupan**: Route `/hr/recruitment/requisitions/[id]`, view, service.
+* **Dependency**: `FE-HRD-044`
+* **Acceptance criteria**:
+  1. Menampilkan detail lengkap requisition beserta tautan ke dokumen perencanaan WFP induk.
+  2. Tombol "Ajukan" dan "Batalkan" aktif secara kondisional berdasarkan status dokumen (`DRAFT`).
+  3. Konfirmasi pembatalan requisition memvalidasi ketiadaan lowongan aktif (`VR-REC-03`).
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko kecil.
+* **Definition of Done**: Layar detail requisition selesai dan terverifikasi; laporan tracked tersedia.
+
+### `FE-HRD-046` — Layar Pengelolaan Lowongan Kerja (*Job Vacancies*)
+* **Slice / MVP**: `S-D2` / `MVP-11`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-044`, `BE-HRD-053` [BE].
+* **Outcome**: Pengelola rekrutmen dapat melihat daftar seluruh lowongan pekerjaan (draf, tayang/aktif, ditutup) beserta sisa kuota kursi dan penanda klinis `IsClinical`.
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-112`), `FR-REC-02`, `VR-REC-04`.
+* **Kontrak**: API Contract v8 bagian 14.2 grup `Job Vacancy`.
+* **Kewenangan UI**: List & filter view dengan badge kategori klinis/non-klinis.
+* **Reuse**: Base form control, filter bar Quilvian.
+* **Cakupan**: Route `/hr/recruitment/vacancies`, view, service, butir menu "Lowongan Kerja".
+* **Dependency**: `FE-HRD-044`, `BE-HRD-053` [BE]
+* **Acceptance criteria**:
+  1. Tabel lowongan menyajikan Nomor Lowongan, Judul Posisi, Unit, Kuota Kursi, Pelamar Masuk, Status, Tanggal Berakhir.
+  2. Kolom peran menampilkan badge visual pembeda posisi medis/klinis (`IsClinical`) vs non-klinis.
+  3. Tombol aksi publikasi dan penutupan lowongan terhubung ke endpoint API backend.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko kecil.
+* **Definition of Done**: Layar daftar lowongan kerja aktif dan lulus kompilasi; laporan tracked tersedia.
+
+### `FE-HRD-047` — Layar Detail Lowongan & Pelamar Masuk
+* **Slice / MVP**: `S-D2` / `MVP-11`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-046`.
+* **Outcome**: Recruiter dapat melihat deskripsi kualifikasi lowongan, kuota kursi, serta daftar seluruh berkas pelamar yang masuk pada lowongan tersebut berurutan per tahapan seleksi.
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-113`), `FR-REC-02`.
+* **Kontrak**: API Contract v8 bagian 14.2 & 14.3.
+* **Kewenangan UI**: Detail layout dengan segmented tab pelamar (Semua, Penapisan, Wawancara, Penawaran, Cadangan).
+* **Reuse**: Segmented choices, tabel pelamar.
+* **Cakupan**: Route `/hr/recruitment/vacancies/[id]`, view, service.
+* **Dependency**: `FE-HRD-046`
+* **Acceptance criteria**:
+  1. Menampilkan profil lowongan, kuota formasi, dan tanggal tayang.
+  2. Menampilkan sub-tabel pelamar dengan status tahapan saat ini.
+  3. Tautan klik pada baris pelamar langsung membuka detail profil pelamar terkait.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko kecil.
+* **Definition of Done**: Layar detail lowongan dan tab pelamar aktif; laporan tracked tersedia.
+
+### `FE-HRD-048` — Layar Direktori Data Pelamar & NIK Rehire Flow
+* **Slice / MVP**: `S-D2` / `MVP-11`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-054` [BE].
+* **Outcome**: Recruiter dapat melihat direktori induk pelamar rumah sakit, mencari berdasarkan nama atau NIK, serta mendaftarkan pelamar baru dengan deteksi otomatis status mantan karyawan (*Rehire Badge*) (`HRD-DEC-075`).
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-114`), `FR-REC-03`, `VR-REC-05`, `VR-REC-06`, `UAT-REC-03`.
+* **Kontrak**: API Contract v8 bagian 14.3 grup `Candidate Directory`.
+* **Kewenangan UI**: Standard search & filter directory dengan modal pendaftaran pelamar.
+* **Reuse**: Field validasi NIK 16 digit, `StatusBadge`.
+* **Cakupan**: Route `/hr/recruitment/candidates`, view, service, butir menu "Direktori Pelamar".
+* **Dependency**: `BE-HRD-054` [BE]
+* **Acceptance criteria**:
+  1. Form pendaftaran memvalidasi panjang dan format angka NIK (16 digit).
+  2. Jika NIK terdeteksi mantan pegawai, form memunculkan alert "Mantan Karyawan RS Terdeteksi" dan otomatis menautkan rehire.
+  3. Tabel direktori menyajikan Nama, NIK, Kontak, Posisi Terakhir Dilamar, dan Badge Rehire bila berlaku.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko: integritas data NIK — ditegakkan lewat indeks unik dan normalisasi string.
+* **Definition of Done**: Layar direktori pelamar dan form pendaftaran selesai; laporan tracked tersedia.
+
+### `FE-HRD-049` — Layar Detail Pelamar & Penapisan STR Klinis Otomatis
+* **Slice / MVP**: `S-D2` / `MVP-12`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-048`, `BE-HRD-055` [BE].
+* **Outcome**: Recruiter dapat meninjau berkas lamaran (CV, Ijazah, STR), tanggal kedaluwarsa STR, serta melihat status penapisan administrasi. Bila posisi klinis dan STR kedaluwarsa, layar menampilkan badge merah "Gugur Otomatis — STR Kedaluwarsa" (`HRD-DEC-076`).
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-115`), `FR-REC-04`, `VR-REC-07`, `VR-REC-08`, `AT-HRD-D2-05`, `UAT-REC-02`.
+* **Kontrak**: API Contract v8 bagian 14.4 grup `Candidate Screening`.
+* **Kewenangan UI**: Dokumen viewer & checklist screening form.
+* **Reuse**: Komponen upload berkas, alert peringatan merah / hijau.
+* **Cakupan**: Route `/hr/recruitment/candidates/[id]`, view, service.
+* **Dependency**: `FE-HRD-048`, `BE-HRD-055` [BE]
+* **Acceptance criteria**:
+  1. Menampilkan daftar dokumen yang diunggah beserta tanggal masa berlaku STR.
+  2. Pelamar klinis dengan STR kedaluwarsa menampilkan banner kegagalan otomatis dan mengunci tombol pelolosan ke tahap wawancara.
+  3. Evaluator dapat mencatat catatan penapisan berkas dan menetapkan status kelulusan administrasi.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko kepatuhan izin praktek klinis — disajikan transparan di UI.
+* **Definition of Done**: Layar detail pelamar dan gerbang penapisan STR aktif; laporan tracked tersedia.
+
+### `FE-HRD-050` — Layar Formulir Evaluasi Wawancara HR
+* **Slice / MVP**: `S-D2` / `MVP-12`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-049`, `BE-HRD-056` [BE].
+* **Outcome**: HR Interviewer dapat mengisi formulir penilaian wawancara umum (sikap kerja, motivasi, komunikasi, kesesuaian budaya RS) dan memberikan rekomendasi hasil wawancara.
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-116`), `FR-REC-05`, `VR-REC-10`.
+* **Kontrak**: API Contract v8 bagian 14.5 grup `Candidate Evaluation`.
+* **Kewenangan UI**: Form scoring bertingkat dengan radio buttons dan catatan kualitatif.
+* **Reuse**: Base form control, star/numeric rating component.
+* **Cakupan**: Route `/hr/recruitment/evaluations/hr/[id]`, view, service.
+* **Dependency**: `FE-HRD-049`, `BE-HRD-056` [BE]
+* **Acceptance criteria**:
+  1. Form evaluasi memuat parameter penilaian perilaku, kepribadian, dan komitmen RS.
+  2. Tombol simpan dan submit mengirimkan skor total dan rekomendasi akhir HR (`RECOMMENDED`, `CONSIDERED`, `NOT_RECOMMENDED`).
+  3. Akses form dijaga oleh permission evaluasi HR.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko kecil.
+* **Definition of Done**: Layar formulir wawancara HR aktif sesuai kontrak; laporan tracked tersedia.
+
+### `FE-HRD-051` — Layar Formulir Uji Klinis / Asesor Unit dengan Hak Veto Klinis
+* **Slice / MVP**: `S-D2` / `MVP-12`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-049`, `BE-HRD-056` [BE].
+* **Outcome**: Kepala Ruang / Asesor Profesi medis dapat mengisi uji kompetensi klinis praktis, dan jika memberi penilaian `NOT_RECOMMENDED`, antarmuka menampilkan badge "Veto Klinis Unit Ditegakkan" yang memblokir proses hiring (`HRD-DEC-077`).
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-117`), `FR-REC-06`, `VR-REC-11`, `VR-REC-12`, `AT-HRD-D2-06`, `UAT-REC-04`.
+* **Kontrak**: API Contract v8 bagian 14.5.
+* **Kewenangan UI**: Form evaluasi klinis dengan peringatan tegas hak veto unit.
+* **Reuse**: InformationAlert level bahaya (`danger`), modal konfirmasi veto.
+* **Cakupan**: Route `/hr/recruitment/evaluations/clinical/[id]`, view, service.
+* **Dependency**: `FE-HRD-049`, `BE-HRD-056` [BE]
+* **Acceptance criteria**:
+  1. Form hanya dapat diisi oleh pemegang hak akses asesor profesi/klinis.
+  2. Pemilihan rekomendasi `NOT_RECOMMENDED` memunculkan dialog konfirmasi penguncian veto klinis.
+  3. Setelah disubmit, status kandidat berubah dan antarmuka mengunci aksi penawaran kerja secara permanen.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko keselamatan pasien: penegakan veto klinis terlihat tegas di UI.
+* **Definition of Done**: Layar uji klinis dengan badge hak veto aktif; laporan tracked tersedia.
+
+### `FE-HRD-052` — Layar Daftar Penawaran Kerja (*Job Offers*)
+* **Slice / MVP**: `S-D2` / `MVP-12`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-057` [BE].
+* **Outcome**: Tim rekrutmen dapat memantau seluruh surat penawaran kerja bersyarat dan final, status respon kandidat, tier persetujuan, dan status kelaikan kerja.
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-118`), `FR-REC-07`, `VR-REC-13`.
+* **Kontrak**: API Contract v8 bagian 14.6 grup `Job Offer`.
+* **Kewenangan UI**: Filterable table dengan tag status offer dan indikator tier persetujuan.
+* **Reuse**: Table component, status badge, action buttons.
+* **Cakupan**: Route `/hr/recruitment/offers`, view, service, butir menu "Penawaran Kerja".
+* **Dependency**: `BE-HRD-057` [BE]
+* **Acceptance criteria**:
+  1. Menampilkan daftar surat penawaran: Nomor Offer, Nama Kandidat, Posisi, Gaji Pokok Ditawarkan, Tier Persetujuan, Status.
+  2. Tombol "Buat Penawaran" hanya aktif bagi kandidat yang telah lulus evaluasi HR dan Klinis.
+  3. Indikator visual membedakan penawaran standar `T13` vs eskalasi `T14`.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko kecil.
+* **Definition of Done**: Layar daftar penawaran kerja aktif dan lulus build; laporan tracked tersedia.
+
+### `FE-HRD-053` — Layar Detail Penawaran & Rantai Persetujuan Bertingkat T13/T14
+* **Slice / MVP**: `S-D2` / `MVP-13`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-052`, `BE-HRD-058` [BE].
+* **Outcome**: Pengguna dapat meninjau rincian penawaran kompensasi, evaluasi terhadap plafon `MstSalaryGrade`, memantau tahapan persetujuan pejabat, serta melakukan approval/reject sesuai wewenang (`HRD-DEC-079`).
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-119`), `FR-REC-09`, `VR-REC-14`, `VR-REC-15`, `VR-REC-16`, `UAT-REC-06`.
+* **Kontrak**: API Contract v8 bagian 14.6.
+* **Kewenangan UI**: Detail layout dengan step approval tracking dan form input respon persetujuan.
+* **Reuse**: Stepper approval visual, modal approval, alert peringatan eskalasi direksi.
+* **Cakupan**: Route `/hr/recruitment/offers/[id]`, view, service.
+* **Dependency**: `FE-HRD-052`, `BE-HRD-058` [BE]
+* **Acceptance criteria**:
+  1. Jika penawaran gaji melebihi plafon grade, layar menampilkan banner oranye "Persetujuan Direktur Keuangan & Dirut Diperlukan (T14)".
+  2. Tombol "Setujui" dan "Tolak" hanya muncul bagi akun penyetuju yang sedang aktif pada gilirannya.
+  3. Riwayat jejak audit persetujuan (waktu, penyetuju, catatan) ditampilkan transparan.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko kepatuhan tata kelola keuangan RS.
+* **Definition of Done**: Layar detail penawaran dan stepper persetujuan aktif; laporan tracked tersedia.
+
+### `FE-HRD-054` — Layar Pemantauan Kelaikan MCU Pra-Kerja & Masking Medis K3RS
+* **Slice / MVP**: `S-D2` / `MVP-13`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-052`, `BE-HRD-059` [BE].
+* **Outcome**: HR Recruiter dan Dokter K3RS dapat memantau status pemeriksaan MCU pelamar pra-kerja. Untuk akun HR non-medis, seluruh detail diagnosa medis disembunyikan/dimasking, hanya menyajikan kesimpulan kelaikan (`FIT`, `FIT_WITH_RESTRICTIONS`, `UNFIT`) (`HRD-DEC-078`, `HRD-DEC-010`).
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-120`), `FR-REC-08`, `VR-REC-17`, `AT-HRD-D2-09`, `UAT-REC-05`.
+* **Kontrak**: API Contract v8 bagian 14.7 grup `MCU Clearance`.
+* **Kewenangan UI**: Monitoring dashboard dengan proteksi privasi data medis staf K3RS.
+* **Reuse**: StatusBadge, privacy badge.
+* **Cakupan**: Route `/hr/recruitment/mcu-clearance`, view, service, butir menu "Kelaikan MCU Pra-Kerja".
+* **Dependency**: `FE-HRD-052`, `BE-HRD-059` [BE]
+* **Acceptance criteria**:
+  1. Daftar kandidat menyajikan tanggal rujukan MCU, fasilitas pemeriksa, dan kesimpulan kelaikan.
+  2. Akun non-K3RS tidak memiliki kolom atau modal diagnosa penyakit; hanya badge kelaikan kerja yang tampil (`UAT-REC-05`).
+  3. Dokter K3RS memiliki tombol aksi untuk mengunggah surat keterangan dokter dan memilih kesimpulan resmi.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama Dokter K3RS. Risiko kerahasiaan medis staf.
+* **Definition of Done**: Layar pemantauan MCU dan kontrol masking medis aktif; laporan tracked tersedia.
+
+### `FE-HRD-055` — Layar Bank Kandidat Cadangan (*Talent Pool*) & Fast-Track Promotion
+* **Slice / MVP**: `S-D2` / `MVP-13`
+* **Status**: Belum dikerjakan. Menunggu `BE-HRD-060` [BE].
+* **Outcome**: Pengelola rekrutmen dapat melihat daftar kandidat cadangan berperingkat yang siap dipromosikan cepat bila kursi lowongan kosong, memantau masa kedaluwarsa retensi (6 bulan), dan mengeksekusi promosi cepat (*Fast-Track*) (`HRD-DEC-080`).
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-121`), `FR-REC-11`, `FR-REC-12`, `VR-REC-18`, `VR-REC-19`, `UAT-REC-07`.
+* **Kontrak**: API Contract v8 bagian 14.8 grup `Talent Pool`.
+* **Kewenangan UI**: Leaderboard talent pool dengan countdown masa retensi dan tombol aksi promosi instan.
+* **Reuse**: Badge peringkat skor, countdown timer/badge hari tersisa.
+* **Cakupan**: Route `/hr/recruitment/talent-pool`, view, service, butir menu "Bank Kandidat (Talent Pool)".
+* **Dependency**: `BE-HRD-060` [BE]
+* **Acceptance criteria**:
+  1. Menampilkan urutan peringkat kandidat berdasarkan skor akumulasi tes, posisi yang diminati, dan sisa hari retensi.
+  2. Tombol "Promosi Cepat" memunculkan dialog konfirmasi penerbitan penawaran langsung ke kandidat cadangan peringkat 1.
+  3. Kandidat dengan masa retensi habis (> 6 bulan) berstatus `EXPIRED` dan tombol promosinya terkunci (`VR-REC-18`).
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko kecil.
+* **Definition of Done**: Layar bank kandidat dan fast-track promotion aktif; laporan tracked tersedia.
+
+### `FE-HRD-056` — Layar Serah Terima ke Onboarding (*Hiring Handoff*)
+* **Slice / MVP**: `S-D2` / `MVP-13`
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-053`, `FE-HRD-054`, `BE-HRD-061` [BE].
+* **Outcome**: HR dapat melihat daftar kandidat yang telah lolos seluruh seleksi, menyepakati penawaran final, dan dinyatakan fit MCU, lalu mengeksekusi serah terima data ke Sub-modul 05 (Onboarding) untuk pembuatan profil draf kepegawaian di Sub-modul 02 (`HRD-DEC-075`).
+* **Requirement/decision**: `03-frontend-architecture.md` bagian 13.1 (`FE-HRD-122`), `FR-REC-10`, `VR-REC-20`, `AT-HRD-D2-11`.
+* **Kontrak**: API Contract v8 bagian 14.9 grup `Hiring Handoff`.
+* **Kewenangan UI**: Handoff summary checklist & action view.
+* **Reuse**: Base form control, card summary.
+* **Cakupan**: Route `/hr/recruitment/handoffs`, view, service, butir menu "Serah Terima Onboarding".
+* **Dependency**: `FE-HRD-053`, `FE-HRD-054`, `BE-HRD-061` [BE]
+* **Acceptance criteria**:
+  1. Hanya menampilkan kandidat yang memenuhi syarat: Offer `FINAL_ACCEPTED` dan MCU `FIT`/`FIT_WITH_RESTRICTIONS` (`VR-REC-20`).
+  2. Tombol "Kirim ke Onboarding" mengeksekusi transfer dan memunculkan konfirmasi nomor pegawai baru draf.
+  3. Tautan langsung ke profil pegawai draf pada modul Administrasi Kepegawaian.
+* **Bukti verifikasi**: `npm run lint:errors`, `npm run build`.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead. Risiko integrasi sub-modul.
+* **Definition of Done**: Layar serah terima onboarding aktif dan teruji; laporan tracked tersedia.
+
+### `FE-HRD-057` — Verifikasi Menu, Hak Akses, dan Keterjangkauan Seluruh Layar Rekrutmen `S-D2`
+* **Slice / MVP**: `S-D2` / Verifikasi
+* **Status**: Belum dikerjakan. Menunggu `FE-HRD-045`, `FE-HRD-047`, `FE-HRD-050`, `FE-HRD-051`, `FE-HRD-053`, `FE-HRD-054`, `FE-HRD-055`, `FE-HRD-056`.
+* **Outcome**: Membuktikan bahwa seluruh 13 layar rekrutmen `S-D2` (`FE-HRD-110` s.d. `FE-HRD-122`) dapat diakses via navigasi sidebar menu "Rekrutmen & Seleksi", hak akses RBAC sesuai peran (HR Manager, Recruiter, Unit Assessor, K3RS Doctor, Finance Director, Dirut), dan aturan kerahasiaan medis staf ditaati.
+* **Requirement/decision**: `AT-HRD-D2-12`, `03-frontend-architecture.md` bagian 13.2 & 13.3, `04-prd-to-mvp.md` bagian 22.6.
+* **Kontrak**: Frontend Architecture rev 4 bagian 13.2, Permission v8 bagian 12.
+* **Kewenangan UI**: Audit pengujian komprehensif, pencatatan screenshot verifikasi.
+* **Reuse**: Seluruh layar `FE-HRD-044` s.d. `FE-HRD-056`.
+* **Cakupan**: Verifikasi navigasi rute, role switcher check, dan kompilasi production build.
+* **Dependency**: `FE-HRD-045`, `FE-HRD-047`, `FE-HRD-050`, `FE-HRD-051`, `FE-HRD-053`, `FE-HRD-054`, `FE-HRD-055`, `FE-HRD-056`
+* **Acceptance criteria**:
+  1. Seluruh 7 butir menu rekrutmen muncul sesuai hak akses peran di sidebar.
+  2. Seluruh 13 layar dapat dibuka tanpa error JavaScript atau layout broken.
+  3. Akun non-medis terbukti tidak dapat mengakses halaman formulir diagnosa medis K3RS.
+  4. `npm run lint:errors` dan `npm run build` berhasil 0 error.
+* **Bukti verifikasi**: Tangkapan layar navigasi menu per peran; output log `npm run build` sukses.
+* **Risiko & pemilik**: Pemilik: Frontend HR UI Lead bersama QA. Risiko integrasi navigasi.
+* **Definition of Done**: Seluruh layar rekrutmen terverifikasi lulus audit; laporan tracked tersedia.

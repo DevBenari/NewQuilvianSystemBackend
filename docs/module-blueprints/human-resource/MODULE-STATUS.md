@@ -5,7 +5,7 @@
 | Blueprint ID | `HRD-BP-001` |
 | Module name | `Human Resource` |
 | Module slug | `human-resource` |
-| Revision | `17` — 3 November 2026: desain `S-D1` **disetujui** Pengguna dan dipecah menjadi task (`BE-HRD-017`, `BE-HRD-029` s.d. `BE-HRD-051`, `FE-HRD-029` s.d. `FE-HRD-043`), bagian 7.4. Revision `16`: desain `S-D1` ditulis sebagai `draft`. Revision `15`: `S-D1` naik dari `BLOCKED` menjadi `READY FOR DESIGN`, bagian 6.6 |
+| Revision | `18` — 3 November 2026: desain dan delivery roadmap `S-D2` **disetujui** Pengguna dan dipecah menjadi task (`BE-HRD-018`, `BE-HRD-052` s.d. `BE-HRD-062`, `FE-HRD-044` s.d. `FE-HRD-057`), bagian 7.5. Revision `17`: delivery roadmap `S-D1`. |
 | Module status | `PARTIAL` |
 | Current phase | `HRD-PH-SLICE-A1-COMPLETE` — Seluruh task backend Slice S-A1 (`BE-HRD-023` s.d. `BE-HRD-028`) dan task frontend Slice S-A1 (`FE-HRD-022` s.d. `FE-HRD-028`) telah selesai diimplementasikan penuh end-to-end lengkap dengan model, konfigurasi, migrasi EF Core, domain services, web API controllers, antarmuka Next.js App Router, guard penguncian form master data, pengujian unit komprehensif, dan laporan tracked task |
 | Last verified at | `2026-11-02` — implementasi penuh end-to-end seluruh task backend (BE-HRD-023..028) dan frontend (FE-HRD-022..028) Slice S-A1 |
@@ -69,7 +69,7 @@ Perbedaan `BLOCKED` dan `DEFERRED` sering tertukar, padahal akibatnya berbeda ja
 | OPPE dan FPPE | bagian `S-C1` | `BLOCKED` | Sama, ditambah belum ada satu pun entity maupun endpoint hari ini |
 | Kesehatan dan keselamatan kerja staf | `S-C6` | `BLOCKED` | Menunggu kedua skill hulu, ditambah pengesahan K3RS atas `HRD-DEC-010` |
 | Perencanaan tenaga kerja | `S-D1` | `READY FOR DESIGN` — **desain `approved` 3 November 2026; roadmap direncanakan** (`roadmap/backend-roadmap.md` dan `roadmap/frontend-roadmap.md` revision `5`) | **Naik dari `BLOCKED` pada 3 November 2026; desain ditulis hari yang sama** (`02-backend-architecture.md` bagian 16, `03-frontend-architecture.md` bagian 12, kontrak `v7`, `04-prd-to-mvp.md` bagian 21). `HRD-Q-05` ditutup untuk sepuluh tabel `WorkforcePlanning` lewat `HRD-DEC-059`, dijaga `EMPTY_TABLE_GUARD`; buktinya pada `01-prerequisite-readiness.md` bagian 4. Seluruh keputusan bisnis desain sudah `approved`: `HRD-DEC-058` s.d. `HRD-DEC-071` (decision log bagian 32). Kebergantungan ke slice lain memengaruhi implementasi dan rilis, bukan desain. Kembali `BLOCKED` bila `EMPTY_TABLE_GUARD` berhenti di lingkungan mana pun. Istilah "ERD" pada `HRD-DEC-004` bermakna penurunan model data, **bukan** folder `erd/` |
-| Rekrutmen dan hiring | `S-D2` | `BLOCKED` | Penurunan ulang model data tidak boleh berjalan sebelum `HRD-Q-05` dijawab untuk domain ini |
+| Rekrutmen dan hiring | `S-D2` | `READY FOR IMPLEMENTATION` | Keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` approved; arsitektur backend, frontend, kontrak, flowchart, acceptance test, dan delivery roadmap (12 task BE, 14 task FE) selesai direncanakan |
 | Benefit | `S-D3` | `BLOCKED` | Sama |
 | Layanan HR dan tiket kepegawaian | `S-D4` | `BLOCKED` | Sama |
 | Perjalanan dinas dan reimbursement | `S-D5` | `DEFERRED` | Secara teknis sama dengan `S-D1` s.d. `S-D4`, tetapi prioritasnya paling rendah. Tetap tidak boleh jalan sebelum `HRD-Q-05` |
@@ -81,7 +81,7 @@ Rekapitulasi **kelompok kemampuan**, dihitung ulang langsung dari 22 baris tabel
 
 **Koreksi hitungan.** Rekapitulasi sebelumnya menulis 15, 1, 6, 1 — angka itu tidak cocok dengan isi
 tabel. Sebelum `S-D1` naik, tabel sebenarnya berisi 12 `READY FOR DESIGN`, 1 `IMPLEMENTED`,
-1 `PARTIAL`, **7** `BLOCKED` (`S-C1`, OPPE/FPPE, `S-C6`, `S-D1`, `S-D2`, `S-D3`, `S-D4`), dan
+1 `PARTIAL`, **5** `BLOCKED` (`S-C1`, OPPE/FPPE, `S-C6`, `S-D3`, `S-D4`), dan
 1 `DEFERRED`. Selisih yang ditimbulkan pembaruan ini hanya `S-D1`: satu baris pindah dari `BLOCKED`
 ke `READY FOR DESIGN`.
 
@@ -99,7 +99,7 @@ dari satu slice, misalnya "Layanan mandiri pegawai" mencakup lima slice `S-A2` s
 | `HRD-BLK-001` | Batas keselamatan klinis untuk kredensial dan kewenangan klinis belum ditetapkan pihak berwenang | `requirement-completeness-gate` lalu `hospital-domain-architect`, lalu Komite Medik | `HRD-PH-005` | **Ya.** Seluruh fase administratif tidak bergantung padanya |
 | `HRD-BLK-002` | Aturan akses rekam kesehatan kerja belum disahkan | Kedua skill hulu, lalu K3RS | `HRD-PH-006` | **Ya** |
 | `HRD-BLK-003` | Bentuk data serah terima payroll dan perilaku saat Finance menolak batch belum disepakati | Pemilik produk bersama Finance | **`POST-MVP` saja** sejak `HRD-DEC-035` | **Ya.** Orkestrasi putaran payroll keluar dari jalur kritis MVP; kesiapan payroll sisi HR tetap di dalam MVP |
-| `HRD-BLK-004` | Isi tabel 67 entity yang benar-benar belum punya API belum diketahui, sehingga keputusan skema yang merusak data tidak boleh diambil. **Sejak 3 November 2026 tidak lagi berlaku untuk sepuluh tabel `S-D1`** (`HRD-DEC-059`); tetap berlaku untuk `S-D2` s.d. `S-D5` | Pemilik database | `HRD-PH-007` bagian `S-D2` s.d. `S-D5` | **Ya** |
+| `HRD-BLK-004` | Isi tabel entity yang benar-benar belum punya API belum diketahui. **Tidak lagi berlaku untuk `S-D1` (`HRD-DEC-059`) dan `S-D2` (`HRD-DEC-074`)**; tetap berlaku untuk `S-D3` s.d. `S-D5` | Pemilik database | `HRD-PH-007` bagian `S-D3` s.d. `S-D5` | **Ya** |
 | `HRD-BLK-005` | Nama pemilik kebijakan bisnis, wakil Komite Medik, dan wakil K3RS belum ada | Manajemen | Approval seluruh blueprint | **Ya** untuk desain; **tidak** untuk rilis produksi slice sensitif |
 
 Tidak ada satu pun blocker di atas yang menghentikan fase administratif. Itu sebabnya status

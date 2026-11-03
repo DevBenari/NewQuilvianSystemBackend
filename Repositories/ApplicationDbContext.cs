@@ -271,6 +271,24 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<TrxStaffingGapAnalysis> TrxStaffingGapAnalyses { get; set; }
         public DbSet<TrxDailyStaffingRequirement> TrxDailyStaffingRequirements { get; set; }
         public DbSet<TrxWorkforceAllocation> TrxWorkforceAllocations { get; set; }
+
+        // S-D1 Workforce Planning Core (BE-HRD-017)
+        public DbSet<HrdStaffingStandard> HrdStaffingStandards { get; set; }
+        public DbSet<HrdStaffingStandardLine> HrdStaffingStandardLines { get; set; }
+        public DbSet<HrdStaffingSkillMixRule> HrdStaffingSkillMixRules { get; set; }
+        public DbSet<HrdStaffingWorkloadInput> HrdStaffingWorkloadInputs { get; set; }
+        public DbSet<HrdWorkforcePlanningSetting> HrdWorkforcePlanningSettings { get; set; }
+        public DbSet<HrdPositionFormation> HrdPositionFormations { get; set; }
+        public DbSet<HrdInitialFormationBatch> HrdInitialFormationBatches { get; set; }
+        public DbSet<HrdInitialFormationBatchRow> HrdInitialFormationBatchRows { get; set; }
+        public DbSet<HrdManpowerPlan> HrdManpowerPlans { get; set; }
+        public DbSet<HrdManpowerPlanLine> HrdManpowerPlanLines { get; set; }
+        public DbSet<HrdHeadcountRequest> HrdHeadcountRequests { get; set; }
+        public DbSet<HrdHeadcountRequestSeat> HrdHeadcountRequestSeats { get; set; }
+        public DbSet<HrdHeadcountRequestCancellation> HrdHeadcountRequestCancellations { get; set; }
+        public DbSet<HrdFulfilmentPlanChange> HrdFulfilmentPlanChanges { get; set; }
+        public DbSet<HrdStaffingGapSnapshot> HrdStaffingGapSnapshots { get; set; }
+        public DbSet<HrdStaffingGapSnapshotLine> HrdStaffingGapSnapshotLines { get; set; }
         #endregion CORPORATE - HUMAN RESOURCE - WORKFORCE PLANNING
 
         #region CORPORATE - HUMAN RESOURCE - RECRUITMENT MANAGEMENT

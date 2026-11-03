@@ -499,19 +499,25 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
                 var requestContext = WorkflowRequestContext.Parse(request.RequestContext);
                 var stepInstances = new List<TrxWorkflowStepInstance>();
+                var unitAncestorChain = await GetOrganizationUnitAncestorChainAsync(
+                    actorContext.OrganizationUnitId,
+                    cancellationToken);
 
                 foreach (var workflowStep in workflowSteps)
                 {
-                    var matrix = SelectApprovalMatrix(
+                    var (primaryMatrix, fallbackMatrix) = SelectApprovalMatrixPair(
                         matrices.Where(x => x.WorkflowStepId == workflowStep.Id),
                         actorContext,
                         requestContext,
+                        unitAncestorChain,
                         now);
+
+                    var selectedMatrix = primaryMatrix ?? fallbackMatrix;
 
                     var stepInstance = CreateStepInstance(
                         instance,
                         workflowStep,
-                        matrix,
+                        selectedMatrix,
                         actorContext.UserId,
                         now);
 
@@ -526,10 +532,30 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     var resolvedApprovers = await ResolveApproversAsync(
                         definition,
                         workflowStep,
-                        matrix,
+                        selectedMatrix,
                         actorContext,
                         request.SelectedApproverUserIds,
                         cancellationToken);
+
+                    if (resolvedApprovers.Count == 0 && fallbackMatrix != null && selectedMatrix != fallbackMatrix)
+                    {
+                        var fallbackApprovers = await ResolveApproversAsync(
+                            definition,
+                            workflowStep,
+                            fallbackMatrix,
+                            actorContext,
+                            request.SelectedApproverUserIds,
+                            cancellationToken);
+
+                        if (fallbackApprovers.Count > 0)
+                        {
+                            selectedMatrix = fallbackMatrix;
+                            resolvedApprovers = fallbackApprovers;
+                            stepInstance.ApprovalMatrixId = fallbackMatrix.Id;
+                            stepInstance.ApproverSourceSnapshot = NormalizeApproverSource(
+                                fallbackMatrix.ApproverSourceType ?? workflowStep.ApproverSourceType);
+                        }
+                    }
 
                     if (resolvedApprovers.Count == 0)
                     {
@@ -561,7 +587,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                         stepInstance,
                         definition,
                         workflowStep,
-                        matrix,
+                        selectedMatrix,
                         resolvedApprovers,
                         actorContext.UserId,
                         now,
@@ -1605,6 +1631,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             CancellationToken cancellationToken)
         {
             var today = DateTime.UtcNow.Date;
+            var unitAncestorChain = await GetOrganizationUnitAncestorChainAsync(
+                context.OrganizationUnitId,
+                cancellationToken);
 
             var candidates = await _dbContext.Set<MstWorkflowDefinition>()
                 .AsNoTracking()
@@ -1618,11 +1647,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value >= today) &&
                     (!x.LegalEntityId.HasValue || x.LegalEntityId == context.LegalEntityId) &&
                     (!x.HospitalSiteId.HasValue || x.HospitalSiteId == context.HospitalSiteId) &&
-                    (!x.OrganizationUnitId.HasValue || x.OrganizationUnitId == context.OrganizationUnitId))
+                    (!x.OrganizationUnitId.HasValue ||
+                     (context.OrganizationUnitId.HasValue && unitAncestorChain.Contains(x.OrganizationUnitId.Value))))
                 .ToListAsync(cancellationToken);
 
             return candidates
-                .OrderByDescending(x => GetDefinitionScopeRank(x, context))
+                .OrderByDescending(x => GetDefinitionScopeRank(x, context, unitAncestorChain))
                 .ThenByDescending(x => x.IsDefault)
                 .ThenByDescending(x => x.Version)
                 .ThenByDescending(x => x.EffectiveStartDate)
@@ -1631,12 +1661,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
 
         private static int GetDefinitionScopeRank(
             MstWorkflowDefinition definition,
-            HumanResourceUserContextDto context)
+            HumanResourceUserContextDto context,
+            IList<Guid> unitAncestorChain)
         {
-            if (definition.OrganizationUnitId.HasValue &&
-                definition.OrganizationUnitId == context.OrganizationUnitId)
+            if (definition.OrganizationUnitId.HasValue && context.OrganizationUnitId.HasValue)
             {
-                return 4;
+                var distance = unitAncestorChain.IndexOf(definition.OrganizationUnitId.Value);
+                if (distance >= 0)
+                {
+                    return 1000 - distance;
+                }
             }
 
             if (definition.HospitalSiteId.HasValue &&
@@ -1654,10 +1688,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
             return 1;
         }
 
-        private static MstApprovalMatrix? SelectApprovalMatrix(
+        private static (MstApprovalMatrix? Primary, MstApprovalMatrix? Fallback) SelectApprovalMatrixPair(
             IEnumerable<MstApprovalMatrix> matrices,
             HumanResourceUserContextDto context,
             WorkflowRequestContext requestContext,
+            IList<Guid> unitAncestorChain,
             DateTime now)
         {
             var applicable = matrices
@@ -1666,7 +1701,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     (!x.EffectiveEndDate.HasValue || x.EffectiveEndDate.Value.Date >= now.Date) &&
                     (!x.LegalEntityId.HasValue || x.LegalEntityId == context.LegalEntityId) &&
                     (!x.HospitalSiteId.HasValue || x.HospitalSiteId == context.HospitalSiteId) &&
-                    (!x.OrganizationUnitId.HasValue || x.OrganizationUnitId == context.OrganizationUnitId) &&
+                    MatchesOrganizationUnit(x.OrganizationUnitId, context.OrganizationUnitId, unitAncestorChain) &&
                     (!x.DepartmentId.HasValue || x.DepartmentId == context.DepartmentId) &&
                     (!x.RequesterPositionId.HasValue || x.RequesterPositionId == context.PositionId) &&
                     (!x.EmployeeCategoryId.HasValue || x.EmployeeCategoryId == requestContext.EmployeeCategoryId) &&
@@ -1687,12 +1722,102 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                     (!x.MaximumDurationDays.HasValue ||
                      (requestContext.DurationDays.HasValue &&
                       requestContext.DurationDays.Value <= x.MaximumDurationDays.Value)))
-                .OrderByDescending(x => x.Priority)
-                .ThenBy(x => x.IsFallback)
                 .ToList();
 
-            return applicable.FirstOrDefault(x => !x.IsFallback) ??
-                   applicable.FirstOrDefault(x => x.IsFallback);
+            var primary = applicable
+                .Where(x => !x.IsFallback)
+                .OrderBy(x => GetUnitDistance(x.OrganizationUnitId, unitAncestorChain))
+                .ThenByDescending(x => x.Priority)
+                .FirstOrDefault();
+
+            var fallback = applicable
+                .Where(x => x.IsFallback)
+                .OrderBy(x => GetUnitDistance(x.OrganizationUnitId, unitAncestorChain))
+                .ThenByDescending(x => x.Priority)
+                .FirstOrDefault();
+
+            return (primary, fallback);
+        }
+
+        private static bool MatchesOrganizationUnit(
+            Guid? matrixUnitId,
+            Guid? contextUnitId,
+            IList<Guid> unitAncestorChain)
+        {
+            if (!matrixUnitId.HasValue)
+            {
+                return true;
+            }
+
+            if (contextUnitId.HasValue && unitAncestorChain.Count > 0)
+            {
+                return unitAncestorChain.Contains(matrixUnitId.Value);
+            }
+
+            return matrixUnitId == contextUnitId;
+        }
+
+        private static int GetUnitDistance(
+            Guid? matrixUnitId,
+            IList<Guid> unitAncestorChain)
+        {
+            if (!matrixUnitId.HasValue)
+            {
+                return int.MaxValue;
+            }
+
+            var index = unitAncestorChain.IndexOf(matrixUnitId.Value);
+            return index >= 0 ? index : int.MaxValue;
+        }
+
+        private static MstApprovalMatrix? SelectApprovalMatrix(
+            IEnumerable<MstApprovalMatrix> matrices,
+            HumanResourceUserContextDto context,
+            WorkflowRequestContext requestContext,
+            DateTime now)
+        {
+            var (primary, fallback) = SelectApprovalMatrixPair(
+                matrices,
+                context,
+                requestContext,
+                Array.Empty<Guid>(),
+                now);
+
+            return primary ?? fallback;
+        }
+
+        private async Task<List<Guid>> GetOrganizationUnitAncestorChainAsync(
+            Guid? startUnitId,
+            CancellationToken cancellationToken)
+        {
+            var chain = new List<Guid>();
+            if (!startUnitId.HasValue || startUnitId.Value == Guid.Empty)
+            {
+                return chain;
+            }
+
+            var currentId = startUnitId.Value;
+            var visited = new HashSet<Guid>();
+
+            while (currentId != Guid.Empty && visited.Add(currentId))
+            {
+                chain.Add(currentId);
+
+                var parentId = await _dbContext.MstOrganizationUnits
+                    .AsNoTracking()
+                    .Where(x => x.Id == currentId && !x.IsDelete && !x.IsCancel && x.IsActive)
+                    .Select(x => x.ParentOrganizationUnitId)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (!parentId.HasValue || parentId.Value == Guid.Empty)
+                {
+                    break;
+                }
+
+                currentId = parentId.Value;
+            }
+
+            return chain;
         }
 
         private TrxWorkflowStepInstance CreateStepInstance(
@@ -1890,7 +2015,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement
                 WorkflowValueConstants.ApproverSource.Position =>
                     await ResolveByOrganizationAssignmentAsync(
                         matrix.ApproverPositionId,
-                        null,
+                        matrix.ApproverOrganizationUnitId,
                         matrixSource,
                         matrix.ApproverRoleCode,
                         cancellationToken),

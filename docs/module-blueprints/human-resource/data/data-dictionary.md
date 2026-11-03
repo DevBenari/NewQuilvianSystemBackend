@@ -1946,3 +1946,145 @@ RESTRICT` sesuai tabel bagian 8.2. Disingkat agar blok tetap terbaca.
 | --- | --- | --- |
 | `HrdManpowerPlan`, `HrdManpowerPlanLine`, `HrdHeadcountRequest` | Seluruh kolom biaya: `TotalEstimatedCost`, `FinanceAdjustedTotal`, `MonthlyRateSnapshot`, `EstimatedCost`, `IncrementalCost`, `EstimatedMonthlyRate`, `FinanceAdjustedCost` | Anggaran; hanya untuk pemegang `WorkforcePlanningCost : Read` (`HRD-DEC-065`). Bukan gaji perorangan, tetapi tetap tidak masuk logger |
 | Seluruh tabel `S-D1` dengan teks bebas | `Justification`, `DeviationReason`, `FinanceAdjustmentReason`, `Reason` | Teks bebas kerap memuat keadaan pribadi, misalnya "Maya batal dimutasi karena sakit" |
+
+
+---
+
+## 9. Slice `S-D2` — Rekrutmen dan Hiring (`last_changed_in` `v8`, 3 November 2026)
+
+Sumber desain: `02-backend-architecture.md` bagian 17. Keputusan: `HRD-DEC-073` s.d. `HRD-DEC-080`.
+Seluruh tabel mewarisi `IdentityModel` (bagian 0.1); kolom auditnya (`Id`, `CreateDateTime`, `UpdateDateTime`, `DeleteDateTime`, `IsDelete`, `IsCancel`, `CancelDateTime`) tidak diulang.
+
+Konvensi yang berlaku untuk seluruh tabel bagian ini:
+- Schema dan nama: `public."Hrd<Nama>"`, tunggal PascalCase; `DbSet` jamak.
+- Tanggal tanpa jam: `DateOnly` -> `date`.
+- Tanggal dengan jam: `DateTime` -> `timestamp with time zone`.
+- Uang: `decimal(18,2)`.
+- Status: `varchar(30)` dengan penegakan enum pada lapisan aplikasi dan DTO.
+- Indeks unik terfilter menyertakan `"IsDelete" = false`.
+
+### 9.1 Status dan kepemilikan tabel
+
+| Entity | Status | Owner | Catatan |
+| --- | --- | --- | --- |
+| `HrdJobRequisition` | Baru | HR - `S-D2` | Aggregate root permintaan pengadaan tenaga (`HRD-DEC-073`) |
+| `HrdJobVacancy` | Baru | HR - `S-D2` | Lowongan publikasi dengan penanda klinis `IsClinical` |
+| `HrdCandidate` | Baru | HR - `S-D2` | Identitas pelamar dengan validasi unik NIK (`HRD-DEC-075`) |
+| `HrdCandidateApplication` | Baru | HR - `S-D2` | Rekam berkas lamaran dan pelacakan tahapan seleksi |
+| `HrdCandidateDocument` | Baru | HR - `S-D2` | Penyimpanan dokumen legalitas & STR klinis (`HRD-DEC-076`) |
+| `HrdCandidateScreening` | Baru | HR - `S-D2` | Gerbang penapisan otomatis dokumen STR aktif (`HRD-DEC-076`) |
+| `HrdCandidateEvaluation` | Baru | HR - `S-D2` | Evaluasi wawancara HR dan uji klinis unit dengan hak veto (`HRD-DEC-077`) |
+| `HrdJobOffer` | Baru | HR - `S-D2` | Penawaran bersyarat dan integrasi kesimpulan MCU (`HRD-DEC-078`) |
+| `HrdJobOfferApproval` | Baru | HR - `S-D2` | Log persetujuan bertingkat plafon upah `T13`/`T14` (`HRD-DEC-079`) |
+| `HrdPreEmploymentMedicalCheck` | Baru | HR - `S-D2` | Kesimpulan kelaikan fisik MCU dari tim K3RS (`HRD-DEC-078`) |
+| `HrdTalentPool` | Baru | HR - `S-D2` | Bank kandidat cadangan berperingkat aktif 6 bulan (`HRD-DEC-080`) |
+| `HrdCandidateHiringHandoff` | Baru | HR - `S-D2` | Serah terima ke Sub-modul 05 Onboarding (`HRD-DEC-075`) |
+| 20 tabel kandidat rekrutmen lama | Dibuang | HR | Dibersihkan oleh migration dengan `EMPTY_TABLE_GUARD` (`HRD-DEC-074`) |
+
+### 9.2 Tabel baru — rincian kolom material
+
+#### `HrdJobRequisition`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `RequisitionNumber` | varchar(50) | Ya | — | Unik | — | — | Tidak | Nomor seri unik requisition |
+| `HeadcountRequestId` | uuid | Ya | — | Ya | `HrdHeadcountRequest` | Restrict | Tidak | Rujukan permintaan headcount yang disetujui |
+| `OrganizationUnitId` | uuid | Ya | — | Ya | `MstOrganizationUnit` | Restrict | Tidak | Unit rumah sakit pemohon |
+| `PositionId` | uuid | Ya | — | Ya | `MstPosition` | Restrict | Tidak | Jabatan yang dibuka |
+| `RequestedSeats` | int | Ya | 1 | — | — | — | Tidak | Jumlah kursi yang diminta |
+| `FulfilledSeats` | int | Ya | 0 | — | — | — | Tidak | Jumlah kursi yang sudah terisi |
+| `SalaryGradeId` | uuid | Ya | — | Ya | `MstSalaryGrade` | Restrict | Tidak | Plafon grade upah |
+| `Status` | varchar(30) | Ya | 'DRAFT' | Ya | — | — | Tidak | DRAFT, SUBMITTED, APPROVED, FULFILLED, CANCELLED |
+
+#### `HrdJobVacancy`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `VacancyNumber` | varchar(50) | Ya | — | Unik | — | — | Tidak | Nomor lowongan |
+| `JobRequisitionId` | uuid | Ya | — | Ya | `HrdJobRequisition` | Restrict | Tidak | Requisition induk |
+| `Title` | varchar(200) | Ya | — | — | — | — | Tidak | Judul lowongan kerja |
+| `TargetSeats` | int | Ya | 1 | — | — | — | Tidak | Alokasi kursi lowongan |
+| `IsClinical` | boolean | Ya | false | Ya | — | — | Tidak | Penanda peran klinis (wajib STR) |
+| `PublishDate` | date | Ya | — | — | — | — | Tidak | Tanggal tayang |
+| `ClosingDate` | date | Ya | — | — | — | — | Tidak | Batas akhir lamaran |
+| `Status` | varchar(30) | Ya | 'DRAFT' | Ya | — | — | Tidak | DRAFT, PUBLISHED, CLOSED, CANCELLED |
+
+#### `HrdCandidate`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `CandidateNumber` | varchar(50) | Ya | — | Unik | — | — | Tidak | Nomor kandidat |
+| `NationalIdNumber` | varchar(20) | Ya | — | Unik | — | — | Ya | NIK KTP — divalidasi anti-duplikasi |
+| `FullName` | varchar(150) | Ya | — | — | — | — | Ya | Nama lengkap |
+| `Email` | varchar(100) | Ya | — | Ya | — | — | Ya | Email korespondensi |
+| `PhoneNumber` | varchar(30) | Ya | — | — | — | — | Ya | Nomor kontak telepon/WhatsApp |
+| `WorkforceProfileId` | uuid | Tidak | null | Ya | `WfpProfile` | Restrict | Tidak | Diisi jika rehire mantan karyawan |
+
+#### `HrdCandidateDocument`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `CandidateId` | uuid | Ya | — | Ya | `HrdCandidate` | Cascade | Tidak | Kandidat pemilik dokumen |
+| `ApplicationId` | uuid | Ya | — | Ya | `HrdCandidateApplication` | Cascade | Tidak | Lamaran terkait |
+| `DocumentType` | varchar(50) | Ya | — | Ya | — | — | Tidak | License_STR, Diploma, BTCLS, ACLS, CV |
+| `DocumentNumber` | varchar(100) | Tidak | null | — | — | — | Tidak | Nomor registrasi STR / Ijazah |
+| `ExpiryDate` | date | Tidak | null | Ya | — | — | Tidak | Tanggal masa berlaku STR |
+| `FileUrl` | varchar(500) | Ya | — | — | — | — | Tidak | Lokasi berkas tersimpan aman |
+| `VerificationStatus` | varchar(30) | Ya | 'PENDING' | Ya | — | — | Tidak | PENDING, VERIFIED, REJECTED |
+
+#### `HrdCandidateScreening`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `ApplicationId` | uuid | Ya | — | Unik | `HrdCandidateApplication` | Cascade | Tidak | Satu hasil penapisan per lamaran |
+| `IsClinicalPosition` | boolean | Ya | false | — | — | — | Tidak | Mewarisi dari lowongan |
+| `HasValidStr` | boolean | Ya | false | — | — | — | Tidak | True jika STR aktif dan tidak kadaluwarsa |
+| `Result` | varchar(30) | Ya | 'PENDING' | Ya | — | — | Tidak | PASSED, FAILED (Auto-reject bila STR mati) |
+
+#### `HrdCandidateEvaluation`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `ApplicationId` | uuid | Ya | — | Ya | `HrdCandidateApplication` | Cascade | Tidak | Lamaran terkait |
+| `EvaluationType` | varchar(30) | Ya | — | Ya | — | — | Tidak | HR_INTERVIEW, CLINICAL_ASSESSMENT |
+| `EvaluatorWorkforceProfileId` | uuid | Ya | — | Ya | `WfpProfile` | Restrict | Tidak | Penilai (HR / Kepala Ruang) |
+| `CompetencyScore` | decimal(5,2) | Ya | 0 | — | — | — | Tidak | Skor uji klinis / teknis |
+| `Recommendation` | varchar(30) | Ya | — | Ya | — | — | Tidak | RECOMMENDED, CONSIDERED, NOT_RECOMMENDED |
+| `IsClinicalVeto` | boolean | Ya | false | Ya | — | — | Tidak | True jika unit memberi NOT_RECOMMENDED |
+| `FeedbackNotes` | varchar(2000) | Tidak | null | — | — | — | Ya | Catatan kualitatif asesmen |
+
+#### `HrdJobOffer`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `OfferNumber` | varchar(50) | Ya | — | Unik | — | — | Tidak | Nomor surat penawaran |
+| `ApplicationId` | uuid | Ya | — | Unik | `HrdCandidateApplication` | Restrict | Tidak | Lamaran terpilih |
+| `OfferedBaseSalary` | decimal(18,2) | Ya | — | — | — | — | Ya | Gaji pokok yang ditawarkan |
+| `OfferedFixedAllowance` | decimal(18,2) | Ya | 0 | — | — | — | Ya | Tunjangan tetap |
+| `IsAboveGradeMax` | boolean | Ya | false | Ya | — | — | Tidak | True jika > batas maksimum skala upah |
+| `OfferStatus` | varchar(30) | Ya | 'DRAFT' | Ya | — | — | Tidak | DRAFT, CONDITIONAL_ACCEPTED, FINAL_ACCEPTED, REJECTED |
+| `RequiredMcuStatus` | varchar(30) | Ya | 'PENDING' | Ya | — | — | Tidak | PENDING, FIT, FIT_WITH_RESTRICTIONS, UNFIT |
+
+#### `HrdPreEmploymentMedicalCheck`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `JobOfferId` | uuid | Ya | — | Unik | `HrdJobOffer` | Restrict | Tidak | Penawaran bersyarat terkait |
+| `CandidateId` | uuid | Ya | — | Ya | `HrdCandidate` | Restrict | Tidak | Kandidat yang diperiksa |
+| `FitnessStatus` | varchar(30) | Ya | 'PENDING' | Ya | — | — | Tidak | FIT, FIT_WITH_RESTRICTIONS, UNFIT |
+| `RestrictionsNotes` | varchar(1000) | Tidak | null | — | — | — | Ya | Catatan pembatasan beban dinas dari K3RS |
+
+#### `HrdTalentPool`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `CandidateId` | uuid | Ya | — | Ya | `HrdCandidate` | Restrict | Tidak | Kandidat cadangan |
+| `PositionId` | uuid | Ya | — | Ya | `MstPosition` | Restrict | Tidak | Jabatan kompeten |
+| `RankScore` | decimal(5,2) | Ya | — | Ya | — | — | Tidak | Peringkat skor kelulusan klinis |
+| `Status` | varchar(30) | Ya | 'ACTIVE' | Ya | — | — | Tidak | ACTIVE, PROMOTED, EXPIRED |
+| `ExpiryDate` | date | Ya | — | Ya | — | — | Tidak | Batas aktif 6 bulan sejak masuk pool |
+
+#### `HrdCandidateHiringHandoff`
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku Hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `JobOfferId` | uuid | Ya | — | Unik | `HrdJobOffer` | Restrict | Tidak | Penawaran final yang diterima |
+| `WorkforceProfileId` | uuid | Ya | — | Ya | `WfpProfile` | Restrict | Tidak | Profil pegawai yang disiapkan (Pending Onboarding) |
+| `HandoffStatus` | varchar(30) | Ya | 'PENDING' | Ya | — | — | Tidak | PENDING, IN_ONBOARDING, COMPLETED |
+
+### 9.3 Kolom Sensitif S-D2
+
+1. **Privasi Pelamar (Data Pribadi / UU PDP)**: `NationalIdNumber` (NIK), `FullName`, `Email`, `PhoneNumber`, `Address` pada `HrdCandidate`.
+2. **Kompensasi Perorangan**: `OfferedBaseSalary`, `OfferedFixedAllowance` pada `HrdJobOffer`.
+3. **Kesehatan Kerja**: `RestrictionsNotes` pada `HrdPreEmploymentMedicalCheck`. Catatan: diagnosis penyakit detail DILARANG masuk tabel ini dan tetap di modul Occupational Health Sub-modul 18.
+4. **Catatan Evaluasi Personal**: `FeedbackNotes` pada `HrdCandidateEvaluation`.

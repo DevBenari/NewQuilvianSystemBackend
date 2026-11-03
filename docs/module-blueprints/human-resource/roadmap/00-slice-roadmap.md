@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `HRD-BP-001` |
-| Roadmap revision | `4` — revisi `1` PHASE 1; revisi `2` menyerap `HRD-DEC-019` dan memperbaiki hitungan slice serta definisi angka 68/67; revisi `3` (`PHASE 2B.1`, 28 Agustus 2026) memperbarui classification `S-B4`, catatan HR-on-behalf pada `S-B1`, Early Leave Permission pada `S-B2`, dan mesin SLA/eskalasi pada `S-A7`; **revisi `4` (`PHASE 2B.2`, 2 November 2026) menyerap keputusan `HRD-DEC-046` s.d. `HRD-DEC-057` untuk target state Slice `S-A1` mencakup Dokumen SK Kepegawaian (`HrdPersonnelActionOrder`), Employee 360 Dual-View, Initial Placement Batch, dan Penguncian Form Master Data** |
+| Roadmap revision | `5` — revisi `4` menyerap target state Slice `S-A1`; **revisi `5` (3 November 2026) menyerap keputusan `HRD-DEC-073` s.d. `HRD-DEC-080` untuk target state Slice `S-D2` (Rekrutmen & Hiring), menutup blocker HRD-BLK-004 dan HRD-Q-05 dengan EMPTY_TABLE_GUARD, serta merencanakan 12 task backend (BE-HRD-018, BE-HRD-052 s.d. BE-HRD-062) dan 14 task frontend (FE-HRD-044 s.d. FE-HRD-057)** |
 | Status | `DRAFT` |
 | Backend SHA | `16f6b2a` |
 | Frontend SHA | `2cd1c06` |
@@ -61,7 +61,7 @@ beserta kelas keberlakuannya: `NEW CODE`, `TOUCHED LEGACY`, atau `LEGACY MIGRATI
 | `HRD-PH-004` | `S-B5` | `READY` sebagian |
 | `HRD-PH-005` | `S-C1` | `BLOCKED` |
 | `HRD-PH-006` | `S-C6` | `BLOCKED` |
-| `HRD-PH-007` | `S-D1` s.d. `S-D5` | `READY` untuk `S-D1`: desain disetujui dan task direncanakan 3 November 2026 (`backend-roadmap.md` dan `frontend-roadmap.md` revision `5`); `S-D2` s.d. `S-D4` `BLOCKED`; `S-D5` `DEFERRED` |
+| `HRD-PH-007` | `S-D1` s.d. `S-D5` | `READY` untuk `S-D1` dan `S-D2`: desain disetujui dan task direncanakan 3 November 2026 (`backend-roadmap.md` dan `frontend-roadmap.md` revision `6`); `S-D3` s.d. `S-D4` `BLOCKED`; `S-D5` `DEFERRED` |
 | `HRD-PH-008` | `S-C2` s.d. `S-C5` | `READY` |
 | `HRD-PH-009` | `S-E` | **Bukan fase yang dijadwalkan.** Aturan lintas-slice yang berlaku sepanjang implementasi |
 
@@ -519,7 +519,24 @@ kelayakan kerja tanpa isi medis.
 | **QBE Impact** | `QBE-DB-001` audit dependency fisik sebelum rename atau perubahan. `QBE-DB-002` dilarang `DROP` lalu `CREATE` bila perubahan yang mempertahankan data masih aman. `QBE-MOD-002` entity operasional baru wajib memakai prefix `Hrd` sesuai `HRD-DEC-019` |
 | **Migration Risk** | **Tinggi.** Ini satu-satunya kelompok slice yang berpotensi menghasilkan migration destruktif |
 | **Acceptance Criteria** | Tidak ditetapkan. Kriteria yang berlaku sekarang: **tidak ada migration destruktif yang boleh direncanakan sebelum isi tabel diketahui** |
-| **Release Status** | **`S-D1` `READY` sejak 3 November 2026; desain disetujui dan task direncanakan pada hari yang sama** (`BE-HRD-017`, `BE-HRD-029` s.d. `BE-HRD-051`, `FE-HRD-029` s.d. `FE-HRD-043`) — `HRD-Q-05` ditutup untuk sepuluh tabel `WorkforcePlanning` lewat `HRD-DEC-059`, dijaga `EMPTY_TABLE_GUARD`; bukti pada `01-prerequisite-readiness.md` bagian 4; keputusan bisnis `HRD-DEC-058` s.d. `HRD-DEC-071`. `S-D2` s.d. `S-D4` `BLOCKED`. `S-D5` `DEFERRED` — secara teknis sama, tetapi prioritasnya paling rendah, dan tetap tidak boleh jalan sebelum `HRD-Q-05` |
+| **Release Status** | **`S-D1` dan `S-D2` `READY` sejak 3 November 2026; desain disetujui dan task direncanakan pada hari yang sama.** Untuk `S-D1`: `BE-HRD-017`, `BE-HRD-029` s.d. `BE-HRD-051`, `FE-HRD-029` s.d. `FE-HRD-043` (`HRD-DEC-058` s.d. `HRD-DEC-071`). Untuk `S-D2`: `BE-HRD-018`, `BE-HRD-052` s.d. `BE-HRD-062`, `FE-HRD-044` s.d. `FE-HRD-057` (`HRD-DEC-073` s.d. `HRD-DEC-080`). `HRD-Q-05` dan `HRD-BLK-004` ditutup untuk 20 tabel `RecruitmentManagement` lewat `HRD-DEC-074` dijaga `EMPTY_TABLE_GUARD` (audit membuktikan 20 tabel kosong 0 baris). `S-D3` s.d. `S-D4` tetap `BLOCKED`. `S-D5` `DEFERRED`. |
+
+
+### `S-D2` — Rekrutmen dan Hiring (Target State Terinci)
+
+| Aspek | Isi |
+| --- | --- |
+| **Current State** | 20 model di `RecruitmentManagement` dengan 0 controller. Audit membuktikan seluruh 20 tabel kosong (0 baris di dev). |
+| **Target State** | 12 model baru ber-prefix `Hrd` pada namespace `RecruitmentManagement`: `HrdJobRequisition`, `HrdJobVacancy`, `HrdCandidate`, `HrdCandidateApplication`, `HrdCandidateDocument`, `HrdCandidateScreening`, `HrdCandidateEvaluation`, `HrdJobOffer`, `HrdJobOfferApproval`, `HrdPreEmploymentMedicalCheck`, `HrdTalentPool`, `HrdCandidateHiringHandoff`. 9 grup controller API RESTful Swagger-tagged. 13 layar frontend Next.js App Router (`FE-HRD-110` s.d. `FE-HRD-122`). |
+| **Backend Impact** | 12 task backend (`BE-HRD-018` fondasi & migration, `BE-HRD-052` s.d. `BE-HRD-062`). Migration membersihkan 20 tabel legacy dilindungi pengaman `EMPTY_TABLE_GUARD`. |
+| **Frontend Impact** | 14 task frontend (`FE-HRD-044` s.d. `FE-HRD-057`) dengan komponen base form Quilvian, penegakan hak veto klinis unit, proteksi privasi diagnosa medis K3RS, dan alur promosi cepat talent pool. |
+| **Database Impact** | Migration `RetireLegacyRecruitmentAndWfpCandidateTables` dan `AddRecruitmentManagementCoreEntities`. Aman dari data loss karena tabel legacy berstatus 0 baris. |
+| **Dependency** | `BE-HRD-017` (Fondasi WFP), `BE-HRD-041` (Kursi Headcount WFP), `BE-HRD-003` (Workforce Core), `BE-HRD-002` (Mst Salary Grade). |
+| **Blocking Decision** | **TIDAK ADA.** Seluruh keputusan bisnis (`HRD-DEC-073` s.d. `HRD-DEC-080`) telah disahkan pemilik teknis dan produk. |
+| **QBE Impact** | `NEW CODE` pada seluruh entitas dan controller baru; `LEGACY MIGRATION` dengan `EMPTY_TABLE_GUARD` untuk tabel lama. |
+| **Migration Risk** | **Rendah terkendali.** Tabel kosong dibuktikan audit dev; migration fail-closed jika data > 0. |
+| **Acceptance Criteria** | Terpenuhinya kriteria `AT-HRD-D2-01` s.d. `AT-HRD-D2-12` dan skenario `UAT-REC-01` s.d. `UAT-REC-07`. |
+| **Release Status** | **`READY`** sejak 3 November 2026. |
 
 Satu pengecualian yang wajib diingat: `MstWorkforceRequirement` milik `WorkforcePlanning`
 **sudah** dilayani `WorkforceRequirementController` dan sudah dipakai frontend lewat
@@ -620,9 +637,9 @@ Contoh supaya batasnya jelas:
 
 | Release Status | Jumlah slice | Slice |
 | --- | ---: | --- |
-| `READY` | **19** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-B1` s.d. `S-B4` (4), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1, sejak 3 November 2026) |
+| `READY` | **20** | `S0-A`, `S0-B` (2), `S-A1` s.d. `S-A7` (7), `S-B1` s.d. `S-B4` (4), `S-C2` s.d. `S-C5` (4), `S-E` (1), `S-D1` (1), `S-D2` (1, sejak 3 November 2026) |
 | `PARTIAL` | 1 | `S-B5` |
-| `BLOCKED` | 5 | `S-C1`, `S-C6`, `S-D2`, `S-D3`, `S-D4` |
+| `BLOCKED` | 4 | `S-C1`, `S-C6`, `S-D3`, `S-D4` |
 | `DEFERRED` | 1 | `S-D5` |
 | **Total** | **26** | |
 

@@ -5,7 +5,7 @@
 | Blueprint ID | `HRD-BP-001` |
 | Dokumen | `contracts/validation-matrix.md` |
 | `contract_version` | `v6` |
-| `last_changed_in` | `v7` — bagian 12 (`S-D1`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v6` |
+| `last_changed_in` | `v8` — bagian 13 (`S-D2`) ditambahkan 3 November 2026; bagian lain tidak berubah sejak `v7` |
 | Status | `draft` — **belum** `approved` |
 | Owner | Technical owner (`HRD-DEC-015`) |
 | `approved_by` / `approved_at` | **Hanya bagian 12** (`S-D1` Perencanaan Tenaga Kerja): `approved` oleh Pengguna — pemilik teknis dan produk (`HRD-DEC-015`) — pada 2026-11-03. Bagian lain dokumen ini **belum** disetujui, sehingga status dokumen tetap `draft` |
@@ -560,3 +560,56 @@ Seluruh aturan di bawah **belum ditegakkan di kode**. Nomor `VR-WFP-nn` stabil d
 | `VR-WFP-39` Potret tidak dapat diubah | Endpoint tulis apa pun ke potret | — | Tidak ada endpointnya | `405` |
 | `VR-WFP-40` Alasan perubahan pengaturan | Mengubah pengaturan | Alasan kosong | "Tuliskan alasan perubahan pengaturan." | `400` |
 | `VR-WFP-41` Batas hari wajar | Mengubah pengaturan | Batas cuti panjang atau umur permintaan < 1 atau > 365 | "Isi angka antara 1 dan 365 hari." | `400` |
+
+
+---
+
+## 13. Rekrutmen dan Hiring — `S-D2` (`last_changed_in` `v8`, 3 November 2026)
+
+Seluruh aturan di bawah diturunkan dari `00-interview-decisions.md` bagian 33 (`HRD-DEC-073` s.d. `HRD-DEC-080`).
+Nomor `VR-REC-nn` stabil dan dirujuk `testing/acceptance-test-matrix.md`.
+
+### 13.1 Requisition dan Lowongan Kerja
+
+| Aturan | Berlaku Pada | Kondisi Pelanggaran | Pesan bagi Pengguna | Kode |
+| --- | --- | --- | --- | :---: |
+| `VR-REC-01` Requisition wajib punya formasi | Membuat Requisition | `HeadcountRequestId` tidak sah atau status bukan `APPROVED` | "Requisition wajib merujuk pada Permintaan Headcount yang telah disetujui Direktur." | `422` |
+| `VR-REC-02` Kursi tidak melebihi alokasi | Menyimpan Requisition | `RequestedSeats` > sisa kursi alokasi luar | "Jumlah kursi yang diminta ({minta}) melebihi sisa alokasi formasi luar ({sisa})." | `422` |
+| `VR-REC-03` Lowongan merujuk Requisition aktif | Membuat Lowongan | `JobRequisitionId` belum disetujui atau kuota 0 | "Lowongan hanya dapat dibuka dari Requisition yang telah disetujui." | `400` |
+| `VR-REC-04` Batas tanggal lowongan wajar | Menyimpan Lowongan | `ClosingDate` < `PublishDate` | "Tanggal batas akhir lowongan tidak boleh mendahului tanggal publikasi." | `400` |
+
+### 13.2 Registrasi Pelamar dan Penapisan STR Klinis
+
+| Aturan | Berlaku Pada | Kondisi Pelanggaran | Pesan bagi Pengguna | Kode |
+| --- | --- | --- | --- | :---: |
+| `VR-REC-05` Format dan Unik NIK KTP | Mendaftar Pelamar | NIK bukan 16 digit angka | "Nomor Induk Kependudukan (NIK) wajib 16 digit angka sah." | `400` |
+| `VR-REC-06` Deteksi Pelamar Eks-Karyawan | Mendaftar Pelamar | NIK sudah terdaftar di `WorkforceProfile` | Bukan galat; sistem mengaktifkan alur rehire dan menautkan profil lama (`HRD-DEC-075`). | — |
+| `VR-REC-07` STR Wajib untuk Posisi Klinis | Penapisan Berkas | Posisi klinis tanpa nomor STR atau dokumen STR kosong | "Posisi tenaga klinis wajib melampirkan Surat Tanda Registrasi (STR) yang sah." | `422` |
+| `VR-REC-08` Hard Gate Kadaluwarsa STR | Penapisan Berkas | Tanggal masa berlaku STR < tanggal hari ini | "STR kandidat telah melewati masa berlaku (kadaluwarsa). Kandidat gugur administrasi." | `422` |
+
+### 13.3 Evaluasi Wawancara dan Uji Klinis Unit
+
+| Aturan | Berlaku Pada | Kondisi Pelanggaran | Pesan bagi Pengguna | Kode |
+| --- | --- | --- | --- | :---: |
+| `VR-REC-09` Hak Veto Klinis Unit | Input Uji Klinis | Asesor Unit memilih `NOT_RECOMMENDED` | "Kandidat dinyatakan Tidak Layak Klinis oleh Kepala Unit. Kandidat gugur demi patient safety." | `403` |
+| `VR-REC-10` Larangan Override Veto | Menyetujui Offer | Mencoba membuat offer untuk kandidat terkena veto klinis | "Kandidat tidak dapat diberikan penawaran kerja karena tidak memenuhi standar kelaikan klinis." | `403` |
+| `VR-REC-11` Formulir Independen | Submit Evaluasi | Penilai HR mengisi form klinis, atau sebaliknya | "Formulir evaluasi wajib diisi oleh peran penilai yang berwenang." | `403` |
+
+### 13.4 Surat Penawaran Kerja dan Persetujuan Bertingkat
+
+| Aturan | Berlaku Pada | Kondisi Pelanggaran | Pesan bagi Pengguna | Kode |
+| --- | --- | --- | --- | :---: |
+| `VR-REC-12` Penawaran Wajib Bersyarat | Menerbitkan Offer | Dokumen offer tidak memuat klausul syarat kelaikan MCU | "Surat penawaran kerja wajib mencantumkan klausul kelaikan fisik MCU pra-kerja." | `422` |
+| `VR-REC-13` Validasi Plafon Skala Upah | Menyusun Offer | Gaji penawaran < `MinimumSalary` | "Penawaran gaji berada di bawah batas minimum skala upah grade terkait." | `400` |
+| `VR-REC-14` Eskalasi Gaji di Atas Plafon | Persetujuan Offer | Penawaran > `MaximumSalary` tanpa approval Dirut | "Penawaran melebihi plafon maksimum grade wajib disetujui Direktur Keuangan dan Direktur Utama." | `403` |
+| `VR-REC-15` MCU Hanya Pasca-Penawaran | Menjadwalkan MCU | Kandidat belum menyepakati penawaran bersyarat | "Pemeriksaan MCU pra-kerja hanya dijadwalkan setelah kandidat menandatangani penawaran bersyarat." | `409` |
+
+### 13.5 Kelaikan MCU, Talent Pool, dan Onboarding
+
+| Aturan | Berlaku Pada | Kondisi Pelanggaran | Pesan bagi Pengguna | Kode |
+| --- | --- | --- | --- | :---: |
+| `VR-REC-16` Masking Diagnosa Medis | Membaca MCU | Akun HR mengakses detail rekam medis dokter | "Detail rekam medis bersifat rahasia medis. HR hanya berhak melihat kesimpulan status kelaikan kerja." | `403` |
+| `VR-REC-17` Syarat Serah Terima Onboarding | Eksekusi Handoff | Status kelaikan MCU != `FIT` | "Serah terima onboarding hanya dapat diproses bila status MCU kandidat FIT." | `422` |
+| `VR-REC-18` Promosi Cepat Talent Pool | Promosi Cadangan | Kursi lowongan terkait masih terisi kandidat lain | "Promosi dari Talent Pool hanya diizinkan bila kursi lowongan kembali terbuka karena kandidat batal." | `409` |
+| `VR-REC-19` Masa Berlaku Talent Pool | Promosi Cadangan | Kandidat cadangan telah berada di Talent Pool > 6 bulan | "Masa aktif kandidat cadangan di Talent Pool telah kadaluwarsa (> 6 bulan). Wajib uji klinis ulang." | `422` |
+| `VR-REC-20` Larangan Swa-Setuju | Persetujuan Offer | Penyetuju penawaran sama dengan pembuat draf | "Penyetuju penawaran kerja wajib berbeda dari pembuat draf penawaran." | `403` |

@@ -1126,3 +1126,71 @@ Nilai status: `Submitted`, `Approved`, `Rejected`.
 | --- | --- | --- |
 | `IsOverFormationAfterAddendum` | Addendum atau rencana disetujui dan kursi permintaan berjalan kini melebihi formasi | Kursi berlebih dibatalkan atau `T12` baru disetujui |
 | `IsOverdue` | Permintaan `ReadyForRecruitment`/`PartiallyFulfilled` melewati `OverdueRequestThresholdDays` sejak siap direkrut | Permintaan `Fulfilled` atau `Closed`. **Tidak** membatalkan apa pun (`NO_AUTO_EXPIRY`) |
+
+
+---
+
+## 12. Rekrutmen dan Hiring — `S-D2` (`last_changed_in` `v8`, 3 November 2026)
+
+Seluruh transisi status pada bagian ini diturunkan langsung dari `00-interview-decisions.md` bagian 33 (`HRD-DEC-073` s.d. `HRD-DEC-080`).
+
+### 12.1 Transisi Siklus Requisition (`HrdJobRequisition`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi | Bila Melanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Requisition | `DRAFT` | HR Recruiter | Menunjuk `HeadcountRequestId` aktif yang memiliki sisa kuota kursi luar > 0 (`HRD-DEC-073`) | `422 Unprocessable` |
+| `DRAFT` | Ajukan Requisition | `SUBMITTED` | HR Recruiter | Kuota kursi diminta <= sisa alokasi formasi luar | `400 Bad Request` |
+| `SUBMITTED` | Setujui Requisition | `APPROVED` | HR Manager | Penyetuju bukan pembuat | `403 Forbidden` |
+| `APPROVED` | Semua kursi terpenuhi | `FULFILLED` | Sistem | `FulfilledSeats == RequestedSeats` melalui penyerahan onboarding | Dicatat audit log |
+| `APPROVED` | Batalkan kursi | `CANCELLED` | HR Manager | Lowongan terkait wajib berstatus `CLOSED` lebih dulu (`HRD-DEC-071`) | `409 Conflict` |
+
+### 12.2 Transisi Lowongan Kerja (`HrdJobVacancy`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi | Bila Melanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Lowongan | `DRAFT` | HR Recruiter | Requisition induk berstatus `APPROVED` | `400 Bad Request` |
+| `DRAFT` | Publikasikan | `PUBLISHED` | HR Recruiter | Tanggal penutupan >= tanggal publikasi | `422 Unprocessable` |
+| `PUBLISHED` | Kuota kursi terpenuhi | `CLOSED` | Sistem / HR | Seluruh kursi terpenuhi atau tanggal penutupan terlewati | Dicatat scheduler |
+| `DRAFT`, `PUBLISHED` | Batalkan Lowongan | `CANCELLED` | HR Manager | Pelamar aktif diberi notifikasi pembatalan | `400 Bad Request` |
+
+### 12.3 Transisi Berkas Lamaran (`HrdCandidateApplication`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi | Bila Melanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Submit Lamaran | `APPLIED` | Pelamar / HR | NIK KTP valid dan berkas wajib terunggah | `422 Unprocessable` |
+| `APPLIED` | Penapisan Berkas | `SCREENING` | Sistem / HR | Dokumen terverifikasi | — |
+| `SCREENING` | Lolos Administrasi | `ASSESSMENT` | HR Recruiter | Posisi klinis: nomor STR aktif & belum kadaluwarsa (`HRD-DEC-076`) | `422 Auto-Reject` bila STR mati |
+| `SCREENING` | Gagal Administrasi | `REJECTED` | Sistem / HR | STR kadaluwarsa atau ijazah tidak sesuai | — |
+| `ASSESSMENT` | Lolos Evaluasi | `OFFER_STAGE` | HR & Unit | Rekomendasi HR = RECOMMENDED dan Unit != NOT_RECOMMENDED (`HRD-DEC-077`) | `403 Veto Mutlak` bila Unit menolak |
+| `ASSESSMENT` | Veto Unit Klinis | `REJECTED` | Sistem | Unit memberi nilai `NOT_RECOMMENDED` | `Kunci Otomatis` |
+| `ASSESSMENT` | Kuota Penuh (Cadangan) | `TALENT_POOL` | Sistem | Lolos uji klinis tetapi kuota habis (`HRD-DEC-080`) | Otomatis masuk Talent Pool |
+| `OFFER_STAGE` | Offer Definitif | `HIRED` | HR Manager | MCU kelaikan fisik = `FIT` (`HRD-DEC-078`) | — |
+
+### 12.4 Transisi Surat Penawaran Kerja (`HrdJobOffer`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi | Bila Melanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Buat Draf Offer | `DRAFT` | HR Recruiter | Kandidat berstatus `OFFER_STAGE` | `400 Bad Request` |
+| `DRAFT` | Ajukan Persetujuan | `PENDING_APPROVAL` | HR Recruiter | Paket upah tervalidasi terhadap master `SalaryGrade` | `422 Unprocessable` |
+| `PENDING_APPROVAL` | Standar Disetujui | `APPROVED` | Kepala Unit & HR | Upah <= plafon grade maksimum (Rantai `T13`) | `403 Forbidden` |
+| `PENDING_APPROVAL` | Eskalasi Disetujui | `APPROVED` | Finance & Dirut | Upah > plafon grade maksimum (Rantai `T14`) (`HRD-DEC-079`) | `403 Wajib Dirut` |
+| `APPROVED` | Kirim ke Pelamar | `SENT` | HR Recruiter | Klausul syarat kelaikan MCU tercantum jelas | — |
+| `SENT` | Pelamar Setuju Bersyarat | `CONDITIONAL_ACCEPTED` | Pelamar | Menandatangani kesepakatan gaji bersyarat MCU | Menjadwalkan MCU |
+| `SENT` | Pelamar Menolak | `REJECTED` | Pelamar | Kursi kembali dibuka; memicu notifikasi Talent Pool | — |
+| `CONDITIONAL_ACCEPTED` | MCU Pra-Kerja FIT | `FINAL_ACCEPTED` | Tim MCU / K3RS | Dokter K3RS menginput status kelaikan `FIT` (`HRD-DEC-078`) | — |
+| `CONDITIONAL_ACCEPTED` | MCU Pra-Kerja UNFIT | `RESCINDED` | Sistem | Hasil MCU permanen unfit; offer otomatis batal demi hukum | `Batal Otomatis` |
+
+### 12.5 Transisi Talent Pool (`HrdTalentPool`)
+
+| Dari Status | Aksi | Ke Status | Aktor Berwenang | Syarat & Validasi |
+| --- | --- | --- | --- | --- |
+| — | Masuk Talent Pool | `ACTIVE` | Sistem | Pelamar lolos uji klinis tapi kuota habis; masa aktif 6 bulan (`HRD-DEC-080`) |
+| `ACTIVE` | Promosi Cepat Kursi Batal | `PROMOTED` | HR Recruiter | Kursi requisition lowongan terkait kembali terbuka (*Offer Rejected / No-Show*) |
+| `ACTIVE` | Masa Berlaku Habis | `EXPIRED` | Sistem | Tanggal hari ini > `ExpiryDate` (6 bulan terlampaui) |
+
+### 12.6 Transisi Ilegal yang Ditolak Keras (*Fail-Closed Invariants*)
+
+1. **`ILLEGAL_CLINICAL_SCREENING_PASS`**: Mengubah status lamaran posisi klinis ke `ASSESSMENT` tanpa nomor STR yang sah atau dengan tanggal STR kadaluwarsa $ightarrow$ **Ditolak Keras (422 Unprocessable)**.
+2. **`ILLEGAL_OVERRIDE_CLINICAL_VETO`**: Mengubah status pelamar ke `OFFER_STAGE` bila formulir evaluasi Kepala Unit berisi rekomendasi `NOT_RECOMMENDED` $ightarrow$ **Ditolak Keras (403 Forbidden - Veto Mutlak Pasien Safety)**.
+3. **`ILLEGAL_OFFER_WITHOUT_DIRUT`**: Mengirim surat penawaran dengan nilai gaji di atas plafon grade tanpa persetujuan Direktur Utama $ightarrow$ **Ditolak Keras (403 Forbidden)**.
+4. **`ILLEGAL_FINAL_HIRE_WITHOUT_FIT_MCU`**: Melakukan serah terima onboarding sebelum status kelaikan MCU dari tim dokter K3RS bernilai `FIT` $ightarrow$ **Ditolak Keras (422 Unprocessable)**.
