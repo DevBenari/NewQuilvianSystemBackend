@@ -42,6 +42,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _loggerService = loggerService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyCaseTypeFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Case Type", Description = "Melihat metadata filter jenis kasus IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyCaseType", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyCaseTypeFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyCaseTypeDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "sequence", "code", "name", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyCaseTypeFilterMetadataResponse>.Ok(
+                result,
+                "Metadata filter jenis kasus IGD berhasil diambil."
+            ));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyCaseTypeSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Case Type", Description = "Melihat ringkasan jenis kasus IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyCaseType", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgCaseType>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyCaseTypeSummaryResponse
+            {
+                TotalCaseType = await query.CountAsync(cancellationToken),
+                ActiveCaseType = await query.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveCaseType = await query.CountAsync(x => !x.IsActive, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyCaseTypeSummaryResponse>.Ok(
+                summary,
+                "Ringkasan jenis kasus IGD berhasil diambil."
+            ));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyCaseTypeResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Case Type", Description = "Melihat data master jenis kasus IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

@@ -385,4 +385,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [MaxLength(2000)]
         public string? Notes { get; set; }
     }
+
+    public class EmergencyVisitOptionResponse
+    {
+        public Guid Id { get; set; }
+        public string EmergencyVisitNumber { get; set; } = string.Empty;
+        public string PatientName { get; set; } = string.Empty;
+        public string? MedicalRecordNumber { get; set; }
+        public EmergencyVisitStatus VisitStatus { get; set; }
+        public DateTime ArrivalDateTime { get; set; }
+    }
+
+    public class EmergencyVisitSummaryResponse
+    {
+        public int TotalVisit { get; set; }
+        public int ActiveVisit { get; set; }
+        public int ArrivedVisit { get; set; }
+        public int TriagedVisit { get; set; }
+        public int InTreatmentVisit { get; set; }
+        public int UnderObservationVisit { get; set; }
+        public int AwaitingDispositionVisit { get; set; }
+        public int CompletedVisit { get; set; }
+        public int CancelledVisit { get; set; }
+    }
+
+    public class EmergencyVisitDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public Guid? EncounterId { get; set; }
+        public Guid? PatientId { get; set; }
+        public Guid? ServiceUnitId { get; set; }
+        public Guid? ArrivalModeId { get; set; }
+        public Guid? CaseTypeId { get; set; }
+        public EmergencyRegistrationStatus? RegistrationStatus { get; set; }
+        public EmergencyVisitStatus? VisitStatus { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "arrivaldatetime";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyVisitFilterMetadataResponse
+    {
+        public EmergencyVisitDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "arrivaldatetime", "emergencyvisitnumber", "patientname", "visitstatus", "registrationstatus" };
+    }
 }

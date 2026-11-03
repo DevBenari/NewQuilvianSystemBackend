@@ -75,6 +75,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.Service
             return NvwResult<NvwDisplayDevice>.Ok(device);
         }
 
+        public async Task<string?> FindFloorCodeAsync(Guid userId, CancellationToken cancellationToken) =>
+            await _dbContext.NvwDisplayDevices.AsNoTracking()
+                .Where(x => x.LoginUserId == userId && !x.IsDelete)
+                .Select(x => x.FloorCode)
+                .FirstOrDefaultAsync(cancellationToken);
+
         public async Task<NvwResult<NvwDisplayRuntimeCurrentResponse>> GetCurrentAsync(
             Guid userId,
             string? tokenSessionStamp,

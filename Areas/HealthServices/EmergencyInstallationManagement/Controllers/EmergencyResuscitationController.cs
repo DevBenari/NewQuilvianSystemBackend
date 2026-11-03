@@ -50,6 +50,77 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _emergencyVisitService = emergencyVisitService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyResuscitationFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Resuscitation", Description = "Melihat metadata filter resusitasi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyResuscitation", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyResuscitationFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyResuscitationDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "startdatetime", "resuscitationnumber", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyResuscitationFilterMetadataResponse>.Ok(result, "Metadata filter resusitasi IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyResuscitationSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Resuscitation", Description = "Melihat ringkasan resusitasi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyResuscitation", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgResuscitation>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyResuscitationSummaryResponse
+            {
+                TotalResuscitation = await query.CountAsync(cancellationToken),
+                ActiveResuscitation = await query.CountAsync(x => x.IsActive, cancellationToken),
+                InProgressResuscitation = await query.CountAsync(x => x.ResuscitationStatus == EmergencyResuscitationStatus.InProgress, cancellationToken),
+                CompletedResuscitation = await query.CountAsync(x => x.ResuscitationStatus == EmergencyResuscitationStatus.Completed, cancellationToken),
+                TerminatedResuscitation = await query.CountAsync(x => x.ResuscitationStatus == EmergencyResuscitationStatus.Terminated, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyResuscitationSummaryResponse>.Ok(summary, "Ringkasan resusitasi IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyResuscitationOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Resuscitation Options", Description = "Melihat pilihan resusitasi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyResuscitation", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] Guid? emergencyVisitId = null,
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgResuscitation>().AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive);
+
+            if (emergencyVisitId.HasValue && emergencyVisitId.Value != Guid.Empty)
+                query = query.Where(x => x.EmergencyVisitId == emergencyVisitId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.ResuscitationNumber.ToLower().Contains(keyword));
+            }
+
+            var items = await query.OrderByDescending(x => x.StartDateTime)
+                .Take(100)
+                .Select(x => new EmergencyResuscitationOptionResponse
+                {
+                    Id = x.Id,
+                    EmergencyVisitId = x.EmergencyVisitId,
+                    ResuscitationNumber = x.ResuscitationNumber,
+                    ResuscitationStatus = x.ResuscitationStatus,
+                    StartDateTime = x.StartDateTime
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyResuscitationOptionResponse>>.Ok(items, "Pilihan resusitasi IGD berhasil diambil."));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyResuscitationResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Resuscitation", Description = "Melihat data resusitasi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

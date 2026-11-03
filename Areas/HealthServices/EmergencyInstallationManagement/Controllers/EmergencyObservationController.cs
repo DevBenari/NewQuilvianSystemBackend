@@ -65,6 +65,78 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _emergencyRealtimeService = emergencyRealtimeService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyObservationFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Observation", Description = "Melihat metadata filter observasi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyObservation", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyObservationFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyObservationDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "startdatetime", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyObservationFilterMetadataResponse>.Ok(result, "Metadata filter observasi IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyObservationSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Observation", Description = "Melihat ringkasan observasi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyObservation", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgObservation>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyObservationSummaryResponse
+            {
+                TotalObservation = await query.CountAsync(cancellationToken),
+                ActiveObservation = await query.CountAsync(x => x.IsActive, cancellationToken),
+                PlannedObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.Planned, cancellationToken),
+                InProgressObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.InProgress, cancellationToken),
+                CompletedObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.Completed, cancellationToken),
+                DiscontinuedObservation = await query.CountAsync(x => x.ObservationStatus == EmergencyObservationStatus.Discontinued, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyObservationSummaryResponse>.Ok(summary, "Ringkasan observasi IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyObservationOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Observation Options", Description = "Melihat pilihan observasi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyObservation", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] Guid? emergencyVisitId = null,
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgObservation>().AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive);
+
+            if (emergencyVisitId.HasValue && emergencyVisitId.Value != Guid.Empty)
+                query = query.Where(x => x.EmergencyVisitId == emergencyVisitId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.ObservationLocation != null && x.ObservationLocation.ToLower().Contains(keyword));
+            }
+
+            var items = await query.OrderByDescending(x => x.StartDateTime)
+                .Take(100)
+                .Select(x => new EmergencyObservationOptionResponse
+                {
+                    Id = x.Id,
+                    EmergencyVisitId = x.EmergencyVisitId,
+                    ObservationLocation = x.ObservationLocation,
+                    ObservationStatus = x.ObservationStatus,
+                    StartDateTime = x.StartDateTime
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyObservationOptionResponse>>.Ok(items, "Pilihan observasi IGD berhasil diambil."));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyObservationResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Observation", Description = "Melihat data observasi IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

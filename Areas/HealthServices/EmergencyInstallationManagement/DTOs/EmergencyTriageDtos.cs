@@ -246,4 +246,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// </summary>
         public int OverdueMinutes { get; set; }
     }
+
+    public class EmergencyTriageOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyVisitId { get; set; }
+        public string TriageReason { get; set; } = string.Empty;
+        public string? TriageLevelName { get; set; }
+        public EmergencyTriageStatus TriageStatus { get; set; }
+        public DateTime TriageDateTime { get; set; }
+    }
+
+    public class EmergencyTriageSummaryResponse
+    {
+        public int TotalTriage { get; set; }
+        public int ActiveTriage { get; set; }
+        public int DraftTriage { get; set; }
+        public int CompletedTriage { get; set; }
+        public int RetriageCount { get; set; }
+    }
+
+    public class EmergencyTriageDefaultFilterResponse
+    {
+        public string? Search { get; set; }
+        public Guid? EmergencyVisitId { get; set; }
+        public Guid? TriageLevelId { get; set; }
+        public EmergencyTriageSystem? TriageSystem { get; set; }
+        public EmergencyTriageStatus? TriageStatus { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "triagedatetime";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyTriageFilterMetadataResponse
+    {
+        public EmergencyTriageDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "triagedatetime", "sequence", "createdatetime" };
+    }
 }

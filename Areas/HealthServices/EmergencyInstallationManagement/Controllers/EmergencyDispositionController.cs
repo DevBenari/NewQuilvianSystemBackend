@@ -56,6 +56,79 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _emergencyVisitService = emergencyVisitService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDispositionFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Disposition", Description = "Melihat metadata filter tindak lanjut IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDisposition", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyDispositionFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyDispositionDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "dispositiondatetime", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyDispositionFilterMetadataResponse>.Ok(result, "Metadata filter tindak lanjut IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyDispositionSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Disposition", Description = "Melihat ringkasan tindak lanjut IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDisposition", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgDisposition>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyDispositionSummaryResponse
+            {
+                TotalDisposition = await query.CountAsync(cancellationToken),
+                ActiveDisposition = await query.CountAsync(x => x.IsActive, cancellationToken),
+                ProposedDisposition = await query.CountAsync(x => x.DispositionStatus == EmergencyDispositionStatus.Proposed, cancellationToken),
+                ConfirmedDisposition = await query.CountAsync(x => x.DispositionStatus == EmergencyDispositionStatus.Confirmed, cancellationToken),
+                CancelledDisposition = await query.CountAsync(x => x.DispositionStatus == EmergencyDispositionStatus.Cancelled, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyDispositionSummaryResponse>.Ok(summary, "Ringkasan tindak lanjut IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyDispositionOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Disposition Options", Description = "Melihat pilihan tindak lanjut IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyDisposition", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] Guid? emergencyVisitId = null,
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgDisposition>().AsNoTracking()
+                .Include(x => x.DispositionType)
+                .Where(x => !x.IsDelete && x.IsActive);
+
+            if (emergencyVisitId.HasValue && emergencyVisitId.Value != Guid.Empty)
+                query = query.Where(x => x.EmergencyVisitId == emergencyVisitId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.DispositionType != null && x.DispositionType.Name.ToLower().Contains(keyword));
+            }
+
+            var items = await query.OrderByDescending(x => x.DispositionDateTime)
+                .Take(100)
+                .Select(x => new EmergencyDispositionOptionResponse
+                {
+                    Id = x.Id,
+                    EmergencyVisitId = x.EmergencyVisitId,
+                    DispositionTypeId = x.DispositionTypeId,
+                    DispositionTypeName = x.DispositionType != null ? x.DispositionType.Name : null,
+                    DispositionStatus = x.DispositionStatus,
+                    DispositionDateTime = x.DispositionDateTime
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyDispositionOptionResponse>>.Ok(items, "Pilihan tindak lanjut IGD berhasil diambil."));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyDispositionResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Disposition", Description = "Melihat data tindak lanjut IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

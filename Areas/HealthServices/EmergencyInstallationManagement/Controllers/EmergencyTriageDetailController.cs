@@ -42,6 +42,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _loggerService = loggerService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyTriageDetailFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Triage Detail", Description = "Melihat metadata filter detail triase IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyTriageDetail", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyTriageDetailFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyTriageDetailDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 25, 50, 100 },
+                SortableFields = new List<string> { "sequence", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyTriageDetailFilterMetadataResponse>.Ok(result, "Metadata filter detail triase IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyTriageDetailSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Triage Detail", Description = "Melihat ringkasan detail triase IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyTriageDetail", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgTriageDetail>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyTriageDetailSummaryResponse
+            {
+                TotalTriageDetail = await query.CountAsync(cancellationToken),
+                ActiveTriageDetail = await query.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveTriageDetail = await query.CountAsync(x => !x.IsActive, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyTriageDetailSummaryResponse>.Ok(summary, "Ringkasan detail triase IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyTriageDetailOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Triage Detail Options", Description = "Melihat pilihan detail triase IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyTriageDetail", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] Guid? emergencyTriageId = null,
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgTriageDetail>().AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive);
+
+            if (emergencyTriageId.HasValue && emergencyTriageId.Value != Guid.Empty)
+                query = query.Where(x => x.EmergencyTriageId == emergencyTriageId.Value);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.IndicatorNameSnapshot.ToLower().Contains(keyword) || x.IndicatorCodeSnapshot.ToLower().Contains(keyword));
+            }
+
+            var items = await query.OrderBy(x => x.Sequence)
+                .Take(100)
+                .Select(x => new EmergencyTriageDetailOptionResponse
+                {
+                    Id = x.Id,
+                    EmergencyTriageId = x.EmergencyTriageId,
+                    IndicatorCodeSnapshot = x.IndicatorCodeSnapshot,
+                    IndicatorNameSnapshot = x.IndicatorNameSnapshot,
+                    Sequence = x.Sequence
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyTriageDetailOptionResponse>>.Ok(items, "Pilihan detail triase IGD berhasil diambil."));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyTriageDetailResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Triage Detail", Description = "Melihat data detail triage IGD", AccessType = AccessTypes.Read, SortOrder = 1)]

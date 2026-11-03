@@ -193,4 +193,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public string Label { get; set; } = string.Empty;
     }
+
+    public class EmergencyDoctorAssignmentOptionResponse
+    {
+        public Guid Id { get; set; }
+        public Guid EmergencyVisitId { get; set; }
+        public Guid DoctorId { get; set; }
+        public string? DoctorName { get; set; }
+        public DateTime AssignedAt { get; set; }
+        public bool IsActive { get; set; }
+    }
+
+    public class EmergencyDoctorAssignmentSummaryResponse
+    {
+        public int TotalAssignment { get; set; }
+        public int ActiveAssignment { get; set; }
+        public int EndedAssignment { get; set; }
+    }
+
+    public class EmergencyDoctorAssignmentDefaultFilterResponse
+    {
+        public Guid? EmergencyVisitId { get; set; }
+        public Guid? DoctorId { get; set; }
+        public bool? IsActive { get; set; }
+        public string SortBy { get; set; } = "assignedat";
+        public string SortDirection { get; set; } = "desc";
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 25;
+    }
+
+    public class EmergencyDoctorAssignmentFilterMetadataResponse
+    {
+        public EmergencyDoctorAssignmentDefaultFilterResponse DefaultFilter { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new() { 10, 25, 50, 100 };
+        public List<string> SortableFields { get; set; } = new() { "assignedat", "createdatetime" };
+    }
 }

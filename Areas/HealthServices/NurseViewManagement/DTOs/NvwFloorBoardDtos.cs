@@ -67,4 +67,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NurseViewManagement.DTOs
         public bool IsOverdue { get; set; }
         public int? OverdueMinutes { get; set; }
     }
+
+    public class NvwBoardChangedEvent
+    {
+        public string EventType { get; set; } = string.Empty;
+        public Guid BedId { get; set; }
+        public string FloorCode { get; set; } = string.Empty;
+        public DateTime OccurredAtUtc { get; set; }
+    }
 }

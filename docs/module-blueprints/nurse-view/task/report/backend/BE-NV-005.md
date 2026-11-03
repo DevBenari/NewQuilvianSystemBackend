@@ -209,5 +209,5 @@ applicability `NEW CODE`; `Program.cs` = `TOUCHED LEGACY` (satu baris registrasi
 | Masalah data master | Kamar VIP lantai 3 (34 bed, termasuk bed isolasi 316-A dan 317-A) memakai kelas dengan `IsForInpatient = false`, sehingga tidak bisa dipakai admisi. Data ini di luar Nurse View; perlu disampaikan ke pemilik master data |
 | Risiko tersisa | Tanda risiko jatuh dan tanda isolasi belum pernah terlihat dengan data asli. Tanda risiko jatuh bergantung pada prasyarat go-live `G-06` (versi instrumen `Approved`) |
 | Perubahan sampingan | `NONE` |
-| Status Git | Source ada di commit `6489c32c`. Laporan ini dan pembaruan status roadmap belum di-commit |
+| Status Git | Source ada di commit `6489c32c`; laporan ini dan status roadmap di `7771096f` |
 | Langkah berikutnya | Keputusan Rizki untuk `NV-AC-011` dan `NV-AC-013`; lalu `BE-NV-006` dan `BE-NV-007` |

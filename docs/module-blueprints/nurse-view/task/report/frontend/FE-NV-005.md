@@ -16,7 +16,7 @@
 | Task mode | `FRONTEND` |
 | Target tulis | `QuilvianSystemFrontendDev` (branch `RizkiV2`) |
 | Model | Claude Opus 5.5 |
-| Commit frontend | Versi awal di-commit Rizki sebagai `61b5e3f35`. Perbaikan tata letak, penyambungan view ke route, dan penghapusan kerangka `FE-NV-003` **belum di-commit** |
+| Commit frontend | Versi awal di-commit Rizki sebagai `61b5e3f35`; perbaikan tata letak, penyambungan view ke route, dan penghapusan kerangka `FE-NV-003` di `2e510a555` |
 | Commit backend yang dijadikan rujukan | `6489c32c` |
 | Tanggal | 2026-11-02 sampai 2026-11-03 |
 | Status | 🟡 **SEBAGIAN 3 November 2026** — uji layar 8/8 `PASS` (44 cek; L5, L6, L8 memakai jawaban `/board` tiruan), L9 perubahan data `PASS`, uji TV N1–N9 `PASS` dengan papan sungguhan, `npx eslint` 0 error 0 warning. Belum: keterbacaan ±3 m di TV sungguhan (Rizki); ikon J dan I baru terlihat dengan jawaban tiruan, karena datanya belum bisa dibuat (`BE-NV-005` §6). Verifikasi developer, bukan UAT |
@@ -227,5 +227,5 @@ sama; DoD kartu tidak memintanya).
 | Dependency backend | `BE-NV-005` 🟡 |
 | Perubahan sampingan | `NONE` |
 | Interupsi | Sekitar pukul 09.37 dev server menjawab `500` pada `/login` dan `/nurse-view-display`, karena `use-emergency-registration.js` (IGD, bukan berkas task ini) sedang disunting pihak lain. Berkas itu pulih sendiri pukul 09.38, sebelum L9 dijalankan, dan tidak disentuh |
-| Status Git | Versi awal di `61b5e3f35`. Perubahan task ini di working tree (7 berkas diubah, 3 dihapus) belum di-commit, bersama berkas IGD milik pihak lain yang juga belum di-commit |
+| Status Git | Versi awal di `61b5e3f35`; sisanya (7 berkas diubah, 3 dihapus) di `2e510a555`, satu commit dengan perubahan IGD dan `FE-NV-006` |
 | Langkah berikutnya | Penilaian keterbacaan oleh Rizki; lalu `FE-NV-006` dan `FE-NV-007` |

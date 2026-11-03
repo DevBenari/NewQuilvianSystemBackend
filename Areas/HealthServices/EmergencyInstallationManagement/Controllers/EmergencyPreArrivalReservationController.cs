@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
@@ -40,6 +43,73 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             _loggerService = loggerService;
         }
 
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyPreArrivalReservationFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Pre-Arrival Reservation", Description = "Melihat metadata filter reservasi pra-kedatangan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyPreArrivalReservation", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = new EmergencyPreArrivalReservationFilterMetadataResponse
+            {
+                DefaultFilter = new EmergencyPreArrivalReservationDefaultFilterResponse(),
+                PageSizeOptions = new List<int> { 10, 20, 50, 100 },
+                SortableFields = new List<string> { "estimatedarrivaldatetime", "createdatetime" }
+            };
+
+            return Ok(ApiResponse<EmergencyPreArrivalReservationFilterMetadataResponse>.Ok(result, "Metadata filter reservasi pra-kedatangan IGD berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyPreArrivalReservationSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Pre-Arrival Reservation", Description = "Melihat ringkasan reservasi pra-kedatangan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyPreArrivalReservation", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgPreArrivalReservation>().AsNoTracking().Where(x => !x.IsDelete);
+
+            var summary = new EmergencyPreArrivalReservationSummaryResponse
+            {
+                TotalReservation = await query.CountAsync(cancellationToken),
+                IncomingReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.Incoming, cancellationToken),
+                CheckedInReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.CheckedIn, cancellationToken),
+                CancelledReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.Cancelled, cancellationToken),
+                ExpiredReservation = await query.CountAsync(x => x.Status == EmergencyPreArrivalStatus.Expired, cancellationToken)
+            };
+
+            return Ok(ApiResponse<EmergencyPreArrivalReservationSummaryResponse>.Ok(summary, "Ringkasan reservasi pra-kedatangan IGD berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<List<EmergencyPreArrivalReservationOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Emergency Pre-Arrival Reservation Options", Description = "Melihat pilihan reservasi pra-kedatangan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyPreArrivalReservation", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<EmgPreArrivalReservation>().AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x => x.ReservationNumber.ToLower().Contains(keyword) || x.PatientName.ToLower().Contains(keyword));
+            }
+
+            var items = await query.OrderByDescending(x => x.EstimatedArrivalDateTime)
+                .Take(100)
+                .Select(x => new EmergencyPreArrivalReservationOptionResponse
+                {
+                    Id = x.Id,
+                    ReservationNumber = x.ReservationNumber,
+                    PatientName = x.PatientName,
+                    Status = x.Status,
+                    EstimatedArrivalDateTime = x.EstimatedArrivalDateTime
+                })
+                .ToListAsync(cancellationToken);
+
+            return Ok(ApiResponse<List<EmergencyPreArrivalReservationOptionResponse>>.Ok(items, "Pilihan reservasi pra-kedatangan IGD berhasil diambil."));
+        }
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyPreArrivalReservationResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Emergency Pre-Arrival Reservation", Description = "Melihat data reservasi pra-kedatangan IGD", AccessType = AccessTypes.Read, SortOrder = 1)]
