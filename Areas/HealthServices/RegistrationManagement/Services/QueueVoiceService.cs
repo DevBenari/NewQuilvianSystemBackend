@@ -493,11 +493,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
 
         /// <summary>
         /// Kalimat panggilan antrean admisi. <c>A-015</c> + <c>Loket 1</c> menjadi
-        /// "Antrean nomor A lima belas. Silakan menuju ke loket satu. Terima kasih."
+        /// "Antrean Admisi nomor A lima belas, silakan menuju loket satu, terima kasih."
         /// </summary>
         public string BuildAdmissionCallText(string displayNumber, string? counterName)
         {
-            const string defaultTemplate = "Antrean nomor {queueCode}. Silakan menuju ke loket {counterName}. Terima kasih.";
+            const string defaultTemplate = "Antrean Admisi nomor {queueCode}, silakan menuju loket {counterName}, terima kasih.";
 
             var template = GetSetting("AdmissionCallTemplate", defaultTemplate);
             var announcementText = template
