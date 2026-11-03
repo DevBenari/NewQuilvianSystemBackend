@@ -434,7 +434,8 @@ try
     // BE-FIN-098: berdiri sendiri dari FinanceOpeningItemBatchService (wewenang eksplisit pengguna).
     builder.Services.AddScoped<FinanceReceivableMigrationService>();
     builder.Services.AddScoped<IFinanceReceivableNumberGenerator, FinanceReceivableNumberGenerator>();
-    builder.Services.AddScoped<FinanceBenefitSettlementService>();
+    // Penutupan Benefit dihapus; jaring pengaman plafon Benefit RS untuk piutang historis (idempoten, dipakai saat membuat Invoice AR).
+    builder.Services.AddScoped<FinanceBenefitAllowanceConsumptionService>();
     builder.Services.AddScoped<FinanceBillingArReportService>();
     builder.Services.AddScoped<FinanceReceivableAgingReportService>();
     builder.Services.AddScoped<FinanceSettlementService>();
@@ -1048,7 +1049,6 @@ try
     // Laporan HR baca-saja "Piutang Benefit Pegawai" (AR Karyawan dari Billing); nilai finansial tetap milik Finance.
     builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.EmployeeBenefitReceivableReportService>();
     // Persetujuan penutupan benefit RS internal oleh HRD.
-    builder.Services.AddScoped<QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.Services.HrdBenefitSettlementApprovalService>();
 
     builder.Services.AddScoped<AttendanceRawLogService>();
     builder.Services.AddScoped<AttendanceSelfServiceCaptureService>();

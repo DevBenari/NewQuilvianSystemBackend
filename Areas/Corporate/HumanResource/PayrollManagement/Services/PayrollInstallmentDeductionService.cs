@@ -24,6 +24,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.PayrollManagement.
 public sealed class PayrollInstallmentDeductionService
 {
     private const string LogCategory = "Corporate.HumanResource.PayrollManagement.InstallmentDeduction";
+    private const string InstallmentSourceType = "FinanceReceivableInstallment";
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly FinanceReceivablePayrollSyncService _syncService;
@@ -48,6 +49,21 @@ public sealed class PayrollInstallmentDeductionService
             .Include(r => r.PayrollPeriod)
             .SingleOrDefaultAsync(r => r.Id == payrollRunId && !r.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException($"PayrollRun dengan Id {payrollRunId} tidak ditemukan.");
+
+        EnsureRunAcceptsDeduction(run);
+
+        // Seluruh pegawai yang punya angsuran harus sudah memiliki gaji bruto terhitung SEBELUM satu pun hasil dikirim ke Finance.
+        // Tanpa ini, pemrosesan berhenti di tengah run (hasil pegawai sebelumnya sudah tercatat di Finance, sisanya belum).
+        var notComputed = await _dbContext.TrxPayrollRunEmployees.AsNoTracking()
+            .Where(e => e.PayrollRunId == payrollRunId && !e.IsDelete
+                && e.VariableInputs.Any(v => v.SourceType == InstallmentSourceType && !v.IsDelete)
+                && e.GrossPay <= 0m
+                && (e.BaseSalary + e.TotalRecurringEarning + e.TotalVariableEarning) <= 0m)
+            .Select(e => e.EmployeeNameSnapshot)
+            .Take(5)
+            .ToListAsync(cancellationToken);
+        if (notComputed.Count > 0)
+            throw new PayrollResultValidationException(GrossPayNotComputedMessage(string.Join(", ", notComputed)));
 
         var employeeIds = await _dbContext.TrxPayrollRunEmployees
             .Where(e => e.PayrollRunId == payrollRunId && !e.IsDelete)
@@ -104,7 +120,7 @@ public sealed class PayrollInstallmentDeductionService
             ?? throw new KeyNotFoundException($"PayrollRunEmployee dengan Id {payrollRunEmployeeId} tidak ditemukan.");
 
         var variableInput = runEmployee.VariableInputs
-            .FirstOrDefault(x => x.SourceType == "FinanceReceivableInstallment" && !x.IsDelete);
+            .FirstOrDefault(x => x.SourceType == InstallmentSourceType && !x.IsDelete);
 
         if (variableInput is null || !variableInput.SourceId.HasValue)
         {
@@ -119,6 +135,9 @@ public sealed class PayrollInstallmentDeductionService
                 Message = "Tidak ada input variabel cicilan piutang RS untuk pegawai ini."
             };
         }
+
+        // Run yang terkunci/dibatalkan tidak boleh lagi mengubah potongan, dan hasil ke Finance tidak boleh dikirim darinya.
+        EnsureRunAcceptsDeduction(runEmployee.PayrollRun);
 
         var installment = await _dbContext.FinReceivableInstallments
             .SingleOrDefaultAsync(x => x.Id == variableInput.SourceId.Value && !x.IsDelete, cancellationToken)
@@ -136,6 +155,13 @@ public sealed class PayrollInstallmentDeductionService
         var grossPay = runEmployee.GrossPay > 0
             ? runEmployee.GrossPay
             : (runEmployee.BaseSalary + runEmployee.TotalRecurringEarning + runEmployee.TotalVariableEarning);
+
+        // Gaji bruto belum dihitung (mis. baris run dibuat adapter jadwal Finance dan mesin payroll belum mengisinya): batas potong
+        // = Rp0 hanya karena DATA belum ada. Mencatatnya sebagai GAGAL akan menandai angsuran TERTUNGGAK, melimpahkan sisanya ke
+        // periode berikutnya, dan mengunci periode itu (idempotensi) padahal tidak ada potongan yang pernah dicoba. Ditolak
+        // sebelum hasil apa pun dikirim ke Finance.
+        if (grossPay <= 0m)
+            throw new PayrollResultValidationException(GrossPayNotComputedMessage(runEmployee.EmployeeNameSnapshot));
 
         var statutoryDeductions = runEmployee.TotalTax + runEmployee.TotalEmployeeInsuranceContribution;
 
@@ -274,6 +300,28 @@ public sealed class PayrollInstallmentDeductionService
                 ? "Hasil potongan untuk periode ini sudah tercatat sebelumnya (idempoten)."
                 : $"Potongan cicilan {status} sebesar Rp {deductedAmount:N2} berhasil dieksekusi."
         };
+    }
+
+    private static string GrossPayNotComputedMessage(string employees) =>
+        $"Gaji bruto belum dihitung pada payroll run untuk: {employees}. Potongan cicilan tidak dapat dieksekusi sebelum gaji dihitung; " +
+        "hasil GAGAL tidak dicatat karena tidak menggambarkan kegagalan pemotongan yang sebenarnya.";
+
+    /// <summary>
+    /// Run yang terkunci atau sudah dibatalkan/dibalik tidak menerima eksekusi potongan. Titik realisasi di antara DRAFT dan
+    /// APPROVED/PAID belum ditetapkan sebagai keputusan bisnis, jadi status lain sengaja tidak dibatasi di sini.
+    /// </summary>
+    private static void EnsureRunAcceptsDeduction(TrxPayrollRun? run)
+    {
+        if (run is null) return;
+
+        if (run.IsLocked)
+            throw new PayrollResultValidationException(
+                $"Payroll run {run.RunNumber} terkunci sehingga potongan cicilan tidak dapat dieksekusi.");
+
+        if (string.Equals(run.RunStatus, "Cancelled", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(run.RunStatus, "Reversed", StringComparison.OrdinalIgnoreCase))
+            throw new PayrollResultValidationException(
+                $"Payroll run {run.RunNumber} berstatus {run.RunStatus} sehingga potongan cicilan tidak dapat dieksekusi.");
     }
 }
 

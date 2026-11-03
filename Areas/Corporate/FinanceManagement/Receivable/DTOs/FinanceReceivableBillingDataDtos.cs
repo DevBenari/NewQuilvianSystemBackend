@@ -21,7 +21,8 @@ public static class BillingDataCategories
 
     /// <summary>
     /// Benefit RS Internal → PAYER dengan IsInternalBenefit = true: porsi biaya yang ditanggung rumah sakit lewat program
-    /// Benefit Karyawan RS. Diselesaikan lewat Penutupan Benefit (Finance Benefit Settlement), bukan penerimaan uang.
+    /// Benefit Karyawan RS (penjamin internal). Ditagihkan lewat Invoice AR yang sama dengan penjamin lain; status pembuatannya
+    /// adalah keanggotaan Batch Tagihan aktif. Bukan penerimaan kas dari pihak luar.
     /// </summary>
     public const string InternalBenefit = "internalBenefit";
 
@@ -39,8 +40,8 @@ public static class BillingDataStatuses
 /// <summary>
 /// Status penyelesaian piutang menurut DATA SUMBERNYA, bukan menurut keanggotaan Batch Tagihan.
 /// Opsional dan additif: <c>billingStatus</c> (created/notCreated) tetap bermakna keanggotaan Batch Tagihan.
-/// Perusahaan/Asuransi memakai <see cref="Invoiced"/>/<see cref="AwaitingInvoice"/>; Benefit RS Internal memakai
-/// status Penutupan Benefit; Karyawan memakai status perjanjian angsuran; Pasien Umum memakai
+/// Perusahaan/Asuransi dan Benefit RS Internal sama-sama memakai <see cref="Invoiced"/>/<see cref="AwaitingInvoice"/>
+/// (keanggotaan Batch Tagihan aktif); Karyawan memakai status perjanjian angsuran; Pasien Umum memakai
 /// <see cref="Paid"/>/<see cref="Outstanding"/>.
 /// </summary>
 public static class BillingDataResolutionStatuses
@@ -50,11 +51,6 @@ public static class BillingDataResolutionStatuses
     // company
     public const string Invoiced = "invoiced";
     public const string AwaitingInvoice = "awaitingInvoice";
-
-    // internalBenefit
-    public const string AwaitingSettlement = "awaitingSettlement";
-    public const string SettlementDraft = "settlementDraft";
-    public const string Settled = "settled";
 
     // employee
     public const string NoPlan = "noPlan";
@@ -101,13 +97,16 @@ public static class BillingDataCreateBlockedReasons
 {
     public const string NotPayer = "NOT_PAYER";
 
-    /// <summary>Porsi Benefit RS internal: biaya rumah sakit sendiri, diselesaikan lewat Penutupan Benefit, bukan Batch Tagihan AR.</summary>
-    public const string InternalBenefit = "INTERNAL_BENEFIT";
     public const string NoDebtorReference = "NO_DEBTOR_REFERENCE";
     public const string AlreadyInBatch = "ALREADY_IN_BATCH";
     public const string InCancelledBatch = "IN_CANCELLED_BATCH";
     public const string StatusNotEligible = "STATUS_NOT_ELIGIBLE";
-    public const string ActiveSettlement = "ACTIVE_SETTLEMENT";
+
+    /// <summary>
+    /// Piutang Benefit RS Internal yang saldonya sudah nol (SETTLED) oleh mekanisme penutupan lama: tidak ditagihkan ulang, karena
+    /// Invoice AR atasnya akan langsung berstatus lunas tanpa pembayaran Finance. Riwayat penyelesaiannya tetap utuh.
+    /// </summary>
+    public const string InternalAlreadyClosed = "INTERNAL_ALREADY_CLOSED";
 }
 
 /// <summary>
@@ -134,16 +133,15 @@ public sealed class BillingDataQuery
     public Guid? EntityId { get; set; }
 
     /// <summary>
-    /// all | notCreated | created. Bermakna keanggotaan Batch Tagihan, jadi hanya berguna pada kategori company.
+    /// all | notCreated | created. Bermakna keanggotaan Batch Tagihan (Invoice AR), berlaku untuk kategori company dan internalBenefit.
     /// Untuk kategori lain pakai <see cref="ResolutionStatus"/>.
     /// </summary>
     public string? BillingStatus { get; set; }
 
     /// <summary>
     /// Opsional. Saringan status penyelesaian menurut data sumber (lihat <see cref="BillingDataResolutionStatuses"/>).
-    /// internalBenefit: all | awaitingSettlement | settlementDraft | settled.
     /// employee: all | noPlan | planPending | planApproved | paid.
-    /// Kategori lain hanya menerima all. Nilai yang bukan milik kategorinya → 400.
+    /// Kategori lain (termasuk internalBenefit) hanya menerima all. Nilai Penutupan Benefit lama untuk internalBenefit diperlakukan all. Nilai yang bukan milik kategorinya → 400.
     /// </summary>
     public string? ResolutionStatus { get; set; }
 
@@ -246,35 +244,21 @@ public sealed class BillingDataItemResponse
     public string BillingStatus { get; set; } = BillingDataStatuses.NotCreated;
 
     /// <summary>
-    /// True hanya untuk PAYER pihak luar (Perusahaan/Asuransi), satu-satunya jenis yang boleh punya Batch Tagihan.
-    /// False berarti <see cref="BillingStatus"/> notCreated BUKAN pekerjaan yang tertunda: Benefit RS Internal diselesaikan
-    /// lewat Penutupan Benefit, Karyawan lewat perjanjian angsuran, Pasien Umum lewat penerimaan.
+    /// True untuk PAYER (Perusahaan/Asuransi dan Benefit RS Internal), yang diinvoicekan lewat Batch Tagihan / Invoice AR.
+    /// False berarti <see cref="BillingStatus"/> notCreated BUKAN pekerjaan yang tertunda: Karyawan diselesaikan lewat
+    /// perjanjian angsuran, Pasien Umum lewat penerimaan.
     /// </summary>
     public bool BillingStatusApplicable { get; set; }
 
     /// <summary>Status penyelesaian menurut data sumber; lihat <see cref="BillingDataResolutionStatuses"/>.</summary>
     public string ResolutionStatus { get; set; } = string.Empty;
 
-    /// <summary>Waktu pengakuan piutang. Dasar pemilihan periode Penutupan Benefit (bukan tanggal invoice).</summary>
+    /// <summary>Waktu pengakuan piutang.</summary>
     public DateTimeOffset RecognizedAt { get; set; }
 
     public Guid? InvoiceBatchId { get; set; }
     public string? InvoiceBatchNumber { get; set; }
     public string? InvoiceBatchStatus { get; set; }
-
-    // --- Benefit RS Internal (IsInternalBenefit): Penutupan Benefit yang memuat piutang ini, bukan yang DIBATALKAN ---
-    public Guid? SettlementId { get; set; }
-    public string? SettlementNumber { get; set; }
-
-    /// <summary>DRAF | DITERBITKAN; null bila belum masuk Penutupan Benefit mana pun.</summary>
-    public string? SettlementStatus { get; set; }
-
-    /// <summary>
-    /// Kode periode (yyyy-MM) untuk menyiapkan Penutupan Benefit dari piutang ini. Dihitung dari <see cref="RecognizedAt"/>
-    /// menurut batas bulan UTC, persis seperti pemilihan periode FinanceBenefitSettlementService.ParsePeriod.
-    /// Hanya terisi untuk Benefit RS Internal.
-    /// </summary>
-    public string? SettlementPeriodCode { get; set; }
 
     // --- Karyawan (EMPLOYEE_BENEFIT): perjanjian angsuran terkini (MENUNGGU, DISETUJUI, atau SELESAI) ---
     public Guid? InstallmentPlanId { get; set; }

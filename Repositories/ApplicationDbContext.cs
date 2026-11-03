@@ -695,13 +695,13 @@ namespace QuilvianSystemBackend.Repositories
         // AddFinanceReceivableInstallmentAndBenefitSettlement dibuat via CLI EF Core, belum diterapkan.
         public DbSet<FinReceivableInstallmentPlan> FinReceivableInstallmentPlans { get; set; }
         public DbSet<FinReceivableInstallment> FinReceivableInstallments { get; set; }
-        // Penghubung bukti potong gaji ke baris angsuran (berkas tetap di FinTransactionProof). Tabelnya BELUM ada:
-        // migration sengaja belum dibuat/diterapkan pada task ini.
+        // Penghubung bukti potong gaji ke baris angsuran (berkas tetap di FinTransactionProof). Migration AddInstallmentDeductionEvidence.
         public DbSet<FinReceivableInstallmentDeductionEvidence> FinReceivableInstallmentDeductionEvidences { get; set; }
         // BE-FIN-117, FIN-DES-106, FIN-DEC-220: batch hasil potongan gaji manual per periode.
         public DbSet<FinPayrollDeductionBatch> FinPayrollDeductionBatches { get; set; }
         public DbSet<FinPayrollDeductionBatchItem> FinPayrollDeductionBatchItems { get; set; }
-        // BE-FIN-092, FIN-DES-102: pelunasan internal berkala porsi benefit yang ditanggung RS.
+        // LEGACY READ-ONLY (BE-FIN-092, FIN-DES-102): Penutupan Benefit dihapus; tabel dipertahankan sebagai riwayat/audit dan agar
+        // snapshot migration konsisten. Tidak ada kode yang menulis ke dua DbSet ini.
         public DbSet<FinBenefitSettlement> FinBenefitSettlements { get; set; }
         public DbSet<FinBenefitSettlementItem> FinBenefitSettlementItems { get; set; }
         // BE-FIN-038, FIN-DES-041: Batch Tagihan AR ke penjamin. Migration

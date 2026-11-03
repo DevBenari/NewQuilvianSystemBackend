@@ -819,7 +819,7 @@ public sealed class FinanceReceivableBillingDataService
             };
 
         // Porsi Benefit Karyawan RS (PAYER dengan IsInternalBenefit) dipisah dari piutang pihak luar: itu biaya rumah
-        // sakit sendiri yang diselesaikan lewat Penutupan Benefit, bukan tagihan ke perusahaan/asuransi.
+        // sakit sendiri (penjamin internal). Keduanya memakai jalur Invoice AR yang sama, tetapi tidak boleh tercampur.
         if (filter.Category == BillingDataCategories.Company)
             rows = rows.Where(x => !x.Receivable.IsInternalBenefit);
         else if (filter.Category == BillingDataCategories.InternalBenefit)
@@ -896,33 +896,12 @@ public sealed class FinanceReceivableBillingDataService
 
     // Status penyelesaian menurut DATA SUMBER. Urutan prioritas sama dengan penentuan ResolutionStatus pada respons
     // (ResolveResolutionStatus): piutang Lunas mengalahkan segalanya; untuk Karyawan, perjanjian DISETUJUI mengalahkan MENUNGGU.
-    // Perjanjian DITOLAK / DIBATALKAN dan Penutupan Benefit DIBATALKAN tidak dihitung: kembali ke "belum ada".
+    // Perjanjian DITOLAK / DIBATALKAN tidak dihitung: kembali ke "belum ada". Benefit RS Internal TIDAK punya status penyelesaian
+    // sumber sendiri: seperti Perusahaan/Asuransi, statusnya hanya keanggotaan Batch Tagihan (billingStatus), sehingga piutang
+    // tidak pernah tersembunyi karena status saldonya (SETTLED) atau dokumen lain.
     private IQueryable<BillingDataRow> ApplyResolutionStatus(IQueryable<BillingDataRow> rows, BillingDataFilter filter)
     {
         var settledStatus = FinReceivableStatuses.Settled;
-        var activeSettlementReceivableIds = _dbContext.FinBenefitSettlementItems
-            .Where(i => !i.IsDelete
-                && i.Settlement != null
-                && !i.Settlement.IsDelete
-                && i.Settlement.Status != FinBenefitSettlementStatuses.Dibatalkan)
-            .Select(i => i.ReceivableId);
-
-        // Khusus untuk tab Benefit RS Internal: secara bawaan (ResolutionStatus == "all" atau "awaitingSettlement"),
-        // tagihan yang sudah masuk draf penutupan aktif langsung dikeluarkan dari tabel kerja utama Data Tagihan.
-        // Dokumen penutupan tersebut dikelola di Daftar Draf & Riwayat Penutupan Benefit.
-        if (filter.Category == BillingDataCategories.InternalBenefit)
-        {
-            if (filter.ResolutionStatus == BillingDataResolutionStatuses.SettlementDraft)
-            {
-                return rows.Where(x => x.Receivable.Status != settledStatus && activeSettlementReceivableIds.Contains(x.Receivable.Id));
-            }
-            if (filter.ResolutionStatus == BillingDataResolutionStatuses.Settled || filter.ResolutionStatus == BillingDataResolutionStatuses.Paid)
-            {
-                return rows.Where(x => x.Receivable.Status == settledStatus);
-            }
-            // Bawaan (All atau AwaitingSettlement): hanya tampilkan yang belum masuk draf aktif dan belum settled
-            return rows.Where(x => x.Receivable.Status != settledStatus && !activeSettlementReceivableIds.Contains(x.Receivable.Id));
-        }
 
         if (filter.ResolutionStatus == BillingDataResolutionStatuses.All) return rows;
 
@@ -935,12 +914,8 @@ public sealed class FinanceReceivableBillingDataService
 
         return filter.ResolutionStatus switch
         {
-            BillingDataResolutionStatuses.Settled or BillingDataResolutionStatuses.Paid =>
+            BillingDataResolutionStatuses.Paid =>
                 rows.Where(x => x.Receivable.Status == settledStatus),
-            BillingDataResolutionStatuses.SettlementDraft =>
-                rows.Where(x => x.Receivable.Status != settledStatus && activeSettlementReceivableIds.Contains(x.Receivable.Id)),
-            BillingDataResolutionStatuses.AwaitingSettlement =>
-                rows.Where(x => x.Receivable.Status != settledStatus && !activeSettlementReceivableIds.Contains(x.Receivable.Id)),
             BillingDataResolutionStatuses.PlanApproved =>
                 rows.Where(x => x.Receivable.Status != settledStatus && approvedPlanReceivableIds.Contains(x.Receivable.Id)),
             BillingDataResolutionStatuses.PlanPending =>
@@ -1211,36 +1186,8 @@ public sealed class FinanceReceivableBillingDataService
                 .Select(x => (x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId)),
             cancellationToken);
 
-        // Status penyelesaian dari DATA SUMBER, dimuat sekali untuk seluruh halaman (tanpa N+1) dan hanya untuk jenis
-        // piutang yang relevan: Penutupan Benefit untuk Benefit RS Internal, perjanjian angsuran untuk Karyawan.
-        var benefitReceivableIds = page.Where(x => x.IsInternalBenefit).Select(x => x.ReceivableId).Distinct().ToList();
-        var settlementByReceivable = new Dictionary<Guid, (Guid SettlementId, string Number, string Status)>();
-        if (benefitReceivableIds.Count > 0)
-        {
-            var settlementRows = await _dbContext.FinBenefitSettlementItems.AsNoTracking()
-                .Where(i => !i.IsDelete
-                    && benefitReceivableIds.Contains(i.ReceivableId)
-                    && i.Settlement != null
-                    && !i.Settlement.IsDelete
-                    && i.Settlement.Status != FinBenefitSettlementStatuses.Dibatalkan)
-                .Select(i => new
-                {
-                    i.ReceivableId,
-                    i.SettlementId,
-                    i.Settlement!.SettlementNumber,
-                    i.Settlement.Status
-                })
-                .ToListAsync(cancellationToken);
-
-            // Satu piutang paling banyak masuk satu Penutupan yang tidak dibatalkan (ditegakkan service penutupan);
-            // bila data menyimpang, yang DITERBITKAN didahulukan atas DRAF.
-            foreach (var row in settlementRows
-                         .OrderBy(r => r.Status == FinBenefitSettlementStatuses.Diterbitkan ? 0 : 1))
-            {
-                settlementByReceivable.TryAdd(row.ReceivableId, (row.SettlementId, row.SettlementNumber, row.Status));
-            }
-        }
-
+        // Status penyelesaian dari DATA SUMBER, dimuat sekali untuk seluruh halaman (tanpa N+1): perjanjian angsuran untuk Karyawan.
+        // Benefit RS Internal tidak memakai status sumber sendiri; statusnya keanggotaan Batch Tagihan (ActiveBatch*).
         var employeeReceivableIds = page
             .Where(x => x.DebtorType == FinReceivableDebtorTypes.EmployeeBenefit)
             .Select(x => x.ReceivableId).Distinct().ToList();
@@ -1269,9 +1216,7 @@ public sealed class FinanceReceivableBillingDataService
         {
             var owner = ownerLookup.Find(x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId);
             var canonicalProfileId = owner?.WorkforceProfileId ?? ownerLookup.ResolveProfileId(x.BenefitOwnerId, x.BenefitOwnerWorkforceProfileId);
-            settlementByReceivable.TryGetValue(x.ReceivableId, out var settlement);
             planByReceivable.TryGetValue(x.ReceivableId, out var plan);
-            var hasSettlement = settlementByReceivable.ContainsKey(x.ReceivableId);
             var hasPlan = planByReceivable.ContainsKey(x.ReceivableId);
             var billingDate = x.EncounterDate.HasValue
                 ? new DateTimeOffset(DateTime.SpecifyKind(x.EncounterDate.Value, DateTimeKind.Utc))
@@ -1286,8 +1231,7 @@ public sealed class FinanceReceivableBillingDataService
                 : (DateTimeOffset?)null;
 
             var blockedReason = ResolveCreateBlockedReason(
-                x.DebtorType, x.DebtorReferenceId, x.ActiveBatchId.HasValue, x.AnyBatchMembership, x.ReceivableStatus,
-                x.IsInternalBenefit, hasSettlement);
+                x.DebtorType, x.DebtorReferenceId, x.ActiveBatchId.HasValue, x.AnyBatchMembership, x.ReceivableStatus, x.IsInternalBenefit);
 
             return new BillingDataItemResponse
             {
@@ -1329,16 +1273,8 @@ public sealed class FinanceReceivableBillingDataService
                 // "Belum Dibuat/Sudah Dibuat" berlaku untuk PAYER (baik Perusahaan/Asuransi maupun Benefit RS Internal).
                 BillingStatusApplicable = x.DebtorType == FinReceivableDebtorTypes.Payer,
                 ResolutionStatus = ResolveResolutionStatus(
-                    x.DebtorType, x.IsInternalBenefit, x.ReceivableStatus, x.ActiveBatchId.HasValue,
-                    hasSettlement ? settlement.Status : null, hasPlan ? plan.Status : null),
+                    x.DebtorType, x.ReceivableStatus, x.ActiveBatchId.HasValue, hasPlan ? plan.Status : null),
                 RecognizedAt = x.RecognizedAt,
-                SettlementId = hasSettlement ? settlement.SettlementId : null,
-                SettlementNumber = hasSettlement ? settlement.Number : null,
-                SettlementStatus = hasSettlement ? settlement.Status : null,
-                // Batas bulan UTC, sama dengan FinanceBenefitSettlementService.ParsePeriod. Jangan diganti WIB atau tanggal invoice.
-                SettlementPeriodCode = x.IsInternalBenefit
-                    ? x.RecognizedAt.UtcDateTime.ToString("yyyy-MM", CultureInfo.InvariantCulture)
-                    : null,
                 InstallmentPlanId = hasPlan ? plan.PlanId : null,
                 InstallmentPlanNumber = hasPlan ? plan.Number : null,
                 InstallmentPlanStatus = hasPlan ? plan.Status : null,
@@ -1360,8 +1296,7 @@ public sealed class FinanceReceivableBillingDataService
 
     // Status penyelesaian menurut data sumber. Urutan prioritasnya HARUS sama dengan ApplyResolutionStatus (saringan).
     private static string ResolveResolutionStatus(
-        string debtorType, bool isInternalBenefit, string receivableStatus, bool inActiveBatch,
-        string? settlementStatus, string? planStatus)
+        string debtorType, string receivableStatus, bool inActiveBatch, string? planStatus)
     {
         var settled = receivableStatus == FinReceivableStatuses.Settled;
 
@@ -1373,14 +1308,8 @@ public sealed class FinanceReceivableBillingDataService
             return BillingDataResolutionStatuses.NoPlan;
         }
 
-        if (debtorType == FinReceivableDebtorTypes.Payer && isInternalBenefit)
-        {
-            if (settled) return BillingDataResolutionStatuses.Settled;
-            return settlementStatus == FinBenefitSettlementStatuses.Draf
-                ? BillingDataResolutionStatuses.SettlementDraft
-                : BillingDataResolutionStatuses.AwaitingSettlement;
-        }
-
+        // PAYER (perusahaan/asuransi DAN penjamin internal Benefit RS): status = keanggotaan Batch Tagihan aktif. Status saldo
+        // (SETTLED) tidak mengubahnya: piutang lunas yang belum punya Invoice AR tetap "belum dibuat".
         if (debtorType == FinReceivableDebtorTypes.Payer)
             return inActiveBatch ? BillingDataResolutionStatuses.Invoiced : BillingDataResolutionStatuses.AwaitingInvoice;
 
@@ -1724,14 +1653,14 @@ public sealed class FinanceReceivableBillingDataService
     // IX_FinReceivableInvoiceBatchItem_ActiveReceivable (batch yang dibatalkan tidak menghapus baris anggotanya),
     // sehingga belum bisa digabung ulang.
     private static string? ResolveCreateBlockedReason(
-        string debtorType, Guid? debtorReferenceId, bool inActiveBatch, bool anyMembership, string receivableStatus,
-        bool isInternalBenefit, bool hasActiveSettlement = false)
+        string debtorType, Guid? debtorReferenceId, bool inActiveBatch, bool anyMembership, string receivableStatus, bool isInternalBenefit)
     {
         if (debtorType != FinReceivableDebtorTypes.Payer) return BillingDataCreateBlockedReasons.NotPayer;
-        if (hasActiveSettlement) return BillingDataCreateBlockedReasons.ActiveSettlement;
         if (debtorReferenceId is null) return BillingDataCreateBlockedReasons.NoDebtorReference;
         if (inActiveBatch) return BillingDataCreateBlockedReasons.AlreadyInBatch;
         if (anyMembership) return BillingDataCreateBlockedReasons.InCancelledBatch;
+        if (isInternalBenefit && receivableStatus == FinReceivableStatuses.Settled)
+            return BillingDataCreateBlockedReasons.InternalAlreadyClosed;
         if (receivableStatus != FinReceivableStatuses.Outstanding
             && receivableStatus != FinReceivableStatuses.Partial
             && receivableStatus != FinReceivableStatuses.Settled)
@@ -1838,11 +1767,6 @@ public sealed class FinanceReceivableBillingDataService
         // status penyelesaian sumber; saringan keanggotaan Batch Tagihan untuk company tetap lewat billingStatus.
         var resolutionAllowed = category switch
         {
-            BillingDataCategories.InternalBenefit => new[]
-            {
-                BillingDataResolutionStatuses.All, BillingDataResolutionStatuses.AwaitingSettlement,
-                BillingDataResolutionStatuses.SettlementDraft, BillingDataResolutionStatuses.Settled
-            },
             BillingDataCategories.Employee => new[]
             {
                 BillingDataResolutionStatuses.All, BillingDataResolutionStatuses.NoPlan,
@@ -1851,7 +1775,12 @@ public sealed class FinanceReceivableBillingDataService
             },
             _ => new[] { BillingDataResolutionStatuses.All }
         };
-        var resolutionStatus = Canonical(request.ResolutionStatus, BillingDataResolutionStatuses.All, "resolutionStatus",
+        // Nilai Penutupan Benefit lama (klien/penanda halaman lama) untuk Benefit RS Internal diperlakukan "semua": fitur itu dihapus,
+        // dan status pembuatan Invoice AR disaring lewat billingStatus.
+        var requestedResolution = category == BillingDataCategories.InternalBenefit && IsLegacyBenefitClosureStatus(request.ResolutionStatus)
+            ? null
+            : request.ResolutionStatus;
+        var resolutionStatus = Canonical(requestedResolution, BillingDataResolutionStatuses.All, "resolutionStatus",
             resolutionAllowed);
 
         var search = request.Search?.Trim();
@@ -1933,6 +1862,12 @@ public sealed class FinanceReceivableBillingDataService
     }
 
     private static string FormatDate(DateOnly date) => date.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+
+    private static bool IsLegacyBenefitClosureStatus(string? value) =>
+        value is not null
+        && (string.Equals(value.Trim(), "awaitingSettlement", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Trim(), "settlementDraft", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value.Trim(), "settled", StringComparison.OrdinalIgnoreCase));
 
     private static string Canonical(string? value, string defaultValue, string parameterName, params string[] allowed)
     {

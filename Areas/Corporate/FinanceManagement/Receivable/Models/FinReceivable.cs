@@ -61,7 +61,8 @@ public sealed class FinReceivable : IdentityModel
     /// <summary>
     /// Disalin dari BilArHandoff.IsInternalBenefit: piutang PAYER porsi Benefit Karyawan RS atas penjamin internal (biaya
     /// ditanggung RS sendiri; nol uang diterima). BUKAN piutang pihak luar: tidak boleh dilunasi lewat penerimaan uang
-    /// (FinReceipt) dan hanya ditutup lewat Penutupan Benefit (FinanceBenefitSettlementService).
+    /// (FinReceipt). Ditagihkan lewat Invoice AR (FinReceivableInvoiceBatch) yang sama dengan penjamin lain; Penutupan Benefit
+    /// (FinBenefitSettlement) sudah dihapus dan tabelnya hanya riwayat. Aturan penyelesaian saldo internal menunggu keputusan Accounting.
     /// </summary>
     public bool IsInternalBenefit { get; set; }
 

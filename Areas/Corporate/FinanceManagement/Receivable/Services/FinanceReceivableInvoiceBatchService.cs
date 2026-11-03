@@ -55,6 +55,7 @@ public sealed class FinanceReceivableInvoiceBatchService
     private readonly FinanceReceivableService _receivableService;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
     private readonly FinanceReceiptService _receiptService;
+    private readonly FinanceBenefitAllowanceConsumptionService _allowanceConsumptionService;
 
     public FinanceReceivableInvoiceBatchService(
         ApplicationDbContext dbContext,
@@ -63,7 +64,8 @@ public sealed class FinanceReceivableInvoiceBatchService
         NumberSeriesAllocator numberSeriesAllocator,
         FinanceReceivableService receivableService,
         FinanceAccountingOutboxService accountingOutboxService,
-        FinanceReceiptService receiptService)
+        FinanceReceiptService receiptService,
+        FinanceBenefitAllowanceConsumptionService allowanceConsumptionService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
@@ -72,6 +74,7 @@ public sealed class FinanceReceivableInvoiceBatchService
         _receivableService = receivableService;
         _accountingOutboxService = accountingOutboxService;
         _receiptService = receiptService;
+        _allowanceConsumptionService = allowanceConsumptionService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -222,6 +225,11 @@ public sealed class FinanceReceivableInvoiceBatchService
         }
 
         var visitCode = ResolveBatchVisitCode(batch);
+
+        // Invoice AR Benefit RS Internal: penjamin internal (PAYER, IsInternalBenefit). Finance memprosesnya dari Detail Invoice AR
+        // (penyelesaian internal tanpa kas/bank, atau penerimaan bank aktual). Tetap piutang AR resmi: pembayaran tidak pernah otomatis.
+        var isInternalBenefitBatch = !isEmployeeBatch
+            && batch.Items.Any(x => !x.IsDelete && x.Receivable is not null && x.Receivable.IsInternalBenefit);
 
         // Members & Patient Context
         var memberReceivables = batch.Items
@@ -458,6 +466,20 @@ public sealed class FinanceReceivableInvoiceBatchService
         // Invoice karyawan tidak pernah menawarkan pembayaran kasir/bank: pelunasannya hanya lewat potong gaji.
         bool canProcessPayment = !isEmployeeBatch && !isCancelled && !isPaid && hasPayableOutstanding;
 
+        // Penyelesaian internal (mutasi PELUNASAN-INTERNAL, tanpa receipt) dibaca terpisah dari receipt supaya riwayat pembayaran,
+        // status Lunas, dan monitoring dapat ditelusuri ke asal mutasinya, termasuk Penutupan Benefit lama yang bersifat historis.
+        var internalSettlements = new List<ReceivableInvoiceBatchInternalSettlementResponse>();
+        string? settlementTraceWarning = null;
+        if (isInternalBenefitBatch)
+        {
+            (internalSettlements, settlementTraceWarning) =
+                await BuildInternalSettlementHistoryAsync(batch.Id, memberReceivables, cancellationToken);
+        }
+        var totalInternalSettled = internalSettlements.Sum(x => x.Amount);
+        var hasActiveOwnInternalSettlement = internalSettlements
+            .Where(x => x.Kind == ReceivableInvoiceBatchInternalSettlementKinds.FinanceInternalSettlement)
+            .Sum(x => x.Amount) > 0m;
+
         ReceivableInvoiceBatchInstallmentPlanResponse? installmentPlan = null;
         if (isEmployeeBatch)
         {
@@ -483,8 +505,8 @@ public sealed class FinanceReceivableInvoiceBatchService
         bool canCancel = !isCancelled && (isDraft || isIssued || isPartiallyPaid || isPaid);
         bool canRevive = isCancelled;
 
-        string? cancelWarning = hasActivePayment
-            ? "Invoice ini sudah memiliki pembayaran aktif. Seluruh pembayaran aktif akan dibalik dan saldo piutang akan dikembalikan."
+        string? cancelWarning = hasActivePayment || hasActiveOwnInternalSettlement
+            ? "Invoice ini sudah memiliki pembayaran/penyelesaian aktif. Seluruhnya akan dibalik dan saldo piutang akan dikembalikan."
             : null;
 
         return new ReceivableInvoiceBatchDetailResponse
@@ -533,6 +555,7 @@ public sealed class FinanceReceivableInvoiceBatchService
             ClaimClosedAt = mapped.ClaimClosedAt,
             CanProcessPayment = canProcessPayment,
             IsEmployeeBenefit = isEmployeeBatch,
+            IsInternalBenefit = isInternalBenefitBatch,
             PaymentBlockedReason = isEmployeeBatch ? EmployeePaymentBlockedReason : null,
             InstallmentPlan = installmentPlan,
             CanCancel = canCancel,
@@ -543,7 +566,10 @@ public sealed class FinanceReceivableInvoiceBatchService
             PaymentStatus = paymentStatus,
             InvoiceStatusText = invoiceStatusText,
             Members = members,
-            Payments = payments
+            Payments = payments,
+            InternalSettlements = internalSettlements,
+            TotalInternalSettled = totalInternalSettled,
+            SettlementTraceWarning = settlementTraceWarning
         };
     }
 
@@ -609,10 +635,10 @@ public sealed class FinanceReceivableInvoiceBatchService
 
     // ------------------------------------------------------------------------------------
     // Piutang yang memenuhi syarat digabung — GET /eligible-receivables. "Memenuhi syarat"
-    // ditafsirkan sebagai: penjamin sama, DebtorType PAYER (satu-satunya yang didukung batch,
-    // FIN-DEC-048), belum tergabung batch aktif, dan masih punya sisa tagihan (OUTSTANDING/
-    // PARTIAL) — piutang yang sudah SETTLED/WRITTEN_OFF/CANCELLED tidak ada gunanya ditagih
-    // ulang. Bukan FIN-VAL bernomor; murni definisi teknis "layak digabung".
+    // ditafsirkan sebagai: penjamin sama, DebtorType PAYER, belum tergabung batch aktif, dan masih
+    // punya sisa tagihan (OUTSTANDING/PARTIAL). Piutang Benefit RS Internal yang sudah SETTLED (ditutup mekanisme lama) tidak layak:
+    // Invoice AR atasnya akan langsung lunas tanpa pembayaran Finance. WRITTEN_OFF/CANCELLED tidak pernah
+    // layak. Bukan FIN-VAL bernomor; murni definisi teknis "layak digabung".
     // ------------------------------------------------------------------------------------
 
     public Task<List<EligibleReceivableResponse>> GetEligibleReceivablesAsync(
@@ -698,21 +724,13 @@ public sealed class FinanceReceivableInvoiceBatchService
             throw new ReceivableInvoiceBatchBadRequestException(
                 "Tidak dapat mencampur piutang Benefit RS Internal dan piutang penjamin pihak luar dalam satu Batch Tagihan AR.");
 
-        // Untuk Benefit RS Internal: pastikan tidak ada piutang yang sedang berada dalam dokumen Penutupan Benefit aktif (bukan DIBATALKAN).
-        if (anyInternal)
-        {
-            var inActiveSettlement = await _dbContext.FinBenefitSettlementItems.AsNoTracking()
-                .Where(i => !i.IsDelete
-                    && distinctIds.Contains(i.ReceivableId)
-                    && i.Settlement != null && !i.Settlement.IsDelete
-                    && i.Settlement.Status != FinBenefitSettlementStatuses.Dibatalkan)
-                .Select(i => i.ReceivableId)
-                .ToListAsync(cancellationToken);
-
-            if (inActiveSettlement.Count > 0)
-                throw new ReceivableInvoiceBatchConflictException(
-                    $"Sebagian piutang Benefit RS Internal ({string.Join(", ", inActiveSettlement)}) sudah tercatat dalam dokumen Penutupan Benefit yang aktif.");
-        }
+        // Piutang Benefit RS Internal yang sudah SETTLED (ditutup mekanisme lama) tidak ditagihkan ulang: Invoice AR atasnya akan langsung
+        // lunas tanpa pembayaran Finance. Riwayat penutupannya tetap utuh dan tidak dibuka kembali.
+        var closedInternal = receivables.FirstOrDefault(x => x.IsInternalBenefit && x.Status == FinReceivableStatuses.Settled);
+        if (closedInternal is not null)
+            throw new ReceivableInvoiceBatchValidationException(
+                $"Piutang Benefit RS Internal {closedInternal.ReceivableNumber} sudah berstatus SETTLED (ditutup oleh mekanisme penutupan lama) " +
+                "dan tidak ditagihkan ulang. Invoice AR hanya dibuat untuk piutang yang masih memiliki sisa tagihan.");
 
         // Hanya piutang yang masih bisa ditagihkan (OUTSTANDING/PARTIAL) ATAU sudah lunas dibayar (SETTLED, mis.
         // gabungan asuransi + excess tunai) dan bernilai positif yang boleh ditagihkan. Status pembayaran (SETTLED)
@@ -750,6 +768,12 @@ public sealed class FinanceReceivableInvoiceBatchService
         if (alreadyBatched.Count > 0)
             throw new ReceivableInvoiceBatchConflictException(
                 $"Piutang {string.Join(", ", alreadyBatched)} sudah tergabung dalam batch tagihan lain.");
+
+        // Benefit RS Internal: Penutupan Benefit sudah dihapus, jadi pemakaian plafon tidak lagi menunggu dokumen itu. Plafon dicatat
+        // saat finalisasi Billing; di sini hanya jaring pengaman idempoten untuk piutang historis yang plafonnya belum tercatat
+        // (kunci = HandoffKey baris PAYER, tidak pernah memotong dua kali). Tidak mengubah saldo piutang dan tidak membuat FinReceivable.
+        if (anyInternal)
+            await _allowanceConsumptionService.EnsureConsumedAsync(receivables, actorUserId, cancellationToken);
 
         // 1. Load seluruh item piutang, invoice terkait, dan encounter terkait untuk klasifikasi VisitCode & ServiceType
         var receivableItems = await _dbContext.FinReceivableItems.AsNoTracking()
@@ -1018,6 +1042,10 @@ public sealed class FinanceReceivableInvoiceBatchService
                     acquireLocks: false,
                     synchronizeBatch: false);
             }
+
+            // Penyelesaian internal yang diposting dari Invoice AR ini (tanpa receipt) dibalik dengan mutasi pembalik; Penutupan Benefit lama
+            // (historis) tidak disentuh.
+            await ReverseInternalSettlementsOfBatchAsync(batch, memberReceivableIds, trimmedReason, actorUserId, cancellationToken);
 
             // Nonaktifkan keanggotaan batch item agar piutang dapat digabung ulang / di-reissue
             foreach (var item in batch.Items.Where(x => !x.IsDelete))
@@ -1958,6 +1986,15 @@ public sealed class FinanceReceivableInvoiceBatchService
                 ? FinReceivableInvoiceBatchStatuses.PartiallyPaid
                 : FinReceivableInvoiceBatchStatuses.Issued;
 
+        // Invoice AR Benefit RS Internal: Lunas hanya bila setiap anggota bersaldo nol punya mutasi pengurang saldo yang dapat
+        // ditelusuri (penyelesaian internal, penerimaan, potongan, penghapusan). Saldo nol saja bukan bukti penyelesaian.
+        if (newStatus == FinReceivableInvoiceBatchStatuses.Paid
+            && members.Any(x => x.Receivable!.IsInternalBenefit)
+            && (await FindUntracedSettledReceivablesAsync(members.Select(x => x.Receivable!).ToList(), cancellationToken)).Count > 0)
+        {
+            newStatus = FinReceivableInvoiceBatchStatuses.Issued;
+        }
+
         bool changed = false;
 
         // Normalisasi IssuedAt jika masih null (misal legacy DRAFT yang sudah punya nomor invoice)
@@ -2199,6 +2236,17 @@ public sealed class FinanceReceivableInvoiceBatchService
         // menjadi satu-satunya pelindung itu, sehingga wajib diisi.
         if (string.IsNullOrWhiteSpace(idempotencyKey))
             throw new ReceivableInvoiceBatchBadRequestException("Header Idempotency-Key wajib diisi untuk memproses pembayaran.");
+
+        // Sumber pembayaran. INTERNAL_SETTLEMENT (hanya Invoice AR Benefit RS Internal) adalah penyelesaian non-kas yang diposting Finance:
+        // tanpa FinReceipt, tanpa rekening bank, tanpa jurnal kas. BANK_ACCOUNT tetap penerimaan kas/bank aktual lewat alur di bawah.
+        var paymentSource = string.IsNullOrWhiteSpace(request.PaymentSource)
+            ? ReceivableInvoiceBatchPaymentSources.BankAccount
+            : request.PaymentSource.Trim().ToUpperInvariant();
+        if (paymentSource != ReceivableInvoiceBatchPaymentSources.BankAccount
+            && paymentSource != ReceivableInvoiceBatchPaymentSources.InternalSettlement)
+            throw new ReceivableInvoiceBatchBadRequestException($"Sumber pembayaran '{request.PaymentSource}' tidak dikenal.");
+        if (paymentSource == ReceivableInvoiceBatchPaymentSources.InternalSettlement)
+            return await PostInternalSettlementAsync(batch, request, idempotencyKey, actorUserId, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(idempotencyKey))
         {
@@ -2673,6 +2721,338 @@ public sealed class FinanceReceivableInvoiceBatchService
     }
 
     // ------------------------------------------------------------------------------------
+    // Penyelesaian Internal Benefit RS (tanpa penerimaan kas/bank)
+    // POST /{id}/payments dengan PaymentSource = INTERNAL_SETTLEMENT
+    //
+    // Invoice AR Benefit RS Internal adalah piutang AR resmi ke penjamin internal rumah sakit. Finance yang memprosesnya, tidak pernah
+    // otomatis saat Invoice AR dibuat, saat finalisasi Billing, atau saat intake. Penyelesaian ini BUKAN penerimaan kas/bank: tidak
+    // membuat FinReceipt/alokasi/kwitansi dan tidak menyentuh rekening bank. Saldo piutang berkurang hanya lewat satu pintu mutasi
+    // (FinanceReceivableService.ApplyAllocationAsync) dengan tipe PELUNASAN-INTERNAL, lengkap dengan referensi dokumen dan dasar
+    // penyelesaian yang diisi Finance. Kejadian Accounting (jurnal) sengaja belum dibuat: kontrak akun penyelesaian internal menunggu
+    // keputusan Accounting, dan tidak ada akun kas/bank fiktif yang dipakai untuk mengisinya.
+    // ------------------------------------------------------------------------------------
+
+    private static Guid DeriveInternalSettlementKey(Guid batchId, string idempotencyKey)
+    {
+        var hash = System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes($"FIN_AR_INTERNAL_SETTLEMENT|{batchId:N}|{idempotencyKey.Trim()}"));
+        return new Guid(hash.AsSpan(0, 16));
+    }
+
+    private static string ClipText(string value, int maxLength) =>
+        value.Length <= maxLength ? value : value[..maxLength];
+
+    private async Task<PostReceivableInvoiceBatchPaymentResponse> PostInternalSettlementAsync(
+        FinReceivableInvoiceBatch batch,
+        PostReceivableInvoiceBatchPaymentRequest request,
+        string idempotencyKey,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var activeItems = batch.Items.Where(x => !x.IsDelete && x.IsActiveMembership).ToList();
+        var missingRecIds = activeItems.Where(x => x.Receivable == null).Select(x => x.ReceivableId).ToList();
+        if (missingRecIds.Count > 0)
+        {
+            var loadedRecs = await _dbContext.FinReceivables
+                .Where(r => missingRecIds.Contains(r.Id) && !r.IsDelete)
+                .ToDictionaryAsync(r => r.Id, cancellationToken);
+            foreach (var itm in activeItems.Where(x => x.Receivable == null))
+            {
+                if (loadedRecs.TryGetValue(itm.ReceivableId, out var r)) itm.Receivable = r;
+            }
+        }
+
+        if (activeItems.Count == 0 || activeItems.Any(x => x.Receivable is null || !x.Receivable.IsInternalBenefit))
+            throw new ReceivableInvoiceBatchValidationException(
+                "Penyelesaian internal hanya untuk Invoice AR yang seluruh anggotanya piutang Benefit RS Internal.");
+
+        var lines = request.MemberAllocations ?? new List<PostReceivableInvoiceBatchPaymentAllocationLine>();
+
+        // Bukan penerimaan kas/bank: tidak ada rekening, diskon, PPh 23, biaya bank, maupun penerimaan lain.
+        if ((request.BankAccountId.HasValue && request.BankAccountId.Value != Guid.Empty)
+            || request.DiscountAmount != 0m || request.OtherReceiptAmount != 0m
+            || request.Pph23Amount != 0m || request.BankAdminFeeAmount != 0m
+            || lines.Any(x => x.DiscountAmount != 0m || x.Pph23Amount != 0m || x.BankAdminFeeAmount != 0m))
+            throw new ReceivableInvoiceBatchBadRequestException(
+                "Penyelesaian internal tidak memakai rekening bank, diskon, PPh 23, biaya administrasi bank, maupun penerimaan lain.");
+
+        var referenceNumber = request.ReferenceNumber?.Trim();
+        var note = request.Note?.Trim();
+        if (string.IsNullOrWhiteSpace(referenceNumber))
+            throw new ReceivableInvoiceBatchBadRequestException(
+                "Nomor referensi dokumen dasar penyelesaian internal wajib diisi (mis. memo atau berita acara alokasi dana).");
+        if (string.IsNullOrWhiteSpace(note))
+            throw new ReceivableInvoiceBatchBadRequestException(
+                "Sumber dana atau dasar penyelesaian internal wajib diisi pada Keterangan.");
+
+        if (request.ReceiptAmount <= 0m)
+            throw new ReceivableInvoiceBatchBadRequestException("Nominal penyelesaian internal harus lebih besar dari nol.");
+        if (lines.Count == 0)
+            throw new ReceivableInvoiceBatchBadRequestException("Rincian alokasi penyelesaian untuk anggota batch wajib diisi.");
+        if (lines.Select(m => m.ReceivableId).Distinct().Count() != lines.Count)
+            throw new ReceivableInvoiceBatchBadRequestException("Rincian alokasi anggota tidak boleh memiliki piutang duplikat.");
+
+        var totalAllocated = lines.Sum(x => x.Amount);
+        if (totalAllocated != request.ReceiptAmount)
+            throw new ReceivableInvoiceBatchValidationException(
+                $"Total alokasi penyelesaian anggota (Rp {totalAllocated:N0}) harus sama dengan nominal penyelesaian internal (Rp {request.ReceiptAmount:N0}).");
+
+        var memberMap = activeItems.ToDictionary(x => x.ReceivableId, x => x.Receivable!);
+        foreach (var line in lines)
+        {
+            if (!memberMap.TryGetValue(line.ReceivableId, out var rec))
+                throw new ReceivableInvoiceBatchBadRequestException($"Piutang {line.ReceivableId} bukan merupakan anggota aktif dari batch tagihan ini.");
+            if (rec.Status is FinReceivableStatuses.Cancelled or FinReceivableStatuses.WrittenOff)
+                throw new ReceivableInvoiceBatchValidationException($"Piutang {rec.ReceivableNumber} berstatus {rec.Status} dan tidak dapat diselesaikan.");
+            if (rec.OutstandingAmount <= 0m)
+                throw new ReceivableInvoiceBatchValidationException($"Piutang {rec.ReceivableNumber} tidak memiliki sisa tagihan (OutstandingAmount <= 0).");
+            if (line.Amount <= 0m)
+                throw new ReceivableInvoiceBatchValidationException($"Nominal penyelesaian untuk piutang {rec.ReceivableNumber} harus lebih besar dari nol.");
+            if (line.Amount > rec.OutstandingAmount)
+                throw new ReceivableInvoiceBatchValidationException(
+                    $"Nominal penyelesaian untuk piutang {rec.ReceivableNumber} (Rp {line.Amount:N0}) melebihi sisa piutang saat ini (Rp {rec.OutstandingAmount:N0}).");
+        }
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+
+            await AcquireLockAsync($"FIN_AR_BATCH_{batch.Id:N}", cancellationToken);
+            foreach (var recId in lines.Select(m => m.ReceivableId).Distinct().OrderBy(id => id))
+                await AcquireLockAsync($"FIN_RECEIVABLE_{recId:N}", cancellationToken);
+
+            // Validasi ulang di bawah lock: snapshot di atas dibaca sebelum lock.
+            var freshBatch = await _dbContext.FinReceivableInvoiceBatches.AsNoTracking()
+                .Where(x => x.Id == batch.Id && !x.IsDelete)
+                .Select(x => new { x.RowVersion, x.Status })
+                .SingleOrDefaultAsync(cancellationToken)
+                ?? throw new KeyNotFoundException("Batch Tagihan AR tidak ditemukan.");
+            EnsureCurrent(freshBatch.RowVersion, request.ExpectedRowVersion);
+            if (freshBatch.Status == FinReceivableInvoiceBatchStatuses.Paid)
+                throw new ReceivableInvoiceBatchValidationException("Batch Tagihan AR sudah lunas (PAID).");
+            if (freshBatch.Status == FinReceivableInvoiceBatchStatuses.Cancelled)
+                throw new ReceivableInvoiceBatchValidationException("Batch Tagihan AR sudah dibatalkan (CANCELLED).");
+
+            var allocatedReceivableIds = lines.Select(m => m.ReceivableId).Distinct().ToList();
+            var freshBalances = await _dbContext.FinReceivables.AsNoTracking()
+                .Where(r => allocatedReceivableIds.Contains(r.Id) && !r.IsDelete)
+                .Select(r => new { r.Id, r.OutstandingAmount, r.AllocatedAmount })
+                .ToDictionaryAsync(r => r.Id, cancellationToken);
+            foreach (var recId in allocatedReceivableIds)
+            {
+                var tracked = memberMap[recId];
+                if (!freshBalances.TryGetValue(recId, out var fresh)
+                    || fresh.OutstandingAmount != tracked.OutstandingAmount
+                    || fresh.AllocatedAmount != tracked.AllocatedAmount)
+                    throw Stale();
+            }
+
+            // Idempotensi tanpa FinReceipt: kunci kejadian diturunkan dari Idempotency-Key dan disimpan sebagai CausationId mutasi.
+            var settlementKey = DeriveInternalSettlementKey(batch.Id, idempotencyKey);
+            var alreadyPosted = await _dbContext.FinReceivableMovements.AsNoTracking()
+                .AnyAsync(x => !x.IsDelete
+                    && x.MovementType == FinReceivableMovementTypes.PelunasanInternal
+                    && x.CorrelationId == batch.Id
+                    && x.CausationId == settlementKey, cancellationToken);
+            if (alreadyPosted)
+                throw new ReceivableInvoiceBatchConflictException("Penyelesaian dengan kunci idempotensi ini sudah pernah diproses.");
+
+            var movementNote = ClipText($"Penyelesaian internal Invoice AR {batch.BatchNumber} - {note}", 500);
+            foreach (var line in lines)
+            {
+                await _receivableService.ApplyAllocationAsync(
+                    line.ReceivableId,
+                    line.Amount,
+                    actorUserId,
+                    cancellationToken,
+                    movementType: FinReceivableMovementTypes.PelunasanInternal,
+                    sourceAllocationId: null,
+                    referenceNumber: referenceNumber,
+                    notes: movementNote,
+                    correlationId: batch.Id,
+                    causationId: settlementKey);
+            }
+
+            var allSettled = activeItems.All(x => x.Receivable!.OutstandingAmount <= 0m);
+            batch.Status = allSettled
+                ? FinReceivableInvoiceBatchStatuses.Paid
+                : FinReceivableInvoiceBatchStatuses.PartiallyPaid;
+            batch.UpdateDateTime = DateTime.UtcNow;
+            batch.UpdateBy = actorUserId;
+            batch.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+
+            await AuditAsync("PostInternalSettlement", batch.Id, actorUserId);
+
+            return new PostReceivableInvoiceBatchPaymentResponse
+            {
+                BatchId = batch.Id,
+                ReceiptId = Guid.Empty,
+                ReceiptNumber = string.Empty,
+                Status = batch.Status,
+                TotalReceiptAmount = request.ReceiptAmount,
+                NewRowVersion = batch.RowVersion,
+                AllocationsCount = lines.Count,
+                PaymentSource = ReceivableInvoiceBatchPaymentSources.InternalSettlement,
+                AccountingNote = InternalSettlementAccountingNote
+            };
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(ex);
+        }
+        catch (Exception ex)
+        {
+            await RollbackAsync(transaction);
+            await _loggerService.ErrorAsync(
+                LogCategory,
+                "FinanceReceivableInvoiceBatch.PostInternalSettlement",
+                $"Gagal memproses penyelesaian internal batch tagihan AR {batch.Id}: {ex.Message}",
+                ex,
+                new
+                {
+                    BatchId = batch.Id,
+                    ActorUserId = actorUserId,
+                    BatchNumber = batch.BatchNumber,
+                    ExpectedRowVersion = request.ExpectedRowVersion,
+                    Amount = request.ReceiptAmount,
+                    MemberReceivableIds = lines.Select(m => m.ReceivableId).ToList(),
+                    ExceptionType = ex.GetType().FullName
+                });
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    /// <summary>
+    /// Membalik penyelesaian internal yang diposting dari Invoice AR ini (CorrelationId mutasi = Id batch) saat batch dibatalkan.
+    /// Dipanggil di dalam transaksi pembatalan yang sudah memegang lock batch dan piutang. Penutupan Benefit lama (historis) tidak
+    /// disentuh: mutasinya berkorelasi ke dokumen lamanya, bukan ke batch ini.
+    /// </summary>
+    private async Task ReverseInternalSettlementsOfBatchAsync(
+        FinReceivableInvoiceBatch batch,
+        IReadOnlyCollection<Guid> memberReceivableIds,
+        string reason,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var settledPerReceivable = await _dbContext.FinReceivableMovements.AsNoTracking()
+            .Where(x => !x.IsDelete
+                && x.MovementType == FinReceivableMovementTypes.PelunasanInternal
+                && x.CorrelationId == batch.Id
+                && memberReceivableIds.Contains(x.ReceivableId))
+            .GroupBy(x => x.ReceivableId)
+            .Select(g => new { ReceivableId = g.Key, Settled = -g.Sum(x => x.Amount) })
+            .ToListAsync(cancellationToken);
+
+        var reversalKey = Guid.NewGuid();
+        foreach (var row in settledPerReceivable.Where(x => x.Settled > 0m).OrderBy(x => x.ReceivableId))
+        {
+            await _receivableService.ReverseAllocationAsync(
+                row.ReceivableId,
+                row.Settled,
+                actorUserId,
+                cancellationToken,
+                movementType: FinReceivableMovementTypes.PelunasanInternal,
+                referenceNumber: ClipText(batch.BatchNumber ?? string.Empty, 100),
+                notes: ClipText($"Pembalik penyelesaian internal - Invoice AR {batch.BatchNumber} dibatalkan: {reason}", 500),
+                correlationId: batch.Id,
+                causationId: reversalKey);
+        }
+    }
+
+    /// <summary>
+    /// Anggota yang saldonya nol tetapi tidak punya satu pun mutasi pengurang saldo (Amount &lt; 0) di buku mutasi piutang. Saldo nol
+    /// saja bukan bukti penyelesaian: status Lunas tidak diberikan untuk kondisi ini.
+    /// </summary>
+    private async Task<List<Guid>> FindUntracedSettledReceivablesAsync(
+        IReadOnlyCollection<FinReceivable> members, CancellationToken cancellationToken)
+    {
+        var zeroBalanceIds = members
+            .Where(r => r.OriginalAmount > 0m && r.OutstandingAmount <= 0m && r.Status != FinReceivableStatuses.Cancelled)
+            .Select(r => r.Id)
+            .ToList();
+        if (zeroBalanceIds.Count == 0) return new List<Guid>();
+
+        var tracedIds = await _dbContext.FinReceivableMovements.AsNoTracking()
+            .Where(x => !x.IsDelete && zeroBalanceIds.Contains(x.ReceivableId) && x.Amount < 0m)
+            .Select(x => x.ReceivableId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        return zeroBalanceIds.Except(tracedIds).ToList();
+    }
+
+    private async Task<(List<ReceivableInvoiceBatchInternalSettlementResponse> Settlements, string? TraceWarning)>
+        BuildInternalSettlementHistoryAsync(
+            Guid batchId, IReadOnlyCollection<FinReceivable> members, CancellationToken cancellationToken)
+    {
+        var receivableIds = members.Select(r => r.Id).ToList();
+        var numbers = members.ToDictionary(r => r.Id, r => r.ReceivableNumber);
+
+        var movements = await _dbContext.FinReceivableMovements.AsNoTracking()
+            .Where(x => !x.IsDelete
+                && x.MovementType == FinReceivableMovementTypes.PelunasanInternal
+                && receivableIds.Contains(x.ReceivableId))
+            .OrderBy(x => x.OccurredAt)
+            .ToListAsync(cancellationToken);
+
+        // Penyelesaian dari Invoice AR ini: dikelompokkan per kunci kejadian (CausationId). Penutupan Benefit lama: per dokumen
+        // penutupan (CorrelationId). Mutasi positif adalah pembalik.
+        var settlements = movements
+            .GroupBy(m =>
+            {
+                var own = m.CorrelationId == batchId;
+                return (Own: own, Reversal: m.Amount > 0m, Key: own ? m.CausationId : m.CorrelationId);
+            })
+            .Select(g =>
+            {
+                var first = g.First();
+                var allocations = g
+                    .GroupBy(m => m.ReceivableId)
+                    .Select(a => new ReceivableInvoiceBatchInternalSettlementAllocationResponse
+                    {
+                        ReceivableId = a.Key,
+                        ReceivableNumber = numbers.GetValueOrDefault(a.Key) ?? "-",
+                        Amount = -a.Sum(m => m.Amount)
+                    })
+                    .ToList();
+                return new ReceivableInvoiceBatchInternalSettlementResponse
+                {
+                    SettlementKey = g.Key.Key,
+                    Kind = g.Key.Own
+                        ? ReceivableInvoiceBatchInternalSettlementKinds.FinanceInternalSettlement
+                        : ReceivableInvoiceBatchInternalSettlementKinds.LegacyBenefitClosure,
+                    KindLabel = g.Key.Reversal
+                        ? "Pembalikan penyelesaian internal"
+                        : g.Key.Own ? "Penyelesaian Internal (Finance)" : "Penutupan Benefit (historis)",
+                    ReferenceNumber = first.ReferenceNumber,
+                    Note = first.Notes,
+                    SettledAt = g.Max(m => m.OccurredAt),
+                    Amount = allocations.Sum(a => a.Amount),
+                    IsReversal = g.Key.Reversal,
+                    Allocations = allocations
+                };
+            })
+            .OrderBy(x => x.SettledAt)
+            .ToList();
+
+        var untraced = await FindUntracedSettledReceivablesAsync(members, cancellationToken);
+        string? warning = untraced.Count == 0
+            ? null
+            : $"Piutang {string.Join(", ", untraced.Select(id => numbers.GetValueOrDefault(id) ?? "-"))} bersaldo nol tetapi tidak memiliki " +
+              "mutasi penyelesaian yang dapat ditelusuri di buku mutasi piutang. Status Lunas tidak diberikan sampai Finance merekonsiliasi.";
+
+        return (settlements, warning);
+    }
+
+    // ------------------------------------------------------------------------------------
     // Database Transaction & Locking Helpers
     // ------------------------------------------------------------------------------------
 
@@ -2766,6 +3146,10 @@ public sealed class FinanceReceivableInvoiceBatchService
     private const string EmployeePaymentBlockedReason =
         "Invoice AR piutang karyawan dilunasi melalui potong gaji sesuai perjanjian angsuran, bukan lewat pembayaran kasir/bank. " +
         "Saldo berkurang saat HRD/Payroll menyampaikan hasil potongan yang sah.";
+
+    private const string InternalSettlementAccountingNote =
+        "Penyelesaian internal tercatat di buku mutasi piutang (PELUNASAN-INTERNAL). Jurnal Accounting belum dibuat karena kontrak akun " +
+        "penyelesaian internal belum diputuskan Accounting; tidak ada penerimaan kas/bank yang dicatat.";
 
     private static void EnsureNotEmployeeBenefit(FinReceivableInvoiceBatch batch, string action)
     {
@@ -4727,14 +5111,14 @@ public sealed class FinanceReceivableInvoiceBatchService
                 ClaimStatus = effectiveClaim,
                 PaymentStatus = b.Status == FinReceivableInvoiceBatchStatuses.Cancelled
                     ? FinReceivableInvoiceBatchStatuses.Cancelled
-                    : outstandingAmount <= 0 && b.TotalAmount > 0
+                    : b.Status == FinReceivableInvoiceBatchStatuses.Paid
                         ? FinReceivableInvoiceBatchStatuses.Paid
-                        : paidAmount > 0 && outstandingAmount > 0
+                        : b.Status == FinReceivableInvoiceBatchStatuses.PartiallyPaid
                             ? FinReceivableInvoiceBatchStatuses.PartiallyPaid
-                            : b.Status == FinReceivableInvoiceBatchStatuses.Paid
-                                ? FinReceivableInvoiceBatchStatuses.Paid
-                                : b.Status == FinReceivableInvoiceBatchStatuses.PartiallyPaid
-                                    ? FinReceivableInvoiceBatchStatuses.PartiallyPaid
+                            : (paidAmount > 0 && outstandingAmount > 0)
+                                ? FinReceivableInvoiceBatchStatuses.PartiallyPaid
+                                : (outstandingAmount <= 0 && b.TotalAmount > 0 && paidAmount > 0)
+                                    ? FinReceivableInvoiceBatchStatuses.Paid
                                     : "UNPAID",
                 InvoiceDate = b.InvoiceDate,
                 PeriodStart = b.PeriodStart,

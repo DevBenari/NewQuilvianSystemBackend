@@ -159,6 +159,13 @@ public sealed class InstallmentPlanDetailResponse : InstallmentPlanResponse
     public int PayrollExpectedCount { get; set; }
 
     /// <summary>
+    /// Diagnosis per angsuran (hanya untuk perjanjian DISETUJUI/SELESAI). Status SINKRON dibaca dari input payroll yang tersimpan;
+    /// alasan untuk yang belum diterima dihitung ulang saat dibaca dari prasyarat yang SAMA dengan yang dipakai sinkron
+    /// (konfigurasi, pemilik, komponen, periode, run), jadi selalu mencerminkan keadaan terkini, bukan catatan lama.
+    /// </summary>
+    public List<InstallmentPayrollSyncDetailResponse> PayrollSyncDetails { get; set; } = new();
+
+    /// <summary>
     /// Apakah penyimpanan persetujuan atas pengajuan sendiri sudah didukung skema database (konfigurasi eksplisit).
     /// False = constraint maker-checker database masih aktif: pengaju dengan izin SelfApprove hanya dapat menolak.
     /// </summary>
@@ -172,6 +179,24 @@ public static class FinanceInstallmentPayrollSyncStatuses
     public const string NotSynced = "BELUM_SINKRON";
     public const string Partial = "SEBAGIAN";
     public const string Synced = "SINKRON";
+
+    /// <summary>Status per angsuran yang tidak lagi dikirim ke payroll (mis. sudah terpotong/tertunggak/dibatalkan tanpa input).</summary>
+    public const string NotApplicable = "TIDAK_BERLAKU";
+}
+
+/// <summary>
+/// Satu angsuran pada diagnosis sinkron payroll. SINKRON berarti input potongan benar-benar tersimpan di payroll HR; BUKAN berarti
+/// gaji sudah dipotong dan BUKAN berarti saldo piutang berkurang. ReasonCode/ReasonMessage/RequiredAction terisi hanya bila belum sinkron.
+/// </summary>
+public sealed class InstallmentPayrollSyncDetailResponse
+{
+    public Guid InstallmentId { get; set; }
+    public int InstallmentNumber { get; set; }
+    public string DeductionPeriod { get; set; } = string.Empty;
+    public string SyncStatus { get; set; } = FinanceInstallmentPayrollSyncStatuses.NotSynced;
+    public string? ReasonCode { get; set; }
+    public string? ReasonMessage { get; set; }
+    public string? RequiredAction { get; set; }
 }
 
 public sealed class InstallmentPlanPatientResponse

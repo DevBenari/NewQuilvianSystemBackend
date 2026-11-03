@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.BenefitManagement.DTOs
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using Npgsql;
 using System.Data;
 using System.Text.RegularExpressions;
 
@@ -388,7 +389,8 @@ public sealed class FinanceReceivableInstallmentPlanService
         }
 
         var isPending = plan.Status == FinReceivableInstallmentPlanStatuses.Menunggu;
-        var (syncStatus, syncedCount, expectedCount) = await ReadPayrollSyncAsync(installments, cancellationToken);
+        var (syncStatus, syncedCount, expectedCount, syncedIds) = await ReadPayrollSyncAsync(installments, cancellationToken);
+        var syncDetails = await BuildPayrollSyncDetailsAsync(plan, receivable, installments, syncedIds, cancellationToken);
 
         return new InstallmentPlanDetailResponse
         {
@@ -418,6 +420,7 @@ public sealed class FinanceReceivableInstallmentPlanService
             PayrollSyncStatus = syncStatus,
             PayrollSyncedCount = syncedCount,
             PayrollExpectedCount = expectedCount,
+            PayrollSyncDetails = syncDetails,
             SelfApprovalPersistenceReady = await IsSelfApprovalPersistenceReadyAsync(cancellationToken),
             ReceivableOutstandingAmount = receivable?.OutstandingAmount ?? 0m,
             Id = baseResponse.Id,
@@ -530,6 +533,11 @@ public sealed class FinanceReceivableInstallmentPlanService
                 {
                     await AuditAsync("Plan.PayrollSyncGap", plan.Id, actorUserId);
                 }
+            }
+            else
+            {
+                // Pemilik tidak teridentifikasi: dulu tidak tercatat sama sekali. Kini tercatat sebagai gap; alasannya tampil di detail.
+                await AuditAsync("Plan.PayrollSyncGap", plan.Id, actorUserId);
             }
 
             await SaveWithConcurrencyGuardAsync(cancellationToken);
@@ -674,6 +682,15 @@ public sealed class FinanceReceivableInstallmentPlanService
                 SkipReasons = syncResult.SkipReasons,
                 Plan = await GetDetailAsync(id, cancellationToken)
             };
+        }
+        catch (Exception exception) when (IsTransientConcurrencyFailure(exception))
+        {
+            // Dua sinkron bersamaan (mis. dua perjanjian membuka run periode yang sama): transaksi serializable menggagalkan salah satunya.
+            // Tidak ada yang tersimpan; mengulang aman karena upsert idempoten.
+            await RollbackAsync(transaction);
+            throw new InstallmentPlanConflictException(
+                "Sinkron payroll bersamaan dengan proses lain pada periode yang sama. Tidak ada data yang tersimpan; coba Kirim Ulang sekali lagi.",
+                exception);
         }
         catch
         {
@@ -839,14 +856,14 @@ public sealed class FinanceReceivableInstallmentPlanService
     /// Status penerimaan jadwal oleh payroll, dari baris input variabel payroll yang TERSIMPAN (SourceType + SourceId angsuran).
     /// Bukan dari nilai balik sesaat saat persetujuan, jadi tetap benar ketika dibuka kemudian.
     /// </summary>
-    private async Task<(string Status, int Synced, int Expected)> ReadPayrollSyncAsync(
+    private async Task<(string Status, int Synced, int Expected, HashSet<Guid> SyncedIds)> ReadPayrollSyncAsync(
         IReadOnlyCollection<FinReceivableInstallment> installments, CancellationToken cancellationToken)
     {
         var expectedIds = installments
             .Where(x => x.Status != FinReceivableInstallmentStatuses.Dibatalkan)
             .Select(x => x.Id)
             .ToList();
-        if (expectedIds.Count == 0) return (FinanceInstallmentPayrollSyncStatuses.NoSchedule, 0, 0);
+        if (expectedIds.Count == 0) return (FinanceInstallmentPayrollSyncStatuses.NoSchedule, 0, 0, new HashSet<Guid>());
 
         var syncedIds = await _dbContext.TrxPayrollVariableInputs.AsNoTracking()
             .Where(x => !x.IsDelete
@@ -863,7 +880,93 @@ public sealed class FinanceReceivableInstallmentPlanService
             : synced < expectedIds.Count
                 ? FinanceInstallmentPayrollSyncStatuses.Partial
                 : FinanceInstallmentPayrollSyncStatuses.Synced;
-        return (status, synced, expectedIds.Count);
+        return (status, synced, expectedIds.Count, syncedIds.ToHashSet());
+    }
+
+    /// <summary>
+    /// Diagnosis per angsuran. SINKRON hanya bila input payroll BENAR-BENAR tersimpan (syncedIds, dibaca dari TrxPayrollVariableInput).
+    /// Untuk yang belum, alasan dihitung ulang dari prasyarat yang sama dengan sinkron (DiagnoseAsync, baca-saja) sehingga tidak
+    /// menyimpang dan tidak perlu disimpan. Tidak mengubah apa pun.
+    /// </summary>
+    private async Task<List<InstallmentPayrollSyncDetailResponse>> BuildPayrollSyncDetailsAsync(
+        FinReceivableInstallmentPlan plan,
+        FinReceivable? receivable,
+        IReadOnlyList<FinReceivableInstallment> installments,
+        HashSet<Guid> syncedIds,
+        CancellationToken cancellationToken)
+    {
+        var details = new List<InstallmentPayrollSyncDetailResponse>();
+        if (plan.Status is not (FinReceivableInstallmentPlanStatuses.Disetujui or FinReceivableInstallmentPlanStatuses.Selesai))
+            return details;
+
+        var open = installments
+            .Where(x => x.Status != FinReceivableInstallmentStatuses.Dibatalkan)
+            .OrderBy(x => x.InstallmentNumber)
+            .ToList();
+
+        var toDiagnose = open
+            .Where(x => !syncedIds.Contains(x.Id) && x.Status == FinReceivableInstallmentStatuses.Dijadwalkan)
+            .ToList();
+
+        var gaps = new Dictionary<Guid, PayrollSyncGap?>();
+        if (toDiagnose.Count > 0)
+        {
+            var diagnosis = await _payrollSyncService.DiagnoseAsync(
+                receivable?.BenefitOwnerId, receivable?.BenefitOwnerWorkforceProfileId, toDiagnose, cancellationToken);
+            foreach (var item in diagnosis.Items) gaps[item.InstallmentId] = item.Gap;
+        }
+
+        foreach (var installment in open)
+        {
+            var detail = new InstallmentPayrollSyncDetailResponse
+            {
+                InstallmentId = installment.Id,
+                InstallmentNumber = installment.InstallmentNumber,
+                DeductionPeriod = installment.DeductionPeriod
+            };
+
+            if (syncedIds.Contains(installment.Id))
+            {
+                detail.SyncStatus = FinanceInstallmentPayrollSyncStatuses.Synced;
+            }
+            else if (installment.Status != FinReceivableInstallmentStatuses.Dijadwalkan)
+            {
+                // Sudah memasuki proses potongan (sebagian/tertunggak/terbayar): tidak dikirim ulang agar tidak dipotong dua kali.
+                detail.SyncStatus = FinanceInstallmentPayrollSyncStatuses.NotApplicable;
+                detail.ReasonCode = FinanceInstallmentPayrollSyncReasonCodes.InstallmentNotScheduled;
+                detail.ReasonMessage = $"Angsuran berstatus {installment.Status}; jadwalnya tidak dikirim ulang ke payroll.";
+            }
+            else
+            {
+                detail.SyncStatus = FinanceInstallmentPayrollSyncStatuses.NotSynced;
+                if (gaps.TryGetValue(installment.Id, out var gap) && gap is not null)
+                {
+                    detail.ReasonCode = gap.Code;
+                    detail.ReasonMessage = gap.Message;
+                    detail.RequiredAction = gap.Action;
+                }
+                else
+                {
+                    detail.ReasonCode = FinanceInstallmentPayrollSyncReasonCodes.NotSent;
+                    detail.ReasonMessage = "Prasyarat payroll terpenuhi, tetapi jadwal angsuran ini belum tersimpan sebagai input payroll.";
+                    detail.RequiredAction = "HRD dapat menjalankan Kirim Ulang ke Payroll.";
+                }
+            }
+
+            details.Add(detail);
+        }
+
+        return details;
+    }
+
+    /// <summary>PostgreSQL 40001 (serialization_failure) atau 40P01 (deadlock_detected), di mana pun pada rantai pengecualian.</summary>
+    private static bool IsTransientConcurrencyFailure(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            if (current is PostgresException { SqlState: "40001" or "40P01" }) return true;
+        }
+        return false;
     }
 
     private async Task SaveWithConcurrencyGuardAsync(CancellationToken cancellationToken)
